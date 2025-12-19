@@ -1,0 +1,37 @@
+#ifndef _EEP_CFG_H_
+#define _EEP_CFG_H_
+
+
+#define EEP_DATA_NUM (10)
+
+
+#define EEP_FLASH_CYCLE_MAX (20000)
+#define EEP_SECTOR_SIZE     (512)
+#define EEP_PAGE_SECTOR_NUM (1)
+#define EEP_FLASH_BASE      (0x200000)
+#define EEP_BLOCK_SIZE      EEP_SECTOR_SIZE
+#define EEP_PAGE_SIZE       EEP_BLOCK_SIZE
+#define EEP_PAGE_NUM        (2)
+
+
+#define EEP_PAGE_HADER_SIZE  (4)
+#define EEP_FLASH_WRITE_SIZE (4)
+#define EEP_TOTAL_SIZE       (EEP_PAGE_SIZE * EEP_PAGE_NUM)
+
+#define EEP_CYCLE_MAX (EEP_PAGE_NUM * EEP_FLASH_CYCLE_MAX)
+
+#define EEP_DATA_ADDR_MAX \
+    (EEP_PAGE_SIZE - EEP_PAGE_HADER_SIZE) / EEP_FLASH_WRITE_SIZE
+
+#define EEP_TARGET_CYCLE                                   \
+    (EEP_CYCLE_MAX * (EEP_PAGE_SIZE - EEP_PAGE_HADER_SIZE) \
+     / (EEP_DATA_NUM * EEP_FLASH_WRITE_SIZE))
+
+
+#define EEP_DATA_ALIGNMENT ((EEP_DATA_WIDTH + 7) / 8)
+
+#define EEP_WRITE_RETRIES (3)
+
+#define EEP_FLASH_WORD_NUM (EEP_FLASH_WRITE_SIZE / 4)
+
+#endif

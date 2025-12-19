@@ -1,0 +1,26 @@
+# Kconfig for XY Bank Component
+
+config XY_BANK_ENABLE
+    bool "Bank component support"
+    default n
+    help
+      Enable support for the Bank component.
+      This component provides battery management system.
+
+if XY_BANK_ENABLE
+
+config XY_BANK_TEST
+    bool "Enable Bank component tests"
+    default n
+    depends on XY_BANK_ENABLE
+    help
+      Enable unit tests for the Bank component.
+
+config XY_BANK_EXAMPLE
+    bool "Enable Bank component examples"
+    default n
+    depends on XY_BANK_ENABLE
+    help
+      Enable example applications for the Bank component.
+
+endif # XY_BANK_ENABLE

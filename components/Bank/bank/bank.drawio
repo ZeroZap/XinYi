@@ -1,0 +1,13 @@
+<mxfile host="65bd71144e">
+    <diagram id="YxRuEY6VPJjvfxSFRReO" name="Page-1">
+        <mxGraphModel dx="507" dy="715" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="2" value="batt_soc: percentage&lt;br&gt;batt_soh: percentage&lt;br&gt;full_chrg_cap:mAh&lt;br&gt;rem_cap:mAh&lt;br&gt;current:mA&lt;br&gt;voltage:mV&lt;br&gt;cycle_count:uint16&lt;br&gt;temperature&lt;br&gt;batt_dev_info:&lt;br&gt;- manuf_info&lt;br&gt;- dev_num&lt;br&gt;- release_date&lt;br&gt;- config_ver&lt;br&gt;- chem_id&lt;br&gt;- config_code" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="70" y="180" width="250" height="220" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

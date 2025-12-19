@@ -1,0 +1,19 @@
+--cpu Cortex-M0+
+".\output\release\startup_hc32l19x.o"
+".\output\release\system_hc32l19x.o"
+".\output\release\interrupts_hc32l19x.o"
+".\output\release\xy_ctype.o"
+".\output\release\xy_delay.o"
+".\output\release\xy_stdio.o"
+".\output\release\xy_string.o"
+".\output\release\main.o"
+".\output\release\eep_hc32lxx.o"
+".\output\release\eep.o"
+".\output\release\sysctrl.o"
+".\output\release\flash.o"
+".\output\release\ddl.o"
+".\output\release\uart.o"
+--library_type=microlib --strict --scatter ".\output\release\HC32L19X.sct"
+--keep=*Handler --summary_stderr --info summarysizes --map --load_addr_map_info --symbols
+--info sizes --info totals
+--list ".\output\release\HC32L19X.map" -o .\output\release\HC32L19X.axf

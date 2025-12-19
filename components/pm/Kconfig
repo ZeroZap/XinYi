@@ -1,0 +1,26 @@
+# Kconfig for XY pm Component
+
+config XY_PM_ENABLE
+    bool "pm component support"
+    default n
+    help
+      Enable support for the pm component.
+      This component provides power management.
+
+if XY_PM_ENABLE
+
+config XY_PM_TEST
+    bool "Enable pm component tests"
+    default n
+    depends on XY_PM_ENABLE
+    help
+      Enable unit tests for the pm component.
+
+config XY_PM_EXAMPLE
+    bool "Enable pm component examples"
+    default n
+    depends on XY_PM_ENABLE
+    help
+      Enable example applications for the pm component.
+
+endif # XY_PM_ENABLE

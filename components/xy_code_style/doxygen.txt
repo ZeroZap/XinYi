@@ -1,0 +1,105 @@
+注释
+
+尽量用英文
+
+除非换行，结尾要有点号
+
+note要放在其他注释的下方
+
+@}要 加单行备注
+
+在@}*/ 后面加 多一行 /** end of 备注 */
+
+在 @} 这里插入 end of 备注 */ 感觉这种更好些，参考 CMSIS 
+
+Ariaha 的 是将 @} 多行，@}单独一行再追加 end of
+
+end of 小写，推荐，
+
+成员注释
+
+成员旁边注释要用 /**< annotation. */
+
+成员上方注释只能 /** annotation. */ 否则生成的注释会乱的
+
+换行 \n 之前要空行，否则会影响显示效果
+
+如果 \n 前面是 ref 的 group 或其他关键字加了.号时，则可能无法显示相关引用
+
+ 
+
+ 
+
+@} endof 的写法
+
+/** end of Camel * @} */ /** * @} end of Camel */ /** * @} */ /* end of Camel */ /** @} */ /* end of Camel */ /** @} */ /* End of Camel */ /** @} end of Camel */ /** @} end of Camel group ？ */ /** @} end of group Camel */
+
+ 
+
+双向链接-Bidirectional link
+
+ 
+
+group 进行 brief 的必要性探讨
+
+增加后文档更详细
+
+￼
+
+可以参考 stm32yyxx_hal_gpio.h 和 stm32yyxx_hal_gpio.c
+
+最顶层的 brief 可以放到 文件的 上进行 brief 描述？
+
+group 进行detail的必要性探讨
+
+ 
+
+ 
+
+关键符号的选择
+
+选择 @ 在常规的定义
+
+选择 \ 通常时在 内存定义，方便做区分
+
+ 
+
+ 
+
+@verbatim 用法
+
+ 
+
+@name 用法
+
+可在在生成文档中，源码查看时，相关注释会清除，需要额外的name 去涵括相关
+
+便于生成并隔开不同的成员组，该成员不止 class 的成员，如进行 public, private 等权限的分割，也可以宏定义的组分割
+
+ 
+
+/** @name Macro Group A * @{ */ #define GROUP_A_XYZ /** @{ end of Name Macro Group A */
+
+ 
+
+在 C 中一般用于 宏的分割，或者空白添加注释
+
+后续测试发现：
+
+- 结构体没法设定--》 是位域结构体不行，名为 enumeration
+
+- 实测，结构体也不能
+
+- 枚举的可以
+
+- 联合体呢？不行
+
+- 总结：常量才可以？？
+
+范本1
+
+ 
+
+## .h /* Includes ------------------------------------------------------------------*/ /* Private includes ----------------------------------------------------------*/ @addtogroup HAL_DRIVER @defgroup HAL_AA /* Exported types ------------------------------------------------------------*/ @defgroup AA_Exported_Types /* Exported constants --------------------------------------------------------*/ @defgroup AA_Exported_Constants /* Exported macro ------------------------------------------------------------*/ @defgroup AA_Exported_Macros /* Exported functions --------------------------------------------------------*/ @defgroup XX_Exported_Functions_Group1 /* Private types ------------------------------------------------------------*/ @defgroup AA_Private_Types /* Private constants ---------------------------------------------------------*/ @defgroup AA_Private_Constants /* Private macros ------------------------------------------------------------*/ @defgroup AA_Private_Macros /* Private functions ---------------------------------------------------------*/ @defgroup AA_Private_Functions 这个可以去掉，不需要暴露出来 ## .C @addtogroup HAL_DRIVER @addtogroup HAL_AA /* Private types ---------------------------------------------------------------*/ @addtogroup AA_Private_Types /* Private constants ------------------------------------------------------------*/ @addtogroup AA_Private_Constants /* Private macros ---------------------------------------------------------------*/ @addtogroup AA_Private_Macros /* Private variables ------------------------------------------------------------*/ @defgroup Private_Variables /* Private function prototypes --------------------------------------------------*/ @addtogroup Private_Function_Prototypes /* External variables --------------------------------------------------------*/ /* External functions --------------------------------------------------------*/ /* Exported functions --------------------------------------------------------*/ @addtogroup XX_Exported_Functions_Group1 /* Private functions ------------------------------------------------------------*/ @addtogroup AA_Private_Functions /* Exported Handler ------------------------------------------------------------*/ @addtogroup AA_Private_Functions /* Exposed --------------------------------------------------------------------*/ @addtogroup AA_Exposed 这个好像就不确定优先级了。。。
+
+ 
