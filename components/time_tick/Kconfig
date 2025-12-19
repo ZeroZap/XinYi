@@ -1,0 +1,26 @@
+# Kconfig for XY time_tick Component
+
+config XY_TIME_TICK_ENABLE
+    bool "time_tick component support"
+    default n
+    help
+      Enable support for the time_tick component.
+      This component provides time tick management.
+
+if XY_TIME_TICK_ENABLE
+
+config XY_TIME_TICK_TEST
+    bool "Enable time_tick component tests"
+    default n
+    depends on XY_TIME_TICK_ENABLE
+    help
+      Enable unit tests for the time_tick component.
+
+config XY_TIME_TICK_EXAMPLE
+    bool "Enable time_tick component examples"
+    default n
+    depends on XY_TIME_TICK_ENABLE
+    help
+      Enable example applications for the time_tick component.
+
+endif # XY_TIME_TICK_ENABLE

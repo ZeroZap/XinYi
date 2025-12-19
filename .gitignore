@@ -1,0 +1,12 @@
+.vscode/
+build/
+*.o
+*.a
+*.html
+**/third_party/**
+*.sublime-project
+*.sublime-workspace
+Gemfile.lock
+.rake_t_cache
+.DS_Store
+*.swp

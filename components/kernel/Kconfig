@@ -1,0 +1,26 @@
+# Kconfig for XY kernel Component
+
+config XY_KERNEL_ENABLE
+    bool "kernel component support"
+    default n
+    help
+      Enable support for the kernel component.
+      This component provides kernel components.
+
+if XY_KERNEL_ENABLE
+
+config XY_KERNEL_TEST
+    bool "Enable kernel component tests"
+    default n
+    depends on XY_KERNEL_ENABLE
+    help
+      Enable unit tests for the kernel component.
+
+config XY_KERNEL_EXAMPLE
+    bool "Enable kernel component examples"
+    default n
+    depends on XY_KERNEL_ENABLE
+    help
+      Enable example applications for the kernel component.
+
+endif # XY_KERNEL_ENABLE
