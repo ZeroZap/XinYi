@@ -1,0 +1,106 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Tool Versions:</h2>
+IDE-Version: ¦ÌVision V5.38.0.0
+Copyright (C) 2022 ARM Ltd and ARM Germany GmbH. All rights reserved.
+License Information: Eugene Chan, ZeroZap, LIC=9WSKC-78UVA-UHS8H-WGX5T-BGK92-N37L1
+ 
+Tool Versions:
+Toolchain:       MDK-ARM Plus  Version: 5.38.0.0
+Toolchain Path:  C:\Keil_v5\ARM\ARMCC\Bin
+C Compiler:      Armcc.exe V5.06 update 7 (build 960)
+Assembler:       Armasm.exe V5.06 update 7 (build 960)
+Linker/Locator:  ArmLink.exe V5.06 update 7 (build 960)
+Library Manager: ArmAr.exe V5.06 update 7 (build 960)
+Hex Converter:   FromElf.exe V5.06 update 7 (build 960)
+CPU DLL:         SARMCM3.DLL V5.38.0.0
+Dialog DLL:      DARMCM1.DLL V1.19.6.0
+Target DLL:      Segger\JL2CM3.dll V2.99.42.0
+Dialog DLL:      TARMCM1.DLL V1.14.6.0
+ 
+<h2>Project:</h2>
+E:\github_download\_ZeroZap\xy\component\third_party\fs\EEPROM\examples\HC32L19x_Template_Rev1.1.0\example\MDK\HC32L19X.uvprojx
+Project File Date:  03/26/2025
+
+<h2>Output:</h2>
+*** Using Compiler 'V5.06 update 7 (build 960)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
+Rebuild target 'HC32L19X_Release'
+assembling startup_hc32l19x.s...
+compiling xy_ctype.c...
+..\..\..\..\..\..\..\..\common\xy_ctype.c(102): warning:  #1-D: last line of file ends without a newline
+  }
+..\..\..\..\..\..\..\..\common\xy_ctype.c: 1 warning, 0 errors
+compiling xy_delay.c...
+compiling xy_string.c...
+..\..\..\..\..\..\..\..\common\xy_string.h(25): warning:  #1-D: last line of file ends without a newline
+  #endif
+..\..\..\..\..\..\..\..\common\xy_string.c(150): warning:  #177-D: function "xy_nibble_from_char"  was declared but never referenced
+  static xy_u8_t xy_nibble_from_char(char c)
+..\..\..\..\..\..\..\..\common\xy_string.c: 2 warnings, 0 errors
+compiling xy_stdio.c...
+..\..\..\..\..\..\..\..\common\xy_stdio.h(49): warning:  #1-D: last line of file ends without a newline
+  #endif // _XY_STDIO_H
+..\..\..\..\..\..\..\..\common\xy_stdio.c(391): warning:  #223-D: function "strcpy" declared implicitly
+          strcpy(buf, "nan");
+..\..\..\..\..\..\..\..\common\xy_stdio.c(395): warning:  #223-D: function "strcpy" declared implicitly
+          strcpy(buf, val < 0 ? "-inf" : "inf");
+..\..\..\..\..\..\..\..\common\xy_stdio.c(624): warning:  #550-D: variable "precision"  was set but never used
+      int width, val, precision;
+..\..\..\..\..\..\..\..\common\xy_stdio.c(626): warning:  #550-D: variable "is_long"  was set but never used
+      xy_bool_t is_lower, is_long, is_long_long;
+..\..\..\..\..\..\..\..\common\xy_stdio.c(628): warning:  #550-D: variable "left_justify"  was set but never used
+      xy_bool_t left_justify, show_plus, show_space;
+..\..\..\..\..\..\..\..\common\xy_stdio.c(628): warning:  #550-D: variable "show_plus"  was set but never used
+      xy_bool_t left_justify, show_plus, show_space;
+..\..\..\..\..\..\..\..\common\xy_stdio.c(628): warning:  #550-D: variable "show_space"  was set but never used
+      xy_bool_t left_justify, show_plus, show_space;
+..\..\..\..\..\..\..\..\common\xy_stdio.c(629): warning:  #550-D: variable "alt_form"  was set but never used
+      xy_bool_t alt_form;
+..\..\..\..\..\..\..\..\common\xy_stdio.c(1141): warning:  #177-D: variable "count"  was declared but never referenced
+      int count        = 0;
+..\..\..\..\..\..\..\..\common\xy_stdio.c(1146): warning:  #177-D: variable "base"  was declared but never referenced
+      int base;
+..\..\..\..\..\..\..\..\common\xy_stdio.c(17): warning:  #177-D: function "xy_div64_10"  was declared but never referenced
+  static xy_u64_t xy_div64_10(xy_u64_t u64val)
+..\..\..\..\..\..\..\..\common\xy_stdio.c(374): warning:  #177-D: function "ftoa"  was declared but never referenced
+  static int ftoa(float val, char *buf, int precision)
+..\..\..\..\..\..\..\..\common\xy_stdio.c: 13 warnings, 0 errors
+compiling eep.c...
+..\..\..\..\eep.c(179): warning:  #177-D: variable "ret"  was declared but never referenced
+      int32_t ret;
+..\..\..\..\eep.c: 1 warning, 0 errors
+compiling system_hc32l19x.c...
+compiling interrupts_hc32l19x.c...
+compiling main.c...
+compiling eep_hc32lxx.c...
+compiling sysctrl.c...
+compiling flash.c...
+compiling ddl.c...
+compiling uart.c...
+linking...
+Program Size: Code=1096 RO-data=248 RW-data=4 ZI-data=516  
+FromELF: creating hex file...
+".\output\release\HC32L19X.axf" - 0 Error(s), 17 Warning(s).
+
+<h2>Software Packages used:</h2>
+
+Package Vendor: ARM
+                http://www.keil.com/pack/ARM.CMSIS.5.9.0.pack
+                ARM.CMSIS.5.9.0
+                CMSIS (Common Microcontroller Software Interface Standard)
+   * Component: CORE Version: 5.6.0
+
+<h2>Collection of Component include folders:</h2>
+  ./RTE/_HC32L19X_Release
+  C:/Users/86158/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/CMSIS/Core/Include
+  C:/Users/86158/AppData/Local/Arm/Packs/ARM/CMSIS/5.9.0/Device/ARM/ARMCM0plus/Include
+
+<h2>Collection of Component Files used:</h2>
+
+   * Component: ARM::CMSIS:CORE:5.6.0
+Build Time Elapsed:  00:00:02
+</pre>
+</body>
+</html>

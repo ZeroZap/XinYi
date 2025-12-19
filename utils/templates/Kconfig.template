@@ -1,0 +1,26 @@
+# Kconfig for XY @COMPONENT_NAME@ Component
+
+config XY_@COMPONENT_NAME_UC@_ENABLE
+    bool "@COMPONENT_NAME@ component support"
+    default n
+    help
+      Enable support for the @COMPONENT_NAME@ component.
+      This component provides @COMPONENT_DESCRIPTION@.
+
+if XY_@COMPONENT_NAME_UC@_ENABLE
+
+config XY_@COMPONENT_NAME_UC@_TEST
+    bool "Enable @COMPONENT_NAME@ component tests"
+    default n
+    depends on XY_@COMPONENT_NAME_UC@_ENABLE
+    help
+      Enable unit tests for the @COMPONENT_NAME@ component.
+
+config XY_@COMPONENT_NAME_UC@_EXAMPLE
+    bool "Enable @COMPONENT_NAME@ component examples"
+    default n
+    depends on XY_@COMPONENT_NAME_UC@_ENABLE
+    help
+      Enable example applications for the @COMPONENT_NAME@ component.
+
+endif # XY_@COMPONENT_NAME_UC@_ENABLE
