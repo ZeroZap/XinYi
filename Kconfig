@@ -1,0 +1,32 @@
+# Top-level Kconfig for XY Framework
+
+menu "XY Framework Configuration"
+
+config XY_FRAMEWORK_VERSION
+    string "XY Framework Version"
+    default "1.0.0"
+    help
+      The version of the XY Framework being used.
+
+# Include component configurations
+source "components/crypto/Kconfig"
+source "components/xy_clib/Kconfig"
+source "components/dm/Kconfig"
+source "components/net/Kconfig"
+source "components/device/Kconfig"
+source "components/trace/Kconfig"
+source "components/osal/Kconfig"
+source "components/Bank/Kconfig"
+source "components/sensor/Kconfig"
+source "components/ipc/Kconfig"
+source "components/time_tick/Kconfig"
+source "components/xy_key/Kconfig"
+source "components/xy_state_machine/Kconfig"
+source "components/fota/Kconfig"
+source "components/kernel/Kconfig"
+source "components/misc/Kconfig"
+source "components/pm/Kconfig"
+source "components/xfer/Kconfig"
+source "components/xy_code_style/Kconfig"
+
+endmenu
