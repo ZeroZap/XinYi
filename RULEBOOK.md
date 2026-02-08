@@ -251,17 +251,17 @@ if (ret != XY_HAL_OK) {
 
 ### 6.1 Dynamic Allocation
 
-**Use standard C memory functions:**
+**Use xylib C memory functions:**
 
 ```c
 /* Good */
-uint8_t *buffer = malloc(sizeof(*buffer) * size);
+uint8_t *buffer = xy_malloc(sizeof(*buffer) * size);
 if (!buffer) {
     xy_log_e("Memory allocation failed\n");
     return -ENOMEM;
 }
 /* ... use buffer ... */
-free(buffer);
+xy_free(buffer);
 
 /* Wrong - VLA is forbidden */
 void bad_function(size_t size) {
