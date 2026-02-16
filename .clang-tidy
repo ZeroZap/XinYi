@@ -1,0 +1,23 @@
+# 启用现代C++转换、性能优化和潜在错误检查，排除部分冗余项
+Checks: >-
+  modernize-*,
+  performance-*,
+  bugprone-*,
+  readability-*,
+  -modernize-use-trailing-return-type,  # 不强制尾返回类型
+  -readability-magic-numbers           # 允许魔法数字（需注释说明）
+
+# 将关键错误转为编译级错误
+WarningsAsErrors:
+  - bugprone-undefined-memory-manipulation
+  - performance-no-automatic-move
+
+# 仅检查项目源码目录
+HeaderFilterRegex: '^src/.*|include/.*'
+
+# 自定义检查参数
+CheckOptions:
+  - key: readability-function-size.LineThreshold
+    value: '80'  # 函数超过80行才警告
+  - key: modernize-loop-convert.MaxCopySize
+    value: '16'  # 小对象（≤16字节）允许按值捕获

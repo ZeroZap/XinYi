@@ -1,8 +1,3 @@
-[submodule "vendor/unity"]
-	path = vendor/unity
-	url = https://github.com/throwtheswitch/unity.git
-	branch = master
-[submodule "vendor/c_exception"]
-	path = vendor/c_exception
-	url = https://github.com/throwtheswitch/cexception.git
-	branch = master
+[submodule "MCU/ST/STM32U5"]
+	path = MCU/ST/STM32U5
+	url = https://github.com/STMicroelectronics/stm32u5xx-hal-driver.git

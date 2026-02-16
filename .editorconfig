@@ -1,0 +1,12 @@
+# .editorconfig
+root = true
+
+[*]  # 所有文件
+charset = utf-8
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.{cpp,hpp,c,h}]  # C/C++ 文件
+indent_style = space
+indent_size = 4  # 假设团队约定 C++ 缩进 2 空格
