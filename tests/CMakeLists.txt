@@ -118,10 +118,37 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/components/trace)
     )
 endif()
 
+# ==================== DM (Data Management) Tests ====================
+
+# DM component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/dm)
+    add_component_test(test_dm
+        ${CMAKE_SOURCE_DIR}/components/dm
+        "${CMAKE_SOURCE_DIR}/tests/test_dm.c"
+    )
+    target_include_directories(test_dm PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/dm/xy_tlv
+    )
+endif()
+
+# ==================== NET (Network) Tests ====================
+
+# NET component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/net)
+    add_component_test(test_net
+        ${CMAKE_SOURCE_DIR}/components/net
+        "${CMAKE_SOURCE_DIR}/tests/test_net.c"
+    )
+    target_include_directories(test_net PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/net/xy_iso7816
+        ${CMAKE_SOURCE_DIR}/components/net/modbus
+    )
+endif()
+
 # Run all tests
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_osal test_crypto test_xy_clib test_trace
+    DEPENDS test_osal test_crypto test_xy_clib test_trace test_dm test_net
     COMMENT "Running all tests..."
 )
 

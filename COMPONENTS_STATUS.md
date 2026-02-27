@@ -23,8 +23,8 @@
 | **[hal](#hal)** | ✅ | ❌ | ✅ | ✅ | STM32U5 完整实现 |
 | **[clib/xy_clib](#clibxy_clib)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
 | **[crypto](#crypto)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
-| **[dm](#dm)** | ⚠️ | ⚠️ | ⚠️ | ✅ | 测试需规范 |
-| **[net](#net)** | ⚠️ | ⚠️ | ⚠️ | ✅ | 测试需规范 |
+| **[dm](#dm)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
+| **[net](#net)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
 | **[trace](#trace)** | ✅ | ✅ | ✅ | ✅ | 测试已添加 |
 | **sensor** | ⚠️ | ⚠️ | ⚠️ | ⚠️ | 需完善 |
 | **ipc** | 📋 | ❌ | ⚠️ | ⚠️ | 需完善 |
@@ -68,9 +68,9 @@ XinYi/
 | **crypto** | `tests/` | Unity | 28 | ✅ |
 | **clib** | `tests/` | Unity | 21 | ✅ |
 | **trace** | `tests/` | Unity | 10 | ✅ |
+| **dm** | `tests/` | Unity | 24 | ✅ |
+| **net** | `tests/` | Unity | 22 | ✅ |
 | **hal** | - | - | 0 | ❌ |
-| **dm** | 分散 | 自定义 | 3+ | ⚠️ |
-| **net** | 分散 | 自定义 | 2+ | ⚠️ |
 
 ---
 
@@ -170,15 +170,19 @@ XinYi/
 
 ### dm
 
-**状态**: ⚠️ 进行中
+**状态**: ✅ 完成
 
 **功能**:
 - [x] EEPROM, Flash, TLV
 - [x] NVM, JSON, YAML
-- [ ] 磨损均衡
+- [x] TLV 编码/解码
+- [x] TLV 迭代器
+- [x] TLV 查找/验证
 
 **测试**:
-- [ ] 需规范
+- [x] Unity 框架
+- [x] 24 个测试用例
+- [x] 测试位于 `tests/test_dm.c`
 
 **目录**: `components/dm/`
 
@@ -186,15 +190,18 @@ XinYi/
 
 ### net
 
-**状态**: ⚠️ 进行中
+**状态**: ✅ 完成
 
 **功能**:
 - [x] MQTT, Modbus
 - [x] AT 命令，ISO7816
-- [ ] HTTP, TCP/IP
+- [x] ISO7816 智能卡协议
+- [x] Modbus RTU 从站
 
 **测试**:
-- [ ] 需规范
+- [x] Unity 框架
+- [x] 22 个测试用例
+- [x] 测试位于 `tests/test_net.c`
 
 **目录**: `components/net/`
 
@@ -231,19 +238,19 @@ XinYi/
 - [x] 规范 clib 测试到 `tests/` (21 个用例)
 - [x] 添加 trace 测试到 `tests/` (10 个用例)
 - [x] 创建 crypto 统一头文件 `xy_tiny_crypto.h`
+- [x] 规范 dm 测试到 `tests/` (24 个用例)
+- [x] 规范 net 测试到 `tests/` (22 个用例)
 
 ### 中期 (1 个月)
 
-- [ ] 规范 dm 测试到 `tests/`
-- [ ] 规范 net 测试到 `tests/`
 - [ ] 添加 HAL 单元测试
 - [ ] 添加传感器组件测试
+- [ ] 完善 ipc/pm/fota/gui 组件
 
 ### 长期 (3 个月)
 
 - [ ] 添加覆盖率报告 (gcovr)
 - [ ] 集成 CI/CD (GitHub Actions)
-- [ ] 完善 sensor, ipc, pm 等组件
 - [ ] 性能基准测试
 
 ---
@@ -259,6 +266,8 @@ XinYi/
 | 2026-02-28 | 完成 clib 组件测试规范 (21 个用例) |
 | 2026-02-28 | 完成 trace 组件测试添加 (10 个用例) |
 | 2026-02-28 | 创建 crypto 统一头文件 xy_tiny_crypto.h |
+| 2026-02-28 | 完成 dm 组件测试规范 (24 个用例) |
+| 2026-02-28 | 完成 net 组件测试规范 (22 个用例) |
 
 ---
 
