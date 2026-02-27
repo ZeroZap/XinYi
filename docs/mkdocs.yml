@@ -1,0 +1,199 @@
+# XinYi 嵌入式框架文档
+
+site_name: XinYi Docs
+site_description: 模块化、生产级的嵌入式 C 框架
+site_url: https://xinyi.zerovoid.com/
+site_author: XinYi Team
+
+# 仓库配置
+repo_name: ZeroZap/XinYi
+repo_url: https://github.com/ZeroZap/XinYi
+edit_uri: blob/main/docs/
+
+# 主题配置
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换到深色模式
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换到浅色模式
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: assets/favicon.ico
+  logo: assets/logo.svg
+
+# 导航菜单
+nav:
+  - 首页: index.md
+  - 快速开始:
+    - 简介: getting-started/introduction.md
+    - 特性一览: getting-started/features.md
+    - 5 分钟上手: getting-started/quickstart.md
+    - 开发环境: getting-started/toolchain.md
+    - 构建指南: getting-started/build.md
+    - 运行测试: getting-started/testing.md
+  - 组件文档:
+    - 组件总览: components/index.md
+    - OSAL:
+      - 简介: components/osal/introduction.md
+      - 快速开始: components/osal/quickstart.md
+      - 配置指南: components/osal/configuration.md
+      - API 参考: components/osal/api-reference.md
+      - 示例代码: components/osal/examples.md
+    - HAL:
+      - 简介: components/hal/introduction.md
+      - 支持平台: components/hal/platforms.md
+      - 外设驱动: components/hal/drivers.md
+      - API 参考: components/hal/api-reference.md
+      - 移植指南: components/hal/porting.md
+    - Crypto:
+      - 简介: components/crypto/introduction.md
+      - 算法列表: components/crypto/algorithms.md
+      - API 参考: components/crypto/api-reference.md
+      - 使用示例: components/crypto/examples.md
+    - CLib: components/clib/index.md
+    - DM: components/dm/index.md
+    - NET: components/net/index.md
+    - Sensor: components/sensor/index.md
+    - IPC: components/ipc/index.md
+    - PM: components/pm/index.md
+    - PID: components/pid/index.md
+    - ADDC: components/addc/index.md
+    - FOTA: components/fota/index.md
+    - GUI: components/gui/index.md
+  - API 参考:
+    - 索引: api/index.md
+    - 按组件: api/by-component.md
+    - 按功能: api/by-function.md
+    - 全局宏: api/macros.md
+    - 错误码: api/error-codes.md
+    - 术语表: api/glossary.md
+  - 示例代码:
+    - 概述: samples/index.md
+    - Hello World: samples/hello-world.md
+    - 组件示例: samples/components.md
+    - 综合项目: samples/projects.md
+  - 工具链:
+    - 概述: toolchain/index.md
+    - 构建系统: toolchain/build-system.md
+    - 测试框架: toolchain/test-framework.md
+    - CI/CD: toolchain/cicd.md
+    - 代码风格: toolchain/code-style.md
+  - 硬件支持:
+    - 概述: hardware/index.md
+    - 支持的开发板: hardware/boards.md
+    - 移植指南: hardware/porting.md
+  - 贡献指南:
+    - 概述: contribute/index.md
+    - 代码风格: contribute/code-style.md
+    - 提交 PR: contribute/submit-pr.md
+    - 报告 Bug: contribute/bug-report.md
+  - 关于:
+    - 项目简介: about/index.md
+    - 更新日志: about/changelog.md
+    - 路线图: about/roadmap.md
+    - 常见问题: about/faq.md
+
+# 插件配置
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+  - minify:
+      minify_html: true
+  - git-revision-date-localized:
+      type: date
+      locale: zh
+
+# Markdown 扩展
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - meta
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: ZeroZap
+      repo: XinYi
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/mkdocs.md
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# 额外配置
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ZeroZap/XinYi
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/xxx
+  generator: false
+
+# 额外 CSS/JS
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/extra.js
