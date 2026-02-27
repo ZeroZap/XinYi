@@ -145,10 +145,51 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/components/net)
     )
 endif()
 
+# ==================== Sensor Tests ====================
+
+# Sensor component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/sensor)
+    add_component_test(test_sensor
+        ${CMAKE_SOURCE_DIR}/components/sensor
+        "${CMAKE_SOURCE_DIR}/tests/test_sensor.c"
+    )
+    target_include_directories(test_sensor PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/sensor
+    )
+endif()
+
+# ==================== IPC Tests ====================
+
+# IPC component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/ipc)
+    add_component_test(test_ipc
+        ${CMAKE_SOURCE_DIR}/components/ipc
+        "${CMAKE_SOURCE_DIR}/tests/test_ipc.c"
+    )
+    target_include_directories(test_ipc PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/ipc/pipe
+        ${CMAKE_SOURCE_DIR}/components/ipc/observer
+    )
+endif()
+
+# ==================== PM (Power Management) Tests ====================
+
+# PM component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/pm)
+    add_component_test(test_pm
+        ${CMAKE_SOURCE_DIR}/components/pm
+        "${CMAKE_SOURCE_DIR}/tests/test_pm.c"
+    )
+    target_include_directories(test_pm PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/pm/charger
+        ${CMAKE_SOURCE_DIR}/components/pm/fuel-gauge
+    )
+endif()
+
 # Run all tests
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_osal test_crypto test_xy_clib test_trace test_dm test_net
+    DEPENDS test_osal test_crypto test_xy_clib test_trace test_dm test_net test_sensor test_ipc test_pm
     COMMENT "Running all tests..."
 )
 
