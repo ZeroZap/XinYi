@@ -199,10 +199,36 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/components/hal)
     )
 endif()
 
+# ==================== PID Tests ====================
+
+# PID component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/pid)
+    add_component_test(test_pid
+        ${CMAKE_SOURCE_DIR}/components/pid
+        "${CMAKE_SOURCE_DIR}/tests/test_pid.c"
+    )
+    target_include_directories(test_pid PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/pid
+    )
+endif()
+
+# ==================== ADDC Tests ====================
+
+# ADDC component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/addc)
+    add_component_test(test_addc
+        ${CMAKE_SOURCE_DIR}/components/addc
+        "${CMAKE_SOURCE_DIR}/tests/test_addc.c"
+    )
+    target_include_directories(test_addc PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/addc
+    )
+endif()
+
 # Run all tests
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_osal test_crypto test_xy_clib test_trace test_dm test_net test_sensor test_ipc test_pm test_hal
+    DEPENDS test_osal test_crypto test_xy_clib test_trace test_dm test_net test_sensor test_ipc test_pm test_hal test_pid test_addc
     COMMENT "Running all tests..."
 )
 
