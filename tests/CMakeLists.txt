@@ -78,26 +78,50 @@ endif()
 
 # ==================== CLib Tests ====================
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/clib/xy_clib/tests)
+# CLib component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
     add_component_test(test_xy_clib
         ${CMAKE_SOURCE_DIR}/components/clib/xy_clib
-        "${CMAKE_SOURCE_DIR}/components/clib/xy_clib/tests/test_filter.c;
-         ${CMAKE_SOURCE_DIR}/components/clib/xy_clib/tests/test_sort.c"
+        "${CMAKE_SOURCE_DIR}/tests/test_xy_clib.c"
     )
 endif()
 
 # ==================== Crypto Tests ====================
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/crypto/tests)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/components/crypto/tests crypto_tests)
+# Crypto component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/crypto)
+    add_component_test(test_crypto
+        ${CMAKE_SOURCE_DIR}/components/crypto
+        "${CMAKE_SOURCE_DIR}/tests/test_crypto.c"
+    )
+    target_include_directories(test_crypto PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/crypto/xymd
+        ${CMAKE_SOURCE_DIR}/components/crypto/xy_aes
+        ${CMAKE_SOURCE_DIR}/components/crypto/xy_base
+        ${CMAKE_SOURCE_DIR}/components/crypto/xy_crc
+        ${CMAKE_SOURCE_DIR}/components/crypto/xy_hex
+        ${CMAKE_SOURCE_DIR}/components/crypto/xy_hmac
+        ${CMAKE_SOURCE_DIR}/components/crypto/xy_rng
+    )
 endif()
 
 # ==================== Custom Test Targets ====================
 
+# Trace component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/trace)
+    add_component_test(test_trace
+        ${CMAKE_SOURCE_DIR}/components/trace
+        "${CMAKE_SOURCE_DIR}/tests/test_trace.c"
+    )
+    target_include_directories(test_trace PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/trace/xy_log/inc
+    )
+endif()
+
 # Run all tests
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_osal
+    DEPENDS test_osal test_crypto test_xy_clib test_trace
     COMMENT "Running all tests..."
 )
 

@@ -21,11 +21,11 @@
 |------|------|------|------|------|------|
 | **[kernel/osal](#kernelosal)** | ✅ | ✅ | ✅ | ✅ | 支持 4 种后端 |
 | **[hal](#hal)** | ✅ | ❌ | ✅ | ✅ | STM32U5 完整实现 |
-| **[clib/xy_clib](#clibxy_clib)** | ✅ | ⚠️ | ✅ | ✅ | 测试已去重 |
-| **[crypto](#crypto)** | ✅ | ⚠️ | ✅ | ✅ | 测试需规范 |
+| **[clib/xy_clib](#clibxy_clib)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
+| **[crypto](#crypto)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
 | **[dm](#dm)** | ⚠️ | ⚠️ | ⚠️ | ✅ | 测试需规范 |
 | **[net](#net)** | ⚠️ | ⚠️ | ⚠️ | ✅ | 测试需规范 |
-| **[trace](#trace)** | ✅ | ❌ | ✅ | ✅ | 缺少测试 |
+| **[trace](#trace)** | ✅ | ✅ | ✅ | ✅ | 测试已添加 |
 | **sensor** | ⚠️ | ⚠️ | ⚠️ | ⚠️ | 需完善 |
 | **ipc** | 📋 | ❌ | ⚠️ | ⚠️ | 需完善 |
 | **pm** | 📋 | ❌ | ⚠️ | ⚠️ | 需完善 |
@@ -45,7 +45,10 @@
 ```
 XinYi/
 ├── tests/                     # ✅ 统一测试入口
-│   └── CMakeLists.txt         # 统一构建配置
+│   ├── CMakeLists.txt         # 统一构建配置
+│   ├── test_crypto.c          # ✅ Crypto 测试
+│   ├── test_xy_clib.c         # ✅ CLib 测试
+│   └── test_trace.c           # ✅ Trace 测试
 │
 ├── third_party/unity/         # ✅ Unity 测试框架
 │   ├── unity.c
@@ -54,9 +57,7 @@ XinYi/
 │
 └── components/
     ├── kernel/osal/tests/     ✅ 规范测试目录
-    ├── clib/xy_clib/tests/    ⚠️ 需规范
-    ├── crypto/tests/          ⚠️ 需规范
-    └── ...
+    └── */tests/               ⚠️ 逐步迁移到 tests/
 ```
 
 ### 测试统计
@@ -64,12 +65,12 @@ XinYi/
 | 组件 | 测试目录 | 测试框架 | 用例数 | 状态 |
 |------|---------|----------|--------|------|
 | **osal** | `tests/` | Unity | 17 | ✅ |
+| **crypto** | `tests/` | Unity | 28 | ✅ |
+| **clib** | `tests/` | Unity | 21 | ✅ |
+| **trace** | `tests/` | Unity | 10 | ✅ |
 | **hal** | - | - | 0 | ❌ |
-| **clib** | `tests/` | Unity | 20+ | ⚠️ |
-| **crypto** | `test/` | 自定义 | 5+ | ⚠️ |
 | **dm** | 分散 | 自定义 | 3+ | ⚠️ |
 | **net** | 分散 | 自定义 | 2+ | ⚠️ |
-| **trace** | - | - | 0 | ❌ |
 
 ---
 
@@ -135,10 +136,13 @@ XinYi/
 - [x] 数学工具
 - [x] 数据结构
 - [x] 编码转换
+- [x] 滤波算法
+- [x] 排序算法
 
 **测试**:
-- [x] 已去重
-- [ ] 需移到 `tests/`
+- [x] Unity 框架
+- [x] 21 个测试用例
+- [x] 测试位于 `tests/test_xy_clib.c`
 
 **目录**: `components/clib/xy_clib/`
 
@@ -151,11 +155,14 @@ XinYi/
 **功能**:
 - [x] AES, HMAC, CRC
 - [x] Base64, MD5, SHA
-- [x] Curve25519, RNG
+- [x] Hex 编码
+- [x] 随机数生成
 
 **测试**:
-- [x] 基础测试
-- [ ] 需规范到 `tests/`
+- [x] Unity 框架
+- [x] 28 个测试用例
+- [x] 测试位于 `tests/test_crypto.c`
+- [x] 创建统一头文件 `xy_tiny_crypto.h`
 
 **目录**: `components/crypto/`
 
@@ -200,10 +207,13 @@ XinYi/
 **功能**:
 - [x] xy_log 日志
 - [x] xy_cmd 命令
-- [ ] 性能追踪
+- [x] 动态日志级别
+- [x] 多级别日志 (E/W/I/D/V)
 
 **测试**:
-- [ ] 缺失
+- [x] Unity 框架
+- [x] 10 个测试用例
+- [x] 测试位于 `tests/test_trace.c`
 
 **目录**: `components/trace/`
 
@@ -217,19 +227,24 @@ XinYi/
 - [x] 移动 Unity 到 third_party/
 - [x] 创建 tests/CMakeLists.txt
 - [x] 创建测试布局分析文档
+- [x] 规范 crypto 测试到 `tests/` (28 个用例)
+- [x] 规范 clib 测试到 `tests/` (21 个用例)
+- [x] 添加 trace 测试到 `tests/` (10 个用例)
+- [x] 创建 crypto 统一头文件 `xy_tiny_crypto.h`
 
 ### 中期 (1 个月)
 
-- [ ] 规范 clib 测试到 `tests/`
-- [ ] 规范 crypto 测试到 `tests/`
 - [ ] 规范 dm 测试到 `tests/`
 - [ ] 规范 net 测试到 `tests/`
+- [ ] 添加 HAL 单元测试
+- [ ] 添加传感器组件测试
 
 ### 长期 (3 个月)
 
-- [ ] 添加 hal 测试
-- [ ] 添加 trace 测试
+- [ ] 添加覆盖率报告 (gcovr)
+- [ ] 集成 CI/CD (GitHub Actions)
 - [ ] 完善 sensor, ipc, pm 等组件
+- [ ] 性能基准测试
 
 ---
 
@@ -240,6 +255,10 @@ XinYi/
 | 2026-02-28 | 初始版本，完成 OSAL 和 HAL 分析 |
 | 2026-02-28 | 删除重复测试，创建统一测试框架 |
 | 2026-02-28 | 创建 tests/CMakeLists.txt 统一入口 |
+| 2026-02-28 | 完成 crypto 组件测试规范 (28 个用例) |
+| 2026-02-28 | 完成 clib 组件测试规范 (21 个用例) |
+| 2026-02-28 | 完成 trace 组件测试添加 (10 个用例) |
+| 2026-02-28 | 创建 crypto 统一头文件 xy_tiny_crypto.h |
 
 ---
 
