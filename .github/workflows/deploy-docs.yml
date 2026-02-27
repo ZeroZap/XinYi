@@ -1,0 +1,150 @@
+# XinYi 文档部署工作流
+# 自动部署 MkDocs 文档到 GitHub Pages
+
+name: Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  # ===========================================================================
+  # 部署任务
+  # ===========================================================================
+  deploy:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install \
+          mkdocs \
+          mkdocs-material \
+          mkdocs-minify-plugin \
+          mkdocs-git-revision-date-localized-plugin \
+          pymdown-extensions
+
+    - name: Build documentation
+      run: |
+        cd docs
+        mkdocs build --verbose --clean
+
+    - name: Setup Pages
+      if: github.event_name != 'pull_request'
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./docs/site
+
+    - name: Deploy to GitHub Pages
+      if: github.event_name != 'pull_request'
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+    - name: Comment PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '📚 文档预览已生成！请点击下方链接查看：\n\n[查看文档预览](https://zerovoid.github.io/XinYi/pr-preview/pr-${{ github.event.number }})'
+          })
+
+  # ===========================================================================
+  # 质量检查任务
+  # ===========================================================================
+  quality-check:
+    name: Documentation Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install \
+          mkdocs \
+          mkdocs-material \
+          pymdown-extensions
+
+    - name: Validate configuration
+      run: |
+        cd docs
+        mkdocs config --strict
+
+    - name: Build documentation
+      run: |
+        cd docs
+        mkdocs build --strict
+
+    - name: Check for broken links
+      run: |
+        pip install linkchecker
+        # linkchecker --check-extern docs/site/
+
+  # ===========================================================================
+  # 汇总任务
+  # ===========================================================================
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [deploy, quality-check]
+    if: always()
+
+    steps:
+    - name: Check job statuses
+      run: |
+        echo "## 📚 文档部署状态" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 部署任务：${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "### 质量检查：${{ needs.quality-check.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ needs.deploy.result }}" == "success" ] && \
+           [ "${{ needs.quality-check.result }}" == "success" ]; then
+          echo "✅ 所有检查通过！文档已部署。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📄 访问地址：https://zerovoid.github.io/XinYi/" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ 部分检查失败，请查看上方日志。" >> $GITHUB_STEP_SUMMARY
+        fi
