@@ -5,7 +5,8 @@
  */
 
 #include "../xy_os.h"
-#include "../../kernel/xy_tick.h"
+#include "../../misc/xy_tick.h"
+#include "../../misc/xy_timer_sw.h"
 #include <string.h>
 
 static volatile uint32_t s_lock_count = 0;
@@ -195,30 +196,107 @@ uint32_t xy_os_thread_flags_wait(uint32_t f, uint32_t opt, uint32_t to)
 }
 
 // All other primitives return NULL/error
+
+/* Software Timer Implementation using xy_timer_sw module */
+typedef struct {
+    xy_timer_sw_id_t sw_timer_id;
+    xy_os_timer_func_t callback;
+    void *arg;
+    xy_os_timer_type_t type;
+    char name[16];
+} baremetal_timer_ctx_t;
+
+static baremetal_timer_ctx_t s_timers[8] = { 0 };
+
+static void timer_sw_callback(void *arg)
+{
+    baremetal_timer_ctx_t *ctx = (baremetal_timer_ctx_t *)arg;
+    if (ctx && ctx->callback) {
+        ctx->callback(ctx->arg);
+    }
+}
+
 xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t f, xy_os_timer_type_t t,
                                  void *arg, const xy_os_timer_attr_t *attr)
 {
+    (void)arg;
+    (void)attr;
+    
+    for (int i = 0; i < 8; i++) {
+        if (!s_timers[i].sw_timer_id) {
+            s_timers[i].callback = f;
+            s_timers[i].type = t;
+            s_timers[i].arg = arg;
+            if (attr && attr->name) {
+                strncpy(s_timers[i].name, attr->name, sizeof(s_timers[i].name) - 1);
+            }
+            return (xy_os_timer_id_t)(i + 1);
+        }
+    }
     return NULL;
 }
+
 const char *xy_os_timer_get_name(xy_os_timer_id_t id)
 {
-    return NULL;
+    if (!id || (uint32_t)id > 8) {
+        return NULL;
+    }
+    return s_timers[(uint32_t)id - 1].name[0] ? s_timers[(uint32_t)id - 1].name : "timer";
 }
+
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t id, uint32_t ticks)
 {
-    return XY_OS_ERROR;
+    if (!id || (uint32_t)id > 8) {
+        return XY_OS_ERROR;
+    }
+    
+    baremetal_timer_ctx_t *ctx = &s_timers[(uint32_t)id - 1];
+    uint8_t periodic = (ctx->type == XY_OS_TIMER_PERIODIC) ? 1 : 0;
+    
+    ctx->sw_timer_id = xy_timer_sw_create(ticks, timer_sw_callback, ctx, periodic);
+    if (ctx->sw_timer_id == XY_TIMER_SW_INVALID_ID) {
+        return XY_OS_ERROR;
+    }
+    
+    return XY_OS_OK;
 }
+
 xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t id)
 {
-    return XY_OS_ERROR;
+    if (!id || (uint32_t)id > 8) {
+        return XY_OS_ERROR;
+    }
+    
+    baremetal_timer_ctx_t *ctx = &s_timers[(uint32_t)id - 1];
+    if (ctx->sw_timer_id) {
+        xy_timer_sw_stop(ctx->sw_timer_id);
+        ctx->sw_timer_id = 0;
+    }
+    return XY_OS_OK;
 }
+
 uint32_t xy_os_timer_is_running(xy_os_timer_id_t id)
 {
-    return 0;
+    if (!id || (uint32_t)id > 8) {
+        return 0;
+    }
+    return s_timers[(uint32_t)id - 1].sw_timer_id ? 1 : 0;
 }
+
 xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t id)
 {
-    return XY_OS_ERROR;
+    if (!id || (uint32_t)id > 8) {
+        return XY_OS_ERROR;
+    }
+    
+    baremetal_timer_ctx_t *ctx = &s_timers[(uint32_t)id - 1];
+    if (ctx->sw_timer_id) {
+        xy_timer_sw_delete(ctx->sw_timer_id);
+        ctx->sw_timer_id = 0;
+    }
+    ctx->callback = NULL;
+    ctx->arg = NULL;
+    return XY_OS_OK;
 }
 
 xy_os_event_flags_id_t

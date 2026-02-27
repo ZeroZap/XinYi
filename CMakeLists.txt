@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 project(XY_Framework VERSION 1.0.0 LANGUAGES C)
 
 # Set C standard
@@ -12,56 +12,88 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Component directories
-set(COMPONENTS
-    crypto
-    xy_clib
-    dm
-    net
-    device
-    trace
-    osal
-    Bank
-    sensor
-    ipc
-    time_tick
-    xy_key
-    xy_state_machine
-    fota
-    kernel
-    misc
-    pm
-    xfer
-    xy_code_style
-)
+# ==================== Build Options ====================
 
-# Add each component as a subdirectory
-foreach(component ${COMPONENTS})
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/${component}/CMakeLists.txt)
-        add_subdirectory(components/${component})
+option(BUILD_TESTING "Build tests" OFF)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+# ==================== Third Party Libraries ====================
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/CMakeLists.txt)
+    add_subdirectory(third_party)
+endif()
+
+# ==================== Components ====================
+
+# Auto-detect and add all component subdirectories
+file(GLOB COMPONENT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/components/*)
+foreach(component_dir ${COMPONENT_DIRS})
+    if(IS_DIRECTORY ${component_dir})
+        get_filename_component(component_name ${component_dir} NAME)
+        if(EXISTS ${component_dir}/CMakeLists.txt)
+            add_subdirectory(components/${component_name})
+        endif()
     endif()
 endforeach()
 
-# Top-level targets
-add_custom_target(all_components
+# ==================== Testing ====================
+
+if(BUILD_TESTING)
+    enable_testing()
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
+        add_subdirectory(tests)
+    endif()
+endif()
+
+# ==================== Top-level Targets ====================
+
+add_custom_target(build_all
     COMMENT "Building all components"
 )
 
 add_custom_target(clean_all
+    COMMAND ${CMAKE_BUILD_TOOL} clean
     COMMENT "Cleaning all components"
 )
 
-add_custom_target(test_all
-    COMMENT "Testing all components"
+if(BUILD_TESTING)
+    add_custom_target(test_all
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+        DEPENDS build_all
+        COMMENT "Testing all components"
+    )
+endif()
+
+# ==================== Installation ====================
+
+install(DIRECTORY components/
+    DESTINATION include/xy_framework
+    FILES_MATCHING PATTERN "*.h"
+    PATTERN "test*" EXCLUDE
+    PATTERN "tests" EXCLUDE
 )
 
-# Installation rules
-install(DIRECTORY components/
-    DESTINATION components
+install(DIRECTORY third_party/unity/
+    DESTINATION include/xy_framework/unity
     FILES_MATCHING PATTERN "*.h"
 )
 
-# Packaging
+# ==================== Packaging ====================
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "XinYi Embedded Framework")
+set(CPACK_PACKAGE_VENDOR "XinYi Team")
+set(CPACK_PACKAGE_CONTACT "xinyi@example.com")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 include(CPack)
+
+# ==================== Summary ====================
+
+message(STATUS "")
+message(STATUS "XinYi Framework Configuration:")
+message(STATUS "  Version: ${PROJECT_VERSION}")
+message(STATUS "  Build Testing: ${BUILD_TESTING}")
+message(STATUS "  Shared Libraries: ${BUILD_SHARED_LIBS}")
+message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "")

@@ -1,0 +1,72 @@
+name: Project Status Check
+
+on:
+  schedule:
+    # 每周一上午 9 点运行
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    # 允许手动触发
+
+jobs:
+  status-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check Component Status
+        run: |
+          echo "=== XinYi Project Status Check ==="
+          echo "Date: $(date)"
+          echo ""
+
+          # 统计组件状态
+          if [ -f "COMPONENTS_STATUS.md" ]; then
+            echo "## Component Status Summary"
+            grep -E "^\| \*\*" COMPONENTS_STATUS.md | head -20
+          fi
+
+          # 检查待完成任务
+          if [ -f ".qwen/skills/project-manager/TASKS.md" ]; then
+            echo ""
+            echo "## Pending Tasks"
+            grep -E "^\| T[0-9]+" .qwen/skills/project-manager/TASKS.md | grep "⏳" | head -10
+          fi
+
+      - name: Generate Progress Report
+        run: |
+          echo "## Progress Report"
+          echo ""
+
+          # 计算完成率
+          if [ -f "COMPONENTS_STATUS.md" ]; then
+            total=$(grep -c "^| \`" COMPONENTS_STATUS.md || echo 0)
+            done=$(grep -c "✅" COMPONENTS_STATUS.md || echo 0)
+
+            if [ $total -gt 0 ]; then
+              percentage=$((done * 100 / total))
+              echo "Completion Rate: ${percentage}%"
+              echo "Total Components: $total"
+              echo "Completed: $done"
+            fi
+          fi
+
+      - name: Create Issue for Overdue Tasks
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+
+            // 读取任务文件
+            const tasksContent = fs.readFileSync('.qwen/skills/project-manager/TASKS.md', 'utf8');
+
+            // 解析高优先级待办任务
+            const highPriorityTasks = tasksContent
+              .split('\n')
+              .filter(line => line.includes('🔴') || line.includes('高优先级'))
+              .length;
+
+            if (highPriorityTasks > 0) {
+              console.log(`Found ${highPriorityTasks} high priority tasks`);
+              // 可以创建 GitHub Issue
+            }

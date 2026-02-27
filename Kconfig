@@ -8,25 +8,72 @@ config XY_FRAMEWORK_VERSION
     help
       The version of the XY Framework being used.
 
-# Include component configurations
+# ==================== Core Components ====================
+
 source "components/crypto/Kconfig"
-source "components/xy_clib/Kconfig"
+source "components/clib/xy_clib/Kconfig"
 source "components/dm/Kconfig"
 source "components/net/Kconfig"
-source "components/device/Kconfig"
 source "components/trace/Kconfig"
-source "components/osal/Kconfig"
-source "components/Bank/Kconfig"
+
+# ==================== Kernel & OS ====================
+
+source "components/kernel/osal/Kconfig"
+source "components/kernel/misc/Kconfig"
+
+# ==================== Hardware Abstraction ====================
+
+# HAL is configured through components/hal/stm32/Kconfig
+# source "components/hal/Kconfig"  # Create if needed
+
+# ==================== Drivers & Devices ====================
+
+source "components/drivers/Kconfig"
+source "components/drivers/xy_key/Kconfig"
 source "components/sensor/Kconfig"
+
+# ==================== Communication & IPC ====================
+
 source "components/ipc/Kconfig"
-source "components/time_tick/Kconfig"
-source "components/xy_key/Kconfig"
-source "components/xy_state_machine/Kconfig"
+
+# ==================== System Services ====================
+
 source "components/fota/Kconfig"
-source "components/kernel/Kconfig"
-source "components/misc/Kconfig"
 source "components/pm/Kconfig"
-source "components/xfer/Kconfig"
-source "components/xy_code_style/Kconfig"
+source "components/sys/xy_state_machine/Kconfig"
+
+# ==================== Third Party Libraries ====================
+
+if EXISTS "third_party/Kconfig"
+source "third_party/Kconfig"
+endif
+
+# ==================== Build Configuration ====================
+
+menu "Build Options"
+    config BUILD_TESTING
+        bool "Build tests"
+        default n
+        help
+          Enable building of unit tests.
+
+    config BUILD_SHARED_LIBS
+        bool "Build shared libraries"
+        default n
+        help
+          Build shared libraries instead of static.
+
+    config ENABLE_LOGGING
+        bool "Enable logging"
+        default y
+        help
+          Enable framework logging.
+
+    config ENABLE_ASSERTIONS
+        bool "Enable assertions"
+        default y
+        help
+          Enable runtime assertions.
+endmenu
 
 endmenu

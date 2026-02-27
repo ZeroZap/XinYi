@@ -851,7 +851,7 @@ const char *xy_os_msgqueue_get_name(xy_os_msgqueue_id_t mq_id);
  * @return Status code
  */
 xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
-                                  const void *msg_ptr, xy_u8_t msg_prio,
+                                  const void *msg_ptr, uint8_t msg_prio,
                                   uint32_t timeout);
 
 /**
@@ -864,7 +864,7 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
  * @return Status code
  */
 xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
-                                  xy_u8_t *msg_prio, uint32_t timeout);
+                                  uint8_t *msg_prio, uint32_t timeout);
 
 /**
  * @brief Get maximum number of messages in a Message Queue
