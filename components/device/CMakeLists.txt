@@ -8,12 +8,16 @@ set(DEVICE_SOURCES
     xy_device.c
     xy_eeprom_24xx.c
     xy_oled_ssd1306.c
+    xy_mpu6050.c
+    xy_bmp280.c
 )
 
 set(DEVICE_HEADERS
     xy_device.h
     xy_eeprom_24xx.h
     xy_oled_ssd1306.h
+    xy_mpu6050.h
+    xy_bmp280.h
 )
 
 # Create library
