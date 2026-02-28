@@ -1,40 +1,120 @@
-#ifndef _XY_ASSERT_H_
-#define _XY_ASSERT_H_
+/**
+ * @file xy_assert.h
+ * @brief XinYi Assertion Library
+ * @version 2.0
+ * @date 2026-02-28
+ */
+
+#ifndef XY_ASSERT_H
+#define XY_ASSERT_H
+
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @brief Simple assertion macro for embedded systems
- *
- * When assertion fails, this will trigger an infinite loop or halt.
- * Users can customize this behavior by defining XY_ASSERT_HANDLER.
+ * @brief Assertion handler function pointer
  */
-#ifndef XY_ASSERT_HANDLER
-#define XY_ASSERT_HANDLER() \
-    do {                    \
-        while (1)           \
-            ;               \
-    } while (0)
-#endif
+typedef void (*xy_assert_handler_t)(const char *file, int line, const char *expr);
 
-#ifndef NDEBUG
-#define xy_assert(expr)          \
-    do {                         \
-        if (!(expr)) {           \
-            XY_ASSERT_HANDLER(); \
-        }                        \
-    } while (0)
+/**
+ * @brief Set assertion handler
+ * @param handler Handler function
+ */
+void xy_assert_set_handler(xy_assert_handler_t handler);
+
+/**
+ * @brief Default assertion handler
+ * @param file Source file name
+ * @param line Line number
+ * @param expr Assertion expression
+ */
+void xy_assert_default_handler(const char *file, int line, const char *expr);
+
+/**
+ * @brief Assertion macro
+ * @param expr Expression to evaluate
+ */
+#ifdef XY_DISABLE_ASSERT
+#define XY_ASSERT(expr)     ((void)0)
 #else
-#define xy_assert(expr) ((void)0)
+#define XY_ASSERT(expr) \
+    do { \
+        if (!(expr)) { \
+            xy_assert_default_handler(__FILE__, __LINE__, #expr); \
+        } \
+    } while(0)
 #endif
 
-/* Legacy support */
-#define assert(expr) xy_assert(expr)
+/**
+ * @brief Assertion with custom handler
+ * @param expr Expression to evaluate
+ * @param handler Custom handler function
+ */
+#define XY_ASSERT_CUSTOM(expr, handler) \
+    do { \
+        if (!(expr)) { \
+            handler(__FILE__, __LINE__, #expr); \
+        } \
+    } while(0)
+
+/**
+ * @brief Runtime assertion check
+ * @param condition Condition to check
+ * @param error_code Error code to return if assertion fails
+ * @return 0 if condition is true, error_code otherwise
+ */
+#define XY_RUNTIME_CHECK(condition, error_code) \
+    do { \
+        if (!(condition)) { \
+            return (error_code); \
+        } \
+    } while(0)
+
+/**
+ * @brief Compile-time assertion (C11 static_assert)
+ */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#define XY_STATIC_ASSERT(condition, message) _Static_assert(condition, message)
+#else
+/* Fallback for older C standards */
+#define XY_STATIC_ASSERT(condition, message) \
+    do { \
+        switch(0) { case 0: case !(condition): ; } \
+    } while(0)
+#endif
+
+/**
+ * @brief Null pointer check
+ * @param ptr Pointer to check
+ * @param error_code Error code to return if null
+ */
+#define XY_NULL_CHECK(ptr, error_code) \
+    XY_RUNTIME_CHECK((ptr) != NULL, (error_code))
+
+/**
+ * @brief Range check
+ * @param value Value to check
+ * @param min Minimum value (inclusive)
+ * @param max Maximum value (inclusive)
+ * @param error_code Error code to return if out of range
+ */
+#define XY_RANGE_CHECK(value, min, max, error_code) \
+    XY_RUNTIME_CHECK(((value) >= (min)) && ((value) <= (max)), (error_code))
+
+/**
+ * @brief Array bounds check
+ * @param index Index to check
+ * @param size Array size
+ * @param error_code Error code to return if out of bounds
+ */
+#define XY_BOUNDS_CHECK(index, size, error_code) \
+    XY_RUNTIME_CHECK((index) < (size), (error_code))
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _XY_ASSERT_H_ */;
+#endif /* XY_ASSERT_H */

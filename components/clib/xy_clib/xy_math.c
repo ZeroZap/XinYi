@@ -1,263 +1,59 @@
 /**
  * @file xy_math.c
  * @brief XinYi Math Library Implementation
- *
- * Optimized math functions for embedded systems, especially
- * for Cortex-M0 MCUs without hardware division/multiplication.
+ * @version 2.0
+ * @date 2026-02-28
  */
 
 #include "xy_math.h"
+#include <stdint.h>
 
-/* ========================================================================
- * Software Division Functions
- * ======================================================================== */
+/* Basic Math Functions */
 
-/**
- * @brief 32-bit unsigned division (optimized for M0)
- * @note Uses binary long division algorithm
- */
-uint32_t xy_udiv32(uint32_t dividend, uint32_t divisor)
+int xy_abs(int x)
 {
-    uint32_t quotient, remainder;
-    return xy_udivmod32(dividend, divisor, &remainder);
+    return (x < 0) ? -x : x;
 }
 
-/**
- * @brief 32-bit unsigned division with remainder
- * @note Binary long division - O(32) iterations
- */
-uint32_t xy_udivmod32(uint32_t dividend, uint32_t divisor, uint32_t *remainder)
+long xy_labs(long x)
 {
-    uint32_t quotient = 0;
-    uint32_t rem = 0;
-    int i;
-
-    /* Handle division by zero */
-    if (divisor == 0) {
-        if (remainder) *remainder = 0;
-        return 0;
-    }
-
-    /* Optimization: if divisor is power of 2 */
-    if ((divisor & (divisor - 1)) == 0) {
-        /* Count trailing zeros to get shift amount */
-        int shift = 0;
-        uint32_t temp = divisor;
-        while ((temp & 1) == 0) {
-            temp >>= 1;
-            shift++;
-        }
-        quotient = dividend >> shift;
-        if (remainder) {
-            *remainder = dividend & (divisor - 1);
-        }
-        return quotient;
-    }
-
-    /* Binary long division */
-    for (i = 31; i >= 0; i--) {
-        rem = (rem << 1) | ((dividend >> i) & 1);
-        if (rem >= divisor) {
-            rem -= divisor;
-            quotient |= (1U << i);
-        }
-    }
-
-    if (remainder) {
-        *remainder = rem;
-    }
-
-    return quotient;
+    return (x < 0) ? -x : x;
 }
 
-/**
- * @brief 32-bit signed division
- */
-int32_t xy_sdiv32(int32_t dividend, int32_t divisor)
+long long xy_llabs(long long x)
 {
-    int32_t quotient, remainder;
-    return xy_sdivmod32(dividend, divisor, &remainder);
+    return (x < 0) ? -x : x;
 }
 
-/**
- * @brief 32-bit signed division with remainder
- */
-int32_t xy_sdivmod32(int32_t dividend, int32_t divisor, int32_t *remainder)
+xy_div_t xy_div(int numer, int denom)
 {
-    int sign = 1;
-    uint32_t udividend, udivisor;
-    uint32_t uquotient, uremainder;
-
-    if (divisor == 0) {
-        if (remainder) *remainder = 0;
-        return 0;
-    }
-
-    /* Calculate sign of result */
-    if (dividend < 0) {
-        sign = -sign;
-        udividend = (uint32_t)(-dividend);
-    } else {
-        udividend = (uint32_t)dividend;
-    }
-
-    if (divisor < 0) {
-        sign = -sign;
-        udivisor = (uint32_t)(-divisor);
-    } else {
-        udivisor = (uint32_t)divisor;
-    }
-
-    /* Perform unsigned division */
-    uquotient = xy_udivmod32(udividend, udivisor, &uremainder);
-
-    /* Apply sign */
-    if (remainder) {
-        *remainder = (dividend < 0) ? -(int32_t)uremainder : (int32_t)uremainder;
-    }
-
-    return (sign < 0) ? -(int32_t)uquotient : (int32_t)uquotient;
-}
-
-/**
- * @brief 64-bit unsigned division
- */
-uint64_t xy_udiv64(uint64_t dividend, uint64_t divisor)
-{
-    uint64_t remainder;
-    return xy_udivmod64(dividend, divisor, &remainder);
-}
-
-/**
- * @brief 64-bit unsigned division with remainder
- */
-uint64_t xy_udivmod64(uint64_t dividend, uint64_t divisor, uint64_t *remainder)
-{
-    uint64_t quotient = 0;
-    uint64_t rem = 0;
-    int i;
-
-    if (divisor == 0) {
-        if (remainder) *remainder = 0;
-        return 0;
-    }
-
-    /* Binary long division */
-    for (i = 63; i >= 0; i--) {
-        rem = (rem << 1) | ((dividend >> i) & 1);
-        if (rem >= divisor) {
-            rem -= divisor;
-            quotient |= (1ULL << i);
-        }
-    }
-
-    if (remainder) {
-        *remainder = rem;
-    }
-
-    return quotient;
-}
-
-/* ========================================================================
- * Software Multiplication Functions
- * ======================================================================== */
-
-/**
- * @brief 32-bit unsigned multiplication
- */
-uint32_t xy_umul32(uint32_t a, uint32_t b)
-{
-    return (uint32_t)(xy_umul32x32(a, b) & 0xFFFFFFFFULL);
-}
-
-/**
- * @brief 32x32 -> 64-bit unsigned multiplication
- */
-uint64_t xy_umul32x32(uint32_t a, uint32_t b)
-{
-    /* Break into 16-bit parts for better portability */
-    uint32_t a_lo = a & 0xFFFF;
-    uint32_t a_hi = a >> 16;
-    uint32_t b_lo = b & 0xFFFF;
-    uint32_t b_hi = b >> 16;
-
-    uint64_t p0 = (uint64_t)a_lo * b_lo;
-    uint64_t p1 = (uint64_t)a_lo * b_hi;
-    uint64_t p2 = (uint64_t)a_hi * b_lo;
-    uint64_t p3 = (uint64_t)a_hi * b_hi;
-
-    uint64_t result = p0;
-    result += (p1 << 16);
-    result += (p2 << 16);
-    result += (p3 << 32);
-
+    xy_div_t result;
+    result.quot = numer / denom;
+    result.rem = numer % denom;
     return result;
 }
 
-/* ========================================================================
- * Basic Math Functions
- * ======================================================================== */
-
-/**
- * @brief Integer square root (32-bit)
- * @note Uses Newton's method
- */
-uint32_t xy_isqrt32(uint32_t x)
+xy_ldiv_t xy_ldiv(long numer, long denom)
 {
-    uint32_t result = 0;
-    uint32_t bit = 1U << 30; /* Second-to-top bit set */
-
-    /* "bit" starts at the highest power of four <= x */
-    while (bit > x) {
-        bit >>= 2;
-    }
-
-    while (bit != 0) {
-        if (x >= result + bit) {
-            x -= result + bit;
-            result = (result >> 1) + bit;
-        } else {
-            result >>= 1;
-        }
-        bit >>= 2;
-    }
-
+    xy_ldiv_t result;
+    result.quot = numer / denom;
+    result.rem = numer % denom;
     return result;
 }
 
-/**
- * @brief Integer square root (64-bit)
- */
-uint32_t xy_isqrt64(uint64_t x)
+xy_lldiv_t xy_lldiv(long long numer, long long denom)
 {
-    uint64_t result = 0;
-    uint64_t bit = 1ULL << 62;
-
-    while (bit > x) {
-        bit >>= 2;
-    }
-
-    while (bit != 0) {
-        if (x >= result + bit) {
-            x -= result + bit;
-            result = (result >> 1) + bit;
-        } else {
-            result >>= 1;
-        }
-        bit >>= 2;
-    }
-
-    return (uint32_t)result;
+    xy_lldiv_t result;
+    result.quot = numer / denom;
+    result.rem = numer % denom;
+    return result;
 }
 
-/**
- * @brief Integer power (x^n)
- * @note Uses exponentiation by squaring
- */
-uint32_t xy_ipow(uint32_t base, uint32_t exp)
-{
-    uint32_t result = 1;
+/* Power and Root Functions */
 
+int xy_pow(int base, unsigned int exp)
+{
+    int result = 1;
     while (exp > 0) {
         if (exp & 1) {
             result *= base;
@@ -265,223 +61,332 @@ uint32_t xy_ipow(uint32_t base, uint32_t exp)
         base *= base;
         exp >>= 1;
     }
-
     return result;
 }
 
-/**
- * @brief Greatest Common Divisor
- * @note Uses Euclidean algorithm
- */
-uint32_t xy_gcd(uint32_t a, uint32_t b)
+int xy_sqrt(int x)
 {
-    uint32_t temp;
-
-    while (b != 0) {
-        temp = b;
-        b = a % b;
-        a = temp;
+    if (x <= 1) return x;
+    
+    int low = 0, high = x, result = 0;
+    
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        long long sq = (long long)mid * mid;
+        
+        if (sq == x) {
+            return mid;
+        } else if (sq < x) {
+            low = mid + 1;
+            result = mid;
+        } else {
+            high = mid - 1;
+        }
     }
-
-    return a;
+    
+    return result;
 }
 
-/**
- * @brief Least Common Multiple
- */
-uint32_t xy_lcm(uint32_t a, uint32_t b)
+int xy_cbrt(int x)
 {
-    if (a == 0 || b == 0) {
-        return 0;
+    if (x == 0) return 0;
+    
+    int sign = 1;
+    if (x < 0) {
+        sign = -1;
+        x = -x;
     }
-    return (a / xy_gcd(a, b)) * b;
+    
+    int low = 0, high = x;
+    
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        long long cube = (long long)mid * mid * mid;
+        
+        if (cube == x) {
+            return mid * sign;
+        } else if (cube < x) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    
+    return (high * sign);
 }
 
-/**
- * @brief Compute average without overflow
- */
-uint32_t xy_avg(uint32_t a, uint32_t b)
+/* Fixed-point Trigonometric Functions (using lookup tables) */
+
+static const int32_t sin_table[91] = {
+    0, 174, 348, 523, 697, 871, 1045, 1218, 1391, 1564, 
+    1736, 1908, 2079, 2249, 2419, 2588, 2756, 2923, 3090, 3255, 
+    3420, 3583, 3746, 3907, 4067, 4226, 4383, 4539, 4694, 4848, 
+    5000, 5150, 5299, 5446, 5591, 5735, 5877, 6018, 6156, 6293, 
+    6427, 6560, 6691, 6819, 6946, 7071, 7193, 7313, 7431, 7547, 
+    7660, 7771, 7880, 7986, 8090, 8191, 8290, 8386, 8480, 8571, 
+    8660, 8746, 8829, 8910, 8987, 9063, 9135, 9205, 9271, 9335, 
+    9396, 9455, 9510, 9563, 9612, 9659, 9702, 9743, 9781, 9816, 
+    9848, 9876, 9902, 9925, 9945, 9961, 9975, 9986, 9993, 9998, 
+    10000
+};
+
+int32_t xy_sin_fixed(int32_t angle_degrees_x100)
 {
-    return (a & b) + ((a ^ b) >> 1);
+    // Normalize angle to 0-36000 range
+    int32_t normalized = angle_degrees_x100 % 36000;
+    if (normalized < 0) normalized += 36000;
+    
+    // Convert to degrees
+    int32_t degrees = normalized / 100;
+    int32_t fraction = (normalized % 100) * 100; // 0-10000
+    
+    // Determine quadrant
+    int32_t quadrant = degrees / 90;
+    int32_t angle_in_quadrant = degrees % 90;
+    
+    int32_t result;
+    if (quadrant == 0) {
+        // 0-89 degrees
+        if (angle_in_quadrant >= 90) angle_in_quadrant = 89;
+        result = sin_table[angle_in_quadrant];
+    } else if (quadrant == 1) {
+        // 90-179 degrees: sin(180-x) = sin(x)
+        result = sin_table[89 - angle_in_quadrant];
+    } else if (quadrant == 2) {
+        // 180-269 degrees: sin(180+x) = -sin(x)
+        result = -sin_table[angle_in_quadrant];
+    } else {
+        // 270-359 degrees: sin(360-x) = -sin(x)
+        result = -sin_table[89 - angle_in_quadrant];
+    }
+    
+    return result;
 }
 
-/**
- * @brief Check if number is power of 2
- */
-int xy_is_power_of_2(uint32_t x)
+int32_t xy_cos_fixed(int32_t angle_degrees_x100)
 {
-    return (x != 0) && ((x & (x - 1)) == 0);
+    // cos(x) = sin(90 - x)
+    return xy_sin_fixed((9000 - angle_degrees_x100) % 36000);
 }
 
-/**
- * @brief Round up to next power of 2
- */
-uint32_t xy_next_power_of_2(uint32_t x)
+int32_t xy_tan_fixed(int32_t angle_degrees_x100)
 {
-    if (x == 0) return 1;
-
-    x--;
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x++;
-
-    return x;
+    int32_t sin_val = xy_sin_fixed(angle_degrees_x100);
+    int32_t cos_val = xy_cos_fixed(angle_degrees_x100);
+    
+    if (cos_val == 0) {
+        // Return large value for undefined tangent
+        return (sin_val >= 0) ? 1000000 : -1000000;
+    }
+    
+    // Perform fixed-point division: (sin * 10000) / cos
+    return (sin_val * 10000) / cos_val;
 }
 
-/**
- * @brief Count leading zeros (32-bit)
- */
-int xy_clz32(uint32_t x)
+/* Bit Manipulation */
+
+int xy_popcount(uint32_t value)
 {
-    int n = 0;
-
-    if (x == 0) return 32;
-
-    if ((x & 0xFFFF0000) == 0) { n += 16; x <<= 16; }
-    if ((x & 0xFF000000) == 0) { n += 8;  x <<= 8;  }
-    if ((x & 0xF0000000) == 0) { n += 4;  x <<= 4;  }
-    if ((x & 0xC0000000) == 0) { n += 2;  x <<= 2;  }
-    if ((x & 0x80000000) == 0) { n += 1; }
-
-    return n;
-}
-
-/**
- * @brief Count trailing zeros (32-bit)
- */
-int xy_ctz32(uint32_t x)
-{
-    int n = 0;
-
-    if (x == 0) return 32;
-
-    if ((x & 0x0000FFFF) == 0) { n += 16; x >>= 16; }
-    if ((x & 0x000000FF) == 0) { n += 8;  x >>= 8;  }
-    if ((x & 0x0000000F) == 0) { n += 4;  x >>= 4;  }
-    if ((x & 0x00000003) == 0) { n += 2;  x >>= 2;  }
-    if ((x & 0x00000001) == 0) { n += 1; }
-
-    return n;
-}
-
-/**
- * @brief Count set bits (population count)
- */
-int xy_popcount32(uint32_t x)
-{
-    /* Brian Kernighan's algorithm */
     int count = 0;
-    while (x) {
-        x &= x - 1;
-        count++;
+    while (value) {
+        count += value & 1;
+        value >>= 1;
     }
     return count;
 }
 
-/* ========================================================================
- * Fixed-Point Math
- * ======================================================================== */
-
-/**
- * @brief Fixed-point multiplication (Q16.16)
- */
-xy_fixed_t xy_fixed_mul(xy_fixed_t a, xy_fixed_t b)
+int xy_clz(uint32_t value)
 {
-    int64_t temp = (int64_t)a * (int64_t)b;
-    return (xy_fixed_t)(temp >> XY_FIXED_SHIFT);
+    if (value == 0) return 32;
+    
+    int count = 0;
+    while ((value & 0x80000000) == 0) {
+        count++;
+        value <<= 1;
+    }
+    return count;
 }
 
-/**
- * @brief Fixed-point division (Q16.16)
- */
-xy_fixed_t xy_fixed_div(xy_fixed_t a, xy_fixed_t b)
+int xy_ctz(uint32_t value)
 {
-    if (b == 0) return 0;
-
-    int64_t temp = ((int64_t)a << XY_FIXED_SHIFT) / b;
-    return (xy_fixed_t)temp;
+    if (value == 0) return 32;
+    
+    int count = 0;
+    while ((value & 1) == 0) {
+        count++;
+        value >>= 1;
+    }
+    return count;
 }
 
-/**
- * @brief Fixed-point square root (Q16.16)
- */
-xy_fixed_t xy_fixed_sqrt(xy_fixed_t x)
+uint32_t xy_round_up_pow2(uint32_t value)
 {
-    if (x <= 0) return 0;
-
-    /* Convert to integer sqrt and adjust */
-    uint32_t n = (uint32_t)x;
-    uint32_t root = xy_isqrt32(n);
-
-    return (xy_fixed_t)(root << (XY_FIXED_SHIFT / 2));
+    if (value == 0) return 1;
+    if (value == 1) return 1;
+    
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value++;
+    
+    return value;
 }
 
-/* ========================================================================
- * Trigonometric Functions (using lookup tables)
- * ======================================================================== */
-
-/* Sine lookup table for 0-90 degrees (Q0.15 format) */
-static const int16_t sine_table_90[91] = {
-    0,     572,   1144,  1715,  2286,  2856,  3425,  3993,  4560,  5126,  /* 0-9 */
-    5690,  6252,  6813,  7371,  7927,  8481,  9032,  9580,  10126, 10668, /* 10-19 */
-    11207, 11743, 12275, 12803, 13328, 13848, 14365, 14876, 15384, 15886, /* 20-29 */
-    16384, 16877, 17364, 17847, 18324, 18795, 19261, 19720, 20174, 20622, /* 30-39 */
-    21063, 21498, 21926, 22348, 22763, 23170, 23571, 23965, 24351, 24730, /* 40-49 */
-    25102, 25466, 25822, 26170, 26510, 26843, 27168, 27485, 27795, 28096, /* 50-59 */
-    28378, 28659, 28932, 29197, 29452, 29699, 29938, 30168, 30390, 30603, /* 60-69 */
-    30807, 31003, 31190, 31368, 31538, 31699, 31851, 31995, 32130, 32256, /* 70-79 */
-    32374, 32483, 32583, 32675, 32758, 32833, 32899, 32957, 33006, 33047, /* 80-89 */
-    33079                                                                   /* 90 */
-};
-
-/**
- * @brief Fast sine (integer degrees)
- */
-int16_t xy_sin_deg(int16_t degrees)
+int xy_is_pow2(uint32_t value)
 {
-    int quadrant;
-    int16_t angle;
+    return (value != 0) && ((value & (value - 1)) == 0);
+}
 
-    /* Normalize to 0-359 */
-    while (degrees < 0) degrees += 360;
-    while (degrees >= 360) degrees -= 360;
+/* Fixed-point Math */
 
-    /* Determine quadrant */
-    quadrant = degrees / 90;
-    angle = degrees % 90;
+int32_t xy_fixed_mul(int32_t a, int32_t b)
+{
+    // For Q16.16, multiply and shift right by 16
+    return ((int64_t)a * b) >> 16;
+}
 
-    switch (quadrant) {
-        case 0: return sine_table_90[angle];
-        case 1: return sine_table_90[90 - angle];
-        case 2: return -sine_table_90[angle];
-        case 3: return -sine_table_90[90 - angle];
-        default: return 0;
+int32_t xy_fixed_div(int32_t a, int32_t b)
+{
+    // For Q16.16, shift left by 16 and divide
+    if (b == 0) return 0; // Avoid division by zero
+    return ((int64_t)a << 16) / b;
+}
+
+/* Random Number Generation */
+
+void xy_rand_init(xy_rand_state_t *state, uint32_t seed)
+{
+    if (state) {
+        state->state = seed ? seed : 1;
     }
 }
 
-/**
- * @brief Fast cosine (integer degrees)
- */
-int16_t xy_cos_deg(int16_t degrees)
+int32_t xy_rand(xy_rand_state_t *state)
 {
-    return xy_sin_deg(degrees + 90);
+    if (!state) return 0;
+    
+    // Linear Congruential Generator
+    state->state = state->state * 1103515245 + 12345;
+    return (int32_t)(state->state >> 16) & 0x7FFF;
+}
+
+int32_t xy_rand_range(xy_rand_state_t *state, int32_t min, int32_t max)
+{
+    if (!state || min > max) return 0;
+    
+    if (min == max) return min;
+    
+    int32_t range = max - min + 1;
+    int32_t rand_val = xy_rand(state);
+    
+    return min + (rand_val % range);
+}
+
+/* Floating Point Approximation */
+
+float xy_fast_inv_sqrt(float x)
+{
+    // Quake's fast inverse square root algorithm
+    union { float f; uint32_t i; } u;
+    u.f = x;
+    u.i = 0x5F3759DF - (u.i >> 1);
+    return u.f * (1.5f - 0.5f * x * u.f * u.f);
+}
+
+float xy_fast_sin(float x)
+{
+    // Fast sine approximation using Taylor series
+    // Reduce to [-π, π] range
+    while (x > 3.14159265f) x -= 6.28318531f;
+    while (x < -3.14159265f) x += 6.28318531f;
+    
+    // For small angles, use x - x^3/6
+    float x2 = x * x;
+    return x * (1.0f - x2 * (1.0f/6.0f - x2 * (1.0f/120.0f)));
+}
+
+float xy_fast_cos(float x)
+{
+    // cos(x) = sin(x + π/2)
+    return xy_fast_sin(x + 1.57079632f);
+}
+
+/* Additional utility functions */
+
+/**
+ * @brief Calculate greatest common divisor
+ * @param a First number
+ * @param b Second number
+ * @return GCD of a and b
+ */
+int32_t xy_gcd(int32_t a, int32_t b)
+{
+    while (b != 0) {
+        int32_t temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
 }
 
 /**
- * @brief Fast tangent (integer degrees)
+ * @brief Calculate least common multiple
+ * @param a First number
+ * @param b Second number
+ * @return LCM of a and b
  */
-int16_t xy_tan_deg(int16_t degrees)
+int32_t xy_lcm(int32_t a, int32_t b)
 {
-    int16_t sin_val = xy_sin_deg(degrees);
-    int16_t cos_val = xy_cos_deg(degrees);
+    if (a == 0 || b == 0) return 0;
+    return (a / xy_gcd(a, b)) * b;
+}
 
-    if (cos_val == 0) {
-        return (sin_val >= 0) ? INT16_MAX : INT16_MIN;
+/**
+ * @brief Constrain value to range
+ * @param x Value to constrain
+ * @param min Minimum value
+ * @param max Maximum value
+ * @return Constrained value
+ */
+int32_t xy_constrain(int32_t x, int32_t min, int32_t max)
+{
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
+/**
+ * @brief Map value from one range to another
+ * @param x Value to map
+ * @param in_min Input range minimum
+ * @param in_max Input range maximum
+ * @param out_min Output range minimum
+ * @param out_max Output range maximum
+ * @return Mapped value
+ */
+int32_t xy_map(int32_t x, int32_t in_min, int32_t in_max, 
+               int32_t out_min, int32_t out_max)
+{
+    if (in_min == in_max) return out_min;
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+/**
+ * @brief Calculate factorial
+ * @param n Input value
+ * @return Factorial of n
+ */
+int xy_factorial(int n)
+{
+    if (n < 0) return 0;
+    if (n <= 1) return 1;
+    
+    int result = 1;
+    for (int i = 2; i <= n; i++) {
+        result *= i;
     }
-
-    /* tan = sin/cos, scale result */
-    return (int16_t)(((int32_t)sin_val << 15) / cos_val);
+    return result;
 }

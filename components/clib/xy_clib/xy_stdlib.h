@@ -1,21 +1,8 @@
 /**
  * @file xy_stdlib.h
  * @brief XinYi Standard Library - Unified header for embedded C library
- *
- * This header provides a unified interface to all xy_clib functions,
- * similar to standard C library headers. It includes:
- * - Memory management (malloc, free, etc.)
- * - String operations (string.h functions)
- * - Standard I/O (stdio.h functions)
- * - Type conversions (stdlib.h functions)
- * - Character classification (ctype.h functions)
- * - Math functions (math.h functions)
- * - Time structures (time.h types)
- * - Assertions (assert.h macros)
- *
- * Usage:
- *   #include <stdint.h>      // Standard types (allowed)
- *   #include "xy_stdlib.h"    // All xy_clib functions
+ * @version 2.0
+ * @date 2026-02-28
  */
 
 #ifndef XY_STDLIB_H
@@ -25,25 +12,23 @@
 extern "C" {
 #endif
 
-/* ========================================================================
- * Core Type Definitions (xy_typedef.h)
- * ======================================================================== */
+/* Include core type definitions */
 #include "xy_typedef.h"
-
-/* ========================================================================
- * Configuration
- * ======================================================================== */
 #include "xy_config.h"
 
-/* ========================================================================
- * Memory Management Functions (stdlib.h equivalent)
- * ======================================================================== */
+/* Include all xy_clib sub-headers */
+#include "xy_string.h"
+#include "xy_stdio.h"
+#include "xy_ctype.h"
+#include "xy_math.h"
+#include "xy_assert.h"
+#include "xy_error.h"
+#include "xy_helper.h"
+#include "xy_time.h"
+#include "xy_stddef.h"
+#include "xy_stdarg.h"
 
-/**
- * @defgroup memory_mgmt Memory Management
- * @brief Dynamic memory allocation functions
- * @{
- */
+/* Memory Management Functions */
 
 /**
  * @brief Allocate memory block
@@ -80,147 +65,480 @@ void xy_free(void *ptr);
  */
 void xy_safe_free(void **ptr);
 
-/** @} */ /* end of memory_mgmt */
-
 /* Additional utility macros */
 #define xy_safe_delete(ptr)            \
     do {                               \
         xy_safe_free((void **)&(ptr)); \
     } while (0)
 
-/* ========================================================================
- * String Conversion Functions
- * ======================================================================== */
+/* String Conversion Functions */
 
 /**
- * @defgroup str_conversion String to Number Conversion
- * @{
+ * @brief Convert string to double
+ * @param str Input string
+ * @return Converted value
  */
-
 double xy_atof(const char *str);
+
+/**
+ * @brief Convert string to integer
+ * @param str Input string
+ * @return Converted value
+ */
 int xy_atoi(const char *str);
+
+/**
+ * @brief Convert string to long
+ * @param str Input string
+ * @return Converted value
+ */
 long xy_atol(const char *str);
+
+/**
+ * @brief Convert string to long long
+ * @param str Input string
+ * @return Converted value
+ */
 long long xy_atoll(const char *str);
 
+/**
+ * @brief Convert string to double (with end pointer)
+ * @param str Input string
+ * @param endptr Pointer to end of parsed string
+ * @return Converted value
+ */
 double xy_strtod(const char *str, char **endptr);
+
+/**
+ * @brief Convert string to float (with end pointer)
+ * @param str Input string
+ * @param endptr Pointer to end of parsed string
+ * @return Converted value
+ */
 float xy_strtof(const char *str, char **endptr);
+
+/**
+ * @brief Convert string to long (with end pointer and base)
+ * @param str Input string
+ * @param endptr Pointer to end of parsed string
+ * @param base Number base (2-36)
+ * @return Converted value
+ */
 long xy_strtol(const char *str, char **endptr, int base);
+
+/**
+ * @brief Convert string to unsigned long (with end pointer and base)
+ * @param str Input string
+ * @param endptr Pointer to end of parsed string
+ * @param base Number base (2-36)
+ * @return Converted value
+ */
 unsigned long xy_strtoul(const char *str, char **endptr, int base);
+
+/**
+ * @brief Convert string to long long (with end pointer and base)
+ * @param str Input string
+ * @param endptr Pointer to end of parsed string
+ * @param base Number base (2-36)
+ * @return Converted value
+ */
 long long xy_strtoll(const char *str, char **endptr, int base);
+
+/**
+ * @brief Convert string to unsigned long long (with end pointer and base)
+ * @param str Input string
+ * @param endptr Pointer to end of parsed string
+ * @param base Number base (2-36)
+ * @return Converted value
+ */
 unsigned long long xy_strtoull(const char *str, char **endptr, int base);
 
-/** @} */ /* end of str_conversion */
-
-/* ========================================================================
- * Number to String Conversion
- * ======================================================================== */
+/* Number to String Conversion */
 
 /**
- * @defgroup num_conversion Number to String Conversion
- * @{
+ * @brief Convert integer to string
+ * @param value Value to convert
+ * @param str Output string buffer
+ * @param base Number base (2-36)
+ * @return Pointer to output string
  */
-
 char *xy_itoa(int value, char *str, int base);
+
+/**
+ * @brief Convert long to string
+ * @param value Value to convert
+ * @param str Output string buffer
+ * @param base Number base (2-36)
+ * @return Pointer to output string
+ */
 char *xy_ltoa(long value, char *str, int base);
-char *xy_utoa(unsigned int value, char *str, int base);
+
+/**
+ * @brief Convert unsigned long to string
+ * @param value Value to convert
+ * @param str Output string buffer
+ * @param base Number base (2-36)
+ * @return Pointer to output string
+ */
 char *xy_ultoa(unsigned long value, char *str, int base);
 
-/** @} */ /* end of num_conversion */
+/**
+ * @brief Convert unsigned integer to string
+ * @param value Value to convert
+ * @param str Output string buffer
+ * @param base Number base (2-36)
+ * @return Pointer to output string
+ */
+char *xy_utoa(unsigned int value, char *str, int base);
 
-/* ========================================================================
- * Sorting and Searching
- * ======================================================================== */
+/* Sorting and Searching */
 
 /**
- * @defgroup sort_search Sorting and Searching
- * @{
+ * @brief Sort array using quicksort
+ * @param base Array to sort
+ * @param num Number of elements
+ * @param size Size of each element
+ * @param compar Comparison function
  */
-
 void xy_qsort(void *base, size_t num, size_t size,
               int (*compar)(const void *, const void *));
+
+/**
+ * @brief Binary search in sorted array
+ * @param key Key to search for
+ * @param base Sorted array
+ * @param num Number of elements
+ * @param size Size of each element
+ * @param compar Comparison function
+ * @return Pointer to found element, or NULL if not found
+ */
 void *xy_bsearch(const void *key, const void *base, size_t num, size_t size,
                  int (*compar)(const void *, const void *));
 
-/** @} */ /* end of sort_search */
-
-/* ========================================================================
- * Math Functions
- * ======================================================================== */
+/* Math Functions */
 
 /**
- * @defgroup math_ops Math Operations
- * @{
+ * @brief Absolute value of integer
+ * @param x Input value
+ * @return Absolute value
  */
-
 int xy_abs(int x);
+
+/**
+ * @brief Absolute value of long integer
+ * @param x Input value
+ * @return Absolute value
+ */
 long xy_labs(long x);
+
+/**
+ * @brief Absolute value of long long integer
+ * @param x Input value
+ * @return Absolute value
+ */
 long long xy_llabs(long long x);
 
+/**
+ * @brief Divide integers and return quotient and remainder
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return xy_div_t structure with quotient and remainder
+ */
 typedef struct {
-    int quot;
-    int rem;
+    int quot;  /**< Quotient */
+    int rem;   /**< Remainder */
 } xy_div_t;
-typedef struct {
-    long quot;
-    long rem;
-} xy_ldiv_t;
-typedef struct {
-    long long quot;
-    long long rem;
-} xy_lldiv_t;
 
 xy_div_t xy_div(int numer, int denom);
-xy_ldiv_t xy_ldiv(long numer, long denom);
-xy_lldiv_t xy_lldiv(long long numer, long long denom);
-
-/** @} */ /* end of math_ops */
-
-/* ========================================================================
- * Random Number Generation
- * ======================================================================== */
 
 /**
- * @defgroup random Random Numbers
- * @{
+ * @brief Divide long integers and return quotient and remainder
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return xy_ldiv_t structure with quotient and remainder
  */
+typedef struct {
+    long quot;  /**< Quotient */
+    long rem;   /**< Remainder */
+} xy_ldiv_t;
 
+xy_ldiv_t xy_ldiv(long numer, long denom);
+
+/**
+ * @brief Divide long long integers and return quotient and remainder
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return xy_lldiv_t structure with quotient and remainder
+ */
+typedef struct {
+    long long quot;  /**< Quotient */
+    long long rem;   /**< Remainder */
+} xy_lldiv_t;
+
+xy_lldiv_t xy_lldiv(long long numer, long long denom);
+
+/* Random Number Generation */
+
+/**
+ * @brief Maximum random number value
+ */
 #define XY_RAND_MAX 32767
 
+/**
+ * @brief Generate random number
+ * @return Random number (0 to XY_RAND_MAX)
+ */
 int xy_rand(void);
+
+/**
+ * @brief Seed random number generator
+ * @param seed Seed value
+ */
 void xy_srand(unsigned int seed);
 
-/** @} */ /* end of random */
+/* Environment Functions */
 
-/* ========================================================================
- * Include all xy_clib sub-headers
- * ======================================================================== */
+/**
+ * @brief Abort program execution
+ */
+void xy_abort(void);
 
-/* String operations (string.h equivalent) */
-#include "xy_string.h"
+/**
+ * @brief Exit program with status
+ * @param status Exit status
+ */
+void xy_exit(int status);
 
-/* Standard I/O (stdio.h equivalent) */
-#include "xy_stdio.h"
+/**
+ * @brief Get environment variable
+ * @param name Environment variable name
+ * @return Value of environment variable, or NULL if not found
+ */
+char *xy_getenv(const char *name);
 
-/* Character classification (ctype.h equivalent) */
-#include "xy_ctype.h"
+/**
+ * @brief Execute system command
+ * @param command Command to execute
+ * @return Command exit status
+ */
+int xy_system(const char *command);
 
-/* Time structures (time.h equivalent) */
-#include "xy_time.h"
+/* Utility Functions */
 
-/* Math functions (math.h equivalent) */
-#include "xy_math.h"
+/**
+ * @brief Convert integer to ASCII and append to string
+ * @param value Value to convert
+ * @param str String to append to
+ * @return Pointer to string
+ */
+char *xy_itoa_append(int value, char *str);
 
-/* Assertions (assert.h equivalent) */
-#include "xy_assert.h"
+/**
+ * @brief Calculate power (base^exp)
+ * @param base Base value
+ * @param exp Exponent
+ * @return Base raised to exponent
+ */
+int xy_pow(int base, int exp);
 
-/* Common utilities */
-#include "xy_common.h"
+/**
+ * @brief Calculate square root
+ * @param x Input value
+ * @return Square root of x
+ */
+int xy_sqrt(int x);
 
-/* Error codes */
-#include "xy_error.h"
+/**
+ * @brief Calculate cube root
+ * @param x Input value
+ * @return Cube root of x
+ */
+int xy_cbrt(int x);
 
-/* Helper macros */
-#include "xy_helper.h"
+/**
+ * @brief Clamp value to range
+ * @param x Value to clamp
+ * @param low Lower bound
+ * @param high Upper bound
+ * @return Clamped value
+ */
+int xy_clamp(int x, int low, int high);
+
+/**
+ * @brief Map value from one range to another
+ * @param x Value to map
+ * @param in_min Input range minimum
+ * @param in_max Input range maximum
+ * @param out_min Output range minimum
+ * @param out_max Output range maximum
+ * @return Mapped value
+ */
+int xy_map(int x, int in_min, int in_max, int out_min, int out_max);
+
+/**
+ * @brief Constrain value to range
+ * @param x Value to constrain
+ * @param min Minimum value
+ * @param max Maximum value
+ * @return Constrained value
+ */
+int xy_constrain(int x, int min, int max);
+
+/**
+ * @brief Calculate greatest common divisor
+ * @param a First number
+ * @param b Second number
+ * @return GCD of a and b
+ */
+int xy_gcd(int a, int b);
+
+/**
+ * @brief Calculate least common multiple
+ * @param a First number
+ * @param b Second number
+ * @return LCM of a and b
+ */
+int xy_lcm(int a, int b);
+
+/**
+ * @brief Calculate factorial
+ * @param n Input value
+ * @return Factorial of n
+ */
+int xy_factorial(int n);
+
+/* Fixed-point Math */
+
+/**
+ * @brief Multiply two fixed-point numbers (Q16.16 format)
+ * @param a First number
+ * @param b Second number
+ * @return Product
+ */
+int32_t xy_fixed_mul(int32_t a, int32_t b);
+
+/**
+ * @brief Divide two fixed-point numbers (Q16.16 format)
+ * @param a Dividend
+ * @param b Divisor
+ * @return Quotient
+ */
+int32_t xy_fixed_div(int32_t a, int32_t b);
+
+/* Trigonometric Functions (Fixed-point) */
+
+/**
+ * @brief Sine function (fixed-point, angle in degrees * 100)
+ * @param angle Angle in degrees * 100
+ * @return Sine value * 10000
+ */
+int32_t xy_sin_fixed(int32_t angle);
+
+/**
+ * @brief Cosine function (fixed-point, angle in degrees * 100)
+ * @param angle Angle in degrees * 100
+ * @return Cosine value * 10000
+ */
+int32_t xy_cos_fixed(int32_t angle);
+
+/**
+ * @brief Tangent function (fixed-point, angle in degrees * 100)
+ * @param angle Angle in degrees * 100
+ * @return Tangent value * 10000
+ */
+int32_t xy_tan_fixed(int32_t angle);
+
+/* Bit Manipulation */
+
+/**
+ * @brief Count number of set bits in a value
+ * @param value Input value
+ * @return Number of set bits
+ */
+int xy_popcount(uint32_t value);
+
+/**
+ * @brief Count leading zeros
+ * @param value Input value
+ * @return Number of leading zeros
+ */
+int xy_clz(uint32_t value);
+
+/**
+ * @brief Count trailing zeros
+ * @param value Input value
+ * @return Number of trailing zeros
+ */
+int xy_ctz(uint32_t value);
+
+/**
+ * @brief Round up to next power of 2
+ * @param value Input value
+ * @return Next power of 2
+ */
+uint32_t xy_round_up_pow2(uint32_t value);
+
+/**
+ * @brief Check if value is power of 2
+ * @param value Input value
+ * @return 1 if power of 2, 0 otherwise
+ */
+int xy_is_pow2(uint32_t value);
+
+/* Random Number Generation State */
+
+/**
+ * @brief Random number generator state
+ */
+typedef struct {
+    uint32_t state;  /**< Current state */
+} xy_rand_state_t;
+
+/**
+ * @brief Initialize random number generator
+ * @param state Random number state
+ * @param seed Seed value
+ */
+void xy_rand_init(xy_rand_state_t *state, uint32_t seed);
+
+/**
+ * @brief Generate random number
+ * @param state Random number state
+ * @return Random number (0-0x7FFFFFFF)
+ */
+int32_t xy_rand_from_state(xy_rand_state_t *state);
+
+/**
+ * @brief Generate random number in range [min, max]
+ * @param state Random number state
+ * @param min Minimum value
+ * @param max Maximum value
+ * @return Random number in range
+ */
+int32_t xy_rand_range(xy_rand_state_t *state, int32_t min, int32_t max);
+
+/* Floating Point Approximation (when hardware FPU not available) */
+
+/**
+ * @brief Fast inverse square root (Quake algorithm)
+ * @param x Input value
+ * @return 1/sqrt(x)
+ */
+float xy_fast_inv_sqrt(float x);
+
+/**
+ * @brief Fast sine approximation
+ * @param x Angle in radians
+ * @return Sine value
+ */
+float xy_fast_sin(float x);
+
+/**
+ * @brief Fast cosine approximation
+ * @param x Angle in radians
+ * @return Cosine value
+ */
+float xy_fast_cos(float x);
 
 #ifdef __cplusplus
 }

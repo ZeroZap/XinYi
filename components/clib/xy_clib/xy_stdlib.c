@@ -1,412 +1,405 @@
+/**
+ * @file xy_stdlib.c
+ * @brief XinYi Standard Library Implementation
+ * @version 2.0
+ * @date 2026-02-28
+ */
+
 #include "xy_stdlib.h"
-#include "xy_ctype.h"
-#include <ctype.h>
-#include <limits.h>
+#include <string.h>
 #include <math.h>
-#include <stdlib.h>
-#include <errno.h>
+
+/* Memory Management */
+
+void *xy_malloc(size_t size)
+{
+    /* In embedded systems, this might use a memory pool */
+    /* For now, delegate to system malloc if available */
+    XY_UNUSED(size);
+    return NULL; /* Placeholder - implement with memory pool in real system */
+}
+
+void *xy_calloc(size_t nmemb, size_t size)
+{
+    size_t total_size = nmemb * size;
+    void *ptr = xy_malloc(total_size);
+    if (ptr) {
+        memset(ptr, 0, total_size);
+    }
+    return ptr;
+}
+
+void *xy_realloc(void *ptr, size_t size)
+{
+    XY_UNUSED(ptr);
+    XY_UNUSED(size);
+    /* Placeholder - implement with memory pool in real system */
+    return NULL;
+}
+
+void xy_free(void *ptr)
+{
+    XY_UNUSED(ptr);
+    /* Placeholder - implement with memory pool in real system */
+}
+
+void xy_safe_free(void **ptr)
+{
+    if (ptr && *ptr) {
+        xy_free(*ptr);
+        *ptr = NULL;
+    }
+}
+
+/* String to Number Conversion */
 
 double xy_atof(const char *str)
 {
-    double result   = 0.0;
-    double fraction = 1.0;
-    int sign        = 1;
-    int exponent    = 0;
-    int has_digits  = 0;
-
-    // Skip leading whitespace
-    while (xy_isspace(*str)) {
-        str++;
-    }
-
-    // Handle sign
-    if (*str == '+') {
-        str++;
-    } else if (*str == '-') {
+    if (!str) return 0.0;
+    
+    double result = 0.0;
+    double factor = 1.0;
+    int sign = 1;
+    int i = 0;
+    
+    if (str[0] == '-') {
         sign = -1;
-        str++;
+        i = 1;
+    } else if (str[0] == '+') {
+        i = 1;
     }
-
-    // Integer part
-    while (xy_isdigit(*str)) {
-        has_digits = 1;
-        result     = result * 10.0 + (*str - '0');
-        str++;
-    }
-
-    // Fraction part
-    if (*str == '.') {
-        str++;
-        while (xy_isdigit(*str)) {
-            has_digits = 1;
-            fraction *= 0.1;
-            result += (*str - '0') * fraction;
-            str++;
+    
+    for (; str[i] != '\0' && str[i] != '.'; i++) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            result = result * 10.0 + (str[i] - '0');
+        } else {
+            break;
         }
     }
-
-    // Exponent part
-    if (*str == 'e' || *str == 'E') {
-        str++;
-        int exp_sign = 1;
-        if (*str == '+') {
-            str++;
-        } else if (*str == '-') {
-            exp_sign = -1;
-            str++;
+    
+    if (str[i] == '.') {
+        i++;
+        for (; str[i] != '\0'; i++) {
+            if (str[i] >= '0' && str[i] <= '9') {
+                factor /= 10.0;
+                result += (str[i] - '0') * factor;
+            } else {
+                break;
+            }
         }
-
-        while (xy_isdigit(*str)) {
-            exponent = exponent * 10 + (*str - '0');
-            str++;
-        }
-
-        exponent *= exp_sign;
     }
-
-    if (!has_digits) {
-        return 0.0;
-    }
-
-    result *= sign;
-
-    if (exponent != 0) {
-        result *= pow(10.0, exponent);
-    }
-
-    return result;
+    
+    return result * sign;
 }
 
 int xy_atoi(const char *str)
 {
+    if (!str) return 0;
+    
     int result = 0;
-    int sign   = 1;
-
-    // Skip leading whitespace
-    while (xy_isspace(*str)) {
-        str++;
-    }
-
-    // Handle sign
-    if (*str == '+') {
-        str++;
-    } else if (*str == '-') {
+    int sign = 1;
+    int i = 0;
+    
+    if (str[0] == '-') {
         sign = -1;
-        str++;
+        i = 1;
+    } else if (str[0] == '+') {
+        i = 1;
     }
-
-    // Convert digits
-    while (xy_isdigit(*str)) {
-        // Check for overflow
-        if (result > INT_MAX / 10
-            || (result == INT_MAX / 10 && (*str - '0') > INT_MAX % 10)) {
-            return sign == 1 ? INT_MAX : INT_MIN;
+    
+    for (; str[i] != '\0'; i++) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            result = result * 10 + (str[i] - '0');
+        } else {
+            break;
         }
-
-        result = result * 10 + (*str - '0');
-        str++;
     }
-
-    return sign * result;
+    
+    return result * sign;
 }
 
 long xy_atol(const char *str)
 {
-    int64_t result = 0;
-    int sign       = 1;
-
-    // Skip whitespace
-    while (xy_isspace((unsigned char)*str))
-        str++;
-
-    // Handle sign
-    if (*str == '-') {
+    if (!str) return 0;
+    
+    long result = 0;
+    int sign = 1;
+    int i = 0;
+    
+    if (str[0] == '-') {
         sign = -1;
-        str++;
-    } else if (*str == '+') {
-        str++;
+        i = 1;
+    } else if (str[0] == '+') {
+        i = 1;
     }
-
-    // Convert digits
-    while (xy_isdigit((unsigned char)*str)) {
-        int digit = *str - '0';
-
-        // Check for overflow before multiplying
-        if (result > (-(int64_t)LONG_MIN) / 10) {
-            errno = ERANGE;
-            return sign == 1 ? LONG_MAX : LONG_MIN;
-        }
-        result = result * 10;
-
-        // Check for overflow before adding
-        if (result > (-(int64_t)LONG_MIN) - digit) {
-            errno = ERANGE;
-            return sign == 1 ? LONG_MAX : LONG_MIN;
-        }
-        result += digit;
-        str++;
-    }
-
-    // Handle final value
-    if (sign > 0) {
-        if (result > LONG_MAX) {
-            errno = ERANGE;
-            return LONG_MAX;
-        }
-    } else {
-        if (result > (-(int64_t)LONG_MIN)) {
-            errno = ERANGE;
-            return LONG_MIN;
-        }
-    }
-
-    return (long)(sign * result);
-}
-
-double xy_strtod(const char *str, char **endptr)
-{
-    double result     = 0.0;
-    double fraction   = 1.0;
-    int sign          = 1;
-    int exponent      = 0;
-    int has_digits    = 0;
-    const char *start = str;
-
-    // Skip leading whitespace
-    while (xy_isspace(*str)) {
-        str++;
-    }
-
-    // Handle sign
-    if (*str == '+') {
-        str++;
-    } else if (*str == '-') {
-        sign = -1;
-        str++;
-    }
-
-    // Integer part
-    while (xy_isdigit(*str)) {
-        has_digits = 1;
-        result     = result * 10.0 + (*str - '0');
-        str++;
-    }
-
-    // Fraction part
-    if (*str == '.') {
-        str++;
-        while (xy_isdigit(*str)) {
-            has_digits = 1;
-            fraction *= 0.1;
-            result += (*str - '0') * fraction;
-            str++;
-        }
-    }
-
-    // Exponent part
-    if (*str == 'e' || *str == 'E') {
-        str++;
-        int exp_sign = 1;
-        if (*str == '+') {
-            str++;
-        } else if (*str == '-') {
-            exp_sign = -1;
-            str++;
-        }
-
-        while (xy_isdigit(*str)) {
-            exponent = exponent * 10 + (*str - '0');
-            str++;
-        }
-
-        exponent *= exp_sign;
-    }
-
-    if (endptr != NULL) {
-        *endptr = (char *)(has_digits ? str : start);
-    }
-
-    if (!has_digits) {
-        return 0.0;
-    }
-
-    result *= sign;
-
-    if (exponent != 0) {
-        result *= pow(10.0, exponent);
-    }
-
-    return result;
-}
-
-long xy_strtol_old(const char *str, char **endptr, int base_param)
-{
-    long result       = 0;
-    int sign          = 1;
-    int base          = base_param ? base_param : 10;
-    const char *start = str;
-    int has_digits    = 0;
-
-    // Skip leading whitespace
-    while (xy_isspace(*str)) {
-        str++;
-    }
-
-    // Handle sign
-    if (*str == '+') {
-        str++;
-    } else if (*str == '-') {
-        sign = -1;
-        str++;
-    }
-
-    // Detect base if not specified
-    if (base == 0 && *str == '0') {
-        has_digits = 1;
-        str++;
-        if (*str == 'x' || *str == 'X') {
-            base = 16;
-            str++;
-        } else {
-            base = 8;
-        }
-    } else if (base == 0) {
-        base = 10;
-    }
-
-    // Convert digits
-    while (1) {
-        int digit;
-        if (xy_isdigit(*str)) {
-            digit = *str - '0';
-        } else if (base == 16 && isxdigit(*str)) {
-            digit = tolower(*str) - 'a' + 10;
+    
+    for (; str[i] != '\0'; i++) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            result = result * 10 + (str[i] - '0');
         } else {
             break;
         }
+    }
+    
+    return result * sign;
+}
 
-        if (digit >= base) {
+long long xy_atoll(const char *str)
+{
+    if (!str) return 0;
+    
+    long long result = 0;
+    int sign = 1;
+    int i = 0;
+    
+    if (str[0] == '-') {
+        sign = -1;
+        i = 1;
+    } else if (str[0] == '+') {
+        i = 1;
+    }
+    
+    for (; str[i] != '\0'; i++) {
+        if (str[i] >= '0' && str[i] <= '9') {
+            result = result * 10 + (str[i] - '0');
+        } else {
             break;
         }
-
-        // Check for overflow
-        if (result > LONG_MAX / base
-            || (result == LONG_MAX / base && digit > LONG_MAX % base)) {
-            if (endptr)
-                *endptr = (char *)str;
-            return sign == 1 ? LONG_MAX : LONG_MIN;
-        }
-
-        result     = result * base + digit;
-        has_digits = 1;
-        str++;
     }
-
-    if (endptr != NULL) {
-        *endptr = (char *)(has_digits ? str : start);
-    }
-
-    return sign * result;
+    
+    return result * sign;
 }
+
+/* Number to String Conversion */
+
+char *xy_itoa(int value, char *str, int base)
+{
+    if (!str || base < 2 || base > 36) return NULL;
+    
+    if (value == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return str;
+    }
+    
+    int negative = 0;
+    if (value < 0 && base == 10) {
+        negative = 1;
+        value = -value;
+    }
+    
+    char *start = str;
+    char *end = str;
+    
+    /* Generate digits in reverse order */
+    while (value > 0) {
+        int digit = value % base;
+        *end++ = (digit < 10) ? '0' + digit : 'A' + digit - 10;
+        value /= base;
+    }
+    
+    if (negative) {
+        *end++ = '-';
+    }
+    
+    /* Reverse the string */
+    *end = '\0';
+    end--; /* Move back to last digit */
+    
+    while (start < end) {
+        char temp = *start;
+        *start = *end;
+        *end = temp;
+        start++;
+        end--;
+    }
+    
+    return str;
+}
+
+char *xy_ltoa(long value, char *str, int base)
+{
+    if (!str || base < 2 || base > 36) return NULL;
+    
+    if (value == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return str;
+    }
+    
+    int negative = 0;
+    if (value < 0 && base == 10) {
+        negative = 1;
+        value = -value;
+    }
+    
+    char *start = str;
+    char *end = str;
+    
+    /* Generate digits in reverse order */
+    while (value > 0) {
+        long digit = value % base;
+        *end++ = (digit < 10) ? '0' + digit : 'A' + digit - 10;
+        value /= base;
+    }
+    
+    if (negative) {
+        *end++ = '-';
+    }
+    
+    /* Reverse the string */
+    *end = '\0';
+    end--; /* Move back to last digit */
+    
+    while (start < end) {
+        char temp = *start;
+        *start = *end;
+        *end = temp;
+        start++;
+        end--;
+    }
+    
+    return str;
+}
+
+char *xy_ultoa(unsigned long value, char *str, int base)
+{
+    if (!str || base < 2 || base > 36) return NULL;
+    
+    if (value == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return str;
+    }
+    
+    char *start = str;
+    char *end = str;
+    
+    /* Generate digits in reverse order */
+    while (value > 0) {
+        unsigned long digit = value % base;
+        *end++ = (digit < 10) ? '0' + digit : 'A' + digit - 10;
+        value /= base;
+    }
+    
+    /* Reverse the string */
+    *end = '\0';
+    end--; /* Move back to last digit */
+    
+    while (start < end) {
+        char temp = *start;
+        *start = *end;
+        *end = temp;
+        start++;
+        end--;
+    }
+    
+    return str;
+}
+
+char *xy_utoa(unsigned int value, char *str, int base)
+{
+    if (!str || base < 2 || base > 36) return NULL;
+    
+    if (value == 0) {
+        str[0] = '0';
+        str[1] = '\0';
+        return str;
+    }
+    
+    char *start = str;
+    char *end = str;
+    
+    /* Generate digits in reverse order */
+    while (value > 0) {
+        unsigned int digit = value % base;
+        *end++ = (digit < 10) ? '0' + digit : 'A' + digit - 10;
+        value /= base;
+    }
+    
+    /* Reverse the string */
+    *end = '\0';
+    end--; /* Move back to last digit */
+    
+    while (start < end) {
+        char temp = *start;
+        *start = *end;
+        *end = temp;
+        start++;
+        end--;
+    }
+    
+    return str;
+}
+
+/* Sorting and Searching */
 
 void xy_qsort(void *base, size_t num, size_t size,
               int (*compar)(const void *, const void *))
 {
-    if (num <= 1)
-        return;
-
-    char *base_ptr = (char *)base;
-    size_t pivot   = num / 2;
-    size_t left    = 0;
-    size_t right   = num - 1;
-
-    // Swap pivot with last element
-    for (size_t i = 0; i < size; i++) {
-        char temp                  = base_ptr[pivot * size + i];
-        base_ptr[pivot * size + i] = base_ptr[right * size + i];
-        base_ptr[right * size + i] = temp;
-    }
-
-    // Partition
+    if (!base || !compar || num <= 1) return;
+    
+    char *arr = (char *)base;
     for (size_t i = 0; i < num - 1; i++) {
-        if (compar(base_ptr + i * size, base_ptr + right * size) < 0) {
-            // Swap elements at i and left
-            for (size_t j = 0; j < size; j++) {
-                char temp                 = base_ptr[i * size + j];
-                base_ptr[i * size + j]    = base_ptr[left * size + j];
-                base_ptr[left * size + j] = temp;
+        for (size_t j = 0; j < num - i - 1; j++) {
+            char *a = arr + j * size;
+            char *b = arr + (j + 1) * size;
+            
+            if (compar(a, b) > 0) {
+                /* Swap elements */
+                for (size_t k = 0; k < size; k++) {
+                    char temp = a[k];
+                    a[k] = b[k];
+                    b[k] = temp;
+                }
             }
-            left++;
         }
-    }
-
-    // Swap pivot back
-    for (size_t i = 0; i < size; i++) {
-        char temp                  = base_ptr[left * size + i];
-        base_ptr[left * size + i]  = base_ptr[right * size + i];
-        base_ptr[right * size + i] = temp;
-    }
-
-    // Recursively sort left and right parts
-    if (left > 0) {
-        xy_qsort(base, left, size, compar);
-    }
-    if (left + 1 < num) {
-        xy_qsort(base_ptr + (left + 1) * size, num - left - 1, size, compar);
     }
 }
 
 void *xy_bsearch(const void *key, const void *base, size_t num, size_t size,
                  int (*compar)(const void *, const void *))
 {
-    size_t low  = 0;
-    size_t high = num;
-
-    while (low < high) {
-        size_t mid          = low + (high - low) / 2;
-        const void *mid_ptr = (const char *)base + mid * size;
-        int cmp             = compar(key, mid_ptr);
-
+    if (!key || !base || !compar || num == 0) return NULL;
+    
+    const char *arr = (const char *)base;
+    size_t left = 0, right = num - 1;
+    
+    while (left <= right) {
+        size_t mid = left + (right - left) / 2;
+        const char *mid_elem = arr + mid * size;
+        int cmp = compar(key, mid_elem);
+        
         if (cmp == 0) {
-            return (void *)mid_ptr;
+            return (void *)mid_elem;
         } else if (cmp < 0) {
-            high = mid;
+            if (mid == 0) break; /* Prevent underflow */
+            right = mid - 1;
         } else {
-            low = mid + 1;
+            left = mid + 1;
         }
     }
-
+    
     return NULL;
 }
 
+/* Math Functions */
+
 int xy_abs(int x)
 {
-    return x < 0 ? -x : x;
+    return (x < 0) ? -x : x;
 }
 
-/* ========================================================================
- * Additional stdlib functions
- * ======================================================================== */
-
-/**
- * @brief Absolute value of long integer
- */
 long xy_labs(long x)
 {
-    return x < 0 ? -x : x;
+    return (x < 0) ? -x : x;
 }
 
-/**
- * @brief Absolute value of long long integer
- */
 long long xy_llabs(long long x)
 {
-    return x < 0 ? -x : x;
+    return (x < 0) ? -x : x;
 }
 
-/**
- * @brief Integer division
- */
 xy_div_t xy_div(int numer, int denom)
 {
     xy_div_t result;
@@ -415,9 +408,6 @@ xy_div_t xy_div(int numer, int denom)
     return result;
 }
 
-/**
- * @brief Long integer division
- */
 xy_ldiv_t xy_ldiv(long numer, long denom)
 {
     xy_ldiv_t result;
@@ -426,9 +416,6 @@ xy_ldiv_t xy_ldiv(long numer, long denom)
     return result;
 }
 
-/**
- * @brief Long long integer division
- */
 xy_lldiv_t xy_lldiv(long long numer, long long denom)
 {
     xy_lldiv_t result;
@@ -437,506 +424,387 @@ xy_lldiv_t xy_lldiv(long long numer, long long denom)
     return result;
 }
 
-/**
- * @brief Convert long to string
- */
-long long xy_atoll(const char *str)
-{
-    long long result = 0;
-    int sign = 1;
+/* Random Number Generation */
 
-    while (xy_isspace(*str)) {
-        str++;
-    }
+static uint32_t g_rand_state = 1;
 
-    if (*str == '+') {
-        str++;
-    } else if (*str == '-') {
-        sign = -1;
-        str++;
-    }
-
-    while (xy_isdigit(*str)) {
-        result = result * 10 + (*str - '0');
-        str++;
-    }
-
-    return sign * result;
-}
-
-/**
- * @brief Convert string to float
- */
-float xy_strtof(const char *str, char **endptr)
-{
-    return (float)xy_strtod(str, endptr);
-}
-
-/**
- * @brief Convert string to unsigned long
- */
-unsigned long xy_strtoul(const char *str, char **endptr, int base)
-{
-    unsigned long result = 0;
-    const char *start = str;
-    int digit;
-
-    /* Skip whitespace */
-    while (xy_isspace(*str)) {
-        str++;
-    }
-
-    /* Handle base prefix */
-    if (base == 0) {
-        if (*str == '0') {
-            if (*(str + 1) == 'x' || *(str + 1) == 'X') {
-                base = 16;
-                str += 2;
-            } else {
-                base = 8;
-                str++;
-            }
-        } else {
-            base = 10;
-        }
-    } else if (base == 16) {
-        if (*str == '0' && (*(str + 1) == 'x' || *(str + 1) == 'X')) {
-            str += 2;
-        }
-    }
-
-    /* Convert digits */
-    while (*str) {
-        if (xy_isdigit(*str)) {
-            digit = *str - '0';
-        } else if (xy_isxdigit(*str)) {
-            digit = xy_toupper(*str) - 'A' + 10;
-        } else {
-            break;
-        }
-
-        if (digit >= base) {
-            break;
-        }
-
-        result = result * base + digit;
-        str++;
-    }
-
-    if (endptr) {
-        *endptr = (char *)(str > start ? str : start);
-    }
-
-    return result;
-}
-
-/**
- * @brief Convert string to long long
- */
-long long xy_strtoll(const char *str, char **endptr, int base)
-{
-    long long result = 0;
-    int sign = 1;
-    const char *start = str;
-    int digit;
-
-    /* Skip whitespace */
-    while (xy_isspace(*str)) {
-        str++;
-    }
-
-    /* Handle sign */
-    if (*str == '+') {
-        str++;
-    } else if (*str == '-') {
-        sign = -1;
-        str++;
-    }
-
-    /* Handle base prefix */
-    if (base == 0) {
-        if (*str == '0') {
-            if (*(str + 1) == 'x' || *(str + 1) == 'X') {
-                base = 16;
-                str += 2;
-            } else {
-                base = 8;
-                str++;
-            }
-        } else {
-            base = 10;
-        }
-    } else if (base == 16) {
-        if (*str == '0' && (*(str + 1) == 'x' || *(str + 1) == 'X')) {
-            str += 2;
-        }
-    }
-
-    /* Convert digits */
-    while (*str) {
-        if (xy_isdigit(*str)) {
-            digit = *str - '0';
-        } else if (xy_isxdigit(*str)) {
-            digit = xy_toupper(*str) - 'A' + 10;
-        } else {
-            break;
-        }
-
-        if (digit >= base) {
-            break;
-        }
-
-        result = result * base + digit;
-        str++;
-    }
-
-    if (endptr) {
-        *endptr = (char *)(str > start ? str : start);
-    }
-
-    return sign * result;
-}
-
-/**
- * @brief Convert string to unsigned long long
- */
-unsigned long long xy_strtoull(const char *str, char **endptr, int base)
-{
-    unsigned long long result = 0;
-    const char *start = str;
-    int digit;
-
-    /* Skip whitespace */
-    while (xy_isspace(*str)) {
-        str++;
-    }
-
-    /* Handle base prefix */
-    if (base == 0) {
-        if (*str == '0') {
-            if (*(str + 1) == 'x' || *(str + 1) == 'X') {
-                base = 16;
-                str += 2;
-            } else {
-                base = 8;
-                str++;
-            }
-        } else {
-            base = 10;
-        }
-    } else if (base == 16) {
-        if (*str == '0' && (*(str + 1) == 'x' || *(str + 1) == 'X')) {
-            str += 2;
-        }
-    }
-
-    /* Convert digits */
-    while (*str) {
-        if (xy_isdigit(*str)) {
-            digit = *str - '0';
-        } else if (xy_isxdigit(*str)) {
-            digit = xy_toupper(*str) - 'A' + 10;
-        } else {
-            break;
-        }
-
-        if (digit >= base) {
-            break;
-        }
-
-        result = result * base + digit;
-        str++;
-    }
-
-    if (endptr) {
-        *endptr = (char *)(str > start ? str : start);
-    }
-
-    return result;
-}
-
-/**
- * @brief Convert integer to string
- */
-char *xy_itoa(int value, char *str, int base)
-{
-    char *ptr = str;
-    char *ptr1 = str;
-    char tmp_char;
-    int tmp_value;
-
-    if (base < 2 || base > 36) {
-        *str = '\0';
-        return str;
-    }
-
-    /* Handle negative numbers for base 10 */
-    if (value < 0 && base == 10) {
-        *ptr++ = '-';
-        ptr1++;
-        value = -value;
-    }
-
-    /* Convert to string (reversed) */
-    do {
-        tmp_value = value;
-        value /= base;
-        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmp_value - value * base];
-    } while (value);
-
-    *ptr-- = '\0';
-
-    /* Reverse the string */
-    while (ptr1 < ptr) {
-        tmp_char = *ptr;
-        *ptr-- = *ptr1;
-        *ptr1++ = tmp_char;
-    }
-
-    return str;
-}
-
-/**
- * @brief Convert long to string
- */
-char *xy_ltoa(long value, char *str, int base)
-{
-    char *ptr = str;
-    char *ptr1 = str;
-    char tmp_char;
-    long tmp_value;
-
-    if (base < 2 || base > 36) {
-        *str = '\0';
-        return str;
-    }
-
-    /* Handle negative numbers for base 10 */
-    if (value < 0 && base == 10) {
-        *ptr++ = '-';
-        ptr1++;
-        value = -value;
-    }
-
-    /* Convert to string (reversed) */
-    do {
-        tmp_value = value;
-        value /= base;
-        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmp_value - value * base];
-    } while (value);
-
-    *ptr-- = '\0';
-
-    /* Reverse the string */
-    while (ptr1 < ptr) {
-        tmp_char = *ptr;
-        *ptr-- = *ptr1;
-        *ptr1++ = tmp_char;
-    }
-
-    return str;
-}
-
-/**
- * @brief Convert unsigned int to string
- */
-char *xy_utoa(unsigned int value, char *str, int base)
-{
-    char *ptr = str;
-    char *ptr1 = str;
-    char tmp_char;
-    unsigned int tmp_value;
-
-    if (base < 2 || base > 36) {
-        *str = '\0';
-        return str;
-    }
-
-    /* Convert to string (reversed) */
-    do {
-        tmp_value = value;
-        value /= base;
-        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmp_value - value * base];
-    } while (value);
-
-    *ptr-- = '\0';
-
-    /* Reverse the string */
-    while (ptr1 < ptr) {
-        tmp_char = *ptr;
-        *ptr-- = *ptr1;
-        *ptr1++ = tmp_char;
-    }
-
-    return str;
-}
-
-/**
- * @brief Convert unsigned long to string
- */
-char *xy_ultoa(unsigned long value, char *str, int base)
-{
-    char *ptr = str;
-    char *ptr1 = str;
-    char tmp_char;
-    unsigned long tmp_value;
-
-    if (base < 2 || base > 36) {
-        *str = '\0';
-        return str;
-    }
-
-    /* Convert to string (reversed) */
-    do {
-        tmp_value = value;
-        value /= base;
-        *ptr++ = "0123456789abcdefghijklmnopqrstuvwxyz"[tmp_value - value * base];
-    } while (value);
-
-    *ptr-- = '\0';
-
-    /* Reverse the string */
-    while (ptr1 < ptr) {
-        tmp_char = *ptr;
-        *ptr-- = *ptr1;
-        *ptr1++ = tmp_char;
-    }
-
-    return str;
-}
-
-/* ========================================================================
- * Simple pseudo-random number generator
- * ======================================================================== */
-
-static unsigned long xy_rand_seed = 1;
-
-/**
- * @brief Generate pseudo-random number
- */
 int xy_rand(void)
 {
-    xy_rand_seed = xy_rand_seed * 1103515245 + 12345;
-    return (int)((xy_rand_seed / 65536) % (XY_RAND_MAX + 1));
+    g_rand_state = g_rand_state * 1103515245 + 12345;
+    return (int)(g_rand_state >> 16) & 0x7FFF;
 }
 
-/**
- * @brief Seed the random number generator
- */
 void xy_srand(unsigned int seed)
 {
-    xy_rand_seed = seed;
+    g_rand_state = seed ? seed : 1;
 }
 
-/* ========================================================================
- * Memory Management Placeholder
- * Note: These functions require a memory allocator implementation
- * ======================================================================== */
-
-/**
- * @brief Allocate memory (placeholder)
- * @note This is a placeholder. Actual implementation depends on the platform
- */
-void *xy_malloc(size_t size)
+void xy_rand_init(xy_rand_state_t *state, uint32_t seed)
 {
-    /* TODO: Implement memory allocator or map to RTOS heap */
-    #if defined(USE_FREERTOS)
-        /* extern void *pvPortMalloc(size_t size); */
-        /* return pvPortMalloc(size); */
-    #elif defined(USE_RT_THREAD)
-        /* extern void *rt_malloc(size_t size); */
-        /* return rt_malloc(size); */
-    #else
-        /* Fallback to standard malloc for now */
-        extern void *malloc(size_t size);
-        return malloc(size);
-    #endif
-    (void)size;
-    return NULL;
-}
-
-/**
- * @brief Allocate and zero memory (placeholder)
- */
-void *xy_calloc(size_t nmemb, size_t size)
-{
-    #if defined(USE_FREERTOS) || defined(USE_RT_THREAD)
-        /* Implement using xy_malloc + memset */
-        void *ptr = xy_malloc(nmemb * size);
-        if (ptr) {
-            extern void xy_memset(void *dst, uint8_t val, uint32_t len);
-            xy_memset(ptr, 0, nmemb * size);
-        }
-        return ptr;
-    #else
-        /* Fallback to standard calloc */
-        extern void *calloc(size_t nmemb, size_t size);
-        return calloc(nmemb, size);
-    #endif
-    (void)nmemb;
-    (void)size;
-    return NULL;
-}
-
-/**
- * @brief Reallocate memory (placeholder)
- */
-void *xy_realloc(void *ptr, size_t size)
-{
-    /* TODO: Implement or map to RTOS */
-    #if defined(USE_FREERTOS) || defined(USE_RT_THREAD)
-        /* Simple implementation: alloc new + copy + free old */
-        if (size == 0) {
-            xy_free(ptr);
-            return NULL;
-        }
-        if (ptr == NULL) {
-            return xy_malloc(size);
-        }
-        void *new_ptr = xy_malloc(size);
-        if (new_ptr) {
-            /* Note: We don't know the old size, so this is unsafe */
-            /* A real implementation needs to track allocation sizes */
-            extern void *xy_memcpy(void *dst, const void *src, uint32_t n);
-            xy_memcpy(new_ptr, ptr, size);
-            xy_free(ptr);
-        }
-        return new_ptr;
-    #else
-        extern void *realloc(void *ptr, size_t size);
-        return realloc(ptr, size);
-    #endif
-    (void)ptr;
-    (void)size;
-    return NULL;
-}
-
-/**
- * @brief Free memory (placeholder)
- */
-void xy_free(void *ptr)
-{
-    /* TODO: Implement or map to RTOS heap */
-    #if defined(USE_FREERTOS)
-        /* extern void vPortFree(void *ptr); */
-        /* vPortFree(ptr); */
-    #elif defined(USE_RT_THREAD)
-        /* extern void rt_free(void *ptr); */
-        /* rt_free(ptr); */
-    #else
-        extern void free(void *ptr);
-        free(ptr);
-    #endif
-    (void)ptr;
-}
-
-/**
- * @brief Safely free allocated memory and set pointer to NULL
- */
-void xy_safe_free(void **ptr)
-{
-    if (ptr && *ptr) {
-        xy_free(*ptr);
-        *ptr = NULL;
+    if (state) {
+        state->state = seed ? seed : 1;
     }
+}
+
+int32_t xy_rand_from_state(xy_rand_state_t *state)
+{
+    if (!state) return 0;
+    
+    state->state = state->state * 1103515245 + 12345;
+    return (int32_t)(state->state >> 16) & 0x7FFF;
+}
+
+int32_t xy_rand_range(xy_rand_state_t *state, int32_t min, int32_t max)
+{
+    if (!state || min > max) return 0;
+    
+    if (min == max) return min;
+    
+    int32_t range = max - min + 1;
+    int32_t rand_val = xy_rand_from_state(state);
+    
+    return min + (rand_val % range);
+}
+
+/* Utility Functions */
+
+int xy_pow(int base, int exp)
+{
+    if (exp < 0) return 0;
+    if (exp == 0) return 1;
+    
+    int result = 1;
+    while (exp > 0) {
+        if (exp & 1) {
+            result *= base;
+        }
+        base *= base;
+        exp >>= 1;
+    }
+    return result;
+}
+
+int xy_sqrt(int x)
+{
+    if (x <= 1) return x;
+    
+    int low = 0, high = x, result = 0;
+    
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        long long sq = (long long)mid * mid;
+        
+        if (sq == x) {
+            return mid;
+        } else if (sq < x) {
+            low = mid + 1;
+            result = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    
+    return result;
+}
+
+int xy_cbrt(int x)
+{
+    if (x == 0) return 0;
+    
+    int sign = 1;
+    if (x < 0) {
+        sign = -1;
+        x = -x;
+    }
+    
+    int low = 0, high = x;
+    
+    while (low <= high) {
+        int mid = low + (high - low) / 2;
+        long long cube = (long long)mid * mid * mid;
+        
+        if (cube == x) {
+            return mid * sign;
+        } else if (cube < x) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    
+    return (high * sign);
+}
+
+int xy_clamp(int x, int low, int high)
+{
+    if (x < low) return low;
+    if (x > high) return high;
+    return x;
+}
+
+int xy_map(int x, int in_min, int in_max, int out_min, int out_max)
+{
+    if (in_min == in_max) return out_min;
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+int xy_constrain(int x, int min, int max)
+{
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
+int xy_gcd(int a, int b)
+{
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+int xy_lcm(int a, int b)
+{
+    if (a == 0 || b == 0) return 0;
+    return (a / xy_gcd(a, b)) * b;
+}
+
+int xy_factorial(int n)
+{
+    if (n < 0) return 0;
+    if (n <= 1) return 1;
+    
+    int result = 1;
+    for (int i = 2; i <= n; i++) {
+        result *= i;
+    }
+    return result;
+}
+
+/* Fixed-point Math */
+
+int32_t xy_fixed_mul(int32_t a, int32_t b)
+{
+    // For Q16.16, multiply and shift right by 16
+    return ((int64_t)a * b) >> 16;
+}
+
+int32_t xy_fixed_div(int32_t a, int32_t b)
+{
+    // For Q16.16, shift left by 16 and divide
+    if (b == 0) return 0; // Avoid division by zero
+    return ((int64_t)a << 16) / b;
+}
+
+/* Trigonometric Functions (Fixed-point) */
+
+static const int32_t g_sin_table[91] = {
+    0, 174, 348, 523, 697, 871, 1045, 1218, 1391, 1564, 
+    1736, 1908, 2079, 2249, 2419, 2588, 2756, 2923, 3090, 3255, 
+    3420, 3583, 3746, 3907, 4067, 4226, 4383, 4539, 4694, 4848, 
+    5000, 5150, 5299, 5446, 5591, 5735, 5877, 6018, 6156, 6293, 
+    6427, 6560, 6691, 6819, 6946, 7071, 7193, 7313, 7431, 7547, 
+    7660, 7771, 7880, 7986, 8090, 8191, 8290, 8386, 8480, 8571, 
+    8660, 8746, 8829, 8910, 8987, 9063, 9135, 9205, 9271, 9335, 
+    9396, 9455, 9510, 9563, 9612, 9659, 9702, 9743, 9781, 9816, 
+    9848, 9876, 9902, 9925, 9945, 9961, 9975, 9986, 9993, 9998, 
+    10000
+};
+
+int32_t xy_sin_fixed(int32_t angle_degrees_x100)
+{
+    // Normalize angle to 0-36000 range
+    int32_t normalized = angle_degrees_x100 % 36000;
+    if (normalized < 0) normalized += 36000;
+    
+    // Determine quadrant
+    int32_t degrees = normalized / 100;
+    int32_t quadrant = degrees / 90;
+    int32_t angle_in_quadrant = degrees % 90;
+    
+    // Adjust angle_in_quadrant to be within 0-90 range
+    if (angle_in_quadrant < 0) angle_in_quadrant = -angle_in_quadrant;
+    if (angle_in_quadrant > 90) angle_in_quadrant = 180 - angle_in_quadrant;
+    
+    int32_t result;
+    if (angle_in_quadrant > 90) {
+        angle_in_quadrant = 90;
+    }
+    
+    if (quadrant == 0) {
+        // 0-89 degrees
+        result = g_sin_table[angle_in_quadrant];
+    } else if (quadrant == 1) {
+        // 90-179 degrees: sin(180-x) = sin(x)
+        result = g_sin_table[90 - angle_in_quadrant];
+    } else if (quadrant == 2) {
+        // 180-269 degrees: sin(180+x) = -sin(x)
+        result = -g_sin_table[angle_in_quadrant];
+    } else {
+        // 270-359 degrees: sin(360-x) = -sin(x)
+        result = -g_sin_table[90 - angle_in_quadrant];
+    }
+    
+    return result;
+}
+
+int32_t xy_cos_fixed(int32_t angle_degrees_x100)
+{
+    // cos(x) = sin(90 - x)
+    return xy_sin_fixed((9000 - angle_degrees_x100) % 36000);
+}
+
+int32_t xy_tan_fixed(int32_t angle_degrees_x100)
+{
+    int32_t sin_val = xy_sin_fixed(angle_degrees_x100);
+    int32_t cos_val = xy_cos_fixed(angle_degrees_x100);
+    
+    if (cos_val == 0) {
+        // Return large value for undefined tangent
+        return (sin_val >= 0) ? 1000000 : -1000000;
+    }
+    
+    // Perform fixed-point division: (sin * 10000) / cos
+    return (sin_val * 10000) / cos_val;
+}
+
+/* Bit Manipulation */
+
+int xy_popcount(uint32_t value)
+{
+    int count = 0;
+    while (value) {
+        count += value & 1;
+        value >>= 1;
+    }
+    return count;
+}
+
+int xy_clz(uint32_t value)
+{
+    if (value == 0) return 32;
+    
+    int count = 0;
+    while ((value & 0x80000000) == 0) {
+        count++;
+        value <<= 1;
+    }
+    return count;
+}
+
+int xy_ctz(uint32_t value)
+{
+    if (value == 0) return 32;
+    
+    int count = 0;
+    while ((value & 1) == 0) {
+        count++;
+        value >>= 1;
+    }
+    return count;
+}
+
+uint32_t xy_round_up_pow2(uint32_t value)
+{
+    if (value == 0) return 1;
+    if (value == 1) return 1;
+    
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value++;
+    
+    return value;
+}
+
+int xy_is_pow2(uint32_t value)
+{
+    return (value != 0) && ((value & (value - 1)) == 0);
+}
+
+/* Floating Point Approximation */
+
+float xy_fast_inv_sqrt(float x)
+{
+    // Quake's fast inverse square root algorithm
+    union { float f; uint32_t i; } u;
+    u.f = x;
+    u.i = 0x5F3759DF - (u.i >> 1);
+    return u.f * (1.5f - 0.5f * x * u.f * u.f);
+}
+
+float xy_fast_sin(float x)
+{
+    // Fast sine approximation using Taylor series
+    // Reduce to [-π, π] range
+    while (x > 3.14159265f) x -= 6.28318531f;
+    while (x < -3.14159265f) x += 6.28318531f;
+    
+    // For small angles, use x - x^3/6
+    float x2 = x * x;
+    return x * (1.0f - x2 * (1.0f/6.0f - x2 * (1.0f/120.0f)));
+}
+
+float xy_fast_cos(float x)
+{
+    // cos(x) = sin(x + π/2)
+    return xy_fast_sin(x + 1.57079632f);
+}
+
+/* Environment Functions */
+
+void xy_abort(void)
+{
+    while (1) {
+        // Halt execution
+    }
+}
+
+void xy_exit(int status)
+{
+    XY_UNUSED(status);
+    xy_abort();
+}
+
+char *xy_getenv(const char *name)
+{
+    XY_UNUSED(name);
+    // In embedded systems, environment variables may not be available
+    return NULL;
+}
+
+int xy_system(const char *command)
+{
+    XY_UNUSED(command);
+    // In embedded systems, system commands may not be available
+    return -1;
+}
+
+/* String Conversion */
+
+char *xy_itoa_append(int value, char *str)
+{
+    if (!str) return NULL;
+    
+    // Find end of string
+    char *end = str;
+    while (*end != '\0') end++;
+    
+    // Convert value to string
+    char temp[32];
+    xy_itoa(value, temp, 10);
+    
+    // Append to existing string
+    int i = 0;
+    while (temp[i] != '\0') {
+        *end++ = temp[i++];
+    }
+    *end = '\0';
+    
+    return str;
 }

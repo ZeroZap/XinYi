@@ -36,6 +36,50 @@ foreach(component_dir ${COMPONENT_DIRS})
     endif()
 endforeach()
 
+# Add kernel sub-components
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/osal/CMakeLists.txt)
+    add_subdirectory(components/kernel/osal)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/misc/CMakeLists.txt)
+    add_subdirectory(components/kernel/misc)
+endif()
+
+# Add HAL sub-components
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/hal/stm32/CMakeLists.txt)
+    add_subdirectory(components/hal/stm32)
+endif()
+
+# Add clib sub-components
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/clib/xy_clib/CMakeLists.txt)
+    add_subdirectory(components/clib/xy_clib)
+endif()
+
+# Add crypto sub-components
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/crypto/CMakeLists.txt)
+    add_subdirectory(components/crypto)
+endif()
+
+# Add dm sub-components
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/dm/CMakeLists.txt)
+    add_subdirectory(components/dm)
+endif()
+
+# Add net sub-components
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/net/CMakeLists.txt)
+    add_subdirectory(components/net)
+endif()
+
+# Add trace sub-components
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/trace/CMakeLists.txt)
+    add_subdirectory(components/trace)
+endif()
+
+# Add tests
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
+    add_subdirectory(tests)
+endif()
+
 # ==================== Testing ====================
 
 if(BUILD_TESTING)

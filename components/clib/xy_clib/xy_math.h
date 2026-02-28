@@ -1,332 +1,268 @@
 /**
  * @file xy_math.h
- * @brief XinYi Math Library - Optimized for embedded systems
- *
- * Provides software implementations of math operations for MCUs
- * without hardware division/multiplication support (e.g., Cortex-M0).
- *
- * Features:
- * - Software division (signed/unsigned, 32-bit/64-bit)
- * - Software multiplication
- * - Basic math functions (sqrt, pow, etc.)
- * - Optimized for code size and speed
+ * @brief XinYi Math Library - Mathematical Functions for Embedded Systems
+ * @version 2.0
+ * @date 2026-02-28
  */
 
-#ifndef _XY_MATH_H_
-#define _XY_MATH_H_
+#ifndef XY_MATH_H
+#define XY_MATH_H
 
-#include "xy_typedef.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* ========================================================================
- * Software Division Functions (for M0 MCU without hardware divider)
- * ======================================================================== */
+/* Basic Math Functions */
 
 /**
- * @defgroup soft_div Software Division
- * @brief Software division implementations for MCUs without hardware divider
- * @{
- */
-
-/**
- * @brief 32-bit unsigned division
- * @param dividend Dividend (numerator)
- * @param divisor Divisor (denominator)
- * @return Quotient
- * @note Optimized for Cortex-M0, returns 0 if divisor is 0
- */
-uint32_t xy_udiv32(uint32_t dividend, uint32_t divisor);
-
-/**
- * @brief 32-bit signed division
- * @param dividend Dividend (numerator)
- * @param divisor Divisor (denominator)
- * @return Quotient
- * @note Returns 0 if divisor is 0
- */
-int32_t xy_sdiv32(int32_t dividend, int32_t divisor);
-
-/**
- * @brief 32-bit unsigned division with remainder
- * @param dividend Dividend (numerator)
- * @param divisor Divisor (denominator)
- * @param remainder Pointer to store remainder (can be NULL)
- * @return Quotient
- */
-uint32_t xy_udivmod32(uint32_t dividend, uint32_t divisor, uint32_t *remainder);
-
-/**
- * @brief 32-bit signed division with remainder
- * @param dividend Dividend (numerator)
- * @param divisor Divisor (denominator)
- * @param remainder Pointer to store remainder (can be NULL)
- * @return Quotient
- */
-int32_t xy_sdivmod32(int32_t dividend, int32_t divisor, int32_t *remainder);
-
-/**
- * @brief 64-bit unsigned division
- * @param dividend Dividend (numerator)
- * @param divisor Divisor (denominator)
- * @return Quotient
- */
-uint64_t xy_udiv64(uint64_t dividend, uint64_t divisor);
-
-/**
- * @brief 64-bit unsigned division with remainder
- * @param dividend Dividend (numerator)
- * @param divisor Divisor (denominator)
- * @param remainder Pointer to store remainder (can be NULL)
- * @return Quotient
- */
-uint64_t xy_udivmod64(uint64_t dividend, uint64_t divisor, uint64_t *remainder);
-
-/** @} */ /* end of soft_div */
-
-/* ========================================================================
- * Software Multiplication Functions
- * ======================================================================== */
-
-/**
- * @defgroup soft_mul Software Multiplication
- * @{
- */
-
-/**
- * @brief 32-bit unsigned multiplication
- * @param a First operand
- * @param b Second operand
- * @return Product (lower 32 bits)
- */
-uint32_t xy_umul32(uint32_t a, uint32_t b);
-
-/**
- * @brief 32x32 -> 64-bit unsigned multiplication
- * @param a First operand
- * @param b Second operand
- * @return 64-bit product
- */
-uint64_t xy_umul32x32(uint32_t a, uint32_t b);
-
-/** @} */ /* end of soft_mul */
-
-/* ========================================================================
- * Basic Math Functions
- * ======================================================================== */
-
-/**
- * @defgroup basic_math Basic Math Operations
- * @{
- */
-
-/**
- * @brief Integer square root (32-bit)
+ * @brief Absolute value of integer
  * @param x Input value
- * @return Square root (floor value)
- * @note Uses binary search algorithm
+ * @return Absolute value
  */
-uint32_t xy_isqrt32(uint32_t x);
+int xy_abs(int x);
 
 /**
- * @brief Integer square root (64-bit)
+ * @brief Absolute value of long integer
  * @param x Input value
- * @return Square root (floor value)
+ * @return Absolute value
  */
-uint32_t xy_isqrt64(uint64_t x);
+long xy_labs(long x);
 
 /**
- * @brief Integer power (x^n)
- * @param base Base value
- * @param exp Exponent (must be >= 0)
- * @return base raised to the power of exp
+ * @brief Absolute value of long long integer
+ * @param x Input value
+ * @return Absolute value
  */
-uint32_t xy_ipow(uint32_t base, uint32_t exp);
+long long xy_llabs(long long x);
 
 /**
- * @brief Greatest Common Divisor (GCD)
- * @param a First number
- * @param b Second number
- * @return GCD of a and b
- * @note Uses Euclidean algorithm
+ * @brief Divide integers and return quotient and remainder
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return xy_div_t structure with quotient and remainder
  */
-uint32_t xy_gcd(uint32_t a, uint32_t b);
+typedef struct {
+    int quot;  /**< Quotient */
+    int rem;   /**< Remainder */
+} xy_div_t;
+
+xy_div_t xy_div(int numer, int denom);
 
 /**
- * @brief Least Common Multiple (LCM)
- * @param a First number
- * @param b Second number
- * @return LCM of a and b
+ * @brief Divide long integers and return quotient and remainder
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return xy_ldiv_t structure with quotient and remainder
  */
-uint32_t xy_lcm(uint32_t a, uint32_t b);
+typedef struct {
+    long quot;  /**< Quotient */
+    long rem;   /**< Remainder */
+} xy_ldiv_t;
+
+xy_ldiv_t xy_ldiv(long numer, long denom);
 
 /**
- * @brief Compute average without overflow
+ * @brief Divide long long integers and return quotient and remainder
+ * @param numer Numerator
+ * @param denom Denominator
+ * @return xy_lldiv_t structure with quotient and remainder
+ */
+typedef struct {
+    long long quot;  /**< Quotient */
+    long long rem;   /**< Remainder */
+} xy_lldiv_t;
+
+xy_lldiv_t xy_lldiv(long long numer, long long denom);
+
+/* Min/Max Functions */
+
+/**
+ * @brief Get minimum of two values
  * @param a First value
  * @param b Second value
- * @return Average of a and b
+ * @return Minimum value
  */
-uint32_t xy_avg(uint32_t a, uint32_t b);
+#define xy_min(a, b) (((a) < (b)) ? (a) : (b))
 
 /**
- * @brief Check if number is power of 2
- * @param x Number to check
- * @return 1 if power of 2, 0 otherwise
+ * @brief Get maximum of two values
+ * @param a First value
+ * @param b Second value
+ * @return Maximum value
  */
-int xy_is_power_of_2(uint32_t x);
+#define xy_max(a, b) (((a) > (b)) ? (a) : (b))
+
+/**
+ * @brief Clamp value to range
+ * @param x Value to clamp
+ * @param low Lower bound
+ * @param high Upper bound
+ * @return Clamped value
+ */
+#define xy_clamp(x, low, high) \
+    (((x) < (low)) ? (low) : (((x) > (high)) ? (high) : (x)))
+
+/* Power and Root Functions */
+
+/**
+ * @brief Calculate integer power (base^exp)
+ * @param base Base value
+ * @param exp Exponent
+ * @return Base raised to exponent
+ */
+int xy_pow(int base, unsigned int exp);
+
+/**
+ * @brief Calculate integer square root
+ * @param x Input value
+ * @return Square root of x
+ */
+int xy_sqrt(int x);
+
+/**
+ * @brief Calculate integer cube root
+ * @param x Input value
+ * @return Cube root of x
+ */
+int xy_cbrt(int x);
+
+/* Trigonometric Functions (Fixed-point) */
+
+/**
+ * @brief Sine function (fixed-point, angle in degrees * 100)
+ * @param angle Angle in degrees * 100
+ * @return Sine value * 10000
+ */
+int32_t xy_sin_fixed(int32_t angle);
+
+/**
+ * @brief Cosine function (fixed-point, angle in degrees * 100)
+ * @param angle Angle in degrees * 100
+ * @return Cosine value * 10000
+ */
+int32_t xy_cos_fixed(int32_t angle);
+
+/**
+ * @brief Tangent function (fixed-point, angle in degrees * 100)
+ * @param angle Angle in degrees * 100
+ * @return Tangent value * 10000
+ */
+int32_t xy_tan_fixed(int32_t angle);
+
+/* Bit Manipulation */
+
+/**
+ * @brief Count number of set bits in a value
+ * @param value Input value
+ * @return Number of set bits
+ */
+int xy_popcount(uint32_t value);
+
+/**
+ * @brief Count leading zeros
+ * @param value Input value
+ * @return Number of leading zeros
+ */
+int xy_clz(uint32_t value);
+
+/**
+ * @brief Count trailing zeros
+ * @param value Input value
+ * @return Number of trailing zeros
+ */
+int xy_ctz(uint32_t value);
 
 /**
  * @brief Round up to next power of 2
- * @param x Input value
+ * @param value Input value
  * @return Next power of 2
  */
-uint32_t xy_next_power_of_2(uint32_t x);
+uint32_t xy_round_up_pow2(uint32_t value);
 
 /**
- * @brief Count leading zeros (32-bit)
- * @param x Input value
- * @return Number of leading zero bits
+ * @brief Check if value is power of 2
+ * @param value Input value
+ * @return 1 if power of 2, 0 otherwise
  */
-int xy_clz32(uint32_t x);
+int xy_is_pow2(uint32_t value);
+
+/* Fixed-point Math */
 
 /**
- * @brief Count trailing zeros (32-bit)
- * @param x Input value
- * @return Number of trailing zero bits
- */
-int xy_ctz32(uint32_t x);
-
-/**
- * @brief Count set bits (population count)
- * @param x Input value
- * @return Number of 1 bits
- */
-int xy_popcount32(uint32_t x);
-
-/** @} */ /* end of basic_math */
-
-/* ========================================================================
- * Fixed-Point Math (Q16.16 format)
- * ======================================================================== */
-
-/**
- * @defgroup fixed_point Fixed-Point Math
- * @brief Q16.16 fixed-point arithmetic (16-bit integer, 16-bit fractional)
- * @{
- */
-
-typedef int32_t xy_fixed_t;  /**< Q16.16 fixed-point type */
-
-#define XY_FIXED_SHIFT 16
-#define XY_FIXED_ONE (1 << XY_FIXED_SHIFT)
-
-/**
- * @brief Convert integer to fixed-point
- * @param x Integer value
- * @return Fixed-point value
- */
-#define xy_int_to_fixed(x) ((xy_fixed_t)((x) << XY_FIXED_SHIFT))
-
-/**
- * @brief Convert fixed-point to integer (truncate)
- * @param x Fixed-point value
- * @return Integer value
- */
-#define xy_fixed_to_int(x) ((int32_t)((x) >> XY_FIXED_SHIFT))
-
-/**
- * @brief Fixed-point multiplication
- * @param a First operand
- * @param b Second operand
+ * @brief Multiply two fixed-point numbers (Q16.16 format)
+ * @param a First number
+ * @param b Second number
  * @return Product
  */
-xy_fixed_t xy_fixed_mul(xy_fixed_t a, xy_fixed_t b);
+int32_t xy_fixed_mul(int32_t a, int32_t b);
 
 /**
- * @brief Fixed-point division
+ * @brief Divide two fixed-point numbers (Q16.16 format)
  * @param a Dividend
  * @param b Divisor
  * @return Quotient
  */
-xy_fixed_t xy_fixed_div(xy_fixed_t a, xy_fixed_t b);
+int32_t xy_fixed_div(int32_t a, int32_t b);
+
+/* Random Number Generation */
 
 /**
- * @brief Fixed-point square root
+ * @brief Random number generator state
+ */
+typedef struct {
+    uint32_t state;  /**< Current state */
+} xy_rand_state_t;
+
+/**
+ * @brief Initialize random number generator
+ * @param state Random number state
+ * @param seed Seed value
+ */
+void xy_rand_init(xy_rand_state_t *state, uint32_t seed);
+
+/**
+ * @brief Generate random number
+ * @param state Random number state
+ * @return Random number (0-0x7FFFFFFF)
+ */
+int32_t xy_rand(xy_rand_state_t *state);
+
+/**
+ * @brief Generate random number in range [min, max]
+ * @param state Random number state
+ * @param min Minimum value
+ * @param max Maximum value
+ * @return Random number in range
+ */
+int32_t xy_rand_range(xy_rand_state_t *state, int32_t min, int32_t max);
+
+/* Floating Point Approximation (when hardware FPU not available) */
+
+/**
+ * @brief Fast inverse square root (Quake algorithm)
  * @param x Input value
- * @return Square root
+ * @return 1/sqrt(x)
  */
-xy_fixed_t xy_fixed_sqrt(xy_fixed_t x);
-
-/** @} */ /* end of fixed_point */
-
-/* ========================================================================
- * Trigonometric Functions (using lookup tables)
- * ======================================================================== */
+float xy_fast_inv_sqrt(float x);
 
 /**
- * @defgroup trig Trigonometric Functions
- * @brief Fast trigonometric functions using lookup tables
- * @{
+ * @brief Fast sine approximation
+ * @param x Angle in radians
+ * @return Sine value
  */
+float xy_fast_sin(float x);
 
 /**
- * @brief Fast sine (integer degrees, 0-359)
- * @param degrees Angle in degrees (0-359)
- * @return Sine value scaled by 32767 (Q0.15 format)
+ * @brief Fast cosine approximation
+ * @param x Angle in radians
+ * @return Cosine value
  */
-int16_t xy_sin_deg(int16_t degrees);
-
-/**
- * @brief Fast cosine (integer degrees, 0-359)
- * @param degrees Angle in degrees (0-359)
- * @return Cosine value scaled by 32767 (Q0.15 format)
- */
-int16_t xy_cos_deg(int16_t degrees);
-
-/**
- * @brief Fast tangent (integer degrees, 0-359)
- * @param degrees Angle in degrees (0-359)
- * @return Tangent value scaled by 32767, or INT16_MAX/MIN for overflow
- */
-int16_t xy_tan_deg(int16_t degrees);
-
-/** @} */ /* end of trig */
-
-/* ========================================================================
- * Utility Macros
- * ======================================================================== */
-
-/**
- * @defgroup math_macros Math Utility Macros
- * @{
- */
-
-#ifndef XY_MIN
-#define XY_MIN(a, b) ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef XY_MAX
-#define XY_MAX(a, b) ((a) > (b) ? (a) : (b))
-#endif
-
-#ifndef XY_CLAMP
-#define XY_CLAMP(x, min, max) (XY_MIN(XY_MAX((x), (min)), (max)))
-#endif
-
-#ifndef XY_ABS
-#define XY_ABS(x) ((x) < 0 ? -(x) : (x))
-#endif
-
-#ifndef XY_SIGN
-#define XY_SIGN(x) ((x) > 0 ? 1 : ((x) < 0 ? -1 : 0))
-#endif
-
-/** @} */ /* end of math_macros */
+float xy_fast_cos(float x);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _XY_MATH_H_ */
+#endif /* XY_MATH_H */

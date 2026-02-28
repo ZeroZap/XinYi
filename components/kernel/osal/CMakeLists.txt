@@ -39,7 +39,7 @@ set(OSAL_COMMON_SOURCES
 # Backend-specific sources
 if(OSAL_BACKEND STREQUAL "baremetal")
     set(OSAL_BACKEND_SOURCES
-        backend/baremetal/osal_baremetal.c
+        backend/baremetal/xy_os_baremetal.c
     )
     set(OSAL_BACKEND_DEFINITIONS
         XY_OS_BACKEND_BAREMETAL
@@ -51,7 +51,7 @@ if(OSAL_BACKEND STREQUAL "baremetal")
 
 elseif(OSAL_BACKEND STREQUAL "freertos")
     set(OSAL_BACKEND_SOURCES
-        backend/freertos/osal_freertos.c
+        backend/freertos/xy_os_freertos.c
     )
     set(OSAL_BACKEND_DEFINITIONS
         XY_OS_BACKEND_FREERTOS
@@ -66,7 +66,7 @@ elseif(OSAL_BACKEND STREQUAL "freertos")
 
 elseif(OSAL_BACKEND STREQUAL "rtthread")
     set(OSAL_BACKEND_SOURCES
-        backend/rtthread/osal_rtthread.c
+        backend/rtthread/xy_os_rtthread.c
     )
     set(OSAL_BACKEND_DEFINITIONS
         XY_OS_BACKEND_RTTHREAD
@@ -81,7 +81,7 @@ elseif(OSAL_BACKEND STREQUAL "rtthread")
 
 elseif(OSAL_BACKEND STREQUAL "cmsis_rtx")
     set(OSAL_BACKEND_SOURCES
-        backend/cmsis_rtx/osal_cmsis_rtx.c
+        backend/cmsis_rtx/xy_os_cmsis_rtx.c
     )
     set(OSAL_BACKEND_DEFINITIONS
         XY_OS_BACKEND_CMSIS_RTX
