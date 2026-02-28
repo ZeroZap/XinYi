@@ -238,10 +238,36 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/components/device)
     )
 endif()
 
+# ==================== FOTA Tests ====================
+
+# FOTA component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/fota)
+    add_component_test(test_fota
+        ${CMAKE_SOURCE_DIR}/components/fota
+        "${CMAKE_SOURCE_DIR}/tests/test_fota.c"
+    )
+    target_include_directories(test_fota PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/fota
+    )
+endif()
+
+# ==================== GUI Tests ====================
+
+# GUI component tests (unified in tests/ directory)
+if(EXISTS ${CMAKE_SOURCE_DIR}/components/gui)
+    add_component_test(test_gui
+        ${CMAKE_SOURCE_DIR}/components/gui
+        "${CMAKE_SOURCE_DIR}/tests/test_gui.c"
+    )
+    target_include_directories(test_gui PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/gui
+    )
+endif()
+
 # Run all tests
 add_custom_target(run_all_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_osal test_crypto test_xy_clib test_trace test_dm test_net test_sensor test_ipc test_pm test_hal test_pid test_addc test_device
+    DEPENDS test_osal test_crypto test_xy_clib test_trace test_dm test_net test_sensor test_ipc test_pm test_hal test_pid test_addc test_device test_fota test_gui
     COMMENT "Running all tests..."
 )
 

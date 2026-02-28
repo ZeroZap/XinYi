@@ -10,6 +10,8 @@ set(DEVICE_SOURCES
     xy_oled_ssd1306.c
     xy_mpu6050.c
     xy_bmp280.c
+    xy_sht30.c
+    xy_ads1115.c
 )
 
 set(DEVICE_HEADERS
@@ -18,6 +20,8 @@ set(DEVICE_HEADERS
     xy_oled_ssd1306.h
     xy_mpu6050.h
     xy_bmp280.h
+    xy_sht30.h
+    xy_ads1115.h
 )
 
 # Create library
