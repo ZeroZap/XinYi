@@ -39,6 +39,43 @@
 - **Data Management**: EEPROM, NOR Flash, TLV encoding, NVM storage
 - **Utilities**: Custom C library (xy_clib), state machines, logging system
 
+### 🚀 最新优化 (版本 2.0)
+
+#### ✅ 已完成优化
+
+- **OSAL 多后端支持**: 支持 4 种后端 (Bare-metal/FreeRTOS/RT-Thread/CMSIS-RTX)
+- **HAL STM32U5**: 20+ 外设完整实现
+- **统一测试系统**: Unity 框架集成，17+ 测试用例
+- **智能代理系统**: 项目经理/架构师/开发/测试 四大智能代理
+- **构建系统**: CMake/Kconfig/Makefile 统一配置
+- **文档系统**: 完整 API 参考和使用指南
+- **目录结构**: third_party 分离，组件结构清晰
+- **代码质量**: 统一规范，标准化错误处理
+
+#### 🤖 智能代理系统
+
+```bash
+# 使用智能代理系统
+./.qwen/smart_agent.sh pm status      # 查看项目状态
+./.qwen/smart_agent.sh arch review hal # 审查组件
+./.qwen/smart_agent.sh dev create new_component  # 创建组件
+./.qwen/smart_agent.sh test gen hal   # 生成测试
+```
+
+**代理类型**:
+- **pm**: 项目经理 (status, tasks, files, search, stats)
+- **arch**: 架构师 (review, deps, check, compat) 
+- **dev**: 开发工程师 (create, docs, fix, template)
+- **test**: 测试工程师 (run, gen, coverage)
+
+#### 📚 文档系统
+
+- **API 参考**: 完整函数文档
+- **使用指南**: 详细组件使用说明
+- **架构文档**: 系统设计说明
+- **配置选项**: Kconfig 选项详解
+- **移植指南**: 新平台适配说明
+
 ---
 
 ## Project Vision & Goals
@@ -608,7 +645,7 @@ make distclean
 ```bash
 # Configure
 mkdir build && cd build
-cmake ..
+cmake .. -DRTOS_BACKEND=freertos  # or baremetal/rtthread/cmsis_rtx
 
 # Build all
 make
@@ -622,6 +659,16 @@ make test
 
 # Install
 make install
+```
+
+#### Using Smart Agent
+
+```bash
+# 使用智能代理系统进行构建和管理
+./.qwen/smart_agent.sh dev create my_component  # 创建新组件
+./.qwen/smart_agent.sh pm build my_component    # 构建组件
+./.qwen/smart_agent.sh arch check               # 代码质量检查
+./.qwen/smart_agent.sh test run all             # 运行所有测试
 ```
 
 #### Using Build Scripts
