@@ -92,36 +92,40 @@ int xy_fota_start_download(xy_fota_t *fota, uint32_t version, uint32_t size)
 
 int xy_fota_download_chunk(xy_fota_t *fota, const uint8_t *data, uint32_t size)
 {
+    int ret;
+    
     if (!fota || !data || !fota->initialized) {
         return XY_FOTA_INVALID_PARAM;
     }
-    
+
     if (fota->state != XY_FOTA_STATE_DOWNLOADING) {
         return XY_FOTA_IN_PROGRESS;
     }
-    
+
+    /* Check if chunk exceeds remaining size */
     if (fota->downloaded_bytes + size > fota->header.image_size) {
-        return XY_FOTA_ERROR;
+        return XY_FOTA_INVALID_PARAM;
     }
-    
-    /* In real implementation, write to flash here */
-    /* flash_write(fota->config.slot_addr + fota->downloaded_bytes, data, size); */
-    
+
+    /* Write chunk to flash */
+    ret = xy_fota_flash_write(fota, fota->downloaded_bytes, data, size);
+    if (ret != XY_FOTA_OK) {
+        fota->state = XY_FOTA_STATE_ERROR;
+        return XY_FOTA_FLASH_ERROR;
+    }
+
     fota->downloaded_bytes += size;
-    
-    /* Update CRC */
-    fota->header.crc32 = xy_fota_calc_crc32(data, size);
-    
-    /* Call progress callback if set */
+
+    /* Call progress callback */
     if (fota->progress_cb) {
-        uint8_t progress = (fota->downloaded_bytes * 100) / fota->header.image_size;
-        fota->progress_cb(progress, fota->header.image_size, fota->user_data);
+        fota->progress_cb(fota->downloaded_bytes, fota->header.image_size, fota->user_data);
     }
-    
+
+    /* Check if download complete */
     if (fota->downloaded_bytes >= fota->header.image_size) {
         fota->state = XY_FOTA_STATE_VALIDATING;
     }
-    
+
     return XY_FOTA_OK;
 }
 
