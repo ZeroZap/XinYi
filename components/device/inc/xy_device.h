@@ -522,6 +522,7 @@ typedef struct {
     uint8_t resolution;              /**< Resolution (bits) */
     uint8_t oversampling;            /**< Oversampling ratio */
     uint8_t filter_enabled;          /**< Filter enabled */
+    uint8_t calibration_enabled;     /**< Calibration enabled */
 } xy_sensor_config_t;
 
 /**
@@ -536,6 +537,10 @@ typedef struct xy_sensor_api {
                                 const xy_sensor_value_t *threshold);
     xy_error_t (*register_callback)(struct xy_device *sensor, 
                                    xy_sensor_callback_t callback, void *arg);
+    xy_error_t (*enable_irq)(struct xy_device *sensor, uint8_t irq_type);
+    xy_error_t (*disable_irq)(struct xy_device *sensor, uint8_t irq_type);
+    xy_error_t (*set_power_mode)(struct xy_device *sensor, uint8_t power_mode);
+    xy_error_t (*get_power_mode)(struct xy_device *sensor, uint8_t *power_mode);
 } xy_sensor_api_t;
 
 /**
@@ -577,6 +582,8 @@ typedef struct {
     uint8_t flow_ctrl;               /**< Flow control */
     uint8_t mode;                    /**< Mode (TX/RX/both) */
     uint32_t timeout;                /**< Timeout (ms) */
+    uint8_t enable_irq;              /**< Enable interrupt */
+    uint8_t enable_dma;              /**< Enable DMA */
 } xy_uart_dev_config_t;
 
 /**
@@ -590,6 +597,8 @@ typedef struct {
     uint8_t nss_mode;                /**< NSS mode */
     uint32_t baudrate;               /**< Baud rate */
     uint8_t is_master;               /**< Master/slave mode */
+    uint8_t enable_irq;              /**< Enable interrupt */
+    uint8_t enable_dma;              /**< Enable DMA */
 } xy_spi_dev_config_t;
 
 /**
@@ -602,6 +611,8 @@ typedef struct {
     uint16_t own_address;            /**< Own address (slave mode) */
     uint8_t general_call_mode;       /**< General call mode */
     uint32_t timeout;                /**< Timeout (ms) */
+    uint8_t enable_irq;              /**< Enable interrupt */
+    uint8_t enable_dma;              /**< Enable DMA */
 } xy_i2c_dev_config_t;
 
 /**
@@ -613,6 +624,7 @@ typedef struct {
     uint8_t otype;                   /**< Output type */
     uint8_t speed;                   /**< Speed */
     uint8_t alternate;               /**< Alternate function */
+    uint8_t enable_irq;              /**< Enable interrupt */
 } xy_gpio_dev_config_t;
 
 /**
@@ -626,6 +638,8 @@ typedef struct {
     uint8_t trigger_src;             /**< Trigger source */
     uint32_t clock_div;              /**< Clock divider */
     uint32_t sampling_time;          /**< Sampling time */
+    uint8_t enable_irq;              /**< Enable interrupt */
+    uint8_t enable_dma;              /**< Enable DMA */
 } xy_adc_dev_config_t;
 
 /* ==================== Device Manager ==================== */
@@ -678,6 +692,54 @@ uint32_t xy_device_manager_get_group_count(const char *group);
  */
 uint32_t xy_device_manager_enumerate_group(const char *group, const char **names, 
                                           uint32_t max_count);
+
+/* ==================== Error Code Definitions ==================== */
+
+/**
+ * @brief Device-specific error codes
+ */
+typedef enum {
+    XY_DEVICE_ERROR_BASE = -100,
+    XY_DEVICE_ERROR_INVALID_HANDLE = -101,  /**< Invalid device handle */
+    XY_DEVICE_ERROR_INVALID_MODE = -102,    /**< Invalid device mode */
+    XY_DEVICE_ERROR_INVALID_CONFIG = -103,  /**< Invalid configuration */
+    XY_DEVICE_ERROR_PIN_CONFLICT = -104,    /**< Pin conflict */
+    XY_DEVICE_ERROR_CLOCK_ERROR = -105,     /**< Clock error */
+    XY_DEVICE_ERROR_PERIPH_ERROR = -106,    /**< Peripheral error */
+    XY_DEVICE_ERROR_DMA_ERROR = -107,       /**< DMA error */
+    XY_DEVICE_ERROR_IRQ_ERROR = -108,       /**< IRQ error */
+    XY_DEVICE_ERROR_GPIO_ERROR = -109,      /**< GPIO error */
+    XY_DEVICE_ERROR_UART_ERROR = -110,      /**< UART error */
+    XY_DEVICE_ERROR_SPI_ERROR = -111,       /**< SPI error */
+    XY_DEVICE_ERROR_I2C_ERROR = -112,       /**< I2C error */
+    XY_DEVICE_ERROR_TIMER_ERROR = -113,     /**< Timer error */
+    XY_DEVICE_ERROR_ADC_ERROR = -114,       /**< ADC error */
+    XY_DEVICE_ERROR_DAC_ERROR = -115,       /**< DAC error */
+    XY_DEVICE_ERROR_RTC_ERROR = -116,       /**< RTC error */
+    XY_DEVICE_ERROR_WDG_ERROR = -117,       /**< Watchdog error */
+    XY_DEVICE_ERROR_FLASH_ERROR = -118,     /**< Flash error */
+    XY_DEVICE_ERROR_CRC_ERROR = -119,       /**< CRC error */
+    XY_DEVICE_ERROR_RNG_ERROR = -120,       /**< RNG error */
+    XY_DEVICE_ERROR_I2S_ERROR = -121,       /**< I2S error */
+    XY_DEVICE_ERROR_CAN_ERROR = -122,       /**< CAN error */
+    XY_DEVICE_ERROR_SDMMC_ERROR = -123,     /**< SDMMC error */
+    XY_DEVICE_ERROR_ETH_ERROR = -124,       /**< Ethernet error */
+    XY_DEVICE_ERROR_USB_ERROR = -125,       /**< USB error */
+    XY_DEVICE_ERROR_LCD_ERROR = -126,       /**< LCD error */
+    XY_DEVICE_ERROR_TOUCH_ERROR = -127,     /**< Touch error */
+    XY_DEVICE_ERROR_SENSOR_ERROR = -128,    /**< Sensor error */
+    XY_DEVICE_ERROR_END = -199,
+} xy_device_error_codes_t;
+
+/* ==================== Configuration ==================== */
+
+#ifndef XY_DEVICE_MAX_COUNT
+#define XY_DEVICE_MAX_COUNT 32
+#endif
+
+#ifndef XY_DEVICE_NAME_MAX_LEN
+#define XY_DEVICE_NAME_MAX_LEN 16
+#endif
 
 #ifdef __cplusplus
 }
