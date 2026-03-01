@@ -46,12 +46,11 @@
 
 - **OSAL 多后端支持**: 支持 4 种后端 (Bare-metal/FreeRTOS/RT-Thread/CMSIS-RTX)
 - **HAL STM32U5**: 20+ 外设完整实现
+- **Device Framework**: 统一设备模型，支持总线和节点 (SPI/I2C/CAN)
 - **统一测试系统**: Unity 框架集成，17+ 测试用例
 - **智能代理系统**: 项目经理/架构师/开发/测试 四大智能代理
-- **构建系统**: CMake/Kconfig/Makefile 统一配置
-- **文档系统**: 完整 API 参考和使用指南
-- **目录结构**: third_party 分离，组件结构清晰
-- **代码质量**: 统一规范，标准化错误处理
+- **构建系统统一**: CMake/Kconfig/Makefile 规范化
+- **文档系统完善**: API 参考 + 使用指南 + 架构文档
 
 #### 📚 xy_clib 详细功能
 
@@ -271,7 +270,59 @@ xy_hal_uart_close(uart);
 
 ---
 
-### 3. Cryptography Component
+### 3. Device Framework Component
+
+**Location:** `components/device/`
+
+**Capabilities:**
+- **Unified Device Model**: Single interface for all devices
+- **Bus Support**: SPI/I2C/CAN bus with device nodes
+- **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
+- **Async Operations**: Callback and DMA support
+- **Power Management**: Integrated power control
+- **Standardized API**: Consistent interface across all devices
+
+**Device Types:**
+- **Communication**: UART, SPI, I2C, CAN, I2S
+- **Analog**: ADC, DAC
+- **Digital**: GPIO, PWM, Timer
+- **System**: RTC, WDG, Flash
+- **Sensor**: Temperature, Accelerometer, Gyroscope
+- **Storage**: EEPROM, Flash, SD/MMC
+
+**Features:**
+- RT-Thread-like device model with Zephyr-style API separation
+- Static registration with dynamic fallback
+- Kconfig-based configuration
+- Integrated with XinYi HAL framework
+- Automatic device enumeration
+- Centralized device management
+
+**Use Cases:**
+- Hardware abstraction
+- Device management
+- Driver development
+- Bus communication
+- Sensor integration
+- Peripherals access
+
+**Core API**:
+```c
+// Device operation unified interface
+xy_device_t *dev = xy_device_find("uart1");
+xy_device_open(dev, XY_DEV_FLAG_RDWR);
+xy_device_write(dev, 0, data, len);
+xy_device_close(dev);
+
+// Bus device operation
+xy_bus_device_t *bus = (xy_bus_device_t *)xy_device_find("spi1");
+xy_bus_node_t *node = (xy_bus_node_t *)xy_device_find("spi_sensor");
+xy_bus_take(bus);
+xy_bus_transfer(bus, node, tx_data, rx_data, len);
+xy_bus_release(bus);
+```
+
+### 4. Cryptography Component
 
 **Location:** `components/crypto/`
 
@@ -457,7 +508,62 @@ xy_log_e("Error: operation failed\n");
 | **FOTA** | `components/fota/` | Firmware over-the-air updates |
 | **GUI** | `components/gui/` | Display and UI framework |
 | **Device** | `components/device/` | Unified device framework with bus support |
-| **Kernel** | `components/kernel/` | Core kernel utilities |
+
+---
+
+### 11. Device Framework (New)
+
+**Location:** `components/device/`
+
+**Capabilities:**
+- **Unified Device Model**: Single interface for all devices
+- **Bus Support**: SPI/I2C/CAN bus with device nodes
+- **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
+- **Async Operations**: Callback and DMA support
+- **Power Management**: Integrated power control
+- **Standardized API**: Consistent interface across all devices
+
+**Device Types:**
+- **Communication**: UART, SPI, I2C, CAN, I2S
+- **Analog**: ADC, DAC
+- **Digital**: GPIO, PWM, Timer
+- **System**: RTC, WDG, Flash
+- **Sensor**: Temperature, Accelerometer, Gyroscope
+- **Storage**: EEPROM, Flash, SD/MMC
+
+**Features:**
+- RT-Thread-like device model with Zephyr-style API separation
+- Static registration with dynamic fallback
+- Kconfig-based configuration
+- Integrated with XinYi HAL framework
+- Automatic device enumeration
+- Centralized device management
+
+**Core API**:
+```c
+// Device operation unified interface
+xy_device_t *dev = xy_device_find("uart1");
+xy_device_open(dev, XY_DEV_FLAG_RDWR);
+xy_device_write(dev, 0, data, len);
+xy_device_close(dev);
+
+// Bus device operation
+xy_bus_device_t *bus = (xy_bus_device_t *)xy_device_find("spi1");
+xy_bus_node_t *node = (xy_bus_node_t *)xy_device_find("spi_sensor");
+xy_bus_take(bus);
+xy_bus_transfer(bus, node, tx_data, rx_data, len);
+xy_bus_release(bus);
+```
+
+---
+
+### 12. Kernel Components
+
+**Location:** `components/kernel/`
+
+**Sub-components:**
+- **OSAL**: OS Abstraction Layer (FreeRTOS/RT-Thread/Bare-metal support)
+- **Misc**: Miscellaneous kernel utilities
 
 ---
 

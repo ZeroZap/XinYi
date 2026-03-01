@@ -218,10 +218,105 @@ int xy_fota_reset(xy_fota_t *fota)
     if (!fota) {
         return XY_FOTA_INVALID_PARAM;
     }
-    
+
     fota->state = XY_FOTA_STATE_IDLE;
     fota->downloaded_bytes = 0;
     memset(&fota->header, 0, sizeof(fota->header));
+
+    return XY_FOTA_OK;
+}
+
+/* ==================== Flash Operations ==================== */
+
+static int xy_fota_flash_write(xy_fota_t *fota, uint32_t offset, const uint8_t *data, uint32_t size)
+{
+    if (!fota || !fota->flash_ops || !fota->flash_ops->write) {
+        return XY_FOTA_FLASH_ERROR;
+    }
     
+    uint32_t flash_addr = fota->config.flash_base_addr + 
+                         (fota->current_slot * fota->config.slot_size) + 
+                         offset;
+    
+    return fota->flash_ops->write(flash_addr, data, size);
+}
+
+static int xy_fota_flash_read(xy_fota_t *fota, uint32_t offset, uint8_t *data, uint32_t size)
+{
+    if (!fota || !fota->flash_ops || !fota->flash_ops->read) {
+        return XY_FOTA_FLASH_ERROR;
+    }
+    
+    uint32_t flash_addr = fota->config.flash_base_addr + 
+                         (fota->current_slot * fota->config.slot_size) + 
+                         offset;
+    
+    return fota->flash_ops->read(flash_addr, data, size);
+}
+
+static int xy_fota_flash_erase(xy_fota_t *fota)
+{
+    if (!fota || !fota->flash_ops || !fota->flash_ops->erase) {
+        return XY_FOTA_FLASH_ERROR;
+    }
+    
+    uint32_t flash_addr = fota->config.flash_base_addr + 
+                         (fota->current_slot * fota->config.slot_size);
+    
+    return fota->flash_ops->erase(flash_addr, fota->config.slot_size);
+}
+
+/* ==================== FOTA Validation ==================== */
+
+int xy_fota_validate(xy_fota_t *fota)
+{
+    int ret;
+    uint32_t crc;
+    uint8_t *buffer;
+    
+    if (!fota || !fota->initialized) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    
+    /* 分配缓冲区 */
+    buffer = malloc(256);
+    if (!buffer) {
+        return XY_FOTA_NO_MEM;
+    }
+    
+    /* 读取并计算 CRC */
+    crc = 0;
+    for (uint32_t i = 0; i < fota->header.image_size; i += 256) {
+        uint32_t size = (fota->header.image_size - i) > 256 ? 256 : (fota->header.image_size - i);
+        
+        ret = xy_fota_flash_read(fota, i, buffer, size);
+        if (ret != XY_FOTA_OK) {
+            free(buffer);
+            return XY_FOTA_FLASH_ERROR;
+        }
+        
+        crc = xy_fota_calc_crc32(buffer, size);
+    }
+    
+    free(buffer);
+    
+    /* 验证 CRC */
+    if (crc != fota->header.crc32) {
+        xy_log_e("CRC validation failed: expected 0x%08X, got 0x%08X\n", 
+                 fota->header.crc32, crc);
+        return XY_FOTA_CRC_ERROR;
+    }
+    
+    xy_log_i("FOTA image validated successfully\n");
+    return XY_FOTA_OK;
+}
+
+int xy_fota_set_flash_ops(xy_fota_t *fota, const xy_fota_flash_ops_t *ops)
+{
+    if (!fota || !ops) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    
+    fota->flash_ops = ops;
     return XY_FOTA_OK;
 }

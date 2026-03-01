@@ -34,6 +34,25 @@ extern "C" {
 #define XY_GUI_OK               0
 #define XY_GUI_ERROR            (-1)
 #define XY_GUI_INVALID_PARAM    (-2)
+#define XY_GUI_NO_MEM           (-3)
+#define XY_GUI_NOT_FOUND        (-4)
+
+/* ==================== Color Macros (RGB565) ==================== */
+
+#define XY_GUI_RGB565(r, g, b)  ((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | (((b) & 0xF8) >> 3))
+#define XY_GUI_RGB888_TO_565(r, g, b)  ((((r) >> 3) << 11) | (((g) >> 2) << 5) | ((b) >> 3))
+
+/* Common colors */
+#define XY_GUI_COLOR_BLACK      XY_GUI_RGB565(0, 0, 0)
+#define XY_GUI_COLOR_WHITE      XY_GUI_RGB565(255, 255, 255)
+#define XY_GUI_COLOR_RED        XY_GUI_RGB565(255, 0, 0)
+#define XY_GUI_COLOR_GREEN      XY_GUI_RGB565(0, 255, 0)
+#define XY_GUI_COLOR_BLUE       XY_GUI_RGB565(0, 0, 255)
+#define XY_GUI_COLOR_YELLOW     XY_GUI_RGB565(255, 255, 0)
+#define XY_GUI_COLOR_CYAN       XY_GUI_RGB565(0, 255, 255)
+#define XY_GUI_COLOR_MAGENTA    XY_GUI_RGB565(255, 0, 255)
+#define XY_GUI_COLOR_GRAY       XY_GUI_RGB565(128, 128, 128)
+#define XY_GUI_COLOR_ORANGE     XY_GUI_RGB565(255, 165, 0)
 
 /* ==================== Data Structures ==================== */
 

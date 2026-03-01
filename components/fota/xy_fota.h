@@ -35,6 +35,8 @@ extern "C" {
 #define XY_FOTA_AUTH_ERROR          (-5)
 #define XY_FOTA_NO_IMAGE            (-6)
 #define XY_FOTA_IN_PROGRESS         (-7)
+#define XY_FOTA_NO_MEM              (-8)
+#define XY_FOTA_TIMEOUT             (-9)
 
 /* ==================== Data Structures ==================== */
 
@@ -55,13 +57,24 @@ typedef enum {
  * @brief FOTA 固件头
  */
 typedef struct {
-    uint32_t magic;             /* 魔数 0xFOTA */
+    uint32_t magic;             /* 魔数 0xF0T4 */
     uint32_t version;           /* 固件版本 */
     uint32_t image_size;        /* 镜像大小 */
     uint32_t crc32;             /* CRC32 校验 */
     uint32_t timestamp;         /* 时间戳 */
     uint8_t reserved[12];       /* 保留 */
 } xy_fota_header_t;
+
+/**
+ * @brief FOTA Flash 操作回调
+ */
+typedef struct {
+    int (*init)(void);
+    int (*write)(uint32_t addr, const uint8_t *data, uint32_t size);
+    int (*read)(uint32_t addr, uint8_t *data, uint32_t size);
+    int (*erase)(uint32_t addr, uint32_t size);
+    int (*deinit)(void);
+} xy_fota_flash_ops_t;
 
 /**
  * @brief FOTA 配置
@@ -89,6 +102,7 @@ typedef struct {
     uint32_t current_slot;
     xy_fota_progress_cb progress_cb;
     void *user_data;
+    const xy_fota_flash_ops_t *flash_ops;
     bool initialized;
 } xy_fota_t;
 
