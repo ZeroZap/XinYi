@@ -1,0 +1,265 @@
+# Third Party Libraries Kconfig
+
+menu "Third Party Libraries Configuration"
+
+config USE_THIRD_PARTY_LIBS
+    bool "Enable third party libraries"
+    default y
+    help
+        Enable third party library support.
+
+# ==================== RTOS Selection ====================
+
+choice
+    prompt "RTOS Selection"
+    default RTOS_NONE
+    help
+        Select the RTOS backend for your project.
+        Only one RTOS can be selected at a time.
+
+config RTOS_NONE
+    bool "No RTOS (Bare-metal)"
+    help
+        No RTOS, use bare-metal mode.
+        Suitable for simple applications without multi-threading.
+
+config RTOS_FREERTOS
+    bool "FreeRTOS"
+    help
+        Use FreeRTOS RTOS.
+        License: MIT
+        Website: https://www.freertos.org/
+
+        Features:
+        - Preemptive priority-based scheduler
+        - Mutex, Semaphore, Event Groups
+        - Software Timers
+        - Message Queues
+        - Task Notifications
+
+config RTOS_RTTHREAD
+    bool "RT-Thread"
+    help
+        Use RT-Thread RTOS.
+        License: Apache-2.0
+        Website: https://www.rt-thread.io/
+
+        Features:
+        - Preemptive priority-based scheduler
+        - Priority inheritance mutex
+        - Semaphore, Event Flags
+        - Mailbox, Message Queue
+        - Memory Pool
+        - Software Timer
+
+config RTOS_CMSIS_RTX
+    bool "CMSIS-RTOS2 (RTX5)"
+    help
+        Use ARM CMSIS-RTOS2 (RTX5).
+        License: Apache-2.0
+        Website: https://github.com/ARM-software/CMSIS_5
+
+        Features:
+        - CMSIS-RTOS2 standard API
+        - Preemptive priority-based scheduler
+        - Mutex, Semaphore, Event Flags
+        - Message Queues
+        - Memory Pools
+        - Software Timers
+
+endchoice
+
+# ==================== FreeRTOS Configuration ====================
+
+if RTOS_FREERTOS
+
+menu "FreeRTOS Configuration"
+
+config FREERTOS_CONFIG_PATH
+    string "FreeRTOSConfig.h path"
+    default "third_party/freertos/include"
+    help
+        Path to FreeRTOSConfig.h header file.
+
+config FREERTOS_HEAP_TYPE
+    int "FreeRTOS Heap Implementation"
+    default 4
+    range 1 5
+    help
+        Select the heap implementation scheme:
+        1 - heap_1.c: Simple, no free
+        2 - heap_2.c: Best fit, no coalescing
+        3 - heap_3.c: Wrapper for malloc/free
+        4 - heap_4.c: Coalescing adjacent blocks (RECOMMENDED)
+        5 - heap_5.c: heap_4 with multiple regions
+
+config FREERTOS_TICK_RATE
+    int "FreeRTOS Tick Rate (Hz)"
+    default 1000
+    range 100 10000
+    help
+        FreeRTOS tick frequency in Hz.
+        1000 = 1ms tick period.
+
+config FREERTOS_MAX_PRIORITIES
+    int "Maximum Priority Levels"
+    default 32
+    range 8 64
+    help
+        Maximum number of priority levels.
+
+config FREERTOS_MINIMAL_STACK_SIZE
+    int "Minimal Stack Size (words)"
+    default 128
+    help
+        Minimal stack size for idle and timer tasks.
+
+config FREERTOS_USE_TICKLESS
+    bool "Enable Tickless Idle Mode"
+    default n
+    help
+        Enable tickless idle mode for power saving.
+        Requires low power timer support.
+
+config FREERTOS_USE_TRACE
+    bool "Enable Trace Facility"
+    default n
+    help
+        Enable FreeRTOS trace facility for debugging.
+
+endmenu
+
+endif # RTOS_FREERTOS
+
+# ==================== RT-Thread Configuration ====================
+
+if RTOS_RTTHREAD
+
+menu "RT-Thread Configuration"
+
+config RTTHREAD_CONFIG_PATH
+    string "rtconfig.h path"
+    default "third_party/rt-thread"
+    help
+        Path to rtconfig.h header file.
+
+config RTTHREAD_TICK_RATE
+    int "RT-Thread Tick Rate (Hz)"
+    default 1000
+    range 100 10000
+    help
+        RT-Thread tick frequency in Hz.
+
+config RTTHREAD_MAX_PRIORITIES
+    int "Maximum Priority Levels"
+    default 32
+    range 8 64
+    help
+        Maximum number of priority levels.
+
+config RTTHREAD_MINIMAL_STACK_SIZE
+    int "Minimal Stack Size (bytes)"
+    default 512
+    help
+        Minimal stack size for idle task.
+
+config RTTHREAD_USE_COMPONENTS
+    bool "Enable RT-Thread Components"
+    default y
+    help
+        Enable RT-Thread components (DFS, SAL, etc.).
+
+config RTTHREAD_CONSOLE_ENABLE
+    bool "Enable Console Output"
+    default y
+    help
+        Enable console output via finsh shell.
+
+endmenu
+
+endif # RTOS_RTTHREAD
+
+# ==================== CMSIS-RTX Configuration ====================
+
+if RTOS_CMSIS_RTX
+
+menu "CMSIS-RTOS2 Configuration"
+
+config RTX_CONFIG_PATH
+    string "RTX_Config.h path"
+    default "third_party/cmsis-rtx/Config"
+    help
+        Path to RTX_Config.h header file.
+
+config RTX_TICK_RATE
+    int "RTX Tick Rate (Hz)"
+    default 1000
+    range 100 10000
+    help
+        RTX tick frequency in Hz.
+
+config RTX_MAX_PRIORITIES
+    int "Maximum Priority Levels"
+    default 56
+    range 8 64
+    help
+        Maximum number of priority levels.
+
+config RTX_OS_STACK_SIZE
+    int "OS Stack Size (bytes)"
+    default 1024
+    help
+        Stack size for OS system threads.
+
+config RTX_OBJ_MEMORY
+    int "Object Memory Size (bytes)"
+    default 2048
+    help
+        Memory pool for OS objects.
+
+config RTX_USE_THREAD_SAFE
+    bool "Enable Thread Safety"
+    default y
+    help
+        Enable thread-safe API calls.
+
+endmenu
+
+endif # RTOS_CMSIS_RTX
+
+# ==================== Common Configuration ====================
+
+menu "Common RTOS Configuration"
+
+config OS_TICK_RATE
+    int "System Tick Rate (Hz)"
+    default 1000
+    range 100 10000
+    help
+        System tick frequency for all RTOS.
+        This is used by OSAL for timing functions.
+
+config OS_USE_FLOAT
+    bool "Enable Floating Point Support"
+    default n
+    help
+        Enable floating point unit (FPU) support.
+        Required for applications using float/double.
+
+config OS_CHECK_STACK_OVERFLOW
+    bool "Enable Stack Overflow Check"
+    default y
+    help
+        Enable stack overflow detection.
+        Adds runtime overhead but improves safety.
+
+config OS_ENABLE_ASSERT
+    bool "Enable RTOS Assertions"
+    default y
+    help
+        Enable runtime assertions in RTOS.
+        Useful for debugging, disable in production.
+
+endmenu
+
+endmenu

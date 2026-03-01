@@ -1,67 +1,49 @@
-# IDE
-.vscode/
+# .gitignore for XinYi project
+# Generated on 2026-02-28
 
-# Spec dir
-**/third_party/**
-
-# Common 
-**/build/**
-
-# Object files
+# Build artifacts
+build/
+obj/
+output/
 *.o
-*.ko
 *.obj
-*.elf
-
-# Libraries
-*.lib
 *.a
-*.la
-*.lo
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-
-# Shared objects (inc. Windows DLLs)
-*.dll
+*.lib
 *.so
-*.so.*
+*.dll
 *.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
+*.bin
 *.hex
+*.elf
+*.out
+*.exe
+*.map
+*.lst
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# Misc
-*.sublime-project
-*.sublime-workspace
-Gemfile.lock
-.rake_t_cache
-.DS_Store
+# IDE files
+.vscode/
+.idea/
 *.swp
+*.swo
+*.bak
+*.tmp
+
+# Logs
+*.log
+logs/
+
+# Temp files
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+
+# Third-party RT-Thread build artifacts
+**/third_party/rt-thread/**/*.a
+**/third_party/rt-thread/**/*.lib
+**/third_party/rt-thread/**/*.out
+**/third_party/rt-thread/**/*.hex
+
+# Generated files
+**/generated/
+**/docs/generated/

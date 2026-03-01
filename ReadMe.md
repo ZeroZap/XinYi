@@ -38,6 +38,7 @@
 - **Cryptography**: AES, HMAC, RNG, CRC, Base64, MD5
 - **Data Management**: EEPROM, NOR Flash, TLV encoding, NVM storage
 - **Utilities**: Custom C library (xy_clib), state machines, logging system
+- **Device Management**: Unified device framework with bus support (device)
 
 ### 🚀 最新优化 (版本 2.0)
 
@@ -51,6 +52,69 @@
 - **文档系统**: 完整 API 参考和使用指南
 - **目录结构**: third_party 分离，组件结构清晰
 - **代码质量**: 统一规范，标准化错误处理
+
+#### 📚 xy_clib 详细功能
+
+**XinYi C 标准库** 提供嵌入式系统专用的轻量级标准库实现：
+
+**核心模块**:
+- **xy_typedef**: 统一基础类型定义
+- **xy_string**: 安全字符串和内存操作
+- **xy_stdio**: 轻量级格式化 I/O
+- **xy_stdlib**: 数值转换和算法
+- **xy_common**: 位操作和数值转换工具
+- **xy_rb**: 多种环形缓冲区实现
+- **xy_list**: RT-Thread 兼容链表宏
+- **xy_math**: 嵌入式数学函数
+- **xy_error**: 统一错误码系统
+- **xy_assert**: 断言和调试工具
+
+**特色功能**:
+- **软除法优化**: 为无硬件除法的 MCU 提供快速除法
+- **BCD 转换**: 高效 BCD/十进制/十六进制转换
+- **安全字符串**: `xy_strlcpy`/`xy_strlcat` 防溢出函数
+- **镜像位环形缓冲**: 高效无锁数据结构
+- **统一错误码**: 与 XY HAL 兼容的错误处理
+- **智能代理集成**: 支持 PM/Arch/Dev/Test 自动化
+
+#### 🧩 device 组件 (新)
+
+**XinYi 设备组件** 提供统一的设备管理框架：
+
+**架构特点**:
+- **统一设备模型**: 所有设备使用统一接口
+- **分层设计**: 设备框架 + 驱动 API + 驱动实现
+- **模块化**: 按功能分类的驱动模块
+- **总线支持**: SPI/I2C/CAN 总线模型
+- **异步操作**: 支持回调和 DMA 操作
+- **电源管理**: 统一 PM 框架
+
+**支持的设备类型**:
+- **通信接口**: UART, SPI, I2C, CAN, I2S
+- **模拟接口**: ADC, DAC
+- **数字接口**: GPIO, PWM, Timer
+- **系统接口**: RTC, WDG, Flash
+- **传感器接口**: 温度、加速度、陀螺仪等
+- **存储接口**: EEPROM, Flash, SD/MMC
+
+**核心接口**:
+```c
+// 设备操作统一接口
+xy_device_t *dev = xy_device_find("uart1");
+xy_device_open(dev, XY_DEV_FLAG_RDWR);
+xy_device_write(dev, 0, data, len);
+xy_device_close(dev);
+```
+
+**总线模型**:
+```c
+// 总线设备操作
+xy_bus_device_t *bus = (xy_bus_device_t *)xy_device_find("spi1");
+xy_bus_node_t *node = (xy_bus_node_t *)xy_device_find("spi_sensor");
+xy_bus_take(bus);
+xy_bus_transfer(bus, node, tx_data, rx_data, len);
+xy_bus_release(bus);
+```
 
 #### 🤖 智能代理系统
 
@@ -244,7 +308,45 @@ xy_hal_uart_close(uart);
 
 ---
 
-### 5. Network & Communication
+### 5. Device Component
+
+**Location:** `components/device/`
+
+**Capabilities:**
+- **Unified Device Model**: Single interface for all devices
+- **Bus Support**: SPI/I2C/CAN bus with device nodes
+- **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
+- **Async Operations**: Callback and DMA support
+- **Power Management**: Integrated power control
+- **Standardized API**: Consistent interface across all devices
+
+**Device Types:**
+- **Communication**: UART, SPI, I2C, CAN, I2S
+- **Analog**: ADC, DAC
+- **Digital**: GPIO, PWM, Timer
+- **System**: RTC, WDG, Flash
+- **Sensor**: Temperature, Accelerometer, Gyroscope
+- **Storage**: EEPROM, Flash, SD/MMC
+
+**Features:**
+- RT-Thread-like device model with Zephyr-style API separation
+- Static registration with dynamic fallback
+- Kconfig-based configuration
+- Integrated with XinYi HAL framework
+- Automatic device enumeration
+- Centralized device management
+
+**Use Cases:**
+- Hardware abstraction
+- Device management
+- Driver development
+- Bus communication
+- Sensor integration
+- Peripherals access
+
+---
+
+### 7. Network & Communication
 
 **Location:** `components/net/`
 
@@ -262,7 +364,7 @@ xy_hal_uart_close(uart);
 
 ---
 
-### 6. Sensor Framework
+### 8. Sensor Framework
 
 **Location:** `components/sensor/`
 
@@ -281,7 +383,7 @@ xy_hal_uart_close(uart);
 
 ---
 
-### 7. Logging System (xy_log)
+### 9. Logging System (xy_log)
 
 **Location:** `components/trace/xy_log/`
 
@@ -354,6 +456,7 @@ xy_log_e("Error: operation failed\n");
 | **IPC** | `components/ipc/` | Inter-process communication |
 | **FOTA** | `components/fota/` | Firmware over-the-air updates |
 | **GUI** | `components/gui/` | Display and UI framework |
+| **Device** | `components/device/` | Unified device framework with bus support |
 | **Kernel** | `components/kernel/` | Core kernel utilities |
 
 ---
@@ -381,12 +484,13 @@ Application Projects
          │    └─→ HAL (UART, SPI, I2C, GPIO, etc.)
          │         └─→ Platform (STM32, PC Sim)
          │
+         ├─→ Device (Unified device framework, bus support)
          └─→ xy_clib (String, Math, Filters, etc.)
 ```
 
 ### Component Maturity Levels
 
-- **Stable**: HAL, OSAL, Crypto, xy_clib, Logging
+- **Stable**: HAL, OSAL, Crypto, xy_clib, Logging, Device
 - **Production**: Network (MQTT, Modbus), Sensor, Data Management
 - **Active Development**: FOTA, GUI, Power Management
 - **Experimental**: Advanced filtering, AI/ML utilities
@@ -408,6 +512,7 @@ Application Projects
 - Sensor Framework (voltage, current, temperature)
 - Power Management
 - Data Management (calibration storage)
+- Device (Unified device access)
 - Logging
 
 **Status:** Production-ready
@@ -426,6 +531,7 @@ Application Projects
 - HAL (ADC, PWM, Timer)
 - Sensor Framework
 - State Machine
+- Device (Unified device access)
 - Logging
 
 ---
@@ -441,6 +547,7 @@ Application Projects
 **Components Used:**
 - HAL (USB, SPI, I2C, UART)
 - Data Management (configuration)
+- Device (Unified device access)
 - Logging
 
 ---
@@ -457,6 +564,7 @@ Application Projects
 - Network (ISO7816)
 - Data Management (TLV)
 - HAL (UART, GPIO)
+- Device (Unified device access)
 - Logging
 
 ---
@@ -472,6 +580,7 @@ Application Projects
 **Components Used:**
 - Sensor Framework
 - Data Management
+- Device (Unified device access)
 - Logging
 
 ---
@@ -487,6 +596,7 @@ Application Projects
 **Components Used:**
 - HAL (GPIO, Timer, PWM)
 - State Machine
+- Device (Unified device access)
 - Logging
 
 ---
