@@ -1,7 +1,9 @@
 # .gitignore for XinYi project
 # Generated on 2026-02-28
 
+# ===========================================================================
 # Build artifacts
+# ===========================================================================
 build/
 obj/
 output/
@@ -20,30 +22,69 @@ output/
 *.map
 *.lst
 
+# ===========================================================================
 # IDE files
+# ===========================================================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *.bak
 *.tmp
+*.cache
 
-# Logs
+# ===========================================================================
+# Logs and temp files
+# ===========================================================================
 *.log
 logs/
-
-# Temp files
 *.tmp
 *~
 .DS_Store
 Thumbs.db
 
-# Third-party RT-Thread build artifacts
+# ===========================================================================
+# Third-party libraries (keep source only, ignore build artifacts)
+# ===========================================================================
+
+# RT-Thread build artifacts
 **/third_party/rt-thread/**/*.a
 **/third_party/rt-thread/**/*.lib
 **/third_party/rt-thread/**/*.out
 **/third_party/rt-thread/**/*.hex
+**/third_party/rt-thread/**/build/
+**/third_party/rt-thread/**/obj/
 
+# FreeRTOS build artifacts
+**/third_party/freertos/**/*.a
+**/third_party/freertos/**/*.lib
+**/third_party/freertos/**/build/
+
+# CMSIS-RTX build artifacts
+**/third_party/CMSIS-RTX/**/RTE/
+**/third_party/CMSIS-RTX/**/output/
+**/third_party/CMSIS-RTX/**/*.uv*
+**/third_party/CMSIS-RTX/**/*.jlink
+**/third_party/CMSIS-RTX/**/flasher/
+
+# Unity test framework
+**/third_party/unity/build/
+
+# ===========================================================================
 # Generated files
+# ===========================================================================
 **/generated/
 **/docs/generated/
+**/docs/api/html/
+**/docs/api/latex/
+
+# ===========================================================================
+# OS-specific files
+# ===========================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
