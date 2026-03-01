@@ -1,176 +1,187 @@
 /**
  * @file xy_pid.h
- * @brief PID Controller Implementation
- * @version 1.0.0
- * @date 2026-02-28
+ * @brief PID Controller with Advanced Features
+ * @version 2.0.0
+ * @date 2026-03-01 早晨
  */
 
 #ifndef XY_PID_H
 #define XY_PID_H
 
-#include <stdint.h>
-#include <stdbool.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* ==================== Configuration ==================== */
-
-#ifndef PID_USE_FLOAT
-#define PID_USE_FLOAT 0  /* 0=定点数，1=浮点数 */
-#endif
-
-/* ==================== Error Codes ==================== */
-
-#define XY_PID_OK               0
-#define XY_PID_ERROR            (-1)
-#define XY_PID_INVALID_PARAM    (-2)
-
-/* ==================== Data Structures ==================== */
-
-#if PID_USE_FLOAT
-typedef float pid_fixed_t;
-#else
-typedef int32_t pid_fixed_t;
-#define PID_FIXED_SHIFT   16
-#define PID_FIXED_ONE     (1 << PID_FIXED_SHIFT)
-#endif
+#include <stdint.h>
+#include <stdbool.h>
 
 /**
- * @brief PID 参数结构
+ * @brief PID 模式
+ */
+typedef enum {
+    XY_PID_MODE_MANUAL = 0,   /**< 手动模式 */
+    XY_PID_MODE_AUTO = 1,     /**< 自动模式 */
+} xy_pid_mode_t;
+
+/**
+ * @brief PID 配置
  */
 typedef struct {
-    pid_fixed_t Kp;  /* 比例增益 */
-    pid_fixed_t Ki;  /* 积分增益 */
-    pid_fixed_t Kd;  /* 微分增益 */
-} xy_pid_gain_t;
+    float kp;                 /**< 比例增益 */
+    float ki;                 /**< 积分增益 */
+    float kd;                 /**< 微分增益 */
+    float output_min;         /**< 输出最小值 */
+    float output_max;         /**< 输出最大值 */
+    float integral_min;       /**< 积分最小值 (抗饱和) */
+    float integral_max;       /**< 积分最大值 (抗饱和) */
+    float derivative_filter;  /**< 微分滤波器系数 (0-1) */
+} xy_pid_config_t;
 
 /**
  * @brief PID 控制器结构
  */
 typedef struct {
-    xy_pid_gain_t gain;         /* PID 增益 */
-    pid_fixed_t setpoint;       /* 设定点 */
-    pid_fixed_t integral;       /* 积分累积 */
-    pid_fixed_t prev_error;     /* 上次误差 */
-    pid_fixed_t output;         /* 当前输出 */
-    pid_fixed_t integral_limit; /* 积分限幅 */
-    pid_fixed_t output_limit;   /* 输出限幅 */
-    uint32_t sample_time_ms;    /* 采样时间 (ms) */
-    bool anti_windup;           /* 抗积分饱和 */
-    bool initialized;           /* 初始化标志 */
+    xy_pid_config_t config;   /**< 配置参数 */
+    xy_pid_mode_t mode;       /**< 工作模式 */
+    
+    float setpoint;           /**< 设定值 */
+    float input;              /**< 输入值 (反馈) */
+    float output;             /**< 输出值 */
+    
+    float error;              /**< 当前误差 */
+    float error_prev;         /**< 上次误差 */
+    float error_sum;          /**< 误差积分 */
+    float derivative;         /**< 误差微分 */
+    
+    float integral;           /**< 积分项 (抗饱和后) */
+    float integral_raw;       /**< 原始积分项 */
+    
+    uint32_t last_update;     /**< 上次更新时间 (ms) */
+    uint32_t update_count;    /**< 更新次数 */
+    
+    bool first_run;           /**< 首次运行标志 */
+    bool anti_windup;         /**< 抗积分饱和启用 */
+    bool derivative_filter;   /**< 微分滤波启用 */
 } xy_pid_t;
 
 /**
- * @brief PID 输出结构
+ * @brief 错误码
  */
-typedef struct {
-    pid_fixed_t output;         /* 控制器输出 */
-    pid_fixed_t error;          /* 当前误差 */
-    pid_fixed_t integral;       /* 积分项 */
-    pid_fixed_t derivative;     /* 微分项 */
-    bool saturated;             /* 是否饱和 */
-} xy_pid_output_t;
-
-/* ==================== PID Operations ==================== */
+#define XY_PID_OK             0
+#define XY_PID_ERROR          (-1)
+#define XY_PID_INVALID_PARAM  (-2)
 
 /**
  * @brief 初始化 PID 控制器
  * @param pid PID 控制器句柄
- * @param Kp 比例增益
- * @param Ki 积分增益
- * @param Kd 微分增益
- * @param sample_time_ms 采样时间 (ms)
- * @return XY_PID_OK 成功
+ * @param config 配置参数
+ * @return XY_PID_OK 成功，其他值失败
  */
-int xy_pid_init(xy_pid_t *pid, pid_fixed_t Kp, pid_fixed_t Ki, pid_fixed_t Kd,
-                uint32_t sample_time_ms);
-
-/**
- * @brief 反初始化 PID 控制器
- * @param pid PID 控制器句柄
- * @return XY_PID_OK 成功
- */
-int xy_pid_deinit(xy_pid_t *pid);
-
-/**
- * @brief 设置 PID 增益
- * @param pid PID 控制器句柄
- * @param Kp 比例增益
- * @param Ki 积分增益
- * @param Kd 微分增益
- * @return XY_PID_OK 成功
- */
-int xy_pid_set_gains(xy_pid_t *pid, pid_fixed_t Kp, pid_fixed_t Ki, pid_fixed_t Kd);
-
-/**
- * @brief 设置设定点
- * @param pid PID 控制器句柄
- * @param setpoint 设定点
- * @return XY_PID_OK 成功
- */
-int xy_pid_set_setpoint(xy_pid_t *pid, pid_fixed_t setpoint);
-
-/**
- * @brief 设置输出限幅
- * @param pid PID 控制器句柄
- * @param min_limit 最小输出
- * @param max_limit 最大输出
- * @return XY_PID_OK 成功
- */
-int xy_pid_set_output_limit(xy_pid_t *pid, pid_fixed_t min_limit, pid_fixed_t max_limit);
-
-/**
- * @brief 设置积分限幅
- * @param pid PID 控制器句柄
- * @param limit 积分限幅值
- * @return XY_PID_OK 成功
- */
-int xy_pid_set_integral_limit(xy_pid_t *pid, pid_fixed_t limit);
-
-/**
- * @brief 执行 PID 计算
- * @param pid PID 控制器句柄
- * @param measurement 当前测量值
- * @param output PID 输出结构
- * @return XY_PID_OK 成功
- */
-int xy_pid_compute(xy_pid_t *pid, pid_fixed_t measurement, xy_pid_output_t *output);
+int xy_pid_init(xy_pid_t *pid, const xy_pid_config_t *config);
 
 /**
  * @brief 重置 PID 控制器
  * @param pid PID 控制器句柄
- * @return XY_PID_OK 成功
+ * @return XY_PID_OK 成功，其他值失败
  */
 int xy_pid_reset(xy_pid_t *pid);
 
 /**
- * @brief 启用/禁用抗积分饱和
+ * @brief 设置 PID 参数
  * @param pid PID 控制器句柄
- * @param enable true 启用
- * @return XY_PID_OK 成功
+ * @param kp 比例增益
+ * @param ki 积分增益
+ * @param kd 微分增益
+ * @return XY_PID_OK 成功，其他值失败
  */
-int xy_pid_set_ant_windup(xy_pid_t *pid, bool enable);
+int xy_pid_set_tuning(xy_pid_t *pid, float kp, float ki, float kd);
 
 /**
- * @brief 获取 PID 状态
+ * @brief 设置输出限幅
  * @param pid PID 控制器句柄
- * @param output 输出结构
- * @return XY_PID_OK 成功
+ * @param min 输出最小值
+ * @param max 输出最大值
+ * @return XY_PID_OK 成功，其他值失败
  */
-int xy_pid_get_state(xy_pid_t *pid, xy_pid_output_t *output);
+int xy_pid_set_output_limits(xy_pid_t *pid, float min, float max);
 
-/* ==================== Helper Macros ==================== */
+/**
+ * @brief 设置设定值
+ * @param pid PID 控制器句柄
+ * @param setpoint 设定值
+ * @return XY_PID_OK 成功，其他值失败
+ */
+int xy_pid_set_setpoint(xy_pid_t *pid, float setpoint);
 
-#if !PID_USE_FLOAT
-/* 定点数转换宏 */
-#define PID_FLOAT_TO_FIXED(f)   ((pid_fixed_t)((f) * PID_FIXED_ONE))
-#define PID_FIXED_TO_FLOAT(f)   ((float)(f) / PID_FIXED_ONE)
-#else
-#define PID_FLOAT_TO_FIXED(f)   ((pid_fixed_t)(f))
-#define PID_FIXED_TO_FLOAT(f)   ((pid_fixed_t)(f))
-#endif
+/**
+ * @brief 设置输入值 (反馈)
+ * @param pid PID 控制器句柄
+ * @param input 输入值
+ * @return XY_PID_OK 成功，其他值失败
+ */
+int xy_pid_set_input(xy_pid_t *pid, float input);
+
+/**
+ * @brief 计算 PID 输出
+ * @param pid PID 控制器句柄
+ * @param input 输入值
+ * @param output 输出值指针
+ * @return XY_PID_OK 成功，其他值失败
+ */
+int xy_pid_compute(xy_pid_t *pid, float input, float *output);
+
+/**
+ * @brief 获取当前误差
+ * @param pid PID 控制器句柄
+ * @return 误差值
+ */
+float xy_pid_get_error(const xy_pid_t *pid);
+
+/**
+ * @brief 获取积分项
+ * @param pid PID 控制器句柄
+ * @return 积分项值
+ */
+float xy_pid_get_integral(const xy_pid_t *pid);
+
+/**
+ * @brief 获取微分项
+ * @param pid PID 控制器句柄
+ * @return 微分项值
+ */
+float xy_pid_get_derivative(const xy_pid_t *pid);
+
+/**
+ * @brief 设置工作模式
+ * @param pid PID 控制器句柄
+ * @param mode 工作模式
+ * @return XY_PID_OK 成功，其他值失败
+ */
+int xy_pid_set_mode(xy_pid_t *pid, xy_pid_mode_t mode);
+
+/**
+ * @brief 获取工作模式
+ * @param pid PID 控制器句柄
+ * @return 工作模式
+ */
+xy_pid_mode_t xy_pid_get_mode(const xy_pid_t *pid);
+
+/**
+ * @brief 启用抗积分饱和
+ * @param pid PID 控制器句柄
+ * @param enable 是否启用
+ * @return XY_PID_OK 成功，其他值失败
+ */
+int xy_pid_enable_anti_windup(xy_pid_t *pid, bool enable);
+
+/**
+ * @brief 启用微分滤波
+ * @param pid PID 控制器句柄
+ * @param enable 是否启用
+ * @param coef 滤波系数 (0-1)
+ * @return XY_PID_OK 成功，其他值失败
+ */
+int xy_pid_enable_derivative_filter(xy_pid_t *pid, bool enable, float coef);
 
 #ifdef __cplusplus
 }
