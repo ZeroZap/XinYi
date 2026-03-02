@@ -40,7 +40,7 @@
 ```yaml
 autotask:
   enabled: true
-  idle_timeout_minutes: 30
+  idle_timeout_minutes: 10  # 已执行 autotask set_timeout 10
   max_run_time_minutes: 60
   task_types:
     - todo
