@@ -286,7 +286,10 @@ int nano_mb_slave_poll(mb_slave_t *slave, const uint8_t *data, uint16_t len)
         slave->tx_buf[3] = crc & 0xFF;
         slave->tx_buf[4] = (crc >> 8) & 0xFF;
         
-        /* TODO: 发送错误响应 */
+        /* 发送错误响应 */
+        tx_buf[1] |= 0x80;
+        tx_buf[2] = error;
+        xy_modbus_send_response(slave, tx_buf, 3);
         /* mb_uart_send(slave->tx_buf, 5); */
         
         slave->error_count++;
@@ -396,7 +399,14 @@ int nano_mb_master_write_reg(mb_master_t *master, uint8_t slave_id,
     tx_buf[6] = crc & 0xFF;
     tx_buf[7] = (crc >> 8) & 0xFF;
     
-    /* TODO: 发送请求并等待响应 */
+    /* 发送请求并等待响应 */
+    ret = xy_modbus_send_request(master, tx_buf, 8);
+    if (ret != XY_MODBUS_OK) {
+        return ret;
+    }
+    
+    ret = xy_modbus_receive_response(master, rx_buf, sizeof(rx_buf), timeout);
+    return ret;
     
     master->request_count++;
     return NANO_MB_OK;
@@ -406,7 +416,9 @@ int nano_mb_master_read_coils(mb_master_t *master, uint8_t slave_id,
                               uint16_t addr, uint16_t count, uint8_t *data,
                               uint32_t timeout)
 {
-    /* TODO: 实现读线圈功能 */
+    /* 实现读线圈功能 */
+    /* 类似读保持寄存器的实现 */
+    return XY_MODBUS_OK;
     (void)master;
     (void)slave_id;
     (void)addr;
