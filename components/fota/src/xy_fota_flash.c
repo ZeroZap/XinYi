@@ -27,8 +27,13 @@
  */
 static void flash_unlock(void)
 {
-    /* TODO: STM32 HAL Flash Unlock */
-    /* HAL_FLASH_Unlock(); */
+#ifdef MCU_STM32
+    /* STM32 HAL Flash Unlock */
+    HAL_FLASH_Unlock();
+#elif defined(MCU_WCH)
+    /* WCH Flash Unlock */
+    FLASH_Unlock();
+#endif
 }
 
 /**
@@ -36,8 +41,13 @@ static void flash_unlock(void)
  */
 static void flash_lock(void)
 {
-    /* TODO: STM32 HAL Flash Lock */
-    /* HAL_FLASH_Lock(); */
+#ifdef MCU_STM32
+    /* STM32 HAL Flash Lock */
+    HAL_FLASH_Lock();
+#elif defined(MCU_WCH)
+    /* WCH Flash Lock */
+    FLASH_Lock();
+#endif
 }
 
 /**
@@ -49,22 +59,26 @@ static int flash_erase_sector(uint32_t addr, uint32_t size)
     uint32_t remaining = size;
     
     while (remaining > 0) {
+#ifdef MCU_STM32
         /* 计算扇区号 */
-        uint32_t sector = (current_addr - FLASH_BASE_ADDR) / FLASH_SECTOR_SIZE;
+        uint32_t sector = FLASH_GetSector(current_addr);
         
-        /* TODO: STM32 Flash Erase */
-        /* 
+        /* STM32 Flash Erase */
         FLASH_EraseInitTypeDef erase;
+        uint32_t sector_error;
+        
         erase.TypeErase = FLASH_TYPEERASE_SECTORS;
         erase.Sector = sector;
         erase.NbSectors = 1;
         erase.VoltageRange = FLASH_VOLTAGE_RANGE_3;
         
-        uint32_t sector_error;
         if (HAL_FLASHEx_Erase(&erase, &sector_error) != HAL_OK) {
             return -1;
         }
-        */
+#elif defined(MCU_WCH)
+        /* WCH Flash Erase */
+        FLASH_ErasePage(current_addr);
+#endif
         
         current_addr += FLASH_SECTOR_SIZE;
         remaining -= FLASH_SECTOR_SIZE;
@@ -82,14 +96,22 @@ static int flash_program(uint32_t addr, const uint8_t *data, uint32_t size)
     
     for (i = 0; i < size; i += 4) {
         uint32_t word;
-        memcpy(&word, &data[i], sizeof(word));
         
-        /* TODO: STM32 Flash Program */
-        /* 
+        /* 组合 32 位数据 */
+        word = ((uint32_t)data[i]) |
+               ((uint32_t)data[i + 1] << 8) |
+               ((uint32_t)data[i + 2] << 16) |
+               ((uint32_t)data[i + 3] << 24);
+        
+#ifdef MCU_STM32
+        /* STM32 Flash Program */
         if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr + i, word) != HAL_OK) {
             return -1;
         }
-        */
+#elif defined(MCU_WCH)
+        /* WCH Flash Program */
+        FLASH_Program_Word(addr + i, word);
+#endif
     }
     
     return 0;
