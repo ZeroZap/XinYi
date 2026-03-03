@@ -7,25 +7,22 @@
 
 #include "xy_fota_secure.h"
 #include "xy_log.h"
+#include "xy_ecdsa.h"
+#include "xy_chacha20poly1305.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
-/* 简化的 ECDSA 验证 (实际应使用完整实现) */
+/**
+ * @brief ECDSA 验证实现
+ */
 static int xy_fota_ecdsa_verify_impl(const uint8_t *pub_key,
                                      const uint8_t *message,
                                      uint32_t msg_size,
                                      const uint8_t *signature)
 {
-    /* TODO: 实现完整的 ECDSA P-256 验证 */
-    /* 这里使用占位符，实际应使用 mbedTLS 或专用库 */
-    (void)pub_key;
-    (void)message;
-    (void)msg_size;
-    (void)signature;
-    
-    /* 模拟验证通过 */
-    return 0;
+    /* 使用 ECDSA P-256 验证 */
+    return xy_ecdsa_verify_simple(pub_key, message, msg_size, signature);
 }
 
 /* ChaCha20 流加密核心 (简化版) */
