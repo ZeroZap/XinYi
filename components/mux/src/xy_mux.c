@@ -12,9 +12,8 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
-/**
- * @brief 外设类型字符串
- */
+/* ==================== 外设类型字符串 ==================== */
+
 static const char *g_mux_type_strings[] = {
     [XY_MUX_TYPE_NONE] = "NONE",
     [XY_MUX_TYPE_GPIO] = "GPIO",
@@ -29,6 +28,8 @@ static const char *g_mux_type_strings[] = {
     [XY_MUX_TYPE_CONFIG] = "CONFIG",
 };
 
+/* ==================== 核心实现 ==================== */
+
 int32_t xy_mux_init(xy_mux_manager_t *mgr, 
                     uint8_t *tx_buffer, uint8_t *rx_buffer,
                     size_t buffer_size)
@@ -40,7 +41,7 @@ int32_t xy_mux_init(xy_mux_manager_t *mgr,
     memset(mgr, 0, sizeof(*mgr));
     mgr->devices = NULL;
     mgr->device_count = 0;
-    mgr->max_packet_size = 256;  /* 默认最大包大小 */
+    mgr->max_packet_size = 256;
     mgr->tx_buffer = tx_buffer;
     mgr->rx_buffer = rx_buffer;
     mgr->buffer_size = buffer_size;
@@ -118,7 +119,6 @@ int32_t xy_mux_register(xy_mux_manager_t *mgr,
         int32_t ret = ops->init(channel, NULL);
         if (ret != XY_MUX_OK) {
             xy_log_e("MUX device init failed: %d\n", ret);
-            /* 继续注册，由上层处理 */
         }
     }
     
@@ -324,6 +324,8 @@ int32_t xy_mux_ioctl(xy_mux_manager_t *mgr,
     
     return device->ops->ioctl(channel, cmd, arg);
 }
+
+/* ==================== 辅助函数 ==================== */
 
 const char* xy_mux_type_to_string(xy_mux_type_t type)
 {
