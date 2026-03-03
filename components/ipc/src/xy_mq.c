@@ -1,8 +1,8 @@
 /**
  * @file xy_mq.c
- * @brief Lightweight Message Queue Implementation
- * @version 1.0.0
- * @date 2026-03-01 自主任务
+ * @brief Message Queue Implementation
+ * @version 2.0.0
+ * @date 2026-03-02
  */
 
 #include "xy_mq.h"
@@ -34,8 +34,8 @@ int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
     mq->count = 0;
     mq->initialized = true;
     
-    xy_log_i("MQ initialized: size=%d, max_msgs=%d\n", 
-             config->msg_size, config->max_msgs);
+    xy_log_i("MQ initialized: size=%d, max_msgs=%d, priority=%d\n",
+             config->msg_size, config->max_msgs, config->priority_enabled);
     return XY_MQ_OK;
 }
 
@@ -54,7 +54,7 @@ int xy_mq_deinit(xy_mq_t *mq)
     return XY_MQ_OK;
 }
 
-int xy_mq_send(xy_mq_t *mq, const void *msg, uint32_t timeout)
+int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
 {
     uint32_t start;
     
@@ -62,10 +62,19 @@ int xy_mq_send(xy_mq_t *mq, const void *msg, uint32_t timeout)
         return XY_MQ_INVALID_PARAM;
     }
     
+    if (msg->len > mq->config.msg_size) {
+        return XY_MQ_INVALID_PARAM;
+    }
+    
     /* 检查队列是否满 */
     if (mq->count >= mq->config.max_msgs) {
-        if (mq->config.overwrite_old) {
-            /* 覆盖旧消息：移动 tail */
+        if (mq->config.priority_enabled && msg->priority == XY_MQ_PRIORITY_URGENT) {
+            /* 紧急消息：丢弃最低优先级消息 */
+            mq->tail = (mq->tail + 1) % mq->config.max_msgs;
+            mq->count--;
+            mq->drop_count++;
+        } else if (mq->config.overwrite_old) {
+            /* 覆盖旧消息 */
             mq->tail = (mq->tail + 1) % mq->config.max_msgs;
             mq->count--;
             mq->drop_count++;
@@ -83,7 +92,7 @@ int xy_mq_send(xy_mq_t *mq, const void *msg, uint32_t timeout)
     
     /* 复制消息 */
     uint8_t *dest = mq->buffer + (mq->head * mq->config.msg_size);
-    memcpy(dest, msg, mq->config.msg_size);
+    memcpy(dest, msg->data, msg->len);
     
     /* 更新写指针 */
     mq->head = (mq->head + 1) % mq->config.max_msgs;
@@ -93,7 +102,7 @@ int xy_mq_send(xy_mq_t *mq, const void *msg, uint32_t timeout)
     return XY_MQ_OK;
 }
 
-int xy_mq_recv(xy_mq_t *mq, void *msg, uint32_t timeout)
+int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
 {
     uint32_t start;
     
@@ -112,7 +121,7 @@ int xy_mq_recv(xy_mq_t *mq, void *msg, uint32_t timeout)
     
     /* 复制消息 */
     uint8_t *src = mq->buffer + (mq->tail * mq->config.msg_size);
-    memcpy(msg, src, mq->config.msg_size);
+    memcpy(msg->data, src, msg->len < mq->config.msg_size ? msg->len : mq->config.msg_size);
     
     /* 更新读指针 */
     mq->tail = (mq->tail + 1) % mq->config.max_msgs;
@@ -122,44 +131,14 @@ int xy_mq_recv(xy_mq_t *mq, void *msg, uint32_t timeout)
     return XY_MQ_OK;
 }
 
-int xy_mq_try_send(xy_mq_t *mq, const void *msg)
+int xy_mq_try_send(xy_mq_t *mq, const xy_mq_msg_t *msg)
 {
-    if (!mq || !msg || !mq->initialized) {
-        return XY_MQ_INVALID_PARAM;
-    }
-    
-    if (mq->count >= mq->config.max_msgs) {
-        return XY_MQ_FULL;
-    }
-    
-    uint8_t *dest = mq->buffer + (mq->head * mq->config.msg_size);
-    memcpy(dest, msg, mq->config.msg_size);
-    
-    mq->head = (mq->head + 1) % mq->config.max_msgs;
-    mq->count++;
-    mq->send_count++;
-    
-    return XY_MQ_OK;
+    return xy_mq_send(mq, msg, 0);
 }
 
-int xy_mq_try_recv(xy_mq_t *mq, void *msg)
+int xy_mq_try_recv(xy_mq_t *mq, xy_mq_msg_t *msg)
 {
-    if (!mq || !msg || !mq->initialized) {
-        return XY_MQ_INVALID_PARAM;
-    }
-    
-    if (mq->count == 0) {
-        return XY_MQ_EMPTY;
-    }
-    
-    uint8_t *src = mq->buffer + (mq->tail * mq->config.msg_size);
-    memcpy(msg, src, mq->config.msg_size);
-    
-    mq->tail = (mq->tail + 1) % mq->config.max_msgs;
-    mq->count--;
-    mq->recv_count++;
-    
-    return XY_MQ_OK;
+    return xy_mq_recv(mq, msg, 0);
 }
 
 uint16_t xy_mq_get_count(const xy_mq_t *mq)
