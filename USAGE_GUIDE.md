@@ -1,194 +1,325 @@
 # XinYi 框架使用指南
 
-## 快速开始
+**版本**: 2.0.0  
+**日期**: 2026-03-02
 
-### 1. 项目结构
+---
 
-```
-XinYi/
-├── components/           # 核心组件
-│   ├── kernel/           # 内核组件 (osal)
-│   ├── hal/              # 硬件抽象层
-│   ├── clib/             # C 标准库
-│   ├── crypto/           # 密码学
-│   ├── dm/               # 数据管理
-│   ├── net/              # 网络
-│   └── trace/            # 跟踪日志
-├── third_party/          # 第三方库
-│   ├── freertos/
-│   ├── rt-thread/
-│   └── unity/            # 测试框架
-├── tests/                # 统一测试入口
-├── docs/                 # 文档
-└── .qwen/                # 智能代理
-    └── smart_agent.sh
-```
+## 📋 目录
 
-### 2. 智能代理系统
+1. [快速开始](#快速开始)
+2. [组件配置](#组件配置)
+3. [使用示例](#使用示例)
+4. [最佳实践](#最佳实践)
 
-#### 项目管理
-```bash
-# 查看组件状态
-./.qwen/smart_agent.sh pm status
+---
 
-# 查看待办任务
-./.qwen/smart_agent.sh pm tasks
+## 🚀 快速开始
 
-# 搜索代码
-./.qwen/smart_agent.sh pm search "xy_hal_uart_init"
-
-# 项目统计
-./.qwen/smart_agent.sh pm stats
-```
-
-#### 架构分析
-```bash
-# 审查组件
-./.qwen/smart_agent.sh arch review hal
-
-# 依赖分析
-./.qwen/smart_agent.sh arch deps osal
-
-# 代码质量检查
-./.qwen/smart_agent.sh arch check
-```
-
-#### 开发辅助
-```bash
-# 创建新组件
-./.qwen/smart_agent.sh dev create my_component
-
-# 生成文档
-./.qwen/smart_agent.sh dev docs hal
-
-# 生成测试
-./.qwen/smart_agent.sh test gen hal
-```
-
-## 代码使用示例
-
-### 1. OSAL 使用
+### 1. 包含主头文件
 
 ```c
-#include "xy_os.h"
+#include "xy.h"
+```
 
-void app_main(void)
-{
-    // 初始化 OS
+### 2. 最小系统
+
+```c
+#include "xy.h"
+
+int main(void) {
+    /* 初始化系统 */
     xy_os_kernel_init();
     
-    // 创建线程 (RT-Thread/FreeRTOS 后端)
-    #if !defined(XY_OS_BACKEND_BAREMETAL)
-    xy_os_thread_attr_t attr = {
-        .name = "main_thread",
-        .priority = XY_OS_PRIORITY_NORMAL,
-        .stack_size = 2048,
-    };
-    xy_os_thread_new(my_task, NULL, &attr);
-    #endif
-    
-    // 启动调度器 (RT-Thread/FreeRTOS 后端)
-    #if !defined(XY_OS_BACKEND_BAREMETAL)
+    /* 启动内核 */
     xy_os_kernel_start();
-    #else
-    // 裸机模式下直接运行主循环
-    while (1) {
-        // 应用逻辑
-        xy_os_delay(1000);
-    }
-    #endif
+    
+    return 0;
 }
 ```
 
-### 2. HAL 使用
+### 3. 使用日志
 
 ```c
-#include "xy_hal.h"
+#define LOCAL_LOG_LEVEL XY_LOG_LEVEL_INFO
+#include "xy.h"
 
-void hal_example(void)
-{
-    // GPIO 使用
-    xy_hal_pin_config_t config = {
-        .mode = XY_HAL_PIN_MODE_OUTPUT,
-        .pull = XY_HAL_PIN_PULL_NONE,
-        .otype = XY_HAL_PIN_OTYPE_PP,
-        .speed = XY_HAL_PIN_SPEED_HIGH,
-    };
-    xy_hal_pin_init(GPIOA, 5, &config);
-    xy_hal_pin_write(GPIOA, 5, XY_HAL_PIN_HIGH);
+int main(void) {
+    xy_log_i("System starting...\n");
     
-    // UART 使用
-    xy_hal_uart_config_t uart_config = {
-        .baudrate = 115200,
-        .wordlen = XY_HAL_UART_WORDLEN_8B,
-        .stopbits = XY_HAL_UART_STOPBITS_1,
-        .parity = XY_HAL_UART_PARITY_NONE,
-        .flowctrl = XY_HAL_UART_FLOWCTRL_NONE,
-        .mode = XY_HAL_UART_MODE_TX_RX,
-    };
-    xy_hal_uart_init(&huart1, &uart_config);
+    /* 你的代码 */
     
-    const char *msg = "Hello World\r\n";
-    xy_hal_uart_send(&huart1, (uint8_t *)msg, strlen(msg), 1000);
+    return 0;
 }
 ```
 
-### 3. 构建系统
+---
 
-#### CMake 构建
-```bash
-# 选择 RTOS 后端
-mkdir build && cd build
-cmake .. -DRTOS_BACKEND=freertos
-make
+## ⚙️ 组件配置
+
+### Kconfig 配置
+
+```kconfig
+# 启用 OSAL
+CONFIG_OSAL=y
+
+# 启用 HAL
+CONFIG_HAL=y
+
+# 启用传感器
+CONFIG_SENSOR=y
+
+# 启用电源管理
+CONFIG_POWER=y
+
+# 启用 FOTA
+CONFIG_FOTA=y
+
+# 启用 GUI
+CONFIG_GUI=y
+
+# 启用日志
+CONFIG_LOG=y
 ```
 
-#### 配置选项
-```bash
-# RTOS 选择
--DRTOS_BACKEND=baremetal    # 裸机模式
--DRTOS_BACKEND=freertos     # FreeRTOS
--DRTOS_BACKEND=rtthread     # RT-Thread
--DRTOS_BACKEND=cmsis_rtx    # CMSIS-RTX
+### CMake 配置
 
-# 构建选项
--DBUILD_TESTING=ON          # 构建测试
--DCMAKE_BUILD_TYPE=Debug    # 调试构建
+```cmake
+# 在 CMakeLists.txt 中
+set(CONFIG_OSAL ON)
+set(CONFIG_HAL ON)
+set(CONFIG_SENSOR ON)
+set(CONFIG_LOG ON)
+
+# 添加 XinYi
+add_subdirectory(components)
+include_directories(components)
 ```
 
-## 优化特性
+---
 
-### 1. 多后端支持
-- **Bare-metal**: 无 RTOS，最小资源占用
-- **FreeRTOS**: 业界标准 RTOS
-- **RT-Thread**: 国产 RTOS，功能丰富
-- **CMSIS-RTX**: ARM 官方 RTOS
+## 📖 使用示例
 
-### 2. 统一接口
-- 所有组件使用统一 API
-- 标准化错误码
-- 一致的参数命名
+### 传感器读取
 
-### 3. 智能开发
-- 智能代理系统
-- 统一测试框架
-- 自动化构建
+```c
+#include "xy.h"
 
-## 文档资源
+static xy_sht30_t sht30;
 
-- [API 参考](docs/api/)
-- [架构文档](docs/design/)
-- [使用指南](docs/getting-started/)
+void sensor_task(void *arg) {
+    (void)arg;
+    
+    /* 初始化传感器 */
+    xy_sht30_init(&sht30, i2c_handle, 0x44);
+    
+    while (1) {
+        /* 读取温湿度 */
+        xy_sht30_read(&sht30);
+        
+        xy_log_i("T: %d.%02d°C, H: %d.%02d%%RH\n",
+                 sht30.data.temperature / 100,
+                 sht30.data.temperature % 100,
+                 sht30.data.humidity / 100,
+                 sht30.data.humidity % 100);
+        
+        xy_os_delay(1000);
+    }
+}
+```
+
+### PID 温度控制
+
+```c
+#include "xy.h"
+
+static xy_pid_t pid;
+static xy_sht30_t sensor;
+
+void pid_task(void *arg) {
+    float target = 25.0f;
+    float current;
+    float output;
+    
+    /* 配置 PID */
+    xy_pid_config_t cfg = {
+        .kp = 2.0f,
+        .ki = 0.5f,
+        .kd = 1.0f,
+    };
+    xy_pid_init(&pid, &cfg);
+    xy_pid_set_setpoint(&pid, target);
+    
+    while (1) {
+        /* 读取当前温度 */
+        xy_sht30_read(&sensor);
+        current = sensor.data.temperature / 100.0f;
+        
+        /* 计算 PID 输出 */
+        xy_pid_compute(&pid, current, &output);
+        
+        /* 控制加热器 */
+        // heater_set_power(output);
+        
+        xy_os_delay(100);
+    }
+}
+```
+
+### FOTA 安全升级
+
+```c
+#include "xy.h"
+
+static xy_fota_secure_t fota;
+
+void fota_task(void *arg) {
+    /* 配置安全 FOTA */
+    xy_fota_secure_config_t cfg = {
+        .pub_key = g_root_pub_key,
+        .slot0_addr = 0x08010000,
+        .slot1_addr = 0x08040000,
+        .slot_size = 0x30000,
+        .dual_bank = true,
+    };
+    
+    xy_fota_secure_init(&fota, &cfg, &flash_ops);
+    
+    /* 等待升级包 */
+    while (1) {
+        if (upgrade_available()) {
+            /* 下载并验证固件 */
+            xy_fota_secure_verify(&fota, fw_pkg, pkg_size);
+            
+            /* 解密并写入 */
+            xy_fota_secure_decrypt_and_write(&fota, encrypted, size, offset);
+            
+            /* 标记有效 */
+            xy_fota_secure_mark_valid(&fota, 1);
+            
+            /* 重启生效 */
+            NVIC_SystemReset();
+        }
+        
+        xy_os_delay(1000);
+    }
+}
+```
+
+### 消息队列 IPC
+
+```c
+#include "xy.h"
+
+static xy_mq_t mq;
+
+void sender_task(void *arg) {
+    xy_mq_msg_t msg;
+    msg.id = 1;
+    msg.priority = XY_MQ_PRIORITY_NORMAL;
+    msg.data = data;
+    msg.len = sizeof(data);
+    
+    while (1) {
+        xy_mq_send(&mq, &msg, 100);
+        xy_os_delay(1000);
+    }
+}
+
+void receiver_task(void *arg) {
+    xy_mq_msg_t msg;
+    
+    while (1) {
+        if (xy_mq_recv(&mq, &msg, 100) == XY_MQ_OK) {
+            /* 处理消息 */
+            process_message(&msg);
+        }
+    }
+}
+```
+
+---
+
+## 🎯 最佳实践
+
+### 1. 错误处理
+
+```c
+int ret;
+
+ret = xy_sht30_init(&sensor, i2c, 0x44);
+if (ret != XY_SHT30_OK) {
+    xy_log_e("Sensor init failed: %d\n", ret);
+    return ret;
+}
+```
+
+### 2. 资源管理
+
+```c
+/* 使用完释放资源 */
+xy_mq_deinit(&mq);
+xy_fota_secure_deinit(&fota);
+```
+
+### 3. 日志级别
+
+```c
+/* 生产环境使用 INFO */
+#define LOCAL_LOG_LEVEL XY_LOG_LEVEL_INFO
+
+/* 开发调试使用 DEBUG */
+// #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
+```
+
+### 4. 看门狗喂狗
+
+```c
+void idle_task(void *arg) {
+    while (1) {
+        /* 喂看门狗 */
+        IWDG_Reload();
+        xy_os_delay(100);
+    }
+}
+```
+
+---
+
+## 📊 组件依赖图
+
+```
+xy.h (主头文件)
+├── OSAL (OS 抽象层)
+├── HAL (硬件抽象层)
+├── 传感器驱动
+│   ├── SHT30/SHT40
+│   ├── HDC1080/AHT20
+│   ├── MPU6050/BMP280
+│   └── BH1750/TSL2561
+├── 电源管理
+│   ├── BQ25620 (充电)
+│   ├── INA226 (功率)
+│   └── MAX17043 (电量计)
+├── 中间件
+│   ├── PID 控制
+│   ├── FOTA 升级
+│   ├── GUI 显示
+│   └── IPC 通信
+└── 系统服务
+    ├── 系统监控
+    └── 自动任务
+```
+
+---
+
+## 🔗 相关文档
+
+- [API 参考](docs/api/API_REFERENCE.md)
+- [Wiki 文档](docs/wiki/xy_wiki.h)
 - [组件状态](COMPONENTS_STATUS.md)
-- [测试布局](docs/test_layout_analysis.md)
-- [构建系统](docs/build_system_analysis.md)
 
-## 维护者
+---
 
-- **团队**: XinYi Team
-- **邮箱**: zerozap2020@gmail.com
-- **主页**: https://github.com/zerozap
-
-## 许可证
-
-Apache License 2.0
+**维护者**: XinYi Team  
+**许可证**: Apache License 2.0
