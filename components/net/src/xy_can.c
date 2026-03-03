@@ -134,10 +134,15 @@ int xy_can_start(xy_can_t *can)
     if (!can || !can->initialized) {
         return XY_CAN_INVALID_PARAM;
     }
-    
-    /* TODO: 初始化硬件 CAN 控制器 */
-    /* xy_hal_can_init(can->hw_handle, can->config.baudrate); */
-    
+
+    /* 初始化硬件 CAN 控制器 */
+#ifdef MCU_CH32
+    xy_hal_can_config_t hal_cfg = {
+        .baudrate_prescaler = can->config.baudrate
+    };
+    xy_hal_can_init(can->hw_handle, &hal_cfg);
+#endif
+
     xy_log_i("CAN started\n");
     return XY_CAN_OK;
 }
@@ -147,6 +152,15 @@ int xy_can_stop(xy_can_t *can)
     if (!can) {
         return XY_CAN_INVALID_PARAM;
     }
+
+    /* 停止硬件 CAN 控制器 */
+#ifdef MCU_CH32
+    xy_hal_can_deinit(can->hw_handle);
+#endif
+
+    xy_log_i("CAN stopped\n");
+    return XY_CAN_OK;
+}
     
     /* TODO: 停止硬件 CAN 控制器 */
     /* xy_hal_can_deinit(can->hw_handle); */
