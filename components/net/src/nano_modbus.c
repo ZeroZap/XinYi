@@ -165,10 +165,12 @@ static int mb_slave_handle_read_holding(mb_slave_t *slave, uint16_t addr, uint16
     uint16_t crc = nano_mb_crc16(tx_buf, 3 + count * 2);
     tx_buf[3 + count * 2] = crc & 0xFF;
     tx_buf[3 + count * 2 + 1] = (crc >> 8) & 0xFF;
-    
-    /* TODO: 发送响应 */
-    /* mb_uart_send(tx_buf, 4 + count * 2); */
-    
+
+    /* 发送响应 */
+    if (slave->send_cb) {
+        slave->send_cb(tx_buf, 4 + count * 2);
+    }
+
     slave->request_count++;
     return NANO_MB_OK;
 }
@@ -209,10 +211,12 @@ static int mb_slave_handle_write_reg(mb_slave_t *slave, uint16_t addr, uint16_t 
     uint16_t crc = nano_mb_crc16(tx_buf, 6);
     tx_buf[6] = crc & 0xFF;
     tx_buf[7] = (crc >> 8) & 0xFF;
-    
-    /* TODO: 发送响应 */
-    /* mb_uart_send(tx_buf, 8); */
-    
+
+    /* 发送响应 */
+    if (slave->send_cb) {
+        slave->send_cb(tx_buf, 8);
+    }
+
     slave->request_count++;
     return NANO_MB_OK;
 }
