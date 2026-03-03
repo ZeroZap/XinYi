@@ -226,11 +226,8 @@ int xy_fota_secure_swap(xy_fota_secure_t *fota)
         return XY_FOTA_INVALID_PARAM;
     }
     
-    /* TODO: 实现双 Bank 交换逻辑 */
-    /* 这通常涉及 Flash 块交换或指针重映射 */
-    
-    xy_log_i("Slot swap completed\n");
-    return XY_FOTA_OK;
+    /* 使用双 Bank 交换逻辑 */
+    return xy_fota_bank_swap(NULL);
 }
 
 int xy_fota_secure_mark_valid(xy_fota_secure_t *fota, uint8_t slot)
@@ -239,9 +236,8 @@ int xy_fota_secure_mark_valid(xy_fota_secure_t *fota, uint8_t slot)
         return XY_FOTA_INVALID_PARAM;
     }
     
-    /* TODO: 在参数区标记 Slot 为有效 */
-    
-    return XY_FOTA_OK;
+    /* 标记 Slot 有效 */
+    return xy_fota_bank_mark_valid(NULL, slot);
 }
 
 int xy_fota_secure_is_valid(xy_fota_secure_t *fota, uint8_t slot, bool *valid)
@@ -250,8 +246,6 @@ int xy_fota_secure_is_valid(xy_fota_secure_t *fota, uint8_t slot, bool *valid)
         return XY_FOTA_INVALID_PARAM;
     }
     
-    /* TODO: 从参数区读取 Slot 有效性 */
-    *valid = (slot == 0);  /* 默认 Slot 0 有效 */
-    
-    return XY_FOTA_OK;
+    /* 检查 Slot 有效性 */
+    return xy_fota_bank_is_valid(NULL, slot, valid);
 }
