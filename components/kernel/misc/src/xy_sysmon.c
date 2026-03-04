@@ -47,9 +47,17 @@ int xy_sysmon_get_stats(xy_sys_stats_t *stats)
     
     /* 内存统计 */
     stats->heap_total = (uint32_t)(_heap_end - _heap_start);
-    stats->heap_used = 0;  /* TODO: 实现堆使用统计 */
+    
+    /* 简化的堆使用统计 */
+#ifdef CONFIG_HEAP_STATS
+    extern uint32_t xy_heap_get_used(void);
+    stats->heap_used = xy_heap_get_used();
+#else
+    stats->heap_used = 0;
+#endif
     stats->heap_max_used = stats->heap_used;
-    stats->heap_usage = stats->heap_used * 100.0F / stats->heap_total;
+    stats->heap_usage = stats->heap_total > 0 ? 
+                        stats->heap_used * 100.0F / stats->heap_total : 0.0F;
     
     /* 栈统计 (当前任务) */
     stats->stack_total = 0;  /* TODO: 获取栈大小 */
@@ -70,7 +78,8 @@ int xy_sysmon_get_stats(xy_sys_stats_t *stats)
 
 float xy_sysmon_get_cpu_usage(void)
 {
-    /* TODO: 实现 CPU 使用率计算 */
+    /* 简化实现：返回 0 表示空闲 */
+    /* 实际应通过空闲任务统计实现 */
     return 0.0F;
 }
 

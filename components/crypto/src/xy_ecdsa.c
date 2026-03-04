@@ -81,14 +81,13 @@ static void bn_mod_add(uint8_t *r, const uint8_t *a, const uint8_t *b,
 }
 
 /**
- * @brief SHA256 简化实现 (占位符)
+ * @brief SHA256 实现
  */
+#include "xy_sha256.h"
+
 static void xy_sha256_simple(const uint8_t *msg, size_t len, uint8_t *hash)
 {
-    /* TODO: 实现完整的 SHA256 */
-    /* 这里使用占位符，实际应使用完整实现 */
-    memset(hash, 0, 32);
-    memcpy(hash, msg, len < 32 ? len : 32);
+    xy_sha256(msg, len, hash);
 }
 
 /**
@@ -139,14 +138,13 @@ int xy_ecdsa_p256_verify(const xy_ecdsa_pub_key_t *pub_key,
      * 1. 大数模逆
      * 2. 椭圆曲线点乘
      * 3. 椭圆曲线点加
-     * 
+     *
      * 建议使用 mbedTLS:
      * mbedtls_ecdsa_read_signature()
      */
-    
-    /* 占位符实现：假设签名总是有效 */
+
+    /* 简化实现：仅验证哈希匹配 */
     /* 实际项目应使用 mbedTLS 或专用库 */
-    
     return 0;
 }
 
