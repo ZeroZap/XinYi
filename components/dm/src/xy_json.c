@@ -1,310 +1,672 @@
 /**
  * @file xy_json.c
- * @brief Lightweight JSON Parser Implementation
+ * @brief JSON Parser Implementation
  * @version 1.0.0
- * @date 2026-03-01 自主任务
+ * @date 2026-03-05
  */
 
 #include "xy_json.h"
-#include "xy_log.h"
-#include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
+#include <string.h>
+#include <stdio.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
+#include "xy_log.h"
 
-static void json_skip_whitespace(json_parser_t *p)
+/* ==================== 内部函数 ==================== */
+
+static void skip_whitespace(xy_json_parser_t *parser)
 {
-    while (p->pos < p->len && isspace(p->json[p->pos])) {
-        p->pos++;
+    while (parser->pos < parser->len) {
+        char c = parser->json[parser->pos];
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+            parser->pos++;
+        } else {
+            break;
+        }
     }
 }
 
-static int json_parse_value(json_parser_t *p, json_value_t *value);
-
-static int json_parse_string(json_parser_t *p, json_value_t *value)
+static char peek(xy_json_parser_t *parser)
 {
-    if (p->json[p->pos] != '"') {
-        return JSON_ERROR_INVALID;
+    if (parser->pos >= parser->len) {
+        return '\0';
     }
-    p->pos++;
-    
-    uint16_t start = p->pos;
-    while (p->pos < p->len && p->json[p->pos] != '"') {
-        if (p->json[p->pos] == '\\') {
-            p->pos++;  /* 跳过转义字符 */
-        }
-        p->pos++;
-    }
-    
-    if (p->pos >= p->len) {
-        return JSON_ERROR_INVALID;
-    }
-    
-    value->type = JSON_TYPE_STRING;
-    value->data.string.str = &p->json[start];
-    value->data.string.len = p->pos - start;
-    p->pos++;  /* 跳过结束引号 */
-    
-    return JSON_OK;
+    return parser->json[parser->pos];
 }
 
-static int json_parse_number(json_parser_t *p, json_value_t *value)
+static char advance(xy_json_parser_t *parser)
 {
-    uint16_t start = p->pos;
-    bool is_float = false;
-    
-    if (p->json[p->pos] == '-') {
-        p->pos++;
+    if (parser->pos >= parser->len) {
+        return '\0';
     }
-    
-    while (p->pos < p->len && (isdigit(p->json[p->pos]) || 
-           p->json[p->pos] == '.' || p->json[p->pos] == 'e' || 
-           p->json[p->pos] == 'E' || p->json[p->pos] == '+' ||
-           p->json[p->pos] == '-')) {
-        if (p->json[p->pos] == '.' || p->json[p->pos] == 'e' || p->json[p->pos] == 'E') {
-            is_float = true;
-        }
-        p->pos++;
-    }
-    
-    if (is_float) {
-        value->type = JSON_TYPE_NUMBER;
-        char buf[32];
-        uint16_t len = p->pos - start;
-        if (len >= sizeof(buf)) len = sizeof(buf) - 1;
-        memcpy(buf, &p->json[start], len);
-        buf[len] = '\0';
-        value->data.number = atof(buf);
-    } else {
-        value->type = JSON_TYPE_NUMBER;
-        char buf[32];
-        uint16_t len = p->pos - start;
-        if (len >= sizeof(buf)) len = sizeof(buf) - 1;
-        memcpy(buf, &p->json[start], len);
-        buf[len] = '\0';
-        value->data.integer = atoll(buf);
-    }
-    
-    return JSON_OK;
+    return parser->json[parser->pos++];
 }
 
-static int json_parse_object(json_parser_t *p, json_value_t *value)
+static bool match(xy_json_parser_t *parser, const char *str)
 {
-    if (p->json[p->pos] != '{') {
-        return JSON_ERROR_INVALID;
-    }
-    p->pos++;
-    
-    value->type = JSON_TYPE_OBJECT;
-    value->data.object.keys = NULL;
-    value->data.object.values = NULL;
-    value->data.object.count = 0;
-    
-    json_skip_whitespace(p);
-    if (p->json[p->pos] == '}') {
-        p->pos++;
-        return JSON_OK;
+    size_t len = strlen(str);
+    if (parser->pos + len > parser->len) {
+        return false;
     }
     
-    /* 简化实现：仅解析不存储 */
-    /* TODO: 完整实现对象解析 */
-    
-    while (p->pos < p->len && p->json[p->pos] != '}') {
-        json_value_t key, val;
-        
-        json_parse_string(p, &key);
-        json_skip_whitespace(p);
-        
-        if (p->json[p->pos] != ':') {
-            return JSON_ERROR_INVALID;
-        }
-        p->pos++;
-        
-        json_parse_value(p, &val);
-        json_skip_whitespace(p);
-        
-        if (p->json[p->pos] == ',') {
-            p->pos++;
-        }
+    if (strncmp(&parser->json[parser->pos], str, len) == 0) {
+        parser->pos += len;
+        return true;
     }
-    
-    if (p->pos >= p->len) {
-        return JSON_ERROR_INVALID;
-    }
-    
-    p->pos++;  /* 跳过 } */
-    return JSON_OK;
+    return false;
 }
 
-static int json_parse_array(json_parser_t *p, json_value_t *value)
+static char* parse_string_raw(xy_json_parser_t *parser)
 {
-    if (p->json[p->pos] != '[') {
-        return JSON_ERROR_INVALID;
-    }
-    p->pos++;
-    
-    value->type = JSON_TYPE_ARRAY;
-    value->data.array.count = 0;
-    
-    json_skip_whitespace(p);
-    if (p->json[p->pos] == ']') {
-        p->pos++;
-        return JSON_OK;
+    if (advance(parser) != '"') {
+        return NULL;
     }
     
-    while (p->pos < p->len && p->json[p->pos] != ']') {
-        json_value_t elem;
-        json_parse_value(p, &elem);
-        value->data.array.count++;
+    size_t start = parser->pos;
+    while (parser->pos < parser->len && parser->json[parser->pos] != '"') {
+        if (parser->json[parser->pos] == '\\') {
+            parser->pos++;
+        }
+        parser->pos++;
+    }
+    
+    size_t len = parser->pos - start;
+    char *str = (char *)malloc(len + 1);
+    if (!str) {
+        return NULL;
+    }
+    
+    memcpy(str, &parser->json[start], len);
+    str[len] = '\0';
+    
+    /* 跳过结束引号 */
+    advance(parser);
+    
+    return str;
+}
+
+static xy_json_t* parse_value(xy_json_parser_t *parser);
+
+static xy_json_t* parse_object(xy_json_parser_t *parser)
+{
+    if (advance(parser) != '{') {
+        return NULL;
+    }
+    
+    xy_json_t *obj = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+    if (!obj) {
+        return NULL;
+    }
+    
+    obj->type = XY_JSON_OBJECT;
+    
+    skip_whitespace(parser);
+    
+    /* 空对象 */
+    if (peek(parser) == '}') {
+        advance(parser);
+        return obj;
+    }
+    
+    /* 解析成员 */
+    while (1) {
+        skip_whitespace(parser);
         
-        json_skip_whitespace(p);
-        if (p->json[p->pos] == ',') {
-            p->pos++;
+        /* 解析键 */
+        char *key = parse_string_raw(parser);
+        if (!key) {
+            free(obj);
+            return NULL;
+        }
+        
+        skip_whitespace(parser);
+        
+        /* 跳过冒号 */
+        if (advance(parser) != ':') {
+            free(key);
+            free(obj);
+            return NULL;
+        }
+        
+        skip_whitespace(parser);
+        
+        /* 解析值 */
+        xy_json_t *value = parse_value(parser);
+        if (!value) {
+            free(key);
+            free(obj);
+            return NULL;
+        }
+        
+        value->key = key;
+        
+        /* 添加到对象 */
+        obj->value.object.count++;
+        obj->value.object.members = (xy_json_t **)realloc(
+            obj->value.object.members,
+            obj->value.object.count * sizeof(xy_json_t *)
+        );
+        obj->value.object.members[obj->value.object.count - 1] = value;
+        
+        skip_whitespace(parser);
+        
+        /* 检查是否有下一个成员 */
+        if (peek(parser) == '}') {
+            advance(parser);
+            break;
+        }
+        
+        if (advance(parser) != ',') {
+            free(obj);
+            return NULL;
         }
     }
     
-    if (p->pos >= p->len) {
-        return JSON_ERROR_INVALID;
-    }
-    
-    p->pos++;  /* 跳过 ] */
-    return JSON_OK;
+    return obj;
 }
 
-static int json_parse_value(json_parser_t *p, json_value_t *value)
+static xy_json_t* parse_array(xy_json_parser_t *parser)
 {
-    json_skip_whitespace(p);
-    
-    if (p->pos >= p->len) {
-        return JSON_ERROR_INVALID;
+    if (advance(parser) != '[') {
+        return NULL;
     }
     
-    char c = p->json[p->pos];
+    xy_json_t *arr = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+    if (!arr) {
+        return NULL;
+    }
     
+    arr->type = XY_JSON_ARRAY;
+    
+    skip_whitespace(parser);
+    
+    /* 空数组 */
+    if (peek(parser) == ']') {
+        advance(parser);
+        return arr;
+    }
+    
+    /* 解析元素 */
+    while (1) {
+        skip_whitespace(parser);
+        
+        xy_json_t *item = parse_value(parser);
+        if (!item) {
+            free(arr);
+            return NULL;
+        }
+        
+        /* 添加到数组 */
+        arr->value.array.count++;
+        arr->value.array.items = (xy_json_t **)realloc(
+            arr->value.array.items,
+            arr->value.array.count * sizeof(xy_json_t *)
+        );
+        arr->value.array.items[arr->value.array.count - 1] = item;
+        
+        skip_whitespace(parser);
+        
+        /* 检查是否有下一个元素 */
+        if (peek(parser) == ']') {
+            advance(parser);
+            break;
+        }
+        
+        if (advance(parser) != ',') {
+            free(arr);
+            return NULL;
+        }
+    }
+    
+    return arr;
+}
+
+static xy_json_t* parse_value(xy_json_parser_t *parser)
+{
+    skip_whitespace(parser);
+    
+    char c = peek(parser);
+    
+    /* 字符串 */
     if (c == '"') {
-        return json_parse_string(p, value);
-    } else if (c == '{') {
-        return json_parse_object(p, value);
-    } else if (c == '[') {
-        return json_parse_array(p, value);
-    } else if (c == 't') {  /* true */
-        value->type = JSON_TYPE_BOOL;
-        value->data.boolean = true;
-        p->pos += 4;
-        return JSON_OK;
-    } else if (c == 'f') {  /* false */
-        value->type = JSON_TYPE_BOOL;
-        value->data.boolean = false;
-        p->pos += 5;
-        return JSON_OK;
-    } else if (c == 'n') {  /* null */
-        value->type = JSON_TYPE_NULL;
-        p->pos += 4;
-        return JSON_OK;
-    } else if (c == '-' || isdigit(c)) {
-        return json_parse_number(p, value);
+        xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+        if (!json) return NULL;
+        
+        json->type = XY_JSON_STRING;
+        json->value.string_val = parse_string_raw(parser);
+        if (!json->value.string_val) {
+            free(json);
+            return NULL;
+        }
+        return json;
     }
     
-    return JSON_ERROR_INVALID;
+    /* 对象 */
+    if (c == '{') {
+        return parse_object(parser);
+    }
+    
+    /* 数组 */
+    if (c == '[') {
+        return parse_array(parser);
+    }
+    
+    /* 布尔值 true */
+    if (match(parser, "true")) {
+        xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+        if (!json) return NULL;
+        json->type = XY_JSON_BOOL;
+        json->value.bool_val = true;
+        return json;
+    }
+    
+    /* 布尔值 false */
+    if (match(parser, "false")) {
+        xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+        if (!json) return NULL;
+        json->type = XY_JSON_BOOL;
+        json->value.bool_val = false;
+        return json;
+    }
+    
+    /* null */
+    if (match(parser, "null")) {
+        xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+        if (!json) return NULL;
+        json->type = XY_JSON_NULL;
+        return json;
+    }
+    
+    /* 数值 */
+    if (c == '-' || (c >= '0' && c <= '9')) {
+        xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+        if (!json) return NULL;
+        
+        json->type = XY_JSON_NUMBER;
+        
+        size_t start = parser->pos;
+        if (c == '-') parser->pos++;
+        
+        while (parser->pos < parser->len) {
+            char ch = parser->json[parser->pos];
+            if ((ch >= '0' && ch <= '9') || ch == '.' || ch == 'e' || ch == 'E' || 
+                ch == '+' || ch == '-') {
+                parser->pos++;
+            } else {
+                break;
+            }
+        }
+        
+        char num_str[64];
+        size_t len = parser->pos - start;
+        if (len >= sizeof(num_str)) len = sizeof(num_str) - 1;
+        
+        memcpy(num_str, &parser->json[start], len);
+        num_str[len] = '\0';
+        
+        json->value.number_val = atof(num_str);
+        return json;
+    }
+    
+    return NULL;
 }
 
-int json_parse(json_parser_t *parser, const char *json, uint16_t len)
-{
-    if (!parser || !json || len == 0) {
-        return JSON_ERROR_INVALID;
-    }
-    
-    memset(parser, 0, sizeof(*parser));
-    parser->json = json;
-    parser->len = len;
-    parser->pos = 0;
-    
-    parser->root = malloc(sizeof(json_value_t));
-    if (!parser->root) {
-        return JSON_ERROR_OUT_OF_MEM;
-    }
-    
-    int ret = json_parse_value(parser, parser->root);
-    if (ret != JSON_OK) {
-        snprintf(parser->error_msg, sizeof(parser->error_msg), 
-                 "Parse error at position %d", parser->pos);
-        free(parser->root);
-        parser->root = NULL;
-    }
-    
-    return ret;
-}
+/* ==================== 核心 API 实现 ==================== */
 
-void json_free(json_value_t *value)
+/**
+ * @brief 解析 JSON 字符串
+ */
+xy_json_t* xy_json_parse(const char *json_str)
 {
-    if (!value) return;
-    
-    if (value->type == JSON_TYPE_ARRAY) {
-        /* TODO: 释放数组元素 */
-    } else if (value->type == JSON_TYPE_OBJECT) {
-        /* TODO: 释放对象成员 */
-    }
-    
-    free(value);
-}
-
-json_value_t* json_object_get(json_value_t *obj, const char *key)
-{
-    if (!obj || obj->type != JSON_TYPE_OBJECT || !key) {
+    if (!json_str) {
         return NULL;
     }
+    
+    xy_json_parser_t parser = {0};
+    parser.json = json_str;
+    parser.len = strlen(json_str);
+    
+    xy_json_t *result = parse_value(&parser);
+    
+    if (!result) {
+        xy_log_e("JSON parse failed\n");
+    }
+    
+    return result;
+}
+
+/**
+ * @brief 释放 JSON 对象
+ */
+void xy_json_free(xy_json_t *json)
+{
+    if (!json) return;
+    
+    /* 释放键名 */
+    if (json->key) {
+        free(json->key);
+    }
+    
+    /* 根据类型释放值 */
+    switch (json->type) {
+        case XY_JSON_STRING:
+            if (json->value.string_val) {
+                free(json->value.string_val);
+            }
+            break;
+            
+        case XY_JSON_ARRAY:
+            /* TODO: 释放数组元素 */
+            if (json->value.array.items) {
+                for (uint16_t i = 0; i < json->value.array.count; i++) {
+                    xy_json_free(json->value.array.items[i]);
+                }
+                free(json->value.array.items);
+            }
+            break;
+            
+        case XY_JSON_OBJECT:
+            /* TODO: 释放对象成员 */
+            if (json->value.object.members) {
+                for (uint16_t i = 0; i < json->value.object.count; i++) {
+                    xy_json_free(json->value.object.members[i]);
+                }
+                free(json->value.object.members);
+            }
+            break;
+            
+        default:
+            break;
+    }
+    
+    free(json);
+}
+
+/**
+ * @brief JSON 对象转字符串
+ */
+size_t xy_json_stringify(xy_json_t *json, char *buffer, size_t size)
+{
+    if (!json || !buffer || size == 0) {
+        return 0;
+    }
+    
+    /* 简化实现 */
+    snprintf(buffer, size, "{}");
+    return strlen(buffer);
+}
+
+/* ==================== 对象操作 API 实现 ==================== */
+
+/**
+ * @brief 查找对象成员
+ */
+xy_json_t* xy_json_object_get(xy_json_t *obj, const char *key)
+{
+    if (!obj || obj->type != XY_JSON_OBJECT || !key) {
+        return NULL;
+    }
+    
     /* TODO: 实现对象查找 */
+    for (uint16_t i = 0; i < obj->value.object.count; i++) {
+        xy_json_t *member = obj->value.object.members[i];
+        if (member->key && strcmp(member->key, key) == 0) {
+            return member;
+        }
+    }
+    
     return NULL;
 }
 
-json_value_t* json_array_get(json_value_t *arr, uint16_t index)
+/**
+ * @brief 设置对象成员
+ */
+xy_json_status_t xy_json_object_set(xy_json_t *obj, const char *key, xy_json_t *value)
 {
-    if (!arr || arr->type != JSON_TYPE_ARRAY) {
+    if (!obj || obj->type != XY_JSON_OBJECT || !key || !value) {
+        return XY_JSON_ERROR_INVALID_PARAM;
+    }
+    
+    value->key = strdup(key);
+    
+    obj->value.object.count++;
+    obj->value.object.members = (xy_json_t **)realloc(
+        obj->value.object.members,
+        obj->value.object.count * sizeof(xy_json_t *)
+    );
+    obj->value.object.members[obj->value.object.count - 1] = value;
+    
+    return XY_JSON_OK;
+}
+
+/**
+ * @brief 删除对象成员
+ */
+xy_json_status_t xy_json_object_delete(xy_json_t *obj, const char *key)
+{
+    if (!obj || obj->type != XY_JSON_OBJECT || !key) {
+        return XY_JSON_ERROR_INVALID_PARAM;
+    }
+    
+    /* 查找并删除 */
+    for (uint16_t i = 0; i < obj->value.object.count; i++) {
+        if (strcmp(obj->value.object.members[i]->key, key) == 0) {
+            xy_json_free(obj->value.object.members[i]);
+            
+            /* 移动后续元素 */
+            for (uint16_t j = i; j < obj->value.object.count - 1; j++) {
+                obj->value.object.members[j] = obj->value.object.members[j + 1];
+            }
+            
+            obj->value.object.count--;
+            return XY_JSON_OK;
+        }
+    }
+    
+    return XY_JSON_ERROR_NOT_FOUND;
+}
+
+/**
+ * @brief 遍历对象成员
+ */
+void xy_json_object_foreach(xy_json_t *obj,
+                            void (*callback)(const char *key, xy_json_t *val, void *ud),
+                            void *user_data)
+{
+    if (!obj || obj->type != XY_JSON_OBJECT || !callback) {
+        return;
+    }
+    
+    for (uint16_t i = 0; i < obj->value.object.count; i++) {
+        xy_json_t *member = obj->value.object.members[i];
+        callback(member->key, member, user_data);
+    }
+}
+
+/* ==================== 数组操作 API 实现 ==================== */
+
+/**
+ * @brief 获取数组元素
+ */
+xy_json_t* xy_json_array_get(xy_json_t *arr, uint16_t index)
+{
+    if (!arr || arr->type != XY_JSON_ARRAY) {
         return NULL;
     }
-    if (index >= arr->data.array.count) {
-        return NULL;
-    }
+    
     /* TODO: 实现数组索引 */
-    return NULL;
+    if (index >= arr->value.array.count) {
+        return NULL;
+    }
+    
+    return arr->value.array.items[index];
 }
 
-int json_get_int(json_value_t *value, int64_t *out)
+/**
+ * @brief 添加数组元素
+ */
+xy_json_status_t xy_json_array_append(xy_json_t *arr, xy_json_t *value)
 {
-    if (!value || !out || value->type != JSON_TYPE_NUMBER) {
-        return JSON_ERROR_INVALID;
+    if (!arr || arr->type != XY_JSON_ARRAY || !value) {
+        return XY_JSON_ERROR_INVALID_PARAM;
     }
-    *out = value->data.integer;
-    return JSON_OK;
+    
+    arr->value.array.count++;
+    arr->value.array.items = (xy_json_t **)realloc(
+        arr->value.array.items,
+        arr->value.array.count * sizeof(xy_json_t *)
+    );
+    arr->value.array.items[arr->value.array.count - 1] = value;
+    
+    return XY_JSON_OK;
 }
 
-int json_get_number(json_value_t *value, double *out)
+/**
+ * @brief 插入数组元素
+ */
+xy_json_status_t xy_json_array_insert(xy_json_t *arr, uint16_t index, xy_json_t *value)
 {
-    if (!value || !out || value->type != JSON_TYPE_NUMBER) {
-        return JSON_ERROR_INVALID;
+    if (!arr || arr->type != XY_JSON_ARRAY || !value) {
+        return XY_JSON_ERROR_INVALID_PARAM;
     }
-    *out = value->data.number;
-    return JSON_OK;
+    
+    if (index > arr->value.array.count) {
+        return XY_JSON_ERROR_INVALID_PARAM;
+    }
+    
+    arr->value.array.count++;
+    arr->value.array.items = (xy_json_t **)realloc(
+        arr->value.array.items,
+        arr->value.array.count * sizeof(xy_json_t *)
+    );
+    
+    /* 移动后续元素 */
+    for (uint16_t i = arr->value.array.count - 1; i > index; i--) {
+        arr->value.array.items[i] = arr->value.array.items[i - 1];
+    }
+    
+    arr->value.array.items[index] = value;
+    
+    return XY_JSON_OK;
 }
 
-int json_get_string(json_value_t *value, const char **out, uint16_t *len)
+/**
+ * @brief 删除数组元素
+ */
+xy_json_status_t xy_json_array_remove(xy_json_t *arr, uint16_t index)
 {
-    if (!value || !out || value->type != JSON_TYPE_STRING) {
-        return JSON_ERROR_INVALID;
+    if (!arr || arr->type != XY_JSON_ARRAY) {
+        return XY_JSON_ERROR_INVALID_PARAM;
     }
-    *out = value->data.string.str;
-    if (len) {
-        *len = value->data.string.len;
+    
+    if (index >= arr->value.array.count) {
+        return XY_JSON_ERROR_INVALID_PARAM;
     }
-    return JSON_OK;
+    
+    xy_json_free(arr->value.array.items[index]);
+    
+    /* 移动后续元素 */
+    for (uint16_t i = index; i < arr->value.array.count - 1; i++) {
+        arr->value.array.items[i] = arr->value.array.items[i + 1];
+    }
+    
+    arr->value.array.count--;
+    return XY_JSON_OK;
 }
 
-int json_get_bool(json_value_t *value, bool *out)
+/**
+ * @brief 获取数组长度
+ */
+uint16_t xy_json_array_size(xy_json_t *arr)
 {
-    if (!value || !out || value->type != JSON_TYPE_BOOL) {
-        return JSON_ERROR_INVALID;
+    if (!arr || arr->type != XY_JSON_ARRAY) {
+        return 0;
     }
-    *out = value->data.boolean;
-    return JSON_OK;
+    return arr->value.array.count;
+}
+
+/* ==================== 便捷 API 实现 ==================== */
+
+xy_json_t* xy_json_new_string(const char *str)
+{
+    if (!str) return NULL;
+    
+    xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+    if (!json) return NULL;
+    
+    json->type = XY_JSON_STRING;
+    json->value.string_val = strdup(str);
+    
+    return json;
+}
+
+xy_json_t* xy_json_new_number(double num)
+{
+    xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+    if (!json) return NULL;
+    
+    json->type = XY_JSON_NUMBER;
+    json->value.number_val = num;
+    
+    return json;
+}
+
+xy_json_t* xy_json_new_bool(bool val)
+{
+    xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+    if (!json) return NULL;
+    
+    json->type = XY_JSON_BOOL;
+    json->value.bool_val = val;
+    
+    return json;
+}
+
+xy_json_t* xy_json_new_object(void)
+{
+    xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+    if (!json) return NULL;
+    
+    json->type = XY_JSON_OBJECT;
+    return json;
+}
+
+xy_json_t* xy_json_new_array(void)
+{
+    xy_json_t *json = (xy_json_t *)calloc(1, sizeof(xy_json_t));
+    if (!json) return NULL;
+    
+    json->type = XY_JSON_ARRAY;
+    return json;
+}
+
+const char* xy_json_get_string(xy_json_t *json, const char *key, const char *default_val)
+{
+    if (!json) return default_val;
+    
+    xy_json_t *val = json->type == XY_JSON_OBJECT ? xy_json_object_get(json, key) : json;
+    if (!val || val->type != XY_JSON_STRING) return default_val;
+    
+    return val->value.string_val;
+}
+
+double xy_json_get_number(xy_json_t *json, const char *key, double default_val)
+{
+    if (!json) return default_val;
+    
+    xy_json_t *val = json->type == XY_JSON_OBJECT ? xy_json_object_get(json, key) : json;
+    if (!val || val->type != XY_JSON_NUMBER) return default_val;
+    
+    return val->value.number_val;
+}
+
+bool xy_json_get_bool(xy_json_t *json, const char *key, bool default_val)
+{
+    if (!json) return default_val;
+    
+    xy_json_t *val = json->type == XY_JSON_OBJECT ? xy_json_object_get(json, key) : json;
+    if (!val || val->type != XY_JSON_BOOL) return default_val;
+    
+    return val->value.bool_val;
 }
