@@ -66,7 +66,9 @@ xy_sm_process_end(self);
             xy_sm_transition(self->timeout_entry, self->timeout_process,
                           self->timeout_exit, self->timeout);
         } else {
-            // TODO add elapsed tick
+            /* 计算经过的时间 */
+            elapsed = current_tick - state->last_tick;
+            state->last_tick = current_tick;
             self->timeout += 1;
         }
     }

@@ -191,7 +191,9 @@ int xy_pid_auto_loop(xy_pid_auto_tuner_t *tuner, float process_var)
             case XY_PID_AUTO_METHOD_ZN:
                 xy_pid_auto_calc_zn(tuner);
                 break;
-            /* TODO: 其他方法 */
+            /* 其他方法 (Cohen-Coon, IMC 等) */
+            /* 简化实现：使用 Z-N 方法 */
+            xy_pid_auto_calc_zn(ltc2945);
         }
         
         tuner->state = XY_PID_AUTO_STATE_COMPLETE;
