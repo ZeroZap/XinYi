@@ -25,21 +25,22 @@ static int xy_fota_ecdsa_verify_impl(const uint8_t *pub_key,
     return xy_ecdsa_verify_simple(pub_key, message, msg_size, signature);
 }
 
-/* ChaCha20 流加密核心 (简化版) */
+/* ChaCha20 流加密核心 - 修复 TODO */
 static void xy_fota_chacha20_block(const uint8_t *key,
                                    const uint8_t *nonce,
                                    uint32_t counter,
                                    uint8_t *keystream)
 {
-    /* TODO: 实现完整的 ChaCha20 块函数 */
-    /* 这里使用占位符 */
-    (void)key;
-    (void)nonce;
-    (void)counter;
-    (void)keystream;
+    /* 使用 xy_chacha20poly1305 库实现 */
+    xy_chacha20_ctx_t ctx;
+    xy_chacha20_init(&ctx, key, nonce);
     
-    /* 模拟 keystream 生成 */
+    /* 设置计数器 */
+    ctx.state[12] = counter;
+    
+    /* 生成 64 字节 keystream */
     memset(keystream, 0, 64);
+    xy_chacha20_encrypt(&ctx, keystream, keystream, 64);
 }
 
 int xy_fota_secure_init(xy_fota_secure_t *fota,
