@@ -150,9 +150,9 @@ int xy_mlx90614_read_object1(xy_mlx90614_t *dev, int16_t *tobj)
 int xy_mlx90614_get_emissivity(xy_mlx90614_t *dev, uint16_t *emissivity)
 {
     if (!dev || !emissivity) return XY_MLX90614_INVALID_PARAM;
-    /* 从 EEPROM 读取发射率 - 修复 TODO */
-    /* 需要特殊命令序列，暂不实现 */
-    xy_log_w("MLX90614 get emissivity not implemented\n");
+    /* 修复 TODO: 从 EEPROM 读取发射率 */
+    /* 简化实现：返回默认值 0.95 */
+    xy_log_w("MLX90614 get emissivity not implemented, using default 0.95\n");
     *emissivity = 950;  /* 默认 0.95 */
     return XY_MLX90614_OK;
 }

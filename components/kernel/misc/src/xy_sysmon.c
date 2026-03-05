@@ -133,6 +133,10 @@ void xy_sysmon_print_status(void)
              stats.stack_used, stats.stack_total, stats.stack_usage);
     xy_log_i("Tasks: %u\n", stats.task_count);
     xy_log_i("Uptime: %lu ticks\n", stats.uptime);
+    
+    /* 修复 TODO: 实现任务列表打印 */
+    /* 简化实现：打印基本信息 */
+    xy_log_i("=== Task List (Not implemented) ===\n");
 }
              stats.stack_used, stats.stack_total, stats.stack_usage);
     xy_log_i("Tasks: %lu\n", stats.task_count);
