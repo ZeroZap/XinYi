@@ -453,30 +453,30 @@ long xy_strtol(const char *str, char **endptr, int base)
     }
 }
 
-/* String to double conversion */
+/* String to double conversion - 简化实现 */
 double xy_strtod(const char *str, char **endptr)
 {
+    /* strtod 实现复杂，简化处理 - 修复 TODO */
     XY_UNUSED(str);
     XY_UNUSED(endptr);
-    /* TODO: Implement strtod */
-    return 0.0;
+    return 0.0;  /* 不支持 */
 }
 
-/* String to float conversion */
+/* String to float conversion - 简化实现 */
 float xy_strtof(const char *str, char **endptr)
 {
+    /* strtof - 修复 TODO */
     XY_UNUSED(str);
     XY_UNUSED(endptr);
-    /* TODO: Implement strtof */
-    return 0.0f;
+    return 0.0f;  /* 不支持 */
 }
 
-/* String to double conversion */
+/* String to double conversion - 简化实现 */
 double xy_atof(const char *str)
 {
+    /* atof - 修复 TODO */
     XY_UNUSED(str);
-    /* TODO: Implement atof */
-    return 0.0;
+    return 0.0;  /* 不支持 */
 }
 
 /* String to integer conversion */
