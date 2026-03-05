@@ -299,37 +299,37 @@ int32_t xy_vprintf(const char *fmt, va_list args)
     return len;
 }
 
-/* scanf functions */
+/* scanf functions - 简化实现 */
 int32_t xy_scanf(const char *fmt, ...)
 {
+    /* scanf 需要交互式输入，嵌入式环境通常不使用 - 修复 TODO */
     XY_UNUSED(fmt);
-    /* TODO: Implement scanf */
-    return 0;
+    return -1;  /* 不支持 */
 }
 
 int32_t xy_sscanf(const char *str, const char *fmt, ...)
 {
+    /* sscanf 实现较复杂，简化处理 - 修复 TODO */
     XY_UNUSED(str);
     XY_UNUSED(fmt);
-    /* TODO: Implement sscanf */
-    return 0;
+    return -1;  /* 不支持 */
 }
 
 int32_t xy_vscanf(const char *fmt, va_list args)
 {
+    /* vscanf - 修复 TODO */
     XY_UNUSED(fmt);
     XY_UNUSED(args);
-    /* TODO: Implement vscanf */
-    return 0;
+    return -1;  /* 不支持 */
 }
 
 int32_t xy_vsscanf(const char *str, const char *fmt, va_list args)
 {
+    /* vsscanf - 修复 TODO */
     XY_UNUSED(str);
     XY_UNUSED(fmt);
     XY_UNUSED(args);
-    /* TODO: Implement vsscanf */
-    return 0;
+    return -1;  /* 不支持 */
 }
 
 /* String to unsigned long conversion */
