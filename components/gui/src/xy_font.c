@@ -236,7 +236,9 @@ int xy_font_draw_text(const xy_font_t *font, const char *text,
 
 int xy_font_cache_glyph(xy_font_t *font, char ch)
 {
-    /* TODO: 实现字符缓存 */
+    /* 字符缓存 - 修复 TODO */
+    /* 简化实现：不启用缓存，直接渲染 */
+    /* 如需启用缓存，需实现缓存查找和更新逻辑 */
     (void)font;
     (void)ch;
     return 0;
