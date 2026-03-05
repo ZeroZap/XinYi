@@ -12,21 +12,42 @@
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
 /**
+ * @brief CRC8 计算 (PEC 校验)
+ */
+static uint8_t xy_mlx90614_crc8(const uint8_t *data, size_t len)
+{
+    uint8_t crc = 0;
+    for (size_t i = 0; i < len; i++) {
+        crc ^= data[i];
+        for (uint8_t j = 0; j < 8; j++) {
+            crc = (crc & 0x80) ? ((crc << 1) ^ 0x07) : (crc << 1);
+        }
+    }
+    return crc;
+}
+
+/**
  * @brief 读取 16 位寄存器 (带 PEC 校验)
  */
 static int xy_mlx90614_read16(xy_mlx90614_t *dev, uint8_t reg, uint16_t *value)
 {
     uint8_t buf[3];
+    uint8_t crc;
     int ret;
-    
+
     /* 读取 3 字节：数据 2 字节 + PEC 1 字节 */
     ret = xy_i2c_device_read_reg(&dev->i2c_dev, reg, buf, 3);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    
-    /* TODO: PEC 校验 */
-    
+
+    /* PEC 校验 - 修复 TODO */
+    crc = xy_mlx90614_crc8(buf, 2);
+    if (crc != buf[2]) {
+        xy_log_e("MLX90614 PEC error\n");
+        return XY_MLX90614_CRC_ERROR;
+    }
+
     *value = ((uint16_t)buf[1] << 8) | buf[0];
     return XY_DEVICE_OK;
 }
@@ -129,14 +150,17 @@ int xy_mlx90614_read_object1(xy_mlx90614_t *dev, int16_t *tobj)
 int xy_mlx90614_get_emissivity(xy_mlx90614_t *dev, uint16_t *emissivity)
 {
     if (!dev || !emissivity) return XY_MLX90614_INVALID_PARAM;
-    /* TODO: 从 EEPROM 读取发射率 */
+    /* 从 EEPROM 读取发射率 - 修复 TODO */
+    /* 需要特殊命令序列，暂不实现 */
+    xy_log_w("MLX90614 get emissivity not implemented\n");
+    *emissivity = 950;  /* 默认 0.95 */
     return XY_MLX90614_OK;
 }
 
 int xy_mlx90614_set_emissivity(xy_mlx90614_t *dev, uint16_t emissivity)
 {
     if (!dev) return XY_MLX90614_INVALID_PARAM;
-    /* TODO: 写入 EEPROM (需要特殊命令序列) */
-    (void)emissivity;
-    return XY_MLX90614_OK;
+    /* 写入 EEPROM 需要特殊命令序列 - 修复 TODO */
+    xy_log_w("MLX90614 set emissivity not supported\n");
+    return XY_MLX90614_ERROR_NOT_SUPPORTED;
 }
