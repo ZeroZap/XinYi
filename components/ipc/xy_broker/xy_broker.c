@@ -20,14 +20,13 @@ static struct {
 
 /**
  * @brief Get timestamp in milliseconds
- * @note Implement this based on your platform's timer
+ * @note Implement based on your platform's timer
  */
 static uint32_t broker_get_timestamp(void)
 {
-    // TODO: Implement platform-specific timestamp
-    // For now, use a simple counter
-    static uint32_t tick_count = 0;
-    return tick_count++;
+    /* 平台相关时间戳 - 修复 TODO */
+    /* 使用 OS tick 作为时间戳 */
+    return xy_os_tick_get();
 }
 
 /**
