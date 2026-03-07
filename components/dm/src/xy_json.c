@@ -357,20 +357,24 @@ void xy_json_free(xy_json_t *json)
             break;
             
         case XY_JSON_ARRAY:
-            /* TODO: 释放数组元素 */
+            /* 修复 TODO: 释放数组元素 */
             if (json->value.array.items) {
                 for (uint16_t i = 0; i < json->value.array.count; i++) {
-                    xy_json_free(json->value.array.items[i]);
+                    if (json->value.array.items[i]) {
+                        xy_json_free(json->value.array.items[i]);
+                    }
                 }
                 free(json->value.array.items);
             }
             break;
-            
+
         case XY_JSON_OBJECT:
-            /* TODO: 释放对象成员 */
+            /* 修复 TODO: 释放对象成员 */
             if (json->value.object.members) {
                 for (uint16_t i = 0; i < json->value.object.count; i++) {
-                    xy_json_free(json->value.object.members[i]);
+                    if (json->value.object.members[i]) {
+                        xy_json_free(json->value.object.members[i]);
+                    }
                 }
                 free(json->value.object.members);
             }
@@ -407,15 +411,15 @@ xy_json_t* xy_json_object_get(xy_json_t *obj, const char *key)
     if (!obj || obj->type != XY_JSON_OBJECT || !key) {
         return NULL;
     }
-    
-    /* TODO: 实现对象查找 */
+
+    /* 修复 TODO: 实现对象查找 */
     for (uint16_t i = 0; i < obj->value.object.count; i++) {
         xy_json_t *member = obj->value.object.members[i];
-        if (member->key && strcmp(member->key, key) == 0) {
+        if (member && member->key && strcmp(member->key, key) == 0) {
             return member;
         }
     }
-    
+
     return NULL;
 }
 
