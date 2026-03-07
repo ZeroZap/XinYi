@@ -498,12 +498,12 @@ xy_json_t* xy_json_array_get(xy_json_t *arr, uint16_t index)
     if (!arr || arr->type != XY_JSON_ARRAY) {
         return NULL;
     }
-    
-    /* TODO: 实现数组索引 */
+
+    /* 修复 TODO: 实现数组索引 */
     if (index >= arr->value.array.count) {
         return NULL;
     }
-    
+
     return arr->value.array.items[index];
 }
 
