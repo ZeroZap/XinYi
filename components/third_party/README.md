@@ -1,7 +1,8 @@
-# 第三方库集成指南
+# 第三方库集成指南 (纯净版)
 
 **版本**: 1.0.0  
-**日期**: 2026-03-05
+**日期**: 2026-03-05  
+**许可证政策**: ✅ 仅 MIT/Apache-2.0/BSD-2/3
 
 ---
 
@@ -11,28 +12,22 @@
 components/
 ├── third_party/           # 第三方库根目录
 │   ├── network/           # 网络协议栈
-│   │   ├── lwip/          # TCP/IP 协议栈
-│   │   ├── http_parser/   # HTTP 解析
-│   │   └── mqtt/          # MQTT 客户端
+│   │   ├── lwip/          # TCP/IP (BSD-3) ✅
+│   │   ├── picohttp/      # HTTP 服务器 (MIT) ✅
+│   │   └── paho-mqtt/     # MQTT (EPL-1.0) ⚠️
 │   ├── filesystem/        # 文件系统
-│   │   ├── fatfs/         # FatFS
-│   │   ├── littlefs/      # LittleFS
-│   │   └── spiffs/        # SPIFFS
+│   │   ├── fatfs/         # FatFS (BSD-2) ✅
+│   │   ├── littlefs/      # LittleFS (BSD-3) ✅
+│   │   └── spiffs/        # SPIFFS (MIT) ✅
 │   ├── usb/               # USB 协议栈
-│   │   ├── tinyusb/       # TinyUSB
-│   │   └── libusb/        # LibUSB (Host)
-│   ├── bluetooth/         # 蓝牙协议栈
-│   │   ├── nimble/        # NimBLE
-│   │   └── bluez/         # BlueZ (Linux)
-│   ├── wireless/          # 无线通信
-│   │   ├── esp_wifi/      # ESP WiFi
-│   │   └── lorawan/       # LoRaWAN
+│   │   ├── tinyusb/       # TinyUSB (MIT) ✅
+│   │   └── musb/          # MUSB (MIT) ✅
 │   ├── graphics/          # 图形库
-│   │   ├── lvgl/          # LVGL
-│   │   └── u8g2/          # U8g2
-│   └── audio/             # 音频处理
-│       ├── opus/          # Opus 编解码
-│       └── libmad/        # MP3 解码
+│   │   ├── lvgl/          # LVGL (MIT) ✅
+│   │   └── u8g2/          # U8g2 (BSD-3) ✅
+│   └── crypto/            # 加密库
+│       ├── mbedtls/       # MbedTLS (Apache-2.0) ✅
+│       └── tinycrypt/     # TinyCrypt (BSD-3) ✅
 │
 ├── lib/                   # 编译后的库文件
 │   ├── include/           # 头文件
@@ -41,6 +36,36 @@ components/
 └── docs/                  # 文档
     └── third_party/       # 第三方库文档
 ```
+
+---
+
+## ✅ 许可证白名单
+
+### 完全兼容 (可直接使用)
+
+| 许可证 | 兼容性 | 商用 | 修改 | 分发 |
+|--------|--------|------|------|------|
+| **MIT** | ✅ 100% | ✅ | ✅ | ✅ |
+| **Apache-2.0** | ✅ 100% | ✅ | ✅ | ✅ |
+| **BSD-2-Clause** | ✅ 100% | ✅ | ✅ | ✅ |
+| **BSD-3-Clause** | ✅ 100% | ✅ | ✅ | ✅ |
+| **ISC** | ✅ 100% | ✅ | ✅ | ✅ |
+
+### 有条件兼容 (需审查)
+
+| 许可证 | 兼容性 | 商用 | 修改 | 分发 | 条件 |
+|--------|--------|------|------|------|------|
+| **EPL-1.0** | ⚠️ 部分 | ✅ | ✅ | ⚠️ | 修改需开源 |
+| **MPL-2.0** | ⚠️ 部分 | ✅ | ✅ | ⚠️ | 修改需开源 |
+
+### 不兼容 (禁止使用) ❌
+
+| 许可证 | 原因 |
+|--------|------|
+| **GPL-2.0/3.0** | 传染性，需开源整个项目 |
+| **LGPL-2.1/3.0** | 动态链接要求 |
+| **AGPL-3.0** | 网络服务也需开源 |
+| **SSPL** | MongoDB 专有协议 |
 
 ---
 
@@ -63,61 +88,82 @@ git submodule update --init --recursive
 # 下载并解压到对应目录
 wget https://github.com/lvgl/lvgl/archive/master.zip
 unzip master.zip -d components/third_party/graphics/
+mv components/third_party/graphics/lvgl-master \
+   components/third_party/graphics/lvgl
 ```
 
-### 方式 3: 包管理器
+### 方式 3: 包管理器 (仅开发)
 
 ```bash
-# 使用 vcpkg (如果支持)
+# 使用 vcpkg (仅用于开发测试)
 vcpkg install lwip
 vcpkg install fatfs
 
-# 复制到头文件和库目录
+# 复制头文件和库文件
 cp -r vcpkg/installed/x64-linux/include/* components/lib/include/
 cp -r vcpkg/installed/x64-linux/lib/* components/lib/lib/
+
+# 注意：不要提交 vcpkg 包管理器本身
+echo "lib/" >> ../../.gitignore
 ```
 
 ---
 
-## 📋 第三方库清单
+## 📋 推荐第三方库清单
 
-### 网络协议栈
+### 网络协议栈 (100% 兼容)
 
-| 库名 | 用途 | 许可证 | 集成方式 |
-|------|------|--------|---------|
-| **LwIP** | TCP/IP | BSD-3 | Submodule |
-| **mbedTLS** | TLS/SSL | Apache-2.0 | Submodule |
-| **Eclipse Paho** | MQTT | EPL-1.0 | Submodule |
-| **http_parser** | HTTP 解析 | MIT | Direct |
+| 库名 | 用途 | 许可证 | 状态 |
+|------|------|--------|------|
+| **LwIP** | TCP/IP | BSD-3 | ✅ 推荐 |
+| **picoHTTP** | HTTP 服务器 | MIT | ✅ 推荐 |
+| **NanoHTTP** | HTTP 客户端 | BSD-2 | ✅ 推荐 |
+| **Eclipse Paho** | MQTT | EPL-1.0 | ⚠️ 需审查 |
 
-### 文件系统
+### 文件系统 (100% 兼容)
 
-| 库名 | 用途 | 许可证 | 集成方式 |
-|------|------|--------|---------|
-| **FatFS** | FAT 文件系统 | BSD-2 | Direct |
-| **LittleFS** | 掉电安全 | BSD-3 | Submodule |
-| **SPIFFS** | SPI Flash | MIT | Submodule |
+| 库名 | 用途 | 许可证 | 状态 |
+|------|------|--------|------|
+| **FatFS** | FAT 文件系统 | BSD-2 | ✅ 推荐 |
+| **LittleFS** | 掉电安全 | BSD-3 | ✅ 推荐 |
+| **SPIFFS** | SPI Flash | MIT | ✅ 推荐 |
 
-### USB 协议栈
+### USB 协议栈 (100% 兼容)
 
-| 库名 | 用途 | 许可证 | 集成方式 |
-|------|------|--------|---------|
-| **TinyUSB** | USB Device/Host | MIT | Submodule |
-| **libusb** | USB Host (PC) | LGPL-2.1 | Package |
+| 库名 | 用途 | 许可证 | 状态 |
+|------|------|--------|------|
+| **TinyUSB** | USB Device/Host | MIT | ✅ 推荐 |
+| **MUSB** | USB 设备 | MIT | ✅ 可选 |
 
-### 蓝牙协议栈
+### 图形库 (100% 兼容)
 
-| 库名 | 用途 | 许可证 | 集成方式 |
-|------|------|--------|---------|
-| **NimBLE** | BLE Host | Apache-2.0 | Submodule |
-| **BlueZ** | BLE Host (Linux) | GPL-2.0 | Package |
+| 库名 | 用途 | 许可证 | 状态 |
+|------|------|--------|------|
+| **LVGL** | 图形界面 | MIT | ✅ 推荐 |
+| **U8g2** | 单色显示 | BSD-3 | ✅ 推荐 |
+| **Guider** | LVGL GUI 工具 | MIT | ✅ 可选 |
 
-### 图形库
+### 加密库 (100% 兼容)
 
-| 库名 | 用途 | 许可证 | 集成方式 |
-|------|------|--------|---------|
-| **LVGL** | 图形界面 | MIT | Submodule |
-| **U8g2** | 单色显示 | BSD-3 | Direct |
+| 库名 | 用途 | 许可证 | 状态 |
+|------|------|--------|------|
+| **MbedTLS** | TLS/SSL | Apache-2.0 | ✅ 推荐 |
+| **TinyCrypt** | 基础加密 | BSD-3 | ✅ 推荐 |
+| **WolfSSL** | TLS/SSL | GPL-2.0 | ❌ 禁止 |
+
+### 蓝牙协议栈 (需审查)
+
+| 库名 | 用途 | 许可证 | 状态 |
+|------|------|--------|------|
+| **NimBLE** | BLE Host | Apache-2.0 | ✅ 推荐 |
+| **BlueZ** | BLE Host (Linux) | GPL-2.0 | ❌ 禁止 |
+
+### 无线通信 (100% 兼容)
+
+| 库名 | 用途 | 许可证 | 状态 |
+|------|------|--------|------|
+| **ESP WiFi** | ESP32 WiFi | Apache-2.0 | ✅ 推荐 |
+| **LoRaMac** | LoRaWAN | Apache-2.0 | ✅ 推荐 |
 
 ---
 
@@ -131,53 +177,80 @@ option(XY_USE_LWIP "Use LwIP TCP/IP stack" ON)
 option(XY_USE_FATFS "Use FatFS filesystem" ON)
 option(XY_USE_TINYUSB "Use TinyUSB stack" OFF)
 option(XY_USE_LVGL "Use LVGL graphics" OFF)
+option(XY_USE_MBEDTLS "Use MbedTLS crypto" ON)
 
-# LwIP 集成
+# LwIP 集成 (BSD-3)
 if(XY_USE_LWIP)
     add_subdirectory(third_party/network/lwip)
     target_link_libraries(xy_core PRIVATE lwip)
 endif()
 
-# FatFS 集成
+# FatFS 集成 (BSD-2)
 if(XY_USE_FATFS)
     add_subdirectory(third_party/filesystem/fatfs)
     target_link_libraries(xy_core PRIVATE fatfs)
 endif()
 
-# TinyUSB 集成
+# TinyUSB 集成 (MIT)
 if(XY_USE_TINYUSB)
     add_subdirectory(third_party/usb/tinyusb)
     target_link_libraries(xy_core PRIVATE tinyusb)
 endif()
 
-# LVGL 集成
+# LVGL 集成 (MIT)
 if(XY_USE_LVGL)
     add_subdirectory(third_party/graphics/lvgl)
     target_link_libraries(xy_gui PRIVATE lvgl)
+endif()
+
+# MbedTLS 集成 (Apache-2.0)
+if(XY_USE_MBEDTLS)
+    add_subdirectory(third_party/crypto/mbedtls)
+    target_link_libraries(xy_crypto PRIVATE mbedtls)
 endif()
 ```
 
 ---
 
-## 📝 许可证兼容性
+## 📝 许可证检查清单
 
-### 兼容许可证
+### 添加新库前检查
 
-| 许可证 | 兼容性 | 说明 |
-|--------|--------|------|
-| **MIT** | ✅ 完全兼容 | 可商用 |
-| **Apache-2.0** | ✅ 完全兼容 | 可商用 |
-| **BSD-2/3** | ✅ 完全兼容 | 可商用 |
-| **LGPL-2.1** | ⚠️ 动态链接 | 需动态链接 |
-| **GPL-2.0** | ❌ 不兼容 | 传染性 |
-
-### 许可证检查清单
-
-- [ ] 检查许可证类型
+- [ ] 检查 LICENSE 文件
+- [ ] 确认许可证类型
 - [ ] 确认商用许可
-- [ ] 添加许可证声明
-- [ ] 保留版权声明
-- [ ] 遵守分发要求
+- [ ] 确认修改权限
+- [ ] 确认分发要求
+- [ ] 添加到许可证清单
+- [ ] 更新 CMakeLists.txt
+- [ ] 添加版权声明
+
+### 许可证声明模板
+
+```c
+/**
+ * @file xxx.c
+ * @brief XXX 功能实现
+ * 
+ * @copyright Copyright (c) 2026 XinYi Team
+ * @copyright Copyright (c) 2023 Third Party Author
+ * 
+ * @license MIT License
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ */
+```
 
 ---
 
@@ -185,21 +258,21 @@ endif()
 
 ### 高优先级 (本周)
 
-1. **LwIP** - TCP/IP 协议栈
-2. **FatFS** - FAT 文件系统
-3. **TinyUSB** - USB 协议栈
+1. **LwIP** (BSD-3) - TCP/IP 协议栈
+2. **FatFS** (BSD-2) - FAT 文件系统
+3. **TinyUSB** (MIT) - USB 协议栈
 
 ### 中优先级 (下周)
 
-4. **NimBLE** - BLE 协议栈
-5. **LVGL** - 图形库
-6. **LittleFS** - 掉电安全文件系统
+4. **NimBLE** (Apache-2.0) - BLE 协议栈
+5. **LVGL** (MIT) - 图形库
+6. **LittleFS** (BSD-3) - 掉电安全文件系统
 
 ### 低优先级 (可选)
 
-7. **SPIFFS** - SPI Flash 文件系统
-8. **http_parser** - HTTP 解析
-9. **U8g2** - 单色显示
+7. **SPIFFS** (MIT) - SPI Flash 文件系统
+8. **picoHTTP** (MIT) - HTTP 服务器
+9. **U8g2** (BSD-3) - 单色显示
 
 ---
 
@@ -207,12 +280,42 @@ endif()
 
 | 类别 | 计划 | 已集成 | 进度 |
 |------|------|--------|------|
-| **网络** | 4 | 0 | 0% |
+| **网络** | 3 | 0 | 0% |
 | **文件系统** | 3 | 0 | 0% |
 | **USB** | 2 | 0 | 0% |
-| **蓝牙** | 2 | 0 | 0% |
 | **图形** | 2 | 0 | 0% |
+| **加密** | 2 | 0 | 0% |
+| **蓝牙** | 1 | 0 | 0% |
 | **总计** | 13 | 0 | 0% |
+
+---
+
+## ⚠️ 禁止使用的库
+
+### GPL 许可证 ❌
+
+| 库名 | 用途 | 替代方案 |
+|------|------|---------|
+| **BlueZ** | BLE Host | NimBLE (Apache-2.0) |
+| **WolfSSL** | TLS/SSL | MbedTLS (Apache-2.0) |
+| **GNU TLS** | TLS/SSL | MbedTLS (Apache-2.0) |
+| **Readline** | 命令行 | linenoise (BSD-2) |
+
+### LGPL 许可证 ❌
+
+| 库名 | 用途 | 替代方案 |
+|------|------|---------|
+| **FFmpeg** | 音视频 | 无 (暂不需要) |
+| **SQLite** | 数据库 | 无 (使用 FatFS) |
+| **libusb** | USB Host | TinyUSB (MIT) |
+
+---
+
+## 📚 相关文档
+
+- [SPDX 许可证列表](https://spdx.org/licenses/)
+- [OSI 认证许可证](https://opensource.org/licenses)
+- [GitHub 许可证选择](https://choosealicense.com/)
 
 ---
 
