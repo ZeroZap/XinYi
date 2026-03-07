@@ -2,13 +2,8 @@
  * @file xy.h
  * @brief XinYi Framework Master Header
  * @version 2.0.0
- * @date 2026-03-02
- */
-
-#ifndef XINYI_H
-#define XINYI_H
-
-/**
+ * @date 2026-03-05
+ * 
  * @mainpage XinYi 嵌入式框架
  * 
  * @section intro 简介
@@ -34,116 +29,82 @@
  * @endcode
  */
 
-/* ==================== 版本信息 ==================== */
+#ifndef XINYI_H
+#define XINYI_H
 
-#define XINYI_VERSION_MAJOR     2
-#define XINYI_VERSION_MINOR     0
-#define XINYI_VERSION_PATCH     0
-#define XINYI_VERSION_STRING    "2.0.0"
+/* ==================== 版本和配置 ==================== */
 
-/* ==================== 核心组件 ==================== */
+#include "xy_version.h"      /* 版本管理 */
+#include "xy_config.h"       /* 统一配置 */
+#include "xy_features.h"     /* 特性开关 */
 
-/* 系统类型定义 */
-#include "xy_typedef.h"
+/* ==================== 基础类型 ==================== */
 
-/* 通用定义 */
-#include "xy_def.h"
+#include "xy_typedef.h"      /* 类型定义 */
+#include "xy_def.h"          /* 基础定义 */
 
 /* ==================== OSAL (OS 抽象层) ==================== */
 
-#ifdef CONFIG_OSAL
+#if XY_FEATURE_OSAL
 #include "kernel/osal/inc/xy_os_sys.h"
 #endif
 
 /* ==================== HAL (硬件抽象层) ==================== */
 
-#ifdef CONFIG_HAL
+#if XY_FEATURE_HAL
 #include "hal/inc/xy_hal.h"
 #endif
 
 /* ==================== 基础库 ==================== */
 
-#ifdef CONFIG_CLIB
-/* xy_clib 功能 */
+#if XY_FEATURE_CLIB
+#include "clib/xy_clib/xy_common.h"
+#include "clib/xy_clib/xy_string.h"
+#include "clib/xy_clib/xy_math.h"
 #endif
 
-#ifdef CONFIG_CRYPTO
-/* 密码学功能 */
+#if XY_FEATURE_CRYPTO
+#include "crypto/inc/xy_aes.h"
+#include "crypto/inc/xy_crc.h"
+#include "crypto/inc/xy_hmac.h"
 #endif
 
 /* ==================== 设备驱动 ==================== */
 
-#ifdef CONFIG_DEVICE
-#include "device/inc/xy_device.h"
+#if XY_FEATURE_SENSOR
+#include "sensor/inc/xy_sensor.h"
 #endif
 
-#ifdef CONFIG_SENSOR
-/* 传感器驱动 */
-#include "sensor/inc/xy_sht30.h"
-#include "sensor/inc/xy_sht40.h"
-#include "sensor/inc/xy_hdc1080.h"
-#include "sensor/inc/xy_aht20.h"
-#include "sensor/inc/xy_mpu6050.h"
-#include "sensor/inc/xy_bmp280.h"
-#include "sensor/inc/xy_oled_ssd1306.h"
-#include "sensor/inc/xy_bh1750.h"
-#include "sensor/inc/xy_tsl2561.h"
-#endif
-
-#ifdef CONFIG_POWER
-/* 电源管理 */
-#include "sensor/inc/xy_bq25620.h"
-#include "sensor/inc/xy_coulomb.h"
-#include "sensor/inc/xy_ina226.h"
-#include "sensor/inc/xy_max17043.h"
-#include "sensor/inc/xy_ltc2945.h"
+#if XY_FEATURE_FUEL_GAUGE
+#include "fuel_gauge/inc/xy_fuel_gauge.h"
 #endif
 
 /* ==================== 中间件 ==================== */
 
-#ifdef CONFIG_PID
+#if XY_FEATURE_PID
 #include "pid/inc/xy_pid.h"
-#include "pid/inc/xy_pid_auto.h"
 #endif
 
-#ifdef CONFIG_FOTA
+#if XY_FEATURE_FOTA
 #include "fota/inc/xy_fota.h"
 #include "fota/inc/xy_fota_secure.h"
 #endif
 
-#ifdef CONFIG_GUI
-#include "gui/inc/xy_gui.h"
-#include "gui/inc/xy_font.h"
-#endif
-
-#ifdef CONFIG_DM
-/* 数据管理 */
-#include "dm/inc/xy_json.h"
+#if XY_FEATURE_FS
 #include "dm/inc/xy_fs.h"
 #endif
 
-#ifdef CONFIG_IPC
-/* IPC 通信 */
-#include "ipc/inc/xy_mq.h"
+#if XY_FEATURE_JSON
+#include "dm/inc/xy_json.h"
 #endif
 
 /* ==================== 系统服务 ==================== */
 
-#ifdef CONFIG_SYSMON
-#include "kernel/misc/inc/xy_sysmon.h"
-#endif
-
-#ifdef CONFIG_AUTOTASK
-#include "kernel/misc/inc/xy_autotask.h"
-#endif
-
-/* ==================== 调试工具 ==================== */
-
-#ifdef CONFIG_LOG
+#if XY_FEATURE_LOG
 #include "trace/xy_log/inc/xy_log.h"
 #endif
 
-#ifdef CONFIG_ASSERT
+#if XY_FEATURE_ASSERT
 #include "clib/xy_clib/xy_assert.h"
 #endif
 
