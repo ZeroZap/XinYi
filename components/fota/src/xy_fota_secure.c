@@ -152,21 +152,36 @@ int xy_fota_chacha20_decrypt(const uint8_t *key,
                              uint8_t *plaintext,
                              const uint8_t *tag)
 {
-    /* TODO: 实现完整的 ChaCha20-Poly1305 解密 */
-    /* 包括 Poly1305 MAC 验证 */
-    (void)key;
-    (void)nonce;
-    (void)ciphertext;
-    (void)ct_len;
-    (void)plaintext;
-    (void)tag;
-    
-    /* 模拟解密 */
-    if (plaintext != ciphertext) {
-        memcpy(plaintext, ciphertext, ct_len);
+    /* 验证参数 */
+    if (!key || !nonce || !ciphertext || !plaintext || ct_len < XY_FOTA_POLY1305_TAG_SIZE) {
+        return XY_FOTA_INVALID_PARAM;
     }
     
-    return 0;
+    /* 分离密文和 Tag */
+    uint32_t actual_ct_len = ct_len - XY_FOTA_POLY1305_TAG_SIZE;
+    const uint8_t *received_tag = ciphertext + actual_ct_len;
+    
+    /* 使用 ChaCha20-Poly1305 AEAD 解密 */
+    size_t pt_len;
+    int ret = xy_chacha20poly1305_decrypt(key, nonce,
+                                          NULL, 0,  /* No AAD */
+                                          ciphertext, ct_len,
+                                          plaintext, &pt_len);
+    
+    if (ret != 0) {
+        /* 解密失败 (可能是 MAC 验证失败) */
+        return XY_FOTA_AUTH_ERROR;
+    }
+    
+    /* 验证 Tag (如果提供了外部 tag) */
+    if (tag != NULL) {
+        if (memcmp(received_tag, tag, XY_FOTA_POLY1305_TAG_SIZE) != 0) {
+            xy_log_e("Poly1305 tag mismatch!\n");
+            return XY_FOTA_AUTH_ERROR;
+        }
+    }
+    
+    return XY_FOTA_OK;
 }
 
 int xy_fota_secure_decrypt_and_write(xy_fota_secure_t *fota,
@@ -189,13 +204,13 @@ int xy_fota_secure_decrypt_and_write(xy_fota_secure_t *fota,
         return XY_FOTA_NO_MEM;
     }
     
-    /* 解密数据 */
+    /* 解密数据 (包含 Poly1305 tag 验证) */
     int ret = xy_fota_chacha20_decrypt(fota->chacha_key,
                                        fota->header.chacha_nonce,
                                        encrypted_data,
                                        data_size,
                                        decrypted,
-                                       NULL);  /* TODO: 添加 tag 验证 */
+                                       NULL);  /* Tag 已包含在 encrypted_data 末尾 */
     
     if (ret != 0) {
         free(decrypted);
@@ -223,12 +238,37 @@ int xy_fota_secure_decrypt_and_write(xy_fota_secure_t *fota,
 
 int xy_fota_secure_swap(xy_fota_secure_t *fota)
 {
-    if (!fota || !fota->config.dual_bank) {
+    if (!fota || !fota->verified) {
         return XY_FOTA_INVALID_PARAM;
     }
     
-    /* 使用双 Bank 交换逻辑 */
-    return xy_fota_bank_swap(NULL);
+    /* 双 Bank 模式：交换 Slot */
+    if (fota->config.dual_bank) {
+        xy_log_i("Performing dual-bank slot swap...\n");
+        
+        /* 读取当前启动 Slot */
+        uint8_t current_slot = 0;  /* TODO: 从 OTP/Flash 读取实际值 */
+        uint8_t next_slot = (current_slot == 0) ? 1 : 0;
+        
+        /* 验证新 Slot 的固件 */
+        bool valid = false;
+        int ret = xy_fota_secure_is_valid(fota, next_slot, &valid);
+        if (ret != XY_FOTA_OK || !valid) {
+            xy_log_e("Next slot (%d) firmware invalid, aborting swap\n", next_slot);
+            return XY_FOTA_AUTH_ERROR;
+        }
+        
+        /* 执行交换 */
+        ret = xy_fota_bank_swap(NULL);
+        if (ret == XY_FOTA_OK) {
+            xy_log_i("Slot swap successful, booting from Slot %d\n", next_slot);
+        }
+        return ret;
+    }
+    
+    /* 单 Bank 模式：直接标记 Slot1 为有效 */
+    xy_log_i("Single-bank mode, marking Slot1 as valid...\n");
+    return xy_fota_secure_mark_valid(fota, 1);
 }
 
 int xy_fota_secure_mark_valid(xy_fota_secure_t *fota, uint8_t slot)
