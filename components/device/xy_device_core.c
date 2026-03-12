@@ -236,7 +236,7 @@ int xy_device_acquire(xy_device_t *dev)
         if (g_device_registry[i].device == dev) {
             g_device_registry[i].ref_count++;
             /* 唤醒设备 */
-            if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP) {
+            if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP_STATE) {
                 xy_device_wake(dev);
             }
             g_pm_info[i].last_active_time = xy_device_get_tick();
@@ -359,7 +359,7 @@ int xy_device_sleep(xy_device_t *dev)
 
     for (size_t i = 0; i < g_device_count; i++) {
         if (g_device_registry[i].device == dev) {
-            if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP) {
+            if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP_STATE) {
                 return XY_DEVICE_OK; /* 已在休眠 */
             }
 
@@ -370,14 +370,14 @@ int xy_device_sleep(xy_device_t *dev)
 
             /* 调用回调 */
             if (g_pm_info[i].callback) {
-                int ret = g_pm_info[i].callback(dev, XY_DEVICE_PM_SLEEP, 
+                int ret = g_pm_info[i].callback(dev, XY_DEVICE_PM_SLEEP_STATE_EVENT, 
                                                 g_pm_info[i].user_data);
                 if (ret < 0) {
                     return ret;
                 }
             }
 
-            g_pm_info[i].state = XY_DEVICE_PM_SLEEP;
+            g_pm_info[i].state = XY_DEVICE_PM_SLEEP_STATE_STATE;
             return XY_DEVICE_OK;
         }
     }
@@ -491,7 +491,7 @@ int xy_device_get_stats(xy_device_stats_t *stats)
             default: stats->other_count++; break;
         }
 
-        if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP) {
+        if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP_STATE) {
             stats->sleep_count++;
         }
     }
@@ -533,7 +533,7 @@ void xy_device_print_list(void)
         const char *pm_str = "UNKNOWN";
         switch (g_pm_info[i].state) {
             case XY_DEVICE_PM_ACTIVE: pm_str = "ACTIVE"; break;
-            case XY_DEVICE_PM_SLEEP:  pm_str = "SLEEP"; break;
+            case XY_DEVICE_PM_SLEEP_STATE:  pm_str = "SLEEP"; break;
             default: break;
         }
 

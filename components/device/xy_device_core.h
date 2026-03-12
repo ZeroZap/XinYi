@@ -37,7 +37,7 @@ extern "C" {
 typedef enum {
     XY_DEVICE_PM_UNKNOWN = 0,
     XY_DEVICE_PM_ACTIVE,
-    XY_DEVICE_PM_SLEEP,
+    XY_DEVICE_PM_SLEEP_STATE,
     XY_DEVICE_PM_OFF,
 } xy_device_pm_state_t;
 
@@ -45,7 +45,7 @@ typedef enum {
  * @brief 设备电源管理事件
  */
 typedef enum {
-    XY_DEVICE_PM_SLEEP = 0,
+    XY_DEVICE_PM_SLEEP_EVENT = 0,
     XY_DEVICE_PM_WAKE,
 } xy_device_pm_event_t;
 

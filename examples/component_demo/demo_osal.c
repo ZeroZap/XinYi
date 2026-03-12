@@ -29,7 +29,7 @@ void demo_osal_run(void)
     xy_os_thread_create(&thread2, "worker_2", NULL, NULL, 3, 512);
     printf("[DEBUG] Task 'worker_2' created\n");
     
-    printf("[INFO] Creating synchronization primitives...\n");
+    printf("[INFO] Creating sync primitives...\n");
     xy_os_mutex_create(&mutex);
     printf("[DEBUG] Mutex created\n");
     
@@ -39,12 +39,12 @@ void demo_osal_run(void)
     printf("[INFO] Testing semaphore...\n");
     xy_os_semaphore_put(sem);
     xy_os_semaphore_take(sem, 100);
-    printf("[DEBUG] Semaphore put/take OK\n");
+    printf("[DEBUG] Semaphore OK\n");
     
     printf("[INFO] Testing mutex...\n");
     xy_os_mutex_lock(mutex, 100);
     xy_os_mutex_unlock(mutex);
-    printf("[DEBUG] Mutex lock/unlock OK\n");
+    printf("[DEBUG] Mutex OK\n");
     
     printf("[INFO] System tick: %lu\n", xy_os_tick_get());
     xy_os_delay(500);
@@ -52,4 +52,4 @@ void demo_osal_run(void)
     printf("[INFO] OSAL demo completed\n");
 }
 
-#endif /* DEMO_OSAL */
+#endif

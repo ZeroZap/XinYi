@@ -1,89 +1,87 @@
 /**
  * @file demo_device.c
- * @brief Device Framework Demo (Standalone)
+ * @brief Device Framework Demo
  * @version 1.0.0
  * @date 2026-03-13
  */
 
 #include <stdio.h>
-#include <string.h>
-#include "osal_pc.h"
+#include "xy_device.h"
+#include "xy_device_core.h"
 
 #ifdef DEMO_DEVICE
 
-typedef struct {
-    const char *name;
-    int type;
-    int ref_count;
-    int power_state;
-} device_t;
-
-static device_t g_devices[10];
-static int g_device_count = 0;
+static xy_i2c_device_t g_sht30;
+static xy_i2c_device_t g_mpu6050;
 
 int demo_device_init(void)
 {
-    printf("  Device registry initialized (max 10 devices)\n");
-    g_device_count = 0;
-    return 0;
-}
-
-static int device_register(const char *name, int type)
-{
-    if (g_device_count >= 10) return -1;
+    int ret;
     
-    g_devices[g_device_count].name = name;
-    g_devices[g_device_count].type = type;
-    g_devices[g_device_count].ref_count = 0;
-    g_devices[g_device_count].power_state = 1; /* ACTIVE */
-    g_device_count++;
-    return 0;
-}
-
-static void device_print_list(void)
-{
-    printf("  Device list:\n");
-    for (int i = 0; i < g_device_count; i++) {
-        const char *type_str = (g_devices[i].type == 1) ? "SENSOR" : "OTHER";
-        const char *pm_str = (g_devices[i].power_state == 1) ? "ACTIVE" : "SLEEP";
-        printf("    %-12s %-8s RefCnt=%d PM=%s\n", 
-               g_devices[i].name, type_str, g_devices[i].ref_count, pm_str);
+    ret = xy_device_registry_init();
+    if (ret != 0) {
+        printf("[ERROR] Device registry init failed: %d\n", ret);
+        return -1;
     }
+    
+    printf("[INFO] Device registry initialized (max %d devices)\n", 
+           XY_DEVICE_REGISTRY_MAX);
+    
+    ret = xy_i2c_device_init(&g_sht30, NULL, 0x44, 1000);
+    if (ret != XY_DEVICE_OK) return -1;
+    g_sht30.base.name = "sht30_1";
+    g_sht30.base.type = XY_DEVICE_TYPE_SENSOR;
+    
+    ret = xy_i2c_device_init(&g_mpu6050, NULL, 0x68, 1000);
+    if (ret != XY_DEVICE_OK) return -1;
+    g_mpu6050.base.name = "mpu6050_1";
+    g_mpu6050.base.type = XY_DEVICE_TYPE_SENSOR;
+    
+    return 0;
 }
 
 void demo_device_run(void)
 {
-    printf("  Registering devices...\n");
+    xy_device_t *dev;
+    xy_device_stats_t stats;
     
-    device_register("sht30_1", 1);
-    printf("  Device 'sht30_1' registered (SENSOR)\n");
+    printf("[INFO] Registering devices...\n");
+    xy_device_registry_register(&g_sht30.base);
+    printf("[DEBUG] Device 'sht30_1' registered\n");
     
-    device_register("mpu6050_1", 1);
-    printf("  Device 'mpu6050_1' registered (SENSOR)\n");
+    xy_device_registry_register(&g_mpu6050.base);
+    printf("[DEBUG] Device 'mpu6050_1' registered\n");
     
-    printf("  Device count: %d\n", g_device_count);
+    printf("[INFO] Device count: %zu\n", xy_device_get_count());
     
-    device_print_list();
+    printf("[INFO] Finding devices...\n");
+    dev = xy_device_find_by_name("sht30_1");
+    if (dev) {
+        printf("[DEBUG] Found: %s (type=%d)\n", dev->name, dev->type);
+    }
     
-    /* 演示电源管理 */
-    printf("  Testing power management...\n");
-    g_devices[0].power_state = 0;
-    printf("  Device 'sht30_1' entered SLEEP mode\n");
+    dev = xy_device_find_by_type(XY_DEVICE_TYPE_SENSOR, 0);
+    if (dev) {
+        printf("[DEBUG] Found sensor: %s\n", dev->name);
+    }
     
-    xy_os_delay(50);
+    xy_device_get_stats(&stats);
+    printf("[INFO] Statistics: Total=%zu, I2C=%zu, Sensor=%zu\n",
+           stats.total_devices, stats.i2c_count, stats.sensor_count);
     
-    g_devices[0].power_state = 1;
-    printf("  Device 'sht30_1' woke up\n");
+    printf("[INFO] Device list:\n");
+    xy_device_print_list();
     
-    /* 演示引用计数 */
-    printf("  Testing reference counting...\n");
-    g_devices[0].ref_count++;
-    printf("  Device 'sht30_1' acquired (ref_count=%d)\n", g_devices[0].ref_count);
+    printf("[INFO] Testing power management...\n");
+    xy_device_sleep(&g_sht30.base);
+    printf("[DEBUG] sht30_1 entered SLEEP\n");
     
-    g_devices[0].ref_count--;
-    printf("  Device 'sht30_1' released (ref_count=%d)\n", g_devices[0].ref_count);
+    xy_os_delay(100);
     
-    printf("  Device demo completed\n");
+    xy_device_wake(&g_sht30.base);
+    printf("[DEBUG] sht30_1 woke up\n");
+    
+    printf("[INFO] Device demo completed\n");
 }
 
-#endif /* DEMO_DEVICE */
+#endif
