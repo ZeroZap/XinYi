@@ -92,6 +92,9 @@ typedef struct {
     uint32_t rx_count;              /**< 接收计数 */
     uint32_t error_count;           /**< 错误计数 */
     
+    xy_can_rx_callback_t rx_callback;  /**< 接收回调 */
+    void *callback_user_data;       /**< 回调用户数据 */
+    
     bool initialized;               /**< 初始化标志 */
 } xy_can_t;
 
@@ -152,9 +155,24 @@ int xy_can_receive(xy_can_t *can, xy_can_msg_t *msg, uint32_t timeout);
  * @brief 注册接收回调
  * @param can CAN 设备句柄
  * @param callback 回调函数
+ * @param user_data 用户数据 (传递给回调)
  * @return XY_CAN_OK 成功，其他值失败
  */
-int xy_can_register_rx_callback(xy_can_t *can, xy_can_rx_callback_t callback);
+int xy_can_register_rx_callback(xy_can_t *can, xy_can_rx_callback_t callback, void *user_data);
+
+/**
+ * @brief 注销接收回调
+ * @param can CAN 设备句柄
+ * @return XY_CAN_OK 成功，其他值失败
+ */
+int xy_can_unregister_rx_callback(xy_can_t *can);
+
+/**
+ * @brief CAN 中断接收处理 (在硬件中断中调用)
+ * @param can CAN 设备句柄
+ * @param msg 接收到的消息
+ */
+void xy_can_isr_receive(xy_can_t *can, const xy_can_msg_t *msg);
 
 /**
  * @brief 获取发送计数

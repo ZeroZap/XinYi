@@ -161,13 +161,6 @@ int xy_can_stop(xy_can_t *can)
     xy_log_i("CAN stopped\n");
     return XY_CAN_OK;
 }
-    
-    /* TODO: 停止硬件 CAN 控制器 */
-    /* xy_hal_can_deinit(can->hw_handle); */
-    
-    xy_log_i("CAN stopped\n");
-    return XY_CAN_OK;
-}
 
 int xy_can_send(xy_can_t *can, const xy_can_msg_t *msg, uint32_t timeout)
 {
@@ -250,12 +243,58 @@ int xy_can_receive(xy_can_t *can, xy_can_msg_t *msg, uint32_t timeout)
     return XY_CAN_TIMEOUT;
 }
 
-int xy_can_register_rx_callback(xy_can_t *can, xy_can_rx_callback_t callback)
+int xy_can_register_rx_callback(xy_can_t *can, xy_can_rx_callback_t callback, void *user_data)
 {
-    /* TODO: 实现回调注册 */
-    (void)can;
-    (void)callback;
+    if (!can) {
+        return XY_CAN_INVALID_PARAM;
+    }
+    
+    can->rx_callback = callback;
+    can->callback_user_data = user_data;
+    
+    xy_log_d("CAN RX callback registered\n");
     return XY_CAN_OK;
+}
+
+int xy_can_unregister_rx_callback(xy_can_t *can)
+{
+    if (!can) {
+        return XY_CAN_INVALID_PARAM;
+    }
+    
+    can->rx_callback = NULL;
+    can->callback_user_data = NULL;
+    
+    xy_log_d("CAN RX callback unregistered\n");
+    return XY_CAN_OK;
+}
+
+/**
+ * @brief CAN 中断接收处理
+ * 
+ * 在硬件 CAN 中断中调用此函数，会自动:
+ * - 写入 RX FIFO
+ * - 触发回调 (如果已注册)
+ */
+void xy_can_isr_receive(xy_can_t *can, const xy_can_msg_t *msg)
+{
+    if (!can || !msg || !can->initialized) {
+        return;
+    }
+    
+    /* 写入 FIFO */
+    if (can->rx_fifo) {
+        xy_can_fifo_write(can->rx_fifo, can->rx_fifo_size,
+                         &can->rx_head, &can->rx_tail, msg);
+    }
+    
+    /* 更新计数 */
+    can->rx_count++;
+    
+    /* 触发回调 */
+    if (can->rx_callback) {
+        can->rx_callback(can, msg);
+    }
 }
 
 uint32_t xy_can_get_tx_count(const xy_can_t *can)
