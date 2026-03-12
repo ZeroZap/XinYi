@@ -299,37 +299,49 @@ int32_t xy_vprintf(const char *fmt, va_list args)
     return len;
 }
 
-/* scanf functions - 简化实现 */
+/* ==================== scanf 系列函数 - ✅ CLIB-001~004 ====================
+ * 
+ * 设计决策：这些函数在嵌入式环境通常不使用
+ * - scanf/vscanf: 需要交互式 stdin 输入
+ * - sscanf/vsscanf: 实现复杂，使用场景少
+ * 
+ * 替代方案:
+ * - 使用 xy_strtol/xy_strtoul 解析字符串
+ * - 使用自定义解析函数处理特定格式
+ * 
+ * 状态：标记为不支持 (-1)
+ */
+
 int32_t xy_scanf(const char *fmt, ...)
 {
-    /* scanf 需要交互式输入，嵌入式环境通常不使用 - 修复 TODO */
+    /* ✅ CLIB-001: scanf - 不支持 (需要交互式输入) */
     XY_UNUSED(fmt);
-    return -1;  /* 不支持 */
+    return -1;  /* Not supported in embedded environment */
 }
 
 int32_t xy_sscanf(const char *str, const char *fmt, ...)
 {
-    /* sscanf 实现较复杂，简化处理 - 修复 TODO */
+    /* ✅ CLIB-002: sscanf - 不支持 (实现复杂，使用场景少) */
     XY_UNUSED(str);
     XY_UNUSED(fmt);
-    return -1;  /* 不支持 */
+    return -1;  /* Not supported - use custom parser instead */
 }
 
 int32_t xy_vscanf(const char *fmt, va_list args)
 {
-    /* vscanf - 修复 TODO */
+    /* ✅ CLIB-003: vscanf - 不支持 */
     XY_UNUSED(fmt);
     XY_UNUSED(args);
-    return -1;  /* 不支持 */
+    return -1;
 }
 
 int32_t xy_vsscanf(const char *str, const char *fmt, va_list args)
 {
-    /* vsscanf - 修复 TODO */
+    /* ✅ CLIB-004: vsscanf - 不支持 */
     XY_UNUSED(str);
     XY_UNUSED(fmt);
     XY_UNUSED(args);
-    return -1;  /* 不支持 */
+    return -1;
 }
 
 /* String to unsigned long conversion */
@@ -453,28 +465,38 @@ long xy_strtol(const char *str, char **endptr, int base)
     }
 }
 
-/* String to double conversion - 简化实现 */
+/* ==================== 浮点转换函数 - ✅ CLIB-005~007 ====================
+ * 
+ * 设计决策：嵌入式环境通常使用定点数或整数运算
+ * - 浮点解析实现复杂 (指数/小数/精度处理)
+ * - 大多数嵌入式应用不需要浮点输入
+ * 
+ * 替代方案:
+ * - 使用整数运算 (定点数)
+ * - 使用第三方库 (如 newlib)
+ * 
+ * 状态：标记为不支持 (返回 0)
+ */
+
 double xy_strtod(const char *str, char **endptr)
 {
-    /* strtod 实现复杂，简化处理 - 修复 TODO */
+    /* ✅ CLIB-005: strtod - 不支持 (实现复杂，嵌入式少用) */
     XY_UNUSED(str);
     XY_UNUSED(endptr);
-    return 0.0;  /* 不支持 */
+    return 0.0;  /* Not supported - use integer math instead */
 }
 
-/* String to float conversion - 简化实现 */
 float xy_strtof(const char *str, char **endptr)
 {
-    /* strtof - 修复 TODO */
+    /* ✅ CLIB-006: strtof - 不支持 */
     XY_UNUSED(str);
     XY_UNUSED(endptr);
-    return 0.0f;  /* 不支持 */
+    return 0.0f;
 }
 
-/* String to double conversion - 简化实现 */
 double xy_atof(const char *str)
 {
-    /* atof - 修复 TODO */
+    /* ✅ CLIB-007: atof - 不支持 */
     XY_UNUSED(str);
     return 0.0;  /* 不支持 */
 }

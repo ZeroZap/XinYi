@@ -46,6 +46,25 @@ typedef struct {
 } xy_glyph_t;
 
 /**
+ * @brief 字符缓存条目 - ✅ GUI-001
+ */
+typedef struct {
+    char ch;                    /* 字符 */
+    uint8_t *cached_data;       /* 缓存的位图数据 */
+    uint32_t last_access;       /* 最后访问时间 */
+    bool valid;                 /* 缓存有效标志 */
+} xy_font_cache_entry_t;
+
+/**
+ * @brief 字符缓存配置
+ */
+typedef struct {
+    bool enabled;               /* 缓存使能 */
+    uint8_t max_entries;        /* 最大缓存条目数 */
+    xy_font_cache_entry_t *entries;  /* 缓存数组 */
+} xy_font_cache_t;
+
+/**
  * @brief 字体句柄
  */
 typedef struct {
@@ -64,6 +83,9 @@ typedef struct {
     
     uint8_t line_height;        /* 行高 */
     uint8_t baseline;           /* 基线位置 */
+    
+    /* 字符缓存 - ✅ GUI-001 */
+    xy_font_cache_t cache;
     
     bool initialized;           /* 初始化标志 */
 } xy_font_t;
@@ -148,9 +170,34 @@ int xy_font_draw_text(const xy_font_t *font, const char *text,
                       void *framebuffer, uint16_t fb_width, uint16_t fb_height);
 
 /**
- * @brief 预渲染字符到缓存
+ * @brief 初始化字体缓存 - ✅ GUI-001
+ * @param font 字体句柄
+ * @param max_entries 最大缓存条目数 (0=禁用)
+ * @return 0 成功，-1 失败
+ */
+int xy_font_cache_init(xy_font_t *font, uint8_t max_entries);
+
+/**
+ * @brief 预渲染字符到缓存 - ✅ GUI-001
+ * @param font 字体句柄
+ * @param ch 字符
+ * @return 0 成功，-1 失败
  */
 int xy_font_cache_glyph(xy_font_t *font, char ch);
+
+/**
+ * @brief 从缓存获取字符位图 - ✅ GUI-001
+ * @param font 字体句柄
+ * @param ch 字符
+ * @return 缓存的位图数据，NULL=未缓存
+ */
+const uint8_t* xy_font_cache_get(xy_font_t *font, char ch);
+
+/**
+ * @brief 清空字体缓存
+ * @param font 字体句柄
+ */
+void xy_font_cache_clear(xy_font_t *font);
 
 /* ==================== 内置字体 ==================== */
 

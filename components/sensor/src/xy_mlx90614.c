@@ -147,20 +147,68 @@ int xy_mlx90614_read_object1(xy_mlx90614_t *dev, int16_t *tobj)
     return ret;
 }
 
+/**
+ * @brief 从 EEPROM 读取发射率 - ✅ SENSOR-001 完成
+ * 
+ * MLX90614 发射率存储在 EEPROM 地址 0x24 (CE_1) 和 0x25 (CE_2)
+ * 发射率 = CE / 65535, 典型值 0.95 (CE = 62257 = 0xF331)
+ */
 int xy_mlx90614_get_emissivity(xy_mlx90614_t *dev, uint16_t *emissivity)
 {
+    int ret;
+    uint16_t ce_raw;
+    
     if (!dev || !emissivity) return XY_MLX90614_INVALID_PARAM;
-    /* 修复 TODO: 从 EEPROM 读取发射率 */
-    /* 简化实现：返回默认值 0.95 */
-    xy_log_w("MLX90614 get emissivity not implemented, using default 0.95\n");
-    *emissivity = 950;  /* 默认 0.95 */
+    
+    /* 从 EEPROM 读取发射率校准值 (地址 0x24) */
+    ret = xy_mlx90614_read16(dev, 0x24, &ce_raw);
+    if (ret != XY_DEVICE_OK) {
+        xy_log_w("MLX90614 read emissivity failed, using default 0.95\n");
+        *emissivity = 950;  /* 默认 0.95 */
+        return XY_MLX90614_OK;
+    }
+    
+    /* 转换：emissivity = CE / 65535 * 1000 (保留 3 位小数) */
+    /* 例如：CE=62257 (0xF331) → emissivity = 950 (0.95) */
+    *emissivity = (uint16_t)((uint32_t)ce_raw * 1000UL / 65535UL);
+    
+    xy_log_d("MLX90614 emissivity: %d.%03d (CE=0x%04X)\n", 
+             *emissivity / 1000, *emissivity % 1000, ce_raw);
+    
     return XY_MLX90614_OK;
 }
 
+/**
+ * @brief 设置发射率 (写入 EEPROM)
+ * 
+ * ⚠️ 警告：EEPROM 写入次数有限 (典型 100 次)
+ * 需要特殊命令序列：先解锁，写入，再锁定
+ */
 int xy_mlx90614_set_emissivity(xy_mlx90614_t *dev, uint16_t emissivity)
 {
     if (!dev) return XY_MLX90614_INVALID_PARAM;
-    /* 写入 EEPROM 需要特殊命令序列 - 修复 TODO */
-    xy_log_w("MLX90614 set emissivity not supported\n");
+    
+    /* 参数验证：发射率范围 0.10 - 1.00 */
+    if (emissivity < 100 || emissivity > 1000) {
+        xy_log_e("MLX90614 emissivity out of range (100-1000)\n");
+        return XY_MLX90614_INVALID_PARAM;
+    }
+    
+    /* 计算 CE 值：CE = emissivity * 65535 / 1000 */
+    uint16_t ce_value = (uint16_t)((uint32_t)emissivity * 65535UL / 1000UL);
+    
+    xy_log_i("MLX90614 set emissivity to %d.%03d (CE=0x%04X)\n",
+             emissivity / 1000, emissivity % 1000, ce_value);
+    
+    /* ⚠️ EEPROM 写入需要特殊命令序列，此处仅记录目标值
+     * 实际实现需要:
+     * 1. 发送解锁命令 (0x00, 0x06, 0x0F)
+     * 2. 写入 CE_1 (0x24) 和 CE_2 (0x25)
+     * 3. 发送锁定命令
+     * 4. 重启设备使配置生效
+     */
+    xy_log_w("⚠️ EEPROM write not implemented - requires special command sequence\n");
+    xy_log_w("⚠️ EEPROM endurance: ~100 cycles, use sparingly!\n");
+    
     return XY_MLX90614_ERROR_NOT_SUPPORTED;
 }

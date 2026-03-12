@@ -234,12 +234,137 @@ int xy_font_draw_text(const xy_font_t *font, const char *text,
                               framebuffer, fb_width, fb_height);
 }
 
+/* ==================== 字符缓存实现 - ✅ GUI-001 ==================== */
+
+/**
+ * @brief 初始化字体缓存
+ */
+int xy_font_cache_init(xy_font_t *font, uint8_t max_entries)
+{
+    if (!font) return -1;
+    
+    /* 禁用缓存 */
+    if (max_entries == 0) {
+        font->cache.enabled = false;
+        font->cache.max_entries = 0;
+        font->cache.entries = NULL;
+        return 0;
+    }
+    
+    /* 分配缓存条目 */
+    font->cache.entries = (xy_font_cache_entry_t *)calloc(max_entries, sizeof(xy_font_cache_entry_t));
+    if (!font->cache.entries) {
+        return -1;
+    }
+    
+    font->cache.max_entries = max_entries;
+    font->cache.enabled = true;
+    
+    /* 初始化所有条目为无效 */
+    for (uint8_t i = 0; i < max_entries; i++) {
+        font->cache.entries[i].valid = false;
+        font->cache.entries[i].cached_data = NULL;
+    }
+    
+    xy_log_d("Font cache initialized: %d entries\n", max_entries);
+    return 0;
+}
+
+/**
+ * @brief LRU 缓存查找 - 找到最少使用的条目
+ */
+static int xy_font_cache_find_lru(xy_font_t *font)
+{
+    uint32_t min_time = 0xFFFFFFFF;
+    int lru_index = 0;
+    
+    for (uint8_t i = 0; i < font->cache.max_entries; i++) {
+        if (!font->cache.entries[i].valid) {
+            return i;  /* 找到空位 */
+        }
+        if (font->cache.entries[i].last_access < min_time) {
+            min_time = font->cache.entries[i].last_access;
+            lru_index = i;
+        }
+    }
+    
+    return lru_index;
+}
+
+/**
+ * @brief 预渲染字符到缓存
+ */
 int xy_font_cache_glyph(xy_font_t *font, char ch)
 {
-    /* 字符缓存 - 修复 TODO */
-    /* 简化实现：不启用缓存，直接渲染 */
-    /* 如需启用缓存，需实现缓存查找和更新逻辑 */
-    (void)font;
-    (void)ch;
+    if (!font || !font->cache.enabled) return -1;
+    
+    /* 检查是否已缓存 */
+    for (uint8_t i = 0; i < font->cache.max_entries; i++) {
+        if (font->cache.entries[i].valid && font->cache.entries[i].ch == ch) {
+            font->cache.entries[i].last_access = xy_os_tick_get();
+            return 0;  /* 已缓存，更新时间戳 */
+        }
+    }
+    
+    /* 获取字符位图 */
+    const xy_glyph_t *glyph = xy_font_get_glyph(font, ch);
+    if (!glyph) return -1;
+    
+    /* 找到 LRU 条目 */
+    int index = xy_font_cache_find_lru(font);
+    
+    /* 释放旧数据 */
+    if (font->cache.entries[index].cached_data) {
+        free(font->cache.entries[index].cached_data);
+    }
+    
+    /* 分配并复制位图数据 */
+    uint32_t data_size = glyph->width * glyph->height;
+    font->cache.entries[index].cached_data = (uint8_t *)malloc(data_size);
+    if (!font->cache.entries[index].cached_data) {
+        return -1;
+    }
+    
+    memcpy(font->cache.entries[index].cached_data, glyph->data, data_size);
+    font->cache.entries[index].ch = ch;
+    font->cache.entries[index].valid = true;
+    font->cache.entries[index].last_access = xy_os_tick_get();
+    
+    xy_log_d("Cached glyph '%c' (0x%02X) at index %d\n", ch, ch, index);
     return 0;
+}
+
+/**
+ * @brief 从缓存获取字符位图
+ */
+const uint8_t* xy_font_cache_get(xy_font_t *font, char ch)
+{
+    if (!font || !font->cache.enabled) return NULL;
+    
+    for (uint8_t i = 0; i < font->cache.max_entries; i++) {
+        if (font->cache.entries[i].valid && font->cache.entries[i].ch == ch) {
+            font->cache.entries[i].last_access = xy_os_tick_get();
+            return font->cache.entries[i].cached_data;
+        }
+    }
+    
+    return NULL;  /* 未缓存 */
+}
+
+/**
+ * @brief 清空字体缓存
+ */
+void xy_font_cache_clear(xy_font_t *font)
+{
+    if (!font || !font->cache.enabled) return;
+    
+    for (uint8_t i = 0; i < font->cache.max_entries; i++) {
+        if (font->cache.entries[i].cached_data) {
+            free(font->cache.entries[i].cached_data);
+            font->cache.entries[i].cached_data = NULL;
+        }
+        font->cache.entries[i].valid = false;
+    }
+    
+    xy_log_d("Font cache cleared\n");
 }
