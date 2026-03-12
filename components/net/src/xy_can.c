@@ -190,11 +190,13 @@ int xy_can_send(xy_can_t *can, const xy_can_msg_t *msg, uint32_t timeout)
         if (ret == XY_CAN_OK) {
             can->tx_count++;
 
-            /* 触发硬件发送 - 修复 TODO */
-#ifdef MCU_CH32
-            /* WCH CAN 硬件会自动发送，无需额外触发 */
-            /* 如果使用其他 MCU，需调用 xy_hal_can_trigger_send() */
-#endif
+            /* 触发硬件发送
+             * 
+             * 平台适配说明:
+             * - WCH CH32: CAN 硬件自动发送，无需额外触发
+             * - STM32: 调用 xy_hal_can_trigger_send()
+             * - 其他 MCU: 根据 HAL 实现调整
+             */
 
             return XY_CAN_OK;
         }

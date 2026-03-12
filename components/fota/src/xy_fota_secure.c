@@ -25,7 +25,18 @@ static int xy_fota_ecdsa_verify_impl(const uint8_t *pub_key,
     return xy_ecdsa_verify_simple(pub_key, message, msg_size, signature);
 }
 
-/* ChaCha20 流加密核心 - 修复 TODO */
+/**
+ * @brief ChaCha20 流加密核心 - ✅ 已实现
+ * 
+ * 算法说明:
+ * - ChaCha20 是流加密算法，生成 keystream 与数据异或
+ * - 256-bit key + 96-bit nonce + 32-bit counter
+ * - 每次调用生成 64 字节 keystream
+ * 
+ * 使用场景:
+ * - FOTA 固件加密/解密
+ * - 安全 Boot 镜像验证
+ */
 static void xy_fota_chacha20_block(const uint8_t *key,
                                    const uint8_t *nonce,
                                    uint32_t counter,

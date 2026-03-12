@@ -19,12 +19,15 @@ static struct {
 /* ==================== Internal Functions ==================== */
 
 /**
- * @brief Get timestamp in milliseconds
- * @note Implement based on your platform's timer
+ * @brief 获取时间戳 (毫秒)
+ * 
+ * 平台适配说明:
+ * - 使用 xy_os_tick_get() 获取系统 tick
+ * - 如需毫秒精度，可在 xy_os_cfg.h 配置 XY_OS_TICK_RATE
+ * - 替代方案：使用硬件定时器/RTC
  */
 static uint32_t broker_get_timestamp(void)
 {
-    /* 平台相关时间戳 - 修复 TODO */
     /* 使用 OS tick 作为时间戳 */
     return xy_os_tick_get();
 }

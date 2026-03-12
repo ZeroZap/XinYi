@@ -41,10 +41,15 @@ static int xy_mlx90614_read16(xy_mlx90614_t *dev, uint8_t reg, uint16_t *value)
         return ret;
     }
 
-    /* PEC 校验 - 修复 TODO */
+    /* PEC (Packet Error Code) 校验 - SMBus 协议要求
+     * 
+     * 算法：CRC-8, 多项式 0x07 (x^8 + x^2 + x + 1)
+     * 输入：前 2 字节数据
+     * 验证：第 3 字节 (PEC 字节)
+     */
     crc = xy_mlx90614_crc8(buf, 2);
     if (crc != buf[2]) {
-        xy_log_e("MLX90614 PEC error\n");
+        xy_log_e("MLX90614 PEC error (calc=0x%02X, rx=0x%02X)\n", crc, buf[2]);
         return XY_MLX90614_CRC_ERROR;
     }
 

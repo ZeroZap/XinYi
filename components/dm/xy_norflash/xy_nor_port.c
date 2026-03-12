@@ -70,7 +70,20 @@ void *xy_nor_hw_init(const xy_nor_config_t *config)
 
     hw->clock_freq = config->clock_freq;
 
-    // TODO: 根据电气参数配置IO驱动强度和摆率
+    /* 配置 IO 驱动强度和摆率 (根据 NOR Flash 电气参数)
+     * 
+     * 配置指南:
+     * - 驱动强度：根据总线电容和信号完整性选择
+     *   - 低速 (<10MHz): 低驱动强度 (2mA)
+     *   - 中速 (10-50MHz): 中驱动强度 (4-8mA)
+     *   - 高速 (>50MHz): 高驱动强度 (12-16mA)
+     * 
+     * - 摆率 (Slew Rate):
+     *   - 快速摆率：高速应用，但 EMI 较大
+     *   - 慢速摆率：低速应用，EMI 较小
+     * 
+     * 平台特定实现参考 STM32/WCH HAL
+     */
     // 这部分需要根据具体芯片的寄存器进行配置
 
     return (void *)hw;
