@@ -465,7 +465,16 @@ int at_socket(int domain, int type, int protocol)
     /* check socket family protocol */
     RT_ASSERT(domain == AF_AT || domain == AF_INET);
 
-    //TODO check protocol
+    /* 协议检查 - NET-003 ✅
+     * AF_AT: AT 命令 Socket，仅支持 TCP/UDP
+     * AF_INET: 标准 IPv4 Socket
+     */
+    if (domain == AF_AT) {
+        if (protocol != 0 && protocol != IPPROTO_TCP && protocol != IPPROTO_UDP) {
+            LOG_E("AT socket only supports TCP/UDP protocol (got %d)", protocol);
+            return -1;
+        }
+    }
 
     switch(type)
     {

@@ -357,7 +357,7 @@ void xy_json_free(xy_json_t *json)
             break;
             
         case XY_JSON_ARRAY:
-            /* 修复 TODO: 释放数组元素 */
+            /* 递归释放数组元素 */
             if (json->value.array.items) {
                 for (uint16_t i = 0; i < json->value.array.count; i++) {
                     if (json->value.array.items[i]) {
@@ -369,7 +369,7 @@ void xy_json_free(xy_json_t *json)
             break;
 
         case XY_JSON_OBJECT:
-            /* 修复 TODO: 释放对象成员 */
+            /* 递归释放对象成员 */
             if (json->value.object.members) {
                 for (uint16_t i = 0; i < json->value.object.count; i++) {
                     if (json->value.object.members[i]) {
@@ -411,8 +411,8 @@ xy_json_t* xy_json_object_get(xy_json_t *obj, const char *key)
     if (!obj || obj->type != XY_JSON_OBJECT || !key) {
         return NULL;
     }
-
-    /* 修复 TODO: 实现对象查找 */
+    
+    /* 遍历成员查找匹配键 */
     for (uint16_t i = 0; i < obj->value.object.count; i++) {
         xy_json_t *member = obj->value.object.members[i];
         if (member && member->key && strcmp(member->key, key) == 0) {
@@ -498,8 +498,8 @@ xy_json_t* xy_json_array_get(xy_json_t *arr, uint16_t index)
     if (!arr || arr->type != XY_JSON_ARRAY) {
         return NULL;
     }
-
-    /* 修复 TODO: 实现数组索引 */
+    
+    /* 边界检查 */
     if (index >= arr->value.array.count) {
         return NULL;
     }

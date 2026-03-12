@@ -166,7 +166,7 @@ int xy_fs_close(xy_fs_file_t *file)
         return XY_FS_INVALID_PARAM;
     }
 
-    /* TODO: 调用底层 close */
+    /* 调用底层 close 操作 */
     int ret = XY_FS_OK;
     if (file->fs->ops->close) {
         ret = file->fs->ops->close(file);
@@ -190,7 +190,7 @@ int xy_fs_read(xy_fs_file_t *file, void *buf, size_t len)
         return XY_FS_NOT_SUPPORTED;
     }
 
-    /* TODO: 调用底层 read */
+    /* 调用底层 read 操作 */
     int ret = file->fs->ops->read(file, buf, len);
     
     if (ret > 0) {
@@ -214,7 +214,7 @@ int xy_fs_write(xy_fs_file_t *file, const void *buf, size_t len)
         return XY_FS_NOT_SUPPORTED;
     }
 
-    /* TODO: 调用底层 write */
+    /* 调用底层 write 操作 */
     int ret = file->fs->ops->write(file, buf, len);
     
     if (ret > 0) {
