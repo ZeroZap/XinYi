@@ -221,6 +221,10 @@ int xy_can_receive(xy_can_t *can, xy_can_msg_t *msg, uint32_t timeout)
         ret = XY_CAN_OK;
         if (ret == XY_CAN_OK) {
             can->rx_count++;
+            /* 触发回调 */
+            if (can->rx_callback) {
+                can->rx_callback(can, msg);
+            }
         }
         return ret;
     }
@@ -233,6 +237,10 @@ int xy_can_receive(xy_can_t *can, xy_can_msg_t *msg, uint32_t timeout)
                               &can->rx_head, &can->rx_tail, msg);
         if (ret == XY_CAN_OK) {
             can->rx_count++;
+            /* 触发回调 */
+            if (can->rx_callback) {
+                can->rx_callback(can, msg);
+            }
             return XY_CAN_OK;
         }
         
