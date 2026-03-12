@@ -1,0 +1,123 @@
+site_name: XinYi Embedded Framework
+site_description: Modular Embedded Framework for STM32, WCH, HC32
+site_author: ZeroZap Team
+site_url: https://zerozap.github.io/XinYi
+
+repo_name: ZeroZap/XinYi
+repo_url: https://github.com/ZeroZap/XinYi
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    accent: indigo
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+  language: en
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - footnotes
+  - meta
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji
+  - pymdownx.inlinehilite
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+nav:
+  - Home:
+    - 'index.md'
+    - 'Getting Started':
+      - 'Quick Start': 'getting-started/QUICK_START.md'
+      - 'Installation': 'getting-started/installation.md'
+      - 'First Project': 'getting-started/first-project.md'
+    - 'About':
+      - 'Introduction': 'about/introduction.md'
+      - 'Features': 'about/features.md'
+      - 'License': 'about/license.md'
+  
+  - Components:
+    - 'Overview': 'components/overview.md'
+    - 'Kernel':
+      - 'OSAL': 'components/kernel/osal/README.md'
+      - 'Services': 'components/kernel/services.md'
+    - 'HAL':
+      - 'Overview': 'components/hal/overview.md'
+      - 'STM32': 'components/hal/stm32.md'
+      - 'WCH': 'components/hal/wch.md'
+      - 'PC Simulation': 'components/hal/pc.md'
+    - 'Device':
+      - 'Architecture': 'components/device/DEVICE_ARCHITECTURE.md'
+      - 'Core API': 'components/device/core-api.md'
+    - 'Sensors':
+      - 'Overview': 'components/sensor/overview.md'
+      - 'SHT30': 'components/sensor/sht30.md'
+      - 'MPU6050': 'components/sensor/mpu6050.md'
+      - 'BMP280': 'components/sensor/bmp280.md'
+    - 'Network':
+      - 'CAN': 'components/net/can.md'
+      - 'Modbus': 'components/net/modbus.md'
+      - 'AT Socket': 'components/net/at.md'
+    - 'Crypto':
+      - 'Overview': 'components/crypto/overview.md'
+      - 'AES': 'components/crypto/aes.md'
+      - 'SHA256': 'components/crypto/sha256.md'
+    - 'FOTA':
+      - 'Secure Boot': 'components/fota/secure-boot.md'
+      - 'Dual Bank': 'components/fota/dual-bank.md'
+  
+  - Documentation:
+    - 'Architecture': 'architecture_analysis.md'
+    - 'Component Status': 'COMPONENT_STATUS_REPORT.md'
+    - 'Roadmap': 'component-roadmap.md'
+    - 'Device Framework': 'device-framework-core.md'
+  
+  - Examples:
+    - 'Component Demo': 'examples/component-demo.md'
+    - 'STM32U5 Demo': 'examples/stm32u5-demo.md'
+    - 'Weather Station': 'examples/weather-station.md'
+  
+  - API Reference:
+    - 'OSAL API': 'api/osal.md'
+    - 'HAL API': 'api/hal.md'
+    - 'Device API': 'api/device.md'
+  
+  - Contributing:
+    - 'Guide': 'contribute/guide.md'
+    - 'Code Style': 'contribute/code-style.md'
+    - 'Pull Requests': 'contribute/pull-requests.md'
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/ZeroZap/XinYi
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/clawd
+  version:
+    provider: mike
+
+copyright: Copyright &copy; 2026 ZeroZap Team
