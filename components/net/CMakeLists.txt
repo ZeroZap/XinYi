@@ -62,3 +62,14 @@ install(TARGETS xy_net
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+
+# LTE Module
+if(CONFIG_NET_LTE)
+    list(APPEND NET_SOURCES
+        src/xy_lte.c
+    )
+    list(APPEND NET_HEADERS
+        inc/xy_lte.h
+    )
+    message(STATUS "LTE module enabled")
+endif()
