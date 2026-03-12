@@ -370,14 +370,14 @@ int xy_device_sleep(xy_device_t *dev)
 
             /* 调用回调 */
             if (g_pm_info[i].callback) {
-                int ret = g_pm_info[i].callback(dev, XY_DEVICE_PM_SLEEP_STATE_EVENT, 
+                int ret = g_pm_info[i].callback(dev, XY_DEVICE_PM_SLEEP_EVENT, 
                                                 g_pm_info[i].user_data);
                 if (ret < 0) {
                     return ret;
                 }
             }
 
-            g_pm_info[i].state = XY_DEVICE_PM_SLEEP_STATE_STATE;
+            g_pm_info[i].state = XY_DEVICE_PM_SLEEP_STATE;
             return XY_DEVICE_OK;
         }
     }

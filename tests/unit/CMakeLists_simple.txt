@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.10)
+project(unit_tests C)
+set(CMAKE_C_STANDARD 99)
+
+# Enable coverage
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage -g -O0")
+
+include_directories(
+    ${CMAKE_SOURCE_DIR}/../../components/device
+)
+
+# Simple device core test (no HAL dependency)
+add_executable(test_device_core
+    test_device_core.c
+    ${CMAKE_SOURCE_DIR}/../../components/device/xy_device_core.c
+)
+
+# Add test target
+add_custom_target(run_tests
+    COMMAND ${CMAKE_BINARY_DIR}/test_device_core
+    DEPENDS test_device_core
+    COMMENT "Running unit tests"
+)
