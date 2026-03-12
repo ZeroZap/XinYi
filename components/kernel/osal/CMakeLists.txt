@@ -26,14 +26,14 @@ endif()
 
 # Include directories
 set(OSAL_INCLUDE_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../misc
 )
 
-# Common sources
+# Common sources - backend implementations include all necessary functionality
+# xy_tick and xy_timer_sw are provided by components/kernel/misc module
 set(OSAL_COMMON_SOURCES
-    src/xy_os_tick.c
-    src/xy_os_timer_sw.c
 )
 
 # Backend-specific sources

@@ -67,8 +67,7 @@ $(VALID_COMPONENTS):
 	elif [ -f components/$@/CMakeLists.txt ]; then \
 		echo "Building component: $@ (CMake)"; \
 		mkdir -p components/$@/build; \
-		cd components/$@/build && cmake .. -DCMAKE_BUILD_TYPE=$(BUILD_TYPE); \
-		$(MAKE) -C components/$@/build; \
+		cd components/$@/build && cmake .. -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) && $(MAKE); \
 	else \
 		echo "Skipping $@: No build system found"; \
 	fi

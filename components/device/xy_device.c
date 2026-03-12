@@ -9,6 +9,15 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+// Include HAL types for PC build
+#ifdef HAL_PLATFORM_PC
+#include "xy_hal.h"
+
+// Forward declaration for PC-specific function
+extern void xy_hal_delay_ms(uint32_t ms);
+#endif
 
 /* ==================== I2C Device Implementation ==================== */
 
@@ -142,8 +151,15 @@ void xy_spi_device_cs(xy_spi_device_t *dev, bool select)
         return;
     }
 
-    /* CS low to select */
-    xy_hal_pin_write(dev->cs_pin, select ? 0 : 1);
+    /* CS low to select - cs_pin is a GPIO handle */
+    /* For PC build, we just track state */
+#ifdef HAL_PLATFORM_PC
+    extern int xy_hal_pin_write_handle(void *pin_handle, int state);
+    xy_hal_pin_write_handle(dev->cs_pin, select ? 0 : 1);
+#else
+    /* For embedded builds, cs_pin should be a struct with port/pin */
+    /* This needs platform-specific implementation */
+#endif
 }
 
 int xy_spi_device_transfer(xy_spi_device_t *dev, const uint8_t *tx, 
@@ -225,7 +241,7 @@ int xy_uart_device_recv(xy_uart_device_t *dev, uint8_t *data, size_t len)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    xy_hal_error_t ret = xy_hal_uart_receive(dev->uart_handle, data, len, 1000);
+    int ret = xy_hal_uart_recv(dev->uart_handle, data, len, 1000);
     if (ret != XY_HAL_OK) {
         return XY_DEVICE_IO_ERROR;
     }

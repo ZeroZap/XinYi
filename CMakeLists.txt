@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 3.12)
+
+# 禁用编译器检查 (裸机环境不需要)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
 project(XY_Framework VERSION 1.0.0 LANGUAGES C)
 
 # Set C standard
@@ -31,53 +35,33 @@ foreach(component_dir ${COMPONENT_DIRS})
     if(IS_DIRECTORY ${component_dir})
         get_filename_component(component_name ${component_dir} NAME)
         if(EXISTS ${component_dir}/CMakeLists.txt)
-            add_subdirectory(components/${component_name})
+            add_subdirectory(${component_dir} ${CMAKE_CURRENT_BINARY_DIR}/components/${component_name})
         endif()
     endif()
 endforeach()
 
-# Add kernel sub-components
+# Add kernel sub-components (nested under components/kernel)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/osal/CMakeLists.txt)
-    add_subdirectory(components/kernel/osal)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/osal ${CMAKE_CURRENT_BINARY_DIR}/components/kernel/osal)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/misc/CMakeLists.txt)
-    add_subdirectory(components/kernel/misc)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/misc ${CMAKE_CURRENT_BINARY_DIR}/components/kernel/misc)
 endif()
 
-# Add HAL sub-components
+# Add HAL sub-components (nested under components/hal)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/hal/stm32/CMakeLists.txt)
-    add_subdirectory(components/hal/stm32)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/components/hal/stm32 ${CMAKE_CURRENT_BINARY_DIR}/components/hal/stm32)
 endif()
 
-# Add clib sub-components
+# Add clib sub-components (nested under components/clib)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/clib/xy_clib/CMakeLists.txt)
-    add_subdirectory(components/clib/xy_clib)
-endif()
-
-# Add crypto sub-components
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/crypto/CMakeLists.txt)
-    add_subdirectory(components/crypto)
-endif()
-
-# Add dm sub-components
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/dm/CMakeLists.txt)
-    add_subdirectory(components/dm)
-endif()
-
-# Add net sub-components
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/net/CMakeLists.txt)
-    add_subdirectory(components/net)
-endif()
-
-# Add trace sub-components
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/trace/CMakeLists.txt)
-    add_subdirectory(components/trace)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/components/clib/xy_clib ${CMAKE_CURRENT_BINARY_DIR}/components/clib/xy_clib)
 endif()
 
 # Add tests
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
-    add_subdirectory(tests)
+    add_subdirectory(tests ${CMAKE_CURRENT_BINARY_DIR}/tests)
 endif()
 
 # ==================== Testing ====================

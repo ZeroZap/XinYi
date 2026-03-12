@@ -27,6 +27,20 @@ extern "C" {
  */
 #define XY_HAL_SYS_TICK_PERIOD_MS (1000 / XY_HAL_SYS_TICK_FREQ)
 
+/**
+ * @brief 系统时钟信息结构
+ */
+typedef struct {
+    uint32_t sysclk;      /**< 系统时钟频率 (Hz) */
+    uint32_t hclk;        /**< AHB 总线时钟 (Hz) */
+    uint32_t pclk1;       /**< APB1 总线时钟 (Hz) */
+    uint32_t pclk2;       /**< APB2 总线时钟 (Hz) */
+    uint32_t pclk3;       /**< APB3 总线时钟 (Hz) */
+    uint8_t  hsi_ready;   /**< HSI 就绪标志 */
+    uint8_t  hse_ready;   /**< HSE 就绪标志 */
+    uint8_t  pll_ready;   /**< PLL 就绪标志 */
+} xy_hal_sys_clock_info_t;
+
 /* ==================== 系统控制 ==================== */
 
 /**

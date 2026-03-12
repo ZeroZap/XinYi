@@ -7,6 +7,7 @@
 
 #include "xy_oled_ssd1306.h"
 #include <string.h>
+#include <stdlib.h>
 
 /* SSD1306 Commands */
 #define SSD1306_CMD_DISPLAY_OFF         0xAE

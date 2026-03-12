@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(xy_device VERSION 1.0.0 LANGUAGES C)
+project(xy_drivers VERSION 1.0.0 LANGUAGES C)
 
 # Set C standard
 set(CMAKE_C_STANDARD 99)
@@ -23,10 +23,10 @@ file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 file(GLOB TEST_SOURCES "test/*.c")
 
 # Create static library
-add_library(xy_device STATIC ${COMPONENT_SOURCES})
+add_library(xy_drivers STATIC ${COMPONENT_SOURCES})
 
 # Set library properties
-set_target_properties(xy_device PROPERTIES
+set_target_properties(xy_drivers PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
     PUBLIC_HEADER "${COMPONENT_HEADERS}"
@@ -34,25 +34,25 @@ set_target_properties(xy_device PROPERTIES
 
 # Windows system needs additional libraries
 if(WIN32)
-    target_link_libraries(xy_device PRIVATE advapi32)
+    target_link_libraries(xy_drivers PRIVATE advapi32)
 endif()
 
 # Create test executable if test sources exist
 if(TEST_SOURCES)
-    add_executable(test_device ${TEST_SOURCES})
-    target_link_libraries(test_device xy_device)
+    add_executable(test_drivers ${TEST_SOURCES})
+    target_link_libraries(test_drivers xy_drivers)
     
     if(WIN32)
-        target_link_libraries(test_device advapi32)
+        target_link_libraries(test_drivers advapi32)
     endif()
     
     # Enable testing
     enable_testing()
-    add_test(NAME device_test COMMAND test_device)
+    add_test(NAME drivers_test COMMAND test_drivers)
 endif()
 
 # Installation rules
-install(TARGETS xy_device
+install(TARGETS xy_drivers
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include

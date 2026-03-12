@@ -17,8 +17,10 @@
 /**
  * @brief Flash 解锁
  */
-xy_hal_error_t xy_hal_flash_unlock(void)
+xy_hal_error_t xy_hal_flash_unlock(void *flash)
 {
+    (void)flash;  /* 未使用参数 */
+    
     /* STM32 HAL Flash Unlock */
     HAL_FLASH_Unlock();
     
@@ -29,8 +31,10 @@ xy_hal_error_t xy_hal_flash_unlock(void)
 /**
  * @brief Flash 锁定
  */
-xy_hal_error_t xy_hal_flash_lock(void)
+xy_hal_error_t xy_hal_flash_lock(void *flash)
 {
+    (void)flash;  /* 未使用参数 */
+    
     /* STM32 HAL Flash Lock */
     HAL_FLASH_Lock();
     
@@ -41,8 +45,10 @@ xy_hal_error_t xy_hal_flash_lock(void)
 /**
  * @brief Flash 擦除扇区
  */
-xy_hal_error_t xy_hal_flash_erase(uint32_t addr, uint32_t size)
+xy_hal_error_t xy_hal_flash_erase(void *flash, uint32_t addr, uint32_t size)
 {
+    (void)flash;  /* 未使用参数 */
+    
     FLASH_EraseInitTypeDef erase;
     uint32_t sector_error;
     uint32_t current_addr;
@@ -53,7 +59,7 @@ xy_hal_error_t xy_hal_flash_erase(uint32_t addr, uint32_t size)
     }
     
     /* 解锁 Flash */
-    xy_hal_flash_unlock();
+    xy_hal_flash_unlock(NULL);
     
     current_addr = addr;
     remaining = size;
@@ -91,8 +97,10 @@ xy_hal_error_t xy_hal_flash_erase(uint32_t addr, uint32_t size)
 /**
  * @brief Flash 编程 (写入)
  */
-xy_hal_error_t xy_hal_flash_program(uint32_t addr, const uint8_t *data, uint32_t size)
+xy_hal_error_t xy_hal_flash_program(void *flash, uint32_t addr, const uint8_t *data, uint32_t size)
 {
+    (void)flash;  /* 未使用参数 */
+    
     uint32_t i;
     uint32_t current_addr;
     
@@ -107,7 +115,7 @@ xy_hal_error_t xy_hal_flash_program(uint32_t addr, const uint8_t *data, uint32_t
     }
     
     /* 解锁 Flash */
-    xy_hal_flash_unlock();
+    xy_hal_flash_unlock(NULL);
     
     current_addr = addr;
     
@@ -148,8 +156,10 @@ xy_hal_error_t xy_hal_flash_program(uint32_t addr, const uint8_t *data, uint32_t
 /**
  * @brief Flash 读取
  */
-xy_hal_error_t xy_hal_flash_read(uint32_t addr, uint8_t *data, uint32_t size)
+xy_hal_error_t xy_hal_flash_read(void *flash, uint32_t addr, uint8_t *data, uint32_t size)
 {
+    (void)flash;  /* 未使用参数 */
+    
     if (!data || size == 0) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
@@ -162,13 +172,15 @@ xy_hal_error_t xy_hal_flash_read(uint32_t addr, uint8_t *data, uint32_t size)
 
 #else
 
-xy_hal_error_t xy_hal_flash_unlock(void)
+xy_hal_error_t xy_hal_flash_unlock(void *flash)
 {
+    (void)flash;
     return XY_HAL_ERROR_NOT_SUPPORT;
 }
 
-xy_hal_error_t xy_hal_flash_lock(void)
+xy_hal_error_t xy_hal_flash_lock(void *flash)
 {
+    (void)flash;
     return XY_HAL_ERROR_NOT_SUPPORT;
 }
 
