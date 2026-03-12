@@ -1,51 +1,44 @@
 /**
  * @file demo_osal.c
- * @brief OSAL Component Demo
+ * @brief OSAL Component Demo (Standalone)
  * @version 1.0.0
  * @date 2026-03-13
  */
 
 #include <stdio.h>
-#include "xy_os.h"
-#include "xy_log.h"
+#include <string.h>
+#include <unistd.h>
+#include "osal_pc.h"
 
 #ifdef DEMO_OSAL
 
-/* 演示任务函数 */
+static int g_worker1_count = 0;
+static int g_worker2_count = 0;
+
 static void worker_task_1(void *arg)
 {
     (void)arg;
-    int count = 0;
-    
-    while (count < 5) {
-        xy_log_d("Worker 1: iteration %d\n", count++);
-        xy_os_delay(100);
+    while (g_worker1_count < 3) {
+        printf("  [Worker 1] iteration %d\n", g_worker1_count++);
+        xy_os_delay(50);
     }
 }
 
 static void worker_task_2(void *arg)
 {
     (void)arg;
-    int count = 0;
-    
-    while (count < 5) {
-        xy_log_d("Worker 2: iteration %d\n", count++);
-        xy_os_delay(150);
+    while (g_worker2_count < 3) {
+        printf("  [Worker 2] iteration %d\n", g_worker2_count++);
+        xy_os_delay(75);
     }
 }
 
-/**
- * @brief 初始化 OSAL 演示
- */
 int demo_osal_init(void)
 {
-    xy_log_i("OSAL backend initialized\n");
+    printf("  OSAL backend: PC Simulator\n");
     return 0;
 }
 
-/**
- * @brief 运行 OSAL 演示
- */
 void demo_osal_run(void)
 {
     xy_os_thread_t thread1, thread2;
@@ -53,50 +46,45 @@ void demo_osal_run(void)
     xy_os_sem_t sem;
     
     /* 演示任务创建 */
-    xy_log_i("Creating tasks...\n");
+    printf("  Creating tasks...\n");
     
     xy_os_thread_create(&thread1, "worker_1", worker_task_1, NULL, 3, 512);
-    xy_log_d("Task 'worker_1' created (priority=3)\n");
+    printf("  Task 'worker_1' created\n");
     
     xy_os_thread_create(&thread2, "worker_2", worker_task_2, NULL, 3, 512);
-    xy_log_d("Task 'worker_2' created (priority=3)\n");
+    printf("  Task 'worker_2' created\n");
     
     /* 演示同步原语 */
-    xy_log_i("Creating synchronization primitives...\n");
+    printf("  Creating sync primitives...\n");
     
     xy_os_mutex_create(&mutex);
-    xy_log_d("Mutex created\n");
+    printf("  Mutex created\n");
     
     xy_os_sem_create(&sem, 0, 10);
-    xy_log_d("Semaphore created (initial=0, max=10)\n");
+    printf("  Semaphore created\n");
     
     /* 演示信号量操作 */
-    xy_log_i("Testing semaphore...\n");
+    printf("  Testing semaphore...\n");
     xy_os_sem_put(&sem);
-    xy_log_d("Semaphore put\n");
+    printf("  Semaphore put\n");
     
     int ret = xy_os_sem_take(&sem, 100);
     if (ret == 0) {
-        xy_log_d("Semaphore taken successfully\n");
+        printf("  Semaphore taken successfully\n");
     }
     
     /* 演示互斥量操作 */
-    xy_log_i("Testing mutex...\n");
+    printf("  Testing mutex...\n");
     xy_os_mutex_lock(&mutex, 100);
-    xy_log_d("Mutex locked\n");
+    printf("  Mutex locked\n");
     
     xy_os_mutex_unlock(&mutex);
-    xy_log_d("Mutex unlocked\n");
+    printf("  Mutex unlocked\n");
     
-    /* 演示系统信息 */
-    xy_log_i("System tick: %lu\n", xy_os_tick_get());
+    /* 系统信息 */
+    printf("  System tick: %lu\n", xy_os_tick_get());
     
-    xy_log_i("Tasks running...\n");
-    
-    /* 短暂运行任务 */
-    xy_os_delay(1000);
-    
-    xy_log_i("OSAL demo completed\n");
+    printf("  OSAL demo completed\n");
 }
 
 #endif /* DEMO_OSAL */

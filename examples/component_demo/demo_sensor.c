@@ -6,7 +6,10 @@
  */
 
 #include <stdio.h>
-#include "xy_log.h"
+
+/* Simplified log macros for demo */
+#define xy_log_i(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#define xy_log_d(fmt, ...) printf(fmt, ##__VA_ARGS__)
 
 #ifdef DEMO_SENSOR
 
