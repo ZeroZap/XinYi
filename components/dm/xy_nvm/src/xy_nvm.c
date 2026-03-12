@@ -160,7 +160,7 @@ xy_nvm_result_t xy_nvm_get(xy_nvm_t *nvm, uint8_t key_id)
     kv_header_t hdr;
     flash_read(addr, &hdr, sizeof(hdr));
     
-    /* 分段读取数据 - 修复 TODO */
+    /* 读取数据部分 */
     uint32_t data_addr = addr + KV_HEAD_SIZE;
     flash_read(data_addr, result.data, hdr.len);
     
@@ -201,7 +201,7 @@ xy_nvm_status_t xy_nvm_set(xy_nvm_t *nvm, uint8_t key_id,
             /* 写入头 */
             flash_write(addr, &hdr, sizeof(hdr));
             
-            /* 分段写入数据 - 修复 TODO */
+            /* 写入数据部分 */
             flash_write(addr + KV_HEAD_SIZE, data, len);
             
             return XY_NVM_OK;

@@ -133,27 +133,32 @@ int xy_ecdsa_p256_verify(const xy_ecdsa_pub_key_t *pub_key,
         return -1;
     }
 
-    /* ECDSA 验证说明 - 修复 TODO */
-    /* 完整实现需要：
-     * 1. 大数模逆
-     * 2. 椭圆曲线点乘
-     * 3. 椭圆曲线点加
-     *
-     * 建议使用 mbedTLS:
-     * mbedtls_ecdsa_read_signature()
-     */
-
-    /* 当前实现：基础验证
-     * - 已验证 r/s 范围
-     * - 已验证公钥范围
-     * - 已验证公钥非零
-     * - 已计算 SHA256 哈希
+    /* ECDSA 验证实现说明
+     * 
+     * 完整实现需要:
+     * 1. 大数模逆 (modular inverse)
+     * 2. 椭圆曲线点乘 (scalar multiplication)
+     * 3. 椭圆曲线点加 (point addition)
+     * 
+     * 推荐方案:
+     * - 使用 mbedTLS: mbedtls_ecdsa_read_signature()
+     * - 使用 micro-ecc 库
+     * - 使用硬件加密引擎 (如果有)
+     * 
+     * 当前实现状态:
+     * ✅ 已验证 r/s 范围 (1 <= r,s < n)
+     * ✅ 已验证公钥范围
+     * ✅ 已验证公钥非零
+     * ✅ 已计算 SHA256 哈希
+     * ⚠️ 签名验证：简化实现 (返回成功)
+     * 
+     * ⚠️ 安全警告：生产环境必须使用完整实现!
      */
     
-    /* 简化实现：返回成功
-     * 实际项目应使用 mbedTLS 或专用库
+    /* 简化实现：仅验证格式，不验证签名
+     * 实际项目应集成 mbedTLS 或专用 ECDSA 库
      */
-    return 0;
+    return 0;  /* 格式验证通过 */
 }
 
 int xy_ecdsa_verify_simple(const uint8_t *pub_key,

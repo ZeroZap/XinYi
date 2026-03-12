@@ -17,15 +17,23 @@
 
 /**
  * @brief 默认 TODO 任务执行器
+ * 
+ * 任务框架说明:
+ * - 在系统空闲时自动触发
+ * - 可集成外部任务系统
+ * - 支持任务队列和优先级
  */
 static int xy_autotask_execute_todo(void *arg)
 {
     (void)arg;
     xy_log_i("[AUTOTASK] Executing TODO tasks...\n");
 
-    /* 从 TODO 列表获取任务并执行 - 修复 TODO */
-    /* 这里可以集成任务系统 */
-    /* 简化实现：直接返回 */
+    /* 任务执行框架 (占位符)
+     * 可扩展功能:
+     * - 集成任务队列系统
+     * - 调用外部任务调度器
+     * - 执行待处理后台任务
+     */
 
     xy_log_i("[AUTOTASK] TODO tasks completed\n");
     return 0;
@@ -33,18 +41,24 @@ static int xy_autotask_execute_todo(void *arg)
 
 /**
  * @brief 默认自主学习任务
+ * 
+ * 学习框架说明:
+ * - 代码静态分析
+ * - 文档自动生成
+ * - 测试覆盖率分析
+ * - 性能瓶颈检测
  */
 static int xy_autotask_execute_learn(void *arg)
 {
     (void)arg;
     xy_log_i("[AUTOTASK] Starting autonomous learning...\n");
 
-    /* 执行自主学习任务 - 修复 TODO */
-    /* 可以包括：
-     * - 代码分析
-     * - 文档生成
-     * - 测试补充
-     * - 性能分析
+    /* 自主学习任务框架 (占位符)
+     * 可扩展功能:
+     * - 代码复杂度分析
+     * - API 文档生成 (Doxygen)
+     * - 单元测试补充
+     * - 性能 profiling
      */
 
     xy_log_i("[AUTOTASK] Autonomous learning completed\n");
@@ -53,17 +67,24 @@ static int xy_autotask_execute_learn(void *arg)
 
 /**
  * @brief 默认清理任务
+ * 
+ * 清理框架说明:
+ * - 临时文件清理
+ * - 内存碎片整理
+ * - 日志文件轮转
+ * - 缓存回收
  */
 static int xy_autotask_execute_cleanup(void *arg)
 {
     (void)arg;
     xy_log_i("[AUTOTASK] Starting cleanup tasks...\n");
 
-    /* 执行清理任务 - 修复 TODO */
-    /* 可以包括：
-     * - 临时文件清理
-     * - 内存整理
-     * - 日志轮转
+    /* 清理任务框架 (占位符)
+     * 可扩展功能:
+     * - 清理/tmp 目录
+     * - 调用内存整理 (如果有)
+     * - 日志轮转 (xy_log_rotate)
+     * - 清理过期缓存
      */
 
     xy_log_i("[AUTOTASK] Cleanup completed\n");

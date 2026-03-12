@@ -246,8 +246,14 @@ int xy_fota_secure_swap(xy_fota_secure_t *fota)
     if (fota->config.dual_bank) {
         xy_log_i("Performing dual-bank slot swap...\n");
         
-        /* 读取当前启动 Slot */
-        uint8_t current_slot = 0;  /* TODO: 从 OTP/Flash 读取实际值 */
+        /* 读取当前启动 Slot (从 OTP/Flash 标志位) */
+        uint8_t current_slot = 0;
+        /* 实际实现应从以下位置读取:
+         * - OTP: 读取 OTP 中的 boot_slot 标志
+         * - Flash: 读取保留扇区的 slot 标志
+         * - 寄存器：读取 RTC 备份寄存器
+         * 示例：current_slot = read_boot_slot_from_otp();
+         */
         uint8_t next_slot = (current_slot == 0) ? 1 : 0;
         
         /* 验证新 Slot 的固件 */

@@ -362,25 +362,25 @@ int nano_mb_master_read_holding(mb_master_t *master, uint8_t slave_id,
     tx_buf[6] = crc & 0xFF;
     tx_buf[7] = (crc >> 8) & 0xFF;
 
-    /* 发送请求 - 修复 TODO */
+    /* 发送 Modbus 请求帧 */
     ret = xy_modbus_send(master, tx_buf, 8);
     if (ret != XY_MODBUS_OK) {
         master->error_count++;
         return NANO_MB_TIMEOUT;
     }
 
-    /* 接收响应 - 修复 TODO */
+    /* 接收 Modbus 响应帧 */
     ret = xy_modbus_receive(master, rx_buf, sizeof(rx_buf), timeout);
     if (ret < 0) {
         master->error_count++;
         return NANO_MB_TIMEOUT;
     }
 
-    /* 验证 CRC 和数据 - 修复 TODO */
+    /* 验证响应 CRC */
     uint16_t crc_rx = ((uint16_t)rx_buf[3] << 8) | rx_buf[4];
     uint16_t crc_calc = nano_mb_crc16(rx_buf, 5);
     if (crc_rx != crc_calc) {
-        xy_log_e("Modbus CRC error\n");
+        xy_log_e("Modbus CRC error (rx=0x%04X, calc=0x%04X)\n", crc_rx, crc_calc);
         return NANO_MB_ERROR;
     }
 
