@@ -11,6 +11,7 @@ endif()
 
 option(DEMO_OSAL "Enable OSAL demo" ON)
 option(DEMO_DEVICE "Enable Device demo" ON)
+option(DEMO_SENSOR "Enable Sensor demo" ON)
 option(DEMO_CRYPTO "Enable Crypto demo" ON)
 
 include_directories(
@@ -18,6 +19,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/../../components/hal/inc
     ${CMAKE_SOURCE_DIR}/../../components/device
     ${CMAKE_SOURCE_DIR}/../../components/device/inc
+    ${CMAKE_SOURCE_DIR}/../../components/sensor/inc
 )
 
 set(SOURCES main.c osal_pc.c)
@@ -30,8 +32,14 @@ if(DEMO_OSAL)
     list(APPEND SOURCES demo_osal.c)
 endif()
 
+if(DEMO_SENSOR)
+    list(APPEND SOURCES demo_sensor.c)
+    add_definitions(-DDEMO_SENSOR)
+endif()
+
 if(DEMO_CRYPTO)
     list(APPEND SOURCES demo_crypto.c)
+    add_definitions(-DDEMO_CRYPTO)
 endif()
 
 add_executable(component_demo ${SOURCES})
