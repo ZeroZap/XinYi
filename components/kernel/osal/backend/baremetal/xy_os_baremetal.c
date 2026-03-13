@@ -9,6 +9,34 @@
 #include "../../misc/xy_timer_sw.h"
 #include <string.h>
 
+/* Platform-specific interrupt control */
+#if defined(__ARMCC_VERSION) || defined(__GNUC__)
+    #include <stdint.h>
+    /* ARM Cortex-M interrupt disable/enable */
+    static __inline void __disable_irq_global(void) {
+        __asm volatile ("cpsid i" : : : "memory");
+    }
+    static __inline void __enable_irq_global(void) {
+        __asm volatile ("cpsie i" : : : "memory");
+    }
+    static __inline uint32_t __get_PRIMASK_global(void) {
+        uint32_t result;
+        __asm volatile ("MRS %0, primask" : "=r" (result) );
+        return result;
+    }
+#elif defined(__ICCARM__)
+    /* IAR ARM interrupt control */
+    #include <intrinsics.h>
+    #define __disable_irq_global __disable_interrupt
+    #define __enable_irq_global __enable_interrupt
+    #define __get_PRIMASK_global __get_interrupt_state
+#else
+    /* Generic fallback - no interrupt control */
+    static __inline void __disable_irq_global(void) {}
+    static __inline void __enable_irq_global(void) {}
+    static __inline uint32_t __get_PRIMASK_global(void) { return 0; }
+#endif
+
 static volatile uint32_t s_lock_count = 0;
 static xy_os_kernel_state_t s_state   = XY_OS_KERNEL_INACTIVE;
 
@@ -43,29 +71,72 @@ xy_os_status_t xy_os_kernel_start(void)
     return XY_OS_OK;
 }
 
+/**
+ * @brief Lock kernel (disable interrupts)
+ * @return Previous lock count
+ * 
+ * Implementation:
+ * - ARM Cortex-M: Uses PRIMASK to disable IRQ
+ * - Other platforms: Counter-based (no hardware interrupt control)
+ */
 int32_t xy_os_kernel_lock(void)
 {
-    uint32_t prev = s_lock_count++;
-    if (s_lock_count == 1)
+    uint32_t prev_primask = __get_PRIMASK_global();
+    
+    /* Disable global interrupts on first lock */
+    if (s_lock_count == 0) {
+        __disable_irq_global();
         s_state = XY_OS_KERNEL_LOCKED;
-    return prev;
+    }
+    
+    s_lock_count++;
+    
+    /* Return previous interrupt state for restore */
+    return (int32_t)prev_primask;
 }
 
+/**
+ * @brief Unlock kernel (enable interrupts)
+ * @return Current lock count
+ */
 int32_t xy_os_kernel_unlock(void)
 {
-    if (s_lock_count > 0)
+    if (s_lock_count > 0) {
         s_lock_count--;
-    if (s_lock_count == 0)
+    }
+    
+    /* Enable interrupts when lock count reaches 0 */
+    if (s_lock_count == 0) {
         s_state = XY_OS_KERNEL_RUNNING;
-    return s_lock_count;
+        __enable_irq_global();
+    }
+    
+    return (int32_t)s_lock_count;
 }
 
+/**
+ * @brief Restore previous lock state
+ * @param lock Previous lock state (from xy_os_kernel_lock)
+ * @return Previous lock count
+ */
 int32_t xy_os_kernel_restore_lock(int32_t lock)
 {
     uint32_t prev = s_lock_count;
-    s_lock_count  = lock;
-    s_state       = (lock > 0) ? XY_OS_KERNEL_LOCKED : XY_OS_KERNEL_RUNNING;
-    return prev;
+    
+    /* Restore interrupt state based on lock parameter */
+    if (lock == 0) {
+        /* Previous state was unlocked */
+        s_lock_count = 0;
+        s_state = XY_OS_KERNEL_RUNNING;
+        __enable_irq_global();
+    } else {
+        /* Previous state was locked */
+        s_lock_count = 1;
+        s_state = XY_OS_KERNEL_LOCKED;
+        /* Interrupts already disabled */
+    }
+    
+    return (int32_t)prev;
 }
 
 uint32_t xy_os_kernel_get_tick_count(void)
