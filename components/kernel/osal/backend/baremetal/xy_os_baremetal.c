@@ -9,41 +9,148 @@
 #include "../../misc/xy_timer_sw.h"
 #include <string.h>
 
-/* Platform-specific interrupt control */
-#if defined(XY_OS_DISABLE_ASM) || defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
-    /* PC/x86 - No interrupt control needed */
+/**
+ * @brief Platform-specific interrupt control
+ * 
+ * Supports:
+ * - ARM Cortex-M (M0/M0+/M3/M4/M7/M33)
+ * - RISC-V (with CSR access)
+ * - x86/x64 (PC/Testing - no interrupt control)
+ * - Generic fallback
+ */
+
+#if defined(XY_OS_DISABLE_ASM) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(__i386__) || defined(_M_IX86)
+    /* 
+     * PC/x86 - No interrupt control needed 
+     * Used for testing and simulation
+     */
     static __inline void __disable_irq_global(void) {}
     static __inline void __enable_irq_global(void) {}
     static __inline uint32_t __get_PRIMASK_global(void) { return 0; }
+    
+    #define XY_OS_BAREMETAL_PLATFORM "x86/x64 (No IRQ Control)"
+
 #elif defined(__ARMCC_VERSION) || (defined(__GNUC__) && defined(__ARM_ARCH))
-    /* ARM Cortex-M interrupt disable/enable */
+    /* 
+     * ARM Cortex-M interrupt disable/enable
+     * Uses PRIMASK register to disable all IRQ exceptions
+     */
     #include <stdint.h>
+    
     static __inline void __disable_irq_global(void) {
         __asm volatile ("cpsid i" : : : "memory");
     }
+    
     static __inline void __enable_irq_global(void) {
         __asm volatile ("cpsie i" : : : "memory");
     }
+    
     static __inline uint32_t __get_PRIMASK_global(void) {
         uint32_t result;
         __asm volatile ("MRS %0, primask" : "=r" (result) );
         return result;
     }
+    
+    #define XY_OS_BAREMETAL_PLATFORM "ARM Cortex-M (PRIMASK)"
+
 #elif defined(__ICCARM__)
-    /* IAR ARM interrupt control */
+    /* 
+     * IAR ARM interrupt control 
+     * Uses intrinsic functions
+     */
     #include <intrinsics.h>
     #define __disable_irq_global __disable_interrupt
     #define __enable_irq_global __enable_interrupt
     #define __get_PRIMASK_global __get_interrupt_state
+    
+    #define XY_OS_BAREMETAL_PLATFORM "ARM Cortex-M (IAR)"
+
+#elif defined(__riscv) || defined(__riscv__)
+    /* 
+     * RISC-V interrupt control
+     * Uses mstatus CSR to control MIE (Machine Interrupt Enable) bit
+     * 
+     * Note: Requires machine mode (M-mode) access
+     * For user mode (U-mode), use supervisor calls or platform-specific API
+     */
+    #include <stdint.h>
+    
+    /* RISC-V mstatus register MIE bit position */
+    #define XY_OS_RISCV_MSTATUS_MIE_BIT  (1 << 3)
+    
+    static __inline void __disable_irq_global(void) {
+        #if defined(__GNUC__) || defined(__clang__)
+            __asm volatile ("csrc mstatus, %0" :: "r"(XY_OS_RISCV_MSTATUS_MIE_BIT));
+        #else
+            /* Generic CSR write */
+            uint32_t mstatus;
+            __asm volatile ("csrr %0, mstatus" : "=r"(mstatus));
+            mstatus &= ~XY_OS_RISCV_MSTATUS_MIE_BIT;
+            __asm volatile ("csrw mstatus, %0" :: "r"(mstatus));
+        #endif
+    }
+    
+    static __inline void __enable_irq_global(void) {
+        #if defined(__GNUC__) || defined(__clang__)
+            __asm volatile ("csrs mstatus, %0" :: "r"(XY_OS_RISCV_MSTATUS_MIE_BIT));
+        #else
+            /* Generic CSR write */
+            uint32_t mstatus;
+            __asm volatile ("csrr %0, mstatus" : "=r"(mstatus));
+            mstatus |= XY_OS_RISCV_MSTATUS_MIE_BIT;
+            __asm volatile ("csrw mstatus, %0" :: "r"(mstatus));
+        #endif
+    }
+    
+    static __inline uint32_t __get_PRIMASK_global(void) {
+        uint32_t mstatus;
+        __asm volatile ("csrr %0, mstatus" : "=r"(mstatus));
+        return (mstatus & XY_OS_RISCV_MSTATUS_MIE_BIT) ? 0 : 1;
+    }
+    
+    #define XY_OS_BAREMETAL_PLATFORM "RISC-V (mstatus.MIE)"
+
+#elif defined(__ARC__)
+    /* 
+     * Synopsys DesignWare ARC interrupt control
+     */
+    #include <arc/arc_exception.h>
+    #define __disable_irq_global _interrupt_disable
+    #define __enable_irq_global _interrupt_enable
+    #define __get_PRIMASK_global _interrupt_status
+    
+    #define XY_OS_BAREMETAL_PLATFORM "ARC (DesignWare)"
+
 #else
-    /* Generic fallback - no interrupt control */
+    /* 
+     * Generic fallback - no interrupt control
+     * Use with caution - not safe for ISR contexts
+     */
     static __inline void __disable_irq_global(void) {}
     static __inline void __enable_irq_global(void) {}
     static __inline uint32_t __get_PRIMASK_global(void) { return 0; }
+    
+    #define XY_OS_BAREMETAL_PLATFORM "Generic (No IRQ Control)"
 #endif
+
+/* ==================== Kernel State ==================== */
 
 static volatile uint32_t s_lock_count = 0;
 static xy_os_kernel_state_t s_state   = XY_OS_KERNEL_INACTIVE;
+
+/**
+ * @brief Get bare-metal platform information
+ * @return Platform description string
+ */
+const char *xy_os_baremetal_get_platform(void)
+{
+    #if defined(XY_OS_BAREMETAL_PLATFORM)
+        return XY_OS_BAREMETAL_PLATFORM;
+    #else
+        return "Unknown";
+    #endif
+}
 
 // Kernel functions
 xy_os_status_t xy_os_kernel_init(void)
@@ -56,12 +163,18 @@ xy_os_status_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
                                      uint32_t id_size)
 {
     if (version) {
-        version->api    = (1 << 16);
+        version->api    = (XY_OSAL_VERSION_MAJOR << 16) | XY_OSAL_VERSION_MINOR;
         version->kernel = 0x00010000;
     }
     if (id_buf && id_size > 0) {
-        strncpy(id_buf, "Baremetal", id_size - 1);
-        id_buf[id_size - 1] = '\0';
+        /* Include platform information in kernel ID */
+        int written = snprintf(id_buf, id_size, "Baremetal (%s)", 
+                               xy_os_baremetal_get_platform());
+        if (written < 0 || (uint32_t)written >= id_size) {
+            /* Fallback if buffer too small */
+            strncpy(id_buf, "Baremetal", id_size - 1);
+            id_buf[id_size - 1] = '\0';
+        }
     }
     return XY_OS_OK;
 }
