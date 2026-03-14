@@ -57,6 +57,11 @@ typedef enum {
     XY_HAL_STATUS_NOT_INIT    = -6,
 } xy_hal_status_t;
 
+/* Legacy type alias for compatibility */
+typedef xy_hal_error_t xy_error_t;
+#define XY_ERROR_OK              XY_HAL_OK
+#define XY_ERROR_INVALID_PARAM   XY_HAL_ERROR_INVALID_PARAM
+
 /**
  * @brief HAL 基础句柄结构
  */

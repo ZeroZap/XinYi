@@ -7,15 +7,20 @@
 
 #include "../inc/xy_gui_button.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
 /* 默认长按时间阈值 (ms) */
 #define DEFAULT_LONG_PRESS_TIME  800
+
+/* Forward declaration for tick function */
+extern uint32_t xy_os_tick_get(void);
 
 /* ==================== 内部辅助函数 ==================== */
 
@@ -78,8 +83,8 @@ static void draw_button_text(xy_gui_button_t *button,
     
     /* 计算文本位置 */
     int16_t text_x, text_y;
-    uint16_t text_width = xy_font_get_text_width(&g_font_8x8, button->base.text);
-    uint16_t text_height = xy_font_get_text_height(&g_font_8x8);
+    uint16_t text_width = xy_font_get_text_width(&g_font_8x12, button->base.text);
+    uint16_t text_height = xy_font_get_text_height(&g_font_8x12);
     
     switch (style->align) {
         case XY_GUI_ALIGN_CENTER:
@@ -101,8 +106,8 @@ static void draw_button_text(xy_gui_button_t *button,
     }
     
     /* 绘制文本 */
-    xy_gui_draw_string(text_x, text_y, button->base.text,
-                      style->fg_color, &g_font_8x8, fb, fb_w, fb_h);
+    xy_font_draw_string(&g_font_8x12, button->base.text,
+                      text_x, text_y, 0xFFFF, fb, fb_w, fb_h);
 }
 
 /**
@@ -134,9 +139,9 @@ static int button_init(xy_gui_widget_t *widget)
     
     /* 初始化默认样式 */
     button->style_normal = (xy_gui_style_t){
-        .bg_color = XY_GUI_COLOR_BLUE,
-        .fg_color = XY_GUI_COLOR_WHITE,
-        .border_color = XY_GUI_COLOR_BLACK,
+        .bg_color = (xy_gui_color_t){0,0,255,255},
+        .fg_color = (xy_gui_color_t){255,255,255,255},
+        .border_color = (xy_gui_color_t){0,0,0,255},
         .border_width = 1,
         .corner_radius = 4,
         .padding = 8,
@@ -147,8 +152,8 @@ static int button_init(xy_gui_widget_t *widget)
     
     button->style_pressed = (xy_gui_style_t){
         .bg_color = {0, 100, 200, 255},  /* 深蓝色 */
-        .fg_color = XY_GUI_COLOR_WHITE,
-        .border_color = XY_GUI_COLOR_BLACK,
+        .fg_color = (xy_gui_color_t){255,255,255,255},
+        .border_color = (xy_gui_color_t){0,0,0,255},
         .border_width = 1,
         .corner_radius = 4,
         .padding = 8,
@@ -158,7 +163,7 @@ static int button_init(xy_gui_widget_t *widget)
     };
     
     button->style_disabled = (xy_gui_style_t){
-        .bg_color = XY_GUI_COLOR_GRAY,
+        .bg_color = (xy_gui_color_t){128,128,128,255},
         .fg_color = {200, 200, 200, 255},
         .border_color = {150, 150, 150, 255},
         .border_width = 1,
@@ -170,7 +175,7 @@ static int button_init(xy_gui_widget_t *widget)
     };
     
     button->long_press_time = DEFAULT_LONG_PRESS_TIME;
-    button->is_toggle = (widget->type == XY_GUI_WIDGET_BUTTON_TOGGLE);
+    button->is_toggle = (widget->type == XY_GUI_BUTTON_TOGGLE);
     
     xy_log_d("Button initialized: %s\n", widget->text ? widget->text : "NULL");
     return 0;
@@ -228,7 +233,7 @@ static int button_update(xy_gui_widget_t *widget,
     if (event->handled) return 0;
     
     /* 检查是否在按钮区域内 */
-    if (!xy_gui_widget_hit_test(widget, event->data.touch.x, event->data.touch.y)) {
+    if (!xy_gui_widget_hit_test(widget, event->data.point.x, event->data.point.y)) {
         return 0;
     }
     
@@ -351,7 +356,7 @@ int xy_gui_button_create(xy_gui_button_t *button,
     /* 确定控件类型 */
     xy_gui_widget_type_t type = XY_GUI_WIDGET_BUTTON;
     if (flags == XY_GUI_BUTTON_TOGGLE) {
-        type = XY_GUI_WIDGET_BUTTON_TOGGLE;
+        type = XY_GUI_BUTTON_TOGGLE;
     } else if (flags == XY_GUI_BUTTON_RADIO) {
         type = XY_GUI_WIDGET_RADIO;
     }

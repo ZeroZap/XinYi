@@ -10,9 +10,14 @@
 #include <string.h>
 
 /* Platform-specific interrupt control */
-#if defined(__ARMCC_VERSION) || defined(__GNUC__)
-    #include <stdint.h>
+#if defined(XY_OS_DISABLE_ASM) || defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+    /* PC/x86 - No interrupt control needed */
+    static __inline void __disable_irq_global(void) {}
+    static __inline void __enable_irq_global(void) {}
+    static __inline uint32_t __get_PRIMASK_global(void) { return 0; }
+#elif defined(__ARMCC_VERSION) || (defined(__GNUC__) && defined(__ARM_ARCH))
     /* ARM Cortex-M interrupt disable/enable */
+    #include <stdint.h>
     static __inline void __disable_irq_global(void) {
         __asm volatile ("cpsid i" : : : "memory");
     }
@@ -55,7 +60,7 @@ xy_os_status_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
         version->kernel = 0x00010000;
     }
     if (id_buf && id_size > 0) {
-        strncpy_s(id_buf, "Baremetal", id_size - 1);
+        strncpy(id_buf, "Baremetal", id_size - 1);
         id_buf[id_size - 1] = '\0';
     }
     return XY_OS_OK;
@@ -309,19 +314,19 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t f, xy_os_timer_type_t t,
 
 const char *xy_os_timer_get_name(xy_os_timer_id_t id)
 {
-    if (!id || (uint32_t)id > 8) {
+    if (!id || (uintptr_t)id > 8) {
         return NULL;
     }
-    return s_timers[(uint32_t)id - 1].name[0] ? s_timers[(uint32_t)id - 1].name : "timer";
+    return s_timers[(uintptr_t)id - 1].name[0] ? s_timers[(uintptr_t)id - 1].name : "timer";
 }
 
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t id, uint32_t ticks)
 {
-    if (!id || (uint32_t)id > 8) {
+    if (!id || (uintptr_t)id > 8) {
         return XY_OS_ERROR;
     }
     
-    baremetal_timer_ctx_t *ctx = &s_timers[(uint32_t)id - 1];
+    baremetal_timer_ctx_t *ctx = &s_timers[(uintptr_t)id - 1];
     uint8_t periodic = (ctx->type == XY_OS_TIMER_PERIODIC) ? 1 : 0;
     
     ctx->sw_timer_id = xy_timer_sw_create(ticks, timer_sw_callback, ctx, periodic);
@@ -334,11 +339,11 @@ xy_os_status_t xy_os_timer_start(xy_os_timer_id_t id, uint32_t ticks)
 
 xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t id)
 {
-    if (!id || (uint32_t)id > 8) {
+    if (!id || (uintptr_t)id > 8) {
         return XY_OS_ERROR;
     }
     
-    baremetal_timer_ctx_t *ctx = &s_timers[(uint32_t)id - 1];
+    baremetal_timer_ctx_t *ctx = &s_timers[(uintptr_t)id - 1];
     if (ctx->sw_timer_id) {
         xy_timer_sw_stop(ctx->sw_timer_id);
         ctx->sw_timer_id = 0;
@@ -348,19 +353,19 @@ xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t id)
 
 uint32_t xy_os_timer_is_running(xy_os_timer_id_t id)
 {
-    if (!id || (uint32_t)id > 8) {
+    if (!id || (uintptr_t)id > 8) {
         return 0;
     }
-    return s_timers[(uint32_t)id - 1].sw_timer_id ? 1 : 0;
+    return s_timers[(uintptr_t)id - 1].sw_timer_id ? 1 : 0;
 }
 
 xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t id)
 {
-    if (!id || (uint32_t)id > 8) {
+    if (!id || (uintptr_t)id > 8) {
         return XY_OS_ERROR;
     }
     
-    baremetal_timer_ctx_t *ctx = &s_timers[(uint32_t)id - 1];
+    baremetal_timer_ctx_t *ctx = &s_timers[(uintptr_t)id - 1];
     if (ctx->sw_timer_id) {
         xy_timer_sw_delete(ctx->sw_timer_id);
         ctx->sw_timer_id = 0;

@@ -7,6 +7,7 @@
 
 #include "xy_mq.h"
 #include "xy_log.h"
+#include "xy_os.h"
 #include <string.h>
 #include <stdlib.h>
 

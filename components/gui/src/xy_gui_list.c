@@ -7,6 +7,7 @@
 
 #include "../inc/xy_gui_list.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
@@ -55,7 +56,7 @@ static int list_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint16_t 
             xy_gui_draw_rect(r->x + 1, y, r->width - 2, list->item_height - 1, style->bg_color, true, fb, fb_w, fb_h);
             
             /* 绘制文本 */
-            xy_gui_draw_string(r->x + 5, y + 3, item->text, style->fg_color, &g_font_8x8, fb, fb_w, fb_h);
+            xy_gui_draw_string(r->x + 5, y + 3, item->text, style->fg_color, &g_font_8x12, fb, fb_w, fb_h);
         }
         
         item = item->next;
@@ -68,7 +69,8 @@ static int list_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint16_t 
         uint16_t thumb_h = r->height * list->visible_count / list->item_count;
         if (thumb_h < 20) thumb_h = 20;
         int16_t thumb_y = r->y + list->scroll_offset * (r->height - thumb_h) / (list->item_count * list->item_height - r->height);
-        xy_gui_draw_rect(r->x + r->width - 5, thumb_y, 4, thumb_h, {150,150,150,255}, true, fb, fb_w, fb_h);
+        xy_gui_color_t scroll_color = {150, 150, 150, 255};
+        xy_gui_draw_rect(r->x + r->width - 5, thumb_y, 4, thumb_h, scroll_color, true, fb, fb_w, fb_h);
     }
     
     widget->need_redraw = false;
@@ -83,10 +85,10 @@ static int list_update(xy_gui_widget_t *widget, xy_gui_event_t *event)
     xy_gui_list_t *list = (xy_gui_list_t*)widget;
     xy_gui_rect_t *r = &widget->rect;
     
-    if (!xy_gui_widget_hit_test(widget, event->data.touch.x, event->data.touch.y)) return 0;
+    if (!xy_gui_widget_hit_test(widget, event->data.point.x, event->data.point.y)) return 0;
     
-    if (event->type == XY_GUI_EVENT_PRESS || event->type == XY_GUI_EVENT_TOUCH) {
-        int16_t rel_y = event->data.touch.y - r->y + list->scroll_offset;
+    if (event->type == XY_GUI_EVENT_PRESS || event->type == XY_GUI_EVENT_TOUCH_DOWN) {
+        int16_t rel_y = event->data.point.y - r->y + list->scroll_offset;
         int16_t index = rel_y / list->item_height;
         
         if (index >= 0 && index < list->item_count) {
@@ -121,10 +123,10 @@ int xy_gui_list_create(xy_gui_list_t *list, int16_t x, int16_t y, uint16_t w, ui
     list->visible_count = h / list->item_height;
     list->selected_index = -1;
     list->show_scrollbar = true;
-    list->item_style.bg_color = XY_GUI_COLOR_WHITE;
-    list->item_style.fg_color = XY_GUI_COLOR_BLACK;
-    list->selected_style.bg_color = XY_GUI_COLOR_BLUE;
-    list->selected_style.fg_color = XY_GUI_COLOR_WHITE;
+    list->item_style.bg_color = (xy_gui_color_t){255,255,255,255};
+    list->item_style.fg_color = (xy_gui_color_t){0,0,0,255};
+    list->selected_style.bg_color = (xy_gui_color_t){0,0,255,255};
+    list->selected_style.fg_color = (xy_gui_color_t){255,255,255,255};
     
     xy_log_i("List created: (%d,%d) %dx%d\n", x, y, w, h);
     return 0;

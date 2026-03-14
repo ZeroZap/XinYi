@@ -9,6 +9,7 @@
 #define XY_DEVICE_H
 
 #include "xy_hal.h"
+#include "xy_device_error.h"
 #include <stdint.h>
 #include <stddef.h>
 

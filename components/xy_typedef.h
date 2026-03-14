@@ -2,6 +2,7 @@
 #define _XY_TYPEDEF_H_
 #include <stdint.h>
 #include <stddef.h>
+#include <sys/types.h>
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -18,6 +18,8 @@ include_directories(inc)
 # Collect source files
 file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
+list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "samples/.*")
+list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "examples/.*")
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 file(GLOB TEST_SOURCES "test/*.c")

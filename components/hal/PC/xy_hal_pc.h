@@ -14,6 +14,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 /**
  * @brief PC 仿真 GPIO 端口结构

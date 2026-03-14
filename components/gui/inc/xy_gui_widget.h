@@ -15,10 +15,10 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include "xy_gui_event.h"
 
 /* 前向声明 */
 typedef struct xy_gui_widget xy_gui_widget_t;
-typedef struct xy_gui_event xy_gui_event_t;
 
 /**
  * @brief 控件类型
@@ -121,64 +121,7 @@ typedef struct {
  */
 typedef void (*xy_gui_event_cb_t)(xy_gui_widget_t *widget, xy_gui_event_t *event, void *user_data);
 
-/**
- * @brief 事件类型
- */
-typedef enum {
-    XY_GUI_EVENT_NONE = 0,
-    XY_GUI_EVENT_CLICK,         /**< 点击 */
-    XY_GUI_EVENT_DOUBLE_CLICK,  /**< 双击 */
-    XY_GUI_EVENT_PRESS,         /**< 按下 */
-    XY_GUI_EVENT_RELEASE,       /**< 释放 */
-    XY_GUI_EVENT_LONG_PRESS,    /**< 长按 */
-    XY_GUI_EVENT_HOVER_ENTER,   /**< 悬停进入 */
-    XY_GUI_EVENT_HOVER_LEAVE,   /**< 悬停离开 */
-    XY_GUI_EVENT_VALUE_CHANGED, /**< 值改变 */
-    XY_GUI_EVENT_TEXT_CHANGED,  /**< 文本改变 */
-    XY_GUI_EVENT_FOCUS,         /**< 获得焦点 */
-    XY_GUI_EVENT_BLUR,          /**< 失去焦点 */
-    XY_GUI_EVENT_KEY_DOWN,      /**< 按键按下 */
-    XY_GUI_EVENT_KEY_UP,        /**< 按键释放 */
-    XY_GUI_EVENT_TOUCH,         /**< 触摸 */
-    XY_GUI_EVENT_GESTURE,       /**< 手势 */
-} xy_gui_event_type_t;
-
-/**
- * @brief 触摸/手势数据
- */
-typedef struct {
-    int16_t x;
-    int16_t y;
-    uint8_t pressure;
-} xy_gui_touch_t;
-
-/**
- * @brief 手势类型
- */
-typedef enum {
-    XY_GUI_GESTURE_NONE = 0,
-    XY_GUI_GESTURE_SWIPE_LEFT,
-    XY_GUI_GESTURE_SWIPE_RIGHT,
-    XY_GUI_GESTURE_SWIPE_UP,
-    XY_GUI_GESTURE_SWIPE_DOWN,
-    XY_GUI_GESTURE_PINCH_IN,
-    XY_GUI_GESTURE_PINCH_OUT,
-} xy_gui_gesture_t;
-
-/**
- * @brief GUI 事件结构
- */
-struct xy_gui_event {
-    xy_gui_event_type_t type;       /**< 事件类型 */
-    uint32_t timestamp;             /**< 时间戳 */
-    union {
-        xy_gui_touch_t touch;       /**< 触摸数据 */
-        xy_gui_gesture_t gesture;   /**< 手势数据 */
-        int32_t value;              /**< 值 (用于 VALUE_CHANGED) */
-        char key;                   /**< 按键 */
-    } data;
-    bool handled;                   /**< 是否已处理 */
-};
+/* Event types and structures are defined in xy_gui_event.h */
 
 /**
  * @brief 控件操作虚表

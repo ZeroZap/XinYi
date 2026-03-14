@@ -7,9 +7,11 @@
 
 #include "../inc/xy_gui_progress.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
+#include <stdio.h>
 
 static int progress_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint16_t fb_h)
 {
@@ -20,7 +22,8 @@ static int progress_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint1
     xy_gui_rect_t *r = &widget->rect;
     
     /* 绘制背景 */
-    xy_gui_draw_rect(r->x, r->y, r->width, r->height, {200,200,200,255}, true, fb, fb_w, fb_h);
+    xy_gui_color_t bg_color = {200, 200, 200, 255};
+    xy_gui_draw_rect(r->x, r->y, r->width, r->height, bg_color, true, fb, fb_w, fb_h);
     
     /* 计算进度宽度 */
     int32_t range = p->max_value - p->min_value;
@@ -37,7 +40,7 @@ static int progress_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint1
         uint8_t percent = (widget->value - p->min_value) * 100 / range;
         snprintf(text, sizeof(text), "%d%%", percent);
         xy_gui_draw_string_center(r->x + r->width/2, r->y + (r->height-8)/2,
-                                 text, p->bar_style.fg_color, &g_font_8x8, fb, fb_w, fb_h);
+                                 text, p->bar_style.fg_color, &g_font_8x12, fb, fb_w, fb_h);
     }
     
     widget->need_redraw = false;
@@ -75,8 +78,8 @@ int xy_gui_progress_create(xy_gui_progress_t *progress, int16_t x, int16_t y,
     progress->max_value = max;
     progress->base.value = min;
     progress->show_text = true;
-    progress->bar_style.bg_color = XY_GUI_COLOR_BLUE;
-    progress->bar_style.fg_color = XY_GUI_COLOR_WHITE;
+    progress->bar_style.bg_color = (xy_gui_color_t){0, 0, 255, 255};
+    progress->bar_style.fg_color = (xy_gui_color_t){255, 255, 255, 255};
     
     xy_log_i("Progress created: (%d,%d) %dx%d\n", x, y, width, height);
     return 0;

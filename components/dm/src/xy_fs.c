@@ -9,6 +9,7 @@
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 

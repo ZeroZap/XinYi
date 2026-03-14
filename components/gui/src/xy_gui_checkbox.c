@@ -7,10 +7,12 @@
 
 #include "../inc/xy_gui_checkbox.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
@@ -67,9 +69,9 @@ static int checkbox_init(xy_gui_widget_t *widget)
     
     /* 初始化默认样式 */
     checkbox->box_style = (xy_gui_style_t){
-        .bg_color = XY_GUI_COLOR_WHITE,
-        .fg_color = XY_GUI_COLOR_BLACK,
-        .border_color = XY_GUI_COLOR_BLACK,
+        .bg_color = (xy_gui_color_t){255,255,255,255},
+        .fg_color = (xy_gui_color_t){0,0,0,255},
+        .border_color = (xy_gui_color_t){0,0,0,255},
         .border_width = 1,
         .corner_radius = 2,
         .padding = 0,
@@ -79,8 +81,8 @@ static int checkbox_init(xy_gui_widget_t *widget)
     };
     
     checkbox->check_style = (xy_gui_style_t){
-        .bg_color = XY_GUI_COLOR_BLACK,
-        .fg_color = XY_GUI_COLOR_WHITE,
+        .bg_color = (xy_gui_color_t){0,0,0,255},
+        .fg_color = (xy_gui_color_t){255,255,255,255},
         .border_color = XY_GUI_COLOR_TRANSPARENT,
         .border_width = 0,
         .corner_radius = 0,
@@ -147,10 +149,10 @@ static int checkbox_draw(xy_gui_widget_t *widget,
     /* 绘制文本 */
     if (widget->text) {
         int16_t text_x = box_x + checkbox->box_size + checkbox->spacing;
-        int16_t text_y = r->y + (r->height - xy_font_get_text_height(&g_font_8x8)) / 2;
+        int16_t text_y = r->y + (r->height - xy_font_get_text_height(&g_font_8x12)) / 2;
         
         xy_gui_draw_string(text_x, text_y, widget->text,
-                          widget->style.fg_color, &g_font_8x8, fb, fb_w, fb_h);
+                          widget->style.fg_color, &g_font_8x12, fb, fb_w, fb_h);
     }
     
     widget->need_redraw = false;
@@ -171,7 +173,7 @@ static int checkbox_update(xy_gui_widget_t *widget,
     if (!widget->style.enabled) return 0;
     
     /* 检查是否在控件区域内 */
-    if (!xy_gui_widget_hit_test(widget, event->data.touch.x, event->data.touch.y)) {
+    if (!xy_gui_widget_hit_test(widget, event->data.point.x, event->data.point.y)) {
         return 0;
     }
     
@@ -278,7 +280,7 @@ int xy_gui_checkbox_create(xy_gui_checkbox_t *checkbox,
     /* 计算宽度 */
     uint16_t width = checkbox->box_size + checkbox->spacing;
     if (text) {
-        width += xy_font_get_text_width(&g_font_8x8, text);
+        width += xy_font_get_text_width(&g_font_8x12, text);
     }
     
     /* 初始化基类 */
@@ -462,9 +464,9 @@ int xy_gui_checkbox_group_add(xy_gui_checkbox_group_t *group,
     } else {
         xy_gui_checkbox_t *last = group->head;
         while (last->base.next) {
-            last = last->base.next;
+            last = (xy_gui_checkbox_t *)last->base.next;
         }
-        last->base.next = checkbox;
+        last->base.next = (xy_gui_widget_t *)checkbox;
     }
     
     group->count++;
@@ -485,7 +487,7 @@ xy_gui_checkbox_t* xy_gui_checkbox_group_get_selected(xy_gui_checkbox_group_t *g
             group->selected_index = index;
             return current;
         }
-        current = current->base.next;
+        current = (xy_gui_checkbox_t *)current->base.next;
         index++;
     }
     
@@ -502,13 +504,13 @@ int xy_gui_checkbox_group_set_selected(xy_gui_checkbox_group_t *group,
     while (current) {
         current->state = XY_GUI_CHECKBOX_UNCHECKED;
         current->base.need_redraw = true;
-        current = current->base.next;
+        current = (xy_gui_checkbox_t *)current->base.next;
     }
     
     /* 选中指定索引 */
     current = group->head;
     for (uint8_t i = 0; i < index && current; i++) {
-        current = current->base.next;
+        current = (xy_gui_checkbox_t *)current->base.next;
     }
     
     if (current) {

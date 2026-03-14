@@ -7,10 +7,12 @@
 
 #include "../inc/xy_gui_textbox.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 static void update_caret(xy_gui_textbox_t *tb)
 {
@@ -42,10 +44,10 @@ static int textbox_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint16
         char *pwd = malloc(len + 1);
         memset(pwd, tb->password_char, len);
         pwd[len] = '\0';
-        xy_gui_draw_string(r->x + 5, r->y + 3, pwd + tb->scroll_offset, widget->style.fg_color, &g_font_8x8, fb, fb_w, fb_h);
+        xy_gui_draw_string(r->x + 5, r->y + 3, pwd + tb->scroll_offset, widget->style.fg_color, &g_font_8x12, fb, fb_w, fb_h);
         free(pwd);
     } else {
-        xy_gui_draw_string(r->x + 5, r->y + 3, text + tb->scroll_offset, widget->style.fg_color, &g_font_8x8, fb, fb_w, fb_h);
+        xy_gui_draw_string(r->x + 5, r->y + 3, text + tb->scroll_offset, widget->style.fg_color, &g_font_8x12, fb, fb_w, fb_h);
     }
     
     /* 绘制光标 */
@@ -68,10 +70,10 @@ static int textbox_update(xy_gui_widget_t *widget, xy_gui_event_t *event)
     xy_gui_textbox_t *tb = (xy_gui_textbox_t*)widget;
     if (tb->readonly) return 0;
     
-    if (!xy_gui_widget_hit_test(widget, event->data.touch.x, event->data.touch.y)) return 0;
+    if (!xy_gui_widget_hit_test(widget, event->data.point.x, event->data.point.y)) return 0;
     
     if (event->type == XY_GUI_EVENT_KEY_DOWN) {
-        char key = event->data.key;
+        char key = event->data.key.key;
         
         if (key == '\b' && tb->cursor_pos > 0) {
             /* 退格 */
@@ -115,11 +117,11 @@ int xy_gui_textbox_create(xy_gui_textbox_t *tb, int16_t x, int16_t y, uint16_t w
     tb->buffer_size = max_len;
     xy_gui_widget_init(&tb->base, XY_GUI_WIDGET_TEXTBOX, x, y, w, h);
     tb->base.ops = &textbox_ops;
-    tb->base.style.bg_color = XY_GUI_COLOR_WHITE;
-    tb->base.style.fg_color = XY_GUI_COLOR_BLACK;
-    tb->base.style.border_color = XY_GUI_COLOR_GRAY;
+    tb->base.style.bg_color = (xy_gui_color_t){255,255,255,255};
+    tb->base.style.fg_color = (xy_gui_color_t){0,0,0,255};
+    tb->base.style.border_color = (xy_gui_color_t){128,128,128,255};
     tb->base.style.border_width = 1;
-    tb->caret_style.fg_color = XY_GUI_COLOR_BLACK;
+    tb->caret_style.fg_color = (xy_gui_color_t){0,0,0,255};
     tb->cursor_pos = 0;
     tb->scroll_offset = 0;
     tb->multiline = false;

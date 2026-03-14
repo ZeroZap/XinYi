@@ -54,6 +54,7 @@ typedef struct {
     uint16_t msg_size;          /* 消息大小 */
     uint16_t max_msgs;          /* 最大消息数 */
     bool priority_enabled;      /* 启用优先级 */
+    bool overwrite_old;         /* 满时覆盖旧消息 */
 } xy_mq_config_t;
 
 /**

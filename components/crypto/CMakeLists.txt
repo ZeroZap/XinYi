@@ -13,7 +13,12 @@ else()
 endif()
 
 # 包含目录
-include_directories(include)
+include_directories(
+    include
+    ../hal/inc
+    ../kernel/osal
+    ../trace/xy_log/inc
+)
 
 # 收集源文件
 file(GLOB CRYPTO_SOURCES "src/*.c")

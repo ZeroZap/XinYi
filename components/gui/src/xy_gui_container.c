@@ -7,6 +7,7 @@
 
 #include "../inc/xy_gui_container.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
@@ -72,7 +73,7 @@ int xy_gui_container_create(xy_gui_container_t *container, int16_t x, int16_t y,
     
     xy_gui_widget_init(&container->base, XY_GUI_WIDGET_CONTAINER, x, y, w, h);
     container->base.ops = &container_ops;
-    container->base.style.bg_color = XY_GUI_COLOR_TRANSPARENT;
+    container->base.style.bg_color = (xy_gui_color_t){0, 0, 0, 0};
     container->auto_layout = false;
     container->padding = 0;
     container->spacing = 0;

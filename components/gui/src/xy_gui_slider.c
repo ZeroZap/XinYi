@@ -7,10 +7,12 @@
 
 #include "../inc/xy_gui_slider.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
@@ -171,11 +173,11 @@ static void draw_value(xy_gui_slider_t *slider,
     if (slider->direction == XY_GUI_SLIDER_HORIZONTAL) {
         xy_gui_draw_string_center(r->x + r->width/2, r->y - 20,
                                  value_str, slider->track_style.fg_color,
-                                 &g_font_8x8, fb, fb_w, fb_h);
+                                 &g_font_8x12, fb, fb_w, fb_h);
     } else {
         xy_gui_draw_string(r->x + r->width + 5, r->y,
                           value_str, slider->track_style.fg_color,
-                          &g_font_8x8, fb, fb_w, fb_h);
+                          &g_font_8x12, fb, fb_w, fb_h);
     }
 }
 
@@ -190,8 +192,8 @@ static int slider_init(xy_gui_widget_t *widget)
     /* 初始化默认样式 */
     slider->track_style = (xy_gui_style_t){
         .bg_color = {200, 200, 200, 255},
-        .fg_color = XY_GUI_COLOR_BLACK,
-        .border_color = XY_GUI_COLOR_BLACK,
+        .fg_color = (xy_gui_color_t){0,0,0,255},
+        .border_color = (xy_gui_color_t){0,0,0,255},
         .border_width = 1,
         .corner_radius = 2,
         .padding = 0,
@@ -201,9 +203,9 @@ static int slider_init(xy_gui_widget_t *widget)
     };
     
     slider->thumb_style = (xy_gui_style_t){
-        .bg_color = XY_GUI_COLOR_BLUE,
-        .fg_color = XY_GUI_COLOR_WHITE,
-        .border_color = XY_GUI_COLOR_BLACK,
+        .bg_color = (xy_gui_color_t){0,0,255,255},
+        .fg_color = (xy_gui_color_t){255,255,255,255},
+        .border_color = (xy_gui_color_t){0,0,0,255},
         .border_width = 1,
         .corner_radius = 8,
         .padding = 0,
@@ -273,8 +275,8 @@ static int slider_update(xy_gui_widget_t *widget,
     /* 检查是否启用 */
     if (!widget->style.enabled) return 0;
     
-    int16_t touch_x = event->data.touch.x;
-    int16_t touch_y = event->data.touch.y;
+    int16_t touch_x = event->data.point.x;
+    int16_t touch_y = event->data.point.y;
     
     /* 检查是否在滑块区域内 */
     if (!xy_gui_widget_hit_test(widget, touch_x, touch_y)) {
@@ -283,7 +285,7 @@ static int slider_update(xy_gui_widget_t *widget,
     
     switch (event->type) {
         case XY_GUI_EVENT_PRESS:
-        case XY_GUI_EVENT_TOUCH: {
+        case XY_GUI_EVENT_TOUCH_DOWN: {
             /* 计算新位置 */
             int16_t rel_pos;
             if (slider->direction == XY_GUI_SLIDER_HORIZONTAL) {

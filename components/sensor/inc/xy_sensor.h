@@ -11,9 +11,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "xy_sensor_channel.h"
+#include "xy_sensor_attr.h"
 #include "xy_sensor_device.h"
 #include "xy_sensor_trigger.h"
-#include "xy_sensor_attr.h"
 
 #ifdef __cplusplus
 extern "C" {

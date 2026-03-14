@@ -13,6 +13,7 @@ extern "C" {
 #endif
 
 #include "xy_gui_widget.h"
+#include "xy_font.h"
 
 /**
  * @brief 标签控件结构

@@ -3,6 +3,14 @@ project(xy_device C)
 
 set(CMAKE_C_STANDARD 99)
 
+# Include directories
+include_directories(
+    inc
+    ../hal/inc
+    ../kernel/osal
+    ../trace/xy_log/inc
+)
+
 # Collect source files
 set(DEVICE_SOURCES
     xy_device.c

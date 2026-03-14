@@ -60,14 +60,8 @@ typedef enum {
 } xy_sensor_attr_t;
 
 /* ==================== 电源模式 ==================== */
-
-typedef enum {
-    XY_SENSOR_POWER_NORMAL = 0,     /**< 正常模式 */
-    XY_SENSOR_POWER_SLEEP,          /**< 睡眠模式 */
-    XY_SENSOR_POWER_LOW_POWER,      /**< 低功耗模式 */
-    XY_SENSOR_POWER_SUSPEND,        /**< 挂起模式 */
-    XY_SENSOR_POWER_OFF,            /**< 关闭 */
-} xy_sensor_power_mode_t;
+/* Note: xy_sensor_power_mode_t is defined in xy_sensor_device.h */
+/* This file only defines the attribute enum */
 
 /* ==================== FIFO 模式 ==================== */
 

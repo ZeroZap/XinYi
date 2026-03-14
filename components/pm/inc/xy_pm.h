@@ -10,6 +10,7 @@
 
 #include "xy_charger.h"
 #include "xy_fuel_gauge.h"
+#include "../hal/inc/xy_hal.h"
 
 #ifdef __cplusplus
 extern "C" {

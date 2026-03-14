@@ -13,7 +13,11 @@ else()
 endif()
 
 # Include directories
-include_directories(inc)
+include_directories(
+    inc
+    xy_log/inc
+    ../kernel/osal
+)
 
 # Collect source files
 file(GLOB_RECURSE COMPONENT_SOURCES "*.c")

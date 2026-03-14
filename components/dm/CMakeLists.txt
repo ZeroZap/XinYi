@@ -13,11 +13,21 @@ else()
 endif()
 
 # Include directories
-include_directories(inc)
+include_directories(
+    inc
+    coreJSON
+    ../hal/inc
+    ../kernel/osal
+    ../trace/xy_log/inc
+)
 
 # Collect source files
 file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
+list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*fee.*")
+list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*fcb.*")
+list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*micro_ecc.*")
+list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*example\\.c$")
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 file(GLOB TEST_SOURCES "test/*.c")

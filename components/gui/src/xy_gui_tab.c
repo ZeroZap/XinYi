@@ -7,10 +7,12 @@
 
 #include "../inc/xy_gui_tab.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 static void on_tab_click(xy_gui_widget_t *widget, xy_gui_event_t *event, void *user_data)
 {
@@ -52,7 +54,7 @@ static int tab_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint16_t f
         /* 绘制标签文本 */
         if (page->title) {
             xy_gui_draw_string_center(btn_x + btn_width/2, r->y + (tab->tab_height-8)/2,
-                                     page->title, style->fg_color, &g_font_8x8, fb, fb_w, fb_h);
+                                     page->title, style->fg_color, &g_font_8x12, fb, fb_w, fb_h);
         }
         
         /* 绘制分隔线 */
@@ -115,12 +117,12 @@ int xy_gui_tab_create(xy_gui_tab_t *tab, int16_t x, int16_t y, uint16_t w, uint1
     tab->page_count = 0;
     
     /* 默认样式 */
-    tab->tab_style.bg_color = {230,230,230,255};
-    tab->tab_style.fg_color = XY_GUI_COLOR_BLACK;
-    tab->tab_style.border_color = {200,200,200,255};
-    tab->active_tab_style.bg_color = XY_GUI_COLOR_WHITE;
-    tab->active_tab_style.fg_color = XY_GUI_COLOR_BLUE;
-    tab->active_tab_style.border_color = XY_GUI_COLOR_BLUE;
+    tab->tab_style.bg_color = (xy_gui_color_t){230, 230, 230, 255};
+    tab->tab_style.fg_color = (xy_gui_color_t){0, 0, 0, 255};
+    tab->tab_style.border_color = (xy_gui_color_t){200, 200, 200, 255};
+    tab->active_tab_style.bg_color = (xy_gui_color_t){255, 255, 255, 255};
+    tab->active_tab_style.fg_color = (xy_gui_color_t){0, 0, 255, 255};
+    tab->active_tab_style.border_color = (xy_gui_color_t){0, 0, 255, 255};
     
     xy_log_i("Tab created: (%d,%d) %dx%d tab_h=%d\n", x, y, w, h, tab_h);
     return 0;

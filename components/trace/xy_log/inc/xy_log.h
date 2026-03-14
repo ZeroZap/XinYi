@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 #ifndef xy_log
-#define xy_log(fmt, ...) xy_stdio_printf(fmt, ##__VA_ARGS__)
+#define xy_log(fmt, ...) xy_printf(fmt, ##__VA_ARGS__)
 #endif
 
 #define XY_DEBUG_ENABLE

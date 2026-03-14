@@ -7,10 +7,12 @@
 
 #include "../inc/xy_gui_label.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
@@ -76,13 +78,13 @@ static int label_init(xy_gui_widget_t *widget)
     label->multiline = true;
     label->max_lines = 0;
     label->text_align = XY_GUI_ALIGN_LEFT;
-    label->font = &g_font_8x8;
+    label->font = &g_font_8x12;
     label->ellipsis = false;
     
     /* 默认样式 */
     widget->style = (xy_gui_style_t){
         .bg_color = XY_GUI_COLOR_TRANSPARENT,
-        .fg_color = XY_GUI_COLOR_BLACK,
+        .fg_color = (xy_gui_color_t){0,0,0,255},
         .border_color = XY_GUI_COLOR_TRANSPARENT,
         .border_width = 0,
         .corner_radius = 0,

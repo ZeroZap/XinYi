@@ -7,10 +7,12 @@
 
 #include "../inc/xy_gui_dropdown.h"
 #include "../inc/xy_gui_display.h"
+#include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 static int dropdown_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint16_t fb_h)
 {
@@ -26,14 +28,14 @@ static int dropdown_draw(xy_gui_widget_t *widget, void *fb, uint16_t fb_w, uint1
     
     /* 绘制选中文字 */
     if (dd->selected_text) {
-        xy_gui_draw_string(r->x + 5, r->y + 3, dd->selected_text, widget->style.fg_color, &g_font_8x8, fb, fb_w, fb_h);
+        xy_gui_draw_string(r->x + 5, r->y + 3, dd->selected_text, widget->style.fg_color, &g_font_8x12, fb, fb_w, fb_h);
     }
     
     /* 绘制下拉箭头 */
     int16_t arrow_x = r->x + r->width - 15;
     int16_t arrow_y = r->y + r->height/2;
-    xy_gui_draw_line(arrow_x, arrow_y-3, arrow_x+5, arrow_y, XY_GUI_COLOR_BLACK, fb, fb_w, fb_h);
-    xy_gui_draw_line(arrow_x+5, arrow_y, arrow_x, arrow_y+3, XY_GUI_COLOR_BLACK, fb, fb_w, fb_h);
+    xy_gui_draw_line(arrow_x, arrow_y-3, arrow_x+5, arrow_y, (xy_gui_color_t){0,0,0,255}, fb, fb_w, fb_h);
+    xy_gui_draw_line(arrow_x+5, arrow_y, arrow_x, arrow_y+3, (xy_gui_color_t){0,0,0,255}, fb, fb_w, fb_h);
     
     /* 绘制展开的列表 */
     if (dd->expanded) {
@@ -62,7 +64,7 @@ static int dropdown_update(xy_gui_widget_t *widget, xy_gui_event_t *event)
         dd->list.base.rect.height = dd->list_height;
         xy_gui_list_update(&dd->list, event);
         
-        if (event->type == XY_GUI_EVENT_RELEASE && !xy_gui_widget_hit_test(&dd->list.base, event->data.touch.x, event->data.touch.y)) {
+        if (event->type == XY_GUI_EVENT_RELEASE && !xy_gui_widget_hit_test(&dd->list.base, event->data.point.x, event->data.point.y)) {
             dd->expanded = false;
             widget->need_redraw = true;
         }
@@ -70,7 +72,7 @@ static int dropdown_update(xy_gui_widget_t *widget, xy_gui_event_t *event)
     }
     
     /* 处理按钮点击 */
-    if (event->type == XY_GUI_EVENT_RELEASE && xy_gui_widget_hit_test(widget, event->data.touch.x, event->data.touch.y)) {
+    if (event->type == XY_GUI_EVENT_RELEASE && xy_gui_widget_hit_test(widget, event->data.point.x, event->data.point.y)) {
         dd->expanded = !dd->expanded;
         widget->need_redraw = true;
         event->handled = true;
@@ -110,9 +112,9 @@ int xy_gui_dropdown_create(xy_gui_dropdown_t *dd, int16_t x, int16_t y, uint16_t
     
     xy_gui_widget_init(&dd->base, XY_GUI_WIDGET_DROPDOWN, x, y, w, h);
     dd->base.ops = &dropdown_ops;
-    dd->base.style.bg_color = XY_GUI_COLOR_WHITE;
-    dd->base.style.fg_color = XY_GUI_COLOR_BLACK;
-    dd->base.style.border_color = XY_GUI_COLOR_GRAY;
+    dd->base.style.bg_color = (xy_gui_color_t){255,255,255,255};
+    dd->base.style.fg_color = (xy_gui_color_t){0,0,0,255};
+    dd->base.style.border_color = (xy_gui_color_t){128,128,128,255};
     dd->list_height = 100;
     
     /* 创建内部列表 */
