@@ -1,0 +1,64 @@
+# .clangd configuration for XinYi project
+# https://clangd.llvm.org/config
+
+---
+CompileFlags:
+  # Add include paths for embedded development
+  Add:
+    - -I.
+    - -Iinclude
+    - -Icomponents
+    - -Ibsp
+    - -Idrivers
+    - -Iarch
+    - -ffreestanding
+    - -fno-builtin
+    - -nostdlib
+    - -mcpu=cortex-m33
+    - -mthumb
+    - -Wall
+    - -Wextra
+    - -Wpedantic
+  
+  # C11 standard
+  Standard: c11
+
+Diagnostics:
+  # Enable all diagnostics
+  Suppress: []
+  WarningsAsErrors: []
+  
+  # Embedded-specific suppressions
+  SuppressMsgs:
+    - 401  # unused parameter (common in embedded callbacks)
+    - 504  # missing return (handled by infinite loops in embedded)
+
+Completion:
+  # Enable code completion
+  AllScopes: true
+  IncludeInsertion: true
+
+Hover:
+  # Show detailed hover information
+  ShowAKA: true
+  ShowInitializer: true
+
+Index:
+  # Background indexing
+  Background: Build
+  Standard: c11
+
+InlayHints:
+  # Show helpful inlay hints
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+  ChainedHints: Yes
+  Designators: Yes
+
+If:
+  # Only apply to C files
+  PathMatch:
+    - '**/*.c'
+    - '**/*.h'
+...

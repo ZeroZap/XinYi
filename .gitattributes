@@ -1,30 +1,121 @@
-*           text=auto
+# .gitattributes for ZeroZap C projects
+# https://git-scm.com/docs/gitattributes
 
-# These files are text and should be normalized (convert crlf to lf)
-*.rb        text
-*.test      text
-*.c         text
-*.cpp       text
-*.h         text
-*.txt       text
-*.yml       text
-*.s79       text
-*.bat       text
-*.xcl       text
-*.inc       text
-*.info      text
-*.md        text
-makefile    text
-rakefile    text
+# ===========================================================================
+# Line endings - Use LF for all text files (Unix-style)
+# ===========================================================================
+* text=auto eol=lf
 
+# C source files
+*.c text eol=lf
+*.h text eol=lf
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.cc text eol=lf
+*.cxx text eol=lf
 
-#These files are binary and should not be normalized
-*.doc       binary
-*.odt       binary
-*.pdf       binary
-*.ewd       binary
-*.eww       binary
-*.dni       binary
-*.wsdt      binary
-*.dbgdt     binary
-*.mac       binary
+# Build system files
+CMakeLists.txt text eol=lf
+*.cmake text eol=lf
+Makefile text eol=lf
+*.mk text eol=lf
+
+# Configuration files
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.conf text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+*.rst text eol=lf
+*.adoc text eol=lf
+
+# Scripts
+*.sh text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+
+# Linker scripts
+*.ld text eol=lf
+*.s text eol=lf
+*.S text eol=lf
+*.asm text eol=lf
+
+# ===========================================================================
+# Binary files - No line ending conversion
+# ===========================================================================
+*.bin binary
+*.hex binary
+*.elf binary
+*.out binary
+*.exe binary
+*.obj binary
+*.o binary
+*.a binary
+*.lib binary
+*.so binary
+*.dll binary
+*.dylib binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.ico binary
+*.svg binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.rar binary
+
+# PDF and documents
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+
+# ===========================================================================
+# Git attributes - Export control
+# ===========================================================================
+.gitattributes export-ignore
+.gitignore export-ignore
+.clang-format export-ignore
+.clangd export-ignore
+.vscode/ export-ignore
+.idea/ export-ignore
+build/ export-ignore
+obj/ export-ignore
+*.o export-ignore
+*.bin export-ignore
+*.hex export-ignore
+*.elf export-ignore
+
+# ===========================================================================
+# Diff drivers
+# ===========================================================================
+*.c diff=c
+*.h diff=c
+*.cpp diff=c
+*.hpp diff=c
+
+# Custom diff for linker scripts
+*.ld diff=cpp
+
+# ===========================================================================
+# Merge strategies
+# ===========================================================================
+*.json merge=union
+*.yaml merge=union
+*.yml merge=union
