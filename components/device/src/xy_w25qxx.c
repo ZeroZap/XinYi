@@ -4,7 +4,13 @@
  * @version 1.0.0
  * @date 2026-03-15
  * 
- * @note 支持 W25Q16/W25Q32/W25Q64/W25Q128
+ * @note 支持 W25Q16/W25Q32/W25Q64/W25Q128 系列
+ * 
+ * 容量规格:
+ * - W25Q16: 2MB (256 块，512 扇区)
+ * - W25Q32: 4MB (512 块，1024 扇区)
+ * - W25Q64: 8MB (1024 块，2048 扇区)
+ * - W25Q128: 16MB (2048 块，4096 扇区)
  */
 
 #include "xy_w25qxx.h"
@@ -17,7 +23,7 @@
  */
 static void cs_enable(xy_w25qxx_t *dev)
 {
-    /* TODO: 拉低片选引脚 */
+    /* TODO: 实现 GPIO 拉低 */
     (void)dev;
 }
 
@@ -26,7 +32,7 @@ static void cs_enable(xy_w25qxx_t *dev)
  */
 static void cs_disable(xy_w25qxx_t *dev)
 {
-    /* TODO: 拉高片选引脚 */
+    /* TODO: 实现 GPIO 拉高 */
     (void)dev;
 }
 
@@ -47,97 +53,90 @@ static int spi_transfer(xy_w25qxx_t *dev, const uint8_t *tx, uint8_t *rx,
 /**
  * @brief 发送命令
  */
-static int send_command(xy_w25qxx_t *dev, uint8_t cmd, const uint8_t *data, 
-                        size_t data_len)
+static int send_command(xy_w25qxx_t *dev, uint8_t cmd)
 {
     cs_enable(dev);
-    
-    /* 发送命令 */
-    spi_transfer(dev, &cmd, NULL, 1);
-    
-    /* 发送数据 */
-    if (data && data_len > 0) {
-        spi_transfer(dev, data, NULL, data_len);
-    }
-    
-    cs_disable(dev);
-    
-    return XY_DEVICE_OK;
+    int ret = spi_transfer(dev, &cmd, NULL, 1);
+    return ret;
 }
 
 /**
- * @brief 发送命令并读取数据
+ * @brief 发送命令 + 地址
  */
-static int send_command_read(xy_w25qxx_t *dev, uint8_t cmd, uint8_t *rx, 
-                             size_t rx_len)
+static int send_command_addr(xy_w25qxx_t *dev, uint8_t cmd, uint32_t addr)
 {
+    uint8_t buffer[4];
+    buffer[0] = cmd;
+    buffer[1] = (addr >> 16) & 0xFF;
+    buffer[2] = (addr >> 8) & 0xFF;
+    buffer[3] = addr & 0xFF;
+    
     cs_enable(dev);
-    
-    /* 发送命令 */
-    spi_transfer(dev, &cmd, NULL, 1);
-    
-    /* 读取数据 */
-    if (rx && rx_len > 0) {
-        uint8_t dummy = 0xFF;
-        spi_transfer(dev, &dummy, rx, rx_len);
-    }
-    
-    cs_disable(dev);
-    
-    return XY_DEVICE_OK;
+    int ret = spi_transfer(dev, buffer, NULL, 4);
+    return ret;
 }
 
 /* ==================== Public Implementation ==================== */
 
-int xy_w25qxx_init(xy_w25qxx_t *dev, void *spi_handle, 
-                   void *cs_pin, xy_w25qxx_capacity_t capacity)
+int xy_w25qxx_init(xy_w25qxx_t *dev, void *spi_handle, void *cs_gpio)
 {
-    if (!dev || !spi_handle || !cs_pin) {
+    if (!dev || !spi_handle || !cs_gpio) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
     memset(dev, 0, sizeof(*dev));
     
     dev->spi_handle = spi_handle;
-    dev->cs_pin = cs_pin;
+    dev->cs_gpio = cs_gpio;
+    dev->write_enabled = false;
     
-    /* 根据容量设置参数 */
-    switch (capacity) {
-        case XY_W25Q16:
-            dev->capacity_bytes = 2 * 1024 * 1024; /* 2MB */
-            dev->sector_size = 4096; /* 4KB */
-            dev->block_size = 64 * 1024; /* 64KB */
-            break;
-        case XY_W25Q32:
-            dev->capacity_bytes = 4 * 1024 * 1024; /* 4MB */
-            dev->sector_size = 4096;
-            dev->block_size = 64 * 1024;
-            break;
-        case XY_W25Q64:
-            dev->capacity_bytes = 8 * 1024 * 1024; /* 8MB */
-            dev->sector_size = 4096;
-            dev->block_size = 64 * 1024;
-            break;
-        case XY_W25Q128:
-            dev->capacity_bytes = 16 * 1024 * 1024; /* 16MB */
-            dev->sector_size = 4096;
-            dev->block_size = 64 * 1024;
-            break;
-        default:
-            return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    dev->page_size = 256; /* 所有型号页大小都是 256 字节 */
-    
-    /* 读取设备 ID 验证 */
-    uint8_t manufacturer_id, device_id;
-    int ret = xy_w25qxx_read_device_id(dev, &manufacturer_id, &device_id);
+    /* 读取 JEDEC ID 识别型号 */
+    uint8_t jedec_id[3];
+    int ret = xy_w25qxx_read_jedec_id(dev, jedec_id);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
     
-    dev->device_id = device_id;
-    dev->initialized = true;
+    dev->manufacturer_id = jedec_id[0];
+    dev->memory_type = jedec_id[1];
+    dev->memory_capacity = jedec_id[2];
+    
+    /* 根据容量配置参数 */
+    switch (jedec_id[2]) {
+        case 0x15: /* W25Q16 */
+            dev->capacity_bytes = 2 * 1024 * 1024;
+            dev->sector_size = 4; /* KB */
+            dev->page_size = 256;
+            dev->block_count = 32;
+            dev->sector_count = 512;
+            break;
+        case 0x16: /* W25Q32 */
+            dev->capacity_bytes = 4 * 1024 * 1024;
+            dev->sector_size = 4;
+            dev->page_size = 256;
+            dev->block_count = 64;
+            dev->sector_count = 1024;
+            break;
+        case 0x17: /* W25Q64 */
+            dev->capacity_bytes = 8 * 1024 * 1024;
+            dev->sector_size = 4;
+            dev->page_size = 256;
+            dev->block_count = 128;
+            dev->sector_count = 2048;
+            break;
+        case 0x18: /* W25Q128 */
+            dev->capacity_bytes = 16 * 1024 * 1024;
+            dev->sector_size = 4;
+            dev->page_size = 256;
+            dev->block_count = 256;
+            dev->sector_count = 4096;
+            break;
+        default:
+            return XY_DEVICE_IO_ERROR;
+    }
+    
+    /* 退出掉电模式 */
+    xy_w25qxx_release_powerdown(dev);
     
     return XY_DEVICE_OK;
 }
@@ -148,24 +147,26 @@ int xy_w25qxx_deinit(xy_w25qxx_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    dev->initialized = false;
+    /* 进入掉电模式 */
+    xy_w25qxx_powerdown(dev);
     
     return XY_DEVICE_OK;
 }
 
-int xy_w25qxx_read_device_id(xy_w25qxx_t *dev, uint8_t *manufacturer_id,
+int xy_w25qxx_read_device_id(xy_w25qxx_t *dev, uint8_t *manufacturer_id, 
                              uint8_t *device_id)
 {
     if (!dev || !manufacturer_id || !device_id) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    uint8_t cmd[4] = {W25QXX_CMD_DEVICE_ID, 0, 0, 0};
+    uint8_t cmd = W25Q_CMD_DEVICE_ID;
+    uint8_t addr[3] = {0, 0, 0};
+    uint8_t rx[2];
     
     cs_enable(dev);
-    spi_transfer(dev, cmd, NULL, 4);
-    
-    uint8_t rx[2];
+    spi_transfer(dev, &cmd, NULL, 1);
+    spi_transfer(dev, addr, NULL, 3);
     spi_transfer(dev, NULL, rx, 2);
     cs_disable(dev);
     
@@ -181,259 +182,236 @@ int xy_w25qxx_read_jedec_id(xy_w25qxx_t *dev, uint8_t *jedec_id)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    return send_command_read(dev, W25QXX_CMD_JEDEC_ID, jedec_id, 3);
+    uint8_t cmd = W25Q_CMD_JEDEC_ID;
+    
+    cs_enable(dev);
+    spi_transfer(dev, &cmd, NULL, 1);
+    spi_transfer(dev, NULL, jedec_id, 3);
+    cs_disable(dev);
+    
+    return XY_DEVICE_OK;
 }
 
-int xy_w25qxx_read_status1(xy_w25qxx_t *dev, uint8_t *status)
+int xy_w25qxx_read_status_reg1(xy_w25qxx_t *dev, uint8_t *status)
 {
     if (!dev || !status) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    return send_command_read(dev, W25QXX_CMD_READ_STATUS1, status, 1);
+    uint8_t cmd = W25Q_CMD_READ_STATUS_REG1;
+    
+    cs_enable(dev);
+    spi_transfer(dev, &cmd, NULL, 1);
+    spi_transfer(dev, NULL, status, 1);
+    cs_disable(dev);
+    
+    return XY_DEVICE_OK;
 }
 
-int xy_w25qxx_wait_ready(xy_w25qxx_t *dev, uint32_t timeout_ms)
+int xy_w25qxx_wait_idle(xy_w25qxx_t *dev, uint32_t timeout_ms)
 {
     if (!dev) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
+    uint8_t status;
     uint32_t start = 0; /* TODO: 获取开始时间 */
     
-    while (1) {
-        uint8_t status;
-        int ret = xy_w25qxx_read_status1(dev, &status);
-        if (ret != XY_DEVICE_OK) {
-            return ret;
+    do {
+        xy_w25qxx_read_status_reg1(dev, &status);
+        
+        if (!(status & W25Q_STATUS_BUSY)) {
+            return XY_DEVICE_OK;
         }
         
-        /* 检查 BUSY 位 (bit 0) */
-        if ((status & 0x01) == 0) {
-            return XY_DEVICE_OK; /* 就绪 */
-        }
+        /* 简单延迟 */
+        for (volatile int i = 0; i < 1000; i++);
         
-        /* 检查超时 */
-        /* TODO: 实现超时检查 */
-        if (timeout_ms > 0) {
-            /* 简单延迟 */
-            for (volatile int i = 0; i < 1000; i++);
-        }
-    }
+    } while (/* TODO: 检查超时 */ 1);
+    
+    return XY_DEVICE_TIMEOUT;
 }
 
-int xy_w25qxx_read(xy_w25qxx_t *dev, uint32_t addr, uint8_t *buffer, 
-                   size_t length)
+int xy_w25qxx_write_enable(xy_w25qxx_t *dev)
 {
-    if (!dev || !buffer || length == 0) {
+    if (!dev) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    if (addr + length > dev->capacity_bytes) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    /* 发送读命令 + 3 字节地址 */
-    uint8_t cmd[4] = {
-        W25QXX_CMD_FAST_READ,
-        (uint8_t)(addr >> 16),
-        (uint8_t)(addr >> 8),
-        (uint8_t)(addr)
-    };
+    uint8_t cmd = W25Q_CMD_WRITE_ENABLE;
     
     cs_enable(dev);
-    spi_transfer(dev, cmd, NULL, 4);
+    spi_transfer(dev, &cmd, NULL, 1);
+    cs_disable(dev);
+    
+    dev->write_enabled = true;
+    
+    return XY_DEVICE_OK;
+}
+
+int xy_w25qxx_page_program(xy_w25qxx_t *dev, uint32_t addr, 
+                           const uint8_t *data, uint16_t length)
+{
+    if (!dev || !data || length == 0 || length > 256) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    
+    /* 写使能 */
+    xy_w25qxx_write_enable(dev);
+    
+    /* 发送命令和地址 */
+    send_command_addr(dev, W25Q_CMD_PAGE_PROGRAM, addr);
+    
+    /* 发送数据 */
+    spi_transfer(dev, data, NULL, length);
+    
+    cs_disable(dev);
+    
+    /* 等待完成 */
+    return xy_w25qxx_wait_idle(dev, 100);
+}
+
+int xy_w25qxx_sector_erase(xy_w25qxx_t *dev, uint32_t addr)
+{
+    if (!dev) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    
+    /* 写使能 */
+    xy_w25qxx_write_enable(dev);
+    
+    /* 发送命令和地址 */
+    send_command_addr(dev, W25Q_CMD_SECTOR_ERASE, addr);
+    
+    cs_disable(dev);
+    
+    /* 等待完成 (扇区擦除约 45ms) */
+    return xy_w25qxx_wait_idle(dev, 1000);
+}
+
+int xy_w25qxx_block_erase_32k(xy_w25qxx_t *dev, uint32_t addr)
+{
+    if (!dev) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    
+    xy_w25qxx_write_enable(dev);
+    send_command_addr(dev, W25Q_CMD_BLOCK_ERASE_32K, addr);
+    cs_disable(dev);
+    
+    return xy_w25qxx_wait_idle(dev, 1000);
+}
+
+int xy_w25qxx_block_erase_64k(xy_w25qxx_t *dev, uint32_t addr)
+{
+    if (!dev) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    
+    xy_w25qxx_write_enable(dev);
+    send_command_addr(dev, W25Q_CMD_BLOCK_ERASE_64K, addr);
+    cs_disable(dev);
+    
+    return xy_w25qxx_wait_idle(dev, 1000);
+}
+
+int xy_w25qxx_chip_erase(xy_w25qxx_t *dev)
+{
+    if (!dev) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    
+    xy_w25qxx_write_enable(dev);
+    
+    uint8_t cmd = W25Q_CMD_CHIP_ERASE;
+    cs_enable(dev);
+    spi_transfer(dev, &cmd, NULL, 1);
+    cs_disable(dev);
+    
+    /* 整片擦除时间较长 (W25Q128 约 30 秒) */
+    return xy_w25qxx_wait_idle(dev, 30000);
+}
+
+int xy_w25qxx_read(xy_w25qxx_t *dev, uint32_t addr, 
+                   uint8_t *data, uint32_t length)
+{
+    if (!dev || !data || length == 0) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    
+    /* 发送快速读取命令 */
+    send_command_addr(dev, W25Q_CMD_FAST_READ, addr);
+    
+    /* 发送 1 字节 dummy */
+    uint8_t dummy = 0;
+    spi_transfer(dev, &dummy, NULL, 1);
     
     /* 读取数据 */
-    uint8_t dummy = 0xFF; /* 快速读需要一个 dummy 字节 */
-    spi_transfer(dev, &dummy, NULL, 1);
-    spi_transfer(dev, NULL, buffer, length);
+    spi_transfer(dev, NULL, data, length);
     
     cs_disable(dev);
     
     return XY_DEVICE_OK;
 }
 
-int xy_w25qxx_write_page(xy_w25qxx_t *dev, uint32_t addr, const uint8_t *buffer,
-                         size_t length)
+int xy_w25qxx_write(xy_w25qxx_t *dev, uint32_t addr, 
+                    const uint8_t *data, uint32_t length)
 {
-    if (!dev || !buffer || length == 0) {
+    if (!dev || !data || length == 0) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    if (length > dev->page_size) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    /* 检查地址是否跨页 */
-    uint32_t page_offset = addr % dev->page_size;
-    if (page_offset + length > dev->page_size) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    /* 等待就绪 */
-    int ret = xy_w25qxx_wait_ready(dev, 1000);
-    if (ret != XY_DEVICE_OK) {
-        return ret;
-    }
-    
-    /* 发送写使能 */
-    send_command(dev, W25QXX_CMD_WRITE_ENABLE, NULL, 0);
-    
-    /* 发送页编程命令 + 地址 + 数据 */
-    uint8_t cmd[4] = {
-        W25QXX_CMD_PAGE_PROGRAM,
-        (uint8_t)(addr >> 16),
-        (uint8_t)(addr >> 8),
-        (uint8_t)(addr)
-    };
-    
-    cs_enable(dev);
-    spi_transfer(dev, cmd, NULL, 4);
-    spi_transfer(dev, buffer, NULL, length);
-    cs_disable(dev);
-    
-    /* 等待编程完成 */
-    return xy_w25qxx_wait_ready(dev, 1000);
-}
-
-int xy_w25qxx_write(xy_w25qxx_t *dev, uint32_t addr, const uint8_t *buffer,
-                    size_t length)
-{
-    if (!dev || !buffer || length == 0) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    size_t remaining = length;
-    const uint8_t *src = buffer;
-    uint32_t dst = addr;
+    uint32_t remaining = length;
+    uint32_t offset = 0;
     
     while (remaining > 0) {
-        /* 计算当前页可写入的字节数 */
-        uint32_t page_offset = dst % dev->page_size;
-        size_t to_write = dev->page_size - page_offset;
-        if (to_write > remaining) {
-            to_write = remaining;
-        }
+        /* 计算当前页剩余空间 */
+        uint32_t page_offset = addr % dev->page_size;
+        uint32_t page_space = dev->page_size - page_offset;
+        uint32_t write_size = (remaining < page_space) ? remaining : page_space;
         
-        /* 写入一页 */
-        int ret = xy_w25qxx_write_page(dev, dst, src, to_write);
+        /* 页编程 */
+        int ret = xy_w25qxx_page_program(dev, addr, data + offset, write_size);
         if (ret != XY_DEVICE_OK) {
             return ret;
         }
         
-        src += to_write;
-        dst += to_write;
-        remaining -= to_write;
+        addr += write_size;
+        offset += write_size;
+        remaining -= write_size;
     }
     
     return XY_DEVICE_OK;
 }
 
-int xy_w25qxx_erase_sector(xy_w25qxx_t *dev, uint32_t addr)
+int xy_w25qxx_powerdown(xy_w25qxx_t *dev)
 {
     if (!dev) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    if (addr >= dev->capacity_bytes) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
+    uint8_t cmd = 0xB9; /* Power-down command */
     
-    /* 等待就绪 */
-    int ret = xy_w25qxx_wait_ready(dev, 1000);
-    if (ret != XY_DEVICE_OK) {
-        return ret;
-    }
+    cs_enable(dev);
+    spi_transfer(dev, &cmd, NULL, 1);
+    cs_disable(dev);
     
-    /* 发送写使能 */
-    send_command(dev, W25QXX_CMD_WRITE_ENABLE, NULL, 0);
-    
-    /* 发送扇区擦除命令 + 地址 */
-    uint8_t cmd[4] = {
-        W25QXX_CMD_SECTOR_ERASE,
-        (uint8_t)(addr >> 16),
-        (uint8_t)(addr >> 8),
-        (uint8_t)(addr)
-    };
-    
-    send_command(dev, cmd, NULL, 0);
-    
-    /* 等待擦除完成 */
-    return xy_w25qxx_wait_ready(dev, 3000); /* 扇区擦除通常需要 300ms */
+    return XY_DEVICE_OK;
 }
 
-int xy_w25qxx_erase_block(xy_w25qxx_t *dev, uint32_t addr)
+int xy_w25qxx_release_powerdown(xy_w25qxx_t *dev)
 {
     if (!dev) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    if (addr >= dev->capacity_bytes) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
+    uint8_t cmd = W25Q_CMD_RELEASE_POWERDOWN;
     
-    /* 等待就绪 */
-    int ret = xy_w25qxx_wait_ready(dev, 1000);
-    if (ret != XY_DEVICE_OK) {
-        return ret;
-    }
+    cs_enable(dev);
+    spi_transfer(dev, &cmd, NULL, 1);
+    cs_disable(dev);
     
-    /* 发送写使能 */
-    send_command(dev, W25QXX_CMD_WRITE_ENABLE, NULL, 0);
-    
-    /* 发送块擦除命令 + 地址 */
-    uint8_t cmd[4] = {
-        W25QXX_CMD_BLOCK_ERASE,
-        (uint8_t)(addr >> 16),
-        (uint8_t)(addr >> 8),
-        (uint8_t)(addr)
-    };
-    
-    send_command(dev, cmd, NULL, 0);
-    
-    /* 等待擦除完成 */
-    return xy_w25qxx_wait_ready(dev, 5000); /* 块擦除通常需要 500ms */
-}
-
-int xy_w25qxx_erase_chip(xy_w25qxx_t *dev)
-{
-    if (!dev) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    /* 等待就绪 */
-    int ret = xy_w25qxx_wait_ready(dev, 1000);
-    if (ret != XY_DEVICE_OK) {
-        return ret;
-    }
-    
-    /* 发送写使能 */
-    send_command(dev, W25QXX_CMD_WRITE_ENABLE, NULL, 0);
-    
-    /* 发送全片擦除命令 */
-    send_command(dev, W25QXX_CMD_CHIP_ERASE, NULL, 0);
-    
-    /* 等待擦除完成 */
-    return xy_w25qxx_wait_ready(dev, 10000); /* 全片擦除可能需要数秒 */
-}
-
-int xy_w25qxx_power_down(xy_w25qxx_t *dev)
-{
-    if (!dev) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    return send_command(dev, W25QXX_CMD_POWER_DOWN, NULL, 0);
-}
-
-int xy_w25qxx_release_power_down(xy_w25qxx_t *dev)
-{
-    if (!dev) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    return send_command(dev, W25QXX_CMD_RELEASE_POWER_DOWN, NULL, 0);
+    return XY_DEVICE_OK;
 }
 
 /* ==================== End of File ==================== */
