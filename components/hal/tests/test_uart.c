@@ -150,9 +150,47 @@ static xy_test_result_t test_uart_error_handling(void)
     return XY_TEST_PASS;
 }
 
+/**
+ * @brief 测试 UART 边界条件
+ */
+static xy_test_result_t test_uart_edge_cases(void)
+{
+    xy_hal_uart_t uart = xy_hal_uart_bind("USART2");
+    XY_TEST_ASSERT_NOT_NULL(uart);
+    
+    /* 配置 UART */
+    xy_hal_uart_config_t cfg = {
+        .baudrate = 115200,
+        .wordlen = XY_HAL_UART_WORDLEN_8B,
+        .stopbits = XY_HAL_UART_STOPBITS_1,
+        .parity = XY_HAL_UART_PARITY_NONE,
+        .mode = XY_HAL_UART_MODE_TX_RX,
+    };
+    xy_hal_uart_configure(uart, &cfg);
+    
+    /* 测试最低波特率 */
+    xy_hal_error_t err = xy_hal_uart_set_baudrate(uart, 1200);
+    XY_TEST_ASSERT_EQ(0, (int)err);
+    
+    /* 测试最高波特率 */
+    err = xy_hal_uart_set_baudrate(uart, 921600);
+    XY_TEST_ASSERT_EQ(0, (int)err);
+    
+    /* 测试零长度数据 */
+    err = xy_hal_uart_write(uart, (const uint8_t *)"", 0, 100);
+    XY_TEST_ASSERT(err != XY_HAL_OK); /* 应返回错误 */
+    
+    /* 测试超时时间为 0 */
+    int32_t ret = xy_hal_uart_write(uart, (const uint8_t *)"test", 4, 0);
+    XY_TEST_ASSERT(ret >= 0 || ret == XY_HAL_ERROR_TIMEOUT);
+    
+    xy_hal_uart_unbind(uart);
+    return XY_TEST_PASS;
+}
+
 /* ==================== Test Suite ==================== */
 
-static xy_test_case_t uart_test_cases[6];
+static xy_test_case_t uart_test_cases[7];
 
 xy_test_suite_t *uart_get_test_suite(void)
 {
@@ -167,6 +205,7 @@ xy_test_suite_t *uart_get_test_suite(void)
     xy_test_add_case(&suite, "UART Blocking Transfer", test_uart_blocking_transfer);
     xy_test_add_case(&suite, "UART Non-blocking Transfer", test_uart_nonblocking_transfer);
     xy_test_add_case(&suite, "UART Error Handling", test_uart_error_handling);
+    xy_test_add_case(&suite, "UART Edge Cases", test_uart_edge_cases);
     
     return &suite;
 }

@@ -144,10 +144,47 @@ static xy_test_result_t test_gpio_invalid_params(void)
     return XY_TEST_PASS;
 }
 
+/**
+ * @brief 测试 GPIO 边界条件
+ */
+static xy_test_result_t test_gpio_edge_cases(void)
+{
+    xy_hal_gpio_t gpio = xy_hal_gpio_bind("GPIOA");
+    XY_TEST_ASSERT_NOT_NULL(gpio);
+    
+    /* 测试引脚 0 (最低引脚) */
+    xy_hal_gpio_config_t cfg = {
+        .mode = XY_HAL_GPIO_MODE_OUTPUT,
+    };
+    xy_hal_error_t err = xy_hal_gpio_configure(gpio, 0, &cfg);
+    XY_TEST_ASSERT_EQ(0, (int)err);
+    
+    err = xy_hal_gpio_write(gpio, 0, 1);
+    XY_TEST_ASSERT_EQ(0, (int)err);
+    
+    /* 测试引脚 15 (最高引脚) */
+    err = xy_hal_gpio_configure(gpio, 15, &cfg);
+    XY_TEST_ASSERT_EQ(0, (int)err);
+    
+    err = xy_hal_gpio_write(gpio, 15, 0);
+    XY_TEST_ASSERT_EQ(0, (int)err);
+    
+    /* 测试端口全 1 掩码 */
+    err = xy_hal_gpio_port_write(gpio, 0xFFFF, 0xFFFF);
+    XY_TEST_ASSERT_EQ(0, (int)err);
+    
+    /* 测试端口全 0 掩码 */
+    err = xy_hal_gpio_port_write(gpio, 0x0000, 0x0000);
+    XY_TEST_ASSERT_EQ(0, (int)err);
+    
+    xy_hal_gpio_unbind(gpio);
+    return XY_TEST_PASS;
+}
+
 /* ==================== Test Suite ==================== */
 
 /* 静态分配测试用例数组 */
-static xy_test_case_t gpio_test_cases[5];
+static xy_test_case_t gpio_test_cases[6];
 
 xy_test_suite_t *gpio_get_test_suite(void)
 {
@@ -166,6 +203,7 @@ xy_test_suite_t *gpio_get_test_suite(void)
     xy_test_add_case(&suite, "GPIO Read/Write", test_gpio_read_write);
     xy_test_add_case(&suite, "GPIO Port Operation", test_gpio_port_operation);
     xy_test_add_case(&suite, "GPIO Invalid Params", test_gpio_invalid_params);
+    xy_test_add_case(&suite, "GPIO Edge Cases", test_gpio_edge_cases);
     
     return &suite;
 }
