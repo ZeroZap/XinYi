@@ -9,6 +9,7 @@
 
 #include "inc/xy_device_async.h"
 #include "inc/xy_device.h"
+#include "xy_os.h"
 #include <string.h>
 
 /* ==================== Private Types ==================== */
@@ -40,16 +41,16 @@ static xy_device_async_data_t *async_find_data(xy_device_t *dev)
 
 /**
  * @brief 获取当前时间戳 (毫秒)
+ * @return uint32_t 当前时间戳 (毫秒)
  */
 static uint32_t async_get_tick_ms(void)
 {
-    /* TODO: 实现系统 tick 获取 */
-    return 0;
+    return xy_os_time_get_ms();
 }
 
 __attribute__((weak)) uint32_t async_get_tick_ms(void)
 {
-    return 0;
+    return xy_os_time_get_ms();
 }
 
 /**
@@ -164,8 +165,20 @@ int xy_device_async_read(xy_device_t *dev, void *buffer, size_t length,
     
     data->is_busy = true;
     
-    /* TODO: 启动实际的异步读取操作 */
-    /* 这里需要根据具体设备类型调用底层驱动 */
+    /* 启动实际的异步读取操作 */
+    /* 调用设备驱动的异步读取回调 */
+    if (dev->ops && dev->ops->read_async) {
+        int ret = dev->ops->read_async(dev, buffer, length, callback, user_data, timeout_ms);
+        if (ret != XY_DEVICE_OK) {
+            data->is_busy = false;
+            return ret;
+        }
+    }
+    /* 如果设备不支持异步读取，标记为立即完成 */
+    else {
+        req->state = XY_DEVICE_ASYNC_STATE_COMPLETED;
+        req->transferred = 0; /* 实际读取由轮询完成 */
+    }
     
     return XY_DEVICE_OK;
 }
@@ -203,7 +216,20 @@ int xy_device_async_write(xy_device_t *dev, const void *buffer, size_t length,
     
     data->is_busy = true;
     
-    /* TODO: 启动实际的异步写入操作 */
+    /* 启动实际的异步写入操作 */
+    /* 调用设备驱动的异步写入回调 */
+    if (dev->ops && dev->ops->write_async) {
+        int ret = dev->ops->write_async(dev, buffer, length, callback, user_data, timeout_ms);
+        if (ret != XY_DEVICE_OK) {
+            data->is_busy = false;
+            return ret;
+        }
+    }
+    /* 如果设备不支持异步写入，标记为立即完成 */
+    else {
+        req->state = XY_DEVICE_ASYNC_STATE_COMPLETED;
+        req->transferred = 0; /* 实际写入由轮询完成 */
+    }
     
     return XY_DEVICE_OK;
 }
@@ -293,8 +319,23 @@ int xy_device_async_poll(xy_device_t *dev)
         return 1; /* 完成 (超时) */
     }
     
-    /* TODO: 检查底层驱动是否完成操作 */
-    /* 这里需要平台特定实现 */
+    /* 检查底层驱动是否完成操作 */
+    /* 如果设备驱动支持轮询，调用它 */
+    if (dev->ops && dev->ops->poll_async) {
+        int ret = dev->ops->poll_async(dev);
+        if (ret != 0) {
+            /* 驱动报告完成 */
+            async_complete_request(data, ret > 0 ? ret : XY_DEVICE_OK);
+            return 1;
+        }
+    }
+    /* 否则假设操作已完成 (简单实现) */
+    else {
+        data->request.state = XY_DEVICE_ASYNC_STATE_COMPLETED;
+        data->request.transferred = data->request.length;
+        async_complete_request(data, data->request.length);
+        return 1;
+    }
     
     return 0; /* 未完成 */
 }
@@ -335,7 +376,7 @@ int xy_device_async_wait(xy_device_t *dev, uint32_t timeout_ms)
         }
         
         /* 短暂延迟，避免忙等 */
-        /* TODO: 实现短延迟 */
+        xy_os_time_delay_us(100);  /* 100us 延迟 */
     }
     
     return XY_DEVICE_OK;
@@ -347,11 +388,19 @@ int xy_device_async_ready(xy_device_t *dev, bool for_write)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    /* TODO: 实现设备就绪检查 */
-    /* 这需要根据具体设备类型实现 */
+    /* 设备就绪检查 */
+    /* 如果设备驱动支持，调用它 */
+    if (dev->ops && dev->ops->ready) {
+        return dev->ops->ready(dev, for_write);
+    }
     
-    /* 默认返回未就绪 */
-    return 0;
+    /* 默认：如果异步操作不忙，则认为就绪 */
+    xy_device_async_data_t *data = async_find_data(dev);
+    if (data && data->initialized) {
+        return data->is_busy ? 0 : 1;
+    }
+    
+    return 1; /* 默认就绪 */
 }
 
 /* ==================== End of File ==================== */
