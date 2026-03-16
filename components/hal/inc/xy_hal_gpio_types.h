@@ -10,8 +10,8 @@
 #ifndef XY_HAL_GPIO_TYPES_H
 #define XY_HAL_GPIO_TYPES_H
 
-#include "xy_hal.h"
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {

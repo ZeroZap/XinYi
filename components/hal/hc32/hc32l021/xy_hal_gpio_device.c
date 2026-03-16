@@ -1,249 +1,201 @@
 /**
  * @file xy_hal_gpio_device.c
- * @brief HC32L021 GPIO HAL Implementation
+ * @brief HC32L021 GPIO Device Implementation - Unified HAL API
  * @version 1.0.0
  * @date 2026-03-16
  * 
- * @note HC32L021 GPIO 驱动实现 - 基于 xhsc 官方库
+ * @note 实现统一的 GPIO 设备 API，基于 HC32L021 寄存器
  */
 
-#include "xy_hal_gpio.h"
-#include "xy_hal_gpio_types.h"
-#include "xy_hal_gpio_dev.h"
-#include "hc32l021_gpio.h"
-#include "hc32l021_sysctrl.h"
+#include "../inc/xy_hal_gpio_dev.h"
+#include "../inc/xy_hal_gpio_types.h"
+#include "../inc/xy_hal_error.h"
 #include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+/* HC32L021 最小化头文件 (无 board 依赖) */
+#include "hc32l021_minimal.h"
+
+/* ==================== Private Definitions ==================== */
+
+#define HC32L021_GPIO_PORT_COUNT  (4)  /* GPIOA/B/C/H */
+
+/* GPIO 端口基地址数组 */
+static M0P_GPIO_TypeDef *const gpio_port_base[HC32L021_GPIO_PORT_COUNT] = {
+    M0P_GPIO_PA, M0P_GPIO_PB, M0P_GPIO_PC, M0P_GPIO_PH
+};
 
 /* ==================== Private Types ==================== */
 
 /**
- * @brief GPIO 私有数据
+ * @brief HC32L021 GPIO 设备私有数据
  */
 typedef struct {
-    M0P_GPIO_TypeDef *port;      /*!< GPIO 端口基地址 */
-    uint16_t pin;                 /*!< GPIO 引脚 */
-    bool initialized;             /*!< 初始化标志 */
-} hc32_gpio_data_t;
+    M0P_GPIO_TypeDef *port;      /* GPIO 端口基地址 */
+    uint8_t port_index;          /* 端口索引 (0-3) */
+    uint8_t initialized_pins;    /* 已初始化引脚掩码 */
+    bool initialized;            /* 设备初始化标志 */
+} hc32_gpio_dev_t;
 
 /* ==================== Private Variables ==================== */
 
-/* GPIO 实例池 (HC32L021: PA0-PA7, PB0-PB7, PC0-PC5, PH0-PH3) */
-static hc32_gpio_data_t gpio_instances[32];
-static bool gpio_pool_initialized = false;
+/* GPIO 设备实例池 */
+static hc32_gpio_dev_t gpio_devices[HC32L021_GPIO_PORT_COUNT];
+static bool gpio_devices_initialized = false;
 
 /* ==================== Private Functions ==================== */
 
 /**
- * @brief 初始化 GPIO 实例池
+ * @brief 初始化 GPIO 设备池
  */
-static void gpio_init_pool(void)
+static void gpio_init_devices(void)
 {
-    if (!gpio_pool_initialized) {
-        memset(gpio_instances, 0, sizeof(gpio_instances));
-        gpio_pool_initialized = true;
+    if (!gpio_devices_initialized) {
+        memset(gpio_devices, 0, sizeof(gpio_devices));
+        gpio_devices_initialized = true;
     }
 }
 
 /**
- * @brief 查找或分配 GPIO 实例
- * @param port GPIO 端口
- * @param pin GPIO 引脚
- * @return hc32_gpio_data_t* GPIO 实例指针
+ * @brief 查找或分配 GPIO 设备
+ * @param port_index 端口索引
+ * @return hc32_gpio_dev_t* GPIO 设备指针
  */
-static hc32_gpio_data_t *gpio_find_or_alloc(M0P_GPIO_TypeDef *port, uint16_t pin)
+static hc32_gpio_dev_t *gpio_find_or_alloc(uint8_t port_index)
 {
-    gpio_init_pool();
+    gpio_init_devices();
     
-    /* 查找已存在的实例 */
-    for (int i = 0; i < 32; i++) {
-        if (gpio_instances[i].port == port && 
-            gpio_instances[i].pin == pin &&
-            gpio_instances[i].initialized) {
-            return &gpio_instances[i];
+    if (port_index >= HC32L021_GPIO_PORT_COUNT) {
+        return NULL;
+    }
+    
+    hc32_gpio_dev_t *dev = &gpio_devices[port_index];
+    
+    if (!dev->initialized) {
+        dev->port = gpio_port_base[port_index];
+        dev->port_index = port_index;
+        dev->initialized_pins = 0;
+        dev->initialized = true;
+    }
+    
+    return dev;
+}
+
+/**
+ * @brief 解析 GPIO 名称
+ * @param name GPIO 名称 (如 "GPIOA", "PA", "GPIOA.5")
+ * @param port_index 输出：端口索引
+ * @param pin 输出：引脚号
+ * @return 0 成功，-1 失败
+ */
+static int parse_gpio_name(const char *name, uint8_t *port_index, uint8_t *pin)
+{
+    if (!name || !port_index || !pin) {
+        return -1;
+    }
+    
+    /* 支持格式：GPIOA, PA, GPIOA.5, PA.5 */
+    if (strncmp(name, "GPIO", 4) == 0) {
+        char port_char = name[4];
+        if (port_char >= 'A' && port_char <= 'H') {
+            *port_index = port_char - 'A';
+            if (name[5] == '.' && name[6] >= '0' && name[6] <= '7') {
+                *pin = name[6] - '0';
+            } else {
+                *pin = 0;
+            }
+            return 0;
         }
-    }
-    
-    /* 分配新实例 */
-    for (int i = 0; i < 32; i++) {
-        if (!gpio_instances[i].initialized) {
-            hc32_gpio_data_t *data = &gpio_instances[i];
-            data->port = port;
-            data->pin = pin;
-            data->initialized = true;
-            return data;
+    } else if (name[0] == 'P' && (name[1] >= 'A' && name[1] <= 'H')) {
+        *port_index = name[1] - 'A';
+        if (name[2] == '.' && name[3] >= '0' && name[3] <= '7') {
+            *pin = name[3] - '0';
+        } else {
+            *pin = 0;
         }
+        return 0;
     }
     
-    return NULL; /* 无可用实例 */
+    return -1;
 }
 
-/**
- * @brief 使能 GPIO 端口时钟
- * @param port GPIO 端口
- */
-static void gpio_enable_clock(M0P_GPIO_TypeDef *port)
-{
-    /* HC32L021 GPIO 时钟始终使能，无需额外配置 */
-    (void)port;
-}
-
-/**
- * @brief 转换 GPIO 模式
- * @param mode XinYi GPIO 模式
- * @return HC32 GPIO 模式
- */
-static en_gpio_func_t gpio_convert_mode(xy_hal_gpio_mode_t mode)
-{
-    switch (mode) {
-        case XY_HAL_GPIO_MODE_INPUT:
-            return GpioFuncPortIn;
-        case XY_HAL_GPIO_MODE_OUTPUT:
-            return GpioFuncPortOut;
-        case XY_HAL_GPIO_MODE_AF:
-            return GpioFuncPortOut; /* HC32L021 复用功能配置 */
-        case XY_HAL_GPIO_MODE_ANALOG:
-            return GpioFuncAnalogIn;
-        default:
-            return GpioFuncPortIn;
-    }
-}
-
-/**
- * @brief 转换 GPIO 上下拉
- * @param pull XinYi 上下拉配置
- * @return HC32 上下拉配置
- */
-static en_gpio_pu_t gpio_convert_pull(xy_hal_gpio_pull_t pull)
-{
-    switch (pull) {
-        case XY_HAL_GPIO_PULL_UP:
-            return GpioPuEnable;
-        case XY_HAL_GPIO_PULL_DOWN:
-            return GpioPuDisable;
-        case XY_HAL_GPIO_PULL_NONE:
-        default:
-            return GpioPuDisable;
-    }
-}
-
-/**
- * @brief 转换 GPIO 驱动能力
- * @param speed XinYi 速度配置
- * @return HC32 驱动能力
- */
-static en_gpio_drv_t gpio_convert_speed(xy_hal_gpio_speed_t speed)
-{
-    switch (speed) {
-        case XY_HAL_GPIO_SPEED_LOW:
-            return GpioDrvL;
-        case XY_HAL_GPIO_SPEED_HIGH:
-        case XY_HAL_GPIO_SPEED_VERY_HIGH:
-        default:
-            return GpioDrvH;
-    }
-}
-
-/* ==================== Public Implementation ==================== */
+/* ==================== API Implementation ==================== */
 
 xy_hal_gpio_t xy_hal_gpio_bind(const char *name)
 {
-    if (!name) {
+    uint8_t port_index, pin;
+    
+    if (parse_gpio_name(name, &port_index, &pin) != 0) {
         return NULL;
     }
     
-    /* 解析引脚名称 (如 "GPIOA.0", "PA0") */
-    M0P_GPIO_TypeDef *port = NULL;
-    uint16_t pin = 0;
-    
-    if (strncmp(name, "PA", 2) == 0) {
-        port = M0P_GPIO_PA;
-        pin = (1 << (name[2] - '0'));
-    } else if (strncmp(name, "PB", 2) == 0) {
-        port = M0P_GPIO_PB;
-        pin = (1 << (name[2] - '0'));
-    } else if (strncmp(name, "PC", 2) == 0) {
-        port = M0P_GPIO_PC;
-        pin = (1 << (name[2] - '0'));
-    } else if (strncmp(name, "PH", 2) == 0) {
-        port = M0P_GPIO_PH;
-        pin = (1 << (name[2] - '0'));
-    }
-    
-    if (!port) {
+    if (port_index >= HC32L021_GPIO_PORT_COUNT) {
         return NULL;
     }
     
-    /* 查找或分配 GPIO 实例 */
-    hc32_gpio_data_t *data = gpio_find_or_alloc(port, pin);
-    if (!data) {
+    hc32_gpio_dev_t *dev = gpio_find_or_alloc(port_index);
+    if (!dev) {
         return NULL;
     }
     
-    return (xy_hal_gpio_t)data;
+    return (xy_hal_gpio_t)dev;
 }
 
-xy_hal_error_t xy_hal_gpio_configure(xy_hal_gpio_t gpio, 
-                                     xy_hal_gpio_pin_t pin,
+xy_hal_error_t xy_hal_gpio_unbind(xy_hal_gpio_t gpio)
+{
+    if (!gpio) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    
+    hc32_gpio_dev_t *dev = (hc32_gpio_dev_t *)gpio;
+    dev->initialized_pins = 0;
+    
+    return XY_HAL_OK;
+}
+
+xy_hal_error_t xy_hal_gpio_configure(xy_hal_gpio_t gpio, xy_hal_gpio_pin_t pin,
                                      const xy_hal_gpio_config_t *config)
 {
     if (!gpio || !config) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     
-    hc32_gpio_data_t *data = (hc32_gpio_data_t *)gpio;
+    hc32_gpio_dev_t *dev = (hc32_gpio_dev_t *)gpio;
     
-    /* 使能时钟 */
-    gpio_enable_clock(data->port);
-    
-    /* 配置 GPIO */
+    /* 配置 GPIO 使用最小化 API */
     stc_gpio_cfg_t gpio_cfg;
-    DDL_ZERO_STRUCT(gpio_cfg);
+    memset(&gpio_cfg, 0, sizeof(gpio_cfg));
     
     /* 设置功能 */
-    gpio_cfg.enFunc = gpio_convert_mode(config->mode);
+    gpio_cfg.enFunc = (config->mode == XY_HAL_GPIO_MODE_OUTPUT) ? GpioFuncPortOut : GpioFuncPortIn;
     
     /* 设置上下拉 */
-    if (config->pull == XY_HAL_GPIO_PULL_UP) {
-        gpio_cfg.enPu = GpioPuEnable;
-    } else if (config->pull == XY_HAL_GPIO_PULL_DOWN) {
-        gpio_cfg.enPd = GpioPdEnable;
-    } else {
-        gpio_cfg.enPu = GpioPuDisable;
-        gpio_cfg.enPd = GpioPdDisable;
-    }
+    gpio_cfg.enPu = (config->pull == XY_HAL_GPIO_PULL_UP) ? GpioPuEnable : GpioPuDisable;
+    gpio_cfg.enPd = (config->pull == XY_HAL_GPIO_PULL_DOWN) ? GpioPdEnable : GpioPdDisable;
     
     /* 设置驱动能力 */
-    gpio_cfg.enDrv = gpio_convert_speed(config->speed);
-    
-    /* 设置开漏/推挽 */
-    if (config->open_drain) {
-        /* HC32L021 通过上拉电阻配置实现开漏效果 */
-        gpio_cfg.enPu = GpioPuDisable;
-    }
+    gpio_cfg.enDrv = (config->speed >= XY_HAL_GPIO_SPEED_HIGH) ? GpioDrvH : GpioDrvL;
     
     /* 应用配置 */
-    GPIO_Init(data->port, data->pin, &gpio_cfg);
+    GPIO_Init(dev->port, pin, &gpio_cfg);
     
-    return XY_HAL_ERROR_OK;
+    /* 标记引脚已初始化 */
+    dev->initialized_pins |= pin;
+    
+    return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_gpio_write(xy_hal_gpio_t gpio, 
-                                 xy_hal_gpio_pin_t pin, 
-                                 uint8_t value)
+xy_hal_error_t xy_hal_gpio_write(xy_hal_gpio_t gpio, xy_hal_gpio_pin_t pin, uint8_t value)
 {
     if (!gpio) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     
-    hc32_gpio_data_t *data = (hc32_gpio_data_t *)gpio;
+    hc32_gpio_dev_t *dev = (hc32_gpio_dev_t *)gpio;
+    GPIO_WriteBit(dev->port, pin, value ? 1 : 0);
     
-    if (value) {
-        GPIO_WriteBit(data->port, data->pin, TRUE);
-    } else {
-        GPIO_WriteBit(data->port, data->pin, FALSE);
-    }
-    
-    return XY_HAL_ERROR_OK;
+    return XY_HAL_OK;
 }
 
 int32_t xy_hal_gpio_read(xy_hal_gpio_t gpio, xy_hal_gpio_pin_t pin)
@@ -252,10 +204,8 @@ int32_t xy_hal_gpio_read(xy_hal_gpio_t gpio, xy_hal_gpio_pin_t pin)
         return -1;
     }
     
-    hc32_gpio_data_t *data = (hc32_gpio_data_t *)gpio;
-    
-    en_flag_t level = GPIO_ReadInputDataBit(data->port, data->pin);
-    return (level == TRUE) ? 1 : 0;
+    hc32_gpio_dev_t *dev = (hc32_gpio_dev_t *)gpio;
+    return GPIO_ReadInputDataBit(dev->port, pin);
 }
 
 xy_hal_error_t xy_hal_gpio_toggle(xy_hal_gpio_t gpio, xy_hal_gpio_pin_t pin)
@@ -264,9 +214,10 @@ xy_hal_error_t xy_hal_gpio_toggle(xy_hal_gpio_t gpio, xy_hal_gpio_pin_t pin)
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     
-    hc32_gpio_data_t *data = (hc32_gpio_data_t *)gpio;
+    hc32_gpio_dev_t *dev = (hc32_gpio_dev_t *)gpio;
+    GPIO_ToggleBits(dev->port, pin);
     
-    GPIO_ToggleBits(data->port, data->pin);
-    
-    return XY_HAL_ERROR_OK;
+    return XY_HAL_OK;
 }
+
+/* ==================== End of File ==================== */
