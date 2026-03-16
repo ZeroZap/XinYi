@@ -8,6 +8,9 @@
  */
 
 #include "xy_rc522.h"
+#include "xy_hal_spi.h"
+#include "xy_hal_gpio.h"
+#include "xy_os.h"
 #include <string.h>
 
 /* ==================== Private Definitions ==================== */
@@ -91,26 +94,52 @@ typedef struct {
 
 /**
  * @brief 写入寄存器
+ * @param dev RC522 设备指针
+ * @param addr 寄存器地址
+ * @param value 写入值
+ * @return XY_DEVICE_OK 成功，其他值失败
  */
 static int write_reg(xy_rc522_t *dev, uint8_t addr, uint8_t value)
 {
-    /* TODO: 实现 SPI 写寄存器 */
-    (void)dev;
-    (void)addr;
-    (void)value;
-    return 0;
+    if (!dev || !dev->spi_handle) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    
+    xy_hal_spi_t spi = (xy_hal_spi_t)dev->spi_handle;
+    
+    /* RC522 SPI 写：最高位为 0，地址在低 7 位 */
+    uint8_t tx_buf[2] = {(addr << 1) & 0x7E, value};
+    int32_t ret = xy_hal_spi_transfer(spi, tx_buf, NULL, 2, 100);
+    
+    return (ret > 0) ? XY_DEVICE_OK : XY_DEVICE_ERROR;
 }
 
 /**
  * @brief 读取寄存器
+ * @param dev RC522 设备指针
+ * @param addr 寄存器地址
+ * @param value 读取值 (输出)
+ * @return XY_DEVICE_OK 成功，其他值失败
  */
 static int read_reg(xy_rc522_t *dev, uint8_t addr, uint8_t *value)
 {
-    /* TODO: 实现 SPI 读寄存器 */
-    (void)dev;
-    (void)addr;
-    (void)value;
-    return 0;
+    if (!dev || !dev->spi_handle || !value) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    
+    xy_hal_spi_t spi = (xy_hal_spi_t)dev->spi_handle;
+    
+    /* RC522 SPI 读：最高位为 1，地址在低 7 位 */
+    uint8_t tx_buf[2] = {((addr << 1) & 0x7E) | 0x80, 0x00};
+    uint8_t rx_buf[2] = {0};
+    
+    int32_t ret = xy_hal_spi_transfer(spi, tx_buf, rx_buf, 2, 100);
+    if (ret > 0) {
+        *value = rx_buf[1];
+        return XY_DEVICE_OK;
+    }
+    
+    return XY_DEVICE_ERROR;
 }
 
 /**
@@ -149,11 +178,44 @@ static int execute_command(xy_rc522_t *dev, uint8_t cmd)
 
 /**
  * @brief 延迟毫秒
+ * @param ms 延迟毫秒数
  */
 static void delay_ms(uint32_t ms)
 {
-    /* TODO: 实现延迟 */
-    for (volatile uint32_t i = 0; i < ms * 1000; i++);
+    xy_os_time_delay_ms(ms);
+}
+
+/**
+ * @brief 延迟微秒
+ * @param us 延迟微秒数
+ */
+static void delay_us(uint32_t us)
+{
+    xy_os_time_delay_us(us);
+}
+
+/**
+ * @brief 拉低复位 GPIO
+ * @param dev RC522 设备指针
+ */
+static void rst_gpio_low(xy_rc522_t *dev)
+{
+    if (dev && dev->rst_gpio) {
+        xy_hal_gpio_t gpio = (xy_hal_gpio_t)dev->rst_gpio;
+        xy_hal_gpio_write(gpio, XY_HAL_GPIO_PIN_ALL, 0);
+    }
+}
+
+/**
+ * @brief 拉高复位 GPIO
+ * @param dev RC522 设备指针
+ */
+static void rst_gpio_high(xy_rc522_t *dev)
+{
+    if (dev && dev->rst_gpio) {
+        xy_hal_gpio_t gpio = (xy_hal_gpio_t)dev->rst_gpio;
+        xy_hal_gpio_write(gpio, XY_HAL_GPIO_PIN_ALL, 1);
+    }
 }
 
 /* ==================== Public Implementation ==================== */
@@ -171,9 +233,9 @@ int xy_rc522_init(xy_rc522_t *dev, void *spi_handle, void *rst_gpio)
     dev->initialized = false;
     
     /* 硬件复位 */
-    /* TODO: 拉低复位 GPIO */
+    rst_gpio_low(dev);
     delay_ms(10);
-    /* TODO: 拉高复位 GPIO */
+    rst_gpio_high(dev);
     delay_ms(10);
     
     /* 软复位 */
@@ -386,8 +448,9 @@ int xy_rc522_mifare_read(xy_rc522_t *dev, uint8_t block_addr,
     write_reg(dev, RC522_REG_FIFO_DATA, cmd);
     write_reg(dev, RC522_REG_FIFO_DATA, block_addr);
     
-    /* 计算 CRC */
-    /* TODO: 实现 CRC 计算 */
+    /* 计算 CRC (使用硬件 CRC) */
+    write_reg(dev, RC522_REG_COMMAND, RC522_CMD_CRC);
+    delay_ms(1);  /* 等待 CRC 计算完成 */
     
     execute_command(dev, RC522_CMD_TRANSMIT);
     
@@ -428,8 +491,9 @@ int xy_rc522_mifare_write(xy_rc522_t *dev, uint8_t block_addr,
     write_reg(dev, RC522_REG_FIFO_DATA, cmd);
     write_reg(dev, RC522_REG_FIFO_DATA, block_addr);
     
-    /* 计算 CRC */
-    /* TODO: 实现 CRC 计算 */
+    /* 计算 CRC (使用硬件 CRC) */
+    write_reg(dev, RC522_REG_COMMAND, RC522_CMD_CRC);
+    delay_ms(1);  /* 等待 CRC 计算完成 */
     
     execute_command(dev, RC522_CMD_TRANSMIT);
     
