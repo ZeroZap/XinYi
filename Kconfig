@@ -1,79 +1,288 @@
-# Top-level Kconfig for XY Framework
+# XinYi Framework Kconfig Configuration
+# Similar to Zephyr/ESP-IDF configuration system
 
-menu "XY Framework Configuration"
+menu "XinYi Framework Configuration"
 
-config XY_FRAMEWORK_VERSION
-    string "XY Framework Version"
+config XY_VERSION
+    string
     default "1.0.0"
+
+menu "Platform Selection"
+
+config PLATFORM_PC
+    bool "PC Simulation (Windows/Linux/macOS)"
+    default y if ARCH_X86_64 || ARCH_ARM64
+    select HAL_PC
+    select HAS_STDIO
     help
-      The version of the XY Framework being used.
+      Build for PC simulation with standard C library support.
+      Supports Windows, Linux, and macOS.
 
-# ==================== Core Components ====================
+config PLATFORM_STM32
+    bool "STM32 Series"
+    select HAL_STM32
+    select ARM_CORTEX_M
 
-source "components/crypto/Kconfig"
-source "components/clib/xy_clib/Kconfig"
-source "components/dm/Kconfig"
-source "components/net/Kconfig"
-source "components/trace/Kconfig"
+config PLATFORM_STM32U5
+    bool "STM32U5 Series (High-performance)"
+    depends on PLATFORM_STM32
+    select CORTEX_M33
+    select FPU
+    help
+      STM32U5 series with TrustZone and advanced security features.
 
-# ==================== Kernel & OS ====================
+config PLATFORM_STM32F4
+    bool "STM32F4 Series (Mainstream)"
+    depends on PLATFORM_STM32
+    select CORTEX_M4
+    select FPU
+    help
+      STM32F4 series with FPU, suitable for DSP applications.
 
-source "components/kernel/osal/Kconfig"
-source "components/kernel/misc/Kconfig"
+config PLATFORM_STM32F1
+    bool "STM32F1 Series (Entry-level)"
+    depends on PLATFORM_STM32
+    select CORTEX_M3
+    help
+      STM32F1 series, cost-effective solution.
 
-# ==================== Hardware Abstraction ====================
+config PLATFORM_WCH
+    bool "WCH CH32 Series"
+    select HAL_WCH
+    help
+      WCH (QinHeng) CH32V/RISC-V series.
 
-# HAL is configured through components/hal/stm32/Kconfig
-# source "components/hal/Kconfig"  # Create if needed
+config PLATFORM_HC32
+    bool "Huada HC32 Series"
+    select HAL_HC32
+    help
+      Huada Semiconductor HC32 series (ARM/RISC-V).
 
-# ==================== Drivers & Devices ====================
+endmenu # Platform Selection
 
-source "components/drivers/Kconfig"
-source "components/drivers/xy_key/Kconfig"
-source "components/sensor/Kconfig"
+menu "HAL Configuration"
 
-# ==================== Communication & IPC ====================
+config HAL_PC
+    bool
+    select HAVE_DELAY_MS
+    select HAVE_DELAY_US
 
-source "components/ipc/Kconfig"
+config HAL_STM32
+    bool
 
-# ==================== System Services ====================
+config HAL_WCH
+    bool
 
-source "components/fota/Kconfig"
-source "components/pm/Kconfig"
-source "components/sys/xy_state_machine/Kconfig"
+config HAL_HC32
+    bool
 
-# ==================== Third Party Libraries ====================
+config HAL_USE_STANDARD_API
+    bool "Use unified HAL API"
+    default y
+    help
+      Use the unified HAL API across all platforms.
 
-if EXISTS "third_party/Kconfig"
-source "third_party/Kconfig"
-endif
+endmenu # HAL Configuration
 
-# ==================== Build Configuration ====================
+menu "Core Components"
 
-menu "Build Options"
-    config BUILD_TESTING
-        bool "Build tests"
-        default n
-        help
-          Enable building of unit tests.
+config COMPONENT_DEVICE
+    bool "Device Framework"
+    default y
+    help
+      Unified device management framework.
 
-    config BUILD_SHARED_LIBS
-        bool "Build shared libraries"
-        default n
-        help
-          Build shared libraries instead of static.
+config COMPONENT_CHARGER
+    bool "Charger Management"
+    default n
+    select COMPONENT_DEVICE
+    help
+      Battery charger management (BQ25620, etc).
 
-    config ENABLE_LOGGING
-        bool "Enable logging"
-        default y
-        help
-          Enable framework logging.
+config COMPONENT_CRYPTO
+    bool "Crypto Library"
+    default y
+    help
+      Lightweight cryptography library (AES, SHA, CRC, etc).
 
-    config ENABLE_ASSERTIONS
-        bool "Enable assertions"
-        default y
-        help
-          Enable runtime assertions.
-endmenu
+config COMPONENT_DM
+    bool "Device Management"
+    default n
+    help
+      Advanced device management with JSON/Flash support.
 
-endmenu
+config COMPONENT_SENSOR
+    bool "Sensor Framework"
+    default y
+    help
+      Sensor abstraction layer.
+
+endmenu # Core Components
+
+menu "GUI Subsystem"
+
+config GUI_ENABLED
+    bool "Enable GUI Subsystem"
+    default n
+    help
+      Enable graphical user interface support.
+
+config GUI_SDL
+    bool "SDL2 Backend (PC)"
+    depends on GUI_ENABLED && PLATFORM_PC
+    select SDL2
+    help
+      SDL2-based GUI backend for PC platforms.
+      Provides windowing, input, and rendering.
+
+config GUI_TFT
+    bool "TFT LCD Backend (Embedded)"
+    depends on GUI_ENABLED && (PLATFORM_STM32U5 || PLATFORM_STM32F4)
+    help
+      TFT LCD driver for embedded platforms.
+      Supports SPI/I8080/RGB interfaces.
+
+config GUI_LVGL
+    bool "LVGL Integration"
+    depends on GUI_ENABLED
+    help
+      Integrate LVGL graphics library.
+
+config GUI_WIDGETS
+    bool "Built-in Widgets"
+    depends on GUI_ENABLED
+    default y
+    help
+      Built-in widget library (Button, Label, Slider, etc).
+
+endmenu # GUI Subsystem
+
+menu "Communication Protocols"
+
+config PROTO_MQTT
+    bool "MQTT Protocol"
+    default n
+    select NETWORK
+    help
+      MQTT client for IoT connectivity.
+
+config PROTO_HTTP
+    bool "HTTP Client"
+    default n
+    select NETWORK
+    help
+      HTTP/HTTPS client support.
+
+config PROTO_COAP
+    bool "CoAP Protocol"
+    default n
+    select NETWORK
+    help
+      CoAP for constrained devices.
+
+endmenu # Communication Protocols
+
+menu "File System"
+
+config FS_ENABLED
+    bool "File System Support"
+    default n
+
+config FS_FATFS
+    bool "FatFs"
+    depends on FS_ENABLED
+    help
+      FatFs file system for SD/eMMC.
+
+config FS_LITTLEFS
+    bool "LittleFS"
+    depends on FS_ENABLED
+    help
+      LittleFS for internal flash.
+
+endmenu # File System
+
+menu "Power Management"
+
+config PM_ENABLED
+    bool "Power Management"
+    default y if PLATFORM_STM32
+    help
+      Power management framework.
+
+config PM_SLEEP_MODES
+    bool "Sleep Modes"
+    depends on PM_ENABLED
+    help
+      Support for sleep/stop/standby modes.
+
+config PM_DYNAMIC_VOLTAGE
+    bool "Dynamic Voltage Scaling"
+    depends on PM_ENABLED
+    help
+      Dynamic voltage and frequency scaling.
+
+endmenu # Power Management
+
+menu "Logging & Debug"
+
+config LOG_ENABLED
+    bool "Logging System"
+    default y
+    help
+      Unified logging framework.
+
+config LOG_LEVEL
+    int "Log Level"
+    depends on LOG_ENABLED
+    default 3
+    range 0 4
+    help
+      0=OFF, 1=ERROR, 2=WARNING, 3=INFO, 4=DEBUG
+
+config LOG_COLOR
+    bool "Colored Output"
+    depends on LOG_ENABLED && PLATFORM_PC
+    default y
+    help
+      Enable colored log output.
+
+config ASSERT_ENABLED
+    bool "Assertions"
+    default y
+    help
+      Enable runtime assertions.
+
+endmenu # Logging & Debug
+
+menu "Advanced Options"
+
+config BUILD_SHARED_LIBS
+    bool "Build shared libraries"
+    default n
+    help
+      Build components as shared libraries instead of static.
+
+config BUILD_TESTING
+    bool "Build tests"
+    default n
+    help
+      Build unit tests for components.
+
+config ENABLE_COVERAGE
+    bool "Enable code coverage"
+    depends on BUILD_TESTING && PLATFORM_PC
+    default n
+    help
+      Enable code coverage analysis.
+
+config ENABLE_SANITIZER
+    bool "Enable sanitizers"
+    depends on BUILD_TESTING && PLATFORM_PC
+    default n
+    help
+      Enable AddressSanitizer/UBSan for debugging.
+
+endmenu # Advanced Options
+
+endmenu # XinYi Framework Configuration

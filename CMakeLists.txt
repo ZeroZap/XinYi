@@ -3,6 +3,13 @@ cmake_minimum_required(VERSION 3.12)
 # 禁用编译器检查 (裸机环境不需要)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
+# ==================== Kconfig Integration ====================
+
+# Include Kconfig parser before project() to configure build
+if(EXISTS ${CMAKE_SOURCE_DIR}/Kconfig)
+    include(${CMAKE_SOURCE_DIR}/cmake/Kconfig.cmake)
+endif()
+
 project(XY_Framework VERSION 1.0.0 LANGUAGES C)
 
 # Set C standard
@@ -18,8 +25,16 @@ endif()
 
 # ==================== Build Options ====================
 
-option(BUILD_TESTING "Build tests" OFF)
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+# Override from Kconfig if available
+if(DEFINED XY_BUILD_TESTING)
+    set(BUILD_TESTING ${XY_BUILD_TESTING})
+endif()
+if(DEFINED XY_BUILD_SHARED_LIBS)
+    set(BUILD_SHARED_LIBS ${XY_BUILD_SHARED_LIBS})
+endif()
+
+option(BUILD_TESTING "Build tests" ${BUILD_TESTING})
+option(BUILD_SHARED_LIBS "Build shared libraries" ${BUILD_SHARED_LIBS})
 
 # ==================== Third Party Libraries ====================
 
