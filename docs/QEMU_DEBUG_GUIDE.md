@@ -1,14 +1,66 @@
 # XinYi QEMU STM32 调试指南
 
-**版本**: 1.0.0  
+**版本**: 1.1.0  
 **日期**: 2026-03-17  
-**维护者**: XinYi Team
+**维护者**: XinYi Team  
+**状态**: ✅ 环境验证通过
 
 ---
 
 ## 📋 概述
 
 使用 QEMU STM32 模拟器进行 XinYi 组件的虚拟调试，无需实际硬件即可开发和测试驱动代码。
+
+---
+
+## ✅ 环境验证 (2026-03-17)
+
+### 已安装工具
+| 工具 | 版本 | 状态 |
+|------|------|------|
+| QEMU | 8.2.2 | ✅ 已安装 |
+| GDB | 15.0.50 | ✅ 已安装 |
+| ARM GCC | 9.3.1 | ✅ 已配置 |
+
+### 测试固件
+- **路径**: `examples/qemu_test/build/qemu_test.elf`
+- **大小**: 40 bytes
+- **运行**: ✅ QEMU lm3s6965evb 验证通过
+
+### 支持的 QEMU 开发板
+系统 QEMU 8.2.2 支持的 Cortex-M 开发板：
+| 开发板 | 内核 | 推荐用途 |
+|--------|------|---------|
+| `lm3s6965evb` | Cortex-M3 | ⭐ 推荐 - Stellaris 评估板 |
+| `lm3s811evb` | Cortex-M3 | Stellaris 评估板 |
+| `mps2-an385` | Cortex-M3 | ARM MPS2 FPGA |
+| `mps2-an386` | Cortex-M4 | ARM MPS2 FPGA |
+| `olimex-stm32-h405` | Cortex-M4 | STM32F405 |
+| `stm32vldiscovery` | Cortex-M3 | STM32F100 |
+
+**注意**: 系统 QEMU 不支持 STM32U5，使用 lm3s6965evb (Cortex-M3) 进行通用驱动测试。
+
+---
+
+## 🚀 快速开始
+
+### 1. 运行测试固件
+```bash
+cd /home/eugene/zerozap/XinYi/examples/qemu_test
+
+# 基本运行
+qemu-system-arm -M lm3s6965evb -nographic -kernel build/qemu_test.elf
+
+# 带 GDB 调试
+qemu-system-arm -M lm3s6965evb -nographic -kernel build/qemu_test.elf -s -S
+```
+
+### 2. GDB 连接
+```bash
+arm-none-eabi-gdb build/qemu_test.elf
+(gdb) target remote :1234
+(gdb) continue
+```
 
 ---
 
