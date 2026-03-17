@@ -8,6 +8,10 @@
 #include "xy_eeprom_24xx.h"
 #include <string.h>
 
+#ifdef HAL_PLATFORM_PC
+#include "../hal/PC/xy_hal_pc.h"
+#endif
+
 int xy_eeprom_24xx_init(xy_eeprom_24xx_t *eeprom, void *i2c_handle, 
                         uint16_t addr, uint16_t page_size, uint16_t total_size)
 {

@@ -13,6 +13,21 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/* ==================== Configuration ==================== */
+
+#ifndef XY_DEVICE_MAX_COUNT
+#define XY_DEVICE_MAX_COUNT 32
+#endif
+
+#ifndef XY_DEVICE_NAME_MAX_LEN
+#define XY_DEVICE_NAME_MAX_LEN 16
+#endif
+
+/* PC platform: include delay functions */
+#ifdef HAL_PLATFORM_PC
+#include "../hal/PC/xy_hal_pc.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,8 +53,22 @@ typedef enum {
     XY_DEV_TYPE_STORAGE,        /**< Storage device */
     XY_DEV_TYPE_BUS,            /**< Bus device */
     XY_DEV_TYPE_MISC,           /**< Miscellaneous device */
+    XY_DEV_TYPE_I2C_DEVICE,     /**< I2C device wrapper */
+    XY_DEV_TYPE_SPI_DEVICE,     /**< SPI device wrapper */
     XY_DEV_TYPE_MAX
 } xy_dev_type_t;
+
+/* Type alias for compatibility */
+typedef xy_dev_type_t xy_device_type_t;
+
+/* Legacy aliases for compatibility */
+#define XY_DEVICE_TYPE_I2C      XY_DEV_TYPE_I2C_DEVICE
+#define XY_DEVICE_TYPE_SPI      XY_DEV_TYPE_SPI_DEVICE
+#define XY_DEVICE_TYPE_UART     XY_DEV_TYPE_UART
+#define XY_DEVICE_TYPE_GPIO     XY_DEV_TYPE_GPIO
+#define XY_DEVICE_TYPE_SENSOR   XY_DEV_TYPE_SENSOR
+#define XY_DEVICE_TYPE_DISPLAY  XY_DEV_TYPE_MISC
+#define XY_DEVICE_TYPE_MEMORY   XY_DEV_TYPE_STORAGE
 
 /**
  * @brief Device state enumeration
@@ -110,6 +139,23 @@ typedef enum {
     XY_DEV_CMD_GET_POLARITY,    /**< Get polarity */
 } xy_dev_cmd_t;
 
+/* ==================== Callback Types ==================== */
+
+/**
+ * @brief Async operation callback
+ */
+typedef void (*xy_async_callback_t)(xy_error_t result, size_t transferred, void *arg);
+
+/**
+ * @brief Sensor data callback
+ */
+typedef void (*xy_sensor_callback_t)(void *data, size_t size, void *arg);
+
+/* ==================== I2C/SPI Device Types ==================== */
+
+/**
+ * @brief I2C device handle
+ */
 /* ==================== Device Structures ==================== */
 
 /**
@@ -146,9 +192,84 @@ typedef struct xy_device {
     void *data;                       /**< Device private data (runtime) */
     uint8_t ref_count;                /**< Reference count */
     uint8_t power_mode;               /**< Power mode */
+    uint8_t initialized;              /**< Initialization flag */
     uint16_t reserved;                /**< Reserved for future use */
     struct xy_device *next;           /**< Linked list pointer */
 } xy_device_t;
+
+/* ==================== I2C/SPI Device Types ==================== */
+
+/**
+ * @brief I2C device handle
+ */
+typedef struct xy_i2c_device {
+    xy_device_t base;           /**< Base device */
+    void *i2c_handle;           /**< I2C handle */
+    uint16_t dev_addr;          /**< Device address */
+    uint32_t timeout;           /**< Timeout in ms */
+} xy_i2c_device_t;
+
+/**
+ * @brief SPI device handle
+ */
+typedef struct xy_spi_device {
+    xy_device_t base;           /**< Base device */
+    void *spi_handle;           /**< SPI handle */
+    void *cs_pin;               /**< Chip select pin (GPIO handle) */
+    uint32_t speed;             /**< Speed in Hz */
+    uint8_t mode;               /**< SPI mode */
+} xy_spi_device_t;
+
+/**
+ * @brief UART device handle
+ */
+typedef struct xy_uart_device {
+    xy_device_t base;           /**< Base device */
+    void *uart_handle;          /**< UART handle */
+    uint32_t baudrate;          /**< Baudrate */
+    uint32_t timeout;           /**< Timeout in ms */
+} xy_uart_device_t;
+
+/**
+ * @brief GPIO device handle
+ */
+typedef struct xy_gpio_device {
+    xy_device_t base;           /**< Base device */
+    void *gpio_port;            /**< GPIO port handle */
+    uint8_t gpio_pin;           /**< GPIO pin number */
+    uint8_t mode;               /**< GPIO mode */
+    uint8_t pull;               /**< Pull up/down */
+} xy_gpio_device_t;
+
+/* GPIO type aliases */
+typedef xy_hal_gpio_mode_t xy_gpio_mode_t;
+typedef xy_hal_gpio_pull_t xy_gpio_pull_t;
+
+/* ==================== I2C/SPI/UART/GPIO Device Helpers ==================== */
+
+/* I2C Device */
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout);
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len);
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data, size_t len);
+xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len);
+xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len);
+
+/* SPI Device */
+xy_error_t xy_spi_device_init(xy_spi_device_t *dev, void *spi_handle, void *cs_pin, uint32_t speed, uint8_t mode);
+void xy_spi_device_cs(xy_spi_device_t *dev, bool select);
+xy_error_t xy_spi_device_transfer(xy_spi_device_t *dev, const uint8_t *tx, uint8_t *rx, size_t len);
+
+/* UART Device */
+xy_error_t xy_uart_device_init(xy_uart_device_t *dev, void *uart_handle, uint32_t baudrate);
+xy_error_t xy_uart_device_send(xy_uart_device_t *dev, const uint8_t *data, size_t len);
+xy_error_t xy_uart_device_recv(xy_uart_device_t *dev, uint8_t *data, size_t len);
+int xy_uart_device_printf(xy_uart_device_t *dev, const char *fmt, ...);
+
+/* GPIO Device */
+xy_error_t xy_gpio_device_init(xy_gpio_device_t *dev, void *gpio_port, uint8_t pin, xy_gpio_mode_t mode, xy_gpio_pull_t pull);
+xy_error_t xy_gpio_device_write(xy_gpio_device_t *dev, uint8_t value);
+xy_error_t xy_gpio_device_read(xy_gpio_device_t *dev, uint8_t *value);
+xy_error_t xy_gpio_device_toggle(xy_gpio_device_t *dev);
 
 /**
  * @brief Device information structure
@@ -649,7 +770,7 @@ typedef struct {
  * @brief Device manager structure
  */
 typedef struct {
-    xy_device_t *devices[XY_DEVICE_MAX_COUNT];
+    xy_device_t **devices;        /**< Device array (dynamically allocated) */
     uint32_t count;
     uint32_t max_count;
     void *lock;
@@ -659,7 +780,7 @@ typedef struct {
  * @brief Initialize device manager
  * @return XY_OK on success, error code on failure
  */
-xy_error_t xy_device_manager_init(void);
+xy_error_t xy_device_manager_init(xy_device_manager_t *mgr, size_t max_count);
 
 /**
  * @brief Register device with group
@@ -667,7 +788,7 @@ xy_error_t xy_device_manager_init(void);
  * @param dev Device pointer
  * @return XY_OK on success, error code on failure
  */
-xy_error_t xy_device_manager_register(const char *group, xy_device_t *dev);
+xy_error_t xy_device_manager_register(xy_device_manager_t *mgr, xy_device_t *dev);
 
 /**
  * @brief Find device by group and index
@@ -731,16 +852,6 @@ typedef enum {
     XY_DEVICE_ERROR_SENSOR_ERROR = -128,    /**< Sensor error */
     XY_DEVICE_ERROR_END = -199,
 } xy_device_error_codes_t;
-
-/* ==================== Configuration ==================== */
-
-#ifndef XY_DEVICE_MAX_COUNT
-#define XY_DEVICE_MAX_COUNT 32
-#endif
-
-#ifndef XY_DEVICE_NAME_MAX_LEN
-#define XY_DEVICE_NAME_MAX_LEN 16
-#endif
 
 #ifdef __cplusplus
 }

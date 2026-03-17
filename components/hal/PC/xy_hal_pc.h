@@ -19,12 +19,12 @@ extern "C" {
 /**
  * @brief PC 仿真 GPIO 端口结构
  */
-typedef struct {
+struct xy_hal_gpio_port {
     uint8_t port_id;
     uint32_t pin_mask;
     uint8_t direction;  /* 0=Input, 1=Output */
     uint8_t pull;       /* 0=None, 1=Pull-up, 2=Pull-down */
-} xy_hal_gpio_port_t;
+};
 
 /**
  * @brief PC 仿真 UART 结构
@@ -95,8 +95,8 @@ int xy_hal_adc_read_pc(uint8_t instance, uint8_t channel, uint32_t *value);
 
 /* ==================== Delay Simulation ==================== */
 
-void xy_hal_delay_ms_pc(uint32_t ms);
-void xy_hal_delay_us_pc(uint32_t us);
+void xy_hal_delay_ms(uint32_t ms);
+void xy_hal_delay_us(uint32_t us);
 
 #ifdef __cplusplus
 }

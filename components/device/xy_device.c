@@ -21,7 +21,7 @@ extern void xy_hal_delay_ms(uint32_t ms);
 
 /* ==================== I2C Device Implementation ==================== */
 
-int xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, 
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, 
                        uint16_t addr, uint32_t timeout)
 {
     if (!dev || !i2c_handle) {
@@ -39,7 +39,7 @@ int xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle,
     return XY_DEVICE_OK;
 }
 
-int xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, 
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, 
                            uint8_t *data, size_t len)
 {
     if (!dev || !data || !dev->base.initialized) {
@@ -64,7 +64,7 @@ int xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg,
     return (int)len;
 }
 
-int xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, 
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, 
                             const uint8_t *data, size_t len)
 {
     if (!dev || !data || !dev->base.initialized) {
@@ -91,7 +91,7 @@ int xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg,
     return (int)len;
 }
 
-int xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
+xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 {
     if (!dev || !data || !dev->base.initialized) {
         return XY_DEVICE_INVALID_PARAM;
@@ -108,7 +108,7 @@ int xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
     return (int)len;
 }
 
-int xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
+xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     if (!dev || !data || !dev->base.initialized) {
         return XY_DEVICE_INVALID_PARAM;
@@ -127,8 +127,8 @@ int xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 
 /* ==================== SPI Device Implementation ==================== */
 
-int xy_spi_device_init(xy_spi_device_t *dev, void *spi_handle, 
-                       void *cs_pin, uint32_t speed)
+xy_error_t xy_spi_device_init(xy_spi_device_t *dev, void *spi_handle, 
+                       void *cs_pin, uint32_t speed, uint8_t mode)
 {
     if (!dev || !spi_handle) {
         return XY_DEVICE_INVALID_PARAM;
@@ -139,7 +139,8 @@ int xy_spi_device_init(xy_spi_device_t *dev, void *spi_handle,
     dev->base.type = XY_DEVICE_TYPE_SPI;
     dev->spi_handle = spi_handle;
     dev->cs_pin = cs_pin;
-    dev->speed_hz = speed ? speed : 1000000; /* 1MHz default */
+    dev->speed = speed ? speed : 1000000; /* 1MHz default */
+    dev->mode = mode;
     dev->base.initialized = true;
 
     return XY_DEVICE_OK;
@@ -162,7 +163,7 @@ void xy_spi_device_cs(xy_spi_device_t *dev, bool select)
 #endif
 }
 
-int xy_spi_device_transfer(xy_spi_device_t *dev, const uint8_t *tx, 
+xy_error_t xy_spi_device_transfer(xy_spi_device_t *dev, const uint8_t *tx, 
                            uint8_t *rx, size_t len)
 {
     if (!dev || !dev->base.initialized) {
@@ -204,7 +205,7 @@ int xy_spi_device_recv(xy_spi_device_t *dev, uint8_t *data, size_t len)
 
 /* ==================== UART Device Implementation ==================== */
 
-int xy_uart_device_init(xy_uart_device_t *dev, void *uart_handle, 
+xy_error_t xy_uart_device_init(xy_uart_device_t *dev, void *uart_handle, 
                         uint32_t baudrate)
 {
     if (!dev || !uart_handle) {
@@ -221,7 +222,7 @@ int xy_uart_device_init(xy_uart_device_t *dev, void *uart_handle,
     return XY_DEVICE_OK;
 }
 
-int xy_uart_device_send(xy_uart_device_t *dev, const uint8_t *data, size_t len)
+xy_error_t xy_uart_device_send(xy_uart_device_t *dev, const uint8_t *data, size_t len)
 {
     if (!dev || !data || !dev->base.initialized) {
         return XY_DEVICE_INVALID_PARAM;
@@ -235,7 +236,7 @@ int xy_uart_device_send(xy_uart_device_t *dev, const uint8_t *data, size_t len)
     return (int)len;
 }
 
-int xy_uart_device_recv(xy_uart_device_t *dev, uint8_t *data, size_t len)
+xy_error_t xy_uart_device_recv(xy_uart_device_t *dev, uint8_t *data, size_t len)
 {
     if (!dev || !data || !dev->base.initialized) {
         return XY_DEVICE_INVALID_PARAM;
@@ -270,7 +271,7 @@ int xy_uart_device_printf(xy_uart_device_t *dev, const char *fmt, ...)
 
 /* ==================== GPIO Device Implementation ==================== */
 
-int xy_gpio_device_init(xy_gpio_device_t *dev, void *port, uint16_t pin,
+xy_error_t xy_gpio_device_init(xy_gpio_device_t *dev, void *port, uint8_t pin,
                         xy_gpio_mode_t mode, xy_gpio_pull_t pull)
 {
     if (!dev || !port) {
@@ -316,18 +317,19 @@ bool xy_gpio_device_get(xy_gpio_device_t *dev)
     return xy_hal_pin_read(dev->gpio_port, dev->gpio_pin) != 0;
 }
 
-void xy_gpio_device_toggle(xy_gpio_device_t *dev)
+xy_error_t xy_gpio_device_toggle(xy_gpio_device_t *dev)
 {
     if (!dev || !dev->base.initialized) {
-        return;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     xy_hal_pin_toggle(dev->gpio_port, dev->gpio_pin);
+    return XY_DEVICE_OK;
 }
 
 /* ==================== Device Manager Implementation ==================== */
 
-int xy_device_manager_init(xy_device_manager_t *mgr, size_t max_count)
+xy_error_t xy_device_manager_init(xy_device_manager_t *mgr, size_t max_count)
 {
     if (!mgr || max_count == 0) {
         return XY_DEVICE_INVALID_PARAM;
@@ -346,7 +348,7 @@ int xy_device_manager_init(xy_device_manager_t *mgr, size_t max_count)
     return XY_DEVICE_OK;
 }
 
-int xy_device_manager_register(xy_device_manager_t *mgr, xy_device_t *dev)
+xy_error_t xy_device_manager_register(xy_device_manager_t *mgr, xy_device_t *dev)
 {
     if (!mgr || !dev || mgr->count >= mgr->max_count) {
         return XY_DEVICE_INVALID_PARAM;
@@ -363,7 +365,7 @@ int xy_device_manager_register(xy_device_manager_t *mgr, xy_device_t *dev)
     return XY_DEVICE_OK;
 }
 
-int xy_device_manager_unregister(xy_device_manager_t *mgr, xy_device_t *dev)
+xy_error_t xy_device_manager_unregister(xy_device_manager_t *mgr, xy_device_t *dev)
 {
     if (!mgr || !dev) {
         return XY_DEVICE_INVALID_PARAM;

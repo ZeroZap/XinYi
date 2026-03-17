@@ -19,6 +19,8 @@ include_directories(
     ../hal/inc
     ../kernel/osal
     ../trace/xy_log/inc
+    ../clib/xy_clib
+    ..
 )
 
 # Collect source files

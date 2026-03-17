@@ -23,7 +23,7 @@ static int bq25620_i2c_read(xy_bq25620_t *dev, uint8_t reg, uint8_t *data, uint8
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    xy_hal_i2c_t i2c = (xy_hal_i2c_t)dev->i2c_handle;
+    void *i2c = dev->i2c_handle;
     
     /* 写入寄存器地址 */
     int32_t ret = xy_hal_i2c_master_transmit(i2c, dev->i2c_addr, &reg, 1, 100);
@@ -49,7 +49,7 @@ static int bq25620_i2c_write(xy_bq25620_t *dev, uint8_t reg, uint8_t data)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    xy_hal_i2c_t i2c = (xy_hal_i2c_t)dev->i2c_handle;
+    void *i2c = dev->i2c_handle;
     uint8_t tx_buf[2] = {reg, data};
     
     int32_t ret = xy_hal_i2c_master_transmit(i2c, dev->i2c_addr, tx_buf, 2, 100);
@@ -136,7 +136,7 @@ static int bq25620_hw_init(void *hw_data)
     
     /* 验证型号 */
     if ((dev_id & BQ25620_PART_NUMBER_MASK) != BQ25620_PART_NUMBER) {
-        return XY_DEVICE_NOT_SUPPORTED;
+        return XY_DEVICE_NOT_SUPPORT;
     }
     
     dev->initialized = true;

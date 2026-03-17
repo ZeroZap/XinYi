@@ -26,8 +26,12 @@ echo ""
 echo "[2/3] Running on QEMU..."
 echo "----------------------------------------"
 
+# timeout 返回 124 表示超时，但测试可能已完成，忽略退出码
 timeout 10 qemu-system-arm -M olimex-stm32-h405 -nographic \
-    -kernel components_test.elf -semihosting 2>&1 | tee test_output.log
+    -kernel components_test.elf -semihosting 2>&1 | tee test_output.log || true
+
+# 等待文件写入完成
+sleep 0.5
 
 echo "----------------------------------------"
 

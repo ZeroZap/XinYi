@@ -96,9 +96,9 @@ xy_hal_error_t xy_hal_uart_deinit(void *uart);
  * @param data Data buffer
  * @param len Data length
  * @param timeout Timeout in milliseconds
- * @return Number of bytes sent on success, XY_HAL_ERROR_* on error
+ * @return XY_HAL_OK on success, XY_HAL_ERROR_* on error
  */
-int xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
+xy_hal_error_t xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
                      uint32_t timeout);
 
 /**
@@ -107,9 +107,9 @@ int xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
  * @param data Data buffer
  * @param len Buffer length
  * @param timeout Timeout in milliseconds
- * @return Number of bytes received on success, XY_HAL_ERROR_* on error
+ * @return XY_HAL_OK on success, XY_HAL_ERROR_* on error
  */
-int xy_hal_uart_recv(void *uart, uint8_t *data, size_t len, uint32_t timeout);
+xy_hal_error_t xy_hal_uart_recv(void *uart, uint8_t *data, size_t len, uint32_t timeout);
 
 /**
  * @brief Send data via UART (non-blocking with DMA)

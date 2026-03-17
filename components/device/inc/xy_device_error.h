@@ -27,6 +27,21 @@ extern "C" {
 #define XY_ERROR_NO_RESOURCE     XY_HAL_ERROR_NO_RESOURCE
 #define XY_ERROR_FAIL            XY_HAL_ERROR_FAIL
 
+/* Device-specific error codes (aliases to HAL error codes) */
+#define XY_DEVICE_OK              XY_HAL_OK
+#define XY_DEVICE_ERROR           XY_HAL_ERROR
+#define XY_DEVICE_INVALID_PARAM   XY_HAL_ERROR_INVALID_PARAM
+#define XY_DEVICE_NOT_SUPPORT     XY_HAL_ERROR_NOT_SUPPORT
+#define XY_DEVICE_TIMEOUT         XY_HAL_ERROR_TIMEOUT
+#define XY_DEVICE_BUSY            XY_HAL_ERROR_BUSY
+#define XY_DEVICE_NO_MEM          XY_HAL_ERROR_NO_MEM
+#define XY_DEVICE_IO_ERROR        XY_HAL_ERROR_IO
+#define XY_DEVICE_NOT_INIT        XY_HAL_ERROR_NOT_INIT
+#define XY_DEVICE_ALREADY_INIT    XY_HAL_ERROR_ALREADY_INIT
+#define XY_DEVICE_NO_RESOURCE     XY_HAL_ERROR_NO_RESOURCE
+#define XY_DEVICE_FAIL            XY_HAL_ERROR_FAIL
+#define XY_DEVICE_NOT_FOUND       XY_HAL_ERROR_NO_RESOURCE
+
 typedef xy_hal_error_t xy_error_t;
 
 #ifdef __cplusplus

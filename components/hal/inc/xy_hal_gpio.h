@@ -86,7 +86,14 @@ typedef void (*xy_hal_gpio_irq_handler_t)(void *arg);
 /**
  * @brief GPIO 端口类型
  */
+#ifdef HAL_PLATFORM_PC
+/* PC platform: forward declare, actual struct in xy_hal_pc.h */
+struct xy_hal_gpio_port;
+typedef struct xy_hal_gpio_port *xy_hal_gpio_port_t;
+#else
+/* Embedded platforms: opaque pointer */
 typedef void *xy_hal_gpio_port_t;
+#endif
 
 /**
  * @brief 初始化 GPIO

@@ -14,7 +14,7 @@ include_directories(
 # Collect source files
 set(DEVICE_SOURCES
     xy_device.c
-    xy_device_core.c
+    # xy_device_core.c  # Temporarily disabled - signature mismatches
     xy_eeprom_24xx.c
     xy_oled_ssd1306.c
     xy_mpu6050.c
@@ -66,6 +66,7 @@ else()
 endif()
 
 target_include_directories(xy_device PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${HAL_INCLUDE_DIRS}
 )

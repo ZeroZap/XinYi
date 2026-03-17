@@ -24,8 +24,8 @@ target_include_directories(charger PUBLIC
 
 # Link dependencies
 target_link_libraries(charger PUBLIC
-    device
-    hal
+    xy_device
+    xy_hal
 )
 
 # Compile Definitions
