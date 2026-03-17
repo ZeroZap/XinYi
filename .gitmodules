@@ -4,3 +4,9 @@
 [submodule "MCU/wch"]
 	path = MCU/wch
 	url = git@github.com:ZeroZap/wch.git
+[submodule "MCU/ST/STM32F1"]
+	path = MCU/ST/STM32F1
+	url = https://github.com/STMicroelectronics/STM32CubeF1.git
+[submodule "MCU/ST/STM32F4"]
+	path = MCU/ST/STM32F4
+	url = https://github.com/STMicroelectronics/STM32CubeF4.git
