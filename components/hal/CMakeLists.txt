@@ -62,12 +62,20 @@ elseif(HAL_PLATFORM STREQUAL "STM32U5")
         STM32_HAL_ENABLED
         USE_HAL_DRIVER
     )
+    # Add STM32CubeU5 HAL include path
+    if(EXISTS "${CMAKE_SOURCE_DIR}/../../MCU/ST/STM32U5/Inc")
+        include_directories(
+            "${CMAKE_SOURCE_DIR}/../../MCU/ST/STM32U5/Inc"
+        )
+        message(STATUS "XY HAL: STM32CubeU5 HAL found")
+    endif()
     message(STATUS "XY HAL: Building for STM32U5")
     
 elseif(HAL_PLATFORM STREQUAL "WCH")
     # WCH implementation
     file(GLOB HAL_SOURCES
-        "wch/*.c"
+        "wch/ch32u5/*.c"
+        "wch/src/*.c"
     )
     set(HAL_DEFINES
         HAL_PLATFORM_WCH
