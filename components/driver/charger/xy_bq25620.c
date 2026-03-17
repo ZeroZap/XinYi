@@ -35,7 +35,7 @@
  */
 
 #include "xy_bq25620.h"
-#include "xy_i2c.h"
+#include "xy_device.h"
 #include "xy_log.h"
 #include <string.h>
 
@@ -47,13 +47,13 @@
  * @brief I2C 写寄存器
  */
 #define BQ25620_I2C_WRITE(dev, reg, val) \
-    xy_i2c_write_reg((xy_i2c_t*)(dev)->i2c_handle, (dev)->i2c_addr, (reg), (val))
+    xy_i2c_device_write_reg((xy_i2c_device_t*)(dev)->i2c_handle, (reg), &(val), 1)
 
 /**
  * @brief I2C 读寄存器
  */
 #define BQ25620_I2C_READ(dev, reg, val) \
-    xy_i2c_read_reg((xy_i2c_t*)(dev)->i2c_handle, (dev)->i2c_addr, (reg), (val))
+    xy_i2c_device_read_reg((xy_i2c_device_t*)(dev)->i2c_handle, (reg), &(val), 1)
 
 /**
  * @brief 钳位值到范围
@@ -132,7 +132,12 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
 
     /* 初始化设备结构 */
     memset(dev, 0, sizeof(xy_bq25620_t));
-    dev->i2c_handle = i2c_handle;
+    
+    /* 初始化 I2C 设备 */
+    xy_i2c_device_t *i2c_dev = (xy_i2c_device_t *)i2c_handle;
+    xy_i2c_device_init(i2c_dev, i2c_dev->i2c_handle, i2c_addr, 1000);
+    
+    dev->i2c_handle = i2c_dev;
     dev->i2c_addr = i2c_addr;
     dev->initialized = false;
 
@@ -141,7 +146,7 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     /* 读取设备 ID 验证通信 */
     uint8_t device_id = 0;
     int ret = xy_bq25620_get_device_id(dev, &device_id);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_OK) {
         XY_LOG_ERROR("Failed to read device ID: %d", ret);
         return ret;
     }
@@ -151,7 +156,7 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     if (part_number != (BQ25620_PART_NUMBER >> 2)) {
         XY_LOG_ERROR("Invalid part number: 0x%02X (expected 0x%02X)", 
                      part_number, BQ25620_PART_NUMBER >> 2);
-        return XY_DEVICE_ENODEV;
+        return XY_ERROR;
     }
 
     XY_LOG_INFO("BQ25620 found, part number: 0x%02X", part_number);

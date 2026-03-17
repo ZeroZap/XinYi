@@ -1,8 +1,8 @@
 # XinYi HAL 统一 API 规范
 
-**版本**: 2.0  
-**日期**: 2026-03-16  
-**状态**: ✅ 统一中
+**版本**: 2.1  
+**日期**: 2026-03-18  
+**状态**: ✅ 完成
 
 ---
 
@@ -16,10 +16,12 @@
 
 | 模块 | 旧 API 头文件 | 新 API 头文件 | 状态 |
 |------|------------|------------|------|
-| GPIO | xy_hal_gpio.h | xy_hal_gpio_dev.h | 🟡 统一中 |
-| SPI | xy_hal_spi.h | xy_hal_spi_dev.h | ⏳ 待统一 |
-| I2C | xy_hal_i2c.h | xy_hal_i2c_dev.h | ⏳ 待统一 |
-| UART | xy_hal_uart.h | xy_hal_uart_dev.h | ⏳ 待统一 |
+| GPIO | xy_hal_gpio.h | xy_hal_gpio_dev.h | ✅ 完成 |
+| SPI | xy_hal_spi.h | xy_hal_spi_dev.h | ✅ 完成 |
+| I2C | xy_hal_i2c.h | xy_hal_i2c_dev.h | ✅ 完成 |
+| UART | xy_hal_uart.h | xy_hal_uart_dev.h | ✅ 完成 |
+
+**统一进度**: 4/4 模块 (100%) 🎉
 
 ---
 
