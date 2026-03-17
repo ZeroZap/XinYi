@@ -127,7 +127,7 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
 {
     if (!dev || !i2c_handle) {
         XY_LOG_ERROR("Invalid parameters");
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     /* 初始化设备结构 */
@@ -164,28 +164,28 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     /* 默认配置：充电使能，终止检测使能，自动再充电 */
     uint8_t ctrl0 = BQ25620_EN_CHG | BQ25620_EN_TERM | BQ25620_AUTO_RECHG;
     ret = xy_bq25620_write_reg(dev, BQ25620_REG_CHG_CTRL_0, ctrl0);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_OK) {
         XY_LOG_ERROR("Failed to write CHG_CTRL_0: %d", ret);
         return ret;
     }
 
     /* 默认充电电流：512mA */
     ret = xy_bq25620_set_charge_current(dev, 512);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_OK) {
         XY_LOG_ERROR("Failed to set default charge current: %d", ret);
         return ret;
     }
 
     /* 默认充电电压：4.2V */
     ret = xy_bq25620_set_charge_voltage(dev, 4200);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_OK) {
         XY_LOG_ERROR("Failed to set default charge voltage: %d", ret);
         return ret;
     }
 
     /* 默认输入电流限制：2A */
     ret = xy_bq25620_set_input_limit(dev, 2000);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_OK) {
         XY_LOG_ERROR("Failed to set default input limit: %d", ret);
         return ret;
     }
@@ -193,13 +193,13 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     dev->initialized = true;
     XY_LOG_INFO("BQ25620 initialized successfully");
 
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_deinit(xy_bq25620_t *dev)
 {
     if (!dev) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     if (dev->initialized) {
@@ -209,43 +209,43 @@ int xy_bq25620_deinit(xy_bq25620_t *dev)
         XY_LOG_INFO("BQ25620 deinitialized");
     }
 
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value)
 {
     if (!dev || !value || !dev->initialized) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     int ret = BQ25620_I2C_READ(dev, reg, value);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_OK) {
         XY_LOG_ERROR("I2C read failed: reg=0x%02X, ret=%d", reg, ret);
-        return ret;
+        return XY_ERROR;
     }
 
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_write_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t value)
 {
     if (!dev || !dev->initialized) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     int ret = BQ25620_I2C_WRITE(dev, reg, value);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_OK) {
         XY_LOG_ERROR("I2C write failed: reg=0x%02X, ret=%d", reg, ret);
-        return ret;
+        return XY_ERROR;
     }
 
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id)
 {
     if (!dev || !id) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     return xy_bq25620_read_reg(dev, BQ25620_REG_DEVICE_ID, id);
@@ -254,11 +254,11 @@ int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id)
 int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_status_t *status)
 {
     if (!dev || !status) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     if (!dev->initialized) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     /* 读取充电状态寄存器 */
@@ -346,13 +346,13 @@ int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_status_t *status)
     status->charge_current = 0;
     status->input_current = 0;
 
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
 {
     if (!dev || !dev->initialized) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     uint8_t reg_val = bq25620_current_to_reg(current_mA);
@@ -363,13 +363,13 @@ int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
     }
 
     XY_LOG_INFO("Charge current set to %lu mA", current_mA);
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
 {
     if (!dev || !dev->initialized) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     uint8_t reg_val = bq25620_voltage_to_reg(voltage_mV);
@@ -380,13 +380,13 @@ int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
     }
 
     XY_LOG_INFO("Charge voltage set to %lu mV", voltage_mV);
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
 {
     if (!dev || !dev->initialized) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     uint8_t reg_val = bq25620_ilim_to_reg(current_mA);
@@ -400,13 +400,13 @@ int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
     }
 
     XY_LOG_INFO("Input current limit set to %lu mA", current_mA);
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_start_charge(xy_bq25620_t *dev)
 {
     if (!dev || !dev->initialized) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     /* 读取当前 CHG_CTRL_0 寄存器 */
@@ -426,13 +426,13 @@ int xy_bq25620_start_charge(xy_bq25620_t *dev)
     }
 
     XY_LOG_INFO("Charging started");
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 int xy_bq25620_stop_charge(xy_bq25620_t *dev)
 {
     if (!dev || !dev->initialized) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
 
     /* 读取当前 CHG_CTRL_0 寄存器 */
@@ -452,7 +452,7 @@ int xy_bq25620_stop_charge(xy_bq25620_t *dev)
     }
 
     XY_LOG_INFO("Charging stopped");
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 /* ==================== Charger Framework Integration ==================== */
@@ -464,7 +464,7 @@ static int bq25620_hw_init(void *hw_data)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     if (!dev) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
     
     /* I2C 句柄和地址已在 xy_bq25620_init 中设置 */
@@ -478,7 +478,7 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_status_t *status)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     if (!dev || !status) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
     
     return xy_bq25620_get_status(dev, status);
@@ -491,7 +491,7 @@ static int bq25620_hw_set_config(void *hw_data, const xy_charger_config_t *confi
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     if (!dev || !config) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
     
     int ret;
@@ -514,7 +514,7 @@ static int bq25620_hw_set_config(void *hw_data, const xy_charger_config_t *confi
         return ret;
     }
     
-    return XY_DEVICE_OK;
+    return XY_OK;
 }
 
 /**
@@ -524,7 +524,7 @@ static int bq25620_hw_enable(void *hw_data, bool enable)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     if (!dev) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
     
     return enable ? xy_bq25620_start_charge(dev) : xy_bq25620_stop_charge(dev);
@@ -537,7 +537,7 @@ static int bq25620_hw_read_reg(void *hw_data, uint8_t reg, uint8_t *value)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     if (!dev || !value) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
     
     return xy_bq25620_read_reg(dev, reg, value);
@@ -550,7 +550,7 @@ static int bq25620_hw_write_reg(void *hw_data, uint8_t reg, uint8_t value)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     if (!dev) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
     
     return xy_bq25620_write_reg(dev, reg, value);
@@ -567,7 +567,7 @@ int xy_bq25620_register_charger(xy_charger_t *charger, xy_bq25620_t *bq25620,
                                  const xy_charger_config_t *config)
 {
     if (!charger || !bq25620 || !config) {
-        return XY_DEVICE_EINVAL;
+        return XY_ERROR;
     }
     
     /* 初始化充电器基类 */
