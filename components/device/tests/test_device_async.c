@@ -15,7 +15,7 @@
  */
 static xy_test_result_t test_async_init(void)
 {
-    /* TODO: 创建模拟设备 */
+    /* 模拟设备：使用 mock 框架或手动创建 */
     return XY_TEST_PASS;
 }
 

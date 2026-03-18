@@ -139,12 +139,37 @@ xy_hal_error_t xy_hal_uart_configure(xy_hal_uart_t uart,
     /* 保存配置 */
     memcpy(&dev->config, config, sizeof(dev->config));
     
-    /* TODO: 配置 HC32L021 UART 硬件寄存器 */
-    /* 1. 配置波特率 */
+/* 配置 HC32L021 UART 硬件寄存器 */
+    /* 注意：需要 HC32 SDK 头文件 support_device.h */
+    /* 1. 配置波特率 - 使用定时器计算分频 */
     /* 2. 配置数据位 (7/8/9) */
     /* 3. 配置停止位 (1/1.5/2) */
-    /* 4. 配置校验位 */
+    /* 4. 配置校验位 (无/奇/偶) */
     /* 5. 使能 UART */
+    
+    /* 伪代码实现 - 实际需根据 HC32 SDK 调整 */
+    #if defined(HC32_L021_SUPPORT)
+    /* 波特率计算 */
+    uint32_t pclk = SystemCoreClock;
+    uint16_t baud_div = (pclk / (16 * config->baudrate)) - 1;
+    
+    /* 配置寄存器 */
+    M0P_UART0->SCRL_b.SMODE = 0;  /* UART 模式 */
+    M0P_UART0->SCRL_b.PREN = (config->parity != XY_HAL_UART_PARITY_NONE) ? 1 : 0;
+    M0P_UART0->SCRL_b.EVEN = (config->parity == XY_HAL_UART_PARITY_EVEN) ? 1 : 0;
+    M0P_UART0->SCRL_b.STOP = (config->stop_bits == XY_HAL_UART_STOP_2) ? 1 : 0;
+    M0P_UART0->SCRL_b.DOR = 0;  /* 8 数据位 */
+    
+    /* 波特率分频 */
+    M0P_UART0->SCRL_b.BGR = baud_div & 0xFF;
+    M0P_UART0->SCRH_b.SGR = (baud_div >> 8) & 0x03;
+    
+    /* 使能 UART */
+    M0P_UART0->SCRL_b.UARTEN = 1;
+    #else
+    /* 无 SDK 时返回错误 */
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+    #endif
     
     return XY_HAL_OK;
 }
@@ -164,10 +189,29 @@ int32_t xy_hal_uart_write(xy_hal_uart_t uart, const uint8_t *data,
     
     dev->busy = true;
     
-    /* TODO: 实现 UART 发送 */
+/* 实现 UART 发送 */
     /* 1. 等待 TXE (发送缓冲区空) */
     /* 2. 写入数据到 DR */
     /* 3. 等待传输完成 */
+    
+    #if defined(HC32_L021_SUPPORT)
+    for (size_t i = 0; i < length; i++) {
+        /* 等待 TXE */
+        while (!M0P_UART0->SCHR_b.TC) {
+            if (timeout && (xy_hal_get_tick() - start) > timeout) {
+                dev->busy = false;
+                return -XY_HAL_ERROR_TIMEOUT;
+            }
+        }
+        /* 写入数据 */
+        M0P_UART0->SCHR_b.DATA = data[i];
+    }
+    /* 等待传输完成 */
+    while (!M0P_UART0->SCHR_b.TC);
+    #else
+    (void)timeout;
+    return -XY_HAL_ERROR_NOT_SUPPORTED;
+    #endif
     
     dev->busy = false;
     
@@ -189,9 +233,27 @@ int32_t xy_hal_uart_read(xy_hal_uart_t uart, uint8_t *data,
     
     dev->busy = true;
     
-    /* TODO: 实现 UART 接收 */
+/* 实现 UART 接收 */
     /* 1. 等待 RXNE (接收缓冲区非空) */
     /* 2. 读取 DR 数据 */
+    
+    #if defined(HC32_L021_SUPPORT)
+    uint32_t start = xy_hal_get_tick();
+    for (size_t i = 0; i < length; i++) {
+        /* 等待 RXNE */
+        while (!M0P_UART0->SCHR_b.RC) {
+            if (timeout && (xy_hal_get_tick() - start) > timeout) {
+                dev->busy = false;
+                return -XY_HAL_ERROR_TIMEOUT;
+            }
+        }
+        /* 读取数据 */
+        data[i] = M0P_UART0->SCHR_b.DATA & 0xFF;
+    }
+    #else
+    (void)timeout;
+    return -XY_HAL_ERROR_NOT_SUPPORTED;
+    #endif
     
     dev->busy = false;
     

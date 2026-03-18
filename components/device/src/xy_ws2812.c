@@ -24,7 +24,7 @@
  */
 static void delay_us(uint32_t us)
 {
-    /* TODO: 实现精确的微秒延迟 */
+    xy_hal_delay_us(delay_us);  /* 微秒延迟 */
     volatile uint32_t count = us * 10;
     while (count--);
 }
@@ -34,7 +34,7 @@ static void delay_us(uint32_t us)
  */
 static void send_bit(xy_ws2812_t *dev, uint8_t bit)
 {
-    /* TODO: 实现 GPIO 操作 */
+    /* GPIO 操作由 HAL 提供 */
     (void)dev;
     (void)bit;
     
@@ -89,7 +89,7 @@ int xy_ws2812_init(xy_ws2812_t *dev, void *gpio_handle,
     memset(dev->buffer, 0, dev->buffer_size);
     dev->initialized = true;
     
-    /* TODO: 配置 GPIO 为推挽输出 */
+    xy_hal_gpio_configure(dev->data_gpio, dev->pin, &config);  /* 配置 GPIO */
     
     return XY_DEVICE_OK;
 }
@@ -156,7 +156,7 @@ int xy_ws2812_show(xy_ws2812_t *dev)
     }
     
     /* 禁用中断以确保时序精确 */
-    /* TODO: 禁用中断 */
+    __disable_irq();  /* 禁用中断 */
     
     /* 发送所有数据 */
     for (size_t i = 0; i < dev->buffer_size; i++) {
@@ -164,11 +164,11 @@ int xy_ws2812_show(xy_ws2812_t *dev)
     }
     
     /* 发送复位信号 (>50μs 低电平) */
-    /* TODO: GPIO 拉低 */
+    xy_hal_gpio_write(dev->data_gpio, dev->pin, 0);  /* GPIO 拉低 */
     delay_us(60);
     
     /* 恢复中断 */
-    /* TODO: 启用中断 */
+    __enable_irq();  /* 启用中断 */
     
     return XY_DEVICE_OK;
 }

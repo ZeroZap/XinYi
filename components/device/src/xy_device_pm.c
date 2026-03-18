@@ -51,7 +51,7 @@ static xy_device_pm_data_t *pm_find_data(xy_device_t *dev)
  */
 static uint32_t pm_get_tick_ms(void)
 {
-    /* TODO: 实现系统 tick 获取 */
+    return xy_hal_get_tick();  /* ✅ 系统 tick */
     /* 这里使用弱定义，允许用户重写 */
     return 0;
 }

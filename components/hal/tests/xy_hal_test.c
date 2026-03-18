@@ -10,13 +10,13 @@
 /* 简单的 tick 实现，实际使用需要替换为系统 tick */
 __attribute__((weak)) uint32_t xy_test_get_tick_ms(void)
 {
-    /* TODO: 实现系统 tick 获取 */
+    return xy_hal_get_tick();  /* ✅ 系统 tick 获取 */
     return 0;
 }
 
 __attribute__((weak)) void xy_test_delay_ms(uint32_t ms)
 {
-    /* TODO: 实现延迟函数 */
+    xy_hal_delay_ms(ms);  /* ✅ 延迟函数 */
     volatile uint32_t count = ms * 10000;
     while (count--);
 }

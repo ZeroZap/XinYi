@@ -23,7 +23,7 @@
  */
 static void cs_enable(xy_w25qxx_t *dev)
 {
-    /* TODO: 实现 GPIO 拉低 */
+    XY_HAL_GPIO_WRITE(dev->cs_gpio, 0);  /* CS 拉低 */
     (void)dev;
 }
 
@@ -32,7 +32,7 @@ static void cs_enable(xy_w25qxx_t *dev)
  */
 static void cs_disable(xy_w25qxx_t *dev)
 {
-    /* TODO: 实现 GPIO 拉高 */
+    XY_HAL_GPIO_WRITE(dev->cs_gpio, 1);  /* CS 拉高 */
     (void)dev;
 }
 
@@ -42,7 +42,7 @@ static void cs_disable(xy_w25qxx_t *dev)
 static int spi_transfer(xy_w25qxx_t *dev, const uint8_t *tx, uint8_t *rx, 
                         size_t length)
 {
-    /* TODO: 实现 SPI 传输 */
+    return xy_hal_spi_transfer(dev->spi, tx_data, rx_data, length, timeout);
     (void)dev;
     (void)tx;
     (void)rx;
@@ -215,7 +215,7 @@ int xy_w25qxx_wait_idle(xy_w25qxx_t *dev, uint32_t timeout_ms)
     }
     
     uint8_t status;
-    uint32_t start = 0; /* TODO: 获取开始时间 */
+    uint32_t start = xy_hal_get_tick();  /* 获取开始时间 */
     
     do {
         xy_w25qxx_read_status_reg1(dev, &status);
@@ -227,7 +227,7 @@ int xy_w25qxx_wait_idle(xy_w25qxx_t *dev, uint32_t timeout_ms)
         /* 简单延迟 */
         for (volatile int i = 0; i < 1000; i++);
         
-    } while (/* TODO: 检查超时 */ 1);
+    } while ((xy_hal_get_tick() - start) < timeout);  /* 检查超时 */
     
     return XY_DEVICE_TIMEOUT;
 }

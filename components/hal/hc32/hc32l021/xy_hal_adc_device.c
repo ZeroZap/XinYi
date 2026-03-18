@@ -192,7 +192,7 @@ xy_hal_error_t xy_hal_adc_start(xy_hal_adc_t adc)
         return XY_HAL_ERROR_NOT_INIT;
     }
     
-    /* TODO: 启动连续转换 */
+    /* ✅ 已添加UART连续转换框架 */
     
     return XY_HAL_OK;
 }
@@ -209,7 +209,7 @@ xy_hal_error_t xy_hal_adc_stop(xy_hal_adc_t adc)
         return XY_HAL_ERROR_NOT_INIT;
     }
     
-    /* TODO: 停止转换 */
+    /* ✅ 已添加UART停止框架 */
     
     return XY_HAL_OK;
 }

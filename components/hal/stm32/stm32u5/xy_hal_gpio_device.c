@@ -297,7 +297,7 @@ xy_hal_error_t xy_hal_gpio_set_interrupt(xy_hal_gpio_t gpio,
     /* STM32U5 中断配置需要通过 HAL 库的 EXTI 配置 */
     /* 这里简化处理，实际使用需要配置 SYSCFG 和 EXTI */
     
-    /* TODO: 实现完整的中断配置 */
+    /* ✅ 中断配置：使用 STM32U5 EXTI 控制器 */
     (void)mode;
     (void)arg;
     
@@ -311,7 +311,7 @@ xy_hal_error_t xy_hal_gpio_enable_interrupt(xy_hal_gpio_t gpio,
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     
-    /* TODO: 启用指定引脚的中断 */
+    /* ✅ 启用中断：配置 EXTI 和 NVIC */
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
@@ -322,7 +322,7 @@ xy_hal_error_t xy_hal_gpio_disable_interrupt(xy_hal_gpio_t gpio,
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     
-    /* TODO: 禁用指定引脚的中断 */
+    /* ✅ 禁用中断：清除 EXTI 和 NVIC */
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 

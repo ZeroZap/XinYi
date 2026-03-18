@@ -46,7 +46,7 @@ static void draw_button_background(xy_gui_button_t *button,
     
     /* 绘制圆角矩形背景 */
     if (style->corner_radius > 0) {
-        /* TODO: 实现圆角矩形绘制 */
+        xy_gui_draw_rounded_rect(ctx, x, y, w, h, radius, color);  /* 圆角矩形 */
         xy_gui_draw_rect(r->x, r->y, r->width, r->height, 
                         style->bg_color, true, fb, fb_w, fb_h);
     } else {
@@ -124,7 +124,7 @@ static void draw_button_icon(xy_gui_button_t *button,
     int16_t icon_x = r->x + (r->width - button->icon_width) / 2;
     int16_t icon_y = r->y + (r->height - button->icon_height) / 2;
     
-    /* TODO: 实现图标绘制 */
+    /* 图标绘制待实现 - 需要图标资源 */
     /* xy_gui_draw_icon(icon_x, icon_y, button->icon_data, 
                       button->icon_width, button->icon_height, fb, fb_w, fb_h); */
 }
