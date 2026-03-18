@@ -23,7 +23,7 @@
  *                             receiving binary data from the modem.
  * 2023-10-27     roger.luo    Added the function of transparent data transmission.
  ******************************************************************************/
-#include "at_chat.h"
+#include "../AT-Command-V2/inc/at_chat.h"
 #include "at_port.h"
 #include "linux_list.h"
 #include <stdarg.h>

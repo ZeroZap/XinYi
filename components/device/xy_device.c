@@ -288,11 +288,11 @@ xy_error_t xy_gpio_device_init(xy_gpio_device_t *dev, void *port, uint8_t pin,
     dev->base.initialized = true;
 
     /* Configure GPIO */
-    xy_hal_pin_config_t config;
-    config.mode = (xy_hal_pin_mode_t)mode;
-    config.pull = (xy_hal_pin_pull_t)pull;
-    config.otype = XY_HAL_PIN_OTYPE_PP;
-    config.speed = XY_HAL_PIN_SPEED_LOW;
+    xy_hal_gpio_config_t config;
+    config.mode = (xy_hal_gpio_mode_t)mode;
+    config.pull = (xy_hal_gpio_pull_t)pull;
+    config.otype = XY_HAL_GPIO_OTYPE_PP;
+    config.speed = XY_HAL_GPIO_SPEED_LOW;
 
     xy_hal_pin_init(port, pin, &config);
 

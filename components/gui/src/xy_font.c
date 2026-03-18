@@ -6,7 +6,7 @@
  */
 
 #include "xy_font.h"
-#include "xy_log.h"
+#include "../../trace/xy_log/inc/xy_log.h"
 #include <string.h>
 #include <stdlib.h>
 

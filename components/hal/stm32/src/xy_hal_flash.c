@@ -175,13 +175,13 @@ xy_hal_error_t xy_hal_flash_read(void *flash, uint32_t addr, uint8_t *data, uint
 xy_hal_error_t xy_hal_flash_unlock(void *flash)
 {
     (void)flash;
-    return XY_HAL_ERROR_NOT_SUPPORT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 xy_hal_error_t xy_hal_flash_lock(void *flash)
 {
     (void)flash;
-    return XY_HAL_ERROR_NOT_SUPPORT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 #endif

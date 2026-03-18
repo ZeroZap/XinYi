@@ -947,8 +947,3 @@ uint64_t xy_hal_sys_diff_us(uint64_t start, uint64_t end);
 #ifndef XY_HAL_SYS_TICK_FREQ
 #define XY_HAL_SYS_TICK_FREQ 1000
 #endif
-
-typedef struct {
-    uint32_t cpu_freq;
-    uint32_t hclk_freq;
-} xy_hal_sys_clock_info_t;
