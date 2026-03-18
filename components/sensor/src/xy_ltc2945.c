@@ -159,7 +159,7 @@ int xy_ltc2945_read(xy_ltc2945_t *ltc2945)
         ltc2945->data.energy_j = raw_value * ltc2945->energy_lsb;
     }
     
-    ltc2945->data.timestamp = xy_os_tick_get();
+    ltc2945->data.timestamp = xy_hal_sys_get_tick_count();
     
     xy_log_d("LTC2945: V=%.2fV, I=%.2fA, P=%.2fW, Q=%.2fC, E=%.2fJ\n",
              ltc2945->data.voltage_v,

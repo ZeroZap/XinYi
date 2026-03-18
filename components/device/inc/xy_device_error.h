@@ -1,3 +1,4 @@
+#include "xy_hal_error.h"
 /**
  * @file xy_device_error.h
  * @brief Device Framework Error Codes
