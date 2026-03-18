@@ -1,3 +1,4 @@
+#include "xy_os_error.h"
 /**
  * @file xy_os_sys.h
  * @brief XY OSAL System Functions

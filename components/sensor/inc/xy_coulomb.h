@@ -1,3 +1,4 @@
+#include <stdbool.h>
 /**
  * @file xy_coulomb.h
  * @brief Coulomb Counter Fuel Gauge Driver (INA226/INA219)

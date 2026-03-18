@@ -1,3 +1,4 @@
+#include <stdbool.h>
 /**
  * @file xy_device.h
  * @brief XinYi Device Framework - Unified Device Management

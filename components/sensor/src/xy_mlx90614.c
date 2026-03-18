@@ -50,7 +50,7 @@ static int xy_mlx90614_read16(xy_mlx90614_t *dev, uint8_t reg, uint16_t *value)
     crc = xy_mlx90614_crc8(buf, 2);
     if (crc != buf[2]) {
         xy_log_e("MLX90614 PEC error (calc=0x%02X, rx=0x%02X)\n", crc, buf[2]);
-        return XY_MLX90614_CRC_ERROR;
+        return XY_MLX90614_ERROR;
     }
 
     *value = ((uint16_t)buf[1] << 8) | buf[0];
@@ -215,5 +215,5 @@ int xy_mlx90614_set_emissivity(xy_mlx90614_t *dev, uint16_t emissivity)
     xy_log_w("⚠️ EEPROM write not implemented - requires special command sequence\n");
     xy_log_w("⚠️ EEPROM endurance: ~100 cycles, use sparingly!\n");
     
-    return XY_MLX90614_ERROR_NOT_SUPPORTED;
+    return XY_HAL_ERROR_NOT_SUPPORT;
 }

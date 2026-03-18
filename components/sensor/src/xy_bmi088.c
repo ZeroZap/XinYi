@@ -1,4 +1,4 @@
-#include "xy_types.h"
+#include "xy_ret.h"
 /**
  * @file xy_bmi088.c
  * @brief BMI088 6-Axis IMU Sensor Driver Implementation
