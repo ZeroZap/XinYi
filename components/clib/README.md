@@ -1,4 +1,4 @@
-# FUEL_GAUGE Component
+# CLIB Component
 
 **状态**: 🟡 完善中
 

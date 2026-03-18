@@ -1,0 +1,3 @@
+config COMPONENT_DRIVER
+    bool "DRIVER Component"
+    default y
