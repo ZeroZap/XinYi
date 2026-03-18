@@ -1,3 +1,4 @@
+#include <stdint.h>
 #ifndef _SD_H_
 #define _SD_H_
 
@@ -42,7 +43,7 @@ typedef struct {
     uint32_t voltage_33_34 : 1;
     uint32_t voltage_34_35 : 1;
     uint32_t voltage_35_36 : 1;
-    uint32_t reserved2 : 6;
+    uint32_t reserved3 : 6;
     uint32_t card_capacity_status : 1;
     uint32_t card_power_status : 1;
 } sd_reg_ocr;

@@ -1,3 +1,4 @@
+#include "xy_fota_flash.h"
 /**
  * @file xy_fota_secure.h
  * @brief Secure FOTA with MCUboot + WireGuard Style Encryption
