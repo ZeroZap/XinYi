@@ -126,7 +126,7 @@ int xy_max17043_read(xy_max17043_t *max17043)
         max17043->data.reset_triggered = (raw_value & 0x10) ? true : false;
     }
     
-    max17043->data.timestamp = xy_os_tick_get();
+    max17043->data.timestamp = xy_hal_sys_get_tick_count();
     
     xy_log_d("MAX17043: V=%.2fV, SOC=%.1f%%, C-rate=%.3fC\n",
              max17043->data.voltage_mv / 1000.0f,
@@ -215,7 +215,7 @@ int xy_max17043_reset(xy_max17043_t *max17043)
     /* 写入复位命令 */
     xy_max17043_write_reg(max17043, MAX17043_REG_COMMAND, 0x0002);
     
-    xy_os_delay(100);
+    xy_hal_delay_ms(100);
     
     return XY_MAX17043_OK;
 }

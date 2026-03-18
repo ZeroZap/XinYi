@@ -12,9 +12,11 @@
 #include "stm32_hal.h"
 #include <time.h>
 
-static uint32_t xy_to_stm32_format(xy_hal_rtc_format_t format)
+// static uint32_t // xy_to_stm32_format(xy_hal_rtc_format_t format)
 {
     return (format == XY_HAL_RTC_FORMAT_BIN) ? RTC_FORMAT_BIN : RTC_FORMAT_BCD;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_init(void *rtc)
@@ -37,6 +39,8 @@ int xy_hal_rtc_init(void *rtc)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_deinit(void *rtc)
@@ -50,6 +54,8 @@ int xy_hal_rtc_deinit(void *rtc)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_set_time(void *rtc, const xy_hal_rtc_time_t *time,
@@ -68,12 +74,14 @@ int xy_hal_rtc_set_time(void *rtc, const xy_hal_rtc_time_t *time,
     sTime.StoreOperation  = RTC_STOREOPERATION_RESET;
 
     if (HAL_RTC_SetTime(
-            (RTC_HandleTypeDef *)rtc, &sTime, xy_to_stm32_format(format))
+            (RTC_HandleTypeDef *)rtc, &sTime, // xy_to_stm32_format(format))
         != HAL_OK) {
         return -1;
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *time,
@@ -86,7 +94,7 @@ int xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *time,
     RTC_TimeTypeDef sTime = { 0 };
 
     if (HAL_RTC_GetTime(
-            (RTC_HandleTypeDef *)rtc, &sTime, xy_to_stm32_format(format))
+            (RTC_HandleTypeDef *)rtc, &sTime, // xy_to_stm32_format(format))
         != HAL_OK) {
         return -1;
     }
@@ -97,6 +105,8 @@ int xy_hal_rtc_get_time(void *rtc, xy_hal_rtc_time_t *time,
     time->subseconds = sTime.SubSeconds;
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_set_date(void *rtc, const xy_hal_rtc_date_t *date,
@@ -113,12 +123,14 @@ int xy_hal_rtc_set_date(void *rtc, const xy_hal_rtc_date_t *date,
     sDate.Year            = date->year % 100; /* STM32 uses 2-digit year */
 
     if (HAL_RTC_SetDate(
-            (RTC_HandleTypeDef *)rtc, &sDate, xy_to_stm32_format(format))
+            (RTC_HandleTypeDef *)rtc, &sDate, // xy_to_stm32_format(format))
         != HAL_OK) {
         return -1;
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
@@ -131,7 +143,7 @@ int xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
     RTC_DateTypeDef sDate = { 0 };
 
     if (HAL_RTC_GetDate(
-            (RTC_HandleTypeDef *)rtc, &sDate, xy_to_stm32_format(format))
+            (RTC_HandleTypeDef *)rtc, &sDate, // xy_to_stm32_format(format))
         != HAL_OK) {
         return -1;
     }
@@ -142,6 +154,8 @@ int xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
     date->year    = sDate.Year + 2000; /* Convert back to 4-digit */
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
@@ -165,6 +179,8 @@ int xy_hal_rtc_set_alarm(void *rtc, const xy_hal_rtc_alarm_t *alarm,
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char alarm_id)
@@ -189,6 +205,8 @@ int xy_hal_rtc_get_alarm(void *rtc, xy_hal_rtc_alarm_t *alarm, char alarm_id)
     alarm->date            = sAlarm.AlarmDateWeekDay;
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_enable_alarm(void *rtc, char alarm_id)
@@ -206,6 +224,8 @@ int xy_hal_rtc_enable_alarm(void *rtc, char alarm_id)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_disable_alarm(void *rtc, char alarm_id)
@@ -221,6 +241,8 @@ int xy_hal_rtc_disable_alarm(void *rtc, char alarm_id)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_register_callback(void *rtc, xy_hal_rtc_event_t event,
@@ -228,6 +250,8 @@ int xy_hal_rtc_register_callback(void *rtc, xy_hal_rtc_event_t event,
 {
     /* Store callback in context */
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int64_t xy_hal_rtc_get_timestamp(void *rtc)
@@ -256,6 +280,8 @@ int64_t xy_hal_rtc_get_timestamp(void *rtc)
     timeinfo.tm_sec    = time.seconds;
 
     return (int64_t)mktime(&timeinfo);
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
@@ -288,6 +314,8 @@ int xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 #endif /* STM32_HAL_ENABLED */

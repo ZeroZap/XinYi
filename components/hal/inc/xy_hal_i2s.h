@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_I2S_H
 #define XY_HAL_I2S_H
+#include "xy_hal_error.h"
 
 #include "xy_hal.h"
 #include <stdint.h>
@@ -434,34 +435,63 @@ void xy_hal_i2s_event_handler(void *i2s, xy_hal_i2s_evt_t event, void *arg);
 
 /* I2S 控制命令 */
 #define XY_HAL_I2S_CMD_SET_MODE              0x01
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_MODE              0x02
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_SET_STANDARD          0x03
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_STANDARD          0x04
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_SET_DATA_FORMAT       0x05
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_DATA_FORMAT       0x06
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_SET_CPOL              0x07
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_CPOL              0x08
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_SET_MCK_OUTPUT        0x09
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_MCK_OUTPUT        0x0A
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_SET_AUDIO_FREQ        0x0B
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_AUDIO_FREQ        0x0C
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_SET_CLOCK_FREQ        0x0D
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_CLOCK_FREQ        0x0E
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_CONFIG_CLOCK          0x0F
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_SET_COMM_MODE         0x10
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_COMM_MODE         0x11
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_ENABLE_NS             0x12
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_ENABLE_EC             0x13
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_ENABLE_AGC            0x14
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_CONFIG_EQ             0x15
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_ENABLE_EFFECT         0x16
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_STATE             0x17
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_ERROR             0x18
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_CLEAR_ERROR           0x19
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_ENTER_SLEEP           0x1A
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_EXIT_SLEEP            0x1B
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_SET_LOW_POWER_MODE    0x1C
+#include "xy_hal_error.h"
 #define XY_HAL_I2S_CMD_GET_LOW_POWER_MODE    0x1D
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 }

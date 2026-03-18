@@ -1,3 +1,4 @@
+#include "xy_hal_sys.h"
 /**
  * @file xy_hal_pc.c
  * @brief PC/Linux HAL simulation - common functions

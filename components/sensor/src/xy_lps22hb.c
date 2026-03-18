@@ -179,7 +179,7 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     xy_delay_ms(LPS22HB_BOOT_TIME_MS);
     
     /* 等待复位完成 */
-    uint8_t ctrl2;
+    // uint8_t ctrl2;
     uint32_t timeout = 100;
     while (timeout > 0) {
         ret = lps22hb_read_reg8(dev, LPS22HB_CTRL_REG2, &ctrl2);
@@ -470,7 +470,7 @@ xy_ret_t xy_lps22hb_auto_zero(xy_lps22hb_dev_t *dev)
     /* 等待完成 */
     xy_delay_ms(10);
     
-    uint8_t ctrl2;
+    // uint8_t ctrl2;
     uint32_t timeout = 100;
     while (timeout > 0) {
         ret = lps22hb_read_reg8(dev, LPS22HB_CTRL_REG2, &ctrl2);

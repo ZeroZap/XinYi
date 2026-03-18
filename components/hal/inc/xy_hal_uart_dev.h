@@ -10,6 +10,7 @@
 
 #ifndef XY_HAL_UART_DEV_H
 #define XY_HAL_UART_DEV_H
+#include "xy_hal_error.h"
 
 #include "xy_hal_uart_types.h"
 #include <stdint.h>
@@ -412,10 +413,15 @@ int32_t xy_hal_uart_receive(void *uart, uint8_t *data,
 /* ==================== Control Command Definitions ==================== */
 
 #define XY_HAL_UART_CMD_FLUSH_TX        0x01  /**< 清空发送缓冲区 */
+#include "xy_hal_error.h"
 #define XY_HAL_UART_CMD_FLUSH_RX        0x02  /**< 清空接收缓冲区 */
+#include "xy_hal_error.h"
 #define XY_HAL_UART_CMD_BREAK           0x03  /**< 发送 Break 信号 */
+#include "xy_hal_error.h"
 #define XY_HAL_UART_CMD_ENABLE_LOOPBACK 0x04  /**< 启用回环测试 */
+#include "xy_hal_error.h"
 #define XY_HAL_UART_CMD_DISABLE_LOOPBACK 0x05 /**< 禁用回环测试 */
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 }

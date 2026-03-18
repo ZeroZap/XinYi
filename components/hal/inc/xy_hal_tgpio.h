@@ -15,6 +15,7 @@
 
 #ifndef XY_HAL_TGPIO_H
 #define XY_HAL_TGPIO_H
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 extern "C" {

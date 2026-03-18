@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_SYS_H
 #define XY_HAL_SYS_H
+#include "xy_hal_error.h"
 
 #include "xy_hal.h"
 #include <stdint.h>
@@ -20,12 +21,14 @@ extern "C" {
  */
 #ifndef XY_HAL_SYS_TICK_FREQ
 #define XY_HAL_SYS_TICK_FREQ 1000
+#include "xy_hal_error.h"
 #endif
 
 /**
  * @brief 系统滴答周期 (ms)
  */
 #define XY_HAL_SYS_TICK_PERIOD_MS (1000 / XY_HAL_SYS_TICK_FREQ)
+#include "xy_hal_error.h"
 
 /**
  * @brief 系统时钟信息结构
@@ -800,37 +803,69 @@ int32_t xy_hal_sys_get_debug_level(void);
  * @brief 系统控制命令
  */
 #define XY_HAL_SYS_CMD_SET_PWR_MODE           0x01
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_PWR_MODE           0x02
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_SET_CLK_FREQ           0x03
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_CLK_FREQ           0x04
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_SET_IRQ_PRIORITY       0x05
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_IRQ_PRIORITY       0x06
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_MEM_INFO           0x07
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_SYS_INFO           0x08
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_CHIP_ID            0x09
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_CHIP_VERSION       0x0A
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_UPTIME             0x0B
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_RESET_REASON       0x0C
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_CLEAR_RESET_REASON     0x0D
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_ENABLE_PERIPH_CLK      0x0E
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_DISABLE_PERIPH_CLK     0x0F
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_RESET_PERIPH           0x10
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_PERIPH_CLK_FREQ    0x11
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_PERIPH_BASE_ADDR   0x12
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_PERIPH_IRQ_NUM     0x13
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_ENABLE_SECURITY        0x14
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_SECURITY_STATE     0x15
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_ENABLE_TRUSTZONE       0x16
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_TRUSTZONE_STATE    0x17
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_SET_DEBUG_LEVEL        0x18
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_DEBUG_LEVEL        0x19
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_ENABLE_DBG_FEATURE     0x1A
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_DBG_FEATURE_STATE  0x1B
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_HEAP_USAGE         0x1C
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_STACK_USAGE        0x1D
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_AVAILABLE_RAM      0x1E
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_FLASH_SIZE         0x1F
+#include "xy_hal_error.h"
 #define XY_HAL_SYS_CMD_GET_RAM_SIZE           0x20
+#include "xy_hal_error.h"
 
 /* ==================== 便利函数 ==================== */
 
@@ -907,3 +942,13 @@ uint64_t xy_hal_sys_diff_us(uint64_t start, uint64_t end);
 #endif
 
 #endif /* XY_HAL_SYS_H */
+
+/* Platform definitions */
+#ifndef XY_HAL_SYS_TICK_FREQ
+#define XY_HAL_SYS_TICK_FREQ 1000
+#endif
+
+typedef struct {
+    uint32_t cpu_freq;
+    uint32_t hclk_freq;
+} xy_hal_sys_clock_info_t;

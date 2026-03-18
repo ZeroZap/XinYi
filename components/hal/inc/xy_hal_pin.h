@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_PIN_H
 #define XY_HAL_PIN_H
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 extern "C" {

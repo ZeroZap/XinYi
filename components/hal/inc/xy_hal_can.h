@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_CAN_H
 #define XY_HAL_CAN_H
+#include "xy_hal_error.h"
 
 #include "xy_hal.h"
 #include <stdint.h>
@@ -19,16 +20,19 @@ extern "C" {
  * @brief CAN 标准 ID 最大值
  */
 #define XY_HAL_CAN_STD_ID_MAX       (0x7FF)
+#include "xy_hal_error.h"
 
 /**
  * @brief CAN 扩展 ID 最大值
  */
 #define XY_HAL_CAN_EXT_ID_MAX       (0x1FFFFFFF)
+#include "xy_hal_error.h"
 
 /**
  * @brief CAN 数据长度最大值
  */
 #define XY_HAL_CAN_DATA_LEN_MAX     (8)
+#include "xy_hal_error.h"
 
 /**
  * @brief CAN 波特率定义
@@ -492,26 +496,47 @@ void xy_hal_can_event_handler(void *can, xy_hal_can_evt_t event, void *arg);
 
 /* CAN 控制命令 */
 #define XY_HAL_CAN_CMD_SET_MODE              0x01
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_GET_MODE              0x02
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_SET_BAUDRATE          0x03
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_GET_BAUDRATE          0x04
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_CONFIG_FILTER         0x05
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_ENABLE_IRQ            0x06
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_DISABLE_IRQ           0x07
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_GET_STATE             0x08
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_GET_ERROR_COUNT       0x09
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_RESET_ERROR_COUNT     0x0A
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_SET_CALLBACK          0x0B
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_GET_FIFO_COUNT        0x0C
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_RELEASE_FIFO          0x0D
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_ABORT_TX_REQUEST      0x0E
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_ENABLE_TIMESTAMP      0x0F
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_DISABLE_TIMESTAMP     0x10
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_GET_TIMESTAMP         0x11
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_CLEAR_ERROR_FLAGS     0x12
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_ENABLE_AUTORETRANS    0x13
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_ENABLE_AUTOWAKEUP     0x14
+#include "xy_hal_error.h"
 #define XY_HAL_CAN_CMD_ENABLE_AUTOBUSOFF     0x15
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 }

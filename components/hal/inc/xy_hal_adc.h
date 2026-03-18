@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_ADC_H
 #define XY_HAL_ADC_H
+#include "xy_hal_error.h"
 
 #include "xy_hal.h"
 #include <stdint.h>

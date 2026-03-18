@@ -9,6 +9,7 @@
 
 #ifndef XY_HAL_GPIO_TYPES_H
 #define XY_HAL_GPIO_TYPES_H
+#include "xy_hal_error.h"
 
 #include <stdint.h>
 #include <stddef.h>
@@ -41,6 +42,7 @@ typedef uint16_t xy_hal_gpio_value_t;
  * @return 统一引脚编号
  */
 #define XY_HAL_GPIO_PIN(port, pin)  (((port) << 4) | ((pin) & 0x0F))
+#include "xy_hal_error.h"
 
 /**
  * @brief 从统一引脚编号提取端口号
@@ -48,6 +50,7 @@ typedef uint16_t xy_hal_gpio_value_t;
  * @return 端口号
  */
 #define XY_HAL_GPIO_PORT(pin_def)   (((pin_def) >> 4) & 0x0F)
+#include "xy_hal_error.h"
 
 /**
  * @brief 从统一引脚编号提取引脚号
@@ -55,6 +58,7 @@ typedef uint16_t xy_hal_gpio_value_t;
  * @return 引脚号 (0-15)
  */
 #define XY_HAL_GPIO_PIN_NUM(pin_def)  ((pin_def) & 0x0F)
+#include "xy_hal_error.h"
 
 /**
  * @brief 创建引脚掩码
@@ -62,6 +66,7 @@ typedef uint16_t xy_hal_gpio_value_t;
  * @return 引脚掩码
  */
 #define XY_HAL_GPIO_PIN_MASK(pin)  (1U << ((pin) & 0x0F))
+#include "xy_hal_error.h"
 
 /* ==================== GPIO Mode ==================== */
 
@@ -151,6 +156,7 @@ typedef struct {
  * @brief GPIO 默认配置 (输入模式)
  */
 #define XY_HAL_GPIO_DEFAULT_CONFIG  \
+#include "xy_hal_error.h"
     {                               \
         .mode = XY_HAL_GPIO_MODE_INPUT, \
         .pull = XY_HAL_GPIO_PULL_NONE,  \
@@ -214,6 +220,7 @@ typedef struct {
  * @return 1=有效，0=无效
  */
 #define XY_HAL_GPIO_MODE_VALID(mode)  ((mode) < XY_HAL_GPIO_MODE_COUNT)
+#include "xy_hal_error.h"
 
 /**
  * @brief 检查 GPIO 上下拉配置是否有效
@@ -221,6 +228,7 @@ typedef struct {
  * @return 1=有效，0=无效
  */
 #define XY_HAL_GPIO_PULL_VALID(pull)  ((pull) < XY_HAL_GPIO_PULL_COUNT)
+#include "xy_hal_error.h"
 
 /**
  * @brief 检查 GPIO 输出类型是否有效
@@ -228,6 +236,7 @@ typedef struct {
  * @return 1=有效，0=无效
  */
 #define XY_HAL_GPIO_OTYPE_VALID(otype)  ((otype) < XY_HAL_GPIO_OTYPE_COUNT)
+#include "xy_hal_error.h"
 
 /**
  * @brief 检查 GPIO 速度配置是否有效
@@ -235,6 +244,7 @@ typedef struct {
  * @return 1=有效，0=无效
  */
 #define XY_HAL_GPIO_SPEED_VALID(speed)  ((speed) < XY_HAL_GPIO_SPEED_COUNT)
+#include "xy_hal_error.h"
 
 /**
  * @brief 检查 GPIO 引脚号是否有效
@@ -242,6 +252,7 @@ typedef struct {
  * @return 1=有效，0=无效
  */
 #define XY_HAL_GPIO_PIN_VALID(pin)  ((pin) <= 15)
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 }

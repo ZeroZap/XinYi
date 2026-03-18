@@ -5,6 +5,7 @@
 
 #ifndef XY_HAL_ERROR_H
 #define XY_HAL_ERROR_H
+#include "xy_hal_error.h"
 
 #include <stdint.h>
 

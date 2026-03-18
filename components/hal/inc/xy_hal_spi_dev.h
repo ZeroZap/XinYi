@@ -10,6 +10,7 @@
 
 #ifndef XY_HAL_SPI_DEV_H
 #define XY_HAL_SPI_DEV_H
+#include "xy_hal_error.h"
 
 #include "xy_hal_spi_types.h"
 #include <stdint.h>
@@ -294,10 +295,15 @@ xy_hal_error_t xy_hal_spi_cs_assert(xy_hal_spi_t spi, int assert);
 /* ==================== Control Command Definitions ==================== */
 
 #define XY_HAL_SPI_CMD_FLUSH_TX     0x01  /**< 清空发送缓冲区 */
+#include "xy_hal_error.h"
 #define XY_HAL_SPI_CMD_FLUSH_RX     0x02  /**< 清空接收缓冲区 */
+#include "xy_hal_error.h"
 #define XY_HAL_SPI_CMD_SET_MODE     0x03  /**< 设置 SPI 模式 */
+#include "xy_hal_error.h"
 #define XY_HAL_SPI_CMD_GET_MODE     0x04  /**< 获取 SPI 模式 */
+#include "xy_hal_error.h"
 #define XY_HAL_SPI_CMD_SET_CS       0x05  /**< 设置片选引脚 */
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 }

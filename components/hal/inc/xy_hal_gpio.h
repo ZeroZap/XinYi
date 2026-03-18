@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_GPIO_H
 #define XY_HAL_GPIO_H
+#include "xy_hal_error.h"
 
 #include "xy_hal.h"
 #include <stdint.h>

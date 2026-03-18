@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_PWM_H
 #define XY_HAL_PWM_H
+#include "xy_hal_error.h"
 
 #include "xy_hal.h"
 #include <stdint.h>
@@ -19,6 +20,7 @@ extern "C" {
  * @brief PWM 频率单位
  */
 #define XY_HAL_PWM_FREQ_HZ 1000000  /* 1MHz = 1000000 Hz */
+#include "xy_hal_error.h"
 
 /**
  * @brief PWM 通道枚举

@@ -55,6 +55,7 @@
 
 #ifndef XY_HAL_GPIO_DEV_H
 #define XY_HAL_GPIO_DEV_H
+#include "xy_hal_error.h"
 
 #include "xy_hal_gpio_types.h"
 #include <stdint.h>

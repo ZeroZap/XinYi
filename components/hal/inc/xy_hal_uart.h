@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_UART_H
 #define XY_HAL_UART_H
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 extern "C" {

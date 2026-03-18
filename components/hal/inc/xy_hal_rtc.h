@@ -7,6 +7,7 @@
 
 #ifndef XY_HAL_RTC_H
 #define XY_HAL_RTC_H
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,11 +42,17 @@ typedef struct {
 
 /* RTC Alarm Mask Bits */
 #define XY_HAL_RTC_ALARM_MASK_NONE    0x00
+#include "xy_hal_error.h"
 #define XY_HAL_RTC_ALARM_MASK_WEEKDAY 0x01
+#include "xy_hal_error.h"
 #define XY_HAL_RTC_ALARM_MASK_HOURS   0x02
+#include "xy_hal_error.h"
 #define XY_HAL_RTC_ALARM_MASK_MINUTES 0x04
+#include "xy_hal_error.h"
 #define XY_HAL_RTC_ALARM_MASK_SECONDS 0x08
+#include "xy_hal_error.h"
 #define XY_HAL_RTC_ALARM_MASK_ALL     0x0F
+#include "xy_hal_error.h"
 
 /* RTC Format */
 typedef enum {

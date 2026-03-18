@@ -10,6 +10,7 @@
 
 #ifndef XY_HAL_I2C_DEV_H
 #define XY_HAL_I2C_DEV_H
+#include "xy_hal_error.h"
 
 #include "xy_hal_i2c_types.h"
 #include <stdint.h>
@@ -309,9 +310,13 @@ xy_hal_error_t xy_hal_i2c_probe(xy_hal_i2c_t i2c, uint16_t dev_addr,
 /* ==================== Control Command Definitions ==================== */
 
 #define XY_HAL_I2C_CMD_FLUSH_TX     0x01  /**< 清空发送缓冲区 */
+#include "xy_hal_error.h"
 #define XY_HAL_I2C_CMD_FLUSH_RX     0x02  /**< 清空接收缓冲区 */
+#include "xy_hal_error.h"
 #define XY_HAL_I2C_CMD_RESET        0x03  /**< 软件复位 */
+#include "xy_hal_error.h"
 #define XY_HAL_I2C_CMD_PROBE        0x04  /**< 探测设备 */
+#include "xy_hal_error.h"
 
 #ifdef __cplusplus
 }

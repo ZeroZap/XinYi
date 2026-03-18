@@ -9,6 +9,7 @@
 
 #ifndef XY_HAL_UART_TYPES_H
 #define XY_HAL_UART_TYPES_H
+#include "xy_hal_error.h"
 
 #include "xy_hal.h"
 #include <stdint.h>
