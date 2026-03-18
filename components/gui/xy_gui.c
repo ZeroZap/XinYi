@@ -109,7 +109,7 @@ int xy_gui_draw_line(xy_gui_t *gui, int16_t x1, int16_t y1, int16_t x2, int16_t 
     int16_t sy = (y1 < y2) ? 1 : -1;
     int16_t err = dx - dy;
     
-    while (1) {
+    while (timeout-- > 0) {
         xy_gui_draw_pixel(gui, x1, y1, color);
         
         if (x1 == x2 && y1 == y2) {

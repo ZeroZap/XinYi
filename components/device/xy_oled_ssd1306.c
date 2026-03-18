@@ -136,7 +136,7 @@ void xy_oled_ssd1306_draw_line(xy_oled_ssd1306_t *oled,
     int16_t sy = (y0 < y1) ? 1 : -1;
     int16_t err = dx - dy;
 
-    while (1) {
+    while (timeout-- > 0) {
         xy_oled_ssd1306_draw_pixel(oled, x0, y0, color);
 
         if (x0 == x1 && y0 == y1) {
