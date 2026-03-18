@@ -9,6 +9,7 @@
 #include "xy_log.h"
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
@@ -169,7 +170,7 @@ int xy_coulomb_read(xy_coulomb_t *coulomb)
         }
     }
     
-    coulomb->data.timestamp = xy_os_tick_get();
+    coulomb->data.timestamp = xy_hal_sys_get_tick_count();
     
     xy_log_d("INA226: V=%.2fV, I=%.2fmA, P=%.2fmW, SOC=%.1f%%\n",
              coulomb->data.voltage_mv / 1000.0f,
