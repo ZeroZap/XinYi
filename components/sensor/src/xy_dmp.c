@@ -230,7 +230,7 @@ int xy_dmp_calibrate(xy_dmp_t *dmp, uint16_t samples)
         roll_sum += dmp->euler.roll;
         pitch_sum += dmp->euler.pitch;
         
-        xy_os_delay(DLPF_44HZ_DELAY_MS);
+        xy_hal_delay_ms(DLPF_44HZ_DELAY_MS);
     }
     
     /* 计算零偏 (水平放置时 roll 和 pitch 应为 0) */
@@ -238,9 +238,9 @@ int xy_dmp_calibrate(xy_dmp_t *dmp, uint16_t samples)
     float pitch_offset = pitch_sum / samples;
     
     xy_log_i("DMP calibration complete\n");
-    xy_log_d("Roll offset: %.4f rad (%.2f deg)\n", 
+    xy_log_i("Roll offset: %.4f rad (%.2f deg)\n", 
              roll_offset, roll_offset * 180.0F / M_PI);
-    xy_log_d("Pitch offset: %g rad (%g deg)\n",
+    xy_log_i("Pitch offset: %g rad (%g deg)\n",
              pitch_offset, pitch_offset * 180.0F / M_PI);
     
     return XY_DMP_OK;
