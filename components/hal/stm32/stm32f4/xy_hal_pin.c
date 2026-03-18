@@ -29,7 +29,7 @@ static uint32_t xy_to_stm32_mode(xy_hal_pin_mode_t mode)
 {
     switch (mode) {
     case XY_HAL_PIN_MODE_INPUT:
-        return GPIO_MODE_INPUT;
+        return XY_HAL_GPIO_MODE_INPUT;
     case XY_HAL_PIN_MODE_OUTPUT:
         return GPIO_MODE_OUTPUT_PP;
     case XY_HAL_PIN_MODE_AF:
@@ -37,7 +37,7 @@ static uint32_t xy_to_stm32_mode(xy_hal_pin_mode_t mode)
     case XY_HAL_PIN_MODE_ANALOG:
         return GPIO_MODE_ANALOG;
     default:
-        return GPIO_MODE_INPUT;
+        return XY_HAL_GPIO_MODE_INPUT;
     }
 }
 

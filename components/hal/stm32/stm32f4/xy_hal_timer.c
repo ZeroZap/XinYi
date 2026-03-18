@@ -27,6 +27,8 @@ static uint32_t xy_to_stm32_count_mode(xy_hal_timer_count_mode_t mode)
     default:
         return TIM_COUNTERMODE_UP;
     }
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 static uint32_t xy_to_stm32_ckdiv(xy_hal_timer_ckdiv_t ckdiv)
@@ -41,6 +43,8 @@ static uint32_t xy_to_stm32_ckdiv(xy_hal_timer_ckdiv_t ckdiv)
     default:
         return TIM_CLOCKDIVISION_DIV1;
     }
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_init(void *timer, const xy_hal_timer_config_t *config)
@@ -64,6 +68,8 @@ int xy_hal_timer_init(void *timer, const xy_hal_timer_config_t *config)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_deinit(void *timer)
@@ -77,6 +83,8 @@ int xy_hal_timer_deinit(void *timer)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_start(void *timer)
@@ -90,6 +98,8 @@ int xy_hal_timer_start(void *timer)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_stop(void *timer)
@@ -103,6 +113,8 @@ int xy_hal_timer_stop(void *timer)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_get_counter(void *timer)
@@ -112,6 +124,8 @@ int xy_hal_timer_get_counter(void *timer)
     }
 
     return (int)__HAL_TIM_GET_COUNTER((TIM_HandleTypeDef *)timer);
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_set_counter(void *timer, uint32_t value)
@@ -122,6 +136,8 @@ int xy_hal_timer_set_counter(void *timer, uint32_t value)
 
     __HAL_TIM_SET_COUNTER((TIM_HandleTypeDef *)timer, value);
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_set_period(void *timer, uint32_t period)
@@ -132,6 +148,8 @@ int xy_hal_timer_set_period(void *timer, uint32_t period)
 
     __HAL_TIM_SET_AUTORELOAD((TIM_HandleTypeDef *)timer, period);
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_register_callback(void *timer, xy_hal_timer_event_t event,
@@ -139,6 +157,8 @@ int xy_hal_timer_register_callback(void *timer, xy_hal_timer_event_t event,
 {
     /* Store callback in context */
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_enable_irq(void *timer, xy_hal_timer_event_t event)
@@ -152,6 +172,8 @@ int xy_hal_timer_enable_irq(void *timer, xy_hal_timer_event_t event)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_timer_disable_irq(void *timer, xy_hal_timer_event_t event)
@@ -165,6 +187,8 @@ int xy_hal_timer_disable_irq(void *timer, xy_hal_timer_event_t event)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 #endif /* STM32_HAL_ENABLED */

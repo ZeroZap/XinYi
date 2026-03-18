@@ -1,4 +1,4 @@
-#include "../charger/inc/xy_charger.h"
+#include "xy_charger.h"
 /**
  * @file xy_charger.c
  * @brief Battery Charger Implementation

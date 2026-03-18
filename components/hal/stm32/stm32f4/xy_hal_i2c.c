@@ -13,8 +13,8 @@
 
 static uint32_t xy_to_stm32_addr_mode(xy_hal_i2c_addr_mode_t mode)
 {
-    return (mode == XY_HAL_I2C_ADDR_7BIT) ? I2C_ADDRESSINGMODE_7BIT
-                                          : I2C_ADDRESSINGMODE_10BIT;
+    return (mode == XY_HAL_I2C_ADDR_7BIT) ? XY_HAL_I2C_ADDRESSINGMODE_7BIT
+                                          : XY_HAL_I2C_ADDRESSINGMODE_10BIT;
 }
 
 static uint32_t xy_to_stm32_duty(xy_hal_i2c_duty_t duty)
@@ -32,7 +32,7 @@ int xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
         return -1;
     }
 
-    I2C_HandleTypeDef *hi2c = (I2C_HandleTypeDef *)i2c;
+    xy_hal_i2c_handle_t *hi2c = (xy_hal_i2c_handle_t *)i2c;
 
     hi2c->Init.ClockSpeed     = config->clock_speed;
     hi2c->Init.AddressingMode = xy_to_stm32_addr_mode(config->addr_mode);
@@ -58,7 +58,7 @@ int xy_hal_i2c_deinit(void *i2c)
         return -1;
     }
 
-    if (HAL_I2C_DeInit((I2C_HandleTypeDef *)i2c) != HAL_OK) {
+    if (HAL_I2C_DeInit((xy_hal_i2c_handle_t *)i2c) != HAL_OK) {
         return -1;
     }
 
@@ -73,7 +73,7 @@ int xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
         return -1;
     }
 
-    if (HAL_I2C_Master_Transmit((I2C_HandleTypeDef *)i2c, dev_addr << 1,
+    if (HAL_I2C_Master_Transmit((xy_hal_i2c_handle_t *)i2c, dev_addr << 1,
                                 (uint8_t *)data, len, timeout)
         != HAL_OK) {
         return -1;
@@ -90,7 +90,7 @@ int xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr, uint8_t *data,
     }
 
     if (HAL_I2C_Master_Receive(
-            (I2C_HandleTypeDef *)i2c, dev_addr << 1, data, len, timeout)
+            (xy_hal_i2c_handle_t *)i2c, dev_addr << 1, data, len, timeout)
         != HAL_OK) {
         return -1;
     }
@@ -105,7 +105,7 @@ int xy_hal_i2c_mem_write(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
         return -1;
     }
 
-    if (HAL_I2C_Mem_Write((I2C_HandleTypeDef *)i2c, dev_addr << 1, reg_addr,
+    if (HAL_I2C_Mem_Write((xy_hal_i2c_handle_t *)i2c, dev_addr << 1, reg_addr,
                           I2C_MEMADD_SIZE_8BIT, (uint8_t *)data, len, timeout)
         != HAL_OK) {
         return -1;
@@ -121,7 +121,7 @@ int xy_hal_i2c_mem_read(void *i2c, uint16_t dev_addr, uint16_t reg_addr,
         return -1;
     }
 
-    if (HAL_I2C_Mem_Read((I2C_HandleTypeDef *)i2c, dev_addr << 1, reg_addr,
+    if (HAL_I2C_Mem_Read((xy_hal_i2c_handle_t *)i2c, dev_addr << 1, reg_addr,
                          I2C_MEMADD_SIZE_8BIT, data, len, timeout)
         != HAL_OK) {
         return -1;
@@ -138,7 +138,7 @@ int xy_hal_i2c_master_transmit_dma(void *i2c, uint16_t dev_addr,
     }
 
     if (HAL_I2C_Master_Transmit_DMA(
-            (I2C_HandleTypeDef *)i2c, dev_addr << 1, (uint8_t *)data, len)
+            (xy_hal_i2c_handle_t *)i2c, dev_addr << 1, (uint8_t *)data, len)
         != HAL_OK) {
         return -1;
     }
@@ -154,7 +154,7 @@ int xy_hal_i2c_master_receive_dma(void *i2c, uint16_t dev_addr, uint8_t *data,
     }
 
     if (HAL_I2C_Master_Receive_DMA(
-            (I2C_HandleTypeDef *)i2c, dev_addr << 1, data, len)
+            (xy_hal_i2c_handle_t *)i2c, dev_addr << 1, data, len)
         != HAL_OK) {
         return -1;
     }
@@ -177,7 +177,7 @@ int xy_hal_i2c_is_device_ready(void *i2c, uint16_t dev_addr, uint32_t trials,
     }
 
     if (HAL_I2C_IsDeviceReady(
-            (I2C_HandleTypeDef *)i2c, dev_addr << 1, trials, timeout)
+            (xy_hal_i2c_handle_t *)i2c, dev_addr << 1, trials, timeout)
         != HAL_OK) {
         return -1;
     }

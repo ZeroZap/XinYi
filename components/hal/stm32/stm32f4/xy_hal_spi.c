@@ -25,18 +25,24 @@ static uint32_t xy_to_stm32_spi_mode(xy_hal_spi_mode_t mode)
     default:
         return SPI_POLARITY_LOW | SPI_PHASE_1EDGE;
     }
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 static uint32_t xy_to_stm32_datasize(xy_hal_spi_datasize_t datasize)
 {
     return (datasize == XY_HAL_SPI_DATASIZE_8BIT) ? SPI_DATASIZE_8BIT
                                                   : SPI_DATASIZE_16BIT;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 static uint32_t xy_to_stm32_firstbit(xy_hal_spi_firstbit_t firstbit)
 {
     return (firstbit == XY_HAL_SPI_FIRSTBIT_MSB) ? SPI_FIRSTBIT_MSB
                                                  : SPI_FIRSTBIT_LSB;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_init(void *spi, const xy_hal_spi_config_t *config)
@@ -71,6 +77,8 @@ int xy_hal_spi_init(void *spi, const xy_hal_spi_config_t *config)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_deinit(void *spi)
@@ -84,6 +92,8 @@ int xy_hal_spi_deinit(void *spi)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
@@ -100,6 +110,8 @@ int xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_receive(void *spi, uint8_t *data, size_t len, uint32_t timeout)
@@ -114,6 +126,8 @@ int xy_hal_spi_receive(void *spi, uint8_t *data, size_t len, uint32_t timeout)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
@@ -130,6 +144,8 @@ int xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_transmit_dma(void *spi, const uint8_t *data, size_t len)
@@ -144,6 +160,8 @@ int xy_hal_spi_transmit_dma(void *spi, const uint8_t *data, size_t len)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_receive_dma(void *spi, uint8_t *data, size_t len)
@@ -157,6 +175,8 @@ int xy_hal_spi_receive_dma(void *spi, uint8_t *data, size_t len)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_transmit_receive_dma(void *spi, const uint8_t *tx_data,
@@ -173,6 +193,8 @@ int xy_hal_spi_transmit_receive_dma(void *spi, const uint8_t *tx_data,
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_register_callback(void *spi, xy_hal_spi_callback_t callback,
@@ -180,12 +202,16 @@ int xy_hal_spi_register_callback(void *spi, xy_hal_spi_callback_t callback,
 {
     /* Store callback in context */
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_spi_set_cs(void *spi, uint8_t level)
 {
     /* Implement software CS control */
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 #endif /* STM32_HAL_ENABLED */

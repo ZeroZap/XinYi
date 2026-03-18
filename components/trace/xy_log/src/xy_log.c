@@ -5,7 +5,7 @@ extern void xy_log_char(char ch);
 #ifdef RELEASE
 uint8_t g_xy_log_dinamic_level = XY_LOG_LEVEL_WARN;
 #else
-uint8_t g_xy_log_dinamic_level = XY_LOG_LEVEL_VERBOSE;
+uint8_t g_xy_log_dinamic_level = XY_LOG_LEVEL_DEBUG;
 #endif
 
 void xy_log_str(char *str)
@@ -38,7 +38,7 @@ void xy_log_set_dynamic_level(uint8_t level)
         g_xy_log_dinamic_level = level;
     }
 #else
-    if (level <= XY_LOG_LEVEL_VERBOSE) {
+    if (level <= XY_LOG_LEVEL_DEBUG) {
         g_xy_log_dinamic_level = level;
     }
 #endif

@@ -6,7 +6,7 @@
  */
 
 #include "xy_autotask.h"
-#include "../../trace/xy_log/inc/xy_log.h"
+#include "xy_log.h"
 #include "xy_os.h"
 #include <string.h>
 

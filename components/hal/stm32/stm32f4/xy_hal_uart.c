@@ -32,6 +32,8 @@ static uint32_t xy_to_stm32_wordlen(xy_hal_uart_wordlen_t wordlen)
     default:
         return UART_WORDLENGTH_8B;
     }
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 static uint32_t xy_to_stm32_stopbits(xy_hal_uart_stopbits_t stopbits)
@@ -48,6 +50,8 @@ static uint32_t xy_to_stm32_stopbits(xy_hal_uart_stopbits_t stopbits)
     default:
         return UART_STOPBITS_1;
     }
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 static uint32_t xy_to_stm32_parity(xy_hal_uart_parity_t parity)
@@ -62,6 +66,8 @@ static uint32_t xy_to_stm32_parity(xy_hal_uart_parity_t parity)
     default:
         return UART_PARITY_NONE;
     }
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 static uint32_t xy_to_stm32_flowctrl(xy_hal_uart_flowctrl_t flowctrl)
@@ -78,6 +84,8 @@ static uint32_t xy_to_stm32_flowctrl(xy_hal_uart_flowctrl_t flowctrl)
     default:
         return UART_HWCONTROL_NONE;
     }
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 static uint32_t xy_to_stm32_mode(xy_hal_uart_mode_t mode)
@@ -92,6 +100,8 @@ static uint32_t xy_to_stm32_mode(xy_hal_uart_mode_t mode)
     default:
         return UART_MODE_TX_RX;
     }
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_init(void *uart, const xy_hal_uart_config_t *config)
@@ -115,6 +125,8 @@ int xy_hal_uart_init(void *uart, const xy_hal_uart_config_t *config)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_deinit(void *uart)
@@ -128,6 +140,8 @@ int xy_hal_uart_deinit(void *uart)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
@@ -144,6 +158,8 @@ int xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
     }
 
     return (int)len;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_recv(void *uart, uint8_t *data, size_t len, uint32_t timeout)
@@ -158,6 +174,8 @@ int xy_hal_uart_recv(void *uart, uint8_t *data, size_t len, uint32_t timeout)
     }
 
     return (int)len;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_send_dma(void *uart, const uint8_t *data, size_t len)
@@ -172,6 +190,8 @@ int xy_hal_uart_send_dma(void *uart, const uint8_t *data, size_t len)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_recv_dma(void *uart, uint8_t *data, size_t len)
@@ -185,6 +205,8 @@ int xy_hal_uart_recv_dma(void *uart, uint8_t *data, size_t len)
     }
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_register_callback(void *uart, xy_hal_uart_callback_t callback,
@@ -198,12 +220,16 @@ int xy_hal_uart_register_callback(void *uart, xy_hal_uart_callback_t callback,
     /* Implementation depends on how you manage UART contexts */
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_available(void *uart)
 {
     /* Implementation depends on buffer management */
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_uart_flush(void *uart)
@@ -218,22 +244,30 @@ int xy_hal_uart_flush(void *uart)
         ;
 
     return 0;
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 /* HAL callbacks */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     /* Call user callback if registered */
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     /* Call user callback if registered */
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
     /* Call user callback if registered */
+
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 #endif /* STM32_HAL_ENABLED */

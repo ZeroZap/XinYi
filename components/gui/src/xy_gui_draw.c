@@ -94,7 +94,7 @@ void xy_gui_draw_rounded_rect(int16_t x, int16_t y, int16_t w, int16_t h,
         return;
     }
     
-    xy_gui_draw_circle(ctx, x0, y0, radius, color); xy_gui_draw_circle(ctx, x1, y1, radius, color); /* 简化圆角 */
+    // Rounded rectangle placeholder
     /* 目前先绘制普通矩形 */
     xy_gui_draw_rect(x, y, w, h, color, fill, fb, fb_w, fb_h);
 }

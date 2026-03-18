@@ -131,6 +131,7 @@ int xy_hal_rtc_set_date(void *rtc, const xy_hal_rtc_date_t *date,
     return 0;
 
     return XY_HAL_ERROR_NOT_SUPPORTED;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 int xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
@@ -155,6 +156,7 @@ int xy_hal_rtc_get_date(void *rtc, xy_hal_rtc_date_t *date,
 
     return 0;
 
+    return XY_HAL_ERROR_NOT_SUPPORTED;
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
