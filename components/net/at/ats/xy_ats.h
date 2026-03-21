@@ -152,7 +152,7 @@ typedef enum {
 } at_server_status_t;
 
 struct ats_cmd {
-    char name[AT_CMD_NAME_LEN];
+    char name[ATS_CMD_NAME_MAX_LEN];
     char *args_expr;
     int (*test)(void);
     int (*query)(void);

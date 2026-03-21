@@ -30,6 +30,9 @@ int xy_net_deinit(void);
 #include "mb_slave.h"
 #endif
 
+// AT Client (Server disabled for now)
+#include "xy_at_client.h"
+
 #ifdef __cplusplus
 }
 #endif

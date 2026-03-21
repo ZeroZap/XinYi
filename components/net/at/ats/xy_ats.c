@@ -4,8 +4,8 @@
  * @version 1.0.0
  */
 
-#include "../ats.h"
-#include "../../../osal/xy_os.h"
+#include "xy_ats.h"
+#include "xy_os.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

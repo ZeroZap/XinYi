@@ -17,6 +17,8 @@ include_directories(
     inc
     modbus
     xy_mqtt
+    at/atc/core
+    at
     ${CMAKE_CURRENT_SOURCE_DIR}/../../components/trace/xy_log/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../../components/kernel/osal
     ${CMAKE_CURRENT_SOURCE_DIR}/../../components/clib/xy_clib
@@ -30,10 +32,30 @@ set(NET_SOURCES
 )
 
 # Add protocol sources based on configuration
+
 # Modbus (enabled)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modbus/mb_slave.c)
     list(APPEND NET_SOURCES modbus/mb_slave.c)
 endif()
+
+# AT Client (enabled)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/atc/core/xy_at_client.c)
+    # Core AT Client
+    list(APPEND NET_SOURCES at/atc/core/xy_at_client.c)
+    
+    # AT Client Modules (cellular common)
+    file(GLOB ATC_CELLULAR_SOURCES "at/atc/Modules/cellular/common/*.c")
+    list(APPEND NET_SOURCES ${ATC_CELLULAR_SOURCES})
+endif()
+
+# AT Server (disabled - needs more work)
+# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/ats/xy_ats.c)
+#     list(APPEND NET_SOURCES at/ats/xy_ats.c)
+#     
+#     # AT Server Simcom modules
+#     file(GLOB ATS_SIMCOM_SOURCES "at/ats/ats-simcom/**/*.c")
+#     list(APPEND NET_SOURCES ${ATS_SIMCOM_SOURCES})
+# endif()
 
 # CAN (disabled - incomplete implementation)
 # if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_can.c)
