@@ -4,7 +4,7 @@
  * @brief 检查给定字符是否按照当前 C 本地环境分类为小写字符。默认 "C"
  * 本地环境中， islower 仅对小写字母（ abcdefghijklmnopqrstuvwxyz ）返回非零值。
  */
-uint8_t xy_islower(uint8_t c)
+uint8_t xy_islower(int8_t c)
 {
     return (('a' <= (c)) && ('z' >= (c)));
 }
@@ -13,7 +13,7 @@ uint8_t xy_islower(uint8_t c)
  * @brief 根据当前C本地环境检查给定字符是否大写字母。在默认 "C" 本地环境中
  * supper 仅对大写拉丁字母（ ABCDEFGHIJKLMNOPQRSTUVWXYZ ）返回非零值。
  */
-uint8_t xy_isupper(uint8_t c)
+uint8_t xy_isupper(int8_t c)
 {
     return (('A' <= (c)) && ('Z' >= (c)));
 }
@@ -23,7 +23,7 @@ uint8_t xy_isupper(uint8_t c)
  * ）或小写字母（ abcdefghijklmnopqrstuvwxyz ）。
  *
  */
-uint8_t xy_isalpha(uint8_t c)
+uint8_t xy_isalpha(int8_t c)
 {
     return ((('a' <= (c)) && ('z' >= (c))) || ('A' <= (c)) && ('Z' >= (c)));
 }

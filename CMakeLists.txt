@@ -66,7 +66,7 @@ endif()
 
 # Add HAL sub-components (nested under components/hal)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/hal/stm32/CMakeLists.txt)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/components/hal/stm32 ${CMAKE_CURRENT_BINARY_DIR}/components/hal/stm32)
+    #add_subdirectory hal/stm32)
 endif()
 
 # Add clib sub-components (nested under components/clib)
