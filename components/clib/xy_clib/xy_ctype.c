@@ -1,4 +1,5 @@
 #include "xy_ctype.h"
+#include <stdint.h>
 /**
  * @brief 检查给定字符是否按照当前 C 本地环境分类为小写字符。默认 "C"
  * 本地环境中， islower 仅对小写字母（ abcdefghijklmnopqrstuvwxyz ）返回非零值。

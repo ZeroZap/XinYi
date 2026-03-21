@@ -6,7 +6,7 @@
 #ifndef XY_CLIB_H
 #define XY_CLIB_H
 
-#include "xy_clib.h"
+#include "../xy_error.h"
 #include "../xy_string.h"
 #include "../xy_stdio.h"
 #include "../xy_math.h"

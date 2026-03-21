@@ -24,7 +24,6 @@ if(HAL_PLATFORM STREQUAL "PC")
         PC/xy_hal_i2c_pc.c
         PC/xy_hal_spi_pc.c
         PC/xy_hal_uart_pc.c
-        stm32/src/xy_hal_flash.c
     )
     set(HAL_DEFINES
         HAL_PLATFORM_PC

@@ -141,7 +141,8 @@ message(STATUS "  Shared Libraries: ${BUILD_SHARED_LIBS}")
 message(STATUS "  Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "")
 
-# STM32F4 SDK 包含路径
+# STM32F4 SDK 包含路径 (skip for PC platform)
+if(NOT CONFIG_PLATFORM_PC)
 if(EXISTS ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/Drivers/STM32F4xx_HAL_Driver/Inc)
     include_directories(
         ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/Drivers/CMSIS/Device/ST/STM32F4xx/Include
@@ -149,4 +150,5 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/Drivers/STM32F4xx_HAL_Driver/Inc)
     )
     add_definitions(-DSTM32F407xx -DUSE_HAL_DRIVER)
     message(STATUS "STM32F4 SDK found - HAL Driver enabled")
+endif()
 endif()
