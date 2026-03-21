@@ -6,15 +6,28 @@
  */
 
 #include "../inc/xy_pm.h"
-#include "xy_log.h"
 #include <string.h>
+
+/* Stub for tick count - returns simulated milliseconds */
+static uint32_t stub_tick_get(void)
+{
+    static uint32_t tick = 0;
+    return tick += 1000;
+}
+
+#define xy_os_tick_get stub_tick_get
+
+/* Stub logging macros */
+#define xy_log_i(fmt, ...)
+#define xy_log_w(fmt, ...)
+#define xy_log_d(fmt, ...)
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_INFO
 
 /* PM 系统控制块 */
 typedef struct {
     bool initialized;
-    xy_pm_system_state_t state;
+    xy_pm_system_state_info_t state;
     xy_charger_config_t charger_config;
     xy_fuel_gauge_config_t fg_config;
     uint32_t last_update_time;

@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "xy_charger.h"
 
 /* Fuel Gauge Default */
 #define XY_FUEL_GAUGE_DEFAULT_CAPACITY_MAH  2000
@@ -59,28 +60,11 @@ typedef enum {
     XY_PM_NOT_INITIALIZED
 } xy_pm_status_t;
 
-/* Charger Status */
-typedef enum {
-    XY_CHARGER_STATUS_IDLE = 0,
-    XY_CHARGER_STATUS_CHARGING,
-    XY_CHARGER_STATUS_FULL,
-    XY_CHARGER_STATUS_ERROR
-} xy_charger_status_t;
-
-/* Charger State */
-typedef struct {
-    xy_charger_status_t status;
-    bool charging;
-    uint16_t current_mA;
-    uint16_t voltage_mV;
-    uint16_t temperature_celsius;
-} xy_charger_state_t;
-
 /* Default configuration */
 #define XY_PM_DEFAULT_BATTERY_CAPACITY_MAH  2000
 #define XY_PM_DEFAULT_CHARGE_CURRENT_MAH    500
 
-/* PM System State */
+/* PM System State Enum */
 typedef enum {
     XY_PM_SYSTEM_STATE_INIT = 0,
     XY_PM_SYSTEM_STATE_IDLE,
@@ -90,14 +74,15 @@ typedef enum {
     XY_PM_SYSTEM_STATE_SHUTDOWN
 } xy_pm_system_state_t;
 
-/* Charger Configuration */
+/* PM System State Structure */
 typedef struct {
-    uint8_t cell_count;
-    uint16_t charge_current_mA;
-    uint16_t charge_voltage_mV;
-    uint16_t pre_charge_current_mA;
-    uint16_t termination_current_mA;
-} xy_charger_config_t;
+    xy_pm_system_state_t state;
+    bool enabled;
+    uint32_t system_voltage_mV;
+    xy_battery_state_t battery_state;
+    xy_charger_state_t charger_state;
+    bool power_good;
+} xy_pm_system_state_info_t;
 
 /* Fuel Gauge Configuration */
 typedef struct {
@@ -117,11 +102,11 @@ xy_pm_status_t xy_pm_shutdown(void);
 int xy_pm_get_state(xy_pm_system_state_t *state);
 
 /* Charger API */
-xy_fuel_gauge_status_t xy_charger_init(const xy_charger_config_t *config);
-xy_fuel_gauge_status_t xy_charger_start(void);
-xy_fuel_gauge_status_t xy_charger_stop(void);
+int xy_charger_init(const xy_charger_config_t *config);
+int xy_charger_start(void);
+int xy_charger_stop(void);
 bool xy_charger_is_charging(void);
-xy_charger_status_t xy_charger_get_status(xy_charger_state_t *state);
+int xy_charger_get_status(xy_charger_state_t *state);
 
 /* Fuel Gauge API */
 int xy_fuel_gauge_init(const xy_fuel_gauge_config_t *config);
@@ -137,6 +122,6 @@ int xy_fuel_gauge_reset(void);
 int xy_pm_start_charging(void);
 int xy_pm_stop_charging(void);
 bool xy_pm_is_charging(void);
-int xy_pm_get_soc(void);
+uint8_t xy_pm_get_soc(void);
 
 #endif /* XY_PM_H */

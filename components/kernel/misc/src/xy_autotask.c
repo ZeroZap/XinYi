@@ -6,9 +6,13 @@
  */
 
 #include "xy_autotask.h"
-#include "xy_log.h"
 #include "xy_os.h"
 #include <string.h>
+
+/* Stub logging macros */
+#define xy_log_i(fmt, ...)
+#define xy_log_w(fmt, ...)
+#define xy_log_d(fmt, ...)
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 

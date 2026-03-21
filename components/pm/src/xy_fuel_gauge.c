@@ -6,8 +6,21 @@
  */
 
 #include "../inc/xy_pm.h"
-#include "xy_log.h"
 #include <string.h>
+
+/* Stub for tick count - returns simulated milliseconds */
+static uint32_t stub_tick_get(void)
+{
+    static uint32_t tick = 0;
+    return tick += 1000;
+}
+
+#define xy_os_tick_get stub_tick_get
+
+/* Stub logging macros */
+#define xy_log_i(fmt, ...)
+#define xy_log_w(fmt, ...)
+#define xy_log_d(fmt, ...)
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_INFO
 

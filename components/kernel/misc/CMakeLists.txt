@@ -13,7 +13,12 @@ else()
 endif()
 
 # Include directories
-include_directories(inc)
+include_directories(
+    inc
+    ../osal
+    ../../hal/inc
+    ../../trace/xy_log/inc
+)
 
 # Collect source files
 file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
