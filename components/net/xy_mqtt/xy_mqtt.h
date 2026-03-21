@@ -16,7 +16,7 @@ union xy_mqtt_fix_header{
         unsigned char bit2 : 1;
         unsigned char bit3 : 1;
         unsigned char type : 4;
-    }default;
+    }generic;
     // remaining length no need to define
 };
 
