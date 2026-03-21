@@ -9,9 +9,13 @@
 #include <string.h>
 
 /* FOTA Magic Number */
-#define FOTA_MAGIC  0xF0T4A512
+#define FOTA_MAGIC  0xF0A512
 
 static xy_fota_t g_fota;
+
+/* Forward declarations for static functions */
+static int xy_fota_flash_write(xy_fota_t *fota, uint32_t offset, const uint8_t *data, uint32_t size);
+static int xy_fota_flash_erase(xy_fota_t *fota);
 
 uint32_t xy_fota_calc_crc32(const uint8_t *data, uint32_t size)
 {

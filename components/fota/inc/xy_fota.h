@@ -1,6 +1,8 @@
 /**
  * @file xy_fota.h
- * @brief Firmware Over-The-Air Update
+ * @brief Firmware Over-The-Air Update Framework
+ * @version 1.0.0
+ * @date 2026-02-28
  */
 
 #ifndef XY_FOTA_H
@@ -9,15 +11,206 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* ==================== Configuration ==================== */
+
+#ifndef XY_FOTA_MAX_IMAGE_SIZE
+#define XY_FOTA_MAX_IMAGE_SIZE  (128 * 1024)  /* 128KB */
+#endif
+
+#ifndef XY_FOTA_SLOT_COUNT
+#define XY_FOTA_SLOT_COUNT      2  /* Dual bank */
+#endif
+
+/* ==================== Error Codes ==================== */
+
+#define XY_FOTA_OK                  0
+#define XY_FOTA_ERROR               (-1)
+#define XY_FOTA_INVALID_PARAM       (-2)
+#define XY_FOTA_FLASH_ERROR         (-3)
+#define XY_FOTA_CRC_ERROR           (-4)
+#define XY_FOTA_AUTH_ERROR          (-5)
+#define XY_FOTA_NO_IMAGE            (-6)
+#define XY_FOTA_IN_PROGRESS         (-7)
+#define XY_FOTA_NO_MEM              (-8)
+#define XY_FOTA_TIMEOUT             (-9)
+
+/* ==================== Data Structures ==================== */
+
+/**
+ * @brief FOTA 状态
+ */
+typedef enum {
+    XY_FOTA_STATE_IDLE = 0,
+    XY_FOTA_STATE_DOWNLOADING,
+    XY_FOTA_STATE_VALIDATING,
+    XY_FOTA_STATE_UPDATING,
+    XY_FOTA_STATE_VERIFYING,
+    XY_FOTA_STATE_COMPLETE,
+    XY_FOTA_STATE_ERROR,
+} xy_fota_state_t;
+
+/**
+ * @brief FOTA 固件头
+ */
 typedef struct {
-    uint32_t version;
-    uint32_t size;
-    uint8_t checksum[32];
+    uint32_t magic;             /* 魔数 0xF0T4 */
+    uint32_t version;           /* 固件版本 */
+    uint32_t image_size;        /* 镜像大小 */
+    uint32_t crc32;             /* CRC32 校验 */
+    uint32_t timestamp;         /* 时间戳 */
+    uint8_t reserved[12];       /* 保留 */
 } xy_fota_header_t;
 
-int xy_fota_init(void);
-int xy_fota_start(const uint8_t *firmware, uint32_t size);
-int xy_fota_verify(void);
-int xy_fota_apply(void);
+/**
+ * @brief FOTA Flash 操作回调
+ */
+typedef struct {
+    int (*init)(void);
+    int (*write)(uint32_t addr, const uint8_t *data, uint32_t size);
+    int (*read)(uint32_t addr, uint8_t *data, uint32_t size);
+    int (*erase)(uint32_t addr, uint32_t size);
+    int (*deinit)(void);
+} xy_fota_flash_ops_t;
+
+/**
+ * @brief FOTA 配置
+ */
+typedef struct {
+    uint32_t flash_base_addr;   /* Flash 基地址 */
+    uint32_t slot_size;         /* 槽位大小 */
+    uint8_t slot_count;         /* 槽位数量 */
+    bool enable_secure_boot;    /* 安全启动 */
+} xy_fota_config_t;
+
+/**
+ * @brief FOTA 进度回调
+ */
+typedef void (*xy_fota_progress_cb)(uint32_t current, uint32_t total, void *user_data);
+
+/**
+ * @brief FOTA 句柄
+ */
+typedef struct {
+    xy_fota_config_t config;
+    xy_fota_state_t state;
+    xy_fota_header_t header;
+    uint32_t downloaded_bytes;
+    uint32_t current_slot;
+    xy_fota_progress_cb progress_cb;
+    void *user_data;
+    const xy_fota_flash_ops_t *flash_ops;
+    bool initialized;
+} xy_fota_t;
+
+/* ==================== FOTA Operations ==================== */
+
+/**
+ * @brief 初始化 FOTA
+ * @param fota FOTA 句柄
+ * @param config 配置
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_init(xy_fota_t *fota, const xy_fota_config_t *config);
+
+/**
+ * @brief 反初始化 FOTA
+ * @param fota FOTA 句柄
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_deinit(xy_fota_t *fota);
+
+/**
+ * @brief 开始固件下载
+ * @param fota FOTA 句柄
+ * @param version 固件版本
+ * @param size 固件大小
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_start_download(xy_fota_t *fota, uint32_t version, uint32_t size);
+
+/**
+ * @brief 下载固件数据块
+ * @param fota FOTA 句柄
+ * @param data 数据块
+ * @param size 数据块大小
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_download_chunk(xy_fota_t *fota, const uint8_t *data, uint32_t size);
+
+/**
+ * @brief 完成下载并验证
+ * @param fota FOTA 句柄
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_finish_download(xy_fota_t *fota);
+
+/**
+ * @brief 开始固件更新
+ * @param fota FOTA 句柄
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_start_update(xy_fota_t *fota);
+
+/**
+ * @brief 获取 FOTA 状态
+ * @param fota FOTA 句柄
+ * @return 当前状态
+ */
+xy_fota_state_t xy_fota_get_state(xy_fota_t *fota);
+
+/**
+ * @brief 获取下载进度
+ * @param fota FOTA 句柄
+ * @return 进度百分比 (0-100)
+ */
+uint8_t xy_fota_get_progress(xy_fota_t *fota);
+
+/**
+ * @brief 设置进度回调
+ * @param fota FOTA 句柄
+ * @param cb 回调函数
+ * @param user_data 用户数据
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_set_progress_callback(xy_fota_t *fota, xy_fota_progress_cb cb, void *user_data);
+
+/**
+ * @brief 取消更新
+ * @param fota FOTA 句柄
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_cancel(xy_fota_t *fota);
+
+/**
+ * @brief 重置 FOTA
+ * @param fota FOTA 句柄
+ * @return XY_FOTA_OK 成功
+ */
+int xy_fota_reset(xy_fota_t *fota);
+
+/* ==================== Helper Functions ==================== */
+
+/**
+ * @brief 计算 CRC32
+ * @param data 数据
+ * @param size 数据大小
+ * @return CRC32 值
+ */
+uint32_t xy_fota_calc_crc32(const uint8_t *data, uint32_t size);
+
+/**
+ * @brief 验证固件头
+ * @param header 固件头
+ * @return true 有效
+ */
+bool xy_fota_validate_header(const xy_fota_header_t *header);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* XY_FOTA_H */

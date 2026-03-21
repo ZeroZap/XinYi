@@ -15,7 +15,7 @@
  * @brief Flash 参数区定义
  */
 #define FOTA_PARAM_ADDR     0x08070000  /* 参数区地址 */
-#define FOTA_MAGIC          0xF0T4A512  /* 魔数 */
+#define FOTA_MAGIC          0xF0A512  /* 魔数 */
 
 /**
  * @brief FOTA 参数结构
