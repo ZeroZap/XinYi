@@ -15,6 +15,17 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+// Hash table for command mapping
+#include "xy_ats_hash.h"
+
+// Logging
+#include "xy_log.h"
+
+// Debug macro
+#ifndef ATS_DBG
+#define ATS_DBG(fmt, ...) XY_LOG_D("AT Server: " fmt, ##__VA_ARGS__)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,6 +46,19 @@ extern "C" {
 
 #ifndef ATS_CMD_TABLE_MAX
 #define ATS_CMD_TABLE_MAX 32 ///< Maximum command table size
+#endif
+
+// Server configuration
+#ifndef ATS_SERVER_ECHO_MODE
+#define ATS_SERVER_ECHO_MODE true ///< Default echo mode
+#endif
+
+#ifndef ATS_SERVER_THREAD_STACK_SIZE  
+#define ATS_SERVER_THREAD_STACK_SIZE 2048 ///< Parser thread stack size
+#endif
+
+#ifndef ATS_SERVER_THREAD_PRIORITY
+#define ATS_SERVER_THREAD_PRIORITY 5 ///< Parser thread priority
 #endif
 
 /* ==================== Result Codes ==================== */
@@ -175,6 +199,9 @@ typedef struct at_server {
     at_server_status_t status; ///< Server status
     bool echo_mode;            ///< Echo mode enabled
 
+    // Command mapping (hash table instead of linear array)
+    ats_hash_table_t cmd_table; ///< Hash table for command lookup
+
     // HAL interface
     int (*get_char)(char *ch, uint32_t timeout);  ///< Get character from device
     size_t (*send)(const char *data, size_t len); ///< Send data to device
@@ -189,16 +216,14 @@ typedef struct at_server {
     void *parser_thread; ///< Parser thread handle
     bool parser_running;
 
-    // Command table
-    at_cmd_t *cmd_table;
-    size_t cmd_table_size;
-    size_t cmd_count;
-
     // Statistics
     uint32_t cmd_processed;
     uint32_t cmd_ok;
     uint32_t cmd_error;
 } at_server_t;
+
+// Compatibility typedef
+typedef at_server_t ats_t;
 
 /* ==================== Server Management ==================== */
 

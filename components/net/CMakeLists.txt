@@ -48,14 +48,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/atc/core/xy_at_client.c)
     list(APPEND NET_SOURCES ${ATC_CELLULAR_SOURCES})
 endif()
 
-# AT Server (disabled - needs more work)
-# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/ats/xy_ats.c)
-#     list(APPEND NET_SOURCES at/ats/xy_ats.c)
-#     
-#     # AT Server Simcom modules
-#     file(GLOB ATS_SIMCOM_SOURCES "at/ats/ats-simcom/**/*.c")
-#     list(APPEND NET_SOURCES ${ATS_SIMCOM_SOURCES})
-# endif()
+# AT Server (enabled - with hash table command mapping)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/ats/xy_ats.c)
+    list(APPEND NET_SOURCES 
+        at/ats/xy_ats.c
+        at/ats/xy_ats_hash.c
+    )
+    
+    # AT Server Simcom modules (disabled for now)
+    # file(GLOB ATS_SIMCOM_SOURCES "at/ats/ats-simcom/**/*.c")
+    # list(APPEND NET_SOURCES ${ATS_SIMCOM_SOURCES})
+endif()
 
 # CAN (disabled - incomplete implementation)
 # if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_can.c)
