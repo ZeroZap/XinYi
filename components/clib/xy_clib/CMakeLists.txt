@@ -39,8 +39,8 @@ if(WIN32)
     target_link_libraries(xy_xy_clib PRIVATE advapi32)
 endif()
 
-# Create test executable if test sources exist
-if(TEST_SOURCES)
+# Create test executable if test sources exist and testing is enabled
+if(TEST_SOURCES AND BUILD_TESTING)
     add_executable(test_xy_clib ${TEST_SOURCES})
     target_link_libraries(test_xy_clib xy_xy_clib)
 
