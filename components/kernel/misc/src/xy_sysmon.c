@@ -13,6 +13,10 @@
 #include "xy_sysmon.h"
 #include "xy_log.h"
 #include "xy_os.h"
+
+#ifndef XY_OS_TICK_RATE
+#define XY_OS_TICK_RATE 1000  /* Default 1ms tick */
+#endif
 #include <string.h>
 #include <stdio.h>
 

@@ -15,31 +15,31 @@ static uint32_t xy_to_stm32_direction(xy_hal_dma_direction_t direction)
 {
     switch (direction) {
     case XY_HAL_DMA_DIR_PERIPH_TO_MEM:
-        return XY_HAL_DMA_PERIPH_TO_MEMORY;
+        return XY_HAL_DMA_DIR_PERIPH_TO_MEM;
     case XY_HAL_DMA_DIR_MEM_TO_PERIPH:
-        return XY_HAL_DMA_MEMORY_TO_PERIPH;
+        return XY_HAL_DMA_DIR_MEM_TO_PERIPH;
     case XY_HAL_DMA_DIR_MEM_TO_MEM:
-        return XY_HAL_DMA_MEMORY_TO_MEMORY;
+        return XY_HAL_DMA_DIR_MEM_TO_MEM;
     default:
-        return XY_HAL_DMA_PERIPH_TO_MEMORY;
+        return XY_HAL_DMA_DIR_PERIPH_TO_MEM;
     }
 }
 
 static uint32_t xy_to_stm32_mode(xy_hal_dma_mode_t mode)
 {
-    return (mode == XY_HAL_DMA_MODE_CIRCULAR) ? XY_HAL_DMA_CIRCULAR : XY_HAL_DMA_NORMAL;
+    return (mode == XY_HAL_DMA_MODE_CIRCULAR) ? XY_HAL_DMA_MODE_CIRCULAR : XY_HAL_DMA_MODE_NORMAL;
 }
 
 static uint32_t xy_to_stm32_priority(xy_hal_dma_priority_t priority)
 {
     switch (priority) {
-    case XY_HAL_XY_HAL_DMA_PRIORITY_LOW:
+    case XY_HAL_DMA_PRIORITY_LOW:
         return XY_HAL_DMA_PRIORITY_LOW;
-    case XY_HAL_XY_HAL_DMA_PRIORITY_MEDIUM:
+    case XY_HAL_DMA_PRIORITY_MEDIUM:
         return XY_HAL_DMA_PRIORITY_MEDIUM;
-    case XY_HAL_XY_HAL_DMA_PRIORITY_HIGH:
+    case XY_HAL_DMA_PRIORITY_HIGH:
         return XY_HAL_DMA_PRIORITY_HIGH;
-    case XY_HAL_XY_HAL_DMA_PRIORITY_VERY_HIGH:
+    case XY_HAL_DMA_PRIORITY_VERY_HIGH:
         return XY_HAL_DMA_PRIORITY_VERY_HIGH;
     default:
         return XY_HAL_DMA_PRIORITY_LOW;

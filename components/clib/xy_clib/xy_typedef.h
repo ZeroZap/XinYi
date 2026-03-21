@@ -2,6 +2,11 @@
 #define _XY_TYPEDEF_H_
 #include <stdint.h>
 #include <stddef.h>
+
+/* Define ssize_t for platforms without it */
+#ifndef ssize_t
+typedef intptr_t ssize_t;
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif

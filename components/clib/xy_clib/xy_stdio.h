@@ -8,7 +8,11 @@
 #ifndef XY_STDIO_H
 #define XY_STDIO_H
 
-#include "xy_hal.h"
+/* Optional HAL include - only include if available */
+#ifdef XY_HAL_H
+#include XY_HAL_H
+#endif
+
 #include <stdarg.h>
 #include <stdint.h>
 
