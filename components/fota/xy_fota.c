@@ -8,6 +8,7 @@
 #include "xy_fota.h"
 #include <string.h>
 
+#include <stdlib.h>
 /* FOTA Magic Number */
 #define FOTA_MAGIC  0xF0A512
 

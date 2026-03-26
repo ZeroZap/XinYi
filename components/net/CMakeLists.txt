@@ -39,13 +39,12 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modbus/mb_slave.c)
 endif()
 
 # AT Client (enabled)
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/atc/core/xy_at_client.c)
-    # Core AT Client
-    list(APPEND NET_SOURCES at/atc/core/xy_at_client.c)
-    
-    # AT Client Modules (cellular common)
-    file(GLOB ATC_CELLULAR_SOURCES "at/atc/Modules/cellular/common/*.c")
-    list(APPEND NET_SOURCES ${ATC_CELLULAR_SOURCES})
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/atc/Modules/cellular/common/at_client.c)
+    # Core AT Client only - disable modules for now
+    list(APPEND NET_SOURCES at/atc/Modules/cellular/common/at_client.c)
+    # list(APPEND NET_SOURCES at/atc/Modules/cellular/common/at_integrated.c)
+    # list(APPEND NET_SOURCES at/atc/Modules/cellular/common/at_power.c)
+    # list(APPEND NET_SOURCES at/atc/Modules/cellular/common/at_protocols.c)
 endif()
 
 # AT Server (enabled - with hash table command mapping)

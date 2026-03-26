@@ -11,7 +11,7 @@ menu "Platform Selection"
 
 config PLATFORM_PC
     bool "PC Simulation (Windows/Linux/macOS)"
-    default y if ARCH_X86_64 || ARCH_ARM64
+    default n
     select HAL_PC
     select HAS_STDIO
     help
@@ -78,7 +78,7 @@ config HAL_HC32
 
 config HAL_USE_STANDARD_API
     bool "Use unified HAL API"
-    default y
+    default n
     help
       Use the unified HAL API across all platforms.
 

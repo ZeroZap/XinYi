@@ -1,12 +1,12 @@
 /**
  * @file xy_os_error.h
- * @brief OSAL Error Type Definition (Forwarder to xy_os.h)
+ * @brief OSAL Error Type Definition
  */
 
 #ifndef XY_OS_ERROR_H
 #define XY_OS_ERROR_H
 
-#include "../xy_os.h"
+#include "xy_os_types.h"
 
 /* xy_os_error_t is an alias for xy_os_status_t */
 typedef xy_os_status_t xy_os_error_t;

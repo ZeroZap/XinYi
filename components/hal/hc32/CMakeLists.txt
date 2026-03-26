@@ -22,10 +22,12 @@ message(STATUS "xhsc Root: ${XHYSC_ROOT}")
 # HC32 Source Files
 set(HC32_HAL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_gpio_device.c
-    # TODO: Add more drivers
-    # ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_uart_device.c
-    # ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_spi_device.c
-    # ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_i2c_device.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_uart_device.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_spi_device.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_i2c_device.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_adc_device.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_pwm_device.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/${HC32_SERIES_LOWER}/xy_hal_timer_device.c
 )
 
 # HC32 Header Include Paths

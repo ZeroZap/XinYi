@@ -132,8 +132,8 @@ struct atc_client {
     atc_status_t status;
     char end_sign;
 
-    int (*get_char)(&ch, timeout);
-    size_t (*send)(char *data, size_t len);
+    int (*get_char)(char *ch, uint32_t timeout);
+    size_t (*send)(const char *data, size_t len);
 
     // 用于 URC 后面的数据读取
     size_t (*recv)(char *data, size_t len);
@@ -141,7 +141,7 @@ struct atc_client {
     char *send_buf;
     size_t send_bufsz;
     /** 最后命令的长度 */
-    size_last_cmd_len;
+    size_t last_cmd_len;
 
     /**当前获取行buf*/
     char *recv_line_buf;
@@ -160,8 +160,8 @@ struct atc_client {
     // 当前的 resp
     atc_response_t resp;
 
-    struct atc_urc_table *urc_table size_t urc_table_size;
-    const struct atc_urc *urc;
+    struct atc_urc_table *urc_table;
+    size_t urc_table_size;
 };
 typedef struct atc_client *atc_client_t;
 
@@ -181,9 +181,9 @@ int atc_cmd(atc_client_t client, atc_response_t resp, const char *cmd_expr,
 int atc_cmd_format(atc_client_t client, atc_response_t resp, const char *format,
                    const char *cmd_expr, ...);
 
-int atc_wait_connect(atc_client client, timeout)
-int atc_send(atc_client client, const char *buff, uint16_t size);
-int atc_recv(atc_client client, char *buff, uint16_t size, uint32_t timeout);
+int atc_wait_connect(atc_client_t client, uint32_t timeout);
+int atc_send(atc_client_t client, const char *buff, uint16_t size);
+int atc_recv(atc_client_t client, char *buff, uint16_t size, uint32_t timeout);
 
 /* ATC response object create and delete */
 atc_response_t atc_create_resp(uint16_t buf_size, uint16_t line_num,
@@ -193,9 +193,9 @@ atc_response_t atc_resp_set_info(atc_response_t resp, uint16_t buf_size,
                                  uint16_t line_num, uint32_t timeout);
 
 /* AT response line buffer get and parse response buffer arguments */
-const char *atc_resp_get_line(atc_response_t resp, rt_size_t resp_line);
+const char *atc_resp_get_line(atc_response_t resp, size_t resp_line);
 const char *atc_resp_get_line_by_kw(atc_response_t resp, const char *keyword);
-int atc_resp_parse_line_args(atc_response_t resp, rt_size_t resp_line,
+int atc_resp_parse_line_args(atc_response_t resp, size_t resp_line,
                              const char *resp_expr, ...);
 int atc_resp_parse_line_args_by_kw(atc_response_t resp, const char *keyword,
                                    const char *resp_expr, ...);

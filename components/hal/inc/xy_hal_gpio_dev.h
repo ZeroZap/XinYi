@@ -415,26 +415,11 @@ int xy_hal_gpio_is_input(xy_hal_gpio_t dev, uint32_t pin);
 xy_hal_error_t xy_hal_gpio_init(void *port, uint8_t pin,
                                 const xy_hal_gpio_config_t *config);
 
-/**
- * @brief 传统 GPIO 写入函数 (向后兼容)
- * @param port GPIO 端口
- * @param pin 引脚号
- * @param value 输出值
- * @return XY_HAL_OK 成功，其他值失败
- * 
- * @deprecated 请使用 xy_hal_gpio_write()
- */
+/* Legacy GPIO functions temporarily disabled due to type conflicts */
+/*
 xy_hal_error_t xy_hal_gpio_write(void *port, uint8_t pin, uint8_t value);
-
-/**
- * @brief 传统 GPIO 读取函数 (向后兼容)
- * @param port GPIO 端口
- * @param pin 引脚号
- * @return GPIO 值，负值表示错误
- * 
- * @deprecated 请使用 xy_hal_gpio_read()
- */
 int32_t xy_hal_gpio_read(void *port, uint8_t pin);
+*/
 
 #ifdef __cplusplus
 }

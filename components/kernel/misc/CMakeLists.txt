@@ -15,7 +15,8 @@ endif()
 # Include directories
 include_directories(
     inc
-    ../osal
+    .
+    ../osal/inc
     ../../hal/inc
     ../../trace/xy_log/inc
 )

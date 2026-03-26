@@ -10,6 +10,7 @@
 #if defined(STM32U5) || defined(STM32U5xx)
 
 #include "stm32u5xx_hal.h"
+#include "stm32u5xx_hal_dac.h"
 #include <string.h>
 
 /* DAC context structure */
@@ -287,7 +288,7 @@ xy_hal_error_t xy_hal_dac_generate_triangle(void *dac, xy_hal_dac_channel_t chan
     XY_UNUSED(amplitude);
 
     /* Not fully implemented - requires hardware-specific setup */
-    return XY_HAL_ERROR_NOT_SUPPORT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 xy_hal_error_t xy_hal_dac_generate_noise(void *dac, xy_hal_dac_channel_t channel,
@@ -305,7 +306,7 @@ xy_hal_error_t xy_hal_dac_generate_noise(void *dac, xy_hal_dac_channel_t channel
     XY_UNUSED(mask);
 
     /* Noise generation requires specific configuration */
-    return XY_HAL_ERROR_NOT_SUPPORT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 xy_hal_error_t xy_hal_dac_register_callback(void *dac, xy_hal_dac_channel_t channel,

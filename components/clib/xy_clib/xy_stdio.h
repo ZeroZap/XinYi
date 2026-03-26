@@ -24,9 +24,9 @@
 #endif
 
 /**
- * @brief Print character function pointer
+ * @brief Print function type - accepts a string
  */
-typedef void (*xy_print_char_t)(char c);
+typedef void (*xy_print_char_t)(char *str);
 
 /**
  * @brief Get input function pointer

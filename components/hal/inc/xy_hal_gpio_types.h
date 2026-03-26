@@ -42,7 +42,6 @@ typedef uint16_t xy_hal_gpio_value_t;
  * @return 统一引脚编号
  */
 #define XY_HAL_GPIO_PIN(port, pin)  (((port) << 4) | ((pin) & 0x0F))
-#include "xy_hal_error.h"
 
 /**
  * @brief 从统一引脚编号提取端口号
@@ -50,7 +49,6 @@ typedef uint16_t xy_hal_gpio_value_t;
  * @return 端口号
  */
 #define XY_HAL_GPIO_PORT(pin_def)   (((pin_def) >> 4) & 0x0F)
-#include "xy_hal_error.h"
 
 /**
  * @brief 从统一引脚编号提取引脚号
@@ -58,7 +56,6 @@ typedef uint16_t xy_hal_gpio_value_t;
  * @return 引脚号 (0-15)
  */
 #define XY_HAL_GPIO_PIN_NUM(pin_def)  ((pin_def) & 0x0F)
-#include "xy_hal_error.h"
 
 /**
  * @brief 创建引脚掩码
@@ -66,7 +63,6 @@ typedef uint16_t xy_hal_gpio_value_t;
  * @return 引脚掩码
  */
 #define XY_HAL_GPIO_PIN_MASK(pin)  (1U << ((pin) & 0x0F))
-#include "xy_hal_error.h"
 
 /* ==================== GPIO Mode ==================== */
 
@@ -156,7 +152,6 @@ typedef struct {
  * @brief GPIO 默认配置 (输入模式)
  */
 #define XY_HAL_GPIO_DEFAULT_CONFIG  \
-#include "xy_hal_error.h"
     {                               \
         .mode = XY_HAL_GPIO_MODE_INPUT, \
         .pull = XY_HAL_GPIO_PULL_NONE,  \

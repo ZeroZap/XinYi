@@ -1,296 +1,41 @@
-##
-## @file CMakeLists.txt
-## @brief XinYi Unified Test Platform
-## @version 1.0
-## @date 2026-02-28
-##
+# XinYi Framework Tests CMake Configuration
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.10)
 
-project(xy_tests C)
+# Test executables
+add_executable(at_client_test at_client_test.c)
+add_executable(at_server_test at_server_test.c)
 
-# Enable testing
-enable_testing()
+# Link against XinYi framework
+target_link_libraries(at_client_test xy_net xy_misc xy_osal xy_trace xy_xy_clib)
+target_link_libraries(at_server_test xy_net xy_misc xy_osal xy_trace xy_xy_clib)
 
-# ==================== Configuration ====================
-
-option(BUILD_TESTING "Build tests" ON)
-option(TEST_VERBOSITY "Verbose test output" ON)
-option(TEST_COVERAGE "Enable code coverage" OFF)
-
-if(NOT BUILD_TESTING)
-    message(STATUS "Testing is disabled")
-    return()
-endif()
-
-# ==================== Unity Framework ====================
-
-set(UNITY_DIR ${CMAKE_SOURCE_DIR}/third_party/unity)
-
-if(NOT EXISTS ${UNITY_DIR})
-    message(WARNING "Unity framework not found at ${UNITY_DIR}")
-    message(WARNING "Tests will not be built")
-    return()
-endif()
-
-include_directories(${UNITY_DIR})
-
-# ==================== Component Tests ====================
-
-# Helper function to add component test
-function(add_component_test name source_dir test_files)
-    add_executable(${name}
-        ${UNITY_DIR}/unity.c
-        ${test_files}
-    )
-
-    target_include_directories(${name} PRIVATE
-        ${source_dir}/include
-        ${source_dir}
-    )
-
-    target_link_libraries(${name} PRIVATE
-        ${ARGN}
-    )
-
-    if(TEST_COVERAGE)
-        target_compile_options(${name} PRIVATE --coverage)
-        target_link_options(${name} PRIVATE --coverage)
-    endif()
-
-    add_test(NAME ${name} COMMAND ${name})
-
-    if(TEST_VERBOSITY)
-        set_tests_properties(${name} PROPERTIES
-            LABELS "${name}"
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        )
-    endif()
-
-    message(STATUS "Added test: ${name}")
-endfunction()
-
-# ==================== OSAL Tests ====================
-
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/kernel/osal/tests)
-    add_subdirectory(${CMAKE_SOURCE_DIR}/components/kernel/osal/tests osal_tests)
-endif()
-
-# ==================== CLib Tests ====================
-
-# CLib component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
-    add_component_test(test_xy_clib
-        ${CMAKE_SOURCE_DIR}/components/clib/xy_clib
-        "${CMAKE_SOURCE_DIR}/tests/test_xy_clib.c"
-    )
-endif()
-
-# ==================== Crypto Tests ====================
-
-# Crypto component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/crypto)
-    add_component_test(test_crypto
-        ${CMAKE_SOURCE_DIR}/components/crypto
-        "${CMAKE_SOURCE_DIR}/tests/test_crypto.c"
-    )
-    target_include_directories(test_crypto PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/crypto/xymd
-        ${CMAKE_SOURCE_DIR}/components/crypto/xy_aes
-        ${CMAKE_SOURCE_DIR}/components/crypto/xy_base
-        ${CMAKE_SOURCE_DIR}/components/crypto/xy_crc
-        ${CMAKE_SOURCE_DIR}/components/crypto/xy_hex
-        ${CMAKE_SOURCE_DIR}/components/crypto/xy_hmac
-        ${CMAKE_SOURCE_DIR}/components/crypto/xy_rng
-    )
-endif()
-
-# ==================== Custom Test Targets ====================
-
-# Trace component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/trace)
-    add_component_test(test_trace
-        ${CMAKE_SOURCE_DIR}/components/trace
-        "${CMAKE_SOURCE_DIR}/tests/test_trace.c"
-    )
-    target_include_directories(test_trace PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/trace/xy_log/inc
-    )
-endif()
-
-# ==================== DM (Data Management) Tests ====================
-
-# DM component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/dm)
-    add_component_test(test_dm
-        ${CMAKE_SOURCE_DIR}/components/dm
-        "${CMAKE_SOURCE_DIR}/tests/test_dm.c"
-    )
-    target_include_directories(test_dm PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/dm/xy_tlv
-    )
-endif()
-
-# ==================== NET (Network) Tests ====================
-
-# NET component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/net)
-    add_component_test(test_net
-        ${CMAKE_SOURCE_DIR}/components/net
-        "${CMAKE_SOURCE_DIR}/tests/test_net.c"
-    )
-    target_include_directories(test_net PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/net/xy_iso7816
-        ${CMAKE_SOURCE_DIR}/components/net/modbus
-    )
-endif()
-
-# ==================== Sensor Tests ====================
-
-# Sensor component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/sensor)
-    add_component_test(test_sensor
-        ${CMAKE_SOURCE_DIR}/components/sensor
-        "${CMAKE_SOURCE_DIR}/tests/test_sensor.c"
-    )
-    target_include_directories(test_sensor PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/sensor
-    )
-endif()
-
-# ==================== IPC Tests ====================
-
-# IPC component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/ipc)
-    add_component_test(test_ipc
-        ${CMAKE_SOURCE_DIR}/components/ipc
-        "${CMAKE_SOURCE_DIR}/tests/test_ipc.c"
-    )
-    target_include_directories(test_ipc PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/ipc/pipe
-        ${CMAKE_SOURCE_DIR}/components/ipc/observer
-    )
-endif()
-
-# ==================== PM (Power Management) Tests ====================
-
-# PM component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/pm)
-    add_component_test(test_pm
-        ${CMAKE_SOURCE_DIR}/components/pm
-        "${CMAKE_SOURCE_DIR}/tests/test_pm.c"
-    )
-    target_include_directories(test_pm PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/pm/charger
-        ${CMAKE_SOURCE_DIR}/components/pm/fuel-gauge
-    )
-endif()
-
-# ==================== HAL Tests ====================
-
-# HAL component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/hal)
-    add_component_test(test_hal
-        ${CMAKE_SOURCE_DIR}/components/hal
-        "${CMAKE_SOURCE_DIR}/tests/test_hal.c"
-    )
-    target_include_directories(test_hal PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/hal/inc
-    )
-endif()
-
-# ==================== PID Tests ====================
-
-# PID component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/pid)
-    add_component_test(test_pid
-        ${CMAKE_SOURCE_DIR}/components/pid
-        "${CMAKE_SOURCE_DIR}/tests/test_pid.c"
-    )
-    target_include_directories(test_pid PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/pid
-    )
-endif()
-
-# ==================== ADDC Tests ====================
-
-# ADDC component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/addc)
-    add_component_test(test_addc
-        ${CMAKE_SOURCE_DIR}/components/addc
-        "${CMAKE_SOURCE_DIR}/tests/test_addc.c"
-    )
-    target_include_directories(test_addc PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/addc
-    )
-endif()
-
-# ==================== Device Tests ====================
-
-# Device component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/device)
-    add_component_test(test_device
-        ${CMAKE_SOURCE_DIR}/components/device
-        "${CMAKE_SOURCE_DIR}/tests/test_device.c"
-    )
-    target_include_directories(test_device PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/device
-    )
-endif()
-
-# ==================== FOTA Tests ====================
-
-# FOTA component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/fota)
-    add_component_test(test_fota
-        ${CMAKE_SOURCE_DIR}/components/fota
-        "${CMAKE_SOURCE_DIR}/tests/test_fota.c"
-    )
-    target_include_directories(test_fota PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/fota
-    )
-endif()
-
-# ==================== GUI Tests ====================
-
-# GUI component tests (unified in tests/ directory)
-if(EXISTS ${CMAKE_SOURCE_DIR}/components/gui)
-    add_component_test(test_gui
-        ${CMAKE_SOURCE_DIR}/components/gui
-        "${CMAKE_SOURCE_DIR}/tests/test_gui.c"
-    )
-    target_include_directories(test_gui PRIVATE
-        ${CMAKE_SOURCE_DIR}/components/gui
-    )
-endif()
-
-# Run all tests
-add_custom_target(run_all_tests
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_osal test_crypto test_xy_clib test_trace test_dm test_net test_sensor test_ipc test_pm test_hal test_pid test_addc test_device test_fota test_gui
-    COMMENT "Running all tests..."
+# Include directories
+target_include_directories(at_client_test PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/hal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/kernel/misc/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/kernel/misc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/kernel/osal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/net/at/atc/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/trace/xy_log/inc
 )
 
-# Coverage report
-if(TEST_COVERAGE)
-    find_program(GCOVR_PATH gcovr)
-    if(GCOVR_PATH)
-        add_custom_target(coverage
-            COMMAND ${GCOVR_PATH} -r ${CMAKE_SOURCE_DIR} --html --html-details -o coverage.html
-            COMMENT "Generating coverage report..."
-        )
-    endif()
+target_include_directories(at_server_test PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/hal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/kernel/misc/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/kernel/misc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/kernel/osal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/net/at/ats
+    ${CMAKE_CURRENT_SOURCE_DIR}/../components/trace/xy_log/inc
+)
+
+# Compiler definitions for PC testing
+target_compile_definitions(at_client_test PRIVATE XY_PLATFORM_PC XY_LOG_LEVEL=3)
+target_compile_definitions(at_server_test PRIVATE XY_PLATFORM_PC XY_LOG_LEVEL=3)
+
+# Add HC32L021 HAL tests subdirectory
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hal/hc32l021/CMakeLists.txt)
+    add_subdirectory(hal/hc32l021)
 endif()
-
-# ==================== Summary ====================
-
-message(STATUS "")
-message(STATUS "Test Configuration:")
-message(STATUS "  Build Testing: ${BUILD_TESTING}")
-message(STATUS "  Verbose Output: ${TEST_VERBOSITY}")
-message(STATUS "  Code Coverage: ${TEST_COVERAGE}")
-message(STATUS "")
-message(STATUS "Available targets:")
-message(STATUS "  run_all_tests  - Run all tests")
-message(STATUS "  coverage       - Generate coverage report (if TEST_COVERAGE=ON)")
-message(STATUS "")

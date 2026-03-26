@@ -9,6 +9,7 @@
 #include "xy_log.h"
 #include "xy_ecdsa.h"
 #include "xy_chacha20poly1305.h"
+#include <stdlib.h>
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG

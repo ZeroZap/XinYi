@@ -1,4 +1,3 @@
-#include "xy_os_error.h"
 /**
  * @file xy_os_sys.h
  * @brief XY OSAL System Functions
@@ -9,7 +8,8 @@
 #ifndef XY_OS_SYS_H
 #define XY_OS_SYS_H
 
-#include "xy_os.h"
+#include "xy_os_types.h"
+#include "xy_os_error.h"
 
 #ifdef __cplusplus
 extern "C" {

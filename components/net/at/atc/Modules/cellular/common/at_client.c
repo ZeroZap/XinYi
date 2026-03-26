@@ -5,6 +5,8 @@
 
 #include "at_client.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* 全局客户端实例 */
 static at_client_t g_at_client;
@@ -80,6 +82,7 @@ at_resp_type_t at_send_command(at_device_t *dev, const char *cmd,
                                at_resp_handler_t handler, void *user_data,
                                uint32_t timeout)
 {
+    (void)timeout;  /* TODO: 实现超时功能 */
     if (!dev || !cmd) {
         return AT_RESP_ERROR;
     }

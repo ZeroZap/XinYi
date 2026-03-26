@@ -173,6 +173,7 @@ typedef struct {
 typedef enum {
     XY_HAL_CAN_EVENT_TX_COMPLETE = 0,      /**< 发送完成 */
     XY_HAL_CAN_EVENT_RX_READY,             /**< 接收就绪 */
+    XY_HAL_CAN_EVENT_RX_PENDING,           /**< 接收挂起 */
     XY_HAL_CAN_EVENT_ERROR,                /**< 错误事件 */
     XY_HAL_CAN_EVENT_WAKEUP,               /**< 唤醒事件 */
     XY_HAL_CAN_EVENT_TX_MAILBOX_EMPTY,     /**< 发送邮箱空 */

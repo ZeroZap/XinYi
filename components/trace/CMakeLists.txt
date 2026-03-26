@@ -17,6 +17,7 @@ include_directories(
     inc
     xy_log/inc
     ../kernel/osal
+    ../clib/xy_clib
 )
 
 # Collect source files
@@ -28,6 +29,8 @@ file(GLOB TEST_SOURCES "test/*.c")
 
 # Create static library
 add_library(xy_trace STATIC ${COMPONENT_SOURCES})
+target_link_libraries(xy_trace PUBLIC xy_xy_clib)
+target_include_directories(xy_trace PUBLIC ../clib/xy_clib)
 
 # Set library properties
 set_target_properties(xy_trace PROPERTIES

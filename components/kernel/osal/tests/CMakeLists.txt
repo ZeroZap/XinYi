@@ -30,7 +30,7 @@ set(OSAL_TEST_SOURCES
 
 # Backend-specific sources
 if(OSAL_TEST_BACKEND STREQUAL "baremetal")
-    set(OSAL_BACKEND_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../backend/baremetal/osal_baremetal.c)
+    set(OSAL_BACKEND_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../backend/baremetal/xy_os_baremetal.c)
     set(OSAL_BACKEND_DEF XY_OS_BACKEND_BAREMETAL)
 elseif(OSAL_TEST_BACKEND STREQUAL "freertos")
     set(OSAL_BACKEND_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../backend/freertos/osal_freertos.c)

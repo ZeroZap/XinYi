@@ -82,7 +82,7 @@ struct at_device {
 
     /* 状态 */
     bool is_busy;
-    AT_MUTEX_DECLARE(mutex);
+    AT_MUTEX_DECLARE(mutex)
 
     /* 统计信息 */
     uint32_t tx_count;

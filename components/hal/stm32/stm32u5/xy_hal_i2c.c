@@ -118,15 +118,11 @@ xy_hal_error_t xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
     }
 
     /* Configure analog and digital filters */
-    I2C_AnalogFilterCfgTypeDef analog_filter = { 0 };
-    analog_filter.AnalogFilter = I2C_ANALOGFILTER_ENABLE;
-    if (HAL_I2CEx_ConfigAnalogFilter(hi2c, &analog_filter) != HAL_OK) {
+    if (HAL_I2CEx_ConfigAnalogFilter(hi2c, I2C_ANALOGFILTER_ENABLE) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
 
-    I2C_DigitalFilterCfgTypeDef digital_filter = { 0 };
-    digital_filter.DigitalFilter = 0;
-    if (HAL_I2CEx_ConfigDigitalFilter(hi2c, &digital_filter) != HAL_OK) {
+    if (HAL_I2CEx_ConfigDigitalFilter(hi2c, 0) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
 
@@ -324,7 +320,7 @@ xy_hal_error_t xy_hal_i2c_register_callback(void *i2c,
     if (ctx == NULL) {
         ctx = alloc_i2c_ctx();
         if (ctx == NULL) {
-            return XY_HAL_ERROR_NO_RESOURCE;
+            return XY_HAL_ERROR_NO_MEMORY;
         }
         ctx->hi2c = (I2C_HandleTypeDef *)i2c;
     }

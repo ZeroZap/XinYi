@@ -310,6 +310,22 @@ int at_server_unregister_cmd(at_server_t *server, const char *name);
         .exec      = _exec,                                        \
     }
 
+/**
+ * @brief Process AT command
+ * @param server Pointer to server
+ * @param cmd_line Command line to process
+ * @return 0 on success, -1 on failure
+ */
+int at_server_process_command(at_server_t *server, const char *cmd_line);
+
+/**
+ * @brief Find command by name
+ * @param server Pointer to server
+ * @param name Command name
+ * @return Pointer to command or NULL if not found
+ */
+at_cmd_t *at_server_find_cmd(at_server_t *server, const char *name);
+
 /* ==================== Response Functions ==================== */
 
 /**

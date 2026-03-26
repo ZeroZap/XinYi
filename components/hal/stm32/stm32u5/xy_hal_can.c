@@ -145,7 +145,7 @@ xy_hal_error_t xy_hal_can_stop(void *can)
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_can_send(void *can, const xy_hal_can_message_t *msg,
+xy_hal_error_t xy_hal_can_send(void *can, const xy_hal_can_msg_t *msg,
                                uint32_t timeout)
 {
     if (!can || !msg) {
@@ -158,11 +158,11 @@ xy_hal_error_t xy_hal_can_send(void *can, const xy_hal_can_message_t *msg,
     }
 
     CAN_TxHeaderTypeDef tx_header = { 0 };
-    tx_header.StdId = msg->frame_type == XY_HAL_CAN_FRAME_STANDARD ? msg->id : 0;
-    tx_header.ExtId = msg->frame_type == XY_HAL_CAN_FRAME_EXTENDED ? msg->id : 0;
-    tx_header.IDE   = msg->frame_type == XY_HAL_CAN_FRAME_EXTENDED ?
+    tx_header.StdId = msg->frame_type == XY_HAL_CAN_FRAME_STD ? msg->id : 0;
+    tx_header.ExtId = msg->frame_type == XY_HAL_CAN_FRAME_EXT ? msg->id : 0;
+    tx_header.IDE   = msg->frame_type == XY_HAL_CAN_FRAME_EXT ?
                       CAN_ID_EXT : CAN_ID_STD;
-    tx_header.RTR   = msg->data_type == XY_HAL_CAN_FRAME_TYPE_REMOTE ?
+    tx_header.RTR   = msg->data_type == XY_HAL_CAN_REMOTE_FRAME ?
                       CAN_RTR_REMOTE : CAN_RTR_DATA;
     tx_header.DLC   = msg->dlc;
 
@@ -184,8 +184,8 @@ xy_hal_error_t xy_hal_can_send(void *can, const xy_hal_can_message_t *msg,
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_can_receive(void *can, xy_hal_can_message_t *msg,
-                                  uint32_t timeout)
+xy_hal_error_t xy_hal_can_receive(void *can, xy_hal_can_msg_t *msg,
+                                  xy_hal_can_fifo_t fifo, uint32_t timeout)
 {
     if (!can || !msg) {
         return XY_HAL_ERROR_INVALID_PARAM;
@@ -212,9 +212,9 @@ xy_hal_error_t xy_hal_can_receive(void *can, xy_hal_can_message_t *msg,
 
     msg->id         = (rx_header.IDE == CAN_ID_EXT) ? rx_header.ExtId : rx_header.StdId;
     msg->frame_type = (rx_header.IDE == CAN_ID_EXT) ?
-                      XY_HAL_CAN_FRAME_EXTENDED : XY_HAL_CAN_FRAME_STANDARD;
+                      XY_HAL_CAN_FRAME_EXT : XY_HAL_CAN_FRAME_STD;
     msg->data_type  = (rx_header.RTR == CAN_RTR_REMOTE) ?
-                      XY_HAL_CAN_FRAME_TYPE_REMOTE : XY_HAL_CAN_FRAME_TYPE_DATA;
+                      XY_HAL_CAN_REMOTE_FRAME : XY_HAL_CAN_DATA_FRAME;
     msg->dlc        = rx_header.DLC;
     msg->fifo       = 0;
 
@@ -244,9 +244,9 @@ xy_hal_error_t xy_hal_can_register_callback(void *can,
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_can_set_filter(void *can, const xy_hal_can_filter_t *filter)
+xy_hal_error_t xy_hal_can_set_filter(void *can, const xy_hal_can_filter_config_t *filter_cfg)
 {
-    if (!can || !filter) {
+    if (!can || !filter_cfg) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
@@ -255,19 +255,19 @@ xy_hal_error_t xy_hal_can_set_filter(void *can, const xy_hal_can_filter_t *filte
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    CAN_FilterTypeDef filter_cfg = { 0 };
-    filter_cfg.FilterBank       = filter->bank;
-    filter_cfg.FilterMode       = CAN_FILTERMODE_IDMASK;
-    filter_cfg.FilterScale      = CAN_FILTERSCALE_32BIT;
-    filter_cfg.FilterIdHigh     = (filter->id >> 16) & 0xFFFF;
-    filter_cfg.FilterIdLow      = filter->id & 0xFFFF;
-    filter_cfg.FilterMaskIdHigh = (filter->mask >> 16) & 0xFFFF;
-    filter_cfg.FilterMaskIdLow  = filter->mask & 0xFFFF;
-    filter_cfg.FilterFIFOAssignment = filter->fifo == 0 ?
-                                     CAN_FILTER_FIFO0 : CAN_FILTER_FIFO1;
-    filter_cfg.FilterActivation = ENABLE;
+    CAN_FilterTypeDef hal_filter_cfg = { 0 };
+    hal_filter_cfg.FilterBank       = filter_cfg->bank_number;
+    hal_filter_cfg.FilterMode       = CAN_FILTERMODE_IDMASK;
+    hal_filter_cfg.FilterScale      = CAN_FILTERSCALE_32BIT;
+    hal_filter_cfg.FilterIdHigh     = (filter_cfg->filter_id >> 16) & 0xFFFF;
+    hal_filter_cfg.FilterIdLow      = filter_cfg->filter_id & 0xFFFF;
+    hal_filter_cfg.FilterMaskIdHigh = (filter_cfg->filter_mask >> 16) & 0xFFFF;
+    hal_filter_cfg.FilterMaskIdLow  = filter_cfg->filter_mask & 0xFFFF;
+    hal_filter_cfg.FilterFIFOAssignment = filter_cfg->fifo_assignment == 0 ?
+                                         CAN_FILTER_FIFO0 : CAN_FILTER_FIFO1;
+    hal_filter_cfg.FilterActivation = ENABLE;
 
-    if (HAL_CAN_ConfigFilter((CAN_HandleTypeDef *)can, &filter_cfg) != HAL_OK) {
+    if (HAL_CAN_ConfigFilter((CAN_HandleTypeDef *)can, &hal_filter_cfg) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
 

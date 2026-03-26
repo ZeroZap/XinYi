@@ -1,17 +1,3 @@
-##
-## @file CMakeLists.txt
-## @brief CMake configuration for XY HAL Component
-## @version 2.0
-## @date 2026-03-11
-##
-
-cmake_minimum_required(VERSION 3.10)
-project(xy_hal C)
-
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-# HAL Platform Selection
 # Options: PC, STM32F4, STM32U5, WCH
 set(HAL_PLATFORM "PC" CACHE STRING "HAL Platform (PC, STM32F4, STM32U5, WCH)")
 
@@ -21,6 +7,7 @@ if(HAL_PLATFORM STREQUAL "PC")
     set(HAL_SOURCES
         PC/xy_hal_pc.c
         PC/xy_hal_pin_pc.c
+        PC/xy_hal_gpio_pc.c
         PC/xy_hal_i2c_pc.c
         PC/xy_hal_spi_pc.c
         PC/xy_hal_uart_pc.c
@@ -40,93 +27,56 @@ elseif(HAL_PLATFORM STREQUAL "STM32F4")
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32F4
-        STM32_HAL_ENABLED
-        USE_HAL_DRIVER
     )
     message(STATUS "XY HAL: Building for STM32F4")
-    
+
 elseif(HAL_PLATFORM STREQUAL "STM32U5")
-    # STM32U5 implementation (exclude example files)
+    # STM32U5 implementation  
     file(GLOB HAL_SOURCES
         "stm32/stm32u5/*.c"
         "stm32/src/*.c"
     )
-    # Remove example files from build
-    list(REMOVE_ITEM HAL_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/stm32/stm32u5/example_usage.c
-    )
+    # Exclude example_usage.c from build (contains outdated API examples)
+    list(REMOVE_ITEM HAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/stm32/stm32u5/example_usage.c")
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32U5
-        STM32_HAL_ENABLED
-        USE_HAL_DRIVER
     )
-    # Add STM32CubeU5 HAL include path
-    if(EXISTS "${CMAKE_SOURCE_DIR}/../../MCU/ST/STM32U5/Inc")
-        include_directories(
-            "${CMAKE_SOURCE_DIR}/../../MCU/ST/STM32U5/Inc"
-        )
-        message(STATUS "XY HAL: STM32CubeU5 HAL found")
-    endif()
+    set(STM32U5_INCLUDE_DIR ${STM32U5_HAL_PATH}/Inc)
     message(STATUS "XY HAL: Building for STM32U5")
-    
+
 elseif(HAL_PLATFORM STREQUAL "WCH")
-    # WCH implementation
+    # WCH CH32 implementation
     file(GLOB HAL_SOURCES
-        "wch/ch32u5/*.c"
-        "wch/src/*.c"
+        "wch/*.c"
     )
     set(HAL_DEFINES
         HAL_PLATFORM_WCH
-        WCH_HAL_ENABLED
+        WCH
     )
     message(STATUS "XY HAL: Building for WCH")
-    
+
 else()
-    message(FATAL_ERROR "Unknown HAL_PLATFORM: ${HAL_PLATFORM}")
+    message(FATAL_ERROR "Unsupported HAL_PLATFORM: ${HAL_PLATFORM}")
 endif()
 
-# Header files
-set(HAL_HEADERS
-    inc/xy_hal.h
-    inc/xy_hal_pin.h
-    inc/xy_hal_uart.h
-    inc/xy_hal_spi.h
-    inc/xy_hal_i2c.h
-    inc/xy_hal_timer.h
-    inc/xy_hal_pwm.h
-    inc/xy_hal_rtc.h
-    inc/xy_hal_dma.h
-    inc/xy_hal_lp_timer.h
-    inc/xy_hal_flash.h
-    inc/xy_hal_adc.h
-    inc/xy_hal_gpio.h
-)
-
-# Create library
-add_library(xy_hal STATIC ${HAL_SOURCES})
+# Create HAL library
+add_library(xy_hal ${HAL_SOURCES})
 
 # Include directories
 target_include_directories(xy_hal PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/inc
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/stm32
-    ${CMAKE_CURRENT_SOURCE_DIR}/../trace/xy_log/inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../clib/xy_clib
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+    $<INSTALL_INTERFACE:include>
 )
 
 # Compile definitions
-target_compile_definitions(xy_hal PUBLIC ${HAL_DEFINES})
+target_compile_definitions(xy_hal PRIVATE ${HAL_DEFINES})
 
-# Installation
-install(TARGETS xy_hal
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-)
+# Add STM32U5 HAL include directory if path is provided
+if(DEFINED STM32U5_HAL_PATH)
+    target_include_directories(xy_hal PRIVATE ${STM32U5_HAL_PATH}/Inc)
+endif()
 
-install(FILES ${HAL_HEADERS}
-    DESTINATION include/xy_hal
-)
-
-# Export platform info
-message(STATUS "XY HAL Sources: ${HAL_SOURCES}")
+# Add HC32L021 HAL support
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hc32l021/CMakeLists.txt)
+endif()

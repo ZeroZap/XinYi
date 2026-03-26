@@ -54,10 +54,10 @@ extern int UnityTestsFailures;
 extern int UnityTestsIgnored;
 
 /* Test Control */
-#define TEST_PASS() { Unity.Test.status = UNITY_PASSED; return; }
-#define TEST_FAIL() { Unity.Test.status = UNITY_FAILED; return; }
+#define TEST_PASS() { Unity.status = UNITY_PASSED; return; }
+#define TEST_FAIL() { Unity.status = UNITY_FAILED; return; }
 #define TEST_FAIL_MESSAGE(message) { UnityAssertEqualString((const char*)(message), NULL, __LINE__); TEST_FAIL(); }
-#define TEST_IGNORE() { Unity.Test.status = UNITY_IGNORED; UnityTestsIgnored++; return; }
+#define TEST_IGNORE() { Unity.status = UNITY_IGNORED; UnityTestsIgnored++; return; }
 
 /* Test Assertions */
 #define TEST_ASSERT(condition) \
@@ -127,16 +127,16 @@ extern int UnityTestsIgnored;
     do { \
         Unity.Test.name = #test_func; \
         Unity.Test.line_number = 0; \
-        Unity.Test.status = UNITY_PASSED; \
+        Unity.status = UNITY_PASSED; \
         UnityExecTests++; \
         test_func(); \
-        if (Unity.Test.status == UNITY_PASSED) { \
+        if (Unity.status == UNITY_PASSED) { \
             UnityTestsToRun++; \
             printf("  [PASS] %s\n", Unity.Test.name); \
-        } else if (Unity.Test.status == UNITY_FAILED) { \
+        } else if (Unity.status == UNITY_FAILED) { \
             UnityTestsFailures++; \
             printf("  [FAIL] %s\n", Unity.Test.name); \
-        } else if (Unity.Test.status == UNITY_IGNORED) { \
+        } else if (Unity.status == UNITY_IGNORED) { \
             printf("  [IGNR] %s\n", Unity.Test.name); \
         } \
     } while (0)

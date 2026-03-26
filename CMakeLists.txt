@@ -33,8 +33,9 @@ if(DEFINED XY_BUILD_SHARED_LIBS)
     set(BUILD_SHARED_LIBS ${XY_BUILD_SHARED_LIBS})
 endif()
 
-option(BUILD_TESTING "Build tests" ${BUILD_TESTING})
-option(BUILD_SHARED_LIBS "Build shared libraries" ${BUILD_SHARED_LIBS})
+# Don't redefine BUILD_TESTING as an option - it should come from Kconfig
+# option(BUILD_TESTING "Build tests" ${BUILD_TESTING})
+# option(BUILD_SHARED_LIBS "Build shared libraries" ${BUILD_SHARED_LIBS})
 
 # ==================== Third Party Libraries ====================
 
@@ -74,9 +75,26 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/components/clib/xy_clib/CMakeLists.txt)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/components/clib/xy_clib ${CMAKE_CURRENT_BINARY_DIR}/components/clib/xy_clib)
 endif()
 
-# Add tests
+# Add tests - RE-ENABLED FOR STM32F4 VALIDATION
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
-    add_subdirectory(tests ${CMAKE_CURRENT_BINARY_DIR}/tests)
+    # Only build AT Server test manually
+    add_executable(at_server_test tests/at_server_test.c)
+    target_link_libraries(at_server_test xy_net xy_misc xy_osal xy_trace xy_xy_clib)
+    target_include_directories(at_server_test PRIVATE 
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/inc
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/hal/inc
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/misc/inc
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/misc
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/osal/inc
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/net/at/ats
+        ${CMAKE_CURRENT_SOURCE_DIR}/components/trace/xy_log/inc
+    )
+    target_compile_definitions(at_server_test PRIVATE XY_PLATFORM_PC XY_LOG_LEVEL=3)
+endif()
+
+# Add examples (optional) - RE-ENABLED FOR STM32F4 VALIDATION  
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples/at_server_example/CMakeLists.txt)
+    add_subdirectory(examples/at_server_example ${CMAKE_CURRENT_BINARY_DIR}/examples/at_server_example)
 endif()
 
 # ==================== Testing ====================
@@ -84,7 +102,6 @@ endif()
 if(BUILD_TESTING)
     enable_testing()
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
-        add_subdirectory(tests)
     endif()
 endif()
 
@@ -151,4 +168,15 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/Drivers/STM32F4xx_HAL_Driver/Inc)
     add_definitions(-DSTM32F407xx -DUSE_HAL_DRIVER)
     message(STATUS "STM32F4 SDK found - HAL Driver enabled")
 endif()
+endif()
+
+# Simple GPIO test for PC platform
+add_executable(simple_gpio_test tests/simple_gpio_test.c)
+target_link_libraries(simple_gpio_test xy_hal)
+target_include_directories(simple_gpio_test PRIVATE components/hal/inc components/hal/PC)
+target_include_directories(simple_gpio_test PRIVATE components/hal/PC)
+
+# Add tests subdirectory if enabled
+if(BUILD_TESTING)
+    add_subdirectory(tests ${CMAKE_CURRENT_BINARY_DIR}/tests)
 endif()

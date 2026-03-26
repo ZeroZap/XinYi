@@ -1,4 +1,5 @@
 #include "xy_log.h"
+#include "xy_stdio.h"
 
 extern void xy_log_char(char ch);
 
@@ -10,9 +11,11 @@ uint8_t g_xy_log_dinamic_level = XY_LOG_LEVEL_DEBUG;
 
 void xy_log_str(char *str)
 {
-    while (*str != 0x00) {
-        xy_log_char(*str);
-        str++;
+    if (str) {
+        while (*str != 0x00) {
+            xy_log_char(*str);
+            str++;
+        }
     }
 }
 

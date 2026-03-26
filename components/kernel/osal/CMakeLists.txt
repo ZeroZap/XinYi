@@ -120,14 +120,19 @@ option(XY_OS_ENABLE_STATS "Enable statistics collection" OFF)
 # ==================== Build Library ====================
 
 set(OSAL_SOURCES
+    src/xy_os_tick.c
     ${OSAL_COMMON_SOURCES}
     ${OSAL_BACKEND_SOURCES}
 )
 
 add_library(xy_osal STATIC ${OSAL_SOURCES})
 
+# Link against xy_misc for xy_tick and xy_timer_sw
+target_link_libraries(xy_osal PUBLIC xy_misc)
+
 # Include directories
 target_include_directories(xy_osal PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/../misc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${OSAL_BACKEND_INCLUDES}
 )
