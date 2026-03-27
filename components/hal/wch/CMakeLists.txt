@@ -2,12 +2,15 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-# WCH CH32U5 HAL 源文件
+# WCH HAL 源文件 (通用驱动)
 set(WCH_HAL_SOURCES
-    ${CMAKE_CURRENT_LIST_DIR}/ch32u5/xy_hal_gpio_device.c
-    ${CMAKE_CURRENT_LIST_DIR}/ch32u5/xy_hal_uart_device.c
-    ${CMAKE_CURRENT_LIST_DIR}/ch32u5/xy_hal_spi_device.c
-    ${CMAKE_CURRENT_LIST_DIR}/ch32u5/xy_hal_i2c_device.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/xy_hal_gpio.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/xy_hal_uart.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/xy_hal_spi.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/xy_hal_i2c.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/xy_hal_adc.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/xy_hal_pwm.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/xy_hal_can.c
 )
 
 # 添加 WCH HAL 库
@@ -15,13 +18,10 @@ add_library(xy_hal_wch STATIC ${WCH_HAL_SOURCES})
 
 target_include_directories(xy_hal_wch PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/../inc
-    ${CMAKE_CURRENT_LIST_DIR}/ch32u5
-    ${WCH_HAL_PATH}/Peripheral/CH32U5xx/Inc
+    ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
 target_compile_definitions(xy_hal_wch PRIVATE
-    USE_HAL_DRIVER
-    CH32U575
     XY_HAL_PLATFORM_WCH=1
 )
 

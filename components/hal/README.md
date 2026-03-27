@@ -210,7 +210,6 @@ make -j9
 add_subdirectory(components/hal/stm32/stm32u5)
 
 # WCH CH32U5
-add_subdirectory(components/hal/wch/ch32u5)
 
 # 编译选项
 target_compile_definitions(${PROJECT} PRIVATE
