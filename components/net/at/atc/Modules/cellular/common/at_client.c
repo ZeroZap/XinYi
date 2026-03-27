@@ -82,7 +82,6 @@ at_resp_type_t at_send_command(at_device_t *dev, const char *cmd,
                                at_resp_handler_t handler, void *user_data,
                                uint32_t timeout)
 {
-    (void)timeout;  /* TODO: 实现超时功能 */
     if (!dev || !cmd) {
         return AT_RESP_ERROR;
     }
@@ -97,6 +96,10 @@ at_resp_type_t at_send_command(at_device_t *dev, const char *cmd,
     dev->is_busy        = true;
     dev->resp_handler   = handler ? handler : default_resp_handler;
     dev->resp_user_data = user_data;
+    
+    /* 使用传入的超时值，如果为0则使用设备默认超时 */
+    dev->timeout_ms = (timeout > 0) ? timeout : AT_DEFAULT_TIMEOUT;
+    
     at_reset_resp_buffer(&dev->resp_buf);
 
     /* 发送命令 */
@@ -105,7 +108,7 @@ at_resp_type_t at_send_command(at_device_t *dev, const char *cmd,
     dev->write_data(dev, (uint8_t *)"\r\n", 2);
     dev->tx_count += cmd_len + 2;
 
-    /* 等待并处理响应 */
+    /* 等待并处理响应（带超时） */
     at_resp_type_t result = at_process_response(dev);
 
     dev->is_busy = false;

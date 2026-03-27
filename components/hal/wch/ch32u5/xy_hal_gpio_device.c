@@ -287,11 +287,20 @@ xy_hal_error_t xy_hal_gpio_set_interrupt(xy_hal_gpio_t gpio,
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     
-    /* WCH CH32 中断配置需要通过 EXTI 配置 */
-    /* 这里简化处理，实际使用需要配置 AFIO 和 EXTI */
-    
-    /* TODO: 实现完整的中断配置 */
+    /* 
+     * WCH CH32U5 中断配置需要:
+     * 1. 配置 GPIO 为 AFIO 模式 (GPIO_Mode_AF_PP)
+     * 2. 调用 GPIO_AFIOExtiLineConfig() 选择引脚源
+     * 3. 配置 EXTI_Init() 设置触发模式和中断/事件模式
+     * 4. 实现对应的中断服务函数 (EXTI0-15_IRQHandler)
+     * 
+     * 注意: 需要集成 CH32U5 SDK (ch32u5xx.h) 才能实现
+     * 当前仓库中缺少 CH32U5 系列 MCU 头文件
+     */
+    (void)gpio;
+    (void)pin;
     (void)mode;
+    (void)handler;
     (void)arg;
     
     return XY_HAL_ERROR_NOT_SUPPORTED;
@@ -304,7 +313,13 @@ xy_hal_error_t xy_hal_gpio_enable_interrupt(xy_hal_gpio_t gpio,
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     
-    /* TODO: 启用指定引脚的中断 */
+    /* 
+     * 需要集成 CH32U5 SDK 后调用:
+     * EXTI->IMR |= (1 << pin);  // 启用中断掩码
+     */
+    (void)gpio;
+    (void)pin;
+    
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
@@ -315,7 +330,13 @@ xy_hal_error_t xy_hal_gpio_disable_interrupt(xy_hal_gpio_t gpio,
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     
-    /* TODO: 禁用指定引脚的中断 */
+    /* 
+     * 需要集成 CH32U5 SDK 后调用:
+     * EXTI->IMR &= ~(1 << pin);  // 禁用中断掩码
+     */
+    (void)gpio;
+    (void)pin;
+    
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
