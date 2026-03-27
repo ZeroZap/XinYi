@@ -2,7 +2,7 @@
 
 config XY_SENSOR_ENABLE
     bool "sensor component support"
-    default n
+    default y
     help
       Enable support for the sensor component.
       This component provides sensor drivers.
@@ -11,14 +11,14 @@ if XY_SENSOR_ENABLE
 
 config XY_SENSOR_TEST
     bool "Enable sensor component tests"
-    default n
+    default y
     depends on XY_SENSOR_ENABLE
     help
       Enable unit tests for the sensor component.
 
 config XY_SENSOR_EXAMPLE
     bool "Enable sensor component examples"
-    default n
+    default y
     depends on XY_SENSOR_ENABLE
     help
       Enable example applications for the sensor component.

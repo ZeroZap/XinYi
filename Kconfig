@@ -294,3 +294,41 @@ config ENABLE_SANITIZER
 endmenu # Advanced Options
 
 endmenu # XinYi Framework Configuration
+
+# ==================== Additional Components ====================
+
+config XY_SENSOR_ENABLE
+    bool "Sensor Component"
+    default y
+    help
+      Sensor framework and drivers.
+
+config COMPONENT_PID
+    bool "PID Controller"
+    default y
+    help
+      PID control algorithms.
+
+config COMPONENT_MUX
+    bool "MUX Component"
+    default y
+    help
+      Multiplexer support.
+
+config COMPONENT_SYS
+    bool "System Components"
+    default y
+    help
+      System utilities (state machine, timer).
+
+config COMPONENT_FUEL_GAUGE
+    bool "Fuel Gauge"
+    default y
+    help
+      Battery fuel gauge support.
+
+config COMPONENT_BMS
+    bool "BMS (Battery Management)"
+    default y
+    help
+      BMS component.
