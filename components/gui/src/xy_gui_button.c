@@ -46,9 +46,8 @@ static void draw_button_background(xy_gui_button_t *button,
     
     /* 绘制圆角矩形背景 */
     if (style->corner_radius > 0) {
-        xy_gui_draw_rounded_rect(ctx, x, y, w, h, radius, color);  /* 圆角矩形 */
-        xy_gui_draw_rect(r->x, r->y, r->width, r->height, 
-                        style->bg_color, true, fb, fb_w, fb_h);
+        xy_gui_draw_rounded_rect(r->x, r->y, r->width, r->height, 
+                        style->corner_radius, style->bg_color, true, fb, fb_w, fb_h);
     } else {
         xy_gui_draw_rect(r->x, r->y, r->width, r->height,
                         style->bg_color, true, fb, fb_w, fb_h);

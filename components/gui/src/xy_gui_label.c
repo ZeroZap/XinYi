@@ -60,7 +60,6 @@ static void draw_text_line(const char *text, uint16_t length,
 {
     if (!text || !font || !fb) return;
     
-    xy_gui_draw_string(ctx, x, y, label->text, color);  /* 文本绘制 */
     xy_gui_draw_string(x, y, text, color, font, fb, fb_w, fb_h);
 }
 

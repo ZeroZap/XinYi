@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/at_client_test.dir/at_client_test.c.o -o at_client_test  ../components/net/libxy_net.a ../components/kernel/misc/libxy_misc.a ../components/kernel/osal/libxy_osal.a ../components/trace/libxy_trace.a ../components/kernel/misc/libxy_misc.a 

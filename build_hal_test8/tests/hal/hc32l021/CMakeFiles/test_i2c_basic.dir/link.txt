@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/test_i2c_basic.dir/test_i2c_basic.c.o -o test_i2c_basic  -lxy_hal_hc32l021 -lunity 

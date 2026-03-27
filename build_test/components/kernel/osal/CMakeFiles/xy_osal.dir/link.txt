@@ -1,0 +1,2 @@
+/usr/bin/ar qc libxy_osal.a CMakeFiles/xy_osal.dir/src/xy_os_tick.c.o CMakeFiles/xy_osal.dir/backend/baremetal/xy_os_baremetal.c.o
+/usr/bin/ranlib libxy_osal.a

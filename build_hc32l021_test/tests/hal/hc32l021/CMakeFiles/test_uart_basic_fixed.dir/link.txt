@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/test_uart_basic_fixed.dir/test_uart_basic_fixed.c.o -o test_uart_basic_fixed  ../../../components/hal/hc32l021/libxy_hal_hc32l021.a -lunity 

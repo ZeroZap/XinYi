@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcharger.a CMakeFiles/charger.dir/src/xy_bq25620.c.o
+/usr/bin/ranlib libcharger.a

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libxy_fota.a CMakeFiles/xy_fota.dir/src/xy_fota_bank.c.o CMakeFiles/xy_fota.dir/src/xy_fota_flash.c.o CMakeFiles/xy_fota.dir/src/xy_fota_secure.c.o CMakeFiles/xy_fota.dir/xy_fota.c.o
+/usr/bin/ranlib libxy_fota.a

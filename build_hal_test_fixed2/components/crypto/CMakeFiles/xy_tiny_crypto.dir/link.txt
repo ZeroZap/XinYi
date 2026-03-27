@@ -1,0 +1,2 @@
+/usr/bin/ar qc libxy_tiny_crypto.a CMakeFiles/xy_tiny_crypto.dir/src/xy_chacha20poly1305.c.o CMakeFiles/xy_tiny_crypto.dir/src/xy_ecdsa.c.o CMakeFiles/xy_tiny_crypto.dir/src/xy_sha256.c.o
+/usr/bin/ranlib libxy_tiny_crypto.a

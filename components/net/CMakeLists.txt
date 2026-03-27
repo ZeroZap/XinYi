@@ -70,9 +70,9 @@ endif()
 # endif()
 
 # MQTT (disabled - incomplete implementation)  
-# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/xy_mqtt/xy_mqtt.c)
-#     list(APPEND NET_SOURCES xy_mqtt/xy_mqtt.c)
-# endif()
+if(PROTO_MQTT AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/xy_mqtt/xy_mqtt.c)
+    list(APPEND NET_SOURCES xy_mqtt/xy_mqtt.c)
+endif()
 
 # Collect headers
 file(GLOB_RECURSE NET_HEADERS "inc/*.h")

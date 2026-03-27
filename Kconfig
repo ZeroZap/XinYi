@@ -11,7 +11,7 @@ menu "Platform Selection"
 
 config PLATFORM_PC
     bool "PC Simulation (Windows/Linux/macOS)"
-    default n
+    default y
     select HAL_PC
     select HAS_STDIO
     help
@@ -88,7 +88,7 @@ menu "Core Components"
 
 config COMPONENT_DEVICE
     bool "Device Framework"
-    default y
+    default n
     help
       Unified device management framework.
 
@@ -101,19 +101,19 @@ config COMPONENT_CHARGER
 
 config COMPONENT_CRYPTO
     bool "Crypto Library"
-    default y
+    default n
     help
       Lightweight cryptography library (AES, SHA, CRC, etc).
 
 config COMPONENT_DM
     bool "Device Management"
-    default n
+    default y
     help
       Advanced device management with JSON/Flash support.
 
 config COMPONENT_SENSOR
     bool "Sensor Framework"
-    default y
+    default n
     help
       Sensor abstraction layer.
 
@@ -123,11 +123,12 @@ menu "GUI Subsystem"
 
 config GUI_ENABLED
     bool "Enable GUI Subsystem"
-    default n
+    default y
     help
       Enable graphical user interface support.
 
 config GUI_SDL
+    default y
     bool "SDL2 Backend (PC)"
     depends on GUI_ENABLED && PLATFORM_PC
     select SDL2
@@ -143,6 +144,7 @@ config GUI_TFT
       Supports SPI/I8080/RGB interfaces.
 
 config GUI_LVGL
+    default y
     bool "LVGL Integration"
     depends on GUI_ENABLED
     help
@@ -151,7 +153,7 @@ config GUI_LVGL
 config GUI_WIDGETS
     bool "Built-in Widgets"
     depends on GUI_ENABLED
-    default y
+    default n
     help
       Built-in widget library (Button, Label, Slider, etc).
 
@@ -159,9 +161,15 @@ endmenu # GUI Subsystem
 
 menu "Communication Protocols"
 
+config NETWORK
+    bool "Network Support"
+    default y
+    help
+      Basic network support for communication protocols.
+
 config PROTO_MQTT
     bool "MQTT Protocol"
-    default n
+    default y
     select NETWORK
     help
       MQTT client for IoT connectivity.
@@ -206,7 +214,7 @@ menu "Power Management"
 
 config PM_ENABLED
     bool "Power Management"
-    default y if PLATFORM_STM32
+    default n if PLATFORM_STM32
     help
       Power management framework.
 
@@ -228,7 +236,7 @@ menu "Logging & Debug"
 
 config LOG_ENABLED
     bool "Logging System"
-    default y
+    default n
     help
       Unified logging framework.
 
@@ -243,13 +251,13 @@ config LOG_LEVEL
 config LOG_COLOR
     bool "Colored Output"
     depends on LOG_ENABLED && PLATFORM_PC
-    default y
+    default n
     help
       Enable colored log output.
 
 config ASSERT_ENABLED
     bool "Assertions"
-    default y
+    default n
     help
       Enable runtime assertions.
 

@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/test_gpio_basic.dir/test_gpio_basic.c.o -o test_gpio_basic  -lxy_hal_hc32l021 -lunity 
