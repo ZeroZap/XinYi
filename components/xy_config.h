@@ -95,6 +95,15 @@
 #define XY_CONFIG_ACTUATOR_MAX_DEVICES 16
 #endif
 
+/* SMBus / PMBus 组件 */
+#ifndef XY_CONFIG_SMBUS_ENABLED
+#define XY_CONFIG_SMBUS_ENABLED      1
+#endif
+
+#ifndef XY_CONFIG_SMBUS_MAX_DEVICES
+#define XY_CONFIG_SMBUS_MAX_DEVICES   8
+#endif
+
 /* Fuel Gauge 组件 */
 #ifndef XY_CONFIG_FUEL_GAUGE_ENABLED
 #define XY_CONFIG_FUEL_GAUGE_ENABLED 1
