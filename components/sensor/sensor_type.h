@@ -33,12 +33,14 @@ typedef enum {
     SENSOR_TYPE_PROXIMITY = 0x20,
     SENSOR_TYPE_DISTANCE  = 0x21,
     SENSOR_TYPE_GPS       = 0x22,
+    SENSOR_TYPE_MAGNETIC = 0x23,
 
     /* 光学传感器 */
     SENSOR_TYPE_LIGHT = 0x30,
     SENSOR_TYPE_IR    = 0x31,
     SENSOR_TYPE_UV    = 0x32,
-    SENSOR_TYPE_RGB   = 0x33,
+    SENSOR_TYPE_UV_INDEX = 0x33,
+    SENSOR_TYPE_RGB   = 0x34,
 
     /* 生物传感器 */
     SENSOR_TYPE_HEART_RATE             = 0x40,
@@ -54,6 +56,11 @@ typedef enum {
     SENSOR_TYPE_PM2_5   = 0x53,
     SENSOR_TYPE_PM10    = 0x54,
     SENSOR_TYPE_NOISE   = 0x55,
+    SENSOR_TYPE_ANGLE   = 0x56,     ///< 角度编码器
+    SENSOR_TYPE_RELATIVE_HUMIDITY = 0x57,  ///< 相对湿度
+    SENSOR_TYPE_GAS     = 0x58,     ///< 气体传感器
+    SENSOR_TYPE_CO      = 0x59,     ///< 一氧化碳
+    SENSOR_TYPE_SOUND   = 0x5A,     ///< 声音/噪音
 
     SENSOR_TYPE_CUSTOM = 0xFF,
 } sensor_type_t;

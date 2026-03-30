@@ -2,40 +2,36 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-if(NOT XY_SENSOR_ENABLE AND NOT XY_COMPONENT_SENSOR)
+# Sensor component - now properly organized
+# All driver implementations are in .c files, .h files contain only declarations
+
+if(NOT XY_XY_SENSOR_ENABLE AND NOT XY_COMPONENT_SENSOR)
     return()
 endif()
 
-# Sensor sources
+# Add sources (only include files that exist)
 set(SENSOR_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_core.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_calibration.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_filter.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_fifo.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_interrupt.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_threshold.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_power.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_mem_pool.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_self_test.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/sensor_fusion.c
+    sensor_core.c
+    sensor_calibration.c
+    sensor_dma.c
+    sensor_fifo.c
+    sensor_filter.c
+    sensor_fusion.c
+    sensor_interrupt.c
+    sensor_moton.c
+    sensor_power.c
+    sensor_self_test.c
+    sensor_threshold.c
+    sensor_mem_pool.c
+    sensor_adt7420.c
+    sensor_apds9960.c
 )
 
-# Platform-specific sources
-if(PLATFORM_PC)
-    list(APPEND SENSOR_SOURCES 
-        ${CMAKE_CURRENT_SOURCE_DIR}/sensor_moton.c
-    )
-endif()
+# Add driver sources from sensors/ directory
+file(GLOB SENSOR_DRIVERS "${CMAKE_CURRENT_LIST_DIR}/sensors/sensor_*.c")
+list(APPEND SENSOR_SOURCES ${SENSOR_DRIVERS})
 
-add_library(xy_sensor STATIC ${SENSOR_SOURCES})
-
-target_include_directories(xy_sensor PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/inc
-)
-
-target_link_libraries(xy_sensor PUBLIC xy_trace xy_hal)
-
-target_compile_definitions(xy_sensor PRIVATE XY_COMPONENT_SENSOR=1)
-target_compile_options(xy_sensor PRIVATE -Wall -Wextra)
+add_library(sensor_component STATIC ${SENSOR_SOURCES})
+target_include_directories(sensor_component PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
+target_include_directories(sensor_component PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(sensor_component PUBLIC hardware_abstraction)
