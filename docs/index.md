@@ -2,6 +2,11 @@
 
 ## 快速导航
 
+### 🚀 快速开始
+
+- [**构建指南**](BUILD_GUIDE.md) - 构建目录说明和常用命令
+- [**API 参考**](API_REFERENCE.md) - 完整 API 文档
+
 ### 📚 组件文档
 
 - [**HAL (硬件抽象层)**](components/hal/README.md)
