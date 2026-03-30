@@ -1,6 +1,6 @@
 # XinYi Framework - 快速入门指南
 
-欢迎使用 XinYi 嵌入式框架！本指南将帮助您快速开始。
+**最后更新**: 2026-03-30
 
 ---
 
@@ -9,59 +9,24 @@
 ### 1. 克隆项目
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/ZeroZap/XinYi.git
 cd XinYi
-git submodule update --init --recursive
 ```
 
-### 2. 构建项目
-
-#### Linux/macOS
+### 2. PC 平台构建
 
 ```bash
-# 使用构建脚本
-./utils/script/build.sh
-
-# 或手动构建
-mkdir build && cd build
-cmake .. -DBUILD_TESTING=ON
-make -j$(nproc)
+cd XinYi
+rm -rf build && mkdir build && cd build
+cmake .. -DPLATFORM_PC=ON -DXY_CONFIG_SENSOR_ENABLED=ON \
+         -DXY_CONFIG_ACTUATOR_ENABLED=ON -DXY_CONFIG_SMBUS_ENABLED=ON
+make -j4
 ```
 
-#### Windows
-
-```cmd
-REM 使用构建脚本
-utils\script\build.bat
-
-REM 或手动构建
-mkdir build && cd build
-cmake .. -DBUILD_TESTING=ON
-cmake --build . --config Release
-```
-
-### 3. 运行测试
-
-#### Linux/macOS
+### 3. 查看所有目标
 
 ```bash
-# 使用测试脚本
-./utils/script/run_tests.sh
-
-# 或手动运行
-cd build
-ctest --output-on-failure
-```
-
-#### Windows
-
-```cmd
-REM 使用测试脚本
-utils\script\test.bat
-
-REM 或手动运行
-cd build
-ctest -C Release --output-on-failure
+make help
 ```
 
 ---
@@ -70,18 +35,23 @@ ctest -C Release --output-on-failure
 
 ```
 XinYi/
-├── components/          # 核心组件
-│   ├── crypto/         # 密码学
-│   ├── clib/           # C 库
-│   ├── dm/             # 数据管理
-│   ├── net/            # 网络协议
-│   ├── hal/            # 硬件抽象层
-│   ├── osal/           # OS 抽象层
-│   └── ...
-├── tests/              # 单元测试
-├── projects/           # 应用项目
-├── utils/script/       # 工具脚本
-└── docs/               # 文档
+├── components/           # 核心组件
+│   ├── sensor/         # 传感器框架 (60+ 驱动)
+│   │   ├── sensors/    # 驱动文件
+│   │   └── examples/   # 示例代码
+│   ├── actuator/       # 执行器框架
+│   ├── smbus/          # SMBus/PMBus 协议
+│   ├── hal/           # 硬件抽象层
+│   ├── osal/          # OS 抽象层
+│   ├── trace/         # 日志/命令
+│   ├── net/           # 网络协议
+│   ├── crypto/        # 密码学
+│   └── dm/            # 数据管理
+├── bsp/                # 板级支持包
+├── docs/               # 文档
+│   └── BUILD_GUIDE.md # 构建指南
+├── examples/           # 示例代码
+└── CMakeLists.txt      # 构建系统
 ```
 
 ---
@@ -91,39 +61,26 @@ XinYi/
 ### 构建
 
 ```bash
-# 完整构建
-make
+# PC 平台完整构建
+rm -rf build && mkdir build && cd build
+cmake .. -DPLATFORM_PC=ON -DXY_CONFIG_SENSOR_ENABLED=ON \
+         -DXY_CONFIG_ACTUATOR_ENABLED=ON -DXY_CONFIG_SMBUS_ENABLED=ON
+make -j4
 
-# 构建单个组件
-make crypto
-make osal
-
-# 清理
-make clean
-make distclean
+# 构建单个目标
+make xy_sensor
+make xy_actuator
+make xy_smbus
 ```
 
-### 测试
+### 清理
 
 ```bash
-# 运行所有测试
-make test
+# 删除构建目录
+rm -rf build
 
-# 运行特定测试
-ctest -R test_crypto --output-on-failure
-
-# 生成覆盖率报告
-./utils/script/coverage.sh
-```
-
-### 代码质量
-
-```bash
-# 格式化代码
-./utils/script/format_code.sh
-
-# 检查代码风格
-./utils/script/check_style.sh
+# 删除所有 build_* 目录
+for d in build_*; do [ -d "$d" ] && rm -rf "$d"; done
 ```
 
 ---
@@ -132,71 +89,70 @@ ctest -R test_crypto --output-on-failure
 
 | 文档 | 说明 |
 |------|------|
-| [ReadMe.md](ReadMe.md) | 主文档 |
-| [COMPONENTS_STATUS.md](COMPONENTS_STATUS.md) | 组件状态 |
-| [docs/rules/100-code_style/xy_code_style.md](docs/rules/100-code_style/xy_code_style.md) | 代码风格 |
-
----
-
-## 🔧 配置选项
-
-### CMake 配置
-
-```bash
-cmake .. \
-    -DBUILD_TESTING=ON \
-    -DBUILD_SHARED_LIBS=OFF \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DTEST_COVERAGE=ON
-```
-
-### Kconfig 配置
-
-```bash
-# 交互式配置（需要 kconfig-frontends）
-make menuconfig
-
-# 设置特定选项
-make CONFIG_CRYPTO_AES=y
-```
+| [README.md](README.md) | 主文档 (更新: 2026-03-30) |
+| [COMPONENTS_STATUS.md](COMPONENTS_STATUS.md) | 组件状态 (更新: 2026-03-30) |
+| [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) | 构建指南 |
 
 ---
 
 ## 📊 组件一览
 
-| 组件 | 测试用例 | 状态 |
-|------|---------|------|
-| osal | 17 | ✅ |
-| hal | 11 | ✅ |
-| crypto | 28 | ✅ |
-| clib | 21 | ✅ |
-| dm | 24 | ✅ |
-| net | 22 | ✅ |
-| sensor | 18 | ✅ |
-| ipc | 14 | ✅ |
-| pm | 19 | ✅ |
-| pid | 20 | ✅ |
-| addc | 24 | ✅ |
-| trace | 10 | ✅ |
+| 组件 | 状态 | 说明 |
+|------|------|------|
+| **Sensor** | 🟢 稳定 | 60+ 传感器驱动 |
+| **Actuator** | 🟢 稳定 | 舵机/继电器/PWM |
+| **SMBus/PMBus** | 🟢 稳定 | 电源管理总线 |
+| **HAL** | 🟢 稳定 | 硬件抽象层 |
+| **OSAL** | 🟢 稳定 | OS 抽象层 |
+| **Net** | 🟢 稳定 | MQTT/Modbus/AT |
+| **Crypto** | 🟢 稳定 | AES/CRC/SHA |
+| **GUI** | 🟡 开发中 | 图形界面 |
+| **FOTA** | 🟡 开发中 | 固件升级 |
 
-**总计**: 228 个测试用例
+---
+
+## 🔧 配置选项
+
+### CMake 选项
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `PLATFORM_PC` | PC 平台构建 | OFF |
+| `PLATFORM_STM32F4` | STM32F4 平台 | OFF |
+| `PLATFORM_STM32U5` | STM32U5 平台 | OFF |
+| `XY_CONFIG_SENSOR_ENABLED` | 启用传感器 | ON |
+| `XY_CONFIG_ACTUATOR_ENABLED` | 启用执行器 | ON |
+| `XY_CONFIG_SMBUS_ENABLED` | 启用 SMBus | ON |
+
+### 推荐构建配置
+
+```bash
+# PC 平台完整功能
+cmake .. -DPLATFORM_PC=ON \
+         -DXY_CONFIG_SENSOR_ENABLED=ON \
+         -DXY_CONFIG_ACTUATOR_ENABLED=ON \
+         -DXY_CONFIG_SMBUS_ENABLED=ON
+
+# STM32F4 平台
+cmake .. -DPLATFORM_STM32F4=ON -DXY_HAL_STM32=ON
+```
 
 ---
 
 ## 🐛 遇到问题？
 
 1. **构建失败**: 检查 CMake 版本 (需要 3.10+)
-2. **测试失败**: 确认 Unity 框架已初始化
-3. **代码风格**: 运行 `format_code.sh` 格式化
+2. **找不到库**: 确认组件已启用 (`XY_CONFIG_*_ENABLED=ON`)
+3. **查看 BUILD_GUIDE.md**: `cat docs/BUILD_GUIDE.md`
 
 ---
 
 ## 📞 获取帮助
 
-- 查看组件 README.md
-- 查看单元测试示例
-- 提交 Issue
+- 查看 [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) - 构建指南
+- 查看 [COMPONENTS_STATUS.md](COMPONENTS_STATUS.md) - 组件状态
+- 提交 Issue: https://github.com/ZeroZap/XinYi/issues
 
 ---
 
-**Happy Coding!** 🎉
+**Happy Coding!** ⚡

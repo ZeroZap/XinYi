@@ -1,91 +1,195 @@
 # XinYi 组件状态汇总
 
-**最后更新**: 2026-02-28
-
-**文档**: [测试布局分析](docs/test_layout_analysis.md) | [RTOS 选择指南](docs/rtos_selection_guide.md)
+**最后更新**: 2026-03-30  
+**版本**: 2.1.0
 
 ---
 
 ## 快速导航
 
 - [组件总览](#组件总览)
-- [测试状态](#测试状态)
+- [新增组件](#新增组件-2026-03-30)
 - [详细状态](#详细状态)
-- [优先级建议](#优先级建议)
+- [构建状态](#构建状态)
 
 ---
 
 ## 组件总览
 
-| 组件 | 状态 | 测试 | 文档 | 构建 | 备注 |
-|------|------|------|------|------|------|
-| **[kernel/osal](#kernelosal)** | ✅ | ✅ | ✅ | ✅ | 支持 4 种后端 |
-| **[hal](#hal)** | ✅ | ✅ | ✅ | ✅ | STM32U5 完整实现 |
-| **[clib/xy_clib](#clibxy_clib)** | ✅ | ✅ | ✅ | ✅ | 完整实现 - 轻量级 C 库，支持软除法、安全字符串、环形缓冲等 |
-| **[crypto](#crypto)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
-| **[dm](#dm)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
-| **[net](#net)** | ✅ | ✅ | ✅ | ✅ | 测试已规范 |
-| **[trace](#trace)** | ✅ | ✅ | ✅ | ✅ | 测试已添加 |
-| **[sensor](#sensor)** | ✅ | ✅ | ✅ | ✅ | 测试已添加 |
-| **[ipc](#ipc)** | ✅ | ✅ | ✅ | ✅ | 基础代码 + 测试 |
-| **[pm](#pm)** | ✅ | ✅ | ✅ | ✅ | 基础代码 + 测试 |
-| **[pid](#pid)** | ✅ | ✅ | ✅ | ✅ | 基础代码 + 测试 |
-| **[addc](#addc)** | ✅ | ✅ | ✅ | ✅ | 基础代码 + 测试 |
-| **fota** | 📋 | ❌ | ⚠️ | ⚠️ | 需完善 |
-| **gui** | 📋 | ❌ | ⚠️ | ⚠️ | 需完善 |
+| 组件 | 目录 | 状态 | 构建 | 备注 |
+|------|------|------|------|------|
+| **Sensor** | `components/sensor/` | 🟢 稳定 | ✅ | 60+ 传感器驱动 |
+| **Actuator** | `components/actuator/` | 🟢 稳定 | ✅ | 舵机/继电器/PWM |
+| **SMBus/PMBus** | `components/smbus/` | 🟢 稳定 | ✅ | 电源管理总线 |
+| **HAL** | `components/hal/` | 🟢 稳定 | ✅ | 硬件抽象层 |
+| **OSAL** | `components/kernel/osal/` | 🟢 稳定 | ✅ | OS 抽象层 |
+| **Trace/Log** | `components/trace/` | 🟢 稳定 | ✅ | 日志系统 |
+| **Net** | `components/net/` | 🟢 稳定 | ✅ | MQTT/Modbus/AT |
+| **Crypto** | `components/crypto/` | 🟢 稳定 | ✅ | AES/CRC/SHA |
+| **DM** | `components/dm/` | 🟢 稳定 | ✅ | 数据管理 |
+| **PID** | `components/pid/` | 🟢 稳定 | ✅ | PID 控制器 |
+| **IPC** | `components/ipc/` | 🟢 稳定 | ✅ | 进程间通信 |
+| **PM** | `components/pm/` | 🟢 稳定 | ✅ | 电源管理 |
+| **GUI** | `components/gui/` | 🟡 开发中 | ⚠️ | 图形界面 |
+| **FOTA** | `components/fota/` | 🟡 开发中 | ⚠️ | 固件升级 |
 
-**图例**: ✅ 完善 | ⚠️ 进行中 | 📋 基础 | ❌ 缺失
+**图例**: ✅ 完善 | 🟡 开发中 | ⚠️ 需要工作
 
 ---
 
-## 测试状态
+## 新增组件 (2026-03-30)
 
-### 测试布局
+### GPS Sensor 驱动
 
+- **文件**: `components/sensor/sensors/sensor_gps.{h,c}`
+- **功能**: NMEA 协议解析, 支持 AT6558/LC86L/UBLOX
+- **状态**: 🟢 稳定
+
+```c
+// 使用示例
+gps_device_t gps = {
+    .config.baudrate = 9600,
+    .config.update_rate = 1,
+};
+gps_register(&gps);
+
+// UART 输入 NMEA 数据
+gps_parse_byte(&gps_dev, byte);
+
+// 读取位置
+gps_data_t data;
+gps_read_data(&gps_dev, &data);
+printf("Lat: %.6f, Lon: %.6f\n", data.latitude, data.longitude);
 ```
-XinYi/
-├── tests/                     # ✅ 统一测试入口
-│   ├── CMakeLists.txt         # 统一构建配置
-│   ├── test_crypto.c          # ✅ Crypto 测试
-│   ├── test_xy_clib.c         # ✅ CLib 测试
-│   └── test_trace.c           # ✅ Trace 测试
-│
-├── third_party/unity/         # ✅ Unity 测试框架
-│   ├── unity.c
-│   ├── unity.h
-│   └── README.md
-│
-└── components/
-    ├── kernel/osal/tests/     ✅ 规范测试目录
-    └── */tests/               ⚠️ 逐步迁移到 tests/
+
+### Actuator 执行器框架
+
+- **文件**: `components/actuator/xy_actuator.{h,c}`
+- **功能**: 继电器/舵机/PWM 控制
+- **状态**: 🟢 稳定
+
+```c
+// 继电器控制
+actuator_device_t relay = {
+    .name = "relay_1",
+    .type = ACTUATOR_TYPE_RELAY,
+};
+relay_on(&relay);
+os_delay_ms(500);
+relay_off(&relay);
+
+// 舵机控制
+actuator_device_t servo = {
+    .name = "servo_1",
+    .type = ACTUATOR_TYPE_SERVO,
+    .config.servo_min_angle = -90.0f,
+    .config.servo_max_angle = 90.0f,
+};
+servo_set_angle(&servo, 45.0f);
+
+// 急停所有
+actuator_emergency_stop_all();
 ```
 
-### 测试统计
+### SMBus/PMBus 协议栈
 
-| 组件 | 测试目录 | 测试框架 | 用例数 | 状态 |
-|------|---------|----------|--------|------|
-| **osal** | `tests/` | Unity | 17 | ✅ |
-| **crypto** | `tests/` | Unity | 28 | ✅ |
-| **clib** | `tests/` | Unity | 21 | ✅ |
-| **trace** | `tests/` | Unity | 10 | ✅ |
-| **dm** | `tests/` | Unity | 24 | ✅ |
-| **net** | `tests/` | Unity | 22 | ✅ |
-| **sensor** | `tests/` | Unity | 18 | ✅ |
-| **ipc** | `tests/` | Unity | 14 | ✅ |
-| **pm** | `tests/` | Unity | 19 | ✅ |
-| **hal** | `tests/` | Unity | 11 | ✅ |
-| **pid** | `tests/` | Unity | 20 | ✅ |
-| **addc** | `tests/` | Unity | 24 | ✅ |
-| **fota** | - | - | 0 | 📋 |
-| **gui** | - | - | 0 | 📋 |
+- **文件**: `components/smbus/xy_smbus.{h,c}`, `xy_pmbus.{h,c}`
+- **功能**: SMBus 协议, PMBus 电源管理
+- **状态**: 🟢 稳定
 
-**总计**: **228 个测试用例**
+```c
+// SMBus 操作
+smbus_write_word(&smbus, 0x40, 0x21, 0x1234);
+smbus_read_word(&smbus, 0x40, 0x2B, &value);
+
+// PMBus 操作
+pmbus_device_t pmbus = {
+    .config.smbus.addr = 0x40,
+    .config.vout_mode = PMBUS_VOUT_MODE_LINEAR,
+};
+pmbus_read_vout(&pmbus, &voltage);
+pmbus_read_iout(&pmbus, &current);
+pmbus_get_status(&pmbus, &status);
+```
+
+---
 
 ## 详细状态
 
-### kernel/osal
+### Sensor 传感器框架
 
-**状态**: ✅ 完善
+**目录**: `components/sensor/`  
+**状态**: 🟢 稳定
+
+**功能**:
+- [x] 传感器框架核心
+- [x] 60+ 传感器驱动 (详见 `sensors/` 目录)
+- [x] GPS 驱动 (NMEA 协议)
+- [x] FIFO/中断/校准支持
+- [x] 示例代码 (`examples/gps_example.c`)
+
+**传感器类型**:
+| 类型 | 数量 | 示例 |
+|------|------|------|
+| 温湿度 | 8 | SHT30, SHT40, AHT20, HDC1080, DHT22 |
+| IMU/加速度 | 6 | MPU6050, BMI088, ICM20948, LSM6DSO |
+| 气压/高度 | 4 | BMP280, BMP390, DPS368 |
+| 光照/颜色 | 6 | BH1750, TCS34725, VCNL4040 |
+| 气体传感 | 8 | SGP30, SGP40, MQ135, MQ3 |
+| GPS | 1 | AT6558, LC86L, UBLOX |
+| 电流/功率 | 5 | INA219, INA226, ACS712 |
+| 角度编码 | 2 | AS5600, MA730 |
+| 其他 | 20+ | 距离、颜色、紫外线等 |
+
+---
+
+### Actuator 执行器框架
+
+**目录**: `components/actuator/`  
+**状态**: 🟢 稳定
+
+**功能**:
+- [x] 继电器控制 (开/关/翻转/脉冲)
+- [x] 舵机控制 (角度/速度/扫描/归中)
+- [x] PWM 输出
+- [x] 急停接口
+- [x] 批量操作 (全部关闭)
+
+---
+
+### SMBus/PMBus 协议栈
+
+**目录**: `components/smbus/`  
+**状态**: 🟢 稳定
+
+**功能**:
+- [x] SMBus 字节/字/块读写
+- [x] PEC (Packet Error Code) 校验
+- [x] 总线扫描
+- [x] PMBus 电源管理命令
+- [x] Linear/VID/Direct 格式转换
+- [x] 状态字解析
+
+---
+
+### HAL 硬件抽象层
+
+**目录**: `components/hal/`  
+**状态**: 🟢 稳定
+
+**功能**:
+- [x] GPIO, UART, SPI, I2C
+- [x] Timer, PWM, RTC, DMA
+- [x] ADC, DAC, Flash
+- [x] Watchdog, RNG, EXTI
+- [x] I2S, CAN
+
+---
+
+### OSAL OS 抽象层
+
+**目录**: `components/kernel/osal/`  
+**状态**: 🟢 稳定
 
 **功能**:
 - [x] Bare-metal 后端
@@ -93,273 +197,38 @@ XinYi/
 - [x] RT-Thread 后端
 - [x] CMSIS-RTX 配置
 - [x] 软件定时器
-- [x] Tick 模块
-
-**测试**:
-- [x] Unity 框架
-- [x] 17 个测试用例
-- [ ] 覆盖率报告
-
-**文档**:
-- [x] README.md
-- [x] RTOS 选择指南
-- [x] 布局优化方案
-- [x] Doxygen 配置
-
-**目录**: `components/kernel/osal/`
 
 ---
 
-### hal
-
-**状态**: ✅ 完善 (STM32U5)
-
-**功能**:
-- [x] GPIO, UART, SPI, I2C
-- [x] Timer, PWM, RTC, DMA
-- [x] ADC, DAC, Flash
-- [x] Watchdog, RNG, EXTI
-- [x] I2S, CAN, LP Timer
-
-**测试**:
-- [x] Unity 框架
-- [x] 11 个测试用例
-- [x] 测试位于 `tests/test_hal.c`
-
-**文档**:
-- [x] README.md
-- [x] 实现指南
-- [x] 错误码文档
-
-**目录**: `components/hal/`
-
----
-
-### clib/xy_clib
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] 字符串操作
-- [x] 数学工具
-- [x] 数据结构
-- [x] 编码转换
-- [x] 滤波算法
-- [x] 排序算法
-
-**测试**:
-- [x] Unity 框架
-- [x] 21 个测试用例
-- [x] 测试位于 `tests/test_xy_clib.c`
-
-**目录**: `components/clib/xy_clib/`
-
----
-
-### crypto
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] AES, HMAC, CRC
-- [x] Base64, MD5, SHA
-- [x] Hex 编码
-- [x] 随机数生成
-
-**测试**:
-- [x] Unity 框架
-- [x] 28 个测试用例
-- [x] 测试位于 `tests/test_crypto.c`
-- [x] 创建统一头文件 `xy_tiny_crypto.h`
-
-**目录**: `components/crypto/`
-
----
-
-### dm
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] EEPROM, Flash, TLV
-- [x] NVM, JSON, YAML
-- [x] TLV 编码/解码
-- [x] TLV 迭代器
-- [x] TLV 查找/验证
-
-**测试**:
-- [x] Unity 框架
-- [x] 24 个测试用例
-- [x] 测试位于 `tests/test_dm.c`
-
-**目录**: `components/dm/`
-
----
-
-### net
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] MQTT, Modbus
-- [x] AT 命令，ISO7816
-- [x] ISO7816 智能卡协议
-- [x] Modbus RTU 从站
-
-**测试**:
-- [x] Unity 框架
-- [x] 22 个测试用例
-- [x] 测试位于 `tests/test_net.c`
-
-**目录**: `components/net/`
-
----
-
-### trace
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] xy_log 日志
-- [x] xy_cmd 命令
-- [x] 动态日志级别
-- [x] 多级别日志 (E/W/I/D/V)
-
-**测试**:
-- [x] Unity 框架
-- [x] 10 个测试用例
-- [x] 测试位于 `tests/test_trace.c`
-
-**目录**: `components/trace/`
-
----
-
-### sensor
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] 传感器框架核心
-- [x] 传感器类型定义
-- [x] 传感器数据结构
-- [x] 支持多种传感器类型
-- [x] FIFO/中断/校准支持
-
-**测试**:
-- [x] Unity 框架
-- [x] 18 个测试用例
-- [x] 测试位于 `tests/test_sensor.c`
-
-**目录**: `components/sensor/`
-
----
-
-### ipc
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] Pipe 管道通信
-- [x] Observer 观察者模式
-- [x] 发布/订阅机制
-
-**测试**:
-- [x] Unity 框架
-- [x] 14 个测试用例
-- [x] 测试位于 `tests/test_ipc.c`
-
-**目录**: `components/ipc/`
-
----
-
-### pm
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] Charger 充电器管理
-- [x] Fuel Gauge 电量计量
-- [x] 电池状态监测
-
-**测试**:
-- [x] Unity 框架
-- [x] 19 个测试用例
-- [x] 测试位于 `tests/test_pm.c`
-
-**目录**: `components/pm/`
-
----
-
-### pid
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] PID 控制器算法
-- [x] 支持定点数/浮点数
-- [x] 抗积分饱和
-- [x] 输出限幅
-- [x] 积分限幅
-
-**测试**:
-- [x] Unity 框架
-- [x] 20 个测试用例
-- [x] 测试位于 `tests/test_pid.c`
-
-**目录**: `components/pid/`
-
----
-
-### addc
-
-**状态**: ✅ 完成
-
-**功能**:
-- [x] ADC 辅助库
-- [x] DAC 辅助库
-- [x] 电压/原始值转换
-- [x] 多通道采样
-- [x] 分辨率配置
-
-**测试**:
-- [x] Unity 框架
-- [x] 24 个测试用例
-- [x] 测试位于 `tests/test_addc.c`
-
-**目录**: `components/addc/`
-
----
-
-## 优先级建议
-
-### 短期 (1-2 周) ✅ 已完成
-
-- [x] 删除重复测试 (UniTest/component/xy_clib/)
-- [x] 移动 Unity 到 third_party/
-- [x] 创建 tests/CMakeLists.txt
-- [x] 创建测试布局分析文档
-- [x] 规范 crypto 测试到 `tests/` (28 个用例)
-- [x] 规范 clib 测试到 `tests/` (21 个用例)
-- [x] 添加 trace 测试到 `tests/` (10 个用例)
-- [x] 创建 crypto 统一头文件 `xy_tiny_crypto.h`
-- [x] 规范 dm 测试到 `tests/` (24 个用例)
-- [x] 规范 net 测试到 `tests/` (22 个用例)
-- [x] 添加 sensor 测试到 `tests/` (18 个用例)
-- [x] 创建 ipc 基础代码和测试 (14 个用例)
-- [x] 创建 pm 基础代码和测试 (19 个用例)
-- [x] 添加 hal 测试到 `tests/` (11 个用例)
-- [x] 创建 CI/CD 配置 (GitHub Actions)
-
-### 中期 (1 个月)
-
-- [ ] 完善 fota/gui 组件
-- [ ] 添加硬件在环测试
-
-### 长期 (3 个月)
-
-- [ ] 添加覆盖率报告 (gcovr)
-- [ ] 集成 CI/CD (GitHub Actions)
-- [ ] 性能基准测试
+## 构建状态
+
+### 推荐构建目录
+
+| 用途 | 目录 | 说明 |
+|------|------|------|
+| 开发调试 | `build/` | PC 平台快速验证 |
+| 功能测试 | `build_full_test/` | 完整功能测试 |
+| STM32F4 | `build_stm32f4_test/` | F4 芯片测试 |
+| STM32U5 | `build_stm32u5_validation/` | U5 芯片验证 |
+
+### 构建命令
+
+```bash
+# PC 平台
+cd XinYi
+rm -rf build && mkdir build && cd build
+cmake .. -DPLATFORM_PC=ON -DXY_CONFIG_SENSOR_ENABLED=ON \
+         -DXY_CONFIG_ACTUATOR_ENABLED=ON -DXY_CONFIG_SMBUS_ENABLED=ON
+make -j4
+```
+
+### 静态库
+
+| 组件 | 库文件 | 大小 |
+|------|--------|------|
+| Sensor | `libsensor_component.a` | 311 KB |
+| Actuator | `libxy_actuator.a` | 14.6 KB |
+| SMBus | `libxy_smbus.a` | 28.5 KB |
 
 ---
 
@@ -367,26 +236,14 @@ XinYi/
 
 | 日期 | 更新内容 |
 |------|----------|
-| 2026-02-28 | 初始版本，完成 OSAL 和 HAL 分析 |
-| 2026-02-28 | 删除重复测试，创建统一测试框架 |
-| 2026-02-28 | 创建 tests/CMakeLists.txt 统一入口 |
-| 2026-02-28 | 完成 crypto 组件测试规范 (28 个用例) |
-| 2026-02-28 | 完成 clib 组件测试规范 (21 个用例) |
-| 2026-02-28 | 完成 trace 组件测试添加 (10 个用例) |
-| 2026-02-28 | 创建 crypto 统一头文件 xy_tiny_crypto.h |
-| 2026-02-28 | 完成 dm 组件测试规范 (24 个用例) |
-| 2026-02-28 | 完成 net 组件测试规范 (22 个用例) |
-| 2026-02-28 | 完成 sensor 测试添加 (18 个用例) |
-| 2026-02-28 | 创建 ipc 基础代码和测试 (14 个用例) |
-| 2026-02-28 | 创建 pm 基础代码和测试 (19 个用例) |
-| 2026-02-28 | 完成 hal 测试添加 (11 个用例) |
-| 2026-02-28 | 创建 CI/CD 配置 (GitHub Actions) |
-| 2026-02-28 | 创建 pid 基础代码和测试 (20 个用例) |
-| 2026-02-28 | 创建 addc 基础代码和测试 (24 个用例) |
-| 2026-02-28 | 创建 fota 基础代码框架 |
-| 2026-02-28 | 创建 gui 基础代码框架 |
+| 2026-03-30 | 新增 GPS 传感器驱动 |
+| 2026-03-30 | 新增 Actuator 执行器框架 |
+| 2026-03-30 | 新增 SMBus/PMBus 协议栈 |
+| 2026-03-30 | 修复 60+ 传感器驱动的组织问题 |
+| 2026-03-26 | 完成 XinYi 框架构建 (PC 平台) |
+| 2026-02-28 | 初始版本, 228 个测试用例 |
 
 ---
 
-**维护者**: XinYi Team
+**维护者**: ZeroZap Team  
 **许可证**: Apache License 2.0
