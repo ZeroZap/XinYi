@@ -6,5 +6,5 @@ C_DEFINES =
 
 C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/pm/inc -I/home/eugene/zerozap/XinYi/components/pm/charger -I/home/eugene/zerozap/XinYi/components/pm/fuel-gauge -I/home/eugene/zerozap/XinYi/components/pm/../hal/inc -I/home/eugene/zerozap/XinYi/components/pm/../kernel/osal -I/home/eugene/zerozap/XinYi/components/pm/../trace/xy_log/inc
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

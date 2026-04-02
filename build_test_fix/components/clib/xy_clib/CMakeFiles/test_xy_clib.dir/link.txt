@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/test_xy_clib.dir/test/test.c.o -o test_xy_clib  libxy_xy_clib.a 

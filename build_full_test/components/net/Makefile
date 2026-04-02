@@ -267,29 +267,53 @@ at/ats/xy_ats_hash.c.s:
 	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.s
 .PHONY : at/ats/xy_ats_hash.c.s
 
-modbus/mb_slave.o: modbus/mb_slave.c.o
-.PHONY : modbus/mb_slave.o
+modbus_full/mb_full.o: modbus_full/mb_full.c.o
+.PHONY : modbus_full/mb_full.o
 
 # target to build an object file
-modbus/mb_slave.c.o:
-	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o
-.PHONY : modbus/mb_slave.c.o
+modbus_full/mb_full.c.o:
+	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o
+.PHONY : modbus_full/mb_full.c.o
 
-modbus/mb_slave.i: modbus/mb_slave.c.i
-.PHONY : modbus/mb_slave.i
+modbus_full/mb_full.i: modbus_full/mb_full.c.i
+.PHONY : modbus_full/mb_full.i
 
 # target to preprocess a source file
-modbus/mb_slave.c.i:
-	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.i
-.PHONY : modbus/mb_slave.c.i
+modbus_full/mb_full.c.i:
+	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.i
+.PHONY : modbus_full/mb_full.c.i
 
-modbus/mb_slave.s: modbus/mb_slave.c.s
-.PHONY : modbus/mb_slave.s
+modbus_full/mb_full.s: modbus_full/mb_full.c.s
+.PHONY : modbus_full/mb_full.s
 
 # target to generate assembly for a file
-modbus/mb_slave.c.s:
-	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.s
-.PHONY : modbus/mb_slave.c.s
+modbus_full/mb_full.c.s:
+	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.s
+.PHONY : modbus_full/mb_full.c.s
+
+modbus_tiny/mb_tiny.o: modbus_tiny/mb_tiny.c.o
+.PHONY : modbus_tiny/mb_tiny.o
+
+# target to build an object file
+modbus_tiny/mb_tiny.c.o:
+	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o
+.PHONY : modbus_tiny/mb_tiny.c.o
+
+modbus_tiny/mb_tiny.i: modbus_tiny/mb_tiny.c.i
+.PHONY : modbus_tiny/mb_tiny.i
+
+# target to preprocess a source file
+modbus_tiny/mb_tiny.c.i:
+	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.i
+.PHONY : modbus_tiny/mb_tiny.c.i
+
+modbus_tiny/mb_tiny.s: modbus_tiny/mb_tiny.c.s
+.PHONY : modbus_tiny/mb_tiny.s
+
+# target to generate assembly for a file
+modbus_tiny/mb_tiny.c.s:
+	cd /home/eugene/zerozap/XinYi/build_full_test && $(MAKE) $(MAKESILENT) -f components/net/CMakeFiles/xy_net.dir/build.make components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.s
+.PHONY : modbus_tiny/mb_tiny.c.s
 
 src/xy_net.o: src/xy_net.c.o
 .PHONY : src/xy_net.o
@@ -363,9 +387,12 @@ help:
 	@echo "... at/ats/xy_ats_hash.o"
 	@echo "... at/ats/xy_ats_hash.i"
 	@echo "... at/ats/xy_ats_hash.s"
-	@echo "... modbus/mb_slave.o"
-	@echo "... modbus/mb_slave.i"
-	@echo "... modbus/mb_slave.s"
+	@echo "... modbus_full/mb_full.o"
+	@echo "... modbus_full/mb_full.i"
+	@echo "... modbus_full/mb_full.s"
+	@echo "... modbus_tiny/mb_tiny.o"
+	@echo "... modbus_tiny/mb_tiny.i"
+	@echo "... modbus_tiny/mb_tiny.s"
 	@echo "... src/xy_net.o"
 	@echo "... src/xy_net.i"
 	@echo "... src/xy_net.s"

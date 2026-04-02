@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/at_server_test.dir/at_server_test.c.o -o at_server_test  -lxy_core ../components/net/libxy_net.a ../components/trace/libxy_trace.a 

@@ -6,5 +6,5 @@ C_DEFINES = -DHAL_PLATFORM_PC -DXY_CHARGER_ENABLED -DXY_HAL_PC_SIM
 
 C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/charger/inc -I/home/eugene/zerozap/XinYi/components/device/inc -I/home/eugene/zerozap/XinYi/components/device -I/home/eugene/zerozap/XinYi/components/device/../hal/inc -I/home/eugene/zerozap/XinYi/components/device/../hal -I/home/eugene/zerozap/XinYi/components/hal/inc
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

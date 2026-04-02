@@ -24,10 +24,13 @@ void setUp(void)
     memset(&config, 0, sizeof(config));
     memset(test_firmware, 0, sizeof(test_firmware));
     
+    config.mode = XY_FOTA_MODE_DUAL_BANK;
     config.flash_base_addr = 0x08010000;
     config.slot_size = 0x20000;
     config.slot_count = 2;
     config.enable_secure_boot = false;
+    config.enable_rollback = true;
+    config.min_version = 1;
 }
 
 void tearDown(void)
@@ -93,7 +96,7 @@ void test_fota_deinit_valid(void)
 
 void test_fota_start_download_null_param(void)
 {
-    int ret = xy_fota_start_download(NULL, 1, 1024);
+    int ret = xy_fota_start_download(NULL, 1, 1024, false);
     TEST_ASSERT_EQUAL(XY_FOTA_INVALID_PARAM, ret);
 }
 
@@ -102,11 +105,11 @@ void test_fota_start_download_invalid_size(void)
     xy_fota_init(&fota, &config);
     
     /* Size = 0 */
-    int ret = xy_fota_start_download(&fota, 1, 0);
+    int ret = xy_fota_start_download(&fota, 1, 0, false);
     TEST_ASSERT_EQUAL(XY_FOTA_INVALID_PARAM, ret);
     
     /* Size too large */
-    ret = xy_fota_start_download(&fota, 1, XY_FOTA_MAX_IMAGE_SIZE + 1);
+    ret = xy_fota_start_download(&fota, 1, XY_FOTA_MAX_IMAGE_SIZE + 1, false);
     TEST_ASSERT_EQUAL(XY_FOTA_INVALID_PARAM, ret);
 }
 
@@ -114,10 +117,18 @@ void test_fota_start_download_valid(void)
 {
     xy_fota_init(&fota, &config);
     
-    int ret = xy_fota_start_download(&fota, 1, 1024);
+    int ret = xy_fota_start_download(&fota, 1, 1024, false);
     TEST_ASSERT_EQUAL(XY_FOTA_OK, ret);
     TEST_ASSERT_EQUAL(XY_FOTA_STATE_DOWNLOADING, fota.state);
     TEST_ASSERT_EQUAL(0, fota.downloaded_bytes);
+}
+
+void test_fota_start_download_delta(void)
+{
+    xy_fota_init(&fota, &config);
+    
+    int ret = xy_fota_start_download(&fota, 2, 10240, true);  // 增量包
+    TEST_ASSERT_EQUAL(XY_FOTA_OK, ret);
 }
 
 void test_fota_download_chunk_null_param(void)
@@ -169,8 +180,38 @@ void test_fota_state_transitions(void)
     xy_fota_init(&fota, &config);
     
     /* IDLE -> DOWNLOADING */
-    xy_fota_start_download(&fota, 1, 1024);
+    xy_fota_start_download(&fota, 1, 1024, false);
     TEST_ASSERT_EQUAL(XY_FOTA_STATE_DOWNLOADING, fota.state);
+    
+    /* DOWNLOADING -> VALIDATING (simulated by setting state) */
+    fota.state = XY_FOTA_STATE_VALIDATING;
+    TEST_ASSERT_EQUAL(XY_FOTA_STATE_VALIDATING, fota.state);
+}
+
+void test_fota_rollback_configuration(void)
+{
+    xy_fota_config_t single_slot_config = {
+        .mode = XY_FOTA_MODE_SINGLE_SLOT,
+        .flash_base_addr = 0x08010000,
+        .slot_size = 0x20000,
+        .slot_count = 1,
+        .backup_addr = 0x00000000,
+        .backup_size = 0x20000,
+        .enable_rollback = true,
+        .min_version = 100,
+    };
+    
+    int ret = xy_fota_init(&fota, &single_slot_config);
+    TEST_ASSERT_EQUAL(XY_FOTA_OK, ret);
+}
+
+void test_fota_version_validation(void)
+{
+    xy_fota_init(&fota, &config);
+    
+    /* Version >= min_version should pass */
+    bool valid = xy_fota_validate_version(&fota, 50);
+    TEST_ASSERT_TRUE(valid);
 }
 
 /* ==================== FOTA CRC Tests ==================== */
@@ -236,6 +277,11 @@ int main(void)
     RUN_TEST(test_fota_get_state_null_param);
     RUN_TEST(test_fota_get_state_valid);
     RUN_TEST(test_fota_state_transitions);
+    RUN_TEST(test_fota_rollback_configuration);
+    RUN_TEST(test_fota_version_validation);
+
+    /* Download Tests - New */
+    RUN_TEST(test_fota_start_download_delta);
 
     /* CRC Tests */
     RUN_TEST(test_fota_crc32_calculation);

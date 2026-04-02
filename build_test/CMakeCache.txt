@@ -17,12 +17,6 @@
 //Build OSAL examples
 BUILD_OSAL_EXAMPLES:BOOL=OFF
 
-//Build shared libraries
-BUILD_SHARED_LIBS:BOOL=OFF
-
-//Build tests
-BUILD_TESTING:BOOL=OFF
-
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=/usr/bin/addr2line
 
@@ -31,7 +25,7 @@ CMAKE_AR:FILEPATH=/usr/bin/ar
 
 //Choose the type of build, options are: None Debug Release RelWithDebInfo
 // MinSizeRel ...
-CMAKE_BUILD_TYPE:STRING=
+CMAKE_BUILD_TYPE:STRING=Debug
 
 //Enable/Disable color output during build.
 CMAKE_COLOR_MAKEFILE:BOOL=ON
@@ -330,6 +324,9 @@ at_server_example_SOURCE_DIR:STATIC=/home/eugene/zerozap/XinYi/examples/at_serve
 //Dependencies for the target
 charger_LIB_DEPENDS:STATIC=general;xy_device;general;xy_hal;
 
+//Dependencies for the target
+sensor_component_LIB_DEPENDS:STATIC=general;hardware_abstraction;
+
 //Value Computed by CMake
 third_party_libs_BINARY_DIR:STATIC=/home/eugene/zerozap/XinYi/build_test/third_party
 
@@ -348,6 +345,9 @@ xy_device_IS_TOP_LEVEL:STATIC=OFF
 //Value Computed by CMake
 xy_device_SOURCE_DIR:STATIC=/home/eugene/zerozap/XinYi/components/device
 
+//Dependencies for the target
+xy_dm_LIB_DEPENDS:STATIC=general;xy_trace;general;xy_clib;
+
 //Value Computed by CMake
 xy_drivers_BINARY_DIR:STATIC=/home/eugene/zerozap/XinYi/build_test/components/drivers
 
@@ -365,6 +365,9 @@ xy_fota_IS_TOP_LEVEL:STATIC=OFF
 
 //Value Computed by CMake
 xy_fota_SOURCE_DIR:STATIC=/home/eugene/zerozap/XinYi/components/fota
+
+//Dependencies for the target
+xy_gui_LIB_DEPENDS:STATIC=general;xy_trace;
 
 //Value Computed by CMake
 xy_ipc_BINARY_DIR:STATIC=/home/eugene/zerozap/XinYi/build_test/components/ipc
@@ -428,6 +431,9 @@ xy_trace_BINARY_DIR:STATIC=/home/eugene/zerozap/XinYi/build_test/components/trac
 
 //Value Computed by CMake
 xy_trace_IS_TOP_LEVEL:STATIC=OFF
+
+//Dependencies for the target
+xy_trace_LIB_DEPENDS:STATIC=general;xy_xy_clib;
 
 //Value Computed by CMake
 xy_trace_SOURCE_DIR:STATIC=/home/eugene/zerozap/XinYi/components/trace
@@ -530,7 +536,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=28
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=31
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP

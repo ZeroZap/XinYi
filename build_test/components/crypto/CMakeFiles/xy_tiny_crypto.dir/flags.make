@@ -6,5 +6,5 @@ C_DEFINES =
 
 C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/crypto/inc -I/home/eugene/zerozap/XinYi/components/crypto/../hal/inc -I/home/eugene/zerozap/XinYi/components/crypto/../kernel/osal -I/home/eugene/zerozap/XinYi/components/crypto/../trace/xy_log/inc
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

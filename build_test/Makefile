@@ -182,6 +182,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named at_server_test
+
+# Build rule for target.
+at_server_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 at_server_test
+.PHONY : at_server_test
+
+# fast build rule for target.
+at_server_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/at_server_test.dir/build.make CMakeFiles/at_server_test.dir/build
+.PHONY : at_server_test/fast
+
+#=============================================================================
 # Target rules for targets named build_all
 
 # Build rule for target.
@@ -260,6 +273,19 @@ xy_device/fast:
 .PHONY : xy_device/fast
 
 #=============================================================================
+# Target rules for targets named xy_dm
+
+# Build rule for target.
+xy_dm: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 xy_dm
+.PHONY : xy_dm
+
+# fast build rule for target.
+xy_dm/fast:
+	$(MAKE) $(MAKESILENT) -f components/dm/CMakeFiles/xy_dm.dir/build.make components/dm/CMakeFiles/xy_dm.dir/build
+.PHONY : xy_dm/fast
+
+#=============================================================================
 # Target rules for targets named xy_drivers
 
 # Build rule for target.
@@ -284,6 +310,19 @@ xy_fota: cmake_check_build_system
 xy_fota/fast:
 	$(MAKE) $(MAKESILENT) -f components/fota/CMakeFiles/xy_fota.dir/build.make components/fota/CMakeFiles/xy_fota.dir/build
 .PHONY : xy_fota/fast
+
+#=============================================================================
+# Target rules for targets named xy_gui
+
+# Build rule for target.
+xy_gui: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 xy_gui
+.PHONY : xy_gui
+
+# fast build rule for target.
+xy_gui/fast:
+	$(MAKE) $(MAKESILENT) -f components/gui/CMakeFiles/xy_gui.dir/build.make components/gui/CMakeFiles/xy_gui.dir/build
+.PHONY : xy_gui/fast
 
 #=============================================================================
 # Target rules for targets named xy_hal
@@ -338,6 +377,19 @@ xy_pm/fast:
 .PHONY : xy_pm/fast
 
 #=============================================================================
+# Target rules for targets named sensor_component
+
+# Build rule for target.
+sensor_component: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 sensor_component
+.PHONY : sensor_component
+
+# fast build rule for target.
+sensor_component/fast:
+	$(MAKE) $(MAKESILENT) -f components/sensor/CMakeFiles/sensor_component.dir/build.make components/sensor/CMakeFiles/sensor_component.dir/build
+.PHONY : sensor_component/fast
+
+#=============================================================================
 # Target rules for targets named xy_trace
 
 # Build rule for target.
@@ -390,45 +442,6 @@ xy_xy_clib/fast:
 .PHONY : xy_xy_clib/fast
 
 #=============================================================================
-# Target rules for targets named at_client_test
-
-# Build rule for target.
-at_client_test: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 at_client_test
-.PHONY : at_client_test
-
-# fast build rule for target.
-at_client_test/fast:
-	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/at_client_test.dir/build.make tests/CMakeFiles/at_client_test.dir/build
-.PHONY : at_client_test/fast
-
-#=============================================================================
-# Target rules for targets named at_server_test
-
-# Build rule for target.
-at_server_test: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 at_server_test
-.PHONY : at_server_test
-
-# fast build rule for target.
-at_server_test/fast:
-	$(MAKE) $(MAKESILENT) -f tests/CMakeFiles/at_server_test.dir/build.make tests/CMakeFiles/at_server_test.dir/build
-.PHONY : at_server_test/fast
-
-#=============================================================================
-# Target rules for targets named test_gpio_pc_simulation
-
-# Build rule for target.
-test_gpio_pc_simulation: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_gpio_pc_simulation
-.PHONY : test_gpio_pc_simulation
-
-# fast build rule for target.
-test_gpio_pc_simulation/fast:
-	$(MAKE) $(MAKESILENT) -f tests/hal/hc32l021/CMakeFiles/test_gpio_pc_simulation.dir/build.make tests/hal/hc32l021/CMakeFiles/test_gpio_pc_simulation.dir/build
-.PHONY : test_gpio_pc_simulation/fast
-
-#=============================================================================
 # Target rules for targets named at_server_example
 
 # Build rule for target.
@@ -440,6 +453,30 @@ at_server_example: cmake_check_build_system
 at_server_example/fast:
 	$(MAKE) $(MAKESILENT) -f examples/at_server_example/CMakeFiles/at_server_example.dir/build.make examples/at_server_example/CMakeFiles/at_server_example.dir/build
 .PHONY : at_server_example/fast
+
+tests/at_server_test.o: tests/at_server_test.c.o
+.PHONY : tests/at_server_test.o
+
+# target to build an object file
+tests/at_server_test.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/at_server_test.dir/build.make CMakeFiles/at_server_test.dir/tests/at_server_test.c.o
+.PHONY : tests/at_server_test.c.o
+
+tests/at_server_test.i: tests/at_server_test.c.i
+.PHONY : tests/at_server_test.i
+
+# target to preprocess a source file
+tests/at_server_test.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/at_server_test.dir/build.make CMakeFiles/at_server_test.dir/tests/at_server_test.c.i
+.PHONY : tests/at_server_test.c.i
+
+tests/at_server_test.s: tests/at_server_test.c.s
+.PHONY : tests/at_server_test.s
+
+# target to generate assembly for a file
+tests/at_server_test.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/at_server_test.dir/build.make CMakeFiles/at_server_test.dir/tests/at_server_test.c.s
+.PHONY : tests/at_server_test.c.s
 
 tests/simple_gpio_test.o: tests/simple_gpio_test.c.o
 .PHONY : tests/simple_gpio_test.o
@@ -481,15 +518,16 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... build_all"
 	@echo "... clean_all"
-	@echo "... at_client_test"
 	@echo "... at_server_example"
 	@echo "... at_server_test"
 	@echo "... charger"
+	@echo "... sensor_component"
 	@echo "... simple_gpio_test"
-	@echo "... test_gpio_pc_simulation"
 	@echo "... xy_device"
+	@echo "... xy_dm"
 	@echo "... xy_drivers"
 	@echo "... xy_fota"
+	@echo "... xy_gui"
 	@echo "... xy_hal"
 	@echo "... xy_ipc"
 	@echo "... xy_misc"
@@ -499,6 +537,9 @@ help:
 	@echo "... xy_tiny_crypto"
 	@echo "... xy_trace"
 	@echo "... xy_xy_clib"
+	@echo "... tests/at_server_test.o"
+	@echo "... tests/at_server_test.i"
+	@echo "... tests/at_server_test.s"
 	@echo "... tests/simple_gpio_test.o"
 	@echo "... tests/simple_gpio_test.i"
 	@echo "... tests/simple_gpio_test.s"

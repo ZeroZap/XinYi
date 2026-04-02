@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/test_osal.dir/unity.c.o CMakeFiles/test_osal.dir/__/src/xy_os_tick.c.o CMakeFiles/test_osal.dir/__/src/xy_os_timer_sw.c.o CMakeFiles/test_osal.dir/__/backend/baremetal/xy_os_baremetal.c.o CMakeFiles/test_osal.dir/test_osal.c.o -o test_osal 

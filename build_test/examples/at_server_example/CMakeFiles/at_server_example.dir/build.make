@@ -96,6 +96,8 @@ examples/at_server_example/at_server_example: components/net/libxy_net.a
 examples/at_server_example/at_server_example: components/trace/libxy_trace.a
 examples/at_server_example/at_server_example: components/kernel/osal/libxy_osal.a
 examples/at_server_example/at_server_example: components/hal/libxy_hal.a
+examples/at_server_example/at_server_example: components/clib/xy_clib/libxy_xy_clib.a
+examples/at_server_example/at_server_example: components/kernel/misc/libxy_misc.a
 examples/at_server_example/at_server_example: examples/at_server_example/CMakeFiles/at_server_example.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/eugene/zerozap/XinYi/build_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking C executable at_server_example"
 	cd /home/eugene/zerozap/XinYi/build_test/examples/at_server_example && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/at_server_example.dir/link.txt --verbose=$(VERBOSE)

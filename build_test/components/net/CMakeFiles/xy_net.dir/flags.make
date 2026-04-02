@@ -4,7 +4,7 @@
 # compile C with /usr/bin/cc
 C_DEFINES = 
 
-C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/net/inc -I/home/eugene/zerozap/XinYi/components/net/modbus -I/home/eugene/zerozap/XinYi/components/net/xy_mqtt -I/home/eugene/zerozap/XinYi/components/net/at/atc/core -I/home/eugene/zerozap/XinYi/components/net/at -I/home/eugene/zerozap/XinYi/components/net/../../components/trace/xy_log/inc -I/home/eugene/zerozap/XinYi/components/net/../../components/kernel/osal -I/home/eugene/zerozap/XinYi/components/net/../../components/clib/xy_clib -I/home/eugene/zerozap/XinYi/components/net/..
+C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/net/inc -I/home/eugene/zerozap/XinYi/components/net/modbus -I/home/eugene/zerozap/XinYi/components/net/xy_mqtt -I/home/eugene/zerozap/XinYi/components/net/at/atc/core -I/home/eugene/zerozap/XinYi/components/net/at -I/home/eugene/zerozap/XinYi/components/net/../../components/trace/xy_log/inc -I/home/eugene/zerozap/XinYi/components/net/../../components/kernel/osal -I/home/eugene/zerozap/XinYi/components/net/../../components/clib/xy_clib -I/home/eugene/zerozap/XinYi/components/net/.. -I/home/eugene/zerozap/XinYi/components/trace/../clib/xy_clib
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

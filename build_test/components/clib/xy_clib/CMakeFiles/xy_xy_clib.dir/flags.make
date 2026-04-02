@@ -6,5 +6,5 @@ C_DEFINES =
 
 C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/clib/xy_clib/inc
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

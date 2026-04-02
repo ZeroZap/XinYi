@@ -97,24 +97,38 @@ components/net/CMakeFiles/xy_net.dir/src/xy_net_platform.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/xy_net.dir/src/xy_net_platform.c.s"
 	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/eugene/zerozap/XinYi/components/net/src/xy_net_platform.c -o CMakeFiles/xy_net.dir/src/xy_net_platform.c.s
 
-components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o: components/net/CMakeFiles/xy_net.dir/flags.make
-components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o: /home/eugene/zerozap/XinYi/components/net/modbus/mb_slave.c
-components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o: components/net/CMakeFiles/xy_net.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o"
-	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o -MF CMakeFiles/xy_net.dir/modbus/mb_slave.c.o.d -o CMakeFiles/xy_net.dir/modbus/mb_slave.c.o -c /home/eugene/zerozap/XinYi/components/net/modbus/mb_slave.c
+components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o: components/net/CMakeFiles/xy_net.dir/flags.make
+components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o: /home/eugene/zerozap/XinYi/components/net/modbus_tiny/mb_tiny.c
+components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o: components/net/CMakeFiles/xy_net.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building C object components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o"
+	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o -MF CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o.d -o CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o -c /home/eugene/zerozap/XinYi/components/net/modbus_tiny/mb_tiny.c
 
-components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/xy_net.dir/modbus/mb_slave.c.i"
-	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/eugene/zerozap/XinYi/components/net/modbus/mb_slave.c > CMakeFiles/xy_net.dir/modbus/mb_slave.c.i
+components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.i"
+	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/eugene/zerozap/XinYi/components/net/modbus_tiny/mb_tiny.c > CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.i
 
-components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/xy_net.dir/modbus/mb_slave.c.s"
-	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/eugene/zerozap/XinYi/components/net/modbus/mb_slave.c -o CMakeFiles/xy_net.dir/modbus/mb_slave.c.s
+components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.s"
+	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/eugene/zerozap/XinYi/components/net/modbus_tiny/mb_tiny.c -o CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.s
+
+components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o: components/net/CMakeFiles/xy_net.dir/flags.make
+components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o: /home/eugene/zerozap/XinYi/components/net/modbus_full/mb_full.c
+components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o: components/net/CMakeFiles/xy_net.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o"
+	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o -MF CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o.d -o CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o -c /home/eugene/zerozap/XinYi/components/net/modbus_full/mb_full.c
+
+components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/xy_net.dir/modbus_full/mb_full.c.i"
+	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E /home/eugene/zerozap/XinYi/components/net/modbus_full/mb_full.c > CMakeFiles/xy_net.dir/modbus_full/mb_full.c.i
+
+components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/xy_net.dir/modbus_full/mb_full.c.s"
+	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S /home/eugene/zerozap/XinYi/components/net/modbus_full/mb_full.c -o CMakeFiles/xy_net.dir/modbus_full/mb_full.c.s
 
 components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o: components/net/CMakeFiles/xy_net.dir/flags.make
 components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o: /home/eugene/zerozap/XinYi/components/net/at/atc/Modules/cellular/common/at_client.c
 components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o: components/net/CMakeFiles/xy_net.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building C object components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o"
 	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o -MF CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o.d -o CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o -c /home/eugene/zerozap/XinYi/components/net/at/atc/Modules/cellular/common/at_client.c
 
 components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.i: cmake_force
@@ -128,7 +142,7 @@ components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.
 components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o: components/net/CMakeFiles/xy_net.dir/flags.make
 components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o: /home/eugene/zerozap/XinYi/components/net/at/ats/xy_ats.c
 components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o: components/net/CMakeFiles/xy_net.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building C object components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o"
 	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o -MF CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o.d -o CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o -c /home/eugene/zerozap/XinYi/components/net/at/ats/xy_ats.c
 
 components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.i: cmake_force
@@ -142,7 +156,7 @@ components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.s: cmake_force
 components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o: components/net/CMakeFiles/xy_net.dir/flags.make
 components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o: /home/eugene/zerozap/XinYi/components/net/at/ats/xy_ats_hash.c
 components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o: components/net/CMakeFiles/xy_net.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building C object components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building C object components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o"
 	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && /usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o -MF CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o.d -o CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o -c /home/eugene/zerozap/XinYi/components/net/at/ats/xy_ats_hash.c
 
 components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.i: cmake_force
@@ -157,7 +171,8 @@ components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.s: cmake_force
 xy_net_OBJECTS = \
 "CMakeFiles/xy_net.dir/src/xy_net.c.o" \
 "CMakeFiles/xy_net.dir/src/xy_net_platform.c.o" \
-"CMakeFiles/xy_net.dir/modbus/mb_slave.c.o" \
+"CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o" \
+"CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o" \
 "CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o" \
 "CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o" \
 "CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o"
@@ -167,13 +182,14 @@ xy_net_EXTERNAL_OBJECTS =
 
 components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/src/xy_net.c.o
 components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/src/xy_net_platform.c.o
-components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o
+components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o
+components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o
 components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o
 components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o
 components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o
 components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/build.make
 components/net/libxy_net.a: components/net/CMakeFiles/xy_net.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Linking C static library libxy_net.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/eugene/zerozap/XinYi/build_full_test/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking C static library libxy_net.a"
 	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && $(CMAKE_COMMAND) -P CMakeFiles/xy_net.dir/cmake_clean_target.cmake
 	cd /home/eugene/zerozap/XinYi/build_full_test/components/net && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/xy_net.dir/link.txt --verbose=$(VERBOSE)
 

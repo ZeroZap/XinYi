@@ -4,7 +4,7 @@
 # compile C with /usr/bin/cc
 C_DEFINES = -DXY_OS_BACKEND_BAREMETAL -DXY_OS_FEATURE_DELAY=1 -DXY_OS_FEATURE_EVENT_FLAGS=1 -DXY_OS_FEATURE_MEMORY_POOL=1 -DXY_OS_FEATURE_MESSAGE_QUEUE=1 -DXY_OS_FEATURE_MUTEX=1 -DXY_OS_FEATURE_SEMAPHORE=1 -DXY_OS_FEATURE_THREAD=1 -DXY_OS_FEATURE_THREAD_FLAGS=1 -DXY_OS_FEATURE_TIMER=1 -DXY_OS_ISR_CHECK=1 -DXY_OS_NULL_CHECK=1 -DXY_OS_PARAM_CHECK=1
 
-C_INCLUDES = -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/net/at/ats -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/trace/xy_log/inc -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/kernel/osal/inc -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/clib/xy_clib -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/hal/PC -I/home/eugene/zerozap/XinYi/components/kernel/osal/../misc -I/home/eugene/zerozap/XinYi/components/kernel/osal -I/home/eugene/zerozap/XinYi/components/kernel/osal/inc -I/home/eugene/zerozap/XinYi/components/hal/inc
+C_INCLUDES = -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/net/at/ats -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/trace/xy_log/inc -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/kernel/osal/inc -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/clib/xy_clib -I/home/eugene/zerozap/XinYi/examples/at_server_example/../../components/hal/PC -I/home/eugene/zerozap/XinYi/components/trace/../clib/xy_clib -I/home/eugene/zerozap/XinYi/components/kernel/osal/../misc -I/home/eugene/zerozap/XinYi/components/kernel/osal -I/home/eugene/zerozap/XinYi/components/kernel/osal/inc -I/home/eugene/zerozap/XinYi/components/hal/inc
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

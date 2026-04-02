@@ -1,3 +1,0 @@
-xy_clib_test 0 0
----
-xy_clib_test

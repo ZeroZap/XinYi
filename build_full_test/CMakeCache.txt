@@ -17,12 +17,6 @@
 //Build OSAL examples
 BUILD_OSAL_EXAMPLES:BOOL=OFF
 
-//Build shared libraries
-BUILD_SHARED_LIBS:BOOL=OFF
-
-//Build tests
-BUILD_TESTING:BOOL=OFF
-
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=/usr/bin/addr2line
 
@@ -264,9 +258,6 @@ CPACK_SOURCE_ZIP:BOOL=OFF
 //HAL Platform for device component
 HAL_PLATFORM:STRING=PC
 
-//No help, variable specified on the command line.
-KCONFIG_CONFIG_FILE:UNINITIALIZED=Kconfig.config
-
 //OSAL backend selection
 OSAL_BACKEND:STRING=baremetal
 
@@ -333,6 +324,9 @@ at_server_example_SOURCE_DIR:STATIC=/home/eugene/zerozap/XinYi/examples/at_serve
 //Dependencies for the target
 charger_LIB_DEPENDS:STATIC=general;xy_device;general;xy_hal;
 
+//Dependencies for the target
+sensor_component_LIB_DEPENDS:STATIC=general;hardware_abstraction;
+
 //Value Computed by CMake
 third_party_libs_BINARY_DIR:STATIC=/home/eugene/zerozap/XinYi/build_full_test/third_party
 
@@ -351,6 +345,9 @@ xy_device_IS_TOP_LEVEL:STATIC=OFF
 //Value Computed by CMake
 xy_device_SOURCE_DIR:STATIC=/home/eugene/zerozap/XinYi/components/device
 
+//Dependencies for the target
+xy_dm_LIB_DEPENDS:STATIC=general;xy_trace;general;xy_clib;
+
 //Value Computed by CMake
 xy_drivers_BINARY_DIR:STATIC=/home/eugene/zerozap/XinYi/build_full_test/components/drivers
 
@@ -368,6 +365,9 @@ xy_fota_IS_TOP_LEVEL:STATIC=OFF
 
 //Value Computed by CMake
 xy_fota_SOURCE_DIR:STATIC=/home/eugene/zerozap/XinYi/components/fota
+
+//Dependencies for the target
+xy_gui_LIB_DEPENDS:STATIC=general;xy_trace;
 
 //Value Computed by CMake
 xy_ipc_BINARY_DIR:STATIC=/home/eugene/zerozap/XinYi/build_full_test/components/ipc
@@ -536,7 +536,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=26
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=31
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP
@@ -630,8 +630,6 @@ _Python3_EXECUTABLE:INTERNAL=/usr/bin/python3
 //Python3 Properties
 _Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;12;3;64;;cpython-312-x86_64-linux-gnu.so;abi3;/usr/lib/python3.12;/usr/lib/python3.12;/usr/local/lib/python3.12/dist-packages;/usr/local/lib/python3.12/dist-packages
 _Python3_INTERPRETER_SIGNATURE:INTERNAL=4c8bfa8951e99fa32e4000a94f8c04a2
-//Interpreter reason failure
-_Python3_Interpreter_REASON_FAILURE:INTERNAL=
 //NumPy reason failure
 _Python3_NumPy_REASON_FAILURE:INTERNAL=
 

@@ -4,7 +4,7 @@
 # compile C with /usr/bin/cc
 C_DEFINES = 
 
-C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/trace/inc -I/home/eugene/zerozap/XinYi/components/trace/xy_log/inc -I/home/eugene/zerozap/XinYi/components/trace/../kernel/osal
+C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/trace/inc -I/home/eugene/zerozap/XinYi/components/trace/xy_log/inc -I/home/eugene/zerozap/XinYi/components/trace/../kernel/osal -I/home/eugene/zerozap/XinYi/components/trace/../clib/xy_clib
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

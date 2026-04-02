@@ -1,2 +1,0 @@
-/usr/bin/ar qc libxy_hal_stm32.a CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_dma.c.o CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_i2c.c.o CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_lp_timer.c.o CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_pin.c.o CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_pwm.c.o CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_rtc.c.o CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_spi.c.o CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_timer.c.o CMakeFiles/xy_hal_stm32.dir/stm32f4/xy_hal_uart.c.o
-/usr/bin/ranlib libxy_hal_stm32.a

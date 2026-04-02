@@ -6,5 +6,5 @@ C_DEFINES = -DXY_OS_BACKEND_BAREMETAL -DXY_OS_FEATURE_DELAY=1 -DXY_OS_FEATURE_EV
 
 C_INCLUDES = -I/home/eugene/zerozap/XinYi/components/kernel/osal/../misc -I/home/eugene/zerozap/XinYi/components/kernel/osal -I/home/eugene/zerozap/XinYi/components/kernel/osal/inc
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

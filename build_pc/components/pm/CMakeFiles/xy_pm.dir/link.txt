@@ -1,2 +1,0 @@
-/usr/bin/ar qc libxy_pm.a CMakeFiles/xy_pm.dir/src/xy_charger.c.o CMakeFiles/xy_pm.dir/src/xy_fuel_gauge.c.o CMakeFiles/xy_pm.dir/src/xy_pm_adc.c.o CMakeFiles/xy_pm.dir/src/xy_pm_system.c.o CMakeFiles/xy_pm.dir/xy_pm.c.o
-/usr/bin/ranlib libxy_pm.a

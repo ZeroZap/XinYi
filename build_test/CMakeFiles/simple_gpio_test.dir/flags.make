@@ -6,5 +6,5 @@ C_DEFINES = -DSTM32F407xx -DUSE_HAL_DRIVER
 
 C_INCLUDES = -I/home/eugene/zerozap/XinYi/MCU/ST/STM32F4/Drivers/CMSIS/Device/ST/STM32F4xx/Include -I/home/eugene/zerozap/XinYi/MCU/ST/STM32F4/Drivers/STM32F4xx_HAL_Driver/Inc -I/home/eugene/zerozap/XinYi/components/hal/inc -I/home/eugene/zerozap/XinYi/components/hal/PC
 
-C_FLAGS = -std=gnu99 -Wall -Wextra -Wpedantic
+C_FLAGS = -g -std=gnu99 -Wall -Wextra -Wpedantic
 

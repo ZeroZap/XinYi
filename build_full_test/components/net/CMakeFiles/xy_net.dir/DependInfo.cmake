@@ -11,7 +11,8 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/eugene/zerozap/XinYi/components/net/at/atc/Modules/cellular/common/at_client.c" "components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o" "gcc" "components/net/CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o.d"
   "/home/eugene/zerozap/XinYi/components/net/at/ats/xy_ats.c" "components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o" "gcc" "components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o.d"
   "/home/eugene/zerozap/XinYi/components/net/at/ats/xy_ats_hash.c" "components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o" "gcc" "components/net/CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o.d"
-  "/home/eugene/zerozap/XinYi/components/net/modbus/mb_slave.c" "components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o" "gcc" "components/net/CMakeFiles/xy_net.dir/modbus/mb_slave.c.o.d"
+  "/home/eugene/zerozap/XinYi/components/net/modbus_full/mb_full.c" "components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o" "gcc" "components/net/CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o.d"
+  "/home/eugene/zerozap/XinYi/components/net/modbus_tiny/mb_tiny.c" "components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o" "gcc" "components/net/CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o.d"
   "/home/eugene/zerozap/XinYi/components/net/src/xy_net.c" "components/net/CMakeFiles/xy_net.dir/src/xy_net.c.o" "gcc" "components/net/CMakeFiles/xy_net.dir/src/xy_net.c.o.d"
   "/home/eugene/zerozap/XinYi/components/net/src/xy_net_platform.c" "components/net/CMakeFiles/xy_net.dir/src/xy_net_platform.c.o" "gcc" "components/net/CMakeFiles/xy_net.dir/src/xy_net_platform.c.o.d"
   )

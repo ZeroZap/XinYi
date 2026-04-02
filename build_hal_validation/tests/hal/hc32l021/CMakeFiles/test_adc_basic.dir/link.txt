@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/test_adc_basic.dir/test_adc_basic.c.o -o test_adc_basic  -lxy_hal_hc32l021 -lunity 

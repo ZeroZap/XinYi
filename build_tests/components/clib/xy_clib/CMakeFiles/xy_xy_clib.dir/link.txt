@@ -1,2 +1,0 @@
-/usr/bin/ar qc libxy_xy_clib.a CMakeFiles/xy_xy_clib.dir/test_filter.c.o CMakeFiles/xy_xy_clib.dir/test_sort.c.o CMakeFiles/xy_xy_clib.dir/xy_assert.c.o CMakeFiles/xy_xy_clib.dir/xy_common.c.o CMakeFiles/xy_xy_clib.dir/xy_ctype.c.o CMakeFiles/xy_xy_clib.dir/xy_filter.c.o CMakeFiles/xy_xy_clib.dir/xy_math.c.o CMakeFiles/xy_xy_clib.dir/xy_rb.c.o CMakeFiles/xy_xy_clib.dir/xy_sort.c.o CMakeFiles/xy_xy_clib.dir/xy_stdio.c.o CMakeFiles/xy_xy_clib.dir/xy_stdlib.c.o CMakeFiles/xy_xy_clib.dir/xy_string.c.o
-/usr/bin/ranlib libxy_xy_clib.a

@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/at_server_test.dir/tests/at_server_test.c.o -o at_server_test  components/net/libxy_net.a components/kernel/misc/libxy_misc.a components/kernel/osal/libxy_osal.a components/trace/libxy_trace.a components/clib/xy_clib/libxy_xy_clib.a components/kernel/misc/libxy_misc.a 

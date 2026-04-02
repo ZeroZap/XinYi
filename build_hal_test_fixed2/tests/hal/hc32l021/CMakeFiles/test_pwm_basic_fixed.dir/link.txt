@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/test_pwm_basic_fixed.dir/test_pwm_basic_fixed.c.o -o test_pwm_basic_fixed  -lxy_hal_hc32l021 -lunity 

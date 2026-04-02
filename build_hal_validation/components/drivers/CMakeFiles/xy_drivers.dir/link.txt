@@ -1,2 +1,0 @@
-/usr/bin/ar qc libxy_drivers.a CMakeFiles/xy_drivers.dir/xy_sys/xy_sys.c.o
-/usr/bin/ranlib libxy_drivers.a

@@ -273,6 +273,19 @@ xy_device/fast:
 .PHONY : xy_device/fast
 
 #=============================================================================
+# Target rules for targets named xy_dm
+
+# Build rule for target.
+xy_dm: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 xy_dm
+.PHONY : xy_dm
+
+# fast build rule for target.
+xy_dm/fast:
+	$(MAKE) $(MAKESILENT) -f components/dm/CMakeFiles/xy_dm.dir/build.make components/dm/CMakeFiles/xy_dm.dir/build
+.PHONY : xy_dm/fast
+
+#=============================================================================
 # Target rules for targets named xy_drivers
 
 # Build rule for target.
@@ -297,6 +310,19 @@ xy_fota: cmake_check_build_system
 xy_fota/fast:
 	$(MAKE) $(MAKESILENT) -f components/fota/CMakeFiles/xy_fota.dir/build.make components/fota/CMakeFiles/xy_fota.dir/build
 .PHONY : xy_fota/fast
+
+#=============================================================================
+# Target rules for targets named xy_gui
+
+# Build rule for target.
+xy_gui: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 xy_gui
+.PHONY : xy_gui
+
+# fast build rule for target.
+xy_gui/fast:
+	$(MAKE) $(MAKESILENT) -f components/gui/CMakeFiles/xy_gui.dir/build.make components/gui/CMakeFiles/xy_gui.dir/build
+.PHONY : xy_gui/fast
 
 #=============================================================================
 # Target rules for targets named xy_hal
@@ -349,6 +375,19 @@ xy_pm: cmake_check_build_system
 xy_pm/fast:
 	$(MAKE) $(MAKESILENT) -f components/pm/CMakeFiles/xy_pm.dir/build.make components/pm/CMakeFiles/xy_pm.dir/build
 .PHONY : xy_pm/fast
+
+#=============================================================================
+# Target rules for targets named sensor_component
+
+# Build rule for target.
+sensor_component: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 sensor_component
+.PHONY : sensor_component
+
+# fast build rule for target.
+sensor_component/fast:
+	$(MAKE) $(MAKESILENT) -f components/sensor/CMakeFiles/sensor_component.dir/build.make components/sensor/CMakeFiles/sensor_component.dir/build
+.PHONY : sensor_component/fast
 
 #=============================================================================
 # Target rules for targets named xy_trace
@@ -482,10 +521,13 @@ help:
 	@echo "... at_server_example"
 	@echo "... at_server_test"
 	@echo "... charger"
+	@echo "... sensor_component"
 	@echo "... simple_gpio_test"
 	@echo "... xy_device"
+	@echo "... xy_dm"
 	@echo "... xy_drivers"
 	@echo "... xy_fota"
+	@echo "... xy_gui"
 	@echo "... xy_hal"
 	@echo "... xy_ipc"
 	@echo "... xy_misc"

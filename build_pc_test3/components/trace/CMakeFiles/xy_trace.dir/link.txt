@@ -1,2 +1,0 @@
-/usr/bin/ar qc libxy_trace.a CMakeFiles/xy_trace.dir/xy_log/src/xy_log.c.o
-/usr/bin/ranlib libxy_trace.a
