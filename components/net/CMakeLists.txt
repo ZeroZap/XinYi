@@ -33,9 +33,19 @@ set(NET_SOURCES
 
 # Add protocol sources based on configuration
 
-# Modbus (enabled)
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modbus/mb_slave.c)
-    list(APPEND NET_SOURCES modbus/mb_slave.c)
+# Modbus (legacy version - deprecated)
+# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modbus/mb_slave.c)
+#     list(APPEND NET_SOURCES modbus/mb_slave.c)
+# endif()
+
+# Modbus Tiny (RTU only, minimal footprint)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modbus_tiny/mb_tiny.c)
+    list(APPEND NET_SOURCES modbus_tiny/mb_tiny.c)
+endif()
+
+# Modbus Full (RTU + TCP + ASCII, full features)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modbus_full/mb_full.c)
+    list(APPEND NET_SOURCES modbus_full/mb_full.c)
 endif()
 
 # AT Client (enabled)

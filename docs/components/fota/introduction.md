@@ -66,10 +66,10 @@ int main(void) {
 
 ## 📝 待完成任务
 
-- [ ] 实现 xy_fota.c
-- [ ] 添加单元测试
-- [ ] 集成 Flash 驱动
-- [ ] 添加安全启动支持
+- [x] 实现 xy_fota.c
+- [x] 添加单元测试 (tests/test_fota.c)
+- [x] 集成 Flash 驱动 (src/xy_fota_flash.c)
+- [x] 添加安全启动支持 (src/xy_fota_secure.c)
 
 ---
 
