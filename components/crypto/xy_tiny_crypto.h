@@ -107,6 +107,18 @@ int xy_hmac_sha256(const uint8_t *key, size_t key_len,
 int xy_random_bytes(uint8_t *buffer, size_t len);
 uint32_t xy_random_uint32(void);
 
+/* ==================== Ascon Lightweight Cryptography ==================== */
+/* See xy_ascon/xy_ascon.h for full API */
+#include "xy_ascon/xy_ascon.h"
+
+/* ==================== TinyJambu Lightweight Cryptography ==================== */
+/* See xy_tinyjambu/xy_tinyjambu.h for full API */
+#include "xy_tinyjambu/xy_tinyjambu.h"
+
+/* ==================== Photon Beetle Lightweight Cryptography ==================== */
+/* See xy_photon_beetle/xy_photon_beetle.h for full API */
+#include "xy_photon_beetle/xy_photon_beetle.h"
+
 #ifdef __cplusplus
 }
 #endif

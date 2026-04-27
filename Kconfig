@@ -194,7 +194,7 @@ menu "File System"
 
 config FS_ENABLED
     bool "File System Support"
-    default n
+    default y if PLATFORM_STM32U5
 
 config FS_FATFS
     bool "FatFs"
@@ -208,7 +208,84 @@ config FS_LITTLEFS
     help
       LittleFS for internal flash.
 
+config FS_FLASHDB
+    bool "FlashDB (NOR Flash)"
+    depends on FS_ENABLED
+    select XY_COMPONENT_FLASHDB
+    default y if PLATFORM_STM32U5
+    help
+      FlashDB for NOR Flash, suitable for external SPI Flash.
+
 endmenu # File System
+
+menu "FOTA (Firmware Over-The-Air)"
+
+config FOTA_ENABLED
+    bool "FOTA Support"
+    default y if PLATFORM_STM32U5
+    help
+      Enable Firmware Over-The-Air update support.
+
+config FOTA_DUAL_BANK
+    bool "Dual Bank Mode"
+    depends on FOTA_ENABLED
+    default y
+    help
+      Use dual bank flash for safe updates.
+
+config FOTA_EXTERNAL_FLASH
+    bool "External NOR Flash Support"
+    depends on FOTA_ENABLED
+    default n
+    help
+      Use external NOR Flash for FOTA backup/storage.
+
+config FOTA_ROLLBACK
+    bool "Rollback Support"
+    depends on FOTA_ENABLED
+    default y
+    help
+      Enable firmware rollback on update failure.
+
+config FOTA_MAX_IMAGE_SIZE
+    int "Max Firmware Image Size (bytes)"
+    depends on FOTA_ENABLED
+    default 262144
+    help
+      Maximum firmware image size in bytes (default 256KB).
+
+endmenu # FOTA
+
+menu "External NOR Flash"
+
+config NOR_FLASH_ENABLED
+    bool "External NOR Flash Support"
+    default n
+    help
+      Enable external NOR Flash via OCTOSPI.
+
+config NOR_FLASH_SIZE
+    int "NOR Flash Size (MB)"
+    depends on NOR_FLASH_ENABLED
+    default 16
+    help
+      External NOR Flash size in megabytes.
+
+config NOR_FLASH_BASE_ADDR
+    hex "NOR Flash Base Address"
+    depends on NOR_FLASH_ENABLED
+    default 0x90000000
+    help
+      Base address for NOR Flash memory mapping (XIP).
+
+config NOR_FLASH_XIP
+    bool "XIP (Execute-In-Place) Mode"
+    depends on NOR_FLASH_ENABLED
+    default y
+    help
+      Enable XIP mode for code execution from NOR Flash.
+
+endmenu # External NOR Flash
 
 menu "Power Management"
 

@@ -135,6 +135,19 @@
 #define XY_CONFIG_PID_MAX_INSTANCES  4
 #endif
 
+/* FlashDB 组件 */
+#ifndef XY_CONFIG_FLASHDB_ENABLED
+#define XY_CONFIG_FLASHDB_ENABLED    1
+#endif
+
+#ifndef XY_CONFIG_FLASHDB_KVDB_ENABLED
+#define XY_CONFIG_FLASHDB_KVDB_ENABLED  1
+#endif
+
+#ifndef XY_CONFIG_FLASHDB_TSDB_ENABLED
+#define XY_CONFIG_FLASHDB_TSDB_ENABLED 1
+#endif
+
 /* ==================== 用户自定义配置 ==================== */
 
 /* 如果存在用户配置文件，包含它 */

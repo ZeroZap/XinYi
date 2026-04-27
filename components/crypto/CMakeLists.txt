@@ -20,6 +20,11 @@ include_directories(
     ../trace/xy_log/inc
 )
 
+# 添加子模块
+add_subdirectory(xy_ascon)
+add_subdirectory(xy_tinyjambu)
+add_subdirectory(xy_photon_beetle)
+
 # 收集源文件
 file(GLOB CRYPTO_SOURCES "src/*.c")
 file(GLOB CRYPTO_HEADERS "inc/*.h")

@@ -88,3 +88,18 @@ Thumbs.db
 .Trashes
 ehthumbs.db
 Desktop.ini
+
+# ===========================================================================
+# Test and debug builds
+# ===========================================================================
+build_*/
+components/crypto/test_lwc
+components/crypto/test_lwc*
+components/crypto/xy_ascon/
+components/crypto/xy_photon_beetle/
+components/crypto/xy_tinyjambu/
+components/dm/xy_flash/
+components/third_party/flashdb/
+components/third_party/usb/nimble/
+components/third_party/usb/tinyusb/
+projects/stm32u5_fota/

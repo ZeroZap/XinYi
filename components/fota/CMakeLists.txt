@@ -1,72 +1,81 @@
+# FOTA Component CMakeLists.txt
+# XinYi Framework - FOTA Component
+
 cmake_minimum_required(VERSION 3.10)
-project(xy_fota VERSION 1.0.0 LANGUAGES C)
 
-# Set C standard
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-# Compiler options
-if(MSVC)
-    add_compile_options(/W4)
-else()
-    add_compile_options(-Wall -Wextra -Wpedantic)
+# Check if FOTA is enabled (Kconfig generates CONFIG_FOTA_ENABLED)
+if(NOT CONFIG_FOTA_ENABLED)
+    return()
 endif()
+
+message(STATUS "=== FOTA Component: Building ===")
 
 # Include directories
-include_directories(
-    .
-    inc
-    inc
-    ../hal/inc
-    ../kernel/osal
-    ../trace/xy_log/inc
-    ../crypto/inc
+target_include_directories(xy_fota PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../hal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../kernel/osal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../trace/xy_log/inc
 )
 
-# Collect source files
-file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
-list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
+# Source files - main + src/
+file(GLOB FOTA_ROOT_SOURCES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
+)
+list(FILTER FOTA_ROOT_SOURCES EXCLUDE REGEX "test/.*")
 
-file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
-file(GLOB TEST_SOURCES "test/*.c")
+file(GLOB FOTA_SRC_SOURCES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
+)
+
+set(FOTA_SOURCES
+    ${FOTA_ROOT_SOURCES}
+    ${FOTA_SRC_SOURCES}
+)
+
+# Add NOR Flash support if enabled (check CONFIG_* from Kconfig)
+if(CONFIG_FOTA_EXTERNAL_FLASH AND CONFIG_NOR_FLASH_ENABLED)
+    list(APPEND FOTA_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_fota_nor.c
+    )
+    message(STATUS "   FOTA: Using external NOR Flash backup")
+else()
+    message(STATUS "   FOTA: Using internal Flash")
+endif()
 
 # Create static library
-add_library(xy_fota STATIC ${COMPONENT_SOURCES})
+add_library(xy_fota STATIC ${FOTA_SOURCES})
 
-# Set library properties
-set_target_properties(xy_fota PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION 1
-    PUBLIC_HEADER "${COMPONENT_HEADERS}"
+# Compile definitions
+target_compile_definitions(xy_fota PRIVATE 
+    FOTA_ENABLED=1
 )
 
-# Windows system needs additional libraries
-if(WIN32)
-    target_link_libraries(xy_fota PRIVATE advapi32)
+if(CONFIG_FOTA_DUAL_BANK)
+    target_compile_definitions(xy_fota PRIVATE FOTA_DUAL_BANK=1)
 endif()
 
-# Create test executable if test sources exist
-if(TEST_SOURCES)
-    add_executable(test_fota ${TEST_SOURCES})
-    target_link_libraries(test_fota xy_fota)
-    
-    if(WIN32)
-        target_link_libraries(test_fota advapi32)
-    endif()
-    
-    # Enable testing
-    enable_testing()
-    add_test(NAME fota_test COMMAND test_fota)
+if(CONFIG_FOTA_ROLLBACK)
+    target_compile_definitions(xy_fota PRIVATE FOTA_ROLLBACK=1)
 endif()
 
-# Installation rules
-install(TARGETS xy_fota
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    PUBLIC_HEADER DESTINATION include
+if(CONFIG_FOTA_EXTERNAL_FLASH)
+    target_compile_definitions(xy_fota PRIVATE FOTA_EXTERNAL_FLASH=1)
+endif()
+
+# Link dependencies
+target_link_libraries(xy_fota PUBLIC
+    xy_trace
+    xy_clib
 )
 
-# Packaging
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-include(CPack)
+# Add HAL dependency for STM32
+if(XY_PLATFORM_STM32)
+    target_link_libraries(xy_fota PUBLIC xy_hal)
+endif()
+
+# Compiler options
+target_compile_options(xy_fota PRIVATE -Wall -Wextra -O2)
+
+message(STATUS "=== FOTA Component: Done ===")

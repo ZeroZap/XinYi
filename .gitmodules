@@ -10,3 +10,12 @@
 [submodule "MCU/ST/STM32F4"]
 	path = MCU/ST/STM32F4
 	url = https://github.com/STMicroelectronics/STM32CubeF4.git
+[submodule "components/third_party/usb/tinyusb"]
+	path = components/third_party/usb/tinyusb
+	url = https://github.com/hathach/tinyusb.git
+[submodule "components/third_party/usb/nimble"]
+	path = components/third_party/usb/nimble
+	url = https://github.com/apache/mynewt-nimble.git
+[submodule "components/third_party/flashdb"]
+	path = components/third_party/flashdb
+	url = https://gitee.com/Armink/FlashDB.git
