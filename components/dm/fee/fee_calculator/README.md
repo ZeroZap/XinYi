@@ -1,190 +1,274 @@
-# FEE配置计算工具 v2.1
+XinYi\components\dm\fee\fee_calculator\README.md
 
-Flash EEPROM Emulation 配置计算和代码生成工具（强制颗粒度 >= 8字节）
+````
 
-## 重要更新
+```markdown
+# FEE 配置计算工具 v2.2
 
-### v2.1 核心改进
-- ✅ **强制FEE写入颗粒度 >= 8字节**
-- ✅ 区分Flash原生颗粒度和FEE层颗粒度
-- ✅ 数据库验证功能
-- ✅ 详细的设计约束说明
-- ✅ 自动验证和警告提示
+Flash EEPROM Emulation 配置计算和代码生成工具
 
-## FEE设计约束
+---
 
-### 为什么颗粒度必须 >= 8字节？
+## 更新日志
 
-Record结构:
+### v2.2 (2026-03-15) - 多实例支持 + RTOS 适配
+
+- ✅ **多实例支持** — 每个组件可拥有独立的 FEE 实例
+- ✅ **RTOS/裸机宏控制** — `XY_OS_BACKEND_*` 自动适配
+- ✅ **实例级 work_buffer/flash_ops** — 封装到 `fee_handle_t` 中
+- ✅ **调用约定速查表** — 明确裸机和 RTOS 的调用上下文
+- ✅ **生成符合 xy_fee.h v2.0.0 的代码**
+
+### v2.1 (2024-01-31)
+
+- 强制 FEE 颗粒度 >= 8 字节验证
+- 区分 Flash 原生颗粒度和 FEE 颗粒度
+- 增强数据库验证功能
+
+### v2.0 (2024-01-30)
+
+- JSON 数据库支持
+- 可视化 MCU 配置管理
+
+---
+
+## 核心概念
+
+### 多实例架构
+
+````
+
++------------------+ +------------------+ +------------------+
+| net_fee 实例 | | param_fee 实例 | | app_fee 实例 |
++------------------+ +------------------+ +------------------+
+| net_virtual_eeprom | | param_virtual_eeprom| | app_virtual_eeprom|
+| net_work_buffer | | param_work_buffer | | app_work_buffer |
++------------------+ +------------------+ +------------------+
+
+````
+
+每个实例独立管理，互不影响。适用于：
+- 网络组件使用独立池存储配置
+- 参数存储使用独立池
+- 不同应用场景使用不同的池
+
+### RTOS/裸机适配
+
+```c
+/* 平台自动检测 */
+#if XY_OS_BACKEND_BAREMETAL
+    #define FEE_ENTER_CRITICAL()    do { } while (0)  /* 调用者保证禁中断 */
+#elif XY_OS_BACKEND_FREERTOS
+    #define FEE_ENTER_CRITICAL()    taskENTER_CRITICAL()
+#elif XY_OS_BACKEND_RTTHREAD
+    #define FEE_ENTER_CRITICAL()    rt_enter_critical()
+#endif
+````
+
+---
+
+## 设计约束
+
+### 为什么颗粒度必须 >= 8 字节？
+
+```
+Record 结构:
 ┌──────────────────────┐
-│ Record Header (4B) │ ← 固定4字节
-│ ├─ addr (2B) │
-│ └─ crc (2B) │
+│ Record Header (4B) │ ← 固定 4 字节
+│  ├─ addr (2B)        │
+│  └─ crc (2B)         │
 ├──────────────────────┤
-│ Data (gran - 4B) │ ← 有效数据
+│ Data (gran - 4B)     │ ← 有效数据
 └──────────────────────┘
 
 如果 gran < 8:
-gran=4: Data=0B ✗ 没有数据空间
-gran=6: Data=2B ✗ 数据太少
-gran=8: Data=4B ✓ 最小合理配置
+  gran=4: Data=0B  ✗ 没有数据空间
+  gran=6: Data=2B  ✗ 数据太少
+  gran=8: Data=4B  ✓ 最小合理配置
+```
 
+### 2-Page 架构
 
-### Flash原生颗粒度 vs FEE颗粒度
+```
+┌─────────────────────────────────┐
+│         FEE Page 0              │
+│  ┌─────────────────────────┐   │
+│  │ Header (FEEA)            │   │
+│  ├─────────────────────────┤   │
+│  │ Record 0                 │   │
+│  │ Record 1                 │   │
+│  │ ...                       │   │
+│  │ Record N                 │   │
+│  └─────────────────────────┘   │
+├─────────────────────────────────┤
+│         FEE Page 1 (ERASED)     │
+└─────────────────────────────────┘
 
-很多MCU的Flash原生写入小于8字节，但FEE层必须使用8字节对齐：
+GC 时: Page 0 → RECEIVING → INVALID
+      Page 1 → ACTIVE
+```
 
-| MCU | Flash原生 | FEE使用 | 实现方式 |
-|-----|----------|---------|---------|
-| STM32F103 | 4字节 | 8字节 | 2次半字写入 |
-| STM32L476 | 8字节 | 8字节 | 1次双字写入 |
-| STM32H743 | 32字节 | 32字节 | 1次Flash行写入 |
-| ESP32 | 4字节 | 8字节 | 软件层对齐 |
+---
 
-## 特性
+## 快速开始
 
-- ✅ JSON数据库管理MCU配置
-- ✅ 强制颗粒度验证（>= 8字节）
-- ✅ 自动计算Flash占用和寿命
-- ✅ 生成完整C配置代码
-- ✅ 支持配置导入/导出
-- ✅ 数据库验证功能
-- ✅ 详细的优化建议
+### 1. 选择 MCU
 
-## 安装
+从下拉列表选择 MCU 型号，或选择"自定义"手动输入参数。
 
-```bash
-# Python 3.6+
-pip install tkinter  # 通常已内置
+### 2. 配置参数
 
-使用方法
-启动程序
-python fee_calculator.py
+| 参数                  | 说明                            |
+| --------------------- | ------------------------------- |
+| Flash Page Size       | MCU Flash 页大小（字节）        |
+| FEE Write Granularity | 写入颗粒度（必须 >= 8）         |
+| 虚拟 EEPROM 大小      | Cache 大小（字节）              |
+| Pages/FEE             | 每个 FEE Page 包含的 Flash 页数 |
+| 最大擦除次数          | Flash 寿命上限                  |
 
-基本流程
-选择MCU型号（自动填充参数）
-验证颗粒度 >= 8字节
-调整参数
-点击"计算"
-查看结果和建议
-生成并复制C代码
-MCU数据库
-查看MCU信息：
+### 3. 计算并生成代码
 
-选择MCU后点击 [ℹ] 按钮
-显示Flash配置、FEE参数等
-添加新MCU：
+点击"计算配置"查看结果，点击"复制代码"或"保存代码"获取 C 代码。
 
-菜单 -> MCU数据库 -> 管理MCU配置
-点击"添加"
-填写参数（自动验证颗粒度）
-保存
-数据库字段说明：
+---
 
+## API 调用约定
+
+### 裸机环境
+
+| 函数           | 调用上下文 | 说明                 |
+| -------------- | ---------- | -------------------- |
+| `fee_init`     | 禁中断     | 系统初始化时调用     |
+| `fee_write`    | 禁中断     | 写入数据             |
+| `fee_read`     | 任意       | 读 Cache，已内置保护 |
+| `fee_gc`       | 禁中断     | 垃圾回收             |
+| `fee_format`   | 禁中断     | 格式化               |
+| `fee_get_info` | 任意       | 已内置保护           |
+
+### RTOS 环境
+
+| 函数           | 调用上下文     | 说明             |
+| -------------- | -------------- | ---------------- |
+| `fee_init`     | 持有互斥锁     | 系统初始化时调用 |
+| `fee_write`    | 持有互斥锁     | 写入数据         |
+| `fee_read`     | 持有锁或禁中断 | 建议持有锁       |
+| `fee_gc`       | 持有互斥锁     | 垃圾回收         |
+| `fee_format`   | 持有互斥锁     | 格式化           |
+| `fee_get_info` | 持有锁或禁中断 | 建议持有锁       |
+
+---
+
+## 生成代码示例
+
+```c
+/* ============================================================
+ * 多实例配置
+ * ============================================================ */
+
+/* 网络组件 FEE 实例 */
+static uint8_t net_virtual_eeprom[512];
+static uint8_t net_work_buffer[FEE_WORK_SIZE(8)];  /* 16 bytes */
+static fee_handle_t net_fee;
+
+/* 参数存储 FEE 实例（可选） */
+// static uint8_t param_virtual_eeprom[256];
+// static uint8_t param_work_buffer[FEE_WORK_SIZE(8)];
+// static fee_handle_t param_fee;
+
+/* ============================================================
+ * Flash 操作接口
+ * ============================================================ */
+
+static const fee_flash_ops_t fee_flash_ops = {
+    .erase = fee_flash_erase,
+    .write = fee_flash_write,
+    .read  = fee_flash_read
+};
+
+/* ============================================================
+ * 初始化
+ * ============================================================ */
+
+int fee_system_init(void)
 {
-  "id": "stm32l476",
-  "name": "STM32L476",
-  "flash_write_granularity": 8,    // Flash原生写入颗粒
-  "fee_write_granularity": 8,      // FEE层使用颗粒 (>= 8)
-  "flash_page_size": 2048,
-  "max_erase_cycles": 10000,
-  ...
+    fee_status_t status;
+
+    /* 初始化网络组件 FEE */
+    status = fee_init(&net_fee, &net_fee_config,
+                      net_virtual_eeprom, net_work_buffer);
+    if (status != FEE_OK) {
+        return -1;
+    }
+
+    /* 可选: 初始化其他实例 */
+    // status = fee_init(&param_fee, &param_fee_config, ...);
+
+    return 0;
+}
+```
+
+---
+
+## 使用示例
+
+### 裸机环境
+
+```c
+/* 禁中断状态下写入 */
+void save_config(void)
+{
+    struct config cfg = { .baudrate = 115200, .timeout = 1000 };
+
+    xy_enter_critical();
+    fee_write(&net_fee, 0, (uint8_t *)&cfg, sizeof(cfg));
+    xy_exit_critical();
 }
 
-颗粒度选择建议
-颗粒度	Record数据	效率	适用场景
-8B	4B	50%	最小配置，节省Flash
-16B	12B	75%	推荐配置，平衡性能
-32B	28B	87.5%	大容量，高效率
-64B	60B	93.75%	特殊应用
-计算示例
-输入：
+/* 读取（已内置保护，上下文灵活） */
+void load_config(void)
+{
+    struct config cfg;
+    fee_read(&net_fee, 0, (uint8_t *)&cfg, sizeof(cfg));
+}
+```
 
-MCU: STM32L476
-Flash Page: 2048字节
-FEE颗粒度: 8字节
-Cache: 512字节
-Pages/FEE: 2
-日写入: 1000次
-输出：
+### RTOS 环境
 
-【设计验证】
-✓ 写入颗粒度: 8字节 >= 8字节 (符合要求)
-✓ Record数据: 4字节 (Header:4B + Data:4B)
+```c
+/* 持有锁状态下写入 */
+void save_config(void)
+{
+    struct config cfg = { .baudrate = 115200, .timeout = 1000 };
 
-【FEE配置】
-FEE Page数量: 2 个
-单个FEE Page: 4,096 字节
-总Flash占用: 8,192 字节 (8.0 KB)
+    xy_os_mutex_lock(&fee_mutex);
+    fee_write(&net_fee, 0, (uint8_t *)&cfg, sizeof(cfg));
+    xy_os_mutex_unlock(&fee_mutex);
+}
+```
 
-【存储布局】
-Record结构:
-  ├─ 总大小: 8 字节 (= 1个颗粒)
-  ├─ Header: 4 字节
-  └─ Data: 4 字节
-最大Record数: 511 条
+---
 
-【RAM占用】
-总RAM占用: 558 字节
+## 文件说明
 
-【性能评估】
-预期寿命: 8.1 年
-✓ 寿命充足
-
-常见问题
-Q1: 为什么不能使用4字节颗粒度？
-A: Record = Header(4B) + Data，如果颗粒=4B，则Data=0B，无有效数据空间。
-
-Q2: Flash原生支持4字节写入，为什么FEE要用8字节？
-A: FEE在软件层使用8字节对齐，保证Record结构完整。底层可以分2次写入4字节实现。
-
-Q3: 如何选择合适的颗粒度？
-A:
-
-资源受限：8字节（最小配置）
-一般应用：16字节（推荐）
-大容量数据：32字节或更大
-Q4: 数据库中的MCU颗粒度小于8怎么办？
-A: 工具会自动验证并警告，必须调整为 >= 8字节才能正常工作。
-
-文件说明
+```
 fee_calculator/
-├── fee_calculator.py      # 主程序（v2.1）
-├── mcu_database.json      # MCU配置数据库
-└── README.md             # 使用说明
+├── fee_calculator.py      # 主程序 (v2.2)
+├── mcu_database.json       # MCU 配置数据库
+└── README.md             # 本文档
 
-更新日志
-v2.1 (2024-01-31)
+更新:
+  fee_calculator.py (v2.2) - 支持多实例和RTOS适配
+  mcu_database.json (v2.2) - 数据库格式更新
+```
 
-强制FEE颗粒度 >= 8字节验证
-区分Flash原生颗粒度和FEE颗粒度
-增强数据库验证功能
-改进界面提示和警告
-v2.0 (2024-01-30)
+---
 
-JSON数据库支持
-可视化MCU配置管理
-配置导入/导出
-v1.0 (2024-01)
+## 许可证
 
-基础计算功能
-C代码生成
-许可证
 MIT License
 
-贡献
-欢迎提交Issue和Pull Request！
+---
 
+## 贡献
 
-## 完成！
-
-现在代码已经完整，包括：
-
-1. ✅ **强制颗粒度 >= 8字节验证**
-2. ✅ **完整的计算报告生成**
-3. ✅ **详细的C代码生成**（含注释和使用示例）
-4. ✅ **数据库管理功能**
-5. ✅ **配置导入/导出**
-6. ✅ **所有辅助功能**
-
-程序已经可以正常运行，所有功能都已实现！
+欢迎提交 Issue 和 Pull Request！

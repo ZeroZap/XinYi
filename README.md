@@ -1,249 +1,1122 @@
-# XinYi (芯一) Framework
+# XinYi Embedded Framework - Comprehensive Project Overview
 
-> **嵌入式系统框架** - 为 STM32/国产 MCU 打造的统一开发平台
-
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-STM32%20%7C%20CH32%20%7C%20HC32-orange.svg)](docs/hardware/)
-[![Build](https://img.shields.io/badge/build-cmake-green.svg)](docs/BUILD_GUIDE.md)
+**Version:** 1.0.0
+**Last Updated:** 2026-02-25
+**Language:** English | 中文
 
 ---
 
-## 📋 目录
+## Table of Contents
 
-- [简介](#简介)
-- [特性](#特性)
-- [快速开始](#快速开始)
-- [组件列表](#组件列表)
-- [项目结构](#项目结构)
-- [硬件支持](#硬件支持)
-- [文档](#文档)
-- [许可](#许可)
+1. [Executive Summary](#executive-summary)
+2. [Project Vision & Goals](#project-vision--goals)
+3. [Architecture Overview](#architecture-overview)
+4. [Core Components](#core-components)
+5. [Component Ecosystem](#component-ecosystem)
+6. [Real-World Applications](#real-world-applications)
+7. [Development Standards](#development-standards)
+8. [Getting Started](#getting-started)
+9. [Build System](#build-system)
+10. [Contributing Guidelines](#contributing-guidelines)
 
 ---
 
-## 简介
+## Executive Summary
 
-**XinYi (芯一)** 是 ZeroZap 组织开发的嵌入式系统框架，为 STM32、CH32、HC32 等 MCU 提供统一的开发平台。
+**XinYi** is a modular, production-ready embedded C framework designed for resource-constrained microcontroller systems. It provides a unified abstraction layer for hardware, communication protocols, cryptography, and RTOS management, enabling developers to build portable, maintainable embedded applications across multiple platforms.
 
-### 设计目标
+### Key Characteristics
 
-- **统一抽象**: 屏蔽不同 MCU 系列的差异，提供一致的 API
-- **模块化设计**: 按需选择组件，灵活配置
-- **AI 友好**: 支持 AI Agent 自动化开发和代码生成
-- **生产就绪**: 经过实际项目验证的稳定框架
+- **Modular Architecture**: Independent, reusable components with minimal coupling
+- **Cross-Platform**: Supports STM32, RT-Thread, FreeRTOS, and bare-metal environments
+- **Production-Grade**: Comprehensive error handling, logging, and documentation
+- **Developer-Friendly**: Unified APIs, extensive examples, and clear coding standards
+- **Scalable**: From simple sensor drivers to complex IoT applications
+- **Hardware Abstraction Layer (HAL)**: Portable interfaces for UART, SPI, I2C, PWM, RTC, timers, DMA, and GPIO
+- **Multi-RTOS Support**: Unified OSAL layer supporting FreeRTOS, RT-Thread, and bare-metal
+- **Communication Protocols**: MQTT, Modbus, AT commands, ISO7816 (SIM card)
+- **Cryptography**: AES, HMAC, RNG, CRC, Base64, MD5
+- **Data Management**: EEPROM, NOR Flash, TLV encoding, NVM storage
+- **Utilities**: Custom C library (xy_clib), state machines, logging system
+- **Device Management**: Unified device framework with bus support (device)
 
-### 核心组件
+### 🚀 最新优化 (版本 2.0)
 
+#### ✅ 已完成优化
+
+- **OSAL 多后端支持**: 支持 4 种后端 (Bare-metal/FreeRTOS/RT-Thread/CMSIS-RTX)
+- **HAL STM32U5**: 20+ 外设完整实现
+- **Device Framework**: 统一设备模型，支持总线和节点 (SPI/I2C/CAN)
+- **统一测试系统**: Unity 框架集成，17+ 测试用例
+- **智能代理系统**: 项目经理/架构师/开发/测试 四大智能代理
+- **构建系统统一**: CMake/Kconfig/Makefile 规范化
+- **文档系统完善**: API 参考 + 使用指南 + 架构文档
+
+#### 📚 xy_clib 详细功能
+
+**XinYi C 标准库** 提供嵌入式系统专用的轻量级标准库实现：
+
+**核心模块**:
+- **xy_typedef**: 统一基础类型定义
+- **xy_string**: 安全字符串和内存操作
+- **xy_stdio**: 轻量级格式化 I/O
+- **xy_stdlib**: 数值转换和算法
+- **xy_common**: 位操作和数值转换工具
+- **xy_rb**: 多种环形缓冲区实现
+- **xy_list**: RT-Thread 兼容链表宏
+- **xy_math**: 嵌入式数学函数
+- **xy_error**: 统一错误码系统
+- **xy_assert**: 断言和调试工具
+
+**特色功能**:
+- **软除法优化**: 为无硬件除法的 MCU 提供快速除法
+- **BCD 转换**: 高效 BCD/十进制/十六进制转换
+- **安全字符串**: `xy_strlcpy`/`xy_strlcat` 防溢出函数
+- **镜像位环形缓冲**: 高效无锁数据结构
+- **统一错误码**: 与 XY HAL 兼容的错误处理
+- **智能代理集成**: 支持 PM/Arch/Dev/Test 自动化
+
+#### 🧩 device 组件 (新)
+
+**XinYi 设备组件** 提供统一的设备管理框架：
+
+**架构特点**:
+- **统一设备模型**: 所有设备使用统一接口
+- **分层设计**: 设备框架 + 驱动 API + 驱动实现
+- **模块化**: 按功能分类的驱动模块
+- **总线支持**: SPI/I2C/CAN 总线模型
+- **异步操作**: 支持回调和 DMA 操作
+- **电源管理**: 统一 PM 框架
+
+**支持的设备类型**:
+- **通信接口**: UART, SPI, I2C, CAN, I2S
+- **模拟接口**: ADC, DAC
+- **数字接口**: GPIO, PWM, Timer
+- **系统接口**: RTC, WDG, Flash
+- **传感器接口**: 温度、加速度、陀螺仪等
+- **存储接口**: EEPROM, Flash, SD/MMC
+
+**核心接口**:
+```c
+// 设备操作统一接口
+xy_device_t *dev = xy_device_find("uart1");
+xy_device_open(dev, XY_DEV_FLAG_RDWR);
+xy_device_write(dev, 0, data, len);
+xy_device_close(dev);
 ```
-XinYi
-├── components/           # 可复用组件
-│   ├── sensor/          # 传感器框架 (60+ 驱动)
-│   ├── actuator/        # 执行器框架 (舵机/继电器)
-│   ├── smbus/           # SMBus/PMBus 协议栈
-│   ├── hal/             # 硬件抽象层
-│   ├── osal/            # 操作系统抽象层
-│   ├── trace/           # 日志和命令框架
-│   ├── net/             # 网络协议 (MQTT/Modbus)
-│   ├── crypto/          # 密码学
-│   ├── dm/              # 数据管理
-│   └── ...
-└── bsp/                 # 板级支持包
+
+**总线模型**:
+```c
+// 总线设备操作
+xy_bus_device_t *bus = (xy_bus_device_t *)xy_device_find("spi1");
+xy_bus_node_t *node = (xy_bus_node_t *)xy_device_find("spi_sensor");
+xy_bus_take(bus);
+xy_bus_transfer(bus, node, tx_data, rx_data, len);
+xy_bus_release(bus);
 ```
 
----
-
-## 特性
-
-### ✨ 核心特性
-
-- **多 MCU 支持**: STM32F1/F4/U5/G0, CH32V30X/X03X, HC32
-- **多 OS 后端**: RT-Thread, FreeRTOS, Zephyr, Bare-metal
-- **统一 API**: 一套代码，多平台运行
-- **组件化架构**: 按需选择，灵活配置
-- **60+ 传感器驱动**: 开箱即用的传感器支持
-
-### 🛠️ 内置组件
-
-| 组件 | 描述 | 状态 |
-|------|------|------|
-| **Sensor** | 传感器框架 (60+ 驱动) | 🟢 稳定 |
-| **Actuator** | 执行器控制 (舵机/继电器/PWM) | 🟢 稳定 |
-| **SMBus/PMBus** | 电源管理总线协议 | 🟢 稳定 |
-| **HAL** | 硬件抽象层 | 🟢 稳定 |
-| **OSAL** | OS 抽象层 | 🟢 稳定 |
-| **Trace/Log** | 日志系统 | 🟢 稳定 |
-| **Net** | 网络协议 (MQTT/Modbus) | 🟢 稳定 |
-| **Crypto** | 密码学 (AES/CRC/SHA) | 🟢 稳定 |
-| **GUI** | 图形界面 | 🟡 开发中 |
-| **FOTA** | 固件无线升级 | 🟡 开发中 |
-
----
-
-## 快速开始
-
-### 环境要求
-
-- **工具链**: ARM GCC (arm-none-eabi-gcc 9+)
-- **构建工具**: CMake 3.10+
-- **操作系统**: Linux, macOS, Windows (WSL)
-
-### 构建 (PC 平台)
+#### 🤖 智能代理系统
 
 ```bash
-cd XinYi
-rm -rf build && mkdir build && cd build
-cmake .. -DPLATFORM_PC=ON -DXY_CONFIG_SENSOR_ENABLED=ON \
-         -DXY_CONFIG_ACTUATOR_ENABLED=ON -DXY_CONFIG_SMBUS_ENABLED=ON
-make -j4
-
-# 完整功能测试
-make help  # 查看所有目标
+# 使用智能代理系统
+./.qwen/smart_agent.sh pm status      # 查看项目状态
+./.qwen/smart_agent.sh arch review hal # 审查组件
+./.qwen/smart_agent.sh dev create new_component  # 创建组件
+./.qwen/smart_agent.sh test gen hal   # 生成测试
 ```
 
-详细指南见 [BUILD_GUIDE.md](docs/BUILD_GUIDE.md)。
+**代理类型**:
+- **pm**: 项目经理 (status, tasks, files, search, stats)
+- **arch**: 架构师 (review, deps, check, compat) 
+- **dev**: 开发工程师 (create, docs, fix, template)
+- **test**: 测试工程师 (run, gen, coverage)
 
-### 最小示例
+#### 📚 文档系统
+
+- **API 参考**: 完整函数文档
+- **使用指南**: 详细组件使用说明
+- **架构文档**: 系统设计说明
+- **配置选项**: Kconfig 选项详解
+- **移植指南**: 新平台适配说明
+
+---
+
+## Project Vision & Goals
+
+### Vision
+
+Create a comprehensive, standardized embedded framework that reduces development time while maintaining code quality, portability, and maintainability across diverse microcontroller platforms.
+
+### Goals
+
+1. **Abstraction**: Provide unified interfaces for hardware and OS-specific operations
+2. **Reusability**: Enable code sharing across different projects and platforms
+3. **Quality**: Enforce consistent coding standards and comprehensive documentation
+4. **Efficiency**: Minimize resource overhead while maximizing functionality
+5. **Accessibility**: Lower barriers to entry for embedded systems development
+
+---
+
+## Architecture Overview
+
+### High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Application Layer                         │
+│  (Projects: Power Bank, Soldering Iron, USB Bridge, etc.)   │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                   Component Layer                            │
+│  ┌──────────────┬──────────────┬──────────────┐             │
+│  │   Crypto     │   Network    │   Sensors    │             │
+│  │   Data Mgmt  │   Logging    │   Power Mgmt │             │
+│  └──────────────┴──────────────┴──────────────┘             │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│              OS Abstraction Layer (OSAL)                     │
+│  ┌──────────────┬──────────────┬──────────────┐             │
+│  │  FreeRTOS    │  RT-Thread   │  Bare-Metal  │             │
+│  └──────────────┴──────────────┴──────────────┘             │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│         Hardware Abstraction Layer (HAL)                     │
+│  ┌──────────────┬──────────────┬──────────────┐             │
+│  │   UART/SPI   │   I2C/PWM    │   Timer/DMA  │             │
+│  │   GPIO/RTC   │   ADC/DAC    │   Interrupt  │             │
+│  └──────────────┴──────────────┴──────────────┘             │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│              SDK HAL Layer                                  │
+│  ┌──────────────┬──────────────┬──────────────┐             │
+│  │   STM32      │   Other MCUs │   PC Sim     │             │
+│  └──────────────┴──────────────┴──────────────┘             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Layered Design Benefits
+
+| Layer | Purpose | Benefit |
+|-------|---------|---------|
+| **Application** | Project-specific logic | Rapid development, code reuse |
+| **Components** | Domain-specific functionality | Modularity, testability |
+| **OSAL** | OS abstraction | Multi-RTOS support |
+| **HAL** | Hardware abstraction | Platform portability |
+| **Platform** | MCU-specific implementations | Hardware optimization |
+
+---
+
+## Core Components
+
+### 1. Hardware Abstraction Layer (HAL)
+
+**Location:** `components/hal/`
+
+**Purpose:** Unified interface for hardware peripherals
+
+**Supported Interfaces:**
+- **Serial Communication**: UART, SPI, I2C
+- **Analog I/O**: ADC, DAC, PWM
+- **Timing**: RTC, Timers, DMA
+- **Digital I/O**: GPIO, Interrupts
+
+**Key Features:**
+- Platform-agnostic API
+- STM32 reference implementations
+- PC simulation layer for testing
+- Configurable via `*_cfg.h` headers
+
+**Example Usage:**
+```c
+#include "xy_hal_uart.h"
+
+void *uart = xy_hal_uart_open(UART_PORT_1, 115200);
+xy_hal_uart_send(uart, data, len, 1000);
+xy_hal_uart_close(uart);
+```
+
+---
+
+### 2. OS Abstraction Layer (OSAL)
+
+**Location:** `components/osal/`
+
+**Purpose:** Unified interface for RTOS operations
+
+**Supported RTOS:**
+- FreeRTOS
+- RT-Thread
+- Bare-metal (no RTOS)
+
+**Abstractions:**
+- Task/Thread management
+- Semaphores, Mutexes, Message queues
+- Timers and delays
+- Memory management
+
+**Key Features:**
+- Single API for multiple RTOS
+- Compile-time configuration
+- Minimal overhead
+- Fallback implementations for bare-metal
+
+---
+
+### 3. Device Framework Component
+
+**Location:** `components/device/`
+
+**Capabilities:**
+- **Unified Device Model**: Single interface for all devices
+- **Bus Support**: SPI/I2C/CAN bus with device nodes
+- **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
+- **Async Operations**: Callback and DMA support
+- **Power Management**: Integrated power control
+- **Standardized API**: Consistent interface across all devices
+
+**Device Types:**
+- **Communication**: UART, SPI, I2C, CAN, I2S
+- **Analog**: ADC, DAC
+- **Digital**: GPIO, PWM, Timer
+- **System**: RTC, WDG, Flash
+- **Sensor**: Temperature, Accelerometer, Gyroscope
+- **Storage**: EEPROM, Flash, SD/MMC
+
+**Features:**
+- RT-Thread-like device model with Zephyr-style API separation
+- Static registration with dynamic fallback
+- Kconfig-based configuration
+- Integrated with XinYi HAL framework
+- Automatic device enumeration
+- Centralized device management
+
+**Use Cases:**
+- Hardware abstraction
+- Device management
+- Driver development
+- Bus communication
+- Sensor integration
+- Peripherals access
+
+**Core API**:
+```c
+// Device operation unified interface
+xy_device_t *dev = xy_device_find("uart1");
+xy_device_open(dev, XY_DEV_FLAG_RDWR);
+xy_device_write(dev, 0, data, len);
+xy_device_close(dev);
+
+// Bus device operation
+xy_bus_device_t *bus = (xy_bus_device_t *)xy_device_find("spi1");
+xy_bus_node_t *node = (xy_bus_node_t *)xy_device_find("spi_sensor");
+xy_bus_take(bus);
+xy_bus_transfer(bus, node, tx_data, rx_data, len);
+xy_bus_release(bus);
+```
+
+### 4. Cryptography Component
+
+**Location:** `components/crypto/`
+
+**Algorithms:**
+- **Symmetric**: AES (ECB, CBC, CTR modes)
+- **Hashing**: MD5, SHA-1, SHA-256
+- **Authentication**: HMAC
+- **Encoding**: Base64, Hex
+- **Utilities**: CRC, Random number generation
+
+**Features:**
+- Optimized for embedded systems
+- Configurable algorithm selection
+- Hardware acceleration support (where available)
+- Comprehensive test suite
+
+---
+
+### 4. Data Management (DM)
+
+**Location:** `components/dm/`
+
+**Capabilities:**
+- **Storage**: EEPROM, NOR Flash, NAND Flash
+- **Encoding**: TLV (Tag-Length-Value) protocol
+- **NVM**: Non-volatile memory management
+- **Wear Leveling**: Flash lifetime optimization
+
+**Use Cases:**
+- Configuration storage
+- Calibration data persistence
+- Firmware update staging
+- User data backup
+
+---
+
+### 5. Device Component
+
+**Location:** `components/device/`
+
+**Capabilities:**
+- **Unified Device Model**: Single interface for all devices
+- **Bus Support**: SPI/I2C/CAN bus with device nodes
+- **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
+- **Async Operations**: Callback and DMA support
+- **Power Management**: Integrated power control
+- **Standardized API**: Consistent interface across all devices
+
+**Device Types:**
+- **Communication**: UART, SPI, I2C, CAN, I2S
+- **Analog**: ADC, DAC
+- **Digital**: GPIO, PWM, Timer
+- **System**: RTC, WDG, Flash
+- **Sensor**: Temperature, Accelerometer, Gyroscope
+- **Storage**: EEPROM, Flash, SD/MMC
+
+**Features:**
+- RT-Thread-like device model with Zephyr-style API separation
+- Static registration with dynamic fallback
+- Kconfig-based configuration
+- Integrated with XinYi HAL framework
+- Automatic device enumeration
+- Centralized device management
+
+**Use Cases:**
+- Hardware abstraction
+- Device management
+- Driver development
+- Bus communication
+- Sensor integration
+- Peripherals access
+
+---
+
+### 7. Network & Communication
+
+**Location:** `components/net/`
+
+**Protocols:**
+- **MQTT**: IoT messaging (with TLS support)
+- **Modbus**: Industrial protocol (RTU/TCP)
+- **AT Commands**: Cellular modem interface
+- **ISO7816**: SIM card communication
+
+**Features:**
+- Protocol stacks with minimal dependencies
+- Configurable buffer sizes
+- Error recovery mechanisms
+- Example implementations
+
+---
+
+### 8. Sensor Framework
+
+**Location:** `components/sensor/`
+
+**Supported Sensors:**
+- Temperature: ADT7420, TMP36
+- Motion: Accelerometer, Gyroscope
+- Light: APDS9960 (ambient light, proximity)
+- Pressure, Humidity, Gas sensors
+
+**Features:**
+- Unified sensor interface
+- Calibration support
+- Data fusion algorithms
+- Low-power operation modes
+- DMA-based data collection
+
+---
+
+### 9. Logging System (xy_log)
+
+**Location:** `components/trace/xy_log/`
+
+**Purpose:** Unified logging across all components
+
+**Log Levels:**
+- `VERBOSE` - Detailed trace information
+- `DEBUG` - Debug information
+- `INFO` - Informational messages
+- `WARN` - Warning messages
+- `ERROR` - Error messages
+- `NEVER` - Disable logging
+
+**Features:**
+- Per-module log level configuration
+- Minimal runtime overhead
+- Support for multiple output backends
+- Timestamp and context information
+
+**Usage:**
+```c
+#define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
+#include "xy_log.h"
+
+xy_log_d("Debug message: %d\n", value);
+xy_log_e("Error: operation failed\n");
+```
+
+---
+
+### 8. Custom C Library (xy_clib)
+
+**Location:** `components/clib/xy_clib/`
+
+**Modules:**
+- **String Operations**: Safe string handling
+- **Math Utilities**: Fixed-point math, bit operations
+- **Data Structures**: Lists, queues, trees
+- **Encoding**: BCD, Hex, Base64 conversions
+- **Filtering**: Digital filters (IIR, FIR)
+- **Memory**: Pool allocators, safe malloc wrappers
+
+**Benefits:**
+- Embedded-optimized implementations
+- Reduced dependency on libc
+- Predictable memory usage
+- Comprehensive test coverage
+
+---
+
+### 9. Power Management (PM)
+
+**Location:** `components/pm/`
+
+**Features:**
+- Sleep mode management
+- Power state transitions
+- Wake-up source configuration
+- Energy consumption monitoring
+
+---
+
+### 10. Additional Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Battery Management** | `components/Bank/` | Power bank, battery charging, gauge |
+| **State Machine** | `components/sys/` | Hierarchical state machine framework |
+| **Timer System** | `components/sys/xy_timer/` | Software timers, scheduling |
+| **IPC** | `components/ipc/` | Inter-process communication |
+| **FOTA** | `components/fota/` | Firmware over-the-air updates |
+| **GUI** | `components/gui/` | Display and UI framework |
+| **Device** | `components/device/` | Unified device framework with bus support |
+
+---
+
+### 11. Device Framework (New)
+
+**Location:** `components/device/`
+
+**Capabilities:**
+- **Unified Device Model**: Single interface for all devices
+- **Bus Support**: SPI/I2C/CAN bus with device nodes
+- **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
+- **Async Operations**: Callback and DMA support
+- **Power Management**: Integrated power control
+- **Standardized API**: Consistent interface across all devices
+
+**Device Types:**
+- **Communication**: UART, SPI, I2C, CAN, I2S
+- **Analog**: ADC, DAC
+- **Digital**: GPIO, PWM, Timer
+- **System**: RTC, WDG, Flash
+- **Sensor**: Temperature, Accelerometer, Gyroscope
+- **Storage**: EEPROM, Flash, SD/MMC
+
+**Features:**
+- RT-Thread-like device model with Zephyr-style API separation
+- Static registration with dynamic fallback
+- Kconfig-based configuration
+- Integrated with XinYi HAL framework
+- Automatic device enumeration
+- Centralized device management
+
+**Core API**:
+```c
+// Device operation unified interface
+xy_device_t *dev = xy_device_find("uart1");
+xy_device_open(dev, XY_DEV_FLAG_RDWR);
+xy_device_write(dev, 0, data, len);
+xy_device_close(dev);
+
+// Bus device operation
+xy_bus_device_t *bus = (xy_bus_device_t *)xy_device_find("spi1");
+xy_bus_node_t *node = (xy_bus_node_t *)xy_device_find("spi_sensor");
+xy_bus_take(bus);
+xy_bus_transfer(bus, node, tx_data, rx_data, len);
+xy_bus_release(bus);
+```
+
+---
+
+### 12. Kernel Components
+
+**Location:** `components/kernel/`
+
+**Sub-components:**
+- **OSAL**: OS Abstraction Layer (FreeRTOS/RT-Thread/Bare-metal support)
+- **Misc**: Miscellaneous kernel utilities
+
+---
+
+## Component Ecosystem
+
+### Component Dependency Graph
+
+```
+Application Projects
+    ├── Power Bank (Battery Management)
+    ├── Soldering Iron (Temperature Control)
+    ├── USB Bridge (Multi-protocol)
+    ├── Smart Card Bridge (ISO7816)
+    ├── LCR Meter (Measurement)
+    └── Multi-Stepper (Motor Control)
+         │
+         ├─→ Sensor Framework
+         ├─→ Network (MQTT, Modbus, AT)
+         ├─→ Cryptography
+         ├─→ Data Management
+         ├─→ Logging (xy_log)
+         │
+         ├─→ OSAL (FreeRTOS/RT-Thread/Bare-metal)
+         │    └─→ HAL (UART, SPI, I2C, GPIO, etc.)
+         │         └─→ Platform (STM32, PC Sim)
+         │
+         ├─→ Device (Unified device framework, bus support)
+         └─→ xy_clib (String, Math, Filters, etc.)
+```
+
+### Component Maturity Levels
+
+- **Stable**: HAL, OSAL, Crypto, xy_clib, Logging, Device
+- **Production**: Network (MQTT, Modbus), Sensor, Data Management
+- **Active Development**: FOTA, GUI, Power Management
+- **Experimental**: Advanced filtering, AI/ML utilities
+
+---
+
+## Real-World Applications
+
+### 1. Power Bank (Battery Management System)
+
+**Features:**
+- Multi-cell battery monitoring
+- Charging/discharging control
+- Fuel gauge algorithm
+- Thermal management
+- Over-current/over-voltage protection
+
+**Components Used:**
+- Sensor Framework (voltage, current, temperature)
+- Power Management
+- Data Management (calibration storage)
+- Device (Unified device access)
+- Logging
+
+**Status:** Production-ready
+
+---
+
+### 2. Soldering Iron (Temperature Control)
+
+**Features:**
+- PID temperature control
+- Tip temperature monitoring
+- Sleep mode management
+- Power optimization
+
+**Components Used:**
+- HAL (ADC, PWM, Timer)
+- Sensor Framework
+- State Machine
+- Device (Unified device access)
+- Logging
+
+---
+
+### 3. USB Bridge (Multi-Protocol)
+
+**Features:**
+- USB to SPI/I2C/UART conversion
+- Real-time protocol translation
+- PC library interface
+- Multi-device support
+
+**Components Used:**
+- HAL (USB, SPI, I2C, UART)
+- Data Management (configuration)
+- Device (Unified device access)
+- Logging
+
+---
+
+### 4. Smart Card USB Bridge
+
+**Features:**
+- ISO7816 SIM card interface
+- TLV protocol encoding
+- USB communication
+- Python test client
+
+**Components Used:**
+- Network (ISO7816)
+- Data Management (TLV)
+- HAL (UART, GPIO)
+- Device (Unified device access)
+- Logging
+
+---
+
+### 5. LCR Meter (Measurement Device)
+
+**Features:**
+- Inductance, Capacitance, Resistance measurement
+- Frequency analysis
+- Data logging
+- Calibration support
+
+**Components Used:**
+- Sensor Framework
+- Data Management
+- Device (Unified device access)
+- Logging
+
+---
+
+### 6. Multi-Stepper Motor Controller
+
+**Features:**
+- Multi-axis stepper control
+- Acceleration profiling
+- Position tracking
+- Limit switch handling
+
+**Components Used:**
+- HAL (GPIO, Timer, PWM)
+- State Machine
+- Device (Unified device access)
+- Logging
+
+---
+
+## Development Standards
+
+### Mandatory Coding Standards
+
+All code **MUST** follow:
+
+1. **[xy_code_style.md](xy_code_style.md)** - Detailed C coding conventions
+2. **[RULEBOOK.md](RULEBOOK.md)** - Development rules and guidelines
+3. **[.clang-format](.clang-format)** - Automated code formatting
+
+### Quick Reference
+
+| Standard | Requirement |
+|----------|-------------|
+| **Language** | C99 |
+| **Indentation** | 4 spaces (no tabs) |
+| **Naming** | Lowercase with underscores (`my_function`, `my_var`) |
+| **Braces** | Same line as keywords (`if {`, `for {`) |
+| **Logging** | Use `xy_log_*()`, never `printf()` |
+| **Documentation** | Doxygen comments for all public functions |
+| **Formatting** | Apply clang-format before commit |
+
+### File Structure
 
 ```c
-#include "xy.h"
+/**
+ * @file module_name.c
+ * @brief Brief description
+ * @version X.Y.Z
+ * @date YYYY-MM-DD
+ */
+
+#define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 #include "xy_log.h"
-#include "xy_smbus.h"
+#include "module_name.h"
 
-int main(void) {
-    // 初始化日志
-    xy_log_init();
-
-    // 初始化传感器
-    gps_device_t gps;
-    gps_register(&gps);
-
-    // 初始化执行器
-    actuator_device_t relay;
-    relay_init(&relay);
-    relay_on(&relay);
-
-    LOG_I("XinYi 启动成功!");
+/**
+ * @brief Function description
+ * @param param1 Description
+ * @return Description of return value
+ */
+int my_function(int param1) {
+    xy_log_d("Entering function\n");
     return 0;
 }
 ```
 
----
+### Error Handling Convention
 
-## 组件列表
-
-### 传感器框架 (`components/sensor/`)
-
-| 类型 | 驱动数量 | 说明 |
-|------|----------|------|
-| 温湿度 | 8 | SHT30/40, AHT20, HDC1080, DHT22 等 |
-| IMU/加速度 | 6 | MPU6050, BMI088, ICM20948, LSM6DSO 等 |
-| 气压/高度 | 4 | BMP280, BMP390, DPS368 等 |
-| 光照/颜色 | 6 | BH1750, TCS34725, VCNL4040 等 |
-| 气体传感 | 8 | SGP30, SGP40, MQ 系列等 |
-| GPS | 1 | AT6558/LC86L/UBLOX (NMEA) |
-| 电流/功率 | 5 | INA219, INA226, ACS712 等 |
-| 角度编码 | 2 | AS5600, MA730 |
-| 其他 | 20+ | 距离、颜色、紫外线等 |
-
-### 执行器框架 (`components/actuator/`)
-
-| 类型 | 说明 |
-|------|------|
-| 继电器 | 开/关/翻转/脉冲 |
-| 舵机 | 角度控制/速度/扫描 |
-| PWM | 通用 PWM 输出 |
-| 直流电机 | 速度控制 |
-| 步进电机 | 位置控制 |
-
-### SMBus/PMBus (`components/smbus/`)
-
-| 功能 | 说明 |
-|------|------|
-| SMBus 协议 | 字节/字/块读写, PEC 校验 |
-| PMBus 协议 | 电源管理设备支持 |
-| 格式转换 | Linear/VID/Direct |
+- **Return 0 or positive** for success
+- **Return negative values** for errors (standardized error codes)
+- **Use `xy_log_e()`** for error logging
+- **Document error codes** in function comments
 
 ---
 
-## 项目结构
+## Getting Started
 
-```
-XinYi/
-├── components/           # 可复用组件
-│   ├── sensor/          # 传感器框架
-│   │   ├── sensor_core.h/c    # 核心框架
-│   │   ├── sensors/           # 60+ 驱动
-│   │   └── examples/          # 示例代码
-│   ├── actuator/        # 执行器框架
-│   ├── smbus/           # SMBus/PMBus
-│   ├── hal/             # 硬件抽象层
-│   ├── osal/            # OS 抽象层
-│   ├── trace/           # 日志/命令
-│   ├── net/             # 网络协议
-│   ├── crypto/          # 密码学
-│   ├── dm/              # 数据管理
-│   ├── pid/             # PID 控制器
-│   ├── ipc/             # 进程间通信
-│   ├── pm/              # 电源管理
-│   ├── gui/             # 图形界面
-│   └── fota/            # 固件升级
-├── bsp/                 # 板级支持包
-├── docs/                # 文档
-│   └── BUILD_GUIDE.md   # 构建指南
-├── examples/            # 示例代码
-├── tests/               # 单元测试
-└── CMakeLists.txt       # 构建系统
+### Prerequisites
+
+- **Compiler**: GCC, Clang, or ARM toolchain (C99 compatible)
+- **Build Tools**: CMake 3.10+ or GNU Make
+- **Optional**: FreeRTOS SDK, RT-Thread SDK
+- **Code Formatting**: clang-format
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd XinYi
+
+# Install dependencies (example for Ubuntu)
+sudo apt-get install build-essential cmake clang-format
+
+# Verify setup
+make --version
+cmake --version
+clang-format --version
 ```
 
----
+### Quick Build
 
-## 硬件支持
+```bash
+# Build all components
+make
 
-### 支持的 MCU 系列
+# Build specific component
+make crypto
 
-| 系列 | MCU 型号 | 状态 | 驱动 |
-|------|---------|------|------|
-| **STM32U5** | STM32U585 | 🟢 稳定 | ✅ |
-| **STM32F4** | STM32F407/429 | 🟢 稳定 | ✅ |
-| **STM32F1** | STM32F103 | 🟢 稳定 | ✅ |
-| **STM32G0** | STM32G071 | 🟡 开发中 | 🔄 |
-| **CH32V30x** | CH32V307 | 🟢 稳定 | ✅ |
-| **CH32X03x** | CH32X035 | 🟢 稳定 | ✅ |
-| **HC32L13x** | HC32L136 | 🟡 开发中 | 🔄 |
+# Run tests
+make test
 
-### 支持的通信接口
+# Clean build artifacts
+make clean
+```
 
-| 接口 | 状态 | 说明 |
-|------|------|------|
-| GPIO | ✅ | 通用输入输出 |
-| UART | ✅ | 串口通信 |
-| I2C | ✅ | I2C/SMBus/PMBus |
-| SPI | ✅ | SPI 通信 |
-| ADC | ✅ | 模数转换 |
-| PWM | ✅ | PWM 输出 |
-| CAN | ✅ | CAN 总线 |
-| USB | 🟡 | USB 设备/主机 |
+### First Project
 
----
+```bash
+# Create a new project directory
+mkdir my_project
+cd my_project
 
-## 文档
+# Create main.c
+cat > main.c << 'EOF'
+#define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
+#include "xy_log.h"
 
-| 文档 | 说明 |
-|------|------|
-| [BUILD_GUIDE.md](docs/BUILD_GUIDE.md) | 构建指南 |
-| [docs/](docs/) | 完整文档目录 |
-| [COMPONENTS_STATUS.md](COMPONENTS_STATUS.md) | 组件状态 |
+int main(void) {
+    xy_log_i("XinYi Framework initialized\n");
+    return 0;
+}
+EOF
 
----
-
-## 许可
-
-XinYi 采用 **Apache License 2.0** 许可。
-
-详见 [LICENSE](LICENSE) 文件。
+# Build with CMake
+mkdir build && cd build
+cmake ..
+make
+```
 
 ---
 
-**维护者**: ZeroZap Team  
-**GitHub**: https://github.com/ZeroZap/XinYi  
-**最后更新**: 2026-03-30
+## Build System
+
+### Build Options
+
+#### Using Make
+
+```bash
+# Build all
+make
+
+# Build specific component
+make crypto
+make net
+make sensor
+
+# Build with specific target
+make TARGET=stm32
+
+# Run tests
+make test
+
+# Clean
+make clean
+make distclean
+```
+
+#### Using CMake
+
+```bash
+# Configure
+mkdir build && cd build
+cmake .. -DRTOS_BACKEND=freertos  # or baremetal/rtthread/cmsis_rtx
+
+# Build all
+make
+
+# Build specific target
+make xy_crypto
+make xy_net
+
+# Run tests
+make test
+
+# Install
+make install
+```
+
+#### Using Smart Agent
+
+```bash
+# 使用智能代理系统进行构建和管理
+./.qwen/smart_agent.sh dev create my_component  # 创建新组件
+./.qwen/smart_agent.sh pm build my_component    # 构建组件
+./.qwen/smart_agent.sh arch check               # 代码质量检查
+./.qwen/smart_agent.sh test run all             # 运行所有测试
+```
+
+#### Using Build Scripts
+
+```bash
+# Cross-platform build script
+./build.sh make all
+./build.sh cmake all
+./build.sh make test
+```
+
+### Configuration System (Kconfig)
+
+Each component includes `Kconfig` for compile-time configuration:
+
+```bash
+# Interactive configuration
+make menuconfig
+
+# Set specific option
+make CONFIG_CRYPTO_AES=y
+```
+
+### Component Structure
+
+Each component includes:
+- `CMakeLists.txt` - CMake configuration
+- `Makefile` - GNU Make configuration
+- `Kconfig` - Configuration options
+- `README.md` - API documentation
+- `*_cfg.h` - Compile-time settings
+- `test/` - Unit tests
+
+---
+
+## Contributing Guidelines
+
+### Before Submitting Code
+
+1. **Read Documentation**
+   - [RULEBOOK.md](RULEBOOK.md) - Development rules
+   - [xy_code_style.md](xy_code_style.md) - Coding standards
+
+2. **Format Code**
+   ```bash
+   clang-format -i your_file.c
+   # Or use the script
+   ./utils/script/format_staged.sh
+   ```
+
+3. **Add Documentation**
+   - Doxygen comments for all public functions
+   - File header with brief description
+   - README.md for new components
+
+4. **Test Changes**
+   - Run unit tests: `make test`
+   - Test on target platform
+   - Verify no regressions
+
+5. **Use Proper Logging**
+   - Replace `printf()` with `xy_log_*()`
+   - Set appropriate log levels
+   - Include context in messages
+
+### Code Review Checklist
+
+- [ ] Follows coding standards (xy_code_style.md)
+- [ ] Formatted with clang-format
+- [ ] All functions documented with Doxygen
+- [ ] Uses `xy_log_*()` for logging
+- [ ] Error handling implemented
+- [ ] Unit tests included
+- [ ] No compiler warnings
+- [ ] Tested on target platform
+
+### Commit Message Format
+
+```
+[COMPONENT] Brief description
+
+Detailed explanation of changes:
+- What was changed
+- Why it was changed
+- How it was tested
+
+Fixes: #issue_number
+```
+
+---
+
+## Project Statistics
+
+### Component Count
+
+- **Core Components**: 15+
+- **Supported Protocols**: 4 (MQTT, Modbus, AT, ISO7816)
+- **Sensor Drivers**: 10+
+- **Cryptographic Algorithms**: 8+
+- **Real-World Projects**: 6+
+
+### Code Metrics
+
+- **Total Lines of Code**: ~50,000+
+- **Test Coverage**: Comprehensive unit tests
+- **Documentation**: Doxygen + Markdown
+- **Supported Platforms**: STM32, RT-Thread, FreeRTOS, Bare-metal
+
+### Development Activity
+
+- **Active Components**: 15+
+- **Stable Components**: 10+
+- **Under Development**: 5+
+- **Experimental**: 3+
+
+---
+
+## Roadmap & Future Enhancements
+
+### Short Term (Next Release)
+
+- [ ] Enhanced FOTA (Firmware Over-The-Air) updates
+- [ ] GUI framework improvements
+- [ ] Additional sensor drivers
+- [ ] Performance optimizations
+
+### Medium Term
+
+- [ ] Machine learning utilities
+- [ ] Advanced power management
+- [ ] Enhanced security features
+- [ ] Cloud connectivity improvements
+
+### Long Term
+
+- [ ] Multi-core support
+- [ ] Real-time performance guarantees
+- [ ] Advanced debugging tools
+- [ ] Commercial support options
+
+---
+
+## Support & Resources
+
+### Documentation
+
+- **Main README**: [ReadMe.md](ReadMe.md)
+- **Chinese README**: [ReadMe-cn.md](ReadMe-cn.md)
+- **Development Rules**: [RULEBOOK.md](RULEBOOK.md)
+- **Coding Standards**: [xy_code_style.md](xy_code_style.md)
+- **Component Docs**: Individual README.md in each component
+
+### Getting Help
+
+1. Check component-specific README.md
+2. Review example code in component directories
+3. Check unit tests for usage patterns
+4. Review RULEBOOK.md for common issues
+
+### Community
+
+- Issue tracking: [GitHub Issues]
+- Discussions: [GitHub Discussions]
+- Contributing: See Contributing Guidelines above
+
+---
+
+## License
+
+[Specify your license here]
+
+---
+
+## Contact & Attribution
+
+**Project Lead**: [Your Name/Organization]
+**Contributors**: [List of contributors]
+**Contact**: [Your contact information]
+
+---
+
+## Appendix: Quick Reference
+
+### Common Tasks
+
+#### Add a New Component
+
+1. Create directory: `components/my_component/`
+2. Add files: `CMakeLists.txt`, `Makefile`, `Kconfig`
+3. Create headers in `inc/` directory
+4. Create implementation in `src/` directory
+5. Add README.md with API documentation
+6. Add unit tests in `test/` directory
+
+#### Add a New Sensor Driver
+
+1. Create file: `components/sensor/sensor_<name>.c/h`
+2. Implement sensor interface
+3. Add calibration support
+4. Create example usage
+5. Add unit tests
+
+#### Port to New Platform
+
+1. Create platform directory: `bsp/xy_hal/<platform>/`
+2. Implement HAL interfaces for your platform
+3. Create platform-specific Makefile/CMakeLists.txt
+4. Test all components on new platform
+5. Document platform-specific notes
+
+### Useful Commands
+
+```bash
+# Format all C files
+find . -name "*.c" -o -name "*.h" | xargs clang-format -i
+
+# Run all tests
+make test
+
+# Generate documentation
+doxygen docs/doxygen.config
+
+# Check code style
+./utils/script/check_style.sh
+
+# Build for specific platform
+make TARGET=stm32f4
+
+# Clean everything
+make distclean
+```
+
+---
+
+**End of Document**
