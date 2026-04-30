@@ -12,7 +12,7 @@
 #define XY_RNG_H
 
 #include <stdint.h>
-#include "../../xy_clib/xy_typedef.h"
+#include "../../clib/xy_clib/xy_typedef.h"
 
 #ifdef __cplusplus
 extern "C" {

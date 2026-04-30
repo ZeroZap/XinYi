@@ -18,12 +18,16 @@ include_directories(
     ../hal/inc
     ../kernel/osal
     ../trace/xy_log/inc
+    ../clib/xy_clib
 )
 
 # 添加子模块
 add_subdirectory(xy_ascon)
 add_subdirectory(xy_tinyjambu)
 add_subdirectory(xy_photon_beetle)
+add_subdirectory(xy_sm3)
+add_subdirectory(xy_sm4)
+add_subdirectory(xy_sm2)
 
 # 收集源文件
 file(GLOB CRYPTO_SOURCES "src/*.c")
@@ -32,6 +36,16 @@ file(GLOB TEST_SOURCES "test/*.c")
 
 # 创建静态库
 add_library(xy_tiny_crypto STATIC ${CRYPTO_SOURCES})
+
+# 链接子模块
+target_link_libraries(xy_tiny_crypto PRIVATE
+    xy_ascon
+    xy_tinyjambu
+    xy_photon_beetle
+    xy_sm3
+    xy_sm4
+    xy_sm2
+)
 
 # 设置库属性
 set_target_properties(xy_tiny_crypto PROPERTIES

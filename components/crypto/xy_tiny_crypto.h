@@ -119,6 +119,18 @@ uint32_t xy_random_uint32(void);
 /* See xy_photon_beetle/xy_photon_beetle.h for full API */
 #include "xy_photon_beetle/xy_photon_beetle.h"
 
+/* ==================== SM3 Hash (GM/T 0004-2012) ==================== */
+/* See xy_sm3/xy_sm3.h for full API */
+#include "xy_sm3/xy_sm3.h"
+
+/* ==================== SM4 Block Cipher (GM/T 0002-2010) ==================== */
+/* See xy_sm4/xy_sm4.h for full API */
+#include "xy_sm4/xy_sm4.h"
+
+/* ==================== SM2 Elliptic Curve (GM/T 0003-2010) ==================== */
+/* See xy_sm2/xy_sm2.h for full API */
+#include "xy_sm2/xy_sm2.h"
+
 #ifdef __cplusplus
 }
 #endif
