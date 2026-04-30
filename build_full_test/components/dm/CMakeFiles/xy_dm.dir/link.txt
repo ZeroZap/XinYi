@@ -1,2 +1,0 @@
-/usr/bin/ar qc libxy_dm.a CMakeFiles/xy_dm.dir/src/xy_json.c.o CMakeFiles/xy_dm.dir/src/xy_fs.c.o
-/usr/bin/ranlib libxy_dm.a
