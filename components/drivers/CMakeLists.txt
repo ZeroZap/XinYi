@@ -20,6 +20,31 @@ include_directories(
     ../trace/xy_log/inc
 )
 
+# Add subdirectories for organized drivers
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sensor)
+    add_subdirectory(sensor)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/display)
+    add_subdirectory(display)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/storage)
+    add_subdirectory(storage)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/power)
+    add_subdirectory(power)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/wireless)
+    add_subdirectory(wireless)
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/system)
+    add_subdirectory(system)
+endif()
+
 # Collect source files
 file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
@@ -54,11 +79,11 @@ endif()
 if(TEST_SOURCES)
     add_executable(test_drivers ${TEST_SOURCES})
     target_link_libraries(test_drivers xy_drivers)
-    
+
     if(WIN32)
         target_link_libraries(test_drivers advapi32)
     endif()
-    
+
     # Enable testing
     enable_testing()
     add_test(NAME drivers_test COMMAND test_drivers)
