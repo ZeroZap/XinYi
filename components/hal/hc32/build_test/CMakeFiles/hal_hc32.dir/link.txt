@@ -1,2 +1,0 @@
-/home/eugene/Tools/arm-gnu-toolchain/bin/arm-none-eabi-ar qc libhal_hc32.a CMakeFiles/hal_hc32.dir/hc32l021/xy_hal_gpio_device.c.obj
-/home/eugene/Tools/arm-gnu-toolchain/bin/arm-none-eabi-ranlib libhal_hc32.a

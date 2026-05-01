@@ -1,3 +1,0 @@
-/home/eugene/zerozap/XinYi/components/hal/hc32/build_test/CMakeFiles/hal_hc32.dir
-/home/eugene/zerozap/XinYi/components/hal/hc32/build_test/CMakeFiles/edit_cache.dir
-/home/eugene/zerozap/XinYi/components/hal/hc32/build_test/CMakeFiles/rebuild_cache.dir

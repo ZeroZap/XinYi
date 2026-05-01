@@ -19,3 +19,6 @@
 [submodule "components/third_party/flashdb"]
 	path = components/third_party/flashdb
 	url = https://gitee.com/Armink/FlashDB.git
+[submodule "MCU/HC32"]
+	path = MCU/HC32
+	url = git@github.com:ZeroZap/xhsc.git
