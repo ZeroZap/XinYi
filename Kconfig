@@ -119,6 +119,47 @@ config COMPONENT_SENSOR
 
 endmenu # Core Components
 
+menu "Device Drivers"
+
+config DRIVER_SENSOR
+    bool "Sensor Drivers"
+    default n
+    help
+      Sensor device drivers (SHT30, BMP280, MPU6050, ADS1115, DHT11)
+
+config DRIVER_DISPLAY
+    bool "Display Drivers"
+    default n
+    help
+      Display device drivers (SSD1306 OLED, LCD, LED, RGB)
+
+config DRIVER_STORAGE
+    bool "Storage Drivers"
+    default n
+    help
+      Storage device drivers (EEPROM 24xx, W25Qxx Flash, SDCard)
+
+
+config DRIVER_POWER
+    bool "Power Management Drivers"
+    default n
+    help
+      Power management drivers (BQ25620 Charger, Fuel Gauge)
+
+config DRIVER_WIRELESS
+    bool "Wireless Drivers"
+    default n
+    help
+      Wireless drivers (RC522 RFID, etc.)
+
+config DRIVER_SYSTEM
+    bool "System Drivers"
+    default n
+    help
+      System drivers (Key, RTC, Watchdog)
+
+endmenu # Device Drivers
+
 menu "GUI Subsystem"
 
 config GUI_ENABLED
