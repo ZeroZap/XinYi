@@ -80,7 +80,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
     # Only build AT Server test manually
     add_executable(at_server_test tests/at_server_test.c)
     target_link_libraries(at_server_test xy_net xy_misc xy_osal xy_trace xy_xy_clib)
-    target_include_directories(at_server_test PRIVATE 
+    target_include_directories(at_server_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/components/inc
         ${CMAKE_CURRENT_SOURCE_DIR}/components/hal/inc
         ${CMAKE_CURRENT_SOURCE_DIR}/components/kernel/misc/inc
@@ -92,9 +92,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
     target_compile_definitions(at_server_test PRIVATE XY_PLATFORM_PC XY_LOG_LEVEL=3)
 endif()
 
-# Add examples (optional) - RE-ENABLED FOR STM32F4 VALIDATION  
+# Add examples (optional) - RE-ENABLED FOR STM32F4 VALIDATION
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples/at_server_example/CMakeLists.txt)
     add_subdirectory(examples/at_server_example ${CMAKE_CURRENT_BINARY_DIR}/examples/at_server_example)
+endif()
+
+# MQTT Example
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples/net_mqtt_example/CMakeLists.txt)
+    add_subdirectory(examples/net_mqtt_example ${CMAKE_CURRENT_BINARY_DIR}/examples/net_mqtt_example)
 endif()
 
 # ==================== Testing ====================

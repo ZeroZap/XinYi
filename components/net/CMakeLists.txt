@@ -59,11 +59,11 @@ endif()
 
 # AT Server (enabled - with hash table command mapping)
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/ats/xy_ats.c)
-    list(APPEND NET_SOURCES 
+    list(APPEND NET_SOURCES
         at/ats/xy_ats.c
         at/ats/xy_ats_hash.c
     )
-    
+
     # AT Server Simcom modules (disabled for now)
     # file(GLOB ATS_SIMCOM_SOURCES "at/ats/ats-simcom/**/*.c")
     # list(APPEND NET_SOURCES ${ATS_SIMCOM_SOURCES})
@@ -79,9 +79,9 @@ endif()
 #     list(APPEND NET_SOURCES src/xy_lte.c)
 # endif()
 
-# MQTT (disabled - incomplete implementation)  
-if(PROTO_MQTT AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/xy_mqtt/xy_mqtt.c)
-    list(APPEND NET_SOURCES xy_mqtt/xy_mqtt.c)
+# MQTT Client (full implementation)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_mqtt_client.c)
+    list(APPEND NET_SOURCES src/xy_mqtt_client.c)
 endif()
 
 # Collect headers
@@ -98,7 +98,7 @@ set_target_properties(xy_net PROPERTIES
 )
 
 # Link dependencies
-target_link_libraries(xy_net 
+target_link_libraries(xy_net
     xy_trace  # For logging
 )
 
