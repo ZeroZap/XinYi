@@ -1,7 +1,7 @@
 # XinYi Power Management Component
 
 **版本**: 1.0.0
-**状态**: 🟡 完善中
+**状态**: 🟢 完善中
 
 ---
 
@@ -18,6 +18,7 @@
 - ✅ 电量计功能
 - ✅ 低功耗模式支持
 - ✅ 系统电源状态管理
+- ✅ 平台无关设计 (STM32, WCH, HC32, PC)
 
 ---
 
@@ -28,10 +29,11 @@ pm/
 ├── inc/
 │   └── xy_pm.h              # PM 主头文件（含 Charger API）
 ├── src/
-│   ├── xy_pm_system.c      # 电源系统管理
-│   ├── xy_pm_adc.c         # ADC 采样
-│   ├── xy_charger.c        # 充电器实现
-│   └── xy_fuel_gauge.c     # 电量计实现
+│   ├── xy_pm_system.c       # 电源系统管理
+│   ├── xy_pm_adc.c          # ADC 采样
+│   ├── xy_pm_platform.c     # 平台特定实现 ⭐ 新增
+│   ├── xy_charger.c         # 充电器实现
+│   └── xy_fuel_gauge.c      # 电量计实现
 ├── charger/                 # 充电器子模块
 ├── fuel-gauge/              # 电量计子模块
 ├── CMakeLists.txt
@@ -202,34 +204,72 @@ target_link_libraries(your_target xy_pm)
 ### Kconfig 配置
 
 ```
-CONFIG_XY_PM=y
-CONFIG_XY_CHARGER=y
-CONFIG_XY_FUEL_GAUGE=y
+CONFIG_XY_PM_ENABLE=y
+CONFIG_XY_CHARGER_ENABLE=y       # 启用充电器 GPIO 控制
+CONFIG_XY_CHARGER_GPIO_PORT=0     # 充电器使能 GPIO 端口
+CONFIG_XY_CHARGER_GPIO_PIN=0      # 充电器使能 GPIO 引脚
+CONFIG_XY_FUEL_GAUGE_ENABLE=y    # 启用电量计
 ```
+
+### 平台特定配置
+
+| 平台  | 宏定义                                     | Tick 来源                     |
+| ----- | ------------------------------------------ | ----------------------------- |
+| STM32 | `STM32U5`, `STM32F4`, `STM32F1`, `STM32L4` | `HAL_GetTick()`               |
+| WCH   | `MCU_CH32`, `CH32V103`, `CH32V20X`         | 内部 tick stub                |
+| HC32  | `MCU_HC32`, `HC32L021`, `HC32L110`         | `xy_hal_sys_get_tick_count()` |
+| PC    | `CONFIG_PLATFORM_PC`                       | `GetTickCount()` / `clock()`  |
 
 ### 依赖
 
 - 硬件 ADC（电池电压、电流采样）
 - 外部充电器 IC 驱动（如 LTC2944、LTC2945 等）
+- 平台特定 GPIO 驱动（用于充电器使能控制）
 
 ---
 
 ## 📊 状态码
 
-| 状态码 | 描述 |
-|--------|------|
-| XY_PM_OK | 成功 |
-| XY_PM_ERROR | 一般错误 |
-| XY_PM_ERROR_INVALID_MODE | 无效模式 |
-| XY_PM_ERROR_NOT_SUPPORTED | 不支持 |
-| XY_PM_INVALID_PARAM | 无效参数 |
-| XY_PM_NOT_INITIALIZED | 未初始化 |
+| 状态码                    | 描述     |
+| ------------------------- | -------- |
+| XY_PM_OK                  | 成功     |
+| XY_PM_ERROR               | 一般错误 |
+| XY_PM_ERROR_INVALID_MODE  | 无效模式 |
+| XY_PM_ERROR_NOT_SUPPORTED | 不支持   |
+| XY_PM_INVALID_PARAM       | 无效参数 |
+| XY_PM_NOT_INITIALIZED     | 未初始化 |
 
 充电器状态 (`xy_charger_state_t`)：
+
 - `XY_CHARGER_STATE_IDLE` - 空闲
 - `XY_CHARGER_STATE_CHARGING` - 充电中
 - `XY_CHARGER_STATE_COMPLETE` - 充电完成
 - `XY_CHARGER_STATE_FAULT` - 故障
+
+---
+
+## 🔌 平台接口
+
+### 平台检测
+
+```c
+// 获取平台名称
+const char* name = xy_pm_get_platform_name();  // 返回 "STM32", "WCH", "HC32", "PC"
+
+// 检查特定平台
+if (xy_pm_is_platform(XY_PLATFORM_ID_STM32)) {
+    // 运行在 STM32 上
+}
+```
+
+### 平台特定实现 (xy_pm_platform.c)
+
+| 函数                      | 说明                   |
+| ------------------------- | ---------------------- |
+| `xy_pm_tick_get()`        | 获取 OS tick 计数 (ms) |
+| `xy_charger_hw_init()`    | 初始化充电器 GPIO      |
+| `xy_charger_hw_enable()`  | 使能充电器             |
+| `xy_charger_hw_disable()` | 禁用充电器             |
 
 ---
 
@@ -238,6 +278,28 @@ CONFIG_XY_FUEL_GAUGE=y
 1. 电量计需要定期调用 `xy_fuel_gauge_update()` 以保持数据准确
 2. 充电电流应根据电池规格合理配置
 3. 低功耗模式需要在不用时及时启用以节省电量
+4. 充电器 GPIO 引脚需要根据实际硬件连接配置
+
+---
+
+## 📝 更新记录
+
+### v1.0.1 (2026-03-13)
+
+- ✅ 新增 `xy_pm_platform.c` 平台特定实现
+- ✅ 实现 `xy_charger_hw_enable()` GPIO 控制
+- ✅ 实现 `xy_charger_hw_disable()` GPIO 控制
+- ✅ 替换 `stub_tick_get()` 为平台真实 tick 函数
+- ✅ 添加平台检测宏 (`XY_PLATFORM_STM32`, `XY_PLATFORM_WCH`, etc.)
+- ✅ 新增 Kconfig 充电器配置选项
+- ✅ 更新 `xy_pm.h` 平台接口声明
+
+### v1.0.0 (2026-03-13)
+
+- 初始版本
+- 基本电源管理功能
+- 充电器状态机
+- 电量计基础
 
 ---
 

@@ -33,6 +33,13 @@ pid/
 ├── src/
 │   ├── xy_pid.c           # PID 控制器实现
 │   └── xy_pid_auto.c      # 自动整定实现
+├── examples/              # 示例程序
+│   ├── CMakeLists.txt     # 示例构建配置
+│   ├── example_basic.c    # 基础 PID 用法
+│   ├── example_incremental.c  # 增量式 PID
+│   ├── example_temperature.c  # 温度控制
+│   ├── example_charging.c     # 充电控制
+│   └── example_auto_tune.c    # 自动整定
 ├── README.md              # 本文件
 ├── pid-basic.md           # 基础 PID 文档
 ├── pid-charging.md        # 充电应用文档
@@ -228,6 +235,45 @@ CONFIG_XY_PID_AUTO=y
 | XY_PID_AUTO_STATE_CALCULATING | 计算中 |
 | XY_PID_AUTO_STATE_COMPLETE    | 完成   |
 | XY_PID_AUTO_STATE_ERROR       | 错误   |
+
+## 📖 示例程序
+
+### 构建示例
+
+```bash
+cd components/pid/examples
+mkdir build && cd build
+cmake .. && make
+```
+
+### 示例列表
+
+| 示例文件                | 描述                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| `example_basic.c`       | 基础 PID 控制器用法（位置式） - 包含温度控制、在线调参、输出限幅、手动/自动模式切换          |
+| `example_incremental.c` | 增量式 PID 控制器 - 位置控制、抗扰动、参考跟踪、速度控制                                     |
+| `example_temperature.c` | 温度 PID 控制示例 - 加热/冷却、双极性输出、设定点跟踪、热扰动、抗过冲                        |
+| `example_charging.c`    | 充电 PID 控制示例 - CC-CV 充电、充电宝输出、充电速率优化、温度感知充电                       |
+| `example_auto_tune.c`   | 自动整定示例 - 手动 Ziegler-Nichols 整定、自动整定库使用、手动 vs 自动调参对比、温度自动整定 |
+
+### 运行示例
+
+```bash
+# 运行基础示例
+./example_basic
+
+# 运行增量式 PID 示例
+./example_incremental
+
+# 运行温度控制示例
+./example_temperature
+
+# 运行充电控制示例
+./example_charging
+
+# 运行自动整定示例
+./example_auto_tune
+```
 
 ---
 

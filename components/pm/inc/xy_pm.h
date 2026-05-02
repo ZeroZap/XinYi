@@ -64,6 +64,13 @@ typedef enum {
 #define XY_PM_DEFAULT_BATTERY_CAPACITY_MAH  2000
 #define XY_PM_DEFAULT_CHARGE_CURRENT_MAH    500
 
+/* Platform Identifiers */
+#define XY_PLATFORM_ID_UNKNOWN   0
+#define XY_PLATFORM_ID_STM32     1
+#define XY_PLATFORM_ID_WCH       2
+#define XY_PLATFORM_ID_HC32      3
+#define XY_PLATFORM_ID_PC        4
+
 /* PM System State Enum */
 typedef enum {
     XY_PM_SYSTEM_STATE_INIT = 0,
@@ -123,5 +130,13 @@ int xy_pm_start_charging(void);
 int xy_pm_stop_charging(void);
 bool xy_pm_is_charging(void);
 uint8_t xy_pm_get_soc(void);
+
+/* Platform-specific functions (implemented in xy_pm_platform.c) */
+uint32_t xy_pm_tick_get(void);
+const char* xy_pm_get_platform_name(void);
+bool xy_pm_is_platform(int platform);
+int xy_charger_hw_init(void);
+int xy_charger_hw_enable(int enable);
+int xy_charger_hw_disable(void);
 
 #endif /* XY_PM_H */

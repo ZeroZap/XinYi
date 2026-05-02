@@ -126,6 +126,19 @@ int xy_charger_enable(bool enable);
  */
 bool xy_charger_is_charging(void);
 
+/**
+ * @brief Hardware enable/disable charger (platform-specific)
+ * @param enable 1 to enable, 0 to disable
+ * @return XY_CHARGER_OK on success
+ */
+int xy_charger_hw_enable(int enable);
+
+/**
+ * @brief Hardware disable charger
+ * @return XY_CHARGER_OK on success
+ */
+int xy_charger_hw_disable(void);
+
 #ifdef __cplusplus
 }
 #endif

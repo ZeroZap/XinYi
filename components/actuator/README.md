@@ -232,47 +232,142 @@ target_link_libraries(your_target xy_actuator)
 
 ## 📊 执行器类型
 
-| 类型 | 描述 |
-|------|------|
-| `ACTUATOR_TYPE_RELAY` | 继电器（开关） |
-| `ACTUATOR_TYPE_SERVO` | 舵机（角度控制） |
-| `ACTUATOR_TYPE_MOTOR_DC` | 直流电机 |
-| `ACTUATOR_TYPE_MOTOR_STEPPER` | 步进电机 |
-| `ACTUATOR_TYPE_SOLENOID` | 电磁阀 |
-| `ACTUATOR_TYPE_PWM` | 通用 PWM 输出 |
-| `ACTUATOR_TYPE_LED` | LED 控制 |
-| `ACTUATOR_TYPE_BUZZER` | 蜂鸣器 |
-| `ACTUATOR_TYPE_VALVE` | 阀门 |
+| 类型                          | 描述             |
+| ----------------------------- | ---------------- |
+| `ACTUATOR_TYPE_RELAY`         | 继电器（开关）   |
+| `ACTUATOR_TYPE_SERVO`         | 舵机（角度控制） |
+| `ACTUATOR_TYPE_MOTOR_DC`      | 直流电机         |
+| `ACTUATOR_TYPE_MOTOR_STEPPER` | 步进电机         |
+| `ACTUATOR_TYPE_SOLENOID`      | 电磁阀           |
+| `ACTUATOR_TYPE_PWM`           | 通用 PWM 输出    |
+| `ACTUATOR_TYPE_LED`           | LED 控制         |
+| `ACTUATOR_TYPE_BUZZER`        | 蜂鸣器           |
+| `ACTUATOR_TYPE_VALVE`         | 阀门             |
 
 ---
 
 ## 📊 执行器状态
 
-| 状态 | 描述 |
-|------|------|
-| `ACTUATOR_STATUS_IDLE` | 空闲 |
-| `ACTUATOR_STATUS_READY` | 就绪 |
-| `ACTUATOR_STATUS_BUSY` | 动作执行中 |
-| `ACTUATOR_STATUS_ERROR` | 错误 |
-| `ACTUATOR_STATUS_DISABLED` | 禁用 |
+| 状态                       | 描述       |
+| -------------------------- | ---------- |
+| `ACTUATOR_STATUS_IDLE`     | 空闲       |
+| `ACTUATOR_STATUS_READY`    | 就绪       |
+| `ACTUATOR_STATUS_BUSY`     | 动作执行中 |
+| `ACTUATOR_STATUS_ERROR`    | 错误       |
+| `ACTUATOR_STATUS_DISABLED` | 禁用       |
 
 ---
 
 ## 📊 错误码
 
-| 错误码 | 描述 |
-|--------|------|
-| `ACTUATOR_EOK` | 成功 |
-| `ACTUATOR_ERROR` | 一般错误 |
-| `ACTUATOR_EINVAL` | 无效参数 |
-| `ACTUATOR_ENODEV` | 设备未找到 |
-| `ACTUATOR_EBUSY` | 设备忙 |
-| `ACTUATOR_ETIMEOUT` | 超时 |
-| `ACTUATOR_ENOMEM` | 内存不足 |
-| `ACTUATOR_ENOSYS` | 不支持 |
-| `ACTUATOR_EIO` | I/O 错误 |
-| `ACTUATOR_ELIMIT` | 超出限制 |
-| `ACTUATOR_EHW` | 硬件错误 |
+| 错误码              | 描述       |
+| ------------------- | ---------- |
+| `ACTUATOR_EOK`      | 成功       |
+| `ACTUATOR_ERROR`    | 一般错误   |
+| `ACTUATOR_EINVAL`   | 无效参数   |
+| `ACTUATOR_ENODEV`   | 设备未找到 |
+| `ACTUATOR_EBUSY`    | 设备忙     |
+| `ACTUATOR_ETIMEOUT` | 超时       |
+| `ACTUATOR_ENOMEM`   | 内存不足   |
+| `ACTUATOR_ENOSYS`   | 不支持     |
+| `ACTUATOR_EIO`      | I/O 错误   |
+| `ACTUATOR_ELIMIT`   | 超出限制   |
+| `ACTUATOR_EHW`      | 硬件错误   |
+
+---
+
+## 🧪 测试
+
+### 测试文件
+
+```
+tests/actuator/
+├── CMakeLists.txt           # 测试构建配置
+├── test_actuator_core.c     # 核心功能测试 (注册、查找、遍历)
+├── test_actuator_relay.c    # 继电器测试 (开/关、翻转)
+├── test_actuator_pwm.c      # PWM 测试 (占空比、频率)
+└── test_actuator_servo.c    # 舵机测试 (角度控制)
+```
+
+### 构建测试
+
+```bash
+# 创建构建目录
+mkdir -p build_actuator_test
+cd build_actuator_test
+
+# 配置项目 (从项目根目录)
+cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug
+
+# 或者使用项目已有的 CMakeLists
+# 需要在主 CMakeLists.txt 中启用 actutor_tests 子目录
+```
+
+### 运行测试
+
+```bash
+# 单独运行每个测试
+./test_actuator_core
+./test_actuator_relay
+./test_actuator_pwm
+./test_actuator_servo
+
+# 或运行所有测试
+make run_actuator_tests
+```
+
+### 测试覆盖
+
+#### test_actuator_core.c
+
+- 设备注册/注销 (单设备、多设备、重名检查)
+- 设备查找 (按名称、按类型)
+- 设备计数 (总数、按类型计数)
+- 设备初始化/反初始化
+- 使能/禁用控制
+- 状态查询
+- 字符串转换函数
+- 通用读写操作
+- 复位和急停
+
+#### test_actuator_relay.c
+
+- 继电器初始化
+- 开/关控制 (`relay_on`, `relay_off`)
+- 状态设置/读取
+- 翻转操作 (`relay_toggle`)
+- 脉冲操作 (`relay_pulse`)
+- 状态枚举值验证
+
+#### test_actuator_pwm.c
+
+- PWM 初始化
+- 占空比设置 (0%, 50%, 100%)
+- 频率设置 (100Hz - 10MHz)
+- PWM 值结构测试
+- 配置测试
+
+#### test_actuator_servo.c
+
+- 舵机初始化
+- 角度设置 (最小、最大、中心)
+- 角度范围设置
+- 速度设置
+- 回中、停止、往复运动
+- 角度与 PWM 转换 (包含边界 clamping)
+- PWM 占空比转角度转换
+
+### 预期输出
+
+```
+test_actuator_core.c
+...
+Tests [XX] Passed [XX] Failed [XX] Ignored [XX]
+
+test_actuator_relay.c
+...
+Tests [XX] Passed [XX] Failed [XX] Ignored [XX]
+```
 
 ---
 
