@@ -57,7 +57,6 @@
 **XinYi C 标准库** 提供嵌入式系统专用的轻量级标准库实现：
 
 **核心模块**:
-
 - **xy_typedef**: 统一基础类型定义
 - **xy_string**: 安全字符串和内存操作
 - **xy_stdio**: 轻量级格式化 I/O
@@ -70,7 +69,6 @@
 - **xy_assert**: 断言和调试工具
 
 **特色功能**:
-
 - **软除法优化**: 为无硬件除法的 MCU 提供快速除法
 - **BCD 转换**: 高效 BCD/十进制/十六进制转换
 - **安全字符串**: `xy_strlcpy`/`xy_strlcat` 防溢出函数
@@ -83,7 +81,6 @@
 **XinYi 设备组件** 提供统一的设备管理框架：
 
 **架构特点**:
-
 - **统一设备模型**: 所有设备使用统一接口
 - **分层设计**: 设备框架 + 驱动 API + 驱动实现
 - **模块化**: 按功能分类的驱动模块
@@ -92,7 +89,6 @@
 - **电源管理**: 统一 PM 框架
 
 **支持的设备类型**:
-
 - **通信接口**: UART, SPI, I2C, CAN, I2S
 - **模拟接口**: ADC, DAC
 - **数字接口**: GPIO, PWM, Timer
@@ -101,7 +97,6 @@
 - **存储接口**: EEPROM, Flash, SD/MMC
 
 **核心接口**:
-
 ```c
 // 设备操作统一接口
 xy_device_t *dev = xy_device_find("uart1");
@@ -111,7 +106,6 @@ xy_device_close(dev);
 ```
 
 **总线模型**:
-
 ```c
 // 总线设备操作
 xy_bus_device_t *bus = (xy_bus_device_t *)xy_device_find("spi1");
@@ -132,9 +126,8 @@ xy_bus_release(bus);
 ```
 
 **代理类型**:
-
 - **pm**: 项目经理 (status, tasks, files, search, stats)
-- **arch**: 架构师 (review, deps, check, compat)
+- **arch**: 架构师 (review, deps, check, compat) 
 - **dev**: 开发工程师 (create, docs, fix, template)
 - **test**: 测试工程师 (run, gen, coverage)
 
@@ -211,13 +204,13 @@ Create a comprehensive, standardized embedded framework that reduces development
 
 ### Layered Design Benefits
 
-| Layer           | Purpose                       | Benefit                       |
-| --------------- | ----------------------------- | ----------------------------- |
-| **Application** | Project-specific logic        | Rapid development, code reuse |
-| **Components**  | Domain-specific functionality | Modularity, testability       |
-| **OSAL**        | OS abstraction                | Multi-RTOS support            |
-| **HAL**         | Hardware abstraction          | Platform portability          |
-| **Platform**    | MCU-specific implementations  | Hardware optimization         |
+| Layer | Purpose | Benefit |
+|-------|---------|---------|
+| **Application** | Project-specific logic | Rapid development, code reuse |
+| **Components** | Domain-specific functionality | Modularity, testability |
+| **OSAL** | OS abstraction | Multi-RTOS support |
+| **HAL** | Hardware abstraction | Platform portability |
+| **Platform** | MCU-specific implementations | Hardware optimization |
 
 ---
 
@@ -230,21 +223,18 @@ Create a comprehensive, standardized embedded framework that reduces development
 **Purpose:** Unified interface for hardware peripherals
 
 **Supported Interfaces:**
-
 - **Serial Communication**: UART, SPI, I2C
 - **Analog I/O**: ADC, DAC, PWM
 - **Timing**: RTC, Timers, DMA
 - **Digital I/O**: GPIO, Interrupts
 
 **Key Features:**
-
 - Platform-agnostic API
 - STM32 reference implementations
 - PC simulation layer for testing
 - Configurable via `*_cfg.h` headers
 
 **Example Usage:**
-
 ```c
 #include "xy_hal_uart.h"
 
@@ -262,20 +252,17 @@ xy_hal_uart_close(uart);
 **Purpose:** Unified interface for RTOS operations
 
 **Supported RTOS:**
-
 - FreeRTOS
 - RT-Thread
 - Bare-metal (no RTOS)
 
 **Abstractions:**
-
 - Task/Thread management
 - Semaphores, Mutexes, Message queues
 - Timers and delays
 - Memory management
 
 **Key Features:**
-
 - Single API for multiple RTOS
 - Compile-time configuration
 - Minimal overhead
@@ -288,7 +275,6 @@ xy_hal_uart_close(uart);
 **Location:** `components/device/`
 
 **Capabilities:**
-
 - **Unified Device Model**: Single interface for all devices
 - **Bus Support**: SPI/I2C/CAN bus with device nodes
 - **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
@@ -297,7 +283,6 @@ xy_hal_uart_close(uart);
 - **Standardized API**: Consistent interface across all devices
 
 **Device Types:**
-
 - **Communication**: UART, SPI, I2C, CAN, I2S
 - **Analog**: ADC, DAC
 - **Digital**: GPIO, PWM, Timer
@@ -306,7 +291,6 @@ xy_hal_uart_close(uart);
 - **Storage**: EEPROM, Flash, SD/MMC
 
 **Features:**
-
 - RT-Thread-like device model with Zephyr-style API separation
 - Static registration with dynamic fallback
 - Kconfig-based configuration
@@ -315,7 +299,6 @@ xy_hal_uart_close(uart);
 - Centralized device management
 
 **Use Cases:**
-
 - Hardware abstraction
 - Device management
 - Driver development
@@ -324,7 +307,6 @@ xy_hal_uart_close(uart);
 - Peripherals access
 
 **Core API**:
-
 ```c
 // Device operation unified interface
 xy_device_t *dev = xy_device_find("uart1");
@@ -345,7 +327,6 @@ xy_bus_release(bus);
 **Location:** `components/crypto/`
 
 **Algorithms:**
-
 - **Symmetric**: AES (ECB, CBC, CTR modes)
 - **Hashing**: MD5, SHA-1, SHA-256
 - **Authentication**: HMAC
@@ -353,7 +334,6 @@ xy_bus_release(bus);
 - **Utilities**: CRC, Random number generation
 
 **Features:**
-
 - Optimized for embedded systems
 - Configurable algorithm selection
 - Hardware acceleration support (where available)
@@ -366,14 +346,12 @@ xy_bus_release(bus);
 **Location:** `components/dm/`
 
 **Capabilities:**
-
 - **Storage**: EEPROM, NOR Flash, NAND Flash
 - **Encoding**: TLV (Tag-Length-Value) protocol
 - **NVM**: Non-volatile memory management
 - **Wear Leveling**: Flash lifetime optimization
 
 **Use Cases:**
-
 - Configuration storage
 - Calibration data persistence
 - Firmware update staging
@@ -386,7 +364,6 @@ xy_bus_release(bus);
 **Location:** `components/device/`
 
 **Capabilities:**
-
 - **Unified Device Model**: Single interface for all devices
 - **Bus Support**: SPI/I2C/CAN bus with device nodes
 - **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
@@ -395,7 +372,6 @@ xy_bus_release(bus);
 - **Standardized API**: Consistent interface across all devices
 
 **Device Types:**
-
 - **Communication**: UART, SPI, I2C, CAN, I2S
 - **Analog**: ADC, DAC
 - **Digital**: GPIO, PWM, Timer
@@ -404,7 +380,6 @@ xy_bus_release(bus);
 - **Storage**: EEPROM, Flash, SD/MMC
 
 **Features:**
-
 - RT-Thread-like device model with Zephyr-style API separation
 - Static registration with dynamic fallback
 - Kconfig-based configuration
@@ -413,7 +388,6 @@ xy_bus_release(bus);
 - Centralized device management
 
 **Use Cases:**
-
 - Hardware abstraction
 - Device management
 - Driver development
@@ -428,14 +402,12 @@ xy_bus_release(bus);
 **Location:** `components/net/`
 
 **Protocols:**
-
 - **MQTT**: IoT messaging (with TLS support)
 - **Modbus**: Industrial protocol (RTU/TCP)
 - **AT Commands**: Cellular modem interface
 - **ISO7816**: SIM card communication
 
 **Features:**
-
 - Protocol stacks with minimal dependencies
 - Configurable buffer sizes
 - Error recovery mechanisms
@@ -448,14 +420,12 @@ xy_bus_release(bus);
 **Location:** `components/sensor/`
 
 **Supported Sensors:**
-
 - Temperature: ADT7420, TMP36
 - Motion: Accelerometer, Gyroscope
 - Light: APDS9960 (ambient light, proximity)
 - Pressure, Humidity, Gas sensors
 
 **Features:**
-
 - Unified sensor interface
 - Calibration support
 - Data fusion algorithms
@@ -471,7 +441,6 @@ xy_bus_release(bus);
 **Purpose:** Unified logging across all components
 
 **Log Levels:**
-
 - `VERBOSE` - Detailed trace information
 - `DEBUG` - Debug information
 - `INFO` - Informational messages
@@ -480,14 +449,12 @@ xy_bus_release(bus);
 - `NEVER` - Disable logging
 
 **Features:**
-
 - Per-module log level configuration
 - Minimal runtime overhead
 - Support for multiple output backends
 - Timestamp and context information
 
 **Usage:**
-
 ```c
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 #include "xy_log.h"
@@ -503,7 +470,6 @@ xy_log_e("Error: operation failed\n");
 **Location:** `components/clib/xy_clib/`
 
 **Modules:**
-
 - **String Operations**: Safe string handling
 - **Math Utilities**: Fixed-point math, bit operations
 - **Data Structures**: Lists, queues, trees
@@ -512,7 +478,6 @@ xy_log_e("Error: operation failed\n");
 - **Memory**: Pool allocators, safe malloc wrappers
 
 **Benefits:**
-
 - Embedded-optimized implementations
 - Reduced dependency on libc
 - Predictable memory usage
@@ -525,7 +490,6 @@ xy_log_e("Error: operation failed\n");
 **Location:** `components/pm/`
 
 **Features:**
-
 - Sleep mode management
 - Power state transitions
 - Wake-up source configuration
@@ -535,16 +499,15 @@ xy_log_e("Error: operation failed\n");
 
 ### 10. Additional Components
 
-| Component              | Location                   | Purpose                                   |
-| ---------------------- | -------------------------- | ----------------------------------------- |
-| **Battery Management** | `components/Bank/`         | Power bank, battery charging, gauge       |
-| **PID Controller**     | `components/pid/`          | PID controller with auto-tuning           |
-| **State Machine**      | `components/sys/`          | Hierarchical state machine framework      |
-| **Timer System**       | `components/sys/xy_timer/` | Software timers, scheduling               |
-| **IPC**                | `components/ipc/`          | Inter-process communication               |
-| **FOTA**               | `components/fota/`         | Firmware over-the-air updates             |
-| **GUI**                | `components/gui/`          | Display and UI framework                  |
-| **Device**             | `components/device/`       | Unified device framework with bus support |
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Battery Management** | `components/Bank/` | Power bank, battery charging, gauge |
+| **State Machine** | `components/sys/` | Hierarchical state machine framework |
+| **Timer System** | `components/sys/xy_timer/` | Software timers, scheduling |
+| **IPC** | `components/ipc/` | Inter-process communication |
+| **FOTA** | `components/fota/` | Firmware over-the-air updates |
+| **GUI** | `components/gui/` | Display and UI framework |
+| **Device** | `components/device/` | Unified device framework with bus support |
 
 ---
 
@@ -553,7 +516,6 @@ xy_log_e("Error: operation failed\n");
 **Location:** `components/device/`
 
 **Capabilities:**
-
 - **Unified Device Model**: Single interface for all devices
 - **Bus Support**: SPI/I2C/CAN bus with device nodes
 - **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
@@ -562,7 +524,6 @@ xy_log_e("Error: operation failed\n");
 - **Standardized API**: Consistent interface across all devices
 
 **Device Types:**
-
 - **Communication**: UART, SPI, I2C, CAN, I2S
 - **Analog**: ADC, DAC
 - **Digital**: GPIO, PWM, Timer
@@ -571,7 +532,6 @@ xy_log_e("Error: operation failed\n");
 - **Storage**: EEPROM, Flash, SD/MMC
 
 **Features:**
-
 - RT-Thread-like device model with Zephyr-style API separation
 - Static registration with dynamic fallback
 - Kconfig-based configuration
@@ -580,7 +540,6 @@ xy_log_e("Error: operation failed\n");
 - Centralized device management
 
 **Core API**:
-
 ```c
 // Device operation unified interface
 xy_device_t *dev = xy_device_find("uart1");
@@ -603,7 +562,6 @@ xy_bus_release(bus);
 **Location:** `components/kernel/`
 
 **Sub-components:**
-
 - **OSAL**: OS Abstraction Layer (FreeRTOS/RT-Thread/Bare-metal support)
 - **Misc**: Miscellaneous kernel utilities
 
@@ -650,7 +608,6 @@ Application Projects
 ### 1. Power Bank (Battery Management System)
 
 **Features:**
-
 - Multi-cell battery monitoring
 - Charging/discharging control
 - Fuel gauge algorithm
@@ -658,7 +615,6 @@ Application Projects
 - Over-current/over-voltage protection
 
 **Components Used:**
-
 - Sensor Framework (voltage, current, temperature)
 - Power Management
 - Data Management (calibration storage)
@@ -672,14 +628,12 @@ Application Projects
 ### 2. Soldering Iron (Temperature Control)
 
 **Features:**
-
 - PID temperature control
 - Tip temperature monitoring
 - Sleep mode management
 - Power optimization
 
 **Components Used:**
-
 - HAL (ADC, PWM, Timer)
 - Sensor Framework
 - State Machine
@@ -691,14 +645,12 @@ Application Projects
 ### 3. USB Bridge (Multi-Protocol)
 
 **Features:**
-
 - USB to SPI/I2C/UART conversion
 - Real-time protocol translation
 - PC library interface
 - Multi-device support
 
 **Components Used:**
-
 - HAL (USB, SPI, I2C, UART)
 - Data Management (configuration)
 - Device (Unified device access)
@@ -709,14 +661,12 @@ Application Projects
 ### 4. Smart Card USB Bridge
 
 **Features:**
-
 - ISO7816 SIM card interface
 - TLV protocol encoding
 - USB communication
 - Python test client
 
 **Components Used:**
-
 - Network (ISO7816)
 - Data Management (TLV)
 - HAL (UART, GPIO)
@@ -728,14 +678,12 @@ Application Projects
 ### 5. LCR Meter (Measurement Device)
 
 **Features:**
-
 - Inductance, Capacitance, Resistance measurement
 - Frequency analysis
 - Data logging
 - Calibration support
 
 **Components Used:**
-
 - Sensor Framework
 - Data Management
 - Device (Unified device access)
@@ -746,14 +694,12 @@ Application Projects
 ### 6. Multi-Stepper Motor Controller
 
 **Features:**
-
 - Multi-axis stepper control
 - Acceleration profiling
 - Position tracking
 - Limit switch handling
 
 **Components Used:**
-
 - HAL (GPIO, Timer, PWM)
 - State Machine
 - Device (Unified device access)
@@ -773,15 +719,15 @@ All code **MUST** follow:
 
 ### Quick Reference
 
-| Standard          | Requirement                                          |
-| ----------------- | ---------------------------------------------------- |
-| **Language**      | C99                                                  |
-| **Indentation**   | 4 spaces (no tabs)                                   |
-| **Naming**        | Lowercase with underscores (`my_function`, `my_var`) |
-| **Braces**        | Same line as keywords (`if {`, `for {`)              |
-| **Logging**       | Use `xy_log_*()`, never `printf()`                   |
-| **Documentation** | Doxygen comments for all public functions            |
-| **Formatting**    | Apply clang-format before commit                     |
+| Standard | Requirement |
+|----------|-------------|
+| **Language** | C99 |
+| **Indentation** | 4 spaces (no tabs) |
+| **Naming** | Lowercase with underscores (`my_function`, `my_var`) |
+| **Braces** | Same line as keywords (`if {`, `for {`) |
+| **Logging** | Use `xy_log_*()`, never `printf()` |
+| **Documentation** | Doxygen comments for all public functions |
+| **Formatting** | Apply clang-format before commit |
 
 ### File Structure
 
@@ -965,7 +911,6 @@ make CONFIG_CRYPTO_AES=y
 ### Component Structure
 
 Each component includes:
-
 - `CMakeLists.txt` - CMake configuration
 - `Makefile` - GNU Make configuration
 - `Kconfig` - Configuration options
@@ -984,7 +929,6 @@ Each component includes:
    - [xy_code_style.md](xy_code_style.md) - Coding standards
 
 2. **Format Code**
-
    ```bash
    clang-format -i your_file.c
    # Or use the script
