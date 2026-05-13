@@ -13,6 +13,7 @@ extern "C" {
 #endif
 
 #include "xy_device.h"
+#include "xy_device_pm.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -31,15 +32,11 @@ extern "C" {
 #define XY_DEVICE_DEFAULT_SLEEP_TIMEOUT  10000
 #endif
 
-/**
- * @brief 设备电源管理状态
- */
-typedef enum {
-    XY_DEVICE_PM_UNKNOWN = 0,
-    XY_DEVICE_PM_ACTIVE,
-    XY_DEVICE_PM_SLEEP_STATE,
-    XY_DEVICE_PM_OFF,
-} xy_device_pm_state_t;
+/* Compatibility aliases: map old names → canonical xy_device_pm.h names */
+#define XY_DEVICE_PM_UNKNOWN     XY_DEVICE_PM_STATE_ACTIVE
+#define XY_DEVICE_PM_ACTIVE      XY_DEVICE_PM_STATE_ACTIVE
+#define XY_DEVICE_PM_SLEEP_STATE XY_DEVICE_PM_STATE_SLEEP
+#define XY_DEVICE_PM_OFF         XY_DEVICE_PM_STATE_OFF
 
 /**
  * @brief 设备电源管理事件

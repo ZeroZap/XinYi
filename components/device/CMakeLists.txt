@@ -13,8 +13,10 @@ include_directories(
 
 # Collect source files
 set(DEVICE_SOURCES
-    xy_device.c
-    # xy_device_core.c  # Temporarily disabled - signature mismatches
+    src/xy_device.c        # main framework: register/find/open/read/write
+    xy_device.c            # device helpers: i2c_device/spi_device/uart_device/gpio_device
+    xy_device_core.c       # global registry + idle PM
+    src/xy_device_pm.c     # per-device power management ops
     xy_eeprom_24xx.c
     xy_oled_ssd1306.c
     xy_mpu6050.c

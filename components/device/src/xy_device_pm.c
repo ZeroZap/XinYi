@@ -7,7 +7,7 @@
  * @note 设备电源管理实现 - 支持低功耗模式
  */
 
-#include "inc/xy_device_pm.h"
+#include "xy_device_pm.h"
 #include <string.h>
 
 /* ==================== Private Types ==================== */
