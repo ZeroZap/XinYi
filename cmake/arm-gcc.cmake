@@ -13,20 +13,12 @@ set(CMAKE_CXX_COMPILER "${TOOLCHAIN_PATH}/arm-none-eabi-g++")
 set(CMAKE_ASM_COMPILER "${TOOLCHAIN_PATH}/arm-none-eabi-gcc")
 
 # 工具
-set(CMAKE_AR "${TOOLCHAIN_PATH}/arm-none-eabi-ar" CACHE FILEPATH "Archiver")
-set(CMAKE_RANLIB "${TOOLCHAIN_PATH}/arm-none-eabi-ranlib" CACHE FILEPATH "Ranlib")
-set(CMAKE_SIZE "${TOOLCHAIN_PATH}/arm-none-eabi-size" CACHE FILEPATH "Size tool")
-set(CMAKE_OBJCOPY "${TOOLCHAIN_PATH}/arm-none-eabi-objcopy" CACHE FILEPATH "Objcopy tool")
-set(CMAKE_OBJDUMP "${TOOLCHAIN_PATH}/arm-none-eabi-objdump" CACHE FILEPATH "Objdump tool")
-set(CMAKE_GDB "${TOOLCHAIN_PATH}/arm-none-eabi-gdb" CACHE FILEPATH "Debugger")
-
-# 工具
-set(CMAKE_AR arm-none-eabi-ar CACHE FILEPATH "Archiver")
-set(CMAKE_RANLIB arm-none-eabi-ranlib CACHE FILEPATH "Ranlib")
-set(CMAKE_SIZE arm-none-eabi-size CACHE FILEPATH "Size tool")
-set(CMAKE_OBJCOPY arm-none-eabi-objcopy CACHE FILEPATH "Objcopy tool")
-set(CMAKE_OBJDUMP arm-none-eabi-objdump CACHE FILEPATH "Objdump tool")
-set(CMAKE_GDB arm-none-eabi-gdb CACHE FILEPATH "Debugger")
+set(CMAKE_AR     "${TOOLCHAIN_PATH}/arm-none-eabi-ar"      CACHE FILEPATH "Archiver")
+set(CMAKE_RANLIB "${TOOLCHAIN_PATH}/arm-none-eabi-ranlib"  CACHE FILEPATH "Ranlib")
+set(CMAKE_SIZE   "${TOOLCHAIN_PATH}/arm-none-eabi-size"    CACHE FILEPATH "Size tool")
+set(CMAKE_OBJCOPY  "${TOOLCHAIN_PATH}/arm-none-eabi-objcopy"  CACHE FILEPATH "Objcopy tool")
+set(CMAKE_OBJDUMP  "${TOOLCHAIN_PATH}/arm-none-eabi-objdump"  CACHE FILEPATH "Objdump tool")
+set(CMAKE_GDB      "${TOOLCHAIN_PATH}/arm-none-eabi-gdb"      CACHE FILEPATH "Debugger")
 
 # 编译标志
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror=implicit-function-declaration -fno-builtin -ffreestanding -nostdlib")
