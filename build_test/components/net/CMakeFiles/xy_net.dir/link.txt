@@ -1,2 +1,0 @@
-/usr/bin/ar qc libxy_net.a CMakeFiles/xy_net.dir/src/xy_net.c.o CMakeFiles/xy_net.dir/src/xy_net_platform.c.o CMakeFiles/xy_net.dir/modbus_tiny/mb_tiny.c.o CMakeFiles/xy_net.dir/modbus_full/mb_full.c.o CMakeFiles/xy_net.dir/at/atc/Modules/cellular/common/at_client.c.o CMakeFiles/xy_net.dir/at/ats/xy_ats.c.o CMakeFiles/xy_net.dir/at/ats/xy_ats_hash.c.o
-/usr/bin/ranlib libxy_net.a

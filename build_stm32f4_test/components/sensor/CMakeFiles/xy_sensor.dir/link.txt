@@ -1,2 +1,0 @@
-/usr/bin/ar qc libxy_sensor.a CMakeFiles/xy_sensor.dir/sensor_core.c.o CMakeFiles/xy_sensor.dir/sensor_calibration.c.o CMakeFiles/xy_sensor.dir/sensor_filter.c.o CMakeFiles/xy_sensor.dir/sensor_fifo.c.o CMakeFiles/xy_sensor.dir/sensor_interrupt.c.o CMakeFiles/xy_sensor.dir/sensor_threshold.c.o CMakeFiles/xy_sensor.dir/sensor_power.c.o CMakeFiles/xy_sensor.dir/sensor_mem_pool.c.o CMakeFiles/xy_sensor.dir/sensor_self_test.c.o CMakeFiles/xy_sensor.dir/sensor_fusion.c.o
-/usr/bin/ranlib libxy_sensor.a
