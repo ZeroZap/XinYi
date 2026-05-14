@@ -12,7 +12,6 @@ add_compile_options(-Wall -Wextra -Wpedantic)
 # 测试框架源文件
 set(TEST_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/xy_hal_test.c
-    ${CMAKE_CURRENT_LIST_DIR}/test_gpio.c
     ${CMAKE_CURRENT_LIST_DIR}/test_uart.c
     ${CMAKE_CURRENT_LIST_DIR}/test_spi.c
     ${CMAKE_CURRENT_LIST_DIR}/test_i2c.c

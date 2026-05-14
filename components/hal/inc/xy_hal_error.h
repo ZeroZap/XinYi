@@ -1,6 +1,11 @@
 /**
  * @file xy_hal_error.h
- * @brief HAL Error Codes
+ * @brief HAL return type (xy_hal_error_t).
+ *
+ * Values are aligned with xy_error.h / xy_device_error.h: callers can
+ * freely cross-compare with XY_OK / XY_ERROR_* numerically. Use this
+ * header for HAL implementations; device/driver code should prefer
+ * xy_device_error.h which already includes this file.
  */
 
 #ifndef XY_HAL_ERROR_H

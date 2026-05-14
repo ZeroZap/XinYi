@@ -30,29 +30,29 @@ int demo_hal_init(void)
  */
 void demo_hal_run(void)
 {
-    xy_hal_pin_config_t pin_cfg;
+    xy_hal_gpio_config_t pin_cfg;
     int ret;
-    
+
     /* GPIO 演示 */
     xy_log_i("GPIO Demo:\n");
-    
-    pin_cfg.mode = XY_HAL_PIN_MODE_OUTPUT;
-    pin_cfg.pull = XY_HAL_PIN_PULL_NONE;
-    pin_cfg.otype = XY_HAL_PIN_OTYPE_PP;
-    pin_cfg.speed = XY_HAL_PIN_SPEED_LOW;
-    
-    ret = xy_hal_pin_init((void *)0x1, 5, &pin_cfg);  /* PA5 */
+
+    pin_cfg.mode = XY_HAL_GPIO_MODE_OUTPUT;
+    pin_cfg.pull = XY_HAL_GPIO_PULL_NONE;
+    pin_cfg.otype = XY_HAL_GPIO_OTYPE_PP;
+    pin_cfg.speed = XY_HAL_GPIO_SPEED_LOW;
+
+    ret = xy_hal_gpio_init((xy_hal_gpio_port_t)0x1, 5, &pin_cfg);  /* PA5 */
     if (ret == XY_HAL_OK) {
         xy_log_d("  GPIO PA5 configured as output\n");
     }
-    
-    xy_hal_pin_write((void *)0x1, 5, 1);
+
+    xy_hal_gpio_write((xy_hal_gpio_port_t)0x1, 5, 1);
     xy_log_d("  GPIO PA5 set to 1\n");
-    
-    xy_hal_pin_write((void *)0x1, 5, 0);
+
+    xy_hal_gpio_write((xy_hal_gpio_port_t)0x1, 5, 0);
     xy_log_d("  GPIO PA5 set to 0\n");
-    
-    int level = xy_hal_pin_read((void *)0x1, 5);
+
+    int level = xy_hal_gpio_read((xy_hal_gpio_port_t)0x1, 5);
     xy_log_d("  GPIO PA5 read: %d\n", level);
     
     /* UART 演示 */

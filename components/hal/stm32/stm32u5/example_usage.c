@@ -12,19 +12,19 @@
 
 static void example_gpio(void)
 {
-    xy_hal_pin_config_t config = {
-        .mode = XY_HAL_PIN_MODE_OUTPUT,
-        .pull = XY_HAL_PIN_PULL_NONE,
-        .otype = XY_HAL_PIN_OTYPE_PP,
-        .speed = XY_HAL_PIN_SPEED_LOW,
+    xy_hal_gpio_config_t config = {
+        .mode = XY_HAL_GPIO_MODE_OUTPUT,
+        .pull = XY_HAL_GPIO_PULL_NONE,
+        .otype = XY_HAL_GPIO_OTYPE_PP,
+        .speed = XY_HAL_GPIO_SPEED_LOW,
     };
 
     /* Initialize PA5 as output */
-    xy_hal_pin_init(GPIOA, 5, &config);
+    xy_hal_gpio_init(GPIOA, 5, &config);
 
     /* Toggle LED */
     while (1) {
-        xy_hal_pin_toggle(GPIOA, 5);
+        xy_hal_gpio_toggle(GPIOA, 5);
         xy_hal_delay_ms(500);
     }
 }

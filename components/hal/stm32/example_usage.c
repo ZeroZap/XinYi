@@ -28,18 +28,18 @@ extern RTC_HandleTypeDef hrtc;
 void example_gpio_led(void)
 {
     /* Configure PA5 as output (typically the user LED on STM32 boards) */
-    xy_hal_pin_config_t led_config = {
-        .mode  = XY_HAL_PIN_MODE_OUTPUT,
-        .pull  = XY_HAL_PIN_PULL_NONE,
-        .otype = XY_HAL_PIN_OTYPE_PP,
-        .speed = XY_HAL_PIN_SPEED_LOW,
+    xy_hal_gpio_config_t led_config = {
+        .mode  = XY_HAL_GPIO_MODE_OUTPUT,
+        .pull  = XY_HAL_GPIO_PULL_NONE,
+        .otype = XY_HAL_GPIO_OTYPE_PP,
+        .speed = XY_HAL_GPIO_SPEED_LOW,
     };
 
-    xy_hal_pin_init(GPIOA, 5, &led_config);
+    xy_hal_gpio_init(GPIOA, 5, &led_config);
 
     /* Blink LED */
     for (int i = 0; i < 10; i++) {
-        xy_hal_pin_toggle(GPIOA, 5);
+        xy_hal_gpio_toggle(GPIOA, 5);
         HAL_Delay(500);
     }
 }
@@ -50,24 +50,24 @@ void example_gpio_led(void)
 void button_callback(void *arg)
 {
     /* Called when button is pressed */
-    xy_hal_pin_toggle(GPIOA, 5); /* Toggle LED on button press */
+    xy_hal_gpio_toggle(GPIOA, 5); /* Toggle LED on button press */
 }
 
 void example_gpio_button(void)
 {
     /* Configure PC13 as input with interrupt (typically user button) */
-    xy_hal_pin_config_t button_config = {
-        .mode  = XY_HAL_PIN_MODE_INPUT,
-        .pull  = XY_HAL_PIN_PULL_UP,
-        .otype = XY_HAL_PIN_OTYPE_PP,
-        .speed = XY_HAL_PIN_SPEED_LOW,
+    xy_hal_gpio_config_t button_config = {
+        .mode  = XY_HAL_GPIO_MODE_INPUT,
+        .pull  = XY_HAL_GPIO_PULL_UP,
+        .otype = XY_HAL_GPIO_OTYPE_PP,
+        .speed = XY_HAL_GPIO_SPEED_LOW,
     };
 
-    xy_hal_pin_init(GPIOC, 13, &button_config);
+    xy_hal_gpio_init(GPIOC, 13, &button_config);
 
     /* Attach interrupt on falling edge */
-    xy_hal_pin_attach_irq(
-        GPIOC, 13, XY_HAL_PIN_IRQ_FALLING, button_callback, NULL);
+    xy_hal_gpio_attach_irq(
+        GPIOC, 13, XY_HAL_GPIO_IRQ_FALLING, button_callback, NULL);
 }
 
 /**
@@ -200,7 +200,7 @@ void timer_callback(void *timer, xy_hal_timer_event_t event, void *arg)
 {
     if (event == XY_HAL_TIMER_EVENT_UPDATE) {
         /* Called every timer overflow */
-        xy_hal_pin_toggle(GPIOA, 5); /* Toggle LED at timer frequency */
+        xy_hal_gpio_toggle(GPIOA, 5); /* Toggle LED at timer frequency */
     }
 }
 

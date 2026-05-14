@@ -6,7 +6,6 @@ if(HAL_PLATFORM STREQUAL "PC")
     # PC simulation layer (Linux/POSIX)
     set(HAL_SOURCES
         PC/xy_hal_pc.c
-        PC/xy_hal_pin_pc.c
         PC/xy_hal_gpio_pc.c
         PC/xy_hal_i2c_pc.c
         PC/xy_hal_spi_pc.c
