@@ -1,0 +1,184 @@
+cmake_minimum_required(VERSION 3.12)
+
+# =============================================================================
+# Platform selection — must happen before project() for cross-compilation
+# =============================================================================
+set(HAL_PLATFORM "PC" CACHE STRING "Target platform: PC | STM32F4 | STM32U5 | WCH | HC32")
+set_property(CACHE HAL_PLATFORM PROPERTY STRINGS PC STM32F4 STM32U5 WCH HC32)
+
+if(NOT HAL_PLATFORM STREQUAL "PC")
+    # Bare-metal: suppress compiler link-test (no startup/libc yet)
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+    set(CMAKE_SYSTEM_NAME    Generic)
+    set(CMAKE_SYSTEM_PROCESSOR arm)
+
+    # ARM toolchain — override with -DTOOLCHAIN_PATH=... if installed elsewhere
+    set(TOOLCHAIN_PATH "/home/eugene/Tools/arm-gnu-toolchain/bin"
+        CACHE PATH "arm-none-eabi toolchain bin directory")
+
+    set(CMAKE_C_COMPILER   "${TOOLCHAIN_PATH}/arm-none-eabi-gcc"     CACHE FILEPATH "" FORCE)
+    set(CMAKE_ASM_COMPILER "${TOOLCHAIN_PATH}/arm-none-eabi-gcc"     CACHE FILEPATH "" FORCE)
+    set(CMAKE_AR           "${TOOLCHAIN_PATH}/arm-none-eabi-ar"      CACHE FILEPATH "" FORCE)
+    set(CMAKE_RANLIB       "${TOOLCHAIN_PATH}/arm-none-eabi-ranlib"  CACHE FILEPATH "" FORCE)
+    set(CMAKE_SIZE         "${TOOLCHAIN_PATH}/arm-none-eabi-size"    CACHE FILEPATH "" FORCE)
+    set(CMAKE_OBJCOPY      "${TOOLCHAIN_PATH}/arm-none-eabi-objcopy" CACHE FILEPATH "" FORCE)
+    set(CMAKE_OBJDUMP      "${TOOLCHAIN_PATH}/arm-none-eabi-objdump" CACHE FILEPATH "" FORCE)
+
+    set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+endif()
+
+# =============================================================================
+# Project
+# =============================================================================
+project(XY_Framework VERSION 1.0.0 LANGUAGES C ASM)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+# =============================================================================
+# Common compile flags
+# =============================================================================
+add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(-O0 -g3)
+    add_compile_definitions(DEBUG XY_DEBUG)
+else()
+    add_compile_options(-Os)
+    add_compile_definitions(NDEBUG)
+endif()
+
+if(NOT HAL_PLATFORM STREQUAL "PC")
+    add_compile_options(-ffunction-sections -fdata-sections -fno-builtin -ffreestanding)
+endif()
+
+# =============================================================================
+# Load platform-specific settings (CPU flags / defines / SDK include paths)
+# =============================================================================
+set(_platform_cmake "${CMAKE_SOURCE_DIR}/cmake/platform/${HAL_PLATFORM}.cmake")
+if(NOT EXISTS "${_platform_cmake}")
+    message(FATAL_ERROR
+        "Unknown HAL_PLATFORM='${HAL_PLATFORM}'.\n"
+        "Available: PC  STM32F4  STM32U5  WCH  HC32\n"
+        "Pass -DHAL_PLATFORM=<value> to cmake.")
+endif()
+include("${_platform_cmake}")
+
+# Apply CPU flags (set by platform cmake)
+if(CPU_FLAGS)
+    add_compile_options(${CPU_FLAGS})
+    add_link_options(${CPU_FLAGS})
+endif()
+
+# Apply platform-level preprocessor defines
+if(PLATFORM_DEFINES)
+    add_compile_definitions(${PLATFORM_DEFINES})
+endif()
+
+# Apply SDK/HAL include directories
+if(PLATFORM_INCLUDE_DIRS)
+    include_directories(${PLATFORM_INCLUDE_DIRS})
+endif()
+
+# Apply platform linker flags
+if(PLATFORM_LINKER_FLAGS)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PLATFORM_LINKER_FLAGS}")
+endif()
+
+# =============================================================================
+# Build options
+# =============================================================================
+option(BUILD_TESTING    "Build unit tests"    OFF)
+option(XY_FOTA_ENABLED  "Enable FOTA support" OFF)
+
+if(XY_FOTA_ENABLED)
+    add_compile_definitions(XY_FOTA_ENABLED)
+endif()
+
+# =============================================================================
+# Kconfig integration (optional — silently skip if python/Kconfig unavailable)
+# =============================================================================
+if(EXISTS "${CMAKE_SOURCE_DIR}/Kconfig"
+   AND EXISTS "${CMAKE_SOURCE_DIR}/cmake/Kconfig.cmake")
+    include("${CMAKE_SOURCE_DIR}/cmake/Kconfig.cmake")
+endif()
+
+# =============================================================================
+# CMake helper functions (xy_add_srcs etc.)
+# =============================================================================
+include("${CMAKE_SOURCE_DIR}/cmake/xy_helpers.cmake")
+
+# =============================================================================
+# Third-party libraries
+# =============================================================================
+if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/CMakeLists.txt")
+    add_subdirectory(third_party)
+endif()
+
+# =============================================================================
+# Components — auto-discover top-level; handle nested manually
+# =============================================================================
+
+# These directories have no top-level CMakeLists.txt (nested structure)
+set(_NESTED_COMPONENTS kernel clib)
+
+file(GLOB _comp_entries LIST_DIRECTORIES true
+    "${CMAKE_SOURCE_DIR}/components/*")
+
+foreach(_entry ${_comp_entries})
+    if(NOT IS_DIRECTORY "${_entry}")
+        continue()
+    endif()
+    get_filename_component(_name "${_entry}" NAME)
+
+    # Skip third_party (handled above) and nested-only components
+    if(_name STREQUAL "third_party" OR _name IN_LIST _NESTED_COMPONENTS)
+        continue()
+    endif()
+
+    if(EXISTS "${_entry}/CMakeLists.txt")
+        add_subdirectory("${_entry}" "${CMAKE_BINARY_DIR}/components/${_name}")
+    endif()
+endforeach()
+
+# kernel sub-components
+foreach(_sub osal misc)
+    set(_dir "${CMAKE_SOURCE_DIR}/components/kernel/${_sub}")
+    if(EXISTS "${_dir}/CMakeLists.txt")
+        add_subdirectory("${_dir}" "${CMAKE_BINARY_DIR}/components/kernel/${_sub}")
+    endif()
+endforeach()
+
+# clib sub-component
+set(_dir "${CMAKE_SOURCE_DIR}/components/clib/xy_clib")
+if(EXISTS "${_dir}/CMakeLists.txt")
+    add_subdirectory("${_dir}" "${CMAKE_BINARY_DIR}/components/clib/xy_clib")
+endif()
+
+# =============================================================================
+# Tests
+# =============================================================================
+if(BUILD_TESTING)
+    enable_testing()
+    if(EXISTS "${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt")
+        add_subdirectory(tests)
+    endif()
+endif()
+
+# =============================================================================
+# Configuration summary
+# =============================================================================
+message(STATUS "")
+message(STATUS "┌─ XinYi Framework v${PROJECT_VERSION} ───────────────────")
+message(STATUS "│  Platform  : ${HAL_PLATFORM}")
+message(STATUS "│  Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "│  Testing   : ${BUILD_TESTING}")
+message(STATUS "│  FOTA      : ${XY_FOTA_ENABLED}")
+message(STATUS "└────────────────────────────────────────────────")
+message(STATUS "")
