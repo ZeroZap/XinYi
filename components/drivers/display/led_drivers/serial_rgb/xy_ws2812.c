@@ -6,6 +6,8 @@
  */
 
 #include "xy_ws2812.h"
+#include "xy_device_core.h"
+#include <stdlib.h>
 #include <string.h>
 
 /* ==================== Static Variables ==================== */
@@ -172,7 +174,25 @@ xy_ws2812_error_t xy_ws2812_init(xy_ws2812_handle_t *handle,
     /* Set default GPIO pin */
     s_gpio_pin = config->data_pin;
 
+    /* base.initialized signals "ready for use"; registration is opt-in via
+     * xy_ws2812_register() — mirrors the I2C/SPI device helper pattern. */
+    handle->base.type = XY_DEVICE_TYPE_DISPLAY;
+    handle->base.flags = XY_DEV_FLAG_WRONLY;
+    handle->base.state = XY_DEV_STATE_INIT;
+    handle->base.data = handle;
+    handle->base.initialized = 1;
+
     return WS2812_OK;
+}
+
+xy_ws2812_error_t xy_ws2812_register(xy_ws2812_handle_t *handle, const char *name)
+{
+    if (handle == NULL || name == NULL || !handle->initialized) {
+        return WS2812_ERROR_INVALID_PARAM;
+    }
+    handle->base.name = name;
+    return xy_device_registry_register(&handle->base) == XY_DEVICE_OK
+               ? WS2812_OK : WS2812_ERROR;
 }
 
 void xy_ws2812_deinit(xy_ws2812_handle_t *handle)
@@ -180,6 +200,12 @@ void xy_ws2812_deinit(xy_ws2812_handle_t *handle)
     if (handle == NULL) {
         return;
     }
+
+    if (handle->base.name) {
+        xy_device_registry_unregister(&handle->base);
+        handle->base.name = NULL;
+    }
+    handle->base.initialized = 0;
 
     if (handle->leds != NULL) {
         free(handle->leds);

@@ -8,6 +8,7 @@
 #ifndef XY_WS2812_H
 #define XY_WS2812_H
 
+#include "xy_device.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -75,17 +76,17 @@ typedef struct {
     uint8_t w;                 /**< White component (0-255, for RGBW LEDs) */
 } xy_ws2812_color_t;
 
-/* Predefined colors */
-#define WS2812_COLOR_BLACK     {0, 0, 0, 0}
-#define WS2812_COLOR_WHITE     {255, 255, 255, 0}
-#define WS2812_COLOR_RED       {255, 0, 0, 0}
-#define WS2812_COLOR_GREEN     {0, 255, 0, 0}
-#define WS2812_COLOR_BLUE      {0, 0, 255, 0}
-#define WS2812_COLOR_YELLOW    {255, 255, 0, 0}
-#define WS2812_COLOR_CYAN      {0, 255, 255, 0}
-#define WS2812_COLOR_MAGENTA   {255, 0, 255, 0}
-#define WS2812_COLOR_ORANGE    {255, 128, 0, 0}
-#define WS2812_COLOR_PURPLE    {128, 0, 255, 0}
+/* Predefined colors (compound literals — require C99) */
+#define WS2812_COLOR_BLACK     ((xy_ws2812_color_t){0, 0, 0, 0})
+#define WS2812_COLOR_WHITE     ((xy_ws2812_color_t){255, 255, 255, 0})
+#define WS2812_COLOR_RED       ((xy_ws2812_color_t){255, 0, 0, 0})
+#define WS2812_COLOR_GREEN     ((xy_ws2812_color_t){0, 255, 0, 0})
+#define WS2812_COLOR_BLUE      ((xy_ws2812_color_t){0, 0, 255, 0})
+#define WS2812_COLOR_YELLOW    ((xy_ws2812_color_t){255, 255, 0, 0})
+#define WS2812_COLOR_CYAN      ((xy_ws2812_color_t){0, 255, 255, 0})
+#define WS2812_COLOR_MAGENTA   ((xy_ws2812_color_t){255, 0, 255, 0})
+#define WS2812_COLOR_ORANGE    ((xy_ws2812_color_t){255, 128, 0, 0})
+#define WS2812_COLOR_PURPLE    ((xy_ws2812_color_t){128, 0, 255, 0})
 
 /* ==================== Configuration ==================== */
 
@@ -104,9 +105,10 @@ typedef struct {
 /* ==================== Handle Structure ==================== */
 
 /**
- * @brief WS2812 driver handle
+ * @brief WS2812 driver handle (inherits xy_device_t for framework integration)
  */
 typedef struct {
+    xy_device_t base;                  /**< Base device (must be first) */
     xy_ws2812_config_t config;         /**< Configuration data */
     xy_ws2812_color_t *leds;           /**< LED color buffer */
     uint8_t *tx_buffer;                /**< TX buffer for DMA/Software */
@@ -143,6 +145,12 @@ typedef enum {
  */
 xy_ws2812_error_t xy_ws2812_init(xy_ws2812_handle_t *handle,
                                   xy_ws2812_config_t *config);
+
+/**
+ * @brief Optionally expose the strip through the device framework registry.
+ *        Must be called after xy_ws2812_init. Skippable for anonymous use.
+ */
+xy_ws2812_error_t xy_ws2812_register(xy_ws2812_handle_t *handle, const char *name);
 
 /**
  * @brief Deinitialize WS2812 driver

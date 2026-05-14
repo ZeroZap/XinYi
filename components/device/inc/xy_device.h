@@ -1,4 +1,3 @@
-#include <stdbool.h>
 /**
  * @file xy_device.h
  * @brief XinYi Device Framework - Unified Device Management
@@ -9,10 +8,11 @@
 #ifndef XY_DEVICE_H
 #define XY_DEVICE_H
 
-#include "xy_hal.h"
-#include "xy_device_error.h"
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
+#include "xy_hal.h"
+#include "xy_device_error.h"
 
 /* ==================== Configuration ==================== */
 
@@ -24,9 +24,14 @@
 #define XY_DEVICE_NAME_MAX_LEN 16
 #endif
 
-/* PC platform: include delay functions */
+/* ==================== Mutex stubs (PC single-threaded simulation) ==================== */
 #ifdef HAL_PLATFORM_PC
-#include "../hal/PC/xy_hal_pc.h"
+#include "xy_hal_pc.h"
+typedef int xy_mutex_t;
+#define XY_MUTEX_INITIALIZER 0
+static inline void xy_mutex_init(xy_mutex_t *m) { (void)m; }
+static inline void xy_mutex_lock(xy_mutex_t *m) { (void)m; }
+static inline void xy_mutex_unlock(xy_mutex_t *m) { (void)m; }
 #endif
 
 #ifdef __cplusplus
@@ -157,6 +162,9 @@ typedef void (*xy_sensor_callback_t)(void *data, size_t size, void *arg);
 /**
  * @brief I2C device handle
  */
+/* Forward declaration — allows xy_dev_api_t to reference the struct */
+typedef struct xy_device xy_device_t;
+
 /* ==================== Device Structures ==================== */
 
 /**
@@ -183,7 +191,7 @@ typedef struct xy_dev_api {
 /**
  * @brief Device structure
  */
-typedef struct xy_device {
+struct xy_device {
     const char *name;                 /**< Device name */
     xy_dev_type_t type;               /**< Device type */
     uint32_t flags;                   /**< Device flags */
@@ -195,8 +203,7 @@ typedef struct xy_device {
     uint8_t power_mode;               /**< Power mode */
     uint8_t initialized;              /**< Initialization flag */
     uint16_t reserved;                /**< Reserved for future use */
-    struct xy_device *next;           /**< Linked list pointer */
-} xy_device_t;
+};
 
 /* ==================== I2C/SPI Device Types ==================== */
 
@@ -255,10 +262,26 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
 xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len);
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len);
 
+/**
+ * @brief Optionally expose an initialised I2C device through the framework
+ *        registry so callers can use xy_device_find(name) to retrieve it.
+ *
+ * Must be called after xy_i2c_device_init. Safe to skip when the device is
+ * only consumed via direct pointer access.
+ *
+ * @param dev   Initialised I2C device
+ * @param name  Unique registry name (must outlive the registration)
+ * @param type  Logical device type (e.g. XY_DEV_TYPE_SENSOR)
+ */
+xy_error_t xy_i2c_device_register(xy_i2c_device_t *dev, const char *name, xy_dev_type_t type);
+
 /* SPI Device */
 xy_error_t xy_spi_device_init(xy_spi_device_t *dev, void *spi_handle, void *cs_pin, uint32_t speed, uint8_t mode);
 void xy_spi_device_cs(xy_spi_device_t *dev, bool select);
 xy_error_t xy_spi_device_transfer(xy_spi_device_t *dev, const uint8_t *tx, uint8_t *rx, size_t len);
+
+/** @brief See xy_i2c_device_register; SPI counterpart. */
+xy_error_t xy_spi_device_register(xy_spi_device_t *dev, const char *name, xy_dev_type_t type);
 
 /* UART Device */
 xy_error_t xy_uart_device_init(xy_uart_device_t *dev, void *uart_handle, uint32_t baudrate);
@@ -384,9 +407,9 @@ xy_error_t xy_device_get_info(xy_device_t *dev, xy_dev_info_t *info);
 /**
  * @brief Get device state
  * @param dev Device pointer
- * @return Device state, negative on error
+ * @return Device state, XY_DEV_STATE_ERROR on invalid dev
  */
-int32_t xy_device_get_state(xy_device_t *dev);
+xy_dev_state_t xy_device_get_state(xy_device_t *dev);
 
 /**
  * @brief Enumerate devices
@@ -522,13 +545,20 @@ int xy_device_get_ref_count(const char *name);
         .ref_count = 0, \
         .power_mode = 0, \
         .reserved = 0, \
-        .next = NULL, \
     }; \
     XY_INITIALIZER(xy_register_##name##_device, \
                    XY_INIT_LEVEL_DRIVER, \
                    xy_device_register, &name##_device)
 
 /* ==================== Bus Device Framework ==================== */
+
+/**
+ * @brief Bus device structure (extends xy_device_t with bus operations)
+ */
+typedef struct xy_bus_device {
+    xy_device_t parent;
+    const struct xy_bus_api *bus_api;
+} xy_bus_device_t;
 
 /**
  * @brief Bus operation API structure
@@ -556,41 +586,12 @@ typedef struct xy_bus_node {
     uint8_t reserved[3];             /**< Padding */
 } xy_bus_node_t;
 
-/**
- * @brief Take bus ownership
- * @param bus Bus device pointer
- * @return XY_OK on success, error code on failure
- */
-xy_error_t xy_bus_take(xy_device_t *bus);
-
-/**
- * @brief Release bus ownership
- * @param bus Bus device pointer
- * @return XY_OK on success, error code on failure
- */
-xy_error_t xy_bus_release(xy_device_t *bus);
-
-/**
- * @brief Transfer data on bus
- * @param bus Bus device pointer
- * @param node Bus node device pointer
- * @param send_buf Send buffer
- * @param recv_buf Receive buffer
- * @param length Data length
- * @return XY_OK on success, error code on failure
- */
-xy_error_t xy_bus_transfer(xy_device_t *bus, xy_bus_node_t *node,
+xy_error_t xy_bus_take(xy_bus_device_t *bus);
+xy_error_t xy_bus_release(xy_bus_device_t *bus);
+xy_error_t xy_bus_transfer(xy_bus_device_t *bus, xy_bus_node_t *node,
                           const void *send_buf, void *recv_buf, size_t length);
-
-/**
- * @brief Configure bus node
- * @param bus Bus device pointer
- * @param node Bus node device pointer
- * @param config Configuration data
- * @return XY_OK on success, error code on failure
- */
-xy_error_t xy_bus_configure(xy_device_t *bus, xy_bus_node_t *node, 
-                           const void *config);
+xy_error_t xy_bus_configure(xy_bus_device_t *bus, xy_bus_node_t *node,
+                            const void *config);
 
 /* ==================== Sensor Device Framework ==================== */
 
@@ -649,6 +650,15 @@ typedef struct {
 } xy_sensor_config_t;
 
 /**
+ * @brief Sensor device (extends xy_device_t with sensor operations)
+ */
+typedef struct xy_sensor_device {
+    xy_device_t base;
+    const struct xy_sensor_api *sensor_api;
+    void *sensor_data;
+} xy_sensor_device_t;
+
+/**
  * @brief Sensor device API structure
  */
 typedef struct xy_sensor_api {
@@ -666,31 +676,10 @@ typedef struct xy_sensor_api {
     xy_error_t (*get_power_mode)(struct xy_device *sensor, uint8_t *power_mode);
 } xy_sensor_api_t;
 
-/**
- * @brief Fetch sensor sample
- * @param sensor Sensor device pointer
- * @param channel Channel type
- * @return XY_OK on success, error code on failure
- */
-xy_error_t xy_sensor_sample_fetch(xy_device_t *sensor, xy_sensor_type_t channel);
-
-/**
- * @brief Get sensor channel value
- * @param sensor Sensor device pointer
- * @param channel Channel type
- * @param val Value output
- * @return XY_OK on success, error code on failure
- */
-xy_error_t xy_sensor_channel_get(xy_device_t *sensor, xy_sensor_type_t channel,
+xy_error_t xy_sensor_sample_fetch(void *sensor, xy_sensor_type_t channel);
+xy_error_t xy_sensor_channel_get(void *sensor, xy_sensor_type_t channel,
                                  xy_sensor_value_t *val);
-
-/**
- * @brief Configure sensor
- * @param sensor Sensor device pointer
- * @param config Configuration
- * @return XY_OK on success, error code on failure
- */
-xy_error_t xy_sensor_configure(xy_device_t *sensor, const xy_sensor_config_t *config);
+xy_error_t xy_sensor_configure(void *sensor, const xy_sensor_config_t *config);
 
 /* ==================== Common Device Types ==================== */
 

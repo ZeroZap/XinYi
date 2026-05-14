@@ -116,9 +116,9 @@ xy_device_t *xy_device_find_by_type(xy_device_type_t type, size_t index);
 int xy_device_foreach(xy_device_callback_t callback, void *arg);
 
 /**
- * @brief 获取设备数量
+ * @brief 获取注册表中的设备总数
  */
-size_t xy_device_get_count(void);
+size_t xy_device_registry_count(void);
 
 /**
  * @brief 获取注册表信息
@@ -138,9 +138,9 @@ int xy_device_acquire(xy_device_t *dev);
 int xy_device_release(xy_device_t *dev);
 
 /**
- * @brief 获取设备引用计数
+ * @brief 获取注册表中设备的引用计数
  */
-int xy_device_get_ref_count(xy_device_t *dev);
+int xy_device_registry_ref_count(xy_device_t *dev);
 
 /* ==================== 电源管理 ==================== */
 

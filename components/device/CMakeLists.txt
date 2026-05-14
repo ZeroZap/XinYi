@@ -11,18 +11,12 @@ include_directories(
     ../trace/xy_log/inc
 )
 
-# Collect source files
+# Collect source files (drivers have been moved to components/drivers/)
 set(DEVICE_SOURCES
     src/xy_device.c        # main framework: register/find/open/read/write
     xy_device.c            # device helpers: i2c_device/spi_device/uart_device/gpio_device
     xy_device_core.c       # global registry + idle PM
     src/xy_device_pm.c     # per-device power management ops
-    xy_eeprom_24xx.c
-    xy_oled_ssd1306.c
-    xy_mpu6050.c
-    xy_bmp280.c
-    xy_sht30.c
-    xy_ads1115.c
 )
 
 set(DEVICE_HEADERS
@@ -46,7 +40,7 @@ set(HAL_PLATFORM "PC" CACHE STRING "HAL Platform for device component")
 if(HAL_PLATFORM STREQUAL "PC")
     set(HAL_SOURCES
         ../hal/PC/xy_hal_pc.c
-        ../hal/PC/xy_hal_pin_pc.c
+        ../hal/PC/xy_hal_gpio_pc.c
         ../hal/PC/xy_hal_i2c_pc.c
         ../hal/PC/xy_hal_spi_pc.c
         ../hal/PC/xy_hal_uart_pc.c

@@ -71,6 +71,7 @@ typedef struct xy_lcd_device {
     /* Configuration */
     void *config;                   /**< Interface-specific config */
     void *priv;                     /**< Private data for driver */
+    const void *ops;                /**< Driver operations (xy_lcd_ops_t *) */
 } xy_lcd_device_t;
 
 /**

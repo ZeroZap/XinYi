@@ -203,9 +203,9 @@ int xy_device_foreach(xy_device_callback_t callback, void *arg)
 }
 
 /**
- * @brief 获取设备数量
+ * @brief 获取注册表中的设备总数
  */
-size_t xy_device_get_count(void)
+size_t xy_device_registry_count(void)
 {
     return g_device_count;
 }
@@ -270,9 +270,9 @@ int xy_device_release(xy_device_t *dev)
 }
 
 /**
- * @brief 获取设备引用计数
+ * @brief 获取注册表中设备的引用计数
  */
-int xy_device_get_ref_count(xy_device_t *dev)
+int xy_device_registry_ref_count(xy_device_t *dev)
 {
     if (!g_registry_initialized || !dev) {
         return -1;

@@ -42,21 +42,13 @@ static xy_device_pm_data_t *pm_find_data(xy_device_t *dev)
         return NULL;
     }
     
-    /* 简单实现：使用 user_data 存储指针 */
-    return (xy_device_pm_data_t *)dev->user_data;
+    return (xy_device_pm_data_t *)dev->data;
 }
 
 /**
  * @brief 获取当前时间戳 (毫秒)
  */
 static uint32_t pm_get_tick_ms(void)
-{
-    return xy_hal_get_tick();  /* ✅ 系统 tick */
-    /* 这里使用弱定义，允许用户重写 */
-    return 0;
-}
-
-__attribute__((weak)) uint32_t pm_get_tick_ms(void)
 {
     return 0;
 }
@@ -78,7 +70,7 @@ int xy_device_pm_init(xy_device_t *dev, const xy_device_pm_ops_t *pm_ops)
             if (pm_data[i].ops == NULL) {
                 data = &pm_data[i];
                 memset(data, 0, sizeof(*data));
-                dev->user_data = data;
+                dev->data = data;
                 break;
             }
         }

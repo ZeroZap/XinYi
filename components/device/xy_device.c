@@ -6,6 +6,7 @@
  */
 
 #include "xy_device.h"
+#include "xy_device_core.h"
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -28,8 +29,12 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle,
         return XY_DEVICE_INVALID_PARAM;
     }
 
+    /* Preserve caller-set base.name (used when registering to the device
+     * framework). The wrapper does not assign a default name to avoid
+     * collisions when multiple I2C devices share this helper. */
+    const char *preserved_name = dev->base.name;
     memset(dev, 0, sizeof(*dev));
-    dev->base.name = "i2c_device";
+    dev->base.name = preserved_name;
     dev->base.type = XY_DEVICE_TYPE_I2C;
     dev->i2c_handle = i2c_handle;
     dev->dev_addr = addr;
@@ -125,6 +130,16 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
     return (int)len;
 }
 
+xy_error_t xy_i2c_device_register(xy_i2c_device_t *dev, const char *name, xy_dev_type_t type)
+{
+    if (!dev || !name || !dev->base.initialized) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    dev->base.name = name;
+    dev->base.type = type;
+    return xy_device_registry_register(&dev->base);
+}
+
 /* ==================== SPI Device Implementation ==================== */
 
 xy_error_t xy_spi_device_init(xy_spi_device_t *dev, void *spi_handle, 
@@ -134,8 +149,9 @@ xy_error_t xy_spi_device_init(xy_spi_device_t *dev, void *spi_handle,
         return XY_DEVICE_INVALID_PARAM;
     }
 
+    const char *preserved_name = dev->base.name;
     memset(dev, 0, sizeof(*dev));
-    dev->base.name = "spi_device";
+    dev->base.name = preserved_name;
     dev->base.type = XY_DEVICE_TYPE_SPI;
     dev->spi_handle = spi_handle;
     dev->cs_pin = cs_pin;
@@ -155,8 +171,8 @@ void xy_spi_device_cs(xy_spi_device_t *dev, bool select)
     /* CS low to select - cs_pin is a GPIO handle */
     /* For PC build, we just track state */
 #ifdef HAL_PLATFORM_PC
-    extern int xy_hal_pin_write_handle(void *pin_handle, int state);
-    xy_hal_pin_write_handle(dev->cs_pin, select ? 0 : 1);
+    /* CS is tracked via a flag only — no real GPIO on PC simulation */
+    (void)select;
 #else
     /* For embedded builds, cs_pin should be a struct with port/pin */
     /* This needs platform-specific implementation */
@@ -201,6 +217,16 @@ int xy_spi_device_send(xy_spi_device_t *dev, const uint8_t *data, size_t len)
 int xy_spi_device_recv(xy_spi_device_t *dev, uint8_t *data, size_t len)
 {
     return xy_spi_device_transfer(dev, NULL, data, len);
+}
+
+xy_error_t xy_spi_device_register(xy_spi_device_t *dev, const char *name, xy_dev_type_t type)
+{
+    if (!dev || !name || !dev->base.initialized) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    dev->base.name = name;
+    dev->base.type = type;
+    return xy_device_registry_register(&dev->base);
 }
 
 /* ==================== UART Device Implementation ==================== */
@@ -294,7 +320,7 @@ xy_error_t xy_gpio_device_init(xy_gpio_device_t *dev, void *port, uint8_t pin,
     config.otype = XY_HAL_GPIO_OTYPE_PP;
     config.speed = XY_HAL_GPIO_SPEED_LOW;
 
-    xy_hal_pin_init(port, pin, &config);
+    xy_hal_gpio_init((xy_hal_gpio_port_t)port, pin, &config);
 
     return XY_DEVICE_OK;
 }
@@ -305,7 +331,7 @@ void xy_gpio_device_set(xy_gpio_device_t *dev, bool value)
         return;
     }
 
-    xy_hal_pin_write(dev->gpio_port, dev->gpio_pin, value ? 1 : 0);
+    xy_hal_gpio_write((xy_hal_gpio_port_t)dev->gpio_port, dev->gpio_pin, value ? 1 : 0);
 }
 
 bool xy_gpio_device_get(xy_gpio_device_t *dev)
@@ -314,7 +340,7 @@ bool xy_gpio_device_get(xy_gpio_device_t *dev)
         return false;
     }
 
-    return xy_hal_pin_read(dev->gpio_port, dev->gpio_pin) != 0;
+    return xy_hal_gpio_read((xy_hal_gpio_port_t)dev->gpio_port, dev->gpio_pin) != 0;
 }
 
 xy_error_t xy_gpio_device_toggle(xy_gpio_device_t *dev)
@@ -323,7 +349,7 @@ xy_error_t xy_gpio_device_toggle(xy_gpio_device_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    xy_hal_pin_toggle(dev->gpio_port, dev->gpio_pin);
+    xy_hal_gpio_toggle((xy_hal_gpio_port_t)dev->gpio_port, dev->gpio_pin);
     return XY_DEVICE_OK;
 }
 
