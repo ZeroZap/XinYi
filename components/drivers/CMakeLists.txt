@@ -15,9 +15,14 @@ endif()
 # Include directories
 include_directories(
     inc
+    ../device/inc
+    ../device
     ../hal/inc
     ../kernel/osal
     ../trace/xy_log/inc
+    ../pm/fuel-gauge
+    ../pm/charger
+    ../pm/inc
 )
 
 # Add subdirectories for organized drivers
@@ -50,12 +55,6 @@ file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "samples/.*")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "examples/.*")
-# Exclude external dependency files
-list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*sf_led\\.c$")
-list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*sf_rp2040\\.c$")
-# Exclude problematic legacy code
-list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*led's_fun/.*")
-list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*xy_ls/.*")
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 file(GLOB TEST_SOURCES "test/*.c")

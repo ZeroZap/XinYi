@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include "xy_rng.h"
 #include "../../trace/xy_log/inc/xy_log.h"
-#include "../../xy_clib/xy_string.h"
+#include "xy_string.h"
 
 /* ChaCha20 quarter round macro */
 #define QUARTERROUND(a, b, c, d) \

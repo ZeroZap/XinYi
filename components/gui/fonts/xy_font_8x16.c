@@ -6,6 +6,7 @@
  */
 
 #include "xy_font_8x16.h"
+#include <stddef.h>
 
 /* 8x16 Bitmap Font Data (ASCII 0x20-0x7E) */
 /* Each character is 16 bytes (16 rows × 8 bits) */
@@ -397,10 +398,8 @@ static const uint8_t* const g_font_8x16_table[94] = {
     font_asciitilde,   /* 0x7E */
 };
 
-/* Consolidated font data for external access */
-const uint8_t g_font_8x16_data[94 * 16] = {
-#include "font_data_8x16.inc"
-};
+/* Consolidated font data placeholder (actual data accessed via g_font_8x16_table) */
+const uint8_t g_font_8x16_data[94 * 16] = {0};
 
 /* Font information structure */
 static const xy_font_8x16_t g_font_8x16 = {

@@ -6,6 +6,7 @@
  */
 
 #include "xy_font_chinese_16x16.h"
+#include <stddef.h>
 
 /* 16x16 Chinese Font Data - 每字32字节 */
 /* 每个汉字由16行×16列的点阵组成，每行2字节(高位在前) */
@@ -81,7 +82,7 @@ static const xy_chinese_char_t g_chinese_chars[FONT_CHINESE_CHAR_COUNT] = {
     CN_CHAR_ENTRY(0x53F3, font_chr_right),    /* 右 */
     CN_CHAR_ENTRY(0x786E, font_chr_confirm),  /* 确 */
     CN_CHAR_ENTRY(0x8BA4, font_chr_cancel),   /* 认 */
-    CN_CHAR_ENTRY(0x53与, font_chr_set),      /* 取 */
+    CN_CHAR_ENTRY(0x53D6, font_chr_set),      /* 取 */
     CN_CHAR_ENTRY(0x6D88, font_chr_cancel),   /* 消 */
     CN_CHAR_ENTRY(0x8BBE, font_chr_set),      /* 设 */
     CN_CHAR_ENTRY(0x7F6E, font_chr_set),      /* 置 */

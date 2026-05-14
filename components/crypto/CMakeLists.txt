@@ -14,6 +14,9 @@ endif()
 
 # 包含目录
 include_directories(
+    xy_crc
+    xy_blake
+    xy_25519
     inc
     ../hal/inc
     ../kernel/osal

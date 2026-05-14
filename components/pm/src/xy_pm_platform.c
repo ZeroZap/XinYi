@@ -125,23 +125,10 @@ int xy_charger_hw_init(void)
  * @brief Enable charger hardware
  * @return XY_PM_OK on success, error code otherwise
  */
-int xy_charger_hw_enable(void)
+int xy_charger_hw_enable(int enable)
 {
-#if XY_PLATFORM_STM32
-    /* TODO: xy_hal_gpio_write((void*)CHARGER_EN_PORT, CHARGER_EN_PIN, CHARGER_EN_ACTIVE_HIGH); */
+    (void)enable;
     return XY_PM_OK;
-
-#elif XY_PLATFORM_WCH
-    /* TODO: WCH GPIO write for charger enable */
-    return XY_PM_OK;
-
-#elif XY_PLATFORM_HC32
-    /* TODO: HC32 GPIO write for charger enable */
-    return XY_PM_OK;
-
-#else
-    return XY_PM_OK;
-#endif
 }
 
 /**
@@ -150,7 +137,7 @@ int xy_charger_hw_enable(void)
  */
 int xy_charger_hw_disable(void)
 {
-    return xy_charger_hw_enable();
+    return xy_charger_hw_enable(0);
 }
 
 /**
