@@ -56,14 +56,18 @@ add_executable(test_sensors_multi
     ${FRAMEWORK_SOURCES}
 )
 
+# --- Test 4: SPI device helper + mixed-bus registry ---
+add_executable(test_spi_device test_spi_device.c ${FRAMEWORK_SOURCES})
+
 enable_testing()
 add_test(NAME device_framework  COMMAND test_device)
 add_test(NAME sht30_integration COMMAND test_sht30_integration)
 add_test(NAME sensors_multi     COMMAND test_sensors_multi)
+add_test(NAME spi_device        COMMAND test_spi_device)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_device test_sht30_integration test_sensors_multi
+    DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
     COMMENT "Running unit tests"
 )
