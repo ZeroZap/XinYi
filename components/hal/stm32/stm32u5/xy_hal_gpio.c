@@ -11,15 +11,22 @@
 
 #if defined(STM32U5) || defined(STM32U5xx)
 
-#include "stm32u5xx_hal.h"
+/* Pull in only the GPIO subset of the SDK. The full stm32u5xx_hal.h drags
+ * in ADC/etc headers that need FunctionalState and other defs not present
+ * in the in-tree minimal SDK. */
+#include "stm32u5xx_hal_gpio.h"
+#include "stm32u5xx_hal_cortex.h"
 #include <string.h>
 
+/* IRQ context only needed when EXTI*_IRQn is available. */
+#ifdef EXTI0_IRQn
 typedef struct {
     xy_hal_gpio_irq_handler_t handler;
     void *arg;
 } pin_irq_ctx_t;
 
 static pin_irq_ctx_t g_pin_irq_ctx[16];
+#endif
 
 static uint32_t xy_to_stm32_mode(xy_hal_gpio_mode_t mode)
 {
@@ -53,11 +60,18 @@ static uint32_t xy_to_stm32_speed(xy_hal_gpio_speed_t speed)
     }
 }
 
-/* STM32U5 has one IRQ per EXTI line. */
+/* STM32U5 has one IRQ per EXTI line. The minimal SDK included in-tree may
+ * not define EXTI*_IRQn; in that case the IRQ entry points below return
+ * XY_HAL_ERROR_NOT_SUPPORTED rather than failing to link. */
+#ifdef EXTI0_IRQn
+#define XY_GPIO_HAS_EXTI_IRQ 1
 static IRQn_Type pin_to_irqn(uint8_t pin)
 {
     return (IRQn_Type)(EXTI0_IRQn + pin);
 }
+#else
+#define XY_GPIO_HAS_EXTI_IRQ 0
+#endif
 
 xy_hal_error_t xy_hal_gpio_init(xy_hal_gpio_port_t port, uint8_t pin,
                                 const xy_hal_gpio_config_t *config)
@@ -119,6 +133,7 @@ xy_hal_error_t xy_hal_gpio_toggle(xy_hal_gpio_port_t port, uint8_t pin)
     return XY_HAL_OK;
 }
 
+#if XY_GPIO_HAS_EXTI_IRQ
 xy_hal_error_t xy_hal_gpio_attach_irq(xy_hal_gpio_port_t port, uint8_t pin,
                                       xy_hal_gpio_irq_mode_t mode,
                                       xy_hal_gpio_irq_handler_t handler,
@@ -190,5 +205,36 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         }
     }
 }
+
+#else /* !XY_GPIO_HAS_EXTI_IRQ — SDK lacks EXTI*_IRQn defs */
+
+xy_hal_error_t xy_hal_gpio_attach_irq(xy_hal_gpio_port_t port, uint8_t pin,
+                                      xy_hal_gpio_irq_mode_t mode,
+                                      xy_hal_gpio_irq_handler_t handler,
+                                      void *arg)
+{
+    (void)port; (void)pin; (void)mode; (void)handler; (void)arg;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}
+
+xy_hal_error_t xy_hal_gpio_detach_irq(xy_hal_gpio_port_t port, uint8_t pin)
+{
+    (void)port; (void)pin;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}
+
+xy_hal_error_t xy_hal_gpio_irq_enable(xy_hal_gpio_port_t port, uint8_t pin)
+{
+    (void)port; (void)pin;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}
+
+xy_hal_error_t xy_hal_gpio_irq_disable(xy_hal_gpio_port_t port, uint8_t pin)
+{
+    (void)port; (void)pin;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
+}
+
+#endif /* XY_GPIO_HAS_EXTI_IRQ */
 
 #endif /* STM32U5 || STM32U5xx */

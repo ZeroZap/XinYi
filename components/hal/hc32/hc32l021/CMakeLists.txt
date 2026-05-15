@@ -3,12 +3,6 @@
 # Source files
 set(HAL_HC32L021_SOURCES
     xy_hal_gpio.c
-    xy_hal_uart_device.c
-    xy_hal_adc_device.c
-    xy_hal_i2c_device.c
-    xy_hal_spi_device.c
-    xy_hal_timer_device.c
-    xy_hal_pwm_device.c
     system_hc32l021.c
 )
 

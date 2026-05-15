@@ -21,9 +21,7 @@ set(PLATFORM_DEFINES
 set(PLATFORM_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32u5
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/inc
-    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32U5/Drivers/STM32U5xx_HAL_Driver/Inc
-    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32U5/Drivers/CMSIS/Device/ST/STM32U5xx/Include
-    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32U5/Drivers/CMSIS/Include
+    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32U5/Inc
 )
 
 set(PLATFORM_LINKER_FLAGS "-Wl,--gc-sections -Wl,--print-memory-usage")
