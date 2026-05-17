@@ -11,11 +11,7 @@
 
 #if defined(STM32U5) || defined(STM32U5xx)
 
-/* Pull in only the GPIO subset of the SDK. The full stm32u5xx_hal.h drags
- * in ADC/etc headers that need FunctionalState and other defs not present
- * in the in-tree minimal SDK. */
-#include "stm32u5xx_hal_gpio.h"
-#include "stm32u5xx_hal_cortex.h"
+#include "stm32u5xx_hal.h"
 #include <string.h>
 
 /* IRQ context only needed when EXTI*_IRQn is available. */

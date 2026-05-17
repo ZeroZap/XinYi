@@ -51,13 +51,16 @@ static lptimer_ctx_t *alloc_lptimer_ctx(void)
 }
 
 /**
- * @brief Convert XY clock source to STM32
+ * @brief Convert XY clock source to STM32U5 LPTIM clock source.
+ *
+ * INTERNAL → APB / LSE / LSI (configured separately via RCC).
+ * EXTERNAL → ULPTIM input pin (requires UltraLowPowerClock.{Polarity,SampleTime}).
  */
 static uint32_t xy_to_stm32_clk_src(xy_hal_lptimer_clk_src_t clk_src)
 {
-    XY_UNUSED(clk_src);
-    /* Default to internal clock for STM32U5 */
-    return LPTIM_CLOCKSOURCE_ULPTIM;
+    return (clk_src == XY_HAL_LPTIMER_CLK_EXTERNAL)
+               ? LPTIM_CLOCKSOURCE_ULPTIM
+               : LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
 }
 
 /**
@@ -110,15 +113,17 @@ xy_hal_error_t xy_hal_lptimer_init(void *lptimer,
         }
     }
 
-    hlptim->Init.Clock.Source  = xy_to_stm32_clk_src(config->clk_src);
+    hlptim->Init.Clock.Source    = xy_to_stm32_clk_src(config->clk_src);
     hlptim->Init.Clock.Prescaler = xy_to_stm32_prescaler(config->prescaler);
-    hlptim->Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
-    hlptim->Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
-    hlptim->Init.UpdateMode    = LPTIM_UPDATE_IMMEDIATE;
-    hlptim->Init.CounterSource = LPTIM_COUNTERSOURCE_INTERNAL;
-    hlptim->Init.Input1Source  = LPTIM_INPUT1SOURCE_GPIO;
-    hlptim->Init.Input2Source  = LPTIM_INPUT2SOURCE_GPIO;
-    hlptim->Init.EncoderMode   = LPTIM_ENCODERMODE_DISABLE;
+    hlptim->Init.Trigger.Source  = LPTIM_TRIGSOURCE_SOFTWARE;
+    hlptim->Init.Period          = config->period;
+    hlptim->Init.UpdateMode      = LPTIM_UPDATE_IMMEDIATE;
+    hlptim->Init.CounterSource   = LPTIM_COUNTERSOURCE_INTERNAL;
+    hlptim->Init.Input1Source    = LPTIM_INPUT1SOURCE_GPIO;
+    hlptim->Init.Input2Source    = LPTIM_INPUT2SOURCE_GPIO;
+    /* OutputPolarity / EncoderMode existed on the F4/U1-era LPTIM struct
+     * but were removed in U5 LPTIM v2 — output polarity is now per-channel
+     * via LPTIM_OC_ConfigTypeDef, encoder mode via HAL_LPTIM_Encoder_Start. */
 
     if (HAL_LPTIM_Init(hlptim) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
@@ -167,7 +172,9 @@ xy_hal_error_t xy_hal_lptimer_start(void *lptimer)
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    if (HAL_LPTIM_Start((LPTIM_HandleTypeDef *)lptimer) != HAL_OK) {
+    /* U5 LPTIM v2 has no generic HAL_LPTIM_Start — pick a mode.  We use
+     * Counter_Start_IT so AutoreloadMatch callback fires every Period ticks. */
+    if (HAL_LPTIM_Counter_Start_IT((LPTIM_HandleTypeDef *)lptimer) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
 
@@ -185,7 +192,7 @@ xy_hal_error_t xy_hal_lptimer_stop(void *lptimer)
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    if (HAL_LPTIM_Stop((LPTIM_HandleTypeDef *)lptimer) != HAL_OK) {
+    if (HAL_LPTIM_Counter_Stop_IT((LPTIM_HandleTypeDef *)lptimer) != HAL_OK) {
         return XY_HAL_ERROR_FAIL;
     }
 

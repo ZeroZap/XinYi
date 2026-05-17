@@ -35,13 +35,15 @@ elseif(HAL_PLATFORM STREQUAL "STM32U5")
         "stm32/stm32u5/*.c"
         "stm32/src/*.c"
     )
-    # Exclude example_usage.c (outdated examples).
-    list(REMOVE_ITEM HAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/stm32/stm32u5/example_usage.c")
-    # Files that require STM32U5 GPDMA / EXTI-v2 / new ADC / full I2C v2 —
-    # architecture-level rewrites needed; keep excluded until addressed.
-    foreach(_drifted
-        xy_hal_adc.c xy_hal_can.c xy_hal_dma.c xy_hal_exti.c
-        xy_hal_i2c.c xy_hal_i2s.c xy_hal_lp_timer.c)
+    # Excluded — these need architectural rewrites, not simple ports:
+    #   dma: U5 GPDMA is request/source-destination based with different
+    #        Init fields (SrcInc/DestInc/SrcDataWidth/Request/...) and a
+    #        different counter register; current .c is F4-stream code.
+    #   can: U5 has only FDCAN.  Needs a full FDCAN_HandleTypeDef +
+    #        HAL_FDCAN_* port — basically a new file.
+    #   i2s: U5 has no `stm32u5xx_hal_i2s.h` at all; I2S piggybacks on the
+    #        SPI peripheral and would need an SPI-in-I2S-mode wrapper.
+    foreach(_drifted xy_hal_can.c xy_hal_dma.c xy_hal_i2s.c)
         list(REMOVE_ITEM HAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/stm32/stm32u5/${_drifted}")
     endforeach()
     set(HAL_DEFINES
@@ -83,6 +85,3 @@ if(DEFINED STM32U5_HAL_PATH)
     target_include_directories(xy_hal PRIVATE ${STM32U5_HAL_PATH}/Inc)
 endif()
 
-# Add HC32L021 HAL support
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hc32l021/CMakeLists.txt)
-endif()

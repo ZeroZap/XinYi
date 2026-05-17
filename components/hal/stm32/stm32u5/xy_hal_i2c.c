@@ -66,17 +66,23 @@ static uint32_t xy_to_stm32_addr_mode(xy_hal_i2c_addr_mode_t addr_mode)
 }
 
 /**
- * @brief Convert XY duty cycle to STM32
+ * @brief Pick a Timing register value for a given target SCL frequency.
+ *
+ * STM32U5 I2C v3 dropped the V1 duty-cycle concept; SCL low/high time,
+ * setup and hold delays are all packed into the 32-bit TIMINGR register
+ * and must be precomputed for the actual I2C kernel clock.  These defaults
+ * assume I2CCLK = 16 MHz (HSI default after reset).  Apps clocked from
+ * other sources should pre-set `hi2c->Init.Timing` to a value computed
+ * with STM32CubeMX or AN4235 before calling xy_hal_i2c_init.
  */
-static uint32_t xy_to_stm32_duty(xy_hal_i2c_duty_t duty)
+static uint32_t default_timing_for(uint32_t hz)
 {
-    switch (duty) {
-    case XY_HAL_I2C_DUTY_2:
-        return I2C_DUTY_2;
-    case XY_HAL_I2C_DUTY_16_9:
-        return I2C_DUTY_16_9;
-    default:
-        return I2C_DUTY_2;
+    if (hz <= 100000U) {
+        return 0x00303D5BU;   /* 100 kHz Standard Mode  @ I2CCLK = 16 MHz */
+    } else if (hz <= 400000U) {
+        return 0x0010061AU;   /* 400 kHz Fast Mode      @ I2CCLK = 16 MHz */
+    } else {
+        return 0x00100002U;   /* 1 MHz   Fast Mode Plus @ I2CCLK = 16 MHz */
     }
 }
 
@@ -102,10 +108,11 @@ xy_hal_error_t xy_hal_i2c_init(void *i2c, const xy_hal_i2c_config_t *config)
         }
     }
 
-    hi2c->Init.Timing           = __LL_I2C_CONVERT_TIMINGS(
-        I2C_PRESC_MAX, I2C_SCLDEL_MAX, I2C_SDADEL_MAX, I2C_SCLH_MAX, I2C_SCLL_MAX);
+    if (hi2c->Init.Timing == 0U) {
+        hi2c->Init.Timing = default_timing_for(config->clock_speed);
+    }
     hi2c->Init.OwnAddress1      = config->own_address;
-    hi2c->Init.Address1Mode     = xy_to_stm32_addr_mode(config->addr_mode);
+    hi2c->Init.AddressingMode   = xy_to_stm32_addr_mode(config->addr_mode);
     hi2c->Init.OwnAddress2      = 0;
     hi2c->Init.OwnAddress2Masks = I2C_OA2_NOMASK;
     hi2c->Init.DualAddressMode  = I2C_DUALADDRESS_DISABLE;
