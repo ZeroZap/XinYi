@@ -45,15 +45,39 @@ elseif(HAL_PLATFORM STREQUAL "STM32U5")
     message(STATUS "XY HAL: Building for STM32U5")
 
 elseif(HAL_PLATFORM STREQUAL "WCH")
-    # WCH CH32 implementation
+    # WCH CH32V — XY HAL wrappers under wch/ch32x/src/ + vendor SDK peripheral
+    # drivers from MCU/wch/<chip>/SRC/Peripheral/src/.
+    if(NOT DEFINED WCH_CHIP)
+        set(WCH_CHIP CH32V30x)
+    endif()
     file(GLOB HAL_SOURCES
-        "wch/*.c"
+        "wch/ch32x/src/*.c"
+        "${CMAKE_SOURCE_DIR}/MCU/wch/${WCH_CHIP}/SRC/Peripheral/src/*.c"
     )
     set(HAL_DEFINES
         HAL_PLATFORM_WCH
-        WCH
+        MCU_CH32
+        ${WCH_CHIP}
     )
-    message(STATUS "XY HAL: Building for WCH")
+    message(STATUS "XY HAL: Building for WCH (chip=${WCH_CHIP})")
+
+elseif(HAL_PLATFORM STREQUAL "HC32")
+    # HC32 implementation — XY wrappers live under hc32/<chip>/, vendor SDK
+    # drivers are compiled directly from MCU/HC32/<CHIP>/driver/src/.
+    if(NOT DEFINED HC32_CHIP)
+        set(HC32_CHIP HC32L021)
+    endif()
+    string(TOLOWER "${HC32_CHIP}" _HC32_CHIP_LOWER)
+    file(GLOB HAL_SOURCES
+        "hc32/${_HC32_CHIP_LOWER}/*.c"
+        "${CMAKE_SOURCE_DIR}/MCU/HC32/${HC32_CHIP}/driver/src/*.c"
+        "${CMAKE_SOURCE_DIR}/MCU/HC32/${HC32_CHIP}/mcu/common/system_*.c"
+    )
+    set(HAL_DEFINES
+        HAL_PLATFORM_HC32
+        ${HC32_CHIP}
+    )
+    message(STATUS "XY HAL: Building for HC32 (chip=${HC32_CHIP})")
 
 else()
     message(FATAL_ERROR "Unsupported HAL_PLATFORM: ${HAL_PLATFORM}")

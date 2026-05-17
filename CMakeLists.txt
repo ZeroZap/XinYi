@@ -10,20 +10,30 @@ if(NOT HAL_PLATFORM STREQUAL "PC")
     # Bare-metal: suppress compiler link-test (no startup/libc yet)
     set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-    set(CMAKE_SYSTEM_NAME    Generic)
-    set(CMAKE_SYSTEM_PROCESSOR arm)
+    set(CMAKE_SYSTEM_NAME Generic)
 
-    # ARM toolchain — override with -DTOOLCHAIN_PATH=... if installed elsewhere
-    set(TOOLCHAIN_PATH "/home/eugene/Tools/arm-gnu-toolchain/bin"
-        CACHE PATH "arm-none-eabi toolchain bin directory")
+    if(HAL_PLATFORM STREQUAL "WCH")
+        # WCH CH32V — RISC-V 32-bit, MRS-bundled toolchain (riscv32-wch-elf-).
+        set(CMAKE_SYSTEM_PROCESSOR riscv)
+        set(TOOLCHAIN_PATH
+            "/usr/share/MRS2/MRS-linux-x64/resources/app/resources/linux/components/WCH/Toolchain/RISC-V Embedded GCC15/bin"
+            CACHE PATH "WCH RISC-V toolchain bin directory")
+        set(_TC_PREFIX "riscv32-wch-elf")
+    else()
+        # STM32 / HC32 — ARM Cortex-M family, arm-none-eabi-gcc.
+        set(CMAKE_SYSTEM_PROCESSOR arm)
+        set(TOOLCHAIN_PATH "/home/eugene/Tools/arm-gnu-toolchain/bin"
+            CACHE PATH "arm-none-eabi toolchain bin directory")
+        set(_TC_PREFIX "arm-none-eabi")
+    endif()
 
-    set(CMAKE_C_COMPILER   "${TOOLCHAIN_PATH}/arm-none-eabi-gcc"     CACHE FILEPATH "" FORCE)
-    set(CMAKE_ASM_COMPILER "${TOOLCHAIN_PATH}/arm-none-eabi-gcc"     CACHE FILEPATH "" FORCE)
-    set(CMAKE_AR           "${TOOLCHAIN_PATH}/arm-none-eabi-ar"      CACHE FILEPATH "" FORCE)
-    set(CMAKE_RANLIB       "${TOOLCHAIN_PATH}/arm-none-eabi-ranlib"  CACHE FILEPATH "" FORCE)
-    set(CMAKE_SIZE         "${TOOLCHAIN_PATH}/arm-none-eabi-size"    CACHE FILEPATH "" FORCE)
-    set(CMAKE_OBJCOPY      "${TOOLCHAIN_PATH}/arm-none-eabi-objcopy" CACHE FILEPATH "" FORCE)
-    set(CMAKE_OBJDUMP      "${TOOLCHAIN_PATH}/arm-none-eabi-objdump" CACHE FILEPATH "" FORCE)
+    set(CMAKE_C_COMPILER   "${TOOLCHAIN_PATH}/${_TC_PREFIX}-gcc"     CACHE FILEPATH "" FORCE)
+    set(CMAKE_ASM_COMPILER "${TOOLCHAIN_PATH}/${_TC_PREFIX}-gcc"     CACHE FILEPATH "" FORCE)
+    set(CMAKE_AR           "${TOOLCHAIN_PATH}/${_TC_PREFIX}-ar"      CACHE FILEPATH "" FORCE)
+    set(CMAKE_RANLIB       "${TOOLCHAIN_PATH}/${_TC_PREFIX}-ranlib"  CACHE FILEPATH "" FORCE)
+    set(CMAKE_SIZE         "${TOOLCHAIN_PATH}/${_TC_PREFIX}-size"    CACHE FILEPATH "" FORCE)
+    set(CMAKE_OBJCOPY      "${TOOLCHAIN_PATH}/${_TC_PREFIX}-objcopy" CACHE FILEPATH "" FORCE)
+    set(CMAKE_OBJDUMP      "${TOOLCHAIN_PATH}/${_TC_PREFIX}-objdump" CACHE FILEPATH "" FORCE)
 
     set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
     set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
