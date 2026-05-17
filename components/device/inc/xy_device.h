@@ -553,24 +553,32 @@ int xy_device_get_ref_count(const char *name);
 #endif
 
 /**
- * @brief Device register convenience macro
+ * @brief Declare a static xy_device_t and auto-register it before main().
+ *
+ * On GCC targets the registration runs via a constructor at
+ * XY_INIT_LEVEL_DRIVER.  `xy_device_registry_register` lazy-initialises
+ * the registry, so no explicit `xy_device_init()` call is required first.
  */
-#define XY_DEVICE_REGISTER(name, type, init_func, api_ptr, config_ptr) \
-    static xy_device_t name##_device = { \
-        .name = #name, \
-        .type = type, \
+/* Parameter names are deliberately uppercase to avoid colliding with the
+ * struct field designators below (.name / .type / .flags / ...) — when a
+ * macro parameter shares an identifier with a designator, the preprocessor
+ * replaces both, silently breaking the initializer. */
+#define XY_DEVICE_REGISTER(_NAME, _TYPE, _API, _CONFIG) \
+    static xy_device_t _NAME##_device = { \
+        .name = #_NAME, \
+        .type = (_TYPE), \
         .flags = XY_DEV_FLAG_RDWR, \
         .state = XY_DEV_STATE_INIT, \
-        .api = api_ptr, \
-        .config = config_ptr, \
+        .api = (_API), \
+        .config = (_CONFIG), \
         .data = NULL, \
         .ref_count = 0, \
         .power_mode = 0, \
         .reserved = 0, \
     }; \
-    XY_INITIALIZER(xy_register_##name##_device, \
+    XY_INITIALIZER(xy_register_##_NAME##_device, \
                    XY_INIT_LEVEL_DRIVER, \
-                   xy_device_register, &name##_device)
+                   xy_device_register, &_NAME##_device)
 
 /* ==================== Bus Device Framework ==================== */
 

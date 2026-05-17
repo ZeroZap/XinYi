@@ -59,6 +59,9 @@ add_executable(test_sensors_multi
 # --- Test 4: SPI device helper + mixed-bus registry ---
 add_executable(test_spi_device test_spi_device.c ${FRAMEWORK_SOURCES})
 
+# --- Test 6: XY_DEVICE_REGISTER auto-registration via GCC constructors ---
+add_executable(test_auto_register test_auto_register.c ${FRAMEWORK_SOURCES})
+
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
@@ -86,11 +89,12 @@ add_test(NAME sht30_integration COMMAND test_sht30_integration)
 add_test(NAME sensors_multi     COMMAND test_sensors_multi)
 add_test(NAME spi_device        COMMAND test_spi_device)
 add_test(NAME osal_baremetal    COMMAND test_osal)
+add_test(NAME auto_register     COMMAND test_auto_register)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
-            test_osal
+            test_osal test_auto_register
     COMMENT "Running unit tests"
 )
