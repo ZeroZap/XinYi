@@ -131,6 +131,10 @@ int xy_pm_stop_charging(void);
 bool xy_pm_is_charging(void);
 uint8_t xy_pm_get_soc(void);
 
+/* ADC functions (implemented in xy_pm_adc.c) */
+int xy_pm_adc_init(void);
+int xy_pm_adc_read(uint32_t *value);
+
 /* Platform-specific functions (implemented in xy_pm_platform.c) */
 uint32_t xy_pm_tick_get(void);
 const char* xy_pm_get_platform_name(void);

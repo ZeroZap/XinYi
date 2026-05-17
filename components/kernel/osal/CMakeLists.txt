@@ -98,6 +98,18 @@ else()
     message(FATAL_ERROR "Invalid OSAL backend: ${OSAL_BACKEND}")
 endif()
 
+# ==================== Baremetal Pool Configuration ====================
+
+if(OSAL_BACKEND STREQUAL "baremetal")
+    set(XY_OS_BM_MAX_MUTEX   8   CACHE STRING "Baremetal max mutex objects")
+    set(XY_OS_BM_MAX_SEM     8   CACHE STRING "Baremetal max semaphore objects")
+    set(XY_OS_BM_MAX_EVENT   8   CACHE STRING "Baremetal max event flag objects")
+    set(XY_OS_BM_MAX_QUEUE   8   CACHE STRING "Baremetal max message queue objects")
+    set(XY_OS_BM_MAX_POOL    4   CACHE STRING "Baremetal max memory pool objects")
+    set(XY_OS_BM_MQ_BUF_SIZE   256 CACHE STRING "Baremetal MQ embedded buffer size (bytes)")
+    set(XY_OS_BM_POOL_BUF_SIZE 128 CACHE STRING "Baremetal pool embedded block storage (bytes)")
+endif()
+
 # ==================== Feature Configuration ====================
 
 option(XY_OS_FEATURE_THREAD "Enable thread management" ON)
@@ -141,6 +153,19 @@ target_include_directories(xy_osal PUBLIC
 target_compile_definitions(xy_osal PUBLIC
     ${OSAL_BACKEND_DEFINITIONS}
 )
+
+# Baremetal pool size definitions
+if(OSAL_BACKEND STREQUAL "baremetal")
+    target_compile_definitions(xy_osal PUBLIC
+        XY_OS_BM_MAX_MUTEX=${XY_OS_BM_MAX_MUTEX}
+        XY_OS_BM_MAX_SEM=${XY_OS_BM_MAX_SEM}
+        XY_OS_BM_MAX_EVENT=${XY_OS_BM_MAX_EVENT}
+        XY_OS_BM_MAX_QUEUE=${XY_OS_BM_MAX_QUEUE}
+        XY_OS_BM_MAX_POOL=${XY_OS_BM_MAX_POOL}
+        XY_OS_BM_MQ_BUF_SIZE=${XY_OS_BM_MQ_BUF_SIZE}
+        XY_OS_BM_POOL_BUF_SIZE=${XY_OS_BM_POOL_BUF_SIZE}
+    )
+endif()
 
 # Feature definitions
 if(XY_OS_FEATURE_THREAD)

@@ -17,7 +17,7 @@ echo "[1/3] Compiling..."
 arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=softfp \
     -mfpu=fpv4-sp-d16 -O0 -g3 \
     -o components_test.elf src/main.c src/startup.c \
-    -nostdlib -T stm32f405rg.ld
+    -nostdlib -T ../stm32f405rg.ld
 
 echo "      ✓ Compiled: components_test.elf"
 arm-none-eabi-size components_test.elf | tail -1

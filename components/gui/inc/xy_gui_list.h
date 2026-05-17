@@ -42,6 +42,8 @@ int xy_gui_list_set_selected(xy_gui_list_t *list, int16_t index);
 int16_t xy_gui_list_get_selected(xy_gui_list_t *list);
 const char* xy_gui_list_get_item_text(xy_gui_list_t *list, uint16_t index);
 int xy_gui_list_set_select_cb(xy_gui_list_t *list, xy_gui_event_cb_t cb, void *user_data);
+int xy_gui_list_draw(xy_gui_list_t *list, void *fb, uint16_t fb_w, uint16_t fb_h);
+int xy_gui_list_update(xy_gui_list_t *list, xy_gui_event_t *event);
 
 #ifdef __cplusplus
 }

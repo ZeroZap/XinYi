@@ -12,12 +12,12 @@ else()
     add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Include directories
+# Include directories (clib before xy_log/inc so xy_stdio.h resolves to the real one)
 include_directories(
     inc
+    ../clib/xy_clib
     xy_log/inc
     ../kernel/osal
-    ../clib/xy_clib
 )
 
 # Collect source files

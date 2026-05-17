@@ -7,14 +7,54 @@
  */
 
 #include "../inc/xy_pm.h"
+#include "xy_log.h"
 #include <string.h>
 
-/* Stub logging macros */
-#define xy_log_i(fmt, ...)    do { } while(0)
-#define xy_log_w(fmt, ...)     do { } while(0)
-#define xy_log_d(fmt, ...)     do { } while(0)
+/* Platform detection — must precede any use of platform-specific macros */
+#if defined(STM32U5) || defined(STM32F4) || defined(STM32F1) || defined(STM32L4)
+#define XY_PLATFORM_STM32     1
+#else
+#define XY_PLATFORM_STM32     0
+#endif
 
-#define LOCAL_LOG_LEVEL XY_LOG_LEVEL_INFO
+#if defined(MCU_CH32) || defined(CH32V103) || defined(CH32V20X)
+#define XY_PLATFORM_WCH       1
+#else
+#define XY_PLATFORM_WCH       0
+#endif
+
+/* Platform tick source */
+#if XY_PLATFORM_STM32
+extern uint32_t HAL_GetTick(void);
+#define xy_os_tick_get()  HAL_GetTick()
+#elif XY_PLATFORM_WCH
+static volatile uint32_t g_chg_tick = 0;
+#define xy_os_tick_get()  (g_chg_tick += 1000)
+#else
+extern uint32_t xy_pm_tick_get(void);
+#define xy_os_tick_get()  xy_pm_tick_get()
+#endif
+
+/* Charger GPIO control */
+#if XY_PLATFORM_STM32
+#include "xy_hal_gpio.h"
+/* Device header for GPIO peripheral base addresses (GPIOA etc.) */
+#if defined(STM32U5) || defined(STM32U5xx)
+#  include "stm32u5xx.h"
+#elif defined(STM32F4) || defined(STM32F4xx)
+#  include "stm32f4xx.h"
+#elif defined(STM32F1) || defined(STM32F1xx)
+#  include "stm32f1xx.h"
+#elif defined(STM32L4) || defined(STM32L4xx)
+#  include "stm32l4xx.h"
+#endif
+#ifndef CHARGER_EN_PORT
+#define CHARGER_EN_PORT   GPIOA
+#endif
+#ifndef CHARGER_EN_PIN
+#define CHARGER_EN_PIN    0
+#endif
+#endif
 
 /* 充电状态机 */
 typedef struct {
@@ -190,42 +230,6 @@ bool xy_charger_is_charging(void)
 {
     return s_charger.initialized && s_charger.enabled && s_charger.state.charging;
 }
-
-/* Platform-specific tick wrapper - uses real OS tick when available */
-#if defined(STM32U5) || defined(STM32F4) || defined(STM32F1) || defined(STM32L4)
-#define XY_PLATFORM_STM32     1
-#else
-#define XY_PLATFORM_STM32     0
-#endif
-
-#if defined(MCU_CH32) || defined(CH32V103) || defined(CH32V20X)
-#define XY_PLATFORM_WCH       1
-#else
-#define XY_PLATFORM_WCH       0
-#endif
-
-/* Use platform tick if available */
-#if XY_PLATFORM_STM32
-extern uint32_t HAL_GetTick(void);
-#define xy_os_tick_get()  HAL_GetTick()
-#elif XY_PLATFORM_WCH
-static volatile uint32_t g_chg_tick = 0;
-#define xy_os_tick_get()  (g_chg_tick += 1000)
-#else
-extern uint32_t xy_pm_tick_get(void);
-#define xy_os_tick_get()  xy_pm_tick_get()
-#endif
-
-/* Charger GPIO control - real implementation in xy_pm_platform.c */
-#if XY_PLATFORM_STM32
-#include "xy_hal_gpio.h"
-#ifndef CHARGER_EN_PORT
-#define CHARGER_EN_PORT   GPIOA
-#endif
-#ifndef CHARGER_EN_PIN
-#define CHARGER_EN_PIN    0
-#endif
-#endif
 
 int xy_charger_hw_enable(int enable)
 {

@@ -6,6 +6,7 @@
  */
 
 #include "xy_sht30.h"
+#include "xy_hal_delay.h"
 #include <string.h>
 
 /* SHT30 Commands */

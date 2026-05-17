@@ -268,7 +268,7 @@ xy_hal_error_t xy_hal_pwm_set_duty_cycle(void *timer,
     return XY_HAL_OK;
 }
 
-int xy_hal_pwm_get_duty_cycle(void *timer, xy_hal_pwm_channel_t channel)
+int32_t xy_hal_pwm_get_duty_cycle(void *timer, xy_hal_pwm_channel_t channel)
 {
     if (!timer) {
         return XY_HAL_ERROR_INVALID_PARAM;
@@ -288,8 +288,10 @@ int xy_hal_pwm_get_duty_cycle(void *timer, xy_hal_pwm_channel_t channel)
     return (int)((compare * 10000) / period);
 }
 
-xy_hal_error_t xy_hal_pwm_set_frequency(void *timer, uint32_t frequency)
+xy_hal_error_t xy_hal_pwm_set_frequency(void *timer, xy_hal_pwm_channel_t channel,
+                                        uint32_t frequency)
 {
+    XY_UNUSED(channel);
     if (!timer || frequency == 0) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
@@ -321,8 +323,9 @@ xy_hal_error_t xy_hal_pwm_set_frequency(void *timer, uint32_t frequency)
     return XY_HAL_OK;
 }
 
-int xy_hal_pwm_get_frequency(void *timer)
+int32_t xy_hal_pwm_get_frequency(void *timer, xy_hal_pwm_channel_t channel)
 {
+    XY_UNUSED(channel);
     if (!timer) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
@@ -332,7 +335,7 @@ int xy_hal_pwm_get_frequency(void *timer)
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    return (int)ctx->frequency;
+    return (int32_t)ctx->frequency;
 }
 
 #endif /* STM32U5 || STM32U5xx */

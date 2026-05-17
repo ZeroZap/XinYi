@@ -7,7 +7,7 @@
 #ifndef XY_OS_TICK_H
 #define XY_OS_TICK_H
 
-#include "xy_os_types.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

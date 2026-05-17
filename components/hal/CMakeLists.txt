@@ -37,14 +37,11 @@ elseif(HAL_PLATFORM STREQUAL "STM32U5")
     )
     # Exclude example_usage.c (outdated examples).
     list(REMOVE_ITEM HAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/stm32/stm32u5/example_usage.c")
-    # Pre-existing STM32U5 HAL impls with macro/signature drift against the
-    # in-tree minimal SDK headers. Excluded so the platform can at least
-    # build the unified API (xy_hal_gpio.c). Fix these as needed.
+    # Files that require STM32U5 GPDMA / EXTI-v2 / new ADC / full I2C v2 —
+    # architecture-level rewrites needed; keep excluded until addressed.
     foreach(_drifted
-        xy_hal_adc.c xy_hal_can.c xy_hal_dac.c xy_hal_dma.c xy_hal_exti.c
-        xy_hal_flash.c xy_hal_i2c.c xy_hal_i2s.c xy_hal_lp_timer.c
-        xy_hal_pwm.c xy_hal_rng.c xy_hal_rtc.c xy_hal_spi.c xy_hal_timer.c
-        xy_hal_uart.c xy_hal_wdg.c)
+        xy_hal_adc.c xy_hal_can.c xy_hal_dma.c xy_hal_exti.c
+        xy_hal_i2c.c xy_hal_i2s.c xy_hal_lp_timer.c)
         list(REMOVE_ITEM HAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/stm32/stm32u5/${_drifted}")
     endforeach()
     set(HAL_DEFINES

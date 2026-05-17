@@ -17,6 +17,7 @@ include_directories(
     inc
     ../kernel/misc
     ../kernel/osal
+    ../kernel/osal/inc
     ../trace/xy_log/inc
 )
 

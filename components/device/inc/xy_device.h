@@ -530,6 +530,28 @@ int xy_device_get_ref_count(const char *name);
 #define XY_DEVICE_CONTROL(dev, cmd, args) \
     xy_device_control(dev, cmd, args)
 
+/* ==================== Auto-init infrastructure ==================== */
+
+/* Priority levels for constructor ordering (lower number = earlier execution) */
+#ifndef XY_INIT_LEVEL_DRIVER
+#define XY_INIT_LEVEL_DRIVER   0
+#define XY_INIT_LEVEL_SUBSYS   1
+#define XY_INIT_LEVEL_APP      2
+#endif
+
+/* XY_INITIALIZER: wrap fn so it runs before main() via GCC constructor attribute.
+ * Priority 101-103 keeps us after libc (priority 0-100) and before user code. */
+#ifndef XY_INITIALIZER
+#ifdef __GNUC__
+#define XY_INITIALIZER(sym, level, fn, arg)                                    \
+    static void __attribute__((constructor(101 + (level))))                     \
+    __xy_init_##sym(void) { (fn)(arg); }
+#else
+/* Fallback for non-GCC: caller must invoke registration manually */
+#define XY_INITIALIZER(sym, level, fn, arg)
+#endif
+#endif
+
 /**
  * @brief Device register convenience macro
  */

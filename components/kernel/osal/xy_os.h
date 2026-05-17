@@ -913,4 +913,7 @@ xy_os_status_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id);
 }
 #endif
 
+/* Pull in tick API so legacy #include "xy_os.h" also provides xy_os_tick_get */
+#include "inc/xy_os_tick.h"
+
 #endif /* _XY_OS_H_ */

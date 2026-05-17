@@ -240,7 +240,7 @@ int xy_gui_widget_set_value(xy_gui_widget_t *widget,
 /**
  * @brief 获取值
  */
-int32_t xy_gui_widget_get_value(xy_gui_widget_t *widget);
+int xy_gui_widget_get_value(xy_gui_widget_t *widget);
 
 /**
  * @brief 设置事件回调

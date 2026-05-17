@@ -19,6 +19,7 @@ include_directories(
     ../device
     ../hal/inc
     ../kernel/osal
+    ../kernel/osal/inc
     ../trace/xy_log/inc
     ../pm/fuel-gauge
     ../pm/charger
@@ -55,6 +56,9 @@ file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "samples/.*")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "examples/.*")
+# Display LCD drivers use old xy_gpio_write / xy_spi_transmit API (incompatible
+# with current xy_hal_gpio / xy_hal_spi signatures) — exclude until refactored.
+list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*/display/.*")
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 file(GLOB TEST_SOURCES "test/*.c")

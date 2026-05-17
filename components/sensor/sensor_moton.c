@@ -1,4 +1,5 @@
 #include "sensor_core.h"
+#include <math.h>
 
 #if SENSOR_ENABLE_MOTION_DETECT
 

@@ -342,10 +342,7 @@ xy_hal_error_t xy_hal_rtc_enable_alarm(void *rtc, char alarm_id)
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    if (HAL_RTC_AlarmIRQCommand((RTC_HandleTypeDef *)rtc, RTC_ALARM_A,
-                                ENABLE) != HAL_OK) {
-        return XY_HAL_ERROR_FAIL;
-    }
+    __HAL_RTC_ALARM_ENABLE_IT((RTC_HandleTypeDef *)rtc, RTC_IT_ALRA);
 
     return XY_HAL_OK;
 }
@@ -362,10 +359,7 @@ xy_hal_error_t xy_hal_rtc_disable_alarm(void *rtc, char alarm_id)
         return XY_HAL_ERROR_NOT_INIT;
     }
 
-    if (HAL_RTC_AlarmIRQCommand((RTC_HandleTypeDef *)rtc, RTC_ALARM_A,
-                                DISABLE) != HAL_OK) {
-        return XY_HAL_ERROR_FAIL;
-    }
+    __HAL_RTC_ALARM_DISABLE_IT((RTC_HandleTypeDef *)rtc, RTC_IT_ALRA);
 
     return XY_HAL_OK;
 }
@@ -430,7 +424,7 @@ xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp)
 
     /* Convert timestamp to date/time - simplified implementation */
     XY_UNUSED(timestamp);
-    return XY_HAL_ERROR_NOT_SUPPORT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 /* ==================== HAL Callbacks ==================== */

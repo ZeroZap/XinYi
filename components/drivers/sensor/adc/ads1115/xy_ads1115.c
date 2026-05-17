@@ -6,6 +6,7 @@
  */
 
 #include "xy_ads1115.h"
+#include "xy_hal_delay.h"
 #include <string.h>
 
 /* ADS1115 Registers */

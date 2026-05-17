@@ -1,4 +1,5 @@
 #include "sensor_core.h"
+#include <stdio.h>
 
 #if SENSOR_ENABLE_SELF_TEST
 

@@ -28,6 +28,11 @@ typedef enum {
     XY_HAL_ERROR_CRC = -11,
     XY_HAL_ERROR_OVERFLOW = -12,
     XY_HAL_ERROR_NOT_INIT = -13,
+    XY_HAL_ERROR_ALREADY_INIT = -14,
 } xy_hal_error_t;
+
+#ifndef XY_UNUSED
+#define XY_UNUSED(x) ((void)(x))
+#endif
 
 #endif /* XY_HAL_ERROR_H */

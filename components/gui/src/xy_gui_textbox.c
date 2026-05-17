@@ -10,6 +10,7 @@
 #include "../inc/xy_gui_draw.h"
 #include "xy_font.h"
 #include "xy_log.h"
+#include "xy_os_tick.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

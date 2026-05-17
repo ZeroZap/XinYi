@@ -59,15 +59,38 @@ add_executable(test_sensors_multi
 # --- Test 4: SPI device helper + mixed-bus registry ---
 add_executable(test_spi_device test_spi_device.c ${FRAMEWORK_SOURCES})
 
+# --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
+set(OSAL_ROOT ${ROOT}/components/kernel)
+
+add_executable(test_osal
+    test_osal.c
+    ${OSAL_ROOT}/osal/backend/baremetal/xy_os_baremetal.c
+    ${OSAL_ROOT}/osal/src/xy_os_tick.c
+    ${OSAL_ROOT}/misc/xy_tick.c
+    ${OSAL_ROOT}/misc/xy_timer_sw.c
+)
+target_include_directories(test_osal PRIVATE
+    ${OSAL_ROOT}/osal
+    ${OSAL_ROOT}/osal/inc
+    ${OSAL_ROOT}/osal/backend/baremetal
+    ${OSAL_ROOT}/misc
+)
+target_compile_definitions(test_osal PRIVATE
+    XY_OS_BACKEND_BAREMETAL
+    XY_OS_DISABLE_ASM    # use no-op IRQ stubs on x86
+)
+
 enable_testing()
 add_test(NAME device_framework  COMMAND test_device)
 add_test(NAME sht30_integration COMMAND test_sht30_integration)
 add_test(NAME sensors_multi     COMMAND test_sensors_multi)
 add_test(NAME spi_device        COMMAND test_spi_device)
+add_test(NAME osal_baremetal    COMMAND test_osal)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
+            test_osal
     COMMENT "Running unit tests"
 )

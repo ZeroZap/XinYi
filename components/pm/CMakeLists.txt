@@ -19,6 +19,7 @@ include_directories(
     fuel-gauge
     ../hal/inc
     ../kernel/osal
+    ../kernel/osal/inc
     ../trace/xy_log/inc
 )
 

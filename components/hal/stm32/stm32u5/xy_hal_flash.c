@@ -130,14 +130,9 @@ xy_hal_error_t xy_hal_flash_write(void *flash, uint32_t addr,
             memcpy(write_data, data + offset, remaining);
         }
 
-        /* Program 128-bit data */
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr + offset,
-                              (uint64_t)write_data[0]) != HAL_OK) {
-            return XY_HAL_ERROR_FAIL;
-        }
-
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, addr + offset + 8,
-                              (uint64_t)write_data[1]) != HAL_OK) {
+        /* Program 128-bit quad-word (U5 writes 16 bytes at once) */
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_QUADWORD, addr + offset,
+                              (uint32_t)write_data) != HAL_OK) {
             return XY_HAL_ERROR_FAIL;
         }
 
@@ -234,7 +229,7 @@ xy_hal_error_t xy_hal_flash_set_read_protect(void *flash,
 
     /* Read protection requires special handling */
     /* This is a simplified implementation */
-    return XY_HAL_ERROR_NOT_SUPPORT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 
 xy_hal_error_t xy_hal_flash_get_read_protect(void *flash,

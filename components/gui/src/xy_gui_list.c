@@ -240,3 +240,15 @@ int xy_gui_list_set_select_cb(xy_gui_list_t *list, xy_gui_event_cb_t cb, void *u
     list->base.user_data = user_data;
     return 0;
 }
+
+int xy_gui_list_draw(xy_gui_list_t *list, void *fb, uint16_t fb_w, uint16_t fb_h)
+{
+    if (!list) return -1;
+    return list_draw(&list->base, fb, fb_w, fb_h);
+}
+
+int xy_gui_list_update(xy_gui_list_t *list, xy_gui_event_t *event)
+{
+    if (!list) return -1;
+    return list_update(&list->base, event);
+}

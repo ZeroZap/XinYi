@@ -12,6 +12,12 @@
 #include "stm32u5xx_hal.h"
 #include <string.h>
 
+/* SPI mode combined CPOL+CPHA values (not in STM32U5 HAL) */
+#define SPI_MODE_0  0x00U   /* CPOL=0, CPHA=0 */
+#define SPI_MODE_1  0x01U   /* CPOL=0, CPHA=1 */
+#define SPI_MODE_2  0x02U   /* CPOL=1, CPHA=0 */
+#define SPI_MODE_3  0x03U   /* CPOL=1, CPHA=1 */
+
 /* SPI context structure */
 typedef struct {
     SPI_HandleTypeDef *hspi;

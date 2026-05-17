@@ -1,5 +1,6 @@
 #include "xy_log.h"
 #include "xy_stdio.h"
+#include <stddef.h>
 
 extern void xy_log_char(char ch);
 

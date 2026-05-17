@@ -45,7 +45,7 @@ static sensor_err_t lsm9ds1_init(sensor_device_t *sensor)
         return SENSOR_ERROR;
     }
 
-    if (lsm9ds1_mag_read(sensor, LSM9DS1_REG_WHOAMI_MAG, &data) != SENSOR_EOK) return SENSOR_EIO;
+    if (lsm9ds1_mag_read_reg(sensor, LSM9DS1_REG_WHOAMI_MAG, &data) != SENSOR_EOK) return SENSOR_EIO;
     if (data != LSM9DS1_MAG_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong MAG WHO_AM_I: 0x%02X", data);
         return SENSOR_ERROR;

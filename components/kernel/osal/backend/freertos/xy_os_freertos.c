@@ -495,56 +495,136 @@ xy_os_status_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
     return semaphore_id ? XY_OS_OK : XY_OS_ERROR_PARAMETER;
 }
 
-/* Memory Pool - stub */
+/* Memory Pool — free-list allocator on top of pvPortMalloc */
+
+typedef struct {
+    uint32_t  capacity;
+    uint32_t  block_size;
+    volatile uint32_t free_count;
+    void     *free_list;
+    char      name[16];
+    /* pool memory follows either from pvPortMalloc or attr->mp_mem */
+} fr_pool_t;
+
 xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
                                      const xy_os_mempool_attr_t *attr)
 {
-    (void)block_count;
-    (void)block_size;
-    (void)attr;
-    return NULL;
+    if (block_count == 0 || block_size == 0) return NULL;
+    uint32_t bsz = (block_size < sizeof(void *))
+                   ? (uint32_t)sizeof(void *) : block_size;
+
+    fr_pool_t *p = (fr_pool_t *)pvPortMalloc(sizeof(fr_pool_t));
+    if (!p) return NULL;
+    memset(p, 0, sizeof(*p));
+    p->capacity   = block_count;
+    p->block_size = bsz;
+    if (attr && attr->name) {
+        strncpy(p->name, attr->name, sizeof(p->name) - 1);
+    }
+
+    uint8_t *mem;
+    if (attr && attr->mp_mem && attr->mp_size >= block_count * bsz) {
+        mem = (uint8_t *)attr->mp_mem;
+    } else {
+        mem = (uint8_t *)pvPortMalloc(block_count * bsz);
+        if (!mem) { vPortFree(p); return NULL; }
+    }
+
+    /* Build free-list */
+    p->free_list  = NULL;
+    p->free_count = 0;
+    for (uint32_t i = block_count; i > 0; i--) {
+        void *blk   = mem + (i - 1) * bsz;
+        *(void **)blk = p->free_list;
+        p->free_list  = blk;
+        p->free_count++;
+    }
+
+    return (xy_os_mempool_id_t)p;
 }
+
 const char *xy_os_mempool_get_name(xy_os_mempool_id_t mp_id)
 {
-    (void)mp_id;
-    return NULL;
+    fr_pool_t *p = (fr_pool_t *)mp_id;
+    return p ? p->name : NULL;
 }
+
 void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 {
-    (void)mp_id;
-    (void)timeout;
-    return NULL;
+    fr_pool_t *p = (fr_pool_t *)mp_id;
+    if (!p) return NULL;
+    TickType_t ticks = (timeout == XY_OS_WAIT_FOREVER)
+                       ? portMAX_DELAY : (TickType_t)timeout;
+    TickType_t start = xTaskGetTickCount();
+
+    while (1) {
+        taskENTER_CRITICAL();
+        if (p->free_list) {
+            void *blk    = p->free_list;
+            p->free_list = *(void **)blk;
+            p->free_count--;
+            taskEXIT_CRITICAL();
+            return blk;
+        }
+        taskEXIT_CRITICAL();
+        if (timeout == 0) return NULL;
+        if (timeout != XY_OS_WAIT_FOREVER &&
+            (xTaskGetTickCount() - start) >= ticks)
+            return NULL;
+        taskYIELD();
+    }
 }
+
 xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 {
-    (void)mp_id;
-    (void)block;
-    return XY_OS_ERROR;
+    fr_pool_t *p = (fr_pool_t *)mp_id;
+    if (!p || !block) return XY_OS_ERROR_PARAMETER;
+    taskENTER_CRITICAL();
+    *(void **)block = p->free_list;
+    p->free_list    = block;
+    p->free_count++;
+    taskEXIT_CRITICAL();
+    return XY_OS_OK;
 }
+
 uint32_t xy_os_mempool_get_capacity(xy_os_mempool_id_t mp_id)
 {
-    (void)mp_id;
-    return 0;
+    fr_pool_t *p = (fr_pool_t *)mp_id;
+    return p ? p->capacity : 0;
 }
+
 uint32_t xy_os_mempool_get_block_size(xy_os_mempool_id_t mp_id)
 {
-    (void)mp_id;
-    return 0;
+    fr_pool_t *p = (fr_pool_t *)mp_id;
+    return p ? p->block_size : 0;
 }
+
 uint32_t xy_os_mempool_get_count(xy_os_mempool_id_t mp_id)
 {
-    (void)mp_id;
-    return 0;
+    fr_pool_t *p = (fr_pool_t *)mp_id;
+    if (!p) return 0;
+    taskENTER_CRITICAL();
+    uint32_t used = p->capacity - p->free_count;
+    taskEXIT_CRITICAL();
+    return used;
 }
+
 uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
 {
-    (void)mp_id;
-    return 0;
+    fr_pool_t *p = (fr_pool_t *)mp_id;
+    if (!p) return 0;
+    taskENTER_CRITICAL();
+    uint32_t free = p->free_count;
+    taskEXIT_CRITICAL();
+    return free;
 }
+
 xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 {
-    (void)mp_id;
-    return XY_OS_ERROR;
+    fr_pool_t *p = (fr_pool_t *)mp_id;
+    if (!p) return XY_OS_ERROR_PARAMETER;
+    vPortFree(p);
+    return XY_OS_OK;
 }
 
 /* Message Queue */

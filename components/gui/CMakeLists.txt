@@ -60,6 +60,8 @@ target_include_directories(xy_gui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/fonts
     ${CMAKE_SOURCE_DIR}/components/trace/xy_log/inc
+    ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
+    ${CMAKE_SOURCE_DIR}/components/kernel/osal
 )
 
 target_compile_definitions(xy_gui PRIVATE GUI_ENABLED=1)

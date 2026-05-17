@@ -10,6 +10,8 @@
 #include "xy_sm3.h"
 #include "xy_tiny_crypto.h"
 
+#define ROTL(x, n) (((uint32_t)(x) << (n)) | ((uint32_t)(x) >> (32U - (n))))
+
 /* SM4 S-box (256 bytes, from standard) */
 static const uint8_t sm4_sbox[256] = {
     0xd6, 0x90, 0xe9, 0xfe, 0xcc, 0xe1, 0x3d, 0xb7,

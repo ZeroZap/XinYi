@@ -5,7 +5,7 @@
  * @date 2025-10-26
  */
 
-#include "../inc/xy_hal_dma.h"
+#include "../../inc/xy_hal_dma.h"
 
 #ifdef STM32_HAL_ENABLED
 

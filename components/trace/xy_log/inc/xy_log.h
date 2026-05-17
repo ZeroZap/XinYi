@@ -6,7 +6,7 @@
 #ifndef XY_LOG_H
 #define XY_LOG_H
 
-#include "xy_stdio.h"
+#include <xy_stdio.h>
 
 /* Log levels */
 #define XY_LOG_LEVEL_ERROR 0
@@ -31,10 +31,22 @@
 #define XY_LOG_I(fmt, ...)
 #endif
 
+#if XY_LOG_LEVEL >= XY_LOG_LEVEL_WARN
+#define XY_LOG_W(fmt, ...) xy_printf("[W] " fmt, ##__VA_ARGS__)
+#else
+#define XY_LOG_W(fmt, ...)
+#endif
+
 #if XY_LOG_LEVEL >= XY_LOG_LEVEL_DEBUG
 #define XY_LOG_D(fmt, ...) xy_printf("[D] " fmt, ##__VA_ARGS__)
 #else
 #define XY_LOG_D(fmt, ...)
 #endif
+
+/* Lowercase aliases */
+#define xy_log_e(fmt, ...) XY_LOG_E(fmt, ##__VA_ARGS__)
+#define xy_log_w(fmt, ...) XY_LOG_W(fmt, ##__VA_ARGS__)
+#define xy_log_i(fmt, ...) XY_LOG_I(fmt, ##__VA_ARGS__)
+#define xy_log_d(fmt, ...) XY_LOG_D(fmt, ##__VA_ARGS__)
 
 #endif /* XY_LOG_H */

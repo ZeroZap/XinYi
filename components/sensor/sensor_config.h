@@ -142,6 +142,9 @@ typedef osal_mutex_t sensor_mutex_t;
 #define SENSOR_GET_TICK()           osal_get_tick()
 #else
 /* 裸机环境 - 使用中断禁用实现临界区 */
+#ifdef __ARM_ARCH
+#include "cmsis_compiler.h"
+#endif
 typedef uint32_t sensor_mutex_t;
 
 static inline void sensor_enter_critical(sensor_mutex_t *state)
@@ -189,5 +192,12 @@ extern void sensor_mem_free(void *ptr);
 #define SENSOR_FREE(ptr)         sensor_mem_free(ptr)
 #define SENSOR_CALLOC(num, size) sensor_mem_alloc((num) * (size))
 #endif
+
+/* Convenience wrapper so sensor files can call sensor_get_tick() */
+static inline uint32_t sensor_get_tick(void)
+{
+    extern uint32_t xy_os_tick_get(void);
+    return xy_os_tick_get();
+}
 
 #endif /* __SENSOR_CONFIG_H__ */

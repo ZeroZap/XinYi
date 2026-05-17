@@ -4,6 +4,7 @@
  */
 
 #include "xy_broker.h"
+#include "xy_os.h"
 #include <string.h>
 
 /* ==================== Internal Data Structures ==================== */
