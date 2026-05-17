@@ -22,3 +22,6 @@
 [submodule "MCU/HC32"]
 	path = MCU/HC32
 	url = git@github.com:ZeroZap/xhsc.git
+[submodule "MCU/ST/cmsis_device_u5"]
+	path = MCU/ST/cmsis_device_u5
+	url = https://github.com/STMicroelectronics/cmsis_device_u5.git
