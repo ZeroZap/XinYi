@@ -52,9 +52,7 @@ extern "C" {
 #define HAL_LPTIM_MODULE_ENABLED
 #define HAL_I2C_MODULE_ENABLED
 #define HAL_ADC_MODULE_ENABLED
-/* HAL_FDCAN available in the SDK but xy_hal_can.c still needs F4→U5 porting
- * (U5 has no classic CAN, only FDCAN); enable on demand once the .c file
- * is rewritten.  See exclusion list in components/hal/CMakeLists.txt. */
+#define HAL_FDCAN_MODULE_ENABLED
 
 /* ########################## Oscillator Values adaptation ####################*/
 /**

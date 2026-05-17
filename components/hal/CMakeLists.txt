@@ -35,17 +35,8 @@ elseif(HAL_PLATFORM STREQUAL "STM32U5")
         "stm32/stm32u5/*.c"
         "stm32/src/*.c"
     )
-    # Excluded — these need architectural rewrites, not simple ports:
-    #   dma: U5 GPDMA is request/source-destination based with different
-    #        Init fields (SrcInc/DestInc/SrcDataWidth/Request/...) and a
-    #        different counter register; current .c is F4-stream code.
-    #   can: U5 has only FDCAN.  Needs a full FDCAN_HandleTypeDef +
-    #        HAL_FDCAN_* port — basically a new file.
-    #   i2s: U5 has no `stm32u5xx_hal_i2s.h` at all; I2S piggybacks on the
-    #        SPI peripheral and would need an SPI-in-I2S-mode wrapper.
-    foreach(_drifted xy_hal_can.c xy_hal_dma.c xy_hal_i2s.c)
-        list(REMOVE_ITEM HAL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/stm32/stm32u5/${_drifted}")
-    endforeach()
+    # No remaining exclusions.  xy_hal_i2s.c is a NOT_SUPPORTED stub on U5
+    # — see the file header for the SPI-in-I2S-mode story.
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32U5
