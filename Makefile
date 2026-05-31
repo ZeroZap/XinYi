@@ -83,8 +83,9 @@ clean:
 	@rm -rf $(UNIT_DIR)/build
 
 distclean:
-	rm -rf build_pc build_stm32f4 build_stm32u5 build_wch build_hc32 \
-	       build_xinyi build_flashdb_test build_full_test \
+	rm -rf tmp build build_pc build_stm32f4 build_stm32f4_test build_stm32f4_validation \
+	       build_stm32u5 build_stm32u5_fota build_stm32u5_test build_stm32u5_validation \
+	       build_wch build_hc32 build_xinyi build_flashdb_test build_full_test build_test \
 	       $(UNIT_DIR)/build
 	@$(MAKE) -C $(QEMU_DIR) clean 2>/dev/null || true
 
