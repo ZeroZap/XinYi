@@ -21,6 +21,7 @@ execute_process(
             --output ${CONFIG_FILE}
             --autoconf ${AUTOCONF_FILE}
             --cmake ${CONFIG_CMAKE_FILE}
+            --platform ${HAL_PLATFORM}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     RESULT_VARIABLE KCONFIG_RESULT
 )

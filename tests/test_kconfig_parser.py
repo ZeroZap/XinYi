@@ -41,6 +41,82 @@ config XY_VERSION
             self.assertIn('#define CONFIG_XY_VERSION "1.0.0"', autoconf_path.read_text(encoding="utf-8"))
             self.assertIn('set(XY_XY_VERSION "1.0.0")', cmake_path.read_text(encoding="utf-8"))
             self.assertNotIn('""1.0.0""', cmake_path.read_text(encoding="utf-8"))
+    def test_conditional_defaults_follow_selected_platform(self):
+        parser = self.parse_text(
+            """
+config PLATFORM_PC
+    bool
+    default y if PLATFORM_PC
+
+config PLATFORM_STM32
+    bool
+
+config PLATFORM_STM32U5
+    bool
+    depends on PLATFORM_STM32
+    default y if PLATFORM_STM32U5
+
+config FS_ENABLED
+    bool
+    default y if PLATFORM_STM32U5
+
+config GUI_SDL
+    bool
+    depends on PLATFORM_PC
+    default y if PLATFORM_PC
+
+config GUI_TFT
+    bool
+    depends on PLATFORM_STM32U5
+    default y if PLATFORM_STM32U5
+"""
+        )
+
+        pc = parser.resolve_values(platform="PC")
+        self.assertEqual(pc["PLATFORM_PC"], "y")
+        self.assertEqual(pc["PLATFORM_STM32U5"], "n")
+        self.assertEqual(pc["FS_ENABLED"], "n")
+        self.assertEqual(pc["GUI_SDL"], "y")
+        self.assertEqual(pc["GUI_TFT"], "n")
+
+        u5 = parser.resolve_values(platform="STM32U5")
+        self.assertEqual(u5["PLATFORM_PC"], "n")
+        self.assertEqual(u5["PLATFORM_STM32U5"], "y")
+        self.assertEqual(u5["FS_ENABLED"], "y")
+        self.assertEqual(u5["GUI_SDL"], "n")
+        self.assertEqual(u5["GUI_TFT"], "y")
+
+    def test_select_does_not_enable_symbols_with_unsatisfied_dependencies(self):
+        parser = self.parse_text(
+            """
+config PLATFORM_PC
+    bool
+    default y if PLATFORM_PC
+
+config SDL2
+    bool
+
+config GUI_SDL
+    bool
+    depends on PLATFORM_PC
+    select SDL2
+    default y if PLATFORM_PC
+
+config GUI_ENABLED
+    bool
+    select GUI_SDL
+    default y
+"""
+        )
+
+        pc = parser.resolve_values(platform="PC")
+        self.assertEqual(pc["GUI_SDL"], "y")
+        self.assertEqual(pc["SDL2"], "y")
+
+        u5 = parser.resolve_values(platform="STM32U5")
+        self.assertEqual(u5["GUI_ENABLED"], "y")
+        self.assertEqual(u5["GUI_SDL"], "n")
+        self.assertEqual(u5["SDL2"], "n")
 
 
 if __name__ == "__main__":
