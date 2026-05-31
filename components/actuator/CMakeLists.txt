@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-if(NOT XY_COMPONENT_ACTUATOR AND NOT XY_CONFIG_ACTUATOR_ENABLED)
+if(NOT XY_XY_ACTUATOR_ENABLE AND NOT XY_COMPONENT_ACTUATOR)
     return()
 endif()
 
@@ -14,6 +14,9 @@ set(ACTUATOR_SOURCES
 
 # Add library
 add_library(xy_actuator STATIC ${ACTUATOR_SOURCES})
+
+# Backward-compatible component target name used by top-level builds.
+add_library(actuator_component ALIAS xy_actuator)
 
 target_include_directories(xy_actuator PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

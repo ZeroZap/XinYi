@@ -8,6 +8,7 @@
  */
 
 #include "xy_actuator.h"
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -16,6 +17,15 @@
 
 static actuator_device_t *g_actuators[MAX_ACTUATORS];
 static uint8_t g_actuator_count = 0;
+
+static const relay_ops_t *relay_get_ops(const actuator_device_t *dev)
+{
+    if (dev == NULL || dev->ops == NULL || dev->ops->type_ops == NULL) {
+        return NULL;
+    }
+
+    return (const relay_ops_t *)dev->ops->type_ops;
+}
 
 /* ==================== 工具函数 ==================== */
 const char *actuator_type_str(actuator_type_t type)
@@ -106,7 +116,7 @@ actuator_err_t actuator_unregister(actuator_device_t *dev)
         }
     }
 
-    return ACTUATOR_ENODEV;
+    return ACTUATOR_EOK;
 }
 
 actuator_device_t *actuator_find(const char *name)
@@ -289,6 +299,11 @@ actuator_err_t relay_init(actuator_device_t *dev)
         return ACTUATOR_EINVAL;
     }
 
+    const relay_ops_t *ops = relay_get_ops(dev);
+    if (ops != NULL && ops->init != NULL) {
+        return ops->init(dev);
+    }
+
     /* 初始化 GPIO */
     /* 具体实现依赖 HAL */
 
@@ -298,10 +313,48 @@ actuator_err_t relay_init(actuator_device_t *dev)
     return ACTUATOR_EOK;
 }
 
+actuator_err_t relay_deinit(actuator_device_t *dev)
+{
+    if (dev == NULL || dev->type != ACTUATOR_TYPE_RELAY) {
+        return ACTUATOR_EINVAL;
+    }
+
+    const relay_ops_t *ops = relay_get_ops(dev);
+    if (ops != NULL && ops->deinit != NULL) {
+        actuator_err_t err = ops->deinit(dev);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+        dev->value.relay.state = RELAY_STATE_OFF;
+        dev->status = ACTUATOR_STATUS_IDLE;
+        return ACTUATOR_EOK;
+    }
+
+    if (ops != NULL && ops->set != NULL) {
+        actuator_err_t err = ops->set(dev, RELAY_STATE_OFF);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+    }
+
+    dev->value.relay.state = RELAY_STATE_OFF;
+    dev->status = ACTUATOR_STATUS_IDLE;
+    return ACTUATOR_EOK;
+}
+
 actuator_err_t relay_set(actuator_device_t *dev, uint8_t state)
 {
     if (dev == NULL || dev->type != ACTUATOR_TYPE_RELAY) {
         return ACTUATOR_EINVAL;
+    }
+
+    const relay_ops_t *ops = relay_get_ops(dev);
+    if (ops != NULL && ops->set != NULL) {
+        actuator_err_t err = ops->set(dev, state);
+        if (err == ACTUATOR_EOK) {
+            dev->value.relay.state = state;
+        }
+        return err;
     }
 
     /* 设置 GPIO 电平 */
@@ -309,6 +362,7 @@ actuator_err_t relay_set(actuator_device_t *dev, uint8_t state)
     bool gpio_level = (state != 0) ? active_high : !active_high;
 
     /* 实际实现: HAL_GPIO_WritePin(dev->config.gpio_port, dev->config.gpio_pin, gpio_level); */
+    (void)gpio_level;
 
     dev->value.relay.state = state;
 
@@ -331,6 +385,15 @@ actuator_err_t relay_toggle(actuator_device_t *dev)
         return ACTUATOR_EINVAL;
     }
 
+    const relay_ops_t *ops = relay_get_ops(dev);
+    if (ops != NULL && ops->toggle != NULL) {
+        actuator_err_t err = ops->toggle(dev);
+        if (err == ACTUATOR_EOK) {
+            dev->value.relay.state = !dev->value.relay.state;
+        }
+        return err;
+    }
+
     return relay_set(dev, !dev->value.relay.state);
 }
 
@@ -338,6 +401,15 @@ actuator_err_t relay_get(actuator_device_t *dev, uint8_t *state)
 {
     if (dev == NULL || state == NULL || dev->type != ACTUATOR_TYPE_RELAY) {
         return ACTUATOR_EINVAL;
+    }
+
+    const relay_ops_t *ops = relay_get_ops(dev);
+    if (ops != NULL && ops->get != NULL) {
+        actuator_err_t err = ops->get(dev, state);
+        if (err == ACTUATOR_EOK) {
+            dev->value.relay.state = *state;
+        }
+        return err;
     }
 
     *state = dev->value.relay.state;
@@ -350,6 +422,11 @@ actuator_err_t relay_pulse(actuator_device_t *dev, uint32_t pulse_width_ms)
 {
     if (dev == NULL || dev->type != ACTUATOR_TYPE_RELAY) {
         return ACTUATOR_EINVAL;
+    }
+
+    const relay_ops_t *ops = relay_get_ops(dev);
+    if (ops != NULL && ops->pulse != NULL) {
+        return ops->pulse(dev, pulse_width_ms);
     }
 
     /* 接通 */
@@ -372,6 +449,10 @@ actuator_err_t servo_init(actuator_device_t *dev)
         return ACTUATOR_EINVAL;
     }
 
+    if (dev->ops != NULL && dev->ops->init != NULL) {
+        return dev->ops->init(dev);
+    }
+
     /* 初始化 PWM */
     /* 具体实现依赖 HAL PWM */
 
@@ -379,6 +460,23 @@ actuator_err_t servo_init(actuator_device_t *dev)
     dev->value.servo.target_angle = 0.0f;
     dev->value.servo.current_angle = 0.0f;
 
+    return ACTUATOR_EOK;
+}
+
+actuator_err_t servo_deinit(actuator_device_t *dev)
+{
+    if (dev == NULL || dev->type != ACTUATOR_TYPE_SERVO) {
+        return ACTUATOR_EINVAL;
+    }
+
+    if (dev->ops != NULL && dev->ops->deinit != NULL) {
+        actuator_err_t err = dev->ops->deinit(dev);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+    }
+
+    dev->status = ACTUATOR_STATUS_IDLE;
     return ACTUATOR_EOK;
 }
 
@@ -407,8 +505,19 @@ actuator_err_t servo_set_angle(actuator_device_t *dev, float angle)
 
     /* 设置 PWM */
     /* 实际实现: HAL_PWM_SetDuty(dev->config.pwm_channel, pwm_duty); */
+    if (dev->ops != NULL && dev->ops->write != NULL) {
+        actuator_value_t value = dev->value;
+        value.servo.target_angle = angle;
+        value.servo.current_angle = angle;
+        actuator_err_t err = dev->ops->write(dev, &value);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+    }
+    (void)pwm_duty;
 
     dev->value.servo.target_angle = angle;
+    dev->value.servo.current_angle = angle;
 
     return ACTUATOR_EOK;
 }
@@ -508,6 +617,14 @@ actuator_err_t pwm_set_duty(actuator_device_t *dev, uint16_t duty)
     }
 
     /* 实际实现: HAL_PWM_SetDuty(dev->config.pwm_channel, duty); */
+    if (dev->ops != NULL && dev->ops->write != NULL) {
+        actuator_value_t value = dev->value;
+        value.pwm.duty = duty;
+        actuator_err_t err = dev->ops->write(dev, &value);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+    }
 
     dev->value.pwm.duty = duty;
 
@@ -563,11 +680,31 @@ static actuator_err_t default_deinit(actuator_device_t *dev)
     return ACTUATOR_EOK;
 }
 
-static actuator_err_t default_write(actuator_device_t *dev, const actuator_value_t *value)
+static actuator_err_t relay_default_write(actuator_device_t *dev, const actuator_value_t *value)
 {
-    (void)dev;
-    (void)value;
-    return ACTUATOR_EOK;
+    if (value == NULL) {
+        return ACTUATOR_EINVAL;
+    }
+
+    return relay_set(dev, value->relay.state);
+}
+
+static actuator_err_t servo_default_write(actuator_device_t *dev, const actuator_value_t *value)
+{
+    if (value == NULL) {
+        return ACTUATOR_EINVAL;
+    }
+
+    return servo_set_angle(dev, value->servo.target_angle);
+}
+
+static actuator_err_t servo_default_read(actuator_device_t *dev, actuator_value_t *value)
+{
+    if (value == NULL) {
+        return ACTUATOR_EINVAL;
+    }
+
+    return servo_get_angle(dev, &value->servo.current_angle);
 }
 
 static actuator_err_t default_enable(actuator_device_t *dev, bool enable)
@@ -584,7 +721,7 @@ static actuator_err_t default_enable(actuator_device_t *dev, bool enable)
 const actuator_ops_t relay_default_ops = {
     .init = default_init,
     .deinit = default_deinit,
-    .write = (actuator_err_t (*)(actuator_device_t *, const actuator_value_t *))relay_set,
+    .write = relay_default_write,
     .read = NULL,
     .enable = default_enable,
     .config = NULL,
@@ -593,15 +730,15 @@ const actuator_ops_t relay_default_ops = {
     .is_ready = NULL,
     .sleep = NULL,
     .wakeup = NULL,
-    .reset = (actuator_err_t (*)(actuator_device_t *))relay_off,
-    .emergency_stop = (actuator_err_t (*)(actuator_device_t *))relay_off,
+    .reset = relay_off,
+    .emergency_stop = relay_off,
 };
 
 const actuator_ops_t servo_default_ops = {
     .init = default_init,
     .deinit = default_deinit,
-    .write = (actuator_err_t (*)(actuator_device_t *, const actuator_value_t *))servo_set_angle,
-    .read = (actuator_err_t (*)(actuator_device_t *, actuator_value_t *))servo_get_angle,
+    .write = servo_default_write,
+    .read = servo_default_read,
     .enable = default_enable,
     .config = NULL,
     .get_config = NULL,
@@ -609,7 +746,7 @@ const actuator_ops_t servo_default_ops = {
     .is_ready = NULL,
     .sleep = NULL,
     .wakeup = NULL,
-    .reset = (actuator_err_t (*)(actuator_device_t *))servo_center,
+    .reset = servo_center,
     .emergency_stop = NULL,  // 舵机急停保持位置
 };
 

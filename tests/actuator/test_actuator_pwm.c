@@ -53,6 +53,8 @@ void setUp(void)
     g_mock_init_called = 0;
     actuator_unregister(&test_pwm);
     test_pwm.status = ACTUATOR_STATUS_IDLE;
+    test_pwm.config.pwm_freq = 1000;
+    test_pwm.config.pwm_resolution = 16;
 }
 
 void tearDown(void)

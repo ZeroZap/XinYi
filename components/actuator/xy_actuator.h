@@ -201,11 +201,15 @@ typedef struct actuator_ops {
     /* 特殊操作 */
     actuator_err_t (*reset)(actuator_device_t *dev);        // 复位到默认
     actuator_err_t (*emergency_stop)(actuator_device_t *dev); // 急停
+
+    /* 类型专用操作表，可选。relay_* / servo_* 优先使用此表，未提供时回退到通用状态更新。 */
+    const void *type_ops;
 } actuator_ops_t;
 
 /* ==================== 继电器特定接口 ==================== */
 typedef struct relay_ops {
     actuator_err_t (*init)(actuator_device_t *dev);
+    actuator_err_t (*deinit)(actuator_device_t *dev);
     actuator_err_t (*set)(actuator_device_t *dev, uint8_t state);
     actuator_err_t (*get)(actuator_device_t *dev, uint8_t *state);
     actuator_err_t (*toggle)(actuator_device_t *dev);
@@ -283,6 +287,7 @@ const char *actuator_status_str(actuator_status_t status);
 
 /* ==================== 继电器 API ==================== */
 actuator_err_t relay_init(actuator_device_t *dev);
+actuator_err_t relay_deinit(actuator_device_t *dev);
 actuator_err_t relay_set(actuator_device_t *dev, uint8_t state);
 actuator_err_t relay_on(actuator_device_t *dev);
 actuator_err_t relay_off(actuator_device_t *dev);
@@ -292,6 +297,7 @@ actuator_err_t relay_pulse(actuator_device_t *dev, uint32_t pulse_width_ms);
 
 /* ==================== 舵机 API ==================== */
 actuator_err_t servo_init(actuator_device_t *dev);
+actuator_err_t servo_deinit(actuator_device_t *dev);
 actuator_err_t servo_set_angle(actuator_device_t *dev, float angle);
 actuator_err_t servo_get_angle(actuator_device_t *dev, float *angle);
 actuator_err_t servo_set_range(actuator_device_t *dev, float min_angle, float max_angle);

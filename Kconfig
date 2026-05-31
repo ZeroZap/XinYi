@@ -117,6 +117,12 @@ config COMPONENT_SENSOR
     help
       Sensor abstraction layer.
 
+config COMPONENT_ACTUATOR
+    bool "Actuator Framework"
+    default n
+    help
+      Actuator abstraction layer for relays, servos, motors, and other outputs.
+
 endmenu # Core Components
 
 menu "Device Drivers"
@@ -420,6 +426,12 @@ config XY_SENSOR_ENABLE
     default y
     help
       Sensor framework and drivers.
+
+config XY_ACTUATOR_ENABLE
+    bool "Actuator Component"
+    default y
+    help
+      Actuator framework and drivers for relays, servos, motors, and other outputs.
 
 config COMPONENT_PID
     bool "PID Controller"

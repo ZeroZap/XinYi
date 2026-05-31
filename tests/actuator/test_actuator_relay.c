@@ -53,6 +53,7 @@ static actuator_err_t mock_relay_toggle(actuator_device_t *dev)
 
 static const relay_ops_t mock_relay_ops = {
     .init = mock_relay_init,
+    .deinit = mock_relay_deinit,
     .set = mock_relay_set,
     .get = mock_relay_get,
     .toggle = mock_relay_toggle,
@@ -63,6 +64,7 @@ static const actuator_ops_t mock_actuator_ops = {
     .deinit = (actuator_err_t (*)(actuator_device_t *))mock_relay_deinit,
     .write = NULL,  /* Will be set per device */
     .read = NULL,
+    .type_ops = &mock_relay_ops,
 };
 
 /* ==================== Test Device ==================== */

@@ -68,6 +68,11 @@ void setUp(void)
     g_mock_deinit_called = 0;
     actuator_unregister(&test_servo);
     test_servo.status = ACTUATOR_STATUS_IDLE;
+    test_servo.config.servo_min_angle = -90.0f;
+    test_servo.config.servo_max_angle = 90.0f;
+    test_servo.config.servo_pwm_min = 500;
+    test_servo.config.servo_pwm_max = 2500;
+    test_servo.config.servo_speed = 90;
 }
 
 void tearDown(void)
