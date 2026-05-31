@@ -21,7 +21,6 @@ set(PLATFORM_DEFINES
     ${STM32F4_CHIP}
     USE_HAL_DRIVER
     ARM_CORTEX_M4
-    FPU
 )
 
 # Include dirs: XY HAL impl dir (provides stm32_hal.h shim) + SDK headers

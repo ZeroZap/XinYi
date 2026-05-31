@@ -296,11 +296,8 @@ static const uint8_t font_braceright[16] = {0x00,0x00,0xC0,0x20,0x20,0x10,0x08,0
 /* 0x7E - ~ */
 static const uint8_t font_asciitilde[16] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x88,0x50,0x20,0x00,0x00,0x00,0x00,0x00};
 
-/* 0x7F - DEL (empty) */
-static const uint8_t font_del[16] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-
 /* Font data table - ASCII 0x20-0x7E */
-static const uint8_t* const g_font_8x16_table[94] = {
+static const uint8_t* const g_font_8x16_table[] = {
     font_space,        /* 0x20 */
     font_exclam,       /* 0x21 */
     font_quotedbl,     /* 0x22 */
@@ -399,7 +396,7 @@ static const uint8_t* const g_font_8x16_table[94] = {
 };
 
 /* Consolidated font data placeholder (actual data accessed via g_font_8x16_table) */
-const uint8_t g_font_8x16_data[94 * 16] = {0};
+const uint8_t g_font_8x16_data[sizeof(g_font_8x16_table) / sizeof(g_font_8x16_table[0]) * 16] = {0};
 
 /* Font information structure */
 static const xy_font_8x16_t g_font_8x16 = {
@@ -407,7 +404,7 @@ static const xy_font_8x16_t g_font_8x16 = {
     .width = 8,
     .height = 16,
     .first_char = 0x20,
-    .char_count = 94,
+    .char_count = sizeof(g_font_8x16_table) / sizeof(g_font_8x16_table[0]),
 };
 
 /**
@@ -445,3 +442,4 @@ uint16_t xy_font_8x16_measure(const char *str)
     }
     return width;
 }
+

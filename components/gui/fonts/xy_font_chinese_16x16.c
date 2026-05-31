@@ -57,11 +57,6 @@ static const uint8_t font_chr_menu[32] = {
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 };
 
-static const uint8_t font_chr_ok[32] = {
-    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-};
-
 /* Additional common characters - using placeholder patterns */
 static const uint8_t font_chinese_char_0[32] = {
     0x04,0x04,0x04,0x04,0x04,0x04,0xFF,0x04,0x04,0x04,0xFF,0x04,0x04,0x04,0x04,0x00,
@@ -74,7 +69,7 @@ static const uint8_t font_chinese_char_0[32] = {
 #define CN_CHAR_ENTRY(unicode, data) {unicode, data}
 
 /* Chinese character table */
-static const xy_chinese_char_t g_chinese_chars[FONT_CHINESE_CHAR_COUNT] = {
+static const xy_chinese_char_t g_chinese_chars[] = {
     /* Common UI characters */
     CN_CHAR_ENTRY(0x4E0A, font_chr_up),       /* 上 */
     CN_CHAR_ENTRY(0x4E0B, font_chr_down),     /* 下 */
@@ -265,14 +260,14 @@ static const xy_chinese_char_t g_chinese_chars[FONT_CHINESE_CHAR_COUNT] = {
 };
 
 /* Font data array (for compatibility) */
-static const uint8_t g_font_chinese_16x16_data[FONT_CHINESE_CHAR_COUNT * 32] = {0};
+static const uint8_t g_font_chinese_16x16_data[sizeof(g_chinese_chars) / sizeof(g_chinese_chars[0]) * 32] = {0};
 
 /* Font information structure */
 static const xy_font_chinese_t g_font_chinese_16x16 = {
     .data = g_font_chinese_16x16_data,
     .width = 16,
     .height = 16,
-    .char_count = FONT_CHINESE_CHAR_COUNT,
+    .char_count = sizeof(g_chinese_chars) / sizeof(g_chinese_chars[0]),
 };
 
 /**
@@ -288,7 +283,7 @@ const xy_font_chinese_t* xy_font_chinese_16x16_get(void)
  */
 const uint8_t* xy_font_chinese_16x16_get_char(uint16_t unicode)
 {
-    for (int i = 0; i < FONT_CHINESE_CHAR_COUNT; i++) {
+    for (size_t i = 0; i < sizeof(g_chinese_chars) / sizeof(g_chinese_chars[0]); i++) {
         if (g_chinese_chars[i].unicode == unicode) {
             return g_chinese_chars[i].data;
         }
@@ -342,3 +337,4 @@ const xy_chinese_char_t* xy_font_chinese_16x16_get_chars(void)
 {
     return g_chinese_chars;
 }
+

@@ -87,6 +87,15 @@ class KconfigParser:
                 if len(parts) > 1:
                     cfg['depends_on'] = parts[1].strip()
     
+    def _format_string_value(self, value: str) -> str:
+        """Return a CMake/C-string friendly value without Kconfig quotes."""
+        if value is None:
+            return ""
+        value = value.strip()
+        if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+            value = value[1:-1]
+        return value
+    
     def generate_config(self, output_file: str) -> None:
         """Generate .config file"""
         with open(output_file, 'w') as f:
@@ -97,6 +106,8 @@ class KconfigParser:
                 value = cfg['default'] if cfg['default'] else 'n'
                 if cfg['type'] == 'bool':
                     value = 'y' if value and value != 'n' else 'n'
+                elif cfg['type'] == 'string':
+                    value = f'"{self._format_string_value(value)}"'
                 f.write(f"CONFIG_{name}={value}\n")
     
     def generate_autoconf(self, output_file: str) -> None:
@@ -118,7 +129,7 @@ class KconfigParser:
                     enabled = 'y' in value.lower() if value else False
                     f.write(f"#define CONFIG_{name} {'1' if enabled else '0'}\n")
                 elif cfg['type'] == 'string':
-                    f.write(f'#define CONFIG_{name} "{value}"\n')
+                    f.write(f'#define CONFIG_{name} "{self._format_string_value(value)}"\n')
                 elif cfg['type'] == 'int':
                     try:
                         f.write(f"#define CONFIG_{name} {int(value)}\n")
@@ -142,6 +153,8 @@ class KconfigParser:
                 if cfg['type'] == 'bool':
                     enabled = 'y' in value.lower() if value else False
                     f.write(f"set({var_name} {'ON' if enabled else 'OFF'})\n")
+                elif cfg['type'] == 'string':
+                    f.write(f"set({var_name} \"{self._format_string_value(value)}\")\n")
                 else:
                     f.write(f"set({var_name} \"{value}\")\n")
                 

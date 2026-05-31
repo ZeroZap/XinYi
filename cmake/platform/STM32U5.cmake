@@ -21,7 +21,6 @@ set(PLATFORM_DEFINES
     ${STM32U5_CHIP}
     USE_HAL_DRIVER
     ARM_CORTEX_M33
-    FPU
 )
 
 # Include order matters: our customized stm32u5xx_hal_conf.h (in stm32u5/)
