@@ -39,6 +39,7 @@ typedef struct {
     xy_lcd_i8080_width_t data_width;   /**< Data bus width */
 
     /* GPIO pins - data bus (16-bit: D0-D15) */
+    xy_hal_gpio_port_t db_ports[16]; /**< Data GPIO ports */
     uint8_t db0_pin;      /**< Data bit 0 */
     uint8_t db1_pin;      /**< Data bit 1 */
     uint8_t db2_pin;      /**< Data bit 2 */
@@ -57,6 +58,11 @@ typedef struct {
     uint8_t db15_pin;     /**< Data bit 15 */
 
     /* Control pins */
+    xy_hal_gpio_port_t wr_port;  /**< Write strobe GPIO port */
+    xy_hal_gpio_port_t rd_port;  /**< Read strobe GPIO port */
+    xy_hal_gpio_port_t cs_port;  /**< Chip select GPIO port */
+    xy_hal_gpio_port_t rs_port;  /**< Register select GPIO port */
+    xy_hal_gpio_port_t rst_port; /**< Reset GPIO port */
     uint8_t wr_pin;       /**< Write strobe pin */
     uint8_t rd_pin;       /**< Read strobe pin */
     uint8_t cs_pin;       /**< Chip select pin */
@@ -78,9 +84,15 @@ typedef struct {
     xy_lcd_i8080_width_t data_width;   /**< Data bus width */
 
     /* GPIO pins - data bus */
+    xy_hal_gpio_port_t db_ports[16]; /**< Data GPIO ports */
     uint8_t db_pins[16];        /**< Data pin array */
 
     /* Control pins */
+    xy_hal_gpio_port_t wr_port;  /**< Write strobe GPIO port */
+    xy_hal_gpio_port_t rd_port;  /**< Read strobe GPIO port */
+    xy_hal_gpio_port_t cs_port;  /**< Chip select GPIO port */
+    xy_hal_gpio_port_t rs_port;  /**< Register select GPIO port */
+    xy_hal_gpio_port_t rst_port; /**< Reset GPIO port */
     uint8_t wr_pin;             /**< Write strobe */
     uint8_t rd_pin;             /**< Read strobe */
     uint8_t cs_pin;             /**< Chip select */

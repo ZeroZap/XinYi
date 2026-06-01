@@ -13,14 +13,14 @@
 /* ==================== Internal Macros ==================== */
 
 /* I8080 control signal operations */
-#define LCD_I8080_ASSERT_CS(lcd)      xy_gpio_write(lcd->cs_pin, 0)
-#define LCD_I8080_DEASSERT_CS(lcd)    xy_gpio_write(lcd->cs_pin, 1)
-#define LCD_I8080_SET_RS_CMD(lcd)     xy_gpio_write(lcd->rs_pin, 0)
-#define LCD_I8080_SET_RS_DATA(lcd)    xy_gpio_write(lcd->rs_pin, 1)
-#define LCD_I8080_ASSERT_WR(lcd)      xy_gpio_write(lcd->wr_pin, 0)
-#define LCD_I8080_DEASSERT_WR(lcd)    xy_gpio_write(lcd->wr_pin, 1)
-#define LCD_I8080_ASSERT_RD(lcd)      xy_gpio_write(lcd->rd_pin, 0)
-#define LCD_I8080_DEASSERT_RD(lcd)    xy_gpio_write(lcd->rd_pin, 1)
+#define LCD_I8080_ASSERT_CS(lcd)   xy_hal_gpio_write((lcd)->cs_port, (lcd)->cs_pin, 0)
+#define LCD_I8080_DEASSERT_CS(lcd) xy_hal_gpio_write((lcd)->cs_port, (lcd)->cs_pin, 1)
+#define LCD_I8080_SET_RS_CMD(lcd)  xy_hal_gpio_write((lcd)->rs_port, (lcd)->rs_pin, 0)
+#define LCD_I8080_SET_RS_DATA(lcd) xy_hal_gpio_write((lcd)->rs_port, (lcd)->rs_pin, 1)
+#define LCD_I8080_ASSERT_WR(lcd)   xy_hal_gpio_write((lcd)->wr_port, (lcd)->wr_pin, 0)
+#define LCD_I8080_DEASSERT_WR(lcd) xy_hal_gpio_write((lcd)->wr_port, (lcd)->wr_pin, 1)
+#define LCD_I8080_ASSERT_RD(lcd)   xy_hal_gpio_write((lcd)->rd_port, (lcd)->rd_pin, 0)
+#define LCD_I8080_DEASSERT_RD(lcd) xy_hal_gpio_write((lcd)->rd_port, (lcd)->rd_pin, 1)
 
 /* ==================== Internal Functions ==================== */
 
@@ -31,7 +31,7 @@ static void xy_lcd_i8080_write_bus(xy_lcd_i8080_device_t *lcd, uint16_t data)
 {
     /* Write 16-bit data to GPIO pins */
     for (int i = 0; i < 16; i++) {
-        xy_gpio_write(lcd->db_pins[i], (data >> i) & 1);
+        xy_hal_gpio_write(lcd->db_ports[i], lcd->db_pins[i], (data >> i) & 1);
     }
 }
 
@@ -44,7 +44,7 @@ static uint16_t xy_lcd_i8080_read_bus(xy_lcd_i8080_device_t *lcd)
 
     /* Read 16-bit data from GPIO pins */
     for (int i = 0; i < 16; i++) {
-        int state = xy_gpio_read(lcd->db_pins[i]);
+        int32_t state = xy_hal_gpio_read(lcd->db_ports[i], lcd->db_pins[i]);
         if (state) {
             data |= (1 << i);
         }
@@ -60,7 +60,7 @@ static void xy_lcd_i8080_write_strobe(xy_lcd_i8080_device_t *lcd)
 {
     /* WR pulse: low -> high */
     LCD_I8080_ASSERT_WR(lcd);
-    xy_hal_delay_ns(10);  /* Min write pulse width */
+    xy_hal_delay_us(1);  /* Covers minimum write pulse width */
     LCD_I8080_DEASSERT_WR(lcd);
 }
 
@@ -71,7 +71,7 @@ static void xy_lcd_i8080_read_strobe(xy_lcd_i8080_device_t *lcd)
 {
     /* RD pulse: low -> high */
     LCD_I8080_ASSERT_RD(lcd);
-    xy_hal_delay_ns(10);  /* Min read pulse width */
+    xy_hal_delay_us(1);  /* Covers minimum read pulse width */
     LCD_I8080_DEASSERT_RD(lcd);
 }
 
@@ -229,11 +229,11 @@ void xy_lcd_i8080_reset(xy_lcd_i8080_device_t *lcd)
         return;
     }
 
-    xy_gpio_write(lcd->rst_pin, 1);
+    xy_hal_gpio_write(lcd->rst_port, lcd->rst_pin, 1);
     xy_hal_delay_ms(10);
-    xy_gpio_write(lcd->rst_pin, 0);
+    xy_hal_gpio_write(lcd->rst_port, lcd->rst_pin, 0);
     xy_hal_delay_ms(10);
-    xy_gpio_write(lcd->rst_pin, 1);
+    xy_hal_gpio_write(lcd->rst_port, lcd->rst_pin, 1);
     xy_hal_delay_ms(120);
 }
 
@@ -385,6 +385,7 @@ xy_error_t xy_lcd_i8080_init(xy_lcd_i8080_device_t *lcd, const xy_lcd_i8080_conf
 
     /* Copy configuration */
     lcd->data_width = config->data_width;
+    memcpy(lcd->db_ports, config->db_ports, sizeof(lcd->db_ports));
     lcd->db_pins[0] = config->db0_pin;
     lcd->db_pins[1] = config->db1_pin;
     lcd->db_pins[2] = config->db2_pin;
@@ -401,6 +402,11 @@ xy_error_t xy_lcd_i8080_init(xy_lcd_i8080_device_t *lcd, const xy_lcd_i8080_conf
     lcd->db_pins[13] = config->db13_pin;
     lcd->db_pins[14] = config->db14_pin;
     lcd->db_pins[15] = config->db15_pin;
+    lcd->wr_port = config->wr_port;
+    lcd->rd_port = config->rd_port;
+    lcd->cs_port = config->cs_port;
+    lcd->rs_port = config->rs_port;
+    lcd->rst_port = config->rst_port;
     lcd->wr_pin = config->wr_pin;
     lcd->rd_pin = config->rd_pin;
     lcd->cs_pin = config->cs_pin;
