@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-if(NOT DRIVER_DISPLAY_LED_SERIAL_RGB)
+if(NOT XY_DRIVER_DISPLAY_LED_SERIAL_RGB)
     return()
 endif()
 

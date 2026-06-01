@@ -139,6 +139,69 @@ config DRIVER_DISPLAY
     help
       Display device drivers (SSD1306 OLED, LCD, LED, RGB)
 
+if DRIVER_DISPLAY
+
+config DRIVER_DISPLAY_OLED
+    bool "OLED display drivers"
+    default n
+    help
+      Enable OLED display driver family.
+
+config DRIVER_DISPLAY_SSD1306
+    bool "SSD1306 OLED driver"
+    depends on DRIVER_DISPLAY_OLED
+    default n
+    help
+      Enable SSD1306 OLED display driver support.
+
+config DRIVER_DISPLAY_LCD
+    bool "LCD display drivers"
+    default n
+    help
+      Enable LCD display driver framework and interfaces.
+
+config DRIVER_DISPLAY_LCD_SPI
+    bool "SPI LCD interface"
+    depends on DRIVER_DISPLAY_LCD
+    default n
+    help
+      Enable SPI-attached LCD interface support.
+
+config DRIVER_DISPLAY_LCD_I8080
+    bool "I8080 LCD interface"
+    depends on DRIVER_DISPLAY_LCD
+    default n
+    help
+      Enable I8080/parallel LCD interface support.
+
+config DRIVER_DISPLAY_LCD_ST7789
+    bool "ST7789 LCD panel driver"
+    depends on DRIVER_DISPLAY_LCD
+    default n
+    help
+      Enable ST7789 LCD panel support.
+
+config DRIVER_DISPLAY_LED
+    bool "LED display drivers"
+    default n
+    help
+      Enable LED display driver family.
+
+config DRIVER_DISPLAY_LED_SERIAL_RGB
+    bool "Serial RGB LED driver"
+    depends on DRIVER_DISPLAY_LED
+    default n
+    help
+      Enable serial RGB LED driver support.
+
+config DRIVER_DISPLAY_RGB
+    bool "RGB LED matrix driver"
+    default n
+    help
+      Enable RGB LED matrix driver support.
+
+endif # DRIVER_DISPLAY
+
 config DRIVER_STORAGE
     bool "Storage Drivers"
     default n

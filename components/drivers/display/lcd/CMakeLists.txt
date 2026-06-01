@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-if(NOT DRIVER_DISPLAY_LCD)
+if(NOT XY_DRIVER_DISPLAY_LCD)
     return()
 endif()
 
@@ -18,7 +18,7 @@ if(LCD_CORE_SOURCES)
 endif()
 
 # SPI interface
-if(DRIVER_DISPLAY_LCD_SPI)
+if(XY_DRIVER_DISPLAY_LCD_SPI)
     file(GLOB LCD_SPI_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/xy_lcd_spi.c
     )
@@ -28,7 +28,7 @@ if(DRIVER_DISPLAY_LCD_SPI)
 endif()
 
 # I8080 interface
-if(DRIVER_DISPLAY_LCD_I8080)
+if(XY_DRIVER_DISPLAY_LCD_I8080)
     file(GLOB LCD_I8080_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/xy_lcd_i8080.c
     )
@@ -38,7 +38,7 @@ if(DRIVER_DISPLAY_LCD_I8080)
 endif()
 
 # ST7789 driver
-if(DRIVER_DISPLAY_LCD_ST7789)
+if(XY_DRIVER_DISPLAY_LCD_ST7789)
     file(GLOB LCD_ST7789_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/xy_lcd_st7789.c
     )

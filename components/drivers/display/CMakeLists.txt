@@ -2,21 +2,21 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-if(NOT DRIVER_DISPLAY_ENABLE)
+if(NOT XY_DRIVER_DISPLAY)
     return()
 endif()
 
 message(STATUS "Display: Building display drivers")
 
 # OLED Display Support
-if(DRIVER_DISPLAY_OLED)
+if(XY_DRIVER_DISPLAY_OLED)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/oled)
         add_subdirectory(oled)
     endif()
 endif()
 
 # LCD Display Support
-if(DRIVER_DISPLAY_LCD)
+if(XY_DRIVER_DISPLAY_LCD)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/lcd)
         add_subdirectory(lcd)
     endif()
@@ -26,7 +26,7 @@ if(DRIVER_DISPLAY_LCD)
 endif()
 
 # LED Display Support
-if(DRIVER_DISPLAY_LED)
+if(XY_DRIVER_DISPLAY_LED)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/led)
         add_subdirectory(led)
     endif()
@@ -36,7 +36,7 @@ if(DRIVER_DISPLAY_LED)
 endif()
 
 # RGB Display Support
-if(DRIVER_DISPLAY_RGB)
+if(XY_DRIVER_DISPLAY_RGB)
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/xy_ls)
         add_subdirectory(xy_ls)
     endif()

@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 3.10)
 
-if(NOT DRIVER_DISPLAY_SSD1306)
+if(NOT XY_DRIVER_DISPLAY_SSD1306)
     return()
 endif()
 
