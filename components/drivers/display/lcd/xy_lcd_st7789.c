@@ -7,6 +7,9 @@
 
 #include "xy_lcd_st7789.h"
 #include "xy_hal_delay.h"
+#include "xy_hal_gpio.h"
+#include "xy_hal_spi.h"
+#include <stdlib.h>
 #include <string.h>
 
 /* ==================== MADCTL Bits ==================== */
@@ -17,6 +20,8 @@
 #define ST7789_MADCTL_ML      0x10    /**< Vertical refresh order */
 #define ST7789_MADCTL_BGR     0x08    /**< RGB-BGR order */
 #define ST7789_MADCTL_MH      0x04    /**< Horizontal refresh order */
+
+#define ST7789_TRANSFER_TIMEOUT_MS 1000U
 
 /* ==================== Initialization Sequence ==================== */
 
@@ -79,13 +84,13 @@ void xy_lcd_st7789_write_cmd(xy_lcd_st7789_device_t *lcd, uint8_t cmd)
     xy_lcd_spi_device_t *spi = &lcd->spi_dev;
 
     /* Set DC low for command */
-    xy_gpio_write(spi->dc_pin, 0);
-    xy_gpio_write(spi->cs_pin, 0);
+    xy_hal_gpio_write(spi->dc_port, spi->dc_pin, 0);
+    xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 0);
 
     /* Transfer command */
-    xy_spi_transmit(spi->spi_handle, &cmd, 1);
+    xy_hal_spi_transmit(spi->spi_handle, &cmd, 1, ST7789_TRANSFER_TIMEOUT_MS);
 
-    xy_gpio_write(spi->cs_pin, 1);
+    xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 1);
 }
 
 /**
@@ -96,13 +101,13 @@ void xy_lcd_st7789_write_data(xy_lcd_st7789_device_t *lcd, const uint8_t *data, 
     xy_lcd_spi_device_t *spi = &lcd->spi_dev;
 
     /* Set DC high for data */
-    xy_gpio_write(spi->dc_pin, 1);
-    xy_gpio_write(spi->cs_pin, 0);
+    xy_hal_gpio_write(spi->dc_port, spi->dc_pin, 1);
+    xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 0);
 
     /* Transfer data */
-    xy_spi_transmit(spi->spi_handle, data, len);
+    xy_hal_spi_transmit(spi->spi_handle, data, len, ST7789_TRANSFER_TIMEOUT_MS);
 
-    xy_gpio_write(spi->cs_pin, 1);
+    xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 1);
 }
 
 /**
@@ -148,11 +153,11 @@ void xy_lcd_st7789_reset(xy_lcd_st7789_device_t *lcd)
     }
 
     /* Hardware reset sequence */
-    xy_gpio_write(spi->rst_pin, 1);
+    xy_hal_gpio_write(spi->rst_port, spi->rst_pin, 1);
     xy_hal_delay_ms(10);
-    xy_gpio_write(spi->rst_pin, 0);
+    xy_hal_gpio_write(spi->rst_port, spi->rst_pin, 0);
     xy_hal_delay_ms(10);
-    xy_gpio_write(spi->rst_pin, 1);
+    xy_hal_gpio_write(spi->rst_port, spi->rst_pin, 1);
     xy_hal_delay_ms(120);
 }
 
@@ -207,20 +212,20 @@ void xy_lcd_st7789_write_pixel(xy_lcd_st7789_device_t *lcd, const uint16_t *data
     xy_lcd_spi_device_t *spi = &lcd->spi_dev;
 
     /* Set DC high for data */
-    xy_gpio_write(spi->dc_pin, 1);
-    xy_gpio_write(spi->cs_pin, 0);
+    xy_hal_gpio_write(spi->dc_port, spi->dc_pin, 1);
+    xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 0);
 
     /* Convert RGB565 to bytes and send */
     uint8_t *buf = (uint8_t *)data;
     uint32_t byte_len = len * 2;
 
     if (spi->use_dma) {
-        xy_spi_transmit_dma(spi->spi_handle, buf, byte_len);
+        xy_hal_spi_transmit_dma(spi->spi_handle, buf, byte_len);
     } else {
-        xy_spi_transmit(spi->spi_handle, buf, byte_len);
+        xy_hal_spi_transmit(spi->spi_handle, buf, byte_len, ST7789_TRANSFER_TIMEOUT_MS);
     }
 
-    xy_gpio_write(spi->cs_pin, 1);
+    xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 1);
 }
 
 /* ==================== Control Operations ==================== */
