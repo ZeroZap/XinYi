@@ -13,10 +13,12 @@
 
 /* ==================== Internal Macros ==================== */
 
-#define LCD_SPI_ASSERT_CS(lcd)    xy_gpio_write(lcd->cs_pin, 0)
-#define LCD_SPI_DEASSERT_CS(lcd)  xy_gpio_write(lcd->cs_pin, 1)
-#define LCD_SPI_SET_DC_CMD(lcd)   xy_gpio_write(lcd->dc_pin, 0)
-#define LCD_SPI_SET_DC_DATA(lcd)  xy_gpio_write(lcd->dc_pin, 1)
+#define LCD_SPI_TRANSFER_TIMEOUT_MS 1000U
+
+#define LCD_SPI_ASSERT_CS(lcd)    xy_hal_gpio_write((lcd)->cs_port, (lcd)->cs_pin, 0)
+#define LCD_SPI_DEASSERT_CS(lcd)  xy_hal_gpio_write((lcd)->cs_port, (lcd)->cs_pin, 1)
+#define LCD_SPI_SET_DC_CMD(lcd)   xy_hal_gpio_write((lcd)->dc_port, (lcd)->dc_pin, 0)
+#define LCD_SPI_SET_DC_DATA(lcd)  xy_hal_gpio_write((lcd)->dc_port, (lcd)->dc_pin, 1)
 
 /* ==================== SPI Low-Level Operations ==================== */
 
@@ -28,7 +30,7 @@ void xy_lcd_spi_write_cmd(xy_lcd_spi_device_t *lcd, uint8_t cmd)
     LCD_SPI_SET_DC_CMD(lcd);
     LCD_SPI_ASSERT_CS(lcd);
 
-    xy_spi_transmit(lcd->spi_handle, &cmd, 1);
+    xy_hal_spi_transmit(lcd->spi_handle, &cmd, 1, LCD_SPI_TRANSFER_TIMEOUT_MS);
 
     LCD_SPI_DEASSERT_CS(lcd);
 }
@@ -42,9 +44,9 @@ void xy_lcd_spi_write_data(xy_lcd_spi_device_t *lcd, const uint8_t *data, uint32
     LCD_SPI_ASSERT_CS(lcd);
 
     if (lcd->use_dma) {
-        xy_spi_transmit_dma(lcd->spi_handle, data, len);
+        xy_hal_spi_transmit_dma(lcd->spi_handle, data, len);
     } else {
-        xy_spi_transmit(lcd->spi_handle, data, len);
+        xy_hal_spi_transmit(lcd->spi_handle, data, len, LCD_SPI_TRANSFER_TIMEOUT_MS);
     }
 
     LCD_SPI_DEASSERT_CS(lcd);
@@ -75,10 +77,10 @@ void xy_lcd_spi_write_reg(xy_lcd_spi_device_t *lcd, uint8_t reg, uint8_t data)
     LCD_SPI_SET_DC_CMD(lcd);
     LCD_SPI_ASSERT_CS(lcd);
 
-    xy_spi_transmit(lcd->spi_handle, &reg, 1);
+    xy_hal_spi_transmit(lcd->spi_handle, &reg, 1, LCD_SPI_TRANSFER_TIMEOUT_MS);
 
     LCD_SPI_SET_DC_DATA(lcd);
-    xy_spi_transmit(lcd->spi_handle, &data, 1);
+    xy_hal_spi_transmit(lcd->spi_handle, &data, 1, LCD_SPI_TRANSFER_TIMEOUT_MS);
 
     LCD_SPI_DEASSERT_CS(lcd);
 }
@@ -92,11 +94,11 @@ void xy_lcd_spi_read(xy_lcd_spi_device_t *lcd, uint8_t *reg, uint8_t *data, uint
 
     if (reg) {
         LCD_SPI_SET_DC_CMD(lcd);
-        xy_spi_transmit(lcd->spi_handle, reg, 1);
+        xy_hal_spi_transmit(lcd->spi_handle, reg, 1, LCD_SPI_TRANSFER_TIMEOUT_MS);
     }
 
     LCD_SPI_SET_DC_DATA(lcd);
-    xy_spi_receive(lcd->spi_handle, data, len);
+    xy_hal_spi_receive(lcd->spi_handle, data, len, LCD_SPI_TRANSFER_TIMEOUT_MS);
 
     LCD_SPI_DEASSERT_CS(lcd);
 }
@@ -139,9 +141,9 @@ void xy_lcd_spi_write_pixel(xy_lcd_spi_device_t *lcd, const uint16_t *data, uint
     uint32_t byte_len = len * 2;
 
     if (lcd->use_dma) {
-        xy_spi_transmit_dma(lcd->spi_handle, buf, byte_len);
+        xy_hal_spi_transmit_dma(lcd->spi_handle, buf, byte_len);
     } else {
-        xy_spi_transmit(lcd->spi_handle, buf, byte_len);
+        xy_hal_spi_transmit(lcd->spi_handle, buf, byte_len, LCD_SPI_TRANSFER_TIMEOUT_MS);
     }
 
     LCD_SPI_DEASSERT_CS(lcd);
@@ -158,11 +160,11 @@ void xy_lcd_spi_reset(xy_lcd_spi_device_t *lcd)
         return;
     }
 
-    xy_gpio_write(lcd->rst_pin, 1);
+    xy_hal_gpio_write(lcd->rst_port, lcd->rst_pin, 1);
     xy_hal_delay_ms(10);
-    xy_gpio_write(lcd->rst_pin, 0);
+    xy_hal_gpio_write(lcd->rst_port, lcd->rst_pin, 0);
     xy_hal_delay_ms(10);
-    xy_gpio_write(lcd->rst_pin, 1);
+    xy_hal_gpio_write(lcd->rst_port, lcd->rst_pin, 1);
     xy_hal_delay_ms(120);
 }
 
@@ -182,9 +184,9 @@ void xy_lcd_spi_set_backlight(xy_lcd_spi_device_t *lcd, uint8_t brightness)
     /* Use PWM for backlight control if available */
     /* For now, just toggle pin based on brightness threshold */
     if (brightness > 0) {
-        xy_gpio_write(lcd->bl_pin, 1);
+        xy_hal_gpio_write(lcd->bl_port, lcd->bl_pin, 1);
     } else {
-        xy_gpio_write(lcd->bl_pin, 0);
+        xy_hal_gpio_write(lcd->bl_port, lcd->bl_pin, 0);
     }
 }
 
@@ -328,6 +330,10 @@ xy_error_t xy_lcd_spi_init(xy_lcd_spi_device_t *lcd, const xy_lcd_spi_config_t *
     lcd->spi_handle = config->spi_handle;
     lcd->spi_speed = config->spi_speed;
     lcd->spi_mode = config->spi_mode;
+    lcd->dc_port = config->dc_port;
+    lcd->cs_port = config->cs_port;
+    lcd->rst_port = config->rst_port;
+    lcd->bl_port = config->bl_port;
     lcd->dc_pin = config->dc_pin;
     lcd->cs_pin = config->cs_pin;
     lcd->rst_pin = config->rst_pin;

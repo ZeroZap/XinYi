@@ -33,6 +33,10 @@ typedef struct {
     uint8_t spi_mode;           /**< SPI mode (0-3) */
 
     /* GPIO pins */
+    xy_hal_gpio_port_t dc_port;  /**< Data/Command GPIO port */
+    xy_hal_gpio_port_t cs_port;  /**< Chip select GPIO port */
+    xy_hal_gpio_port_t rst_port; /**< Reset GPIO port */
+    xy_hal_gpio_port_t bl_port;  /**< Backlight GPIO port */
     uint8_t dc_pin;              /**< Data/Command pin */
     uint8_t cs_pin;              /**< Chip select pin */
     uint8_t rst_pin;             /**< Reset pin */
@@ -55,6 +59,10 @@ typedef struct {
     uint8_t spi_mode;            /**< SPI mode */
 
     /* GPIO pins */
+    xy_hal_gpio_port_t dc_port;  /**< DC GPIO port */
+    xy_hal_gpio_port_t cs_port;  /**< CS GPIO port */
+    xy_hal_gpio_port_t rst_port; /**< Reset GPIO port */
+    xy_hal_gpio_port_t bl_port;  /**< Backlight GPIO port */
     uint8_t dc_pin;              /**< DC pin */
     uint8_t cs_pin;              /**< CS pin */
     uint8_t rst_pin;             /**< Reset pin */
