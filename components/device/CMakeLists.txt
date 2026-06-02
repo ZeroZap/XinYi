@@ -25,6 +25,7 @@ set(DEVICE_SOURCES
     src/xy_device_bus_helpers.c # compatibility bus helpers: i2c/spi/uart/gpio devices
     xy_device_core.c       # global registry + idle PM
     src/xy_device_pm.c     # per-device power management ops
+    src/xy_device_async.c  # optional queued async helper state machine
 )
 
 set(DEVICE_HEADERS

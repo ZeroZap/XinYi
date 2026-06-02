@@ -1,10 +1,13 @@
 /**
  * @file xy_device_async.h
- * @brief Device Asynchronous Operations
+ * @brief Optional queued async helper API for devices that use xy_device_t::data.
  * @version 1.0.0
  * @date 2026-03-15
- * 
- * @note 设备异步操作模块 - 支持非阻塞 I/O 和回调
+ *
+ * @note The generic xy_device_async_read/write dispatch APIs are declared in
+ *       xy_device.h. This header exposes a small optional helper state machine
+ *       with a distinct xy_device_async_*_ex namespace so it does not collide
+ *       with the generic dispatch API.
  */
 
 #ifndef XY_DEVICE_ASYNC_H
@@ -19,7 +22,7 @@ extern "C" {
 /* ==================== Async Operation Types ==================== */
 
 /**
- * @brief 异步操作类型
+ * @brief Async operation type.
  */
 typedef enum {
     XY_DEVICE_ASYNC_OP_NONE = 0,
@@ -29,7 +32,7 @@ typedef enum {
 } xy_device_async_op_t;
 
 /**
- * @brief 异步操作状态
+ * @brief Async operation state.
  */
 typedef enum {
     XY_DEVICE_ASYNC_STATE_IDLE = 0,
@@ -41,13 +44,13 @@ typedef enum {
 /* ==================== Async Callback ==================== */
 
 /**
- * @brief 异步操作完成回调
- * @param dev 设备句柄
- * @param op 操作类型
- * @param result 操作结果
- * @param user_data 用户数据
+ * @brief Async helper completion callback.
+ * @param dev Device handle.
+ * @param op Operation type.
+ * @param result Operation result.
+ * @param user_data User data.
  */
-typedef void (*xy_device_async_callback_t)(xy_device_t *dev, 
+typedef void (*xy_device_async_callback_t)(xy_device_t *dev,
                                            xy_device_async_op_t op,
                                            int result,
                                            void *user_data);
@@ -55,103 +58,106 @@ typedef void (*xy_device_async_callback_t)(xy_device_t *dev,
 /* ==================== Async Request Structure ==================== */
 
 /**
- * @brief 异步操作请求
+ * @brief Async helper request.
  */
 typedef struct {
-    xy_device_async_op_t op;           /**< 操作类型 */
-    xy_device_async_state_t state;     /**< 操作状态 */
-    void *buffer;                      /**< 数据缓冲区 */
-    size_t length;                     /**< 数据长度 */
-    size_t transferred;                /**< 已传输字节数 */
-    int error_code;                    /**< 错误码 */
-    xy_device_async_callback_t callback; /**< 完成回调 */
-    void *user_data;                   /**< 用户数据 */
-    uint32_t timeout_ms;               /**< 超时时间 */
-    uint32_t start_time;               /**< 开始时间 */
+    xy_device_async_op_t op;             /**< Operation type */
+    xy_device_async_state_t state;       /**< Operation state */
+    void *buffer;                        /**< Data buffer */
+    size_t length;                       /**< Data length */
+    size_t transferred;                  /**< Transferred byte count */
+    int error_code;                      /**< Error code */
+    xy_device_async_callback_t callback; /**< Completion callback */
+    void *user_data;                     /**< User data */
+    uint32_t timeout_ms;                 /**< Timeout in milliseconds */
+    uint32_t start_time;                 /**< Start tick */
 } xy_device_async_request_t;
 
-/* ==================== Async Operations API ==================== */
+/**
+ * @brief Async helper operation hooks.
+ */
+typedef struct {
+    int (*read)(xy_device_t *dev, void *buffer, size_t length,
+                xy_device_async_callback_t callback, void *user_data,
+                uint32_t timeout_ms);
+    int (*write)(xy_device_t *dev, const void *buffer, size_t length,
+                 xy_device_async_callback_t callback, void *user_data,
+                 uint32_t timeout_ms);
+    int (*poll)(xy_device_t *dev);
+    int (*ready)(xy_device_t *dev, bool for_write);
+} xy_device_async_ops_t;
 
 /**
- * @brief 初始化异步操作
- * @param dev 设备句柄
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @brief Async helper context stored by the caller.
  */
-int xy_device_async_init(xy_device_t *dev);
+typedef struct {
+    xy_device_async_request_t request;   /**< Current request */
+    const xy_device_async_ops_t *ops;    /**< Optional backend hooks */
+    bool initialized;                    /**< Initialization flag */
+    bool is_busy;                        /**< Busy flag */
+} xy_device_async_context_t;
+
+/* ==================== Async Helper API ==================== */
 
 /**
- * @brief 异步读取
- * @param dev 设备句柄
- * @param buffer 数据缓冲区
- * @param length 数据长度
- * @param callback 完成回调
- * @param user_data 用户数据
- * @param timeout_ms 超时时间 (0=无超时)
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @brief Initialize async helper state.
+ * @param ctx Async helper context owned by the caller.
+ * @param ops Optional backend hooks.
+ * @return XY_DEVICE_OK on success.
  */
-int xy_device_async_read(xy_device_t *dev, void *buffer, size_t length,
-                         xy_device_async_callback_t callback, void *user_data,
-                         uint32_t timeout_ms);
+int xy_device_async_init_ex(xy_device_async_context_t *ctx,
+                            const xy_device_async_ops_t *ops);
 
 /**
- * @brief 异步写入
- * @param dev 设备句柄
- * @param buffer 数据缓冲区
- * @param length 数据长度
- * @param callback 完成回调
- * @param user_data 用户数据
- * @param timeout_ms 超时时间 (0=无超时)
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @brief Start an async read through the optional helper backend.
  */
-int xy_device_async_write(xy_device_t *dev, const void *buffer, size_t length,
-                          xy_device_async_callback_t callback, void *user_data,
-                          uint32_t timeout_ms);
+int xy_device_async_read_ex(xy_device_t *dev, xy_device_async_context_t *ctx,
+                            void *buffer, size_t length,
+                            xy_device_async_callback_t callback, void *user_data,
+                            uint32_t timeout_ms);
 
 /**
- * @brief 取消异步操作
- * @param dev 设备句柄
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @brief Start an async write through the optional helper backend.
  */
-int xy_device_async_cancel(xy_device_t *dev);
+int xy_device_async_write_ex(xy_device_t *dev, xy_device_async_context_t *ctx,
+                             const void *buffer, size_t length,
+                             xy_device_async_callback_t callback, void *user_data,
+                             uint32_t timeout_ms);
 
 /**
- * @brief 获取异步操作状态
- * @param dev 设备句柄
- * @param state 状态 (输出)
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @brief Cancel the current helper operation.
  */
-int xy_device_async_get_state(xy_device_t *dev, xy_device_async_state_t *state);
+int xy_device_async_cancel_ex(xy_device_t *dev, xy_device_async_context_t *ctx);
 
 /**
- * @brief 获取已传输字节数
- * @param dev 设备句柄
- * @param transferred 已传输字节数 (输出)
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @brief Get helper operation state.
  */
-int xy_device_async_get_transferred(xy_device_t *dev, size_t *transferred);
+int xy_device_async_get_state_ex(const xy_device_async_context_t *ctx,
+                                 xy_device_async_state_t *state);
 
 /**
- * @brief 轮询异步操作完成
- * @param dev 设备句柄
- * @return 1=完成，0=未完成，负值=错误
+ * @brief Get transferred byte count.
  */
-int xy_device_async_poll(xy_device_t *dev);
+int xy_device_async_get_transferred_ex(const xy_device_async_context_t *ctx,
+                                       size_t *transferred);
 
 /**
- * @brief 等待异步操作完成
- * @param dev 设备句柄
- * @param timeout_ms 超时时间
- * @return XY_DEVICE_OK 完成，XY_DEVICE_TIMEOUT 超时
+ * @brief Poll helper operation completion.
+ * @return 1=completed, 0=pending, negative=error.
  */
-int xy_device_async_wait(xy_device_t *dev, uint32_t timeout_ms);
+int xy_device_async_poll_ex(xy_device_t *dev, xy_device_async_context_t *ctx);
 
 /**
- * @brief 检查设备是否就绪 (非阻塞)
- * @param dev 设备句柄
- * @param for_write true=检查可写，false=检查可读
- * @return 1=就绪，0=未就绪，负值=错误
+ * @brief Wait for helper operation completion.
  */
-int xy_device_async_ready(xy_device_t *dev, bool for_write);
+int xy_device_async_wait_ex(xy_device_t *dev, xy_device_async_context_t *ctx,
+                            uint32_t timeout_ms);
+
+/**
+ * @brief Check helper readiness.
+ */
+int xy_device_async_ready_ex(xy_device_t *dev, xy_device_async_context_t *ctx,
+                             bool for_write);
 
 #ifdef __cplusplus
 }
