@@ -26,6 +26,7 @@ include_directories(
     ${NET}/inc                      # xy_can.h
     ${NET}/xy_iso7816               # xy_iso7816.h
     ${CRYPTO}/xy_crc                # xy_crc.h
+    ${CRYPTO}/xy_rng                # xy_rng.h
     ${ROOT}/components/trace/xy_log/inc # xy_log.h and xy_stdio.h
     ${ROOT}/components/kernel/osal  # xy_os.h
     ${ROOT}/components/clib/xy_clib # xy_typedef.h
@@ -167,12 +168,19 @@ add_test(NAME iso7816_component COMMAND test_iso7816)
 add_test(NAME iso7816_example COMMAND test_iso7816_example)
 add_test(NAME crypto_crc COMMAND test_crc)
 
+# --- Test 16: Crypto CSPRNG lifecycle, buffering, and helpers ---
+add_executable(test_csprng
+    test_csprng.c
+    ${CRYPTO}/xy_rng/xy_csprng.c
+)
+add_test(NAME crypto_csprng COMMAND test_csprng)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example
-            test_crc
+            test_crc test_csprng
     COMMENT "Running unit tests"
 )

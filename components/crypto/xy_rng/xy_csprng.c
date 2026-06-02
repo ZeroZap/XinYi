@@ -23,9 +23,9 @@
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_INFO
 
 #include <stdint.h>
+#include <string.h>
 #include "xy_rng.h"
-#include "../../trace/xy_log/inc/xy_log.h"
-#include "../../xy_clib/xy_string.h"
+#include "xy_log.h"
 
 /* ChaCha20 quarter round macro */
 #define QUARTERROUND(a, b, c, d) \
@@ -227,7 +227,7 @@ int xy_csprng_generate(uint8_t *output, size_t output_len) {
                          output_len : g_csprng_ctx.available;
         size_t offset = 64 - g_csprng_ctx.available;
 
-        xy_memcpy(output, g_csprng_ctx.buffer + offset, to_copy);
+        memcpy(output, g_csprng_ctx.buffer + offset, to_copy);
         g_csprng_ctx.available -= to_copy;
         bytes_written += to_copy;
     }
@@ -248,7 +248,7 @@ int xy_csprng_generate(uint8_t *output, size_t output_len) {
         size_t remaining = output_len - bytes_written;
         size_t to_copy = (remaining < 64) ? remaining : 64;
 
-        xy_memcpy(output + bytes_written, g_csprng_ctx.buffer, to_copy);
+        memcpy(output + bytes_written, g_csprng_ctx.buffer, to_copy);
         bytes_written += to_copy;
 
         /* Update available count */
@@ -292,6 +292,6 @@ uint32_t xy_csprng_uniform(uint32_t upper_bound) {
 
 void xy_csprng_cleanup(void) {
     /* Securely erase state */
-    xy_memset(&g_csprng_ctx, 0, sizeof(g_csprng_ctx));
+    memset(&g_csprng_ctx, 0, sizeof(g_csprng_ctx));
     xy_log_d("CSPRNG: Cleaned up\n");
 }
