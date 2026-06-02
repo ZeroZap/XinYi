@@ -157,6 +157,7 @@ const char *xy_os_baremetal_get_platform(void)
 xy_os_status_t xy_os_kernel_init(void)
 {
     s_state = XY_OS_KERNEL_READY;
+    xy_timer_sw_init();
     return XY_OS_OK;
 }
 
@@ -519,18 +520,20 @@ static void timer_sw_callback(void *arg)
 xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t f, xy_os_timer_type_t t,
                                  void *arg, const xy_os_timer_attr_t *attr)
 {
-    (void)arg;
-    (void)attr;
+    if (f == NULL) {
+        return NULL;
+    }
     
     for (int i = 0; i < 8; i++) {
-        if (!s_timers[i].sw_timer_id) {
+        if (s_timers[i].callback == NULL) {
+            memset(&s_timers[i], 0, sizeof(s_timers[i]));
             s_timers[i].callback = f;
             s_timers[i].type = t;
             s_timers[i].arg = arg;
             if (attr && attr->name) {
                 strncpy(s_timers[i].name, attr->name, sizeof(s_timers[i].name) - 1);
             }
-            return (xy_os_timer_id_t)(i + 1);
+            return (xy_os_timer_id_t)(uintptr_t)(i + 1);
         }
     }
     return NULL;
@@ -596,6 +599,8 @@ xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t id)
     }
     ctx->callback = NULL;
     ctx->arg = NULL;
+    ctx->type = 0;
+    memset(ctx->name, 0, sizeof(ctx->name));
     return XY_OS_OK;
 }
 

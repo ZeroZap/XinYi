@@ -14,9 +14,12 @@
 #include "xy_os.h"
 /* Need tick for deadline tests */
 #include "inc/xy_os_tick.h"
+#include "xy_timer_sw.h"
 
 static int tests_run    = 0;
 static int tests_passed = 0;
+static int g_timer_calls = 0;
+static int g_timer_last_arg = 0;
 
 #define TEST(name)  static void name(void)
 #define RUN_TEST(name) do {                              \
@@ -35,6 +38,82 @@ static int tests_passed = 0;
         exit(1);                                                     \
     }                                                                \
 } while (0)
+
+static void test_timer_callback(void *arg)
+{
+    g_timer_calls++;
+    g_timer_last_arg = *(int *)arg;
+}
+
+/* ========== Kernel / Thread / Timer ========== */
+
+TEST(test_kernel_info_lock_and_ticks)
+{
+    xy_os_version_t version = {0};
+    char id[48] = {0};
+    ASSERT(xy_os_kernel_get_state() == XY_OS_KERNEL_READY);
+    ASSERT(xy_os_kernel_get_info(&version, id, sizeof(id)) == XY_OS_OK);
+    ASSERT(version.api != 0);
+    ASSERT(strstr(id, "Baremetal") != NULL);
+    ASSERT(xy_os_kernel_get_tick_freq() == 1000);
+    ASSERT(xy_os_kernel_get_sys_timer_freq() == 1000);
+
+    (void)xy_os_kernel_lock();
+    ASSERT(xy_os_kernel_get_state() == XY_OS_KERNEL_LOCKED);
+    ASSERT(xy_os_kernel_unlock() == 0);
+    ASSERT(xy_os_kernel_get_state() == XY_OS_KERNEL_RUNNING);
+    ASSERT(xy_os_kernel_restore_lock(1) == 0);
+    ASSERT(xy_os_kernel_get_state() == XY_OS_KERNEL_LOCKED);
+    ASSERT(xy_os_kernel_restore_lock(0) == 1);
+    ASSERT(xy_os_kernel_get_state() == XY_OS_KERNEL_RUNNING);
+}
+
+TEST(test_thread_stub_contract)
+{
+    xy_os_thread_id_t current = xy_os_thread_get_id();
+    xy_os_thread_id_t threads[2] = {0};
+    ASSERT(xy_os_thread_new(NULL, NULL, NULL) == NULL);
+    ASSERT(current != NULL);
+    ASSERT(strcmp(xy_os_thread_get_name(current), "main") == 0);
+    ASSERT(xy_os_thread_get_state(current) == XY_OS_THREAD_RUNNING);
+    ASSERT(xy_os_thread_get_priority(current) == XY_OS_PRIORITY_NORMAL);
+    ASSERT(xy_os_thread_get_count() == 1);
+    ASSERT(xy_os_thread_enumerate(threads, 2) == 1);
+    ASSERT(threads[0] == current);
+    ASSERT(xy_os_thread_yield() == XY_OS_OK);
+    ASSERT(xy_os_thread_suspend(current) == XY_OS_ERROR);
+    ASSERT(xy_os_thread_flags_set(current, 0x1) == 0x80000000u);
+    ASSERT(xy_os_thread_flags_get() == 0);
+    ASSERT(xy_os_thread_flags_clear(0x1) == 0);
+    ASSERT(xy_os_thread_flags_wait(0x1, XY_OS_FLAGS_WAIT_ANY, 0) == 0x80000000u);
+}
+
+TEST(test_timer_one_shot_and_reuse)
+{
+    int arg = 123;
+    xy_os_timer_attr_t attr = { .name = "tmr" };
+    g_timer_calls = 0;
+    g_timer_last_arg = 0;
+
+    ASSERT(xy_os_timer_new(NULL, XY_OS_TIMER_ONCE, &arg, &attr) == NULL);
+    xy_os_timer_id_t timer = xy_os_timer_new(test_timer_callback, XY_OS_TIMER_ONCE, &arg, &attr);
+    ASSERT(timer != NULL);
+    ASSERT(strcmp(xy_os_timer_get_name(timer), "tmr") == 0);
+    ASSERT(xy_os_timer_is_running(timer) == 0);
+    ASSERT(xy_os_timer_start(timer, 1) == XY_OS_OK);
+    ASSERT(xy_os_timer_is_running(timer) == 1);
+    xy_timer_sw_poll();
+    ASSERT(g_timer_calls == 0);
+    xy_timer_sw_poll();
+    ASSERT(g_timer_calls == 1);
+    ASSERT(g_timer_last_arg == 123);
+    ASSERT(xy_os_timer_stop(timer) == XY_OS_OK);
+    ASSERT(xy_os_timer_delete(timer) == XY_OS_OK);
+
+    timer = xy_os_timer_new(test_timer_callback, XY_OS_TIMER_ONCE, &arg, NULL);
+    ASSERT(timer != NULL);
+    ASSERT(xy_os_timer_delete(timer) == XY_OS_OK);
+}
 
 /* ========== Mutex ========== */
 
@@ -335,6 +414,11 @@ int main(void)
     xy_os_kernel_init();
 
     printf("=== OSAL Baremetal Unit Tests ===\n\n");
+
+    /* Kernel / Thread / Timer */
+    RUN_TEST(test_kernel_info_lock_and_ticks);
+    RUN_TEST(test_thread_stub_contract);
+    RUN_TEST(test_timer_one_shot_and_reuse);
 
     /* Mutex */
     RUN_TEST(test_mutex_basic);
