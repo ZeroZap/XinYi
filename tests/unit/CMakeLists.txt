@@ -11,6 +11,7 @@ set(ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set(DEV  ${ROOT}/components/device)
 set(HAL  ${ROOT}/components/hal)
 set(DRV  ${ROOT}/components/drivers)
+set(NET  ${ROOT}/components/net)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -21,6 +22,10 @@ include_directories(
     ${DRV}/sensor/motion/mpu6050    # xy_mpu6050.h
     ${DRV}/sensor/pressure/bmp280   # xy_bmp280.h
     ${DRV}/sensor/adc/ads1115       # xy_ads1115.h
+    ${NET}/inc                      # xy_can.h
+    ${ROOT}/components/trace/xy_log/inc # xy_log.h and xy_stdio.h
+    ${ROOT}/components/kernel/osal  # xy_os.h
+    ${ROOT}/components/clib/xy_clib # xy_typedef.h
 )
 
 # Device framework + PC HAL sources shared by all tests
@@ -74,6 +79,12 @@ add_executable(test_device_driver_template
     ${FRAMEWORK_SOURCES}
 )
 
+# --- Test 10: CAN protocol component API + callback/fifo behavior ---
+add_executable(test_can
+    test_can.c
+    ${NET}/src/xy_can.c
+)
+
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
@@ -115,11 +126,12 @@ add_test(NAME auto_register     COMMAND test_auto_register)
 add_test(NAME device_async_helper COMMAND test_device_async_helper)
 add_test(NAME device_registry_example COMMAND test_device_registry_example)
 add_test(NAME device_driver_template COMMAND test_device_driver_template)
+add_test(NAME can_component COMMAND test_can)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
-            test_osal test_auto_register test_device_async_helper
+            test_osal test_auto_register test_device_async_helper test_can
     COMMENT "Running unit tests"
 )

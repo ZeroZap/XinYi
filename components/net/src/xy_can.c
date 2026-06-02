@@ -7,6 +7,8 @@
 
 #include "xy_can.h"
 #include "xy_log.h"
+#include "xy_os.h"
+#include <stdlib.h>
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -68,8 +70,6 @@ static uint32_t xy_can_fifo_count(uint32_t head, uint32_t tail, uint32_t size)
 
 int xy_can_init(xy_can_t *can, void *hw_handle, const xy_can_config_t *config)
 {
-    int ret;
-    
     if (!can || !config) {
         return XY_CAN_INVALID_PARAM;
     }
@@ -102,8 +102,9 @@ int xy_can_init(xy_can_t *can, void *hw_handle, const xy_can_config_t *config)
     
     can->initialized = true;
     
-    xy_log_i("CAN initialized (baudrate=%lu, RX_FIFO=%lu, TX_FIFO=%lu)\n",
-             can->config.baudrate, can->rx_fifo_size, can->tx_fifo_size);
+    xy_log_i("CAN initialized (baudrate=%u, RX_FIFO=%u, TX_FIFO=%u)\n",
+             (unsigned)can->config.baudrate, (unsigned)can->rx_fifo_size,
+             (unsigned)can->tx_fifo_size);
     
     return XY_CAN_OK;
 }
@@ -143,13 +144,14 @@ int xy_can_start(xy_can_t *can)
     xy_hal_can_init(can->hw_handle, &hal_cfg);
 #endif
 
+    can->started = true;
     xy_log_i("CAN started\n");
     return XY_CAN_OK;
 }
 
 int xy_can_stop(xy_can_t *can)
 {
-    if (!can) {
+    if (!can || !can->initialized) {
         return XY_CAN_INVALID_PARAM;
     }
 
@@ -158,6 +160,7 @@ int xy_can_stop(xy_can_t *can)
     xy_hal_can_deinit(can->hw_handle);
 #endif
 
+    can->started = false;
     xy_log_i("CAN stopped\n");
     return XY_CAN_OK;
 }
