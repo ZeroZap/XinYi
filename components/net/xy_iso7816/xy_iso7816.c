@@ -6,7 +6,8 @@
  */
 
 #include "xy_iso7816.h"
-#include "../../xy_clib/xy_string.h"
+#include "xy_string.h"
+#include <stdbool.h>
 #include <string.h>
 
 /* ========================================================================== */
@@ -14,22 +15,11 @@
 /* ========================================================================== */
 
 /**
- * @brief Calculate XOR checksum for T=0 protocol
- */
-static xy_u8 xy_iso7816_calc_checksum(const xy_u8 *data, xy_u16 len) {
-    xy_u8 checksum = 0;
-    for (xy_u16 i = 0; i < len; i++) {
-        checksum ^= data[i];
-    }
-    return checksum;
-}
-
-/**
  * @brief Send single byte
  */
 static xy_iso7816_error_t xy_iso7816_send_byte(xy_iso7816_handle_t *handle, xy_u8 byte) {
-    int ret = xy_hal_uart_send(handle->uart, &byte, 1, handle->timeout);
-    if (ret != 1) {
+    xy_hal_error_t ret = xy_hal_uart_send(handle->uart, &byte, 1, handle->timeout);
+    if (ret != XY_HAL_OK) {
         return XY_ISO7816_ERROR_IO;
     }
     return XY_ISO7816_OK;
@@ -39,8 +29,8 @@ static xy_iso7816_error_t xy_iso7816_send_byte(xy_iso7816_handle_t *handle, xy_u
  * @brief Receive single byte
  */
 static xy_iso7816_error_t xy_iso7816_recv_byte(xy_iso7816_handle_t *handle, xy_u8 *byte) {
-    int ret = xy_hal_uart_recv(handle->uart, byte, 1, XY_ISO7816_BYTE_TIMEOUT);
-    if (ret != 1) {
+    xy_hal_error_t ret = xy_hal_uart_recv(handle->uart, byte, 1, XY_ISO7816_BYTE_TIMEOUT);
+    if (ret != XY_HAL_OK) {
         return XY_ISO7816_ERROR_TIMEOUT;
     }
     return XY_ISO7816_OK;
@@ -52,22 +42,9 @@ static xy_iso7816_error_t xy_iso7816_recv_byte(xy_iso7816_handle_t *handle, xy_u
 static xy_iso7816_error_t xy_iso7816_send_buffer(xy_iso7816_handle_t *handle,
                                                  const xy_u8 *data,
                                                  xy_u16 len) {
-    int ret = xy_hal_uart_send(handle->uart, data, len, handle->timeout);
-    if (ret != (int)len) {
+    xy_hal_error_t ret = xy_hal_uart_send(handle->uart, data, len, handle->timeout);
+    if (ret != XY_HAL_OK) {
         return XY_ISO7816_ERROR_IO;
-    }
-    return XY_ISO7816_OK;
-}
-
-/**
- * @brief Receive buffer
- */
-static xy_iso7816_error_t xy_iso7816_recv_buffer(xy_iso7816_handle_t *handle,
-                                                 xy_u8 *data,
-                                                 xy_u16 len) {
-    int ret = xy_hal_uart_recv(handle->uart, data, len, handle->timeout);
-    if (ret != (int)len) {
-        return XY_ISO7816_ERROR_TIMEOUT;
     }
     return XY_ISO7816_OK;
 }
@@ -658,6 +635,7 @@ xy_iso7816_error_t xy_iso7816_authenticate(xy_iso7816_handle_t *handle,
     }
 
     xy_u8 resp_len = resp.data[idx++];
+    (void)resp_len;
     
     /* Extract RES (typically 8 bytes) */
     if (idx < resp.length && resp.data[idx] == 0x80) {

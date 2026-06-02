@@ -23,6 +23,7 @@ include_directories(
     ${DRV}/sensor/pressure/bmp280   # xy_bmp280.h
     ${DRV}/sensor/adc/ads1115       # xy_ads1115.h
     ${NET}/inc                      # xy_can.h
+    ${NET}/xy_iso7816               # xy_iso7816.h
     ${ROOT}/components/trace/xy_log/inc # xy_log.h and xy_stdio.h
     ${ROOT}/components/kernel/osal  # xy_os.h
     ${ROOT}/components/clib/xy_clib # xy_typedef.h
@@ -97,6 +98,12 @@ add_executable(test_nano_modbus
     ${NET}/modbus_tiny/mb_tiny.c
 )
 
+# --- Test 13: ISO7816 public include, lifecycle, and APDU behavior ---
+add_executable(test_iso7816
+    test_iso7816.c
+    ${NET}/xy_iso7816/xy_iso7816.c
+)
+
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
@@ -141,12 +148,13 @@ add_test(NAME device_driver_template COMMAND test_device_driver_template)
 add_test(NAME can_component COMMAND test_can)
 add_test(NAME lte_component COMMAND test_lte)
 add_test(NAME nano_modbus_compat COMMAND test_nano_modbus)
+add_test(NAME iso7816_component COMMAND test_iso7816)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
-            test_nano_modbus
+            test_nano_modbus test_iso7816
     COMMENT "Running unit tests"
 )

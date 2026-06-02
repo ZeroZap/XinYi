@@ -15,8 +15,8 @@
 extern "C" {
 #endif
 
-#include "../../xy_clib/xy_typedef.h"
-#include "../../../bsp/xy_hal/inc/xy_hal_uart.h"
+#include "xy_typedef.h"
+#include "xy_hal_uart.h"
 
 /* ISO7816 Protocol Constants */
 #define XY_ISO7816_ATR_MAX_LEN          33    /**< Maximum ATR length */
