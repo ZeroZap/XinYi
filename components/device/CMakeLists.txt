@@ -11,23 +11,36 @@ include_directories(
     ../trace/xy_log/inc
 )
 
-# Collect source files (drivers have been moved to components/drivers/)
+# Device framework sources.
+#
+# Keep the model close to RT-Thread/Zephyr layering:
+# - src/xy_device.c: public device lifecycle and generic I/O dispatch
+# - xy_device_core.c: registry, reference counting, and idle PM state
+# - xy_device.c: compatibility bus helpers for I2C/SPI/UART/GPIO child devices
+#
+# Do not collapse the two xy_device.c files without first renaming the helper
+# layer and updating unit-test source lists; they intentionally provide different
+# parts of the current compatibility model.
 set(DEVICE_SOURCES
-    src/xy_device.c        # main framework: register/find/open/read/write
-    xy_device.c            # device helpers: i2c_device/spi_device/uart_device/gpio_device
+    src/xy_device.c        # lifecycle + generic device dispatch
+    xy_device.c            # compatibility bus helpers: i2c/spi/uart/gpio devices
     xy_device_core.c       # global registry + idle PM
     src/xy_device_pm.c     # per-device power management ops
 )
 
 set(DEVICE_HEADERS
-    xy_device.h
+    inc/xy_adc.h
+    inc/xy_dev_api.h
+    inc/xy_dev_i2c.h
+    inc/xy_device_async.h
+    inc/xy_device_error.h
+    inc/xy_device.h
+    inc/xy_device_pm.h
+    inc/xy_dev_spi.h
+    inc/xy_dev_uart.h
+    inc/xy_gpio.h
+    inc/xy_pwm.h
     xy_device_core.h
-    xy_eeprom_24xx.h
-    xy_oled_ssd1306.h
-    xy_mpu6050.h
-    xy_bmp280.h
-    xy_sht30.h
-    xy_ads1115.h
 )
 
 # Create library
