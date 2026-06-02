@@ -65,6 +65,16 @@ add_executable(test_auto_register test_auto_register.c ${FRAMEWORK_SOURCES})
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
+# --- Test 7: optional xy_device_async_*_ex helper API ---
+add_executable(test_device_async_helper
+    test_device_async_helper.c
+    ${DEV}/src/xy_device_async.c
+)
+target_include_directories(test_device_async_helper PRIVATE
+    ${OSAL_ROOT}/osal
+    ${OSAL_ROOT}/osal/inc
+)
+
 add_executable(test_osal
     test_osal.c
     ${OSAL_ROOT}/osal/backend/baremetal/xy_os_baremetal.c
@@ -90,11 +100,12 @@ add_test(NAME sensors_multi     COMMAND test_sensors_multi)
 add_test(NAME spi_device        COMMAND test_spi_device)
 add_test(NAME osal_baremetal    COMMAND test_osal)
 add_test(NAME auto_register     COMMAND test_auto_register)
+add_test(NAME device_async_helper COMMAND test_device_async_helper)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
-            test_osal test_auto_register
+            test_osal test_auto_register test_device_async_helper
     COMMENT "Running unit tests"
 )
