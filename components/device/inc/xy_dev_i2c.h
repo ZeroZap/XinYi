@@ -3,6 +3,12 @@
  * @brief XinYi I2C Device Driver API
  * @version 2.0
  * @date 2026-02-28
+ *
+ * @note Compatibility layer: XinYi is converging on an RT-Thread/Zephyr-like
+ * device model where `xy_device_t` is the generic registry/lifecycle object and
+ * bus-specific APIs are typed capability layers. Prefer the `xy_i2c_device_*`
+ * helpers declared in `xy_device.h` for new drivers. Keep this `xy_i2c_dev_*`
+ * API for existing sensor drivers until they are migrated with tests.
  */
 
 #ifndef XY_DEV_I2C_H

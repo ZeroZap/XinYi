@@ -3,6 +3,12 @@
  * @brief XinYi UART Device Driver API
  * @version 2.0
  * @date 2026-02-28
+ *
+ * @note Compatibility layer: XinYi is converging on an RT-Thread/Zephyr-like
+ * device model where `xy_device_t` is the generic registry/lifecycle object and
+ * bus-specific APIs are typed capability layers. Prefer the typed helpers in
+ * `xy_device.h` for new users. Keep this `xy_uart_dev_*` API for existing code
+ * until it is migrated with tests.
  */
 
 #ifndef XY_DEV_UART_H

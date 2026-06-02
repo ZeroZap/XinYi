@@ -3,6 +3,12 @@
  * @brief XinYi GPIO Device Driver
  * @version 2.0
  * @date 2026-02-28
+ *
+ * @note Compatibility layer: XinYi is converging on an RT-Thread/Zephyr-like
+ * device model where `xy_device_t` is the generic registry/lifecycle object and
+ * GPIO access is either a typed device capability or direct HAL operation in
+ * low-level drivers. Prefer `xy_gpio_device_*` from `xy_device.h` for new device
+ * wrappers, and keep `xy_gpio_dev_*` for existing users until migration.
  */
 
 #ifndef XY_GPIO_H
