@@ -90,6 +90,12 @@ typedef struct {
 } xy_lte_pdp_context_t;
 
 /**
+ * @brief LTE 回调函数
+ */
+typedef void (*xy_lte_urc_callback_t)(const char *urc);
+typedef void (*xy_lte_recv_callback_t)(uint8_t *data, size_t len);
+
+/**
  * @brief LTE 模块句柄
  */
 typedef struct {
@@ -101,13 +107,9 @@ typedef struct {
     xy_lte_net_type_t net_type; /* 当前网络类型 */
     xy_lte_signal_t signal;     /* 信号质量 */
     xy_lte_pdp_context_t pdp;   /* PDP 配置 */
+    xy_lte_urc_callback_t urc_callback;   /* URC 回调 */
+    xy_lte_recv_callback_t recv_callback; /* 接收回调 */
 } xy_lte_t;
-
-/**
- * @brief LTE 回调函数
- */
-typedef void (*xy_lte_urc_callback_t)(const char *urc);
-typedef void (*xy_lte_recv_callback_t)(uint8_t *data, size_t len);
 
 /**
  * @brief 初始化 LTE 模块

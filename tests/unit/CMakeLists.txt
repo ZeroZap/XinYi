@@ -85,6 +85,12 @@ add_executable(test_can
     ${NET}/src/xy_can.c
 )
 
+# --- Test 11: LTE component lifecycle, callback storage, and validation ---
+add_executable(test_lte
+    test_lte.c
+    ${NET}/src/xy_lte.c
+)
+
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
@@ -127,11 +133,12 @@ add_test(NAME device_async_helper COMMAND test_device_async_helper)
 add_test(NAME device_registry_example COMMAND test_device_registry_example)
 add_test(NAME device_driver_template COMMAND test_device_driver_template)
 add_test(NAME can_component COMMAND test_can)
+add_test(NAME lte_component COMMAND test_lte)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
-            test_osal test_auto_register test_device_async_helper test_can
+            test_osal test_auto_register test_device_async_helper test_can test_lte
     COMMENT "Running unit tests"
 )

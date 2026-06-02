@@ -21,6 +21,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#define LTE_MAX_LINKS 8U
+
 /**
  * @brief 发送 AT 命令辅助函数
  */
@@ -295,7 +297,7 @@ int xy_lte_is_attached(xy_lte_t *lte)
 
 int xy_lte_set_pdp_context(xy_lte_t *lte, xy_lte_pdp_context_t *ctx)
 {
-    char cmd[128];
+    char cmd[192];
     
     if (!lte || !ctx) {
         return XY_LTE_INVALID_PARAM;
@@ -310,8 +312,8 @@ int xy_lte_set_pdp_context(xy_lte_t *lte, xy_lte_pdp_context_t *ctx)
 
 int xy_lte_activate_pdp(xy_lte_t *lte, uint8_t cid)
 {
-    char cmd[32];
-    
+    (void)cid;
+
     if (!lte) {
         return XY_LTE_INVALID_PARAM;
     }
@@ -356,7 +358,7 @@ int xy_lte_connect(xy_lte_t *lte, uint8_t link_id, const char *server, uint16_t 
 {
     char cmd[128];
     
-    if (!lte || !server) {
+    if (!lte || !server || link_id >= LTE_MAX_LINKS) {
         return XY_LTE_INVALID_PARAM;
     }
     
@@ -371,7 +373,7 @@ int xy_lte_close(xy_lte_t *lte, uint8_t link_id)
 {
     char cmd[32];
     
-    if (!lte) {
+    if (!lte || link_id >= LTE_MAX_LINKS) {
         return XY_LTE_INVALID_PARAM;
     }
     
@@ -384,7 +386,7 @@ int xy_lte_send(xy_lte_t *lte, uint8_t link_id, const uint8_t *data, size_t len)
 {
     char cmd[32];
     
-    if (!lte || !data || len == 0) {
+    if (!lte || !data || len == 0 || link_id >= LTE_MAX_LINKS) {
         return XY_LTE_INVALID_PARAM;
     }
     
@@ -399,12 +401,13 @@ int xy_lte_send(xy_lte_t *lte, uint8_t link_id, const uint8_t *data, size_t len)
 
 int xy_lte_recv(xy_lte_t *lte, uint8_t link_id, uint8_t *data, size_t len, uint32_t timeout)
 {
-    (void)link_id;
     (void)timeout;
     
-    if (!lte || !data) {
+    if (!lte || !data || len == 0 || link_id >= LTE_MAX_LINKS) {
         return XY_LTE_INVALID_PARAM;
     }
+
+    memset(data, 0, len);
     
     /* 实际实现应等待 +RECEIVE URC */
     /* 从缓冲区读取数据 */
@@ -414,17 +417,21 @@ int xy_lte_recv(xy_lte_t *lte, uint8_t link_id, uint8_t *data, size_t len, uint3
 
 int xy_lte_register_urc(xy_lte_t *lte, xy_lte_urc_callback_t callback)
 {
-    (void)lte;
-    (void)callback;
-    /* 保存回调函数指针 */
+    if (!lte) {
+        return XY_LTE_INVALID_PARAM;
+    }
+
+    lte->urc_callback = callback;
     return XY_LTE_OK;
 }
 
 int xy_lte_register_recv(xy_lte_t *lte, xy_lte_recv_callback_t callback)
 {
-    (void)lte;
-    (void)callback;
-    /* 保存回调函数指针 */
+    if (!lte) {
+        return XY_LTE_INVALID_PARAM;
+    }
+
+    lte->recv_callback = callback;
     return XY_LTE_OK;
 }
 
