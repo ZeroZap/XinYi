@@ -62,6 +62,12 @@ add_executable(test_spi_device test_spi_device.c ${FRAMEWORK_SOURCES})
 # --- Test 6: XY_DEVICE_REGISTER auto-registration via GCC constructors ---
 add_executable(test_auto_register test_auto_register.c ${FRAMEWORK_SOURCES})
 
+# --- Test 8: device registry example stays aligned with public APIs ---
+add_executable(test_device_registry_example
+    ${ROOT}/examples/device_registry_example.c
+    ${FRAMEWORK_SOURCES}
+)
+
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
@@ -101,6 +107,7 @@ add_test(NAME spi_device        COMMAND test_spi_device)
 add_test(NAME osal_baremetal    COMMAND test_osal)
 add_test(NAME auto_register     COMMAND test_auto_register)
 add_test(NAME device_async_helper COMMAND test_device_async_helper)
+add_test(NAME device_registry_example COMMAND test_device_registry_example)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests

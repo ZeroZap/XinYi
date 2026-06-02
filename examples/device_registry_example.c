@@ -43,7 +43,6 @@ static xy_gpio_device_t g_led;
 
 /* 模拟 I2C/SPI/GPIO 句柄 */
 static void *g_i2c_handle1 = (void *)0x40005000;  /* I2C1 */
-static void *g_i2c_handle2 = (void *)0x40005400;  /* I2C2 */
 static void *g_spi_handle1 = (void *)0x40003800;  /* SPI1 */
 static void *g_gpio_porta = (void *)0x48000000;   /* GPIOA */
 
@@ -56,13 +55,15 @@ static int device_pm_callback(xy_device_t *dev,
                               xy_device_pm_event_t event,
                               void *user_data)
 {
+    (void)user_data;
+
     const char *dev_name = dev->name ? dev->name : "unknown";
     
     if (event == XY_DEVICE_PM_WAKE) {
         printf("[PM] Device '%s' waking up...\r\n", dev_name);
         /* 这里执行实际的硬件唤醒操作 */
         /* 例如：开启电源、初始化寄存器等 */
-    } else if (event == XY_DEVICE_PM_SLEEP) {
+    } else if (event == XY_DEVICE_PM_SLEEP_EVENT) {
         printf("[PM] Device '%s' entering sleep...\r\n", dev_name);
         /* 这里执行实际的硬件休眠操作 */
         /* 例如：关闭电源、保存状态等 */
@@ -133,12 +134,12 @@ static void example_register_devices(void)
     g_oled_display.base.type = XY_DEVICE_TYPE_DISPLAY;
     
     /* 初始化 SPI Flash */
-    xy_spi_device_init(&g_flash_memory, g_spi_handle1, NULL, 10000000);
+    xy_spi_device_init(&g_flash_memory, g_spi_handle1, NULL, 10000000, 0);
     g_flash_memory.base.name = "flash";
     g_flash_memory.base.type = XY_DEVICE_TYPE_MEMORY;
     
     /* 初始化 LED GPIO */
-    xy_gpio_device_init(&g_led, g_gpio_porta, 5, XY_GPIO_MODE_OUTPUT, XY_GPIO_PULL_NONE);
+    xy_gpio_device_init(&g_led, g_gpio_porta, 5, XY_HAL_GPIO_MODE_OUTPUT, XY_HAL_GPIO_PULL_NONE);
     g_led.base.name = "led";
     g_led.base.type = XY_DEVICE_TYPE_GPIO;
     
@@ -188,21 +189,21 @@ static void example_ref_count(void)
     xy_device_t *dev = xy_device_find_by_name("sht30");
     if (!dev) return;
     
-    printf("Initial ref count: %d\r\n", xy_device_get_ref_count(dev));
+    printf("Initial ref count: %d\r\n", xy_device_registry_ref_count(dev));
     
     /* 使用设备前增加引用 */
     xy_device_acquire(dev);
-    printf("After acquire: %d\r\n", xy_device_get_ref_count(dev));
+    printf("After acquire: %d\r\n", xy_device_registry_ref_count(dev));
     
     xy_device_acquire(dev);
-    printf("After second acquire: %d\r\n", xy_device_get_ref_count(dev));
+    printf("After second acquire: %d\r\n", xy_device_registry_ref_count(dev));
     
     /* 使用设备后减少引用 */
     xy_device_release(dev);
-    printf("After release: %d\r\n", xy_device_get_ref_count(dev));
+    printf("After release: %d\r\n", xy_device_registry_ref_count(dev));
     
     xy_device_release(dev);
-    printf("After second release: %d\r\n", xy_device_get_ref_count(dev));
+    printf("After second release: %d\r\n", xy_device_registry_ref_count(dev));
 }
 
 /**
