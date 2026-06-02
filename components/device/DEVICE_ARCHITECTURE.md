@@ -244,7 +244,7 @@ xy_error_t xy_device_close(xy_device_t *dev);
 components/device/
 ├── inc/                        # 公共头文件
 │   ├── xy_device.h             # 设备框架接口
-│   ├── xy_dev_api.h            # 通用驱动 API
+│   ├── xy_dev_api.h            # 兼容聚合头（通用设备 API 归属 xy_device.h）
 │   ├── xy_dev_uart.h           # UART 驱动接口
 │   ├── xy_dev_spi.h            # SPI 驱动接口
 │   ├── xy_dev_i2c.h            # I2C 驱动接口
@@ -657,7 +657,7 @@ typedef struct {
 ### 10.1 阶段一 (1-2 周): 核心框架
 
 - [ ] 设备框架核心实现 (xy_device.c)
-- [ ] 通用设备 API 定义 (xy_dev_api.h)
+- [ ] 通用设备 API 定义 (xy_device.h；xy_dev_api.h 仅保留兼容聚合)
 - [ ] UART 驱动实现 (xy_dev_uart.c)
 - [ ] STM32U5 UART 驱动 (mcu/stm32/stm32u5/xy_dev_uart_stm32u5.c)
 - [ ] 基础测试

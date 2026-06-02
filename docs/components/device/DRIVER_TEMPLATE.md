@@ -38,7 +38,7 @@
 components/device/
 ├── inc/
 │   ├── xy_device.h          # 设备框架核心头文件
-│   ├── xy_dev_api.h         # 设备 API 接口
+│   ├── xy_dev_api.h         # 兼容聚合头（新代码优先包含 xy_device.h/typed capability headers）
 │   ├── xy_dev_i2c.h         # I2C 设备接口
 │   ├── xy_dev_spi.h         # SPI 设备接口
 │   └── xy_dev_uart.h        # UART 设备接口

@@ -25,8 +25,8 @@ XinYi 设备组件架构结合了 RT-Thread 的易用性和 Zephyr 的规范性�
 │                设备管理层 (xy_device.h)                         │
 │          统一设备结构 + 设备管理 + 注册/查找机制                │
 ├─────────────────────────────────────────────────────────────────┤
-│              驱动 API 层 (xy_dev_api.h)                         │
-│           分类驱动 API 结构 (uart/spi/i2c/gpio...)              │
+│              能力接口层 (xy_dev_i2c.h/xy_dev_spi.h/...)         │
+│        xy_dev_api.h 仅作为 legacy 兼容聚合头                    │
 ├─────────────────────────────────────────────────────────────────┤
 │            设备驱动实现层 (xy_dev_*.c)                          │
 │              针对特定硬件的驱动实现                            │
@@ -350,7 +350,7 @@ xy_error_t xy_bus_transfer(xy_bus_device_t *bus, xy_bus_node_t *node,
 components/device/                 # 设备组件根目录
 ├── inc/                          # 公共头文件
 │   ├── xy_device.h               # 设备框架接口
-│   ├── xy_dev_api.h              # 通用驱动 API
+│   ├── xy_dev_api.h              # 兼容聚合头（通用设备 API 归属 xy_device.h）
 │   ├── xy_dev_uart.h             # UART 驱动接口
 │   ├── xy_dev_spi.h              # SPI 驱动接口
 │   ├── xy_dev_i2c.h              # I2C 驱动接口
