@@ -27,7 +27,7 @@ include_directories(
 set(FRAMEWORK_SOURCES
     ${DEV}/src/xy_device.c          # lifecycle + register forwarding
     ${DEV}/src/xy_device_pm.c       # per-device PM ops
-    ${DEV}/xy_device.c              # i2c/spi/uart/gpio helpers + register API
+    ${DEV}/src/xy_device_bus_helpers.c # i2c/spi/uart/gpio helpers + register API
     ${DEV}/xy_device_core.c         # static-array registry + PM check
     ${HAL}/PC/xy_hal_pc.c
     ${HAL}/PC/xy_hal_gpio_pc.c

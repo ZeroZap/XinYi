@@ -16,14 +16,13 @@ include_directories(
 # Keep the model close to RT-Thread/Zephyr layering:
 # - src/xy_device.c: public device lifecycle and generic I/O dispatch
 # - xy_device_core.c: registry, reference counting, and idle PM state
-# - xy_device.c: compatibility bus helpers for I2C/SPI/UART/GPIO child devices
+# - src/xy_device_bus_helpers.c: compatibility bus helpers for I2C/SPI/UART/GPIO child devices
 #
-# Do not collapse the two xy_device.c files without first renaming the helper
-# layer and updating unit-test source lists; they intentionally provide different
-# parts of the current compatibility model.
+# Keep bus helpers separate from src/xy_device.c so the generic device lifecycle
+# layer is not confused with bus-specific compatibility wrappers.
 set(DEVICE_SOURCES
     src/xy_device.c        # lifecycle + generic device dispatch
-    xy_device.c            # compatibility bus helpers: i2c/spi/uart/gpio devices
+    src/xy_device_bus_helpers.c # compatibility bus helpers: i2c/spi/uart/gpio devices
     xy_device_core.c       # global registry + idle PM
     src/xy_device_pm.c     # per-device power management ops
 )
