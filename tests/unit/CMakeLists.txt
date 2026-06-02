@@ -120,7 +120,21 @@ add_executable(test_iso7816_example
     test_iso7816_example_main.c
 )
 
-# --- Test 15: CRC core and common variants ---
+# --- Test 15: Net umbrella/core lifecycle and platform helpers ---
+add_executable(test_net_core
+    test_net_core.c
+    ${NET}/src/xy_net.c
+    ${NET}/src/xy_net_platform.c
+    ${NET}/modbus_tiny/mb_tiny.c
+)
+
+target_include_directories(test_net_core PRIVATE
+    ${NET}/modbus_tiny
+    ${NET}/modbus_full
+    ${NET}/at/atc/core
+)
+
+# --- Test 16: CRC core and common variants ---
 add_executable(test_crc
     test_crc.c
     ${CRYPTO}/xy_crc/xy_crc.c
@@ -172,6 +186,7 @@ add_test(NAME lte_component COMMAND test_lte)
 add_test(NAME nano_modbus_compat COMMAND test_nano_modbus)
 add_test(NAME iso7816_component COMMAND test_iso7816)
 add_test(NAME iso7816_example COMMAND test_iso7816_example)
+add_test(NAME net_core COMMAND test_net_core)
 add_test(NAME crypto_crc COMMAND test_crc)
 
 # --- Test 16: Crypto CSPRNG lifecycle, buffering, and helpers ---
@@ -265,7 +280,7 @@ add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
-            test_nano_modbus test_iso7816 test_iso7816_example
+            test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc
     COMMENT "Running unit tests"

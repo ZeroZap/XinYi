@@ -27,7 +27,7 @@ int xy_net_deinit(void);
 
 // Include protocol-specific headers based on configuration
 #if XY_NET_ENABLE_MODBUS
-#include "mb_slave.h"
+#include "nano_modbus.h"
 #endif
 
 // AT Client (Server disabled for now)
