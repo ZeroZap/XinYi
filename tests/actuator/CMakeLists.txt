@@ -1,5 +1,7 @@
 # XinYi Actuator Tests CMake Configuration
 cmake_minimum_required(VERSION 3.10)
+project(xy_actuator_tests C)
+set(CMAKE_C_STANDARD 99)
 
 # Unity framework location
 set(UNITY_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../UniTest/unity)
@@ -55,6 +57,12 @@ add_executable(test_actuator_servo
 target_include_directories(test_actuator_servo PRIVATE ${ACTUATOR_TEST_INCLUDES})
 target_compile_definitions(test_actuator_servo PRIVATE ${ACTUATOR_TEST_DEFINITIONS})
 target_link_libraries(test_actuator_servo m)
+
+enable_testing()
+add_test(NAME actuator_core COMMAND test_actuator_core)
+add_test(NAME actuator_relay COMMAND test_actuator_relay)
+add_test(NAME actuator_pwm COMMAND test_actuator_pwm)
+add_test(NAME actuator_servo COMMAND test_actuator_servo)
 
 # ==================== Test Summary ====================
 add_custom_target(actuator_tests
