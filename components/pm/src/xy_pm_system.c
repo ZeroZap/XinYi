@@ -133,19 +133,19 @@ int xy_pm_update(void)
     return XY_PM_OK;
 }
 
-int xy_pm_get_state(xy_pm_system_state_t *state)
+int xy_pm_get_state(xy_pm_system_state_info_t *state)
 {
     if (!state) return XY_PM_INVALID_PARAM;
 
     if (!s_pm.initialized) {
-        memset(state, 0, sizeof(xy_pm_system_state_t));
+        memset(state, 0, sizeof(xy_pm_system_state_info_t));
         return XY_PM_NOT_INITIALIZED;
     }
 
     /* 先更新状态 */
     xy_pm_update();
 
-    memcpy(state, &s_pm.state, sizeof(xy_pm_system_state_t));
+    memcpy(state, &s_pm.state, sizeof(xy_pm_system_state_info_t));
     return XY_PM_OK;
 }
 

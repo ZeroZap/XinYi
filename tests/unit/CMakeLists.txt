@@ -14,6 +14,9 @@ set(DRV  ${ROOT}/components/drivers)
 set(NET  ${ROOT}/components/net)
 set(CRYPTO ${ROOT}/components/crypto)
 set(SENSOR ${ROOT}/components/sensor)
+set(PM ${ROOT}/components/pm)
+set(TRACE ${ROOT}/components/trace)
+set(CLIB ${ROOT}/components/clib/xy_clib)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -31,9 +34,14 @@ include_directories(
     ${CRYPTO}/xy_chacha             # xy_chacha20_poly1305.h
     ${CRYPTO}/xy_sm3                # xy_sm3.h
     ${CRYPTO}/xy_sm4                # xy_sm4.h
-    ${ROOT}/components/trace/xy_log/inc # xy_log.h and xy_stdio.h
-    ${ROOT}/components/kernel/osal  # xy_os.h
     ${ROOT}/components/clib/xy_clib # xy_typedef.h
+    ${CLIB}                         # xy_clib public headers
+    ${ROOT}/components/trace/xy_log/inc # xy_log.h
+    ${TRACE}/xy_log/inc              # xy_log.h
+    ${ROOT}/components/kernel/osal  # xy_os.h
+    ${PM}/inc                       # xy_pm.h
+    ${PM}/charger                   # xy_charger.h
+    ${PM}/fuel-gauge                # xy_fuel_gauge.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ROOT}/UniTest/unity           # unity.h
 )
@@ -93,6 +101,7 @@ add_executable(test_device_driver_template
 add_executable(test_can
     test_can.c
     ${NET}/src/xy_can.c
+    ${CLIB}/xy_stdio.c
 )
 
 # --- Test 11: LTE component lifecycle, callback storage, and validation ---
@@ -126,6 +135,7 @@ add_executable(test_net_core
     ${NET}/src/xy_net.c
     ${NET}/src/xy_net_platform.c
     ${NET}/modbus_tiny/mb_tiny.c
+    ${CLIB}/xy_stdio.c
 )
 
 target_include_directories(test_net_core PRIVATE
@@ -193,6 +203,7 @@ add_test(NAME crypto_crc COMMAND test_crc)
 add_executable(test_csprng
     test_csprng.c
     ${CRYPTO}/xy_rng/xy_csprng.c
+    ${CLIB}/xy_stdio.c
 )
 add_test(NAME crypto_csprng COMMAND test_csprng)
 
@@ -275,6 +286,46 @@ target_include_directories(test_hal_pc PRIVATE
 )
 add_test(NAME hal_pc COMMAND test_hal_pc)
 
+# --- Test 23: PM lifecycle, charger, fuel gauge, and PC platform contracts ---
+add_executable(test_pm
+    test_pm.c
+    ${PM}/src/xy_pm_system.c
+    ${PM}/src/xy_pm_adc.c
+    ${PM}/src/xy_pm_platform.c
+    ${PM}/src/xy_charger.c
+    ${PM}/src/xy_fuel_gauge.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    test_clib_alloc_shim.c
+)
+target_compile_definitions(test_pm PRIVATE PLATFORM_PC XY_PM_PLATFORM_OWNS_CHARGER_HW)
+add_test(NAME pm_component COMMAND test_pm)
+
+# --- Test 24: Trace logging output and dynamic-level contracts ---
+add_executable(test_trace
+    test_trace.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    test_clib_alloc_shim.c
+)
+target_compile_definitions(test_trace PRIVATE XY_LOG_LEVEL=XY_LOG_LEVEL_DEBUG)
+add_test(NAME trace_component COMMAND test_trace)
+
+# --- Test 25: CLIB common/string/stdio/ring-buffer contracts ---
+add_executable(test_clib
+    test_clib.c
+    ${CLIB}/xy_common.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_ctype.c
+    ${CLIB}/xy_rb.c
+    test_clib_alloc_shim.c
+)
+add_test(NAME clib_component COMMAND test_clib)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -282,6 +333,6 @@ add_custom_target(run_unit_tests
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
-            test_sensor_framework test_hal_pc
+            test_sensor_framework test_hal_pc test_pm test_trace test_clib
     COMMENT "Running unit tests"
 )

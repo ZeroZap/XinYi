@@ -7,6 +7,8 @@
 #define XY_LOG_H
 
 #include <xy_stdio.h>
+#include <stdint.h>
+#include <stddef.h>
 
 /* Log levels */
 #define XY_LOG_LEVEL_ERROR 0
@@ -48,5 +50,11 @@
 #define xy_log_w(fmt, ...) XY_LOG_W(fmt, ##__VA_ARGS__)
 #define xy_log_i(fmt, ...) XY_LOG_I(fmt, ##__VA_ARGS__)
 #define xy_log_d(fmt, ...) XY_LOG_D(fmt, ##__VA_ARGS__)
+
+void xy_log_init(void);
+void xy_log_str(char *str);
+void xy_log_raw(char *data, size_t len);
+void xy_log_set_dynamic_level(uint8_t level);
+uint8_t xy_log_dynamic_level(void);
 
 #endif /* XY_LOG_H */

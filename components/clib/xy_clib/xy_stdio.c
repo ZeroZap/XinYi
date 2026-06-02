@@ -7,8 +7,11 @@
 
 #include "xy_stdio.h"
 #include <stdarg.h>
+#include <stdint.h>
 #include <string.h>
 #include <limits.h>
+
+/* Global printf buffer */
 
 #ifndef XY_UNUSED
 #define XY_UNUSED(x) (void)(x)

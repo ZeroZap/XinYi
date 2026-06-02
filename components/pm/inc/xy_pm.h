@@ -106,7 +106,7 @@ uint32_t xy_pm_get_battery_voltage_mV(void);
 uint8_t xy_pm_get_battery_percent(void);
 xy_pm_status_t xy_pm_set_low_power_mode(bool enable);
 xy_pm_status_t xy_pm_shutdown(void);
-int xy_pm_get_state(xy_pm_system_state_t *state);
+int xy_pm_get_state(xy_pm_system_state_info_t *state);
 
 /* Charger API */
 int xy_charger_init(const xy_charger_config_t *config);

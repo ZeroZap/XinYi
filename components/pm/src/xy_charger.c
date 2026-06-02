@@ -231,6 +231,7 @@ bool xy_charger_is_charging(void)
     return s_charger.initialized && s_charger.enabled && s_charger.state.charging;
 }
 
+#if !defined(XY_PM_PLATFORM_OWNS_CHARGER_HW)
 int xy_charger_hw_enable(int enable)
 {
 #if XY_PLATFORM_STM32
@@ -249,3 +250,4 @@ int xy_charger_hw_disable(void)
 {
     return xy_charger_hw_enable(false);
 }
+#endif

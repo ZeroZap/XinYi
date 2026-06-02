@@ -8,13 +8,9 @@
 #ifndef XY_STDIO_H
 #define XY_STDIO_H
 
-/* Optional HAL include - only include if available */
-#ifdef XY_HAL_H
-#include XY_HAL_H
-#endif
-
 #include <stdarg.h>
 #include <stdint.h>
+#include <stddef.h>
 
 /**
  * @brief Printf buffer size
@@ -131,6 +127,15 @@ int32_t xy_vscanf(const char *fmt, va_list args);
  * @return Number of items scanned, negative on error
  */
 int32_t xy_vsscanf(const char *str, const char *fmt, va_list args);
+
+/**
+ * @brief Allocate memory using the host/system allocator.
+ */
+void *xy_malloc(size_t size);
+void *xy_calloc(size_t nmemb, size_t size);
+void *xy_realloc(void *ptr, size_t size);
+void xy_free(void *ptr);
+void xy_safe_free(void **ptr);
 
 /**
  * @brief Convert string to unsigned long integer
