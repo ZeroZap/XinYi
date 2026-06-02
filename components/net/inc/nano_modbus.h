@@ -32,12 +32,12 @@ extern "C" {
 #if NANO_MB_USE_TINY
 
 /* 使用 Tiny 版本 */
-#include "modbus_tiny/mb_tiny.h"
+#include "../modbus_tiny/mb_tiny.h"
 
 #else
 
 /* 使用 Full 版本 */
-#include "modbus_full/mb_full.h"
+#include "../modbus_full/mb_full.h"
 
 /* 兼容类型别名 */
 typedef mb_full_slave_t  mb_slave_t;
@@ -105,11 +105,6 @@ typedef mb_tiny_master_t mb_master_t;
 #define NANO_MB_INVALID_PARAM MB_TINY_INVALID_PARAM
 #define NANO_MB_TIMEOUT MB_TINY_TIMEOUT
 #define NANO_MB_CRC_ERROR MB_TINY_CRC_ERROR
-
-#define MB_FUNC_READ_COILS MB_FUNC_READ_COILS
-#define MB_FUNC_READ_HOLDING MB_FUNC_READ_HOLDING
-#define MB_FUNC_WRITE_SINGLE_REG MB_FUNC_WRITE_SINGLE_REG
-#define MB_FUNC_WRITE_MULTIPLE_REGS MB_FUNC_WRITE_MULTIPLE_REGS
 
 #define nano_mb_crc16 mb_tiny_crc16
 

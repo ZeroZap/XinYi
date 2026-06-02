@@ -91,6 +91,12 @@ add_executable(test_lte
     ${NET}/src/xy_lte.c
 )
 
+# --- Test 12: nano_modbus compatibility API over mb_tiny ---
+add_executable(test_nano_modbus
+    test_nano_modbus.c
+    ${NET}/modbus_tiny/mb_tiny.c
+)
+
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
@@ -134,11 +140,13 @@ add_test(NAME device_registry_example COMMAND test_device_registry_example)
 add_test(NAME device_driver_template COMMAND test_device_driver_template)
 add_test(NAME can_component COMMAND test_can)
 add_test(NAME lte_component COMMAND test_lte)
+add_test(NAME nano_modbus_compat COMMAND test_nano_modbus)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
+            test_nano_modbus
     COMMENT "Running unit tests"
 )
