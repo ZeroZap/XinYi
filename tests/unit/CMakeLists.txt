@@ -194,12 +194,24 @@ target_include_directories(test_encode PRIVATE
 )
 add_test(NAME crypto_encode COMMAND test_encode)
 
+# --- Test 19: Crypto MD5/SHA-256 vectors and incremental hashing ---
+add_executable(test_hash
+    test_hash.c
+    ${CRYPTO}/xy_md/xy_md5.c
+    ${CRYPTO}/xy_hmac/xy_sha256.c
+)
+target_include_directories(test_hash PRIVATE
+    ${CRYPTO}
+    ${CRYPTO}/inc
+)
+add_test(NAME crypto_hash COMMAND test_hash)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example
-            test_crc test_csprng test_random test_encode
+            test_crc test_csprng test_random test_encode test_hash
     COMMENT "Running unit tests"
 )
