@@ -9,8 +9,8 @@
  */
 
 #include "xy_iso7816.h"
-#include "../../../bsp/xy_hal/inc/xy_hal.h"
-#include "../../xy_clib/xy_stdio.h"
+#include "xy_hal.h"
+#include "xy_stdio.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -56,11 +56,11 @@ void example_init_and_atr(void) {
     }
     
     /* Print ATR */
-    printf("ATR received (%d bytes): ", atr.length);
+    printf("ATR received (%u bytes): ", (unsigned)atr.length);
     for (xy_u8 i = 0; i < atr.length; i++) {
         printf("%02X ", atr.data[i]);
     }
-    printf("\nProtocol: T=%d\n", atr.protocol);
+    printf("\nProtocol: T=%u\n", (unsigned)atr.protocol);
     
     xy_iso7816_deinit(&iso_handle);
 }
@@ -162,7 +162,7 @@ void example_2g_authentication(void) {
     if (ret == XY_ISO7816_OK) {
         printf("Challenge received: ");
         for (int i = 0; i < 16; i++) {
-            printf("%02X", rand[i]);
+            printf("%02X", (unsigned)rand[i]);
         }
         printf("\n");
         
@@ -280,7 +280,7 @@ void example_manual_file_access(void) {
         if (ret == XY_ISO7816_OK) {
             printf("Administrative Data: ");
             for (int i = 0; i < 4; i++) {
-                printf("%02X ", ad_data[i]);
+                printf("%02X ", (unsigned)ad_data[i]);
             }
             printf("\n");
         }
@@ -322,9 +322,9 @@ void example_custom_apdu(void) {
         printf("Status Word: 0x%04X\n", sw);
         
         if (resp.length > 0) {
-            printf("Response data (%d bytes): ", resp.length);
+            printf("Response data (%u bytes): ", (unsigned)resp.length);
             for (xy_u16 i = 0; i < resp.length; i++) {
-                printf("%02X ", resp.data[i]);
+                printf("%02X ", (unsigned)resp.data[i]);
             }
             printf("\n");
         }
@@ -359,7 +359,7 @@ void example_complete_workflow(const char *pin) {
         printf("Card reset failed\n");
         goto cleanup;
     }
-    printf("✓ Card reset successful, ATR length: %d bytes\n", atr.length);
+    printf("✓ Card reset successful, ATR length: %u bytes\n", (unsigned)atr.length);
     
     /* Step 3: Detect card type */
     xy_iso7816_card_type_t card_type;

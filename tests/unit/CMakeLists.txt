@@ -104,6 +104,13 @@ add_executable(test_iso7816
     ${NET}/xy_iso7816/xy_iso7816.c
 )
 
+# --- Test 14: ISO7816 usage example stays aligned with public APIs ---
+add_executable(test_iso7816_example
+    ${NET}/xy_iso7816/xy_iso7816_example.c
+    ${NET}/xy_iso7816/xy_iso7816.c
+    test_iso7816_example_main.c
+)
+
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
@@ -149,12 +156,13 @@ add_test(NAME can_component COMMAND test_can)
 add_test(NAME lte_component COMMAND test_lte)
 add_test(NAME nano_modbus_compat COMMAND test_nano_modbus)
 add_test(NAME iso7816_component COMMAND test_iso7816)
+add_test(NAME iso7816_example COMMAND test_iso7816_example)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
-            test_nano_modbus test_iso7816
+            test_nano_modbus test_iso7816 test_iso7816_example
     COMMENT "Running unit tests"
 )
