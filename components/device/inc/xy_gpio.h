@@ -17,6 +17,13 @@
 #include "xy_device.h"
 #include "xy_hal_gpio.h"
 
+/* Legacy GPIO device API type aliases. Keep these in the GPIO capability
+ * header instead of xy_dev_api.h so generic xy_device.h remains the owner of
+ * lifecycle/registry types. */
+typedef xy_hal_gpio_config_t xy_gpio_config_t;
+typedef xy_hal_gpio_otype_t xy_gpio_otype_t;
+typedef xy_hal_gpio_speed_t xy_gpio_speed_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

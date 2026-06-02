@@ -11,6 +11,12 @@
 #include "xy_device.h"
 #include "xy_hal_pwm.h"
 
+/* Legacy PWM device API type aliases. HAL owns concrete PWM option types;
+ * keep compatibility names local to the PWM capability header. */
+typedef xy_hal_pwm_config_t xy_pwm_config_t;
+typedef xy_hal_pwm_polarity_t xy_pwm_polarity_t;
+typedef xy_hal_pwm_wave_shape_t xy_pwm_wave_shape_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

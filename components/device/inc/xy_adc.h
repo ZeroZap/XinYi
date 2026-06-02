@@ -11,6 +11,16 @@
 #include "xy_device.h"
 #include "xy_hal_adc.h"
 
+/* Legacy ADC device API type aliases. HAL owns the concrete ADC option enums;
+ * this compatibility header exposes the historical xy_adc_* names without
+ * duplicating definitions in xy_dev_api.h. */
+typedef xy_hal_adc_config_t xy_adc_config_t;
+typedef xy_hal_adc_resolution_t xy_adc_resolution_t;
+typedef xy_hal_adc_align_t xy_adc_align_t;
+typedef xy_hal_adc_scan_t xy_adc_scan_t;
+typedef xy_hal_adc_continuous_t xy_adc_continuous_t;
+typedef xy_hal_adc_trigger_src_t xy_adc_trigger_src_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
