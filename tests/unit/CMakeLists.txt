@@ -68,6 +68,12 @@ add_executable(test_device_registry_example
     ${FRAMEWORK_SOURCES}
 )
 
+# --- Test 9: device driver template compiles and runs against public APIs ---
+add_executable(test_device_driver_template
+    ${ROOT}/examples/device_driver_template.c
+    ${FRAMEWORK_SOURCES}
+)
+
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
@@ -108,6 +114,7 @@ add_test(NAME osal_baremetal    COMMAND test_osal)
 add_test(NAME auto_register     COMMAND test_auto_register)
 add_test(NAME device_async_helper COMMAND test_device_async_helper)
 add_test(NAME device_registry_example COMMAND test_device_registry_example)
+add_test(NAME device_driver_template COMMAND test_device_driver_template)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
