@@ -13,6 +13,7 @@ set(HAL  ${ROOT}/components/hal)
 set(DRV  ${ROOT}/components/drivers)
 set(NET  ${ROOT}/components/net)
 set(CRYPTO ${ROOT}/components/crypto)
+set(SENSOR ${ROOT}/components/sensor)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -33,6 +34,8 @@ include_directories(
     ${ROOT}/components/trace/xy_log/inc # xy_log.h and xy_stdio.h
     ${ROOT}/components/kernel/osal  # xy_os.h
     ${ROOT}/components/clib/xy_clib # xy_typedef.h
+    ${SENSOR}                       # sensor_core.h / sensor_type.h
+    ${ROOT}/UniTest/unity           # unity.h
 )
 
 # Device framework + PC HAL sources shared by all tests
@@ -229,6 +232,18 @@ target_include_directories(test_cipher_hmac PRIVATE
 )
 add_test(NAME crypto_cipher_hmac COMMAND test_cipher_hmac)
 
+# --- Test 21: Sensor framework lifecycle, registry, FIFO, calibration, filters ---
+add_executable(test_sensor_framework
+    test_sensor_framework.c
+    ${SENSOR}/sensor_core.c
+    ${SENSOR}/sensor_fifo.c
+    ${SENSOR}/sensor_calibration.c
+    ${SENSOR}/sensor_filter.c
+    ${SENSOR}/sensor_threshold.c
+    ${ROOT}/UniTest/unity/unity.c
+)
+add_test(NAME sensor_framework COMMAND test_sensor_framework)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -236,5 +251,6 @@ add_custom_target(run_unit_tests
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
+            test_sensor_framework
     COMMENT "Running unit tests"
 )

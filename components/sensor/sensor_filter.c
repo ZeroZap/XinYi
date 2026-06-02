@@ -178,18 +178,6 @@ static sensor_err_t sensor_filter_low_pass(sensor_device_t *sensor,
 /**
  * @brief 中值滤波
  */
-static int compare_int32(const void *a, const void *b)
-{
-    int32_t arg1 = *(const int32_t *)a;
-    int32_t arg2 = *(const int32_t *)b;
-
-    if (arg1 < arg2)
-        return -1;
-    if (arg1 > arg2)
-        return 1;
-    return 0;
-}
-
 static sensor_err_t sensor_filter_median(sensor_device_t *sensor,
                                          sensor_data_t *data)
 {
