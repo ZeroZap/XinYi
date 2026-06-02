@@ -244,6 +244,22 @@ add_executable(test_sensor_framework
 )
 add_test(NAME sensor_framework COMMAND test_sensor_framework)
 
+# --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
+add_executable(test_hal_pc
+    test_hal_pc.c
+    ${HAL}/PC/xy_hal_pc.c
+    ${HAL}/PC/xy_hal_gpio_pc.c
+    ${HAL}/PC/xy_hal_i2c_pc.c
+    ${HAL}/PC/xy_hal_spi_pc.c
+    ${HAL}/PC/xy_hal_uart_pc.c
+    ${ROOT}/UniTest/unity/unity.c
+)
+target_include_directories(test_hal_pc PRIVATE
+    ${HAL}/inc
+    ${HAL}/PC
+)
+add_test(NAME hal_pc COMMAND test_hal_pc)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -251,6 +267,6 @@ add_custom_target(run_unit_tests
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
-            test_sensor_framework
+            test_sensor_framework test_hal_pc
     COMMENT "Running unit tests"
 )
