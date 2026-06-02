@@ -69,7 +69,8 @@ uint64_t xy_crc_calc_table(const xy_crc_cfg_t *cfg, const uint64_t *table,
         uint8_t byte = *data++;
         if (cfg->ref_in)
             byte = reflect8(byte);
-        crc = table[(uint8_t)(crc ^ byte)] & mask;
+        uint8_t index = (uint8_t)(((crc >> (cfg->width - 8)) ^ byte) & 0xFFU);
+        crc = ((crc << 8) ^ table[index]) & mask;
     }
 
     if (cfg->ref_out)
@@ -103,7 +104,7 @@ int xy_crc_make_table(const xy_crc_cfg_t *cfg, uint64_t *table)
 }
 
 // Hardware support section
-#if defined(XY_CRC_HW_SUPPORT)
+#if XY_CRC_HW_SUPPORT
 static uint64_t xy_crc_calc_hw(const xy_crc_cfg_t *cfg, const uint8_t *data,
                                uint16_t length, uint8_t use_dma)
 {
@@ -139,7 +140,7 @@ uint64_t xy_crc_calc_ex(const xy_crc_cfg_t *cfg, const uint8_t *data,
         return xy_crc_calc_table(cfg, crc_table, data, length);
 
     case XY_CRC_METHOD_HW:
-#if defined(XY_CRC_HW_SUPPORT)
+#if XY_CRC_HW_SUPPORT
         return xy_crc_calc_hw(cfg, data, length, opt->use_dma);
 #else
         return xy_crc_calc(cfg, data, length); // Fallback to SW
