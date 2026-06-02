@@ -27,6 +27,9 @@ include_directories(
     ${NET}/xy_iso7816               # xy_iso7816.h
     ${CRYPTO}/xy_crc                # xy_crc.h
     ${CRYPTO}/xy_rng                # xy_rng.h
+    ${CRYPTO}/xy_chacha             # xy_chacha20_poly1305.h
+    ${CRYPTO}/xy_sm3                # xy_sm3.h
+    ${CRYPTO}/xy_sm4                # xy_sm4.h
     ${ROOT}/components/trace/xy_log/inc # xy_log.h and xy_stdio.h
     ${ROOT}/components/kernel/osal  # xy_os.h
     ${ROOT}/components/clib/xy_clib # xy_typedef.h
@@ -206,12 +209,32 @@ target_include_directories(test_hash PRIVATE
 )
 add_test(NAME crypto_hash COMMAND test_hash)
 
+# --- Test 20: Crypto AES/HMAC/SM3/SM4/ChaCha20 coverage ---
+add_executable(test_cipher_hmac
+    test_cipher_hmac.c
+    ${CRYPTO}/xy_aes/xy_aes.c
+    ${CRYPTO}/xy_hmac/xy_hmac.c
+    ${CRYPTO}/xy_md/xy_md5.c
+    ${CRYPTO}/xy_hmac/xy_sha256.c
+    ${CRYPTO}/xy_sm3/xy_sm3.c
+    ${CRYPTO}/xy_sm4/xy_sm4.c
+    ${CRYPTO}/xy_chacha/xy_chacha20_poly1305.c
+)
+target_include_directories(test_cipher_hmac PRIVATE
+    ${CRYPTO}
+    ${CRYPTO}/inc
+    ${CRYPTO}/xy_chacha
+    ${CRYPTO}/xy_sm3
+    ${CRYPTO}/xy_sm4
+)
+add_test(NAME crypto_cipher_hmac COMMAND test_cipher_hmac)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example
-            test_crc test_csprng test_random test_encode test_hash
+            test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
     COMMENT "Running unit tests"
 )

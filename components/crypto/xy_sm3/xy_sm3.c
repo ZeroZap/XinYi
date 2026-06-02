@@ -37,14 +37,20 @@ static const uint32_t SM3_IV[8] = {
 
 /* ==================== Helper Functions ==================== */
 
-#define ROTL(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
-#define ROTR(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
+static uint32_t rotl32(uint32_t x, unsigned int n)
+{
+    n &= 31U;
+    return n == 0U ? x : ((x << n) | (x >> (32U - n)));
+}
+
+#define ROTL(x, n) rotl32((uint32_t)(x), (unsigned int)(n))
 #define P0(x) ((x) ^ ROTL((x), 9) ^ ROTL((x), 17))
 #define P1(x) ((x) ^ ROTL((x), 15) ^ ROTL((x), 23))
-#define FF(x, y, z, j) ((j) < 16 ? ((x) ^ (y) ^ (z)) : \
-                             ((x) & (y)) | ((x) & (z)) | ((y) & (z)))
-#define GG(x, y, z, j) ((j) < 16 ? ((x) ^ (y) ^ (z)) : \
-                             ((x) & (y)) | (~(x) & (z)))
+#define FF(x, y, z, j) \
+    ((j) < 16 ? ((x) ^ (y) ^ (z)) \
+              : (((x) & (y)) | ((x) & (z)) | ((y) & (z))))
+#define GG(x, y, z, j) \
+    ((j) < 16 ? ((x) ^ (y) ^ (z)) : (((x) & (y)) | (~(x) & (z))))
 
 /* Big-endian byte swap */
 static uint32_t be32(const uint8_t *p)
@@ -104,19 +110,20 @@ static void sm3_compress(uint32_t state[8], const uint8_t block[64])
         B = A;
         A = TT1;
         H = G;
-        F = ROTL(E, 19);
+        G = ROTL(F, 19);
+        F = E;
         E = P0(TT2);
     }
 
-    /* Update state */
-    state[0] ^= A ^ W[0];
-    state[1] ^= B ^ W[1];
-    state[2] ^= C ^ W[2];
-    state[3] ^= D ^ W[3];
-    state[4] ^= E ^ W[4];
-    state[5] ^= F ^ W[5];
-    state[6] ^= G ^ W[6];
-    state[7] ^= H ^ W[7];
+    /* Update state: V(i+1) = ABCDEFGH XOR V(i) */
+    state[0] ^= A;
+    state[1] ^= B;
+    state[2] ^= C;
+    state[3] ^= D;
+    state[4] ^= E;
+    state[5] ^= F;
+    state[6] ^= G;
+    state[7] ^= H;
 }
 
 /* ==================== SM3 API ==================== */
@@ -197,7 +204,7 @@ int xy_sm3_update(xy_sm3_ctx_t *ctx, const uint8_t *data, size_t len)
 
 int xy_sm3_final(xy_sm3_ctx_t *ctx, uint8_t digest[XY_SM3_DIGEST_SIZE])
 {
-    uint32_t bits;
+    uint64_t bits;
     uint8_t pad[64];
     int left;
 
@@ -210,11 +217,12 @@ int xy_sm3_final(xy_sm3_ctx_t *ctx, uint8_t digest[XY_SM3_DIGEST_SIZE])
 
     /* Padding */
     left = ctx->buffer_len;
-    pad[0] = 0x80;
+    memcpy(pad, ctx->buffer, left);
+    pad[left] = 0x80;
     if (left < 56) {
-        memset(&pad[1], 0, 55 - left);
+        memset(&pad[left + 1], 0, 55 - left);
     } else {
-        memset(&pad[1], 0, 63 - left);
+        memset(&pad[left + 1], 0, 63 - left);
         sm3_compress(ctx->state, pad);
         memset(pad, 0, 56);
     }

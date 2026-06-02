@@ -9,7 +9,7 @@
  */
 
 #include "xy_chacha20_poly1305.h"
-#include "xy_string.h"
+#include <string.h>
 #include <stdint.h>
 
 /* ==================== ChaCha20 Implementation ==================== */
@@ -351,7 +351,7 @@ int xy_poly1305_update(xy_poly1305_ctx_t *ctx,
             to_copy = length;
         }
 
-        xy_memcpy(&ctx->buffer[ctx->buffer_len], &data[i], to_copy);
+        memcpy(&ctx->buffer[ctx->buffer_len], &data[i], to_copy);
         ctx->buffer_len += to_copy;
         i += to_copy;
 
@@ -369,7 +369,7 @@ int xy_poly1305_update(xy_poly1305_ctx_t *ctx,
 
     /* Buffer remaining bytes */
     if (i < length) {
-        xy_memcpy(ctx->buffer, &data[i], length - i);
+        memcpy(ctx->buffer, &data[i], length - i);
         ctx->buffer_len = length - i;
     }
 
@@ -501,7 +501,7 @@ int xy_chacha20_poly1305_encrypt(
         return ret;
     }
 
-    xy_memset(poly_key, 0, sizeof(poly_key));
+    memset(poly_key, 0, sizeof(poly_key));
     ret = xy_chacha20_crypt(&chacha_ctx, poly_key, poly_key, 32);
     if (ret != XY_CHACHA20_POLY1305_SUCCESS) {
         return ret;
@@ -549,9 +549,9 @@ int xy_chacha20_poly1305_encrypt(
     ret = xy_poly1305_finish(&poly_ctx, tag);
 
     /* Clear sensitive data */
-    xy_memset(poly_key, 0, sizeof(poly_key));
-    xy_memset(&chacha_ctx, 0, sizeof(chacha_ctx));
-    xy_memset(&poly_ctx, 0, sizeof(poly_ctx));
+    memset(poly_key, 0, sizeof(poly_key));
+    memset(&chacha_ctx, 0, sizeof(chacha_ctx));
+    memset(&poly_ctx, 0, sizeof(poly_ctx));
 
     return ret;
 }
@@ -589,7 +589,7 @@ int xy_chacha20_poly1305_decrypt(
         return ret;
     }
 
-    xy_memset(poly_key, 0, sizeof(poly_key));
+    memset(poly_key, 0, sizeof(poly_key));
     ret = xy_chacha20_crypt(&chacha_ctx, poly_key, poly_key, 32);
     if (ret != XY_CHACHA20_POLY1305_SUCCESS) {
         return ret;
@@ -646,10 +646,10 @@ int xy_chacha20_poly1305_decrypt(
 
 cleanup:
     /* Clear sensitive data */
-    xy_memset(poly_key, 0, sizeof(poly_key));
-    xy_memset(computed_tag, 0, sizeof(computed_tag));
-    xy_memset(&chacha_ctx, 0, sizeof(chacha_ctx));
-    xy_memset(&poly_ctx, 0, sizeof(poly_ctx));
+    memset(poly_key, 0, sizeof(poly_key));
+    memset(computed_tag, 0, sizeof(computed_tag));
+    memset(&chacha_ctx, 0, sizeof(chacha_ctx));
+    memset(&poly_ctx, 0, sizeof(poly_ctx));
 
     return ret;
 }

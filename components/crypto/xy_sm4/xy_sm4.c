@@ -109,14 +109,14 @@ static void sm4_key_expand(const uint8_t key[16], uint32_t rk[32])
     int i;
 
     /* K = (MK0 ^ FK, MK1 ^ FK, MK2 ^ FK, MK3 ^ FK) */
-    K[0] = ((uint32_t)key[0] << 24) | ((uint32_t)key[1] << 16) |
-           ((uint32_t)key[2] << 8) | ((uint32_t)key[3]) ^ FK[0];
-    K[1] = ((uint32_t)key[4] << 24) | ((uint32_t)key[5] << 16) |
-           ((uint32_t)key[6] << 8) | ((uint32_t)key[7]) ^ FK[1];
-    K[2] = ((uint32_t)key[8] << 24) | ((uint32_t)key[9] << 16) |
-           ((uint32_t)key[10] << 8) | ((uint32_t)key[11]) ^ FK[2];
-    K[3] = ((uint32_t)key[12] << 24) | ((uint32_t)key[13] << 16) |
-           ((uint32_t)key[14] << 8) | ((uint32_t)key[15]) ^ FK[3];
+    K[0] = (((uint32_t)key[0] << 24) | ((uint32_t)key[1] << 16) |
+            ((uint32_t)key[2] << 8) | ((uint32_t)key[3])) ^ FK[0];
+    K[1] = (((uint32_t)key[4] << 24) | ((uint32_t)key[5] << 16) |
+            ((uint32_t)key[6] << 8) | ((uint32_t)key[7])) ^ FK[1];
+    K[2] = (((uint32_t)key[8] << 24) | ((uint32_t)key[9] << 16) |
+            ((uint32_t)key[10] << 8) | ((uint32_t)key[11])) ^ FK[2];
+    K[3] = (((uint32_t)key[12] << 24) | ((uint32_t)key[13] << 16) |
+            ((uint32_t)key[14] << 8) | ((uint32_t)key[15])) ^ FK[3];
 
     /* Generate 32 round keys */
     for (i = 0; i < 32; i++) {
@@ -347,7 +347,7 @@ int xy_sm4_gcm_encrypt(xy_sm4_ctx_t *ctx,
 
     /* Encrypt with CTR mode */
     for (i = 0; i < len; i += 16) {
-        uint8_t ctr[16], keystream[16];
+        uint8_t keystream[16];
         size_t block_len = (len - i < 16) ? len - i : 16;
         int j;
 
