@@ -182,12 +182,24 @@ add_executable(test_random
 )
 add_test(NAME crypto_random COMMAND test_random)
 
+# --- Test 18: Crypto Base64 and Hex validation/roundtrip behavior ---
+add_executable(test_encode
+    test_encode.c
+    ${CRYPTO}/xy_base/xy_base64.c
+    ${CRYPTO}/xy_hex/xy_hex.c
+)
+target_include_directories(test_encode PRIVATE
+    ${CRYPTO}
+    ${CRYPTO}/inc
+)
+add_test(NAME crypto_encode COMMAND test_encode)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example
-            test_crc test_csprng test_random
+            test_crc test_csprng test_random test_encode
     COMMENT "Running unit tests"
 )
