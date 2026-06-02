@@ -175,12 +175,19 @@ add_executable(test_csprng
 )
 add_test(NAME crypto_csprng COMMAND test_csprng)
 
+# --- Test 17: Crypto simple RNG validation and output shape ---
+add_executable(test_random
+    test_random.c
+    ${CRYPTO}/xy_rng/xy_random.c
+)
+add_test(NAME crypto_random COMMAND test_random)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example
-            test_crc test_csprng
+            test_crc test_csprng test_random
     COMMENT "Running unit tests"
 )
