@@ -126,25 +126,25 @@ int32_t xy_mux_spi_transfer(xy_mux_manager_t *mgr, uint8_t channel,
     header[1] = (uint8_t)((len >> 8) & 0xFF);
 
     /* 发送数据 */
-    int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_SPI, channel, header, 2);
-    if (ret < 0) {
+    int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_SPI, channel, header, sizeof(header));
+    if (ret != (int32_t)sizeof(header)) {
         return ret;
     }
 
     ret = xy_mux_write(mgr, XY_MUX_TYPE_SPI, channel, tx_data, len);
-    if (ret < 0) {
+    if (ret != (int32_t)len) {
         return ret;
     }
 
     /* 接收数据 */
     if (rx_data) {
         ret = xy_mux_read(mgr, XY_MUX_TYPE_SPI, channel, rx_data, len);
-        if (ret < 0) {
+        if (ret != (int32_t)len) {
             return ret;
         }
     }
 
-    return len;
+    return (int32_t)len;
 }
 
 int32_t xy_mux_spi_read(xy_mux_manager_t *mgr, uint8_t channel,
@@ -175,10 +175,15 @@ int32_t xy_mux_spi_write(xy_mux_manager_t *mgr, uint8_t channel,
     header[0] = (uint8_t)(len & 0xFF);
     header[1] = (uint8_t)((len >> 8) & 0xFF);
 
-    int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_SPI, channel, header, 2);
-    if (ret < 0) {
+    int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_SPI, channel, header, sizeof(header));
+    if (ret != (int32_t)sizeof(header)) {
         return ret;
     }
 
-    return xy_mux_write(mgr, XY_MUX_TYPE_SPI, channel, data, len);
+    ret = xy_mux_write(mgr, XY_MUX_TYPE_SPI, channel, data, len);
+    if (ret != (int32_t)len) {
+        return ret;
+    }
+
+    return (int32_t)len;
 }
