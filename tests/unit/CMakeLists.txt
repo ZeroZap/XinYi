@@ -25,6 +25,7 @@ set(IPC ${ROOT}/components/ipc)
 set(FOTA ${ROOT}/components/fota)
 set(GUI ${ROOT}/components/gui)
 set(ANALOG ${ROOT}/components/analog_devices)
+set(SYS ${ROOT}/components/sys)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -64,6 +65,9 @@ include_directories(
     ${GUI}/inc                      # GUI widget headers
     ${ANALOG}                       # xy_adc.h
     ${ANALOG}/inc                   # xy_adc_ext.h
+    ${SYS}/xy_timer                 # xy_timer.h
+    ${SYS}/xy_state_machine         # xy_st.h
+    ${ROOT}/components/kernel/misc  # xy_tick.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ROOT}/UniTest/unity           # unity.h
 )
@@ -470,6 +474,15 @@ add_executable(test_analog_devices
 )
 add_test(NAME analog_devices COMMAND test_analog_devices)
 
+# --- Test 39: SYS timer and state-machine host contracts ---
+add_executable(test_sys_timer_sm
+    test_sys_timer_sm.c
+    ${SYS}/xy_timer/xy_timer.c
+    ${SYS}/xy_state_machine/xy_st.c
+)
+target_compile_definitions(test_sys_timer_sm PRIVATE reentrant= PLATFORM=0 PLATFORM_C51=1)
+add_test(NAME sys_timer_sm COMMAND test_sys_timer_sm)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -480,6 +493,6 @@ add_custom_target(run_unit_tests
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
             test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
-            test_gui_widgets
+            test_gui_widgets test_analog_devices test_sys_timer_sm
     COMMENT "Running unit tests"
 )

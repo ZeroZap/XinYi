@@ -103,6 +103,11 @@
 #ifndef _XY_STATE_MACHINE_H_
 #define _XY_STATE_MACHINE_H_
 
+#include <stddef.h>
+#include <stdint.h>
+
+typedef void *xy_os_mutex_id_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -165,19 +170,6 @@ extern "C" {
  *============================================================================*/
 
 /**
- * @brief 状态机函数指针类型
- * @param self 指向拥有该状态的xy_sm_t结构体
- *
- * @note 在回调中不允许调用以下函数（会破坏状态机原子性）：
- *       - xy_sm_transition()
- *       - xy_sm_transition_timeout()
- *       - xy_sm_transition_delay()
- *       - xy_sm_process_sample()
- *       - xy_sm_cancel_timeout()
- */
-typedef void xy_sm_fn(xy_sm_t *self);
-
-/**
  * @brief 状态机结构体（透明类型，用户不应直接访问内部成员）
  *
  * 使用规则：
@@ -197,6 +189,19 @@ typedef void xy_sm_fn(xy_sm_t *self);
  * @endcode
  */
 typedef struct state_machine xy_sm_t;
+
+/**
+ * @brief 状态机函数指针类型
+ * @param self 指向拥有该状态的xy_sm_t结构体
+ *
+ * @note 在回调中不允许调用以下函数（会破坏状态机原子性）：
+ *       - xy_sm_transition()
+ *       - xy_sm_transition_timeout()
+ *       - xy_sm_transition_delay()
+ *       - xy_sm_process_sample()
+ *       - xy_sm_cancel_timeout()
+ */
+typedef void xy_sm_fn(xy_sm_t *self);
 
 /**
  * @cond INTERNAL

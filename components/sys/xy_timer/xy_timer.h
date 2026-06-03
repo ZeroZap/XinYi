@@ -1,6 +1,16 @@
 #ifndef _XY_TIMER_H_
 #define _XY_TIMER_H_
 
+#include "xy_typedef.h"
+
+#ifndef reentrant
+#define reentrant
+#endif
+
+#ifndef xdata
+#define xdata
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,6 +1,11 @@
 #include "xy_timer.h"
 #include "xy_tick.h"
 
+void xy_enter_critical(void);
+void xy_exit_critical(void);
+void *xy_mem_malloc(size_t size);
+void xy_mem_free(void *ptr);
+
 volatile xy_uint32_t g_xy_tick  = 0;
 volatile xy_uint32_t g_tick_pre = 0;
 
@@ -15,7 +20,7 @@ typedef struct _xy_timer {
 } xy_timer_t;
 
 // 即将到时的计数器
-volatile struct _xy_timer *g_xy_timer = NULL;
+struct _xy_timer *g_xy_timer = NULL;
 
 // 标记是否有待释放的定时器（避免在回调中频繁释放）
 static volatile xy_uint8_t g_timer_pending_kill = 0;
@@ -50,7 +55,7 @@ void xy_timer_set_tick(xy_uint32_t tick)
     xy_exit_critical();
 }
 
-xy_uint16_t xy_timer_get_nexttick(void)
+xy_uint32_t xy_timer_get_nexttick(void)
 {
     if (g_xy_timer)
         return g_xy_timer->cnt;
