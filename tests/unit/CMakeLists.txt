@@ -420,6 +420,19 @@ add_executable(test_mux_spi
 )
 add_test(NAME mux_spi COMMAND test_mux_spi)
 
+# --- Test 31: MUX UART channel helper contracts ---
+add_executable(test_mux_uart
+    ${ROOT}/tests/mux_test/test_mux_uart.c
+    ${MUX}/src/xy_mux.c
+    ${MUX}/src/xy_mux_uart.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    test_clib_alloc_shim.c
+)
+add_test(NAME mux_uart COMMAND test_mux_uart)
+
 # --- Test 28: DM base64 public vectors and binary roundtrip ---
 add_executable(test_dm_base64
     test_dm_base64.c
@@ -563,7 +576,7 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
-            test_mux_i2c test_mux_gpio test_mux_spi test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
+            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
             test_actuator_framework test_charger_bq25620

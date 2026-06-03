@@ -131,12 +131,16 @@ int32_t xy_mux_uart_read(xy_mux_manager_t *mgr, uint8_t channel,
     req[5] = (uint8_t)((timeout >> 8) & 0xFF);
 
     int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_UART, channel, req, sizeof(req));
-    if (ret < 0) {
+    if (ret != (int32_t)sizeof(req)) {
         return ret;
     }
 
     ret = xy_mux_read(mgr, XY_MUX_TYPE_UART, channel, data, len);
-    return ret;
+    if (ret != (int32_t)len) {
+        return ret;
+    }
+
+    return (int32_t)len;
 }
 
 int32_t xy_mux_uart_write(xy_mux_manager_t *mgr, uint8_t channel,
@@ -158,9 +162,14 @@ int32_t xy_mux_uart_write(xy_mux_manager_t *mgr, uint8_t channel,
     header[5] = (uint8_t)((timeout >> 8) & 0xFF);
 
     int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_UART, channel, header, sizeof(header));
-    if (ret < 0) {
+    if (ret != (int32_t)sizeof(header)) {
         return ret;
     }
 
-    return xy_mux_write(mgr, XY_MUX_TYPE_UART, channel, data, len);
+    ret = xy_mux_write(mgr, XY_MUX_TYPE_UART, channel, data, len);
+    if (ret != (int32_t)len) {
+        return ret;
+    }
+
+    return (int32_t)len;
 }
