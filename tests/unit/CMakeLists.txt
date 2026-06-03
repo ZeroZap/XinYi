@@ -34,6 +34,7 @@ include_directories(
     ${DRV}/sensor/adc/ads1115       # xy_ads1115.h
     ${NET}/inc                      # xy_can.h
     ${NET}/src                      # xy_mqtt_client.h
+    ${NET}/at/atc/Modules/cellular/common # at_client.h
     ${NET}/xy_iso7816               # xy_iso7816.h
     ${CRYPTO}/xy_crc                # xy_crc.h
     ${CRYPTO}/xy_rng                # xy_rng.h
@@ -386,6 +387,13 @@ add_executable(test_mqtt_client
 )
 add_test(NAME mqtt_client COMMAND test_mqtt_client)
 
+# --- Test 31: AT client registration, responses, and IO helpers ---
+add_executable(test_at_client
+    test_at_client.c
+    ${NET}/at/atc/Modules/cellular/common/at_client.c
+)
+add_test(NAME at_client COMMAND test_at_client)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -394,6 +402,6 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
-            test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client
+            test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
     COMMENT "Running unit tests"
 )
