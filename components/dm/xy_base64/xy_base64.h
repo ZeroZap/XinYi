@@ -1,6 +1,8 @@
 #ifndef _XY_BASE64_H_
 #define _XY_BASE64_H_
 
+#include <stdint.h>
+
 uint32_t xy_base64_encode(const uint8_t *text, uint32_t text_len,
                           uint8_t *encode);
 

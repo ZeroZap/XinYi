@@ -1,4 +1,6 @@
-#include "xy.h"
+#include "xy_base64.h"
+
+#include <assert.h>
 
 static uint8_t alphabet_map[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
