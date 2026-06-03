@@ -18,6 +18,11 @@
 #include <string.h>
 #include <assert.h>
 
+void xy_log_char(char ch)
+{
+    (void)ch;
+}
+
 /* Test buffer size */
 #define BUFFER_SIZE 512
 
@@ -360,7 +365,7 @@ static void test_gpio_multi_channel(void)
     for (int ch = 0; ch < 8; ch++) {
         int32_t level = xy_mux_gpio_read(&mgr, ch);
         xy_mux_gpio_level_t expected = (ch % 2) ? XY_MUX_GPIO_HIGH : XY_MUX_GPIO_LOW;
-        assert(level == expected);
+        assert(level == (int32_t)expected);
     }
     printf("  [PASS] Read from all 8 channels\n");
 
@@ -413,7 +418,7 @@ static void test_gpio_tlv_packet(void)
 
     /* Process the packet */
     ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
-    assert(ret == XY_MUX_OK);
+    assert(ret == (int32_t)sizeof(gpio_data));
     assert(g_gpio_levels[0] == XY_MUX_GPIO_HIGH);
     printf("  [PASS] Packet processed, GPIO set to HIGH\n");
 

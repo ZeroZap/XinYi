@@ -130,7 +130,7 @@ int32_t xy_mux_gpio_read(xy_mux_manager_t *mgr, uint8_t channel)
 
     /* 尝试通过读接口获取 */
     ret = xy_mux_read(mgr, XY_MUX_TYPE_GPIO, channel, &level, sizeof(level));
-    if (ret > 0) {
+    if (ret == (int32_t)sizeof(level)) {
         return level;
     }
 
