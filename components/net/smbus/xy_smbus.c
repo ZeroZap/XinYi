@@ -8,6 +8,7 @@
 #include "xy_smbus.h"
 #include "xy_log.h"
 #include <string.h>
+#include <stdio.h>
 
 /* ==================== 常量 ==================== */
 #define SMBUS_PEC_POLYNOMIAL   0x07
@@ -157,7 +158,7 @@ smbus_err_t smbus_receive_byte(smbus_device_t *dev, uint8_t addr, uint8_t *data)
 
     /* I2C Start -> Addr(R) -> Data(NACK) -> Stop */
     (void)addr;
-    (void)data;
+    *data = 0;
     return SMBUS_EOK;
 }
 
@@ -183,7 +184,7 @@ smbus_err_t smbus_read_byte(smbus_device_t *dev, uint8_t addr, uint8_t cmd, uint
     /* SMBus Read Byte: Start -> Addr(W) -> Cmd -> Repeated Start -> Addr(R) -> Data -> Stop */
     (void)addr;
     (void)cmd;
-    (void)data;
+    *data = 0;
     return SMBUS_EOK;
 }
 
@@ -210,7 +211,7 @@ smbus_err_t smbus_read_word(smbus_device_t *dev, uint8_t addr, uint8_t cmd, uint
     /* SMBus Read Word: Start -> Addr(W) -> Cmd -> Repeated Start -> Addr(R) -> Low -> High -> Stop */
     (void)addr;
     (void)cmd;
-    (void)data;
+    *data = 0;
     return SMBUS_EOK;
 }
 
@@ -244,7 +245,7 @@ smbus_err_t smbus_read_block(smbus_device_t *dev, uint8_t addr, uint8_t cmd,
     (void)addr;
     (void)cmd;
     (void)data;
-    (void)len;
+    *len = 0;
     return SMBUS_EOK;
 }
 

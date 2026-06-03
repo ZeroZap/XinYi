@@ -242,6 +242,12 @@ smbus_device_t *smbus_find_by_addr(uint8_t addr);
 smbus_err_t smbus_alert_register_callback(smbus_alert_callback_t callback, void *user_data);
 smbus_err_t smbus_alert_response(uint8_t addr);
 
+/* ==================== PEC 操作 ==================== */
+smbus_err_t smbus_calculate_pec(smbus_device_t *dev, const uint8_t *data, uint8_t len, uint8_t *pec);
+bool smbus_verify_pec(smbus_device_t *dev, const uint8_t *data, uint8_t len, uint8_t expected);
+
+extern const smbus_ops_t smbus_default_ops;
+
 /* ==================== 工具函数 ==================== */
 const char *smbus_err_str(smbus_err_t err);
 void smbus_dump_packet(const smbus_packet_t *pkt);

@@ -14,6 +14,7 @@
 #include "xy_smbus.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 /* ==================== PMBus 版本 ==================== */
 #define PMBUS_SPEC_VERSION_1_1   0x11
@@ -229,7 +230,13 @@ static inline float pmbus_linear_to_float(uint16_t raw)
     int16_t y = (int16_t)(raw & 0x07FF);
     if (y >= 0x0400) y -= 0x0800;  // 扩展符号位
 
-    return (float)y * (float)(1 << n);
+    float scale = 1.0f;
+    if (n >= 0) {
+        scale = (float)(1U << n);
+    } else {
+        scale = 1.0f / (float)(1U << -n);
+    }
+    return (float)y * scale;
 }
 
 /**
@@ -345,6 +352,8 @@ smbus_err_t pmbus_read_mfr_id(pmbus_device_t *dev, char *mfr_id, uint8_t max_len
 const char *pmbus_err_str(smbus_err_t err);
 void pmbus_dump_status(const pmbus_status_t *status);
 void pmbus_dump_all_readings(pmbus_device_t *dev);
+
+extern const pmbus_ops_t pmbus_default_ops;
 
 /* ==================== 常用 PMBus 设备定义 ==================== */
 /* TI UCD 系列 */

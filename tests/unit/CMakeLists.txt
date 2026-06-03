@@ -41,6 +41,7 @@ include_directories(
     ${NET}/at/atc/Modules/cellular/common # at_client.h
     ${NET}/at/ats                  # xy_ats.h
     ${NET}/xy_iso7816               # xy_iso7816.h
+    ${NET}/smbus                    # xy_smbus.h / xy_pmbus.h
     ${CRYPTO}/xy_crc                # xy_crc.h
     ${CRYPTO}/xy_rng                # xy_rng.h
     ${CRYPTO}/xy_chacha             # xy_chacha20_poly1305.h
@@ -483,6 +484,20 @@ add_executable(test_sys_timer_sm
 target_compile_definitions(test_sys_timer_sm PRIVATE reentrant= PLATFORM=0 PLATFORM_C51=1)
 add_test(NAME sys_timer_sm COMMAND test_sys_timer_sm)
 
+# --- Test 40: Net SMBus/PMBus helper and protocol contracts ---
+add_executable(test_net_smbus_pmbus
+    test_net_smbus_pmbus.c
+    ${NET}/smbus/xy_smbus.c
+    ${NET}/smbus/xy_pmbus.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    test_clib_alloc_shim.c
+)
+target_link_libraries(test_net_smbus_pmbus m)
+add_test(NAME net_smbus_pmbus COMMAND test_net_smbus_pmbus)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -493,6 +508,6 @@ add_custom_target(run_unit_tests
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
             test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
-            test_gui_widgets test_analog_devices test_sys_timer_sm
+            test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
     COMMENT "Running unit tests"
 )

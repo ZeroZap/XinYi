@@ -9,6 +9,7 @@
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 /* ==================== 静态变量 ==================== */
 #define MAX_PMBUS_DEVICES  8
@@ -535,59 +536,19 @@ static smbus_err_t default_deinit(pmbus_device_t *dev)
     return SMBUS_EOK;
 }
 
-static smbus_err_t default_read_vout(pmbus_device_t *dev, float *voltage)
-{
-    return pmbus_read_vout(dev, voltage);
-}
-
-static smbus_err_t default_read_iout(pmbus_device_t *dev, float *current)
-{
-    return pmbus_read_iout(dev, current);
-}
-
-static smbus_err_t default_read_temp(pmbus_device_t *dev, uint8_t sensor, float *temp)
-{
-    return pmbus_read_temp(dev, sensor, temp);
-}
-
-static smbus_err_t default_write_vout_command(pmbus_device_t *dev, float voltage)
-{
-    return pmbus_write_vout_command(dev, voltage);
-}
-
-static smbus_err_t default_set_operation(pmbus_device_t *dev, pmbus_operation_t op)
-{
-    return pmbus_set_operation(dev, op);
-}
-
-static smbus_err_t default_read_status_word(pmbus_device_t *dev, uint16_t *status)
-{
-    return pmbus_read_status_word(dev, status);
-}
-
-static smbus_err_t default_clear_faults(pmbus_device_t *dev)
-{
-    return pmbus_clear_faults(dev);
-}
-
-static smbus_err_t default_get_status(pmbus_device_t *dev, pmbus_status_t *status)
-{
-    return pmbus_get_status(dev, status);
-}
-
 /* ==================== 默认操作表 ==================== */
 const pmbus_ops_t pmbus_default_ops = {
     .init = default_init,
     .deinit = default_deinit,
-    .read_vout = default_read_vout,
-    .read_iout = default_read_iout,
+    .read_vout = NULL,
+    .read_iout = NULL,
     .read_vin = NULL,
     .read_pin = NULL,
     .read_pout = NULL,
-    .read_temp = default_read_temp,
-    .write_vout_command = default_write_vout_command,
-    .set_operation = default_set_operation,
-    .read_status_word = default_read_status_word,
-    .clear_faults = default_clear_faults,
-    .get_status = default_get_status,
+    .read_temp = NULL,
+    .write_vout_command = NULL,
+    .set_operation = NULL,
+    .read_status_word = NULL,
+    .clear_faults = NULL,
+    .get_status = NULL,
 };
