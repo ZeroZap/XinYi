@@ -7,6 +7,7 @@
 
 #include "xy_ats.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 /**
@@ -90,6 +91,15 @@ int at_server_register_cmd(at_server_t *server, const at_cmd_t *cmd)
     
     ATS_DBG("Registered command: %s\n", cmd->name);
     return 0;
+}
+
+int at_server_unregister_cmd(at_server_t *server, const char *name)
+{
+    if (!server || !name) {
+        return -1;
+    }
+
+    return ats_hash_remove(&server->cmd_table, name) ? 0 : -1;
 }
 
 /**
@@ -289,6 +299,46 @@ void at_server_reset_stats(at_server_t *server)
         server->cmd_ok = 0;
         server->cmd_error = 0;
     }
+}
+
+void at_server_set_echo(at_server_t *server, bool enable)
+{
+    if (server) {
+        server->echo_mode = enable;
+    }
+}
+
+bool at_server_get_echo(at_server_t *server)
+{
+    return server ? server->echo_mode : false;
+}
+
+size_t at_server_send(at_server_t *server, const char *data, size_t len)
+{
+    if (!server || !data || !server->send) {
+        return 0;
+    }
+
+    return server->send(data, len);
+}
+
+size_t at_server_recv(at_server_t *server, char *data, size_t len, uint32_t timeout)
+{
+    size_t received = 0;
+
+    if (!server || !data || !server->get_char) {
+        return 0;
+    }
+
+    while (received < len) {
+        char ch;
+        if (server->get_char(&ch, timeout) <= 0) {
+            break;
+        }
+        data[received++] = ch;
+    }
+
+    return received;
 }
 
 /**
@@ -492,5 +542,52 @@ int at_server_print_result(at_server_t *server, at_result_t result)
         server->cmd_error++;
     }
     
+    return 0;
+}
+
+int at_parse_int(const char *args, int *value)
+{
+    char *end = NULL;
+    long parsed;
+
+    if (!args || !value) {
+        return -1;
+    }
+
+    parsed = strtol(args, &end, 10);
+    if (end == args || *end != '\0') {
+        return -1;
+    }
+
+    *value = (int)parsed;
+    return 0;
+}
+
+int at_parse_string(const char *args, char *value, size_t max_len)
+{
+    if (!args || !value || max_len == 0) {
+        return -1;
+    }
+
+    strncpy(value, args, max_len - 1);
+    value[max_len - 1] = '\0';
+    return 0;
+}
+
+int at_parse_hex(const char *args, uint32_t *value)
+{
+    char *end = NULL;
+    unsigned long parsed;
+
+    if (!args || !value) {
+        return -1;
+    }
+
+    parsed = strtoul(args, &end, 16);
+    if (end == args || *end != '\0') {
+        return -1;
+    }
+
+    *value = (uint32_t)parsed;
     return 0;
 }
