@@ -9,14 +9,6 @@
 #include <string.h>
 #include <stdio.h>
 
-/* ==================== Helper Functions ==================== */
-
-static void swap(int16_t *a, int16_t *b) {
-    int16_t t = *a;
-    *a = *b;
-    *b = t;
-}
-
 /* ==================== GUI Core Implementation ==================== */
 
 int xy_gui_init(xy_gui_t *gui, uint16_t width, uint16_t height, xy_gui_disp_drv_t *drv)
@@ -108,6 +100,7 @@ int xy_gui_draw_line(xy_gui_t *gui, int16_t x1, int16_t y1, int16_t x2, int16_t 
     int16_t sx = (x1 < x2) ? 1 : -1;
     int16_t sy = (y1 < y2) ? 1 : -1;
     int16_t err = dx - dy;
+    int32_t timeout = ((int32_t)dx + (int32_t)dy + 1) * 2;
     
     while (timeout-- > 0) {
         xy_gui_draw_pixel(gui, x1, y1, color);

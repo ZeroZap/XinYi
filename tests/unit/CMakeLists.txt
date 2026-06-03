@@ -23,6 +23,7 @@ set(PID ${ROOT}/components/pid)
 set(DM ${ROOT}/components/dm)
 set(IPC ${ROOT}/components/ipc)
 set(FOTA ${ROOT}/components/fota)
+set(GUI ${ROOT}/components/gui)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -58,6 +59,8 @@ include_directories(
     ${DM}/xy_base64                 # xy_base64.h
     ${IPC}/pipe                     # xy_pipe.h
     ${FOTA}                         # xy_fota.h
+    ${GUI}                          # xy_gui.h
+    ${GUI}/inc                      # GUI widget headers
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ROOT}/UniTest/unity           # unity.h
 )
@@ -413,6 +416,13 @@ add_executable(test_fota_core
 )
 add_test(NAME fota_core COMMAND test_fota_core)
 
+# --- Test 34: GUI core drawing and object contracts ---
+add_executable(test_gui_core
+    test_gui_core.c
+    ${GUI}/xy_gui.c
+)
+add_test(NAME gui_core COMMAND test_gui_core)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -422,6 +432,6 @@ add_custom_target(run_unit_tests
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
             test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
-            test_at_server test_fota_core
+            test_at_server test_fota_core test_gui_core
     COMMENT "Running unit tests"
 )
