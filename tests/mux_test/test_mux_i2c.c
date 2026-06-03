@@ -18,6 +18,11 @@
 #include <string.h>
 #include <assert.h>
 
+void xy_log_char(char ch)
+{
+    (void)ch;
+}
+
 /* Test buffer size */
 #define BUFFER_SIZE 512
 
@@ -270,6 +275,8 @@ static void test_i2c_transfer(void)
 
     /* Perform transfer */
     int32_t ret = xy_mux_i2c_transfer(&mgr, 0, msgs, 3);
+    assert(ret == 16);
+    assert(data_in[0] == 0xA5);
     printf("  [PASS] Multi-message transfer completed\n");
 
     xy_mux_deinit(&mgr);
@@ -361,7 +368,7 @@ static void test_i2c_tlv_packet(void)
     /* Process the packet */
     g_i2c_buffer_lens[0] = 0;
     ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
-    assert(ret == XY_MUX_OK);
+    assert(ret == (int32_t)sizeof(i2c_data));
     printf("  [PASS] Packet processed\n");
 
     xy_mux_deinit(&mgr);

@@ -371,7 +371,20 @@ add_executable(test_mux_core
 )
 add_test(NAME mux_core COMMAND test_mux_core)
 
-# --- Test 27: PID core lifecycle, tuning, limits, and compute contracts ---
+# --- Test 27: MUX I2C channel helper contracts ---
+add_executable(test_mux_i2c
+    ${ROOT}/tests/mux_test/test_mux_i2c.c
+    ${MUX}/src/xy_mux.c
+    ${MUX}/src/xy_mux_i2c.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    test_clib_alloc_shim.c
+)
+add_test(NAME mux_i2c COMMAND test_mux_i2c)
+
+# --- Test 28: PID core lifecycle, tuning, limits, and compute contracts ---
 add_executable(test_pid_core
     test_pid_core.c
     ${PID}/xy_pid.c
