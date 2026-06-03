@@ -213,6 +213,18 @@ int xy_gui_widget_set_size(xy_gui_widget_t *widget, uint16_t width, uint16_t hei
     return 0;
 }
 
+int xy_gui_widget_set_style(xy_gui_widget_t *widget, const xy_gui_style_t *style)
+{
+    if (!widget || !style) {
+        return -1;
+    }
+
+    widget->style = *style;
+    widget->need_redraw = true;
+
+    return 0;
+}
+
 int xy_gui_widget_set_value(xy_gui_widget_t *widget, int32_t value)
 {
     if (!widget) {
@@ -304,6 +316,11 @@ bool xy_gui_widget_contains_point(xy_gui_widget_t *widget, int16_t x, int16_t y)
     
     return (x >= widget->rect.x && x < widget->rect.x + widget->rect.width &&
             y >= widget->rect.y && y < widget->rect.y + widget->rect.height);
+}
+
+bool xy_gui_widget_hit_test(xy_gui_widget_t *widget, int16_t x, int16_t y)
+{
+    return xy_gui_widget_contains_point(widget, x, y);
 }
 
 int xy_gui_widget_add_child(xy_gui_widget_t *parent, xy_gui_widget_t *child)

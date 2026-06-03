@@ -256,6 +256,18 @@ bool xy_gui_widget_hit_test(xy_gui_widget_t *widget,
                             int16_t x, int16_t y);
 
 /**
+ * @brief 添加子控件
+ */
+int xy_gui_widget_add_child(xy_gui_widget_t *parent,
+                            xy_gui_widget_t *child);
+
+/**
+ * @brief 移除子控件
+ */
+int xy_gui_widget_remove_child(xy_gui_widget_t *parent,
+                               xy_gui_widget_t *child);
+
+/**
  * @brief 设置控件启用状态
  */
 int xy_gui_widget_set_enabled(xy_gui_widget_t *widget, 

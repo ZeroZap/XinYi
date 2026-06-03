@@ -423,6 +423,14 @@ add_executable(test_gui_core
 )
 add_test(NAME gui_core COMMAND test_gui_core)
 
+# --- Test 35: GUI widget base and theme contracts ---
+add_executable(test_gui_widget_theme
+    test_gui_widget_theme.c
+    ${GUI}/src/xy_gui_widget.c
+    ${GUI}/src/xy_gui_theme.c
+)
+add_test(NAME gui_widget_theme COMMAND test_gui_widget_theme)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -432,6 +440,6 @@ add_custom_target(run_unit_tests
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
             test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
-            test_at_server test_fota_core test_gui_core
+            test_at_server test_fota_core test_gui_core test_gui_widget_theme
     COMMENT "Running unit tests"
 )
