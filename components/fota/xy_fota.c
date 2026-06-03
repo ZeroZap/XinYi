@@ -13,12 +13,9 @@
 #define FOTA_MAGIC          0x464F5441
 #define FOTA_HEADER_SIZE   sizeof(xy_fota_header_t)
 
-static xy_fota_t g_fota;
-
 /* Forward declarations for static functions */
 static int xy_fota_flash_write(xy_fota_t *fota, uint32_t offset, const uint8_t *data, uint32_t size);
 static int xy_fota_flash_read(xy_fota_t *fota, uint32_t offset, uint8_t *data, uint32_t size);
-static int xy_fota_flash_erase(xy_fota_t *fota);
 static int xy_fota_backup_write(xy_fota_t *fota, uint32_t offset, const uint8_t *data, uint32_t size);
 static int xy_fota_backup_read(xy_fota_t *fota, uint32_t offset, uint8_t *data, uint32_t size);
 static int xy_fota_do_backup(xy_fota_t *fota);
@@ -380,18 +377,6 @@ static int xy_fota_flash_read(xy_fota_t *fota, uint32_t offset, uint8_t *data, u
                          offset;
     
     return fota->flash_ops->read(flash_addr, data, size);
-}
-
-static int xy_fota_flash_erase(xy_fota_t *fota)
-{
-    if (!fota || !fota->flash_ops || !fota->flash_ops->erase) {
-        return XY_FOTA_FLASH_ERROR;
-    }
-    
-    uint32_t flash_addr = fota->config.flash_base_addr + 
-                         (fota->current_slot * fota->config.slot_size);
-    
-    return fota->flash_ops->erase(flash_addr, fota->config.slot_size);
 }
 
 /* ==================== Backup Operations (单槽模式) ==================== */

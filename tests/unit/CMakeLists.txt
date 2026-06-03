@@ -22,6 +22,7 @@ set(MUX ${ROOT}/components/mux)
 set(PID ${ROOT}/components/pid)
 set(DM ${ROOT}/components/dm)
 set(IPC ${ROOT}/components/ipc)
+set(FOTA ${ROOT}/components/fota)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -56,6 +57,7 @@ include_directories(
     ${OSAL}/inc                     # xy_os_tick.h
     ${DM}/xy_base64                 # xy_base64.h
     ${IPC}/pipe                     # xy_pipe.h
+    ${FOTA}                         # xy_fota.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ROOT}/UniTest/unity           # unity.h
 )
@@ -404,6 +406,13 @@ add_executable(test_at_server
 target_include_directories(test_at_server PRIVATE ${TRACE}/xy_log/inc)
 add_test(NAME at_server COMMAND test_at_server)
 
+# --- Test 33: FOTA lifecycle, CRC, download, and flash-op contracts ---
+add_executable(test_fota_core
+    test_fota_core.c
+    ${FOTA}/xy_fota.c
+)
+add_test(NAME fota_core COMMAND test_fota_core)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -413,6 +422,6 @@ add_custom_target(run_unit_tests
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
             test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
-            test_at_server
+            test_at_server test_fota_core
     COMMENT "Running unit tests"
 )
