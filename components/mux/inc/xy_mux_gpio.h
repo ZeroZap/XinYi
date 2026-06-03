@@ -46,6 +46,10 @@ typedef enum {
     XY_MUX_GPIO_CMD_SET_DIR = 0,  /**< 设置方向 */
     XY_MUX_GPIO_CMD_GET_DIR,      /**< 获取方向 */
     XY_MUX_GPIO_CMD_SET_PULL,     /**< 设置上下拉 */
+    XY_MUX_GPIO_CMD_SET_CONFIG,   /**< 设置完整配置 */
+    XY_MUX_GPIO_CMD_GET_LEVEL,    /**< 获取电平 */
+    XY_MUX_GPIO_CMD_SET_LEVEL,    /**< 设置电平 */
+    XY_MUX_GPIO_CMD_TOGGLE,       /**< 翻转电平 */
     XY_MUX_GPIO_CMD_ENABLE_IRQ,   /**< 使能中断 */
     XY_MUX_GPIO_CMD_DISABLE_IRQ,  /**< 禁用中断 */
 } xy_mux_gpio_cmd_t;

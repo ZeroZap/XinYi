@@ -12,10 +12,19 @@
  */
 
 #include "xy_mux.h"
+#include "xy_mux_gpio.h"
+#include "xy_mux_i2c.h"
+#include "xy_mux_spi.h"
+#include "xy_mux_uart.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+void xy_log_char(char ch)
+{
+    (void)ch;
+}
 
 /* Test buffer size */
 #define BUFFER_SIZE 512
@@ -299,7 +308,6 @@ static void test_process_packet(void)
     xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE);
 
     /* Register GPIO device to receive packets */
-    static int write_count = 0;
     xy_mux_ops_t ops = {
         .write = mock_write,
     };
@@ -314,7 +322,7 @@ static void test_process_packet(void)
 
     /* Process the packet */
     int32_t ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
-    assert(ret == XY_MUX_OK);
+    assert(ret == (int32_t)sizeof(gpio_data));
     printf("  [PASS] Packet processed successfully\n");
 
     /* Test processing with non-existent device */

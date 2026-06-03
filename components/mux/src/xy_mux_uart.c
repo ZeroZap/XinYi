@@ -35,7 +35,7 @@ static int32_t xy_mux_uart_deinit(uint8_t channel)
 /**
  * @brief UART 读取回调
  */
-static int32_t xy_mux_uart_read(uint8_t channel, void *data, size_t len)
+static int32_t xy_mux_uart_read_cb(uint8_t channel, void *data, size_t len)
 {
     if (!data || len == 0) {
         return XY_MUX_ERROR_INVALID_PARAM;
@@ -48,7 +48,7 @@ static int32_t xy_mux_uart_read(uint8_t channel, void *data, size_t len)
 /**
  * @brief UART 写入回调
  */
-static int32_t xy_mux_uart_write(uint8_t channel, const void *data, size_t len)
+static int32_t xy_mux_uart_write_cb(uint8_t channel, const void *data, size_t len)
 {
     if (!data || len == 0) {
         return XY_MUX_ERROR_INVALID_PARAM;
@@ -71,8 +71,8 @@ static int32_t xy_mux_uart_ioctl(uint8_t channel, int cmd, void *arg)
 static const xy_mux_ops_t g_uart_ops = {
     .init = xy_mux_uart_init,
     .deinit = xy_mux_uart_deinit,
-    .read = xy_mux_uart_read,
-    .write = xy_mux_uart_write,
+    .read = xy_mux_uart_read_cb,
+    .write = xy_mux_uart_write_cb,
     .ioctl = xy_mux_uart_ioctl,
 };
 

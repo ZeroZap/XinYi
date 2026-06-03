@@ -17,6 +17,7 @@ set(SENSOR ${ROOT}/components/sensor)
 set(PM ${ROOT}/components/pm)
 set(TRACE ${ROOT}/components/trace)
 set(CLIB ${ROOT}/components/clib/xy_clib)
+set(MUX ${ROOT}/components/mux)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -42,6 +43,7 @@ include_directories(
     ${PM}/inc                       # xy_pm.h
     ${PM}/charger                   # xy_charger.h
     ${PM}/fuel-gauge                # xy_fuel_gauge.h
+    ${MUX}/inc                      # xy_mux*.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ROOT}/UniTest/unity           # unity.h
 )
@@ -326,6 +328,22 @@ add_executable(test_clib
 )
 add_test(NAME clib_component COMMAND test_clib)
 
+# --- Test 26: MUX manager, registration, and TLV packet contracts ---
+add_executable(test_mux_core
+    ${ROOT}/tests/mux_test/test_mux_core.c
+    ${MUX}/src/xy_mux.c
+    ${MUX}/src/xy_mux_gpio.c
+    ${MUX}/src/xy_mux_i2c.c
+    ${MUX}/src/xy_mux_spi.c
+    ${MUX}/src/xy_mux_uart.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    test_clib_alloc_shim.c
+)
+add_test(NAME mux_core COMMAND test_mux_core)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -333,6 +351,6 @@ add_custom_target(run_unit_tests
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
-            test_sensor_framework test_hal_pc test_pm test_trace test_clib
+            test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
     COMMENT "Running unit tests"
 )

@@ -35,7 +35,7 @@ static int32_t xy_mux_gpio_deinit(uint8_t channel)
 /**
  * @brief GPIO 读取回调
  */
-static int32_t xy_mux_gpio_read(uint8_t channel, void *data, size_t len)
+static int32_t xy_mux_gpio_read_cb(uint8_t channel, void *data, size_t len)
 {
     if (!data || len < sizeof(uint8_t)) {
         return XY_MUX_ERROR_INVALID_PARAM;
@@ -49,7 +49,7 @@ static int32_t xy_mux_gpio_read(uint8_t channel, void *data, size_t len)
 /**
  * @brief GPIO 写入回调
  */
-static int32_t xy_mux_gpio_write(uint8_t channel, const void *data, size_t len)
+static int32_t xy_mux_gpio_write_cb(uint8_t channel, const void *data, size_t len)
 {
     if (!data || len < sizeof(uint8_t)) {
         return XY_MUX_ERROR_INVALID_PARAM;
@@ -74,8 +74,8 @@ static int32_t xy_mux_gpio_ioctl(uint8_t channel, int cmd, void *arg)
 static const xy_mux_ops_t g_gpio_ops = {
     .init = xy_mux_gpio_init,
     .deinit = xy_mux_gpio_deinit,
-    .read = xy_mux_gpio_read,
-    .write = xy_mux_gpio_write,
+    .read = xy_mux_gpio_read_cb,
+    .write = xy_mux_gpio_write_cb,
     .ioctl = xy_mux_gpio_ioctl,
 };
 
