@@ -17,7 +17,9 @@ set(SENSOR ${ROOT}/components/sensor)
 set(PM ${ROOT}/components/pm)
 set(TRACE ${ROOT}/components/trace)
 set(CLIB ${ROOT}/components/clib/xy_clib)
+set(OSAL ${ROOT}/components/kernel/osal)
 set(MUX ${ROOT}/components/mux)
+set(PID ${ROOT}/components/pid)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -44,6 +46,9 @@ include_directories(
     ${PM}/charger                   # xy_charger.h
     ${PM}/fuel-gauge                # xy_fuel_gauge.h
     ${MUX}/inc                      # xy_mux*.h
+    ${PID}                          # xy_pid.h
+    ${PID}/inc                      # xy_pid_auto.h
+    ${OSAL}/inc                     # xy_os_tick.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ROOT}/UniTest/unity           # unity.h
 )
@@ -344,6 +349,16 @@ add_executable(test_mux_core
 )
 add_test(NAME mux_core COMMAND test_mux_core)
 
+# --- Test 27: PID core lifecycle, tuning, limits, and compute contracts ---
+add_executable(test_pid_core
+    test_pid_core.c
+    ${PID}/xy_pid.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+)
+target_link_libraries(test_pid_core m)
+add_test(NAME pid_core COMMAND test_pid_core)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -352,5 +367,6 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
+            test_pid_core
     COMMENT "Running unit tests"
 )
