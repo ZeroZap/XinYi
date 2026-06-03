@@ -106,8 +106,6 @@ static int checkbox_deinit(xy_gui_widget_t *widget)
 {
     if (!widget) return -1;
     
-    xy_gui_checkbox_t *checkbox = (xy_gui_checkbox_t*)widget;
-    
     /* 释放文本 */
     if (widget->text) {
         free(widget->text);
@@ -277,29 +275,28 @@ int xy_gui_checkbox_create(xy_gui_checkbox_t *checkbox,
     
     memset(checkbox, 0, sizeof(*checkbox));
     
-    /* 计算宽度 */
-    uint16_t width = checkbox->box_size + checkbox->spacing;
-    if (text) {
-        width += xy_font_get_text_width(&g_font_8x12, text);
-    }
-    
     /* 初始化基类 */
-    xy_gui_widget_init(&checkbox->base, XY_GUI_WIDGET_CHECKBOX, x, y, width, 24);
+    xy_gui_widget_init(&checkbox->base, XY_GUI_WIDGET_CHECKBOX, x, y, DEFAULT_BOX_SIZE + DEFAULT_SPACING, 24);
     
     /* 设置操作虚表 */
     checkbox->base.ops = &checkbox_ops;
-    
-    /* 设置属性 */
+
+    /* 调用初始化 */
+    checkbox_init(&checkbox->base);
+
+    /* 设置属性，必须在 checkbox_init 后保留调用者参数 */
     checkbox->tristate = tristate;
     checkbox->radio = false;
+
+    checkbox->base.rect.width = checkbox->box_size + checkbox->spacing;
+    if (text) {
+        checkbox->base.rect.width += xy_font_get_text_width(&g_font_8x12, text);
+    }
     
     /* 设置文本 */
     if (text) {
         xy_gui_checkbox_set_text(checkbox, text);
     }
-    
-    /* 调用初始化 */
-    checkbox_init(&checkbox->base);
     
     xy_log_i("Checkbox created: (%d,%d) text=\"%s\" tristate=%d\n",
              x, y, text ? text : "NULL", tristate);

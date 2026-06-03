@@ -431,6 +431,28 @@ add_executable(test_gui_widget_theme
 )
 add_test(NAME gui_widget_theme COMMAND test_gui_widget_theme)
 
+# --- Test 36: GUI event and remaining widget contracts ---
+add_executable(test_gui_widgets
+    test_gui_widgets.c
+    ${GUI}/src/xy_gui_event.c
+    ${GUI}/src/xy_gui_widget.c
+    ${GUI}/src/xy_gui_button.c
+    ${GUI}/src/xy_gui_checkbox.c
+    ${GUI}/src/xy_gui_label.c
+    ${GUI}/src/xy_gui_progress.c
+    ${GUI}/src/xy_gui_slider.c
+    ${GUI}/src/xy_gui_container.c
+    ${GUI}/src/xy_gui_draw.c
+    ${GUI}/src/xy_font.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    test_clib_alloc_shim.c
+)
+target_link_libraries(test_gui_widgets m)
+add_test(NAME gui_widgets COMMAND test_gui_widgets)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -441,5 +463,6 @@ add_custom_target(run_unit_tests
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
             test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
+            test_gui_widgets
     COMMENT "Running unit tests"
 )

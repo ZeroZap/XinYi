@@ -266,6 +266,14 @@ xy_gui_event_t xy_gui_event_create_click(int16_t x, int16_t y);
  */
 xy_gui_event_t xy_gui_event_create_value_changed(int32_t value);
 
+int xy_gui_event_register_listener(xy_gui_event_handler_t handler,
+                                   void *user_data,
+                                   uint8_t priority);
+
+int xy_gui_event_unregister_listener(xy_gui_event_handler_t handler);
+
+bool xy_gui_event_dispatch(xy_gui_event_t *event);
+
 #ifdef __cplusplus
 }
 #endif

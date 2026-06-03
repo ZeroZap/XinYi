@@ -88,7 +88,8 @@ static int textbox_update(xy_gui_widget_t *widget, xy_gui_event_t *event)
             tb->buffer[tb->cursor_pos] = '\0';
             
             /* 自动滚动 */
-            if (tb->cursor_pos - tb->scroll_offset > (tb->base.rect.width - 10) / 8) {
+            size_t visible_capacity = (tb->base.rect.width > 10) ? (size_t)((tb->base.rect.width - 10) / 8) : 0;
+            if (tb->cursor_pos - tb->scroll_offset > visible_capacity) {
                 tb->scroll_offset++;
             }
             tb->base.need_redraw = true;

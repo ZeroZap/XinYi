@@ -34,11 +34,50 @@ const xy_font_t g_font_5x7 = {
     .type = XY_FONT_TYPE_BITMAP,
     .style = {7, 50, false, false},
     .glyphs = g_font5x7_glyphs,
-    .glyph_count = 95,
+    .glyph_count = sizeof(g_font5x7_glyphs) / sizeof(g_font5x7_glyphs[0]),
     .first_char = 32,
-    .last_char = 126,
+    .last_char = 33,
     .line_height = 8,
     .baseline = 6,
+    .initialized = true,
+};
+
+const xy_font_t g_font_8x12 = {
+    .name = "8x12",
+    .type = XY_FONT_TYPE_BITMAP,
+    .style = {12, 50, false, false},
+    .glyphs = g_font5x7_glyphs,
+    .glyph_count = sizeof(g_font5x7_glyphs) / sizeof(g_font5x7_glyphs[0]),
+    .first_char = 32,
+    .last_char = 33,
+    .line_height = 12,
+    .baseline = 10,
+    .initialized = true,
+};
+
+const xy_font_t g_font_12x18 = {
+    .name = "12x18",
+    .type = XY_FONT_TYPE_BITMAP,
+    .style = {18, 50, false, false},
+    .glyphs = g_font5x7_glyphs,
+    .glyph_count = sizeof(g_font5x7_glyphs) / sizeof(g_font5x7_glyphs[0]),
+    .first_char = 32,
+    .last_char = 33,
+    .line_height = 18,
+    .baseline = 15,
+    .initialized = true,
+};
+
+const xy_font_t g_font_16x24 = {
+    .name = "16x24",
+    .type = XY_FONT_TYPE_BITMAP,
+    .style = {24, 50, false, false},
+    .glyphs = g_font5x7_glyphs,
+    .glyph_count = sizeof(g_font5x7_glyphs) / sizeof(g_font5x7_glyphs[0]),
+    .first_char = 32,
+    .last_char = 33,
+    .line_height = 24,
+    .baseline = 20,
     .initialized = true,
 };
 
@@ -68,7 +107,12 @@ const xy_glyph_t* xy_font_get_glyph(const xy_font_t *font, char ch)
         return NULL;
     }
     
-    return &font->glyphs[ch - font->first_char];
+    uint16_t index = (uint16_t)(ch - font->first_char);
+    if (index >= font->glyph_count) {
+        return NULL;
+    }
+
+    return &font->glyphs[index];
 }
 
 int xy_font_measure_text(const xy_font_t *font, const char *text,

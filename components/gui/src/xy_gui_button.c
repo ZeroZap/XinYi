@@ -117,14 +117,11 @@ static void draw_button_icon(xy_gui_button_t *button,
 {
     if (!button || !button->icon_data || !fb) return;
     
-    xy_gui_rect_t *r = &button->base.rect;
-    
-    /* 计算图标位置 (居中) */
-    int16_t icon_x = r->x + (r->width - button->icon_width) / 2;
-    int16_t icon_y = r->y + (r->height - button->icon_height) / 2;
-    
+    (void)fb_w;
+    (void)fb_h;
+
     /* 图标绘制待实现 - 需要图标资源 */
-    /* xy_gui_draw_icon(icon_x, icon_y, button->icon_data, 
+    /* xy_gui_draw_icon(icon_x, icon_y, button->icon_data,
                       button->icon_width, button->icon_height, fb, fb_w, fb_h); */
 }
 
@@ -174,7 +171,7 @@ static int button_init(xy_gui_widget_t *widget)
     };
     
     button->long_press_time = DEFAULT_LONG_PRESS_TIME;
-    button->is_toggle = (widget->type == XY_GUI_BUTTON_TOGGLE);
+    button->is_toggle = (button->is_toggle || widget->value == XY_GUI_BUTTON_TOGGLE);
     
     xy_log_d("Button initialized: %s\n", widget->text ? widget->text : "NULL");
     return 0;
@@ -183,8 +180,6 @@ static int button_init(xy_gui_widget_t *widget)
 static int button_deinit(xy_gui_widget_t *widget)
 {
     if (!widget) return -1;
-    
-    xy_gui_button_t *button = (xy_gui_button_t*)widget;
     
     /* 释放文本 */
     if (widget->text) {
@@ -355,7 +350,7 @@ int xy_gui_button_create(xy_gui_button_t *button,
     /* 确定控件类型 */
     xy_gui_widget_type_t type = XY_GUI_WIDGET_BUTTON;
     if (flags == XY_GUI_BUTTON_TOGGLE) {
-        type = XY_GUI_BUTTON_TOGGLE;
+        type = XY_GUI_WIDGET_BUTTON;
     } else if (flags == XY_GUI_BUTTON_RADIO) {
         type = XY_GUI_WIDGET_RADIO;
     }
@@ -365,6 +360,8 @@ int xy_gui_button_create(xy_gui_button_t *button,
     
     /* 设置操作虚表 */
     button->base.ops = &button_ops;
+    button->base.value = flags;
+    button->is_toggle = (flags == XY_GUI_BUTTON_TOGGLE);
     
     /* 设置文本 */
     if (text) {
