@@ -137,7 +137,7 @@ int32_t xy_mux_i2c_transfer(xy_mux_manager_t *mgr, uint8_t channel,
             /* 写操作 */
             /* 构建数据包: 地址(2字节) + 数据 */
             uint8_t packet[256];
-            if (msg->len + 2 > sizeof(packet)) {
+            if (msg->len > sizeof(packet) - 2U) {
                 return XY_MUX_ERROR_NO_MEMORY;
             }
 

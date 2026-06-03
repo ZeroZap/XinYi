@@ -5,6 +5,7 @@
 
 #include "xy_common.h"
 #include "xy_rb.h"
+#include "xy_ctype.h"
 #include "xy_stdio.h"
 #include "xy_string.h"
 
@@ -63,6 +64,21 @@ static void test_clib_string_helpers(void)
     assert(memcmp(overlap, "ababcd", 6U) == 0);
 }
 
+static void test_clib_ctype_helpers(void)
+{
+    assert(xy_isalpha('a'));
+    assert(xy_isalpha('Z'));
+    assert(!xy_isalpha('0'));
+    assert(xy_isalnum('z'));
+    assert(xy_isalnum('9'));
+    assert(!xy_isalnum('@'));
+    assert(xy_isgraph('!'));
+    assert(xy_isgraph('~'));
+    assert(!xy_isgraph(127));
+    assert(xy_tolower('A') == 'a');
+    assert(xy_toupper('z') == 'Z');
+}
+
 static void test_clib_stdio_helpers(void)
 {
     char buffer[64];
@@ -72,6 +88,8 @@ static void test_clib_stdio_helpers(void)
     assert(strcmp(buffer, "n=42 hex=2A") == 0);
     assert(xy_snprintf(buffer, sizeof(buffer), "%s-%u", "id", 7U) > 0);
     assert(strcmp(buffer, "id-7") == 0);
+    assert(xy_snprintf(buffer, 5U, "%s", "abcdef") == 4);
+    assert(strcmp(buffer, "abcd") == 0);
     assert(xy_atoi("-123") == -123);
     assert(xy_atol("456") == 456L);
     assert(xy_strtoul("0x10", &end, 0) == 16UL);
@@ -112,6 +130,7 @@ int main(void)
 {
     test_clib_common_helpers();
     test_clib_string_helpers();
+    test_clib_ctype_helpers();
     test_clib_stdio_helpers();
     test_clib_ring_buffer_helpers();
     puts("CLIB component tests passed");

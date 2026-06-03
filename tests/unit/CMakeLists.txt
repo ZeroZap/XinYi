@@ -26,6 +26,7 @@ set(FOTA ${ROOT}/components/fota)
 set(GUI ${ROOT}/components/gui)
 set(ANALOG ${ROOT}/components/analog_devices)
 set(SYS ${ROOT}/components/sys)
+set(ACTUATOR ${ROOT}/components/actuator)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -70,6 +71,7 @@ include_directories(
     ${SYS}/xy_state_machine         # xy_st.h
     ${ROOT}/components/kernel/misc  # xy_tick.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
+    ${ACTUATOR}                     # xy_actuator.h
     ${ROOT}/UniTest/unity           # unity.h
 )
 
@@ -498,6 +500,22 @@ add_executable(test_net_smbus_pmbus
 target_link_libraries(test_net_smbus_pmbus m)
 add_test(NAME net_smbus_pmbus COMMAND test_net_smbus_pmbus)
 
+# --- Test 41: Actuator framework, relay, servo, PWM, and batch contracts ---
+add_executable(test_actuator_framework
+    test_actuator_framework.c
+    ${ACTUATOR}/xy_actuator.c
+)
+target_link_libraries(test_actuator_framework m)
+add_test(NAME actuator_framework COMMAND test_actuator_framework)
+
+# --- Test 42: BQ25620 charger I2C register and status contracts ---
+add_executable(test_charger_bq25620
+    test_charger_bq25620.c
+    ${ROOT}/components/charger/src/xy_bq25620.c
+)
+target_include_directories(test_charger_bq25620 PRIVATE ${ROOT}/components/charger/inc)
+add_test(NAME charger_bq25620 COMMAND test_charger_bq25620)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -509,5 +527,6 @@ add_custom_target(run_unit_tests
             test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
+            test_actuator_framework test_charger_bq25620
     COMMENT "Running unit tests"
 )

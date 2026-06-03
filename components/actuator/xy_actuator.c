@@ -691,11 +691,21 @@ static actuator_err_t relay_default_write(actuator_device_t *dev, const actuator
 
 static actuator_err_t servo_default_write(actuator_device_t *dev, const actuator_value_t *value)
 {
-    if (value == NULL) {
+    if (dev == NULL || value == NULL || dev->type != ACTUATOR_TYPE_SERVO) {
         return ACTUATOR_EINVAL;
     }
 
-    return servo_set_angle(dev, value->servo.target_angle);
+    float angle = value->servo.target_angle;
+    if (angle < dev->config.servo_min_angle) {
+        angle = dev->config.servo_min_angle;
+    }
+    if (angle > dev->config.servo_max_angle) {
+        angle = dev->config.servo_max_angle;
+    }
+
+    dev->value.servo.target_angle = angle;
+    dev->value.servo.current_angle = angle;
+    return ACTUATOR_EOK;
 }
 
 static actuator_err_t servo_default_read(actuator_device_t *dev, actuator_value_t *value)

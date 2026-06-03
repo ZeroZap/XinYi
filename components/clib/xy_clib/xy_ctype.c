@@ -35,7 +35,7 @@ uint8_t xy_isupper(int8_t c)
  */
 uint8_t xy_isalpha(int8_t c)
 {
-    return ((('a' <= (c)) && ('z' >= (c))) || ('A' <= (c)) && ('Z' >= (c)));
+    return ((('a' <= (c)) && ('z' >= (c))) || (('A' <= (c)) && ('Z' >= (c))));
 }
 
 uint8_t xy_isdigit(int8_t c)
@@ -52,8 +52,8 @@ uint8_t xy_isdigit(int8_t c)
  */
 uint8_t xy_isalnum(int8_t c)
 {
-    return ((('a' <= (c)) && ('z' >= (c))) || ('A' <= (c)) && ('Z' >= (c))
-            || ('0' <= (c)) && ('9' >= (c)));
+    return ((('a' <= (c)) && ('z' >= (c))) || (('A' <= (c)) && ('Z' >= (c)))
+            || (('0' <= (c)) && ('9' >= (c))));
 }
 
 /**
@@ -65,7 +65,7 @@ uint8_t xy_isalnum(int8_t c)
  */
 uint8_t xy_isgraph(int8_t c)
 {
-    return ((33 <= (c)) && (127 >= (c)));
+    return ((33 <= (c)) && (126 >= (c)));
 }
 
 /**

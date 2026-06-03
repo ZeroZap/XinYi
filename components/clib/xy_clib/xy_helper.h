@@ -426,10 +426,14 @@ static inline xy_size_t xy_memlcpy(void *dest, const void *src, xy_size_t size)
  * @brief Static assertion
  */
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#ifndef XY_STATIC_ASSERT
 #define XY_STATIC_ASSERT(condition, message) _Static_assert(condition, message)
+#endif
 #else
+#ifndef XY_STATIC_ASSERT
 #define XY_STATIC_ASSERT(condition, message) \
     extern int xy_static_assert_##__LINE__[(condition) ? 1 : -1]
+#endif
 #endif
 
 #ifdef __cplusplus

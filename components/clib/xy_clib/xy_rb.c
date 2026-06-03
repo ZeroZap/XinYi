@@ -94,7 +94,7 @@ size_t xy_rb_put(xy_rb_t *rb, const uint8_t *ptr, uint32_t length)
     if (size < length)
         length = size;
 
-    if (rb->buffer_size - rb->write_index > length) {
+    if ((uint32_t)(rb->buffer_size - rb->write_index) > length) {
         /* copy all of data */
         memcpy(&rb->buffer_ptr[rb->write_index], ptr, length);
 
@@ -192,8 +192,8 @@ size_t xy_rb_put_force(xy_rb_t *rb, const uint8_t *ptr, uint32_t length)
         uint32_t data_length;
         data_length = length - space_length;
 
-        if (data_length < rb->buffer_size) {
-            if (rb->read_index + data_length < rb->buffer_size) {
+        if (data_length < (uint32_t)rb->buffer_size) {
+            if (rb->read_index + data_length < (uint32_t)rb->buffer_size) {
                 /* move read index */
                 rb->read_index += data_length;
             } else {
@@ -236,7 +236,7 @@ size_t xy_rb_get(xy_rb_t *rb, uint8_t *ptr, uint32_t length)
     if (size < length)
         length = size;
 
-    if (rb->buffer_size - rb->read_index > length) {
+    if ((uint32_t)(rb->buffer_size - rb->read_index) > length) {
         /* copy all of data */
         memcpy(ptr, &rb->buffer_ptr[rb->read_index], length);
 

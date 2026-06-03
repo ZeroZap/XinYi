@@ -94,7 +94,7 @@ static uint8_t current_to_reg(uint32_t current_mA, uint8_t step, uint8_t min_mA)
  */
 static uint32_t reg_to_current(uint8_t reg_value, uint8_t step, uint8_t min_mA)
 {
-    return min_mA + (reg_value * step);
+    return min_mA + ((uint32_t)reg_value * step);
 }
 
 /**
@@ -115,7 +115,7 @@ static uint8_t voltage_to_reg(uint32_t voltage_mV, uint8_t step, uint16_t min_mV
  */
 static uint32_t reg_to_voltage(uint8_t reg_value, uint8_t step, uint16_t min_mV)
 {
-    return min_mV + (reg_value * step);
+    return min_mV + ((uint32_t)reg_value * step);
 }
 
 /* ==================== Hardware Operations ==================== */
@@ -160,6 +160,23 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_status_t *status)
     
     if (bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_1, &stat1, 1) != XY_DEVICE_OK) {
         return XY_DEVICE_ERROR;
+    }
+
+    uint8_t reg_value;
+    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_1, &reg_value, 1) == XY_DEVICE_OK) {
+        status->charge_current = reg_to_current(reg_value & BQ25620_ICHG_MASK,
+                                                BQ25620_ICHG_STEP_mA,
+                                                BQ25620_ICHG_MIN_mA);
+    }
+    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_3, &reg_value, 1) == XY_DEVICE_OK) {
+        status->bat_voltage = reg_to_voltage(reg_value & BQ25620_VREG_MASK,
+                                             BQ25620_VREG_STEP_mV,
+                                             BQ25620_VREG_MIN_mV);
+    }
+    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_4, &reg_value, 1) == XY_DEVICE_OK) {
+        status->input_current = reg_to_current(reg_value & BQ25620_ILIM_MASK,
+                                               BQ25620_ILIM_STEP_mA,
+                                               BQ25620_ILIM_MIN_mA);
     }
     
     /* 解析充电状态 */

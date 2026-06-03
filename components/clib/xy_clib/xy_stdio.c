@@ -84,6 +84,7 @@ static char *int_to_str(long value, char *str, int base, int uppercase)
     return str;
 }
 
+#ifdef XY_PRINTF_FLOAT_ENABLE
 /* Float to string conversion */
 static int float_to_str(double value, char *str, int precision)
 {
@@ -124,6 +125,7 @@ static int float_to_str(double value, char *str, int precision)
     *str = '\0';
     return (int)(str - original_str);
 }
+#endif
 
 int32_t xy_vsprintf(char *buf, const char *fmt, va_list args)
 {
@@ -266,7 +268,8 @@ int32_t xy_snprintf(char *buf, uint32_t size, const char *fmt, ...)
     if (len < 0) return len;
     
     /* Copy to destination buffer with size limit */
-    uint32_t copy_len = (len < size) ? len : size - 1;
+    uint32_t full_len = (uint32_t)len;
+    uint32_t copy_len = (full_len < size) ? full_len : size - 1;
     strncpy(buf, temp_buf, copy_len);
     buf[copy_len] = '\0';
     
@@ -405,7 +408,7 @@ unsigned long xy_strtoul(const char *str, char **endptr, int base)
         if (c >= base) {
             break;
         }
-        if (any < 0 || result > cutoff || (result == cutoff && c > cutlim)) {
+        if (any < 0 || result > cutoff || (result == cutoff && (unsigned long)c > cutlim)) {
             any = -1;
         } else {
             any = 1;
