@@ -292,63 +292,46 @@ xy_mqtt_err_t xy_mqtt_decode_remaining_length(const uint8_t *buf, uint32_t *len,
 
 bool xy_mqtt_topic_match(const char *topic_filter, const char *topic)
 {
+    if (!topic_filter || !topic) {
+        return false;
+    }
+
     const char *filter_pos = topic_filter;
     const char *topic_pos = topic;
-    const char * wildcard_pos;
 
-    while (*filter_pos && *topic_pos) {
+    while (*filter_pos) {
         if (*filter_pos == '#') {
-            /* Multi-level wildcard matches rest of topic */
-            return true;
+            /* MQTT multi-level wildcard must be last and either stand alone or follow '/'. */
+            return (*(filter_pos + 1) == '\0') &&
+                   (filter_pos == topic_filter || *(filter_pos - 1) == '/');
         }
 
         if (*filter_pos == '+') {
-            /* Single-level wildcard matches one topic level */
-            wildcard_pos = topic_pos;
-
-            /* Find next '/' in topic */
-            while (*wildcard_pos && *wildcard_pos != '/') {
-                wildcard_pos++;
+            /* Single-level wildcard consumes exactly one topic level. */
+            while (*topic_pos && *topic_pos != '/') {
+                topic_pos++;
             }
-
-            /* Check if there's a '/' at current filter position */
-            if (*filter_pos == '\0' || *filter_pos == '/') {
-                topic_pos = wildcard_pos;
-            } else if (*wildcard_pos == '/') {
-                topic_pos = wildcard_pos;
-            } else {
-                return false;
-            }
-        } else if (*filter_pos != *topic_pos) {
-            return false;
-        } else {
             filter_pos++;
-            topic_pos++;
-        }
-    }
 
-    /* Check for end of strings */
-    if (*filter_pos == '\0' && *topic_pos == '\0') {
-        return true;
-    }
-
-    if (*filter_pos == '#' && (*topic_pos == '\0' || *(filter_pos - 1) == '/')) {
-        return true;
-    }
-
-    /* Handle trailing + */
-    if (*filter_pos == '+' && (*filter_pos == '\0' || *(filter_pos + 1) == '\0')) {
-        /* Find if topic has more levels */
-        while (*topic_pos) {
-            if (*topic_pos == '/') {
-                return false;
+            if (*filter_pos == '/') {
+                if (*topic_pos != '/') {
+                    return false;
+                }
+                topic_pos++;
+                filter_pos++;
             }
-            topic_pos++;
+            continue;
         }
-        return true;
+
+        if (*filter_pos != *topic_pos) {
+            return false;
+        }
+
+        filter_pos++;
+        topic_pos++;
     }
 
-    return false;
+    return *topic_pos == '\0';
 }
 
 /*============================================================================

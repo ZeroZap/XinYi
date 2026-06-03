@@ -33,6 +33,7 @@ include_directories(
     ${DRV}/sensor/pressure/bmp280   # xy_bmp280.h
     ${DRV}/sensor/adc/ads1115       # xy_ads1115.h
     ${NET}/inc                      # xy_can.h
+    ${NET}/src                      # xy_mqtt_client.h
     ${NET}/xy_iso7816               # xy_iso7816.h
     ${CRYPTO}/xy_crc                # xy_crc.h
     ${CRYPTO}/xy_rng                # xy_rng.h
@@ -378,6 +379,13 @@ add_executable(test_ipc_pipe
 )
 add_test(NAME ipc_pipe COMMAND test_ipc_pipe)
 
+# --- Test 30: MQTT client helpers, topic filters, and validation ---
+add_executable(test_mqtt_client
+    test_mqtt_client.c
+    ${NET}/src/xy_mqtt_client.c
+)
+add_test(NAME mqtt_client COMMAND test_mqtt_client)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -386,6 +394,6 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
-            test_pid_core test_dm_base64 test_ipc_pipe
+            test_pid_core test_dm_base64 test_ipc_pipe test_mqtt_client
     COMMENT "Running unit tests"
 )
