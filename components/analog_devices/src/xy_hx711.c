@@ -9,6 +9,8 @@
 #include "xy_hal_gpio.h"
 #include "xy_log.h"
 
+void xy_os_delay(uint32_t ms);
+
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
 /**
@@ -20,15 +22,15 @@ static uint32_t xy_hx711_read_data(xy_hx711_t *hx)
     uint8_t i;
     
     for (i = 0; i < 24; i++) {
-        xy_hal_gpio_set(hx->pd_sck_pin, 1);
-        data = (data << 1) | xy_hal_gpio_read(hx->dout_pin);
-        xy_hal_gpio_set(hx->pd_sck_pin, 0);
+        xy_hal_gpio_write(NULL, hx->pd_sck_pin, 1);
+        data = (data << 1) | (uint32_t)xy_hal_gpio_read(NULL, hx->dout_pin);
+        xy_hal_gpio_write(NULL, hx->pd_sck_pin, 0);
     }
     
     /* 额外脉冲选择增益 */
     for (i = 0; i < hx->gain; i++) {
-        xy_hal_gpio_set(hx->pd_sck_pin, 1);
-        xy_hal_gpio_set(hx->pd_sck_pin, 0);
+        xy_hal_gpio_write(NULL, hx->pd_sck_pin, 1);
+        xy_hal_gpio_write(NULL, hx->pd_sck_pin, 0);
     }
     
     /* 24 位补码转有符号数 */
@@ -47,20 +49,20 @@ int xy_hx711_init(xy_hx711_t *hx, uint8_t pd_sck_pin, uint8_t dout_pin)
     
     hx->pd_sck_pin = pd_sck_pin;
     hx->dout_pin = dout_pin;
-    hx->gain = 128;  /* 默认 128 增益 */
+    hx->gain = 1;  /* 默认 128 增益对应 1 个额外脉冲 */
     hx->offset = 0;
     hx->scale = 1.0f;
     
     /* 初始化 PD_SCK (输出) */
     gpio_cfg.mode = XY_HAL_GPIO_MODE_OUTPUT;
     gpio_cfg.pull = XY_HAL_GPIO_PULL_NONE;
-    xy_hal_gpio_init(pd_sck_pin, &gpio_cfg);
-    xy_hal_gpio_set(pd_sck_pin, 0);
+    xy_hal_gpio_init(NULL, pd_sck_pin, &gpio_cfg);
+    xy_hal_gpio_write(NULL, pd_sck_pin, 0);
     
     /* 初始化 DOUT (输入) */
     gpio_cfg.mode = XY_HAL_GPIO_MODE_INPUT;
     gpio_cfg.pull = XY_HAL_GPIO_PULL_UP;
-    xy_hal_gpio_init(dout_pin, &gpio_cfg);
+    xy_hal_gpio_init(NULL, dout_pin, &gpio_cfg);
     
     xy_os_delay(100);  /* 等待 HX711 稳定 */
     
@@ -82,7 +84,7 @@ int xy_hx711_read(xy_hx711_t *hx, int32_t *value)
     }
     
     /* 等待数据就绪 */
-    while (xy_hal_gpio_read(hx->dout_pin) && count++ < timeout) {
+    while (xy_hal_gpio_read(NULL, hx->dout_pin) && count++ < timeout) {
         xy_os_delay(1);
     }
     

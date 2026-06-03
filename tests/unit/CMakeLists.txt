@@ -24,6 +24,7 @@ set(DM ${ROOT}/components/dm)
 set(IPC ${ROOT}/components/ipc)
 set(FOTA ${ROOT}/components/fota)
 set(GUI ${ROOT}/components/gui)
+set(ANALOG ${ROOT}/components/analog_devices)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -61,6 +62,8 @@ include_directories(
     ${FOTA}                         # xy_fota.h
     ${GUI}                          # xy_gui.h
     ${GUI}/inc                      # GUI widget headers
+    ${ANALOG}                       # xy_adc.h
+    ${ANALOG}/inc                   # xy_adc_ext.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ROOT}/UniTest/unity           # unity.h
 )
@@ -452,6 +455,20 @@ add_executable(test_gui_widgets
 )
 target_link_libraries(test_gui_widgets m)
 add_test(NAME gui_widgets COMMAND test_gui_widgets)
+
+# --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---
+add_executable(test_analog_devices
+    test_analog_devices.c
+    ${ANALOG}/xy_adc.c
+    ${ANALOG}/src/xy_mcp3008.c
+    ${ANALOG}/src/xy_hx711.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    test_clib_alloc_shim.c
+)
+add_test(NAME analog_devices COMMAND test_analog_devices)
 
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
