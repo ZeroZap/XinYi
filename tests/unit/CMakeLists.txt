@@ -21,6 +21,7 @@ set(OSAL ${ROOT}/components/kernel/osal)
 set(MUX ${ROOT}/components/mux)
 set(PID ${ROOT}/components/pid)
 set(DM ${ROOT}/components/dm)
+set(IPC ${ROOT}/components/ipc)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -51,6 +52,7 @@ include_directories(
     ${PID}/inc                      # xy_pid_auto.h
     ${OSAL}/inc                     # xy_os_tick.h
     ${DM}/xy_base64                 # xy_base64.h
+    ${IPC}/pipe                     # xy_pipe.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ROOT}/UniTest/unity           # unity.h
 )
@@ -369,6 +371,13 @@ add_executable(test_dm_base64
 target_include_directories(test_dm_base64 PRIVATE ${ROOT}/components)
 add_test(NAME dm_base64 COMMAND test_dm_base64)
 
+# --- Test 29: IPC pipe ring-buffer contracts ---
+add_executable(test_ipc_pipe
+    test_ipc_pipe.c
+    ${IPC}/pipe/xy_pipe.c
+)
+add_test(NAME ipc_pipe COMMAND test_ipc_pipe)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -377,6 +386,6 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
-            test_pid_core test_dm_base64
+            test_pid_core test_dm_base64 test_ipc_pipe
     COMMENT "Running unit tests"
 )

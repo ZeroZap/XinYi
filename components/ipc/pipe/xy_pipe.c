@@ -112,6 +112,7 @@ int xy_pipe_read(xy_pipe_t *pipe, uint8_t *data, size_t len)
         INCREMENT_TAIL(pipe);
         read_count++;
         pipe->count--;
+        pipe->full = false;
 
         if (pipe->count == 0) {
             pipe->full = false;
