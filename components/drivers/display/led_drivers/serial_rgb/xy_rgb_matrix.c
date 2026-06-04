@@ -348,11 +348,12 @@ bool xy_rgb_matrix_update_effect(xy_rgb_matrix_handle_t *handle)
         return false;
     }
 
-    uint32_t now = 0;  /* TODO: Use actual time from system */
+    static uint32_t s_effect_tick;
+    uint32_t now = ++s_effect_tick * 10U;  /* TODO: Replace with system tick source */
     uint32_t elapsed = now - s_effect_state.last_update;
 
     /* Calculate step based on speed (lower speed = faster) */
-    uint32_t interval = (256 - s_effect_state.speed) * 10;  /* ms between updates */
+    uint32_t interval = (256U - s_effect_state.speed) * 10U;  /* ms between updates */
 
     if (elapsed < interval) {
         return false;

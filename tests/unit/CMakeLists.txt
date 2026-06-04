@@ -500,7 +500,16 @@ add_executable(test_display_oled_ws2812
 )
 add_test(NAME display_oled_ws2812 COMMAND test_display_oled_ws2812)
 
-# --- Test 35: MQTT client helpers, topic filters, and validation ---
+# --- Test 35: Display RGB matrix layout/effect contracts ---
+add_executable(test_display_rgb_matrix
+    test_display_rgb_matrix.c
+    ${DISPLAY}/led_drivers/serial_rgb/xy_rgb_matrix.c
+    ${DISPLAY}/led_drivers/serial_rgb/xy_ws2812.c
+    ${DEV}/xy_device_core.c
+)
+add_test(NAME display_rgb_matrix COMMAND test_display_rgb_matrix)
+
+# --- Test 36: MQTT client helpers, topic filters, and validation ---
 add_executable(test_mqtt_client
     test_mqtt_client.c
     ${NET}/src/xy_mqtt_client.c
@@ -628,7 +637,7 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
-            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_mqtt_client test_at_client
+            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
             test_actuator_framework test_charger_bq25620
