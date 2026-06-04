@@ -6,6 +6,7 @@
  */
 
 #include "xy_oled_ssd1306.h"
+#include "xy_hal_delay.h"
 #include <string.h>
 #include <stdlib.h>
 
