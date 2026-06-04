@@ -168,11 +168,12 @@ void xy_lcd_st7789_reset(xy_lcd_st7789_device_t *lcd)
  */
 void xy_lcd_st7789_set_column(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t w)
 {
-    uint16_t x_end = x + w - 1 + lcd->offset_x;
+    uint16_t x_start = x + lcd->offset_x;
+    uint16_t x_end = x_start + w - 1U;
 
     xy_lcd_st7789_write_cmd(lcd, ST7789_CMD_CASET);
-    xy_lcd_st7789_write_data8(lcd, (uint8_t)(lcd->offset_x >> 8));
-    xy_lcd_st7789_write_data8(lcd, (uint8_t)(lcd->offset_x & 0xFF));
+    xy_lcd_st7789_write_data8(lcd, (uint8_t)(x_start >> 8));
+    xy_lcd_st7789_write_data8(lcd, (uint8_t)(x_start & 0xFF));
     xy_lcd_st7789_write_data8(lcd, (uint8_t)(x_end >> 8));
     xy_lcd_st7789_write_data8(lcd, (uint8_t)(x_end & 0xFF));
 }
@@ -182,11 +183,12 @@ void xy_lcd_st7789_set_column(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t 
  */
 void xy_lcd_st7789_set_row(xy_lcd_st7789_device_t *lcd, uint16_t y, uint16_t h)
 {
-    uint16_t y_end = y + h - 1 + lcd->offset_y;
+    uint16_t y_start = y + lcd->offset_y;
+    uint16_t y_end = y_start + h - 1U;
 
     xy_lcd_st7789_write_cmd(lcd, ST7789_CMD_RASET);
-    xy_lcd_st7789_write_data8(lcd, (uint8_t)(lcd->offset_y >> 8));
-    xy_lcd_st7789_write_data8(lcd, (uint8_t)(lcd->offset_y & 0xFF));
+    xy_lcd_st7789_write_data8(lcd, (uint8_t)(y_start >> 8));
+    xy_lcd_st7789_write_data8(lcd, (uint8_t)(y_start & 0xFF));
     xy_lcd_st7789_write_data8(lcd, (uint8_t)(y_end >> 8));
     xy_lcd_st7789_write_data8(lcd, (uint8_t)(y_end & 0xFF));
 }
@@ -262,10 +264,6 @@ void xy_lcd_st7789_clear(xy_lcd_st7789_device_t *lcd, uint16_t color)
  */
 void xy_lcd_st7789_draw_pixel(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t y, uint16_t color)
 {
-    /* Apply offset */
-    x += lcd->offset_x;
-    y += lcd->offset_y;
-
     xy_lcd_st7789_set_window(lcd, x, y, 1, 1);
 
     uint8_t data[2] = { (uint8_t)(color >> 8), (uint8_t)(color & 0xFF) };

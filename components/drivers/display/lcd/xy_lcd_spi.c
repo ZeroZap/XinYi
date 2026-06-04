@@ -10,6 +10,7 @@
 #include "xy_hal_gpio.h"
 #include "xy_hal_delay.h"
 #include <string.h>
+#include <stdlib.h>
 
 /* ==================== Internal Macros ==================== */
 
@@ -136,15 +137,25 @@ void xy_lcd_spi_write_pixel(xy_lcd_spi_device_t *lcd, const uint16_t *data, uint
     LCD_SPI_SET_DC_DATA(lcd);
     LCD_SPI_ASSERT_CS(lcd);
 
-    /* Convert RGB565 to bytes for SPI transfer */
-    uint8_t *buf = (uint8_t *)data;
-    uint32_t byte_len = len * 2;
+    /* Convert RGB565 to big-endian bytes for SPI transfer */
+    uint32_t byte_len = len * 2U;
+    uint8_t *buf = (uint8_t *)malloc(byte_len);
+    if (!buf) {
+        return;
+    }
+
+    for (uint32_t i = 0; i < len; i++) {
+        buf[i * 2U] = (uint8_t)(data[i] >> 8);
+        buf[i * 2U + 1U] = (uint8_t)(data[i] & 0xFFU);
+    }
 
     if (lcd->use_dma) {
         xy_hal_spi_transmit_dma(lcd->spi_handle, buf, byte_len);
     } else {
         xy_hal_spi_transmit(lcd->spi_handle, buf, byte_len, LCD_SPI_TRANSFER_TIMEOUT_MS);
     }
+
+    free(buf);
 
     LCD_SPI_DEASSERT_CS(lcd);
 }

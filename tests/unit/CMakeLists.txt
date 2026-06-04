@@ -23,6 +23,7 @@ set(PID ${ROOT}/components/pid)
 set(DM ${ROOT}/components/dm)
 set(IPC ${ROOT}/components/ipc)
 set(STORAGE ${ROOT}/components/drivers/storage)
+set(DISPLAY ${ROOT}/components/drivers/display)
 set(FOTA ${ROOT}/components/fota)
 set(GUI ${ROOT}/components/gui)
 set(ANALOG ${ROOT}/components/analog_devices)
@@ -65,6 +66,7 @@ include_directories(
     ${IPC}/pipe                     # xy_pipe.h
     ${IPC}/xy_broker                # xy_broker.h
     ${STORAGE}/eeprom/24xx          # xy_eeprom_24xx.h
+    ${DISPLAY}/lcd                  # xy_lcd*.h
     ${FOTA}                         # xy_fota.h
     ${GUI}                          # xy_gui.h
     ${GUI}/inc                      # GUI widget headers
@@ -478,7 +480,17 @@ add_executable(test_storage_eeprom_24xx
 )
 add_test(NAME storage_eeprom_24xx COMMAND test_storage_eeprom_24xx)
 
-# --- Test 33: MQTT client helpers, topic filters, and validation ---
+# --- Test 33: Display LCD SPI/I8080/ST7789 host contracts ---
+add_executable(test_display_lcd
+    test_display_lcd.c
+    ${DISPLAY}/lcd/xy_lcd.c
+    ${DISPLAY}/lcd/xy_lcd_spi.c
+    ${DISPLAY}/lcd/xy_lcd_i8080.c
+    ${DISPLAY}/lcd/xy_lcd_st7789.c
+)
+add_test(NAME display_lcd COMMAND test_display_lcd)
+
+# --- Test 34: MQTT client helpers, topic filters, and validation ---
 add_executable(test_mqtt_client
     test_mqtt_client.c
     ${NET}/src/xy_mqtt_client.c
@@ -606,7 +618,7 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
-            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_mqtt_client test_at_client
+            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
             test_actuator_framework test_charger_bq25620
