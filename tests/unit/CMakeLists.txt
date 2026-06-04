@@ -22,6 +22,7 @@ set(MUX ${ROOT}/components/mux)
 set(PID ${ROOT}/components/pid)
 set(DM ${ROOT}/components/dm)
 set(IPC ${ROOT}/components/ipc)
+set(STORAGE ${ROOT}/components/drivers/storage)
 set(FOTA ${ROOT}/components/fota)
 set(GUI ${ROOT}/components/gui)
 set(ANALOG ${ROOT}/components/analog_devices)
@@ -63,6 +64,7 @@ include_directories(
     ${DM}/xy_base64                 # xy_base64.h
     ${IPC}/pipe                     # xy_pipe.h
     ${IPC}/xy_broker                # xy_broker.h
+    ${STORAGE}/eeprom/24xx          # xy_eeprom_24xx.h
     ${FOTA}                         # xy_fota.h
     ${GUI}                          # xy_gui.h
     ${GUI}/inc                      # GUI widget headers
@@ -469,7 +471,14 @@ add_executable(test_ipc_broker
 )
 add_test(NAME ipc_broker COMMAND test_ipc_broker)
 
-# --- Test 32: MQTT client helpers, topic filters, and validation ---
+# --- Test 32: Storage EEPROM 24xx fake-I2C host contracts ---
+add_executable(test_storage_eeprom_24xx
+    test_storage_eeprom_24xx.c
+    ${STORAGE}/eeprom/24xx/xy_eeprom_24xx.c
+)
+add_test(NAME storage_eeprom_24xx COMMAND test_storage_eeprom_24xx)
+
+# --- Test 33: MQTT client helpers, topic filters, and validation ---
 add_executable(test_mqtt_client
     test_mqtt_client.c
     ${NET}/src/xy_mqtt_client.c
@@ -597,7 +606,7 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
-            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_mqtt_client test_at_client
+            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
             test_actuator_framework test_charger_bq25620

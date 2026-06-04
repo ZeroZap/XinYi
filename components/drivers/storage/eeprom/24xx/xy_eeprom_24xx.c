@@ -61,7 +61,7 @@ int xy_eeprom_24xx_write_page(xy_eeprom_24xx_t *eeprom, uint16_t addr,
     }
 
     /* Calculate page boundary */
-    uint16_t page_start = addr & ~(eeprom->page_size - 1);
+    uint16_t page_start = (uint16_t)((addr / eeprom->page_size) * eeprom->page_size);
     uint16_t page_end = page_start + eeprom->page_size;
     
     /* Limit to page boundary */
@@ -92,6 +92,10 @@ int xy_eeprom_24xx_write(xy_eeprom_24xx_t *eeprom, uint16_t addr,
                          const uint8_t *data, size_t len)
 {
     if (!eeprom || !data) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    if ((size_t)addr + len > eeprom->total_size) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
