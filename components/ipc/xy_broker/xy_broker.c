@@ -66,8 +66,7 @@ static xy_broker_server_t *broker_alloc_server(void)
 static xy_broker_topic_t *broker_find_topic(uint16_t topic_id)
 {
     for (int i = 0; i < XY_BROKER_MAX_TOPICS; i++) {
-        if (g_broker.topics[i].topic_id == topic_id
-            && g_broker.topics[i].subscriber_count > 0) {
+        if (g_broker.topics[i].topic_id == topic_id) {
             return &g_broker.topics[i];
         }
     }
