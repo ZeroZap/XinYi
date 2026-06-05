@@ -263,7 +263,7 @@ smbus_err_t smbus_process_call(smbus_device_t *dev, uint8_t addr, uint8_t cmd,
     (void)addr;
     (void)cmd;
     (void)write_data;
-    (void)read_data;
+    *read_data = 0;
     return SMBUS_EOK;
 }
 
@@ -283,7 +283,7 @@ smbus_err_t smbus_block_process_call(smbus_device_t *dev, uint8_t addr, uint8_t 
     (void)write_data;
     (void)write_len;
     (void)read_data;
-    (void)read_len;
+    *read_len = 0;
     return SMBUS_EOK;
 }
 
@@ -338,7 +338,9 @@ smbus_err_t smbus_alert_response(uint8_t addr)
 
     /* SMBus Alert Response Address (ARA) = 0x0C
      * 主机响应报警，从设备释放 SMBALERT# 线 */
-    (void)addr;
+    if (g_alert_callback != NULL) {
+        g_alert_callback(smbus_find_by_addr(addr), addr);
+    }
     return SMBUS_EOK;
 }
 

@@ -11,6 +11,8 @@ static int g_smbus_init_count;
 static int g_smbus_deinit_count;
 static int g_pmbus_init_count;
 static int g_pmbus_deinit_count;
+static int g_alert_count;
+static uint8_t g_alert_mask;
 
 void xy_log_char(char ch)
 {
@@ -55,6 +57,13 @@ static const pmbus_ops_t g_fake_pmbus_ops = {
     .deinit = fake_pmbus_deinit,
 };
 
+static void fake_alert_callback(smbus_device_t *dev, uint8_t alert_mask)
+{
+    (void)dev;
+    g_alert_count++;
+    g_alert_mask = alert_mask;
+}
+
 static void test_smbus_helpers_and_registry(void)
 {
     uint8_t pec_data[] = {0x12, 0x34, 0x56};
@@ -81,12 +90,14 @@ static void test_smbus_helpers_and_registry(void)
     assert(smbus_register(&dev) == SMBUS_EOK);
     assert(smbus_find("smbus-test") == &dev);
     assert(smbus_find_by_addr(0x5a) == &dev);
+    assert(smbus_err_str(SMBUS_EBUSY) != NULL);
     assert(smbus_init(&dev) == SMBUS_EOK);
     assert(smbus_deinit(&dev) == SMBUS_EOK);
     assert(g_smbus_init_count == 1);
     assert(g_smbus_deinit_count == 1);
     assert(smbus_unregister(&dev) == SMBUS_EOK);
     assert(smbus_find("smbus-test") == NULL);
+    assert(smbus_unregister(&dev) == SMBUS_ENODEV);
 }
 
 static void test_smbus_default_io_contracts(void)
@@ -103,6 +114,8 @@ static void test_smbus_default_io_contracts(void)
     uint8_t addrs[8];
     uint8_t count = 0xff;
     uint8_t pec = 0;
+    uint16_t process_read = 0xffff;
+    uint8_t block_read_len = sizeof(block);
 
     memset(block, 0xaa, sizeof(block));
     assert(smbus_init(&dev) == SMBUS_EOK);
@@ -114,12 +127,22 @@ static void test_smbus_default_io_contracts(void)
     assert(word == 0);
     assert(smbus_read_block(&dev, dev.config.addr, 0x03, block, &len) == SMBUS_EOK);
     assert(len == 0);
+    assert(smbus_process_call(&dev, dev.config.addr, 0x05, 0x1234, &process_read) == SMBUS_EOK);
+    assert(process_read == 0);
+    assert(smbus_block_process_call(&dev, dev.config.addr, 0x06, block, 3, block,
+                                    &block_read_len) == SMBUS_EOK);
+    assert(block_read_len == 0);
     assert(smbus_scan(&dev, addrs, &count) == SMBUS_EOK);
     assert(count == 0);
     assert(smbus_write_block(&dev, dev.config.addr, 0x04, block, SMBUS_MAX_PAYLOAD + 1) == SMBUS_EINVAL);
     assert(smbus_calculate_pec(&dev, block, 3, &pec) == SMBUS_EOK);
     assert(smbus_verify_pec(&dev, block, 3, pec));
+    g_alert_count = 0;
+    g_alert_mask = 0;
+    assert(smbus_alert_register_callback(fake_alert_callback, NULL) == SMBUS_EOK);
     assert(smbus_alert_response(0x0c) == SMBUS_EOK);
+    assert(g_alert_count == 1);
+    assert(g_alert_mask == 0x0c);
     assert(smbus_alert_response(0x78) == SMBUS_EINVAL);
 }
 
