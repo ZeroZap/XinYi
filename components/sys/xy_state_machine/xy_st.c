@@ -266,6 +266,7 @@ void xy_sm_process_sample(xy_sm_t *self, size_t timeout)
             self->timeout_process = NULL;
             self->timeout_exit    = NULL;
             self->timeout_counter = 0;
+            self->timeout_total   = 0;
 
             /* 切换到timeout状态（不调用entry，保持原子性） */
             self->entry           = te;
