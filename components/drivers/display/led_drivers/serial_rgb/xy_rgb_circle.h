@@ -8,7 +8,12 @@
 #ifndef XY_RGB_CIRCLE_H
 #define XY_RGB_CIRCLE_H
 
-#include "xy_rgb.h"
+#include "xy_serial_rgb.h"
+
+typedef struct {
+    int8_t x;
+    int8_t y;
+} point2d_t;
 
 #ifdef __cplusplus
 extern "C" {

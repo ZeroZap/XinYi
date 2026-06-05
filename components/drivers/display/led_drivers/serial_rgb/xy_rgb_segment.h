@@ -8,7 +8,7 @@
 #ifndef XY_RGB_SEGMENT_H
 #define XY_RGB_SEGMENT_H
 
-#include "xy_rgb.h"
+#include "xy_serial_rgb.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -8,7 +8,7 @@
 #ifndef XY_RGB_COLOR_H
 #define XY_RGB_COLOR_H
 
-#include "xy_rgb.h"
+#include "xy_serial_rgb.h"
 
 #ifdef __cplusplus
 extern "C" {
