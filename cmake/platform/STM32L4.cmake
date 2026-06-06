@@ -23,10 +23,11 @@ set(PLATFORM_DEFINES
     ARM_CORTEX_M4
 )
 
-# Include dirs: XY HAL impl dir (reuses STM32F4 wrappers until STM32L4-specific
-# wrappers are added) + SDK headers from the uniform STM32L4/STM32CubeL4 path.
+# Include dirs: STM32L4 application HAL configuration/shims first, then the
+# shared STM32 wrapper headers and SDK headers from the uniform
+# STM32L4/STM32CubeL4 path.
 set(PLATFORM_INCLUDE_DIRS
-    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32f4
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/inc
     ${CMAKE_SOURCE_DIR}/MCU/ST/STM32L4/STM32CubeL4/Drivers/STM32L4xx_HAL_Driver/Inc
     ${CMAKE_SOURCE_DIR}/MCU/ST/STM32L4/STM32CubeL4/Drivers/CMSIS/Device/ST/STM32L4xx/Include
