@@ -17,13 +17,15 @@ message(STATUS "Building for ${MCU_TARGET} (${CPU_ARCH})")
 # XinYi Framework Root
 set(XINYI_ROOT ${CMAKE_SOURCE_DIR}/../..)
 
-# STM32U5 HAL Library (assumes STM32CubeU5 is installed)
-# Adjust this path based on your STM32CubeU5 installation
-set(STM32_CUBE_U5_PATH ${XINYI_ROOT}/third_party/STM32CubeU5)
+# STM32U5 HAL/CMSIS libraries under the unified MCU/ST/STM32U5 layout
+set(STM32U5_HAL_PATH ${XINYI_ROOT}/MCU/ST/STM32U5/stm32u5xx-hal-driver)
+set(STM32U5_CMSIS_DEVICE_PATH ${XINYI_ROOT}/MCU/ST/STM32U5/cmsis_device_u5)
 
-if(NOT EXISTS ${STM32_CUBE_U5_PATH})
-    message(WARNING "STM32CubeU5 not found at ${STM32_CUBE_U5_PATH}")
-    message(WARNING "Please install STM32CubeU5 or adjust the path")
+if(NOT EXISTS ${STM32U5_HAL_PATH})
+    message(WARNING "STM32U5 HAL driver not found at ${STM32U5_HAL_PATH}")
+endif()
+if(NOT EXISTS ${STM32U5_CMSIS_DEVICE_PATH})
+    message(WARNING "STM32U5 CMSIS Device not found at ${STM32U5_CMSIS_DEVICE_PATH}")
 endif()
 
 # Compiler Flags
@@ -45,9 +47,9 @@ include_directories(
     ${XINYI_ROOT}/components/hal/inc
     ${XINYI_ROOT}/components/hal/stm32/stm32u5
     ${XINYI_ROOT}/components/kernel/osal/inc
-    ${STM32_CUBE_U5_PATH}/Drivers/STM32U5xx_HAL_Driver/Inc
-    ${STM32_CUBE_U5_PATH}/Drivers/CMSIS/Device/ST/STM32U5xx/Include
-    ${STM32_CUBE_U5_PATH}/Drivers/CMSIS/Include
+    ${STM32U5_HAL_PATH}/Inc
+    ${STM32U5_CMSIS_DEVICE_PATH}/Include
+    ${XINYI_ROOT}/MCU/CMSIS/Include
 )
 
 # Source Files

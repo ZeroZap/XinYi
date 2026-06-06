@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.12)
 # =============================================================================
 # Platform selection — must happen before project() for cross-compilation
 # =============================================================================
-set(HAL_PLATFORM "PC" CACHE STRING "Target platform: PC | STM32F4 | STM32U5 | WCH | HC32")
-set_property(CACHE HAL_PLATFORM PROPERTY STRINGS PC STM32F4 STM32U5 WCH HC32)
+set(HAL_PLATFORM "PC" CACHE STRING "Target platform: PC | STM32F4 | STM32U5 | STM32L4 | WCH | HC32")
+set_property(CACHE HAL_PLATFORM PROPERTY STRINGS PC STM32F4 STM32U5 STM32L4 WCH HC32)
 
 if(NOT HAL_PLATFORM STREQUAL "PC")
     # Bare-metal: suppress compiler link-test (no startup/libc yet)
@@ -75,7 +75,7 @@ set(_platform_cmake "${CMAKE_SOURCE_DIR}/cmake/platform/${HAL_PLATFORM}.cmake")
 if(NOT EXISTS "${_platform_cmake}")
     message(FATAL_ERROR
         "Unknown HAL_PLATFORM='${HAL_PLATFORM}'.\n"
-        "Available: PC  STM32F4  STM32U5  WCH  HC32\n"
+        "Available: PC  STM32F4  STM32U5  STM32L4  WCH  HC32\n"
         "Pass -DHAL_PLATFORM=<value> to cmake.")
 endif()
 include("${_platform_cmake}")

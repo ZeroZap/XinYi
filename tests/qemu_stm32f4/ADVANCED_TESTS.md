@@ -24,7 +24,7 @@
 
 ### 编译运行
 ```bash
-cd MCU/ST/STM32F4/QEMU/uart_test
+cd MCU/ST/STM32F4/STM32CubeF4/QEMU/uart_test
 
 # 编译
 source /home/eugene/zerozap/scripts/env.sh
@@ -68,7 +68,7 @@ qemu-system-arm -M olimex-stm32-h405 -nographic \
 
 ### 编译运行
 ```bash
-cd MCU/ST/STM32F4/QEMU/timer_test
+cd MCU/ST/STM32F4/STM32CubeF4/QEMU/timer_test
 
 # 编译
 source /home/eugene/zerozap/scripts/env.sh

@@ -28,8 +28,8 @@ set(PLATFORM_DEFINES
 set(PLATFORM_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32u5
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/inc
-    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32U5/Inc            # stm32u5xx-hal-driver
-    ${CMAKE_SOURCE_DIR}/MCU/ST/cmsis_device_u5/Include # CMSIS device (stm32u575xx.h etc.)
+    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32U5/stm32u5xx-hal-driver/Inc # STM32U5 HAL driver
+    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32U5/cmsis_device_u5/Include  # CMSIS device (stm32u575xx.h etc.)
     ${CMAKE_SOURCE_DIR}/MCU/CMSIS/Include              # CMSIS-Core (core_cm33.h, cmsis_gcc.h ...)
 )
 

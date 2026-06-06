@@ -1,5 +1,5 @@
-# Options: PC, STM32F4, STM32U5, WCH
-set(HAL_PLATFORM "PC" CACHE STRING "HAL Platform (PC, STM32F4, STM32U5, WCH)")
+# Options: PC, STM32F4, STM32U5, STM32L4, WCH, HC32
+set(HAL_PLATFORM "PC" CACHE STRING "HAL Platform (PC, STM32F4, STM32U5, STM32L4, WCH, HC32)")
 
 # Collect source files based on platform
 if(HAL_PLATFORM STREQUAL "PC")
@@ -43,6 +43,19 @@ elseif(HAL_PLATFORM STREQUAL "STM32U5")
     )
     set(STM32U5_INCLUDE_DIR ${STM32U5_HAL_PATH}/Inc)
     message(STATUS "XY HAL: Building for STM32U5")
+
+elseif(HAL_PLATFORM STREQUAL "STM32L4")
+    # STM32L4 implementation currently reuses the STM32F4 wrapper sources
+    # until dedicated components/hal/stm32/stm32l4 sources are added.
+    file(GLOB HAL_SOURCES
+        "stm32/stm32f4/*.c"
+        "stm32/src/*.c"
+    )
+    set(HAL_DEFINES
+        HAL_PLATFORM_STM32
+        STM32L4
+    )
+    message(STATUS "XY HAL: Building for STM32L4")
 
 elseif(HAL_PLATFORM STREQUAL "WCH")
     # WCH CH32V — XY HAL wrappers under wch/ch32x/src/ + vendor SDK peripheral

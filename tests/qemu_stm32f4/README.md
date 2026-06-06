@@ -30,7 +30,7 @@ olimex_stm32_h405_test/
 
 **编译命令**:
 ```bash
-cd /home/eugene/zerozap/XinYi/MCU/ST/STM32F4/QEMU/olimex_stm32_h405_test
+cd /home/eugene/zerozap/XinYi/MCU/ST/STM32F4/STM32CubeF4/QEMU/olimex_stm32_h405_test
 
 source /home/eugene/zerozap/scripts/env.sh
 arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16 \

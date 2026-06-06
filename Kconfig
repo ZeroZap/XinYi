@@ -39,6 +39,14 @@ config PLATFORM_STM32F4
     help
       STM32F4 series with FPU, suitable for DSP applications.
 
+config PLATFORM_STM32L4
+    bool "STM32L4 Series (Ultra-low-power)"
+    depends on PLATFORM_STM32
+    select CORTEX_M4
+    select FPU
+    help
+      STM32L4 ultra-low-power Cortex-M4 series.
+
 config PLATFORM_STM32F1
     bool "STM32F1 Series (Entry-level)"
     depends on PLATFORM_STM32

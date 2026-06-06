@@ -43,7 +43,8 @@ for file in "${TEST_FILES[@]}"; do
             -std=c99 \
             -fsyntax-only \
             -I"$SCRIPT_DIR/inc" \
-            -I"$XINYI_ROOT/MCU/ST/STM32U5/Inc" \
+            -I"$XINYI_ROOT/MCU/ST/STM32U5/stm32u5xx-hal-driver/Inc" \
+            -I"$XINYI_ROOT/MCU/ST/STM32U5/cmsis_device_u5/Include" \
             -DSTM32U5 \
             "$filepath" 2>/dev/null; then
             echo "✅ PASS"

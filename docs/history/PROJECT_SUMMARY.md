@@ -7,7 +7,7 @@
 - 项目位置：E:\github_download\_ZeroZap\Maker\XinYi\components\hal\stm32\stm32u5
 - 构建命令：`make all` 或 `cmake .. && make`
 - 编译器：arm-none-eabi-gcc (C99 标准)
-- 依赖：STM32U5 HAL 库来自 MCU/ST/STM32U5/，不在 HAL 组件中重复
+- 依赖：STM32U5 HAL 库来自 MCU/ST/STM32U5/stm32u5xx-hal-driver/，CMSIS Device 来自 MCU/ST/STM32U5/cmsis_device_u5/，不在 HAL 组件中重复
 - 错误码：所有函数返回 xy_hal_error_t 类型 (XY_HAL_OK=0, 错误为负值)
 - 代码风格：遵循 xy_code_style.md 规范 (4 空格缩进，小写命名，Doxygen 文档)
 - 平台宏定义：STM32U5, STM32U5xx, STM32_HAL_ENABLED, USE_HAL_DRIVER

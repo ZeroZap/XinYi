@@ -1,14 +1,14 @@
-[submodule "MCU/ST/STM32U5"]
-	path = MCU/ST/STM32U5
+[submodule "MCU/ST/STM32U5/stm32u5xx-hal-driver"]
+	path = MCU/ST/STM32U5/stm32u5xx-hal-driver
 	url = https://github.com/STMicroelectronics/stm32u5xx-hal-driver.git
 [submodule "MCU/wch"]
 	path = MCU/wch
 	url = git@github.com:ZeroZap/wch.git
-[submodule "MCU/ST/STM32F1"]
-	path = MCU/ST/STM32F1
+[submodule "MCU/ST/STM32F1/STM32CubeF1"]
+	path = MCU/ST/STM32F1/STM32CubeF1
 	url = https://github.com/STMicroelectronics/STM32CubeF1.git
-[submodule "MCU/ST/STM32F4"]
-	path = MCU/ST/STM32F4
+[submodule "MCU/ST/STM32F4/STM32CubeF4"]
+	path = MCU/ST/STM32F4/STM32CubeF4
 	url = https://github.com/STMicroelectronics/STM32CubeF4.git
 [submodule "components/third_party/usb/tinyusb"]
 	path = components/third_party/usb/tinyusb
@@ -22,6 +22,9 @@
 [submodule "MCU/HC32"]
 	path = MCU/HC32
 	url = git@github.com:ZeroZap/xhsc.git
-[submodule "MCU/ST/cmsis_device_u5"]
-	path = MCU/ST/cmsis_device_u5
+[submodule "MCU/ST/STM32U5/cmsis_device_u5"]
+	path = MCU/ST/STM32U5/cmsis_device_u5
 	url = https://github.com/STMicroelectronics/cmsis_device_u5.git
+[submodule "MCU/ST/STM32L4/STM32CubeL4"]
+	path = MCU/ST/STM32L4/STM32CubeL4
+	url = https://github.com/STMicroelectronics/STM32CubeL4.git

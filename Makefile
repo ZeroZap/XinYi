@@ -5,6 +5,7 @@
 #   make BUILD_TYPE=debug             PC Debug build
 #   make HAL_PLATFORM=STM32U5         STM32U5 build
 #   make HAL_PLATFORM=STM32F4 BUILD_TESTS=ON
+#   make HAL_PLATFORM=STM32L4
 #   make test                         run PC unit tests + QEMU tests
 #   make test-unit                    run PC unit tests only
 #   make test-qemu                    run QEMU STM32F4 tests only
@@ -96,7 +97,7 @@ help:
 	@echo "  make [options]"
 	@echo ""
 	@echo "Options:"
-	@echo "  HAL_PLATFORM=PC|STM32F4|STM32U5|WCH|HC32   (default: PC)"
+	@echo "  HAL_PLATFORM=PC|STM32F4|STM32U5|STM32L4|WCH|HC32   (default: PC)"
 	@echo "  BUILD_TYPE=Release|Debug                    (default: Release)"
 	@echo "  BUILD_TESTS=ON|OFF                          (default: OFF)"
 	@echo "  FOTA=ON|OFF                                 (default: OFF)"

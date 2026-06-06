@@ -27,9 +27,9 @@ set(PLATFORM_DEFINES
 set(PLATFORM_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32f4
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/inc
-    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/Drivers/STM32F4xx_HAL_Driver/Inc
-    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/Drivers/CMSIS/Device/ST/STM32F4xx/Include
-    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/Drivers/CMSIS/Include
+    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/STM32CubeF4/Drivers/STM32F4xx_HAL_Driver/Inc
+    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/STM32CubeF4/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+    ${CMAKE_SOURCE_DIR}/MCU/ST/STM32F4/STM32CubeF4/Drivers/CMSIS/Include
 )
 
 set(PLATFORM_LINKER_FLAGS "-Wl,--gc-sections -Wl,--print-memory-usage -nostartfiles")
