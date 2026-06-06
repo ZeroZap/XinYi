@@ -40,6 +40,7 @@ include_directories(
     ${DRV}/sensor/pressure/bmp280   # xy_bmp280.h
     ${DRV}/sensor/adc/ads1115       # xy_ads1115.h
     ${NET}/inc                      # xy_can.h
+    ${NET}/modbus                   # legacy mb_slave.h
     ${NET}/src                      # xy_mqtt_client.h
     ${NET}/at/atc/Modules/cellular/common # at_client.h
     ${NET}/at/ats                  # xy_ats.h
@@ -152,6 +153,12 @@ add_executable(test_nano_modbus
     ${NET}/modbus_tiny/mb_tiny.c
 )
 
+# --- Test 12b: legacy Modbus RTU slave host guard ---
+add_executable(test_modbus_legacy
+    test_modbus_legacy.c
+    ${NET}/modbus/mb_slave.c
+)
+
 # --- Test 13: ISO7816 public include, lifecycle, and APDU behavior ---
 add_executable(test_iso7816
     test_iso7816.c
@@ -230,6 +237,7 @@ add_test(NAME device_driver_template COMMAND test_device_driver_template)
 add_test(NAME can_component COMMAND test_can)
 add_test(NAME lte_component COMMAND test_lte)
 add_test(NAME nano_modbus_compat COMMAND test_nano_modbus)
+add_test(NAME modbus_legacy COMMAND test_modbus_legacy)
 add_test(NAME iso7816_component COMMAND test_iso7816)
 add_test(NAME iso7816_example COMMAND test_iso7816_example)
 add_test(NAME net_core COMMAND test_net_core)
@@ -640,7 +648,7 @@ add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
-            test_nano_modbus test_iso7816 test_iso7816_example test_net_core
+            test_nano_modbus test_modbus_legacy test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
             test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_display_serial_rgb_headers test_mqtt_client test_at_client

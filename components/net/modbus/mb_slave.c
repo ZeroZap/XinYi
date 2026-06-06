@@ -45,7 +45,7 @@ uint16_t mb_crc16(const uint8_t *buffer, uint16_t length)
 
 int mb_slave_init(mb_slave_t *slave, uint8_t address, uint32_t baudrate)
 {
-    if (!slave || address > 247) {
+    if (!slave || address > 247 || baudrate == 0U) {
         return -1;
     }
 
@@ -67,6 +67,10 @@ int mb_slave_init(mb_slave_t *slave, uint8_t address, uint32_t baudrate)
 
 void mb_slave_receive_byte(mb_slave_t *slave, uint8_t data)
 {
+    if (!slave) {
+        return;
+    }
+
     uint32_t current_time = mb_get_time_ms();
 
     // Check for frame timeout (new frame)
@@ -91,6 +95,10 @@ void mb_slave_receive_byte(mb_slave_t *slave, uint8_t data)
 
 void mb_slave_poll(mb_slave_t *slave, uint32_t current_time)
 {
+    if (!slave) {
+        return;
+    }
+
     // Check if frame is complete (no data for frame_timeout)
     if (slave->rx_count > 0) {
         if ((current_time - slave->last_rx_time) >= slave->frame_timeout) {
@@ -102,6 +110,10 @@ void mb_slave_poll(mb_slave_t *slave, uint32_t current_time)
 
 void mb_slave_process_frame(mb_slave_t *slave)
 {
+    if (!slave) {
+        return;
+    }
+
     // Minimum frame: Address(1) + Function(1) + CRC(2) = 4 bytes
     if (slave->rx_count < 4) {
         return;
@@ -449,7 +461,7 @@ static void mb_send_response(mb_slave_t *slave, uint16_t length)
 
 int mb_slave_set_coil(mb_slave_t *slave, uint16_t address, bool value)
 {
-    if (address >= MB_COIL_COUNT)
+    if (!slave || address >= MB_COIL_COUNT)
         return -1;
 
     uint16_t byte_idx = address / 8;
@@ -470,7 +482,7 @@ int mb_slave_set_coil(mb_slave_t *slave, uint16_t address, bool value)
 
 bool mb_slave_get_coil(mb_slave_t *slave, uint16_t address)
 {
-    if (address >= MB_COIL_COUNT)
+    if (!slave || address >= MB_COIL_COUNT)
         return false;
 
     uint16_t byte_idx = address / 8;
@@ -481,7 +493,7 @@ bool mb_slave_get_coil(mb_slave_t *slave, uint16_t address)
 
 int mb_slave_set_discrete(mb_slave_t *slave, uint16_t address, bool value)
 {
-    if (address >= MB_DISCRETE_COUNT)
+    if (!slave || address >= MB_DISCRETE_COUNT)
         return -1;
 
     uint16_t byte_idx = address / 8;
@@ -498,7 +510,7 @@ int mb_slave_set_discrete(mb_slave_t *slave, uint16_t address, bool value)
 
 bool mb_slave_get_discrete(mb_slave_t *slave, uint16_t address)
 {
-    if (address >= MB_DISCRETE_COUNT)
+    if (!slave || address >= MB_DISCRETE_COUNT)
         return false;
 
     uint16_t byte_idx = address / 8;
@@ -510,7 +522,7 @@ bool mb_slave_get_discrete(mb_slave_t *slave, uint16_t address)
 int mb_slave_set_input_register(mb_slave_t *slave, uint16_t address,
                                 uint16_t value)
 {
-    if (address >= MB_INPUT_REG_COUNT)
+    if (!slave || address >= MB_INPUT_REG_COUNT)
         return -1;
 
     slave->input_regs[address] = value;
@@ -519,7 +531,7 @@ int mb_slave_set_input_register(mb_slave_t *slave, uint16_t address,
 
 uint16_t mb_slave_get_input_register(mb_slave_t *slave, uint16_t address)
 {
-    if (address >= MB_INPUT_REG_COUNT)
+    if (!slave || address >= MB_INPUT_REG_COUNT)
         return 0;
 
     return slave->input_regs[address];
@@ -528,7 +540,7 @@ uint16_t mb_slave_get_input_register(mb_slave_t *slave, uint16_t address)
 int mb_slave_set_holding_register(mb_slave_t *slave, uint16_t address,
                                   uint16_t value)
 {
-    if (address >= MB_HOLDING_REG_COUNT)
+    if (!slave || address >= MB_HOLDING_REG_COUNT)
         return -1;
 
     slave->holding_regs[address] = value;
@@ -542,7 +554,7 @@ int mb_slave_set_holding_register(mb_slave_t *slave, uint16_t address,
 
 uint16_t mb_slave_get_holding_register(mb_slave_t *slave, uint16_t address)
 {
-    if (address >= MB_HOLDING_REG_COUNT)
+    if (!slave || address >= MB_HOLDING_REG_COUNT)
         return 0;
 
     return slave->holding_regs[address];
@@ -553,6 +565,10 @@ uint16_t mb_slave_get_holding_register(mb_slave_t *slave, uint16_t address)
 void mb_slave_set_coil_callback(mb_slave_t *slave,
                                 void (*callback)(uint16_t addr, bool value))
 {
+    if (!slave) {
+        return;
+    }
+
     slave->on_coil_write = callback;
 }
 
@@ -560,6 +576,10 @@ void mb_slave_set_register_callback(mb_slave_t *slave,
                                     void (*callback)(uint16_t addr,
                                                      uint16_t value))
 {
+    if (!slave) {
+        return;
+    }
+
     slave->on_register_write = callback;
 }
 
@@ -568,6 +588,16 @@ void mb_slave_set_register_callback(mb_slave_t *slave,
 void mb_slave_get_stats(mb_slave_t *slave, uint32_t *requests,
                         uint32_t *exceptions, uint32_t *crc_errors)
 {
+    if (!slave) {
+        if (requests)
+            *requests = 0U;
+        if (exceptions)
+            *exceptions = 0U;
+        if (crc_errors)
+            *crc_errors = 0U;
+        return;
+    }
+
     if (requests)
         *requests = slave->request_count;
     if (exceptions)
@@ -578,6 +608,10 @@ void mb_slave_get_stats(mb_slave_t *slave, uint32_t *requests,
 
 void mb_slave_reset_stats(mb_slave_t *slave)
 {
+    if (!slave) {
+        return;
+    }
+
     slave->request_count   = 0;
     slave->exception_count = 0;
     slave->crc_error_count = 0;
