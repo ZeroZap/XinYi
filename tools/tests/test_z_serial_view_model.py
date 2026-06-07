@@ -48,6 +48,31 @@ class ZSerialViewModelTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "serial port is required"):
             view_model.open_port("")
 
+    def test_virtual_demo_mode_opens_sends_and_simulates_response(self):
+        view_model = ZSerialWindowViewModel()
+
+        demo = view_model.open_virtual_demo()
+        payload = view_model.send_button("version")
+        command, lines = view_model.simulate_virtual_response()
+
+        self.assertTrue(view_model.is_open)
+        self.assertTrue(demo.host_path.startswith("/dev/pts/"))
+        self.assertTrue(demo.device_path.startswith("/dev/pts/"))
+        self.assertEqual(payload, b"version\r\n")
+        self.assertEqual(command, b"version\r\n")
+        self.assertEqual([line.text for line in lines], ["Boot FW=0.1.0", "ERROR virtual demo timeout"])
+        self.assertIn("rules=error | ERROR virtual demo timeout", view_model.render_output_text())
+
+        view_model.close_port()
+        self.assertFalse(view_model.is_open)
+        self.assertIsNone(view_model.virtual_demo)
+
+    def test_virtual_demo_response_requires_open_demo(self):
+        view_model = ZSerialWindowViewModel()
+
+        with self.assertRaisesRegex(RuntimeError, "virtual demo is not open"):
+            view_model.simulate_virtual_response()
+
 
 if __name__ == "__main__":
     unittest.main()

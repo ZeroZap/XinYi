@@ -356,7 +356,7 @@ ActionButton(
 7. 可选依赖的 `PySerialTransport` 真实串口适配器骨架。
 8. GUI/CLI 共用 `serial_service.py` 应用服务层。
 9. `z_serial_app.py` GUI shell 入口，Qt 依赖延迟加载。
-10. `z_serial_view_model.py` GUI 状态/动作适配层，支持打开/关闭、发送按钮、轮询接收。
+10. `z_serial_view_model.py` GUI 状态/动作适配层，支持打开/关闭、发送按钮、轮询接收、一键虚拟串口演示。
 11. Linux PTY 虚拟串口 harness，可无硬件验证 service/transport 收发闭环。
 12. 单元测试。
 13. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload、通过 `virtual-smoke` 跑 PTY 虚拟串口闭环。

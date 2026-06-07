@@ -7,6 +7,7 @@ from ..serial_cli import DEFAULT_WORKSPACE
 from ..serial_config import SerialWindowProfile, SerialWorkspaceProfile
 from ..serial_service import SerialWindowSession, SerialWorkspaceService
 from ..serial_transport import PySerialTransport, SerialTransport, list_serial_ports
+from ..serial_virtual import VirtualSerialPair, pump_virtual_pair
 
 TransportFactory = Callable[[str, int], SerialTransport]
 
@@ -23,6 +24,33 @@ class RenderedLine:
 
 
 @dataclass
+class VirtualDemoSession:
+    pair: VirtualSerialPair
+
+    @property
+    def host_path(self) -> str:
+        return self.pair.host_path
+
+    @property
+    def device_path(self) -> str:
+        return self.pair.device_path
+
+    def open_device(self) -> None:
+        self.pair.device_transport.open()
+
+    def read_device_command(self, size: int = 256) -> bytes:
+        pump_virtual_pair(self.pair)
+        return self.pair.device_transport.read(size)
+
+    def write_device_response(self, data: bytes) -> None:
+        self.pair.device_transport.write(data)
+        pump_virtual_pair(self.pair)
+
+    def close(self) -> None:
+        self.pair.close()
+
+
+@dataclass
 class ZSerialWindowViewModel:
     workspace: SerialWorkspaceProfile = DEFAULT_WORKSPACE
     transport_factory: TransportFactory | None = None
@@ -31,6 +59,7 @@ class ZSerialWindowViewModel:
     selected_port: str = ""
     baudrate: int = 115200
     output_lines: list[RenderedLine] = field(default_factory=list)
+    virtual_demo: VirtualDemoSession | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         self.service = SerialWorkspaceService(self.workspace)
@@ -61,6 +90,30 @@ class ZSerialWindowViewModel:
             return
         self.service.detach_window(self.session.window.window_id)
         self.session = None
+        if self.virtual_demo is not None:
+            self.virtual_demo.close()
+            self.virtual_demo = None
+
+    def open_virtual_demo(self) -> VirtualDemoSession:
+        if self.is_open:
+            self.close_port()
+        demo = VirtualDemoSession(VirtualSerialPair.create())
+        demo.open_device()
+        self.virtual_demo = demo
+        previous_factory = self.transport_factory
+        self.transport_factory = lambda _port, _baudrate: demo.pair.host_transport
+        try:
+            self.open_port(demo.host_path, self.baudrate)
+        finally:
+            self.transport_factory = previous_factory
+        return demo
+
+    def simulate_virtual_response(self, response: bytes | None = None) -> tuple[bytes, tuple[RenderedLine, ...]]:
+        if self.virtual_demo is None:
+            raise RuntimeError("virtual demo is not open")
+        command = self.virtual_demo.read_device_command()
+        self.virtual_demo.write_device_response(response or b"Boot FW=0.1.0\nERROR virtual demo timeout\n")
+        return command, self.poll_rx()
 
     def send_button(self, button_name: str) -> bytes:
         session = self._require_session()

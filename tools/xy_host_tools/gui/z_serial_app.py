@@ -67,8 +67,10 @@ class ZSerialMainWindow:
         self.port_input.setPlaceholderText("/dev/ttyUSB0 or virtual PTY path")
         self.baud_input = QLineEdit(str(self.view_model.baudrate))
         self.open_button = QPushButton("打开")
+        self.virtual_demo_button = QPushButton("打开虚拟演示")
         self.close_button = QPushButton("关闭")
         self.send_version_button = QPushButton("发送 version")
+        self.simulate_response_button = QPushButton("模拟回包")
         self.poll_button = QPushButton("读取")
         self.output = QPlainTextEdit()
         self.output.setReadOnly(True)
@@ -80,8 +82,10 @@ class ZSerialMainWindow:
         top.addWidget(QLabel("波特率"))
         top.addWidget(self.baud_input)
         top.addWidget(self.open_button)
+        top.addWidget(self.virtual_demo_button)
         top.addWidget(self.close_button)
         top.addWidget(self.send_version_button)
+        top.addWidget(self.simulate_response_button)
         top.addWidget(self.poll_button)
 
         layout = QVBoxLayout()
@@ -99,8 +103,10 @@ class ZSerialMainWindow:
 
     def _connect_signals(self) -> None:
         self.open_button.clicked.connect(self.open_port)
+        self.virtual_demo_button.clicked.connect(self.open_virtual_demo)
         self.close_button.clicked.connect(self.close_port)
         self.send_version_button.clicked.connect(self.send_version)
+        self.simulate_response_button.clicked.connect(self.simulate_response)
         self.poll_button.clicked.connect(self.poll_rx)
 
     def open_port(self) -> None:
@@ -113,6 +119,14 @@ class ZSerialMainWindow:
     def close_port(self) -> None:
         self.view_model.close_port()
         self._append_status("closed")
+
+    def open_virtual_demo(self) -> None:
+        try:
+            demo = self.view_model.open_virtual_demo()
+            self.port_input.setText(demo.host_path)
+            self._append_status(f"virtual demo opened host={demo.host_path} device={demo.device_path}")
+        except Exception as exc:
+            self._append_status(f"virtual demo failed: {exc}")
 
     def send_version(self) -> None:
         try:
@@ -130,6 +144,15 @@ class ZSerialMainWindow:
                 self._refresh_output()
         except Exception as exc:
             self._append_status(f"read failed: {exc}")
+
+    def simulate_response(self) -> None:
+        try:
+            command, lines = self.view_model.simulate_virtual_response()
+            self._append_status(f"device saw {command.hex() or '<empty>'}")
+            if lines:
+                self._refresh_output()
+        except Exception as exc:
+            self._append_status(f"simulate failed: {exc}")
 
     def _append_status(self, text: str) -> None:
         self.output.appendPlainText(f"# {text}")
