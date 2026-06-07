@@ -110,7 +110,7 @@ tools/xy_host_tools/
 ├── serial_actions.py     # 文本/HEX/脚本输出动作
 ├── serial_profile.py     # 标准库 JSON profile 读写
 ├── serial_transport.py   # 串口 transport 抽象 + 内存 transport 测试替身
-├── serial_service.py     # 后续新增：GUI/CLI 共用应用服务层
+├── serial_service.py     # GUI/CLI 共用应用服务层
 ├── serial_cli.py         # 简单 CLI 骨架
 └── gui/
     └── z_serial_app.py   # 后续新增：GUI shell，只调用 service/core
@@ -120,6 +120,7 @@ tools/tests/
 ├── test_serial_profile.py
 ├── test_serial_actions.py
 ├── test_serial_transport.py
+├── test_serial_service.py
 └── test_serial_cli.py
 ```
 
@@ -346,8 +347,9 @@ ActionButton(
 4. 按钮 text/hex/script 输出转换。
 5. 标准库 JSON profile 读写。
 6. 串口 transport 抽象和内存 transport 测试替身。
-7. 单元测试。
-8. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload。
+7. GUI/CLI 共用 `serial_service.py` 应用服务层。
+8. 单元测试。
+9. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload。
 
 当前代码仍暂不做：
 
@@ -357,6 +359,8 @@ ActionButton(
 - 协议解析。
 
 下一步优先做 GUI 原型，而不是 TUI。
+
+GUI 原型必须调用 `serial_service.py`，不能绕过 service 直接操作过滤器、按钮或 transport。
 
 这样可以先把最关键的“多窗口配置继承 + 强过滤 + 按钮输出”核心打稳。
 

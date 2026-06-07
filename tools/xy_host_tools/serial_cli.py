@@ -3,10 +3,9 @@ from __future__ import annotations
 import argparse
 from typing import Sequence
 
-from .serial_actions import render_button_payload
 from .serial_config import ActionButton, FilterRule, SerialWindowProfile, SerialWorkspaceProfile
-from .serial_filter import apply_filters
 from .serial_profile import save_workspace_profile
+from .serial_service import SerialWorkspaceService
 from .serial_transport import MemorySerialTransport, list_serial_ports
 
 
@@ -49,29 +48,25 @@ def _demo_lines() -> tuple[str, ...]:
 
 def run_filter_demo(lines: Sequence[str] | None = None) -> list[str]:
     window = SerialWindowProfile(window_id="demo", title="Demo", port="virtual")
-    rules = DEFAULT_WORKSPACE.effective_filters_for(window)
+    service = SerialWorkspaceService(DEFAULT_WORKSPACE)
+    session = service.attach_window(window, MemorySerialTransport(), open_immediately=True)
     rendered: list[str] = []
 
     for line in lines or _demo_lines():
-        result = apply_filters(line, rules)
-        if not result.visible:
-            continue
-        rendered.append(
+        for received in session.accept_rx_bytes((line + "\n").encode("utf-8")):
+            result = received.result
+            rendered.append(
             f"fg={result.foreground} bg={result.background} rules={','.join(result.matched_rules) or '-'} | {line}"
-        )
+            )
     return rendered
 
 
 def run_send_demo(button_name: str) -> bytes:
     window = SerialWindowProfile(window_id="demo", title="Demo", port="virtual")
-    buttons = {button.name: button for button in DEFAULT_WORKSPACE.effective_buttons_for(window)}
-    if button_name not in buttons:
-        raise ValueError(f"unknown demo button: {button_name}")
-
     transport = MemorySerialTransport()
-    transport.open()
-    payload = render_button_payload(buttons[button_name], context={"port": window.port, "window_id": window.window_id})
-    transport.write(payload)
+    service = SerialWorkspaceService(DEFAULT_WORKSPACE)
+    session = service.attach_window(window, transport, open_immediately=True)
+    session.send_button(button_name)
     return transport.drain_tx()
 
 
