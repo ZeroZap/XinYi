@@ -8,6 +8,7 @@ from .serial_config import ActionButton, FilterRule, SerialWindowProfile, Serial
 from .serial_profile import save_workspace_profile
 from .serial_service import SerialWorkspaceService
 from .serial_transport import MemorySerialTransport, list_serial_ports
+from .serial_virtual import VirtualSerialPair, pump_virtual_pair
 
 
 DEFAULT_WORKSPACE = SerialWorkspaceProfile(
@@ -57,7 +58,7 @@ def run_filter_demo(lines: Sequence[str] | None = None) -> list[str]:
         for received in session.accept_rx_bytes((line + "\n").encode("utf-8")):
             result = received.result
             rendered.append(
-            f"fg={result.foreground} bg={result.background} rules={','.join(result.matched_rules) or '-'} | {line}"
+                f"fg={result.foreground} bg={result.background} rules={','.join(result.matched_rules) or '-'} | {line}"
             )
     return rendered
 
@@ -83,12 +84,39 @@ def _print_serial_ports() -> int:
     return 0
 
 
+def run_virtual_smoke() -> tuple[str, ...]:
+    window = SerialWindowProfile(window_id="virtual", title="Virtual PTY", port="pty")
+    service = SerialWorkspaceService(DEFAULT_WORKSPACE)
+    rendered: list[str] = []
+
+    with VirtualSerialPair.create() as pair:
+        session = service.attach_window(window, pair.host_transport, open_immediately=True)
+        pair.device_transport.open()
+
+        session.send_button("version")
+        pump_virtual_pair(pair)
+        command = pair.device_transport.read(128)
+        rendered.append(f"host={pair.host_path} device={pair.device_path}")
+        rendered.append(f"device_rx={command.hex()}")
+
+        pair.device_transport.write(b"Boot FW=0.1.0\nERROR virtual timeout\n")
+        pump_virtual_pair(pair)
+        for received in session.read_available(512):
+            result = received.result
+            rendered.append(
+                f"rx fg={result.foreground} bg={result.background} "
+                f"rules={','.join(result.matched_rules) or '-'} | {received.text}"
+            )
+    return tuple(rendered)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="XinYi host serial tool prototype")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("demo-filter", help="run a deterministic filter demo without serial hardware")
     subparsers.add_parser("gui", help="start the z-serial GUI shell")
     subparsers.add_parser("list", help="list serial ports when pyserial is available")
+    subparsers.add_parser("virtual-smoke", help="verify service send/read through a Linux PTY virtual serial pair")
 
     sample_profile = subparsers.add_parser("sample-profile", help="write a JSON sample workspace profile")
     sample_profile.add_argument("path", help="output JSON profile path")
@@ -111,6 +139,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1
     if args.command == "list":
         return _print_serial_ports()
+    if args.command == "virtual-smoke":
+        for line in run_virtual_smoke():
+            print(line)
+        return 0
     if args.command == "sample-profile":
         window = SerialWindowProfile(window_id="u5", title="U5 Debug", port="/dev/ttyUSB0")
         save_workspace_profile(args.path, DEFAULT_WORKSPACE, windows=(window,))

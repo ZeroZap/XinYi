@@ -110,6 +110,7 @@ tools/xy_host_tools/
 ├── serial_actions.py     # 文本/HEX/脚本输出动作
 ├── serial_profile.py     # 标准库 JSON profile 读写
 ├── serial_transport.py   # 串口 transport 抽象 + 内存 transport 测试替身
+├── serial_virtual.py     # Linux PTY 虚拟串口验证 harness
 ├── serial_service.py     # GUI/CLI 共用应用服务层
 ├── serial_cli.py         # 简单 CLI 骨架
 └── gui/
@@ -121,6 +122,7 @@ tools/tests/
 ├── test_serial_profile.py
 ├── test_serial_actions.py
 ├── test_serial_transport.py
+├── test_serial_virtual.py
 ├── test_serial_service.py
 ├── test_z_serial_gui.py
 └── test_serial_cli.py
@@ -352,8 +354,9 @@ ActionButton(
 7. 可选依赖的 `PySerialTransport` 真实串口适配器骨架。
 8. GUI/CLI 共用 `serial_service.py` 应用服务层。
 9. `z_serial_app.py` GUI shell 入口，Qt 依赖延迟加载。
-10. 单元测试。
-11. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload。
+10. Linux PTY 虚拟串口 harness，可无硬件验证 service/transport 收发闭环。
+11. 单元测试。
+12. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload、通过 `virtual-smoke` 跑 PTY 虚拟串口闭环。
 
 当前代码仍暂不做：
 
