@@ -18,7 +18,7 @@ class ZSerialGuiShellTests(unittest.TestCase):
         except RuntimeError as exc:
             self.assertIn("PySide6 is required", str(exc))
         else:
-            self.assertEqual(len(widgets), 6)
+            self.assertEqual(len(widgets), 9)
 
 
 if __name__ == "__main__":
