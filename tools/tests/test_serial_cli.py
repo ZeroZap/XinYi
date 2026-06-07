@@ -1,7 +1,7 @@
 import io
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from xy_host_tools.serial_cli import main, run_send_demo
@@ -32,6 +32,15 @@ class SerialCliTests(unittest.TestCase):
             exit_code = main(["list"])
 
         self.assertEqual(exit_code, 0)
+
+    def test_gui_command_reports_missing_qt_without_traceback(self):
+        error = io.StringIO()
+        with redirect_stderr(error):
+            exit_code = main(["gui"])
+
+        self.assertEqual(exit_code, 1)
+        self.assertIn("PySide6 is required", error.getvalue())
+        self.assertNotIn("Traceback", error.getvalue())
 
 
 if __name__ == "__main__":

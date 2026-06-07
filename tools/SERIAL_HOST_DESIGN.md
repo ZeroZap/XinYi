@@ -113,7 +113,8 @@ tools/xy_host_tools/
 ├── serial_service.py     # GUI/CLI 共用应用服务层
 ├── serial_cli.py         # 简单 CLI 骨架
 └── gui/
-    └── z_serial_app.py   # 后续新增：GUI shell，只调用 service/core
+    ├── __init__.py
+    └── z_serial_app.py   # GUI shell，只调用 service/core
 
 tools/tests/
 ├── test_serial_filter.py
@@ -121,6 +122,7 @@ tools/tests/
 ├── test_serial_actions.py
 ├── test_serial_transport.py
 ├── test_serial_service.py
+├── test_z_serial_gui.py
 └── test_serial_cli.py
 ```
 
@@ -349,8 +351,9 @@ ActionButton(
 6. 串口 transport 抽象和内存 transport 测试替身。
 7. 可选依赖的 `PySerialTransport` 真实串口适配器骨架。
 8. GUI/CLI 共用 `serial_service.py` 应用服务层。
-9. 单元测试。
-10. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload。
+9. `z_serial_app.py` GUI shell 入口，Qt 依赖延迟加载。
+10. 单元测试。
+11. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload。
 
 当前代码仍暂不做：
 
@@ -361,7 +364,7 @@ ActionButton(
 
 下一步优先做 GUI 原型，而不是 TUI。
 
-GUI 原型必须调用 `serial_service.py`，不能绕过 service 直接操作过滤器、按钮或 transport。
+GUI 原型必须调用 `serial_service.py`，不能绕过 service 直接操作过滤器、按钮或 transport。当前 `gui` 子命令已存在；未安装 PySide6 时会给出明确依赖提示。
 
 真实串口访问通过 `PySerialTransport` 适配器进入 transport 层；未安装 `pyserial` 时，工具 core/test/CLI demo 仍可运行，只有打开真实串口时才提示安装依赖。
 

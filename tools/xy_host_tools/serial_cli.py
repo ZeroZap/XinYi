@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from typing import Sequence
 
 from .serial_config import ActionButton, FilterRule, SerialWindowProfile, SerialWorkspaceProfile
@@ -86,6 +87,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="XinYi host serial tool prototype")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("demo-filter", help="run a deterministic filter demo without serial hardware")
+    subparsers.add_parser("gui", help="start the z-serial GUI shell")
     subparsers.add_parser("list", help="list serial ports when pyserial is available")
 
     sample_profile = subparsers.add_parser("sample-profile", help="write a JSON sample workspace profile")
@@ -99,6 +101,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         for line in run_filter_demo():
             print(line)
         return 0
+    if args.command == "gui":
+        from .gui.z_serial_app import main as gui_main
+
+        try:
+            return gui_main([])
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
     if args.command == "list":
         return _print_serial_ports()
     if args.command == "sample-profile":
