@@ -347,13 +347,14 @@ ActionButton(
 4. 按钮 text/hex/script 输出转换。
 5. 标准库 JSON profile 读写。
 6. 串口 transport 抽象和内存 transport 测试替身。
-7. GUI/CLI 共用 `serial_service.py` 应用服务层。
-8. 单元测试。
-9. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload。
+7. 可选依赖的 `PySerialTransport` 真实串口适配器骨架。
+8. GUI/CLI 共用 `serial_service.py` 应用服务层。
+9. 单元测试。
+10. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload。
 
 当前代码仍暂不做：
 
-- 真串口读写。
+- 真串口 GUI 读写闭环。
 - 复杂脚本沙箱。
 - 配置编辑器。
 - 协议解析。
@@ -361,6 +362,8 @@ ActionButton(
 下一步优先做 GUI 原型，而不是 TUI。
 
 GUI 原型必须调用 `serial_service.py`，不能绕过 service 直接操作过滤器、按钮或 transport。
+
+真实串口访问通过 `PySerialTransport` 适配器进入 transport 层；未安装 `pyserial` 时，工具 core/test/CLI demo 仍可运行，只有打开真实串口时才提示安装依赖。
 
 这样可以先把最关键的“多窗口配置继承 + 强过滤 + 按钮输出”核心打稳。
 

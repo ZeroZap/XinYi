@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True)
@@ -67,6 +67,62 @@ class MemorySerialTransport:
         data = bytes(self.tx_buffer)
         self.tx_buffer.clear()
         return data
+
+
+@dataclass
+class PySerialTransport:
+    port: str
+    baudrate: int = 115200
+    timeout: float = 0.05
+    write_timeout: float = 1.0
+    serial_factory: Any | None = None
+    _serial: Any | None = None
+
+    @property
+    def is_open(self) -> bool:
+        return bool(self._serial and self._serial.is_open)
+
+    def open(self) -> None:
+        if self._serial is None:
+            factory = self.serial_factory or _load_pyserial_factory()
+            self._serial = factory(
+                port=self.port,
+                baudrate=self.baudrate,
+                timeout=self.timeout,
+                write_timeout=self.write_timeout,
+            )
+        elif not self._serial.is_open:
+            self._serial.open()
+
+    def close(self) -> None:
+        if self._serial is not None and self._serial.is_open:
+            self._serial.close()
+
+    def write(self, data: bytes) -> int:
+        if not self.is_open:
+            raise RuntimeError("serial transport is not open")
+        serial_port = self._serial
+        if serial_port is None:
+            raise RuntimeError("serial transport is not open")
+        return int(serial_port.write(data))
+
+    def read(self, size: int = 1) -> bytes:
+        if not self.is_open:
+            raise RuntimeError("serial transport is not open")
+        if size <= 0:
+            return b""
+        serial_port = self._serial
+        if serial_port is None:
+            raise RuntimeError("serial transport is not open")
+        return bytes(serial_port.read(size))
+
+
+def _load_pyserial_factory() -> Any:
+    try:
+        import serial  # type: ignore[import-not-found]
+    except ImportError as exc:
+        raise RuntimeError("pyserial is required for real serial ports; install the 'pyserial' package") from exc
+    return serial.Serial
 
 
 def list_serial_ports() -> tuple[SerialPortInfo, ...]:

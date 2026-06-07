@@ -1,6 +1,32 @@
 import unittest
 
-from xy_host_tools.serial_transport import MemorySerialTransport, list_serial_ports
+from xy_host_tools.serial_transport import MemorySerialTransport, PySerialTransport, list_serial_ports
+
+
+class FakeSerial:
+    def __init__(self, *, port, baudrate, timeout, write_timeout):
+        self.port = port
+        self.baudrate = baudrate
+        self.timeout = timeout
+        self.write_timeout = write_timeout
+        self.is_open = True
+        self.rx = bytearray(b"OK\n")
+        self.tx = bytearray()
+
+    def open(self):
+        self.is_open = True
+
+    def close(self):
+        self.is_open = False
+
+    def write(self, data):
+        self.tx.extend(data)
+        return len(data)
+
+    def read(self, size):
+        data = bytes(self.rx[:size])
+        del self.rx[:size]
+        return data
 
 
 class SerialTransportTests(unittest.TestCase):
@@ -27,6 +53,32 @@ class SerialTransportTests(unittest.TestCase):
         ports = list_serial_ports()
 
         self.assertIsInstance(ports, tuple)
+
+    def test_pyserial_transport_uses_injected_factory(self):
+        created = []
+
+        def factory(**kwargs):
+            serial = FakeSerial(**kwargs)
+            created.append(serial)
+            return serial
+
+        transport = PySerialTransport(port="/dev/ttyUSB0", baudrate=9600, serial_factory=factory)
+        transport.open()
+
+        self.assertTrue(transport.is_open)
+        self.assertEqual(created[0].port, "/dev/ttyUSB0")
+        self.assertEqual(created[0].baudrate, 9600)
+        self.assertEqual(transport.write(b"AT\r\n"), 4)
+        self.assertEqual(created[0].tx, bytearray(b"AT\r\n"))
+        self.assertEqual(transport.read(3), b"OK\n")
+        transport.close()
+        self.assertFalse(transport.is_open)
+
+    def test_pyserial_transport_reports_missing_pyserial_when_opened(self):
+        transport = PySerialTransport(port="/dev/ttyUSB0")
+
+        with self.assertRaisesRegex(RuntimeError, "pyserial is required"):
+            transport.open()
 
 
 if __name__ == "__main__":
