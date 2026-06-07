@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 from typing import Sequence
 
+from .z_serial_rendering import lines_to_html
 from .z_serial_view_model import ZSerialWindowViewModel
 
 
@@ -74,7 +76,7 @@ class ZSerialMainWindow:
         self.poll_button = QPushButton("读取")
         self.output = QPlainTextEdit()
         self.output.setReadOnly(True)
-        self.output.setPlainText("\n".join(render_startup_lines()))
+        self.output.setHtml(lines_to_html(tuple(_render_demo_lines(ZSerialWindowViewModel()))))
 
         top = QHBoxLayout()
         top.addWidget(QLabel("端口"))
@@ -158,7 +160,28 @@ class ZSerialMainWindow:
         self.output.appendPlainText(f"# {text}")
 
     def _refresh_output(self) -> None:
-        self.output.setPlainText(self.view_model.render_output_text())
+        self.output.setHtml(lines_to_html(self.view_model.output_lines))
+
+
+def run_offscreen_smoke() -> tuple[str, ...]:
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    widgets = _load_qt_widgets()
+    QApplication = widgets[0]
+
+    app = QApplication.instance() or QApplication([])
+    window = ZSerialMainWindow(widgets)
+    window.open_virtual_demo()
+    window.send_version()
+    window.simulate_response()
+    html = window.output.toHtml()
+    window.close_port()
+    app.processEvents()
+    return (
+        f"window={window.window.windowTitle()}",
+        f"open={window.view_model.is_open}",
+        f"has_error={str('ERROR virtual demo timeout' in html).lower()}",
+        f"has_red={str('#d70000' in html or 'red' in html).lower()}",
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:

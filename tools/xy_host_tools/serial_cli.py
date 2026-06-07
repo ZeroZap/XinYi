@@ -115,6 +115,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("demo-filter", help="run a deterministic filter demo without serial hardware")
     subparsers.add_parser("gui", help="start the z-serial GUI shell")
+    subparsers.add_parser("gui-smoke", help="run an offscreen z-serial GUI smoke test when PySide6 is available")
     subparsers.add_parser("list", help="list serial ports when pyserial is available")
     subparsers.add_parser("virtual-smoke", help="verify service send/read through a Linux PTY virtual serial pair")
 
@@ -134,6 +135,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         try:
             return gui_main([])
+        except RuntimeError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    if args.command == "gui-smoke":
+        from .gui.z_serial_app import run_offscreen_smoke
+
+        try:
+            for line in run_offscreen_smoke():
+                print(line)
+            return 0
         except RuntimeError as exc:
             print(str(exc), file=sys.stderr)
             return 1

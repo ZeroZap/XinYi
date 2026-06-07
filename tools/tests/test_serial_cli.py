@@ -38,9 +38,27 @@ class SerialCliTests(unittest.TestCase):
         with redirect_stderr(error):
             exit_code = main(["gui"])
 
-        self.assertEqual(exit_code, 1)
-        self.assertIn("PySide6 is required", error.getvalue())
-        self.assertNotIn("Traceback", error.getvalue())
+        if exit_code == 0:
+            self.assertEqual(error.getvalue(), "")
+        else:
+            self.assertEqual(exit_code, 1)
+            self.assertIn("PySide6 is required", error.getvalue())
+            self.assertNotIn("Traceback", error.getvalue())
+
+    def test_gui_smoke_command_reports_clear_result_or_missing_qt(self):
+        output = io.StringIO()
+        error = io.StringIO()
+
+        with redirect_stdout(output), redirect_stderr(error):
+            exit_code = main(["gui-smoke"])
+
+        if exit_code == 0:
+            self.assertIn("window=z-serial", output.getvalue())
+            self.assertIn("has_error=true", output.getvalue())
+        else:
+            self.assertEqual(exit_code, 1)
+            self.assertIn("PySide6 is required", error.getvalue())
+            self.assertNotIn("Traceback", error.getvalue())
 
 
 if __name__ == "__main__":

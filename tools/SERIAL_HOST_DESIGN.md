@@ -115,7 +115,8 @@ tools/xy_host_tools/
 ├── serial_cli.py         # 简单 CLI 骨架
 └── gui/
     ├── __init__.py
-    ├── z_serial_app.py        # Qt GUI shell，只绑定 view-model
+    ├── z_serial_app.py        # Qt GUI shell，只绑定 view-model，支持 offscreen smoke
+    ├── z_serial_rendering.py  # 过滤结果到 HTML 富文本颜色渲染
     └── z_serial_view_model.py # GUI 状态/动作适配层，只调用 service/core
 
 tools/tests/
@@ -357,9 +358,10 @@ ActionButton(
 8. GUI/CLI 共用 `serial_service.py` 应用服务层。
 9. `z_serial_app.py` GUI shell 入口，Qt 依赖延迟加载。
 10. `z_serial_view_model.py` GUI 状态/动作适配层，支持打开/关闭、发送按钮、轮询接收、一键虚拟串口演示。
-11. Linux PTY 虚拟串口 harness，可无硬件验证 service/transport 收发闭环。
-12. 单元测试。
-13. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload、通过 `virtual-smoke` 跑 PTY 虚拟串口闭环。
+11. `z_serial_rendering.py` 将过滤结果转成 HTML 富文本，GUI 接收区可显示前景/背景色。
+12. Linux PTY 虚拟串口 harness，可无硬件验证 service/transport 收发闭环。
+13. 单元测试。
+14. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload、通过 `virtual-smoke` 跑 PTY 虚拟串口闭环、通过 `gui-smoke` 跑 Qt offscreen 烟测。
 
 当前代码仍暂不做：
 
