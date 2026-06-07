@@ -262,6 +262,8 @@ class ZSerialMainWindow:
         self.close_tab_button = QPushButton("关闭 Tab")
         self.load_profile_button = QPushButton("打开 Profile")
         self.save_profile_button = QPushButton("保存 Profile")
+        self.edit_filter_button = QPushButton("编辑过滤器")
+        self.edit_button_button = QPushButton("编辑按钮")
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(False)
         self.status_line = QPushButton("状态: ready")
@@ -272,6 +274,8 @@ class ZSerialMainWindow:
         toolbar.addWidget(self.close_tab_button)
         toolbar.addWidget(self.load_profile_button)
         toolbar.addWidget(self.save_profile_button)
+        toolbar.addWidget(self.edit_filter_button)
+        toolbar.addWidget(self.edit_button_button)
         toolbar.addStretch()
 
         layout = QVBoxLayout()
@@ -302,6 +306,8 @@ class ZSerialMainWindow:
         self.close_tab_button.clicked.connect(self.close_active_tab)
         self.load_profile_button.clicked.connect(self.load_profile_dialog)
         self.save_profile_button.clicked.connect(self.save_profile_dialog)
+        self.edit_filter_button.clicked.connect(self.edit_filter_dialog)
+        self.edit_button_button.clicked.connect(self.edit_button_dialog)
         self.tabs.currentChanged.connect(self._set_active_index)
 
     def add_tab(self) -> ZSerialTabPane:
@@ -387,6 +393,93 @@ class ZSerialMainWindow:
         self.active_pane().apply_profile_fields()
         self._set_status(f"profile loaded {path} windows={len(windows)}")
 
+    def add_filter(
+        self,
+        name: str,
+        keywords: str,
+        foreground: str = "yellow",
+        background: str = "default",
+        match: str = "any",
+    ) -> None:
+        keyword_tuple = tuple(part.strip() for part in keywords.replace(";", ",").split(","))
+        rule = self.view_model.upsert_filter(name, keyword_tuple, match=match, foreground=foreground, background=background)
+        self._set_status(f"filter saved {rule.name}")
+
+    def add_button(
+        self,
+        name: str,
+        label: str,
+        mode: str,
+        payload: str,
+        append_newline: bool = False,
+    ) -> None:
+        button = self.view_model.upsert_button(name, label, mode, payload, append_newline=append_newline)
+        self._set_status(f"button saved {button.name}")
+
+    def edit_filter_dialog(self) -> None:
+        try:
+            from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLineEdit
+
+            dialog = QDialog(self.window)
+            dialog.setWindowTitle("编辑过滤器")
+            name_input = QLineEdit("warn")
+            keywords_input = QLineEdit("WARN,WARNING")
+            foreground_input = QLineEdit("yellow")
+            background_input = QLineEdit("default")
+            form = QFormLayout()
+            form.addRow("名称", name_input)
+            form.addRow("关键词(逗号分隔)", keywords_input)
+            form.addRow("前景色", foreground_input)
+            form.addRow("背景色", background_input)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            form.addWidget(buttons)
+            dialog.setLayout(form)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                self.add_filter(
+                    name_input.text(),
+                    keywords_input.text(),
+                    foreground_input.text(),
+                    background_input.text(),
+                )
+        except Exception as exc:
+            self._set_status(f"filter edit failed: {exc}")
+
+    def edit_button_dialog(self) -> None:
+        try:
+            from PySide6.QtWidgets import QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QLineEdit
+
+            dialog = QDialog(self.window)
+            dialog.setWindowTitle("编辑按钮")
+            name_input = QLineEdit("ping")
+            label_input = QLineEdit("Ping")
+            mode_input = QComboBox()
+            mode_input.addItems(["text", "hex", "script"])
+            payload_input = QLineEdit("ping")
+            newline_input = QCheckBox("追加换行")
+            form = QFormLayout()
+            form.addRow("名称", name_input)
+            form.addRow("标签", label_input)
+            form.addRow("模式", mode_input)
+            form.addRow("Payload", payload_input)
+            form.addRow("", newline_input)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            form.addWidget(buttons)
+            dialog.setLayout(form)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                self.add_button(
+                    name_input.text(),
+                    label_input.text(),
+                    mode_input.currentText(),
+                    payload_input.text(),
+                    newline_input.isChecked(),
+                )
+        except Exception as exc:
+            self._set_status(f"button edit failed: {exc}")
+
     def _set_status(self, text: str) -> None:
         self.status_line.setText(f"状态: {text}")
 
@@ -398,11 +491,17 @@ def run_offscreen_smoke() -> tuple[str, ...]:
 
     app = QApplication.instance() or QApplication([])
     window = ZSerialMainWindow(widgets)
+    window.add_filter("warn", "WARN", foreground="yellow")
+    window.add_button("ping_btn", "Ping", "text", "ping", append_newline=True)
     window.open_virtual_demo()
+    window.view_model.send_button("ping_btn")
     window.send_version()
     window.send_text("ping")
     window.simulate_response()
+    window.active_pane().view_model.simulate_virtual_response(b"WARN gui editor\n")
+    window.active_pane()._refresh_output()
     html = window.active_pane().output.toHtml()
+    editor_button_present = "ping_btn" in [button.name for button in window.view_model.button_rows()]
     custom_status = window.active_pane().last_status
     window.clear_output()
     cleared = len(window.active_pane().view_model.output_lines) == 0
@@ -424,6 +523,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"has_error={str('ERROR virtual demo timeout' in html).lower()}",
         f"has_second_error={str('ERROR virtual demo timeout' in second_html).lower()}",
         f"has_red={str('#d70000' in html or 'red' in html).lower()}",
+        f"has_warn={str('WARN gui editor' in html).lower()}",
+        f"has_editor_button={str(editor_button_present).lower()}",
         f"custom_tx={str(custom_status.startswith('device saw')).lower()}",
         f"cleared={str(cleared).lower()}",
     )

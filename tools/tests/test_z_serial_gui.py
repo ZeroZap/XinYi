@@ -31,6 +31,8 @@ class ZSerialGuiShellTests(unittest.TestCase):
             self.assertIn("has_error=true", lines)
             self.assertIn("has_second_error=true", lines)
             self.assertIn("has_red=true", lines)
+            self.assertIn("has_warn=true", lines)
+            self.assertIn("has_editor_button=true", lines)
             self.assertIn("custom_tx=true", lines)
             self.assertIn("cleared=true", lines)
 

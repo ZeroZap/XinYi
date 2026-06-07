@@ -1,8 +1,8 @@
 # z-serial 启动指导书
 
-状态：V1 Alpha / 主骨架完成，尚不是完整 V1。
+状态：V1 基线完成 / 可用 GUI + profile 编辑闭环已完成。
 
-当前已具备 GUI 多 tab 骨架、虚拟串口演示、过滤颜色渲染、profile core 读写、profile GUI 打开/保存入口、端口刷新、自定义发送、清屏、自动滚动、状态栏、Qt offscreen smoke 验证。完整 V1 还需要真实串口硬件闭环、过滤器/按钮 GUI 编辑器、大日志性能和长期运行稳定性。
+当前已具备 GUI 多 tab 骨架、虚拟串口演示、过滤颜色渲染、profile core 读写、profile GUI 打开/保存入口、过滤器/按钮 GUI 编辑入口、端口刷新、自定义发送、清屏、自动滚动、状态栏、Qt offscreen smoke 验证。完整硬件交付仍需要真实 USB 串口闭环、大日志性能和长期运行稳定性验证。
 
 ## 1. 从哪里启动
 
@@ -69,8 +69,10 @@ python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-hos
 10. 点击 `清屏` 清空当前 tab 的接收区。
 11. 点击 `刷新端口` 枚举 pyserial 可见串口；无串口时会显示状态提示。
 12. 顶部 `打开 Profile` / `保存 Profile` 可通过文件对话框加载/保存当前 tab 的 JSON profile。
+13. 顶部 `编辑过滤器` 可新增/覆盖全局过滤规则，关闭串口后编辑，保存后下次打开立即生效。
+14. 顶部 `编辑按钮` 可新增/覆盖全局动作按钮，支持 text/hex/script payload。
 
-当前 GUI 仍未提供过滤器/按钮编辑器；默认过滤器和按钮来自 `serial_cli.DEFAULT_WORKSPACE`。
+默认过滤器和按钮来自 `serial_cli.DEFAULT_WORKSPACE`，也可以通过 GUI 编辑后保存到 JSON profile。
 
 ## 4. CLI 验证命令
 
@@ -187,7 +189,7 @@ CLI / GUI Shell
 - transport 做真实/虚拟串口适配。
 - bottom layers 不 import PySide6。
 
-## 7. 当前 V1 Alpha 能力
+## 7. 当前 V1 基线能力
 
 已完成：
 
@@ -203,15 +205,16 @@ CLI / GUI Shell
 - 接收区 HTML 富文本颜色渲染。
 - JSON profile core 读写。
 - GUI profile 打开/保存入口。
+- GUI 过滤器编辑入口。
+- GUI 动作按钮编辑入口。
 - Qt offscreen smoke。
 - Linux PTY virtual smoke。
 - 完整 host-tool 单测。
 
-未完成，属于完整 V1 剩余项：
+未完成，属于硬件交付和稳定性剩余项：
 
 - 真实 USB 串口硬件收发验证。
 - 端口刷新下拉框自动选择细化。
-- 过滤器/按钮 GUI 编辑器。
 - 大日志性能和长期运行稳定性。
 
 ## 8. 最近验证结果

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Callable
 
 from ..serial_cli import DEFAULT_WORKSPACE
-from ..serial_config import SerialWindowProfile, SerialWorkspaceProfile
+from ..serial_config import ActionButton, FilterRule, SerialWindowProfile, SerialWorkspaceProfile
 from ..serial_profile import load_workspace_profile, save_workspace_profile
 from ..serial_service import SerialWindowSession, SerialWorkspaceService
 from ..serial_transport import PySerialTransport, SerialTransport, list_serial_ports
@@ -147,6 +147,97 @@ class ZSerialWindowViewModel:
     def clear_output(self) -> None:
         self.output_lines.clear()
 
+    def filter_rows(self) -> tuple[FilterRule, ...]:
+        return self.workspace.filters
+
+    def button_rows(self) -> tuple[ActionButton, ...]:
+        return self.workspace.buttons
+
+    def upsert_filter(
+        self,
+        name: str,
+        keywords: tuple[str, ...],
+        match: str = "any",
+        foreground: str = "default",
+        background: str = "default",
+        case_sensitive: bool = False,
+        action: str = "highlight",
+        priority: int = 0,
+        enabled: bool = True,
+    ) -> FilterRule:
+        self._assert_profile_editable()
+        filter_name = name.strip()
+        if not filter_name:
+            raise ValueError("filter name is required")
+        normalized_keywords = tuple(keyword.strip() for keyword in keywords if keyword.strip())
+        if not normalized_keywords:
+            raise ValueError("filter keywords are required")
+        rule = FilterRule(
+            name=filter_name,
+            keywords=normalized_keywords,
+            match=match,  # type: ignore[arg-type]
+            case_sensitive=case_sensitive,
+            foreground=foreground.strip() or "default",
+            background=background.strip() or "default",
+            action=action,  # type: ignore[arg-type]
+            priority=priority,
+            enabled=enabled,
+        )
+        self.workspace = replace(
+            self.workspace,
+            filters=tuple(existing for existing in self.workspace.filters if existing.name != rule.name) + (rule,),
+        )
+        self._reset_service_for_profile_edit()
+        return rule
+
+    def remove_filter(self, name: str) -> bool:
+        self._assert_profile_editable()
+        updated = tuple(rule for rule in self.workspace.filters if rule.name != name)
+        changed = len(updated) != len(self.workspace.filters)
+        if changed:
+            self.workspace = replace(self.workspace, filters=updated)
+            self._reset_service_for_profile_edit()
+        return changed
+
+    def upsert_button(
+        self,
+        name: str,
+        label: str,
+        mode: str,
+        payload: str,
+        append_newline: bool = False,
+        confirm: bool = False,
+    ) -> ActionButton:
+        self._assert_profile_editable()
+        button_name = name.strip()
+        if not button_name:
+            raise ValueError("button name is required")
+        if mode not in ("text", "hex", "script"):
+            raise ValueError("button mode must be text, hex, or script")
+        button = ActionButton(
+            name=button_name,
+            label=label.strip() or button_name,
+            mode=mode,  # type: ignore[arg-type]
+            payload=payload,
+            append_newline=append_newline,
+            confirm=confirm,
+        )
+        self.workspace = replace(
+            self.workspace,
+            buttons=tuple(existing for existing in self.workspace.buttons if existing.name != button.name) + (button,),
+        )
+        self._reset_service_for_profile_edit()
+        return button
+
+    def remove_button(self, name: str) -> bool:
+        self._assert_profile_editable()
+        updated = tuple(button for button in self.workspace.buttons if button.name != name)
+        changed = len(updated) != len(self.workspace.buttons)
+        if changed:
+            self.workspace = replace(self.workspace, buttons=updated)
+            self._reset_service_for_profile_edit()
+        return changed
+
     def save_profile(self, path: str) -> None:
         save_workspace_profile(path, self.workspace, windows=self._profile_windows())
 
@@ -175,6 +266,13 @@ class ZSerialWindowViewModel:
         if self.transport_factory is not None:
             return self.transport_factory(port, baudrate)
         return PySerialTransport(port=port, baudrate=baudrate)
+
+    def _reset_service_for_profile_edit(self) -> None:
+        self.service = SerialWorkspaceService(self.workspace)
+
+    def _assert_profile_editable(self) -> None:
+        if self.is_open:
+            raise RuntimeError("close serial port before editing profile")
 
     def _require_session(self) -> SerialWindowSession:
         if self.session is None or not self.session.is_open:

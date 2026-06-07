@@ -107,6 +107,47 @@ class ZSerialViewModelTests(unittest.TestCase):
         self.assertEqual(loaded.workspace.name, "XinYi Serial Demo")
         self.assertFalse(loaded.is_open)
 
+    def test_profile_editor_updates_filters_before_opening_port(self):
+        transport = MemorySerialTransport()
+        view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: transport)
+
+        rule = view_model.upsert_filter("warn", ("WARN",), foreground="yellow", priority=50)
+        view_model.open_port("virtual", 115200)
+        transport.feed_rx(b"WARN battery low\n")
+        lines = view_model.poll_rx()
+
+        self.assertEqual(rule.name, "warn")
+        self.assertEqual(lines[0].matched_rules, ("warn",))
+        self.assertEqual(lines[0].foreground, "yellow")
+
+    def test_profile_editor_updates_buttons_before_opening_port(self):
+        transport = MemorySerialTransport()
+        view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: transport)
+
+        button = view_model.upsert_button("ping", "Ping", "text", "ping", append_newline=True)
+        view_model.open_port("virtual", 115200)
+        payload = view_model.send_button("ping")
+
+        self.assertEqual(button.label, "Ping")
+        self.assertEqual(payload, b"ping\n")
+        self.assertEqual(transport.drain_tx(), b"ping\n")
+
+    def test_profile_editor_removes_filters_and_buttons(self):
+        view_model = ZSerialWindowViewModel()
+
+        self.assertTrue(view_model.remove_filter("boot"))
+        self.assertTrue(view_model.remove_button("boot"))
+        self.assertFalse(view_model.remove_filter("missing"))
+        self.assertNotIn("boot", [rule.name for rule in view_model.filter_rows()])
+        self.assertNotIn("boot", [button.name for button in view_model.button_rows()])
+
+    def test_profile_editor_requires_closed_port(self):
+        view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: MemorySerialTransport())
+        view_model.open_port("virtual", 115200)
+
+        with self.assertRaisesRegex(RuntimeError, "close serial port"):
+            view_model.upsert_filter("warn", ("WARN",))
+
 
 if __name__ == "__main__":
     unittest.main()
