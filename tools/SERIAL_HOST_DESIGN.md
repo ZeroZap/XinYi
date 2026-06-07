@@ -100,6 +100,8 @@
 - JSON profile 是 core 层能力，GUI 只调用 load/save，不直接拼 JSON。
 - GUI 控件状态与底层 profile 之间要有明确同步边界，避免界面状态成为唯一真相。
 
+启动指导书：`tools/Z_SERIAL_QUICKSTART.md`
+
 当前先落地：
 
 ```text
