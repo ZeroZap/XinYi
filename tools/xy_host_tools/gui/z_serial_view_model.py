@@ -5,6 +5,7 @@ from typing import Callable
 
 from ..serial_cli import DEFAULT_WORKSPACE
 from ..serial_config import SerialWindowProfile, SerialWorkspaceProfile
+from ..serial_profile import load_workspace_profile, save_workspace_profile
 from ..serial_service import SerialWindowSession, SerialWorkspaceService
 from ..serial_transport import PySerialTransport, SerialTransport, list_serial_ports
 from ..serial_virtual import VirtualSerialPair, pump_virtual_pair
@@ -135,6 +136,30 @@ class ZSerialWindowViewModel:
 
     def render_output_text(self) -> str:
         return "\n".join(line.as_plain_text() for line in self.output_lines)
+
+    def save_profile(self, path: str) -> None:
+        save_workspace_profile(path, self.workspace, windows=self._profile_windows())
+
+    def load_profile(self, path: str) -> tuple[SerialWindowProfile, ...]:
+        if self.is_open:
+            self.close_port()
+        workspace, windows = load_workspace_profile(path)
+        self.workspace = workspace
+        self.service = SerialWorkspaceService(self.workspace)
+        self.output_lines.clear()
+        if windows:
+            self.selected_port = windows[0].port
+            self.baudrate = windows[0].baudrate
+        return windows
+
+    def _profile_windows(self) -> tuple[SerialWindowProfile, ...]:
+        if self.session is not None:
+            return (self.session.window,)
+        if self.selected_port:
+            return (
+                SerialWindowProfile(window_id="main", title="Main", port=self.selected_port, baudrate=self.baudrate),
+            )
+        return ()
 
     def _make_transport(self, port: str, baudrate: int) -> SerialTransport:
         if self.transport_factory is not None:

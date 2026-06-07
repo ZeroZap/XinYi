@@ -127,6 +127,7 @@ tools/tests/
 ├── test_serial_virtual.py
 ├── test_serial_service.py
 ├── test_z_serial_gui.py
+├── test_z_serial_rendering.py
 ├── test_z_serial_view_model.py
 └── test_serial_cli.py
 ```
@@ -357,7 +358,7 @@ ActionButton(
 7. 可选依赖的 `PySerialTransport` 真实串口适配器骨架。
 8. GUI/CLI 共用 `serial_service.py` 应用服务层。
 9. `z_serial_app.py` GUI shell 入口，Qt 依赖延迟加载。
-10. `z_serial_view_model.py` GUI 状态/动作适配层，支持打开/关闭、发送按钮、轮询接收、一键虚拟串口演示。
+10. `z_serial_view_model.py` GUI 状态/动作适配层，支持打开/关闭、发送按钮、轮询接收、一键虚拟串口演示、profile 保存/加载。
 11. `z_serial_rendering.py` 将过滤结果转成 HTML 富文本，GUI 接收区可显示前景/背景色。
 12. Linux PTY 虚拟串口 harness，可无硬件验证 service/transport 收发闭环。
 13. 单元测试。
@@ -372,7 +373,13 @@ ActionButton(
 
 下一步优先做 GUI 原型，而不是 TUI。
 
-GUI 原型必须调用 `serial_service.py`，不能绕过 service 直接操作过滤器、按钮或 transport。当前 `gui` 子命令已存在；未安装 PySide6 时会给出明确依赖提示。
+GUI 原型必须调用 `serial_service.py`，不能绕过 service 直接操作过滤器、按钮或 transport。当前 `gui` 子命令已存在；未安装 PySide6 时会给出明确依赖提示。当前环境已可通过清华 PyPI 镜像安装 PySide6，并跑通 `gui-smoke` Qt offscreen 烟测。
+
+PySide6 安装命令：
+
+```bash
+python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn --timeout 120 PySide6
+```
 
 真实串口访问通过 `PySerialTransport` 适配器进入 transport 层；未安装 `pyserial` 时，工具 core/test/CLI demo 仍可运行，只有打开真实串口时才提示安装依赖。
 

@@ -39,13 +39,13 @@ def _load_qt_widgets():
             QLineEdit,
             QMainWindow,
             QPushButton,
-            QPlainTextEdit,
+            QTextEdit,
             QVBoxLayout,
             QWidget,
         )
     except ImportError as exc:
         raise RuntimeError("PySide6 is required for z-serial GUI; install the 'PySide6' package") from exc
-    return QApplication, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QPushButton, QPlainTextEdit, QVBoxLayout, QWidget
+    return QApplication, QHBoxLayout, QLabel, QLineEdit, QMainWindow, QPushButton, QTextEdit, QVBoxLayout, QWidget
 
 
 class ZSerialMainWindow:
@@ -57,7 +57,7 @@ class ZSerialMainWindow:
             QLineEdit,
             QMainWindow,
             QPushButton,
-            QPlainTextEdit,
+            QTextEdit,
             QVBoxLayout,
             QWidget,
         ) = widgets
@@ -74,7 +74,7 @@ class ZSerialMainWindow:
         self.send_version_button = QPushButton("发送 version")
         self.simulate_response_button = QPushButton("模拟回包")
         self.poll_button = QPushButton("读取")
-        self.output = QPlainTextEdit()
+        self.output = QTextEdit()
         self.output.setReadOnly(True)
         self.output.setHtml(lines_to_html(tuple(_render_demo_lines(ZSerialWindowViewModel()))))
 
@@ -157,7 +157,7 @@ class ZSerialMainWindow:
             self._append_status(f"simulate failed: {exc}")
 
     def _append_status(self, text: str) -> None:
-        self.output.appendPlainText(f"# {text}")
+        self.output.append(f"# {text}")
 
     def _refresh_output(self) -> None:
         self.output.setHtml(lines_to_html(self.view_model.output_lines))

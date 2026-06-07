@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 from xy_host_tools.gui.z_serial_view_model import ZSerialWindowViewModel
 from xy_host_tools.serial_transport import MemorySerialTransport
@@ -72,6 +74,24 @@ class ZSerialViewModelTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "virtual demo is not open"):
             view_model.simulate_virtual_response()
+
+    def test_view_model_saves_and_loads_profile_selection(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "z-serial.json"
+            view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: MemorySerialTransport())
+            view_model.open_port("/dev/ttyUSB9", 921600)
+
+            view_model.save_profile(str(path))
+            view_model.close_port()
+
+            loaded = ZSerialWindowViewModel()
+            windows = loaded.load_profile(str(path))
+
+        self.assertEqual(len(windows), 1)
+        self.assertEqual(loaded.selected_port, "/dev/ttyUSB9")
+        self.assertEqual(loaded.baudrate, 921600)
+        self.assertEqual(loaded.workspace.name, "XinYi Serial Demo")
+        self.assertFalse(loaded.is_open)
 
 
 if __name__ == "__main__":

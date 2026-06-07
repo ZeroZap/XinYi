@@ -34,6 +34,13 @@ class SerialCliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
 
     def test_gui_command_reports_missing_qt_without_traceback(self):
+        try:
+            import PySide6  # type: ignore[import-not-found]  # noqa: F401
+        except ImportError:
+            pass
+        else:
+            self.skipTest("PySide6 is installed; avoid starting the interactive GUI in unit tests")
+
         error = io.StringIO()
         with redirect_stderr(error):
             exit_code = main(["gui"])
