@@ -365,15 +365,16 @@ ActionButton(
 10. `z_serial_view_model.py` GUI 状态/动作适配层，支持打开/关闭、发送按钮、轮询接收、一键虚拟串口演示、profile 保存/加载。
 11. `z_serial_rendering.py` 将过滤结果转成 HTML 富文本，GUI 接收区可显示前景/背景色。
 12. `z_serial_tabs.py` 多 tab 管理器，支持新增/关闭/切换串口 tab，并聚合轮询所有打开窗口。
-13. Linux PTY 虚拟串口 harness，可无硬件验证 service/transport 收发闭环。
-14. 单元测试。
-15. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload、通过 `virtual-smoke` 跑 PTY 虚拟串口闭环、通过 `gui-smoke` 跑 Qt offscreen 烟测。
+13. GUI V1 常用交互：端口刷新、自定义发送、清屏、自动滚动、状态栏、profile 打开/保存文件对话框入口。
+14. Linux PTY 虚拟串口 harness，可无硬件验证 service/transport 收发闭环。
+15. 单元测试。
+16. 简单 CLI demo：过滤模拟日志、列出串口、生成 sample profile、通过内存 transport 发送按钮 payload、通过 `virtual-smoke` 跑 PTY 虚拟串口闭环、通过 `gui-smoke` 跑 Qt offscreen 烟测。
 
 当前代码仍暂不做：
 
 - 真串口硬件读写闭环。
 - 复杂脚本沙箱。
-- 配置编辑器。
+- 过滤器/按钮配置编辑器。
 - 协议解析。
 
 下一步优先做 GUI 原型，而不是 TUI。

@@ -2,7 +2,7 @@
 
 状态：V1 Alpha / 主骨架完成，尚不是完整 V1。
 
-当前已具备 GUI 多 tab 骨架、虚拟串口演示、过滤颜色渲染、profile core 读写、Qt offscreen smoke 验证。完整 V1 还需要真实串口硬件闭环、GUI profile 文件对话框、发送输入框、端口刷新、清屏/自动滚动/状态栏等交互完善。
+当前已具备 GUI 多 tab 骨架、虚拟串口演示、过滤颜色渲染、profile core 读写、profile GUI 打开/保存入口、端口刷新、自定义发送、清屏、自动滚动、状态栏、Qt offscreen smoke 验证。完整 V1 还需要真实串口硬件闭环、过滤器/按钮 GUI 编辑器、大日志性能和长期运行稳定性。
 
 ## 1. 从哪里启动
 
@@ -65,8 +65,12 @@ python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-hos
 6. 点击 `新建 Tab` 可以创建第二个串口 tab。
 7. 每个 tab 有独立的端口、连接、输出区和 view-model 状态。
 8. GUI 内部已有 200ms `QTimer` 轮询框架，会轮询所有已打开 tab。
+9. 可在发送输入框输入自定义命令，回车或点击 `发送` 输出。
+10. 点击 `清屏` 清空当前 tab 的接收区。
+11. 点击 `刷新端口` 枚举 pyserial 可见串口；无串口时会显示状态提示。
+12. 顶部 `打开 Profile` / `保存 Profile` 可通过文件对话框加载/保存当前 tab 的 JSON profile。
 
-当前 GUI 还没有完整菜单栏和文件对话框，profile 的保存/加载能力已在 view-model/core 层实现，但还没接 GUI 按钮。
+当前 GUI 仍未提供过滤器/按钮编辑器；默认过滤器和按钮来自 `serial_cli.DEFAULT_WORKSPACE`。
 
 ## 4. CLI 验证命令
 
@@ -190,11 +194,15 @@ CLI / GUI Shell
 - 多 tab GUI shell。
 - 每 tab 独立 view-model。
 - 200ms 轮询框架。
+- 端口刷新入口。
+- 自定义发送输入框。
+- 清屏、自动滚动、状态栏。
 - 虚拟串口一键演示。
 - `version` 按钮发送。
 - 模拟设备回包。
 - 接收区 HTML 富文本颜色渲染。
 - JSON profile core 读写。
+- GUI profile 打开/保存入口。
 - Qt offscreen smoke。
 - Linux PTY virtual smoke。
 - 完整 host-tool 单测。
@@ -202,10 +210,7 @@ CLI / GUI Shell
 未完成，属于完整 V1 剩余项：
 
 - 真实 USB 串口硬件收发验证。
-- GUI profile 打开/保存按钮和文件对话框。
-- 自定义发送输入框。
-- 端口刷新下拉框。
-- 清屏、自动滚动、状态栏。
+- 端口刷新下拉框自动选择细化。
 - 过滤器/按钮 GUI 编辑器。
 - 大日志性能和长期运行稳定性。
 

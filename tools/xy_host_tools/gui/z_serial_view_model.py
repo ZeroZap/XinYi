@@ -120,6 +120,13 @@ class ZSerialWindowViewModel:
         session = self._require_session()
         return session.send_button(button_name)
 
+    def send_text(self, text: str, append_newline: bool = True) -> bytes:
+        session = self._require_session()
+        payload = text + ("\r\n" if append_newline else "")
+        data = payload.encode("utf-8")
+        session.transport.write(data)
+        return data
+
     def poll_rx(self, size: int = 4096) -> tuple[RenderedLine, ...]:
         session = self._require_session()
         rendered = tuple(
@@ -136,6 +143,9 @@ class ZSerialWindowViewModel:
 
     def render_output_text(self) -> str:
         return "\n".join(line.as_plain_text() for line in self.output_lines)
+
+    def clear_output(self) -> None:
+        self.output_lines.clear()
 
     def save_profile(self, path: str) -> None:
         save_workspace_profile(path, self.workspace, windows=self._profile_windows())

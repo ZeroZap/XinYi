@@ -50,6 +50,20 @@ class ZSerialViewModelTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "serial port is required"):
             view_model.open_port("")
 
+    def test_view_model_sends_custom_text_and_clears_output(self):
+        transport = MemorySerialTransport()
+        view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: transport)
+        view_model.open_port("virtual", 115200)
+
+        payload = view_model.send_text("ping")
+        transport.feed_rx(b"ERROR clear me\n")
+        view_model.poll_rx()
+        view_model.clear_output()
+
+        self.assertEqual(payload, b"ping\r\n")
+        self.assertEqual(transport.drain_tx(), b"ping\r\n")
+        self.assertEqual(view_model.output_lines, [])
+
     def test_virtual_demo_mode_opens_sends_and_simulates_response(self):
         view_model = ZSerialWindowViewModel()
 

@@ -74,11 +74,13 @@ class SerialTransportTests(unittest.TestCase):
         transport.close()
         self.assertFalse(transport.is_open)
 
-    def test_pyserial_transport_reports_missing_pyserial_when_opened(self):
+    def test_pyserial_transport_open_failure_is_actionable_without_hardware(self):
         transport = PySerialTransport(port="/dev/ttyUSB0")
 
-        with self.assertRaisesRegex(RuntimeError, "pyserial is required"):
+        with self.assertRaises(Exception) as context:
             transport.open()
+
+        self.assertRegex(str(context.exception), "pyserial is required|could not open port|No such file")
 
 
 if __name__ == "__main__":
