@@ -36,6 +36,7 @@ def _load_qt_widgets():
         from PySide6.QtWidgets import (  # type: ignore[import-not-found]
             QApplication,
             QFileDialog,
+            QCheckBox,
             QComboBox,
             QHBoxLayout,
             QLabel,
@@ -53,6 +54,7 @@ def _load_qt_widgets():
     return (
         QApplication,
         QFileDialog,
+        QCheckBox,
         QComboBox,
         QHBoxLayout,
         QLabel,
@@ -73,6 +75,7 @@ class ZSerialTabPane:
         (
             _QApplication,
             _QFileDialog,
+            QCheckBox,
             QComboBox,
             QHBoxLayout,
             QLabel,
@@ -109,6 +112,9 @@ class ZSerialTabPane:
         self.clear_button = QPushButton("清屏")
         self.send_input = QLineEdit()
         self.send_input.setPlaceholderText("输入自定义命令，回车或点击发送")
+        self.append_crlf_checkbox = QCheckBox("追加 CRLF")
+        self.append_crlf_checkbox.setChecked(False)
+        self.append_crlf_checkbox.setToolTip("发送文本后追加 \\r\\n；默认关闭，避免设备收到额外换行符")
         self.send_text_button = QPushButton("发送")
         self.output = QTextEdit()
         self.output.setReadOnly(True)
@@ -135,6 +141,7 @@ class ZSerialTabPane:
         send_row = QHBoxLayout()
         send_row.addWidget(QLabel("发送"))
         send_row.addWidget(self.send_input)
+        send_row.addWidget(self.append_crlf_checkbox)
         send_row.addWidget(self.send_text_button)
 
         layout = QVBoxLayout()
@@ -234,7 +241,7 @@ class ZSerialTabPane:
             self._append_status("send skipped: empty input")
             return
         try:
-            payload = self.view_model.send_text(text)
+            payload = self.view_model.send_text(text, append_newline=self.append_crlf_checkbox.isChecked())
             self.send_input.clear()
             self._append_status(f"tx {payload.hex()}")
         except Exception as exc:
@@ -276,8 +283,6 @@ class ZSerialTabPane:
 
     def _append_status(self, text: str) -> None:
         self.last_status = text
-        self.output.append(f"# {text}")
-        self._scroll_to_bottom()
 
     def _refresh_output(self) -> None:
         self.output.setHtml(lines_to_html(self.view_model.output_lines))
@@ -293,6 +298,7 @@ class ZSerialMainWindow:
         (
             _QApplication,
             QFileDialog,
+            _QCheckBox,
             _QComboBox,
             QHBoxLayout,
             _QLabel,
@@ -552,6 +558,11 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     window.view_model.send_button("ping_btn")
     window.send_version()
     window.send_text("ping")
+    demo = window.active_pane().view_model.virtual_demo
+    if demo is None:
+        raise RuntimeError("virtual demo missing during GUI smoke")
+    custom_payload = demo.read_device_command()
+    custom_no_crlf = custom_payload.endswith(b"ping") and not custom_payload.endswith(b"ping\r\n")
     window.simulate_response()
     window.active_pane().view_model.simulate_virtual_response(b"WARN gui editor\n")
     window.active_pane()._refresh_output()
@@ -581,6 +592,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"has_warn={str('WARN gui editor' in html).lower()}",
         f"has_editor_button={str(editor_button_present).lower()}",
         f"custom_tx={str(custom_status.startswith('device saw')).lower()}",
+        f"custom_no_crlf={str(custom_no_crlf).lower()}",
+        f"status_outside_rx={str('tx ' not in html and 'device saw' not in html).lower()}",
         f"cleared={str(cleared).lower()}",
     )
 
