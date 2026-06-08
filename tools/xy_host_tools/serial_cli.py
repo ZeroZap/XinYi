@@ -110,6 +110,47 @@ def run_virtual_smoke() -> tuple[str, ...]:
     return tuple(rendered)
 
 
+def run_stress_smoke(lines: int = 5000, retain: int = 2000, chunk_size: int = 256) -> tuple[str, ...]:
+    from .gui.z_serial_view_model import ZSerialWindowViewModel
+
+    if lines <= 0:
+        raise ValueError("lines must be positive")
+    if retain <= 0:
+        raise ValueError("retain must be positive")
+    transport = MemorySerialTransport()
+    view_model = ZSerialWindowViewModel(
+        transport_factory=lambda _port, _baudrate: transport,
+        max_output_lines=retain,
+    )
+    view_model.open_port("stress", 115200)
+    received_total = 0
+    error_total = 0
+    for start in range(0, lines, chunk_size):
+        end = min(start + chunk_size, lines)
+        payload = bytearray()
+        for index in range(start, end):
+            if index % 100 == 0:
+                payload.extend(f"ERROR stress line {index}\n".encode("utf-8"))
+            else:
+                payload.extend(f"stress line {index}\n".encode("utf-8"))
+        transport.feed_rx(bytes(payload))
+        rendered = view_model.poll_rx(size=len(payload))
+        received_total += len(rendered)
+        error_total += sum(1 for line in rendered if "error" in line.matched_rules)
+
+    retained = view_model.output_lines
+    first_retained = retained[0].text if retained else ""
+    last_retained = retained[-1].text if retained else ""
+    return (
+        f"received={received_total}",
+        f"retained={len(retained)}",
+        f"retain_limit={retain}",
+        f"first_retained={first_retained}",
+        f"last_retained={last_retained}",
+        f"error_lines={error_total}",
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="XinYi host serial tool prototype")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -118,6 +159,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     subparsers.add_parser("gui-smoke", help="run an offscreen z-serial GUI smoke test when PySide6 is available")
     subparsers.add_parser("list", help="list serial ports when pyserial is available")
     subparsers.add_parser("virtual-smoke", help="verify service send/read through a Linux PTY virtual serial pair")
+
+    stress_smoke = subparsers.add_parser("stress-smoke", help="verify bounded log retention under high-volume RX")
+    stress_smoke.add_argument("--lines", type=int, default=5000, help="number of synthetic RX lines")
+    stress_smoke.add_argument("--retain", type=int, default=2000, help="maximum retained output lines")
+    stress_smoke.add_argument("--chunk-size", type=int, default=256, help="lines fed per polling chunk")
 
     sample_profile = subparsers.add_parser("sample-profile", help="write a JSON sample workspace profile")
     sample_profile.add_argument("path", help="output JSON profile path")
@@ -154,6 +200,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         for line in run_virtual_smoke():
             print(line)
         return 0
+    if args.command == "stress-smoke":
+        try:
+            for line in run_stress_smoke(lines=args.lines, retain=args.retain, chunk_size=args.chunk_size):
+                print(line)
+            return 0
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
     if args.command == "sample-profile":
         window = SerialWindowProfile(window_id="u5", title="U5 Debug", port="/dev/ttyUSB0")
         save_workspace_profile(args.path, DEFAULT_WORKSPACE, windows=(window,))

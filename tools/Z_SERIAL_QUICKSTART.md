@@ -2,7 +2,7 @@
 
 状态：V1 基线完成 / 可用 GUI + profile 编辑闭环已完成。
 
-当前已具备 GUI 多 tab 骨架、虚拟串口演示、过滤颜色渲染、profile core 读写、profile GUI 打开/保存入口、过滤器/按钮 GUI 编辑入口、端口下拉刷新和手动路径输入、自定义发送、清屏、自动滚动、状态栏、接收日志行数裁剪、Qt offscreen smoke 验证。完整硬件交付仍需要真实 USB 串口闭环和长期运行稳定性验证。
+当前已具备 GUI 多 tab 骨架、虚拟串口演示、过滤颜色渲染、profile core 读写、profile GUI 打开/保存入口、过滤器/按钮 GUI 编辑入口、端口下拉刷新和手动路径输入、自定义发送、清屏、自动滚动、状态栏、接收日志行数裁剪、host 压力 smoke、Qt offscreen smoke 验证。完整硬件交付仍需要真实 USB 串口闭环和人工长期 soak 验证。
 
 ## 1. 从哪里启动
 
@@ -123,6 +123,21 @@ GUI offscreen smoke：
 QT_QPA_PLATFORM=offscreen PYTHONPATH=tools python3 -m xy_host_tools.serial_cli gui-smoke
 ```
 
+大流量/日志裁剪压力 smoke：
+
+```bash
+PYTHONPATH=tools python3 -m xy_host_tools.serial_cli stress-smoke --lines 5000 --retain 2000
+```
+
+预期输出包含：
+
+```text
+received=5000
+retained=2000
+retain_limit=2000
+error_lines=50
+```
+
 完整单测：
 
 ```bash
@@ -213,21 +228,23 @@ CLI / GUI Shell
 - GUI 过滤器编辑入口。
 - GUI 动作按钮编辑入口。
 - 接收日志默认 2000 行裁剪。
+- 大流量/日志裁剪压力 smoke。
 - Qt offscreen smoke。
 - Linux PTY virtual smoke。
 - 完整 host-tool 单测。
 
-未完成，属于硬件交付和长期稳定性剩余项：
+未完成，属于硬件交付和人工长期验证剩余项：
 
 - 真实 USB 串口硬件收发验证。
-- 长期运行稳定性。
+- 人工长期 soak 验证。
 
 ## 8. 最近验证结果
 
 最近一次通过：
 
 ```text
-57 tests OK, 1 skipped
+59 tests OK, 1 skipped
+stress-smoke OK, received=5000 retained=2000 error_lines=50
 gui-smoke OK, tabs=2
 py_compile OK
 git diff --check OK
@@ -236,5 +253,5 @@ git diff --check OK
 最新提交：
 
 ```text
-feat(tools): improve z-serial V1 port and log handling
+feat(tools): add z-serial V1 stress smoke
 ```
