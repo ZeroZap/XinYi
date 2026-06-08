@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 
 from xy_host_tools.gui.z_serial_view_model import ZSerialWindowViewModel
-from xy_host_tools.serial_transport import MemorySerialTransport
+from xy_host_tools.serial_transport import MemorySerialTransport, SerialPortInfo
 from xy_host_tools.serial_virtual import VirtualSerialPair, pump_virtual_pair
 
 
@@ -147,6 +147,34 @@ class ZSerialViewModelTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "close serial port"):
             view_model.upsert_filter("warn", ("WARN",))
+
+    def test_port_provider_exposes_rich_port_info(self):
+        view_model = ZSerialWindowViewModel(
+            port_provider=lambda: (
+                SerialPortInfo("/dev/ttyUSB0", "USB UART", "hw0"),
+                SerialPortInfo("/dev/ttyACM0", "CMSIS-DAP", "hw1"),
+            )
+        )
+
+        infos = view_model.available_port_infos()
+
+        self.assertEqual([port.port for port in infos], ["/dev/ttyUSB0", "/dev/ttyACM0"])
+        self.assertEqual(view_model.available_ports(), ("/dev/ttyUSB0", "/dev/ttyACM0"))
+        self.assertEqual(infos[0].description, "USB UART")
+
+    def test_output_lines_are_trimmed_to_configured_limit(self):
+        transport = MemorySerialTransport()
+        view_model = ZSerialWindowViewModel(
+            transport_factory=lambda _port, _baudrate: transport,
+            max_output_lines=3,
+        )
+        view_model.open_port("virtual", 115200)
+
+        transport.feed_rx(b"line0\nline1\nline2\nline3\nline4\n")
+        returned = view_model.poll_rx(size=128)
+
+        self.assertEqual([line.text for line in returned], ["line0", "line1", "line2", "line3", "line4"])
+        self.assertEqual([line.text for line in view_model.output_lines], ["line2", "line3", "line4"])
 
 
 if __name__ == "__main__":

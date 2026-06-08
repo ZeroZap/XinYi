@@ -35,6 +35,7 @@ def _load_qt_widgets():
         from PySide6.QtWidgets import (  # type: ignore[import-not-found]
             QApplication,
             QFileDialog,
+            QComboBox,
             QHBoxLayout,
             QLabel,
             QLineEdit,
@@ -50,6 +51,7 @@ def _load_qt_widgets():
     return (
         QApplication,
         QFileDialog,
+        QComboBox,
         QHBoxLayout,
         QLabel,
         QLineEdit,
@@ -68,6 +70,7 @@ class ZSerialTabPane:
         (
             _QApplication,
             _QFileDialog,
+            QComboBox,
             QHBoxLayout,
             QLabel,
             QLineEdit,
@@ -83,8 +86,9 @@ class ZSerialTabPane:
         self.view_model = tab.view_model
         self.widget = QWidget()
 
-        self.port_input = QLineEdit()
-        self.port_input.setPlaceholderText("/dev/ttyUSB0 or virtual PTY path")
+        self.port_input = QComboBox()
+        self.port_input.setEditable(True)
+        self.port_input.lineEdit().setPlaceholderText("/dev/ttyUSB0 or virtual PTY path")
         self.baud_input = QLineEdit(str(self.view_model.baudrate))
         self.refresh_ports_button = QPushButton("刷新端口")
         self.open_button = QPushButton("打开")
@@ -141,17 +145,33 @@ class ZSerialTabPane:
         self.send_input.returnPressed.connect(self.send_text)
 
     def refresh_ports(self) -> None:
-        ports = self.view_model.available_ports()
+        ports = self.view_model.available_port_infos()
+        current_port = self.port_input.currentText().strip()
+        self.port_input.clear()
+        for port in ports:
+            label = port.port
+            if port.description:
+                label = f"{port.port} — {port.description}"
+            self.port_input.addItem(label, port.port)
+        if current_port:
+            self.port_input.setEditText(current_port)
+        elif ports:
+            self.port_input.setCurrentIndex(0)
         if ports:
-            if not self.port_input.text().strip():
-                self.port_input.setText(ports[0])
-            self._append_status("ports " + ", ".join(ports))
+            self._append_status("ports " + ", ".join(port.port for port in ports))
         else:
             self._append_status("no serial ports found")
 
+    def selected_port_text(self) -> str:
+        data = self.port_input.currentData()
+        text = self.port_input.currentText().strip()
+        if data and text and text.startswith(str(data)):
+            return str(data)
+        return text
+
     def open_port(self) -> None:
         try:
-            self.view_model.open_port(self.port_input.text().strip(), int(self.baud_input.text().strip()))
+            self.view_model.open_port(self.selected_port_text(), int(self.baud_input.text().strip()))
             self._append_status(f"opened {self.view_model.selected_port} @ {self.view_model.baudrate}")
         except Exception as exc:
             self._append_status(f"open failed: {exc}")
@@ -163,7 +183,7 @@ class ZSerialTabPane:
     def open_virtual_demo(self) -> None:
         try:
             demo = self.view_model.open_virtual_demo()
-            self.port_input.setText(demo.host_path)
+            self.port_input.setEditText(demo.host_path)
             self._append_status(f"virtual demo opened host={demo.host_path} device={demo.device_path}")
         except Exception as exc:
             self._append_status(f"virtual demo failed: {exc}")
@@ -217,7 +237,7 @@ class ZSerialTabPane:
         self._append_status("cleared")
 
     def apply_profile_fields(self) -> None:
-        self.port_input.setText(self.view_model.selected_port)
+        self.port_input.setEditText(self.view_model.selected_port)
         self.baud_input.setText(str(self.view_model.baudrate))
         self._refresh_output()
 
@@ -240,6 +260,7 @@ class ZSerialMainWindow:
         (
             _QApplication,
             QFileDialog,
+            _QComboBox,
             QHBoxLayout,
             _QLabel,
             _QLineEdit,

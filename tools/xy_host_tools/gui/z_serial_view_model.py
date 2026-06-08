@@ -7,10 +7,11 @@ from ..serial_cli import DEFAULT_WORKSPACE
 from ..serial_config import ActionButton, FilterRule, SerialWindowProfile, SerialWorkspaceProfile
 from ..serial_profile import load_workspace_profile, save_workspace_profile
 from ..serial_service import SerialWindowSession, SerialWorkspaceService
-from ..serial_transport import PySerialTransport, SerialTransport, list_serial_ports
+from ..serial_transport import PySerialTransport, SerialPortInfo, SerialTransport, list_serial_ports
 from ..serial_virtual import VirtualSerialPair, pump_virtual_pair
 
 TransportFactory = Callable[[str, int], SerialTransport]
+PortProvider = Callable[[], tuple[SerialPortInfo, ...]]
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,8 @@ class VirtualDemoSession:
 class ZSerialWindowViewModel:
     workspace: SerialWorkspaceProfile = DEFAULT_WORKSPACE
     transport_factory: TransportFactory | None = None
+    port_provider: PortProvider = list_serial_ports
+    max_output_lines: int = 2000
     service: SerialWorkspaceService = field(init=False)
     session: SerialWindowSession | None = field(default=None, init=False)
     selected_port: str = ""
@@ -69,8 +72,11 @@ class ZSerialWindowViewModel:
     def is_open(self) -> bool:
         return bool(self.session and self.session.is_open)
 
+    def available_port_infos(self) -> tuple[SerialPortInfo, ...]:
+        return self.port_provider()
+
     def available_ports(self) -> tuple[str, ...]:
-        return tuple(port.port for port in list_serial_ports())
+        return tuple(port.port for port in self.available_port_infos())
 
     def open_port(self, port: str | None = None, baudrate: int | None = None) -> None:
         if self.is_open:
@@ -139,6 +145,7 @@ class ZSerialWindowViewModel:
             for received in session.read_available(size)
         )
         self.output_lines.extend(rendered)
+        self._trim_output_lines()
         return rendered
 
     def render_output_text(self) -> str:
@@ -269,6 +276,14 @@ class ZSerialWindowViewModel:
 
     def _reset_service_for_profile_edit(self) -> None:
         self.service = SerialWorkspaceService(self.workspace)
+
+    def _trim_output_lines(self) -> None:
+        if self.max_output_lines <= 0:
+            self.output_lines.clear()
+            return
+        overflow = len(self.output_lines) - self.max_output_lines
+        if overflow > 0:
+            del self.output_lines[:overflow]
 
     def _assert_profile_editable(self) -> None:
         if self.is_open:
