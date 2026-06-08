@@ -15,13 +15,13 @@ cd /home/eugene/zerozap/XinYi
 启动 GUI：
 
 ```bash
-PYTHONPATH=tools python3 -m xy_host_tools.serial_cli gui
+tools/z-serial
 ```
 
 如果桌面环境缺少 xcb/wayland 依赖，可先跑 offscreen 验证：
 
 ```bash
-QT_QPA_PLATFORM=offscreen PYTHONPATH=tools python3 -m xy_host_tools.serial_cli gui-smoke
+tools/z-serial-smoke
 ```
 
 当前已验证通过的输出形态：
@@ -41,19 +41,13 @@ cleared=true
 
 ## 2. 依赖安装
 
-GUI 依赖 PySide6。当前环境已安装 `PySide6 6.11.1`。
-
-如果换机器或环境，需要安装：
+GUI 依赖 PySide6，真实串口访问依赖 pyserial。首次使用直接运行：
 
 ```bash
-python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn --timeout 120 PySide6
+tools/z-serial-setup
 ```
 
-真实串口访问未来需要 `pyserial`：
-
-```bash
-python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn --timeout 120 pyserial
-```
+脚本会创建/复用 `tools/.venv/` 并安装 `PySide6`、`pyserial`。
 
 当前测试和虚拟串口演示不依赖真实串口硬件。
 
