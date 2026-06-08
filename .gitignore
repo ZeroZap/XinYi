@@ -90,6 +90,25 @@ ehthumbs.db
 Desktop.ini
 
 # ===========================================================================
+# Python host tools
+# ===========================================================================
+.venv/
+venv/
+tools/.venv/
+tools/venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.pyre/
+
+# Qt / GUI runtime scratch
+.qt_for_python/
+
+# ===========================================================================
 # Test and debug builds
 # ===========================================================================
 build_*/
