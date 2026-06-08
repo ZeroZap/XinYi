@@ -18,7 +18,7 @@ class ZSerialGuiShellTests(unittest.TestCase):
         except RuntimeError as exc:
             self.assertIn("PySide6 is required", str(exc))
         else:
-            self.assertEqual(len(widgets), 13)
+            self.assertEqual(len(widgets), 14)
 
     def test_offscreen_smoke_runs_or_reports_missing_qt(self):
         try:

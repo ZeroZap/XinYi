@@ -4,6 +4,7 @@ import os
 from typing import Sequence
 
 from ..serial_cli import DEFAULT_WORKSPACE
+from ..serial_transport import SerialPortInfo
 from .z_serial_rendering import lines_to_html
 from .z_serial_tabs import ZSerialTab, ZSerialTabManager
 from .z_serial_view_model import ZSerialWindowViewModel
@@ -41,6 +42,7 @@ def _load_qt_widgets():
             QLineEdit,
             QMainWindow,
             QPushButton,
+            QSizePolicy,
             QTabWidget,
             QTextEdit,
             QVBoxLayout,
@@ -57,6 +59,7 @@ def _load_qt_widgets():
         QLineEdit,
         QMainWindow,
         QPushButton,
+        QSizePolicy,
         QTabWidget,
         QTextEdit,
         QTimer,
@@ -76,6 +79,7 @@ class ZSerialTabPane:
             QLineEdit,
             _QMainWindow,
             QPushButton,
+            QSizePolicy,
             _QTabWidget,
             QTextEdit,
             _QTimer,
@@ -88,7 +92,12 @@ class ZSerialTabPane:
 
         self.port_input = QComboBox()
         self.port_input.setEditable(True)
-        self.port_input.lineEdit().setPlaceholderText("/dev/ttyUSB0 or virtual PTY path")
+        self.port_input.setMinimumWidth(420)
+        self.port_input.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.port_input.setMinimumContentsLength(28)
+        self.port_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.port_input.view().setMinimumWidth(720)
+        self.port_input.lineEdit().setPlaceholderText("/dev/ttyACM0 or /dev/ttyUSB0")
         self.baud_input = QLineEdit(str(self.view_model.baudrate))
         self.refresh_ports_button = QPushButton("刷新端口")
         self.open_button = QPushButton("打开")
@@ -106,19 +115,22 @@ class ZSerialTabPane:
         self.output.setHtml(lines_to_html(tuple(_render_demo_lines(ZSerialWindowViewModel()))))
         self.last_status = "ready"
 
-        top = QHBoxLayout()
-        top.addWidget(QLabel("端口"))
-        top.addWidget(self.port_input)
-        top.addWidget(QLabel("波特率"))
-        top.addWidget(self.baud_input)
-        top.addWidget(self.refresh_ports_button)
-        top.addWidget(self.open_button)
-        top.addWidget(self.virtual_demo_button)
-        top.addWidget(self.close_button)
-        top.addWidget(self.send_version_button)
-        top.addWidget(self.simulate_response_button)
-        top.addWidget(self.poll_button)
-        top.addWidget(self.clear_button)
+        connection_row = QHBoxLayout()
+        connection_row.addWidget(QLabel("端口"))
+        connection_row.addWidget(self.port_input, 1)
+        connection_row.addWidget(QLabel("波特率"))
+        connection_row.addWidget(self.baud_input)
+        connection_row.addWidget(self.refresh_ports_button)
+        connection_row.addWidget(self.open_button)
+        connection_row.addWidget(self.close_button)
+
+        action_row = QHBoxLayout()
+        action_row.addWidget(self.virtual_demo_button)
+        action_row.addWidget(self.send_version_button)
+        action_row.addWidget(self.simulate_response_button)
+        action_row.addWidget(self.poll_button)
+        action_row.addWidget(self.clear_button)
+        action_row.addStretch(1)
 
         send_row = QHBoxLayout()
         send_row.addWidget(QLabel("发送"))
@@ -126,7 +138,8 @@ class ZSerialTabPane:
         send_row.addWidget(self.send_text_button)
 
         layout = QVBoxLayout()
-        layout.addLayout(top)
+        layout.addLayout(connection_row)
+        layout.addLayout(action_row)
         layout.addLayout(send_row)
         layout.addWidget(self.output)
         self.widget.setLayout(layout)
@@ -149,10 +162,12 @@ class ZSerialTabPane:
         current_port = self.port_input.currentText().strip()
         self.port_input.clear()
         for port in ports:
-            label = port.port
-            if port.description:
-                label = f"{port.port} — {port.description}"
+            label = self._port_label(port)
+            index = self.port_input.count()
             self.port_input.addItem(label, port.port)
+            item = self.port_input.model().item(index)
+            if item is not None:
+                item.setToolTip(self._port_tooltip(port))
         if current_port:
             self.port_input.setEditText(current_port)
         elif ports:
@@ -168,6 +183,24 @@ class ZSerialTabPane:
         if data and text and text.startswith(str(data)):
             return str(data)
         return text
+
+    @staticmethod
+    def _port_label(port: SerialPortInfo) -> str:
+        parts = [port.port]
+        if port.description:
+            parts.append(port.description)
+        if port.hwid:
+            parts.append(port.hwid)
+        return "  |  ".join(parts)
+
+    @staticmethod
+    def _port_tooltip(port: SerialPortInfo) -> str:
+        lines = [f"Port: {port.port}"]
+        if port.description:
+            lines.append(f"Description: {port.description}")
+        if port.hwid:
+            lines.append(f"HWID: {port.hwid}")
+        return "\n".join(lines)
 
     def open_port(self) -> None:
         try:
@@ -266,6 +299,7 @@ class ZSerialMainWindow:
             _QLineEdit,
             QMainWindow,
             QPushButton,
+            _QSizePolicy,
             QTabWidget,
             _QTextEdit,
             QTimer,
