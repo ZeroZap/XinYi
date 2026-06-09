@@ -18,7 +18,7 @@ def render_startup_lines() -> tuple[str, ...]:
 
 def _load_qt_widgets():
     try:
-        from PySide6.QtCore import QTimer  # type: ignore[import-not-found]
+        from PySide6.QtCore import Qt, QTimer  # type: ignore[import-not-found]
         from PySide6.QtWidgets import (  # type: ignore[import-not-found]
             QApplication,
             QFileDialog,
@@ -30,6 +30,7 @@ def _load_qt_widgets():
             QMainWindow,
             QPushButton,
             QSizePolicy,
+            QSplitter,
             QTabWidget,
             QTextEdit,
             QVBoxLayout,
@@ -48,8 +49,10 @@ def _load_qt_widgets():
         QMainWindow,
         QPushButton,
         QSizePolicy,
+        QSplitter,
         QTabWidget,
         QTextEdit,
+        Qt,
         QTimer,
         QVBoxLayout,
         QWidget,
@@ -69,8 +72,10 @@ class ZSerialTabPane:
             _QMainWindow,
             QPushButton,
             QSizePolicy,
+            QSplitter,
             _QTabWidget,
             QTextEdit,
+            Qt,
             _QTimer,
             QVBoxLayout,
             QWidget,
@@ -81,7 +86,7 @@ class ZSerialTabPane:
 
         self.port_input = QComboBox()
         self.port_input.setEditable(True)
-        self.port_input.setMinimumWidth(420)
+        self.port_input.setMinimumWidth(220)
         self.port_input.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.port_input.setMinimumContentsLength(28)
         self.port_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -105,18 +110,23 @@ class ZSerialTabPane:
         self.output = QTextEdit()
         self.output.setReadOnly(True)
         self.output.setHtml(lines_to_html(()))
+        self.filter_output = QTextEdit()
+        self.filter_output.setReadOnly(True)
+        self.filter_output.setPlaceholderText("滤波命中内容")
+        self.filter_output.setHtml(lines_to_html(()))
         self.last_status = "ready"
 
-        connection_row = QHBoxLayout()
+        connection_row = QVBoxLayout()
         connection_row.addWidget(QLabel("端口"))
-        connection_row.addWidget(self.port_input, 1)
+        connection_row.addWidget(self.port_input)
         connection_row.addWidget(QLabel("波特率"))
         connection_row.addWidget(self.baud_input)
         connection_row.addWidget(self.refresh_ports_button)
         connection_row.addWidget(self.open_button)
         connection_row.addWidget(self.close_button)
 
-        action_row = QHBoxLayout()
+        action_row = QVBoxLayout()
+        action_row.addWidget(QLabel("操作"))
         action_row.addWidget(self.virtual_demo_button)
         action_row.addWidget(self.send_version_button)
         action_row.addWidget(self.simulate_response_button)
@@ -124,17 +134,49 @@ class ZSerialTabPane:
         action_row.addWidget(self.clear_button)
         action_row.addStretch(1)
 
-        send_row = QHBoxLayout()
+        send_row = QVBoxLayout()
         send_row.addWidget(QLabel("发送"))
         send_row.addWidget(self.send_input)
         send_row.addWidget(self.append_crlf_checkbox)
         send_row.addWidget(self.send_text_button)
 
+        settings_panel = QWidget()
+        settings_panel.setObjectName("zserial_settings_panel")
+        settings_panel.setMinimumWidth(260)
+        settings_panel.setMaximumWidth(360)
+        settings_layout = QVBoxLayout()
+        settings_layout.addLayout(connection_row)
+        settings_layout.addSpacing(12)
+        settings_layout.addLayout(send_row)
+        settings_layout.addSpacing(12)
+        settings_layout.addLayout(action_row)
+        settings_panel.setLayout(settings_layout)
+
+        log_panel = QWidget()
+        log_layout = QVBoxLayout()
+        log_layout.addWidget(QLabel("Log"))
+        log_layout.addWidget(self.output)
+        log_panel.setLayout(log_layout)
+
+        filter_panel = QWidget()
+        filter_layout = QVBoxLayout()
+        filter_layout.addWidget(QLabel("滤波窗口"))
+        filter_layout.addWidget(self.filter_output)
+        filter_panel.setLayout(filter_layout)
+
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter.setObjectName("zserial_main_splitter")
+        self.content_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.content_splitter.setObjectName("zserial_content_splitter")
+        self.content_splitter.addWidget(log_panel)
+        self.content_splitter.addWidget(filter_panel)
+        self.content_splitter.setSizes([620, 180])
+        self.main_splitter.addWidget(settings_panel)
+        self.main_splitter.addWidget(self.content_splitter)
+        self.main_splitter.setSizes([300, 980])
+
         layout = QVBoxLayout()
-        layout.addLayout(connection_row)
-        layout.addLayout(action_row)
-        layout.addLayout(send_row)
-        layout.addWidget(self.output)
+        layout.addWidget(self.main_splitter)
         self.widget.setLayout(layout)
         self._connect_signals()
 
@@ -260,6 +302,7 @@ class ZSerialTabPane:
     def clear_output(self) -> None:
         self.view_model.clear_output()
         self.output.clear()
+        self.filter_output.clear()
         self._append_status("cleared")
 
     def apply_profile_fields(self) -> None:
@@ -272,11 +315,14 @@ class ZSerialTabPane:
 
     def _refresh_output(self) -> None:
         self.output.setHtml(lines_to_html(self.view_model.output_lines))
+        self.filter_output.setHtml(lines_to_html(tuple(line for line in self.view_model.output_lines if line.matched_rules)))
         self._scroll_to_bottom()
 
     def _scroll_to_bottom(self) -> None:
         scrollbar = self.output.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+        filter_scrollbar = self.filter_output.verticalScrollBar()
+        filter_scrollbar.setValue(filter_scrollbar.maximum())
 
 
 class ZSerialMainWindow:
@@ -292,8 +338,10 @@ class ZSerialMainWindow:
             QMainWindow,
             QPushButton,
             _QSizePolicy,
+            _QSplitter,
             QTabWidget,
             _QTextEdit,
+            _Qt,
             QTimer,
             QVBoxLayout,
             QWidget,
@@ -591,6 +639,9 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     window.active_pane().view_model.simulate_virtual_response(b"WARN gui editor\n")
     window.active_pane()._refresh_output()
     html = window.active_pane().output.toHtml()
+    filter_html = window.active_pane().filter_output.toHtml()
+    zed_sidebar_layout = window.active_pane().main_splitter.count() == 2
+    zed_bottom_filter = window.active_pane().content_splitter.count() == 2 and "WARN gui editor" in filter_html
     editor_button_present = "ping_btn" in [button.name for button in window.view_model.button_rows()]
     custom_status = window.active_pane().last_status
     tmpdir_handle = tempfile.TemporaryDirectory()
@@ -624,6 +675,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"has_second_error={str('ERROR virtual demo timeout' in second_html).lower()}",
         f"has_red={str('#d70000' in html or 'red' in html).lower()}",
         f"has_warn={str('WARN gui editor' in html).lower()}",
+        f"zed_sidebar_layout={str(zed_sidebar_layout).lower()}",
+        f"zed_bottom_filter={str(zed_bottom_filter).lower()}",
         f"has_editor_button={str(editor_button_present).lower()}",
         f"saved_filter_exists={str(saved_filter_exists).lower()}",
         f"second_filter_path={str(second_filter_path).lower()}",
