@@ -80,7 +80,16 @@ class SerialTransportTests(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             transport.open()
 
-        self.assertRegex(str(context.exception), "pyserial is required|could not open port|No such file")
+        self.assertRegex(str(context.exception), "pyserial is required|could not open serial port|No such file")
+
+    def test_pyserial_transport_permission_error_mentions_group_hint(self):
+        def factory(**_kwargs):
+            raise PermissionError(13, "Permission denied", "/dev/ttyACM0")
+
+        transport = PySerialTransport(port="/dev/ttyACM0", serial_factory=factory)
+
+        with self.assertRaisesRegex(RuntimeError, "add the user to the '.+' group"):
+            transport.open()
 
 
 if __name__ == "__main__":

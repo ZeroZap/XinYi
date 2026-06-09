@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import os
 from typing import Any, Protocol
 
 
@@ -83,16 +84,19 @@ class PySerialTransport:
         return bool(self._serial and self._serial.is_open)
 
     def open(self) -> None:
-        if self._serial is None:
-            factory = self.serial_factory or _load_pyserial_factory()
-            self._serial = factory(
-                port=self.port,
-                baudrate=self.baudrate,
-                timeout=self.timeout,
-                write_timeout=self.write_timeout,
-            )
-        elif not self._serial.is_open:
-            self._serial.open()
+        try:
+            if self._serial is None:
+                factory = self.serial_factory or _load_pyserial_factory()
+                self._serial = factory(
+                    port=self.port,
+                    baudrate=self.baudrate,
+                    timeout=self.timeout,
+                    write_timeout=self.write_timeout,
+                )
+            elif not self._serial.is_open:
+                self._serial.open()
+        except Exception as exc:
+            raise RuntimeError(describe_serial_open_error(self.port, exc)) from exc
 
     def close(self) -> None:
         if self._serial is not None and self._serial.is_open:
@@ -123,6 +127,32 @@ def _load_pyserial_factory() -> Any:
     except ImportError as exc:
         raise RuntimeError("pyserial is required for real serial ports; install the 'pyserial' package") from exc
     return serial.Serial
+
+
+def describe_serial_open_error(port: str, exc: Exception) -> str:
+    message = str(exc)
+    details = [f"could not open serial port {port}: {message}"]
+    if _looks_like_permission_denied(exc):
+        group_hint = ""
+        try:
+            stat_info = os.stat(port)
+            import grp
+
+            group_hint = grp.getgrgid(stat_info.st_gid).gr_name
+        except Exception:
+            group_hint = "dialout"
+        if group_hint:
+            details.append(f"permission denied; add the user to the '{group_hint}' group and log out/in")
+        else:
+            details.append("permission denied; check device group permissions and log out/in after group changes")
+    return "; ".join(details)
+
+
+def _looks_like_permission_denied(exc: Exception) -> bool:
+    errno_value = getattr(exc, "errno", None)
+    if errno_value == 13:
+        return True
+    return "Permission denied" in str(exc) or "Errno 13" in str(exc)
 
 
 def list_serial_ports() -> tuple[SerialPortInfo, ...]:

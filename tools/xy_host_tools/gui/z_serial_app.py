@@ -528,6 +528,22 @@ class ZSerialMainWindow:
     def add_tab(self, title: str | None = None) -> ZSerialTabPane:
         tab = self.tab_manager.add_tab(title)
         pane = ZSerialTabPane(self.widgets, tab)
+        for button in (
+            pane.refresh_ports_button,
+            pane.open_button,
+            pane.virtual_demo_button,
+            pane.close_button,
+            pane.send_version_button,
+            pane.simulate_response_button,
+            pane.poll_button,
+            pane.clear_button,
+            pane.send_text_button,
+            pane.search_button,
+            pane.search_clear_button,
+        ):
+            button.clicked.connect(lambda _checked=False, pane=pane: self._sync_pane_status(pane))
+        pane.send_input.returnPressed.connect(lambda pane=pane: self._sync_pane_status(pane))
+        pane.search_input.returnPressed.connect(lambda pane=pane: self._sync_pane_status(pane))
         pane.open_button.clicked.connect(self._save_session_state_if_ready)
         pane.close_button.clicked.connect(self._save_session_state_if_ready)
         pane.refresh_ports_button.clicked.connect(self._save_session_state_if_ready)
@@ -554,6 +570,9 @@ class ZSerialMainWindow:
     def active_pane(self) -> ZSerialTabPane:
         tab = self.tab_manager.active_tab()
         return self.panes[tab.tab_id]
+
+    def _sync_pane_status(self, pane: ZSerialTabPane) -> None:
+        self._set_status(pane.last_status)
 
     def _set_active_index(self, index: int) -> None:
         if index >= 0 and index < len(self.tab_manager.tabs):
