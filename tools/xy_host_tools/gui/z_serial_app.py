@@ -11,23 +11,7 @@ from .z_serial_view_model import ZSerialWindowViewModel
 
 
 def render_startup_lines() -> tuple[str, ...]:
-    view_model = ZSerialWindowViewModel()
-    return tuple(f"[demo] {line.as_plain_text()}" for line in _render_demo_lines(view_model))
-
-
-def _render_demo_lines(view_model: ZSerialWindowViewModel):
-    from ..serial_cli import _demo_lines
-    from ..serial_transport import MemorySerialTransport
-
-    memory_transport = MemorySerialTransport()
-    view_model.transport_factory = lambda _port, _baudrate: memory_transport
-    view_model.open_port("virtual", 115200)
-    rendered = []
-    for line in _demo_lines():
-        memory_transport.feed_rx((line + "\n").encode("utf-8"))
-        rendered.extend(view_model.poll_rx())
-    view_model.close_port()
-    return tuple(rendered)
+    return ()
 
 
 def _load_qt_widgets():
@@ -118,7 +102,7 @@ class ZSerialTabPane:
         self.send_text_button = QPushButton("发送")
         self.output = QTextEdit()
         self.output.setReadOnly(True)
-        self.output.setHtml(lines_to_html(tuple(_render_demo_lines(ZSerialWindowViewModel()))))
+        self.output.setHtml(lines_to_html(()))
         self.last_status = "ready"
 
         connection_row = QHBoxLayout()

@@ -4,13 +4,10 @@ from xy_host_tools.gui.z_serial_app import _load_qt_widgets, render_startup_line
 
 
 class ZSerialGuiShellTests(unittest.TestCase):
-    def test_startup_lines_are_rendered_from_service_backend(self):
+    def test_startup_lines_do_not_inject_demo_faults(self):
         lines = render_startup_lines()
 
-        self.assertEqual(len(lines), 5)
-        self.assertIn("[demo]", lines[0])
-        self.assertIn("rules=boot", lines[0])
-        self.assertIn("ERROR uart timeout", lines[2])
+        self.assertEqual(lines, ())
 
     def test_qt_dependency_boundary_is_explicit(self):
         try:
