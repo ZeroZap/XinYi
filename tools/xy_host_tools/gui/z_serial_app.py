@@ -97,17 +97,19 @@ class ZSerialTabPane:
 
         self.port_input = QComboBox()
         self.port_input.setEditable(True)
-        self.port_input.setMinimumWidth(220)
+        self.port_input.setMinimumWidth(160)
         self.port_input.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-        self.port_input.setMinimumContentsLength(28)
+        self.port_input.setMinimumContentsLength(16)
         self.port_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.port_input.view().setMinimumWidth(720)
+        self.port_input.view().setMinimumWidth(420)
         self.port_input.lineEdit().setPlaceholderText("/dev/ttyACM0 or /dev/ttyUSB0")
         self.baud_input = QLineEdit(str(self.view_model.baudrate))
         self.refresh_ports_button = QPushButton("刷新端口")
         self.open_button = QPushButton("打开")
+        self.connect_button = self.open_button
         self.virtual_demo_button = QPushButton("打开虚拟演示")
         self.close_button = QPushButton("关闭")
+        self.close_button.hide()
         self.send_version_button = QPushButton("发送 version")
         self.simulate_response_button = QPushButton("模拟回包")
         self.poll_button = QPushButton("读取")
@@ -124,12 +126,12 @@ class ZSerialTabPane:
         self.search_clear_button = QPushButton("清除搜索")
         self.output = QTextEdit()
         self.output.setReadOnly(True)
-        self.output.setMinimumHeight(360)
+        self.output.setMinimumHeight(180)
         self.output.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.output.setHtml(lines_to_html(()))
         self.filter_output = QTextEdit()
         self.filter_output.setReadOnly(True)
-        self.filter_output.setMinimumHeight(120)
+        self.filter_output.setMinimumHeight(80)
         self.filter_output.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.filter_output.setPlaceholderText("滤波命中内容")
         self.filter_output.setHtml(lines_to_html(()))
@@ -141,8 +143,7 @@ class ZSerialTabPane:
         connection_row.addWidget(QLabel("波特率"))
         connection_row.addWidget(self.baud_input)
         connection_row.addWidget(self.refresh_ports_button)
-        connection_row.addWidget(self.open_button)
-        connection_row.addWidget(self.close_button)
+        connection_row.addWidget(self.connect_button)
 
         action_row = QVBoxLayout()
         action_row.addWidget(QLabel("操作"))
@@ -167,8 +168,8 @@ class ZSerialTabPane:
 
         settings_panel = QWidget()
         settings_panel.setObjectName("zserial_settings_panel")
-        settings_panel.setMinimumWidth(260)
-        settings_panel.setMaximumWidth(360)
+        settings_panel.setMinimumWidth(180)
+        settings_panel.setMaximumWidth(320)
         settings_layout = QVBoxLayout()
         settings_layout.addLayout(connection_row)
         settings_layout.addSpacing(12)
@@ -180,7 +181,7 @@ class ZSerialTabPane:
         settings_panel.setLayout(settings_layout)
 
         log_panel = QWidget()
-        log_panel.setMinimumHeight(420)
+        log_panel.setMinimumHeight(220)
         log_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         log_layout = QVBoxLayout()
         log_layout.addWidget(QLabel("Log"))
@@ -188,7 +189,7 @@ class ZSerialTabPane:
         log_panel.setLayout(log_layout)
 
         filter_panel = QWidget()
-        filter_panel.setMinimumHeight(160)
+        filter_panel.setMinimumHeight(100)
         filter_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         filter_layout = QVBoxLayout()
         filter_layout.addWidget(QLabel("滤波窗口"))
@@ -203,12 +204,12 @@ class ZSerialTabPane:
         self.content_splitter.addWidget(filter_panel)
         self.content_splitter.setStretchFactor(0, 5)
         self.content_splitter.setStretchFactor(1, 1)
-        self.content_splitter.setSizes([620, 180])
+        self.content_splitter.setSizes([420, 120])
         self.main_splitter.addWidget(settings_panel)
         self.main_splitter.addWidget(self.content_splitter)
         self.main_splitter.setStretchFactor(0, 0)
         self.main_splitter.setStretchFactor(1, 1)
-        self.main_splitter.setSizes([300, 980])
+        self.main_splitter.setSizes([220, 720])
 
         layout = QVBoxLayout()
         layout.addWidget(self.main_splitter)
@@ -218,7 +219,7 @@ class ZSerialTabPane:
 
     def _connect_signals(self) -> None:
         self.refresh_ports_button.clicked.connect(self.refresh_ports)
-        self.open_button.clicked.connect(self.open_port)
+        self.open_button.clicked.connect(self.toggle_port)
         self.virtual_demo_button.clicked.connect(self.open_virtual_demo)
         self.close_button.clicked.connect(self.close_port)
         self.send_version_button.clicked.connect(self.send_version)
@@ -275,6 +276,12 @@ class ZSerialTabPane:
         if port.hwid:
             lines.append(f"HWID: {port.hwid}")
         return "\n".join(lines)
+
+    def toggle_port(self) -> None:
+        if self.view_model.is_open:
+            self.close_port()
+        else:
+            self.open_port()
 
     def open_port(self) -> None:
         try:
@@ -368,9 +375,9 @@ class ZSerialTabPane:
 
     def update_connection_buttons(self) -> None:
         is_open = self.view_model.is_open
-        self.open_button.setText("已打开" if is_open else "打开")
-        self.open_button.setEnabled(not is_open)
-        self.close_button.setEnabled(is_open)
+        self.open_button.setText("关闭" if is_open else "打开")
+        self.open_button.setEnabled(True)
+        self.close_button.setVisible(False)
 
     def _append_status(self, text: str) -> None:
         self.last_status = text
@@ -484,7 +491,7 @@ class ZSerialMainWindow:
         central = QWidget()
         central.setLayout(layout)
         self.window.setCentralWidget(central)
-        self.window.resize(1280, 800)
+        self.window.resize(960, 600)
 
         self.poll_timer = QTimer()
         self.poll_timer.setInterval(200)
@@ -907,13 +914,19 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     )
     window_close_icon_present = not window.window.windowIcon().isNull()
     tab_close_enabled = window.tabs.tabsClosable()
+    default_window_compact = window.window.size().width() <= 960 and window.window.size().height() <= 600
+    layout_allows_smaller_resize = (
+        window.active_pane().output.minimumHeight() <= 180
+        and window.active_pane().filter_output.minimumHeight() <= 80
+        and window.active_pane().port_input.minimumWidth() <= 160
+    )
     window.add_filter("warn", "WARN", foreground="yellow")
     window.add_button("ping_btn", "Ping", "text", "ping", append_newline=True)
     plus_tab_initial_index = window.tabs.count() - 1
     plus_tab_adjacent = window.tabs.tabText(plus_tab_initial_index) == "＋" and plus_tab_initial_index == len(window.tab_manager.tabs)
     add_tab_toolbar_removed = getattr(window, "new_tab_button", None) is None
     window.open_virtual_demo()
-    open_button_reflects_state = window.active_pane().open_button.text() == "已打开" and not window.active_pane().open_button.isEnabled()
+    connection_button_toggles_to_close = window.active_pane().open_button.text() == "关闭" and window.active_pane().open_button.isEnabled()
     window.view_model.send_button("ping_btn")
     window.send_version()
     window.send_text("ping")
@@ -929,7 +942,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     filter_html = window.active_pane().filter_output.toHtml()
     zed_sidebar_layout = window.active_pane().main_splitter.count() == 2
     zed_bottom_filter = window.active_pane().content_splitter.count() == 2 and "WARN gui editor" in filter_html
-    log_panel_visible = window.active_pane().output.minimumHeight() >= 360 and "ERROR virtual demo timeout" in html
+    log_panel_visible = window.active_pane().output.minimumHeight() >= 180 and "ERROR virtual demo timeout" in html
     custom_status = window.active_pane().last_status
     filter_summary_visible = "warn: hits=1" in window.active_pane().filter_output.toPlainText()
     window.active_pane().search_input.setText("timeout")
@@ -977,11 +990,13 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"top_buttons_hidden={str(top_buttons_hidden).lower()}",
         f"window_close_icon_present={str(window_close_icon_present).lower()}",
         f"tab_close_enabled={str(tab_close_enabled).lower()}",
+        f"default_window_compact={str(default_window_compact).lower()}",
+        f"layout_allows_smaller_resize={str(layout_allows_smaller_resize).lower()}",
         f"add_after_all_closed_possible={str(add_after_all_closed_possible).lower()}",
         f"add_after_all_closed_works={str(add_after_all_closed_works).lower()}",
         f"add_tab_toolbar_removed={str(add_tab_toolbar_removed).lower()}",
         f"open={is_open_after_close}",
-        f"open_button_reflects_state={str(open_button_reflects_state).lower()}",
+        f"connection_button_toggles_to_close={str(connection_button_toggles_to_close).lower()}",
         f"open_button_resets_after_close={str(open_button_resets_after_close).lower()}",
         f"has_error={str('ERROR virtual demo timeout' in html).lower()}",
         f"has_second_error={str('ERROR virtual demo timeout' in second_html).lower()}",
