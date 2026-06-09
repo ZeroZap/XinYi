@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+os.environ.setdefault("QT_QPA_PLATFORMTHEME", "generic")
 import tempfile
 from pathlib import Path
 from typing import Sequence
@@ -20,6 +21,7 @@ def render_startup_lines() -> tuple[str, ...]:
 def _load_qt_widgets():
     try:
         from PySide6.QtCore import Qt, QTimer  # type: ignore[import-not-found]
+        from PySide6.QtGui import QAction  # type: ignore[import-not-found]
         from PySide6.QtWidgets import (  # type: ignore[import-not-found]
             QApplication,
             QFileDialog,
@@ -32,8 +34,10 @@ def _load_qt_widgets():
             QPushButton,
             QSizePolicy,
             QSplitter,
+            QStyle,
             QTabWidget,
             QTextEdit,
+            QToolButton,
             QVBoxLayout,
             QWidget,
         )
@@ -41,6 +45,7 @@ def _load_qt_widgets():
         raise RuntimeError("PySide6 is required for z-serial GUI; install the 'PySide6' package") from exc
     return (
         QApplication,
+        QAction,
         QFileDialog,
         QCheckBox,
         QComboBox,
@@ -51,8 +56,10 @@ def _load_qt_widgets():
         QPushButton,
         QSizePolicy,
         QSplitter,
+        QStyle,
         QTabWidget,
         QTextEdit,
+        QToolButton,
         Qt,
         QTimer,
         QVBoxLayout,
@@ -64,6 +71,7 @@ class ZSerialTabPane:
     def __init__(self, widgets, tab: ZSerialTab):
         (
             _QApplication,
+            _QAction,
             _QFileDialog,
             QCheckBox,
             QComboBox,
@@ -74,8 +82,10 @@ class ZSerialTabPane:
             QPushButton,
             QSizePolicy,
             QSplitter,
+            _QStyle,
             _QTabWidget,
             QTextEdit,
+            _QToolButton,
             Qt,
             _QTimer,
             QVBoxLayout,
@@ -204,6 +214,7 @@ class ZSerialTabPane:
         layout.addWidget(self.main_splitter)
         self.widget.setLayout(layout)
         self._connect_signals()
+        self.update_connection_buttons()
 
     def _connect_signals(self) -> None:
         self.refresh_ports_button.clicked.connect(self.refresh_ports)
@@ -271,10 +282,13 @@ class ZSerialTabPane:
             self._append_status(f"opened {self.view_model.selected_port} @ {self.view_model.baudrate}")
         except Exception as exc:
             self._append_status(f"open failed: {exc}")
+        finally:
+            self.update_connection_buttons()
 
     def close_port(self) -> None:
         self.view_model.close_port()
         self._append_status("closed")
+        self.update_connection_buttons()
 
     def open_virtual_demo(self) -> None:
         try:
@@ -283,6 +297,8 @@ class ZSerialTabPane:
             self._append_status(f"virtual demo opened host={demo.host_path} device={demo.device_path}")
         except Exception as exc:
             self._append_status(f"virtual demo failed: {exc}")
+        finally:
+            self.update_connection_buttons()
 
     def send_version(self) -> None:
         try:
@@ -348,6 +364,13 @@ class ZSerialTabPane:
         self.port_input.setEditText(self.view_model.selected_port)
         self.baud_input.setText(str(self.view_model.baudrate))
         self._refresh_output()
+        self.update_connection_buttons()
+
+    def update_connection_buttons(self) -> None:
+        is_open = self.view_model.is_open
+        self.open_button.setText("已打开" if is_open else "打开")
+        self.open_button.setEnabled(not is_open)
+        self.close_button.setEnabled(is_open)
 
     def _append_status(self, text: str) -> None:
         self.last_status = text
@@ -387,6 +410,7 @@ class ZSerialMainWindow:
     ):
         (
             _QApplication,
+            QAction,
             QFileDialog,
             _QCheckBox,
             _QComboBox,
@@ -397,8 +421,10 @@ class ZSerialMainWindow:
             QPushButton,
             _QSizePolicy,
             _QSplitter,
+            QStyle,
             QTabWidget,
             _QTextEdit,
+            QToolButton,
             _Qt,
             QTimer,
             QVBoxLayout,
@@ -410,41 +436,49 @@ class ZSerialMainWindow:
         self.session_state_path = Path(session_state_path) if session_state_path is not None else self.default_session_state_path()
         self.restore_session = restore_session
         self._restoring_session = False
+        self._mutating_tabs = False
         self.panes: dict[str, ZSerialTabPane] = {}
         self.window = QMainWindow()
         self.window.setWindowTitle("z-serial")
+        self.window.setWindowIcon(self.window.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
 
+        self.add_tab_action = QAction("新增串口", self.window)
+        self.quit_action = QAction("关闭窗口", self.window)
+        self.load_profile_action = QAction("打开 Profile", self.window)
+        self.save_profile_action = QAction("保存 Profile", self.window)
+        self.load_filters_action = QAction("打开滤波器", self.window)
+        self.save_filters_action = QAction("覆盖滤波器", self.window)
+        self.save_filters_as_action = QAction("滤波器另存为", self.window)
+        self.edit_filter_action = QAction("编辑过滤器", self.window)
+        self.edit_button_action = QAction("编辑按钮", self.window)
         self.add_tab_button = QPushButton("➕")
         self.add_tab_button.setToolTip("新增串口 Tab")
         self.add_tab_button.setFixedWidth(36)
         self.close_tab_button = QPushButton("关闭 Tab")
+        self.close_tab_button.hide()
         self.load_profile_button = QPushButton("打开 Profile")
+        self.load_profile_button.hide()
         self.save_profile_button = QPushButton("保存 Profile")
+        self.save_profile_button.hide()
         self.load_filters_button = QPushButton("打开滤波器")
+        self.load_filters_button.hide()
         self.save_filters_button = QPushButton("覆盖滤波器")
+        self.save_filters_button.hide()
         self.save_filters_as_button = QPushButton("滤波器另存为")
+        self.save_filters_as_button.hide()
         self.edit_filter_button = QPushButton("编辑过滤器")
+        self.edit_filter_button.hide()
         self.edit_button_button = QPushButton("编辑按钮")
+        self.edit_button_button.hide()
         self.tabs = QTabWidget()
-        self.tabs.setTabsClosable(False)
+        self.tabs.setTabsClosable(True)
         self._plus_tab_widget = QWidget()
         self._plus_tab_index: int | None = None
         self.status_line = QPushButton("状态: ready")
         self.status_line.setEnabled(False)
-
-        toolbar = QHBoxLayout()
-        toolbar.addWidget(self.close_tab_button)
-        toolbar.addWidget(self.load_profile_button)
-        toolbar.addWidget(self.save_profile_button)
-        toolbar.addWidget(self.load_filters_button)
-        toolbar.addWidget(self.save_filters_button)
-        toolbar.addWidget(self.save_filters_as_button)
-        toolbar.addWidget(self.edit_filter_button)
-        toolbar.addWidget(self.edit_button_button)
-        toolbar.addStretch()
+        self._build_menu_bar()
 
         layout = QVBoxLayout()
-        layout.addLayout(toolbar)
         layout.addWidget(self.tabs)
         layout.addWidget(self.status_line)
         central = QWidget()
@@ -471,6 +505,22 @@ class ZSerialMainWindow:
 
     def show(self) -> None:
         self.window.show()
+
+    def _build_menu_bar(self) -> None:
+        serial_menu = self.window.menuBar().addMenu("串口")
+        serial_menu.addAction(self.add_tab_action)
+        serial_menu.addSeparator()
+        serial_menu.addAction(self.quit_action)
+        profile_menu = self.window.menuBar().addMenu("Profile")
+        profile_menu.addAction(self.load_profile_action)
+        profile_menu.addAction(self.save_profile_action)
+        filter_menu = self.window.menuBar().addMenu("滤波器")
+        filter_menu.addAction(self.load_filters_action)
+        filter_menu.addAction(self.save_filters_action)
+        filter_menu.addAction(self.save_filters_as_action)
+        filter_menu.addSeparator()
+        filter_menu.addAction(self.edit_filter_action)
+        filter_menu.addAction(self.edit_button_action)
 
     def _restore_session_if_available(self) -> bool:
         if not self.restore_session or not self.session_state_path.exists():
@@ -528,6 +578,15 @@ class ZSerialMainWindow:
             self._set_status(f"session save skipped: {exc}")
 
     def _connect_signals(self) -> None:
+        self.add_tab_action.triggered.connect(self.add_tab)
+        self.quit_action.triggered.connect(self.window.close)
+        self.load_profile_action.triggered.connect(self.load_profile_dialog)
+        self.save_profile_action.triggered.connect(self.save_profile_dialog)
+        self.load_filters_action.triggered.connect(self.load_filter_profile_dialog)
+        self.save_filters_action.triggered.connect(self.save_filter_profile)
+        self.save_filters_as_action.triggered.connect(self.save_filter_profile_as_dialog)
+        self.edit_filter_action.triggered.connect(self.edit_filter_dialog)
+        self.edit_button_action.triggered.connect(self.edit_button_dialog)
         self.add_tab_button.clicked.connect(self.add_tab)
         self.close_tab_button.clicked.connect(self.close_active_tab)
         self.load_profile_button.clicked.connect(self.load_profile_dialog)
@@ -538,6 +597,8 @@ class ZSerialMainWindow:
         self.edit_filter_button.clicked.connect(self.edit_filter_dialog)
         self.edit_button_button.clicked.connect(self.edit_button_dialog)
         self.tabs.currentChanged.connect(self._set_active_index)
+        self.tabs.tabBarClicked.connect(self._handle_tab_clicked)
+        self.tabs.tabCloseRequested.connect(self.close_tab_at_index)
 
     def _ensure_plus_tab(self) -> None:
         if self._plus_tab_index is not None:
@@ -561,6 +622,8 @@ class ZSerialMainWindow:
         return self._plus_tab_index is not None and index == self._plus_tab_index
 
     def add_tab(self, title: str | None = None) -> ZSerialTabPane:
+        previous_mutating = self._mutating_tabs
+        self._mutating_tabs = True
         self._remove_plus_tab()
         tab = self.tab_manager.add_tab(title)
         pane = ZSerialTabPane(self.widgets, tab)
@@ -587,20 +650,23 @@ class ZSerialMainWindow:
         tab_index = self.tabs.addTab(pane.widget, tab.title)
         self._ensure_plus_tab()
         self.tabs.setCurrentIndex(tab_index)
+        self._mutating_tabs = previous_mutating
         self._set_status(f"added {tab.title}")
         self._save_session_state_if_ready()
         return pane
 
     def close_active_tab(self) -> None:
-        if self.tabs.count() <= 1:
-            self.active_pane().close_port()
-            self._set_status("closed active port")
-            self._save_session_state_if_ready()
+        self.close_tab_at_index(self.tabs.currentIndex())
+
+    def close_tab_at_index(self, index: int) -> None:
+        if index < 0:
             return
-        index = self.tabs.currentIndex()
         if self._is_plus_tab_index(index):
-            self.add_tab()
             return
+        if index >= len(self.tab_manager.tabs):
+            return
+        previous_mutating = self._mutating_tabs
+        self._mutating_tabs = True
         self._remove_plus_tab()
         tab = self.tab_manager.close_tab(index)
         self.tabs.removeTab(index)
@@ -608,10 +674,16 @@ class ZSerialMainWindow:
         self._ensure_plus_tab()
         if self.tab_manager.tabs:
             self.tabs.setCurrentIndex(self.tab_manager.active_index)
-        self._set_status(f"closed {tab.title}")
+            self._set_status(f"closed {tab.title}")
+        else:
+            self.tabs.setCurrentIndex(self._plus_tab_index if self._plus_tab_index is not None else -1)
+            self._set_status("all tabs closed")
+        self._mutating_tabs = previous_mutating
         self._save_session_state_if_ready()
 
     def active_pane(self) -> ZSerialTabPane:
+        if not self.tab_manager.tabs:
+            return self.add_tab()
         tab = self.tab_manager.active_tab()
         return self.panes[tab.tab_id]
 
@@ -619,6 +691,8 @@ class ZSerialMainWindow:
         self._set_status(pane.last_status)
 
     def _set_active_index(self, index: int) -> None:
+        if self._mutating_tabs:
+            return
         if self._is_plus_tab_index(index):
             self.add_tab()
             return
@@ -626,6 +700,10 @@ class ZSerialMainWindow:
             self.tab_manager.set_active_index(index)
             self._set_status(f"active {self.tab_manager.active_tab().title}")
             self._save_session_state_if_ready()
+
+    def _handle_tab_clicked(self, index: int) -> None:
+        if not self._mutating_tabs and self._is_plus_tab_index(index):
+            self.add_tab()
 
     def poll_all_tabs(self) -> None:
         changed = self.tab_manager.poll_all()
@@ -811,12 +889,31 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     tmpdir_handle = tempfile.TemporaryDirectory()
     session_path = str(Path(tmpdir_handle.name) / "session.json")
     window = ZSerialMainWindow(widgets, session_state_path=session_path, restore_session=False)
+    menu_bar = window.window.menuBar()
+    menu_titles = [action.text() for action in menu_bar.actions()]
+    menu_framework_present = "串口" in menu_titles and "Profile" in menu_titles and "滤波器" in menu_titles
+    top_buttons_hidden = all(
+        button.isHidden()
+        for button in (
+            window.close_tab_button,
+            window.load_profile_button,
+            window.save_profile_button,
+            window.load_filters_button,
+            window.save_filters_button,
+            window.save_filters_as_button,
+            window.edit_filter_button,
+            window.edit_button_button,
+        )
+    )
+    window_close_icon_present = not window.window.windowIcon().isNull()
+    tab_close_enabled = window.tabs.tabsClosable()
     window.add_filter("warn", "WARN", foreground="yellow")
     window.add_button("ping_btn", "Ping", "text", "ping", append_newline=True)
     plus_tab_initial_index = window.tabs.count() - 1
     plus_tab_adjacent = window.tabs.tabText(plus_tab_initial_index) == "＋" and plus_tab_initial_index == len(window.tab_manager.tabs)
     add_tab_toolbar_removed = getattr(window, "new_tab_button", None) is None
     window.open_virtual_demo()
+    open_button_reflects_state = window.active_pane().open_button.text() == "已打开" and not window.active_pane().open_button.isEnabled()
     window.view_model.send_button("ping_btn")
     window.send_version()
     window.send_text("ping")
@@ -862,6 +959,12 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     restored.tab_manager.close_all()
     window.close_port()
     is_open_after_close = window.view_model.is_open
+    open_button_resets_after_close = window.active_pane().open_button.text() == "打开" and window.active_pane().open_button.isEnabled()
+    while window.tab_manager.tabs:
+        window.close_tab_at_index(0)
+    add_after_all_closed_possible = window.tabs.count() == 1 and window.tabs.tabText(0) == "＋" and len(window.tab_manager.tabs) == 0
+    window._handle_tab_clicked(0)
+    add_after_all_closed_works = len(window.tab_manager.tabs) == 1 and window.tabs.tabText(window.tabs.count() - 1) == "＋"
     window.tab_manager.close_all()
     tmpdir_handle.cleanup()
     app.processEvents()
@@ -870,8 +973,16 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"tabs={real_tab_count}",
         f"plus_tab_adjacent={str(plus_tab_adjacent).lower()}",
         f"plus_tab_moves_right={str(plus_tab_moves_right).lower()}",
+        f"menu_framework_present={str(menu_framework_present).lower()}",
+        f"top_buttons_hidden={str(top_buttons_hidden).lower()}",
+        f"window_close_icon_present={str(window_close_icon_present).lower()}",
+        f"tab_close_enabled={str(tab_close_enabled).lower()}",
+        f"add_after_all_closed_possible={str(add_after_all_closed_possible).lower()}",
+        f"add_after_all_closed_works={str(add_after_all_closed_works).lower()}",
         f"add_tab_toolbar_removed={str(add_tab_toolbar_removed).lower()}",
         f"open={is_open_after_close}",
+        f"open_button_reflects_state={str(open_button_reflects_state).lower()}",
+        f"open_button_resets_after_close={str(open_button_resets_after_close).lower()}",
         f"has_error={str('ERROR virtual demo timeout' in html).lower()}",
         f"has_second_error={str('ERROR virtual demo timeout' in second_html).lower()}",
         f"has_red={str('#d70000' in html or 'red' in html).lower()}",

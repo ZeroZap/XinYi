@@ -17,7 +17,7 @@ class ZSerialGuiShellTests(unittest.TestCase):
         except RuntimeError as exc:
             self.assertIn("PySide6 is required", str(exc))
         else:
-            self.assertEqual(len(widgets), 17)
+            self.assertEqual(len(widgets), 20)
 
     def test_open_button_syncs_failure_to_main_status(self):
         try:
@@ -51,7 +51,15 @@ class ZSerialGuiShellTests(unittest.TestCase):
             self.assertIn("tabs=2", lines)
             self.assertIn("plus_tab_adjacent=true", lines)
             self.assertIn("plus_tab_moves_right=true", lines)
+            self.assertIn("menu_framework_present=true", lines)
+            self.assertIn("top_buttons_hidden=true", lines)
+            self.assertIn("window_close_icon_present=true", lines)
+            self.assertIn("tab_close_enabled=true", lines)
+            self.assertIn("add_after_all_closed_possible=true", lines)
+            self.assertIn("add_after_all_closed_works=true", lines)
             self.assertIn("add_tab_toolbar_removed=true", lines)
+            self.assertIn("open_button_reflects_state=true", lines)
+            self.assertIn("open_button_resets_after_close=true", lines)
             self.assertIn("has_error=true", lines)
             self.assertIn("has_second_error=true", lines)
             self.assertIn("has_red=true", lines)
