@@ -6,6 +6,12 @@ from xy_host_tools.gui.z_serial_tabs import ZSerialTabManager
 from xy_host_tools.gui.z_serial_view_model import ZSerialWindowViewModel
 from xy_host_tools.serial_cli import DEFAULT_WORKSPACE
 from xy_host_tools.serial_config import FilterRule
+from xy_host_tools.serial_session_state import (
+    SerialSessionState,
+    SerialTabSessionState,
+    load_session_state,
+    save_session_state,
+)
 from xy_host_tools.serial_transport import MemorySerialTransport, SerialPortInfo
 from xy_host_tools.serial_virtual import VirtualSerialPair, pump_virtual_pair
 
@@ -229,6 +235,43 @@ class ZSerialViewModelTests(unittest.TestCase):
         self.assertEqual(second.view_model.filter_profile_name, "GPS")
         self.assertEqual([line.matched_rules for line in first_lines], [("warn",), ()])
         self.assertEqual([line.matched_rules for line in second_lines], [(), ("gps",)])
+
+    def test_log_search_and_filter_summaries_report_matches(self):
+        transport = MemorySerialTransport()
+        view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: transport)
+        view_model.open_port("virtual", 115200)
+        transport.feed_rx(b"Boot FW=0.1.0\nERROR gui timeout\nplain line\n")
+        view_model.poll_rx()
+
+        search_results = view_model.search_output("timeout")
+        summaries = {summary.name: summary for summary in view_model.filter_summaries()}
+
+        self.assertEqual([result.text for result in search_results], ["ERROR gui timeout"])
+        self.assertEqual(search_results[0].matched_rules, ("error",))
+        self.assertEqual(summaries["error"].hits, 1)
+        self.assertEqual(summaries["boot"].hits, 1)
+
+    def test_session_state_roundtrip_preserves_tabs_and_active_index(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "session.json"
+            state = SerialSessionState(
+                active_index=1,
+                tabs=(
+                    SerialTabSessionState(title="USB0", port="/dev/ttyUSB0", baudrate=115200),
+                    SerialTabSessionState(
+                        title="GPS",
+                        port="/dev/ttyUSB1",
+                        baudrate=921600,
+                        filter_profile_path="/tmp/gps-filters.json",
+                    ),
+                ),
+            )
+            save_session_state(path, state)
+            loaded = load_session_state(path)
+
+        self.assertEqual(loaded.active_index, 1)
+        self.assertEqual([tab.title for tab in loaded.tabs], ["USB0", "GPS"])
+        self.assertEqual(loaded.tabs[1].filter_profile_path, "/tmp/gps-filters.json")
 
     def test_output_lines_are_trimmed_to_configured_limit(self):
         transport = MemorySerialTransport()

@@ -26,6 +26,23 @@ class RenderedLine:
         return f"fg={self.foreground} bg={self.background} rules={','.join(self.matched_rules) or '-'} | {self.text}"
 
 
+@dataclass(frozen=True)
+class SearchResult:
+    index: int
+    text: str
+    matched_rules: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class FilterSummary:
+    name: str
+    enabled: bool
+    keywords: tuple[str, ...]
+    match: str
+    action: str
+    hits: int
+
+
 @dataclass
 class VirtualDemoSession:
     pair: VirtualSerialPair
@@ -156,6 +173,34 @@ class ZSerialWindowViewModel:
 
     def clear_output(self) -> None:
         self.output_lines.clear()
+
+    def search_output(self, query: str, *, case_sensitive: bool = False) -> tuple[SearchResult, ...]:
+        needle = query if case_sensitive else query.lower()
+        if not needle:
+            return ()
+        results: list[SearchResult] = []
+        for index, line in enumerate(self.output_lines):
+            haystack = line.text if case_sensitive else line.text.lower()
+            if needle in haystack:
+                results.append(SearchResult(index=index, text=line.text, matched_rules=line.matched_rules))
+        return tuple(results)
+
+    def filter_summaries(self) -> tuple[FilterSummary, ...]:
+        hits: dict[str, int] = {}
+        for line in self.output_lines:
+            for rule_name in line.matched_rules:
+                hits[rule_name] = hits.get(rule_name, 0) + 1
+        return tuple(
+            FilterSummary(
+                name=rule.name,
+                enabled=rule.enabled,
+                keywords=rule.keywords,
+                match=rule.match,
+                action=rule.action,
+                hits=hits.get(rule.name, 0),
+            )
+            for rule in self.workspace.filters
+        )
 
     def filter_rows(self) -> tuple[FilterRule, ...]:
         return self.workspace.filters

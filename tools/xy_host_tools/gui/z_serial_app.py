@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Sequence
 
 from ..serial_cli import DEFAULT_WORKSPACE
+from ..serial_session_state import SerialSessionState, SerialTabSessionState, load_session_state, save_session_state
 from ..serial_transport import SerialPortInfo
 from .z_serial_rendering import lines_to_html
 from .z_serial_tabs import ZSerialTab, ZSerialTabManager
@@ -107,6 +108,10 @@ class ZSerialTabPane:
         self.append_crlf_checkbox.setChecked(False)
         self.append_crlf_checkbox.setToolTip("发送文本后追加 \\r\\n；默认关闭，避免设备收到额外换行符")
         self.send_text_button = QPushButton("发送")
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("搜索日志")
+        self.search_button = QPushButton("搜索")
+        self.search_clear_button = QPushButton("清除搜索")
         self.output = QTextEdit()
         self.output.setReadOnly(True)
         self.output.setHtml(lines_to_html(()))
@@ -140,6 +145,12 @@ class ZSerialTabPane:
         send_row.addWidget(self.append_crlf_checkbox)
         send_row.addWidget(self.send_text_button)
 
+        search_row = QVBoxLayout()
+        search_row.addWidget(QLabel("搜索"))
+        search_row.addWidget(self.search_input)
+        search_row.addWidget(self.search_button)
+        search_row.addWidget(self.search_clear_button)
+
         settings_panel = QWidget()
         settings_panel.setObjectName("zserial_settings_panel")
         settings_panel.setMinimumWidth(260)
@@ -148,6 +159,8 @@ class ZSerialTabPane:
         settings_layout.addLayout(connection_row)
         settings_layout.addSpacing(12)
         settings_layout.addLayout(send_row)
+        settings_layout.addSpacing(12)
+        settings_layout.addLayout(search_row)
         settings_layout.addSpacing(12)
         settings_layout.addLayout(action_row)
         settings_panel.setLayout(settings_layout)
@@ -191,6 +204,9 @@ class ZSerialTabPane:
         self.clear_button.clicked.connect(self.clear_output)
         self.send_text_button.clicked.connect(self.send_text)
         self.send_input.returnPressed.connect(self.send_text)
+        self.search_button.clicked.connect(self.search_output)
+        self.search_clear_button.clicked.connect(self.clear_search)
+        self.search_input.returnPressed.connect(self.search_output)
 
     def refresh_ports(self) -> None:
         ports = self.view_model.available_port_infos()
@@ -305,6 +321,17 @@ class ZSerialTabPane:
         self.filter_output.clear()
         self._append_status("cleared")
 
+    def search_output(self) -> None:
+        query = self.search_input.text().strip()
+        results = self.view_model.search_output(query)
+        self.filter_output.setPlainText("\n".join(f"#{result.index + 1} {result.text}" for result in results))
+        self._append_status(f"search {len(results)} match(es)")
+
+    def clear_search(self) -> None:
+        self.search_input.clear()
+        self._refresh_output()
+        self._append_status("search cleared")
+
     def apply_profile_fields(self) -> None:
         self.port_input.setEditText(self.view_model.selected_port)
         self.baud_input.setText(str(self.view_model.baudrate))
@@ -315,8 +342,21 @@ class ZSerialTabPane:
 
     def _refresh_output(self) -> None:
         self.output.setHtml(lines_to_html(self.view_model.output_lines))
-        self.filter_output.setHtml(lines_to_html(tuple(line for line in self.view_model.output_lines if line.matched_rules)))
+        self.filter_output.setPlainText(self._filter_panel_text())
         self._scroll_to_bottom()
+
+    def _filter_panel_text(self) -> str:
+        summaries = [
+            f"{summary.name}: hits={summary.hits} enabled={str(summary.enabled).lower()} keywords={','.join(summary.keywords)}"
+            for summary in self.view_model.filter_summaries()
+        ]
+        matched = [line.as_plain_text() for line in self.view_model.output_lines if line.matched_rules]
+        sections = []
+        if summaries:
+            sections.append("规则摘要\n" + "\n".join(summaries))
+        if matched:
+            sections.append("命中内容\n" + "\n".join(matched))
+        return "\n\n".join(sections)
 
     def _scroll_to_bottom(self) -> None:
         scrollbar = self.output.verticalScrollBar()
@@ -326,7 +366,13 @@ class ZSerialTabPane:
 
 
 class ZSerialMainWindow:
-    def __init__(self, widgets, tab_manager: ZSerialTabManager | None = None):
+    def __init__(
+        self,
+        widgets,
+        tab_manager: ZSerialTabManager | None = None,
+        session_state_path: str | Path | None = None,
+        restore_session: bool = True,
+    ):
         (
             _QApplication,
             QFileDialog,
@@ -349,6 +395,9 @@ class ZSerialMainWindow:
         self.widgets = widgets
         self.QFileDialog = QFileDialog
         self.tab_manager = tab_manager or ZSerialTabManager(DEFAULT_WORKSPACE)
+        self.session_state_path = Path(session_state_path) if session_state_path is not None else self.default_session_state_path()
+        self.restore_session = restore_session
+        self._restoring_session = False
         self.panes: dict[str, ZSerialTabPane] = {}
         self.window = QMainWindow()
         self.window.setWindowTitle("z-serial")
@@ -395,7 +444,13 @@ class ZSerialMainWindow:
         self.poll_timer.timeout.connect(self.poll_all_tabs)
         self.poll_timer.start()
         self._connect_signals()
-        self.add_tab()
+        if not self._restore_session_if_available():
+            self.add_tab()
+
+    @staticmethod
+    def default_session_state_path() -> Path:
+        base = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
+        return base / "xinyi" / "z-serial-session.json"
 
     @property
     def view_model(self) -> ZSerialWindowViewModel:
@@ -403,6 +458,60 @@ class ZSerialMainWindow:
 
     def show(self) -> None:
         self.window.show()
+
+    def _restore_session_if_available(self) -> bool:
+        if not self.restore_session or not self.session_state_path.exists():
+            return False
+        try:
+            state = load_session_state(self.session_state_path)
+            if not state.tabs:
+                return False
+            self._restoring_session = True
+            self.tab_manager.close_all()
+            self.panes.clear()
+            self.tabs.clear()
+            for tab_state in state.tabs:
+                pane = self.add_tab(tab_state.title)
+                pane.view_model.selected_port = tab_state.port
+                pane.view_model.baudrate = tab_state.baudrate
+                if tab_state.filter_profile_path:
+                    try:
+                        pane.view_model.load_filter_profile(tab_state.filter_profile_path)
+                    except Exception as exc:
+                        pane.last_status = f"filter restore skipped: {exc}"
+                pane.apply_profile_fields()
+            self.tabs.setCurrentIndex(state.active_index)
+            self.tab_manager.set_active_index(state.active_index)
+            self._set_status(f"session restored tabs={len(state.tabs)}")
+            return True
+        except Exception as exc:
+            self._set_status(f"session restore skipped: {exc}")
+            return False
+        finally:
+            self._restoring_session = False
+
+    def save_session_state(self) -> None:
+        state = SerialSessionState(
+            active_index=self.tab_manager.active_index,
+            tabs=tuple(
+                SerialTabSessionState(
+                    title=tab.title,
+                    port=tab.view_model.selected_port,
+                    baudrate=tab.view_model.baudrate,
+                    filter_profile_path=tab.view_model.filter_profile_path,
+                )
+                for tab in self.tab_manager.tabs
+            ),
+        )
+        save_session_state(self.session_state_path, state)
+
+    def _save_session_state_if_ready(self) -> None:
+        if self._restoring_session:
+            return
+        try:
+            self.save_session_state()
+        except Exception as exc:
+            self._set_status(f"session save skipped: {exc}")
 
     def _connect_signals(self) -> None:
         self.add_tab_button.clicked.connect(self.add_tab)
@@ -416,25 +525,31 @@ class ZSerialMainWindow:
         self.edit_button_button.clicked.connect(self.edit_button_dialog)
         self.tabs.currentChanged.connect(self._set_active_index)
 
-    def add_tab(self) -> ZSerialTabPane:
-        tab = self.tab_manager.add_tab()
+    def add_tab(self, title: str | None = None) -> ZSerialTabPane:
+        tab = self.tab_manager.add_tab(title)
         pane = ZSerialTabPane(self.widgets, tab)
+        pane.open_button.clicked.connect(self._save_session_state_if_ready)
+        pane.close_button.clicked.connect(self._save_session_state_if_ready)
+        pane.refresh_ports_button.clicked.connect(self._save_session_state_if_ready)
         self.panes[tab.tab_id] = pane
         self.tabs.addTab(pane.widget, tab.title)
         self.tabs.setCurrentIndex(self.tabs.count() - 1)
         self._set_status(f"added {tab.title}")
+        self._save_session_state_if_ready()
         return pane
 
     def close_active_tab(self) -> None:
         if self.tabs.count() <= 1:
             self.active_pane().close_port()
             self._set_status("closed active port")
+            self._save_session_state_if_ready()
             return
         index = self.tabs.currentIndex()
         tab = self.tab_manager.close_tab(index)
         self.tabs.removeTab(index)
         self.panes.pop(tab.tab_id, None)
         self._set_status(f"closed {tab.title}")
+        self._save_session_state_if_ready()
 
     def active_pane(self) -> ZSerialTabPane:
         tab = self.tab_manager.active_tab()
@@ -444,6 +559,7 @@ class ZSerialMainWindow:
         if index >= 0 and index < len(self.tab_manager.tabs):
             self.tab_manager.set_active_index(index)
             self._set_status(f"active {self.tab_manager.active_tab().title}")
+            self._save_session_state_if_ready()
 
     def poll_all_tabs(self) -> None:
         changed = self.tab_manager.poll_all()
@@ -457,6 +573,7 @@ class ZSerialMainWindow:
     def open_virtual_demo(self) -> None:
         self.active_pane().open_virtual_demo()
         self._set_status(self.active_pane().last_status)
+        self._save_session_state_if_ready()
 
     def send_version(self) -> None:
         self.active_pane().send_version()
@@ -475,6 +592,7 @@ class ZSerialMainWindow:
     def close_port(self) -> None:
         self.active_pane().close_port()
         self._set_status(self.active_pane().last_status)
+        self._save_session_state_if_ready()
 
     def clear_output(self) -> None:
         self.active_pane().clear_output()
@@ -507,6 +625,7 @@ class ZSerialMainWindow:
     def load_filter_profile(self, path: str) -> None:
         filters = self.view_model.load_filter_profile(path)
         self._set_status(f"filters loaded {path} rules={len(filters)}")
+        self._save_session_state_if_ready()
 
     def save_filter_profile(self) -> None:
         try:
@@ -518,11 +637,13 @@ class ZSerialMainWindow:
     def save_filter_profile_as(self, path: str) -> None:
         saved_path = self.view_model.save_filter_profile_as(path)
         self._set_status(f"filters saved {saved_path}")
+        self._save_session_state_if_ready()
 
     def load_profile(self, path: str) -> None:
         windows = self.view_model.load_profile(path)
         self.active_pane().apply_profile_fields()
         self._set_status(f"profile loaded {path} windows={len(windows)}")
+        self._save_session_state_if_ready()
 
     def add_filter(
         self,
@@ -621,7 +742,9 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     QApplication = widgets[0]
 
     app = QApplication.instance() or QApplication([])
-    window = ZSerialMainWindow(widgets)
+    tmpdir_handle = tempfile.TemporaryDirectory()
+    session_path = str(Path(tmpdir_handle.name) / "session.json")
+    window = ZSerialMainWindow(widgets, session_state_path=session_path, restore_session=False)
     window.add_filter("warn", "WARN", foreground="yellow")
     window.add_button("ping_btn", "Ping", "text", "ping", append_newline=True)
     add_tab_corner = window.tabs.cornerWidget() is window.add_tab_button and window.add_tab_button.text() == "➕"
@@ -642,9 +765,12 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     filter_html = window.active_pane().filter_output.toHtml()
     zed_sidebar_layout = window.active_pane().main_splitter.count() == 2
     zed_bottom_filter = window.active_pane().content_splitter.count() == 2 and "WARN gui editor" in filter_html
-    editor_button_present = "ping_btn" in [button.name for button in window.view_model.button_rows()]
     custom_status = window.active_pane().last_status
-    tmpdir_handle = tempfile.TemporaryDirectory()
+    filter_summary_visible = "warn: hits=1" in window.active_pane().filter_output.toPlainText()
+    window.active_pane().search_input.setText("timeout")
+    window.active_pane().search_output()
+    search_finds_timeout = "ERROR virtual demo timeout" in window.active_pane().filter_output.toPlainText()
+    editor_button_present = "ping_btn" in [button.name for button in window.view_model.button_rows()]
     filter_path = str(Path(tmpdir_handle.name) / "warn-filters.json")
     window.save_filter_profile_as(filter_path)
     saved_filter_exists = Path(filter_path).exists()
@@ -660,6 +786,10 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     second.simulate_response()
     second_html = second.output.toHtml()
     window.poll_all_tabs()
+    window.save_session_state()
+    restored = ZSerialMainWindow(widgets, session_state_path=session_path, restore_session=True)
+    session_restored = restored.tabs.count() == 2 and restored.tab_manager.active_index == window.tab_manager.active_index
+    restored.tab_manager.close_all()
     window.close_port()
     is_open_after_close = window.view_model.is_open
     window.tab_manager.close_all()
@@ -677,6 +807,9 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"has_warn={str('WARN gui editor' in html).lower()}",
         f"zed_sidebar_layout={str(zed_sidebar_layout).lower()}",
         f"zed_bottom_filter={str(zed_bottom_filter).lower()}",
+        f"filter_summary_visible={str(filter_summary_visible).lower()}",
+        f"search_finds_timeout={str(search_finds_timeout).lower()}",
+        f"session_restored={str(session_restored).lower()}",
         f"has_editor_button={str(editor_button_present).lower()}",
         f"saved_filter_exists={str(saved_filter_exists).lower()}",
         f"second_filter_path={str(second_filter_path).lower()}",
