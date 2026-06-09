@@ -65,6 +65,7 @@ class ZSerialViewModelTests(unittest.TestCase):
         view_model.open_port("virtual", 115200)
 
         payload = view_model.send_text("ping")
+        self.assertEqual(view_model.output_lines[0].text, "ping")
         transport.feed_rx(b"ERROR clear me\n")
         view_model.poll_rx()
         view_model.clear_output()

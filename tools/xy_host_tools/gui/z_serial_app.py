@@ -98,9 +98,10 @@ class ZSerialTabPane:
         self.port_input = QComboBox()
         self.port_input.setEditable(True)
         self.port_input.setMinimumWidth(160)
+        self.port_input.setMaximumWidth(240)
         self.port_input.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-        self.port_input.setMinimumContentsLength(16)
-        self.port_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.port_input.setMinimumContentsLength(14)
+        self.port_input.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.port_input.view().setMinimumWidth(420)
         self.port_input.lineEdit().setPlaceholderText("/dev/ttyACM0 or /dev/ttyUSB0")
         self.baud_input = QLineEdit(str(self.view_model.baudrate))
@@ -233,6 +234,8 @@ class ZSerialTabPane:
         self.search_input.returnPressed.connect(self.search_output)
 
     def refresh_ports(self) -> None:
+        top_level = self.widget.window()
+        geometry = top_level.geometry() if top_level is not None else None
         ports = self.view_model.available_port_infos()
         current_port = self.port_input.currentText().strip()
         self.port_input.clear()
@@ -247,8 +250,10 @@ class ZSerialTabPane:
             self.port_input.setEditText(current_port)
         elif ports:
             self.port_input.setCurrentIndex(0)
+        if geometry is not None:
+            top_level.setGeometry(geometry)
         if ports:
-            self._append_status("ports " + ", ".join(port.port for port in ports))
+            self._append_status(f"ports {len(ports)} found")
         else:
             self._append_status("no serial ports found")
 
@@ -261,12 +266,7 @@ class ZSerialTabPane:
 
     @staticmethod
     def _port_label(port: SerialPortInfo) -> str:
-        parts = [port.port]
-        if port.description:
-            parts.append(port.description)
-        if port.hwid:
-            parts.append(port.hwid)
-        return "  |  ".join(parts)
+        return port.port
 
     @staticmethod
     def _port_tooltip(port: SerialPortInfo) -> str:

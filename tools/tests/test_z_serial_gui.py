@@ -3,6 +3,7 @@ import unittest
 from xy_host_tools.gui.z_serial_app import _load_qt_widgets, render_startup_lines, run_offscreen_smoke, ZSerialMainWindow
 from xy_host_tools.gui.z_serial_tabs import ZSerialTabManager
 from xy_host_tools.serial_cli import DEFAULT_WORKSPACE
+from xy_host_tools.serial_transport import SerialPortInfo
 
 
 class ZSerialGuiShellTests(unittest.TestCase):
@@ -40,6 +41,33 @@ class ZSerialGuiShellTests(unittest.TestCase):
 
         self.assertIn("open failed", window.status_line.text())
         self.assertIn("Permission denied", window.status_line.text())
+
+    def test_refresh_ports_does_not_expand_window_for_long_port_descriptions(self):
+        try:
+            widgets = _load_qt_widgets()
+        except RuntimeError as exc:
+            self.assertIn("PySide6 is required", str(exc))
+            return
+
+        app = widgets[0].instance() or widgets[0]([])
+        long_description = "USB Serial Device " + "very-long-description-" * 12
+        manager = ZSerialTabManager(DEFAULT_WORKSPACE)
+        window = ZSerialMainWindow(widgets, tab_manager=manager, restore_session=False)
+        pane = window.active_pane()
+        pane.view_model.port_provider = lambda: (
+            SerialPortInfo("/dev/ttyACM0", long_description, "USB VID:PID=1234:5678 SER=abcdef"),
+        )
+        window.window.setGeometry(120, 90, 720, 480)
+        before = window.window.geometry()
+
+        pane.refresh_ports_button.click()
+        app.processEvents()
+        after = window.window.geometry()
+
+        self.assertEqual(after, before)
+        self.assertLessEqual(pane.port_input.maximumWidth(), 240)
+        self.assertEqual(pane.port_input.itemText(0), "/dev/ttyACM0")
+        self.assertIn(long_description, pane.port_input.itemData(0, widgets[16].ItemDataRole.ToolTipRole))
 
     def test_offscreen_smoke_runs_or_reports_missing_qt(self):
         try:

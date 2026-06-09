@@ -386,7 +386,7 @@ def _display_text(text: str) -> str:
 
 
 def _display_bytes(data: bytes) -> str:
-    text = data.decode("utf-8", errors="replace")
+    text = data.decode("utf-8", errors="replace").rstrip("\r\n")
     return _display_text(text)
 
 
