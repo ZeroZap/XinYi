@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import tempfile
+from pathlib import Path
 from typing import Sequence
 
 from ..serial_cli import DEFAULT_WORKSPACE
@@ -309,6 +311,9 @@ class ZSerialMainWindow:
         self.close_tab_button = QPushButton("关闭 Tab")
         self.load_profile_button = QPushButton("打开 Profile")
         self.save_profile_button = QPushButton("保存 Profile")
+        self.load_filters_button = QPushButton("打开滤波器")
+        self.save_filters_button = QPushButton("覆盖滤波器")
+        self.save_filters_as_button = QPushButton("滤波器另存为")
         self.edit_filter_button = QPushButton("编辑过滤器")
         self.edit_button_button = QPushButton("编辑按钮")
         self.tabs = QTabWidget()
@@ -321,6 +326,9 @@ class ZSerialMainWindow:
         toolbar.addWidget(self.close_tab_button)
         toolbar.addWidget(self.load_profile_button)
         toolbar.addWidget(self.save_profile_button)
+        toolbar.addWidget(self.load_filters_button)
+        toolbar.addWidget(self.save_filters_button)
+        toolbar.addWidget(self.save_filters_as_button)
         toolbar.addWidget(self.edit_filter_button)
         toolbar.addWidget(self.edit_button_button)
         toolbar.addStretch()
@@ -353,6 +361,9 @@ class ZSerialMainWindow:
         self.close_tab_button.clicked.connect(self.close_active_tab)
         self.load_profile_button.clicked.connect(self.load_profile_dialog)
         self.save_profile_button.clicked.connect(self.save_profile_dialog)
+        self.load_filters_button.clicked.connect(self.load_filter_profile_dialog)
+        self.save_filters_button.clicked.connect(self.save_filter_profile)
+        self.save_filters_as_button.clicked.connect(self.save_filter_profile_as_dialog)
         self.edit_filter_button.clicked.connect(self.edit_filter_dialog)
         self.edit_button_button.clicked.connect(self.edit_button_dialog)
         self.tabs.currentChanged.connect(self._set_active_index)
@@ -431,9 +442,34 @@ class ZSerialMainWindow:
         if path:
             self.load_profile(path)
 
+    def load_filter_profile_dialog(self) -> None:
+        path, _selected = self.QFileDialog.getOpenFileName(self.window, "打开滤波器设定", "", "JSON (*.json)")
+        if path:
+            self.load_filter_profile(path)
+
+    def save_filter_profile_as_dialog(self) -> None:
+        path, _selected = self.QFileDialog.getSaveFileName(self.window, "滤波器另存为", "z-serial-filters.json", "JSON (*.json)")
+        if path:
+            self.save_filter_profile_as(path)
+
     def save_profile(self, path: str) -> None:
         self.view_model.save_profile(path)
         self._set_status(f"profile saved {path}")
+
+    def load_filter_profile(self, path: str) -> None:
+        filters = self.view_model.load_filter_profile(path)
+        self._set_status(f"filters loaded {path} rules={len(filters)}")
+
+    def save_filter_profile(self) -> None:
+        try:
+            path = self.view_model.save_filter_profile()
+            self._set_status(f"filters saved {path}")
+        except ValueError:
+            self.save_filter_profile_as_dialog()
+
+    def save_filter_profile_as(self, path: str) -> None:
+        saved_path = self.view_model.save_filter_profile_as(path)
+        self._set_status(f"filters saved {saved_path}")
 
     def load_profile(self, path: str) -> None:
         windows = self.view_model.load_profile(path)
@@ -557,10 +593,17 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     html = window.active_pane().output.toHtml()
     editor_button_present = "ping_btn" in [button.name for button in window.view_model.button_rows()]
     custom_status = window.active_pane().last_status
+    tmpdir_handle = tempfile.TemporaryDirectory()
+    filter_path = str(Path(tmpdir_handle.name) / "warn-filters.json")
+    window.save_filter_profile_as(filter_path)
+    saved_filter_exists = Path(filter_path).exists()
     window.clear_output()
     cleared = len(window.active_pane().view_model.output_lines) == 0
     first_tab_count = window.tabs.count()
     second = window.add_tab()
+    second.view_model.load_filter_profile(filter_path)
+    second_filter_path = second.view_model.filter_profile_path == filter_path
+    first_filter_is_independent = second.view_model is not window.panes[window.tab_manager.tabs[0].tab_id].view_model
     second.open_virtual_demo()
     second.send_version()
     second.simulate_response()
@@ -569,6 +612,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     window.close_port()
     is_open_after_close = window.view_model.is_open
     window.tab_manager.close_all()
+    tmpdir_handle.cleanup()
     app.processEvents()
     return (
         f"window={window.window.windowTitle()}",
@@ -581,6 +625,9 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"has_red={str('#d70000' in html or 'red' in html).lower()}",
         f"has_warn={str('WARN gui editor' in html).lower()}",
         f"has_editor_button={str(editor_button_present).lower()}",
+        f"saved_filter_exists={str(saved_filter_exists).lower()}",
+        f"second_filter_path={str(second_filter_path).lower()}",
+        f"tab_filters_independent={str(first_filter_is_independent).lower()}",
         f"custom_tx={str(custom_status.startswith('device saw')).lower()}",
         f"custom_no_crlf={str(custom_no_crlf).lower()}",
         f"status_outside_rx={str('tx ' not in html and 'device saw' not in html).lower()}",

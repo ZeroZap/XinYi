@@ -5,6 +5,7 @@ from typing import Callable
 
 from ..serial_cli import DEFAULT_WORKSPACE
 from ..serial_config import ActionButton, FilterRule, SerialWindowProfile, SerialWorkspaceProfile
+from ..serial_filter_profile import load_filter_profile, save_filter_profile
 from ..serial_profile import load_workspace_profile, save_workspace_profile
 from ..serial_service import SerialWindowSession, SerialWorkspaceService
 from ..serial_transport import PySerialTransport, SerialPortInfo, SerialTransport, list_serial_ports
@@ -64,6 +65,8 @@ class ZSerialWindowViewModel:
     baudrate: int = 115200
     output_lines: list[RenderedLine] = field(default_factory=list)
     virtual_demo: VirtualDemoSession | None = field(default=None, init=False)
+    filter_profile_path: str | None = None
+    filter_profile_name: str = "XinYi Serial Filters"
 
     def __post_init__(self) -> None:
         self.service = SerialWorkspaceService(self.workspace)
@@ -244,6 +247,28 @@ class ZSerialWindowViewModel:
             self.workspace = replace(self.workspace, buttons=updated)
             self._reset_service_for_profile_edit()
         return changed
+
+    def save_filter_profile(self, path: str | None = None, *, name: str | None = None) -> str:
+        profile_path = path or self.filter_profile_path
+        if not profile_path:
+            raise ValueError("filter profile path is required")
+        profile_name = name or self.filter_profile_name
+        save_filter_profile(profile_path, profile_name, self.workspace.filters)
+        self.filter_profile_path = profile_path
+        self.filter_profile_name = profile_name
+        return profile_path
+
+    def save_filter_profile_as(self, path: str, *, name: str | None = None) -> str:
+        return self.save_filter_profile(path, name=name)
+
+    def load_filter_profile(self, path: str) -> tuple[FilterRule, ...]:
+        self._assert_profile_editable()
+        profile_name, filters = load_filter_profile(path)
+        self.workspace = replace(self.workspace, name=self.workspace.name, filters=filters)
+        self.filter_profile_path = path
+        self.filter_profile_name = profile_name
+        self._reset_service_for_profile_edit()
+        return filters
 
     def save_profile(self, path: str) -> None:
         save_workspace_profile(path, self.workspace, windows=self._profile_windows())
