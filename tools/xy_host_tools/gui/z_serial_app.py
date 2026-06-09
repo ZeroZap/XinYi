@@ -303,7 +303,9 @@ class ZSerialMainWindow:
         self.window = QMainWindow()
         self.window.setWindowTitle("z-serial")
 
-        self.new_tab_button = QPushButton("新建 Tab")
+        self.add_tab_button = QPushButton("➕")
+        self.add_tab_button.setToolTip("新增串口 Tab")
+        self.add_tab_button.setFixedWidth(36)
         self.close_tab_button = QPushButton("关闭 Tab")
         self.load_profile_button = QPushButton("打开 Profile")
         self.save_profile_button = QPushButton("保存 Profile")
@@ -311,11 +313,11 @@ class ZSerialMainWindow:
         self.edit_button_button = QPushButton("编辑按钮")
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(False)
+        self.tabs.setCornerWidget(self.add_tab_button)
         self.status_line = QPushButton("状态: ready")
         self.status_line.setEnabled(False)
 
         toolbar = QHBoxLayout()
-        toolbar.addWidget(self.new_tab_button)
         toolbar.addWidget(self.close_tab_button)
         toolbar.addWidget(self.load_profile_button)
         toolbar.addWidget(self.save_profile_button)
@@ -347,7 +349,7 @@ class ZSerialMainWindow:
         self.window.show()
 
     def _connect_signals(self) -> None:
-        self.new_tab_button.clicked.connect(self.add_tab)
+        self.add_tab_button.clicked.connect(self.add_tab)
         self.close_tab_button.clicked.connect(self.close_active_tab)
         self.load_profile_button.clicked.connect(self.load_profile_dialog)
         self.save_profile_button.clicked.connect(self.save_profile_dialog)
@@ -538,6 +540,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     window = ZSerialMainWindow(widgets)
     window.add_filter("warn", "WARN", foreground="yellow")
     window.add_button("ping_btn", "Ping", "text", "ping", append_newline=True)
+    add_tab_corner = window.tabs.cornerWidget() is window.add_tab_button and window.add_tab_button.text() == "➕"
+    add_tab_toolbar_removed = getattr(window, "new_tab_button", None) is None
     window.open_virtual_demo()
     window.view_model.send_button("ping_btn")
     window.send_version()
@@ -569,6 +573,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     return (
         f"window={window.window.windowTitle()}",
         f"tabs={first_tab_count + 1}",
+        f"add_tab_corner={str(add_tab_corner).lower()}",
+        f"add_tab_toolbar_removed={str(add_tab_toolbar_removed).lower()}",
         f"open={is_open_after_close}",
         f"has_error={str('ERROR virtual demo timeout' in html).lower()}",
         f"has_second_error={str('ERROR virtual demo timeout' in second_html).lower()}",

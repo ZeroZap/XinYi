@@ -25,6 +25,8 @@ class ZSerialGuiShellTests(unittest.TestCase):
         else:
             self.assertIn("window=z-serial", lines)
             self.assertIn("tabs=2", lines)
+            self.assertIn("add_tab_corner=true", lines)
+            self.assertIn("add_tab_toolbar_removed=true", lines)
             self.assertIn("has_error=true", lines)
             self.assertIn("has_second_error=true", lines)
             self.assertIn("has_red=true", lines)
