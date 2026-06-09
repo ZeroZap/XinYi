@@ -114,9 +114,13 @@ class ZSerialTabPane:
         self.search_clear_button = QPushButton("清除搜索")
         self.output = QTextEdit()
         self.output.setReadOnly(True)
+        self.output.setMinimumHeight(360)
+        self.output.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.output.setHtml(lines_to_html(()))
         self.filter_output = QTextEdit()
         self.filter_output.setReadOnly(True)
+        self.filter_output.setMinimumHeight(120)
+        self.filter_output.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.filter_output.setPlaceholderText("滤波命中内容")
         self.filter_output.setHtml(lines_to_html(()))
         self.last_status = "ready"
@@ -166,12 +170,16 @@ class ZSerialTabPane:
         settings_panel.setLayout(settings_layout)
 
         log_panel = QWidget()
+        log_panel.setMinimumHeight(420)
+        log_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         log_layout = QVBoxLayout()
         log_layout.addWidget(QLabel("Log"))
         log_layout.addWidget(self.output)
         log_panel.setLayout(log_layout)
 
         filter_panel = QWidget()
+        filter_panel.setMinimumHeight(160)
+        filter_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         filter_layout = QVBoxLayout()
         filter_layout.addWidget(QLabel("滤波窗口"))
         filter_layout.addWidget(self.filter_output)
@@ -183,9 +191,13 @@ class ZSerialTabPane:
         self.content_splitter.setObjectName("zserial_content_splitter")
         self.content_splitter.addWidget(log_panel)
         self.content_splitter.addWidget(filter_panel)
+        self.content_splitter.setStretchFactor(0, 5)
+        self.content_splitter.setStretchFactor(1, 1)
         self.content_splitter.setSizes([620, 180])
         self.main_splitter.addWidget(settings_panel)
         self.main_splitter.addWidget(self.content_splitter)
+        self.main_splitter.setStretchFactor(0, 0)
+        self.main_splitter.setStretchFactor(1, 1)
         self.main_splitter.setSizes([300, 980])
 
         layout = QVBoxLayout()
@@ -415,7 +427,8 @@ class ZSerialMainWindow:
         self.edit_button_button = QPushButton("编辑按钮")
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(False)
-        self.tabs.setCornerWidget(self.add_tab_button)
+        self._plus_tab_widget = QWidget()
+        self._plus_tab_index: int | None = None
         self.status_line = QPushButton("状态: ready")
         self.status_line.setEnabled(False)
 
@@ -470,6 +483,7 @@ class ZSerialMainWindow:
             self.tab_manager.close_all()
             self.panes.clear()
             self.tabs.clear()
+            self._plus_tab_index = None
             for tab_state in state.tabs:
                 pane = self.add_tab(tab_state.title)
                 pane.view_model.selected_port = tab_state.port
@@ -525,7 +539,29 @@ class ZSerialMainWindow:
         self.edit_button_button.clicked.connect(self.edit_button_dialog)
         self.tabs.currentChanged.connect(self._set_active_index)
 
+    def _ensure_plus_tab(self) -> None:
+        if self._plus_tab_index is not None:
+            current = self.tabs.indexOf(self._plus_tab_widget)
+            if current >= 0:
+                self._plus_tab_index = current
+                return
+        self._plus_tab_index = self.tabs.addTab(self._plus_tab_widget, "＋")
+        self.tabs.tabBar().setTabButton(self._plus_tab_index, self.tabs.tabBar().ButtonPosition.LeftSide, None)
+        self.tabs.tabBar().setTabButton(self._plus_tab_index, self.tabs.tabBar().ButtonPosition.RightSide, None)
+
+    def _remove_plus_tab(self) -> None:
+        if self._plus_tab_index is None:
+            return
+        current = self.tabs.indexOf(self._plus_tab_widget)
+        if current >= 0:
+            self.tabs.removeTab(current)
+        self._plus_tab_index = None
+
+    def _is_plus_tab_index(self, index: int) -> bool:
+        return self._plus_tab_index is not None and index == self._plus_tab_index
+
     def add_tab(self, title: str | None = None) -> ZSerialTabPane:
+        self._remove_plus_tab()
         tab = self.tab_manager.add_tab(title)
         pane = ZSerialTabPane(self.widgets, tab)
         for button in (
@@ -548,8 +584,9 @@ class ZSerialMainWindow:
         pane.close_button.clicked.connect(self._save_session_state_if_ready)
         pane.refresh_ports_button.clicked.connect(self._save_session_state_if_ready)
         self.panes[tab.tab_id] = pane
-        self.tabs.addTab(pane.widget, tab.title)
-        self.tabs.setCurrentIndex(self.tabs.count() - 1)
+        tab_index = self.tabs.addTab(pane.widget, tab.title)
+        self._ensure_plus_tab()
+        self.tabs.setCurrentIndex(tab_index)
         self._set_status(f"added {tab.title}")
         self._save_session_state_if_ready()
         return pane
@@ -561,9 +598,16 @@ class ZSerialMainWindow:
             self._save_session_state_if_ready()
             return
         index = self.tabs.currentIndex()
+        if self._is_plus_tab_index(index):
+            self.add_tab()
+            return
+        self._remove_plus_tab()
         tab = self.tab_manager.close_tab(index)
         self.tabs.removeTab(index)
         self.panes.pop(tab.tab_id, None)
+        self._ensure_plus_tab()
+        if self.tab_manager.tabs:
+            self.tabs.setCurrentIndex(self.tab_manager.active_index)
         self._set_status(f"closed {tab.title}")
         self._save_session_state_if_ready()
 
@@ -575,6 +619,9 @@ class ZSerialMainWindow:
         self._set_status(pane.last_status)
 
     def _set_active_index(self, index: int) -> None:
+        if self._is_plus_tab_index(index):
+            self.add_tab()
+            return
         if index >= 0 and index < len(self.tab_manager.tabs):
             self.tab_manager.set_active_index(index)
             self._set_status(f"active {self.tab_manager.active_tab().title}")
@@ -766,7 +813,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     window = ZSerialMainWindow(widgets, session_state_path=session_path, restore_session=False)
     window.add_filter("warn", "WARN", foreground="yellow")
     window.add_button("ping_btn", "Ping", "text", "ping", append_newline=True)
-    add_tab_corner = window.tabs.cornerWidget() is window.add_tab_button and window.add_tab_button.text() == "➕"
+    plus_tab_initial_index = window.tabs.count() - 1
+    plus_tab_adjacent = window.tabs.tabText(plus_tab_initial_index) == "＋" and plus_tab_initial_index == len(window.tab_manager.tabs)
     add_tab_toolbar_removed = getattr(window, "new_tab_button", None) is None
     window.open_virtual_demo()
     window.view_model.send_button("ping_btn")
@@ -784,6 +832,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     filter_html = window.active_pane().filter_output.toHtml()
     zed_sidebar_layout = window.active_pane().main_splitter.count() == 2
     zed_bottom_filter = window.active_pane().content_splitter.count() == 2 and "WARN gui editor" in filter_html
+    log_panel_visible = window.active_pane().output.minimumHeight() >= 360 and "ERROR virtual demo timeout" in html
     custom_status = window.active_pane().last_status
     filter_summary_visible = "warn: hits=1" in window.active_pane().filter_output.toPlainText()
     window.active_pane().search_input.setText("timeout")
@@ -797,6 +846,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     cleared = len(window.active_pane().view_model.output_lines) == 0
     first_tab_count = window.tabs.count()
     second = window.add_tab()
+    plus_tab_moves_right = window.tabs.tabText(window.tabs.count() - 1) == "＋" and window.tabs.count() == first_tab_count + 1
     second.view_model.load_filter_profile(filter_path)
     second_filter_path = second.view_model.filter_profile_path == filter_path
     first_filter_is_independent = second.view_model is not window.panes[window.tab_manager.tabs[0].tab_id].view_model
@@ -807,7 +857,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     window.poll_all_tabs()
     window.save_session_state()
     restored = ZSerialMainWindow(widgets, session_state_path=session_path, restore_session=True)
-    session_restored = restored.tabs.count() == 2 and restored.tab_manager.active_index == window.tab_manager.active_index
+    session_restored = len(restored.tab_manager.tabs) == 2 and restored.tab_manager.active_index == window.tab_manager.active_index
+    real_tab_count = len(window.tab_manager.tabs)
     restored.tab_manager.close_all()
     window.close_port()
     is_open_after_close = window.view_model.is_open
@@ -816,14 +867,16 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     app.processEvents()
     return (
         f"window={window.window.windowTitle()}",
-        f"tabs={first_tab_count + 1}",
-        f"add_tab_corner={str(add_tab_corner).lower()}",
+        f"tabs={real_tab_count}",
+        f"plus_tab_adjacent={str(plus_tab_adjacent).lower()}",
+        f"plus_tab_moves_right={str(plus_tab_moves_right).lower()}",
         f"add_tab_toolbar_removed={str(add_tab_toolbar_removed).lower()}",
         f"open={is_open_after_close}",
         f"has_error={str('ERROR virtual demo timeout' in html).lower()}",
         f"has_second_error={str('ERROR virtual demo timeout' in second_html).lower()}",
         f"has_red={str('#d70000' in html or 'red' in html).lower()}",
         f"has_warn={str('WARN gui editor' in html).lower()}",
+        f"log_panel_visible={str(log_panel_visible).lower()}",
         f"zed_sidebar_layout={str(zed_sidebar_layout).lower()}",
         f"zed_bottom_filter={str(zed_bottom_filter).lower()}",
         f"filter_summary_visible={str(filter_summary_visible).lower()}",
