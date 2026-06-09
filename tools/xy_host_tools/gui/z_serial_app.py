@@ -803,9 +803,17 @@ class ZSerialMainWindow:
         foreground: str = "yellow",
         background: str = "default",
         match: str = "any",
+        action: str = "highlight",
     ) -> None:
         keyword_tuple = tuple(part.strip() for part in keywords.replace(";", ",").split(","))
-        rule = self.view_model.upsert_filter(name, keyword_tuple, match=match, foreground=foreground, background=background)
+        rule = self.view_model.upsert_filter(
+            name,
+            keyword_tuple,
+            match=match,
+            foreground=foreground,
+            background=background,
+            action=action,
+        )
         self._set_status(f"filter saved {rule.name}")
 
     def add_button(
@@ -921,6 +929,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         and window.active_pane().port_input.minimumWidth() <= 160
     )
     window.add_filter("warn", "WARN", foreground="yellow")
+    window.add_filter("noise", "debug", action="hide")
     window.add_button("ping_btn", "Ping", "text", "ping", append_newline=True)
     plus_tab_initial_index = window.tabs.count() - 1
     plus_tab_adjacent = window.tabs.tabText(plus_tab_initial_index) == "＋" and plus_tab_initial_index == len(window.tab_manager.tabs)
@@ -936,12 +945,14 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     custom_payload = demo.read_device_command()
     custom_no_crlf = custom_payload.endswith(b"ping") and not custom_payload.endswith(b"ping\r\n")
     window.simulate_response()
-    window.active_pane().view_model.simulate_virtual_response(b"WARN gui editor\n")
+    window.active_pane().view_model.simulate_virtual_response(b"WARN gui editor\ndebug noisy raw log\n")
     window.active_pane()._refresh_output()
     html = window.active_pane().output.toHtml()
     filter_html = window.active_pane().filter_output.toHtml()
     zed_sidebar_layout = window.active_pane().main_splitter.count() == 2
     zed_bottom_filter = window.active_pane().content_splitter.count() == 2 and "WARN gui editor" in filter_html
+    main_log_keeps_filtered_lines = "debug noisy raw log" in html
+    filter_window_contains_matches = "WARN gui editor" in filter_html and "debug noisy raw log" in filter_html
     log_panel_visible = window.active_pane().output.minimumHeight() >= 180 and "ERROR virtual demo timeout" in html
     custom_status = window.active_pane().last_status
     filter_summary_visible = "warn: hits=1" in window.active_pane().filter_output.toPlainText()
@@ -1002,6 +1013,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"has_second_error={str('ERROR virtual demo timeout' in second_html).lower()}",
         f"has_red={str('#d70000' in html or 'red' in html).lower()}",
         f"has_warn={str('WARN gui editor' in html).lower()}",
+        f"main_log_keeps_filtered_lines={str(main_log_keeps_filtered_lines).lower()}",
+        f"filter_window_contains_matches={str(filter_window_contains_matches).lower()}",
         f"log_panel_visible={str(log_panel_visible).lower()}",
         f"zed_sidebar_layout={str(zed_sidebar_layout).lower()}",
         f"zed_bottom_filter={str(zed_bottom_filter).lower()}",

@@ -69,8 +69,6 @@ class SerialWindowSession:
 
         for line in lines:
             result = apply_filters(line, rules)
-            if not result.visible:
-                continue
             received = ReceivedLine(window_id=self.window.window_id, text=line, result=result)
             accepted.append(received)
             self.received_lines.append(received)

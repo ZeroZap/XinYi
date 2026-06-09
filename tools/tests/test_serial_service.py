@@ -53,7 +53,7 @@ class SerialServiceTests(unittest.TestCase):
         self.assertEqual(payload, b"hello gps\n")
         self.assertEqual(transport.drain_tx(), b"hello gps\n")
 
-    def test_accept_rx_bytes_filters_hidden_lines_and_records_visible_lines(self):
+    def test_accept_rx_bytes_records_all_lines_and_marks_hidden_matches(self):
         service = SerialWorkspaceService(self.make_workspace())
         session = service.attach_window(
             SerialWindowProfile(window_id="u5", title="U5", port="virtual"),
@@ -63,11 +63,13 @@ class SerialServiceTests(unittest.TestCase):
 
         received = session.accept_rx_bytes(b"boot ok\ndebug verbose\nERROR timeout\n")
 
-        self.assertEqual([line.text for line in received], ["boot ok", "ERROR timeout"])
+        self.assertEqual([line.text for line in received], ["boot ok", "debug verbose", "ERROR timeout"])
         self.assertEqual(received[0].result.matched_rules, ())
-        self.assertEqual(received[1].result.matched_rules, ("error",))
-        self.assertEqual(received[1].result.foreground, "white")
-        self.assertEqual(len(session.received_lines), 2)
+        self.assertEqual(received[1].result.matched_rules, ("noise",))
+        self.assertFalse(received[1].result.visible)
+        self.assertEqual(received[2].result.matched_rules, ("error",))
+        self.assertEqual(received[2].result.foreground, "white")
+        self.assertEqual(len(session.received_lines), 3)
 
     def test_read_available_drains_transport_rx(self):
         service = SerialWorkspaceService(self.make_workspace())
