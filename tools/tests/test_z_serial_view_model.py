@@ -73,6 +73,24 @@ class ZSerialViewModelTests(unittest.TestCase):
         self.assertEqual(transport.drain_tx(), b"ping\r\n")
         self.assertEqual(view_model.output_lines, [])
 
+    def test_send_text_logs_tx_without_device_echo_and_escapes_control_rx(self):
+        transport = MemorySerialTransport()
+        view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: transport)
+        view_model.open_port("virtual", 115200)
+
+        payload = view_model.send_text("aaaaaaaaaaaaaaaaaaaa", append_newline=False)
+        transport.feed_rx(b"\x00\x01OK\r\n")
+        lines = view_model.poll_rx()
+
+        self.assertEqual(payload, b"aaaaaaaaaaaaaaaaaaaa")
+        self.assertEqual(transport.drain_tx(), b"aaaaaaaaaaaaaaaaaaaa")
+        self.assertEqual(view_model.output_lines[0].direction, "tx")
+        self.assertEqual(view_model.output_lines[0].text, "aaaaaaaaaaaaaaaaaaaa")
+        self.assertEqual(lines[0].direction, "rx")
+        self.assertEqual(lines[0].text, r"\x00\x01OK")
+        self.assertIn("tx fg=cyan bg=default rules=- | aaaaaaaaaaaaaaaaaaaa", view_model.render_output_text())
+        self.assertIn(r"rx fg=default bg=default rules=- | \x00\x01OK", view_model.render_output_text())
+
     def test_virtual_demo_mode_opens_sends_and_simulates_response(self):
         view_model = ZSerialWindowViewModel()
 

@@ -310,6 +310,7 @@ class ZSerialTabPane:
     def send_version(self) -> None:
         try:
             payload = self.view_model.send_button("version")
+            self._refresh_output()
             self._append_status(f"tx {payload.hex()}")
         except Exception as exc:
             self._append_status(f"send failed: {exc}")
@@ -322,6 +323,7 @@ class ZSerialTabPane:
         try:
             payload = self.view_model.send_text(text, append_newline=self.append_crlf_checkbox.isChecked())
             self.send_input.clear()
+            self._refresh_output()
             self._append_status(f"tx {payload.hex()}")
         except Exception as exc:
             self._append_status(f"send failed: {exc}")
@@ -952,6 +954,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     zed_sidebar_layout = window.active_pane().main_splitter.count() == 2
     zed_bottom_filter = window.active_pane().content_splitter.count() == 2 and "WARN gui editor" in filter_html
     main_log_keeps_filtered_lines = "debug noisy raw log" in html
+    tx_visible_in_log = "[TX] ping" in html or "[TX] version" in html
     filter_window_contains_matches = "WARN gui editor" in filter_html and "debug noisy raw log" in filter_html
     log_panel_visible = window.active_pane().output.minimumHeight() >= 180 and "ERROR virtual demo timeout" in html
     custom_status = window.active_pane().last_status
@@ -1014,6 +1017,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"has_red={str('#d70000' in html or 'red' in html).lower()}",
         f"has_warn={str('WARN gui editor' in html).lower()}",
         f"main_log_keeps_filtered_lines={str(main_log_keeps_filtered_lines).lower()}",
+        f"tx_visible_in_log={str(tx_visible_in_log).lower()}",
         f"filter_window_contains_matches={str(filter_window_contains_matches).lower()}",
         f"log_panel_visible={str(log_panel_visible).lower()}",
         f"zed_sidebar_layout={str(zed_sidebar_layout).lower()}",

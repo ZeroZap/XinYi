@@ -34,12 +34,13 @@ def line_to_html(line: RenderedLine) -> str:
     foreground = color_to_css(line.foreground, _DEFAULT_FOREGROUND)
     background = color_to_css(line.background, _DEFAULT_BACKGROUND)
     rules = escape(",".join(line.matched_rules) or "-")
-    text = escape(line.text)
+    direction = escape(line.direction.upper())
+    text = escape(f"[{line.direction.upper()}] {line.text}")
     return (
         '<span style="'
         f"color: {foreground}; background-color: {background};"
         ' font-family: monospace; white-space: pre-wrap;"'
-        f' data-rules="{rules}">{text}</span>'
+        f' data-rules="{rules}" data-direction="{direction}">{text}</span>'
     )
 
 

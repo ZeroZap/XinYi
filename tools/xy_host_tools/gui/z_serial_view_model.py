@@ -21,9 +21,10 @@ class RenderedLine:
     foreground: str
     background: str
     matched_rules: tuple[str, ...]
+    direction: str = "rx"
 
     def as_plain_text(self) -> str:
-        return f"fg={self.foreground} bg={self.background} rules={','.join(self.matched_rules) or '-'} | {self.text}"
+        return f"{self.direction} fg={self.foreground} bg={self.background} rules={','.join(self.matched_rules) or '-'} | {self.text}"
 
 
 @dataclass(frozen=True)
@@ -144,20 +145,23 @@ class ZSerialWindowViewModel:
 
     def send_button(self, button_name: str) -> bytes:
         session = self._require_session()
-        return session.send_button(button_name)
+        data = session.send_button(button_name)
+        self._append_tx(data)
+        return data
 
     def send_text(self, text: str, append_newline: bool = True) -> bytes:
         session = self._require_session()
         payload = text + ("\r\n" if append_newline else "")
         data = payload.encode("utf-8")
         session.transport.write(data)
+        self._append_tx(data)
         return data
 
     def poll_rx(self, size: int = 4096) -> tuple[RenderedLine, ...]:
         session = self._require_session()
         rendered = tuple(
             RenderedLine(
-                text=received.text,
+                text=_display_text(received.text),
                 foreground=received.result.foreground,
                 background=received.result.background,
                 matched_rules=received.result.matched_rules,
@@ -347,6 +351,18 @@ class ZSerialWindowViewModel:
     def _reset_service_for_profile_edit(self) -> None:
         self.service = SerialWorkspaceService(self.workspace)
 
+    def _append_tx(self, data: bytes) -> None:
+        self.output_lines.append(
+            RenderedLine(
+                text=_display_bytes(data),
+                foreground="cyan",
+                background="default",
+                matched_rules=(),
+                direction="tx",
+            )
+        )
+        self._trim_output_lines()
+
     def _trim_output_lines(self) -> None:
         if self.max_output_lines <= 0:
             self.output_lines.clear()
@@ -363,3 +379,27 @@ class ZSerialWindowViewModel:
         if self.session is None or not self.session.is_open:
             raise RuntimeError("serial port is not open")
         return self.session
+
+
+def _display_text(text: str) -> str:
+    return "".join(_display_char(char) for char in text)
+
+
+def _display_bytes(data: bytes) -> str:
+    text = data.decode("utf-8", errors="replace")
+    return _display_text(text)
+
+
+def _display_char(char: str) -> str:
+    if char == "\r":
+        return r"\r"
+    if char == "\n":
+        return r"\n"
+    if char == "\t":
+        return r"\t"
+    if char.isprintable():
+        return char
+    codepoint = ord(char)
+    if codepoint <= 0xFF:
+        return f"\\x{codepoint:02x}"
+    return f"\\u{codepoint:04x}"

@@ -24,7 +24,8 @@ class ZSerialRenderingTests(unittest.TestCase):
         self.assertIn("color: #ffffff", html)
         self.assertIn("background-color: #d70000", html)
         self.assertIn('data-rules="error"', html)
-        self.assertIn("ERROR &lt;uart&gt;", html)
+        self.assertIn('data-direction="RX"', html)
+        self.assertIn("[RX] ERROR &lt;uart&gt;", html)
 
     def test_lines_to_html_joins_lines_for_qt_rich_text(self):
         html = lines_to_html(
