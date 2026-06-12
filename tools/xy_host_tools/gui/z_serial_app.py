@@ -98,15 +98,23 @@ class ZSerialTabPane:
         self.view_model = tab.view_model
         self.widget = QWidget()
 
-        self.port_input = QComboBox()
-        self.port_input.setEditable(True)
+        class RefreshingPortComboBox(QComboBox):
+            def __init__(self, refresh_callback):
+                super().__init__()
+                self._refresh_callback = refresh_callback
+
+            def showPopup(self) -> None:
+                self._refresh_callback()
+                super().showPopup()
+
+        self.port_input = RefreshingPortComboBox(self.refresh_ports)
+        self.port_input.setEditable(False)
         self.port_input.setMinimumWidth(160)
         self.port_input.setMaximumWidth(240)
         self.port_input.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.port_input.setMinimumContentsLength(14)
         self.port_input.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.port_input.view().setMinimumWidth(420)
-        self.port_input.lineEdit().setPlaceholderText("/dev/ttyACM0 or /dev/ttyUSB0")
         self.baud_input = QLineEdit(str(self.view_model.baudrate))
         self.refresh_ports_button = QPushButton("刷新端口")
         self.open_button = QPushButton("打开")
@@ -231,8 +239,13 @@ class ZSerialTabPane:
         top_level = self.widget.window()
         geometry = top_level.geometry() if top_level is not None else None
         ports = self.view_model.available_port_infos()
-        current_port = self.port_input.currentText().strip()
+        profile_port = self.view_model.selected_port.strip()
+        current_data = self.port_input.currentData()
+        current_port = str(current_data).strip() if current_data else self.port_input.currentText().strip()
+        selected_port = profile_port or current_port
         self.port_input.clear()
+        if selected_port and selected_port not in {port.port for port in ports}:
+            self.port_input.addItem(f"{selected_port} (profile)", selected_port)
         for port in ports:
             label = self._port_label(port)
             index = self.port_input.count()
@@ -240,8 +253,8 @@ class ZSerialTabPane:
             item = self.port_input.model().item(index)
             if item is not None:
                 item.setToolTip(self._port_tooltip(port))
-        if current_port:
-            self.port_input.setEditText(current_port)
+        if selected_port:
+            self._select_port_item(selected_port)
         elif ports:
             self.port_input.setCurrentIndex(0)
         if geometry is not None:
@@ -253,10 +266,15 @@ class ZSerialTabPane:
 
     def selected_port_text(self) -> str:
         data = self.port_input.currentData()
-        text = self.port_input.currentText().strip()
-        if data and text and text.startswith(str(data)):
-            return str(data)
-        return text
+        if data:
+            return str(data).strip()
+        return self.view_model.selected_port.strip()
+
+    def _select_port_item(self, port: str) -> None:
+        for index in range(self.port_input.count()):
+            if self.port_input.itemData(index) == port:
+                self.port_input.setCurrentIndex(index)
+                return
 
     @staticmethod
     def _port_label(port: SerialPortInfo) -> str:
@@ -339,8 +357,8 @@ class ZSerialTabPane:
         self._append_status("search cleared")
 
     def apply_profile_fields(self) -> None:
-        self.port_input.setEditText(self.view_model.selected_port)
         self.baud_input.setText(str(self.view_model.baudrate))
+        self.refresh_ports()
         self._refresh_output()
         self.update_connection_buttons()
 
@@ -967,7 +985,20 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     plus_tab_adjacent = window.tabs.tabText(plus_tab_initial_index) == "＋" and plus_tab_initial_index == len(window.tab_manager.tabs)
     add_tab_toolbar_removed = getattr(window, "new_tab_button", None) is None
     demo = window.active_pane().view_model.open_virtual_demo()
-    window.active_pane().port_input.setEditText(demo.host_path)
+    window.active_pane().view_model.selected_port = demo.host_path
+    window.active_pane().apply_profile_fields()
+    profile_default_port_selected = window.active_pane().selected_port_text() == demo.host_path
+    dropdown_is_not_editable = not window.active_pane().port_input.isEditable()
+    dropdown_refresh_calls = {"count": 0}
+
+    def smoke_port_provider():
+        dropdown_refresh_calls["count"] += 1
+        return (SerialPortInfo(demo.host_path, "Virtual demo", "pty"),)
+
+    window.active_pane().view_model.port_provider = smoke_port_provider
+    window.active_pane().port_input.showPopup()
+    window.active_pane().port_input.hidePopup()
+    dropdown_refreshes_ports = dropdown_refresh_calls["count"] >= 1
     window.active_pane().update_connection_buttons()
     connection_button_toggles_to_close = window.active_pane().open_button.text() == "关闭" and window.active_pane().open_button.isEnabled()
     window.view_model.send_button("ping_btn")
@@ -1050,6 +1081,9 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"open={is_open_after_close}",
         f"connection_button_toggles_to_close={str(connection_button_toggles_to_close).lower()}",
         f"open_button_resets_after_close={str(open_button_resets_after_close).lower()}",
+        f"profile_default_port_selected={str(profile_default_port_selected).lower()}",
+        f"dropdown_is_not_editable={str(dropdown_is_not_editable).lower()}",
+        f"dropdown_refreshes_ports={str(dropdown_refreshes_ports).lower()}",
         f"has_error={str('ERROR virtual demo timeout' in html).lower()}",
         f"has_second_error={str('ERROR virtual demo timeout' in second_html).lower()}",
         f"has_red={str('#d70000' in html or 'red' in html).lower()}",

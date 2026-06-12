@@ -35,7 +35,8 @@ class ZSerialGuiShellTests(unittest.TestCase):
         manager = ZSerialTabManager(DEFAULT_WORKSPACE, transport_factory=factory)
         window = ZSerialMainWindow(widgets, tab_manager=manager, restore_session=False)
         pane = window.active_pane()
-        pane.port_input.setEditText("/dev/ttyACM0")
+        pane.view_model.selected_port = "/dev/ttyACM0"
+        pane.apply_profile_fields()
         pane.open_button.click()
         app.processEvents()
 
@@ -69,6 +70,41 @@ class ZSerialGuiShellTests(unittest.TestCase):
         self.assertEqual(pane.port_input.itemText(0), "/dev/ttyACM0")
         self.assertIn(long_description, pane.port_input.itemData(0, widgets[16].ItemDataRole.ToolTipRole))
 
+    def test_port_dropdown_uses_profile_default_and_refreshes_on_open(self):
+        try:
+            widgets = _load_qt_widgets()
+        except RuntimeError as exc:
+            self.assertIn("PySide6 is required", str(exc))
+            return
+
+        app = widgets[0].instance() or widgets[0]([])
+        calls = {"count": 0}
+
+        def provider():
+            calls["count"] += 1
+            if calls["count"] == 1:
+                return ()
+            return (SerialPortInfo("/dev/ttyACM1", "USB Serial", "hw1"),)
+
+        manager = ZSerialTabManager(DEFAULT_WORKSPACE)
+        window = ZSerialMainWindow(widgets, tab_manager=manager, restore_session=False)
+        pane = window.active_pane()
+        pane.view_model.selected_port = "/dev/ttyACM0"
+        pane.view_model.port_provider = provider
+        pane.apply_profile_fields()
+
+        self.assertFalse(pane.port_input.isEditable())
+        self.assertEqual(pane.selected_port_text(), "/dev/ttyACM0")
+        self.assertIn("profile", pane.port_input.itemText(0))
+
+        pane.port_input.showPopup()
+        app.processEvents()
+        pane.port_input.hidePopup()
+
+        self.assertGreaterEqual(calls["count"], 2)
+        self.assertEqual(pane.selected_port_text(), "/dev/ttyACM0")
+        self.assertEqual(pane.port_input.itemData(1), "/dev/ttyACM1")
+
     def test_offscreen_smoke_runs_or_reports_missing_qt(self):
         try:
             lines = run_offscreen_smoke()
@@ -92,6 +128,9 @@ class ZSerialGuiShellTests(unittest.TestCase):
             self.assertIn("add_tab_toolbar_removed=true", lines)
             self.assertIn("connection_button_toggles_to_close=true", lines)
             self.assertIn("open_button_resets_after_close=true", lines)
+            self.assertIn("profile_default_port_selected=true", lines)
+            self.assertIn("dropdown_is_not_editable=true", lines)
+            self.assertIn("dropdown_refreshes_ports=true", lines)
             self.assertIn("has_error=true", lines)
             self.assertIn("has_second_error=true", lines)
             self.assertIn("has_red=true", lines)
