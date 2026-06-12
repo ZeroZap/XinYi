@@ -11,6 +11,13 @@ class ZSerialRenderingTests(unittest.TestCase):
         self.assertEqual(color_to_css("#123456"), "#123456")
         self.assertEqual(color_to_css("unknown"), "#d4d4d4")
 
+    def test_default_foreground_stays_visible_with_transparent_background(self):
+        html = line_to_html(RenderedLine("normal rx", "default", "default", (), direction="rx"))
+
+        self.assertIn("color: #d4d4d4", html)
+        self.assertIn("background-color: transparent", html)
+        self.assertIn(">rx normal rx<", html)
+
     def test_line_to_html_escapes_text_and_applies_filter_colors(self):
         line = RenderedLine(
             text="ERROR <uart>",

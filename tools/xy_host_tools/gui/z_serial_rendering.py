@@ -23,7 +23,7 @@ _COLOR_MAP = {
 
 def color_to_css(color: str, default: str = _DEFAULT_FOREGROUND) -> str:
     normalized = color.strip().lower()
-    if not normalized:
+    if not normalized or normalized == "default":
         return default
     if normalized.startswith("#") and len(normalized) in (4, 7):
         return normalized

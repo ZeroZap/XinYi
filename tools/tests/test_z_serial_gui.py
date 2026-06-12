@@ -98,6 +98,8 @@ class ZSerialGuiShellTests(unittest.TestCase):
             self.assertIn("main_log_keeps_filtered_lines=true", lines)
             self.assertIn("tx_visible_in_log=true", lines)
             self.assertIn("filter_window_contains_matches=true", lines)
+            self.assertIn("main_log_shows_unmatched_rx=true", lines)
+            self.assertIn("filter_window_excludes_unmatched_rx=true", lines)
             self.assertIn("log_panel_visible=true", lines)
             self.assertIn("zed_sidebar_layout=true", lines)
             self.assertIn("zed_bottom_filter=true", lines)
