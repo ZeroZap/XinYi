@@ -111,11 +111,8 @@ class ZSerialTabPane:
         self.refresh_ports_button = QPushButton("刷新端口")
         self.open_button = QPushButton("打开")
         self.connect_button = self.open_button
-        self.virtual_demo_button = QPushButton("打开虚拟演示")
         self.close_button = QPushButton("关闭")
         self.close_button.hide()
-        self.send_version_button = QPushButton("发送 version")
-        self.simulate_response_button = QPushButton("模拟回包")
         self.poll_button = QPushButton("读取")
         self.clear_button = QPushButton("清屏")
         self.send_input = QLineEdit()
@@ -151,9 +148,6 @@ class ZSerialTabPane:
 
         action_row = QVBoxLayout()
         action_row.addWidget(QLabel("操作"))
-        action_row.addWidget(self.virtual_demo_button)
-        action_row.addWidget(self.send_version_button)
-        action_row.addWidget(self.simulate_response_button)
         action_row.addWidget(self.poll_button)
         action_row.addWidget(self.clear_button)
         action_row.addStretch(1)
@@ -224,10 +218,7 @@ class ZSerialTabPane:
     def _connect_signals(self) -> None:
         self.refresh_ports_button.clicked.connect(self.refresh_ports)
         self.open_button.clicked.connect(self.toggle_port)
-        self.virtual_demo_button.clicked.connect(self.open_virtual_demo)
         self.close_button.clicked.connect(self.close_port)
-        self.send_version_button.clicked.connect(self.send_version)
-        self.simulate_response_button.clicked.connect(self.simulate_response)
         self.poll_button.clicked.connect(self.poll_rx)
         self.clear_button.clicked.connect(self.clear_output)
         self.send_text_button.clicked.connect(self.send_text)
@@ -300,23 +291,6 @@ class ZSerialTabPane:
         self._append_status("closed")
         self.update_connection_buttons()
 
-    def open_virtual_demo(self) -> None:
-        try:
-            demo = self.view_model.open_virtual_demo()
-            self.port_input.setEditText(demo.host_path)
-            self._append_status(f"virtual demo opened host={demo.host_path} device={demo.device_path}")
-        except Exception as exc:
-            self._append_status(f"virtual demo failed: {exc}")
-        finally:
-            self.update_connection_buttons()
-
-    def send_version(self) -> None:
-        try:
-            payload = self.view_model.send_button("version")
-            self._refresh_output()
-            self._append_status(f"tx {payload.hex()}")
-        except Exception as exc:
-            self._append_status(f"send failed: {exc}")
 
     def send_text(self) -> None:
         text = self.send_input.text()
@@ -346,14 +320,6 @@ class ZSerialTabPane:
         if self.view_model.output_lines:
             self._refresh_output()
 
-    def simulate_response(self) -> None:
-        try:
-            command, lines = self.view_model.simulate_virtual_response()
-            self._append_status(f"device saw {command.hex() or '<empty>'}")
-            if lines:
-                self._refresh_output()
-        except Exception as exc:
-            self._append_status(f"simulate failed: {exc}")
 
     def clear_output(self) -> None:
         self.view_model.clear_output()
@@ -640,10 +606,7 @@ class ZSerialMainWindow:
         for button in (
             pane.refresh_ports_button,
             pane.open_button,
-            pane.virtual_demo_button,
             pane.close_button,
-            pane.send_version_button,
-            pane.simulate_response_button,
             pane.poll_button,
             pane.clear_button,
             pane.send_text_button,
@@ -724,24 +687,11 @@ class ZSerialMainWindow:
         if changed:
             self._set_status(f"rx updated {len(changed)} tab(s)")
 
-    def open_virtual_demo(self) -> None:
-        self.active_pane().open_virtual_demo()
-        self._set_status(self.active_pane().last_status)
-        self._save_session_state_if_ready()
-
-    def send_version(self) -> None:
-        self.active_pane().send_version()
-        self._set_status(self.active_pane().last_status)
-
     def send_text(self, text: str) -> None:
         pane = self.active_pane()
         pane.send_input.setText(text)
         pane.send_text()
         self._set_status(pane.last_status)
-
-    def simulate_response(self) -> None:
-        self.active_pane().simulate_response()
-        self._set_status(self.active_pane().last_status)
 
     def close_port(self) -> None:
         self.active_pane().close_port()
@@ -998,6 +948,12 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         and window.active_pane().filter_output.minimumHeight() <= 80
         and window.active_pane().port_input.minimumWidth() <= 160
     )
+    pane_button_texts = {button.text() for button in window.active_pane().widget.findChildren(widgets[9])}
+    virtual_action_buttons_removed = not {
+        "打开虚拟演示",
+        "发送 version",
+        "模拟回包",
+    }.intersection(pane_button_texts)
     window.add_filter("warn", "WARN", foreground="yellow")
     window.add_filter("noise", "debug", action="hide")
     color_label, color_value = window._build_color_picker_label("yellow")
@@ -1009,17 +965,18 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     plus_tab_initial_index = window.tabs.count() - 1
     plus_tab_adjacent = window.tabs.tabText(plus_tab_initial_index) == "＋" and plus_tab_initial_index == len(window.tab_manager.tabs)
     add_tab_toolbar_removed = getattr(window, "new_tab_button", None) is None
-    window.open_virtual_demo()
+    demo = window.active_pane().view_model.open_virtual_demo()
+    window.active_pane().port_input.setEditText(demo.host_path)
+    window.active_pane().update_connection_buttons()
     connection_button_toggles_to_close = window.active_pane().open_button.text() == "关闭" and window.active_pane().open_button.isEnabled()
     window.view_model.send_button("ping_btn")
-    window.send_version()
     window.send_text("ping")
-    demo = window.active_pane().view_model.virtual_demo
-    if demo is None:
-        raise RuntimeError("virtual demo missing during GUI smoke")
     custom_payload = demo.read_device_command()
     custom_no_crlf = custom_payload.endswith(b"ping") and not custom_payload.endswith(b"ping\r\n")
-    window.simulate_response()
+    command, lines = window.active_pane().view_model.simulate_virtual_response()
+    window.active_pane().last_status = f"device saw {command.hex() or '<empty>'}"
+    if lines:
+        window.active_pane()._refresh_output()
     window.active_pane().view_model.simulate_virtual_response(b"WARN gui editor\ndebug noisy raw log\nplain unmatched rx\n")
     window.active_pane()._refresh_output()
     html = window.active_pane().output.toHtml()
@@ -1049,9 +1006,10 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     second.view_model.load_filter_profile(filter_path)
     second_filter_path = second.view_model.filter_profile_path == filter_path
     first_filter_is_independent = second.view_model is not window.panes[window.tab_manager.tabs[0].tab_id].view_model
-    second.open_virtual_demo()
-    second.send_version()
-    second.simulate_response()
+    second.view_model.open_virtual_demo()
+    second.view_model.send_button("version")
+    second.view_model.simulate_virtual_response()
+    second._refresh_output()
     second_html = second.output.toHtml()
     window.poll_all_tabs()
     window.save_session_state()
@@ -1082,6 +1040,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"tab_close_enabled={str(tab_close_enabled).lower()}",
         f"default_window_compact={str(default_window_compact).lower()}",
         f"layout_allows_smaller_resize={str(layout_allows_smaller_resize).lower()}",
+        f"virtual_action_buttons_removed={str(virtual_action_buttons_removed).lower()}",
         f"add_after_all_closed_possible={str(add_after_all_closed_possible).lower()}",
         f"add_after_all_closed_works={str(add_after_all_closed_works).lower()}",
         f"add_tab_toolbar_removed={str(add_tab_toolbar_removed).lower()}",

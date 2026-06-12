@@ -86,6 +86,7 @@ class ZSerialGuiShellTests(unittest.TestCase):
             self.assertIn("tab_close_enabled=true", lines)
             self.assertIn("default_window_compact=true", lines)
             self.assertIn("layout_allows_smaller_resize=true", lines)
+            self.assertIn("virtual_action_buttons_removed=true", lines)
             self.assertIn("add_after_all_closed_possible=true", lines)
             self.assertIn("add_after_all_closed_works=true", lines)
             self.assertIn("add_tab_toolbar_removed=true", lines)
