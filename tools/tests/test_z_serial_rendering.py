@@ -28,15 +28,14 @@ class ZSerialRenderingTests(unittest.TestCase):
         self.assertIn("ERROR &lt;uart&gt;", html)
         self.assertNotIn("[RX]", html)
 
-    def test_line_to_html_marks_tx_and_blanks_unmatched_rx(self):
+    def test_line_to_html_marks_tx_and_rx_in_main_log(self):
         tx_html = line_to_html(RenderedLine("ping", "cyan", "default", (), direction="tx"))
         unmatched_rx_html = line_to_html(RenderedLine("pong", "default", "default", (), direction="rx"))
         matched_rx_html = line_to_html(RenderedLine("ERROR", "white", "red", ("error",), direction="rx"))
 
         self.assertIn(">tx ping<", tx_html)
-        self.assertIn('data-direction="RX"></span>', unmatched_rx_html)
-        self.assertNotIn("pong", unmatched_rx_html)
-        self.assertIn(">ERROR<", matched_rx_html)
+        self.assertIn(">rx pong<", unmatched_rx_html)
+        self.assertIn(">rx ERROR<", matched_rx_html)
         self.assertNotIn("[RX]", matched_rx_html)
 
     def test_lines_to_html_joins_lines_for_qt_rich_text(self):

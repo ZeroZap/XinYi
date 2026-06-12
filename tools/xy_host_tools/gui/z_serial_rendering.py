@@ -37,10 +37,10 @@ def line_to_html(line: RenderedLine) -> str:
     direction = escape(line.direction.upper())
     if line.direction.lower() == "tx":
         display_text = f"tx {line.text}"
-    elif line.matched_rules:
-        display_text = line.text
+    elif line.direction.lower() == "rx":
+        display_text = f"rx {line.text}"
     else:
-        display_text = ""
+        display_text = line.text
     text = escape(display_text)
     return (
         '<span style="'
