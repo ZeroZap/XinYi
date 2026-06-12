@@ -11,6 +11,8 @@
 
 使用 QEMU STM32 模拟器进行 XinYi 组件的虚拟调试，无需实际硬件即可开发和测试驱动代码。
 
+> 当前 STM32/CH32 统一 QEMU 部署流程见 `docs/XINYI_UNIFIED_QEMU_DEPLOY_GUIDE.md`，环境记录见 `docs/QEMU_DEPLOY_GUIDE.md`。
+
 ---
 
 ## ✅ 环境验证 (2026-03-17)

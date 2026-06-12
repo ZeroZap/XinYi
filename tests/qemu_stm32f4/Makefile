@@ -14,7 +14,8 @@ TOOLCHAIN_PATH ?= /home/eugene/Tools/arm-gnu-toolchain/bin
 CC      := $(TOOLCHAIN_PATH)/arm-none-eabi-gcc
 SIZE    := $(TOOLCHAIN_PATH)/arm-none-eabi-size
 
-QEMU         ?= qemu-system-arm
+QEMU_UNIFIED_ARM ?= /home/eugene/Tools/qemu-unified-10.2.2/bin/qemu-system-arm
+QEMU         ?= $(if $(wildcard $(QEMU_UNIFIED_ARM)),$(QEMU_UNIFIED_ARM),qemu-system-arm)
 QEMU_MACHINE ?= olimex-stm32-h405
 QEMU_TIMEOUT ?= 10
 

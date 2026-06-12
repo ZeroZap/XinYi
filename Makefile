@@ -9,6 +9,7 @@
 #   make test                         run PC unit tests + QEMU tests
 #   make test-unit                    run PC unit tests only
 #   make test-qemu                    run QEMU STM32F4 tests only
+#   make test-qemu-ch32v              run QEMU CH32V tests only
 #   make clean
 #   make distclean                    remove all build directories
 #   make help
@@ -41,9 +42,10 @@ CMAKE_FLAGS := \
 # Test directories
 UNIT_DIR := tests/unit
 QEMU_DIR := tests/qemu_stm32f4
+QEMU_CH32V_DIR := tests/qemu_ch32v
 
 # ---------- Targets ----------
-.PHONY: all configure clean distclean help test test-unit test-qemu
+.PHONY: all configure clean distclean help test test-unit test-qemu test-qemu-ch32v
 
 all: $(BUILD_DIR)/CMakeCache.txt
 	@cmake --build $(BUILD_DIR) -j$(JOBS)
@@ -77,10 +79,18 @@ test-qemu:
 	@echo "=========================================="
 	@$(MAKE) -C $(QEMU_DIR) test
 
+test-qemu-ch32v:
+	@echo ""
+	@echo "=========================================="
+	@echo "  QEMU CH32V tests ($(QEMU_CH32V_DIR))"
+	@echo "=========================================="
+	@$(MAKE) -C $(QEMU_CH32V_DIR) test
+
 clean:
 	@cmake --build $(BUILD_DIR) --target clean 2>/dev/null \
 	    || echo "(nothing to clean in $(BUILD_DIR))"
 	@$(MAKE) -C $(QEMU_DIR) clean 2>/dev/null || true
+	@$(MAKE) -C $(QEMU_CH32V_DIR) clean 2>/dev/null || true
 	@rm -rf $(UNIT_DIR)/build
 
 distclean:
@@ -89,6 +99,7 @@ distclean:
 	       build_wch build_hc32 build_xinyi build_flashdb_test build_full_test build_test \
 	       $(UNIT_DIR)/build
 	@$(MAKE) -C $(QEMU_DIR) clean 2>/dev/null || true
+	@$(MAKE) -C $(QEMU_CH32V_DIR) clean 2>/dev/null || true
 
 help:
 	@echo ""
@@ -109,6 +120,7 @@ help:
 	@echo "  test        run all PC unit tests + QEMU tests"
 	@echo "  test-unit   run PC unit tests only"
 	@echo "  test-qemu   run QEMU STM32F4 tests only"
+	@echo "  test-qemu-ch32v run QEMU CH32V tests only"
 	@echo "  clean       clean build artifacts"
 	@echo "  distclean   remove all build directories"
 	@echo "  help        show this message"
