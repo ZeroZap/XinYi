@@ -169,12 +169,26 @@ class ZSerialViewModelTests(unittest.TestCase):
         self.assertNotIn("boot", [rule.name for rule in view_model.filter_rows()])
         self.assertNotIn("boot", [button.name for button in view_model.button_rows()])
 
-    def test_profile_editor_requires_closed_port(self):
+    def test_profile_editor_reapplies_filters_while_port_is_open(self):
+        transport = MemorySerialTransport()
+        view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: transport)
+        view_model.open_port("virtual", 115200)
+        transport.feed_rx(b"WARN battery low\n")
+        lines = view_model.poll_rx()
+
+        rule = view_model.upsert_filter("warn", ("WARN",), foreground="yellow", priority=50)
+
+        self.assertEqual(lines[0].matched_rules, ())
+        self.assertEqual(rule.name, "warn")
+        self.assertEqual(view_model.output_lines[0].matched_rules, ("warn",))
+        self.assertEqual(view_model.output_lines[0].foreground, "yellow")
+
+    def test_button_editor_requires_closed_port(self):
         view_model = ZSerialWindowViewModel(transport_factory=lambda _port, _baudrate: MemorySerialTransport())
         view_model.open_port("virtual", 115200)
 
         with self.assertRaisesRegex(RuntimeError, "close serial port"):
-            view_model.upsert_filter("warn", ("WARN",))
+            view_model.upsert_button("ping", "Ping", "text", "ping")
 
     def test_port_provider_exposes_rich_port_info(self):
         view_model = ZSerialWindowViewModel(

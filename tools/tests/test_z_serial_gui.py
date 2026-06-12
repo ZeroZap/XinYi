@@ -101,6 +101,7 @@ class ZSerialGuiShellTests(unittest.TestCase):
             self.assertIn("filter_window_contains_matches=true", lines)
             self.assertIn("main_log_shows_unmatched_rx=true", lines)
             self.assertIn("filter_window_excludes_unmatched_rx=true", lines)
+            self.assertIn("live_filter_reapplies_existing_log=true", lines)
             self.assertIn("color_label_hex_preview=true", lines)
             self.assertIn("color_label_fixed_size=true", lines)
             self.assertIn("color_label_value_saves_hex=true", lines)

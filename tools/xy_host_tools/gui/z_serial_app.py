@@ -767,6 +767,7 @@ class ZSerialMainWindow:
             background=background,
             action=action,
         )
+        self.active_pane()._refresh_output()
         self._set_status(f"filter saved {rule.name}")
 
     def add_button(
@@ -988,6 +989,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     filter_window_contains_matches = "WARN gui editor" in filter_html and "debug noisy raw log" in filter_html
     main_log_shows_unmatched_rx = "rx plain unmatched rx" in html
     filter_window_excludes_unmatched_rx = "plain unmatched rx" not in filter_html
+    window.add_filter("plain", "plain", foreground="#00ff00")
+    live_filter_reapplies_existing_log = "plain unmatched rx" in window.active_pane().filter_output.toPlainText()
     log_panel_visible = window.active_pane().output.minimumHeight() >= 180 and "ERROR virtual demo timeout" in html
     custom_status = window.active_pane().last_status
     filter_summary_hidden = "warn: hits=1" not in window.active_pane().filter_output.toPlainText()
@@ -1056,6 +1059,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"filter_window_contains_matches={str(filter_window_contains_matches).lower()}",
         f"main_log_shows_unmatched_rx={str(main_log_shows_unmatched_rx).lower()}",
         f"filter_window_excludes_unmatched_rx={str(filter_window_excludes_unmatched_rx).lower()}",
+        f"live_filter_reapplies_existing_log={str(live_filter_reapplies_existing_log).lower()}",
         f"color_label_hex_preview={str(color_label_hex_preview).lower()}",
         f"color_label_fixed_size={str(color_label_fixed_size).lower()}",
         f"color_label_value_saves_hex={str(color_label_value_saves_hex).lower()}",

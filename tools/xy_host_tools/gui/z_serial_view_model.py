@@ -5,6 +5,7 @@ from typing import Callable
 
 from ..serial_cli import DEFAULT_WORKSPACE
 from ..serial_config import ActionButton, FilterRule, SerialWindowProfile, SerialWorkspaceProfile
+from ..serial_filter import apply_filters
 from ..serial_filter_profile import load_filter_profile, save_filter_profile
 from ..serial_profile import load_workspace_profile, save_workspace_profile
 from ..serial_service import SerialWindowSession, SerialWorkspaceService
@@ -224,7 +225,6 @@ class ZSerialWindowViewModel:
         priority: int = 0,
         enabled: bool = True,
     ) -> FilterRule:
-        self._assert_profile_editable()
         filter_name = name.strip()
         if not filter_name:
             raise ValueError("filter name is required")
@@ -246,16 +246,15 @@ class ZSerialWindowViewModel:
             self.workspace,
             filters=tuple(existing for existing in self.workspace.filters if existing.name != rule.name) + (rule,),
         )
-        self._reset_service_for_profile_edit()
+        self._apply_filter_profile_edit()
         return rule
 
     def remove_filter(self, name: str) -> bool:
-        self._assert_profile_editable()
         updated = tuple(rule for rule in self.workspace.filters if rule.name != name)
         changed = len(updated) != len(self.workspace.filters)
         if changed:
             self.workspace = replace(self.workspace, filters=updated)
-            self._reset_service_for_profile_edit()
+            self._apply_filter_profile_edit()
         return changed
 
     def upsert_button(
@@ -311,12 +310,11 @@ class ZSerialWindowViewModel:
         return self.save_filter_profile(path, name=name)
 
     def load_filter_profile(self, path: str) -> tuple[FilterRule, ...]:
-        self._assert_profile_editable()
         profile_name, filters = load_filter_profile(path)
         self.workspace = replace(self.workspace, name=self.workspace.name, filters=filters)
         self.filter_profile_path = path
         self.filter_profile_name = profile_name
-        self._reset_service_for_profile_edit()
+        self._apply_filter_profile_edit()
         return filters
 
     def save_profile(self, path: str) -> None:
@@ -350,6 +348,32 @@ class ZSerialWindowViewModel:
 
     def _reset_service_for_profile_edit(self) -> None:
         self.service = SerialWorkspaceService(self.workspace)
+
+    def _apply_filter_profile_edit(self) -> None:
+        if self.session is None:
+            self._reset_service_for_profile_edit()
+        else:
+            self.service.workspace = self.workspace
+            self.session.workspace = self.workspace
+        self._reapply_filters_to_output_lines()
+
+    def _reapply_filters_to_output_lines(self) -> None:
+        rules = self.workspace.effective_filters_for(self.session.window) if self.session is not None else self.workspace.filters
+        updated: list[RenderedLine] = []
+        for line in self.output_lines:
+            if line.direction != "rx":
+                updated.append(line)
+                continue
+            result = apply_filters(line.text, rules)
+            updated.append(
+                replace(
+                    line,
+                    foreground=result.foreground,
+                    background=result.background,
+                    matched_rules=result.matched_rules,
+                )
+            )
+        self.output_lines = updated
 
     def _append_tx(self, data: bytes) -> None:
         self.output_lines.append(
