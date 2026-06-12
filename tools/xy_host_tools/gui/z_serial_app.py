@@ -14,6 +14,9 @@ from .z_serial_tabs import ZSerialTab, ZSerialTabManager
 from .z_serial_view_model import ZSerialWindowViewModel
 
 
+FILTER_DIALOG_MIN_WIDTH = 360
+
+
 def render_startup_lines() -> tuple[str, ...]:
     return ()
 
@@ -827,69 +830,60 @@ class ZSerialMainWindow:
         button = self.view_model.upsert_button(name, label, mode, payload, append_newline=append_newline)
         self._set_status(f"button saved {button.name}")
 
-    def _build_color_picker_row(self, initial_color: str, *, allow_default: bool = True):
+    def _build_color_picker_label(self, initial_color: str):
+        from PySide6.QtCore import Qt
         from PySide6.QtGui import QColor
-        from PySide6.QtWidgets import QColorDialog, QHBoxLayout, QLineEdit, QPushButton, QWidget
+        from PySide6.QtWidgets import QColorDialog, QPushButton
 
-        row = QWidget()
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        color_input = QLineEdit(initial_color)
-        preview = QPushButton()
-        preview.setEnabled(False)
-        preview.setFixedWidth(48)
-        choose_button = QPushButton("选择")
-        default_button = QPushButton("默认")
-        default_button.setVisible(allow_default)
+        selected_color = {"value": self._normalize_filter_color(initial_color)}
+        label = QPushButton()
+        label.setFixedSize(96, 30)
+        label.setCursor(Qt.CursorShape.PointingHandCursor)
+        label.setToolTip("点击选择颜色")
 
-        def normalize_color(value: str) -> str:
-            text = value.strip()
-            if not text:
-                return "default" if allow_default else "#ffffff"
-            if text.lower() == "default":
-                return "default"
-            color = QColor(text)
-            if color.isValid():
-                return color.name()
-            return text
-
-        def preview_css(value: str) -> tuple[str, str]:
-            normalized = normalize_color(value)
-            if normalized.lower() == "default":
-                return "#d4d4d4", "default"
-            color = QColor(normalized)
-            if color.isValid():
-                return color.name(), color.name()
-            return "#d4d4d4", normalized
-
-        def update_preview() -> None:
-            css_color, label = preview_css(color_input.text())
-            preview.setText(label)
-            preview.setStyleSheet(f"background-color: {css_color}; color: #111111;")
+        def render_label() -> None:
+            color = QColor(selected_color["value"])
+            text = color.name() if color.isValid() else "#d4d4d4"
+            label.setText(text)
+            label.setStyleSheet(
+                f"background-color: {text}; color: {self._contrast_text_color(text)};"
+                "border: 1px solid #555555; border-radius: 4px; padding: 4px;"
+            )
 
         def choose_color() -> None:
-            current = QColor(normalize_color(color_input.text()))
+            current = QColor(selected_color["value"])
             if not current.isValid():
                 current = QColor("#d4d4d4")
             selected = QColorDialog.getColor(current, self.window, "选择过滤器颜色")
             if selected.isValid():
-                color_input.setText(selected.name())
-                update_preview()
+                selected_color["value"] = selected.name()
+                render_label()
 
-        def reset_default() -> None:
-            color_input.setText("default")
-            update_preview()
+        label.clicked.connect(choose_color)
+        render_label()
+        return label, lambda: selected_color["value"]
 
-        color_input.textChanged.connect(lambda _text: update_preview())
-        choose_button.clicked.connect(choose_color)
-        default_button.clicked.connect(reset_default)
-        layout.addWidget(color_input)
-        layout.addWidget(preview)
-        layout.addWidget(choose_button)
-        layout.addWidget(default_button)
-        row.setLayout(layout)
-        update_preview()
-        return row, color_input, preview
+    @staticmethod
+    def _normalize_filter_color(value: str) -> str:
+        from PySide6.QtGui import QColor
+
+        text = value.strip()
+        if not text or text.lower() == "default":
+            return "#d4d4d4"
+        color = QColor(text)
+        if color.isValid():
+            return color.name()
+        return "#d4d4d4"
+
+    @staticmethod
+    def _contrast_text_color(color_value: str) -> str:
+        from PySide6.QtGui import QColor
+
+        color = QColor(color_value)
+        if not color.isValid():
+            return "#111111"
+        brightness = (color.red() * 299 + color.green() * 587 + color.blue() * 114) / 1000
+        return "#111111" if brightness >= 140 else "#f5f5f5"
 
     def edit_filter_dialog(self) -> None:
         try:
@@ -897,26 +891,28 @@ class ZSerialMainWindow:
 
             dialog = QDialog(self.window)
             dialog.setWindowTitle("编辑过滤器")
+            dialog.setMinimumWidth(FILTER_DIALOG_MIN_WIDTH)
             name_input = QLineEdit("warn")
             keywords_input = QLineEdit("WARN,WARNING")
-            foreground_row, foreground_input, _foreground_preview = self._build_color_picker_row("yellow")
-            background_row, background_input, _background_preview = self._build_color_picker_row("default")
+            foreground_label, foreground_value = self._build_color_picker_label("yellow")
+            background_label, background_value = self._build_color_picker_label("#d4d4d4")
             form = QFormLayout()
             form.addRow("名称", name_input)
             form.addRow("关键词(逗号分隔)", keywords_input)
-            form.addRow("前景色", foreground_row)
-            form.addRow("背景色", background_row)
+            form.addRow("前景色", foreground_label)
+            form.addRow("背景色", background_label)
             buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
             buttons.accepted.connect(dialog.accept)
             buttons.rejected.connect(dialog.reject)
             form.addWidget(buttons)
             dialog.setLayout(form)
+            dialog.adjustSize()
             if dialog.exec() == QDialog.DialogCode.Accepted:
                 self.add_filter(
                     name_input.text(),
                     keywords_input.text(),
-                    foreground_input.text(),
-                    background_input.text(),
+                    foreground_value(),
+                    background_value(),
                 )
         except Exception as exc:
             self._set_status(f"filter edit failed: {exc}")
@@ -1004,13 +1000,11 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     )
     window.add_filter("warn", "WARN", foreground="yellow")
     window.add_filter("noise", "debug", action="hide")
-    _color_row, color_input, color_preview = window._build_color_picker_row("yellow")
-    color_picker_initial_preview = "background-color" in color_preview.styleSheet() and color_preview.text().startswith("#")
-    color_input.setText("#123456")
-    app.processEvents()
-    color_picker_updates_preview = "#123456" in color_preview.styleSheet() and color_preview.text() == "#123456"
-    default_row, _default_input, default_preview = window._build_color_picker_row("default")
-    color_picker_default_preview = "default" in default_preview.text() and "#d4d4d4" in default_preview.styleSheet()
+    color_label, color_value = window._build_color_picker_label("yellow")
+    color_label_hex_preview = color_label.text() == "#ffff00" and "background-color: #ffff00" in color_label.styleSheet()
+    color_label_fixed_size = color_label.minimumSize() == color_label.maximumSize()
+    color_label_value_saves_hex = color_value() == "#ffff00"
+    filter_dialog_min_width_stable = FILTER_DIALOG_MIN_WIDTH >= 360
     window.add_button("ping_btn", "Ping", "text", "ping", append_newline=True)
     plus_tab_initial_index = window.tabs.count() - 1
     plus_tab_adjacent = window.tabs.tabText(plus_tab_initial_index) == "＋" and plus_tab_initial_index == len(window.tab_manager.tabs)
@@ -1103,9 +1097,10 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"filter_window_contains_matches={str(filter_window_contains_matches).lower()}",
         f"main_log_shows_unmatched_rx={str(main_log_shows_unmatched_rx).lower()}",
         f"filter_window_excludes_unmatched_rx={str(filter_window_excludes_unmatched_rx).lower()}",
-        f"color_picker_initial_preview={str(color_picker_initial_preview).lower()}",
-        f"color_picker_updates_preview={str(color_picker_updates_preview).lower()}",
-        f"color_picker_default_preview={str(color_picker_default_preview).lower()}",
+        f"color_label_hex_preview={str(color_label_hex_preview).lower()}",
+        f"color_label_fixed_size={str(color_label_fixed_size).lower()}",
+        f"color_label_value_saves_hex={str(color_label_value_saves_hex).lower()}",
+        f"filter_dialog_min_width_stable={str(filter_dialog_min_width_stable).lower()}",
         f"log_panel_visible={str(log_panel_visible).lower()}",
         f"zed_sidebar_layout={str(zed_sidebar_layout).lower()}",
         f"zed_bottom_filter={str(zed_bottom_filter).lower()}",
