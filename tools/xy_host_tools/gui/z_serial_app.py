@@ -390,17 +390,7 @@ class ZSerialTabPane:
         self._scroll_to_bottom()
 
     def _filter_panel_text(self) -> str:
-        summaries = [
-            f"{summary.name}: hits={summary.hits} enabled={str(summary.enabled).lower()} keywords={','.join(summary.keywords)}"
-            for summary in self.view_model.filter_summaries()
-        ]
-        matched = [line.as_plain_text() for line in self.view_model.output_lines if line.matched_rules]
-        sections = []
-        if summaries:
-            sections.append("规则摘要\n" + "\n".join(summaries))
-        if matched:
-            sections.append("命中内容\n" + "\n".join(matched))
-        return "\n\n".join(sections)
+        return "\n".join(line.text for line in self.view_model.output_lines if line.matched_rules)
 
     def _scroll_to_bottom(self) -> None:
         scrollbar = self.output.verticalScrollBar()
@@ -434,7 +424,7 @@ class ZSerialMainWindow:
             QTabWidget,
             _QTextEdit,
             QToolButton,
-            _Qt,
+            Qt,
             QTimer,
             QVBoxLayout,
             QWidget,
@@ -449,6 +439,14 @@ class ZSerialMainWindow:
         self.panes: dict[str, ZSerialTabPane] = {}
         self.window = QMainWindow()
         self.window.setWindowTitle("z-serial")
+        self.window.setWindowFlags(
+            Qt.WindowType.Window
+            | Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowSystemMenuHint
+            | Qt.WindowType.WindowMinimizeButtonHint
+            | Qt.WindowType.WindowMaximizeButtonHint
+            | Qt.WindowType.WindowCloseButtonHint
+        )
         self.window.setWindowIcon(self.window.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
 
         self.add_tab_action = QAction("新增串口", self.window)
@@ -923,6 +921,16 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         )
     )
     window_close_icon_present = not window.window.windowIcon().isNull()
+    window_flags = window.window.windowFlags()
+    window_controls_present = all(
+        bool(window_flags & flag)
+        for flag in (
+            widgets[16].WindowType.WindowSystemMenuHint,
+            widgets[16].WindowType.WindowMinimizeButtonHint,
+            widgets[16].WindowType.WindowMaximizeButtonHint,
+            widgets[16].WindowType.WindowCloseButtonHint,
+        )
+    )
     tab_close_enabled = window.tabs.tabsClosable()
     default_window_compact = window.window.size().width() <= 960 and window.window.size().height() <= 600
     layout_allows_smaller_resize = (
@@ -954,11 +962,11 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     zed_sidebar_layout = window.active_pane().main_splitter.count() == 2
     zed_bottom_filter = window.active_pane().content_splitter.count() == 2 and "WARN gui editor" in filter_html
     main_log_keeps_filtered_lines = "debug noisy raw log" in html
-    tx_visible_in_log = "[TX] ping" in html or "[TX] version" in html
+    tx_visible_in_log = "tx ping" in html or "tx version" in html
     filter_window_contains_matches = "WARN gui editor" in filter_html and "debug noisy raw log" in filter_html
     log_panel_visible = window.active_pane().output.minimumHeight() >= 180 and "ERROR virtual demo timeout" in html
     custom_status = window.active_pane().last_status
-    filter_summary_visible = "warn: hits=1" in window.active_pane().filter_output.toPlainText()
+    filter_summary_hidden = "warn: hits=1" not in window.active_pane().filter_output.toPlainText()
     window.active_pane().search_input.setText("timeout")
     window.active_pane().search_output()
     search_finds_timeout = "ERROR virtual demo timeout" in window.active_pane().filter_output.toPlainText()
@@ -1003,6 +1011,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"menu_framework_present={str(menu_framework_present).lower()}",
         f"top_buttons_hidden={str(top_buttons_hidden).lower()}",
         f"window_close_icon_present={str(window_close_icon_present).lower()}",
+        f"window_controls_present={str(window_controls_present).lower()}",
         f"tab_close_enabled={str(tab_close_enabled).lower()}",
         f"default_window_compact={str(default_window_compact).lower()}",
         f"layout_allows_smaller_resize={str(layout_allows_smaller_resize).lower()}",
@@ -1022,7 +1031,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"log_panel_visible={str(log_panel_visible).lower()}",
         f"zed_sidebar_layout={str(zed_sidebar_layout).lower()}",
         f"zed_bottom_filter={str(zed_bottom_filter).lower()}",
-        f"filter_summary_visible={str(filter_summary_visible).lower()}",
+        f"filter_summary_hidden={str(filter_summary_hidden).lower()}",
         f"search_finds_timeout={str(search_finds_timeout).lower()}",
         f"session_restored={str(session_restored).lower()}",
         f"has_editor_button={str(editor_button_present).lower()}",
@@ -1031,7 +1040,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"tab_filters_independent={str(first_filter_is_independent).lower()}",
         f"custom_tx={str(custom_status.startswith('device saw')).lower()}",
         f"custom_no_crlf={str(custom_no_crlf).lower()}",
-        f"status_outside_rx={str('tx ' not in html and 'device saw' not in html).lower()}",
+        f"status_outside_rx={str('device saw' not in html).lower()}",
         f"cleared={str(cleared).lower()}",
     )
 
