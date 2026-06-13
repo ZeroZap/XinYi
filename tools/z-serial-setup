@@ -11,6 +11,6 @@ python3 -m venv tools/.venv
     -i https://pypi.tuna.tsinghua.edu.cn/simple \
     --trusted-host pypi.tuna.tsinghua.edu.cn \
     --timeout 120 \
-    PySide6 pyserial
+    -r tools/requirements-z-serial.txt
 
 echo "z-serial environment ready. Start with: tools/z-serial"

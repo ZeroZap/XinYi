@@ -18,6 +18,26 @@ cd /home/eugene/zerozap/XinYi
 tools/z-serial
 ```
 
+Windows 启动 GUI：
+
+```bat
+tools\z-serial.cmd
+```
+
+生成 PyInstaller 桌面包：
+
+```bash
+tools/z-serial-package
+```
+
+Windows 生成 PyInstaller 桌面包：
+
+```bat
+tools\z-serial-package.cmd
+```
+
+产物目录：`dist/z-serial/`，Windows 下入口为 `dist\z-serial\z-serial.exe`，Linux/macOS 下入口为 `dist/z-serial/z-serial`。
+
 如果桌面环境缺少 xcb/wayland 依赖，可先跑 offscreen 验证：
 
 ```bash
@@ -41,13 +61,19 @@ cleared=true
 
 ## 2. 依赖安装
 
-GUI 依赖 PySide6，真实串口访问依赖 pyserial。首次使用直接运行：
+GUI 依赖 PySide6，真实串口访问依赖 pyserial，打包依赖 PyInstaller。首次使用直接运行：
 
 ```bash
 tools/z-serial-setup
 ```
 
-脚本会创建/复用 `tools/.venv/` 并安装 `PySide6`、`pyserial`。
+Windows 首次使用：
+
+```bat
+tools\z-serial-setup.cmd
+```
+
+脚本会创建/复用 `tools/.venv/` 并安装 `tools/requirements-z-serial.txt` 中的 `PySide6`、`pyserial`、`pyinstaller`。
 
 当前测试和虚拟串口演示不依赖真实串口硬件。
 

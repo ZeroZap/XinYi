@@ -105,6 +105,13 @@ __pycache__/
 htmlcov/
 .pyre/
 
+# PyInstaller packaged z-serial artifacts
+dist/
+tools/dist/
+build/
+tools/build/
+*.spec.bak
+
 # Qt / GUI runtime scratch
 .qt_for_python/
 
