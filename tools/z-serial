@@ -12,4 +12,14 @@ fi
 
 cd "$REPO_ROOT"
 export PYTHONPATH=tools
+
+if [[ -z "${Z_SERIAL_DIALOUT_REEXEC:-}" ]] \
+    && getent group dialout >/dev/null \
+    && id -nG "$USER" | tr ' ' '\n' | grep -qx dialout \
+    && ! id -nG | tr ' ' '\n' | grep -qx dialout \
+    && command -v sg >/dev/null 2>&1; then
+    export Z_SERIAL_DIALOUT_REEXEC=1
+    exec sg dialout -c "cd '$REPO_ROOT' && PYTHONPATH=tools Z_SERIAL_DIALOUT_REEXEC=1 '$PYTHON' -m xy_host_tools.serial_cli gui $(printf '%q ' "$@")"
+fi
+
 exec "$PYTHON" -m xy_host_tools.serial_cli gui "$@"

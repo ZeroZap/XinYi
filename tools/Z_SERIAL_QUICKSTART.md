@@ -83,6 +83,8 @@ sudo tools/z-serial-permissions
 
 默认匹配当前常用 WCH USB Quad Serial `1a86:55d5`，会安装 `/etc/udev/rules.d/60-z-serial.rules`、把当前用户加入 `dialout`、reload udev，并给已插入设备临时 ACL。执行后重新插拔 USB 串口；`dialout` 组权限需要退出登录再重新登录后对所有终端永久生效。其他 USB 串口可传 VID/PID：`sudo tools/z-serial-permissions 1a86 7523`。
 
+如果已经加入 `dialout` 但当前桌面/终端还没重新登录，`tools/z-serial` 会自动通过 `sg dialout` 重启 GUI，让当前会话也能打开串口。
+
 当前测试和虚拟串口演示不依赖真实串口硬件。
 
 ## 3. GUI 怎么用
