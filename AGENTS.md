@@ -1,10 +1,10 @@
 # AGENTS.md
 
 ## Commands
-- Default local build is PC simulation: `make` configures `build_pc` with `HAL_PLATFORM=PC`, `BUILD_TYPE=Release`, `BUILD_TESTS=OFF`, then builds it.
+- Default local build is PC simulation: `make` configures `build/pc` with `HAL_PLATFORM=PC`, `BUILD_TYPE=Release`, `BUILD_TESTS=OFF`, then builds it.
 - Useful Makefile variants: `make BUILD_TYPE=debug`, `make HAL_PLATFORM=STM32U5`, `make HAL_PLATFORM=STM32F4 BUILD_TESTS=ON`, `make FOTA=ON`, `make configure`, `make distclean`.
-- Direct CMake equivalent: `cmake -B build_pc -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release && cmake --build build_pc -j$(nproc)`.
-- Run PC unit tests only with `make test-unit`; this configures and runs `tests/unit/build` with `ctest --output-on-failure`.
+- Direct CMake equivalent: `cmake -B build/pc -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release && cmake --build build/pc -j$(nproc)`.
+- Run PC unit tests only with `make test-unit`; this configures and runs `build/tests/unit` with `ctest --output-on-failure`.
 - Run QEMU STM32F4 tests only with `make test-qemu`; it delegates to `tests/qemu_stm32f4/Makefile`.
 - `make test` runs both PC unit tests and QEMU tests, so it requires QEMU plus the ARM toolchain.
 - Focused QEMU checks: from `tests/qemu_stm32f4`, use `make list`, `make hal_test`, `make run-hal_test`, or `make test`.

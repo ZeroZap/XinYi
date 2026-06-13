@@ -4,13 +4,13 @@
 
 ```
 XinYi/
-├── build/                    # 主构建目录 (PC)
-├── build_full_test/         # 完整功能测试构建
-├── build_stm32f4_test/      # STM32F4 测试构建
-├── build_stm32f4_validation/ # STM32F4 验证构建
-├── build_stm32u5_validation/ # STM32U5 验证构建
-├── build_hc32l021_test/      # HC32 测试构建
-└── build_atc_test/           # ATC 测试构建
+└── build/
+    ├── pc/                  # 默认 PC Release 构建
+    ├── stm32f4/             # STM32F4 构建
+    ├── stm32u5/             # STM32U5 构建
+    ├── wch/                 # WCH/CH32 构建
+    ├── hc32/                # HC32 构建
+    └── tests/unit/          # PC 单元测试构建
 ```
 
 ## 🚀 Quick Build
@@ -18,75 +18,65 @@ XinYi/
 ### PC 平台 (推荐)
 ```bash
 cd XinYi
-rm -rf build && mkdir build
-cd build
-cmake .. -DXY_PLATFORM_PC=ON -DXY_CONFIG_SENSOR_ENABLED=ON \
-         -DXY_CONFIG_ACTUATOR_ENABLED=ON -DXY_CONFIG_SMBUS_ENABLED=ON
-make -j4
+make
 ```
 
 ### STM32F4 平台
 ```bash
 cd XinYi
-rm -rf build_stm32f4_test && mkdir build_stm32f4_test
-cd build_stm32f4_test
-cmake .. -DXY_PLATFORM_STM32F4=ON -DXY_HAL_STM32=ON
-make -j4
+make HAL_PLATFORM=STM32F4
 ```
 
 ### STM32U5 平台
 ```bash
 cd XinYi
-rm -rf build_stm32u5_validation && mkdir build_stm32u5_validation
-cd build_stm32u5_validation
-cmake .. -DXY_PLATFORM_STM32U5=ON -DXY_HAL_STM32=ON
-make -j4
+make HAL_PLATFORM=STM32U5
 ```
 
 ## ⚙️ CMake 选项
 
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
-| `XY_PLATFORM_PC` | PC 平台 | OFF |
-| `XY_PLATFORM_STM32F4` | STM32F4 平台 | OFF |
-| `XY_PLATFORM_STM32U5` | STM32U5 平台 | OFF |
-| `XY_CONFIG_SENSOR_ENABLED` | 启用传感器组件 | ON |
-| `XY_CONFIG_ACTUATOR_ENABLED` | 启用执行器组件 | ON |
-| `XY_CONFIG_SMBUS_ENABLED` | 启用 SMBus/PMBus | ON |
-| `XY_GUI_ENABLED` | 启用 GUI | ON |
-| `XY_CONFIG_LOG_ENABLED` | 启用日志 | OFF |
+| `HAL_PLATFORM` | 平台：`PC` / `STM32F4` / `STM32U5` / `WCH` / `HC32` | `PC` |
+| `BUILD_TYPE` | `Release` / `Debug` | `Release` |
+| `BUILD_TESTS` | 是否启用根 CMake 测试 | `OFF` |
+| `FOTA` | 是否启用 FOTA | `OFF` |
+| `BUILD_ROOT` | 统一构建根目录 | `build` |
+| `BUILD_DIR` | CMake 输出目录 | `build/<platform>` |
 
 ## 📋 推荐的构建目录
 
 | 用途 | 目录 | 说明 |
 |------|------|------|
-| 开发调试 | `build/` | PC 平台快速验证 |
-| 功能测试 | `build_full_test/` | 完整功能测试 |
-| STM32F4 | `build_stm32f4_test/` | F4 芯片测试 |
-| STM32U5 | `build_stm32u5_validation/` | U5 芯片验证 |
+| PC 默认构建 | `build/pc/` | `make` |
+| STM32F4 | `build/stm32f4/` | `make HAL_PLATFORM=STM32F4` |
+| STM32U5 | `build/stm32u5/` | `make HAL_PLATFORM=STM32U5` |
+| WCH/CH32 | `build/wch/` | `make HAL_PLATFORM=WCH` |
+| HC32 | `build/hc32/` | `make HAL_PLATFORM=HC32` |
+| PC 单元测试 | `build/tests/unit/` | `make test-unit` |
+| STM32F4 QEMU | `build/qemu/stm32f4/` | `make test-qemu` |
+| CH32V QEMU | `build/qemu/ch32v/` | `make test-qemu-ch32v` |
+
+更完整的构建入口和输出目录说明见 `docs/BUILD_PROCESS_OUTPUTS.md`。
 
 ## 🗑️ 清理旧构建
 
 ```bash
-# 删除所有 build_* 目录
+# 删除统一 build 目录、旧 build_* 目录、examples/tests/components 下常见嵌套 build 目录
 cd XinYi
-for d in build_*; do [ -d "$d" ] && rm -rf "$d"; done
-
-# 仅保留推荐目录
-mkdir build build_stm32f4_test build_stm32u5_validation
+make distclean
 ```
 
 ## 🔧 常用构建命令
 
 ```bash
 # 清理后重新构建
-rm -rf build && mkdir build && cd build
-cmake .. && make -j4
+make distclean
+make
 
 # 只构建特定目标
-make xy_sensor
-make xy_actuator
-make xy_smbus
+cmake --build build/pc --target xy_sensor
+cmake --build build/pc --target xy_actuator
 
 # 查看所有可用目标
 make help
@@ -94,7 +84,7 @@ make help
 
 ## 📁 输出文件
 
-构建产物位于各 `build_*/` 目录下：
+构建产物默认位于 `build/<platform>/` 目录下：
 - `*.a` - 静态库文件
 - `*.elf` / `*.bin` - 可执行文件 (嵌入式平台)
 - `CMakeFiles/` - 编译中间文件

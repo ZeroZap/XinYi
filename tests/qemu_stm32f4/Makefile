@@ -18,6 +18,7 @@ QEMU_UNIFIED_ARM ?= /home/eugene/Tools/qemu-unified-10.2.2/bin/qemu-system-arm
 QEMU         ?= $(if $(wildcard $(QEMU_UNIFIED_ARM)),$(QEMU_UNIFIED_ARM),qemu-system-arm)
 QEMU_MACHINE ?= olimex-stm32-h405
 QEMU_TIMEOUT ?= 10
+BUILD_DIR    ?= ../../build/qemu/stm32f4
 
 CPU_FLAGS := -mcpu=cortex-m4 -mthumb -mfloat-abi=softfp -mfpu=fpv4-sp-d16
 CFLAGS    := $(CPU_FLAGS) -O0 -g3 -Wall -ffreestanding
@@ -29,8 +30,8 @@ TESTS := $(patsubst %/src/main.c,%,$(wildcard */src/main.c))
 # Tests considered runnable as non-interactive PASS/FAIL checks.
 RUNNABLE_TESTS := hal_test alg_test components_test
 
-# Build artifact for each test: <dir>/<dir>.elf
-ELFS := $(foreach t,$(TESTS),$(t)/$(t).elf)
+# Build artifact for each test: ../../build/qemu/stm32f4/<dir>.elf
+ELFS := $(foreach t,$(TESTS),$(BUILD_DIR)/$(t).elf)
 
 .PHONY: all clean test list $(TESTS) $(addprefix run-,$(TESTS))
 
@@ -40,28 +41,29 @@ list:
 	@echo "Discovered tests:"
 	@for t in $(TESTS); do echo "  $$t"; done
 
-# Per-test convenience target: `make hal_test` builds hal_test/hal_test.elf
+# Per-test convenience target: `make hal_test` builds into $(BUILD_DIR)
 define TEST_template
-$(1): $(1)/$(1).elf
-$(1)/$(1).elf: $(1)/src/main.c $(1)/src/startup.c stm32f405rg.ld
+$(1): $(BUILD_DIR)/$(1).elf
+$(BUILD_DIR)/$(1).elf: $(1)/src/main.c $(1)/src/startup.c stm32f405rg.ld
+	@mkdir -p $$(dir $$@)
 	@echo "  CC    $$@"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $$@ $(1)/src/main.c $(1)/src/startup.c
 	@$(SIZE) $$@ | tail -1
-run-$(1): $(1)/$(1).elf
+run-$(1): $(BUILD_DIR)/$(1).elf
 	@echo "  RUN   $$<"
 	@timeout $(QEMU_TIMEOUT) $(QEMU) -M $(QEMU_MACHINE) -nographic \
-	    -kernel $$< -semihosting 2>&1 | tee $(1)/test_output.log || true
+	    -kernel $$< -semihosting 2>&1 | tee $(BUILD_DIR)/$(1).log || true
 endef
 $(foreach t,$(TESTS),$(eval $(call TEST_template,$(t))))
 
 # Run all non-interactive tests and report PASS/FAIL aggregate
-test: $(foreach t,$(RUNNABLE_TESTS),$(t)/$(t).elf)
+test: $(foreach t,$(RUNNABLE_TESTS),$(BUILD_DIR)/$(t).elf)
 	@total_pass=0; total_fail=0; failed=""; \
 	for t in $(RUNNABLE_TESTS); do \
 	    echo "=== $$t ==="; \
 	    timeout $(QEMU_TIMEOUT) $(QEMU) -M $(QEMU_MACHINE) -nographic \
-	        -kernel $$t/$$t.elf -semihosting > $$t/test_output.log 2>&1 || true; \
-	    line=$$(grep '\[RESULT\] PASS=' $$t/test_output.log || true); \
+	        -kernel $(BUILD_DIR)/$$t.elf -semihosting > $(BUILD_DIR)/$$t.log 2>&1 || true; \
+	    line=$$(grep '\[RESULT\] PASS=' $(BUILD_DIR)/$$t.log || true); \
 	    if [ -z "$$line" ]; then \
 	        echo "  no [RESULT] line"; failed="$$failed $$t"; continue; \
 	    fi; \
@@ -77,4 +79,4 @@ test: $(foreach t,$(RUNNABLE_TESTS),$(t)/$(t).elf)
 	[ -z "$$failed" ] || { echo "Failed:$$failed"; exit 1; }
 
 clean:
-	@rm -f $(ELFS) $(foreach t,$(TESTS),$(t)/test_output.log)
+	@rm -rf $(BUILD_DIR)

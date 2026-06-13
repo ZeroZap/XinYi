@@ -291,6 +291,8 @@ make test-qemu
 make test-qemu-ch32v
 ```
 
+XinYi root builds are placed under `build/<platform>` by default, for example `build/pc`. Use `make distclean` to remove the unified build tree plus legacy root `build_*` directories and common nested example/test build directories.
+
 ## Troubleshooting
 
 If QEMU source download fails, reuse a known-good cached archive when available:

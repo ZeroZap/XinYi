@@ -30,8 +30,11 @@ else
     _BUILD_TYPE := $(BUILD_TYPE)
 endif
 
-# Build directory per platform
-BUILD_DIR := build_$(shell echo $(HAL_PLATFORM) | tr '[:upper:]' '[:lower:]')
+# Build directories are grouped under build/ to keep the repository root clean.
+BUILD_ROOT ?= build
+_PLATFORM := $(shell echo $(HAL_PLATFORM) | tr '[:upper:]' '[:lower:]')
+BUILD_DIR ?= $(BUILD_ROOT)/$(_PLATFORM)
+ROOT_BUILD_CLEAN := $(sort $(BUILD_ROOT) build build_*)
 
 CMAKE_FLAGS := \
     -DHAL_PLATFORM=$(HAL_PLATFORM) \
@@ -41,6 +44,7 @@ CMAKE_FLAGS := \
 
 # Test directories
 UNIT_DIR := tests/unit
+UNIT_BUILD_DIR := $(BUILD_ROOT)/tests/unit
 QEMU_DIR := tests/qemu_stm32f4
 QEMU_CH32V_DIR := tests/qemu_ch32v
 
@@ -68,9 +72,9 @@ test-unit:
 	@echo "=========================================="
 	@echo "  PC unit tests ($(UNIT_DIR))"
 	@echo "=========================================="
-	@cmake -B $(UNIT_DIR)/build -S $(UNIT_DIR) >/dev/null
-	@cmake --build $(UNIT_DIR)/build -j$(JOBS) >/dev/null
-	@cd $(UNIT_DIR)/build && ctest --output-on-failure
+	@cmake -B $(UNIT_BUILD_DIR) -S $(UNIT_DIR) >/dev/null
+	@cmake --build $(UNIT_BUILD_DIR) -j$(JOBS) >/dev/null
+	@cd $(UNIT_BUILD_DIR) && ctest --output-on-failure
 
 test-qemu:
 	@echo ""
@@ -91,13 +95,12 @@ clean:
 	    || echo "(nothing to clean in $(BUILD_DIR))"
 	@$(MAKE) -C $(QEMU_DIR) clean 2>/dev/null || true
 	@$(MAKE) -C $(QEMU_CH32V_DIR) clean 2>/dev/null || true
-	@rm -rf $(UNIT_DIR)/build
+	@rm -rf $(UNIT_BUILD_DIR)
 
 distclean:
-	rm -rf tmp build build_pc build_stm32f4 build_stm32f4_test build_stm32f4_validation \
-	       build_stm32u5 build_stm32u5_fota build_stm32u5_test build_stm32u5_validation \
-	       build_wch build_hc32 build_xinyi build_flashdb_test build_full_test build_test \
-	       $(UNIT_DIR)/build
+	rm -rf tmp $(ROOT_BUILD_CLEAN) \
+	       $(UNIT_DIR)/build $(wildcard examples/*/build examples/*/*/build tests/*/build \
+	       components/*/build components/*/*/build)
 	@$(MAKE) -C $(QEMU_DIR) clean 2>/dev/null || true
 	@$(MAKE) -C $(QEMU_CH32V_DIR) clean 2>/dev/null || true
 
@@ -112,6 +115,8 @@ help:
 	@echo "  BUILD_TYPE=Release|Debug                    (default: Release)"
 	@echo "  BUILD_TESTS=ON|OFF                          (default: OFF)"
 	@echo "  FOTA=ON|OFF                                 (default: OFF)"
+	@echo "  BUILD_ROOT=DIR                              (default: build)"
+	@echo "  BUILD_DIR=DIR                               (default: build/<platform>)"
 	@echo "  JOBS=N                                      (default: nproc)"
 	@echo ""
 	@echo "Targets:"
