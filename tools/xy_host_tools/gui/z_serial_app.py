@@ -426,14 +426,6 @@ class ZSerialMainWindow:
         self.panes: dict[str, ZSerialTabPane] = {}
         self.window = QMainWindow()
         self.window.setWindowTitle("z-serial")
-        self.window.setWindowFlags(
-            Qt.WindowType.Window
-            | Qt.WindowType.WindowTitleHint
-            | Qt.WindowType.WindowSystemMenuHint
-            | Qt.WindowType.WindowMinimizeButtonHint
-            | Qt.WindowType.WindowMaximizeButtonHint
-            | Qt.WindowType.WindowCloseButtonHint
-        )
         self.window.setWindowIcon(self.window.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
 
         self.add_tab_action = QAction("新增串口", self.window)
@@ -950,9 +942,10 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         )
     )
     window_close_icon_present = not window.window.windowIcon().isNull()
-    window_flags = window.window.windowFlags()
+    default_window_flags = widgets[7]().windowFlags()
+    window_uses_native_default_flags = window.window.windowFlags() == default_window_flags
     window_controls_present = all(
-        bool(window_flags & flag)
+        bool(window.window.windowFlags() & flag)
         for flag in (
             widgets[16].WindowType.WindowSystemMenuHint,
             widgets[16].WindowType.WindowMinimizeButtonHint,
@@ -1071,6 +1064,7 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"top_buttons_hidden={str(top_buttons_hidden).lower()}",
         f"window_close_icon_present={str(window_close_icon_present).lower()}",
         f"window_controls_present={str(window_controls_present).lower()}",
+        f"window_uses_native_default_flags={str(window_uses_native_default_flags).lower()}",
         f"tab_close_enabled={str(tab_close_enabled).lower()}",
         f"default_window_compact={str(default_window_compact).lower()}",
         f"layout_allows_smaller_resize={str(layout_allows_smaller_resize).lower()}",
