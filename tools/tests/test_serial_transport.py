@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 from xy_host_tools.serial_transport import MemorySerialTransport, PySerialTransport, list_serial_ports
 
@@ -88,8 +89,19 @@ class SerialTransportTests(unittest.TestCase):
 
         transport = PySerialTransport(port="/dev/ttyACM0", serial_factory=factory)
 
-        with self.assertRaisesRegex(RuntimeError, "add the user to the '.+' group"):
-            transport.open()
+        with mock.patch("xy_host_tools.serial_transport.getpass.getuser", return_value="eugene"), mock.patch(
+            "xy_host_tools.serial_transport._serial_device_group", return_value="dialout"
+        ), mock.patch("xy_host_tools.serial_transport._current_user_groups", return_value=("eugene", "plugdev")), mock.patch(
+            "xy_host_tools.serial_transport.os.path.exists", return_value=True
+        ):
+            with self.assertRaises(RuntimeError) as context:
+                transport.open()
+
+        message = str(context.exception)
+        self.assertIn("device group is 'dialout'", message)
+        self.assertIn("current user 'eugene' is not in the 'dialout' group", message)
+        self.assertIn("sudo usermod -aG dialout eugene", message)
+        self.assertIn("sudo setfacl -m u:eugene:rw /dev/ttyACM0", message)
 
 
 if __name__ == "__main__":

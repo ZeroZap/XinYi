@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import getpass
 import os
 from typing import Any, Protocol
 
@@ -133,19 +134,37 @@ def describe_serial_open_error(port: str, exc: Exception) -> str:
     message = str(exc)
     details = [f"could not open serial port {port}: {message}"]
     if _looks_like_permission_denied(exc):
-        group_hint = ""
-        try:
-            stat_info = os.stat(port)
-            import grp
-
-            group_hint = grp.getgrgid(stat_info.st_gid).gr_name
-        except Exception:
-            group_hint = "dialout"
-        if group_hint:
-            details.append(f"permission denied; add the user to the '{group_hint}' group and log out/in")
+        user = getpass.getuser()
+        group_hint = _serial_device_group(port) or "dialout"
+        details.append(f"permission denied; device group is '{group_hint}'")
+        if group_hint and group_hint not in _current_user_groups():
+            details.append(f"current user '{user}' is not in the '{group_hint}' group")
+        details.append(f"permanent fix: sudo usermod -aG {group_hint} {user} && log out/in")
+        if os.path.exists(port):
+            details.append(f"temporary fix for this plugged device: sudo setfacl -m u:{user}:rw {port}")
         else:
-            details.append("permission denied; check device group permissions and log out/in after group changes")
+            details.append("temporary fix: reconnect the device, then grant rw permission to its /dev/ttyACM* or /dev/ttyUSB* node")
     return "; ".join(details)
+
+
+def _serial_device_group(port: str) -> str:
+    try:
+        stat_info = os.stat(port)
+        import grp
+
+        return grp.getgrgid(stat_info.st_gid).gr_name
+    except Exception:
+        return ""
+
+
+def _current_user_groups() -> tuple[str, ...]:
+    try:
+        import grp
+
+        group_ids = os.getgroups()
+        return tuple(grp.getgrgid(group_id).gr_name for group_id in group_ids)
+    except Exception:
+        return ()
 
 
 def _looks_like_permission_denied(exc: Exception) -> bool:
