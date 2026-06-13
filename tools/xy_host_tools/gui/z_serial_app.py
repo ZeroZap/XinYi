@@ -462,6 +462,9 @@ class ZSerialMainWindow:
         self._plus_tab_index: int | None = None
         self.status_line = QPushButton("状态: ready")
         self.status_line.setEnabled(False)
+        self.status_line.setSizePolicy(_QSizePolicy.Policy.Ignored, _QSizePolicy.Policy.Fixed)
+        self.status_line.setMinimumWidth(0)
+        self.status_line.setToolTip("ready")
         self._build_menu_bar()
 
         layout = QVBoxLayout()
@@ -913,7 +916,15 @@ class ZSerialMainWindow:
             self._set_status(f"button edit failed: {exc}")
 
     def _set_status(self, text: str) -> None:
-        self.status_line.setText(f"状态: {text}")
+        self.status_line.setToolTip(text)
+        self.status_line.setText(f"状态: {_compact_status_text(text)}")
+
+
+def _compact_status_text(text: str, limit: int = 140) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[: max(0, limit - 1)].rstrip() + "…"
 
 
 def run_offscreen_smoke() -> tuple[str, ...]:
@@ -1042,6 +1053,13 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     window.save_session_state()
     restored = ZSerialMainWindow(widgets, session_state_path=session_path, restore_session=True)
     session_restored = len(restored.tab_manager.tabs) == 2 and restored.tab_manager.active_index == window.tab_manager.active_index
+    long_status = "open failed: " + "权限不足，请运行 sudo tools/z-serial-permissions 后重新插拔设备。" * 8
+    before_status_width = window.window.sizeHint().width()
+    window._set_status(long_status)
+    app.processEvents()
+    status_text_is_compacted = window.status_line.text().endswith("…") and len(window.status_line.text()) < len(long_status)
+    status_tooltip_keeps_full_text = window.status_line.toolTip() == long_status
+    status_does_not_expand_window = window.window.sizeHint().width() <= before_status_width
     real_tab_count = len(window.tab_manager.tabs)
     restored.tab_manager.close_all()
     window.close_port()
@@ -1098,6 +1116,9 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"filter_summary_hidden={str(filter_summary_hidden).lower()}",
         f"search_finds_timeout={str(search_finds_timeout).lower()}",
         f"session_restored={str(session_restored).lower()}",
+        f"status_text_is_compacted={str(status_text_is_compacted).lower()}",
+        f"status_tooltip_keeps_full_text={str(status_tooltip_keeps_full_text).lower()}",
+        f"status_does_not_expand_window={str(status_does_not_expand_window).lower()}",
         f"has_editor_button={str(editor_button_present).lower()}",
         f"saved_filter_exists={str(saved_filter_exists).lower()}",
         f"second_filter_path={str(second_filter_path).lower()}",

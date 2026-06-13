@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+USER_NAME="${SUDO_USER:-${USER:-$(id -un)}}"
+VID="${1:-1a86}"
+PID="${2:-55d5}"
+RULE_FILE="/etc/udev/rules.d/60-z-serial.rules"
+RULE="SUBSYSTEM==\"tty\", ATTRS{idVendor}==\"$VID\", ATTRS{idProduct}==\"$PID\", GROUP=\"dialout\", MODE=\"0660\", TAG+=\"uaccess\""
+
+if [[ "${EUID}" -ne 0 ]]; then
+    echo "Run with sudo: sudo tools/z-serial-permissions [vid] [pid]" >&2
+    exit 1
+fi
+
+if ! getent group dialout >/dev/null; then
+    groupadd dialout
+fi
+
+usermod -aG dialout "$USER_NAME"
+printf '%s\n' "$RULE" > "$RULE_FILE"
+udevadm control --reload-rules
+udevadm trigger --subsystem-match=tty || true
+
+for dev in /dev/ttyACM* /dev/ttyUSB*; do
+    [[ -e "$dev" ]] || continue
+    if udevadm info -q property -n "$dev" | grep -qi "^ID_VENDOR_ID=$VID$" && \
+       udevadm info -q property -n "$dev" | grep -qi "^ID_MODEL_ID=$PID$"; then
+        chgrp dialout "$dev" || true
+        chmod 0660 "$dev" || true
+        if command -v setfacl >/dev/null 2>&1; then
+            setfacl -m "u:$USER_NAME:rw" "$dev" || true
+        fi
+    fi
+done
+
+cat <<EOF
+z-serial serial permissions installed.
+
+Rule: $RULE_FILE
+Match: USB VID:PID=$VID:$PID
+User: $USER_NAME added to dialout
+
+Unplug/replug the USB serial device, then log out/in once for the dialout group to apply everywhere.
+For this current login, matching plugged devices also received a temporary ACL when setfacl is available.
+EOF
