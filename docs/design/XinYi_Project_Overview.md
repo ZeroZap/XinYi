@@ -654,7 +654,7 @@ make CONFIG_CRYPTO_AES=y
    ```bash
    clang-format -i your_file.c
    # 或使用脚本
-   ./utils/script/format_staged.sh
+   ./tools/scripts/format_staged.sh
    ```
 
 3. **添加文档**
@@ -816,7 +816,7 @@ make test
 doxygen docs/doxygen.config
 
 # 检查代码风格
-./utils/script/check_style.sh
+./tools/scripts/check_style.sh
 
 # 为特定平台构建
 make TARGET=stm32f4

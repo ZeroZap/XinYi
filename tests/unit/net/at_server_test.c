@@ -15,7 +15,7 @@
 #include "xy_hal.h"
 #include "xy_os.h"
 #include "xy_log.h"
-#include "../components/net/at/ats/xy_ats.h"
+#include "xy_ats.h"
 
 // Global test variables
 static char mock_tx_buffer[2048];

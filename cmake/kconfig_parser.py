@@ -215,7 +215,23 @@ class KconfigParser:
             return platform.startswith('STM32')
         return False
     
-    def resolve_values(self, platform: Optional[str] = None) -> Dict[str, str]:
+    def _normalize_override_value(self, name: str, value: str) -> str:
+        """Normalize command-line override values to generated Kconfig values."""
+        cfg = self.config.get(name)
+        if not cfg:
+            raise KeyError(f"Unknown Kconfig symbol: {name}")
+
+        value = value.strip()
+        if cfg['type'] == 'bool':
+            if value.upper() in ('1', 'Y', 'YES', 'ON', 'TRUE'):
+                return 'y'
+            if value.upper() in ('0', 'N', 'NO', 'OFF', 'FALSE'):
+                return 'n'
+            raise ValueError(f"Invalid bool value for {name}: {value}")
+        return self._format_string_value(value)
+
+    def resolve_values(self, platform: Optional[str] = None,
+                       overrides: Optional[Dict[str, str]] = None) -> Dict[str, str]:
         """Resolve default values for generation, honoring simple platform guards."""
         context = self._context_for_platform(platform)
         values: Dict[str, str] = {}
@@ -229,7 +245,7 @@ class KconfigParser:
                 default = cfg['default']
                 condition = cfg.get('default_if')
                 if depends_on and not self._eval_expr(depends_on, context):
-                    value = 'n'
+                    value = 'n' if cfg['type'] == 'bool' else (default if default is not None else "")
                 elif default is None or not self._default_matches_context(condition, context):
                     value = 'n'
                 else:
@@ -241,12 +257,16 @@ class KconfigParser:
             else:
                 values[name] = value
 
+        for name, value in (overrides or {}).items():
+            values[name] = self._normalize_override_value(name, value)
+
         self._selects_for_enabled_defaults(values)
         return values
     
-    def generate_config(self, output_file: str, platform: Optional[str] = None) -> None:
+    def generate_config(self, output_file: str, platform: Optional[str] = None,
+                        overrides: Optional[Dict[str, str]] = None) -> None:
         """Generate .config file"""
-        values = self.resolve_values(platform)
+        values = self.resolve_values(platform, overrides)
         with open(output_file, 'w') as f:
             f.write("# XinYi Framework Configuration\n")
             f.write("# Auto-generated - DO NOT EDIT\n\n")
@@ -257,9 +277,10 @@ class KconfigParser:
                     value = f'"{self._format_string_value(value)}"'
                 f.write(f"CONFIG_{name}={value}\n")
     
-    def generate_autoconf(self, output_file: str, platform: Optional[str] = None) -> None:
+    def generate_autoconf(self, output_file: str, platform: Optional[str] = None,
+                          overrides: Optional[Dict[str, str]] = None) -> None:
         """Generate autoconf.h"""
-        values = self.resolve_values(platform)
+        values = self.resolve_values(platform, overrides)
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         
         with open(output_file, 'w') as f:
@@ -284,20 +305,25 @@ class KconfigParser:
                     except (ValueError, TypeError):
                         f.write(f"#define CONFIG_{name} 0\n")
                 elif cfg['type'] == 'hex':
-                    f.write(f"#define CONFIG_{name} 0x{value}\n")
+                    if str(value).lower().startswith('0x'):
+                        f.write(f"#define CONFIG_{name} {value}\n")
+                    else:
+                        f.write(f"#define CONFIG_{name} 0x{value}\n")
             
             f.write("\n#endif /* XY_AUTOCONF_H */\n")
     
-    def generate_cmake(self, output_file: str, platform: Optional[str] = None) -> None:
+    def generate_cmake(self, output_file: str, platform: Optional[str] = None,
+                       overrides: Optional[Dict[str, str]] = None) -> None:
         """Generate config.cmake for CMake"""
-        values = self.resolve_values(platform)
+        values = self.resolve_values(platform, overrides)
         with open(output_file, 'w') as f:
             f.write("# XinYi Framework CMake Configuration\n")
             f.write("# Auto-generated - DO NOT EDIT\n\n")
             
             for name, cfg in sorted(self.config.items()):
                 value = values[name]
-                var_name = f"XY_{name}"
+                var_name = f"CONFIG_{name}"
+                legacy_var_name = f"XY_{name}"
                 
                 if cfg['type'] == 'bool':
                     enabled = value == 'y'
@@ -306,9 +332,10 @@ class KconfigParser:
                     f.write(f"set({var_name} \"{self._format_string_value(value)}\")\n")
                 else:
                     f.write(f"set({var_name} \"{value}\")\n")
-                
-                # Set environment variable for message()
+
+                f.write(f"set({legacy_var_name} \"${{{var_name}}}\")\n")
                 f.write(f"set(ENV{{{var_name}}} \"${{{var_name}}}\")\n")
+                f.write(f"set(ENV{{{legacy_var_name}}} \"${{{legacy_var_name}}}\")\n")
 
 
 def main():
@@ -318,6 +345,8 @@ def main():
     parser.add_argument('--autoconf', required=True, help='Output autoconf.h file')
     parser.add_argument('--cmake', required=True, help='Output config.cmake file')
     parser.add_argument('--platform', help='Target platform for conditional defaults (PC, STM32U5, STM32F4, ...)')
+    parser.add_argument('--set', dest='overrides', action='append', default=[],
+                        help='Override a Kconfig symbol, e.g. BUILD_TESTING=ON')
     
     args = parser.parse_args()
     
@@ -326,10 +355,20 @@ def main():
     kconfig.parse(args.kconfig)
     kconfig.resolve_dependencies()
     
+    overrides: Dict[str, str] = {}
+    for override in args.overrides:
+        if '=' not in override:
+            raise ValueError(f"Invalid override '{override}', expected NAME=VALUE")
+        name, value = override.split('=', 1)
+        name = name.strip()
+        if name.startswith('CONFIG_'):
+            name = name[len('CONFIG_'):]
+        overrides[name] = value.strip()
+
     # Generate output files
-    kconfig.generate_config(args.output, platform=args.platform)
-    kconfig.generate_autoconf(args.autoconf, platform=args.platform)
-    kconfig.generate_cmake(args.cmake, platform=args.platform)
+    kconfig.generate_config(args.output, platform=args.platform, overrides=overrides)
+    kconfig.generate_autoconf(args.autoconf, platform=args.platform, overrides=overrides)
+    kconfig.generate_cmake(args.cmake, platform=args.platform, overrides=overrides)
     
     print(f"Generated: {args.output}")
     print(f"Generated: {args.autoconf}")

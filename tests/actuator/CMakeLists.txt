@@ -4,7 +4,7 @@ project(xy_actuator_tests C)
 set(CMAKE_C_STANDARD 99)
 
 # Unity framework location
-set(UNITY_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../UniTest/unity)
+set(UNITY_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../unity)
 set(ACTUATOR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../components/actuator)
 
 # Include paths

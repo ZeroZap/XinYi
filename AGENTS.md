@@ -8,7 +8,7 @@
 - Run QEMU STM32F4 tests only with `make test-qemu`; it delegates to `tests/qemu_stm32f4/Makefile`.
 - `make test` runs both PC unit tests and QEMU tests, so it requires QEMU plus the ARM toolchain.
 - Focused QEMU checks: from `tests/qemu_stm32f4`, use `make list`, `make hal_test`, `make run-hal_test`, or `make test`.
-- Root `BUILD_TESTING=ON` builds `tests/test_at_client` and `tests/test_at_server` via `tests/CMakeLists.txt`; the independent `tests/unit` suite is what `make test-unit` runs.
+- Root `BUILD_TESTING=ON` builds the AT unit tests under `tests/unit/net/` via `tests/CMakeLists.txt`; the independent `tests/unit` suite is what `make test-unit` runs.
 
 ## Toolchains And Platforms
 - CMake platform values are exactly `PC`, `STM32F4`, `STM32U5`, `WCH`, and `HC32`; pass them as `-DHAL_PLATFORM=<value>` or `make HAL_PLATFORM=<value>`.

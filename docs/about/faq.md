@@ -165,7 +165,7 @@ ctest -R test_crypto --output-on-failure
 ### 如何生成覆盖率报告？
 
 ```bash
-./utils/script/coverage.sh
+./tools/scripts/coverage.sh
 ```
 
 ---
@@ -206,10 +206,10 @@ gdb ./build/your_target
 
 ```bash
 # 格式化代码
-./utils/script/format_code.sh
+./tools/scripts/format_code.sh
 
 # 检查风格
-./utils/script/check_style.sh
+./tools/scripts/check_style.sh
 ```
 
 ---

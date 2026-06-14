@@ -70,10 +70,10 @@
 clang-format -i path/to/file.c
 
 # 格式化所有暂存文件
-./utils/script/format_staged.sh
+./tools/scripts/format_staged.sh
 
 # 格式化指定目录
-./utils/script/format_path.sh path/to/directory
+./tools/scripts/format_path.sh path/to/directory
 ```
 
 AI 生成的代码在提交前也必须经过格式化。

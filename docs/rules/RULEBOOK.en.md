@@ -69,10 +69,10 @@ Before committing:
 clang-format -i path/to/file.c
 
 # Format all staged files
-./utils/script/format_staged.sh
+./tools/scripts/format_staged.sh
 
 # Format a directory
-./utils/script/format_path.sh path/to/directory
+./tools/scripts/format_path.sh path/to/directory
 ```
 
 AI code generators must ensure formatted output before submission.

@@ -7,7 +7,7 @@
 | 模式 | 路径示例 | 优点 | 缺点 | 适用场景 |
 |------|---------|------|------|----------|
 | **组件内测试** | `components/crypto/test/` | 测试与源码就近，易于维护 | 测试代码可能污染组件目录 | 小型组件、独立模块 |
-| **统一测试目录** | `UniTest/component/` | 测试集中管理，便于 CI/CD | 测试与源码分离，更新可能滞后 | 大型项目、多组件联合测试 |
+| **统一测试目录** | `tests/unit/` | 测试集中管理，便于 CI/CD | 测试与源码分离，更新可能滞后 | 大型项目、多组件联合测试 |
 | **混合模式** | 两者结合 | 灵活 | 需要规范管理 | 复杂项目 |
 
 ### 当前项目测试分布
@@ -43,10 +43,10 @@ XinYi/
 │   └── sensor/
 │       └── sensor_self_test.c           ⚠️ 组件根目录测试
 │
-├── UniTest/                             📋 统一测试目录
-│   ├── component/
-│   │   └── xy_clib/
-│   │       └── test/                    ⚠️ 与 components/clib/test 重复
+├── tests/                               📋 统一测试入口
+│   ├── unit/                            ✅ PC 单元测试
+│   ├── qemu_stm32f4/                    ✅ QEMU STM32F4 测试
+│   ├── qemu_ch32v/                      ✅ QEMU CH32V 测试
 │   └── unity/                           ✅ 测试框架
 │
 └── projects/
@@ -61,7 +61,7 @@ XinYi/
 
 **问题**: `xy_clib` 测试同时存在于两处
 - `components/clib/xy_clib/test/`
-- `UniTest/component/xy_clib/test/`
+- 历史 `UniTest/component/xy_clib/test/`
 
 **影响**: 
 - 维护成本翻倍
@@ -204,12 +204,12 @@ tests/
 
 **当前**:
 - `components/clib/xy_clib/test/` - 保留
-- `UniTest/component/xy_clib/test/` - 删除 (重复)
+- 历史 `UniTest/component/xy_clib/test/` - 已删除/不再使用
 
 **操作**:
 ```bash
 # 备份后删除重复测试
-rm -rf UniTest/component/xy_clib/test/
+rm -rf tests/unit/build
 
 # 统一测试文件命名
 mv components/clib/xy_clib/test_filter.c components/clib/xy_clib/tests/test_filter.c
@@ -283,7 +283,7 @@ add_custom_target(run_tests
 | 组件 | 测试框架 | 位置 |
 |------|----------|------|
 | osal | Unity (自包含) | `osal/tests/unity.*` |
-| xy_clib | 自定义 | `UniTest/unity/` |
+| xy_clib | 自定义 | `tests/unity/` |
 | crypto | 自定义 | 各测试文件内 |
 
 ### 推荐方案
@@ -291,7 +291,7 @@ add_custom_target(run_tests
 **统一使用 Unity 框架**:
 
 ```
-third_party/
+tests/
 └── unity/               # Unity 测试框架
     ├── src/
     │   ├── unity.c
@@ -306,12 +306,12 @@ third_party/
 # components/<name>/tests/CMakeLists.txt
 
 # Unity 框架
-set(UNITY_DIR ${CMAKE_SOURCE_DIR}/third_party/unity)
-include_directories(${UNITY_DIR}/src)
+set(UNITY_DIR ${CMAKE_SOURCE_DIR}/tests/unity)
+include_directories(${UNITY_DIR})
 
 # 测试可执行文件
 add_executable(test_<component>
-    ${UNITY_DIR}/src/unity.c
+    ${UNITY_DIR}/unity.c
     test_<module>.c
 )
 
@@ -350,7 +350,7 @@ add_test(NAME <component>_test COMMAND test_<component>)
 5. 保留第三方测试，但明确标记
 
 **下一步**:
-1. 删除重复测试 (UniTest/component/xy_clib/)
-2. 创建 `third_party/unity/` 统一框架
-3. 创建 `tests/CMakeLists.txt` 统一入口
+1. 删除重复测试和历史 `UniTest/` 根目录
+2. 使用 `tests/unity/` 作为统一 Unity 框架位置
+3. 维护 `tests/CMakeLists.txt` 和 `tests/unit/CMakeLists.txt` 统一入口
 4. 逐步规范各组件测试目录

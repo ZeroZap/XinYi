@@ -39,10 +39,10 @@ Key requirements from xy_code_style.md:
 clang-format -i path/to/file.c
 
 # Format all staged files
-./utils/script/format_staged.sh
+./tools/scripts/format_staged.sh
 
 # Format specific directory
-./utils/script/format_path.sh path/to/directory
+./tools/scripts/format_path.sh path/to/directory
 ```
 
 **AI Code Generators:** Always apply clang-format to generated code before output.
@@ -650,10 +650,10 @@ xy_code_style.md 的关键要求：
 clang-format -i path/to/file.c
 
 # 格式化所有暂存文件
-./utils/script/format_staged.sh
+./tools/scripts/format_staged.sh
 
 # 格式化特定目录
-./utils/script/format_path.sh path/to/directory
+./tools/scripts/format_path.sh path/to/directory
 ```
 
 **AI 代码生成器：** 在输出前始终对生成的代码应用 clang-format。

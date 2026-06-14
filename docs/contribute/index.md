@@ -102,7 +102,7 @@ ctest -R test_crypto --output-on-failure
 
 ```bash
 # 生成覆盖率报告
-./utils/script/coverage.sh
+./tools/scripts/coverage.sh
 ```
 
 ### 测试要求
@@ -140,10 +140,10 @@ int my_function(int param1) {
 
 ```bash
 # 格式化所有代码
-./utils/script/format_code.sh
+./tools/scripts/format_code.sh
 
 # 检查代码风格
-./utils/script/check_style.sh
+./tools/scripts/check_style.sh
 ```
 
 ---

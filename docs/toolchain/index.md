@@ -100,7 +100,7 @@ ctest --verbose
 
 ```bash
 # 生成覆盖率报告
-./utils/script/coverage.sh
+./tools/scripts/coverage.sh
 
 # 查看 HTML 报告
 open coverage-report.html
@@ -136,10 +136,10 @@ XinYi 使用 GitHub Actions 进行持续集成和部署。
 
 ```bash
 # 格式化代码
-./utils/script/format_code.sh
+./tools/scripts/format_code.sh
 
 # 检查风格
-./utils/script/check_style.sh
+./tools/scripts/check_style.sh
 ```
 
 ### 配置
@@ -155,12 +155,12 @@ XinYi 使用 GitHub Actions 进行持续集成和部署。
 
 | 脚本 | 说明 |
 |------|------|
-| `utils/script/build.sh` | Linux/macOS 构建 |
-| `utils/script/build.bat` | Windows 构建 |
-| `utils/script/run_tests.sh` | 运行测试 |
-| `utils/script/coverage.sh` | 生成覆盖率 |
-| `utils/script/format_code.sh` | 格式化代码 |
-| `utils/script/check_style.sh` | 检查风格 |
+| `tools/scripts/build.sh` | Linux/macOS 构建 |
+| `tools/scripts/build.bat` | Windows 构建 |
+| `tools/scripts/run_tests.sh` | 运行测试 |
+| `tools/scripts/coverage.sh` | 生成覆盖率 |
+| `tools/scripts/format_code.sh` | 格式化代码 |
+| `tools/scripts/check_style.sh` | 检查风格 |
 
 ---
 

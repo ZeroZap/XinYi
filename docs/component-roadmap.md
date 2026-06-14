@@ -50,7 +50,7 @@
 ├── projects/           # 实际项目 (16 个)
 ├── tests/              # 测试
 ├── third_party/        # 第三方库 (RTOS/Unity)
-└── utils/              # 工具脚本
+└── tools/              # 工具脚本和主机工具
 ```
 
 ### 1.2 组件状态分析

@@ -102,21 +102,16 @@ if(PLATFORM_LINKER_FLAGS)
 endif()
 
 # =============================================================================
-# Build options
+# Kconfig integration
 # =============================================================================
-option(BUILD_TESTING    "Build unit tests"    OFF)
-option(XY_FOTA_ENABLED  "Enable FOTA support" OFF)
-
-if(XY_FOTA_ENABLED)
-    add_compile_definitions(XY_FOTA_ENABLED)
+if(NOT EXISTS "${CMAKE_SOURCE_DIR}/Kconfig"
+   OR NOT EXISTS "${CMAKE_SOURCE_DIR}/cmake/Kconfig.cmake")
+    message(FATAL_ERROR "Kconfig integration is required for this build")
 endif()
+include("${CMAKE_SOURCE_DIR}/cmake/Kconfig.cmake")
 
-# =============================================================================
-# Kconfig integration (optional — silently skip if python/Kconfig unavailable)
-# =============================================================================
-if(EXISTS "${CMAKE_SOURCE_DIR}/Kconfig"
-   AND EXISTS "${CMAKE_SOURCE_DIR}/cmake/Kconfig.cmake")
-    include("${CMAKE_SOURCE_DIR}/cmake/Kconfig.cmake")
+if(CONFIG_FOTA_ENABLED)
+    add_compile_definitions(XY_FOTA_ENABLED)
 endif()
 
 # =============================================================================
@@ -189,6 +184,6 @@ message(STATUS "┌─ XinYi Framework v${PROJECT_VERSION} ───────
 message(STATUS "│  Platform  : ${HAL_PLATFORM}")
 message(STATUS "│  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "│  Testing   : ${BUILD_TESTING}")
-message(STATUS "│  FOTA      : ${XY_FOTA_ENABLED}")
+message(STATUS "│  FOTA      : ${CONFIG_FOTA_ENABLED}")
 message(STATUS "└────────────────────────────────────────────────")
 message(STATUS "")

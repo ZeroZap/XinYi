@@ -193,13 +193,13 @@ ctest -R "test_hal|test_os" --output-on-failure
 
 ```bash
 # 代码格式化
-./utils/script/format_code.sh
+./tools/scripts/format_code.sh
 
 # 静态分析
-./utils/script/static_analysis.sh
+./tools/scripts/static_analysis.sh
 
 # 构建检查
-./utils/script/build.sh
+./tools/scripts/build.sh
 ```
 
 ---

@@ -41,14 +41,14 @@ process_component() {
     if [[ ! -f "$component_dir/Makefile" ]]; then
         echo "  Creating Makefile..."
         sed -e "s/@COMPONENT_NAME@/$component_name/g" \
-            "utils/templates/Makefile.template" > "$component_dir/Makefile"
+            "tools/templates/Makefile.template" > "$component_dir/Makefile"
     fi
 
     # Create CMakeLists.txt if it doesn't exist
     if [[ ! -f "$component_dir/CMakeLists.txt" ]]; then
         echo "  Creating CMakeLists.txt..."
         sed -e "s/@COMPONENT_NAME@/$component_name/g" \
-            "utils/templates/CMakeLists.txt.template" > "$component_dir/CMakeLists.txt"
+            "tools/templates/CMakeLists.txt.template" > "$component_dir/CMakeLists.txt"
     fi
 
     # Create Kconfig if it doesn't exist
@@ -58,7 +58,7 @@ process_component() {
         sed -e "s/@COMPONENT_NAME@/$component_name/g" \
             -e "s/@COMPONENT_NAME_UC@/$component_name_uc/g" \
             -e "s/@COMPONENT_DESCRIPTION@/$description/g" \
-            "utils/templates/Kconfig.template" > "$component_dir/Kconfig"
+            "tools/templates/Kconfig.template" > "$component_dir/Kconfig"
     fi
 }
 

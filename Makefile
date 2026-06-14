@@ -19,6 +19,7 @@ HAL_PLATFORM ?= PC
 BUILD_TYPE    ?= Release
 BUILD_TESTS   ?= OFF
 FOTA          ?= OFF
+KCONFIG_OVERRIDES ?=
 JOBS          ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
 # Normalise build type
@@ -34,13 +35,20 @@ endif
 BUILD_ROOT ?= build
 _PLATFORM := $(shell echo $(HAL_PLATFORM) | tr '[:upper:]' '[:lower:]')
 BUILD_DIR ?= $(BUILD_ROOT)/$(_PLATFORM)
-ROOT_BUILD_CLEAN := $(sort $(BUILD_ROOT) build build_*)
+ROOT_LEGACY_BUILD_DIRS := $(wildcard build_*)
+ROOT_BUILD_CLEAN := $(sort $(BUILD_ROOT) build $(ROOT_LEGACY_BUILD_DIRS))
+
+_DEFAULT_KCONFIG_OVERRIDES := BUILD_TESTING=$(BUILD_TESTS)\;FOTA_ENABLED=$(FOTA)
+ifneq ($(strip $(KCONFIG_OVERRIDES)),)
+    _KCONFIG_OVERRIDES := $(_DEFAULT_KCONFIG_OVERRIDES)\;$(KCONFIG_OVERRIDES)
+else
+    _KCONFIG_OVERRIDES := $(_DEFAULT_KCONFIG_OVERRIDES)
+endif
 
 CMAKE_FLAGS := \
     -DHAL_PLATFORM=$(HAL_PLATFORM) \
     -DCMAKE_BUILD_TYPE=$(_BUILD_TYPE) \
-    -DBUILD_TESTING=$(BUILD_TESTS) \
-    -DXY_FOTA_ENABLED=$(FOTA)
+    -DKCONFIG_OVERRIDES=$(_KCONFIG_OVERRIDES)
 
 # Test directories
 UNIT_DIR := tests/unit
@@ -95,7 +103,7 @@ clean:
 	    || echo "(nothing to clean in $(BUILD_DIR))"
 	@$(MAKE) -C $(QEMU_DIR) clean 2>/dev/null || true
 	@$(MAKE) -C $(QEMU_CH32V_DIR) clean 2>/dev/null || true
-	@rm -rf $(UNIT_BUILD_DIR)
+	@rm -rf $(UNIT_BUILD_DIR) $(ROOT_LEGACY_BUILD_DIRS)
 
 distclean:
 	rm -rf tmp $(ROOT_BUILD_CLEAN) \
@@ -115,6 +123,7 @@ help:
 	@echo "  BUILD_TYPE=Release|Debug                    (default: Release)"
 	@echo "  BUILD_TESTS=ON|OFF                          (default: OFF)"
 	@echo "  FOTA=ON|OFF                                 (default: OFF)"
+	@echo "  KCONFIG_OVERRIDES=A=ON\;B=OFF               extra Kconfig overrides"
 	@echo "  BUILD_ROOT=DIR                              (default: build)"
 	@echo "  BUILD_DIR=DIR                               (default: build/<platform>)"
 	@echo "  JOBS=N                                      (default: nproc)"
@@ -126,8 +135,8 @@ help:
 	@echo "  test-unit   run PC unit tests only"
 	@echo "  test-qemu   run QEMU STM32F4 tests only"
 	@echo "  test-qemu-ch32v run QEMU CH32V tests only"
-	@echo "  clean       clean build artifacts"
-	@echo "  distclean   remove all build directories"
+	@echo "  clean       clean current build and root build_* directories"
+	@echo "  distclean   remove all build directories, including build/"
 	@echo "  help        show this message"
 	@echo ""
 	@echo "Examples:"

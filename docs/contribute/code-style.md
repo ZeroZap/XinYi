@@ -408,10 +408,10 @@ void test_pid_init(void);
 
 ```bash
 # 格式化代码
-./utils/script/format_code.sh
+./tools/scripts/format_code.sh
 
 # 检查风格
-./utils/script/check_style.sh
+./tools/scripts/check_style.sh
 ```
 
 ### 使用 clang-tidy

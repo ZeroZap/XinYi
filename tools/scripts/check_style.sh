@@ -50,7 +50,7 @@ echo "======================================"
 if [ $FAILED -gt 0 ]; then
     echo ""
     echo "❌ Code style check failed!"
-    echo "Run './utils/script/format_code.sh' to fix formatting."
+    echo "Run './tools/scripts/format_code.sh' to fix formatting."
     exit 1
 else
     echo ""

@@ -932,7 +932,7 @@ Each component includes:
    ```bash
    clang-format -i your_file.c
    # Or use the script
-   ./utils/script/format_staged.sh
+   ./tools/scripts/format_staged.sh
    ```
 
 3. **Add Documentation**
@@ -1108,7 +1108,7 @@ make test
 doxygen docs/doxygen.config
 
 # Check code style
-./utils/script/check_style.sh
+./tools/scripts/check_style.sh
 
 # Build for specific platform
 make TARGET=stm32f4

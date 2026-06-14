@@ -30,6 +30,27 @@ set(ANALOG ${ROOT}/components/analog_devices)
 set(SYS ${ROOT}/components/sys)
 set(ACTUATOR ${ROOT}/components/actuator)
 
+set(UNIT_ACTUATOR ${CMAKE_CURRENT_SOURCE_DIR}/actuator)
+set(UNIT_ANALOG ${CMAKE_CURRENT_SOURCE_DIR}/analog_devices)
+set(UNIT_CLIB ${CMAKE_CURRENT_SOURCE_DIR}/clib)
+set(UNIT_CRYPTO ${CMAKE_CURRENT_SOURCE_DIR}/crypto)
+set(UNIT_DEVICE ${CMAKE_CURRENT_SOURCE_DIR}/device)
+set(UNIT_DISPLAY ${CMAKE_CURRENT_SOURCE_DIR}/display)
+set(UNIT_DM ${CMAKE_CURRENT_SOURCE_DIR}/dm)
+set(UNIT_FOTA ${CMAKE_CURRENT_SOURCE_DIR}/fota)
+set(UNIT_GUI ${CMAKE_CURRENT_SOURCE_DIR}/gui)
+set(UNIT_HAL ${CMAKE_CURRENT_SOURCE_DIR}/hal_component)
+set(UNIT_IPC ${CMAKE_CURRENT_SOURCE_DIR}/ipc)
+set(UNIT_KERNEL ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
+set(UNIT_NET ${CMAKE_CURRENT_SOURCE_DIR}/net)
+set(UNIT_PID ${CMAKE_CURRENT_SOURCE_DIR}/pid)
+set(UNIT_PM ${CMAKE_CURRENT_SOURCE_DIR}/pm)
+set(UNIT_SENSOR ${CMAKE_CURRENT_SOURCE_DIR}/sensor)
+set(UNIT_STORAGE ${CMAKE_CURRENT_SOURCE_DIR}/storage)
+set(UNIT_SUPPORT ${CMAKE_CURRENT_SOURCE_DIR}/support)
+set(UNIT_SYS ${CMAKE_CURRENT_SOURCE_DIR}/sys)
+set(UNIT_TRACE ${CMAKE_CURRENT_SOURCE_DIR}/trace)
+
 include_directories(
     ${DEV}                          # xy_device_core.h
     ${DEV}/inc                      # xy_device.h
@@ -80,7 +101,7 @@ include_directories(
     ${ROOT}/components/kernel/misc  # xy_tick.h
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ACTUATOR}                     # xy_actuator.h
-    ${ROOT}/UniTest/unity           # unity.h
+    ${ROOT}/tests/unity             # unity.h
 )
 
 # Device framework + PC HAL sources shared by all tests
@@ -97,18 +118,18 @@ set(FRAMEWORK_SOURCES
 )
 
 # --- Test 1: framework end-to-end ---
-add_executable(test_device test_device.c ${FRAMEWORK_SOURCES})
+add_executable(test_device ${UNIT_DEVICE}/test_device_framework.c ${FRAMEWORK_SOURCES})
 
 # --- Test 2: SHT30 driver integration ---
 add_executable(test_sht30_integration
-    test_sht30_integration.c
+    ${UNIT_SENSOR}/test_sht30_integration.c
     ${DRV}/sensor/temperature/sht30/xy_sht30.c
     ${FRAMEWORK_SOURCES}
 )
 
 # --- Test 3: heterogeneous sensor coexistence ---
 add_executable(test_sensors_multi
-    test_sensors_multi.c
+    ${UNIT_SENSOR}/test_sensors_multi.c
     ${DRV}/sensor/temperature/sht30/xy_sht30.c
     ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
     ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
@@ -117,10 +138,10 @@ add_executable(test_sensors_multi
 )
 
 # --- Test 4: SPI device helper + mixed-bus registry ---
-add_executable(test_spi_device test_spi_device.c ${FRAMEWORK_SOURCES})
+add_executable(test_spi_device ${UNIT_DEVICE}/test_spi_device.c ${FRAMEWORK_SOURCES})
 
 # --- Test 6: XY_DEVICE_REGISTER auto-registration via GCC constructors ---
-add_executable(test_auto_register test_auto_register.c ${FRAMEWORK_SOURCES})
+add_executable(test_auto_register ${UNIT_DEVICE}/test_auto_register.c ${FRAMEWORK_SOURCES})
 
 # --- Test 8: device registry example stays aligned with public APIs ---
 add_executable(test_device_registry_example
@@ -136,32 +157,32 @@ add_executable(test_device_driver_template
 
 # --- Test 10: CAN protocol component API + callback/fifo behavior ---
 add_executable(test_can
-    test_can.c
+    ${UNIT_NET}/test_can.c
     ${NET}/src/xy_can.c
     ${CLIB}/xy_stdio.c
 )
 
 # --- Test 11: LTE component lifecycle, callback storage, and validation ---
 add_executable(test_lte
-    test_lte.c
+    ${UNIT_NET}/test_lte.c
     ${NET}/src/xy_lte.c
 )
 
 # --- Test 12: nano_modbus compatibility API over mb_tiny ---
 add_executable(test_nano_modbus
-    test_nano_modbus.c
+    ${UNIT_NET}/test_nano_modbus.c
     ${NET}/modbus_tiny/mb_tiny.c
 )
 
 # --- Test 12b: legacy Modbus RTU slave host guard ---
 add_executable(test_modbus_legacy
-    test_modbus_legacy.c
+    ${UNIT_NET}/test_modbus_legacy.c
     ${NET}/modbus/mb_slave.c
 )
 
 # --- Test 13: ISO7816 public include, lifecycle, and APDU behavior ---
 add_executable(test_iso7816
-    test_iso7816.c
+    ${UNIT_NET}/test_iso7816.c
     ${NET}/xy_iso7816/xy_iso7816.c
 )
 
@@ -169,12 +190,12 @@ add_executable(test_iso7816
 add_executable(test_iso7816_example
     ${NET}/xy_iso7816/xy_iso7816_example.c
     ${NET}/xy_iso7816/xy_iso7816.c
-    test_iso7816_example_main.c
+    ${UNIT_NET}/test_iso7816_example_main.c
 )
 
 # --- Test 15: Net umbrella/core lifecycle and platform helpers ---
 add_executable(test_net_core
-    test_net_core.c
+    ${UNIT_NET}/test_net_core.c
     ${NET}/src/xy_net.c
     ${NET}/src/xy_net_platform.c
     ${NET}/modbus_tiny/mb_tiny.c
@@ -189,7 +210,7 @@ target_include_directories(test_net_core PRIVATE
 
 # --- Test 16: CRC core and common variants ---
 add_executable(test_crc
-    test_crc.c
+    ${UNIT_CRYPTO}/test_crc.c
     ${CRYPTO}/xy_crc/xy_crc.c
 )
 
@@ -198,7 +219,7 @@ set(OSAL_ROOT ${ROOT}/components/kernel)
 
 # --- Test 7: optional xy_device_async_*_ex helper API ---
 add_executable(test_device_async_helper
-    test_device_async_helper.c
+    ${UNIT_DEVICE}/test_device_async_helper.c
     ${DEV}/src/xy_device_async.c
 )
 target_include_directories(test_device_async_helper PRIVATE
@@ -207,7 +228,7 @@ target_include_directories(test_device_async_helper PRIVATE
 )
 
 add_executable(test_osal
-    test_osal.c
+    ${UNIT_KERNEL}/test_osal.c
     ${OSAL_ROOT}/osal/backend/baremetal/xy_os_baremetal.c
     ${OSAL_ROOT}/osal/src/xy_os_tick.c
     ${OSAL_ROOT}/misc/xy_tick.c
@@ -245,7 +266,7 @@ add_test(NAME crypto_crc COMMAND test_crc)
 
 # --- Test 16: Crypto CSPRNG lifecycle, buffering, and helpers ---
 add_executable(test_csprng
-    test_csprng.c
+    ${UNIT_CRYPTO}/test_csprng.c
     ${CRYPTO}/xy_rng/xy_csprng.c
     ${CLIB}/xy_stdio.c
 )
@@ -253,14 +274,14 @@ add_test(NAME crypto_csprng COMMAND test_csprng)
 
 # --- Test 17: Crypto simple RNG validation and output shape ---
 add_executable(test_random
-    test_random.c
+    ${UNIT_CRYPTO}/test_random.c
     ${CRYPTO}/xy_rng/xy_random.c
 )
 add_test(NAME crypto_random COMMAND test_random)
 
 # --- Test 18: Crypto Base64 and Hex validation/roundtrip behavior ---
 add_executable(test_encode
-    test_encode.c
+    ${UNIT_CRYPTO}/test_encode.c
     ${CRYPTO}/xy_base/xy_base64.c
     ${CRYPTO}/xy_hex/xy_hex.c
 )
@@ -272,7 +293,7 @@ add_test(NAME crypto_encode COMMAND test_encode)
 
 # --- Test 19: Crypto MD5/SHA-256 vectors and incremental hashing ---
 add_executable(test_hash
-    test_hash.c
+    ${UNIT_CRYPTO}/test_hash.c
     ${CRYPTO}/xy_md/xy_md5.c
     ${CRYPTO}/xy_hmac/xy_sha256.c
 )
@@ -284,7 +305,7 @@ add_test(NAME crypto_hash COMMAND test_hash)
 
 # --- Test 20: Crypto AES/HMAC/SM3/SM4/ChaCha20 coverage ---
 add_executable(test_cipher_hmac
-    test_cipher_hmac.c
+    ${UNIT_CRYPTO}/test_cipher_hmac.c
     ${CRYPTO}/xy_aes/xy_aes.c
     ${CRYPTO}/xy_hmac/xy_hmac.c
     ${CRYPTO}/xy_md/xy_md5.c
@@ -304,25 +325,25 @@ add_test(NAME crypto_cipher_hmac COMMAND test_cipher_hmac)
 
 # --- Test 21: Sensor framework lifecycle, registry, FIFO, calibration, filters ---
 add_executable(test_sensor_framework
-    test_sensor_framework.c
+    ${UNIT_SENSOR}/test_sensor_framework.c
     ${SENSOR}/sensor_core.c
     ${SENSOR}/sensor_fifo.c
     ${SENSOR}/sensor_calibration.c
     ${SENSOR}/sensor_filter.c
     ${SENSOR}/sensor_threshold.c
-    ${ROOT}/UniTest/unity/unity.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME sensor_framework COMMAND test_sensor_framework)
 
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 add_executable(test_hal_pc
-    test_hal_pc.c
+    ${UNIT_HAL}/test_hal_pc.c
     ${HAL}/PC/xy_hal_pc.c
     ${HAL}/PC/xy_hal_gpio_pc.c
     ${HAL}/PC/xy_hal_i2c_pc.c
     ${HAL}/PC/xy_hal_spi_pc.c
     ${HAL}/PC/xy_hal_uart_pc.c
-    ${ROOT}/UniTest/unity/unity.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_hal_pc PRIVATE
     ${HAL}/inc
@@ -332,7 +353,7 @@ add_test(NAME hal_pc COMMAND test_hal_pc)
 
 # --- Test 23: PM lifecycle, charger, fuel gauge, and PC platform contracts ---
 add_executable(test_pm
-    test_pm.c
+    ${UNIT_PM}/test_pm_core.c
     ${PM}/src/xy_pm_system.c
     ${PM}/src/xy_pm_adc.c
     ${PM}/src/xy_pm_platform.c
@@ -341,32 +362,32 @@ add_executable(test_pm
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 target_compile_definitions(test_pm PRIVATE PLATFORM_PC XY_PM_PLATFORM_OWNS_CHARGER_HW)
 add_test(NAME pm_component COMMAND test_pm)
 
 # --- Test 24: Trace logging output and dynamic-level contracts ---
 add_executable(test_trace
-    test_trace.c
+    ${UNIT_TRACE}/test_trace_core.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 target_compile_definitions(test_trace PRIVATE XY_LOG_LEVEL=XY_LOG_LEVEL_DEBUG)
 add_test(NAME trace_component COMMAND test_trace)
 
 # --- Test 25: CLIB common/string/stdio/ring-buffer contracts ---
 add_executable(test_clib
-    test_clib.c
+    ${UNIT_CLIB}/test_clib_core.c
     ${CLIB}/xy_common.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_ctype.c
     ${CLIB}/xy_rb.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 add_test(NAME clib_component COMMAND test_clib)
 
@@ -382,7 +403,7 @@ add_executable(test_mux_core
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 add_test(NAME mux_core COMMAND test_mux_core)
 
@@ -395,7 +416,7 @@ add_executable(test_mux_i2c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 add_test(NAME mux_i2c COMMAND test_mux_i2c)
 
@@ -408,13 +429,13 @@ add_executable(test_mux_gpio
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 add_test(NAME mux_gpio COMMAND test_mux_gpio)
 
 # --- Test 29: PID core lifecycle, tuning, limits, and compute contracts ---
 add_executable(test_pid_core
-    test_pid_core.c
+    ${UNIT_PID}/test_pid_core.c
     ${PID}/xy_pid.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
@@ -431,7 +452,7 @@ add_executable(test_mux_spi
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 add_test(NAME mux_spi COMMAND test_mux_spi)
 
@@ -444,13 +465,13 @@ add_executable(test_mux_uart
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 add_test(NAME mux_uart COMMAND test_mux_uart)
 
 # --- Test 28: DM base64 public vectors and binary roundtrip ---
 add_executable(test_dm_base64
-    test_dm_base64.c
+    ${UNIT_DM}/test_dm_base64.c
     ${DM}/xy_base64/xy_base64.c
 )
 target_include_directories(test_dm_base64 PRIVATE ${ROOT}/components)
@@ -458,41 +479,41 @@ add_test(NAME dm_base64 COMMAND test_dm_base64)
 
 # --- Test 29: DM NVM key-value storage contracts ---
 add_executable(test_dm_nvm
-    test_dm_nvm.c
+    ${UNIT_DM}/test_dm_nvm_core.c
     ${DM}/xy_nvm/src/xy_nvm.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 target_include_directories(test_dm_nvm PRIVATE ${DM}/xy_nvm/inc)
 add_test(NAME dm_nvm COMMAND test_dm_nvm)
 
 # --- Test 30: IPC pipe ring-buffer contracts ---
 add_executable(test_ipc_pipe
-    test_ipc_pipe.c
+    ${UNIT_IPC}/test_ipc_pipe.c
     ${IPC}/pipe/xy_pipe.c
 )
 add_test(NAME ipc_pipe COMMAND test_ipc_pipe)
 
 # --- Test 31: IPC broker direct-message, pub/sub, and request contracts ---
 add_executable(test_ipc_broker
-    test_ipc_broker.c
+    ${UNIT_IPC}/test_ipc_broker.c
     ${IPC}/xy_broker/xy_broker.c
 )
 add_test(NAME ipc_broker COMMAND test_ipc_broker)
 
 # --- Test 32: Storage EEPROM 24xx fake-I2C host contracts ---
 add_executable(test_storage_eeprom_24xx
-    test_storage_eeprom_24xx.c
+    ${UNIT_STORAGE}/test_storage_eeprom_24xx.c
     ${STORAGE}/eeprom/24xx/xy_eeprom_24xx.c
 )
 add_test(NAME storage_eeprom_24xx COMMAND test_storage_eeprom_24xx)
 
 # --- Test 33: Display LCD SPI/I8080/ST7789 host contracts ---
 add_executable(test_display_lcd
-    test_display_lcd.c
+    ${UNIT_DISPLAY}/test_display_lcd.c
     ${DISPLAY}/lcd/xy_lcd.c
     ${DISPLAY}/lcd/xy_lcd_spi.c
     ${DISPLAY}/lcd/xy_lcd_i8080.c
@@ -502,7 +523,7 @@ add_test(NAME display_lcd COMMAND test_display_lcd)
 
 # --- Test 34: Display OLED SSD1306 / WS2812 host contracts ---
 add_executable(test_display_oled_ws2812
-    test_display_oled_ws2812.c
+    ${UNIT_DISPLAY}/test_display_oled_ws2812.c
     ${DISPLAY}/oled/ssd1306/xy_oled_ssd1306.c
     ${DISPLAY}/led_drivers/serial_rgb/xy_ws2812.c
 )
@@ -510,7 +531,7 @@ add_test(NAME display_oled_ws2812 COMMAND test_display_oled_ws2812)
 
 # --- Test 35: Display RGB matrix layout/effect contracts ---
 add_executable(test_display_rgb_matrix
-    test_display_rgb_matrix.c
+    ${UNIT_DISPLAY}/test_display_rgb_matrix.c
     ${DISPLAY}/led_drivers/serial_rgb/xy_rgb_matrix.c
     ${DISPLAY}/led_drivers/serial_rgb/xy_ws2812.c
     ${DEV}/xy_device_core.c
@@ -519,27 +540,27 @@ add_test(NAME display_rgb_matrix COMMAND test_display_rgb_matrix)
 
 # --- Test 36: Display serial RGB public helper headers remain self-contained ---
 add_executable(test_display_serial_rgb_headers
-    test_display_serial_rgb_headers.c
+    ${UNIT_DISPLAY}/test_display_serial_rgb_headers.c
 )
 add_test(NAME display_serial_rgb_headers COMMAND test_display_serial_rgb_headers)
 
 # --- Test 37: MQTT client helpers, topic filters, and validation ---
 add_executable(test_mqtt_client
-    test_mqtt_client.c
+    ${UNIT_NET}/test_mqtt_client_core.c
     ${NET}/src/xy_mqtt_client.c
 )
 add_test(NAME mqtt_client COMMAND test_mqtt_client)
 
 # --- Test 31: AT client registration, responses, and IO helpers ---
 add_executable(test_at_client
-    test_at_client.c
+    ${UNIT_NET}/test_at_client_core.c
     ${NET}/at/atc/Modules/cellular/common/at_client.c
 )
 add_test(NAME at_client COMMAND test_at_client)
 
 # --- Test 32: AT server command dispatch, responses, and parsing ---
 add_executable(test_at_server
-    test_at_server.c
+    ${UNIT_NET}/test_at_server_core.c
     ${NET}/at/ats/xy_ats.c
     ${NET}/at/ats/xy_ats_hash.c
 )
@@ -548,21 +569,21 @@ add_test(NAME at_server COMMAND test_at_server)
 
 # --- Test 33: FOTA lifecycle, CRC, download, and flash-op contracts ---
 add_executable(test_fota_core
-    test_fota_core.c
+    ${UNIT_FOTA}/test_fota_core.c
     ${FOTA}/xy_fota.c
 )
 add_test(NAME fota_core COMMAND test_fota_core)
 
 # --- Test 34: GUI core drawing and object contracts ---
 add_executable(test_gui_core
-    test_gui_core.c
+    ${UNIT_GUI}/test_gui_core.c
     ${GUI}/xy_gui.c
 )
 add_test(NAME gui_core COMMAND test_gui_core)
 
 # --- Test 35: GUI widget base and theme contracts ---
 add_executable(test_gui_widget_theme
-    test_gui_widget_theme.c
+    ${UNIT_GUI}/test_gui_widget_theme.c
     ${GUI}/src/xy_gui_widget.c
     ${GUI}/src/xy_gui_theme.c
 )
@@ -570,7 +591,7 @@ add_test(NAME gui_widget_theme COMMAND test_gui_widget_theme)
 
 # --- Test 36: GUI event and remaining widget contracts ---
 add_executable(test_gui_widgets
-    test_gui_widgets.c
+    ${UNIT_GUI}/test_gui_widgets.c
     ${GUI}/src/xy_gui_event.c
     ${GUI}/src/xy_gui_widget.c
     ${GUI}/src/xy_gui_button.c
@@ -585,14 +606,14 @@ add_executable(test_gui_widgets
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 target_link_libraries(test_gui_widgets m)
 add_test(NAME gui_widgets COMMAND test_gui_widgets)
 
 # --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---
 add_executable(test_analog_devices
-    test_analog_devices.c
+    ${UNIT_ANALOG}/test_analog_devices.c
     ${ANALOG}/xy_adc.c
     ${ANALOG}/src/xy_mcp3008.c
     ${ANALOG}/src/xy_hx711.c
@@ -600,13 +621,13 @@ add_executable(test_analog_devices
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 add_test(NAME analog_devices COMMAND test_analog_devices)
 
 # --- Test 39: SYS timer and state-machine host contracts ---
 add_executable(test_sys_timer_sm
-    test_sys_timer_sm.c
+    ${UNIT_SYS}/test_sys_timer_sm.c
     ${SYS}/xy_timer/xy_timer.c
     ${SYS}/xy_state_machine/xy_st.c
 )
@@ -615,21 +636,21 @@ add_test(NAME sys_timer_sm COMMAND test_sys_timer_sm)
 
 # --- Test 40: Net SMBus/PMBus helper and protocol contracts ---
 add_executable(test_net_smbus_pmbus
-    test_net_smbus_pmbus.c
+    ${UNIT_NET}/test_net_smbus_pmbus.c
     ${NET}/smbus/xy_smbus.c
     ${NET}/smbus/xy_pmbus.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
-    test_clib_alloc_shim.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 target_link_libraries(test_net_smbus_pmbus m)
 add_test(NAME net_smbus_pmbus COMMAND test_net_smbus_pmbus)
 
 # --- Test 41: Actuator framework, relay, servo, PWM, and batch contracts ---
 add_executable(test_actuator_framework
-    test_actuator_framework.c
+    ${UNIT_ACTUATOR}/test_actuator_framework.c
     ${ACTUATOR}/xy_actuator.c
 )
 target_link_libraries(test_actuator_framework m)
@@ -637,7 +658,7 @@ add_test(NAME actuator_framework COMMAND test_actuator_framework)
 
 # --- Test 42: BQ25620 charger I2C register and status contracts ---
 add_executable(test_charger_bq25620
-    test_charger_bq25620.c
+    ${UNIT_PM}/test_charger_bq25620.c
     ${ROOT}/components/charger/src/xy_bq25620.c
 )
 target_include_directories(test_charger_bq25620 PRIVATE ${ROOT}/components/charger/inc)
