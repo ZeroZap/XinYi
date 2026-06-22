@@ -65,7 +65,7 @@ typedef xy_gui_display_t* (*xy_led_get_gui_func_t)(xy_led_driver_t *drv);
  * @brief 检查驱动是否支持 GUI
  */
 #define XY_LED_SUPPORTS_GUI(drv) \
-    ((drv) && ((xy_led_driver_t*)(drv))->user_data != NULL)
+    (xy_led_get_gui_interface((xy_led_driver_t *)(drv)) != NULL)
 
 /**
  * @brief 获取 GUI 接口 (如果支持)

@@ -8,6 +8,8 @@ endif()
 
 message(STATUS "Display: Building LED driver backends")
 
+xy_add_srcs(${CMAKE_CURRENT_SOURCE_DIR}/xy_led_driver.c)
+
 # Charlieplex driver
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/charlieplex)
     add_subdirectory(charlieplex)
