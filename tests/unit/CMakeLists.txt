@@ -712,6 +712,24 @@ target_include_directories(test_fg_bq27z746 PRIVATE
 )
 add_test(NAME fg_bq27z746 COMMAND test_fg_bq27z746)
 
+# --- Test 45: BQ40Z50 fuel gauge driver host guard ---
+add_executable(test_fg_bq40z50
+    ${UNIT_FUEL_GAUGE}/test_fg_bq40z50.c
+    ${ROOT}/components/fuel_gauge/drivers/xy_fg_bq40z50.c
+    ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
+    ${ROOT}/tests/unity/unity.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
+target_include_directories(test_fg_bq40z50 PRIVATE
+    ${ROOT}/components/fuel_gauge/drivers
+    ${ROOT}/components/fuel_gauge/inc
+    ${SENSOR}/inc
+)
+add_test(NAME fg_bq40z50 COMMAND test_fg_bq40z50)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -723,6 +741,6 @@ add_custom_target(run_unit_tests
             test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_display_serial_rgb_headers test_display_led_driver test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
-            test_actuator_framework test_charger_bq25620 test_fuel_gauge_core test_fg_bq27z746
+            test_actuator_framework test_charger_bq25620 test_fuel_gauge_core test_fg_bq27z746 test_fg_bq40z50
     COMMENT "Running unit tests"
 )

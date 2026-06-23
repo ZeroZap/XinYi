@@ -16,6 +16,7 @@
 
 #include "xy_fuel_gauge.h"
 #include "xy_log.h"
+#include "xy_sensor_device.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -80,7 +81,7 @@ static int bq40z50_read_reg16(bq40z50_private_data_t *priv,
     
     ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 2);
     if (ret != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* BQ40Z50 使用小端格式 */
@@ -100,7 +101,7 @@ static int bq40z50_read_reg32(bq40z50_private_data_t *priv,
     
     ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 4);
     if (ret != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* 小端格式 */
@@ -153,7 +154,7 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
     uint16_t value;
     
     if (!priv->initialized) {
-        return -1;
+        return XY_FG_ERROR_NOT_INITIALIZED;
     }
     
     /* 读取电池组电压 (mV) */
@@ -236,7 +237,7 @@ static int bq40z50_channel_get(xy_fuel_gauge_t *fg,
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     
     if (!val) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     switch (channel) {
@@ -265,7 +266,7 @@ static int bq40z50_channel_get(xy_fuel_gauge_t *fg,
             *val = priv->data.cycle_count;
             break;
         default:
-            return -1;
+            return XY_FG_ERROR_NOT_SUPPORTED;
     }
     return 0;
 }
@@ -279,7 +280,7 @@ int xy_fuel_gauge_bq40z50_get_battery_voltage(xy_fuel_gauge_t *fg,
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     
     if (!voltage_mv) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     *voltage_mv = priv->data.voltage_mv;
@@ -295,8 +296,11 @@ int xy_fuel_gauge_bq40z50_get_cell_voltage(xy_fuel_gauge_t *fg,
 {
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     
-    if (!voltage_mv || cell_index == 0 || cell_index > priv->cell_count) {
-        return -1;
+    if (!voltage_mv) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+    if (cell_index == 0 || cell_index > priv->cell_count) {
+        return XY_FG_ERROR_NOT_SUPPORTED;
     }
     
     *voltage_mv = priv->cell_voltages[cell_index - 1];

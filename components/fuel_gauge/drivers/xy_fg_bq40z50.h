@@ -65,6 +65,27 @@ uint8_t xy_fuel_gauge_bq40z50_get_balance_status(xy_fuel_gauge_t *fg);
  */
 uint32_t xy_fuel_gauge_bq40z50_get_protection_status(xy_fuel_gauge_t *fg);
 
+/**
+ * @brief 检查充电状态
+ * @param fg 电量计设备
+ * @return true 正在充电
+ */
+bool xy_fuel_gauge_bq40z50_is_charging(xy_fuel_gauge_t *fg);
+
+/**
+ * @brief 检查充满状态
+ * @param fg 电量计设备
+ * @return true 已充满
+ */
+bool xy_fuel_gauge_bq40z50_is_full(xy_fuel_gauge_t *fg);
+
+/**
+ * @brief 检查保护状态
+ * @param fg 电量计设备
+ * @return true 存在保护状态
+ */
+bool xy_fuel_gauge_bq40z50_is_protected(xy_fuel_gauge_t *fg);
+
 #ifdef __cplusplus
 }
 #endif
