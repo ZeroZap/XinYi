@@ -73,7 +73,7 @@ xy_fg_charging_mode_t xy_fuel_gauge_get_charging_mode(xy_fuel_gauge_t *fg)
 int xy_fuel_gauge_get_charge_current(xy_fuel_gauge_t *fg, uint16_t *current_ma)
 {
     if (!fg || !current_ma) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     /* 简化实现：返回 0 */
@@ -87,7 +87,7 @@ int xy_fuel_gauge_get_charge_current(xy_fuel_gauge_t *fg, uint16_t *current_ma)
 int xy_fuel_gauge_get_charge_voltage(xy_fuel_gauge_t *fg, uint16_t *voltage_mv)
 {
     if (!fg || !voltage_mv) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     /* 简化实现：返回 0 */
@@ -102,25 +102,31 @@ int xy_fuel_gauge_get_battery_health(xy_fuel_gauge_t *fg,
                                      xy_fg_battery_health_t *health)
 {
     if (!fg || !health) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     memset(health, 0, sizeof(*health));
     
-    /* 读取 SOC */
-    xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, (int32_t*)&health->soh_percent);
-    
+    int32_t value;
+
     /* 读取容量 */
-    xy_fuel_gauge_get(fg, XY_FG_DATA_FULL_CAPACITY, (int32_t*)&health->full_charge_capacity);
-    xy_fuel_gauge_get(fg, XY_FG_DATA_REMAIN_CAPACITY, (int32_t*)&health->remaining_capacity);
-    
+    if (xy_fuel_gauge_get(fg, XY_FG_DATA_FULL_CAPACITY, &value) == XY_FG_OK) {
+        health->full_charge_capacity = (uint16_t)value;
+    }
+    if (xy_fuel_gauge_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value) == XY_FG_OK) {
+        health->remaining_capacity = (uint16_t)value;
+    }
+
     /* 读取循环次数 */
-    xy_fuel_gauge_get(fg, XY_FG_DATA_CYCLE_COUNT, (int32_t*)&health->cycle_count);
-    
+    if (xy_fuel_gauge_get(fg, XY_FG_DATA_CYCLE_COUNT, &value) == XY_FG_OK) {
+        health->cycle_count = (uint8_t)value;
+    }
+
     /* 读取温度 */
-    xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, (int32_t*)&health->temperature);
-    health->temperature /= 10;  /* 转换为°C */
-    
+    if (xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &value) == XY_FG_OK) {
+        health->temperature = (uint8_t)(value / 10);  /* 转换为°C */
+    }
+
     /* 估算 SOH (简化实现) */
     health->soh_percent = 100;
     

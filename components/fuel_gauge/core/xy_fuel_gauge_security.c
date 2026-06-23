@@ -26,7 +26,7 @@ int xy_fuel_gauge_security_config(xy_fuel_gauge_t *fg,
                                   const xy_fg_security_config_t *config)
 {
     if (!fg || !config) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     fg_security_data_t *sec_data = (fg_security_data_t *)fg->data;
@@ -97,7 +97,7 @@ int xy_fuel_gauge_encrypt_data(xy_fuel_gauge_t *fg,
                                uint8_t *encrypted, uint16_t *encrypted_len)
 {
     if (!fg || !data || !encrypted || !encrypted_len) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     fg_security_data_t *sec_data = (fg_security_data_t *)fg->data;
@@ -138,7 +138,7 @@ int xy_fuel_gauge_decrypt_data(xy_fuel_gauge_t *fg,
                                uint8_t *data, uint16_t *len)
 {
     if (!fg || !encrypted || !data || !len) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     fg_security_data_t *sec_data = (fg_security_data_t *)fg->data;

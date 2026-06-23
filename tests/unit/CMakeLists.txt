@@ -686,6 +686,9 @@ add_test(NAME charger_bq25620 COMMAND test_charger_bq25620)
 add_executable(test_fuel_gauge_core
     ${UNIT_FUEL_GAUGE}/test_fuel_gauge_core.c
     ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
+    ${ROOT}/components/fuel_gauge/core/xy_fuel_gauge_safety.c
+    ${ROOT}/components/fuel_gauge/core/xy_fuel_gauge_security.c
+    ${ROOT}/components/fuel_gauge/core/xy_fuel_gauge_status.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c

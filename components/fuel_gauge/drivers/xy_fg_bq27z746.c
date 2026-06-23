@@ -66,7 +66,7 @@ static int bq27z746_read_reg16(bq27z746_private_data_t *priv,
     
     ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 2);
     if (ret != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* BQ27Z746 使用小端格式 */
@@ -86,7 +86,7 @@ static int bq27z746_init(xy_fuel_gauge_t *fg)
     /* 读取设备类型验证连接 */
     if (bq27z746_read_reg16(priv, BQ27Z746_REG_CTRL, &device_type) != 0) {
         xy_log_e("BQ27Z746: Failed to read device type\n");
-        return -1;
+        return XY_FG_ERROR;
     }
     
     xy_log_i("BQ27Z746 device type: 0x%04X\n", device_type);
@@ -110,7 +110,7 @@ static int bq27z746_fetch(xy_fuel_gauge_t *fg)
     uint16_t value;
     
     if (!priv->initialized) {
-        return -1;
+        return XY_FG_ERROR_NOT_INITIALIZED;
     }
     
     /* 读取电压 (mV) */
