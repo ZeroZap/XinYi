@@ -306,11 +306,11 @@ static int bq40z50_channel_get(xy_fuel_gauge_t *fg,
 int xy_fuel_gauge_bq40z50_get_battery_voltage(xy_fuel_gauge_t *fg, 
                                               uint16_t *voltage_mv)
 {
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
-    
-    if (!voltage_mv) {
+    if (!fg || !fg->data || !voltage_mv) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
+
+    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     
     *voltage_mv = priv->data.voltage_mv;
     return 0;
@@ -323,11 +323,11 @@ int xy_fuel_gauge_bq40z50_get_cell_voltage(xy_fuel_gauge_t *fg,
                                            uint8_t cell_index,
                                            uint16_t *voltage_mv)
 {
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
-    
-    if (!voltage_mv) {
+    if (!fg || !fg->data || !voltage_mv) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
+
+    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     if (cell_index == 0 || cell_index > priv->cell_count) {
         return XY_FG_ERROR_NOT_SUPPORTED;
     }
@@ -341,6 +341,10 @@ int xy_fuel_gauge_bq40z50_get_cell_voltage(xy_fuel_gauge_t *fg,
  */
 uint8_t xy_fuel_gauge_bq40z50_get_balance_status(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return 0;
+    }
+
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     uint16_t balance_status;
     
@@ -356,6 +360,10 @@ uint8_t xy_fuel_gauge_bq40z50_get_balance_status(xy_fuel_gauge_t *fg)
  */
 uint32_t xy_fuel_gauge_bq40z50_get_protection_status(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return 0;
+    }
+
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     return priv->prot_status;
 }
@@ -365,6 +373,10 @@ uint32_t xy_fuel_gauge_bq40z50_get_protection_status(xy_fuel_gauge_t *fg)
  */
 bool xy_fuel_gauge_bq40z50_is_charging(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return false;
+    }
+
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     return (priv->bat_status & BQ40Z50_BAT_STAT_CHG) != 0;
 }
@@ -374,6 +386,10 @@ bool xy_fuel_gauge_bq40z50_is_charging(xy_fuel_gauge_t *fg)
  */
 bool xy_fuel_gauge_bq40z50_is_full(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return false;
+    }
+
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     return (priv->bat_status & BQ40Z50_BAT_STAT_FC) != 0;
 }
@@ -383,6 +399,10 @@ bool xy_fuel_gauge_bq40z50_is_full(xy_fuel_gauge_t *fg)
  */
 bool xy_fuel_gauge_bq40z50_is_protected(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return false;
+    }
+
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     return priv->prot_status != 0;
 }

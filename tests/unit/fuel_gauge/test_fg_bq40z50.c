@@ -267,9 +267,32 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_get(fg, XY_FG_DATA_TIME_TO_EMPTY, &value));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_battery_voltage(NULL, &voltage));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_battery_voltage(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(NULL, 1, &voltage));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 1, NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 5, &voltage));
+}
+
+void test_bq40z50_status_helpers_handle_null_and_persistent_nack(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+
+    TEST_ASSERT_EQUAL_UINT8(0, xy_fuel_gauge_bq40z50_get_balance_status(NULL));
+    TEST_ASSERT_EQUAL_UINT32(0, xy_fuel_gauge_bq40z50_get_protection_status(NULL));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(NULL));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_full(NULL));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_protected(NULL));
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    fake_fail_reads(REG_BAL_STATUS, 3);
+    TEST_ASSERT_EQUAL_UINT8(0, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 }
 
 void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
@@ -317,6 +340,7 @@ int main(void)
     RUN_TEST(test_bq40z50_registers_default_i2c_bus);
     RUN_TEST(test_bq40z50_init_fetch_channel_and_pack_helpers);
     RUN_TEST(test_bq40z50_rejects_invalid_channel_and_cell);
+    RUN_TEST(test_bq40z50_status_helpers_handle_null_and_persistent_nack);
     RUN_TEST(test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure);
     RUN_TEST(test_bq40z50_retries_discharge_status_path);
     return UNITY_END();
