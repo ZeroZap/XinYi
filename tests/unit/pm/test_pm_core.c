@@ -18,6 +18,7 @@ int xy_charger_get_state(xy_charger_state_t *state);
 int xy_fuel_gauge_get_state(xy_battery_state_t *state);
 uint8_t xy_fuel_gauge_get_soh(void);
 uint8_t xy_pm_estimate_soc_from_voltage(uint32_t voltage_mV);
+void xy_pm_platform_set_fallback_tick(uint32_t tick);
 
 static void test_pm_platform_contracts(void)
 {
@@ -128,12 +129,36 @@ static void test_fuel_gauge_and_adc_contracts(void)
     assert(xy_fuel_gauge_get_soh() == 100U);
     assert(xy_fuel_gauge_get_remaining_mAh() == 1000U);
     assert(xy_fuel_gauge_update(4200, 500, 25) == XY_FUEL_GAUGE_OK);
-    assert(xy_fuel_gauge_get_soc() >= 80U);
+    assert(xy_fuel_gauge_get_soc() >= 60U);
+    assert(xy_fuel_gauge_get_soc() <= 70U);
     assert(xy_fuel_gauge_get_time_to_full() > 0U);
     assert(xy_fuel_gauge_get_state(&state) == XY_FUEL_GAUGE_OK);
     assert(state.voltage_mV == 3700U);
     assert(xy_fuel_gauge_reset() == XY_FUEL_GAUGE_OK);
     assert(xy_fuel_gauge_get_soc() == 100U);
+    assert(xy_fuel_gauge_deinit() == XY_FUEL_GAUGE_OK);
+}
+
+static void test_fuel_gauge_uses_platform_tick(void)
+{
+    xy_fuel_gauge_config_t cfg = {
+        .design_capacity_mAh = 1000,
+        .full_capacity_mAh = 1000,
+        .nominal_voltage_mV = 3700,
+        .cells = 1,
+    };
+
+    assert(xy_fuel_gauge_deinit() == XY_FUEL_GAUGE_OK);
+    xy_pm_platform_set_fallback_tick(1000U);
+    assert(xy_fuel_gauge_init(&cfg) == XY_FUEL_GAUGE_OK);
+    assert(xy_fuel_gauge_get_remaining_mAh() == 500U);
+
+    assert(xy_fuel_gauge_update(3700, 3600, 25) == XY_FUEL_GAUGE_OK);
+    assert(xy_fuel_gauge_get_remaining_mAh() == 500U);
+
+    xy_pm_platform_set_fallback_tick(2000U);
+    assert(xy_fuel_gauge_update(3700, 3600, 25) == XY_FUEL_GAUGE_OK);
+    assert(xy_fuel_gauge_get_remaining_mAh() == 501U);
     assert(xy_fuel_gauge_deinit() == XY_FUEL_GAUGE_OK);
 }
 
@@ -143,6 +168,7 @@ int main(void)
     test_pm_lifecycle_and_charging();
     test_charger_contracts();
     test_fuel_gauge_and_adc_contracts();
+    test_fuel_gauge_uses_platform_tick();
     puts("PM component tests passed");
     return 0;
 }

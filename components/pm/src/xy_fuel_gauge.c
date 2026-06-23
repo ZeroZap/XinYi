@@ -8,14 +8,10 @@
 #include "../inc/xy_pm.h"
 #include <string.h>
 
-/* Stub for tick count - returns simulated milliseconds */
-static uint32_t stub_tick_get(void)
-{
-    static uint32_t tick = 0;
-    return tick += 1000;
-}
-
-#define xy_os_tick_get stub_tick_get
+/* OS tick is provided by the PM platform layer. */
+#ifndef xy_os_tick_get
+#define xy_os_tick_get xy_pm_tick_get
+#endif
 
 /* Stub logging macros */
 #define xy_log_i(fmt, ...)
@@ -64,6 +60,7 @@ int xy_fuel_gauge_init(const xy_fuel_gauge_config_t *config)
     s_fg.state.remaining_mAh = s_fg.config.design_capacity_mAh / 2;
     s_fg.state.full_charge_mAh = s_fg.config.full_capacity_mAh;
     s_fg.state.charging = false;
+    s_fg.accumulated_charge_mAs = (int32_t)s_fg.state.remaining_mAh * 3600;
     
     s_fg.last_update_time = xy_os_tick_get();
     s_fg.initialized = true;
@@ -121,15 +118,16 @@ int xy_fuel_gauge_update(uint32_t voltage_mV, int32_t current_mA, int32_t temper
     if (delta_t > 0 && delta_t < 60) { /* 防止异常时间间隔 */
         s_fg.accumulated_charge_mAs += current_mA * delta_t;
     }
-    
+
     /* 计算剩余容量 */
-    int32_t remaining_mAs = (s_fg.config.design_capacity_mAh * 3600) / 1000 + s_fg.accumulated_charge_mAs;
+    int32_t remaining_mAs = s_fg.accumulated_charge_mAs;
     if (remaining_mAs < 0) remaining_mAs = 0;
     if (remaining_mAs > s_fg.config.full_capacity_mAh * 3600) {
         remaining_mAs = s_fg.config.full_capacity_mAh * 3600;
     }
-    
-    s_fg.state.remaining_mAh = (remaining_mAs * 1000) / 3600;
+
+    s_fg.accumulated_charge_mAs = remaining_mAs;
+    s_fg.state.remaining_mAh = remaining_mAs / 3600;
     
     /* 计算 SOC (库仑计 + 电压校正) */
     uint8_t soc_coulomb = (s_fg.state.remaining_mAh * 100) / s_fg.config.design_capacity_mAh;

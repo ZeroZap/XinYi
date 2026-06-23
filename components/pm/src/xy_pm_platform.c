@@ -39,6 +39,17 @@
 #define XY_PLATFORM_PC        0
 #endif
 
+#if defined(XY_PM_ENABLE_TEST_HOOKS)
+static bool g_test_tick_override_enabled = false;
+static uint32_t g_test_tick_override = 0;
+
+void xy_pm_platform_set_fallback_tick(uint32_t tick)
+{
+    g_test_tick_override = tick;
+    g_test_tick_override_enabled = true;
+}
+#endif
+
 /* ============================================================
  * OS Tick Wrapper - Replace stub with real OS tick
  * ============================================================ */
@@ -71,13 +82,6 @@ static inline uint32_t platform_tick_get(void) { return (uint32_t)(clock() * 100
 #else
 static volatile uint32_t g_fallback_tick = 0;
 static inline uint32_t platform_tick_get(void) { return g_fallback_tick; }
-
-#if defined(XY_PM_ENABLE_TEST_HOOKS)
-void xy_pm_platform_set_fallback_tick(uint32_t tick)
-{
-    g_fallback_tick = tick;
-}
-#endif
 #endif
 
 /**
@@ -86,6 +90,11 @@ void xy_pm_platform_set_fallback_tick(uint32_t tick)
  */
 uint32_t xy_pm_tick_get(void)
 {
+#if defined(XY_PM_ENABLE_TEST_HOOKS)
+    if (g_test_tick_override_enabled) {
+        return g_test_tick_override;
+    }
+#endif
     return platform_tick_get();
 }
 
