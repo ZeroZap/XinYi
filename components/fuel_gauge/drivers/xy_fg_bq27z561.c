@@ -9,6 +9,7 @@
 
 #include "xy_fuel_gauge.h"
 #include "xy_log.h"
+#include "xy_sensor_device.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -42,7 +43,7 @@ static int bq27z561_init(xy_fuel_gauge_t *fg)
     /* 读取设备 ID */
     uint16_t device_id;
     if (xy_sensor_i2c_read_reg16(&priv->bus, 0x0002, &device_id) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     xy_log_i("BQ27z561 device ID: 0x%04X\n", device_id);
@@ -62,44 +63,44 @@ static int bq27z561_fetch(xy_fuel_gauge_t *fg)
     /* 读取电压 (mV) */
     uint16_t voltage;
     if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_VOLT, &voltage) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* 读取电流 (mA) */
     int16_t current;
     if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_CURR, (uint16_t*)&current) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* 读取 SOC (%) */
     uint8_t soc;
     if (xy_sensor_i2c_read_reg(&priv->bus, BQ27Z561_REG_SOC, &soc) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* 读取 SOH (%) */
     uint8_t soh;
     if (xy_sensor_i2c_read_reg(&priv->bus, BQ27Z561_REG_SOH, &soh) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* 读取温度 (0.1K) */
     uint16_t temp;
     if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_TEMP, &temp) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
-    int16_t temp_c = (temp - 2731) - 2731;  /* 转换为 0.1°C */
+    int16_t temp_c = (int16_t)((int32_t)temp - 2731);  /* 转换为 0.1°C */
     
     /* 读取满充容量 (mAh) */
     uint16_t full_cap;
     if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_NOM_CAP, &full_cap) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* 读取剩余容量 (mAh) */
     uint16_t rem_cap;
     if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_REM_CAP, &rem_cap) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
     
     /* 存储数据 */
@@ -123,7 +124,9 @@ static int bq27z561_channel_get(xy_fuel_gauge_t *fg,
 {
     bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
     
-    if (!val) return -1;
+    if (!val) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
     
     switch (channel) {
         case XY_FG_DATA_VOLTAGE:
@@ -148,7 +151,7 @@ static int bq27z561_channel_get(xy_fuel_gauge_t *fg,
             *val = priv->data.remain_capacity_mah;
             break;
         default:
-            return -1;
+            return XY_FG_ERROR_NOT_SUPPORTED;
     }
     return 0;
 }
