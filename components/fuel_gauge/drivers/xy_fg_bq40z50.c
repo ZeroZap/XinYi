@@ -68,6 +68,7 @@ typedef struct {
     xy_fuel_gauge_data_t data;
     uint16_t bat_status;
     uint32_t prot_status;
+    uint8_t balance_status;
     uint8_t cell_count;
     uint16_t cell_voltages[4];
 } bq40z50_private_data_t;
@@ -150,6 +151,14 @@ static int bq40z50_init(xy_fuel_gauge_t *fg)
     if (bq40z50_read_reg32(priv, BQ40Z50_REG_PROT_STATUS, &priv->prot_status) != 0) {
         xy_log_w("BQ40Z50: Failed to read protection status\n");
     }
+
+    /* 读取平衡状态 */
+    uint16_t balance_status;
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_BAL_STATUS, &balance_status) == 0) {
+        priv->balance_status = (uint8_t)balance_status;
+    } else {
+        xy_log_w("BQ40Z50: Failed to read balance status\n");
+    }
     
     /* 检测电池数量 */
     priv->cell_count = 4;  /* 默认 4 节 */
@@ -169,6 +178,7 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
     uint16_t cell_voltages[4];
     uint16_t bat_status;
     uint32_t prot_status;
+    uint8_t balance_status;
     uint16_t value;
     
     if (!priv->initialized) {
@@ -178,6 +188,7 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
     memcpy(cell_voltages, priv->cell_voltages, sizeof(cell_voltages));
     bat_status = priv->bat_status;
     prot_status = priv->prot_status;
+    balance_status = priv->balance_status;
     
     if (bq40z50_read_reg16(priv, BQ40Z50_REG_VOLT, &value) != 0) {
         return XY_FG_ERROR;
@@ -237,6 +248,10 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
     if (bq40z50_read_reg32(priv, BQ40Z50_REG_PROT_STATUS, &prot_status) != 0) {
         return XY_FG_ERROR;
     }
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_BAL_STATUS, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    balance_status = (uint8_t)value;
     
     if (data.full_capacity_mah > 0) {
         data.soh = 100;
@@ -246,6 +261,7 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
     memcpy(priv->cell_voltages, cell_voltages, sizeof(priv->cell_voltages));
     priv->bat_status = bat_status;
     priv->prot_status = prot_status;
+    priv->balance_status = balance_status;
     
     xy_log_d("BQ40Z50: V=%dmV, I=%dmA, SOC=%d%%, Cells=[%d,%d,%d,%d]mV\n",
              priv->data.voltage_mv, priv->data.current_ma,
@@ -346,13 +362,7 @@ uint8_t xy_fuel_gauge_bq40z50_get_balance_status(xy_fuel_gauge_t *fg)
     }
 
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
-    uint16_t balance_status;
-    
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_BAL_STATUS, &balance_status) != 0) {
-        return 0;
-    }
-    
-    return (uint8_t)balance_status;
+    return priv->balance_status;
 }
 
 /**

@@ -294,7 +294,21 @@ void test_bq40z50_status_helpers_handle_null_and_persistent_nack(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
 
     fake_fail_reads(REG_BAL_STATUS, 3);
-    TEST_ASSERT_EQUAL_UINT8(0, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+    TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+}
+
+void test_bq40z50_fetch_updates_balance_status_cache(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+
+    fake_set16(REG_BAL_STATUS, 0x000A);
+    fake_tick = 5050;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT8(0x0A, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 }
 
 void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
@@ -322,6 +336,16 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
     TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
     TEST_ASSERT_EQUAL_UINT16(15234, voltage);
+
+    fake_fail_reads(REG_BAL_STATUS, 3);
+    fake_set16(REG_VOLT, 11111);
+    fake_set16(REG_BAL_STATUS, 0x000A);
+    fake_tick = 7070;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(15234, voltage);
+    TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 }
 
 void test_bq40z50_retries_discharge_status_path(void)
@@ -344,6 +368,7 @@ int main(void)
     RUN_TEST(test_bq40z50_init_fetch_channel_and_pack_helpers);
     RUN_TEST(test_bq40z50_rejects_invalid_channel_and_cell);
     RUN_TEST(test_bq40z50_status_helpers_handle_null_and_persistent_nack);
+    RUN_TEST(test_bq40z50_fetch_updates_balance_status_cache);
     RUN_TEST(test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure);
     RUN_TEST(test_bq40z50_retries_discharge_status_path);
     return UNITY_END();
