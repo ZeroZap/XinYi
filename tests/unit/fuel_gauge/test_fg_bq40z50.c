@@ -22,6 +22,7 @@
 #define REG_BAL_STATUS  0x68
 
 static uint8_t fake_regs[256][4];
+static uint8_t fake_read_failures[256];
 static xy_sensor_bus_t last_bus;
 static int read_count;
 static uint32_t fake_tick;
@@ -45,6 +46,11 @@ static void fake_set32(uint8_t reg, uint32_t value)
     fake_regs[reg][3] = (uint8_t)(value >> 24);
 }
 
+static void fake_fail_reads(uint8_t reg, uint8_t failures)
+{
+    fake_read_failures[reg] = failures;
+}
+
 void xy_sensor_bus_config_i2c(xy_sensor_bus_t *bus, void *handle, uint8_t address)
 {
     TEST_ASSERT_NOT_NULL(bus);
@@ -61,6 +67,12 @@ int xy_sensor_i2c_read(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *data, uint16_
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_TRUE(len == 2 || len == 4);
+
+    if (fake_read_failures[reg] > 0) {
+        fake_read_failures[reg]--;
+        read_count++;
+        return -1;
+    }
 
     memcpy(data, fake_regs[reg], len);
     read_count++;
@@ -146,6 +158,7 @@ void xy_sensor_bus_config_spi(xy_sensor_bus_t *bus, void *handle, uint8_t cs_pin
 void setUp(void)
 {
     memset(fake_regs, 0, sizeof(fake_regs));
+    memset(fake_read_failures, 0, sizeof(fake_read_failures));
     memset(&last_bus, 0, sizeof(last_bus));
     read_count = 0;
     fake_tick = 1000;
@@ -259,11 +272,52 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
                       xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 5, &voltage));
 }
 
+void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+    int32_t value = 0;
+    uint32_t previous_timestamp = 0;
+    uint16_t voltage = 0;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    fake_fail_reads(REG_CURR, 1);
+    fake_tick = 5050;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(5050, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-654, value);
+
+    previous_timestamp = fg->latest.timestamp;
+    fake_set16(REG_VOLT, 9999);
+    fake_fail_reads(REG_CURR, 3);
+    fake_tick = 6060;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(15234, voltage);
+}
+
+void test_bq40z50_retries_discharge_status_path(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+
+    fake_set16(REG_BAT_STATUS, 0x000A);
+    fake_fail_reads(REG_BAT_STATUS, 1);
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(fg));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_bq40z50_registers_default_i2c_bus);
     RUN_TEST(test_bq40z50_init_fetch_channel_and_pack_helpers);
     RUN_TEST(test_bq40z50_rejects_invalid_channel_and_cell);
+    RUN_TEST(test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure);
+    RUN_TEST(test_bq40z50_retries_discharge_status_path);
     return UNITY_END();
 }

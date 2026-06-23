@@ -43,6 +43,8 @@
 #define BQ40Z50_REG_PROT_STATUS 0x66
 #define BQ40Z50_REG_BAL_STATUS  0x68
 
+#define BQ40Z50_READ_RETRIES    3
+
 /* 电池状态标志 */
 #define BQ40Z50_BAT_STAT_CHG    (1 << 0)    /* 充电中 */
 #define BQ40Z50_BAT_STAT_DISCHG (1 << 1)    /* 放电中 */
@@ -79,7 +81,13 @@ static int bq40z50_read_reg16(bq40z50_private_data_t *priv,
     uint8_t buf[2];
     int ret;
     
-    ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 2);
+    ret = XY_FG_ERROR;
+    for (int attempt = 0; attempt < BQ40Z50_READ_RETRIES; attempt++) {
+        ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 2);
+        if (ret == 0) {
+            break;
+        }
+    }
     if (ret != 0) {
         return XY_FG_ERROR;
     }
@@ -99,7 +107,13 @@ static int bq40z50_read_reg32(bq40z50_private_data_t *priv,
     uint8_t buf[4];
     int ret;
     
-    ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 4);
+    ret = XY_FG_ERROR;
+    for (int attempt = 0; attempt < BQ40Z50_READ_RETRIES; attempt++) {
+        ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 4);
+        if (ret == 0) {
+            break;
+        }
+    }
     if (ret != 0) {
         return XY_FG_ERROR;
     }
@@ -151,72 +165,87 @@ static int bq40z50_init(xy_fuel_gauge_t *fg)
 static int bq40z50_fetch(xy_fuel_gauge_t *fg)
 {
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fuel_gauge_data_t data = priv->data;
+    uint16_t cell_voltages[4];
+    uint16_t bat_status;
+    uint32_t prot_status;
     uint16_t value;
     
     if (!priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
+
+    memcpy(cell_voltages, priv->cell_voltages, sizeof(cell_voltages));
+    bat_status = priv->bat_status;
+    prot_status = priv->prot_status;
     
-    /* 读取电池组电压 (mV) */
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_VOLT, &value) == 0) {
-        priv->data.voltage_mv = value;
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_VOLT, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    data.voltage_mv = value;
+    
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CURR, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    data.current_ma = (int16_t)value;
+    
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_SOC, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    data.soc = (uint8_t)(value / 100);
+    
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_REM_CAP, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    data.remain_capacity_mah = value;
+    
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_FULL_CAP, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    data.full_capacity_mah = value;
+    
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CYCLE_CNT, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    data.cycle_count = value;
+    
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_TEMP, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    data.temperature_c = (int16_t)(value - 2731);
+    
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CELL1_VOLT, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    cell_voltages[0] = value;
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CELL2_VOLT, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    cell_voltages[1] = value;
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CELL3_VOLT, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    cell_voltages[2] = value;
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CELL4_VOLT, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    cell_voltages[3] = value;
+    
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_BAT_STATUS, &bat_status) != 0) {
+        return XY_FG_ERROR;
+    }
+    if (bq40z50_read_reg32(priv, BQ40Z50_REG_PROT_STATUS, &prot_status) != 0) {
+        return XY_FG_ERROR;
     }
     
-    /* 读取电流 (mA) */
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CURR, &value) == 0) {
-        /* BQ40Z50 电流为有符号数，正=充电，负=放电 */
-        priv->data.current_ma = (int16_t)value;
+    if (data.full_capacity_mah > 0) {
+        data.soh = 100;
     }
-    
-    /* 读取 SOC (0.01%) */
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_SOC, &value) == 0) {
-        priv->data.soc = (uint8_t)(value / 100);
-    }
-    
-    /* 读取剩余容量 (mAh) */
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_REM_CAP, &value) == 0) {
-        priv->data.remain_capacity_mah = value;
-    }
-    
-    /* 读取满充容量 (mAh) */
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_FULL_CAP, &value) == 0) {
-        priv->data.full_capacity_mah = value;
-    }
-    
-    /* 读取循环次数 */
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CYCLE_CNT, &value) == 0) {
-        priv->data.cycle_count = value;
-    }
-    
-    /* 读取温度 (0.1K) */
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_TEMP, &value) == 0) {
-        /* 转换为 0.1°C */
-        priv->data.temperature_c = (int16_t)(value - 2731);
-    }
-    
-    /* 读取单体电压 */
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CELL1_VOLT, &value) == 0) {
-        priv->cell_voltages[0] = value;
-    }
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CELL2_VOLT, &value) == 0) {
-        priv->cell_voltages[1] = value;
-    }
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CELL3_VOLT, &value) == 0) {
-        priv->cell_voltages[2] = value;
-    }
-    if (bq40z50_read_reg16(priv, BQ40Z50_REG_CELL4_VOLT, &value) == 0) {
-        priv->cell_voltages[3] = value;
-    }
-    
-    /* 更新状态 */
-    bq40z50_read_reg16(priv, BQ40Z50_REG_BAT_STATUS, &priv->bat_status);
-    bq40z50_read_reg32(priv, BQ40Z50_REG_PROT_STATUS, &priv->prot_status);
-    
-    /* SOH 估算 (简化实现) */
-    if (priv->data.full_capacity_mah > 0) {
-        /* 假设设计容量为满充容量的 100% */
-        priv->data.soh = 100;
-    }
+
+    priv->data = data;
+    memcpy(priv->cell_voltages, cell_voltages, sizeof(priv->cell_voltages));
+    priv->bat_status = bat_status;
+    priv->prot_status = prot_status;
     
     xy_log_d("BQ40Z50: V=%dmV, I=%dmA, SOC=%d%%, Cells=[%d,%d,%d,%d]mV\n",
              priv->data.voltage_mv, priv->data.current_ma,
