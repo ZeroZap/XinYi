@@ -233,6 +233,43 @@ void test_bq27z561_rejects_invalid_output_and_unknown_channel(void)
                       xy_fuel_gauge_get(fg, (xy_fuel_gauge_data_type_t)99, &value));
 }
 
+void test_bq27z561_alert_set_get_uses_cached_thresholds(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z561();
+    xy_fuel_gauge_alert_t alert = {
+        .low_soc_threshold = 12,
+        .high_soc_threshold = 88,
+        .low_voltage_mv = 3200,
+        .high_voltage_mv = 4300,
+        .over_current_ma = 2500,
+        .over_temp_c = 60,
+    };
+    xy_fuel_gauge_alert_t readback;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_set_alert(fg, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_set_alert(NULL, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_get_alert(NULL, &readback));
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_set_alert(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_get_alert(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_set_alert(fg, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_alert(fg, &readback));
+
+    TEST_ASSERT_EQUAL_UINT8(alert.low_soc_threshold, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(alert.high_soc_threshold, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT16(alert.low_voltage_mv, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT16(alert.high_voltage_mv, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL_INT16(alert.over_current_ma, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_INT16(alert.over_temp_c, readback.over_temp_c);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -240,5 +277,6 @@ int main(void)
     RUN_TEST(test_bq27z561_init_reads_device_id);
     RUN_TEST(test_bq27z561_fetch_and_channel_get);
     RUN_TEST(test_bq27z561_rejects_invalid_output_and_unknown_channel);
+    RUN_TEST(test_bq27z561_alert_set_get_uses_cached_thresholds);
     return UNITY_END();
 }

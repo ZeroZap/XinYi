@@ -34,6 +34,7 @@ typedef struct {
     xy_sensor_bus_t bus;
     bool initialized;
     xy_fuel_gauge_data_t data;
+    xy_fuel_gauge_alert_t alert;
 } max17043_private_data_t;
 
 /**
@@ -125,6 +126,30 @@ static int max17043_channel_get(xy_fuel_gauge_t *fg,
     return 0;
 }
 
+static int max17043_alert_set(xy_fuel_gauge_t *fg,
+                              const xy_fuel_gauge_alert_t *alert)
+{
+    if (!fg || !fg->data || !alert) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    priv->alert = *alert;
+    return XY_FG_OK;
+}
+
+static int max17043_alert_get(xy_fuel_gauge_t *fg,
+                              xy_fuel_gauge_alert_t *alert)
+{
+    if (!fg || !fg->data || !alert) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    *alert = priv->alert;
+    return XY_FG_OK;
+}
+
 /**
  * @brief MAX17043 驱动 API
  */
@@ -132,8 +157,8 @@ static const xy_fuel_gauge_api_t max17043_driver_api = {
     .init = max17043_init,
     .fetch = max17043_fetch,
     .channel_get = max17043_channel_get,
-    .alert_set = NULL,
-    .alert_get = NULL,
+    .alert_set = max17043_alert_set,
+    .alert_get = max17043_alert_get,
 };
 
 /* 设备实例 */

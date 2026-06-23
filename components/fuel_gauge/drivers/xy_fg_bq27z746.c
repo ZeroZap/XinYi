@@ -50,6 +50,7 @@ typedef struct {
     xy_sensor_bus_t bus;
     bool initialized;
     xy_fuel_gauge_data_t data;
+    xy_fuel_gauge_alert_t alert;
     uint16_t flags;
     uint8_t device_type[2];
 } bq27z746_private_data_t;
@@ -208,6 +209,30 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
     return 0;
 }
 
+static int bq27z746_alert_set(xy_fuel_gauge_t *fg,
+                              const xy_fuel_gauge_alert_t *alert)
+{
+    if (!fg || !fg->data || !alert) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    priv->alert = *alert;
+    return XY_FG_OK;
+}
+
+static int bq27z746_alert_get(xy_fuel_gauge_t *fg,
+                              xy_fuel_gauge_alert_t *alert)
+{
+    if (!fg || !fg->data || !alert) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    *alert = priv->alert;
+    return XY_FG_OK;
+}
+
 /**
  * @brief 获取充电状态
  */
@@ -242,8 +267,8 @@ static const xy_fuel_gauge_api_t bq27z746_driver_api = {
     .init = bq27z746_init,
     .fetch = bq27z746_fetch,
     .channel_get = bq27z746_channel_get,
-    .alert_set = NULL,
-    .alert_get = NULL,
+    .alert_set = bq27z746_alert_set,
+    .alert_get = bq27z746_alert_get,
 };
 
 /* 设备实例 */
