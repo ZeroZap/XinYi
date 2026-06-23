@@ -11,6 +11,8 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+extern uint32_t xy_os_tick_get(void);
+
 /* 全局变量 */
 static xy_fuel_gauge_t *g_fg_list = NULL;
 static uint8_t g_fg_count = 0;
@@ -260,11 +262,17 @@ void xy_fuel_gauge_print_info(xy_fuel_gauge_t *fg)
     xy_log_i("=======================\n");
 }
 
+static void xy_fuel_gauge_print_info_callback(xy_fuel_gauge_t *fg, void *user_data)
+{
+    (void)user_data;
+    xy_fuel_gauge_print_info(fg);
+}
+
 /**
  * @brief 打印所有电量计信息
  */
 void xy_fuel_gauge_print_all(void)
 {
     xy_log_i("Total fuel gauges: %d\n", g_fg_count);
-    xy_fuel_gauge_device_foreach(xy_fuel_gauge_print_info, NULL);
+    xy_fuel_gauge_device_foreach(xy_fuel_gauge_print_info_callback, NULL);
 }

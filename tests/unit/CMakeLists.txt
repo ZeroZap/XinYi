@@ -38,6 +38,7 @@ set(UNIT_DEVICE ${CMAKE_CURRENT_SOURCE_DIR}/device)
 set(UNIT_DISPLAY ${CMAKE_CURRENT_SOURCE_DIR}/display)
 set(UNIT_DM ${CMAKE_CURRENT_SOURCE_DIR}/dm)
 set(UNIT_FOTA ${CMAKE_CURRENT_SOURCE_DIR}/fota)
+set(UNIT_FUEL_GAUGE ${CMAKE_CURRENT_SOURCE_DIR}/fuel_gauge)
 set(UNIT_GUI ${CMAKE_CURRENT_SOURCE_DIR}/gui)
 set(UNIT_HAL ${CMAKE_CURRENT_SOURCE_DIR}/hal_component)
 set(UNIT_IPC ${CMAKE_CURRENT_SOURCE_DIR}/ipc)
@@ -79,7 +80,8 @@ include_directories(
     ${ROOT}/components/kernel/osal  # xy_os.h
     ${PM}/inc                       # xy_pm.h
     ${PM}/charger                   # xy_charger.h
-    ${PM}/fuel-gauge                # xy_fuel_gauge.h
+    ${ROOT}/components/fuel_gauge/inc # xy_fuel_gauge.h
+    ${PM}/fuel-gauge                # legacy xy_fuel_gauge.h path
     ${MUX}/inc                      # xy_mux*.h
     ${PID}                          # xy_pid.h
     ${PID}/inc                      # xy_pid_auto.h
@@ -680,6 +682,18 @@ add_executable(test_charger_bq25620
 target_include_directories(test_charger_bq25620 PRIVATE ${ROOT}/components/charger/inc)
 add_test(NAME charger_bq25620 COMMAND test_charger_bq25620)
 
+# --- Test 43: Standalone fuel gauge core API contracts ---
+add_executable(test_fuel_gauge_core
+    ${UNIT_FUEL_GAUGE}/test_fuel_gauge_core.c
+    ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
+target_include_directories(test_fuel_gauge_core PRIVATE ${ROOT}/components/fuel_gauge/inc)
+add_test(NAME fuel_gauge_core COMMAND test_fuel_gauge_core)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -691,6 +705,6 @@ add_custom_target(run_unit_tests
             test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_display_serial_rgb_headers test_display_led_driver test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
-            test_actuator_framework test_charger_bq25620
+            test_actuator_framework test_charger_bq25620 test_fuel_gauge_core
     COMMENT "Running unit tests"
 )

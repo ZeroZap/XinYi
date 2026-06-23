@@ -83,32 +83,34 @@ typedef struct {
     int16_t  over_temp_c;         /* 过温告警阈值 (0.1°C) */
 } xy_fuel_gauge_alert_t;
 
+typedef struct xy_fuel_gauge xy_fuel_gauge_t;
+
 /**
  * @brief 电量计驱动 API
  */
 typedef struct {
-    int (*init)(struct xy_fuel_gauge *fg);
-    int (*fetch)(struct xy_fuel_gauge *fg);
-    int (*channel_get)(struct xy_fuel_gauge *fg, 
+    int (*init)(xy_fuel_gauge_t *fg);
+    int (*fetch)(xy_fuel_gauge_t *fg);
+    int (*channel_get)(xy_fuel_gauge_t *fg,
                        xy_fuel_gauge_data_type_t channel, 
                        int32_t *val);
-    int (*alert_set)(struct xy_fuel_gauge *fg, 
+    int (*alert_set)(xy_fuel_gauge_t *fg,
                      const xy_fuel_gauge_alert_t *alert);
-    int (*alert_get)(struct xy_fuel_gauge *fg, 
+    int (*alert_get)(xy_fuel_gauge_t *fg,
                      xy_fuel_gauge_alert_t *alert);
 } xy_fuel_gauge_api_t;
 
 /**
  * @brief 电量计设备
  */
-typedef struct xy_fuel_gauge {
+struct xy_fuel_gauge {
     const char *name;
     const xy_fuel_gauge_api_t *api;
     void *data;
     xy_fuel_gauge_data_t latest;
     bool initialized;
     struct xy_fuel_gauge *next;
-} xy_fuel_gauge_t;
+};
 
 /* ==================== 核心 API ==================== */
 
