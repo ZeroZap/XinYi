@@ -9,6 +9,7 @@
  */
 
 #include "xy_fuel_gauge.h"
+#include "xy_sensor_device.h"
 #include "xy_log.h"
 #include <string.h>
 
@@ -173,7 +174,7 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
     
     if (!val) {
-        return -1;
+        return XY_FG_ERROR_INVALID_PARAM;
     }
     
     switch (channel) {
@@ -202,7 +203,7 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
             *val = priv->data.cycle_count;
             break;
         default:
-            return -1;
+            return XY_FG_ERROR_NOT_SUPPORTED;
     }
     return 0;
 }
