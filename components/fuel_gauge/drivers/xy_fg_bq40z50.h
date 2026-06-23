@@ -73,6 +73,13 @@ uint32_t xy_fuel_gauge_bq40z50_get_protection_status(xy_fuel_gauge_t *fg);
 bool xy_fuel_gauge_bq40z50_is_charging(xy_fuel_gauge_t *fg);
 
 /**
+ * @brief 检查放电状态
+ * @param fg 电量计设备
+ * @return true 正在放电
+ */
+bool xy_fuel_gauge_bq40z50_is_discharging(xy_fuel_gauge_t *fg);
+
+/**
  * @brief 检查充满状态
  * @param fg 电量计设备
  * @return true 已充满

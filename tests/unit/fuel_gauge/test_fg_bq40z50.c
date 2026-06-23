@@ -216,6 +216,7 @@ void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_TRUE(fg->initialized);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_full(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_protected(fg));
     TEST_ASSERT_EQUAL_UINT32(0x00000051, xy_fuel_gauge_bq40z50_get_protection_status(fg));
@@ -285,6 +286,7 @@ void test_bq40z50_status_helpers_handle_null_and_persistent_nack(void)
     TEST_ASSERT_EQUAL_UINT8(0, xy_fuel_gauge_bq40z50_get_balance_status(NULL));
     TEST_ASSERT_EQUAL_UINT32(0, xy_fuel_gauge_bq40z50_get_protection_status(NULL));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(NULL));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(NULL));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_full(NULL));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_protected(NULL));
 
@@ -332,6 +334,7 @@ void test_bq40z50_retries_discharge_status_path(void)
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_discharging(fg));
 }
 
 int main(void)

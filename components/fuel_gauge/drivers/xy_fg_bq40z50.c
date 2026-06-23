@@ -382,6 +382,19 @@ bool xy_fuel_gauge_bq40z50_is_charging(xy_fuel_gauge_t *fg)
 }
 
 /**
+ * @brief 检查放电状态
+ */
+bool xy_fuel_gauge_bq40z50_is_discharging(xy_fuel_gauge_t *fg)
+{
+    if (!fg || !fg->data) {
+        return false;
+    }
+
+    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    return (priv->bat_status & BQ40Z50_BAT_STAT_DISCHG) != 0;
+}
+
+/**
  * @brief 检查充满状态
  */
 bool xy_fuel_gauge_bq40z50_is_full(xy_fuel_gauge_t *fg)
