@@ -66,6 +66,7 @@ typedef struct {
     xy_sensor_bus_t bus;
     bool initialized;
     xy_fuel_gauge_data_t data;
+    xy_fuel_gauge_alert_t alert;
     uint16_t bat_status;
     uint32_t prot_status;
     uint8_t balance_status;
@@ -378,6 +379,30 @@ uint32_t xy_fuel_gauge_bq40z50_get_protection_status(xy_fuel_gauge_t *fg)
     return priv->prot_status;
 }
 
+static int bq40z50_alert_set(xy_fuel_gauge_t *fg,
+                             const xy_fuel_gauge_alert_t *alert)
+{
+    if (!fg || !fg->data || !alert) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    priv->alert = *alert;
+    return XY_FG_OK;
+}
+
+static int bq40z50_alert_get(xy_fuel_gauge_t *fg,
+                             xy_fuel_gauge_alert_t *alert)
+{
+    if (!fg || !fg->data || !alert) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    *alert = priv->alert;
+    return XY_FG_OK;
+}
+
 /**
  * @brief 检查充电状态
  */
@@ -437,8 +462,8 @@ static const xy_fuel_gauge_api_t bq40z50_driver_api = {
     .init = bq40z50_init,
     .fetch = bq40z50_fetch,
     .channel_get = bq40z50_channel_get,
-    .alert_set = NULL,
-    .alert_get = NULL,
+    .alert_set = bq40z50_alert_set,
+    .alert_get = bq40z50_alert_get,
 };
 
 /* 设备实例 */

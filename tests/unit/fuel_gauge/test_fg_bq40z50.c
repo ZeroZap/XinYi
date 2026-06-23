@@ -279,6 +279,46 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
                       xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 5, &voltage));
 }
 
+void test_bq40z50_alert_set_get_uses_cached_thresholds(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+    xy_fuel_gauge_alert_t alert = {
+        .low_soc_threshold = 15,
+        .high_soc_threshold = 95,
+        .low_voltage_mv = 12000,
+        .high_voltage_mv = 16800,
+        .over_current_ma = 3200,
+        .over_temp_c = 600,
+    };
+    xy_fuel_gauge_alert_t readback;
+
+    memset(&readback, 0, sizeof(readback));
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_set_alert(fg, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_set_alert(NULL, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_get_alert(NULL, &readback));
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_set_alert(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_get_alert(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_set_alert(fg, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_alert(fg, &readback));
+
+    TEST_ASSERT_EQUAL_UINT8(alert.low_soc_threshold, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(alert.high_soc_threshold, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT16(alert.low_voltage_mv, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT16(alert.high_voltage_mv, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL_INT16(alert.over_current_ma, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_INT16(alert.over_temp_c, readback.over_temp_c);
+}
+
 void test_bq40z50_status_helpers_handle_null_and_persistent_nack(void)
 {
     xy_fuel_gauge_t *fg = registered_bq40z50();
@@ -367,6 +407,7 @@ int main(void)
     RUN_TEST(test_bq40z50_registers_default_i2c_bus);
     RUN_TEST(test_bq40z50_init_fetch_channel_and_pack_helpers);
     RUN_TEST(test_bq40z50_rejects_invalid_channel_and_cell);
+    RUN_TEST(test_bq40z50_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq40z50_status_helpers_handle_null_and_persistent_nack);
     RUN_TEST(test_bq40z50_fetch_updates_balance_status_cache);
     RUN_TEST(test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure);
