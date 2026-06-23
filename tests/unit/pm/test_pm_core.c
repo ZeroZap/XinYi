@@ -19,6 +19,7 @@ int xy_fuel_gauge_get_state(xy_battery_state_t *state);
 uint8_t xy_fuel_gauge_get_soh(void);
 uint8_t xy_pm_estimate_soc_from_voltage(uint32_t voltage_mV);
 void xy_pm_platform_set_fallback_tick(uint32_t tick);
+int xy_pm_platform_get_charger_enable_level(void);
 
 static void test_pm_platform_contracts(void)
 {
@@ -28,7 +29,9 @@ static void test_pm_platform_contracts(void)
     assert(!xy_pm_is_platform(XY_PLATFORM_ID_UNKNOWN));
     assert(xy_charger_hw_init() == XY_PM_OK);
     assert(xy_charger_hw_enable(1) == XY_PM_OK);
+    assert(xy_pm_platform_get_charger_enable_level() == 1);
     assert(xy_charger_hw_disable() == XY_PM_OK);
+    assert(xy_pm_platform_get_charger_enable_level() == 0);
 }
 
 static void test_pm_lifecycle_and_charging(void)

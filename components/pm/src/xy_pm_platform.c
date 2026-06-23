@@ -42,11 +42,17 @@
 #if defined(XY_PM_ENABLE_TEST_HOOKS)
 static bool g_test_tick_override_enabled = false;
 static uint32_t g_test_tick_override = 0;
+static int g_test_charger_enable_level = 0;
 
 void xy_pm_platform_set_fallback_tick(uint32_t tick)
 {
     g_test_tick_override = tick;
     g_test_tick_override_enabled = true;
+}
+
+int xy_pm_platform_get_charger_enable_level(void)
+{
+    return g_test_charger_enable_level;
 }
 #endif
 
@@ -143,7 +149,11 @@ int xy_charger_hw_init(void)
  */
 int xy_charger_hw_enable(int enable)
 {
+#if defined(XY_PM_ENABLE_TEST_HOOKS)
+    g_test_charger_enable_level = enable ? CHARGER_EN_ACTIVE_HIGH : !CHARGER_EN_ACTIVE_HIGH;
+#else
     (void)enable;
+#endif
     return XY_PM_OK;
 }
 

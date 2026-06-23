@@ -6,6 +6,7 @@
 #include "xy_pm.h"
 
 void xy_pm_platform_set_fallback_tick(uint32_t tick);
+int xy_pm_platform_get_charger_enable_level(void);
 
 static void test_fallback_platform_identity(void)
 {
@@ -31,7 +32,9 @@ static void test_fallback_charger_hooks_are_safe_noops(void)
 {
     assert(xy_charger_hw_init() == XY_PM_OK);
     assert(xy_charger_hw_enable(1) == XY_PM_OK);
+    assert(xy_pm_platform_get_charger_enable_level() == 1);
     assert(xy_charger_hw_disable() == XY_PM_OK);
+    assert(xy_pm_platform_get_charger_enable_level() == 0);
 }
 
 int main(void)
