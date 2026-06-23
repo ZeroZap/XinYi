@@ -9,6 +9,7 @@
 
 #include "xy_fuel_gauge.h"
 #include "xy_log.h"
+#include "xy_sensor_device.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -44,8 +45,8 @@ static int max17043_init(xy_fuel_gauge_t *fg)
     
     /* 读取版本 */
     uint16_t version;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_VERSION, &version) != 0) {
-        return -1;
+    if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_VER, &version) != 0) {
+        return XY_FG_ERROR;
     }
     
     xy_log_i("MAX17043 version: 0x%04X\n", version);
@@ -65,31 +66,30 @@ static int max17043_fetch(xy_fuel_gauge_t *fg)
 {
     max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
     
-    /* 读取电压 (mV) */
+    /* 读取电压 (mV), VCELL LSB = 1.25mV */
     uint16_t vcell;
     if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_VCELL, &vcell) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
-    float voltage = (vcell >> 4) * 0.0625f * 1000;  /* 1.25mV/LSB */
+    uint16_t voltage_mv = (uint16_t)((uint32_t)(vcell >> 4) * 125U / 100U);
     
     /* 读取 SOC (%) */
     uint16_t soc_reg;
     if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_SOC, &soc_reg) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
-    float soc = (soc_reg >> 8) + (soc_reg & 0xFF) / 256.0f;
+    uint8_t soc = (uint8_t)(soc_reg >> 8);
     
     /* 读取充放电率 */
     uint16_t crate_reg;
     if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_CRATE, &crate_reg) != 0) {
-        return -1;
+        return XY_FG_ERROR;
     }
-    int16_t crate = (int16_t)crate_reg;
-    float current = crate * 0.208f * 1000;  /* 0.208mA/LSB */
+    int16_t current_ma = (int16_t)((int32_t)(int16_t)crate_reg * 208 / 1000);
     
     /* 存储数据 */
-    priv->data.voltage_mv = (uint16_t)voltage;
-    priv->data.current_ma = (int16_t)current;
+    priv->data.voltage_mv = voltage_mv;
+    priv->data.current_ma = current_ma;
     priv->data.soc = (uint8_t)soc;
     priv->data.temperature_c = 0;  /* MAX17043 不支持温度 */
     
@@ -105,7 +105,9 @@ static int max17043_channel_get(xy_fuel_gauge_t *fg,
 {
     max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
     
-    if (!val) return -1;
+    if (!val) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
     
     switch (channel) {
         case XY_FG_DATA_VOLTAGE:
@@ -118,7 +120,7 @@ static int max17043_channel_get(xy_fuel_gauge_t *fg,
             *val = priv->data.soc;
             break;
         default:
-            return -1;
+            return XY_FG_ERROR_NOT_SUPPORTED;
     }
     return 0;
 }
