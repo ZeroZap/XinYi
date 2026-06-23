@@ -9,8 +9,8 @@
  */
 
 #include "../inc/xy_pm.h"
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /* ============================================================
  * Platform Detection Macros
@@ -65,12 +65,19 @@ static inline uint32_t platform_tick_get(void) { return xy_hal_sys_get_tick_coun
 static inline uint32_t platform_tick_get(void) { return GetTickCount(); }
 #else
 #include <time.h>
-static inline uint32_t platform_tick_get(void) { return (uint32_t)(clock() * 1000 / CLOCKS_PER_SEC); }
+static inline uint32_t platform_tick_get(void) { return (uint32_t)(clock() * 1000U / CLOCKS_PER_SEC); }
 #endif
 
 #else
-static volatile uint32_t g_stub_tick = 0;
-static inline uint32_t platform_tick_get(void) { return g_stub_tick += 100; }
+static volatile uint32_t g_fallback_tick = 0;
+static inline uint32_t platform_tick_get(void) { return g_fallback_tick; }
+
+#if defined(XY_PM_ENABLE_TEST_HOOKS)
+void xy_pm_platform_set_fallback_tick(uint32_t tick)
+{
+    g_fallback_tick = tick;
+}
+#endif
 #endif
 
 /**

@@ -368,6 +368,13 @@ add_executable(test_pm
 target_compile_definitions(test_pm PRIVATE PLATFORM_PC XY_PM_PLATFORM_OWNS_CHARGER_HW)
 add_test(NAME pm_component COMMAND test_pm)
 
+add_executable(test_pm_platform_fallback
+    ${UNIT_PM}/test_pm_platform_fallback.c
+    ${PM}/src/xy_pm_platform.c
+)
+target_compile_definitions(test_pm_platform_fallback PRIVATE XY_PM_ENABLE_TEST_HOOKS)
+add_test(NAME pm_platform_fallback COMMAND test_pm_platform_fallback)
+
 # --- Test 24: Trace logging output and dynamic-level contracts ---
 add_executable(test_trace
     ${UNIT_TRACE}/test_trace_core.c
@@ -680,7 +687,7 @@ add_custom_target(run_unit_tests
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_modbus_legacy test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
-            test_sensor_framework test_hal_pc test_pm test_trace test_clib test_mux_core
+            test_sensor_framework test_hal_pc test_pm test_pm_platform_fallback test_trace test_clib test_mux_core
             test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_nvm test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_display_serial_rgb_headers test_display_led_driver test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
