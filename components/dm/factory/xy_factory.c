@@ -118,10 +118,6 @@ static factory_status_t write_entry_to_region(factory_handle_t *handle,
 static factory_status_t delete_entry_in_region(factory_handle_t *handle,
                                                const factory_region_t *region,
                                                uint8_t type);
-static factory_tlv_entry_t *find_entry_in_region(factory_handle_t *handle,
-                                                  const factory_region_t *region,
-                                                  uint8_t type,
-                                                  uint32_t *offset);
 static bool verify_entry_crc(factory_handle_t *handle,
                                const factory_region_t *region,
                                uint32_t offset);
@@ -193,7 +189,6 @@ static bool verify_entry_crc(factory_handle_t *handle,
     factory_tlv_entry_t entry;
     uint16_t stored_crc;
     uint16_t calculated_crc;
-    uint32_t data_offset;
     uint8_t data_buffer[256];  /* 临时缓冲区 */
 
     /* 读取条目头（含 CRC） */
@@ -315,55 +310,6 @@ static factory_status_t scan_region(factory_handle_t *handle,
 }
 
 /**
- * @brief 在区域中查找条目
- */
-static factory_tlv_entry_t *find_entry_in_region(factory_handle_t *handle,
-                                                  const factory_region_t *region,
-                                                  uint8_t type,
-                                                  uint32_t *offset)
-{
-    uint32_t off = FACTORY_REGION_HEADER_SIZE;
-    uint32_t region_end = region->base_addr + region->size;
-
-    while (off + FACTORY_ENTRY_BASE_SIZE < region_end) {
-        factory_tlv_entry_t entry;
-
-        if (handle->flash_ops->read(region->base_addr + off,
-                                   (uint8_t *)&entry,
-                                   FACTORY_ENTRY_BASE_SIZE) != 0) {
-            break;
-        }
-
-        if (entry.magic == FACTORY_MAGIC_ERASED) {
-            break;
-        }
-
-        if (entry.magic == FACTORY_MAGIC_VALID && entry.type == type) {
-            /* 验证 CRC */
-            if (XY_FACTORY_USE_CRC16) {
-                if (!verify_entry_crc(handle, region, off)) {
-                    /* CRC 错误，继续查找下一个同名条目（可能被后面有效的覆盖） */
-                } else {
-                    if (offset) {
-                        *offset = off;
-                    }
-                    return (factory_tlv_entry_t *)(region->base_addr + off);
-                }
-            } else {
-                if (offset) {
-                    *offset = off;
-                }
-                return (factory_tlv_entry_t *)(region->base_addr + off);
-            }
-        }
-
-        off += FACTORY_ENTRY_HEADER_SIZE + entry.len;
-    }
-
-    return NULL;
-}
-
-/**
  * @brief 写入条目到 Flash
  */
 static factory_status_t write_entry_to_region(factory_handle_t *handle,
@@ -392,7 +338,7 @@ static factory_status_t write_entry_to_region(factory_handle_t *handle,
 #if XY_FACTORY_USE_CRC16
     /* 计算 CRC: magic + type + len + data */
     uint16_t crc = factory_crc16(&entry->magic, 1);
-    crc = factory_crc16_update(crc, &entry.type, 1);
+    crc = factory_crc16_update(crc, &entry->type, 1);
     crc = factory_crc16_update(crc, (uint8_t *)&entry->len, 2);
     crc = factory_crc16_update(crc, data, len);
     entry->crc = crc;
@@ -466,7 +412,6 @@ static factory_status_t copy_valid_entries(factory_handle_t *handle,
 {
     uint32_t offset = FACTORY_REGION_HEADER_SIZE;
     uint32_t src_end = src->base_addr + src->size;
-    uint32_t dst_offset = FACTORY_REGION_HEADER_SIZE;
     factory_status_t status;
 
     while (offset + FACTORY_ENTRY_BASE_SIZE < src_end) {
@@ -508,8 +453,6 @@ static factory_status_t copy_valid_entries(factory_handle_t *handle,
             if (status != FACTORY_OK) {
                 return status;
             }
-
-            dst_offset = dst->used_size;
         }
 
         offset += FACTORY_ENTRY_HEADER_SIZE + entry.len;
@@ -1163,27 +1106,26 @@ factory_status_t factory_verify_and_repair(factory_handle_t *handle)
  */
 bool factory_verify_entry_crc(factory_handle_t *handle, const void *entry)
 {
-    const factory_tlv_entry_t *e = (const factory_tlv_entry_t *)entry;
+    (void)handle;
+
+    if (entry == NULL) {
+        return false;
+    }
 
 #if !XY_FACTORY_USE_CRC16
-    (void)handle;
     return true;
 #else
-    uint16_t stored_crc = e->crc;
+    const factory_tlv_entry_t *e = (const factory_tlv_entry_t *)entry;
     uint16_t calculated_crc;
 
-    /* 计算 CRC: magic + type + len + data */
     calculated_crc = factory_crc16(&e->magic, 1);
     calculated_crc = factory_crc16_update(calculated_crc, &e->type, 1);
     calculated_crc = factory_crc16_update(calculated_crc,
                                           (const uint8_t *)&e->len,
                                           2);
-    /* 需要读取数据部分，但公共接口只给了 entry 指针 */
-    /* 用户应使用内部实现的 verify_entry_crc */
-    (void)calculated_crc;
+    calculated_crc = factory_crc16_update(calculated_crc, e->data, e->len);
 
-    /* 公共接口不完整，返回 true */
-    return true;
+    return e->crc == calculated_crc;
 #endif
 }
 

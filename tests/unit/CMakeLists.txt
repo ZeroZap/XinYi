@@ -500,6 +500,14 @@ add_executable(test_dm_nvm
 target_include_directories(test_dm_nvm PRIVATE ${DM}/xy_nvm/inc)
 add_test(NAME dm_nvm COMMAND test_dm_nvm)
 
+# --- Test 29b: DM factory public contracts ---
+add_executable(test_dm_factory
+    ${UNIT_DM}/test_dm_factory.c
+    ${DM}/factory/xy_factory.c
+)
+target_include_directories(test_dm_factory PRIVATE ${DM}/factory)
+add_test(NAME dm_factory COMMAND test_dm_factory)
+
 # --- Test 30: IPC pipe ring-buffer contracts ---
 add_executable(test_ipc_pipe
     ${UNIT_IPC}/test_ipc_pipe.c

@@ -1,7 +1,3 @@
-XinYi\components\dm\factory\xy_factory.h
-```
-
-```markdown
 /**
  * @file xy_factory.h
  * @brief 工厂数据管理组件 - TLV格式双份备份 + CRC16校验
