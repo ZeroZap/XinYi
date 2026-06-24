@@ -8,30 +8,24 @@
  * value is not asserted; what we validate is framework integration.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "unity.h"
 #include "xy_device.h"
 #include "xy_device_core.h"
 #include "xy_sht30.h"
 
-static int tests_run = 0;
-static int tests_passed = 0;
 static int g_fake_i2c_bus = 1;
 
-#define RUN(name) do { \
-    printf("Running %s... ", #name); \
-    tests_run++; \
-    name(); \
-    tests_passed++; \
-    printf("PASSED\n"); \
-} while (0)
+#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
 
-#define ASSERT(cond) do { if (!(cond)) { \
-    printf("FAILED: %s:%d - %s\n", __FILE__, __LINE__, #cond); \
-    exit(1); \
-} } while (0)
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 /* Drain the registry between tests by repeatedly unregistering the head
  * entry. Keeps each test independent of prior state. */
@@ -100,13 +94,11 @@ static void test_multiple_sht30_instances(void)
 
 int main(void)
 {
-    printf("=== SHT30 Framework Integration ===\n\n");
+    UNITY_BEGIN();
 
-    RUN(test_init_registers_nothing_by_default);
-    RUN(test_register_exposes_through_framework);
-    RUN(test_multiple_sht30_instances);
+    RUN_TEST(test_init_registers_nothing_by_default);
+    RUN_TEST(test_register_exposes_through_framework);
+    RUN_TEST(test_multiple_sht30_instances);
 
-    printf("\nTests run: %d   passed: %d   failed: %d\n",
-           tests_run, tests_passed, tests_run - tests_passed);
-    return tests_passed == tests_run ? 0 : 1;
+    return UNITY_END();
 }

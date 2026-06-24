@@ -139,6 +139,7 @@ add_executable(test_sht30_integration
     ${UNIT_SENSOR}/test_sht30_integration.c
     ${DRV}/sensor/temperature/sht30/xy_sht30.c
     ${FRAMEWORK_SOURCES}
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 3: heterogeneous sensor coexistence ---
@@ -149,13 +150,22 @@ add_executable(test_sensors_multi
     ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
     ${DRV}/sensor/adc/ads1115/xy_ads1115.c
     ${FRAMEWORK_SOURCES}
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 4: SPI device helper + mixed-bus registry ---
-add_executable(test_spi_device ${UNIT_DEVICE}/test_spi_device.c ${FRAMEWORK_SOURCES})
+add_executable(test_spi_device
+    ${UNIT_DEVICE}/test_spi_device.c
+    ${FRAMEWORK_SOURCES}
+    ${ROOT}/tests/unity/unity.c
+)
 
 # --- Test 6: XY_DEVICE_REGISTER auto-registration via GCC constructors ---
-add_executable(test_auto_register ${UNIT_DEVICE}/test_auto_register.c ${FRAMEWORK_SOURCES})
+add_executable(test_auto_register
+    ${UNIT_DEVICE}/test_auto_register.c
+    ${FRAMEWORK_SOURCES}
+    ${ROOT}/tests/unity/unity.c
+)
 
 # --- Test 8: device registry example stays aligned with public APIs ---
 add_executable(test_device_registry_example

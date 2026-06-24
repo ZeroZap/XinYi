@@ -8,10 +8,9 @@
  * xy_device_init() call, since xy_device_registry_register lazy-inits.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "unity.h"
 #include "xy_device.h"
 #include "xy_device_core.h"
 
@@ -19,22 +18,16 @@
 XY_DEVICE_REGISTER(autoreg_one, XY_DEV_TYPE_SENSOR, NULL, NULL);
 XY_DEVICE_REGISTER(autoreg_two, XY_DEV_TYPE_STORAGE, NULL, NULL);
 
-static int tests_run = 0;
-static int tests_passed = 0;
-
 #define TEST(name) static void name(void)
-#define RUN_TEST(name) do { \
-    printf("Running %s... ", #name); \
-    tests_run++; \
-    name(); \
-    tests_passed++; \
-    printf("PASSED\n"); \
-} while (0)
+#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
 
-#define ASSERT(cond) do { if (!(cond)) { \
-    printf("FAILED: %s:%d - %s\n", __FILE__, __LINE__, #cond); \
-    exit(1); \
-} } while (0)
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 TEST(test_first_device_registered_before_main)
 {
@@ -70,17 +63,12 @@ TEST(test_explicit_init_is_idempotent_after_constructors)
 
 int main(void)
 {
-    printf("=== XY_DEVICE_REGISTER auto-registration tests ===\n\n");
+    UNITY_BEGIN();
 
     RUN_TEST(test_first_device_registered_before_main);
     RUN_TEST(test_second_device_registered_before_main);
     RUN_TEST(test_lazy_registry_init_works);
     RUN_TEST(test_explicit_init_is_idempotent_after_constructors);
 
-    printf("\n=== Test Summary ===\n");
-    printf("Tests run:    %d\n", tests_run);
-    printf("Tests passed: %d\n", tests_passed);
-    printf("Tests failed: %d\n", tests_run - tests_passed);
-
-    return tests_passed == tests_run ? 0 : 1;
+    return UNITY_END();
 }
