@@ -128,7 +128,11 @@ function(xy_add_unit_test TARGET_NAME TEST_NAME)
 endfunction()
 
 # --- Test 1: framework end-to-end ---
-add_executable(test_device ${UNIT_DEVICE}/test_device_framework.c ${FRAMEWORK_SOURCES})
+add_executable(test_device
+    ${UNIT_DEVICE}/test_device_framework.c
+    ${FRAMEWORK_SOURCES}
+    ${ROOT}/tests/unity/unity.c
+)
 
 # --- Test 2: SHT30 driver integration ---
 add_executable(test_sht30_integration
@@ -231,6 +235,7 @@ set(OSAL_ROOT ${ROOT}/components/kernel)
 add_executable(test_device_async_helper
     ${UNIT_DEVICE}/test_device_async_helper.c
     ${DEV}/src/xy_device_async.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_device_async_helper PRIVATE
     ${OSAL_ROOT}/osal
@@ -243,6 +248,7 @@ add_executable(test_osal
     ${OSAL_ROOT}/osal/src/xy_os_tick.c
     ${OSAL_ROOT}/misc/xy_tick.c
     ${OSAL_ROOT}/misc/xy_timer_sw.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_osal PRIVATE
     ${OSAL_ROOT}/osal

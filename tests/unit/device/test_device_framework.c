@@ -6,29 +6,22 @@
  * registry: xy_i2c_device_register / find / unregister / PM.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+
+#include "unity.h"
 #include "xy_device.h"
 #include "xy_device_core.h"
 
-static int tests_run = 0;
-static int tests_passed = 0;
-
 #define TEST(name) static void name(void)
-#define RUN_TEST(name) do { \
-    printf("Running %s... ", #name); \
-    tests_run++; \
-    name(); \
-    tests_passed++; \
-    printf("PASSED\n"); \
-} while(0)
+#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
 
-#define ASSERT(cond) do { if (!(cond)) { \
-    printf("FAILED: %s:%d - %s\n", __FILE__, __LINE__, #cond); \
-    exit(1); \
-} } while(0)
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 /* A non-NULL placeholder bus handle for the PC-stub I2C HAL. */
 static int g_fake_i2c_bus = 1;
@@ -123,7 +116,7 @@ TEST(test_unregister_frees_slot)
 
 int main(void)
 {
-    printf("=== Device Framework End-to-End Tests ===\n\n");
+    UNITY_BEGIN();
 
     RUN_TEST(test_device_registry_init);
     RUN_TEST(test_device_register_via_helper);
@@ -135,10 +128,5 @@ int main(void)
     RUN_TEST(test_duplicate_register_rejected);
     RUN_TEST(test_unregister_frees_slot);
 
-    printf("\n=== Test Summary ===\n");
-    printf("Tests run:    %d\n", tests_run);
-    printf("Tests passed: %d\n", tests_passed);
-    printf("Tests failed: %d\n", tests_run - tests_passed);
-
-    return tests_passed == tests_run ? 0 : 1;
+    return UNITY_END();
 }

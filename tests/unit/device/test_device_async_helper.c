@@ -3,16 +3,12 @@
  * @brief Unit tests for the optional xy_device_async_*_ex helper API.
  */
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "unity.h"
 #include "xy_device_async.h"
 #include "xy_os.h"
 
-static int tests_run = 0;
-static int tests_passed = 0;
 static uint32_t g_fake_tick = 0;
 static int g_callback_count = 0;
 static int g_callback_result = 0;
@@ -20,20 +16,15 @@ static xy_device_async_op_t g_callback_op = XY_DEVICE_ASYNC_OP_NONE;
 static int g_poll_result = 0;
 
 #define TEST(name) static void name(void)
-#define RUN_TEST(name) do { \
-    printf("Running %s... ", #name); \
-    tests_run++; \
-    name(); \
-    tests_passed++; \
-    printf("PASSED\n"); \
-} while (0)
+#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
 
-#define ASSERT(cond) do { \
-    if (!(cond)) { \
-        printf("FAILED: %s:%d - %s\n", __FILE__, __LINE__, #cond); \
-        exit(1); \
-    } \
-} while (0)
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 uint32_t xy_os_tick_get(void)
 {
@@ -171,17 +162,12 @@ TEST(test_wait_timeout_cancels_pending_request)
 
 int main(void)
 {
-    printf("=== Device Async Helper Tests ===\n\n");
+    UNITY_BEGIN();
 
     RUN_TEST(test_init_rejects_null_context);
     RUN_TEST(test_fallback_read_completes_immediately);
     RUN_TEST(test_backend_pending_busy_and_poll_completion);
     RUN_TEST(test_wait_timeout_cancels_pending_request);
 
-    printf("\n=== Test Summary ===\n");
-    printf("Tests run:    %d\n", tests_run);
-    printf("Tests passed: %d\n", tests_passed);
-    printf("Tests failed: %d\n", tests_run - tests_passed);
-
-    return tests_passed == tests_run ? 0 : 1;
+    return UNITY_END();
 }

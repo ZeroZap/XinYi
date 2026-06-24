@@ -5,39 +5,28 @@
  *        IRQ helpers are no-ops and xy_tick_get() increments per call.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 /* Pull in the full CMSIS-RTOS2-compatible API */
+#include "unity.h"
 #include "xy_os.h"
 /* Need tick for deadline tests */
 #include "inc/xy_os_tick.h"
 #include "xy_timer_sw.h"
 
-static int tests_run    = 0;
-static int tests_passed = 0;
 static int g_timer_calls = 0;
 static int g_timer_last_arg = 0;
 
-#define TEST(name)  static void name(void)
-#define RUN_TEST(name) do {                              \
-    printf("Running %-40s", #name "...");               \
-    fflush(stdout);                                      \
-    tests_run++;                                         \
-    name();                                              \
-    tests_passed++;                                      \
-    printf("PASSED\n");                                  \
-} while (0)
+#define TEST(name) static void name(void)
+#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
 
-#define ASSERT(cond) do {                                            \
-    if (!(cond)) {                                                   \
-        printf("FAILED\n  Assert failed: %s:%d  %s\n",              \
-               __FILE__, __LINE__, #cond);                           \
-        exit(1);                                                     \
-    }                                                                \
-} while (0)
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 static void test_timer_callback(void *arg)
 {
@@ -411,9 +400,8 @@ TEST(test_mempool_write_to_block)
 
 int main(void)
 {
+    UNITY_BEGIN();
     xy_os_kernel_init();
-
-    printf("=== OSAL Baremetal Unit Tests ===\n\n");
 
     /* Kernel / Thread / Timer */
     RUN_TEST(test_kernel_info_lock_and_ticks);
@@ -451,6 +439,5 @@ int main(void)
     RUN_TEST(test_mempool_cycle);
     RUN_TEST(test_mempool_write_to_block);
 
-    printf("\n=== Results: %d/%d PASSED ===\n", tests_passed, tests_run);
-    return (tests_passed == tests_run) ? 0 : 1;
+    return UNITY_END();
 }
