@@ -131,7 +131,39 @@ Rules:
 - Use `FFF_RESET_HISTORY()` when checking global call order/history.
 - Prefer `custom_fake` only when return values alone cannot express the behavior.
 
-## 7. CMake/CTest Wiring
+## 7. Adding A New Unit Test
+
+Use this checklist for every new host-side unit test:
+
+1. Pick the component group under `tests/unit/<group>/`.
+2. Create `test_<component>_<feature>.c` from `tests/templates/unity_fff_test_template.c`.
+3. Include the public header under test first, then `unity.h`, and add `fff.h` only when dependency interaction must be observed.
+4. Write one behavior per `test_<condition>_<expected_behavior>()` function.
+5. Prefer real code and small local fixtures; use FFF for HAL/OSAL/driver dependencies when you need call counts, captured arguments, ordered calls, return sequences, or `custom_fake` behavior.
+6. Reset fixture state and all fakes in `setUp()`; release owned state in `tearDown()`.
+7. Wire the executable in `tests/unit/CMakeLists.txt`, always linking `${ROOT}/tests/unity/unity.c`.
+8. Run the focused target and CTest entry before broader validation.
+9. Run `make test-unit` before committing a component group.
+10. Run `git diff --check` before committing.
+
+### Test Selection Rules
+
+- **Pure utility logic:** Unity only; no fake framework.
+- **Simple dependency return:** small local stub is acceptable.
+- **Observable dependency contract:** use FFF and assert `call_count`, `arg*_val`, `arg*_history`, return sequences, or call history.
+- **Complex simulated hardware state:** keep a readable hand-written fixture; use FFF only at the boundary calls.
+
+### Required Validation Sequence
+
+```bash
+cmake -S tests/unit -B build/tests/unit
+cmake --build build/tests/unit --target test_<component>_<feature> -j"$(nproc)"
+ctest --test-dir build/tests/unit -R '^<ctest_name>$' --output-on-failure
+make test-unit
+git diff --check
+```
+
+## 8. CMake/CTest Wiring
 
 Add tests in `tests/unit/CMakeLists.txt`.
 
@@ -148,7 +180,7 @@ For complex tests, it is still acceptable to use explicit CMake commands when th
 
 Always register one CTest entry per executable unless there is a specific reason not to.
 
-## 8. Execution Commands
+## 9. Execution Commands
 
 Run one focused test:
 
@@ -176,7 +208,7 @@ Check patch hygiene before commit:
 git diff --check
 ```
 
-## 9. Migration Rules
+## 10. Migration Rules
 
 When migrating old tests:
 
@@ -197,7 +229,7 @@ Recommended order:
 6. Net
 7. Remaining component groups
 
-## 10. Coverage
+## 11. Coverage
 
 Coverage should be added later through optional CMake/CTest integration, for example `gcovr` or `lcov`.
 
@@ -207,7 +239,7 @@ Rules:
 - Exclude vendor, build directories, Unity, and FFF from coverage reports.
 - Do not introduce Ceedling only for coverage unless CMake/CTest coverage proves insufficient.
 
-## 11. Ceedling Status
+## 12. Ceedling Status
 
 Ceedling is deferred.
 

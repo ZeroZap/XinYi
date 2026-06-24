@@ -392,6 +392,7 @@ add_executable(test_trace
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_compile_definitions(test_trace PRIVATE XY_LOG_LEVEL=XY_LOG_LEVEL_DEBUG)
 add_test(NAME trace_component COMMAND test_trace)
@@ -490,6 +491,7 @@ add_test(NAME mux_uart COMMAND test_mux_uart)
 add_executable(test_dm_base64
     ${UNIT_DM}/test_dm_base64.c
     ${DM}/xy_base64/xy_base64.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_base64 PRIVATE ${ROOT}/components)
 add_test(NAME dm_base64 COMMAND test_dm_base64)
@@ -498,6 +500,7 @@ add_test(NAME dm_base64 COMMAND test_dm_base64)
 add_executable(test_dm_tlv
     ${UNIT_DM}/test_dm_tlv.c
     ${DM}/xy_tlv/xy_tlv.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_tlv PRIVATE ${DM}/xy_tlv)
 add_test(NAME dm_tlv COMMAND test_dm_tlv)
@@ -511,6 +514,7 @@ add_executable(test_dm_nvm
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_nvm PRIVATE ${DM}/xy_nvm/inc)
 add_test(NAME dm_nvm COMMAND test_dm_nvm)
@@ -519,6 +523,7 @@ add_test(NAME dm_nvm COMMAND test_dm_nvm)
 add_executable(test_dm_factory
     ${UNIT_DM}/test_dm_factory.c
     ${DM}/factory/xy_factory.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_factory PRIVATE ${DM}/factory)
 add_test(NAME dm_factory COMMAND test_dm_factory)
@@ -574,6 +579,7 @@ add_test(NAME display_rgb_matrix COMMAND test_display_rgb_matrix)
 # --- Test 36: Display serial RGB public helper headers remain self-contained ---
 add_executable(test_display_serial_rgb_headers
     ${UNIT_DISPLAY}/test_display_serial_rgb_headers.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME display_serial_rgb_headers COMMAND test_display_serial_rgb_headers)
 

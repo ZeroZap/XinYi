@@ -1,8 +1,16 @@
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "unity.h"
 #include "xy_base64.h"
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 static void test_base64_encode_vectors(void)
 {
@@ -24,8 +32,8 @@ static void test_base64_encode_vectors(void)
         uint8_t output[128] = {0};
         uint32_t len = xy_base64_encode((const uint8_t *)vectors[i].plain,
                                         (uint32_t)strlen(vectors[i].plain), output);
-        assert(len == strlen(vectors[i].encoded));
-        assert(memcmp(output, vectors[i].encoded, len) == 0);
+        TEST_ASSERT_EQUAL_UINT32((uint32_t)strlen(vectors[i].encoded), len);
+        TEST_ASSERT_EQUAL_STRING(vectors[i].encoded, (const char *)output);
     }
 }
 
@@ -49,8 +57,8 @@ static void test_base64_decode_vectors(void)
         uint8_t output[128] = {0};
         uint32_t len = xy_base64_decode((const uint8_t *)vectors[i].encoded,
                                         (uint32_t)strlen(vectors[i].encoded), output);
-        assert(len == strlen(vectors[i].plain));
-        assert(memcmp(output, vectors[i].plain, len) == 0);
+        TEST_ASSERT_EQUAL_UINT32((uint32_t)strlen(vectors[i].plain), len);
+        TEST_ASSERT_EQUAL_STRING(vectors[i].plain, (const char *)output);
     }
 }
 
@@ -63,14 +71,15 @@ static void test_base64_roundtrip_binary(void)
     uint32_t encoded_len = xy_base64_encode(input, sizeof(input), encoded);
     uint32_t decoded_len = xy_base64_decode(encoded, encoded_len, decoded);
 
-    assert(decoded_len == sizeof(input));
-    assert(memcmp(decoded, input, sizeof(input)) == 0);
+    TEST_ASSERT_EQUAL_UINT32((uint32_t)sizeof(input), decoded_len);
+    TEST_ASSERT_EQUAL_MEMORY(input, decoded, sizeof(input));
 }
 
 int main(void)
 {
-    test_base64_encode_vectors();
-    test_base64_decode_vectors();
-    test_base64_roundtrip_binary();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_base64_encode_vectors);
+    RUN_TEST(test_base64_decode_vectors);
+    RUN_TEST(test_base64_roundtrip_binary);
+    return UNITY_END();
 }

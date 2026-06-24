@@ -7,9 +7,17 @@
 #include "xy_rgb_circle.h"
 #include "xy_rgb_segment.h"
 
-#include <assert.h>
+#include "unity.h"
 
-int main(void)
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
+
+static void test_serial_rgb_public_headers_expose_expected_types(void)
 {
     rgb_color_t red = RGB_COLOR_RED;
     hsv_color_t hsv = {0};
@@ -41,11 +49,21 @@ int main(void)
     hsv.s = 255;
     hsv.v = 255;
 
-    assert(red.r == 255 && red.g == 0 && red.b == 0);
-    assert(segment.start == 1 && segment.stop == 3);
-    assert(circle.num_leds == 16);
-    assert(point.x == 1 && point.y == -1);
-    assert(info.id == FX_STATIC);
-    assert(hsv.s == 255);
-    return 0;
+    TEST_ASSERT_EQUAL_UINT8(255U, red.r);
+    TEST_ASSERT_EQUAL_UINT8(0U, red.g);
+    TEST_ASSERT_EQUAL_UINT8(0U, red.b);
+    TEST_ASSERT_EQUAL_UINT16(1U, segment.start);
+    TEST_ASSERT_EQUAL_UINT16(3U, segment.stop);
+    TEST_ASSERT_EQUAL_UINT16(16U, circle.num_leds);
+    TEST_ASSERT_EQUAL_INT16(1, point.x);
+    TEST_ASSERT_EQUAL_INT16(-1, point.y);
+    TEST_ASSERT_EQUAL(FX_STATIC, info.id);
+    TEST_ASSERT_EQUAL_UINT8(255U, hsv.s);
+}
+
+int main(void)
+{
+    UNITY_BEGIN();
+    RUN_TEST(test_serial_rgb_public_headers_expose_expected_types);
+    return UNITY_END();
 }

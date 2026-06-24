@@ -1,17 +1,25 @@
 #include "xy_factory.h"
+#include "unity.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
+
 static void test_factory_public_macros_are_stable(void)
 {
-    assert(FACTORY_ALIGN_SIZE(0U) == 0U);
-    assert(FACTORY_ALIGN_SIZE(1U) == XY_FACTORY_ALIGN_SIZE);
-    assert(FACTORY_ALIGN_SIZE(9U) == 16U);
-    assert(FACTORY_TLV_HEADER_SIZE == 5U);
-    assert(FACTORY_TLV_TOTAL_SIZE(7U) == 12U);
-    assert(FACTORY_TOTAL_SIZE(128U) == 256U);
+    TEST_ASSERT_EQUAL_UINT32(0U, FACTORY_ALIGN_SIZE(0U));
+    TEST_ASSERT_EQUAL_UINT32(XY_FACTORY_ALIGN_SIZE, FACTORY_ALIGN_SIZE(1U));
+    TEST_ASSERT_EQUAL_UINT32(16U, FACTORY_ALIGN_SIZE(9U));
+    TEST_ASSERT_EQUAL_UINT32(5U, FACTORY_TLV_HEADER_SIZE);
+    TEST_ASSERT_EQUAL_UINT32(12U, FACTORY_TLV_TOTAL_SIZE(7U));
+    TEST_ASSERT_EQUAL_UINT32(256U, FACTORY_TOTAL_SIZE(128U));
 }
 
 static void test_factory_crc16_incremental_matches_one_shot(void)
@@ -25,8 +33,8 @@ static void test_factory_crc16_incremental_matches_one_shot(void)
     incremental = factory_crc16_update(incremental, payload + 2U, 2U);
     incremental = factory_crc16_update(incremental, payload + 4U, 4U);
 
-    assert(one_shot == incremental);
-    assert(one_shot == 0xC1F8U);
+    TEST_ASSERT_EQUAL_HEX16(incremental, one_shot);
+    TEST_ASSERT_EQUAL_HEX16(0xC1F8U, one_shot);
 }
 
 static void test_factory_verify_entry_crc_accepts_and_rejects_entries(void)
@@ -50,19 +58,19 @@ static void test_factory_verify_entry_crc_accepts_and_rejects_entries(void)
     entry.crc = factory_crc16_update(entry.crc, (const uint8_t *)&entry.len, 2U);
     entry.crc = factory_crc16_update(entry.crc, entry.data, entry.len);
 
-    assert(factory_verify_entry_crc(NULL, &entry));
+    TEST_ASSERT_TRUE(factory_verify_entry_crc(NULL, &entry));
     entry.data[0] ^= 0x01U;
-    assert(!factory_verify_entry_crc(NULL, &entry));
-    assert(!factory_verify_entry_crc(NULL, NULL));
+    TEST_ASSERT_FALSE(factory_verify_entry_crc(NULL, &entry));
+    TEST_ASSERT_FALSE(factory_verify_entry_crc(NULL, NULL));
 }
 
 static void test_factory_status_strings_cover_public_errors(void)
 {
-    assert(strcmp(factory_status_str(FACTORY_OK), "OK") == 0);
-    assert(strcmp(factory_status_str(FACTORY_ERROR_PARAM), "Parameter error") == 0);
-    assert(strcmp(factory_status_str(FACTORY_ERROR_NO_SPACE), "No space left") == 0);
-    assert(strcmp(factory_status_str(FACTORY_ERROR_CRC), "CRC verify failed") == 0);
-    assert(strcmp(factory_status_str((factory_status_t)1234), "Unknown error") == 0);
+    TEST_ASSERT_EQUAL_STRING("OK", factory_status_str(FACTORY_OK));
+    TEST_ASSERT_EQUAL_STRING("Parameter error", factory_status_str(FACTORY_ERROR_PARAM));
+    TEST_ASSERT_EQUAL_STRING("No space left", factory_status_str(FACTORY_ERROR_NO_SPACE));
+    TEST_ASSERT_EQUAL_STRING("CRC verify failed", factory_status_str(FACTORY_ERROR_CRC));
+    TEST_ASSERT_EQUAL_STRING("Unknown error", factory_status_str((factory_status_t)1234));
 }
 
 static void test_factory_defensive_guards_before_init(void)
@@ -76,24 +84,28 @@ static void test_factory_defensive_guards_before_init(void)
 
     memset(&handle, 0, sizeof(handle));
 
-    assert(factory_init(NULL, NULL) == FACTORY_ERROR_PARAM);
-    assert(factory_write(NULL, FACTORY_TYPE_DEVICE_ID, buffer, 1U) == FACTORY_ERROR_PARAM);
-    assert(factory_write(&handle, FACTORY_TYPE_DEVICE_ID, buffer, 1U) == FACTORY_ERROR_PARAM);
-    assert(factory_read(NULL, FACTORY_TYPE_DEVICE_ID, buffer, &len) == FACTORY_ERROR_PARAM);
-    assert(factory_delete(NULL, FACTORY_TYPE_DEVICE_ID) == FACTORY_ERROR_PARAM);
-    assert(!factory_exists(NULL, FACTORY_TYPE_DEVICE_ID, &len));
-    assert(factory_enum(NULL, types, 2U, &count) == FACTORY_ERROR_PARAM);
-    assert(factory_format(NULL) == FACTORY_ERROR_PARAM);
-    assert(factory_get_info(NULL, &used, NULL, NULL) == FACTORY_ERROR_PARAM);
-    assert(factory_verify_and_repair(NULL) == FACTORY_ERROR_PARAM);
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM, factory_init(NULL, NULL));
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM,
+                      factory_write(NULL, FACTORY_TYPE_DEVICE_ID, buffer, 1U));
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM,
+                      factory_write(&handle, FACTORY_TYPE_DEVICE_ID, buffer, 1U));
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM,
+                      factory_read(NULL, FACTORY_TYPE_DEVICE_ID, buffer, &len));
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM, factory_delete(NULL, FACTORY_TYPE_DEVICE_ID));
+    TEST_ASSERT_FALSE(factory_exists(NULL, FACTORY_TYPE_DEVICE_ID, &len));
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM, factory_enum(NULL, types, 2U, &count));
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM, factory_format(NULL));
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM, factory_get_info(NULL, &used, NULL, NULL));
+    TEST_ASSERT_EQUAL(FACTORY_ERROR_PARAM, factory_verify_and_repair(NULL));
 }
 
 int main(void)
 {
-    test_factory_public_macros_are_stable();
-    test_factory_crc16_incremental_matches_one_shot();
-    test_factory_verify_entry_crc_accepts_and_rejects_entries();
-    test_factory_status_strings_cover_public_errors();
-    test_factory_defensive_guards_before_init();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_factory_public_macros_are_stable);
+    RUN_TEST(test_factory_crc16_incremental_matches_one_shot);
+    RUN_TEST(test_factory_verify_entry_crc_accepts_and_rejects_entries);
+    RUN_TEST(test_factory_status_strings_cover_public_errors);
+    RUN_TEST(test_factory_defensive_guards_before_init);
+    return UNITY_END();
 }
