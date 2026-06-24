@@ -38,6 +38,7 @@ set(UNIT_DEVICE ${CMAKE_CURRENT_SOURCE_DIR}/device)
 set(UNIT_DISPLAY ${CMAKE_CURRENT_SOURCE_DIR}/display)
 set(UNIT_DM ${CMAKE_CURRENT_SOURCE_DIR}/dm)
 set(UNIT_FOTA ${CMAKE_CURRENT_SOURCE_DIR}/fota)
+set(UNIT_FRAMEWORK ${CMAKE_CURRENT_SOURCE_DIR}/framework)
 set(UNIT_FUEL_GAUGE ${CMAKE_CURRENT_SOURCE_DIR}/fuel_gauge)
 set(UNIT_GUI ${CMAKE_CURRENT_SOURCE_DIR}/gui)
 set(UNIT_HAL ${CMAKE_CURRENT_SOURCE_DIR}/hal_component)
@@ -105,6 +106,7 @@ include_directories(
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ACTUATOR}                     # xy_actuator.h
     ${ROOT}/tests/unity             # unity.h
+    ${ROOT}/tests/fff               # fff.h
 )
 
 # Device framework + PC HAL sources shared by all tests
@@ -119,6 +121,11 @@ set(FRAMEWORK_SOURCES
     ${HAL}/PC/xy_hal_spi_pc.c
     ${HAL}/PC/xy_hal_uart_pc.c
 )
+
+function(xy_add_unit_test TARGET_NAME TEST_NAME)
+    add_executable(${TARGET_NAME} ${ARGN})
+    add_test(NAME ${TEST_NAME} COMMAND ${TARGET_NAME})
+endfunction()
 
 # --- Test 1: framework end-to-end ---
 add_executable(test_device ${UNIT_DEVICE}/test_device_framework.c ${FRAMEWORK_SOURCES})
@@ -785,6 +792,12 @@ target_include_directories(test_fg_bq27z561 PRIVATE
 )
 add_test(NAME fg_bq27z561 COMMAND test_fg_bq27z561)
 
+# --- Test 48: Unity + FFF framework smoke guard ---
+xy_add_unit_test(test_fff_smoke fff_smoke
+    ${UNIT_FRAMEWORK}/test_fff_smoke.c
+    ${ROOT}/tests/unity/unity.c
+)
+
 # Convenience target: build + run all tests
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
@@ -797,5 +810,6 @@ add_custom_target(run_unit_tests
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
             test_actuator_framework test_charger_bq25620 test_fuel_gauge_core test_fg_bq27z746 test_fg_bq40z50 test_fg_max17043 test_fg_bq27z561
+            test_fff_smoke
     COMMENT "Running unit tests"
 )
