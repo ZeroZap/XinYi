@@ -236,6 +236,7 @@ target_include_directories(test_net_core PRIVATE
 add_executable(test_crc
     ${UNIT_CRYPTO}/test_crc.c
     ${CRYPTO}/xy_crc/xy_crc.c
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
@@ -295,6 +296,7 @@ add_executable(test_csprng
     ${UNIT_CRYPTO}/test_csprng.c
     ${CRYPTO}/xy_rng/xy_csprng.c
     ${CLIB}/xy_stdio.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME crypto_csprng COMMAND test_csprng)
 
@@ -302,6 +304,7 @@ add_test(NAME crypto_csprng COMMAND test_csprng)
 add_executable(test_random
     ${UNIT_CRYPTO}/test_random.c
     ${CRYPTO}/xy_rng/xy_random.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME crypto_random COMMAND test_random)
 
@@ -310,6 +313,7 @@ add_executable(test_encode
     ${UNIT_CRYPTO}/test_encode.c
     ${CRYPTO}/xy_base/xy_base64.c
     ${CRYPTO}/xy_hex/xy_hex.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_encode PRIVATE
     ${CRYPTO}

@@ -4,10 +4,18 @@
  */
 
 #include "xy_rng.h"
+#include "unity.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 static int any_nonzero(const uint8_t *buf, size_t len)
 {
@@ -24,11 +32,11 @@ static void test_random_bytes_validation(void)
     uint8_t buf[32];
 
     memset(buf, 0xA5, sizeof(buf));
-    assert(xy_random_bytes(NULL, sizeof(buf)) == XY_RNG_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_random_bytes(NULL, sizeof(buf)) == XY_RNG_INVALID_PARAM);
 
-    assert(xy_random_bytes(buf, 0) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(xy_random_bytes(buf, 0) == XY_RNG_SUCCESS);
     for (size_t i = 0; i < sizeof(buf); i++) {
-        assert(buf[i] == 0xA5U);
+        TEST_ASSERT_TRUE(buf[i] == 0xA5U);
     }
 }
 
@@ -37,14 +45,14 @@ static void test_random_bytes_output(void)
     uint8_t buf[64];
 
     memset(buf, 0, sizeof(buf));
-    assert(xy_random_bytes(buf, sizeof(buf)) == XY_RNG_SUCCESS);
-    assert(any_nonzero(buf, sizeof(buf)));
+    TEST_ASSERT_TRUE(xy_random_bytes(buf, sizeof(buf)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(any_nonzero(buf, sizeof(buf)));
 
     memset(buf, 0, sizeof(buf));
-    assert(xy_random_bytes(buf, 7) == XY_RNG_SUCCESS);
-    assert(any_nonzero(buf, 7));
+    TEST_ASSERT_TRUE(xy_random_bytes(buf, 7) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(any_nonzero(buf, 7));
     for (size_t i = 7; i < sizeof(buf); i++) {
-        assert(buf[i] == 0U);
+        TEST_ASSERT_TRUE(buf[i] == 0U);
     }
 }
 
@@ -60,8 +68,9 @@ static void test_random_uint32_runs(void)
 
 int main(void)
 {
-    test_random_bytes_validation();
-    test_random_bytes_output();
-    test_random_uint32_runs();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_random_bytes_validation);
+    RUN_TEST(test_random_bytes_output);
+    RUN_TEST(test_random_uint32_runs);
+    return UNITY_END();
 }

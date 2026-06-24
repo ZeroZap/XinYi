@@ -4,13 +4,21 @@
  */
 
 #include "xy_rng.h"
+#include "unity.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
 static uint8_t seed[48];
 static uint8_t entropy[16];
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 static void fill_fixtures(void)
 {
@@ -37,16 +45,16 @@ static void test_lifecycle_and_params(void)
     uint8_t out[16];
 
     xy_csprng_cleanup();
-    assert(xy_csprng_generate(out, sizeof(out)) == XY_RNG_NOT_INITIALIZED);
-    assert(xy_csprng_reseed(entropy, sizeof(entropy)) == XY_RNG_NOT_INITIALIZED);
-    assert(xy_csprng_init(NULL, sizeof(seed)) == XY_RNG_INVALID_PARAM);
-    assert(xy_csprng_init(seed, 31) == XY_RNG_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_csprng_generate(out, sizeof(out)) == XY_RNG_NOT_INITIALIZED);
+    TEST_ASSERT_TRUE(xy_csprng_reseed(entropy, sizeof(entropy)) == XY_RNG_NOT_INITIALIZED);
+    TEST_ASSERT_TRUE(xy_csprng_init(NULL, sizeof(seed)) == XY_RNG_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_csprng_init(seed, 31) == XY_RNG_INVALID_PARAM);
 
-    assert(xy_csprng_init(seed, sizeof(seed)) == XY_RNG_SUCCESS);
-    assert(xy_csprng_generate(NULL, sizeof(out)) == XY_RNG_INVALID_PARAM);
-    assert(xy_csprng_generate(out, 0) == XY_RNG_INVALID_PARAM);
-    assert(xy_csprng_reseed(NULL, sizeof(entropy)) == XY_RNG_INVALID_PARAM);
-    assert(xy_csprng_reseed(entropy, 0) == XY_RNG_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_csprng_init(seed, sizeof(seed)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(xy_csprng_generate(NULL, sizeof(out)) == XY_RNG_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_csprng_generate(out, 0) == XY_RNG_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_csprng_reseed(NULL, sizeof(entropy)) == XY_RNG_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_csprng_reseed(entropy, 0) == XY_RNG_INVALID_PARAM);
     xy_csprng_cleanup();
 }
 
@@ -55,15 +63,15 @@ static void test_deterministic_output_and_buffering(void)
     uint8_t split[80];
     uint8_t full[80];
 
-    assert(xy_csprng_init(seed, sizeof(seed)) == XY_RNG_SUCCESS);
-    assert(xy_csprng_generate(split, 13) == XY_RNG_SUCCESS);
-    assert(xy_csprng_generate(split + 13, sizeof(split) - 13) == XY_RNG_SUCCESS);
-    assert(!all_zero(split, sizeof(split)));
+    TEST_ASSERT_TRUE(xy_csprng_init(seed, sizeof(seed)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(xy_csprng_generate(split, 13) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(xy_csprng_generate(split + 13, sizeof(split) - 13) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(!all_zero(split, sizeof(split)));
     xy_csprng_cleanup();
 
-    assert(xy_csprng_init(seed, sizeof(seed)) == XY_RNG_SUCCESS);
-    assert(xy_csprng_generate(full, sizeof(full)) == XY_RNG_SUCCESS);
-    assert(memcmp(split, full, sizeof(full)) == 0);
+    TEST_ASSERT_TRUE(xy_csprng_init(seed, sizeof(seed)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(xy_csprng_generate(full, sizeof(full)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(memcmp(split, full, sizeof(full)) == 0);
     xy_csprng_cleanup();
 }
 
@@ -74,28 +82,29 @@ static void test_reseed_and_integer_helpers(void)
     uint32_t value32;
     uint64_t value64;
 
-    assert(xy_csprng_init(seed, sizeof(seed)) == XY_RNG_SUCCESS);
-    assert(xy_csprng_generate(before, sizeof(before)) == XY_RNG_SUCCESS);
-    assert(xy_csprng_reseed(entropy, sizeof(entropy)) == XY_RNG_SUCCESS);
-    assert(xy_csprng_generate(after, sizeof(after)) == XY_RNG_SUCCESS);
-    assert(memcmp(before, after, sizeof(before)) != 0);
+    TEST_ASSERT_TRUE(xy_csprng_init(seed, sizeof(seed)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(xy_csprng_generate(before, sizeof(before)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(xy_csprng_reseed(entropy, sizeof(entropy)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(xy_csprng_generate(after, sizeof(after)) == XY_RNG_SUCCESS);
+    TEST_ASSERT_TRUE(memcmp(before, after, sizeof(before)) != 0);
 
     value32 = xy_csprng_uint32();
     value64 = xy_csprng_uint64();
-    assert(value32 != 0U || value64 != 0ULL);
-    assert(xy_csprng_uniform(0) == 0U);
-    assert(xy_csprng_uniform(1) == 0U);
+    TEST_ASSERT_TRUE(value32 != 0U || value64 != 0ULL);
+    TEST_ASSERT_TRUE(xy_csprng_uniform(0) == 0U);
+    TEST_ASSERT_TRUE(xy_csprng_uniform(1) == 0U);
     for (int i = 0; i < 32; i++) {
-        assert(xy_csprng_uniform(7) < 7U);
+        TEST_ASSERT_TRUE(xy_csprng_uniform(7) < 7U);
     }
     xy_csprng_cleanup();
 }
 
 int main(void)
 {
+    UNITY_BEGIN();
     fill_fixtures();
-    test_lifecycle_and_params();
-    test_deterministic_output_and_buffering();
-    test_reseed_and_integer_helpers();
-    return 0;
+    RUN_TEST(test_lifecycle_and_params);
+    RUN_TEST(test_deterministic_output_and_buffering);
+    RUN_TEST(test_reseed_and_integer_helpers);
+    return UNITY_END();
 }
