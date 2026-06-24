@@ -487,6 +487,14 @@ add_executable(test_dm_base64
 target_include_directories(test_dm_base64 PRIVATE ${ROOT}/components)
 add_test(NAME dm_base64 COMMAND test_dm_base64)
 
+# --- Test 28b: DM TLV encode/decode contracts ---
+add_executable(test_dm_tlv
+    ${UNIT_DM}/test_dm_tlv.c
+    ${DM}/xy_tlv/xy_tlv.c
+)
+target_include_directories(test_dm_tlv PRIVATE ${DM}/xy_tlv)
+add_test(NAME dm_tlv COMMAND test_dm_tlv)
+
 # --- Test 29: DM NVM key-value storage contracts ---
 add_executable(test_dm_nvm
     ${UNIT_DM}/test_dm_nvm_core.c
