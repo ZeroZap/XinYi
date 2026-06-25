@@ -5,10 +5,11 @@
 
 #include "xy_mux.h"
 #include "xy_mux_uart.h"
-#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "unity.h"
 
 #define BUFFER_SIZE 512U
 
@@ -63,15 +64,23 @@ static int32_t mock_uart_ioctl(uint8_t channel, int cmd, void *arg)
     (void)channel;
     g_ioctl_count++;
     if (cmd == XY_MUX_UART_CMD_SET_CONFIG) {
-        assert(arg != NULL);
+        TEST_ASSERT_NOT_NULL(arg);
     }
     return XY_MUX_OK;
+}
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
 }
 
 static xy_mux_manager_t make_mgr(uint8_t *tx, uint8_t *rx)
 {
     xy_mux_manager_t mgr;
-    assert(xy_mux_init(&mgr, tx, rx, BUFFER_SIZE) == XY_MUX_OK);
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_init(&mgr, tx, rx, BUFFER_SIZE));
     return mgr;
 }
 
@@ -94,9 +103,9 @@ static void test_uart_register_and_config(void)
     xy_mux_manager_t mgr = make_mgr(tx, rx);
     xy_mux_ops_t ops = make_ops();
 
-    assert(xy_mux_uart_register(&mgr, 0, &ops, NULL) == XY_MUX_OK);
-    assert(xy_mux_uart_register(&mgr, 1, &ops, NULL) == XY_MUX_OK);
-    assert(mgr.device_count == 2);
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, &ops, NULL));
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 1, &ops, NULL));
+    TEST_ASSERT_EQUAL_UINT8(2, mgr.device_count);
 
     xy_mux_uart_config_t cfg = {
         .baudrate = 115200,
@@ -105,8 +114,8 @@ static void test_uart_register_and_config(void)
         .parity = 0,
         .flow_control = 0,
     };
-    assert(xy_mux_uart_config(&mgr, 0, &cfg) == XY_MUX_OK);
-    assert(g_ioctl_count > 0);
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_config(&mgr, 0, &cfg));
+    TEST_ASSERT_GREATER_THAN_INT(0, g_ioctl_count);
 
     xy_mux_deinit(&mgr);
 }
@@ -117,12 +126,12 @@ static void test_uart_write_header_and_payload(void)
     uint8_t rx[BUFFER_SIZE];
     xy_mux_manager_t mgr = make_mgr(tx, rx);
     xy_mux_ops_t ops = make_ops();
-    assert(xy_mux_uart_register(&mgr, 0, &ops, NULL) == XY_MUX_OK);
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, &ops, NULL));
 
     const uint8_t data[] = {'h', 'e', 'l', 'l', 'o'};
-    assert(xy_mux_uart_write(&mgr, 0, data, sizeof(data), 250) == (int32_t)sizeof(data));
-    assert(g_last_write_len == sizeof(data));
-    assert(memcmp(g_last_write, data, sizeof(data)) == 0);
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_uart_write(&mgr, 0, data, sizeof(data), 250));
+    TEST_ASSERT_EQUAL_size_t(sizeof(data), g_last_write_len);
+    TEST_ASSERT_EQUAL_MEMORY(data, g_last_write, sizeof(data));
 
     xy_mux_deinit(&mgr);
 }
@@ -133,12 +142,12 @@ static void test_uart_read_request_and_data(void)
     uint8_t rx[BUFFER_SIZE];
     xy_mux_manager_t mgr = make_mgr(tx, rx);
     xy_mux_ops_t ops = make_ops();
-    assert(xy_mux_uart_register(&mgr, 2, &ops, NULL) == XY_MUX_OK);
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 2, &ops, NULL));
 
     uint8_t data[6] = {0};
-    assert(xy_mux_uart_read(&mgr, 2, data, sizeof(data), 1000) == (int32_t)sizeof(data));
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_uart_read(&mgr, 2, data, sizeof(data), 1000));
     for (size_t i = 0; i < sizeof(data); ++i) {
-        assert(data[i] == g_read_pattern);
+        TEST_ASSERT_EQUAL_HEX8(g_read_pattern, data[i]);
     }
 
     xy_mux_deinit(&mgr);
@@ -152,24 +161,24 @@ static void test_uart_error_paths(void)
     xy_mux_ops_t ops = make_ops();
     uint8_t data = 0x55;
 
-    assert(xy_mux_uart_write(NULL, 0, &data, 1, 10) == XY_MUX_ERROR_INVALID_PARAM);
-    assert(xy_mux_uart_read(NULL, 0, &data, 1, 10) == XY_MUX_ERROR_INVALID_PARAM);
-    assert(xy_mux_uart_write(&mgr, 0, NULL, 1, 10) == XY_MUX_ERROR_INVALID_PARAM);
-    assert(xy_mux_uart_read(&mgr, 0, &data, 0, 10) == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_write(NULL, 0, &data, 1, 10));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_read(NULL, 0, &data, 1, 10));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_write(&mgr, 0, NULL, 1, 10));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_read(&mgr, 0, &data, 0, 10));
 
-    assert(xy_mux_uart_register(&mgr, 0, &ops, NULL) == XY_MUX_OK);
-    assert(xy_mux_uart_write(&mgr, 9, &data, 1, 10) == XY_MUX_ERROR_NO_DEVICE);
-    assert(xy_mux_uart_read(&mgr, 9, &data, 1, 10) == XY_MUX_ERROR_NO_DEVICE);
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, &ops, NULL));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_DEVICE, xy_mux_uart_write(&mgr, 9, &data, 1, 10));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_DEVICE, xy_mux_uart_read(&mgr, 9, &data, 1, 10));
 
     xy_mux_deinit(&mgr);
 }
 
 int main(void)
 {
-    test_uart_register_and_config();
-    test_uart_write_header_and_payload();
-    test_uart_read_request_and_data();
-    test_uart_error_paths();
-    puts("MUX UART tests passed");
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_uart_register_and_config);
+    RUN_TEST(test_uart_write_header_and_payload);
+    RUN_TEST(test_uart_read_request_and_data);
+    RUN_TEST(test_uart_error_paths);
+    return UNITY_END();
 }

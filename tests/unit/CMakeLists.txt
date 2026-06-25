@@ -503,6 +503,7 @@ add_executable(test_mux_spi
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME mux_spi COMMAND test_mux_spi)
 
@@ -516,6 +517,7 @@ add_executable(test_mux_uart
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME mux_uart COMMAND test_mux_uart)
 
