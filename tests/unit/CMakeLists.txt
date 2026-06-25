@@ -558,6 +558,7 @@ add_test(NAME dm_factory COMMAND test_dm_factory)
 add_executable(test_ipc_pipe
     ${UNIT_IPC}/test_ipc_pipe.c
     ${IPC}/pipe/xy_pipe.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME ipc_pipe COMMAND test_ipc_pipe)
 

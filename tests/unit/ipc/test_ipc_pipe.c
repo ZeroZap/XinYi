@@ -1,7 +1,7 @@
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "unity.h"
 #include "xy_pipe.h"
 
 static void test_pipe_init_clear_deinit(void)
@@ -9,27 +9,27 @@ static void test_pipe_init_clear_deinit(void)
     xy_pipe_t pipe;
     uint8_t buffer[16];
 
-    assert(xy_pipe_init(NULL, "pipe", buffer, sizeof(buffer)) == XY_PIPE_INVALID_PARAM);
-    assert(xy_pipe_init(&pipe, "pipe", NULL, sizeof(buffer)) == XY_PIPE_INVALID_PARAM);
-    assert(xy_pipe_init(&pipe, "pipe", buffer, 0) == XY_PIPE_INVALID_PARAM);
+    TEST_ASSERT_EQUAL(XY_PIPE_INVALID_PARAM, xy_pipe_init(NULL, "pipe", buffer, sizeof(buffer)));
+    TEST_ASSERT_EQUAL(XY_PIPE_INVALID_PARAM, xy_pipe_init(&pipe, "pipe", NULL, sizeof(buffer)));
+    TEST_ASSERT_EQUAL(XY_PIPE_INVALID_PARAM, xy_pipe_init(&pipe, "pipe", buffer, 0));
 
-    assert(xy_pipe_init(&pipe, "pipe", buffer, sizeof(buffer)) == XY_PIPE_OK);
-    assert(strcmp(pipe.name, "pipe") == 0);
-    assert(pipe.buffer == buffer);
-    assert(pipe.size == sizeof(buffer));
-    assert(xy_pipe_available(&pipe) == 0);
-    assert(xy_pipe_is_empty(&pipe));
-    assert(!xy_pipe_is_full(&pipe));
+    TEST_ASSERT_EQUAL(XY_PIPE_OK, xy_pipe_init(&pipe, "pipe", buffer, sizeof(buffer)));
+    TEST_ASSERT_EQUAL_STRING("pipe", pipe.name);
+    TEST_ASSERT_EQUAL_PTR(buffer, pipe.buffer);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(buffer), pipe.size);
+    TEST_ASSERT_EQUAL_INT(0, xy_pipe_available(&pipe));
+    TEST_ASSERT_TRUE(xy_pipe_is_empty(&pipe));
+    TEST_ASSERT_FALSE(xy_pipe_is_full(&pipe));
 
-    assert(xy_pipe_write(&pipe, (const uint8_t *)"abc", 3) == 3);
-    assert(xy_pipe_available(&pipe) == 3);
-    assert(xy_pipe_clear(&pipe) == XY_PIPE_OK);
-    assert(xy_pipe_available(&pipe) == 0);
-    assert(xy_pipe_is_empty(&pipe));
+    TEST_ASSERT_EQUAL_INT(3, xy_pipe_write(&pipe, (const uint8_t *)"abc", 3));
+    TEST_ASSERT_EQUAL_INT(3, xy_pipe_available(&pipe));
+    TEST_ASSERT_EQUAL(XY_PIPE_OK, xy_pipe_clear(&pipe));
+    TEST_ASSERT_EQUAL_INT(0, xy_pipe_available(&pipe));
+    TEST_ASSERT_TRUE(xy_pipe_is_empty(&pipe));
 
-    assert(xy_pipe_deinit(&pipe) == XY_PIPE_OK);
-    assert(pipe.buffer == NULL);
-    assert(pipe.size == 0);
+    TEST_ASSERT_EQUAL(XY_PIPE_OK, xy_pipe_deinit(&pipe));
+    TEST_ASSERT_NULL(pipe.buffer);
+    TEST_ASSERT_EQUAL_UINT32(0U, pipe.size);
 }
 
 static void test_pipe_write_read_peek(void)
@@ -39,18 +39,18 @@ static void test_pipe_write_read_peek(void)
     const uint8_t input[] = {1, 2, 3, 4, 5};
     uint8_t output[8] = {0};
 
-    assert(xy_pipe_init(&pipe, "pipe", buffer, sizeof(buffer)) == XY_PIPE_OK);
-    assert(xy_pipe_write(&pipe, input, sizeof(input)) == (int)sizeof(input));
-    assert(xy_pipe_available(&pipe) == sizeof(input));
+    TEST_ASSERT_EQUAL(XY_PIPE_OK, xy_pipe_init(&pipe, "pipe", buffer, sizeof(buffer)));
+    TEST_ASSERT_EQUAL_INT((int)sizeof(input), xy_pipe_write(&pipe, input, sizeof(input)));
+    TEST_ASSERT_EQUAL_INT((int)sizeof(input), xy_pipe_available(&pipe));
 
-    assert(xy_pipe_peek(&pipe, output, 3) == 3);
-    assert(memcmp(output, input, 3) == 0);
-    assert(xy_pipe_available(&pipe) == sizeof(input));
+    TEST_ASSERT_EQUAL_INT(3, xy_pipe_peek(&pipe, output, 3));
+    TEST_ASSERT_EQUAL_MEMORY(input, output, 3);
+    TEST_ASSERT_EQUAL_INT((int)sizeof(input), xy_pipe_available(&pipe));
 
     memset(output, 0, sizeof(output));
-    assert(xy_pipe_read(&pipe, output, sizeof(output)) == (int)sizeof(input));
-    assert(memcmp(output, input, sizeof(input)) == 0);
-    assert(xy_pipe_is_empty(&pipe));
+    TEST_ASSERT_EQUAL_INT((int)sizeof(input), xy_pipe_read(&pipe, output, sizeof(output)));
+    TEST_ASSERT_EQUAL_MEMORY(input, output, sizeof(input));
+    TEST_ASSERT_TRUE(xy_pipe_is_empty(&pipe));
 }
 
 static void test_pipe_full_empty_and_wraparound(void)
@@ -61,28 +61,41 @@ static void test_pipe_full_empty_and_wraparound(void)
     const uint8_t second[] = {6, 7};
     uint8_t output[4] = {0};
 
-    assert(xy_pipe_init(&pipe, "pipe", buffer, sizeof(buffer)) == XY_PIPE_OK);
-    assert(xy_pipe_read(&pipe, output, sizeof(output)) == XY_PIPE_BUFFER_EMPTY);
-    assert(xy_pipe_write(&pipe, first, sizeof(first)) == 4);
-    assert(xy_pipe_is_full(&pipe));
+    TEST_ASSERT_EQUAL(XY_PIPE_OK, xy_pipe_init(&pipe, "pipe", buffer, sizeof(buffer)));
+    TEST_ASSERT_EQUAL(XY_PIPE_BUFFER_EMPTY, xy_pipe_read(&pipe, output, sizeof(output)));
+    TEST_ASSERT_EQUAL_INT(4, xy_pipe_write(&pipe, first, sizeof(first)));
+    TEST_ASSERT_TRUE(xy_pipe_is_full(&pipe));
 
-    assert(xy_pipe_read(&pipe, output, 2) == 2);
-    assert(output[0] == 1 && output[1] == 2);
-    assert(!xy_pipe_is_full(&pipe));
+    TEST_ASSERT_EQUAL_INT(2, xy_pipe_read(&pipe, output, 2));
+    TEST_ASSERT_EQUAL_UINT8(1U, output[0]);
+    TEST_ASSERT_EQUAL_UINT8(2U, output[1]);
+    TEST_ASSERT_FALSE(xy_pipe_is_full(&pipe));
 
-    assert(xy_pipe_write(&pipe, second, sizeof(second)) == 2);
-    assert(xy_pipe_is_full(&pipe));
+    TEST_ASSERT_EQUAL_INT(2, xy_pipe_write(&pipe, second, sizeof(second)));
+    TEST_ASSERT_TRUE(xy_pipe_is_full(&pipe));
 
     memset(output, 0, sizeof(output));
-    assert(xy_pipe_read(&pipe, output, sizeof(output)) == 4);
-    assert(output[0] == 3 && output[1] == 4 && output[2] == 6 && output[3] == 7);
-    assert(xy_pipe_is_empty(&pipe));
+    TEST_ASSERT_EQUAL_INT(4, xy_pipe_read(&pipe, output, sizeof(output)));
+    TEST_ASSERT_EQUAL_UINT8(3U, output[0]);
+    TEST_ASSERT_EQUAL_UINT8(4U, output[1]);
+    TEST_ASSERT_EQUAL_UINT8(6U, output[2]);
+    TEST_ASSERT_EQUAL_UINT8(7U, output[3]);
+    TEST_ASSERT_TRUE(xy_pipe_is_empty(&pipe));
+}
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
 }
 
 int main(void)
 {
-    test_pipe_init_clear_deinit();
-    test_pipe_write_read_peek();
-    test_pipe_full_empty_and_wraparound();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_pipe_init_clear_deinit);
+    RUN_TEST(test_pipe_write_read_peek);
+    RUN_TEST(test_pipe_full_empty_and_wraparound);
+    return UNITY_END();
 }
