@@ -430,6 +430,7 @@ add_executable(test_clib
     ${CLIB}/xy_ctype.c
     ${CLIB}/xy_rb.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME clib_component COMMAND test_clib)
 
