@@ -629,6 +629,7 @@ add_test(NAME display_led_driver COMMAND test_display_led_driver)
 add_executable(test_mqtt_client
     ${UNIT_NET}/test_mqtt_client_core.c
     ${NET}/src/xy_mqtt_client.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME mqtt_client COMMAND test_mqtt_client)
 

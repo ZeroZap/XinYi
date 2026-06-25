@@ -1,4 +1,5 @@
-#include <assert.h>
+#include "unity.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -19,6 +20,14 @@ static int mock_recv(void *context, uint8_t *data, size_t len, uint32_t timeout_
     (void)len;
     (void)timeout_ms;
     return 0;
+}
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
 }
 
 static void test_remaining_length_vectors(void)
@@ -42,11 +51,11 @@ static void test_remaining_length_vectors(void)
         uint32_t decoded = 0;
         uint8_t consumed = 0;
 
-        assert(xy_mqtt_encode_remaining_length(out, vectors[i].value) == vectors[i].encoded_len);
-        assert(memcmp(out, vectors[i].encoded, vectors[i].encoded_len) == 0);
-        assert(xy_mqtt_decode_remaining_length(out, &decoded, &consumed) == XY_MQTT_OK);
-        assert(decoded == vectors[i].value);
-        assert(consumed == vectors[i].encoded_len);
+        TEST_ASSERT_EQUAL_UINT8(vectors[i].encoded_len, xy_mqtt_encode_remaining_length(out, vectors[i].value));
+        TEST_ASSERT_EQUAL_MEMORY(vectors[i].encoded, out, vectors[i].encoded_len);
+        TEST_ASSERT_EQUAL(XY_MQTT_OK, xy_mqtt_decode_remaining_length(out, &decoded, &consumed));
+        TEST_ASSERT_EQUAL_UINT32(vectors[i].value, decoded);
+        TEST_ASSERT_EQUAL_UINT8(vectors[i].encoded_len, consumed);
     }
 }
 
@@ -57,29 +66,30 @@ static void test_remaining_length_validation(void)
     uint32_t decoded = 0;
     uint8_t consumed = 0;
 
-    assert(xy_mqtt_encode_remaining_length(out, 268435456U) == -1);
-    assert(xy_mqtt_decode_remaining_length(malformed, &decoded, &consumed) == XY_MQTT_ERR_INVALID_REMAINING_LEN);
+    TEST_ASSERT_EQUAL_INT(-1, xy_mqtt_encode_remaining_length(out, 268435456U));
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_INVALID_REMAINING_LEN,
+                      xy_mqtt_decode_remaining_length(malformed, &decoded, &consumed));
 }
 
 static void test_topic_match_exact_and_wildcards(void)
 {
-    assert(xy_mqtt_topic_match("sensor/temp", "sensor/temp"));
-    assert(!xy_mqtt_topic_match("sensor/temp", "sensor/humidity"));
+    TEST_ASSERT_TRUE(xy_mqtt_topic_match("sensor/temp", "sensor/temp"));
+    TEST_ASSERT_FALSE(xy_mqtt_topic_match("sensor/temp", "sensor/humidity"));
 
-    assert(xy_mqtt_topic_match("sensor/+", "sensor/temp"));
-    assert(!xy_mqtt_topic_match("sensor/+", "sensor/room/temp"));
+    TEST_ASSERT_TRUE(xy_mqtt_topic_match("sensor/+", "sensor/temp"));
+    TEST_ASSERT_FALSE(xy_mqtt_topic_match("sensor/+", "sensor/room/temp"));
 
-    assert(xy_mqtt_topic_match("sensor/#", "sensor/room/temp"));
-    assert(xy_mqtt_topic_match("#", "sensor/room/temp"));
-    assert(!xy_mqtt_topic_match("sensor/+/temp", "sensor/room/humidity"));
+    TEST_ASSERT_TRUE(xy_mqtt_topic_match("sensor/#", "sensor/room/temp"));
+    TEST_ASSERT_TRUE(xy_mqtt_topic_match("#", "sensor/room/temp"));
+    TEST_ASSERT_FALSE(xy_mqtt_topic_match("sensor/+/temp", "sensor/room/humidity"));
 }
 
 static void test_client_lifecycle_and_validation(void)
 {
     xy_mqtt_config_t config = {0};
 
-    assert(xy_mqtt_client_new(NULL) == NULL);
-    assert(xy_mqtt_client_new(&config) == NULL);
+    TEST_ASSERT_NULL(xy_mqtt_client_new(NULL));
+    TEST_ASSERT_NULL(xy_mqtt_client_new(&config));
 
     config.send = mock_send;
     config.recv = mock_recv;
@@ -88,35 +98,40 @@ static void test_client_lifecycle_and_validation(void)
     config.rx_buffer_size = 128;
 
     xy_mqtt_client_t *client = xy_mqtt_client_new(&config);
-    assert(client != NULL);
-    assert(!xy_mqtt_is_connected(client));
-    assert(xy_mqtt_get_state(client) == XY_MQTT_STATE_DISCONNECTED);
+    TEST_ASSERT_NOT_NULL(client);
+    TEST_ASSERT_FALSE(xy_mqtt_is_connected(client));
+    TEST_ASSERT_EQUAL(XY_MQTT_STATE_DISCONNECTED, xy_mqtt_get_state(client));
 
-    assert(xy_mqtt_publish(NULL, "topic", (const uint8_t *)"x", 1, XY_MQTT_QOS_0, 0, NULL) == XY_MQTT_ERR_INVALID_PARAM);
-    assert(xy_mqtt_publish(client, NULL, (const uint8_t *)"x", 1, XY_MQTT_QOS_0, 0, NULL) == XY_MQTT_ERR_INVALID_PARAM);
-    assert(xy_mqtt_publish(client, "topic", NULL, 1, XY_MQTT_QOS_0, 0, NULL) == XY_MQTT_ERR_INVALID_PARAM);
-    assert(xy_mqtt_publish(client, "topic", (const uint8_t *)"x", 1, XY_MQTT_QOS_0, 0, NULL) == XY_MQTT_ERR_NOT_CONNECTED);
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_INVALID_PARAM,
+                      xy_mqtt_publish(NULL, "topic", (const uint8_t *)"x", 1, XY_MQTT_QOS_0, 0, NULL));
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_INVALID_PARAM,
+                      xy_mqtt_publish(client, NULL, (const uint8_t *)"x", 1, XY_MQTT_QOS_0, 0, NULL));
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_INVALID_PARAM,
+                      xy_mqtt_publish(client, "topic", NULL, 1, XY_MQTT_QOS_0, 0, NULL));
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_NOT_CONNECTED,
+                      xy_mqtt_publish(client, "topic", (const uint8_t *)"x", 1, XY_MQTT_QOS_0, 0, NULL));
 
-    assert(xy_mqtt_subscribe(NULL, "topic", XY_MQTT_QOS_0, NULL) == XY_MQTT_ERR_INVALID_PARAM);
-    assert(xy_mqtt_subscribe(client, NULL, XY_MQTT_QOS_0, NULL) == XY_MQTT_ERR_INVALID_PARAM);
-    assert(xy_mqtt_subscribe(client, "topic", XY_MQTT_QOS_0, NULL) == XY_MQTT_ERR_NOT_CONNECTED);
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_INVALID_PARAM, xy_mqtt_subscribe(NULL, "topic", XY_MQTT_QOS_0, NULL));
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_INVALID_PARAM, xy_mqtt_subscribe(client, NULL, XY_MQTT_QOS_0, NULL));
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_NOT_CONNECTED, xy_mqtt_subscribe(client, "topic", XY_MQTT_QOS_0, NULL));
 
     xy_mqtt_client_delete(client);
 }
 
 static void test_connack_strings(void)
 {
-    assert(strcmp(xy_mqtt_connack_rc_string(XY_MQTT_CONNACK_RC_ACCEPTED), "Connection accepted") == 0);
-    assert(strcmp(xy_mqtt_connack_rc_string(XY_MQTT_CONNACK_RC_NOT_AUTHORIZED), "Not authorized") == 0);
-    assert(strcmp(xy_mqtt_connack_rc_string(99), "Unknown error") == 0);
+    TEST_ASSERT_EQUAL_STRING("Connection accepted", xy_mqtt_connack_rc_string(XY_MQTT_CONNACK_RC_ACCEPTED));
+    TEST_ASSERT_EQUAL_STRING("Not authorized", xy_mqtt_connack_rc_string(XY_MQTT_CONNACK_RC_NOT_AUTHORIZED));
+    TEST_ASSERT_EQUAL_STRING("Unknown error", xy_mqtt_connack_rc_string(99));
 }
 
 int main(void)
 {
-    test_remaining_length_vectors();
-    test_remaining_length_validation();
-    test_topic_match_exact_and_wildcards();
-    test_client_lifecycle_and_validation();
-    test_connack_strings();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_remaining_length_vectors);
+    RUN_TEST(test_remaining_length_validation);
+    RUN_TEST(test_topic_match_exact_and_wildcards);
+    RUN_TEST(test_client_lifecycle_and_validation);
+    RUN_TEST(test_connack_strings);
+    return UNITY_END();
 }
