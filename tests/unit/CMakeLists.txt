@@ -220,6 +220,7 @@ add_executable(test_iso7816_example
     ${NET}/xy_iso7816/xy_iso7816_example.c
     ${NET}/xy_iso7816/xy_iso7816.c
     ${UNIT_NET}/test_iso7816_example_main.c
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 15: Net umbrella/core lifecycle and platform helpers ---

@@ -5,9 +5,11 @@
 
 #include "xy_hal_uart.h"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
+
+#include "unity.h"
 
 xy_hal_error_t xy_hal_uart_init(void *uart, const xy_hal_uart_config_t *config);
 
@@ -55,17 +57,31 @@ xy_hal_error_t xy_hal_uart_flush(void *uart)
     return XY_HAL_OK;
 }
 
-int main(void)
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
+
+static void test_iso7816_example_symbols_link(void)
 {
     /* Keep this as a link/run smoke guard. Avoid invoking examples because
      * they intentionally demonstrate hardware-backed SIM-card workflows. */
-    (void)example_init_and_atr;
-    (void)example_read_sim_info;
-    (void)example_verify_pin;
-    (void)example_2g_authentication;
-    (void)example_3g_authentication;
-    (void)example_manual_file_access;
-    (void)example_custom_apdu;
-    (void)example_complete_workflow;
-    return 0;
+    TEST_ASSERT_NOT_NULL((void *)example_init_and_atr);
+    TEST_ASSERT_NOT_NULL((void *)example_read_sim_info);
+    TEST_ASSERT_NOT_NULL((void *)example_verify_pin);
+    TEST_ASSERT_NOT_NULL((void *)example_2g_authentication);
+    TEST_ASSERT_NOT_NULL((void *)example_3g_authentication);
+    TEST_ASSERT_NOT_NULL((void *)example_manual_file_access);
+    TEST_ASSERT_NOT_NULL((void *)example_custom_apdu);
+    TEST_ASSERT_NOT_NULL((void *)example_complete_workflow);
+}
+
+int main(void)
+{
+    UNITY_BEGIN();
+    RUN_TEST(test_iso7816_example_symbols_link);
+    return UNITY_END();
 }
