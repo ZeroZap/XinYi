@@ -718,6 +718,7 @@ add_executable(test_sys_timer_sm
     ${UNIT_SYS}/test_sys_timer_sm.c
     ${SYS}/xy_timer/xy_timer.c
     ${SYS}/xy_state_machine/xy_st.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_compile_definitions(test_sys_timer_sm PRIVATE reentrant= PLATFORM=0 PLATFORM_C51=1)
 add_test(NAME sys_timer_sm COMMAND test_sys_timer_sm)
