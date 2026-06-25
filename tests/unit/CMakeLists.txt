@@ -585,6 +585,7 @@ add_executable(test_display_lcd
     ${DISPLAY}/lcd/xy_lcd_spi.c
     ${DISPLAY}/lcd/xy_lcd_i8080.c
     ${DISPLAY}/lcd/xy_lcd_st7789.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME display_lcd COMMAND test_display_lcd)
 

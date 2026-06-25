@@ -2,8 +2,8 @@
 #include "xy_lcd_i8080.h"
 #include "xy_lcd_st7789.h"
 #include "xy_hal_error.h"
+#include "unity.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -31,6 +31,14 @@ static uint32_t delay_ms_total;
 static uint32_t delay_us_total;
 static uint32_t read_pattern;
 
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
+
 static void reset_logs(void)
 {
     memset(spi_ops, 0, sizeof(spi_ops));
@@ -47,7 +55,7 @@ xy_hal_error_t xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
 {
     (void)spi;
     (void)timeout;
-    assert(spi_op_count < MAX_SPI_OPS);
+    TEST_ASSERT_LESS_THAN_UINT32(MAX_SPI_OPS, spi_op_count);
     spi_ops[spi_op_count].data = data;
     spi_ops[spi_op_count].len = len;
     spi_ops[spi_op_count].dma = 0;
@@ -80,7 +88,7 @@ xy_hal_error_t xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
 xy_hal_error_t xy_hal_spi_transmit_dma(void *spi, const uint8_t *data, size_t len)
 {
     (void)spi;
-    assert(spi_op_count < MAX_SPI_OPS);
+    TEST_ASSERT_LESS_THAN_UINT32(MAX_SPI_OPS, spi_op_count);
     spi_ops[spi_op_count].data = data;
     spi_ops[spi_op_count].len = len;
     spi_ops[spi_op_count].dma = 1;
@@ -109,7 +117,7 @@ xy_hal_error_t xy_hal_spi_transmit_receive_dma(void *spi,
 
 xy_hal_error_t xy_hal_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value)
 {
-    assert(gpio_op_count < MAX_GPIO_OPS);
+    TEST_ASSERT_LESS_THAN_UINT32(MAX_GPIO_OPS, gpio_op_count);
     gpio_ops[gpio_op_count].port = port;
     gpio_ops[gpio_op_count].pin = pin;
     gpio_ops[gpio_op_count].value = value;
@@ -159,34 +167,38 @@ static void test_spi_init_window_and_pixel_endian(void)
     xy_lcd_spi_config_t cfg = make_spi_config();
     uint16_t pixels[] = {0x1234, 0xABCD};
 
-    assert(xy_lcd_spi_init(&lcd, &cfg) == XY_ERR_OK);
-    assert(lcd.initialized);
-    assert(lcd.base.width == 4U);
-    assert(lcd.base.height == 3U);
-    assert(lcd.base.ops == &xy_lcd_spi_ops);
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_spi_init(&lcd, &cfg));
+    TEST_ASSERT_TRUE(lcd.initialized);
+    TEST_ASSERT_EQUAL_UINT16(4U, lcd.base.width);
+    TEST_ASSERT_EQUAL_UINT16(3U, lcd.base.height);
+    TEST_ASSERT_EQUAL_PTR(&xy_lcd_spi_ops, lcd.base.ops);
 
     reset_logs();
     xy_lcd_spi_set_window(&lcd, 1, 2, 3, 4);
-    assert(spi_op_count == 7U);
-    assert(spi_ops[0].bytes[0] == 0x2A);
-    assert(spi_ops[1].bytes[0] == 0x00 && spi_ops[1].bytes[1] == 0x01);
-    assert(spi_ops[2].bytes[0] == 0x00 && spi_ops[2].bytes[1] == 0x03);
-    assert(spi_ops[3].bytes[0] == 0x2B);
-    assert(spi_ops[4].bytes[0] == 0x00 && spi_ops[4].bytes[1] == 0x02);
-    assert(spi_ops[5].bytes[0] == 0x00 && spi_ops[5].bytes[1] == 0x05);
-    assert(spi_ops[6].bytes[0] == 0x2C);
+    TEST_ASSERT_EQUAL_UINT32(7U, spi_op_count);
+    TEST_ASSERT_EQUAL_HEX8(0x2A, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[1].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x01, spi_ops[1].bytes[1]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[2].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x03, spi_ops[2].bytes[1]);
+    TEST_ASSERT_EQUAL_HEX8(0x2B, spi_ops[3].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[4].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x02, spi_ops[4].bytes[1]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[5].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x05, spi_ops[5].bytes[1]);
+    TEST_ASSERT_EQUAL_HEX8(0x2C, spi_ops[6].bytes[0]);
 
     reset_logs();
     xy_lcd_spi_write_pixel(&lcd, pixels, 2);
-    assert(spi_op_count == 1U);
-    assert(spi_ops[0].len == 4U);
-    assert(spi_ops[0].bytes[0] == 0x12);
-    assert(spi_ops[0].bytes[1] == 0x34);
-    assert(spi_ops[0].bytes[2] == 0xAB);
-    assert(spi_ops[0].bytes[3] == 0xCD);
+    TEST_ASSERT_EQUAL_UINT32(1U, spi_op_count);
+    TEST_ASSERT_EQUAL_UINT32(4U, spi_ops[0].len);
+    TEST_ASSERT_EQUAL_HEX8(0x12, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x34, spi_ops[0].bytes[1]);
+    TEST_ASSERT_EQUAL_HEX8(0xAB, spi_ops[0].bytes[2]);
+    TEST_ASSERT_EQUAL_HEX8(0xCD, spi_ops[0].bytes[3]);
 
     xy_lcd_spi_deinit(&lcd);
-    assert(!lcd.initialized);
+    TEST_ASSERT_FALSE(lcd.initialized);
 }
 
 static void test_spi_reset_backlight_and_dma(void)
@@ -195,29 +207,34 @@ static void test_spi_reset_backlight_and_dma(void)
     xy_lcd_spi_config_t cfg = make_spi_config();
     uint8_t payload[] = {1, 2, 3};
 
-    assert(xy_lcd_spi_init(&lcd, &cfg) == XY_ERR_OK);
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_spi_init(&lcd, &cfg));
 
     reset_logs();
     xy_lcd_spi_reset(&lcd);
-    assert(delay_ms_total == 140U);
-    assert(gpio_op_count == 3U);
-    assert(gpio_ops[0].pin == cfg.rst_pin && gpio_ops[0].value == 1U);
-    assert(gpio_ops[1].pin == cfg.rst_pin && gpio_ops[1].value == 0U);
-    assert(gpio_ops[2].pin == cfg.rst_pin && gpio_ops[2].value == 1U);
+    TEST_ASSERT_EQUAL_UINT32(140U, delay_ms_total);
+    TEST_ASSERT_EQUAL_UINT32(3U, gpio_op_count);
+    TEST_ASSERT_EQUAL_UINT8(cfg.rst_pin, gpio_ops[0].pin);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[0].value);
+    TEST_ASSERT_EQUAL_UINT8(cfg.rst_pin, gpio_ops[1].pin);
+    TEST_ASSERT_EQUAL_UINT8(0U, gpio_ops[1].value);
+    TEST_ASSERT_EQUAL_UINT8(cfg.rst_pin, gpio_ops[2].pin);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[2].value);
 
     reset_logs();
     xy_lcd_spi_set_backlight(&lcd, 0);
     xy_lcd_spi_set_backlight(&lcd, 100);
-    assert(gpio_op_count == 2U);
-    assert(gpio_ops[0].pin == cfg.bl_pin && gpio_ops[0].value == 0U);
-    assert(gpio_ops[1].pin == cfg.bl_pin && gpio_ops[1].value == 1U);
+    TEST_ASSERT_EQUAL_UINT32(2U, gpio_op_count);
+    TEST_ASSERT_EQUAL_UINT8(cfg.bl_pin, gpio_ops[0].pin);
+    TEST_ASSERT_EQUAL_UINT8(0U, gpio_ops[0].value);
+    TEST_ASSERT_EQUAL_UINT8(cfg.bl_pin, gpio_ops[1].pin);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[1].value);
 
     lcd.use_dma = true;
     reset_logs();
     xy_lcd_spi_write_data(&lcd, payload, sizeof(payload));
-    assert(spi_op_count == 1U);
-    assert(spi_ops[0].dma == 1);
-    assert(spi_ops[0].len == sizeof(payload));
+    TEST_ASSERT_EQUAL_UINT32(1U, spi_op_count);
+    TEST_ASSERT_EQUAL_INT(1, spi_ops[0].dma);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(payload), spi_ops[0].len);
 
     xy_lcd_spi_deinit(&lcd);
 }
@@ -267,32 +284,40 @@ static void test_i8080_bus_write_read_and_window(void)
     xy_lcd_i8080_device_t lcd;
     xy_lcd_i8080_config_t cfg = make_i8080_config();
 
-    assert(xy_lcd_i8080_init(&lcd, &cfg) == XY_ERR_OK);
-    assert(lcd.initialized);
-    assert(lcd.base.ops == &xy_lcd_i8080_ops);
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_i8080_init(&lcd, &cfg));
+    TEST_ASSERT_TRUE(lcd.initialized);
+    TEST_ASSERT_EQUAL_PTR(&xy_lcd_i8080_ops, lcd.base.ops);
 
     reset_logs();
     xy_lcd_i8080_write_data16(&lcd, 0xA55A);
-    assert(gpio_op_count >= 20U);
-    assert(gpio_ops[0].pin == cfg.rs_pin && gpio_ops[0].value == 1U);
-    assert(gpio_ops[1].pin == cfg.cs_pin && gpio_ops[1].value == 0U);
-    assert(gpio_ops[2 + 0].pin == 0U && gpio_ops[2 + 0].value == 0U);
-    assert(gpio_ops[2 + 1].pin == 1U && gpio_ops[2 + 1].value == 1U);
-    assert(gpio_ops[2 + 8].pin == 8U && gpio_ops[2 + 8].value == 1U);
-    assert(gpio_ops[18].pin == cfg.wr_pin && gpio_ops[18].value == 0U);
-    assert(gpio_ops[19].pin == cfg.wr_pin && gpio_ops[19].value == 1U);
-    assert(gpio_ops[20].pin == cfg.cs_pin && gpio_ops[20].value == 1U);
-    assert(delay_us_total == 1U);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT32(20U, gpio_op_count);
+    TEST_ASSERT_EQUAL_UINT8(cfg.rs_pin, gpio_ops[0].pin);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[0].value);
+    TEST_ASSERT_EQUAL_UINT8(cfg.cs_pin, gpio_ops[1].pin);
+    TEST_ASSERT_EQUAL_UINT8(0U, gpio_ops[1].value);
+    TEST_ASSERT_EQUAL_UINT8(0U, gpio_ops[2 + 0].pin);
+    TEST_ASSERT_EQUAL_UINT8(0U, gpio_ops[2 + 0].value);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[2 + 1].pin);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[2 + 1].value);
+    TEST_ASSERT_EQUAL_UINT8(8U, gpio_ops[2 + 8].pin);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[2 + 8].value);
+    TEST_ASSERT_EQUAL_UINT8(cfg.wr_pin, gpio_ops[18].pin);
+    TEST_ASSERT_EQUAL_UINT8(0U, gpio_ops[18].value);
+    TEST_ASSERT_EQUAL_UINT8(cfg.wr_pin, gpio_ops[19].pin);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[19].value);
+    TEST_ASSERT_EQUAL_UINT8(cfg.cs_pin, gpio_ops[20].pin);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[20].value);
+    TEST_ASSERT_EQUAL_UINT32(1U, delay_us_total);
 
     read_pattern = 0xBEEF;
-    assert(xy_lcd_i8080_read_data(&lcd) == 0xBEEFU);
+    TEST_ASSERT_EQUAL_HEX16(0xBEEFU, xy_lcd_i8080_read_data(&lcd));
 
     reset_logs();
     xy_lcd_i8080_set_window(&lcd, 1, 1, 2, 2);
-    assert(gpio_op_count > 0U);
+    TEST_ASSERT_GREATER_THAN_UINT32(0U, gpio_op_count);
 
     xy_lcd_i8080_deinit(&lcd);
-    assert(!lcd.initialized);
+    TEST_ASSERT_FALSE(lcd.initialized);
 }
 
 static xy_lcd_st7789_config_t make_st7789_config(void)
@@ -313,49 +338,59 @@ static void test_st7789_offsets_rotation_and_ops(void)
     xy_lcd_st7789_device_t lcd;
     xy_lcd_st7789_config_t cfg = make_st7789_config();
 
-    assert(xy_lcd_st7789_init(&lcd, &cfg) == XY_ERR_OK);
-    assert(lcd.initialized);
-    assert(lcd.spi_dev.base.ops == &xy_lcd_st7789_ops);
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_init(&lcd, &cfg));
+    TEST_ASSERT_TRUE(lcd.initialized);
+    TEST_ASSERT_EQUAL_PTR(&xy_lcd_st7789_ops, lcd.spi_dev.base.ops);
 
     reset_logs();
     xy_lcd_st7789_set_column(&lcd, 4, 3);
-    assert(spi_op_count == 5U);
-    assert(spi_ops[0].bytes[0] == ST7789_CMD_CASET);
-    assert(spi_ops[1].bytes[0] == 0x00 && spi_ops[2].bytes[0] == 0x06);
-    assert(spi_ops[3].bytes[0] == 0x00 && spi_ops[4].bytes[0] == 0x08);
+    TEST_ASSERT_EQUAL_UINT32(5U, spi_op_count);
+    TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_CASET, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[1].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x06, spi_ops[2].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[3].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x08, spi_ops[4].bytes[0]);
 
     reset_logs();
     xy_lcd_st7789_set_row(&lcd, 5, 2);
-    assert(spi_op_count == 5U);
-    assert(spi_ops[0].bytes[0] == ST7789_CMD_RASET);
-    assert(spi_ops[1].bytes[0] == 0x00 && spi_ops[2].bytes[0] == 0x08);
-    assert(spi_ops[3].bytes[0] == 0x00 && spi_ops[4].bytes[0] == 0x09);
+    TEST_ASSERT_EQUAL_UINT32(5U, spi_op_count);
+    TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_RASET, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[1].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x08, spi_ops[2].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[3].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x09, spi_ops[4].bytes[0]);
 
     reset_logs();
     xy_lcd_st7789_draw_pixel(&lcd, 1, 2, 0x1357);
-    assert(spi_ops[0].bytes[0] == ST7789_CMD_CASET);
-    assert(spi_ops[1].bytes[0] == 0x00 && spi_ops[2].bytes[0] == 0x03);
-    assert(spi_ops[3].bytes[0] == 0x00 && spi_ops[4].bytes[0] == 0x03);
-    assert(spi_ops[5].bytes[0] == ST7789_CMD_RASET);
-    assert(spi_ops[6].bytes[0] == 0x00 && spi_ops[7].bytes[0] == 0x05);
-    assert(spi_ops[8].bytes[0] == 0x00 && spi_ops[9].bytes[0] == 0x05);
-    assert(spi_ops[11].bytes[0] == 0x13 && spi_ops[11].bytes[1] == 0x57);
+    TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_CASET, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[1].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x03, spi_ops[2].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[3].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x03, spi_ops[4].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_RASET, spi_ops[5].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[6].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x05, spi_ops[7].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[8].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x05, spi_ops[9].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x13, spi_ops[11].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x57, spi_ops[11].bytes[1]);
 
     reset_logs();
     xy_lcd_st7789_set_inversion(&lcd, true);
     xy_lcd_st7789_set_inversion(&lcd, false);
-    assert(spi_ops[0].bytes[0] == ST7789_CMD_INVON);
-    assert(spi_ops[1].bytes[0] == ST7789_CMD_INVOFF);
+    TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_INVON, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_INVOFF, spi_ops[1].bytes[0]);
 
     xy_lcd_st7789_deinit(&lcd);
-    assert(!lcd.initialized);
+    TEST_ASSERT_FALSE(lcd.initialized);
 }
 
 int main(void)
 {
-    test_spi_init_window_and_pixel_endian();
-    test_spi_reset_backlight_and_dma();
-    test_i8080_bus_write_read_and_window();
-    test_st7789_offsets_rotation_and_ops();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_spi_init_window_and_pixel_endian);
+    RUN_TEST(test_spi_reset_backlight_and_dma);
+    RUN_TEST(test_i8080_bus_write_read_and_window);
+    RUN_TEST(test_st7789_offsets_rotation_and_ops);
+    return UNITY_END();
 }
