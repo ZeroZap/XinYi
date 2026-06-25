@@ -205,6 +205,7 @@ add_executable(test_nano_modbus
 add_executable(test_modbus_legacy
     ${UNIT_NET}/test_modbus_legacy.c
     ${NET}/modbus/mb_slave.c
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 13: ISO7816 public include, lifecycle, and APDU behavior ---
