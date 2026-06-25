@@ -1,9 +1,9 @@
-#include <assert.h>
+#include "xy_fota.h"
+#include "unity.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-
-#include "xy_fota.h"
 
 #define FLASH_BASE 0x08010000u
 #define BACKUP_BASE 0x08100000u
@@ -18,6 +18,14 @@ static uint32_t g_progress_total;
 static int g_progress_user;
 static int g_init_count;
 static int g_deinit_count;
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 static void reset_fixture(void)
 {
@@ -55,8 +63,8 @@ static int mock_flash_deinit(void)
 static int mock_flash_write(uint32_t addr, const uint8_t *data, uint32_t size)
 {
     uint32_t off = flash_offset(addr);
-    assert(data != NULL);
-    assert(off + size <= sizeof(g_flash));
+    TEST_ASSERT_NOT_NULL(data);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT32(sizeof(g_flash), off + size);
     memcpy(&g_flash[off], data, size);
     g_last_write_addr = addr;
     return XY_FOTA_OK;
@@ -65,8 +73,8 @@ static int mock_flash_write(uint32_t addr, const uint8_t *data, uint32_t size)
 static int mock_flash_read(uint32_t addr, uint8_t *data, uint32_t size)
 {
     uint32_t off = flash_offset(addr);
-    assert(data != NULL);
-    assert(off + size <= sizeof(g_flash));
+    TEST_ASSERT_NOT_NULL(data);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT32(sizeof(g_flash), off + size);
     memcpy(data, &g_flash[off], size);
     return XY_FOTA_OK;
 }
@@ -74,7 +82,7 @@ static int mock_flash_read(uint32_t addr, uint8_t *data, uint32_t size)
 static int mock_flash_erase(uint32_t addr, uint32_t size)
 {
     uint32_t off = flash_offset(addr);
-    assert(off + size <= sizeof(g_flash));
+    TEST_ASSERT_LESS_OR_EQUAL_UINT32(sizeof(g_flash), off + size);
     memset(&g_flash[off], 0xFF, size);
     g_last_erase_addr = addr;
     g_last_erase_size = size;
@@ -116,30 +124,30 @@ static void test_init_validation_and_state_helpers(void)
     xy_fota_config_t config = default_config();
 
     reset_fixture();
-    assert(xy_fota_init(NULL, &config) == XY_FOTA_INVALID_PARAM);
-    assert(xy_fota_init(&fota, NULL) == XY_FOTA_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_init(NULL, &config));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_init(&fota, NULL));
 
     config.slot_count = 0;
-    assert(xy_fota_init(&fota, &config) == XY_FOTA_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_init(&fota, &config));
     config = default_config();
     config.slot_size = 0;
-    assert(xy_fota_init(&fota, &config) == XY_FOTA_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_init(&fota, &config));
     config = default_config();
     config.mode = XY_FOTA_MODE_SINGLE_SLOT;
     config.backup_addr = 0;
-    assert(xy_fota_init(&fota, &config) == XY_FOTA_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_init(&fota, &config));
 
     config = default_config();
-    assert(xy_fota_init(&fota, &config) == XY_FOTA_OK);
-    assert(fota.initialized);
-    assert(xy_fota_get_state(&fota) == XY_FOTA_STATE_IDLE);
-    assert(xy_fota_get_state(NULL) == XY_FOTA_STATE_ERROR);
-    assert(xy_fota_get_progress(NULL) == 0);
-    assert(xy_fota_get_current_version(NULL) == 0);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_init(&fota, &config));
+    TEST_ASSERT_TRUE(fota.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_IDLE, xy_fota_get_state(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_ERROR, xy_fota_get_state(NULL));
+    TEST_ASSERT_EQUAL_UINT8(0, xy_fota_get_progress(NULL));
+    TEST_ASSERT_EQUAL_UINT32(0, xy_fota_get_current_version(NULL));
 
-    assert(xy_fota_deinit(&fota) == XY_FOTA_OK);
-    assert(!fota.initialized);
-    assert(xy_fota_deinit(NULL) == XY_FOTA_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_deinit(&fota));
+    TEST_ASSERT_FALSE(fota.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_deinit(NULL));
 }
 
 static void test_header_crc_and_version_guards(void)
@@ -150,22 +158,22 @@ static void test_header_crc_and_version_guards(void)
     xy_fota_header_t header = {0};
 
     reset_fixture();
-    assert(xy_fota_calc_crc32(payload, sizeof(payload)) == 0xCBF43926u);
-    assert(!xy_fota_validate_header(NULL));
-    assert(!xy_fota_validate_header(&header));
+    TEST_ASSERT_EQUAL_HEX32(0xCBF43926u, xy_fota_calc_crc32(payload, sizeof(payload)));
+    TEST_ASSERT_FALSE(xy_fota_validate_header(NULL));
+    TEST_ASSERT_FALSE(xy_fota_validate_header(&header));
     header.magic = 0x464F5441u;
     header.image_size = 32;
-    assert(xy_fota_validate_header(&header));
+    TEST_ASSERT_TRUE(xy_fota_validate_header(&header));
     header.image_size = 0;
-    assert(!xy_fota_validate_header(&header));
+    TEST_ASSERT_FALSE(xy_fota_validate_header(&header));
 
-    assert(!xy_fota_validate_version(NULL, 3));
-    assert(xy_fota_init(&fota, &config) == XY_FOTA_OK);
-    assert(!xy_fota_validate_version(&fota, 1));
-    assert(xy_fota_validate_version(&fota, 2));
+    TEST_ASSERT_FALSE(xy_fota_validate_version(NULL, 3));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_init(&fota, &config));
+    TEST_ASSERT_FALSE(xy_fota_validate_version(&fota, 1));
+    TEST_ASSERT_TRUE(xy_fota_validate_version(&fota, 2));
     fota.header.version = 5;
-    assert(!xy_fota_validate_version(&fota, 4));
-    assert(xy_fota_validate_version(&fota, 5));
+    TEST_ASSERT_FALSE(xy_fota_validate_version(&fota, 4));
+    TEST_ASSERT_TRUE(xy_fota_validate_version(&fota, 5));
 }
 
 static void test_download_writes_progress_and_control(void)
@@ -177,45 +185,46 @@ static void test_download_writes_progress_and_control(void)
     int user = 77;
 
     reset_fixture();
-    assert(xy_fota_init(&fota, &config) == XY_FOTA_OK);
-    assert(xy_fota_set_flash_ops(NULL, &mock_ops) == XY_FOTA_INVALID_PARAM);
-    assert(xy_fota_set_flash_ops(&fota, NULL) == XY_FOTA_INVALID_PARAM);
-    assert(xy_fota_set_flash_ops(&fota, &mock_ops) == XY_FOTA_OK);
-    assert(xy_fota_set_backup_flash_ops(&fota, &mock_ops) == XY_FOTA_OK);
-    assert(xy_fota_set_progress_callback(&fota, progress_cb, &user) == XY_FOTA_OK);
-    assert(xy_fota_set_progress_callback(NULL, progress_cb, &user) == XY_FOTA_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_init(&fota, &config));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_set_flash_ops(NULL, &mock_ops));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_set_flash_ops(&fota, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_set_flash_ops(&fota, &mock_ops));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_set_backup_flash_ops(&fota, &mock_ops));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_set_progress_callback(&fota, progress_cb, &user));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_set_progress_callback(NULL, progress_cb, &user));
 
-    assert(xy_fota_start_download(NULL, 3, sizeof(chunk1), false) == XY_FOTA_INVALID_PARAM);
-    assert(xy_fota_start_download(&fota, 3, 0, false) == XY_FOTA_INVALID_PARAM);
-    assert(xy_fota_start_download(&fota, 3, sizeof(chunk1) + sizeof(chunk2), false) == XY_FOTA_OK);
-    assert(fota.state == XY_FOTA_STATE_DOWNLOADING);
-    assert(xy_fota_get_progress(&fota) == 0);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_start_download(NULL, 3, sizeof(chunk1), false));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_start_download(&fota, 3, 0, false));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_start_download(&fota, 3, sizeof(chunk1) + sizeof(chunk2), false));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_DOWNLOADING, fota.state);
+    TEST_ASSERT_EQUAL_UINT8(0, xy_fota_get_progress(&fota));
 
-    assert(xy_fota_download_chunk(&fota, chunk1, sizeof(chunk1)) == XY_FOTA_OK);
-    assert(g_last_write_addr == FLASH_BASE);
-    assert(g_progress_current == sizeof(chunk1));
-    assert(g_progress_total == sizeof(chunk1) + sizeof(chunk2));
-    assert(g_progress_user == user);
-    assert(xy_fota_get_progress(&fota) == 66);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, chunk1, sizeof(chunk1)));
+    TEST_ASSERT_EQUAL_HEX32(FLASH_BASE, g_last_write_addr);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(chunk1), g_progress_current);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(chunk1) + sizeof(chunk2), g_progress_total);
+    TEST_ASSERT_EQUAL_INT(user, g_progress_user);
+    TEST_ASSERT_EQUAL_UINT8(66, xy_fota_get_progress(&fota));
 
-    assert(xy_fota_download_chunk(&fota, chunk2, sizeof(chunk2)) == XY_FOTA_OK);
-    assert(fota.state == XY_FOTA_STATE_VALIDATING);
-    assert(xy_fota_get_progress(&fota) == 100);
-    assert(memcmp(g_flash, chunk1, sizeof(chunk1)) == 0);
-    assert(memcmp(&g_flash[sizeof(chunk1)], chunk2, sizeof(chunk2)) == 0);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, chunk2, sizeof(chunk2)));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_VALIDATING, fota.state);
+    TEST_ASSERT_EQUAL_UINT8(100, xy_fota_get_progress(&fota));
+    TEST_ASSERT_EQUAL_MEMORY(chunk1, g_flash, sizeof(chunk1));
+    TEST_ASSERT_EQUAL_MEMORY(chunk2, &g_flash[sizeof(chunk1)], sizeof(chunk2));
 
-    assert(xy_fota_download_chunk(&fota, chunk2, sizeof(chunk2)) == XY_FOTA_IN_PROGRESS);
-    assert(xy_fota_finish_download(&fota) == XY_FOTA_OK);
-    assert(fota.state == XY_FOTA_STATE_COMPLETE);
-    assert(xy_fota_start_update(&fota) == XY_FOTA_OK);
-    assert(fota.state == XY_FOTA_STATE_COMPLETE);
-    assert(xy_fota_needs_rollback(&fota) == false);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_IN_PROGRESS, xy_fota_download_chunk(&fota, chunk2, sizeof(chunk2)));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_finish_download(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, fota.state);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_update(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, fota.state);
+    TEST_ASSERT_FALSE(xy_fota_needs_rollback(&fota));
 
-    assert(xy_fota_cancel(&fota) == XY_FOTA_OK);
-    assert(fota.state == XY_FOTA_STATE_IDLE);
-    assert(fota.downloaded_bytes == 0);
-    assert(xy_fota_reset(&fota) == XY_FOTA_OK);
-    assert(fota.header.magic == 0);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_cancel(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_IDLE, fota.state);
+    TEST_ASSERT_EQUAL_UINT32(0, fota.downloaded_bytes);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_reset(&fota));
+    TEST_ASSERT_EQUAL_HEX32(0, fota.header.magic);
 }
 
 static void test_single_slot_backup_download_path(void)
@@ -226,19 +235,20 @@ static void test_single_slot_backup_download_path(void)
 
     reset_fixture();
     config.mode = XY_FOTA_MODE_SINGLE_SLOT;
-    assert(xy_fota_init(&fota, &config) == XY_FOTA_OK);
-    assert(xy_fota_set_flash_ops(&fota, &mock_ops) == XY_FOTA_OK);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_init(&fota, &config));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_set_flash_ops(&fota, &mock_ops));
 
-    assert(xy_fota_start_download(&fota, 3, sizeof(chunk), false) == XY_FOTA_OK);
-    assert(xy_fota_download_chunk(&fota, chunk, sizeof(chunk)) == XY_FOTA_OK);
-    assert(g_last_write_addr == BACKUP_BASE);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_download(&fota, 3, sizeof(chunk), false));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, chunk, sizeof(chunk)));
+    TEST_ASSERT_EQUAL_HEX32(BACKUP_BASE, g_last_write_addr);
 }
 
 int main(void)
 {
-    test_init_validation_and_state_helpers();
-    test_header_crc_and_version_guards();
-    test_download_writes_progress_and_control();
-    test_single_slot_backup_download_path();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_init_validation_and_state_helpers);
+    RUN_TEST(test_header_crc_and_version_guards);
+    RUN_TEST(test_download_writes_progress_and_control);
+    RUN_TEST(test_single_slot_backup_download_path);
+    return UNITY_END();
 }

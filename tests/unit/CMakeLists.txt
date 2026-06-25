@@ -647,6 +647,7 @@ add_test(NAME at_server COMMAND test_at_server)
 add_executable(test_fota_core
     ${UNIT_FOTA}/test_fota_core.c
     ${FOTA}/xy_fota.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME fota_core COMMAND test_fota_core)
 
