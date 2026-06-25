@@ -190,6 +190,7 @@ add_executable(test_can
 add_executable(test_lte
     ${UNIT_NET}/test_lte.c
     ${NET}/src/xy_lte.c
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 12: nano_modbus compatibility API over mb_tiny ---
