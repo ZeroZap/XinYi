@@ -737,6 +737,7 @@ add_executable(test_net_smbus_pmbus
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_link_libraries(test_net_smbus_pmbus m)
 add_test(NAME net_smbus_pmbus COMMAND test_net_smbus_pmbus)
