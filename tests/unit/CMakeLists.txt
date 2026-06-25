@@ -664,6 +664,7 @@ add_test(NAME fota_core COMMAND test_fota_core)
 add_executable(test_gui_core
     ${UNIT_GUI}/test_gui_core.c
     ${GUI}/xy_gui.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME gui_core COMMAND test_gui_core)
 
