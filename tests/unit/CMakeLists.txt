@@ -481,6 +481,7 @@ add_executable(test_pid_core
     ${PID}/xy_pid.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_link_libraries(test_pid_core m)
 add_test(NAME pid_core COMMAND test_pid_core)
