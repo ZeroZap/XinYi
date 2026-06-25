@@ -211,6 +211,7 @@ add_executable(test_modbus_legacy
 add_executable(test_iso7816
     ${UNIT_NET}/test_iso7816.c
     ${NET}/xy_iso7816/xy_iso7816.c
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 14: ISO7816 usage example stays aligned with public APIs ---
