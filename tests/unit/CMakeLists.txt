@@ -695,6 +695,7 @@ add_executable(test_gui_widgets
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_link_libraries(test_gui_widgets m)
 add_test(NAME gui_widgets COMMAND test_gui_widgets)
