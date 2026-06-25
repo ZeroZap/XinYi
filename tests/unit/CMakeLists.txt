@@ -404,6 +404,7 @@ add_test(NAME pm_component COMMAND test_pm)
 add_executable(test_pm_platform_fallback
     ${UNIT_PM}/test_pm_platform_fallback.c
     ${PM}/src/xy_pm_platform.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_compile_definitions(test_pm_platform_fallback PRIVATE XY_PM_ENABLE_TEST_HOOKS)
 add_test(NAME pm_platform_fallback COMMAND test_pm_platform_fallback)
