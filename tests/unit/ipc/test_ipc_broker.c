@@ -1,9 +1,10 @@
 #include "xy_broker.h"
 #include "xy_os.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
+
+#include "unity.h"
 
 static uint32_t fake_tick;
 static int direct_count;
@@ -30,7 +31,7 @@ static int capture_handler(const xy_broker_msg_t *msg, void *user_data)
 {
     int *counter = (int *)user_data;
 
-    assert(msg != NULL);
+    TEST_ASSERT_NOT_NULL(msg);
     if (counter != NULL) {
         (*counter)++;
     }
@@ -43,14 +44,14 @@ static int responder_handler(const xy_broker_msg_t *msg, void *user_data)
     test_context_t *ctx = (test_context_t *)user_data;
     const char response[] = "pong";
 
-    assert(msg != NULL);
-    assert(ctx != NULL);
-    assert(msg->msg_id == XY_BROKER_MSG_COMM_SEND);
-    assert(msg->payload_len == 4U);
-    assert(memcmp(msg->payload, "ping", 4U) == 0);
+    TEST_ASSERT_NOT_NULL(msg);
+    TEST_ASSERT_NOT_NULL(ctx);
+    TEST_ASSERT_EQUAL(XY_BROKER_MSG_COMM_SEND, msg->msg_id);
+    TEST_ASSERT_EQUAL_UINT32(4U, msg->payload_len);
+    TEST_ASSERT_EQUAL_MEMORY("ping", msg->payload, 4U);
 
     ctx->response_sent++;
-    assert(xy_broker_respond(msg, response, sizeof(response) - 1U) == XY_BROKER_OK);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_respond(msg, response, sizeof(response) - 1U));
     return XY_BROKER_OK;
 }
 
@@ -61,7 +62,7 @@ static void reset_broker(void)
     topic_count = 0;
     memset(&last_msg, 0, sizeof(last_msg));
     (void)xy_broker_deinit();
-    assert(xy_broker_init() == XY_BROKER_OK);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_init());
 }
 
 static void test_lifecycle_and_server_registration(void)
@@ -69,21 +70,24 @@ static void test_lifecycle_and_server_registration(void)
     xy_broker_stats_t stats;
 
     (void)xy_broker_deinit();
-    assert(xy_broker_get_stats(&stats) == XY_BROKER_ERROR);
-    assert(xy_broker_init() == XY_BROKER_OK);
-    assert(xy_broker_init() == XY_BROKER_OK);
-    assert(xy_broker_register_server(0, capture_handler, &direct_count) ==
-           XY_BROKER_INVALID_PARAM);
-    assert(xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, capture_handler,
-                                     &direct_count) == XY_BROKER_OK);
-    assert(xy_broker_is_server_registered(XY_BROKER_SERVER_SYSTEM) == 1);
-    assert(xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, capture_handler,
-                                     &direct_count) == XY_BROKER_ALREADY_EXISTS);
-    assert(xy_broker_get_stats(&stats) == XY_BROKER_OK);
-    assert(stats.active_servers == 1U);
-    assert(xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM) == XY_BROKER_OK);
-    assert(xy_broker_is_server_registered(XY_BROKER_SERVER_SYSTEM) == 0);
-    assert(xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM) == XY_BROKER_NOT_FOUND);
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_init());
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_init());
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_register_server(0, capture_handler, &direct_count));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, capture_handler,
+                                                &direct_count));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_is_server_registered(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_ALREADY_EXISTS,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, capture_handler,
+                                                &direct_count));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.active_servers);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_is_server_registered(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
 }
 
 static void test_direct_message_queue_and_limits(void)
@@ -92,50 +96,54 @@ static void test_direct_message_queue_and_limits(void)
     xy_broker_stats_t stats;
 
     reset_broker();
-    assert(xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, capture_handler,
-                                     &direct_count) == XY_BROKER_OK);
-    assert(xy_broker_register_server(XY_BROKER_SERVER_COMM, capture_handler,
-                                     &direct_count) == XY_BROKER_OK);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, capture_handler,
+                                                &direct_count));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM, capture_handler,
+                                                &direct_count));
 
-    assert(xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
-                              XY_BROKER_MSG_COMM_SEND, payload,
-                              sizeof(payload) - 1U, XY_BROKER_PRIORITY_HIGH) ==
-           XY_BROKER_OK);
-    assert(xy_broker_get_pending_count(XY_BROKER_SERVER_COMM) == 1);
-    assert(xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 1) == 1);
-    assert(direct_count == 1);
-    assert(last_msg.src_server == XY_BROKER_SERVER_SYSTEM);
-    assert(last_msg.dst_server == XY_BROKER_SERVER_COMM);
-    assert(last_msg.msg_id == XY_BROKER_MSG_COMM_SEND);
-    assert(last_msg.priority == XY_BROKER_PRIORITY_HIGH);
-    assert(last_msg.payload_len == sizeof(payload) - 1U);
-    assert(memcmp(last_msg.payload, payload, sizeof(payload) - 1U) == 0);
-    assert(xy_broker_get_pending_count(XY_BROKER_SERVER_COMM) == 0);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_COMM_SEND, payload,
+                                         sizeof(payload) - 1U, XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_get_pending_count(XY_BROKER_SERVER_COMM));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 1));
+    TEST_ASSERT_EQUAL_INT(1, direct_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_SERVER_SYSTEM, last_msg.src_server);
+    TEST_ASSERT_EQUAL(XY_BROKER_SERVER_COMM, last_msg.dst_server);
+    TEST_ASSERT_EQUAL(XY_BROKER_MSG_COMM_SEND, last_msg.msg_id);
+    TEST_ASSERT_EQUAL(XY_BROKER_PRIORITY_HIGH, last_msg.priority);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(payload) - 1U, last_msg.payload_len);
+    TEST_ASSERT_EQUAL_MEMORY(payload, last_msg.payload, sizeof(payload) - 1U);
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_COMM));
 
-    assert(xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, 0x9999,
-                              XY_BROKER_MSG_COMM_SEND, payload,
-                              sizeof(payload) - 1U, XY_BROKER_PRIORITY_NORMAL) ==
-           XY_BROKER_NOT_FOUND);
-    assert(xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
-                              XY_BROKER_MSG_COMM_SEND, payload,
-                              XY_BROKER_MAX_MSG_SIZE + 1U,
-                              XY_BROKER_PRIORITY_NORMAL) == XY_BROKER_INVALID_PARAM);
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, 0x9999,
+                                         XY_BROKER_MSG_COMM_SEND, payload,
+                                         sizeof(payload) - 1U, XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_COMM_SEND, payload,
+                                         XY_BROKER_MAX_MSG_SIZE + 1U,
+                                         XY_BROKER_PRIORITY_NORMAL));
 
     for (uint16_t i = 0; i < XY_BROKER_MSG_QUEUE_SIZE; i++) {
-        assert(xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
-                                  XY_BROKER_MSG_COMM_SEND, &i, sizeof(i),
-                                  XY_BROKER_PRIORITY_NORMAL) == XY_BROKER_OK);
+        TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                          xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                             XY_BROKER_MSG_COMM_SEND, &i, sizeof(i),
+                                             XY_BROKER_PRIORITY_NORMAL));
     }
-    assert(xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
-                              XY_BROKER_MSG_COMM_SEND, payload,
-                              sizeof(payload) - 1U, XY_BROKER_PRIORITY_NORMAL) ==
-           XY_BROKER_QUEUE_FULL);
-    assert(xy_broker_get_stats(&stats) == XY_BROKER_OK);
-    assert(stats.queue_overflow_count == 1U);
-    assert(stats.total_msg_dropped == 1U);
+    TEST_ASSERT_EQUAL(XY_BROKER_QUEUE_FULL,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_COMM_SEND, payload,
+                                         sizeof(payload) - 1U, XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.queue_overflow_count);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_dropped);
 
-    assert(xy_broker_clear_queue(XY_BROKER_SERVER_COMM) == XY_BROKER_OK);
-    assert(xy_broker_get_pending_count(XY_BROKER_SERVER_COMM) == 0);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_clear_queue(XY_BROKER_SERVER_COMM));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_COMM));
 }
 
 static void test_pubsub_create_publish_and_unsubscribe(void)
@@ -144,37 +152,42 @@ static void test_pubsub_create_publish_and_unsubscribe(void)
     xy_broker_stats_t stats;
 
     reset_broker();
-    assert(xy_broker_publish(XY_BROKER_SERVER_SYSTEM, XY_BROKER_TOPIC_SENSOR_DATA,
-                             XY_BROKER_MSG_SENSOR_DATA, payload, sizeof(payload),
-                             XY_BROKER_PRIORITY_LOW) == XY_BROKER_NOT_FOUND);
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM, XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA, payload, sizeof(payload),
+                                        XY_BROKER_PRIORITY_LOW));
 
-    assert(xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, XY_BROKER_SERVER_SENSOR,
-                               capture_handler, &topic_count) == XY_BROKER_OK);
-    assert(xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, XY_BROKER_SERVER_SENSOR,
-                               capture_handler, &topic_count) ==
-           XY_BROKER_ALREADY_EXISTS);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, XY_BROKER_SERVER_SENSOR,
+                                          capture_handler, &topic_count));
+    TEST_ASSERT_EQUAL(XY_BROKER_ALREADY_EXISTS,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, XY_BROKER_SERVER_SENSOR,
+                                          capture_handler, &topic_count));
 
-    assert(xy_broker_publish(XY_BROKER_SERVER_SYSTEM, XY_BROKER_TOPIC_SENSOR_DATA,
-                             XY_BROKER_MSG_SENSOR_DATA, payload, sizeof(payload),
-                             XY_BROKER_PRIORITY_CRITICAL) == XY_BROKER_OK);
-    assert(topic_count == 1);
-    assert(last_msg.topic_id == XY_BROKER_TOPIC_SENSOR_DATA);
-    assert(last_msg.flags == XY_BROKER_FLAG_BROADCAST);
-    assert(last_msg.priority == XY_BROKER_PRIORITY_CRITICAL);
-    assert(last_msg.payload_len == sizeof(payload));
-    assert(memcmp(last_msg.payload, payload, sizeof(payload)) == 0);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM, XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA, payload, sizeof(payload),
+                                        XY_BROKER_PRIORITY_CRITICAL));
+    TEST_ASSERT_EQUAL_INT(1, topic_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_TOPIC_SENSOR_DATA, last_msg.topic_id);
+    TEST_ASSERT_EQUAL(XY_BROKER_FLAG_BROADCAST, last_msg.flags);
+    TEST_ASSERT_EQUAL(XY_BROKER_PRIORITY_CRITICAL, last_msg.priority);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(payload), last_msg.payload_len);
+    TEST_ASSERT_EQUAL_MEMORY(payload, last_msg.payload, sizeof(payload));
 
-    assert(xy_broker_get_stats(&stats) == XY_BROKER_OK);
-    assert(stats.active_topics == 1U);
-    assert(stats.total_msg_sent == 1U);
-    assert(stats.total_msg_delivered == 1U);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.active_topics);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_sent);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_delivered);
 
-    assert(xy_broker_unsubscribe(XY_BROKER_TOPIC_SENSOR_DATA,
-                                 XY_BROKER_SERVER_SENSOR) == XY_BROKER_OK);
-    assert(xy_broker_get_stats(&stats) == XY_BROKER_OK);
-    assert(stats.active_topics == 0U);
-    assert(xy_broker_unsubscribe(XY_BROKER_TOPIC_SENSOR_DATA,
-                                 XY_BROKER_SERVER_SENSOR) == XY_BROKER_NOT_FOUND);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_unsubscribe(XY_BROKER_TOPIC_SENSOR_DATA,
+                                            XY_BROKER_SERVER_SENSOR));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.active_topics);
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_unsubscribe(XY_BROKER_TOPIC_SENSOR_DATA,
+                                            XY_BROKER_SERVER_SENSOR));
 }
 
 static void test_request_response_and_timeout(void)
@@ -184,50 +197,60 @@ static void test_request_response_and_timeout(void)
     test_context_t ctx = {0};
 
     reset_broker();
-    assert(xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, capture_handler,
-                                     &direct_count) == XY_BROKER_OK);
-    assert(xy_broker_register_server(XY_BROKER_SERVER_COMM, responder_handler,
-                                     &ctx) == XY_BROKER_OK);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, capture_handler,
+                                                &direct_count));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM, responder_handler, &ctx));
 
-    assert(xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
-                              XY_BROKER_MSG_COMM_SEND, request,
-                              sizeof(request) - 1U, XY_BROKER_PRIORITY_NORMAL) ==
-           XY_BROKER_OK);
-    assert(xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 0) == 1);
-    assert(ctx.response_sent == 1);
-    assert(xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM) == 1);
-    assert(xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 0) == 1);
-    assert(last_msg.src_server == XY_BROKER_SERVER_COMM);
-    assert(last_msg.dst_server == XY_BROKER_SERVER_SYSTEM);
-    assert(last_msg.payload_len == 4U);
-    assert(memcmp(last_msg.payload, "pong", 4U) == 0);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_COMM_SEND, request,
+                                         sizeof(request) - 1U, XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 0));
+    TEST_ASSERT_EQUAL_INT(1, ctx.response_sent);
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 0));
+    TEST_ASSERT_EQUAL(XY_BROKER_SERVER_COMM, last_msg.src_server);
+    TEST_ASSERT_EQUAL(XY_BROKER_SERVER_SYSTEM, last_msg.dst_server);
+    TEST_ASSERT_EQUAL_UINT32(4U, last_msg.payload_len);
+    TEST_ASSERT_EQUAL_MEMORY("pong", last_msg.payload, 4U);
 
     memset(&response, 0, sizeof(response));
     fake_tick = 0;
-    assert(xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
-                             XY_BROKER_MSG_COMM_SEND, request,
-                             sizeof(request) - 1U, &response, 3U) ==
-           XY_BROKER_TIMEOUT);
-    assert(fake_tick == 3U);
+    TEST_ASSERT_EQUAL(XY_BROKER_TIMEOUT,
+                      xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                        XY_BROKER_MSG_COMM_SEND, request,
+                                        sizeof(request) - 1U, &response, 3U));
+    TEST_ASSERT_EQUAL_UINT32(3U, fake_tick);
 }
 
 static void test_debug_name_helpers(void)
 {
-    assert(strcmp(xy_broker_get_server_name(XY_BROKER_SERVER_SYSTEM), "SYSTEM") == 0);
-    assert(strcmp(xy_broker_get_server_name(0xEEEE), "UNKNOWN") == 0);
-    assert(strcmp(xy_broker_get_msg_name(XY_BROKER_MSG_SENSOR_DATA), "SENSOR_DATA") == 0);
-    assert(strcmp(xy_broker_get_msg_name(0xEEEE), "UNKNOWN") == 0);
-    assert(strcmp(xy_broker_get_topic_name(XY_BROKER_TOPIC_LOG_EVENT), "LOG_EVENT") == 0);
-    assert(strcmp(xy_broker_get_topic_name(0xEEEE), "UNKNOWN") == 0);
+    TEST_ASSERT_EQUAL_STRING("SYSTEM", xy_broker_get_server_name(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_STRING("UNKNOWN", xy_broker_get_server_name(0xEEEE));
+    TEST_ASSERT_EQUAL_STRING("SENSOR_DATA", xy_broker_get_msg_name(XY_BROKER_MSG_SENSOR_DATA));
+    TEST_ASSERT_EQUAL_STRING("UNKNOWN", xy_broker_get_msg_name(0xEEEE));
+    TEST_ASSERT_EQUAL_STRING("LOG_EVENT", xy_broker_get_topic_name(XY_BROKER_TOPIC_LOG_EVENT));
+    TEST_ASSERT_EQUAL_STRING("UNKNOWN", xy_broker_get_topic_name(0xEEEE));
+}
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
 }
 
 int main(void)
 {
-    test_lifecycle_and_server_registration();
-    test_direct_message_queue_and_limits();
-    test_pubsub_create_publish_and_unsubscribe();
-    test_request_response_and_timeout();
-    test_debug_name_helpers();
-    assert(xy_broker_deinit() == XY_BROKER_OK);
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_lifecycle_and_server_registration);
+    RUN_TEST(test_direct_message_queue_and_limits);
+    RUN_TEST(test_pubsub_create_publish_and_unsubscribe);
+    RUN_TEST(test_request_response_and_timeout);
+    RUN_TEST(test_debug_name_helpers);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_deinit());
+    return UNITY_END();
 }

@@ -566,6 +566,7 @@ add_test(NAME ipc_pipe COMMAND test_ipc_pipe)
 add_executable(test_ipc_broker
     ${UNIT_IPC}/test_ipc_broker.c
     ${IPC}/xy_broker/xy_broker.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME ipc_broker COMMAND test_ipc_broker)
 
