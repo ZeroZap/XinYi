@@ -671,6 +671,7 @@ add_executable(test_gui_widget_theme
     ${UNIT_GUI}/test_gui_widget_theme.c
     ${GUI}/src/xy_gui_widget.c
     ${GUI}/src/xy_gui_theme.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME gui_widget_theme COMMAND test_gui_widget_theme)
 
