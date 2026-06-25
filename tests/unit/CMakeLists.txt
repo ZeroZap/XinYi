@@ -748,6 +748,7 @@ add_test(NAME actuator_framework COMMAND test_actuator_framework)
 add_executable(test_charger_bq25620
     ${UNIT_PM}/test_charger_bq25620.c
     ${ROOT}/components/charger/src/xy_bq25620.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_charger_bq25620 PRIVATE ${ROOT}/components/charger/inc)
 add_test(NAME charger_bq25620 COMMAND test_charger_bq25620)
