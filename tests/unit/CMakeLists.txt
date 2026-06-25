@@ -574,6 +574,7 @@ add_test(NAME ipc_broker COMMAND test_ipc_broker)
 add_executable(test_storage_eeprom_24xx
     ${UNIT_STORAGE}/test_storage_eeprom_24xx.c
     ${STORAGE}/eeprom/24xx/xy_eeprom_24xx.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME storage_eeprom_24xx COMMAND test_storage_eeprom_24xx)
 

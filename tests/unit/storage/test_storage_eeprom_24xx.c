@@ -1,7 +1,7 @@
 #include "xy_eeprom_24xx.h"
 #include "xy_hal_error.h"
+#include "unity.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -14,6 +14,14 @@ typedef struct {
     size_t writes;
     size_t reads;
 } fake_i2c_t;
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 void xy_hal_delay_ms(uint32_t ms)
 {
@@ -71,8 +79,8 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     size_t payload_len;
 
     (void)timeout;
-    assert(fake != NULL);
-    assert(data != NULL);
+    TEST_ASSERT_NOT_NULL(fake);
+    TEST_ASSERT_NOT_NULL(data);
     fake->last_dev_addr = dev_addr;
     fake->writes++;
 
@@ -109,8 +117,8 @@ xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
     fake_i2c_t *fake = (fake_i2c_t *)i2c;
 
     (void)timeout;
-    assert(fake != NULL);
-    assert(data != NULL);
+    TEST_ASSERT_NOT_NULL(fake);
+    TEST_ASSERT_NOT_NULL(data);
     fake->last_dev_addr = dev_addr;
     fake->reads++;
 
@@ -130,22 +138,22 @@ static void test_init_and_argument_validation(void)
 
     memset(&fake, 0, sizeof(fake));
     memset(fake.storage, 0xFF, sizeof(fake.storage));
-    assert(xy_eeprom_24xx_init(NULL, &fake, 0x50, 16, EEPROM_SIZE) ==
-           XY_DEVICE_INVALID_PARAM);
-    assert(xy_eeprom_24xx_init(&eeprom, NULL, 0x50, 16, EEPROM_SIZE) ==
-           XY_DEVICE_INVALID_PARAM);
-    assert(xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 0, EEPROM_SIZE) ==
-           XY_DEVICE_INVALID_PARAM);
-    assert(xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, 0) ==
-           XY_DEVICE_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_eeprom_24xx_init(NULL, &fake, 0x50, 16, EEPROM_SIZE));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_eeprom_24xx_init(&eeprom, NULL, 0x50, 16, EEPROM_SIZE));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 0, EEPROM_SIZE));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, 0));
 
-    assert(xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, EEPROM_SIZE) ==
-           XY_DEVICE_OK);
-    assert(eeprom.page_size == 16U);
-    assert(eeprom.total_size == EEPROM_SIZE);
-    assert(eeprom.address_bits == 16U);
-    assert(eeprom.i2c_dev.i2c_handle == &fake);
-    assert(eeprom.i2c_dev.dev_addr == 0x50U);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, EEPROM_SIZE));
+    TEST_ASSERT_EQUAL_UINT32(16U, eeprom.page_size);
+    TEST_ASSERT_EQUAL_UINT32(EEPROM_SIZE, eeprom.total_size);
+    TEST_ASSERT_EQUAL_UINT8(16U, eeprom.address_bits);
+    TEST_ASSERT_EQUAL_PTR(&fake, eeprom.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(0x50U, eeprom.i2c_dev.dev_addr);
 }
 
 static void test_write_read_and_page_splitting(void)
@@ -162,17 +170,17 @@ static void test_write_read_and_page_splitting(void)
         payload[i] = (uint8_t)(0xA0U + i);
     }
 
-    assert(xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, EEPROM_SIZE) ==
-           XY_DEVICE_OK);
-    assert(xy_eeprom_24xx_write(&eeprom, 14, payload, sizeof(payload)) ==
-           (int)sizeof(payload));
-    assert(fake.writes == 3U);
-    assert(memcmp(&fake.storage[14], payload, sizeof(payload)) == 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, EEPROM_SIZE));
+    TEST_ASSERT_EQUAL_INT((int)sizeof(payload),
+                          xy_eeprom_24xx_write(&eeprom, 14, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_UINT32(3U, fake.writes);
+    TEST_ASSERT_EQUAL_MEMORY(payload, &fake.storage[14], sizeof(payload));
 
-    assert(xy_eeprom_24xx_read(&eeprom, 14, out, sizeof(out)) == (int)sizeof(out));
-    assert(fake.last_dev_addr == 0x50U);
-    assert(fake.reads == 1U);
-    assert(memcmp(out, payload, sizeof(out)) == 0);
+    TEST_ASSERT_EQUAL_INT((int)sizeof(out), xy_eeprom_24xx_read(&eeprom, 14, out, sizeof(out)));
+    TEST_ASSERT_EQUAL_UINT16(0x50U, fake.last_dev_addr);
+    TEST_ASSERT_EQUAL_UINT32(1U, fake.reads);
+    TEST_ASSERT_EQUAL_MEMORY(payload, out, sizeof(out));
 }
 
 static void test_8bit_address_devices(void)
@@ -184,13 +192,13 @@ static void test_8bit_address_devices(void)
 
     memset(&fake, 0, sizeof(fake));
     memset(fake.storage, 0xFF, sizeof(fake.storage));
-    assert(xy_eeprom_24xx_init(&eeprom, &fake, 0x51, 8, 128) == XY_DEVICE_OK);
-    assert(eeprom.address_bits == 8U);
-    assert(xy_eeprom_24xx_write(&eeprom, 6, payload, sizeof(payload)) ==
-           (int)sizeof(payload));
-    assert(memcmp(&fake.storage[6], payload, sizeof(payload)) == 0);
-    assert(xy_eeprom_24xx_read(&eeprom, 6, out, sizeof(out)) == (int)sizeof(out));
-    assert(memcmp(out, payload, sizeof(out)) == 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x51, 8, 128));
+    TEST_ASSERT_EQUAL_UINT8(8U, eeprom.address_bits);
+    TEST_ASSERT_EQUAL_INT((int)sizeof(payload),
+                          xy_eeprom_24xx_write(&eeprom, 6, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_MEMORY(payload, &fake.storage[6], sizeof(payload));
+    TEST_ASSERT_EQUAL_INT((int)sizeof(out), xy_eeprom_24xx_read(&eeprom, 6, out, sizeof(out)));
+    TEST_ASSERT_EQUAL_MEMORY(payload, out, sizeof(out));
 }
 
 static void test_bounds_and_page_write_contracts(void)
@@ -201,17 +209,18 @@ static void test_bounds_and_page_write_contracts(void)
 
     memset(&fake, 0, sizeof(fake));
     memset(fake.storage, 0xFF, sizeof(fake.storage));
-    assert(xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 32) == XY_DEVICE_OK);
-    assert(xy_eeprom_24xx_read(&eeprom, 31, payload, 2) == XY_DEVICE_INVALID_PARAM);
-    assert(xy_eeprom_24xx_write(&eeprom, 31, payload, 2) == XY_DEVICE_INVALID_PARAM);
-    assert(xy_eeprom_24xx_write_page(&eeprom, 6, payload, sizeof(payload)) == 2);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 32));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_eeprom_24xx_read(&eeprom, 31, payload, 2));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_eeprom_24xx_write(&eeprom, 31, payload, 2));
+    TEST_ASSERT_EQUAL_INT(2, xy_eeprom_24xx_write_page(&eeprom, 6, payload, sizeof(payload)));
 }
 
 int main(void)
 {
-    test_init_and_argument_validation();
-    test_write_read_and_page_splitting();
-    test_8bit_address_devices();
-    test_bounds_and_page_write_contracts();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_init_and_argument_validation);
+    RUN_TEST(test_write_read_and_page_splitting);
+    RUN_TEST(test_8bit_address_devices);
+    RUN_TEST(test_bounds_and_page_write_contracts);
+    return UNITY_END();
 }
