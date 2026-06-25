@@ -640,6 +640,7 @@ add_test(NAME mqtt_client COMMAND test_mqtt_client)
 add_executable(test_at_client
     ${UNIT_NET}/test_at_client_core.c
     ${NET}/at/atc/Modules/cellular/common/at_client.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME at_client COMMAND test_at_client)
 
