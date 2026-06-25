@@ -649,6 +649,7 @@ add_executable(test_at_server
     ${UNIT_NET}/test_at_server_core.c
     ${NET}/at/ats/xy_ats.c
     ${NET}/at/ats/xy_ats_hash.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_at_server PRIVATE ${TRACE}/xy_log/inc)
 add_test(NAME at_server COMMAND test_at_server)

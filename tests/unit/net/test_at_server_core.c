@@ -1,6 +1,7 @@
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
+
+#include "unity.h"
 
 #include "xy_ats.h"
 
@@ -29,11 +30,19 @@ static int mock_get_char(char *ch, uint32_t timeout)
 
 static size_t mock_send(const char *data, size_t len)
 {
-    assert(g_tx_len + len < sizeof(g_tx));
+    TEST_ASSERT_LESS_THAN_size_t(sizeof(g_tx), g_tx_len + len);
     memcpy(&g_tx[g_tx_len], data, len);
     g_tx_len += len;
     g_tx[g_tx_len] = '\0';
     return len;
+}
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
 }
 
 static at_result_t led_query(void)
@@ -64,30 +73,30 @@ static at_result_t led_exec(void)
 static void test_server_lifecycle_hal_and_echo(void)
 {
     at_server_t *server = at_server_create("ats");
-    assert(server != NULL);
-    assert(server->status == ATS_SERVER_STATUS_INITIALIZED);
-    assert(at_server_set_hal(NULL, mock_get_char, mock_send) == -1);
-    assert(at_server_set_hal(server, mock_get_char, mock_send) == 0);
+    TEST_ASSERT_NOT_NULL(server);
+    TEST_ASSERT_EQUAL(ATS_SERVER_STATUS_INITIALIZED, server->status);
+    TEST_ASSERT_EQUAL_INT(-1, at_server_set_hal(NULL, mock_get_char, mock_send));
+    TEST_ASSERT_EQUAL_INT(0, at_server_set_hal(server, mock_get_char, mock_send));
 
-    assert(at_server_start(NULL) == -1);
-    assert(at_server_start(server) == 0);
-    assert(server->status == ATS_SERVER_STATUS_RUNNING);
-    assert(at_server_start(server) == 0);
+    TEST_ASSERT_EQUAL_INT(-1, at_server_start(NULL));
+    TEST_ASSERT_EQUAL_INT(0, at_server_start(server));
+    TEST_ASSERT_EQUAL(ATS_SERVER_STATUS_RUNNING, server->status);
+    TEST_ASSERT_EQUAL_INT(0, at_server_start(server));
 
     at_server_set_echo(server, false);
-    assert(!at_server_get_echo(server));
+    TEST_ASSERT_FALSE(at_server_get_echo(server));
     at_server_set_echo(server, true);
-    assert(at_server_get_echo(server));
+    TEST_ASSERT_TRUE(at_server_get_echo(server));
 
-    assert(at_server_stop(server) == 0);
-    assert(server->status == ATS_SERVER_STATUS_INITIALIZED);
+    TEST_ASSERT_EQUAL_INT(0, at_server_stop(server));
+    TEST_ASSERT_EQUAL(ATS_SERVER_STATUS_INITIALIZED, server->status);
 }
 
 static void test_register_find_process_and_stats(void)
 {
     at_server_t *server = at_server_create("ats");
-    assert(server != NULL);
-    assert(at_server_set_hal(server, mock_get_char, mock_send) == 0);
+    TEST_ASSERT_NOT_NULL(server);
+    TEST_ASSERT_EQUAL_INT(0, at_server_set_hal(server, mock_get_char, mock_send));
     g_server = server;
 
     at_cmd_t led = {0};
@@ -96,74 +105,80 @@ static void test_register_find_process_and_stats(void)
     led.setup = led_setup;
     led.exec = led_exec;
 
-    assert(at_server_register_cmd(NULL, &led) == -1);
-    assert(at_server_register_cmd(server, NULL) == -1);
-    assert(at_server_register_cmd(server, &led) == 0);
-    assert(at_server_find_cmd(server, "LED") == &led);
-    assert(at_server_find_cmd(server, "UNKNOWN") == NULL);
+    TEST_ASSERT_EQUAL_INT(-1, at_server_register_cmd(NULL, &led));
+    TEST_ASSERT_EQUAL_INT(-1, at_server_register_cmd(server, NULL));
+    TEST_ASSERT_EQUAL_INT(0, at_server_register_cmd(server, &led));
+    TEST_ASSERT_EQUAL_PTR(&led, at_server_find_cmd(server, "LED"));
+    TEST_ASSERT_NULL(at_server_find_cmd(server, "UNKNOWN"));
 
     reset_tx();
     g_led_state = 1;
-    assert(at_server_process_command(server, "AT+LED?") == 0);
-    assert(strstr(g_tx, "+LED: 1") != NULL);
-    assert(strstr(g_tx, "OK\r\n") != NULL);
+    TEST_ASSERT_EQUAL_INT(0, at_server_process_command(server, "AT+LED?"));
+    TEST_ASSERT_NOT_NULL(strstr(g_tx, "+LED: 1"));
+    TEST_ASSERT_NOT_NULL(strstr(g_tx, "OK\r\n"));
 
     reset_tx();
-    assert(at_server_process_command(server, "AT+LED=0") == 0);
-    assert(g_led_state == 0);
-    assert(strcmp(g_tx, "OK\r\n") == 0);
+    TEST_ASSERT_EQUAL_INT(0, at_server_process_command(server, "AT+LED=0"));
+    TEST_ASSERT_EQUAL_INT(0, g_led_state);
+    TEST_ASSERT_EQUAL_STRING("OK\r\n", g_tx);
 
     reset_tx();
-    assert(at_server_process_command(server, "AT+LED") == 0);
-    assert(g_led_state == 1);
-    assert(strcmp(g_tx, "OK\r\n") == 0);
+    TEST_ASSERT_EQUAL_INT(0, at_server_process_command(server, "AT+LED"));
+    TEST_ASSERT_EQUAL_INT(1, g_led_state);
+    TEST_ASSERT_EQUAL_STRING("OK\r\n", g_tx);
 
     reset_tx();
-    assert(at_server_process_command(server, "AT+NOPE") == -1);
-    assert(strcmp(g_tx, "ERROR\r\n") == 0);
+    TEST_ASSERT_EQUAL_INT(-1, at_server_process_command(server, "AT+NOPE"));
+    TEST_ASSERT_EQUAL_STRING("ERROR\r\n", g_tx);
 
     uint32_t processed = 0, ok = 0, err = 0;
     at_server_get_stats(server, &processed, &ok, &err);
-    assert(processed == 3);
-    assert(ok == 3);
-    assert(err == 1);
+    TEST_ASSERT_EQUAL_UINT32(3, processed);
+    TEST_ASSERT_EQUAL_UINT32(3, ok);
+    TEST_ASSERT_EQUAL_UINT32(1, err);
 
     at_server_reset_stats(server);
     at_server_get_stats(server, &processed, &ok, &err);
-    assert(processed == 0 && ok == 0 && err == 0);
+    TEST_ASSERT_EQUAL_UINT32(0, processed);
+    TEST_ASSERT_EQUAL_UINT32(0, ok);
+    TEST_ASSERT_EQUAL_UINT32(0, err);
 }
 
 static void test_response_helpers_and_parsers(void)
 {
     at_server_t *server = at_server_create("ats");
-    assert(server != NULL);
-    assert(at_server_set_hal(server, mock_get_char, mock_send) == 0);
+    TEST_ASSERT_NOT_NULL(server);
+    TEST_ASSERT_EQUAL_INT(0, at_server_set_hal(server, mock_get_char, mock_send));
 
     reset_tx();
-    assert(at_server_printf(server, "A=%d B=%s C=%x", -7, "ok", 0x2Au) > 0);
-    assert(strcmp(g_tx, "A=-7 B=ok C=2A") == 0);
+    TEST_ASSERT_GREATER_THAN_INT(0, at_server_printf(server, "A=%d B=%s C=%x", -7, "ok", 0x2Au));
+    TEST_ASSERT_EQUAL_STRING("A=-7 B=ok C=2A", g_tx);
 
     reset_tx();
-    assert(at_server_printfln(server, "line %d", 3) > 0);
-    assert(strcmp(g_tx, "line 3\r\n") == 0);
+    TEST_ASSERT_GREATER_THAN_INT(0, at_server_printfln(server, "line %d", 3));
+    TEST_ASSERT_EQUAL_STRING("line 3\r\n", g_tx);
 
     reset_tx();
-    assert(at_server_print_result(server, ATS_RESULT_NULL) == 0);
-    assert(g_tx_len == 0);
-    assert(at_server_print_result(NULL, ATS_RESULT_OK) == -1);
+    TEST_ASSERT_EQUAL_INT(0, at_server_print_result(server, ATS_RESULT_NULL));
+    TEST_ASSERT_EQUAL_size_t(0, g_tx_len);
+    TEST_ASSERT_EQUAL_INT(-1, at_server_print_result(NULL, ATS_RESULT_OK));
 
     int value = 0;
     uint32_t hex = 0;
     char text[16];
-    assert(at_parse_int("42", &value) == 0 && value == 42);
-    assert(at_parse_hex("2A", &hex) == 0 && hex == 0x2A);
-    assert(at_parse_string("hello", text, sizeof(text)) == 0 && strcmp(text, "hello") == 0);
+    TEST_ASSERT_EQUAL_INT(0, at_parse_int("42", &value));
+    TEST_ASSERT_EQUAL_INT(42, value);
+    TEST_ASSERT_EQUAL_INT(0, at_parse_hex("2A", &hex));
+    TEST_ASSERT_EQUAL_HEX32(0x2A, hex);
+    TEST_ASSERT_EQUAL_INT(0, at_parse_string("hello", text, sizeof(text)));
+    TEST_ASSERT_EQUAL_STRING("hello", text);
 }
 
 int main(void)
 {
-    test_server_lifecycle_hal_and_echo();
-    test_register_find_process_and_stats();
-    test_response_helpers_and_parsers();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_server_lifecycle_hal_and_echo);
+    RUN_TEST(test_register_find_process_and_stats);
+    RUN_TEST(test_response_helpers_and_parsers);
+    return UNITY_END();
 }
