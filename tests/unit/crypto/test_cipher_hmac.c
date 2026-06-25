@@ -7,8 +7,8 @@
 #include "xy_sm3.h"
 #include "xy_sm4.h"
 #include "xy_tiny_crypto.h"
+#include "unity.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -98,26 +98,26 @@ static void test_aes_vectors(void)
     uint8_t cbc_cipher[XY_AES_BLOCK_SIZE * 2];
     uint8_t cbc_roundtrip[XY_AES_BLOCK_SIZE * 2];
 
-    assert(xy_aes_init(NULL, aes128_key, XY_AES_KEY_SIZE_128) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_aes_init(&ctx, NULL, XY_AES_KEY_SIZE_128) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_aes_init(&ctx, aes128_key, 15) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_aes_init(&ctx, aes128_key, XY_AES_KEY_SIZE_128) == XY_CRYPTO_SUCCESS);
-    assert(xy_aes_encrypt_block(NULL, aes_plain, output) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_aes_encrypt_block(&ctx, NULL, output) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_aes_encrypt_block(&ctx, aes_plain, NULL) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_aes_decrypt_block(&ctx, NULL, roundtrip) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_aes_init(NULL, aes128_key, XY_AES_KEY_SIZE_128) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_aes_init(&ctx, NULL, XY_AES_KEY_SIZE_128) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_aes_init(&ctx, aes128_key, 15) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_aes_init(&ctx, aes128_key, XY_AES_KEY_SIZE_128) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_TRUE(xy_aes_encrypt_block(NULL, aes_plain, output) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_aes_encrypt_block(&ctx, NULL, output) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_aes_encrypt_block(&ctx, aes_plain, NULL) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_aes_decrypt_block(&ctx, NULL, roundtrip) == XY_CRYPTO_INVALID_PARAM);
 
-    assert(xy_aes_encrypt_block(&ctx, aes_plain, output) == XY_CRYPTO_SUCCESS);
-    assert(memcmp(output, aes_cipher, sizeof(aes_cipher)) == 0);
-    assert(xy_aes_decrypt_block(&ctx, output, roundtrip) == XY_CRYPTO_SUCCESS);
-    assert(memcmp(roundtrip, aes_plain, sizeof(aes_plain)) == 0);
+    TEST_ASSERT_TRUE(xy_aes_encrypt_block(&ctx, aes_plain, output) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(aes_cipher, output, sizeof(aes_cipher));
+    TEST_ASSERT_TRUE(xy_aes_decrypt_block(&ctx, output, roundtrip) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(aes_plain, roundtrip, sizeof(aes_plain));
 
     memcpy(cbc_plain, aes_plain, XY_AES_BLOCK_SIZE);
     memcpy(&cbc_plain[XY_AES_BLOCK_SIZE], aes_cipher, XY_AES_BLOCK_SIZE);
-    assert(xy_aes_cbc_encrypt(&ctx, iv, cbc_plain, sizeof(cbc_plain), cbc_cipher) == XY_CRYPTO_SUCCESS);
-    assert(xy_aes_cbc_decrypt(&ctx, iv_dec, cbc_cipher, sizeof(cbc_cipher), cbc_roundtrip) == XY_CRYPTO_SUCCESS);
-    assert(memcmp(cbc_roundtrip, cbc_plain, sizeof(cbc_plain)) == 0);
-    assert(xy_aes_cbc_encrypt(&ctx, iv, cbc_plain, sizeof(cbc_plain) - 1, cbc_cipher) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_aes_cbc_encrypt(&ctx, iv, cbc_plain, sizeof(cbc_plain), cbc_cipher) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_TRUE(xy_aes_cbc_decrypt(&ctx, iv_dec, cbc_cipher, sizeof(cbc_cipher), cbc_roundtrip) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(cbc_plain, cbc_roundtrip, sizeof(cbc_plain));
+    TEST_ASSERT_TRUE(xy_aes_cbc_encrypt(&ctx, iv, cbc_plain, sizeof(cbc_plain) - 1, cbc_cipher) == XY_CRYPTO_INVALID_PARAM);
 }
 
 static void test_hmac_vectors(void)
@@ -126,15 +126,15 @@ static void test_hmac_vectors(void)
     const uint8_t msg[] = "The quick brown fox jumps over the lazy dog";
     uint8_t digest[XY_SHA256_DIGEST_SIZE];
 
-    assert(xy_hmac_md5(NULL, sizeof(key) - 1, msg, sizeof(msg) - 1, digest) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_hmac_md5(key, sizeof(key) - 1, NULL, sizeof(msg) - 1, digest) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_hmac_md5(key, sizeof(key) - 1, msg, sizeof(msg) - 1, NULL) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_hmac_md5(NULL, sizeof(key) - 1, msg, sizeof(msg) - 1, digest) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_hmac_md5(key, sizeof(key) - 1, NULL, sizeof(msg) - 1, digest) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_hmac_md5(key, sizeof(key) - 1, msg, sizeof(msg) - 1, NULL) == XY_CRYPTO_INVALID_PARAM);
 
-    assert(xy_hmac_md5(key, sizeof(key) - 1, msg, sizeof(msg) - 1, digest) == XY_CRYPTO_SUCCESS);
-    assert(memcmp(digest, hmac_md5_expected, XY_MD5_DIGEST_SIZE) == 0);
+    TEST_ASSERT_TRUE(xy_hmac_md5(key, sizeof(key) - 1, msg, sizeof(msg) - 1, digest) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(hmac_md5_expected, digest, XY_MD5_DIGEST_SIZE);
     memset(digest, 0, sizeof(digest));
-    assert(xy_hmac_sha256(key, sizeof(key) - 1, msg, sizeof(msg) - 1, digest) == XY_CRYPTO_SUCCESS);
-    assert(memcmp(digest, hmac_sha256_expected, XY_SHA256_DIGEST_SIZE) == 0);
+    TEST_ASSERT_TRUE(xy_hmac_sha256(key, sizeof(key) - 1, msg, sizeof(msg) - 1, digest) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(hmac_sha256_expected, digest, XY_SHA256_DIGEST_SIZE);
 }
 
 static void test_sm3_api_shape(void)
@@ -144,17 +144,17 @@ static void test_sm3_api_shape(void)
     uint8_t one_shot[XY_SM3_DIGEST_SIZE];
     const uint8_t msg[] = "abc";
 
-    assert(xy_sm3_init(NULL) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_sm3_hash(NULL, 3, digest) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_sm3_hash(msg, sizeof(msg) - 1, NULL) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_sm3_hash(msg, sizeof(msg) - 1, one_shot) == XY_CRYPTO_SUCCESS);
-    assert(memcmp(one_shot, sm3_abc, XY_SM3_DIGEST_SIZE) == 0);
+    TEST_ASSERT_TRUE(xy_sm3_init(NULL) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm3_hash(NULL, 3, digest) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm3_hash(msg, sizeof(msg) - 1, NULL) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm3_hash(msg, sizeof(msg) - 1, one_shot) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(sm3_abc, one_shot, XY_SM3_DIGEST_SIZE);
 
-    assert(xy_sm3_init(&ctx) == XY_CRYPTO_SUCCESS);
-    assert(xy_sm3_update(&ctx, msg, 1) == XY_CRYPTO_SUCCESS);
-    assert(xy_sm3_update(&ctx, &msg[1], 2) == XY_CRYPTO_SUCCESS);
-    assert(xy_sm3_final(&ctx, digest) == XY_CRYPTO_SUCCESS);
-    assert(memcmp(digest, one_shot, XY_SM3_DIGEST_SIZE) == 0);
+    TEST_ASSERT_TRUE(xy_sm3_init(&ctx) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_TRUE(xy_sm3_update(&ctx, msg, 1) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_TRUE(xy_sm3_update(&ctx, &msg[1], 2) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_TRUE(xy_sm3_final(&ctx, digest) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(one_shot, digest, XY_SM3_DIGEST_SIZE);
 }
 
 static void test_sm4_api_shape(void)
@@ -169,18 +169,18 @@ static void test_sm4_api_shape(void)
         plain[i] = (uint8_t)i;
     }
 
-    assert(xy_sm4_init(NULL, key) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_sm4_init(&ctx, NULL) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_sm4_init(&ctx, key) == XY_CRYPTO_SUCCESS);
-    assert(xy_sm4_encrypt_block(NULL, plain, cipher) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_sm4_encrypt_block(&ctx, NULL, cipher) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_sm4_encrypt_block(&ctx, plain, NULL) == XY_CRYPTO_INVALID_PARAM);
-    assert(xy_sm4_decrypt_block(&ctx, NULL, plain) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm4_init(NULL, key) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm4_init(&ctx, NULL) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm4_init(&ctx, key) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_TRUE(xy_sm4_encrypt_block(NULL, plain, cipher) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm4_encrypt_block(&ctx, NULL, cipher) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm4_encrypt_block(&ctx, plain, NULL) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm4_decrypt_block(&ctx, NULL, plain) == XY_CRYPTO_INVALID_PARAM);
 
-    assert(xy_sm4_encrypt_block(&ctx, plain, cipher) == XY_CRYPTO_SUCCESS);
-    assert(memcmp(cipher, plain, XY_SM4_BLOCK_SIZE) != 0);
-    assert(xy_sm4_cbc_encrypt(&ctx, iv, plain, sizeof(plain), cipher) == XY_CRYPTO_SUCCESS);
-    assert(xy_sm4_cbc_encrypt(&ctx, iv, plain, sizeof(plain) - 1, cipher) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_sm4_encrypt_block(&ctx, plain, cipher) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_TRUE(memcmp(cipher, plain, XY_SM4_BLOCK_SIZE) != 0);
+    TEST_ASSERT_TRUE(xy_sm4_cbc_encrypt(&ctx, iv, plain, sizeof(plain), cipher) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_TRUE(xy_sm4_cbc_encrypt(&ctx, iv, plain, sizeof(plain) - 1, cipher) == XY_CRYPTO_INVALID_PARAM);
 }
 
 static void test_chacha20_vectors(void)
@@ -190,27 +190,36 @@ static void test_chacha20_vectors(void)
     uint8_t output[sizeof(chacha_plain)];
     uint8_t roundtrip[sizeof(chacha_plain)];
 
-    assert(xy_chacha20_init(NULL, chacha_key, chacha_nonce, 1) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
-    assert(xy_chacha20_init(&ctx, NULL, chacha_nonce, 1) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
-    assert(xy_chacha20_init(&ctx, chacha_key, NULL, 1) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
-    assert(xy_chacha20_init(&ctx, chacha_key, chacha_nonce, 1) == XY_CHACHA20_POLY1305_SUCCESS);
-    assert(xy_chacha20_crypt(NULL, output, chacha_plain, sizeof(chacha_plain)) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
-    assert(xy_chacha20_crypt(&ctx, NULL, chacha_plain, sizeof(chacha_plain)) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
-    assert(xy_chacha20_crypt(&ctx, output, NULL, sizeof(chacha_plain)) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_chacha20_init(NULL, chacha_key, chacha_nonce, 1) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_chacha20_init(&ctx, NULL, chacha_nonce, 1) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_chacha20_init(&ctx, chacha_key, NULL, 1) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_chacha20_init(&ctx, chacha_key, chacha_nonce, 1) == XY_CHACHA20_POLY1305_SUCCESS);
+    TEST_ASSERT_TRUE(xy_chacha20_crypt(NULL, output, chacha_plain, sizeof(chacha_plain)) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_chacha20_crypt(&ctx, NULL, chacha_plain, sizeof(chacha_plain)) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(xy_chacha20_crypt(&ctx, output, NULL, sizeof(chacha_plain)) == XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM);
 
-    assert(xy_chacha20_crypt(&ctx, output, chacha_plain, sizeof(chacha_plain)) == XY_CHACHA20_POLY1305_SUCCESS);
-    assert(memcmp(output, chacha_cipher, sizeof(chacha_cipher)) == 0);
-    assert(xy_chacha20_init(&dec, chacha_key, chacha_nonce, 1) == XY_CHACHA20_POLY1305_SUCCESS);
-    assert(xy_chacha20_crypt(&dec, roundtrip, output, sizeof(output)) == XY_CHACHA20_POLY1305_SUCCESS);
-    assert(memcmp(roundtrip, chacha_plain, sizeof(chacha_plain)) == 0);
+    TEST_ASSERT_TRUE(xy_chacha20_crypt(&ctx, output, chacha_plain, sizeof(chacha_plain)) == XY_CHACHA20_POLY1305_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(chacha_cipher, output, sizeof(chacha_cipher));
+    TEST_ASSERT_TRUE(xy_chacha20_init(&dec, chacha_key, chacha_nonce, 1) == XY_CHACHA20_POLY1305_SUCCESS);
+    TEST_ASSERT_TRUE(xy_chacha20_crypt(&dec, roundtrip, output, sizeof(output)) == XY_CHACHA20_POLY1305_SUCCESS);
+    TEST_ASSERT_EQUAL_MEMORY(chacha_plain, roundtrip, sizeof(chacha_plain));
+}
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
 }
 
 int main(void)
 {
-    test_aes_vectors();
-    test_hmac_vectors();
-    test_sm3_api_shape();
-    test_sm4_api_shape();
-    test_chacha20_vectors();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_aes_vectors);
+    RUN_TEST(test_hmac_vectors);
+    RUN_TEST(test_sm3_api_shape);
+    RUN_TEST(test_sm4_api_shape);
+    RUN_TEST(test_chacha20_vectors);
+    return UNITY_END();
 }

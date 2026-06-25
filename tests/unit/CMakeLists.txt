@@ -324,6 +324,7 @@ add_test(NAME crypto_encode COMMAND test_encode)
 # --- Test 19: Crypto MD5/SHA-256 vectors and incremental hashing ---
 add_executable(test_hash
     ${UNIT_CRYPTO}/test_hash.c
+    ${ROOT}/tests/unity/unity.c
     ${CRYPTO}/xy_md/xy_md5.c
     ${CRYPTO}/xy_hmac/xy_sha256.c
 )
@@ -336,6 +337,7 @@ add_test(NAME crypto_hash COMMAND test_hash)
 # --- Test 20: Crypto AES/HMAC/SM3/SM4/ChaCha20 coverage ---
 add_executable(test_cipher_hmac
     ${UNIT_CRYPTO}/test_cipher_hmac.c
+    ${ROOT}/tests/unity/unity.c
     ${CRYPTO}/xy_aes/xy_aes.c
     ${CRYPTO}/xy_hmac/xy_hmac.c
     ${CRYPTO}/xy_md/xy_md5.c
