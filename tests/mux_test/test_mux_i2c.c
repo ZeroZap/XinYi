@@ -16,7 +16,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+
+#include "unity.h"
 
 void xy_log_char(char ch)
 {
@@ -117,20 +118,20 @@ static void test_i2c_register(void)
 
     /* Register I2C channel 0 */
     int32_t ret = xy_mux_i2c_register(&mgr, 0, &ops, NULL);
-    assert(ret == XY_MUX_OK);
+    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     printf("  [PASS] I2C-0 registered\n");
 
     /* Register I2C channel 1 */
     ret = xy_mux_i2c_register(&mgr, 1, &ops, NULL);
-    assert(ret == XY_MUX_OK);
+    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     printf("  [PASS] I2C-1 registered\n");
 
     /* Register I2C channel 2 */
     ret = xy_mux_i2c_register(&mgr, 2, &ops, NULL);
-    assert(ret == XY_MUX_OK);
+    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     printf("  [PASS] I2C-2 registered\n");
 
-    assert(mgr.device_count == 3);
+    TEST_ASSERT_TRUE(mgr.device_count == 3);
     printf("  [PASS] Device count = 3\n");
 
     xy_mux_deinit(&mgr);
@@ -160,20 +161,20 @@ static void test_i2c_config(void)
     };
 
     int32_t ret = xy_mux_i2c_config(&mgr, 0, &config);
-    assert(ret == XY_MUX_OK);
+    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     printf("  [PASS] I2C configured at 400kHz, 7-bit addressing\n");
 
     /* Configure with 10-bit addressing */
     config.addr_bits = 10;
     ret = xy_mux_i2c_config(&mgr, 0, &config);
-    assert(ret == XY_MUX_OK);
+    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     printf("  [PASS] I2C reconfigured with 10-bit addressing\n");
 
     /* Configure high speed */
     config.speed = 1000000;
     config.addr_bits = 7;
     ret = xy_mux_i2c_config(&mgr, 0, &config);
-    assert(ret == XY_MUX_OK);
+    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     printf("  [PASS] I2C configured at 1MHz\n");
 
     xy_mux_deinit(&mgr);
@@ -201,11 +202,11 @@ static void test_i2c_write(void)
     /* Write to I2C device */
     uint8_t data[] = {0x55, 0xAA, 0x01, 0x02};
     int32_t ret = xy_mux_i2c_write(&mgr, 0, 0x50, data, sizeof(data));
-    assert(ret >= 0);
+    TEST_ASSERT_TRUE(ret >= 0);
     printf("  [PASS] Write %d bytes to I2C device at address 0x50\n", (int)sizeof(data));
 
     /* Verify data was written to mock buffer */
-    assert(g_i2c_buffer_lens[0] == sizeof(data) + 2); /* +2 for address bytes */
+    TEST_ASSERT_TRUE(g_i2c_buffer_lens[0] == sizeof(data) + 2); /* +2 for address bytes */
     printf("  [PASS] Data verified in mock buffer\n");
 
     xy_mux_deinit(&mgr);
@@ -233,11 +234,11 @@ static void test_i2c_read(void)
     /* Read from I2C device */
     uint8_t buffer[16];
     int32_t ret = xy_mux_i2c_read(&mgr, 0, 0x50, buffer, sizeof(buffer));
-    assert(ret > 0);
+    TEST_ASSERT_TRUE(ret > 0);
     printf("  [PASS] Read %d bytes from I2C device\n", ret);
 
     /* Verify buffer contains simulated data */
-    assert(buffer[0] == 0xA5);
+    TEST_ASSERT_TRUE(buffer[0] == 0xA5);
     printf("  [PASS] Buffer contains expected pattern\n");
 
     xy_mux_deinit(&mgr);
@@ -275,8 +276,8 @@ static void test_i2c_transfer(void)
 
     /* Perform transfer */
     int32_t ret = xy_mux_i2c_transfer(&mgr, 0, msgs, 3);
-    assert(ret == 16);
-    assert(data_in[0] == 0xA5);
+    TEST_ASSERT_TRUE(ret == 16);
+    TEST_ASSERT_TRUE(data_in[0] == 0xA5);
     printf("  [PASS] Multi-message transfer completed\n");
 
     xy_mux_deinit(&mgr);
@@ -304,27 +305,27 @@ static void test_i2c_error_handling(void)
     /* Try to read from non-registered channel */
     uint8_t buffer[16];
     int32_t ret = xy_mux_i2c_read(&mgr, 99, 0x50, buffer, sizeof(buffer));
-    assert(ret != XY_MUX_OK);
+    TEST_ASSERT_TRUE(ret != XY_MUX_OK);
     printf("  [PASS] Read from non-registered channel rejected\n");
 
     /* Try to write to non-registered channel */
     uint8_t data[] = {0x55};
     ret = xy_mux_i2c_write(&mgr, 99, 0x50, data, sizeof(data));
-    assert(ret != XY_MUX_OK);
+    TEST_ASSERT_TRUE(ret != XY_MUX_OK);
     printf("  [PASS] Write to non-registered channel rejected\n");
 
     /* Try with NULL manager */
     ret = xy_mux_i2c_write(NULL, 0, 0x50, data, sizeof(data));
-    assert(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
     printf("  [PASS] NULL manager rejected for write\n");
 
     ret = xy_mux_i2c_read(NULL, 0, 0x50, buffer, sizeof(buffer));
-    assert(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
     printf("  [PASS] NULL manager rejected for read\n");
 
     /* Try with NULL data */
     ret = xy_mux_i2c_write(&mgr, 0, 0x50, NULL, sizeof(data));
-    assert(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
     printf("  [PASS] NULL data rejected for write\n");
 
     xy_mux_deinit(&mgr);
@@ -355,20 +356,20 @@ static void test_i2c_tlv_packet(void)
     int32_t ret = xy_mux_build_packet(&mgr, XY_MUX_TYPE_I2C, 0,
                                       i2c_data, sizeof(i2c_data),
                                       tx_buffer, &packet_len);
-    assert(ret == XY_MUX_OK);
-    assert(packet_len == sizeof(xy_mux_header_t) + sizeof(i2c_data));
+    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
+    TEST_ASSERT_TRUE(packet_len == sizeof(xy_mux_header_t) + sizeof(i2c_data));
     printf("  [PASS] I2C packet built: %d bytes\n", (int)packet_len);
 
     /* Verify header structure */
-    assert(tx_buffer[0] == XY_MUX_TYPE_I2C);
-    assert(tx_buffer[1] == 0);  /* channel */
-    assert(tx_buffer[2] == sizeof(i2c_data)); /* length */
+    TEST_ASSERT_TRUE(tx_buffer[0] == XY_MUX_TYPE_I2C);
+    TEST_ASSERT_TRUE(tx_buffer[1] == 0);  /* channel */
+    TEST_ASSERT_TRUE(tx_buffer[2] == sizeof(i2c_data)); /* length */
     printf("  [PASS] TLV header structure verified\n");
 
     /* Process the packet */
     g_i2c_buffer_lens[0] = 0;
     ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
-    assert(ret == (int32_t)sizeof(i2c_data));
+    TEST_ASSERT_TRUE(ret == (int32_t)sizeof(i2c_data));
     printf("  [PASS] Packet processed\n");
 
     xy_mux_deinit(&mgr);
@@ -434,25 +435,24 @@ static void test_i2c_multi_bus(void)
 
 /* ==================== Main Entry ==================== */
 
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
+
 int main(void)
 {
-    printf("========================================\n");
-    printf("XY_MUX I2C Test Suite\n");
-    printf("========================================\n");
-
-    /* Run all tests */
-    test_i2c_register();
-    test_i2c_config();
-    test_i2c_write();
-    test_i2c_read();
-    test_i2c_transfer();
-    test_i2c_error_handling();
-    test_i2c_tlv_packet();
-    test_i2c_multi_bus();
-
-    printf("\n========================================\n");
-    printf("All I2C Tests PASSED!\n");
-    printf("========================================\n");
-
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_i2c_register);
+    RUN_TEST(test_i2c_config);
+    RUN_TEST(test_i2c_write);
+    RUN_TEST(test_i2c_read);
+    RUN_TEST(test_i2c_transfer);
+    RUN_TEST(test_i2c_error_handling);
+    RUN_TEST(test_i2c_tlv_packet);
+    RUN_TEST(test_i2c_multi_bus);
+    return UNITY_END();
 }

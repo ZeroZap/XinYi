@@ -466,6 +466,7 @@ add_executable(test_mux_i2c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME mux_i2c COMMAND test_mux_i2c)
 
@@ -479,6 +480,7 @@ add_executable(test_mux_gpio
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME mux_gpio COMMAND test_mux_gpio)
 
