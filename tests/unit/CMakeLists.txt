@@ -768,6 +768,7 @@ add_executable(test_fuel_gauge_core
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_fuel_gauge_core PRIVATE ${ROOT}/components/fuel_gauge/inc)
 add_test(NAME fuel_gauge_core COMMAND test_fuel_gauge_core)

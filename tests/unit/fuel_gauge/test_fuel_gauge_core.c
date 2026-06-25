@@ -3,9 +3,8 @@
 #include "xy_fuel_gauge_security.h"
 #include "xy_fuel_gauge_status.h"
 
-#include <assert.h>
+#include "unity.h"
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 static uint32_t fake_tick;
@@ -18,6 +17,14 @@ static void *foreach_user_data;
 uint32_t xy_os_tick_get(void)
 {
     return fake_tick;
+}
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
 }
 
 static int fake_init(xy_fuel_gauge_t *fg)
@@ -83,7 +90,7 @@ static int fake_channel_get(xy_fuel_gauge_t *fg, xy_fuel_gauge_data_type_t chann
 
 static void count_device(xy_fuel_gauge_t *fg, void *user_data)
 {
-    assert(fg != NULL);
+    TEST_ASSERT_NOT_NULL(fg);
     foreach_calls++;
     foreach_user_data = user_data;
 }
@@ -121,30 +128,30 @@ static void test_register_init_get_foreach(void)
     fg.name = "fg-test";
     fg.api = &api;
 
-    assert(xy_fuel_gauge_device_register(NULL) == XY_FG_ERROR_INVALID_PARAM);
-    assert(xy_fuel_gauge_device_register(&fg) == XY_FG_OK);
-    assert(xy_fuel_gauge_device_register(&fg) == XY_FG_ERROR);
-    assert(xy_fuel_gauge_device_get("fg-test") == &fg);
-    assert(xy_fuel_gauge_device_get("missing") == NULL);
-    assert(xy_fuel_gauge_device_count() == 1U);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_device_register(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_device_register(&fg));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR, xy_fuel_gauge_device_register(&fg));
+    TEST_ASSERT_EQUAL_PTR(&fg, xy_fuel_gauge_device_get("fg-test"));
+    TEST_ASSERT_NULL(xy_fuel_gauge_device_get("missing"));
+    TEST_ASSERT_EQUAL_UINT(1U, xy_fuel_gauge_device_count());
 
-    assert(xy_fuel_gauge_init(&fg) == XY_FG_OK);
-    assert(init_calls == 1);
-    assert(fg.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_init(&fg));
+    TEST_ASSERT_EQUAL_INT(1, init_calls);
+    TEST_ASSERT_TRUE(fg.initialized);
 
-    assert(xy_fuel_gauge_get(&fg, XY_FG_DATA_VOLTAGE, &value) == XY_FG_OK);
-    assert(value == 3701);
-    assert(fetch_calls == 1);
-    assert(fg.latest.timestamp == fake_tick);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3701, value);
+    TEST_ASSERT_EQUAL_INT(1, fetch_calls);
+    TEST_ASSERT_EQUAL_UINT32(fake_tick, fg.latest.timestamp);
 
-    assert(xy_fuel_gauge_get(&fg, XY_FG_DATA_TIME_TO_EMPTY, &value) == XY_FG_ERROR_NOT_SUPPORTED);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED, xy_fuel_gauge_get(&fg, XY_FG_DATA_TIME_TO_EMPTY, &value));
 
     xy_fuel_gauge_device_foreach(count_device, &user_marker);
-    assert(foreach_calls == 1);
-    assert(foreach_user_data == &user_marker);
+    TEST_ASSERT_EQUAL_INT(1, foreach_calls);
+    TEST_ASSERT_EQUAL_PTR(&user_marker, foreach_user_data);
 
-    assert(xy_fuel_gauge_deinit(&fg) == XY_FG_OK);
-    assert(!fg.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_deinit(&fg));
+    TEST_ASSERT_FALSE(fg.initialized);
 }
 
 static void test_status_safety_security_helpers(void)
@@ -177,43 +184,43 @@ static void test_status_safety_security_helpers(void)
     }){0};
     fg.initialized = true;
 
-    assert(xy_fuel_gauge_get_charge_current(NULL, NULL) == XY_FG_ERROR_INVALID_PARAM);
-    assert(xy_fuel_gauge_get_charge_voltage(&fg, NULL) == XY_FG_ERROR_INVALID_PARAM);
-    assert(xy_fuel_gauge_get_battery_health(&fg, &health) == XY_FG_OK);
-    assert(health.full_charge_capacity == 1900U);
-    assert(health.remaining_capacity == 760U);
-    assert(health.cycle_count == 9U);
-    assert(health.temperature == 56U);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_charge_current(NULL, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_charge_voltage(&fg, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_battery_health(&fg, &health));
+    TEST_ASSERT_EQUAL_UINT32(1900U, health.full_charge_capacity);
+    TEST_ASSERT_EQUAL_UINT32(760U, health.remaining_capacity);
+    TEST_ASSERT_EQUAL_UINT16(9U, health.cycle_count);
+    TEST_ASSERT_EQUAL_INT16(56, health.temperature);
 
-    assert((xy_fuel_gauge_get_safety_status(&fg) & XY_FG_SAFETY_PACK_OTC) != 0);
-    assert((xy_fuel_gauge_get_warning_status(&fg) & XY_FG_WARNING_SOC_LOW) != 0);
-    assert(xy_fuel_gauge_config_safety_thresholds(NULL, &thresholds) == XY_FG_ERROR_INVALID_PARAM);
-    assert(xy_fuel_gauge_get_safety_thresholds(&fg, &thresholds) == XY_FG_OK);
-    assert(xy_fuel_gauge_get_safety_event(&fg, &event) == XY_FG_OK);
-    assert(event.type == XY_FG_SAFETY_EVENT_NONE);
-    assert(xy_fuel_gauge_get_safety_event_history(NULL, &event, 1) == XY_FG_ERROR_INVALID_PARAM);
+    TEST_ASSERT_BITS_HIGH(XY_FG_SAFETY_PACK_OTC, xy_fuel_gauge_get_safety_status(&fg));
+    TEST_ASSERT_BITS_HIGH(XY_FG_WARNING_SOC_LOW, xy_fuel_gauge_get_warning_status(&fg));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_config_safety_thresholds(NULL, &thresholds));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_safety_thresholds(&fg, &thresholds));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_safety_event(&fg, &event));
+    TEST_ASSERT_EQUAL_INT(XY_FG_SAFETY_EVENT_NONE, event.type);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_safety_event_history(NULL, &event, 1));
 
     security_config.type = XY_FG_SECURITY_NONE;
     security_config.key = key;
     security_config.key_len = sizeof(key);
     security_config.challenge = NULL;
     security_config.challenge_len = 0;
-    assert(xy_fuel_gauge_security_config(NULL, &security_config) == XY_FG_ERROR_INVALID_PARAM);
-    assert(xy_fuel_gauge_security_config(&fg, &security_config) == XY_FG_OK);
-    assert(xy_fuel_gauge_authenticate(&fg) == XY_FG_AUTH_OK);
-    assert(xy_fuel_gauge_encrypt_data(&fg, plain, sizeof(plain), encrypted, &out_len) == XY_FG_OK);
-    assert(out_len == sizeof(plain));
-    assert(memcmp(encrypted, plain, sizeof(plain)) == 0);
-    assert(xy_fuel_gauge_decrypt_data(&fg, encrypted, out_len, decrypted, &out_len) == XY_FG_OK);
-    assert(out_len == sizeof(plain));
-    assert(memcmp(decrypted, plain, sizeof(plain)) == 0);
-    assert(xy_fuel_gauge_decrypt_data(&fg, NULL, 0, decrypted, &out_len) == XY_FG_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_security_config(NULL, &security_config));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_security_config(&fg, &security_config));
+    TEST_ASSERT_EQUAL_INT(XY_FG_AUTH_OK, xy_fuel_gauge_authenticate(&fg));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_encrypt_data(&fg, plain, sizeof(plain), encrypted, &out_len));
+    TEST_ASSERT_EQUAL_UINT16(sizeof(plain), out_len);
+    TEST_ASSERT_EQUAL_MEMORY(plain, encrypted, sizeof(plain));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_decrypt_data(&fg, encrypted, out_len, decrypted, &out_len));
+    TEST_ASSERT_EQUAL_UINT16(sizeof(plain), out_len);
+    TEST_ASSERT_EQUAL_MEMORY(plain, decrypted, sizeof(plain));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_decrypt_data(&fg, NULL, 0, decrypted, &out_len));
 }
 
 int main(void)
 {
-    test_register_init_get_foreach();
-    test_status_safety_security_helpers();
-    puts("Fuel gauge core tests passed");
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_register_init_get_foreach);
+    RUN_TEST(test_status_safety_security_helpers);
+    return UNITY_END();
 }
