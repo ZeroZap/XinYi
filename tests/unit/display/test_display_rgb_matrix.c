@@ -2,14 +2,22 @@
  * Focused host contracts for RGB matrix over WS2812 backing storage.
  */
 #include "xy_rgb_matrix.h"
+#include "unity.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 
 static unsigned s_gpio_transitions;
 static uint8_t s_last_pin;
 static uint8_t s_last_value;
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
 
 static void fake_gpio_write(uint8_t pin, uint8_t value)
 {
@@ -27,6 +35,14 @@ static xy_ws2812_color_t color(uint8_t r, uint8_t g, uint8_t b, uint8_t w)
 static int same_color(xy_ws2812_color_t a, xy_ws2812_color_t b)
 {
     return a.r == b.r && a.g == b.g && a.b == b.b && a.w == b.w;
+}
+
+static void assert_same_color(xy_ws2812_color_t expected, xy_ws2812_color_t actual)
+{
+    TEST_ASSERT_EQUAL_UINT8(expected.r, actual.r);
+    TEST_ASSERT_EQUAL_UINT8(expected.g, actual.g);
+    TEST_ASSERT_EQUAL_UINT8(expected.b, actual.b);
+    TEST_ASSERT_EQUAL_UINT8(expected.w, actual.w);
 }
 
 static xy_rgb_matrix_handle_t make_matrix(xy_rgb_matrix_layout_t layout, uint8_t brightness)
@@ -49,12 +65,12 @@ static xy_rgb_matrix_handle_t make_matrix(xy_rgb_matrix_layout_t layout, uint8_t
     };
 
     memset(&matrix, 0, sizeof(matrix));
-    assert(xy_rgb_matrix_init(&matrix, &matrix_config, &ws_config) == XY_RGB_MATRIX_OK);
-    assert(matrix.initialized);
-    assert(matrix.ws2812.config.num_leds == 12);
-    assert(matrix.ws2812.config.data_pin == 7);
-    assert(matrix.ws2812.config.color_order == WS2812_COLOR_GRB);
-    assert(matrix.ws2812.config.brightness == brightness);
+    TEST_ASSERT_EQUAL_INT(XY_RGB_MATRIX_OK, xy_rgb_matrix_init(&matrix, &matrix_config, &ws_config));
+    TEST_ASSERT_TRUE(matrix.initialized);
+    TEST_ASSERT_EQUAL_UINT16(12, matrix.ws2812.config.num_leds);
+    TEST_ASSERT_EQUAL_UINT8(7, matrix.ws2812.config.data_pin);
+    TEST_ASSERT_EQUAL_INT(WS2812_COLOR_GRB, matrix.ws2812.config.color_order);
+    TEST_ASSERT_EQUAL_UINT8(brightness, matrix.ws2812.config.brightness);
     return matrix;
 }
 
@@ -66,27 +82,33 @@ static void test_init_validation_and_layout_mapping(void)
     uint16_t x = 99;
     uint16_t y = 99;
 
-    assert(xy_rgb_matrix_init(NULL, &bad_matrix, &ws_config) == XY_RGB_MATRIX_ERROR_INVALID_PARAM);
-    assert(xy_rgb_matrix_init(&matrix, NULL, &ws_config) == XY_RGB_MATRIX_ERROR_INVALID_PARAM);
-    assert(xy_rgb_matrix_init(&matrix, &bad_matrix, &ws_config) == XY_RGB_MATRIX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_RGB_MATRIX_ERROR_INVALID_PARAM,
+                          xy_rgb_matrix_init(NULL, &bad_matrix, &ws_config));
+    TEST_ASSERT_EQUAL_INT(XY_RGB_MATRIX_ERROR_INVALID_PARAM,
+                          xy_rgb_matrix_init(&matrix, NULL, &ws_config));
+    TEST_ASSERT_EQUAL_INT(XY_RGB_MATRIX_ERROR_INVALID_PARAM,
+                          xy_rgb_matrix_init(&matrix, &bad_matrix, &ws_config));
 
     matrix = make_matrix(XY_RGB_MATRIX_LAYOUT_ZIGZAG, 255);
-    assert(xy_rgb_matrix_xy_to_index(&matrix, 0, 0) == 0);
-    assert(xy_rgb_matrix_xy_to_index(&matrix, 3, 0) == 3);
-    assert(xy_rgb_matrix_xy_to_index(&matrix, 0, 1) == 7);
-    assert(xy_rgb_matrix_xy_to_index(&matrix, 3, 1) == 4);
-    assert(xy_rgb_matrix_xy_to_index(&matrix, 2, 2) == 10);
+    TEST_ASSERT_EQUAL_UINT16(0, xy_rgb_matrix_xy_to_index(&matrix, 0, 0));
+    TEST_ASSERT_EQUAL_UINT16(3, xy_rgb_matrix_xy_to_index(&matrix, 3, 0));
+    TEST_ASSERT_EQUAL_UINT16(7, xy_rgb_matrix_xy_to_index(&matrix, 0, 1));
+    TEST_ASSERT_EQUAL_UINT16(4, xy_rgb_matrix_xy_to_index(&matrix, 3, 1));
+    TEST_ASSERT_EQUAL_UINT16(10, xy_rgb_matrix_xy_to_index(&matrix, 2, 2));
 
     xy_rgb_matrix_index_to_xy(&matrix, 7, &x, &y);
-    assert(x == 0 && y == 1);
+    TEST_ASSERT_EQUAL_UINT16(0, x);
+    TEST_ASSERT_EQUAL_UINT16(1, y);
     xy_rgb_matrix_index_to_xy(&matrix, 99, &x, &y);
-    assert(x == 0 && y == 0);
+    TEST_ASSERT_EQUAL_UINT16(0, x);
+    TEST_ASSERT_EQUAL_UINT16(0, y);
     xy_rgb_matrix_deinit(&matrix);
 
     matrix = make_matrix(XY_RGB_MATRIX_LAYOUT_LINEAR, 255);
-    assert(xy_rgb_matrix_xy_to_index(&matrix, 0, 1) == 4);
+    TEST_ASSERT_EQUAL_UINT16(4, xy_rgb_matrix_xy_to_index(&matrix, 0, 1));
     xy_rgb_matrix_index_to_xy(&matrix, 7, &x, &y);
-    assert(x == 3 && y == 1);
+    TEST_ASSERT_EQUAL_UINT16(3, x);
+    TEST_ASSERT_EQUAL_UINT16(1, y);
     xy_rgb_matrix_deinit(&matrix);
 }
 
@@ -101,33 +123,33 @@ static void test_pixel_line_rect_and_brightness_contracts(void)
     xy_ws2812_color_t scaled_blue = color(0, 0, 127, 0);
 
     xy_rgb_matrix_set_pixel(&matrix, 1, 1, red);
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 1, 1), scaled_red));
-    assert(matrix.ws2812.dirty);
+    assert_same_color(scaled_red, xy_rgb_matrix_get_pixel(&matrix, 1, 1));
+    TEST_ASSERT_TRUE(matrix.ws2812.dirty);
 
     xy_rgb_matrix_set_pixel(&matrix, 9, 9, green);
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 9, 9), WS2812_COLOR_BLACK));
+    assert_same_color(WS2812_COLOR_BLACK, xy_rgb_matrix_get_pixel(&matrix, 9, 9));
 
     xy_rgb_matrix_draw_hline(&matrix, 0, green);
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 0, 0), scaled_green));
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 3, 0), scaled_green));
+    assert_same_color(scaled_green, xy_rgb_matrix_get_pixel(&matrix, 0, 0));
+    assert_same_color(scaled_green, xy_rgb_matrix_get_pixel(&matrix, 3, 0));
 
     xy_rgb_matrix_draw_vline(&matrix, 3, blue);
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 3, 0), scaled_blue));
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 3, 2), scaled_blue));
+    assert_same_color(scaled_blue, xy_rgb_matrix_get_pixel(&matrix, 3, 0));
+    assert_same_color(scaled_blue, xy_rgb_matrix_get_pixel(&matrix, 3, 2));
 
     xy_rgb_matrix_clear(&matrix);
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 3, 2), WS2812_COLOR_BLACK));
+    assert_same_color(WS2812_COLOR_BLACK, xy_rgb_matrix_get_pixel(&matrix, 3, 2));
 
     xy_rgb_matrix_set_brightness(&matrix, 255);
-    assert(xy_rgb_matrix_get_brightness(&matrix) == 255);
+    TEST_ASSERT_EQUAL_UINT8(255, xy_rgb_matrix_get_brightness(&matrix));
     xy_rgb_matrix_draw_rect(&matrix, 0, 0, 3, 2, red, false);
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 0, 0), color(254, 0, 0, 0)));
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 1, 1), WS2812_COLOR_BLACK));
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 3, 2), color(254, 0, 0, 0)));
+    assert_same_color(color(254, 0, 0, 0), xy_rgb_matrix_get_pixel(&matrix, 0, 0));
+    assert_same_color(WS2812_COLOR_BLACK, xy_rgb_matrix_get_pixel(&matrix, 1, 1));
+    assert_same_color(color(254, 0, 0, 0), xy_rgb_matrix_get_pixel(&matrix, 3, 2));
 
     xy_rgb_matrix_draw_rect(&matrix, 0, 0, 1, 1, blue, true);
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 0, 0), color(0, 0, 254, 0)));
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 1, 1), color(0, 0, 254, 0)));
+    assert_same_color(color(0, 0, 254, 0), xy_rgb_matrix_get_pixel(&matrix, 0, 0));
+    assert_same_color(color(0, 0, 254, 0), xy_rgb_matrix_get_pixel(&matrix, 1, 1));
 
     xy_rgb_matrix_deinit(&matrix);
 }
@@ -143,31 +165,32 @@ static void test_show_and_effect_contracts(void)
     s_last_value = 1;
 
     xy_rgb_matrix_fill(&matrix, color(255, 0, 0, 0));
-    assert(matrix.ws2812.dirty);
+    TEST_ASSERT_TRUE(matrix.ws2812.dirty);
     xy_rgb_matrix_show(&matrix);
-    assert(!matrix.ws2812.dirty);
-    assert(s_gpio_transitions > 0);
-    assert(s_last_pin == 7);
-    assert(s_last_value == 0);
+    TEST_ASSERT_FALSE(matrix.ws2812.dirty);
+    TEST_ASSERT_GREATER_THAN_UINT32(0, s_gpio_transitions);
+    TEST_ASSERT_EQUAL_UINT8(7, s_last_pin);
+    TEST_ASSERT_EQUAL_UINT8(0, s_last_value);
 
     xy_rgb_matrix_set_effect(&matrix, XY_RGB_MATRIX_EFFECT_SOLID, 255, effect);
-    assert(xy_rgb_matrix_update_effect(&matrix));
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 0, 0), color(31, 63, 127, 0)));
+    TEST_ASSERT_TRUE(xy_rgb_matrix_update_effect(&matrix));
+    assert_same_color(color(31, 63, 127, 0), xy_rgb_matrix_get_pixel(&matrix, 0, 0));
 
     xy_rgb_matrix_set_effect(&matrix, XY_RGB_MATRIX_EFFECT_BREATHING, 255, effect);
     xy_rgb_matrix_effect_breathing(&matrix, 64);
-    assert(same_color(xy_rgb_matrix_get_pixel(&matrix, 0, 0), color(15, 31, 63, 0)));
+    assert_same_color(color(15, 31, 63, 0), xy_rgb_matrix_get_pixel(&matrix, 0, 0));
 
     xy_rgb_matrix_effect_rainbow(&matrix, 0);
-    assert(!same_color(xy_rgb_matrix_get_pixel(&matrix, 0, 0), WS2812_COLOR_BLACK));
+    TEST_ASSERT_FALSE(same_color(xy_rgb_matrix_get_pixel(&matrix, 0, 0), WS2812_COLOR_BLACK));
 
     xy_rgb_matrix_deinit(&matrix);
 }
 
 int main(void)
 {
-    test_init_validation_and_layout_mapping();
-    test_pixel_line_rect_and_brightness_contracts();
-    test_show_and_effect_contracts();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_init_validation_and_layout_mapping);
+    RUN_TEST(test_pixel_line_rect_and_brightness_contracts);
+    RUN_TEST(test_show_and_effect_contracts);
+    return UNITY_END();
 }

@@ -602,6 +602,7 @@ add_executable(test_display_rgb_matrix
     ${DISPLAY}/led_drivers/serial_rgb/xy_rgb_matrix.c
     ${DISPLAY}/led_drivers/serial_rgb/xy_ws2812.c
     ${DEV}/xy_device_core.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME display_rgb_matrix COMMAND test_display_rgb_matrix)
 
