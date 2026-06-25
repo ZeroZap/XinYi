@@ -5,7 +5,8 @@
 
 #include "nano_modbus.h"
 
-#include <assert.h>
+#include "unity.h"
+
 #include <string.h>
 
 static uint8_t g_tx[MB_TINY_MAX_ADU_SIZE];
@@ -23,7 +24,7 @@ static void append_crc(uint8_t *frame, uint16_t payload_len)
 
 static int slave_send_capture(const uint8_t *data, uint16_t len)
 {
-    assert(len <= sizeof(g_tx));
+    TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_tx), len);
     memcpy(g_tx, data, len);
     g_tx_len = len;
     return len;
@@ -31,7 +32,7 @@ static int slave_send_capture(const uint8_t *data, uint16_t len)
 
 static int master_send_capture(const uint8_t *data, uint16_t len)
 {
-    assert(len <= sizeof(g_tx));
+    TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_tx), len);
     memcpy(g_tx, data, len);
     g_tx_len = len;
     return len;
@@ -39,7 +40,7 @@ static int master_send_capture(const uint8_t *data, uint16_t len)
 
 static int master_recv_fixture(uint8_t *data, uint16_t len, uint32_t timeout_ms)
 {
-    assert(len >= g_rx_len);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(g_rx_len, len);
     g_recv_timeout = timeout_ms;
     memcpy(data, g_rx, g_rx_len);
     return g_rx_len;
@@ -64,22 +65,24 @@ static void test_compat_slave_holding_read(void)
     reset_capture();
     append_crc(req, 6);
 
-    assert(nano_mb_slave_init(&slave, &cfg) == NANO_MB_OK);
-    assert(slave.initialized);
-    assert(slave.slave_id == 3U);
-    assert(mb_tiny_slave_config_holding(&slave, holding, 0, 2) == MB_TINY_OK);
+    TEST_ASSERT_EQUAL(NANO_MB_OK, nano_mb_slave_init(&slave, &cfg));
+    TEST_ASSERT_TRUE(slave.initialized);
+    TEST_ASSERT_EQUAL_UINT8(3U, slave.slave_id);
+    TEST_ASSERT_EQUAL(MB_TINY_OK, mb_tiny_slave_config_holding(&slave, holding, 0, 2));
     mb_tiny_slave_set_send(&slave, slave_send_capture);
 
-    assert(nano_mb_slave_poll(&slave, req, sizeof(req)) == NANO_MB_OK);
-    assert(g_tx_len == 9U);
-    assert(g_tx[0] == 3U);
-    assert(g_tx[1] == MB_FUNC_READ_HOLDING);
-    assert(g_tx[2] == 4U);
-    assert(g_tx[3] == 0x12U && g_tx[4] == 0x34U);
-    assert(g_tx[5] == 0xABU && g_tx[6] == 0xCDU);
-    assert(nano_mb_crc16(g_tx, 7) == ((uint16_t)g_tx[8] << 8 | g_tx[7]));
-    assert(slave.request_count == 1U);
-    assert(nano_mb_slave_deinit(&slave) == NANO_MB_OK);
+    TEST_ASSERT_EQUAL(NANO_MB_OK, nano_mb_slave_poll(&slave, req, sizeof(req)));
+    TEST_ASSERT_EQUAL_UINT16(9U, g_tx_len);
+    TEST_ASSERT_EQUAL_UINT8(3U, g_tx[0]);
+    TEST_ASSERT_EQUAL_UINT8(MB_FUNC_READ_HOLDING, g_tx[1]);
+    TEST_ASSERT_EQUAL_UINT8(4U, g_tx[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x12U, g_tx[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x34U, g_tx[4]);
+    TEST_ASSERT_EQUAL_UINT8(0xABU, g_tx[5]);
+    TEST_ASSERT_EQUAL_UINT8(0xCDU, g_tx[6]);
+    TEST_ASSERT_EQUAL_UINT16(nano_mb_crc16(g_tx, 7), ((uint16_t)g_tx[8] << 8 | g_tx[7]));
+    TEST_ASSERT_EQUAL_UINT32(1U, slave.request_count);
+    TEST_ASSERT_EQUAL(NANO_MB_OK, nano_mb_slave_deinit(&slave));
 }
 
 static void test_compat_master_read_holding(void)
@@ -98,21 +101,23 @@ static void test_compat_master_read_holding(void)
     append_crc(g_rx, 7);
     g_rx_len = 9;
 
-    assert(nano_mb_master_init(&master) == NANO_MB_OK);
+    TEST_ASSERT_EQUAL(NANO_MB_OK, nano_mb_master_init(&master));
     mb_tiny_master_set_uart(&master, master_send_capture, master_recv_fixture);
     mb_tiny_master_set_timeout(&master, 321);
 
-    assert(nano_mb_master_read_holding(&master, 7, 0x0010, 2, regs, 999) == NANO_MB_OK);
-    assert(g_tx_len == 8U);
-    assert(g_tx[0] == 7U);
-    assert(g_tx[1] == MB_FUNC_READ_HOLDING);
-    assert(g_tx[2] == 0x00U && g_tx[3] == 0x10U);
-    assert(g_tx[4] == 0x00U && g_tx[5] == 0x02U);
-    assert(regs[0] == 0xBEEFU);
-    assert(regs[1] == 0xCAFEU);
-    assert(g_recv_timeout == 321U);
-    assert(master.request_count == 1U);
-    assert(nano_mb_master_deinit(&master) == NANO_MB_OK);
+    TEST_ASSERT_EQUAL(NANO_MB_OK, nano_mb_master_read_holding(&master, 7, 0x0010, 2, regs, 999));
+    TEST_ASSERT_EQUAL_UINT16(8U, g_tx_len);
+    TEST_ASSERT_EQUAL_UINT8(7U, g_tx[0]);
+    TEST_ASSERT_EQUAL_UINT8(MB_FUNC_READ_HOLDING, g_tx[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x00U, g_tx[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x10U, g_tx[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x00U, g_tx[4]);
+    TEST_ASSERT_EQUAL_UINT8(0x02U, g_tx[5]);
+    TEST_ASSERT_EQUAL_UINT16(0xBEEFU, regs[0]);
+    TEST_ASSERT_EQUAL_UINT16(0xCAFEU, regs[1]);
+    TEST_ASSERT_EQUAL_UINT32(321U, g_recv_timeout);
+    TEST_ASSERT_EQUAL_UINT32(1U, master.request_count);
+    TEST_ASSERT_EQUAL(NANO_MB_OK, nano_mb_master_deinit(&master));
 }
 
 static void test_compat_validation_and_crc(void)
@@ -121,19 +126,28 @@ static void test_compat_validation_and_crc(void)
     mb_master_t master;
     uint16_t data[1];
 
-    assert(nano_mb_crc16(frame, sizeof(frame)) == 0xCDC5U);
-    assert(strcmp(nano_mb_error_string(NANO_MB_CRC_ERROR), "CRC Error") == 0);
-    assert(nano_mb_slave_init(NULL, NULL) == NANO_MB_INVALID_PARAM);
-    assert(nano_mb_master_init(&master) == NANO_MB_OK);
-    assert(nano_mb_master_read_holding(&master, 1, 0, 0, data, 0) == NANO_MB_INVALID_PARAM);
-    assert(nano_mb_master_read_holding(&master, 1, 0, 126, data, 0) == NANO_MB_INVALID_PARAM);
-    assert(nano_mb_master_read_holding(NULL, 1, 0, 1, data, 0) == NANO_MB_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_UINT16(0xCDC5U, nano_mb_crc16(frame, sizeof(frame)));
+    TEST_ASSERT_EQUAL_STRING("CRC Error", nano_mb_error_string(NANO_MB_CRC_ERROR));
+    TEST_ASSERT_EQUAL(NANO_MB_INVALID_PARAM, nano_mb_slave_init(NULL, NULL));
+    TEST_ASSERT_EQUAL(NANO_MB_OK, nano_mb_master_init(&master));
+    TEST_ASSERT_EQUAL(NANO_MB_INVALID_PARAM, nano_mb_master_read_holding(&master, 1, 0, 0, data, 0));
+    TEST_ASSERT_EQUAL(NANO_MB_INVALID_PARAM, nano_mb_master_read_holding(&master, 1, 0, 126, data, 0));
+    TEST_ASSERT_EQUAL(NANO_MB_INVALID_PARAM, nano_mb_master_read_holding(NULL, 1, 0, 1, data, 0));
+}
+
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
 }
 
 int main(void)
 {
-    test_compat_slave_holding_read();
-    test_compat_master_read_holding();
-    test_compat_validation_and_crc();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_compat_slave_holding_read);
+    RUN_TEST(test_compat_master_read_holding);
+    RUN_TEST(test_compat_validation_and_crc);
+    return UNITY_END();
 }

@@ -196,6 +196,7 @@ add_executable(test_lte
 add_executable(test_nano_modbus
     ${UNIT_NET}/test_nano_modbus.c
     ${NET}/modbus_tiny/mb_tiny.c
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 12b: legacy Modbus RTU slave host guard ---
@@ -224,6 +225,7 @@ add_executable(test_net_core
     ${NET}/src/xy_net_platform.c
     ${NET}/modbus_tiny/mb_tiny.c
     ${CLIB}/xy_stdio.c
+    ${ROOT}/tests/unity/unity.c
 )
 
 target_include_directories(test_net_core PRIVATE
