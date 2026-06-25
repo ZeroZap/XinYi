@@ -184,6 +184,7 @@ add_executable(test_can
     ${UNIT_NET}/test_can.c
     ${NET}/src/xy_can.c
     ${CLIB}/xy_stdio.c
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 11: LTE component lifecycle, callback storage, and validation ---

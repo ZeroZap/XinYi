@@ -2,10 +2,10 @@
  * @file test_can.c
  * @brief Unit tests for the rehabilitated CAN component API.
  */
+#include "unity.h"
 
 #include "xy_can.h"
 
-#include <assert.h>
 #include <string.h>
 
 static uint32_t g_tick;
@@ -24,10 +24,18 @@ void xy_os_delay(uint32_t ticks)
     g_tick += ticks;
 }
 
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
+
 static void on_can_rx(xy_can_t *can, const xy_can_msg_t *msg)
 {
-    assert(can != NULL);
-    assert(msg != NULL);
+    TEST_ASSERT_NOT_NULL(can);
+    TEST_ASSERT_NOT_NULL(msg);
     g_callback_count++;
     g_last_callback_msg = *msg;
 }
@@ -61,32 +69,32 @@ static void test_can_fifo_rx_callback(void)
     g_callback_count = 0;
     memset(&g_last_callback_msg, 0, sizeof(g_last_callback_msg));
 
-    assert(xy_can_init(&can, NULL, &config) == XY_CAN_OK);
-    assert(can.initialized);
-    assert(xy_can_start(&can) == XY_CAN_OK);
-    assert(xy_can_register_rx_callback(&can, on_can_rx, NULL) == XY_CAN_OK);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_TRUE(can.initialized);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_start(&can));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_register_rx_callback(&can, on_can_rx, NULL));
 
     xy_can_isr_receive(&can, &tx);
-    assert(g_callback_count == 1U);
-    assert(g_last_callback_msg.id == tx.id);
-    assert(xy_can_get_rx_count(&can) == 1U);
+    TEST_ASSERT_EQUAL_UINT32(1U, g_callback_count);
+    TEST_ASSERT_EQUAL_UINT32(tx.id, g_last_callback_msg.id);
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_rx_count(&can));
 
     memset(&rx, 0, sizeof(rx));
-    assert(xy_can_receive(&can, &rx, 0) == XY_CAN_OK);
-    assert(rx.id == tx.id);
-    assert(rx.data[0] == tx.data[0]);
-    assert(g_callback_count == 2U);
-    assert(xy_can_get_rx_count(&can) == 2U);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_receive(&can, &rx, 0));
+    TEST_ASSERT_EQUAL_UINT32(tx.id, rx.id);
+    TEST_ASSERT_EQUAL_HEX8(tx.data[0], rx.data[0]);
+    TEST_ASSERT_EQUAL_UINT32(2U, g_callback_count);
+    TEST_ASSERT_EQUAL_UINT32(2U, xy_can_get_rx_count(&can));
 
-    assert(xy_can_send(&can, &tx, 0) == XY_CAN_OK);
-    assert(xy_can_get_tx_count(&can) == 1U);
-    assert(xy_can_get_fifo_usage(&can, &rx_usage, &tx_usage) == XY_CAN_OK);
-    assert(rx_usage >= 0.0F);
-    assert(tx_usage > 0.0F);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_send(&can, &tx, 0));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_tx_count(&can));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_get_fifo_usage(&can, &rx_usage, &tx_usage));
+    TEST_ASSERT_GREATER_OR_EQUAL_FLOAT(0.0F, rx_usage);
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0F, tx_usage);
 
-    assert(xy_can_unregister_rx_callback(&can) == XY_CAN_OK);
-    assert(xy_can_stop(&can) == XY_CAN_OK);
-    assert(xy_can_deinit(&can) == XY_CAN_OK);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_unregister_rx_callback(&can));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_stop(&can));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 }
 
 static void test_can_timeout_and_direct_mode(void)
@@ -104,29 +112,30 @@ static void test_can_timeout_and_direct_mode(void)
     g_delay_calls = 0;
     g_callback_count = 0;
 
-    assert(xy_can_init(&can, NULL, &config) == XY_CAN_OK);
-    assert(xy_can_send(&can, &msg, 0) == XY_CAN_OK);
-    assert(xy_can_get_tx_count(&can) == 1U);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_send(&can, &msg, 0));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_tx_count(&can));
 
-    assert(xy_can_register_rx_callback(&can, on_can_rx, NULL) == XY_CAN_OK);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_register_rx_callback(&can, on_can_rx, NULL));
     memset(&rx, 0, sizeof(rx));
-    assert(xy_can_receive(&can, &rx, 0) == XY_CAN_OK);
-    assert(xy_can_get_rx_count(&can) == 1U);
-    assert(g_callback_count == 1U);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_receive(&can, &rx, 0));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_rx_count(&can));
+    TEST_ASSERT_EQUAL_UINT32(1U, g_callback_count);
 
-    assert(xy_can_deinit(&can) == XY_CAN_OK);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 
     config.rx_fifo_size = 2;
-    config.tx_fifo_size = 1; /* one-slot ring buffer cannot accept data */
-    assert(xy_can_init(&can, NULL, &config) == XY_CAN_OK);
-    assert(xy_can_send(&can, &msg, 2) == XY_CAN_TIMEOUT);
-    assert(g_delay_calls >= 2U);
-    assert(xy_can_deinit(&can) == XY_CAN_OK);
+    config.tx_fifo_size = 1;
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_EQUAL(XY_CAN_TIMEOUT, xy_can_send(&can, &msg, 2));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT32(2U, g_delay_calls);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 }
 
 int main(void)
 {
-    test_can_fifo_rx_callback();
-    test_can_timeout_and_direct_mode();
-    return 0;
+    UNITY_BEGIN();
+    RUN_TEST(test_can_fifo_rx_callback);
+    RUN_TEST(test_can_timeout_and_direct_mode);
+    return UNITY_END();
 }
