@@ -732,6 +732,7 @@ add_test(NAME net_smbus_pmbus COMMAND test_net_smbus_pmbus)
 # --- Test 41: Actuator framework, relay, servo, PWM, and batch contracts ---
 add_executable(test_actuator_framework
     ${UNIT_ACTUATOR}/test_actuator_framework.c
+    ${ROOT}/tests/unity/unity.c
     ${ACTUATOR}/xy_actuator.c
 )
 target_link_libraries(test_actuator_framework m)
