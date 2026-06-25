@@ -593,6 +593,7 @@ add_executable(test_display_oled_ws2812
     ${UNIT_DISPLAY}/test_display_oled_ws2812.c
     ${DISPLAY}/oled/ssd1306/xy_oled_ssd1306.c
     ${DISPLAY}/led_drivers/serial_rgb/xy_ws2812.c
+    ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME display_oled_ws2812 COMMAND test_display_oled_ws2812)
 
