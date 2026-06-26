@@ -16,8 +16,9 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 # Include directories
 set(INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../xy_clib
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../bsp/xy_hal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../..
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../clib/xy_clib
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../hal/inc
 )
 
 # Source files
@@ -125,7 +126,14 @@ option(XY_ISO7816_BUILD_TESTS "Build tests" OFF)
 
 if(XY_ISO7816_BUILD_TESTS)
     enable_testing()
-    # Add test cases here
+    add_executable(xy_iso7816_test xy_iso7816_test.c ${SOURCES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../../tests/unity/unity.c
+    )
+    target_include_directories(xy_iso7816_test PRIVATE
+        ${INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../../tests/unity
+    )
+    add_test(NAME xy_iso7816_test COMMAND xy_iso7816_test)
 endif()
 
 # ============================================================================
