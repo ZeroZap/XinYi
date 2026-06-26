@@ -9,10 +9,9 @@
  */
 
 #include "xy_device.h"
+#include "unity.h"
 
-#include <assert.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #define TEMPLATE_STORAGE_SIZE 32U
@@ -163,38 +162,55 @@ static xy_device_t g_template_device = {
     .data = &g_template_data,
 };
 
-int main(void)
+void setUp(void)
+{
+    memset(&g_template_data, 0, sizeof(g_template_data));
+    memset(g_template_data.storage, 0, sizeof(g_template_data.storage));
+    g_template_device.initialized = 0;
+    g_template_device.state = XY_DEV_STATE_INIT;
+}
+
+void tearDown(void)
+{
+    (void)g_template_api.deinit(&g_template_device);
+}
+
+static void test_device_driver_template_uses_public_device_api(void)
 {
     uint8_t rx[4] = {0};
     const uint8_t tx[4] = {1, 2, 3, 4};
     xy_dev_info_t info;
 
-    assert(xy_device_init() == XY_OK);
-    assert(g_template_api.init(&g_template_device, g_template_device.config) == XY_OK);
-    assert(xy_device_register(&g_template_device) == XY_OK);
-    assert(xy_device_exists("tmpl0") == 1);
+    TEST_ASSERT_EQUAL(XY_OK, xy_device_init());
+    TEST_ASSERT_EQUAL(XY_OK, g_template_api.init(&g_template_device, g_template_device.config));
+    TEST_ASSERT_EQUAL(XY_OK, xy_device_register(&g_template_device));
+    TEST_ASSERT_EQUAL_INT(1, xy_device_exists("tmpl0"));
 
     xy_device_t *dev = xy_device_open("tmpl0", XY_DEV_FLAG_RDWR);
-    assert(dev == &g_template_device);
-    assert(g_template_data.open_count == 1U);
+    TEST_ASSERT_EQUAL_PTR(&g_template_device, dev);
+    TEST_ASSERT_EQUAL_UINT32(1U, g_template_data.open_count);
 
-    assert(xy_device_write(dev, 4, tx, sizeof(tx)) == (int32_t)sizeof(tx));
-    assert(xy_device_read(dev, 4, rx, sizeof(rx)) == (int32_t)sizeof(rx));
-    assert(memcmp(rx, tx, sizeof(rx)) == 0);
+    TEST_ASSERT_EQUAL_INT32((int32_t)sizeof(tx), xy_device_write(dev, 4, tx, sizeof(tx)));
+    TEST_ASSERT_EQUAL_INT32((int32_t)sizeof(rx), xy_device_read(dev, 4, rx, sizeof(rx)));
+    TEST_ASSERT_EQUAL_MEMORY(tx, rx, sizeof(rx));
 
-    assert(xy_device_control(dev, XY_DEV_CMD_GET_INFO, &info) == XY_OK);
-    assert(info.name && strcmp(info.name, "tmpl0") == 0);
-    assert(info.type == XY_DEV_TYPE_MISC);
+    TEST_ASSERT_EQUAL(XY_OK, xy_device_control(dev, XY_DEV_CMD_GET_INFO, &info));
+    TEST_ASSERT_NOT_NULL(info.name);
+    TEST_ASSERT_EQUAL_STRING("tmpl0", info.name);
+    TEST_ASSERT_EQUAL(XY_DEV_TYPE_MISC, info.type);
 
-    assert(xy_device_control(dev, XY_DEV_CMD_RESET, NULL) == XY_OK);
+    TEST_ASSERT_EQUAL(XY_OK, xy_device_control(dev, XY_DEV_CMD_RESET, NULL));
     memset(rx, 0, sizeof(rx));
-    assert(xy_device_read(dev, 4, rx, sizeof(rx)) == (int32_t)sizeof(rx));
-    assert(rx[0] == g_template_config.fill_value);
+    TEST_ASSERT_EQUAL_INT32((int32_t)sizeof(rx), xy_device_read(dev, 4, rx, sizeof(rx)));
+    TEST_ASSERT_EQUAL_HEX8(g_template_config.fill_value, rx[0]);
 
-    assert(xy_device_close(dev) == XY_OK);
-    assert(g_template_data.close_count == 1U);
-    assert(g_template_api.deinit(&g_template_device) == XY_OK);
+    TEST_ASSERT_EQUAL(XY_OK, xy_device_close(dev));
+    TEST_ASSERT_EQUAL_UINT32(1U, g_template_data.close_count);
+}
 
-    puts("device_driver_template: OK");
-    return 0;
+int main(void)
+{
+    UNITY_BEGIN();
+    RUN_TEST(test_device_driver_template_uses_public_device_api);
+    return UNITY_END();
 }

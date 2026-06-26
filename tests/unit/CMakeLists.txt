@@ -177,6 +177,7 @@ add_executable(test_device_registry_example
 add_executable(test_device_driver_template
     ${ROOT}/examples/device_driver_template.c
     ${FRAMEWORK_SOURCES}
+    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 10: CAN protocol component API + callback/fifo behavior ---
