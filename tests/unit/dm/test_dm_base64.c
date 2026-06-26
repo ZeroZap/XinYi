@@ -75,11 +75,21 @@ static void test_base64_roundtrip_binary(void)
     TEST_ASSERT_EQUAL_MEMORY(input, decoded, sizeof(input));
 }
 
+static void test_base64_decode_rejects_invalid_input(void)
+{
+    uint8_t output[8] = {0xaa};
+
+    TEST_ASSERT_EQUAL_UINT32(0, xy_base64_decode((const uint8_t *)"Zg=", 3, output));
+    TEST_ASSERT_EQUAL_UINT32(0, xy_base64_decode((const uint8_t *)"!g==", 4, output));
+    TEST_ASSERT_EQUAL_UINT32(0, xy_base64_decode((const uint8_t *)"Z!==", 4, output));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_base64_encode_vectors);
     RUN_TEST(test_base64_decode_vectors);
     RUN_TEST(test_base64_roundtrip_binary);
+    RUN_TEST(test_base64_decode_rejects_invalid_input);
     return UNITY_END();
 }

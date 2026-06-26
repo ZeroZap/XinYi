@@ -1,7 +1,5 @@
 #include "xy_base64.h"
 
-#include <assert.h>
-
 static uint8_t alphabet_map[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 static uint8_t reverse_map[] =
@@ -60,7 +58,9 @@ uint32_t xy_base64_encode(const uint8_t *text, uint32_t text_len, uint8_t *encod
 */
 uint32_t xy_base64_decode(const uint8_t  *code, uint32_t code_len, uint8_t  *plain)
 {
-    assert((code_len & 0x03) == 0);
+    if ((code_len & 0x03) != 0) {
+        return 0;
+    }
 
     uint32_t i, j = 0;
     uint8_t quad[4];
@@ -73,7 +73,9 @@ uint32_t xy_base64_decode(const uint8_t  *code, uint32_t code_len, uint8_t  *pla
         }
 
 
-        assert(quad[0] < 64 && quad[1] < 64);
+        if (quad[0] >= 64 || quad[1] >= 64) {
+            return 0;
+        }
 
         plain[j++] = (quad[0] << 2) | (quad[1] >> 4);
 
