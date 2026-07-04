@@ -38,7 +38,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include "bootreason_check.h"
 #include "bootreason_portable.h"
 #include "hal_rtc.h"
@@ -402,6 +401,7 @@ bootreason_status_t bootreason_get_info(bootreason_info_t *info)
     {
         case BOOTREASON_UNKNOWN:
         case BOOTREASON_NORMAL:
+            break;
         case BOOTREASON_ASSERT:
         case BOOTREASON_EXCEPTION:
         case BOOTREASON_WATCHDOG:

@@ -29,6 +29,7 @@ set(GUI ${ROOT}/components/gui)
 set(ANALOG ${ROOT}/components/analog_devices)
 set(SYS ${ROOT}/components/sys)
 set(ACTUATOR ${ROOT}/components/actuator)
+set(BOOTREASON ${ROOT}/components/kernel/service/bootreason_check)
 
 set(UNIT_ACTUATOR ${CMAKE_CURRENT_SOURCE_DIR}/actuator)
 set(UNIT_ANALOG ${CMAKE_CURRENT_SOURCE_DIR}/analog_devices)
@@ -103,6 +104,9 @@ include_directories(
     ${SYS}/xy_timer                 # xy_timer.h
     ${SYS}/xy_state_machine         # xy_st.h
     ${ROOT}/components/kernel/misc  # xy_tick.h
+    ${UNIT_KERNEL}                  # focused kernel test stubs
+    ${BOOTREASON}/inc               # bootreason_check.h
+    ${BOOTREASON}/src               # include implementation for focused test
     ${SENSOR}                       # sensor_core.h / sensor_type.h
     ${ACTUATOR}                     # xy_actuator.h
     ${ROOT}/tests/unity             # unity.h
@@ -744,7 +748,13 @@ add_executable(test_sys_timer_sm
 target_compile_definitions(test_sys_timer_sm PRIVATE reentrant= PLATFORM=0 PLATFORM_C51=1)
 add_test(NAME sys_timer_sm COMMAND test_sys_timer_sm)
 
-# --- Test 40: Net SMBus/PMBus helper and protocol contracts ---
+add_executable(test_bootreason_check
+    ${UNIT_KERNEL}/test_bootreason_check.c
+    ${ROOT}/tests/unity/unity.c
+)
+add_test(NAME bootreason_check COMMAND test_bootreason_check)
+
+# --- Test 40: Net SMBus/PMBus helpers and default ops ---
 add_executable(test_net_smbus_pmbus
     ${UNIT_NET}/test_net_smbus_pmbus.c
     ${NET}/smbus/xy_smbus.c
