@@ -30,7 +30,6 @@
 #ifndef CORE_JSON_H_
 #define CORE_JSON_H_
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -41,11 +40,11 @@
 /* *INDENT-ON* */
 
 /**
- *  @brief By default, has the stand behavior of assert() for
- *  parameter checking. To swap out the assert(), define this
+ *  @brief By default, parameter checks are compiled as no-ops.
+ *  To swap in project-specific checking, define this
  *  macro with the desired behavior.  */
 #ifndef coreJSON_ASSERT
-    #define coreJSON_ASSERT( expr )    assert( expr )
+    #define coreJSON_ASSERT( expr )    ( ( void ) ( expr ) )
 #endif
 
 
@@ -94,7 +93,7 @@ typedef enum
  *     result = JSON_Validate( buffer, bufferLength );
  *
  *     // JSON document is valid.
- *     assert( result == JSONSuccess );
+ *     if( result != JSONSuccess ) { handle_validation_failure(); }
  * @endcode
  */
 /* @[declare_json_validate] */

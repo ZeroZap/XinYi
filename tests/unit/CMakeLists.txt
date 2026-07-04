@@ -580,6 +580,15 @@ add_executable(test_dm_fee
 target_include_directories(test_dm_fee PRIVATE ${DM}/fee/inc)
 add_test(NAME dm_fee COMMAND test_dm_fee)
 
+# --- Test 29d: DM coreJSON parser/search contracts ---
+add_executable(test_dm_corejson
+    ${UNIT_DM}/test_dm_corejson.c
+    ${DM}/coreJSON/core_json.c
+    ${ROOT}/tests/unity/unity.c
+)
+target_include_directories(test_dm_corejson PRIVATE ${DM}/coreJSON)
+add_test(NAME dm_corejson COMMAND test_dm_corejson)
+
 # --- Test 30: IPC pipe ring-buffer contracts ---
 add_executable(test_ipc_pipe
     ${UNIT_IPC}/test_ipc_pipe.c
@@ -889,7 +898,7 @@ add_custom_target(run_unit_tests
             test_nano_modbus test_modbus_legacy test_iso7816 test_iso7816_example test_net_core
             test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
             test_sensor_framework test_hal_pc test_pm test_pm_platform_fallback test_trace test_clib test_mux_core
-            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_tlv test_dm_nvm test_dm_factory test_dm_fee test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_display_serial_rgb_headers test_display_led_driver test_mqtt_client test_at_client
+            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_tlv test_dm_nvm test_dm_factory test_dm_fee test_dm_corejson test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_display_serial_rgb_headers test_display_led_driver test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
             test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
             test_actuator_framework test_charger_bq25620 test_fuel_gauge_core test_fg_bq27z746 test_fg_bq40z50 test_fg_max17043 test_fg_bq27z561
