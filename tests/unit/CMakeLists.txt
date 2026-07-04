@@ -368,6 +368,24 @@ target_include_directories(test_cipher_hmac PRIVATE
 )
 add_test(NAME crypto_cipher_hmac COMMAND test_cipher_hmac)
 
+# --- Test 20b: Crypto SM2 public API contracts ---
+add_executable(test_sm2
+    ${UNIT_CRYPTO}/test_sm2.c
+    ${ROOT}/tests/unity/unity.c
+    ${CRYPTO}/xy_sm2/xy_sm2.c
+    ${CRYPTO}/xy_sm3/xy_sm3.c
+    ${CRYPTO}/xy_sm4/xy_sm4.c
+    ${CRYPTO}/xy_rng/xy_random.c
+)
+target_include_directories(test_sm2 PRIVATE
+    ${CRYPTO}
+    ${CRYPTO}/inc
+    ${CRYPTO}/xy_sm2
+    ${CRYPTO}/xy_sm3
+    ${CRYPTO}/xy_sm4
+)
+add_test(NAME crypto_sm2 COMMAND test_sm2)
+
 # --- Test 21: Sensor framework lifecycle, registry, FIFO, calibration, filters ---
 add_executable(test_sensor_framework
     ${UNIT_SENSOR}/test_sensor_framework.c
