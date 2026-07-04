@@ -310,19 +310,20 @@ void app_main(void) {
 
 ## 🧪 测试用例
 
-OSAL 组件包含 17 个测试用例：
+OSAL bare-metal 单元测试已并入统一 PC 测试套件：
 
-| 测试类别 | 用例数 | 说明 |
-|----------|--------|------|
-| 内核控制 | 4 | 初始化、信息获取、状态 |
-| Tick 模块 | 4 | 初始化、获取、经过时间 |
-| 软件定时器 | 6 | 创建、启动、停止、删除 |
-| OSAL 原语 | 3 | 信号量、互斥量 |
+| CTest 名称 | 目标 | 说明 |
+|----------|------|------|
+| `osal_baremetal` | `test_osal` | kernel/thread/timer/mutex/semaphore/event flags/msgqueue/mempool |
 
 运行测试：
 
 ```bash
-ctest -R test_osal --output-on-failure
+make test-unit
+
+# 或只运行 OSAL focused 测试
+cmake --build build/tests/unit --target test_osal -j"$(nproc)"
+ctest --test-dir build/tests/unit -R '^osal_baremetal$' --output-on-failure
 ```
 
 ---

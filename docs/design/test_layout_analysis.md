@@ -261,16 +261,13 @@ project(xy_tests C)
 
 enable_testing()
 
-# 添加各组件测试
-add_subdirectory(../components/crypto/tests crypto)
-add_subdirectory(../components/kernel/osal/tests osal)
-add_subdirectory(../components/clib/xy_clib/tests clib)
-# ... 其他组件
+# 统一 PC 单元测试入口
+add_subdirectory(unit)
 
 # 自定义测试目标
 add_custom_target(run_tests
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_crypto test_osal test_clib
+    COMMAND ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR}/unit --output-on-failure
+    DEPENDS run_unit_tests
 )
 ```
 
