@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Total C unit-test files: 74
-- Unity-style files: 73
+- Total C unit-test files: 61
+- Unity-style files: 60
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 1
@@ -15,27 +15,27 @@
 | Component | Total | Unity | Raw assert | Mixed | Plain | Fake-heavy candidates |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | `actuator` | 1 | 1 | 0 | 0 | 0 | 1 |
-| `analog_devices` | 2 | 2 | 0 | 0 | 0 | 1 |
-| `clib` | 2 | 2 | 0 | 0 | 0 | 0 |
-| `crypto` | 7 | 7 | 0 | 0 | 0 | 0 |
+| `analog_devices` | 1 | 1 | 0 | 0 | 0 | 1 |
+| `clib` | 1 | 1 | 0 | 0 | 0 | 0 |
+| `crypto` | 6 | 6 | 0 | 0 | 0 | 0 |
 | `device` | 4 | 4 | 0 | 0 | 0 | 2 |
 | `display` | 5 | 5 | 0 | 0 | 0 | 1 |
-| `dm` | 8 | 8 | 0 | 0 | 0 | 1 |
-| `fota` | 2 | 2 | 0 | 0 | 0 | 1 |
+| `dm` | 6 | 6 | 0 | 0 | 0 | 1 |
+| `fota` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `fuel_gauge` | 5 | 5 | 0 | 0 | 0 | 5 |
-| `gui` | 4 | 4 | 0 | 0 | 0 | 2 |
+| `gui` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `hal_component` | 1 | 1 | 0 | 0 | 0 | 0 |
-| `ipc` | 3 | 3 | 0 | 0 | 0 | 1 |
+| `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `kernel` | 2 | 2 | 0 | 0 | 0 | 0 |
-| `net` | 13 | 13 | 0 | 0 | 0 | 3 |
-| `pid` | 2 | 2 | 0 | 0 | 0 | 0 |
-| `pm` | 4 | 4 | 0 | 0 | 0 | 1 |
+| `net` | 11 | 11 | 0 | 0 | 0 | 3 |
+| `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
+| `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `sensor` | 3 | 3 | 0 | 0 | 0 | 3 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 0 | 0 | 0 | 1 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
-| `trace` | 2 | 2 | 0 | 0 | 0 | 0 |
+| `trace` | 1 | 1 | 0 | 0 | 0 | 0 |
 
 ## Migration Priority
 
@@ -49,13 +49,10 @@
 | File | Style | Fake signal count |
 | --- | --- | ---: |
 | `tests/unit/actuator/test_actuator_framework.c` | `unity` | 15 |
-| `tests/unit/analog_devices/test_addc.c` | `unity` | 0 |
 | `tests/unit/analog_devices/test_analog_devices.c` | `unity` | 7 |
 | `tests/unit/clib/test_clib_core.c` | `unity` | 0 |
-| `tests/unit/clib/test_xy_clib.c` | `unity` | 0 |
 | `tests/unit/crypto/test_cipher_hmac.c` | `unity` | 0 |
 | `tests/unit/crypto/test_crc.c` | `unity` | 2 |
-| `tests/unit/crypto/test_crypto.c` | `unity` | 0 |
 | `tests/unit/crypto/test_csprng.c` | `unity` | 0 |
 | `tests/unit/crypto/test_encode.c` | `unity` | 0 |
 | `tests/unit/crypto/test_hash.c` | `unity` | 0 |
@@ -69,15 +66,12 @@
 | `tests/unit/display/test_display_rgb_matrix.c` | `unity` | 2 |
 | `tests/unit/display/test_display_serial_rgb_headers.c` | `unity` | 0 |
 | `tests/unit/display/test_led_driver.c` | `unity` | 6 |
-| `tests/unit/dm/test_dm.c` | `unity` | 1 |
 | `tests/unit/dm/test_dm_base64.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_corejson.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_factory.c` | `unity` | 1 |
 | `tests/unit/dm/test_dm_fee.c` | `unity` | 6 |
-| `tests/unit/dm/test_dm_nvm.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_nvm_core.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_tlv.c` | `unity` | 0 |
-| `tests/unit/fota/test_fota.c` | `unity` | 2 |
 | `tests/unit/fota/test_fota_core.c` | `unity` | 15 |
 | `tests/unit/framework/test_fff_smoke.c` | `unity` | 47 |
 | `tests/unit/fuel_gauge/test_fg_bq27z561.c` | `unity` | 20 |
@@ -85,12 +79,10 @@
 | `tests/unit/fuel_gauge/test_fg_bq40z50.c` | `unity` | 52 |
 | `tests/unit/fuel_gauge/test_fg_max17043.c` | `unity` | 14 |
 | `tests/unit/fuel_gauge/test_fuel_gauge_core.c` | `unity` | 31 |
-| `tests/unit/gui/test_gui.c` | `unity` | 19 |
 | `tests/unit/gui/test_gui_core.c` | `unity` | 22 |
 | `tests/unit/gui/test_gui_widget_theme.c` | `unity` | 0 |
 | `tests/unit/gui/test_gui_widgets.c` | `unity` | 0 |
 | `tests/unit/hal_component/test_hal_pc.c` | `unity` | 0 |
-| `tests/unit/ipc/test_ipc.c` | `unity` | 0 |
 | `tests/unit/ipc/test_ipc_broker.c` | `unity` | 6 |
 | `tests/unit/ipc/test_ipc_pipe.c` | `unity` | 0 |
 | `tests/unit/kernel/test_bootreason_check.c` | `unity` | 0 |
@@ -104,14 +96,10 @@
 | `tests/unit/net/test_modbus_legacy.c` | `unity` | 3 |
 | `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
-| `tests/unit/net/test_net.c` | `unity` | 0 |
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |
-| `tests/unit/net/test_net_mqtt.c` | `unity` | 0 |
 | `tests/unit/net/test_net_smbus_pmbus.c` | `unity` | 19 |
-| `tests/unit/pid/test_pid.c` | `unity` | 0 |
 | `tests/unit/pid/test_pid_core.c` | `unity` | 0 |
 | `tests/unit/pm/test_charger_bq25620.c` | `unity` | 5 |
-| `tests/unit/pm/test_pm.c` | `unity` | 0 |
 | `tests/unit/pm/test_pm_core.c` | `unity` | 0 |
 | `tests/unit/pm/test_pm_platform_fallback.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sensor_framework.c` | `unity` | 19 |
@@ -120,5 +108,4 @@
 | `tests/unit/storage/test_storage_eeprom_24xx.c` | `unity` | 58 |
 | `tests/unit/support/test_clib_alloc_shim.c` | `plain` | 0 |
 | `tests/unit/sys/test_sys_timer_sm.c` | `unity` | 0 |
-| `tests/unit/trace/test_trace.c` | `unity` | 0 |
 | `tests/unit/trace/test_trace_core.c` | `unity` | 0 |
