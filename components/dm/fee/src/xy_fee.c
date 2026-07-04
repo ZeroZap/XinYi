@@ -7,7 +7,8 @@
  * 支持裸机（Bare-metal）和 RTOS 环境
  */
 
-#include "fee.h"
+#include "xy_fee.h"
+#include <stddef.h>
 #include <string.h>
 
 /*==============================================================================
@@ -54,8 +55,7 @@
  */
 static inline uint8_t *get_work_buffer(fee_handle_t *h)
 {
-    /* work_buffer 存储在 handle 末尾的用户提供空间中 */
-    return (uint8_t *)h + sizeof(fee_handle_t);
+    return h->work_buffer;
 }
 
 /**
@@ -91,7 +91,7 @@ static uint16_t crc16_calc(const uint8_t *data, uint16_t len)
 
 static inline uint32_t get_fee_page_addr(fee_handle_t *h, uint8_t page_idx)
 {
-    return (uint32_t)(h->flash_base + (uint32_t)page_idx * h->fee_page_size);
+    return (uint32_t)(uintptr_t)(h->flash_base + (uint32_t)page_idx * h->fee_page_size);
 }
 
 static inline uint32_t get_data_area_addr(fee_handle_t *h, uint8_t page_idx)
@@ -537,8 +537,16 @@ fee_status_t fee_write(fee_handle_t *handle, uint16_t addr, const uint8_t *data,
 {
     fee_status_t status;
 
-    if (!handle || !data || !(handle->flags & FEE_FLAG_INIT)) {
+    if (!handle || !(handle->flags & FEE_FLAG_INIT)) {
         return FEE_ERROR_NOT_INIT;
+    }
+
+    if (len == 0) {
+        return FEE_OK;
+    }
+
+    if (!data) {
+        return FEE_ERROR_PARAM;
     }
 
     if (addr + len > handle->cache_size) {
@@ -597,8 +605,16 @@ fee_status_t fee_write(fee_handle_t *handle, uint16_t addr, const uint8_t *data,
 fee_status_t fee_read(fee_handle_t *handle, uint16_t addr, uint8_t *data,
                       uint16_t len)
 {
-    if (!handle || !data || !(handle->flags & FEE_FLAG_INIT)) {
+    if (!handle || !(handle->flags & FEE_FLAG_INIT)) {
         return FEE_ERROR_NOT_INIT;
+    }
+
+    if (len == 0) {
+        return FEE_OK;
+    }
+
+    if (!data) {
+        return FEE_ERROR_PARAM;
     }
 
     if (addr + len > handle->cache_size) {
