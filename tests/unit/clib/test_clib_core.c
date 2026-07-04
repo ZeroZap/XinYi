@@ -7,6 +7,8 @@
 #include "xy_ctype.h"
 #include "xy_stdio.h"
 #include "xy_string.h"
+#include "xy_filter.h"
+#include "xy_sort.h"
 
 static void test_clib_common_helpers(void)
 {
@@ -128,6 +130,105 @@ static void test_clib_ring_buffer_helpers(void)
     xy_rb_destroy(dyn);
 }
 
+static void test_clib_filter_helpers(void)
+{
+    xy_u16 median_buffer[5] = {0};
+    xy_u16 avg_buffer[4] = {0};
+    xy_u16 weighted_buffer[3] = {0};
+    xy_u8 weights[3] = {1, 2, 3};
+    xy_median_filter_t median;
+    xy_recursive_average_filter_t recursive;
+    xy_weighted_recursive_average_filter_t weighted;
+    xy_first_order_lag_filter_t lag;
+    xy_debounce_filter_t debounce;
+
+    TEST_ASSERT_EQUAL_UINT16(105U, xy_filter_amplitude_limiting(105U, 100U, 10U));
+    TEST_ASSERT_EQUAL_UINT16(100U, xy_filter_amplitude_limiting(120U, 100U, 10U));
+
+    xy_filter_median_init(&median, median_buffer, 5U);
+    TEST_ASSERT_EQUAL_UINT16(100U, xy_filter_median(&median, 100U));
+    TEST_ASSERT_EQUAL_UINT16(102U, xy_filter_median(&median, 102U));
+    TEST_ASSERT_EQUAL_UINT16(500U, xy_filter_median(&median, 500U));
+    TEST_ASSERT_EQUAL_UINT16(101U, xy_filter_median(&median, 101U));
+    TEST_ASSERT_EQUAL_UINT16(99U, xy_filter_median(&median, 99U));
+    TEST_ASSERT_EQUAL_UINT16(101U, xy_filter_median(&median, 101U));
+
+    xy_filter_recursive_average_init(&recursive, avg_buffer, 4U);
+    TEST_ASSERT_EQUAL_UINT16(100U, xy_filter_recursive_average(&recursive, 100U));
+    TEST_ASSERT_EQUAL_UINT16(101U, xy_filter_recursive_average(&recursive, 102U));
+    TEST_ASSERT_EQUAL_UINT16(100U, xy_filter_recursive_average(&recursive, 98U));
+    TEST_ASSERT_EQUAL_UINT16(100U, xy_filter_recursive_average(&recursive, 100U));
+
+    xy_filter_weighted_recursive_average_init(&weighted, weighted_buffer, weights, 3U);
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_filter_weighted_recursive_average(&weighted, 10U));
+    TEST_ASSERT_EQUAL_UINT16(5U, xy_filter_weighted_recursive_average(&weighted, 20U));
+    TEST_ASSERT_EQUAL_UINT16(20U, xy_filter_weighted_recursive_average(&weighted, 30U));
+
+    xy_filter_first_order_lag_init(&lag, 3U);
+    TEST_ASSERT_EQUAL_UINT16(12U, xy_filter_first_order_lag(&lag, 100U));
+    TEST_ASSERT_EQUAL_UINT16(23U, xy_filter_first_order_lag(&lag, 102U));
+
+    xy_filter_debounce_init(&debounce, 2U);
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_filter_debounce(&debounce, 1U));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_filter_debounce(&debounce, 1U));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_filter_debounce(&debounce, 1U));
+    TEST_ASSERT_EQUAL_UINT16(1U, xy_filter_debounce(&debounce, 1U));
+}
+
+static void assert_sorted_u16(const xy_u16 *arr, xy_u16 len)
+{
+    for (xy_u16 i = 1U; i < len; ++i) {
+        TEST_ASSERT_LESS_OR_EQUAL_UINT16(arr[i], arr[i - 1U]);
+    }
+}
+
+static void copy_u16(xy_u16 *dst, const xy_u16 *src, xy_u16 len)
+{
+    memcpy(dst, src, len * sizeof(src[0]));
+}
+
+static void test_clib_sort_helpers(void)
+{
+    const xy_u16 original[] = {64U, 34U, 25U, 12U, 22U, 11U, 90U, 5U};
+    xy_u16 work[sizeof(original) / sizeof(original[0])];
+    const xy_u16 len = (xy_u16)(sizeof(original) / sizeof(original[0]));
+
+    copy_u16(work, original, len);
+    xy_bubble_sort(work, len);
+    assert_sorted_u16(work, len);
+
+    copy_u16(work, original, len);
+    xy_selection_sort(work, len);
+    assert_sorted_u16(work, len);
+
+    copy_u16(work, original, len);
+    xy_insertion_sort(work, len);
+    assert_sorted_u16(work, len);
+
+    copy_u16(work, original, len);
+    xy_quick_sort(work, len);
+    assert_sorted_u16(work, len);
+
+    copy_u16(work, original, len);
+    xy_shell_sort(work, len);
+    assert_sorted_u16(work, len);
+
+    copy_u16(work, original, len);
+    xy_heap_sort(work, len);
+    assert_sorted_u16(work, len);
+
+    copy_u16(work, original, len);
+    xy_binary_insertion_sort(work, len);
+    assert_sorted_u16(work, len);
+
+    copy_u16(work, original, len);
+    xy_counting_sort(work, len, 100U);
+    assert_sorted_u16(work, len);
+
+    TEST_ASSERT_EQUAL_UINT16(4U, xy_binary_search(work, len, 25U));
+    TEST_ASSERT_EQUAL_UINT16(XY_U16_MAX, xy_binary_search(work, len, 100U));
+}
+
 void setUp(void)
 {
 }
@@ -144,5 +245,7 @@ int main(void)
     RUN_TEST(test_clib_ctype_helpers);
     RUN_TEST(test_clib_stdio_helpers);
     RUN_TEST(test_clib_ring_buffer_helpers);
+    RUN_TEST(test_clib_filter_helpers);
+    RUN_TEST(test_clib_sort_helpers);
     return UNITY_END();
 }

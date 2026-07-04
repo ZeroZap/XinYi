@@ -79,18 +79,15 @@ xy_quick_sort(arr, 5);
 
 ## 🧪 测试用例
 
-CLib 组件包含 21 个测试用例：
-
-| 测试类别 | 用例数 |
-|----------|--------|
-| 滤波算法 | 4 |
-| 排序算法 | 8 |
-| 数学工具 | 5 |
-| 字符串操作 | 4 |
+CLib 单元测试已并入统一 PC 测试套件，覆盖 common/string/stdio/ctype/ring-buffer/filter/sort 基础契约。
 
 运行测试：
 ```bash
-ctest -R test_xy_clib --output-on-failure
+make test-unit
+
+# 或只运行 CLib 目标
+cmake --build build/tests/unit --target test_clib -j"$(nproc)"
+ctest --test-dir build/tests/unit -R '^clib_component$' --output-on-failure
 ```
 
 ---

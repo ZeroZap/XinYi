@@ -18,10 +18,7 @@
 XinYi/
 ├── components/
 │   ├── clib/
-│   │   └── xy_clib/
-│   │       ├── test/                    ✅ 组件内测试
-│   │       ├── test_filter.c            ✅ 组件内测试
-│   │       └── test_sort.c              ✅ 组件内测试
+│   │   └── xy_clib/                     # CLib 实现；测试在 tests/unit/clib/
 │   │
 │   ├── crypto/
 │   │   ├── test/                        ✅ 组件内测试
@@ -59,19 +56,18 @@ XinYi/
 
 ### 1. 测试代码重复
 
-**问题**: `xy_clib` 测试同时存在于两处
-- `components/clib/xy_clib/test/`
-- 历史 `UniTest/component/xy_clib/test/`
+**问题**: `xy_clib` 旧组件内测试已迁入统一 `tests/unit/clib/test_clib_core.c`。
 
-**影响**: 
-- 维护成本翻倍
-- 可能出现测试结果不一致
+**当前状态**:
+- `components/clib/xy_clib/test/` 已删除
+- `components/clib/xy_clib/test_filter.c` / `test_sort.c` 已并入 `test_clib_core.c`
+- 统一入口：`make test-unit` 或 CTest `clib_component`
 
 ### 2. 测试文件命名不统一
 
 | 模式 | 示例 | 出现位置 |
 |------|------|----------|
-| `test_*.c` | `test_filter.c` | clib |
+| `test_*.c` | `tests/unit/clib/test_clib_core.c` | clib |
 | `*_test.c` | `fee-test.c`, `eflash_test.c` | dm |
 | `test*.c` | `test.c` | crypto |
 
@@ -81,7 +77,7 @@ XinYi/
 
 ```
 components/crypto/test/           # 组件级测试目录
-components/clib/xy_clib/test/     # 子组件级测试目录
+tests/unit/clib/               # CLib 统一 PC 单元测试
 components/dm/fee-test.c          # 文件级测试
 ```
 
@@ -203,17 +199,13 @@ tests/
 ### 步骤 1: 统一 xy_clib 测试
 
 **当前**:
-- `components/clib/xy_clib/test/` - 保留
-- 历史 `UniTest/component/xy_clib/test/` - 已删除/不再使用
+- `components/clib/xy_clib/test/` 已删除
+- `components/clib/xy_clib/test_filter.c` / `test_sort.c` 已并入 `tests/unit/clib/test_clib_core.c`
 
-**操作**:
+**运行**:
 ```bash
-# 备份后删除重复测试
-rm -rf tests/unit/build
-
-# 统一测试文件命名
-mv components/clib/xy_clib/test_filter.c components/clib/xy_clib/tests/test_filter.c
-mv components/clib/xy_clib/test_sort.c components/clib/xy_clib/tests/test_sort.c
+make test-unit
+ctest --test-dir build/tests/unit -R '^clib_component$' --output-on-failure
 ```
 
 ### 步骤 2: 规范 crypto 测试

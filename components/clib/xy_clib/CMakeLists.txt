@@ -22,7 +22,6 @@ list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "examples/.*")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "_example\\.c$")
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
-file(GLOB TEST_SOURCES "test/*.c")
 
 # Create static library
 add_library(xy_xy_clib STATIC ${COMPONENT_SOURCES})
@@ -39,19 +38,10 @@ if(WIN32)
     target_link_libraries(xy_xy_clib PRIVATE advapi32)
 endif()
 
-# Create test executable if test sources exist and testing is enabled
-if(TEST_SOURCES AND BUILD_TESTING)
-    add_executable(test_xy_clib ${TEST_SOURCES})
-    target_link_libraries(test_xy_clib xy_xy_clib)
-
-    if(WIN32)
-        target_link_libraries(test_xy_clib advapi32)
-    endif()
-
-    # Enable testing
-    enable_testing()
-    add_test(NAME xy_clib_test COMMAND test_xy_clib)
-endif()
+# Tests are provided by the repository-level tests/unit suite.
+# Run `make test-unit` from the repository root, or focus this component with:
+#   cmake --build build/tests/unit --target test_clib -j"$(nproc)"
+#   ctest --test-dir build/tests/unit -R '^clib_component$' --output-on-failure
 
 # Installation rules
 install(TARGETS xy_xy_clib

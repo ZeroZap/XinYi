@@ -22,15 +22,14 @@ XinYi 项目使用 **Unity** 单元测试框架。
 
 ```
 tests/                          # 统一测试目录
-├── test_osal.c                 # OSAL 测试
-├── test_crypto.c               # Crypto 测试
-├── test_xy_clib.c              # CLib 测试
-└── CMakeLists.txt              # 测试构建配置
+├── unit/
+│   ├── kernel/test_osal.c       # OSAL 测试
+│   ├── crypto/                  # Crypto 测试
+│   └── clib/test_clib_core.c    # CLib 测试
+└── CMakeLists.txt               # 测试构建配置
 
 components/
-└── <component>/
-    └── tests/                  # 组件特定测试（可选）
-        └── CMakeLists.txt
+└── <component>/                 # 组件实现
 ```
 
 ---

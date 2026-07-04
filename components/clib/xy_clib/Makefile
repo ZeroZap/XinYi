@@ -12,30 +12,24 @@ endif
 
 # Source and object directories
 SRCDIR = .
-TESTDIR = test
 OBJDIR = build
 INCDIR = inc
 
-# Find all source files
-SOURCES = $(wildcard *.c)
-SUBDIRS = $(filter-out $(TESTDIR) $(OBJDIR) $(INCDIR), $(wildcard */))
-SUBDIR_SOURCES = $(foreach dir,$(SUBDIRS),$(wildcard $(dir)*.c))
+# Find all source files (examples/tests are not part of the library)
+SOURCES = $(filter-out %_example.c test_%.c,$(wildcard *.c))
+SUBDIRS = $(filter-out $(OBJDIR) $(INCDIR), $(wildcard */))
+SUBDIR_SOURCES = $(foreach dir,$(SUBDIRS),$(filter-out %_example.c test_%.c,$(wildcard $(dir)*.c)))
 
 # Combine all sources
 ALL_SOURCES = $(SOURCES) $(SUBDIR_SOURCES)
 OBJECTS = $(ALL_SOURCES:%.c=$(OBJDIR)/%.o)
 
-# Test sources
-TEST_SOURCES = $(wildcard $(TESTDIR)/*.c)
-TEST_OBJECTS = $(TEST_SOURCES:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
-
-# Library and executable names
+# Library name
 LIBRARY = libxy_xy_clib.a
-TEST_EXECUTABLE = test_xy_clib
 
-.PHONY: all clean library test run_test help install
+.PHONY: all clean library help install
 
-all: library test
+all: library
 
 # Create build directory
 $(OBJDIR):
@@ -56,20 +50,16 @@ $(LIBRARY): $(OBJECTS)
 	ar rcs $@ $^
 	@echo "Library $(LIBRARY) created successfully"
 
-# Create test executable
-test: $(TEST_EXECUTABLE)
-
-$(TEST_EXECUTABLE): $(TEST_OBJECTS) $(LIBRARY)
-	$(CC) $^ -o $@ $(LDFLAGS)
-	@echo "Test executable $(TEST_EXECUTABLE) created successfully"
-
-# Run tests
-run_test: $(TEST_EXECUTABLE)
-	./$(TEST_EXECUTABLE)
+# Tests are provided by the repository-level tests/unit suite.
+# Run from the repository root:
+#   make test-unit
+# Or focus this component with:
+#   cmake --build build/tests/unit --target test_clib -j"$(nproc)"
+#   ctest --test-dir build/tests/unit -R '^clib_component$' --output-on-failure
 
 # Clean
 clean:
-	rm -rf $(OBJDIR) $(LIBRARY) $(TEST_EXECUTABLE)
+	rm -rf $(OBJDIR) $(LIBRARY)
 
 # Install headers and library (optional)
 install: library
@@ -80,10 +70,8 @@ install: library
 # Show help
 help:
 	@echo "Available targets:"
-	@echo "  all       - Compile library and test program"
+	@echo "  all       - Compile library"
 	@echo "  library   - Compile library file"
-	@echo "  test      - Compile test program"
-	@echo "  run_test  - Run test program"
 	@echo "  clean     - Clean generated files"
 	@echo "  install   - Install library and headers"
 	@echo "  help      - Show this help information"

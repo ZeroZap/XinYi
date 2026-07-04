@@ -441,6 +441,8 @@ add_executable(test_clib
     ${CLIB}/xy_string.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_ctype.c
+    ${CLIB}/xy_filter.c
+    ${CLIB}/xy_sort.c
     ${CLIB}/xy_rb.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
     ${ROOT}/tests/unity/unity.c
