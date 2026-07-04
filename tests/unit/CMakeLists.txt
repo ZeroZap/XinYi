@@ -46,6 +46,7 @@ set(UNIT_HAL ${CMAKE_CURRENT_SOURCE_DIR}/hal_component)
 set(UNIT_IPC ${CMAKE_CURRENT_SOURCE_DIR}/ipc)
 set(UNIT_KERNEL ${CMAKE_CURRENT_SOURCE_DIR}/kernel)
 set(UNIT_NET ${CMAKE_CURRENT_SOURCE_DIR}/net)
+set(UNIT_MUX ${CMAKE_CURRENT_SOURCE_DIR}/mux)
 set(UNIT_PID ${CMAKE_CURRENT_SOURCE_DIR}/pid)
 set(UNIT_PM ${CMAKE_CURRENT_SOURCE_DIR}/pm)
 set(UNIT_SENSOR ${CMAKE_CURRENT_SOURCE_DIR}/sensor)
@@ -448,7 +449,7 @@ add_test(NAME clib_component COMMAND test_clib)
 
 # --- Test 26: MUX manager, registration, and TLV packet contracts ---
 add_executable(test_mux_core
-    ${ROOT}/tests/mux_test/test_mux_core.c
+    ${UNIT_MUX}/test_mux_core.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_gpio.c
     ${MUX}/src/xy_mux_i2c.c
@@ -465,7 +466,7 @@ add_test(NAME mux_core COMMAND test_mux_core)
 
 # --- Test 27: MUX I2C channel helper contracts ---
 add_executable(test_mux_i2c
-    ${ROOT}/tests/mux_test/test_mux_i2c.c
+    ${UNIT_MUX}/test_mux_i2c.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_i2c.c
     ${TRACE}/xy_log/src/xy_log.c
@@ -479,7 +480,7 @@ add_test(NAME mux_i2c COMMAND test_mux_i2c)
 
 # --- Test 28: MUX GPIO channel helper contracts ---
 add_executable(test_mux_gpio
-    ${ROOT}/tests/mux_test/test_mux_gpio.c
+    ${UNIT_MUX}/test_mux_gpio.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_gpio.c
     ${TRACE}/xy_log/src/xy_log.c
@@ -504,7 +505,7 @@ add_test(NAME pid_core COMMAND test_pid_core)
 
 # --- Test 30: MUX SPI channel helper contracts ---
 add_executable(test_mux_spi
-    ${ROOT}/tests/mux_test/test_mux_spi.c
+    ${UNIT_MUX}/test_mux_spi.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_spi.c
     ${TRACE}/xy_log/src/xy_log.c
@@ -518,7 +519,7 @@ add_test(NAME mux_spi COMMAND test_mux_spi)
 
 # --- Test 31: MUX UART channel helper contracts ---
 add_executable(test_mux_uart
-    ${ROOT}/tests/mux_test/test_mux_uart.c
+    ${UNIT_MUX}/test_mux_uart.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_uart.c
     ${TRACE}/xy_log/src/xy_log.c
