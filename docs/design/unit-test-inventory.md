@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Total C unit-test files: 78
-- Unity-style files: 28
+- Total C unit-test files: 74
+- Unity-style files: 24
 - Raw `assert()` files: 42
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 9
@@ -24,7 +24,7 @@
 | `fota` | 2 | 1 | 1 | 0 | 0 | 1 |
 | `fuel_gauge` | 5 | 4 | 1 | 0 | 0 | 4 |
 | `gui` | 4 | 1 | 3 | 0 | 0 | 2 |
-| `hal_component` | 5 | 5 | 0 | 0 | 0 | 0 |
+| `hal_component` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `ipc` | 3 | 1 | 2 | 0 | 0 | 1 |
 | `kernel` | 1 | 0 | 0 | 0 | 1 | 0 |
 | `net` | 13 | 1 | 10 | 0 | 1 | 8 |
@@ -88,11 +88,7 @@
 | `tests/unit/gui/test_gui_core.c` | `raw_assert` | 96 |
 | `tests/unit/gui/test_gui_widget_theme.c` | `raw_assert` | 4 |
 | `tests/unit/gui/test_gui_widgets.c` | `raw_assert` | 15 |
-| `tests/unit/hal_component/test_hal.c` | `unity` | 0 |
-| `tests/unit/hal_component/test_hal_gpio.c` | `unity` | 13 |
-| `tests/unit/hal_component/test_hal_i2c.c` | `unity` | 4 |
 | `tests/unit/hal_component/test_hal_pc.c` | `unity` | 12 |
-| `tests/unit/hal_component/test_hal_uart.c` | `unity` | 11 |
 | `tests/unit/ipc/test_ipc.c` | `unity` | 9 |
 | `tests/unit/ipc/test_ipc_broker.c` | `raw_assert` | 23 |
 | `tests/unit/ipc/test_ipc_pipe.c` | `raw_assert` | 0 |
