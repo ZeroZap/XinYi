@@ -38,7 +38,7 @@ XinYi/
 │   │
 │   ├── net/
 │   │   └── xy_iso7816/
-│   │       └── xy_iso7816_test.c        ⚠️ 源码同级测试
+│   │       └── xy_iso7816.c             # ISO7816 实现
 │   │
 │   └── sensor/
 │       └── sensor_self_test.c           ⚠️ 组件根目录测试
@@ -248,7 +248,7 @@ mv components/dm/xy_eeprom/eflash_test.c components/dm/tests/test_eflash.c
 ```bash
 mkdir -p components/net/tests
 
-mv components/net/xy_iso7816/xy_iso7816_test.c components/net/tests/test_iso7816.c
+ISO7816 组件测试已在 `tests/unit/net/test_iso7816.c` 中维护，并由 `make test-unit` 运行。
 ```
 
 ### 步骤 5: 创建统一测试入口

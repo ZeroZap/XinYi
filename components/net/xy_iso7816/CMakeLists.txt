@@ -121,20 +121,10 @@ write_basic_package_version_file(
 # Testing (optional)
 # ============================================================================
 
-# Enable testing
-option(XY_ISO7816_BUILD_TESTS "Build tests" OFF)
-
-if(XY_ISO7816_BUILD_TESTS)
-    enable_testing()
-    add_executable(xy_iso7816_test xy_iso7816_test.c ${SOURCES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../tests/unity/unity.c
-    )
-    target_include_directories(xy_iso7816_test PRIVATE
-        ${INCLUDE_DIRS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../tests/unity
-    )
-    add_test(NAME xy_iso7816_test COMMAND xy_iso7816_test)
-endif()
+# Testing is provided by the repository-level tests/unit suite.
+# Run `make test-unit` from the repository root, or focus this component with:
+#   cmake --build build/tests/unit --target test_iso7816 -j"$(nproc)"
+#   ctest --test-dir build/tests/unit -R '^iso7816_component$' --output-on-failure
 
 # ============================================================================
 # Status
