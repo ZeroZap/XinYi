@@ -158,8 +158,9 @@ cmake --build build/components/hal -j$(nproc)
 ```
 
 ```bash
-cmake -B build/tests/actuator -S tests/actuator
-cmake --build build/tests/actuator -j$(nproc)
+cmake -B build/tests/unit -S tests/unit
+cmake --build build/tests/unit --target test_actuator_framework -j$(nproc)
+ctest --test-dir build/tests/unit -R '^actuator_framework$' --output-on-failure
 ```
 
 当前 `make distclean` 会清理常见历史目录：

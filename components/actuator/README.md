@@ -281,93 +281,33 @@ target_link_libraries(your_target xy_actuator)
 ### 测试文件
 
 ```
-tests/actuator/
-├── CMakeLists.txt           # 测试构建配置
-├── test_actuator_core.c     # 核心功能测试 (注册、查找、遍历)
-├── test_actuator_relay.c    # 继电器测试 (开/关、翻转)
-├── test_actuator_pwm.c      # PWM 测试 (占空比、频率)
-└── test_actuator_servo.c    # 舵机测试 (角度控制)
+tests/unit/actuator/
+└── test_actuator_framework.c # 统一 Actuator 框架、继电器、舵机、PWM 与批处理测试
 ```
 
-### 构建测试
+旧的 `tests/actuator/*` 独立测试入口已合并到 active `tests/unit` 套件，避免与 CTest 主入口重复。
+
+### 构建与运行测试
 
 ```bash
-# 创建构建目录
-mkdir -p build_actuator_test
-cd build_actuator_test
+# 运行全部 PC 单元测试
+make test-unit
 
-# 配置项目 (从项目根目录)
-cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug
-
-# 或者使用项目已有的 CMakeLists
-# 需要在主 CMakeLists.txt 中启用 actutor_tests 子目录
-```
-
-### 运行测试
-
-```bash
-# 单独运行每个测试
-./test_actuator_core
-./test_actuator_relay
-./test_actuator_pwm
-./test_actuator_servo
-
-# 或运行所有测试
-make run_actuator_tests
+# 或只运行 Actuator 目标
+cmake --build build/tests/unit --target test_actuator_framework -j"$(nproc)"
+ctest --test-dir build/tests/unit -R '^actuator_framework$' --output-on-failure
 ```
 
 ### 测试覆盖
 
-#### test_actuator_core.c
+#### test_actuator_framework.c
 
-- 设备注册/注销 (单设备、多设备、重名检查)
-- 设备查找 (按名称、按类型)
-- 设备计数 (总数、按类型计数)
-- 设备初始化/反初始化
-- 使能/禁用控制
-- 状态查询
-- 字符串转换函数
-- 通用读写操作
-- 复位和急停
-
-#### test_actuator_relay.c
-
-- 继电器初始化
-- 开/关控制 (`relay_on`, `relay_off`)
-- 状态设置/读取
-- 翻转操作 (`relay_toggle`)
-- 脉冲操作 (`relay_pulse`)
-- 状态枚举值验证
-
-#### test_actuator_pwm.c
-
-- PWM 初始化
-- 占空比设置 (0%, 50%, 100%)
-- 频率设置 (100Hz - 10MHz)
-- PWM 值结构测试
-- 配置测试
-
-#### test_actuator_servo.c
-
-- 舵机初始化
-- 角度设置 (最小、最大、中心)
-- 角度范围设置
-- 速度设置
-- 回中、停止、往复运动
-- 角度与 PWM 转换 (包含边界 clamping)
-- PWM 占空比转角度转换
-
-### 预期输出
-
-```
-test_actuator_core.c
-...
-Tests [XX] Passed [XX] Failed [XX] Ignored [XX]
-
-test_actuator_relay.c
-...
-Tests [XX] Passed [XX] Failed [XX] Ignored [XX]
-```
+- Actuator 类型、状态、错误码字符串与舵机 PWM/角度换算
+- 设备注册/注销、按名称/类型查找、计数、初始化/反初始化
+- 通用读写、使能/禁用、缺失 ops 错误路径
+- 继电器默认操作：开/关、翻转、脉冲
+- 舵机默认操作：角度设置、回中、范围与 PWM 配置
+- 批量操作：批量写入、序列执行、错误参数
 
 ---
 
