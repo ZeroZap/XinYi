@@ -4,11 +4,11 @@
 
 ## Summary
 
-- Total C unit-test files: 80
+- Total C unit-test files: 78
 - Unity-style files: 28
 - Raw `assert()` files: 42
 - Mixed Unity + raw `assert()` files: 0
-- Plain/compile-smoke files without obvious Unity/assert markers: 10
+- Plain/compile-smoke files without obvious Unity/assert markers: 9
 
 ## Component Breakdown
 
@@ -27,7 +27,7 @@
 | `hal_component` | 5 | 5 | 0 | 0 | 0 | 0 |
 | `ipc` | 3 | 1 | 2 | 0 | 0 | 1 |
 | `kernel` | 1 | 0 | 0 | 0 | 1 | 0 |
-| `net` | 15 | 2 | 11 | 0 | 2 | 8 |
+| `net` | 13 | 1 | 10 | 0 | 1 | 8 |
 | `pid` | 2 | 1 | 1 | 0 | 0 | 0 |
 | `pm` | 4 | 1 | 3 | 0 | 0 | 1 |
 | `sensor` | 4 | 2 | 0 | 0 | 2 | 1 |
@@ -97,8 +97,6 @@
 | `tests/unit/ipc/test_ipc_broker.c` | `raw_assert` | 23 |
 | `tests/unit/ipc/test_ipc_pipe.c` | `raw_assert` | 0 |
 | `tests/unit/kernel/test_osal.c` | `plain` | 17 |
-| `tests/unit/net/at_server_test.c` | `raw_assert` | 24 |
-| `tests/unit/net/test_at_client.c` | `plain` | 11 |
 | `tests/unit/net/test_at_client_core.c` | `raw_assert` | 52 |
 | `tests/unit/net/test_at_server_core.c` | `raw_assert` | 43 |
 | `tests/unit/net/test_can.c` | `raw_assert` | 49 |
