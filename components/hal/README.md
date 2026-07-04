@@ -191,13 +191,15 @@ xy_hal_i2c_unbind(i2c);
 ### 运行测试
 
 ```bash
-# PC 模拟测试
-cd components/hal/tests
-mkdir build && cd build
-cmake ..
-make -j9
-./xy_hal_tests_pc
+# 统一 PC 单元测试套件
+make test-unit
+
+# 或只运行 HAL PC 目标
+cmake --build build/tests/unit --target test_hal_pc -j"$(nproc)"
+ctest --test-dir build/tests/unit -R '^hal_pc$' --output-on-failure
 ```
+
+旧的 `tests/hal/*` 独立 GPIO smoke 入口已合并到 active `tests/unit/hal_component/test_hal_pc.c`，避免与 CTest 主入口重复。
 
 ---
 
