@@ -386,6 +386,23 @@ target_include_directories(test_sm2 PRIVATE
 )
 add_test(NAME crypto_sm2 COMMAND test_sm2)
 
+# --- Test 20c: Crypto lightweight AEAD/hash contracts ---
+add_executable(test_lwc
+    ${UNIT_CRYPTO}/test_lwc.c
+    ${ROOT}/tests/unity/unity.c
+    ${CRYPTO}/xy_ascon/xy_ascon.c
+    ${CRYPTO}/xy_tinyjambu/xy_tinyjambu.c
+    ${CRYPTO}/xy_photon_beetle/xy_photon_beetle.c
+)
+target_include_directories(test_lwc PRIVATE
+    ${CRYPTO}
+    ${CRYPTO}/inc
+    ${CRYPTO}/xy_ascon
+    ${CRYPTO}/xy_tinyjambu
+    ${CRYPTO}/xy_photon_beetle
+)
+add_test(NAME crypto_lwc COMMAND test_lwc)
+
 # --- Test 21: Sensor framework lifecycle, registry, FIFO, calibration, filters ---
 add_executable(test_sensor_framework
     ${UNIT_SENSOR}/test_sensor_framework.c
@@ -917,7 +934,7 @@ add_custom_target(run_unit_tests
     DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
             test_osal test_auto_register test_device_async_helper test_can test_lte
             test_nano_modbus test_modbus_legacy test_iso7816 test_iso7816_example test_net_core
-            test_crc test_csprng test_random test_encode test_hash test_cipher_hmac
+            test_crc test_csprng test_random test_encode test_hash test_cipher_hmac test_lwc
             test_sensor_framework test_hal_pc test_pm test_pm_platform_fallback test_trace test_clib test_mux_core
             test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_tlv test_dm_nvm test_dm_factory test_dm_fee test_dm_corejson test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_display_serial_rgb_headers test_display_led_driver test_mqtt_client test_at_client
             test_at_server test_fota_core test_gui_core test_gui_widget_theme
