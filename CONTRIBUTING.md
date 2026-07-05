@@ -164,7 +164,7 @@ void test_my_function(void)
 make test
 
 # 运行特定测试
-ctest -R test_crypto --output-on-failure
+ctest --test-dir build/tests/unit -R '^crypto_' --output-on-failure
 
 # 生成覆盖率报告
 make coverage

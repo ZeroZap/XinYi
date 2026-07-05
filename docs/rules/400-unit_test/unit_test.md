@@ -92,7 +92,7 @@ int main(void)
 
 | 类型 | 命名规则 | 示例 |
 |------|---------|------|
-| 测试文件 | `test_<module>.c` | `test_crypto.c` |
+| 测试文件 | `test_<module>.c` | `test_hash.c` |
 | 测试函数 | `test_<module>_<feature>` | `test_aes_encrypt_decrypt` |
 | 辅助函数 | `test_<module>_helper_<action>` | `test_crypto_helper_encode` |
 
@@ -191,7 +191,7 @@ cd build
 make test
 
 # 运行特定测试
-ctest -R test_crypto --output-on-failure
+ctest --test-dir build/tests/unit -R '^crypto_' --output-on-failure
 
 # 详细输出
 ctest --verbose

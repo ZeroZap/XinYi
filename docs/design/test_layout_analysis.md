@@ -6,7 +6,7 @@
 
 | 模式 | 路径示例 | 优点 | 缺点 | 适用场景 |
 |------|---------|------|------|----------|
-| **组件内测试** | `components/crypto/test/` | 测试与源码就近，易于维护 | 测试代码可能污染组件目录 | 小型组件、独立模块 |
+| **组件内测试** | `components/*/test/` | 测试与源码就近，易于维护 | 测试代码可能污染组件目录 | 小型组件、独立模块 |
 | **统一测试目录** | `tests/unit/` | 测试集中管理，便于 CI/CD | 测试与源码分离，更新可能滞后 | 大型项目、多组件联合测试 |
 | **混合模式** | 两者结合 | 灵活 | 需要规范管理 | 复杂项目 |
 
@@ -21,7 +21,7 @@ XinYi/
 │   │   └── xy_clib/                     # CLib 实现；测试在 tests/unit/clib/
 │   │
 │   ├── crypto/
-│   │   ├── test/                        ✅ 组件内测试
+│   │   ├── tests/unit/crypto/            ✅ 统一 PC 单元测试
 │   │   ├── xy_25519/
 │   │   │   └── test_xy_25519_m0.c       ⚠️ 源码目录内测试
 │   │   └── curve25519-*/test/           ⚠️ 第三方源码带测试
@@ -76,8 +76,8 @@ XinYi/
 ### 3. 测试目录层级不一致
 
 ```
-components/crypto/test/           # 组件级测试目录
-tests/unit/clib/               # CLib 统一 PC 单元测试
+tests/unit/crypto/                 # Crypto 统一 PC 单元测试
+tests/unit/clib/                   # CLib 统一 PC 单元测试
 components/dm/fee-test.c          # 文件级测试
 ```
 
@@ -210,18 +210,16 @@ ctest --test-dir build/tests/unit -R '^clib_component$' --output-on-failure
 
 ### 步骤 2: 规范 crypto 测试
 
-**操作**:
+**状态**: 旧 `components/crypto/test/` printf/manual 测试已收敛到仓库级
+Unity + CTest 套件，当前入口在 `tests/unit/crypto/`。
+
+**运行**:
 ```bash
-# 创建统一 tests 目录
-mkdir -p components/crypto/tests
-
-# 移动测试文件
-mv components/crypto/test/*.c components/crypto/tests/
-mv components/crypto/xy_25519/test_xy_25519_m0.c components/crypto/tests/
-
-# 第三方测试保持原位 (标记为第三方)
-# components/crypto/curve25519-*/test/ 保持不变
+make test-unit
+ctest --test-dir build/tests/unit -R '^crypto_' --output-on-failure
 ```
+
+第三方 `components/crypto/curve25519-*/test/` 保持原位并按 vendor 测试处理。
 
 ### 步骤 3: 规范 dm 测试
 

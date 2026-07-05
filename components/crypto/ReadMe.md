@@ -218,11 +218,15 @@ xy_tiny_crypto/
 │   ├── xy_crc32.c          # CRC32 实现
 │   ├── xy_random.c         # 随机数实现
 │   └── xy_hmac.c           # HMAC 实现
-├── test/
-│   └── test_crypto.c       # 测试程序
 ├── Makefile                # Make 构建文件
 ├── CMakeLists.txt          # CMake 构建文件
 └── ReadMe.md               # 说明文档
+
+../../tests/unit/crypto/
+├── test_hash.c             # MD5/SHA-256 测试
+├── test_encode.c           # Base64/Hex 测试
+├── test_crc.c              # CRC 测试
+└── test_cipher_hmac.c      # AES/HMAC/SM3/SM4/ChaCha20 测试
 ```
 
 ## 注意事项

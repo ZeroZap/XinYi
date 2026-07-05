@@ -159,7 +159,7 @@ make test
 ctest --output-on-failure
 
 # 运行特定测试
-ctest -R test_crypto --output-on-failure
+ctest --test-dir build/tests/unit -R '^crypto_' --output-on-failure
 ```
 
 ### 如何生成覆盖率报告？

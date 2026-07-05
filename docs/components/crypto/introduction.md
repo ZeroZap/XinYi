@@ -251,24 +251,16 @@ xy_sha256_final(&ctx, digest);
 
 ## 🧪 测试用例
 
-Crypto 组件包含 28 个测试用例：
-
-| 测试类别 | 用例数 | 说明 |
-|----------|--------|------|
-| CRC | 6 | CRC32/CRC16/CRC8 |
-| MD5 | 3 | 哈希/增量哈希 |
-| SHA256 | 2 | 哈希 |
-| AES | 2 | 加密/解密/CBC |
-| Base64 | 4 | 编码/解码/往返 |
-| Hex | 3 | 编码/解码/往返 |
-| HMAC | 2 | SHA256-HMAC |
-| 随机数 | 2 | 字节/整数 |
-| 边界 | 4 | 空数据/大数据 |
+Crypto 组件测试已收敛到仓库级 Unity + CTest 套件，覆盖 CRC、随机数、
+Base64/Hex、MD5/SHA-256、AES/HMAC/SM3/SM4/ChaCha20 和 SM2 公共 API 契约。
 
 运行测试：
 
 ```bash
-ctest -R test_crypto --output-on-failure
+make test-unit
+
+# 或运行 Crypto focused tests
+ctest --test-dir build/tests/unit -R '^crypto_(crc|random|encode|hash|cipher_hmac|sm2)$' --output-on-failure
 ```
 
 ---

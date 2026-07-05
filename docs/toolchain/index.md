@@ -90,7 +90,7 @@ int main(void) {
 ctest --output-on-failure
 
 # 特定测试
-ctest -R test_crypto --output-on-failure
+ctest --test-dir build/tests/unit -R '^crypto_' --output-on-failure
 
 # 详细输出
 ctest --verbose

@@ -183,10 +183,10 @@ ctest --verbose
 
 ```bash
 # 运行特定测试
-ctest -R test_crypto --output-on-failure
+ctest --test-dir build/tests/unit -R '^crypto_' --output-on-failure
 
 # 运行多个测试
-ctest -R "test_hal|test_os" --output-on-failure
+ctest --test-dir build/tests/unit -R "hal|osal" --output-on-failure
 ```
 
 ### 3.3 本地代码检查

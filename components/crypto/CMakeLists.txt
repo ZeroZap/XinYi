@@ -32,7 +32,6 @@ add_subdirectory(xy_sm2)
 # 收集源文件 - 核心算法在 src/
 file(GLOB CRYPTO_SOURCES "src/*.c")
 file(GLOB CRYPTO_HEADERS "inc/*.h")
-file(GLOB TEST_SOURCES "test/*.c")
 
 # 创建静态库
 add_library(xy_tiny_crypto STATIC ${CRYPTO_SOURCES})
@@ -63,9 +62,9 @@ install(TARGETS xy_tiny_crypto
     PUBLIC_HEADER DESTINATION include
 )
 
-# 测试暂时禁用 (需要标准库支持)
-# enable_testing()
-# add_test(NAME crypto_test COMMAND test_crypto)
+# Tests live in the repository-level Unity/CTest suite. Use `make test-unit`
+# or focused CTest names such as `crypto_hash`, `crypto_encode`,
+# `crypto_cipher_hmac`, `crypto_crc`, and `crypto_sm2`.
 
 # 打包
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
