@@ -25,7 +25,6 @@ file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
-file(GLOB TEST_SOURCES "test/*.c")
 
 # Create static library
 add_library(xy_trace STATIC ${COMPONENT_SOURCES})
@@ -44,19 +43,8 @@ if(WIN32)
     target_link_libraries(xy_trace PRIVATE advapi32)
 endif()
 
-# Create test executable if test sources exist
-if(TEST_SOURCES)
-    add_executable(test_trace ${TEST_SOURCES})
-    target_link_libraries(test_trace xy_trace)
-    
-    if(WIN32)
-        target_link_libraries(test_trace advapi32)
-    endif()
-    
-    # Enable testing
-    enable_testing()
-    add_test(NAME trace_test COMMAND test_trace)
-endif()
+# Tests live in the repository-level Unity/CTest suite. Use `make test-unit`
+# or the focused `trace_component` CTest entry.
 
 # Installation rules
 install(TARGETS xy_trace

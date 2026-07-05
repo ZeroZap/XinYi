@@ -24,7 +24,6 @@ file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
-file(GLOB TEST_SOURCES "test/*.c")
 
 # Create static library
 add_library(xy_xy_state_machine STATIC ${COMPONENT_SOURCES})
@@ -41,19 +40,8 @@ if(WIN32)
     target_link_libraries(xy_xy_state_machine PRIVATE advapi32)
 endif()
 
-# Create test executable if test sources exist
-if(TEST_SOURCES)
-    add_executable(test_xy_state_machine ${TEST_SOURCES})
-    target_link_libraries(test_xy_state_machine xy_xy_state_machine)
-    
-    if(WIN32)
-        target_link_libraries(test_xy_state_machine advapi32)
-    endif()
-    
-    # Enable testing
-    enable_testing()
-    add_test(NAME xy_state_machine_test COMMAND test_xy_state_machine)
-endif()
+# Tests live in the repository-level Unity/CTest suite. Use `make test-unit`
+# or the focused `sys_timer_sm` CTest entry.
 
 # Installation rules
 install(TARGETS xy_xy_state_machine

@@ -28,7 +28,6 @@ file(GLOB_RECURSE COMPONENT_SOURCES "*.c")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
-file(GLOB TEST_SOURCES "test/*.c")
 
 # Create static library
 add_library(xy_pm STATIC ${COMPONENT_SOURCES})
@@ -45,19 +44,9 @@ if(WIN32)
     target_link_libraries(xy_pm PRIVATE advapi32)
 endif()
 
-# Create test executable if test sources exist
-if(TEST_SOURCES)
-    add_executable(test_pm ${TEST_SOURCES})
-    target_link_libraries(test_pm xy_pm)
-    
-    if(WIN32)
-        target_link_libraries(test_pm advapi32)
-    endif()
-    
-    # Enable testing
-    enable_testing()
-    add_test(NAME pm_test COMMAND test_pm)
-endif()
+# Tests live in the repository-level Unity/CTest suite. Use `make test-unit`
+# or focused tests such as `pm_component`, `charger_bq25620`, and the
+# `fuel_gauge_*` CTest entries.
 
 # Installation rules
 install(TARGETS xy_pm

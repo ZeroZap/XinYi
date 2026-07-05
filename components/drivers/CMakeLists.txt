@@ -90,7 +90,6 @@ else()
 endif()
 
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
-file(GLOB TEST_SOURCES "test/*.c")
 
 # Create static library
 add_library(xy_drivers STATIC ${COMPONENT_SOURCES})
@@ -107,19 +106,8 @@ if(WIN32)
     target_link_libraries(xy_drivers PRIVATE advapi32)
 endif()
 
-# Create test executable if test sources exist
-if(TEST_SOURCES)
-    add_executable(test_drivers ${TEST_SOURCES})
-    target_link_libraries(test_drivers xy_drivers)
-
-    if(WIN32)
-        target_link_libraries(test_drivers advapi32)
-    endif()
-
-    # Enable testing
-    enable_testing()
-    add_test(NAME drivers_test COMMAND test_drivers)
-endif()
+# Tests live in the repository-level Unity/CTest suite. Use `make test-unit`
+# or focused driver tests under sensor, display, storage, fuel gauge, and actuator.
 
 # Installation rules
 install(TARGETS xy_drivers
