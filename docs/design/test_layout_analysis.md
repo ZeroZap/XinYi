@@ -22,9 +22,8 @@ XinYi/
 │   │
 │   ├── crypto/
 │   │   ├── tests/unit/crypto/            ✅ 统一 PC 单元测试
-│   │   ├── xy_25519/
-│   │   │   └── test_xy_25519_m0.c       ⚠️ 源码目录内测试
-│   │   └── curve25519-*/test/           ⚠️ 第三方源码带测试
+│   │   ├── xy_25519/                    ✅ 源码旁 M0 测试已迁入 tests/unit/crypto/
+│   │   └── curve25519-*/test/           ⚠️ 上游源码带测试（暂不纳入统一单测）
 │   │
 │   ├── dm/
 │   │   ├── fee-test.c                   ⚠️ 源码同级测试
@@ -69,7 +68,7 @@ XinYi/
 |------|------|----------|
 | `test_*.c` | `tests/unit/clib/test_clib_core.c` | clib |
 | `*_test.c` | `fee-test.c`, `eflash_test.c` | dm |
-| `test*.c` | `test.c` | crypto |
+| `test*.c` | `test.c` | 第三方 crypto 上游源码 |
 
 **影响**: 难以批量处理测试文件
 
@@ -84,7 +83,7 @@ components/dm/fee-test.c          # 文件级测试
 ### 4. 第三方源码测试混合
 
 ```
-components/crypto/curve25519-*/test/  # 第三方测试
+components/crypto/curve25519-*/test/  # 第三方/上游测试
 ```
 
 **问题**: 第三方测试可能与项目测试框架不兼容
