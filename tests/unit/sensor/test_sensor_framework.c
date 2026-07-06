@@ -16,6 +16,8 @@ static int g_config_calls;
 static int g_control_calls;
 static int g_enable_calls;
 static int g_callback_calls;
+static int g_self_test_calls;
+static int g_self_test_mode;
 static sensor_data_t g_last_write;
 static sensor_config_type_t g_last_cfg;
 static int g_last_cmd;
@@ -100,6 +102,18 @@ static sensor_err_t mock_enable(sensor_device_t *sensor, bool enable)
     return SENSOR_EOK;
 }
 
+static sensor_err_t mock_self_test(sensor_device_t *sensor, sensor_self_test_result_t *result)
+{
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_NOT_NULL(result);
+    g_self_test_calls++;
+    result->passed = (g_self_test_mode == 0);
+    result->error_code = (g_self_test_mode == 0) ? 0 : 77;
+    strncpy(result->message, (g_self_test_mode == 0) ? "driver self test passed" : "driver self test failed",
+            sizeof(result->message) - 1U);
+    return (g_self_test_mode == 0) ? SENSOR_EOK : SENSOR_ERROR;
+}
+
 static void mock_callback(sensor_device_t *sensor, sensor_data_t *data, void *user_data)
 {
     TEST_ASSERT_NOT_NULL(sensor);
@@ -116,6 +130,13 @@ static const sensor_ops_t full_ops = {
     .control = mock_control,
     .config = mock_config,
     .enable = mock_enable,
+};
+
+static const sensor_ops_t self_test_ops = {
+    .init = mock_init,
+    .deinit = mock_deinit,
+    .read = mock_read,
+    .self_test = mock_self_test,
 };
 
 static const sensor_ops_t required_ops = {
@@ -143,6 +164,8 @@ void setUp(void)
     g_control_calls = 0;
     g_enable_calls = 0;
     g_callback_calls = 0;
+    g_self_test_calls = 0;
+    g_self_test_mode = 0;
     memset(&g_last_write, 0, sizeof(g_last_write));
     g_last_cfg = SENSOR_CFG_ODR;
     g_last_cmd = 0;
@@ -378,6 +401,55 @@ static void test_sensor_moving_average_filter(void)
 }
 #endif
 
+#if SENSOR_ENABLE_SELF_TEST
+static void test_sensor_self_test_uses_driver_override_and_restores_status(void)
+{
+    sensor_device_t sensor;
+    sensor_self_test_result_t result;
+    init_sensor(&sensor, "unit_self_driver", &self_test_ops);
+    memset(&result, 0xA5, sizeof(result));
+
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_self_test(NULL, &result));
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_self_test(&sensor, NULL));
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_self_test(&sensor, &result));
+    TEST_ASSERT_EQUAL(1, g_self_test_calls);
+    TEST_ASSERT_TRUE(result.passed);
+    TEST_ASSERT_EQUAL(0, result.error_code);
+    TEST_ASSERT_EQUAL_STRING("driver self test passed", result.message);
+    TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
+
+    g_self_test_mode = 1;
+    TEST_ASSERT_EQUAL(SENSOR_ERROR, sensor_self_test(&sensor, &result));
+    TEST_ASSERT_EQUAL(2, g_self_test_calls);
+    TEST_ASSERT_FALSE(result.passed);
+    TEST_ASSERT_EQUAL(77, result.error_code);
+    TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
+}
+
+static void test_sensor_self_test_generic_read_range_and_noise_paths(void)
+{
+    sensor_device_t sensor;
+    sensor_self_test_result_t result;
+    init_sensor(&sensor, "unit_self_generic", &required_ops);
+    sensor.info.type = SENSOR_TYPE_LIGHT;
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_self_test(&sensor, &result));
+    TEST_ASSERT_TRUE(result.passed);
+    TEST_ASSERT_EQUAL(0, result.error_code);
+    TEST_ASSERT_EQUAL_STRING("Self test passed", result.message);
+    TEST_ASSERT_EQUAL(11, g_read_calls);
+    TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
+
+    sensor.info.type = SENSOR_TYPE_ACCELEROMETER;
+    TEST_ASSERT_EQUAL(SENSOR_ERROR, sensor_self_test(&sensor, &result));
+    TEST_ASSERT_FALSE(result.passed);
+    TEST_ASSERT_EQUAL(2, result.error_code);
+    TEST_ASSERT_TRUE(strstr(result.message, "Data out of range") != NULL);
+    TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
+}
+#endif
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -393,6 +465,10 @@ int main(void)
 #endif
 #if SENSOR_ENABLE_FILTER
     RUN_TEST(test_sensor_moving_average_filter);
+#endif
+#if SENSOR_ENABLE_SELF_TEST
+    RUN_TEST(test_sensor_self_test_uses_driver_override_and_restores_status);
+    RUN_TEST(test_sensor_self_test_generic_read_range_and_noise_paths);
 #endif
     return UNITY_END();
 }

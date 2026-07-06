@@ -443,6 +443,7 @@ add_executable(test_sensor_framework
     ${SENSOR}/sensor_calibration.c
     ${SENSOR}/sensor_filter.c
     ${SENSOR}/sensor_threshold.c
+    ${SENSOR}/sensor_self_test.c
     ${ROOT}/tests/unity/unity.c
 )
 add_test(NAME sensor_framework COMMAND test_sensor_framework)
