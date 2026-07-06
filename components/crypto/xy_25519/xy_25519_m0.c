@@ -20,7 +20,7 @@
 #include "xy_25519.h"
 #include "fe25519_m0.h"
 #include "../../trace/xy_log/inc/xy_log.h"
-#include "../../xy_clib/xy_string.h"
+#include "xy_string.h"
 #include <stdint.h>
 
 /* ==================== X25519 Constants ==================== */

@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Total C unit-test files: 68
-- Unity-style files: 67
+- Total C unit-test files: 69
+- Unity-style files: 68
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 1
@@ -17,7 +17,7 @@
 | `actuator` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `analog_devices` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `clib` | 1 | 1 | 0 | 0 | 0 | 0 |
-| `crypto` | 8 | 8 | 0 | 0 | 0 | 0 |
+| `crypto` | 9 | 9 | 0 | 0 | 0 | 0 |
 | `device` | 4 | 4 | 0 | 0 | 0 | 3 |
 | `display` | 5 | 5 | 0 | 0 | 0 | 4 |
 | `dm` | 6 | 6 | 0 | 0 | 0 | 1 |
@@ -58,6 +58,7 @@
 | `tests/unit/crypto/test_encode.c` | `unity` | 0 |
 | `tests/unit/crypto/test_hash.c` | `unity` | 0 |
 | `tests/unit/crypto/test_25519.c` | `unity` | 0 |
+| `tests/unit/crypto/test_25519_m0.c` | `unity` | 0 |
 | `tests/unit/crypto/test_random.c` | `unity` | 0 |
 | `tests/unit/crypto/test_sm2.c` | `unity` | 0 |
 | `tests/unit/device/test_auto_register.c` | `unity` | 0 |

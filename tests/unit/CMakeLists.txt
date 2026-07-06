@@ -418,6 +418,23 @@ target_include_directories(test_25519 PRIVATE
 )
 add_test(NAME crypto_25519 COMMAND test_25519)
 
+# --- Test 20e: Crypto 25519 Cortex-M0 API and field smoke contracts ---
+add_executable(test_25519_m0
+    ${UNIT_CRYPTO}/test_25519_m0.c
+    ${ROOT}/tests/unity/unity.c
+    ${CRYPTO}/xy_25519/xy_25519_m0.c
+    ${CRYPTO}/xy_25519/fe25519_m0.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${CLIB}/xy_stdio.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
+target_include_directories(test_25519_m0 PRIVATE
+    ${CRYPTO}/xy_25519
+    ${CLIB}
+)
+add_test(NAME crypto_25519_m0 COMMAND test_25519_m0)
+
 # --- Test 21: Sensor framework lifecycle, registry, FIFO, calibration, filters ---
 add_executable(test_sensor_framework
     ${UNIT_SENSOR}/test_sensor_framework.c
