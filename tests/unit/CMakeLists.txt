@@ -403,6 +403,21 @@ target_include_directories(test_lwc PRIVATE
 )
 add_test(NAME crypto_lwc COMMAND test_lwc)
 
+# --- Test 20d: Crypto 25519 public API contracts ---
+add_executable(test_25519
+    ${UNIT_CRYPTO}/test_25519.c
+    ${ROOT}/tests/unity/unity.c
+    ${CRYPTO}/xy_25519/xy_25519.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${CLIB}/xy_stdio.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
+target_include_directories(test_25519 PRIVATE
+    ${CRYPTO}/xy_25519
+)
+add_test(NAME crypto_25519 COMMAND test_25519)
+
 # --- Test 21: Sensor framework lifecycle, registry, FIFO, calibration, filters ---
 add_executable(test_sensor_framework
     ${UNIT_SENSOR}/test_sensor_framework.c
