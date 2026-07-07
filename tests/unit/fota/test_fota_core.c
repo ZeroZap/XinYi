@@ -1,9 +1,12 @@
 #include "xy_fota.h"
 #include "unity.h"
+#include "fff.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+
+DEFINE_FFF_GLOBALS;
 
 #define FLASH_BASE 0x08010000u
 #define BACKUP_BASE 0x08100000u
@@ -16,8 +19,16 @@ static uint32_t g_last_erase_size;
 static uint32_t g_progress_current;
 static uint32_t g_progress_total;
 static int g_progress_user;
-static int g_init_count;
-static int g_deinit_count;
+
+FAKE_VALUE_FUNC(int, mock_flash_init)
+FAKE_VALUE_FUNC(int, mock_flash_deinit)
+FAKE_VALUE_FUNC(int, mock_flash_write, uint32_t, const uint8_t *, uint32_t)
+FAKE_VALUE_FUNC(int, mock_flash_read, uint32_t, uint8_t *, uint32_t)
+FAKE_VALUE_FUNC(int, mock_flash_erase, uint32_t, uint32_t)
+
+static int mock_flash_write_impl(uint32_t addr, const uint8_t *data, uint32_t size);
+static int mock_flash_read_impl(uint32_t addr, uint8_t *data, uint32_t size);
+static int mock_flash_erase_impl(uint32_t addr, uint32_t size);
 
 void setUp(void)
 {
@@ -25,6 +36,22 @@ void setUp(void)
 
 void tearDown(void)
 {
+}
+
+static void mock_flash_reset_fakes(void)
+{
+    RESET_FAKE(mock_flash_init);
+    RESET_FAKE(mock_flash_deinit);
+    RESET_FAKE(mock_flash_write);
+    RESET_FAKE(mock_flash_read);
+    RESET_FAKE(mock_flash_erase);
+    FFF_RESET_HISTORY();
+
+    mock_flash_init_fake.return_val = XY_FOTA_OK;
+    mock_flash_deinit_fake.return_val = XY_FOTA_OK;
+    mock_flash_write_fake.custom_fake = mock_flash_write_impl;
+    mock_flash_read_fake.custom_fake = mock_flash_read_impl;
+    mock_flash_erase_fake.custom_fake = mock_flash_erase_impl;
 }
 
 static void reset_fixture(void)
@@ -36,8 +63,7 @@ static void reset_fixture(void)
     g_progress_current = 0;
     g_progress_total = 0;
     g_progress_user = 0;
-    g_init_count = 0;
-    g_deinit_count = 0;
+    mock_flash_reset_fakes();
 }
 
 static uint32_t flash_offset(uint32_t addr)
@@ -48,19 +74,7 @@ static uint32_t flash_offset(uint32_t addr)
     return addr - FLASH_BASE;
 }
 
-static int mock_flash_init(void)
-{
-    g_init_count++;
-    return XY_FOTA_OK;
-}
-
-static int mock_flash_deinit(void)
-{
-    g_deinit_count++;
-    return XY_FOTA_OK;
-}
-
-static int mock_flash_write(uint32_t addr, const uint8_t *data, uint32_t size)
+static int mock_flash_write_impl(uint32_t addr, const uint8_t *data, uint32_t size)
 {
     uint32_t off = flash_offset(addr);
     TEST_ASSERT_NOT_NULL(data);
@@ -70,7 +84,7 @@ static int mock_flash_write(uint32_t addr, const uint8_t *data, uint32_t size)
     return XY_FOTA_OK;
 }
 
-static int mock_flash_read(uint32_t addr, uint8_t *data, uint32_t size)
+static int mock_flash_read_impl(uint32_t addr, uint8_t *data, uint32_t size)
 {
     uint32_t off = flash_offset(addr);
     TEST_ASSERT_NOT_NULL(data);
@@ -79,7 +93,7 @@ static int mock_flash_read(uint32_t addr, uint8_t *data, uint32_t size)
     return XY_FOTA_OK;
 }
 
-static int mock_flash_erase(uint32_t addr, uint32_t size)
+static int mock_flash_erase_impl(uint32_t addr, uint32_t size)
 {
     uint32_t off = flash_offset(addr);
     TEST_ASSERT_LESS_OR_EQUAL_UINT32(sizeof(g_flash), off + size);
@@ -147,6 +161,8 @@ static void test_init_validation_and_state_helpers(void)
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_deinit(&fota));
     TEST_ASSERT_FALSE(fota.initialized);
+    TEST_ASSERT_EQUAL_UINT(0, mock_flash_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0, mock_flash_deinit_fake.call_count);
     TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_deinit(NULL));
 }
 
@@ -201,6 +217,10 @@ static void test_download_writes_progress_and_control(void)
     TEST_ASSERT_EQUAL_UINT8(0, xy_fota_get_progress(&fota));
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, chunk1, sizeof(chunk1)));
+    TEST_ASSERT_EQUAL_UINT(1, mock_flash_write_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX32(FLASH_BASE, mock_flash_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(chunk1, mock_flash_write_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(chunk1), mock_flash_write_fake.arg2_val);
     TEST_ASSERT_EQUAL_HEX32(FLASH_BASE, g_last_write_addr);
     TEST_ASSERT_EQUAL_UINT32(sizeof(chunk1), g_progress_current);
     TEST_ASSERT_EQUAL_UINT32(sizeof(chunk1) + sizeof(chunk2), g_progress_total);
@@ -208,6 +228,10 @@ static void test_download_writes_progress_and_control(void)
     TEST_ASSERT_EQUAL_UINT8(66, xy_fota_get_progress(&fota));
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, chunk2, sizeof(chunk2)));
+    TEST_ASSERT_EQUAL_UINT(2, mock_flash_write_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX32(FLASH_BASE + sizeof(chunk1), mock_flash_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(chunk2, mock_flash_write_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(chunk2), mock_flash_write_fake.arg2_val);
     TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_VALIDATING, fota.state);
     TEST_ASSERT_EQUAL_UINT8(100, xy_fota_get_progress(&fota));
     TEST_ASSERT_EQUAL_MEMORY(chunk1, g_flash, sizeof(chunk1));
@@ -240,6 +264,10 @@ static void test_single_slot_backup_download_path(void)
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_download(&fota, 3, sizeof(chunk), false));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, chunk, sizeof(chunk)));
+    TEST_ASSERT_EQUAL_UINT(1, mock_flash_write_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX32(BACKUP_BASE, mock_flash_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(chunk, mock_flash_write_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(chunk), mock_flash_write_fake.arg2_val);
     TEST_ASSERT_EQUAL_HEX32(BACKUP_BASE, g_last_write_addr);
 }
 
