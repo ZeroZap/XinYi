@@ -128,7 +128,14 @@ set(FRAMEWORK_SOURCES
 )
 
 function(xy_add_unit_test TARGET_NAME TEST_NAME)
-    add_executable(${TARGET_NAME} ${ARGN})
+    cmake_parse_arguments(XY_UNIT "UNITY" "" "" ${ARGN})
+
+    set(XY_UNIT_SOURCES ${XY_UNIT_UNPARSED_ARGUMENTS})
+    if(XY_UNIT_UNITY)
+        list(APPEND XY_UNIT_SOURCES ${ROOT}/tests/unity/unity.c)
+    endif()
+
+    add_executable(${TARGET_NAME} ${XY_UNIT_SOURCES})
     add_test(NAME ${TEST_NAME} COMMAND ${TARGET_NAME})
 endfunction()
 
@@ -246,10 +253,9 @@ target_include_directories(test_net_core PRIVATE
 )
 
 # --- Test 16: CRC core and common variants ---
-add_executable(test_crc
+xy_add_unit_test(test_crc crypto_crc UNITY
     ${UNIT_CRYPTO}/test_crc.c
     ${CRYPTO}/xy_crc/xy_crc.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 5: OSAL baremetal primitives (mutex/sem/event/queue/pool) ---
@@ -302,24 +308,19 @@ add_test(NAME modbus_legacy COMMAND test_modbus_legacy)
 add_test(NAME iso7816_component COMMAND test_iso7816)
 add_test(NAME iso7816_example COMMAND test_iso7816_example)
 add_test(NAME net_core COMMAND test_net_core)
-add_test(NAME crypto_crc COMMAND test_crc)
 
 # --- Test 16: Crypto CSPRNG lifecycle, buffering, and helpers ---
-add_executable(test_csprng
+xy_add_unit_test(test_csprng crypto_csprng UNITY
     ${UNIT_CRYPTO}/test_csprng.c
     ${CRYPTO}/xy_rng/xy_csprng.c
     ${CLIB}/xy_stdio.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME crypto_csprng COMMAND test_csprng)
 
 # --- Test 17: Crypto simple RNG validation and output shape ---
-add_executable(test_random
+xy_add_unit_test(test_random crypto_random UNITY
     ${UNIT_CRYPTO}/test_random.c
     ${CRYPTO}/xy_rng/xy_random.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME crypto_random COMMAND test_random)
 
 # --- Test 18: Crypto Base64 and Hex validation/roundtrip behavior ---
 add_executable(test_encode
@@ -404,12 +405,10 @@ target_include_directories(test_lwc PRIVATE
 add_test(NAME crypto_lwc COMMAND test_lwc)
 
 # --- Support: host malloc-backed CLIB allocation shim contract ---
-add_executable(test_clib_alloc_shim
+xy_add_unit_test(test_clib_alloc_shim clib_alloc_shim UNITY
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_compile_definitions(test_clib_alloc_shim PRIVATE TEST_CLIB_ALLOC_SHIM_MAIN)
-add_test(NAME clib_alloc_shim COMMAND test_clib_alloc_shim)
 
 # --- Test 20d: Crypto 25519 public API contracts ---
 add_executable(test_25519
@@ -964,9 +963,8 @@ target_include_directories(test_fg_bq27z561 PRIVATE
 add_test(NAME fg_bq27z561 COMMAND test_fg_bq27z561)
 
 # --- Test 48: Unity + FFF framework smoke guard ---
-xy_add_unit_test(test_fff_smoke fff_smoke
+xy_add_unit_test(test_fff_smoke fff_smoke UNITY
     ${UNIT_FRAMEWORK}/test_fff_smoke.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 # Convenience target: build + run all tests

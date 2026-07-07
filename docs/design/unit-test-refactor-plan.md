@@ -70,6 +70,8 @@ tests/
 
 **Objective:** Reduce repeated CMake boilerplate before adding more test targets.
 
+**Status:** In progress. `xy_add_unit_test()` now supports an optional `UNITY` flag that appends `${ROOT}/tests/unity/unity.c` and registers the CTest entry in one place. The first low-risk sample targets converted are `crypto_crc`, `crypto_csprng`, `crypto_random`, `clib_alloc_shim`, and `fff_smoke`; target names and CTest names remain stable.
+
 **Tasks:**
 
 1. Add a helper function in `tests/unit/CMakeLists.txt`.
@@ -77,9 +79,9 @@ tests/
    - Responsibilities:
      - Create the executable.
      - Add common include directories.
-     - Link common support sources when requested.
+     - Link Unity when requested by the target.
      - Register the CTest name.
-2. Convert 2-3 low-risk existing targets to the helper.
+2. Convert low-risk existing targets to the helper.
    - Prefer small targets that already pass and do not need special linker flags.
 3. Keep target names and CTest names stable.
 4. Run focused tests for converted targets.
