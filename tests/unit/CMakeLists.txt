@@ -771,7 +771,7 @@ xy_add_unit_test(test_charger_bq25620 charger_bq25620 UNITY
 target_include_directories(test_charger_bq25620 PRIVATE ${ROOT}/components/charger/inc)
 
 # --- Test 43: Standalone fuel gauge core API contracts ---
-add_executable(test_fuel_gauge_core
+xy_add_unit_test(test_fuel_gauge_core fuel_gauge_core UNITY
     ${UNIT_FUEL_GAUGE}/test_fuel_gauge_core.c
     ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
     ${ROOT}/components/fuel_gauge/core/xy_fuel_gauge_safety.c
@@ -781,17 +781,14 @@ add_executable(test_fuel_gauge_core
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_fuel_gauge_core PRIVATE ${ROOT}/components/fuel_gauge/inc)
-add_test(NAME fuel_gauge_core COMMAND test_fuel_gauge_core)
 
 # --- Test 44: BQ27Z746 fuel gauge driver host guard ---
-add_executable(test_fg_bq27z746
+xy_add_unit_test(test_fg_bq27z746 fg_bq27z746 UNITY
     ${UNIT_FUEL_GAUGE}/test_fg_bq27z746.c
     ${ROOT}/components/fuel_gauge/drivers/xy_fg_bq27z746.c
     ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
-    ${ROOT}/tests/unity/unity.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
@@ -802,14 +799,12 @@ target_include_directories(test_fg_bq27z746 PRIVATE
     ${ROOT}/components/fuel_gauge/inc
     ${SENSOR}/inc
 )
-add_test(NAME fg_bq27z746 COMMAND test_fg_bq27z746)
 
 # --- Test 45: BQ40Z50 fuel gauge driver host guard ---
-add_executable(test_fg_bq40z50
+xy_add_unit_test(test_fg_bq40z50 fg_bq40z50 UNITY
     ${UNIT_FUEL_GAUGE}/test_fg_bq40z50.c
     ${ROOT}/components/fuel_gauge/drivers/xy_fg_bq40z50.c
     ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
-    ${ROOT}/tests/unity/unity.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
@@ -820,14 +815,12 @@ target_include_directories(test_fg_bq40z50 PRIVATE
     ${ROOT}/components/fuel_gauge/inc
     ${SENSOR}/inc
 )
-add_test(NAME fg_bq40z50 COMMAND test_fg_bq40z50)
 
 # --- Test 46: MAX17043 fuel gauge driver host guard ---
-add_executable(test_fg_max17043
+xy_add_unit_test(test_fg_max17043 fg_max17043 UNITY
     ${UNIT_FUEL_GAUGE}/test_fg_max17043.c
     ${ROOT}/components/fuel_gauge/drivers/xy_fg_max17043.c
     ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
-    ${ROOT}/tests/unity/unity.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
@@ -838,14 +831,12 @@ target_include_directories(test_fg_max17043 PRIVATE
     ${ROOT}/components/fuel_gauge/inc
     ${SENSOR}/inc
 )
-add_test(NAME fg_max17043 COMMAND test_fg_max17043)
 
 # --- Test 47: BQ27Z561 fuel gauge driver host guard ---
-add_executable(test_fg_bq27z561
+xy_add_unit_test(test_fg_bq27z561 fg_bq27z561 UNITY
     ${UNIT_FUEL_GAUGE}/test_fg_bq27z561.c
     ${ROOT}/components/fuel_gauge/drivers/xy_fg_bq27z561.c
     ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
-    ${ROOT}/tests/unity/unity.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
@@ -856,7 +847,6 @@ target_include_directories(test_fg_bq27z561 PRIVATE
     ${ROOT}/components/fuel_gauge/inc
     ${SENSOR}/inc
 )
-add_test(NAME fg_bq27z561 COMMAND test_fg_bq27z561)
 
 # --- Test 48: Unity + FFF framework smoke guard ---
 xy_add_unit_test(test_fff_smoke fff_smoke UNITY
