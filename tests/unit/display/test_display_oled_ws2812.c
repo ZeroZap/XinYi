@@ -1,6 +1,7 @@
 #include "xy_oled_ssd1306.h"
 #include "xy_ws2812.h"
 #include "xy_device_core.h"
+#include "fff.h"
 #include "unity.h"
 
 #include <stdint.h>
@@ -10,6 +11,11 @@
 #define MAX_I2C_WRITES 64
 #define MAX_I2C_BYTES 2048
 #define MAX_GPIO_EVENTS 4096
+
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(xy_error_t, xy_i2c_device_write, xy_i2c_device_t *, const uint8_t *, size_t)
+FAKE_VOID_FUNC(xy_hal_delay_ms, uint32_t)
 
 typedef struct {
     uint8_t bytes[MAX_I2C_BYTES];
@@ -27,6 +33,9 @@ static uint32_t delay_ms_total;
 static gpio_event_t gpio_events[MAX_GPIO_EVENTS];
 static size_t gpio_event_count;
 
+static xy_error_t fake_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len);
+static void fake_hal_delay_ms(uint32_t ms);
+
 void setUp(void)
 {
 }
@@ -37,6 +46,13 @@ void tearDown(void)
 
 static void reset_i2c_log(void)
 {
+    RESET_FAKE(xy_i2c_device_write);
+    RESET_FAKE(xy_hal_delay_ms);
+    FFF_RESET_HISTORY();
+
+    xy_i2c_device_write_fake.custom_fake = fake_i2c_device_write;
+    xy_hal_delay_ms_fake.custom_fake = fake_hal_delay_ms;
+
     memset(i2c_writes, 0, sizeof(i2c_writes));
     i2c_write_count = 0;
     delay_ms_total = 0;
@@ -88,7 +104,7 @@ xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
+static xy_error_t fake_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     (void)dev;
     TEST_ASSERT_LESS_THAN_UINT32(MAX_I2C_WRITES, i2c_write_count);
@@ -99,7 +115,7 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
     return XY_DEVICE_OK;
 }
 
-void xy_hal_delay_ms(uint32_t ms)
+static void fake_hal_delay_ms(uint32_t ms)
 {
     delay_ms_total += ms;
 }
@@ -137,6 +153,9 @@ static void test_oled_init_pixel_line_refresh(void)
     TEST_ASSERT_EQUAL_UINT16(0x3CU, oled.i2c_dev.dev_addr);
     TEST_ASSERT_NOT_NULL(oled.buffer);
     TEST_ASSERT_EQUAL_UINT32(14U, i2c_write_count);
+    TEST_ASSERT_EQUAL_UINT(14U, xy_i2c_device_write_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&oled.i2c_dev, xy_i2c_device_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(14U, xy_hal_delay_ms_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(2U, i2c_writes[0].len);
     TEST_ASSERT_EQUAL_HEX8(0x00U, i2c_writes[0].bytes[0]);
     TEST_ASSERT_EQUAL_HEX8(0xAEU, i2c_writes[0].bytes[1]);
@@ -162,6 +181,8 @@ static void test_oled_init_pixel_line_refresh(void)
     reset_i2c_log();
     xy_oled_ssd1306_refresh(&oled);
     TEST_ASSERT_EQUAL_UINT32(4U, i2c_write_count);
+    TEST_ASSERT_EQUAL_UINT(4U, xy_i2c_device_write_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&oled.i2c_dev, xy_i2c_device_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT32(6U, i2c_writes[0].len);
     TEST_ASSERT_EQUAL_HEX8(0x00U, i2c_writes[0].bytes[0]);
     TEST_ASSERT_EQUAL_HEX8(0x21U, i2c_writes[0].bytes[1]);
