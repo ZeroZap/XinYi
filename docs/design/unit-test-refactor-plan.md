@@ -98,21 +98,23 @@ tests/
 
 **Objective:** Introduce FFF without changing existing tests.
 
+**Status:** Complete. FFF is vendored at `tests/fff/fff.h`, covered by `tests/unit/framework/test_fff_smoke.c`, and wired into the unit CMake suite as `fff_smoke` through `xy_add_unit_test(... UNITY ...)`. Focused smoke verification and the full 72-test unit suite pass.
+
 **Tasks:**
 
-1. Add FFF single-header dependency.
+1. [x] Add FFF single-header dependency.
    - Suggested path: `tests/fff/fff.h`.
    - Source: upstream FFF single header, vendored as test-only code.
-2. Add a tiny smoke test.
+2. [x] Add a tiny smoke test.
    - Suggested path: `tests/unit/framework/test_fff_smoke.c`.
-3. Wire the smoke test into `tests/unit/CMakeLists.txt`.
-4. Verify FFF basics:
+3. [x] Wire the smoke test into `tests/unit/CMakeLists.txt`.
+4. [x] Verify FFF basics:
    - `FAKE_VALUE_FUNC` compiles.
    - Fake call count increments.
    - Argument history works.
    - `RESET_FAKE` works.
-5. Run focused smoke target.
-6. Run `make test-unit`.
+5. [x] Run focused smoke target.
+6. [x] Run `make test-unit`.
 
 **Exit Criteria:**
 
