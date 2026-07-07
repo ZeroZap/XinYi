@@ -442,7 +442,7 @@ target_include_directories(test_hal_pc PRIVATE
 )
 
 # --- Test 23: PM lifecycle, charger, fuel gauge, and PC platform contracts ---
-add_executable(test_pm
+xy_add_unit_test(test_pm pm_component UNITY
     ${UNIT_PM}/test_pm_core.c
     ${PM}/src/xy_pm_system.c
     ${PM}/src/xy_pm_adc.c
@@ -453,34 +453,28 @@ add_executable(test_pm
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_compile_definitions(test_pm PRIVATE PLATFORM_PC XY_PM_PLATFORM_OWNS_CHARGER_HW XY_PM_ENABLE_TEST_HOOKS)
-add_test(NAME pm_component COMMAND test_pm)
 
-add_executable(test_pm_platform_fallback
+xy_add_unit_test(test_pm_platform_fallback pm_platform_fallback UNITY
     ${UNIT_PM}/test_pm_platform_fallback.c
     ${PM}/src/xy_pm_platform.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_compile_definitions(test_pm_platform_fallback PRIVATE XY_PM_ENABLE_TEST_HOOKS)
-add_test(NAME pm_platform_fallback COMMAND test_pm_platform_fallback)
 
 # --- Test 24: Trace logging output and dynamic-level contracts ---
-add_executable(test_trace
+xy_add_unit_test(test_trace trace_component UNITY
     ${UNIT_TRACE}/test_trace_core.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_compile_definitions(test_trace PRIVATE XY_LOG_LEVEL=XY_LOG_LEVEL_DEBUG)
-add_test(NAME trace_component COMMAND test_trace)
 
 # --- Test 25: CLIB common/string/stdio/ring-buffer contracts ---
-add_executable(test_clib
+xy_add_unit_test(test_clib clib_component UNITY
     ${UNIT_CLIB}/test_clib_core.c
     ${CLIB}/xy_common.c
     ${CLIB}/xy_string.c
@@ -490,9 +484,7 @@ add_executable(test_clib
     ${CLIB}/xy_sort.c
     ${CLIB}/xy_rb.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME clib_component COMMAND test_clib)
 
 # --- Test 26: MUX manager, registration, and TLV packet contracts ---
 add_executable(test_mux_core
