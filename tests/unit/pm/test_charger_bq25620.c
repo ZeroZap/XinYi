@@ -2,9 +2,17 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "fff.h"
 #include "unity.h"
 #include "xy_bq25620.h"
 #include "xy_hal_i2c.h"
+
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_transmit, void *, uint16_t,
+                const uint8_t *, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_receive, void *, uint16_t,
+                uint8_t *, size_t, uint32_t)
 
 static uint8_t g_regs[0x20];
 static uint8_t g_selected_reg;
@@ -12,8 +20,21 @@ static unsigned g_tx_count;
 static unsigned g_rx_count;
 static void *g_expected_i2c = (void *)0x1234;
 
+static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
+                                               const uint8_t *data, size_t len,
+                                               uint32_t timeout);
+static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
+                                              uint8_t *data, size_t len,
+                                              uint32_t timeout);
+
 void setUp(void)
 {
+    RESET_FAKE(xy_hal_i2c_master_transmit);
+    RESET_FAKE(xy_hal_i2c_master_receive);
+    FFF_RESET_HISTORY();
+
+    xy_hal_i2c_master_transmit_fake.custom_fake = fake_i2c_master_transmit;
+    xy_hal_i2c_master_receive_fake.custom_fake = fake_i2c_master_receive;
 }
 
 void tearDown(void)
@@ -29,9 +50,9 @@ static void reset_fake_i2c(void)
     g_rx_count = 0;
 }
 
-xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
-                                          const uint8_t *data, size_t len,
-                                          uint32_t timeout)
+static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
+                                               const uint8_t *data, size_t len,
+                                               uint32_t timeout)
 {
     (void)dev_addr;
     (void)timeout;
@@ -50,9 +71,9 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
-                                         uint8_t *data, size_t len,
-                                         uint32_t timeout)
+static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
+                                              uint8_t *data, size_t len,
+                                              uint32_t timeout)
 {
     (void)dev_addr;
     (void)timeout;
@@ -102,12 +123,23 @@ static void test_init_and_register_io(void)
     TEST_ASSERT_NOT_NULL(dev.base.hw_read_reg);
     TEST_ASSERT_EQUAL_UINT(1U, g_tx_count);
     TEST_ASSERT_EQUAL_UINT(1U, g_rx_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_receive_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(g_expected_i2c, xy_hal_i2c_master_transmit_fake.arg0_val);
+    TEST_ASSERT_EQUAL_HEX16(0x6A, xy_hal_i2c_master_transmit_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_transmit_fake.arg3_val);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_device_id(&dev, &value));
+    TEST_ASSERT_EQUAL_UINT(2U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2U, xy_hal_i2c_master_receive_fake.call_count);
     TEST_ASSERT_EQUAL_HEX8(BQ25620_PART_NUMBER, value);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_write_reg(&dev, BQ25620_REG_CHG_CTRL_6, 0x55));
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2U, xy_hal_i2c_master_transmit_fake.arg3_val);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_read_reg(&dev, BQ25620_REG_CHG_CTRL_6, &value));
+    TEST_ASSERT_EQUAL_UINT(4U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_receive_fake.call_count);
     TEST_ASSERT_EQUAL_HEX8(0x55, value);
 }
 
