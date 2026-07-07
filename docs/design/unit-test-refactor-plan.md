@@ -126,23 +126,25 @@ tests/
 
 **Objective:** Create a clear convention so new tests do not drift.
 
+**Status:** Complete. `tests/Testing_Guideline.md` now defines the active Unity + CTest + CMake helper + FFF convention, including fake-style selection, naming rules, validation commands, and Ceedling deferral. `tests/templates/unity_fff_test_template.c` provides the minimal starting point for new host-side unit tests.
+
 **Tasks:**
 
-1. Update or replace `tests/Testing_Guideline.md`.
-2. Make the new guidance explicitly based on:
+1. [x] Update or replace `tests/Testing_Guideline.md`.
+2. [x] Make the new guidance explicitly based on:
    - Unity for assertions.
    - CTest for execution.
    - CMake target wiring.
    - FFF for fakes/mocks.
-3. Document when to use each fake style:
+3. [x] Document when to use each fake style:
    - Plain local stub: deterministic simple output only.
    - FFF fake: call count, argument capture, return sequence, or custom fake behavior.
    - Hand-written fixture: complex simulated hardware state.
-4. Add naming rules:
+4. [x] Add naming rules:
    - File: `test_<component>_<feature>.c`.
    - Test function: `test_<condition>_<expected_behavior>`.
    - Fake reset helper: `reset_<module>_fakes()`.
-5. Add a minimal test template.
+5. [x] Add a minimal test template.
    - Suggested path: `tests/templates/unity_fff_test_template.c`.
 
 **Exit Criteria:**

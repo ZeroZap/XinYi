@@ -141,10 +141,11 @@ Use this checklist for every new host-side unit test:
 4. Write one behavior per `test_<condition>_<expected_behavior>()` function.
 5. Prefer real code and small local fixtures; use FFF for HAL/OSAL/driver dependencies when you need call counts, captured arguments, ordered calls, return sequences, or `custom_fake` behavior.
 6. Reset fixture state and all fakes in `setUp()`; release owned state in `tearDown()`.
-7. Wire the executable in `tests/unit/CMakeLists.txt`, always linking `${ROOT}/tests/unity/unity.c`.
-8. Run the focused target and CTest entry before broader validation.
-9. Run `make test-unit` before committing a component group.
-10. Run `git diff --check` before committing.
+7. Wire the executable in `tests/unit/CMakeLists.txt` with `xy_add_unit_test(... UNITY ...)` for tests that include `unity.h`.
+8. Keep the executable target name and CTest name stable if converting an existing test.
+9. Run the focused target and CTest entry before broader validation.
+10. Run `make test-unit` before committing a component group.
+11. Run `git diff --check` before committing.
 
 ### Test Selection Rules
 
@@ -167,18 +168,24 @@ git diff --check
 
 Add tests in `tests/unit/CMakeLists.txt`.
 
-Preferred helper form for new simple tests:
+Preferred helper form for new Unity tests:
 
 ```cmake
-xy_add_unit_test(test_fff_smoke fff_smoke
-    ${UNIT_FRAMEWORK}/test_fff_smoke.c
-    ${ROOT}/tests/unity/unity.c
+xy_add_unit_test(test_foo_bar foo_bar UNITY
+    ${UNIT_FOO}/test_foo_bar.c
+    ${FOO}/xy_foo.c
 )
 ```
 
-For complex tests, it is still acceptable to use explicit CMake commands when the target needs special include directories, compile definitions, link libraries, or source lists.
+`UNITY` appends `${ROOT}/tests/unity/unity.c` and the helper registers the CTest entry. Add target-specific configuration immediately after the helper call when needed:
 
-Always register one CTest entry per executable unless there is a specific reason not to.
+```cmake
+target_include_directories(test_foo_bar PRIVATE ${FOO}/inc)
+target_link_libraries(test_foo_bar m)
+target_compile_definitions(test_foo_bar PRIVATE XY_FOO_TEST=1)
+```
+
+Use explicit CMake only when the helper cannot express a target requirement. If explicit CMake is necessary, keep one CTest entry per executable and document why the helper was not used.
 
 ## 9. Execution Commands
 
