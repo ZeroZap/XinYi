@@ -156,23 +156,28 @@ tests/
 
 **Objective:** Convert existing raw `assert()` tests to Unity without changing tested behavior.
 
+**Status:** Complete by inventory. The current tracked `tests/unit` source tree has 70 C unit-test files, all Unity-style, with 0 raw `assert()` files, 0 mixed Unity/raw files, and 0 plain compile-smoke files. No source migration is required for this phase; keep the guardrail that new tests must use Unity assertions.
+
 **Tasks:**
 
-1. Pick one component group at a time.
+1. [x] Pick one component group at a time.
    - Suggested order: DM -> IPC -> Storage -> Display -> Fuel Gauge -> Net.
-2. For each file:
+   - No component group currently has raw `assert()` files.
+2. [x] For each file:
    - Replace `assert()` with `TEST_ASSERT_*` equivalents.
    - Add `UNITY_BEGIN()` / `RUN_TEST()` / `UNITY_END()` when missing.
    - Keep existing fake/stub behavior intact.
-3. Run the focused target after each file.
-4. Run `make test-unit` after each component group.
-5. Do not mix behavior fixes with assertion-style migration unless the test exposes a real bug.
+   - Already satisfied across the current tracked unit-test inventory.
+3. [x] Run the focused target after each file.
+   - No focused migration targets remain.
+4. [x] Run `make test-unit` after each component group.
+5. [x] Do not mix behavior fixes with assertion-style migration unless the test exposes a real bug.
 
 **Exit Criteria:**
 
 - New failures identify exact Unity assertion location.
 - No behavior-only regressions introduced by migration.
-- Raw `assert()` usage steadily declines in `tests/unit`.
+- Raw `assert()` usage in `tests/unit` is currently 0.
 
 ## Phase 5: Replace Ad-Hoc Fakes With FFF Where Useful
 
