@@ -487,7 +487,7 @@ xy_add_unit_test(test_clib clib_component UNITY
 )
 
 # --- Test 26: MUX manager, registration, and TLV packet contracts ---
-add_executable(test_mux_core
+xy_add_unit_test(test_mux_core mux_core UNITY
     ${UNIT_MUX}/test_mux_core.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_gpio.c
@@ -499,12 +499,10 @@ add_executable(test_mux_core
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME mux_core COMMAND test_mux_core)
 
 # --- Test 27: MUX I2C channel helper contracts ---
-add_executable(test_mux_i2c
+xy_add_unit_test(test_mux_i2c mux_i2c UNITY
     ${UNIT_MUX}/test_mux_i2c.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_i2c.c
@@ -513,12 +511,10 @@ add_executable(test_mux_i2c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME mux_i2c COMMAND test_mux_i2c)
 
 # --- Test 28: MUX GPIO channel helper contracts ---
-add_executable(test_mux_gpio
+xy_add_unit_test(test_mux_gpio mux_gpio UNITY
     ${UNIT_MUX}/test_mux_gpio.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_gpio.c
@@ -527,23 +523,19 @@ add_executable(test_mux_gpio
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME mux_gpio COMMAND test_mux_gpio)
 
 # --- Test 29: PID core lifecycle, tuning, limits, and compute contracts ---
-add_executable(test_pid_core
+xy_add_unit_test(test_pid_core pid_core UNITY
     ${UNIT_PID}/test_pid_core.c
     ${PID}/xy_pid.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_link_libraries(test_pid_core m)
-add_test(NAME pid_core COMMAND test_pid_core)
 
 # --- Test 30: MUX SPI channel helper contracts ---
-add_executable(test_mux_spi
+xy_add_unit_test(test_mux_spi mux_spi UNITY
     ${UNIT_MUX}/test_mux_spi.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_spi.c
@@ -552,12 +544,10 @@ add_executable(test_mux_spi
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME mux_spi COMMAND test_mux_spi)
 
 # --- Test 31: MUX UART channel helper contracts ---
-add_executable(test_mux_uart
+xy_add_unit_test(test_mux_uart mux_uart UNITY
     ${UNIT_MUX}/test_mux_uart.c
     ${MUX}/src/xy_mux.c
     ${MUX}/src/xy_mux_uart.c
@@ -566,9 +556,7 @@ add_executable(test_mux_uart
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME mux_uart COMMAND test_mux_uart)
 
 # --- Test 28: DM base64 public vectors and binary roundtrip ---
 add_executable(test_dm_base64
