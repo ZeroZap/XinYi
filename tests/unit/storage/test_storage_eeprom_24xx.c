@@ -1,11 +1,20 @@
 #include "xy_eeprom_24xx.h"
 #include "xy_hal_error.h"
+#include "fff.h"
 #include "unity.h"
 
 #include <stdint.h>
 #include <string.h>
 
 #define EEPROM_SIZE 512U
+
+DEFINE_FFF_GLOBALS;
+
+FAKE_VOID_FUNC(xy_hal_delay_ms, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_transmit, void *, uint16_t,
+                const uint8_t *, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_receive, void *, uint16_t,
+                uint8_t *, size_t, uint32_t)
 
 typedef struct {
     uint8_t storage[EEPROM_SIZE];
@@ -15,17 +24,26 @@ typedef struct {
     size_t reads;
 } fake_i2c_t;
 
+static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
+                                               const uint8_t *data, size_t len,
+                                               uint32_t timeout);
+static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
+                                              uint8_t *data, size_t len,
+                                              uint32_t timeout);
+
 void setUp(void)
 {
+    RESET_FAKE(xy_hal_delay_ms);
+    RESET_FAKE(xy_hal_i2c_master_transmit);
+    RESET_FAKE(xy_hal_i2c_master_receive);
+    FFF_RESET_HISTORY();
+
+    xy_hal_i2c_master_transmit_fake.custom_fake = fake_i2c_master_transmit;
+    xy_hal_i2c_master_receive_fake.custom_fake = fake_i2c_master_receive;
 }
 
 void tearDown(void)
 {
-}
-
-void xy_hal_delay_ms(uint32_t ms)
-{
-    (void)ms;
 }
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle,
@@ -69,9 +87,9 @@ xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
     return (int)len;
 }
 
-xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
-                                          const uint8_t *data, size_t len,
-                                          uint32_t timeout)
+static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
+                                               const uint8_t *data, size_t len,
+                                               uint32_t timeout)
 {
     fake_i2c_t *fake = (fake_i2c_t *)i2c;
     uint16_t mem_addr;
@@ -110,9 +128,9 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_i2c_master_receive(void *i2c, uint16_t dev_addr,
-                                         uint8_t *data, size_t len,
-                                         uint32_t timeout)
+static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
+                                              uint8_t *data, size_t len,
+                                              uint32_t timeout)
 {
     fake_i2c_t *fake = (fake_i2c_t *)i2c;
 
@@ -175,11 +193,19 @@ static void test_write_read_and_page_splitting(void)
     TEST_ASSERT_EQUAL_INT((int)sizeof(payload),
                           xy_eeprom_24xx_write(&eeprom, 14, payload, sizeof(payload)));
     TEST_ASSERT_EQUAL_UINT32(3U, fake.writes);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fake, xy_hal_i2c_master_transmit_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(0x50U, xy_hal_i2c_master_transmit_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_delay_ms_fake.call_count);
     TEST_ASSERT_EQUAL_MEMORY(payload, &fake.storage[14], sizeof(payload));
 
     TEST_ASSERT_EQUAL_INT((int)sizeof(out), xy_eeprom_24xx_read(&eeprom, 14, out, sizeof(out)));
     TEST_ASSERT_EQUAL_UINT16(0x50U, fake.last_dev_addr);
     TEST_ASSERT_EQUAL_UINT32(1U, fake.reads);
+    TEST_ASSERT_EQUAL_UINT(4U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_receive_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fake, xy_hal_i2c_master_receive_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(0x50U, xy_hal_i2c_master_receive_fake.arg1_val);
     TEST_ASSERT_EQUAL_MEMORY(payload, out, sizeof(out));
 }
 

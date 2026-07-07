@@ -183,6 +183,8 @@ tests/
 
 **Objective:** Use FFF to make dependency behavior observable and less error-prone.
 
+**Status:** In progress. First slice converted the storage EEPROM 24xx host test: HAL delay/I2C boundaries now use FFF for call counts and argument capture, while the EEPROM memory simulation remains a hand-written state fixture because that keeps read/write behavior clearer.
+
 **Good candidates:**
 
 - HAL functions: I2C, SPI, GPIO, UART, delay.
