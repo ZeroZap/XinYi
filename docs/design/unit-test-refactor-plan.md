@@ -70,7 +70,7 @@ tests/
 
 **Objective:** Reduce repeated CMake boilerplate before adding more test targets.
 
-**Status:** In progress. `xy_add_unit_test()` now supports an optional `UNITY` flag that appends `${ROOT}/tests/unity/unity.c` and registers the CTest entry in one place. Converted low-risk sample targets now include crypto/core smoke targets (`crypto_crc`, `crypto_csprng`, `crypto_random`, `crypto_encode`, `crypto_hash`, `crypto_cipher_hmac`, `crypto_sm2`, `crypto_lwc`, `clib_alloc_shim`, `fff_smoke`) and a small net component batch (`can_component`, `lte_component`, `nano_modbus_compat`, `modbus_legacy`, `iso7816_component`, `iso7816_example`); target names and CTest names remain stable.
+**Status:** In progress. `xy_add_unit_test()` now supports an optional `UNITY` flag that appends `${ROOT}/tests/unity/unity.c` and registers the CTest entry in one place. Converted low-risk sample targets now include crypto/core smoke targets (`crypto_crc`, `crypto_csprng`, `crypto_random`, `crypto_encode`, `crypto_hash`, `crypto_cipher_hmac`, `crypto_sm2`, `crypto_lwc`, `crypto_25519`, `crypto_25519_m0`, `clib_alloc_shim`, `fff_smoke`), a small net component batch (`can_component`, `lte_component`, `nano_modbus_compat`, `modbus_legacy`, `iso7816_component`, `iso7816_example`), plus `sensor_framework` and `hal_pc`; target names and CTest names remain stable.
 
 **Tasks:**
 

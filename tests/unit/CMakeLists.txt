@@ -389,9 +389,8 @@ xy_add_unit_test(test_clib_alloc_shim clib_alloc_shim UNITY
 target_compile_definitions(test_clib_alloc_shim PRIVATE TEST_CLIB_ALLOC_SHIM_MAIN)
 
 # --- Test 20d: Crypto 25519 public API contracts ---
-add_executable(test_25519
+xy_add_unit_test(test_25519 crypto_25519 UNITY
     ${UNIT_CRYPTO}/test_25519.c
-    ${ROOT}/tests/unity/unity.c
     ${CRYPTO}/xy_25519/xy_25519.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
@@ -401,12 +400,10 @@ add_executable(test_25519
 target_include_directories(test_25519 PRIVATE
     ${CRYPTO}/xy_25519
 )
-add_test(NAME crypto_25519 COMMAND test_25519)
 
 # --- Test 20e: Crypto 25519 Cortex-M0 API and field smoke contracts ---
-add_executable(test_25519_m0
+xy_add_unit_test(test_25519_m0 crypto_25519_m0 UNITY
     ${UNIT_CRYPTO}/test_25519_m0.c
-    ${ROOT}/tests/unity/unity.c
     ${CRYPTO}/xy_25519/xy_25519_m0.c
     ${CRYPTO}/xy_25519/fe25519_m0.c
     ${CLIB}/xy_string.c
@@ -418,10 +415,9 @@ target_include_directories(test_25519_m0 PRIVATE
     ${CRYPTO}/xy_25519
     ${CLIB}
 )
-add_test(NAME crypto_25519_m0 COMMAND test_25519_m0)
 
 # --- Test 21: Sensor framework lifecycle, registry, FIFO, calibration, filters ---
-add_executable(test_sensor_framework
+xy_add_unit_test(test_sensor_framework sensor_framework UNITY
     ${UNIT_SENSOR}/test_sensor_framework.c
     ${SENSOR}/sensor_core.c
     ${SENSOR}/sensor_fifo.c
@@ -429,25 +425,21 @@ add_executable(test_sensor_framework
     ${SENSOR}/sensor_filter.c
     ${SENSOR}/sensor_threshold.c
     ${SENSOR}/sensor_self_test.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME sensor_framework COMMAND test_sensor_framework)
 
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
-add_executable(test_hal_pc
+xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
     ${HAL}/PC/xy_hal_pc.c
     ${HAL}/PC/xy_hal_gpio_pc.c
     ${HAL}/PC/xy_hal_i2c_pc.c
     ${HAL}/PC/xy_hal_spi_pc.c
     ${HAL}/PC/xy_hal_uart_pc.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_hal_pc PRIVATE
     ${HAL}/inc
     ${HAL}/PC
 )
-add_test(NAME hal_pc COMMAND test_hal_pc)
 
 # --- Test 23: PM lifecycle, charger, fuel gauge, and PC platform contracts ---
 add_executable(test_pm
