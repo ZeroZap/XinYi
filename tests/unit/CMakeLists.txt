@@ -624,83 +624,65 @@ xy_add_unit_test(test_storage_eeprom_24xx storage_eeprom_24xx UNITY
 )
 
 # --- Test 33: Display LCD SPI/I8080/ST7789 host contracts ---
-add_executable(test_display_lcd
+xy_add_unit_test(test_display_lcd display_lcd UNITY
     ${UNIT_DISPLAY}/test_display_lcd.c
     ${DISPLAY}/lcd/xy_lcd.c
     ${DISPLAY}/lcd/xy_lcd_spi.c
     ${DISPLAY}/lcd/xy_lcd_i8080.c
     ${DISPLAY}/lcd/xy_lcd_st7789.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME display_lcd COMMAND test_display_lcd)
 
 # --- Test 34: Display OLED SSD1306 / WS2812 host contracts ---
-add_executable(test_display_oled_ws2812
+xy_add_unit_test(test_display_oled_ws2812 display_oled_ws2812 UNITY
     ${UNIT_DISPLAY}/test_display_oled_ws2812.c
     ${DISPLAY}/oled/ssd1306/xy_oled_ssd1306.c
     ${DISPLAY}/led_drivers/serial_rgb/xy_ws2812.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME display_oled_ws2812 COMMAND test_display_oled_ws2812)
 
 # --- Test 35: Display RGB matrix layout/effect contracts ---
-add_executable(test_display_rgb_matrix
+xy_add_unit_test(test_display_rgb_matrix display_rgb_matrix UNITY
     ${UNIT_DISPLAY}/test_display_rgb_matrix.c
     ${DISPLAY}/led_drivers/serial_rgb/xy_rgb_matrix.c
     ${DISPLAY}/led_drivers/serial_rgb/xy_ws2812.c
     ${DEV}/xy_device_core.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME display_rgb_matrix COMMAND test_display_rgb_matrix)
 
 # --- Test 36: Display serial RGB public helper headers remain self-contained ---
-add_executable(test_display_serial_rgb_headers
+xy_add_unit_test(test_display_serial_rgb_headers display_serial_rgb_headers UNITY
     ${UNIT_DISPLAY}/test_display_serial_rgb_headers.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME display_serial_rgb_headers COMMAND test_display_serial_rgb_headers)
 
 # --- Test 37: Display LED driver GUI adapter contracts ---
-add_executable(test_display_led_driver
+xy_add_unit_test(test_display_led_driver display_led_driver UNITY
     ${UNIT_DISPLAY}/test_led_driver.c
     ${DISPLAY}/led_drivers/xy_led_driver.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME display_led_driver COMMAND test_display_led_driver)
 
 # --- Test 38: MQTT client helpers, topic filters, and validation ---
-add_executable(test_mqtt_client
+xy_add_unit_test(test_mqtt_client mqtt_client UNITY
     ${UNIT_NET}/test_mqtt_client_core.c
     ${NET}/src/xy_mqtt_client.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME mqtt_client COMMAND test_mqtt_client)
 
 # --- Test 31: AT client registration, responses, and IO helpers ---
-add_executable(test_at_client
+xy_add_unit_test(test_at_client at_client UNITY
     ${UNIT_NET}/test_at_client_core.c
     ${NET}/at/atc/Modules/cellular/common/at_client.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME at_client COMMAND test_at_client)
 
 # --- Test 32: AT server command dispatch, responses, and parsing ---
-add_executable(test_at_server
+xy_add_unit_test(test_at_server at_server UNITY
     ${UNIT_NET}/test_at_server_core.c
     ${NET}/at/ats/xy_ats.c
     ${NET}/at/ats/xy_ats_hash.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_at_server PRIVATE ${TRACE}/xy_log/inc)
-add_test(NAME at_server COMMAND test_at_server)
 
 # --- Test 33: FOTA lifecycle, CRC, download, and flash-op contracts ---
-add_executable(test_fota_core
+xy_add_unit_test(test_fota_core fota_core UNITY
     ${UNIT_FOTA}/test_fota_core.c
     ${FOTA}/xy_fota.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME fota_core COMMAND test_fota_core)
 
 # --- Test 34: GUI core drawing and object contracts ---
 add_executable(test_gui_core
