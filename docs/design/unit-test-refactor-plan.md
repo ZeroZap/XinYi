@@ -70,27 +70,27 @@ tests/
 
 **Objective:** Reduce repeated CMake boilerplate before adding more test targets.
 
-**Status:** In progress. `xy_add_unit_test()` now supports an optional `UNITY` flag that appends `${ROOT}/tests/unity/unity.c` and registers the CTest entry in one place. Converted low-risk sample targets now include crypto/core smoke targets (`crypto_crc`, `crypto_csprng`, `crypto_random`, `crypto_encode`, `crypto_hash`, `crypto_cipher_hmac`, `crypto_sm2`, `crypto_lwc`, `crypto_25519`, `crypto_25519_m0`, `clib_alloc_shim`, `fff_smoke`), a small net component batch (`can_component`, `lte_component`, `nano_modbus_compat`, `modbus_legacy`, `iso7816_component`, `iso7816_example`, `mqtt_client`, `at_client`, `at_server`, `net_smbus_pmbus`), plus framework/component targets (`sensor_framework`, `hal_pc`, `pm_component`, `pm_platform_fallback`, `trace_component`, `clib_component`, `mux_core`, `mux_i2c`, `mux_gpio`, `pid_core`, `mux_spi`, `mux_uart`, `dm_base64`, `dm_tlv`, `dm_nvm`, `dm_factory`, `dm_fee`, `dm_corejson`, `ipc_pipe`, `ipc_broker`, `storage_eeprom_24xx`, `display_lcd`, `display_oled_ws2812`, `display_rgb_matrix`, `display_serial_rgb_headers`, `display_led_driver`, `fota_core`, `gui_core`, `gui_widget_theme`, `gui_widgets`, `analog_devices`, `sys_timer_sm`, `bootreason_check`, `actuator_framework`, `charger_bq25620`, `fuel_gauge_core`, `fg_bq27z746`, `fg_bq40z50`, `fg_max17043`, `fg_bq27z561`, `device_framework`, `sht30_integration`, `sensors_multi`, `spi_device`, `auto_register`, `device_registry_example`, `device_driver_template`, `device_async_helper`, `osal_baremetal`, `net_core`); target names and CTest names remain stable.
+**Status:** Complete. `xy_add_unit_test()` supports an optional `UNITY` flag that appends `${ROOT}/tests/unity/unity.c` and registers the CTest entry in one place. All 72 CTest entries are now registered through the helper, with target names and CTest names kept stable. The only remaining `add_executable()` and `add_test()` calls in `tests/unit/CMakeLists.txt` are inside the helper itself.
 
 **Tasks:**
 
-1. Add a helper function in `tests/unit/CMakeLists.txt`.
+1. [x] Add a helper function in `tests/unit/CMakeLists.txt`.
    - Suggested name: `xy_add_unit_test`.
    - Responsibilities:
      - Create the executable.
      - Add common include directories.
      - Link Unity when requested by the target.
      - Register the CTest name.
-2. Convert low-risk existing targets to the helper.
-   - Prefer small targets that already pass and do not need special linker flags.
-3. Keep target names and CTest names stable.
-4. Run focused tests for converted targets.
-5. Run `make test-unit`.
+2. [x] Convert existing targets to the helper.
+   - Completed across all current unit CTest targets, including targets with include directories, compile definitions, and math library links.
+3. [x] Keep target names and CTest names stable.
+4. [x] Run focused tests for converted batches.
+5. [x] Run `make test-unit`.
 
 **Exit Criteria:**
 
 - New helper exists.
-- A small sample of targets uses it.
+- All current unit CTest targets use it.
 - Full unit suite still passes.
 - No unrelated test behavior changes.
 
