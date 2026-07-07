@@ -311,22 +311,19 @@ xy_add_unit_test(test_random crypto_random UNITY
 )
 
 # --- Test 18: Crypto Base64 and Hex validation/roundtrip behavior ---
-add_executable(test_encode
+xy_add_unit_test(test_encode crypto_encode UNITY
     ${UNIT_CRYPTO}/test_encode.c
     ${CRYPTO}/xy_base/xy_base64.c
     ${CRYPTO}/xy_hex/xy_hex.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_encode PRIVATE
     ${CRYPTO}
     ${CRYPTO}/inc
 )
-add_test(NAME crypto_encode COMMAND test_encode)
 
 # --- Test 19: Crypto MD5/SHA-256 vectors and incremental hashing ---
-add_executable(test_hash
+xy_add_unit_test(test_hash crypto_hash UNITY
     ${UNIT_CRYPTO}/test_hash.c
-    ${ROOT}/tests/unity/unity.c
     ${CRYPTO}/xy_md/xy_md5.c
     ${CRYPTO}/xy_hmac/xy_sha256.c
 )
@@ -334,12 +331,10 @@ target_include_directories(test_hash PRIVATE
     ${CRYPTO}
     ${CRYPTO}/inc
 )
-add_test(NAME crypto_hash COMMAND test_hash)
 
 # --- Test 20: Crypto AES/HMAC/SM3/SM4/ChaCha20 coverage ---
-add_executable(test_cipher_hmac
+xy_add_unit_test(test_cipher_hmac crypto_cipher_hmac UNITY
     ${UNIT_CRYPTO}/test_cipher_hmac.c
-    ${ROOT}/tests/unity/unity.c
     ${CRYPTO}/xy_aes/xy_aes.c
     ${CRYPTO}/xy_hmac/xy_hmac.c
     ${CRYPTO}/xy_md/xy_md5.c
@@ -355,12 +350,10 @@ target_include_directories(test_cipher_hmac PRIVATE
     ${CRYPTO}/xy_sm3
     ${CRYPTO}/xy_sm4
 )
-add_test(NAME crypto_cipher_hmac COMMAND test_cipher_hmac)
 
 # --- Test 20b: Crypto SM2 public API contracts ---
-add_executable(test_sm2
+xy_add_unit_test(test_sm2 crypto_sm2 UNITY
     ${UNIT_CRYPTO}/test_sm2.c
-    ${ROOT}/tests/unity/unity.c
     ${CRYPTO}/xy_sm2/xy_sm2.c
     ${CRYPTO}/xy_sm3/xy_sm3.c
     ${CRYPTO}/xy_sm4/xy_sm4.c
@@ -373,12 +366,10 @@ target_include_directories(test_sm2 PRIVATE
     ${CRYPTO}/xy_sm3
     ${CRYPTO}/xy_sm4
 )
-add_test(NAME crypto_sm2 COMMAND test_sm2)
 
 # --- Test 20c: Crypto lightweight AEAD/hash contracts ---
-add_executable(test_lwc
+xy_add_unit_test(test_lwc crypto_lwc UNITY
     ${UNIT_CRYPTO}/test_lwc.c
-    ${ROOT}/tests/unity/unity.c
     ${CRYPTO}/xy_ascon/xy_ascon.c
     ${CRYPTO}/xy_tinyjambu/xy_tinyjambu.c
     ${CRYPTO}/xy_photon_beetle/xy_photon_beetle.c
@@ -390,7 +381,6 @@ target_include_directories(test_lwc PRIVATE
     ${CRYPTO}/xy_tinyjambu
     ${CRYPTO}/xy_photon_beetle
 )
-add_test(NAME crypto_lwc COMMAND test_lwc)
 
 # --- Support: host malloc-backed CLIB allocation shim contract ---
 xy_add_unit_test(test_clib_alloc_shim clib_alloc_shim UNITY
