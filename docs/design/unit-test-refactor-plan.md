@@ -9,10 +9,10 @@ Build a maintainable host-side unit-test system for XinYi that gives most of Cee
 ## Current Baseline
 
 - Unit tests are driven by `tests/unit/CMakeLists.txt` and run through `make test-unit` / CTest.
-- The current suite exposes 63 CTest tests in `build/tests/unit`.
-- Unity already exists under `tests/unity/` and is already used by some tests.
-- The test suite still mixes Unity-style tests with raw `assert()` tests and local hand-written fakes.
-- FFF is not currently vendored in the repository.
+- The current suite exposes 72 CTest tests in `build/tests/unit`.
+- Unity exists under `tests/unity/` and all tracked `tests/unit/**/*.c` source tests are Unity-style.
+- Raw `assert()` and plain compile-smoke source files in `tests/unit/` have been migrated or pruned; build-generated files under `tests/unit/build/` are excluded from the source inventory.
+- FFF is vendored under `tests/fff/` and covered by the `fff_smoke` CTest target.
 - `tests/Testing_Guideline.md` is still Ceedling-oriented and does not match the preferred near-term direction.
 
 ## Target Architecture

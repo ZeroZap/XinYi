@@ -9,6 +9,8 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 72
+- Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 
 ## Component Breakdown
 
