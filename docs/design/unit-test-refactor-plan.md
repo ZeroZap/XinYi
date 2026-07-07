@@ -183,7 +183,7 @@ tests/
 
 **Objective:** Use FFF to make dependency behavior observable and less error-prone.
 
-**Status:** In progress. First slices converted the storage EEPROM 24xx, BQ25620 charger, analog devices, and display OLED/WS2812 host tests: HAL delay/I2C/GPIO/SPI boundaries now use FFF for call counts and argument capture, while EEPROM memory, charger register maps, analog readback, OLED I2C logs, and WS2812 GPIO callback logs remain hand-written state fixtures because that keeps behavior clearer.
+**Status:** In progress. First slices converted the storage EEPROM 24xx, BQ25620 charger, analog devices, display OLED/WS2812, and display LCD host tests: HAL delay/I2C/GPIO/SPI boundaries now use FFF for call counts and argument capture, while EEPROM memory, charger register maps, analog readback, OLED I2C logs, WS2812 GPIO callback logs, and LCD SPI/GPIO transaction logs remain hand-written state fixtures because that keeps behavior clearer.
 
 **Good candidates:**
 

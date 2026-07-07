@@ -2,6 +2,7 @@
 #include "xy_lcd_i8080.h"
 #include "xy_lcd_st7789.h"
 #include "xy_hal_error.h"
+#include "fff.h"
 #include "unity.h"
 
 #include <stdint.h>
@@ -9,6 +10,22 @@
 
 #define MAX_SPI_OPS 256
 #define MAX_GPIO_OPS 1024
+
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit, void *, const uint8_t *, size_t,
+                uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_receive, void *, uint8_t *, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_receive, void *, const uint8_t *,
+                uint8_t *, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_dma, void *, const uint8_t *, size_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_receive_dma, void *, uint8_t *, size_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_receive_dma, void *, const uint8_t *,
+                uint8_t *, size_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_gpio_write, xy_hal_gpio_port_t, uint8_t, uint8_t)
+FAKE_VALUE_FUNC(int32_t, xy_hal_gpio_read, xy_hal_gpio_port_t, uint8_t)
+FAKE_VOID_FUNC(xy_hal_delay_ms, uint32_t)
+FAKE_VOID_FUNC(xy_hal_delay_us, uint32_t)
 
 typedef struct {
     const uint8_t *data;
@@ -31,8 +48,26 @@ static uint32_t delay_ms_total;
 static uint32_t delay_us_total;
 static uint32_t read_pattern;
 
+static void reset_logs(void);
+static xy_hal_error_t fake_spi_transmit(void *spi, const uint8_t *data, size_t len,
+                                        uint32_t timeout);
+static xy_hal_error_t fake_spi_receive(void *spi, uint8_t *data, size_t len,
+                                       uint32_t timeout);
+static xy_hal_error_t fake_spi_transmit_receive(void *spi, const uint8_t *tx_data,
+                                                uint8_t *rx_data, size_t len,
+                                                uint32_t timeout);
+static xy_hal_error_t fake_spi_transmit_dma(void *spi, const uint8_t *data, size_t len);
+static xy_hal_error_t fake_spi_receive_dma(void *spi, uint8_t *data, size_t len);
+static xy_hal_error_t fake_spi_transmit_receive_dma(void *spi, const uint8_t *tx_data,
+                                                    uint8_t *rx_data, size_t len);
+static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value);
+static int32_t fake_gpio_read(xy_hal_gpio_port_t port, uint8_t pin);
+static void fake_delay_ms(uint32_t ms);
+static void fake_delay_us(uint32_t us);
+
 void setUp(void)
 {
+    reset_logs();
 }
 
 void tearDown(void)
@@ -41,6 +76,29 @@ void tearDown(void)
 
 static void reset_logs(void)
 {
+    RESET_FAKE(xy_hal_spi_transmit);
+    RESET_FAKE(xy_hal_spi_receive);
+    RESET_FAKE(xy_hal_spi_transmit_receive);
+    RESET_FAKE(xy_hal_spi_transmit_dma);
+    RESET_FAKE(xy_hal_spi_receive_dma);
+    RESET_FAKE(xy_hal_spi_transmit_receive_dma);
+    RESET_FAKE(xy_hal_gpio_write);
+    RESET_FAKE(xy_hal_gpio_read);
+    RESET_FAKE(xy_hal_delay_ms);
+    RESET_FAKE(xy_hal_delay_us);
+    FFF_RESET_HISTORY();
+
+    xy_hal_spi_transmit_fake.custom_fake = fake_spi_transmit;
+    xy_hal_spi_receive_fake.custom_fake = fake_spi_receive;
+    xy_hal_spi_transmit_receive_fake.custom_fake = fake_spi_transmit_receive;
+    xy_hal_spi_transmit_dma_fake.custom_fake = fake_spi_transmit_dma;
+    xy_hal_spi_receive_dma_fake.custom_fake = fake_spi_receive_dma;
+    xy_hal_spi_transmit_receive_dma_fake.custom_fake = fake_spi_transmit_receive_dma;
+    xy_hal_gpio_write_fake.custom_fake = fake_gpio_write;
+    xy_hal_gpio_read_fake.custom_fake = fake_gpio_read;
+    xy_hal_delay_ms_fake.custom_fake = fake_delay_ms;
+    xy_hal_delay_us_fake.custom_fake = fake_delay_us;
+
     memset(spi_ops, 0, sizeof(spi_ops));
     memset(gpio_ops, 0, sizeof(gpio_ops));
     spi_op_count = 0;
@@ -50,8 +108,8 @@ static void reset_logs(void)
     read_pattern = 0;
 }
 
-xy_hal_error_t xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
-                                   uint32_t timeout)
+static xy_hal_error_t fake_spi_transmit(void *spi, const uint8_t *data, size_t len,
+                                        uint32_t timeout)
 {
     (void)spi;
     (void)timeout;
@@ -66,8 +124,8 @@ xy_hal_error_t xy_hal_spi_transmit(void *spi, const uint8_t *data, size_t len,
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_spi_receive(void *spi, uint8_t *data, size_t len,
-                                  uint32_t timeout)
+static xy_hal_error_t fake_spi_receive(void *spi, uint8_t *data, size_t len,
+                                       uint32_t timeout)
 {
     (void)spi;
     (void)timeout;
@@ -75,9 +133,9 @@ xy_hal_error_t xy_hal_spi_receive(void *spi, uint8_t *data, size_t len,
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
-                                           uint8_t *rx_data, size_t len,
-                                           uint32_t timeout)
+static xy_hal_error_t fake_spi_transmit_receive(void *spi, const uint8_t *tx_data,
+                                                uint8_t *rx_data, size_t len,
+                                                uint32_t timeout)
 {
     (void)spi;
     (void)timeout;
@@ -85,7 +143,7 @@ xy_hal_error_t xy_hal_spi_transmit_receive(void *spi, const uint8_t *tx_data,
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_spi_transmit_dma(void *spi, const uint8_t *data, size_t len)
+static xy_hal_error_t fake_spi_transmit_dma(void *spi, const uint8_t *data, size_t len)
 {
     (void)spi;
     TEST_ASSERT_LESS_THAN_UINT32(MAX_SPI_OPS, spi_op_count);
@@ -99,23 +157,23 @@ xy_hal_error_t xy_hal_spi_transmit_dma(void *spi, const uint8_t *data, size_t le
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_spi_receive_dma(void *spi, uint8_t *data, size_t len)
+static xy_hal_error_t fake_spi_receive_dma(void *spi, uint8_t *data, size_t len)
 {
     (void)spi;
     memset(data, 0xA5, len);
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_spi_transmit_receive_dma(void *spi,
-                                               const uint8_t *tx_data,
-                                               uint8_t *rx_data, size_t len)
+static xy_hal_error_t fake_spi_transmit_receive_dma(void *spi,
+                                                    const uint8_t *tx_data,
+                                                    uint8_t *rx_data, size_t len)
 {
     (void)spi;
     memcpy(rx_data, tx_data, len);
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value)
+static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value)
 {
     TEST_ASSERT_LESS_THAN_UINT32(MAX_GPIO_OPS, gpio_op_count);
     gpio_ops[gpio_op_count].port = port;
@@ -125,18 +183,18 @@ xy_hal_error_t xy_hal_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t v
     return XY_HAL_OK;
 }
 
-int32_t xy_hal_gpio_read(xy_hal_gpio_port_t port, uint8_t pin)
+static int32_t fake_gpio_read(xy_hal_gpio_port_t port, uint8_t pin)
 {
     (void)port;
     return (read_pattern >> pin) & 1U;
 }
 
-void xy_hal_delay_ms(uint32_t ms)
+static void fake_delay_ms(uint32_t ms)
 {
     delay_ms_total += ms;
 }
 
-void xy_hal_delay_us(uint32_t us)
+static void fake_delay_us(uint32_t us)
 {
     delay_us_total += us;
 }
@@ -176,6 +234,8 @@ static void test_spi_init_window_and_pixel_endian(void)
     reset_logs();
     xy_lcd_spi_set_window(&lcd, 1, 2, 3, 4);
     TEST_ASSERT_EQUAL_UINT32(7U, spi_op_count);
+    TEST_ASSERT_EQUAL_UINT(7U, xy_hal_spi_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(cfg.spi_handle, xy_hal_spi_transmit_fake.arg0_val);
     TEST_ASSERT_EQUAL_HEX8(0x2A, spi_ops[0].bytes[0]);
     TEST_ASSERT_EQUAL_HEX8(0x00, spi_ops[1].bytes[0]);
     TEST_ASSERT_EQUAL_HEX8(0x01, spi_ops[1].bytes[1]);
@@ -191,6 +251,8 @@ static void test_spi_init_window_and_pixel_endian(void)
     reset_logs();
     xy_lcd_spi_write_pixel(&lcd, pixels, 2);
     TEST_ASSERT_EQUAL_UINT32(1U, spi_op_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_spi_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(sizeof(pixels), xy_hal_spi_transmit_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT32(4U, spi_ops[0].len);
     TEST_ASSERT_EQUAL_HEX8(0x12, spi_ops[0].bytes[0]);
     TEST_ASSERT_EQUAL_HEX8(0x34, spi_ops[0].bytes[1]);
@@ -212,7 +274,9 @@ static void test_spi_reset_backlight_and_dma(void)
     reset_logs();
     xy_lcd_spi_reset(&lcd);
     TEST_ASSERT_EQUAL_UINT32(140U, delay_ms_total);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_delay_ms_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(3U, gpio_op_count);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_gpio_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(cfg.rst_pin, gpio_ops[0].pin);
     TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[0].value);
     TEST_ASSERT_EQUAL_UINT8(cfg.rst_pin, gpio_ops[1].pin);
@@ -224,6 +288,7 @@ static void test_spi_reset_backlight_and_dma(void)
     xy_lcd_spi_set_backlight(&lcd, 0);
     xy_lcd_spi_set_backlight(&lcd, 100);
     TEST_ASSERT_EQUAL_UINT32(2U, gpio_op_count);
+    TEST_ASSERT_EQUAL_UINT(2U, xy_hal_gpio_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(cfg.bl_pin, gpio_ops[0].pin);
     TEST_ASSERT_EQUAL_UINT8(0U, gpio_ops[0].value);
     TEST_ASSERT_EQUAL_UINT8(cfg.bl_pin, gpio_ops[1].pin);
@@ -233,6 +298,8 @@ static void test_spi_reset_backlight_and_dma(void)
     reset_logs();
     xy_lcd_spi_write_data(&lcd, payload, sizeof(payload));
     TEST_ASSERT_EQUAL_UINT32(1U, spi_op_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_spi_transmit_dma_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(sizeof(payload), xy_hal_spi_transmit_dma_fake.arg2_val);
     TEST_ASSERT_EQUAL_INT(1, spi_ops[0].dma);
     TEST_ASSERT_EQUAL_UINT32(sizeof(payload), spi_ops[0].len);
 
@@ -291,6 +358,7 @@ static void test_i8080_bus_write_read_and_window(void)
     reset_logs();
     xy_lcd_i8080_write_data16(&lcd, 0xA55A);
     TEST_ASSERT_GREATER_OR_EQUAL_UINT32(20U, gpio_op_count);
+    TEST_ASSERT_EQUAL_UINT(gpio_op_count, xy_hal_gpio_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(cfg.rs_pin, gpio_ops[0].pin);
     TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[0].value);
     TEST_ASSERT_EQUAL_UINT8(cfg.cs_pin, gpio_ops[1].pin);
@@ -308,9 +376,11 @@ static void test_i8080_bus_write_read_and_window(void)
     TEST_ASSERT_EQUAL_UINT8(cfg.cs_pin, gpio_ops[20].pin);
     TEST_ASSERT_EQUAL_UINT8(1U, gpio_ops[20].value);
     TEST_ASSERT_EQUAL_UINT32(1U, delay_us_total);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_delay_us_fake.call_count);
 
     read_pattern = 0xBEEF;
     TEST_ASSERT_EQUAL_HEX16(0xBEEFU, xy_lcd_i8080_read_data(&lcd));
+    TEST_ASSERT_GREATER_THAN_UINT(0U, xy_hal_gpio_read_fake.call_count);
 
     reset_logs();
     xy_lcd_i8080_set_window(&lcd, 1, 1, 2, 2);
