@@ -140,56 +140,50 @@ function(xy_add_unit_test TARGET_NAME TEST_NAME)
 endfunction()
 
 # --- Test 1: framework end-to-end ---
-add_executable(test_device
+xy_add_unit_test(test_device device_framework UNITY
     ${UNIT_DEVICE}/test_device_framework.c
     ${FRAMEWORK_SOURCES}
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 2: SHT30 driver integration ---
-add_executable(test_sht30_integration
+xy_add_unit_test(test_sht30_integration sht30_integration UNITY
     ${UNIT_SENSOR}/test_sht30_integration.c
     ${DRV}/sensor/temperature/sht30/xy_sht30.c
     ${FRAMEWORK_SOURCES}
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 3: heterogeneous sensor coexistence ---
-add_executable(test_sensors_multi
+xy_add_unit_test(test_sensors_multi sensors_multi UNITY
     ${UNIT_SENSOR}/test_sensors_multi.c
     ${DRV}/sensor/temperature/sht30/xy_sht30.c
     ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
     ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
     ${DRV}/sensor/adc/ads1115/xy_ads1115.c
     ${FRAMEWORK_SOURCES}
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 4: SPI device helper + mixed-bus registry ---
-add_executable(test_spi_device
+xy_add_unit_test(test_spi_device spi_device UNITY
     ${UNIT_DEVICE}/test_spi_device.c
     ${FRAMEWORK_SOURCES}
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 6: XY_DEVICE_REGISTER auto-registration via GCC constructors ---
-add_executable(test_auto_register
+xy_add_unit_test(test_auto_register auto_register UNITY
     ${UNIT_DEVICE}/test_auto_register.c
     ${FRAMEWORK_SOURCES}
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 8: device registry example stays aligned with public APIs ---
-add_executable(test_device_registry_example
+xy_add_unit_test(test_device_registry_example device_registry_example
     ${ROOT}/examples/device_registry_example.c
     ${FRAMEWORK_SOURCES}
 )
 
 # --- Test 9: device driver template compiles and runs against public APIs ---
-add_executable(test_device_driver_template
+xy_add_unit_test(test_device_driver_template device_driver_template UNITY
     ${ROOT}/examples/device_driver_template.c
     ${FRAMEWORK_SOURCES}
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 10: CAN protocol component API + callback/fifo behavior ---
@@ -231,13 +225,12 @@ xy_add_unit_test(test_iso7816_example iso7816_example UNITY
 )
 
 # --- Test 15: Net umbrella/core lifecycle and platform helpers ---
-add_executable(test_net_core
+xy_add_unit_test(test_net_core net_core UNITY
     ${UNIT_NET}/test_net_core.c
     ${NET}/src/xy_net.c
     ${NET}/src/xy_net_platform.c
     ${NET}/modbus_tiny/mb_tiny.c
     ${CLIB}/xy_stdio.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 target_include_directories(test_net_core PRIVATE
@@ -256,23 +249,21 @@ xy_add_unit_test(test_crc crypto_crc UNITY
 set(OSAL_ROOT ${ROOT}/components/kernel)
 
 # --- Test 7: optional xy_device_async_*_ex helper API ---
-add_executable(test_device_async_helper
+xy_add_unit_test(test_device_async_helper device_async_helper UNITY
     ${UNIT_DEVICE}/test_device_async_helper.c
     ${DEV}/src/xy_device_async.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_device_async_helper PRIVATE
     ${OSAL_ROOT}/osal
     ${OSAL_ROOT}/osal/inc
 )
 
-add_executable(test_osal
+xy_add_unit_test(test_osal osal_baremetal UNITY
     ${UNIT_KERNEL}/test_osal.c
     ${OSAL_ROOT}/osal/backend/baremetal/xy_os_baremetal.c
     ${OSAL_ROOT}/osal/src/xy_os_tick.c
     ${OSAL_ROOT}/misc/xy_tick.c
     ${OSAL_ROOT}/misc/xy_timer_sw.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_osal PRIVATE
     ${OSAL_ROOT}/osal
@@ -286,16 +277,6 @@ target_compile_definitions(test_osal PRIVATE
 )
 
 enable_testing()
-add_test(NAME device_framework  COMMAND test_device)
-add_test(NAME sht30_integration COMMAND test_sht30_integration)
-add_test(NAME sensors_multi     COMMAND test_sensors_multi)
-add_test(NAME spi_device        COMMAND test_spi_device)
-add_test(NAME osal_baremetal    COMMAND test_osal)
-add_test(NAME auto_register     COMMAND test_auto_register)
-add_test(NAME device_async_helper COMMAND test_device_async_helper)
-add_test(NAME device_registry_example COMMAND test_device_registry_example)
-add_test(NAME device_driver_template COMMAND test_device_driver_template)
-add_test(NAME net_core COMMAND test_net_core)
 
 # --- Test 16: Crypto CSPRNG lifecycle, buffering, and helpers ---
 xy_add_unit_test(test_csprng crypto_csprng UNITY
