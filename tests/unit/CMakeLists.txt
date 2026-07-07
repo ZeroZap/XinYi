@@ -559,25 +559,21 @@ xy_add_unit_test(test_mux_uart mux_uart UNITY
 )
 
 # --- Test 28: DM base64 public vectors and binary roundtrip ---
-add_executable(test_dm_base64
+xy_add_unit_test(test_dm_base64 dm_base64 UNITY
     ${UNIT_DM}/test_dm_base64.c
     ${DM}/xy_base64/xy_base64.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_base64 PRIVATE ${ROOT}/components)
-add_test(NAME dm_base64 COMMAND test_dm_base64)
 
 # --- Test 28b: DM TLV encode/decode contracts ---
-add_executable(test_dm_tlv
+xy_add_unit_test(test_dm_tlv dm_tlv UNITY
     ${UNIT_DM}/test_dm_tlv.c
     ${DM}/xy_tlv/xy_tlv.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_tlv PRIVATE ${DM}/xy_tlv)
-add_test(NAME dm_tlv COMMAND test_dm_tlv)
 
 # --- Test 29: DM NVM key-value storage contracts ---
-add_executable(test_dm_nvm
+xy_add_unit_test(test_dm_nvm dm_nvm UNITY
     ${UNIT_DM}/test_dm_nvm_core.c
     ${DM}/xy_nvm/src/xy_nvm.c
     ${TRACE}/xy_log/src/xy_log.c
@@ -585,61 +581,47 @@ add_executable(test_dm_nvm
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_nvm PRIVATE ${DM}/xy_nvm/inc)
-add_test(NAME dm_nvm COMMAND test_dm_nvm)
 
 # --- Test 29b: DM factory public contracts ---
-add_executable(test_dm_factory
+xy_add_unit_test(test_dm_factory dm_factory UNITY
     ${UNIT_DM}/test_dm_factory.c
     ${DM}/factory/xy_factory.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_factory PRIVATE ${DM}/factory)
-add_test(NAME dm_factory COMMAND test_dm_factory)
 
 # --- Test 29c: DM FEE flash EEPROM emulation contracts ---
-add_executable(test_dm_fee
+xy_add_unit_test(test_dm_fee dm_fee UNITY
     ${UNIT_DM}/test_dm_fee.c
     ${DM}/fee/src/xy_fee.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_fee PRIVATE ${DM}/fee/inc)
-add_test(NAME dm_fee COMMAND test_dm_fee)
 
 # --- Test 29d: DM coreJSON parser/search contracts ---
-add_executable(test_dm_corejson
+xy_add_unit_test(test_dm_corejson dm_corejson UNITY
     ${UNIT_DM}/test_dm_corejson.c
     ${DM}/coreJSON/core_json.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_dm_corejson PRIVATE ${DM}/coreJSON)
-add_test(NAME dm_corejson COMMAND test_dm_corejson)
 
 # --- Test 30: IPC pipe ring-buffer contracts ---
-add_executable(test_ipc_pipe
+xy_add_unit_test(test_ipc_pipe ipc_pipe UNITY
     ${UNIT_IPC}/test_ipc_pipe.c
     ${IPC}/pipe/xy_pipe.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME ipc_pipe COMMAND test_ipc_pipe)
 
 # --- Test 31: IPC broker direct-message, pub/sub, and request contracts ---
-add_executable(test_ipc_broker
+xy_add_unit_test(test_ipc_broker ipc_broker UNITY
     ${UNIT_IPC}/test_ipc_broker.c
     ${IPC}/xy_broker/xy_broker.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME ipc_broker COMMAND test_ipc_broker)
 
 # --- Test 32: Storage EEPROM 24xx fake-I2C host contracts ---
-add_executable(test_storage_eeprom_24xx
+xy_add_unit_test(test_storage_eeprom_24xx storage_eeprom_24xx UNITY
     ${UNIT_STORAGE}/test_storage_eeprom_24xx.c
     ${STORAGE}/eeprom/24xx/xy_eeprom_24xx.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME storage_eeprom_24xx COMMAND test_storage_eeprom_24xx)
 
 # --- Test 33: Display LCD SPI/I8080/ST7789 host contracts ---
 add_executable(test_display_lcd
