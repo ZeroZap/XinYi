@@ -403,6 +403,14 @@ target_include_directories(test_lwc PRIVATE
 )
 add_test(NAME crypto_lwc COMMAND test_lwc)
 
+# --- Support: host malloc-backed CLIB allocation shim contract ---
+add_executable(test_clib_alloc_shim
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${ROOT}/tests/unity/unity.c
+)
+target_compile_definitions(test_clib_alloc_shim PRIVATE TEST_CLIB_ALLOC_SHIM_MAIN)
+add_test(NAME clib_alloc_shim COMMAND test_clib_alloc_shim)
+
 # --- Test 20d: Crypto 25519 public API contracts ---
 add_executable(test_25519
     ${UNIT_CRYPTO}/test_25519.c

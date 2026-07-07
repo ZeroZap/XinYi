@@ -5,10 +5,10 @@
 ## Summary
 
 - Total C unit-test files: 70
-- Unity-style files: 69
+- Unity-style files: 70
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/compile-smoke files without obvious Unity/assert markers: 1
+- Plain/compile-smoke files without obvious Unity/assert markers: 0
 
 ## Component Breakdown
 
@@ -34,7 +34,7 @@
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `sensor` | 3 | 3 | 0 | 0 | 0 | 3 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
-| `support` | 1 | 0 | 0 | 0 | 1 | 0 |
+| `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `trace` | 1 | 1 | 0 | 0 | 0 | 0 |
 
@@ -116,6 +116,6 @@
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
 | `tests/unit/storage/test_storage_eeprom_24xx.c` | `unity` | 67 |
-| `tests/unit/support/test_clib_alloc_shim.c` | `plain` | 0 |
+| `tests/unit/support/test_clib_alloc_shim.c` | `unity` | 0 |
 | `tests/unit/sys/test_sys_timer_sm.c` | `unity` | 0 |
 | `tests/unit/trace/test_trace_core.c` | `unity` | 0 |
