@@ -685,24 +685,20 @@ xy_add_unit_test(test_fota_core fota_core UNITY
 )
 
 # --- Test 34: GUI core drawing and object contracts ---
-add_executable(test_gui_core
+xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c
     ${GUI}/xy_gui.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME gui_core COMMAND test_gui_core)
 
 # --- Test 35: GUI widget base and theme contracts ---
-add_executable(test_gui_widget_theme
+xy_add_unit_test(test_gui_widget_theme gui_widget_theme UNITY
     ${UNIT_GUI}/test_gui_widget_theme.c
     ${GUI}/src/xy_gui_widget.c
     ${GUI}/src/xy_gui_theme.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME gui_widget_theme COMMAND test_gui_widget_theme)
 
 # --- Test 36: GUI event and remaining widget contracts ---
-add_executable(test_gui_widgets
+xy_add_unit_test(test_gui_widgets gui_widgets UNITY
     ${UNIT_GUI}/test_gui_widgets.c
     ${GUI}/src/xy_gui_event.c
     ${GUI}/src/xy_gui_widget.c
@@ -719,13 +715,11 @@ add_executable(test_gui_widgets
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_link_libraries(test_gui_widgets m)
-add_test(NAME gui_widgets COMMAND test_gui_widgets)
 
 # --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---
-add_executable(test_analog_devices
+xy_add_unit_test(test_analog_devices analog_devices UNITY
     ${UNIT_ANALOG}/test_analog_devices.c
     ${ANALOG}/xy_adc.c
     ${ANALOG}/src/xy_mcp3008.c
@@ -735,28 +729,22 @@ add_executable(test_analog_devices
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME analog_devices COMMAND test_analog_devices)
 
 # --- Test 39: SYS timer and state-machine host contracts ---
-add_executable(test_sys_timer_sm
+xy_add_unit_test(test_sys_timer_sm sys_timer_sm UNITY
     ${UNIT_SYS}/test_sys_timer_sm.c
     ${SYS}/xy_timer/xy_timer.c
     ${SYS}/xy_state_machine/xy_st.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_compile_definitions(test_sys_timer_sm PRIVATE reentrant= PLATFORM=0 PLATFORM_C51=1)
-add_test(NAME sys_timer_sm COMMAND test_sys_timer_sm)
 
-add_executable(test_bootreason_check
+xy_add_unit_test(test_bootreason_check bootreason_check UNITY
     ${UNIT_KERNEL}/test_bootreason_check.c
-    ${ROOT}/tests/unity/unity.c
 )
-add_test(NAME bootreason_check COMMAND test_bootreason_check)
 
 # --- Test 40: Net SMBus/PMBus helpers and default ops ---
-add_executable(test_net_smbus_pmbus
+xy_add_unit_test(test_net_smbus_pmbus net_smbus_pmbus UNITY
     ${UNIT_NET}/test_net_smbus_pmbus.c
     ${NET}/smbus/xy_smbus.c
     ${NET}/smbus/xy_pmbus.c
@@ -765,28 +753,22 @@ add_executable(test_net_smbus_pmbus
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_link_libraries(test_net_smbus_pmbus m)
-add_test(NAME net_smbus_pmbus COMMAND test_net_smbus_pmbus)
 
 # --- Test 41: Actuator framework, relay, servo, PWM, and batch contracts ---
-add_executable(test_actuator_framework
+xy_add_unit_test(test_actuator_framework actuator_framework UNITY
     ${UNIT_ACTUATOR}/test_actuator_framework.c
-    ${ROOT}/tests/unity/unity.c
     ${ACTUATOR}/xy_actuator.c
 )
 target_link_libraries(test_actuator_framework m)
-add_test(NAME actuator_framework COMMAND test_actuator_framework)
 
 # --- Test 42: BQ25620 charger I2C register and status contracts ---
-add_executable(test_charger_bq25620
+xy_add_unit_test(test_charger_bq25620 charger_bq25620 UNITY
     ${UNIT_PM}/test_charger_bq25620.c
     ${ROOT}/components/charger/src/xy_bq25620.c
-    ${ROOT}/tests/unity/unity.c
 )
 target_include_directories(test_charger_bq25620 PRIVATE ${ROOT}/components/charger/inc)
-add_test(NAME charger_bq25620 COMMAND test_charger_bq25620)
 
 # --- Test 43: Standalone fuel gauge core API contracts ---
 add_executable(test_fuel_gauge_core
