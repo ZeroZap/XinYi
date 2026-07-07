@@ -193,47 +193,41 @@ add_executable(test_device_driver_template
 )
 
 # --- Test 10: CAN protocol component API + callback/fifo behavior ---
-add_executable(test_can
+xy_add_unit_test(test_can can_component UNITY
     ${UNIT_NET}/test_can.c
     ${NET}/src/xy_can.c
     ${CLIB}/xy_stdio.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 11: LTE component lifecycle, callback storage, and validation ---
-add_executable(test_lte
+xy_add_unit_test(test_lte lte_component UNITY
     ${UNIT_NET}/test_lte.c
     ${NET}/src/xy_lte.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 12: nano_modbus compatibility API over mb_tiny ---
-add_executable(test_nano_modbus
+xy_add_unit_test(test_nano_modbus nano_modbus_compat UNITY
     ${UNIT_NET}/test_nano_modbus.c
     ${NET}/modbus_tiny/mb_tiny.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 12b: legacy Modbus RTU slave host guard ---
-add_executable(test_modbus_legacy
+xy_add_unit_test(test_modbus_legacy modbus_legacy UNITY
     ${UNIT_NET}/test_modbus_legacy.c
     ${NET}/modbus/mb_slave.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 13: ISO7816 public include, lifecycle, and APDU behavior ---
-add_executable(test_iso7816
+xy_add_unit_test(test_iso7816 iso7816_component UNITY
     ${UNIT_NET}/test_iso7816.c
     ${NET}/xy_iso7816/xy_iso7816.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 14: ISO7816 usage example stays aligned with public APIs ---
-add_executable(test_iso7816_example
+xy_add_unit_test(test_iso7816_example iso7816_example UNITY
     ${NET}/xy_iso7816/xy_iso7816_example.c
     ${NET}/xy_iso7816/xy_iso7816.c
     ${UNIT_NET}/test_iso7816_example_main.c
-    ${ROOT}/tests/unity/unity.c
 )
 
 # --- Test 15: Net umbrella/core lifecycle and platform helpers ---
@@ -301,12 +295,6 @@ add_test(NAME auto_register     COMMAND test_auto_register)
 add_test(NAME device_async_helper COMMAND test_device_async_helper)
 add_test(NAME device_registry_example COMMAND test_device_registry_example)
 add_test(NAME device_driver_template COMMAND test_device_driver_template)
-add_test(NAME can_component COMMAND test_can)
-add_test(NAME lte_component COMMAND test_lte)
-add_test(NAME nano_modbus_compat COMMAND test_nano_modbus)
-add_test(NAME modbus_legacy COMMAND test_modbus_legacy)
-add_test(NAME iso7816_component COMMAND test_iso7816)
-add_test(NAME iso7816_example COMMAND test_iso7816_example)
 add_test(NAME net_core COMMAND test_net_core)
 
 # --- Test 16: Crypto CSPRNG lifecycle, buffering, and helpers ---
