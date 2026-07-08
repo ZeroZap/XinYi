@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "fff.h"
 
 void xy_log_char(char ch)
 {
@@ -29,10 +30,17 @@ void xy_log_char(char ch)
 
 /* Track mock GPIO state */
 static uint8_t g_gpio_levels[16] = {0};
-static int g_gpio_write_count = 0;
+
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(int32_t, mock_gpio_init, uint8_t, const void *)
+FAKE_VALUE_FUNC(int32_t, mock_gpio_deinit, uint8_t)
+FAKE_VALUE_FUNC(int32_t, mock_gpio_write, uint8_t, const void *, size_t)
+FAKE_VALUE_FUNC(int32_t, mock_gpio_read, uint8_t, void *, size_t)
+FAKE_VALUE_FUNC(int32_t, mock_gpio_ioctl, uint8_t, int, void *)
 
 /* Mock GPIO operations */
-static int32_t mock_gpio_init(uint8_t channel, const void *config)
+static int32_t mock_gpio_init_impl(uint8_t channel, const void *config)
 {
     (void)channel;
     (void)config;
@@ -40,25 +48,24 @@ static int32_t mock_gpio_init(uint8_t channel, const void *config)
     return XY_MUX_OK;
 }
 
-static int32_t mock_gpio_deinit(uint8_t channel)
+static int32_t mock_gpio_deinit_impl(uint8_t channel)
 {
     (void)channel;
     return XY_MUX_OK;
 }
 
-static int32_t mock_gpio_write(uint8_t channel, const void *data, size_t len)
+static int32_t mock_gpio_write_impl(uint8_t channel, const void *data, size_t len)
 {
     if (!data || len < sizeof(uint8_t)) {
         return XY_MUX_ERROR_INVALID_PARAM;
     }
     g_gpio_levels[channel] = ((const uint8_t *)data)[0];
-    g_gpio_write_count++;
     printf("    [MOCK] GPIO-%d write: %s\n", channel,
            g_gpio_levels[channel] ? "HIGH" : "LOW");
     return sizeof(uint8_t);
 }
 
-static int32_t mock_gpio_read(uint8_t channel, void *data, size_t len)
+static int32_t mock_gpio_read_impl(uint8_t channel, void *data, size_t len)
 {
     if (!data || len < sizeof(uint8_t)) {
         return XY_MUX_ERROR_INVALID_PARAM;
@@ -69,7 +76,7 @@ static int32_t mock_gpio_read(uint8_t channel, void *data, size_t len)
     return sizeof(uint8_t);
 }
 
-static int32_t mock_gpio_ioctl(uint8_t channel, int cmd, void *arg)
+static int32_t mock_gpio_ioctl_impl(uint8_t channel, int cmd, void *arg)
 {
     printf("    [MOCK] GPIO-%d ioctl: cmd=%d\n", channel, cmd);
 
@@ -137,9 +144,14 @@ static void test_gpio_register(void)
     printf("  [PASS] GPIO-5 registered\n");
 
     TEST_ASSERT_TRUE(mgr.device_count == 3);
+    TEST_ASSERT_EQUAL_UINT(3U, mock_gpio_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_init_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_UINT8(1, mock_gpio_init_fake.arg0_history[1]);
+    TEST_ASSERT_EQUAL_UINT8(5, mock_gpio_init_fake.arg0_history[2]);
     printf("  [PASS] Device count = 3\n");
 
     xy_mux_deinit(&mgr);
+    TEST_ASSERT_EQUAL_UINT(3U, mock_gpio_deinit_fake.call_count);
     printf("  [PASS] Deinitialization complete\n");
 }
 
@@ -161,18 +173,24 @@ static void test_gpio_write(void)
     };
     xy_mux_gpio_register(&mgr, 0, &ops, NULL);
 
-    g_gpio_write_count = 0;
-
     /* Write HIGH */
     int32_t ret = xy_mux_gpio_write(&mgr, 0, XY_MUX_GPIO_HIGH);
     TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     TEST_ASSERT_TRUE(g_gpio_levels[0] == XY_MUX_GPIO_HIGH);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_LEVEL, mock_gpio_ioctl_fake.arg1_val);
+    TEST_ASSERT_NOT_NULL(mock_gpio_ioctl_fake.arg2_val);
     printf("  [PASS] Write HIGH successful\n");
 
     /* Write LOW */
     ret = xy_mux_gpio_write(&mgr, 0, XY_MUX_GPIO_LOW);
     TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     TEST_ASSERT_TRUE(g_gpio_levels[0] == XY_MUX_GPIO_LOW);
+    TEST_ASSERT_EQUAL_UINT(2U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_LEVEL, mock_gpio_ioctl_fake.arg1_val);
+    TEST_ASSERT_NOT_NULL(mock_gpio_ioctl_fake.arg2_val);
     printf("  [PASS] Write LOW successful\n");
 
     xy_mux_deinit(&mgr);
@@ -203,12 +221,16 @@ static void test_gpio_read(void)
     /* Read GPIO level */
     int32_t level = xy_mux_gpio_read(&mgr, 0);
     TEST_ASSERT_TRUE(level == XY_MUX_GPIO_HIGH);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_GET_LEVEL, mock_gpio_ioctl_fake.arg1_val);
     printf("  [PASS] Read HIGH successful\n");
 
     /* Set GPIO to LOW and read */
     g_gpio_levels[0] = XY_MUX_GPIO_LOW;
     level = xy_mux_gpio_read(&mgr, 0);
     TEST_ASSERT_TRUE(level == XY_MUX_GPIO_LOW);
+    TEST_ASSERT_EQUAL_UINT(2U, mock_gpio_ioctl_fake.call_count);
     printf("  [PASS] Read LOW successful\n");
 
     xy_mux_deinit(&mgr);
@@ -240,12 +262,17 @@ static void test_gpio_toggle(void)
     int32_t ret = xy_mux_gpio_toggle(&mgr, 0);
     TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     TEST_ASSERT_TRUE(g_gpio_levels[0] == XY_MUX_GPIO_HIGH);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_TOGGLE, mock_gpio_ioctl_fake.arg1_val);
+    TEST_ASSERT_NULL(mock_gpio_ioctl_fake.arg2_val);
     printf("  [PASS] Toggle to HIGH\n");
 
     /* Toggle again */
     ret = xy_mux_gpio_toggle(&mgr, 0);
     TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     TEST_ASSERT_TRUE(g_gpio_levels[0] == XY_MUX_GPIO_LOW);
+    TEST_ASSERT_EQUAL_UINT(2U, mock_gpio_ioctl_fake.call_count);
     printf("  [PASS] Toggle to LOW\n");
 
     xy_mux_deinit(&mgr);
@@ -277,6 +304,10 @@ static void test_gpio_config(void)
 
     int32_t ret = xy_mux_gpio_config(&mgr, 0, &config);
     TEST_ASSERT_TRUE(ret == XY_MUX_OK);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_CONFIG, mock_gpio_ioctl_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR(&config, mock_gpio_ioctl_fake.arg2_val);
     printf("  [PASS] GPIO configured as output\n");
 
     xy_mux_deinit(&mgr);
@@ -304,16 +335,20 @@ static void test_gpio_error_handling(void)
     /* Try to write to non-registered GPIO */
     int32_t ret = xy_mux_gpio_write(&mgr, 99, XY_MUX_GPIO_HIGH);
     TEST_ASSERT_TRUE(ret != XY_MUX_OK);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_gpio_ioctl_fake.call_count);
     printf("  [PASS] Write to non-registered GPIO rejected\n");
 
     /* Try to read from non-registered GPIO */
     ret = xy_mux_gpio_read(&mgr, 99);
     TEST_ASSERT_TRUE(ret != XY_MUX_OK);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_gpio_read_fake.call_count);
     printf("  [PASS] Read from non-registered GPIO rejected\n");
 
     /* Try to toggle non-registered GPIO */
     ret = xy_mux_gpio_toggle(&mgr, 99);
     TEST_ASSERT_TRUE(ret != XY_MUX_OK);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_gpio_ioctl_fake.call_count);
     printf("  [PASS] Toggle non-registered GPIO rejected\n");
 
     /* Try with NULL manager */
@@ -341,6 +376,8 @@ static void test_gpio_multi_channel(void)
     xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE);
 
     xy_mux_ops_t ops = {
+        .init = mock_gpio_init,
+        .deinit = mock_gpio_deinit,
         .read = mock_gpio_read,
         .write = mock_gpio_write,
         .ioctl = mock_gpio_ioctl,
@@ -351,6 +388,7 @@ static void test_gpio_multi_channel(void)
         int32_t ret = xy_mux_gpio_register(&mgr, ch, &ops, NULL);
         TEST_ASSERT_TRUE(ret == XY_MUX_OK);
     }
+    TEST_ASSERT_EQUAL_UINT(8U, mock_gpio_init_fake.call_count);
     printf("  [PASS] 8 GPIO channels registered\n");
 
     /* Write to all channels */
@@ -360,6 +398,9 @@ static void test_gpio_multi_channel(void)
         TEST_ASSERT_TRUE(ret == XY_MUX_OK);
         TEST_ASSERT_TRUE(g_gpio_levels[ch] == level);
     }
+    TEST_ASSERT_EQUAL_UINT(8U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(7, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_LEVEL, mock_gpio_ioctl_fake.arg1_val);
     printf("  [PASS] Write to all 8 channels\n");
 
     /* Read from all channels */
@@ -368,6 +409,9 @@ static void test_gpio_multi_channel(void)
         xy_mux_gpio_level_t expected = (ch % 2) ? XY_MUX_GPIO_HIGH : XY_MUX_GPIO_LOW;
         TEST_ASSERT_TRUE(level == (int32_t)expected);
     }
+    TEST_ASSERT_EQUAL_UINT(16U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(7, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_GET_LEVEL, mock_gpio_ioctl_fake.arg1_val);
     printf("  [PASS] Read from all 8 channels\n");
 
     /* Toggle all channels */
@@ -376,6 +420,9 @@ static void test_gpio_multi_channel(void)
         xy_mux_gpio_level_t expected = (ch % 2) ? XY_MUX_GPIO_LOW : XY_MUX_GPIO_HIGH;
         TEST_ASSERT_TRUE(g_gpio_levels[ch] == expected);
     }
+    TEST_ASSERT_EQUAL_UINT(24U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(7, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_TOGGLE, mock_gpio_ioctl_fake.arg1_val);
     printf("  [PASS] Toggle all 8 channels\n");
 
     xy_mux_deinit(&mgr);
@@ -421,6 +468,10 @@ static void test_gpio_tlv_packet(void)
     ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
     TEST_ASSERT_TRUE(ret == (int32_t)sizeof(gpio_data));
     TEST_ASSERT_TRUE(g_gpio_levels[0] == XY_MUX_GPIO_HIGH);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&tx_buffer[sizeof(xy_mux_header_t)], mock_gpio_write_fake.arg1_val);
+    TEST_ASSERT_EQUAL_size_t(sizeof(gpio_data), mock_gpio_write_fake.arg2_val);
     printf("  [PASS] Packet processed, GPIO set to HIGH\n");
 
     xy_mux_deinit(&mgr);
@@ -430,6 +481,20 @@ static void test_gpio_tlv_packet(void)
 
 void setUp(void)
 {
+    RESET_FAKE(mock_gpio_init);
+    RESET_FAKE(mock_gpio_deinit);
+    RESET_FAKE(mock_gpio_write);
+    RESET_FAKE(mock_gpio_read);
+    RESET_FAKE(mock_gpio_ioctl);
+    FFF_RESET_HISTORY();
+
+    mock_gpio_init_fake.custom_fake = mock_gpio_init_impl;
+    mock_gpio_deinit_fake.custom_fake = mock_gpio_deinit_impl;
+    mock_gpio_write_fake.custom_fake = mock_gpio_write_impl;
+    mock_gpio_read_fake.custom_fake = mock_gpio_read_impl;
+    mock_gpio_ioctl_fake.custom_fake = mock_gpio_ioctl_impl;
+
+    memset(g_gpio_levels, 0, sizeof(g_gpio_levels));
 }
 
 void tearDown(void)
