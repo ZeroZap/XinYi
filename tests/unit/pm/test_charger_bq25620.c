@@ -16,8 +16,6 @@ FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_receive, void *, uint16_t,
 
 static uint8_t g_regs[0x20];
 static uint8_t g_selected_reg;
-static unsigned g_tx_count;
-static unsigned g_rx_count;
 static void *g_expected_i2c = (void *)0x1234;
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
@@ -46,8 +44,6 @@ static void reset_fake_i2c(void)
     memset(g_regs, 0, sizeof(g_regs));
     g_regs[BQ25620_REG_DEVICE_ID] = BQ25620_PART_NUMBER;
     g_selected_reg = 0;
-    g_tx_count = 0;
-    g_rx_count = 0;
 }
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
@@ -60,7 +56,6 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, i2c);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_TRUE(len == 1 || len == 2);
-    g_tx_count++;
 
     g_selected_reg = data[0];
     if (len == 2) {
@@ -82,7 +77,6 @@ static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_regs), g_selected_reg + len);
     memcpy(data, &g_regs[g_selected_reg], len);
-    g_rx_count++;
     return XY_HAL_OK;
 }
 
@@ -121,8 +115,6 @@ static void test_init_and_register_io(void)
     TEST_ASSERT_EQUAL_HEX16(0x6A, dev.i2c_addr);
     TEST_ASSERT_EQUAL_PTR(&dev, dev.base.hw_data);
     TEST_ASSERT_NOT_NULL(dev.base.hw_read_reg);
-    TEST_ASSERT_EQUAL_UINT(1U, g_tx_count);
-    TEST_ASSERT_EQUAL_UINT(1U, g_rx_count);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_receive_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, xy_hal_i2c_master_transmit_fake.arg0_val);
