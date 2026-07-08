@@ -5,16 +5,21 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "fff.h"
 #include "xy_actuator.h"
+
+DEFINE_FFF_GLOBALS;
 
 extern const actuator_ops_t relay_default_ops;
 extern const actuator_ops_t servo_default_ops;
 
-static int g_init_calls;
-static int g_deinit_calls;
-static int g_write_calls;
-static int g_enable_calls;
 static actuator_value_t g_last_write;
+
+FAKE_VALUE_FUNC(actuator_err_t, mock_init, actuator_device_t *);
+FAKE_VALUE_FUNC(actuator_err_t, mock_deinit, actuator_device_t *);
+FAKE_VALUE_FUNC(actuator_err_t, mock_write, actuator_device_t *, const actuator_value_t *);
+FAKE_VALUE_FUNC(actuator_err_t, mock_read, actuator_device_t *, actuator_value_t *);
+FAKE_VALUE_FUNC(actuator_err_t, mock_enable, actuator_device_t *, bool);
 
 void setUp(void)
 {
@@ -24,39 +29,27 @@ void tearDown(void)
 {
 }
 
-static void reset_mock(void)
-{
-    g_init_calls = 0;
-    g_deinit_calls = 0;
-    g_write_calls = 0;
-    g_enable_calls = 0;
-    memset(&g_last_write, 0, sizeof(g_last_write));
-}
-
-static actuator_err_t mock_init(actuator_device_t *dev)
+static actuator_err_t mock_init_impl(actuator_device_t *dev)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    g_init_calls++;
     return ACTUATOR_EOK;
 }
 
-static actuator_err_t mock_deinit(actuator_device_t *dev)
+static actuator_err_t mock_deinit_impl(actuator_device_t *dev)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    g_deinit_calls++;
     return ACTUATOR_EOK;
 }
 
-static actuator_err_t mock_write(actuator_device_t *dev, const actuator_value_t *value)
+static actuator_err_t mock_write_impl(actuator_device_t *dev, const actuator_value_t *value)
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(value);
-    g_write_calls++;
     g_last_write = *value;
     return ACTUATOR_EOK;
 }
 
-static actuator_err_t mock_read(actuator_device_t *dev, actuator_value_t *value)
+static actuator_err_t mock_read_impl(actuator_device_t *dev, actuator_value_t *value)
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(value);
@@ -64,12 +57,28 @@ static actuator_err_t mock_read(actuator_device_t *dev, actuator_value_t *value)
     return ACTUATOR_EOK;
 }
 
-static actuator_err_t mock_enable(actuator_device_t *dev, bool enable)
+static actuator_err_t mock_enable_impl(actuator_device_t *dev, bool enable)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    g_enable_calls++;
     dev->status = enable ? ACTUATOR_STATUS_READY : ACTUATOR_STATUS_DISABLED;
     return ACTUATOR_EOK;
+}
+
+static void reset_mock(void)
+{
+    memset(&g_last_write, 0, sizeof(g_last_write));
+    RESET_FAKE(mock_init);
+    RESET_FAKE(mock_deinit);
+    RESET_FAKE(mock_write);
+    RESET_FAKE(mock_read);
+    RESET_FAKE(mock_enable);
+    FFF_RESET_HISTORY();
+
+    mock_init_fake.custom_fake = mock_init_impl;
+    mock_deinit_fake.custom_fake = mock_deinit_impl;
+    mock_write_fake.custom_fake = mock_write_impl;
+    mock_read_fake.custom_fake = mock_read_impl;
+    mock_enable_fake.custom_fake = mock_enable_impl;
 }
 
 static const actuator_ops_t mock_ops = {
@@ -118,24 +127,33 @@ static void test_registration_lifecycle_and_generic_io(void)
     TEST_ASSERT_EQUAL_PTR(&servo, actuator_find_by_type(ACTUATOR_TYPE_SERVO));
 
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_init(&relay));
-    TEST_ASSERT_EQUAL_INT(1, g_init_calls);
+    TEST_ASSERT_EQUAL_UINT(1, mock_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_init_fake.arg0_val);
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_enable(&relay, false));
-    TEST_ASSERT_EQUAL_INT(1, g_enable_calls);
+    TEST_ASSERT_EQUAL_UINT(1, mock_enable_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_enable_fake.arg0_val);
+    TEST_ASSERT_FALSE(mock_enable_fake.arg1_val);
     TEST_ASSERT_EQUAL(ACTUATOR_STATUS_DISABLED, relay.status);
 
     actuator_value_t value = {0};
     value.relay.state = RELAY_STATE_ON;
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_write(&relay, &value));
-    TEST_ASSERT_EQUAL_INT(1, g_write_calls);
+    TEST_ASSERT_EQUAL_UINT(1, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&value, mock_write_fake.arg1_val);
     TEST_ASSERT_EQUAL(RELAY_STATE_ON, g_last_write.relay.state);
     TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
 
     actuator_value_t readback = {0};
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_read(&relay, &readback));
+    TEST_ASSERT_EQUAL_UINT(1, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_read_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&readback, mock_read_fake.arg1_val);
     TEST_ASSERT_EQUAL(RELAY_STATE_ON, readback.relay.state);
 
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_deinit(&relay));
-    TEST_ASSERT_EQUAL_INT(1, g_deinit_calls);
+    TEST_ASSERT_EQUAL_UINT(1, mock_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_deinit_fake.arg0_val);
     TEST_ASSERT_EQUAL(ACTUATOR_STATUS_IDLE, relay.status);
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&relay));
     TEST_ASSERT_NULL(actuator_find("act_relay"));
