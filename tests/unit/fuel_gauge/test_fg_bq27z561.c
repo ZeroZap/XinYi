@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "fff.h"
 #include "xy_fuel_gauge.h"
 #include "xy_sensor_device.h"
 
@@ -20,16 +21,23 @@ int xy_fuel_gauge_bq27z561_register(void *i2c_handle, uint8_t addr);
 static uint16_t fake_reg16[256];
 static uint8_t fake_reg8[256];
 static xy_sensor_bus_t last_bus;
-static int read16_count;
-static int read8_count;
-static uint32_t fake_tick;
 
-uint32_t xy_os_tick_get(void)
-{
-    return fake_tick;
-}
+DEFINE_FFF_GLOBALS;
 
-void xy_sensor_bus_config_i2c(xy_sensor_bus_t *bus, void *handle, uint8_t address)
+FAKE_VALUE_FUNC(uint32_t, xy_os_tick_get)
+FAKE_VOID_FUNC(xy_sensor_bus_config_i2c, xy_sensor_bus_t *, void *, uint8_t)
+FAKE_VALUE_FUNC(int, xy_sensor_i2c_read_reg16, xy_sensor_bus_t *, uint8_t, uint16_t *)
+FAKE_VALUE_FUNC(int, xy_sensor_i2c_read_reg, xy_sensor_bus_t *, uint8_t, uint8_t *)
+FAKE_VALUE_FUNC(int, xy_sensor_i2c_write_reg16, xy_sensor_bus_t *, uint8_t, uint16_t)
+FAKE_VALUE_FUNC(int, xy_sensor_i2c_read, xy_sensor_bus_t *, uint8_t, uint8_t *, uint16_t)
+FAKE_VALUE_FUNC(int, xy_sensor_i2c_write, xy_sensor_bus_t *, uint8_t, const uint8_t *, uint16_t)
+FAKE_VALUE_FUNC(int, xy_sensor_i2c_write_reg, xy_sensor_bus_t *, uint8_t, uint8_t)
+FAKE_VALUE_FUNC(int, xy_sensor_spi_read, xy_sensor_bus_t *, uint8_t, uint8_t *, uint16_t)
+FAKE_VALUE_FUNC(int, xy_sensor_spi_write, xy_sensor_bus_t *, uint8_t, const uint8_t *, uint16_t)
+FAKE_VALUE_FUNC(int, xy_sensor_check_device_id, xy_sensor_bus_t *, uint8_t, uint8_t)
+FAKE_VOID_FUNC(xy_sensor_bus_config_spi, xy_sensor_bus_t *, void *, uint8_t)
+
+static void xy_sensor_bus_config_i2c_impl(xy_sensor_bus_t *bus, void *handle, uint8_t address)
 {
     TEST_ASSERT_NOT_NULL(bus);
     bus->type = XY_SENSOR_BUS_I2C;
@@ -39,93 +47,53 @@ void xy_sensor_bus_config_i2c(xy_sensor_bus_t *bus, void *handle, uint8_t addres
     last_bus = *bus;
 }
 
-int xy_sensor_i2c_read_reg16(xy_sensor_bus_t *bus, uint8_t reg, uint16_t *value)
+static int xy_sensor_i2c_read_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint16_t *value)
 {
     TEST_ASSERT_NOT_NULL(bus);
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
     TEST_ASSERT_NOT_NULL(value);
 
     *value = fake_reg16[reg];
-    read16_count++;
     return 0;
 }
 
-int xy_sensor_i2c_read_reg(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *value)
+static int xy_sensor_i2c_read_reg_impl(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *value)
 {
     TEST_ASSERT_NOT_NULL(bus);
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
     TEST_ASSERT_NOT_NULL(value);
 
     *value = fake_reg8[reg];
-    read8_count++;
     return 0;
 }
 
-int xy_sensor_i2c_write_reg16(xy_sensor_bus_t *bus, uint8_t reg, uint16_t value)
+static void reset_sensor_fakes(void)
 {
-    (void)bus;
-    (void)reg;
-    (void)value;
-    return -1;
-}
+    RESET_FAKE(xy_os_tick_get);
+    RESET_FAKE(xy_sensor_bus_config_i2c);
+    RESET_FAKE(xy_sensor_i2c_read_reg16);
+    RESET_FAKE(xy_sensor_i2c_read_reg);
+    RESET_FAKE(xy_sensor_i2c_write_reg16);
+    RESET_FAKE(xy_sensor_i2c_read);
+    RESET_FAKE(xy_sensor_i2c_write);
+    RESET_FAKE(xy_sensor_i2c_write_reg);
+    RESET_FAKE(xy_sensor_spi_read);
+    RESET_FAKE(xy_sensor_spi_write);
+    RESET_FAKE(xy_sensor_check_device_id);
+    RESET_FAKE(xy_sensor_bus_config_spi);
+    FFF_RESET_HISTORY();
 
-int xy_sensor_i2c_read(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
-}
-
-int xy_sensor_i2c_write(xy_sensor_bus_t *bus, uint8_t reg, const uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
-}
-
-int xy_sensor_i2c_write_reg(xy_sensor_bus_t *bus, uint8_t reg, uint8_t value)
-{
-    (void)bus;
-    (void)reg;
-    (void)value;
-    return -1;
-}
-
-int xy_sensor_spi_read(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
-}
-
-int xy_sensor_spi_write(xy_sensor_bus_t *bus, uint8_t reg, const uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return -1;
-}
-
-int xy_sensor_check_device_id(xy_sensor_bus_t *bus, uint8_t id_reg, uint8_t expected_id)
-{
-    (void)bus;
-    (void)id_reg;
-    (void)expected_id;
-    return -1;
-}
-
-void xy_sensor_bus_config_spi(xy_sensor_bus_t *bus, void *handle, uint8_t cs_pin)
-{
-    (void)bus;
-    (void)handle;
-    (void)cs_pin;
+    xy_os_tick_get_fake.return_val = 1000;
+    xy_sensor_bus_config_i2c_fake.custom_fake = xy_sensor_bus_config_i2c_impl;
+    xy_sensor_i2c_read_reg16_fake.custom_fake = xy_sensor_i2c_read_reg16_impl;
+    xy_sensor_i2c_read_reg_fake.custom_fake = xy_sensor_i2c_read_reg_impl;
+    xy_sensor_i2c_write_reg16_fake.return_val = -1;
+    xy_sensor_i2c_read_fake.return_val = -1;
+    xy_sensor_i2c_write_fake.return_val = -1;
+    xy_sensor_i2c_write_reg_fake.return_val = -1;
+    xy_sensor_spi_read_fake.return_val = -1;
+    xy_sensor_spi_write_fake.return_val = -1;
+    xy_sensor_check_device_id_fake.return_val = -1;
 }
 
 void setUp(void)
@@ -133,9 +101,7 @@ void setUp(void)
     memset(fake_reg16, 0, sizeof(fake_reg16));
     memset(fake_reg8, 0, sizeof(fake_reg8));
     memset(&last_bus, 0, sizeof(last_bus));
-    read16_count = 0;
-    read8_count = 0;
-    fake_tick = 1000;
+    reset_sensor_fakes();
 
     fake_reg16[REG_DEVICE_ID] = 0x0561;
     fake_reg16[REG_VOLT] = 3700;
@@ -168,6 +134,9 @@ void test_bq27z561_registers_default_i2c_bus(void)
     xy_fuel_gauge_t *fg = registered_bq27z561();
 
     TEST_ASSERT_NOT_NULL(fg);
+    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR((void *)0x27561, xy_sensor_bus_config_i2c_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(BQ27Z561_ADDR, xy_sensor_bus_config_i2c_fake.arg2_val);
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, last_bus.type);
     TEST_ASSERT_EQUAL_PTR((void *)0x27561, last_bus.bus_handle);
     TEST_ASSERT_EQUAL_UINT8(BQ27Z561_ADDR, last_bus.address);
@@ -180,7 +149,8 @@ void test_bq27z561_init_reads_device_id(void)
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_TRUE(fg->initialized);
-    TEST_ASSERT_EQUAL_INT(1, read16_count);
+    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_DEVICE_ID, xy_sensor_i2c_read_reg16_fake.arg1_val);
 }
 
 void test_bq27z561_fetch_and_channel_get(void)
@@ -191,9 +161,16 @@ void test_bq27z561_fetch_and_channel_get(void)
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
 
-    fake_tick = 27561;
+    xy_sensor_i2c_read_reg16_fake.call_count = 0;
+    xy_sensor_i2c_read_reg_fake.call_count = 0;
+    xy_os_tick_get_fake.return_val = 27561;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT(1, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(27561, fg->latest.timestamp);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(5, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(2, xy_sensor_i2c_read_reg_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_REM_CAP, xy_sensor_i2c_read_reg16_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(REG_SOH, xy_sensor_i2c_read_reg_fake.arg1_val);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3700, value);
@@ -216,8 +193,6 @@ void test_bq27z561_fetch_and_channel_get(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
     TEST_ASSERT_EQUAL_INT32(1980, value);
 
-    TEST_ASSERT_GREATER_OR_EQUAL(6, read16_count);
-    TEST_ASSERT_GREATER_OR_EQUAL(2, read8_count);
 }
 
 void test_bq27z561_rejects_invalid_output_and_unknown_channel(void)
