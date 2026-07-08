@@ -4,48 +4,22 @@
 #include <string.h>
 
 #include "unity.h"
+#include "fff.h"
 
 #include "xy_smbus.h"
 #include "xy_pmbus.h"
 
-static int g_smbus_init_count;
-static int g_smbus_deinit_count;
-static int g_pmbus_init_count;
-static int g_pmbus_deinit_count;
-static int g_alert_count;
-static uint8_t g_alert_mask;
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(smbus_err_t, fake_smbus_init, smbus_device_t *)
+FAKE_VALUE_FUNC(smbus_err_t, fake_smbus_deinit, smbus_device_t *)
+FAKE_VALUE_FUNC(smbus_err_t, fake_pmbus_init, pmbus_device_t *)
+FAKE_VALUE_FUNC(smbus_err_t, fake_pmbus_deinit, pmbus_device_t *)
+FAKE_VOID_FUNC(fake_alert_callback, smbus_device_t *, uint8_t)
 
 void xy_log_char(char ch)
 {
     (void)ch;
-}
-
-static smbus_err_t fake_smbus_init(smbus_device_t *dev)
-{
-    TEST_ASSERT_NOT_NULL(dev);
-    g_smbus_init_count++;
-    return SMBUS_EOK;
-}
-
-static smbus_err_t fake_smbus_deinit(smbus_device_t *dev)
-{
-    TEST_ASSERT_NOT_NULL(dev);
-    g_smbus_deinit_count++;
-    return SMBUS_EOK;
-}
-
-static smbus_err_t fake_pmbus_init(pmbus_device_t *dev)
-{
-    TEST_ASSERT_NOT_NULL(dev);
-    g_pmbus_init_count++;
-    return SMBUS_EOK;
-}
-
-static smbus_err_t fake_pmbus_deinit(pmbus_device_t *dev)
-{
-    TEST_ASSERT_NOT_NULL(dev);
-    g_pmbus_deinit_count++;
-    return SMBUS_EOK;
 }
 
 static const smbus_ops_t g_fake_smbus_ops = {
@@ -58,15 +32,19 @@ static const pmbus_ops_t g_fake_pmbus_ops = {
     .deinit = fake_pmbus_deinit,
 };
 
-static void fake_alert_callback(smbus_device_t *dev, uint8_t alert_mask)
-{
-    (void)dev;
-    g_alert_count++;
-    g_alert_mask = alert_mask;
-}
-
 void setUp(void)
 {
+    RESET_FAKE(fake_smbus_init);
+    RESET_FAKE(fake_smbus_deinit);
+    RESET_FAKE(fake_pmbus_init);
+    RESET_FAKE(fake_pmbus_deinit);
+    RESET_FAKE(fake_alert_callback);
+    FFF_RESET_HISTORY();
+
+    fake_smbus_init_fake.return_val = SMBUS_EOK;
+    fake_smbus_deinit_fake.return_val = SMBUS_EOK;
+    fake_pmbus_init_fake.return_val = SMBUS_EOK;
+    fake_pmbus_deinit_fake.return_val = SMBUS_EOK;
 }
 
 void tearDown(void)
@@ -102,8 +80,10 @@ static void test_smbus_helpers_and_registry(void)
     TEST_ASSERT_NOT_NULL(smbus_err_str(SMBUS_EBUSY));
     TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_init(&dev));
     TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_deinit(&dev));
-    TEST_ASSERT_EQUAL_INT(1, g_smbus_init_count);
-    TEST_ASSERT_EQUAL_INT(1, g_smbus_deinit_count);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_smbus_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&dev, fake_smbus_init_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_smbus_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&dev, fake_smbus_deinit_fake.arg0_val);
     TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_unregister(&dev));
     TEST_ASSERT_NULL(smbus_find("smbus-test"));
     TEST_ASSERT_EQUAL(SMBUS_ENODEV, smbus_unregister(&dev));
@@ -146,12 +126,11 @@ static void test_smbus_default_io_contracts(void)
     TEST_ASSERT_EQUAL(SMBUS_EINVAL, smbus_write_block(&dev, dev.config.addr, 0x04, block, SMBUS_MAX_PAYLOAD + 1));
     TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_calculate_pec(&dev, block, 3, &pec));
     TEST_ASSERT_TRUE(smbus_verify_pec(&dev, block, 3, pec));
-    g_alert_count = 0;
-    g_alert_mask = 0;
     TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_alert_register_callback(fake_alert_callback, NULL));
     TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_alert_response(0x0c));
-    TEST_ASSERT_EQUAL_INT(1, g_alert_count);
-    TEST_ASSERT_EQUAL_HEX8(0x0c, g_alert_mask);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_alert_callback_fake.call_count);
+    TEST_ASSERT_NULL(fake_alert_callback_fake.arg0_val);
+    TEST_ASSERT_EQUAL_HEX8(0x0c, fake_alert_callback_fake.arg1_val);
     TEST_ASSERT_EQUAL(SMBUS_EINVAL, smbus_alert_response(0x78));
 }
 
@@ -235,13 +214,14 @@ static void test_pmbus_custom_ops(void)
         .ops = &g_fake_pmbus_ops,
     };
 
-    g_smbus_init_count = 0;
-    g_pmbus_init_count = 0;
     TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_init(&pmbus));
-    TEST_ASSERT_EQUAL_INT(1, g_smbus_init_count);
-    TEST_ASSERT_EQUAL_INT(1, g_pmbus_init_count);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_smbus_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&smbus, fake_smbus_init_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_pmbus_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&pmbus, fake_pmbus_init_fake.arg0_val);
     TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_deinit(&pmbus));
-    TEST_ASSERT_EQUAL_INT(1, g_pmbus_deinit_count);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_pmbus_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&pmbus, fake_pmbus_deinit_fake.arg0_val);
 }
 
 int main(void)
