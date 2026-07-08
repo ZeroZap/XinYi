@@ -4,20 +4,19 @@
 #include "xy_fuel_gauge_status.h"
 
 #include "unity.h"
+#include "fff.h"
 #include <stdint.h>
 #include <string.h>
 
-static uint32_t fake_tick;
-static int init_calls;
-static int fetch_calls;
 static xy_fuel_gauge_data_t fake_data;
-static int foreach_calls;
-static void *foreach_user_data;
 
-uint32_t xy_os_tick_get(void)
-{
-    return fake_tick;
-}
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(uint32_t, xy_os_tick_get)
+FAKE_VALUE_FUNC(int, fake_init, xy_fuel_gauge_t *)
+FAKE_VALUE_FUNC(int, fake_fetch, xy_fuel_gauge_t *)
+FAKE_VALUE_FUNC(int, fake_channel_get, xy_fuel_gauge_t *, xy_fuel_gauge_data_type_t, int32_t *)
+FAKE_VOID_FUNC(count_device, xy_fuel_gauge_t *, void *)
 
 void setUp(void)
 {
@@ -27,9 +26,8 @@ void tearDown(void)
 {
 }
 
-static int fake_init(xy_fuel_gauge_t *fg)
+static int fake_init_impl(xy_fuel_gauge_t *fg)
 {
-    init_calls++;
     fg->latest.voltage_mv = 3700;
     fg->latest.current_ma = -120;
     fg->latest.soc = 66;
@@ -41,14 +39,13 @@ static int fake_init(xy_fuel_gauge_t *fg)
     return 0;
 }
 
-static int fake_fetch(xy_fuel_gauge_t *fg)
+static int fake_fetch_impl(xy_fuel_gauge_t *fg)
 {
-    fetch_calls++;
     fg->latest.voltage_mv++;
     return XY_FG_OK;
 }
 
-static int fake_channel_get(xy_fuel_gauge_t *fg, xy_fuel_gauge_data_type_t channel, int32_t *val)
+static int fake_channel_get_impl(xy_fuel_gauge_t *fg, xy_fuel_gauge_data_type_t channel, int32_t *val)
 {
     (void)fg;
 
@@ -88,18 +85,20 @@ static int fake_channel_get(xy_fuel_gauge_t *fg, xy_fuel_gauge_data_type_t chann
     return XY_FG_OK;
 }
 
-static void count_device(xy_fuel_gauge_t *fg, void *user_data)
-{
-    TEST_ASSERT_NOT_NULL(fg);
-    foreach_calls++;
-    foreach_user_data = user_data;
-}
-
 static void reset_fixture(void)
 {
-    fake_tick = 1234;
-    init_calls = 0;
-    fetch_calls = 0;
+    RESET_FAKE(xy_os_tick_get);
+    RESET_FAKE(fake_init);
+    RESET_FAKE(fake_fetch);
+    RESET_FAKE(fake_channel_get);
+    RESET_FAKE(count_device);
+    FFF_RESET_HISTORY();
+
+    xy_os_tick_get_fake.return_val = 1234;
+    fake_init_fake.custom_fake = fake_init_impl;
+    fake_fetch_fake.custom_fake = fake_fetch_impl;
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+
     memset(&fake_data, 0, sizeof(fake_data));
     fake_data.voltage_mv = 16800;
     fake_data.current_ma = -9000;
@@ -109,8 +108,6 @@ static void reset_fixture(void)
     fake_data.cycle_count = 9;
     fake_data.full_capacity_mah = 1900;
     fake_data.remain_capacity_mah = 760;
-    foreach_calls = 0;
-    foreach_user_data = NULL;
 }
 
 static void test_register_init_get_foreach(void)
@@ -136,19 +133,23 @@ static void test_register_init_get_foreach(void)
     TEST_ASSERT_EQUAL_UINT(1U, xy_fuel_gauge_device_count());
 
     TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_init(&fg));
-    TEST_ASSERT_EQUAL_INT(1, init_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fg, fake_init_fake.arg0_val);
     TEST_ASSERT_TRUE(fg.initialized);
 
     TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3701, value);
-    TEST_ASSERT_EQUAL_INT(1, fetch_calls);
-    TEST_ASSERT_EQUAL_UINT32(fake_tick, fg.latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_fetch_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fg, fake_fetch_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_os_tick_get_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(xy_os_tick_get_fake.return_val, fg.latest.timestamp);
 
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED, xy_fuel_gauge_get(&fg, XY_FG_DATA_TIME_TO_EMPTY, &value));
 
     xy_fuel_gauge_device_foreach(count_device, &user_marker);
-    TEST_ASSERT_EQUAL_INT(1, foreach_calls);
-    TEST_ASSERT_EQUAL_PTR(&user_marker, foreach_user_data);
+    TEST_ASSERT_EQUAL_UINT(1U, count_device_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fg, count_device_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&user_marker, count_device_fake.arg1_val);
 
     TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_deinit(&fg));
     TEST_ASSERT_FALSE(fg.initialized);
@@ -187,6 +188,12 @@ static void test_status_safety_security_helpers(void)
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_charge_current(NULL, NULL));
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_charge_voltage(&fg, NULL));
     TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_battery_health(&fg, &health));
+    TEST_ASSERT_EQUAL_UINT(4U, fake_channel_get_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fg, fake_channel_get_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_FULL_CAPACITY, fake_channel_get_fake.arg1_history[0]);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_REMAIN_CAPACITY, fake_channel_get_fake.arg1_history[1]);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_CYCLE_COUNT, fake_channel_get_fake.arg1_history[2]);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_TEMPERATURE, fake_channel_get_fake.arg1_history[3]);
     TEST_ASSERT_EQUAL_UINT32(1900U, health.full_charge_capacity);
     TEST_ASSERT_EQUAL_UINT32(760U, health.remaining_capacity);
     TEST_ASSERT_EQUAL_UINT16(9U, health.cycle_count);

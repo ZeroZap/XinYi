@@ -183,7 +183,7 @@ tests/
 
 **Objective:** Use FFF to make dependency behavior observable and less error-prone.
 
-**Status:** In progress. First slices converted the storage EEPROM 24xx, BQ25620 charger, analog devices, display OLED/WS2812, display LCD, FOTA core, MAX17043 fuel-gauge, BQ27Z746 fuel-gauge, BQ27Z561 fuel-gauge, and BQ40Z50 fuel-gauge host tests: HAL delay/I2C/GPIO/SPI, FOTA flash-op, and fuel-gauge Sensor-bus boundaries now use FFF for call counts and argument capture, while EEPROM memory, charger register maps, analog readback, OLED I2C logs, WS2812 GPIO callback logs, LCD SPI/GPIO transaction logs, FOTA flash backing storage, and fuel-gauge register maps remain hand-written state fixtures because that keeps behavior clearer.
+**Status:** In progress. First slices converted the storage EEPROM 24xx, BQ25620 charger, analog devices, display OLED/WS2812, display LCD, FOTA core, fuel-gauge core, MAX17043 fuel-gauge, BQ27Z746 fuel-gauge, BQ27Z561 fuel-gauge, and BQ40Z50 fuel-gauge host tests: HAL delay/I2C/GPIO/SPI, FOTA flash-op, fuel-gauge core API callbacks, and fuel-gauge Sensor-bus boundaries now use FFF for call counts and argument capture, while EEPROM memory, charger register maps, analog readback, OLED I2C logs, WS2812 GPIO callback logs, LCD SPI/GPIO transaction logs, FOTA flash backing storage, fuel-gauge helper data, and fuel-gauge register maps remain hand-written state fixtures because that keeps behavior clearer.
 
 **Good candidates:**
 
