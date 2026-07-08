@@ -10,35 +10,41 @@
 #include <string.h>
 
 #include "unity.h"
+#include "fff.h"
 
 #define BUFFER_SIZE 512U
 
 static uint8_t g_last_write[256];
 static size_t g_last_write_len;
 static uint8_t g_read_pattern = 0x5A;
-static int g_ioctl_count;
+
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(int32_t, mock_uart_init, uint8_t, const void *)
+FAKE_VALUE_FUNC(int32_t, mock_uart_deinit, uint8_t)
+FAKE_VALUE_FUNC(int32_t, mock_uart_write, uint8_t, const void *, size_t)
+FAKE_VALUE_FUNC(int32_t, mock_uart_read, uint8_t, void *, size_t)
+FAKE_VALUE_FUNC(int32_t, mock_uart_ioctl, uint8_t, int, void *)
 
 void xy_log_char(char ch)
 {
     (void)ch;
 }
 
-static int32_t mock_uart_init(uint8_t channel, const void *config)
+static int32_t mock_uart_init_impl(uint8_t channel, const void *config)
 {
     (void)config;
-    g_last_write_len = 0;
-    g_ioctl_count = 0;
     printf("    [MOCK] UART-%u init\n", (unsigned)channel);
     return XY_MUX_OK;
 }
 
-static int32_t mock_uart_deinit(uint8_t channel)
+static int32_t mock_uart_deinit_impl(uint8_t channel)
 {
     printf("    [MOCK] UART-%u deinit\n", (unsigned)channel);
     return XY_MUX_OK;
 }
 
-static int32_t mock_uart_write(uint8_t channel, const void *data, size_t len)
+static int32_t mock_uart_write_impl(uint8_t channel, const void *data, size_t len)
 {
     (void)channel;
     if (!data || len == 0 || len > sizeof(g_last_write)) {
@@ -49,7 +55,7 @@ static int32_t mock_uart_write(uint8_t channel, const void *data, size_t len)
     return (int32_t)len;
 }
 
-static int32_t mock_uart_read(uint8_t channel, void *data, size_t len)
+static int32_t mock_uart_read_impl(uint8_t channel, void *data, size_t len)
 {
     (void)channel;
     if (!data || len == 0) {
@@ -59,10 +65,9 @@ static int32_t mock_uart_read(uint8_t channel, void *data, size_t len)
     return (int32_t)len;
 }
 
-static int32_t mock_uart_ioctl(uint8_t channel, int cmd, void *arg)
+static int32_t mock_uart_ioctl_impl(uint8_t channel, int cmd, void *arg)
 {
     (void)channel;
-    g_ioctl_count++;
     if (cmd == XY_MUX_UART_CMD_SET_CONFIG) {
         TEST_ASSERT_NOT_NULL(arg);
     }
@@ -71,6 +76,22 @@ static int32_t mock_uart_ioctl(uint8_t channel, int cmd, void *arg)
 
 void setUp(void)
 {
+    RESET_FAKE(mock_uart_init);
+    RESET_FAKE(mock_uart_deinit);
+    RESET_FAKE(mock_uart_write);
+    RESET_FAKE(mock_uart_read);
+    RESET_FAKE(mock_uart_ioctl);
+    FFF_RESET_HISTORY();
+
+    mock_uart_init_fake.custom_fake = mock_uart_init_impl;
+    mock_uart_deinit_fake.custom_fake = mock_uart_deinit_impl;
+    mock_uart_write_fake.custom_fake = mock_uart_write_impl;
+    mock_uart_read_fake.custom_fake = mock_uart_read_impl;
+    mock_uart_ioctl_fake.custom_fake = mock_uart_ioctl_impl;
+
+    memset(g_last_write, 0, sizeof(g_last_write));
+    g_last_write_len = 0;
+    g_read_pattern = 0x5A;
 }
 
 void tearDown(void)
@@ -106,6 +127,9 @@ static void test_uart_register_and_config(void)
     TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, &ops, NULL));
     TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 1, &ops, NULL));
     TEST_ASSERT_EQUAL_UINT8(2, mgr.device_count);
+    TEST_ASSERT_EQUAL_UINT(2U, mock_uart_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_uart_init_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_UINT8(1, mock_uart_init_fake.arg0_history[1]);
 
     xy_mux_uart_config_t cfg = {
         .baudrate = 115200,
@@ -115,9 +139,13 @@ static void test_uart_register_and_config(void)
         .flow_control = 0,
     };
     TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_config(&mgr, 0, &cfg));
-    TEST_ASSERT_GREATER_THAN_INT(0, g_ioctl_count);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_uart_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_UART_CMD_SET_CONFIG, mock_uart_ioctl_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR(&cfg, mock_uart_ioctl_fake.arg2_val);
 
     xy_mux_deinit(&mgr);
+    TEST_ASSERT_EQUAL_UINT(2U, mock_uart_deinit_fake.call_count);
 }
 
 static void test_uart_write_header_and_payload(void)
@@ -130,6 +158,10 @@ static void test_uart_write_header_and_payload(void)
 
     const uint8_t data[] = {'h', 'e', 'l', 'l', 'o'};
     TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_uart_write(&mgr, 0, data, sizeof(data), 250));
+    TEST_ASSERT_EQUAL_UINT(2U, mock_uart_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_uart_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(data, mock_uart_write_fake.arg1_val);
+    TEST_ASSERT_EQUAL_size_t(sizeof(data), mock_uart_write_fake.arg2_val);
     TEST_ASSERT_EQUAL_size_t(sizeof(data), g_last_write_len);
     TEST_ASSERT_EQUAL_MEMORY(data, g_last_write, sizeof(data));
 
@@ -146,6 +178,13 @@ static void test_uart_read_request_and_data(void)
 
     uint8_t data[6] = {0};
     TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_uart_read(&mgr, 2, data, sizeof(data), 1000));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(2, mock_uart_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_size_t(6U, mock_uart_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(2, mock_uart_read_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(data, mock_uart_read_fake.arg1_val);
+    TEST_ASSERT_EQUAL_size_t(sizeof(data), mock_uart_read_fake.arg2_val);
     for (size_t i = 0; i < sizeof(data); ++i) {
         TEST_ASSERT_EQUAL_HEX8(g_read_pattern, data[i]);
     }
@@ -169,6 +208,8 @@ static void test_uart_error_paths(void)
     TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, &ops, NULL));
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_DEVICE, xy_mux_uart_write(&mgr, 9, &data, 1, 10));
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_DEVICE, xy_mux_uart_read(&mgr, 9, &data, 1, 10));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_read_fake.call_count);
 
     xy_mux_deinit(&mgr);
 }
