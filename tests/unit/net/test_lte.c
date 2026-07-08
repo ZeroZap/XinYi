@@ -3,34 +3,26 @@
  * @brief Unit tests for LTE component state and callback registration behavior.
  */
 #include "unity.h"
+#include "fff.h"
 
 #include "xy_lte.h"
 
 #include <string.h>
 
-static uint32_t g_urc_count;
-static uint32_t g_recv_count;
-static size_t g_recv_len;
+DEFINE_FFF_GLOBALS;
+
+FAKE_VOID_FUNC(on_urc, const char *)
+FAKE_VOID_FUNC(on_recv, uint8_t *, size_t)
 
 void setUp(void)
 {
+    RESET_FAKE(on_urc);
+    RESET_FAKE(on_recv);
+    FFF_RESET_HISTORY();
 }
 
 void tearDown(void)
 {
-}
-
-static void on_urc(const char *urc)
-{
-    TEST_ASSERT_NOT_NULL(urc);
-    g_urc_count++;
-}
-
-static void on_recv(uint8_t *data, size_t len)
-{
-    TEST_ASSERT_NOT_NULL(data);
-    g_recv_count++;
-    g_recv_len = len;
 }
 
 static void test_lte_lifecycle_and_callbacks(void)
@@ -39,10 +31,6 @@ static void test_lte_lifecycle_and_callbacks(void)
     uint8_t rx[4] = {0xAA, 0xBB, 0xCC, 0xDD};
     xy_lte_pdp_context_t pdp;
     int uart_token = 1;
-
-    g_urc_count = 0;
-    g_recv_count = 0;
-    g_recv_len = 0;
 
     memset(&lte, 0xA5, sizeof(lte));
     TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 0));
@@ -55,13 +43,15 @@ static void test_lte_lifecycle_and_callbacks(void)
     TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_register_urc(&lte, on_urc));
     TEST_ASSERT_EQUAL_PTR(on_urc, lte.urc_callback);
     lte.urc_callback("+READY");
-    TEST_ASSERT_EQUAL_UINT32(1U, g_urc_count);
+    TEST_ASSERT_EQUAL_UINT(1U, on_urc_fake.call_count);
+    TEST_ASSERT_EQUAL_STRING("+READY", on_urc_fake.arg0_val);
 
     TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_register_recv(&lte, on_recv));
     TEST_ASSERT_EQUAL_PTR(on_recv, lte.recv_callback);
     lte.recv_callback(rx, sizeof(rx));
-    TEST_ASSERT_EQUAL_UINT32(1U, g_recv_count);
-    TEST_ASSERT_EQUAL_UINT(sizeof(rx), g_recv_len);
+    TEST_ASSERT_EQUAL_UINT(1U, on_recv_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(rx, on_recv_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(rx), on_recv_fake.arg1_val);
 
     memset(&pdp, 0, sizeof(pdp));
     pdp.cid = 2;
