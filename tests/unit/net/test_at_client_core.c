@@ -3,8 +3,22 @@
 #include <string.h>
 
 #include "unity.h"
+#include "fff.h"
 
 #include "at_client.h"
+
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(int, mock_read_byte, at_device_t *);
+FAKE_VOID_FUNC(mock_write, at_device_t *, const uint8_t *, uint32_t);
+FAKE_VALUE_FUNC(at_tick_t, mock_get_tick);
+FAKE_VALUE_FUNC(bool, custom_resp_handler, at_device_t *, const char *, void *, at_resp_type_t *);
+
+static int mock_read_byte_impl(at_device_t *dev);
+static void mock_write_impl(at_device_t *dev, const uint8_t *data, uint32_t len);
+static at_tick_t mock_get_tick_impl(void);
+static bool custom_resp_handler_impl(at_device_t *dev, const char *resp_line,
+                                     void *user_data, at_resp_type_t *type);
 
 static const char *g_rx_data;
 static size_t g_rx_len;
@@ -20,7 +34,7 @@ static void mock_feed(const char *data)
     g_rx_pos = 0;
 }
 
-static int mock_read_byte(at_device_t *dev)
+static int mock_read_byte_impl(at_device_t *dev)
 {
     (void)dev;
     if (g_rx_pos < g_rx_len) {
@@ -29,7 +43,7 @@ static int mock_read_byte(at_device_t *dev)
     return -1;
 }
 
-static void mock_write(at_device_t *dev, const uint8_t *data, uint32_t len)
+static void mock_write_impl(at_device_t *dev, const uint8_t *data, uint32_t len)
 {
     (void)dev;
     TEST_ASSERT_LESS_OR_EQUAL_size_t(sizeof(g_tx_data), g_tx_len + len);
@@ -45,7 +59,7 @@ void tearDown(void)
 {
 }
 
-static at_tick_t mock_get_tick(void)
+static at_tick_t mock_get_tick_impl(void)
 {
     return g_tick++;
 }
@@ -58,10 +72,21 @@ static void reset_io(void)
     g_tx_len = 0;
     g_tick = 0;
     memset(g_tx_data, 0, sizeof(g_tx_data));
+
+    RESET_FAKE(mock_read_byte);
+    RESET_FAKE(mock_write);
+    RESET_FAKE(mock_get_tick);
+    RESET_FAKE(custom_resp_handler);
+    FFF_RESET_HISTORY();
+
+    mock_read_byte_fake.custom_fake = mock_read_byte_impl;
+    mock_write_fake.custom_fake = mock_write_impl;
+    mock_get_tick_fake.custom_fake = mock_get_tick_impl;
+    custom_resp_handler_fake.custom_fake = custom_resp_handler_impl;
 }
 
-static bool custom_resp_handler(at_device_t *dev, const char *resp_line,
-                                void *user_data, at_resp_type_t *type)
+static bool custom_resp_handler_impl(at_device_t *dev, const char *resp_line,
+                                     void *user_data, at_resp_type_t *type)
 {
     (void)dev;
     int *seen = (int *)user_data;
@@ -93,6 +118,14 @@ static void test_device_registration_and_default_command(void)
     TEST_ASSERT_EQUAL_MEMORY("AT\r\n", g_tx_data, 4);
     TEST_ASSERT_EQUAL_UINT32(4, dev->tx_count);
     TEST_ASSERT_EQUAL_UINT32(2, dev->rx_count);
+    TEST_ASSERT_EQUAL_UINT(2U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(dev, mock_write_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_MEMORY("AT", mock_write_fake.arg1_history[0], 2);
+    TEST_ASSERT_EQUAL_UINT32(2U, mock_write_fake.arg2_history[0]);
+    TEST_ASSERT_EQUAL_MEMORY("\r\n", mock_write_fake.arg1_history[1], 2);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(4U, mock_read_byte_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(dev, mock_read_byte_fake.arg0_val);
+    TEST_ASSERT_GREATER_THAN_UINT(0U, mock_get_tick_fake.call_count);
 }
 
 static void test_send_command_validation_and_busy_state(void)
@@ -124,16 +157,26 @@ static void test_ok_error_timeout_and_custom_response(void)
     reset_io();
     mock_feed("ERROR\r\n");
     TEST_ASSERT_EQUAL(AT_RESP_ERROR, at_send_command(dev, "AT+BAD", NULL, NULL, 100));
+    TEST_ASSERT_EQUAL_UINT(2U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_MEMORY("AT+BAD", mock_write_fake.arg1_history[0], 6);
 
     reset_io();
     mock_feed("");
     TEST_ASSERT_EQUAL(AT_RESP_TIMEOUT, at_send_command(dev, "AT", NULL, NULL, 3));
+    TEST_ASSERT_EQUAL_UINT(2U, mock_write_fake.call_count);
+    TEST_ASSERT_GREATER_THAN_UINT(0U, mock_get_tick_fake.call_count);
+    TEST_ASSERT_GREATER_THAN_UINT(0U, mock_read_byte_fake.call_count);
 
     reset_io();
     int seen = 0;
     mock_feed("+READY\r\n");
     TEST_ASSERT_EQUAL(AT_RESP_CUSTOM, at_send_command(dev, "AT+READY", custom_resp_handler, &seen, 100));
     TEST_ASSERT_EQUAL_INT(1, seen);
+    TEST_ASSERT_EQUAL_UINT(1U, custom_resp_handler_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(dev, custom_resp_handler_fake.arg0_val);
+    TEST_ASSERT_EQUAL_STRING("+READY", custom_resp_handler_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR(&seen, custom_resp_handler_fake.arg2_val);
+    TEST_ASSERT_NOT_NULL(custom_resp_handler_fake.arg3_val);
 }
 
 static void test_raw_readline_expect_and_stats(void)
@@ -148,15 +191,22 @@ static void test_raw_readline_expect_and_stats(void)
     TEST_ASSERT_EQUAL_INT(-1, at_send_raw(dev, NULL, sizeof(raw)));
     TEST_ASSERT_EQUAL_INT(-1, at_send_raw(dev, raw, 0));
     TEST_ASSERT_EQUAL_INT((int)sizeof(raw), at_send_raw(dev, raw, sizeof(raw)));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(dev, mock_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(raw, mock_write_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(raw), mock_write_fake.arg2_val);
 
     char line[16];
     mock_feed("VALUE\r\n");
     TEST_ASSERT_EQUAL_INT(5, at_readline(dev, line, sizeof(line)));
     TEST_ASSERT_EQUAL_STRING("VALUE", line);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(7U, mock_read_byte_fake.call_count);
 
     reset_io();
     mock_feed("NOISE\r\nTARGET\r\n");
     TEST_ASSERT_TRUE(at_expect(dev, "TARGET", 100));
+    TEST_ASSERT_GREATER_THAN_UINT(0U, mock_get_tick_fake.call_count);
+    TEST_ASSERT_GREATER_THAN_UINT(0U, mock_read_byte_fake.call_count);
 
     uint32_t tx = 0, rx = 0, err = 0;
     at_get_stats(dev, &tx, &rx, &err);
