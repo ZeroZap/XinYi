@@ -1,34 +1,42 @@
 #include "unity.h"
+#include "fff.h"
 #include "xy_led_driver.h"
 
 static uint32_t g_last_color;
 static uint16_t g_last_x;
 static uint16_t g_last_y;
-static int g_show_count;
 
-static void fake_set_pixel(uint16_t x, uint16_t y, uint32_t color)
+DEFINE_FFF_GLOBALS;
+
+FAKE_VOID_FUNC(fake_set_pixel, uint16_t, uint16_t, uint32_t)
+FAKE_VALUE_FUNC(uint32_t, fake_get_pixel, uint16_t, uint16_t)
+FAKE_VOID_FUNC(fake_show)
+
+static void fake_set_pixel_impl(uint16_t x, uint16_t y, uint32_t color)
 {
     g_last_x = x;
     g_last_y = y;
     g_last_color = color;
 }
 
-static uint32_t fake_get_pixel(uint16_t x, uint16_t y)
+static uint32_t fake_get_pixel_impl(uint16_t x, uint16_t y)
 {
     return ((uint32_t)x << 16) | y;
 }
 
-static void fake_show(void)
-{
-    g_show_count++;
-}
-
 void setUp(void)
 {
+    RESET_FAKE(fake_set_pixel);
+    RESET_FAKE(fake_get_pixel);
+    RESET_FAKE(fake_show);
+    FFF_RESET_HISTORY();
+
+    fake_set_pixel_fake.custom_fake = fake_set_pixel_impl;
+    fake_get_pixel_fake.custom_fake = fake_get_pixel_impl;
+
     g_last_color = 0U;
     g_last_x = 0U;
     g_last_y = 0U;
-    g_show_count = 0;
 }
 
 void tearDown(void)
@@ -78,18 +86,26 @@ static void test_led_gui_registers_display_without_overwriting_user_data(void)
     TEST_ASSERT_EQUAL_PTR(display, XY_LED_GET_GUI(&driver));
 
     display->set_pixel(2, 3, 0x112233U);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(2, fake_set_pixel_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(3, fake_set_pixel_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(0x112233U, fake_set_pixel_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT16(2, g_last_x);
     TEST_ASSERT_EQUAL_UINT16(3, g_last_y);
     TEST_ASSERT_EQUAL_UINT32(0x112233U, g_last_color);
     TEST_ASSERT_EQUAL_UINT32(0x00050006U, display->get_pixel(5, 6));
+    TEST_ASSERT_EQUAL_UINT(1U, fake_get_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(5, fake_get_pixel_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(6, fake_get_pixel_fake.arg1_val);
 
     display->fill_rect(1, 2, 2, 2, 0x445566U);
+    TEST_ASSERT_EQUAL_UINT(5U, fake_set_pixel_fake.call_count);
     TEST_ASSERT_EQUAL_UINT16(2, g_last_x);
     TEST_ASSERT_EQUAL_UINT16(3, g_last_y);
     TEST_ASSERT_EQUAL_UINT32(0x445566U, g_last_color);
 
     display->flush();
-    TEST_ASSERT_EQUAL_INT(1, g_show_count);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_show_fake.call_count);
 }
 
 static void test_led_gui_can_be_disabled_and_reenabled(void)
