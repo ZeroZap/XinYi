@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "fff.h"
 #include "xy_fee.h"
 
 #include <stdint.h>
@@ -14,35 +15,35 @@ static uint8_t g_flash[FLASH_SIZE];
 static uint8_t g_cache[CACHE_SIZE];
 static uint8_t g_work[FEE_WORK_SIZE(GRAN)];
 static fee_handle_t g_fee;
-static uint32_t g_erase_count;
-static uint32_t g_write_count;
-static uint32_t g_read_count;
 
-static int fake_erase(uint32_t addr)
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(int, fake_erase, uint32_t)
+FAKE_VALUE_FUNC(int, fake_write, uint32_t, const uint8_t *, uint16_t)
+FAKE_VALUE_FUNC(int, fake_read, uint32_t, uint8_t *, uint16_t)
+
+static int fake_erase_impl(uint32_t addr)
 {
     TEST_ASSERT_LESS_OR_EQUAL_UINT32(FLASH_SIZE - PAGE_SIZE, addr);
     memset(&g_flash[addr], 0xFF, PAGE_SIZE);
-    g_erase_count++;
     return 0;
 }
 
-static int fake_write(uint32_t addr, const uint8_t *data, uint16_t len)
+static int fake_write_impl(uint32_t addr, const uint8_t *data, uint16_t len)
 {
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_OR_EQUAL_UINT32(FLASH_SIZE, addr + len);
     for (uint16_t i = 0; i < len; ++i) {
         g_flash[addr + i] &= data[i];
     }
-    g_write_count++;
     return 0;
 }
 
-static int fake_read(uint32_t addr, uint8_t *data, uint16_t len)
+static int fake_read_impl(uint32_t addr, uint8_t *data, uint16_t len)
 {
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_OR_EQUAL_UINT32(FLASH_SIZE, addr + len);
     memcpy(data, &g_flash[addr], len);
-    g_read_count++;
     return 0;
 }
 
@@ -74,13 +75,19 @@ static void init_fee(void)
 
 void setUp(void)
 {
+    RESET_FAKE(fake_erase);
+    RESET_FAKE(fake_write);
+    RESET_FAKE(fake_read);
+    FFF_RESET_HISTORY();
+
+    fake_erase_fake.custom_fake = fake_erase_impl;
+    fake_write_fake.custom_fake = fake_write_impl;
+    fake_read_fake.custom_fake = fake_read_impl;
+
     memset(g_flash, 0xFF, sizeof(g_flash));
     memset(g_cache, 0x00, sizeof(g_cache));
     memset(g_work, 0x00, sizeof(g_work));
     memset(&g_fee, 0x00, sizeof(g_fee));
-    g_erase_count = 0;
-    g_write_count = 0;
-    g_read_count = 0;
 }
 
 void tearDown(void)
@@ -97,7 +104,10 @@ static void test_init_formats_empty_flash_and_clears_cache(void)
     memset(erased, 0xFF, sizeof(erased));
     TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(erased, g_cache, CACHE_SIZE,
                                           "empty flash init should mirror erased EEPROM");
-    TEST_ASSERT_EQUAL_UINT32(FEE_PAGES, g_erase_count);
+    TEST_ASSERT_EQUAL_UINT32(FEE_PAGES, fake_erase_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, fake_erase_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_UINT32(PAGE_SIZE, fake_erase_fake.arg0_history[1]);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT32(1U, fake_read_fake.call_count);
 }
 
 static void test_write_updates_cache_and_read_returns_latest_bytes(void)
@@ -107,15 +117,22 @@ static void test_write_updates_cache_and_read_returns_latest_bytes(void)
     const uint8_t first[] = {0x11, 0x22, 0x33, 0x44, 0x55};
     const uint8_t second[] = {0xAA, 0xBB, 0xCC};
     uint8_t out[sizeof(first)] = {0};
+    unsigned writes_after_init = fake_write_fake.call_count;
+    unsigned reads_after_init = fake_read_fake.call_count;
 
     TEST_ASSERT_EQUAL(FEE_OK, fee_write(&g_fee, 4, first, sizeof(first)));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(first, &g_cache[4], sizeof(first));
+    TEST_ASSERT_GREATER_THAN_UINT(writes_after_init, fake_write_fake.call_count);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT32(FLASH_SIZE,
+                                     fake_write_fake.arg0_val + fake_write_fake.arg2_val);
+    TEST_ASSERT_NOT_NULL(fake_write_fake.arg1_val);
 
     TEST_ASSERT_EQUAL(FEE_OK, fee_write(&g_fee, 6, second, sizeof(second)));
     TEST_ASSERT_EQUAL(FEE_OK, fee_read(&g_fee, 4, out, sizeof(out)));
 
     const uint8_t expected[] = {0x11, 0x22, 0xAA, 0xBB, 0xCC};
     TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, out, sizeof(expected));
+    TEST_ASSERT_EQUAL_UINT(reads_after_init, fake_read_fake.call_count);
 }
 
 static void test_reinit_rebuilds_cache_from_flash_records(void)
@@ -126,6 +143,7 @@ static void test_reinit_rebuilds_cache_from_flash_records(void)
     const uint8_t data1[] = {0xA1, 0xA2, 0xA3, 0xA4};
     TEST_ASSERT_EQUAL(FEE_OK, fee_write(&g_fee, 0, data0, sizeof(data0)));
     TEST_ASSERT_EQUAL(FEE_OK, fee_write(&g_fee, 32, data1, sizeof(data1)));
+    unsigned writes_after_records = fake_write_fake.call_count;
 
     uint8_t recovered[CACHE_SIZE];
     uint8_t work[FEE_WORK_SIZE(GRAN)];
@@ -138,11 +156,15 @@ static void test_reinit_rebuilds_cache_from_flash_records(void)
     TEST_ASSERT_EQUAL(FEE_OK, fee_init(&recovered_fee, &config, recovered, work));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(data0, &recovered[0], sizeof(data0));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(data1, &recovered[32], sizeof(data1));
+    TEST_ASSERT_EQUAL_UINT(writes_after_records, fake_write_fake.call_count);
+    TEST_ASSERT_GREATER_THAN_UINT(0U, fake_read_fake.call_count);
 }
 
 static void test_bounds_and_zero_length_contracts(void)
 {
     init_fee();
+    unsigned writes_after_init = fake_write_fake.call_count;
+    unsigned reads_after_init = fake_read_fake.call_count;
 
     uint8_t byte = 0x5A;
     TEST_ASSERT_EQUAL(FEE_ERROR_PARAM, fee_write(&g_fee, CACHE_SIZE, &byte, 1));
@@ -151,6 +173,8 @@ static void test_bounds_and_zero_length_contracts(void)
     TEST_ASSERT_EQUAL(FEE_OK, fee_read(&g_fee, 8, NULL, 0));
     TEST_ASSERT_EQUAL(FEE_ERROR_PARAM, fee_write(&g_fee, 8, NULL, 1));
     TEST_ASSERT_EQUAL(FEE_ERROR_PARAM, fee_read(&g_fee, 8, NULL, 1));
+    TEST_ASSERT_EQUAL_UINT(writes_after_init, fake_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(reads_after_init, fake_read_fake.call_count);
 }
 
 static void test_manual_gc_preserves_virtual_eeprom_contents(void)
@@ -165,9 +189,13 @@ static void test_manual_gc_preserves_virtual_eeprom_contents(void)
         TEST_ASSERT_EQUAL(FEE_OK, fee_write(&g_fee, addr, data, sizeof(data)));
         memcpy(&expected[addr], data, sizeof(data));
     }
+    unsigned erases_before_gc = fake_erase_fake.call_count;
+    unsigned writes_before_gc = fake_write_fake.call_count;
 
     TEST_ASSERT_EQUAL(FEE_OK, fee_gc(&g_fee));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, g_cache, CACHE_SIZE);
+    TEST_ASSERT_GREATER_THAN_UINT(erases_before_gc, fake_erase_fake.call_count);
+    TEST_ASSERT_GREATER_THAN_UINT(writes_before_gc, fake_write_fake.call_count);
 }
 
 int main(void)
