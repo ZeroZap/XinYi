@@ -6,8 +6,19 @@ set(CMAKE_C_STANDARD 99)
 add_definitions(-DHAL_PLATFORM_PC -DXY_HAL_PC_SIM)
 add_compile_options(-Wall -Wextra -Wno-unused-parameter -g -O0)
 
+option(XY_ENABLE_UNIT_COVERAGE "Enable gcov coverage instrumentation for unit tests" OFF)
+if(XY_ENABLE_UNIT_COVERAGE)
+    if(NOT CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        message(FATAL_ERROR "XY_ENABLE_UNIT_COVERAGE requires GCC or Clang")
+    endif()
+
+    add_compile_options(--coverage -O0 -g)
+    add_link_options(--coverage)
+endif()
+
 # Path roots
 set(ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+get_filename_component(ROOT ${ROOT} ABSOLUTE)
 set(DEV  ${ROOT}/components/device)
 set(HAL  ${ROOT}/components/hal)
 set(DRV  ${ROOT}/components/drivers)
@@ -127,6 +138,8 @@ set(FRAMEWORK_SOURCES
     ${HAL}/PC/xy_hal_uart_pc.c
 )
 
+set(XY_UNIT_TEST_TARGETS)
+
 function(xy_add_unit_test TARGET_NAME TEST_NAME)
     cmake_parse_arguments(XY_UNIT "UNITY" "" "" ${ARGN})
 
@@ -137,6 +150,7 @@ function(xy_add_unit_test TARGET_NAME TEST_NAME)
 
     add_executable(${TARGET_NAME} ${XY_UNIT_SOURCES})
     add_test(NAME ${TEST_NAME} COMMAND ${TARGET_NAME})
+    set_property(GLOBAL APPEND PROPERTY XY_UNIT_TEST_TARGETS ${TARGET_NAME})
 endfunction()
 
 # --- Test 1: framework end-to-end ---
@@ -835,17 +849,38 @@ xy_add_unit_test(test_fff_smoke fff_smoke UNITY
 )
 
 # Convenience target: build + run all tests
+get_property(XY_UNIT_TEST_TARGETS GLOBAL PROPERTY XY_UNIT_TEST_TARGETS)
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_device test_sht30_integration test_sensors_multi test_spi_device
-            test_osal test_auto_register test_device_async_helper test_can test_lte
-            test_nano_modbus test_modbus_legacy test_iso7816 test_iso7816_example test_net_core
-            test_crc test_csprng test_random test_encode test_hash test_cipher_hmac test_lwc
-            test_sensor_framework test_hal_pc test_pm test_pm_platform_fallback test_trace test_clib test_mux_core
-            test_mux_i2c test_mux_gpio test_mux_spi test_mux_uart test_pid_core test_dm_base64 test_dm_tlv test_dm_nvm test_dm_factory test_dm_fee test_dm_corejson test_ipc_pipe test_ipc_broker test_storage_eeprom_24xx test_display_lcd test_display_oled_ws2812 test_display_rgb_matrix test_display_serial_rgb_headers test_display_led_driver test_mqtt_client test_at_client
-            test_at_server test_fota_core test_gui_core test_gui_widget_theme
-            test_gui_widgets test_analog_devices test_sys_timer_sm test_net_smbus_pmbus
-            test_actuator_framework test_charger_bq25620 test_fuel_gauge_core test_fg_bq27z746 test_fg_bq40z50 test_fg_max17043 test_fg_bq27z561
-            test_fff_smoke
+    DEPENDS ${XY_UNIT_TEST_TARGETS}
     COMMENT "Running unit tests"
 )
+
+if(XY_ENABLE_UNIT_COVERAGE)
+    find_program(GCOVR_EXECUTABLE gcovr)
+    if(GCOVR_EXECUTABLE)
+        set(XY_UNIT_COVERAGE_DIR ${CMAKE_BINARY_DIR}/coverage)
+        add_custom_target(unit_coverage
+            COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${XY_UNIT_COVERAGE_DIR}
+            COMMAND ${GCOVR_EXECUTABLE}
+                    --root ${ROOT}
+                    --filter ${ROOT}/components
+                    --exclude ${ROOT}/tests
+                    --exclude ${ROOT}/third_party
+                    --exclude ${ROOT}/build
+                    --merge-mode-functions merge-use-line-min
+                    --print-summary
+                    --html --html-details
+                    --output ${XY_UNIT_COVERAGE_DIR}/index.html
+            DEPENDS run_unit_tests
+            COMMENT "Run unit tests and generate gcovr coverage report"
+        )
+    else()
+        add_custom_target(unit_coverage
+            COMMAND ${CMAKE_COMMAND} -E echo "gcovr_not_found_install_gcovr_to_generate_coverage_reports"
+            COMMAND ${CMAKE_COMMAND} -E false
+            DEPENDS run_unit_tests
+        )
+    endif()
+endif()

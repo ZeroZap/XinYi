@@ -217,15 +217,17 @@ tests/
 
 **Objective:** Get the useful reporting pieces usually associated with Ceedling while staying in CMake/CTest.
 
+**Status:** Implemented. Optional `XY_ENABLE_UNIT_COVERAGE` now instruments unit-test targets with gcov-compatible flags without changing the default `make test-unit` path. When enabled, the `unit_coverage` target runs the existing CTest suite and uses `gcovr` to print a summary plus generate `build/tests/unit_coverage/coverage/index.html`, excluding tests, third-party code, and the build tree from the report. CI artifact publishing remains deferred to Phase 7.
+
 **Tasks:**
 
-1. Add optional coverage flags to the unit-test CMake flow.
-   - Suggested option: `XY_ENABLE_UNIT_COVERAGE`.
-2. Add a coverage command using `gcovr` or `lcov`.
-3. Keep coverage disabled by default.
-4. Exclude vendor, build, and test framework directories.
-5. Generate HTML and summary reports.
-6. Add CI artifact support later if needed.
+1. [x] Add optional coverage flags to the unit-test CMake flow.
+   - `XY_ENABLE_UNIT_COVERAGE` defaults to `OFF`.
+2. [x] Add a coverage command using `gcovr`.
+3. [x] Keep coverage disabled by default.
+4. [x] Exclude vendor, build, and test framework directories.
+5. [x] Generate HTML and summary reports.
+6. [ ] Add CI artifact support later if needed.
 
 **Exit Criteria:**
 
