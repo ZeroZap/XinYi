@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "fff.h"
 #include "xy_gui_event.h"
 #include "xy_gui_button.h"
 #include "xy_gui_checkbox.h"
@@ -11,49 +12,56 @@
 #include "xy_gui_slider.h"
 #include "xy_gui_container.h"
 
-uint32_t xy_os_tick_get(void) { return 1234; }
-
 void xy_log_char(char ch)
 {
     (void)ch;
 }
 
-static int g_cb_count;
 static int g_cb_value;
 static bool g_handler_seen;
 
-void setUp(void)
-{
-}
+DEFINE_FFF_GLOBALS;
 
-void tearDown(void)
-{
-}
+FAKE_VALUE_FUNC(uint32_t, xy_os_tick_get)
+FAKE_VOID_FUNC(widget_cb, xy_gui_widget_t *, xy_gui_event_t *, void *)
+FAKE_VALUE_FUNC(bool, listener_cb, xy_gui_event_t *, void *)
 
-static void reset_cb(void)
-{
-    g_cb_count = 0;
-    g_cb_value = 0;
-    g_handler_seen = false;
-}
-
-static void widget_cb(xy_gui_widget_t *widget, xy_gui_event_t *event, void *user_data)
+static void widget_cb_impl(xy_gui_widget_t *widget, xy_gui_event_t *event, void *user_data)
 {
     (void)widget;
     TEST_ASSERT_TRUE(user_data == (void *)0x1234 || user_data == (void *)0x5678);
-    g_cb_count++;
     if (event) {
         g_cb_value = event->data.value;
     }
 }
 
-static bool listener_cb(xy_gui_event_t *event, void *user_data)
+static bool listener_cb_impl(xy_gui_event_t *event, void *user_data)
 {
     TEST_ASSERT_EQUAL_PTR((void *)0xCAFE, user_data);
     TEST_ASSERT_NOT_NULL(event);
     g_handler_seen = true;
     event->handled = true;
     return true;
+}
+
+void setUp(void)
+{
+    RESET_FAKE(xy_os_tick_get);
+    RESET_FAKE(widget_cb);
+    RESET_FAKE(listener_cb);
+    FFF_RESET_HISTORY();
+
+    xy_os_tick_get_fake.return_val = 1234U;
+    widget_cb_fake.custom_fake = widget_cb_impl;
+    listener_cb_fake.custom_fake = listener_cb_impl;
+    listener_cb_fake.return_val = true;
+
+    g_cb_value = 0;
+    g_handler_seen = false;
+}
+
+void tearDown(void)
+{
 }
 
 static void test_event_queue_and_dispatch(void)
@@ -67,6 +75,8 @@ static void test_event_queue_and_dispatch(void)
     TEST_ASSERT_EQUAL_INT16(10, event.data.point.x);
     TEST_ASSERT_EQUAL_INT16(20, event.data.point.y);
     TEST_ASSERT_EQUAL_INT16(128, event.data.point.pressure);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_os_tick_get_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, event.timestamp);
     TEST_ASSERT_EQUAL_INT(0, xy_gui_event_push(&q, &event));
     TEST_ASSERT_EQUAL_INT(1, xy_gui_event_queue_count(&q));
     TEST_ASSERT_EQUAL_INT(0, xy_gui_event_pop(&q, &out));
@@ -85,10 +95,12 @@ static void test_event_queue_and_dispatch(void)
     TEST_ASSERT_EQUAL_INT(-1, xy_gui_event_system_init());
     xy_gui_event_system_deinit();
 
-    reset_cb();
     TEST_ASSERT_EQUAL_INT(0, xy_gui_event_register_listener(listener_cb, (void *)0xCAFE, 10));
     event = xy_gui_event_create_click(1, 2);
     TEST_ASSERT_TRUE(xy_gui_event_dispatch(&event));
+    TEST_ASSERT_EQUAL_UINT(1U, listener_cb_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&event, listener_cb_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR((void *)0xCAFE, listener_cb_fake.arg1_val);
     TEST_ASSERT_TRUE(g_handler_seen);
     TEST_ASSERT_TRUE(event.handled);
     TEST_ASSERT_EQUAL_INT(0, xy_gui_event_unregister_listener(listener_cb));
@@ -114,11 +126,12 @@ static void test_button_contracts(void)
     TEST_ASSERT_EQUAL_INT(0, xy_gui_button_destroy(&button));
 
     TEST_ASSERT_EQUAL_INT(0, xy_gui_button_create(&button, 0, 0, 40, 20, "T", XY_GUI_BUTTON_TOGGLE));
-    reset_cb();
     TEST_ASSERT_EQUAL_INT(0, xy_gui_button_set_click_cb(&button, widget_cb, (void *)0x1234));
     TEST_ASSERT_FALSE(xy_gui_button_is_checked(&button));
     TEST_ASSERT_EQUAL_INT(0, xy_gui_button_trigger_click(&button));
-    TEST_ASSERT_EQUAL_INT(1, g_cb_count);
+    TEST_ASSERT_EQUAL_UINT(1U, widget_cb_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&button.base, widget_cb_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR((void *)0x1234, widget_cb_fake.arg2_val);
     TEST_ASSERT_TRUE(xy_gui_button_is_checked(&button));
 
     event = xy_gui_event_create_touch(XY_GUI_EVENT_PRESS, 5, 5);
@@ -130,6 +143,9 @@ static void test_button_contracts(void)
     TEST_ASSERT_EQUAL_INT(0, xy_gui_button_update(&button, &event));
     TEST_ASSERT_TRUE(event.handled);
     TEST_ASSERT_FALSE(xy_gui_button_is_pressed(&button));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(2U, widget_cb_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&button.base, widget_cb_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&event, widget_cb_fake.arg1_val);
     TEST_ASSERT_EQUAL_INT(0, xy_gui_button_destroy(&button));
 }
 
@@ -147,12 +163,14 @@ static void test_checkbox_contracts(void)
     TEST_ASSERT_EQUAL_INT(0, xy_gui_checkbox_toggle(&checkbox));
     TEST_ASSERT_EQUAL_INT(XY_GUI_CHECKBOX_INDETERMINATE, xy_gui_checkbox_get_state(&checkbox));
     TEST_ASSERT_EQUAL_INT(0, xy_gui_checkbox_set_state(&checkbox, XY_GUI_CHECKBOX_UNCHECKED));
-    reset_cb();
     TEST_ASSERT_EQUAL_INT(0, xy_gui_checkbox_set_state_changed_cb(&checkbox, widget_cb, (void *)0x1234));
     event = xy_gui_event_create_touch(XY_GUI_EVENT_RELEASE, 2, 2);
     TEST_ASSERT_EQUAL_INT(0, xy_gui_checkbox_update(&checkbox, &event));
     TEST_ASSERT_TRUE(event.handled);
-    TEST_ASSERT_EQUAL_INT(1, g_cb_count);
+    TEST_ASSERT_EQUAL_UINT(1U, widget_cb_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&checkbox.base, widget_cb_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&event, widget_cb_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR((void *)0x1234, widget_cb_fake.arg2_val);
     TEST_ASSERT_EQUAL_INT(XY_GUI_CHECKBOX_CHECKED, g_cb_value);
     TEST_ASSERT_EQUAL_INT(0, xy_gui_checkbox_draw(&checkbox, fb, 100, 40));
     TEST_ASSERT_EQUAL_INT(0, xy_gui_checkbox_destroy(&checkbox));
@@ -203,12 +221,14 @@ static void test_label_progress_slider_container(void)
     TEST_ASSERT_EQUAL_INT(50, xy_gui_slider_get_value(&slider));
     TEST_ASSERT_GREATER_THAN_INT(xy_gui_slider_value_to_pos(&slider, 0), xy_gui_slider_value_to_pos(&slider, 100));
     TEST_ASSERT_GREATER_OR_EQUAL_INT(90, xy_gui_slider_pos_to_value(&slider, 999));
-    reset_cb();
     TEST_ASSERT_EQUAL_INT(0, xy_gui_slider_set_value_changed_cb(&slider, widget_cb, (void *)0x1234));
     TEST_ASSERT_EQUAL_INT(0, xy_gui_slider_set_continuous(&slider, true));
     event = xy_gui_event_create_touch(XY_GUI_EVENT_TOUCH_DOWN, 80, 30);
     TEST_ASSERT_EQUAL_INT(0, xy_gui_slider_update(&slider, &event));
-    TEST_ASSERT_EQUAL_INT(1, g_cb_count);
+    TEST_ASSERT_EQUAL_UINT(1U, widget_cb_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&slider.base, widget_cb_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&event, widget_cb_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR((void *)0x1234, widget_cb_fake.arg2_val);
     TEST_ASSERT_EQUAL_INT(0, xy_gui_slider_show_ticks(&slider, true));
     TEST_ASSERT_EQUAL_INT(0, xy_gui_slider_show_value(&slider, true));
     TEST_ASSERT_EQUAL_INT(0, xy_gui_slider_draw(&slider, fb, 160, 80));
