@@ -16,6 +16,7 @@ DEFINE_FFF_GLOBALS;
 
 FAKE_VALUE_FUNC(xy_error_t, xy_i2c_device_write, xy_i2c_device_t *, const uint8_t *, size_t)
 FAKE_VOID_FUNC(xy_hal_delay_ms, uint32_t)
+FAKE_VOID_FUNC(gpio_callback, uint8_t, uint8_t)
 
 typedef struct {
     uint8_t bytes[MAX_I2C_BYTES];
@@ -35,6 +36,7 @@ static size_t gpio_event_count;
 
 static xy_error_t fake_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len);
 static void fake_hal_delay_ms(uint32_t ms);
+static void gpio_callback_impl(uint8_t pin, uint8_t value);
 
 void setUp(void)
 {
@@ -60,6 +62,10 @@ static void reset_i2c_log(void)
 
 static void reset_gpio_log(void)
 {
+    RESET_FAKE(gpio_callback);
+    FFF_RESET_HISTORY();
+    gpio_callback_fake.custom_fake = gpio_callback_impl;
+
     memset(gpio_events, 0, sizeof(gpio_events));
     gpio_event_count = 0;
 }
@@ -132,7 +138,7 @@ int xy_device_registry_unregister(xy_device_t *dev)
     return XY_DEVICE_OK;
 }
 
-static void gpio_callback(uint8_t pin, uint8_t value)
+static void gpio_callback_impl(uint8_t pin, uint8_t value)
 {
     TEST_ASSERT_LESS_THAN_UINT32(MAX_GPIO_EVENTS, gpio_event_count);
     gpio_events[gpio_event_count].pin = pin;
@@ -245,8 +251,13 @@ static void test_ws2812_pixels_show_and_order(void)
     TEST_ASSERT_EQUAL_HEX8(0x0FU, strip.tx_buffer[4]);
     TEST_ASSERT_EQUAL_HEX8(0x3FU, strip.tx_buffer[5]);
     TEST_ASSERT_EQUAL_UINT32((uint32_t)(strip.buffer_size * 16U + 1U), gpio_event_count);
+    TEST_ASSERT_EQUAL_UINT(gpio_event_count, gpio_callback_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(cfg.data_pin, gpio_callback_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_UINT8(1U, gpio_callback_fake.arg1_history[0]);
     TEST_ASSERT_EQUAL_UINT8(cfg.data_pin, gpio_events[0].pin);
     TEST_ASSERT_EQUAL_UINT8(1U, gpio_events[0].value);
+    TEST_ASSERT_EQUAL_UINT8(cfg.data_pin, gpio_callback_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT8(0U, gpio_callback_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT8(0U, gpio_events[gpio_event_count - 1U].value);
 
     xy_ws2812_deinit(&strip);
