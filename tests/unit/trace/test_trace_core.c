@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "unity.h"
+#include "fff.h"
 #include "xy_log.h"
 
 void xy_log_init(void);
@@ -13,6 +14,12 @@ uint8_t xy_log_dynamic_level(void);
 static char g_log_buffer[256];
 static size_t g_log_len;
 
+DEFINE_FFF_GLOBALS;
+
+FAKE_VOID_FUNC(capture_printf, char *)
+
+static void capture_printf_impl(char *str);
+
 void xy_log_char(char ch)
 {
     if (g_log_len + 1U < sizeof(g_log_buffer)) {
@@ -21,7 +28,7 @@ void xy_log_char(char ch)
     }
 }
 
-static void capture_printf(char *str)
+static void capture_printf_impl(char *str)
 {
     if (!str) {
         return;
@@ -33,6 +40,10 @@ static void capture_printf(char *str)
 
 static void reset_capture(void)
 {
+    RESET_FAKE(capture_printf);
+    FFF_RESET_HISTORY();
+    capture_printf_fake.custom_fake = capture_printf_impl;
+
     g_log_len = 0;
     g_log_buffer[0] = '\0';
 }
@@ -79,10 +90,14 @@ static void test_log_init_and_public_macros(void)
 {
     xy_stdio_printf_init(capture_printf);
     XY_LOG_E("err=%d", 7);
+    TEST_ASSERT_EQUAL_UINT(1U, capture_printf_fake.call_count);
+    TEST_ASSERT_EQUAL_STRING("[E] err=7", capture_printf_fake.arg0_val);
     TEST_ASSERT_EQUAL_STRING("[E] err=7", g_log_buffer);
 
     reset_capture();
     xy_log_i("info %s", "ok");
+    TEST_ASSERT_EQUAL_UINT(1U, capture_printf_fake.call_count);
+    TEST_ASSERT_EQUAL_STRING("[I] info ok", capture_printf_fake.arg0_val);
     TEST_ASSERT_EQUAL_STRING("[I] info ok", g_log_buffer);
 
     reset_capture();
