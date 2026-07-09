@@ -6,79 +6,70 @@
 #include <string.h>
 
 #include "unity.h"
+#include "fff.h"
 #include "xy_device_async.h"
 #include "xy_os.h"
-
-static uint32_t g_fake_tick = 0;
-static int g_callback_count = 0;
-static int g_callback_result = 0;
-static xy_device_async_op_t g_callback_op = XY_DEVICE_ASYNC_OP_NONE;
-static int g_poll_result = 0;
 
 #define TEST(name) static void name(void)
 #define ASSERT(cond) TEST_ASSERT_TRUE(cond)
 
-void setUp(void)
-{
-}
+static uint32_t g_fake_tick = 0;
+static int g_poll_result = 0;
 
-void tearDown(void)
-{
-}
+DEFINE_FFF_GLOBALS;
 
-uint32_t xy_os_tick_get(void)
+FAKE_VALUE_FUNC(uint32_t, xy_os_tick_get)
+FAKE_VALUE_FUNC(xy_os_status_t, xy_os_delay, uint32_t)
+FAKE_VOID_FUNC(async_callback, xy_device_t *, xy_device_async_op_t, int, void *)
+FAKE_VALUE_FUNC(int, backend_read_pending, xy_device_t *, void *, size_t,
+                xy_device_async_callback_t, void *, uint32_t)
+FAKE_VALUE_FUNC(int, backend_poll_controlled, xy_device_t *)
+FAKE_VALUE_FUNC(int, backend_ready_false, xy_device_t *, bool)
+
+static uint32_t xy_os_tick_get_impl(void)
 {
     return g_fake_tick;
 }
 
-xy_os_status_t xy_os_delay(uint32_t ticks)
+static xy_os_status_t xy_os_delay_impl(uint32_t ticks)
 {
     g_fake_tick += ticks;
     return XY_OS_OK;
 }
 
-static void reset_fakes(void)
-{
-    g_fake_tick = 0;
-    g_callback_count = 0;
-    g_callback_result = 0;
-    g_callback_op = XY_DEVICE_ASYNC_OP_NONE;
-    g_poll_result = 0;
-}
-
-static void async_callback(xy_device_t *dev, xy_device_async_op_t op, int result, void *user_data)
-{
-    (void)dev;
-    (void)user_data;
-    g_callback_count++;
-    g_callback_op = op;
-    g_callback_result = result;
-}
-
-static int backend_read_pending(xy_device_t *dev, void *buffer, size_t length,
-                                xy_device_async_callback_t callback, void *user_data,
-                                uint32_t timeout_ms)
-{
-    (void)dev;
-    (void)buffer;
-    (void)length;
-    (void)callback;
-    (void)user_data;
-    (void)timeout_ms;
-    return XY_DEVICE_OK;
-}
-
-static int backend_poll_controlled(xy_device_t *dev)
+static int backend_poll_controlled_impl(xy_device_t *dev)
 {
     (void)dev;
     return g_poll_result;
 }
 
-static int backend_ready_false(xy_device_t *dev, bool for_write)
+static void reset_fakes(void)
 {
-    (void)dev;
-    (void)for_write;
-    return 0;
+    RESET_FAKE(xy_os_tick_get);
+    RESET_FAKE(xy_os_delay);
+    RESET_FAKE(async_callback);
+    RESET_FAKE(backend_read_pending);
+    RESET_FAKE(backend_poll_controlled);
+    RESET_FAKE(backend_ready_false);
+    FFF_RESET_HISTORY();
+
+    xy_os_tick_get_fake.custom_fake = xy_os_tick_get_impl;
+    xy_os_delay_fake.custom_fake = xy_os_delay_impl;
+    backend_read_pending_fake.return_val = XY_DEVICE_OK;
+    backend_poll_controlled_fake.custom_fake = backend_poll_controlled_impl;
+    backend_ready_false_fake.return_val = 0;
+
+    g_fake_tick = 0;
+    g_poll_result = 0;
+}
+
+void setUp(void)
+{
+    reset_fakes();
+}
+
+void tearDown(void)
+{
 }
 
 TEST(test_init_rejects_null_context)
@@ -94,7 +85,6 @@ TEST(test_fallback_read_completes_immediately)
     size_t transferred = 0;
     uint8_t buffer[4] = {0};
 
-    reset_fakes();
     ASSERT(xy_device_async_init_ex(&ctx, NULL) == XY_DEVICE_OK);
     ASSERT(xy_device_async_read_ex(&dev, &ctx, buffer, sizeof(buffer),
                                    async_callback, NULL, 0) == XY_DEVICE_OK);
@@ -102,9 +92,12 @@ TEST(test_fallback_read_completes_immediately)
     ASSERT(state == XY_DEVICE_ASYNC_STATE_COMPLETED);
     ASSERT(xy_device_async_get_transferred_ex(&ctx, &transferred) == XY_DEVICE_OK);
     ASSERT(transferred == sizeof(buffer));
-    ASSERT(g_callback_count == 1);
-    ASSERT(g_callback_op == XY_DEVICE_ASYNC_OP_READ);
-    ASSERT(g_callback_result == (int)sizeof(buffer));
+    TEST_ASSERT_EQUAL_UINT(1U, xy_os_tick_get_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, async_callback_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&dev, async_callback_fake.arg0_val);
+    TEST_ASSERT_EQUAL(XY_DEVICE_ASYNC_OP_READ, async_callback_fake.arg1_val);
+    TEST_ASSERT_EQUAL_INT((int)sizeof(buffer), async_callback_fake.arg2_val);
+    TEST_ASSERT_NULL(async_callback_fake.arg3_val);
 }
 
 TEST(test_backend_pending_busy_and_poll_completion)
@@ -119,23 +112,37 @@ TEST(test_backend_pending_busy_and_poll_completion)
         .ready = backend_ready_false,
     };
 
-    reset_fakes();
     ASSERT(xy_device_async_init_ex(&ctx, &ops) == XY_DEVICE_OK);
     ASSERT(xy_device_async_read_ex(&dev, &ctx, buffer, sizeof(buffer),
                                    async_callback, NULL, 0) == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_UINT(1U, backend_read_pending_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&dev, backend_read_pending_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(buffer, backend_read_pending_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(buffer), backend_read_pending_fake.arg2_val);
+    TEST_ASSERT_EQUAL_PTR(async_callback, backend_read_pending_fake.arg3_val);
+    TEST_ASSERT_NULL(backend_read_pending_fake.arg4_val);
+    TEST_ASSERT_EQUAL_UINT32(0U, backend_read_pending_fake.arg5_val);
     ASSERT(xy_device_async_get_state_ex(&ctx, &state) == XY_DEVICE_OK);
     ASSERT(state == XY_DEVICE_ASYNC_STATE_PENDING);
     ASSERT(xy_device_async_ready_ex(&dev, &ctx, false) == 0);
+    TEST_ASSERT_EQUAL_UINT(1U, backend_ready_false_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&dev, backend_ready_false_fake.arg0_val);
+    TEST_ASSERT_FALSE(backend_ready_false_fake.arg1_val);
     ASSERT(xy_device_async_write_ex(&dev, &ctx, buffer, sizeof(buffer),
                                     async_callback, NULL, 0) == XY_DEVICE_BUSY);
 
     ASSERT(xy_device_async_poll_ex(&dev, &ctx) == 0);
+    TEST_ASSERT_EQUAL_UINT(1U, backend_poll_controlled_fake.call_count);
     g_poll_result = 3;
     ASSERT(xy_device_async_poll_ex(&dev, &ctx) == 1);
+    TEST_ASSERT_EQUAL_UINT(2U, backend_poll_controlled_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&dev, backend_poll_controlled_fake.arg0_val);
     ASSERT(xy_device_async_get_state_ex(&ctx, &state) == XY_DEVICE_OK);
     ASSERT(state == XY_DEVICE_ASYNC_STATE_COMPLETED);
-    ASSERT(g_callback_count == 1);
-    ASSERT(g_callback_result == 3);
+    TEST_ASSERT_EQUAL_UINT(1U, async_callback_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&dev, async_callback_fake.arg0_val);
+    TEST_ASSERT_EQUAL(XY_DEVICE_ASYNC_OP_READ, async_callback_fake.arg1_val);
+    TEST_ASSERT_EQUAL_INT(3, async_callback_fake.arg2_val);
 }
 
 TEST(test_wait_timeout_cancels_pending_request)
@@ -149,15 +156,20 @@ TEST(test_wait_timeout_cancels_pending_request)
         .poll = backend_poll_controlled,
     };
 
-    reset_fakes();
     ASSERT(xy_device_async_init_ex(&ctx, &ops) == XY_DEVICE_OK);
     ASSERT(xy_device_async_read_ex(&dev, &ctx, buffer, sizeof(buffer),
                                    async_callback, NULL, 0) == XY_DEVICE_OK);
     ASSERT(xy_device_async_wait_ex(&dev, &ctx, 2) == XY_DEVICE_TIMEOUT);
     ASSERT(xy_device_async_get_state_ex(&ctx, &state) == XY_DEVICE_OK);
     ASSERT(state == XY_DEVICE_ASYNC_STATE_ERROR);
-    ASSERT(g_callback_count == 1);
-    ASSERT(g_callback_result == XY_DEVICE_BUSY);
+    TEST_ASSERT_EQUAL_UINT(1U, backend_read_pending_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3U, backend_poll_controlled_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2U, xy_os_delay_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_os_delay_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(1U, async_callback_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&dev, async_callback_fake.arg0_val);
+    TEST_ASSERT_EQUAL(XY_DEVICE_ASYNC_OP_READ, async_callback_fake.arg1_val);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, async_callback_fake.arg2_val);
 }
 
 int main(void)
