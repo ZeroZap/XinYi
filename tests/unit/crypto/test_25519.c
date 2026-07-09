@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "fff.h"
 #include "xy_25519.h"
 
 #include <stdint.h>
@@ -6,12 +7,14 @@
 
 static int random_result;
 static uint8_t random_seed;
-static unsigned random_call_count;
-static unsigned sha512_call_count;
 
-int xy_random_bytes(uint8_t *buffer, size_t len)
+DEFINE_FFF_GLOBALS;
+
+FAKE_VALUE_FUNC(int, xy_random_bytes, uint8_t *, size_t)
+FAKE_VALUE_FUNC(int, xy_sha512_hash, const uint8_t *, size_t, uint8_t *)
+
+static int xy_random_bytes_impl(uint8_t *buffer, size_t len)
 {
-    random_call_count++;
     if (random_result != 0) {
         return random_result;
     }
@@ -24,9 +27,8 @@ int xy_random_bytes(uint8_t *buffer, size_t len)
     return 0;
 }
 
-int xy_sha512_hash(const uint8_t *data, size_t len, uint8_t digest[64])
+static int xy_sha512_hash_impl(const uint8_t *data, size_t len, uint8_t *digest)
 {
-    sha512_call_count++;
     if (!data || !digest) {
         return -1;
     }
@@ -38,10 +40,15 @@ int xy_sha512_hash(const uint8_t *data, size_t len, uint8_t digest[64])
 
 void setUp(void)
 {
+    RESET_FAKE(xy_random_bytes);
+    RESET_FAKE(xy_sha512_hash);
+    FFF_RESET_HISTORY();
+
+    xy_random_bytes_fake.custom_fake = xy_random_bytes_impl;
+    xy_sha512_hash_fake.custom_fake = xy_sha512_hash_impl;
+
     random_result = 0;
     random_seed = 0x10;
-    random_call_count = 0;
-    sha512_call_count = 0;
 }
 
 void tearDown(void)
@@ -80,6 +87,8 @@ static void test_x25519_rejects_null_parameters(void)
                           xy_x25519_shared_secret(shared_secret, private_key, NULL));
     TEST_ASSERT_EQUAL_INT(XY_X25519_ERROR_INVALID_PARAM,
                           xy_x25519_validate_public_key(NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_random_bytes_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_sha512_hash_fake.call_count);
 }
 
 static void test_x25519_validate_public_key_rejects_low_order_points(void)
@@ -107,10 +116,13 @@ static void test_x25519_generate_keypair_uses_rng_and_derives_public_key(void)
     }
 
     TEST_ASSERT_EQUAL_INT(XY_X25519_SUCCESS, xy_x25519_generate_keypair(private_key, public_key));
-    TEST_ASSERT_EQUAL_UINT(1U, random_call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_random_bytes_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(private_key, xy_random_bytes_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(32U, xy_random_bytes_fake.arg1_val);
     TEST_ASSERT_EQUAL_MEMORY(expected_private, private_key, sizeof(expected_private));
 
-    TEST_ASSERT_EQUAL_INT(XY_X25519_SUCCESS, xy_x25519_public_key(expected_private, expected_public));
+    TEST_ASSERT_EQUAL_INT(XY_X25519_SUCCESS,
+                          xy_x25519_public_key(expected_private, expected_public));
     TEST_ASSERT_EQUAL_MEMORY(expected_public, public_key, sizeof(expected_public));
 }
 
@@ -122,7 +134,9 @@ static void test_x25519_generate_keypair_reports_rng_failure(void)
     random_result = -7;
 
     TEST_ASSERT_EQUAL_INT(XY_X25519_ERROR, xy_x25519_generate_keypair(private_key, public_key));
-    TEST_ASSERT_EQUAL_UINT(1U, random_call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_random_bytes_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(private_key, xy_random_bytes_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(32U, xy_random_bytes_fake.arg1_val);
 }
 
 static void test_ed25519_rejects_null_parameters_and_uses_hash_dependency(void)
@@ -146,7 +160,8 @@ static void test_ed25519_rejects_null_parameters_and_uses_hash_dependency(void)
     TEST_ASSERT_EQUAL_INT(XY_ED25519_ERROR_INVALID_PARAM,
                           xy_ed25519_sign(NULL, message, sizeof(message), public_key, private_key));
     TEST_ASSERT_EQUAL_INT(XY_ED25519_ERROR_INVALID_PARAM,
-                          xy_ed25519_sign(signature, NULL, sizeof(message), public_key, private_key));
+                          xy_ed25519_sign(signature, NULL, sizeof(message),
+                                          public_key, private_key));
     TEST_ASSERT_EQUAL_INT(XY_ED25519_ERROR_INVALID_PARAM,
                           xy_ed25519_sign(signature, message, sizeof(message), NULL, private_key));
     TEST_ASSERT_EQUAL_INT(XY_ED25519_ERROR_INVALID_PARAM,
@@ -163,9 +178,13 @@ static void test_ed25519_rejects_null_parameters_and_uses_hash_dependency(void)
                           xy_ed25519_sign_simple(signature, NULL, sizeof(message), private_key));
     TEST_ASSERT_EQUAL_INT(XY_ED25519_ERROR_INVALID_PARAM,
                           xy_ed25519_sign_simple(signature, message, sizeof(message), NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_sha512_hash_fake.call_count);
 
     TEST_ASSERT_EQUAL_INT(XY_ED25519_SUCCESS, xy_ed25519_public_key(private_key, public_key));
-    TEST_ASSERT_GREATER_THAN_UINT(0U, sha512_call_count);
+    TEST_ASSERT_GREATER_THAN_UINT(0U, xy_sha512_hash_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(private_key, xy_sha512_hash_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(32U, xy_sha512_hash_fake.arg1_val);
+    TEST_ASSERT_NOT_NULL(xy_sha512_hash_fake.arg2_val);
 }
 
 int main(void)
