@@ -20,8 +20,6 @@ typedef struct {
     uint8_t storage[EEPROM_SIZE];
     uint16_t current_addr;
     uint16_t last_dev_addr;
-    size_t writes;
-    size_t reads;
 } fake_i2c_t;
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
@@ -100,7 +98,6 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_NOT_NULL(fake);
     TEST_ASSERT_NOT_NULL(data);
     fake->last_dev_addr = dev_addr;
-    fake->writes++;
 
     if (len == 1U) {
         fake->current_addr = data[0];
@@ -138,7 +135,6 @@ static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_NOT_NULL(fake);
     TEST_ASSERT_NOT_NULL(data);
     fake->last_dev_addr = dev_addr;
-    fake->reads++;
 
     if ((size_t)fake->current_addr + len > EEPROM_SIZE) {
         return XY_HAL_ERROR_OVERFLOW;
@@ -192,7 +188,6 @@ static void test_write_read_and_page_splitting(void)
                           xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, EEPROM_SIZE));
     TEST_ASSERT_EQUAL_INT((int)sizeof(payload),
                           xy_eeprom_24xx_write(&eeprom, 14, payload, sizeof(payload)));
-    TEST_ASSERT_EQUAL_UINT32(3U, fake.writes);
     TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&fake, xy_hal_i2c_master_transmit_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT16(0x50U, xy_hal_i2c_master_transmit_fake.arg1_val);
@@ -201,7 +196,6 @@ static void test_write_read_and_page_splitting(void)
 
     TEST_ASSERT_EQUAL_INT((int)sizeof(out), xy_eeprom_24xx_read(&eeprom, 14, out, sizeof(out)));
     TEST_ASSERT_EQUAL_UINT16(0x50U, fake.last_dev_addr);
-    TEST_ASSERT_EQUAL_UINT32(1U, fake.reads);
     TEST_ASSERT_EQUAL_UINT(4U, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_receive_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&fake, xy_hal_i2c_master_receive_fake.arg0_val);
