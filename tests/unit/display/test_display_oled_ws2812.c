@@ -29,11 +29,11 @@ typedef struct {
 } gpio_event_t;
 
 static i2c_write_t i2c_writes[MAX_I2C_WRITES];
-static size_t i2c_write_count;
 static uint32_t delay_ms_total;
 static gpio_event_t gpio_events[MAX_GPIO_EVENTS];
-static size_t gpio_event_count;
 
+static size_t logged_i2c_write_count(void);
+static size_t logged_gpio_event_count(void);
 static xy_error_t fake_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len);
 static void fake_hal_delay_ms(uint32_t ms);
 static void gpio_callback_impl(uint8_t pin, uint8_t value);
@@ -56,7 +56,6 @@ static void reset_i2c_log(void)
     xy_hal_delay_ms_fake.custom_fake = fake_hal_delay_ms;
 
     memset(i2c_writes, 0, sizeof(i2c_writes));
-    i2c_write_count = 0;
     delay_ms_total = 0;
 }
 
@@ -67,7 +66,16 @@ static void reset_gpio_log(void)
     gpio_callback_fake.custom_fake = gpio_callback_impl;
 
     memset(gpio_events, 0, sizeof(gpio_events));
-    gpio_event_count = 0;
+}
+
+static size_t logged_i2c_write_count(void)
+{
+    return xy_i2c_device_write_fake.call_count;
+}
+
+static size_t logged_gpio_event_count(void)
+{
+    return gpio_callback_fake.call_count;
 }
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle,
@@ -113,11 +121,11 @@ xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 static xy_error_t fake_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     (void)dev;
-    TEST_ASSERT_LESS_THAN_UINT32(MAX_I2C_WRITES, i2c_write_count);
+    size_t index = logged_i2c_write_count() - 1U;
+    TEST_ASSERT_LESS_THAN_UINT32(MAX_I2C_WRITES, index);
     TEST_ASSERT_LESS_OR_EQUAL_UINT32(MAX_I2C_BYTES, len);
-    memcpy(i2c_writes[i2c_write_count].bytes, data, len);
-    i2c_writes[i2c_write_count].len = len;
-    i2c_write_count++;
+    memcpy(i2c_writes[index].bytes, data, len);
+    i2c_writes[index].len = len;
     return XY_DEVICE_OK;
 }
 
@@ -140,10 +148,10 @@ int xy_device_registry_unregister(xy_device_t *dev)
 
 static void gpio_callback_impl(uint8_t pin, uint8_t value)
 {
-    TEST_ASSERT_LESS_THAN_UINT32(MAX_GPIO_EVENTS, gpio_event_count);
-    gpio_events[gpio_event_count].pin = pin;
-    gpio_events[gpio_event_count].value = value;
-    gpio_event_count++;
+    size_t index = logged_gpio_event_count() - 1U;
+    TEST_ASSERT_LESS_THAN_UINT32(MAX_GPIO_EVENTS, index);
+    gpio_events[index].pin = pin;
+    gpio_events[index].value = value;
 }
 
 static void test_oled_init_pixel_line_refresh(void)
@@ -158,7 +166,7 @@ static void test_oled_init_pixel_line_refresh(void)
     TEST_ASSERT_EQUAL_UINT16(64U, oled.height);
     TEST_ASSERT_EQUAL_UINT16(0x3CU, oled.i2c_dev.dev_addr);
     TEST_ASSERT_NOT_NULL(oled.buffer);
-    TEST_ASSERT_EQUAL_UINT32(14U, i2c_write_count);
+    TEST_ASSERT_EQUAL_UINT32(14U, logged_i2c_write_count());
     TEST_ASSERT_EQUAL_UINT(14U, xy_i2c_device_write_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&oled.i2c_dev, xy_i2c_device_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT(14U, xy_hal_delay_ms_fake.call_count);
@@ -186,7 +194,7 @@ static void test_oled_init_pixel_line_refresh(void)
 
     reset_i2c_log();
     xy_oled_ssd1306_refresh(&oled);
-    TEST_ASSERT_EQUAL_UINT32(4U, i2c_write_count);
+    TEST_ASSERT_EQUAL_UINT32(4U, logged_i2c_write_count());
     TEST_ASSERT_EQUAL_UINT(4U, xy_i2c_device_write_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&oled.i2c_dev, xy_i2c_device_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT32(6U, i2c_writes[0].len);
@@ -250,15 +258,14 @@ static void test_ws2812_pixels_show_and_order(void)
     TEST_ASSERT_EQUAL_HEX8(0x1FU, strip.tx_buffer[3]);
     TEST_ASSERT_EQUAL_HEX8(0x0FU, strip.tx_buffer[4]);
     TEST_ASSERT_EQUAL_HEX8(0x3FU, strip.tx_buffer[5]);
-    TEST_ASSERT_EQUAL_UINT32((uint32_t)(strip.buffer_size * 16U + 1U), gpio_event_count);
-    TEST_ASSERT_EQUAL_UINT(gpio_event_count, gpio_callback_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32((uint32_t)(strip.buffer_size * 16U + 1U), logged_gpio_event_count());
     TEST_ASSERT_EQUAL_UINT8(cfg.data_pin, gpio_callback_fake.arg0_history[0]);
     TEST_ASSERT_EQUAL_UINT8(1U, gpio_callback_fake.arg1_history[0]);
     TEST_ASSERT_EQUAL_UINT8(cfg.data_pin, gpio_events[0].pin);
     TEST_ASSERT_EQUAL_UINT8(1U, gpio_events[0].value);
     TEST_ASSERT_EQUAL_UINT8(cfg.data_pin, gpio_callback_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT8(0U, gpio_callback_fake.arg1_val);
-    TEST_ASSERT_EQUAL_UINT8(0U, gpio_events[gpio_event_count - 1U].value);
+    TEST_ASSERT_EQUAL_UINT8(0U, gpio_events[logged_gpio_event_count() - 1U].value);
 
     xy_ws2812_deinit(&strip);
     TEST_ASSERT_FALSE(strip.initialized);
