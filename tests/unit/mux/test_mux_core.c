@@ -20,7 +20,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "fff.h"
 #include "unity.h"
+
+DEFINE_FFF_GLOBALS;
 
 void xy_log_char(char ch)
 {
@@ -30,24 +33,25 @@ void xy_log_char(char ch)
 /* Test buffer size */
 #define BUFFER_SIZE 512
 
-/* Mock device operations for testing */
-static int32_t mock_write(uint8_t channel, const void *data, size_t len)
+FAKE_VALUE_FUNC(int32_t, mock_write, uint8_t, const void *, size_t)
+FAKE_VALUE_FUNC(int32_t, mock_read, uint8_t, void *, size_t)
+FAKE_VALUE_FUNC(int32_t, mock_ioctl, uint8_t, int, void *)
+
+static int32_t mock_write_impl(uint8_t channel, const void *data, size_t len)
 {
     (void)channel;
     (void)data;
-    (void)len;
-    return len;
+    return (int32_t)len;
 }
 
-static int32_t mock_read(uint8_t channel, void *data, size_t len)
+static int32_t mock_read_impl(uint8_t channel, void *data, size_t len)
 {
     (void)channel;
     (void)data;
-    (void)len;
-    return len;
+    return (int32_t)len;
 }
 
-static int32_t mock_ioctl(uint8_t channel, int cmd, void *arg)
+static int32_t mock_ioctl_impl(uint8_t channel, int cmd, void *arg)
 {
     (void)channel;
     (void)cmd;
@@ -324,6 +328,11 @@ static void test_process_packet(void)
     /* Process the packet */
     int32_t ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
     TEST_ASSERT_TRUE(ret == (int32_t)sizeof(gpio_data));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0U, mock_write_fake.arg0_val);
+    TEST_ASSERT_NOT_NULL(mock_write_fake.arg1_val);
+    TEST_ASSERT_EQUAL_MEMORY(&gpio_data, mock_write_fake.arg1_val, sizeof(gpio_data));
+    TEST_ASSERT_EQUAL_UINT32(sizeof(gpio_data), mock_write_fake.arg2_val);
     printf("  [PASS] Packet processed successfully\n");
 
     /* Test processing with non-existent device */
@@ -436,6 +445,9 @@ static void test_read_write(void)
     /* Test write on device without write operation */
     ret = xy_mux_write(&mgr, XY_MUX_TYPE_GPIO, 0, data, sizeof(data));
     TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_NOT_SUPPORTED);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
     printf("  [PASS] Write on device without write op returns NOT_SUPPORTED\n");
 
     xy_mux_deinit(&mgr);
@@ -445,6 +457,14 @@ static void test_read_write(void)
 
 void setUp(void)
 {
+    RESET_FAKE(mock_write);
+    RESET_FAKE(mock_read);
+    RESET_FAKE(mock_ioctl);
+    FFF_RESET_HISTORY();
+
+    mock_write_fake.custom_fake = mock_write_impl;
+    mock_read_fake.custom_fake = mock_read_impl;
+    mock_ioctl_fake.custom_fake = mock_ioctl_impl;
 }
 
 void tearDown(void)
