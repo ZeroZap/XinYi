@@ -10,24 +10,20 @@
 #include "xy_hal_spi.h"
 #include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
+#include "fff.h"
 
-static int g_irq_calls;
-static int g_irq_arg;
+DEFINE_FFF_GLOBALS;
+
+FAKE_VOID_FUNC(gpio_irq_handler, void *)
 
 void setUp(void)
 {
-    g_irq_calls = 0;
-    g_irq_arg = 0;
+    RESET_FAKE(gpio_irq_handler);
+    FFF_RESET_HISTORY();
 }
 
 void tearDown(void)
 {
-}
-
-static void gpio_irq_handler(void *arg)
-{
-    g_irq_calls++;
-    g_irq_arg = *(int *)arg;
 }
 
 static void test_hal_error_contract(void)
@@ -142,8 +138,7 @@ static void test_gpio_pc_irq_and_extended_helpers(void)
     TEST_ASSERT_EQUAL(3, xy_hal_gpio_get_drive_strength(port, 2));
     TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_gpio_set_slew_rate(port, 2, 2));
     TEST_ASSERT_EQUAL(2, xy_hal_gpio_get_slew_rate(port, 2));
-    TEST_ASSERT_EQUAL(0, g_irq_calls);
-    TEST_ASSERT_EQUAL(0, g_irq_arg);
+    TEST_ASSERT_EQUAL_UINT(0U, gpio_irq_handler_fake.call_count);
 }
 
 static void test_uart_i2c_spi_pc_smoke(void)
