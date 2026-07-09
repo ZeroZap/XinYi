@@ -3,6 +3,7 @@
  * @brief Unit tests for ISO7816 utility/lifecycle/APDU behavior.
  */
 #include "unity.h"
+#include "fff.h"
 
 #include "xy_iso7816.h"
 #include "xy_hal_error.h"
@@ -16,53 +17,28 @@ static size_t g_tx_len;
 static uint8_t g_rx[512];
 static size_t g_rx_len;
 static size_t g_rx_pos;
-static uint32_t g_last_send_timeout;
-static uint32_t g_last_recv_timeout;
-static unsigned g_flush_count;
 
-void setUp(void)
-{
-}
+DEFINE_FFF_GLOBALS;
 
-void tearDown(void)
-{
-}
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_uart_send, void *, const uint8_t *, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_uart_recv, void *, uint8_t *, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_uart_flush, void *)
 
-static void reset_uart_fixture(void)
-{
-    memset(g_tx, 0, sizeof(g_tx));
-    memset(g_rx, 0, sizeof(g_rx));
-    g_tx_len = 0;
-    g_rx_len = 0;
-    g_rx_pos = 0;
-    g_last_send_timeout = 0;
-    g_last_recv_timeout = 0;
-    g_flush_count = 0;
-}
-
-static void push_rx(const uint8_t *data, size_t len)
-{
-    TEST_ASSERT_LESS_OR_EQUAL_size_t(sizeof(g_rx), g_rx_len + len);
-    memcpy(&g_rx[g_rx_len], data, len);
-    g_rx_len += len;
-}
-
-xy_hal_error_t xy_hal_uart_send(void *uart, const uint8_t *data, size_t len,
-                                uint32_t timeout)
+static xy_hal_error_t xy_hal_uart_send_impl(void *uart, const uint8_t *data, size_t len,
+                                            uint32_t timeout)
 {
     TEST_ASSERT_EQUAL_PTR(&g_uart, uart);
     TEST_ASSERT_LESS_OR_EQUAL_size_t(sizeof(g_tx), g_tx_len + len);
     memcpy(&g_tx[g_tx_len], data, len);
     g_tx_len += len;
-    g_last_send_timeout = timeout;
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_uart_recv(void *uart, uint8_t *data, size_t len,
-                                uint32_t timeout)
+static xy_hal_error_t xy_hal_uart_recv_impl(void *uart, uint8_t *data, size_t len,
+                                            uint32_t timeout)
 {
+    (void)timeout;
     TEST_ASSERT_EQUAL_PTR(&g_uart, uart);
-    g_last_recv_timeout = timeout;
     if (g_rx_pos + len > g_rx_len) {
         return XY_HAL_ERROR_TIMEOUT;
     }
@@ -71,11 +47,44 @@ xy_hal_error_t xy_hal_uart_recv(void *uart, uint8_t *data, size_t len,
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_uart_flush(void *uart)
+static xy_hal_error_t xy_hal_uart_flush_impl(void *uart)
 {
     TEST_ASSERT_EQUAL_PTR(&g_uart, uart);
-    g_flush_count++;
     return XY_HAL_OK;
+}
+
+static void reset_uart_fixture(void)
+{
+    RESET_FAKE(xy_hal_uart_send);
+    RESET_FAKE(xy_hal_uart_recv);
+    RESET_FAKE(xy_hal_uart_flush);
+    FFF_RESET_HISTORY();
+
+    xy_hal_uart_send_fake.custom_fake = xy_hal_uart_send_impl;
+    xy_hal_uart_recv_fake.custom_fake = xy_hal_uart_recv_impl;
+    xy_hal_uart_flush_fake.custom_fake = xy_hal_uart_flush_impl;
+
+    memset(g_tx, 0, sizeof(g_tx));
+    memset(g_rx, 0, sizeof(g_rx));
+    g_tx_len = 0;
+    g_rx_len = 0;
+    g_rx_pos = 0;
+}
+
+void setUp(void)
+{
+    reset_uart_fixture();
+}
+
+void tearDown(void)
+{
+}
+
+static void push_rx(const uint8_t *data, size_t len)
+{
+    TEST_ASSERT_LESS_OR_EQUAL_size_t(sizeof(g_rx), g_rx_len + len);
+    memcpy(&g_rx[g_rx_len], data, len);
+    g_rx_len += len;
 }
 
 static void test_lifecycle_and_utilities(void)
@@ -113,17 +122,20 @@ static void test_reset_parses_direct_atr(void)
     xy_iso7816_atr_t atr;
     const uint8_t atr_bytes[] = {0x3B, 0x02, 0x11, 0x22};
 
-    reset_uart_fixture();
     push_rx(atr_bytes, sizeof(atr_bytes));
 
     TEST_ASSERT_EQUAL(XY_ISO7816_OK, xy_iso7816_init(&handle, &g_uart));
     TEST_ASSERT_EQUAL(XY_ISO7816_OK, xy_iso7816_reset(&handle, &atr));
-    TEST_ASSERT_EQUAL_UINT(1U, g_flush_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_uart_flush_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&g_uart, xy_hal_uart_flush_fake.arg0_val);
     TEST_ASSERT_TRUE(atr.valid);
     TEST_ASSERT_EQUAL_size_t(sizeof(atr_bytes), atr.length);
     TEST_ASSERT_EQUAL_MEMORY(atr_bytes, atr.data, sizeof(atr_bytes));
     TEST_ASSERT_TRUE(handle.atr.valid);
-    TEST_ASSERT_EQUAL_UINT32(XY_ISO7816_BYTE_TIMEOUT, g_last_recv_timeout);
+    TEST_ASSERT_EQUAL_UINT(4U, xy_hal_uart_recv_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&g_uart, xy_hal_uart_recv_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_uart_recv_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT32(XY_ISO7816_BYTE_TIMEOUT, xy_hal_uart_recv_fake.arg3_val);
 }
 
 static void test_transceive_write_apdu_success(void)
@@ -134,7 +146,6 @@ static void test_transceive_write_apdu_success(void)
     const uint8_t body[] = {0xCA, 0xFE};
     const uint8_t rx[] = {XY_ISO7816_INS_UPDATE_BINARY, 0x90, 0x00};
 
-    reset_uart_fixture();
     push_rx(rx, sizeof(rx));
     memset(&cmd, 0, sizeof(cmd));
     cmd.cla = XY_ISO7816_CLA_GSM;
@@ -147,6 +158,12 @@ static void test_transceive_write_apdu_success(void)
 
     TEST_ASSERT_EQUAL(XY_ISO7816_OK, xy_iso7816_init(&handle, &g_uart));
     TEST_ASSERT_EQUAL(XY_ISO7816_OK, xy_iso7816_transceive(&handle, &cmd, &resp));
+    TEST_ASSERT_EQUAL_UINT(2U, xy_hal_uart_send_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&g_uart, xy_hal_uart_send_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_PTR(&g_uart, xy_hal_uart_send_fake.arg0_history[1]);
+    TEST_ASSERT_EQUAL_UINT(5U, xy_hal_uart_send_fake.arg2_history[0]);
+    TEST_ASSERT_EQUAL_UINT(sizeof(body), xy_hal_uart_send_fake.arg2_history[1]);
+    TEST_ASSERT_EQUAL_UINT32(XY_ISO7816_DEFAULT_TIMEOUT, xy_hal_uart_send_fake.arg3_val);
     TEST_ASSERT_EQUAL_size_t(7U, g_tx_len);
     TEST_ASSERT_EQUAL_HEX8(XY_ISO7816_CLA_GSM, g_tx[0]);
     TEST_ASSERT_EQUAL_HEX8(XY_ISO7816_INS_UPDATE_BINARY, g_tx[1]);
@@ -155,7 +172,9 @@ static void test_transceive_write_apdu_success(void)
     TEST_ASSERT_EQUAL_UINT8(sizeof(body), g_tx[4]);
     TEST_ASSERT_EQUAL_HEX8(body[0], g_tx[5]);
     TEST_ASSERT_EQUAL_HEX8(body[1], g_tx[6]);
-    TEST_ASSERT_EQUAL_UINT32(XY_ISO7816_DEFAULT_TIMEOUT, g_last_send_timeout);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_uart_recv_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_uart_recv_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT32(XY_ISO7816_BYTE_TIMEOUT, xy_hal_uart_recv_fake.arg3_val);
     TEST_ASSERT_EQUAL_size_t(0U, resp.length);
     TEST_ASSERT_EQUAL_HEX16(XY_ISO7816_SW_SUCCESS, xy_iso7816_get_sw(&resp));
 }
