@@ -4,24 +4,38 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "fff.h"
 #include "sensor_core.h"
 #include "sensor_config.h"
 #include "sensor_type.h"
 
-static int g_init_calls;
-static int g_deinit_calls;
-static int g_read_calls;
-static int g_write_calls;
-static int g_config_calls;
-static int g_control_calls;
-static int g_enable_calls;
-static int g_callback_calls;
-static int g_self_test_calls;
+DEFINE_FFF_GLOBALS;
+
 static int g_self_test_mode;
 static sensor_data_t g_last_write;
 static sensor_config_type_t g_last_cfg;
 static int g_last_cmd;
 static bool g_last_enable;
+
+static sensor_err_t mock_init_impl(sensor_device_t *sensor);
+static sensor_err_t mock_deinit_impl(sensor_device_t *sensor);
+static sensor_err_t mock_read_impl(sensor_device_t *sensor, sensor_data_t *data);
+static sensor_err_t mock_write_impl(sensor_device_t *sensor, const sensor_data_t *data);
+static sensor_err_t mock_config_impl(sensor_device_t *sensor, sensor_config_type_t cfg, void *value);
+static sensor_err_t mock_control_impl(sensor_device_t *sensor, int cmd, void *args);
+static sensor_err_t mock_enable_impl(sensor_device_t *sensor, bool enable);
+static sensor_err_t mock_self_test_impl(sensor_device_t *sensor, sensor_self_test_result_t *result);
+static void mock_callback_impl(sensor_device_t *sensor, sensor_data_t *data, void *user_data);
+
+FAKE_VALUE_FUNC(sensor_err_t, mock_init, sensor_device_t *);
+FAKE_VALUE_FUNC(sensor_err_t, mock_deinit, sensor_device_t *);
+FAKE_VALUE_FUNC(sensor_err_t, mock_read, sensor_device_t *, sensor_data_t *);
+FAKE_VALUE_FUNC(sensor_err_t, mock_write, sensor_device_t *, const sensor_data_t *);
+FAKE_VALUE_FUNC(sensor_err_t, mock_config, sensor_device_t *, sensor_config_type_t, void *);
+FAKE_VALUE_FUNC(sensor_err_t, mock_control, sensor_device_t *, int, void *);
+FAKE_VALUE_FUNC(sensor_err_t, mock_enable, sensor_device_t *, bool);
+FAKE_VALUE_FUNC(sensor_err_t, mock_self_test, sensor_device_t *, sensor_self_test_result_t *);
+FAKE_VOID_FUNC(mock_callback, sensor_device_t *, sensor_data_t *, void *);
 
 void delay_ms(uint32_t ms)
 {
@@ -39,25 +53,22 @@ uint32_t xy_os_tick_get(void)
     return get_tick_ms();
 }
 
-static sensor_err_t mock_init(sensor_device_t *sensor)
+static sensor_err_t mock_init_impl(sensor_device_t *sensor)
 {
     TEST_ASSERT_NOT_NULL(sensor);
-    g_init_calls++;
     return SENSOR_EOK;
 }
 
-static sensor_err_t mock_deinit(sensor_device_t *sensor)
+static sensor_err_t mock_deinit_impl(sensor_device_t *sensor)
 {
     TEST_ASSERT_NOT_NULL(sensor);
-    g_deinit_calls++;
     return SENSOR_EOK;
 }
 
-static sensor_err_t mock_read(sensor_device_t *sensor, sensor_data_t *data)
+static sensor_err_t mock_read_impl(sensor_device_t *sensor, sensor_data_t *data)
 {
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NOT_NULL(data);
-    g_read_calls++;
     data->type = sensor->info.type;
     data->unit = sensor->info.unit;
     data->value.val_3axis.x = 10;
@@ -67,46 +78,41 @@ static sensor_err_t mock_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
-static sensor_err_t mock_write(sensor_device_t *sensor, const sensor_data_t *data)
+static sensor_err_t mock_write_impl(sensor_device_t *sensor, const sensor_data_t *data)
 {
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NOT_NULL(data);
-    g_write_calls++;
     g_last_write = *data;
     return SENSOR_EOK;
 }
 
-static sensor_err_t mock_config(sensor_device_t *sensor, sensor_config_type_t cfg, void *value)
+static sensor_err_t mock_config_impl(sensor_device_t *sensor, sensor_config_type_t cfg, void *value)
 {
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NOT_NULL(value);
-    g_config_calls++;
     g_last_cfg = cfg;
     return SENSOR_EOK;
 }
 
-static sensor_err_t mock_control(sensor_device_t *sensor, int cmd, void *args)
+static sensor_err_t mock_control_impl(sensor_device_t *sensor, int cmd, void *args)
 {
     TEST_ASSERT_NOT_NULL(sensor);
     (void)args;
-    g_control_calls++;
     g_last_cmd = cmd;
     return SENSOR_EOK;
 }
 
-static sensor_err_t mock_enable(sensor_device_t *sensor, bool enable)
+static sensor_err_t mock_enable_impl(sensor_device_t *sensor, bool enable)
 {
     TEST_ASSERT_NOT_NULL(sensor);
-    g_enable_calls++;
     g_last_enable = enable;
     return SENSOR_EOK;
 }
 
-static sensor_err_t mock_self_test(sensor_device_t *sensor, sensor_self_test_result_t *result)
+static sensor_err_t mock_self_test_impl(sensor_device_t *sensor, sensor_self_test_result_t *result)
 {
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NOT_NULL(result);
-    g_self_test_calls++;
     result->passed = (g_self_test_mode == 0);
     result->error_code = (g_self_test_mode == 0) ? 0 : 77;
     strncpy(result->message, (g_self_test_mode == 0) ? "driver self test passed" : "driver self test failed",
@@ -114,12 +120,11 @@ static sensor_err_t mock_self_test(sensor_device_t *sensor, sensor_self_test_res
     return (g_self_test_mode == 0) ? SENSOR_EOK : SENSOR_ERROR;
 }
 
-static void mock_callback(sensor_device_t *sensor, sensor_data_t *data, void *user_data)
+static void mock_callback_impl(sensor_device_t *sensor, sensor_data_t *data, void *user_data)
 {
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_PTR((void *)0x12345678, user_data);
-    g_callback_calls++;
 }
 
 static const sensor_ops_t full_ops = {
@@ -156,16 +161,28 @@ static void init_sensor(sensor_device_t *sensor, const char *name, const sensor_
 
 void setUp(void)
 {
-    g_init_calls = 0;
-    g_deinit_calls = 0;
-    g_read_calls = 0;
-    g_write_calls = 0;
-    g_config_calls = 0;
-    g_control_calls = 0;
-    g_enable_calls = 0;
-    g_callback_calls = 0;
-    g_self_test_calls = 0;
     g_self_test_mode = 0;
+
+    RESET_FAKE(mock_init);
+    RESET_FAKE(mock_deinit);
+    RESET_FAKE(mock_read);
+    RESET_FAKE(mock_write);
+    RESET_FAKE(mock_config);
+    RESET_FAKE(mock_control);
+    RESET_FAKE(mock_enable);
+    RESET_FAKE(mock_self_test);
+    RESET_FAKE(mock_callback);
+    FFF_RESET_HISTORY();
+
+    mock_init_fake.custom_fake = mock_init_impl;
+    mock_deinit_fake.custom_fake = mock_deinit_impl;
+    mock_read_fake.custom_fake = mock_read_impl;
+    mock_write_fake.custom_fake = mock_write_impl;
+    mock_config_fake.custom_fake = mock_config_impl;
+    mock_control_fake.custom_fake = mock_control_impl;
+    mock_enable_fake.custom_fake = mock_enable_impl;
+    mock_self_test_fake.custom_fake = mock_self_test_impl;
+    mock_callback_fake.custom_fake = mock_callback_impl;
     memset(&g_last_write, 0, sizeof(g_last_write));
     g_last_cfg = SENSOR_CFG_ODR;
     g_last_cmd = 0;
@@ -240,14 +257,20 @@ static void test_sensor_lifecycle_read_callback_and_optional_ops(void)
 
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_register(&sensor));
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_init(&sensor));
-    TEST_ASSERT_EQUAL(1, g_init_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_init_fake.arg0_val);
     TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor_get_status(&sensor));
     TEST_ASSERT_EQUAL_PTR(&sensor.info, sensor_get_info(&sensor));
 
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_set_callback(&sensor, mock_callback, (void *)0x12345678));
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_read(&sensor, &data));
-    TEST_ASSERT_EQUAL(1, g_read_calls);
-    TEST_ASSERT_EQUAL(1, g_callback_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_read_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&data, mock_read_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_callback_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_callback_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&data, mock_callback_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR((void *)0x12345678, mock_callback_fake.arg2_val);
     TEST_ASSERT_EQUAL(SENSOR_TYPE_ACCELEROMETER, data.type);
     TEST_ASSERT_EQUAL(10, data.value.val_3axis.x);
     TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
@@ -256,23 +279,34 @@ static void test_sensor_lifecycle_read_callback_and_optional_ops(void)
     write_data.type = SENSOR_TYPE_ACCELEROMETER;
     write_data.value.val_int32 = 42;
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_write(&sensor, &write_data));
-    TEST_ASSERT_EQUAL(1, g_write_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&write_data, mock_write_fake.arg1_val);
     TEST_ASSERT_EQUAL(42, g_last_write.value.val_int32);
 
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_config(&sensor, SENSOR_CFG_ODR, &odr));
-    TEST_ASSERT_EQUAL(1, g_config_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_config_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_config_fake.arg0_val);
+    TEST_ASSERT_EQUAL(SENSOR_CFG_ODR, mock_config_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR(&odr, mock_config_fake.arg2_val);
     TEST_ASSERT_EQUAL(SENSOR_CFG_ODR, g_last_cfg);
 
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_control(&sensor, 99, &control_arg));
-    TEST_ASSERT_EQUAL(1, g_control_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_control_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_control_fake.arg0_val);
+    TEST_ASSERT_EQUAL(99, mock_control_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR(&control_arg, mock_control_fake.arg2_val);
     TEST_ASSERT_EQUAL(99, g_last_cmd);
 
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_enable(&sensor, true));
-    TEST_ASSERT_EQUAL(1, g_enable_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_enable_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_enable_fake.arg0_val);
+    TEST_ASSERT_TRUE(mock_enable_fake.arg1_val);
     TEST_ASSERT_TRUE(g_last_enable);
 
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_deinit(&sensor));
-    TEST_ASSERT_EQUAL(1, g_deinit_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_deinit_fake.arg0_val);
     TEST_ASSERT_EQUAL(SENSOR_STATUS_IDLE, sensor.status);
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_unregister(&sensor));
 }
@@ -413,7 +447,9 @@ static void test_sensor_self_test_uses_driver_override_and_restores_status(void)
     TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_self_test(&sensor, NULL));
 
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_self_test(&sensor, &result));
-    TEST_ASSERT_EQUAL(1, g_self_test_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_self_test_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sensor, mock_self_test_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&result, mock_self_test_fake.arg1_val);
     TEST_ASSERT_TRUE(result.passed);
     TEST_ASSERT_EQUAL(0, result.error_code);
     TEST_ASSERT_EQUAL_STRING("driver self test passed", result.message);
@@ -421,7 +457,7 @@ static void test_sensor_self_test_uses_driver_override_and_restores_status(void)
 
     g_self_test_mode = 1;
     TEST_ASSERT_EQUAL(SENSOR_ERROR, sensor_self_test(&sensor, &result));
-    TEST_ASSERT_EQUAL(2, g_self_test_calls);
+    TEST_ASSERT_EQUAL_UINT(2U, mock_self_test_fake.call_count);
     TEST_ASSERT_FALSE(result.passed);
     TEST_ASSERT_EQUAL(77, result.error_code);
     TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
@@ -438,7 +474,7 @@ static void test_sensor_self_test_generic_read_range_and_noise_paths(void)
     TEST_ASSERT_TRUE(result.passed);
     TEST_ASSERT_EQUAL(0, result.error_code);
     TEST_ASSERT_EQUAL_STRING("Self test passed", result.message);
-    TEST_ASSERT_EQUAL(11, g_read_calls);
+    TEST_ASSERT_EQUAL_UINT(11U, mock_read_fake.call_count);
     TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
 
     sensor.info.type = SENSOR_TYPE_ACCELEROMETER;
