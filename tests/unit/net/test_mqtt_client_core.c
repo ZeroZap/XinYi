@@ -4,26 +4,70 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "fff.h"
 #include "xy_mqtt_client.h"
 
-static int mock_send(void *context, const uint8_t *data, size_t len)
+DEFINE_FFF_GLOBALS;
+
+#define MOCK_CONTEXT ((void *)0x12345678u)
+
+static uint8_t g_recv_payload[32];
+static size_t g_recv_len;
+static int g_recv_result;
+
+static int mock_send_impl(void *context, const uint8_t *data, size_t len);
+static int mock_recv_impl(void *context, uint8_t *data, size_t len, uint32_t timeout_ms);
+
+FAKE_VALUE_FUNC(int, mock_send, void *, const uint8_t *, size_t);
+FAKE_VALUE_FUNC(int, mock_recv, void *, uint8_t *, size_t, uint32_t);
+
+static int mock_send_impl(void *context, const uint8_t *data, size_t len)
 {
     (void)context;
     (void)data;
     return (int)len;
 }
 
-static int mock_recv(void *context, uint8_t *data, size_t len, uint32_t timeout_ms)
+static int mock_recv_impl(void *context, uint8_t *data, size_t len, uint32_t timeout_ms)
 {
     (void)context;
-    (void)data;
-    (void)len;
     (void)timeout_ms;
-    return 0;
+
+    if (g_recv_result != 0) {
+        return g_recv_result;
+    }
+
+    if (len == 0U) {
+        len = g_recv_len;
+    }
+
+    size_t copy_len = g_recv_len < len ? g_recv_len : len;
+    if (copy_len > 0U) {
+        memcpy(data, g_recv_payload, copy_len);
+    }
+    return (int)copy_len;
+}
+
+static void mock_recv_feed(const uint8_t *data, size_t len)
+{
+    TEST_ASSERT_LESS_OR_EQUAL_size_t(sizeof(g_recv_payload), len);
+    memcpy(g_recv_payload, data, len);
+    g_recv_len = len;
+    g_recv_result = 0;
 }
 
 void setUp(void)
 {
+    memset(g_recv_payload, 0, sizeof(g_recv_payload));
+    g_recv_len = 0;
+    g_recv_result = 0;
+
+    RESET_FAKE(mock_send);
+    RESET_FAKE(mock_recv);
+    FFF_RESET_HISTORY();
+
+    mock_send_fake.custom_fake = mock_send_impl;
+    mock_recv_fake.custom_fake = mock_recv_impl;
 }
 
 void tearDown(void)
@@ -91,6 +135,7 @@ static void test_client_lifecycle_and_validation(void)
     TEST_ASSERT_NULL(xy_mqtt_client_new(NULL));
     TEST_ASSERT_NULL(xy_mqtt_client_new(&config));
 
+    config.transport_context = MOCK_CONTEXT;
     config.send = mock_send;
     config.recv = mock_recv;
     config.keepalive = 0;
@@ -115,6 +160,44 @@ static void test_client_lifecycle_and_validation(void)
     TEST_ASSERT_EQUAL(XY_MQTT_ERR_INVALID_PARAM, xy_mqtt_subscribe(client, NULL, XY_MQTT_QOS_0, NULL));
     TEST_ASSERT_EQUAL(XY_MQTT_ERR_NOT_CONNECTED, xy_mqtt_subscribe(client, "topic", XY_MQTT_QOS_0, NULL));
 
+    TEST_ASSERT_EQUAL_UINT(0U, mock_send_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_recv_fake.call_count);
+
+    xy_mqtt_client_delete(client);
+}
+
+static void test_connect_process_and_transport_callbacks(void)
+{
+    xy_mqtt_config_t config = {0};
+    config.transport_context = MOCK_CONTEXT;
+    config.send = mock_send;
+    config.recv = mock_recv;
+    config.keepalive = 30;
+    config.tx_buffer_size = 128;
+    config.rx_buffer_size = 128;
+
+    xy_mqtt_client_t *client = xy_mqtt_client_new(&config);
+    TEST_ASSERT_NOT_NULL(client);
+
+    TEST_ASSERT_EQUAL(XY_MQTT_OK, xy_mqtt_connect(client, "client1", NULL, NULL));
+    TEST_ASSERT_EQUAL(XY_MQTT_STATE_MQTT_CONNECTING, xy_mqtt_get_state(client));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_send_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(MOCK_CONTEXT, mock_send_fake.arg0_val);
+    TEST_ASSERT_NOT_NULL(mock_send_fake.arg1_val);
+    TEST_ASSERT_GREATER_THAN_UINT(0U, mock_send_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT8((XY_MQTT_TYPE_CONNECT << 4), mock_send_fake.arg1_val[0]);
+
+    const uint8_t connack[] = { (uint8_t)(XY_MQTT_TYPE_CONNACK << 4), 0x02, 0x00, 0x00 };
+    mock_recv_feed(connack, sizeof(connack));
+
+    TEST_ASSERT_EQUAL(XY_MQTT_OK, xy_mqtt_process(client, 250));
+    TEST_ASSERT_TRUE(xy_mqtt_is_connected(client));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_recv_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(MOCK_CONTEXT, mock_recv_fake.arg0_val);
+    TEST_ASSERT_NOT_NULL(mock_recv_fake.arg1_val);
+    TEST_ASSERT_EQUAL_size_t(0U, mock_recv_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT32(250U, mock_recv_fake.arg3_val);
+
     xy_mqtt_client_delete(client);
 }
 
@@ -132,6 +215,7 @@ int main(void)
     RUN_TEST(test_remaining_length_validation);
     RUN_TEST(test_topic_match_exact_and_wildcards);
     RUN_TEST(test_client_lifecycle_and_validation);
+    RUN_TEST(test_connect_process_and_transport_callbacks);
     RUN_TEST(test_connack_strings);
     return UNITY_END();
 }
