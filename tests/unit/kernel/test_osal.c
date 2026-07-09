@@ -9,29 +9,27 @@
 
 /* Pull in the full CMSIS-RTOS2-compatible API */
 #include "unity.h"
+#include "fff.h"
 #include "xy_os.h"
 /* Need tick for deadline tests */
 #include "inc/xy_os_tick.h"
 #include "xy_timer_sw.h"
 
-static int g_timer_calls = 0;
-static int g_timer_last_arg = 0;
+DEFINE_FFF_GLOBALS;
+
+FAKE_VOID_FUNC(test_timer_callback, void *)
 
 #define TEST(name) static void name(void)
 #define ASSERT(cond) TEST_ASSERT_TRUE(cond)
 
 void setUp(void)
 {
+    RESET_FAKE(test_timer_callback);
+    FFF_RESET_HISTORY();
 }
 
 void tearDown(void)
 {
-}
-
-static void test_timer_callback(void *arg)
-{
-    g_timer_calls++;
-    g_timer_last_arg = *(int *)arg;
 }
 
 /* ========== Kernel / Thread / Timer ========== */
@@ -81,8 +79,6 @@ TEST(test_timer_one_shot_and_reuse)
 {
     int arg = 123;
     xy_os_timer_attr_t attr = { .name = "tmr" };
-    g_timer_calls = 0;
-    g_timer_last_arg = 0;
 
     ASSERT(xy_os_timer_new(NULL, XY_OS_TIMER_ONCE, &arg, &attr) == NULL);
     xy_os_timer_id_t timer = xy_os_timer_new(test_timer_callback, XY_OS_TIMER_ONCE, &arg, &attr);
@@ -92,10 +88,11 @@ TEST(test_timer_one_shot_and_reuse)
     ASSERT(xy_os_timer_start(timer, 1) == XY_OS_OK);
     ASSERT(xy_os_timer_is_running(timer) == 1);
     xy_timer_sw_poll();
-    ASSERT(g_timer_calls == 0);
+    TEST_ASSERT_EQUAL_UINT(0U, test_timer_callback_fake.call_count);
     xy_timer_sw_poll();
-    ASSERT(g_timer_calls == 1);
-    ASSERT(g_timer_last_arg == 123);
+    TEST_ASSERT_EQUAL_UINT(1U, test_timer_callback_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&arg, test_timer_callback_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(123, *(int *)test_timer_callback_fake.arg0_val);
     ASSERT(xy_os_timer_stop(timer) == XY_OS_OK);
     ASSERT(xy_os_timer_delete(timer) == XY_OS_OK);
 
