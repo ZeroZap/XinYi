@@ -227,7 +227,7 @@ tests/
 3. [x] Keep coverage disabled by default.
 4. [x] Exclude vendor, build, and test framework directories.
 5. [x] Generate HTML and summary reports.
-6. [ ] Add CI artifact support later if needed.
+6. [x] Add CI artifact support later if needed.
 
 **Exit Criteria:**
 
@@ -259,6 +259,8 @@ tests/
 ## Phase 8: Ceedling Re-Evaluation Gate
 
 **Objective:** Reconsider Ceedling only after the lightweight framework reaches maturity.
+
+**Status:** Deferred after re-evaluation. The current Unity + CTest + FFF stack now has local execution, CI enforcement, raw-assert guarding, touched-file formatting checks, and optional gcovr HTML coverage artifacts. None of the escalation conditions below are currently true, so Ceedling should not be introduced into the mainline unit-test workflow.
 
 **Evaluate Ceedling only if at least one condition becomes true:**
 

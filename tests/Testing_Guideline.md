@@ -236,19 +236,27 @@ Recommended order:
 6. Net
 7. Remaining component groups
 
-## 11. Coverage
+## 11. Coverage And CI
 
-Coverage should be added later through optional CMake/CTest integration, for example `gcovr` or `lcov`.
+Optional coverage is available through the CMake/CTest path, not Ceedling:
+
+```bash
+cmake -S tests/unit -B build/tests/unit_coverage -DXY_ENABLE_UNIT_COVERAGE=ON
+cmake --build build/tests/unit_coverage --target unit_coverage -j"$(nproc)"
+```
 
 Rules:
 
-- Coverage must be disabled by default.
-- Exclude vendor, build directories, Unity, and FFF from coverage reports.
+- Coverage is disabled by default.
+- Coverage reports exclude vendor, build directories, Unity, and FFF.
+- The HTML report is generated under `build/tests/unit_coverage/coverage/index.html`.
+- CI publishes the optional unit coverage directory as an artifact.
+- The unit CI gate also runs `git diff --check`, blocks new raw `assert()` in `tests/unit`, and checks clang-format only for touched C/C++ files.
 - Do not introduce Ceedling only for coverage unless CMake/CTest coverage proves insufficient.
 
 ## 12. Ceedling Status
 
-Ceedling is deferred.
+Ceedling remains deferred after the Phase 8 re-evaluation. The current stack already covers the near-term needs with Unity assertions, CTest execution, FFF interaction fakes, CI quality gates, and gcovr reporting.
 
 Re-evaluate it only if one of these becomes true:
 
