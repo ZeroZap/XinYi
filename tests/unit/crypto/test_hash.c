@@ -38,17 +38,16 @@ static void test_md5_validation_and_vectors(void)
     uint8_t digest[XY_MD5_DIGEST_SIZE] = {0};
     xy_md5_ctx_t ctx;
 
-    TEST_ASSERT_TRUE(xy_md5_init(NULL) == XY_CRYPTO_INVALID_PARAM);
-    TEST_ASSERT_TRUE(xy_md5_update(NULL, (const uint8_t *)"abc", 3) ==
-           XY_CRYPTO_INVALID_PARAM);
-    TEST_ASSERT_TRUE(xy_md5_final(NULL, digest) == XY_CRYPTO_INVALID_PARAM);
-    TEST_ASSERT_TRUE(xy_md5_final(&ctx, NULL) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM, xy_md5_init(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM,
+                          xy_md5_update(NULL, (const uint8_t *)"abc", 3));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM, xy_md5_final(NULL, digest));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM, xy_md5_final(&ctx, NULL));
 
-    TEST_ASSERT_TRUE(xy_md5_hash((const uint8_t *)"", 0, digest) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_md5_hash((const uint8_t *)"", 0, digest));
     TEST_ASSERT_EQUAL_MEMORY(md5_empty, digest, sizeof(md5_empty));
 
-    TEST_ASSERT_TRUE(xy_md5_hash((const uint8_t *)"abc", 3, digest) ==
-           XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_md5_hash((const uint8_t *)"abc", 3, digest));
     TEST_ASSERT_EQUAL_MEMORY(md5_abc, digest, sizeof(md5_abc));
 }
 
@@ -59,13 +58,13 @@ static void test_md5_incremental_matches_oneshot(void)
     uint8_t incremental[XY_MD5_DIGEST_SIZE] = {0};
     xy_md5_ctx_t ctx;
 
-    TEST_ASSERT_TRUE(xy_md5_hash(msg, strlen((const char *)msg), one_shot) ==
-           XY_CRYPTO_SUCCESS);
-    TEST_ASSERT_TRUE(xy_md5_init(&ctx) == XY_CRYPTO_SUCCESS);
-    TEST_ASSERT_TRUE(xy_md5_update(&ctx, msg, 7) == XY_CRYPTO_SUCCESS);
-    TEST_ASSERT_TRUE(xy_md5_update(&ctx, msg + 7, strlen((const char *)msg) - 7) ==
-           XY_CRYPTO_SUCCESS);
-    TEST_ASSERT_TRUE(xy_md5_final(&ctx, incremental) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS,
+                          xy_md5_hash(msg, strlen((const char *)msg), one_shot));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_md5_init(&ctx));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_md5_update(&ctx, msg, 7));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS,
+                          xy_md5_update(&ctx, msg + 7, strlen((const char *)msg) - 7));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_md5_final(&ctx, incremental));
     TEST_ASSERT_EQUAL_MEMORY(one_shot, incremental, sizeof(one_shot));
 }
 
@@ -74,18 +73,18 @@ static void test_sha256_validation_and_vectors(void)
     uint8_t digest[XY_SHA256_DIGEST_SIZE] = {0};
     xy_sha256_ctx_t ctx;
 
-    TEST_ASSERT_TRUE(xy_sha256_init(NULL) == XY_CRYPTO_INVALID_PARAM);
-    TEST_ASSERT_TRUE(xy_sha256_update(NULL, (const uint8_t *)"abc", 3) ==
-           XY_CRYPTO_INVALID_PARAM);
-    TEST_ASSERT_TRUE(xy_sha256_final(NULL, digest) == XY_CRYPTO_INVALID_PARAM);
-    TEST_ASSERT_TRUE(xy_sha256_final(&ctx, NULL) == XY_CRYPTO_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM, xy_sha256_init(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM,
+                          xy_sha256_update(NULL, (const uint8_t *)"abc", 3));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM, xy_sha256_final(NULL, digest));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM, xy_sha256_final(&ctx, NULL));
 
-    TEST_ASSERT_TRUE(xy_sha256_hash((const uint8_t *)"", 0, digest) ==
-           XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS,
+                          xy_sha256_hash((const uint8_t *)"", 0, digest));
     TEST_ASSERT_EQUAL_MEMORY(sha256_empty, digest, sizeof(sha256_empty));
 
-    TEST_ASSERT_TRUE(xy_sha256_hash((const uint8_t *)"abc", 3, digest) ==
-           XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS,
+                          xy_sha256_hash((const uint8_t *)"abc", 3, digest));
     TEST_ASSERT_EQUAL_MEMORY(sha256_abc, digest, sizeof(sha256_abc));
 }
 
@@ -96,13 +95,13 @@ static void test_sha256_incremental_matches_oneshot(void)
     uint8_t incremental[XY_SHA256_DIGEST_SIZE] = {0};
     xy_sha256_ctx_t ctx;
 
-    TEST_ASSERT_TRUE(xy_sha256_hash(msg, strlen((const char *)msg), one_shot) ==
-           XY_CRYPTO_SUCCESS);
-    TEST_ASSERT_TRUE(xy_sha256_init(&ctx) == XY_CRYPTO_SUCCESS);
-    TEST_ASSERT_TRUE(xy_sha256_update(&ctx, msg, 7) == XY_CRYPTO_SUCCESS);
-    TEST_ASSERT_TRUE(xy_sha256_update(&ctx, msg + 7, strlen((const char *)msg) - 7) ==
-           XY_CRYPTO_SUCCESS);
-    TEST_ASSERT_TRUE(xy_sha256_final(&ctx, incremental) == XY_CRYPTO_SUCCESS);
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS,
+                          xy_sha256_hash(msg, strlen((const char *)msg), one_shot));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_sha256_init(&ctx));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_sha256_update(&ctx, msg, 7));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS,
+                          xy_sha256_update(&ctx, msg + 7, strlen((const char *)msg) - 7));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_sha256_final(&ctx, incremental));
     TEST_ASSERT_EQUAL_MEMORY(one_shot, incremental, sizeof(one_shot));
 }
 
