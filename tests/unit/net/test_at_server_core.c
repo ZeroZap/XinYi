@@ -200,7 +200,7 @@ static void test_response_helpers_and_parsers(void)
     reset_tx();
     TEST_ASSERT_EQUAL_INT(0, at_server_print_result(server, ATS_RESULT_NULL));
     TEST_ASSERT_EQUAL_UINT(2, mock_send_fake.call_count);
-    TEST_ASSERT_EQUAL_size_t(0, g_tx_len);
+    TEST_ASSERT_EQUAL_UINT(0, g_tx_len);
     TEST_ASSERT_EQUAL_INT(-1, at_server_print_result(NULL, ATS_RESULT_OK));
 
     int value = 0;

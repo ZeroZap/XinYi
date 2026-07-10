@@ -195,7 +195,7 @@ static void test_connect_process_and_transport_callbacks(void)
     TEST_ASSERT_EQUAL_UINT(1U, mock_recv_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(MOCK_CONTEXT, mock_recv_fake.arg0_val);
     TEST_ASSERT_NOT_NULL(mock_recv_fake.arg1_val);
-    TEST_ASSERT_EQUAL_size_t(0U, mock_recv_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_recv_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT32(250U, mock_recv_fake.arg3_val);
 
     xy_mqtt_client_delete(client);

@@ -108,9 +108,9 @@ static void test_lifecycle_and_utilities(void)
     TEST_ASSERT_EQUAL_HEX16(0x6A82U, xy_iso7816_get_sw(&fail));
     TEST_ASSERT_EQUAL_HEX16(0U, xy_iso7816_get_sw(NULL));
 
-    TEST_ASSERT_EQUAL_size_t(5U, xy_iso7816_bcd_to_ascii(bcd, sizeof(bcd), ascii, sizeof(ascii)));
+    TEST_ASSERT_EQUAL_UINT(5U, xy_iso7816_bcd_to_ascii(bcd, sizeof(bcd), ascii, sizeof(ascii)));
     TEST_ASSERT_EQUAL_STRING("12345", ascii);
-    TEST_ASSERT_EQUAL_size_t(0U, xy_iso7816_bcd_to_ascii(NULL, 1, ascii, sizeof(ascii)));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_iso7816_bcd_to_ascii(NULL, 1, ascii, sizeof(ascii)));
 
     TEST_ASSERT_EQUAL(XY_ISO7816_OK, xy_iso7816_deinit(&handle));
     TEST_ASSERT_FALSE(handle.initialized);
@@ -129,7 +129,7 @@ static void test_reset_parses_direct_atr(void)
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_uart_flush_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&g_uart, xy_hal_uart_flush_fake.arg0_val);
     TEST_ASSERT_TRUE(atr.valid);
-    TEST_ASSERT_EQUAL_size_t(sizeof(atr_bytes), atr.length);
+    TEST_ASSERT_EQUAL_UINT(sizeof(atr_bytes), atr.length);
     TEST_ASSERT_EQUAL_MEMORY(atr_bytes, atr.data, sizeof(atr_bytes));
     TEST_ASSERT_TRUE(handle.atr.valid);
     TEST_ASSERT_EQUAL_UINT(4U, xy_hal_uart_recv_fake.call_count);
@@ -164,7 +164,7 @@ static void test_transceive_write_apdu_success(void)
     TEST_ASSERT_EQUAL_UINT(5U, xy_hal_uart_send_fake.arg2_history[0]);
     TEST_ASSERT_EQUAL_UINT(sizeof(body), xy_hal_uart_send_fake.arg2_history[1]);
     TEST_ASSERT_EQUAL_UINT32(XY_ISO7816_DEFAULT_TIMEOUT, xy_hal_uart_send_fake.arg3_val);
-    TEST_ASSERT_EQUAL_size_t(7U, g_tx_len);
+    TEST_ASSERT_EQUAL_UINT(7U, g_tx_len);
     TEST_ASSERT_EQUAL_HEX8(XY_ISO7816_CLA_GSM, g_tx[0]);
     TEST_ASSERT_EQUAL_HEX8(XY_ISO7816_INS_UPDATE_BINARY, g_tx[1]);
     TEST_ASSERT_EQUAL_HEX8(0x12U, g_tx[2]);
@@ -175,7 +175,7 @@ static void test_transceive_write_apdu_success(void)
     TEST_ASSERT_EQUAL_UINT(3U, xy_hal_uart_recv_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_uart_recv_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT32(XY_ISO7816_BYTE_TIMEOUT, xy_hal_uart_recv_fake.arg3_val);
-    TEST_ASSERT_EQUAL_size_t(0U, resp.length);
+    TEST_ASSERT_EQUAL_UINT(0U, resp.length);
     TEST_ASSERT_EQUAL_HEX16(XY_ISO7816_SW_SUCCESS, xy_iso7816_get_sw(&resp));
 }
 
