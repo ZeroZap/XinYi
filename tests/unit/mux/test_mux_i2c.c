@@ -127,20 +127,20 @@ static void test_i2c_register(void)
 
     /* Register I2C channel 0 */
     int32_t ret = xy_mux_i2c_register(&mgr, 0, &ops, NULL);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
     printf("  [PASS] I2C-0 registered\n");
 
     /* Register I2C channel 1 */
     ret = xy_mux_i2c_register(&mgr, 1, &ops, NULL);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
     printf("  [PASS] I2C-1 registered\n");
 
     /* Register I2C channel 2 */
     ret = xy_mux_i2c_register(&mgr, 2, &ops, NULL);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
     printf("  [PASS] I2C-2 registered\n");
 
-    TEST_ASSERT_TRUE(mgr.device_count == 3);
+    TEST_ASSERT_EQUAL_UINT(3U, mgr.device_count);
     TEST_ASSERT_EQUAL_UINT(3U, mock_i2c_init_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_i2c_init_fake.arg0_history[0]);
     TEST_ASSERT_EQUAL_UINT8(1, mock_i2c_init_fake.arg0_history[1]);
@@ -175,7 +175,7 @@ static void test_i2c_config(void)
     };
 
     int32_t ret = xy_mux_i2c_config(&mgr, 0, &config);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
     TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_ioctl_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_i2c_ioctl_fake.arg0_val);
     TEST_ASSERT_EQUAL_INT(XY_MUX_I2C_CMD_SET_CONFIG, mock_i2c_ioctl_fake.arg1_val);
@@ -185,7 +185,7 @@ static void test_i2c_config(void)
     /* Configure with 10-bit addressing */
     config.addr_bits = 10;
     ret = xy_mux_i2c_config(&mgr, 0, &config);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
     TEST_ASSERT_EQUAL_UINT(2U, mock_i2c_ioctl_fake.call_count);
     printf("  [PASS] I2C reconfigured with 10-bit addressing\n");
 
@@ -193,7 +193,7 @@ static void test_i2c_config(void)
     config.speed = 1000000;
     config.addr_bits = 7;
     ret = xy_mux_i2c_config(&mgr, 0, &config);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
     TEST_ASSERT_EQUAL_UINT(3U, mock_i2c_ioctl_fake.call_count);
     printf("  [PASS] I2C configured at 1MHz\n");
 
@@ -222,14 +222,14 @@ static void test_i2c_write(void)
     /* Write to I2C device */
     uint8_t data[] = {0x55, 0xAA, 0x01, 0x02};
     int32_t ret = xy_mux_i2c_write(&mgr, 0, 0x50, data, sizeof(data));
-    TEST_ASSERT_TRUE(ret >= 0);
+    TEST_ASSERT_GREATER_OR_EQUAL_INT(0, ret);
     TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_i2c_write_fake.arg0_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(data) + 2U, mock_i2c_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data) + 2U, mock_i2c_write_fake.arg2_val);
     printf("  [PASS] Write %d bytes to I2C device at address 0x50\n", (int)sizeof(data));
 
     /* Verify data was written to mock buffer */
-    TEST_ASSERT_TRUE(g_i2c_buffer_lens[0] == sizeof(data) + 2); /* +2 for address bytes */
+    TEST_ASSERT_EQUAL_UINT(sizeof(data) + 2U, g_i2c_buffer_lens[0]); /* +2 for address bytes */
     printf("  [PASS] Data verified in mock buffer\n");
 
     xy_mux_deinit(&mgr);
@@ -257,18 +257,18 @@ static void test_i2c_read(void)
     /* Read from I2C device */
     uint8_t buffer[16];
     int32_t ret = xy_mux_i2c_read(&mgr, 0, 0x50, buffer, sizeof(buffer));
-    TEST_ASSERT_TRUE(ret > 0);
+    TEST_ASSERT_GREATER_THAN_INT(0, ret);
     TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_i2c_write_fake.arg0_val);
-    TEST_ASSERT_EQUAL_size_t(3U, mock_i2c_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(3U, mock_i2c_write_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_read_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_i2c_read_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(buffer, mock_i2c_read_fake.arg1_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(buffer), mock_i2c_read_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(buffer), mock_i2c_read_fake.arg2_val);
     printf("  [PASS] Read %d bytes from I2C device\n", ret);
 
     /* Verify buffer contains simulated data */
-    TEST_ASSERT_TRUE(buffer[0] == 0xA5);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, buffer[0]);
     printf("  [PASS] Buffer contains expected pattern\n");
 
     xy_mux_deinit(&mgr);
@@ -306,16 +306,16 @@ static void test_i2c_transfer(void)
 
     /* Perform transfer */
     int32_t ret = xy_mux_i2c_transfer(&mgr, 0, msgs, 3);
-    TEST_ASSERT_TRUE(ret == 16);
+    TEST_ASSERT_EQUAL_INT(16, ret);
     TEST_ASSERT_EQUAL_UINT(2U, mock_i2c_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_i2c_write_fake.arg0_history[0]);
-    TEST_ASSERT_EQUAL_size_t(3U, mock_i2c_write_fake.arg2_history[0]);
-    TEST_ASSERT_EQUAL_size_t(5U, mock_i2c_write_fake.arg2_history[1]);
+    TEST_ASSERT_EQUAL_UINT(3U, mock_i2c_write_fake.arg2_history[0]);
+    TEST_ASSERT_EQUAL_UINT(5U, mock_i2c_write_fake.arg2_history[1]);
     TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_read_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_i2c_read_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(data_in, mock_i2c_read_fake.arg1_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(data_in), mock_i2c_read_fake.arg2_val);
-    TEST_ASSERT_TRUE(data_in[0] == 0xA5);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data_in), mock_i2c_read_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, data_in[0]);
     printf("  [PASS] Multi-message transfer completed\n");
 
     xy_mux_deinit(&mgr);
@@ -343,7 +343,7 @@ static void test_i2c_error_handling(void)
     /* Try to read from non-registered channel */
     uint8_t buffer[16];
     int32_t ret = xy_mux_i2c_read(&mgr, 99, 0x50, buffer, sizeof(buffer));
-    TEST_ASSERT_TRUE(ret != XY_MUX_OK);
+    TEST_ASSERT_NOT_EQUAL(XY_MUX_OK, ret);
     TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_read_fake.call_count);
     printf("  [PASS] Read from non-registered channel rejected\n");
@@ -351,22 +351,22 @@ static void test_i2c_error_handling(void)
     /* Try to write to non-registered channel */
     uint8_t data[] = {0x55};
     ret = xy_mux_i2c_write(&mgr, 99, 0x50, data, sizeof(data));
-    TEST_ASSERT_TRUE(ret != XY_MUX_OK);
+    TEST_ASSERT_NOT_EQUAL(XY_MUX_OK, ret);
     TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_write_fake.call_count);
     printf("  [PASS] Write to non-registered channel rejected\n");
 
     /* Try with NULL manager */
     ret = xy_mux_i2c_write(NULL, 0, 0x50, data, sizeof(data));
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, ret);
     printf("  [PASS] NULL manager rejected for write\n");
 
     ret = xy_mux_i2c_read(NULL, 0, 0x50, buffer, sizeof(buffer));
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, ret);
     printf("  [PASS] NULL manager rejected for read\n");
 
     /* Try with NULL data */
     ret = xy_mux_i2c_write(&mgr, 0, 0x50, NULL, sizeof(data));
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, ret);
     printf("  [PASS] NULL data rejected for write\n");
 
     xy_mux_deinit(&mgr);
@@ -397,24 +397,24 @@ static void test_i2c_tlv_packet(void)
     int32_t ret = xy_mux_build_packet(&mgr, XY_MUX_TYPE_I2C, 0,
                                       i2c_data, sizeof(i2c_data),
                                       tx_buffer, &packet_len);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(packet_len == sizeof(xy_mux_header_t) + sizeof(i2c_data));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_EQUAL_UINT(sizeof(xy_mux_header_t) + sizeof(i2c_data), packet_len);
     printf("  [PASS] I2C packet built: %d bytes\n", (int)packet_len);
 
     /* Verify header structure */
-    TEST_ASSERT_TRUE(tx_buffer[0] == XY_MUX_TYPE_I2C);
-    TEST_ASSERT_TRUE(tx_buffer[1] == 0);  /* channel */
-    TEST_ASSERT_TRUE(tx_buffer[2] == sizeof(i2c_data)); /* length */
+    TEST_ASSERT_EQUAL_UINT8(XY_MUX_TYPE_I2C, tx_buffer[0]);
+    TEST_ASSERT_EQUAL_UINT8(0U, tx_buffer[1]);  /* channel */
+    TEST_ASSERT_EQUAL_UINT8(sizeof(i2c_data), tx_buffer[2]); /* length */
     printf("  [PASS] TLV header structure verified\n");
 
     /* Process the packet */
     g_i2c_buffer_lens[0] = 0;
     ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
-    TEST_ASSERT_TRUE(ret == (int32_t)sizeof(i2c_data));
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(i2c_data), ret);
     TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_i2c_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_MEMORY(i2c_data, mock_i2c_write_fake.arg1_val, sizeof(i2c_data));
-    TEST_ASSERT_EQUAL_size_t(sizeof(i2c_data), mock_i2c_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(i2c_data), mock_i2c_write_fake.arg2_val);
     printf("  [PASS] Packet processed\n");
 
     xy_mux_deinit(&mgr);
