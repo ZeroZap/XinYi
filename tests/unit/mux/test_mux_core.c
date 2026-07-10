@@ -231,13 +231,13 @@ static void test_mux_find(void)
 
     /* Find existing device */
     xy_mux_device_t *dev = xy_mux_find(&mgr, XY_MUX_TYPE_GPIO, 5);
-    TEST_ASSERT_TRUE(dev != NULL);
-    TEST_ASSERT_TRUE(dev->channel == 5);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL_UINT8(5U, dev->channel);
     printf("  [PASS] Found existing device\n");
 
     /* Find non-existent device */
     dev = xy_mux_find(&mgr, XY_MUX_TYPE_SPI, 99);
-    TEST_ASSERT_TRUE(dev == NULL);
+    TEST_ASSERT_NULL(dev);
     printf("  [PASS] Non-existent device returns NULL\n");
 
     xy_mux_deinit(&mgr);
