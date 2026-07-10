@@ -12,9 +12,6 @@
 #include "xy_device.h"
 #include "xy_device_core.h"
 
-#define TEST(name) static void name(void)
-#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
-
 void setUp(void)
 {
 }
@@ -26,92 +23,92 @@ void tearDown(void)
 /* A non-NULL placeholder bus handle for the PC-stub I2C HAL. */
 static int g_fake_i2c_bus = 1;
 
-TEST(test_device_registry_init)
+static void test_device_registry_init(void)
 {
     int ret = xy_device_registry_init();
-    ASSERT(ret == 0);
-    ASSERT(xy_device_registry_count() == 0);
+    TEST_ASSERT_EQUAL_INT(0, ret);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_device_registry_count());
 }
 
-TEST(test_device_register_via_helper)
+static void test_device_register_via_helper(void)
 {
     static xy_i2c_device_t dev;
     memset(&dev, 0, sizeof(dev));
 
-    ASSERT(xy_i2c_device_init(&dev, &g_fake_i2c_bus, 0x44, 1000) == XY_DEVICE_OK);
-    ASSERT(xy_i2c_device_register(&dev, "sensor_a", XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
-    ASSERT(xy_device_registry_count() == 1);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_init(&dev, &g_fake_i2c_bus, 0x44, 1000));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_register(&dev, "sensor_a", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_UINT(1U, xy_device_registry_count());
 }
 
-TEST(test_find_by_name)
+static void test_find_by_name(void)
 {
     xy_device_t *dev = xy_device_find_by_name("sensor_a");
-    ASSERT(dev != NULL);
-    ASSERT(strcmp(dev->name, "sensor_a") == 0);
-    ASSERT(dev->type == XY_DEV_TYPE_SENSOR);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL_STRING("sensor_a", dev->name);
+    TEST_ASSERT_EQUAL(XY_DEV_TYPE_SENSOR, dev->type);
 }
 
-TEST(test_find_by_type)
+static void test_find_by_type(void)
 {
     xy_device_t *dev = xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 0);
-    ASSERT(dev != NULL);
-    ASSERT(dev->type == XY_DEV_TYPE_SENSOR);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL(XY_DEV_TYPE_SENSOR, dev->type);
 }
 
-TEST(test_public_find_forwards)
+static void test_public_find_forwards(void)
 {
     /* xy_device_find (public link-list-era API) should forward to the
      * canonical static-array registry after the merge. */
     xy_device_t *dev = xy_device_find("sensor_a");
-    ASSERT(dev != NULL);
-    ASSERT(strcmp(dev->name, "sensor_a") == 0);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL_STRING("sensor_a", dev->name);
 }
 
-TEST(test_device_power_management)
+static void test_device_power_management(void)
 {
     xy_device_t *dev = xy_device_find_by_name("sensor_a");
-    ASSERT(dev != NULL);
+    TEST_ASSERT_NOT_NULL(dev);
 
     /* Mark initialised so xy_device_pm_check considers it. */
     dev->initialized = 1;
 
     int ret = xy_device_sleep(dev);
-    ASSERT(ret == XY_DEVICE_OK);
-    ASSERT(xy_device_get_pm_state(dev) == XY_DEVICE_PM_SLEEP_STATE);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, ret);
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_SLEEP_STATE, xy_device_get_pm_state(dev));
 
     ret = xy_device_wake(dev);
-    ASSERT(ret == XY_DEVICE_OK);
-    ASSERT(xy_device_get_pm_state(dev) == XY_DEVICE_PM_ACTIVE);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, ret);
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_ACTIVE, xy_device_get_pm_state(dev));
 }
 
-TEST(test_device_stats)
+static void test_device_stats(void)
 {
     xy_device_stats_t stats;
     int ret = xy_device_get_stats(&stats);
-    ASSERT(ret == XY_DEVICE_OK);
-    ASSERT(stats.total_devices >= 1);
-    ASSERT(stats.sensor_count >= 1);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, ret);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT32(1U, stats.total_devices);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT32(1U, stats.sensor_count);
 }
 
-TEST(test_duplicate_register_rejected)
+static void test_duplicate_register_rejected(void)
 {
     static xy_i2c_device_t dup;
     memset(&dup, 0, sizeof(dup));
 
-    ASSERT(xy_i2c_device_init(&dup, &g_fake_i2c_bus, 0x45, 1000) == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_init(&dup, &g_fake_i2c_bus, 0x45, 1000));
     int ret = xy_i2c_device_register(&dup, "sensor_a", XY_DEV_TYPE_SENSOR);
-    ASSERT(ret != XY_DEVICE_OK);
+    TEST_ASSERT_NOT_EQUAL(XY_DEVICE_OK, ret);
 }
 
-TEST(test_unregister_frees_slot)
+static void test_unregister_frees_slot(void)
 {
     xy_device_t *dev = xy_device_find_by_name("sensor_a");
-    ASSERT(dev != NULL);
+    TEST_ASSERT_NOT_NULL(dev);
 
     int ret = xy_device_registry_unregister(dev);
-    ASSERT(ret == XY_DEVICE_OK);
-    ASSERT(xy_device_find_by_name("sensor_a") == NULL);
-    ASSERT(xy_device_registry_count() == 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, ret);
+    TEST_ASSERT_NULL(xy_device_find_by_name("sensor_a"));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_device_registry_count());
 }
 
 int main(void)
