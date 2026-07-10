@@ -18,9 +18,6 @@
 XY_DEVICE_REGISTER(autoreg_one, XY_DEV_TYPE_SENSOR, NULL, NULL);
 XY_DEVICE_REGISTER(autoreg_two, XY_DEV_TYPE_STORAGE, NULL, NULL);
 
-#define TEST(name) static void name(void)
-#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
-
 void setUp(void)
 {
 }
@@ -29,36 +26,36 @@ void tearDown(void)
 {
 }
 
-TEST(test_first_device_registered_before_main)
+static void test_first_device_registered_before_main(void)
 {
     xy_device_t *dev = xy_device_find_by_name("autoreg_one");
-    ASSERT(dev != NULL);
-    ASSERT(dev->type == XY_DEV_TYPE_SENSOR);
-    ASSERT(strcmp(dev->name, "autoreg_one") == 0);
-    ASSERT(dev->flags == XY_DEV_FLAG_RDWR);
-    ASSERT(dev->state == XY_DEV_STATE_INIT);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL(XY_DEV_TYPE_SENSOR, dev->type);
+    TEST_ASSERT_EQUAL_STRING("autoreg_one", dev->name);
+    TEST_ASSERT_EQUAL(XY_DEV_FLAG_RDWR, dev->flags);
+    TEST_ASSERT_EQUAL(XY_DEV_STATE_INIT, dev->state);
 }
 
-TEST(test_second_device_registered_before_main)
+static void test_second_device_registered_before_main(void)
 {
     xy_device_t *dev = xy_device_find_by_name("autoreg_two");
-    ASSERT(dev != NULL);
-    ASSERT(dev->type == XY_DEV_TYPE_STORAGE);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL(XY_DEV_TYPE_STORAGE, dev->type);
 }
 
-TEST(test_lazy_registry_init_works)
+static void test_lazy_registry_init_works(void)
 {
     /* Constructors fire before any explicit xy_device_init(); the count
      * must already reflect both auto-registered devices. */
-    ASSERT(xy_device_registry_count() >= 2);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(2U, xy_device_registry_count());
 }
 
-TEST(test_explicit_init_is_idempotent_after_constructors)
+static void test_explicit_init_is_idempotent_after_constructors(void)
 {
     /* Calling init after constructors fired must not wipe the registry. */
-    ASSERT(xy_device_init() == XY_DEVICE_OK);
-    ASSERT(xy_device_find_by_name("autoreg_one") != NULL);
-    ASSERT(xy_device_find_by_name("autoreg_two") != NULL);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_init());
+    TEST_ASSERT_NOT_NULL(xy_device_find_by_name("autoreg_one"));
+    TEST_ASSERT_NOT_NULL(xy_device_find_by_name("autoreg_two"));
 }
 
 int main(void)
