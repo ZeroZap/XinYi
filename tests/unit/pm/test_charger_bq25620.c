@@ -55,7 +55,8 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
 
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, i2c);
     TEST_ASSERT_NOT_NULL(data);
-    TEST_ASSERT_TRUE(len == 1 || len == 2);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(1U, len);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT(2U, len);
 
     g_selected_reg = data[0];
     if (len == 2) {
