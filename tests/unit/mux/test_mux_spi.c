@@ -160,8 +160,8 @@ static void test_spi_write_header_and_payload(void)
     TEST_ASSERT_EQUAL_UINT(2U, mock_spi_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_spi_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(data, mock_spi_write_fake.arg1_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(data), mock_spi_write_fake.arg2_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(data), g_last_write_len);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), mock_spi_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), g_last_write_len);
     TEST_ASSERT_EQUAL_MEMORY(data, g_last_write, sizeof(data));
 
     xy_mux_deinit(&mgr);
@@ -182,11 +182,11 @@ static void test_spi_transfer_and_read(void)
     TEST_ASSERT_EQUAL_UINT(2U, mock_spi_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(2, mock_spi_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(tx_data, mock_spi_write_fake.arg1_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(tx_data), mock_spi_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(tx_data), mock_spi_write_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT(1U, mock_spi_read_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(2, mock_spi_read_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(rx_data, mock_spi_read_fake.arg1_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(rx_data), mock_spi_read_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(rx_data), mock_spi_read_fake.arg2_val);
     TEST_ASSERT_EQUAL_MEMORY(expected, rx_data, sizeof(rx_data));
 
     memset(rx_data, 0, sizeof(rx_data));
