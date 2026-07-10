@@ -238,7 +238,7 @@ tests/
 
 **Objective:** Make the new framework enforceable.
 
-**Status:** Implemented for the unit-test gate. `.github/workflows/unit-tests.yml` now runs the same CMake/CTest unit suite used locally, checks `git diff --check`, blocks new raw `assert()` calls under `tests/unit`, generates the optional gcovr HTML coverage report, and uploads coverage/log artifacts. Broader repo-wide style policy can remain separate from this focused unit gate.
+**Status:** Implemented for the unit-test gate. `.github/workflows/unit-tests.yml` now runs the same CMake/CTest unit suite used locally, checks `git diff --check`, checks clang-format only for touched C/C++ files, blocks new raw `assert()` calls under `tests/unit`, generates the optional gcovr HTML coverage report, and uploads coverage/log artifacts.
 
 **Tasks:**
 
@@ -246,7 +246,7 @@ tests/
    - Configure/build unit tests.
    - Run `ctest --output-on-failure`.
    - Run `git diff --check`.
-2. [ ] Add an optional style check for touched C/H files.
+2. [x] Add an optional style check for touched C/H files.
 3. [x] Add a simple guard that blocks new raw `assert()` in `tests/unit` unless explicitly justified.
 4. [x] Publish test logs as artifacts when CI fails.
 5. [x] Publish optional unit coverage artifacts.
