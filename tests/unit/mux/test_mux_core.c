@@ -73,10 +73,10 @@ static void test_mux_init(void)
     uint8_t rx_buffer[BUFFER_SIZE];
 
     int32_t ret = xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(mgr.devices == NULL);
-    TEST_ASSERT_TRUE(mgr.device_count == 0);
-    TEST_ASSERT_TRUE(mgr.buffer_size == BUFFER_SIZE);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_NULL(mgr.devices);
+    TEST_ASSERT_EQUAL_UINT(0U, mgr.device_count);
+    TEST_ASSERT_EQUAL_UINT(BUFFER_SIZE, mgr.buffer_size);
 
     printf("  [PASS] Manager initialized successfully\n");
 
@@ -97,22 +97,22 @@ static void test_mux_init_invalid(void)
 
     /* Test NULL manager */
     int32_t ret = xy_mux_init(NULL, tx_buffer, rx_buffer, BUFFER_SIZE);
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, ret);
     printf("  [PASS] NULL manager rejected\n");
 
     /* Test NULL tx_buffer */
     ret = xy_mux_init(&mgr, NULL, rx_buffer, BUFFER_SIZE);
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, ret);
     printf("  [PASS] NULL tx_buffer rejected\n");
 
     /* Test NULL rx_buffer */
     ret = xy_mux_init(&mgr, tx_buffer, NULL, BUFFER_SIZE);
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, ret);
     printf("  [PASS] NULL rx_buffer rejected\n");
 
     /* Test zero buffer size */
     ret = xy_mux_init(&mgr, tx_buffer, rx_buffer, 0);
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_INVALID_PARAM);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, ret);
     printf("  [PASS] Zero buffer size rejected\n");
 }
 
