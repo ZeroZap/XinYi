@@ -262,15 +262,15 @@ static void test_build_packet(void)
     int32_t ret = xy_mux_build_packet(&mgr, XY_MUX_TYPE_GPIO, 0,
                                       &gpio_data, sizeof(gpio_data),
                                       tx_buffer, &packet_len);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(packet_len == sizeof(xy_mux_header_t) + sizeof(gpio_data));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_EQUAL_UINT(sizeof(xy_mux_header_t) + sizeof(gpio_data), packet_len);
 
     /* Verify packet header */
-    TEST_ASSERT_TRUE(tx_buffer[0] == XY_MUX_TYPE_GPIO);  /* type */
-    TEST_ASSERT_TRUE(tx_buffer[1] == 0);                 /* channel */
-    TEST_ASSERT_TRUE(tx_buffer[2] == sizeof(gpio_data)); /* length low */
-    TEST_ASSERT_TRUE(tx_buffer[3] == 0);                 /* length high */
-    TEST_ASSERT_TRUE(tx_buffer[4] == 0x01);              /* data */
+    TEST_ASSERT_EQUAL_UINT8(XY_MUX_TYPE_GPIO, tx_buffer[0]); /* type */
+    TEST_ASSERT_EQUAL_UINT8(0U, tx_buffer[1]);               /* channel */
+    TEST_ASSERT_EQUAL_UINT8(sizeof(gpio_data), tx_buffer[2]); /* length low */
+    TEST_ASSERT_EQUAL_UINT8(0U, tx_buffer[3]);               /* length high */
+    TEST_ASSERT_EQUAL_UINT8(0x01U, tx_buffer[4]);            /* data */
 
     printf("  [PASS] GPIO packet built correctly (4 bytes header + 1 byte data)\n");
 
@@ -279,13 +279,13 @@ static void test_build_packet(void)
     ret = xy_mux_build_packet(&mgr, XY_MUX_TYPE_I2C, 1,
                               i2c_data, sizeof(i2c_data),
                               tx_buffer, &packet_len);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(packet_len == sizeof(xy_mux_header_t) + sizeof(i2c_data));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_EQUAL_UINT(sizeof(xy_mux_header_t) + sizeof(i2c_data), packet_len);
 
     /* Verify I2C packet header */
-    TEST_ASSERT_TRUE(tx_buffer[0] == XY_MUX_TYPE_I2C);
-    TEST_ASSERT_TRUE(tx_buffer[1] == 1);
-    TEST_ASSERT_TRUE(tx_buffer[2] == sizeof(i2c_data));
+    TEST_ASSERT_EQUAL_UINT8(XY_MUX_TYPE_I2C, tx_buffer[0]);
+    TEST_ASSERT_EQUAL_UINT8(1U, tx_buffer[1]);
+    TEST_ASSERT_EQUAL_UINT8(sizeof(i2c_data), tx_buffer[2]);
 
     printf("  [PASS] I2C packet built correctly\n");
 
@@ -294,7 +294,7 @@ static void test_build_packet(void)
     ret = xy_mux_build_packet(&mgr, XY_MUX_TYPE_SPI, 0,
                               large_data, sizeof(large_data),
                               tx_buffer, &packet_len);
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_NO_MEMORY);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_MEMORY, ret);
     printf("  [PASS] Oversized packet rejected\n");
 
     xy_mux_deinit(&mgr);
