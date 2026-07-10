@@ -207,8 +207,8 @@ static void test_sensor_type_and_feature_contract(void)
     TEST_ASSERT_EQUAL(0xFF, SENSOR_TYPE_CUSTOM);
 
     TEST_ASSERT_EQUAL(0, SENSOR_EOK);
-    TEST_ASSERT_TRUE(SENSOR_ERROR < 0);
-    TEST_ASSERT_TRUE(SENSOR_EINVAL < 0);
+    TEST_ASSERT_LESS_THAN_INT(0, SENSOR_ERROR);
+    TEST_ASSERT_LESS_THAN_INT(0, SENSOR_EINVAL);
 
     TEST_ASSERT_EQUAL((1 << 0), SENSOR_FLAG_FIFO_SUPPORT);
     TEST_ASSERT_EQUAL((1 << 1), SENSOR_FLAG_INT_SUPPORT);
@@ -481,7 +481,7 @@ static void test_sensor_self_test_generic_read_range_and_noise_paths(void)
     TEST_ASSERT_EQUAL(SENSOR_ERROR, sensor_self_test(&sensor, &result));
     TEST_ASSERT_FALSE(result.passed);
     TEST_ASSERT_EQUAL(2, result.error_code);
-    TEST_ASSERT_TRUE(strstr(result.message, "Data out of range") != NULL);
+    TEST_ASSERT_NOT_NULL(strstr(result.message, "Data out of range"));
     TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
 }
 #endif
