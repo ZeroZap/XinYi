@@ -17,8 +17,6 @@ static int g_fake_spi_bus = 1;
 static int g_fake_i2c_bus = 2;
 static int g_fake_cs_pin  = 3;
 
-#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
-
 void setUp(void)
 {
 }
@@ -47,15 +45,15 @@ static void test_spi_init_sets_defaults(void)
     xy_spi_device_t dev;
     memset(&dev, 0, sizeof(dev));
 
-    ASSERT(xy_spi_device_init(&dev, &g_fake_spi_bus, &g_fake_cs_pin,
-                              1000000, 0) == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_spi_device_init(&dev, &g_fake_spi_bus, &g_fake_cs_pin, 1000000, 0));
 
-    ASSERT(dev.base.type == XY_DEVICE_TYPE_SPI);
-    ASSERT(dev.base.initialized);
-    ASSERT(dev.base.name == NULL);  /* init does not assign a default name */
-    ASSERT(dev.spi_handle == &g_fake_spi_bus);
-    ASSERT(dev.cs_pin == &g_fake_cs_pin);
-    ASSERT(dev.speed == 1000000);
+    TEST_ASSERT_EQUAL(XY_DEVICE_TYPE_SPI, dev.base.type);
+    TEST_ASSERT_TRUE(dev.base.initialized);
+    TEST_ASSERT_NULL(dev.base.name);  /* init does not assign a default name */
+    TEST_ASSERT_EQUAL_PTR(&g_fake_spi_bus, dev.spi_handle);
+    TEST_ASSERT_EQUAL_PTR(&g_fake_cs_pin, dev.cs_pin);
+    TEST_ASSERT_EQUAL_UINT32(1000000U, dev.speed);
 }
 
 static void test_spi_init_speed_default(void)
@@ -64,10 +62,10 @@ static void test_spi_init_speed_default(void)
     memset(&dev, 0, sizeof(dev));
 
     /* speed=0 should fall back to 1 MHz default. */
-    ASSERT(xy_spi_device_init(&dev, &g_fake_spi_bus, NULL, 0, 3) == XY_DEVICE_OK);
-    ASSERT(dev.speed == 1000000);
-    ASSERT(dev.mode == 3);
-    ASSERT(dev.cs_pin == NULL);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_spi_device_init(&dev, &g_fake_spi_bus, NULL, 0, 3));
+    TEST_ASSERT_EQUAL_UINT32(1000000U, dev.speed);
+    TEST_ASSERT_EQUAL_UINT8(3U, dev.mode);
+    TEST_ASSERT_NULL(dev.cs_pin);
 }
 
 static void test_spi_init_rejects_null(void)
@@ -75,8 +73,8 @@ static void test_spi_init_rejects_null(void)
     xy_spi_device_t dev;
     memset(&dev, 0, sizeof(dev));
 
-    ASSERT(xy_spi_device_init(NULL, &g_fake_spi_bus, NULL, 0, 0) != XY_DEVICE_OK);
-    ASSERT(xy_spi_device_init(&dev, NULL, NULL, 0, 0) != XY_DEVICE_OK);
+    TEST_ASSERT_NOT_EQUAL(XY_DEVICE_OK, xy_spi_device_init(NULL, &g_fake_spi_bus, NULL, 0, 0));
+    TEST_ASSERT_NOT_EQUAL(XY_DEVICE_OK, xy_spi_device_init(&dev, NULL, NULL, 0, 0));
 }
 
 /* ---------- xy_spi_device_register opt-in registration ---------- */
@@ -89,11 +87,11 @@ static void test_spi_register_exposes_through_framework(void)
     memset(&dev, 0, sizeof(dev));
     xy_spi_device_init(&dev, &g_fake_spi_bus, &g_fake_cs_pin, 8000000, 0);
 
-    ASSERT(xy_spi_device_register(&dev, "flash0", XY_DEV_TYPE_STORAGE) == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_spi_device_register(&dev, "flash0", XY_DEV_TYPE_STORAGE));
 
     xy_device_t *found = xy_device_find("flash0");
-    ASSERT(found == &dev.base);
-    ASSERT(found->type == XY_DEV_TYPE_STORAGE);
+    TEST_ASSERT_EQUAL_PTR(&dev.base, found);
+    TEST_ASSERT_EQUAL(XY_DEV_TYPE_STORAGE, found->type);
 }
 
 static void test_spi_register_rejects_uninitialised(void)
@@ -103,8 +101,8 @@ static void test_spi_register_rejects_uninitialised(void)
     xy_spi_device_t dev;
     memset(&dev, 0, sizeof(dev));  /* init NOT called -> base.initialized = 0 */
 
-    ASSERT(xy_spi_device_register(&dev, "ghost", XY_DEV_TYPE_SPI) != XY_DEVICE_OK);
-    ASSERT(xy_device_find("ghost") == NULL);
+    TEST_ASSERT_NOT_EQUAL(XY_DEVICE_OK, xy_spi_device_register(&dev, "ghost", XY_DEV_TYPE_SPI));
+    TEST_ASSERT_NULL(xy_device_find("ghost"));
 }
 
 static void test_spi_register_rejects_null_name(void)
@@ -115,7 +113,7 @@ static void test_spi_register_rejects_null_name(void)
     memset(&dev, 0, sizeof(dev));
     xy_spi_device_init(&dev, &g_fake_spi_bus, NULL, 0, 0);
 
-    ASSERT(xy_spi_device_register(&dev, NULL, XY_DEV_TYPE_SPI) != XY_DEVICE_OK);
+    TEST_ASSERT_NOT_EQUAL(XY_DEVICE_OK, xy_spi_device_register(&dev, NULL, XY_DEV_TYPE_SPI));
 }
 
 /* ---------- Mixed I2C + SPI in one registry ---------- */
@@ -136,26 +134,26 @@ static void test_i2c_and_spi_coexist(void)
     xy_spi_device_init(&spi_a, &g_fake_spi_bus, &g_fake_cs_pin, 0, 0);
     xy_spi_device_init(&spi_b, &g_fake_spi_bus, &g_fake_cs_pin, 0, 0);
 
-    ASSERT(xy_i2c_device_register(&i2c_a, "sensor_a", XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
-    ASSERT(xy_spi_device_register(&spi_a, "flash_a", XY_DEV_TYPE_STORAGE) == XY_DEVICE_OK);
-    ASSERT(xy_i2c_device_register(&i2c_b, "sensor_b", XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
-    ASSERT(xy_spi_device_register(&spi_b, "flash_b", XY_DEV_TYPE_STORAGE) == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_register(&i2c_a, "sensor_a", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_spi_device_register(&spi_a, "flash_a", XY_DEV_TYPE_STORAGE));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_register(&i2c_b, "sensor_b", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_spi_device_register(&spi_b, "flash_b", XY_DEV_TYPE_STORAGE));
 
-    ASSERT(xy_device_registry_count() == 4);
+    TEST_ASSERT_EQUAL_UINT(4U, xy_device_registry_count());
 
     /* Each device routes back to the right base pointer regardless of bus type. */
-    ASSERT(xy_device_find("sensor_a") == &i2c_a.base);
-    ASSERT(xy_device_find("sensor_b") == &i2c_b.base);
-    ASSERT(xy_device_find("flash_a")  == &spi_a.base);
-    ASSERT(xy_device_find("flash_b")  == &spi_b.base);
+    TEST_ASSERT_EQUAL_PTR(&i2c_a.base, xy_device_find("sensor_a"));
+    TEST_ASSERT_EQUAL_PTR(&i2c_b.base, xy_device_find("sensor_b"));
+    TEST_ASSERT_EQUAL_PTR(&spi_a.base, xy_device_find("flash_a"));
+    TEST_ASSERT_EQUAL_PTR(&spi_b.base, xy_device_find("flash_b"));
 
     /* find_by_type enumerates within a type independent of bus underneath. */
-    ASSERT(xy_device_find_by_type(XY_DEV_TYPE_SENSOR,  0) != NULL);
-    ASSERT(xy_device_find_by_type(XY_DEV_TYPE_SENSOR,  1) != NULL);
-    ASSERT(xy_device_find_by_type(XY_DEV_TYPE_SENSOR,  2) == NULL);
-    ASSERT(xy_device_find_by_type(XY_DEV_TYPE_STORAGE, 0) != NULL);
-    ASSERT(xy_device_find_by_type(XY_DEV_TYPE_STORAGE, 1) != NULL);
-    ASSERT(xy_device_find_by_type(XY_DEV_TYPE_STORAGE, 2) == NULL);
+    TEST_ASSERT_NOT_NULL(xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 0));
+    TEST_ASSERT_NOT_NULL(xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 1));
+    TEST_ASSERT_NULL(xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 2));
+    TEST_ASSERT_NOT_NULL(xy_device_find_by_type(XY_DEV_TYPE_STORAGE, 0));
+    TEST_ASSERT_NOT_NULL(xy_device_find_by_type(XY_DEV_TYPE_STORAGE, 1));
+    TEST_ASSERT_NULL(xy_device_find_by_type(XY_DEV_TYPE_STORAGE, 2));
 }
 
 /* SPI registering a name an I2C device already owns must fail. */
@@ -170,11 +168,11 @@ static void test_cross_bus_name_collision(void)
     xy_i2c_device_init(&i2c, &g_fake_i2c_bus, 0x50, 0);
     xy_spi_device_init(&spi, &g_fake_spi_bus, NULL, 0, 0);
 
-    ASSERT(xy_i2c_device_register(&i2c, "bus_dev", XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_register(&i2c, "bus_dev", XY_DEV_TYPE_SENSOR));
     /* Same name from SPI side must be rejected. */
-    ASSERT(xy_spi_device_register(&spi, "bus_dev", XY_DEV_TYPE_STORAGE) != XY_DEVICE_OK);
+    TEST_ASSERT_NOT_EQUAL(XY_DEVICE_OK, xy_spi_device_register(&spi, "bus_dev", XY_DEV_TYPE_STORAGE));
     /* The original I2C device must still be findable and intact. */
-    ASSERT(xy_device_find("bus_dev") == &i2c.base);
+    TEST_ASSERT_EQUAL_PTR(&i2c.base, xy_device_find("bus_dev"));
 }
 
 int main(void)
