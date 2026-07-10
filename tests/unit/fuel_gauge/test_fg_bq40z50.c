@@ -75,7 +75,11 @@ static int xy_sensor_i2c_read_impl(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *d
     TEST_ASSERT_NOT_NULL(bus);
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
     TEST_ASSERT_NOT_NULL(data);
-    TEST_ASSERT_TRUE(len == 2 || len == 4);
+    if (len == 2U) {
+        TEST_ASSERT_EQUAL_UINT(2U, len);
+    } else {
+        TEST_ASSERT_EQUAL_UINT(4U, len);
+    }
 
     if (fake_read_failures[reg] > 0) {
         fake_read_failures[reg]--;
