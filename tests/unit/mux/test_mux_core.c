@@ -138,31 +138,31 @@ static void test_mux_register(void)
 
     /* Register GPIO device */
     int32_t ret = xy_mux_gpio_register(&mgr, 0, &ops, NULL);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(mgr.device_count == 1);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_EQUAL_UINT(1U, mgr.device_count);
     printf("  [PASS] GPIO device registered\n");
 
     /* Register I2C device */
     ret = xy_mux_i2c_register(&mgr, 0, &ops, NULL);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(mgr.device_count == 2);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_EQUAL_UINT(2U, mgr.device_count);
     printf("  [PASS] I2C device registered\n");
 
     /* Register SPI device */
     ret = xy_mux_spi_register(&mgr, 0, &ops, NULL);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(mgr.device_count == 3);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_EQUAL_UINT(3U, mgr.device_count);
     printf("  [PASS] SPI device registered\n");
 
     /* Register UART device */
     ret = xy_mux_uart_register(&mgr, 0, &ops, NULL);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(mgr.device_count == 4);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_EQUAL_UINT(4U, mgr.device_count);
     printf("  [PASS] UART device registered\n");
 
     /* Try to register duplicate (same type and channel) */
     ret = xy_mux_gpio_register(&mgr, 0, &ops, NULL);
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_BUSY);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_BUSY, ret);
     printf("  [PASS] Duplicate registration rejected\n");
 
     xy_mux_deinit(&mgr);
@@ -191,17 +191,17 @@ static void test_mux_unregister(void)
     xy_mux_gpio_register(&mgr, 0, &ops, NULL);
     xy_mux_gpio_register(&mgr, 1, &ops, NULL);
     xy_mux_gpio_register(&mgr, 2, &ops, NULL);
-    TEST_ASSERT_TRUE(mgr.device_count == 3);
+    TEST_ASSERT_EQUAL_UINT(3U, mgr.device_count);
 
     /* Unregister one device */
     int32_t ret = xy_mux_unregister(&mgr, XY_MUX_TYPE_GPIO, 1);
-    TEST_ASSERT_TRUE(ret == XY_MUX_OK);
-    TEST_ASSERT_TRUE(mgr.device_count == 2);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, ret);
+    TEST_ASSERT_EQUAL_UINT(2U, mgr.device_count);
     printf("  [PASS] Device unregistered successfully\n");
 
     /* Unregister non-existent device */
     ret = xy_mux_unregister(&mgr, XY_MUX_TYPE_GPIO, 99);
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_NO_DEVICE);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_DEVICE, ret);
     printf("  [PASS] Non-existent device unregister rejected\n");
 
     xy_mux_deinit(&mgr);
