@@ -327,7 +327,7 @@ static void test_process_packet(void)
 
     /* Process the packet */
     int32_t ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
-    TEST_ASSERT_TRUE(ret == (int32_t)sizeof(gpio_data));
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(gpio_data), ret);
     TEST_ASSERT_EQUAL_UINT(1U, mock_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0U, mock_write_fake.arg0_val);
     TEST_ASSERT_NOT_NULL(mock_write_fake.arg1_val);
@@ -340,7 +340,7 @@ static void test_process_packet(void)
                         &gpio_data, sizeof(gpio_data),
                         tx_buffer, &packet_len);
     ret = xy_mux_process_packet(&mgr, tx_buffer, packet_len);
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_NO_DEVICE);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_DEVICE, ret);
     printf("  [PASS] Non-existent device packet rejected\n");
 
     xy_mux_deinit(&mgr);
@@ -354,21 +354,21 @@ static void test_type_string_conversion(void)
     printf("\n[Test] Type String Conversion\n");
 
     /* Test valid types */
-    TEST_ASSERT_TRUE(strcmp(xy_mux_type_to_string(XY_MUX_TYPE_GPIO), "GPIO") == 0);
-    TEST_ASSERT_TRUE(strcmp(xy_mux_type_to_string(XY_MUX_TYPE_I2C), "I2C") == 0);
-    TEST_ASSERT_TRUE(strcmp(xy_mux_type_to_string(XY_MUX_TYPE_SPI), "SPI") == 0);
-    TEST_ASSERT_TRUE(strcmp(xy_mux_type_to_string(XY_MUX_TYPE_UART), "UART") == 0);
+    TEST_ASSERT_EQUAL_STRING("GPIO", xy_mux_type_to_string(XY_MUX_TYPE_GPIO));
+    TEST_ASSERT_EQUAL_STRING("I2C", xy_mux_type_to_string(XY_MUX_TYPE_I2C));
+    TEST_ASSERT_EQUAL_STRING("SPI", xy_mux_type_to_string(XY_MUX_TYPE_SPI));
+    TEST_ASSERT_EQUAL_STRING("UART", xy_mux_type_to_string(XY_MUX_TYPE_UART));
     printf("  [PASS] Type to string conversion works\n");
 
     /* Test string to type */
-    TEST_ASSERT_TRUE(xy_mux_string_to_type("GPIO") == XY_MUX_TYPE_GPIO);
-    TEST_ASSERT_TRUE(xy_mux_string_to_type("I2C") == XY_MUX_TYPE_I2C);
-    TEST_ASSERT_TRUE(xy_mux_string_to_type("SPI") == XY_MUX_TYPE_SPI);
-    TEST_ASSERT_TRUE(xy_mux_string_to_type("UART") == XY_MUX_TYPE_UART);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_TYPE_GPIO, xy_mux_string_to_type("GPIO"));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_TYPE_I2C, xy_mux_string_to_type("I2C"));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_TYPE_SPI, xy_mux_string_to_type("SPI"));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_TYPE_UART, xy_mux_string_to_type("UART"));
     printf("  [PASS] String to type conversion works\n");
 
     /* Test invalid string */
-    TEST_ASSERT_TRUE(xy_mux_string_to_type("INVALID") == XY_MUX_TYPE_CUSTOM);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_TYPE_CUSTOM, xy_mux_string_to_type("INVALID"));
     printf("  [PASS] Invalid string returns CUSTOM type\n");
 }
 
@@ -399,18 +399,18 @@ static void test_get_device_list(void)
     /* Get device list */
     xy_mux_device_t *devices[8];
     uint16_t count = xy_mux_get_device_list(&mgr, devices, 8);
-    TEST_ASSERT_TRUE(count == 4);
+    TEST_ASSERT_EQUAL_UINT16(4U, count);
     printf("  [PASS] Retrieved %d devices\n", count);
 
     /* Test with small buffer */
     xy_mux_device_t *small_list[2];
     count = xy_mux_get_device_list(&mgr, small_list, 2);
-    TEST_ASSERT_TRUE(count == 2);
+    TEST_ASSERT_EQUAL_UINT16(2U, count);
     printf("  [PASS] Limited to %d devices due to buffer size\n", count);
 
     /* Test NULL parameters */
     count = xy_mux_get_device_list(&mgr, NULL, 8);
-    TEST_ASSERT_TRUE(count == 0);
+    TEST_ASSERT_EQUAL_UINT16(0U, count);
     printf("  [PASS] NULL devices array returns 0\n");
 
     xy_mux_deinit(&mgr);
@@ -439,12 +439,12 @@ static void test_read_write(void)
     /* Test read on device without read operation */
     uint8_t data[4];
     int32_t ret = xy_mux_read(&mgr, XY_MUX_TYPE_GPIO, 0, data, sizeof(data));
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_NOT_SUPPORTED);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NOT_SUPPORTED, ret);
     printf("  [PASS] Read on device without read op returns NOT_SUPPORTED\n");
 
     /* Test write on device without write operation */
     ret = xy_mux_write(&mgr, XY_MUX_TYPE_GPIO, 0, data, sizeof(data));
-    TEST_ASSERT_TRUE(ret == XY_MUX_ERROR_NOT_SUPPORTED);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NOT_SUPPORTED, ret);
     TEST_ASSERT_EQUAL_UINT(0U, mock_ioctl_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
