@@ -20,8 +20,6 @@
 
 static int g_fake_bus = 1;
 
-#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
-
 void setUp(void)
 {
 }
@@ -60,25 +58,29 @@ static void test_four_drivers_coexist(void)
     xy_bmp280_init(&bmp, &g_fake_bus);
     xy_ads1115_init(&ads, &g_fake_bus, 3.3f);
 
-    ASSERT(xy_i2c_device_register(&sht.i2c_dev, "sht30",   XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
-    ASSERT(xy_i2c_device_register(&mpu.i2c_dev, "mpu6050", XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
-    ASSERT(xy_i2c_device_register(&bmp.i2c_dev, "bmp280",  XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
-    ASSERT(xy_i2c_device_register(&ads.i2c_dev, "ads1115", XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&sht.i2c_dev, "sht30", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&mpu.i2c_dev, "mpu6050", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&bmp.i2c_dev, "bmp280", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&ads.i2c_dev, "ads1115", XY_DEV_TYPE_SENSOR));
 
-    ASSERT(xy_device_registry_count() == 4);
-    ASSERT(xy_device_find("sht30")   == &sht.i2c_dev.base);
-    ASSERT(xy_device_find("mpu6050") == &mpu.i2c_dev.base);
-    ASSERT(xy_device_find("bmp280")  == &bmp.i2c_dev.base);
-    ASSERT(xy_device_find("ads1115") == &ads.i2c_dev.base);
+    TEST_ASSERT_EQUAL_UINT(4U, xy_device_registry_count());
+    TEST_ASSERT_EQUAL_PTR(&sht.i2c_dev.base, xy_device_find("sht30"));
+    TEST_ASSERT_EQUAL_PTR(&mpu.i2c_dev.base, xy_device_find("mpu6050"));
+    TEST_ASSERT_EQUAL_PTR(&bmp.i2c_dev.base, xy_device_find("bmp280"));
+    TEST_ASSERT_EQUAL_PTR(&ads.i2c_dev.base, xy_device_find("ads1115"));
 }
 
 /* Stats should reflect heterogeneity even though all are I2C/sensor here. */
 static void test_stats_reflect_population(void)
 {
     xy_device_stats_t stats;
-    ASSERT(xy_device_get_stats(&stats) == XY_DEVICE_OK);
-    ASSERT(stats.total_devices == 4);
-    ASSERT(stats.sensor_count == 4);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(4U, stats.total_devices);
+    TEST_ASSERT_EQUAL_UINT32(4U, stats.sensor_count);
 }
 
 /* find_by_type with index lets you enumerate same-type devices. */
@@ -90,21 +92,21 @@ static void test_enumerate_by_type(void)
         if (!dev) break;
         found_count++;
     }
-    ASSERT(found_count == 4);
+    TEST_ASSERT_EQUAL_INT(4, found_count);
 }
 
 /* Removing one driver must not disturb the others. */
 static void test_partial_unregister(void)
 {
     xy_device_t *bmp = xy_device_find("bmp280");
-    ASSERT(bmp != NULL);
-    ASSERT(xy_device_registry_unregister(bmp) == XY_DEVICE_OK);
+    TEST_ASSERT_NOT_NULL(bmp);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_registry_unregister(bmp));
 
-    ASSERT(xy_device_registry_count() == 3);
-    ASSERT(xy_device_find("bmp280") == NULL);
-    ASSERT(xy_device_find("sht30")   != NULL);
-    ASSERT(xy_device_find("mpu6050") != NULL);
-    ASSERT(xy_device_find("ads1115") != NULL);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_device_registry_count());
+    TEST_ASSERT_NULL(xy_device_find("bmp280"));
+    TEST_ASSERT_NOT_NULL(xy_device_find("sht30"));
+    TEST_ASSERT_NOT_NULL(xy_device_find("mpu6050"));
+    TEST_ASSERT_NOT_NULL(xy_device_find("ads1115"));
 }
 
 /* Name collision rejection still works across drivers. */
@@ -117,7 +119,7 @@ static void test_cross_driver_name_collision(void)
     /* "mpu6050" is already registered (by an MPU6050 instance).
      * Registering an SHT30 with the same name must fail. */
     int ret = xy_i2c_device_register(&imposter.i2c_dev, "mpu6050", XY_DEV_TYPE_SENSOR);
-    ASSERT(ret != XY_DEVICE_OK);
+    TEST_ASSERT_NOT_EQUAL(XY_DEVICE_OK, ret);
 }
 
 int main(void)
