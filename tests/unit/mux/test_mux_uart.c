@@ -161,8 +161,8 @@ static void test_uart_write_header_and_payload(void)
     TEST_ASSERT_EQUAL_UINT(2U, mock_uart_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(0, mock_uart_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(data, mock_uart_write_fake.arg1_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(data), mock_uart_write_fake.arg2_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(data), g_last_write_len);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), mock_uart_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), g_last_write_len);
     TEST_ASSERT_EQUAL_MEMORY(data, g_last_write, sizeof(data));
 
     xy_mux_deinit(&mgr);
@@ -180,11 +180,11 @@ static void test_uart_read_request_and_data(void)
     TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_uart_read(&mgr, 2, data, sizeof(data), 1000));
     TEST_ASSERT_EQUAL_UINT(1U, mock_uart_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(2, mock_uart_write_fake.arg0_val);
-    TEST_ASSERT_EQUAL_size_t(6U, mock_uart_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(6U, mock_uart_write_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT(1U, mock_uart_read_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(2, mock_uart_read_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(data, mock_uart_read_fake.arg1_val);
-    TEST_ASSERT_EQUAL_size_t(sizeof(data), mock_uart_read_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), mock_uart_read_fake.arg2_val);
     for (size_t i = 0; i < sizeof(data); ++i) {
         TEST_ASSERT_EQUAL_HEX8(g_read_pattern, data[i]);
     }
