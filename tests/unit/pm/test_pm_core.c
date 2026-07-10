@@ -59,8 +59,11 @@ static void test_pm_lifecycle_and_charging(void)
     TEST_ASSERT_EQUAL_UINT(50U, xy_pm_get_soc());
 
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
-    TEST_ASSERT_TRUE(state.system_voltage_mV == 0U || state.system_voltage_mV == 3700U);
-    TEST_ASSERT_TRUE(state.power_good == false || state.power_good == true);
+    if (state.system_voltage_mV == 0U) {
+        TEST_ASSERT_EQUAL_UINT(0U, state.system_voltage_mV);
+    } else {
+        TEST_ASSERT_EQUAL_UINT(3700U, state.system_voltage_mV);
+    }
 
     TEST_ASSERT_FALSE(xy_pm_is_charging());
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_pm_start_charging());
@@ -104,9 +107,13 @@ static void test_charger_contracts(void)
     TEST_ASSERT_TRUE(xy_charger_is_charging());
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_get_state(&state));
     TEST_ASSERT_TRUE(state.charging);
-    TEST_ASSERT_TRUE(state.status == XY_CHARGER_STATUS_FAST_CHARGE ||
-                     state.status == XY_CHARGER_STATUS_PRE_CHARGE ||
-                     state.status == XY_CHARGER_STATUS_CONSTANT_VOLTAGE);
+    if (state.status == XY_CHARGER_STATUS_FAST_CHARGE) {
+        TEST_ASSERT_EQUAL_INT(XY_CHARGER_STATUS_FAST_CHARGE, state.status);
+    } else if (state.status == XY_CHARGER_STATUS_PRE_CHARGE) {
+        TEST_ASSERT_EQUAL_INT(XY_CHARGER_STATUS_PRE_CHARGE, state.status);
+    } else {
+        TEST_ASSERT_EQUAL_INT(XY_CHARGER_STATUS_CONSTANT_VOLTAGE, state.status);
+    }
     TEST_ASSERT_EQUAL_UINT(3700U, state.battery_voltage_mV);
     TEST_ASSERT_EQUAL_UINT(40U, state.soc_percent);
 
