@@ -1,0 +1,63 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  unit-tests:
+    name: Unity CTest unit gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake gcovr
+
+      - name: Configure unit tests
+        run: cmake -S tests/unit -B build/tests/unit
+
+      - name: Build unit tests
+        run: cmake --build build/tests/unit -j$(nproc)
+
+      - name: Run unit tests
+        run: ctest --test-dir build/tests/unit --output-on-failure
+
+      - name: Check whitespace in changed files
+        run: git diff --check
+
+      - name: Guard against new raw assert() in tests/unit
+        run: |
+          if grep -RIn --include='*.c' --include='*.h' -E '(^|[^A-Za-z0-9_])assert[[:space:]]*\(' tests/unit; then
+            echo "Raw assert() is not allowed in tests/unit; use Unity assertions instead." >&2
+            exit 1
+          fi
+
+      - name: Generate optional coverage report
+        run: |
+          cmake -S tests/unit -B build/tests/unit_coverage -DXY_ENABLE_UNIT_COVERAGE=ON
+          cmake --build build/tests/unit_coverage --target unit_coverage -j$(nproc)
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage-report
+          path: build/tests/unit_coverage/coverage/
+          if-no-files-found: ignore
+
+      - name: Upload unit test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-logs
+          path: |
+            build/tests/unit/Testing/Temporary/LastTest.log
+            build/tests/unit_coverage/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
