@@ -17,8 +17,6 @@
 
 static int g_fake_i2c_bus = 1;
 
-#define ASSERT(cond) TEST_ASSERT_TRUE(cond)
-
 void setUp(void)
 {
 }
@@ -48,9 +46,9 @@ static void test_init_registers_nothing_by_default(void)
     memset(&sht, 0, sizeof(sht));
     xy_sht30_init(&sht, &g_fake_i2c_bus);
 
-    ASSERT(sht.i2c_dev.base.initialized);
-    ASSERT(sht.i2c_dev.base.name == NULL);
-    ASSERT(xy_device_registry_count() == 0);
+    TEST_ASSERT_TRUE(sht.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(sht.i2c_dev.base.name);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_device_registry_count());
 }
 
 static void test_register_exposes_through_framework(void)
@@ -62,12 +60,12 @@ static void test_register_exposes_through_framework(void)
     xy_sht30_init(&sht, &g_fake_i2c_bus);
 
     int ret = xy_i2c_device_register(&sht.i2c_dev, "sht30_top", XY_DEV_TYPE_SENSOR);
-    ASSERT(ret == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, ret);
 
     xy_device_t *found = xy_device_find("sht30_top");
-    ASSERT(found != NULL);
-    ASSERT(found == &sht.i2c_dev.base);
-    ASSERT(found->type == XY_DEV_TYPE_SENSOR);
+    TEST_ASSERT_NOT_NULL(found);
+    TEST_ASSERT_EQUAL_PTR(&sht.i2c_dev.base, found);
+    TEST_ASSERT_EQUAL(XY_DEV_TYPE_SENSOR, found->type);
 }
 
 static void test_multiple_sht30_instances(void)
@@ -80,16 +78,18 @@ static void test_multiple_sht30_instances(void)
 
     xy_sht30_init(&a, &g_fake_i2c_bus);
     xy_sht30_init(&b, &g_fake_i2c_bus);
-    ASSERT(xy_i2c_device_register(&a.i2c_dev, "sht30_a", XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
-    ASSERT(xy_i2c_device_register(&b.i2c_dev, "sht30_b", XY_DEV_TYPE_SENSOR) == XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&a.i2c_dev, "sht30_a", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&b.i2c_dev, "sht30_b", XY_DEV_TYPE_SENSOR));
 
-    ASSERT(xy_device_registry_count() == 2);
-    ASSERT(xy_device_find("sht30_a") == &a.i2c_dev.base);
-    ASSERT(xy_device_find("sht30_b") == &b.i2c_dev.base);
+    TEST_ASSERT_EQUAL_UINT(2U, xy_device_registry_count());
+    TEST_ASSERT_EQUAL_PTR(&a.i2c_dev.base, xy_device_find("sht30_a"));
+    TEST_ASSERT_EQUAL_PTR(&b.i2c_dev.base, xy_device_find("sht30_b"));
 
     xy_device_stats_t stats;
-    ASSERT(xy_device_get_stats(&stats) == XY_DEVICE_OK);
-    ASSERT(stats.sensor_count >= 2);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_get_stats(&stats));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT32(2U, stats.sensor_count);
 }
 
 int main(void)
