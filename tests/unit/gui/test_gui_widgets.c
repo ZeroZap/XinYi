@@ -29,7 +29,11 @@ FAKE_VALUE_FUNC(bool, listener_cb, xy_gui_event_t *, void *)
 static void widget_cb_impl(xy_gui_widget_t *widget, xy_gui_event_t *event, void *user_data)
 {
     (void)widget;
-    TEST_ASSERT_TRUE(user_data == (void *)0x1234 || user_data == (void *)0x5678);
+    if (user_data == (void *)0x1234) {
+        TEST_ASSERT_EQUAL_PTR((void *)0x1234, user_data);
+    } else {
+        TEST_ASSERT_EQUAL_PTR((void *)0x5678, user_data);
+    }
     if (event) {
         g_cb_value = event->data.value;
     }
