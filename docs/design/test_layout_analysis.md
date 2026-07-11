@@ -13,7 +13,7 @@
 ### 当前项目测试分布
 
 ```
-当前布局 (混合模式 - 需要规范):
+当前布局 (统一 tests/unit 为主，少量历史/上游文件需分类):
 
 XinYi/
 ├── components/
@@ -25,19 +25,16 @@ XinYi/
 │   │   ├── xy_25519/                    ✅ 源码旁 M0 测试已迁入 tests/unit/crypto/
 │   │   └── curve25519-*/test/           ⚠️ 上游源码带测试（暂不纳入统一单测）
 │   │
-│   ├── dm/
-│   │   ├── fee-test.c                   ⚠️ 源码同级测试
-│   │   └── xy_eeprom/eflash_test.c      ⚠️ 子目录内测试
+│   ├── dm/                              ✅ 旧源码旁测试已迁入 tests/unit/dm/
 │   │
-│   ├── kernel/osal/
-│   │   └── tests/                       ✅ 组件内测试 (新规范)
+│   ├── kernel/osal/                     ✅ OSAL 单测由 tests/unit/kernel/ 维护
 │   │
 │   ├── net/
 │   │   └── xy_iso7816/
 │   │       └── xy_iso7816.c             # ISO7816 实现
 │   │
 │   └── sensor/
-│       └── sensor_self_test.c           ⚠️ 组件根目录测试
+│       └── sensor_self_test.c           ✅ 生产自检实现；由 tests/unit/sensor/ 覆盖
 │
 ├── tests/                               📋 统一测试入口
 │   ├── unit/                            ✅ PC 单元测试
@@ -61,13 +58,14 @@ XinYi/
 - `components/clib/xy_clib/test/` 已删除
 - `components/clib/xy_clib/test_filter.c` / `test_sort.c` 已并入 `test_clib_core.c`
 - 统一入口：`make test-unit` 或 CTest `clib_component`
+- 当前 `tests/unit` 源码库存为 70 个 C 文件，均为 Unity-style，且 0 个未接入 CMake 的源码测试文件。
 
 ### 2. 测试文件命名不统一
 
 | 模式 | 示例 | 出现位置 |
 |------|------|----------|
 | `test_*.c` | `tests/unit/clib/test_clib_core.c` | clib |
-| `*_test.c` | `fee-test.c`, `eflash_test.c` | dm |
+| `*_test.c` | 历史 `fee-test.c`, `eflash_test.c` | 已迁入/清理 |
 | `test*.c` | `test.c` | 第三方 crypto 上游源码 |
 
 **影响**: 难以批量处理测试文件
@@ -77,7 +75,7 @@ XinYi/
 ```
 tests/unit/crypto/                 # Crypto 统一 PC 单元测试
 tests/unit/clib/                   # CLib 统一 PC 单元测试
-components/dm/fee-test.c          # 文件级测试
+tests/unit/dm/                     # DM 统一 PC 单元测试
 ```
 
 ### 4. 第三方源码测试混合
@@ -222,13 +220,13 @@ ctest --test-dir build/tests/unit -R '^crypto_' --output-on-failure
 
 ### 步骤 3: 规范 dm 测试
 
-**操作**:
-```bash
-mkdir -p components/dm/tests
+**状态**: 已收敛到统一 `tests/unit/dm/` 目录；旧 `components/dm/fee-test.c`
+和 `components/dm/xy_eeprom/eflash_test.c` 源码旁入口已迁移/清理。
 
-# 移动分散的测试文件
-mv components/dm/fee-test.c components/dm/tests/test_fee.c
-mv components/dm/xy_eeprom/eflash_test.c components/dm/tests/test_eflash.c
+**运行**:
+```bash
+make test-unit
+ctest --test-dir build/tests/unit -R '^dm_' --output-on-failure
 ```
 
 ### 步骤 4: 规范 net 测试

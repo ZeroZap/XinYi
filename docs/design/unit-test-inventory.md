@@ -10,7 +10,18 @@
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
 - Registered CTest entries in `tests/unit/CMakeLists.txt`: 72
+- Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
+- First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
+  production self-test implementations are not mistaken for missing Unity migrations.
+
+## Outside-`tests/unit` Triage
+
+| Path | Classification | Action |
+| --- | --- | --- |
+| `components/crypto/curve25519-cortexm0-20150813/test/*.c` | Upstream/vendor Curve25519 Cortex-M0 test helpers | Keep in place; excluded from the project Unity/CTest unit inventory. |
+| `components/sensor/sensor_self_test.c` | Production Sensor self-test implementation | Keep in component source; covered through `tests/unit/sensor/test_sensor_framework.c`. |
+| `projects/Bank/ontroller-charger-test.c` | Imported project-local patch transcript, not an active CTest source | Leave out of unit conversion; treat as project-specific legacy material unless the Bank project is intentionally rehabilitated. |
 
 ## Component Breakdown
 
