@@ -187,10 +187,10 @@ static void test_oled_init_pixel_line_refresh(void)
     TEST_ASSERT_EQUAL_HEX8(0x00U, oled.buffer[1]);
 
     xy_oled_ssd1306_draw_line(&oled, 0, 0, 3, 0, true);
-    TEST_ASSERT_TRUE((oled.buffer[0] & 0x01U) != 0U);
-    TEST_ASSERT_TRUE((oled.buffer[1] & 0x01U) != 0U);
-    TEST_ASSERT_TRUE((oled.buffer[2] & 0x01U) != 0U);
-    TEST_ASSERT_TRUE((oled.buffer[3] & 0x01U) != 0U);
+    TEST_ASSERT_BITS_HIGH(0x01U, oled.buffer[0]);
+    TEST_ASSERT_BITS_HIGH(0x01U, oled.buffer[1]);
+    TEST_ASSERT_BITS_HIGH(0x01U, oled.buffer[2]);
+    TEST_ASSERT_BITS_HIGH(0x01U, oled.buffer[3]);
 
     reset_i2c_log();
     xy_oled_ssd1306_refresh(&oled);

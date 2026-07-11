@@ -297,7 +297,11 @@ static void test_msgqueue_full(void)
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &v, 0, 0));
     /* Full — timeout=0 must not block */
     xy_os_status_t s = xy_os_msgqueue_put(q, &v, 0, 0);
-    TEST_ASSERT_TRUE(s == XY_OS_ERROR_RESOURCE || s == XY_OS_ERROR_TIMEOUT);
+    if (s == XY_OS_ERROR_RESOURCE) {
+        TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, s);
+    } else {
+        TEST_ASSERT_EQUAL(XY_OS_ERROR_TIMEOUT, s);
+    }
     xy_os_msgqueue_delete(q);
 }
 
@@ -307,7 +311,11 @@ static void test_msgqueue_empty_get(void)
     TEST_ASSERT_NOT_NULL(q);
     uint32_t out = 0;
     xy_os_status_t s = xy_os_msgqueue_get(q, &out, NULL, 0);
-    TEST_ASSERT_TRUE(s == XY_OS_ERROR_RESOURCE || s == XY_OS_ERROR_TIMEOUT);
+    if (s == XY_OS_ERROR_RESOURCE) {
+        TEST_ASSERT_EQUAL(XY_OS_ERROR_RESOURCE, s);
+    } else {
+        TEST_ASSERT_EQUAL(XY_OS_ERROR_TIMEOUT, s);
+    }
     xy_os_msgqueue_delete(q);
 }
 
@@ -351,7 +359,8 @@ static void test_mempool_exhaust(void)
     TEST_ASSERT_NOT_NULL(mp);
     void *a = xy_os_mempool_alloc(mp, 0);
     void *b = xy_os_mempool_alloc(mp, 0);
-    TEST_ASSERT_TRUE(a != NULL && b != NULL);
+    TEST_ASSERT_NOT_NULL(a);
+    TEST_ASSERT_NOT_NULL(b);
     /* Pool exhausted — timeout=0 must return NULL */
     void *c = xy_os_mempool_alloc(mp, 0);
     TEST_ASSERT_NULL(c);
@@ -385,7 +394,8 @@ static void test_mempool_write_to_block(void)
     uint8_t *blk = (uint8_t *)xy_os_mempool_alloc(mp, 0);
     TEST_ASSERT_NOT_NULL(blk);
     memset(blk, 0xAB, 64);
-    TEST_ASSERT_TRUE(blk[0] == 0xAB && blk[63] == 0xAB);
+    TEST_ASSERT_EQUAL_HEX8(0xAB, blk[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xAB, blk[63]);
     TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mempool_free(mp, blk));
     xy_os_mempool_delete(mp);
 }
