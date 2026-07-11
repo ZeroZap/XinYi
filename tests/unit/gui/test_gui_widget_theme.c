@@ -66,10 +66,10 @@ static void test_widget_contracts(void)
 
     TEST_ASSERT_EQUAL_INT(0, xy_gui_widget_set_text(&widget, "abc"));
     TEST_ASSERT_EQUAL_STRING("abc", xy_gui_widget_get_text(&widget));
-    TEST_ASSERT_EQUAL_size_t(3, widget.text_len);
+    TEST_ASSERT_EQUAL_UINT(3, widget.text_len);
     TEST_ASSERT_EQUAL_INT(0, xy_gui_widget_set_text(&widget, "xy"));
     TEST_ASSERT_EQUAL_STRING("xy", xy_gui_widget_get_text(&widget));
-    TEST_ASSERT_EQUAL_size_t(2, widget.text_len);
+    TEST_ASSERT_EQUAL_UINT(2, widget.text_len);
 
     TEST_ASSERT_EQUAL_INT(0, xy_gui_widget_set_value(&widget, 42));
     TEST_ASSERT_EQUAL_INT(42, xy_gui_widget_get_value(&widget));
