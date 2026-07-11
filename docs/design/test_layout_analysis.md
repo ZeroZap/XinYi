@@ -333,8 +333,8 @@ add_test(NAME <component>_test COMMAND test_<component>)
 4. 统一测试框架 (推荐 Unity)
 5. 保留第三方测试，但明确标记
 
-**下一步**:
-1. 删除重复测试和历史 `UniTest/` 根目录
+**当前维护重点**:
+1. 保持 `tests/unit` 源码测试全部接入 Unity + CTest 主入口
 2. 使用 `tests/unity/` 作为统一 Unity 框架位置
 3. 维护 `tests/CMakeLists.txt` 和 `tests/unit/CMakeLists.txt` 统一入口
-4. 逐步规范各组件测试目录
+4. 对 `tests/unit` 外 first-party-looking 测试文件先分类，再决定是否迁移、保留或删除

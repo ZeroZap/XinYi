@@ -215,26 +215,16 @@ Check patch hygiene before commit:
 git diff --check
 ```
 
-## 10. Migration Rules
+## 10. Maintenance Rules
 
-When migrating old tests:
+The raw-`assert()` migration is complete for tracked `tests/unit` sources. Keep the inventory healthy:
 
-1. Convert one file or one component group at a time.
-2. Replace raw `assert()` with Unity assertions.
-3. Keep behavior unchanged during assertion-style migration.
-4. Run the focused target after each file.
-5. Run `make test-unit` after each component group.
+1. New tests must use Unity assertions from the start.
+2. Keep raw `assert()` and unwired-source scans at zero for tracked `tests/unit` source files.
+3. Treat first-party-looking files outside `tests/unit` as triage items before migrating them.
+4. Keep behavior unchanged during assertion-style cleanup.
+5. Run the focused target for touched tests, then `make test-unit` and `git diff --check`.
 6. Only introduce FFF when it makes dependency behavior clearer.
-
-Recommended order:
-
-1. DM
-2. IPC
-3. Storage
-4. Display
-5. Fuel Gauge
-6. Net
-7. Remaining component groups
 
 ## 11. Coverage And CI
 
