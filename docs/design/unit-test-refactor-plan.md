@@ -13,14 +13,14 @@ Build a maintainable host-side unit-test system for XinYi that gives most of Cee
 - Unity exists under `tests/unity/` and all tracked `tests/unit/**/*.c` source tests are Unity-style.
 - Raw `assert()` and plain compile-smoke source files in `tests/unit/` have been migrated or pruned; build-generated files under `tests/unit/build/` are excluded from the source inventory.
 - FFF is vendored under `tests/fff/` and covered by the `fff_smoke` CTest target.
-- `tests/Testing_Guideline.md` is still Ceedling-oriented and does not match the preferred near-term direction.
+- `tests/Testing_Guideline.md` now documents the active Unity + CTest + FFF workflow and keeps Ceedling deferred unless a concrete escalation condition appears.
 
 ## Target Architecture
 
 ```text
 tests/
 ├── unity/                  # Existing Unity framework
-├── fff/                    # Add fff.h single-header fake framework
+├── fff/                    # Existing fff.h single-header fake framework
 ├── support/                # Shared host-test helpers and fake reset helpers
 ├── unit/                   # Focused CTest targets, grouped by component
 │   ├── CMakeLists.txt      # Single source of truth for host unit targets
@@ -28,14 +28,14 @@ tests/
 │   ├── fuel_gauge/
 │   ├── display/
 │   └── ...
-└── Testing_Guideline.md    # Update later to Unity + CTest + FFF guidance
+└── Testing_Guideline.md    # Unity + CTest + FFF guidance
 ```
 
 ## Guiding Rules
 
 1. Keep CTest as the execution/reporting layer.
 2. Keep CMake as the compile/link/source-selection layer.
-3. Use Unity for all new tests and gradually migrate old raw `assert()` tests.
+3. Use Unity for all new tests and keep the raw-`assert()` guardrail at zero for tracked `tests/unit` sources.
 4. Use FFF for external dependency fakes when call count, argument capture, return sequences, or custom fake behavior are needed.
 5. Keep simple local stubs when FFF would add no value.
 6. Do not introduce Ruby, Ceedling, CMock, or generated runners in the near-term phases.
@@ -287,16 +287,13 @@ tests/
 - Ceedling decision is evidence-based, not framework-driven.
 - Mainline Unity + CTest + FFF workflow remains stable during evaluation.
 
-## Recommended First Implementation Slice
+## Current Maintenance Slice
 
-1. Create `docs/design/unit-test-inventory.md` with current classification.
-2. Add `xy_add_unit_test` helper and migrate 2-3 simple CMake targets.
-3. Vendor `tests/fff/fff.h`.
-4. Add `tests/unit/framework/test_fff_smoke.c`.
-5. Update `tests/Testing_Guideline.md` to stop presenting Ceedling as the active path.
-6. Run:
-   - `cmake --build build/tests/unit --target test_fff_smoke -j$(nproc)`
-   - `ctest --test-dir build/tests/unit -R fff_smoke --output-on-failure`
+1. Keep `docs/design/unit-test-inventory.md` synchronized with the tracked `tests/unit` source inventory and CTest count.
+2. Keep `tests/Testing_Guideline.md` aligned to the active Unity + CTest + FFF stack.
+3. Treat first-party-looking files outside `tests/unit` as triage items, not automatic migration targets; vendor tests, production self-tests, and project-local patch transcripts should stay out of the unit inventory unless intentionally rehabilitated.
+4. Run:
+   - `ctest --test-dir build/tests/unit -N`
    - `make test-unit`
    - `git diff --check`
 

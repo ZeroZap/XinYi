@@ -54,9 +54,10 @@
 ## Migration Priority
 
 1. Keep all new tests on Unity assertions.
-2. Convert raw `assert()` tests one component group at a time.
+2. Keep the raw `assert()` and unwired-source inventories at zero for tracked `tests/unit` sources.
 3. Use FFF first on fake-heavy targets where call count, argument capture, or return sequencing matters.
 4. Keep simple local stubs for tiny deterministic dependencies.
+5. Re-triage first-party-looking files outside `tests/unit` before treating them as migration work.
 
 ## File Classification
 
