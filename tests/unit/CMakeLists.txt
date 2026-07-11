@@ -422,6 +422,14 @@ xy_add_unit_test(test_sensor_framework sensor_framework UNITY
     ${SENSOR}/sensor_self_test.c
 )
 
+xy_add_unit_test(test_mlx90614 sensor_mlx90614 UNITY
+    ${UNIT_SENSOR}/test_mlx90614.c
+    ${SENSOR}/src/xy_mlx90614.c
+)
+target_include_directories(test_mlx90614 PRIVATE
+    ${SENSOR}/inc
+)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c

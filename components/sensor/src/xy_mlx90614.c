@@ -215,5 +215,5 @@ int xy_mlx90614_set_emissivity(xy_mlx90614_t *dev, uint16_t emissivity)
     xy_log_w("⚠️ EEPROM write not implemented - requires special command sequence\n");
     xy_log_w("⚠️ EEPROM endurance: ~100 cycles, use sparingly!\n");
     
-    return XY_HAL_ERROR_NOT_SUPPORT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
