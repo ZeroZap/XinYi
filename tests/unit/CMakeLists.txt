@@ -454,6 +454,14 @@ target_include_directories(test_bh1750 PRIVATE
     ${SENSOR}/inc
 )
 
+xy_add_unit_test(test_hdc1080 sensor_hdc1080 UNITY
+    ${UNIT_SENSOR}/test_hdc1080.c
+    ${SENSOR}/src/xy_hdc1080.c
+)
+target_include_directories(test_hdc1080 PRIVATE
+    ${SENSOR}/inc
+)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
