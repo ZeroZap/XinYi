@@ -558,6 +558,15 @@ target_include_directories(test_w25qxx BEFORE PRIVATE
     ${KERNEL}/osal
 )
 
+xy_add_unit_test(test_vl53l1x sensor_vl53l1x UNITY
+    ${UNIT_SENSOR}/test_vl53l1x.c
+    ${SENSOR}/src/xy_vl53l1x.c
+)
+target_include_directories(test_vl53l1x BEFORE PRIVATE
+    ${SENSOR}/inc
+)
+target_link_libraries(test_vl53l1x PRIVATE m)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c

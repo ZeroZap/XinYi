@@ -256,7 +256,9 @@ xy_ret_t xy_vl53l1x_init(xy_vl53l1x_dev_t *dev, xy_i2c_dev_t *i2c, xy_vl53l1x_co
     }
     
     xy_delay_ms(10);
-    
+
+    dev->is_initialized = true;
+
     /* 应用测距配置 */
     ret = vl53l1x_apply_range_config(dev);
     if (ret != XY_OK) return ret;

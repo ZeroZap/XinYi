@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "xy_typedef.h"
+#include "xy_ret.h"
 
 #ifdef __cplusplus
 extern "C" {
