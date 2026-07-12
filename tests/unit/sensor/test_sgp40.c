@@ -264,6 +264,30 @@ static void test_measurement_flow_waits_reads_and_updates_last_data(void)
     TEST_ASSERT_EQUAL_INT(-2, xy_sgp40_measure_voc(&dev, &data, 20U));
 }
 
+static void test_measurement_error_paths_preserve_last_data_and_state(void)
+{
+    xy_sgp40_dev_t dev;
+    xy_sgp40_data_t data = {.voc_index = 0xEEEEU};
+    xy_i2c_dev_t i2c = fake_i2c();
+
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_start_measurement(NULL));
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_start_measurement(&dev));
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_start_continuous(NULL));
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_start_continuous(&dev));
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_voc(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_voc(&dev, NULL));
+
+    init_ok(&dev, &i2c);
+    TEST_ASSERT_EQUAL_INT(0, xy_sgp40_start_continuous(&dev));
+    dev.last_data.voc_index = 77U;
+    dev.measurement_count = 5U;
+    queue_read_u16(0U, -1);
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_voc(&dev, &data));
+    TEST_ASSERT_EQUAL_UINT16(77U, dev.last_data.voc_index);
+    TEST_ASSERT_EQUAL_UINT32(5U, dev.measurement_count);
+}
+
 static void test_state_helpers_compensation_burn_in_and_deinit(void)
 {
     xy_sgp40_dev_t dev;
@@ -288,9 +312,13 @@ static void test_state_helpers_compensation_burn_in_and_deinit(void)
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 26.5f, dev.config.default_temperature);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 55.0f, dev.config.default_humidity);
 
+    g_command_ret_queue[g_command_index] = -1;
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_enable_burn_in(&dev));
+    TEST_ASSERT_FALSE(dev.is_burned_in);
+
     TEST_ASSERT_EQUAL_INT(0, xy_sgp40_enable_burn_in(&dev));
     TEST_ASSERT_TRUE(dev.is_burned_in);
-    TEST_ASSERT_EQUAL_UINT16(SGP40_CMD_BURN_IN, g_command_queue[3]);
+    TEST_ASSERT_EQUAL_UINT16(SGP40_CMD_BURN_IN, g_command_queue[4]);
 
     xy_sgp40_set_offset(&dev, -12);
     TEST_ASSERT_EQUAL_INT16(-12, dev.offset);
@@ -322,6 +350,7 @@ int main(void)
     RUN_TEST(test_init_uses_custom_config_and_propagates_identity_failures);
     RUN_TEST(test_feature_serial_and_self_test_crc_paths);
     RUN_TEST(test_measurement_flow_waits_reads_and_updates_last_data);
+    RUN_TEST(test_measurement_error_paths_preserve_last_data_and_state);
     RUN_TEST(test_state_helpers_compensation_burn_in_and_deinit);
     RUN_TEST(test_voc_level_boundaries);
     return UNITY_END();
