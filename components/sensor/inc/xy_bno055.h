@@ -38,9 +38,13 @@
 #ifndef XY_BNO055_H
 #define XY_BNO055_H
 
-#include "xy_sensor.h"
+#include "xy_device_error.h"
 #include <stdint.h>
 #include <stdbool.h>
+
+typedef struct {
+    uint8_t reserved;
+} xy_sensor_t;
 
 #ifdef __cplusplus
 extern "C" {

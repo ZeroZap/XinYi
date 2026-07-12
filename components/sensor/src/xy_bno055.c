@@ -33,7 +33,6 @@
 
 #include "xy_bno055.h"
 #include "xy_i2c.h"
-#include "xy_uart.h"
 #include "xy_log.h"
 #include <string.h>
 
@@ -80,7 +79,7 @@ static int bus_read(xy_bno055_t *dev, uint8_t reg, uint8_t *buf, uint16_t len)
     if (dev->is_uart) {
         /* UART 模式：需要构造命令帧 */
         /* 简化实现，实际需要根据 UART 协议 */
-        return XY_DEVICE_ENOSYS;
+        return XY_DEVICE_NOT_SUPPORT;
     } else {
         /* I2C 模式 */
         return xy_i2c_master_transmit((xy_i2c_t*)dev->bus_handle, 
@@ -95,7 +94,7 @@ static int bus_write(xy_bno055_t *dev, uint8_t reg, const uint8_t *buf, uint16_t
 {
     if (dev->is_uart) {
         /* UART 模式 */
-        return XY_DEVICE_ENOSYS;
+        return XY_DEVICE_NOT_SUPPORT;
     } else {
         /* I2C 模式 */
         return xy_i2c_master_transmit((xy_i2c_t*)dev->bus_handle, 
@@ -151,6 +150,7 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
         XY_LOG_ERROR("Reset failed: %d", ret);
         return ret;
     }
+    dev->initialized = true;
 
     /* 等待复位完成 (BNO055 需要较长时间) */
     delay_ms(650);
@@ -181,8 +181,8 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
 
     /* 检查固件版本 */
     if (dev->sw_version < BNO055_SW_REV_MIN) {
-        XY_LOG_WARNING("Firmware version too old: 0x%04X (min: 0x%04X)", 
-                       dev->sw_version, BNO055_SW_REV_MIN);
+        XY_LOG_WARN("Firmware version too old: 0x%04X (min: 0x%04X)", 
+                    dev->sw_version, BNO055_SW_REV_MIN);
     }
 
     /* 切换到配置模式 */
@@ -545,7 +545,7 @@ int xy_bno055_get_raw_data(xy_bno055_t *dev, bno055_raw_data_t *raw)
         return XY_DEVICE_EINVAL;
     }
 
-    uint8_t buf[45];  /* 所有传感器数据 */
+    uint8_t buf[45];  /* 0x08..0x34 inclusive */
     int ret = xy_bno055_read_regs(dev, BNO055_REG_ACC_DATA_X_LSB, buf, 45);
     if (ret != XY_DEVICE_OK) {
         return ret;
@@ -567,7 +567,7 @@ int xy_bno055_get_raw_data(xy_bno055_t *dev, bno055_raw_data_t *raw)
     raw->gyr_z = (int16_t)((buf[17] << 8) | buf[16]);
 
     /* 温度 */
-    raw->temp = (int8_t)buf[45];
+    raw->temp = (int8_t)buf[44];
 
     return XY_DEVICE_OK;
 }

@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C unit-test files: 86
-- Unity-style files: 86
+- Total C unit-test files: 87
+- Unity-style files: 87
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 88
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 89
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -45,7 +45,7 @@
 | `net` | 11 | 11 | 0 | 0 | 0 | 5 |
 | `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 19 | 19 | 0 | 0 | 0 | 19 |
+| `sensor` | 20 | 20 | 0 | 0 | 0 | 20 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -143,6 +143,7 @@
 | `tests/unit/sensor/test_bmi270.c` | `unity` | 0 |
 | `tests/unit/sensor/test_w25qxx.c` | `unity` | 0 |
 | `tests/unit/sensor/test_vl53l1x.c` | `unity` | 0 |
+| `tests/unit/sensor/test_bno055.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
 | `tests/unit/storage/test_storage_eeprom_24xx.c` | `unity` | 67 |

@@ -567,6 +567,15 @@ target_include_directories(test_vl53l1x BEFORE PRIVATE
 )
 target_link_libraries(test_vl53l1x PRIVATE m)
 
+xy_add_unit_test(test_bno055 sensor_bno055 UNITY
+    ${UNIT_SENSOR}/test_bno055.c
+    ${SENSOR}/src/xy_bno055.c
+)
+target_include_directories(test_bno055 BEFORE PRIVATE
+    ${SENSOR}/inc
+)
+target_link_libraries(test_bno055 PRIVATE m)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
