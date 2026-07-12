@@ -454,6 +454,15 @@ target_include_directories(test_sht30 BEFORE PRIVATE
     ${SENSOR}/inc
 )
 
+xy_add_unit_test(test_oled_ssd1306 sensor_oled_ssd1306 UNITY
+    ${UNIT_SENSOR}/test_oled_ssd1306.c
+    ${SENSOR}/src/xy_oled_ssd1306.c
+)
+target_include_directories(test_oled_ssd1306 BEFORE PRIVATE
+    ${SENSOR}/inc
+    ${OSAL}/inc
+)
+
 xy_add_unit_test(test_bh1750 sensor_bh1750 UNITY
     ${UNIT_SENSOR}/test_bh1750.c
     ${SENSOR}/src/xy_bh1750.c

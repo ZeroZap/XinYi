@@ -65,7 +65,7 @@ typedef struct {
     uint16_t width;             /**< 宽度 */
     uint16_t height;            /**< 高度 */
     uint8_t *buffer;            /**< 显示缓冲区 */
-    uint8_t buffer_size;        /**< 缓冲区大小 */
+    uint16_t buffer_size;       /**< 缓冲区大小 */
     uint8_t initialized;        /**< 初始化标志 */
 } xy_oled_ssd1306_t;
 

@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C unit-test files: 89
-- Unity-style files: 89
+- Total C unit-test files: 90
+- Unity-style files: 90
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 91
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 92
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -45,7 +45,7 @@
 | `net` | 11 | 11 | 0 | 0 | 0 | 5 |
 | `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 22 | 22 | 0 | 0 | 0 | 22 |
+| `sensor` | 23 | 23 | 0 | 0 | 0 | 23 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -131,6 +131,7 @@
 | `tests/unit/sensor/test_aht20.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sht40.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sht30.c` | `unity` | 0 |
+| `tests/unit/sensor/test_oled_ssd1306.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bh1750.c` | `unity` | 0 |
 | `tests/unit/sensor/test_hdc1080.c` | `unity` | 0 |
 | `tests/unit/sensor/test_tsl2561.c` | `unity` | 0 |

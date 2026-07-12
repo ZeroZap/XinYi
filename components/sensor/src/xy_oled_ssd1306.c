@@ -7,6 +7,7 @@
 
 #include "xy_oled_ssd1306.h"
 #include "xy_log.h"
+#include "xy_os_delay.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -120,15 +121,30 @@ int xy_oled_ssd1306_init(xy_oled_ssd1306_t *dev, void *i2c_handle)
         if (ret != XY_DEVICE_OK) {
             xy_log_e("Failed to send init command %d\n", i);
             free(dev->buffer);
+            dev->buffer = NULL;
             return XY_OLED_NOT_FOUND;
         }
         xy_os_delay(1);
     }
     
-    xy_oled_ssd1306_clear(dev);
-    xy_oled_ssd1306_refresh(dev);
-    
     dev->initialized = 1;
+
+    ret = xy_oled_ssd1306_clear(dev);
+    if (ret != XY_OLED_OK) {
+        free(dev->buffer);
+        dev->buffer = NULL;
+        dev->initialized = 0;
+        return ret;
+    }
+
+    ret = xy_oled_ssd1306_refresh(dev);
+    if (ret != XY_DEVICE_OK) {
+        free(dev->buffer);
+        dev->buffer = NULL;
+        dev->initialized = 0;
+        return XY_OLED_ERROR;
+    }
+
     xy_log_i("SSD1306 OLED initialized (128x64)\n");
     return XY_OLED_OK;
 }
