@@ -530,6 +530,14 @@ target_include_directories(test_mpu6050 BEFORE PRIVATE
     ${KERNEL}/osal
 )
 
+xy_add_unit_test(test_bmi088 sensor_bmi088 UNITY
+    ${UNIT_SENSOR}/test_bmi088.c
+    ${SENSOR}/src/xy_bmi088.c
+)
+target_include_directories(test_bmi088 BEFORE PRIVATE
+    ${SENSOR}/inc
+)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c

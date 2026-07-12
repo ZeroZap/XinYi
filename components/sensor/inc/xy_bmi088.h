@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "xy_ret.h"
 #include "xy_typedef.h"
 
 #ifdef __cplusplus

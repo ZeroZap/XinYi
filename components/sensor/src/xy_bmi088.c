@@ -227,7 +227,7 @@ xy_ret_t xy_bmi088_deinit(xy_bmi088_dev_t *dev)
 
 xy_ret_t xy_bmi088_read_chip_id(xy_bmi088_dev_t *dev, uint8_t *acc_id, uint8_t *gyro_id)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || dev->spi == XY_NULL) {
         return XY_ERROR;
     }
     
