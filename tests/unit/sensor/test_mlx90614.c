@@ -122,6 +122,44 @@ static void test_bad_pec_rejects_temperature_read_without_updating_output(void)
     TEST_ASSERT_EQUAL_INT16(1234, ta);
 }
 
+static void test_read_ambient_success_and_invalid_output_paths(void)
+{
+    xy_mlx90614_t dev;
+    int16_t ta = -1234;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_ambient(NULL, &ta));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_ambient(&dev, NULL));
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_read_ambient(&dev, &ta));
+    TEST_ASSERT_EQUAL_INT16(2685, ta);
+}
+
+static void test_read_all_failures_preserve_cached_temperatures(void)
+{
+    xy_mlx90614_t dev;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    dev.ta = 111;
+    dev.tobj1 = 222;
+    dev.tobj2 = 333;
+
+    g_read_fail_reg[MLX90614_RAM_TA] = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mlx90614_read_all(&dev));
+    TEST_ASSERT_EQUAL_INT16(111, dev.ta);
+    TEST_ASSERT_EQUAL_INT16(222, dev.tobj1);
+    TEST_ASSERT_EQUAL_INT16(333, dev.tobj2);
+
+    g_read_fail_reg[MLX90614_RAM_TA] = 0U;
+    g_read_fail_reg[MLX90614_RAM_TOBJ1] = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mlx90614_read_all(&dev));
+    TEST_ASSERT_EQUAL_INT16(111, dev.ta);
+    TEST_ASSERT_EQUAL_INT16(222, dev.tobj1);
+    TEST_ASSERT_EQUAL_INT16(333, dev.tobj2);
+}
+
 static void test_init_reports_not_found_when_id_read_fails(void)
 {
     xy_mlx90614_t dev;
@@ -179,12 +217,28 @@ static void test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error
     uint16_t emissivity = 0;
     int fake_bus;
 
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_get_emissivity(NULL, &emissivity));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_get_emissivity(&dev, NULL));
+
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_get_emissivity(&dev, &emissivity));
     TEST_ASSERT_EQUAL_UINT16(949U, emissivity);
 
     emissivity = 0;
     g_read_fail_reg[MLX90614_EMISSIVITY] = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_get_emissivity(&dev, &emissivity));
+    TEST_ASSERT_EQUAL_UINT16(950U, emissivity);
+}
+
+static void test_emissivity_get_falls_back_on_bad_pec(void)
+{
+    xy_mlx90614_t dev;
+    uint16_t emissivity = 123U;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    g_read_regs[MLX90614_EMISSIVITY][2] ^= 0x80U;
+
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_get_emissivity(&dev, &emissivity));
     TEST_ASSERT_EQUAL_UINT16(950U, emissivity);
 }
@@ -210,9 +264,12 @@ int main(void)
     RUN_TEST(test_read_all_rejects_invalid_or_uninitialized_device);
     RUN_TEST(test_read_all_converts_temperature_registers_and_single_channel_fallback);
     RUN_TEST(test_bad_pec_rejects_temperature_read_without_updating_output);
+    RUN_TEST(test_read_ambient_success_and_invalid_output_paths);
+    RUN_TEST(test_read_all_failures_preserve_cached_temperatures);
     RUN_TEST(test_read_object1_updates_output_only_on_success);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
     RUN_TEST(test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error);
+    RUN_TEST(test_emissivity_get_falls_back_on_bad_pec);
     RUN_TEST(test_set_emissivity_validates_range_and_reports_unsupported_write);
     return UNITY_END();
 }
