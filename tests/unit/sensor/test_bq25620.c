@@ -239,6 +239,75 @@ static void test_read_parses_status_fault_and_timestamp(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_read(&bq));
 }
 
+static void test_read_fault_failure_keeps_previous_fault_and_updates_status(void)
+{
+    xy_bq25620_t bq;
+    xy_bq25620_config_t cfg = test_config();
+    int bus;
+
+    init_ok(&bq, &bus, &cfg);
+    bq.data.fault = XY_BQ_FAULT_THERMAL;
+    queue_read8(BQ25620_REG_CHG_STAT, 0x98U, XY_DEVICE_OK);   /* enabled + precharge + PG */
+    queue_read8(BQ25620_REG_FAULT, 0x00U, XY_DEVICE_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_BQ_OK, xy_bq25620_read(&bq));
+    TEST_ASSERT_EQUAL_INT(XY_BQ_CHG_STATE_PRECHARGE, bq.data.chg_state);
+    TEST_ASSERT_TRUE(bq.data.vbus_present);
+    TEST_ASSERT_FALSE(bq.data.dpm_active);
+    TEST_ASSERT_TRUE(bq.data.chg_enabled);
+    TEST_ASSERT_EQUAL_INT(XY_BQ_FAULT_THERMAL, bq.data.fault);
+    TEST_ASSERT_EQUAL_UINT32(0x12345678U, bq.data.timestamp);
+}
+
+static void test_helpers_propagate_read_failures_without_overwriting_outputs(void)
+{
+    xy_bq25620_t bq;
+    xy_bq25620_config_t cfg = test_config();
+    xy_bq_chg_state_t state = XY_BQ_CHG_STATE_CHARGE_DONE;
+    xy_bq_fault_t fault = XY_BQ_FAULT_BAT_OVP;
+    int bus;
+
+    init_ok(&bq, &bus, &cfg);
+
+    queue_read8(BQ25620_REG_CHG_STAT, 0x00U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_get_chg_state(&bq, &state));
+    TEST_ASSERT_EQUAL_INT(XY_BQ_CHG_STATE_CHARGE_DONE, state);
+
+    queue_read8(BQ25620_REG_CHG_STAT, 0x00U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_get_fault(&bq, &fault));
+    TEST_ASSERT_EQUAL_INT(XY_BQ_FAULT_BAT_OVP, fault);
+
+    bq.data.vbus_present = true;
+    queue_read8(BQ25620_REG_CHG_STAT, 0x00U, XY_DEVICE_ERROR);
+    TEST_ASSERT_TRUE(xy_bq25620_is_vbus_present(&bq));
+}
+
+static void test_control_helpers_propagate_update_bit_failures(void)
+{
+    xy_bq25620_t bq;
+    xy_bq25620_config_t cfg = test_config();
+    int bus;
+
+    init_ok(&bq, &bus, &cfg);
+
+    queue_read8(BQ25620_REG_CHG_STAT, 0x84U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_stop_charging(&bq));
+
+    queue_read8(BQ25620_REG_CHG_STAT, 0x04U, XY_DEVICE_OK);
+    queue_write8(BQ25620_REG_CHG_STAT, 0x84U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_start_charging(&bq));
+
+    queue_read8(BQ25620_REG_CHG_CTRL0, 0x07U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_set_charge_current(&bq, 1000));
+
+    queue_read8(BQ25620_REG_CHG_CTRL2, 0x01U, XY_DEVICE_OK);
+    queue_write8(BQ25620_REG_CHG_CTRL2, 0xF1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_set_battery_voltage(&bq, 4200));
+
+    queue_read8(BQ25620_REG_FAULT, 0x00U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_reset_fault(&bq));
+}
+
 static void test_getters_and_control_helpers(void)
 {
     xy_bq25620_t bq;
@@ -309,6 +378,9 @@ int main(void)
     RUN_TEST(test_init_rejects_invalid_inputs_and_configures_registers);
     RUN_TEST(test_init_reports_id_and_config_failures);
     RUN_TEST(test_read_parses_status_fault_and_timestamp);
+    RUN_TEST(test_read_fault_failure_keeps_previous_fault_and_updates_status);
+    RUN_TEST(test_helpers_propagate_read_failures_without_overwriting_outputs);
+    RUN_TEST(test_control_helpers_propagate_update_bit_failures);
     RUN_TEST(test_getters_and_control_helpers);
     return UNITY_END();
 }
