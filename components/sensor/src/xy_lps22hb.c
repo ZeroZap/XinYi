@@ -1,4 +1,3 @@
-#include "xy_ret.h"
 /**
  * @file xy_lps22hb.c
  * @brief LPS22HB Waterproof Barometric Pressure Sensor Driver Implementation
@@ -150,7 +149,7 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     dev->config.fifo_wtm = 0;
     dev->config.enable_interrupt = false;
     dev->config.threshold.low = 0;
-    dev->config.threshold.high = 126000;  /* 1260 hPa * 100 */
+    dev->config.threshold.high = UINT16_MAX;
     
     if (config != XY_NULL) {
         dev->config = *config;
@@ -208,7 +207,7 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     if (ret != XY_OK) return ret;
     
     /* 配置 CTRL_REG2 */
-    uint8_t ctrl2 = 0;
+    ctrl2 = 0;
     if (dev->config.enable_fifo) {
         ctrl2 |= LPS22HB_FIFO_EN;
         ctrl2 |= dev->config.fifo_mode;

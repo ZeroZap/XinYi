@@ -478,6 +478,15 @@ target_include_directories(test_sgp40 PRIVATE
     ${SENSOR}/inc
 )
 
+xy_add_unit_test(test_lps22hb sensor_lps22hb UNITY
+    ${UNIT_SENSOR}/test_lps22hb.c
+    ${SENSOR}/src/xy_lps22hb.c
+)
+target_include_directories(test_lps22hb PRIVATE
+    ${SENSOR}/inc
+)
+target_link_libraries(test_lps22hb PRIVATE m)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
