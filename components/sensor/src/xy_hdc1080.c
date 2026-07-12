@@ -121,6 +121,10 @@ int xy_hdc1080_read_humidity(xy_hdc1080_t *dev, uint16_t *humi)
 
 int xy_hdc1080_heater_on(xy_hdc1080_t *dev)
 {
+    if (!dev || !dev->initialized) {
+        return XY_HDC1080_INVALID_PARAM;
+    }
+
     uint16_t config = HDC1080_CONFIG_HEATER;
     uint8_t buf[2] = {(config >> 8) & 0xFF, config & 0xFF};
     return xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, buf, 2);
@@ -128,6 +132,10 @@ int xy_hdc1080_heater_on(xy_hdc1080_t *dev)
 
 int xy_hdc1080_heater_off(xy_hdc1080_t *dev)
 {
+    if (!dev || !dev->initialized) {
+        return XY_HDC1080_INVALID_PARAM;
+    }
+
     uint8_t buf[2] = {0, 0};
     return xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, buf, 2);
 }

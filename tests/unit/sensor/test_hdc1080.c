@@ -249,16 +249,27 @@ static void test_read_temperature_and_humidity_update_outputs_only_on_success(vo
     temp = -1;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_hdc1080_read_temperature(&dev, &temp));
     TEST_ASSERT_EQUAL_INT16(-1, temp);
+
+    g_cmd_ret_queue[g_cmd_index] = XY_DEVICE_ERROR;
+    humi = 0x1234U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_hdc1080_read_humidity(&dev, &humi));
+    TEST_ASSERT_EQUAL_UINT16(0x1234U, humi);
 }
 
-static void test_deinit_and_heater_commands(void)
+static void test_heater_commands_validate_state_and_propagate_write_errors(void)
 {
     xy_hdc1080_t dev;
 
-    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_heater_on(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_heater_off(NULL));
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_heater_on(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_heater_off(&dev));
 
     init_ok(&dev);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_hdc1080_heater_on(&dev));
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_hdc1080_heater_on(&dev));
     TEST_ASSERT_EQUAL_UINT8(HDC1080_REG_CONFIG, g_write_reg_queue[2]);
     TEST_ASSERT_EQUAL_UINT8(0x20, g_write_data_queue[2][0]);
     TEST_ASSERT_EQUAL_UINT8(0x00, g_write_data_queue[2][1]);
@@ -267,9 +278,18 @@ static void test_deinit_and_heater_commands(void)
     TEST_ASSERT_EQUAL_UINT8(HDC1080_REG_CONFIG, g_write_reg_queue[3]);
     TEST_ASSERT_EQUAL_UINT8(0x00, g_write_data_queue[3][0]);
     TEST_ASSERT_EQUAL_UINT8(0x00, g_write_data_queue[3][1]);
+}
 
+static void test_deinit_clears_initialized_state(void)
+{
+    xy_hdc1080_t dev;
+
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_deinit(NULL));
+
+    init_ok(&dev);
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_OK, xy_hdc1080_deinit(&dev));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_read(&dev));
 }
 
 int main(void)
@@ -280,6 +300,7 @@ int main(void)
     RUN_TEST(test_read_converts_temperature_and_humidity);
     RUN_TEST(test_read_returns_errors_without_overwriting_existing_values);
     RUN_TEST(test_read_temperature_and_humidity_update_outputs_only_on_success);
-    RUN_TEST(test_deinit_and_heater_commands);
+    RUN_TEST(test_heater_commands_validate_state_and_propagate_write_errors);
+    RUN_TEST(test_deinit_clears_initialized_state);
     return UNITY_END();
 }
