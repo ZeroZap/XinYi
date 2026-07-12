@@ -7,6 +7,7 @@
 
 #include "xy_coulomb.h"
 #include "xy_log.h"
+#include "xy_hal_sys.h"
 #include <string.h>
 #include <math.h>
 #include <stdbool.h>

@@ -509,6 +509,17 @@ target_include_directories(test_adc_power_monitors BEFORE PRIVATE
     ${KERNEL}/osal
 )
 
+xy_add_unit_test(test_coulomb sensor_coulomb UNITY
+    ${UNIT_SENSOR}/test_coulomb.c
+    ${SENSOR}/src/xy_coulomb.c
+)
+target_include_directories(test_coulomb BEFORE PRIVATE
+    ${SENSOR}/inc
+    ${HAL}/inc
+    ${KERNEL}/osal
+)
+target_link_libraries(test_coulomb PRIVATE m)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
