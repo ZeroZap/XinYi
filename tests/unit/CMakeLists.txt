@@ -576,6 +576,17 @@ target_include_directories(test_bno055 BEFORE PRIVATE
 )
 target_link_libraries(test_bno055 PRIVATE m)
 
+xy_add_unit_test(test_dmp sensor_dmp UNITY
+    ${UNIT_SENSOR}/test_dmp.c
+    ${SENSOR}/src/xy_dmp.c
+)
+target_include_directories(test_dmp BEFORE PRIVATE
+    ${SENSOR}/inc
+    ${HAL}/inc
+    ${KERNEL}/osal/inc
+)
+target_link_libraries(test_dmp PRIVATE m)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c

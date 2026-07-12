@@ -6,7 +6,9 @@
  */
 
 #include "xy_dmp.h"
+#include "xy_hal_delay.h"
 #include "xy_log.h"
+#include "xy_os_tick.h"
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -18,7 +20,7 @@
 /**
  * @brief 四元数转欧拉角
  */
-// static void // xy_dmp_quaternion_to_euler(const xy_quaternion_t *q, xy_euler_t *euler)
+static void xy_dmp_quaternion_to_euler(const xy_quaternion_t *q, xy_euler_t *euler)
 {
     /* Roll (x-axis rotation) */
     float sinr_cosp = 2.0F * (q->w * q->x + q->y * q->z);
