@@ -285,6 +285,44 @@ static void test_controls_fifo_lpf_threshold_interrupt_and_deinit(void)
     TEST_ASSERT_NULL(xy_lps22hb_get_last_data(NULL));
 }
 
+static void test_public_error_paths_preserve_outputs_and_state(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_lps22hb_data_t data = {.pressure = -1.0f, .temperature = -2.0f};
+    xy_interface_dev_t iface = fake_interface();
+    uint8_t who = 0xAAU;
+    bool ready = true;
+
+    memset(&dev, 0, sizeof(dev));
+    dev.interface = &iface;
+
+    queue_read8(LPS22HB_WHO_AM_I, 0x00U, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_read_who_am_i(&dev, &who));
+    TEST_ASSERT_EQUAL_UINT8(0xAAU, who);
+
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_soft_reset(&dev));
+
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, LPS22HB_SWRESET, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_soft_reset(&dev));
+
+    queue_read8(LPS22HB_STATUS, 0x00U, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_check_data_ready(&dev, &ready));
+    TEST_ASSERT_FALSE(ready);
+
+    setUp();
+    init_ok(&dev, &iface);
+    dev.last_data.pressure = 999.0f;
+    dev.last_data.temperature = 12.0f;
+    dev.measurement_count = 7U;
+    queue_read(LPS22HB_PRESS_OUT_XL, NULL, 5U, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_read_data(&dev, &data));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 999.0f, dev.last_data.pressure);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.0f, dev.last_data.temperature);
+    TEST_ASSERT_EQUAL_UINT32(7U, dev.measurement_count);
+}
+
 static void test_pressure_altitude_helpers_and_invalid_inputs(void)
 {
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, xy_lps22hb_pressure_to_altitude(1013.25f, 1013.25f));
@@ -308,6 +346,7 @@ int main(void)
     RUN_TEST(test_read_data_converts_pressure_temperature_and_offsets);
     RUN_TEST(test_measure_waits_for_data_ready_and_handles_timeout);
     RUN_TEST(test_controls_fifo_lpf_threshold_interrupt_and_deinit);
+    RUN_TEST(test_public_error_paths_preserve_outputs_and_state);
     RUN_TEST(test_pressure_altitude_helpers_and_invalid_inputs);
     return UNITY_END();
 }
