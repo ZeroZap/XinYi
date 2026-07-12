@@ -7,6 +7,7 @@
 
 #include "xy_tsl2561.h"
 #include "xy_log.h"
+#include "xy_os.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -75,8 +76,8 @@ static float xy_tsl2561_calculate_lux(xy_tsl2561_t *tsl2561,
     }
     
     /* 计算通道值 */
-    channel0 = (broadband * chScale) >> 10;
-    channel1 = (ir * chScale) >> 10;
+    channel0 = (long)((broadband * chScale) / 1024.0f);
+    channel1 = (long)((ir * chScale) / 1024.0f);
     
     /* 计算比率 */
     if (channel0 != 0) {
@@ -182,7 +183,7 @@ int xy_tsl2561_read(xy_tsl2561_t *tsl2561)
         return ret;
     }
     
-    tsl22561->data.broadband = broadband;
+    tsl2561->data.broadband = broadband;
     tsl2561->data.ir = ir;
     
     /* 计算照度 */
@@ -255,8 +256,8 @@ int xy_tsl2561_set_gain(xy_tsl2561_t *tsl2561, xy_tsl2561_gain_t gain)
     }
     
     /* 保持积分时间设置 */
-    timing_reg &= 0x03;
-    timing_reg |= (tsl2561->integration << 4);
+    timing_reg &= ~0x03;
+    timing_reg |= tsl2561->integration;
     
     return xy_tsl2561_write_reg(tsl2561, TSL2561_REG_TIMING, timing_reg);
 }
@@ -282,6 +283,8 @@ int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
     /* 保持增益设置 */
     if (tsl2561->gain == XY_TSL2561_GAIN_16X) {
         timing_reg |= 0x10;
+    } else {
+        timing_reg &= ~0x10;
     }
     
     return xy_tsl2561_write_reg(tsl2561, TSL2561_REG_TIMING, timing_reg);
