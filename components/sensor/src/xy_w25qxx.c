@@ -6,7 +6,9 @@
  */
 
 #include "xy_w25qxx.h"
+#include "xy_hal_gpio.h"
 #include "xy_log.h"
+#include "xy_os.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -23,12 +25,22 @@
 static inline void xy_w25q_cs_low(xy_w25qxx_t *dev)
 {
     /* 根据实际平台实现 */
-    xy_hal_gpio_write(dev->cs_pin, 0);
+    xy_hal_gpio_write(0, dev->cs_pin, 0);
 }
 
 static inline void xy_w25q_cs_high(xy_w25qxx_t *dev)
 {
-    xy_hal_gpio_write(dev->cs_pin, 1);
+    xy_hal_gpio_write(0, dev->cs_pin, 1);
+}
+
+static int xy_w25q_spi_write(xy_w25qxx_t *dev, const uint8_t *data, uint32_t len)
+{
+    return xy_spi_device_transfer(&dev->spi_dev, data, NULL, len);
+}
+
+static int xy_w25q_spi_read(xy_w25qxx_t *dev, uint8_t *data, uint32_t len)
+{
+    return xy_spi_device_transfer(&dev->spi_dev, NULL, data, len);
 }
 
 /**
@@ -36,7 +48,7 @@ static inline void xy_w25q_cs_high(xy_w25qxx_t *dev)
  */
 static int xy_w25q_send_cmd(xy_w25qxx_t *dev, uint8_t cmd)
 {
-    return xy_spi_device_write(&dev->spi_dev, &cmd, 1);
+    return xy_w25q_spi_write(dev, &cmd, 1);
 }
 
 /**
@@ -50,7 +62,7 @@ static int xy_w25q_send_cmd_addr(xy_w25qxx_t *dev, uint8_t cmd, uint32_t addr)
     buf[2] = (addr >> 8) & 0xFF;
     buf[3] = addr & 0xFF;
     
-    return xy_spi_device_write(&dev->spi_dev, buf, 4);
+    return xy_w25q_spi_write(dev, buf, 4);
 }
 
 int xy_w25qxx_init(xy_w25qxx_t *dev, void *spi_handle, uint8_t cs_pin)
@@ -65,7 +77,7 @@ int xy_w25qxx_init(xy_w25qxx_t *dev, void *spi_handle, uint8_t cs_pin)
     memset(dev, 0, sizeof(*dev));
     
     /* 初始化 SPI */
-    xy_spi_device_init(&dev->spi_dev, spi_handle, 1000000);  /* 1MHz */
+    xy_spi_device_init(&dev->spi_dev, spi_handle, NULL, 1000000, 0);  /* 1MHz */
     dev->cs_pin = cs_pin;
     
     /* 初始化 CS 引脚 */
@@ -123,7 +135,7 @@ int xy_w25qxx_deinit(xy_w25qxx_t *dev)
         return XY_W25Q_INVALID_PARAM;
     }
     
-    xy_w25q_power_down(dev);
+    xy_w25qxx_power_down(dev);
     dev->initialized = 0;
     
     return XY_W25Q_OK;
@@ -140,9 +152,9 @@ int xy_w25qxx_read_id(xy_w25qxx_t *dev, uint8_t *manufacturer_id, uint8_t *devic
     }
     
     xy_w25q_cs_low(dev);
-    xy_spi_device_write(&dev->spi_dev, &cmd, 1);
-    xy_spi_device_write(&dev->spi_dev, addr, 3);
-    xy_spi_device_read(&dev->spi_dev, rx, 2);
+    xy_w25q_spi_write(dev, &cmd, 1);
+    xy_w25q_spi_write(dev, addr, 3);
+    xy_w25q_spi_read(dev, rx, 2);
     xy_w25q_cs_high(dev);
     
     *manufacturer_id = rx[0];
@@ -160,8 +172,8 @@ int xy_w25qxx_read_status(xy_w25qxx_t *dev, uint8_t *status)
     }
     
     xy_w25q_cs_low(dev);
-    xy_spi_device_write(&dev->spi_dev, &cmd, 1);
-    xy_spi_device_read(&dev->spi_dev, status, 1);
+    xy_w25q_spi_write(dev, &cmd, 1);
+    xy_w25q_spi_read(dev, status, 1);
     xy_w25q_cs_high(dev);
     
     return XY_W25Q_OK;
@@ -254,7 +266,7 @@ int xy_w25qxx_page_program(xy_w25qxx_t *dev, uint32_t addr, const uint8_t *data,
     
     xy_w25q_cs_low(dev);
     xy_w25q_send_cmd_addr(dev, W25Q_CMD_PAGE_PROGRAM, addr);
-    xy_spi_device_write(&dev->spi_dev, data, len);
+    xy_w25q_spi_write(dev, data, len);
     xy_w25q_cs_high(dev);
     
     return xy_w25qxx_wait_idle(dev, W25Q_WRITE_TIMEOUT);
@@ -268,7 +280,7 @@ int xy_w25qxx_read_data(xy_w25qxx_t *dev, uint32_t addr, uint8_t *data, uint32_t
     
     xy_w25q_cs_low(dev);
     xy_w25q_send_cmd_addr(dev, W25Q_CMD_READ_DATA, addr);
-    xy_spi_device_read(&dev->spi_dev, data, len);
+    xy_w25q_spi_read(dev, data, len);
     xy_w25q_cs_high(dev);
     
     return XY_W25Q_OK;
@@ -288,8 +300,9 @@ int xy_w25qxx_write_data(xy_w25qxx_t *dev, uint32_t addr, const uint8_t *data, u
     for (i = 0; i < len; ) {
         /* 计算页边界 */
         page_offset = addr % W25Q_PAGE_SIZE;
-        write_len = (page_offset + len - i > W25Q_PAGE_SIZE) ? 
-                    (W25Q_PAGE_SIZE - page_offset) : (len - i);
+        uint32_t bytes_to_page_end = (uint32_t)W25Q_PAGE_SIZE - page_offset;
+        uint32_t bytes_remaining = len - i;
+        write_len = (uint16_t)((bytes_remaining > bytes_to_page_end) ? bytes_to_page_end : bytes_remaining);
         
         /* 擦除扇区 (如果必要) */
         if ((addr % W25Q_SECTOR_SIZE) == 0) {

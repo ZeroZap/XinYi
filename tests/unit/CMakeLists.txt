@@ -538,6 +538,17 @@ target_include_directories(test_bmi088 BEFORE PRIVATE
     ${SENSOR}/inc
 )
 
+xy_add_unit_test(test_w25qxx sensor_w25qxx UNITY
+    ${UNIT_SENSOR}/test_w25qxx.c
+    ${SENSOR}/src/xy_w25qxx.c
+)
+target_include_directories(test_w25qxx BEFORE PRIVATE
+    ${SENSOR}/inc
+    ${DEVICE}/inc
+    ${HAL}/inc
+    ${KERNEL}/osal
+)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
