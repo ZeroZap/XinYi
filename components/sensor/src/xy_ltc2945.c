@@ -6,6 +6,7 @@
  */
 
 #include "xy_ltc2945.h"
+#include "xy_hal_sys.h"
 #include "xy_log.h"
 #include <string.h>
 

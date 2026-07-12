@@ -498,6 +498,17 @@ target_include_directories(test_power_monitors PRIVATE
     ${KERNEL}/osal
 )
 
+xy_add_unit_test(test_adc_power_monitors sensor_adc_power_monitors UNITY
+    ${UNIT_SENSOR}/test_adc_power_monitors.c
+    ${SENSOR}/src/xy_ltc2945.c
+    ${SENSOR}/src/xy_ads1115.c
+)
+target_include_directories(test_adc_power_monitors BEFORE PRIVATE
+    ${SENSOR}/inc
+    ${HAL}/inc
+    ${KERNEL}/osal
+)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
