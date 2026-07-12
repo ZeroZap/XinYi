@@ -463,6 +463,16 @@ target_include_directories(test_oled_ssd1306 BEFORE PRIVATE
     ${OSAL}/inc
 )
 
+xy_add_unit_test(test_bq25620 sensor_bq25620 UNITY
+    ${UNIT_SENSOR}/test_bq25620.c
+    ${SENSOR}/src/xy_bq25620.c
+)
+target_include_directories(test_bq25620 BEFORE PRIVATE
+    ${SENSOR}/inc
+    ${HAL}/inc
+    ${KERNEL}/osal/inc
+)
+
 xy_add_unit_test(test_bh1750 sensor_bh1750 UNITY
     ${UNIT_SENSOR}/test_bh1750.c
     ${SENSOR}/src/xy_bh1750.c

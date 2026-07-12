@@ -7,6 +7,7 @@
 
 #include "xy_bq25620.h"
 #include "xy_log.h"
+#include "xy_os_tick.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
