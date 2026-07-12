@@ -438,6 +438,14 @@ target_include_directories(test_aht20 PRIVATE
     ${SENSOR}/inc
 )
 
+xy_add_unit_test(test_sht40 sensor_sht40 UNITY
+    ${UNIT_SENSOR}/test_sht40.c
+    ${SENSOR}/src/xy_sht40.c
+)
+target_include_directories(test_sht40 PRIVATE
+    ${SENSOR}/inc
+)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
