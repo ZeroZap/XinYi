@@ -14,7 +14,9 @@ static size_t g_read_count;
 static size_t g_read_index;
 static uint8_t g_write_queue[8][4];
 static size_t g_write_len_queue[8];
+static int g_write_ret_queue[8];
 static size_t g_write_count;
+static size_t g_write_index;
 static uint32_t g_tick;
 static uint32_t g_delay_total;
 static uint8_t g_last_addr;
@@ -59,7 +61,7 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
     memcpy(g_write_queue[g_write_count], data, len);
     g_write_len_queue[g_write_count] = len;
     g_write_count++;
-    return XY_DEVICE_OK;
+    return g_write_ret_queue[g_write_index++];
 }
 
 uint32_t xy_os_tick_get(void)
@@ -83,7 +85,9 @@ static void queue_read(const uint8_t *data, size_t len, int ret)
 {
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_read_queue) / sizeof(g_read_queue[0]), g_read_count);
     TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_read_queue[0]), len);
-    memcpy(g_read_queue[g_read_count], data, len);
+    if (data != NULL) {
+        memcpy(g_read_queue[g_read_count], data, len);
+    }
     g_read_len_queue[g_read_count] = len;
     g_read_ret_queue[g_read_count] = ret;
     g_read_count++;
@@ -115,9 +119,13 @@ void setUp(void)
     memset(g_read_ret_queue, 0, sizeof(g_read_ret_queue));
     memset(g_write_queue, 0, sizeof(g_write_queue));
     memset(g_write_len_queue, 0, sizeof(g_write_len_queue));
+    for (size_t i = 0; i < sizeof(g_write_ret_queue) / sizeof(g_write_ret_queue[0]); ++i) {
+        g_write_ret_queue[i] = XY_DEVICE_OK;
+    }
     g_read_count = 0;
     g_read_index = 0;
     g_write_count = 0;
+    g_write_index = 0;
     g_tick = 1000;
     g_delay_total = 0;
     g_last_addr = 0;
@@ -161,6 +169,43 @@ static void test_init_reports_busy_after_timeout(void)
     TEST_ASSERT_GREATER_OR_EQUAL_UINT32(500U, g_delay_total);
 }
 
+static void test_init_reports_write_and_status_read_failures_and_uncalibrated_status(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    g_write_ret_queue[0] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_ERROR, xy_aht20_init(&dev, &fake_bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+
+    setUp();
+    queue_read(NULL, 1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_aht20_init(&dev, &fake_bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+
+    setUp();
+    queue_status(0x00); /* init busy check */
+    queue_status(0x00); /* calibration status: not calibrated */
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.calibrated);
+}
+
+static void test_deinit_rejects_null_and_clears_initialized_flag(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_deinit(NULL));
+
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+}
+
 static void test_read_converts_humidity_temperature_and_timestamp(void)
 {
     xy_aht20_t dev;
@@ -181,6 +226,41 @@ static void test_read_converts_humidity_temperature_and_timestamp(void)
     TEST_ASSERT_EQUAL_UINT16(5000U, dev.data.humidity);
     TEST_ASSERT_EQUAL_INT16(5000, dev.data.temperature);
     TEST_ASSERT_EQUAL_UINT32(g_tick, dev.data.timestamp);
+}
+
+static void test_read_rejects_invalid_uninitialized_and_propagates_failures_without_overwrite(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_read(NULL));
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_read(&dev));
+
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    dev.data.temperature = 123;
+    dev.data.humidity = 456;
+
+    queue_status(0x00);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_aht20_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(123, dev.data.temperature);
+    TEST_ASSERT_EQUAL_UINT16(456U, dev.data.humidity);
+
+    setUp();
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    dev.data.temperature = 123;
+    dev.data.humidity = 456;
+    queue_status(0x00);
+    queue_status(0x00);
+    queue_read(NULL, 7U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_aht20_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(123, dev.data.temperature);
+    TEST_ASSERT_EQUAL_UINT16(456U, dev.data.humidity);
 }
 
 static void test_get_helpers_update_output_only_on_success(void)
@@ -227,7 +307,10 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_records_calibration_status);
     RUN_TEST(test_init_reports_busy_after_timeout);
+    RUN_TEST(test_init_reports_write_and_status_read_failures_and_uncalibrated_status);
+    RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
     RUN_TEST(test_read_converts_humidity_temperature_and_timestamp);
+    RUN_TEST(test_read_rejects_invalid_uninitialized_and_propagates_failures_without_overwrite);
     RUN_TEST(test_get_helpers_update_output_only_on_success);
     RUN_TEST(test_reset_rejects_null_and_sends_reset_command);
     return UNITY_END();
