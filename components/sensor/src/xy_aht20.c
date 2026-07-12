@@ -7,6 +7,7 @@
 
 #include "xy_aht20.h"
 #include "xy_log.h"
+#include "xy_os.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
