@@ -42,6 +42,7 @@
 #include "xy_i2c.h"
 #include "xy_spi.h"
 #include "xy_log.h"
+#include <stddef.h>
 #include <string.h>
 
 #define XY_LOG_TAG "BMI270"
@@ -84,7 +85,7 @@ static int bus_write(xy_bmi270_t *dev, uint8_t reg, const uint8_t *buf, uint16_t
         reg &= ~0x80;
         /* 需要构造发送缓冲区：寄存器地址 + 数据 */
         uint8_t tx_buf[64];
-        if (len + 1 > sizeof(tx_buf)) {
+        if ((size_t)len + 1U > sizeof(tx_buf)) {
             return XY_DEVICE_ENOMEM;
         }
         tx_buf[0] = reg;
@@ -134,6 +135,7 @@ int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is
 
     /* 等待复位完成 */
     delay_ms(10);
+    dev->initialized = true;
 
     /* 读取芯片 ID */
     uint8_t chip_id = 0;
@@ -450,8 +452,13 @@ int xy_bmi270_get_status(xy_bmi270_t *dev, uint8_t *status)
 
 int xy_bmi270_reset(xy_bmi270_t *dev)
 {
-    if (!dev || !dev->initialized) {
-        /* 复位前需要先初始化通信 */
+    if (!dev) {
+        return XY_DEVICE_EINVAL;
+    }
+
+    bool was_initialized = dev->initialized;
+    if (!dev->initialized) {
+        /* 复位前需要先允许通信访问 */
         dev->initialized = true;
     }
 
@@ -459,7 +466,7 @@ int xy_bmi270_reset(xy_bmi270_t *dev)
     uint8_t cmd = 0xB6;
     int ret = xy_bmi270_write_regs(dev, 0xB6, &cmd, 1);
     
-    dev->initialized = false;
+    dev->initialized = was_initialized;
     return ret;
 }
 

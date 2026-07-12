@@ -57,6 +57,12 @@ typedef int xy_error_t;
 #define XY_DEVICE_FAIL            XY_HAL_ERROR_FAIL
 #define XY_DEVICE_NOT_FOUND       XY_ERROR_NOT_FOUND
 
+/* Legacy XY_DEVICE_E* aliases used by older sensor drivers */
+#define XY_DEVICE_EINVAL          XY_DEVICE_INVALID_PARAM
+#define XY_DEVICE_ENOMEM          XY_DEVICE_NO_MEM
+#define XY_DEVICE_ENODEV          XY_DEVICE_NOT_FOUND
+#define XY_DEVICE_EAGAIN          XY_ERROR_NOT_READY
+
 /* Legacy XY_ERR_* aliases used by some drivers */
 #define XY_ERR_OK              XY_OK
 #define XY_ERR_INVALID_PARAM   XY_ERROR_INVALID_PARAM

@@ -51,6 +51,12 @@
 #define xy_log_i(fmt, ...) XY_LOG_I(fmt, ##__VA_ARGS__)
 #define xy_log_d(fmt, ...) XY_LOG_D(fmt, ##__VA_ARGS__)
 
+/* Uppercase legacy aliases used by older component drivers */
+#define XY_LOG_ERROR(fmt, ...) XY_LOG_E(fmt, ##__VA_ARGS__)
+#define XY_LOG_WARN(fmt, ...)  XY_LOG_W(fmt, ##__VA_ARGS__)
+#define XY_LOG_INFO(fmt, ...)  XY_LOG_I(fmt, ##__VA_ARGS__)
+#define XY_LOG_DEBUG(fmt, ...) XY_LOG_D(fmt, ##__VA_ARGS__)
+
 void xy_log_init(void);
 void xy_log_str(char *str);
 void xy_log_raw(char *data, size_t len);

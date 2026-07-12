@@ -19,6 +19,7 @@
 #define XY_BMI270_H
 
 #include "xy_sensor.h"
+#include "xy_device_error.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -163,7 +164,7 @@ typedef struct {
  * @brief BMI270 设备结构
  */
 typedef struct {
-    xy_sensor_t base;         /**< 传感器基类 */
+    xy_sensor_device_t base;  /**< 传感器基类 */
     void *bus_handle;         /**< 总线句柄 (I2C/SPI) */
     uint8_t bus_addr;         /**< 总线地址 (I2C: 0x68, SPI: CS) */
     bool is_spi;              /**< SPI 模式标志 */
