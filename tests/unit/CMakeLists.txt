@@ -446,6 +446,14 @@ target_include_directories(test_sht40 PRIVATE
     ${SENSOR}/inc
 )
 
+xy_add_unit_test(test_sht30 sensor_sht30 UNITY
+    ${UNIT_SENSOR}/test_sht30.c
+    ${SENSOR}/src/xy_sht30.c
+)
+target_include_directories(test_sht30 BEFORE PRIVATE
+    ${SENSOR}/inc
+)
+
 xy_add_unit_test(test_bh1750 sensor_bh1750 UNITY
     ${UNIT_SENSOR}/test_bh1750.c
     ${SENSOR}/src/xy_bh1750.c
