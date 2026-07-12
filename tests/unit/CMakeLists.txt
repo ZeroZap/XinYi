@@ -487,6 +487,17 @@ target_include_directories(test_lps22hb PRIVATE
 )
 target_link_libraries(test_lps22hb PRIVATE m)
 
+xy_add_unit_test(test_power_monitors sensor_power_monitors UNITY
+    ${UNIT_SENSOR}/test_power_monitors.c
+    ${SENSOR}/src/xy_max17043.c
+    ${SENSOR}/src/xy_ina226.c
+)
+target_include_directories(test_power_monitors PRIVATE
+    ${SENSOR}/inc
+    ${HAL}/inc
+    ${KERNEL}/osal
+)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c

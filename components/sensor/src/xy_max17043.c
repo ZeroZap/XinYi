@@ -6,6 +6,7 @@
  */
 
 #include "xy_max17043.h"
+#include "xy_hal_sys.h"
 #include "xy_log.h"
 #include <string.h>
 
