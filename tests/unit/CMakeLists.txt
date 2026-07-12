@@ -520,6 +520,16 @@ target_include_directories(test_coulomb BEFORE PRIVATE
 )
 target_link_libraries(test_coulomb PRIVATE m)
 
+xy_add_unit_test(test_mpu6050 sensor_mpu6050 UNITY
+    ${UNIT_SENSOR}/test_mpu6050.c
+    ${SENSOR}/src/xy_mpu6050.c
+)
+target_include_directories(test_mpu6050 BEFORE PRIVATE
+    ${SENSOR}/inc
+    ${HAL}/inc
+    ${KERNEL}/osal
+)
+
 # --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
