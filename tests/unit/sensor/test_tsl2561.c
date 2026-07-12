@@ -264,6 +264,43 @@ static void test_getters_update_outputs_only_on_success(void)
     TEST_ASSERT_EQUAL_UINT16(0xFFFFU, broadband);
 }
 
+static void test_read_integration_delay_and_zero_broadband_lux_branches(void)
+{
+    xy_tsl2561_t dev;
+
+    init_ok(&dev);
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x02U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    g_delay_total = 0;
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 0U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
+    TEST_ASSERT_EQUAL_UINT32(20U, g_delay_total);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, dev.data.lux);
+
+    setUp();
+    init_ok(&dev);
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x02U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_101MS));
+    g_delay_total = 0;
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1500U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 1000U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
+    TEST_ASSERT_EQUAL_UINT32(120U, g_delay_total);
+}
+
+static void test_enable_disable_propagate_i2c_write_failures(void)
+{
+    xy_tsl2561_t dev;
+
+    init_ok(&dev);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_enable(&dev));
+
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_disable(&dev));
+}
+
 static void test_gain_integration_enable_disable_and_deinit_contracts(void)
 {
     xy_tsl2561_t dev;
@@ -305,6 +342,8 @@ int main(void)
     RUN_TEST(test_read_updates_channels_lux_and_timestamp);
     RUN_TEST(test_read_errors_do_not_overwrite_data);
     RUN_TEST(test_getters_update_outputs_only_on_success);
+    RUN_TEST(test_read_integration_delay_and_zero_broadband_lux_branches);
+    RUN_TEST(test_enable_disable_propagate_i2c_write_failures);
     RUN_TEST(test_gain_integration_enable_disable_and_deinit_contracts);
     return UNITY_END();
 }
