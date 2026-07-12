@@ -122,6 +122,57 @@ static void test_bad_pec_rejects_temperature_read_without_updating_output(void)
     TEST_ASSERT_EQUAL_INT16(1234, ta);
 }
 
+static void test_init_reports_not_found_when_id_read_fails(void)
+{
+    xy_mlx90614_t dev;
+    int fake_bus;
+
+    g_read_fail_reg[0x0C] = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_NOT_FOUND,
+                          xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+}
+
+static void test_read_all_rejects_invalid_or_uninitialized_device(void)
+{
+    xy_mlx90614_t dev;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_all(NULL));
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_all(&dev));
+}
+
+static void test_read_object1_updates_output_only_on_success(void)
+{
+    xy_mlx90614_t dev;
+    int16_t tobj = -1234;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_object1(NULL, &tobj));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_object1(&dev, NULL));
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_read_object1(&dev, &tobj));
+    TEST_ASSERT_EQUAL_INT16(3185, tobj);
+
+    g_read_regs[MLX90614_RAM_TA][2] ^= 0x01U;
+    tobj = -1234;
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_ERROR, xy_mlx90614_read_object1(&dev, &tobj));
+    TEST_ASSERT_EQUAL_INT16(-1234, tobj);
+}
+
+static void test_deinit_rejects_null_and_clears_initialized_flag(void)
+{
+    xy_mlx90614_t dev;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+}
+
 static void test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error(void)
 {
     xy_mlx90614_t dev;
@@ -155,8 +206,12 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_uses_default_address);
+    RUN_TEST(test_init_reports_not_found_when_id_read_fails);
+    RUN_TEST(test_read_all_rejects_invalid_or_uninitialized_device);
     RUN_TEST(test_read_all_converts_temperature_registers_and_single_channel_fallback);
     RUN_TEST(test_bad_pec_rejects_temperature_read_without_updating_output);
+    RUN_TEST(test_read_object1_updates_output_only_on_success);
+    RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
     RUN_TEST(test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error);
     RUN_TEST(test_set_emissivity_validates_range_and_reports_unsupported_write);
     return UNITY_END();
