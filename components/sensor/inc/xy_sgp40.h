@@ -23,6 +23,11 @@
 #include <stdbool.h>
 #include "xy_typedef.h"
 
+#ifndef XY_RET_T_DEFINED
+#define XY_RET_T_DEFINED
+typedef int xy_ret_t;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
