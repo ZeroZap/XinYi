@@ -242,12 +242,14 @@ static void test_read_rejects_invalid_uninitialized_and_propagates_failures_with
     TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
     dev.data.temperature = 123;
     dev.data.humidity = 456;
+    dev.data.timestamp = 0xCAFEU;
 
     queue_status(0x00);
     g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_aht20_read(&dev));
     TEST_ASSERT_EQUAL_INT16(123, dev.data.temperature);
     TEST_ASSERT_EQUAL_UINT16(456U, dev.data.humidity);
+    TEST_ASSERT_EQUAL_UINT32(0xCAFEU, dev.data.timestamp);
 
     setUp();
     queue_status(0x08);
@@ -255,20 +257,50 @@ static void test_read_rejects_invalid_uninitialized_and_propagates_failures_with
     TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
     dev.data.temperature = 123;
     dev.data.humidity = 456;
+    dev.data.timestamp = 0xCAFEU;
     queue_status(0x00);
     queue_status(0x00);
     queue_read(NULL, 7U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_aht20_read(&dev));
     TEST_ASSERT_EQUAL_INT16(123, dev.data.temperature);
     TEST_ASSERT_EQUAL_UINT16(456U, dev.data.humidity);
+    TEST_ASSERT_EQUAL_UINT32(0xCAFEU, dev.data.timestamp);
 }
 
-static void test_get_helpers_update_output_only_on_success(void)
+static void test_read_post_trigger_busy_preserves_cached_measurement(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    dev.data.temperature = 321;
+    dev.data.humidity = 654U;
+    dev.data.timestamp = 0x12345678U;
+
+    queue_status(0x00);
+    for (unsigned i = 0; i < 51U; ++i) {
+        queue_status(0x80);
+    }
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_BUSY, xy_aht20_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(321, dev.data.temperature);
+    TEST_ASSERT_EQUAL_UINT16(654U, dev.data.humidity);
+    TEST_ASSERT_EQUAL_UINT32(0x12345678U, dev.data.timestamp);
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_count - g_read_index);
+}
+
+static void test_get_helpers_validate_inputs_and_update_output_only_on_success(void)
 {
     xy_aht20_t dev;
     int16_t temperature = -1;
     uint16_t humidity = 0xBEEF;
     int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_get_temperature(NULL, &temperature));
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_get_temperature(&dev, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_get_humidity(NULL, &humidity));
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_get_humidity(&dev, NULL));
 
     queue_status(0x08);
     queue_status(0x08);
@@ -280,9 +312,16 @@ static void test_get_helpers_update_output_only_on_success(void)
     TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_get_temperature(&dev, &temperature));
     TEST_ASSERT_EQUAL_INT16(0, temperature);
 
+    queue_status(0x00);
+    queue_status(0x00);
+    queue_measurement(0x60000U, 0x60000U); /* 37.50%RH, 25.00C */
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_get_humidity(&dev, &humidity));
+    TEST_ASSERT_EQUAL_UINT16(3750U, humidity);
+
     for (unsigned i = 0; i < 51U; ++i) {
         queue_status(0x80);
     }
+    humidity = 0xBEEF;
     TEST_ASSERT_EQUAL_INT(XY_AHT20_BUSY, xy_aht20_get_humidity(&dev, &humidity));
     TEST_ASSERT_EQUAL_UINT16(0xBEEF, humidity);
 }
@@ -311,7 +350,8 @@ int main(void)
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
     RUN_TEST(test_read_converts_humidity_temperature_and_timestamp);
     RUN_TEST(test_read_rejects_invalid_uninitialized_and_propagates_failures_without_overwrite);
-    RUN_TEST(test_get_helpers_update_output_only_on_success);
+    RUN_TEST(test_read_post_trigger_busy_preserves_cached_measurement);
+    RUN_TEST(test_get_helpers_validate_inputs_and_update_output_only_on_success);
     RUN_TEST(test_reset_rejects_null_and_sends_reset_command);
     return UNITY_END();
 }
