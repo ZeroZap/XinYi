@@ -211,6 +211,31 @@ static void test_read_bad_crc_does_not_overwrite_cached_measurement(void)
     TEST_ASSERT_EQUAL_INT(XY_SHT40_CRC_ERROR, xy_sht40_read(&dev));
     TEST_ASSERT_EQUAL_INT16(4250, dev.data.temperature);
     TEST_ASSERT_EQUAL_UINT16(5650U, dev.data.humidity);
+
+    bad_measurement[2] = sht40_crc8(bad_measurement, 2U);
+    bad_measurement[5] = (uint8_t)(sht40_crc8(&bad_measurement[3], 2U) ^ 0x55U);
+    queue_read(bad_measurement, sizeof(bad_measurement), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_CRC_ERROR, xy_sht40_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(4250, dev.data.temperature);
+    TEST_ASSERT_EQUAL_UINT16(5650U, dev.data.humidity);
+}
+
+static void test_read_i2c_read_failure_preserves_cached_measurement(void)
+{
+    xy_sht40_t dev;
+    int fake_bus;
+
+    queue_pair_payload(0x1234U, 0xABCDU);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_init(&dev, &fake_bus));
+
+    dev.data.temperature = 123;
+    dev.data.humidity = 456U;
+    dev.data.timestamp = 0xBEEFU;
+    queue_read(NULL, 6U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_sht40_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(123, dev.data.temperature);
+    TEST_ASSERT_EQUAL_UINT16(456U, dev.data.humidity);
+    TEST_ASSERT_EQUAL_UINT32(0xBEEFU, dev.data.timestamp);
 }
 
 static void test_init_reports_i2c_write_and_read_failures(void)
@@ -283,8 +308,12 @@ static void test_getters_and_precision_validate_inputs(void)
     int fake_bus;
 
     TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_temperature(NULL, &temperature));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_temperature(&dev, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_humidity(NULL, &humidity));
     TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_humidity(&dev, NULL));
     TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_serial(NULL, serial));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_serial(&dev, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_set_precision(NULL, XY_SHT40_HIGH_PRECISION));
     TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM,
                           xy_sht40_set_precision(&dev, (xy_sht40_precision_t)99));
 
@@ -298,7 +327,12 @@ static void test_getters_and_precision_validate_inputs(void)
     TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_get_temperature(&dev, &temperature));
     TEST_ASSERT_EQUAL_INT16(-125, temperature);
 
+    queue_pair_payload(0x6000U, 0x6000U);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_get_humidity(&dev, &humidity));
+    TEST_ASSERT_EQUAL_UINT16(4087U, humidity);
+
     queue_read(NULL, 6U, XY_DEVICE_ERROR);
+    humidity = 0xBEEF;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_sht40_get_humidity(&dev, &humidity));
     TEST_ASSERT_EQUAL_UINT16(0xBEEF, humidity);
 }
@@ -311,6 +345,7 @@ int main(void)
     RUN_TEST(test_init_reports_i2c_write_and_read_failures);
     RUN_TEST(test_read_uses_precision_command_and_converts_measurement);
     RUN_TEST(test_read_bad_crc_does_not_overwrite_cached_measurement);
+    RUN_TEST(test_read_i2c_read_failure_preserves_cached_measurement);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
     RUN_TEST(test_read_rejects_invalid_or_uninitialized_and_propagates_write_failure);
     RUN_TEST(test_low_precision_read_uses_low_power_command_and_delay);
