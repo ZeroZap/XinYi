@@ -181,10 +181,39 @@ static void test_read_resolution_and_mode_select_command_and_scale(void)
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 10.0f, dev.data.illuminance);
 }
 
-static void test_get_illuminance_updates_output_only_on_success(void)
+static void test_read_failures_preserve_cached_data_and_stop_early(void)
+{
+    xy_bh1750_t dev;
+
+    init_ok(&dev);
+    dev.data.illuminance = 12.5f;
+    dev.data.timestamp = 0x1234U;
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_read(&dev));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.5f, dev.data.illuminance);
+    TEST_ASSERT_EQUAL_UINT32(0x1234U, dev.data.timestamp);
+    TEST_ASSERT_EQUAL_UINT(3U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+
+    setUp();
+    init_ok(&dev);
+    dev.data.illuminance = 12.5f;
+    dev.data.timestamp = 0x1234U;
+    g_write_ret_queue[g_write_index + 1U] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_read(&dev));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.5f, dev.data.illuminance);
+    TEST_ASSERT_EQUAL_UINT32(0x1234U, dev.data.timestamp);
+    TEST_ASSERT_EQUAL_UINT(4U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+}
+
+static void test_get_illuminance_validates_inputs_and_preserves_output_on_failure(void)
 {
     xy_bh1750_t dev;
     float lux = -1.0f;
+
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_get_illuminance(NULL, &lux));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_get_illuminance(&dev, NULL));
 
     init_ok(&dev);
     queue_read_raw(64U, XY_DEVICE_OK);
@@ -195,6 +224,32 @@ static void test_get_illuminance_updates_output_only_on_success(void)
     lux = -1.0f;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_get_illuminance(&dev, &lux));
     TEST_ASSERT_FLOAT_WITHIN(0.01f, -1.0f, lux);
+}
+
+static void test_init_reset_failure_leaves_device_uninitialized(void)
+{
+    xy_bh1750_t dev;
+    int fake_bus;
+
+    g_write_ret_queue[1] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
+}
+
+static void test_power_and_reset_propagate_write_failures(void)
+{
+    xy_bh1750_t dev;
+
+    init_ok(&dev);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_power_down(&dev));
+
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_power_on(&dev));
+
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_reset(&dev));
 }
 
 static void test_configuration_power_and_reset_validate_inputs(void)
@@ -229,7 +284,10 @@ int main(void)
     RUN_TEST(test_init_reports_not_found_when_power_on_fails);
     RUN_TEST(test_read_high_resolution_one_time_converts_raw_lux);
     RUN_TEST(test_read_resolution_and_mode_select_command_and_scale);
-    RUN_TEST(test_get_illuminance_updates_output_only_on_success);
+    RUN_TEST(test_read_failures_preserve_cached_data_and_stop_early);
+    RUN_TEST(test_get_illuminance_validates_inputs_and_preserves_output_on_failure);
+    RUN_TEST(test_init_reset_failure_leaves_device_uninitialized);
+    RUN_TEST(test_power_and_reset_propagate_write_failures);
     RUN_TEST(test_configuration_power_and_reset_validate_inputs);
     return UNITY_END();
 }
