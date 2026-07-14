@@ -375,6 +375,43 @@ static void test_bmi270_not_ready_sleep_wakeup_and_deinit(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_deinit(NULL));
 }
 
+
+static void test_bmi270_enable_wakeup_and_reset_failure_boundaries(void)
+{
+    xy_bmi270_t dev = ready_i2c_dev();
+    uint8_t expected;
+
+    queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA0U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_enable_acc(&dev, true));
+
+    queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA0U, XY_DEVICE_OK);
+    expected = 0xA1U;
+    queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &expected, 1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_enable_gyr(&dev, true));
+
+    queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA0U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_wakeup(&dev));
+
+    dev.initialized = false;
+    expected = 0xB6U;
+    queue_i2c_write(0x68U, 0xB6U, &expected, 1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_reset(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+}
+
+static void test_bmi270_deinit_ignores_disable_failures_and_clears_ready(void)
+{
+    xy_bmi270_t dev = ready_i2c_dev();
+
+    queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA1U, XY_DEVICE_ERROR);
+    queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA1U, XY_DEVICE_ERROR);
+    queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA1U, XY_DEVICE_ERROR);
+    queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA1U, XY_DEVICE_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmi270_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -382,5 +419,7 @@ int main(void)
     RUN_TEST(test_bmi270_register_access_and_spi_mode);
     RUN_TEST(test_bmi270_range_enable_and_raw_data);
     RUN_TEST(test_bmi270_not_ready_sleep_wakeup_and_deinit);
+    RUN_TEST(test_bmi270_enable_wakeup_and_reset_failure_boundaries);
+    RUN_TEST(test_bmi270_deinit_ignores_disable_failures_and_clears_ready);
     return UNITY_END();
 }

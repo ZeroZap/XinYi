@@ -341,6 +341,42 @@ static void test_bmi088_error_paths_setters_and_calibration(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 40.0f, dev.gyro_offset[2]);
 }
 
+
+static void test_bmi088_chip_id_partial_reads_and_soft_reset_failure(void)
+{
+    xy_bmi088_dev_t dev = {0};
+    xy_spi_dev_t spi = {0};
+    uint8_t acc_id = 0;
+    uint8_t gyro_id = 0;
+
+    dev.spi = &spi;
+
+    queue_read8(0U, BMI088_ACC_CHIP_ID, BMI088_ACC_CHIP_ID_VALUE, XY_OK);
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_read_chip_id(&dev, &acc_id, NULL));
+    TEST_ASSERT_EQUAL_UINT8(BMI088_ACC_CHIP_ID_VALUE, acc_id);
+
+    queue_read8(1U, BMI088_GYRO_CHIP_ID, BMI088_GYRO_CHIP_ID_VALUE, XY_OK);
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_read_chip_id(&dev, NULL, &gyro_id));
+    TEST_ASSERT_EQUAL_UINT8(BMI088_GYRO_CHIP_ID_VALUE, gyro_id);
+
+    queue_write(0U, BMI088_ACC_SOFTRESET_ADDR, 0xB6U, XY_OK);
+    queue_write(1U, BMI088_GYRO_SOFTRESET_ADDR, 0xB6U, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_soft_reset(&dev));
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
+}
+
+static void test_bmi088_deinit_write_failures_still_clear_ready(void)
+{
+    xy_bmi088_dev_t dev;
+    xy_spi_dev_t spi = {0};
+
+    init_bmi_ok(&dev, &spi);
+    queue_write(0U, BMI088_ACC_PWR_CTRL_ADDR, 0x00U, XY_ERROR);
+    queue_write(1U, BMI088_GYRO_LPM1_ADDR, 0x03U, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_deinit(&dev));
+    TEST_ASSERT_FALSE(xy_bmi088_is_ready(&dev));
+}
+
 static void test_bmi088_set_calibration_and_inline_helpers(void)
 {
     xy_bmi088_dev_t dev = {0};
@@ -365,6 +401,8 @@ int main(void)
     RUN_TEST(test_bmi088_default_config_and_init_failures);
     RUN_TEST(test_bmi088_read_raw_and_data_conversions);
     RUN_TEST(test_bmi088_error_paths_setters_and_calibration);
+    RUN_TEST(test_bmi088_chip_id_partial_reads_and_soft_reset_failure);
+    RUN_TEST(test_bmi088_deinit_write_failures_still_clear_ready);
     RUN_TEST(test_bmi088_set_calibration_and_inline_helpers);
     return UNITY_END();
 }
