@@ -183,6 +183,44 @@ static void test_draw_pixel_lines_rectangles_and_clear(void)
     for (size_t i = 0; i < sizeof(buffer); ++i) {
         TEST_ASSERT_EQUAL_HEX8(0x00U, buffer[i]);
     }
+
+    TEST_ASSERT_EQUAL_INT(XY_OLED_OK, xy_oled_ssd1306_draw_hline(&oled, 6, 2, 4, OLED_COLOR_WHITE));
+    TEST_ASSERT_BITS_HIGH(0x04U, buffer[4]);
+    TEST_ASSERT_BITS_HIGH(0x04U, buffer[5]);
+    TEST_ASSERT_BITS_HIGH(0x04U, buffer[6]);
+
+    TEST_ASSERT_EQUAL_INT(XY_OLED_OK, xy_oled_ssd1306_draw_vline(&oled, 7, 12, 10, OLED_COLOR_WHITE));
+    TEST_ASSERT_BITS_HIGH(0x1CU, buffer[128 + 7]);
+}
+
+static void test_draw_string_and_char_guards(void)
+{
+    uint8_t buffer[1024];
+    xy_oled_ssd1306_t oled;
+    memset(buffer, 0, sizeof(buffer));
+    memset(&oled, 0, sizeof(oled));
+    oled.width = 128;
+    oled.height = 64;
+    oled.buffer_size = sizeof(buffer);
+    oled.buffer = buffer;
+
+    TEST_ASSERT_EQUAL_INT(XY_OLED_INVALID_PARAM, xy_oled_ssd1306_draw_char(NULL, 0, 0, 'A', OLED_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_INT(XY_OLED_INVALID_PARAM, xy_oled_ssd1306_draw_string(NULL, 0, 0, "A", OLED_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_INT(XY_OLED_INVALID_PARAM, xy_oled_ssd1306_draw_string(&oled, 0, 0, NULL, OLED_COLOR_WHITE));
+
+    TEST_ASSERT_EQUAL_INT(XY_OLED_OK, xy_oled_ssd1306_draw_char(&oled, 0, 0, ' ', OLED_COLOR_WHITE));
+    for (size_t i = 0; i < sizeof(buffer); ++i) {
+        TEST_ASSERT_EQUAL_HEX8(0x00U, buffer[i]);
+    }
+
+    TEST_ASSERT_EQUAL_INT(XY_OLED_OK, xy_oled_ssd1306_draw_char(&oled, 0, 0, 0x7F, OLED_COLOR_WHITE));
+    for (size_t i = 0; i < sizeof(buffer); ++i) {
+        TEST_ASSERT_EQUAL_HEX8(0x00U, buffer[i]);
+    }
+
+    TEST_ASSERT_EQUAL_INT(XY_OLED_OK, xy_oled_ssd1306_draw_string(&oled, 0, 0, "!!", OLED_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_HEX8(0x5FU, buffer[2]);
+    TEST_ASSERT_EQUAL_HEX8(0x5FU, buffer[8]);
 }
 
 static void test_refresh_commands_controls_and_deinit(void)
@@ -237,6 +275,7 @@ int main(void)
     RUN_TEST(test_init_rejects_invalid_inputs_and_runs_full_init_refresh);
     RUN_TEST(test_init_reports_command_and_refresh_failures);
     RUN_TEST(test_draw_pixel_lines_rectangles_and_clear);
+    RUN_TEST(test_draw_string_and_char_guards);
     RUN_TEST(test_refresh_commands_controls_and_deinit);
     return UNITY_END();
 }

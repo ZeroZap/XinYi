@@ -158,6 +158,13 @@ static void test_read_all_failures_preserve_cached_temperatures(void)
     TEST_ASSERT_EQUAL_INT16(111, dev.ta);
     TEST_ASSERT_EQUAL_INT16(222, dev.tobj1);
     TEST_ASSERT_EQUAL_INT16(333, dev.tobj2);
+
+    g_read_fail_reg[MLX90614_RAM_TOBJ1] = 0U;
+    g_read_regs[MLX90614_RAM_TOBJ2][2] ^= 0x11U;
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_read_all(&dev));
+    TEST_ASSERT_EQUAL_INT16(2685, dev.ta);
+    TEST_ASSERT_EQUAL_INT16(3185, dev.tobj1);
+    TEST_ASSERT_EQUAL_INT16(3185, dev.tobj2);
 }
 
 static void test_init_reports_not_found_when_id_read_fails(void)
