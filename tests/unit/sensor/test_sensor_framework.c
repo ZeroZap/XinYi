@@ -256,6 +256,28 @@ static void test_sensor_register_find_duplicate_and_unregister(void)
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_unregister(&second));
 }
 
+static void test_sensor_register_rejects_missing_required_ops(void)
+{
+    sensor_device_t sensor;
+    sensor_ops_t ops;
+
+    init_sensor(&sensor, "unit_bad_ops", NULL);
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_register(&sensor));
+    TEST_ASSERT_NULL(sensor_find_by_name("unit_bad_ops"));
+
+    memset(&ops, 0, sizeof(ops));
+    ops.init = mock_init;
+    init_sensor(&sensor, "unit_no_read", &ops);
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_register(&sensor));
+    TEST_ASSERT_NULL(sensor_find_by_name("unit_no_read"));
+
+    memset(&ops, 0, sizeof(ops));
+    ops.read = mock_read;
+    init_sensor(&sensor, "unit_no_init", &ops);
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_register(&sensor));
+    TEST_ASSERT_NULL(sensor_find_by_name("unit_no_init"));
+}
+
 static void test_sensor_lifecycle_read_callback_and_optional_ops(void)
 {
     sensor_device_t sensor;
@@ -318,6 +340,25 @@ static void test_sensor_lifecycle_read_callback_and_optional_ops(void)
     TEST_ASSERT_EQUAL_UINT(1U, mock_deinit_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&sensor, mock_deinit_fake.arg0_val);
     TEST_ASSERT_EQUAL(SENSOR_STATUS_IDLE, sensor.status);
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_unregister(&sensor));
+}
+
+static void test_sensor_callback_can_be_cleared(void)
+{
+    sensor_device_t sensor;
+    sensor_data_t data;
+    init_sensor(&sensor, "unit_callback_clear", &required_ops);
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_register(&sensor));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_init(&sensor));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_set_callback(&sensor, mock_callback, (void *)0x12345678));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_set_callback(&sensor, NULL, NULL));
+    TEST_ASSERT_NULL(sensor.callback);
+    TEST_ASSERT_NULL(sensor.user_data);
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_read(&sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_callback_fake.call_count);
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_unregister(&sensor));
 }
 
@@ -437,6 +478,38 @@ static void test_sensor_fifo_push_read_flush_and_watermark(void)
 }
 #endif
 
+#if SENSOR_ENABLE_FIFO
+static void test_sensor_fifo_stream_mode_overwrites_oldest_sample(void)
+{
+    sensor_device_t sensor;
+    sensor_data_t in[3];
+    sensor_data_t out[2];
+    uint32_t read_count = 0;
+
+    init_sensor(&sensor, "unit_fifo_stream", &required_ops);
+    memset(in, 0, sizeof(in));
+    memset(out, 0, sizeof(out));
+    in[0].value.val_int32 = 101;
+    in[1].value.val_int32 = 202;
+    in[2].value.val_int32 = 303;
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_fifo_init(&sensor, 2));
+    sensor.fifo->mode = SENSOR_FIFO_MODE_STREAM;
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_fifo_push(&sensor, &in[0]));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_fifo_push(&sensor, &in[1]));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_fifo_push(&sensor, &in[2]));
+    TEST_ASSERT_TRUE(sensor.fifo->overflow);
+    TEST_ASSERT_TRUE(sensor_fifo_is_full(&sensor));
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_fifo_read(&sensor, out, 2, &read_count));
+    TEST_ASSERT_EQUAL(2U, read_count);
+    TEST_ASSERT_EQUAL(202, out[0].value.val_int32);
+    TEST_ASSERT_EQUAL(303, out[1].value.val_int32);
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_fifo_deinit(&sensor));
+}
+#endif
+
 #if SENSOR_ENABLE_CALIBRATION
 static void test_sensor_calibration_set_get_and_apply(void)
 {
@@ -531,6 +604,25 @@ static void test_sensor_self_test_uses_driver_override_and_restores_status(void)
     TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
 }
 
+static void test_sensor_self_test_generic_communication_failure(void)
+{
+    sensor_device_t sensor;
+    sensor_self_test_result_t result;
+
+    init_sensor(&sensor, "unit_self_comm_fail", &required_ops);
+    sensor.status = SENSOR_STATUS_READY;
+    g_read_fail_after = 0;
+    g_read_failure = SENSOR_EIO;
+    memset(&result, 0xA5, sizeof(result));
+
+    TEST_ASSERT_EQUAL(SENSOR_ERROR, sensor_self_test(&sensor, &result));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_read_fake.call_count);
+    TEST_ASSERT_FALSE(result.passed);
+    TEST_ASSERT_EQUAL(1, result.error_code);
+    TEST_ASSERT_EQUAL_STRING("Communication failed", result.message);
+    TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
+}
+
 static void test_sensor_self_test_generic_read_range_and_noise_paths(void)
 {
     sensor_device_t sensor;
@@ -559,13 +651,16 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_sensor_type_and_feature_contract);
     RUN_TEST(test_sensor_register_find_duplicate_and_unregister);
+    RUN_TEST(test_sensor_register_rejects_missing_required_ops);
     RUN_TEST(test_sensor_lifecycle_read_callback_and_optional_ops);
+    RUN_TEST(test_sensor_callback_can_be_cleared);
     RUN_TEST(test_sensor_read_failure_restores_status_and_skips_callback);
     RUN_TEST(test_sensor_invalid_and_busy_paths_do_not_call_driver);
     RUN_TEST(test_sensor_init_and_deinit_failure_preserve_status);
     RUN_TEST(test_sensor_missing_optional_ops_report_enosys);
 #if SENSOR_ENABLE_FIFO
     RUN_TEST(test_sensor_fifo_push_read_flush_and_watermark);
+    RUN_TEST(test_sensor_fifo_stream_mode_overwrites_oldest_sample);
 #endif
 #if SENSOR_ENABLE_CALIBRATION
     RUN_TEST(test_sensor_calibration_set_get_and_apply);
@@ -575,6 +670,7 @@ int main(void)
 #endif
 #if SENSOR_ENABLE_SELF_TEST
     RUN_TEST(test_sensor_self_test_uses_driver_override_and_restores_status);
+    RUN_TEST(test_sensor_self_test_generic_communication_failure);
     RUN_TEST(test_sensor_self_test_generic_read_range_and_noise_paths);
 #endif
     return UNITY_END();

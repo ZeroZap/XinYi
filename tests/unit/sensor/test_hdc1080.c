@@ -184,6 +184,21 @@ static void test_init_maps_write_failures_to_error(void)
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_ERROR, xy_hdc1080_init(&dev, &fake_bus, HDC1080_ADDR));
 }
 
+static void test_init_with_custom_address_and_config_failure_contract(void)
+{
+    xy_hdc1080_t dev;
+    int fake_bus;
+
+    g_write_ret_queue[1] = XY_DEVICE_ERROR;
+
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_ERROR, xy_hdc1080_init(&dev, &fake_bus, 0x41U));
+    TEST_ASSERT_EQUAL_UINT8(0x41U, g_last_addr);
+    TEST_ASSERT_EQUAL_UINT8(0x41U, dev.addr);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(15U, g_delay_total);
+}
+
 static void test_read_converts_temperature_and_humidity(void)
 {
     xy_hdc1080_t dev;
@@ -239,6 +254,24 @@ static void test_read_returns_errors_without_overwriting_existing_values(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_hdc1080_read(&dev));
     TEST_ASSERT_EQUAL_INT16(123, dev.temperature);
     TEST_ASSERT_EQUAL_UINT16(456U, dev.humidity);
+}
+
+static void test_failed_measurement_command_does_not_wait_or_read(void)
+{
+    xy_hdc1080_t dev;
+
+    init_ok(&dev);
+    dev.temperature = -321;
+    dev.humidity = 654U;
+    g_cmd_ret_queue[g_cmd_index] = XY_DEVICE_ERROR;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_hdc1080_read(&dev));
+    TEST_ASSERT_EQUAL_UINT(1U, g_cmd_count);
+    TEST_ASSERT_EQUAL_UINT8(HDC1080_REG_TEMP, g_cmd_queue[0]);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_INT16(-321, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(654U, dev.humidity);
+    TEST_ASSERT_EQUAL_UINT32(15U, g_delay_total);
 }
 
 static void test_read_temperature_and_humidity_update_outputs_only_on_success(void)
@@ -322,17 +355,31 @@ static void test_deinit_clears_initialized_state(void)
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_read(&dev));
 }
 
+static void test_deinit_is_safe_for_uninitialized_object(void)
+{
+    xy_hdc1080_t dev;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    dev.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_OK, xy_hdc1080_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_reset_then_config);
     RUN_TEST(test_init_maps_write_failures_to_error);
+    RUN_TEST(test_init_with_custom_address_and_config_failure_contract);
     RUN_TEST(test_read_converts_temperature_and_humidity);
     RUN_TEST(test_read_converts_raw_minimum_and_maximum_bounds);
     RUN_TEST(test_read_returns_errors_without_overwriting_existing_values);
+    RUN_TEST(test_failed_measurement_command_does_not_wait_or_read);
     RUN_TEST(test_read_temperature_and_humidity_update_outputs_only_on_success);
     RUN_TEST(test_heater_commands_validate_state_and_propagate_write_errors);
     RUN_TEST(test_heater_off_propagates_write_error_without_clearing_state);
     RUN_TEST(test_deinit_clears_initialized_state);
+    RUN_TEST(test_deinit_is_safe_for_uninitialized_object);
     return UNITY_END();
 }
