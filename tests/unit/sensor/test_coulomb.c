@@ -233,6 +233,23 @@ static void test_coulomb_not_found_and_write_failures(void)
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_ERROR, xy_coulomb_init(&coulomb, &bus, INA226_ADDR_GND, &cfg));
 }
 
+static void test_coulomb_init_tolerates_reset_charge_failure(void)
+{
+    xy_coulomb_t coulomb;
+    xy_coulomb_config_t cfg = coulomb_config();
+    int bus;
+
+    queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
+    queue_read16(INA226_REG_DIE_ID, INA226_DIE_ID_VALUE, XY_DEVICE_OK);
+    queue_write16(INA226_REG_CALIB, 5120U, XY_DEVICE_OK);
+    queue_write16(INA226_REG_CONFIG, 0xF240U, XY_DEVICE_OK);
+    queue_write16(INA226_REG_CURRENT, 0x0000U, XY_DEVICE_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_init(&coulomb, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_TRUE(coulomb.initialized);
+    TEST_ASSERT_EQUAL_UINT(3U, g_write_index);
+}
+
 static void test_coulomb_getters_reread_and_clamp_percentage(void)
 {
     xy_coulomb_t coulomb;
@@ -282,6 +299,10 @@ static void test_coulomb_control_failures_and_uninitialized_getters(void)
 
     init_coulomb_ok(&coulomb, &bus);
 
+    TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_set_capacity(&coulomb, 2000.0f));
+    TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_set_capacity(&coulomb, -1.0f));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 2000.0f, coulomb.config.capacity_mah);
+
     queue_write16(INA226_REG_CURRENT, 0x0000U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_coulomb_reset_charge(&coulomb));
 
@@ -298,6 +319,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_coulomb_init_read_controls_and_invalid_paths);
     RUN_TEST(test_coulomb_not_found_and_write_failures);
+    RUN_TEST(test_coulomb_init_tolerates_reset_charge_failure);
     RUN_TEST(test_coulomb_getters_reread_and_clamp_percentage);
     RUN_TEST(test_coulomb_control_failures_and_uninitialized_getters);
     return UNITY_END();

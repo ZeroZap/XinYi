@@ -306,6 +306,36 @@ void test_measure_success_reads_result_and_clears_interrupt(void)
     TEST_ASSERT_EQUAL_UINT16(250, result.distance);
 }
 
+void test_measure_read_or_clear_failures_preserve_public_contracts(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+    xy_vl53l1x_result_t result = {.distance = 0xEEEEU};
+    const uint8_t ready = 0x04;
+    uint8_t result_bytes[10] = {XY_VL53L1X_STATUS_VALID, 4, 0x00, 0x64, 0, 0, 0, 0, 0x00, 0xFA};
+
+    dev.last_result.distance = 123U;
+    dev.measurement_count = 7U;
+    expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
+    expect_write_u8(VL53L1X_SYSTEM_START, 0x10);
+    expect_read(VL53L1X_RESULT_INTERRUPT_STATUS, &ready, 1);
+    expect_read_ret(VL53L1X_RESULT_RANGE_STATUS, NULL, sizeof(result_bytes), XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_measure(&dev, &result, 20));
+    TEST_ASSERT_EQUAL_UINT16(0xEEEEU, result.distance);
+    TEST_ASSERT_EQUAL_UINT16(123U, dev.last_result.distance);
+    TEST_ASSERT_EQUAL_UINT32(7U, dev.measurement_count);
+
+    setUp();
+    result.distance = 0U;
+    expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
+    expect_write_u8(VL53L1X_SYSTEM_START, 0x10);
+    expect_read(VL53L1X_RESULT_INTERRUPT_STATUS, &ready, 1);
+    expect_read(VL53L1X_RESULT_RANGE_STATUS, result_bytes, sizeof(result_bytes));
+    expect_write_ret(VL53L1X_SYSTEM_INTERRUPT_CLEAR, &(const uint8_t){0x01}, 1, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_measure(&dev, &result, 20));
+    TEST_ASSERT_EQUAL_UINT16(250U, result.distance);
+}
+
 void test_range_roi_interrupt_and_address_configuration(void)
 {
     xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
@@ -405,6 +435,7 @@ int main(void)
     RUN_TEST(test_data_ready_and_result_parsing_with_offset);
     RUN_TEST(test_measure_timeout_stops_sensor);
     RUN_TEST(test_measure_success_reads_result_and_clears_interrupt);
+    RUN_TEST(test_measure_read_or_clear_failures_preserve_public_contracts);
     RUN_TEST(test_range_roi_interrupt_and_address_configuration);
     RUN_TEST(test_configuration_write_failures_stop_at_first_failed_register);
     RUN_TEST(test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements);
