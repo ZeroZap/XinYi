@@ -199,6 +199,22 @@ static void test_read_converts_temperature_and_humidity(void)
     TEST_ASSERT_EQUAL_UINT32(25U, g_delay_total);
 }
 
+static void test_read_converts_raw_minimum_and_maximum_bounds(void)
+{
+    xy_hdc1080_t dev;
+
+    init_ok(&dev);
+    queue_read_raw(0x0000U, 0x0000U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_OK, xy_hdc1080_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(-4000, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(0U, dev.humidity);
+
+    queue_read_raw(0xFFFFU, 0xFFFFU, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_OK, xy_hdc1080_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(12500, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(10000U, dev.humidity);
+}
+
 static void test_read_returns_errors_without_overwriting_existing_values(void)
 {
     xy_hdc1080_t dev;
@@ -280,6 +296,20 @@ static void test_heater_commands_validate_state_and_propagate_write_errors(void)
     TEST_ASSERT_EQUAL_UINT8(0x00, g_write_data_queue[3][1]);
 }
 
+static void test_heater_off_propagates_write_error_without_clearing_state(void)
+{
+    xy_hdc1080_t dev;
+
+    init_ok(&dev);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_hdc1080_heater_off(&dev));
+    TEST_ASSERT_EQUAL_UINT8(HDC1080_REG_CONFIG, g_write_reg_queue[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, g_write_data_queue[2][0]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, g_write_data_queue[2][1]);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+}
+
 static void test_deinit_clears_initialized_state(void)
 {
     xy_hdc1080_t dev;
@@ -298,9 +328,11 @@ int main(void)
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_reset_then_config);
     RUN_TEST(test_init_maps_write_failures_to_error);
     RUN_TEST(test_read_converts_temperature_and_humidity);
+    RUN_TEST(test_read_converts_raw_minimum_and_maximum_bounds);
     RUN_TEST(test_read_returns_errors_without_overwriting_existing_values);
     RUN_TEST(test_read_temperature_and_humidity_update_outputs_only_on_success);
     RUN_TEST(test_heater_commands_validate_state_and_propagate_write_errors);
+    RUN_TEST(test_heater_off_propagates_write_error_without_clearing_state);
     RUN_TEST(test_deinit_clears_initialized_state);
     return UNITY_END();
 }
