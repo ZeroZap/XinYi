@@ -277,6 +277,31 @@ static void test_configuration_power_and_reset_validate_inputs(void)
     TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_DOWN, g_write_queue[5]);
 }
 
+static void test_deinit_clears_initialized_even_when_power_down_fails(void)
+{
+    xy_bh1750_t dev;
+
+    init_ok(&dev);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_DOWN, g_write_queue[2]);
+}
+
+static void test_setters_update_cached_mode_and_resolution_without_bus_io(void)
+{
+    xy_bh1750_t dev;
+
+    init_ok(&dev);
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_set_resolution(&dev, XY_BH1750_LOW_RES));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_LOW_RES, dev.resolution);
+    TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_set_mode(&dev, XY_BH1750_CONTINUOUS));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_CONTINUOUS, dev.mode);
+    TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -289,5 +314,7 @@ int main(void)
     RUN_TEST(test_init_reset_failure_leaves_device_uninitialized);
     RUN_TEST(test_power_and_reset_propagate_write_failures);
     RUN_TEST(test_configuration_power_and_reset_validate_inputs);
+    RUN_TEST(test_deinit_clears_initialized_even_when_power_down_fails);
+    RUN_TEST(test_setters_update_cached_mode_and_resolution_without_bus_io);
     return UNITY_END();
 }

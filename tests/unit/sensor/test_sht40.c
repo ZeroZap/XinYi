@@ -337,6 +337,40 @@ static void test_getters_and_precision_validate_inputs(void)
     TEST_ASSERT_EQUAL_UINT16(0xBEEF, humidity);
 }
 
+static void test_temperature_getter_preserves_output_on_write_and_read_failures(void)
+{
+    xy_sht40_t dev;
+    int16_t temperature = -2222;
+    int fake_bus;
+
+    queue_pair_payload(0x1234U, 0xABCDU);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_init(&dev, &fake_bus));
+
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_sht40_get_temperature(&dev, &temperature));
+    TEST_ASSERT_EQUAL_INT16(-2222, temperature);
+
+    queue_read(NULL, 6U, XY_DEVICE_ERROR);
+    temperature = 3333;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_sht40_get_temperature(&dev, &temperature));
+    TEST_ASSERT_EQUAL_INT16(3333, temperature);
+}
+
+static void test_get_serial_copies_cached_serial_without_i2c_access(void)
+{
+    xy_sht40_t dev;
+    uint32_t serial[2] = {0xDEADU, 0xBEEFU};
+    int fake_bus;
+
+    queue_pair_payload(0x1234U, 0xABCDU);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_init(&dev, &fake_bus));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_get_serial(&dev, serial));
+    TEST_ASSERT_EQUAL_UINT32(0x1234U, serial[0]);
+    TEST_ASSERT_EQUAL_UINT32(0xABCDU, serial[1]);
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -350,5 +384,7 @@ int main(void)
     RUN_TEST(test_read_rejects_invalid_or_uninitialized_and_propagates_write_failure);
     RUN_TEST(test_low_precision_read_uses_low_power_command_and_delay);
     RUN_TEST(test_getters_and_precision_validate_inputs);
+    RUN_TEST(test_temperature_getter_preserves_output_on_write_and_read_failures);
+    RUN_TEST(test_get_serial_copies_cached_serial_without_i2c_access);
     return UNITY_END();
 }

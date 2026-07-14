@@ -326,6 +326,18 @@ static void test_get_helpers_validate_inputs_and_update_output_only_on_success(v
     TEST_ASSERT_EQUAL_UINT16(0xBEEF, humidity);
 }
 
+static void test_init_final_status_read_failure_still_initializes_uncalibrated(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    queue_status(0x00);
+    queue_read(NULL, 1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.calibrated);
+}
+
 static void test_reset_rejects_null_and_sends_reset_command(void)
 {
     xy_aht20_t dev;
@@ -341,6 +353,20 @@ static void test_reset_rejects_null_and_sends_reset_command(void)
     TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_RESET, g_write_queue[1][0]);
 }
 
+static void test_reset_write_failure_propagates_and_preserves_initialized(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_aht20_reset(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_RESET, g_write_queue[1][0]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -352,6 +378,8 @@ int main(void)
     RUN_TEST(test_read_rejects_invalid_uninitialized_and_propagates_failures_without_overwrite);
     RUN_TEST(test_read_post_trigger_busy_preserves_cached_measurement);
     RUN_TEST(test_get_helpers_validate_inputs_and_update_output_only_on_success);
+    RUN_TEST(test_init_final_status_read_failure_still_initializes_uncalibrated);
     RUN_TEST(test_reset_rejects_null_and_sends_reset_command);
+    RUN_TEST(test_reset_write_failure_propagates_and_preserves_initialized);
     return UNITY_END();
 }
