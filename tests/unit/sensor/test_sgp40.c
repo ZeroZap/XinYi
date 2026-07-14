@@ -224,6 +224,11 @@ static void test_feature_serial_and_self_test_crc_paths(void)
     TEST_ASSERT_EQUAL_INT(0, xy_sgp40_read_feature_set(&dev, &feature));
     TEST_ASSERT_EQUAL_UINT16(0xABCDU, feature);
 
+    queue_read_u16(0x0000U, -1);
+    feature = 0x7777U;
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_feature_set(&dev, &feature));
+    TEST_ASSERT_EQUAL_UINT16(0x7777U, feature);
+
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_serial_id(NULL, serial));
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_serial_id(&dev, NULL));
     queue_read_serial(0x0001U, 0x0002U, 0x0003U, 0);
@@ -231,6 +236,15 @@ static void test_feature_serial_and_self_test_crc_paths(void)
     TEST_ASSERT_EQUAL_UINT32(1U, serial[0]);
     TEST_ASSERT_EQUAL_UINT32(2U, serial[1]);
     TEST_ASSERT_EQUAL_UINT32(3U, serial[2]);
+
+    queue_read_serial(0x4444U, 0x5555U, 0x6666U, -1);
+    serial[0] = 7U;
+    serial[1] = 8U;
+    serial[2] = 9U;
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_serial_id(&dev, serial));
+    TEST_ASSERT_EQUAL_UINT32(7U, serial[0]);
+    TEST_ASSERT_EQUAL_UINT32(8U, serial[1]);
+    TEST_ASSERT_EQUAL_UINT32(9U, serial[2]);
 
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_self_test(NULL, &passed));
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_self_test(&dev, NULL));
@@ -284,6 +298,20 @@ static void test_measurement_error_paths_preserve_last_data_and_state(void)
     dev.measurement_count = 5U;
     queue_read_u16(0U, -1);
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_voc(&dev, &data));
+    TEST_ASSERT_EQUAL_UINT16(0xEEEEU, data.voc_index);
+    TEST_ASSERT_EQUAL_UINT16(77U, dev.last_data.voc_index);
+    TEST_ASSERT_EQUAL_UINT32(5U, dev.measurement_count);
+
+    g_command_ret_queue[g_command_index] = -1;
+    data.voc_index = 0xDDDDU;
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_measure_voc(&dev, &data, 30U));
+    TEST_ASSERT_EQUAL_UINT16(0xDDDDU, data.voc_index);
+    TEST_ASSERT_EQUAL_UINT16(77U, dev.last_data.voc_index);
+    TEST_ASSERT_EQUAL_UINT32(5U, dev.measurement_count);
+
+    data.voc_index = 0xCCCCU;
+    TEST_ASSERT_EQUAL_INT(-2, xy_sgp40_measure_voc(&dev, &data, 20U));
+    TEST_ASSERT_EQUAL_UINT16(0xCCCCU, data.voc_index);
     TEST_ASSERT_EQUAL_UINT16(77U, dev.last_data.voc_index);
     TEST_ASSERT_EQUAL_UINT32(5U, dev.measurement_count);
 }

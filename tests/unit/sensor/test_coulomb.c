@@ -193,11 +193,17 @@ static void test_coulomb_init_read_controls_and_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_deinit(&coulomb));
     TEST_ASSERT_FALSE(coulomb.initialized);
 
+    value = 55.0f;
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_get_voltage(NULL, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 55.0f, value);
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_get_current(&coulomb, NULL));
+    value = 66.0f;
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_get_power(NULL, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 66.0f, value);
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_get_charge(&coulomb, NULL));
+    value = 77.0f;
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_get_percentage(NULL, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 77.0f, value);
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_reset_charge(NULL));
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_enable_alert(NULL, true));
 }
@@ -248,8 +254,12 @@ static void test_coulomb_getters_reread_and_clamp_percentage(void)
     queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_ERROR);
     queue_read16(INA226_REG_POWER, 0U, XY_DEVICE_ERROR);
     queue_read16(INA226_REG_CURRENT, 0U, XY_DEVICE_ERROR);
+    value = 1234.0f;
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_get_current(&coulomb, &value));
     TEST_ASSERT_FLOAT_WITHIN(0.01f, -25.0f, value);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 5000.0f, coulomb.data.voltage_mv);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, coulomb.data.power_mw);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 100.0f, coulomb.data.percentage);
 
     queue_read16(INA226_REG_BUS_VOLT, 0U, XY_DEVICE_OK);
     queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_OK);

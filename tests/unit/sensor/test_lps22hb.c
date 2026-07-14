@@ -311,6 +311,15 @@ static void test_public_error_paths_preserve_outputs_and_state(void)
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_check_data_ready(&dev, &ready));
     TEST_ASSERT_FALSE(ready);
 
+    queue_read8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_10HZ, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_start_single(&dev));
+
+    queue_read8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_10HZ, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_start_continuous(&dev));
+
+    queue_read8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_10HZ, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_stop(&dev));
+
     setUp();
     init_ok(&dev, &iface);
     dev.last_data.pressure = 999.0f;
@@ -318,6 +327,8 @@ static void test_public_error_paths_preserve_outputs_and_state(void)
     dev.measurement_count = 7U;
     queue_read(LPS22HB_PRESS_OUT_XL, NULL, 5U, XY_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_read_data(&dev, &data));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -1.0f, data.pressure);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -2.0f, data.temperature);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 999.0f, dev.last_data.pressure);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.0f, dev.last_data.temperature);
     TEST_ASSERT_EQUAL_UINT32(7U, dev.measurement_count);
@@ -335,6 +346,7 @@ static void test_pressure_altitude_helpers_and_invalid_inputs(void)
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_stop(NULL));
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_check_data_ready(NULL, &(bool){false}));
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_check_data_ready(&(xy_lps22hb_dev_t){0}, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_clear_interrupt(NULL));
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_auto_zero(NULL));
 }
 
