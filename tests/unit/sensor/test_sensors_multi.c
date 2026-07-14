@@ -8,6 +8,7 @@
  * that the post-refactor framework supports the actual driver fleet.
  */
 
+#include <stdio.h>
 #include <string.h>
 
 #include "unity.h"
@@ -19,6 +20,7 @@
 #include "xy_ads1115.h"
 
 static int g_fake_bus = 1;
+static char g_extra_names[XY_DEVICE_REGISTRY_MAX][24];
 
 void setUp(void)
 {
@@ -122,6 +124,26 @@ static void test_cross_driver_name_collision(void)
     TEST_ASSERT_NOT_EQUAL(XY_DEVICE_OK, ret);
 }
 
+/* Registry capacity still rejects new heterogeneous devices cleanly. */
+static void test_registry_capacity_rejects_extra_driver(void)
+{
+    static xy_sht30_t extras[XY_DEVICE_REGISTRY_MAX];
+    for (size_t i = xy_device_registry_count(); i < XY_DEVICE_REGISTRY_MAX; i++) {
+        memset(&extras[i], 0, sizeof(extras[i]));
+        xy_sht30_init(&extras[i], &g_fake_bus);
+        snprintf(g_extra_names[i], sizeof(g_extra_names[i]), "extra_%u", (unsigned)i);
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                              xy_i2c_device_register(&extras[i].i2c_dev, g_extra_names[i], XY_DEV_TYPE_SENSOR));
+    }
+
+    static xy_sht30_t overflow;
+    memset(&overflow, 0, sizeof(overflow));
+    xy_sht30_init(&overflow, &g_fake_bus);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NO_MEM,
+                          xy_i2c_device_register(&overflow.i2c_dev, "overflow", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_UINT(XY_DEVICE_REGISTRY_MAX, xy_device_registry_count());
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -131,6 +153,7 @@ int main(void)
     RUN_TEST(test_enumerate_by_type);
     RUN_TEST(test_partial_unregister);
     RUN_TEST(test_cross_driver_name_collision);
+    RUN_TEST(test_registry_capacity_rejects_extra_driver);
 
     return UNITY_END();
 }

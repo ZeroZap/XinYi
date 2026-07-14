@@ -12,6 +12,8 @@
 DEFINE_FFF_GLOBALS;
 
 static int g_self_test_mode;
+static int g_read_fail_after;
+static sensor_err_t g_read_failure;
 static sensor_data_t g_last_write;
 static sensor_config_type_t g_last_cfg;
 static int g_last_cmd;
@@ -69,6 +71,12 @@ static sensor_err_t mock_read_impl(sensor_device_t *sensor, sensor_data_t *data)
 {
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NOT_NULL(data);
+    if (g_read_fail_after == 0) {
+        return g_read_failure;
+    }
+    if (g_read_fail_after > 0) {
+        g_read_fail_after--;
+    }
     data->type = sensor->info.type;
     data->unit = sensor->info.unit;
     data->value.val_3axis.x = 10;
@@ -162,6 +170,8 @@ static void init_sensor(sensor_device_t *sensor, const char *name, const sensor_
 void setUp(void)
 {
     g_self_test_mode = 0;
+    g_read_fail_after = -1;
+    g_read_failure = SENSOR_ERROR;
 
     RESET_FAKE(mock_init);
     RESET_FAKE(mock_deinit);
@@ -309,6 +319,64 @@ static void test_sensor_lifecycle_read_callback_and_optional_ops(void)
     TEST_ASSERT_EQUAL_PTR(&sensor, mock_deinit_fake.arg0_val);
     TEST_ASSERT_EQUAL(SENSOR_STATUS_IDLE, sensor.status);
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_unregister(&sensor));
+}
+
+static void test_sensor_read_failure_restores_status_and_skips_callback(void)
+{
+    sensor_device_t sensor;
+    sensor_data_t data;
+    init_sensor(&sensor, "unit_read_fail", &required_ops);
+    memset(&data, 0xA5, sizeof(data));
+    g_read_fail_after = 0;
+    g_read_failure = SENSOR_EIO;
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_register(&sensor));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_init(&sensor));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_set_callback(&sensor, mock_callback, (void *)0x12345678));
+
+    TEST_ASSERT_EQUAL(SENSOR_EIO, sensor_read(&sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_callback_fake.call_count);
+    TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, ((uint8_t *)&data)[0]);
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_unregister(&sensor));
+}
+
+static void test_sensor_invalid_and_busy_paths_do_not_call_driver(void)
+{
+    sensor_device_t sensor;
+    sensor_data_t data;
+    init_sensor(&sensor, "unit_invalid_busy", &required_ops);
+    memset(&data, 0, sizeof(data));
+
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_read(NULL, &data));
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_read(&sensor, NULL));
+    TEST_ASSERT_EQUAL(SENSOR_ERROR, sensor_read(&sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_register(&sensor));
+    sensor.status = SENSOR_STATUS_BUSY;
+    TEST_ASSERT_EQUAL(SENSOR_ERROR, sensor_read(&sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+    sensor.status = SENSOR_STATUS_IDLE;
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_unregister(&sensor));
+}
+
+static void test_sensor_init_and_deinit_failure_preserve_status(void)
+{
+    sensor_device_t sensor;
+    init_sensor(&sensor, "unit_lifecycle_fail", &required_ops);
+    mock_init_fake.custom_fake = NULL;
+    mock_init_fake.return_val = SENSOR_EIO;
+
+    TEST_ASSERT_EQUAL(SENSOR_EIO, sensor_init(&sensor));
+    TEST_ASSERT_EQUAL(SENSOR_STATUS_IDLE, sensor.status);
+
+    sensor.status = SENSOR_STATUS_READY;
+    mock_deinit_fake.custom_fake = NULL;
+    mock_deinit_fake.return_val = SENSOR_EIO;
+    TEST_ASSERT_EQUAL(SENSOR_EIO, sensor_deinit(&sensor));
+    TEST_ASSERT_EQUAL(SENSOR_STATUS_READY, sensor.status);
 }
 
 static void test_sensor_missing_optional_ops_report_enosys(void)
@@ -492,6 +560,9 @@ int main(void)
     RUN_TEST(test_sensor_type_and_feature_contract);
     RUN_TEST(test_sensor_register_find_duplicate_and_unregister);
     RUN_TEST(test_sensor_lifecycle_read_callback_and_optional_ops);
+    RUN_TEST(test_sensor_read_failure_restores_status_and_skips_callback);
+    RUN_TEST(test_sensor_invalid_and_busy_paths_do_not_call_driver);
+    RUN_TEST(test_sensor_init_and_deinit_failure_preserve_status);
     RUN_TEST(test_sensor_missing_optional_ops_report_enosys);
 #if SENSOR_ENABLE_FIFO
     RUN_TEST(test_sensor_fifo_push_read_flush_and_watermark);

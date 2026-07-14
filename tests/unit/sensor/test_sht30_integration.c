@@ -37,6 +37,21 @@ static void drain_registry(void)
     }
 }
 
+static void test_sht30_init_and_read_reject_null_inputs(void)
+{
+    xy_device_registry_init();
+    drain_registry();
+
+    xy_sht30_t sht;
+    memset(&sht, 0, sizeof(sht));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sht30_init(NULL, &g_fake_i2c_bus));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sht30_init(&sht, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sht30_read(NULL));
+    TEST_ASSERT_FALSE(sht.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_device_registry_count());
+}
+
 static void test_init_registers_nothing_by_default(void)
 {
     xy_device_registry_init();
@@ -96,6 +111,7 @@ int main(void)
 {
     UNITY_BEGIN();
 
+    RUN_TEST(test_sht30_init_and_read_reject_null_inputs);
     RUN_TEST(test_init_registers_nothing_by_default);
     RUN_TEST(test_register_exposes_through_framework);
     RUN_TEST(test_multiple_sht30_instances);
