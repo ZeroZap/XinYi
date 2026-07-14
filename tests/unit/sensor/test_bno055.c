@@ -29,26 +29,40 @@ static i2c_op_t g_ops[128];
 static unsigned g_op_count;
 static unsigned g_op_index;
 
-static void expect_read(uint8_t reg, const uint8_t *data, uint16_t len)
+static void expect_read_ret(uint8_t reg, const uint8_t *data, uint16_t len, int ret)
 {
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_ops) / sizeof(g_ops[0]), g_op_count);
     g_ops[g_op_count].kind = OP_READ;
     g_ops[g_op_count].reg = reg;
     g_ops[g_op_count].len = len;
-    g_ops[g_op_count].ret = XY_DEVICE_OK;
-    memcpy(g_ops[g_op_count].data, data, len);
+    g_ops[g_op_count].ret = ret;
+    if (data != NULL && len > 0U) {
+        memcpy(g_ops[g_op_count].data, data, len);
+    }
     g_op_count++;
 }
 
-static void expect_write(uint8_t reg, const uint8_t *data, uint16_t len)
+static void expect_read(uint8_t reg, const uint8_t *data, uint16_t len)
+{
+    expect_read_ret(reg, data, len, XY_DEVICE_OK);
+}
+
+static void expect_write_ret(uint8_t reg, const uint8_t *data, uint16_t len, int ret)
 {
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_ops) / sizeof(g_ops[0]), g_op_count);
     g_ops[g_op_count].kind = OP_WRITE;
     g_ops[g_op_count].reg = reg;
     g_ops[g_op_count].len = len;
-    g_ops[g_op_count].ret = XY_DEVICE_OK;
-    memcpy(g_ops[g_op_count].data, data, len);
+    g_ops[g_op_count].ret = ret;
+    if (data != NULL && len > 0U) {
+        memcpy(g_ops[g_op_count].data, data, len);
+    }
     g_op_count++;
+}
+
+static void expect_write(uint8_t reg, const uint8_t *data, uint16_t len)
+{
+    expect_write_ret(reg, data, len, XY_DEVICE_OK);
 }
 
 static void expect_write_u8(uint8_t reg, uint8_t value)
@@ -88,7 +102,9 @@ int xy_i2c_master_transmit(xy_i2c_t *i2c, uint8_t addr, const uint8_t *tx, uint1
     TEST_ASSERT_EQUAL_UINT8(op->reg, tx[0]);
     TEST_ASSERT_EQUAL_UINT16(op->len, data_len);
     if (op->kind == OP_READ) {
-        memcpy((void *)data, op->data, data_len);
+        if (op->ret == XY_DEVICE_OK) {
+            memcpy((void *)data, op->data, data_len);
+        }
     } else {
         TEST_ASSERT_EQUAL_UINT8_ARRAY(op->data, data, data_len);
     }
@@ -155,11 +171,19 @@ void test_register_access_guards_and_i2c_round_trip(void)
     const uint8_t read_value = 0xA0;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_read_regs(NULL, BNO055_REG_CHIP_ID, &byte, 1));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_read_regs(&dev, BNO055_REG_CHIP_ID, NULL, 1));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_read_regs(&dev, BNO055_REG_CHIP_ID, &byte, 0));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_write_regs(&dev, BNO055_REG_PAGE_ID, NULL, 1));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_write_regs(&dev, BNO055_REG_PAGE_ID, &byte, 0));
 
     expect_read(BNO055_REG_CHIP_ID, &read_value, 1);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_get_chip_id(&dev, &byte));
     TEST_ASSERT_EQUAL_UINT8(BNO055_CHIP_ID, byte);
+
+    expect_read_ret(BNO055_REG_CHIP_ID, NULL, 1, XY_DEVICE_ERROR);
+    byte = 0x5AU;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_get_chip_id(&dev, &byte));
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, byte);
 
     byte = 0x02;
     expect_write(BNO055_REG_PAGE_ID, &byte, 1);
@@ -192,6 +216,10 @@ void test_mode_power_units_sleep_and_wakeup_write_expected_registers(void)
     expect_write_u8(BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_set_mode(&dev, BNO055_MODE_CONFIG));
     TEST_ASSERT_EQUAL_INT(BNO055_MODE_CONFIG, dev.mode);
+
+    const uint8_t pwr_normal = BNO055_PWR_NORMAL;
+    expect_write_ret(BNO055_REG_PWR_MODE, &pwr_normal, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_set_power_mode(&dev, BNO055_PWR_NORMAL));
 }
 
 void test_euler_quaternion_calibration_and_raw_parsing(void)
@@ -294,9 +322,19 @@ void test_axis_remap_and_status_helpers(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_get_sys_status(&dev, &value));
     TEST_ASSERT_EQUAL_UINT8(status, value);
 
+    expect_read_ret(BNO055_REG_SYS_STATUS, NULL, 1, XY_DEVICE_ERROR);
+    value = 0xA5U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_get_sys_status(&dev, &value));
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, value);
+
     expect_read(BNO055_REG_ST_RESULT, &self_test, 1);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_get_self_test(&dev, &value));
     TEST_ASSERT_EQUAL_UINT8(self_test, value);
+
+    expect_read_ret(BNO055_REG_ST_RESULT, NULL, 1, XY_DEVICE_ERROR);
+    value = 0x5AU;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_get_self_test(&dev, &value));
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, value);
 
     expect_read(BNO055_REG_OPR_MODE, &mode_ndof, 1);
     expect_write_u8(BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG);

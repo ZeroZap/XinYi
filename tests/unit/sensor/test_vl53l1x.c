@@ -33,26 +33,40 @@ static unsigned g_op_index;
 static uint32_t g_delay_total_ms;
 static unsigned g_delay_calls;
 
-static void expect_read(uint16_t reg, const uint8_t *data, uint16_t len)
+static void expect_read_ret(uint16_t reg, const uint8_t *data, uint16_t len, xy_ret_t ret)
 {
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_ops) / sizeof(g_ops[0]), g_op_count);
     g_ops[g_op_count].kind = OP_READ;
     g_ops[g_op_count].reg = reg;
     g_ops[g_op_count].len = len;
-    g_ops[g_op_count].ret = XY_OK;
-    memcpy(g_ops[g_op_count].data, data, len);
+    g_ops[g_op_count].ret = ret;
+    if (data != NULL && len > 0U) {
+        memcpy(g_ops[g_op_count].data, data, len);
+    }
     g_op_count++;
 }
 
-static void expect_write(uint16_t reg, const uint8_t *data, uint16_t len)
+static void expect_read(uint16_t reg, const uint8_t *data, uint16_t len)
+{
+    expect_read_ret(reg, data, len, XY_OK);
+}
+
+static void expect_write_ret(uint16_t reg, const uint8_t *data, uint16_t len, xy_ret_t ret)
 {
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_ops) / sizeof(g_ops[0]), g_op_count);
     g_ops[g_op_count].kind = OP_WRITE;
     g_ops[g_op_count].reg = reg;
     g_ops[g_op_count].len = len;
-    g_ops[g_op_count].ret = XY_OK;
-    memcpy(g_ops[g_op_count].data, data, len);
+    g_ops[g_op_count].ret = ret;
+    if (data != NULL && len > 0U) {
+        memcpy(g_ops[g_op_count].data, data, len);
+    }
     g_op_count++;
+}
+
+static void expect_write(uint16_t reg, const uint8_t *data, uint16_t len)
+{
+    expect_write_ret(reg, data, len, XY_OK);
 }
 
 static void expect_write_u8(uint16_t reg, uint8_t value)
@@ -220,12 +234,24 @@ void test_data_ready_and_result_parsing_with_offset(void)
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_check_data_ready(&dev, &ready));
     TEST_ASSERT_TRUE(ready);
 
+    expect_read_ret(VL53L1X_RESULT_INTERRUPT_STATUS, NULL, 1, XY_ERROR);
+    ready = true;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_check_data_ready(&dev, &ready));
+    TEST_ASSERT_FALSE(ready);
+
     expect_read(VL53L1X_RESULT_RANGE_STATUS, result_bytes, sizeof(result_bytes));
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_read_result(&dev, &result));
     TEST_ASSERT_EQUAL_UINT8(XY_VL53L1X_STATUS_VALID, result.status);
     TEST_ASSERT_EQUAL_UINT8(9, result.spad_count);
     TEST_ASSERT_EQUAL_UINT16(0x1234, result.signal_rate);
     TEST_ASSERT_EQUAL_UINT16(1224, result.distance);
+    TEST_ASSERT_EQUAL_UINT32(1, dev.measurement_count);
+    TEST_ASSERT_EQUAL_UINT16(1224, xy_vl53l1x_get_last_result(&dev)->distance);
+
+    expect_read_ret(VL53L1X_RESULT_RANGE_STATUS, NULL, sizeof(result_bytes), XY_ERROR);
+    result.distance = 0xEEEEU;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_read_result(&dev, &result));
+    TEST_ASSERT_EQUAL_UINT16(0xEEEEU, result.distance);
     TEST_ASSERT_EQUAL_UINT32(1, dev.measurement_count);
     TEST_ASSERT_EQUAL_UINT16(1224, xy_vl53l1x_get_last_result(&dev)->distance);
 }
@@ -316,6 +342,14 @@ void test_public_guards_and_inline_helpers(void)
 
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(NULL, &i2c, NULL));
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_start_single(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_start_continuous(NULL, 10U));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_stop(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_check_data_ready(NULL, &(bool){false}));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_check_data_ready(&dev, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_read_result(NULL, &(xy_vl53l1x_result_t){0}));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_read_result(&dev, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_measure(NULL, &(xy_vl53l1x_result_t){0}, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_measure(&dev, NULL, 1U));
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_set_roi(&dev, NULL));
     TEST_ASSERT_TRUE(xy_vl53l1x_is_ready(&dev));
     TEST_ASSERT_FALSE(xy_vl53l1x_is_ready(NULL));

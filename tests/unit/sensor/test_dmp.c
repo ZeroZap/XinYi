@@ -136,6 +136,10 @@ void test_update_guards_not_initialized_and_sensor_errors(void)
 {
     xy_mpu6050_t mpu;
     xy_dmp_t dmp;
+    xy_quaternion_t before_q;
+    xy_euler_t before_euler;
+    float before_gravity[3];
+    uint32_t before_tick;
     memset(&dmp, 0, sizeof(dmp));
     dmp.mpu = &mpu;
 
@@ -143,12 +147,36 @@ void test_update_guards_not_initialized_and_sensor_errors(void)
     TEST_ASSERT_EQUAL_INT(XY_DMP_NOT_INIT, xy_dmp_update(&dmp));
 
     dmp = init_dmp(&mpu);
+    dmp.euler.roll = 1.0f;
+    dmp.euler.pitch = -0.5f;
+    dmp.euler.yaw = 0.25f;
+    dmp.q.w = 0.5f;
+    dmp.q.x = 0.5f;
+    dmp.q.y = -0.5f;
+    dmp.q.z = 0.5f;
+    dmp.gravity[0] = 0.1f;
+    dmp.gravity[1] = 0.2f;
+    dmp.gravity[2] = 0.3f;
+    dmp.last_update = 0xCAFEU;
+    before_q = dmp.q;
+    before_euler = dmp.euler;
+    memcpy(before_gravity, dmp.gravity, sizeof(before_gravity));
+    before_tick = dmp.last_update;
+
     g_accel_ret = XY_MPU6050_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_DMP_ERROR, xy_dmp_update(&dmp));
+    TEST_ASSERT_EQUAL_MEMORY(&before_q, &dmp.q, sizeof(before_q));
+    TEST_ASSERT_EQUAL_MEMORY(&before_euler, &dmp.euler, sizeof(before_euler));
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY(before_gravity, dmp.gravity, 3);
+    TEST_ASSERT_EQUAL_UINT32(before_tick, dmp.last_update);
 
     g_accel_ret = XY_MPU6050_OK;
     g_gyro_ret = XY_MPU6050_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_DMP_ERROR, xy_dmp_update(&dmp));
+    TEST_ASSERT_EQUAL_MEMORY(&before_q, &dmp.q, sizeof(before_q));
+    TEST_ASSERT_EQUAL_MEMORY(&before_euler, &dmp.euler, sizeof(before_euler));
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY(before_gravity, dmp.gravity, 3);
+    TEST_ASSERT_EQUAL_UINT32(before_tick, dmp.last_update);
 }
 
 void test_getters_convert_angles_to_degrees_and_allow_partial_outputs(void)
@@ -181,6 +209,20 @@ void test_getters_convert_angles_to_degrees_and_allow_partial_outputs(void)
     TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_get_gravity(&dmp, &gx, NULL, &gz));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.25f, gx);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.75f, gz);
+
+    roll = -9.0f;
+    pitch = -8.0f;
+    yaw = -7.0f;
+    TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_get_angles(&dmp, &roll, NULL, &yaw));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 90.0f, roll);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -8.0f, pitch);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 180.0f, yaw);
+
+    gx = -6.0f;
+    gz = -4.0f;
+    TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_get_gravity(&dmp, NULL, NULL, NULL));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -6.0f, gx);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -4.0f, gz);
 }
 
 void test_calibrate_runs_requested_samples_and_delay(void)
