@@ -207,6 +207,23 @@ static void test_read_failures_preserve_cached_data_and_stop_early(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
 }
 
+static void test_read_data_failure_preserves_cache_after_measurement_wait(void)
+{
+    xy_bh1750_t dev;
+
+    init_ok(&dev);
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_set_resolution(&dev, XY_BH1750_LOW_RES));
+    dev.data.illuminance = 88.0f;
+    dev.data.timestamp = 0xBEEFU;
+    queue_read_raw(0U, XY_DEVICE_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_read(&dev));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 88.0f, dev.data.illuminance);
+    TEST_ASSERT_EQUAL_UINT32(0xBEEFU, dev.data.timestamp);
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT32(46U, g_delay_total);
+}
+
 static void test_get_illuminance_validates_inputs_and_preserves_output_on_failure(void)
 {
     xy_bh1750_t dev;
@@ -310,6 +327,7 @@ int main(void)
     RUN_TEST(test_read_high_resolution_one_time_converts_raw_lux);
     RUN_TEST(test_read_resolution_and_mode_select_command_and_scale);
     RUN_TEST(test_read_failures_preserve_cached_data_and_stop_early);
+    RUN_TEST(test_read_data_failure_preserves_cache_after_measurement_wait);
     RUN_TEST(test_get_illuminance_validates_inputs_and_preserves_output_on_failure);
     RUN_TEST(test_init_reset_failure_leaves_device_uninitialized);
     RUN_TEST(test_power_and_reset_propagate_write_failures);
