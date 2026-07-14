@@ -83,6 +83,48 @@ static void test_register_exposes_through_framework(void)
     TEST_ASSERT_EQUAL(XY_DEV_TYPE_SENSOR, found->type);
 }
 
+static void test_register_rejects_bad_inputs_and_preserves_registry(void)
+{
+    drain_registry();
+
+    static xy_sht30_t sht;
+    xy_i2c_device_t uninitialized;
+    memset(&sht, 0, sizeof(sht));
+    memset(&uninitialized, 0, sizeof(uninitialized));
+    xy_sht30_init(&sht, &g_fake_i2c_bus);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_i2c_device_register(NULL, "null", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_i2c_device_register(&sht.i2c_dev, NULL, XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_i2c_device_register(&uninitialized, "ghost", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_device_registry_count());
+    TEST_ASSERT_NULL(xy_device_find("ghost"));
+}
+
+static void test_unregister_allows_name_reuse(void)
+{
+    drain_registry();
+
+    static xy_sht30_t first;
+    static xy_sht30_t second;
+    memset(&first, 0, sizeof(first));
+    memset(&second, 0, sizeof(second));
+    xy_sht30_init(&first, &g_fake_i2c_bus);
+    xy_sht30_init(&second, &g_fake_i2c_bus);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&first.i2c_dev, "sht30_reuse", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_PTR(&first.i2c_dev.base, xy_device_find("sht30_reuse"));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_registry_unregister(&first.i2c_dev.base));
+    TEST_ASSERT_NULL(xy_device_find("sht30_reuse"));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&second.i2c_dev, "sht30_reuse", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_PTR(&second.i2c_dev.base, xy_device_find("sht30_reuse"));
+}
+
 static void test_multiple_sht30_instances(void)
 {
     drain_registry();
@@ -114,6 +156,8 @@ int main(void)
     RUN_TEST(test_sht30_init_and_read_reject_null_inputs);
     RUN_TEST(test_init_registers_nothing_by_default);
     RUN_TEST(test_register_exposes_through_framework);
+    RUN_TEST(test_register_rejects_bad_inputs_and_preserves_registry);
+    RUN_TEST(test_unregister_allows_name_reuse);
     RUN_TEST(test_multiple_sht30_instances);
 
     return UNITY_END();

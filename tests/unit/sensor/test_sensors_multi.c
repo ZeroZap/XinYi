@@ -111,10 +111,49 @@ static void test_partial_unregister(void)
     TEST_ASSERT_NOT_NULL(xy_device_find("ads1115"));
 }
 
+static void test_find_by_type_compacts_after_middle_unregister(void)
+{
+    xy_device_t *first;
+    xy_device_t *second;
+    xy_device_t *third;
+
+    drain_registry();
+    test_four_drivers_coexist();
+
+    first = xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 0);
+    second = xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 1);
+    third = xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 2);
+    TEST_ASSERT_NOT_NULL(first);
+    TEST_ASSERT_NOT_NULL(second);
+    TEST_ASSERT_NOT_NULL(third);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_registry_unregister(second));
+
+    TEST_ASSERT_EQUAL_UINT(3U, xy_device_registry_count());
+    TEST_ASSERT_EQUAL_PTR(first, xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 0));
+    TEST_ASSERT_EQUAL_PTR(third, xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 1));
+    TEST_ASSERT_NOT_NULL(xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 2));
+    TEST_ASSERT_NULL(xy_device_find_by_type(XY_DEV_TYPE_SENSOR, 3));
+}
+
+static void test_stats_after_full_drain_are_zero(void)
+{
+    xy_device_stats_t stats;
+
+    drain_registry();
+    TEST_ASSERT_EQUAL_UINT(0U, xy_device_registry_count());
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_devices);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.sensor_count);
+}
+
 /* Name collision rejection still works across drivers. */
 static void test_cross_driver_name_collision(void)
 {
     static xy_sht30_t imposter;
+
+    drain_registry();
+    test_four_drivers_coexist();
+
     memset(&imposter, 0, sizeof(imposter));
     xy_sht30_init(&imposter, &g_fake_bus);
 
@@ -144,6 +183,27 @@ static void test_registry_capacity_rejects_extra_driver(void)
     TEST_ASSERT_EQUAL_UINT(XY_DEVICE_REGISTRY_MAX, xy_device_registry_count());
 }
 
+static void test_duplicate_name_is_checked_before_capacity(void)
+{
+    static xy_sht30_t extras[XY_DEVICE_REGISTRY_MAX];
+    static xy_sht30_t duplicate;
+
+    drain_registry();
+    for (size_t i = 0; i < XY_DEVICE_REGISTRY_MAX; i++) {
+        memset(&extras[i], 0, sizeof(extras[i]));
+        xy_sht30_init(&extras[i], &g_fake_bus);
+        snprintf(g_extra_names[i], sizeof(g_extra_names[i]), "cap_%u", (unsigned)i);
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                              xy_i2c_device_register(&extras[i].i2c_dev, g_extra_names[i], XY_DEV_TYPE_SENSOR));
+    }
+
+    memset(&duplicate, 0, sizeof(duplicate));
+    xy_sht30_init(&duplicate, &g_fake_bus);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NO_MEM,
+                          xy_i2c_device_register(&duplicate.i2c_dev, "cap_0", XY_DEV_TYPE_SENSOR));
+    TEST_ASSERT_EQUAL_UINT(XY_DEVICE_REGISTRY_MAX, xy_device_registry_count());
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -152,8 +212,11 @@ int main(void)
     RUN_TEST(test_stats_reflect_population);
     RUN_TEST(test_enumerate_by_type);
     RUN_TEST(test_partial_unregister);
+    RUN_TEST(test_find_by_type_compacts_after_middle_unregister);
+    RUN_TEST(test_stats_after_full_drain_are_zero);
     RUN_TEST(test_cross_driver_name_collision);
     RUN_TEST(test_registry_capacity_rejects_extra_driver);
+    RUN_TEST(test_duplicate_name_is_checked_before_capacity);
 
     return UNITY_END();
 }
