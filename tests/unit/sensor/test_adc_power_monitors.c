@@ -354,6 +354,55 @@ static void test_ads1115_not_found_and_io_failure_paths(void)
     TEST_ASSERT_EQUAL_INT16(0x1234, ads.last_value);
 }
 
+
+static void test_ltc2945_partial_read_failures_preserve_cached_fields(void)
+{
+    xy_ltc2945_t ltc;
+    int bus;
+    init_ltc_ok(&ltc, &bus);
+    ltc.data.voltage_v = 1.0f;
+    ltc.data.current_a = 2.0f;
+    ltc.data.shunt_voltage_v = 3.0f;
+    ltc.data.power_w = 4.0f;
+    ltc.data.charge_c = 5.0f;
+    ltc.data.energy_j = 6.0f;
+    ltc.data.timestamp = 7U;
+
+    queue_read16(LTC2945_REG_VIN_MSB, 0x0200U, XY_DEVICE_OK);
+    queue_read16(LTC2945_REG_VSENSE_MSB, 0x0000U, XY_DEVICE_ERROR);
+    queue_read24(LTC2945_REG_POWER_MSB, 0x000000U, XY_DEVICE_ERROR);
+    queue_read24(LTC2945_REG_CHARGE_MSB, 0x000000U, XY_DEVICE_ERROR);
+    queue_read24(LTC2945_REG_ENERGY_MSB, 0x000000U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_read(&ltc));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.8f, ltc.data.voltage_v);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.0f, ltc.data.current_a);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 3.0f, ltc.data.shunt_voltage_v);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 4.0f, ltc.data.power_w);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 5.0f, ltc.data.charge_c);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 6.0f, ltc.data.energy_j);
+    TEST_ASSERT_EQUAL_UINT32(222333U, ltc.data.timestamp);
+}
+
+static void test_ads1115_read_voltage_failure_preserves_output(void)
+{
+    xy_ads1115_t ads;
+    int32_t mv = 123456;
+    int bus;
+
+    init_ads_ok(&ads, &bus);
+    ads.last_value = 0x2468;
+    queue_write_reg_config(ADS1115_CONFIG_OS_SINGLE | ADS1115_CONFIG_MUX_SINGLE_1 |
+                           (ADS1115_PGA_2_048V << 9) | ADS1115_CONFIG_MODE_SINGLE |
+                           (ADS1115_DR_128SPS << 5) | ADS1115_CONFIG_COMP_DISABLE,
+                           XY_DEVICE_OK);
+    queue_read16(ADS1115_REG_CONVERT, 0xFFFFU, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ads1115_read_voltage(&ads, 1U, &mv));
+    TEST_ASSERT_EQUAL_INT32(123456, mv);
+    TEST_ASSERT_EQUAL_INT16(0x2468, ads.last_value);
+
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM, xy_ads1115_read_voltage(&ads, 0U, NULL));
+}
+
 static void test_ads1115_diff_mux_variants_and_voltage_ranges(void)
 {
     xy_ads1115_t ads;
@@ -411,8 +460,10 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_ltc2945_init_read_controls_and_invalid_paths);
     RUN_TEST(test_ltc2945_not_found_and_uninitialized_read);
+    RUN_TEST(test_ltc2945_partial_read_failures_preserve_cached_fields);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
     RUN_TEST(test_ads1115_not_found_and_io_failure_paths);
+    RUN_TEST(test_ads1115_read_voltage_failure_preserves_output);
     RUN_TEST(test_ads1115_diff_mux_variants_and_voltage_ranges);
     return UNITY_END();
 }

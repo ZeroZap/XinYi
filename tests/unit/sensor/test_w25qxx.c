@@ -333,6 +333,28 @@ static void test_w25qxx_write_data_pages_and_timeout(void)
     TEST_ASSERT_EQUAL_INT(XY_W25Q_BUSY, xy_w25qxx_wait_idle(&dev, 1U));
 }
 
+
+static void test_w25qxx_chip_select_edges_for_id_and_power_commands(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    uint8_t manufacturer = 0;
+    uint8_t device = 0;
+
+    queue_read_id(0xEFU, W25Q16_ID);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_read_id(&dev, &manufacturer, &device));
+    queue_tx1(W25Q_CMD_POWER_DOWN, XY_OK);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_power_down(&dev));
+
+    TEST_ASSERT_EQUAL_UINT(4U, g_gpio_count);
+    TEST_ASSERT_EQUAL_UINT8(9U, g_gpio[0].pin);
+    TEST_ASSERT_EQUAL_UINT8(0U, g_gpio[0].value);
+    TEST_ASSERT_EQUAL_UINT8(1U, g_gpio[1].value);
+    TEST_ASSERT_EQUAL_UINT8(0U, g_gpio[2].value);
+    TEST_ASSERT_EQUAL_UINT8(1U, g_gpio[3].value);
+    TEST_ASSERT_EQUAL_UINT8(0xEFU, manufacturer);
+    TEST_ASSERT_EQUAL_UINT8(W25Q16_ID, device);
+}
+
 static void test_w25qxx_chip_erase_busy_then_ready(void)
 {
     xy_w25qxx_t dev = make_ready_dev();
@@ -363,6 +385,7 @@ int main(void)
     RUN_TEST(test_w25qxx_read_id_status_power_and_deinit);
     RUN_TEST(test_w25qxx_erase_program_and_read_data);
     RUN_TEST(test_w25qxx_write_data_pages_and_timeout);
+    RUN_TEST(test_w25qxx_chip_select_edges_for_id_and_power_commands);
     RUN_TEST(test_w25qxx_chip_erase_busy_then_ready);
     RUN_TEST(test_w25qxx_zero_length_write_is_noop);
     return UNITY_END();

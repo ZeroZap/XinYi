@@ -223,6 +223,49 @@ static void test_draw_string_and_char_guards(void)
     TEST_ASSERT_EQUAL_HEX8(0x5FU, buffer[8]);
 }
 
+
+static void test_refresh_data_failure_preserves_framebuffer(void)
+{
+    uint8_t buffer[1024];
+    xy_oled_ssd1306_t oled;
+    memset(buffer, 0x3C, sizeof(buffer));
+    memset(&oled, 0, sizeof(oled));
+    oled.width = 128;
+    oled.height = 64;
+    oled.buffer_size = sizeof(buffer);
+    oled.buffer = buffer;
+    oled.i2c_dev.base.initialized = 1;
+    oled.initialized = 1;
+
+    queue_success_writes(6U);
+    queue_write_ret(XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_oled_ssd1306_refresh(&oled));
+    TEST_ASSERT_EQUAL_UINT(7U, g_write_index);
+    TEST_ASSERT_EQUAL_HEX8(0x40U, g_write_data[6][0]);
+    for (size_t i = 0; i < sizeof(buffer); ++i) {
+        TEST_ASSERT_EQUAL_HEX8(0x3CU, buffer[i]);
+    }
+}
+
+static void test_display_controls_propagate_write_failures(void)
+{
+    xy_oled_ssd1306_t oled;
+    memset(&oled, 0, sizeof(oled));
+    oled.i2c_dev.base.initialized = 1;
+
+    queue_write_ret(XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_oled_ssd1306_display_on(&oled));
+
+    queue_write_ret(XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_oled_ssd1306_display_off(&oled));
+
+    queue_write_ret(XY_DEVICE_OK);
+    queue_write_ret(XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_oled_ssd1306_set_contrast(&oled, 0x22U));
+    TEST_ASSERT_EQUAL_HEX8(SSD1306_CMD_SET_CONTRAST, g_write_data[2][1]);
+    TEST_ASSERT_EQUAL_HEX8(0x22U, g_write_data[3][1]);
+}
+
 static void test_refresh_commands_controls_and_deinit(void)
 {
     uint8_t buffer[1024];
@@ -276,6 +319,8 @@ int main(void)
     RUN_TEST(test_init_reports_command_and_refresh_failures);
     RUN_TEST(test_draw_pixel_lines_rectangles_and_clear);
     RUN_TEST(test_draw_string_and_char_guards);
+    RUN_TEST(test_refresh_data_failure_preserves_framebuffer);
+    RUN_TEST(test_display_controls_propagate_write_failures);
     RUN_TEST(test_refresh_commands_controls_and_deinit);
     return UNITY_END();
 }
