@@ -269,11 +269,36 @@ static void test_coulomb_getters_reread_and_clamp_percentage(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, value);
 }
 
+static void test_coulomb_control_failures_and_uninitialized_getters(void)
+{
+    xy_coulomb_t coulomb;
+    float value = 88.0f;
+    int bus;
+
+    memset(&coulomb, 0, sizeof(coulomb));
+    TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_read(&coulomb));
+    TEST_ASSERT_EQUAL_INT(XY_COULOMB_INVALID_PARAM, xy_coulomb_get_charge(&coulomb, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 88.0f, value);
+
+    init_coulomb_ok(&coulomb, &bus);
+
+    queue_write16(INA226_REG_CURRENT, 0x0000U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_coulomb_reset_charge(&coulomb));
+
+    queue_write16(INA226_REG_MASK_EN, 0x0010U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_coulomb_enable_alert(&coulomb, true));
+
+    queue_write16(INA226_REG_CONFIG, 0x0000U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_deinit(&coulomb));
+    TEST_ASSERT_FALSE(coulomb.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_coulomb_init_read_controls_and_invalid_paths);
     RUN_TEST(test_coulomb_not_found_and_write_failures);
     RUN_TEST(test_coulomb_getters_reread_and_clamp_percentage);
+    RUN_TEST(test_coulomb_control_failures_and_uninitialized_getters);
     return UNITY_END();
 }

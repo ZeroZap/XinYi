@@ -357,6 +357,46 @@ static void test_state_helpers_compensation_burn_in_and_deinit(void)
     TEST_ASSERT_FALSE(dev.is_initialized);
 }
 
+static void test_compensation_and_stop_error_paths_preserve_state(void)
+{
+    xy_sgp40_dev_t dev;
+    xy_i2c_dev_t i2c = fake_i2c();
+
+    memset(&dev, 0, sizeof(dev));
+    dev.config.default_temperature = 11.0f;
+    dev.config.default_humidity = 22.0f;
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_set_compensation(&dev, 33.0f, 44.0f));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 11.0f, dev.config.default_temperature);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 22.0f, dev.config.default_humidity);
+
+    init_ok(&dev, &i2c);
+    TEST_ASSERT_EQUAL_INT(0, xy_sgp40_start_continuous(&dev));
+    TEST_ASSERT_EQUAL_INT(0, xy_sgp40_stop(&dev));
+    TEST_ASSERT_TRUE(dev.is_initialized);
+
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_deinit(&(xy_sgp40_dev_t){0}));
+}
+
+static void test_init_serial_crc_failure_leaves_device_uninitialized(void)
+{
+    xy_sgp40_dev_t dev;
+    xy_i2c_dev_t i2c = fake_i2c();
+    uint8_t bad_serial[9] = {
+        0x11U, 0x11U, 0U,
+        0x22U, 0x22U, 0U,
+        0x33U, 0x33U, 0U,
+    };
+
+    bad_serial[2] = xy_sgp40_crc8(&bad_serial[0], 2U);
+    bad_serial[5] = (uint8_t)(xy_sgp40_crc8(&bad_serial[3], 2U) ^ 0xFFU);
+    bad_serial[8] = xy_sgp40_crc8(&bad_serial[6], 2U);
+
+    queue_read_u16(0x1234U, 0);
+    queue_read_bytes(bad_serial, sizeof(bad_serial), 0);
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_init(&dev, &i2c, NULL));
+    TEST_ASSERT_FALSE(dev.is_initialized);
+}
+
 static void test_voc_level_boundaries(void)
 {
     TEST_ASSERT_EQUAL_INT(XY_SGP40_VOC_EXCELLENT, xy_sgp40_get_voc_level(0U));
@@ -380,6 +420,8 @@ int main(void)
     RUN_TEST(test_measurement_flow_waits_reads_and_updates_last_data);
     RUN_TEST(test_measurement_error_paths_preserve_last_data_and_state);
     RUN_TEST(test_state_helpers_compensation_burn_in_and_deinit);
+    RUN_TEST(test_compensation_and_stop_error_paths_preserve_state);
+    RUN_TEST(test_init_serial_crc_failure_leaves_device_uninitialized);
     RUN_TEST(test_voc_level_boundaries);
     return UNITY_END();
 }

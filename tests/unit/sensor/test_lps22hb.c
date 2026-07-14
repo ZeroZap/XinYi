@@ -334,6 +334,52 @@ static void test_public_error_paths_preserve_outputs_and_state(void)
     TEST_ASSERT_EQUAL_UINT32(7U, dev.measurement_count);
 }
 
+static void test_config_write_failures_return_error_and_keep_requested_cache(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+
+    init_ok(&dev, &iface);
+
+    queue_read8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_10HZ, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_50HZ, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_set_odr(&dev, XY_LPS22HB_ODR_50HZ));
+    TEST_ASSERT_EQUAL_INT(XY_LPS22HB_ODR_50HZ, dev.config.odr);
+
+    queue_read8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_10HZ, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_10HZ, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_configure_lpf(&dev, false, XY_LPS22HB_LPF_ODR_5));
+    TEST_ASSERT_FALSE(dev.config.enable_lpf);
+    TEST_ASSERT_EQUAL_INT(XY_LPS22HB_LPF_ODR_5, dev.config.lpf);
+
+    queue_write8(LPS22HB_FIFO_CTRL, (uint8_t)(XY_LPS22HB_FIFO_STREAM | 4U), XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_configure_fifo(&dev, XY_LPS22HB_FIFO_STREAM, 4U));
+    TEST_ASSERT_EQUAL_INT(XY_LPS22HB_FIFO_STREAM, dev.config.fifo_mode);
+    TEST_ASSERT_EQUAL_UINT8(4U, dev.config.fifo_wtm);
+}
+
+static void test_auto_zero_read_failures_and_timeout_propagate(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+
+    init_ok(&dev, &iface);
+
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_auto_zero(&dev));
+
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, LPS22HB_AUTOZERO, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_auto_zero(&dev));
+
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, LPS22HB_AUTOZERO, XY_OK);
+    for (int i = 0; i < 100; i++) {
+        queue_read8(LPS22HB_CTRL_REG2, LPS22HB_AUTOZERO, XY_OK);
+    }
+    TEST_ASSERT_EQUAL_INT(-2, xy_lps22hb_auto_zero(&dev));
+}
+
 static void test_pressure_altitude_helpers_and_invalid_inputs(void)
 {
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, xy_lps22hb_pressure_to_altitude(1013.25f, 1013.25f));
@@ -359,6 +405,8 @@ int main(void)
     RUN_TEST(test_measure_waits_for_data_ready_and_handles_timeout);
     RUN_TEST(test_controls_fifo_lpf_threshold_interrupt_and_deinit);
     RUN_TEST(test_public_error_paths_preserve_outputs_and_state);
+    RUN_TEST(test_config_write_failures_return_error_and_keep_requested_cache);
+    RUN_TEST(test_auto_zero_read_failures_and_timeout_propagate);
     RUN_TEST(test_pressure_altitude_helpers_and_invalid_inputs);
     return UNITY_END();
 }
