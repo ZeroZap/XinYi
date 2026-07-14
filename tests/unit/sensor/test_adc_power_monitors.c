@@ -341,6 +341,69 @@ static void test_ads1115_not_found_and_io_failure_paths(void)
                            (ADS1115_DR_128SPS << 5) | ADS1115_CONFIG_COMP_DISABLE,
                            XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ads1115_read_single(&ads, 0U, &raw));
+
+    raw = 0x5555;
+    ads.last_value = 0x1234;
+    queue_write_reg_config(ADS1115_CONFIG_OS_SINGLE | ADS1115_CONFIG_MUX_SINGLE_0 |
+                           (ADS1115_PGA_2_048V << 9) | ADS1115_CONFIG_MODE_SINGLE |
+                           (ADS1115_DR_128SPS << 5) | ADS1115_CONFIG_COMP_DISABLE,
+                           XY_DEVICE_OK);
+    queue_read16(ADS1115_REG_CONVERT, 0xABCDU, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ads1115_read_single(&ads, 0U, &raw));
+    TEST_ASSERT_EQUAL_INT16(0x5555, raw);
+    TEST_ASSERT_EQUAL_INT16(0x1234, ads.last_value);
+}
+
+static void test_ads1115_diff_mux_variants_and_voltage_ranges(void)
+{
+    xy_ads1115_t ads;
+    int16_t raw = 0;
+    int32_t mv = 0;
+    int bus;
+
+    init_ads_ok(&ads, &bus);
+
+    queue_write_reg_config(ADS1115_CONFIG_OS_SINGLE | ADS1115_CONFIG_MUX_DIFF_0_1 |
+                           (ADS1115_PGA_2_048V << 9) | ADS1115_CONFIG_MODE_SINGLE |
+                           (ADS1115_DR_128SPS << 5) | ADS1115_CONFIG_COMP_DISABLE,
+                           XY_DEVICE_OK);
+    queue_read16(ADS1115_REG_CONVERT, 0x0100U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_OK, xy_ads1115_read_diff(&ads, 0U, 1U, &raw));
+    TEST_ASSERT_EQUAL_INT16(0x0100, raw);
+
+    queue_write_reg_config(ADS1115_CONFIG_OS_SINGLE | ADS1115_CONFIG_MUX_DIFF_1_3 |
+                           (ADS1115_PGA_2_048V << 9) | ADS1115_CONFIG_MODE_SINGLE |
+                           (ADS1115_DR_128SPS << 5) | ADS1115_CONFIG_COMP_DISABLE,
+                           XY_DEVICE_OK);
+    queue_read16(ADS1115_REG_CONVERT, 0x0200U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_OK, xy_ads1115_read_diff(&ads, 1U, 3U, &raw));
+    TEST_ASSERT_EQUAL_INT16(0x0200, raw);
+
+    queue_write_reg_config(ADS1115_CONFIG_OS_SINGLE | ADS1115_CONFIG_MUX_DIFF_2_3 |
+                           (ADS1115_PGA_2_048V << 9) | ADS1115_CONFIG_MODE_SINGLE |
+                           (ADS1115_DR_128SPS << 5) | ADS1115_CONFIG_COMP_DISABLE,
+                           XY_DEVICE_OK);
+    queue_read16(ADS1115_REG_CONVERT, 0x0300U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_OK, xy_ads1115_read_diff(&ads, 2U, 3U, &raw));
+    TEST_ASSERT_EQUAL_INT16(0x0300, raw);
+
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_OK, xy_ads1115_set_pga(&ads, ADS1115_PGA_6_144V));
+    queue_write_reg_config(ADS1115_CONFIG_OS_SINGLE | ADS1115_CONFIG_MUX_SINGLE_3 |
+                           (ADS1115_PGA_6_144V << 9) | ADS1115_CONFIG_MODE_SINGLE |
+                           (ADS1115_DR_128SPS << 5) | ADS1115_CONFIG_COMP_DISABLE,
+                           XY_DEVICE_OK);
+    queue_read16(ADS1115_REG_CONVERT, 0x1000U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_OK, xy_ads1115_read_voltage(&ads, 3U, &mv));
+    TEST_ASSERT_EQUAL_INT32(768, mv);
+
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_OK, xy_ads1115_set_pga(&ads, ADS1115_PGA_0_256V));
+    queue_write_reg_config(ADS1115_CONFIG_OS_SINGLE | ADS1115_CONFIG_MUX_SINGLE_0 |
+                           (ADS1115_PGA_0_256V << 9) | ADS1115_CONFIG_MODE_SINGLE |
+                           (ADS1115_DR_128SPS << 5) | ADS1115_CONFIG_COMP_DISABLE,
+                           XY_DEVICE_OK);
+    queue_read16(ADS1115_REG_CONVERT, 0x1000U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_OK, xy_ads1115_read_voltage(&ads, 0U, &mv));
+    TEST_ASSERT_EQUAL_INT32(31, mv);
 }
 
 int main(void)
@@ -350,5 +413,6 @@ int main(void)
     RUN_TEST(test_ltc2945_not_found_and_uninitialized_read);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
     RUN_TEST(test_ads1115_not_found_and_io_failure_paths);
+    RUN_TEST(test_ads1115_diff_mux_variants_and_voltage_ranges);
     return UNITY_END();
 }

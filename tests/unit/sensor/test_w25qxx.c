@@ -333,6 +333,29 @@ static void test_w25qxx_write_data_pages_and_timeout(void)
     TEST_ASSERT_EQUAL_INT(XY_W25Q_BUSY, xy_w25qxx_wait_idle(&dev, 1U));
 }
 
+static void test_w25qxx_chip_erase_busy_then_ready(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    const uint8_t chip_cmd = W25Q_CMD_CHIP_ERASE;
+
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_INVALID_PARAM, xy_w25qxx_chip_erase(NULL));
+
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_OK);
+    queue_tx(&chip_cmd, sizeof(chip_cmd), XY_OK);
+    queue_status(0x01U);
+    queue_status(0x00U);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_chip_erase(&dev));
+}
+
+static void test_w25qxx_zero_length_write_is_noop(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    uint8_t data = 0x5AU;
+
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_INVALID_PARAM, xy_w25qxx_page_program(&dev, 0, &data, 257U));
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_write_data(&dev, 0x1234U, &data, 0U));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -340,5 +363,7 @@ int main(void)
     RUN_TEST(test_w25qxx_read_id_status_power_and_deinit);
     RUN_TEST(test_w25qxx_erase_program_and_read_data);
     RUN_TEST(test_w25qxx_write_data_pages_and_timeout);
+    RUN_TEST(test_w25qxx_chip_erase_busy_then_ready);
+    RUN_TEST(test_w25qxx_zero_length_write_is_noop);
     return UNITY_END();
 }
