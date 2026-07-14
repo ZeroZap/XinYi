@@ -274,6 +274,34 @@ static void test_helpers_validate_outputs_and_propagate_control_failures(void)
     TEST_ASSERT_FALSE(dev.initialized);
 }
 
+
+static void test_sht30_control_success_paths_and_deinit_uninitialized(void)
+{
+    xy_sht30_t dev;
+    int fake_bus;
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+
+    queue_write(1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_init(&dev, &fake_bus, SHT30_ADDR_DEFAULT));
+
+    g_delay_total = 0;
+    queue_write(1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_soft_reset(&dev));
+    TEST_ASSERT_EQUAL_UINT32(15U, g_delay_total);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_SOFT_RESET >> 8), g_write_queue[1][0]);
+
+    queue_write(1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sht30_heater_on(&dev));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_HEATER_ON >> 8), g_write_queue[2][0]);
+
+    queue_write(1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sht30_heater_off(&dev));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_HEATER_OFF >> 8), g_write_queue[3][0]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -282,5 +310,6 @@ int main(void)
     RUN_TEST(test_read_converts_measurement_and_checks_crc);
     RUN_TEST(test_read_reports_failures_and_preserves_cached_measurement);
     RUN_TEST(test_helpers_validate_outputs_and_propagate_control_failures);
+    RUN_TEST(test_sht30_control_success_paths_and_deinit_uninitialized);
     return UNITY_END();
 }

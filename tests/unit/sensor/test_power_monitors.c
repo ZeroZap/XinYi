@@ -363,14 +363,77 @@ static void test_ina229_detection_and_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_INA_NOT_FOUND, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
 }
 
+
+static void test_max17043_ignored_write_failure_contracts(void)
+{
+    xy_max17043_t gauge;
+    xy_max17043_config_t cfg = max_config();
+    int bus;
+
+    queue_read16(MAX17043_REG_VER, 0x0012U, XY_DEVICE_OK);
+    queue_write16(MAX17043_REG_VALRT, 160U, XY_DEVICE_ERROR);
+    queue_write16(MAX17043_REG_HIBRT, 0x4000U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_init(&gauge, &bus, &cfg));
+    TEST_ASSERT_TRUE(gauge.initialized);
+
+    queue_write16(MAX17043_REG_UNLOCK, 0x0090U, XY_DEVICE_ERROR);
+    queue_write16(MAX17043_REG_COMMAND, 0x0002U, XY_DEVICE_ERROR);
+    g_delay_total = 0;
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_reset(&gauge));
+    TEST_ASSERT_EQUAL_UINT32(100U, g_delay_total);
+}
+
+static void test_ina226_init_write_failures_deinit_and_getters_preserve_outputs(void)
+{
+    xy_ina_t ina;
+    xy_ina_config_t cfg = ina_config();
+    float value;
+    int bus;
+
+    queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
+    queue_read16(INA226_REG_DIE_ID, INA226_DIE_ID_VALUE, XY_DEVICE_OK);
+    queue_write16(INA226_REG_CALIB, 204U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
+
+    queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
+    queue_read16(INA226_REG_DIE_ID, INA226_DIE_ID_VALUE, XY_DEVICE_OK);
+    queue_write16(INA226_REG_CALIB, 204U, XY_DEVICE_OK);
+    queue_write16(INA226_REG_CONFIG, 0xF220U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
+
+    init_ina_ok(&ina, &bus);
+    value = -1.0f;
+    queue_read16(INA226_REG_BUS_VOLT, 0x2000U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_SHUNT_VOLT, 0x0100U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_POWER, 0x0064U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_voltage(&ina, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, value);
+
+    value = -2.0f;
+    queue_read16(INA226_REG_BUS_VOLT, 0x2000U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_SHUNT_VOLT, 0x0100U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_POWER, 0x0064U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_current(&ina, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, value);
+
+    queue_write16(INA226_REG_MASK_EN, 0x0000U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_enable_alert(&ina, false));
+
+    queue_write16(INA226_REG_CONFIG, 0x0000U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_deinit(&ina));
+    TEST_ASSERT_FALSE(ina.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_max17043_init_read_controls_and_reset);
     RUN_TEST(test_max17043_read_partial_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_max17043_not_found_and_getter_invalid_paths);
+    RUN_TEST(test_max17043_ignored_write_failure_contracts);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
     RUN_TEST(test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
+    RUN_TEST(test_ina226_init_write_failures_deinit_and_getters_preserve_outputs);
     return UNITY_END();
 }
