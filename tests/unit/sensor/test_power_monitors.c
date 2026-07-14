@@ -364,6 +364,85 @@ static void test_ina229_detection_and_invalid_paths(void)
 }
 
 
+
+static void test_max17043_getters_return_cached_values_after_read_failures(void)
+{
+    xy_max17043_t gauge;
+    float value;
+    int bus;
+
+    init_max_ok(&gauge, &bus);
+    gauge.data.voltage_mv = 1234.0f;
+    gauge.data.percentage = 56.0f;
+    gauge.data.crate = -0.25f;
+
+    queue_read16(MAX17043_REG_VCELL, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_SOC, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_CRATE, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_STATUS, 0U, XY_DEVICE_ERROR);
+    value = -1.0f;
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_get_voltage(&gauge, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1234.0f, value);
+
+    queue_read16(MAX17043_REG_VCELL, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_SOC, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_CRATE, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_STATUS, 0U, XY_DEVICE_ERROR);
+    value = -2.0f;
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_get_percentage(&gauge, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 56.0f, value);
+
+    queue_read16(MAX17043_REG_VCELL, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_SOC, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_CRATE, 0U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_STATUS, 0U, XY_DEVICE_ERROR);
+    value = -3.0f;
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_get_crate(&gauge, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -0.25f, value);
+}
+
+static void test_ina226_detection_failures_return_without_config_writes(void)
+{
+    xy_ina_t ina;
+    xy_ina_config_t cfg = ina_config();
+    int bus;
+
+    queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
+    queue_read16(INA226_REG_DIE_ID, 0U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+
+    queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
+    queue_read16(INA226_REG_DIE_ID, 0x1234U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_INA_NOT_FOUND, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+}
+
+static void test_ina226_get_power_and_shunt_use_cached_values_after_read_failures(void)
+{
+    xy_ina_t ina;
+    float value;
+    int bus;
+
+    init_ina_ok(&ina, &bus);
+    ina.data.shunt_voltage_uv = 12.5f;
+    ina.data.power_mw = 34.5f;
+
+    queue_read16(INA226_REG_BUS_VOLT, 0U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_POWER, 0U, XY_DEVICE_ERROR);
+    value = -1.0f;
+    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_power(&ina, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 34.5f, value);
+
+    queue_read16(INA226_REG_BUS_VOLT, 0U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_POWER, 0U, XY_DEVICE_ERROR);
+    value = -2.0f;
+    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_shunt_voltage(&ina, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.5f, value);
+}
+
 static void test_max17043_ignored_write_failure_contracts(void)
 {
     xy_max17043_t gauge;
@@ -431,9 +510,12 @@ int main(void)
     RUN_TEST(test_max17043_read_partial_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_max17043_not_found_and_getter_invalid_paths);
     RUN_TEST(test_max17043_ignored_write_failure_contracts);
+    RUN_TEST(test_max17043_getters_return_cached_values_after_read_failures);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
     RUN_TEST(test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
+    RUN_TEST(test_ina226_detection_failures_return_without_config_writes);
     RUN_TEST(test_ina226_init_write_failures_deinit_and_getters_preserve_outputs);
+    RUN_TEST(test_ina226_get_power_and_shunt_use_cached_values_after_read_failures);
     return UNITY_END();
 }

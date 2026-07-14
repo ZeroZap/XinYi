@@ -235,6 +235,44 @@ static void test_read_all_negative_temperature_conversion_bounds(void)
     TEST_ASSERT_EQUAL_INT16(85, dev.tobj2);
 }
 
+
+static void test_read_ambient_i2c_failure_preserves_output(void)
+{
+    xy_mlx90614_t dev;
+    int16_t ta = 4321;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    g_read_fail_reg[MLX90614_RAM_TA] = 1U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mlx90614_read_ambient(&dev, &ta));
+    TEST_ASSERT_EQUAL_INT16(4321, ta);
+}
+
+static void test_read_all_object2_i2c_failure_uses_object1_without_error(void)
+{
+    xy_mlx90614_t dev;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    set_reg_word(MLX90614_RAM_TA, 14000U);
+    set_reg_word(MLX90614_RAM_TOBJ1, 14100U);
+    g_read_fail_reg[MLX90614_RAM_TOBJ2] = 1U;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_read_all(&dev));
+    TEST_ASSERT_EQUAL_INT16(685, dev.ta);
+    TEST_ASSERT_EQUAL_INT16(885, dev.tobj1);
+    TEST_ASSERT_EQUAL_INT16(885, dev.tobj2);
+}
+
+static void test_set_emissivity_does_not_require_initialized_device(void)
+{
+    xy_mlx90614_t dev;
+    memset(&dev, 0, sizeof(dev));
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_NOT_SUPPORTED, xy_mlx90614_set_emissivity(&dev, 950U));
+}
+
 static void test_deinit_rejects_null_and_clears_initialized_flag(void)
 {
     xy_mlx90614_t dev;
@@ -301,7 +339,9 @@ int main(void)
     RUN_TEST(test_read_all_converts_temperature_registers_and_single_channel_fallback);
     RUN_TEST(test_bad_pec_rejects_temperature_read_without_updating_output);
     RUN_TEST(test_read_ambient_success_and_invalid_output_paths);
+    RUN_TEST(test_read_ambient_i2c_failure_preserves_output);
     RUN_TEST(test_read_all_failures_preserve_cached_temperatures);
+    RUN_TEST(test_read_all_object2_i2c_failure_uses_object1_without_error);
     RUN_TEST(test_read_object1_updates_output_only_on_success);
     RUN_TEST(test_read_object1_i2c_failure_preserves_output);
     RUN_TEST(test_read_all_negative_temperature_conversion_bounds);
@@ -309,5 +349,6 @@ int main(void)
     RUN_TEST(test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error);
     RUN_TEST(test_emissivity_get_falls_back_on_bad_pec);
     RUN_TEST(test_set_emissivity_validates_range_and_reports_unsupported_write);
+    RUN_TEST(test_set_emissivity_does_not_require_initialized_device);
     return UNITY_END();
 }
