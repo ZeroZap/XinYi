@@ -279,6 +279,46 @@ static void test_bmi088_error_paths_setters_and_calibration(void)
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_calibrate(&dev, 1));
 
     init_bmi_ok(&dev, &spi);
+
+    raw.acc_x = 11;
+    raw.acc_y = 22;
+    raw.acc_z = 33;
+    raw.gyro_x = 44;
+    raw.gyro_y = 55;
+    raw.gyro_z = 66;
+    raw.temperature = 77;
+    queue_read_xyz(0U, BMI088_ACC_X_LSB_ADDR, 0, 0, 0, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_read_raw_data(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(11, raw.acc_x);
+    TEST_ASSERT_EQUAL_INT16(77, raw.temperature);
+
+    queue_read_xyz(0U, BMI088_ACC_X_LSB_ADDR, 100, 200, 300, XY_OK);
+    queue_read_xyz(1U, BMI088_GYRO_X_LSB_ADDR, 10, 20, 30, XY_OK);
+    { uint8_t temp[2] = {0U, 0U}; queue_read(0U, BMI088_ACC_TEMP_LSB_ADDR, temp, 2U, XY_ERROR); }
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_read_raw_data(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(100, raw.acc_x);
+    TEST_ASSERT_EQUAL_INT16(10, raw.gyro_x);
+    TEST_ASSERT_EQUAL_INT16(77, raw.temperature);
+
+    data.acc_x = 1.0f;
+    data.gyro_x = 2.0f;
+    data.temperature = 3.0f;
+    queue_read_xyz(0U, BMI088_ACC_X_LSB_ADDR, 0, 0, 0, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_read_data(&dev, &data));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, data.acc_x);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f, data.gyro_x);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.0f, data.temperature);
+
+    queue_write(0U, BMI088_ACC_RANGE_ADDR, (uint8_t)XY_BMI088_ACC_RANGE_24G, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_set_acc_range(&dev, XY_BMI088_ACC_RANGE_24G));
+    TEST_ASSERT_EQUAL_INT(XY_BMI088_ACC_RANGE_12G, dev.config.acc_range);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2730.0f, dev.acc_sensitivity);
+
+    queue_write(1U, BMI088_GYRO_RANGE_ADDR, (uint8_t)XY_BMI088_GYRO_RANGE_125, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_set_gyro_range(&dev, XY_BMI088_GYRO_RANGE_125));
+    TEST_ASSERT_EQUAL_INT(XY_BMI088_GYRO_RANGE_500, dev.config.gyro_range);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 65.6f, dev.gyro_sensitivity);
+
     queue_write(0U, BMI088_ACC_RANGE_ADDR, (uint8_t)XY_BMI088_ACC_RANGE_24G, XY_OK);
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_set_acc_range(&dev, XY_BMI088_ACC_RANGE_24G));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 1365.0f, dev.acc_sensitivity);

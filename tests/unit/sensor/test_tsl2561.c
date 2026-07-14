@@ -262,6 +262,16 @@ static void test_getters_update_outputs_only_on_success(void)
     broadband = 0xFFFFU;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_get_broadband(&dev, &broadband));
     TEST_ASSERT_EQUAL_UINT16(0xFFFFU, broadband);
+
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U, XY_DEVICE_ERROR);
+    ir = 0xEEEEU;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_get_ir(&dev, &ir));
+    TEST_ASSERT_EQUAL_UINT16(0xEEEEU, ir);
+
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U, XY_DEVICE_ERROR);
+    lux = -5.0f;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_get_lux(&dev, &lux));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -5.0f, lux);
 }
 
 static void test_read_integration_delay_and_zero_broadband_lux_branches(void)
@@ -317,21 +327,31 @@ static void test_gain_integration_enable_disable_and_deinit_contracts(void)
                           xy_tsl2561_set_integration(&dev, (xy_tsl2561_integration_t)99));
 
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x02U, XY_DEVICE_OK);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_set_gain(&dev, XY_TSL2561_GAIN_16X));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_GAIN_16X, dev.gain);
+
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x12U, XY_DEVICE_OK);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_13MS, dev.integration);
+
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x02U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_gain(&dev, XY_TSL2561_GAIN_16X));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_GAIN_16X, dev.gain);
-    TEST_ASSERT_EQUAL_UINT8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, g_write_data_queue[3][0]);
-    TEST_ASSERT_EQUAL_UINT8(0x12U, g_write_data_queue[3][1]);
+    TEST_ASSERT_EQUAL_UINT8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, g_write_data_queue[5][0]);
+    TEST_ASSERT_EQUAL_UINT8(0x10U, g_write_data_queue[5][1]);
 
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x12U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_13MS, dev.integration);
-    TEST_ASSERT_EQUAL_UINT8(0x10U, g_write_data_queue[4][1]);
+    TEST_ASSERT_EQUAL_UINT8(0x10U, g_write_data_queue[6][1]);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_disable(&dev));
-    TEST_ASSERT_EQUAL_UINT8(0x00U, g_write_data_queue[5][1]);
+    TEST_ASSERT_EQUAL_UINT8(0x00U, g_write_data_queue[7][1]);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
-    TEST_ASSERT_EQUAL_UINT8(0x00U, g_write_data_queue[6][1]);
+    TEST_ASSERT_EQUAL_UINT8(0x00U, g_write_data_queue[8][1]);
 }
 
 int main(void)

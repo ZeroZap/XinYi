@@ -280,6 +280,11 @@ static void test_bmi270_range_enable_and_raw_data(void)
     bmi270_raw_data_t raw;
     bmi270_data_t data;
 
+    queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_set_range(&dev, &range));
+    TEST_ASSERT_EQUAL_UINT8(BMI270_ACC_RANGE_4G, dev.range.acc_range);
+    TEST_ASSERT_FLOAT_WITHIN(0.00001f, 4.0f * 9.80665f / 32768.0f, dev.acc_scale);
+
     queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
     queue_i2c_write(0x68U, BMI270_REG_ACC_RANGE, &range.acc_range, 1U, XY_DEVICE_OK);
     queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &gyr_conf, 1U, XY_DEVICE_OK);
@@ -326,7 +331,20 @@ static void test_bmi270_not_ready_sleep_wakeup_and_deinit(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_get_status(&dev, NULL));
 
     queue_i2c_read8(0x68U, BMI270_REG_STATUS, 0x00U, XY_DEVICE_OK);
+    raw.acc_x = 11;
+    raw.gyr_x = 22;
+    raw.sensor_time = 33U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EAGAIN, xy_bmi270_read_raw(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(11, raw.acc_x);
+    TEST_ASSERT_EQUAL_INT16(22, raw.gyr_x);
+    TEST_ASSERT_EQUAL_UINT32(33U, raw.sensor_time);
+
+    queue_i2c_read8(0x68U, BMI270_REG_STATUS, (uint8_t)(BMI270_DRDY_ACC | BMI270_DRDY_GYR), XY_DEVICE_OK);
+    queue_i2c_read(0x68U, BMI270_REG_ACC_X_LSB, NULL, 12U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_read_raw(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(11, raw.acc_x);
+    TEST_ASSERT_EQUAL_INT16(22, raw.gyr_x);
+    TEST_ASSERT_EQUAL_UINT32(33U, raw.sensor_time);
 
     queue_i2c_read8(0x68U, BMI270_REG_STATUS, (uint8_t)(BMI270_DRDY_ACC | BMI270_DRDY_GYR), XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmi270_get_status(&dev, &status));
