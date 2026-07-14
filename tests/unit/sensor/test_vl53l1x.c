@@ -215,6 +215,22 @@ void test_start_stop_and_continuous_period_write_expected_commands(void)
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_start_continuous(&dev, 20));
 }
 
+
+void test_start_commands_propagate_start_write_failures_after_stop(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+
+    expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
+    expect_write_ret(VL53L1X_SYSTEM_START, &(const uint8_t){0x10}, 1, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_start_single(&dev));
+
+    expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
+    expect_write_u32(VL53L1X_SYSTEM_INTERMEASUREMENT_PERIOD, 20000U);
+    expect_write_ret(VL53L1X_SYSTEM_START, &(const uint8_t){0x02}, 1, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_start_continuous(&dev, 20));
+}
+
 void test_data_ready_and_result_parsing_with_offset(void)
 {
     xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
@@ -316,6 +332,26 @@ void test_range_roi_interrupt_and_address_configuration(void)
     TEST_ASSERT_EQUAL_UINT8(0x30, i2c.address);
 }
 
+
+void test_configuration_write_failures_stop_at_first_failed_register(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+    xy_vl53l1x_roi_t roi = {.centre_spad = 42, .width = 8, .height = 6};
+
+    expect_write_ret(0x0060, &(const uint8_t){0x0F}, 1, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_set_range(&dev, XY_VL53L1X_RANGE_LONG));
+
+    expect_write_ret(0x0016, &(const uint8_t){42}, 1, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_set_roi(&dev, &roi));
+
+    expect_write_ret(VL53L1X_SYSTEM_INTERRUPT_CONFIG_GPIO,
+                     &(const uint8_t){XY_VL53L1X_INT_OUT_OF_WINDOW}, 1, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(
+        XY_ERROR,
+        xy_vl53l1x_configure_interrupt(&dev, XY_VL53L1X_INT_OUT_OF_WINDOW, 100, 900));
+}
+
 void test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements(void)
 {
     xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
@@ -365,10 +401,12 @@ int main(void)
     RUN_TEST(test_init_applies_default_configuration_and_device_info);
     RUN_TEST(test_init_rejects_wrong_model_id);
     RUN_TEST(test_start_stop_and_continuous_period_write_expected_commands);
+    RUN_TEST(test_start_commands_propagate_start_write_failures_after_stop);
     RUN_TEST(test_data_ready_and_result_parsing_with_offset);
     RUN_TEST(test_measure_timeout_stops_sensor);
     RUN_TEST(test_measure_success_reads_result_and_clears_interrupt);
     RUN_TEST(test_range_roi_interrupt_and_address_configuration);
+    RUN_TEST(test_configuration_write_failures_stop_at_first_failed_register);
     RUN_TEST(test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements);
     RUN_TEST(test_public_guards_and_inline_helpers);
     return UNITY_END();

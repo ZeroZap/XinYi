@@ -309,6 +309,58 @@ void test_get_data_converts_fused_vectors(void)
     TEST_ASSERT_EQUAL_UINT8(3, data.calib.sys);
 }
 
+
+void test_get_data_tolerates_optional_vector_read_failures_until_calib_failure(void)
+{
+    int bus;
+    xy_bno055_t dev = make_ready_dev(&bus);
+    bno055_data_t data;
+    uint8_t euler_bytes[6] = {0x00, 0x01, 0x00, 0x00, 0xF0, 0xFF};
+    uint8_t quat_bytes[8] = {0x00, 0x40, 0, 0, 0, 0, 0, 0};
+    const uint8_t calib = 0xC0;
+
+    memset(&data, 0xA5, sizeof(data));
+    data.acc_x = 1.25f;
+    data.linear_acc_x = 2.5f;
+    data.gravity_z = 3.75f;
+    data.mag_y = 4.5f;
+    data.gyr_z = 5.25f;
+    data.temperature = 6.0f;
+
+    expect_read(BNO055_REG_EUL_HEADING_LSB, euler_bytes, sizeof(euler_bytes));
+    expect_read(BNO055_REG_QUA_DATA_W_LSB, quat_bytes, sizeof(quat_bytes));
+    expect_read_ret(BNO055_REG_ACC_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_LIA_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_GRV_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_MAG_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_GYR_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_TEMP, NULL, 1, XY_DEVICE_ERROR);
+    expect_read(BNO055_REG_CALIB_STAT, &calib, 1);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_get_data(&dev, &data));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 16.0f, data.euler.heading);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -1.0f, data.euler.pitch);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, data.quat.w);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.25f, data.acc_x);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.5f, data.linear_acc_x);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.75f, data.gravity_z);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 4.5f, data.mag_y);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.25f, data.gyr_z);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 6.0f, data.temperature);
+    TEST_ASSERT_EQUAL_UINT8(3, data.calib.sys);
+
+    expect_read(BNO055_REG_EUL_HEADING_LSB, euler_bytes, sizeof(euler_bytes));
+    expect_read(BNO055_REG_QUA_DATA_W_LSB, quat_bytes, sizeof(quat_bytes));
+    expect_read_ret(BNO055_REG_ACC_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_LIA_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_GRV_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_MAG_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_GYR_DATA_X_LSB, NULL, 6, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_TEMP, NULL, 1, XY_DEVICE_ERROR);
+    expect_read_ret(BNO055_REG_CALIB_STAT, NULL, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_get_data(&dev, &data));
+}
+
 void test_axis_remap_and_status_helpers(void)
 {
     int bus;
@@ -360,6 +412,7 @@ int main(void)
     RUN_TEST(test_mode_power_units_sleep_and_wakeup_write_expected_registers);
     RUN_TEST(test_euler_quaternion_calibration_and_raw_parsing);
     RUN_TEST(test_get_data_converts_fused_vectors);
+    RUN_TEST(test_get_data_tolerates_optional_vector_read_failures_until_calib_failure);
     RUN_TEST(test_axis_remap_and_status_helpers);
     RUN_TEST(test_uart_mode_reports_not_supported);
     return UNITY_END();

@@ -238,6 +238,24 @@ void test_calibrate_runs_requested_samples_and_delay(void)
     TEST_ASSERT_EQUAL_UINT32(23, g_last_delay_ms);
 }
 
+
+void test_calibrate_propagates_update_failure_without_delay(void)
+{
+    xy_mpu6050_t mpu;
+    xy_dmp_t dmp = init_dmp(&mpu);
+
+    g_accel_ret = XY_MPU6050_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DMP_ERROR, xy_dmp_calibrate(&dmp, 3));
+    TEST_ASSERT_EQUAL_UINT32(0, g_delay_calls);
+    TEST_ASSERT_EQUAL_UINT32(0, g_last_delay_ms);
+
+    g_accel_ret = XY_MPU6050_OK;
+    g_gyro_ret = XY_MPU6050_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DMP_ERROR, xy_dmp_calibrate(&dmp, 3));
+    TEST_ASSERT_EQUAL_UINT32(0, g_delay_calls);
+    TEST_ASSERT_EQUAL_UINT32(0, g_last_delay_ms);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -246,5 +264,6 @@ int main(void)
     RUN_TEST(test_update_guards_not_initialized_and_sensor_errors);
     RUN_TEST(test_getters_convert_angles_to_degrees_and_allow_partial_outputs);
     RUN_TEST(test_calibrate_runs_requested_samples_and_delay);
+    RUN_TEST(test_calibrate_propagates_update_failure_without_delay);
     return UNITY_END();
 }
