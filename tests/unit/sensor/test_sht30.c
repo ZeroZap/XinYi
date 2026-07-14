@@ -176,7 +176,7 @@ static void test_read_converts_measurement_and_checks_crc(void)
     TEST_ASSERT_EQUAL_INT(XY_SHT30_CRC_ERROR, xy_sht30_read(&dev));
 }
 
-static void test_read_reports_command_and_read_failures(void)
+static void test_read_reports_failures_and_preserves_cached_measurement(void)
 {
     xy_sht30_t dev;
     int fake_bus;
@@ -187,16 +187,30 @@ static void test_read_reports_command_and_read_failures(void)
 
     queue_write(1U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_init(&dev, &fake_bus, SHT30_ADDR_DEFAULT));
+    dev.temperature = 1234;
+    dev.humidity = 5678U;
 
     queue_write(1U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_SHT30_ERROR, xy_sht30_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(1234, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(5678U, dev.humidity);
+    TEST_ASSERT_EQUAL_UINT(g_read_count, g_read_index);
 
     queue_write(1U, XY_DEVICE_OK);
     queue_measurement(0x0000U, 0x0000U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_SHT30_ERROR, xy_sht30_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(1234, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(5678U, dev.humidity);
+
+    queue_write(1U, XY_DEVICE_OK);
+    queue_measurement(0x6666U, 0x8000U, XY_DEVICE_OK);
+    g_read_queue[g_read_count - 1U][5] ^= 0x01U;
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_CRC_ERROR, xy_sht30_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(1234, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(5678U, dev.humidity);
 }
 
-static void test_helpers_reset_heater_and_deinit(void)
+static void test_helpers_validate_outputs_and_propagate_control_failures(void)
 {
     xy_sht30_t dev;
     int16_t temperature = -1;
@@ -225,17 +239,36 @@ static void test_helpers_reset_heater_and_deinit(void)
     TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_read_humidity(&dev, &humidity));
     TEST_ASSERT_EQUAL_UINT16(5000U, humidity);
 
+    temperature = -2222;
+    queue_write(1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_ERROR, xy_sht30_read_temperature(&dev, &temperature));
+    TEST_ASSERT_EQUAL_INT16(-2222, temperature);
+
+    humidity = 0xBEEFU;
+    queue_write(1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_ERROR, xy_sht30_read_humidity(&dev, &humidity));
+    TEST_ASSERT_EQUAL_UINT16(0xBEEFU, humidity);
+
+    queue_write(1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_ERROR, xy_sht30_soft_reset(&dev));
+
+    queue_write(1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_sht30_heater_on(&dev));
+
+    queue_write(1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_sht30_heater_off(&dev));
+
     queue_write(1U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_soft_reset(&dev));
-    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_SOFT_RESET >> 8), g_write_queue[3][0]);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_SOFT_RESET >> 8), g_write_queue[8][0]);
 
     queue_write(1U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sht30_heater_on(&dev));
-    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_HEATER_ON >> 8), g_write_queue[4][0]);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_HEATER_ON >> 8), g_write_queue[9][0]);
 
     queue_write(1U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sht30_heater_off(&dev));
-    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_HEATER_OFF >> 8), g_write_queue[5][0]);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)(SHT30_CMD_HEATER_OFF >> 8), g_write_queue[10][0]);
 
     TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
@@ -247,7 +280,7 @@ int main(void)
     RUN_TEST(test_init_rejects_invalid_inputs_and_sends_soft_reset);
     RUN_TEST(test_init_reports_i2c_reset_failure);
     RUN_TEST(test_read_converts_measurement_and_checks_crc);
-    RUN_TEST(test_read_reports_command_and_read_failures);
-    RUN_TEST(test_helpers_reset_heater_and_deinit);
+    RUN_TEST(test_read_reports_failures_and_preserves_cached_measurement);
+    RUN_TEST(test_helpers_validate_outputs_and_propagate_control_failures);
     return UNITY_END();
 }

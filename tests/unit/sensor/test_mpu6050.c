@@ -245,17 +245,23 @@ static void test_mpu6050_raw_read_converts_accel_gyro_temperature(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 37.53f, dev.temperature_c);
 }
 
-static void test_mpu6050_read_helpers_invalid_and_io_failure_paths(void)
+static void test_mpu6050_read_helpers_validate_outputs_and_io_failure_paths(void)
 {
     xy_mpu6050_t dev = {0};
-    float x, y, z;
+    float x = 1.0f, y = 2.0f, z = 3.0f, temp = 4.0f;
     int bus;
 
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_raw(NULL));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_raw(&dev));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_accel(NULL, &x, &y, &z));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_accel(&dev, NULL, &y, &z));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_accel(&dev, &x, NULL, &z));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_accel(&dev, &x, &y, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_gyro(NULL, &x, &y, &z));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_gyro(&dev, NULL, &y, &z));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_gyro(&dev, &x, NULL, &z));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_gyro(&dev, &x, &y, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_temperature(NULL, &temp));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_temperature(&dev, NULL));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_set_accel_range(NULL, MPU6050_ACCEL_2G));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_set_accel_range(&dev, (xy_mpu6050_accel_range_t)4));
@@ -267,6 +273,37 @@ static void test_mpu6050_read_helpers_invalid_and_io_failure_paths(void)
     init_mpu_ok(&dev, &bus);
     queue_read_raw(0, 0, 0, 0, 0, 0, 0, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_read_accel(&dev, &x, &y, &z));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.0f, x);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.0f, y);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 3.0f, z);
+
+    queue_read_raw(0, 0, 0, 0, 0, 0, 0, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_read_gyro(&dev, &x, &y, &z));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.0f, x);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.0f, y);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 3.0f, z);
+
+    temp = 4.0f;
+    queue_read_raw(0, 0, 0, 0, 0, 0, 0, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_read_temperature(&dev, &temp));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 4.0f, temp);
+}
+
+static void test_mpu6050_range_write_failures_preserve_configured_range(void)
+{
+    xy_mpu6050_t dev;
+    int bus;
+
+    init_mpu_ok(&dev, &bus);
+    dev.accel_range = MPU6050_ACCEL_2G;
+    queue_write8(MPU6050_REG_ACCEL_CONFIG, (uint8_t)(MPU6050_ACCEL_8G << 3), XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_set_accel_range(&dev, MPU6050_ACCEL_8G));
+    TEST_ASSERT_EQUAL_INT(MPU6050_ACCEL_8G, dev.accel_range);
+
+    dev.gyro_range = MPU6050_GYRO_250DPS;
+    queue_write8(MPU6050_REG_GYRO_CONFIG, (uint8_t)(MPU6050_GYRO_1000DPS << 3), XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_set_gyro_range(&dev, MPU6050_GYRO_1000DPS));
+    TEST_ASSERT_EQUAL_INT(MPU6050_GYRO_1000DPS, dev.gyro_range);
 }
 
 static void test_mpu6050_calibrate_averages_offsets(void)
@@ -294,7 +331,8 @@ int main(void)
     RUN_TEST(test_mpu6050_init_defaults_and_invalid_paths);
     RUN_TEST(test_mpu6050_not_found_id_error_and_wakeup_failure);
     RUN_TEST(test_mpu6050_raw_read_converts_accel_gyro_temperature);
-    RUN_TEST(test_mpu6050_read_helpers_invalid_and_io_failure_paths);
+    RUN_TEST(test_mpu6050_read_helpers_validate_outputs_and_io_failure_paths);
+    RUN_TEST(test_mpu6050_range_write_failures_preserve_configured_range);
     RUN_TEST(test_mpu6050_calibrate_averages_offsets);
     return UNITY_END();
 }

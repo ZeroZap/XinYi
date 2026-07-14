@@ -200,6 +200,32 @@ static void test_max17043_init_read_controls_and_reset(void)
     TEST_ASSERT_FALSE(gauge.initialized);
 }
 
+static void test_max17043_read_partial_failures_keep_ok_and_preserve_failed_fields(void)
+{
+    xy_max17043_t gauge;
+    int bus;
+
+    init_max_ok(&gauge, &bus);
+    gauge.data.voltage_mv = 1.0f;
+    gauge.data.percentage = 2.0f;
+    gauge.data.crate = 3.0f;
+    gauge.data.low_battery = true;
+    gauge.data.reset_triggered = true;
+    gauge.data.timestamp = 4U;
+
+    queue_read16(MAX17043_REG_VCELL, 0xC800U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_SOC, 0x4B80U, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_CRATE, 0xFF9CU, XY_DEVICE_ERROR);
+    queue_read16(MAX17043_REG_STATUS, 0x0000U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_read(&gauge));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, gauge.data.voltage_mv);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f, gauge.data.percentage);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.0f, gauge.data.crate);
+    TEST_ASSERT_TRUE(gauge.data.low_battery);
+    TEST_ASSERT_TRUE(gauge.data.reset_triggered);
+    TEST_ASSERT_EQUAL_UINT32(123456U, gauge.data.timestamp);
+}
+
 static void test_max17043_not_found_and_getter_invalid_paths(void)
 {
     xy_max17043_t gauge = {0};
@@ -212,8 +238,12 @@ static void test_max17043_not_found_and_getter_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_read(NULL));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_read(&gauge));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_get_voltage(NULL, &value));
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_get_voltage(&gauge, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_get_percentage(NULL, &value));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_get_percentage(&gauge, NULL));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_get_crate(NULL, &value));
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_get_crate(&gauge, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_set_capacity(NULL, 1000.0f));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_enable_hibernate(NULL, true));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_reset(NULL));
 }
@@ -279,6 +309,29 @@ static void test_ina226_init_read_getters_alert_and_deinit(void)
     TEST_ASSERT_FALSE(ina.initialized);
 }
 
+static void test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields(void)
+{
+    xy_ina_t ina;
+    int bus;
+
+    init_ina_ok(&ina, &bus);
+    ina.data.voltage_mv = 1.0f;
+    ina.data.shunt_voltage_uv = 2.0f;
+    ina.data.current_ma = 3.0f;
+    ina.data.power_mw = 4.0f;
+    ina.data.timestamp = 5U;
+
+    queue_read16(INA226_REG_BUS_VOLT, 0x2000U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_SHUNT_VOLT, 0x0100U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_POWER, 0x0064U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_read(&ina));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, ina.data.voltage_mv);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f, ina.data.shunt_voltage_uv);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.0f, ina.data.current_ma);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 4.0f, ina.data.power_mw);
+    TEST_ASSERT_EQUAL_UINT32(654321U, ina.data.timestamp);
+}
+
 static void test_ina229_detection_and_invalid_paths(void)
 {
     xy_ina_t ina = {0};
@@ -296,8 +349,12 @@ static void test_ina229_detection_and_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_read(NULL));
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_read(&(xy_ina_t){0}));
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_get_voltage(NULL, &value));
+    TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_get_voltage(&ina, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_get_current(NULL, &value));
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_get_current(&ina, NULL));
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_get_power(NULL, &value));
+    TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_get_power(&ina, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_get_shunt_voltage(NULL, &value));
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_get_shunt_voltage(&ina, NULL));
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_enable_alert(NULL, false));
 
@@ -310,8 +367,10 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_max17043_init_read_controls_and_reset);
+    RUN_TEST(test_max17043_read_partial_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_max17043_not_found_and_getter_invalid_paths);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
+    RUN_TEST(test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
     return UNITY_END();
 }
