@@ -459,6 +459,27 @@ static void test_voc_level_boundaries(void)
     TEST_ASSERT_EQUAL_INT(XY_SGP40_VOC_BAD, xy_sgp40_get_voc_level(400U));
 }
 
+static void test_read_voc_success_populates_compensation_fields_and_count(void)
+{
+    xy_sgp40_dev_t dev;
+    xy_sgp40_data_t data = {0};
+    xy_i2c_dev_t i2c = fake_i2c();
+
+    init_ok(&dev, &i2c);
+    TEST_ASSERT_EQUAL_INT(0, xy_sgp40_set_compensation(&dev, 12.5f, 65.0f));
+    queue_read_u16(432U, 0);
+
+    TEST_ASSERT_EQUAL_INT(0, xy_sgp40_read_voc(&dev, &data));
+    TEST_ASSERT_EQUAL_UINT16(432U, data.voc_index);
+    TEST_ASSERT_EQUAL_UINT16(0U, data.raw_signal);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.5f, data.temperature);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 65.0f, data.humidity);
+    TEST_ASSERT_EQUAL_UINT32(0U, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT8(0U, data.status);
+    TEST_ASSERT_EQUAL_UINT32(1U, dev.measurement_count);
+    TEST_ASSERT_EQUAL_UINT16(432U, dev.last_data.voc_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -474,5 +495,6 @@ int main(void)
     RUN_TEST(test_command_failures_return_before_delay_or_read);
     RUN_TEST(test_read_voc_crc_failure_preserves_output_and_last_data);
     RUN_TEST(test_voc_level_boundaries);
+    RUN_TEST(test_read_voc_success_populates_compensation_fields_and_count);
     return UNITY_END();
 }

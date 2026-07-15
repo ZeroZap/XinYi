@@ -396,6 +396,24 @@ static void test_w25qxx_transfer_failures_preserve_existing_contracts(void)
     TEST_ASSERT_EQUAL_UINT8(3U, read_buf[2]);
 }
 
+static void test_w25qxx_write_data_at_sector_boundary_erases_then_programs(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    const uint8_t payload[2] = {0xA5U, 0x5AU};
+    const uint8_t sector_addr[4] = {W25Q_CMD_SECTOR_ERASE, 0x00U, 0x10U, 0x00U};
+    const uint8_t page_addr[4] = {W25Q_CMD_PAGE_PROGRAM, 0x00U, 0x10U, 0x00U};
+
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_OK);
+    queue_tx(sector_addr, sizeof(sector_addr), XY_OK);
+    queue_status(0x00U);
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_OK);
+    queue_tx(page_addr, sizeof(page_addr), XY_OK);
+    queue_tx(payload, sizeof(payload), XY_OK);
+    queue_status(0x00U);
+
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_write_data(&dev, 0x1000U, payload, sizeof(payload)));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -407,5 +425,6 @@ int main(void)
     RUN_TEST(test_w25qxx_chip_erase_busy_then_ready);
     RUN_TEST(test_w25qxx_zero_length_write_is_noop);
     RUN_TEST(test_w25qxx_transfer_failures_preserve_existing_contracts);
+    RUN_TEST(test_w25qxx_write_data_at_sector_boundary_erases_then_programs);
     return UNITY_END();
 }

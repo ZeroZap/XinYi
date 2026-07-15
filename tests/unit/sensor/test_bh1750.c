@@ -319,6 +319,21 @@ static void test_setters_update_cached_mode_and_resolution_without_bus_io(void)
     TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
 }
 
+static void test_read_default_fallback_uses_continuous_high_command_and_delay(void)
+{
+    xy_bh1750_t dev;
+
+    init_ok(&dev);
+    dev.resolution = (xy_bh1750_res_t)99;
+    dev.mode = XY_BH1750_ONE_TIME;
+    queue_read_raw(42U, XY_DEVICE_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_read(&dev));
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_CONT_H, g_write_queue[3]);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 42.0f, dev.data.illuminance);
+    TEST_ASSERT_EQUAL_UINT32(210U, g_delay_total);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -334,5 +349,6 @@ int main(void)
     RUN_TEST(test_configuration_power_and_reset_validate_inputs);
     RUN_TEST(test_deinit_clears_initialized_even_when_power_down_fails);
     RUN_TEST(test_setters_update_cached_mode_and_resolution_without_bus_io);
+    RUN_TEST(test_read_default_fallback_uses_continuous_high_command_and_delay);
     return UNITY_END();
 }
