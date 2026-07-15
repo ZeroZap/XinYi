@@ -286,6 +286,24 @@ static void test_coulomb_getters_reread_and_clamp_percentage(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, value);
 }
 
+static void test_coulomb_percentage_lower_clamp_and_getter_output(void)
+{
+    xy_coulomb_t coulomb;
+    float value = -1.0f;
+    int bus;
+
+    init_coulomb_ok(&coulomb, &bus);
+    queue_read16(INA226_REG_BUS_VOLT, 1000U, XY_DEVICE_OK);
+    queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_OK);
+    queue_read16(INA226_REG_POWER, 0U, XY_DEVICE_OK);
+    queue_read16(INA226_REG_CURRENT, 0x7FFFU, XY_DEVICE_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_get_percentage(&coulomb, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, value);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, coulomb.data.percentage);
+    TEST_ASSERT_EQUAL_UINT32(987654U, coulomb.data.timestamp);
+}
+
 static void test_coulomb_control_failures_and_uninitialized_getters(void)
 {
     xy_coulomb_t coulomb;
@@ -321,6 +339,7 @@ int main(void)
     RUN_TEST(test_coulomb_not_found_and_write_failures);
     RUN_TEST(test_coulomb_init_tolerates_reset_charge_failure);
     RUN_TEST(test_coulomb_getters_reread_and_clamp_percentage);
+    RUN_TEST(test_coulomb_percentage_lower_clamp_and_getter_output);
     RUN_TEST(test_coulomb_control_failures_and_uninitialized_getters);
     return UNITY_END();
 }
