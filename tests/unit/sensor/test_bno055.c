@@ -163,6 +163,22 @@ void test_init_rejects_wrong_chip_id(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ENODEV, xy_bno055_init(&dev, &bus, 0x28, false));
 }
 
+void test_init_propagates_reset_and_sw_version_failures(void)
+{
+    xy_bno055_t dev;
+    int bus;
+    const uint8_t chip = BNO055_CHIP_ID;
+
+    expect_write_ret(BNO055_REG_SYS_TRIGGER, (const uint8_t[]){0x20}, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x28, false));
+
+    expect_write_u8(BNO055_REG_SYS_TRIGGER, 0x20);
+    expect_read(BNO055_REG_CHIP_ID, &chip, 1);
+    expect_read_ret(BNO055_REG_SW_REV_ID_LSB, NULL, 2, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x28, false));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 void test_register_access_guards_and_i2c_round_trip(void)
 {
     int bus;
@@ -396,6 +412,41 @@ void test_axis_remap_and_status_helpers(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_set_axis_remap(&dev, 0x21, 0x04));
 }
 
+void test_axis_remap_propagates_each_i2c_failure(void)
+{
+    int bus;
+    xy_bno055_t dev = make_ready_dev(&bus);
+    const uint8_t mode_ndof = BNO055_MODE_NDOF;
+
+    expect_read_ret(BNO055_REG_OPR_MODE, NULL, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_set_axis_remap(&dev, 0x21, 0x04));
+
+    expect_read(BNO055_REG_OPR_MODE, &mode_ndof, 1);
+    expect_write_ret(BNO055_REG_OPR_MODE, (const uint8_t[]){BNO055_MODE_CONFIG}, 1,
+                     XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_set_axis_remap(&dev, 0x21, 0x04));
+
+    expect_read(BNO055_REG_OPR_MODE, &mode_ndof, 1);
+    expect_write_u8(BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG);
+    expect_write_ret(BNO055_REG_AXIS_MAP_CONFIG, (const uint8_t[]){0x21}, 1,
+                     XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_set_axis_remap(&dev, 0x21, 0x04));
+
+    expect_read(BNO055_REG_OPR_MODE, &mode_ndof, 1);
+    expect_write_u8(BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG);
+    expect_write_u8(BNO055_REG_AXIS_MAP_CONFIG, 0x21);
+    expect_write_ret(BNO055_REG_AXIS_MAP_SIGN, (const uint8_t[]){0x04}, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_set_axis_remap(&dev, 0x21, 0x04));
+
+    expect_read(BNO055_REG_OPR_MODE, &mode_ndof, 1);
+    expect_write_u8(BNO055_REG_OPR_MODE, BNO055_MODE_CONFIG);
+    expect_write_u8(BNO055_REG_AXIS_MAP_CONFIG, 0x21);
+    expect_write_u8(BNO055_REG_AXIS_MAP_SIGN, 0x04);
+    expect_write_ret(BNO055_REG_OPR_MODE, (const uint8_t[]){BNO055_MODE_NDOF}, 1,
+                     XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_set_axis_remap(&dev, 0x21, 0x04));
+}
+
 void test_uart_mode_reports_not_supported(void)
 {
     xy_bno055_t dev;
@@ -408,12 +459,14 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_configures_units_and_ndof_mode);
     RUN_TEST(test_init_rejects_wrong_chip_id);
+    RUN_TEST(test_init_propagates_reset_and_sw_version_failures);
     RUN_TEST(test_register_access_guards_and_i2c_round_trip);
     RUN_TEST(test_mode_power_units_sleep_and_wakeup_write_expected_registers);
     RUN_TEST(test_euler_quaternion_calibration_and_raw_parsing);
     RUN_TEST(test_get_data_converts_fused_vectors);
     RUN_TEST(test_get_data_tolerates_optional_vector_read_failures_until_calib_failure);
     RUN_TEST(test_axis_remap_and_status_helpers);
+    RUN_TEST(test_axis_remap_propagates_each_i2c_failure);
     RUN_TEST(test_uart_mode_reports_not_supported);
     return UNITY_END();
 }

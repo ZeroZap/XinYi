@@ -337,6 +337,31 @@ static void test_mpu6050_deinit_write_failure_still_clears_initialized(void)
     TEST_ASSERT_FALSE(dev.initialized);
 }
 
+static void test_mpu6050_read_raw_failure_preserves_cached_samples(void)
+{
+    xy_mpu6050_t dev;
+    xy_mpu6050_raw_data_t before_raw;
+    float before_accel[3];
+    float before_gyro[3];
+    float before_temp;
+    int bus;
+
+    init_mpu_ok(&dev, &bus);
+    queue_read_raw(1000, -2000, 3000, 340, 131, -262, 393, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_OK, xy_mpu6050_read_raw(&dev));
+    before_raw = dev.raw;
+    memcpy(before_accel, dev.accel_g, sizeof(before_accel));
+    memcpy(before_gyro, dev.gyro_dps, sizeof(before_gyro));
+    before_temp = dev.temperature_c;
+
+    queue_read_raw(0, 0, 0, 0, 0, 0, 0, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_read_raw(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&before_raw, &dev.raw, sizeof(before_raw));
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY(before_accel, dev.accel_g, 3);
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY(before_gyro, dev.gyro_dps, 3);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, before_temp, dev.temperature_c);
+}
+
 static void test_mpu6050_calibrate_averages_offsets(void)
 {
     xy_mpu6050_t dev;
@@ -366,6 +391,7 @@ int main(void)
     RUN_TEST(test_mpu6050_range_write_failures_preserve_configured_range);
     RUN_TEST(test_mpu6050_init_noncritical_config_failures_still_mark_ready);
     RUN_TEST(test_mpu6050_deinit_write_failure_still_clears_initialized);
+    RUN_TEST(test_mpu6050_read_raw_failure_preserves_cached_samples);
     RUN_TEST(test_mpu6050_calibrate_averages_offsets);
     return UNITY_END();
 }

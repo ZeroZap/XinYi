@@ -225,6 +225,35 @@ void test_getters_convert_angles_to_degrees_and_allow_partial_outputs(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, -4.0f, gz);
 }
 
+void test_getters_copy_struct_outputs_and_allow_all_optional_angles(void)
+{
+    xy_mpu6050_t mpu;
+    xy_dmp_t dmp = init_dmp(&mpu);
+    xy_quaternion_t q;
+    xy_euler_t euler;
+
+    dmp.q.w = 0.25f;
+    dmp.q.x = -0.5f;
+    dmp.q.y = 0.75f;
+    dmp.q.z = -1.0f;
+    dmp.euler.roll = 0.125f;
+    dmp.euler.pitch = -0.25f;
+    dmp.euler.yaw = 0.5f;
+
+    TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_get_quaternion(&dmp, &q));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.25f, q.w);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.5f, q.x);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.75f, q.y);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -1.0f, q.z);
+
+    TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_get_euler(&dmp, &euler));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.125f, euler.roll);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.25f, euler.pitch);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.5f, euler.yaw);
+
+    TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_get_angles(&dmp, NULL, NULL, NULL));
+}
+
 void test_calibrate_runs_requested_samples_and_delay(void)
 {
     xy_mpu6050_t mpu;
@@ -263,6 +292,7 @@ int main(void)
     RUN_TEST(test_update_uses_accel_gyro_and_records_tick);
     RUN_TEST(test_update_guards_not_initialized_and_sensor_errors);
     RUN_TEST(test_getters_convert_angles_to_degrees_and_allow_partial_outputs);
+    RUN_TEST(test_getters_copy_struct_outputs_and_allow_all_optional_angles);
     RUN_TEST(test_calibrate_runs_requested_samples_and_delay);
     RUN_TEST(test_calibrate_propagates_update_failure_without_delay);
     return UNITY_END();
