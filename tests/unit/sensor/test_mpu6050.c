@@ -381,6 +381,26 @@ static void test_mpu6050_calibrate_averages_offsets(void)
     TEST_ASSERT_EQUAL_UINT32(120U, g_delay_total);
 }
 
+static void test_mpu6050_calibrate_uses_previous_sample_when_read_fails(void)
+{
+    xy_mpu6050_t dev;
+    int bus;
+
+    init_mpu_ok(&dev, &bus);
+    queue_read_raw(100, 200, 16384, 0, 10, 20, 30, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_OK, xy_mpu6050_read_raw(&dev));
+    queue_read_raw(0, 0, 0, 0, 0, 0, 0, XY_DEVICE_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_OK, xy_mpu6050_calibrate(&dev, 1));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 100.0f, dev.calib.accel_offset_x);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 200.0f, dev.calib.accel_offset_y);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, dev.calib.accel_offset_z);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 10.0f, dev.calib.gyro_offset_x);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 20.0f, dev.calib.gyro_offset_y);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 30.0f, dev.calib.gyro_offset_z);
+    TEST_ASSERT_EQUAL_UINT32(110U, g_delay_total);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -393,5 +413,6 @@ int main(void)
     RUN_TEST(test_mpu6050_deinit_write_failure_still_clears_initialized);
     RUN_TEST(test_mpu6050_read_raw_failure_preserves_cached_samples);
     RUN_TEST(test_mpu6050_calibrate_averages_offsets);
+    RUN_TEST(test_mpu6050_calibrate_uses_previous_sample_when_read_fails);
     return UNITY_END();
 }

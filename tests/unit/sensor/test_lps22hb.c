@@ -431,6 +431,40 @@ static void test_pressure_altitude_helpers_and_invalid_inputs(void)
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_auto_zero(NULL));
 }
 
+static void test_init_custom_fifo_config_programs_ctrl_registers(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    xy_lps22hb_config_t cfg = {
+        .odr = XY_LPS22HB_ODR_25HZ,
+        .lpf = XY_LPS22HB_LPF_ODR_9,
+        .enable_lpf = false,
+        .enable_fifo = true,
+        .fifo_mode = XY_LPS22HB_FIFO_STREAM,
+        .fifo_wtm = 7U,
+        .enable_interrupt = false,
+        .threshold = {.low = 0x1234U, .high = 0xABCDU},
+    };
+
+    queue_read8(LPS22HB_WHO_AM_I, LPS22HB_WHO_AM_I_VALUE, XY_OK);
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, LPS22HB_SWRESET, XY_OK);
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_25HZ, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, (uint8_t)(LPS22HB_FIFO_EN | XY_LPS22HB_FIFO_STREAM), XY_OK);
+    queue_write8(LPS22HB_CTRL_REG3, 0x00U, XY_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_lps22hb_init(&dev, &iface, &cfg));
+    TEST_ASSERT_TRUE(dev.is_initialized);
+    TEST_ASSERT_EQUAL_INT(XY_LPS22HB_ODR_25HZ, dev.config.odr);
+    TEST_ASSERT_FALSE(dev.config.enable_lpf);
+    TEST_ASSERT_TRUE(dev.config.enable_fifo);
+    TEST_ASSERT_FALSE(dev.config.enable_interrupt);
+    TEST_ASSERT_EQUAL_UINT16(0x1234U, dev.config.threshold.low);
+    TEST_ASSERT_EQUAL_UINT16(0xABCDU, dev.config.threshold.high);
+    TEST_ASSERT_EQUAL_UINT(4U, g_seen_write_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -444,5 +478,6 @@ int main(void)
     RUN_TEST(test_measure_read_failure_preserves_output_after_ready);
     RUN_TEST(test_auto_zero_read_failures_and_timeout_propagate);
     RUN_TEST(test_pressure_altitude_helpers_and_invalid_inputs);
+    RUN_TEST(test_init_custom_fifo_config_programs_ctrl_registers);
     return UNITY_END();
 }
