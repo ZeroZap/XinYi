@@ -210,6 +210,27 @@ static void test_read_reports_failures_and_preserves_cached_measurement(void)
     TEST_ASSERT_EQUAL_UINT16(5678U, dev.humidity);
 }
 
+static void test_read_converts_raw_minimum_and_maximum_bounds(void)
+{
+    xy_sht30_t dev;
+    int fake_bus;
+
+    queue_write(1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_init(&dev, &fake_bus, SHT30_ADDR_DEFAULT));
+
+    queue_write(1U, XY_DEVICE_OK);
+    queue_measurement(0x0000U, 0x0000U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(-4500, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(0U, dev.humidity);
+
+    queue_write(1U, XY_DEVICE_OK);
+    queue_measurement(0xFFFFU, 0xFFFFU, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_SHT30_OK, xy_sht30_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(13000, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(10000U, dev.humidity);
+}
+
 static void test_helpers_validate_outputs_and_propagate_control_failures(void)
 {
     xy_sht30_t dev;
@@ -309,6 +330,7 @@ int main(void)
     RUN_TEST(test_init_reports_i2c_reset_failure);
     RUN_TEST(test_read_converts_measurement_and_checks_crc);
     RUN_TEST(test_read_reports_failures_and_preserves_cached_measurement);
+    RUN_TEST(test_read_converts_raw_minimum_and_maximum_bounds);
     RUN_TEST(test_helpers_validate_outputs_and_propagate_control_failures);
     RUN_TEST(test_sht30_control_success_paths_and_deinit_uninitialized);
     return UNITY_END();

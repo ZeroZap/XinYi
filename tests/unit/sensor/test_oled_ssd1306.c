@@ -224,6 +224,24 @@ static void test_draw_string_and_char_guards(void)
 }
 
 
+static void test_draw_string_continues_past_offscreen_characters(void)
+{
+    uint8_t buffer[1024];
+    xy_oled_ssd1306_t oled;
+    memset(buffer, 0, sizeof(buffer));
+    memset(&oled, 0, sizeof(oled));
+    oled.width = 128;
+    oled.height = 64;
+    oled.buffer_size = sizeof(buffer);
+    oled.buffer = buffer;
+
+    TEST_ASSERT_EQUAL_INT(XY_OLED_OK, xy_oled_ssd1306_draw_string(&oled, 126, 0, "1!", OLED_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_HEX8(0x42U, buffer[127]);
+    for (size_t i = 0; i < 127U; ++i) {
+        TEST_ASSERT_EQUAL_HEX8(0x00U, buffer[i]);
+    }
+}
+
 static void test_refresh_data_failure_preserves_framebuffer(void)
 {
     uint8_t buffer[1024];
@@ -319,6 +337,7 @@ int main(void)
     RUN_TEST(test_init_reports_command_and_refresh_failures);
     RUN_TEST(test_draw_pixel_lines_rectangles_and_clear);
     RUN_TEST(test_draw_string_and_char_guards);
+    RUN_TEST(test_draw_string_continues_past_offscreen_characters);
     RUN_TEST(test_refresh_data_failure_preserves_framebuffer);
     RUN_TEST(test_display_controls_propagate_write_failures);
     RUN_TEST(test_refresh_commands_controls_and_deinit);

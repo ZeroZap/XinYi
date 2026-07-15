@@ -373,6 +373,22 @@ static void test_tsl2561_init_noncritical_config_write_failures_still_ready(void
     TEST_ASSERT_EQUAL_UINT(3U, g_write_count);
 }
 
+static void test_tsl2561_read_ignores_enable_failure_and_still_updates_data(void)
+{
+    xy_tsl2561_t dev;
+
+    init_ok(&dev);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1200U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 120U, XY_DEVICE_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
+    TEST_ASSERT_EQUAL_UINT16(1200U, dev.data.broadband);
+    TEST_ASSERT_EQUAL_UINT16(120U, dev.data.ir);
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, dev.data.lux);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, dev.data.timestamp);
+}
+
 static void test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero(void)
 {
     xy_tsl2561_t dev;
@@ -400,6 +416,7 @@ int main(void)
     RUN_TEST(test_enable_disable_propagate_i2c_write_failures);
     RUN_TEST(test_gain_integration_enable_disable_and_deinit_contracts);
     RUN_TEST(test_tsl2561_init_noncritical_config_write_failures_still_ready);
+    RUN_TEST(test_tsl2561_read_ignores_enable_failure_and_still_updates_data);
     RUN_TEST(test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero);
     return UNITY_END();
 }
