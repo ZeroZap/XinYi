@@ -230,6 +230,41 @@ static void test_bmi270_invalid_paths_and_init_i2c(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ENODEV, xy_bmi270_init(&dev, &bus, 0x68U, false));
 }
 
+static void test_bmi270_init_propagates_each_default_configuration_failure(void)
+{
+    xy_bmi270_t dev;
+    uint8_t bus;
+    const uint8_t reset = 0xB6U;
+    const uint8_t chip = BMI270_CHIPID_VAL;
+    const uint8_t acc_conf = (uint8_t)((0x0AU << 4) | BMI270_ACC_PERF_MODE);
+    const uint8_t acc_range = BMI270_ACC_RANGE_4G;
+    const uint8_t gyr_conf = (uint8_t)(0x0AU << 4);
+    const uint8_t gyr_range = BMI270_GYR_RANGE_500;
+
+    queue_i2c_write(0x68U, 0xB6U, &reset, 1U, XY_DEVICE_OK);
+    queue_i2c_read8(0x68U, BMI270_REG_CHIPID, chip, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_init(&dev, &bus, 0x68U, false));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.range.acc_range);
+
+    queue_i2c_write(0x68U, 0xB6U, &reset, 1U, XY_DEVICE_OK);
+    queue_i2c_read8(0x68U, BMI270_REG_CHIPID, chip, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &gyr_conf, 1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_init(&dev, &bus, 0x68U, false));
+
+    queue_i2c_write(0x68U, 0xB6U, &reset, 1U, XY_DEVICE_OK);
+    queue_i2c_read8(0x68U, BMI270_REG_CHIPID, chip, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &gyr_conf, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_GYR_RANGE, &gyr_range, 1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_init(&dev, &bus, 0x68U, false));
+}
+
 static void test_bmi270_register_access_and_spi_mode(void)
 {
     xy_bmi270_t dev;
@@ -416,6 +451,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_bmi270_invalid_paths_and_init_i2c);
+    RUN_TEST(test_bmi270_init_propagates_each_default_configuration_failure);
     RUN_TEST(test_bmi270_register_access_and_spi_mode);
     RUN_TEST(test_bmi270_range_enable_and_raw_data);
     RUN_TEST(test_bmi270_not_ready_sleep_wakeup_and_deinit);

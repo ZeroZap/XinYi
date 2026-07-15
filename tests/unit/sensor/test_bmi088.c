@@ -342,6 +342,31 @@ static void test_bmi088_error_paths_setters_and_calibration(void)
 }
 
 
+static void test_bmi088_calibrate_failure_preserves_offsets_and_delay(void)
+{
+    xy_bmi088_dev_t dev;
+    xy_spi_dev_t spi = {0};
+
+    init_bmi_ok(&dev, &spi);
+    dev.acc_offset[0] = 1.0f;
+    dev.acc_offset[1] = 2.0f;
+    dev.acc_offset[2] = 3.0f;
+    dev.gyro_offset[0] = 4.0f;
+    dev.gyro_offset[1] = 5.0f;
+    dev.gyro_offset[2] = 6.0f;
+
+    queue_read_xyz(0U, BMI088_ACC_X_LSB_ADDR, 0, 0, 0, XY_OK);
+    queue_read_xyz(1U, BMI088_GYRO_X_LSB_ADDR, 0, 0, 0, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_calibrate(&dev, 3));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, dev.acc_offset[0]);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f, dev.acc_offset[1]);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.0f, dev.acc_offset[2]);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 4.0f, dev.gyro_offset[0]);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, dev.gyro_offset[1]);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 6.0f, dev.gyro_offset[2]);
+    TEST_ASSERT_EQUAL_UINT32(95U, g_delay_total);
+}
+
 static void test_bmi088_chip_id_partial_reads_and_soft_reset_failure(void)
 {
     xy_bmi088_dev_t dev = {0};
@@ -401,6 +426,7 @@ int main(void)
     RUN_TEST(test_bmi088_default_config_and_init_failures);
     RUN_TEST(test_bmi088_read_raw_and_data_conversions);
     RUN_TEST(test_bmi088_error_paths_setters_and_calibration);
+    RUN_TEST(test_bmi088_calibrate_failure_preserves_offsets_and_delay);
     RUN_TEST(test_bmi088_chip_id_partial_reads_and_soft_reset_failure);
     RUN_TEST(test_bmi088_deinit_write_failures_still_clear_ready);
     RUN_TEST(test_bmi088_set_calibration_and_inline_helpers);

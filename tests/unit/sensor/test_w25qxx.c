@@ -378,6 +378,24 @@ static void test_w25qxx_zero_length_write_is_noop(void)
     TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_write_data(&dev, 0x1234U, &data, 0U));
 }
 
+static void test_w25qxx_transfer_failures_preserve_existing_contracts(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    uint8_t read_buf[3] = {1U, 2U, 3U};
+    const uint8_t read_addr[4] = {W25Q_CMD_READ_DATA, 0x00U, 0x00U, 0x44U};
+
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_write_enable(&dev));
+
+    const uint8_t ignored_rx[3] = {0U, 0U, 0U};
+    queue_tx(read_addr, sizeof(read_addr), XY_OK);
+    queue_rx(ignored_rx, sizeof(read_buf), XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_read_data(&dev, 0x44U, read_buf, sizeof(read_buf)));
+    TEST_ASSERT_EQUAL_UINT8(1U, read_buf[0]);
+    TEST_ASSERT_EQUAL_UINT8(2U, read_buf[1]);
+    TEST_ASSERT_EQUAL_UINT8(3U, read_buf[2]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -388,5 +406,6 @@ int main(void)
     RUN_TEST(test_w25qxx_chip_select_edges_for_id_and_power_commands);
     RUN_TEST(test_w25qxx_chip_erase_busy_then_ready);
     RUN_TEST(test_w25qxx_zero_length_write_is_noop);
+    RUN_TEST(test_w25qxx_transfer_failures_preserve_existing_contracts);
     return UNITY_END();
 }
