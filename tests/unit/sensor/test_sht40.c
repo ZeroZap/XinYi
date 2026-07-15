@@ -356,6 +356,20 @@ static void test_temperature_getter_preserves_output_on_write_and_read_failures(
     TEST_ASSERT_EQUAL_INT16(3333, temperature);
 }
 
+static void test_default_high_precision_read_uses_hpm_command_and_delay(void)
+{
+    xy_sht40_t dev;
+    int fake_bus;
+
+    queue_pair_payload(0x1234U, 0xABCDU);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_init(&dev, &fake_bus));
+
+    queue_pair_payload(0x8000U, 0x8000U);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_read(&dev));
+    TEST_ASSERT_EQUAL_UINT8(SHT40_CMD_MEASURE_HPM, g_write_queue[1]);
+    TEST_ASSERT_EQUAL_UINT32(55U, g_delay_total); /* 10ms serial + 45ms high precision */
+}
+
 static void test_get_serial_copies_cached_serial_without_i2c_access(void)
 {
     xy_sht40_t dev;
@@ -385,6 +399,7 @@ int main(void)
     RUN_TEST(test_low_precision_read_uses_low_power_command_and_delay);
     RUN_TEST(test_getters_and_precision_validate_inputs);
     RUN_TEST(test_temperature_getter_preserves_output_on_write_and_read_failures);
+    RUN_TEST(test_default_high_precision_read_uses_hpm_command_and_delay);
     RUN_TEST(test_get_serial_copies_cached_serial_without_i2c_access);
     return UNITY_END();
 }

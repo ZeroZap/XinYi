@@ -343,6 +343,23 @@ static void test_heater_off_propagates_write_error_without_clearing_state(void)
     TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
 }
 
+static void test_heater_on_success_preserves_measurement_cache(void)
+{
+    xy_hdc1080_t dev;
+
+    init_ok(&dev);
+    dev.temperature = 111;
+    dev.humidity = 222U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_hdc1080_heater_on(&dev));
+    TEST_ASSERT_EQUAL_UINT8(HDC1080_REG_CONFIG, g_write_reg_queue[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x20, g_write_data_queue[2][0]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, g_write_data_queue[2][1]);
+    TEST_ASSERT_EQUAL_INT16(111, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(222U, dev.humidity);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+}
+
 static void test_deinit_clears_initialized_state(void)
 {
     xy_hdc1080_t dev;
@@ -379,6 +396,7 @@ int main(void)
     RUN_TEST(test_read_temperature_and_humidity_update_outputs_only_on_success);
     RUN_TEST(test_heater_commands_validate_state_and_propagate_write_errors);
     RUN_TEST(test_heater_off_propagates_write_error_without_clearing_state);
+    RUN_TEST(test_heater_on_success_preserves_measurement_cache);
     RUN_TEST(test_deinit_clears_initialized_state);
     RUN_TEST(test_deinit_is_safe_for_uninitialized_object);
     return UNITY_END();

@@ -353,6 +353,28 @@ static void test_reset_rejects_null_and_sends_reset_command(void)
     TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_RESET, g_write_queue[1][0]);
 }
 
+static void test_read_pre_trigger_busy_preserves_cached_measurement_and_no_trigger(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    dev.data.temperature = -123;
+    dev.data.humidity = 456U;
+    dev.data.timestamp = 0xABCDEFU;
+
+    for (unsigned i = 0; i < 51U; ++i) {
+        queue_status(0x80);
+    }
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_BUSY, xy_aht20_read(&dev));
+    TEST_ASSERT_EQUAL_INT16(-123, dev.data.temperature);
+    TEST_ASSERT_EQUAL_UINT16(456U, dev.data.humidity);
+    TEST_ASSERT_EQUAL_UINT32(0xABCDEFU, dev.data.timestamp);
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_count); /* no trigger write after pre-check timeout */
+}
+
 static void test_reset_write_failure_propagates_and_preserves_initialized(void)
 {
     xy_aht20_t dev;
@@ -380,6 +402,7 @@ int main(void)
     RUN_TEST(test_get_helpers_validate_inputs_and_update_output_only_on_success);
     RUN_TEST(test_init_final_status_read_failure_still_initializes_uncalibrated);
     RUN_TEST(test_reset_rejects_null_and_sends_reset_command);
+    RUN_TEST(test_read_pre_trigger_busy_preserves_cached_measurement_and_no_trigger);
     RUN_TEST(test_reset_write_failure_propagates_and_preserves_initialized);
     return UNITY_END();
 }
