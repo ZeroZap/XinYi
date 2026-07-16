@@ -215,8 +215,8 @@ static void test_read_converts_humidity_temperature_and_timestamp(void)
     queue_status(0x08);
     TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
 
-    queue_status(0x00);                  /* pre-trigger idle check */
-    queue_status(0x00);                  /* post-trigger idle check */
+    queue_status(0x00);                    /* pre-trigger idle check */
+    queue_status(0x00);                    /* post-trigger idle check */
     queue_measurement(0x80000U, 0x80000U); /* 50.00%RH, 50.00C */
 
     TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_read(&dev));
@@ -226,6 +226,30 @@ static void test_read_converts_humidity_temperature_and_timestamp(void)
     TEST_ASSERT_EQUAL_UINT16(5000U, dev.data.humidity);
     TEST_ASSERT_EQUAL_INT16(5000, dev.data.temperature);
     TEST_ASSERT_EQUAL_UINT32(g_tick, dev.data.timestamp);
+}
+
+static void test_read_converts_raw_minimum_and_maximum_bounds(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+
+    queue_status(0x00);
+    queue_status(0x00);
+    queue_measurement(0x00000U, 0x00000U);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_read(&dev));
+    TEST_ASSERT_EQUAL_UINT16(0U, dev.data.humidity);
+    TEST_ASSERT_EQUAL_INT16(-5000, dev.data.temperature);
+
+    queue_status(0x00);
+    queue_status(0x00);
+    queue_measurement(0xFFFFFU, 0xFFFFFU);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_read(&dev));
+    TEST_ASSERT_EQUAL_UINT16(9999U, dev.data.humidity);
+    TEST_ASSERT_EQUAL_INT16(14999, dev.data.temperature);
 }
 
 static void test_read_rejects_invalid_uninitialized_and_propagates_failures_without_overwrite(void)
@@ -397,6 +421,7 @@ int main(void)
     RUN_TEST(test_init_reports_write_and_status_read_failures_and_uncalibrated_status);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
     RUN_TEST(test_read_converts_humidity_temperature_and_timestamp);
+    RUN_TEST(test_read_converts_raw_minimum_and_maximum_bounds);
     RUN_TEST(test_read_rejects_invalid_uninitialized_and_propagates_failures_without_overwrite);
     RUN_TEST(test_read_post_trigger_busy_preserves_cached_measurement);
     RUN_TEST(test_get_helpers_validate_inputs_and_update_output_only_on_success);
