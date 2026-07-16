@@ -330,6 +330,22 @@ static void test_set_emissivity_validates_range_and_reports_unsupported_write(vo
     TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_NOT_SUPPORTED, xy_mlx90614_set_emissivity(&dev, 950U));
 }
 
+static void test_read_all_max_raw_conversion_wraps_to_signed_cached_values(void)
+{
+    xy_mlx90614_t dev;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    set_reg_word(MLX90614_RAM_TA, 0xFFFFU);
+    set_reg_word(MLX90614_RAM_TOBJ1, 0x8000U);
+    set_reg_word(MLX90614_RAM_TOBJ2, 0x0000U);
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_read_all(&dev));
+    TEST_ASSERT_EQUAL_INT16(-27317, dev.ta);
+    TEST_ASSERT_EQUAL_INT16(-27315, dev.tobj1);
+    TEST_ASSERT_EQUAL_INT16(-27315, dev.tobj2);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -350,5 +366,6 @@ int main(void)
     RUN_TEST(test_emissivity_get_falls_back_on_bad_pec);
     RUN_TEST(test_set_emissivity_validates_range_and_reports_unsupported_write);
     RUN_TEST(test_set_emissivity_does_not_require_initialized_device);
+    RUN_TEST(test_read_all_max_raw_conversion_wraps_to_signed_cached_values);
     return UNITY_END();
 }

@@ -401,6 +401,53 @@ void test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements(v
     TEST_ASSERT_EQUAL_UINT16(20, dev.offset);
 }
 
+void test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_samples(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+    const uint8_t ready = 0x04;
+    uint8_t invalid_result[10] = {XY_VL53L1X_STATUS_RANGE_FAIL,
+                                  1,
+                                  0,
+                                  1,
+                                  0,
+                                  0,
+                                  0,
+                                  0,
+                                  0x00,
+                                  0x78};
+    uint8_t valid_result[10] = {XY_VL53L1X_STATUS_VALID, 1, 0, 1, 0, 0, 0, 0, 0x00, 0x96};
+
+    for (unsigned i = 0; i < 9; ++i) {
+        expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
+        expect_write_u8(VL53L1X_SYSTEM_START, 0x10);
+        expect_read(VL53L1X_RESULT_INTERRUPT_STATUS, &ready, 1);
+        expect_read(VL53L1X_RESULT_RANGE_STATUS, invalid_result, sizeof(invalid_result));
+        expect_write_u8(VL53L1X_SYSTEM_INTERRUPT_CLEAR, 0x01);
+    }
+    expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
+    expect_write_u8(VL53L1X_SYSTEM_START, 0x10);
+    expect_read(VL53L1X_RESULT_INTERRUPT_STATUS, &ready, 1);
+    expect_read(VL53L1X_RESULT_RANGE_STATUS, valid_result, sizeof(valid_result));
+    expect_write_u8(VL53L1X_SYSTEM_INTERRUPT_CLEAR, 0x01);
+
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_calibrate_offset(&dev, 100, 1));
+    TEST_ASSERT_EQUAL_UINT16(50U, dev.offset);
+
+    setUp();
+    dev.offset = 123U;
+    for (unsigned i = 0; i < 10; ++i) {
+        expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
+        expect_write_u8(VL53L1X_SYSTEM_START, 0x10);
+        expect_read(VL53L1X_RESULT_INTERRUPT_STATUS, &ready, 1);
+        expect_read(VL53L1X_RESULT_RANGE_STATUS, invalid_result, sizeof(invalid_result));
+        expect_write_u8(VL53L1X_SYSTEM_INTERRUPT_CLEAR, 0x01);
+    }
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_calibrate_offset(&dev, 100, 1));
+    TEST_ASSERT_EQUAL_UINT16(123U, dev.offset);
+}
+
 void test_public_guards_and_inline_helpers(void)
 {
     xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
@@ -439,6 +486,7 @@ int main(void)
     RUN_TEST(test_range_roi_interrupt_and_address_configuration);
     RUN_TEST(test_configuration_write_failures_stop_at_first_failed_register);
     RUN_TEST(test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements);
+    RUN_TEST(test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_samples);
     RUN_TEST(test_public_guards_and_inline_helpers);
     return UNITY_END();
 }

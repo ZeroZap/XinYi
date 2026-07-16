@@ -447,6 +447,19 @@ void test_axis_remap_propagates_each_i2c_failure(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_set_axis_remap(&dev, 0x21, 0x04));
 }
 
+void test_deinit_enters_sleep_when_initialized_and_accepts_cleared_device(void)
+{
+    int bus;
+    xy_bno055_t dev = make_ready_dev(&bus);
+
+    expect_write_u8(BNO055_REG_PWR_MODE, BNO055_PWR_SUSPEND);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_deinit(NULL));
+}
+
 void test_uart_mode_reports_not_supported(void)
 {
     xy_bno055_t dev;
@@ -467,6 +480,7 @@ int main(void)
     RUN_TEST(test_get_data_tolerates_optional_vector_read_failures_until_calib_failure);
     RUN_TEST(test_axis_remap_and_status_helpers);
     RUN_TEST(test_axis_remap_propagates_each_i2c_failure);
+    RUN_TEST(test_deinit_enters_sleep_when_initialized_and_accepts_cleared_device);
     RUN_TEST(test_uart_mode_reports_not_supported);
     return UNITY_END();
 }
