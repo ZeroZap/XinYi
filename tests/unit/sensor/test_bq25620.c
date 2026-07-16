@@ -349,6 +349,37 @@ static void test_enable_charge_direct_paths_update_status_enable_bit(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_enable_charge(&bq, false));
 }
 
+static void test_bq25620_boundary_settings_and_unknown_fault_mapping(void)
+{
+    xy_bq25620_t bq;
+    xy_bq25620_config_t cfg = test_config();
+    int bus;
+
+    init_ok(&bq, &bus, &cfg);
+
+    queue_read8(BQ25620_REG_CHG_CTRL0, 0xFFU, XY_DEVICE_OK);
+    queue_write8(BQ25620_REG_CHG_CTRL0, 0x07U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&bq, 100));
+
+    queue_read8(BQ25620_REG_CHG_CTRL0, 0x00U, XY_DEVICE_OK);
+    queue_write8(BQ25620_REG_CHG_CTRL0, 0xF8U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&bq, 3200));
+
+    queue_read8(BQ25620_REG_CHG_CTRL2, 0xFFU, XY_DEVICE_OK);
+    queue_write8(BQ25620_REG_CHG_CTRL2, 0x03U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_battery_voltage(&bq, 3600));
+
+    queue_read8(BQ25620_REG_CHG_CTRL2, 0x00U, XY_DEVICE_OK);
+    queue_write8(BQ25620_REG_CHG_CTRL2, 0xF0U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_battery_voltage(&bq, 4200));
+
+    bq.data.fault = XY_BQ_FAULT_THERMAL;
+    queue_read8(BQ25620_REG_CHG_STAT, 0x00U, XY_DEVICE_OK);
+    queue_read8(BQ25620_REG_FAULT, 0xA0U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_BQ_OK, xy_bq25620_read(&bq));
+    TEST_ASSERT_EQUAL_INT(XY_BQ_FAULT_NONE, bq.data.fault);
+}
+
 static void test_init_and_deinit_tolerate_enable_charge_write_failures(void)
 {
     xy_bq25620_t bq;
@@ -442,6 +473,7 @@ int main(void)
     RUN_TEST(test_helpers_propagate_read_failures_without_overwriting_outputs);
     RUN_TEST(test_control_helpers_propagate_update_bit_failures);
     RUN_TEST(test_enable_charge_direct_paths_update_status_enable_bit);
+    RUN_TEST(test_bq25620_boundary_settings_and_unknown_fault_mapping);
     RUN_TEST(test_init_and_deinit_tolerate_enable_charge_write_failures);
     RUN_TEST(test_getters_and_control_helpers);
     return UNITY_END();

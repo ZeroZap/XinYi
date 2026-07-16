@@ -443,6 +443,41 @@ static void test_ina226_get_power_and_shunt_use_cached_values_after_read_failure
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.5f, value);
 }
 
+static void test_max17043_boundary_conversions_and_config_toggles(void)
+{
+    xy_max17043_t gauge;
+    float value;
+    int bus;
+
+    init_max_ok(&gauge, &bus);
+    queue_read16(MAX17043_REG_VCELL, 0xFFF0U, XY_DEVICE_OK);
+    queue_read16(MAX17043_REG_SOC, 0x64FFU, XY_DEVICE_OK);
+    queue_read16(MAX17043_REG_CRATE, 0x7FFFU, XY_DEVICE_OK);
+    queue_read16(MAX17043_REG_STATUS, 0x0000U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_read(&gauge));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 4095.0f * 0.078125f, gauge.data.voltage_mv);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 100.99609375f, gauge.data.percentage);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 32767.0f * 0.208f / 100.0f, gauge.data.crate);
+    TEST_ASSERT_FALSE(gauge.data.low_battery);
+    TEST_ASSERT_FALSE(gauge.data.reset_triggered);
+
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_set_capacity(&gauge, 1.0f));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, gauge.config.capacity_mah);
+
+    queue_write16(MAX17043_REG_HIBRT, 0x4000U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_max17043_enable_hibernate(&gauge, true));
+    queue_write16(MAX17043_REG_HIBRT, 0x0000U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_max17043_enable_hibernate(&gauge, false));
+
+    value = -1.0f;
+    queue_read16(MAX17043_REG_VCELL, 0x0000U, XY_DEVICE_OK);
+    queue_read16(MAX17043_REG_SOC, 0x0000U, XY_DEVICE_OK);
+    queue_read16(MAX17043_REG_CRATE, 0x0000U, XY_DEVICE_OK);
+    queue_read16(MAX17043_REG_STATUS, 0x0000U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_get_voltage(&gauge, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, value);
+}
+
 static void test_max17043_ignored_write_failure_contracts(void)
 {
     xy_max17043_t gauge;
@@ -511,6 +546,7 @@ int main(void)
     RUN_TEST(test_max17043_not_found_and_getter_invalid_paths);
     RUN_TEST(test_max17043_ignored_write_failure_contracts);
     RUN_TEST(test_max17043_getters_return_cached_values_after_read_failures);
+    RUN_TEST(test_max17043_boundary_conversions_and_config_toggles);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
     RUN_TEST(test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
