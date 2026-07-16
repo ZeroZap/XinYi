@@ -404,6 +404,33 @@ static void test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero(
     TEST_ASSERT_FALSE(dev.initialized);
 }
 
+static void test_tsl2561_lux_ratio_piecewise_boundaries(void)
+{
+    xy_tsl2561_t dev;
+
+    init_ok(&dev);
+
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 500U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, dev.data.lux);
+
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 800U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -0.7474f, dev.data.lux);
+
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 1300U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -2.4142f, dev.data.lux);
+
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 2550U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, dev.data.lux);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -418,5 +445,6 @@ int main(void)
     RUN_TEST(test_tsl2561_init_noncritical_config_write_failures_still_ready);
     RUN_TEST(test_tsl2561_read_ignores_enable_failure_and_still_updates_data);
     RUN_TEST(test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero);
+    RUN_TEST(test_tsl2561_lux_ratio_piecewise_boundaries);
     return UNITY_END();
 }

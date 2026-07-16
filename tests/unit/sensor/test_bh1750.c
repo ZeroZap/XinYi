@@ -334,6 +334,29 @@ static void test_read_default_fallback_uses_continuous_high_command_and_delay(vo
     TEST_ASSERT_EQUAL_UINT32(210U, g_delay_total);
 }
 
+static void test_read_one_time_high2_and_low_resolution_boundaries(void)
+{
+    xy_bh1750_t dev;
+
+    init_ok(&dev);
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_set_resolution(&dev, XY_BH1750_HIGH_RES2));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_set_mode(&dev, XY_BH1750_ONE_TIME));
+    queue_read_raw(0xFFFFU, XY_DEVICE_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_read(&dev));
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_ONCE_H2, g_write_queue[3]);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 32767.5f, dev.data.illuminance);
+    TEST_ASSERT_EQUAL_UINT32(210U, g_delay_total);
+
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_set_resolution(&dev, XY_BH1750_LOW_RES));
+    queue_read_raw(0xFFFFU, XY_DEVICE_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_read(&dev));
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_ONCE_L, g_write_queue[5]);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 8191.875f, dev.data.illuminance);
+    TEST_ASSERT_EQUAL_UINT32(236U, g_delay_total);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -350,5 +373,6 @@ int main(void)
     RUN_TEST(test_deinit_clears_initialized_even_when_power_down_fails);
     RUN_TEST(test_setters_update_cached_mode_and_resolution_without_bus_io);
     RUN_TEST(test_read_default_fallback_uses_continuous_high_command_and_delay);
+    RUN_TEST(test_read_one_time_high2_and_low_resolution_boundaries);
     return UNITY_END();
 }
