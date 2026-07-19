@@ -206,6 +206,45 @@ void test_register_access_guards_and_i2c_round_trip(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_write_regs(&dev, BNO055_REG_PAGE_ID, &byte, 1));
 }
 
+void test_sw_version_and_get_mode_parse_little_endian_and_mask_mode_bits(void)
+{
+    int bus;
+    xy_bno055_t dev = make_ready_dev(&bus);
+    uint16_t version = 0xBEEFU;
+    bno055_mode_t mode = BNO055_MODE_CONFIG;
+    const uint8_t sw[2] = {0x34, 0x12};
+    const uint8_t mode_with_status_bits = 0xAC;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_get_sw_version(NULL, &version));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_get_sw_version(&dev, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_get_mode(NULL, &mode));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_get_mode(&dev, NULL));
+
+    expect_read(BNO055_REG_SW_REV_ID_LSB, sw, sizeof(sw));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_get_sw_version(&dev, &version));
+    TEST_ASSERT_EQUAL_UINT16(0x1234U, version);
+
+    expect_read_ret(BNO055_REG_SW_REV_ID_LSB, NULL, sizeof(sw), XY_DEVICE_ERROR);
+    version = 0xBEEFU;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_get_sw_version(&dev, &version));
+    TEST_ASSERT_EQUAL_UINT16(0xBEEFU, version);
+
+    expect_read(BNO055_REG_OPR_MODE, &mode_with_status_bits, 1);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_get_mode(&dev, &mode));
+    TEST_ASSERT_EQUAL_INT(BNO055_MODE_NDOF, mode);
+}
+
+void test_set_mode_config_when_already_config_only_reads_mode(void)
+{
+    int bus;
+    xy_bno055_t dev = make_ready_dev(&bus);
+    const uint8_t mode_config = BNO055_MODE_CONFIG;
+
+    expect_read(BNO055_REG_OPR_MODE, &mode_config, 1);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_set_mode(&dev, BNO055_MODE_CONFIG));
+    TEST_ASSERT_EQUAL_INT(BNO055_MODE_CONFIG, dev.mode);
+}
+
 void test_mode_power_units_sleep_and_wakeup_write_expected_registers(void)
 {
     int bus;
@@ -474,6 +513,8 @@ int main(void)
     RUN_TEST(test_init_rejects_wrong_chip_id);
     RUN_TEST(test_init_propagates_reset_and_sw_version_failures);
     RUN_TEST(test_register_access_guards_and_i2c_round_trip);
+    RUN_TEST(test_sw_version_and_get_mode_parse_little_endian_and_mask_mode_bits);
+    RUN_TEST(test_set_mode_config_when_already_config_only_reads_mode);
     RUN_TEST(test_mode_power_units_sleep_and_wakeup_write_expected_registers);
     RUN_TEST(test_euler_quaternion_calibration_and_raw_parsing);
     RUN_TEST(test_get_data_converts_fused_vectors);
