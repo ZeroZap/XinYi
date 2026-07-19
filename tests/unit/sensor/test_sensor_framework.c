@@ -574,6 +574,60 @@ static void test_sensor_moving_average_filter(void)
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_reset(&sensor));
     TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_deinit(&sensor));
 }
+
+static void test_sensor_filter_disabled_median_reset_and_bad_type_paths(void)
+{
+    sensor_device_t sensor;
+    sensor_filter_config_t config;
+    sensor_data_t data;
+
+    init_sensor(&sensor, "unit_filter_edges", &required_ops);
+    memset(&config, 0, sizeof(config));
+    memset(&data, 0, sizeof(data));
+    data.value.val_3axis.x = 99;
+    data.value.val_3axis.y = -99;
+    data.value.val_3axis.z = 77;
+
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_filter_process(NULL, &data));
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_filter_process(&sensor, NULL));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_process(&sensor, &data));
+    TEST_ASSERT_EQUAL(99, data.value.val_3axis.x);
+
+    config.type = SENSOR_FILTER_MEDIAN;
+    config.window_size = 3;
+    config.enable = false;
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_init(&sensor, &config));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_process(&sensor, &data));
+    TEST_ASSERT_EQUAL(99, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_enable(&sensor, true));
+
+    data.value.val_3axis.x = 30;
+    data.value.val_3axis.y = 300;
+    data.value.val_3axis.z = -30;
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_process(&sensor, &data));
+    data.value.val_3axis.x = 10;
+    data.value.val_3axis.y = 100;
+    data.value.val_3axis.z = -10;
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_process(&sensor, &data));
+    data.value.val_3axis.x = 20;
+    data.value.val_3axis.y = 200;
+    data.value.val_3axis.z = -20;
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_process(&sensor, &data));
+    TEST_ASSERT_EQUAL(20, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL(200, data.value.val_3axis.y);
+    TEST_ASSERT_EQUAL(-20, data.value.val_3axis.z);
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_reset(&sensor));
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_deinit(&sensor));
+
+    config.type = (sensor_filter_type_t)99;
+    config.enable = true;
+    sensor.filter_state = NULL;
+    TEST_ASSERT_EQUAL(SENSOR_ENOSYS, sensor_filter_init(&sensor, &config));
+    sensor.filter_cfg = config;
+    TEST_ASSERT_EQUAL(SENSOR_EOK, sensor_filter_process(&sensor, &data));
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_filter_deinit(&sensor));
+    TEST_ASSERT_EQUAL(SENSOR_EINVAL, sensor_filter_reset(&sensor));
+}
 #endif
 
 #if SENSOR_ENABLE_SELF_TEST
@@ -667,6 +721,7 @@ int main(void)
 #endif
 #if SENSOR_ENABLE_FILTER
     RUN_TEST(test_sensor_moving_average_filter);
+    RUN_TEST(test_sensor_filter_disabled_median_reset_and_bad_type_paths);
 #endif
 #if SENSOR_ENABLE_SELF_TEST
     RUN_TEST(test_sensor_self_test_uses_driver_override_and_restores_status);

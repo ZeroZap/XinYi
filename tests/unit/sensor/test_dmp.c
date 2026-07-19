@@ -132,6 +132,35 @@ void test_update_uses_accel_gyro_and_records_tick(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, gz);
 }
 
+void test_update_normalizes_roll_pitch_yaw_bounds(void)
+{
+    xy_mpu6050_t mpu;
+    xy_dmp_t dmp = init_dmp(&mpu);
+
+    dmp.euler.roll = 3.25f;
+    dmp.euler.pitch = 1.70f;
+    dmp.euler.yaw = 3.20f;
+    g_accel[0] = 0.0f;
+    g_accel[1] = 0.0f;
+    g_accel[2] = 1.0f;
+    g_gyro[0] = 0.0f;
+    g_gyro[1] = 0.0f;
+    g_gyro[2] = 0.0f;
+
+    TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_update(&dmp));
+    TEST_ASSERT_TRUE(dmp.euler.roll < 0.0f);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.570796f, dmp.euler.pitch);
+    TEST_ASSERT_TRUE(dmp.euler.yaw < 0.0f);
+
+    dmp.euler.roll = -3.25f;
+    dmp.euler.pitch = -1.70f;
+    dmp.euler.yaw = -3.20f;
+    TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_update(&dmp));
+    TEST_ASSERT_TRUE(dmp.euler.roll > 0.0f);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -1.570796f, dmp.euler.pitch);
+    TEST_ASSERT_TRUE(dmp.euler.yaw > 0.0f);
+}
+
 void test_update_guards_not_initialized_and_sensor_errors(void)
 {
     xy_mpu6050_t mpu;
@@ -290,6 +319,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_sets_identity_quaternion_and_guards_params);
     RUN_TEST(test_update_uses_accel_gyro_and_records_tick);
+    RUN_TEST(test_update_normalizes_roll_pitch_yaw_bounds);
     RUN_TEST(test_update_guards_not_initialized_and_sensor_errors);
     RUN_TEST(test_getters_convert_angles_to_degrees_and_allow_partial_outputs);
     RUN_TEST(test_getters_copy_struct_outputs_and_allow_all_optional_angles);
