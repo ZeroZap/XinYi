@@ -469,6 +469,43 @@ static void test_bmi270_read_raw_sensor_time_failure_zeroes_time_but_keeps_sampl
     TEST_ASSERT_EQUAL_UINT32(0U, raw.sensor_time);
 }
 
+static void test_bmi270_set_range_covers_extreme_scale_branches(void)
+{
+    xy_bmi270_t dev = ready_i2c_dev();
+    bmi270_range_t low_range = {
+        .acc_range = BMI270_ACC_RANGE_2G,
+        .gyr_range = BMI270_GYR_RANGE_2000,
+        .acc_odr = 0x07U,
+        .gyr_odr = 0x06U,
+    };
+    bmi270_range_t high_range = {
+        .acc_range = BMI270_ACC_RANGE_16G,
+        .gyr_range = BMI270_GYR_RANGE_125,
+        .acc_odr = 0x0BU,
+        .gyr_odr = 0x09U,
+    };
+    uint8_t acc_conf = (uint8_t)((low_range.acc_odr << 4) | BMI270_ACC_PERF_MODE);
+    uint8_t gyr_conf = (uint8_t)(low_range.gyr_odr << 4);
+
+    queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_RANGE, &low_range.acc_range, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &gyr_conf, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_GYR_RANGE, &low_range.gyr_range, 1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmi270_set_range(&dev, &low_range));
+    TEST_ASSERT_FLOAT_WITHIN(0.00001f, 2.0f * 9.80665f / 32768.0f, dev.acc_scale);
+    TEST_ASSERT_FLOAT_WITHIN(0.00001f, 2000.0f * 0.017453292519943295f / 32768.0f, dev.gyr_scale);
+
+    acc_conf = (uint8_t)((high_range.acc_odr << 4) | BMI270_ACC_PERF_MODE);
+    gyr_conf = (uint8_t)(high_range.gyr_odr << 4);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_ACC_RANGE, &high_range.acc_range, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &gyr_conf, 1U, XY_DEVICE_OK);
+    queue_i2c_write(0x68U, BMI270_REG_GYR_RANGE, &high_range.gyr_range, 1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmi270_set_range(&dev, &high_range));
+    TEST_ASSERT_FLOAT_WITHIN(0.00001f, 16.0f * 9.80665f / 32768.0f, dev.acc_scale);
+    TEST_ASSERT_FLOAT_WITHIN(0.00001f, 125.0f * 0.017453292519943295f / 32768.0f, dev.gyr_scale);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -480,5 +517,6 @@ int main(void)
     RUN_TEST(test_bmi270_enable_wakeup_and_reset_failure_boundaries);
     RUN_TEST(test_bmi270_deinit_ignores_disable_failures_and_clears_ready);
     RUN_TEST(test_bmi270_read_raw_sensor_time_failure_zeroes_time_but_keeps_sample);
+    RUN_TEST(test_bmi270_set_range_covers_extreme_scale_branches);
     return UNITY_END();
 }
