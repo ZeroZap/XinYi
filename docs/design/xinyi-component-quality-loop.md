@@ -1,0 +1,129 @@
+# XinYi 组件设计与质量闭环
+
+**状态**: 设计阶段 / 持续演进  
+**目标**: 让 XinYi 组件从“集思广益 → 设计审查 → 小步开发 → 单元测试 → 优化提交 → 新组件纳入闭环”持续滚动，而不是一次性补丁式开发。
+
+---
+
+## 1. 闭环原则
+
+1. **设计先行**：大接口、大目录结构、大职责边界变更先形成 proposal，不直接批量改代码。
+2. **小步可验证**：每次执行只选择一个可落地 slice，改动范围必须可说明、可测试、可回滚。
+3. **组件自洽**：组件至少具备 README/Kconfig/CMake/核心实现/示例/测试中的关键入口；缺项要进入 backlog。
+4. **测试护栏**：新增或修改组件必须优先补 host Unity/CTest 单元测试；不把 GUI 杂项变更混入组件测试提交。
+5. **路径限定提交**：提交只 stage 本轮明确触碰路径，仓库既有脏文件不得顺手带入。
+6. **新增组件自动纳入**：发现新的 `components/*` 或 `tests/unit/*` 目标后，要更新组件地图、缺口列表和下一步建议。
+
+---
+
+## 2. 每日设计巡检（集思广益）
+
+每日巡检只做分析和建议，默认不修改源码。
+
+输入：
+- `components/COMPONENT_COMPLETENESS_ANALYSIS.md`
+- `docs/component-roadmap.md`
+- `docs/design/unit-test-inventory.md`
+- 当前 `components/`、`tests/unit/`、`CMakeLists.txt`、`Kconfig` 状态
+
+输出应包含：
+
+```text
+今日组件观察：
+1. 新增/变化组件：...
+2. 当前最大设计空洞：...
+3. 职责边界风险：...
+4. 测试薄弱区：...
+5. 今晚建议执行的 1 个小 slice：...
+6. 不建议今晚碰的风险项：...
+```
+
+选择 slice 的优先级：
+
+1. 已有测试框架、可快速验证的组件缺口。
+2. 明显 bug 或 stub，但接口边界清晰。
+3. README/Kconfig/CMake 缺失导致组件不可发现。
+4. 架构不清但影响面大的项，只产出 proposal，不直接改实现。
+
+---
+
+## 3. 晚间组件开发闭环
+
+晚间执行只能选择一个小目标，流程固定：
+
+1. 读取每日巡检建议和当前仓库状态。
+2. 确认不触碰已有无关脏文件，尤其是 `tools/xy_host_tools/gui/z_serial_app.py` 这类 GUI 脏文件。
+3. 选择一个路径限定 slice，例如：
+   - 给某组件补 README/Kconfig/CMake 入口；
+   - 给已有实现补 1 组 host 单元测试；
+   - 修复一个明确 bug 并补回归测试；
+   - 给设计不清项写 proposal 文档。
+4. 修改代码/文档。
+5. 执行验证：优先 `make test-unit`；若耗时或受环境阻塞，至少运行相关 CTest/构建命令并记录阻塞。
+6. `git diff --check`。
+7. 只 stage 本轮文件并提交；若验证失败，不提交，改为汇报 blocker。
+8. 汇报：改动路径、验证输出、提交哈希或阻塞原因、下一 slice 建议。
+
+---
+
+## 4. 当前优先 backlog
+
+| 优先级 | 方向 | 依据 | 推荐动作 |
+| --- | --- | --- | --- |
+| P0 | display | 完整度报告显示实现/配置严重不足；但风险较高 | 先写/更新 proposal，避免直接大改 |
+| P0 | net | MQTT/CAN/LTE 状态不一致，测试已有 11 个 | 选择单一协议补文档或回归测试 |
+| P1 | actuator | 执行器框架独立于 Sensor，已有测试入口 | 补 README/Kconfig/示例或增强测试 |
+| P1 | mux | 多个子接口已有测试但 API 边界需确认 | 先补测试覆盖与 README 对齐 |
+| P1 | pid | 报告记录明显 bug，影响面小 | 验证现状后修 bug + 单测 |
+| P2 | sensor | 测试数量多，适合持续收口 | 新传感器进入 sensors host test pattern |
+| P2 | fuel_gauge | SMBus clock stretching/NACK 重试需关注 | 补边界测试，不重构大接口 |
+
+---
+
+## 5. 周度架构回顾
+
+每周输出一次组件地图：
+
+```text
+组件成熟度：成熟 / 可用但缺测试 / 草稿 / 设计待定 / 废弃候选
+本周新增组件：...
+本周关闭缺口：...
+下周建议：...
+需要 Eugene 决策的问题：...
+```
+
+周度回顾只汇总和提出决策点，不自动做破坏性重构。
+
+---
+
+## 6. 提交与汇报格式
+
+每次自动开发完成后汇报：
+
+```text
+XinYi 组件闭环完成：<slice 名称>
+- 改动：<路径列表>
+- 验证：<真实命令 + 关键结果>
+- 提交：<hash 或 未提交原因>
+- 未触碰：<已存在脏文件>
+- 下一步：<建议 slice>
+```
+
+提交信息建议：
+
+```text
+docs: add XinYi component quality loop
+feat: add actuator component config entry
+fix: repair pid auto tuning regression
+测试相关：test: add <component> host coverage
+```
+
+---
+
+## 7. 安全边界
+
+- 不自动编辑 `MCU/`、`third_party/` vendor 树。
+- 不把无关 GUI 变更与组件单测/框架提交混在一起。
+- 不在设计不清时批量移动目录或重命名公共 API。
+- 不伪造验证结果；命令失败必须如实汇报并尝试替代验证。
+- cron 任务不得递归创建新的 cron/kanban 工作流。
