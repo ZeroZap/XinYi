@@ -50,8 +50,9 @@ static void assert_adc_sample(sensor_device_t *sensor, uint8_t pin, uint16_t raw
 {
     sensor_data_t data = {0};
     g_adc_value = raw;
+    g_adc_pin = 0xFFU;
+    g_adc_read_count = 0U;
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
 
     TEST_ASSERT_EQUAL_UINT(1U, g_adc_read_count);
@@ -76,6 +77,7 @@ static void test_acs712_create_and_read_converts_adc_to_current(void)
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
     TEST_ASSERT_EQUAL_UINT8(5U, ((acs712_priv_t *)sensor->priv_data)->adc_pin);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
 
     assert_adc_sample(sensor, 5U, 2048U, SENSOR_TYPE_CURRENT, 0.0f);
 
@@ -97,6 +99,7 @@ static void test_fsr_create_and_read_converts_adc_to_pressure(void)
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
     TEST_ASSERT_EQUAL_UINT8(6U, ((fsr_priv_t *)sensor->priv_data)->adc_pin);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
 
     assert_adc_sample(sensor, 6U, 1000U, SENSOR_TYPE_PRESSURE, 250.0f);
 
@@ -118,10 +121,36 @@ static void test_mg811_create_and_read_converts_adc_to_co2_ppm_like_value(void)
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
     TEST_ASSERT_EQUAL_UINT8(8U, ((mg811_priv_t *)sensor->priv_data)->adc_pin);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
 
     assert_adc_sample(sensor, 8U, 2048U, SENSOR_TYPE_GAS, 5000.0f);
 
     destroy_sensor(sensor);
+}
+
+static void test_adc_boundaries_are_converted_for_each_analog_sensor(void)
+{
+    sensor_device_t *acs712 = acs712_create("acs-boundary", 1U);
+    sensor_device_t *fsr = fsr_create("fsr-boundary", 2U);
+    sensor_device_t *mg811 = mg811_create("mg-boundary", 3U);
+
+    TEST_ASSERT_NOT_NULL(acs712);
+    TEST_ASSERT_NOT_NULL(fsr);
+    TEST_ASSERT_NOT_NULL(mg811);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, acs712->ops->init(acs712));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, fsr->ops->init(fsr));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, mg811->ops->init(mg811));
+
+    assert_adc_sample(acs712, 1U, 0U, SENSOR_TYPE_CURRENT, -25.0f);
+    assert_adc_sample(acs712, 1U, 4095U, SENSOR_TYPE_CURRENT, 24.9878f);
+    assert_adc_sample(fsr, 2U, 0U, SENSOR_TYPE_PRESSURE, 0.0f);
+    assert_adc_sample(fsr, 2U, 4095U, SENSOR_TYPE_PRESSURE, 1023.75f);
+    assert_adc_sample(mg811, 3U, 0U, SENSOR_TYPE_GAS, 0.0f);
+    assert_adc_sample(mg811, 3U, 4095U, SENSOR_TYPE_GAS, 9997.5586f);
+
+    destroy_sensor(acs712);
+    destroy_sensor(fsr);
+    destroy_sensor(mg811);
 }
 
 static void test_long_names_are_truncated_with_terminator(void)
@@ -155,6 +184,7 @@ int main(void)
     RUN_TEST(test_acs712_create_and_read_converts_adc_to_current);
     RUN_TEST(test_fsr_create_and_read_converts_adc_to_pressure);
     RUN_TEST(test_mg811_create_and_read_converts_adc_to_co2_ppm_like_value);
+    RUN_TEST(test_adc_boundaries_are_converted_for_each_analog_sensor);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     return UNITY_END();
 }
