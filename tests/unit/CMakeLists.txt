@@ -555,6 +555,17 @@ target_include_directories(test_light_uv_sensors BEFORE PRIVATE
 )
 target_link_libraries(test_light_uv_sensors PRIVATE m)
 
+xy_add_unit_test(test_mq_gas_sensors sensor_mq_gas_sensors UNITY
+    ${UNIT_SENSOR}/test_mq_gas_sensors.c
+    ${SENSOR}/sensors/sensor_mq3.c
+    ${SENSOR}/sensors/sensor_mq7.c
+    ${SENSOR}/sensors/sensor_mq135.c
+)
+target_include_directories(test_mq_gas_sensors BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_adc_power_monitors sensor_adc_power_monitors UNITY
     ${UNIT_SENSOR}/test_adc_power_monitors.c
     ${SENSOR}/src/xy_ltc2945.c
