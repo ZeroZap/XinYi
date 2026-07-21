@@ -577,6 +577,16 @@ target_include_directories(test_analog_misc_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_env_i2c_sensors sensor_env_i2c_sensors UNITY
+    ${UNIT_SENSOR}/test_env_i2c_sensors.c
+    ${SENSOR}/sensors/sensor_aht10.c
+    ${SENSOR}/sensors/sensor_bmp390.c
+)
+target_include_directories(test_env_i2c_sensors BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_adc_power_monitors sensor_adc_power_monitors UNITY
     ${UNIT_SENSOR}/test_adc_power_monitors.c
     ${SENSOR}/src/xy_ltc2945.c
