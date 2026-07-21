@@ -629,6 +629,16 @@ target_include_directories(test_lsm9ds1 BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_gps sensor_gps UNITY
+    ${UNIT_SENSOR}/test_gps.c
+    ${SENSOR}/sensors/sensor_gps.c
+)
+target_include_directories(test_gps BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+target_link_libraries(test_gps PRIVATE m)
+
 xy_add_unit_test(test_magnetic_angle_sensors sensor_magnetic_angle_sensors UNITY
     ${UNIT_SENSOR}/test_magnetic_angle_sensors.c
     ${SENSOR}/sensors/sensor_mlx90393.c
