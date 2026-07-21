@@ -609,6 +609,17 @@ target_include_directories(test_st_silan_accel_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_lsm6_imu_sensors sensor_lsm6_imu_sensors UNITY
+    ${UNIT_SENSOR}/test_lsm6_imu_sensors.c
+    ${SENSOR}/sensors/sensor_lsm6dsl.c
+    ${SENSOR}/sensors/sensor_lsm6dso.c
+    ${SENSOR}/sensors/sensor_lsm6dsr.c
+)
+target_include_directories(test_lsm6_imu_sensors BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_adc_power_monitors sensor_adc_power_monitors UNITY
     ${UNIT_SENSOR}/test_adc_power_monitors.c
     ${SENSOR}/src/xy_ltc2945.c
