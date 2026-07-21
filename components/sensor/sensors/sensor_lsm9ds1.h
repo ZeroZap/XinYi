@@ -48,7 +48,7 @@ typedef struct {
     uint8_t mag_addr;
     uint8_t spi_cs;
     uint8_t accel_range;
-    uint8_t gyro_range;
+    uint16_t gyro_range;
 } lsm9ds1_priv_t;
 
 sensor_device_t *lsm9ds1_create_accel(const char *name, void *i2c_bus);

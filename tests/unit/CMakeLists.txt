@@ -620,6 +620,15 @@ target_include_directories(test_lsm6_imu_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_lsm9ds1 sensor_lsm9ds1 UNITY
+    ${UNIT_SENSOR}/test_lsm9ds1.c
+    ${SENSOR}/sensors/sensor_lsm9ds1.c
+)
+target_include_directories(test_lsm9ds1 BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_magnetic_angle_sensors sensor_magnetic_angle_sensors UNITY
     ${UNIT_SENSOR}/test_magnetic_angle_sensors.c
     ${SENSOR}/sensors/sensor_mlx90393.c
