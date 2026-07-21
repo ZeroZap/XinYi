@@ -243,6 +243,39 @@ static void test_aht10_read_maps_receive_failure(void)
     destroy_sensor(sensor);
 }
 
+static void test_aht10_init_and_read_map_send_failures(void)
+{
+    int fake_bus;
+    uint8_t init_cmd[3] = {0xE1, 0x08, 0x00};
+    uint8_t measure_cmd[3] = {0xAC, 0x33, 0x00};
+    sensor_data_t data = {
+        .type = SENSOR_TYPE_TEMPERATURE,
+        .unit = SENSOR_UNIT_CELSIUS,
+        .value.val_float = 12.5f,
+        .timestamp = 7U,
+        .accuracy = 1U,
+    };
+    sensor_device_t *sensor = aht10_create("aht10-trigger", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, init_cmd, sizeof(init_cmd), SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+
+    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, measure_cmd, sizeof(measure_cmd), SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, data.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_CELSIUS, data.unit);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.5f, data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(7U, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT8(1U, data.accuracy);
+    TEST_ASSERT_EQUAL_UINT(2U, g_master_send_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_master_recv_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+
+    destroy_sensor(sensor);
+}
+
 static void test_bmp390_create_init_and_read_pressure(void)
 {
     int fake_bus;
@@ -296,12 +329,51 @@ static void test_bmp390_init_rejects_bad_chip_id_and_read_maps_i2c_error(void)
     destroy_sensor(sensor);
 }
 
+static void test_bmp390_init_maps_write_failure(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = bmp390_create("bmp390-write", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_CHIP_ID, BMP390_CHIP_ID, SENSOR_EOK);
+    queue_mem_write8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PWR_CTRL, 0x33U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+
+    destroy_sensor(sensor);
+}
+
+static void test_bmp390_read_pressure_full_scale_boundary(void)
+{
+    int fake_bus;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = bmp390_create("bmp390-boundary", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PRESS_XLSB, 0xFFU, SENSOR_EOK);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PRESS_LSB, 0xFFU, SENSOR_EOK);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PRESS_MSB, 0xFFU, SENSOR_EOK);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_TEMP_XLSB, 0x00U, SENSOR_EOK);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_TEMP_LSB, 0x00U, SENSOR_EOK);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_TEMP_MSB, 0x00U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_PRESSURE, data.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_HECTOPASCAL, data.unit);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 65535.996f, data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT8(95U, data.accuracy);
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_aht10_create_defaults_and_reads_humidity);
     RUN_TEST(test_aht10_read_maps_receive_failure);
+    RUN_TEST(test_aht10_init_and_read_map_send_failures);
     RUN_TEST(test_bmp390_create_init_and_read_pressure);
     RUN_TEST(test_bmp390_init_rejects_bad_chip_id_and_read_maps_i2c_error);
+    RUN_TEST(test_bmp390_init_maps_write_failure);
+    RUN_TEST(test_bmp390_read_pressure_full_scale_boundary);
     return UNITY_END();
 }

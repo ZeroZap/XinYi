@@ -17,7 +17,10 @@ static sensor_err_t bmp390_init(sensor_device_t *sensor)
     if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, 0x00, &data, 1) != SENSOR_EOK) return SENSOR_EIO;
     if (data != 0x50) { SENSOR_LOG("Wrong CHIP_ID: 0x%02X", data); return SENSOR_ERROR; }
 
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, 0x1A, (uint8_t[]){0x33}, 1);
+    uint8_t pwr_ctrl = 0x33;
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, 0x1A, &pwr_ctrl, 1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_LOG("BMP390 initialized");
     return SENSOR_EOK;
 }

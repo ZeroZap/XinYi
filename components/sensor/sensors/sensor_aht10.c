@@ -13,7 +13,9 @@ static sensor_err_t aht10_init(sensor_device_t *sensor)
     aht10_priv_t *priv = (aht10_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing AHT10");
     uint8_t cmd[3] = {0xE1, 0x08, 0x00};
-    hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3);
+    if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(10);
     SENSOR_LOG("AHT10 initialized");
     return SENSOR_EOK;
@@ -24,12 +26,13 @@ static sensor_err_t aht10_read(sensor_device_t *sensor, sensor_data_t *data)
     uint8_t buf[6];
     aht10_priv_t *priv = (aht10_priv_t *)sensor->priv_data;
     uint8_t cmd[3] = {0xAC, 0x33, 0x00};
-    hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3);
+    if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(80);
     if (hal_i2c_master_recv(sensor->bus, priv->i2c_addr, buf, 6) != SENSOR_EOK) return SENSOR_EIO;
 
     uint32_t hum = ((uint32_t)buf[1] << 12) | ((uint32_t)buf[2] << 4) | (buf[3] >> 4);
-    uint32_t temp = (((uint32_t)buf[3] & 0x0F) << 16) | ((uint32_t)buf[4] << 8) | buf[5];
 
     data->type = SENSOR_TYPE_RELATIVE_HUMIDITY;
     data->unit = SENSOR_UNIT_PERCENT;
