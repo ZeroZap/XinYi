@@ -205,6 +205,45 @@ static void test_long_names_are_truncated_with_terminator(void)
     destroy_sensor(mq135);
 }
 
+static void test_create_rejects_null_name(void)
+{
+    TEST_ASSERT_NULL(mq3_create(NULL, 1U));
+    TEST_ASSERT_NULL(mq7_create(NULL, 2U));
+    TEST_ASSERT_NULL(mq135_create(NULL, 3U));
+}
+
+static void assert_invalid_public_ops_do_not_sample_adc(sensor_device_t *sensor)
+{
+    sensor_data_t data;
+
+    memset(&data, 0x5A, sizeof(data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, data.timestamp);
+}
+
+static void test_public_ops_reject_null_inputs_without_side_effects(void)
+{
+    sensor_device_t *mq3 = mq3_create("mq3-guards", 1U);
+    sensor_device_t *mq7 = mq7_create("mq7-guards", 2U);
+    sensor_device_t *mq135 = mq135_create("mq135-guards", 3U);
+
+    TEST_ASSERT_NOT_NULL(mq3);
+    TEST_ASSERT_NOT_NULL(mq7);
+    TEST_ASSERT_NOT_NULL(mq135);
+
+    assert_invalid_public_ops_do_not_sample_adc(mq3);
+    assert_invalid_public_ops_do_not_sample_adc(mq7);
+    assert_invalid_public_ops_do_not_sample_adc(mq135);
+
+    destroy_sensor(mq3);
+    destroy_sensor(mq7);
+    destroy_sensor(mq135);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -215,5 +254,7 @@ int main(void)
     RUN_TEST(test_mq135_create_and_read_converts_adc_divide_by_8);
     RUN_TEST(test_mq135_adc_zero_and_full_scale_boundaries);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
+    RUN_TEST(test_create_rejects_null_name);
+    RUN_TEST(test_public_ops_reject_null_inputs_without_side_effects);
     return UNITY_END();
 }
