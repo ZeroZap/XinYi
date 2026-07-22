@@ -253,6 +253,65 @@ static void test_i2c_read_failures_preserve_output(void)
     destroy_sensor(vcnl4040);
 }
 
+static void test_create_accepts_null_bus_and_read_uses_registered_bus_pointer(void)
+{
+    sensor_device_t *pa122 = pa122_create("pa122-null-bus", NULL);
+    sensor_device_t *vcnl4040 = vcnl4040_create("vcnl4040-null-bus", NULL);
+    sensor_data_t data = {0};
+
+    TEST_ASSERT_NOT_NULL(pa122);
+    TEST_ASSERT_NOT_NULL(vcnl4040);
+    TEST_ASSERT_NULL(pa122->bus);
+    TEST_ASSERT_NULL(vcnl4040->bus);
+
+    uint8_t pa122_near = 0x80U;
+    queue_i2c_read(NULL, PA122_ADDR, 0x08U, &pa122_near, 1U, 0);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, pa122->ops->read(pa122, &data));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 50.0f, data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+
+    g_tick = 123456U;
+    uint8_t vcnl_raw[] = {0xFFU, 0xFFU};
+    queue_i2c_read(NULL, VCNL4040_ADDR, 0x08U, vcnl_raw, sizeof(vcnl_raw), 0);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, vcnl4040->ops->read(vcnl4040, &data));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 65535.0f, data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    assert_no_extra_i2c();
+
+    destroy_sensor(pa122);
+    destroy_sensor(vcnl4040);
+}
+
+static void test_missing_private_data_is_rejected_without_i2c_side_effects(void)
+{
+    int bus;
+    sensor_device_t *pa122 = pa122_create("pa122-no-priv", &bus);
+    sensor_device_t *vcnl4040 = vcnl4040_create("vcnl4040-no-priv", &bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = -9.0f, .timestamp = 55U};
+    sensor_data_t snapshot = data;
+
+    TEST_ASSERT_NOT_NULL(pa122);
+    TEST_ASSERT_NOT_NULL(vcnl4040);
+
+    SENSOR_FREE(pa122->priv_data);
+    pa122->priv_data = NULL;
+    SENSOR_FREE(vcnl4040->priv_data);
+    vcnl4040->priv_data = NULL;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, pa122->ops->init(pa122));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, pa122->ops->read(pa122, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, vcnl4040->ops->init(vcnl4040));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, vcnl4040->ops->read(vcnl4040, &data));
+    TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, snapshot.value.val_float, data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
+
+    destroy_sensor(pa122);
+    destroy_sensor(vcnl4040);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -261,5 +320,7 @@ int main(void)
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_public_ops_guard_null_inputs_without_i2c_side_effects);
     RUN_TEST(test_i2c_read_failures_preserve_output);
+    RUN_TEST(test_create_accepts_null_bus_and_read_uses_registered_bus_pointer);
+    RUN_TEST(test_missing_private_data_is_rejected_without_i2c_side_effects);
     return UNITY_END();
 }
