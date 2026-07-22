@@ -12,9 +12,13 @@ static sensor_err_t hs_ads1100_read(sensor_device_t *sensor, sensor_data_t *data
 {
     uint8_t buf[6]; hs_ads1100_priv_t *p = (hs_ads1100_priv_t*)sensor->priv_data;
     for(int i=0;i<6;i++) hal_i2c_mem_read(sensor->bus,p->i2c_addr,0x28+i,&buf[i],1);
-    data->type=SENSOR_TYPE_ACCELEROMETER; data->unit=SENSOR_UNIT_MILLI_G;
-    data->value.val_3axis.x=(buf[1]<<8)|buf[0]; data->value.val_3axis.y=(buf[3]<<8)|buf[2]; data->value.val_3axis.z=(buf[5]<<8)|buf[4];
-    data->timestamp=SENSOR_GET_TICK(); return SENSOR_EOK;
+    data->type = SENSOR_TYPE_ACCELEROMETER;
+    data->unit = SENSOR_UNIT_MILLI_G;
+    data->value.val_3axis.x = (int16_t)((buf[1] << 8) | buf[0]);
+    data->value.val_3axis.y = (int16_t)((buf[3] << 8) | buf[2]);
+    data->value.val_3axis.z = (int16_t)((buf[5] << 8) | buf[4]);
+    data->timestamp = SENSOR_GET_TICK();
+    return SENSOR_EOK;
 }
 static const sensor_ops_t hs_ads1100_ops = { .init=hs_ads1100_init, .read=hs_ads1100_read };
 sensor_device_t *hs_ads1100_create(const char *name, void *i2c_bus, uint8_t addr)
