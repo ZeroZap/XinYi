@@ -566,6 +566,16 @@ target_include_directories(test_mq_gas_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_proximity_sensors sensor_proximity_sensors UNITY
+    ${UNIT_SENSOR}/test_proximity_sensors.c
+    ${SENSOR}/sensors/sensor_pa122.c
+    ${SENSOR}/sensors/sensor_vcnl4040.c
+)
+target_include_directories(test_proximity_sensors BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_analog_misc_sensors sensor_analog_misc_sensors UNITY
     ${UNIT_SENSOR}/test_analog_misc_sensors.c
     ${SENSOR}/sensors/sensor_acs712.c
