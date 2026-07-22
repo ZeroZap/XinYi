@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C unit-test files: 95
-- Unity-style files: 95
+- Total C unit-test files: 96
+- Unity-style files: 96
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 97
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 98
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -45,7 +45,7 @@
 | `net` | 11 | 11 | 0 | 0 | 0 | 5 |
 | `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 28 | 28 | 0 | 0 | 0 | 28 |
+| `sensor` | 29 | 29 | 0 | 0 | 0 | 29 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -151,6 +151,7 @@
 | `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
 | `tests/unit/sensor/test_magnetic_angle_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
+| `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
 | `tests/unit/sensor/test_stub_accel_sensors.c` | `unity` | 0 |

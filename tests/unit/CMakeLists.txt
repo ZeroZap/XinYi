@@ -566,6 +566,18 @@ target_include_directories(test_mq_gas_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_stub_i2c_sensors sensor_stub_i2c_sensors UNITY
+    ${UNIT_SENSOR}/test_stub_i2c_sensors.c
+    ${SENSOR}/sensors/sensor_sgp30.c
+    ${SENSOR}/sensors/sensor_ens160.c
+    ${SENSOR}/sensors/sensor_im69d.c
+    ${SENSOR}/sensors/sensor_max30102.c
+)
+target_include_directories(test_stub_i2c_sensors BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_proximity_sensors sensor_proximity_sensors UNITY
     ${UNIT_SENSOR}/test_proximity_sensors.c
     ${SENSOR}/sensors/sensor_pa122.c
