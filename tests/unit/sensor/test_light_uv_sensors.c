@@ -14,10 +14,12 @@ typedef struct {
     uint8_t reg;
     uint8_t len;
     uint8_t value;
+    int status;
 } i2c_read_call_t;
 
 static i2c_read_call_t g_i2c_reads[8];
 static unsigned int g_i2c_read_count;
+static unsigned int g_i2c_write_count;
 static uint16_t g_adc_value;
 static uint8_t g_adc_pin;
 static unsigned int g_adc_read_count;
@@ -36,6 +38,9 @@ int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16
     call->addr = addr;
     call->reg = reg;
     call->len = (uint8_t)len;
+    if (call->status != SENSOR_EOK) {
+        return call->status;
+    }
     *data = call->value;
     return SENSOR_EOK;
 }
@@ -47,6 +52,7 @@ int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint1
     (void)reg;
     (void)data;
     (void)len;
+    g_i2c_write_count++;
     return SENSOR_EOK;
 }
 
@@ -61,6 +67,7 @@ void setUp(void)
 {
     memset(g_i2c_reads, 0, sizeof(g_i2c_reads));
     g_i2c_read_count = 0;
+    g_i2c_write_count = 0;
     g_adc_value = 0;
     g_adc_pin = 0;
     g_adc_read_count = 0;
@@ -109,10 +116,74 @@ static void test_max44009_create_and_read_converts_exponent_mantissa_to_lux(void
     TEST_ASSERT_EQUAL_UINT8(MAX44009_ADDR, g_i2c_reads[1].addr);
     TEST_ASSERT_EQUAL_UINT8(0x04U, g_i2c_reads[1].reg);
     TEST_ASSERT_EQUAL_UINT8(1U, g_i2c_reads[1].len);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_LIGHT, data.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_LUX, data.unit);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 9.54f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
+static void test_max44009_full_scale_read_uses_20bit_lux_formula(void)
+{
+    int fake_bus;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = max44009_create("max-full", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    g_tick = 12345U;
+    g_i2c_reads[0].value = 0xFFU;
+    g_i2c_reads[1].value = 0x0FU;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+
+    TEST_ASSERT_EQUAL_UINT(2U, g_i2c_read_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.1f, 376012.8f, data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
+static void test_max44009_first_lux_register_failure_preserves_output(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    sensor_device_t *sensor = max44009_create("max-fail-1", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    memset(&data, 0xA5, sizeof(data));
+    g_i2c_reads[0].status = SENSOR_EIO;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+
+    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_read_count);
+    TEST_ASSERT_EQUAL_UINT8(MAX44009_ADDR, g_i2c_reads[0].addr);
+    TEST_ASSERT_EQUAL_UINT8(0x03U, g_i2c_reads[0].reg);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
+static void test_max44009_second_lux_register_failure_preserves_output(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    sensor_device_t *sensor = max44009_create("max-fail-2", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    memset(&data, 0x5A, sizeof(data));
+    g_i2c_reads[0].value = 0x12U;
+    g_i2c_reads[1].status = SENSOR_EIO;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+
+    TEST_ASSERT_EQUAL_UINT(2U, g_i2c_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0x03U, g_i2c_reads[0].reg);
+    TEST_ASSERT_EQUAL_UINT8(0x04U, g_i2c_reads[1].reg);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, data.timestamp);
 
     destroy_sensor(sensor);
 }
@@ -147,6 +218,30 @@ static void test_guvas12sd_create_and_read_converts_adc_to_uv_index(void)
     destroy_sensor(sensor);
 }
 
+static void test_guvas12sd_adc_boundaries_are_linear_uv_index(void)
+{
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = guvas12sd_create("uv-bounds", 2U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    g_adc_value = 0U;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT8(2U, g_adc_pin);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, data.value.val_float);
+
+    g_adc_read_count = 0U;
+    g_adc_pin = 0xFFU;
+    g_adc_value = 4095U;
+    g_tick = 54321U;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, g_adc_read_count);
+    TEST_ASSERT_EQUAL_UINT8(2U, g_adc_pin);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 409.5f, data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
 static void test_long_names_are_truncated_with_terminator(void)
 {
     int fake_bus;
@@ -172,7 +267,11 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_max44009_create_and_read_converts_exponent_mantissa_to_lux);
+    RUN_TEST(test_max44009_full_scale_read_uses_20bit_lux_formula);
+    RUN_TEST(test_max44009_first_lux_register_failure_preserves_output);
+    RUN_TEST(test_max44009_second_lux_register_failure_preserves_output);
     RUN_TEST(test_guvas12sd_create_and_read_converts_adc_to_uv_index);
+    RUN_TEST(test_guvas12sd_adc_boundaries_are_linear_uv_index);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     return UNITY_END();
 }
