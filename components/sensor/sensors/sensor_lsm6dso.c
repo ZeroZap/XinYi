@@ -112,23 +112,31 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
     }
 
     /* 复位设备 */
-    lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL3_C, 0x01);
+    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL3_C, 0x01) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(10);
 
     /* 关闭I3C接口 */
     data = 0x00;
-    lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL4_C, data);
+    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL4_C, data) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
 
     /* 配置加速度计: ±2g, 104Hz */
     data = (LSM6DSO_ACCEL_RATE_104Hz << 4) | LSM6DSO_ACCEL_RANGE_2G;
-    lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, data);
+    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, data) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     ((lsm6dso_priv_t *)sensor->priv_data)->accel_range = 2;
     ((lsm6dso_priv_t *)sensor->priv_data)->accel_rate  = 104;
 
     /* 配置陀螺仪: ±250°/s, 104Hz */
     data = (LSM6DSO_GYRO_RATE_104Hz << 4) | LSM6DSO_GYRO_RANGE_250DPS;
-    lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, data);
-    ((lsm6dso_priv_t *)sensor->priv_data)->gyro_range = 250;
+    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, data) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    ((lsm6dso_priv_t *)sensor->priv_data)->gyro_range = LSM6DSO_GYRO_RANGE_250DPS;
     ((lsm6dso_priv_t *)sensor->priv_data)->gyro_rate   = 104;
 
     SENSOR_LOG("LSM6DSO initialized successfully");
@@ -142,8 +150,12 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
 static sensor_err_t lsm6dso_deinit(sensor_device_t *sensor)
 {
     /* 进入关闭模式 */
-    lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, 0x00);
-    lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, 0x00);
+    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, 0x00) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, 0x00) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
 
     return SENSOR_EOK;
 }
@@ -231,20 +243,17 @@ static sensor_err_t lsm6dso_gyro_read(sensor_device_t *sensor,
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)sensor->priv_data;
     int32_t scale        = 0;
     switch (priv->gyro_range) {
-    case 125:
+    case LSM6DSO_GYRO_RANGE_125DPS:
         scale = 4;    /* 4.375 mdps/LSB */
         break;
-    case 250:
+    case LSM6DSO_GYRO_RANGE_250DPS:
         scale = 9;    /* 8.75 mdps/LSB */
         break;
-    case 500:
+    case LSM6DSO_GYRO_RANGE_500DPS:
         scale = 17;
         break;
-    case 1000:
+    case LSM6DSO_GYRO_RANGE_1000DPS:
         scale = 35;
-        break;
-    case 2000:
-        scale = 70;
         break;
     default:
         scale = 9;
@@ -487,10 +496,14 @@ int lsm6dso_set_accel_range(sensor_device_t *dev, uint8_t range)
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)dev->priv_data;
     uint8_t ctrl1       = 0;
 
-    lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1);
+    if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     ctrl1 &= 0x0F;
     ctrl1 |= (range << 4);
-    lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL1_XL, ctrl1);
+    if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL1_XL, ctrl1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
 
     priv->accel_range = range;
 
@@ -505,10 +518,14 @@ int lsm6dso_set_gyro_range(sensor_device_t *dev, uint8_t range)
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)dev->priv_data;
     uint8_t ctrl2       = 0;
 
-    lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2);
+    if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     ctrl2 &= 0x0F;
     ctrl2 |= (range << 4);
-    lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL2_G, ctrl2);
+    if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL2_G, ctrl2) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
 
     priv->gyro_range = range;
 
@@ -523,10 +540,14 @@ int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)dev->priv_data;
     uint8_t ctrl1       = 0;
 
-    lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1);
+    if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     ctrl1 &= 0xF0;
     ctrl1 |= (rate & 0x0F);
-    lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL1_XL, ctrl1);
+    if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL1_XL, ctrl1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
 
     priv->accel_rate = rate;
 
@@ -541,10 +562,14 @@ int lsm6dso_set_gyro_rate(sensor_device_t *dev, uint8_t rate)
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)dev->priv_data;
     uint8_t ctrl2       = 0;
 
-    lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2);
+    if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     ctrl2 &= 0xF0;
     ctrl2 |= (rate & 0x0F);
-    lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL2_G, ctrl2);
+    if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL2_G, ctrl2) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
 
     priv->gyro_rate = rate;
 

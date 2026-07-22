@@ -262,7 +262,7 @@ static void test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers(void)
     queue_lsm6dsl_spi_init(&fake_bus, cs, LSM6DSL_WHOAMI_VALUE);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
     TEST_ASSERT_EQUAL_UINT8(2U, ((lsm6dsl_priv_t *)accel->priv_data)->accel_range);
-    TEST_ASSERT_EQUAL_UINT8(250U, ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_250DPS, ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
 
     for (uint8_t i = 0; i < sizeof(raw); ++i) {
         queue_spi_read8(&fake_bus, cs, (uint8_t)(LSM6DSL_REG_OUTX_L_XL + i), raw[i], SENSOR_EOK);
@@ -274,7 +274,7 @@ static void test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers(void)
     TEST_ASSERT_EQUAL_INT32(999, data.value.val_3axis.z);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
 
-    ((lsm6dsl_priv_t *)gyro->priv_data)->gyro_range = 250U;
+    ((lsm6dsl_priv_t *)gyro->priv_data)->gyro_range = LSM6DSL_GYRO_RANGE_250DPS;
     for (uint8_t i = 0; i < sizeof(raw); ++i) {
         queue_spi_read8(&fake_bus, cs, (uint8_t)(LSM6DSL_REG_OUTX_L_G + i), raw[i], SENSOR_EOK);
     }
@@ -287,9 +287,24 @@ static void test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers(void)
     queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL, 0x40U, SENSOR_EOK);
     queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL & 0x7FU, 0x20U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(0, lsm6dsl_set_accel_range(accel, LSM6DSL_ACCEL_RANGE_4G));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_ACCEL_RANGE_4G, ((lsm6dsl_priv_t *)accel->priv_data)->accel_range);
     queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL2_G, 0x40U, SENSOR_EOK);
     queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x20U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(0, lsm6dsl_set_gyro_range(accel, LSM6DSL_GYRO_RANGE_500DPS));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_500DPS, ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
+
+    queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
+                          lsm6dsl_set_accel_range(accel, LSM6DSL_ACCEL_RANGE_8G));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_ACCEL_RANGE_4G, ((lsm6dsl_priv_t *)accel->priv_data)->accel_range);
+    queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL2_G, 0x40U, SENSOR_EOK);
+    queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x30U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
+                          lsm6dsl_set_gyro_range(accel, LSM6DSL_GYRO_RANGE_1000DPS));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_500DPS, ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
+
+    queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL & 0x7FU, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->deinit(accel));
 
     queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL & 0x7FU, 0x00U, SENSOR_EOK);
     queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x00U, SENSOR_EOK);
@@ -330,7 +345,7 @@ static void test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors(void)
     for (uint8_t i = 0; i < sizeof(raw); ++i) {
         queue_i2c_read8(&fake_bus, LSM6DSO_ADDR_ALT, (uint8_t)(LSM6DSO_REG_OUTX_L_G + i), raw[i], SENSOR_EOK);
     }
-    ((lsm6dso_priv_t *)gyro->priv_data)->gyro_range = 250U;
+    ((lsm6dso_priv_t *)gyro->priv_data)->gyro_range = LSM6DSO_GYRO_RANGE_250DPS;
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gyro->ops->read(gyro, &data));
     TEST_ASSERT_EQUAL_INT32(73, data.value.val_3axis.x);
     TEST_ASSERT_EQUAL_INT32(-73, data.value.val_3axis.y);
@@ -339,9 +354,24 @@ static void test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors(void)
     queue_i2c_read8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0x0FU, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0x2FU, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(0, lsm6dso_set_accel_range(accel, LSM6DSO_ACCEL_RANGE_4G));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSO_ACCEL_RANGE_4G, ((lsm6dso_priv_t *)accel->priv_data)->accel_range);
     queue_i2c_read8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0xF0U, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0xF5U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(0, lsm6dso_set_accel_rate(accel, LSM6DSO_ACCEL_RATE_208Hz));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSO_ACCEL_RATE_208Hz, ((lsm6dso_priv_t *)accel->priv_data)->accel_rate);
+
+    queue_i2c_read8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
+                          lsm6dso_set_accel_range(accel, LSM6DSO_ACCEL_RANGE_8G));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSO_ACCEL_RANGE_4G, ((lsm6dso_priv_t *)accel->priv_data)->accel_range);
+    queue_i2c_read8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0xF0U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0xF6U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
+                          lsm6dso_set_accel_rate(accel, LSM6DSO_ACCEL_RATE_416Hz));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSO_ACCEL_RATE_208Hz, ((lsm6dso_priv_t *)accel->priv_data)->accel_rate);
+
+    queue_i2c_write8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->deinit(accel));
 
     queue_i2c_write8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0x00U, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL2_G, 0x00U, SENSOR_EOK);
@@ -384,7 +414,7 @@ static void test_lsm6dsr_i2c_accel_gyro_init_read_helpers_and_errors(void)
     for (uint8_t i = 0; i < sizeof(raw); ++i) {
         queue_i2c_read8(&fake_bus, LSM6DSR_ADDR_DEFAULT, (uint8_t)(LSM6DSR_REG_OUTX_L_G + i), raw[i], SENSOR_EOK);
     }
-    ((lsm6dsr_priv_t *)gyro->priv_data)->gyro_range = 250U;
+    ((lsm6dsr_priv_t *)gyro->priv_data)->gyro_range = LSM6DSR_GYRO_RANGE_250DPS;
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gyro->ops->read(gyro, &data));
     TEST_ASSERT_EQUAL_INT32(18, data.value.val_3axis.x);
     TEST_ASSERT_EQUAL_INT32(-18, data.value.val_3axis.y);
@@ -393,9 +423,24 @@ static void test_lsm6dsr_i2c_accel_gyro_init_read_helpers_and_errors(void)
     queue_i2c_read8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0x0FU, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0x2FU, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(0, lsm6dsr_set_gyro_range(accel, LSM6DSR_GYRO_RANGE_500DPS));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_GYRO_RANGE_500DPS, ((lsm6dsr_priv_t *)accel->priv_data)->gyro_range);
     queue_i2c_read8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0xF0U, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0xF5U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(0, lsm6dsr_set_gyro_rate(accel, LSM6DSR_GYRO_RATE_208Hz));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_GYRO_RATE_208Hz, ((lsm6dsr_priv_t *)accel->priv_data)->gyro_rate);
+
+    queue_i2c_read8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
+                          lsm6dsr_set_gyro_range(accel, LSM6DSR_GYRO_RANGE_1000DPS));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_GYRO_RANGE_500DPS, ((lsm6dsr_priv_t *)accel->priv_data)->gyro_range);
+    queue_i2c_read8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0xF0U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0xF6U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
+                          lsm6dsr_set_gyro_rate(accel, LSM6DSR_GYRO_RATE_416Hz));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_GYRO_RATE_208Hz, ((lsm6dsr_priv_t *)accel->priv_data)->gyro_rate);
+
+    queue_i2c_write8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL1_XL, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->deinit(accel));
 
     queue_i2c_write8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL1_XL, 0x00U, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0x00U, SENSOR_EOK);
