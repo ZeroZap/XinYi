@@ -178,6 +178,46 @@ static void test_long_names_are_truncated_with_terminator(void)
     destroy_sensor(mg811);
 }
 
+static void test_create_rejects_null_name(void)
+{
+    TEST_ASSERT_NULL(acs712_create(NULL, 1U));
+    TEST_ASSERT_NULL(fsr_create(NULL, 2U));
+    TEST_ASSERT_NULL(mg811_create(NULL, 3U));
+}
+
+static void test_public_ops_reject_invalid_arguments_without_adc_side_effects(void)
+{
+    sensor_device_t *acs712 = acs712_create("acs-guards", 1U);
+    sensor_device_t *fsr = fsr_create("fsr-guards", 2U);
+    sensor_device_t *mg811 = mg811_create("mg-guards", 3U);
+    sensor_data_t sentinel;
+
+    TEST_ASSERT_NOT_NULL(acs712);
+    TEST_ASSERT_NOT_NULL(fsr);
+    TEST_ASSERT_NOT_NULL(mg811);
+    memset(&sentinel, 0xA5, sizeof(sentinel));
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, acs712->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, fsr->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mg811->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, acs712->ops->read(NULL, &sentinel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, fsr->ops->read(NULL, &sentinel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mg811->ops->read(NULL, &sentinel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, acs712->ops->read(acs712, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, fsr->ops->read(fsr, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mg811->ops->read(mg811, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, acs712->ops->init(&(sensor_device_t){0}));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, fsr->ops->read(&(sensor_device_t){0}, &sentinel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mg811->ops->read(&(sensor_device_t){0}, &sentinel));
+    TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
+
+    destroy_sensor(acs712);
+    destroy_sensor(fsr);
+    destroy_sensor(mg811);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -186,5 +226,7 @@ int main(void)
     RUN_TEST(test_mg811_create_and_read_converts_adc_to_co2_ppm_like_value);
     RUN_TEST(test_adc_boundaries_are_converted_for_each_analog_sensor);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
+    RUN_TEST(test_create_rejects_null_name);
+    RUN_TEST(test_public_ops_reject_invalid_arguments_without_adc_side_effects);
     return UNITY_END();
 }
