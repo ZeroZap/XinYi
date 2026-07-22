@@ -48,8 +48,11 @@ static sensor_err_t lis2dh12_init(sensor_device_t *sensor)
 
     /* 使能温度传感器 */
     data = 0xC0;
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, LIS2DH12_REG_TEMP_CFG, &data, 1);
+    if (hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, LIS2DH12_REG_TEMP_CFG, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
 
     SENSOR_LOG("LIS2DH12 initialized (Low Power Mode, 10Hz, ±2g)");
 
@@ -64,8 +67,11 @@ static sensor_err_t lis2dh12_deinit(sensor_device_t *sensor)
     lis2dh12_priv_t *priv = (lis2dh12_priv_t *)sensor->priv_data;
     uint8_t data          = LIS2DH12_ODR_POWER_DOWN;
 
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL1, &data, 1);
+    if (hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL1, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
 
     return SENSOR_EOK;
 }
@@ -166,17 +172,17 @@ static sensor_err_t lis2dh12_config(sensor_device_t *sensor,
         uint8_t range_reg;
 
         if (range <= 2) {
-            range_reg     = LIS2DH12_RANGE_2G;
-            priv->range_g = 2;
+            range_reg = LIS2DH12_RANGE_2G;
+            range     = 2;
         } else if (range <= 4) {
-            range_reg     = LIS2DH12_RANGE_4G;
-            priv->range_g = 4;
+            range_reg = LIS2DH12_RANGE_4G;
+            range     = 4;
         } else if (range <= 8) {
-            range_reg     = LIS2DH12_RANGE_8G;
-            priv->range_g = 8;
+            range_reg = LIS2DH12_RANGE_8G;
+            range     = 8;
         } else {
-            range_reg     = LIS2DH12_RANGE_16G;
-            priv->range_g = 16;
+            range_reg = LIS2DH12_RANGE_16G;
+            range     = 16;
         }
 
         data = range_reg | 0x08;
@@ -186,7 +192,8 @@ static sensor_err_t lis2dh12_config(sensor_device_t *sensor,
             return SENSOR_EIO;
         }
 
-        priv->range = range_reg;
+        priv->range   = range_reg;
+        priv->range_g = (uint8_t)range;
         break;
     }
 

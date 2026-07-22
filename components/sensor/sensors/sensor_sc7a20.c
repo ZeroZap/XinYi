@@ -59,8 +59,11 @@ static sensor_err_t sc7a20_deinit(sensor_device_t *sensor)
     uint8_t data        = SC7A20_ODR_POWER_DOWN;
 
     /* 进入低功耗模式 */
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1);
+    if (hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
 
     return SENSOR_EOK;
 }
@@ -158,17 +161,17 @@ static sensor_err_t sc7a20_config(sensor_device_t *sensor,
         uint8_t range_reg;
 
         if (range <= 2) {
-            range_reg   = SC7A20_RANGE_2G;
-            priv->range = 2;
+            range_reg = SC7A20_RANGE_2G;
+            range     = 2;
         } else if (range <= 4) {
-            range_reg   = SC7A20_RANGE_4G;
-            priv->range = 4;
+            range_reg = SC7A20_RANGE_4G;
+            range     = 4;
         } else if (range <= 8) {
-            range_reg   = SC7A20_RANGE_8G;
-            priv->range = 8;
+            range_reg = SC7A20_RANGE_8G;
+            range     = 8;
         } else {
-            range_reg   = SC7A20_RANGE_16G;
-            priv->range = 16;
+            range_reg = SC7A20_RANGE_16G;
+            range     = 16;
         }
 
         data = range_reg | 0x08;
@@ -177,6 +180,8 @@ static sensor_err_t sc7a20_config(sensor_device_t *sensor,
             != 0) {
             return SENSOR_EIO;
         }
+
+        priv->range = (uint8_t)range;
 
         SENSOR_LOG("SC7A20 range set to ±%dg", priv->range);
         break;

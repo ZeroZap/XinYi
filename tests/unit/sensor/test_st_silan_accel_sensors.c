@@ -203,6 +203,23 @@ static void test_lis2dh12_init_read_config_deinit_and_errors(void)
     queue_read(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_OUT_X_L | 0x80U, NULL, 6U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
 
+    queue_read8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_WHOAMI, LIS2DH12_WHOAMI_VALUE, SENSOR_EOK);
+    queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL1, LIS2DH12_ODR_10HZ | 0x07U, SENSOR_EOK);
+    queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL4, LIS2DH12_RANGE_2G | 0x08U, SENSOR_EOK);
+    queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_TEMP_CFG, 0xC0U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(LIS2DH12_RANGE_2G, ((lis2dh12_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(2U, ((lis2dh12_priv_t *)sensor->priv_data)->range_g);
+
+    cfg = 16U;
+    queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL4, LIS2DH12_RANGE_16G | 0x08U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->config(sensor, SENSOR_CFG_RANGE, &cfg));
+    TEST_ASSERT_EQUAL_INT(LIS2DH12_RANGE_2G, ((lis2dh12_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(2U, ((lis2dh12_priv_t *)sensor->priv_data)->range_g);
+
+    queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL1, LIS2DH12_ODR_POWER_DOWN, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+
     destroy_sensor(sensor);
 }
 
@@ -298,6 +315,14 @@ static void test_sc7a20_init_read_config_deinit_and_errors(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
     queue_read(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_OUT_X_L | 0x80U, NULL, 6U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+
+    cfg = 4U;
+    queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG4, SC7A20_RANGE_4G | 0x08U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->config(sensor, SENSOR_CFG_RANGE, &cfg));
+    TEST_ASSERT_EQUAL_UINT8(16U, ((sc7a20_priv_t *)sensor->priv_data)->range);
+
+    queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG1, SC7A20_ODR_POWER_DOWN, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
 
     destroy_sensor(sensor);
 }
