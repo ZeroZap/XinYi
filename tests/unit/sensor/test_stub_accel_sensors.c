@@ -243,6 +243,63 @@ static void test_long_names_are_truncated_with_terminator(void)
     destroy_sensor(hs_ads1100);
 }
 
+static void test_init_propagates_i2c_write_failure(void)
+{
+    int fake_bus;
+    sensor_device_t *dmp6100 = dmp6100_create("dmp6100", &fake_bus, 0U);
+    sensor_device_t *cms = cms_create("cms", &fake_bus, 0U);
+    sensor_device_t *hs_ads1100 = hs_ads1100_create("hsads", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(dmp6100);
+    TEST_ASSERT_NOT_NULL(cms);
+    TEST_ASSERT_NOT_NULL(hs_ads1100);
+
+    queue_i2c_write8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_CTRL, 0x56U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, dmp6100->ops->init(dmp6100));
+
+    queue_i2c_write8(&fake_bus, CMS_ADDR_DEFAULT, CMS_REG_CTRL1, 0x57U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, cms->ops->init(cms));
+
+    queue_i2c_write8(&fake_bus, HS_ADS1100_ADDR_DEFAULT, HS_ADS1100_REG_CTRL1, 0x57U,
+                     SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, hs_ads1100->ops->init(hs_ads1100));
+    assert_i2c_drained();
+
+    destroy_sensor(dmp6100);
+    destroy_sensor(cms);
+    destroy_sensor(hs_ads1100);
+}
+
+static void test_read_failure_preserves_output_and_stops_at_failed_register(void)
+{
+    int fake_bus;
+    sensor_data_t data = {0};
+    data.type = SENSOR_TYPE_GYROSCOPE;
+    data.unit = SENSOR_UNIT_DEGREE_PER_SECOND;
+    data.value.val_3axis.x = 11;
+    data.value.val_3axis.y = 22;
+    data.value.val_3axis.z = 33;
+    data.timestamp = 44U;
+    sensor_device_t *sensor = hs_ads1100_create("hsads", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read8(&fake_bus, HS_ADS1100_ADDR_DEFAULT, HS_ADS1100_REG_OUT_X_L, 0x78U,
+                    SENSOR_EOK);
+    queue_i2c_read8(&fake_bus, HS_ADS1100_ADDR_DEFAULT, HS_ADS1100_REG_OUT_X_L + 1U, 0x56U,
+                    SENSOR_EIO);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_GYROSCOPE, data.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_DEGREE_PER_SECOND, data.unit);
+    TEST_ASSERT_EQUAL_INT32(11, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL_INT32(22, data.value.val_3axis.y);
+    TEST_ASSERT_EQUAL_INT32(33, data.value.val_3axis.z);
+    TEST_ASSERT_EQUAL_UINT32(44U, data.timestamp);
+    assert_i2c_drained();
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -250,5 +307,7 @@ int main(void)
     RUN_TEST(test_cms_create_init_and_read_contract);
     RUN_TEST(test_hs_ads1100_create_init_and_read_contract);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
+    RUN_TEST(test_init_propagates_i2c_write_failure);
+    RUN_TEST(test_read_failure_preserves_output_and_stops_at_failed_register);
     return UNITY_END();
 }
