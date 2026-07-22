@@ -250,6 +250,39 @@ static void test_adxl362_create_init_read_deinit_and_error_paths(void)
     destroy_sensor(sensor);
 }
 
+static void test_adxl362_propagates_config_write_failures_without_cache_updates(void)
+{
+    int fake_spi;
+    sensor_device_t *sensor = adxl362_create("adxl362-write-fail", &fake_spi);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_spi_read8(&fake_spi, ADXL362_REG_DEVID_AD, ADXL362_DEVID_AD, SENSOR_EOK);
+    queue_spi_write8(&fake_spi, ADXL362_REG_FILTER_CTL,
+                     (uint8_t)((ADXL362_ODR_100HZ << 3) | ADXL362_RANGE_2G), SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(0, ((adxl362_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_INT(0, ((adxl362_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(0U, ((adxl362_priv_t *)sensor->priv_data)->range_g);
+    TEST_ASSERT_EQUAL_INT(0, ((adxl362_priv_t *)sensor->priv_data)->mode);
+
+    setUp();
+    queue_spi_read8(&fake_spi, ADXL362_REG_DEVID_AD, ADXL362_DEVID_AD, SENSOR_EOK);
+    queue_spi_write8(&fake_spi, ADXL362_REG_FILTER_CTL,
+                     (uint8_t)((ADXL362_ODR_100HZ << 3) | ADXL362_RANGE_2G), SENSOR_EOK);
+    queue_spi_write8(&fake_spi, ADXL362_REG_POWER_CTL, ADXL362_MODE_MEASUREMENT, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(ADXL362_ODR_100HZ, ((adxl362_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_INT(ADXL362_RANGE_2G, ((adxl362_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(2U, ((adxl362_priv_t *)sensor->priv_data)->range_g);
+    TEST_ASSERT_EQUAL_INT(0, ((adxl362_priv_t *)sensor->priv_data)->mode);
+
+    setUp();
+    queue_spi_write8(&fake_spi, ADXL362_REG_POWER_CTL, ADXL362_MODE_STANDBY, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+
+    destroy_sensor(sensor);
+}
+
 static void test_bma400_create_init_read_and_deinit(void)
 {
     int fake_bus;
@@ -459,6 +492,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_adxl362_create_init_read_deinit_and_error_paths);
+    RUN_TEST(test_adxl362_propagates_config_write_failures_without_cache_updates);
     RUN_TEST(test_bma400_create_init_read_and_deinit);
     RUN_TEST(test_bma400_error_paths);
     RUN_TEST(test_bma400_init_propagates_each_config_write_failure);
