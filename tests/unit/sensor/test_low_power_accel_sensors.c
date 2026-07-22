@@ -308,6 +308,57 @@ static void test_bma400_error_paths(void)
     destroy_sensor(sensor);
 }
 
+static void test_bma400_init_propagates_each_config_write_failure(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = bma400_create("bma400-write-fail", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CHIPID, BMA400_CHIP_ID, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CMD, 0xB6U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->power_mode);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CHIPID, BMA400_CHIP_ID, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CMD, 0xB6U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG0,
+                     BMA400_POWER_MODE_LOW_POWER, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
+    TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->power_mode);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CHIPID, BMA400_CHIP_ID, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CMD, 0xB6U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG0,
+                     BMA400_POWER_MODE_LOW_POWER, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG1,
+                     (uint8_t)(BMA400_RANGE_2G << 6), SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(BMA400_POWER_MODE_LOW_POWER,
+                          ((bma400_priv_t *)sensor->priv_data)->power_mode);
+    TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(0U, ((bma400_priv_t *)sensor->priv_data)->range_g);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CHIPID, BMA400_CHIP_ID, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CMD, 0xB6U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG0,
+                     BMA400_POWER_MODE_LOW_POWER, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG1,
+                     (uint8_t)(BMA400_RANGE_2G << 6), SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG2,
+                     BMA400_ODR_25HZ, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(BMA400_RANGE_2G, ((bma400_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(2U, ((bma400_priv_t *)sensor->priv_data)->range_g);
+    TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->odr);
+
+    destroy_sensor(sensor);
+}
+
 static void test_kx023_create_init_read_deinit_and_error_paths(void)
 {
     int fake_bus;
@@ -350,12 +401,68 @@ static void test_kx023_create_init_read_deinit_and_error_paths(void)
     destroy_sensor(sensor);
 }
 
+static void test_kx023_propagates_config_write_failures(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = kx023_create("kx023-write-fail", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_WHO_AM_I, KX023_WHO_AM_I_VALUE,
+                    SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_SOFT_REST, 0x80U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_WHO_AM_I, KX023_WHO_AM_I_VALUE,
+                    SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_SOFT_REST, 0x80U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_CNTL1, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
+    TEST_ASSERT_EQUAL_INT(0, ((kx023_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_INT(0, ((kx023_priv_t *)sensor->priv_data)->mode);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_WHO_AM_I, KX023_WHO_AM_I_VALUE,
+                    SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_SOFT_REST, 0x80U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_CNTL1, 0x00U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_ODCNTL, KX023_ODR_12_5HZ,
+                     SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(0, ((kx023_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_INT(0, ((kx023_priv_t *)sensor->priv_data)->mode);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_WHO_AM_I, KX023_WHO_AM_I_VALUE,
+                    SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_SOFT_REST, 0x80U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_CNTL1, 0x00U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_ODCNTL, KX023_ODR_12_5HZ,
+                     SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_CNTL1, KX023_MODE_LOW_POWER,
+                     SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(KX023_ODR_12_5HZ, ((kx023_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_INT(0, ((kx023_priv_t *)sensor->priv_data)->mode);
+
+    setUp();
+    queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_CNTL1, KX023_MODE_STANDBY,
+                     SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_adxl362_create_init_read_deinit_and_error_paths);
     RUN_TEST(test_bma400_create_init_read_and_deinit);
     RUN_TEST(test_bma400_error_paths);
+    RUN_TEST(test_bma400_init_propagates_each_config_write_failure);
     RUN_TEST(test_kx023_create_init_read_deinit_and_error_paths);
+    RUN_TEST(test_kx023_propagates_config_write_failures);
     return UNITY_END();
 }
