@@ -7,6 +7,10 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
 
 static sensor_err_t apds9960_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     apds9960_priv_t *priv = (apds9960_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -38,11 +42,16 @@ static sensor_err_t apds9960_init(sensor_device_t *sensor)
 
 static sensor_err_t apds9960_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     apds9960_priv_t *priv = (apds9960_priv_t *)sensor->priv_data;
     uint8_t data          = 0x00;
 
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, APDS9960_REG_ENABLE, &data, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, APDS9960_REG_ENABLE, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
 
     return SENSOR_EOK;
 }
@@ -51,6 +60,10 @@ static sensor_err_t apds9960_deinit(sensor_device_t *sensor)
 static sensor_err_t apds9960_rgb_read(sensor_device_t *sensor,
                                       sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     apds9960_priv_t *priv = (apds9960_priv_t *)sensor->priv_data;
     uint8_t buf[8];
 
@@ -83,6 +96,10 @@ static sensor_err_t apds9960_rgb_read(sensor_device_t *sensor,
 static sensor_err_t apds9960_proximity_read(sensor_device_t *sensor,
                                             sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     apds9960_priv_t *priv = (apds9960_priv_t *)sensor->priv_data;
     uint8_t proximity;
 
@@ -105,6 +122,10 @@ static sensor_err_t apds9960_proximity_read(sensor_device_t *sensor,
 static sensor_err_t apds9960_gesture_read(sensor_device_t *sensor,
                                           sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     apds9960_priv_t *priv = (apds9960_priv_t *)sensor->priv_data;
     uint8_t gstatus;
 
@@ -122,8 +143,10 @@ static sensor_err_t apds9960_gesture_read(sensor_device_t *sensor,
 
         if (fifo_level > 0) {
             /* 读取FIFO数据并解析手势 */
-            hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_GFIFO_U,
-                             fifo_data, fifo_level * 4);
+            if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_GFIFO_U, fifo_data,
+                                 fifo_level * 4) != 0) {
+                return SENSOR_EIO;
+            }
 
             /* 简化的手势识别算法 */
             /* 实际应用需要更复杂的算法 */
@@ -160,6 +183,10 @@ static const sensor_ops_t apds9960_gesture_ops = {
 
 sensor_device_t *apds9960_create_rgb(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL)
@@ -199,12 +226,26 @@ sensor_device_t *apds9960_create_rgb(const char *name, void *i2c_bus)
 
 sensor_device_t *apds9960_create_proximity(const char *name, void *i2c_bus)
 {
-    /* 类似实现 */
-    return NULL; /* 完整实现省略 */
+    sensor_device_t *sensor = apds9960_create_rgb(name, i2c_bus);
+    if (sensor == NULL) {
+        return NULL;
+    }
+
+    sensor->info.type = SENSOR_TYPE_PROXIMITY;
+    sensor->info.resolution = 8;
+    sensor->ops = &apds9960_proximity_ops;
+    return sensor;
 }
 
 sensor_device_t *apds9960_create_gesture(const char *name, void *i2c_bus)
 {
-    /* 类似实现 */
-    return NULL; /* 完整实现省略 */
+    sensor_device_t *sensor = apds9960_create_rgb(name, i2c_bus);
+    if (sensor == NULL) {
+        return NULL;
+    }
+
+    sensor->info.type = SENSOR_TYPE_CUSTOM;
+    sensor->info.resolution = 8;
+    sensor->ops = &apds9960_gesture_ops;
+    return sensor;
 }

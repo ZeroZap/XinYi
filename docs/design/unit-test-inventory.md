@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C unit-test files: 96
-- Unity-style files: 96
+- Total C unit-test files: 109
+- Unity-style files: 109
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 98
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 110
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -45,7 +45,7 @@
 | `net` | 11 | 11 | 0 | 0 | 0 | 5 |
 | `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 29 | 29 | 0 | 0 | 0 | 29 |
+| `sensor` | 42 | 42 | 0 | 0 | 0 | 42 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -152,6 +152,7 @@
 | `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 legacy magnetic I2C contracts |
 | `tests/unit/sensor/test_magnetic_angle_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_mq_gas_sensors.c` | `unity` | 0 | MQ3/MQ7/MQ135 ADC gas conversion and guard contracts |
+| `tests/unit/sensor/test_apds9960_sensor.c` | `unity` | 0 | APDS9960 RGB init/read/failure guard contracts |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
