@@ -16,8 +16,14 @@ static sensor_err_t ist8310_init(sensor_device_t *sensor)
         return SENSOR_ERROR;
     }
 
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1, (uint8_t[]){0x1A}, 1);
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL2, (uint8_t[]){0x40}, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1,
+                          (uint8_t[]){0x1A}, 1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL2,
+                          (uint8_t[]){0x40}, 1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_LOG("IST8310 initialized");
     return SENSOR_EOK;
 }
@@ -25,7 +31,10 @@ static sensor_err_t ist8310_init(sensor_device_t *sensor)
 static sensor_err_t ist8310_deinit(sensor_device_t *sensor)
 {
     ist8310_priv_t *priv = (ist8310_priv_t *)sensor->priv_data;
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1, (uint8_t[]){0x00}, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1,
+                          (uint8_t[]){0x00}, 1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     return SENSOR_EOK;
 }
 
@@ -42,7 +51,7 @@ static sensor_err_t ist8310_read(sensor_device_t *sensor, sensor_data_t *data)
     raw[1] = (int16_t)((buf[3] << 8) | buf[2]);
     raw[2] = (int16_t)((buf[5] << 8) | buf[4]);
 
-    data->type = SENSOR_TYPE_MAGNETIC;
+    data->type = SENSOR_TYPE_MAGNETOMETER;
     data->unit = SENSOR_UNIT_MICRO_TESLA;
     data->value.val_3axis.x = (int32_t)raw[0] * 15;
     data->value.val_3axis.y = (int32_t)raw[1] * 15;
@@ -70,7 +79,7 @@ sensor_device_t *ist8310_create(const char *name, void *i2c_bus)
     sensor->info.vendor = "iSentek";
     sensor->info.model = "IST8310";
     sensor->info.version = 0x0100;
-    sensor->info.type = SENSOR_TYPE_MAGNETIC;
+    sensor->info.type = SENSOR_TYPE_MAGNETOMETER;
     sensor->info.unit = SENSOR_UNIT_MICRO_TESLA;
     sensor->info.range_max = 4900;
     sensor->info.range_min = -4900;

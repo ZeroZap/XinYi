@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "sensor_ist8310.h"
 #include "sensor_qmc5883l.h"
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
@@ -192,10 +193,95 @@ static void test_qmc5883l_io_failures_stop_and_preserve_outputs(void)
     destroy_sensor(sensor);
 }
 
+static void test_ist8310_create_init_read_and_deinit_contracts(void)
+{
+    int fake_bus;
+    const uint8_t whoami = IST8310_WHOAMI_VALUE;
+    const uint8_t raw[6] = {0x01U, 0x00U, 0xFEU, 0xFFU, 0x10U, 0x00U};
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = ist8310_create("ist8310-main", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_STRING("ist8310-main", sensor->info.name);
+    TEST_ASSERT_EQUAL_STRING("iSentek", sensor->info.vendor);
+    TEST_ASSERT_EQUAL_STRING("IST8310", sensor->info.model);
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_MAGNETOMETER, sensor->info.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_MICRO_TESLA, sensor->info.unit);
+    TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
+    TEST_ASSERT_EQUAL_UINT8(IST8310_ADDR_DEFAULT,
+                            ((ist8310_priv_t *)sensor->priv_data)->i2c_addr);
+
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    queue_write(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_CTRL1, 0x1AU, SENSOR_EOK);
+    queue_write(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_CTRL2, 0x40U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+
+    for (uint8_t i = 0; i < sizeof(raw); ++i) {
+        queue_read(&fake_bus, IST8310_ADDR_DEFAULT, (uint8_t)(IST8310_REG_DATA + i), &raw[i], 1U,
+                   SENSOR_EOK);
+    }
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_MAGNETOMETER, data.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_MICRO_TESLA, data.unit);
+    TEST_ASSERT_EQUAL_INT32(15, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL_INT32(-30, data.value.val_3axis.y);
+    TEST_ASSERT_EQUAL_INT32(240, data.value.val_3axis.z);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT8(85, data.accuracy);
+
+    queue_write(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_CTRL1, 0x00U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+
+    assert_queues_drained();
+    destroy_sensor(sensor);
+}
+
+static void test_ist8310_io_failures_stop_and_preserve_outputs(void)
+{
+    int fake_bus;
+    const uint8_t bad_whoami = 0x00U;
+    const uint8_t whoami = IST8310_WHOAMI_VALUE;
+    const uint8_t raw0 = 0x7FU;
+    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE, .timestamp = 77U};
+    sensor_device_t *sensor = ist8310_create("ist8310-fail", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_WHOAMI, NULL, 1U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_WHOAMI, &bad_whoami, 1U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
+
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    queue_write(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_CTRL1, 0x1AU, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    queue_write(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_CTRL1, 0x1AU, SENSOR_EOK);
+    queue_write(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_CTRL2, 0x40U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_DATA, &raw0, 1U, SENSOR_EOK);
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, (uint8_t)(IST8310_REG_DATA + 1U), NULL, 1U,
+               SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_GYROSCOPE, data.type);
+    TEST_ASSERT_EQUAL_UINT32(77U, data.timestamp);
+
+    queue_write(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_CTRL1, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+
+    assert_queues_drained();
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_qmc5883l_create_init_read_and_deinit_contracts);
     RUN_TEST(test_qmc5883l_io_failures_stop_and_preserve_outputs);
+    RUN_TEST(test_ist8310_create_init_read_and_deinit_contracts);
+    RUN_TEST(test_ist8310_io_failures_stop_and_preserve_outputs);
     return UNITY_END();
 }

@@ -686,6 +686,7 @@ target_include_directories(test_magnetic_angle_sensors BEFORE PRIVATE
 xy_add_unit_test(test_magnetic_i2c_sensors sensor_magnetic_i2c_sensors UNITY
     ${UNIT_SENSOR}/test_magnetic_i2c_sensors.c
     ${SENSOR}/sensors/sensor_qmc5883l.c
+    ${SENSOR}/sensors/sensor_ist8310.c
 )
 target_include_directories(test_magnetic_i2c_sensors BEFORE PRIVATE
     ${SENSOR}
