@@ -244,6 +244,40 @@ static void test_public_ops_reject_null_inputs_without_side_effects(void)
     destroy_sensor(mq135);
 }
 
+static void test_missing_private_data_is_rejected_without_adc_side_effects(void)
+{
+    sensor_device_t *mq3 = mq3_create("mq3-no-priv", 1U);
+    sensor_device_t *mq7 = mq7_create("mq7-no-priv", 2U);
+    sensor_device_t *mq135 = mq135_create("mq135-no-priv", 3U);
+    sensor_data_t data;
+
+    TEST_ASSERT_NOT_NULL(mq3);
+    TEST_ASSERT_NOT_NULL(mq7);
+    TEST_ASSERT_NOT_NULL(mq135);
+
+    memset(&data, 0xA5, sizeof(data));
+    SENSOR_FREE(mq3->priv_data);
+    mq3->priv_data = NULL;
+    SENSOR_FREE(mq7->priv_data);
+    mq7->priv_data = NULL;
+    SENSOR_FREE(mq135->priv_data);
+    mq135->priv_data = NULL;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq3->ops->init(mq3));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq3->ops->read(mq3, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq7->ops->init(mq7));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq7->ops->read(mq7, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq135->ops->init(mq135));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq135->ops->read(mq135, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.timestamp);
+
+    destroy_sensor(mq3);
+    destroy_sensor(mq7);
+    destroy_sensor(mq135);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -256,5 +290,6 @@ int main(void)
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_create_rejects_null_name);
     RUN_TEST(test_public_ops_reject_null_inputs_without_side_effects);
+    RUN_TEST(test_missing_private_data_is_rejected_without_adc_side_effects);
     return UNITY_END();
 }

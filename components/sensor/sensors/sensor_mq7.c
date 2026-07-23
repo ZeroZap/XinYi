@@ -6,7 +6,7 @@ extern uint16_t hal_adc_read(uint8_t pin);
 
 static sensor_err_t mq7_init(sensor_device_t *s)
 {
-    if (s == NULL) {
+    if (s == NULL || s->priv_data == NULL) {
         return SENSOR_ERROR;
     }
 
