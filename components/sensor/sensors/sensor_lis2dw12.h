@@ -61,7 +61,7 @@ typedef struct {
     uint8_t i2c_addr;
     uint8_t spi_cs;
     uint8_t range;
-    uint8_t rate;
+    uint16_t rate;
     uint8_t mode;
     int16_t offset[3];
 } lis2dw12_priv_t;
