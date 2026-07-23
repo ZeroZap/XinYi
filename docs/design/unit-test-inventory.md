@@ -154,7 +154,7 @@
 | `tests/unit/sensor/test_mq_gas_sensors.c` | `unity` | 0 | MQ3/MQ7/MQ135 ADC gas conversion and guard contracts |
 | `tests/unit/sensor/test_apds9960_sensor.c` | `unity` | 0 | APDS9960 RGB init/read/failure guard contracts |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
-| `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 |
+| `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 | SGP30/ENS160/IM69D/MAX30102 legacy simple I2C stub identity and guard contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
 | `tests/unit/sensor/test_stub_accel_sensors.c` | `unity` | 0 | DMP6100/CMS/GD30DF/HS-ADS1100 legacy accel contracts |

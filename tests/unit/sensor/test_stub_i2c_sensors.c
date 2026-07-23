@@ -49,6 +49,13 @@ static void assert_stub_identity(sensor_device_t *sensor, const char *name, cons
     TEST_ASSERT_NOT_NULL(sensor->priv_data);
 }
 
+static void assert_output_unchanged(const sensor_data_t *actual, const sensor_data_t *expected)
+{
+    TEST_ASSERT_EQUAL_INT(expected->type, actual->type);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, expected->value.val_float, actual->value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(expected->timestamp, actual->timestamp);
+}
+
 static void test_sgp30_create_sets_identity_and_default_read_contract(void)
 {
     int fake_bus;
@@ -156,6 +163,92 @@ static void test_long_names_are_truncated_with_terminator(void)
     destroy_sensor(max30102);
 }
 
+static void test_create_rejects_null_names(void)
+{
+    int fake_bus;
+
+    TEST_ASSERT_NULL(sgp30_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(ens160_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(im69d_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(max30102_create(NULL, &fake_bus));
+}
+
+static void test_public_ops_reject_null_inputs_and_preserve_output(void)
+{
+    int fake_bus;
+    sensor_device_t *sgp30 = sgp30_create("sgp30-guard", &fake_bus);
+    sensor_device_t *ens160 = ens160_create("ens160-guard", &fake_bus);
+    sensor_device_t *im69d = im69d_create("im69d-guard", &fake_bus);
+    sensor_device_t *max30102 = max30102_create("max30102-guard", &fake_bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = -12.5f, .timestamp = 777U};
+    sensor_data_t snapshot = data;
+
+    TEST_ASSERT_NOT_NULL(sgp30);
+    TEST_ASSERT_NOT_NULL(ens160);
+    TEST_ASSERT_NOT_NULL(im69d);
+    TEST_ASSERT_NOT_NULL(max30102);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->init(NULL));
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(sgp30, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->read(ens160, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->read(im69d, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->read(max30102, NULL));
+    assert_output_unchanged(&data, &snapshot);
+
+    destroy_sensor(sgp30);
+    destroy_sensor(ens160);
+    destroy_sensor(im69d);
+    destroy_sensor(max30102);
+}
+
+static void test_missing_private_data_is_rejected_and_preserves_output(void)
+{
+    int fake_bus;
+    sensor_device_t *sgp30 = sgp30_create("sgp30-no-priv", &fake_bus);
+    sensor_device_t *ens160 = ens160_create("ens160-no-priv", &fake_bus);
+    sensor_device_t *im69d = im69d_create("im69d-no-priv", &fake_bus);
+    sensor_device_t *max30102 = max30102_create("max30102-no-priv", &fake_bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = 41.0f, .timestamp = 55U};
+    sensor_data_t snapshot = data;
+
+    TEST_ASSERT_NOT_NULL(sgp30);
+    TEST_ASSERT_NOT_NULL(ens160);
+    TEST_ASSERT_NOT_NULL(im69d);
+    TEST_ASSERT_NOT_NULL(max30102);
+
+    SENSOR_FREE(sgp30->priv_data);
+    sgp30->priv_data = NULL;
+    SENSOR_FREE(ens160->priv_data);
+    ens160->priv_data = NULL;
+    SENSOR_FREE(im69d->priv_data);
+    im69d->priv_data = NULL;
+    SENSOR_FREE(max30102->priv_data);
+    max30102->priv_data = NULL;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->init(sgp30));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(sgp30, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->init(ens160));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->read(ens160, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->init(im69d));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->read(im69d, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->init(max30102));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->read(max30102, &data));
+    assert_output_unchanged(&data, &snapshot);
+
+    destroy_sensor(sgp30);
+    destroy_sensor(ens160);
+    destroy_sensor(im69d);
+    destroy_sensor(max30102);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -164,5 +257,8 @@ int main(void)
     RUN_TEST(test_im69d_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_max30102_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
+    RUN_TEST(test_create_rejects_null_names);
+    RUN_TEST(test_public_ops_reject_null_inputs_and_preserve_output);
+    RUN_TEST(test_missing_private_data_is_rejected_and_preserves_output);
     return UNITY_END();
 }
