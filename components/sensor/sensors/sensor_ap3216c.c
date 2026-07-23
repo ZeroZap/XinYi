@@ -10,6 +10,10 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
  */
 static sensor_err_t ap3216c_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ap3216c_priv_t *priv = (ap3216c_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -17,8 +21,10 @@ static sensor_err_t ap3216c_init(sensor_device_t *sensor)
 
     /* 复位 */
     data = 0x04;
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(50);
 
     /* 设置工作模式 */
@@ -41,11 +47,17 @@ static sensor_err_t ap3216c_init(sensor_device_t *sensor)
  */
 static sensor_err_t ap3216c_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ap3216c_priv_t *priv = (ap3216c_priv_t *)sensor->priv_data;
     uint8_t data         = AP3216C_MODE_POWER_DOWN;
 
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
 
     return SENSOR_EOK;
 }
@@ -56,6 +68,10 @@ static sensor_err_t ap3216c_deinit(sensor_device_t *sensor)
 static sensor_err_t ap3216c_light_read(sensor_device_t *sensor,
                                        sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ap3216c_priv_t *priv = (ap3216c_priv_t *)sensor->priv_data;
     uint8_t buf[2];
 
@@ -87,6 +103,10 @@ static sensor_err_t ap3216c_light_read(sensor_device_t *sensor,
 static sensor_err_t ap3216c_proximity_read(sensor_device_t *sensor,
                                            sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ap3216c_priv_t *priv = (ap3216c_priv_t *)sensor->priv_data;
     uint8_t buf[2];
 
@@ -101,13 +121,6 @@ static sensor_err_t ap3216c_proximity_read(sensor_device_t *sensor,
     if (buf[0] & 0x40) {
         /* IR溢出 */
         return SENSOR_ERROR;
-    }
-
-    if (buf[0] & 0x80) {
-        /* 物体接近 */
-        data->value.val_uint32 = 1;
-    } else {
-        data->value.val_uint32 = 0;
     }
 
     /* PS原始值 (10位) */
@@ -128,6 +141,10 @@ static sensor_err_t ap3216c_proximity_read(sensor_device_t *sensor,
 static sensor_err_t ap3216c_ir_read(sensor_device_t *sensor,
                                     sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ap3216c_priv_t *priv = (ap3216c_priv_t *)sensor->priv_data;
     uint8_t buf[2];
 
@@ -176,6 +193,10 @@ static const sensor_ops_t ap3216c_ir_ops = {
  */
 sensor_device_t *ap3216c_create_light(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {
@@ -221,6 +242,10 @@ sensor_device_t *ap3216c_create_light(const char *name, void *i2c_bus)
  */
 sensor_device_t *ap3216c_create_proximity(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {
@@ -266,6 +291,10 @@ sensor_device_t *ap3216c_create_proximity(const char *name, void *i2c_bus)
  */
 sensor_device_t *ap3216c_create_ir(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {

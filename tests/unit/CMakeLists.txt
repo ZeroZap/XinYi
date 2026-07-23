@@ -588,6 +588,15 @@ target_include_directories(test_proximity_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_ap3216c_sensor sensor_ap3216c_sensor UNITY
+    ${UNIT_SENSOR}/test_ap3216c_sensor.c
+    ${SENSOR}/sensors/sensor_ap3216c.c
+)
+target_include_directories(test_ap3216c_sensor BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_apds9960_sensor sensor_apds9960_sensor UNITY
     ${UNIT_SENSOR}/test_apds9960_sensor.c
     ${SENSOR}/sensors/sensor_apds9960.c
