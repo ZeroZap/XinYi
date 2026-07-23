@@ -149,6 +149,7 @@
 | `tests/unit/sensor/test_bno055.c` | `unity` | 0 |
 | `tests/unit/sensor/test_dmp.c` | `unity` | 0 |
 | `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
+| `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_magnetic_angle_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 |
