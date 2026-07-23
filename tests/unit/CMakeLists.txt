@@ -647,6 +647,7 @@ xy_add_unit_test(test_stub_accel_sensors sensor_stub_accel_sensors UNITY
     ${UNIT_SENSOR}/test_stub_accel_sensors.c
     ${SENSOR}/sensors/sensor_dmp6100.c
     ${SENSOR}/sensors/sensor_cms.c
+    ${SENSOR}/sensors/sensor_gd30df.c
     ${SENSOR}/sensors/sensor_hs_ads1100.c
 )
 target_include_directories(test_stub_accel_sensors BEFORE PRIVATE
