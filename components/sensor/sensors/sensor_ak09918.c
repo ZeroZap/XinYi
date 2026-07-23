@@ -10,6 +10,10 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 
 static sensor_err_t ak09918_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     uint8_t data;
     ak09918_priv_t *priv = (ak09918_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing AK09918");
@@ -20,22 +24,39 @@ static sensor_err_t ak09918_init(sensor_device_t *sensor)
         return SENSOR_ERROR;
     }
 
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL2, (uint8_t[]){0x08}, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL2,
+                          (uint8_t[]){0x08}, 1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(50);
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL1, (uint8_t[]){0x1F}, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL1,
+                          (uint8_t[]){0x1F}, 1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_LOG("AK09918 initialized");
     return SENSOR_EOK;
 }
 
 static sensor_err_t ak09918_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ak09918_priv_t *priv = (ak09918_priv_t *)sensor->priv_data;
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL1, (uint8_t[]){0x00}, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL1,
+                          (uint8_t[]){0x00}, 1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     return SENSOR_EOK;
 }
 
 static sensor_err_t ak09918_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     uint8_t buf[6];
     ak09918_priv_t *priv = (ak09918_priv_t *)sensor->priv_data;
     for (int i = 0; i < 6; i++) {
@@ -47,7 +68,7 @@ static sensor_err_t ak09918_read(sensor_device_t *sensor, sensor_data_t *data)
     raw[1] = (int16_t)((buf[3] << 8) | buf[2]);
     raw[2] = (int16_t)((buf[5] << 8) | buf[4]);
 
-    data->type = SENSOR_TYPE_MAGNETIC;
+    data->type = SENSOR_TYPE_MAGNETOMETER;
     data->unit = SENSOR_UNIT_MICRO_TESLA;
     data->value.val_3axis.x = (int32_t)raw[0] * 15;
     data->value.val_3axis.y = (int32_t)raw[1] * 15;
@@ -63,6 +84,10 @@ static const sensor_ops_t ak09918_ops = {
 
 sensor_device_t *ak09918_create(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     ak09918_priv_t *priv = (ak09918_priv_t *)SENSOR_MALLOC(sizeof(ak09918_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -75,7 +100,7 @@ sensor_device_t *ak09918_create(const char *name, void *i2c_bus)
     sensor->info.vendor = "AKM";
     sensor->info.model = "AK09918";
     sensor->info.version = 0x0100;
-    sensor->info.type = SENSOR_TYPE_MAGNETIC;
+    sensor->info.type = SENSOR_TYPE_MAGNETOMETER;
     sensor->info.unit = SENSOR_UNIT_MICRO_TESLA;
     sensor->info.range_max = 4900;
     sensor->info.range_min = -4900;

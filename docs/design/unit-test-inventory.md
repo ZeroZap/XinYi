@@ -149,7 +149,7 @@
 | `tests/unit/sensor/test_bno055.c` | `unity` | 0 |
 | `tests/unit/sensor/test_dmp.c` | `unity` | 0 |
 | `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
-| `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 legacy magnetic I2C contracts |
+| `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 legacy magnetic I2C contracts |
 | `tests/unit/sensor/test_magnetic_angle_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_mq_gas_sensors.c` | `unity` | 0 | MQ3/MQ7/MQ135 ADC gas conversion and guard contracts |
 | `tests/unit/sensor/test_apds9960_sensor.c` | `unity` | 0 | APDS9960 RGB init/read/failure guard contracts |
