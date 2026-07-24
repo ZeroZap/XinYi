@@ -50,10 +50,11 @@ void tearDown(void)
 
 static void destroy_sensor(sensor_device_t *sensor)
 {
-    if (sensor != NULL) {
-        SENSOR_FREE(sensor->priv_data);
-        SENSOR_FREE(sensor);
+    if (sensor == NULL) {
+        return;
     }
+    SENSOR_FREE(sensor->priv_data);
+    SENSOR_FREE(sensor);
 }
 
 static void test_create_populates_identity_ops_and_private_address(void)
@@ -76,6 +77,14 @@ static void test_create_populates_identity_ops_and_private_address(void)
     TEST_ASSERT_EQUAL_UINT8(INA219_ADDR, ((ina219_priv_t *)sensor->priv_data)->i2c_addr);
 
     destroy_sensor(sensor);
+}
+
+static void test_create_rejects_null_name_without_i2c_side_effects(void)
+{
+    int fake_bus;
+
+    TEST_ASSERT_NULL(ina219_create(NULL, &fake_bus));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
 }
 
 static void test_create_truncates_long_name_and_keeps_terminator(void)
@@ -122,6 +131,55 @@ static void test_read_converts_signed_shunt_register_to_current_and_timestamp(vo
     destroy_sensor(sensor);
 }
 
+static void test_read_rejects_invalid_context_without_i2c_side_effects(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    sensor_device_t *sensor = ina219_create("ina219", &fake_bus);
+    TEST_ASSERT_NOT_NULL(sensor);
+
+    memset(&data, 0xA5, sizeof(data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, data.value.val_bytes[0]);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+
+    SENSOR_FREE(sensor->priv_data);
+    sensor->priv_data = NULL;
+    memset(&data, 0x5A, sizeof(data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+    TEST_ASSERT_EQUAL_HEX8(0x5AU, data.value.val_bytes[0]);
+
+    destroy_sensor(sensor);
+}
+
+static void test_read_propagates_i2c_failure_and_preserves_output(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    sensor_device_t *sensor = ina219_create("ina219", &fake_bus);
+    TEST_ASSERT_NOT_NULL(sensor);
+
+    memset(&data, 0x3C, sizeof(data));
+    g_read_buf[0] = 0x12U;
+    g_read_buf[1] = 0x34U;
+    g_read_ret = SENSOR_EIO;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
+    TEST_ASSERT_EQUAL_PTR(&fake_bus, g_last_bus);
+    TEST_ASSERT_EQUAL_UINT8(INA219_ADDR, g_last_addr);
+    TEST_ASSERT_EQUAL_UINT8(0x01U, g_last_reg);
+    TEST_ASSERT_EQUAL_UINT16(2U, g_last_len);
+    TEST_ASSERT_EQUAL_HEX8(0x3CU, data.value.val_bytes[0]);
+    TEST_ASSERT_EQUAL_UINT32(0x3C3C3C3CU, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
 static void test_init_returns_ok_without_touching_bus(void)
 {
     int fake_bus;
@@ -138,8 +196,11 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_create_populates_identity_ops_and_private_address);
+    RUN_TEST(test_create_rejects_null_name_without_i2c_side_effects);
     RUN_TEST(test_create_truncates_long_name_and_keeps_terminator);
     RUN_TEST(test_read_converts_signed_shunt_register_to_current_and_timestamp);
+    RUN_TEST(test_read_rejects_invalid_context_without_i2c_side_effects);
+    RUN_TEST(test_read_propagates_i2c_failure_and_preserves_output);
     RUN_TEST(test_init_returns_ok_without_touching_bus);
     return UNITY_END();
 }
