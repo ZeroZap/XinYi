@@ -163,7 +163,7 @@
 | `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
-| `tests/unit/sensor/test_stub_accel_sensors.c` | `unity` | 0 | DMP6100/CMS/GD30DF/HS-ADS1100 legacy accel contracts |
+| `tests/unit/sensor/test_stub_accel_sensors.c` | `unity` | 0 | DMP6100/CMS/GD30DF/HS-ADS1100/QMA6100 legacy accel contracts |
 | `tests/unit/storage/test_storage_eeprom_24xx.c` | `unity` | 67 |
 | `tests/unit/support/test_clib_alloc_shim.c` | `unity` | 0 |
 | `tests/unit/sys/test_sys_timer_sm.c` | `unity` | 0 |
