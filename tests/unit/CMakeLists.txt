@@ -681,6 +681,7 @@ xy_add_unit_test(test_st_silan_accel_sensors sensor_st_silan_accel_sensors UNITY
     ${SENSOR}/sensors/sensor_lis2dh12.c
     ${SENSOR}/sensors/sensor_lis2dw12.c
     ${SENSOR}/sensors/sensor_sc7a20.c
+    ${SENSOR}/sensors/sensor_silan_sc7a20.c
 )
 target_include_directories(test_st_silan_accel_sensors BEFORE PRIVATE
     ${SENSOR}
