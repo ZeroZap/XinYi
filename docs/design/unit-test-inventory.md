@@ -158,6 +158,9 @@
 | `tests/unit/sensor/test_ccs811_sensor.c` | `unity` | 0 | CCS811 eCO2/TVOC init/read/failure guard contracts |
 | `tests/unit/sensor/test_vl53l0x_sensor.c` | `unity` | 0 | VL53L0X legacy ToF identity/init/read/failure contracts |
 | `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 | SGP30/ENS160/IM69D/MAX30102 legacy simple I2C stub identity and guard contracts |
+| `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10/BMP390 legacy env I2C init/read/failure contracts |
+| `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy pressure/temperature calibration/read/failure contracts |
+| `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
 | `tests/unit/sensor/test_stub_accel_sensors.c` | `unity` | 0 | DMP6100/CMS/GD30DF/HS-ADS1100 legacy accel contracts |
