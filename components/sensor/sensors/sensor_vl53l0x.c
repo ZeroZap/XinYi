@@ -7,10 +7,15 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
 
 static sensor_err_t vl53l0x_init(sensor_device_t *sensor)
 {
-    vl53l0x_priv_t *priv = (vl53l0x_priv_t *)sensor->priv_data;
     uint8_t data;
 
     SENSOR_LOG("Initializing VL53L0X");
+
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
+    vl53l0x_priv_t *priv = (vl53l0x_priv_t *)sensor->priv_data;
 
     /* 读取Model ID */
     if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
@@ -34,18 +39,29 @@ static sensor_err_t vl53l0x_init(sensor_device_t *sensor)
 
 static sensor_err_t vl53l0x_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     return SENSOR_EOK;
 }
 
 static sensor_err_t vl53l0x_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     vl53l0x_priv_t *priv = (vl53l0x_priv_t *)sensor->priv_data;
     uint8_t buf[12];
 
     /* 启动测距 */
     uint8_t start = 0x01;
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, VL53L0X_REG_SYSRANGE_START, &start, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr,
+                          VL53L0X_REG_SYSRANGE_START, &start, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
 
     /* 等待测量完成 */
     SENSOR_DELAY_MS(50);
@@ -76,6 +92,10 @@ static const sensor_ops_t vl53l0x_ops = {
 
 sensor_device_t *vl53l0x_create(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL)
