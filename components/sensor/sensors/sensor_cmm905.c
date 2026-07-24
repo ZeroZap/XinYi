@@ -10,12 +10,20 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 
 static sensor_err_t cmm905_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     SENSOR_LOG("Initializing CMMLab MM905");
     return SENSOR_EOK;
 }
 
 static sensor_err_t cmm905_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     uint8_t buf[6];
     cmm905_priv_t *priv = (cmm905_priv_t *)sensor->priv_data;
     for (int i = 0; i < 6; i++) {
@@ -27,7 +35,7 @@ static sensor_err_t cmm905_read(sensor_device_t *sensor, sensor_data_t *data)
     raw[1] = (int16_t)((buf[3] << 8) | buf[2]);
     raw[2] = (int16_t)((buf[5] << 8) | buf[4]);
 
-    data->type = SENSOR_TYPE_MAGNETIC;
+    data->type = SENSOR_TYPE_MAGNETOMETER;
     data->unit = SENSOR_UNIT_MICRO_TESLA;
     data->value.val_3axis.x = (int32_t)raw[0] * 10;
     data->value.val_3axis.y = (int32_t)raw[1] * 10;
@@ -43,6 +51,10 @@ static const sensor_ops_t cmm905_ops = {
 
 sensor_device_t *cmm905_create(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     cmm905_priv_t *priv = (cmm905_priv_t *)SENSOR_MALLOC(sizeof(cmm905_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -55,7 +67,7 @@ sensor_device_t *cmm905_create(const char *name, void *i2c_bus)
     sensor->info.vendor = "CMMLab";
     sensor->info.model = "MM905";
     sensor->info.version = 0x0100;
-    sensor->info.type = SENSOR_TYPE_MAGNETIC;
+    sensor->info.type = SENSOR_TYPE_MAGNETOMETER;
     sensor->info.unit = SENSOR_UNIT_MICRO_TESLA;
     sensor->info.range_max = 4900;
     sensor->info.range_min = -4900;

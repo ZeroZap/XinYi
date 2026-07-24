@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "sensor_ak09918.h"
+#include "sensor_cmm905.h"
 #include "sensor_ist8310.h"
 #include "sensor_qmc5883l.h"
 
@@ -370,6 +371,83 @@ static void test_ak09918_io_failures_stop_and_preserve_outputs(void)
     destroy_sensor(sensor);
 }
 
+static void test_cmm905_create_init_and_read_contracts(void)
+{
+    int fake_bus;
+    const uint8_t raw[6] = {0x01U, 0x00U, 0xFEU, 0xFFU, 0x10U, 0x00U};
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = cmm905_create("cmm905-main", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_STRING("cmm905-main", sensor->info.name);
+    TEST_ASSERT_EQUAL_STRING("CMMLab", sensor->info.vendor);
+    TEST_ASSERT_EQUAL_STRING("MM905", sensor->info.model);
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_MAGNETOMETER, sensor->info.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_MICRO_TESLA, sensor->info.unit);
+    TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
+    TEST_ASSERT_NOT_NULL(sensor->ops);
+    TEST_ASSERT_NOT_NULL(sensor->ops->init);
+    TEST_ASSERT_NULL(sensor->ops->deinit);
+    TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_EQUAL_UINT8(CMM905_ADDR_DEFAULT, ((cmm905_priv_t *)sensor->priv_data)->i2c_addr);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+
+    for (uint8_t i = 0; i < sizeof(raw); ++i) {
+        queue_read(&fake_bus, CMM905_ADDR_DEFAULT, (uint8_t)(CMM905_REG_DATA + i), &raw[i], 1U,
+                   SENSOR_EOK);
+    }
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_MAGNETOMETER, data.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_MICRO_TESLA, data.unit);
+    TEST_ASSERT_EQUAL_INT32(10, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL_INT32(-20, data.value.val_3axis.y);
+    TEST_ASSERT_EQUAL_INT32(160, data.value.val_3axis.z);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT8(80, data.accuracy);
+
+    assert_queues_drained();
+    destroy_sensor(sensor);
+}
+
+static void test_cmm905_guards_and_failed_reads_preserve_outputs(void)
+{
+    int fake_bus;
+    const uint8_t raw0 = 0x7FU;
+    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE,
+                          .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
+                          .value.val_3axis = {.x = 11, .y = 22, .z = 33},
+                          .timestamp = 99U};
+    sensor_data_t snapshot = data;
+    sensor_device_t *sensor = cmm905_create("cmm905-fail", &fake_bus);
+
+    TEST_ASSERT_NULL(cmm905_create(NULL, &fake_bus));
+    TEST_ASSERT_NOT_NULL(sensor);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+
+    queue_read(&fake_bus, CMM905_ADDR_DEFAULT, CMM905_REG_DATA, &raw0, 1U, SENSOR_EOK);
+    queue_read(&fake_bus, CMM905_ADDR_DEFAULT, (uint8_t)(CMM905_REG_DATA + 1U), NULL, 1U,
+               SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
+    TEST_ASSERT_EQUAL_INT(snapshot.unit, data.unit);
+    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.x, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.y, data.value.val_3axis.y);
+    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.z, data.value.val_3axis.z);
+    TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);
+    assert_queues_drained();
+
+    SENSOR_FREE(sensor->priv_data);
+    sensor->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -379,5 +457,7 @@ int main(void)
     RUN_TEST(test_ist8310_io_failures_stop_and_preserve_outputs);
     RUN_TEST(test_ak09918_create_init_read_and_deinit_contracts);
     RUN_TEST(test_ak09918_io_failures_stop_and_preserve_outputs);
+    RUN_TEST(test_cmm905_create_init_and_read_contracts);
+    RUN_TEST(test_cmm905_guards_and_failed_reads_preserve_outputs);
     return UNITY_END();
 }
