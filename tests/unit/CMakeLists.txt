@@ -654,6 +654,15 @@ target_include_directories(test_bmp280_sensor BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_icm20608_sensor sensor_icm20608 UNITY
+    ${UNIT_SENSOR}/test_icm20608_sensor.c
+    ${SENSOR}/sensors/sensor_icm20608.c
+)
+target_include_directories(test_icm20608_sensor BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_low_power_accel_sensors sensor_low_power_accel_sensors UNITY
     ${UNIT_SENSOR}/test_low_power_accel_sensors.c
     ${SENSOR}/sensors/sensor_adxl362.c

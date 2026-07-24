@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C unit-test files: 112
-- Unity-style files: 112
+- Total C unit-test files: 113
+- Unity-style files: 113
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 113
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 114
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -45,7 +45,7 @@
 | `net` | 11 | 11 | 0 | 0 | 0 | 5 |
 | `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 45 | 45 | 0 | 0 | 0 | 45 |
+| `sensor` | 46 | 46 | 0 | 0 | 0 | 46 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -160,6 +160,7 @@
 | `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 | SGP30/ENS160/IM69D/MAX30102 legacy simple I2C stub identity and guard contracts |
 | `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10/BMP390 legacy env I2C init/read/failure contracts |
 | `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy pressure/temperature calibration/read/failure contracts |
+| `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
 | `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12/IIS2ICLP legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
