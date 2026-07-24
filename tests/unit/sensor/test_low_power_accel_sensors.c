@@ -6,6 +6,7 @@
 
 #include "sensor_adxl362.h"
 #include "sensor_bma400.h"
+#include "sensor_iis2iclp.h"
 #include "sensor_kx023.h"
 #include "sensor_lis2dw12.h"
 
@@ -722,6 +723,113 @@ static void test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates(
     destroy_sensor(sensor);
 }
 
+static void test_iis2iclp_i2c_create_init_read_deinit_and_set_range(void)
+{
+    int fake_bus;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = iis2iclp_create("iis2iclp-main", &fake_bus, 0U);
+
+    assert_common_accel(sensor, "iis2iclp-main", "STMicro", "IIS2ICLP", 200, 100);
+    TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
+    TEST_ASSERT_EQUAL_UINT8(IIS2ICLP_ADDR_DEFAULT, ((iis2iclp_priv_t *)sensor->priv_data)->i2c_addr);
+    TEST_ASSERT_EQUAL_UINT8(IIS2ICLP_SPI_CS_NONE, ((iis2iclp_priv_t *)sensor->priv_data)->spi_cs);
+
+    queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_WHOAMI,
+                    IIS2ICLP_WHOAMI_VALUE, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL3, 0x01U,
+                     SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1,
+                     (uint8_t)((IIS2ICLP_RATE_100HZ << 4) | IIS2ICLP_RANGE_2G), SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
+    TEST_ASSERT_EQUAL_UINT8(2U, ((iis2iclp_priv_t *)sensor->priv_data)->range);
+
+    uint8_t raw[6] = {0x10, 0x00, 0xF0, 0xFF, 0x00, 0x08};
+    for (uint8_t i = 0; i < sizeof(raw); i++) {
+        queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, (uint8_t)(IIS2ICLP_REG_OUT_X_L + i),
+                        raw[i], SENSOR_EOK);
+    }
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ACCELEROMETER, data.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_MILLI_G, data.unit);
+    TEST_ASSERT_EQUAL_INT32(16, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL_INT32(-16, data.value.val_3axis.y);
+    TEST_ASSERT_EQUAL_INT32(2048, data.value.val_3axis.z);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT8(95U, data.accuracy);
+
+    queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1, 0x50U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1,
+                     (uint8_t)((0x50U & 0xFCU) | IIS2ICLP_RANGE_8G), SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, iis2iclp_set_range(sensor, IIS2ICLP_RANGE_8G));
+    TEST_ASSERT_EQUAL_UINT8(IIS2ICLP_RANGE_8G, ((iis2iclp_priv_t *)sensor->priv_data)->range);
+
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1, 0x00U,
+                     SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+
+    destroy_sensor(sensor);
+}
+
+static void test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = iis2iclp_create("iis2iclp-fail", &fake_bus, IIS2ICLP_ADDR_DEFAULT);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_WHOAMI, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+
+    setUp();
+    queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_WHOAMI, 0x00U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
+
+    setUp();
+    queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_WHOAMI,
+                    IIS2ICLP_WHOAMI_VALUE, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL3, 0x01U,
+                     SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_EQUAL_UINT8(0U, ((iis2iclp_priv_t *)sensor->priv_data)->range);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_WHOAMI,
+                    IIS2ICLP_WHOAMI_VALUE, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL3, 0x01U,
+                     SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1,
+                     (uint8_t)((IIS2ICLP_RATE_100HZ << 4) | IIS2ICLP_RANGE_2G), SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
+    TEST_ASSERT_EQUAL_UINT8(0U, ((iis2iclp_priv_t *)sensor->priv_data)->range);
+
+    setUp();
+    ((iis2iclp_priv_t *)sensor->priv_data)->range = IIS2ICLP_RANGE_4G;
+    queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1, 0x50U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1,
+                     (uint8_t)((0x50U & 0xFCU) | IIS2ICLP_RANGE_16G), SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, iis2iclp_set_range(sensor, IIS2ICLP_RANGE_16G));
+    TEST_ASSERT_EQUAL_UINT8(IIS2ICLP_RANGE_4G, ((iis2iclp_priv_t *)sensor->priv_data)->range);
+
+    setUp();
+    queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1, 0x00U,
+                     SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+
+    destroy_sensor(sensor);
+
+    setUp();
+    sensor = iis2iclp_create_spi("iis2iclp-spi", &fake_bus, 3U);
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_spi_register_read8(&fake_bus, 3U, IIS2ICLP_REG_WHOAMI, IIS2ICLP_WHOAMI_VALUE,
+                             SENSOR_EIO, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(0U, g_spi_recv_index);
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -734,5 +842,7 @@ int main(void)
     RUN_TEST(test_kx023_propagates_config_write_failures);
     RUN_TEST(test_lis2dw12_create_init_read_deinit_and_setters);
     RUN_TEST(test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates);
+    RUN_TEST(test_iis2iclp_i2c_create_init_read_deinit_and_set_range);
+    RUN_TEST(test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates);
     return UNITY_END();
 }

@@ -658,6 +658,7 @@ xy_add_unit_test(test_low_power_accel_sensors sensor_low_power_accel_sensors UNI
     ${UNIT_SENSOR}/test_low_power_accel_sensors.c
     ${SENSOR}/sensors/sensor_adxl362.c
     ${SENSOR}/sensors/sensor_bma400.c
+    ${SENSOR}/sensors/sensor_iis2iclp.c
     ${SENSOR}/sensors/sensor_lis2dw12.c
     ${SENSOR}/sensors/sensor_kx023.c
 )

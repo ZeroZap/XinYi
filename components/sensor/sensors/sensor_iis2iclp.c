@@ -15,7 +15,10 @@ static sensor_err_t iis2iclp_reg_read(sensor_device_t *sensor, uint8_t reg, uint
     iis2iclp_priv_t *priv = (iis2iclp_priv_t *)sensor->priv_data;
     if (priv->spi_cs != IIS2ICLP_SPI_CS_NONE) {
         uint8_t tx = reg | 0x80;
-        hal_spi_send(sensor->bus, priv->spi_cs, &tx, 1);
+        sensor_err_t ret = hal_spi_send(sensor->bus, priv->spi_cs, &tx, 1);
+        if (ret != SENSOR_EOK) {
+            return ret;
+        }
         return hal_spi_recv(sensor->bus, priv->spi_cs, data, 1);
     }
     return hal_i2c_mem_read(sensor->bus, priv->i2c_addr, reg, data, 1);
@@ -42,12 +45,12 @@ static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
         return SENSOR_ERROR;
     }
 
-    iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL3, 0x01);  /* 软复位 */
+    if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL3, 0x01) != SENSOR_EOK) return SENSOR_EIO;  /* 软复位 */
     SENSOR_DELAY_MS(10);
 
     /* 配置: 高性能模式, ±2g, 100Hz */
     data = (IIS2ICLP_RATE_100HZ << 4) | IIS2ICLP_RANGE_2G;
-    iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, data);
+    if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, data) != SENSOR_EOK) return SENSOR_EIO;
     ((iis2iclp_priv_t *)sensor->priv_data)->range = 2;
 
     SENSOR_LOG("IIS2ICLP initialized");
@@ -56,7 +59,7 @@ static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
 
 static sensor_err_t iis2iclp_deinit(sensor_device_t *sensor)
 {
-    iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, 0x00);
+    if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, 0x00) != SENSOR_EOK) return SENSOR_EIO;
     return SENSOR_EOK;
 }
 
@@ -98,6 +101,7 @@ sensor_device_t *iis2iclp_create(const char *name, void *i2c_bus, uint8_t addr)
     memset(sensor, 0, sizeof(sensor_device_t));
     memset(priv, 0, sizeof(iis2iclp_priv_t));
     priv->i2c_addr = addr ? addr : IIS2ICLP_ADDR_DEFAULT;
+    priv->spi_cs   = IIS2ICLP_SPI_CS_NONE;
 
     strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
     sensor->info.vendor = "STMicro";
@@ -152,9 +156,9 @@ sensor_device_t *iis2iclp_create_spi(const char *name, void *spi_bus, uint8_t cs
 int iis2iclp_set_range(sensor_device_t *dev, uint8_t range)
 {
     uint8_t ctrl1;
-    iis2iclp_reg_read(dev, IIS2ICLP_REG_CTRL1, &ctrl1);
+    if (iis2iclp_reg_read(dev, IIS2ICLP_REG_CTRL1, &ctrl1) != SENSOR_EOK) return SENSOR_EIO;
     ctrl1 = (ctrl1 & 0xFC) | (range & 0x03);
-    iis2iclp_reg_write(dev, IIS2ICLP_REG_CTRL1, ctrl1);
+    if (iis2iclp_reg_write(dev, IIS2ICLP_REG_CTRL1, ctrl1) != SENSOR_EOK) return SENSOR_EIO;
     ((iis2iclp_priv_t *)dev->priv_data)->range = range;
     return 0;
 }
