@@ -8,6 +8,10 @@ extern int hal_i2c_write(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
 
 static sensor_err_t ccs811_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ccs811_priv_t *priv = (ccs811_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -27,7 +31,9 @@ static sensor_err_t ccs811_init(sensor_device_t *sensor)
 
     /* 启动应用程序 */
     uint8_t app_start = CCS811_REG_APP_START;
-    hal_i2c_write(sensor->bus, priv->i2c_addr, &app_start, 1);
+    if (hal_i2c_write(sensor->bus, priv->i2c_addr, &app_start, 1) != 0) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(100);
 
     /* 配置测量模式: 1秒采样 */
@@ -45,17 +51,26 @@ static sensor_err_t ccs811_init(sensor_device_t *sensor)
 
 static sensor_err_t ccs811_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ccs811_priv_t *priv = (ccs811_priv_t *)sensor->priv_data;
     uint8_t data        = 0x00;
 
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, CCS811_REG_MEAS_MODE, &data, 1);
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, CCS811_REG_MEAS_MODE, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
 
     return SENSOR_EOK;
 }
 
 static sensor_err_t ccs811_read_data(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ccs811_priv_t *priv = (ccs811_priv_t *)sensor->priv_data;
     uint8_t buf[8];
 
@@ -85,10 +100,15 @@ static sensor_err_t ccs811_read_data(sensor_device_t *sensor)
 static sensor_err_t ccs811_co2_read(sensor_device_t *sensor,
                                     sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ccs811_priv_t *priv = (ccs811_priv_t *)sensor->priv_data;
 
-    if (ccs811_read_data(sensor) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = ccs811_read_data(sensor);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     data->type             = SENSOR_TYPE_CO2;
@@ -103,10 +123,15 @@ static sensor_err_t ccs811_co2_read(sensor_device_t *sensor,
 static sensor_err_t ccs811_tvoc_read(sensor_device_t *sensor,
                                      sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     ccs811_priv_t *priv = (ccs811_priv_t *)sensor->priv_data;
 
-    if (ccs811_read_data(sensor) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = ccs811_read_data(sensor);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     data->type             = SENSOR_TYPE_TVOC;
@@ -132,6 +157,10 @@ static const sensor_ops_t ccs811_tvoc_ops = {
 
 sensor_device_t *ccs811_create_co2(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL)
@@ -170,6 +199,10 @@ sensor_device_t *ccs811_create_co2(const char *name, void *i2c_bus)
 
 sensor_device_t *ccs811_create_tvoc(const char *name, void *i2c_bus)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     /* 类似CO2实现 */
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
