@@ -178,6 +178,16 @@ static void test_vcnl4040_create_and_little_endian_proximity_read(void)
     destroy_sensor(sensor);
 }
 
+static void test_create_rejects_null_names_without_i2c_side_effects(void)
+{
+    int bus;
+
+    TEST_ASSERT_NULL(pa122_create(NULL, &bus));
+    TEST_ASSERT_NULL(vcnl4040_create(NULL, &bus));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
+}
+
 static void test_long_names_are_truncated_with_terminator(void)
 {
     int bus;
@@ -317,6 +327,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_pa122_create_init_and_near_far_threshold);
     RUN_TEST(test_vcnl4040_create_and_little_endian_proximity_read);
+    RUN_TEST(test_create_rejects_null_names_without_i2c_side_effects);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_public_ops_guard_null_inputs_without_i2c_side_effects);
     RUN_TEST(test_i2c_read_failures_preserve_output);
