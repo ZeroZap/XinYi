@@ -18,6 +18,7 @@ DEFINE_FFF_GLOBALS;
 #define REG_CRATE           0x16
 
 static uint16_t fake_regs[256];
+static uint8_t fake_read_failures[256];
 static xy_sensor_bus_t last_bus;
 static uint8_t last_write_reg;
 static uint16_t last_write_value;
@@ -51,8 +52,18 @@ static int xy_sensor_i2c_read_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
     TEST_ASSERT_NOT_NULL(value);
 
+    if (fake_read_failures[reg] > 0) {
+        fake_read_failures[reg]--;
+        return -1;
+    }
+
     *value = fake_regs[reg];
     return 0;
+}
+
+static void fake_fail_reads(uint8_t reg, uint8_t failures)
+{
+    fake_read_failures[reg] = failures;
 }
 
 static int xy_sensor_i2c_write_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint16_t value)
@@ -98,6 +109,7 @@ static void reset_sensor_fakes(void)
 void setUp(void)
 {
     memset(fake_regs, 0, sizeof(fake_regs));
+    memset(fake_read_failures, 0, sizeof(fake_read_failures));
     memset(&last_bus, 0, sizeof(last_bus));
     last_write_reg = 0;
     last_write_value = 0xFFFF;
@@ -180,6 +192,25 @@ void test_max17043_fetch_and_channel_get(void)
     TEST_ASSERT_EQUAL_UINT8(REG_CRATE, xy_sensor_i2c_read_reg16_fake.arg1_val);
 }
 
+void test_max17043_fetch_failure_does_not_advance_timestamp(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+    uint32_t previous_timestamp = 0;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    xy_os_tick_get_fake.return_val = 17043;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    previous_timestamp = fg->latest.timestamp;
+
+    fake_regs[REG_VCELL] = 0xA000U;
+    fake_fail_reads(REG_SOC, 1);
+    xy_os_tick_get_fake.return_val = 18000;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+}
+
 void test_max17043_rejects_unsupported_channel(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
@@ -234,6 +265,7 @@ int main(void)
     RUN_TEST(test_max17043_registers_default_i2c_bus);
     RUN_TEST(test_max17043_init_writes_default_config);
     RUN_TEST(test_max17043_fetch_and_channel_get);
+    RUN_TEST(test_max17043_fetch_failure_does_not_advance_timestamp);
     RUN_TEST(test_max17043_rejects_unsupported_channel);
     RUN_TEST(test_max17043_alert_set_get_uses_cached_thresholds);
     return UNITY_END();
