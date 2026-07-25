@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Total C unit-test files: 113
-- Unity-style files: 113
+- Total C unit-test files: 114
+- Unity-style files: 114
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
@@ -45,7 +45,7 @@
 | `net` | 11 | 11 | 0 | 0 | 0 | 5 |
 | `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 46 | 46 | 0 | 0 | 0 | 46 |
+| `sensor` | 47 | 47 | 0 | 0 | 0 | 47 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -151,6 +151,7 @@
 | `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
 | `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 + CMM905 legacy magnetic I2C contracts |
 | `tests/unit/sensor/test_magnetic_angle_sensors.c` | `unity` | 0 |
+| `tests/unit/sensor/test_angle_encoders.c` | `unity` | 0 | AS5600/AS5048 legacy angle encoder create/read/guard/failure contracts |
 | `tests/unit/sensor/test_mq_gas_sensors.c` | `unity` | 0 | MQ3/MQ7/MQ135 ADC gas conversion and guard contracts |
 | `tests/unit/sensor/test_apds9960_sensor.c` | `unity` | 0 | APDS9960 RGB init/read/failure guard contracts |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |

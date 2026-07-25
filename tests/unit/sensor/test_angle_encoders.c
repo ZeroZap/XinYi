@@ -14,6 +14,7 @@ typedef struct {
     uint8_t reg;
     uint8_t data[2];
     uint16_t len;
+    int ret;
 } read_call_t;
 
 static read_call_t g_reads[8];
@@ -33,6 +34,9 @@ int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16
     call->addr = addr;
     call->reg = reg;
     call->len = len;
+    if (call->ret != SENSOR_EOK) {
+        return call->ret;
+    }
     memcpy(data, call->data, len);
     return SENSOR_EOK;
 }
@@ -155,11 +159,82 @@ static void test_long_names_are_truncated_with_terminator(void)
     destroy_sensor(as5048);
 }
 
+static void test_create_rejects_null_names_without_i2c_side_effects(void)
+{
+    int fake_bus;
+
+    TEST_ASSERT_NULL(as5600_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(as5048_create(NULL, &fake_bus));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+}
+
+static void test_public_guards_reject_null_inputs_and_missing_private_state(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    memset(&data, 0xA5, sizeof(data));
+    sensor_device_t *as5600 = as5600_create("as5600", &fake_bus);
+    sensor_device_t *as5048 = as5048_create("as5048", &fake_bus);
+    TEST_ASSERT_NOT_NULL(as5600);
+    TEST_ASSERT_NOT_NULL(as5048);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5600->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5600->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5600->ops->read(as5600, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->read(as5048, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+
+    SENSOR_FREE(as5600->priv_data);
+    as5600->priv_data = NULL;
+    SENSOR_FREE(as5048->priv_data);
+    as5048->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5600->ops->init(as5600));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->init(as5048));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5600->ops->read(as5600, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->read(as5048, &data));
+
+    destroy_sensor(as5600);
+    destroy_sensor(as5048);
+}
+
+static void test_i2c_read_failures_preserve_output(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    memset(&data, 0xA5, sizeof(data));
+    sensor_device_t *as5600 = as5600_create("as5600", &fake_bus);
+    sensor_device_t *as5048 = as5048_create("as5048", &fake_bus);
+    TEST_ASSERT_NOT_NULL(as5600);
+    TEST_ASSERT_NOT_NULL(as5048);
+
+    g_reads[0].ret = SENSOR_EIO;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, as5600->ops->read(as5600, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.value.val_bytes[0]);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.value.val_bytes[sizeof(data.value.val_bytes) - 1U]);
+
+    g_read_count = 0;
+    memset(&data, 0x5A, sizeof(data));
+    g_reads[0].ret = SENSOR_EIO;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, as5048->ops->read(as5048, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.value.val_bytes[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.value.val_bytes[sizeof(data.value.val_bytes) - 1U]);
+
+    destroy_sensor(as5600);
+    destroy_sensor(as5048);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_as5600_create_and_read_converts_12bit_little_endian_angle);
     RUN_TEST(test_as5048_create_and_read_converts_14bit_little_endian_angle);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
+    RUN_TEST(test_create_rejects_null_names_without_i2c_side_effects);
+    RUN_TEST(test_public_guards_reject_null_inputs_and_missing_private_state);
+    RUN_TEST(test_i2c_read_failures_preserve_output);
     return UNITY_END();
 }
