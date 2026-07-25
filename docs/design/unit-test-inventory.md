@@ -159,7 +159,7 @@
 | `tests/unit/sensor/test_vl53l0x_sensor.c` | `unity` | 0 | VL53L0X legacy ToF identity/init/read/failure contracts |
 | `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 | SGP30/SGP40/ENS160/IM69D/MAX30102 legacy simple I2C stub identity and guard contracts |
 | `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10/BMP390 legacy env I2C init/read/failure contracts |
-| `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy pressure/temperature calibration/read/failure contracts |
+| `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |
 | `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
 | `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12/IIS2ICLP legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12/SC7A20/Silan SC7A20 accel init/read/config failure contracts |

@@ -648,7 +648,7 @@ target_include_directories(test_env_i2c_sensors BEFORE PRIVATE
 
 xy_add_unit_test(test_bmp280_sensor sensor_bmp280 UNITY
     ${UNIT_SENSOR}/test_bmp280_sensor.c
-    ${SENSOR}/sensors/sensor_bpm280.c
+    ${SENSOR}/sensors/sensor_bmp280.c
 )
 target_include_directories(test_bmp280_sensor BEFORE PRIVATE
     ${SENSOR}
