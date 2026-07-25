@@ -75,8 +75,8 @@
 | P1 | actuator | 执行器框架独立于 Sensor，已有测试入口 | 补 README/Kconfig/示例或增强测试 |
 | P1 | mux | 多个子接口已有测试但 API 边界需确认 | 先补测试覆盖与 README 对齐 |
 | P1 | pid | 报告记录明显 bug，影响面小 | 验证现状后修 bug + 单测 |
-| P2 | sensor | 测试数量多，适合持续收口 | 新传感器进入 sensors host test pattern |
-| P2 | fuel_gauge | SMBus clock stretching/NACK 重试需关注 | 补边界测试，不重构大接口 |
+| P1 | fuel_gauge | SMBus clock stretching/NACK 重试需关注 | 补边界测试，不重构大接口 |
+| P2 | sensor | legacy `sensor_*` tail host CTest 已进入收口状态，详见 `docs/design/xinyi-sensor-tail-host-coverage-closure-2026-07-25.md` | 不再盲目新增尾部目标；只做现有 target 的具体契约 hardening |
 
 ---
 
