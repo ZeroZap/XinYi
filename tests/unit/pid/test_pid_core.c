@@ -76,6 +76,7 @@ static void test_pid_compute_and_limits(void)
     g_tick_ms = 120U;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, -100.0F, &output));
     TEST_ASSERT_LESS_OR_EQUAL_FLOAT(5.0F, output);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 5.0F, xy_pid_get_integral(&pid));
 
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_output_limits(&pid, 5.0F, 5.0F));
 }

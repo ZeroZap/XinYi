@@ -165,12 +165,13 @@ int xy_pid_compute(xy_pid_t *pid, float input, float *output)
     
     if (pid->anti_windup) {
         /* 抗积分饱和 */
-        pid->integral_raw = xy_pid_clamp(pid->integral_raw, 
+        pid->integral_raw = xy_pid_clamp(pid->integral_raw,
                                          pid->config.integral_min,
                                          pid->config.integral_max);
     }
-    
-    i_term = pid->config.ki * pid->integral_raw;
+    pid->integral = pid->integral_raw;
+
+    i_term = pid->config.ki * pid->integral;
     
     /* 微分项 (带滤波) */
     float derivative_raw = (pid->error - pid->error_prev) / dt;
