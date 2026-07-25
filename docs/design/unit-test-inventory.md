@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Total C unit-test files: 114
-- Unity-style files: 114
+- Total C unit-test files: 113
+- Unity-style files: 113
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
@@ -45,7 +45,7 @@
 | `net` | 11 | 11 | 0 | 0 | 0 | 5 |
 | `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
-| `sensor` | 47 | 47 | 0 | 0 | 0 | 47 |
+| `sensor` | 46 | 46 | 0 | 0 | 0 | 46 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `support` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `sys` | 1 | 1 | 0 | 0 | 0 | 0 |
@@ -149,21 +149,26 @@
 | `tests/unit/sensor/test_bno055.c` | `unity` | 0 |
 | `tests/unit/sensor/test_dmp.c` | `unity` | 0 |
 | `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
+| `tests/unit/sensor/test_ina219.c` | `unity` | 0 | INA219 legacy current/power monitor create/read/failure contracts |
 | `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 + CMM905 legacy magnetic I2C contracts |
 | `tests/unit/sensor/test_magnetic_angle_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_angle_encoders.c` | `unity` | 0 | AS5600/AS5048 legacy angle encoder create/read/guard/failure contracts |
+| `tests/unit/sensor/test_light_uv_sensors.c` | `unity` | 0 | MAX44009/GUVA-S12SD legacy light/UV read/failure/boundary contracts |
 | `tests/unit/sensor/test_mq_gas_sensors.c` | `unity` | 0 | MQ3/MQ7/MQ135 ADC gas conversion and guard contracts |
 | `tests/unit/sensor/test_apds9960_sensor.c` | `unity` | 0 | APDS9960 RGB init/read/failure guard contracts |
 | `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
 | `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
 | `tests/unit/sensor/test_ccs811_sensor.c` | `unity` | 0 | CCS811 eCO2/TVOC init/read/failure guard contracts |
 | `tests/unit/sensor/test_vl53l0x_sensor.c` | `unity` | 0 | VL53L0X legacy ToF identity/init/read/failure contracts |
+| `tests/unit/sensor/test_analog_misc_sensors.c` | `unity` | 0 | ACS712/FSR/MG811 legacy ADC analog conversion and guard contracts |
 | `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 | SGP30/SGP40/ENS160/IM69D/MAX30102 legacy simple I2C stub identity and guard contracts |
 | `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10/BMP390 legacy env I2C init/read/failure contracts |
 | `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |
 | `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
+| `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS legacy parser GGA/RMC/GSV/checksum/registry contracts |
 | `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12/IIS2ICLP legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12/SC7A20/Silan SC7A20 accel init/read/config failure contracts |
+| `tests/unit/sensor/test_lsm6_imu_sensors.c` | `unity` | 0 | LSM6DSL/LSM6DSO/LSM6DSR legacy IMU I2C/SPI config/read/failure contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
 | `tests/unit/sensor/test_stub_accel_sensors.c` | `unity` | 0 | DMP6100/CMS/GD30DF/HS-ADS1100/QMA6100 legacy accel contracts |
