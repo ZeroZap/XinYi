@@ -26,7 +26,7 @@
 typedef struct {
     uint8_t addr;        /* I2C地址或SPI片选 */
     uint8_t accel_range; /* 加速度量程 */
-    uint8_t gyro_range;  /* 陀螺仪量程 */
+    uint16_t gyro_range; /* 陀螺仪量程 */
     bool use_spi;        /* 是否使用SPI */
     int16_t accel_offset[3];
     int16_t gyro_offset[3];

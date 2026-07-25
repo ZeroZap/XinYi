@@ -192,6 +192,10 @@ static void test_icm20608_create_identity_and_bus_contracts(void)
     sensor_device_t *gyro = icm20608_create_gyro("icm-gyro", &fake_bus, false);
     sensor_device_t *temp = icm20608_create_temp("icm-temp", &fake_bus, true);
 
+    TEST_ASSERT_NULL(icm20608_create_accel(NULL, &fake_bus, false));
+    TEST_ASSERT_NULL(icm20608_create_gyro(NULL, &fake_bus, false));
+    TEST_ASSERT_NULL(icm20608_create_temp(NULL, &fake_bus, false));
+
     TEST_ASSERT_NOT_NULL(accel);
     TEST_ASSERT_NOT_NULL(gyro);
     TEST_ASSERT_NOT_NULL(temp);
@@ -211,7 +215,7 @@ static void test_icm20608_create_identity_and_bus_contracts(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_DEGREE_PER_SECOND, gyro->info.unit);
     TEST_ASSERT_EQUAL_INT32(500, gyro->info.range_max);
     TEST_ASSERT_EQUAL_INT32(-500, gyro->info.range_min);
-    TEST_ASSERT_EQUAL_UINT8(500U & 0xFFU, ((icm20608_priv_t *)gyro->priv_data)->gyro_range);
+    TEST_ASSERT_EQUAL_UINT16(500U, ((icm20608_priv_t *)gyro->priv_data)->gyro_range);
 
     TEST_ASSERT_EQUAL_STRING("icm-temp", temp->info.name);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, temp->info.type);
@@ -279,6 +283,7 @@ static void test_icm20608_failure_contracts_preserve_output(void)
 {
     int fake_bus;
     const uint8_t wrong_whoami = 0x00U;
+    const uint8_t whoami = ICM20608_WHOAMI_VALUE;
     sensor_data_t data = {.type = SENSOR_TYPE_ACCELEROMETER,
                           .unit = SENSOR_UNIT_MILLI_G,
                           .value.val_3axis = {11, 22, 33},
@@ -287,8 +292,27 @@ static void test_icm20608_failure_contracts_preserve_output(void)
     sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
     TEST_ASSERT_NOT_NULL(accel);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(accel, NULL));
+
     queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &wrong_whoami, 1U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, accel->ops->init(accel));
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x80U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->init(accel));
+    TEST_ASSERT_EQUAL_UINT32(7000U, g_tick);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x80U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x01U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_2, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->init(accel));
+
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x40U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->deinit(accel));
 
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, NULL, 6U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->read(accel, &data));
@@ -299,6 +323,12 @@ static void test_icm20608_failure_contracts_preserve_output(void)
     TEST_ASSERT_EQUAL_INT32(33, data.value.val_3axis.z);
     TEST_ASSERT_EQUAL_UINT32(1234U, data.timestamp);
     TEST_ASSERT_EQUAL_UINT8(44U, data.accuracy);
+
+    SENSOR_FREE(accel->priv_data);
+    accel->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->init(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(accel, &data));
 
     destroy_sensor(accel);
 }

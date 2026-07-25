@@ -46,6 +46,10 @@ static sensor_err_t icm20608_init(sensor_device_t *sensor)
 {
     uint8_t data;
 
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     SENSOR_LOG("Initializing ICM20608");
 
     /* 检查WHO_AM_I */
@@ -60,7 +64,9 @@ static sensor_err_t icm20608_init(sensor_device_t *sensor)
 
     /* 复位设备 */
     data = 0x80;
-    icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1);
+    if (icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(100);
 
     /* 唤醒设备，选择最佳时钟源 */
@@ -71,22 +77,32 @@ static sensor_err_t icm20608_init(sensor_device_t *sensor)
 
     /* 使能加速度计和陀螺仪 */
     data = 0x00;
-    icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_2, &data, 1);
+    if (icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_2, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
 
     /* 配置陀螺仪: ±500°/s */
     data = 0x08;
-    icm20608_write_reg(sensor, ICM20608_REG_GYRO_CONFIG, &data, 1);
+    if (icm20608_write_reg(sensor, ICM20608_REG_GYRO_CONFIG, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
 
     /* 配置加速度计: ±4g */
     data = 0x08;
-    icm20608_write_reg(sensor, ICM20608_REG_ACCEL_CONFIG, &data, 1);
+    if (icm20608_write_reg(sensor, ICM20608_REG_ACCEL_CONFIG, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
 
     /* 配置低通滤波器 */
     data = 0x04; /* 20Hz */
-    icm20608_write_reg(sensor, ICM20608_REG_CONFIG, &data, 1);
+    if (icm20608_write_reg(sensor, ICM20608_REG_CONFIG, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
 
     data = 0x04;
-    icm20608_write_reg(sensor, ICM20608_REG_ACCEL_CONFIG2, &data, 1);
+    if (icm20608_write_reg(sensor, ICM20608_REG_ACCEL_CONFIG2, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
 
     SENSOR_LOG("ICM20608 initialized successfully");
 
@@ -100,7 +116,13 @@ static sensor_err_t icm20608_deinit(sensor_device_t *sensor)
 {
     uint8_t data = 0x40; /* 睡眠模式 */
 
-    icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1);
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
+    if (icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1) != 0) {
+        return SENSOR_EIO;
+    }
 
     return SENSOR_EOK;
 }
@@ -111,9 +133,12 @@ static sensor_err_t icm20608_deinit(sensor_device_t *sensor)
 static sensor_err_t icm20608_accel_read(sensor_device_t *sensor,
                                         sensor_data_t *data)
 {
-    icm20608_priv_t *priv = (icm20608_priv_t *)sensor->priv_data;
     uint8_t buf[6];
     int16_t raw[3];
+
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
 
     /* 读取6字节加速度数据 */
     if (icm20608_read_reg(sensor, ICM20608_REG_ACCEL_XOUT_H, buf, 6) != 0) {
@@ -143,9 +168,12 @@ static sensor_err_t icm20608_accel_read(sensor_device_t *sensor,
 static sensor_err_t icm20608_gyro_read(sensor_device_t *sensor,
                                        sensor_data_t *data)
 {
-    icm20608_priv_t *priv = (icm20608_priv_t *)sensor->priv_data;
     uint8_t buf[6];
     int16_t raw[3];
+
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
 
     /* 读取6字节陀螺仪数据 */
     if (icm20608_read_reg(sensor, ICM20608_REG_GYRO_XOUT_H, buf, 6) != 0) {
@@ -177,6 +205,10 @@ static sensor_err_t icm20608_temp_read(sensor_device_t *sensor,
 {
     uint8_t buf[2];
     int16_t raw;
+
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
 
     /* 读取2字节温度数据 */
     if (icm20608_read_reg(sensor, ICM20608_REG_TEMP_OUT_H, buf, 2) != 0) {
@@ -231,6 +263,10 @@ static const sensor_ops_t icm20608_temp_ops = {
 sensor_device_t *icm20608_create_accel(const char *name, void *bus,
                                        bool use_spi)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {
@@ -277,6 +313,10 @@ sensor_device_t *icm20608_create_accel(const char *name, void *bus,
  */
 sensor_device_t *icm20608_create_gyro(const char *name, void *bus, bool use_spi)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {
@@ -323,6 +363,10 @@ sensor_device_t *icm20608_create_gyro(const char *name, void *bus, bool use_spi)
  */
 sensor_device_t *icm20608_create_temp(const char *name, void *bus, bool use_spi)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {
