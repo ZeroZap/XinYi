@@ -230,7 +230,7 @@ float xy_pid_get_derivative(const xy_pid_t *pid)
 
 int xy_pid_set_mode(xy_pid_t *pid, xy_pid_mode_t mode)
 {
-    if (!pid) {
+    if (!pid || (mode != XY_PID_MODE_MANUAL && mode != XY_PID_MODE_AUTO)) {
         return XY_PID_INVALID_PARAM;
     }
     

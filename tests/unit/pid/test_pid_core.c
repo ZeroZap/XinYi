@@ -90,6 +90,10 @@ static void test_pid_modes_and_filters(void)
     TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, xy_pid_get_mode(&pid));
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_AUTO));
     TEST_ASSERT_EQUAL(XY_PID_MODE_AUTO, xy_pid_get_mode(&pid));
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_mode(&pid, (xy_pid_mode_t)99));
+    TEST_ASSERT_EQUAL(XY_PID_MODE_AUTO, xy_pid_get_mode(&pid));
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_mode(NULL, XY_PID_MODE_MANUAL));
+    TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, xy_pid_get_mode(NULL));
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_enable_anti_windup(&pid, false));
     TEST_ASSERT_FALSE(pid.anti_windup);
