@@ -564,6 +564,15 @@ target_include_directories(test_bh1750_legacy_sensor BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_sht30_legacy_sensor sensor_sht30_legacy UNITY
+    ${UNIT_SENSOR}/test_sht30_legacy_sensor.c
+    ${SENSOR}/sensors/sensor_sht30.c
+)
+target_include_directories(test_sht30_legacy_sensor BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_mq_gas_sensors sensor_mq_gas_sensors UNITY
     ${UNIT_SENSOR}/test_mq_gas_sensors.c
     ${SENSOR}/sensors/sensor_mq3.c

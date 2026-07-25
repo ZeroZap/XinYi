@@ -10,24 +10,37 @@ extern int hal_i2c_master_recv(void *bus, uint8_t addr, uint8_t *data, uint16_t 
 
 static sensor_err_t sht30_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     sht30_priv_t *priv = (sht30_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing SHT30");
     uint8_t cmd[2] = {0x30, 0xA2};
-    hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 2);
+    if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 2) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_LOG("SHT30 initialized");
     return SENSOR_EOK;
 }
 
 static sensor_err_t sht30_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     uint8_t buf[6];
     sht30_priv_t *priv = (sht30_priv_t *)sensor->priv_data;
     uint8_t cmd[2] = {0x24, 0x00};
-    hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 2);
+    if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 2) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(10);
-    if (hal_i2c_master_recv(sensor->bus, priv->i2c_addr, buf, 6) != SENSOR_EOK) return SENSOR_EIO;
+    if (hal_i2c_master_recv(sensor->bus, priv->i2c_addr, buf, 6) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
 
-    uint16_t temp = (buf[0] << 8) | buf[1];
     uint16_t hum = (buf[3] << 8) | buf[4];
 
     data->type = SENSOR_TYPE_RELATIVE_HUMIDITY;
@@ -44,9 +57,17 @@ static const sensor_ops_t sht30_ops = {
 
 sensor_device_t *sht30_create(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     sht30_priv_t *priv = (sht30_priv_t *)SENSOR_MALLOC(sizeof(sht30_priv_t));
-    if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
+    if (!sensor || !priv) {
+        SENSOR_FREE(sensor);
+        SENSOR_FREE(priv);
+        return NULL;
+    }
 
     memset(sensor, 0, sizeof(sensor_device_t));
     priv->i2c_addr = addr ? addr : SHT30_ADDR_DEFAULT;
