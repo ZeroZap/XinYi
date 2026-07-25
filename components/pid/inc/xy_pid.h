@@ -1,11 +1,11 @@
 /**
  * @file xy_pid.h
- * @brief PID Controller Placeholder
+ * @brief Compatibility include for the canonical PID controller API.
  */
 
-#ifndef XY_PID_H
-#define XY_PID_H
+#ifndef XY_PID_COMPAT_H
+#define XY_PID_COMPAT_H
 
-#include "xy_pid_auto.h"
+#include "../xy_pid.h"
 
-#endif /* XY_PID_H */
+#endif /* XY_PID_COMPAT_H */

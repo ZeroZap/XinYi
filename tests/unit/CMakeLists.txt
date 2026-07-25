@@ -968,6 +968,16 @@ xy_add_unit_test(test_pid_core pid_core UNITY
 )
 target_link_libraries(test_pid_core m)
 
+# --- Test 29b: PID auto tuner lifecycle, sampling, and apply contracts ---
+xy_add_unit_test(test_pid_auto pid_auto UNITY
+    ${UNIT_PID}/test_pid_auto.c
+    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid_auto.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+)
+target_link_libraries(test_pid_auto m)
+
 # --- Test 30: MUX SPI channel helper contracts ---
 xy_add_unit_test(test_mux_spi mux_spi UNITY
     ${UNIT_MUX}/test_mux_spi.c

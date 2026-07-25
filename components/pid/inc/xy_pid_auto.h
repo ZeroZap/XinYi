@@ -1,4 +1,3 @@
-#include "xy_pid_types.h"
 /**
  * @file xy_pid_auto.h
  * @brief PID Auto-Tuning Tool - Ziegler-Nichols Method

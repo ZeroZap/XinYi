@@ -6,6 +6,7 @@
  */
 
 #include "xy_pid_auto.h"
+#include "xy_os_tick.h"
 #include "xy_log.h"
 #include <string.h>
 #include <stdlib.h>
