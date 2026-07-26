@@ -163,7 +163,11 @@ static void xy_pid_auto_calc_zn(xy_pid_auto_tuner_t *tuner)
 
 int xy_pid_auto_loop(xy_pid_auto_tuner_t *tuner, float process_var)
 {
-    if (!tuner || tuner->state != XY_PID_AUTO_STATE_MEASURING) {
+    if (!tuner || !tuner->initialized || !tuner->samples) {
+        return XY_PID_AUTO_INVALID_PARAM;
+    }
+
+    if (tuner->state != XY_PID_AUTO_STATE_MEASURING) {
         return XY_PID_AUTO_NOT_READY;
     }
 

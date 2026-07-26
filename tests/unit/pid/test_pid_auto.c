@@ -157,6 +157,26 @@ static void test_auto_apply_requires_complete_state(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
 
+static void test_auto_loop_rejects_deinitialized_tuner_without_touching_freed_samples(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t auto_config = default_auto_config();
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_start(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
+
+    tuner.state = XY_PID_AUTO_STATE_MEASURING;
+    tuner.sample_count = 0U;
+    g_tick_ms = auto_config.sample_interval_ms;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_loop(&tuner, 12.0F));
+    TEST_ASSERT_EQUAL_UINT16(0U, tuner.sample_count);
+    TEST_ASSERT_NULL(tuner.samples);
+}
+
 void setUp(void)
 {
     g_tick_ms = 0U;
@@ -173,5 +193,6 @@ int main(void)
     RUN_TEST(test_auto_start_stop_and_progress_guards);
     RUN_TEST(test_auto_loop_completion_result_and_apply);
     RUN_TEST(test_auto_apply_requires_complete_state);
+    RUN_TEST(test_auto_loop_rejects_deinitialized_tuner_without_touching_freed_samples);
     return UNITY_END();
 }
