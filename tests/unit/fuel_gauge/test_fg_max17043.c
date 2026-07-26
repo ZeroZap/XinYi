@@ -19,6 +19,7 @@ DEFINE_FFF_GLOBALS;
 
 static uint16_t fake_regs[256];
 static uint8_t fake_read_failures[256];
+static uint8_t fake_write_failures[256];
 static xy_sensor_bus_t last_bus;
 static uint8_t last_write_reg;
 static uint16_t last_write_value;
@@ -66,10 +67,20 @@ static void fake_fail_reads(uint8_t reg, uint8_t failures)
     fake_read_failures[reg] = failures;
 }
 
+static void fake_fail_writes(uint8_t reg, uint8_t failures)
+{
+    fake_write_failures[reg] = failures;
+}
+
 static int xy_sensor_i2c_write_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint16_t value)
 {
     TEST_ASSERT_NOT_NULL(bus);
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
+
+    if (fake_write_failures[reg] > 0) {
+        fake_write_failures[reg]--;
+        return -1;
+    }
 
     fake_regs[reg] = value;
     last_write_reg = reg;
@@ -110,6 +121,7 @@ void setUp(void)
 {
     memset(fake_regs, 0, sizeof(fake_regs));
     memset(fake_read_failures, 0, sizeof(fake_read_failures));
+    memset(fake_write_failures, 0, sizeof(fake_write_failures));
     memset(&last_bus, 0, sizeof(last_bus));
     last_write_reg = 0;
     last_write_value = 0xFFFF;
@@ -164,6 +176,20 @@ void test_max17043_init_writes_default_config(void)
     TEST_ASSERT_EQUAL_UINT16(0, xy_sensor_i2c_write_reg16_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT8(REG_CONFIG, last_write_reg);
     TEST_ASSERT_EQUAL_UINT16(0, last_write_value);
+}
+
+void test_max17043_init_propagates_config_write_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+
+    fg->initialized = false;
+    fake_fail_writes(REG_CONFIG, 1);
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_FALSE(fg->initialized);
+    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_write_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(0xFFFF, last_write_value);
 }
 
 void test_max17043_fetch_and_channel_get(void)
@@ -264,6 +290,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_max17043_registers_default_i2c_bus);
     RUN_TEST(test_max17043_init_writes_default_config);
+    RUN_TEST(test_max17043_init_propagates_config_write_failure);
     RUN_TEST(test_max17043_fetch_and_channel_get);
     RUN_TEST(test_max17043_fetch_failure_does_not_advance_timestamp);
     RUN_TEST(test_max17043_rejects_unsupported_channel);

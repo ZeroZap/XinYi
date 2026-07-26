@@ -53,7 +53,9 @@ static int max17043_init(xy_fuel_gauge_t *fg)
     xy_log_i("MAX17043 version: 0x%04X\n", version);
     
     /* 配置：默认配置 */
-    xy_sensor_i2c_write_reg16(&priv->bus, MAX17043_REG_CONFIG, 0x0000);
+    if (xy_sensor_i2c_write_reg16(&priv->bus, MAX17043_REG_CONFIG, 0x0000) != 0) {
+        return XY_FG_ERROR;
+    }
     
     priv->initialized = true;
     xy_log_i("MAX17043 initialized\n");
