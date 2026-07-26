@@ -247,6 +247,46 @@ void test_max17043_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_INT32(-208, value);
 }
 
+void test_max17043_fetch_failure_does_not_tick_or_poison_later_retry(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+    int32_t value = 0;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    xy_os_tick_get_fake.return_val = 17043;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(17043, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(1, xy_os_tick_get_fake.call_count);
+
+    fake_regs[REG_VCELL] = 0x8000U;
+    fake_regs[REG_SOC] = 0x1900U;
+    fake_regs[REG_CRATE] = 0x03E8U;
+    fake_fail_reads(REG_CRATE, 1);
+    xy_os_tick_get_fake.return_val = 18000;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(17043, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(1, xy_os_tick_get_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3906, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(75, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-208, value);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(18000, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(2, xy_os_tick_get_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(2560, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(25, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(208, value);
+}
+
 void test_max17043_rejects_unsupported_channel(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
@@ -303,6 +343,7 @@ int main(void)
     RUN_TEST(test_max17043_init_propagates_config_write_failure);
     RUN_TEST(test_max17043_fetch_and_channel_get);
     RUN_TEST(test_max17043_fetch_failure_preserves_cached_snapshot);
+    RUN_TEST(test_max17043_fetch_failure_does_not_tick_or_poison_later_retry);
     RUN_TEST(test_max17043_rejects_unsupported_channel);
     RUN_TEST(test_max17043_alert_set_get_uses_cached_thresholds);
     return UNITY_END();
