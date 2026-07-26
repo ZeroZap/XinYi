@@ -94,7 +94,7 @@
 | `tests/unit/fota/test_fota_core.c` | `unity` | 15 |
 | `tests/unit/framework/test_fff_smoke.c` | `unity` | 72 |
 | `tests/unit/fuel_gauge/test_fg_bq27z561.c` | `unity` | 41 |
-| `tests/unit/fuel_gauge/test_fg_bq27z746.c` | `unity` | 36 |
+| `tests/unit/fuel_gauge/test_fg_bq27z746.c` | `unity` | 38 |
 | `tests/unit/fuel_gauge/test_fg_bq40z50.c` | `unity` | 104 |
 | `tests/unit/fuel_gauge/test_fg_max17043.c` | `unity` | 27 |
 | `tests/unit/fuel_gauge/test_fuel_gauge_core.c` | `unity` | 62 |

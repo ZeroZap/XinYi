@@ -108,55 +108,74 @@ static int bq27z746_fetch(xy_fuel_gauge_t *fg)
 {
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
     uint16_t value;
+    xy_fuel_gauge_data_t snapshot;
+    uint16_t flags;
     
     if (!priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
     
+    snapshot = priv->data;
+    flags = priv->flags;
+
     /* 读取电压 (mV) */
-    if (bq27z746_read_reg16(priv, BQ27Z746_REG_VOLT, &value) == 0) {
-        priv->data.voltage_mv = value;
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_VOLT, &value) != 0) {
+        return XY_FG_ERROR;
     }
+    snapshot.voltage_mv = value;
     
     /* 读取电流 (mA) */
-    if (bq27z746_read_reg16(priv, BQ27Z746_REG_CURR, &value) == 0) {
-        /* BQ27Z746 电流为有符号数，正=充电，负=放电 */
-        priv->data.current_ma = (int16_t)value;
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_CURR, &value) != 0) {
+        return XY_FG_ERROR;
     }
+    /* BQ27Z746 电流为有符号数，正=充电，负=放电 */
+    snapshot.current_ma = (int16_t)value;
     
     /* 读取 SOC (%) */
-    if (bq27z746_read_reg16(priv, BQ27Z746_REG_SOC, &value) == 0) {
-        priv->data.soc = (uint8_t)value;
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_SOC, &value) != 0) {
+        return XY_FG_ERROR;
     }
+    snapshot.soc = (uint8_t)value;
     
     /* 读取 SOH (%) */
-    if (bq27z746_read_reg16(priv, BQ27Z746_REG_SOH, &value) == 0) {
-        priv->data.soh = (uint8_t)value;
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_SOH, &value) != 0) {
+        return XY_FG_ERROR;
     }
+    snapshot.soh = (uint8_t)value;
     
     /* 读取温度 (0.1K) */
-    if (bq27z746_read_reg16(priv, BQ27Z746_REG_TEMP, &value) == 0) {
-        /* 转换为 0.1°C */
-        priv->data.temperature_c = (int16_t)(value - 2731);
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_TEMP, &value) != 0) {
+        return XY_FG_ERROR;
     }
+    /* 转换为 0.1°C */
+    snapshot.temperature_c = (int16_t)(value - 2731);
     
     /* 读取满充容量 (mAh) */
-    if (bq27z746_read_reg16(priv, BQ27Z746_REG_FULL_CAP, &value) == 0) {
-        priv->data.full_capacity_mah = value;
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_FULL_CAP, &value) != 0) {
+        return XY_FG_ERROR;
     }
+    snapshot.full_capacity_mah = value;
     
     /* 读取剩余容量 (mAh) */
-    if (bq27z746_read_reg16(priv, BQ27Z746_REG_REM_CAP, &value) == 0) {
-        priv->data.remain_capacity_mah = value;
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_REM_CAP, &value) != 0) {
+        return XY_FG_ERROR;
     }
+    snapshot.remain_capacity_mah = value;
     
     /* 读取循环次数 */
-    if (bq27z746_read_reg16(priv, BQ27Z746_REG_CYCLE_CNT, &value) == 0) {
-        priv->data.cycle_count = value;
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_CYCLE_CNT, &value) != 0) {
+        return XY_FG_ERROR;
     }
+    snapshot.cycle_count = value;
     
     /* 更新标志位 */
-    bq27z746_read_reg16(priv, BQ27Z746_REG_FLAGS, &priv->flags);
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_FLAGS, &flags) != 0) {
+        return XY_FG_ERROR;
+    }
+
+    priv->data = snapshot;
+    fg->latest = snapshot;
+    priv->flags = flags;
     
     xy_log_d("BQ27Z746: V=%dmV, I=%dmA, SOC=%d%%, SOH=%d%%\n",
              priv->data.voltage_mv, priv->data.current_ma,
@@ -238,6 +257,10 @@ static int bq27z746_alert_get(xy_fuel_gauge_t *fg,
  */
 bool xy_fuel_gauge_bq27z746_is_charging(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return false;
+    }
+
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
     return (priv->flags & BQ27Z746_FLAG_CHG) != 0;
 }
@@ -247,6 +270,10 @@ bool xy_fuel_gauge_bq27z746_is_charging(xy_fuel_gauge_t *fg)
  */
 bool xy_fuel_gauge_bq27z746_is_full(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return false;
+    }
+
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
     return (priv->flags & BQ27Z746_FLAG_FC) != 0;
 }
@@ -256,6 +283,10 @@ bool xy_fuel_gauge_bq27z746_is_full(xy_fuel_gauge_t *fg)
  */
 uint16_t xy_fuel_gauge_bq27z746_get_flags(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return 0;
+    }
+
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
     return priv->flags;
 }
