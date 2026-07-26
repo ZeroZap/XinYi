@@ -18,8 +18,8 @@
 #define REG_FULL_CAP  0x12
 
 static uint16_t fake_regs[256];
+static uint8_t fake_read_failures[256];
 static xy_sensor_bus_t last_bus;
-static int fail_read_reg = -1;
 
 DEFINE_FFF_GLOBALS;
 
@@ -53,7 +53,8 @@ static int xy_sensor_i2c_read_impl(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *d
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT16(2, len);
 
-    if (fail_read_reg == reg) {
+    if (fake_read_failures[reg] > 0) {
+        fake_read_failures[reg]--;
         return -1;
     }
 
@@ -71,6 +72,11 @@ static int xy_sensor_i2c_read_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint
         *value = ((uint16_t)data[1] << 8) | data[0];
     }
     return ret;
+}
+
+static void fake_fail_reads(uint8_t reg, uint8_t failures)
+{
+    fake_read_failures[reg] = failures;
 }
 
 static void reset_sensor_fakes(void)
@@ -105,8 +111,8 @@ static void reset_sensor_fakes(void)
 void setUp(void)
 {
     memset(fake_regs, 0, sizeof(fake_regs));
+    memset(fake_read_failures, 0, sizeof(fake_read_failures));
     memset(&last_bus, 0, sizeof(last_bus));
-    fail_read_reg = -1;
     reset_sensor_fakes();
 
     fake_regs[REG_CTRL] = 0x0746;
@@ -193,6 +199,30 @@ void test_bq27z746_init_fetch_and_channel_get(void)
     TEST_ASSERT_EQUAL_INT32(123, value);
 }
 
+void test_bq27z746_init_retries_transient_device_type_read_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z746();
+
+    fg->initialized = false;
+    fake_fail_reads(REG_CTRL, 1);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_read_fake.call_count);
+}
+
+void test_bq27z746_init_fails_after_exhausted_device_type_retries(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z746();
+
+    fg->initialized = false;
+    fake_fail_reads(REG_CTRL, 3);
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_FALSE(fg->initialized);
+    TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_read_fake.call_count);
+}
+
 void test_bq27z746_rejects_unsupported_channel(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z746();
@@ -266,7 +296,7 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     fake_regs[REG_CYCLE_CNT] = 321;
     fake_regs[REG_FLAGS] = 0;
 
-    fail_read_reg = REG_TEMP;
+    fake_fail_reads(REG_TEMP, 3);
     fg->latest.timestamp = 7777;
     xy_os_tick_get_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 8888;
@@ -274,7 +304,6 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_UINT32(7777, fg->latest.timestamp);
     TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
 
-    fail_read_reg = -1;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3999, value);
     TEST_ASSERT_EQUAL_UINT32(8888, fg->latest.timestamp);
@@ -295,6 +324,8 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_bq27z746_registers_default_i2c_bus);
     RUN_TEST(test_bq27z746_init_fetch_and_channel_get);
+    RUN_TEST(test_bq27z746_init_retries_transient_device_type_read_failure);
+    RUN_TEST(test_bq27z746_init_fails_after_exhausted_device_type_retries);
     RUN_TEST(test_bq27z746_rejects_unsupported_channel);
     RUN_TEST(test_bq27z746_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq27z746_fetch_failure_preserves_cached_snapshot);

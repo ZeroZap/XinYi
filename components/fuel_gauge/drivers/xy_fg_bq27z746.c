@@ -45,6 +45,8 @@
 #define BQ27Z746_FLAG_OCHG      (1 << 9)    /* 过充 */
 #define BQ27Z746_FLAG_OCUR      (1 << 10)   /* 过流 */
 
+#define BQ27Z746_READ_RETRIES   3
+
 /* 私有数据 */
 typedef struct {
     xy_sensor_bus_t bus;
@@ -64,7 +66,13 @@ static int bq27z746_read_reg16(bq27z746_private_data_t *priv,
     uint8_t buf[2];
     int ret;
     
-    ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 2);
+    ret = XY_FG_ERROR;
+    for (int attempt = 0; attempt < BQ27Z746_READ_RETRIES; attempt++) {
+        ret = xy_sensor_i2c_read(&priv->bus, reg, buf, 2);
+        if (ret == 0) {
+            break;
+        }
+    }
     if (ret != 0) {
         return XY_FG_ERROR;
     }
