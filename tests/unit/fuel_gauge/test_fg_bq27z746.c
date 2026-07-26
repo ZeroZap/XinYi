@@ -226,12 +226,13 @@ void test_bq27z746_init_fails_after_exhausted_device_type_retries(void)
 void test_bq27z746_rejects_unsupported_channel(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z746();
-    int32_t value = 0;
+    int32_t value = 123456;
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
+    TEST_ASSERT_EQUAL_INT32(123456, value);
 }
 
 void test_bq27z746_alert_set_get_uses_cached_thresholds(void)
@@ -303,10 +304,21 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(7777, fg->latest.timestamp);
     TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(88, value);
 
+    fake_fail_reads(REG_FLAGS, 3);
+    fg->latest.timestamp = 9999;
+    xy_os_tick_get_fake.call_count = 0;
+    xy_os_tick_get_fake.return_val = 1111;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(9999, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3999, value);
-    TEST_ASSERT_EQUAL_UINT32(8888, fg->latest.timestamp);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(1111, fg->latest.timestamp);
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_charging(fg));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_full(fg));
     TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(fg));
