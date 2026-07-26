@@ -218,10 +218,11 @@ void test_max17043_fetch_and_channel_get(void)
     TEST_ASSERT_EQUAL_UINT8(REG_CRATE, xy_sensor_i2c_read_reg16_fake.arg1_val);
 }
 
-void test_max17043_fetch_failure_does_not_advance_timestamp(void)
+void test_max17043_fetch_failure_preserves_cached_snapshot(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
     uint32_t previous_timestamp = 0;
+    int32_t value = 0;
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
@@ -231,10 +232,19 @@ void test_max17043_fetch_failure_does_not_advance_timestamp(void)
     previous_timestamp = fg->latest.timestamp;
 
     fake_regs[REG_VCELL] = 0xA000U;
+    fake_regs[REG_SOC] = 0x6400U;
+    fake_regs[REG_CRATE] = 0x07D0U;
     fake_fail_reads(REG_SOC, 1);
     xy_os_tick_get_fake.return_val = 18000;
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3906, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(75, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-208, value);
 }
 
 void test_max17043_rejects_unsupported_channel(void)
@@ -292,7 +302,7 @@ int main(void)
     RUN_TEST(test_max17043_init_writes_default_config);
     RUN_TEST(test_max17043_init_propagates_config_write_failure);
     RUN_TEST(test_max17043_fetch_and_channel_get);
-    RUN_TEST(test_max17043_fetch_failure_does_not_advance_timestamp);
+    RUN_TEST(test_max17043_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_max17043_rejects_unsupported_channel);
     RUN_TEST(test_max17043_alert_set_get_uses_cached_thresholds);
     return UNITY_END();
