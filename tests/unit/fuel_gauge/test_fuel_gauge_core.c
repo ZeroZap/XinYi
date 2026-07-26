@@ -155,6 +155,28 @@ static void test_register_init_get_foreach(void)
     TEST_ASSERT_FALSE(fg.initialized);
 }
 
+static void test_core_public_calls_reject_initialized_device_without_api(void)
+{
+    xy_fuel_gauge_t fg;
+    xy_fuel_gauge_alert_t alert;
+    int32_t value = 0x12345678;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    memset(&alert, 0, sizeof(alert));
+    fg.name = "fg-no-api";
+    fg.initialized = true;
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_fetch(&fg));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
+                          xy_fuel_gauge_get(&fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(0x12345678, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_set_alert(&fg, &alert));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_alert(&fg, &alert));
+    TEST_ASSERT_EQUAL_UINT(0U, fake_fetch_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_os_tick_get_fake.call_count);
+}
+
 static void test_status_safety_security_helpers(void)
 {
     static const xy_fuel_gauge_api_t api = {
@@ -228,6 +250,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_register_init_get_foreach);
+    RUN_TEST(test_core_public_calls_reject_initialized_device_without_api);
     RUN_TEST(test_status_safety_security_helpers);
     return UNITY_END();
 }

@@ -94,6 +94,10 @@ xy_fuel_gauge_status_t xy_fuel_gauge_fetch(xy_fuel_gauge_t *fg)
     if (!fg || !fg->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
+
+    if (!fg->api) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
     
     if (!fg->api->fetch) {
         return XY_FG_ERROR_NOT_SUPPORTED;
@@ -115,7 +119,7 @@ xy_fuel_gauge_status_t xy_fuel_gauge_get(xy_fuel_gauge_t *fg,
                                          xy_fuel_gauge_data_type_t type,
                                          int32_t *val)
 {
-    if (!fg || !fg->initialized || !val) {
+    if (!fg || !fg->initialized || !fg->api || !val) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
     
@@ -169,7 +173,7 @@ xy_fuel_gauge_status_t xy_fuel_gauge_get(xy_fuel_gauge_t *fg,
 xy_fuel_gauge_status_t xy_fuel_gauge_set_alert(xy_fuel_gauge_t *fg,
                                                const xy_fuel_gauge_alert_t *alert)
 {
-    if (!fg || !fg->initialized || !alert) {
+    if (!fg || !fg->initialized || !fg->api || !alert) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
     
@@ -186,7 +190,7 @@ xy_fuel_gauge_status_t xy_fuel_gauge_set_alert(xy_fuel_gauge_t *fg,
 xy_fuel_gauge_status_t xy_fuel_gauge_get_alert(xy_fuel_gauge_t *fg,
                                                xy_fuel_gauge_alert_t *alert)
 {
-    if (!fg || !fg->initialized || !alert) {
+    if (!fg || !fg->initialized || !fg->api || !alert) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
     
