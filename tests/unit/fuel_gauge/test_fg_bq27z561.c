@@ -295,6 +295,41 @@ void test_bq27z561_get_failure_preserves_output_value(void)
     TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
 }
 
+void test_bq27z561_inline_getters_preserve_outputs_on_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z561();
+    uint16_t voltage = 0x561;
+    int16_t current = -561;
+    uint8_t soc = 56;
+    uint8_t soh = 61;
+    int16_t temp = -27;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    fail_reg16 = REG_VOLT;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x561, voltage);
+
+    fail_reg16 = REG_CURR;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_current(fg, &current));
+    TEST_ASSERT_EQUAL_INT16(-561, current);
+
+    fail_reg16 = -1;
+    fail_reg8 = REG_SOC;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soc(fg, &soc));
+    TEST_ASSERT_EQUAL_UINT8(56, soc);
+
+    fail_reg8 = REG_SOH;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soh(fg, &soh));
+    TEST_ASSERT_EQUAL_UINT8(61, soh);
+
+    fail_reg8 = -1;
+    fail_reg16 = REG_TEMP;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_temperature(fg, &temp));
+    TEST_ASSERT_EQUAL_INT16(-27, temp);
+}
+
 void test_bq27z561_alert_set_get_uses_cached_thresholds(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z561();
@@ -341,6 +376,7 @@ int main(void)
     RUN_TEST(test_bq27z561_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_bq27z561_rejects_invalid_output_and_unknown_channel);
     RUN_TEST(test_bq27z561_get_failure_preserves_output_value);
+    RUN_TEST(test_bq27z561_inline_getters_preserve_outputs_on_failure);
     RUN_TEST(test_bq27z561_alert_set_get_uses_cached_thresholds);
     return UNITY_END();
 }
