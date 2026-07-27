@@ -331,6 +331,29 @@ void test_bq27z746_status_helpers_handle_null(void)
     TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(NULL));
 }
 
+void test_bq27z746_direct_api_guards_missing_device_data(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z746();
+    xy_fuel_gauge_t missing_data = *fg;
+    int32_t value = 12345;
+
+    missing_data.data = NULL;
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->init(NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->init(&missing_data));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->fetch(NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->fetch(&missing_data));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(NULL, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(12345, value);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(&missing_data, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(12345, value);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
+    TEST_ASSERT_EQUAL_INT32(12345, value);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -342,5 +365,6 @@ int main(void)
     RUN_TEST(test_bq27z746_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq27z746_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_bq27z746_status_helpers_handle_null);
+    RUN_TEST(test_bq27z746_direct_api_guards_missing_device_data);
     return UNITY_END();
 }

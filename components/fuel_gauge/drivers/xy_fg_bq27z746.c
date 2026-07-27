@@ -88,9 +88,13 @@ static int bq27z746_read_reg16(bq27z746_private_data_t *priv,
  */
 static int bq27z746_init(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
     uint16_t device_type;
-    
+
     /* 读取设备类型验证连接 */
     if (bq27z746_read_reg16(priv, BQ27Z746_REG_CTRL, &device_type) != 0) {
         xy_log_e("BQ27Z746: Failed to read device type\n");
@@ -114,11 +118,15 @@ static int bq27z746_init(xy_fuel_gauge_t *fg)
  */
 static int bq27z746_fetch(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
     uint16_t value;
     xy_fuel_gauge_data_t snapshot;
     uint16_t flags;
-    
+
     if (!priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -199,12 +207,12 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
                                 xy_fuel_gauge_data_type_t channel,
                                 int32_t *val)
 {
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
-    
-    if (!val) {
+    if (!fg || !fg->data || !val) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
-    
+
+    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+
     switch (channel) {
         case XY_FG_DATA_VOLTAGE:
             *val = priv->data.voltage_mv;
