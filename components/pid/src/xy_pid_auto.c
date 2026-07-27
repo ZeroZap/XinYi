@@ -97,8 +97,10 @@ int xy_pid_auto_start(xy_pid_auto_tuner_t *tuner)
     tuner->process_var = 0;
     tuner->last_pv = 0;
 
-    /* 设置初始输出 (阶跃) */
-    xy_pid_set_output_limits(tuner->pid, tuner->output_step, tuner->output_step);
+    /* 设置初始输出 (阶跃)。不要把输出上下限都改成同一个值，
+     * xy_pid_set_output_limits() 会拒绝 min >= max，且自整定结束后应保留
+     * 原控制器的安全输出范围。 */
+    tuner->pid->output = tuner->output_step;
 
     xy_log_i("PID Auto-Tuning started (step=%.2f)\n", tuner->output_step);
     return XY_PID_AUTO_OK;

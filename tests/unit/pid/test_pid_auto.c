@@ -92,6 +92,9 @@ static void test_auto_start_stop_and_progress_guards(void)
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.setpoint);
     TEST_ASSERT_EQUAL_UINT32(100U, tuner.start_time);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, auto_config.step_amplitude, tuner.output_step);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, auto_config.step_amplitude, pid.output);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.output_min, pid.config.output_min);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.output_max, pid.config.output_max);
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_stop(&tuner));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_IDLE, xy_pid_auto_get_state(&tuner));
