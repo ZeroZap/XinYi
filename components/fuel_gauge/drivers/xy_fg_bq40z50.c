@@ -132,6 +132,10 @@ static int bq40z50_read_reg32(bq40z50_private_data_t *priv,
  */
 static int bq40z50_init(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     uint16_t device_type;
     
@@ -174,6 +178,10 @@ static int bq40z50_init(xy_fuel_gauge_t *fg)
  */
 static int bq40z50_fetch(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     xy_fuel_gauge_data_t data = priv->data;
     uint16_t cell_voltages[4];
@@ -280,11 +288,11 @@ static int bq40z50_channel_get(xy_fuel_gauge_t *fg,
                                xy_fuel_gauge_data_type_t channel,
                                int32_t *val)
 {
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
-    
-    if (!val) {
+    if (!fg || !fg->data || !val) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
+
+    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
     
     switch (channel) {
         case XY_FG_DATA_VOLTAGE:
