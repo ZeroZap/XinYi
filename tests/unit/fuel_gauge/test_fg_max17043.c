@@ -298,6 +298,31 @@ void test_max17043_rejects_unsupported_channel(void)
                       xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &value));
 }
 
+void test_max17043_direct_api_guards_preserve_outputs(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+    xy_fuel_gauge_t missing_data = *fg;
+    int32_t value = 12345;
+
+    missing_data.data = NULL;
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->init(NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->init(&missing_data));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->fetch(NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->fetch(&missing_data));
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(NULL, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(12345, value);
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(&missing_data, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(12345, value);
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
+}
+
 void test_max17043_alert_set_get_uses_cached_thresholds(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
@@ -345,6 +370,7 @@ int main(void)
     RUN_TEST(test_max17043_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_max17043_fetch_failure_does_not_tick_or_poison_later_retry);
     RUN_TEST(test_max17043_rejects_unsupported_channel);
+    RUN_TEST(test_max17043_direct_api_guards_preserve_outputs);
     RUN_TEST(test_max17043_alert_set_get_uses_cached_thresholds);
     return UNITY_END();
 }

@@ -42,6 +42,10 @@ typedef struct {
  */
 static int max17043_init(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
     
     /* 读取版本 */
@@ -67,6 +71,10 @@ static int max17043_init(xy_fuel_gauge_t *fg)
  */
 static int max17043_fetch(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
     
     /* 读取电压 (mV), VCELL LSB = 1.25mV */
@@ -106,11 +114,11 @@ static int max17043_channel_get(xy_fuel_gauge_t *fg,
                                 xy_fuel_gauge_data_type_t channel,
                                 int32_t *val)
 {
-    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
-    
-    if (!val) {
+    if (!fg || !fg->data || !val) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
+
+    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
     
     switch (channel) {
         case XY_FG_DATA_VOLTAGE:
