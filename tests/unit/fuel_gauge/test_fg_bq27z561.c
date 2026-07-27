@@ -264,7 +264,7 @@ void test_bq27z561_fetch_failure_preserves_cached_snapshot(void)
 void test_bq27z561_rejects_invalid_output_and_unknown_channel(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z561();
-    int32_t value = 0;
+    int32_t value = 0x27561;
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
@@ -272,6 +272,27 @@ void test_bq27z561_rejects_invalid_output_and_unknown_channel(void)
                       xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_get(fg, (xy_fuel_gauge_data_type_t)99, &value));
+    TEST_ASSERT_EQUAL_INT32(0x27561, value);
+}
+
+void test_bq27z561_get_failure_preserves_output_value(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z561();
+    int32_t value = 0x561;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    fail_reg16 = REG_CURR;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(0x561, value);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
+
+    fail_reg16 = -1;
+    fail_reg8 = REG_SOC;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(0x561, value);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
 }
 
 void test_bq27z561_alert_set_get_uses_cached_thresholds(void)
@@ -319,6 +340,7 @@ int main(void)
     RUN_TEST(test_bq27z561_fetch_and_channel_get);
     RUN_TEST(test_bq27z561_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_bq27z561_rejects_invalid_output_and_unknown_channel);
+    RUN_TEST(test_bq27z561_get_failure_preserves_output_value);
     RUN_TEST(test_bq27z561_alert_set_get_uses_cached_thresholds);
     return UNITY_END();
 }
