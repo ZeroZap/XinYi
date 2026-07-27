@@ -413,22 +413,61 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
 
     previous_timestamp = fg->latest.timestamp;
     fake_set16(REG_VOLT, 9999);
+    fake_set16(REG_CURR, 1234);
+    fake_set16(REG_SOC, 8800);
+    fake_set16(REG_REM_CAP, 6000);
+    fake_set16(REG_FULL_CAP, 7200);
+    fake_set16(REG_CYCLE_CNT, 333);
+    fake_set16(REG_TEMP, 3051);
+    fake_set16(REG_CELL1_VOLT, 4011);
+    fake_set16(REG_CELL2_VOLT, 4012);
+    fake_set16(REG_CELL3_VOLT, 4013);
+    fake_set16(REG_CELL4_VOLT, 4014);
+    fake_set16(REG_BAT_STATUS, 0x0002);
+    fake_set32(REG_PROT_STATUS, 0x00000000);
+    fake_set16(REG_BAL_STATUS, 0x000A);
     fake_fail_reads(REG_CURR, 3);
+    xy_os_tick_get_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 6060;
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
     TEST_ASSERT_EQUAL_UINT16(15234, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-654, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(75, value);
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_full(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_protected(fg));
 
     fake_fail_reads(REG_BAL_STATUS, 3);
-    fake_set16(REG_VOLT, 11111);
-    fake_set16(REG_BAL_STATUS, 0x000A);
+    xy_os_tick_get_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 7070;
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
     TEST_ASSERT_EQUAL_UINT16(15234, voltage);
     TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+
+    xy_sensor_i2c_read_fake.call_count = 0;
+    xy_os_tick_get_fake.return_val = 8080;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(8080, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(9999, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(1234, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(88, value);
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_discharging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_full(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_protected(fg));
+    TEST_ASSERT_EQUAL_UINT8(0x0A, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 }
 
 void test_bq40z50_retries_discharge_status_path(void)
