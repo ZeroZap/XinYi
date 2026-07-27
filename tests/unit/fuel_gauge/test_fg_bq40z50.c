@@ -240,6 +240,22 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
 {
     xy_fuel_gauge_t *fg = registered_bq40z50();
     xy_fuel_gauge_t missing_data = *fg;
+    xy_fuel_gauge_alert_t alert = {
+        .low_soc_threshold = 10,
+        .high_soc_threshold = 90,
+        .low_voltage_mv = 12000,
+        .high_voltage_mv = 16800,
+        .over_current_ma = 2500,
+        .over_temp_c = 600,
+    };
+    xy_fuel_gauge_alert_t readback = {
+        .low_soc_threshold = 0xAA,
+        .high_soc_threshold = 0xBB,
+        .low_voltage_mv = 0xCCCC,
+        .high_voltage_mv = 0xDDDD,
+        .over_current_ma = 0x1111,
+        .over_temp_c = 0x2222,
+    };
     int32_t value = 123456;
     uint16_t voltage = 4321;
 
@@ -279,6 +295,19 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 5, &voltage));
     TEST_ASSERT_EQUAL_UINT16(4321, voltage);
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(NULL, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(&missing_data, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_get(NULL, &readback));
+    TEST_ASSERT_EQUAL_UINT8(0xAA, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(0xBB, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_get(&missing_data, &readback));
+    TEST_ASSERT_EQUAL_UINT16(0xCCCC, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT16(0xDDDD, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_get(fg, NULL));
+    TEST_ASSERT_EQUAL_INT16(0x1111, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_INT16(0x2222, readback.over_temp_c);
 }
 
 void test_bq40z50_alert_set_get_uses_cached_thresholds(void)
