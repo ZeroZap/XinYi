@@ -146,6 +146,14 @@ static int bq27z746_fetch(xy_fuel_gauge_t *fg)
     }
     /* BQ27Z746 电流为有符号数，正=充电，负=放电 */
     snapshot.current_ma = (int16_t)value;
+
+    /* 读取平均电流 (mA)。公共数据结构尚无独立平均电流缓存；仍然读取该寄存器，
+     * 确保 fetch 的 I/O 快照覆盖完整电流契约。channel_get(AVERAGE_CURRENT)
+     * 暂按现有 API 形状返回 current_ma。
+     */
+    if (bq27z746_read_reg16(priv, BQ27Z746_REG_AVG_CURR, &value) != 0) {
+        return XY_FG_ERROR;
+    }
     
     /* 读取 SOC (%) */
     if (bq27z746_read_reg16(priv, BQ27Z746_REG_SOC, &value) != 0) {

@@ -13,6 +13,7 @@
 #define REG_REM_CAP   0x14
 #define REG_SOC       0x2C
 #define REG_CURR      0x58
+#define REG_AVG_CURR  0x5A
 #define REG_SOH       0x7A
 #define REG_CYCLE_CNT 0x2A
 #define REG_FULL_CAP  0x12
@@ -119,6 +120,7 @@ void setUp(void)
     fake_regs[REG_FLAGS] = 0x0009;
     fake_regs[REG_VOLT] = 3811;
     fake_regs[REG_CURR] = (uint16_t)(int16_t)-321;
+    fake_regs[REG_AVG_CURR] = (uint16_t)(int16_t)-222;
     fake_regs[REG_SOC] = 67;
     fake_regs[REG_SOH] = 94;
     fake_regs[REG_TEMP] = 2981;
@@ -174,7 +176,7 @@ void test_bq27z746_init_fetch_and_channel_get(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT(1, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(4242, fg->latest.timestamp);
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(9, xy_sensor_i2c_read_fake.call_count);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(10, xy_sensor_i2c_read_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_FLAGS, xy_sensor_i2c_read_fake.arg1_val);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &value));
@@ -294,6 +296,7 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
 
     fake_regs[REG_VOLT] = 3999;
     fake_regs[REG_CURR] = 456;
+    fake_regs[REG_AVG_CURR] = 123;
     fake_regs[REG_SOC] = 88;
     fake_regs[REG_SOH] = 97;
     fake_regs[REG_TEMP] = 3011;
@@ -311,6 +314,9 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(67, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK,
+                      fg->api->channel_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-321, value);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(fg));
 
@@ -323,6 +329,9 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3811, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK,
+                      fg->api->channel_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-321, value);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(fg));
 
