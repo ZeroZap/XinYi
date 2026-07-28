@@ -411,6 +411,9 @@ void test_bq27z746_direct_api_guards_missing_device_data(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
     TEST_ASSERT_EQUAL_INT32(12345, value);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+                      fg->api->channel_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
+    TEST_ASSERT_EQUAL_INT32(12345, value);
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(&missing_data, &alert));
