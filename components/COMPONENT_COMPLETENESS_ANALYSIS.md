@@ -34,7 +34,7 @@
 | display    | 10% 🔴 | 严重不足 | ❌      | ✅     | ❌   | ❌   |
 | actuator   | 60% 🟡 | 需补充   | ❌      | ❌     | ❌   | ❌   |
 | mux        | 45% 🟡 | 需补充   | ✅      | ✅     | ❌   | ❌   |
-| fuel_gauge | 70% 🟡 | 已弃用   | ✅      | ⚠️     | ❌   | ❌   |
+| fuel_gauge | 85% 🟢 | 主线可用 | ✅      | ✅     | ⚠️   | ✅   |
 | charger    | 65% 🟡 | 已弃用   | ❌      | ✅     | ❌   | ❌   |
 
 ---
@@ -287,14 +287,16 @@ display/
 
 ## 🟡 低优先级问题（建议修复）
 
-### 11. fuel_gauge/ - 电量计组件 (70%)
+### 11. fuel_gauge/ - 电量计组件 (85%)
 
-**状态**: 已弃用，v3.0 将移除
+**状态**: 主线可用，保留 standalone API；已补齐组件 README/Kconfig/CMake 和 5 个 host Unity/CTest 目标。历史“已弃用”结论已过期，当前通过 `xy_fuel_gauge` 组件库接入主线。
 
-| 序号 | 任务                                 | 工作量 | 优先级 |
-| ---- | ------------------------------------ | ------ | ------ |
-| FG1  | 确认迁移到 drivers/power/fuel_gauge/ | -      | 已完成 |
-| FG2  | 添加 DEPRECATED.md 说明              | 1h     | 🟡 低  |
+| 序号 | 任务 | 工作量 | 优先级 |
+| ---- | ---- | ------ | ------ |
+| FG1  | 保持 standalone `components/fuel_gauge` 与 PM 旧路径边界清晰 | - | 已完成 |
+| FG2  | 维护 driver/core host coverage：`fuel_gauge_core`、`fg_bq27z746`、`fg_bq40z50`、`fg_max17043`、`fg_bq27z561` | - | 已完成 |
+| FG3  | 补充真实 SMBus/I2C 硬件验证记录：clock stretching、放电期 NACK/retry、告警阈值硬件编程 | 2h | 🟡 低 |
+| FG4  | 后续如迁移到 `components/drivers/power/`，先产出兼容 proposal，不直接批量移动 API/目录 | 2h | 🟡 低 |
 
 ---
 
@@ -323,9 +325,9 @@ display/
 | 🟠 中    | pm         | 28h      |
 | 🟠 中    | dm         | 25h      |
 | 🟠 中    | crypto     | 34h      |
-| 🟡 低    | fuel_gauge | 1h       |
+| 🟡 低    | fuel_gauge | 4h       |
 | 🟡 低    | charger    | 1h       |
-| **总计** |            | **301h** |
+| **总计** |            | **304h** |
 
 ---
 
