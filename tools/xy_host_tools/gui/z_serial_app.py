@@ -179,12 +179,18 @@ class ZSerialTabPane:
         settings_layout = QVBoxLayout()
         settings_layout.addLayout(connection_row)
         settings_layout.addSpacing(12)
-        settings_layout.addLayout(send_row)
-        settings_layout.addSpacing(12)
         settings_layout.addLayout(search_row)
         settings_layout.addSpacing(12)
         settings_layout.addLayout(action_row)
         settings_panel.setLayout(settings_layout)
+
+        send_panel = QWidget()
+        send_panel.setObjectName("zserial_send_panel")
+        send_panel.setMinimumHeight(100)
+        send_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        send_layout = QVBoxLayout()
+        send_layout.addLayout(send_row)
+        send_panel.setLayout(send_layout)
 
         log_panel = QWidget()
         log_panel.setMinimumHeight(220)
@@ -202,15 +208,23 @@ class ZSerialTabPane:
         filter_layout.addWidget(self.filter_output)
         filter_panel.setLayout(filter_layout)
 
+        self.bottom_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.bottom_splitter.setObjectName("zserial_bottom_splitter")
+        self.bottom_splitter.addWidget(send_panel)
+        self.bottom_splitter.addWidget(filter_panel)
+        self.bottom_splitter.setStretchFactor(0, 1)
+        self.bottom_splitter.setStretchFactor(1, 1)
+        self.bottom_splitter.setSizes([360, 360])
+
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.main_splitter.setObjectName("zserial_main_splitter")
         self.content_splitter = QSplitter(Qt.Orientation.Vertical)
         self.content_splitter.setObjectName("zserial_content_splitter")
         self.content_splitter.addWidget(log_panel)
-        self.content_splitter.addWidget(filter_panel)
+        self.content_splitter.addWidget(self.bottom_splitter)
         self.content_splitter.setStretchFactor(0, 5)
         self.content_splitter.setStretchFactor(1, 1)
-        self.content_splitter.setSizes([420, 120])
+        self.content_splitter.setSizes([420, 140])
         self.main_splitter.addWidget(settings_panel)
         self.main_splitter.addWidget(self.content_splitter)
         self.main_splitter.setStretchFactor(0, 0)
@@ -1018,7 +1032,12 @@ def run_offscreen_smoke() -> tuple[str, ...]:
     html = window.active_pane().output.toHtml()
     filter_html = window.active_pane().filter_output.toHtml()
     zed_sidebar_layout = window.active_pane().main_splitter.count() == 2
+    bottom_splitter = window.active_pane().bottom_splitter
     zed_bottom_filter = window.active_pane().content_splitter.count() == 2 and "WARN gui editor" in filter_html
+    send_filter_side_by_side = (
+        bottom_splitter.count() == 2 and bottom_splitter.orientation() == widgets[16].Orientation.Horizontal
+    )
+    send_window_below_log = window.active_pane().content_splitter.indexOf(bottom_splitter) == 1
     main_log_keeps_filtered_lines = "debug noisy raw log" in html
     tx_visible_in_log = "tx ping" in html or "tx version" in html
     filter_window_contains_matches = "WARN gui editor" in filter_html and "debug noisy raw log" in filter_html
@@ -1113,6 +1132,8 @@ def run_offscreen_smoke() -> tuple[str, ...]:
         f"log_panel_visible={str(log_panel_visible).lower()}",
         f"zed_sidebar_layout={str(zed_sidebar_layout).lower()}",
         f"zed_bottom_filter={str(zed_bottom_filter).lower()}",
+        f"send_filter_side_by_side={str(send_filter_side_by_side).lower()}",
+        f"send_window_below_log={str(send_window_below_log).lower()}",
         f"filter_summary_hidden={str(filter_summary_hidden).lower()}",
         f"search_finds_timeout={str(search_finds_timeout).lower()}",
         f"session_restored={str(session_restored).lower()}",
