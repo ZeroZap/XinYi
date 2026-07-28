@@ -29,6 +29,7 @@
 #define BQ40Z50_REG_TEMP        0x06
 #define BQ40Z50_REG_VOLT        0x08
 #define BQ40Z50_REG_CURR        0x0A
+#define BQ40Z50_REG_AVG_CURR    0x0B
 #define BQ40Z50_REG_SOC         0x2C
 #define BQ40Z50_REG_REM_CAP     0x2E
 #define BQ40Z50_REG_FULL_CAP    0x30
@@ -72,6 +73,7 @@ typedef struct {
     uint8_t balance_status;
     uint8_t cell_count;
     uint16_t cell_voltages[4];
+    int16_t average_current_ma;
 } bq40z50_private_data_t;
 
 /**
@@ -189,6 +191,7 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
     uint32_t prot_status;
     uint8_t balance_status;
     uint16_t value;
+    int16_t average_current_ma;
     
     if (!priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
@@ -198,6 +201,7 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
     bat_status = priv->bat_status;
     prot_status = priv->prot_status;
     balance_status = priv->balance_status;
+    average_current_ma = priv->average_current_ma;
     
     if (bq40z50_read_reg16(priv, BQ40Z50_REG_VOLT, &value) != 0) {
         return XY_FG_ERROR;
@@ -208,6 +212,11 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR;
     }
     data.current_ma = (int16_t)value;
+
+    if (bq40z50_read_reg16(priv, BQ40Z50_REG_AVG_CURR, &value) != 0) {
+        return XY_FG_ERROR;
+    }
+    average_current_ma = (int16_t)value;
     
     if (bq40z50_read_reg16(priv, BQ40Z50_REG_SOC, &value) != 0) {
         return XY_FG_ERROR;
@@ -271,6 +280,7 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
     priv->bat_status = bat_status;
     priv->prot_status = prot_status;
     priv->balance_status = balance_status;
+    priv->average_current_ma = average_current_ma;
     
     xy_log_d("BQ40Z50: V=%dmV, I=%dmA, SOC=%d%%, Cells=[%d,%d,%d,%d]mV\n",
              priv->data.voltage_mv, priv->data.current_ma,
@@ -300,6 +310,9 @@ static int bq40z50_channel_get(xy_fuel_gauge_t *fg,
             break;
         case XY_FG_DATA_CURRENT:
             *val = priv->data.current_ma;
+            break;
+        case XY_FG_DATA_AVERAGE_CURRENT:
+            *val = priv->average_current_ma;
             break;
         case XY_FG_DATA_SOC:
             *val = priv->data.soc;

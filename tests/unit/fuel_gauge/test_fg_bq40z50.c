@@ -10,6 +10,7 @@
 #define REG_TEMP        0x06
 #define REG_VOLT        0x08
 #define REG_CURR        0x0A
+#define REG_AVG_CURR    0x0B
 #define REG_CYCLE_CNT   0x2A
 #define REG_SOC         0x2C
 #define REG_REM_CAP     0x2E
@@ -142,6 +143,7 @@ void setUp(void)
     fake_set16(REG_BAL_STATUS, 0x0005);
     fake_set16(REG_VOLT, 15234);
     fake_set16(REG_CURR, (uint16_t)(int16_t)-654);
+    fake_set16(REG_AVG_CURR, (uint16_t)(int16_t)-543);
     fake_set16(REG_SOC, 7550);
     fake_set16(REG_TEMP, 3001);
     fake_set16(REG_FULL_CAP, 6800);
@@ -204,7 +206,7 @@ void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT(1, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(5050, fg->latest.timestamp);
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(14, xy_sensor_i2c_read_fake.call_count);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(15, xy_sensor_i2c_read_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_BAL_STATUS, xy_sensor_i2c_read_fake.arg1_val);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &value));
@@ -214,6 +216,9 @@ void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(-654, value);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-543, value);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(75, value);
@@ -276,6 +281,9 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_get(fg, XY_FG_DATA_TIME_TO_EMPTY, &value));
+    TEST_ASSERT_EQUAL_INT32(123456, value);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+                      xy_fuel_gauge_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
     TEST_ASSERT_EQUAL_INT32(123456, value);
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
@@ -478,6 +486,7 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
     previous_timestamp = fg->latest.timestamp;
     fake_set16(REG_VOLT, 9999);
     fake_set16(REG_CURR, 1234);
+    fake_set16(REG_AVG_CURR, 1111);
     fake_set16(REG_SOC, 8800);
     fake_set16(REG_REM_CAP, 6000);
     fake_set16(REG_FULL_CAP, 7200);
@@ -500,6 +509,8 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
     TEST_ASSERT_EQUAL_UINT16(15234, voltage);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(-654, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-543, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(75, value);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
@@ -525,6 +536,8 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
     TEST_ASSERT_EQUAL_UINT16(9999, voltage);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(1234, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(1111, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(88, value);
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(fg));
