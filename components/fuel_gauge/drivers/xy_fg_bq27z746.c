@@ -220,6 +220,9 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
         case XY_FG_DATA_CURRENT:
             *val = priv->data.current_ma;
             break;
+        case XY_FG_DATA_AVERAGE_CURRENT:
+            *val = priv->data.current_ma;
+            break;
         case XY_FG_DATA_SOC:
             *val = priv->data.soc;
             break;
