@@ -39,6 +39,10 @@ typedef struct {
  */
 static int bq27z561_init(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
     
     /* 读取设备 ID */
@@ -59,6 +63,10 @@ static int bq27z561_init(xy_fuel_gauge_t *fg)
  */
 static int bq27z561_fetch(xy_fuel_gauge_t *fg)
 {
+    if (!fg || !fg->data) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
     
     /* 读取电压 (mV) */
@@ -123,11 +131,11 @@ static int bq27z561_channel_get(xy_fuel_gauge_t *fg,
                                 xy_fuel_gauge_data_type_t channel,
                                 int32_t *val)
 {
-    bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
-    
-    if (!val) {
+    if (!fg || !fg->data || !val) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
+
+    bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
     
     switch (channel) {
         case XY_FG_DATA_VOLTAGE:
