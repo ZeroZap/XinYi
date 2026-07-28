@@ -314,6 +314,13 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_get(fg, NULL));
     TEST_ASSERT_EQUAL_INT16(0x1111, readback.over_current_ma);
     TEST_ASSERT_EQUAL_INT16(0x2222, readback.over_temp_c);
+
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(&missing_data));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(&missing_data));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_full(&missing_data));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_protected(&missing_data));
+    TEST_ASSERT_EQUAL_UINT32(0, xy_fuel_gauge_bq40z50_get_protection_status(&missing_data));
+    TEST_ASSERT_EQUAL_UINT8(0, xy_fuel_gauge_bq40z50_get_balance_status(&missing_data));
 }
 
 void test_bq40z50_alert_set_get_uses_cached_thresholds(void)
