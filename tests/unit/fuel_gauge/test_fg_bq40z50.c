@@ -283,9 +283,15 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
                       xy_fuel_gauge_bq40z50_get_battery_voltage(NULL, &voltage));
     TEST_ASSERT_EQUAL_UINT16(4321, voltage);
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_battery_voltage(&missing_data, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(4321, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_bq40z50_get_battery_voltage(fg, NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_bq40z50_get_cell_voltage(NULL, 1, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(4321, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(&missing_data, 1, &voltage));
     TEST_ASSERT_EQUAL_UINT16(4321, voltage);
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 1, NULL));
