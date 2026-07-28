@@ -334,6 +334,39 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(fg));
 }
 
+void test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z746();
+    uint16_t voltage = 0x0746;
+    int16_t current = -746;
+    uint8_t soc = 74;
+    uint8_t soh = 46;
+    int16_t temp = -27;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    fake_fail_reads(REG_VOLT, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x0746, voltage);
+
+    fake_fail_reads(REG_CURR, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_current(fg, &current));
+    TEST_ASSERT_EQUAL_INT16(-746, current);
+
+    fake_fail_reads(REG_SOC, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soc(fg, &soc));
+    TEST_ASSERT_EQUAL_UINT8(74, soc);
+
+    fake_fail_reads(REG_SOH, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soh(fg, &soh));
+    TEST_ASSERT_EQUAL_UINT8(46, soh);
+
+    fake_fail_reads(REG_TEMP, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_temperature(fg, &temp));
+    TEST_ASSERT_EQUAL_INT16(-27, temp);
+}
+
 void test_bq27z746_status_helpers_handle_null(void)
 {
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_charging(NULL));
@@ -407,6 +440,7 @@ int main(void)
     RUN_TEST(test_bq27z746_rejects_unsupported_channel);
     RUN_TEST(test_bq27z746_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq27z746_fetch_failure_preserves_cached_snapshot);
+    RUN_TEST(test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure);
     RUN_TEST(test_bq27z746_status_helpers_handle_null);
     RUN_TEST(test_bq27z746_direct_api_guards_missing_device_data);
     return UNITY_END();
