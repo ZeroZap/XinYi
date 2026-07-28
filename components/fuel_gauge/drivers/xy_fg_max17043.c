@@ -119,6 +119,9 @@ static int max17043_channel_get(xy_fuel_gauge_t *fg,
     }
 
     max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
     
     switch (channel) {
         case XY_FG_DATA_VOLTAGE:
