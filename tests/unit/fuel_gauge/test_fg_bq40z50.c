@@ -547,6 +547,39 @@ void test_bq40z50_retries_discharge_status_path(void)
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_discharging(fg));
 }
 
+void test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+    uint16_t voltage = 0x4050;
+    int16_t current = -4050;
+    uint8_t soc = 40;
+    uint8_t soh = 50;
+    int16_t temp = -405;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    fake_fail_reads(REG_VOLT, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+
+    fake_fail_reads(REG_CURR, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_current(fg, &current));
+    TEST_ASSERT_EQUAL_INT16(-4050, current);
+
+    fake_fail_reads(REG_SOC, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soc(fg, &soc));
+    TEST_ASSERT_EQUAL_UINT8(40, soc);
+
+    fake_fail_reads(REG_FULL_CAP, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soh(fg, &soh));
+    TEST_ASSERT_EQUAL_UINT8(50, soh);
+
+    fake_fail_reads(REG_TEMP, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_temperature(fg, &temp));
+    TEST_ASSERT_EQUAL_INT16(-405, temp);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -560,5 +593,6 @@ int main(void)
     RUN_TEST(test_bq40z50_public_helpers_use_cached_snapshot_without_i2c_side_effects);
     RUN_TEST(test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure);
     RUN_TEST(test_bq40z50_retries_discharge_status_path);
+    RUN_TEST(test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure);
     return UNITY_END();
 }
