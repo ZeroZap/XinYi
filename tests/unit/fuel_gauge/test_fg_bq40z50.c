@@ -279,6 +279,14 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
                       fg->api->channel_get(&missing_data, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(123456, value);
 
+    fg->initialized = false;
+    xy_fuel_gauge_deinit(fg);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(123456, value);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_get(fg, XY_FG_DATA_TIME_TO_EMPTY, &value));
     TEST_ASSERT_EQUAL_INT32(123456, value);
@@ -291,6 +299,7 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       fg->api->channel_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
     TEST_ASSERT_EQUAL_INT32(123456, value);
+
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
