@@ -407,7 +407,14 @@ void test_max17043_alert_set_get_uses_cached_thresholds(void)
         .over_current_ma = 1800,
         .over_temp_c = 55,
     };
-    xy_fuel_gauge_alert_t readback;
+    xy_fuel_gauge_alert_t readback = {
+        .low_soc_threshold = 0xA1,
+        .high_soc_threshold = 0xB2,
+        .low_voltage_mv = 0xC3C4,
+        .high_voltage_mv = 0xD5D6,
+        .over_current_ma = 0x1718,
+        .over_temp_c = 0x191A,
+    };
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
@@ -416,6 +423,16 @@ void test_max17043_alert_set_get_uses_cached_thresholds(void)
                       xy_fuel_gauge_set_alert(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_get_alert(NULL, &readback));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->alert_set(fg, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->alert_get(fg, &readback));
+    TEST_ASSERT_EQUAL_UINT8(0xA1, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(0xB2, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT16(0xC3C4, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT16(0xD5D6, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL_INT16(0x1718, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_INT16(0x191A, readback.over_temp_c);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,

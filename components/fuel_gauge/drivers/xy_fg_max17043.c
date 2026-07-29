@@ -147,6 +147,10 @@ static int max17043_alert_set(xy_fuel_gauge_t *fg,
     }
 
     max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
+
     priv->alert = *alert;
     return XY_FG_OK;
 }
@@ -159,6 +163,10 @@ static int max17043_alert_get(xy_fuel_gauge_t *fg,
     }
 
     max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
+
     *alert = priv->alert;
     return XY_FG_OK;
 }
