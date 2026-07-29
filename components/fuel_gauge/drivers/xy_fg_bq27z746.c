@@ -53,6 +53,7 @@ typedef struct {
     bool initialized;
     xy_fuel_gauge_data_t data;
     xy_fuel_gauge_alert_t alert;
+    int16_t average_current_ma;
     uint16_t flags;
     uint8_t device_type[2];
 } bq27z746_private_data_t;
@@ -125,6 +126,7 @@ static int bq27z746_fetch(xy_fuel_gauge_t *fg)
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
     uint16_t value;
     xy_fuel_gauge_data_t snapshot;
+    int16_t average_current_ma;
     uint16_t flags;
 
     if (!priv->initialized) {
@@ -132,6 +134,7 @@ static int bq27z746_fetch(xy_fuel_gauge_t *fg)
     }
     
     snapshot = priv->data;
+    average_current_ma = priv->average_current_ma;
     flags = priv->flags;
 
     /* 读取电压 (mV) */
@@ -147,13 +150,13 @@ static int bq27z746_fetch(xy_fuel_gauge_t *fg)
     /* BQ27Z746 电流为有符号数，正=充电，负=放电 */
     snapshot.current_ma = (int16_t)value;
 
-    /* 读取平均电流 (mA)。公共数据结构尚无独立平均电流缓存；仍然读取该寄存器，
-     * 确保 fetch 的 I/O 快照覆盖完整电流契约。channel_get(AVERAGE_CURRENT)
-     * 暂按现有 API 形状返回 current_ma。
+    /* 读取平均电流 (mA)。公共数据结构尚无独立平均电流字段，驱动私有缓存该值，
+     * 供 channel_get(AVERAGE_CURRENT) 返回。
      */
     if (bq27z746_read_reg16(priv, BQ27Z746_REG_AVG_CURR, &value) != 0) {
         return XY_FG_ERROR;
     }
+    average_current_ma = (int16_t)value;
     
     /* 读取 SOC (%) */
     if (bq27z746_read_reg16(priv, BQ27Z746_REG_SOC, &value) != 0) {
@@ -199,6 +202,7 @@ static int bq27z746_fetch(xy_fuel_gauge_t *fg)
 
     priv->data = snapshot;
     fg->latest = snapshot;
+    priv->average_current_ma = average_current_ma;
     priv->flags = flags;
     
     xy_log_d("BQ27Z746: V=%dmV, I=%dmA, SOC=%d%%, SOH=%d%%\n",
@@ -229,7 +233,7 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
             *val = priv->data.current_ma;
             break;
         case XY_FG_DATA_AVERAGE_CURRENT:
-            *val = priv->data.current_ma;
+            *val = priv->average_current_ma;
             break;
         case XY_FG_DATA_SOC:
             *val = priv->data.soc;
