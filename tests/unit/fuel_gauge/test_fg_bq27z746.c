@@ -273,6 +273,14 @@ void test_bq27z746_alert_set_get_uses_cached_thresholds(void)
         .over_temp_c = 65,
     };
     xy_fuel_gauge_alert_t readback;
+    xy_fuel_gauge_alert_t sentinel = {
+        .low_soc_threshold = 0xA1,
+        .high_soc_threshold = 0xB2,
+        .low_voltage_mv = 0xC3C4,
+        .high_voltage_mv = 0xD5D6,
+        .over_current_ma = 0x1718,
+        .over_temp_c = 0x191A,
+    };
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
@@ -281,6 +289,16 @@ void test_bq27z746_alert_set_get_uses_cached_thresholds(void)
                       xy_fuel_gauge_set_alert(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_get_alert(NULL, &readback));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->alert_set(fg, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->alert_get(fg, &sentinel));
+    TEST_ASSERT_EQUAL_UINT8(0xA1, sentinel.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(0xB2, sentinel.high_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT16(0xC3C4, sentinel.low_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT16(0xD5D6, sentinel.high_voltage_mv);
+    TEST_ASSERT_EQUAL_INT16(0x1718, sentinel.over_current_ma);
+    TEST_ASSERT_EQUAL_INT16(0x191A, sentinel.over_temp_c);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
@@ -460,12 +478,12 @@ void test_bq27z746_direct_api_guards_missing_device_data(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
     TEST_ASSERT_EQUAL_INT32(12345, value);
-    TEST_ASSERT_EQUAL(XY_FG_OK,
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
                       fg->api->channel_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
-    TEST_ASSERT_EQUAL_INT32(123, value);
-    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+    TEST_ASSERT_EQUAL_INT32(12345, value);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
                       fg->api->channel_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
-    TEST_ASSERT_EQUAL_INT32(123, value);
+    TEST_ASSERT_EQUAL_INT32(12345, value);
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(&missing_data, &alert));

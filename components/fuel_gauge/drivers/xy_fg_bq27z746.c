@@ -227,7 +227,7 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
     }
 
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
-    if (!priv->initialized) {
+    if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
 
@@ -273,6 +273,10 @@ static int bq27z746_alert_set(xy_fuel_gauge_t *fg,
     }
 
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
+
     priv->alert = *alert;
     return XY_FG_OK;
 }
@@ -285,6 +289,10 @@ static int bq27z746_alert_get(xy_fuel_gauge_t *fg,
     }
 
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
+
     *alert = priv->alert;
     return XY_FG_OK;
 }
