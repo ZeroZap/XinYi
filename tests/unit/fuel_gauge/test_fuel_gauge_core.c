@@ -16,6 +16,8 @@ FAKE_VALUE_FUNC(uint32_t, xy_os_tick_get)
 FAKE_VALUE_FUNC(int, fake_init, xy_fuel_gauge_t *)
 FAKE_VALUE_FUNC(int, fake_fetch, xy_fuel_gauge_t *)
 FAKE_VALUE_FUNC(int, fake_channel_get, xy_fuel_gauge_t *, xy_fuel_gauge_data_type_t, int32_t *)
+FAKE_VALUE_FUNC(int, fake_alert_set, xy_fuel_gauge_t *, const xy_fuel_gauge_alert_t *)
+FAKE_VALUE_FUNC(int, fake_alert_get, xy_fuel_gauge_t *, xy_fuel_gauge_alert_t *)
 FAKE_VOID_FUNC(count_device, xy_fuel_gauge_t *, void *)
 
 void setUp(void)
@@ -91,6 +93,8 @@ static void reset_fixture(void)
     RESET_FAKE(fake_init);
     RESET_FAKE(fake_fetch);
     RESET_FAKE(fake_channel_get);
+    RESET_FAKE(fake_alert_set);
+    RESET_FAKE(fake_alert_get);
     RESET_FAKE(count_device);
     FFF_RESET_HISTORY();
 
@@ -98,6 +102,8 @@ static void reset_fixture(void)
     fake_init_fake.custom_fake = fake_init_impl;
     fake_fetch_fake.custom_fake = fake_fetch_impl;
     fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_alert_set_fake.return_val = XY_FG_OK;
+    fake_alert_get_fake.return_val = XY_FG_OK;
 
     memset(&fake_data, 0, sizeof(fake_data));
     fake_data.voltage_mv = 16800;
@@ -177,6 +183,47 @@ static void test_core_public_calls_reject_initialized_device_without_api(void)
     TEST_ASSERT_EQUAL_UINT(0U, xy_os_tick_get_fake.call_count);
 }
 
+static void test_core_public_calls_reject_missing_callbacks_without_side_effects(void)
+{
+    static const xy_fuel_gauge_api_t no_callbacks = {0};
+    static const xy_fuel_gauge_api_t no_channel = {
+        .init = fake_init,
+        .fetch = fake_fetch,
+    };
+    static const xy_fuel_gauge_api_t no_alerts = {
+        .init = fake_init,
+        .fetch = fake_fetch,
+        .channel_get = fake_channel_get,
+    };
+    xy_fuel_gauge_t fg;
+    xy_fuel_gauge_alert_t alert;
+    int32_t value = 0x12345678;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    memset(&alert, 0, sizeof(alert));
+    fg.name = "fg-no-callbacks";
+    fg.api = &no_callbacks;
+    fg.initialized = true;
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED, xy_fuel_gauge_fetch(&fg));
+    TEST_ASSERT_EQUAL_UINT(0U, fake_fetch_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_os_tick_get_fake.call_count);
+
+    fg.api = &no_channel;
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED,
+                          xy_fuel_gauge_get(&fg, XY_FG_DATA_TIME_TO_EMPTY, &value));
+    TEST_ASSERT_EQUAL_INT32(0x12345678, value);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_fetch_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_os_tick_get_fake.call_count);
+
+    fg.api = &no_alerts;
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED, xy_fuel_gauge_set_alert(&fg, &alert));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED, xy_fuel_gauge_get_alert(&fg, &alert));
+    TEST_ASSERT_EQUAL_UINT(0U, fake_alert_set_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, fake_alert_get_fake.call_count);
+}
+
 static void test_status_safety_security_helpers(void)
 {
     static const xy_fuel_gauge_api_t api = {
@@ -251,6 +298,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_register_init_get_foreach);
     RUN_TEST(test_core_public_calls_reject_initialized_device_without_api);
+    RUN_TEST(test_core_public_calls_reject_missing_callbacks_without_side_effects);
     RUN_TEST(test_status_safety_security_helpers);
     return UNITY_END();
 }
