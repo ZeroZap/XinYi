@@ -15,7 +15,7 @@
 - `core/` - standalone core 与扩展模块实现
 - `drivers/` - 具体 Fuel Gauge 芯片驱动
 
-## ✅ 验证
+## ✅ Host 验证契约
 
 Focused CTest targets:
 
@@ -24,6 +24,15 @@ Focused CTest targets:
 - `fg_bq40z50`
 - `fg_max17043`
 - `fg_bq27z561`
+
+Host 覆盖当前固定以下公共契约，避免后续驱动回归：
+
+- Core API 拒绝 `NULL`/未初始化设备/缺失回调，并在失败路径保留调用者输出。
+- `xy_fuel_gauge_fetch()` 只有在驱动抓取成功后才更新时间戳。
+- 芯片驱动 `init()` 失败时不能留下可见的 stale private initialized/status/cache 状态。
+- 芯片驱动 `fetch()` 失败时保持上一份完整快照和状态位，不提交半更新数据。
+- inline getter 与芯片专用 getter 在底层失败时保持调用者传入的 sentinel 输出值。
+- 告警阈值 API 在 host 侧使用本地 cache；真实硬件阈值编程仍归入硬件验证项。
 
 Run all unit coverage with:
 
