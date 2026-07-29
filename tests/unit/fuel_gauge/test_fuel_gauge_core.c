@@ -272,6 +272,49 @@ static void test_core_public_calls_reject_missing_callbacks_without_side_effects
     TEST_ASSERT_EQUAL_UINT(0U, fake_alert_get_fake.call_count);
 }
 
+static void test_core_cached_data_fallback_covers_supported_channels(void)
+{
+    static const xy_fuel_gauge_api_t no_channel = {
+        .init = fake_init,
+        .fetch = fake_fetch,
+    };
+    xy_fuel_gauge_t fg;
+    int32_t value = 0;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    fg.name = "fg-cache-fallback";
+    fg.api = &no_channel;
+    fg.initialized = true;
+    fg.latest.voltage_mv = 3600;
+    fg.latest.current_ma = -250;
+    fg.latest.soc = 44;
+    fg.latest.soh = 91;
+    fg.latest.temperature_c = 312;
+    fg.latest.cycle_count = 1234;
+    fg.latest.full_capacity_mah = 2800;
+    fg.latest.remain_capacity_mah = 1350;
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3601, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-250, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(44, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_SOH, &value));
+    TEST_ASSERT_EQUAL_INT32(91, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_TEMPERATURE, &value));
+    TEST_ASSERT_EQUAL_INT32(312, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_CYCLE_COUNT, &value));
+    TEST_ASSERT_EQUAL_INT32(1234, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_FULL_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(2800, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get(&fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(1350, value);
+    TEST_ASSERT_EQUAL_UINT(8U, fake_fetch_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(8U, xy_os_tick_get_fake.call_count);
+}
+
 static void test_status_safety_security_helpers(void)
 {
     static const xy_fuel_gauge_api_t api = {
@@ -348,6 +391,7 @@ int main(void)
     RUN_TEST(test_core_init_failure_preserves_status_and_return_code);
     RUN_TEST(test_core_public_calls_reject_initialized_device_without_api);
     RUN_TEST(test_core_public_calls_reject_missing_callbacks_without_side_effects);
+    RUN_TEST(test_core_cached_data_fallback_covers_supported_channels);
     RUN_TEST(test_status_safety_security_helpers);
     return UNITY_END();
 }
