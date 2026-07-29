@@ -384,6 +384,12 @@ void test_bq27z561_alert_set_get_uses_cached_thresholds(void)
                       xy_fuel_gauge_set_alert(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_get_alert(NULL, &readback));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->alert_set(fg, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->alert_get(fg, &readback));
+    TEST_ASSERT_EQUAL_UINT8(0, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(0, readback.high_soc_threshold);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
