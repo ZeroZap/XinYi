@@ -636,19 +636,19 @@ void test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure(void)
 
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_voltage(NULL, &voltage));
     TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
-    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_voltage(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_voltage(fg, NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_current(NULL, &current));
     TEST_ASSERT_EQUAL_INT16(-4050, current);
-    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_current(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_current(fg, NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_soc(NULL, &soc));
     TEST_ASSERT_EQUAL_UINT8(40, soc);
-    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_soc(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_soc(fg, NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_soh(NULL, &soh));
     TEST_ASSERT_EQUAL_UINT8(50, soh);
-    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_soh(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_soh(fg, NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_temperature(NULL, &temp));
     TEST_ASSERT_EQUAL_INT16(-405, temp);
-    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_temperature(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_temperature(fg, NULL));
 
     fake_fail_reads(REG_VOLT, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_voltage(fg, &voltage));

@@ -194,6 +194,11 @@ static void test_core_public_calls_reject_initialized_device_without_api(void)
     xy_fuel_gauge_t fg;
     xy_fuel_gauge_alert_t alert;
     int32_t value = 0x12345678;
+    uint16_t voltage = 0x1234;
+    int16_t current = -1234;
+    uint8_t soc = 12;
+    uint8_t soh = 34;
+    int16_t temp = -567;
 
     reset_fixture();
     memset(&fg, 0, sizeof(fg));
@@ -205,6 +210,21 @@ static void test_core_public_calls_reject_initialized_device_without_api(void)
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
                           xy_fuel_gauge_get(&fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(0x12345678, value);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_voltage(&fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x1234, voltage);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_voltage(&fg, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_current(&fg, &current));
+    TEST_ASSERT_EQUAL_INT16(-1234, current);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_current(&fg, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_soc(&fg, &soc));
+    TEST_ASSERT_EQUAL_UINT8(12, soc);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_soc(&fg, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_soh(&fg, &soh));
+    TEST_ASSERT_EQUAL_UINT8(34, soh);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_soh(&fg, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_temperature(&fg, &temp));
+    TEST_ASSERT_EQUAL_INT16(-567, temp);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_temperature(&fg, NULL));
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_set_alert(&fg, &alert));
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_alert(&fg, &alert));
     TEST_ASSERT_EQUAL_UINT(0U, fake_fetch_fake.call_count);

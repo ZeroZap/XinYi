@@ -155,9 +155,13 @@ xy_fuel_gauge_status_t xy_fuel_gauge_get(xy_fuel_gauge_t *fg,
 static inline xy_fuel_gauge_status_t 
 xy_fuel_gauge_get_voltage(xy_fuel_gauge_t *fg, uint16_t *voltage_mv)
 {
+    if (!voltage_mv) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     int32_t val;
     xy_fuel_gauge_status_t ret = xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &val);
-    if (ret == XY_FG_OK && voltage_mv) {
+    if (ret == XY_FG_OK) {
         *voltage_mv = (uint16_t)val;
     }
     return ret;
@@ -172,9 +176,13 @@ xy_fuel_gauge_get_voltage(xy_fuel_gauge_t *fg, uint16_t *voltage_mv)
 static inline xy_fuel_gauge_status_t 
 xy_fuel_gauge_get_current(xy_fuel_gauge_t *fg, int16_t *current_ma)
 {
+    if (!current_ma) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     int32_t val;
     xy_fuel_gauge_status_t ret = xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &val);
-    if (ret == XY_FG_OK && current_ma) {
+    if (ret == XY_FG_OK) {
         *current_ma = (int16_t)val;
     }
     return ret;
@@ -189,9 +197,13 @@ xy_fuel_gauge_get_current(xy_fuel_gauge_t *fg, int16_t *current_ma)
 static inline xy_fuel_gauge_status_t 
 xy_fuel_gauge_get_soc(xy_fuel_gauge_t *fg, uint8_t *soc_pct)
 {
+    if (!soc_pct) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     int32_t val;
     xy_fuel_gauge_status_t ret = xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &val);
-    if (ret == XY_FG_OK && soc_pct) {
+    if (ret == XY_FG_OK) {
         *soc_pct = (uint8_t)val;
     }
     return ret;
@@ -206,9 +218,13 @@ xy_fuel_gauge_get_soc(xy_fuel_gauge_t *fg, uint8_t *soc_pct)
 static inline xy_fuel_gauge_status_t 
 xy_fuel_gauge_get_soh(xy_fuel_gauge_t *fg, uint8_t *soh_pct)
 {
+    if (!soh_pct) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     int32_t val;
     xy_fuel_gauge_status_t ret = xy_fuel_gauge_get(fg, XY_FG_DATA_SOH, &val);
-    if (ret == XY_FG_OK && soh_pct) {
+    if (ret == XY_FG_OK) {
         *soh_pct = (uint8_t)val;
     }
     return ret;
@@ -223,9 +239,13 @@ xy_fuel_gauge_get_soh(xy_fuel_gauge_t *fg, uint8_t *soh_pct)
 static inline xy_fuel_gauge_status_t 
 xy_fuel_gauge_get_temperature(xy_fuel_gauge_t *fg, int16_t *temp_c)
 {
+    if (!temp_c) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     int32_t val;
     xy_fuel_gauge_status_t ret = xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &val);
-    if (ret == XY_FG_OK && temp_c) {
+    if (ret == XY_FG_OK) {
         *temp_c = (int16_t)val;
     }
     return ret;
