@@ -68,6 +68,9 @@ static int bq27z561_fetch(xy_fuel_gauge_t *fg)
     }
 
     bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
     
     /* 读取电压 (mV) */
     uint16_t voltage;

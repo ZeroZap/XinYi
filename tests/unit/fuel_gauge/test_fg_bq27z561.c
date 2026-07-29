@@ -186,6 +186,11 @@ void test_bq27z561_fetch_and_channel_get(void)
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
 
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED, fg->api->fetch(fg));
+    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
+
+    fg->initialized = true;
     xy_sensor_i2c_read_reg16_fake.call_count = 0;
     xy_sensor_i2c_read_reg_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 27561;
