@@ -107,6 +107,9 @@ static int bq27z746_init(xy_fuel_gauge_t *fg)
     /* 读取标志位 */
     if (bq27z746_read_reg16(priv, BQ27Z746_REG_FLAGS, &priv->flags) != 0) {
         xy_log_w("BQ27Z746: Failed to read flags\n");
+        priv->flags = 0;
+        priv->initialized = false;
+        return XY_FG_ERROR;
     }
     
     priv->initialized = true;
