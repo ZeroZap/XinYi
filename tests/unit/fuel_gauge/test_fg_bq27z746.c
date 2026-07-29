@@ -228,6 +228,23 @@ void test_bq27z746_init_fails_after_exhausted_device_type_retries(void)
     TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_read_fake.call_count);
 }
 
+void test_bq27z746_direct_init_failure_clears_stale_private_state(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z746();
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(fg));
+    TEST_ASSERT_EQUAL_UINT16(0x0009, xy_fuel_gauge_bq27z746_get_flags(fg));
+
+    fake_fail_reads(REG_CTRL, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, fg->api->init(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_charging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_full(fg));
+    TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(fg));
+}
+
 void test_bq27z746_init_propagates_flags_read_failure(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z746();
@@ -510,6 +527,7 @@ int main(void)
     RUN_TEST(test_bq27z746_init_fetch_and_channel_get);
     RUN_TEST(test_bq27z746_init_retries_transient_device_type_read_failure);
     RUN_TEST(test_bq27z746_init_fails_after_exhausted_device_type_retries);
+    RUN_TEST(test_bq27z746_direct_init_failure_clears_stale_private_state);
     RUN_TEST(test_bq27z746_init_propagates_flags_read_failure);
     RUN_TEST(test_bq27z746_rejects_uninitialized_and_unsupported_channel);
     RUN_TEST(test_bq27z746_alert_set_get_uses_cached_thresholds);

@@ -99,6 +99,8 @@ static int bq27z746_init(xy_fuel_gauge_t *fg)
     /* 读取设备类型验证连接 */
     if (bq27z746_read_reg16(priv, BQ27Z746_REG_CTRL, &device_type) != 0) {
         xy_log_e("BQ27Z746: Failed to read device type\n");
+        priv->flags = 0;
+        priv->initialized = false;
         return XY_FG_ERROR;
     }
     
