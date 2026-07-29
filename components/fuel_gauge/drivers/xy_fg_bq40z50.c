@@ -144,6 +144,10 @@ static int bq40z50_init(xy_fuel_gauge_t *fg)
     /* 读取设备类型验证连接 */
     if (bq40z50_read_reg16(priv, BQ40Z50_REG_CTRL, &device_type) != 0) {
         xy_log_e("BQ40Z50: Failed to read device type\n");
+        priv->bat_status = 0;
+        priv->prot_status = 0;
+        priv->balance_status = 0;
+        priv->initialized = false;
         return XY_FG_ERROR;
     }
     

@@ -458,6 +458,28 @@ void test_bq40z50_init_tolerates_optional_status_read_failures(void)
     TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 }
 
+void test_bq40z50_direct_init_failure_clears_stale_private_state(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_full(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_protected(fg));
+    TEST_ASSERT_EQUAL_UINT32(0x00000051, xy_fuel_gauge_bq40z50_get_protection_status(fg));
+    TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+
+    fake_fail_reads(REG_CTRL, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, fg->api->init(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_full(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_protected(fg));
+    TEST_ASSERT_EQUAL_UINT32(0, xy_fuel_gauge_bq40z50_get_protection_status(fg));
+    TEST_ASSERT_EQUAL_UINT8(0, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+}
+
 void test_bq40z50_fetch_updates_balance_status_cache(void)
 {
     xy_fuel_gauge_t *fg = registered_bq40z50();
@@ -658,6 +680,7 @@ int main(void)
     RUN_TEST(test_bq40z50_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq40z50_status_helpers_handle_null_and_persistent_nack);
     RUN_TEST(test_bq40z50_init_tolerates_optional_status_read_failures);
+    RUN_TEST(test_bq40z50_direct_init_failure_clears_stale_private_state);
     RUN_TEST(test_bq40z50_fetch_updates_balance_status_cache);
     RUN_TEST(test_bq40z50_public_helpers_use_cached_snapshot_without_i2c_side_effects);
     RUN_TEST(test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure);
