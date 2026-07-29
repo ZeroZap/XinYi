@@ -63,13 +63,13 @@ xy_fuel_gauge_status_t xy_fuel_gauge_init(xy_fuel_gauge_t *fg)
     }
     
     int ret = fg->api->init(fg);
-    if (ret == 0) {
+    if (ret == XY_FG_OK) {
         fg->initialized = true;
         xy_log_i("Fuel gauge initialized: %s\n", fg->name);
         return XY_FG_OK;
     }
-    
-    return XY_FG_ERROR;
+
+    return ret;
 }
 
 /**

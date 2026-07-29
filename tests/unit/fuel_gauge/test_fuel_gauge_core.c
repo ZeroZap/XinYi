@@ -41,6 +41,12 @@ static int fake_init_impl(xy_fuel_gauge_t *fg)
     return 0;
 }
 
+static int fake_init_error_impl(xy_fuel_gauge_t *fg)
+{
+    fg->latest.voltage_mv = 0xEEEE;
+    return XY_FG_ERROR_INVALID_PARAM;
+}
+
 static int fake_fetch_impl(xy_fuel_gauge_t *fg)
 {
     fg->latest.voltage_mv++;
@@ -159,6 +165,28 @@ static void test_register_init_get_foreach(void)
 
     TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_deinit(&fg));
     TEST_ASSERT_FALSE(fg.initialized);
+}
+
+static void test_core_init_failure_preserves_status_and_return_code(void)
+{
+    static const xy_fuel_gauge_api_t api = {
+        .init = fake_init,
+        .fetch = fake_fetch,
+    };
+    xy_fuel_gauge_t fg;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    fg.name = "fg-init-error";
+    fg.api = &api;
+    fg.latest.voltage_mv = 0x1234;
+    fake_init_fake.custom_fake = fake_init_error_impl;
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_init(&fg));
+    TEST_ASSERT_FALSE(fg.initialized);
+    TEST_ASSERT_EQUAL_UINT16(0xEEEE, fg.latest.voltage_mv);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fg, fake_init_fake.arg0_val);
 }
 
 static void test_core_public_calls_reject_initialized_device_without_api(void)
@@ -297,6 +325,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_register_init_get_foreach);
+    RUN_TEST(test_core_init_failure_preserves_status_and_return_code);
     RUN_TEST(test_core_public_calls_reject_initialized_device_without_api);
     RUN_TEST(test_core_public_calls_reject_missing_callbacks_without_side_effects);
     RUN_TEST(test_status_safety_security_helpers);
