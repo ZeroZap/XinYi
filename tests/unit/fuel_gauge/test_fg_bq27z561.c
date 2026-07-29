@@ -445,6 +445,11 @@ void test_bq27z561_direct_api_guards_preserve_outputs(void)
                       fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
     TEST_ASSERT_EQUAL_INT32(0x561, value);
 
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(0x561, value);
+
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(&missing_data, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(fg, NULL));
