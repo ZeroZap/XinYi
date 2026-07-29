@@ -242,12 +242,19 @@ void test_bq27z746_init_propagates_flags_read_failure(void)
     TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(fg));
 }
 
-void test_bq27z746_rejects_unsupported_channel(void)
+void test_bq27z746_rejects_uninitialized_and_unsupported_channel(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z746();
     int32_t value = 123456;
 
     fg->initialized = false;
+    fake_fail_reads(REG_FLAGS, 3);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(123456, value);
+
+    fake_regs[REG_FLAGS] = 0x0009;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
@@ -473,7 +480,7 @@ int main(void)
     RUN_TEST(test_bq27z746_init_retries_transient_device_type_read_failure);
     RUN_TEST(test_bq27z746_init_fails_after_exhausted_device_type_retries);
     RUN_TEST(test_bq27z746_init_propagates_flags_read_failure);
-    RUN_TEST(test_bq27z746_rejects_unsupported_channel);
+    RUN_TEST(test_bq27z746_rejects_uninitialized_and_unsupported_channel);
     RUN_TEST(test_bq27z746_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq27z746_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure);

@@ -227,6 +227,9 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
     }
 
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    if (!priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
 
     switch (channel) {
         case XY_FG_DATA_VOLTAGE:
