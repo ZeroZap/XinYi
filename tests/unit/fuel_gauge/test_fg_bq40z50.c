@@ -340,6 +340,19 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(&missing_data, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(fg, NULL));
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED, fg->api->alert_set(fg, &alert));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED, fg->api->alert_get(fg, &readback));
+    TEST_ASSERT_EQUAL_UINT8(0xAA, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(0xBB, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT16(0xCCCC, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT16(0xDDDD, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL_INT16(0x1111, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_INT16(0x2222, readback.over_temp_c);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_get(NULL, &readback));
     TEST_ASSERT_EQUAL_UINT8(0xAA, readback.low_soc_threshold);
     TEST_ASSERT_EQUAL_UINT8(0xBB, readback.high_soc_threshold);

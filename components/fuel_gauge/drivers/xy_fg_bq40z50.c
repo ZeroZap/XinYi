@@ -424,6 +424,10 @@ static int bq40z50_alert_set(xy_fuel_gauge_t *fg,
     }
 
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
+
     priv->alert = *alert;
     return XY_FG_OK;
 }
@@ -436,6 +440,10 @@ static int bq40z50_alert_get(xy_fuel_gauge_t *fg,
     }
 
     bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
+
     *alert = priv->alert;
     return XY_FG_OK;
 }
