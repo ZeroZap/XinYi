@@ -178,6 +178,26 @@ void test_bq27z561_init_failure_preserves_uninitialized_state(void)
     TEST_ASSERT_EQUAL_UINT8(REG_DEVICE_ID, xy_sensor_i2c_read_reg16_fake.arg1_val);
 }
 
+void test_bq27z561_direct_init_failure_clears_stale_private_state(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z561();
+    int32_t value = 0;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(66, value);
+
+    fail_reg16 = REG_DEVICE_ID;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, fg->api->init(fg));
+
+    value = 0x27561;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(0x27561, value);
+}
+
 void test_bq27z561_fetch_and_channel_get(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z561();
@@ -470,6 +490,7 @@ int main(void)
     RUN_TEST(test_bq27z561_registers_default_i2c_bus);
     RUN_TEST(test_bq27z561_init_reads_device_id);
     RUN_TEST(test_bq27z561_init_failure_preserves_uninitialized_state);
+    RUN_TEST(test_bq27z561_direct_init_failure_clears_stale_private_state);
     RUN_TEST(test_bq27z561_fetch_and_channel_get);
     RUN_TEST(test_bq27z561_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_bq27z561_rejects_invalid_output_and_unknown_channel);

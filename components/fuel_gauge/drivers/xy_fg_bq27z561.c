@@ -48,6 +48,7 @@ static int bq27z561_init(xy_fuel_gauge_t *fg)
     /* 读取设备 ID */
     uint16_t device_id;
     if (xy_sensor_i2c_read_reg16(&priv->bus, 0x0002, &device_id) != 0) {
+        priv->initialized = false;
         return XY_FG_ERROR;
     }
     
