@@ -51,6 +51,7 @@ static int max17043_init(xy_fuel_gauge_t *fg)
     /* 读取版本 */
     uint16_t version;
     if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_VER, &version) != 0) {
+        priv->initialized = false;
         return XY_FG_ERROR;
     }
     
@@ -58,6 +59,7 @@ static int max17043_init(xy_fuel_gauge_t *fg)
     
     /* 配置：默认配置 */
     if (xy_sensor_i2c_write_reg16(&priv->bus, MAX17043_REG_CONFIG, 0x0000) != 0) {
+        priv->initialized = false;
         return XY_FG_ERROR;
     }
     
