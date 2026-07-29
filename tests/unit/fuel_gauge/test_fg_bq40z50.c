@@ -284,6 +284,18 @@ void test_bq40z50_rejects_invalid_channel_and_cell(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
                       fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(123456, value);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(4321, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 1, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(4321, voltage);
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_full(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_protected(fg));
+    TEST_ASSERT_EQUAL_UINT32(0, xy_fuel_gauge_bq40z50_get_protection_status(fg));
+    TEST_ASSERT_EQUAL_UINT8(0, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
 
