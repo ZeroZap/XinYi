@@ -403,11 +403,24 @@ void test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure(void)
     TEST_ASSERT_EQUAL_INT16(-27, temp);
 }
 
-void test_bq27z746_status_helpers_handle_null(void)
+void test_bq27z746_status_helpers_handle_null_and_uninitialized(void)
 {
+    xy_fuel_gauge_t *fg = registered_bq27z746();
+
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_charging(NULL));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_full(NULL));
     TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(NULL));
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(fg));
+    TEST_ASSERT_EQUAL_UINT16(0x0009, xy_fuel_gauge_bq27z746_get_flags(fg));
+
+    fg->initialized = false;
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_charging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_full(fg));
+    TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(fg));
 }
 
 void test_bq27z746_direct_api_guards_missing_device_data(void)
@@ -484,7 +497,7 @@ int main(void)
     RUN_TEST(test_bq27z746_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq27z746_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure);
-    RUN_TEST(test_bq27z746_status_helpers_handle_null);
+    RUN_TEST(test_bq27z746_status_helpers_handle_null_and_uninitialized);
     RUN_TEST(test_bq27z746_direct_api_guards_missing_device_data);
     return UNITY_END();
 }

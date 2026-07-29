@@ -294,11 +294,15 @@ static int bq27z746_alert_get(xy_fuel_gauge_t *fg,
  */
 bool xy_fuel_gauge_bq27z746_is_charging(xy_fuel_gauge_t *fg)
 {
-    if (!fg || !fg->data) {
+    if (!fg || !fg->initialized || !fg->data) {
         return false;
     }
 
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    if (!priv->initialized) {
+        return false;
+    }
+
     return (priv->flags & BQ27Z746_FLAG_CHG) != 0;
 }
 
@@ -307,11 +311,15 @@ bool xy_fuel_gauge_bq27z746_is_charging(xy_fuel_gauge_t *fg)
  */
 bool xy_fuel_gauge_bq27z746_is_full(xy_fuel_gauge_t *fg)
 {
-    if (!fg || !fg->data) {
+    if (!fg || !fg->initialized || !fg->data) {
         return false;
     }
 
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    if (!priv->initialized) {
+        return false;
+    }
+
     return (priv->flags & BQ27Z746_FLAG_FC) != 0;
 }
 
@@ -320,11 +328,15 @@ bool xy_fuel_gauge_bq27z746_is_full(xy_fuel_gauge_t *fg)
  */
 uint16_t xy_fuel_gauge_bq27z746_get_flags(xy_fuel_gauge_t *fg)
 {
-    if (!fg || !fg->data) {
+    if (!fg || !fg->initialized || !fg->data) {
         return 0;
     }
 
     bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    if (!priv->initialized) {
+        return 0;
+    }
+
     return priv->flags;
 }
 
