@@ -217,6 +217,13 @@ void test_bq27z561_fetch_and_channel_get(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT(1, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(27561, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT16(3700, fg->latest.voltage_mv);
+    TEST_ASSERT_EQUAL_INT16(-123, fg->latest.current_ma);
+    TEST_ASSERT_EQUAL_UINT8(66, fg->latest.soc);
+    TEST_ASSERT_EQUAL_UINT8(97, fg->latest.soh);
+    TEST_ASSERT_EQUAL_INT16(250, fg->latest.temperature_c);
+    TEST_ASSERT_EQUAL_UINT16(3000, fg->latest.full_capacity_mah);
+    TEST_ASSERT_EQUAL_UINT16(1980, fg->latest.remain_capacity_mah);
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(5, xy_sensor_i2c_read_reg16_fake.call_count);
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(2, xy_sensor_i2c_read_reg_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_REM_CAP, xy_sensor_i2c_read_reg16_fake.arg1_val);

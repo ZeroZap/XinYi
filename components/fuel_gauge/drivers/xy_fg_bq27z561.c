@@ -124,6 +124,7 @@ static int bq27z561_fetch(xy_fuel_gauge_t *fg)
     priv->data.temperature_c = temp_c;
     priv->data.full_capacity_mah = full_cap;
     priv->data.remain_capacity_mah = rem_cap;
+    fg->latest = priv->data;
     
     return 0;
 }
