@@ -78,6 +78,9 @@ static int max17043_fetch(xy_fuel_gauge_t *fg)
     }
 
     max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
     
     /* 读取电压 (mV), VCELL LSB = 1.25mV */
     uint16_t vcell;

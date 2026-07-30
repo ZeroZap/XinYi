@@ -385,6 +385,10 @@ void test_max17043_direct_api_guards_preserve_outputs(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->fetch(NULL));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->fetch(&missing_data));
 
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED, fg->api->fetch(fg));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_i2c_read_reg16_fake.call_count);
+
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       fg->api->channel_get(NULL, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(12345, value);
@@ -397,7 +401,6 @@ void test_max17043_direct_api_guards_preserve_outputs(void)
                       fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
     TEST_ASSERT_EQUAL_INT32(12345, value);
 
-    fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
                       fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(12345, value);
