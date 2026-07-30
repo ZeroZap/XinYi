@@ -333,6 +333,29 @@ void test_max17043_rejects_unsupported_channel(void)
                       xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &value));
 }
 
+void test_max17043_unsupported_inline_getters_preserve_outputs(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+    uint8_t soh = 88;
+    int16_t temperature = 251;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    xy_os_tick_get_fake.return_val = 17043;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED, xy_fuel_gauge_get_soh(fg, &soh));
+    TEST_ASSERT_EQUAL_UINT8(88, soh);
+    TEST_ASSERT_EQUAL_UINT32(17043, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(1, xy_os_tick_get_fake.call_count);
+
+    xy_os_tick_get_fake.return_val = 18000;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+                      xy_fuel_gauge_get_temperature(fg, &temperature));
+    TEST_ASSERT_EQUAL_INT16(251, temperature);
+    TEST_ASSERT_EQUAL_UINT32(18000, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(2, xy_os_tick_get_fake.call_count);
+}
+
 void test_max17043_inline_getters_preserve_outputs_on_failure(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
@@ -485,6 +508,7 @@ int main(void)
     RUN_TEST(test_max17043_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_max17043_fetch_failure_does_not_tick_or_poison_later_retry);
     RUN_TEST(test_max17043_rejects_unsupported_channel);
+    RUN_TEST(test_max17043_unsupported_inline_getters_preserve_outputs);
     RUN_TEST(test_max17043_inline_getters_preserve_outputs_on_failure);
     RUN_TEST(test_max17043_direct_api_guards_preserve_outputs);
     RUN_TEST(test_max17043_alert_set_get_uses_cached_thresholds);
