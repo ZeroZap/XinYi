@@ -325,12 +325,18 @@ void test_max17043_fetch_failure_does_not_tick_or_poison_later_retry(void)
 void test_max17043_rejects_unsupported_channel(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
-    int32_t value = 0;
+    int32_t value = 0x17043;
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
                       xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &value));
+    TEST_ASSERT_EQUAL_INT32(0x17043, value);
+
+    value = 0x4317;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+                      fg->api->channel_get(fg, XY_FG_DATA_TEMPERATURE, &value));
+    TEST_ASSERT_EQUAL_INT32(0x4317, value);
 }
 
 void test_max17043_unsupported_inline_getters_preserve_outputs(void)
