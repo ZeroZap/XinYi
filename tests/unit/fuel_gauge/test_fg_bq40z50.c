@@ -192,7 +192,7 @@ void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
-    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(fg->initialized, "BQ40Z50 core device should be initialized");
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(4, xy_sensor_i2c_read_fake.call_count);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
@@ -465,7 +465,7 @@ void test_bq40z50_init_tolerates_optional_status_read_failures(void)
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
-    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(fg->initialized, "BQ40Z50 core device should be initialized");
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_full(fg));
