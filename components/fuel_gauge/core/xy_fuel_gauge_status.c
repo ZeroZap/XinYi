@@ -7,7 +7,6 @@
 
 #include "xy_fuel_gauge_status.h"
 #include "xy_log.h"
-#include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
@@ -98,39 +97,46 @@ int xy_fuel_gauge_get_charge_voltage(xy_fuel_gauge_t *fg, uint16_t *voltage_mv)
 /**
  * @brief 获取电池健康状态
  */
-int xy_fuel_gauge_get_battery_health(xy_fuel_gauge_t *fg, 
+int xy_fuel_gauge_get_battery_health(xy_fuel_gauge_t *fg,
                                      xy_fg_battery_health_t *health)
 {
     if (!fg || !health) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
-    
-    memset(health, 0, sizeof(*health));
-    
+
+    xy_fg_battery_health_t next = {0};
     int32_t value;
+    int ret;
 
-    /* 读取容量 */
-    if (xy_fuel_gauge_get(fg, XY_FG_DATA_FULL_CAPACITY, &value) == XY_FG_OK) {
-        health->full_charge_capacity = (uint16_t)value;
+    ret = xy_fuel_gauge_get(fg, XY_FG_DATA_FULL_CAPACITY, &value);
+    if (ret != XY_FG_OK) {
+        return ret;
     }
-    if (xy_fuel_gauge_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value) == XY_FG_OK) {
-        health->remaining_capacity = (uint16_t)value;
-    }
+    next.full_charge_capacity = (uint16_t)value;
 
-    /* 读取循环次数 */
-    if (xy_fuel_gauge_get(fg, XY_FG_DATA_CYCLE_COUNT, &value) == XY_FG_OK) {
-        health->cycle_count = (uint8_t)value;
+    ret = xy_fuel_gauge_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value);
+    if (ret != XY_FG_OK) {
+        return ret;
     }
+    next.remaining_capacity = (uint16_t)value;
 
-    /* 读取温度 */
-    if (xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &value) == XY_FG_OK) {
-        health->temperature = (uint8_t)(value / 10);  /* 转换为°C */
+    ret = xy_fuel_gauge_get(fg, XY_FG_DATA_CYCLE_COUNT, &value);
+    if (ret != XY_FG_OK) {
+        return ret;
     }
+    next.cycle_count = (uint8_t)value;
+
+    ret = xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &value);
+    if (ret != XY_FG_OK) {
+        return ret;
+    }
+    next.temperature = (uint8_t)(value / 10);  /* 转换为°C */
 
     /* 估算 SOH (简化实现) */
-    health->soh_percent = 100;
-    
-    return 0;
+    next.soh_percent = 100;
+    *health = next;
+
+    return XY_FG_OK;
 }
 
 /**

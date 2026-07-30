@@ -55,9 +55,7 @@ static int fake_fetch_impl(xy_fuel_gauge_t *fg)
 
 static int fake_channel_get_impl(xy_fuel_gauge_t *fg, xy_fuel_gauge_data_type_t channel, int32_t *val)
 {
-    (void)fg;
-
-    if (!val) {
+    if (!fg || !val) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
@@ -315,6 +313,46 @@ static void test_core_cached_data_fallback_covers_supported_channels(void)
     TEST_ASSERT_EQUAL_UINT(8U, xy_os_tick_get_fake.call_count);
 }
 
+static void test_status_queries_preserve_outputs_on_invalid_and_failed_reads(void)
+{
+    static const xy_fuel_gauge_api_t api = {
+        .init = fake_init,
+        .fetch = fake_fetch,
+        .channel_get = fake_channel_get,
+    };
+    xy_fuel_gauge_t fg;
+    xy_fg_battery_health_t health;
+    uint16_t charge_current = 0xCAFE;
+    uint16_t charge_voltage = 0xBEEF;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    fg.name = "fg-status-guards";
+    fg.api = &api;
+    fg.initialized = true;
+
+    memset(&health, 0xA5, sizeof(health));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
+                          xy_fuel_gauge_get_battery_health(NULL, &health));
+    TEST_ASSERT_EQUAL_HEX8(0xA5, health.soh_percent);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
+                          xy_fuel_gauge_get_battery_health(&fg, NULL));
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
+                          xy_fuel_gauge_get_charge_current(NULL, &charge_current));
+    TEST_ASSERT_EQUAL_UINT16(0xCAFE, charge_current);
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
+                          xy_fuel_gauge_get_charge_voltage(NULL, &charge_voltage));
+    TEST_ASSERT_EQUAL_UINT16(0xBEEF, charge_voltage);
+
+    fake_channel_get_fake.return_val = XY_FG_ERROR_NO_DATA;
+    fake_channel_get_fake.custom_fake = NULL;
+    memset(&health, 0x5A, sizeof(health));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_get_battery_health(&fg, &health));
+    TEST_ASSERT_EQUAL_HEX8(0x5A, health.soh_percent);
+    TEST_ASSERT_EQUAL_HEX16(0x5A5A, health.full_charge_capacity);
+}
+
 static void test_status_safety_security_helpers(void)
 {
     static const xy_fuel_gauge_api_t api = {
@@ -392,6 +430,7 @@ int main(void)
     RUN_TEST(test_core_public_calls_reject_initialized_device_without_api);
     RUN_TEST(test_core_public_calls_reject_missing_callbacks_without_side_effects);
     RUN_TEST(test_core_cached_data_fallback_covers_supported_channels);
+    RUN_TEST(test_status_queries_preserve_outputs_on_invalid_and_failed_reads);
     RUN_TEST(test_status_safety_security_helpers);
     return UNITY_END();
 }
