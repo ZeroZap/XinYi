@@ -120,15 +120,22 @@ int xy_pid_auto_stop(xy_pid_auto_tuner_t *tuner)
 /**
  * @brief Ziegler-Nichols 整定法计算
  */
-static void xy_pid_auto_calc_zn(xy_pid_auto_tuner_t *tuner)
+static int xy_pid_auto_calc_zn(xy_pid_auto_tuner_t *tuner)
 {
     float *samples = tuner->samples;
     uint16_t n = tuner->sample_count;
+
+    if (!tuner || !samples || n == 0U || fabsf(tuner->output_step) <= 0.000001F) {
+        return XY_PID_AUTO_ERROR;
+    }
 
     /* 简化实现：基于阶跃响应 */
     /* 计算稳态增益 */
     float final_value = samples[n - 1];
     float gain = final_value / tuner->output_step;
+    if (fabsf(final_value) <= 0.000001F || fabsf(gain) <= 0.000001F) {
+        return XY_PID_AUTO_ERROR;
+    }
 
     /* 计算上升时间 (10%-90%) */
     float t10 = 0, t90 = 0;
@@ -146,6 +153,9 @@ static void xy_pid_auto_calc_zn(xy_pid_auto_tuner_t *tuner)
     }
 
     float rise_time = t90 - t10;
+    if (t10 <= 0.0F || rise_time <= 0.0F) {
+        return XY_PID_AUTO_ERROR;
+    }
 
     /* Z-N 参数计算 (阶跃响应法) */
     float L = t10;  /* 滞后时间 */
@@ -161,6 +171,7 @@ static void xy_pid_auto_calc_zn(xy_pid_auto_tuner_t *tuner)
 
     xy_log_i("Z-N Calculation: Kp=%.3f, Ki=%.3f, Kd=%.3f\n",
              tuner->result.kp, tuner->result.ki, tuner->result.kd);
+    return XY_PID_AUTO_OK;
 }
 
 int xy_pid_auto_loop(xy_pid_auto_tuner_t *tuner, float process_var)
@@ -194,15 +205,22 @@ int xy_pid_auto_loop(xy_pid_auto_tuner_t *tuner, float process_var)
         tuner->state = XY_PID_AUTO_STATE_CALCULATING;
 
         /* 计算 PID 参数 */
+        int calc_ret;
         switch (tuner->config.method) {
             case XY_PID_AUTO_METHOD_ZN:
-                xy_pid_auto_calc_zn(tuner);
+                calc_ret = xy_pid_auto_calc_zn(tuner);
                 break;
             /* 其他方法 (Cohen-Coon, IMC 等) */
             /* 简化实现：使用 Z-N 方法 */
             default:
-                xy_pid_auto_calc_zn(tuner);
+                calc_ret = xy_pid_auto_calc_zn(tuner);
                 break;
+        }
+
+        if (calc_ret != XY_PID_AUTO_OK) {
+            memset(&tuner->result, 0, sizeof(tuner->result));
+            tuner->state = XY_PID_AUTO_STATE_ERROR;
+            return calc_ret;
         }
 
         tuner->state = XY_PID_AUTO_STATE_COMPLETE;

@@ -160,6 +160,34 @@ static void test_auto_apply_requires_complete_state(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
 
+static void test_auto_zn_degenerate_flat_response_enters_error_state(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_auto_result_t result = {0};
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t auto_config = default_auto_config();
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_start(&tuner));
+
+    for (uint16_t i = 0; i < auto_config.num_samples - 1U; ++i) {
+        g_tick_ms += auto_config.sample_interval_ms;
+        TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_loop(&tuner, 0.0F));
+    }
+    g_tick_ms += auto_config.sample_interval_ms;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_ERROR, xy_pid_auto_loop(&tuner, 0.0F));
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_ERROR, xy_pid_auto_get_state(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_NOT_READY, xy_pid_auto_get_result(&tuner, &result));
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, result.kp);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, result.ki);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, result.kd);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
+}
+
 static void test_auto_loop_rejects_deinitialized_tuner_without_touching_freed_samples(void)
 {
     xy_pid_t pid;
@@ -196,6 +224,7 @@ int main(void)
     RUN_TEST(test_auto_start_stop_and_progress_guards);
     RUN_TEST(test_auto_loop_completion_result_and_apply);
     RUN_TEST(test_auto_apply_requires_complete_state);
+    RUN_TEST(test_auto_zn_degenerate_flat_response_enters_error_state);
     RUN_TEST(test_auto_loop_rejects_deinitialized_tuner_without_touching_freed_samples);
     return UNITY_END();
 }
