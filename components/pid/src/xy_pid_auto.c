@@ -26,6 +26,12 @@ int xy_pid_auto_init(xy_pid_auto_tuner_t *tuner, xy_pid_t *pid,
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
+    if (config && (config->method < XY_PID_AUTO_METHOD_ZN ||
+                   config->method > XY_PID_AUTO_METHOD_IMC ||
+                   config->num_samples < 2U || config->tolerance < 0.0F)) {
+        return XY_PID_AUTO_INVALID_PARAM;
+    }
+
     memset(tuner, 0, sizeof(*tuner));
     tuner->pid = pid;
 
@@ -273,7 +279,7 @@ int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
 
 float xy_pid_auto_get_progress(const xy_pid_auto_tuner_t *tuner)
 {
-    if (!tuner || tuner->sample_count == 0) {
+    if (!tuner || tuner->sample_count == 0 || tuner->config.num_samples == 0) {
         return 0.0F;
     }
 

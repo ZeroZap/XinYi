@@ -48,10 +48,22 @@ static void test_auto_init_defaults_and_deinit(void)
     xy_pid_t pid;
     xy_pid_auto_tuner_t tuner;
     xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t config = default_auto_config();
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(NULL, &pid, NULL));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, NULL, NULL));
+
+    config.method = (xy_pid_auto_method_t)99;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
+
+    config = default_auto_config();
+    config.tolerance = -0.1F;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
+
+    config = default_auto_config();
+    config.num_samples = 1U;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, NULL));
     TEST_ASSERT_TRUE(tuner.initialized);
@@ -79,6 +91,11 @@ static void test_auto_start_stop_and_progress_guards(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
 
     TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(NULL));
+    tuner.config.num_samples = 0U;
+    tuner.sample_count = 3U;
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(&tuner));
+    tuner.config.num_samples = auto_config.num_samples;
+    tuner.sample_count = 0U;
     TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(&tuner));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_NOT_READY, xy_pid_auto_loop(&tuner, 1.0F));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_ERROR, xy_pid_auto_get_state(NULL));
