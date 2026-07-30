@@ -158,6 +158,18 @@ void test_bq27z746_registers_default_i2c_bus(void)
     TEST_ASSERT_EQUAL_UINT8(BQ27Z746_ADDR, last_bus.address);
 }
 
+void test_bq27z746_register_duplicate_does_not_reconfigure_bus(void)
+{
+    TEST_ASSERT_NOT_NULL(registered_bq27z746());
+    reset_sensor_fakes();
+    memset(&last_bus, 0, sizeof(last_bus));
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_bq27z746_register((void *)0xBAD, 0x44));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+}
+
 void test_bq27z746_init_fetch_and_channel_get(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z746();
@@ -601,6 +613,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_bq27z746_registers_default_i2c_bus);
+    RUN_TEST(test_bq27z746_register_duplicate_does_not_reconfigure_bus);
     RUN_TEST(test_bq27z746_init_fetch_and_channel_get);
     RUN_TEST(test_bq27z746_init_retries_transient_device_type_read_failure);
     RUN_TEST(test_bq27z746_init_fails_after_exhausted_device_type_retries);
