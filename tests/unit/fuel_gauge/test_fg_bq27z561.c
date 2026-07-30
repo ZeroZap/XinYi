@@ -395,7 +395,14 @@ void test_bq27z561_alert_set_get_uses_cached_thresholds(void)
         .over_current_ma = 2500,
         .over_temp_c = 60,
     };
-    xy_fuel_gauge_alert_t readback;
+    xy_fuel_gauge_alert_t readback = {
+        .low_soc_threshold = 0xAA,
+        .high_soc_threshold = 0xBB,
+        .low_voltage_mv = 0xCCCC,
+        .high_voltage_mv = 0xDDDD,
+        .over_current_ma = 0x1111,
+        .over_temp_c = 0x2222,
+    };
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
@@ -408,9 +415,14 @@ void test_bq27z561_alert_set_get_uses_cached_thresholds(void)
                       fg->api->alert_set(fg, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
                       fg->api->alert_get(fg, &readback));
-    TEST_ASSERT_EQUAL_UINT8(0, readback.low_soc_threshold);
-    TEST_ASSERT_EQUAL_UINT8(0, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(0xAA, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(0xBB, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT16(0xCCCC, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT16(0xDDDD, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL_INT16(0x1111, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_INT16(0x2222, readback.over_temp_c);
 
+    memset(&readback, 0, sizeof(readback));
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_set_alert(fg, NULL));
