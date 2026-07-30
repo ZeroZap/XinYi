@@ -27,6 +27,15 @@ static const relay_ops_t *relay_get_ops(const actuator_device_t *dev)
     return (const relay_ops_t *)dev->ops->type_ops;
 }
 
+static const servo_ops_t *servo_get_ops(const actuator_device_t *dev)
+{
+    if (dev == NULL || dev->ops == NULL || dev->ops->type_ops == NULL) {
+        return NULL;
+    }
+
+    return (const servo_ops_t *)dev->ops->type_ops;
+}
+
 /* ==================== 工具函数 ==================== */
 const char *actuator_type_str(actuator_type_t type)
 {
@@ -494,6 +503,18 @@ actuator_err_t servo_set_angle(actuator_device_t *dev, float angle)
         angle = dev->config.servo_max_angle;
     }
 
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->set_angle != NULL) {
+        actuator_err_t err = ops->set_angle(dev, angle);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+
+        dev->value.servo.target_angle = angle;
+        dev->value.servo.current_angle = angle;
+        return ACTUATOR_EOK;
+    }
+
     /* 转换为 PWM 占空比 */
     uint16_t pwm_duty = servo_angle_to_pwm(
         angle,
@@ -528,6 +549,15 @@ actuator_err_t servo_get_angle(actuator_device_t *dev, float *angle)
         return ACTUATOR_EINVAL;
     }
 
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->get_angle != NULL) {
+        actuator_err_t err = ops->get_angle(dev, angle);
+        if (err == ACTUATOR_EOK) {
+            dev->value.servo.current_angle = *angle;
+        }
+        return err;
+    }
+
     *angle = dev->value.servo.current_angle;
 
     return ACTUATOR_EOK;
@@ -543,6 +573,14 @@ actuator_err_t servo_set_range(actuator_device_t *dev, float min_angle, float ma
         return ACTUATOR_EINVAL;
     }
 
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->set_range != NULL) {
+        actuator_err_t err = ops->set_range(dev, min_angle, max_angle);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+    }
+
     dev->config.servo_min_angle = min_angle;
     dev->config.servo_max_angle = max_angle;
 
@@ -553,6 +591,14 @@ actuator_err_t servo_set_speed(actuator_device_t *dev, uint32_t speed)
 {
     if (dev == NULL || dev->type != ACTUATOR_TYPE_SERVO) {
         return ACTUATOR_EINVAL;
+    }
+
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->set_speed != NULL) {
+        actuator_err_t err = ops->set_speed(dev, speed);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
     }
 
     dev->config.servo_speed = speed;
@@ -568,6 +614,11 @@ actuator_err_t servo_sweep(actuator_device_t *dev, float start, float end, uint3
 
     if (start == end) {
         return ACTUATOR_EINVAL;
+    }
+
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->sweep != NULL) {
+        return ops->sweep(dev, start, end, step_ms);
     }
 
     float direction = (end > start) ? 1.0f : -1.0f;
@@ -593,6 +644,11 @@ actuator_err_t servo_stop(actuator_device_t *dev)
         return ACTUATOR_EINVAL;
     }
 
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->stop != NULL) {
+        return ops->stop(dev);
+    }
+
     /* 停止 PWM 输出 */
     /* 实际实现: HAL_PWM_Stop(dev->config.pwm_channel); */
 
@@ -603,6 +659,18 @@ actuator_err_t servo_center(actuator_device_t *dev)
 {
     if (dev == NULL || dev->type != ACTUATOR_TYPE_SERVO) {
         return ACTUATOR_EINVAL;
+    }
+
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->center != NULL) {
+        actuator_err_t err = ops->center(dev);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+
+        dev->value.servo.target_angle = 0.0f;
+        dev->value.servo.current_angle = 0.0f;
+        return ACTUATOR_EOK;
     }
 
     /* 设置到 0 度 (居中) */
