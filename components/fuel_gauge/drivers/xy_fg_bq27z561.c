@@ -229,6 +229,10 @@ static xy_fuel_gauge_t bq27z561_device = {
  */
 int xy_fuel_gauge_bq27z561_register(void *i2c_handle, uint8_t addr)
 {
+    if (xy_fuel_gauge_device_get(bq27z561_device.name)) {
+        return XY_FG_ERROR;
+    }
+
     xy_sensor_bus_config_i2c(&bq27z561_priv.bus, i2c_handle, addr ? addr : BQ27Z561_ADDR);
     return xy_fuel_gauge_device_register(&bq27z561_device);
 }

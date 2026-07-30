@@ -154,6 +154,18 @@ void test_bq27z561_registers_default_i2c_bus(void)
     TEST_ASSERT_EQUAL_UINT8(BQ27Z561_ADDR, last_bus.address);
 }
 
+void test_bq27z561_register_duplicate_does_not_reconfigure_bus(void)
+{
+    TEST_ASSERT_NOT_NULL(registered_bq27z561());
+    reset_sensor_fakes();
+    memset(&last_bus, 0, sizeof(last_bus));
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_bq27z561_register((void *)0xBAD, 0x44));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+}
+
 void test_bq27z561_init_reads_device_id(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z561();
@@ -507,6 +519,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_bq27z561_registers_default_i2c_bus);
+    RUN_TEST(test_bq27z561_register_duplicate_does_not_reconfigure_bus);
     RUN_TEST(test_bq27z561_init_reads_device_id);
     RUN_TEST(test_bq27z561_init_failure_preserves_uninitialized_state);
     RUN_TEST(test_bq27z561_direct_init_failure_clears_stale_private_state);
