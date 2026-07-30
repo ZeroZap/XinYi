@@ -469,6 +469,8 @@ void test_max17043_alert_set_get_uses_cached_thresholds(void)
                       xy_fuel_gauge_set_alert(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
                       xy_fuel_gauge_get_alert(NULL, &readback));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_get_alert(fg, &readback));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
                       fg->api->alert_set(fg, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
