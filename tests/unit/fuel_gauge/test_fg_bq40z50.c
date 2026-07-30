@@ -654,18 +654,26 @@ void test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_voltage(fg, &voltage));
     TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
 
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    current = -4050;
     fake_fail_reads(REG_CURR, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_current(fg, &current));
     TEST_ASSERT_EQUAL_INT16(-4050, current);
 
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    soc = 40;
     fake_fail_reads(REG_SOC, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soc(fg, &soc));
     TEST_ASSERT_EQUAL_UINT8(40, soc);
 
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    soh = 50;
     fake_fail_reads(REG_FULL_CAP, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soh(fg, &soh));
     TEST_ASSERT_EQUAL_UINT8(50, soh);
 
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    temp = -405;
     fake_fail_reads(REG_TEMP, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_temperature(fg, &temp));
     TEST_ASSERT_EQUAL_INT16(-405, temp);
