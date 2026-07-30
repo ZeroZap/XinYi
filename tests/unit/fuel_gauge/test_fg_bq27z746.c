@@ -344,8 +344,23 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3811, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-321, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK,
+                      fg->api->channel_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-222, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(67, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOH, &value));
+    TEST_ASSERT_EQUAL_INT32(94, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_TEMPERATURE, &value));
+    TEST_ASSERT_EQUAL_INT32(250, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_FULL_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(4800, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(3200, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CYCLE_COUNT, &value));
+    TEST_ASSERT_EQUAL_INT32(123, value);
     TEST_ASSERT_EQUAL_UINT32(4242, fg->latest.timestamp);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(fg));
@@ -368,11 +383,25 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(7777, fg->latest.timestamp);
     TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
-    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
-    TEST_ASSERT_EQUAL_INT32(67, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3811, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-321, value);
     TEST_ASSERT_EQUAL(XY_FG_OK,
                       fg->api->channel_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(-222, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(67, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOH, &value));
+    TEST_ASSERT_EQUAL_INT32(94, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_TEMPERATURE, &value));
+    TEST_ASSERT_EQUAL_INT32(250, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_FULL_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(4800, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(3200, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CYCLE_COUNT, &value));
+    TEST_ASSERT_EQUAL_INT32(123, value);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(fg));
 
@@ -385,9 +414,23 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3811, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-321, value);
     TEST_ASSERT_EQUAL(XY_FG_OK,
                       fg->api->channel_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(-222, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(67, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOH, &value));
+    TEST_ASSERT_EQUAL_INT32(94, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_TEMPERATURE, &value));
+    TEST_ASSERT_EQUAL_INT32(250, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_FULL_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(4800, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(3200, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CYCLE_COUNT, &value));
+    TEST_ASSERT_EQUAL_INT32(123, value);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(fg));
 
@@ -395,11 +438,23 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_UINT32(1111, fg->latest.timestamp);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3999, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(456, value);
     TEST_ASSERT_EQUAL(XY_FG_OK,
                       fg->api->channel_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(123, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(88, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOH, &value));
+    TEST_ASSERT_EQUAL_INT32(97, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_TEMPERATURE, &value));
+    TEST_ASSERT_EQUAL_INT32(280, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_FULL_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(5100, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
+    TEST_ASSERT_EQUAL_INT32(4500, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CYCLE_COUNT, &value));
+    TEST_ASSERT_EQUAL_INT32(321, value);
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_charging(fg));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_full(fg));
     TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(fg));
