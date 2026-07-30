@@ -162,6 +162,18 @@ void test_max17043_registers_default_i2c_bus(void)
     TEST_ASSERT_EQUAL_UINT8(MAX17043_ADDR, last_bus.address);
 }
 
+void test_max17043_register_duplicate_does_not_reconfigure_bus(void)
+{
+    TEST_ASSERT_NOT_NULL(registered_max17043());
+    reset_sensor_fakes();
+    memset(&last_bus, 0, sizeof(last_bus));
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_max17043_register((void *)0xBAD, 0x44));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+}
+
 void test_max17043_init_writes_default_config(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
@@ -508,6 +520,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_max17043_registers_default_i2c_bus);
+    RUN_TEST(test_max17043_register_duplicate_does_not_reconfigure_bus);
     RUN_TEST(test_max17043_init_writes_default_config);
     RUN_TEST(test_max17043_init_propagates_version_read_failure);
     RUN_TEST(test_max17043_init_propagates_config_write_failure);

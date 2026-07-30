@@ -200,6 +200,10 @@ static xy_fuel_gauge_t max17043_device = {
  */
 int xy_fuel_gauge_max17043_register(void *i2c_handle, uint8_t addr)
 {
+    if (xy_fuel_gauge_device_get(max17043_device.name)) {
+        return XY_FG_ERROR;
+    }
+
     xy_sensor_bus_config_i2c(&max17043_priv.bus, i2c_handle, addr ? addr : MAX17043_ADDR);
     return xy_fuel_gauge_device_register(&max17043_device);
 }
