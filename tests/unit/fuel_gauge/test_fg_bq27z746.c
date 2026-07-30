@@ -573,6 +573,12 @@ void test_bq27z746_direct_api_guards_missing_device_data(void)
                       fg->api->channel_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
     TEST_ASSERT_EQUAL_INT32(12345, value);
 
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    value = 54321;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+                      fg->api->channel_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
+    TEST_ASSERT_EQUAL_INT32(54321, value);
+
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(NULL, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(&missing_data, &alert));
     TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, fg->api->alert_set(fg, NULL));
