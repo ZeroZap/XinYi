@@ -9,6 +9,7 @@
 #include <string.h>
 
 static xy_fuel_gauge_data_t fake_data;
+static xy_fuel_gauge_data_type_t fake_channel_fail_on;
 
 DEFINE_FFF_GLOBALS;
 
@@ -57,6 +58,10 @@ static int fake_channel_get_impl(xy_fuel_gauge_t *fg, xy_fuel_gauge_data_type_t 
 {
     if (!fg || !val) {
         return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    if (channel == fake_channel_fail_on) {
+        return XY_FG_ERROR_NO_DATA;
     }
 
     switch (channel) {
@@ -110,6 +115,7 @@ static void reset_fixture(void)
     fake_alert_get_fake.return_val = XY_FG_OK;
 
     memset(&fake_data, 0, sizeof(fake_data));
+    fake_channel_fail_on = (xy_fuel_gauge_data_type_t)-1;
     fake_data.voltage_mv = 16800;
     fake_data.current_ma = -9000;
     fake_data.soc = 12;
@@ -351,6 +357,38 @@ static void test_status_queries_preserve_outputs_on_invalid_and_failed_reads(voi
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_get_battery_health(&fg, &health));
     TEST_ASSERT_EQUAL_HEX8(0x5A, health.soh_percent);
     TEST_ASSERT_EQUAL_HEX16(0x5A5A, health.full_charge_capacity);
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.return_val = XY_FG_OK;
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_channel_fail_on = XY_FG_DATA_REMAIN_CAPACITY;
+    memset(&health, 0x3C, sizeof(health));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_get_battery_health(&fg, &health));
+    TEST_ASSERT_EQUAL_UINT(2U, fake_channel_get_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_FULL_CAPACITY, fake_channel_get_fake.arg1_history[0]);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_REMAIN_CAPACITY, fake_channel_get_fake.arg1_history[1]);
+    TEST_ASSERT_EQUAL_HEX16(0x3C3C, health.full_charge_capacity);
+    TEST_ASSERT_EQUAL_HEX16(0x3C3C, health.remaining_capacity);
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_channel_fail_on = XY_FG_DATA_CYCLE_COUNT;
+    memset(&health, 0x7E, sizeof(health));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_get_battery_health(&fg, &health));
+    TEST_ASSERT_EQUAL_UINT(3U, fake_channel_get_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_CYCLE_COUNT, fake_channel_get_fake.arg1_history[2]);
+    TEST_ASSERT_EQUAL_HEX16(0x7E7E, health.full_charge_capacity);
+    TEST_ASSERT_EQUAL_HEX8(0x7E, health.cycle_count);
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_channel_fail_on = XY_FG_DATA_TEMPERATURE;
+    memset(&health, 0x9B, sizeof(health));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_get_battery_health(&fg, &health));
+    TEST_ASSERT_EQUAL_UINT(4U, fake_channel_get_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_TEMPERATURE, fake_channel_get_fake.arg1_history[3]);
+    TEST_ASSERT_EQUAL_HEX16(0x9B9B, health.full_charge_capacity);
+    TEST_ASSERT_EQUAL_UINT8(0x9B, health.temperature);
 }
 
 static void test_status_safety_security_helpers(void)
