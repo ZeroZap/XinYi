@@ -671,6 +671,61 @@ void test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure(void)
     TEST_ASSERT_EQUAL_INT16(-405, temp);
 }
 
+void test_bq40z50_direct_getters_preserve_outputs_on_invalid_or_uninitialized_calls(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+    xy_fuel_gauge_t missing_data = *fg;
+    uint16_t voltage = 0x4050;
+    int32_t value = 123456;
+
+    missing_data.data = NULL;
+    fg->initialized = false;
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(NULL, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(123456, value);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(&missing_data, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(123456, value);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, NULL));
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_battery_voltage(NULL, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_battery_voltage(&missing_data, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_battery_voltage(fg, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(NULL, 1, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(&missing_data, 1, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 1, NULL));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 1, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 0, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+                      xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 5, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(0x4050, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_SUPPORTED,
+                      fg->api->channel_get(fg, XY_FG_DATA_TIME_TO_FULL, &value));
+    TEST_ASSERT_EQUAL_INT32(123456, value);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -686,5 +741,6 @@ int main(void)
     RUN_TEST(test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure);
     RUN_TEST(test_bq40z50_retries_discharge_status_path);
     RUN_TEST(test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure);
+    RUN_TEST(test_bq40z50_direct_getters_preserve_outputs_on_invalid_or_uninitialized_calls);
     return UNITY_END();
 }
