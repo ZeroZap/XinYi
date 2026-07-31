@@ -219,6 +219,7 @@ typedef struct relay_ops {
 /* ==================== 舵机特定接口 ==================== */
 typedef struct servo_ops {
     actuator_err_t (*init)(actuator_device_t *dev);
+    actuator_err_t (*deinit)(actuator_device_t *dev);
     actuator_err_t (*set_angle)(actuator_device_t *dev, float angle);
     actuator_err_t (*get_angle)(actuator_device_t *dev, float *angle);
     actuator_err_t (*set_range)(actuator_device_t *dev, float min_angle, float max_angle);

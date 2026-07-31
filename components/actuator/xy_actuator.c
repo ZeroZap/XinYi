@@ -528,6 +528,17 @@ actuator_err_t servo_deinit(actuator_device_t *dev)
         return ACTUATOR_EINVAL;
     }
 
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->deinit != NULL) {
+        actuator_err_t err = ops->deinit(dev);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+
+        dev->status = ACTUATOR_STATUS_IDLE;
+        return ACTUATOR_EOK;
+    }
+
     if (dev->ops != NULL && dev->ops->deinit != NULL) {
         actuator_err_t err = dev->ops->deinit(dev);
         if (err != ACTUATOR_EOK) {
