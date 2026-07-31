@@ -180,7 +180,7 @@ void test_max17043_init_writes_default_config(void)
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
-    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(fg->initialized, "MAX17043 init should mark the gauge initialized");
     TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_sensor_i2c_read_reg16_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_write_reg16_fake.call_count);

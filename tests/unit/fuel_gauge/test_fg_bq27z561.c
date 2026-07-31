@@ -172,7 +172,7 @@ void test_bq27z561_init_reads_device_id(void)
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
-    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(fg->initialized, "BQ27Z561 init should mark the gauge initialized");
     TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_DEVICE_ID, xy_sensor_i2c_read_reg16_fake.arg1_val);
 }

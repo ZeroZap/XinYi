@@ -177,7 +177,7 @@ void test_bq27z746_init_fetch_and_channel_get(void)
 
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
-    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(fg->initialized, "BQ27Z746 init should mark the gauge initialized");
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(2, xy_sensor_i2c_read_fake.call_count);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(fg));
@@ -224,7 +224,7 @@ void test_bq27z746_init_retries_transient_device_type_read_failure(void)
     fake_fail_reads(REG_CTRL, 1);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
-    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(fg->initialized, "transient BQ27Z746 read retry should still initialize");
     TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_read_fake.call_count);
 }
 
