@@ -296,5 +296,9 @@ float xy_pid_auto_get_progress(const xy_pid_auto_tuner_t *tuner)
         return 0.0F;
     }
 
+    if (tuner->sample_count >= tuner->config.num_samples) {
+        return 100.0F;
+    }
+
     return (float)tuner->sample_count / tuner->config.num_samples * 100.0F;
 }
