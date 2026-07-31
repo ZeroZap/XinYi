@@ -35,6 +35,8 @@ FAKE_VALUE_FUNC(actuator_err_t, servo_type_sweep, actuator_device_t *, float, fl
 FAKE_VALUE_FUNC(actuator_err_t, servo_type_stop, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, servo_type_center, actuator_device_t *);
 
+FAKE_VALUE_FUNC(actuator_err_t, pwm_write, actuator_device_t *, const actuator_value_t *);
+
 void setUp(void)
 {
 }
@@ -98,6 +100,7 @@ static void reset_mock(void)
     RESET_FAKE(servo_type_sweep);
     RESET_FAKE(servo_type_stop);
     RESET_FAKE(servo_type_center);
+    RESET_FAKE(pwm_write);
     FFF_RESET_HISTORY();
 
     mock_init_fake.custom_fake = mock_init_impl;
@@ -105,6 +108,7 @@ static void reset_mock(void)
     mock_write_fake.custom_fake = mock_write_impl;
     mock_read_fake.custom_fake = mock_read_impl;
     mock_enable_fake.custom_fake = mock_enable_impl;
+    pwm_write_fake.custom_fake = mock_write_impl;
 }
 
 static const relay_ops_t mock_relay_ops = {
@@ -147,6 +151,10 @@ static const actuator_ops_t mock_relay_set_only_wrapper_ops = {
 
 static const actuator_ops_t mock_servo_wrapper_ops = {
     .type_ops = &mock_servo_ops,
+};
+
+static const actuator_ops_t mock_pwm_ops = {
+    .write = pwm_write,
 };
 
 static void test_strings_and_helpers(void)
@@ -549,6 +557,27 @@ static void test_reset_and_emergency_stop_fallbacks_propagate_type_ops_results(v
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, servo.value.servo.current_angle);
 }
 
+static void test_pwm_set_duty_preserves_state_on_backend_failure(void)
+{
+    reset_mock();
+
+    actuator_device_t pwm = ACTUATOR_DEVICE_INIT("pwm_fail", ACTUATOR_TYPE_PWM, &mock_pwm_ops, NULL, NULL);
+    pwm.value.pwm.duty = 1234U;
+
+    pwm_write_fake.custom_fake = NULL;
+    pwm_write_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, pwm_set_duty(&pwm, 4321U));
+    TEST_ASSERT_EQUAL_UINT(1, pwm_write_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&pwm, pwm_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(4321U, pwm_write_fake.arg1_val->pwm.duty);
+    TEST_ASSERT_EQUAL_UINT16(1234U, pwm.value.pwm.duty);
+
+    pwm_write_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, pwm_set_duty(&pwm, 4321U));
+    TEST_ASSERT_EQUAL_UINT(2, pwm_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(4321U, pwm.value.pwm.duty);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -563,5 +592,6 @@ int main(void)
     RUN_TEST(test_default_servo_sweep_stops_on_fallback_write_failure);
     RUN_TEST(test_batch_helpers_report_backend_failures);
     RUN_TEST(test_reset_and_emergency_stop_fallbacks_propagate_type_ops_results);
+    RUN_TEST(test_pwm_set_duty_preserves_state_on_backend_failure);
     return UNITY_END();
 }
