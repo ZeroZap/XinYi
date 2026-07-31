@@ -209,6 +209,30 @@ static void test_registration_lifecycle_and_generic_io(void)
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&servo));
 }
 
+static void test_generic_write_preserves_cached_value_on_backend_failure(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT("act_write_fail", ACTUATOR_TYPE_RELAY, &mock_ops, NULL, NULL);
+    actuator_value_t value = {0};
+    relay.value.relay.state = RELAY_STATE_OFF;
+    relay.status = ACTUATOR_STATUS_READY;
+    value.relay.state = RELAY_STATE_ON;
+
+    mock_write_fake.custom_fake = NULL;
+    mock_write_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_write(&relay, &value));
+    TEST_ASSERT_EQUAL_UINT(1, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay.value.relay.state);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_ERROR, relay.status);
+
+    mock_write_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_write(&relay, &value));
+    TEST_ASSERT_EQUAL_UINT(2, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
+}
+
 static void test_missing_ops_and_default_relay(void)
 {
     actuator_device_t missing = ACTUATOR_DEVICE_INIT("missing_ops", ACTUATOR_TYPE_PWM, NULL, NULL, NULL);
@@ -392,6 +416,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_strings_and_helpers);
     RUN_TEST(test_registration_lifecycle_and_generic_io);
+    RUN_TEST(test_generic_write_preserves_cached_value_on_backend_failure);
     RUN_TEST(test_missing_ops_and_default_relay);
     RUN_TEST(test_type_specific_relay_ops_preserve_state_on_failure);
     RUN_TEST(test_type_specific_servo_ops_do_not_update_local_state_on_failure);

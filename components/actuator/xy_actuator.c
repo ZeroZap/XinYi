@@ -217,12 +217,12 @@ actuator_err_t actuator_write(actuator_device_t *dev, const actuator_value_t *va
         return ACTUATOR_ENOSYS;
     }
 
-    dev->value = *value;
     dev->status = ACTUATOR_STATUS_BUSY;
 
     actuator_err_t err = dev->ops->write(dev, value);
 
     if (err == ACTUATOR_EOK) {
+        dev->value = *value;
         dev->status = ACTUATOR_STATUS_READY;
     } else {
         dev->status = ACTUATOR_STATUS_ERROR;
