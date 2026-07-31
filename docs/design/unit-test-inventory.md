@@ -63,7 +63,7 @@
 
 | File | Style | Fake signal count |
 | --- | --- | ---: |
-| `tests/unit/actuator/test_actuator_framework.c` | `unity` | 15 |
+| `tests/unit/actuator/test_actuator_framework.c` | `unity` | 16 |
 | `tests/unit/analog_devices/test_analog_devices.c` | `unity` | 11 |
 | `tests/unit/clib/test_clib_core.c` | `unity` | 0 |
 | `tests/unit/crypto/test_25519.c` | `unity` | 0 |

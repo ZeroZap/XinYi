@@ -511,6 +511,44 @@ static void test_batch_helpers_report_backend_failures(void)
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&relay));
 }
 
+static void test_reset_and_emergency_stop_fallbacks_propagate_type_ops_results(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT(
+        "reset_relay", ACTUATOR_TYPE_RELAY, &mock_relay_wrapper_ops, NULL, NULL);
+    actuator_device_t servo = ACTUATOR_DEVICE_INIT(
+        "reset_servo", ACTUATOR_TYPE_SERVO, &mock_servo_wrapper_ops, NULL, NULL);
+
+    relay.value.relay.state = RELAY_STATE_ON;
+    relay_type_set_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_reset(&relay));
+    TEST_ASSERT_EQUAL_UINT(1, relay_type_set_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay_type_set_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+
+    relay_type_set_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_reset(&relay));
+    TEST_ASSERT_EQUAL_UINT(2, relay_type_set_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay.value.relay.state);
+
+    servo.value.servo.current_angle = 12.0f;
+    servo.value.servo.target_angle = 12.0f;
+    servo_type_center_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_reset(&servo));
+    TEST_ASSERT_EQUAL_UINT(1, servo_type_center_fake.call_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.0f, servo.value.servo.current_angle);
+
+    servo_type_center_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_reset(&servo));
+    TEST_ASSERT_EQUAL_UINT(2, servo_type_center_fake.call_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, servo.value.servo.current_angle);
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_emergency_stop(&servo));
+    TEST_ASSERT_EQUAL_UINT(2, servo_type_center_fake.call_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, servo.value.servo.current_angle);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -524,5 +562,6 @@ int main(void)
     RUN_TEST(test_default_relay_pulse_propagates_fallback_write_failures);
     RUN_TEST(test_default_servo_sweep_stops_on_fallback_write_failure);
     RUN_TEST(test_batch_helpers_report_backend_failures);
+    RUN_TEST(test_reset_and_emergency_stop_fallbacks_propagate_type_ops_results);
     return UNITY_END();
 }
