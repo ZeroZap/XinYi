@@ -20,6 +20,10 @@ FAKE_VALUE_FUNC(actuator_err_t, mock_deinit, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, mock_write, actuator_device_t *, const actuator_value_t *);
 FAKE_VALUE_FUNC(actuator_err_t, mock_read, actuator_device_t *, actuator_value_t *);
 FAKE_VALUE_FUNC(actuator_err_t, mock_enable, actuator_device_t *, bool);
+FAKE_VALUE_FUNC(actuator_err_t, mock_config, actuator_device_t *, const actuator_config_t *);
+FAKE_VALUE_FUNC(actuator_err_t, mock_get_config, actuator_device_t *, actuator_config_t *);
+FAKE_VALUE_FUNC(actuator_status_t, mock_get_status, actuator_device_t *);
+FAKE_VALUE_FUNC(bool, mock_is_ready, actuator_device_t *);
 
 FAKE_VALUE_FUNC(actuator_err_t, relay_type_init, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, relay_type_deinit, actuator_device_t *);
@@ -90,6 +94,10 @@ static void reset_mock(void)
     RESET_FAKE(mock_write);
     RESET_FAKE(mock_read);
     RESET_FAKE(mock_enable);
+    RESET_FAKE(mock_config);
+    RESET_FAKE(mock_get_config);
+    RESET_FAKE(mock_get_status);
+    RESET_FAKE(mock_is_ready);
     RESET_FAKE(relay_type_init);
     RESET_FAKE(relay_type_deinit);
     RESET_FAKE(relay_type_set);
@@ -141,6 +149,10 @@ static const actuator_ops_t mock_ops = {
     .write = mock_write,
     .read = mock_read,
     .enable = mock_enable,
+    .config = mock_config,
+    .get_config = mock_get_config,
+    .get_status = mock_get_status,
+    .is_ready = mock_is_ready,
 };
 
 static const actuator_ops_t mock_relay_wrapper_ops = {
@@ -256,6 +268,66 @@ static void test_generic_write_preserves_cached_value_on_backend_failure(void)
     TEST_ASSERT_EQUAL_UINT(2, mock_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
     TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
+}
+
+static void test_generic_config_and_status_dispatch_contracts(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT("act_config", ACTUATOR_TYPE_RELAY, &mock_ops, NULL, NULL);
+    actuator_config_t config = {0};
+    actuator_config_t out_config = {0};
+
+    config.channel = 3U;
+    config.active_high = true;
+    relay.config.channel = 1U;
+    relay.status = ACTUATOR_STATUS_READY;
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_config(NULL, &config));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_config(&relay, NULL));
+
+    mock_config_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_config(&relay, &config));
+    TEST_ASSERT_EQUAL_UINT(1, mock_config_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_config_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&config, mock_config_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(1U, relay.config.channel);
+
+    mock_config_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_config(&relay, &config));
+    TEST_ASSERT_EQUAL_UINT(2, mock_config_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(3U, relay.config.channel);
+    TEST_ASSERT_TRUE(relay.config.active_high);
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_get_config(NULL, &out_config));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_get_config(&relay, NULL));
+
+    mock_get_config_fake.return_val = ACTUATOR_EIO;
+    out_config.channel = 0xA5U;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_get_config(&relay, &out_config));
+    TEST_ASSERT_EQUAL_UINT(1, mock_get_config_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_get_config_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&out_config, mock_get_config_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, out_config.channel);
+
+    actuator_device_t fallback = ACTUATOR_DEVICE_INIT("act_config_fallback", ACTUATOR_TYPE_RELAY, NULL, NULL, NULL);
+    fallback.config.channel = 7U;
+    fallback.status = ACTUATOR_STATUS_DISABLED;
+    out_config.channel = 0U;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_get_config(&fallback, &out_config));
+    TEST_ASSERT_EQUAL_UINT8(7U, out_config.channel);
+    TEST_ASSERT_FALSE(actuator_is_ready(&fallback));
+
+    mock_get_status_fake.return_val = ACTUATOR_STATUS_BUSY;
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_BUSY, actuator_get_status(&relay));
+    TEST_ASSERT_EQUAL_UINT(1, mock_get_status_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_get_status_fake.arg0_val);
+
+    mock_is_ready_fake.return_val = true;
+    TEST_ASSERT_TRUE(actuator_is_ready(&relay));
+    TEST_ASSERT_EQUAL_UINT(1, mock_is_ready_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, mock_is_ready_fake.arg0_val);
+    TEST_ASSERT_FALSE(actuator_is_ready(NULL));
 }
 
 static void test_missing_ops_and_default_relay(void)
@@ -614,6 +686,7 @@ int main(void)
     RUN_TEST(test_strings_and_helpers);
     RUN_TEST(test_registration_lifecycle_and_generic_io);
     RUN_TEST(test_generic_write_preserves_cached_value_on_backend_failure);
+    RUN_TEST(test_generic_config_and_status_dispatch_contracts);
     RUN_TEST(test_missing_ops_and_default_relay);
     RUN_TEST(test_type_specific_relay_ops_preserve_state_on_failure);
     RUN_TEST(test_type_specific_servo_ops_do_not_update_local_state_on_failure);

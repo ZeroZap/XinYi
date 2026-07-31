@@ -244,6 +244,37 @@ actuator_err_t actuator_read(actuator_device_t *dev, actuator_value_t *value)
     return dev->ops->read(dev, value);
 }
 
+actuator_err_t actuator_config(actuator_device_t *dev, const actuator_config_t *config)
+{
+    if (dev == NULL || config == NULL) {
+        return ACTUATOR_EINVAL;
+    }
+
+    if (dev->ops != NULL && dev->ops->config != NULL) {
+        actuator_err_t err = dev->ops->config(dev, config);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
+    }
+
+    dev->config = *config;
+    return ACTUATOR_EOK;
+}
+
+actuator_err_t actuator_get_config(actuator_device_t *dev, actuator_config_t *config)
+{
+    if (dev == NULL || config == NULL) {
+        return ACTUATOR_EINVAL;
+    }
+
+    if (dev->ops != NULL && dev->ops->get_config != NULL) {
+        return dev->ops->get_config(dev, config);
+    }
+
+    *config = dev->config;
+    return ACTUATOR_EOK;
+}
+
 actuator_err_t actuator_reset(actuator_device_t *dev)
 {
     if (dev == NULL) {
@@ -298,7 +329,15 @@ actuator_status_t actuator_get_status(actuator_device_t *dev)
 
 bool actuator_is_ready(actuator_device_t *dev)
 {
-    return (dev != NULL && dev->status == ACTUATOR_STATUS_READY);
+    if (dev == NULL) {
+        return false;
+    }
+
+    if (dev->ops != NULL && dev->ops->is_ready != NULL) {
+        return dev->ops->is_ready(dev);
+    }
+
+    return dev->status == ACTUATOR_STATUS_READY;
 }
 
 /* ==================== 继电器 API ==================== */
