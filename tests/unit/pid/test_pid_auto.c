@@ -320,6 +320,35 @@ static void test_auto_apply_handles_invalid_pid_tuning_without_mode_change(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
 
+static void test_auto_imc_completion_uses_degenerate_zn_fallback(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_auto_result_t result = {0};
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t auto_config = default_auto_config();
+    auto_config.method = XY_PID_AUTO_METHOD_IMC;
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_METHOD_IMC, tuner.config.method);
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_start(&tuner));
+
+    const float samples[] = {1.0F, 2.0F, 4.0F, 10.0F};
+    for (uint16_t i = 0; i < auto_config.num_samples; ++i) {
+        g_tick_ms += auto_config.sample_interval_ms;
+        TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_loop(&tuner, samples[i]));
+    }
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_COMPLETE, xy_pid_auto_get_state(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_get_result(&tuner, &result));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.12F, result.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 10.0F, result.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 2.5F, result.kd);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
+}
+
 void setUp(void)
 {
     g_tick_ms = 0U;
@@ -342,5 +371,6 @@ int main(void)
     RUN_TEST(test_auto_apply_rejects_complete_tuner_without_pid);
     RUN_TEST(test_auto_public_ops_reject_uninitialized_tuner_without_state_changes);
     RUN_TEST(test_auto_apply_handles_invalid_pid_tuning_without_mode_change);
+    RUN_TEST(test_auto_imc_completion_uses_degenerate_zn_fallback);
     return UNITY_END();
 }
