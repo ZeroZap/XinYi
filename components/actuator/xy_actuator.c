@@ -439,14 +439,20 @@ actuator_err_t relay_pulse(actuator_device_t *dev, uint32_t pulse_width_ms)
     }
 
     /* 接通 */
-    relay_on(dev);
+    actuator_err_t err = relay_on(dev);
+    if (err != ACTUATOR_EOK) {
+        return err;
+    }
 
     /* 延时 */
     /* 实际实现使用 OS 延时或硬件定时器 */
     /* os_delay_ms(pulse_width_ms); */
 
     /* 断开 */
-    relay_off(dev);
+    err = relay_off(dev);
+    if (err != ACTUATOR_EOK) {
+        return err;
+    }
 
     return ACTUATOR_EOK;
 }
@@ -626,14 +632,20 @@ actuator_err_t servo_sweep(actuator_device_t *dev, float start, float end, uint3
 
     for (uint32_t i = 0; i < step_count; i++) {
         float current = start + direction * i;
-        servo_set_angle(dev, current);
+        actuator_err_t err = servo_set_angle(dev, current);
+        if (err != ACTUATOR_EOK) {
+            return err;
+        }
 
         /* 延时 */
         /* os_delay_ms(step_ms); */
     }
 
     /* 最终位置 */
-    servo_set_angle(dev, end);
+    actuator_err_t err = servo_set_angle(dev, end);
+    if (err != ACTUATOR_EOK) {
+        return err;
+    }
 
     return ACTUATOR_EOK;
 }

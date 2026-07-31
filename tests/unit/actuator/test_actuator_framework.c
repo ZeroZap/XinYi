@@ -134,6 +134,14 @@ static const actuator_ops_t mock_relay_wrapper_ops = {
     .type_ops = &mock_relay_ops,
 };
 
+static const relay_ops_t mock_relay_set_only_ops = {
+    .set = relay_type_set,
+};
+
+static const actuator_ops_t mock_relay_set_only_wrapper_ops = {
+    .type_ops = &mock_relay_set_only_ops,
+};
+
 static const actuator_ops_t mock_servo_wrapper_ops = {
     .type_ops = &mock_servo_ops,
 };
@@ -411,6 +419,62 @@ static void test_default_servo_pwm_and_batch_helpers(void)
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&servo));
 }
 
+static void test_default_relay_pulse_propagates_fallback_write_failures(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT(
+        "relay_pulse_fail", ACTUATOR_TYPE_RELAY, &mock_relay_set_only_wrapper_ops, NULL, NULL);
+    relay.value.relay.state = RELAY_STATE_OFF;
+    relay.status = ACTUATOR_STATUS_READY;
+
+    relay_type_set_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, relay_pulse(&relay, 10));
+    TEST_ASSERT_EQUAL_UINT(1, relay_type_set_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, relay_type_set_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay_type_set_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay.value.relay.state);
+
+    relay_type_set_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, relay_pulse(&relay, 10));
+    TEST_ASSERT_EQUAL_UINT(3, relay_type_set_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay.value.relay.state);
+}
+
+static actuator_err_t fail_on_second_servo_write(actuator_device_t *dev, const actuator_value_t *value)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_NOT_NULL(value);
+    if (mock_write_fake.call_count == 2U) {
+        return ACTUATOR_EIO;
+    }
+    return mock_write_impl(dev, value);
+}
+
+static void test_default_servo_sweep_stops_on_fallback_write_failure(void)
+{
+    reset_mock();
+
+    actuator_device_t servo = ACTUATOR_DEVICE_INIT("servo_sweep_fail", ACTUATOR_TYPE_SERVO, &mock_ops, NULL, NULL);
+    servo.config.servo_min_angle = -90.0f;
+    servo.config.servo_max_angle = 90.0f;
+    servo.config.servo_pwm_min = 500;
+    servo.config.servo_pwm_max = 2500;
+    servo.value.servo.current_angle = -5.0f;
+    servo.value.servo.target_angle = -5.0f;
+
+    mock_write_fake.custom_fake = fail_on_second_servo_write;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, servo_sweep(&servo, 0.0f, 2.0f, 5));
+    TEST_ASSERT_EQUAL_UINT(2, mock_write_fake.call_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, servo.value.servo.current_angle);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, servo.value.servo.target_angle);
+
+    mock_write_fake.custom_fake = mock_write_impl;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, servo_sweep(&servo, 0.0f, 2.0f, 5));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 2.0f, servo.value.servo.current_angle);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 2.0f, servo.value.servo.target_angle);
+}
+
 static void test_batch_helpers_report_backend_failures(void)
 {
     reset_mock();
@@ -445,6 +509,8 @@ int main(void)
     RUN_TEST(test_type_specific_relay_ops_preserve_state_on_failure);
     RUN_TEST(test_type_specific_servo_ops_do_not_update_local_state_on_failure);
     RUN_TEST(test_default_servo_pwm_and_batch_helpers);
+    RUN_TEST(test_default_relay_pulse_propagates_fallback_write_failures);
+    RUN_TEST(test_default_servo_sweep_stops_on_fallback_write_failure);
     RUN_TEST(test_batch_helpers_report_backend_failures);
     return UNITY_END();
 }
