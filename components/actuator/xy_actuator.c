@@ -314,6 +314,42 @@ actuator_err_t actuator_emergency_stop(actuator_device_t *dev)
     return dev->ops->emergency_stop(dev);
 }
 
+actuator_err_t actuator_sleep(actuator_device_t *dev)
+{
+    if (dev == NULL) {
+        return ACTUATOR_EINVAL;
+    }
+
+    if (dev->ops == NULL || dev->ops->sleep == NULL) {
+        return ACTUATOR_ENOSYS;
+    }
+
+    actuator_err_t err = dev->ops->sleep(dev);
+    if (err == ACTUATOR_EOK) {
+        dev->status = ACTUATOR_STATUS_DISABLED;
+    }
+
+    return err;
+}
+
+actuator_err_t actuator_wakeup(actuator_device_t *dev)
+{
+    if (dev == NULL) {
+        return ACTUATOR_EINVAL;
+    }
+
+    if (dev->ops == NULL || dev->ops->wakeup == NULL) {
+        return ACTUATOR_ENOSYS;
+    }
+
+    actuator_err_t err = dev->ops->wakeup(dev);
+    if (err == ACTUATOR_EOK) {
+        dev->status = ACTUATOR_STATUS_READY;
+    }
+
+    return err;
+}
+
 actuator_status_t actuator_get_status(actuator_device_t *dev)
 {
     if (dev == NULL) {

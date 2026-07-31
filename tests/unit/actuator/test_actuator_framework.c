@@ -43,6 +43,8 @@ FAKE_VALUE_FUNC(actuator_err_t, servo_type_stop, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, servo_type_center, actuator_device_t *);
 
 FAKE_VALUE_FUNC(actuator_err_t, pwm_write, actuator_device_t *, const actuator_value_t *);
+FAKE_VALUE_FUNC(actuator_err_t, sleep_backend, actuator_device_t *);
+FAKE_VALUE_FUNC(actuator_err_t, wakeup_backend, actuator_device_t *);
 
 void setUp(void)
 {
@@ -115,6 +117,8 @@ static void reset_mock(void)
     RESET_FAKE(servo_type_stop);
     RESET_FAKE(servo_type_center);
     RESET_FAKE(pwm_write);
+    RESET_FAKE(sleep_backend);
+    RESET_FAKE(wakeup_backend);
     FFF_RESET_HISTORY();
 
     mock_init_fake.custom_fake = mock_init_impl;
@@ -176,6 +180,11 @@ static const actuator_ops_t mock_servo_wrapper_ops = {
 
 static const actuator_ops_t mock_pwm_ops = {
     .write = pwm_write,
+};
+
+static const actuator_ops_t mock_pm_ops = {
+    .sleep = sleep_backend,
+    .wakeup = wakeup_backend,
 };
 
 static void test_strings_and_helpers(void)
@@ -709,6 +718,46 @@ static void test_pwm_set_duty_preserves_state_on_backend_failure(void)
     TEST_ASSERT_EQUAL_UINT16(4321U, pwm.value.pwm.duty);
 }
 
+static void test_sleep_wakeup_dispatch_updates_status_only_on_success(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT("pm_relay", ACTUATOR_TYPE_RELAY, &mock_pm_ops, NULL, NULL);
+    relay.status = ACTUATOR_STATUS_READY;
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_sleep(NULL));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_wakeup(NULL));
+
+    sleep_backend_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_sleep(&relay));
+    TEST_ASSERT_EQUAL_UINT(1, sleep_backend_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, sleep_backend_fake.arg0_val);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
+
+    sleep_backend_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_sleep(&relay));
+    TEST_ASSERT_EQUAL_UINT(2, sleep_backend_fake.call_count);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_DISABLED, relay.status);
+
+    wakeup_backend_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_wakeup(&relay));
+    TEST_ASSERT_EQUAL_UINT(1, wakeup_backend_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, wakeup_backend_fake.arg0_val);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_DISABLED, relay.status);
+
+    wakeup_backend_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_wakeup(&relay));
+    TEST_ASSERT_EQUAL_UINT(2, wakeup_backend_fake.call_count);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
+
+    actuator_device_t fallback = ACTUATOR_DEVICE_INIT("pm_fallback", ACTUATOR_TYPE_RELAY, NULL, NULL, NULL);
+    fallback.status = ACTUATOR_STATUS_READY;
+    TEST_ASSERT_EQUAL(ACTUATOR_ENOSYS, actuator_sleep(&fallback));
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, fallback.status);
+    TEST_ASSERT_EQUAL(ACTUATOR_ENOSYS, actuator_wakeup(&fallback));
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, fallback.status);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -725,5 +774,6 @@ int main(void)
     RUN_TEST(test_batch_helpers_report_backend_failures);
     RUN_TEST(test_reset_and_emergency_stop_fallbacks_propagate_type_ops_results);
     RUN_TEST(test_pwm_set_duty_preserves_state_on_backend_failure);
+    RUN_TEST(test_sleep_wakeup_dispatch_updates_status_only_on_success);
     return UNITY_END();
 }

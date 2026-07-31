@@ -285,6 +285,8 @@ actuator_err_t actuator_config(actuator_device_t *dev, const actuator_config_t *
 actuator_err_t actuator_get_config(actuator_device_t *dev, actuator_config_t *config);
 actuator_err_t actuator_reset(actuator_device_t *dev);
 actuator_err_t actuator_emergency_stop(actuator_device_t *dev);
+actuator_err_t actuator_sleep(actuator_device_t *dev);
+actuator_err_t actuator_wakeup(actuator_device_t *dev);
 actuator_status_t actuator_get_status(actuator_device_t *dev);
 bool actuator_is_ready(actuator_device_t *dev);
 const char *actuator_status_str(actuator_status_t status);
