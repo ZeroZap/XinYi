@@ -621,6 +621,36 @@ static void test_default_relay_pulse_propagates_fallback_write_failures(void)
     TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay.value.relay.state);
 }
 
+static actuator_err_t fail_on_second_relay_set(actuator_device_t *dev, uint8_t state)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    if (relay_type_set_fake.call_count == 2U) {
+        return ACTUATOR_EIO;
+    }
+
+    dev->value.relay.state = state;
+    return ACTUATOR_EOK;
+}
+
+static void test_default_relay_pulse_reports_off_failure_after_on_success(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT(
+        "relay_pulse_second_fail", ACTUATOR_TYPE_RELAY, &mock_relay_set_only_wrapper_ops, NULL,
+        NULL);
+    relay.value.relay.state = RELAY_STATE_OFF;
+
+    relay_type_set_fake.custom_fake = fail_on_second_relay_set;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, relay_pulse(&relay, 10));
+    TEST_ASSERT_EQUAL_UINT(2, relay_type_set_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, relay_type_set_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay_type_set_fake.arg1_history[0]);
+    TEST_ASSERT_EQUAL_PTR(&relay, relay_type_set_fake.arg0_history[1]);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay_type_set_fake.arg1_history[1]);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+}
+
 static actuator_err_t fail_on_second_servo_write(actuator_device_t *dev, const actuator_value_t *value)
 {
     TEST_ASSERT_NOT_NULL(dev);
@@ -791,6 +821,7 @@ int main(void)
     RUN_TEST(test_type_specific_servo_ops_do_not_update_local_state_on_failure);
     RUN_TEST(test_default_servo_pwm_and_batch_helpers);
     RUN_TEST(test_default_relay_pulse_propagates_fallback_write_failures);
+    RUN_TEST(test_default_relay_pulse_reports_off_failure_after_on_success);
     RUN_TEST(test_default_servo_sweep_stops_on_fallback_write_failure);
     RUN_TEST(test_batch_helpers_report_backend_failures);
     RUN_TEST(test_reset_and_emergency_stop_fallbacks_propagate_type_ops_results);
