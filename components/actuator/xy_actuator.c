@@ -125,7 +125,7 @@ actuator_err_t actuator_unregister(actuator_device_t *dev)
         }
     }
 
-    return ACTUATOR_EOK;
+    return ACTUATOR_ENODEV;
 }
 
 actuator_device_t *actuator_find(const char *name)

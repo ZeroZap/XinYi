@@ -303,7 +303,7 @@ ctest --test-dir build/tests/unit -R '^actuator_framework$' --output-on-failure
 #### test_actuator_framework.c
 
 - Actuator 类型、状态、错误码字符串与舵机 PWM/角度换算
-- 设备注册/注销、按名称/类型查找、计数、初始化/反初始化
+- 设备注册/注销（含未注册设备 `ACTUATOR_ENODEV` 防御路径）、按名称/类型查找、计数、初始化/反初始化
 - 通用读写、使能/禁用、缺失 ops 错误路径
 - 继电器默认操作：开/关、翻转、脉冲
 - 舵机默认操作：角度设置、回中、范围与 PWM 配置
