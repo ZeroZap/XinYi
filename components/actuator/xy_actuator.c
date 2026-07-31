@@ -464,6 +464,11 @@ actuator_err_t servo_init(actuator_device_t *dev)
         return ACTUATOR_EINVAL;
     }
 
+    const servo_ops_t *ops = servo_get_ops(dev);
+    if (ops != NULL && ops->init != NULL) {
+        return ops->init(dev);
+    }
+
     if (dev->ops != NULL && dev->ops->init != NULL) {
         return dev->ops->init(dev);
     }

@@ -26,6 +26,7 @@ FAKE_VALUE_FUNC(actuator_err_t, relay_type_get, actuator_device_t *, uint8_t *);
 FAKE_VALUE_FUNC(actuator_err_t, relay_type_toggle, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, relay_type_pulse, actuator_device_t *, uint32_t);
 
+FAKE_VALUE_FUNC(actuator_err_t, servo_type_init, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, servo_type_set_angle, actuator_device_t *, float);
 FAKE_VALUE_FUNC(actuator_err_t, servo_type_get_angle, actuator_device_t *, float *);
 FAKE_VALUE_FUNC(actuator_err_t, servo_type_set_range, actuator_device_t *, float, float);
@@ -89,6 +90,7 @@ static void reset_mock(void)
     RESET_FAKE(relay_type_get);
     RESET_FAKE(relay_type_toggle);
     RESET_FAKE(relay_type_pulse);
+    RESET_FAKE(servo_type_init);
     RESET_FAKE(servo_type_set_angle);
     RESET_FAKE(servo_type_get_angle);
     RESET_FAKE(servo_type_set_range);
@@ -113,6 +115,7 @@ static const relay_ops_t mock_relay_ops = {
 };
 
 static const servo_ops_t mock_servo_ops = {
+    .init = servo_type_init,
     .set_angle = servo_type_set_angle,
     .get_angle = servo_type_get_angle,
     .set_range = servo_type_set_range,
@@ -326,6 +329,15 @@ static void test_type_specific_servo_ops_do_not_update_local_state_on_failure(vo
     servo.config.servo_max_angle = 45.0f;
     servo.value.servo.current_angle = 5.0f;
     servo.value.servo.target_angle = 5.0f;
+
+    servo_type_init_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, servo_init(&servo));
+    TEST_ASSERT_EQUAL_UINT(1, servo_type_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&servo, servo_type_init_fake.arg0_val);
+
+    servo_type_init_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, servo_init(&servo));
+    TEST_ASSERT_EQUAL_UINT(2, servo_type_init_fake.call_count);
 
     servo_type_set_angle_fake.return_val = ACTUATOR_EIO;
     TEST_ASSERT_EQUAL(ACTUATOR_EIO, servo_set_angle(&servo, 90.0f));
