@@ -114,7 +114,7 @@ int xy_pid_auto_start(xy_pid_auto_tuner_t *tuner)
 
 int xy_pid_auto_stop(xy_pid_auto_tuner_t *tuner)
 {
-    if (!tuner) {
+    if (!tuner || !tuner->initialized) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
@@ -247,7 +247,7 @@ xy_pid_auto_state_t xy_pid_auto_get_state(const xy_pid_auto_tuner_t *tuner)
 int xy_pid_auto_get_result(const xy_pid_auto_tuner_t *tuner,
                            xy_pid_auto_result_t *result)
 {
-    if (!tuner || !result) {
+    if (!tuner || !tuner->initialized || !result) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
@@ -261,7 +261,10 @@ int xy_pid_auto_get_result(const xy_pid_auto_tuner_t *tuner,
 
 int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
 {
-    if (!tuner || tuner->state != XY_PID_AUTO_STATE_COMPLETE) {
+    if (!tuner || !tuner->initialized) {
+        return XY_PID_AUTO_INVALID_PARAM;
+    }
+    if (tuner->state != XY_PID_AUTO_STATE_COMPLETE) {
         return XY_PID_AUTO_NOT_READY;
     }
     if (!tuner->pid) {
@@ -282,7 +285,8 @@ int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
 
 float xy_pid_auto_get_progress(const xy_pid_auto_tuner_t *tuner)
 {
-    if (!tuner || tuner->sample_count == 0 || tuner->config.num_samples == 0) {
+    if (!tuner || !tuner->initialized || tuner->sample_count == 0 ||
+        tuner->config.num_samples == 0) {
         return 0.0F;
     }
 

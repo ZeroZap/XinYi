@@ -172,7 +172,7 @@ static void test_auto_apply_requires_complete_state(void)
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
-    TEST_ASSERT_EQUAL(XY_PID_AUTO_NOT_READY, xy_pid_auto_apply(NULL));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_apply(NULL));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_NOT_READY, xy_pid_auto_apply(&tuner));
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
@@ -266,6 +266,37 @@ static void test_auto_apply_rejects_complete_tuner_without_pid(void)
     TEST_ASSERT_NULL(tuner.pid);
 }
 
+static void test_auto_public_ops_reject_uninitialized_tuner_without_state_changes(void)
+{
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_auto_result_t result = {
+        .kp = 11.0F,
+        .ki = 22.0F,
+        .kd = 33.0F,
+    };
+
+    memset(&tuner, 0, sizeof(tuner));
+    tuner.initialized = false;
+    tuner.state = XY_PID_AUTO_STATE_COMPLETE;
+    tuner.sample_count = 2U;
+    tuner.config.num_samples = 4U;
+    tuner.result.kp = 1.0F;
+    tuner.result.ki = 2.0F;
+    tuner.result.kd = 3.0F;
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_stop(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_COMPLETE, tuner.state);
+    TEST_ASSERT_EQUAL_UINT16(2U, tuner.sample_count);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_get_result(&tuner, &result));
+    TEST_ASSERT_EQUAL_FLOAT(11.0F, result.kp);
+    TEST_ASSERT_EQUAL_FLOAT(22.0F, result.ki);
+    TEST_ASSERT_EQUAL_FLOAT(33.0F, result.kd);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_apply(&tuner));
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(&tuner));
+}
+
 void setUp(void)
 {
     g_tick_ms = 0U;
@@ -286,5 +317,6 @@ int main(void)
     RUN_TEST(test_auto_loop_rejects_deinitialized_tuner_without_touching_freed_samples);
     RUN_TEST(test_auto_start_rejects_missing_pid_without_modifying_state);
     RUN_TEST(test_auto_apply_rejects_complete_tuner_without_pid);
+    RUN_TEST(test_auto_public_ops_reject_uninitialized_tuner_without_state_changes);
     return UNITY_END();
 }
