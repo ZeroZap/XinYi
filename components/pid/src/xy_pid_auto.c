@@ -87,7 +87,7 @@ int xy_pid_auto_deinit(xy_pid_auto_tuner_t *tuner)
 
 int xy_pid_auto_start(xy_pid_auto_tuner_t *tuner)
 {
-    if (!tuner || !tuner->initialized) {
+    if (!tuner || !tuner->initialized || !tuner->pid) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
@@ -263,6 +263,9 @@ int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
 {
     if (!tuner || tuner->state != XY_PID_AUTO_STATE_COMPLETE) {
         return XY_PID_AUTO_NOT_READY;
+    }
+    if (!tuner->pid) {
+        return XY_PID_AUTO_INVALID_PARAM;
     }
 
     /* 应用整定结果到 PID */

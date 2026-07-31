@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "unity.h"
 #include "xy_pid_auto.h"
@@ -225,6 +226,46 @@ static void test_auto_loop_rejects_deinitialized_tuner_without_touching_freed_sa
     TEST_ASSERT_NULL(tuner.samples);
 }
 
+static void test_auto_start_rejects_missing_pid_without_modifying_state(void)
+{
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_auto_config_t auto_config = default_auto_config();
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, NULL, &auto_config));
+
+    memset(&tuner, 0, sizeof(tuner));
+    tuner.initialized = true;
+    tuner.pid = NULL;
+    tuner.state = XY_PID_AUTO_STATE_IDLE;
+    tuner.sample_count = 2U;
+    tuner.output_step = -1.0F;
+    g_tick_ms = 1234U;
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_start(&tuner));
+    TEST_ASSERT_TRUE(tuner.initialized);
+    TEST_ASSERT_NULL(tuner.pid);
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_IDLE, tuner.state);
+    TEST_ASSERT_EQUAL_UINT16(2U, tuner.sample_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, -1.0F, tuner.output_step);
+}
+
+static void test_auto_apply_rejects_complete_tuner_without_pid(void)
+{
+    xy_pid_auto_tuner_t tuner;
+
+    memset(&tuner, 0, sizeof(tuner));
+    tuner.initialized = true;
+    tuner.pid = NULL;
+    tuner.state = XY_PID_AUTO_STATE_COMPLETE;
+    tuner.result.kp = 1.0F;
+    tuner.result.ki = 2.0F;
+    tuner.result.kd = 3.0F;
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_apply(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_COMPLETE, tuner.state);
+    TEST_ASSERT_NULL(tuner.pid);
+}
+
 void setUp(void)
 {
     g_tick_ms = 0U;
@@ -243,5 +284,7 @@ int main(void)
     RUN_TEST(test_auto_apply_requires_complete_state);
     RUN_TEST(test_auto_zn_degenerate_flat_response_enters_error_state);
     RUN_TEST(test_auto_loop_rejects_deinitialized_tuner_without_touching_freed_samples);
+    RUN_TEST(test_auto_start_rejects_missing_pid_without_modifying_state);
+    RUN_TEST(test_auto_apply_rejects_complete_tuner_without_pid);
     return UNITY_END();
 }
