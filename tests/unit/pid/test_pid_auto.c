@@ -297,6 +297,29 @@ static void test_auto_public_ops_reject_uninitialized_tuner_without_state_change
     TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(&tuner));
 }
 
+static void test_auto_apply_handles_invalid_pid_tuning_without_mode_change(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t auto_config = default_auto_config();
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
+    tuner.state = XY_PID_AUTO_STATE_COMPLETE;
+    tuner.result.kp = 4.0F;
+    tuner.result.ki = 0.0F;
+    tuner.result.kd = 2.0F;
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_apply(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, xy_pid_get_mode(&pid));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.kp, pid.config.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.ki, pid.config.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.kd, pid.config.kd);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
+}
+
 void setUp(void)
 {
     g_tick_ms = 0U;
@@ -318,5 +341,6 @@ int main(void)
     RUN_TEST(test_auto_start_rejects_missing_pid_without_modifying_state);
     RUN_TEST(test_auto_apply_rejects_complete_tuner_without_pid);
     RUN_TEST(test_auto_public_ops_reject_uninitialized_tuner_without_state_changes);
+    RUN_TEST(test_auto_apply_handles_invalid_pid_tuning_without_mode_change);
     return UNITY_END();
 }

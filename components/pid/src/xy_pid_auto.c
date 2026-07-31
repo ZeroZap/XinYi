@@ -267,17 +267,23 @@ int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
     if (tuner->state != XY_PID_AUTO_STATE_COMPLETE) {
         return XY_PID_AUTO_NOT_READY;
     }
-    if (!tuner->pid) {
+    if (!tuner->pid || fabsf(tuner->result.ki) <= 0.000001F) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
     /* 应用整定结果到 PID */
-    xy_pid_set_tuning(tuner->pid, tuner->result.kp,
-                      tuner->result.kp / tuner->result.ki,
-                      tuner->result.kp * tuner->result.kd);
+    int ret = xy_pid_set_tuning(tuner->pid, tuner->result.kp,
+                                tuner->result.kp / tuner->result.ki,
+                                tuner->result.kp * tuner->result.kd);
+    if (ret != XY_PID_OK) {
+        return XY_PID_AUTO_INVALID_PARAM;
+    }
 
     /* 切换回自动模式 */
-    xy_pid_set_mode(tuner->pid, XY_PID_MODE_AUTO);
+    ret = xy_pid_set_mode(tuner->pid, XY_PID_MODE_AUTO);
+    if (ret != XY_PID_OK) {
+        return XY_PID_AUTO_INVALID_PARAM;
+    }
 
     xy_log_i("PID tuning parameters applied\n");
     return XY_PID_AUTO_OK;
