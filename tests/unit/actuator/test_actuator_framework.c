@@ -406,9 +406,33 @@ static void test_default_servo_pwm_and_batch_helpers(void)
     TEST_ASSERT_EQUAL_UINT16(0, pwm.value.pwm.duty);
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_emergency_stop_all());
 
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&pwm));
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&relay));
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&servo));
-    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&pwm));
+}
+
+static void test_batch_helpers_report_backend_failures(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT(
+        "batch_fail_relay", ACTUATOR_TYPE_RELAY, &mock_relay_wrapper_ops, NULL, NULL);
+
+    relay.value.relay.state = RELAY_STATE_ON;
+    relay_type_set_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_register(&relay));
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_all_off());
+    TEST_ASSERT_EQUAL_UINT(1, relay_type_set_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, relay_type_set_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay_type_set_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+
+    relay_type_set_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_emergency_stop_all());
+    TEST_ASSERT_EQUAL_UINT(2, relay_type_set_fake.call_count);
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&relay));
 }
 
 int main(void)
@@ -421,5 +445,6 @@ int main(void)
     RUN_TEST(test_type_specific_relay_ops_preserve_state_on_failure);
     RUN_TEST(test_type_specific_servo_ops_do_not_update_local_state_on_failure);
     RUN_TEST(test_default_servo_pwm_and_batch_helpers);
+    RUN_TEST(test_batch_helpers_report_backend_failures);
     return UNITY_END();
 }

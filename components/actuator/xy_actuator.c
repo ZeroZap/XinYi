@@ -715,24 +715,37 @@ actuator_err_t pwm_set_frequency(actuator_device_t *dev, uint32_t freq)
 /* ==================== 批量操作 ==================== */
 actuator_err_t actuator_all_off(void)
 {
+    actuator_err_t first_err = ACTUATOR_EOK;
+
     for (int i = 0; i < g_actuator_count; i++) {
+        actuator_err_t err = ACTUATOR_EOK;
+
         if (g_actuators[i]->type == ACTUATOR_TYPE_RELAY) {
-            relay_off(g_actuators[i]);
+            err = relay_off(g_actuators[i]);
         } else if (g_actuators[i]->type == ACTUATOR_TYPE_PWM) {
-            pwm_set_duty(g_actuators[i], 0);
+            err = pwm_set_duty(g_actuators[i], 0);
+        }
+
+        if (err != ACTUATOR_EOK && err != ACTUATOR_ENOSYS && first_err == ACTUATOR_EOK) {
+            first_err = err;
         }
     }
 
-    return ACTUATOR_EOK;
+    return first_err;
 }
 
 actuator_err_t actuator_emergency_stop_all(void)
 {
+    actuator_err_t first_err = ACTUATOR_EOK;
+
     for (int i = 0; i < g_actuator_count; i++) {
-        actuator_emergency_stop(g_actuators[i]);
+        actuator_err_t err = actuator_emergency_stop(g_actuators[i]);
+        if (err != ACTUATOR_EOK && err != ACTUATOR_ENOSYS && first_err == ACTUATOR_EOK) {
+            first_err = err;
+        }
     }
 
-    return ACTUATOR_EOK;
+    return first_err;
 }
 
 /* ==================== 默认操作实现 ==================== */
