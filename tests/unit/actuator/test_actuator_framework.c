@@ -511,9 +511,23 @@ static void test_type_specific_servo_ops_do_not_update_local_state_on_failure(vo
 
     servo_type_stop_fake.return_val = ACTUATOR_EIO;
     TEST_ASSERT_EQUAL(ACTUATOR_EIO, servo_stop(&servo));
+    TEST_ASSERT_EQUAL_UINT(1, servo_type_stop_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&servo, servo_type_stop_fake.arg0_val);
+
+    servo.value.servo.current_angle = 18.0f;
+    servo.value.servo.target_angle = 18.0f;
+    servo_type_center_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, servo_center(&servo));
+    TEST_ASSERT_EQUAL_UINT(1, servo_type_center_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&servo, servo_type_center_fake.arg0_val);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 18.0f, servo.value.servo.current_angle);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 18.0f, servo.value.servo.target_angle);
+
     servo_type_center_fake.return_val = ACTUATOR_EOK;
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, servo_center(&servo));
-    TEST_ASSERT_EQUAL_UINT(1, servo_type_center_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2, servo_type_center_fake.call_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, servo.value.servo.current_angle);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, servo.value.servo.target_angle);
 }
 
 static void test_default_servo_pwm_and_batch_helpers(void)
