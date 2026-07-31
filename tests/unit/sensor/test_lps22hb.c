@@ -204,7 +204,7 @@ static void test_read_data_converts_pressure_temperature_and_offsets(void)
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_lps22hb_read_data(&dev, &data));
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 1001.5f, data.pressure);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 24.75f, data.temperature);
-    TEST_ASSERT_TRUE(data.altitude > 90.0f);
+    TEST_ASSERT_GREATER_THAN_FLOAT(90.0f, data.altitude);
     TEST_ASSERT_EQUAL_UINT32(1U, dev.measurement_count);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, data.pressure, dev.last_data.pressure);
 
