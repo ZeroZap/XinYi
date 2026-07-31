@@ -21,6 +21,8 @@ FAKE_VALUE_FUNC(actuator_err_t, mock_write, actuator_device_t *, const actuator_
 FAKE_VALUE_FUNC(actuator_err_t, mock_read, actuator_device_t *, actuator_value_t *);
 FAKE_VALUE_FUNC(actuator_err_t, mock_enable, actuator_device_t *, bool);
 
+FAKE_VALUE_FUNC(actuator_err_t, relay_type_init, actuator_device_t *);
+FAKE_VALUE_FUNC(actuator_err_t, relay_type_deinit, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, relay_type_set, actuator_device_t *, uint8_t);
 FAKE_VALUE_FUNC(actuator_err_t, relay_type_get, actuator_device_t *, uint8_t *);
 FAKE_VALUE_FUNC(actuator_err_t, relay_type_toggle, actuator_device_t *);
@@ -88,6 +90,8 @@ static void reset_mock(void)
     RESET_FAKE(mock_write);
     RESET_FAKE(mock_read);
     RESET_FAKE(mock_enable);
+    RESET_FAKE(relay_type_init);
+    RESET_FAKE(relay_type_deinit);
     RESET_FAKE(relay_type_set);
     RESET_FAKE(relay_type_get);
     RESET_FAKE(relay_type_toggle);
@@ -112,6 +116,8 @@ static void reset_mock(void)
 }
 
 static const relay_ops_t mock_relay_ops = {
+    .init = relay_type_init,
+    .deinit = relay_type_deinit,
     .set = relay_type_set,
     .get = relay_type_get,
     .toggle = relay_type_toggle,
@@ -286,6 +292,30 @@ static void test_type_specific_relay_ops_preserve_state_on_failure(void)
     actuator_device_t relay = ACTUATOR_DEVICE_INIT(
         "relay_type_ops", ACTUATOR_TYPE_RELAY, &mock_relay_wrapper_ops, NULL, NULL);
     uint8_t state = 0xA5;
+
+    relay_type_init_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, relay_init(&relay));
+    TEST_ASSERT_EQUAL_UINT(1, relay_type_init_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, relay_type_init_fake.arg0_val);
+
+    relay_type_init_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, relay_init(&relay));
+    TEST_ASSERT_EQUAL_UINT(2, relay_type_init_fake.call_count);
+
+    relay.value.relay.state = RELAY_STATE_ON;
+    relay.status = ACTUATOR_STATUS_READY;
+    relay_type_deinit_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, relay_deinit(&relay));
+    TEST_ASSERT_EQUAL_UINT(1, relay_type_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, relay_type_deinit_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
+
+    relay_type_deinit_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, relay_deinit(&relay));
+    TEST_ASSERT_EQUAL_UINT(2, relay_type_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_OFF, relay.value.relay.state);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_IDLE, relay.status);
 
     relay.value.relay.state = RELAY_STATE_OFF;
     relay_type_set_fake.return_val = ACTUATOR_EIO;
