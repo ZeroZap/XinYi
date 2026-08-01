@@ -81,6 +81,38 @@ static void test_auto_init_defaults_and_deinit(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_deinit(NULL));
 }
 
+static void test_auto_init_accepts_zero_overrides_as_defaults(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t config = default_auto_config();
+
+    config.step_amplitude = 0.0F;
+    config.sample_interval_ms = 0U;
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &config));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 50.0F, tuner.config.step_amplitude);
+    TEST_ASSERT_EQUAL_UINT32(100U, tuner.config.sample_interval_ms);
+    TEST_ASSERT_EQUAL_UINT16(config.num_samples, tuner.config.num_samples);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
+}
+
+static void test_auto_init_rejects_negative_step_amplitude(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t config = default_auto_config();
+
+    config.step_amplitude = -5.0F;
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
+}
+
 static void test_auto_start_stop_and_progress_guards(void)
 {
     xy_pid_t pid;
@@ -378,6 +410,8 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_auto_init_defaults_and_deinit);
+    RUN_TEST(test_auto_init_accepts_zero_overrides_as_defaults);
+    RUN_TEST(test_auto_init_rejects_negative_step_amplitude);
     RUN_TEST(test_auto_start_stop_and_progress_guards);
     RUN_TEST(test_auto_loop_completion_result_and_apply);
     RUN_TEST(test_auto_apply_requires_complete_state);
