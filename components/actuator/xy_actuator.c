@@ -86,7 +86,7 @@ const char *actuator_err_str(actuator_err_t err)
 /* ==================== 设备管理 ==================== */
 actuator_err_t actuator_register(actuator_device_t *dev)
 {
-    if (dev == NULL) {
+    if (dev == NULL || dev->name[0] == '\0') {
         return ACTUATOR_EINVAL;
     }
 
@@ -94,9 +94,9 @@ actuator_err_t actuator_register(actuator_device_t *dev)
         return ACTUATOR_ENOMEM;
     }
 
-    /* 检查重名 */
+    /* 检查重名和重复注册同一设备 */
     for (int i = 0; i < g_actuator_count; i++) {
-        if (strcmp(g_actuators[i]->name, dev->name) == 0) {
+        if (g_actuators[i] == dev || strcmp(g_actuators[i]->name, dev->name) == 0) {
             return ACTUATOR_EINVAL;
         }
     }

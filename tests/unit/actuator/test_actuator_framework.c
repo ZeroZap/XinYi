@@ -278,6 +278,29 @@ static void test_unregister_missing_device_preserves_registry(void)
     TEST_ASSERT_EQUAL_UINT8(0U, actuator_get_count());
 }
 
+static void test_register_rejects_same_pointer_and_empty_name(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT("dup_ptr", ACTUATOR_TYPE_RELAY, &mock_ops, NULL, NULL);
+    actuator_device_t empty = ACTUATOR_DEVICE_INIT("", ACTUATOR_TYPE_RELAY, &mock_ops, NULL, NULL);
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_register(&empty));
+    TEST_ASSERT_EQUAL_UINT8(0U, actuator_get_count());
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_register(&relay));
+    TEST_ASSERT_EQUAL_UINT8(1U, actuator_get_count());
+
+    relay.name[0] = 'r';
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_register(&relay));
+    TEST_ASSERT_EQUAL_UINT8(1U, actuator_get_count());
+    TEST_ASSERT_EQUAL_PTR(&relay, actuator_find("rup_ptr"));
+    TEST_ASSERT_EQUAL_PTR(&relay, actuator_find_by_type(ACTUATOR_TYPE_RELAY));
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&relay));
+    TEST_ASSERT_EQUAL_UINT8(0U, actuator_get_count());
+}
+
 static void test_generic_write_preserves_cached_value_on_backend_failure(void)
 {
     reset_mock();
@@ -814,6 +837,7 @@ int main(void)
     RUN_TEST(test_strings_and_helpers);
     RUN_TEST(test_registration_lifecycle_and_generic_io);
     RUN_TEST(test_unregister_missing_device_preserves_registry);
+    RUN_TEST(test_register_rejects_same_pointer_and_empty_name);
     RUN_TEST(test_generic_write_preserves_cached_value_on_backend_failure);
     RUN_TEST(test_generic_config_and_status_dispatch_contracts);
     RUN_TEST(test_missing_ops_and_default_relay);
