@@ -63,7 +63,7 @@
 
 | File | Style | Fake signal count |
 | --- | --- | ---: |
-| `tests/unit/actuator/test_actuator_framework.c` | `unity` | 16 |
+| `tests/unit/actuator/test_actuator_framework.c` | `unity` | 17 |
 | `tests/unit/analog_devices/test_analog_devices.c` | `unity` | 11 |
 | `tests/unit/clib/test_clib_core.c` | `unity` | 0 |
 | `tests/unit/crypto/test_25519.c` | `unity` | 0 |
@@ -122,8 +122,8 @@
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |
 | `tests/unit/net/test_net_smbus_pmbus.c` | `unity` | 34 |
-| `tests/unit/pid/test_pid_auto.c` | `unity` | 0 |
-| `tests/unit/pid/test_pid_core.c` | `unity` | 0 |
+| `tests/unit/pid/test_pid_auto.c` | `unity` | 12 |
+| `tests/unit/pid/test_pid_core.c` | `unity` | 4 |
 | `tests/unit/pm/test_charger_bq25620.c` | `unity` | 10 |
 | `tests/unit/pm/test_pm_core.c` | `unity` | 0 |
 | `tests/unit/pm/test_pm_platform_fallback.c` | `unity` | 0 |
