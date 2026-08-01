@@ -87,7 +87,7 @@ int xy_pid_auto_deinit(xy_pid_auto_tuner_t *tuner)
 
 int xy_pid_auto_start(xy_pid_auto_tuner_t *tuner)
 {
-    if (!tuner || !tuner->initialized || !tuner->pid) {
+    if (!tuner || !tuner->initialized || !tuner->pid || !tuner->samples) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
