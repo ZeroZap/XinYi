@@ -472,6 +472,35 @@ void test_bq27z746_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(fg));
 }
 
+void test_bq27z746_fetch_retries_transient_register_read_failures(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z746();
+    int32_t value = 0;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    xy_sensor_i2c_read_fake.call_count = 0;
+    xy_os_tick_get_fake.return_val = 5151;
+    fake_fail_reads(REG_VOLT, 2);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(5151, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3811, value);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(12, xy_sensor_i2c_read_fake.call_count);
+
+    fake_regs[REG_FLAGS] = 0;
+    xy_sensor_i2c_read_fake.call_count = 0;
+    xy_os_tick_get_fake.return_val = 6262;
+    fake_fail_reads(REG_FLAGS, 2);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(6262, fg->latest.timestamp);
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_charging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_full(fg));
+    TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(fg));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(12, xy_sensor_i2c_read_fake.call_count);
+}
+
 void test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z746();
@@ -622,6 +651,7 @@ int main(void)
     RUN_TEST(test_bq27z746_rejects_uninitialized_and_unsupported_channel);
     RUN_TEST(test_bq27z746_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq27z746_fetch_failure_preserves_cached_snapshot);
+    RUN_TEST(test_bq27z746_fetch_retries_transient_register_read_failures);
     RUN_TEST(test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure);
     RUN_TEST(test_bq27z746_status_helpers_handle_null_and_uninitialized);
     RUN_TEST(test_bq27z746_direct_api_guards_missing_device_data);
