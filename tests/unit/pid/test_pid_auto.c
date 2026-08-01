@@ -100,17 +100,25 @@ static void test_auto_init_accepts_zero_overrides_as_defaults(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
 
-static void test_auto_init_rejects_negative_step_amplitude(void)
+static void test_auto_init_rejects_invalid_config_without_touching_tuner(void)
 {
     xy_pid_t pid;
     xy_pid_auto_tuner_t tuner;
     xy_pid_config_t pid_config = default_pid_config();
     xy_pid_auto_config_t config = default_auto_config();
 
-    config.step_amplitude = -5.0F;
-
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+
+    memset(&tuner, 0xA5, sizeof(tuner));
+    config.step_amplitude = -5.0F;
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, ((uint8_t *)&tuner)[0]);
+
+    config = default_auto_config();
+    config.method = XY_PID_AUTO_METHOD_IMC;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_METHOD_IMC, tuner.config.method);
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
 
 static void test_auto_start_stop_and_progress_guards(void)
@@ -411,7 +419,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_auto_init_defaults_and_deinit);
     RUN_TEST(test_auto_init_accepts_zero_overrides_as_defaults);
-    RUN_TEST(test_auto_init_rejects_negative_step_amplitude);
+    RUN_TEST(test_auto_init_rejects_invalid_config_without_touching_tuner);
     RUN_TEST(test_auto_start_stop_and_progress_guards);
     RUN_TEST(test_auto_loop_completion_result_and_apply);
     RUN_TEST(test_auto_apply_requires_complete_state);
