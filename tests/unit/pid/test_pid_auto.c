@@ -91,13 +91,13 @@ static void test_auto_start_stop_and_progress_guards(void)
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
 
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(NULL));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, xy_pid_auto_get_progress(NULL));
     tuner.config.num_samples = 0U;
     tuner.sample_count = 3U;
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(&tuner));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, xy_pid_auto_get_progress(&tuner));
     tuner.config.num_samples = auto_config.num_samples;
     tuner.sample_count = 0U;
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(&tuner));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, xy_pid_auto_get_progress(&tuner));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_NOT_READY, xy_pid_auto_loop(&tuner, 1.0F));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_ERROR, xy_pid_auto_get_state(NULL));
 
@@ -107,7 +107,7 @@ static void test_auto_start_stop_and_progress_guards(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_start(&tuner));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_MEASURING, xy_pid_auto_get_state(&tuner));
     TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, xy_pid_get_mode(&pid));
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.setpoint);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, pid.setpoint);
     TEST_ASSERT_EQUAL_UINT32(100U, tuner.start_time);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, auto_config.step_amplitude, tuner.output_step);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, auto_config.step_amplitude, pid.output);
@@ -147,7 +147,7 @@ static void test_auto_loop_completion_result_and_apply(void)
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_COMPLETE, xy_pid_auto_get_state(&tuner));
     TEST_ASSERT_EQUAL_UINT16(auto_config.num_samples, tuner.sample_count);
-    TEST_ASSERT_EQUAL_FLOAT(100.0F, xy_pid_auto_get_progress(&tuner));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 100.0F, xy_pid_auto_get_progress(&tuner));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_get_result(&tuner, &result));
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.12F, result.kp);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 10.0F, result.ki);
@@ -199,9 +199,9 @@ static void test_auto_zn_degenerate_flat_response_enters_error_state(void)
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_ERROR, xy_pid_auto_get_state(&tuner));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_NOT_READY, xy_pid_auto_get_result(&tuner, &result));
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, result.kp);
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, result.ki);
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, result.kd);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, result.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, result.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, result.kd);
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
@@ -289,12 +289,12 @@ static void test_auto_public_ops_reject_uninitialized_tuner_without_state_change
     TEST_ASSERT_EQUAL_UINT16(2U, tuner.sample_count);
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_get_result(&tuner, &result));
-    TEST_ASSERT_EQUAL_FLOAT(11.0F, result.kp);
-    TEST_ASSERT_EQUAL_FLOAT(22.0F, result.ki);
-    TEST_ASSERT_EQUAL_FLOAT(33.0F, result.kd);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 11.0F, result.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 22.0F, result.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 33.0F, result.kd);
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_apply(&tuner));
-    TEST_ASSERT_EQUAL_FLOAT(0.0F, xy_pid_auto_get_progress(&tuner));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, xy_pid_auto_get_progress(&tuner));
 }
 
 static void test_auto_progress_clamps_inconsistent_sample_count(void)
@@ -308,7 +308,7 @@ static void test_auto_progress_clamps_inconsistent_sample_count(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
 
     tuner.sample_count = auto_config.num_samples + 3U;
-    TEST_ASSERT_EQUAL_FLOAT(100.0F, xy_pid_auto_get_progress(&tuner));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 100.0F, xy_pid_auto_get_progress(&tuner));
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
