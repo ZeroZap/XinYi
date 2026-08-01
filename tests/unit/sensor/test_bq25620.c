@@ -66,7 +66,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C fixture must operate on initialized devices");
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT(1U, len);
     TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_reads), g_read_index);
@@ -83,7 +83,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C fixture must operate on initialized devices");
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT(2U, len);
     TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_writes), g_write_index);
@@ -165,7 +165,7 @@ static void init_ok(xy_bq25620_t *bq, int *bus, const xy_bq25620_config_t *cfg)
 {
     queue_init_ok(cfg);
     TEST_ASSERT_EQUAL_INT(XY_BQ_OK, xy_bq25620_init(bq, bus, cfg));
-    TEST_ASSERT_TRUE(bq->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(bq->initialized, "BQ25620 init should mark the driver initialized");
     TEST_ASSERT_EQUAL_UINT16(BQ25620_ADDR, g_last_addr);
     TEST_ASSERT_EQUAL_UINT32(400U, g_last_timeout);
 }
@@ -220,9 +220,9 @@ static void test_read_parses_status_fault_and_timestamp(void)
     queue_read8(BQ25620_REG_FAULT, 0x40U, XY_DEVICE_OK);    /* thermal */
     TEST_ASSERT_EQUAL_INT(XY_BQ_OK, xy_bq25620_read(&bq));
     TEST_ASSERT_EQUAL_INT(XY_BQ_CHG_STATE_FAST_CHARGE, bq.data.chg_state);
-    TEST_ASSERT_TRUE(bq.data.vbus_present);
-    TEST_ASSERT_TRUE(bq.data.dpm_active);
-    TEST_ASSERT_TRUE(bq.data.chg_enabled);
+    TEST_ASSERT_TRUE_MESSAGE(bq.data.vbus_present, "status parser should report VBUS present");
+    TEST_ASSERT_TRUE_MESSAGE(bq.data.dpm_active, "status parser should report DPM active");
+    TEST_ASSERT_TRUE_MESSAGE(bq.data.chg_enabled, "status parser should report charging enabled");
     TEST_ASSERT_EQUAL_INT(XY_BQ_FAULT_THERMAL, bq.data.fault);
     TEST_ASSERT_EQUAL_UINT32(0x12345678U, bq.data.timestamp);
 
@@ -257,9 +257,9 @@ static void test_read_status_failure_preserves_previous_snapshot(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_read(&bq));
     TEST_ASSERT_EQUAL_INT(XY_BQ_CHG_STATE_CHARGE_DONE, bq.data.chg_state);
     TEST_ASSERT_EQUAL_INT(XY_BQ_FAULT_INPUT_OVP, bq.data.fault);
-    TEST_ASSERT_TRUE(bq.data.vbus_present);
-    TEST_ASSERT_TRUE(bq.data.dpm_active);
-    TEST_ASSERT_TRUE(bq.data.chg_enabled);
+    TEST_ASSERT_TRUE_MESSAGE(bq.data.vbus_present, "failed status read should preserve VBUS state");
+    TEST_ASSERT_TRUE_MESSAGE(bq.data.dpm_active, "failed status read should preserve DPM state");
+    TEST_ASSERT_TRUE_MESSAGE(bq.data.chg_enabled, "failed status read should preserve charge-enable state");
     TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, bq.data.timestamp);
 }
 
@@ -276,9 +276,9 @@ static void test_read_fault_failure_keeps_previous_fault_and_updates_status(void
 
     TEST_ASSERT_EQUAL_INT(XY_BQ_OK, xy_bq25620_read(&bq));
     TEST_ASSERT_EQUAL_INT(XY_BQ_CHG_STATE_PRECHARGE, bq.data.chg_state);
-    TEST_ASSERT_TRUE(bq.data.vbus_present);
+    TEST_ASSERT_TRUE_MESSAGE(bq.data.vbus_present, "fault-read failure should keep parsed VBUS bit");
     TEST_ASSERT_FALSE(bq.data.dpm_active);
-    TEST_ASSERT_TRUE(bq.data.chg_enabled);
+    TEST_ASSERT_TRUE_MESSAGE(bq.data.chg_enabled, "fault-read failure should keep parsed charge-enable bit");
     TEST_ASSERT_EQUAL_INT(XY_BQ_FAULT_THERMAL, bq.data.fault);
     TEST_ASSERT_EQUAL_UINT32(0x12345678U, bq.data.timestamp);
 }
@@ -303,7 +303,8 @@ static void test_helpers_propagate_read_failures_without_overwriting_outputs(voi
 
     bq.data.vbus_present = true;
     queue_read8(BQ25620_REG_CHG_STAT, 0x00U, XY_DEVICE_ERROR);
-    TEST_ASSERT_TRUE(xy_bq25620_is_vbus_present(&bq));
+    TEST_ASSERT_TRUE_MESSAGE(xy_bq25620_is_vbus_present(&bq),
+                             "VBUS helper should preserve cached true value on read failure");
 }
 
 static void test_control_helpers_propagate_update_bit_failures(void)
@@ -389,7 +390,8 @@ static void test_init_and_deinit_tolerate_enable_charge_write_failures(void)
     queue_init_ok(&cfg);
     g_writes[6].ret = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_BQ_OK, xy_bq25620_init(&bq, &bus, &cfg));
-    TEST_ASSERT_TRUE(bq.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(bq.initialized,
+                             "init should remain successful when final enable-charge write fails");
     TEST_ASSERT_EQUAL_UINT(7U, g_write_index);
 
     queue_read8(BQ25620_REG_CHG_STAT, 0x84U, XY_DEVICE_OK);
@@ -435,7 +437,8 @@ static void test_getters_and_control_helpers(void)
 
     queue_read8(BQ25620_REG_CHG_STAT, 0x08U, XY_DEVICE_OK);
     queue_read8(BQ25620_REG_FAULT, 0x00U, XY_DEVICE_OK);
-    TEST_ASSERT_TRUE(xy_bq25620_is_vbus_present(&bq));
+    TEST_ASSERT_TRUE_MESSAGE(xy_bq25620_is_vbus_present(&bq),
+                             "VBUS helper should report parsed present bit");
 
     queue_read8(BQ25620_REG_CHG_STAT, 0x84U, XY_DEVICE_OK);
     queue_write8(BQ25620_REG_CHG_STAT, 0x04U, XY_DEVICE_OK);
