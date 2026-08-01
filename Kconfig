@@ -127,7 +127,7 @@ config COMPONENT_SENSOR
 
 config COMPONENT_ACTUATOR
     bool "Actuator Framework"
-    default n
+    default y
     help
       Actuator abstraction layer for relays, servos, motors, and other outputs.
 

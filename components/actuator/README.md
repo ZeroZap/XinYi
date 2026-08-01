@@ -214,6 +214,24 @@ int main(void)
 
 ## 🏗️ 构建说明
 
+### Kconfig 配置
+
+Actuator 在根 `Kconfig` 中提供两个兼容符号：
+
+```kconfig
+config COMPONENT_ACTUATOR
+    bool "Actuator Framework"
+    default y
+
+config XY_ACTUATOR_ENABLE
+    bool "Actuator Component"
+    default y
+```
+
+`COMPONENT_ACTUATOR` 是新的组件入口；`XY_ACTUATOR_ENABLE` 保留给旧构建脚本兼容。组件
+`CMakeLists.txt` 同时接受生成变量 `XY_COMPONENT_ACTUATOR` 和 `XY_XY_ACTUATOR_ENABLE`，因此旧
+`.config` 覆盖仍可继续工作。
+
 ### CMake 构建
 
 ```cmake

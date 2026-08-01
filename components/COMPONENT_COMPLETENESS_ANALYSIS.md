@@ -131,24 +131,24 @@ display/
 
 ## 🟠 中优先级问题（应该修复）
 
-### 4. actuator/ - 执行器组件 (60%)
+### 4. actuator/ - 执行器组件 (80%)
 
 #### 问题描述
 
-- **缺少 Kconfig**：无法通过 menuconfig 配置
-- **缺少 README.md**：无文档说明
-- **缺少示例代码**：用户无法参考
-- **缺少测试用例**：无法验证功能正确性
+- **Kconfig 已接入但存在兼容符号**：根 `Kconfig` 同时保留 `COMPONENT_ACTUATOR` 和旧 `XY_ACTUATOR_ENABLE`，组件 CMake 接受两者生成变量
+- **README.md 已补齐**：包含 API、Kconfig/CMake、测试入口和覆盖范围说明
+- **示例仍以内联 README 片段为主**：尚无独立 `examples/` 源文件作为构建护栏
+- **测试已接入 active Unity/CTest**：`tests/unit/actuator/test_actuator_framework.c` 覆盖框架、relay/servo/PWM、批处理和 helper guard
 - **目录结构扁平**：所有代码在根目录，未使用 src/ 子目录
 
 #### 修复计划
 
 | 序号 | 任务                 | 工作量 | 优先级 |
 | ---- | -------------------- | ------ | ------ |
-| A1   | 创建 README.md       | 2h     | 🟠 中  |
-| A2   | 添加 Kconfig         | 2h     | 🟠 中  |
-| A3   | 添加示例代码         | 4h     | 🟠 中  |
-| A4   | 添加测试用例         | 8h     | 🟠 中  |
+| A1   | 创建 README.md       | -      | 已完成 |
+| A2   | 添加 Kconfig         | -      | 已完成 |
+| A3   | 添加构建护栏示例代码 | 4h     | 🟠 中  |
+| A4   | 维护/增强 host 单测  | -      | 持续维护 |
 | A5   | 重构为 src/ 目录结构 | 4h     | 🟡 低  |
 
 **预计工时**: 20h
