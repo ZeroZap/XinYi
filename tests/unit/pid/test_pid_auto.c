@@ -55,6 +55,9 @@ static void test_auto_init_defaults_and_deinit(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(NULL, &pid, NULL));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, NULL, NULL));
 
+    config.method = (xy_pid_auto_method_t)-1;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
+
     config.method = (xy_pid_auto_method_t)99;
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
 
