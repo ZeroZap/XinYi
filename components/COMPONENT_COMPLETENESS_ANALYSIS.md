@@ -30,7 +30,7 @@
 | gui        | 40% 🟡 | 需补充   | ❌      | ✅     | ❌   | ❌   |
 | pm         | 50% 🟡 | 需补充   | ✅      | ❌     | ❌   | ⚠️   |
 | net        | 50% 🟡 | 需补充   | ✅      | ❌     | ⚠️   | ⚠️   |
-| pid        | 70% 🟡 | 中等     | ✅      | ✅     | ❌   | ❌   |
+| pid        | 85% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
 | display    | 10% 🔴 | 严重不足 | ❌      | ✅     | ❌   | ❌   |
 | actuator   | 60% 🟡 | 需补充   | ❌      | ❌     | ❌   | ❌   |
 | mux        | 45% 🟡 | 需补充   | ✅      | ✅     | ❌   | ❌   |
@@ -155,24 +155,26 @@ display/
 
 ---
 
-### 5. pid/ - PID 控制组件 (70%)
+### 5. pid/ - PID 控制组件 (85%)
 
 #### 问题描述
 
-- **有 bug**：`xy_pid_auto.c` 第 160 行有 `xy_pid_auto_calc_zn(ltc2945);` 明显错误
-- **缺少示例代码**：README 中的示例太简略
-- **缺少测试用例**：无单元测试
+- **历史 auto-tune bug 已修复**：当前 `xy_pid_auto.c` 调用 `xy_pid_auto_calc_zn(tuner)` / `xy_pid_auto_calc_imc(tuner)`，未再出现旧 `ltc2945` 误引用
+- **独立示例已补齐**：`components/pid/examples/` 下已有 basic、incremental、temperature、charging、auto_tune 示例源文件与示例 CMake 入口
+- **单元测试已接入 active Unity/CTest**：`tests/unit/pid/test_pid_core.c` 与 `test_pid_auto.c` 覆盖核心 PID 与自整定契约
+- **剩余风险**：示例目前是组件局部示例，尚未纳入根 `make test-unit` 构建护栏；后续若 API 继续演进，应优先把至少 1 个示例 smoke 编译进 host CTest
 
 #### 修复计划
 
 | 序号 | 任务                                      | 工作量 | 优先级 |
 | ---- | ----------------------------------------- | ------ | ------ |
-| P1   | 修复 xy_pid_auto_calc_zn 中的 ltc2945 bug | 1h     | 🟠 中  |
-| P2   | 补充示例代码（独立文件）                  | 4h     | 🟠 中  |
-| P3   | 添加单元测试                              | 8h     | 🟠 中  |
-| P4   | 更新 README 与实际实现一致                | 2h     | 🟡 低  |
+| P1   | 修复 xy_pid_auto_calc_zn 中的 ltc2945 bug | -      | 已完成 |
+| P2   | 补充示例代码（独立文件）                  | -      | 已完成 |
+| P3   | 添加单元测试                              | -      | 已完成 |
+| P4   | 更新 README 与实际实现一致                | -      | 已完成 |
+| P5   | 将 1 个低风险示例纳入 host smoke CTest    | 2h     | 🟡 低  |
 
-**预计工时**: 15h
+**预计工时**: 2h
 
 ---
 
@@ -319,7 +321,7 @@ display/
 | 🔴 高    | gui        | 48h      |
 | 🔴 高    | net        | 52h      |
 | 🟠 中    | actuator   | 20h      |
-| 🟠 中    | pid        | 15h      |
+| 🟠 中    | pid        | 2h       |
 | 🟠 中    | mux        | 22h      |
 | 🟠 中    | fota       | 32h      |
 | 🟠 中    | pm         | 28h      |
@@ -341,7 +343,7 @@ display/
 
 ### 第二阶段（3-4 周）- 核心功能修复
 
-1. 修复 pid/ 的 bug
+1. 将低风险示例纳入 host smoke 构建护栏
 2. 补充 mux/ 空头文件的 API
 3. 补充 fota/ 的 xy_fota_flash.h
 4. 整理 crypto/ 代码组织
