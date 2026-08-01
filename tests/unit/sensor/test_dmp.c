@@ -148,17 +148,17 @@ void test_update_normalizes_roll_pitch_yaw_bounds(void)
     g_gyro[2] = 0.0f;
 
     TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_update(&dmp));
-    TEST_ASSERT_TRUE(dmp.euler.roll < 0.0f);
+    TEST_ASSERT_LESS_THAN_FLOAT(0.0f, dmp.euler.roll);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.570796f, dmp.euler.pitch);
-    TEST_ASSERT_TRUE(dmp.euler.yaw < 0.0f);
+    TEST_ASSERT_LESS_THAN_FLOAT(0.0f, dmp.euler.yaw);
 
     dmp.euler.roll = -3.25f;
     dmp.euler.pitch = -1.70f;
     dmp.euler.yaw = -3.20f;
     TEST_ASSERT_EQUAL_INT(XY_DMP_OK, xy_dmp_update(&dmp));
-    TEST_ASSERT_TRUE(dmp.euler.roll > 0.0f);
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, dmp.euler.roll);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, -1.570796f, dmp.euler.pitch);
-    TEST_ASSERT_TRUE(dmp.euler.yaw > 0.0f);
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, dmp.euler.yaw);
 }
 
 void test_update_guards_not_initialized_and_sensor_errors(void)
