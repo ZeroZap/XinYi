@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "unity.h"
 #include "xy_pid.h"
@@ -36,9 +37,28 @@ static void test_pid_init_and_tuning(void)
     xy_pid_t pid;
     xy_pid_config_t config = default_config();
     xy_pid_config_t before;
+    memset(&pid, 0xA5, sizeof(pid));
 
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_init(NULL, &config));
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_init(&pid, NULL));
+
+    config.output_min = 10.0F;
+    config.output_max = 10.0F;
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, ((uint8_t *)&pid)[0]);
+
+    config = default_config();
+    config.integral_min = 5.0F;
+    config.integral_max = -5.0F;
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, ((uint8_t *)&pid)[0]);
+
+    config = default_config();
+    config.derivative_filter = 1.5F;
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, ((uint8_t *)&pid)[0]);
+
+    config = default_config();
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
 
     TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, pid.mode);

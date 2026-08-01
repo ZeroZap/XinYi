@@ -31,6 +31,12 @@ int xy_pid_init(xy_pid_t *pid, const xy_pid_config_t *config)
     if (!pid || !config) {
         return XY_PID_INVALID_PARAM;
     }
+
+    if (config->output_min >= config->output_max ||
+        config->integral_min >= config->integral_max ||
+        config->derivative_filter > 1.0F) {
+        return XY_PID_INVALID_PARAM;
+    }
     
     memset(pid, 0, sizeof(*pid));
     
