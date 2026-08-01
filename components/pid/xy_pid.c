@@ -76,14 +76,14 @@ int xy_pid_reset(xy_pid_t *pid)
 
 int xy_pid_set_tuning(xy_pid_t *pid, float kp, float ki, float kd)
 {
-    if (!pid) {
+    if (!pid || kp < 0.0F || ki < 0.0F || kd < 0.0F) {
         return XY_PID_INVALID_PARAM;
     }
-    
+
     pid->config.kp = kp;
     pid->config.ki = ki;
     pid->config.kd = kd;
-    
+
     xy_log_d("PID tuning updated: Kp=%.3f, Ki=%.3f, Kd=%.3f\n", kp, ki, kd);
     return XY_PID_OK;
 }
