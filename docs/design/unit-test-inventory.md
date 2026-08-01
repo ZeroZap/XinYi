@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Total C unit-test files: 115
-- Unity-style files: 115
+- Total C unit-test files: 116
+- Unity-style files: 116
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
@@ -43,7 +43,7 @@
 | `kernel` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `mux` | 5 | 5 | 0 | 0 | 0 | 5 |
 | `net` | 11 | 11 | 0 | 0 | 0 | 5 |
-| `pid` | 1 | 1 | 0 | 0 | 0 | 0 |
+| `pid` | 2 | 2 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `sensor` | 48 | 48 | 0 | 0 | 0 | 48 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
@@ -122,6 +122,7 @@
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |
 | `tests/unit/net/test_net_smbus_pmbus.c` | `unity` | 34 |
+| `tests/unit/pid/test_pid_auto.c` | `unity` | 0 |
 | `tests/unit/pid/test_pid_core.c` | `unity` | 0 |
 | `tests/unit/pm/test_charger_bq25620.c` | `unity` | 10 |
 | `tests/unit/pm/test_pm_core.c` | `unity` | 0 |
