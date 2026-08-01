@@ -33,7 +33,7 @@ static void test_ascon_encrypt_variants_and_hash(void)
                                                  ciphertext, tag));
     TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
                           xy_ascon_hash((const uint8_t *)"Test message for hashing", 24, hash));
-    TEST_ASSERT_FALSE(hash[0] == 0 && hash[1] == 0);
+    TEST_ASSERT_NOT_EQUAL_UINT8(0U, hash[0] | hash[1]);
 }
 
 static void test_ascon_decrypt_reports_authentication_failure_for_current_vectors(void)
@@ -133,7 +133,7 @@ static void test_photon_beetle_roundtrips_tag_sizes_and_hashes(void)
     TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
                           xy_photon_hash((const uint8_t *)"Test message for Photon hash", 28,
                                          hash));
-    TEST_ASSERT_FALSE(hash[0] == 0 && hash[1] == 0);
+    TEST_ASSERT_NOT_EQUAL_UINT8(0U, hash[0] | hash[1]);
 }
 
 static void test_photon_beetle_rejects_wrong_tag(void)
