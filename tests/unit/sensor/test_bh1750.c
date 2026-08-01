@@ -143,6 +143,7 @@ static void test_init_reports_not_found_when_power_on_fails(void)
     g_write_ret_queue[0] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_BH1750_NOT_FOUND, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 }
 
 static void test_read_high_resolution_one_time_converts_raw_lux(void)
@@ -252,6 +253,7 @@ static void test_init_reset_failure_leaves_device_uninitialized(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
 }
 
 static void test_power_and_reset_propagate_write_failures(void)
