@@ -379,7 +379,7 @@ bool actuator_is_ready(actuator_device_t *dev)
 /* ==================== 继电器 API ==================== */
 actuator_err_t relay_init(actuator_device_t *dev)
 {
-    if (dev == NULL) {
+    if (dev == NULL || dev->type != ACTUATOR_TYPE_RELAY) {
         return ACTUATOR_EINVAL;
     }
 

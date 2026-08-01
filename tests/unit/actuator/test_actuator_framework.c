@@ -831,6 +831,54 @@ static void test_sleep_wakeup_dispatch_updates_status_only_on_success(void)
     TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, fallback.status);
 }
 
+static void test_type_specific_helpers_reject_wrong_types_and_preserve_outputs(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT("guard_relay", ACTUATOR_TYPE_RELAY, &mock_relay_wrapper_ops, NULL, NULL);
+    actuator_device_t servo = ACTUATOR_DEVICE_INIT("guard_servo", ACTUATOR_TYPE_SERVO, &mock_servo_wrapper_ops, NULL, NULL);
+    actuator_device_t pwm = ACTUATOR_DEVICE_INIT("guard_pwm", ACTUATOR_TYPE_PWM, &mock_pwm_ops, NULL, NULL);
+    uint8_t relay_state = 0xA5U;
+    float servo_angle = -123.0f;
+
+    relay.value.relay.state = RELAY_STATE_ON;
+    servo.value.servo.current_angle = 12.5f;
+    pwm.value.pwm.duty = 1234U;
+    pwm.config.pwm_freq = 1000U;
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, relay_init(&servo));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, relay_deinit(&servo));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, relay_set(&servo, RELAY_STATE_OFF));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, relay_toggle(&servo));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, relay_get(&servo, &relay_state));
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, relay_state);
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, relay_get(&relay, NULL));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, relay_pulse(&servo, 10U));
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+    TEST_ASSERT_EQUAL_UINT(0U, relay_type_set_fake.call_count);
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_init(&relay));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_deinit(&relay));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_set_angle(&relay, 0.0f));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_get_angle(&relay, &servo_angle));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -123.0f, servo_angle);
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_get_angle(&servo, NULL));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_set_range(&relay, -10.0f, 10.0f));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_set_speed(&relay, 90U));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_sweep(&relay, -10.0f, 10.0f, 5U));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_sweep(&servo, 10.0f, 10.0f, 5U));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_stop(&relay));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, servo_center(&relay));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.5f, servo.value.servo.current_angle);
+    TEST_ASSERT_EQUAL_UINT(0U, servo_type_set_angle_fake.call_count);
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, pwm_set_duty(&relay, 4321U));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, pwm_set_frequency(&relay, 2000U));
+    TEST_ASSERT_EQUAL_UINT16(1234U, pwm.value.pwm.duty);
+    TEST_ASSERT_EQUAL_UINT32(1000U, pwm.config.pwm_freq);
+    TEST_ASSERT_EQUAL_UINT(0U, pwm_write_fake.call_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -851,5 +899,6 @@ int main(void)
     RUN_TEST(test_reset_and_emergency_stop_fallbacks_propagate_type_ops_results);
     RUN_TEST(test_pwm_set_duty_preserves_state_on_backend_failure);
     RUN_TEST(test_sleep_wakeup_dispatch_updates_status_only_on_success);
+    RUN_TEST(test_type_specific_helpers_reject_wrong_types_and_preserve_outputs);
     return UNITY_END();
 }

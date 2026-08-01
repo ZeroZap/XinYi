@@ -308,6 +308,7 @@ ctest --test-dir build/tests/unit -R '^actuator_framework$' --output-on-failure
 - 继电器默认操作：开/关、翻转、脉冲
 - 舵机默认操作：角度设置、回中、范围与 PWM 配置
 - 批量操作：批量写入、序列执行、错误参数
+- 类型专用 helper 防御路径：继电器/舵机/PWM helper 拒绝错误类型并保持调用者输出与缓存状态
 
 ---
 
