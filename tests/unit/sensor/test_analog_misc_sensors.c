@@ -212,6 +212,55 @@ static void test_public_ops_reject_invalid_arguments_without_adc_side_effects(vo
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, fsr->ops->read(&(sensor_device_t){0}, &sentinel));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mg811->ops->read(&(sensor_device_t){0}, &sentinel));
     TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, sentinel.type);
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, sentinel.timestamp);
+
+    destroy_sensor(acs712);
+    destroy_sensor(fsr);
+    destroy_sensor(mg811);
+}
+
+static void test_zero_raw_reads_update_outputs_and_timestamps(void)
+{
+    sensor_device_t *acs712 = acs712_create("acs-preserve", 1U);
+    sensor_device_t *fsr = fsr_create("fsr-preserve", 2U);
+    sensor_device_t *mg811 = mg811_create("mg-preserve", 3U);
+    sensor_data_t acs_data = {
+        .type = SENSOR_TYPE_CURRENT,
+        .value.val_float = 123.0f,
+        .timestamp = 11U,
+    };
+    sensor_data_t fsr_data = {
+        .type = SENSOR_TYPE_PRESSURE,
+        .value.val_float = 456.0f,
+        .timestamp = 22U,
+    };
+    sensor_data_t mg_data = {
+        .type = SENSOR_TYPE_GAS,
+        .value.val_float = 789.0f,
+        .timestamp = 33U,
+    };
+
+    TEST_ASSERT_NOT_NULL(acs712);
+    TEST_ASSERT_NOT_NULL(fsr);
+    TEST_ASSERT_NOT_NULL(mg811);
+
+    g_adc_value = 0U;
+    g_tick = 0U;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, acs712->ops->read(acs712, &acs_data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, fsr->ops->read(fsr, &fsr_data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, mg811->ops->read(mg811, &mg_data));
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_CURRENT, acs_data.type);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -25.0f, acs_data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(0U, acs_data.timestamp);
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_PRESSURE, fsr_data.type);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, fsr_data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(0U, fsr_data.timestamp);
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_GAS, mg_data.type);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, mg_data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(0U, mg_data.timestamp);
+    TEST_ASSERT_EQUAL_UINT(3U, g_adc_read_count);
 
     destroy_sensor(acs712);
     destroy_sensor(fsr);
@@ -228,5 +277,6 @@ int main(void)
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_create_rejects_null_name);
     RUN_TEST(test_public_ops_reject_invalid_arguments_without_adc_side_effects);
+    RUN_TEST(test_zero_raw_reads_update_outputs_and_timestamps);
     return UNITY_END();
 }
