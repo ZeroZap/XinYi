@@ -27,12 +27,19 @@ PID (Proportional-Integral-Derivative) 控制器组件，用于闭环控制系�
 
 ```
 pid/
+├── xy_pid.c               # PID 控制器实现
+├── xy_pid.h               # 兼容入口，转发到 inc/xy_pid.h
 ├── inc/
 │   ├── xy_pid.h           # PID 控制器主头文件
-│   └── xy_pid_auto.h      # 自动整定头文件
+│   ├── xy_pid_auto.h      # 自动整定头文件
+│   └── xy_pid_types.h     # 扩展类型定义
 ├── src/
-│   ├── xy_pid.c           # PID 控制器实现
-│   └── xy_pid_auto.c      # 自动整定实现
+│   ├── xy_pid_auto.c      # 自动整定实现
+│   ├── xy_pid_temp_ctrl.c # 温控扩展示例实现
+│   └── xy_charge_ctrl.c   # 充电控制扩展示例实现
+├── tests/unit/pid/        # 当前 host Unity/CTest 覆盖入口
+│   ├── test_pid_core.c
+│   └── test_pid_auto.c
 ├── examples/              # 示例程序
 │   ├── CMakeLists.txt     # 示例构建配置
 │   ├── example_basic.c    # 基础 PID 用法
@@ -41,6 +48,8 @@ pid/
 │   ├── example_charging.c     # 充电控制
 │   └── example_auto_tune.c    # 自动整定
 ├── README.md              # 本文件
+├── Kconfig                # 组件配置入口
+├── CMakeLists.txt         # 组件构建入口
 ├── pid-basic.md           # 基础 PID 文档
 ├── pid-charging.md        # 充电应用文档
 └── pid.md                 # 详细技术文档
@@ -207,14 +216,38 @@ target_link_libraries(your_target xy_pid)
 ### Kconfig 配置
 
 ```
-CONFIG_XY_PID=y
-CONFIG_XY_PID_AUTO=y
+CONFIG_COMPONENT_PID=y
+CONFIG_PID_DEFAULT_KP=1.0
+CONFIG_PID_DEFAULT_KI=0.1
+CONFIG_PID_DEFAULT_KD=0.05
 ```
+
+`COMPONENT_PID` 是当前根 `Kconfig` 和组件 `Kconfig` 使用的使能符号；旧文档里的
+`CONFIG_XY_PID` / `CONFIG_XY_PID_AUTO` 不是当前构建入口。
+
+### 测试与验证
+
+PID 的 host 单元测试已纳入 `tests/unit/CMakeLists.txt`：
+
+```bash
+# 构建并运行完整 host unit suite
+make test-unit
+
+# 在已配置的 build/tests/unit 下运行聚焦 CTest
+cmake --build build/tests/unit --target test_pid_core test_pid_auto -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^(pid_core|pid_auto)$'
+```
+
+当前聚焦覆盖：
+
+- `test_pid_core.c`：初始化参数守卫、计算/限幅、模式、抗积分饱和、微分滤波、reset。
+- `test_pid_auto.c`：自整定初始化/启动/停止、采样完成、退化响应错误态、apply 守卫、进度夹紧。
 
 ### 依赖
 
-- `xy_log` - 日志系统
-- `xy_os` - 操作系统抽象（用于延时）
+- `xy_trace` / `xy_log` - 日志系统
+- `xy_osal` - OS tick 抽象（`xy_os_tick_get()`）
+- `m` - host 浮点数学函数
 
 ---
 
