@@ -96,6 +96,18 @@ static int fake_channel_get_impl(xy_fuel_gauge_t *fg, xy_fuel_gauge_data_type_t 
     return XY_FG_OK;
 }
 
+static int fake_alert_get_write_then_fail_impl(xy_fuel_gauge_t *fg, xy_fuel_gauge_alert_t *alert)
+{
+    (void)fg;
+
+    if (!alert) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    memset(alert, 0xA5, sizeof(*alert));
+    return XY_FG_ERROR_NO_DATA;
+}
+
 static void reset_fixture(void)
 {
     RESET_FAKE(xy_os_tick_get);
@@ -274,6 +286,68 @@ static void test_core_public_calls_reject_missing_callbacks_without_side_effects
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED, xy_fuel_gauge_get_alert(&fg, &alert));
     TEST_ASSERT_EQUAL_UINT(0U, fake_alert_set_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(0U, fake_alert_get_fake.call_count);
+}
+
+static void test_core_alert_wrappers_dispatch_and_preserve_outputs_on_failures(void)
+{
+    static const xy_fuel_gauge_api_t api = {
+        .init = fake_init,
+        .fetch = fake_fetch,
+        .alert_set = fake_alert_set,
+        .alert_get = fake_alert_get,
+    };
+    xy_fuel_gauge_t fg;
+    xy_fuel_gauge_alert_t alert = {
+        .low_soc_threshold = 15,
+        .high_soc_threshold = 95,
+        .low_voltage_mv = 3200,
+        .high_voltage_mv = 4200,
+        .over_current_ma = -500,
+        .over_temp_c = 60,
+    };
+    xy_fuel_gauge_alert_t readback;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    memset(&readback, 0x3C, sizeof(readback));
+    fg.name = "fg-alert-core";
+    fg.api = &api;
+    fg.initialized = true;
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_set_alert(&fg, &alert));
+    TEST_ASSERT_EQUAL_UINT(1U, fake_alert_set_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fg, fake_alert_set_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(&alert, fake_alert_set_fake.arg1_val);
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_alert(&fg, &readback));
+    TEST_ASSERT_EQUAL_UINT(1U, fake_alert_get_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fg, fake_alert_get_fake.arg0_val);
+    TEST_ASSERT_NOT_NULL(fake_alert_get_fake.arg1_val);
+
+    fake_alert_set_fake.return_val = XY_FG_ERROR_NO_DATA;
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_set_alert(&fg, &alert));
+    TEST_ASSERT_EQUAL_UINT(2U, fake_alert_set_fake.call_count);
+
+    fake_alert_get_fake.return_val = XY_FG_ERROR_NO_DATA;
+    memset(&readback, 0x5A, sizeof(readback));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_get_alert(&fg, &readback));
+    TEST_ASSERT_EQUAL_HEX8(0x5A, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_HEX8(0x5A, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_HEX16(0x5A5A, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_HEX16(0x5A5A, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL_HEX16(0x5A5A, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_HEX16(0x5A5A, readback.over_temp_c);
+
+    fake_alert_get_fake.return_val = XY_FG_OK;
+    fake_alert_get_fake.custom_fake = fake_alert_get_write_then_fail_impl;
+    memset(&readback, 0x6B, sizeof(readback));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_get_alert(&fg, &readback));
+    TEST_ASSERT_EQUAL_HEX8(0x6B, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_HEX8(0x6B, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_HEX16(0x6B6B, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_HEX16(0x6B6B, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL_HEX16(0x6B6B, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_HEX16(0x6B6B, readback.over_temp_c);
 }
 
 static void test_core_cached_data_fallback_covers_supported_channels(void)
@@ -469,6 +543,7 @@ int main(void)
     RUN_TEST(test_core_init_failure_preserves_status_and_return_code);
     RUN_TEST(test_core_public_calls_reject_initialized_device_without_api);
     RUN_TEST(test_core_public_calls_reject_missing_callbacks_without_side_effects);
+    RUN_TEST(test_core_alert_wrappers_dispatch_and_preserve_outputs_on_failures);
     RUN_TEST(test_core_cached_data_fallback_covers_supported_channels);
     RUN_TEST(test_status_queries_preserve_outputs_on_invalid_and_failed_reads);
     RUN_TEST(test_status_safety_security_helpers);

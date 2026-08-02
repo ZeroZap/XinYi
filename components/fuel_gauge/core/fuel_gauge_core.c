@@ -198,7 +198,14 @@ xy_fuel_gauge_status_t xy_fuel_gauge_get_alert(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_NOT_SUPPORTED;
     }
     
-    return fg->api->alert_get(fg, alert);
+    xy_fuel_gauge_alert_t next_alert;
+    xy_fuel_gauge_status_t ret = fg->api->alert_get(fg, &next_alert);
+    if (ret != XY_FG_OK) {
+        return ret;
+    }
+
+    *alert = next_alert;
+    return XY_FG_OK;
 }
 
 /**
