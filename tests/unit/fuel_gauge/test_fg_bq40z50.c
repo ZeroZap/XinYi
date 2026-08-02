@@ -184,6 +184,18 @@ void test_bq40z50_registers_default_i2c_bus(void)
     TEST_ASSERT_EQUAL_UINT8(BQ40Z50_ADDR, last_bus.address);
 }
 
+void test_bq40z50_register_duplicate_does_not_reconfigure_bus(void)
+{
+    TEST_ASSERT_NOT_NULL(registered_bq40z50());
+    reset_sensor_fakes();
+    memset(&last_bus, 0, sizeof(last_bus));
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_bq40z50_register((void *)0xBAD, 0x44));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+}
+
 void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
 {
     xy_fuel_gauge_t *fg = registered_bq40z50();
@@ -754,6 +766,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_bq40z50_registers_default_i2c_bus);
+    RUN_TEST(test_bq40z50_register_duplicate_does_not_reconfigure_bus);
     RUN_TEST(test_bq40z50_init_fetch_channel_and_pack_helpers);
     RUN_TEST(test_bq40z50_rejects_invalid_channel_and_cell);
     RUN_TEST(test_bq40z50_alert_set_get_uses_cached_thresholds);

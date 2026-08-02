@@ -540,6 +540,10 @@ static xy_fuel_gauge_t bq40z50_device = {
  */
 int xy_fuel_gauge_bq40z50_register(void *i2c_handle, uint8_t addr)
 {
+    if (xy_fuel_gauge_device_get(bq40z50_device.name)) {
+        return XY_FG_ERROR;
+    }
+
     xy_sensor_bus_config_i2c(&bq40z50_priv.bus, i2c_handle, 
                              addr ? addr : BQ40Z50_ADDR);
     return xy_fuel_gauge_device_register(&bq40z50_device);
