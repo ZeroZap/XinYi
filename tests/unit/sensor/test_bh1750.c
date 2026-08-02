@@ -36,7 +36,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C device should be initialized");
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_read_queue) / sizeof(g_read_queue[0]), g_read_index);
     TEST_ASSERT_EQUAL_UINT(g_read_len_queue[g_read_index], len);
@@ -52,7 +52,7 @@ xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C device should be initialized");
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT(1U, len);
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_write_queue), g_write_index);
