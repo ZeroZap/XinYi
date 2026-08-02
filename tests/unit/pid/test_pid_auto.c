@@ -433,6 +433,34 @@ static void test_auto_imc_completion_uses_degenerate_zn_fallback(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
 
+static void test_auto_loop_wraparound_tick_still_samples_at_interval(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t auto_config = default_auto_config();
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
+
+    g_tick_ms = UINT32_MAX - 1U;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_start(&tuner));
+    TEST_ASSERT_EQUAL_UINT32(UINT32_MAX - 1U, tuner.start_time);
+
+    g_tick_ms = 1U;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_loop(&tuner, 11.0F));
+    TEST_ASSERT_EQUAL_UINT16(0U, tuner.sample_count);
+    TEST_ASSERT_EQUAL_UINT32(UINT32_MAX - 1U, tuner.start_time);
+
+    g_tick_ms = auto_config.sample_interval_ms;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_loop(&tuner, 12.0F));
+    TEST_ASSERT_EQUAL_UINT16(1U, tuner.sample_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 12.0F, tuner.samples[0]);
+    TEST_ASSERT_EQUAL_UINT32(auto_config.sample_interval_ms, tuner.start_time);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
+}
+
 void setUp(void)
 {
     g_tick_ms = 0U;
@@ -460,5 +488,6 @@ int main(void)
     RUN_TEST(test_auto_progress_clamps_inconsistent_sample_count);
     RUN_TEST(test_auto_apply_handles_invalid_pid_tuning_without_mode_change);
     RUN_TEST(test_auto_imc_completion_uses_degenerate_zn_fallback);
+    RUN_TEST(test_auto_loop_wraparound_tick_still_samples_at_interval);
     return UNITY_END();
 }
