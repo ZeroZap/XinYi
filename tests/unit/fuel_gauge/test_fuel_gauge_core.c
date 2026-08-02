@@ -442,6 +442,8 @@ static void test_status_safety_security_helpers(void)
     TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_safety_event(&fg, &event));
     TEST_ASSERT_EQUAL_INT(XY_FG_SAFETY_EVENT_NONE, event.type);
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_safety_event_history(NULL, &event, 1));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_clear_error(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_clear_error(&fg));
 
     security_config.type = XY_FG_SECURITY_NONE;
     security_config.key = key;

@@ -202,9 +202,12 @@ bool xy_fuel_gauge_has_error(xy_fuel_gauge_t *fg)
  */
 int xy_fuel_gauge_clear_error(xy_fuel_gauge_t *fg)
 {
+    if (!fg) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     /* 简化实现：直接返回成功 */
-    (void)fg;
-    return 0;
+    return XY_FG_OK;
 }
 
 /**
