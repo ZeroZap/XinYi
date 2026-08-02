@@ -571,6 +571,35 @@ void test_max17043_alert_set_get_uses_cached_thresholds(void)
     TEST_ASSERT_EQUAL_INT16(alert.over_temp_c, readback.over_temp_c);
 }
 
+void test_max17043_reinit_preserves_alert_threshold_cache(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+    xy_fuel_gauge_alert_t alert = {
+        .low_soc_threshold = 10,
+        .high_soc_threshold = 95,
+        .low_voltage_mv = 3200,
+        .high_voltage_mv = 4250,
+        .over_current_ma = 2100,
+        .over_temp_c = 600,
+    };
+    xy_fuel_gauge_alert_t readback = {0};
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->alert_set(fg, &alert));
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->alert_get(fg, &readback));
+
+    TEST_ASSERT_EQUAL_UINT8(alert.low_soc_threshold, readback.low_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT8(alert.high_soc_threshold, readback.high_soc_threshold);
+    TEST_ASSERT_EQUAL_UINT16(alert.low_voltage_mv, readback.low_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT16(alert.high_voltage_mv, readback.high_voltage_mv);
+    TEST_ASSERT_EQUAL_INT16(alert.over_current_ma, readback.over_current_ma);
+    TEST_ASSERT_EQUAL_INT16(alert.over_temp_c, readback.over_temp_c);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -591,5 +620,6 @@ int main(void)
     RUN_TEST(test_max17043_inline_getters_preserve_outputs_on_failure);
     RUN_TEST(test_max17043_direct_api_guards_preserve_outputs);
     RUN_TEST(test_max17043_alert_set_get_uses_cached_thresholds);
+    RUN_TEST(test_max17043_reinit_preserves_alert_threshold_cache);
     return UNITY_END();
 }
