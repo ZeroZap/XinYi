@@ -978,6 +978,16 @@ xy_add_unit_test(test_pid_auto pid_auto UNITY
 )
 target_link_libraries(test_pid_auto m)
 
+# --- Test 29c: PID basic example stays aligned with public APIs ---
+xy_add_unit_test(test_pid_example_basic pid_example_basic
+    ${PID}/examples/example_basic.c
+    ${PID}/xy_pid.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${UNIT_PID}/test_pid_example_log_stub.c
+)
+target_link_libraries(test_pid_example_basic m)
+
 # --- Test 30: MUX SPI channel helper contracts ---
 xy_add_unit_test(test_mux_spi mux_spi UNITY
     ${UNIT_MUX}/test_mux_spi.c
