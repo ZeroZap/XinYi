@@ -260,7 +260,7 @@ static int32_t short_header_write_impl(uint8_t channel, const void *data, size_t
 static int32_t short_read_impl(uint8_t channel, void *data, size_t len)
 {
     (void)channel;
-    TEST_ASSERT_TRUE(len >= 2U);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(2U, len);
     ((uint8_t *)data)[0] = 0xA5;
     ((uint8_t *)data)[1] = 0x5A;
     return 2;
