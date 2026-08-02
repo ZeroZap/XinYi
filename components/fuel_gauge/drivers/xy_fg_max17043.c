@@ -29,6 +29,8 @@
 #define MAX17043_REG_UNLOCK     0x3E
 #define MAX17043_REG_COMMAND    0xFF
 
+#define MAX17043_IO_RETRIES     3
+
 /* 私有数据 */
 typedef struct {
     xy_sensor_bus_t bus;
@@ -36,6 +38,42 @@ typedef struct {
     xy_fuel_gauge_data_t data;
     xy_fuel_gauge_alert_t alert;
 } max17043_private_data_t;
+
+static int max17043_read_reg16(max17043_private_data_t *priv, uint8_t reg, uint16_t *value)
+{
+    int ret = -1;
+
+    if (!priv || !value) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    for (int attempt = 0; attempt < MAX17043_IO_RETRIES; ++attempt) {
+        ret = xy_sensor_i2c_read_reg16(&priv->bus, reg, value);
+        if (ret == 0) {
+            return XY_FG_OK;
+        }
+    }
+
+    return XY_FG_ERROR;
+}
+
+static int max17043_write_reg16(max17043_private_data_t *priv, uint8_t reg, uint16_t value)
+{
+    int ret = -1;
+
+    if (!priv) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    for (int attempt = 0; attempt < MAX17043_IO_RETRIES; ++attempt) {
+        ret = xy_sensor_i2c_write_reg16(&priv->bus, reg, value);
+        if (ret == 0) {
+            return XY_FG_OK;
+        }
+    }
+
+    return XY_FG_ERROR;
+}
 
 /**
  * @brief MAX17043 初始化
@@ -50,7 +88,7 @@ static int max17043_init(xy_fuel_gauge_t *fg)
     
     /* 读取版本 */
     uint16_t version;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_VER, &version) != 0) {
+    if (max17043_read_reg16(priv, MAX17043_REG_VER, &version) != XY_FG_OK) {
         priv->initialized = false;
         return XY_FG_ERROR;
     }
@@ -58,7 +96,7 @@ static int max17043_init(xy_fuel_gauge_t *fg)
     xy_log_i("MAX17043 version: 0x%04X\n", version);
     
     /* 配置：默认配置 */
-    if (xy_sensor_i2c_write_reg16(&priv->bus, MAX17043_REG_CONFIG, 0x0000) != 0) {
+    if (max17043_write_reg16(priv, MAX17043_REG_CONFIG, 0x0000) != XY_FG_OK) {
         priv->initialized = false;
         return XY_FG_ERROR;
     }
@@ -84,21 +122,21 @@ static int max17043_fetch(xy_fuel_gauge_t *fg)
     
     /* 读取电压 (mV), VCELL LSB = 1.25mV */
     uint16_t vcell;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_VCELL, &vcell) != 0) {
+    if (max17043_read_reg16(priv, MAX17043_REG_VCELL, &vcell) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     uint16_t voltage_mv = (uint16_t)((uint32_t)(vcell >> 4) * 125U / 100U);
     
     /* 读取 SOC (%) */
     uint16_t soc_reg;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_SOC, &soc_reg) != 0) {
+    if (max17043_read_reg16(priv, MAX17043_REG_SOC, &soc_reg) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     uint8_t soc = (uint8_t)(soc_reg >> 8);
     
     /* 读取充放电率 */
     uint16_t crate_reg;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, MAX17043_REG_CRATE, &crate_reg) != 0) {
+    if (max17043_read_reg16(priv, MAX17043_REG_CRATE, &crate_reg) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     int16_t current_ma = (int16_t)((int32_t)(int16_t)crate_reg * 208 / 1000);

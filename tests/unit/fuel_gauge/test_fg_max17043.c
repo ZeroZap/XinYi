@@ -190,32 +190,61 @@ void test_max17043_init_writes_default_config(void)
     TEST_ASSERT_EQUAL_UINT16(0, last_write_value);
 }
 
-void test_max17043_init_propagates_version_read_failure(void)
+void test_max17043_init_retries_transient_version_read_failure(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
 
     fg->initialized = false;
     fake_fail_reads(REG_VER, 1);
 
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_EQUAL_UINT(2, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_sensor_i2c_read_reg16_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_write_reg16_fake.call_count);
+}
+
+void test_max17043_init_propagates_persistent_version_read_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+
+    fg->initialized = false;
+    fake_fail_reads(REG_VER, 3);
+
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_init(fg));
     TEST_ASSERT_FALSE(fg->initialized);
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_read_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_sensor_i2c_read_reg16_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT(0, xy_sensor_i2c_write_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT16(0xFFFF, last_write_value);
 }
 
-void test_max17043_init_propagates_config_write_failure(void)
+void test_max17043_init_retries_transient_config_write_failure(void)
 {
     xy_fuel_gauge_t *fg = registered_max17043();
 
     fg->initialized = false;
     fake_fail_writes(REG_CONFIG, 1);
 
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2, xy_sensor_i2c_write_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(REG_CONFIG, last_write_reg);
+    TEST_ASSERT_EQUAL_UINT16(0, last_write_value);
+}
+
+void test_max17043_init_propagates_persistent_config_write_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+
+    fg->initialized = false;
+    fake_fail_writes(REG_CONFIG, 3);
+
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_init(fg));
     TEST_ASSERT_FALSE(fg->initialized);
     TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_write_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_write_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT16(0xFFFF, last_write_value);
 }
 
@@ -230,7 +259,7 @@ void test_max17043_direct_init_failure_clears_stale_private_state(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(75, value);
 
-    fake_fail_reads(REG_VER, 1);
+    fake_fail_reads(REG_VER, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, fg->api->init(fg));
 
     value = 0x17043;
@@ -281,7 +310,7 @@ void test_max17043_fetch_failure_preserves_cached_snapshot(void)
     fake_regs[REG_VCELL] = 0xA000U;
     fake_regs[REG_SOC] = 0x6400U;
     fake_regs[REG_CRATE] = 0x07D0U;
-    fake_fail_reads(REG_SOC, 1);
+    fake_fail_reads(REG_SOC, 3);
     xy_os_tick_get_fake.return_val = 18000;
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
@@ -310,7 +339,7 @@ void test_max17043_fetch_failure_does_not_tick_or_poison_later_retry(void)
     fake_regs[REG_VCELL] = 0x8000U;
     fake_regs[REG_SOC] = 0x1900U;
     fake_regs[REG_CRATE] = 0x03E8U;
-    fake_fail_reads(REG_CRATE, 1);
+    fake_fail_reads(REG_CRATE, 3);
     xy_os_tick_get_fake.return_val = 18000;
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(17043, fg->latest.timestamp);
@@ -332,6 +361,32 @@ void test_max17043_fetch_failure_does_not_tick_or_poison_later_retry(void)
     TEST_ASSERT_EQUAL_INT32(25, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(208, value);
+}
+
+void test_max17043_fetch_retries_transient_register_read_failures(void)
+{
+    xy_fuel_gauge_t *fg = registered_max17043();
+    int32_t value = 0;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    reset_sensor_fakes();
+
+    fake_fail_reads(REG_VCELL, 1);
+    fake_fail_reads(REG_SOC, 2);
+    fake_fail_reads(REG_CRATE, 1);
+    xy_os_tick_get_fake.return_val = 19000;
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(19000, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(7, xy_sensor_i2c_read_reg16_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3906, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(75, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-208, value);
 }
 
 void test_max17043_rejects_unsupported_channel(void)
@@ -384,15 +439,15 @@ void test_max17043_inline_getters_preserve_outputs_on_failure(void)
     fg->initialized = false;
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
 
-    fake_fail_reads(REG_VCELL, 1);
+    fake_fail_reads(REG_VCELL, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_voltage(fg, &voltage));
     TEST_ASSERT_EQUAL_UINT16(0x1704, voltage);
 
-    fake_fail_reads(REG_CRATE, 1);
+    fake_fail_reads(REG_CRATE, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_current(fg, &current));
     TEST_ASSERT_EQUAL_INT16(-170, current);
 
-    fake_fail_reads(REG_SOC, 1);
+    fake_fail_reads(REG_SOC, 3);
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get_soc(fg, &soc));
     TEST_ASSERT_EQUAL_UINT8(43, soc);
 }
@@ -522,12 +577,15 @@ int main(void)
     RUN_TEST(test_max17043_registers_default_i2c_bus);
     RUN_TEST(test_max17043_register_duplicate_does_not_reconfigure_bus);
     RUN_TEST(test_max17043_init_writes_default_config);
-    RUN_TEST(test_max17043_init_propagates_version_read_failure);
-    RUN_TEST(test_max17043_init_propagates_config_write_failure);
+    RUN_TEST(test_max17043_init_retries_transient_version_read_failure);
+    RUN_TEST(test_max17043_init_propagates_persistent_version_read_failure);
+    RUN_TEST(test_max17043_init_retries_transient_config_write_failure);
+    RUN_TEST(test_max17043_init_propagates_persistent_config_write_failure);
     RUN_TEST(test_max17043_direct_init_failure_clears_stale_private_state);
     RUN_TEST(test_max17043_fetch_and_channel_get);
     RUN_TEST(test_max17043_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_max17043_fetch_failure_does_not_tick_or_poison_later_retry);
+    RUN_TEST(test_max17043_fetch_retries_transient_register_read_failures);
     RUN_TEST(test_max17043_rejects_unsupported_channel);
     RUN_TEST(test_max17043_unsupported_inline_getters_preserve_outputs);
     RUN_TEST(test_max17043_inline_getters_preserve_outputs_on_failure);
