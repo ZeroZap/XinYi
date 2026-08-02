@@ -161,8 +161,9 @@ display/
 
 - **历史 auto-tune bug 已修复**：当前 `xy_pid_auto.c` 调用 `xy_pid_auto_calc_zn(tuner)` / `xy_pid_auto_calc_imc(tuner)`，未再出现旧 `ltc2945` 误引用
 - **独立示例已补齐**：`components/pid/examples/` 下已有 basic、incremental、temperature、charging、auto_tune 示例源文件与示例 CMake 入口
-- **单元测试已接入 active Unity/CTest**：`tests/unit/pid/test_pid_core.c` 与 `test_pid_auto.c` 覆盖核心 PID 与自整定契约
-- **剩余风险**：示例目前是组件局部示例，尚未纳入根 `make test-unit` 构建护栏；后续若 API 继续演进，应优先把至少 1 个示例 smoke 编译进 host CTest
+- **单元测试已接入 active Unity/CTest**：`tests/unit/pid/test_pid_core.c` 与 `test_pid_auto.c` 覆盖核心 PID 与自整定契约，并已覆盖 tick wraparound 前进计算
+- **示例 smoke 护栏已接入**：`pid_example_basic` CTest 将 `components/pid/examples/example_basic.c` 编入 host unit suite，防止基础示例 API 漂移
+- **剩余风险**：其它 PID 示例仍是组件局部示例；后续若 API 继续演进，可继续把 incremental/temperature/charging/auto_tune 逐个纳入 host smoke CTest
 
 #### 修复计划
 
@@ -172,7 +173,8 @@ display/
 | P2   | 补充示例代码（独立文件）                  | -      | 已完成 |
 | P3   | 添加单元测试                              | -      | 已完成 |
 | P4   | 更新 README 与实际实现一致                | -      | 已完成 |
-| P5   | 将 1 个低风险示例纳入 host smoke CTest    | 2h     | 🟡 低  |
+| P5   | 将基础示例纳入 host smoke CTest           | -      | 已完成 |
+| P6   | 按需追加其它示例 host smoke CTest         | 1–2h/个 | 🟡 低  |
 
 **预计工时**: 2h
 
