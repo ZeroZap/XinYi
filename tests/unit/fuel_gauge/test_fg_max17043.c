@@ -198,7 +198,8 @@ void test_max17043_init_retries_transient_version_read_failure(void)
     fake_fail_reads(REG_VER, 1);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
-    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(fg->initialized,
+                             "MAX17043 init should mark initialized after transient version read");
     TEST_ASSERT_EQUAL_UINT(2, xy_sensor_i2c_read_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_VER, xy_sensor_i2c_read_reg16_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_write_reg16_fake.call_count);
@@ -227,7 +228,8 @@ void test_max17043_init_retries_transient_config_write_failure(void)
     fake_fail_writes(REG_CONFIG, 1);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
-    TEST_ASSERT_TRUE(fg->initialized);
+    TEST_ASSERT_TRUE_MESSAGE(fg->initialized,
+                             "MAX17043 init should mark initialized after transient config write");
     TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(2, xy_sensor_i2c_write_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(REG_CONFIG, last_write_reg);
