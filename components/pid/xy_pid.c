@@ -141,13 +141,18 @@ int xy_pid_compute(xy_pid_t *pid, float input, float *output)
     if (!pid || !output) {
         return XY_PID_INVALID_PARAM;
     }
-    
+
+    if (pid->mode != XY_PID_MODE_AUTO) {
+        *output = pid->output;
+        return XY_PID_OK;
+    }
+
     pid->input = input;
     pid->error = pid->setpoint - pid->input;
-    
+
     /* 获取时间间隔 */
     current_time = xy_os_tick_get();
-    
+
     if (pid->first_run) {
         pid->last_update = current_time;
         pid->error_prev = pid->error;

@@ -110,6 +110,18 @@ static void test_pid_compute_and_limits(void)
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_input(&pid, 3.0F));
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.0F, pid.input);
 
+    pid.output = 12.0F;
+    output = -99.0F;
+    g_tick_ms = 90U;
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 4.0F, &output));
+    TEST_ASSERT_EQUAL_FLOAT(12.0F, output);
+    TEST_ASSERT_TRUE(pid.first_run);
+    TEST_ASSERT_EQUAL_UINT32(0U, pid.update_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.0F, pid.input);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, xy_pid_get_error(&pid));
+
+    pid.output = 0.0F;
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_AUTO));
     g_tick_ms = 100U;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 4.0F, &output));
     TEST_ASSERT_EQUAL_FLOAT(0.0F, output);
@@ -186,6 +198,7 @@ static void test_pid_reset(void)
     float output;
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_AUTO));
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_setpoint(&pid, 10.0F));
     g_tick_ms = 200U;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
@@ -212,8 +225,8 @@ static void test_pid_wraparound_elapsed_tick_computes_forward_progress(void)
     float output = -1.0F;
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
-    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_setpoint(&pid, 10.0F));
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_AUTO));
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_setpoint(&pid, 10.0F));
 
     g_tick_ms = UINT32_MAX - 4U;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 0.0F, &output));
