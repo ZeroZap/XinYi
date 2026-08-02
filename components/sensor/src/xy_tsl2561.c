@@ -245,8 +245,13 @@ int xy_tsl2561_set_gain(xy_tsl2561_t *tsl2561, xy_tsl2561_gain_t gain)
     
     tsl2561->gain = gain;
     
-    /* 读取当前 TIMING 寄存器值 */
-    xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg);
+    /* 读取当前 TIMING 寄存器值；读取失败时使用缓存配置构造安全回退值 */
+    if (xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg) != XY_DEVICE_OK) {
+        timing_reg = (uint8_t)tsl2561->integration;
+        if (tsl2561->gain == XY_TSL2561_GAIN_16X) {
+            timing_reg |= 0x10;
+        }
+    }
     
     /* 设置增益位 */
     if (gain == XY_TSL2561_GAIN_16X) {
@@ -273,8 +278,13 @@ int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
     
     tsl2561->integration = integration;
     
-    /* 读取当前 TIMING 寄存器值 */
-    xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg);
+    /* 读取当前 TIMING 寄存器值；读取失败时使用缓存配置构造安全回退值 */
+    if (xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg) != XY_DEVICE_OK) {
+        timing_reg = (uint8_t)tsl2561->integration;
+        if (tsl2561->gain == XY_TSL2561_GAIN_16X) {
+            timing_reg |= 0x10;
+        }
+    }
     
     /* 设置积分时间位 */
     timing_reg &= ~0x03;

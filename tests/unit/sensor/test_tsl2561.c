@@ -354,6 +354,25 @@ static void test_gain_integration_enable_disable_and_deinit_contracts(void)
     TEST_ASSERT_EQUAL_UINT8(0x00U, g_write_data_queue[8][1]);
 }
 
+static void test_gain_integration_read_failures_use_cached_timing(void)
+{
+    xy_tsl2561_t dev;
+
+    init_ok(&dev);
+    dev.integration = XY_TSL2561_INTEGRATION_101MS;
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0xFFU, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_gain(&dev, XY_TSL2561_GAIN_16X));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_GAIN_16X, dev.gain);
+    TEST_ASSERT_EQUAL_UINT8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, g_write_data_queue[3][0]);
+    TEST_ASSERT_EQUAL_UINT8(0x11U, g_write_data_queue[3][1]);
+
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0xFFU, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_13MS, dev.integration);
+    TEST_ASSERT_EQUAL_UINT8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, g_write_data_queue[4][0]);
+    TEST_ASSERT_EQUAL_UINT8(0x10U, g_write_data_queue[4][1]);
+}
+
 
 static void test_tsl2561_init_noncritical_config_write_failures_still_ready(void)
 {
@@ -442,6 +461,7 @@ int main(void)
     RUN_TEST(test_read_integration_delay_and_zero_broadband_lux_branches);
     RUN_TEST(test_enable_disable_propagate_i2c_write_failures);
     RUN_TEST(test_gain_integration_enable_disable_and_deinit_contracts);
+    RUN_TEST(test_gain_integration_read_failures_use_cached_timing);
     RUN_TEST(test_tsl2561_init_noncritical_config_write_failures_still_ready);
     RUN_TEST(test_tsl2561_read_ignores_enable_failure_and_still_updates_data);
     RUN_TEST(test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero);
