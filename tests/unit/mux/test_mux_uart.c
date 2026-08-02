@@ -44,6 +44,9 @@ static int32_t mock_uart_deinit_impl(uint8_t channel)
     return XY_MUX_OK;
 }
 
+static uint8_t g_write_history[4][256];
+static size_t g_write_len_history[4];
+
 static int32_t mock_uart_write_impl(uint8_t channel, const void *data, size_t len)
 {
     (void)channel;
@@ -52,6 +55,11 @@ static int32_t mock_uart_write_impl(uint8_t channel, const void *data, size_t le
     }
     memcpy(g_last_write, data, len);
     g_last_write_len = len;
+    if (mock_uart_write_fake.call_count > 0U && mock_uart_write_fake.call_count <= 4U) {
+        size_t index = mock_uart_write_fake.call_count - 1U;
+        memcpy(g_write_history[index], data, len);
+        g_write_len_history[index] = len;
+    }
     return (int32_t)len;
 }
 
@@ -91,6 +99,8 @@ void setUp(void)
 
     memset(g_last_write, 0, sizeof(g_last_write));
     g_last_write_len = 0;
+    memset(g_write_history, 0, sizeof(g_write_history));
+    memset(g_write_len_history, 0, sizeof(g_write_len_history));
     g_read_pattern = 0x5A;
 }
 
@@ -148,6 +158,16 @@ static void test_uart_register_and_config(void)
     TEST_ASSERT_EQUAL_UINT(2U, mock_uart_deinit_fake.call_count);
 }
 
+static void assert_uart_request_header(const uint8_t *header, size_t expected_len, uint32_t timeout)
+{
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)(expected_len & 0xFFU), header[0]);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)((expected_len >> 8) & 0xFFU), header[1]);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)((expected_len >> 16) & 0xFFU), header[2]);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)((expected_len >> 24) & 0xFFU), header[3]);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)(timeout & 0xFFU), header[4]);
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)((timeout >> 8) & 0xFFU), header[5]);
+}
+
 static void test_uart_write_header_and_payload(void)
 {
     uint8_t tx[BUFFER_SIZE];
@@ -159,7 +179,12 @@ static void test_uart_write_header_and_payload(void)
     const uint8_t data[] = {'h', 'e', 'l', 'l', 'o'};
     TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_uart_write(&mgr, 0, data, sizeof(data), 250));
     TEST_ASSERT_EQUAL_UINT(2U, mock_uart_write_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(0, mock_uart_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_uart_write_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_uart_write_fake.arg0_history[1]);
+    TEST_ASSERT_EQUAL_UINT(6U, g_write_len_history[0]);
+    assert_uart_request_header(g_write_history[0], sizeof(data), 250U);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), g_write_len_history[1]);
+    TEST_ASSERT_EQUAL_MEMORY(data, g_write_history[1], sizeof(data));
     TEST_ASSERT_EQUAL_PTR(data, mock_uart_write_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT(sizeof(data), mock_uart_write_fake.arg2_val);
     TEST_ASSERT_EQUAL_UINT(sizeof(data), g_last_write_len);
@@ -181,6 +206,8 @@ static void test_uart_read_request_and_data(void)
     TEST_ASSERT_EQUAL_UINT(1U, mock_uart_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(2, mock_uart_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT(6U, mock_uart_write_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT(6U, g_write_len_history[0]);
+    assert_uart_request_header(g_write_history[0], sizeof(data), 1000U);
     TEST_ASSERT_EQUAL_UINT(1U, mock_uart_read_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(2, mock_uart_read_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(data, mock_uart_read_fake.arg1_val);
