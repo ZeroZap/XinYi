@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "fff.h"
@@ -45,6 +46,8 @@ FAKE_VALUE_FUNC(actuator_err_t, servo_type_center, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, pwm_write, actuator_device_t *, const actuator_value_t *);
 FAKE_VALUE_FUNC(actuator_err_t, sleep_backend, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, wakeup_backend, actuator_device_t *);
+FAKE_VALUE_FUNC(actuator_err_t, reset_backend, actuator_device_t *);
+FAKE_VALUE_FUNC(actuator_err_t, emergency_stop_backend, actuator_device_t *);
 
 void setUp(void)
 {
@@ -119,6 +122,8 @@ static void reset_mock(void)
     RESET_FAKE(pwm_write);
     RESET_FAKE(sleep_backend);
     RESET_FAKE(wakeup_backend);
+    RESET_FAKE(reset_backend);
+    RESET_FAKE(emergency_stop_backend);
     FFF_RESET_HISTORY();
 
     mock_init_fake.custom_fake = mock_init_impl;
@@ -185,6 +190,11 @@ static const actuator_ops_t mock_pwm_ops = {
 static const actuator_ops_t mock_pm_ops = {
     .sleep = sleep_backend,
     .wakeup = wakeup_backend,
+};
+
+static const actuator_ops_t mock_safety_ops = {
+    .reset = reset_backend,
+    .emergency_stop = emergency_stop_backend,
 };
 
 static void test_strings_and_helpers(void)
@@ -879,6 +889,72 @@ static void test_type_specific_helpers_reject_wrong_types_and_preserve_outputs(v
     TEST_ASSERT_EQUAL_UINT(0U, pwm_write_fake.call_count);
 }
 
+static void test_custom_reset_and_emergency_stop_ops_propagate_without_fallback_side_effects(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT("custom_reset", ACTUATOR_TYPE_RELAY, &mock_safety_ops, NULL, NULL);
+    relay.value.relay.state = RELAY_STATE_ON;
+    relay.status = ACTUATOR_STATUS_READY;
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_reset(NULL));
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_emergency_stop(NULL));
+
+    reset_backend_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_reset(&relay));
+    TEST_ASSERT_EQUAL_UINT(1U, reset_backend_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, reset_backend_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
+
+    reset_backend_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_reset(&relay));
+    TEST_ASSERT_EQUAL_UINT(2U, reset_backend_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
+
+    emergency_stop_backend_fake.return_val = ACTUATOR_EIO;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_emergency_stop(&relay));
+    TEST_ASSERT_EQUAL_UINT(1U, emergency_stop_backend_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&relay, emergency_stop_backend_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+
+    emergency_stop_backend_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_emergency_stop(&relay));
+    TEST_ASSERT_EQUAL_UINT(2U, emergency_stop_backend_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
+}
+
+static void test_registration_capacity_limit_does_not_mutate_rejected_device(void)
+{
+    actuator_device_t devices[32];
+    char names[32][16];
+    actuator_device_t extra = ACTUATOR_DEVICE_INIT("act_extra", ACTUATOR_TYPE_RELAY, &mock_ops, NULL, NULL);
+
+    reset_mock();
+    extra.status = ACTUATOR_STATUS_DISABLED;
+    extra.id = 0xA5U;
+
+    for (uint8_t i = 0; i < 32U; ++i) {
+        snprintf(names[i], sizeof(names[i]), "act_%02u", (unsigned)i);
+        devices[i] = (actuator_device_t)ACTUATOR_DEVICE_INIT("", ACTUATOR_TYPE_RELAY, &mock_ops, NULL, NULL);
+        strncpy(devices[i].name, names[i], sizeof(devices[i].name) - 1U);
+        TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_register(&devices[i]));
+        TEST_ASSERT_EQUAL_UINT8(i + 1U, actuator_get_count());
+    }
+
+    TEST_ASSERT_EQUAL(ACTUATOR_ENOMEM, actuator_register(&extra));
+    TEST_ASSERT_EQUAL_UINT8(32U, actuator_get_count());
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, extra.id);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_DISABLED, extra.status);
+    TEST_ASSERT_NULL(actuator_find("act_extra"));
+
+    for (int i = 31; i >= 0; --i) {
+        TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&devices[i]));
+    }
+    TEST_ASSERT_EQUAL_UINT8(0U, actuator_get_count());
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -900,5 +976,7 @@ int main(void)
     RUN_TEST(test_pwm_set_duty_preserves_state_on_backend_failure);
     RUN_TEST(test_sleep_wakeup_dispatch_updates_status_only_on_success);
     RUN_TEST(test_type_specific_helpers_reject_wrong_types_and_preserve_outputs);
+    RUN_TEST(test_custom_reset_and_emergency_stop_ops_propagate_without_fallback_side_effects);
+    RUN_TEST(test_registration_capacity_limit_does_not_mutate_rejected_device);
     return UNITY_END();
 }
