@@ -40,7 +40,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_read_reg_cmd_queue), g_read_reg_index);
     TEST_ASSERT_EQUAL_UINT8(g_read_reg_cmd_queue[g_read_reg_index], reg);
@@ -57,7 +57,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT(2U, len);
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_write_data_queue) / sizeof(g_write_data_queue[0]), g_write_index);
@@ -155,7 +155,7 @@ static void test_init_rejects_invalid_inputs_and_writes_default_config(void)
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_init(&dev, NULL, TSL2561_ADDR_FLOAT));
 
     init_ok(&dev);
-    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(TSL2561_ADDR_FLOAT, g_last_addr);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_GAIN_1X, dev.gain);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_402MS, dev.integration);
@@ -385,7 +385,7 @@ static void test_tsl2561_init_noncritical_config_write_failures_still_ready(void
     queue_init_success_reads();
 
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
-    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(TSL2561_ADDR_HIGH, g_last_addr);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_GAIN_1X, dev.gain);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_402MS, dev.integration);
