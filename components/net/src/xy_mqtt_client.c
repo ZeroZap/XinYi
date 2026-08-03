@@ -664,7 +664,11 @@ static xy_mqtt_err_t xy_mqtt_handle_publish(xy_mqtt_client_t *mqtt,
     }
 
     /* Payload */
-    size_t payload_len = remaining_len - (pos - 1 - consumed - 2) - topic_len - (qos > 0 ? 2 : 0);
+    size_t variable_header_len = (size_t)2 + topic_len + (qos > 0 ? 2U : 0U);
+    if (remaining_len < variable_header_len) {
+        return XY_MQTT_ERR_INVALID_PACKET;
+    }
+    size_t payload_len = (size_t)remaining_len - variable_header_len;
     const uint8_t *payload = &data[pos];
 
     /* Find matching subscriptions and deliver message */
@@ -1206,7 +1210,8 @@ xy_mqtt_err_t xy_mqtt_publish(xy_mqtt_client_t *mqtt,
 
     uint16_t pid = packet_id ? *packet_id : 0;
 
-    return xy_mqtt_send_publish(mqtt, topic, payload, payload_len, qos, retain, 0, &pid);
+    return xy_mqtt_send_publish(mqtt, topic, payload, payload_len, qos, retain, 0,
+                                packet_id ? packet_id : &pid);
 }
 
 xy_mqtt_err_t xy_mqtt_subscribe(xy_mqtt_client_t *mqtt,
