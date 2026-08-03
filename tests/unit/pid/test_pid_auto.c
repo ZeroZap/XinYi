@@ -480,6 +480,33 @@ static void test_auto_imc_completion_uses_degenerate_zn_fallback(void)
     run_auto_declared_method_fallback_case(XY_PID_AUTO_METHOD_IMC);
 }
 
+static void test_auto_loop_rejects_nonfinite_process_var_without_sampling(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t auto_config = default_auto_config();
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_start(&tuner));
+
+    g_tick_ms += auto_config.sample_interval_ms;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_loop(&tuner, NAN));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_MEASURING, xy_pid_auto_get_state(&tuner));
+    TEST_ASSERT_EQUAL_UINT16(0U, tuner.sample_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, tuner.process_var);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, tuner.samples[0]);
+
+    g_tick_ms += auto_config.sample_interval_ms;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_loop(&tuner, INFINITY));
+    TEST_ASSERT_EQUAL_UINT16(0U, tuner.sample_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, tuner.process_var);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, tuner.samples[0]);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
+}
+
 static void test_auto_loop_wraparound_tick_still_samples_at_interval(void)
 {
     xy_pid_t pid;
@@ -537,6 +564,7 @@ int main(void)
     RUN_TEST(test_auto_apply_preserves_existing_tuning_when_pid_rejects_result);
     RUN_TEST(test_auto_cohen_completion_uses_degenerate_zn_fallback);
     RUN_TEST(test_auto_imc_completion_uses_degenerate_zn_fallback);
+    RUN_TEST(test_auto_loop_rejects_nonfinite_process_var_without_sampling);
     RUN_TEST(test_auto_loop_wraparound_tick_still_samples_at_interval);
     return UNITY_END();
 }

@@ -193,6 +193,10 @@ int xy_pid_auto_loop(xy_pid_auto_tuner_t *tuner, float process_var)
         return XY_PID_AUTO_NOT_READY;
     }
 
+    if (!isfinite(process_var)) {
+        return XY_PID_AUTO_INVALID_PARAM;
+    }
+
     tuner->process_var = process_var;
     uint32_t elapsed = xy_os_tick_get() - tuner->start_time;
 
