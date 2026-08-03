@@ -358,7 +358,6 @@ static void example_compare_tuning(void)
 
     float output;
     float measurement;
-    int step_idx;
 
     printf("\n=== Example 3: Manual vs Auto-Tuned Comparison ===\n");
     printf("Comparing performance of manually tuned vs auto-tuned PID\n\n");
@@ -387,7 +386,6 @@ static void example_compare_tuning(void)
     /* Run both controllers in parallel (simulated) */
     for (int i = 0; i < 25; i++) {
         g_tick = i * 200;
-        step_idx = i;
 
         /* Simulate manual PID */
         measurement = g_process_value;
@@ -406,6 +404,7 @@ static void example_compare_tuning(void)
 
         printf("[%04dms] | %12.2f | %12.2f | %12.2f | %12.2f\n",
                g_tick, 50.0f, manual_pv, 50.0f, auto_pv);
+        printf("         outputs: manual=%6.2f, auto=%6.2f\n", manual_out, auto_out);
 
         xy_os_delay_ms(200);
     }
