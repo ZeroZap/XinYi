@@ -314,6 +314,21 @@ static void test_pid_wraparound_elapsed_tick_computes_forward_progress(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 20.0F, pid.integral_raw);
 }
 
+static void test_pid_enable_derivative_filter_preserves_disabled_coefficient_on_invalid_enable(void)
+{
+    xy_pid_t pid;
+    xy_pid_config_t config = default_config();
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_enable_derivative_filter(&pid, false, 0.25F));
+    TEST_ASSERT_FALSE(pid.derivative_filter);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.1F, pid.config.derivative_filter);
+
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_derivative_filter(&pid, true, 0.0F));
+    TEST_ASSERT_FALSE(pid.derivative_filter);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.1F, pid.config.derivative_filter);
+}
+
 void setUp(void)
 {
 }
@@ -331,5 +346,6 @@ int main(void)
     RUN_TEST(test_pid_reset);
     RUN_TEST(test_pid_auto_mode_invalid_limits_preserve_state);
     RUN_TEST(test_pid_wraparound_elapsed_tick_computes_forward_progress);
+    RUN_TEST(test_pid_enable_derivative_filter_preserves_disabled_coefficient_on_invalid_enable);
     return UNITY_END();
 }

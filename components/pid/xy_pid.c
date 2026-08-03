@@ -294,7 +294,7 @@ int xy_pid_enable_anti_windup(xy_pid_t *pid, bool enable)
 
 int xy_pid_enable_derivative_filter(xy_pid_t *pid, bool enable, float coef)
 {
-    if (!pid || !isfinite(coef) || coef < 0 || coef > 1) {
+    if (!pid || !isfinite(coef) || coef < 0 || coef > 1 || (enable && coef <= 0.0F)) {
         return XY_PID_INVALID_PARAM;
     }
     
