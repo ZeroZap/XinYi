@@ -59,6 +59,16 @@ static void test_pid_init_and_tuning(void)
     TEST_ASSERT_EQUAL_HEX8(0xA5U, ((uint8_t *)&pid)[0]);
 
     config = default_config();
+    config.kp = NAN;
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, ((uint8_t *)&pid)[0]);
+
+    config = default_config();
+    config.output_max = INFINITY;
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, ((uint8_t *)&pid)[0]);
+
+    config = default_config();
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
 
     TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, pid.mode);
@@ -125,6 +135,16 @@ static void test_pid_compute_and_limits(void)
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_input(&pid, 3.0F));
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.0F, pid.input);
 
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_setpoint(&pid, NAN));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 10.0F, pid.setpoint);
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_input(&pid, INFINITY));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.0F, pid.input);
+
+    output = -77.0F;
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_compute(&pid, NAN, &output));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, -77.0F, output);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.0F, pid.input);
+
     pid.output = 12.0F;
     output = -99.0F;
     g_tick_ms = 90U;
@@ -161,6 +181,7 @@ static void test_pid_compute_and_limits(void)
     before = pid.config;
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_output_limits(NULL, -5.0F, 5.0F));
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_output_limits(&pid, 5.0F, 5.0F));
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_output_limits(&pid, -5.0F, INFINITY));
     TEST_ASSERT_FLOAT_WITHIN(0.001F, before.output_min, pid.config.output_min);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, before.output_max, pid.config.output_max);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, before.integral_min, pid.config.integral_min);
@@ -201,6 +222,7 @@ static void test_pid_modes_and_filters(void)
     TEST_ASSERT_FALSE(pid.derivative_filter);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.25F, pid.config.derivative_filter);
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_derivative_filter(NULL, true, 0.25F));
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_derivative_filter(&pid, true, NAN));
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_derivative_filter(&pid, true, 1.5F));
     TEST_ASSERT_FALSE(pid.derivative_filter);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.25F, pid.config.derivative_filter);

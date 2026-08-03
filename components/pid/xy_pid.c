@@ -26,13 +26,22 @@ static inline float xy_pid_clamp(float value, float min, float max)
     return value;
 }
 
+static bool xy_pid_config_values_are_finite(const xy_pid_config_t *config)
+{
+    return isfinite(config->kp) && isfinite(config->ki) && isfinite(config->kd) &&
+           isfinite(config->output_min) && isfinite(config->output_max) &&
+           isfinite(config->integral_min) && isfinite(config->integral_max) &&
+           isfinite(config->derivative_filter);
+}
+
 int xy_pid_init(xy_pid_t *pid, const xy_pid_config_t *config)
 {
     if (!pid || !config) {
         return XY_PID_INVALID_PARAM;
     }
 
-    if (config->output_min >= config->output_max ||
+    if (!xy_pid_config_values_are_finite(config) || config->kp < 0.0F || config->ki < 0.0F ||
+        config->kd < 0.0F || config->output_min >= config->output_max ||
         config->integral_min >= config->integral_max ||
         config->derivative_filter > 1.0F) {
         return XY_PID_INVALID_PARAM;
@@ -97,7 +106,7 @@ int xy_pid_set_tuning(xy_pid_t *pid, float kp, float ki, float kd)
 
 int xy_pid_set_output_limits(xy_pid_t *pid, float min, float max)
 {
-    if (!pid || min >= max) {
+    if (!pid || !isfinite(min) || !isfinite(max) || min >= max) {
         return XY_PID_INVALID_PARAM;
     }
     
@@ -115,7 +124,7 @@ int xy_pid_set_output_limits(xy_pid_t *pid, float min, float max)
 
 int xy_pid_set_setpoint(xy_pid_t *pid, float setpoint)
 {
-    if (!pid) {
+    if (!pid || !isfinite(setpoint)) {
         return XY_PID_INVALID_PARAM;
     }
     
@@ -125,7 +134,7 @@ int xy_pid_set_setpoint(xy_pid_t *pid, float setpoint)
 
 int xy_pid_set_input(xy_pid_t *pid, float input)
 {
-    if (!pid) {
+    if (!pid || !isfinite(input)) {
         return XY_PID_INVALID_PARAM;
     }
     
@@ -139,7 +148,7 @@ int xy_pid_compute(xy_pid_t *pid, float input, float *output)
     float p_term, i_term, d_term;
     uint32_t current_time;
     
-    if (!pid || !output) {
+    if (!pid || !output || !isfinite(input)) {
         return XY_PID_INVALID_PARAM;
     }
 
@@ -285,7 +294,7 @@ int xy_pid_enable_anti_windup(xy_pid_t *pid, bool enable)
 
 int xy_pid_enable_derivative_filter(xy_pid_t *pid, bool enable, float coef)
 {
-    if (!pid || coef < 0 || coef > 1) {
+    if (!pid || !isfinite(coef) || coef < 0 || coef > 1) {
         return XY_PID_INVALID_PARAM;
     }
     
