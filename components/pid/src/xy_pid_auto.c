@@ -29,7 +29,7 @@ int xy_pid_auto_init(xy_pid_auto_tuner_t *tuner, xy_pid_t *pid,
     if (config && (config->method < XY_PID_AUTO_METHOD_ZN ||
                    config->method > XY_PID_AUTO_METHOD_IMC ||
                    config->step_amplitude < 0.0F ||
-                   config->num_samples < 2U || config->tolerance < 0.0F)) {
+                   config->num_samples == 1U || config->tolerance < 0.0F)) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
