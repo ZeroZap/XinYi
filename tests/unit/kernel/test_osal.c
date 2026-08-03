@@ -5,6 +5,7 @@
  *        IRQ helpers are no-ops and xy_tick_get() increments per call.
  */
 
+#include <stdint.h>
 #include <string.h>
 
 /* Pull in the full CMSIS-RTOS2-compatible API */
@@ -485,8 +486,12 @@ static void test_mempool_static_cb_and_storage(void)
     TEST_ASSERT_EQUAL_UINT32(24U, xy_os_mempool_get_block_size(mp));
 
     uint8_t *blk = (uint8_t *)xy_os_mempool_alloc(mp, 0);
-    TEST_ASSERT_TRUE(blk >= mp_mem);
-    TEST_ASSERT_TRUE(blk < (mp_mem + sizeof(mp_mem)));
+    TEST_ASSERT_NOT_NULL(blk);
+    uintptr_t blk_addr = (uintptr_t)blk;
+    uintptr_t mp_start = (uintptr_t)mp_mem;
+    uintptr_t mp_end = (uintptr_t)(mp_mem + sizeof(mp_mem));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT64((uint64_t)mp_start, (uint64_t)blk_addr);
+    TEST_ASSERT_LESS_THAN_UINT64((uint64_t)mp_end, (uint64_t)blk_addr);
     memset(blk, 0x5A, 24);
     TEST_ASSERT_EQUAL_HEX8(0x5A, blk[0]);
     TEST_ASSERT_EQUAL_HEX8(0x5A, blk[23]);
