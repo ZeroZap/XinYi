@@ -101,7 +101,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C helper should be initialized before read");
     TEST_ASSERT_NOT_NULL(data);
 
     i2c_op_t *op = next_op(OP_READ_REG);
@@ -116,7 +116,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C helper should be initialized before write");
     TEST_ASSERT_NOT_NULL(data);
 
     i2c_op_t *op = next_op(OP_WRITE_REG);
@@ -182,7 +182,7 @@ static void test_mpu6050_init_defaults_and_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_init(&dev, NULL, MPU6050_ADDR_AD0_LOW));
 
     init_mpu_ok(&dev, &bus);
-    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(dev.initialized, "MPU6050 init should mark the device initialized");
     TEST_ASSERT_EQUAL_UINT8(MPU6050_ADDR_AD0_LOW, dev.addr);
     TEST_ASSERT_EQUAL_UINT16(MPU6050_ADDR_AD0_LOW, g_last_addr);
     TEST_ASSERT_EQUAL_UINT32(1000U, g_last_timeout);
@@ -320,7 +320,7 @@ static void test_mpu6050_init_noncritical_config_failures_still_mark_ready(void)
     queue_write8(MPU6050_REG_GYRO_CONFIG, (uint8_t)(MPU6050_GYRO_250DPS << 3), XY_DEVICE_ERROR);
 
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_OK, xy_mpu6050_init(&dev, &bus, MPU6050_ADDR_AD0_LOW));
-    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(dev.initialized, "Noncritical init config failures keep current ready contract");
     TEST_ASSERT_EQUAL_INT(MPU6050_ACCEL_2G, dev.accel_range);
     TEST_ASSERT_EQUAL_INT(MPU6050_GYRO_250DPS, dev.gyro_range);
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
