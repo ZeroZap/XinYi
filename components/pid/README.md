@@ -242,7 +242,7 @@ cd build/tests/unit && ctest --output-on-failure -R '^(pid_core|pid_auto)$'
 
 - `test_pid_core.c`：初始化参数守卫、计算/限幅、模式、抗积分饱和、微分滤波、reset、tick wraparound 计算前进。
 - `test_pid_auto.c`：自整定初始化/启动/停止、采样完成、退化响应错误态、apply 守卫、进度夹紧。
-- `pid_example_basic`：把 `examples/example_basic.c` 编入 host CTest，作为基础示例 API 漂移 smoke 护栏。
+- `pid_example_basic` / `pid_example_incremental` / `pid_example_auto_tune` / `pid_example_temperature` / `pid_example_charging`：把 `components/pid/examples/` 示例编入 host CTest，作为示例 API 漂移 smoke 护栏。
 
 ### 依赖
 

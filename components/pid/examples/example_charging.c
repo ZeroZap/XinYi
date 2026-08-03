@@ -424,9 +424,9 @@ static void example_temp_aware_charging(void)
 
         xy_pid_compute(&temp_pid, measurement, &output);
 
-        printf("[%04dms] %7.2fA | %6.2fA | %7.2fA | %6.1f°C | %6.2fA\n",
+        printf("[%04dms] %7.2fA | %6.2fA | %7.2f°C | %+7.2fA | %6.2fA\n",
                g_tick, target_current, g_battery.current,
-               g_battery.temperature, output);
+               g_battery.temperature, target_current - g_battery.current, output);
 
         float charge_voltage = 4.2f;
         simulate_battery_charge(charge_voltage, output, 0.4f);

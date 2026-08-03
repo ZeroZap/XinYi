@@ -1016,6 +1016,15 @@ xy_add_unit_test(test_pid_example_temperature pid_example_temperature
 )
 target_link_libraries(test_pid_example_temperature m)
 
+xy_add_unit_test(test_pid_example_charging pid_example_charging
+    ${PID}/examples/example_charging.c
+    ${PID}/xy_pid.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${UNIT_PID}/test_pid_example_log_stub.c
+)
+target_link_libraries(test_pid_example_charging m)
+
 # --- Test 30: MUX SPI channel helper contracts ---
 xy_add_unit_test(test_mux_spi mux_spi UNITY
     ${UNIT_MUX}/test_mux_spi.c

@@ -162,8 +162,8 @@ display/
 - **历史 auto-tune bug 已修复**：当前 `xy_pid_auto.c` 调用 `xy_pid_auto_calc_zn(tuner)` / `xy_pid_auto_calc_imc(tuner)`，未再出现旧 `ltc2945` 误引用
 - **独立示例已补齐**：`components/pid/examples/` 下已有 basic、incremental、temperature、charging、auto_tune 示例源文件与示例 CMake 入口
 - **单元测试已接入 active Unity/CTest**：`tests/unit/pid/test_pid_core.c` 与 `test_pid_auto.c` 覆盖核心 PID 与自整定契约，并已覆盖 tick wraparound 前进计算
-- **示例 smoke 护栏已接入**：`pid_example_basic` CTest 将 `components/pid/examples/example_basic.c` 编入 host unit suite，防止基础示例 API 漂移
-- **剩余风险**：其它 PID 示例仍是组件局部示例；后续若 API 继续演进，可继续把 incremental/temperature/charging/auto_tune 逐个纳入 host smoke CTest
+- **示例 smoke 护栏已接入**：`pid_example_basic`、`pid_example_incremental`、`pid_example_auto_tune`、`pid_example_temperature`、`pid_example_charging` CTest 已将 `components/pid/examples/` 下全部示例编入 host unit suite，防止示例 API 漂移
+- **剩余风险**：后续 PID 工作可转向小范围契约 hardening 或示例运行时输出约束，不再需要继续补示例编译入口
 
 #### 修复计划
 
