@@ -764,6 +764,11 @@ actuator_err_t servo_center(actuator_device_t *dev)
         return ACTUATOR_EINVAL;
     }
 
+    float center_angle = 0.0f;
+    if (dev->config.servo_min_angle < dev->config.servo_max_angle) {
+        center_angle = (dev->config.servo_min_angle + dev->config.servo_max_angle) * 0.5f;
+    }
+
     const servo_ops_t *ops = servo_get_ops(dev);
     if (ops != NULL && ops->center != NULL) {
         actuator_err_t err = ops->center(dev);
@@ -771,13 +776,13 @@ actuator_err_t servo_center(actuator_device_t *dev)
             return err;
         }
 
-        dev->value.servo.target_angle = 0.0f;
-        dev->value.servo.current_angle = 0.0f;
+        dev->value.servo.target_angle = center_angle;
+        dev->value.servo.current_angle = center_angle;
         return ACTUATOR_EOK;
     }
 
-    /* 设置到 0 度 (居中) */
-    return servo_set_angle(dev, 0.0f);
+    /* 设置到配置角度范围的中点；未配置范围时保持旧默认 0 度。 */
+    return servo_set_angle(dev, center_angle);
 }
 
 /* ==================== PWM API ==================== */

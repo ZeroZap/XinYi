@@ -632,6 +632,22 @@ static void test_default_servo_pwm_and_batch_helpers(void)
     TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_unregister(&servo));
 }
 
+static void test_servo_center_preserves_nonzero_configured_midpoint(void)
+{
+    actuator_device_t servo = ACTUATOR_DEVICE_INIT("servo_mid", ACTUATOR_TYPE_SERVO, &servo_default_ops, NULL, NULL);
+
+    servo.config.servo_min_angle = 10.0f;
+    servo.config.servo_max_angle = 170.0f;
+    servo.config.servo_pwm_min = 500;
+    servo.config.servo_pwm_max = 2500;
+    servo.value.servo.current_angle = 170.0f;
+    servo.value.servo.target_angle = 170.0f;
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, servo_center(&servo));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 90.0f, servo.value.servo.current_angle);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 90.0f, servo.value.servo.target_angle);
+}
+
 static void test_default_relay_pulse_propagates_fallback_write_failures(void)
 {
     reset_mock();
@@ -968,6 +984,7 @@ int main(void)
     RUN_TEST(test_type_specific_relay_ops_preserve_state_on_failure);
     RUN_TEST(test_type_specific_servo_ops_do_not_update_local_state_on_failure);
     RUN_TEST(test_default_servo_pwm_and_batch_helpers);
+    RUN_TEST(test_servo_center_preserves_nonzero_configured_midpoint);
     RUN_TEST(test_default_relay_pulse_propagates_fallback_write_failures);
     RUN_TEST(test_default_relay_pulse_reports_off_failure_after_on_success);
     RUN_TEST(test_default_servo_sweep_stops_on_fallback_write_failure);
