@@ -329,6 +329,42 @@ static void test_pid_enable_derivative_filter_preserves_disabled_coefficient_on_
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.1F, pid.config.derivative_filter);
 }
 
+static void test_pid_switching_to_auto_restarts_timing_state(void)
+{
+    xy_pid_t pid;
+    xy_pid_config_t config = default_config();
+    float output = -1.0F;
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_setpoint(&pid, 10.0F));
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_AUTO));
+    g_tick_ms = 100U;
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
+    g_tick_ms = 110U;
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
+    TEST_ASSERT_FALSE(pid.first_run);
+    TEST_ASSERT_EQUAL_UINT32(1U, pid.update_count);
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0F, output);
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_MANUAL));
+    g_tick_ms = 120U;
+    output = -77.0F;
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 1.0F, &output));
+    TEST_ASSERT_EQUAL_UINT32(1U, pid.update_count);
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_AUTO));
+    TEST_ASSERT_TRUE(pid.first_run);
+    TEST_ASSERT_EQUAL_UINT32(0U, pid.update_count);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.derivative);
+    g_tick_ms = 130U;
+    output = -99.0F;
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 1.0F, &output));
+    TEST_ASSERT_FALSE(pid.first_run);
+    TEST_ASSERT_EQUAL_UINT32(0U, pid.update_count);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, xy_pid_get_derivative(&pid));
+    TEST_ASSERT_EQUAL_UINT32(130U, pid.last_update);
+}
+
 void setUp(void)
 {
 }
@@ -347,5 +383,6 @@ int main(void)
     RUN_TEST(test_pid_auto_mode_invalid_limits_preserve_state);
     RUN_TEST(test_pid_wraparound_elapsed_tick_computes_forward_progress);
     RUN_TEST(test_pid_enable_derivative_filter_preserves_disabled_coefficient_on_invalid_enable);
+    RUN_TEST(test_pid_switching_to_auto_restarts_timing_state);
     return UNITY_END();
 }

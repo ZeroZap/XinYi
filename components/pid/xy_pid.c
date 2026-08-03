@@ -255,6 +255,13 @@ int xy_pid_set_mode(xy_pid_t *pid, xy_pid_mode_t mode)
         return XY_PID_INVALID_PARAM;
     }
     
+    if (mode == XY_PID_MODE_AUTO && pid->mode != XY_PID_MODE_AUTO) {
+        pid->first_run = true;
+        pid->last_update = 0U;
+        pid->update_count = 0U;
+        pid->derivative = 0.0F;
+    }
+
     pid->mode = mode;
     
     if (mode == XY_PID_MODE_AUTO) {

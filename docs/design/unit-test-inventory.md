@@ -127,7 +127,7 @@ component example sources rather than adding extra `tests/unit/*.c` files; curre
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |
 | `tests/unit/net/test_net_smbus_pmbus.c` | `unity` | 34 |
 | `tests/unit/pid/test_pid_auto.c` | `unity` | 12 |
-| `tests/unit/pid/test_pid_core.c` | `unity` | 4 |
+| `tests/unit/pid/test_pid_core.c` | `unity` | 5 |
 | `tests/unit/pm/test_charger_bq25620.c` | `unity` | 10 |
 | `tests/unit/pm/test_pm_core.c` | `unity` | 0 |
 | `tests/unit/pm/test_pm_platform_fallback.c` | `unity` | 0 |
