@@ -72,8 +72,8 @@ static void test_pid_init_and_tuning(void)
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
 
     TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, pid.mode);
-    TEST_ASSERT_TRUE(pid.first_run);
-    TEST_ASSERT_TRUE(pid.anti_windup);
+    TEST_ASSERT_TRUE_MESSAGE(pid.first_run, "pid first_run flag should match the contract");
+    TEST_ASSERT_TRUE_MESSAGE(pid.anti_windup, "pid anti_windup flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 2.0F, pid.config.kp);
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_tuning(&pid, 3.0F, 0.75F, 0.5F));
@@ -150,7 +150,7 @@ static void test_pid_compute_and_limits(void)
     g_tick_ms = 90U;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 4.0F, &output));
     TEST_ASSERT_EQUAL_FLOAT(12.0F, output);
-    TEST_ASSERT_TRUE(pid.first_run);
+    TEST_ASSERT_TRUE_MESSAGE(pid.first_run, "pid first_run flag should match the contract");
     TEST_ASSERT_EQUAL_UINT32(0U, pid.update_count);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.0F, pid.input);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, xy_pid_get_error(&pid));
@@ -160,7 +160,7 @@ static void test_pid_compute_and_limits(void)
     g_tick_ms = 100U;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 4.0F, &output));
     TEST_ASSERT_EQUAL_FLOAT(0.0F, output);
-    TEST_ASSERT_FALSE(pid.first_run);
+    TEST_ASSERT_FALSE_MESSAGE(pid.first_run, "pid first_run flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 6.0F, xy_pid_get_error(&pid));
 
     g_tick_ms = 110U;
@@ -203,28 +203,28 @@ static void test_pid_modes_and_filters(void)
     TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, xy_pid_get_mode(NULL));
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_enable_anti_windup(&pid, false));
-    TEST_ASSERT_FALSE(pid.anti_windup);
+    TEST_ASSERT_FALSE_MESSAGE(pid.anti_windup, "pid anti_windup flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, -20.0F, pid.config.integral_min);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 20.0F, pid.config.integral_max);
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_output_limits(&pid, -3.0F, 3.0F));
     TEST_ASSERT_FLOAT_WITHIN(0.001F, -20.0F, pid.config.integral_min);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 20.0F, pid.config.integral_max);
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_enable_anti_windup(&pid, true));
-    TEST_ASSERT_TRUE(pid.anti_windup);
+    TEST_ASSERT_TRUE_MESSAGE(pid.anti_windup, "pid anti_windup flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, -3.0F, pid.config.integral_min);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 3.0F, pid.config.integral_max);
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_anti_windup(NULL, true));
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_enable_derivative_filter(&pid, true, 0.25F));
-    TEST_ASSERT_TRUE(pid.derivative_filter);
+    TEST_ASSERT_TRUE_MESSAGE(pid.derivative_filter, "pid derivative_filter flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.25F, pid.config.derivative_filter);
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_enable_derivative_filter(&pid, false, 0.0F));
-    TEST_ASSERT_FALSE(pid.derivative_filter);
+    TEST_ASSERT_FALSE_MESSAGE(pid.derivative_filter, "pid derivative_filter flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.25F, pid.config.derivative_filter);
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_derivative_filter(NULL, true, 0.25F));
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_derivative_filter(&pid, true, NAN));
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_derivative_filter(&pid, true, 1.5F));
-    TEST_ASSERT_FALSE(pid.derivative_filter);
+    TEST_ASSERT_FALSE_MESSAGE(pid.derivative_filter, "pid derivative_filter flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.25F, pid.config.derivative_filter);
 }
 
@@ -253,7 +253,7 @@ static void test_pid_reset(void)
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.derivative);
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.integral);
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.integral_raw);
-    TEST_ASSERT_TRUE(pid.first_run);
+    TEST_ASSERT_TRUE_MESSAGE(pid.first_run, "pid first_run flag should match the contract");
     TEST_ASSERT_EQUAL_UINT32(0U, pid.update_count);
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_reset(NULL));
 }
@@ -285,7 +285,7 @@ static void test_pid_auto_mode_invalid_limits_preserve_state(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001F, before.integral_max, pid.config.integral_max);
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
-    TEST_ASSERT_TRUE(isfinite(output));
+    TEST_ASSERT_TRUE_MESSAGE(isfinite(output), "computed output should stay finite");
     TEST_ASSERT_LESS_OR_EQUAL_FLOAT(before.output_max, output);
     TEST_ASSERT_GREATER_OR_EQUAL_FLOAT(before.output_min, output);
 }
@@ -303,7 +303,7 @@ static void test_pid_wraparound_elapsed_tick_computes_forward_progress(void)
     g_tick_ms = UINT32_MAX - 4U;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 0.0F, &output));
     TEST_ASSERT_EQUAL_FLOAT(0.0F, output);
-    TEST_ASSERT_FALSE(pid.first_run);
+    TEST_ASSERT_FALSE_MESSAGE(pid.first_run, "pid first_run flag should match the contract");
     TEST_ASSERT_EQUAL_UINT32(UINT32_MAX - 4U, pid.last_update);
 
     g_tick_ms = 5U;
@@ -321,11 +321,11 @@ static void test_pid_enable_derivative_filter_preserves_disabled_coefficient_on_
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_enable_derivative_filter(&pid, false, 0.25F));
-    TEST_ASSERT_FALSE(pid.derivative_filter);
+    TEST_ASSERT_FALSE_MESSAGE(pid.derivative_filter, "pid derivative_filter flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.1F, pid.config.derivative_filter);
 
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_enable_derivative_filter(&pid, true, 0.0F));
-    TEST_ASSERT_FALSE(pid.derivative_filter);
+    TEST_ASSERT_FALSE_MESSAGE(pid.derivative_filter, "pid derivative_filter flag should match the contract");
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.1F, pid.config.derivative_filter);
 }
 
@@ -342,7 +342,7 @@ static void test_pid_switching_to_auto_restarts_timing_state(void)
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
     g_tick_ms = 110U;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
-    TEST_ASSERT_FALSE(pid.first_run);
+    TEST_ASSERT_FALSE_MESSAGE(pid.first_run, "pid first_run flag should match the contract");
     TEST_ASSERT_EQUAL_UINT32(1U, pid.update_count);
     TEST_ASSERT_GREATER_THAN_FLOAT(0.0F, output);
 
@@ -353,13 +353,13 @@ static void test_pid_switching_to_auto_restarts_timing_state(void)
     TEST_ASSERT_EQUAL_UINT32(1U, pid.update_count);
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_AUTO));
-    TEST_ASSERT_TRUE(pid.first_run);
+    TEST_ASSERT_TRUE_MESSAGE(pid.first_run, "pid first_run flag should match the contract");
     TEST_ASSERT_EQUAL_UINT32(0U, pid.update_count);
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.derivative);
     g_tick_ms = 130U;
     output = -99.0F;
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 1.0F, &output));
-    TEST_ASSERT_FALSE(pid.first_run);
+    TEST_ASSERT_FALSE_MESSAGE(pid.first_run, "pid first_run flag should match the contract");
     TEST_ASSERT_EQUAL_UINT32(0U, pid.update_count);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.0F, xy_pid_get_derivative(&pid));
     TEST_ASSERT_EQUAL_UINT32(130U, pid.last_update);

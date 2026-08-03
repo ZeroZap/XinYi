@@ -78,7 +78,7 @@ static void test_auto_init_defaults_and_deinit(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, NULL));
-    TEST_ASSERT_TRUE(tuner.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(tuner.initialized, "tuner initialized flag should match the contract");
     TEST_ASSERT_GREATER_THAN_FLOAT(0.0F, tuner.config.tolerance);
     TEST_ASSERT_EQUAL_PTR(&pid, tuner.pid);
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_IDLE, tuner.state);
@@ -91,7 +91,7 @@ static void test_auto_init_defaults_and_deinit(void)
     }
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
-    TEST_ASSERT_FALSE(tuner.initialized);
+    TEST_ASSERT_FALSE_MESSAGE(tuner.initialized, "tuner initialized flag should match the contract");
     TEST_ASSERT_NULL(tuner.samples);
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_deinit(NULL));
 }
@@ -301,7 +301,7 @@ static void test_auto_start_rejects_missing_runtime_storage_without_modifying_st
     g_tick_ms = 1234U;
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_start(&tuner));
-    TEST_ASSERT_TRUE(tuner.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(tuner.initialized, "tuner initialized flag should match the contract");
     TEST_ASSERT_EQUAL_PTR(&pid, tuner.pid);
     TEST_ASSERT_NULL(tuner.samples);
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_IDLE, tuner.state);
@@ -325,7 +325,7 @@ static void test_auto_start_rejects_missing_pid_without_modifying_state(void)
     g_tick_ms = 1234U;
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_start(&tuner));
-    TEST_ASSERT_TRUE(tuner.initialized);
+    TEST_ASSERT_TRUE_MESSAGE(tuner.initialized, "tuner initialized flag should match the contract");
     TEST_ASSERT_NULL(tuner.pid);
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_IDLE, tuner.state);
     TEST_ASSERT_EQUAL_UINT16(2U, tuner.sample_count);
