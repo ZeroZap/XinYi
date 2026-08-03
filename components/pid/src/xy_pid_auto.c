@@ -276,7 +276,9 @@ int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
     if (tuner->state != XY_PID_AUTO_STATE_COMPLETE) {
         return XY_PID_AUTO_NOT_READY;
     }
-    if (!tuner->pid || fabsf(tuner->result.ki) <= 0.000001F) {
+    if (!tuner->pid || !isfinite(tuner->result.kp) || !isfinite(tuner->result.ki) ||
+        !isfinite(tuner->result.kd) || fabsf(tuner->result.ki) <= 0.000001F ||
+        tuner->result.kp < 0.0F || tuner->result.kd < 0.0F) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 

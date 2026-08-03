@@ -443,6 +443,46 @@ static void test_auto_apply_preserves_existing_tuning_when_pid_rejects_result(vo
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }
 
+static void test_auto_apply_rejects_nonfinite_results_without_state_change(void)
+{
+    xy_pid_t pid;
+    xy_pid_auto_tuner_t tuner;
+    xy_pid_config_t pid_config = default_pid_config();
+    xy_pid_auto_config_t auto_config = default_auto_config();
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_MANUAL));
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &auto_config));
+    tuner.state = XY_PID_AUTO_STATE_COMPLETE;
+    tuner.result.kp = NAN;
+    tuner.result.ki = 2.0F;
+    tuner.result.kd = 3.0F;
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_apply(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, xy_pid_get_mode(&pid));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.kp, pid.config.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.ki, pid.config.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.kd, pid.config.kd);
+
+    tuner.result.kp = 1.0F;
+    tuner.result.ki = INFINITY;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_apply(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, xy_pid_get_mode(&pid));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.kp, pid.config.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.ki, pid.config.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.kd, pid.config.kd);
+
+    tuner.result.ki = 2.0F;
+    tuner.result.kd = -1.0F;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_apply(&tuner));
+    TEST_ASSERT_EQUAL(XY_PID_MODE_MANUAL, xy_pid_get_mode(&pid));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.kp, pid.config.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.ki, pid.config.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, pid_config.kd, pid.config.kd);
+
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
+}
+
 static void run_auto_declared_method_fallback_case(xy_pid_auto_method_t method)
 {
     xy_pid_t pid;
@@ -564,6 +604,7 @@ int main(void)
     RUN_TEST(test_auto_progress_clamps_inconsistent_sample_count);
     RUN_TEST(test_auto_apply_handles_invalid_pid_tuning_without_mode_change);
     RUN_TEST(test_auto_apply_preserves_existing_tuning_when_pid_rejects_result);
+    RUN_TEST(test_auto_apply_rejects_nonfinite_results_without_state_change);
     RUN_TEST(test_auto_cohen_completion_uses_degenerate_zn_fallback);
     RUN_TEST(test_auto_imc_completion_uses_degenerate_zn_fallback);
     RUN_TEST(test_auto_loop_rejects_nonfinite_process_var_without_sampling);
