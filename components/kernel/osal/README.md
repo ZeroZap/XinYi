@@ -13,8 +13,8 @@ XinYi OSAL 是一个操作系统抽象层，为嵌入式系统提供统一的 RT
 └─────────────────────────────────────────┘
                     ▲
 ┌─────────────────────────────────────────┐
-│        OSAL 层 (components/osal)         │
-│  xy_os.h - 统一的 CMSIS-RTOS2 兼容接口   │
+│   OSAL 层 (components/kernel/osal)       │
+│  xy_os.h - 统一的 CMSIS-like 公共接口    │
 └─────────────────────────────────────────┘
                     ▲
 ┌─────────────────────────────────────────┐
@@ -35,7 +35,7 @@ XinYi OSAL 是一个操作系统抽象层，为嵌入式系统提供统一的 RT
 
 | 后端 | 描述 | 线程 | 同步 | 通信 | 定时器 |
 |------|------|------|------|------|--------|
-| **Bare-metal** | 裸机（无 RTOS） | ❌ | ❌ | ❌ | ✅ (软件) |
+| **Bare-metal** | 裸机（无 RTOS） | stub | ✅ | ✅ | ✅ (软件) |
 | **FreeRTOS** | FreeRTOS RTOS | ✅ | ✅ | ✅ | ✅ |
 | **RT-Thread** | RT-Thread RTOS | ✅ | ✅ | ✅ | ✅ |
 | **CMSIS-RTX** | ARM CMSIS-RTOS2 | ✅ | ✅ | ✅ | ✅ |
@@ -48,7 +48,7 @@ XinYi OSAL 是一个操作系统抽象层，为嵌入式系统提供统一的 RT
 
 **Makefile:**
 ```makefile
-OSAL_BACKEND = baremetal  # 或 freertos, rt-thread, cmsis-rtx
+OSAL_BACKEND = baremetal  # 或 freertos, rtthread, cmsis_rtx
 ```
 
 **CMake:**
@@ -130,21 +130,21 @@ xy_os_timer_start(timer, 1000);  // 1 秒周期
 
 | 函数 | 描述 | Bare-metal | FreeRTOS | RT-Thread |
 |------|------|------------|----------|-----------|
-| `xy_os_mutex_new()` | 创建互斥锁 | ❌ | ✅ | ✅ |
-| `xy_os_mutex_acquire()` | 获取锁 | ❌ | ✅ | ✅ |
-| `xy_os_mutex_release()` | 释放锁 | ❌ | ✅ | ✅ |
-| `xy_os_semaphore_new()` | 创建信号量 | ❌ | ✅ | ✅ |
-| `xy_os_semaphore_acquire()` | 获取信号量 | ❌ | ✅ | ✅ |
-| `xy_os_event_flags_*()` | 事件标志 | ❌ | ✅ | ✅ |
+| `xy_os_mutex_new()` | 创建互斥锁 | ✅ | ✅ | ✅ |
+| `xy_os_mutex_acquire()` | 获取锁 | ✅ | ✅ | ✅ |
+| `xy_os_mutex_release()` | 释放锁 | ✅ | ✅ | ✅ |
+| `xy_os_semaphore_new()` | 创建信号量 | ✅ | ✅ | ✅ |
+| `xy_os_semaphore_acquire()` | 获取信号量 | ✅ | ✅ | ✅ |
+| `xy_os_event_flags_*()` | 事件标志 | ✅ | ✅ | ✅ |
 
 ### 通信
 
 | 函数 | 描述 | Bare-metal | FreeRTOS | RT-Thread |
 |------|------|------------|----------|-----------|
-| `xy_os_msgqueue_new()` | 创建消息队列 | ❌ | ✅ | ✅ |
-| `xy_os_msgqueue_put()` | 发送消息 | ❌ | ✅ | ✅ |
-| `xy_os_msgqueue_get()` | 接收消息 | ❌ | ✅ | ✅ |
-| `xy_os_mempool_*()` | 内存池 | ❌ | ⚠️ | ✅ |
+| `xy_os_msgqueue_new()` | 创建消息队列 | ✅ | ✅ | ✅ |
+| `xy_os_msgqueue_put()` | 发送消息 | ✅ | ✅ | ✅ |
+| `xy_os_msgqueue_get()` | 接收消息 | ✅ | ✅ | ✅ |
+| `xy_os_mempool_*()` | 内存池 | ✅ | ⚠️ | ✅ |
 
 ### 定时器
 
@@ -187,7 +187,10 @@ cmake .. -DOSAL_BACKEND=baremetal
 cmake .. -DOSAL_BACKEND=freertos
 
 # RT-Thread 构建
-cmake .. -DOSAL_BACKEND=rt-thread
+cmake .. -DOSAL_BACKEND=rtthread
+
+# CMSIS-RTX 构建
+cmake .. -DOSAL_BACKEND=cmsis_rtx
 ```
 
 ## 优先级映射
@@ -211,7 +214,7 @@ cmake .. -DOSAL_BACKEND=rt-thread
 
 ### 添加新后端
 
-1. 创建后端目录：`components/osal/<backend>/`
+1. 创建后端目录：`components/kernel/osal/backend/<backend>/`
 2. 实现 `xy_os_<backend>.c`，包含所有 `xy_os_*` 函数
 3. 在 `CMakeLists.txt` 中添加后端配置
 4. 在 `Kconfig.osal` 中添加后端选项

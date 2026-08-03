@@ -17,9 +17,11 @@ project(xy_osal C)
 set(OSAL_BACKEND "baremetal" CACHE STRING "OSAL backend selection")
 set_property(CACHE OSAL_BACKEND PROPERTY STRINGS baremetal freertos rtthread cmsis_rtx)
 
-# Validate backend selection
+# Validate backend selection. Canonical backend names are:
+# baremetal, freertos, rtthread, cmsis_rtx.
+set(OSAL_BACKEND_OPTIONS baremetal freertos rtthread cmsis_rtx)
 if(NOT OSAL_BACKEND IN_LIST OSAL_BACKEND_OPTIONS)
-    set(OSAL_BACKEND_OPTIONS baremetal freertos rtthread cmsis_rtx)
+    message(FATAL_ERROR "Invalid OSAL backend: ${OSAL_BACKEND}. Valid values: ${OSAL_BACKEND_OPTIONS}")
 endif()
 
 # ==================== Source Files ====================
@@ -217,11 +219,11 @@ if(OSAL_BACKEND STREQUAL "freertos")
     if(TARGET freertos_kernel)
         target_link_libraries(xy_osal PUBLIC freertos_kernel)
     endif()
-elseif(OSAL_BACKEND STREQUAL "rt-thread")
+elseif(OSAL_BACKEND STREQUAL "rtthread")
     if(TARGET rtthread)
         target_link_libraries(xy_osal PUBLIC rtthread)
     endif()
-elseif(OSAL_BACKEND STREQUAL "cmsis-rtx")
+elseif(OSAL_BACKEND STREQUAL "cmsis_rtx")
     if(TARGET rtx5)
         target_link_libraries(xy_osal PUBLIC rtx5)
     endif()

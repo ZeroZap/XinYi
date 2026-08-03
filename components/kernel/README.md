@@ -36,45 +36,45 @@ kernel/
 
 | 后端 | 状态 | 说明 |
 |------|------|------|
+| **Bare-metal** | ✅ | 基础内核控制、tick/delay、软件定时器，以及主 CMSIS-like API 下的 mutex/semaphore/event flags/message queue/memory pool 单线程契约；thread creation 仍为 stub |
 | **FreeRTOS** | ✅ | 最常用的 RTOS |
 | **RT-Thread** | ✅ | 国产 RTOS |
 | **CMSIS-RTX5** | ✅ | ARM 官方 RTOS |
-| **Bare-metal** | ✅ | 裸机模式 (无 OS) |
 
 ---
 
 ## 📁 核心 API
 
-### 任务管理
+Kernel OSAL 的主公共接口是 `components/kernel/osal/xy_os.h`，采用 CMSIS-RTOS2 风格命名；
+`components/kernel/osal/inc/xy_os.h` 只是兼容 include 路径的 forward header。`inc/xy_os_sys.h`
+提供 IRQ/critical/cache/watchdog/diagnostics 等 XinYi 系统扩展，不属于 CMSIS-RTOS2 核心 OSAL。
+
+### 线程管理
 ```c
-xy_os_task_t task;
-xy_os_task_create(&task, "my_task", entry_func, arg, stack_size, priority);
-xy_os_task_delete(&task);
-xy_os_task_delay(100);  // 延迟 100ms
+xy_os_thread_id_t task = xy_os_thread_new(entry_func, arg, NULL);
+xy_os_thread_terminate(task);
+xy_os_delay(100);  // 延迟 100 个 kernel tick
 ```
 
 ### 信号量
 ```c
-xy_os_sem_t sem;
-xy_os_sem_create(&sem, 1);  // 初始值 1
-xy_os_sem_wait(&sem, 1000); // 等待 1s
-xy_os_sem_post(&sem);       // 释放
+xy_os_semaphore_id_t sem = xy_os_semaphore_new(1, 0, NULL);
+xy_os_semaphore_acquire(sem, 1000);
+xy_os_semaphore_release(sem);
 ```
 
 ### 互斥锁
 ```c
-xy_os_mutex_t mutex;
-xy_os_mutex_create(&mutex);
-xy_os_mutex_lock(&mutex, 1000);
-xy_os_mutex_unlock(&mutex);
+xy_os_mutex_id_t mutex = xy_os_mutex_new(NULL);
+xy_os_mutex_acquire(mutex, 1000);
+xy_os_mutex_release(mutex);
 ```
 
 ### 消息队列
 ```c
-xy_os_queue_t queue;
-xy_os_queue_create(&queue, 10, sizeof(msg_t));
-xy_os_queue_send(&queue, &msg, 100);
-xy_os_queue_recv(&queue, &msg, 100);
+xy_os_msgqueue_id_t queue = xy_os_msgqueue_new(10, sizeof(msg_t), NULL);
+xy_os_msgqueue_put(queue, &msg, 0, 100);
+xy_os_msgqueue_get(queue, &msg, NULL, 100);
 ```
 
 ---
@@ -87,9 +87,10 @@ xy_os_queue_recv(&queue, &msg, 100);
 -DCONFIG_KERNEL_OSAL=y
 
 # 选择后端
--DCONFIG_OSAL_BACKEND_FREERTOS=y
--DCONFIG_OSAL_BACKEND_RTTHREAD=y
--DCONFIG_OSAL_BACKEND_BAREMETAL=y
+-DOSAL_BACKEND=freertos
+-DOSAL_BACKEND=rtthread
+-DOSAL_BACKEND=cmsis_rtx
+-DOSAL_BACKEND=baremetal
 ```
 
 ### Kconfig
@@ -121,36 +122,35 @@ config OSAL_BACKEND_FREERTOS
 
 ### Bare-metal 模式
 ```c
-#include "xy_os_baremetal.h"
+#include "xy_os.h"
 
 int main(void) {
-    xy_os_init();
-    
-    // 创建任务
-    xy_os_task_t task;
-    xy_os_task_create(&task, "blink", blink_entry, NULL, 512, 1);
-    
-    // 启动调度器
-    xy_os_start();
-    
+    xy_os_kernel_init();
+
+    // 裸机后端可使用 tick/delay/timer，以及单线程同步/队列/内存池契约；
+    // thread creation 仍按 stub 处理。
+    xy_os_delay(100);
+
     return 0;
 }
 ```
 
 ### FreeRTOS 模式
 ```c
-#include "xy_os_freertos.h"
+#include "xy_os.h"
 
-void blink_entry(void *arg) {
+static void blink_entry(void *arg) {
+    (void)arg;
     while (1) {
         xy_gpio_toggle(LED_PIN);
-        xy_os_task_delay(100);
+        xy_os_delay(100);
     }
 }
 
 int main(void) {
-    xy_os_task_create(NULL, "blink", blink_entry, NULL, 512, 1);
-    // FreeRTOS 调度器自动启动
+    xy_os_kernel_init();
+    xy_os_thread_new(blink_entry, NULL, NULL);
+    xy_os_kernel_start();
     return 0;
 }
 ```
@@ -159,8 +159,8 @@ int main(void) {
 
 ## 📝 待完成任务
 
-- [ ] 完善 CMakeLists.txt
-- [ ] 完善 Kconfig
+- [ ] 继续对齐 OSAL 与 CMSIS-RTOS2 能力面，补齐 backend compile/contract 测试
+- [ ] 完善 Kconfig 聚合与后端命名文档
 - [ ] 添加更多单元测试
 - [ ] 补充文档示例
 

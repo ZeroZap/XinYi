@@ -73,42 +73,41 @@ config XY_OS_FEATURE_THREAD_FLAGS
 config XY_OS_FEATURE_MUTEX
     bool "Enable Mutex Support"
     default y
-    depends on !XY_OS_BACKEND_BAREMETAL
     help
         Enable mutex synchronization primitive.
+        Bare-metal backend provides a single-thread contract implementation.
 
 config XY_OS_FEATURE_SEMAPHORE
     bool "Enable Semaphore Support"
     default y
-    depends on !XY_OS_BACKEND_BAREMETAL
     help
         Enable semaphore synchronization primitive.
+        Bare-metal backend provides a single-thread contract implementation.
 
 config XY_OS_FEATURE_EVENT_FLAGS
     bool "Enable Event Flags Support"
     default y
-    depends on !XY_OS_BACKEND_BAREMETAL
     help
         Enable event flags synchronization primitive.
+        Bare-metal backend provides a single-thread contract implementation.
 
 config XY_OS_FEATURE_MESSAGE_QUEUE
     bool "Enable Message Queue Support"
     default y
-    depends on !XY_OS_BACKEND_BAREMETAL
     help
         Enable inter-thread message queues.
+        Bare-metal backend provides a fixed-buffer single-thread contract implementation.
 
 config XY_OS_FEATURE_MEMORY_POOL
     bool "Enable Memory Pool Support"
     default y
-    depends on !XY_OS_BACKEND_BAREMETAL
     help
         Enable fixed-size memory pool allocation.
+        Bare-metal backend provides fixed-block pools using configured static storage.
 
 config XY_OS_FEATURE_TIMER
     bool "Enable Software Timer Support"
     default y
-    depends on !XY_OS_BACKEND_BAREMETAL
     help
         Enable software timers.
         Bare-metal backend uses xy_timer_sw module.
@@ -119,7 +118,7 @@ config XY_OS_FEATURE_DELAY
     help
         Enable delay and delay_until functions.
 
-endchoice
+endmenu
 
 # Configuration Parameters
 menu "OSAL Parameters"
@@ -160,7 +159,7 @@ config XY_OS_DEFAULT_TIMEOUT
     help
         Default timeout for blocking operations in ticks.
 
-endchoice
+endmenu
 
 # Debug and Safety
 menu "Debug and Safety"
@@ -192,7 +191,7 @@ config XY_OS_ENABLE_STATS
         Enable OSAL statistics collection.
         Useful for debugging and performance analysis.
 
-endchoice
+endmenu
 
 # Backend-Specific Configuration
 menu "Backend-Specific Configuration"
@@ -234,7 +233,7 @@ config XY_OS_BAREMETAL_MAX_TIMERS
     help
         Maximum number of software timers in bare-metal mode.
 
-endchoice
+endmenu
 
 # Size Limits
 menu "Size Limits"
@@ -252,6 +251,6 @@ config XY_OS_MAX_THREAD_COUNT
     help
         Maximum number of threads that can be enumerated.
 
-endchoice
+endmenu
 
 endmenu
