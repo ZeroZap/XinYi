@@ -284,7 +284,7 @@ static void example_disturbance_rejection(void)
     float door_open_time = 1000;  /* ms */
 
     printf("\n=== Example 4: Disturbance Rejection (Door Opening) ===\n");
-    printf("Target: %.1f°C, Door opens at %dms\n\n", setpoint, door_open_time);
+    printf("Target: %.1f°C, Door opens at %.0fms\n\n", setpoint, door_open_time);
 
     xy_pid_init(&door_pid, &config);
     xy_pid_set_mode(&door_pid, XY_PID_MODE_AUTO);
