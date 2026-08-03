@@ -173,7 +173,8 @@ int main(void)
         .method = XY_PID_AUTO_METHOD_ZN,
         .step_amplitude = 50.0f,
         .sample_interval_ms = 100,
-        .num_samples = 100
+        .num_samples = 100,
+        .tolerance = 0.01f
     };
 
     // 初始化 PID
@@ -184,18 +185,28 @@ int main(void)
     xy_pid_init(&pid, &pid_config);
 
     // 初始化自动整定器
-    xy_pid_auto_init(&tuner, &pid, &auto_config);
-    xy_pid_auto_start(&tuner);
+    if (xy_pid_auto_init(&tuner, &pid, &auto_config) != XY_PID_AUTO_OK) {
+        return -1;
+    }
+    if (xy_pid_auto_start(&tuner) != XY_PID_AUTO_OK) {
+        xy_pid_auto_deinit(&tuner);
+        return -1;
+    }
 
     // 整定循环
-    while (xy_pid_auto_get_state(&tuner) != XY_PID_AUTO_STATE_COMPLETE) {
+    while (xy_pid_auto_get_state(&tuner) == XY_PID_AUTO_STATE_MEASURING) {
         float pv = read_process_variable();
-        xy_pid_auto_loop(&tuner, pv);
+        if (xy_pid_auto_loop(&tuner, pv) < XY_PID_AUTO_OK) {
+            break;
+        }
         delay_ms(100);
     }
 
     // 应用整定结果
-    xy_pid_auto_apply(&tuner);
+    if (xy_pid_auto_get_state(&tuner) == XY_PID_AUTO_STATE_COMPLETE) {
+        xy_pid_auto_apply(&tuner);
+    }
+    xy_pid_auto_deinit(&tuner);
 
     return 0;
 }

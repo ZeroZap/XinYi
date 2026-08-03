@@ -55,7 +55,8 @@
 
 Note: `tests/unit/CMakeLists.txt` also registers PID example compile-smoke targets that reuse
 component example sources rather than adding extra `tests/unit/*.c` files; currently
-`pid_example_basic` and `pid_example_incremental` guard API drift in those examples.
+`pid_example_basic`, `pid_example_incremental`, `pid_example_auto_tune`,
+`pid_example_temperature`, and `pid_example_charging` guard API drift in those examples.
 
 1. Keep all new tests on Unity assertions.
 2. Keep the raw `assert()` and unwired-source inventories at zero for tracked `tests/unit` sources.
