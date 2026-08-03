@@ -66,11 +66,20 @@ static void test_auto_init_defaults_and_deinit(void)
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
 
     config = default_auto_config();
+    config.step_amplitude = NAN;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
+
+    config = default_auto_config();
+    config.tolerance = INFINITY;
+    TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
+
+    config = default_auto_config();
     config.num_samples = 1U;
     TEST_ASSERT_EQUAL(XY_PID_AUTO_INVALID_PARAM, xy_pid_auto_init(&tuner, &pid, &config));
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, NULL));
     TEST_ASSERT_TRUE(tuner.initialized);
+    TEST_ASSERT_TRUE(tuner.config.tolerance > 0.0F);
     TEST_ASSERT_EQUAL_PTR(&pid, tuner.pid);
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_IDLE, tuner.state);
     TEST_ASSERT_EQUAL(XY_PID_AUTO_METHOD_ZN, tuner.config.method);
