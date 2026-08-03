@@ -219,6 +219,38 @@ static void test_read_object1_i2c_failure_preserves_output(void)
     TEST_ASSERT_EQUAL_INT16(5678, tobj);
 }
 
+static void test_read_object2_returns_cached_second_channel_or_single_channel_fallback(void)
+{
+    xy_mlx90614_t dev;
+    int16_t tobj = -1234;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_object2(NULL, &tobj));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_object2(&dev, NULL));
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_read_object2(&dev, &tobj));
+    TEST_ASSERT_EQUAL_INT16(3685, tobj);
+
+    g_read_fail_reg[MLX90614_RAM_TOBJ2] = 1U;
+    tobj = -1234;
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_read_object2(&dev, &tobj));
+    TEST_ASSERT_EQUAL_INT16(3185, tobj);
+}
+
+static void test_read_object2_i2c_failure_preserves_output(void)
+{
+    xy_mlx90614_t dev;
+    int16_t tobj = 5678;
+    int fake_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    g_read_fail_reg[MLX90614_RAM_TA] = 1U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mlx90614_read_object2(&dev, &tobj));
+    TEST_ASSERT_EQUAL_INT16(5678, tobj);
+}
+
 static void test_read_all_negative_temperature_conversion_bounds(void)
 {
     xy_mlx90614_t dev;
@@ -360,6 +392,8 @@ int main(void)
     RUN_TEST(test_read_all_object2_i2c_failure_uses_object1_without_error);
     RUN_TEST(test_read_object1_updates_output_only_on_success);
     RUN_TEST(test_read_object1_i2c_failure_preserves_output);
+    RUN_TEST(test_read_object2_returns_cached_second_channel_or_single_channel_fallback);
+    RUN_TEST(test_read_object2_i2c_failure_preserves_output);
     RUN_TEST(test_read_all_negative_temperature_conversion_bounds);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
     RUN_TEST(test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error);

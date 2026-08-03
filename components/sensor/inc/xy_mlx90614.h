@@ -78,6 +78,11 @@ int xy_mlx90614_read_ambient(xy_mlx90614_t *dev, int16_t *ta);
 int xy_mlx90614_read_object1(xy_mlx90614_t *dev, int16_t *tobj);
 
 /**
+ * @brief 读取物体温度 2
+ */
+int xy_mlx90614_read_object2(xy_mlx90614_t *dev, int16_t *tobj);
+
+/**
  * @brief 读取发射率 (0.001 单位)
  */
 int xy_mlx90614_get_emissivity(xy_mlx90614_t *dev, uint16_t *emissivity);

@@ -152,6 +152,17 @@ int xy_mlx90614_read_object1(xy_mlx90614_t *dev, int16_t *tobj)
     return ret;
 }
 
+int xy_mlx90614_read_object2(xy_mlx90614_t *dev, int16_t *tobj)
+{
+    int ret;
+    if (!dev || !tobj) return XY_MLX90614_INVALID_PARAM;
+    ret = xy_mlx90614_read_all(dev);
+    if (ret == XY_MLX90614_OK) {
+        *tobj = dev->tobj2;
+    }
+    return ret;
+}
+
 /**
  * @brief 从 EEPROM 读取发射率 - ✅ SENSOR-001 完成
  * 
