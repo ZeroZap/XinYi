@@ -77,6 +77,9 @@ static void test_auto_init_defaults_and_deinit(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 50.0F, tuner.config.step_amplitude);
     TEST_ASSERT_EQUAL_UINT16(100U, tuner.config.num_samples);
     TEST_ASSERT_NOT_NULL(tuner.samples);
+    for (size_t i = 0; i < tuner.config.num_samples * sizeof(*tuner.samples); ++i) {
+        TEST_ASSERT_EQUAL_HEX8(0U, ((uint8_t *)tuner.samples)[i]);
+    }
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
     TEST_ASSERT_FALSE(tuner.initialized);

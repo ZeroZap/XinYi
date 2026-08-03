@@ -62,6 +62,7 @@ int xy_pid_auto_init(xy_pid_auto_tuner_t *tuner, xy_pid_t *pid,
     if (!tuner->samples) {
         return XY_PID_AUTO_ERROR;
     }
+    memset(tuner->samples, 0, tuner->config.num_samples * sizeof(float));
 
     tuner->state = XY_PID_AUTO_STATE_IDLE;
     tuner->initialized = true;
