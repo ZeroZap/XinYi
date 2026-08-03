@@ -16,7 +16,7 @@
 typedef struct {
     rt_thread_t thread;
     rt_uint8_t initialized;
-    xy_os_callback_t callback;
+    xy_os_thread_func_t callback;
     void *arg;
 } thread_ctx_t;
 
@@ -33,7 +33,7 @@ typedef struct {
 typedef struct {
     rt_timer_t timer;
     rt_uint8_t initialized;
-    xy_os_callback_t callback;
+    xy_os_timer_func_t callback;
     void *arg;
 } timer_ctx_t;
 
@@ -100,13 +100,13 @@ static xy_os_priority_t rt_to_xy_priority(rt_uint8_t priority)
 
 /* Kernel Functions */
 
-xy_os_error_t xy_os_kernel_init(void)
+xy_os_status_t xy_os_kernel_init(void)
 {
     // RT-Thread kernel is initialized by rtthread_startup()
     return XY_OS_OK;
 }
 
-xy_os_error_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
+xy_os_status_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
                                     uint32_t id_size)
 {
     if (version) {
@@ -125,7 +125,7 @@ xy_os_kernel_state_t xy_os_kernel_get_state(void)
     return XY_OS_KERNEL_RUNNING; // RT-Thread is always running after startup
 }
 
-xy_os_error_t xy_os_kernel_start(void)
+xy_os_status_t xy_os_kernel_start(void)
 {
     // RT-Thread kernel start is handled by rtthread_startup()
     return XY_OS_OK;
@@ -281,16 +281,16 @@ uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t thread_id)
     return thread->stack_size - used;
 }
 
-xy_os_error_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
+xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
                                         xy_os_priority_t priority)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_INVALID_PARAM;
+    if (!thread) return XY_OS_ERROR_PARAMETER;
 
     rt_uint8_t rt_priority = xy_to_rt_priority(priority);
     rt_err_t result = rt_thread_control(thread, RT_THREAD_CTRL_CHANGE_PRIORITY, &rt_priority);
     
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t thread_id)
@@ -301,48 +301,48 @@ xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t thread_id)
     return rt_to_xy_priority(thread->current_priority);
 }
 
-xy_os_error_t xy_os_thread_yield(void)
+xy_os_status_t xy_os_thread_yield(void)
 {
     rt_thread_yield();
     return XY_OS_OK;
 }
 
-xy_os_error_t xy_os_thread_suspend(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_suspend(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_INVALID_PARAM;
+    if (!thread) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_thread_suspend(thread);
     if (result == RT_EOK) {
         rt_schedule();
     }
     
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_INVALID_PARAM;
+    if (!thread) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_thread_resume(thread);
     if (result == RT_EOK) {
         rt_schedule();
     }
     
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_thread_detach(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_detach(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_INVALID_PARAM;
+    if (!thread) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_thread_detach(thread);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_thread_join(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_join(xy_os_thread_id_t thread_id)
 {
     // RT-Thread doesn't have thread join concept
     XY_UNUSED(thread_id);
@@ -354,13 +354,13 @@ void xy_os_thread_exit(void)
     rt_thread_exit();
 }
 
-xy_os_error_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_INVALID_PARAM;
+    if (!thread) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_thread_delete(thread);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_thread_get_count(void)
@@ -418,13 +418,13 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t time
 
 /* Delay Functions */
 
-xy_os_error_t xy_os_delay(uint32_t ticks)
+xy_os_status_t xy_os_delay(uint32_t ticks)
 {
     rt_thread_delay(ticks);
     return XY_OS_OK;
 }
 
-xy_os_error_t xy_os_delay_until(uint32_t ticks)
+xy_os_status_t xy_os_delay_until(uint32_t ticks)
 {
     rt_tick_t current = rt_tick_get();
     if (ticks > current) {
@@ -490,25 +490,25 @@ const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
     return NULL;
 }
 
-xy_os_error_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
+xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
-    if (!timer) return XY_OS_ERROR_INVALID_PARAM;
+    if (!timer) return XY_OS_ERROR_PARAMETER;
 
     // Set timeout
     rt_timer_control(timer, RT_TIMER_CTRL_SET_TIME, &ticks);
 
     rt_err_t result = rt_timer_start(timer);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
+xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
-    if (!timer) return XY_OS_ERROR_INVALID_PARAM;
+    if (!timer) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_timer_stop(timer);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
@@ -519,10 +519,10 @@ uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
     return (timer->parent.flag & RT_OBJECT_INIT) ? 1 : 0;
 }
 
-xy_os_error_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
+xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
-    if (!timer) return XY_OS_ERROR_INVALID_PARAM;
+    if (!timer) return XY_OS_ERROR_PARAMETER;
 
     // Clean up context
     for (size_t i = 0; i < MAX_TIMERS; i++) {
@@ -534,7 +534,7 @@ xy_os_error_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
     }
 
     rt_err_t result = rt_timer_delete(timer);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Event Flags Functions */
@@ -618,13 +618,13 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
     return (result == RT_EOK) ? recved : 0x80000000;
 }
 
-xy_os_error_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
+xy_os_status_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
 {
     rt_event_t event = (rt_event_t)ef_id;
-    if (!event) return XY_OS_ERROR_INVALID_PARAM;
+    if (!event) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_event_delete(event);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Mutex Functions */
@@ -663,25 +663,25 @@ const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id)
     return NULL;
 }
 
-xy_os_error_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
+xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
-    if (!mutex) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mutex) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
                       rt_mutex_take(mutex, RT_WAITING_FOREVER) :
                       rt_mutex_take(mutex, timeout);
 
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
+xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
-    if (!mutex) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mutex) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_mutex_release(mutex);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
@@ -692,10 +692,10 @@ xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
     return (xy_os_thread_id_t)mutex->owner;
 }
 
-xy_os_error_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
+xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
-    if (!mutex) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mutex) return XY_OS_ERROR_PARAMETER;
 
     // Clean up context
     for (size_t i = 0; i < MAX_MUTEXES; i++) {
@@ -707,7 +707,7 @@ xy_os_error_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
     }
 
     rt_err_t result = rt_mutex_delete(mutex);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Semaphore Functions */
@@ -748,25 +748,25 @@ const char *xy_os_semaphore_get_name(xy_os_semaphore_id_t semaphore_id)
     return NULL;
 }
 
-xy_os_error_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id, uint32_t timeout)
+xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id, uint32_t timeout)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (!sem) return XY_OS_ERROR_INVALID_PARAM;
+    if (!sem) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
                       rt_sem_take(sem, RT_WAITING_FOREVER) :
                       rt_sem_take(sem, timeout);
 
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
+xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (!sem) return XY_OS_ERROR_INVALID_PARAM;
+    if (!sem) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_sem_release(sem);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
@@ -777,10 +777,10 @@ uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
     return sem->value;
 }
 
-xy_os_error_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
+xy_os_status_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (!sem) return XY_OS_ERROR_INVALID_PARAM;
+    if (!sem) return XY_OS_ERROR_PARAMETER;
 
     // Clean up context
     for (size_t i = 0; i < MAX_SEMAPHORES; i++) {
@@ -792,7 +792,7 @@ xy_os_error_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
     }
 
     rt_err_t result = rt_sem_delete(sem);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Memory Pool Functions */
@@ -845,13 +845,13 @@ void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
     return block;
 }
 
-xy_os_error_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
+xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (!mp || !block) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mp || !block) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_mp_free(mp, block);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_mempool_get_capacity(xy_os_mempool_id_t mp_id)
@@ -894,13 +894,13 @@ uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
     return 0; // Not available
 }
 
-xy_os_error_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
+xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (!mp) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mp) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_mp_delete(mp);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Message Queue Functions */
@@ -928,25 +928,25 @@ const char *xy_os_msgqueue_get_name(xy_os_msgqueue_id_t mq_id)
     return NULL;
 }
 
-xy_os_error_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
+xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
                                  const void *msg_ptr, uint8_t msg_prio,
                                  uint32_t timeout)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq || !msg_ptr) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mq || !msg_ptr) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
                       rt_mq_send(mq, (void *)msg_ptr, strlen((char *)msg_ptr) + 1) :
                       rt_mq_send_wait(mq, (void *)msg_ptr, strlen((char *)msg_ptr) + 1, timeout);
 
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
+xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
                                  uint8_t *msg_prio, uint32_t timeout)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq || !msg_ptr) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mq || !msg_ptr) return XY_OS_ERROR_PARAMETER;
 
     rt_size_t size = 0;
     rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
@@ -955,7 +955,7 @@ xy_os_error_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
 
     XY_UNUSED(msg_prio); // RT-Thread doesn't support message priority
 
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)
@@ -990,23 +990,23 @@ uint32_t xy_os_msgqueue_get_space(xy_os_msgqueue_id_t mq_id)
     return mq->max_msgs - mq->entry;
 }
 
-xy_os_error_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
+xy_os_status_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mq) return XY_OS_ERROR_PARAMETER;
 
     // Clear all messages in queue
     rt_err_t result = rt_mq_control(mq, RT_MQ_CTRL_RESET, RT_NULL);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id)
+xy_os_status_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq) return XY_OS_ERROR_INVALID_PARAM;
+    if (!mq) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_mq_delete(mq);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 #endif /* STM32U5 || STM32U5xx */

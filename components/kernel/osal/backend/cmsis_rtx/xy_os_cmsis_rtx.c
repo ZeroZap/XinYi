@@ -16,7 +16,7 @@
 typedef struct {
     osThreadId_t thread_id;
     osThreadAttr_t attr;
-    xy_os_callback_t callback;
+    xy_os_thread_func_t callback;
     void *arg;
     uint8_t initialized;
 } thread_ctx_t;
@@ -37,7 +37,7 @@ typedef struct {
 typedef struct {
     osTimerId_t timer_id;
     osTimerAttr_t attr;
-    xy_os_callback_t callback;
+    xy_os_timer_func_t callback;
     void *arg;
     uint8_t initialized;
 } timer_ctx_t;
@@ -121,13 +121,13 @@ static xy_os_priority_t cmsis_to_xy_priority(osPriority_t priority)
 
 /* Kernel Functions */
 
-xy_os_error_t xy_os_kernel_init(void)
+xy_os_status_t xy_os_kernel_init(void)
 {
     // CMSIS-RTOS2 kernel init is usually handled by RTX5 init
     return XY_OS_OK;
 }
 
-xy_os_error_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
+xy_os_status_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
                                     uint32_t id_size)
 {
     if (version) {
@@ -160,14 +160,14 @@ xy_os_kernel_state_t xy_os_kernel_get_state(void)
     }
 }
 
-xy_os_error_t xy_os_kernel_start(void)
+xy_os_status_t xy_os_kernel_start(void)
 {
     if (osKernelInitialize() != osOK) {
-        return XY_OS_ERROR_FAIL;
+        return XY_OS_ERROR;
     }
     
     if (osKernelStart() != osOK) {
-        return XY_OS_ERROR_FAIL;
+        return XY_OS_ERROR;
     }
     
     return XY_OS_OK;
@@ -287,12 +287,12 @@ uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t thread_id)
     return osThreadGetStackSpace((osThreadId_t)thread_id);
 }
 
-xy_os_error_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
+xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
                                         xy_os_priority_t priority)
 {
     osStatus_t status = osThreadSetPriority((osThreadId_t)thread_id,
                                             xy_to_cmsis_priority(priority));
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t thread_id)
@@ -301,31 +301,31 @@ xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t thread_id)
     return cmsis_to_xy_priority(cmsis_prio);
 }
 
-xy_os_error_t xy_os_thread_yield(void)
+xy_os_status_t xy_os_thread_yield(void)
 {
-    return (osThreadYield() == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (osThreadYield() == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_thread_suspend(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_suspend(xy_os_thread_id_t thread_id)
 {
     osStatus_t status = osThreadSuspend((osThreadId_t)thread_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
 {
     osStatus_t status = osThreadResume((osThreadId_t)thread_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_thread_detach(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_detach(xy_os_thread_id_t thread_id)
 {
     // CMSIS-RTOS2 doesn't have detach concept, return OK
     XY_UNUSED(thread_id);
     return XY_OS_OK;
 }
 
-xy_os_error_t xy_os_thread_join(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_join(xy_os_thread_id_t thread_id)
 {
     // CMSIS-RTOS2 doesn't have join concept, return OK
     XY_UNUSED(thread_id);
@@ -337,10 +337,10 @@ void xy_os_thread_exit(void)
     osThreadExit();
 }
 
-xy_os_error_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
+xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
 {
     osStatus_t status = osThreadTerminate((osThreadId_t)thread_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_thread_get_count(void)
@@ -390,13 +390,13 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t time
 
 /* Delay Functions */
 
-xy_os_error_t xy_os_delay(uint32_t ticks)
+xy_os_status_t xy_os_delay(uint32_t ticks)
 {
     osStatus_t status = osDelay(ticks);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_delay_until(uint32_t ticks)
+xy_os_status_t xy_os_delay_until(uint32_t ticks)
 {
     uint32_t current = osKernelGetTickCount();
     if (ticks > current) {
@@ -448,16 +448,16 @@ const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
     return osTimerGetName((osTimerId_t)timer_id);
 }
 
-xy_os_error_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
+xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
 {
     osStatus_t status = osTimerStart((osTimerId_t)timer_id, ticks);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
+xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
 {
     osStatus_t status = osTimerStop((osTimerId_t)timer_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
@@ -465,7 +465,7 @@ uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
     return osTimerIsRunning((osTimerId_t)timer_id);
 }
 
-xy_os_error_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
+xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 {
     osStatus_t status = osTimerDelete((osTimerId_t)timer_id);
     if (status == osOK) {
@@ -478,7 +478,7 @@ xy_os_error_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
             }
         }
     }
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Event Flags Functions */
@@ -530,10 +530,10 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
     return (result & 0x80000000) ? 0x80000000 : result;
 }
 
-xy_os_error_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
+xy_os_status_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
 {
     osStatus_t status = osEventFlagsDelete((osEventFlagsId_t)ef_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Mutex Functions */
@@ -559,16 +559,16 @@ const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id)
     return osMutexGetName((osMutexId_t)mutex_id);
 }
 
-xy_os_error_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
+xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
 {
     osStatus_t status = osMutexAcquire((osMutexId_t)mutex_id, timeout);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
+xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 {
     osStatus_t status = osMutexRelease((osMutexId_t)mutex_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
@@ -577,10 +577,10 @@ xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
     return (xy_os_thread_id_t)owner;
 }
 
-xy_os_error_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
+xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 {
     osStatus_t status = osMutexDelete((osMutexId_t)mutex_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Semaphore Functions */
@@ -621,16 +621,16 @@ const char *xy_os_semaphore_get_name(xy_os_semaphore_id_t semaphore_id)
     return osSemaphoreGetName((osSemaphoreId_t)semaphore_id);
 }
 
-xy_os_error_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id, uint32_t timeout)
+xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id, uint32_t timeout)
 {
     osStatus_t status = osSemaphoreAcquire((osSemaphoreId_t)semaphore_id, timeout);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
+xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
 {
     osStatus_t status = osSemaphoreRelease((osSemaphoreId_t)semaphore_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
@@ -638,7 +638,7 @@ uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
     return osSemaphoreGetCount((osSemaphoreId_t)semaphore_id);
 }
 
-xy_os_error_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
+xy_os_status_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
 {
     osStatus_t status = osSemaphoreDelete((osSemaphoreId_t)semaphore_id);
     if (status == osOK) {
@@ -651,7 +651,7 @@ xy_os_error_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
             }
         }
     }
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Memory Pool Functions */
@@ -683,10 +683,10 @@ void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
     return osMemoryPoolAlloc((osMemoryPoolId_t)mp_id, timeout);
 }
 
-xy_os_error_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
+xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 {
     osStatus_t status = osMemoryPoolFree((osMemoryPoolId_t)mp_id, block);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_mempool_get_capacity(xy_os_mempool_id_t mp_id)
@@ -709,10 +709,10 @@ uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
     return osMemoryPoolGetSpace((osMemoryPoolId_t)mp_id);
 }
 
-xy_os_error_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
+xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 {
     osStatus_t status = osMemoryPoolDelete((osMemoryPoolId_t)mp_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 /* Message Queue Functions */
@@ -739,21 +739,21 @@ const char *xy_os_msgqueue_get_name(xy_os_msgqueue_id_t mq_id)
     return osMessageQueueGetName((osMessageQueueId_t)mq_id);
 }
 
-xy_os_error_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
+xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
                                  const void *msg_ptr, uint8_t msg_prio,
                                  uint32_t timeout)
 {
     osStatus_t status = osMessageQueuePut((osMessageQueueId_t)mq_id, msg_ptr,
                                           msg_prio, timeout);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
+xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
                                  uint8_t *msg_prio, uint32_t timeout)
 {
     osStatus_t status = osMessageQueueGet((osMessageQueueId_t)mq_id, msg_ptr,
                                           msg_prio, timeout);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)
@@ -776,16 +776,16 @@ uint32_t xy_os_msgqueue_get_space(xy_os_msgqueue_id_t mq_id)
     return osMessageQueueGetSpace((osMessageQueueId_t)mq_id);
 }
 
-xy_os_error_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
+xy_os_status_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
 {
     osStatus_t status = osMessageQueueReset((osMessageQueueId_t)mq_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
-xy_os_error_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id)
+xy_os_status_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id)
 {
     osStatus_t status = osMessageQueueDelete((osMessageQueueId_t)mq_id);
-    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR_FAIL;
+    return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
 #endif /* STM32U5 || STM32U5xx */
