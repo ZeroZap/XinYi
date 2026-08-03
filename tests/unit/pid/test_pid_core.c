@@ -249,10 +249,45 @@ static void test_pid_reset(void)
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.output);
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.error);
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.error_prev);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.error_sum);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.derivative);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.integral);
     TEST_ASSERT_EQUAL_FLOAT(0.0F, pid.integral_raw);
     TEST_ASSERT_TRUE(pid.first_run);
     TEST_ASSERT_EQUAL_UINT32(0U, pid.update_count);
     TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_reset(NULL));
+}
+
+static void test_pid_auto_mode_invalid_limits_preserve_state(void)
+{
+    xy_pid_t pid;
+    xy_pid_config_t config = default_config();
+    xy_pid_config_t before;
+    float output = -1.0F;
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &config));
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_mode(&pid, XY_PID_MODE_AUTO));
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_set_setpoint(&pid, 10.0F));
+    g_tick_ms = 100U;
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
+    g_tick_ms = 110U;
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
+    TEST_ASSERT_GREATER_THAN_UINT32(0U, pid.update_count);
+
+    before = pid.config;
+    output = -77.0F;
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_output_limits(&pid, NAN, 5.0F));
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_output_limits(&pid, -5.0F, NAN));
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_output_limits(&pid, INFINITY, 5.0F));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.output_min, pid.config.output_min);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.output_max, pid.config.output_max);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.integral_min, pid.config.integral_min);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.integral_max, pid.config.integral_max);
+
+    TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_compute(&pid, 5.0F, &output));
+    TEST_ASSERT_TRUE(isfinite(output));
+    TEST_ASSERT_LESS_OR_EQUAL_FLOAT(before.output_max, output);
+    TEST_ASSERT_GREATER_OR_EQUAL_FLOAT(before.output_min, output);
 }
 
 static void test_pid_wraparound_elapsed_tick_computes_forward_progress(void)
@@ -294,6 +329,7 @@ int main(void)
     RUN_TEST(test_pid_compute_and_limits);
     RUN_TEST(test_pid_modes_and_filters);
     RUN_TEST(test_pid_reset);
+    RUN_TEST(test_pid_auto_mode_invalid_limits_preserve_state);
     RUN_TEST(test_pid_wraparound_elapsed_tick_computes_forward_progress);
     return UNITY_END();
 }
