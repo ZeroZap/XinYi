@@ -396,36 +396,44 @@ int main(void) {
 
 #### 温度控制
 
+当前 PID API 使用 `xy_pid_config_t` 配置结构和 `float` 输入/输出；示例中的
+`xy_os_tick_get()` 由 OSAL/平台层提供，控制循环需要先切换到自动模式。
+
 ```c
 #include "xy_pid.h"
 #include <stdio.h>
 
 int main(void) {
     xy_pid_t pid;
-    xy_pid_output_t output;
-    
-    // 初始化 PID (Kp=2.0, Ki=0.5, Kd=1.0)
-    xy_pid_init(&pid, 
-        PID_FLOAT_TO_FIXED(2.0),
-        PID_FLOAT_TO_FIXED(0.5),
-        PID_FLOAT_TO_FIXED(1.0),
-        100  // 100ms 采样时间
-    );
-    
-    xy_pid_set_setpoint(&pid, PID_FLOAT_TO_FIXED(100));  // 目标温度 100°C
-    
+    float output = 0.0F;
+
+    xy_pid_config_t config = {
+        .kp = 2.0F,
+        .ki = 0.5F,
+        .kd = 1.0F,
+        .output_min = 0.0F,
+        .output_max = 100.0F,
+        .integral_min = 0.0F,
+        .integral_max = 100.0F,
+        .derivative_filter = 0.1F,
+    };
+
+    if (xy_pid_init(&pid, &config) != XY_PID_OK) {
+        return 1;
+    }
+
+    xy_pid_set_setpoint(&pid, 100.0F);  // 目标温度 100°C
+    xy_pid_set_mode(&pid, XY_PID_MODE_AUTO);
+
     // 模拟控制循环
     for (int i = 0; i < 10; i++) {
-        pid_fixed_t current_temp = PID_FLOAT_TO_FIXED(25 + i * 5);  // 模拟温度上升
+        float current_temp = 25.0F + (float)i * 5.0F;
         xy_pid_compute(&pid, current_temp, &output);
-        
+
         printf("Setpoint: %.2f, Current: %.2f, Output: %.2f\n",
-               PID_FIXED_TO_FLOAT(pid.setpoint),
-               PID_FIXED_TO_FLOAT(current_temp),
-               PID_FIXED_TO_FLOAT(output.output));
+               pid.setpoint, current_temp, output);
     }
-    
-    xy_pid_deinit(&pid);
+
     return 0;
 }
 ```
