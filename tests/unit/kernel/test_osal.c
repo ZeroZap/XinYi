@@ -332,6 +332,72 @@ static void test_msgqueue_reset(void)
     xy_os_msgqueue_delete(q);
 }
 
+static void test_msgqueue_binary_fixed_size_message(void)
+{
+    typedef struct {
+        uint8_t bytes[8];
+    } binary_msg_t;
+
+    xy_os_msgqueue_id_t q = xy_os_msgqueue_new(2, sizeof(binary_msg_t), NULL);
+    TEST_ASSERT_NOT_NULL(q);
+
+    binary_msg_t in = { .bytes = { 0x00, 0x41, 0x00, 0x42, 0xFF, 0x10, 0x00, 0x7E } };
+    binary_msg_t out;
+    memset(&out, 0xA5, sizeof(out));
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &in, 0, 0));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_get(q, &out, NULL, 0));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(in.bytes, out.bytes, sizeof(in.bytes));
+    xy_os_msgqueue_delete(q);
+}
+
+static void test_msgqueue_priority_is_ignored_fifo_contract(void)
+{
+    xy_os_msgqueue_id_t q = xy_os_msgqueue_new(2, sizeof(uint32_t), NULL);
+    TEST_ASSERT_NOT_NULL(q);
+
+    uint32_t low = 1;
+    uint32_t high = 2;
+    uint8_t prio = 0xA5;
+    uint32_t out = 0;
+
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &low, 1, 0));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &high, 255, 0));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_get(q, &out, &prio, 0));
+    TEST_ASSERT_EQUAL_UINT32(low, out);
+    TEST_ASSERT_EQUAL_UINT8(0U, prio);
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_get(q, &out, &prio, 0));
+    TEST_ASSERT_EQUAL_UINT32(high, out);
+    TEST_ASSERT_EQUAL_UINT8(0U, prio);
+    xy_os_msgqueue_delete(q);
+}
+
+static void test_msgqueue_static_cb_and_storage(void)
+{
+    static uint8_t cb_mem[512];
+    static uint8_t mq_mem[3 * sizeof(uint16_t)];
+    xy_os_msgqueue_attr_t attr = {
+        .name = "extMq",
+        .cb_mem = cb_mem,
+        .cb_size = sizeof(cb_mem),
+        .mq_mem = mq_mem,
+        .mq_size = sizeof(mq_mem),
+    };
+
+    xy_os_msgqueue_id_t q = xy_os_msgqueue_new(3, sizeof(uint16_t), &attr);
+    TEST_ASSERT_EQUAL_PTR((xy_os_msgqueue_id_t)cb_mem, q);
+    TEST_ASSERT_EQUAL_STRING("extMq", xy_os_msgqueue_get_name(q));
+    TEST_ASSERT_EQUAL_UINT32(3U, xy_os_msgqueue_get_capacity(q));
+    TEST_ASSERT_EQUAL_UINT32(sizeof(uint16_t), xy_os_msgqueue_get_msg_size(q));
+
+    uint16_t in = 0xBEEF;
+    uint16_t out = 0;
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_put(q, &in, 0, 0));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_get(q, &out, NULL, 0));
+    TEST_ASSERT_EQUAL_HEX16(in, out);
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_msgqueue_delete(q));
+}
+
 /* ========== Memory Pool ========== */
 
 static void test_mempool_alloc_free(void)
@@ -400,6 +466,34 @@ static void test_mempool_write_to_block(void)
     xy_os_mempool_delete(mp);
 }
 
+static void test_mempool_static_cb_and_storage(void)
+{
+    static uint8_t cb_mem[256];
+    static uint8_t mp_mem[3 * 24];
+    xy_os_mempool_attr_t attr = {
+        .name = "extMp",
+        .cb_mem = cb_mem,
+        .cb_size = sizeof(cb_mem),
+        .mp_mem = mp_mem,
+        .mp_size = sizeof(mp_mem),
+    };
+
+    xy_os_mempool_id_t mp = xy_os_mempool_new(3, 24, &attr);
+    TEST_ASSERT_EQUAL_PTR((xy_os_mempool_id_t)cb_mem, mp);
+    TEST_ASSERT_EQUAL_STRING("extMp", xy_os_mempool_get_name(mp));
+    TEST_ASSERT_EQUAL_UINT32(3U, xy_os_mempool_get_capacity(mp));
+    TEST_ASSERT_EQUAL_UINT32(24U, xy_os_mempool_get_block_size(mp));
+
+    uint8_t *blk = (uint8_t *)xy_os_mempool_alloc(mp, 0);
+    TEST_ASSERT_TRUE(blk >= mp_mem);
+    TEST_ASSERT_TRUE(blk < (mp_mem + sizeof(mp_mem)));
+    memset(blk, 0x5A, 24);
+    TEST_ASSERT_EQUAL_HEX8(0x5A, blk[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x5A, blk[23]);
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mempool_free(mp, blk));
+    TEST_ASSERT_EQUAL(XY_OS_OK, xy_os_mempool_delete(mp));
+}
+
 /* ========== main ========== */
 
 int main(void)
@@ -436,12 +530,16 @@ int main(void)
     RUN_TEST(test_msgqueue_full);
     RUN_TEST(test_msgqueue_empty_get);
     RUN_TEST(test_msgqueue_reset);
+    RUN_TEST(test_msgqueue_binary_fixed_size_message);
+    RUN_TEST(test_msgqueue_priority_is_ignored_fifo_contract);
+    RUN_TEST(test_msgqueue_static_cb_and_storage);
 
     /* Memory Pool */
     RUN_TEST(test_mempool_alloc_free);
     RUN_TEST(test_mempool_exhaust);
     RUN_TEST(test_mempool_cycle);
     RUN_TEST(test_mempool_write_to_block);
+    RUN_TEST(test_mempool_static_cb_and_storage);
 
     return UNITY_END();
 }
