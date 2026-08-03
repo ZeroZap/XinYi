@@ -997,6 +997,16 @@ xy_add_unit_test(test_pid_example_incremental pid_example_incremental
 )
 target_link_libraries(test_pid_example_incremental m)
 
+xy_add_unit_test(test_pid_example_auto_tune pid_example_auto_tune
+    ${PID}/examples/example_auto_tune.c
+    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid_auto.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${UNIT_PID}/test_pid_example_log_stub.c
+)
+target_link_libraries(test_pid_example_auto_tune m)
+
 # --- Test 30: MUX SPI channel helper contracts ---
 xy_add_unit_test(test_mux_spi mux_spi UNITY
     ${UNIT_MUX}/test_mux_spi.c
