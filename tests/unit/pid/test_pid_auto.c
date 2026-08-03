@@ -79,7 +79,7 @@ static void test_auto_init_defaults_and_deinit(void)
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, NULL));
     TEST_ASSERT_TRUE(tuner.initialized);
-    TEST_ASSERT_TRUE(tuner.config.tolerance > 0.0F);
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0F, tuner.config.tolerance);
     TEST_ASSERT_EQUAL_PTR(&pid, tuner.pid);
     TEST_ASSERT_EQUAL(XY_PID_AUTO_STATE_IDLE, tuner.state);
     TEST_ASSERT_EQUAL(XY_PID_AUTO_METHOD_ZN, tuner.config.method);
@@ -106,12 +106,14 @@ static void test_auto_init_accepts_zero_overrides_as_defaults(void)
     config.step_amplitude = 0.0F;
     config.sample_interval_ms = 0U;
     config.num_samples = 0U;
+    config.tolerance = 0.0F;
 
     TEST_ASSERT_EQUAL(XY_PID_OK, xy_pid_init(&pid, &pid_config));
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_init(&tuner, &pid, &config));
     TEST_ASSERT_FLOAT_WITHIN(0.001F, 50.0F, tuner.config.step_amplitude);
     TEST_ASSERT_EQUAL_UINT32(100U, tuner.config.sample_interval_ms);
     TEST_ASSERT_EQUAL_UINT16(100U, tuner.config.num_samples);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, 0.01F, tuner.config.tolerance);
 
     TEST_ASSERT_EQUAL(XY_PID_AUTO_OK, xy_pid_auto_deinit(&tuner));
 }

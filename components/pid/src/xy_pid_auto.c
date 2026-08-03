@@ -55,7 +55,9 @@ int xy_pid_auto_init(xy_pid_auto_tuner_t *tuner, xy_pid_t *pid,
             tuner->config.num_samples = config->num_samples;
         }
         tuner->config.method = config->method;
-        tuner->config.tolerance = config->tolerance;
+        if (config->tolerance > 0.0F) {
+            tuner->config.tolerance = config->tolerance;
+        }
     }
 
     /* 分配采样缓冲区 */
