@@ -9,7 +9,7 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/compile-smoke files without obvious Unity/assert markers: 0
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 117
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 118
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -52,6 +52,10 @@
 | `trace` | 1 | 1 | 0 | 0 | 0 | 0 |
 
 ## Migration Priority
+
+Note: `tests/unit/CMakeLists.txt` also registers PID example compile-smoke targets that reuse
+component example sources rather than adding extra `tests/unit/*.c` files; currently
+`pid_example_basic` and `pid_example_incremental` guard API drift in those examples.
 
 1. Keep all new tests on Unity assertions.
 2. Keep the raw `assert()` and unwired-source inventories at zero for tracked `tests/unit` sources.

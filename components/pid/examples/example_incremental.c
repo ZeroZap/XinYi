@@ -15,8 +15,8 @@
  */
 
 #include "xy_pid.h"
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 
 /* Simulated system tick */
 static uint32_t g_tick = 0;
@@ -24,9 +24,8 @@ uint32_t xy_os_tick_get(void) { return g_tick; }
 void xy_os_delay_ms(uint32_t ms) { g_tick += ms; }
 
 /* Simulated process state */
-static float g_position = 0.0f;      /* Current motor position */
-static float g_velocity = 0.0f;     /* Motor velocity */
-static float g_motor_torque = 0.0f; /* Motor torque output */
+static float g_position = 0.0f; /* Current motor position */
+static float g_velocity = 0.0f; /* Motor velocity */
 
 /**
  * @brief Incremental PID controller structure
@@ -79,20 +78,6 @@ static void incremental_pid_init(xy_incremental_pid_t *pid,
         pid->output = (config->output_max + config->output_min) / 2;
         pid->output_prev = pid->output;
     }
-}
-
-/**
- * @brief Reset incremental PID
- */
-static void incremental_pid_reset(xy_incremental_pid_t *pid)
-{
-    if (!pid) return;
-
-    pid->error = 0;
-    pid->error_prev = 0;
-    pid->error_prev2 = 0;
-    pid->output_increment = 0;
-    pid->first_run = true;
 }
 
 /**
@@ -219,7 +204,7 @@ static void example_incremental_position_control(void)
 
         increment = incremental_pid_compute(&position_pid, setpoint, measurement, &output);
 
-        printf("[%04dms] %8.2f | %8.2f | %8.2f | %8.2f | %8.2f | %+8.2f\n",
+        printf("[%04dms] %8.2f | %8.2f | %8.2f | %8.2f | %+8.2f\n",
                g_tick, setpoint, g_position, g_velocity, output, increment);
 
         /* Apply motor torque (output is torque command) */
@@ -270,7 +255,7 @@ static void example_disturbance_rejection(void)
 
         incremental_pid_compute(&disturbance_pid, setpoint, measurement, &output);
 
-        printf("[%04dms] %8.2f | %8.2f | %8.2f | %8.2f | %8.2f | %8.2f\n",
+        printf("[%04dms] %8.2f | %8.2f | %8.2f | %8.2f | %8.2f\n",
                g_tick, setpoint, g_position, load, output, g_velocity);
 
         simulate_motor(output, load, 0.1f);
