@@ -82,7 +82,8 @@ int xy_pid_reset(xy_pid_t *pid)
 
 int xy_pid_set_tuning(xy_pid_t *pid, float kp, float ki, float kd)
 {
-    if (!pid || kp < 0.0F || ki < 0.0F || kd < 0.0F) {
+    if (!pid || !isfinite(kp) || !isfinite(ki) || !isfinite(kd) || kp < 0.0F || ki < 0.0F ||
+        kd < 0.0F) {
         return XY_PID_INVALID_PARAM;
     }
 

@@ -87,6 +87,21 @@ static void test_pid_init_and_tuning(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001F, before.kp, pid.config.kp);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, before.ki, pid.config.ki);
     TEST_ASSERT_FLOAT_WITHIN(0.001F, before.kd, pid.config.kd);
+
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_tuning(&pid, NAN, 0.1F, 0.5F));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.kp, pid.config.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.ki, pid.config.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.kd, pid.config.kd);
+
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_tuning(&pid, 1.0F, INFINITY, 0.5F));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.kp, pid.config.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.ki, pid.config.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.kd, pid.config.kd);
+
+    TEST_ASSERT_EQUAL(XY_PID_INVALID_PARAM, xy_pid_set_tuning(&pid, 1.0F, 0.1F, INFINITY));
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.kp, pid.config.kp);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.ki, pid.config.ki);
+    TEST_ASSERT_FLOAT_WITHIN(0.001F, before.kd, pid.config.kd);
 }
 
 static void test_pid_compute_and_limits(void)
