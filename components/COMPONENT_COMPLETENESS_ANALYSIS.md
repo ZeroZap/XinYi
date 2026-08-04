@@ -180,25 +180,26 @@ display/
 
 ---
 
-### 6. mux/ - 多路复用组件 (45%)
+### 6. mux/ - 多路复用组件 (70%)
 
 #### 问题描述
 
-- **6 个头文件为空**：xy_mux_gpio.h、xy_mux_i2c.h 等只有框架无 API
-- **缺少示例代码**
-- **缺少测试用例**
-- **README 过于简单**：只有"功能待补充"
+- **公共头文件/API 已补齐**：`xy_mux.h` 与 GPIO/I2C/SPI/UART typed capability headers 已有实际 API 声明，旧“空头文件”问题关闭
+- **README 已补齐核心入口**：包含核心 manager、typed GPIO/I2C/SPI/UART API、配置结构和用例片段，不再是“功能待补充”占位
+- **active Unity/CTest 已接入**：`tests/unit/mux/` 下 `test_mux_core/gpio/i2c/spi/uart.c` 均已注册到主线 unit suite，当前库存显示 `mux` 组件 5 个 Unity 测试文件、0 个 raw assert、0 个 unwired 源文件
+- **剩余缺口**：缺少独立 `components/mux/examples/` 构建护栏示例；后续测试维护应围绕明确契约 hardening，而不是重复补“无测试”基线
 
 #### 修复计划
 
-| 序号 | 任务                        | 工作量 | 优先级 |
-| ---- | --------------------------- | ------ | ------ |
-| M1   | 补充空头文件的实际 API 实现 | 8h     | 🟠 中  |
-| M2   | 补充示例代码                | 4h     | 🟠 中  |
-| M3   | 添加测试用例                | 8h     | 🟠 中  |
-| M4   | 完善 README.md              | 2h     | 🟡 低  |
+| 序号 | 任务 | 工作量 | 优先级 |
+| ---- | ---- | ------ | ------ |
+| M1   | 补充空头文件的实际 API 实现 | - | 已完成 |
+| M2   | 补充示例代码并纳入 host smoke/compile 护栏 | 2–4h | 🟠 中 |
+| M3   | 添加测试用例 | - | 已完成 |
+| M4   | 完善 README.md | - | 已完成 |
+| M5   | 按真实失败继续维护 packet/typed ops 边界回归测试 | 1–2h/次 | 🟡 低 |
 
-**预计工时**: 22h
+**预计剩余工时**: 2–6h
 
 ---
 
