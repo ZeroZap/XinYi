@@ -384,10 +384,13 @@ int main(void)
     // 初始化 MUX 管理器
     xy_mux_init(&mgr, tx_buffer, rx_buffer, sizeof(tx_buffer));
 
-    // 注册外设
-    xy_mux_gpio_register(&mgr, 0, NULL, NULL);
-    xy_mux_i2c_register(&mgr, 0, NULL, NULL);
-    xy_mux_uart_register(&mgr, 0, NULL, NULL);
+    // 注册外设；ops 不能为空，实际工程中由物理总线/虚拟通道后端提供回调
+    xy_mux_ops_t gpio_ops = {
+        .read = board_gpio_mux_read,
+        .write = board_gpio_mux_write,
+        .ioctl = board_gpio_mux_ioctl,
+    };
+    xy_mux_gpio_register(&mgr, 0, &gpio_ops, NULL);
 
     // 配置外设
     xy_mux_gpio_config(&mgr, 0, &(xy_mux_gpio_config_t){
@@ -414,5 +417,32 @@ int main(void)
 - [x] UART 复用 API (xy_mux_uart.c)
 - [x] API 文档
 - [x] 使用示例
+- [x] Host Unity/CTest 覆盖 (`mux_core`, `mux_gpio`, `mux_i2c`, `mux_spi`, `mux_uart`)
+
+## ✅ Host 验证契约
+
+当前 MUX 组件通过 `tests/unit/mux/` 下的 focused Unity/CTest 目标作为回归护栏：
+
+| CTest | 覆盖重点 |
+| --- | --- |
+| `mux_core` | 管理器 init/deinit、注册/注销、重复注册、init 失败回滚、TLV 包构建/解析、长度不匹配、空 ops/禁用设备无副作用、读写错误路径 |
+| `mux_gpio` | GPIO 注册、配置、读/写/toggle、命令参数与低/高电平返回契约 |
+| `mux_i2c` | 配置、读写、复合 transfer、扫描、长度/返回值边界 |
+| `mux_spi` | 配置、读/写/transfer、错误码不能被正值 MUX error 吞掉的防护 |
+| `mux_uart` | 配置、读写带 timeout 参数传递、错误路径 |
+
+局部验证命令：
+
+```bash
+cmake -B build/tests/unit -S tests/unit
+cmake --build build/tests/unit --target test_mux_core test_mux_gpio test_mux_i2c test_mux_spi test_mux_uart -j$(nproc)
+cd build/tests/unit && ctest -R '^mux_(core|gpio|i2c|spi|uart)$' --output-on-failure
+```
+
+完整单测门禁仍使用：
+
+```bash
+make test-unit
+```
 
 **完成度**: 100%
