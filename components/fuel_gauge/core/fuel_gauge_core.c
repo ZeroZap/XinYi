@@ -129,9 +129,14 @@ xy_fuel_gauge_status_t xy_fuel_gauge_get(xy_fuel_gauge_t *fg,
         return ret;
     }
     
-    /* 如果有 channel_get API，使用它 */
+    /* 如果有 channel_get API，使用它；失败时保持调用者输出不变 */
     if (fg->api->channel_get) {
-        return fg->api->channel_get(fg, type, val);
+        int32_t next_val;
+        ret = fg->api->channel_get(fg, type, &next_val);
+        if (ret == XY_FG_OK) {
+            *val = next_val;
+        }
+        return ret;
     }
     
     /* 否则从最新数据中读取 */

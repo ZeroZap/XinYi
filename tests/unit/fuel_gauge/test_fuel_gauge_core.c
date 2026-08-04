@@ -96,6 +96,21 @@ static int fake_channel_get_impl(xy_fuel_gauge_t *fg, xy_fuel_gauge_data_type_t 
     return XY_FG_OK;
 }
 
+static int fake_channel_get_write_then_fail_impl(xy_fuel_gauge_t *fg,
+                                                 xy_fuel_gauge_data_type_t channel,
+                                                 int32_t *val)
+{
+    (void)fg;
+    (void)channel;
+
+    if (!val) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    *val = 0x7BADBEEF;
+    return XY_FG_ERROR_NO_DATA;
+}
+
 static int fake_alert_get_write_then_fail_impl(xy_fuel_gauge_t *fg, xy_fuel_gauge_alert_t *alert)
 {
     (void)fg;
@@ -393,6 +408,31 @@ static void test_core_cached_data_fallback_covers_supported_channels(void)
     TEST_ASSERT_EQUAL_UINT(8U, xy_os_tick_get_fake.call_count);
 }
 
+static void test_core_get_preserves_output_when_channel_get_fails_after_write(void)
+{
+    static const xy_fuel_gauge_api_t api = {
+        .init = fake_init,
+        .fetch = fake_fetch,
+        .channel_get = fake_channel_get,
+    };
+    xy_fuel_gauge_t fg;
+    int32_t value = 0x12345678;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    fg.name = "fg-channel-preserve";
+    fg.api = &api;
+    fg.initialized = true;
+    fake_channel_get_fake.custom_fake = fake_channel_get_write_then_fail_impl;
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NO_DATA, xy_fuel_gauge_get(&fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(0x12345678, value);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_fetch_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_channel_get_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fg, fake_channel_get_fake.arg0_val);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_VOLTAGE, fake_channel_get_fake.arg1_val);
+}
+
 static void test_status_queries_preserve_outputs_on_invalid_and_failed_reads(void)
 {
     static const xy_fuel_gauge_api_t api = {
@@ -545,6 +585,7 @@ int main(void)
     RUN_TEST(test_core_public_calls_reject_missing_callbacks_without_side_effects);
     RUN_TEST(test_core_alert_wrappers_dispatch_and_preserve_outputs_on_failures);
     RUN_TEST(test_core_cached_data_fallback_covers_supported_channels);
+    RUN_TEST(test_core_get_preserves_output_when_channel_get_fails_after_write);
     RUN_TEST(test_status_queries_preserve_outputs_on_invalid_and_failed_reads);
     RUN_TEST(test_status_safety_security_helpers);
     return UNITY_END();
