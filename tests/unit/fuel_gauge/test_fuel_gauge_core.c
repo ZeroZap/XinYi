@@ -521,6 +521,49 @@ static void test_status_queries_preserve_outputs_on_invalid_and_failed_reads(voi
     TEST_ASSERT_EQUAL(XY_FG_DATA_TEMPERATURE, fake_channel_get_fake.arg1_history[3]);
     TEST_ASSERT_EQUAL_HEX16(0x9B9B, health.full_charge_capacity);
     TEST_ASSERT_EQUAL_UINT8(0x9B, health.temperature);
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_data.current_ma = 150;
+    fake_data.soc = 100;
+    TEST_ASSERT_EQUAL(XY_FG_CHG_STATE_FULL, xy_fuel_gauge_get_charging_state(&fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_is_charging(&fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_is_full(&fg));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(2U, fake_channel_get_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_CURRENT, fake_channel_get_fake.arg1_history[0]);
+    TEST_ASSERT_EQUAL(XY_FG_DATA_SOC, fake_channel_get_fake.arg1_history[1]);
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_data.current_ma = 150;
+    fake_data.soc = 12;
+    TEST_ASSERT_EQUAL(XY_FG_CHG_STATE_FAST_CHARGE, xy_fuel_gauge_get_charging_state(&fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_is_charging(&fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_is_full(&fg));
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_data.current_ma = 150;
+    fake_data.soc = 80;
+    TEST_ASSERT_EQUAL(XY_FG_CHG_STATE_CONSTANT_VOLT, xy_fuel_gauge_get_charging_state(&fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_is_charging(&fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_is_full(&fg));
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_data.current_ma = -150;
+    fake_data.soc = 80;
+    TEST_ASSERT_EQUAL(XY_FG_CHG_STATE_IDLE, xy_fuel_gauge_get_charging_state(&fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_is_charging(&fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_is_full(&fg));
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.custom_fake = fake_channel_get_impl;
+    fake_channel_fail_on = XY_FG_DATA_SOC;
+    fake_data.current_ma = 150;
+    TEST_ASSERT_EQUAL(XY_FG_CHG_STATE_ERROR, xy_fuel_gauge_get_charging_state(&fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_is_charging(&fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_is_full(&fg));
 }
 
 static void test_status_safety_security_helpers(void)
