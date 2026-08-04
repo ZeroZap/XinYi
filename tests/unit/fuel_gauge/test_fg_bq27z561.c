@@ -157,6 +157,15 @@ void test_bq27z561_registers_default_i2c_bus(void)
     TEST_ASSERT_EQUAL_UINT8(BQ27Z561_ADDR, last_bus.address);
 }
 
+void test_bq27z561_register_rejects_null_i2c_handle_without_bus_side_effects(void)
+{
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_bq27z561_register(NULL, 0));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_NULL(xy_fuel_gauge_device_get("BQ27z561"));
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+    TEST_ASSERT_NULL(last_bus.bus_handle);
+}
+
 void test_bq27z561_register_duplicate_does_not_reconfigure_bus(void)
 {
     TEST_ASSERT_NOT_NULL(registered_bq27z561());
@@ -573,6 +582,7 @@ void test_bq27z561_reinit_preserves_alert_threshold_cache(void)
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_bq27z561_register_rejects_null_i2c_handle_without_bus_side_effects);
     RUN_TEST(test_bq27z561_registers_default_i2c_bus);
     RUN_TEST(test_bq27z561_register_duplicate_does_not_reconfigure_bus);
     RUN_TEST(test_bq27z561_init_reads_device_id);

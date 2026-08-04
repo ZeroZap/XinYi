@@ -229,6 +229,10 @@ static xy_fuel_gauge_t bq27z561_device = {
  */
 int xy_fuel_gauge_bq27z561_register(void *i2c_handle, uint8_t addr)
 {
+    if (!i2c_handle) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     if (xy_fuel_gauge_device_get(bq27z561_device.name)) {
         return XY_FG_ERROR;
     }
