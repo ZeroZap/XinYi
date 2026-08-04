@@ -73,20 +73,21 @@ static void test_smbus_helpers_and_registry(void)
         .ops = &g_fake_smbus_ops,
     };
 
-    TEST_ASSERT_EQUAL(SMBUS_EINVAL, smbus_register(NULL));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_register(&dev));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EINVAL, smbus_register(NULL));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_register(&dev));
     TEST_ASSERT_EQUAL_PTR(&dev, smbus_find("smbus-test"));
     TEST_ASSERT_EQUAL_PTR(&dev, smbus_find_by_addr(0x5a));
     TEST_ASSERT_NOT_NULL(smbus_err_str(SMBUS_EBUSY));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_init(&dev));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_init(&dev));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_deinit(&dev));
     TEST_ASSERT_EQUAL_UINT(1U, fake_smbus_init_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&dev, fake_smbus_init_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT(1U, fake_smbus_deinit_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&dev, fake_smbus_deinit_fake.arg0_val);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_unregister(&dev));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_unregister(&dev));
     TEST_ASSERT_NULL(smbus_find("smbus-test"));
-    TEST_ASSERT_EQUAL(SMBUS_ENODEV, smbus_unregister(&dev));
+    TEST_ASSERT_NULL(smbus_find_by_addr(0x5a));
+    TEST_ASSERT_EQUAL_INT(SMBUS_ENODEV, smbus_unregister(&dev));
 }
 
 static void test_smbus_default_io_contracts(void)
@@ -107,31 +108,31 @@ static void test_smbus_default_io_contracts(void)
     uint8_t block_read_len = sizeof(block);
 
     memset(block, 0xaa, sizeof(block));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_init(&dev));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_receive_byte(&dev, dev.config.addr, &byte));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_init(&dev));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_receive_byte(&dev, dev.config.addr, &byte));
     TEST_ASSERT_EQUAL_HEX8(0, byte);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_read_byte(&dev, dev.config.addr, 0x01, &byte));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_read_byte(&dev, dev.config.addr, 0x01, &byte));
     TEST_ASSERT_EQUAL_HEX8(0, byte);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_read_word(&dev, dev.config.addr, 0x02, &word));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_read_word(&dev, dev.config.addr, 0x02, &word));
     TEST_ASSERT_EQUAL_HEX16(0, word);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_read_block(&dev, dev.config.addr, 0x03, block, &len));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_read_block(&dev, dev.config.addr, 0x03, block, &len));
     TEST_ASSERT_EQUAL_UINT8(0, len);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_process_call(&dev, dev.config.addr, 0x05, 0x1234, &process_read));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_process_call(&dev, dev.config.addr, 0x05, 0x1234, &process_read));
     TEST_ASSERT_EQUAL_HEX16(0, process_read);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_block_process_call(&dev, dev.config.addr, 0x06, block, 3, block,
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_block_process_call(&dev, dev.config.addr, 0x06, block, 3, block,
                                                           &block_read_len));
     TEST_ASSERT_EQUAL_UINT8(0, block_read_len);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_scan(&dev, addrs, &count));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_scan(&dev, addrs, &count));
     TEST_ASSERT_EQUAL_UINT8(0, count);
-    TEST_ASSERT_EQUAL(SMBUS_EINVAL, smbus_write_block(&dev, dev.config.addr, 0x04, block, SMBUS_MAX_PAYLOAD + 1));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_calculate_pec(&dev, block, 3, &pec));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EINVAL, smbus_write_block(&dev, dev.config.addr, 0x04, block, SMBUS_MAX_PAYLOAD + 1));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_calculate_pec(&dev, block, 3, &pec));
     TEST_ASSERT_TRUE(smbus_verify_pec(&dev, block, 3, pec));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_alert_register_callback(fake_alert_callback, NULL));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, smbus_alert_response(0x0c));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_alert_register_callback(fake_alert_callback, NULL));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, smbus_alert_response(0x0c));
     TEST_ASSERT_EQUAL_UINT(1U, fake_alert_callback_fake.call_count);
     TEST_ASSERT_NULL(fake_alert_callback_fake.arg0_val);
     TEST_ASSERT_EQUAL_HEX8(0x0c, fake_alert_callback_fake.arg1_val);
-    TEST_ASSERT_EQUAL(SMBUS_EINVAL, smbus_alert_response(0x78));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EINVAL, smbus_alert_response(0x78));
 }
 
 static void test_pmbus_conversions_and_status(void)
@@ -144,13 +145,13 @@ static void test_pmbus_conversions_and_status(void)
     TEST_ASSERT_EQUAL_UINT16(17, pmbus_voltage_to_vid(1.0f));
 
     pmbus_status_t status;
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_parse_status_word(0xffff, &status));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_parse_status_word(0xffff, &status));
     TEST_ASSERT_TRUE(status.vout_ov_fault);
     TEST_ASSERT_TRUE(status.vout_uv_fault);
     TEST_ASSERT_TRUE(status.iout_oc_fault);
     TEST_ASSERT_TRUE(status.vin_uv_fault);
     TEST_ASSERT_TRUE(status.temp_ot_fault);
-    TEST_ASSERT_EQUAL(SMBUS_EINVAL, pmbus_parse_status_word(0, NULL));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EINVAL, pmbus_parse_status_word(0, NULL));
 }
 
 static void test_pmbus_registry_and_default_fallbacks(void)
@@ -175,29 +176,31 @@ static void test_pmbus_registry_and_default_fallbacks(void)
     pmbus_status_t status;
     char id[8];
 
-    TEST_ASSERT_EQUAL(SMBUS_EINVAL, pmbus_register(NULL));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_register(&pmbus));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EINVAL, pmbus_register(NULL));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_register(&pmbus));
     TEST_ASSERT_EQUAL_PTR(&pmbus, pmbus_find("pmbus-default"));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_init(&pmbus));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_read_vout(&pmbus, &value));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_init(&pmbus));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_read_vout(&pmbus, &value));
     TEST_ASSERT_EQUAL_FLOAT(0.0f, value);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_read_iout(&pmbus, &value));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_read_iout(&pmbus, &value));
     TEST_ASSERT_EQUAL_FLOAT(0.0f, value);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_read_temp(&pmbus, 2, &value));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_read_temp(&pmbus, 2, &value));
     TEST_ASSERT_EQUAL_FLOAT(0.0f, value);
-    TEST_ASSERT_EQUAL(SMBUS_EINVAL, pmbus_read_temp(&pmbus, 3, &value));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_write_vout_command(&pmbus, 1.2f));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_set_operation(&pmbus, PMBUS_OP_ON));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_clear_faults(&pmbus));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_read_status_word(&pmbus, &status_word));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EINVAL, pmbus_read_temp(&pmbus, 3, &value));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_write_vout_command(&pmbus, 1.2f));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_set_operation(&pmbus, PMBUS_OP_ON));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_clear_faults(&pmbus));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_read_status_word(&pmbus, &status_word));
     TEST_ASSERT_EQUAL_HEX16(0, status_word);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_get_status(&pmbus, &status));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_get_status(&pmbus, &status));
     TEST_ASSERT_FALSE(status.vout_ov_fault);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_set_page(&pmbus, 1));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_read_id(&pmbus, id, sizeof(id) - 1));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_set_page(&pmbus, 1));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_read_id(&pmbus, id, sizeof(id) - 1));
     TEST_ASSERT_EQUAL_CHAR('\0', id[0]);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_deinit(&pmbus));
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_unregister(&pmbus));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_deinit(&pmbus));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_unregister(&pmbus));
+    TEST_ASSERT_NULL(pmbus_find("pmbus-default"));
+    TEST_ASSERT_EQUAL_INT(SMBUS_ENODEV, pmbus_unregister(&pmbus));
 }
 
 static void test_pmbus_custom_ops(void)
@@ -214,12 +217,12 @@ static void test_pmbus_custom_ops(void)
         .ops = &g_fake_pmbus_ops,
     };
 
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_init(&pmbus));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_init(&pmbus));
     TEST_ASSERT_EQUAL_UINT(1U, fake_smbus_init_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&smbus, fake_smbus_init_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT(1U, fake_pmbus_init_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&pmbus, fake_pmbus_init_fake.arg0_val);
-    TEST_ASSERT_EQUAL(SMBUS_EOK, pmbus_deinit(&pmbus));
+    TEST_ASSERT_EQUAL_INT(SMBUS_EOK, pmbus_deinit(&pmbus));
     TEST_ASSERT_EQUAL_UINT(1U, fake_pmbus_deinit_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&pmbus, fake_pmbus_deinit_fake.arg0_val);
 }
