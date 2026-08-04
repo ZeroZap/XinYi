@@ -218,7 +218,7 @@ int xy_sht40_get_humidity(xy_sht40_t *sht40, uint16_t *humidity)
 
 int xy_sht40_get_serial(xy_sht40_t *sht40, uint32_t *serial)
 {
-    if (!sht40 || !serial) {
+    if (!sht40 || !serial || !sht40->initialized) {
         return XY_SHT40_INVALID_PARAM;
     }
     

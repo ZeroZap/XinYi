@@ -402,6 +402,22 @@ static void test_invalid_cached_precision_falls_back_to_high_precision_timing(vo
     TEST_ASSERT_EQUAL_UINT16(64936U, dev.data.humidity);
 }
 
+static void test_serial_getter_rejects_uninitialized_device_without_overwriting_output(void)
+{
+    xy_sht40_t dev;
+    uint32_t serial[2] = {0xDEADU, 0xBEEFU};
+
+    memset(&dev, 0, sizeof(dev));
+    dev.data.serial[0] = 0x1234U;
+    dev.data.serial[1] = 0xABCDU;
+
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_serial(&dev, serial));
+    TEST_ASSERT_EQUAL_UINT32(0xDEADU, serial[0]);
+    TEST_ASSERT_EQUAL_UINT32(0xBEEFU, serial[1]);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -419,5 +435,6 @@ int main(void)
     RUN_TEST(test_default_high_precision_read_uses_hpm_command_and_delay);
     RUN_TEST(test_get_serial_copies_cached_serial_without_i2c_access);
     RUN_TEST(test_invalid_cached_precision_falls_back_to_high_precision_timing);
+    RUN_TEST(test_serial_getter_rejects_uninitialized_device_without_overwriting_output);
     return UNITY_END();
 }
