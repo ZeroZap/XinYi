@@ -22,6 +22,7 @@ static uint16_t fake_reg16[256];
 static uint8_t fake_reg8[256];
 static int fail_reg16 = -1;
 static int fail_reg8 = -1;
+static uint32_t reg16_read_counts[256];
 static xy_sensor_bus_t last_bus;
 
 DEFINE_FFF_GLOBALS;
@@ -55,6 +56,7 @@ static int xy_sensor_i2c_read_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
     TEST_ASSERT_NOT_NULL(value);
 
+    reg16_read_counts[reg]++;
     if ((int)reg == fail_reg16) {
         return -1;
     }
@@ -112,6 +114,7 @@ void setUp(void)
     memset(fake_reg8, 0, sizeof(fake_reg8));
     fail_reg16 = -1;
     fail_reg8 = -1;
+    memset(reg16_read_counts, 0, sizeof(reg16_read_counts));
     memset(&last_bus, 0, sizeof(last_bus));
     reset_sensor_fakes();
 
@@ -316,6 +319,29 @@ void test_bq27z561_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_INT32(2800, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
     TEST_ASSERT_EQUAL_INT32(1234, value);
+}
+
+void test_bq27z561_fetch_skips_remaining_reads_after_first_reg16_failure(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z561();
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    xy_sensor_i2c_read_reg16_fake.call_count = 0;
+    xy_sensor_i2c_read_reg_fake.call_count = 0;
+    memset(reg16_read_counts, 0, sizeof(reg16_read_counts));
+    xy_os_tick_get_fake.call_count = 0;
+
+    fail_reg16 = REG_VOLT;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(1, reg16_read_counts[REG_VOLT]);
+    TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_CURR]);
+    TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_TEMP]);
+    TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_NOM_CAP]);
+    TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_REM_CAP]);
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_i2c_read_reg_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
 }
 
 void test_bq27z561_rejects_invalid_output_and_unknown_channel(void)
@@ -554,6 +580,7 @@ int main(void)
     RUN_TEST(test_bq27z561_direct_init_failure_clears_stale_private_state);
     RUN_TEST(test_bq27z561_fetch_and_channel_get);
     RUN_TEST(test_bq27z561_fetch_failure_preserves_cached_snapshot);
+    RUN_TEST(test_bq27z561_fetch_skips_remaining_reads_after_first_reg16_failure);
     RUN_TEST(test_bq27z561_rejects_invalid_output_and_unknown_channel);
     RUN_TEST(test_bq27z561_get_failure_preserves_output_value);
     RUN_TEST(test_bq27z561_inline_getters_preserve_outputs_on_failure);
