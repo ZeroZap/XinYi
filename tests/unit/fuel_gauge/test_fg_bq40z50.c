@@ -184,6 +184,13 @@ void test_bq40z50_registers_default_i2c_bus(void)
     TEST_ASSERT_EQUAL_UINT8(BQ40Z50_ADDR, last_bus.address);
 }
 
+void test_bq40z50_register_rejects_null_handle_without_i2c_side_effects(void)
+{
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_bq40z50_register(NULL, 0));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_NULL(xy_fuel_gauge_device_get("BQ40Z50"));
+}
+
 void test_bq40z50_register_duplicate_does_not_reconfigure_bus(void)
 {
     TEST_ASSERT_NOT_NULL(registered_bq40z50());
@@ -815,6 +822,7 @@ void test_bq40z50_direct_getters_preserve_outputs_on_invalid_or_uninitialized_ca
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_bq40z50_register_rejects_null_handle_without_i2c_side_effects);
     RUN_TEST(test_bq40z50_registers_default_i2c_bus);
     RUN_TEST(test_bq40z50_register_duplicate_does_not_reconfigure_bus);
     RUN_TEST(test_bq40z50_init_fetch_channel_and_pack_helpers);
