@@ -396,6 +396,43 @@ static void test_process_packet(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_process_packet_rejects_header_length_mismatch(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t gpio_data[] = {0x55, 0xAA};
+    size_t packet_len = 0;
+    xy_mux_ops_t ops = {
+        .write = mock_write,
+    };
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_register(&mgr, 0, &ops, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_build_packet(&mgr, XY_MUX_TYPE_GPIO, 0, gpio_data,
+                                                         sizeof(gpio_data), tx_buffer,
+                                                         &packet_len));
+
+    xy_mux_header_t *header = (xy_mux_header_t *)tx_buffer;
+
+    header->length = (uint16_t)(sizeof(gpio_data) + 1U);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_process_packet(&mgr, tx_buffer, packet_len));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
+
+    header->length = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_process_packet(&mgr, tx_buffer, packet_len));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
+
+    header->length = (uint16_t)sizeof(gpio_data);
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(gpio_data),
+                          xy_mux_process_packet(&mgr, tx_buffer, packet_len));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_write_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
 /**
  * @brief Test type string conversion
  */
@@ -536,6 +573,7 @@ int main(void)
     RUN_TEST(test_mux_find);
     RUN_TEST(test_build_packet);
     RUN_TEST(test_process_packet);
+    RUN_TEST(test_process_packet_rejects_header_length_mismatch);
     RUN_TEST(test_type_string_conversion);
     RUN_TEST(test_get_device_list);
     RUN_TEST(test_read_write);

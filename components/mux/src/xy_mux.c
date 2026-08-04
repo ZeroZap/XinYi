@@ -197,6 +197,10 @@ int32_t xy_mux_process_packet(xy_mux_manager_t *mgr,
     const xy_mux_header_t *header = (const xy_mux_header_t *)packet;
     const uint8_t *data = packet + sizeof(xy_mux_header_t);
     size_t data_len = len - sizeof(xy_mux_header_t);
+    if ((size_t)header->length != data_len) {
+        xy_log_w("MUX packet length mismatch: header=%d, actual=%d\n", header->length, data_len);
+        return XY_MUX_ERROR_INVALID_PARAM;
+    }
     
     xy_log_d("MUX packet received: type=%d, channel=%d, len=%d\n",
              header->type, header->channel, header->length);
