@@ -129,7 +129,7 @@ int32_t xy_mux_i2c_transfer(xy_mux_manager_t *mgr, uint8_t channel,
             /* 读操作 */
             int32_t ret = xy_mux_read(mgr, XY_MUX_TYPE_I2C, channel,
                                       msg->buf, msg->len);
-            if (ret < 0) {
+            if (ret != (int32_t)msg->len) {
                 return ret;
             }
             total_len += ret;
@@ -147,7 +147,7 @@ int32_t xy_mux_i2c_transfer(xy_mux_manager_t *mgr, uint8_t channel,
 
             int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_I2C, channel,
                                        packet, msg->len + 2);
-            if (ret < 0) {
+            if (ret != (int32_t)(msg->len + 2U)) {
                 return ret;
             }
             total_len += ret;
@@ -170,8 +170,8 @@ int32_t xy_mux_i2c_read(xy_mux_manager_t *mgr, uint8_t channel,
     req_packet[1] = (uint8_t)((addr >> 8) & 0xFF);
     req_packet[2] = (uint8_t)len;
 
-    int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_I2C, channel, req_packet, 3);
-    if (ret < 0) {
+    int32_t ret = xy_mux_write(mgr, XY_MUX_TYPE_I2C, channel, req_packet, sizeof(req_packet));
+    if (ret != (int32_t)sizeof(req_packet)) {
         return ret;
     }
 
