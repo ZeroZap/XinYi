@@ -8,8 +8,9 @@
 #include "xy_mux_i2c.h"
 #include "xy_mux.h"
 #include "xy_log.h"
-#include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
@@ -124,6 +125,9 @@ int32_t xy_mux_i2c_transfer(xy_mux_manager_t *mgr, uint8_t channel,
 
     for (int i = 0; i < count; i++) {
         xy_mux_i2c_msg_t *msg = &msgs[i];
+        if (!msg->buf || msg->len == 0) {
+            return XY_MUX_ERROR_INVALID_PARAM;
+        }
 
         if (msg->flags & XY_MUX_I2C_M_RD) {
             /* 读操作 */
@@ -160,7 +164,7 @@ int32_t xy_mux_i2c_transfer(xy_mux_manager_t *mgr, uint8_t channel,
 int32_t xy_mux_i2c_read(xy_mux_manager_t *mgr, uint8_t channel,
                         uint16_t addr, void *data, size_t len)
 {
-    if (!mgr || !data || len == 0) {
+    if (!mgr || !data || len == 0 || len > UINT8_MAX) {
         return XY_MUX_ERROR_INVALID_PARAM;
     }
 

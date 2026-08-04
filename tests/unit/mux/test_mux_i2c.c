@@ -108,6 +108,24 @@ static int32_t short_i2c_read_impl(uint8_t channel, void *data, size_t len)
     return mock_i2c_read_impl(channel, data, len);
 }
 
+static int32_t unexpected_i2c_write_impl(uint8_t channel, const void *data, size_t len)
+{
+    (void)channel;
+    (void)data;
+    (void)len;
+    TEST_FAIL_MESSAGE("I2C write callback should not be called");
+    return XY_MUX_ERROR;
+}
+
+static int32_t unexpected_i2c_read_impl(uint8_t channel, void *data, size_t len)
+{
+    (void)channel;
+    (void)data;
+    (void)len;
+    TEST_FAIL_MESSAGE("I2C read callback should not be called");
+    return XY_MUX_ERROR;
+}
+
 static int32_t mock_i2c_ioctl_impl(uint8_t channel, int cmd, void *arg)
 {
     printf("    [MOCK] I2C-%d ioctl: cmd=%d\n", channel, cmd);
@@ -585,6 +603,116 @@ static void test_i2c_transfer_propagates_short_read_and_preserves_tail(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_i2c_transfer_rejects_null_message_buffer_without_bus_side_effects(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+
+    xy_mux_ops_t ops = {
+        .read = mock_i2c_read,
+        .write = mock_i2c_write,
+        .ioctl = mock_i2c_ioctl,
+    };
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 0, &ops, NULL));
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, xy_mux_i2c_transfer(&mgr, 0, NULL, 1));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_read_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_i2c_transfer_rejects_null_message_payload_without_bus_side_effects(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t read_data[] = {0x11, 0x22};
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+
+    xy_mux_ops_t ops = {
+        .read = mock_i2c_read,
+        .write = mock_i2c_write,
+        .ioctl = mock_i2c_ioctl,
+    };
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 0, &ops, NULL));
+
+    xy_mux_i2c_msg_t write_msg = {0x50, 0, 1U, NULL};
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, xy_mux_i2c_transfer(&mgr, 0, &write_msg, 1));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_read_fake.call_count);
+
+    xy_mux_i2c_msg_t read_msg = {0x50, XY_MUX_I2C_M_RD, sizeof(read_data), NULL};
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, xy_mux_i2c_transfer(&mgr, 0, &read_msg, 1));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_read_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX8(0x11, read_data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x22, read_data[1]);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_i2c_transfer_rejects_oversized_write_payload_before_callback(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t write_data[255] = {0x5A};
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+
+    xy_mux_ops_t ops = {
+        .read = mock_i2c_read,
+        .write = mock_i2c_write,
+        .ioctl = mock_i2c_ioctl,
+    };
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 0, &ops, NULL));
+
+    xy_mux_i2c_msg_t msg = {0x50, 0, sizeof(write_data), write_data};
+    mock_i2c_write_fake.custom_fake = unexpected_i2c_write_impl;
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_MEMORY, xy_mux_i2c_transfer(&mgr, 0, &msg, 1));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_read_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_i2c_read_rejects_too_large_length_before_callbacks(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t data[260] = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+
+    xy_mux_ops_t ops = {
+        .read = mock_i2c_read,
+        .write = mock_i2c_write,
+        .ioctl = mock_i2c_ioctl,
+    };
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 0, &ops, NULL));
+
+    data[0] = 0xAA;
+    data[255] = 0xBB;
+    data[259] = 0xCC;
+    mock_i2c_write_fake.custom_fake = unexpected_i2c_write_impl;
+    mock_i2c_read_fake.custom_fake = unexpected_i2c_read_impl;
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, xy_mux_i2c_read(&mgr, 0, 0x50, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_read_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX8(0xAA, data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xBB, data[255]);
+    TEST_ASSERT_EQUAL_HEX8(0xCC, data[259]);
+
+    xy_mux_deinit(&mgr);
+}
+
 /**
  * @brief Test I2C TLV packet operations
  */
@@ -741,6 +869,10 @@ int main(void)
     RUN_TEST(test_i2c_read_propagates_short_request_write_without_reading);
     RUN_TEST(test_i2c_transfer_propagates_short_write_and_stops);
     RUN_TEST(test_i2c_transfer_propagates_short_read_and_preserves_tail);
+    RUN_TEST(test_i2c_transfer_rejects_null_message_buffer_without_bus_side_effects);
+    RUN_TEST(test_i2c_transfer_rejects_null_message_payload_without_bus_side_effects);
+    RUN_TEST(test_i2c_transfer_rejects_oversized_write_payload_before_callback);
+    RUN_TEST(test_i2c_read_rejects_too_large_length_before_callbacks);
     RUN_TEST(test_i2c_tlv_packet);
     RUN_TEST(test_i2c_multi_bus);
     return UNITY_END();
