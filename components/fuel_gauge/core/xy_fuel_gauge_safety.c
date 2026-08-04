@@ -33,6 +33,43 @@ static const xy_fg_safety_thresholds_t default_thresholds = {
     .pack_utp_threshold = -100,         /* 电池组低温 -10°C */
 };
 
+#define XY_FG_SAFETY_CACHE_SLOTS 8U
+
+typedef struct {
+    xy_fuel_gauge_t *fg;
+    xy_fg_safety_thresholds_t thresholds;
+} fg_safety_threshold_cache_t;
+
+static fg_safety_threshold_cache_t safety_threshold_cache[XY_FG_SAFETY_CACHE_SLOTS];
+
+static fg_safety_threshold_cache_t *find_threshold_cache(xy_fuel_gauge_t *fg)
+{
+    for (uint8_t i = 0; i < XY_FG_SAFETY_CACHE_SLOTS; i++) {
+        if (safety_threshold_cache[i].fg == fg) {
+            return &safety_threshold_cache[i];
+        }
+    }
+
+    return NULL;
+}
+
+static fg_safety_threshold_cache_t *alloc_threshold_cache(xy_fuel_gauge_t *fg)
+{
+    fg_safety_threshold_cache_t *slot = find_threshold_cache(fg);
+    if (slot) {
+        return slot;
+    }
+
+    for (uint8_t i = 0; i < XY_FG_SAFETY_CACHE_SLOTS; i++) {
+        if (!safety_threshold_cache[i].fg) {
+            safety_threshold_cache[i].fg = fg;
+            return &safety_threshold_cache[i];
+        }
+    }
+
+    return NULL;
+}
+
 /* 状态字符串映射 */
 static const char *const safety_strings[] = {
     "OK",
@@ -200,9 +237,14 @@ int xy_fuel_gauge_config_safety_thresholds(xy_fuel_gauge_t *fg,
     if (!fg || !thresholds) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
-    
-    /* 保存阈值配置到设备私有数据 */
-    /* 简化实现：仅打印日志 */
+
+    fg_safety_threshold_cache_t *slot = alloc_threshold_cache(fg);
+    if (!slot) {
+        return XY_FG_ERROR_BUSY;
+    }
+
+    slot->thresholds = *thresholds;
+
     xy_log_i("Safety thresholds configured\n");
     xy_log_i("  Cell OVP/UVP: %d/%d mV\n", 
              thresholds->cell_ovp_threshold, thresholds->cell_uvp_threshold);
@@ -223,10 +265,16 @@ int xy_fuel_gauge_get_safety_thresholds(xy_fuel_gauge_t *fg,
     if (!fg || !thresholds) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
-    
+
+    fg_safety_threshold_cache_t *slot = find_threshold_cache(fg);
+    if (slot) {
+        *thresholds = slot->thresholds;
+        return XY_FG_OK;
+    }
+
     /* 返回默认阈值 */
     memcpy(thresholds, &default_thresholds, sizeof(default_thresholds));
-    return 0;
+    return XY_FG_OK;
 }
 
 /**

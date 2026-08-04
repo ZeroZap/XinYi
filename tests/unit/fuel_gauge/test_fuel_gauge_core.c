@@ -713,7 +713,23 @@ static void test_safety_helpers_guard_nulls_and_read_failures(void)
     TEST_ASSERT_EQUAL_UINT16(17000U, thresholds.pack_ovp_threshold);
     TEST_ASSERT_EQUAL_UINT16(11200U, thresholds.pack_uvp_threshold);
     TEST_ASSERT_EQUAL_INT16(550, thresholds.pack_otc_threshold);
+
+    thresholds.pack_ovp_threshold = 18000U;
+    thresholds.pack_uvp_threshold = 10800U;
+    thresholds.chg_ocp_threshold = 4500U;
+    thresholds.dischg_ocp_threshold = 9000U;
+    thresholds.pack_otc_threshold = 520;
+    thresholds.pack_utp_threshold = -50;
     TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_config_safety_thresholds(&fg, &thresholds));
+
+    memset(&thresholds, 0x5A, sizeof(thresholds));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_safety_thresholds(&fg, &thresholds));
+    TEST_ASSERT_EQUAL_UINT16(18000U, thresholds.pack_ovp_threshold);
+    TEST_ASSERT_EQUAL_UINT16(10800U, thresholds.pack_uvp_threshold);
+    TEST_ASSERT_EQUAL_UINT16(4500U, thresholds.chg_ocp_threshold);
+    TEST_ASSERT_EQUAL_UINT16(9000U, thresholds.dischg_ocp_threshold);
+    TEST_ASSERT_EQUAL_INT16(520, thresholds.pack_otc_threshold);
+    TEST_ASSERT_EQUAL_INT16(-50, thresholds.pack_utp_threshold);
 
     memset(events, 0xA5, sizeof(events));
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_safety_event(&fg, NULL));
