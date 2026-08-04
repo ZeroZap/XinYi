@@ -707,6 +707,56 @@ void test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure(void)
     TEST_ASSERT_EQUAL_INT16(-405, temp);
 }
 
+void test_bq40z50_late_cell_voltage_failure_preserves_cached_snapshot(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+    uint16_t voltage = 0;
+    int32_t value = 0;
+    uint32_t previous_timestamp = 0;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    previous_timestamp = fg->latest.timestamp;
+
+    fake_set16(REG_VOLT, 9999);
+    fake_set16(REG_CURR, 1234);
+    fake_set16(REG_AVG_CURR, 1111);
+    fake_set16(REG_SOC, 8800);
+    fake_set16(REG_REM_CAP, 6000);
+    fake_set16(REG_FULL_CAP, 7200);
+    fake_set16(REG_CYCLE_CNT, 333);
+    fake_set16(REG_TEMP, 3051);
+    fake_set16(REG_CELL1_VOLT, 4011);
+    fake_set16(REG_CELL2_VOLT, 4012);
+    fake_set16(REG_CELL3_VOLT, 4013);
+    fake_set16(REG_CELL4_VOLT, 4014);
+    fake_set16(REG_BAT_STATUS, 0x0002);
+    fake_set32(REG_PROT_STATUS, 0x00000000);
+    fake_set16(REG_BAL_STATUS, 0x000A);
+    fake_fail_reads(REG_CELL4_VOLT, 3);
+    xy_os_tick_get_fake.call_count = 0;
+    xy_os_tick_get_fake.return_val = 9090;
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_battery_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(15234, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 1, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(3810, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_get_cell_voltage(fg, 4, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(3804, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-654, value);
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_full(fg));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_protected(fg));
+    TEST_ASSERT_EQUAL_UINT32(0x00000051, xy_fuel_gauge_bq40z50_get_protection_status(fg));
+    TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+}
+
 void test_bq40z50_direct_getters_preserve_outputs_on_invalid_or_uninitialized_calls(void)
 {
     xy_fuel_gauge_t *fg = registered_bq40z50();
@@ -778,6 +828,7 @@ int main(void)
     RUN_TEST(test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure);
     RUN_TEST(test_bq40z50_retries_discharge_status_path);
     RUN_TEST(test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure);
+    RUN_TEST(test_bq40z50_late_cell_voltage_failure_preserves_cached_snapshot);
     RUN_TEST(test_bq40z50_direct_getters_preserve_outputs_on_invalid_or_uninitialized_calls);
     return UNITY_END();
 }
