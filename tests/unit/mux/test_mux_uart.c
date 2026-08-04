@@ -229,6 +229,8 @@ static void test_uart_error_paths(void)
 
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_write(NULL, 0, &data, 1, 10));
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_read(NULL, 0, &data, 1, 10));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_config(NULL, 0, NULL));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_config(&mgr, 0, NULL));
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_write(&mgr, 0, NULL, 1, 10));
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_uart_read(&mgr, 0, &data, 0, 10));
 
@@ -237,6 +239,16 @@ static void test_uart_error_paths(void)
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_DEVICE, xy_mux_uart_read(&mgr, 9, &data, 1, 10));
     TEST_ASSERT_EQUAL_UINT(0U, mock_uart_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(0U, mock_uart_read_fake.call_count);
+
+    xy_mux_uart_config_t cfg = {
+        .baudrate = 9600,
+        .data_bits = 8,
+        .stop_bits = 1,
+        .parity = 0,
+        .flow_control = 0,
+    };
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_DEVICE, xy_mux_uart_config(&mgr, 9, &cfg));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_ioctl_fake.call_count);
 
     xy_mux_deinit(&mgr);
 }
