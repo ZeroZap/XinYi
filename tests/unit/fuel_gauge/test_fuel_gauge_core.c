@@ -637,6 +637,62 @@ static void test_status_safety_security_helpers(void)
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_decrypt_data(&fg, NULL, 0, decrypted, &out_len));
 }
 
+static void test_safety_helpers_guard_nulls_and_read_failures(void)
+{
+    static const xy_fuel_gauge_api_t api = {
+        .init = fake_init,
+        .fetch = fake_fetch,
+        .channel_get = fake_channel_get,
+    };
+    xy_fuel_gauge_t fg;
+    xy_fg_safety_thresholds_t thresholds;
+    xy_fg_safety_event_t events[2];
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    fg.name = "fg-safety-guards";
+    fg.api = &api;
+    fg.initialized = true;
+
+    TEST_ASSERT_TRUE(xy_fuel_gauge_is_safe(NULL));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_has_warning(NULL));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_has_fault(NULL));
+    TEST_ASSERT_EQUAL_STRING("OK", xy_fuel_gauge_safety_status_to_string(XY_FG_SAFETY_OK));
+    TEST_ASSERT_EQUAL_STRING("Pack UVP", xy_fuel_gauge_safety_status_to_string(XY_FG_SAFETY_PACK_UVP));
+    TEST_ASSERT_EQUAL_STRING("Unknown", xy_fuel_gauge_safety_status_to_string((xy_fg_safety_status_t)0x8000));
+    TEST_ASSERT_EQUAL_STRING("None", xy_fuel_gauge_warning_status_to_string(XY_FG_WARNING_NONE));
+    TEST_ASSERT_EQUAL_STRING("Warning", xy_fuel_gauge_warning_status_to_string(XY_FG_WARNING_SOC_LOW));
+    TEST_ASSERT_EQUAL_STRING("None", xy_fuel_gauge_fault_status_to_string(XY_FG_FAULT_NONE));
+    TEST_ASSERT_EQUAL_STRING("Fault", xy_fuel_gauge_fault_status_to_string(XY_FG_FAULT_AFE_COMM));
+
+    memset(&thresholds, 0xA5, sizeof(thresholds));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_safety_thresholds(&fg, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_config_safety_thresholds(&fg, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_safety_thresholds(&fg, &thresholds));
+    TEST_ASSERT_EQUAL_UINT16(17000U, thresholds.pack_ovp_threshold);
+    TEST_ASSERT_EQUAL_UINT16(11200U, thresholds.pack_uvp_threshold);
+    TEST_ASSERT_EQUAL_INT16(550, thresholds.pack_otc_threshold);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_config_safety_thresholds(&fg, &thresholds));
+
+    memset(events, 0xA5, sizeof(events));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_safety_event(&fg, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_safety_event_history(&fg, NULL, 2));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_get_safety_event_history(&fg, events, 0));
+    TEST_ASSERT_EQUAL_HEX8(0xA5, events[0].soc);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_get_safety_event_history(&fg, events, 2));
+    TEST_ASSERT_EQUAL_INT(XY_FG_SAFETY_EVENT_NONE, events[0].type);
+    TEST_ASSERT_EQUAL_UINT32(0U, events[0].timestamp);
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_clear_safety_events(&fg));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_clear_safety_events(NULL));
+
+    RESET_FAKE(fake_channel_get);
+    fake_channel_get_fake.return_val = XY_FG_ERROR_NO_DATA;
+    fake_channel_get_fake.custom_fake = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_FG_SAFETY_OK, xy_fuel_gauge_get_safety_status(&fg));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_has_warning(&fg));
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(3U, fake_channel_get_fake.call_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -650,5 +706,6 @@ int main(void)
     RUN_TEST(test_core_get_preserves_output_when_channel_get_fails_after_write);
     RUN_TEST(test_status_queries_preserve_outputs_on_invalid_and_failed_reads);
     RUN_TEST(test_status_safety_security_helpers);
+    RUN_TEST(test_safety_helpers_guard_nulls_and_read_failures);
     return UNITY_END();
 }

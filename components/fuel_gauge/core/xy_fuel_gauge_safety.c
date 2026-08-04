@@ -69,12 +69,18 @@ xy_fg_safety_status_t xy_fuel_gauge_get_safety_status(xy_fuel_gauge_t *fg)
     xy_fg_safety_thresholds_t thresholds;
     
     /* 获取当前数据 */
-    xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &voltage_mv);
-    xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &current_ma);
-    xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &temperature_c);
+    int ret = xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &voltage_mv);
+    ret |= xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &current_ma);
+    ret |= xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &temperature_c);
+    if (ret != XY_FG_OK) {
+        return XY_FG_SAFETY_OK;
+    }
     
     /* 获取阈值配置 */
-    xy_fuel_gauge_get_safety_thresholds(fg, &thresholds);
+    ret = xy_fuel_gauge_get_safety_thresholds(fg, &thresholds);
+    if (ret != XY_FG_OK) {
+        return XY_FG_SAFETY_OK;
+    }
     
     /* 检查电压安全 */
     if (voltage_mv > thresholds.pack_ovp_threshold) {
@@ -128,11 +134,14 @@ xy_fg_warning_status_t xy_fuel_gauge_get_warning_status(xy_fuel_gauge_t *fg)
     int32_t soh = 0;
     
     /* 获取当前数据 */
-    xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &voltage_mv);
-    xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &current_ma);
-    xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &temperature_c);
-    xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &soc);
-    xy_fuel_gauge_get(fg, XY_FG_DATA_SOH, &soh);
+    int ret = xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &voltage_mv);
+    ret |= xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &current_ma);
+    ret |= xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &temperature_c);
+    ret |= xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &soc);
+    ret |= xy_fuel_gauge_get(fg, XY_FG_DATA_SOH, &soh);
+    if (ret != XY_FG_OK) {
+        return XY_FG_WARNING_NONE;
+    }
     
     /* 电压警告 */
     if (voltage_mv > default_thresholds.pack_ovp_threshold * 0.95) {
@@ -257,9 +266,12 @@ int xy_fuel_gauge_get_safety_event_history(xy_fuel_gauge_t *fg,
  */
 int xy_fuel_gauge_clear_safety_events(xy_fuel_gauge_t *fg)
 {
+    if (!fg) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     /* 简化实现：直接返回成功 */
-    (void)fg;
-    return 0;
+    return XY_FG_OK;
 }
 
 /**
@@ -299,7 +311,7 @@ const char* xy_fuel_gauge_safety_status_to_string(xy_fg_safety_status_t status)
     }
     
     /* 简化实现：返回第一个匹配的状态 */
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 15; i++) {
         if (status & (1 << i)) {
             return safety_strings[i + 1];
         }
