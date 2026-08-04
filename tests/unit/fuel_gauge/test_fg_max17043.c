@@ -162,6 +162,15 @@ void test_max17043_registers_default_i2c_bus(void)
     TEST_ASSERT_EQUAL_UINT8(MAX17043_ADDR, last_bus.address);
 }
 
+void test_max17043_register_rejects_null_i2c_handle_without_bus_side_effects(void)
+{
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_max17043_register(NULL, 0));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_NULL(xy_fuel_gauge_device_get("MAX17043"));
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+    TEST_ASSERT_NULL(last_bus.bus_handle);
+}
+
 void test_max17043_register_duplicate_does_not_reconfigure_bus(void)
 {
     TEST_ASSERT_NOT_NULL(registered_max17043());
@@ -605,6 +614,7 @@ void test_max17043_reinit_preserves_alert_threshold_cache(void)
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_max17043_register_rejects_null_i2c_handle_without_bus_side_effects);
     RUN_TEST(test_max17043_registers_default_i2c_bus);
     RUN_TEST(test_max17043_register_duplicate_does_not_reconfigure_bus);
     RUN_TEST(test_max17043_init_writes_default_config);

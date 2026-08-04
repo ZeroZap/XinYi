@@ -238,6 +238,10 @@ static xy_fuel_gauge_t max17043_device = {
  */
 int xy_fuel_gauge_max17043_register(void *i2c_handle, uint8_t addr)
 {
+    if (!i2c_handle) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
     if (xy_fuel_gauge_device_get(max17043_device.name)) {
         return XY_FG_ERROR;
     }
