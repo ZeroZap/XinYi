@@ -74,6 +74,36 @@ static int32_t mock_spi_read_impl(uint8_t channel, void *data, size_t len)
     return (int32_t)len;
 }
 
+static int32_t short_spi_write_impl(uint8_t channel, const void *data, size_t len)
+{
+    int32_t ret = mock_spi_write_impl(channel, data, len);
+    if (ret > 1) {
+        return ret - 1;
+    }
+    return ret;
+}
+
+static int32_t short_spi_read_impl(uint8_t channel, void *data, size_t len)
+{
+    if (!data || len == 0) {
+        return XY_MUX_ERROR_INVALID_PARAM;
+    }
+    if (len > 1U) {
+        memset(data, g_read_pattern, len - 1U);
+        return (int32_t)(len - 1U);
+    }
+    return mock_spi_read_impl(channel, data, len);
+}
+
+static int32_t short_spi_payload_write_impl(uint8_t channel, const void *data, size_t len)
+{
+    int32_t ret = mock_spi_write_impl(channel, data, len);
+    if (ret > 2) {
+        return ret - 1;
+    }
+    return ret;
+}
+
 static int32_t mock_spi_ioctl_impl(uint8_t channel, int cmd, void *arg)
 {
     (void)channel;
@@ -322,6 +352,56 @@ static void test_spi_read_preserves_output_on_transfer_failure(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_spi_write_propagates_short_header_or_payload_write(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+    uint8_t data[] = {0x44, 0x55, 0x66};
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_spi_register(&mgr, 5, &ops, NULL));
+
+    mock_spi_write_fake.custom_fake = short_spi_write_impl;
+    TEST_ASSERT_EQUAL_INT(1, xy_mux_spi_write(&mgr, 5, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_spi_write_fake.call_count);
+
+    mock_spi_write_fake.custom_fake = mock_spi_write_impl;
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_spi_write(&mgr, 5, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(3U, mock_spi_write_fake.call_count);
+
+    mock_spi_write_fake.custom_fake = short_spi_payload_write_impl;
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data) - 1,
+                          xy_mux_spi_write(&mgr, 5, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(5U, mock_spi_write_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_spi_transfer_propagates_short_read_and_preserves_tail(void)
+{
+    uint8_t tx_buf[BUFFER_SIZE];
+    uint8_t rx_buf[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx_buf, rx_buf);
+    xy_mux_ops_t ops = make_ops();
+    uint8_t tx_data[] = {0x90, 0x91, 0x92, 0x93};
+    uint8_t rx_data[] = {0xA0, 0xB1, 0xC2, 0xD3};
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_spi_register(&mgr, 6, &ops, NULL));
+
+    mock_spi_read_fake.custom_fake = short_spi_read_impl;
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(rx_data) - 1,
+                          xy_mux_spi_transfer(&mgr, 6, tx_data, rx_data, sizeof(tx_data)));
+    TEST_ASSERT_EQUAL_UINT(2U, mock_spi_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_spi_read_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, rx_data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, rx_data[1]);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, rx_data[2]);
+    TEST_ASSERT_EQUAL_HEX8(0xD3, rx_data[3]);
+
+    xy_mux_deinit(&mgr);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -332,5 +412,7 @@ int main(void)
     RUN_TEST(test_spi_error_paths);
     RUN_TEST(test_spi_transfer_preserves_rx_on_failed_write_or_read);
     RUN_TEST(test_spi_read_preserves_output_on_transfer_failure);
+    RUN_TEST(test_spi_write_propagates_short_header_or_payload_write);
+    RUN_TEST(test_spi_transfer_propagates_short_read_and_preserves_tail);
     return UNITY_END();
 }
