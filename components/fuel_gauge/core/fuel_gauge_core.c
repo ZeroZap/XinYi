@@ -91,7 +91,11 @@ xy_fuel_gauge_status_t xy_fuel_gauge_deinit(xy_fuel_gauge_t *fg)
  */
 xy_fuel_gauge_status_t xy_fuel_gauge_fetch(xy_fuel_gauge_t *fg)
 {
-    if (!fg || !fg->initialized) {
+    if (!fg) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    if (!fg->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
 
