@@ -87,6 +87,27 @@ static int32_t mock_i2c_read_impl(uint8_t channel, void *data, size_t len)
     return (int32_t)len;
 }
 
+static int32_t short_i2c_write_impl(uint8_t channel, const void *data, size_t len)
+{
+    int32_t ret = mock_i2c_write_impl(channel, data, len);
+    if (ret > 1) {
+        return ret - 1;
+    }
+    return ret;
+}
+
+static int32_t short_i2c_read_impl(uint8_t channel, void *data, size_t len)
+{
+    if (!data || len == 0) {
+        return XY_MUX_ERROR_INVALID_PARAM;
+    }
+    if (len > 1U) {
+        memset(data, 0xA5, len - 1U);
+        return (int32_t)(len - 1U);
+    }
+    return mock_i2c_read_impl(channel, data, len);
+}
+
 static int32_t mock_i2c_ioctl_impl(uint8_t channel, int cmd, void *arg)
 {
     printf("    [MOCK] I2C-%d ioctl: cmd=%d\n", channel, cmd);
@@ -477,6 +498,93 @@ static void test_i2c_transfer_stops_on_failed_message_and_preserves_later_read(v
     xy_mux_deinit(&mgr);
 }
 
+static void test_i2c_read_propagates_short_request_write_without_reading(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t buffer[] = {0xDE, 0xAD};
+
+    xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE);
+
+    xy_mux_ops_t ops = {
+        .read = mock_i2c_read,
+        .write = mock_i2c_write,
+        .ioctl = mock_i2c_ioctl,
+    };
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 0, &ops, NULL));
+
+    mock_i2c_write_fake.custom_fake = short_i2c_write_impl;
+    TEST_ASSERT_EQUAL_INT(2, xy_mux_i2c_read(&mgr, 0, 0x50, buffer, sizeof(buffer)));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_read_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX8(0xDE, buffer[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xAD, buffer[1]);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_i2c_transfer_propagates_short_write_and_stops(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t write_data[] = {0x10, 0x20};
+    uint8_t read_data[] = {0xAA, 0xBB};
+
+    xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE);
+
+    xy_mux_ops_t ops = {
+        .read = mock_i2c_read,
+        .write = mock_i2c_write,
+        .ioctl = mock_i2c_ioctl,
+    };
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 0, &ops, NULL));
+
+    xy_mux_i2c_msg_t msgs[] = {
+        {0x50, 0, sizeof(write_data), write_data},
+        {0x50, XY_MUX_I2C_M_RD, sizeof(read_data), read_data},
+    };
+
+    mock_i2c_write_fake.custom_fake = short_i2c_write_impl;
+    TEST_ASSERT_EQUAL_INT(3, xy_mux_i2c_transfer(&mgr, 0, msgs, 2));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_read_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX8(0xAA, read_data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xBB, read_data[1]);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_i2c_transfer_propagates_short_read_and_preserves_tail(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t read_data[] = {0xAA, 0xBB, 0xCC};
+
+    xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE);
+
+    xy_mux_ops_t ops = {
+        .read = mock_i2c_read,
+        .write = mock_i2c_write,
+        .ioctl = mock_i2c_ioctl,
+    };
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 0, &ops, NULL));
+
+    xy_mux_i2c_msg_t msg = {0x50, XY_MUX_I2C_M_RD, sizeof(read_data), read_data};
+
+    mock_i2c_read_fake.custom_fake = short_i2c_read_impl;
+    TEST_ASSERT_EQUAL_INT(2, xy_mux_i2c_transfer(&mgr, 0, &msg, 1));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_read_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, read_data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, read_data[1]);
+    TEST_ASSERT_EQUAL_HEX8(0xCC, read_data[2]);
+
+    xy_mux_deinit(&mgr);
+}
+
 /**
  * @brief Test I2C TLV packet operations
  */
@@ -630,6 +738,9 @@ int main(void)
     RUN_TEST(test_i2c_error_handling);
     RUN_TEST(test_i2c_read_preserves_output_when_request_write_fails);
     RUN_TEST(test_i2c_transfer_stops_on_failed_message_and_preserves_later_read);
+    RUN_TEST(test_i2c_read_propagates_short_request_write_without_reading);
+    RUN_TEST(test_i2c_transfer_propagates_short_write_and_stops);
+    RUN_TEST(test_i2c_transfer_propagates_short_read_and_preserves_tail);
     RUN_TEST(test_i2c_tlv_packet);
     RUN_TEST(test_i2c_multi_bus);
     return UNITY_END();
