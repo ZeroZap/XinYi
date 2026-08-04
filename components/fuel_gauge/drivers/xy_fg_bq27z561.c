@@ -23,7 +23,9 @@
 #define BQ27Z561_REG_NOM_CAP    0x12
 #define BQ27Z561_REG_REM_CAP    0x14
 #define BQ27Z561_REG_SOC        0x2C
+#define BQ27Z561_REG_CYCLE_CNT  0x2A
 #define BQ27Z561_REG_CURR       0x58
+#define BQ27Z561_REG_AVG_CURR   0x5A
 #define BQ27Z561_REG_SOH        0x7A
 
 /* 私有数据 */
@@ -32,6 +34,7 @@ typedef struct {
     bool initialized;
     xy_fuel_gauge_data_t data;
     xy_fuel_gauge_alert_t alert;
+    int16_t average_current_ma;
 } bq27z561_private_data_t;
 
 /**
@@ -84,6 +87,13 @@ static int bq27z561_fetch(xy_fuel_gauge_t *fg)
     if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_CURR, (uint16_t*)&current) != 0) {
         return XY_FG_ERROR;
     }
+
+    /* 读取平均电流 (mA)，公共 snapshot 没有独立字段，驱动私有缓存该值。 */
+    int16_t average_current;
+    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_AVG_CURR,
+                                 (uint16_t*)&average_current) != 0) {
+        return XY_FG_ERROR;
+    }
     
     /* 读取 SOC (%) */
     uint8_t soc;
@@ -115,6 +125,12 @@ static int bq27z561_fetch(xy_fuel_gauge_t *fg)
     if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_REM_CAP, &rem_cap) != 0) {
         return XY_FG_ERROR;
     }
+
+    /* 读取循环次数 */
+    uint16_t cycle_count;
+    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_CYCLE_CNT, &cycle_count) != 0) {
+        return XY_FG_ERROR;
+    }
     
     /* 存储数据 */
     priv->data.voltage_mv = voltage;
@@ -124,6 +140,8 @@ static int bq27z561_fetch(xy_fuel_gauge_t *fg)
     priv->data.temperature_c = temp_c;
     priv->data.full_capacity_mah = full_cap;
     priv->data.remain_capacity_mah = rem_cap;
+    priv->data.cycle_count = cycle_count;
+    priv->average_current_ma = average_current;
     fg->latest = priv->data;
     
     return 0;
@@ -152,6 +170,9 @@ static int bq27z561_channel_get(xy_fuel_gauge_t *fg,
         case XY_FG_DATA_CURRENT:
             *val = priv->data.current_ma;
             break;
+        case XY_FG_DATA_AVERAGE_CURRENT:
+            *val = priv->average_current_ma;
+            break;
         case XY_FG_DATA_SOC:
             *val = priv->data.soc;
             break;
@@ -166,6 +187,9 @@ static int bq27z561_channel_get(xy_fuel_gauge_t *fg,
             break;
         case XY_FG_DATA_REMAIN_CAPACITY:
             *val = priv->data.remain_capacity_mah;
+            break;
+        case XY_FG_DATA_CYCLE_COUNT:
+            *val = priv->data.cycle_count;
             break;
         default:
             return XY_FG_ERROR_NOT_SUPPORTED;

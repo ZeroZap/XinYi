@@ -14,8 +14,10 @@ int xy_fuel_gauge_bq27z561_register(void *i2c_handle, uint8_t addr);
 #define REG_VOLT             0x08
 #define REG_NOM_CAP          0x12
 #define REG_REM_CAP          0x14
+#define REG_CYCLE_CNT        0x2A
 #define REG_SOC              0x2C
 #define REG_CURR             0x58
+#define REG_AVG_CURR         0x5A
 #define REG_SOH              0x7A
 
 static uint16_t fake_reg16[256];
@@ -121,11 +123,13 @@ void setUp(void)
     fake_reg16[REG_DEVICE_ID] = 0x0561;
     fake_reg16[REG_VOLT] = 3700;
     fake_reg16[REG_CURR] = (uint16_t)(int16_t)-123;
+    fake_reg16[REG_AVG_CURR] = (uint16_t)(int16_t)-77;
     fake_reg8[REG_SOC] = 66;
     fake_reg8[REG_SOH] = 97;
     fake_reg16[REG_TEMP] = 2981;
     fake_reg16[REG_NOM_CAP] = 3000;
     fake_reg16[REG_REM_CAP] = 1980;
+    fake_reg16[REG_CYCLE_CNT] = 42;
 }
 
 void tearDown(void)
@@ -248,9 +252,10 @@ void test_bq27z561_fetch_and_channel_get(void)
     TEST_ASSERT_EQUAL_INT16(250, fg->latest.temperature_c);
     TEST_ASSERT_EQUAL_UINT16(3000, fg->latest.full_capacity_mah);
     TEST_ASSERT_EQUAL_UINT16(1980, fg->latest.remain_capacity_mah);
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT(5, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(42, fg->latest.cycle_count);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(7, xy_sensor_i2c_read_reg16_fake.call_count);
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(2, xy_sensor_i2c_read_reg_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT8(REG_REM_CAP, xy_sensor_i2c_read_reg16_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT8(REG_CYCLE_CNT, xy_sensor_i2c_read_reg16_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT8(REG_SOH, xy_sensor_i2c_read_reg_fake.arg1_val);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &value));
@@ -258,6 +263,9 @@ void test_bq27z561_fetch_and_channel_get(void)
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(-123, value);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-77, value);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(66, value);
@@ -273,6 +281,9 @@ void test_bq27z561_fetch_and_channel_get(void)
 
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
     TEST_ASSERT_EQUAL_INT32(1980, value);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CYCLE_COUNT, &value));
+    TEST_ASSERT_EQUAL_INT32(42, value);
 
 }
 
@@ -290,11 +301,13 @@ void test_bq27z561_fetch_failure_preserves_cached_snapshot(void)
 
     fake_reg16[REG_VOLT] = 4100;
     fake_reg16[REG_CURR] = (uint16_t)(int16_t)-456;
+    fake_reg16[REG_AVG_CURR] = (uint16_t)(int16_t)-333;
     fake_reg8[REG_SOC] = 44;
     fake_reg8[REG_SOH] = 90;
     fake_reg16[REG_TEMP] = 3031;
     fake_reg16[REG_NOM_CAP] = 2800;
     fake_reg16[REG_REM_CAP] = 1234;
+    fake_reg16[REG_CYCLE_CNT] = 99;
     fg->latest.timestamp = 12345;
     xy_os_tick_get_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 54321;
@@ -318,6 +331,8 @@ void test_bq27z561_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_INT32(4100, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(-456, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-333, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(44, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOH, &value));
@@ -328,6 +343,8 @@ void test_bq27z561_fetch_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_INT32(2800, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_REMAIN_CAPACITY, &value));
     TEST_ASSERT_EQUAL_INT32(1234, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_CYCLE_COUNT, &value));
+    TEST_ASSERT_EQUAL_INT32(99, value);
 }
 
 void test_bq27z561_fetch_skips_remaining_reads_after_first_reg16_failure(void)
@@ -346,6 +363,7 @@ void test_bq27z561_fetch_skips_remaining_reads_after_first_reg16_failure(void)
     TEST_ASSERT_EQUAL_UINT(1, xy_sensor_i2c_read_reg16_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(1, reg16_read_counts[REG_VOLT]);
     TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_CURR]);
+    TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_AVG_CURR]);
     TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_TEMP]);
     TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_NOM_CAP]);
     TEST_ASSERT_EQUAL_UINT32(0, reg16_read_counts[REG_REM_CAP]);
@@ -377,6 +395,11 @@ void test_bq27z561_get_failure_preserves_output_value(void)
 
     fail_reg16 = REG_CURR;
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(0x561, value);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
+
+    fail_reg16 = REG_AVG_CURR;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_get(fg, XY_FG_DATA_AVERAGE_CURRENT, &value));
     TEST_ASSERT_EQUAL_INT32(0x561, value);
     TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
 
