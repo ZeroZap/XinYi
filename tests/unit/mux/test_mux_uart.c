@@ -64,6 +64,22 @@ static int32_t mock_uart_write_impl(uint8_t channel, const void *data, size_t le
     return (int32_t)len;
 }
 
+static int32_t mock_uart_alt_write_impl(uint8_t channel, const void *data, size_t len)
+{
+    (void)channel;
+    if (!data || len == 0 || len > sizeof(g_last_write)) {
+        return XY_MUX_ERROR_INVALID_PARAM;
+    }
+    memcpy(g_last_write, data, len);
+    g_last_write_len = len;
+    if (mock_uart_alt_write_fake.call_count > 0U && mock_uart_alt_write_fake.call_count <= 4U) {
+        size_t index = mock_uart_alt_write_fake.call_count - 1U;
+        memcpy(g_write_history[index], data, len);
+        g_write_len_history[index] = len;
+    }
+    return (int32_t)len;
+}
+
 static int32_t mock_uart_read_impl(uint8_t channel, void *data, size_t len)
 {
     (void)channel;
@@ -96,7 +112,7 @@ void setUp(void)
     mock_uart_init_fake.custom_fake = mock_uart_init_impl;
     mock_uart_deinit_fake.custom_fake = mock_uart_deinit_impl;
     mock_uart_write_fake.custom_fake = mock_uart_write_impl;
-    mock_uart_alt_write_fake.custom_fake = mock_uart_write_impl;
+    mock_uart_alt_write_fake.custom_fake = mock_uart_alt_write_impl;
     mock_uart_read_fake.custom_fake = mock_uart_read_impl;
     mock_uart_ioctl_fake.custom_fake = mock_uart_ioctl_impl;
 
@@ -192,6 +208,17 @@ static void test_uart_register_keeps_per_channel_ops_independent(void)
     TEST_ASSERT_EQUAL_UINT8(0, mock_uart_write_fake.arg0_history[1]);
     TEST_ASSERT_EQUAL_UINT(6U, g_write_len_history[0]);
     assert_uart_request_header(g_write_history[0], sizeof(data), 30U);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), g_write_len_history[1]);
+    TEST_ASSERT_EQUAL_MEMORY(data, g_write_history[1], sizeof(data));
+
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_uart_write(&mgr, 1, data, sizeof(data), 40));
+    TEST_ASSERT_EQUAL_UINT(2U, mock_uart_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2U, mock_uart_alt_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(1, mock_uart_alt_write_fake.arg0_history[0]);
+    TEST_ASSERT_EQUAL_UINT8(1, mock_uart_alt_write_fake.arg0_history[1]);
+    TEST_ASSERT_EQUAL_UINT(6U, g_write_len_history[0]);
+    assert_uart_request_header(g_write_history[0], sizeof(data), 40U);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), g_write_len_history[1]);
     TEST_ASSERT_EQUAL_MEMORY(data, g_write_history[1], sizeof(data));
 
     xy_mux_deinit(&mgr);
