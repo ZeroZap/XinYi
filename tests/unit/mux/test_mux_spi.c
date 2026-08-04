@@ -17,6 +17,8 @@
 static uint8_t g_last_write[256];
 static size_t g_last_write_len;
 static uint8_t g_read_pattern = 0xA5;
+static int32_t g_mock_write_forced_ret;
+static int32_t g_mock_read_forced_ret;
 
 DEFINE_FFF_GLOBALS;
 
@@ -50,6 +52,9 @@ static int32_t mock_spi_write_impl(uint8_t channel, const void *data, size_t len
     if (!data || len == 0 || len > sizeof(g_last_write)) {
         return XY_MUX_ERROR_INVALID_PARAM;
     }
+    if (g_mock_write_forced_ret != 0) {
+        return g_mock_write_forced_ret;
+    }
     memcpy(g_last_write, data, len);
     g_last_write_len = len;
     return (int32_t)len;
@@ -60,6 +65,9 @@ static int32_t mock_spi_read_impl(uint8_t channel, void *data, size_t len)
     (void)channel;
     if (!data || len == 0) {
         return XY_MUX_ERROR_INVALID_PARAM;
+    }
+    if (g_mock_read_forced_ret != 0) {
+        return g_mock_read_forced_ret;
     }
     memset(data, g_read_pattern, len);
     return (int32_t)len;
@@ -92,6 +100,8 @@ void setUp(void)
     memset(g_last_write, 0, sizeof(g_last_write));
     g_last_write_len = 0;
     g_read_pattern = 0xA5;
+    g_mock_write_forced_ret = 0;
+    g_mock_read_forced_ret = 0;
 }
 
 void tearDown(void)
@@ -220,6 +230,59 @@ static void test_spi_error_paths(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_spi_transfer_preserves_rx_on_failed_write_or_read(void)
+{
+    uint8_t tx_buf[BUFFER_SIZE];
+    uint8_t rx_buf[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx_buf, rx_buf);
+    xy_mux_ops_t ops = make_ops();
+    uint8_t tx_data[] = {0x11, 0x22, 0x33};
+    uint8_t rx_data[] = {0xA1, 0xB2, 0xC3};
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_spi_register(&mgr, 3, &ops, NULL));
+
+    g_mock_write_forced_ret = XY_MUX_ERROR_NO_MEMORY;
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_MEMORY,
+                      xy_mux_spi_transfer(&mgr, 3, tx_data, rx_data, sizeof(tx_data)));
+    TEST_ASSERT_EQUAL_HEX8(0xA1, rx_data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xB2, rx_data[1]);
+    TEST_ASSERT_EQUAL_HEX8(0xC3, rx_data[2]);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_spi_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_spi_read_fake.call_count);
+
+    g_mock_write_forced_ret = 0;
+    g_mock_read_forced_ret = XY_MUX_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_TIMEOUT,
+                      xy_mux_spi_transfer(&mgr, 3, tx_data, rx_data, sizeof(tx_data)));
+    TEST_ASSERT_EQUAL_HEX8(0xA1, rx_data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xB2, rx_data[1]);
+    TEST_ASSERT_EQUAL_HEX8(0xC3, rx_data[2]);
+    TEST_ASSERT_EQUAL_UINT(3U, mock_spi_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_spi_read_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_spi_read_preserves_output_on_transfer_failure(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+    uint8_t data[] = {0x5A, 0x6B, 0x7C, 0x8D};
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_spi_register(&mgr, 4, &ops, NULL));
+
+    g_mock_read_forced_ret = XY_MUX_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_TIMEOUT, xy_mux_spi_read(&mgr, 4, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_HEX8(0x5A, data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x6B, data[1]);
+    TEST_ASSERT_EQUAL_HEX8(0x7C, data[2]);
+    TEST_ASSERT_EQUAL_HEX8(0x8D, data[3]);
+
+    xy_mux_deinit(&mgr);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -227,5 +290,7 @@ int main(void)
     RUN_TEST(test_spi_write_header_and_payload);
     RUN_TEST(test_spi_transfer_and_read);
     RUN_TEST(test_spi_error_paths);
+    RUN_TEST(test_spi_transfer_preserves_rx_on_failed_write_or_read);
+    RUN_TEST(test_spi_read_preserves_output_on_transfer_failure);
     return UNITY_END();
 }
