@@ -309,6 +309,27 @@ static void test_uart_error_paths(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_uart_rejects_lengths_that_cannot_be_encoded(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+    uint8_t data = 0x55;
+    const size_t too_large_len = (size_t)UINT32_MAX + 1U;
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, &ops, NULL));
+
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM,
+                      xy_mux_uart_write(&mgr, 0, &data, too_large_len, 10));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM,
+                      xy_mux_uart_read(&mgr, 0, &data, too_large_len, 10));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_read_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
 static int32_t fail_after_header_write_impl(uint8_t channel, const void *data, size_t len)
 {
     if (mock_uart_write_fake.call_count == 1U) {
@@ -434,6 +455,7 @@ int main(void)
     RUN_TEST(test_uart_write_header_and_payload);
     RUN_TEST(test_uart_read_request_and_data);
     RUN_TEST(test_uart_error_paths);
+    RUN_TEST(test_uart_rejects_lengths_that_cannot_be_encoded);
     RUN_TEST(test_uart_write_stops_when_payload_write_fails);
     RUN_TEST(test_uart_write_returns_short_header_result_without_payload);
     RUN_TEST(test_uart_write_returns_short_payload_result);

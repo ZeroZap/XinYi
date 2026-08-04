@@ -8,6 +8,7 @@
 #include "xy_mux_uart.h"
 #include "xy_mux.h"
 #include "xy_log.h"
+#include <stdint.h>
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -119,6 +120,10 @@ int32_t xy_mux_uart_read(xy_mux_manager_t *mgr, uint8_t channel,
         return XY_MUX_ERROR_INVALID_PARAM;
     }
 
+    if (len > UINT32_MAX) {
+        return XY_MUX_ERROR_INVALID_PARAM;
+    }
+
     /* UART 读取操作
      * 协议: 先发送读请求 (包含长度和超时), 然后读取响应数据
      */
@@ -147,6 +152,10 @@ int32_t xy_mux_uart_write(xy_mux_manager_t *mgr, uint8_t channel,
                           const void *data, size_t len, uint32_t timeout)
 {
     if (!mgr || !data || len == 0) {
+        return XY_MUX_ERROR_INVALID_PARAM;
+    }
+
+    if (len > UINT32_MAX) {
         return XY_MUX_ERROR_INVALID_PARAM;
     }
 
