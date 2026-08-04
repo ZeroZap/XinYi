@@ -399,6 +399,20 @@ static void test_subscribe_and_unsubscribe_ack_callbacks(void)
     xy_mqtt_client_delete(client);
 }
 
+static void test_disconnect_sends_mqtt_disconnect_before_clearing_state(void)
+{
+    xy_mqtt_client_t *client = connected_client_with_callbacks();
+
+    TEST_ASSERT_EQUAL(XY_MQTT_OK, xy_mqtt_disconnect(client));
+    TEST_ASSERT_EQUAL(XY_MQTT_STATE_DISCONNECTED, xy_mqtt_get_state(client));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_send_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2U, g_last_sent_len);
+    TEST_ASSERT_EQUAL_UINT8((XY_MQTT_TYPE_DISCONNECT << 4), g_last_sent[0]);
+    TEST_ASSERT_EQUAL_UINT8(0U, g_last_sent[1]);
+
+    xy_mqtt_client_delete(client);
+}
+
 static void test_connack_strings(void)
 {
     TEST_ASSERT_EQUAL_STRING("Connection accepted", xy_mqtt_connack_rc_string(XY_MQTT_CONNACK_RC_ACCEPTED));
@@ -416,6 +430,7 @@ int main(void)
     RUN_TEST(test_connect_process_and_transport_callbacks);
     RUN_TEST(test_publish_qos1_ack_and_inbound_subscription_callback_flow);
     RUN_TEST(test_subscribe_and_unsubscribe_ack_callbacks);
+    RUN_TEST(test_disconnect_sends_mqtt_disconnect_before_clearing_state);
     RUN_TEST(test_connack_strings);
     return UNITY_END();
 }

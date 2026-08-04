@@ -1163,10 +1163,11 @@ xy_mqtt_err_t xy_mqtt_disconnect(xy_mqtt_client_t *mqtt)
         return XY_MQTT_ERR_NOT_CONNECTED;
     }
 
+    xy_mqtt_state_t previous_state = mqtt->state;
     mqtt->state = XY_MQTT_STATE_DISCONNECTING;
 
     /* Send DISCONNECT packet */
-    if (mqtt->state == XY_MQTT_STATE_CONNECTED) {
+    if (previous_state == XY_MQTT_STATE_CONNECTED) {
         xy_mqtt_send_disconnect(mqtt);
     }
 
