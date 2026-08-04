@@ -99,6 +99,13 @@ static int32_t mock_uart_ioctl_impl(uint8_t channel, int cmd, void *arg)
     return XY_MUX_OK;
 }
 
+static int32_t mock_uart_init_timeout_impl(uint8_t channel, const void *config)
+{
+    (void)channel;
+    (void)config;
+    return XY_MUX_ERROR_TIMEOUT;
+}
+
 void setUp(void)
 {
     RESET_FAKE(mock_uart_init);
@@ -175,6 +182,30 @@ static void test_uart_register_and_config(void)
 
     xy_mux_deinit(&mgr);
     TEST_ASSERT_EQUAL_UINT(2U, mock_uart_deinit_fake.call_count);
+}
+
+static void test_uart_register_init_failure_leaves_no_registered_device(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+    uint8_t data = 0xA5;
+
+    mock_uart_init_fake.custom_fake = mock_uart_init_timeout_impl;
+
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_TIMEOUT, xy_mux_uart_register(&mgr, 0, &ops, NULL));
+    TEST_ASSERT_EQUAL_UINT8(0, mgr.device_count);
+    TEST_ASSERT_NULL(mgr.devices);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_DEVICE, xy_mux_uart_write(&mgr, 0, &data, 1, 10));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_write_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, NULL, NULL));
+    TEST_ASSERT_EQUAL_UINT8(1, mgr.device_count);
+
+    xy_mux_deinit(&mgr);
 }
 
 static void assert_uart_request_header(const uint8_t *header, size_t expected_len, uint32_t timeout)
@@ -451,6 +482,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_uart_register_and_config);
+    RUN_TEST(test_uart_register_init_failure_leaves_no_registered_device);
     RUN_TEST(test_uart_register_keeps_per_channel_ops_independent);
     RUN_TEST(test_uart_write_header_and_payload);
     RUN_TEST(test_uart_read_request_and_data);
