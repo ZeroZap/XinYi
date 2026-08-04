@@ -41,6 +41,7 @@ FAKE_VALUE_FUNC(int32_t, mock_i2c_deinit, uint8_t)
 FAKE_VALUE_FUNC(int32_t, mock_i2c_write, uint8_t, const void *, size_t)
 FAKE_VALUE_FUNC(int32_t, mock_i2c_read, uint8_t, void *, size_t)
 FAKE_VALUE_FUNC(int32_t, mock_i2c_ioctl, uint8_t, int, void *)
+FAKE_VALUE_FUNC(int32_t, alt_i2c_write, uint8_t, const void *, size_t)
 
 /* Mock I2C operations */
 static int32_t mock_i2c_init_impl(uint8_t channel, const void *config)
@@ -157,6 +158,40 @@ static void test_i2c_register(void)
 
     xy_mux_deinit(&mgr);
     TEST_ASSERT_EQUAL_UINT(3U, mock_i2c_deinit_fake.call_count);
+}
+
+static void test_i2c_register_keeps_per_channel_ops_independent(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t data[] = {0x5A};
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+
+    xy_mux_ops_t primary_ops = {
+        .read = mock_i2c_read,
+        .write = mock_i2c_write,
+        .ioctl = mock_i2c_ioctl,
+    };
+    xy_mux_ops_t alt_ops = primary_ops;
+    alt_ops.write = alt_i2c_write;
+    alt_i2c_write_fake.return_val = 3;
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 0, &primary_ops, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_i2c_register(&mgr, 1, &alt_ops, NULL));
+
+    TEST_ASSERT_EQUAL_INT(3, xy_mux_i2c_write(&mgr, 0, 0x50, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, alt_i2c_write_fake.call_count);
+
+    TEST_ASSERT_EQUAL_INT(3, xy_mux_i2c_write(&mgr, 1, 0x60, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, alt_i2c_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(1, alt_i2c_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(3U, alt_i2c_write_fake.arg2_val);
+
+    xy_mux_deinit(&mgr);
 }
 
 /**
@@ -564,6 +599,7 @@ void setUp(void)
     RESET_FAKE(mock_i2c_write);
     RESET_FAKE(mock_i2c_read);
     RESET_FAKE(mock_i2c_ioctl);
+    RESET_FAKE(alt_i2c_write);
     FFF_RESET_HISTORY();
 
     mock_i2c_init_fake.custom_fake = mock_i2c_init_impl;
@@ -586,6 +622,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_i2c_register);
+    RUN_TEST(test_i2c_register_keeps_per_channel_ops_independent);
     RUN_TEST(test_i2c_config);
     RUN_TEST(test_i2c_write);
     RUN_TEST(test_i2c_read);
