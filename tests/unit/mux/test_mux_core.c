@@ -350,6 +350,28 @@ static void test_build_packet(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_build_packet_rejects_payload_without_source_data(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    size_t packet_len = 0xA5A5;
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_build_packet(&mgr, XY_MUX_TYPE_GPIO, 0, NULL, 1,
+                                              tx_buffer, &packet_len));
+    TEST_ASSERT_EQUAL_UINT(0xA5A5, packet_len);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK,
+                          xy_mux_build_packet(&mgr, XY_MUX_TYPE_GPIO, 0, NULL, 0,
+                                              tx_buffer, &packet_len));
+    TEST_ASSERT_EQUAL_UINT(sizeof(xy_mux_header_t), packet_len);
+
+    xy_mux_deinit(&mgr);
+}
+
 /**
  * @brief Test packet processing
  */
@@ -572,6 +594,7 @@ int main(void)
     RUN_TEST(test_mux_unregister);
     RUN_TEST(test_mux_find);
     RUN_TEST(test_build_packet);
+    RUN_TEST(test_build_packet_rejects_payload_without_source_data);
     RUN_TEST(test_process_packet);
     RUN_TEST(test_process_packet_rejects_header_length_mismatch);
     RUN_TEST(test_type_string_conversion);

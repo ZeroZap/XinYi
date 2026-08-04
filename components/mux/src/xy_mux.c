@@ -233,7 +233,7 @@ int32_t xy_mux_build_packet(xy_mux_manager_t *mgr,
                             const void *data, size_t len,
                             uint8_t *out_packet, size_t *out_len)
 {
-    if (!mgr || !out_packet || !out_len) {
+    if (!mgr || !out_packet || !out_len || (!data && len > 0)) {
         return XY_MUX_ERROR_INVALID_PARAM;
     }
     
