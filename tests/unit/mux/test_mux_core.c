@@ -455,6 +455,58 @@ static void test_process_packet_rejects_header_length_mismatch(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_process_packet_rejects_null_ops_without_write_side_effects(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t gpio_data = 0x5A;
+    size_t packet_len = 0;
+    xy_mux_ops_t empty_ops = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_register(&mgr, 1, &empty_ops, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_build_packet(&mgr, XY_MUX_TYPE_GPIO, 1,
+                                                         &gpio_data, sizeof(gpio_data),
+                                                         tx_buffer, &packet_len));
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NOT_SUPPORTED,
+                          xy_mux_process_packet(&mgr, tx_buffer, packet_len));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_ioctl_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_process_packet_rejects_disabled_device_without_write_side_effects(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t gpio_data = 0xA5;
+    size_t packet_len = 0;
+    xy_mux_ops_t ops = {
+        .write = mock_write,
+    };
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_register(&mgr, 2, &ops, NULL));
+    xy_mux_device_t *dev = xy_mux_find(&mgr, XY_MUX_TYPE_GPIO, 2);
+    TEST_ASSERT_NOT_NULL(dev);
+    dev->enabled = false;
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_build_packet(&mgr, XY_MUX_TYPE_GPIO, 2,
+                                                         &gpio_data, sizeof(gpio_data),
+                                                         tx_buffer, &packet_len));
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR, xy_mux_process_packet(&mgr, tx_buffer, packet_len));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_ioctl_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
 /**
  * @brief Test type string conversion
  */
@@ -600,6 +652,8 @@ int main(void)
     RUN_TEST(test_build_packet_rejects_payload_without_source_data);
     RUN_TEST(test_process_packet);
     RUN_TEST(test_process_packet_rejects_header_length_mismatch);
+    RUN_TEST(test_process_packet_rejects_null_ops_without_write_side_effects);
+    RUN_TEST(test_process_packet_rejects_disabled_device_without_write_side_effects);
     RUN_TEST(test_type_string_conversion);
     RUN_TEST(test_get_device_list);
     RUN_TEST(test_read_write);
