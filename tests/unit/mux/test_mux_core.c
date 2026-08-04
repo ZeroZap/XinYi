@@ -476,8 +476,11 @@ static void test_type_string_conversion(void)
     TEST_ASSERT_EQUAL_INT(XY_MUX_TYPE_UART, xy_mux_string_to_type("UART"));
     printf("  [PASS] String to type conversion works\n");
 
-    /* Test invalid string */
+    /* Test invalid string / NULL input */
     TEST_ASSERT_EQUAL_INT(XY_MUX_TYPE_CUSTOM, xy_mux_string_to_type("INVALID"));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_TYPE_NONE, xy_mux_string_to_type(NULL));
+    TEST_ASSERT_EQUAL_STRING("NONE", xy_mux_type_to_string(XY_MUX_TYPE_NONE));
+    TEST_ASSERT_EQUAL_STRING("CUSTOM", xy_mux_type_to_string((xy_mux_type_t)99));
     printf("  [PASS] Invalid string returns CUSTOM type\n");
 }
 
