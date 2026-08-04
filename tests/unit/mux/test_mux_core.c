@@ -36,6 +36,28 @@ void xy_log_char(char ch)
 FAKE_VALUE_FUNC(int32_t, mock_write, uint8_t, const void *, size_t)
 FAKE_VALUE_FUNC(int32_t, mock_read, uint8_t, void *, size_t)
 FAKE_VALUE_FUNC(int32_t, mock_ioctl, uint8_t, int, void *)
+FAKE_VALUE_FUNC(int32_t, mock_init, uint8_t, const void *)
+FAKE_VALUE_FUNC(int32_t, mock_deinit, uint8_t)
+
+static int32_t mock_init_impl(uint8_t channel, const void *config)
+{
+    (void)channel;
+    (void)config;
+    return XY_MUX_OK;
+}
+
+static int32_t mock_deinit_impl(uint8_t channel)
+{
+    (void)channel;
+    return XY_MUX_OK;
+}
+
+static int32_t mock_init_fail_impl(uint8_t channel, const void *config)
+{
+    (void)channel;
+    (void)config;
+    return XY_MUX_ERROR;
+}
 
 static int32_t mock_write_impl(uint8_t channel, const void *data, size_t len)
 {
@@ -167,6 +189,34 @@ static void test_mux_register(void)
 
     xy_mux_deinit(&mgr);
     printf("  [PASS] All devices unregistered on deinit\n");
+}
+
+static void test_mux_register_rolls_back_failed_init(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    xy_mux_ops_t ops = {
+        .init = mock_init,
+        .deinit = mock_deinit,
+        .read = mock_read,
+        .write = mock_write,
+        .ioctl = mock_ioctl,
+    };
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+    mock_init_fake.custom_fake = mock_init_fail_impl;
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR,
+                          xy_mux_register(&mgr, XY_MUX_TYPE_UART, 3, &ops, NULL));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(3, mock_init_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mgr.device_count);
+    TEST_ASSERT_NULL(mgr.devices);
+    TEST_ASSERT_NULL(xy_mux_find(&mgr, XY_MUX_TYPE_UART, 3));
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_deinit(&mgr));
 }
 
 /**
@@ -460,11 +510,15 @@ void setUp(void)
     RESET_FAKE(mock_write);
     RESET_FAKE(mock_read);
     RESET_FAKE(mock_ioctl);
+    RESET_FAKE(mock_init);
+    RESET_FAKE(mock_deinit);
     FFF_RESET_HISTORY();
 
     mock_write_fake.custom_fake = mock_write_impl;
     mock_read_fake.custom_fake = mock_read_impl;
     mock_ioctl_fake.custom_fake = mock_ioctl_impl;
+    mock_init_fake.custom_fake = mock_init_impl;
+    mock_deinit_fake.custom_fake = mock_deinit_impl;
 }
 
 void tearDown(void)
@@ -477,6 +531,7 @@ int main(void)
     RUN_TEST(test_mux_init);
     RUN_TEST(test_mux_init_invalid);
     RUN_TEST(test_mux_register);
+    RUN_TEST(test_mux_register_rolls_back_failed_init);
     RUN_TEST(test_mux_unregister);
     RUN_TEST(test_mux_find);
     RUN_TEST(test_build_packet);

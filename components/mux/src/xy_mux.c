@@ -119,6 +119,10 @@ int32_t xy_mux_register(xy_mux_manager_t *mgr,
         int32_t ret = ops->init(channel, NULL);
         if (ret != XY_MUX_OK) {
             xy_log_e("MUX device init failed: %d\n", ret);
+            mgr->devices = node->next;
+            mgr->device_count--;
+            free(node);
+            return ret;
         }
     }
     
