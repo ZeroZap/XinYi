@@ -25,7 +25,7 @@ typedef struct {
 int xy_fuel_gauge_security_config(xy_fuel_gauge_t *fg, 
                                   const xy_fg_security_config_t *config)
 {
-    if (!fg || !config) {
+    if (!fg || !fg->data || !config) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
     
@@ -49,7 +49,7 @@ int xy_fuel_gauge_security_config(xy_fuel_gauge_t *fg,
  */
 xy_fg_auth_result_t xy_fuel_gauge_authenticate(xy_fuel_gauge_t *fg)
 {
-    if (!fg) {
+    if (!fg || !fg->data) {
         return XY_FG_AUTH_FAIL;
     }
     
@@ -96,7 +96,7 @@ int xy_fuel_gauge_encrypt_data(xy_fuel_gauge_t *fg,
                                const uint8_t *data, uint16_t len,
                                uint8_t *encrypted, uint16_t *encrypted_len)
 {
-    if (!fg || !data || !encrypted || !encrypted_len) {
+    if (!fg || !fg->data || !data || !encrypted || !encrypted_len) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
     
@@ -137,7 +137,7 @@ int xy_fuel_gauge_decrypt_data(xy_fuel_gauge_t *fg,
                                const uint8_t *encrypted, uint16_t encrypted_len,
                                uint8_t *data, uint16_t *len)
 {
-    if (!fg || !encrypted || !data || !len) {
+    if (!fg || !fg->data || !encrypted || !data || !len) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
     

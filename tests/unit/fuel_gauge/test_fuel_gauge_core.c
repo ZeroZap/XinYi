@@ -637,6 +637,47 @@ static void test_status_safety_security_helpers(void)
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_decrypt_data(&fg, NULL, 0, decrypted, &out_len));
 }
 
+static void test_security_helpers_reject_missing_private_data_without_outputs(void)
+{
+    xy_fuel_gauge_t fg;
+    xy_fg_security_config_t security_config;
+    uint8_t key[16] = {0};
+    uint8_t plain[3] = {1, 2, 3};
+    uint8_t encrypted[3] = {0xA5, 0xA5, 0xA5};
+    uint8_t decrypted[3] = {0x5A, 0x5A, 0x5A};
+    uint16_t out_len = 0xBEEF;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    fg.name = "fg-security-no-data";
+    fg.initialized = true;
+
+    security_config.type = XY_FG_SECURITY_NONE;
+    security_config.key = key;
+    security_config.key_len = sizeof(key);
+    security_config.challenge = NULL;
+    security_config.challenge_len = 0;
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
+                          xy_fuel_gauge_security_config(&fg, &security_config));
+    TEST_ASSERT_EQUAL_INT(XY_FG_AUTH_FAIL, xy_fuel_gauge_authenticate(&fg));
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
+                          xy_fuel_gauge_encrypt_data(&fg, plain, sizeof(plain), encrypted, &out_len));
+    TEST_ASSERT_EQUAL_HEX8(0xA5, encrypted[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, encrypted[1]);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, encrypted[2]);
+    TEST_ASSERT_EQUAL_HEX16(0xBEEF, out_len);
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM,
+                          xy_fuel_gauge_decrypt_data(&fg, encrypted, sizeof(encrypted), decrypted,
+                                                     &out_len));
+    TEST_ASSERT_EQUAL_HEX8(0x5A, decrypted[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x5A, decrypted[1]);
+    TEST_ASSERT_EQUAL_HEX8(0x5A, decrypted[2]);
+    TEST_ASSERT_EQUAL_HEX16(0xBEEF, out_len);
+}
+
 static void test_safety_helpers_guard_nulls_and_read_failures(void)
 {
     static const xy_fuel_gauge_api_t api = {
@@ -706,6 +747,7 @@ int main(void)
     RUN_TEST(test_core_get_preserves_output_when_channel_get_fails_after_write);
     RUN_TEST(test_status_queries_preserve_outputs_on_invalid_and_failed_reads);
     RUN_TEST(test_status_safety_security_helpers);
+    RUN_TEST(test_security_helpers_reject_missing_private_data_without_outputs);
     RUN_TEST(test_safety_helpers_guard_nulls_and_read_failures);
     return UNITY_END();
 }
