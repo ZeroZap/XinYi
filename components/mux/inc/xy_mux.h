@@ -114,6 +114,7 @@ typedef struct xy_mux_device {
     struct xy_mux_device *next;   /**< 下一节点 */
     xy_mux_type_t type;           /**< 外设类型 */
     uint8_t channel;              /**< 通道号 */
+    xy_mux_ops_t ops_storage;     /**< 注册时复制的操作接口 */
     const xy_mux_ops_t *ops;      /**< 操作接口 */
     void *user_data;              /**< 用户数据 */
     bool enabled;                 /**< 使能状态 */

@@ -102,7 +102,8 @@ int32_t xy_mux_register(xy_mux_manager_t *mgr,
     memset(node, 0, sizeof(*node));
     node->type = type;
     node->channel = channel;
-    node->ops = ops;
+    memcpy(&node->ops_storage, ops, sizeof(node->ops_storage));
+    node->ops = &node->ops_storage;
     node->user_data = user_data;
     node->enabled = true;
     
