@@ -115,7 +115,7 @@ int32_t xy_mux_spi_config(xy_mux_manager_t *mgr, uint8_t channel,
 int32_t xy_mux_spi_transfer(xy_mux_manager_t *mgr, uint8_t channel,
                             const void *tx_data, void *rx_data, size_t len)
 {
-    if (!mgr || len == 0) {
+    if (!mgr || !tx_data || len == 0) {
         return XY_MUX_ERROR_INVALID_PARAM;
     }
 
