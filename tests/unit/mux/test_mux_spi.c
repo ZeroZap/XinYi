@@ -27,6 +27,7 @@ FAKE_VALUE_FUNC(int32_t, mock_spi_deinit, uint8_t)
 FAKE_VALUE_FUNC(int32_t, mock_spi_write, uint8_t, const void *, size_t)
 FAKE_VALUE_FUNC(int32_t, mock_spi_read, uint8_t, void *, size_t)
 FAKE_VALUE_FUNC(int32_t, mock_spi_ioctl, uint8_t, int, void *)
+FAKE_VALUE_FUNC(int32_t, alt_spi_write, uint8_t, const void *, size_t)
 
 void xy_log_char(char ch)
 {
@@ -89,6 +90,7 @@ void setUp(void)
     RESET_FAKE(mock_spi_write);
     RESET_FAKE(mock_spi_read);
     RESET_FAKE(mock_spi_ioctl);
+    RESET_FAKE(alt_spi_write);
     FFF_RESET_HISTORY();
 
     mock_spi_init_fake.custom_fake = mock_spi_init_impl;
@@ -155,6 +157,35 @@ static void test_spi_register_and_config(void)
 
     xy_mux_deinit(&mgr);
     TEST_ASSERT_EQUAL_UINT(2U, mock_spi_deinit_fake.call_count);
+}
+
+static void test_spi_register_keeps_per_channel_ops_independent(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t primary_ops = make_ops();
+    xy_mux_ops_t alt_ops = make_ops();
+    alt_ops.write = alt_spi_write;
+    uint8_t data[] = {0x21, 0x43};
+
+    alt_spi_write_fake.return_val = (int32_t)sizeof(data);
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_spi_register(&mgr, 0, &primary_ops, NULL));
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_spi_register(&mgr, 1, &alt_ops, NULL));
+
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_spi_write(&mgr, 0, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(2U, mock_spi_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, alt_spi_write_fake.call_count);
+
+    TEST_ASSERT_EQUAL_INT((int32_t)sizeof(data), xy_mux_spi_write(&mgr, 1, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(2U, mock_spi_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2U, alt_spi_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(1, alt_spi_write_fake.arg0_val);
+    TEST_ASSERT_EQUAL_PTR(data, alt_spi_write_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT(sizeof(data), alt_spi_write_fake.arg2_val);
+
+    xy_mux_deinit(&mgr);
 }
 
 static void test_spi_write_header_and_payload(void)
@@ -287,6 +318,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_spi_register_and_config);
+    RUN_TEST(test_spi_register_keeps_per_channel_ops_independent);
     RUN_TEST(test_spi_write_header_and_payload);
     RUN_TEST(test_spi_transfer_and_read);
     RUN_TEST(test_spi_error_paths);
