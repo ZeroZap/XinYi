@@ -366,6 +366,61 @@ static void test_lte_transport_preserves_pdp_and_send_state_on_failures(void)
     TEST_ASSERT_EQUAL_UINT8(payload[2], (uint8_t)g_transport.commands[1][2]);
 }
 
+static void test_lte_read_style_helpers_preserve_outputs_on_transport_failures(void)
+{
+    xy_lte_t lte;
+    xy_lte_network_info_t network;
+    xy_lte_sim_info_t sim;
+    char manufacturer[8] = "maker";
+    char model[8] = "model";
+    char revision[8] = "rev";
+    char ip[16] = "1.2.3.4";
+    char imei[16] = "123456789012345";
+    int uart_token = 1;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    bind_fake_transport(&lte);
+
+    memset(&network, 0xA5, sizeof(network));
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_get_network_info(&lte, &network));
+    TEST_ASSERT_EQUAL_HEX8(0xA5, network.mcc[0]);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, network.mnc[0]);
+
+    memset(&sim, 0x5A, sizeof(sim));
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_get_sim_info(&lte, &sim));
+    TEST_ASSERT_EQUAL_HEX8(0x5A, sim.iccid[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x5A, sim.imsi[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_get_module_info(&lte, manufacturer, model, revision));
+    TEST_ASSERT_EQUAL_STRING("maker", manufacturer);
+    TEST_ASSERT_EQUAL_STRING("model", model);
+    TEST_ASSERT_EQUAL_STRING("rev", revision);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_get_ip(&lte, ip, sizeof(ip)));
+    TEST_ASSERT_EQUAL_STRING("1.2.3.4", ip);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_get_imei(&lte, imei, sizeof(imei)));
+    TEST_ASSERT_EQUAL_STRING("123456789012345", imei);
+
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_get_network_info(NULL, &network));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_get_sim_info(NULL, &sim));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM,
+                      xy_lte_get_module_info(NULL, manufacturer, model, revision));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -374,5 +429,6 @@ int main(void)
     RUN_TEST(test_lte_transport_drives_check_and_signal_contracts);
     RUN_TEST(test_lte_transport_failures_preserve_state);
     RUN_TEST(test_lte_transport_preserves_pdp_and_send_state_on_failures);
+    RUN_TEST(test_lte_read_style_helpers_preserve_outputs_on_transport_failures);
     return UNITY_END();
 }

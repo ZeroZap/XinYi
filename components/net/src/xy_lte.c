@@ -163,7 +163,10 @@ int xy_lte_check(xy_lte_t *lte)
 
 int xy_lte_get_module_info(xy_lte_t *lte, char *manufacturer, char *model, char *revision)
 {
-    char resp[128];
+    char manufacturer_resp[64];
+    char model_resp[64];
+    char revision_resp[64];
+    int ret;
     
     if (!lte || !lte->initialized) {
         return XY_LTE_INVALID_PARAM;
@@ -171,20 +174,36 @@ int xy_lte_get_module_info(xy_lte_t *lte, char *manufacturer, char *model, char 
     
     /* 获取厂商信息 */
     if (manufacturer) {
-        lte_send_cmd(lte, "AT+CGMI", resp, sizeof(resp), 1000);
-        strncpy(manufacturer, resp, 64);
+        ret = lte_send_cmd(lte, "AT+CGMI", manufacturer_resp, sizeof(manufacturer_resp), 1000);
+        if (ret != XY_LTE_OK) {
+            return ret;
+        }
     }
     
     /* 获取型号 */
     if (model) {
-        lte_send_cmd(lte, "AT+GMM", resp, sizeof(resp), 1000);
-        strncpy(model, resp, 64);
+        ret = lte_send_cmd(lte, "AT+GMM", model_resp, sizeof(model_resp), 1000);
+        if (ret != XY_LTE_OK) {
+            return ret;
+        }
     }
     
     /* 获取版本 */
     if (revision) {
-        lte_send_cmd(lte, "AT+CGMR", resp, sizeof(resp), 1000);
-        strncpy(revision, resp, 64);
+        ret = lte_send_cmd(lte, "AT+CGMR", revision_resp, sizeof(revision_resp), 1000);
+        if (ret != XY_LTE_OK) {
+            return ret;
+        }
+    }
+
+    if (manufacturer) {
+        strncpy(manufacturer, manufacturer_resp, 64);
+    }
+    if (model) {
+        strncpy(model, model_resp, 64);
+    }
+    if (revision) {
+        strncpy(revision, revision_resp, 64);
     }
     
     return XY_LTE_OK;
@@ -193,21 +212,31 @@ int xy_lte_get_module_info(xy_lte_t *lte, char *manufacturer, char *model, char 
 int xy_lte_get_sim_info(xy_lte_t *lte, xy_lte_sim_info_t *info)
 {
     char resp[64];
+    int ret;
     
-    if (!lte || !info) {
+    if (!lte || !lte->initialized || !info) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* 获取 ICCID */
-    lte_send_cmd(lte, "AT+CCID", resp, sizeof(resp), 1000);
+    ret = lte_send_cmd(lte, "AT+CCID", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     /* 解析 ICCID */
     
     /* 获取 IMSI */
-    lte_send_cmd(lte, "AT+CIMI", resp, sizeof(resp), 1000);
+    ret = lte_send_cmd(lte, "AT+CIMI", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     /* 解析 IMSI */
     
     /* 获取手机号 */
-    lte_send_cmd(lte, "AT+CNUM", resp, sizeof(resp), 1000);
+    ret = lte_send_cmd(lte, "AT+CNUM", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     /* 解析 MSISDN */
     
     return XY_LTE_OK;
@@ -277,22 +306,40 @@ int xy_lte_get_signal(xy_lte_t *lte, xy_lte_signal_t *signal)
 int xy_lte_get_network_info(xy_lte_t *lte, xy_lte_network_info_t *info)
 {
     char resp[64];
+    xy_lte_network_info_t parsed;
+    int ret;
     
-    if (!lte || !info) {
+    if (!lte || !lte->initialized || !info) {
         return XY_LTE_INVALID_PARAM;
     }
+
+    parsed = *info;
     
     /* 获取网络注册状态 */
-    lte_send_cmd(lte, "AT+CEREG?", resp, sizeof(resp), 1000);
-    parse_cereg(resp, info);
+    ret = lte_send_cmd(lte, "AT+CEREG?", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
+    ret = parse_cereg(resp, &parsed);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     
     /* 获取运营商信息 */
-    lte_send_cmd(lte, "AT+COPS?", resp, sizeof(resp), 1000);
+    ret = lte_send_cmd(lte, "AT+COPS?", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     /* 解析 MCC/MNC */
     
     /* 获取基站信息 */
-    lte_send_cmd(lte, "AT+CESQ", resp, sizeof(resp), 1000);
+    ret = lte_send_cmd(lte, "AT+CESQ", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     /* 解析 LAC/CellID */
+
+    *info = parsed;
     
     return XY_LTE_OK;
 }
@@ -546,20 +593,42 @@ int xy_lte_reboot(xy_lte_t *lte)
 
 int xy_lte_get_ip(xy_lte_t *lte, char *ip, size_t len)
 {
+    char resp[64];
+    int ret;
+
     if (!lte || !ip || len == 0U) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* AT+CIFSR 获取本地 IP */
-    return lte_send_cmd(lte, "AT+CIFSR", ip, len, 5000);
+    ret = lte_send_cmd(lte, "AT+CIFSR", resp, sizeof(resp), 5000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
+    strncpy(ip, resp, len);
+    if (len > 0U) {
+        ip[len - 1U] = '\0';
+    }
+    return XY_LTE_OK;
 }
 
 int xy_lte_get_imei(xy_lte_t *lte, char *imei, size_t len)
 {
+    char resp[32];
+    int ret;
+
     if (!lte || !imei || len == 0U) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* AT+CGSN 获取 IMEI */
-    return lte_send_cmd(lte, "AT+CGSN", imei, len, 1000);
+    ret = lte_send_cmd(lte, "AT+CGSN", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
+    strncpy(imei, resp, len);
+    if (len > 0U) {
+        imei[len - 1U] = '\0';
+    }
+    return XY_LTE_OK;
 }
