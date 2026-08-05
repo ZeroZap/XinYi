@@ -86,6 +86,7 @@
 ### 2026-08-05 状态同步
 
 - 已新增 `docs/design/xinyi-net-lte-transport-proposal-2026-08-05.md`，明确 LTE 在 `XY_NET_ENABLE_LTE=0` 下继续保持 direct-opt-in/stub 状态，下一步应先补 fake transport host coverage，再考虑 UART/HAL 或 `xy_net` umbrella enablement。
+- 已新增 `docs/design/xinyi-net-can-enablement-proposal-2026-08-05.md`，明确 CAN 虽已有 `test_can` host 护栏，但仍应保持 `XY_NET_ENABLE_CAN=0` / direct-opt-in；下一步先补 CAN timeout/output-preservation/FIFO-overflow contract，再做 feature-gated `xy_net` 接入。
 
 ---
 
