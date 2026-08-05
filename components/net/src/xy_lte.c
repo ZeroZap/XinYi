@@ -254,14 +254,18 @@ int xy_lte_get_sim_info(xy_lte_t *lte, xy_lte_sim_info_t *info)
 
 int xy_lte_check_sim(xy_lte_t *lte)
 {
-    char resp[32];
+    char resp[32] = {0};
+    int ret;
     
     if (!lte || !lte->initialized) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* CPIN? 查询 SIM 状态 */
-    lte_send_cmd(lte, "AT+CPIN?", resp, sizeof(resp), 1000);
+    ret = lte_send_cmd(lte, "AT+CPIN?", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return 0;
+    }
     
     if (strstr(resp, "+CPIN: READY") != NULL) {
         return 1;  /* SIM 卡就绪 */
@@ -398,13 +402,17 @@ int xy_lte_detach(xy_lte_t *lte)
 
 int xy_lte_is_attached(xy_lte_t *lte)
 {
-    char resp[32];
+    char resp[32] = {0};
+    int ret;
     
     if (!lte) {
         return 0;
     }
     
-    lte_send_cmd(lte, "AT+CGATT?", resp, sizeof(resp), 1000);
+    ret = lte_send_cmd(lte, "AT+CGATT?", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return 0;
+    }
     
     if (strstr(resp, "+CGATT: 1") != NULL) {
         return 1;

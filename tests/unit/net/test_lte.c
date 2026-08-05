@@ -481,6 +481,50 @@ static void test_lte_send_at_preserves_response_on_transport_failures(void)
     TEST_ASSERT_EQUAL_STRING("OK", response);
 }
 
+static void test_lte_status_helpers_return_safe_inactive_on_transport_failures(void)
+{
+    xy_lte_t lte;
+    int uart_token = 1;
+
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_check_sim(NULL));
+    TEST_ASSERT_EQUAL(0, xy_lte_is_attached(NULL));
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    bind_fake_transport(&lte);
+
+    fake_transport_push_response("+CPIN: READY\r\nOK\r\n");
+    TEST_ASSERT_EQUAL(1, xy_lte_check_sim(&lte));
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CPIN?", g_transport.commands[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("+CPIN: SIM PIN\r\nOK\r\n");
+    TEST_ASSERT_EQUAL(2, xy_lte_check_sim(&lte));
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(0, xy_lte_check_sim(&lte));
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("+CGATT: 1\r\nOK\r\n");
+    TEST_ASSERT_EQUAL(1, xy_lte_is_attached(&lte));
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CGATT?", g_transport.commands[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("+CGATT: 0\r\nOK\r\n");
+    TEST_ASSERT_EQUAL(0, xy_lte_is_attached(&lte));
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(0, xy_lte_is_attached(&lte));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -492,5 +536,6 @@ int main(void)
     RUN_TEST(test_lte_read_style_helpers_preserve_outputs_on_transport_failures);
     RUN_TEST(test_lte_recv_uses_bound_transport_and_preserves_output_on_failure);
     RUN_TEST(test_lte_send_at_preserves_response_on_transport_failures);
+    RUN_TEST(test_lte_status_helpers_return_safe_inactive_on_transport_failures);
     return UNITY_END();
 }
