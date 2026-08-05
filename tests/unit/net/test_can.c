@@ -138,8 +138,9 @@ static void test_can_timeout_and_direct_mode(void)
     TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 
     config.rx_fifo_size = 2;
-    config.tx_fifo_size = 1;
+    config.tx_fifo_size = 2;
     TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_send(&can, &msg, 0));
     TEST_ASSERT_EQUAL(XY_CAN_TIMEOUT, xy_can_send(&can, &msg, 2));
     TEST_ASSERT_GREATER_OR_EQUAL_UINT32(2U, xy_os_delay_fake.call_count);
     TEST_ASSERT_EQUAL_UINT32(1U, xy_os_delay_fake.arg0_val);
@@ -153,7 +154,7 @@ static void test_can_timeout_preserves_counters_and_rx_output(void)
     xy_can_config_t config = {
         .baudrate = 500000,
         .rx_fifo_size = 2,
-        .tx_fifo_size = 1,
+        .tx_fifo_size = 2,
     };
     xy_can_msg_t msg = make_msg(0x456, 0x30);
     xy_can_msg_t rx = make_msg(0x7FF, 0xA0);
@@ -161,8 +162,10 @@ static void test_can_timeout_preserves_counters_and_rx_output(void)
 
     TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
 
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_send(&can, &msg, 0));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_tx_count(&can));
     TEST_ASSERT_EQUAL(XY_CAN_TIMEOUT, xy_can_send(&can, &msg, 2));
-    TEST_ASSERT_EQUAL_UINT32(0U, xy_can_get_tx_count(&can));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_tx_count(&can));
     TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_error_count(&can));
 
     TEST_ASSERT_EQUAL(XY_CAN_TIMEOUT, xy_can_receive(&can, &rx, 2));
@@ -211,7 +214,7 @@ static void test_can_rejects_oversized_frames_without_side_effects(void)
     xy_can_config_t config = {
         .baudrate = 500000,
         .rx_fifo_size = 2,
-        .tx_fifo_size = 1,
+        .tx_fifo_size = 2,
     };
     xy_can_msg_t oversized = make_msg(0x555, 0x44);
     xy_can_msg_t rx;
@@ -236,13 +239,43 @@ static void test_can_rejects_oversized_frames_without_side_effects(void)
     TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 }
 
+static void test_can_rejects_unusable_one_slot_fifo_config(void)
+{
+    xy_can_t can;
+    xy_can_config_t config = {
+        .baudrate = 500000,
+        .rx_fifo_size = 1,
+        .tx_fifo_size = 0,
+    };
+
+    memset(&can, 0, sizeof(can));
+    can.initialized = true;
+    can.rx_fifo = (xy_can_msg_t *)0x1234;
+    can.tx_fifo = (xy_can_msg_t *)0x5678;
+    TEST_ASSERT_EQUAL(XY_CAN_INVALID_PARAM, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_TRUE(can.initialized);
+    TEST_ASSERT_EQUAL_PTR((xy_can_msg_t *)0x1234, can.rx_fifo);
+    TEST_ASSERT_EQUAL_PTR((xy_can_msg_t *)0x5678, can.tx_fifo);
+
+    memset(&can, 0, sizeof(can));
+    can.initialized = true;
+    can.rx_fifo = (xy_can_msg_t *)0x1234;
+    can.tx_fifo = (xy_can_msg_t *)0x5678;
+    config.rx_fifo_size = 0;
+    config.tx_fifo_size = 1;
+    TEST_ASSERT_EQUAL(XY_CAN_INVALID_PARAM, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_TRUE(can.initialized);
+    TEST_ASSERT_EQUAL_PTR((xy_can_msg_t *)0x1234, can.rx_fifo);
+    TEST_ASSERT_EQUAL_PTR((xy_can_msg_t *)0x5678, can.tx_fifo);
+}
+
 static void test_can_callback_registration_requires_initialized_callback(void)
 {
     xy_can_t can;
     xy_can_config_t config = {
         .baudrate = 500000,
         .rx_fifo_size = 2,
-        .tx_fifo_size = 1,
+        .tx_fifo_size = 2,
     };
 
     memset(&can, 0, sizeof(can));
@@ -330,6 +363,7 @@ int main(void)
     RUN_TEST(test_can_timeout_preserves_counters_and_rx_output);
     RUN_TEST(test_can_fifo_overflow_counts_error_without_rx_count);
     RUN_TEST(test_can_rejects_oversized_frames_without_side_effects);
+    RUN_TEST(test_can_rejects_unusable_one_slot_fifo_config);
     RUN_TEST(test_can_callback_registration_requires_initialized_callback);
     RUN_TEST(test_can_unregister_suppresses_direct_mode_callback);
     RUN_TEST(test_can_unregister_suppresses_fifo_callbacks);

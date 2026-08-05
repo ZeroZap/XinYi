@@ -78,6 +78,10 @@ int xy_can_init(xy_can_t *can, void *hw_handle, const xy_can_config_t *config)
     if (!can || !config) {
         return XY_CAN_INVALID_PARAM;
     }
+
+    if (config->rx_fifo_size == 1U || config->tx_fifo_size == 1U) {
+        return XY_CAN_INVALID_PARAM;
+    }
     
     memset(can, 0, sizeof(*can));
     
