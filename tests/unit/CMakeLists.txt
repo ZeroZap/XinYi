@@ -238,6 +238,7 @@ target_include_directories(test_lte_public_header PRIVATE
 xy_add_unit_test(test_lte_uart_adapter lte_uart_adapter UNITY
     ${UNIT_NET}/test_lte_uart_adapter.c
     ${NET}/src/xy_lte_uart_adapter.c
+    ${NET}/src/xy_lte.c
 )
 
 # --- Test 12: nano_modbus compatibility API over mb_tiny ---

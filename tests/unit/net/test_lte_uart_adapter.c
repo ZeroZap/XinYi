@@ -211,6 +211,47 @@ static void test_lte_uart_adapter_propagates_backend_errors(void)
     TEST_ASSERT_EQUAL(XY_LTE_ERROR, transport.flush(transport.context));
 }
 
+static void test_lte_core_can_bind_uart_adapter_for_at_commands(void)
+{
+    xy_lte_uart_adapter_t adapter;
+    xy_lte_transport_t transport;
+    xy_lte_t lte;
+    uint8_t rx_buffer[16];
+    char response[16] = "sentinel";
+    int uart_token = 1;
+
+    memcpy(g_uart.rx, "OK", 2U);
+    g_uart.rx_len = 2U;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK,
+                      xy_lte_uart_adapter_init(&adapter, &g_uart, rx_buffer, sizeof(rx_buffer),
+                                               2468, fake_uart_write, fake_uart_read,
+                                               fake_uart_flush));
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_uart_adapter_get_transport(&adapter, &transport));
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_bind_transport(&lte, &transport));
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_check(&lte));
+    TEST_ASSERT_EQUAL_UINT(1U, g_uart.write_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, g_uart.read_calls);
+    TEST_ASSERT_EQUAL_UINT(2U, g_uart.tx_len);
+    TEST_ASSERT_EQUAL_MEMORY("AT", g_uart.tx, 2U);
+    TEST_ASSERT_EQUAL_UINT32(1000U, g_uart.last_write_timeout);
+    TEST_ASSERT_EQUAL_UINT32(1000U, g_uart.last_read_timeout);
+
+    g_uart.write_calls = 0U;
+    g_uart.read_calls = 0U;
+    memcpy(g_uart.rx, "READY", 5U);
+    g_uart.rx_len = 5U;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_send_at(&lte, "AT+PING", response, sizeof(response), 0));
+    TEST_ASSERT_EQUAL_STRING("AT+PING", (const char *)g_uart.tx);
+    TEST_ASSERT_EQUAL_STRING("READY", response);
+    TEST_ASSERT_EQUAL_UINT32(2468U, g_uart.last_write_timeout);
+    TEST_ASSERT_EQUAL_UINT32(2468U, g_uart.last_read_timeout);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -219,5 +260,6 @@ int main(void)
     RUN_TEST(test_lte_uart_adapter_transport_forwards_bytes_and_timeouts);
     RUN_TEST(test_lte_uart_adapter_uses_default_timeout_for_zero_timeout);
     RUN_TEST(test_lte_uart_adapter_propagates_backend_errors);
+    RUN_TEST(test_lte_core_can_bind_uart_adapter_for_at_commands);
     return UNITY_END();
 }
