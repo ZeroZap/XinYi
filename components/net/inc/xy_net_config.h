@@ -11,10 +11,21 @@
 #include <stdlib.h>
 
 // Enable/disable network protocols
+#ifndef XY_NET_ENABLE_MODBUS
 #define XY_NET_ENABLE_MODBUS    1
+#endif
+
+#ifndef XY_NET_ENABLE_MQTT
 #define XY_NET_ENABLE_MQTT      0  // Disabled due to incomplete implementation
-#define XY_NET_ENABLE_CAN       0  // Disabled due to incomplete implementation
-#define XY_NET_ENABLE_LTE       0  // Disabled by default
+#endif
+
+#ifndef XY_NET_ENABLE_CAN
+#define XY_NET_ENABLE_CAN       0  // Disabled by default; direct opt-in only
+#endif
+
+#ifndef XY_NET_ENABLE_LTE
+#define XY_NET_ENABLE_LTE       0  // Disabled by default; direct opt-in only
+#endif
 
 // Platform abstraction
 #ifndef XY_NET_TICK_TYPE

@@ -33,6 +33,14 @@ int xy_net_deinit(void);
 // AT Client (Server disabled for now)
 #include "xy_at_client.h"
 
+#if XY_NET_ENABLE_CAN
+#include "xy_can.h"
+#endif
+
+#if XY_NET_ENABLE_LTE
+#include "xy_lte.h"
+#endif
+
 #ifdef __cplusplus
 }
 #endif

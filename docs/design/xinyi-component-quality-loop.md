@@ -92,6 +92,7 @@
 
 - LTE fake transport host coverage 已在 `tests/unit/net/test_lte.c` 中落地：当前覆盖 AT/CSQ/SIM/attach/PDP/send/read-style helper 的传输失败与状态/输出保持契约；后续不应重复“补 fake transport”作为下一步，而应转向 UART/AT adapter proposal 或窄 compile-probe。
 - CAN component-edge hardening 已在 `tests/unit/net/test_can.c` 与 `test_can_public_header` 中落地：当前覆盖 timeout counter/output preservation、FIFO overflow accounting、invalid FIFO/frame guards 与 unregister callback suppression；下一步应优先做 explicit feature-gated `xy_net` build/probe，而不是继续重复同一批 CAN 边界测试。
+- Net explicit feature-gated umbrella probe 已在 `test_net_feature_gated_umbrella` 中落地：`xy_net_config.h` 默认值保持 CAN/LTE off，但允许测试/消费者用编译定义显式 opt-in；`xy_net.h` 仅在 `XY_NET_ENABLE_CAN/LTE=1` 时导出对应 public headers。下一步可做 LTE UART/AT adapter proposal 或继续 Fuel Gauge/MUX 的窄边界测试。
 
 ---
 

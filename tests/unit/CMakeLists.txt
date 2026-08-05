@@ -274,6 +274,20 @@ target_include_directories(test_net_core PRIVATE
     ${NET}/at/atc/core
 )
 
+# --- Test 15b: Net umbrella exports CAN/LTE headers only when explicitly enabled ---
+xy_add_unit_test(test_net_feature_gated_umbrella net_feature_gated_umbrella UNITY
+    ${UNIT_NET}/test_net_feature_gated_umbrella.c
+)
+target_include_directories(test_net_feature_gated_umbrella PRIVATE
+    ${NET}/modbus_tiny
+    ${NET}/modbus_full
+    ${NET}/at/atc/core
+)
+target_compile_definitions(test_net_feature_gated_umbrella PRIVATE
+    XY_NET_ENABLE_CAN=1
+    XY_NET_ENABLE_LTE=1
+)
+
 # --- Test 16: CRC core and common variants ---
 xy_add_unit_test(test_crc crypto_crc UNITY
     ${UNIT_CRYPTO}/test_crc.c
