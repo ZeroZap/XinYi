@@ -51,6 +51,14 @@ static void test_net_config_default_allocators_are_publicly_usable(void)
     XY_NET_FREE(NULL);
 }
 
+static void test_net_protocol_feature_flags_are_public(void)
+{
+    TEST_ASSERT_EQUAL_INT(1, XY_NET_ENABLE_MODBUS);
+    TEST_ASSERT_EQUAL_INT(0, XY_NET_ENABLE_MQTT);
+    TEST_ASSERT_EQUAL_INT(0, XY_NET_ENABLE_CAN);
+    TEST_ASSERT_EQUAL_INT(0, XY_NET_ENABLE_LTE);
+}
+
 static void test_net_umbrella_exports_modbus_compat(void)
 {
     mb_slave_t slave;
@@ -99,6 +107,7 @@ int main(void)
     RUN_TEST(test_net_lifecycle);
     RUN_TEST(test_net_platform_helpers);
     RUN_TEST(test_net_config_default_allocators_are_publicly_usable);
+    RUN_TEST(test_net_protocol_feature_flags_are_public);
     RUN_TEST(test_net_umbrella_exports_modbus_compat);
     RUN_TEST(test_net_umbrella_exports_at_client_contract);
     return UNITY_END();
