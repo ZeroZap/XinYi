@@ -96,6 +96,16 @@ typedef void (*xy_lte_urc_callback_t)(const char *urc);
 typedef void (*xy_lte_recv_callback_t)(uint8_t *data, size_t len);
 
 /**
+ * @brief LTE command transport hook for host tests and future UART adapters.
+ */
+typedef struct {
+    void *context;
+    int (*write)(void *context, const uint8_t *data, size_t len, uint32_t timeout_ms);
+    int (*read)(void *context, uint8_t *data, size_t len, uint32_t timeout_ms);
+    int (*flush)(void *context);
+} xy_lte_transport_t;
+
+/**
  * @brief LTE 模块句柄
  */
 typedef struct {
@@ -107,6 +117,7 @@ typedef struct {
     xy_lte_net_type_t net_type; /* 当前网络类型 */
     xy_lte_signal_t signal;     /* 信号质量 */
     xy_lte_pdp_context_t pdp;   /* PDP 配置 */
+    xy_lte_transport_t transport; /* AT 命令传输 */
     xy_lte_urc_callback_t urc_callback;   /* URC 回调 */
     xy_lte_recv_callback_t recv_callback; /* 接收回调 */
 } xy_lte_t;
@@ -119,6 +130,11 @@ typedef struct {
  * @return XY_LTE_OK 成功
  */
 int xy_lte_init(xy_lte_t *lte, void *uart_handle, uint32_t baudrate);
+
+/**
+ * @brief 绑定 LTE AT 命令传输
+ */
+int xy_lte_bind_transport(xy_lte_t *lte, const xy_lte_transport_t *transport);
 
 /**
  * @brief 反初始化 LTE 模块

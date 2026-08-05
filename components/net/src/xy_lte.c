@@ -28,6 +28,9 @@
  */
 static int lte_send_cmd(xy_lte_t *lte, const char *cmd, char *resp, size_t resp_len, uint32_t timeout)
 {
+    size_t cmd_len;
+    int ret;
+
     if (!lte || !lte->initialized || !cmd) {
         return XY_LTE_INVALID_PARAM;
     }
@@ -36,12 +39,30 @@ static int lte_send_cmd(xy_lte_t *lte, const char *cmd, char *resp, size_t resp_
         resp[0] = '\0';
     }
 
-    /* 实际实现应通过 UART 发送 */
-    (void)resp;
-    (void)resp_len;
-    (void)timeout;
-    
-    /* TODO: 实现 UART 发送 */
+    if (lte->transport.write) {
+        cmd_len = strlen(cmd);
+        ret = lte->transport.write(lte->transport.context, (const uint8_t *)cmd, cmd_len, timeout);
+        if (ret != XY_LTE_OK && ret != (int)cmd_len) {
+            return ret < 0 ? ret : XY_LTE_ERROR;
+        }
+
+        if (resp && resp_len > 0U && lte->transport.read) {
+            ret = lte->transport.read(lte->transport.context, (uint8_t *)resp, resp_len - 1U,
+                                      timeout);
+            if (ret < 0) {
+                resp[0] = '\0';
+                return ret;
+            }
+            if ((size_t)ret < resp_len) {
+                resp[ret] = '\0';
+            } else {
+                resp[resp_len - 1U] = '\0';
+            }
+        }
+
+        return XY_LTE_OK;
+    }
+
     return XY_LTE_OK;
 }
 
@@ -92,6 +113,16 @@ int xy_lte_init(xy_lte_t *lte, void *uart_handle, uint32_t baudrate)
     
     lte->initialized = true;
     
+    return XY_LTE_OK;
+}
+
+int xy_lte_bind_transport(xy_lte_t *lte, const xy_lte_transport_t *transport)
+{
+    if (!lte || !transport || !transport->write) {
+        return XY_LTE_INVALID_PARAM;
+    }
+
+    lte->transport = *transport;
     return XY_LTE_OK;
 }
 
@@ -217,15 +248,25 @@ int xy_lte_enter_pin(xy_lte_t *lte, const char *pin)
 int xy_lte_get_signal(xy_lte_t *lte, xy_lte_signal_t *signal)
 {
     char resp[32];
+    xy_lte_signal_t parsed;
+    int ret;
     
     if (!lte || !signal) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* 获取信号质量 */
-    if (lte_send_cmd(lte, "AT+CSQ", resp, sizeof(resp), 1000) == XY_LTE_OK) {
-        parse_csq(resp, signal);
+    ret = lte_send_cmd(lte, "AT+CSQ", resp, sizeof(resp), 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
     }
+
+    parsed = *signal;
+    ret = parse_csq(resp, &parsed);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
+    *signal = parsed;
     
     /* 4G 模块可获取更详细信息 */
     /* AT+CESQ 获取 RSRP/RSRQ/SINR */
@@ -258,15 +299,23 @@ int xy_lte_get_network_info(xy_lte_t *lte, xy_lte_network_info_t *info)
 
 int xy_lte_attach(xy_lte_t *lte)
 {
+    int ret;
+
     if (!lte || !lte->initialized) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* 设置全网通模式 */
-    lte_send_cmd(lte, "AT+CNACT=2", NULL, 0, 1000);
+    ret = lte_send_cmd(lte, "AT+CNACT=2", NULL, 0, 1000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     
     /* 附着网络 */
-    lte_send_cmd(lte, "AT+CGATT=1", NULL, 0, 30000);
+    ret = lte_send_cmd(lte, "AT+CGATT=1", NULL, 0, 30000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     
     lte->attached = true;
     return XY_LTE_OK;
@@ -274,12 +323,17 @@ int xy_lte_attach(xy_lte_t *lte)
 
 int xy_lte_detach(xy_lte_t *lte)
 {
+    int ret;
+
     if (!lte) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* 分离网络 */
-    lte_send_cmd(lte, "AT+CGATT=0", NULL, 0, 10000);
+    ret = lte_send_cmd(lte, "AT+CGATT=0", NULL, 0, 10000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     
     lte->attached = false;
     return XY_LTE_OK;
@@ -304,6 +358,7 @@ int xy_lte_is_attached(xy_lte_t *lte)
 int xy_lte_set_pdp_context(xy_lte_t *lte, xy_lte_pdp_context_t *ctx)
 {
     char cmd[192];
+    int ret;
     
     if (!lte || !ctx) {
         return XY_LTE_INVALID_PARAM;
@@ -313,7 +368,13 @@ int xy_lte_set_pdp_context(xy_lte_t *lte, xy_lte_pdp_context_t *ctx)
     snprintf(cmd, sizeof(cmd), "AT+CSTT=\"%s\",\"%s\",\"%s\"",
              ctx->apn, ctx->username, ctx->password);
     
-    return lte_send_cmd(lte, cmd, NULL, 0, 10000);
+    ret = lte_send_cmd(lte, cmd, NULL, 0, 10000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
+
+    lte->pdp = *ctx;
+    return XY_LTE_OK;
 }
 
 int xy_lte_activate_pdp(xy_lte_t *lte, uint8_t cid)

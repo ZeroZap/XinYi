@@ -9,13 +9,114 @@
 
 #include <string.h>
 
+#define LTE_TRANSPORT_MAX_CMDS 8U
+#define LTE_TRANSPORT_MAX_RESP 8U
+#define LTE_TRANSPORT_TEXT_MAX 64U
+
+typedef struct {
+    const char *responses[LTE_TRANSPORT_MAX_RESP];
+    int write_results[LTE_TRANSPORT_MAX_CMDS];
+    char commands[LTE_TRANSPORT_MAX_CMDS][LTE_TRANSPORT_TEXT_MAX];
+    size_t command_count;
+    size_t response_count;
+    size_t response_index;
+    size_t write_result_count;
+    size_t write_result_index;
+} fake_lte_transport_t;
+
 DEFINE_FFF_GLOBALS;
 
 FAKE_VOID_FUNC(on_urc, const char *)
 FAKE_VOID_FUNC(on_recv, uint8_t *, size_t)
 
+static fake_lte_transport_t g_transport;
+
+static void fake_transport_reset(void)
+{
+    memset(&g_transport, 0, sizeof(g_transport));
+}
+
+static void fake_transport_push_response(const char *response)
+{
+    TEST_ASSERT_LESS_THAN_UINT(LTE_TRANSPORT_MAX_RESP, g_transport.response_count);
+    g_transport.responses[g_transport.response_count++] = response;
+}
+
+static void fake_transport_push_write_result(int result)
+{
+    TEST_ASSERT_LESS_THAN_UINT(LTE_TRANSPORT_MAX_CMDS, g_transport.write_result_count);
+    g_transport.write_results[g_transport.write_result_count++] = result;
+}
+
+static int fake_transport_write(void *context, const uint8_t *data, size_t len,
+                                uint32_t timeout_ms)
+{
+    fake_lte_transport_t *transport = (fake_lte_transport_t *)context;
+    size_t copy_len;
+
+    (void)timeout_ms;
+    TEST_ASSERT_NOT_NULL(transport);
+    TEST_ASSERT_NOT_NULL(data);
+    TEST_ASSERT_LESS_THAN_UINT(LTE_TRANSPORT_MAX_CMDS, transport->command_count);
+
+    copy_len = len;
+    if (copy_len >= LTE_TRANSPORT_TEXT_MAX) {
+        copy_len = LTE_TRANSPORT_TEXT_MAX - 1U;
+    }
+    memcpy(transport->commands[transport->command_count], data, copy_len);
+    transport->commands[transport->command_count][copy_len] = '\0';
+    transport->command_count++;
+
+    if (transport->write_result_index < transport->write_result_count) {
+        return transport->write_results[transport->write_result_index++];
+    }
+    return XY_LTE_OK;
+}
+
+static int fake_transport_read(void *context, uint8_t *data, size_t len, uint32_t timeout_ms)
+{
+    fake_lte_transport_t *transport = (fake_lte_transport_t *)context;
+    const char *response;
+    size_t response_len;
+    size_t copy_len;
+
+    (void)timeout_ms;
+    TEST_ASSERT_NOT_NULL(transport);
+    TEST_ASSERT_NOT_NULL(data);
+
+    if (transport->response_index >= transport->response_count) {
+        return 0;
+    }
+
+    response = transport->responses[transport->response_index++];
+    if (!response) {
+        return XY_LTE_ERROR;
+    }
+
+    response_len = strlen(response);
+    copy_len = response_len;
+    if (copy_len > len) {
+        copy_len = len;
+    }
+    memcpy(data, response, copy_len);
+    return (int)copy_len;
+}
+
+static void bind_fake_transport(xy_lte_t *lte)
+{
+    xy_lte_transport_t transport = {
+        .context = &g_transport,
+        .write = fake_transport_write,
+        .read = fake_transport_read,
+        .flush = NULL,
+    };
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_bind_transport(lte, &transport));
+}
+
 void setUp(void)
 {
+    fake_transport_reset();
     RESET_FAKE(on_urc);
     RESET_FAKE(on_recv);
     FFF_RESET_HISTORY();
@@ -59,6 +160,8 @@ static void test_lte_lifecycle_and_callbacks(void)
     strcpy(pdp.username, "user");
     strcpy(pdp.password, "pass");
     TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_set_pdp_context(&lte, &pdp));
+    TEST_ASSERT_EQUAL_UINT8(2U, lte.pdp.cid);
+    TEST_ASSERT_EQUAL_STRING("iot.example", lte.pdp.apn);
 
     TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_attach(&lte));
     TEST_ASSERT_EQUAL_INT(0, xy_lte_is_attached(&lte));
@@ -121,10 +224,100 @@ static void test_lte_parameter_validation(void)
     TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_deinit(&lte));
 }
 
+static void test_lte_transport_drives_check_and_signal_contracts(void)
+{
+    xy_lte_t lte;
+    xy_lte_signal_t signal = {
+        .rssi = -99,
+        .ber = 7,
+        .rsrp = -140,
+        .rsrq = -20,
+        .sinr = -5,
+    };
+    int uart_token = 1;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_bind_transport(NULL, NULL));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_bind_transport(&lte, NULL));
+
+    bind_fake_transport(&lte);
+    fake_transport_push_response("\r\nOK\r\n");
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_check(&lte));
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT", g_transport.commands[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("\r\nERROR\r\n");
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_check(&lte));
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("+CSQ: 17,3\r\nOK\r\n");
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_get_signal(&lte, &signal));
+    TEST_ASSERT_EQUAL_INT(17, signal.rssi);
+    TEST_ASSERT_EQUAL_INT(3, signal.ber);
+    TEST_ASSERT_EQUAL_INT(-140, signal.rsrp);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("ERROR");
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_get_signal(&lte, &signal));
+    TEST_ASSERT_EQUAL_INT(17, signal.rssi);
+    TEST_ASSERT_EQUAL_INT(3, signal.ber);
+}
+
+static void test_lte_transport_failures_preserve_state(void)
+{
+    xy_lte_t lte;
+    xy_lte_pdp_context_t previous;
+    xy_lte_pdp_context_t next;
+    int uart_token = 1;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    bind_fake_transport(&lte);
+
+    lte.attached = false;
+    fake_transport_push_write_result(XY_LTE_ERROR);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_attach(&lte));
+    TEST_ASSERT_FALSE(lte.attached);
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CNACT=2", g_transport.commands[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_write_result(XY_LTE_OK);
+    fake_transport_push_write_result(XY_LTE_TIMEOUT);
+    TEST_ASSERT_EQUAL(XY_LTE_TIMEOUT, xy_lte_attach(&lte));
+    TEST_ASSERT_FALSE(lte.attached);
+    TEST_ASSERT_EQUAL_UINT(2U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CGATT=1", g_transport.commands[1]);
+
+    lte.attached = true;
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_write_result(XY_LTE_ERROR);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_detach(&lte));
+    TEST_ASSERT_TRUE(lte.attached);
+
+    previous = lte.pdp;
+    memset(&next, 0, sizeof(next));
+    next.cid = 3;
+    strcpy(next.apn, "private.apn");
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_write_result(XY_LTE_TIMEOUT);
+    TEST_ASSERT_EQUAL(XY_LTE_TIMEOUT, xy_lte_set_pdp_context(&lte, &next));
+    TEST_ASSERT_EQUAL_UINT8(previous.cid, lte.pdp.cid);
+    TEST_ASSERT_EQUAL_STRING(previous.apn, lte.pdp.apn);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_lte_lifecycle_and_callbacks);
     RUN_TEST(test_lte_parameter_validation);
+    RUN_TEST(test_lte_transport_drives_check_and_signal_contracts);
+    RUN_TEST(test_lte_transport_failures_preserve_state);
     return UNITY_END();
 }
