@@ -361,6 +361,12 @@ static void test_uart_rejects_lengths_that_cannot_be_encoded(void)
     xy_mux_deinit(&mgr);
 }
 
+static int32_t fail_header_write_impl(uint8_t channel, const void *data, size_t len)
+{
+    int32_t ret = mock_uart_write_impl(channel, data, len);
+    return ret == (int32_t)len ? XY_MUX_ERROR : ret;
+}
+
 static int32_t fail_after_header_write_impl(uint8_t channel, const void *data, size_t len)
 {
     if (mock_uart_write_fake.call_count == 1U) {
@@ -454,6 +460,28 @@ static void test_uart_write_returns_short_payload_result(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_uart_read_preserves_output_when_header_write_fails(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+    uint8_t data[4] = {0x10, 0x20, 0x30, 0x40};
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 3, &ops, NULL));
+    mock_uart_write_fake.custom_fake = fail_header_write_impl;
+
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR, xy_mux_uart_read(&mgr, 3, data, sizeof(data), 15));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_read_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX8(0x10, data[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x20, data[1]);
+    TEST_ASSERT_EQUAL_HEX8(0x30, data[2]);
+    TEST_ASSERT_EQUAL_HEX8(0x40, data[3]);
+
+    xy_mux_deinit(&mgr);
+}
+
 static void test_uart_read_preserves_tail_when_backend_short_reads(void)
 {
     uint8_t tx[BUFFER_SIZE];
@@ -491,6 +519,7 @@ int main(void)
     RUN_TEST(test_uart_write_stops_when_payload_write_fails);
     RUN_TEST(test_uart_write_returns_short_header_result_without_payload);
     RUN_TEST(test_uart_write_returns_short_payload_result);
+    RUN_TEST(test_uart_read_preserves_output_when_header_write_fails);
     RUN_TEST(test_uart_read_preserves_tail_when_backend_short_reads);
     return UNITY_END();
 }
