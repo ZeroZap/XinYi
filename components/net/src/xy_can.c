@@ -265,7 +265,7 @@ int xy_can_receive(xy_can_t *can, xy_can_msg_t *msg, uint32_t timeout)
 
 int xy_can_register_rx_callback(xy_can_t *can, xy_can_rx_callback_t callback, void *user_data)
 {
-    if (!can) {
+    if (!can || !can->initialized || !callback) {
         return XY_CAN_INVALID_PARAM;
     }
     
@@ -278,7 +278,7 @@ int xy_can_register_rx_callback(xy_can_t *can, xy_can_rx_callback_t callback, vo
 
 int xy_can_unregister_rx_callback(xy_can_t *can)
 {
-    if (!can) {
+    if (!can || !can->initialized) {
         return XY_CAN_INVALID_PARAM;
     }
     

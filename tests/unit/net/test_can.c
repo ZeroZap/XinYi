@@ -236,6 +236,40 @@ static void test_can_rejects_oversized_frames_without_side_effects(void)
     TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 }
 
+static void test_can_callback_registration_requires_initialized_callback(void)
+{
+    xy_can_t can;
+    xy_can_config_t config = {
+        .baudrate = 500000,
+        .rx_fifo_size = 2,
+        .tx_fifo_size = 1,
+    };
+
+    memset(&can, 0, sizeof(can));
+    TEST_ASSERT_EQUAL(XY_CAN_INVALID_PARAM,
+                      xy_can_register_rx_callback(NULL, on_can_rx, (void *)0x1234));
+    TEST_ASSERT_EQUAL(XY_CAN_INVALID_PARAM,
+                      xy_can_register_rx_callback(&can, on_can_rx, (void *)0x1234));
+    TEST_ASSERT_NULL(can.rx_callback);
+    TEST_ASSERT_NULL(can.callback_user_data);
+    TEST_ASSERT_EQUAL(XY_CAN_INVALID_PARAM, xy_can_unregister_rx_callback(&can));
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_EQUAL(XY_CAN_INVALID_PARAM,
+                      xy_can_register_rx_callback(&can, NULL, (void *)0x1234));
+    TEST_ASSERT_NULL(can.rx_callback);
+    TEST_ASSERT_NULL(can.callback_user_data);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_register_rx_callback(&can, on_can_rx, (void *)0x1234));
+    TEST_ASSERT_EQUAL_PTR(on_can_rx, can.rx_callback);
+    TEST_ASSERT_EQUAL_PTR((void *)0x1234, can.callback_user_data);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
+    TEST_ASSERT_EQUAL(XY_CAN_INVALID_PARAM, xy_can_unregister_rx_callback(&can));
+    TEST_ASSERT_EQUAL_PTR(on_can_rx, can.rx_callback);
+    TEST_ASSERT_EQUAL_PTR((void *)0x1234, can.callback_user_data);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -244,5 +278,6 @@ int main(void)
     RUN_TEST(test_can_timeout_preserves_counters_and_rx_output);
     RUN_TEST(test_can_fifo_overflow_counts_error_without_rx_count);
     RUN_TEST(test_can_rejects_oversized_frames_without_side_effects);
+    RUN_TEST(test_can_callback_registration_requires_initialized_callback);
     return UNITY_END();
 }
