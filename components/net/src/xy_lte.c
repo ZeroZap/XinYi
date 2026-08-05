@@ -542,10 +542,21 @@ int xy_lte_send(xy_lte_t *lte, uint8_t link_id, const uint8_t *data, size_t len)
 
 int xy_lte_recv(xy_lte_t *lte, uint8_t link_id, uint8_t *data, size_t len, uint32_t timeout)
 {
-    (void)timeout;
-    
-    if (!lte || !data || len == 0 || link_id >= LTE_MAX_LINKS) {
+    int ret;
+
+    if (!lte || !lte->initialized || !data || len == 0 || link_id >= LTE_MAX_LINKS) {
         return XY_LTE_INVALID_PARAM;
+    }
+
+    if (lte->transport.read) {
+        ret = lte->transport.read(lte->transport.context, data, len, timeout);
+        if (ret < 0) {
+            return ret;
+        }
+        if (ret > 0 && lte->recv_callback) {
+            lte->recv_callback(data, (size_t)ret);
+        }
+        return ret;
     }
 
     memset(data, 0, len);

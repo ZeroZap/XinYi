@@ -421,6 +421,35 @@ static void test_lte_read_style_helpers_preserve_outputs_on_transport_failures(v
                       xy_lte_get_module_info(NULL, manufacturer, model, revision));
 }
 
+static void test_lte_recv_uses_bound_transport_and_preserves_output_on_failure(void)
+{
+    xy_lte_t lte;
+    uint8_t rx[8] = {0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5, 0xA5};
+    uint8_t before[sizeof(rx)];
+    int uart_token = 1;
+
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_recv(NULL, 0, rx, sizeof(rx), 10));
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    bind_fake_transport(&lte);
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_register_recv(&lte, on_recv));
+
+    fake_transport_push_response("DATA");
+    TEST_ASSERT_EQUAL_INT(4, xy_lte_recv(&lte, 0, rx, sizeof(rx), 25));
+    TEST_ASSERT_EQUAL_MEMORY("DATA", rx, 4U);
+    TEST_ASSERT_EQUAL_UINT(1U, on_recv_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(rx, on_recv_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT(4U, on_recv_fake.arg1_val);
+
+    memcpy(before, rx, sizeof(rx));
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_recv(&lte, 0, rx, sizeof(rx), 25));
+    TEST_ASSERT_EQUAL_MEMORY(before, rx, sizeof(rx));
+    TEST_ASSERT_EQUAL_UINT(1U, on_recv_fake.call_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -430,5 +459,6 @@ int main(void)
     RUN_TEST(test_lte_transport_failures_preserve_state);
     RUN_TEST(test_lte_transport_preserves_pdp_and_send_state_on_failures);
     RUN_TEST(test_lte_read_style_helpers_preserve_outputs_on_transport_failures);
+    RUN_TEST(test_lte_recv_uses_bound_transport_and_preserves_output_on_failure);
     return UNITY_END();
 }
