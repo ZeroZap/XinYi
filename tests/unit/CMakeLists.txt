@@ -207,6 +207,17 @@ xy_add_unit_test(test_can can_component UNITY
     ${CLIB}/xy_stdio.c
 )
 
+# --- Test 10b: CAN public header include-root smoke ---
+xy_add_unit_test(test_can_public_header can_public_header UNITY
+    ${UNIT_NET}/test_can_public_header.c
+)
+
+target_include_directories(test_can_public_header PRIVATE
+    ${CLIB}
+    ${NET}/inc
+    ${ROOT}/tests/unity
+)
+
 # --- Test 11: LTE component lifecycle, callback storage, and validation ---
 xy_add_unit_test(test_lte lte_component UNITY
     ${UNIT_NET}/test_lte.c
