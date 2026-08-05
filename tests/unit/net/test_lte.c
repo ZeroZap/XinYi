@@ -80,6 +80,9 @@ static void test_lte_parameter_validation(void)
     xy_lte_t lte;
     uint8_t payload[2] = {1, 2};
     uint8_t rx[4] = {0x11, 0x22, 0x33, 0x44};
+    char response[8];
+    char ip[16];
+    char imei[16];
     int uart_token = 1;
 
     TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_init(NULL, &uart_token, 115200));
@@ -105,6 +108,13 @@ static void test_lte_parameter_validation(void)
     TEST_ASSERT_EQUAL_INT(0, xy_lte_recv(&lte, 0, rx, sizeof(rx), 0));
     TEST_ASSERT_EQUAL_UINT8(0U, rx[0]);
     TEST_ASSERT_EQUAL_UINT8(0U, rx[3]);
+
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM,
+                      xy_lte_send_at(NULL, "AT", response, sizeof(response), 1000));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM,
+                      xy_lte_send_at(&lte, NULL, response, sizeof(response), 1000));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_get_ip(&lte, ip, 0));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_get_imei(&lte, imei, 0));
 
     TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_close(&lte, 8));
     TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_close(&lte, 0));

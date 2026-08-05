@@ -28,9 +28,15 @@
  */
 static int lte_send_cmd(xy_lte_t *lte, const char *cmd, char *resp, size_t resp_len, uint32_t timeout)
 {
+    if (!lte || !lte->initialized || !cmd) {
+        return XY_LTE_INVALID_PARAM;
+    }
+
+    if (resp && resp_len > 0U) {
+        resp[0] = '\0';
+    }
+
     /* 实际实现应通过 UART 发送 */
-    (void)lte;
-    (void)cmd;
     (void)resp;
     (void)resp_len;
     (void)timeout;
@@ -452,7 +458,7 @@ int xy_lte_reboot(xy_lte_t *lte)
 
 int xy_lte_get_ip(xy_lte_t *lte, char *ip, size_t len)
 {
-    if (!lte || !ip) {
+    if (!lte || !ip || len == 0U) {
         return XY_LTE_INVALID_PARAM;
     }
     
@@ -462,7 +468,7 @@ int xy_lte_get_ip(xy_lte_t *lte, char *ip, size_t len)
 
 int xy_lte_get_imei(xy_lte_t *lte, char *imei, size_t len)
 {
-    if (!lte || !imei) {
+    if (!lte || !imei || len == 0U) {
         return XY_LTE_INVALID_PARAM;
     }
     
