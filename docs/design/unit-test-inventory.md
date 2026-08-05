@@ -42,7 +42,7 @@
 | `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `kernel` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `mux` | 5 | 5 | 0 | 0 | 0 | 5 |
-| `net` | 12 | 12 | 0 | 0 | 0 | 5 |
+| `net` | 13 | 13 | 0 | 0 | 0 | 5 |
 | `pid` | 2 | 2 | 0 | 0 | 0 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `sensor` | 48 | 48 | 0 | 0 | 0 | 48 |
@@ -124,6 +124,7 @@ component example sources rather than adding extra `tests/unit/*.c` files; curre
 | `tests/unit/net/test_iso7816_example_main.c` | `unity` | 0 |
 | `tests/unit/net/test_lte.c` | `unity` | 0 |
 | `tests/unit/net/test_lte_public_header.c` | `unity` | 0 | LTE public include-root/self-contained API smoke |
+| `tests/unit/net/test_lte_uart_adapter.c` | `unity` | 0 | LTE callback-backed UART adapter transport seam |
 | `tests/unit/net/test_modbus_legacy.c` | `unity` | 3 |
 | `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |

@@ -234,6 +234,12 @@ target_include_directories(test_lte_public_header PRIVATE
     ${ROOT}/tests/unity
 )
 
+# --- Test 11c: LTE callback-backed UART adapter transport seam ---
+xy_add_unit_test(test_lte_uart_adapter lte_uart_adapter UNITY
+    ${UNIT_NET}/test_lte_uart_adapter.c
+    ${NET}/src/xy_lte_uart_adapter.c
+)
+
 # --- Test 12: nano_modbus compatibility API over mb_tiny ---
 xy_add_unit_test(test_nano_modbus nano_modbus_compat UNITY
     ${UNIT_NET}/test_nano_modbus.c
