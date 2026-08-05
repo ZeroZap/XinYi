@@ -270,6 +270,58 @@ static void test_can_callback_registration_requires_initialized_callback(void)
     TEST_ASSERT_EQUAL_PTR((void *)0x1234, can.callback_user_data);
 }
 
+static void test_can_unregister_suppresses_direct_mode_callback(void)
+{
+    xy_can_t can;
+    xy_can_config_t config = {
+        .baudrate = 125000,
+        .rx_fifo_size = 0,
+        .tx_fifo_size = 0,
+    };
+    xy_can_msg_t rx = make_msg(0x200, 0x55);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_register_rx_callback(&can, on_can_rx, NULL));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_unregister_rx_callback(&can));
+    TEST_ASSERT_NULL(can.rx_callback);
+    TEST_ASSERT_NULL(can.callback_user_data);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_receive(&can, &rx, 0));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_rx_count(&can));
+    TEST_ASSERT_EQUAL_UINT(0U, on_can_rx_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
+}
+
+static void test_can_unregister_suppresses_fifo_callbacks(void)
+{
+    xy_can_t can;
+    xy_can_config_t config = {
+        .baudrate = 500000,
+        .rx_fifo_size = 3,
+        .tx_fifo_size = 0,
+    };
+    xy_can_msg_t queued = make_msg(0x201, 0x66);
+    xy_can_msg_t rx;
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_register_rx_callback(&can, on_can_rx, NULL));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_unregister_rx_callback(&can));
+
+    xy_can_isr_receive(&can, &queued);
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_rx_count(&can));
+    TEST_ASSERT_EQUAL_UINT(0U, on_can_rx_fake.call_count);
+
+    memset(&rx, 0, sizeof(rx));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_receive(&can, &rx, 0));
+    TEST_ASSERT_EQUAL_UINT32(queued.id, rx.id);
+    TEST_ASSERT_EQUAL_HEX8(queued.data[0], rx.data[0]);
+    TEST_ASSERT_EQUAL_UINT32(2U, xy_can_get_rx_count(&can));
+    TEST_ASSERT_EQUAL_UINT(0U, on_can_rx_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -279,5 +331,7 @@ int main(void)
     RUN_TEST(test_can_fifo_overflow_counts_error_without_rx_count);
     RUN_TEST(test_can_rejects_oversized_frames_without_side_effects);
     RUN_TEST(test_can_callback_registration_requires_initialized_callback);
+    RUN_TEST(test_can_unregister_suppresses_direct_mode_callback);
+    RUN_TEST(test_can_unregister_suppresses_fifo_callbacks);
     return UNITY_END();
 }
