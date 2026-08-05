@@ -1,7 +1,7 @@
 # XinYi Net CAN Enablement Proposal
 
 **Date:** 2026-08-05  
-**Status:** Draft / design-stage guardrail  
+**Status:** Draft / design-stage guardrail; component hardening contracts present
 **Scope:** `components/net/inc/xy_can.h`, `components/net/src/xy_can.c`, `components/net/CMakeLists.txt`, `tests/unit/net/test_can.c`  
 **Decision type:** proposal only; no default `xy_net` library enablement in this slice
 
@@ -12,7 +12,10 @@ The Net component currently keeps CAN in a direct-opt-in state:
 - `components/net/inc/xy_net_config.h` defines `XY_NET_ENABLE_CAN` as `0`.
 - `components/net/CMakeLists.txt` still comments `src/xy_can.c` out of the `xy_net` static library with the note `disabled - incomplete implementation`.
 - `components/net/inc/xy_can.h` and `components/net/src/xy_can.c` are nevertheless active enough to be covered by `tests/unit/net/test_can.c`.
-- `test_can` currently guards init/deinit, start/stop, callback registration, direct mode, FIFO RX/TX, timeout polling, and FIFO usage.
+- `test_can` currently guards init/deinit, start/stop, callback registration, direct mode,
+  FIFO RX/TX, timeout polling, FIFO usage, invalid one-slot FIFO rejection, timeout
+  output/counter preservation, FIFO overflow accounting, oversized-frame rejection, and
+  unregister callback suppression.
 
 This means CAN is no longer an untested placeholder, but it is also not ready to become a default `xy_net` dependency without tightening ownership and platform behavior.
 
@@ -38,17 +41,18 @@ Recommended sequence:
 4. Treat `test_can` as the current contract owner for component-level behavior, not proof of target HAL integration.
 5. Add a separate HAL-adapter test/probe before declaring CAN default-on.
 
-## Contracts to lock before feature-gated build integration
+## Contracts locked before feature-gated build integration
 
-Future implementation/test slices should extend `test_can` or add a focused companion target for these cases:
+`test_can` now covers the component-level edge contracts that were needed before touching
+`xy_net` feature-gated build policy:
 
-- reject invalid FIFO sizes that make the ring-buffer unusable, or document the one-slot-capacity rule explicitly;
+- reject invalid FIFO sizes that make the ring-buffer unusable;
 - preserve `tx_count` when FIFO send times out;
 - preserve caller RX output when FIFO receive times out;
-- record `error_count` consistently for full FIFO ISR drops, send timeouts, and receive timeouts if the public counter is intended as a component statistic;
-- make `xy_can_isr_receive()` report or count FIFO overflow instead of silently dropping the frame;
+- record `error_count` for full FIFO ISR drops, send timeouts, and receive timeouts;
+- make `xy_can_isr_receive()` count invalid/overflowed frames instead of silently dropping them;
 - verify callback unregister prevents both direct-mode and FIFO receive callback delivery;
-- compile-probe the public header with only canonical public include roots;
+- compile-probe the public header with only canonical public include roots via `test_can_public_header`;
 - compile-probe the platform adapter path for PC and STM32U5 before enabling `xy_can.c` through `xy_net`.
 
 ## Relationship with `xy_net`
@@ -72,12 +76,23 @@ CAN can move out of the `disabled - incomplete implementation` bucket only after
 4. PC `make test-unit` passes with CAN still default-disabled.
 5. STM32U5 build either compiles the gated CAN path or explicitly documents the missing HAL adapter as a blocker.
 
+## 2026-08-06 status
+
+The CAN hardening test batch is now represented in the active `can_component` CTest, so the
+next CAN slice should not add another component-edge test unless a new real failure appears.
+The remaining design risk is feature-gated `xy_net` integration versus target HAL adapter
+readiness.
+
 ## Suggested next slice
 
-Add one small CAN hardening test batch before changing default build policy:
+Add a feature-gated build/probe slice before changing default build policy:
 
-- paths: `tests/unit/net/test_can.c`, `components/net/src/xy_can.c` if a real contract bug is exposed;
-- focused verification: `cmake --build build/tests/unit --target test_can -j$(nproc)` and `cd build/tests/unit && ctest --output-on-failure -R '^can_component$'`;
-- full gate: `make test-unit && git diff --check`.
+- paths: `components/net/CMakeLists.txt`, `components/net/inc/xy_net_config.h`,
+  `components/net/inc/xy_net.h` or a small compile-probe test if the umbrella policy changes;
+- focused verification: keep `can_component` and `can_public_header` passing, then configure a
+  temporary explicit `XY_NET_ENABLE_CAN=1`/CMake-gated build if the slice adds the gate;
+- full gate: `make test-unit && git diff --check`, plus `make HAL_PLATFORM=STM32U5` if the gated
+  source enters the target build.
 
-This keeps CAN progression reversible and prevents the Net library from implying target-ready CAN support before the component-level edge contracts are explicit.
+This keeps CAN progression reversible and prevents the Net library from implying target-ready
+CAN support before the adapter path is compile-probed.

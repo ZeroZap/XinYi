@@ -1,7 +1,7 @@
 # XinYi Net LTE Transport Proposal
 
 **Date:** 2026-08-05  
-**Status:** Draft / design-stage guardrail  
+**Status:** Draft / design-stage guardrail; fake transport host contracts present
 **Scope:** `components/net/inc/xy_lte.h`, `components/net/src/xy_lte.c`, active Net host tests  
 **Decision type:** proposal only; no UART/HAL implementation change in this slice
 
@@ -12,7 +12,9 @@ The Net component currently treats LTE as an explicitly disabled, direct-opt-in 
 - `XY_NET_ENABLE_LTE` defaults to `0` in `components/net/inc/xy_net_config.h`.
 - `xy_lte.h` exposes a broad modem API for attach, PDP, socket-like send/recv, AT command helpers, signal and SIM queries.
 - `xy_lte.c` preserves caller-visible lifecycle/callback state but still uses an internal `lte_send_cmd()` placeholder rather than a real UART/AT transport.
-- `tests/unit/net/test_lte.c` guards lifecycle, callback registration, parameter validation, and placeholder recv zero-fill behavior.
+- `tests/unit/net/test_lte.c` guards lifecycle, callback registration, parameter validation,
+  fake transport command success/failure, state preservation, read-style output preservation,
+  and the placeholder no-transport recv zero-fill behavior.
 - `tests/unit/net/test_net_core.c` documents the current umbrella contract: LTE headers remain directly includable, but LTE is not auto-exported/enabled by `xy_net`.
 
 This means LTE should not be switched on through `xy_net` until transport ownership is explicit and host-testable.
@@ -85,12 +87,23 @@ LTE can move from `XY_NET_ENABLE_LTE=0` to an opt-in or default-on policy only a
 4. `xy_net` umbrella policy explicitly states whether LTE is exported by `xy_net.h` or included directly through `xy_lte.h`.
 5. README status changes from "stub" to "transport-backed" with exact supported modem command subset.
 
+## 2026-08-06 status
+
+The first fake-transport host coverage slice is now present in `test_lte`: it injects a
+queued write/read transport, checks command strings, verifies `AT`/`CSQ`/SIM/attach/PDP/send
+failure paths, and preserves caller-visible state/outputs on transport failures. LTE should
+still remain `XY_NET_ENABLE_LTE=0` by default; this test coverage proves the internal
+transport seam, not a target UART adapter.
+
 ## Suggested next slice
 
-Add fake-transport host coverage first, without enabling LTE globally:
+After the fake-transport host contracts, keep LTE disabled globally and add the next reversible
+slice:
 
-- paths: `components/net/inc/xy_lte.h`, `components/net/src/xy_lte.c`, `tests/unit/net/test_lte.c`;
+- paths: `components/net/inc/xy_lte.h`, `components/net/src/xy_lte.c`, `tests/unit/net/test_lte.c`,
+  plus a narrowly scoped adapter/proposal path if UART behavior is still design-stage;
 - focused verification: `cmake --build build/tests/unit --target test_lte -j$(nproc)` and `cd build/tests/unit && ctest --output-on-failure -R '^lte_component$'`;
 - full gate: `make test-unit && git diff --check`.
 
-This keeps the design reversible and prevents a broad Net API migration before the core transport contracts are proven.
+This keeps the design reversible and prevents a broad Net API migration before a real UART/AT
+adapter is compile-probed on PC and STM32U5.

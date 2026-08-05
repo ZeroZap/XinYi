@@ -88,6 +88,11 @@
 - 已新增 `docs/design/xinyi-net-lte-transport-proposal-2026-08-05.md`，明确 LTE 在 `XY_NET_ENABLE_LTE=0` 下继续保持 direct-opt-in/stub 状态，下一步应先补 fake transport host coverage，再考虑 UART/HAL 或 `xy_net` umbrella enablement。
 - 已新增 `docs/design/xinyi-net-can-enablement-proposal-2026-08-05.md`，明确 CAN 虽已有 `test_can` host 护栏，但仍应保持 `XY_NET_ENABLE_CAN=0` / direct-opt-in；下一步先补 CAN timeout/output-preservation/FIFO-overflow contract，再做 feature-gated `xy_net` 接入。
 
+### 2026-08-06 状态同步
+
+- LTE fake transport host coverage 已在 `tests/unit/net/test_lte.c` 中落地：当前覆盖 AT/CSQ/SIM/attach/PDP/send/read-style helper 的传输失败与状态/输出保持契约；后续不应重复“补 fake transport”作为下一步，而应转向 UART/AT adapter proposal 或窄 compile-probe。
+- CAN component-edge hardening 已在 `tests/unit/net/test_can.c` 与 `test_can_public_header` 中落地：当前覆盖 timeout counter/output preservation、FIFO overflow accounting、invalid FIFO/frame guards 与 unregister callback suppression；下一步应优先做 explicit feature-gated `xy_net` build/probe，而不是继续重复同一批 CAN 边界测试。
+
 ---
 
 ## 5. 周度架构回顾
