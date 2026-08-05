@@ -123,6 +123,7 @@ component example sources rather than adding extra `tests/unit/*.c` files; curre
 | `tests/unit/net/test_iso7816.c` | `unity` | 0 |
 | `tests/unit/net/test_iso7816_example_main.c` | `unity` | 0 |
 | `tests/unit/net/test_lte.c` | `unity` | 0 |
+| `tests/unit/net/test_lte_public_header.c` | `unity` | 0 | LTE public include-root/self-contained API smoke |
 | `tests/unit/net/test_modbus_legacy.c` | `unity` | 3 |
 | `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |

@@ -224,6 +224,16 @@ xy_add_unit_test(test_lte lte_component UNITY
     ${NET}/src/xy_lte.c
 )
 
+# --- Test 11b: LTE public header include-root smoke ---
+xy_add_unit_test(test_lte_public_header lte_public_header UNITY
+    ${UNIT_NET}/test_lte_public_header.c
+)
+
+target_include_directories(test_lte_public_header PRIVATE
+    ${NET}/inc
+    ${ROOT}/tests/unity
+)
+
 # --- Test 12: nano_modbus compatibility API over mb_tiny ---
 xy_add_unit_test(test_nano_modbus nano_modbus_compat UNITY
     ${UNIT_NET}/test_nano_modbus.c
