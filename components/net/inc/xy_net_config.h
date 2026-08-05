@@ -8,6 +8,8 @@
 
 #include "xy_typedef.h"
 
+#include <stdlib.h>
+
 // Enable/disable network protocols
 #define XY_NET_ENABLE_MODBUS    1
 #define XY_NET_ENABLE_MQTT      0  // Disabled due to incomplete implementation

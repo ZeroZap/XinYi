@@ -36,6 +36,21 @@ static void test_net_platform_helpers(void)
     xy_net_free(NULL);
 }
 
+static void test_net_config_default_allocators_are_publicly_usable(void)
+{
+    uint8_t *buf = (uint8_t *)XY_NET_MALLOC(3U);
+
+    TEST_ASSERT_NOT_NULL(buf);
+    buf[0] = 0x11U;
+    buf[1] = 0x22U;
+    buf[2] = 0x33U;
+    TEST_ASSERT_EQUAL_UINT8(0x11U, buf[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x22U, buf[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x33U, buf[2]);
+    XY_NET_FREE(buf);
+    XY_NET_FREE(NULL);
+}
+
 static void test_net_umbrella_exports_modbus_compat(void)
 {
     mb_slave_t slave;
@@ -61,6 +76,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_net_lifecycle);
     RUN_TEST(test_net_platform_helpers);
+    RUN_TEST(test_net_config_default_allocators_are_publicly_usable);
     RUN_TEST(test_net_umbrella_exports_modbus_compat);
     return UNITY_END();
 }
