@@ -63,6 +63,28 @@ static void test_net_umbrella_exports_modbus_compat(void)
     TEST_ASSERT_EQUAL(NANO_MB_OK, nano_mb_slave_deinit(&slave));
 }
 
+static void test_net_umbrella_exports_at_client_contract(void)
+{
+    xy_at_client_t client = {0};
+    xy_at_response_t response = {0};
+    xy_at_urc_t urc = {0};
+
+    client.name = "modem";
+    client.status = XY_AT_STATUS_IDLE;
+    client.end_sign = '\r';
+    response.timeout = XY_AT_DEFAULT_TIMEOUT;
+    urc.prefix = "+CEREG:";
+
+    TEST_ASSERT_EQUAL_STRING("modem", client.name);
+    TEST_ASSERT_EQUAL(XY_AT_STATUS_IDLE, client.status);
+    TEST_ASSERT_EQUAL_CHAR('\r', client.end_sign);
+    TEST_ASSERT_EQUAL_UINT32(5000U, response.timeout);
+    TEST_ASSERT_EQUAL_STRING("+CEREG:", urc.prefix);
+    TEST_ASSERT_EQUAL(XY_AT_RESP_OK, 0);
+    TEST_ASSERT_EQUAL(XY_AT_RESP_ERROR, -1);
+    TEST_ASSERT_EQUAL(XY_AT_RESP_TIMEOUT, -2);
+}
+
 void setUp(void)
 {
 }
@@ -78,5 +100,6 @@ int main(void)
     RUN_TEST(test_net_platform_helpers);
     RUN_TEST(test_net_config_default_allocators_are_publicly_usable);
     RUN_TEST(test_net_umbrella_exports_modbus_compat);
+    RUN_TEST(test_net_umbrella_exports_at_client_contract);
     return UNITY_END();
 }
