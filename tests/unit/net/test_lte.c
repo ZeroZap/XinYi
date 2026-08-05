@@ -536,6 +536,30 @@ static void test_lte_status_helpers_return_safe_inactive_on_transport_failures(v
     TEST_ASSERT_EQUAL(0, xy_lte_is_attached(&lte));
 }
 
+static void test_lte_deinit_propagates_detach_failure_and_preserves_state(void)
+{
+    xy_lte_t lte;
+    int uart_token = 1;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    bind_fake_transport(&lte);
+
+    lte.attached = true;
+    fake_transport_push_write_result(XY_LTE_TIMEOUT);
+    TEST_ASSERT_EQUAL(XY_LTE_TIMEOUT, xy_lte_deinit(&lte));
+    TEST_ASSERT_TRUE(lte.initialized);
+    TEST_ASSERT_TRUE(lte.attached);
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CGATT=0", g_transport.commands[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_write_result(XY_LTE_OK);
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_deinit(&lte));
+    TEST_ASSERT_FALSE(lte.initialized);
+    TEST_ASSERT_FALSE(lte.attached);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -548,5 +572,6 @@ int main(void)
     RUN_TEST(test_lte_recv_uses_bound_transport_and_preserves_output_on_failure);
     RUN_TEST(test_lte_send_at_preserves_response_on_transport_failures);
     RUN_TEST(test_lte_status_helpers_return_safe_inactive_on_transport_failures);
+    RUN_TEST(test_lte_deinit_propagates_detach_failure_and_preserves_state);
     return UNITY_END();
 }

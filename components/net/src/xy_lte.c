@@ -138,10 +138,15 @@ int xy_lte_bind_transport(xy_lte_t *lte, const xy_lte_transport_t *transport)
 
 int xy_lte_deinit(xy_lte_t *lte)
 {
+    int ret;
+
     if (!lte) return XY_LTE_INVALID_PARAM;
     
     if (lte->attached) {
-        xy_lte_detach(lte);
+        ret = xy_lte_detach(lte);
+        if (ret != XY_LTE_OK) {
+            return ret;
+        }
     }
     
     lte->initialized = false;
