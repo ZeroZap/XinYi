@@ -35,12 +35,17 @@ void xy_net_delay_ms(uint32_t ms)
 {
 #ifdef XY_OSAL_ENABLED
     xy_os_task_delay(ms);
-#else
-    // Simple busy wait for PC (not recommended for production)
+#elif defined(HAL_PLATFORM_PC)
+    // Simple busy wait for PC simulation where xy_net_get_tick() advances.
     XY_NET_TICK_TYPE start = xy_net_get_tick();
     while ((xy_net_get_tick() - start) < ms) {
         // Busy wait
     }
+#else
+    // No generic bare-metal tick/delay source is available here. Platform ports
+    // should provide OSAL or a board-specific delay; do not spin forever against
+    // the default zero tick source.
+    (void)ms;
 #endif
 }
 

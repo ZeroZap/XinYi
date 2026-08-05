@@ -29,6 +29,7 @@ static void test_net_platform_helpers(void)
     xy_net_delay_ms(1);
     tick1 = xy_net_get_tick();
     TEST_ASSERT_GREATER_OR_EQUAL_UINT32(tick0, tick1);
+    xy_net_delay_ms(0);
 
     buf = (uint8_t *)xy_net_malloc(4);
     TEST_ASSERT_NOT_NULL(buf);
