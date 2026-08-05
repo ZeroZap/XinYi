@@ -39,6 +39,7 @@ FAKE_VALUE_FUNC(int32_t, mock_gpio_write, uint8_t, const void *, size_t)
 FAKE_VALUE_FUNC(int32_t, mock_gpio_read, uint8_t, void *, size_t)
 FAKE_VALUE_FUNC(int32_t, mock_gpio_ioctl, uint8_t, int, void *)
 FAKE_VALUE_FUNC(int32_t, alt_gpio_write, uint8_t, const void *, size_t)
+FAKE_VALUE_FUNC(int32_t, alt_gpio_ioctl, uint8_t, int, void *)
 
 /* Mock GPIO operations */
 static int32_t mock_gpio_init_impl(uint8_t channel, const void *config)
@@ -109,6 +110,14 @@ static int32_t mock_gpio_ioctl_impl(uint8_t channel, int cmd, void *arg)
     return XY_MUX_OK;
 }
 
+static int32_t alt_gpio_ioctl_impl(uint8_t channel, int cmd, void *arg)
+{
+    (void)channel;
+    (void)cmd;
+    (void)arg;
+    return XY_MUX_OK;
+}
+
 /* ==================== Test Cases ==================== */
 
 /**
@@ -172,7 +181,9 @@ static void test_gpio_register_keeps_per_channel_ops_independent(void)
     };
     xy_mux_ops_t alt_ops = primary_ops;
     alt_ops.write = alt_gpio_write;
+    alt_ops.ioctl = alt_gpio_ioctl;
     alt_gpio_write_fake.return_val = (int32_t)sizeof(data);
+    alt_gpio_ioctl_fake.custom_fake = alt_gpio_ioctl_impl;
 
     TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_register(&mgr, 0, &primary_ops, NULL));
     TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_register(&mgr, 1, &alt_ops, NULL));
@@ -189,6 +200,18 @@ static void test_gpio_register_keeps_per_channel_ops_independent(void)
     TEST_ASSERT_EQUAL_UINT8(1, alt_gpio_write_fake.arg0_val);
     TEST_ASSERT_EQUAL_PTR(&data, alt_gpio_write_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT(sizeof(data), alt_gpio_write_fake.arg2_val);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_write(&mgr, 0, XY_MUX_GPIO_LOW));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, alt_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_LEVEL, mock_gpio_ioctl_fake.arg1_val);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_write(&mgr, 1, XY_MUX_GPIO_HIGH));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, alt_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(1, alt_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_LEVEL, alt_gpio_ioctl_fake.arg1_val);
 
     xy_mux_deinit(&mgr);
 }
@@ -525,6 +548,7 @@ void setUp(void)
     RESET_FAKE(mock_gpio_read);
     RESET_FAKE(mock_gpio_ioctl);
     RESET_FAKE(alt_gpio_write);
+    RESET_FAKE(alt_gpio_ioctl);
     FFF_RESET_HISTORY();
 
     mock_gpio_init_fake.custom_fake = mock_gpio_init_impl;
