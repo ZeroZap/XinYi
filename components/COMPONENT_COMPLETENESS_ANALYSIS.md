@@ -104,28 +104,28 @@ display/
 
 ---
 
-### 3. net/ - 网络组件 (50%)
+### 3. net/ - 网络组件 (60%)
 
 #### 问题描述
 
-- **MQTT 不完整**：xy_mqtt.md 只有 3 行协议描述，缺少 CONNACK/PING 等处理
-- **CAN/LTE 被禁用**：CMakeLists.txt 中注释禁用，但代码存在
-- **无统一 README**：只有规划文档 net.md，无使用指南
+- **MQTT 主线已迁移**：活跃实现为 `src/xy_mqtt_client.c`/`src/xy_mqtt_client.h`，已覆盖 CONNECT/CONNACK、QoS0/1 publish、SUBACK/UNSUBACK、inbound publish callback 与 keepalive；旧 `xy_mqtt/` 子树仅作历史规划材料
+- **CAN/LTE 状态分化**：CAN 已有 FIFO host coverage 但仍未默认纳入 `xy_net` 库；LTE 仍是骨架实现，最近已补命令 guard，后续需要 UART/AT transport 设计后再推进
+- **统一 README 已补齐**：`components/net/README.md` 现为组件入口，包含模块状态、MQTT 活跃入口与 focused verification
 - **AT 模块混乱**：依赖多个第三方仓库，组织结构复杂
 
 #### 修复计划
 
 | 序号 | 任务                                                  | 工作量 | 优先级 |
 | ---- | ----------------------------------------------------- | ------ | ------ |
-| N1   | 补充 MQTT 完整实现（CONNECT/CONNACK/PUBLISH/PING 等） | 12h    | 🔴 高  |
-| N2   | 完成 CAN 总线驱动或删除代码                           | 8h     | 🔴 高  |
-| N3   | 完成 LTE 模块或删除代码                               | 8h     | 🔴 高  |
-| N4   | 创建 net/README.md 统一入口文档                       | 4h     | 🔴 高  |
-| N5   | 整理 AT 模块依赖（改为 submodule 或 external）        | 8h     | 🟡 中  |
-| N6   | 补充示例代码                                          | 4h     | 🟡 中  |
-| N7   | 补充测试用例                                          | 8h     | 🟡 中  |
+| N1   | 维护活跃 MQTT client host coverage，后续只按真实失败补契约 | 1–2h/次 | 🟡 低  |
+| N2   | 明确 CAN 是否默认接入 `xy_net`，接入前保持 focused CTest 护栏 | 4h     | 🟠 中  |
+| N3   | 为 LTE UART/AT transport 写小 proposal 后再实现        | 4h     | 🔴 高  |
+| N4   | 保持 `components/net/README.md` 与主线实现同步          | -      | 已完成 |
+| N5   | 整理 AT 模块依赖边界，避免把 vendor-style 树默认编入主库 | 8h     | 🟡 中  |
+| N6   | 补充活跃 API 的最小 host smoke 示例                    | 4h     | 🟡 中  |
+| N7   | 针对 CAN/LTE/AT 的真实失败追加小回归测试                | 1–2h/次 | 🟡 中  |
 
-**预计工时**: 52h
+**预计剩余工时**: 20–28h
 
 ---
 

@@ -71,7 +71,7 @@
 | 优先级 | 方向 | 依据 | 推荐动作 |
 | --- | --- | --- | --- |
 | P0 | display | 完整度报告显示实现/配置严重不足；但风险较高 | 先写/更新 proposal，避免直接大改 |
-| P0 | net | MQTT/CAN/LTE 状态不一致，测试已有 11 个 | 选择单一协议补文档或回归测试 |
+| P0 | net | MQTT client 与 README 已主线化，但 CAN 默认接入和 LTE transport 设计仍未闭环，测试已有 11 个 | 优先为 LTE transport 写 proposal；CAN 只在明确默认接入策略后推进 |
 | P1 | actuator | 执行器框架独立于 Sensor，已有测试入口 | 补 README/Kconfig/示例或增强测试 |
 | P1 | mux | 多个子接口已有测试但 API 边界需确认 | 先补测试覆盖与 README 对齐 |
 | P1 | pid | `pid_core`/`pid_auto` 与 PID 示例 smoke 已有主线 CTest 护栏；近期已补 auto-tune 边界回归 | 暂不按“明显 bug”重复开工；仅在新增实证失败时补最小回归测试 |
@@ -81,7 +81,7 @@
 ### 2026-08-04 状态同步
 
 - PID 不再作为“先验明显 bug”候选：当前 `tests/unit/pid/test_pid_core.c`、`tests/unit/pid/test_pid_auto.c` 以及 PID 示例 smoke 目标已经在 `tests/unit/CMakeLists.txt` 中注册，后续只根据真实失败补回归。
-- 下一轮更适合选择 MUX/Net/Fuel Gauge 中仍有测试契约缺口的单一目标；若只做测试风格维护，优先选择已稳定通过的 focused CTest，避免混入大接口迁移。
+- 下一轮更适合选择 MUX/Net/Fuel Gauge 中仍有测试契约缺口的单一目标；Net 侧避免重复追逐已完成的 MQTT/README 基线，优先收敛 LTE transport proposal 或 CAN 默认接入策略；若只做测试风格维护，优先选择已稳定通过的 focused CTest，避免混入大接口迁移。
 
 ---
 
