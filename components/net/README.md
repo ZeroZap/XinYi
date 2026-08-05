@@ -45,7 +45,7 @@ components/net/
 | **Modbus Tiny** | ✅ Production Ready | Lightweight version for constrained MCUs |
 | **Modbus Full** | ✅ Production Ready | RTU + TCP + ASCII support |
 | **CAN** | ✅ Implemented | FIFO-based host-guarded CAN core; not enabled in `xy_net` by default |
-| **LTE** | ⚠️ Stub | Skeleton implementation, needs UART/AT transport completion |
+| **LTE** | 🟡 Host-guarded stub | Public API plus fakeable AT transport seam are covered by `lte_component`; still disabled by default until UART/AT adapter is proven |
 | **MQTT Client** | 🟡 Host-guarded | `src/xy_mqtt_client.c` covers CONNECT/CONNACK, QoS0/1 publish, subscribe, keepalive helpers; legacy `xy_mqtt/` remains deprecated |
 | **AT Client/Server** | 🟡 Host-guarded | Lightweight AT client/server cores have Unity/CTest coverage; larger vendor-style AT trees are not part of the default library |
 
@@ -164,12 +164,14 @@ xy_can_register_rx_callback(&can, on_can_receive, user_data);
 
 ## LTE/4G Module
 
-⚠️ **This module is a stub implementation**
+⚠️ **This module is host-guarded but still disabled by default**
 
 ### Status
-- Header complete with full API definition
-- Implementation has `(void)` stubs for all functions
-- Needs UART HAL integration and actual AT command handling
+- Header exposes the LTE public API and the local `xy_lte_transport_t` AT command seam
+- `src/xy_lte.c` preserves lifecycle, attach/PDP, callback, and caller-output contracts behind a fakeable transport
+- `tests/unit/net/test_lte.c` (`lte_component`) covers fake transport command success/failure, AT/CSQ/SIM/attach/PDP/send/recv contracts, and output/state preservation
+- `XY_NET_ENABLE_LTE` remains `0` by default; include `xy_lte.h` directly for focused consumers until a UART/AT adapter is compile-probed
+- Needs a real UART/AT adapter before being exported from `xy_net.h` by default
 
 ### Supported Modules (Planned)
 - 移远 EC100Y/EC200Y
@@ -177,11 +179,24 @@ xy_can_register_rx_callback(&can, on_can_receive, user_data);
 - 合宙 Air780E
 
 ### Planned Features
-- [ ] Network attachment
-- [ ] PDP context management
-- [ ] TCP/UDP connections
-- [ ] Data transmission
-- [ ] Signal quality monitoring
+- [x] Fakeable AT command transport seam
+- [x] Host coverage for command failure propagation and state/output preservation
+- [ ] UART/HAL adapter compile probe
+- [ ] URC buffering/dispatch backed by a real transport
+- [ ] Network attachment on validated hardware
+- [ ] PDP context management on validated hardware
+- [ ] TCP/UDP connections on validated hardware
+- [ ] Data transmission on validated hardware
+- [ ] Signal quality monitoring on validated hardware
+
+### Focused verification
+
+```bash
+cmake --build build/tests/unit --target test_lte -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^lte_component$'
+```
+
+See `docs/design/xinyi-net-lte-transport-proposal-2026-08-05.md` for the transport boundary and enablement criteria.
 
 ## MQTT Client
 
@@ -270,8 +285,8 @@ Via Kconfig or defines:
 // Component-local policy in components/net/inc/xy_net_config.h
 #define XY_NET_ENABLE_MODBUS    1
 #define XY_NET_ENABLE_MQTT      0  // not auto-exported by xy_net yet
-#define XY_NET_ENABLE_CAN       0  // host-guarded separately
-#define XY_NET_ENABLE_LTE       0  // stub/default-off
+#define XY_NET_ENABLE_CAN       0  // host-guarded, direct opt-in only
+#define XY_NET_ENABLE_LTE       0  // host-guarded stub, direct opt-in only
 
 // Modbus configuration
 #define MB_COIL_COUNT           64
@@ -332,11 +347,12 @@ MQTT users/tests.
 | Function | Description |
 |----------|-------------|
 | `xy_lte_init()` | Initialize LTE module |
-| `xy_lte_attach()` | Attach to network |
+| `xy_lte_bind_transport()` | Bind a fakeable AT command transport hook |
+| `xy_lte_attach()` | Attach to network after command success |
 | `xy_lte_connect()` | TCP/UDP connection |
-| `xy_lte_send()` | Send data |
-| `xy_lte_recv()` | Receive data |
-| `xy_lte_get_signal()` | Get signal quality |
+| `xy_lte_send()` | Send data after prompt validation |
+| `xy_lte_recv()` | Receive data through bound transport or placeholder zero-fill |
+| `xy_lte_get_signal()` | Get signal quality while preserving output on parse/transport failure |
 
 ## Troubleshooting
 
@@ -350,8 +366,9 @@ MQTT users/tests.
 - **FIFO overflow**: Increase buffer size or poll more frequently
 
 ### LTE
-- **AT commands fail**: Verify UART wiring and AT command syntax
-- **Network attach fails**: Check SIM card and antenna
+- **AT commands fail**: In host tests, run `lte_component` and inspect the fake transport command/response queue; on hardware, verify UART wiring and AT command syntax after the adapter slice exists.
+- **Network attach fails**: Check SIM card and antenna; the current direct-opt-in API only marks `attached` after the attach command path succeeds.
+- **Unexpected `xy_net.h` export**: Confirm `XY_NET_ENABLE_LTE` is explicitly set to `1`; default builds intentionally keep LTE out of the umbrella.
 
 ## Version
 
