@@ -190,6 +190,17 @@ static void test_lte_parameter_validation(void)
 
     TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_init(NULL, &uart_token, 115200));
     TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_init(&lte, NULL, 115200));
+    xy_lte_transport_t transport = {
+        .context = &g_transport,
+        .write = fake_transport_write,
+        .read = fake_transport_read,
+        .flush = NULL,
+    };
+
+    memset(&lte, 0, sizeof(lte));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_bind_transport(&lte, &transport));
+    TEST_ASSERT_NULL(lte.transport.write);
+
     TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 9600));
 
     TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, xy_lte_register_urc(NULL, on_urc));

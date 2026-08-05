@@ -128,7 +128,7 @@ int xy_lte_init(xy_lte_t *lte, void *uart_handle, uint32_t baudrate)
 
 int xy_lte_bind_transport(xy_lte_t *lte, const xy_lte_transport_t *transport)
 {
-    if (!lte || !transport || !transport->write) {
+    if (!lte || !lte->initialized || !transport || !transport->write) {
         return XY_LTE_INVALID_PARAM;
     }
 
