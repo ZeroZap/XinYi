@@ -207,7 +207,8 @@ int xy_can_send(xy_can_t *can, const xy_can_msg_t *msg, uint32_t timeout)
         /* FIFO 满，等待 */
         xy_os_delay(1);
     } while ((xy_os_tick_get() - start) < timeout);
-    
+
+    can->error_count++;
     return XY_CAN_TIMEOUT;
 }
 
@@ -252,7 +253,8 @@ int xy_can_receive(xy_can_t *can, xy_can_msg_t *msg, uint32_t timeout)
         /* FIFO 空，等待 */
         xy_os_delay(1);
     } while ((xy_os_tick_get() - start) < timeout);
-    
+
+    can->error_count++;
     return XY_CAN_TIMEOUT;
 }
 
@@ -297,8 +299,12 @@ void xy_can_isr_receive(xy_can_t *can, const xy_can_msg_t *msg)
     
     /* 写入 FIFO */
     if (can->rx_fifo) {
-        xy_can_fifo_write(can->rx_fifo, can->rx_fifo_size,
-                         &can->rx_head, &can->rx_tail, msg);
+        int ret = xy_can_fifo_write(can->rx_fifo, can->rx_fifo_size,
+                                    &can->rx_head, &can->rx_tail, msg);
+        if (ret != XY_CAN_OK) {
+            can->error_count++;
+            return;
+        }
     }
     
     /* 更新计数 */

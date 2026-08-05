@@ -147,10 +147,70 @@ static void test_can_timeout_and_direct_mode(void)
     TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 }
 
+static void test_can_timeout_preserves_counters_and_rx_output(void)
+{
+    xy_can_t can;
+    xy_can_config_t config = {
+        .baudrate = 500000,
+        .rx_fifo_size = 2,
+        .tx_fifo_size = 1,
+    };
+    xy_can_msg_t msg = make_msg(0x456, 0x30);
+    xy_can_msg_t rx = make_msg(0x7FF, 0xA0);
+    xy_can_msg_t rx_before = rx;
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+
+    TEST_ASSERT_EQUAL(XY_CAN_TIMEOUT, xy_can_send(&can, &msg, 2));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_can_get_tx_count(&can));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_error_count(&can));
+
+    TEST_ASSERT_EQUAL(XY_CAN_TIMEOUT, xy_can_receive(&can, &rx, 2));
+    TEST_ASSERT_EQUAL_MEMORY(&rx_before, &rx, sizeof(rx));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_can_get_rx_count(&can));
+    TEST_ASSERT_EQUAL_UINT32(2U, xy_can_get_error_count(&can));
+    TEST_ASSERT_EQUAL_UINT(0U, on_can_rx_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
+}
+
+static void test_can_fifo_overflow_counts_error_without_rx_count(void)
+{
+    xy_can_t can;
+    xy_can_config_t config = {
+        .baudrate = 500000,
+        .rx_fifo_size = 2,
+        .tx_fifo_size = 0,
+    };
+    xy_can_msg_t first = make_msg(0x100, 0x11);
+    xy_can_msg_t overflow = make_msg(0x101, 0x22);
+    xy_can_msg_t rx;
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_register_rx_callback(&can, on_can_rx, NULL));
+
+    xy_can_isr_receive(&can, &first);
+    xy_can_isr_receive(&can, &overflow);
+
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_rx_count(&can));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_error_count(&can));
+    TEST_ASSERT_EQUAL_UINT(1U, on_can_rx_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(first.id, g_last_callback_msg.id);
+
+    memset(&rx, 0, sizeof(rx));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_receive(&can, &rx, 0));
+    TEST_ASSERT_EQUAL_UINT32(first.id, rx.id);
+    TEST_ASSERT_EQUAL_HEX8(first.data[0], rx.data[0]);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_can_fifo_rx_callback);
     RUN_TEST(test_can_timeout_and_direct_mode);
+    RUN_TEST(test_can_timeout_preserves_counters_and_rx_output);
+    RUN_TEST(test_can_fifo_overflow_counts_error_without_rx_count);
     return UNITY_END();
 }
