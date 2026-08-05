@@ -238,6 +238,31 @@ static void test_core_fetch_distinguishes_null_from_uninitialized_device(void)
     TEST_ASSERT_EQUAL_UINT(0U, xy_os_tick_get_fake.call_count);
 }
 
+static void test_core_deinit_guards_and_blocks_later_fetch(void)
+{
+    static const xy_fuel_gauge_api_t api = {
+        .fetch = fake_fetch,
+    };
+    xy_fuel_gauge_t fg;
+
+    reset_fixture();
+    memset(&fg, 0, sizeof(fg));
+    fg.name = "fg-deinit-guards";
+    fg.api = &api;
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_deinit(&fg));
+    TEST_ASSERT_FALSE(fg.initialized);
+
+    fg.initialized = true;
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_deinit(&fg));
+    TEST_ASSERT_FALSE(fg.initialized);
+
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_INITIALIZED, xy_fuel_gauge_fetch(&fg));
+    TEST_ASSERT_EQUAL_UINT(0U, fake_fetch_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_os_tick_get_fake.call_count);
+}
+
 static void test_core_public_calls_reject_initialized_device_without_api(void)
 {
     xy_fuel_gauge_t fg;
@@ -756,6 +781,7 @@ int main(void)
     RUN_TEST(test_register_init_get_foreach);
     RUN_TEST(test_core_init_failure_preserves_status_and_return_code);
     RUN_TEST(test_core_fetch_distinguishes_null_from_uninitialized_device);
+    RUN_TEST(test_core_deinit_guards_and_blocks_later_fetch);
     RUN_TEST(test_core_public_calls_reject_initialized_device_without_api);
     RUN_TEST(test_core_public_calls_reject_missing_callbacks_without_side_effects);
     RUN_TEST(test_core_alert_wrappers_dispatch_and_preserve_outputs_on_failures);
