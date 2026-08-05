@@ -13,6 +13,11 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+static bool xy_can_msg_is_valid(const xy_can_msg_t *msg)
+{
+    return msg && msg->len <= sizeof(msg->data);
+}
+
 /**
  * @brief FIFO 写入
  */
@@ -170,7 +175,7 @@ int xy_can_send(xy_can_t *can, const xy_can_msg_t *msg, uint32_t timeout)
     int ret;
     uint32_t start;
     
-    if (!can || !msg || !can->initialized) {
+    if (!can || !can->initialized || !xy_can_msg_is_valid(msg)) {
         return XY_CAN_INVALID_PARAM;
     }
     
@@ -293,7 +298,12 @@ int xy_can_unregister_rx_callback(xy_can_t *can)
  */
 void xy_can_isr_receive(xy_can_t *can, const xy_can_msg_t *msg)
 {
-    if (!can || !msg || !can->initialized) {
+    if (!can || !can->initialized) {
+        return;
+    }
+
+    if (!xy_can_msg_is_valid(msg)) {
+        can->error_count++;
         return;
     }
     

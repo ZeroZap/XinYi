@@ -205,6 +205,37 @@ static void test_can_fifo_overflow_counts_error_without_rx_count(void)
     TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 }
 
+static void test_can_rejects_oversized_frames_without_side_effects(void)
+{
+    xy_can_t can;
+    xy_can_config_t config = {
+        .baudrate = 500000,
+        .rx_fifo_size = 2,
+        .tx_fifo_size = 1,
+    };
+    xy_can_msg_t oversized = make_msg(0x555, 0x44);
+    xy_can_msg_t rx;
+
+    oversized.len = (uint8_t)(sizeof(oversized.data) + 1U);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &config));
+    TEST_ASSERT_EQUAL(XY_CAN_INVALID_PARAM, xy_can_send(&can, &oversized, 0));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_can_get_tx_count(&can));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_can_get_error_count(&can));
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_register_rx_callback(&can, on_can_rx, NULL));
+    xy_can_isr_receive(&can, &oversized);
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_can_get_rx_count(&can));
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_can_get_error_count(&can));
+    TEST_ASSERT_EQUAL_UINT(0U, on_can_rx_fake.call_count);
+
+    memset(&rx, 0, sizeof(rx));
+    TEST_ASSERT_EQUAL(XY_CAN_TIMEOUT, xy_can_receive(&can, &rx, 0));
+    TEST_ASSERT_EQUAL_UINT32(0U, rx.id);
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -212,5 +243,6 @@ int main(void)
     RUN_TEST(test_can_timeout_and_direct_mode);
     RUN_TEST(test_can_timeout_preserves_counters_and_rx_output);
     RUN_TEST(test_can_fifo_overflow_counts_error_without_rx_count);
+    RUN_TEST(test_can_rejects_oversized_frames_without_side_effects);
     return UNITY_END();
 }
