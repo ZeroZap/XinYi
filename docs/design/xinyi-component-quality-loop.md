@@ -83,6 +83,10 @@
 - PID 不再作为“先验明显 bug”候选：当前 `tests/unit/pid/test_pid_core.c`、`tests/unit/pid/test_pid_auto.c` 以及 PID 示例 smoke 目标已经在 `tests/unit/CMakeLists.txt` 中注册，后续只根据真实失败补回归。
 - 下一轮更适合选择 MUX/Net/Fuel Gauge 中仍有测试契约缺口的单一目标；Net 侧避免重复追逐已完成的 MQTT/README 基线，优先收敛 LTE transport proposal 或 CAN 默认接入策略；若只做测试风格维护，优先选择已稳定通过的 focused CTest，避免混入大接口迁移。
 
+### 2026-08-05 状态同步
+
+- 已新增 `docs/design/xinyi-net-lte-transport-proposal-2026-08-05.md`，明确 LTE 在 `XY_NET_ENABLE_LTE=0` 下继续保持 direct-opt-in/stub 状态，下一步应先补 fake transport host coverage，再考虑 UART/HAL 或 `xy_net` umbrella enablement。
+
 ---
 
 ## 5. 周度架构回顾
