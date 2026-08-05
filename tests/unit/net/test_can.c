@@ -355,6 +355,41 @@ static void test_can_unregister_suppresses_fifo_callbacks(void)
     TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
 }
 
+static void test_can_fifo_usage_reports_zero_for_disabled_fifos(void)
+{
+    xy_can_t can;
+    xy_can_config_t direct_config = {
+        .baudrate = 500000,
+        .rx_fifo_size = 0,
+        .tx_fifo_size = 0,
+    };
+    xy_can_config_t tx_only_config = {
+        .baudrate = 500000,
+        .rx_fifo_size = 0,
+        .tx_fifo_size = 3,
+    };
+    xy_can_msg_t msg = make_msg(0x202, 0x77);
+    float rx_usage = -1.0F;
+    float tx_usage = -1.0F;
+
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &direct_config));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_get_fifo_usage(&can, &rx_usage, &tx_usage));
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, rx_usage);
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, tx_usage);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
+
+    rx_usage = -1.0F;
+    tx_usage = -1.0F;
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_init(&can, NULL, &tx_only_config));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_send(&can, &msg, 0));
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_get_fifo_usage(&can, &rx_usage, &tx_usage));
+    TEST_ASSERT_EQUAL_FLOAT(0.0F, rx_usage);
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0F, tx_usage);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_get_fifo_usage(&can, NULL, &tx_usage));
+    TEST_ASSERT_GREATER_THAN_FLOAT(0.0F, tx_usage);
+    TEST_ASSERT_EQUAL(XY_CAN_OK, xy_can_deinit(&can));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -367,5 +402,6 @@ int main(void)
     RUN_TEST(test_can_callback_registration_requires_initialized_callback);
     RUN_TEST(test_can_unregister_suppresses_direct_mode_callback);
     RUN_TEST(test_can_unregister_suppresses_fifo_callbacks);
+    RUN_TEST(test_can_fifo_usage_reports_zero_for_disabled_fifos);
     return UNITY_END();
 }
