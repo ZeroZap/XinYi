@@ -450,6 +450,37 @@ static void test_lte_recv_uses_bound_transport_and_preserves_output_on_failure(v
     TEST_ASSERT_EQUAL_UINT(1U, on_recv_fake.call_count);
 }
 
+static void test_lte_send_at_preserves_response_on_transport_failures(void)
+{
+    xy_lte_t lte;
+    char response[16] = "sentinel";
+    int uart_token = 1;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    bind_fake_transport(&lte);
+
+    fake_transport_push_write_result(XY_LTE_TIMEOUT);
+    TEST_ASSERT_EQUAL(XY_LTE_TIMEOUT,
+                      xy_lte_send_at(&lte, "AT+FAIL", response, sizeof(response), 100));
+    TEST_ASSERT_EQUAL_STRING("sentinel", response);
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+FAIL", g_transport.commands[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response(NULL);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR,
+                      xy_lte_send_at(&lte, "AT+READ", response, sizeof(response), 100));
+    TEST_ASSERT_EQUAL_STRING("sentinel", response);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("OK");
+    TEST_ASSERT_EQUAL(XY_LTE_OK,
+                      xy_lte_send_at(&lte, "AT+OK", response, sizeof(response), 100));
+    TEST_ASSERT_EQUAL_STRING("OK", response);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -460,5 +491,6 @@ int main(void)
     RUN_TEST(test_lte_transport_preserves_pdp_and_send_state_on_failures);
     RUN_TEST(test_lte_read_style_helpers_preserve_outputs_on_transport_failures);
     RUN_TEST(test_lte_recv_uses_bound_transport_and_preserves_output_on_failure);
+    RUN_TEST(test_lte_send_at_preserves_response_on_transport_failures);
     return UNITY_END();
 }

@@ -28,15 +28,14 @@
  */
 static int lte_send_cmd(xy_lte_t *lte, const char *cmd, char *resp, size_t resp_len, uint32_t timeout)
 {
+    char read_buf[128];
     size_t cmd_len;
+    size_t read_len;
+    size_t copy_len;
     int ret;
 
     if (!lte || !lte->initialized || !cmd) {
         return XY_LTE_INVALID_PARAM;
-    }
-
-    if (resp && resp_len > 0U) {
-        resp[0] = '\0';
     }
 
     if (lte->transport.write) {
@@ -47,22 +46,33 @@ static int lte_send_cmd(xy_lte_t *lte, const char *cmd, char *resp, size_t resp_
         }
 
         if (resp && resp_len > 0U && lte->transport.read) {
-            ret = lte->transport.read(lte->transport.context, (uint8_t *)resp, resp_len - 1U,
+            read_len = resp_len - 1U;
+            if (read_len >= sizeof(read_buf)) {
+                read_len = sizeof(read_buf) - 1U;
+            }
+
+            ret = lte->transport.read(lte->transport.context, (uint8_t *)read_buf, read_len,
                                       timeout);
             if (ret < 0) {
-                resp[0] = '\0';
                 return ret;
             }
-            if ((size_t)ret < resp_len) {
-                resp[ret] = '\0';
-            } else {
-                resp[resp_len - 1U] = '\0';
+
+            copy_len = (size_t)ret;
+            if (copy_len > read_len) {
+                copy_len = read_len;
             }
+            memcpy(resp, read_buf, copy_len);
+            resp[copy_len] = '\0';
+        } else if (resp && resp_len > 0U) {
+            resp[0] = '\0';
         }
 
         return XY_LTE_OK;
     }
 
+    if (resp && resp_len > 0U) {
+        resp[0] = '\0';
+    }
     return XY_LTE_OK;
 }
 
