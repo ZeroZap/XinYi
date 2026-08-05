@@ -380,13 +380,17 @@ int xy_lte_set_pdp_context(xy_lte_t *lte, xy_lte_pdp_context_t *ctx)
 int xy_lte_activate_pdp(xy_lte_t *lte, uint8_t cid)
 {
     (void)cid;
+    int ret;
 
-    if (!lte) {
+    if (!lte || !lte->initialized) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* AT+CIICR 激活移动场景 */
-    lte_send_cmd(lte, "AT+CIICR", NULL, 0, 60000);
+    ret = lte_send_cmd(lte, "AT+CIICR", NULL, 0, 60000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     
     /* AT+CIFSR 获取本地 IP */
     /* 验证 PDP 激活成功 */
@@ -398,13 +402,17 @@ int xy_lte_activate_pdp(xy_lte_t *lte, uint8_t cid)
 int xy_lte_deactivate_pdp(xy_lte_t *lte, uint8_t cid)
 {
     (void)cid;
+    int ret;
     
-    if (!lte) {
+    if (!lte || !lte->initialized) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* AT+CIPSHUT 关闭移动场景 */
-    lte_send_cmd(lte, "AT+CIPSHUT", NULL, 0, 30000);
+    ret = lte_send_cmd(lte, "AT+CIPSHUT", NULL, 0, 30000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
     
     lte->pdp_active = false;
     return XY_LTE_OK;
@@ -452,16 +460,35 @@ int xy_lte_close(xy_lte_t *lte, uint8_t link_id)
 int xy_lte_send(xy_lte_t *lte, uint8_t link_id, const uint8_t *data, size_t len)
 {
     char cmd[32];
+    char resp[16];
+    int ret;
     
-    if (!lte || !data || len == 0 || link_id >= LTE_MAX_LINKS) {
+    if (!lte || !lte->initialized || !data || len == 0 || link_id >= LTE_MAX_LINKS) {
         return XY_LTE_INVALID_PARAM;
     }
     
     /* AT+CIPSEND=<link_id>,<len> */
     snprintf(cmd, sizeof(cmd), "AT+CIPSEND=%d,%d", link_id, (int)len);
+    if (!lte->transport.write) {
+        return XY_LTE_OK;
+    }
     
     /* 等待 > 提示符 */
+    ret = lte_send_cmd(lte, cmd, resp, sizeof(resp), 10000);
+    if (ret != XY_LTE_OK) {
+        return ret;
+    }
+    if (strchr(resp, '>') == NULL) {
+        return XY_LTE_ERROR;
+    }
+
     /* 发送数据 */
+    if (lte->transport.write) {
+        ret = lte->transport.write(lte->transport.context, data, len, 10000);
+        if (ret != XY_LTE_OK && ret != (int)len) {
+            return ret < 0 ? ret : XY_LTE_ERROR;
+        }
+    }
     
     return XY_LTE_OK;
 }

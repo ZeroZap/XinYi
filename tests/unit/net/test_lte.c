@@ -312,6 +312,60 @@ static void test_lte_transport_failures_preserve_state(void)
     TEST_ASSERT_EQUAL_STRING(previous.apn, lte.pdp.apn);
 }
 
+static void test_lte_transport_preserves_pdp_and_send_state_on_failures(void)
+{
+    xy_lte_t lte;
+    const uint8_t payload[3] = {0x11, 0x22, 0x33};
+    int uart_token = 1;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_init(&lte, &uart_token, 115200));
+    bind_fake_transport(&lte);
+
+    lte.pdp_active = false;
+    fake_transport_push_write_result(XY_LTE_TIMEOUT);
+    TEST_ASSERT_EQUAL(XY_LTE_TIMEOUT, xy_lte_activate_pdp(&lte, lte.pdp.cid));
+    TEST_ASSERT_FALSE(lte.pdp_active);
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CIICR", g_transport.commands[0]);
+
+    lte.pdp_active = true;
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_write_result(XY_LTE_ERROR);
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_deactivate_pdp(&lte, lte.pdp.cid));
+    TEST_ASSERT_TRUE(lte.pdp_active);
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CIPSHUT", g_transport.commands[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("ERROR");
+    TEST_ASSERT_EQUAL(XY_LTE_ERROR, xy_lte_send(&lte, 1, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_UINT(1U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CIPSEND=1,3", g_transport.commands[0]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("> ");
+    fake_transport_push_write_result(XY_LTE_OK);
+    fake_transport_push_write_result(XY_LTE_TIMEOUT);
+    TEST_ASSERT_EQUAL(XY_LTE_TIMEOUT, xy_lte_send(&lte, 1, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_UINT(2U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CIPSEND=1,3", g_transport.commands[0]);
+    TEST_ASSERT_EQUAL_UINT8(payload[0], (uint8_t)g_transport.commands[1][0]);
+    TEST_ASSERT_EQUAL_UINT8(payload[2], (uint8_t)g_transport.commands[1][2]);
+
+    fake_transport_reset();
+    bind_fake_transport(&lte);
+    fake_transport_push_response("> ");
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_send(&lte, 1, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_UINT(2U, g_transport.command_count);
+    TEST_ASSERT_EQUAL_STRING("AT+CIPSEND=1,3", g_transport.commands[0]);
+    TEST_ASSERT_EQUAL_UINT8(payload[0], (uint8_t)g_transport.commands[1][0]);
+    TEST_ASSERT_EQUAL_UINT8(payload[1], (uint8_t)g_transport.commands[1][1]);
+    TEST_ASSERT_EQUAL_UINT8(payload[2], (uint8_t)g_transport.commands[1][2]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -319,5 +373,6 @@ int main(void)
     RUN_TEST(test_lte_parameter_validation);
     RUN_TEST(test_lte_transport_drives_check_and_signal_contracts);
     RUN_TEST(test_lte_transport_failures_preserve_state);
+    RUN_TEST(test_lte_transport_preserves_pdp_and_send_state_on_failures);
     return UNITY_END();
 }
