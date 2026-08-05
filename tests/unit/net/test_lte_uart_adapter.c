@@ -211,6 +211,57 @@ static void test_lte_uart_adapter_propagates_backend_errors(void)
     TEST_ASSERT_EQUAL(XY_LTE_ERROR, transport.flush(transport.context));
 }
 
+static void test_lte_uart_adapter_rejects_bad_transport_arguments_and_allows_missing_flush(void)
+{
+    xy_lte_uart_adapter_t adapter;
+    xy_lte_transport_t transport;
+    uint8_t rx_buffer[8];
+    uint8_t byte = 0x5A;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK,
+                      xy_lte_uart_adapter_init(&adapter, &g_uart, rx_buffer, sizeof(rx_buffer),
+                                               1000, fake_uart_write, fake_uart_read, NULL));
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_uart_adapter_get_transport(&adapter, &transport));
+
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, transport.write(NULL, &byte, 1U, 10));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, transport.write(transport.context, NULL, 1U, 10));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, transport.write(transport.context, &byte, 0U, 10));
+    TEST_ASSERT_EQUAL_UINT(0U, g_uart.write_calls);
+
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, transport.read(NULL, &byte, 1U, 10));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, transport.read(transport.context, NULL, 1U, 10));
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, transport.read(transport.context, &byte, 0U, 10));
+    TEST_ASSERT_EQUAL_UINT(0U, g_uart.read_calls);
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, transport.flush(transport.context));
+    TEST_ASSERT_EQUAL_UINT(0U, g_uart.flush_calls);
+}
+
+static void test_lte_uart_adapter_get_transport_rejects_corrupted_adapter_state(void)
+{
+    xy_lte_uart_adapter_t adapter;
+    xy_lte_transport_t transport;
+    uint8_t rx_buffer[8];
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK,
+                      xy_lte_uart_adapter_init(&adapter, &g_uart, rx_buffer, sizeof(rx_buffer),
+                                               1000, fake_uart_write, fake_uart_read, NULL));
+
+    adapter.uart = NULL;
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM,
+                      xy_lte_uart_adapter_get_transport(&adapter, &transport));
+
+    adapter.uart = &g_uart;
+    adapter.write = NULL;
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM,
+                      xy_lte_uart_adapter_get_transport(&adapter, &transport));
+
+    adapter.write = fake_uart_write;
+    adapter.read = NULL;
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM,
+                      xy_lte_uart_adapter_get_transport(&adapter, &transport));
+}
+
 static void test_lte_core_can_bind_uart_adapter_for_at_commands(void)
 {
     xy_lte_uart_adapter_t adapter;
@@ -260,6 +311,8 @@ int main(void)
     RUN_TEST(test_lte_uart_adapter_transport_forwards_bytes_and_timeouts);
     RUN_TEST(test_lte_uart_adapter_uses_default_timeout_for_zero_timeout);
     RUN_TEST(test_lte_uart_adapter_propagates_backend_errors);
+    RUN_TEST(test_lte_uart_adapter_rejects_bad_transport_arguments_and_allows_missing_flush);
+    RUN_TEST(test_lte_uart_adapter_get_transport_rejects_corrupted_adapter_state);
     RUN_TEST(test_lte_core_can_bind_uart_adapter_for_at_commands);
     return UNITY_END();
 }
