@@ -119,6 +119,10 @@ int32_t xy_mux_spi_transfer(xy_mux_manager_t *mgr, uint8_t channel,
         return XY_MUX_ERROR_INVALID_PARAM;
     }
 
+    if (len > UINT16_MAX) {
+        return XY_MUX_ERROR_NO_MEMORY;
+    }
+
     /* SPI 全双工传输: 同时收发 */
     /* 构建数据包: 长度(2字节) + 数据 */
     uint8_t header[2];
@@ -168,6 +172,10 @@ int32_t xy_mux_spi_write(xy_mux_manager_t *mgr, uint8_t channel,
 {
     if (!mgr || !data || len == 0) {
         return XY_MUX_ERROR_INVALID_PARAM;
+    }
+
+    if (len > UINT16_MAX) {
+        return XY_MUX_ERROR_NO_MEMORY;
     }
 
     /* SPI 写操作: 只发送不接收 */

@@ -287,6 +287,10 @@ static void test_spi_error_paths(void)
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_spi_transfer(&mgr, 0, NULL, &data, 1));
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_INVALID_PARAM, xy_mux_spi_transfer(&mgr, 0, &data, &data, 0));
     TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_MEMORY,
+                      xy_mux_spi_write(&mgr, 0, &data, (size_t)UINT16_MAX + 1U));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_MEMORY,
+                      xy_mux_spi_transfer(&mgr, 0, &data, &data, (size_t)UINT16_MAX + 1U));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NO_MEMORY,
                       xy_mux_spi_read(&mgr, 0, g_last_write, sizeof(g_last_write) + 1U));
     TEST_ASSERT_EQUAL_UINT(0U, mock_spi_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(0U, mock_spi_read_fake.call_count);
