@@ -27,6 +27,7 @@
 #define BQ27Z561_REG_CURR       0x58
 #define BQ27Z561_REG_AVG_CURR   0x5A
 #define BQ27Z561_REG_SOH        0x7A
+#define BQ27Z561_IO_RETRIES     3
 
 /* 私有数据 */
 typedef struct {
@@ -36,6 +37,36 @@ typedef struct {
     xy_fuel_gauge_alert_t alert;
     int16_t average_current_ma;
 } bq27z561_private_data_t;
+
+static int bq27z561_read_reg16(bq27z561_private_data_t *priv, uint8_t reg, uint16_t *value)
+{
+    if (!priv || !value) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    for (int attempt = 0; attempt < BQ27Z561_IO_RETRIES; ++attempt) {
+        if (xy_sensor_i2c_read_reg16(&priv->bus, reg, value) == 0) {
+            return XY_FG_OK;
+        }
+    }
+
+    return XY_FG_ERROR;
+}
+
+static int bq27z561_read_reg8(bq27z561_private_data_t *priv, uint8_t reg, uint8_t *value)
+{
+    if (!priv || !value) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    for (int attempt = 0; attempt < BQ27Z561_IO_RETRIES; ++attempt) {
+        if (xy_sensor_i2c_read_reg(&priv->bus, reg, value) == 0) {
+            return XY_FG_OK;
+        }
+    }
+
+    return XY_FG_ERROR;
+}
 
 /**
  * @brief BQ27z561 初始化
@@ -50,7 +81,7 @@ static int bq27z561_init(xy_fuel_gauge_t *fg)
     
     /* 读取设备 ID */
     uint16_t device_id;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, 0x0002, &device_id) != 0) {
+    if (bq27z561_read_reg16(priv, 0x0002, &device_id) != XY_FG_OK) {
         priv->initialized = false;
         return XY_FG_ERROR;
     }
@@ -78,57 +109,57 @@ static int bq27z561_fetch(xy_fuel_gauge_t *fg)
     
     /* 读取电压 (mV) */
     uint16_t voltage;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_VOLT, &voltage) != 0) {
+    if (bq27z561_read_reg16(priv, BQ27Z561_REG_VOLT, &voltage) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     
     /* 读取电流 (mA) */
     int16_t current;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_CURR, (uint16_t*)&current) != 0) {
+    if (bq27z561_read_reg16(priv, BQ27Z561_REG_CURR, (uint16_t*)&current) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
 
     /* 读取平均电流 (mA)，公共 snapshot 没有独立字段，驱动私有缓存该值。 */
     int16_t average_current;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_AVG_CURR,
-                                 (uint16_t*)&average_current) != 0) {
+    if (bq27z561_read_reg16(priv, BQ27Z561_REG_AVG_CURR,
+                            (uint16_t *)&average_current) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     
     /* 读取 SOC (%) */
     uint8_t soc;
-    if (xy_sensor_i2c_read_reg(&priv->bus, BQ27Z561_REG_SOC, &soc) != 0) {
+    if (bq27z561_read_reg8(priv, BQ27Z561_REG_SOC, &soc) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     
     /* 读取 SOH (%) */
     uint8_t soh;
-    if (xy_sensor_i2c_read_reg(&priv->bus, BQ27Z561_REG_SOH, &soh) != 0) {
+    if (bq27z561_read_reg8(priv, BQ27Z561_REG_SOH, &soh) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     
     /* 读取温度 (0.1K) */
     uint16_t temp;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_TEMP, &temp) != 0) {
+    if (bq27z561_read_reg16(priv, BQ27Z561_REG_TEMP, &temp) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     int16_t temp_c = (int16_t)((int32_t)temp - 2731);  /* 转换为 0.1°C */
     
     /* 读取满充容量 (mAh) */
     uint16_t full_cap;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_NOM_CAP, &full_cap) != 0) {
+    if (bq27z561_read_reg16(priv, BQ27Z561_REG_NOM_CAP, &full_cap) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     
     /* 读取剩余容量 (mAh) */
     uint16_t rem_cap;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_REM_CAP, &rem_cap) != 0) {
+    if (bq27z561_read_reg16(priv, BQ27Z561_REG_REM_CAP, &rem_cap) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
 
     /* 读取循环次数 */
     uint16_t cycle_count;
-    if (xy_sensor_i2c_read_reg16(&priv->bus, BQ27Z561_REG_CYCLE_CNT, &cycle_count) != 0) {
+    if (bq27z561_read_reg16(priv, BQ27Z561_REG_CYCLE_CNT, &cycle_count) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
     
