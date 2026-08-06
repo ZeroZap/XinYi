@@ -16,6 +16,13 @@
 - `core/` - standalone core 与扩展模块实现
 - `drivers/` - 具体 Fuel Gauge 芯片驱动
 
+Driver public headers:
+
+- `drivers/xy_fg_bq27z746.h`
+- `drivers/xy_fg_bq27z561.h`
+- `drivers/xy_fg_bq40z50.h`
+- `drivers/xy_fg_max17043.h`
+
 ## ✅ Host 验证契约
 
 Focused CTest targets:

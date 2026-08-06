@@ -7,7 +7,7 @@
  * Reference: Zephyr BQ27z561 driver
  */
 
-#include "xy_fuel_gauge.h"
+#include "xy_fg_bq27z561.h"
 #include "xy_log.h"
 #include "xy_sensor_device.h"
 #include <string.h>
@@ -15,7 +15,6 @@
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
 /* BQ27z561 寄存器定义 */
-#define BQ27Z561_ADDR           0x55
 #define BQ27Z561_REG_CTRL       0x00
 #define BQ27Z561_REG_TEMP       0x06
 #define BQ27Z561_REG_VOLT       0x08

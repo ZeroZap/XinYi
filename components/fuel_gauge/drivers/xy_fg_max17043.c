@@ -7,7 +7,7 @@
  * Reference: Zephyr MAX17043 driver
  */
 
-#include "xy_fuel_gauge.h"
+#include "xy_fg_max17043.h"
 #include "xy_log.h"
 #include "xy_sensor_device.h"
 #include <string.h>
@@ -15,7 +15,6 @@
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
 /* MAX17043 寄存器定义 */
-#define MAX17043_ADDR           0x36
 #define MAX17043_REG_VCELL      0x02
 #define MAX17043_REG_SOC        0x04
 #define MAX17043_REG_MODE       0x06

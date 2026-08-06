@@ -1,14 +1,12 @@
 #include "unity.h"
 #include "fff.h"
+#include "xy_fg_bq27z561.h"
 #include "xy_fuel_gauge.h"
 #include "xy_sensor_device.h"
 
 #include <stdint.h>
 #include <string.h>
 
-int xy_fuel_gauge_bq27z561_register(void *i2c_handle, uint8_t addr);
-
-#define BQ27Z561_ADDR        0x55
 #define REG_DEVICE_ID        0x02
 #define REG_TEMP             0x06
 #define REG_VOLT             0x08

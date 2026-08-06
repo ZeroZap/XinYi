@@ -1,16 +1,14 @@
 #include "unity.h"
 #include "fff.h"
+#include "xy_fg_max17043.h"
 #include "xy_fuel_gauge.h"
 #include "xy_sensor_device.h"
 
 #include <stdint.h>
 #include <string.h>
 
-int xy_fuel_gauge_max17043_register(void *i2c_handle, uint8_t addr);
-
 DEFINE_FFF_GLOBALS;
 
-#define MAX17043_ADDR       0x36
 #define REG_VCELL           0x02
 #define REG_SOC             0x04
 #define REG_VER             0x08
