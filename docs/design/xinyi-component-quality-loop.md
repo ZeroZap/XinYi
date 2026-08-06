@@ -95,6 +95,7 @@
 - Net explicit feature-gated umbrella probe 已在 `test_net_feature_gated_umbrella` 中落地：`xy_net_config.h` 默认值保持 CAN/LTE off，但允许测试/消费者用编译定义显式 opt-in；`xy_net.h` 仅在 `XY_NET_ENABLE_CAN/LTE=1` 时导出对应 public headers。
 - LTE UART/AT adapter 仍处设计阶段，已新增 `docs/design/xinyi-net-lte-uart-at-adapter-proposal-2026-08-06.md`：建议下一步只做 callback-backed adapter + focused host CTest，不直接接 vendor HAL，也不改变 `XY_NET_ENABLE_LTE=0` 默认策略。若继续实现，应严格限定在 `xy_lte_uart_adapter.{h,c}` 与 `test_lte_uart_adapter`。
 - LTE callback-backed UART adapter 已按上述限定范围落地：`xy_lte_uart_adapter.{h,c}` 与 `test_lte_uart_adapter` 只使用回调 seam，不包含 vendor/HAL UART；后续若继续推进，应在保持 `XY_NET_ENABLE_LTE=0` 默认关闭的前提下，先验证 LTE core 绑定该 adapter 的端到端 AT command contract，再设计真实 HAL UART binding。
+- 已新增 `docs/design/xinyi-net-lte-hal-uart-binding-proposal-2026-08-06.md`，明确下一步 HAL UART binding 应作为独立 default-off adapter：只引用公开 HAL UART API、先用 host fake 覆盖 timeout/error/短写归一化，再做 STM32U5 compile probe；仍不允许直接把 LTE 设为 `XY_NET_ENABLE_LTE=1` 默认导出。
 
 ---
 
