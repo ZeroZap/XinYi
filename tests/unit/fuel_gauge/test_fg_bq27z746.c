@@ -20,6 +20,7 @@
 
 static uint16_t fake_regs[256];
 static uint8_t fake_read_failures[256];
+static uint32_t fake_read_counts[256];
 static xy_sensor_bus_t last_bus;
 
 DEFINE_FFF_GLOBALS;
@@ -53,6 +54,8 @@ static int xy_sensor_i2c_read_impl(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *d
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT16(2, len);
+
+    fake_read_counts[reg]++;
 
     if (fake_read_failures[reg] > 0) {
         fake_read_failures[reg]--;
@@ -113,6 +116,7 @@ void setUp(void)
 {
     memset(fake_regs, 0, sizeof(fake_regs));
     memset(fake_read_failures, 0, sizeof(fake_read_failures));
+    memset(fake_read_counts, 0, sizeof(fake_read_counts));
     memset(&last_bus, 0, sizeof(last_bus));
     reset_sensor_fakes();
 
@@ -510,6 +514,28 @@ void test_bq27z746_fetch_retries_transient_register_read_failures(void)
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(12, xy_sensor_i2c_read_fake.call_count);
 }
 
+void test_bq27z746_fetch_stops_after_exhausted_first_register_retry(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq27z746();
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+
+    xy_sensor_i2c_read_fake.call_count = 0;
+    xy_os_tick_get_fake.call_count = 0;
+    memset(fake_read_counts, 0, sizeof(fake_read_counts));
+    fake_fail_reads(REG_VOLT, 3);
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT(3, xy_sensor_i2c_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(3, fake_read_counts[REG_VOLT]);
+    TEST_ASSERT_EQUAL_UINT32(0, fake_read_counts[REG_CURR]);
+    TEST_ASSERT_EQUAL_UINT32(0, fake_read_counts[REG_AVG_CURR]);
+    TEST_ASSERT_EQUAL_UINT32(0, fake_read_counts[REG_SOC]);
+    TEST_ASSERT_EQUAL_UINT32(0, fake_read_counts[REG_FLAGS]);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
+}
+
 void test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure(void)
 {
     xy_fuel_gauge_t *fg = registered_bq27z746();
@@ -662,6 +688,7 @@ int main(void)
     RUN_TEST(test_bq27z746_alert_set_get_uses_cached_thresholds);
     RUN_TEST(test_bq27z746_fetch_failure_preserves_cached_snapshot);
     RUN_TEST(test_bq27z746_fetch_retries_transient_register_read_failures);
+    RUN_TEST(test_bq27z746_fetch_stops_after_exhausted_first_register_retry);
     RUN_TEST(test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure);
     RUN_TEST(test_bq27z746_status_helpers_handle_null_and_uninitialized);
     RUN_TEST(test_bq27z746_direct_api_guards_missing_device_data);
