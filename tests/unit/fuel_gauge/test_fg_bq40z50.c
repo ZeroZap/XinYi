@@ -256,6 +256,9 @@ void test_bq40z50_init_fetch_channel_and_pack_helpers(void)
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(75, value);
 
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOH, &value));
+    TEST_ASSERT_EQUAL_INT32(100, value);
+
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_TEMPERATURE, &value));
     TEST_ASSERT_EQUAL_INT32(270, value);
 
@@ -624,6 +627,8 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
     TEST_ASSERT_EQUAL_INT32(-543, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(75, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOH, &value));
+    TEST_ASSERT_EQUAL_INT32(100, value);
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_charging(fg));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_discharging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_full(fg));
@@ -651,6 +656,8 @@ void test_bq40z50_retries_transient_nack_and_preserves_snapshot_on_failure(void)
     TEST_ASSERT_EQUAL_INT32(1111, value);
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOC, &value));
     TEST_ASSERT_EQUAL_INT32(88, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get(fg, XY_FG_DATA_SOH, &value));
+    TEST_ASSERT_EQUAL_INT32(100, value);
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_charging(fg));
     TEST_ASSERT_TRUE(xy_fuel_gauge_bq40z50_is_discharging(fg));
     TEST_ASSERT_FALSE(xy_fuel_gauge_bq40z50_is_full(fg));
