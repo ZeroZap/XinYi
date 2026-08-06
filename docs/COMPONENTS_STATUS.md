@@ -30,6 +30,7 @@
 | **PID** | `components/pid/` | 🟢 稳定 | ✅ | PID 控制器 |
 | **IPC** | `components/ipc/` | 🟢 稳定 | ✅ | 进程间通信 |
 | **PM** | `components/pm/` | 🟢 稳定 | ✅ | 电源管理 |
+| **Fuel Gauge** | `components/fuel_gauge/` | 🟡 host-guarded | ✅ | standalone 电量计；SMBus 硬件验证 pending |
 | **GUI** | `components/gui/` | 🟡 开发中 | ⚠️ | 图形界面 |
 | **FOTA** | `components/fota/` | 🟡 开发中 | ⚠️ | 固件升级 |
 

@@ -80,7 +80,7 @@
 | **Clib** | 95% | 嵌入式标准库 |
 | **Trace** | 85% | 日志系统完善 |
 | **DM** | 85% | EEPROM/Flash/TLV |
-| **Fuel Gauge** | 100% | 电量计独立组件 |
+| **Fuel Gauge** | host-guarded / 硬件待验证 | 电量计独立组件；SMBus/I2C 真实板级验证仍 pending |
 
 ### 1.4 待完善组件 (🔧)
 
@@ -89,7 +89,7 @@
 | **Device** | 70% | 设备注册/查找/电源管理 | 10h |
 | **Net** | 60% | CAN/LTE/MQTT 完善 | 12h |
 | **IPC** | 65% | 消息队列/事件组 | 6h |
-| **PM** | 50% | 睡眠模式/功耗监控 | 8h |
+| **PM** | 50% | 睡眠模式/功耗监控；Fuel Gauge 继续保持 standalone，不回并 PM | 8h |
 | **GUI** | 40% | 字体/控件/渲染 | 16h |
 | **Kernel Service** | 60% | 系统监控/定时器 | 4h |
 
