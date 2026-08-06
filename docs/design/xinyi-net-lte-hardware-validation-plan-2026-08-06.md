@@ -63,7 +63,7 @@ A useful hardware validation record should capture:
 | Attach/PDP boundary | attach status and whether PDP activation was attempted or intentionally skipped |
 | Failure mode | timeout/error behavior when modem is absent or powered off |
 
-The record may be a follow-up doc under `docs/validation/` or a checked-in markdown note referenced from this proposal. It must label compile-only results separately from real modem results.
+Use `docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md` as the checked-in evidence format. The template deliberately starts at `pending` and must not be promoted to `compile-only` or `hardware-passed-*` without real command logs. Every completed record must label compile-only results separately from real modem results.
 
 ## Flow-control decision rule
 
