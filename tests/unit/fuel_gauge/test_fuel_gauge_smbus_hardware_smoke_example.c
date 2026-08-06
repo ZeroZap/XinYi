@@ -86,7 +86,9 @@ int xy_sensor_i2c_read(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *data, uint16_
     TEST_ASSERT_NOT_NULL(bus);
     TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
     TEST_ASSERT_NOT_NULL(data);
-    TEST_ASSERT_TRUE(len == 2U || len == 4U);
+    if (len != 2U && len != 4U) {
+        TEST_FAIL_MESSAGE("Fuel Gauge SMBus smoke only models 2-byte/4-byte register reads");
+    }
 
     g_i2c_read_calls++;
     if (g_read_failures[reg] > 0U) {
