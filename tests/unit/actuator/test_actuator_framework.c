@@ -15,6 +15,10 @@ extern const actuator_ops_t relay_default_ops;
 extern const actuator_ops_t servo_default_ops;
 
 static actuator_value_t g_last_write;
+static unsigned g_callback_calls;
+static actuator_device_t *g_callback_dev;
+static actuator_err_t g_callback_result;
+static void *g_callback_user_data;
 
 FAKE_VALUE_FUNC(actuator_err_t, mock_init, actuator_device_t *);
 FAKE_VALUE_FUNC(actuator_err_t, mock_deinit, actuator_device_t *);
@@ -95,6 +99,10 @@ static actuator_err_t mock_enable_impl(actuator_device_t *dev, bool enable)
 static void reset_mock(void)
 {
     memset(&g_last_write, 0, sizeof(g_last_write));
+    g_callback_calls = 0U;
+    g_callback_dev = NULL;
+    g_callback_result = ACTUATOR_EOK;
+    g_callback_user_data = NULL;
     RESET_FAKE(mock_init);
     RESET_FAKE(mock_deinit);
     RESET_FAKE(mock_write);
@@ -132,6 +140,14 @@ static void reset_mock(void)
     mock_read_fake.custom_fake = mock_read_impl;
     mock_enable_fake.custom_fake = mock_enable_impl;
     pwm_write_fake.custom_fake = mock_write_impl;
+}
+
+static void capture_callback(actuator_device_t *dev, actuator_err_t result, void *user_data)
+{
+    g_callback_calls++;
+    g_callback_dev = dev;
+    g_callback_result = result;
+    g_callback_user_data = user_data;
 }
 
 static const relay_ops_t mock_relay_ops = {
@@ -333,6 +349,38 @@ static void test_generic_write_preserves_cached_value_on_backend_failure(void)
     TEST_ASSERT_EQUAL_UINT(2, mock_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
     TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, relay.status);
+}
+
+static void test_generic_write_invokes_completion_callback_for_success_and_failure(void)
+{
+    reset_mock();
+
+    actuator_device_t relay = ACTUATOR_DEVICE_INIT(
+        "act_callback", ACTUATOR_TYPE_RELAY, &mock_ops, NULL, NULL);
+    actuator_value_t value = {0};
+    int user_cookie = 42;
+
+    relay.callback = capture_callback;
+    relay.user_data = &user_cookie;
+    value.relay.state = RELAY_STATE_ON;
+
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_write(&relay, &value));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, g_callback_calls);
+    TEST_ASSERT_EQUAL_PTR(&relay, g_callback_dev);
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, g_callback_result);
+    TEST_ASSERT_EQUAL_PTR(&user_cookie, g_callback_user_data);
+
+    mock_write_fake.custom_fake = NULL;
+    mock_write_fake.return_val = ACTUATOR_EIO;
+    value.relay.state = RELAY_STATE_OFF;
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, actuator_write(&relay, &value));
+    TEST_ASSERT_EQUAL_UINT(2U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(2U, g_callback_calls);
+    TEST_ASSERT_EQUAL_PTR(&relay, g_callback_dev);
+    TEST_ASSERT_EQUAL(ACTUATOR_EIO, g_callback_result);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_ERROR, relay.status);
+    TEST_ASSERT_EQUAL_UINT8(RELAY_STATE_ON, relay.value.relay.state);
 }
 
 static void test_generic_config_and_status_dispatch_contracts(void)
@@ -982,6 +1030,7 @@ int main(void)
     RUN_TEST(test_unregister_missing_device_preserves_registry);
     RUN_TEST(test_register_rejects_same_pointer_and_empty_name);
     RUN_TEST(test_generic_write_preserves_cached_value_on_backend_failure);
+    RUN_TEST(test_generic_write_invokes_completion_callback_for_success_and_failure);
     RUN_TEST(test_generic_config_and_status_dispatch_contracts);
     RUN_TEST(test_missing_ops_and_default_relay);
     RUN_TEST(test_type_specific_relay_ops_preserve_state_on_failure);

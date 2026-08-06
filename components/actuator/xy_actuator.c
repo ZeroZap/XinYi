@@ -228,6 +228,10 @@ actuator_err_t actuator_write(actuator_device_t *dev, const actuator_value_t *va
         dev->status = ACTUATOR_STATUS_ERROR;
     }
 
+    if (dev->callback != NULL) {
+        dev->callback(dev, err, dev->user_data);
+    }
+
     return err;
 }
 
