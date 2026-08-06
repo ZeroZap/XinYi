@@ -1,7 +1,7 @@
 # XinYi Net LTE HAL UART Binding Proposal
 
 **Date:** 2026-08-06
-**Status:** Implemented as default-off host-guarded adapter
+**Status:** Implemented as default-off host-guarded adapter; PC focused and STM32U5 compile-probed
 **Scope:** `components/net/inc/xy_lte_hal_uart_adapter.h`, `components/net/src/xy_lte_hal_uart_adapter.c`, `tests/unit/net/test_lte_hal_uart_adapter.c`
 **Decision type:** adapter implementation only; no `XY_NET_ENABLE_LTE` default change
 
@@ -101,6 +101,18 @@ make HAL_PLATFORM=STM32U5 -j$(nproc)
 ```
 
 If STM32U5 fails because of missing local toolchain or SDK checkout, report the exact blocker and keep the binding default-off.
+
+### 2026-08-06 compile-probe result
+
+The default-off HAL UART adapter was rechecked after implementation with the exact proposal gates that do not require real modem hardware:
+
+```bash
+cmake --build build/tests/unit --target test_lte_hal_uart_adapter -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^lte_hal_uart_adapter$'
+make HAL_PLATFORM=STM32U5 -j$(nproc)
+```
+
+Result: the focused host CTest passed, and the STM32U5 firmware build completed through the existing `xy_net` static-library target without introducing vendor-header or public HAL UART API drift. This remains a compile probe only; it does not validate real UART timing, modem boot sequencing, SIM/network behavior, or board-specific flow-control wiring.
 
 ## Enablement rule
 
