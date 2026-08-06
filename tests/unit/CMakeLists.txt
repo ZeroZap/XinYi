@@ -1318,6 +1318,13 @@ xy_add_unit_test(test_actuator_framework actuator_framework UNITY
 )
 target_link_libraries(test_actuator_framework m)
 
+# --- Test 41b: Actuator example stays aligned with public APIs ---
+xy_add_unit_test(test_actuator_example_relay_servo_pwm actuator_example_relay_servo_pwm
+    ${ACTUATOR}/examples/example_relay_servo_pwm.c
+    ${ACTUATOR}/xy_actuator.c
+)
+target_link_libraries(test_actuator_example_relay_servo_pwm m)
+
 # --- Test 42: BQ25620 charger I2C register and status contracts ---
 xy_add_unit_test(test_charger_bq25620 charger_bq25620 UNITY
     ${UNIT_PM}/test_charger_bq25620.c

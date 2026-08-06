@@ -27,6 +27,8 @@
 actuator/
 ├── xy_actuator.h    # 执行器框架头文件
 ├── xy_actuator.c    # 执行器框架实现
+├── examples/
+│   └── example_relay_servo_pwm.c # 继电器/舵机/PWM build-guarded smoke 示例
 ├── CMakeLists.txt
 └── README.md        # 本文件
 ```
@@ -301,6 +303,9 @@ target_link_libraries(your_target xy_actuator)
 ```
 tests/unit/actuator/
 └── test_actuator_framework.c # 统一 Actuator 框架、继电器、舵机、PWM 与批处理测试
+
+components/actuator/examples/
+└── example_relay_servo_pwm.c # 示例源文件，通过 CTest 编译/运行护栏保持 API 对齐
 ```
 
 旧的 `tests/actuator/*` 独立测试入口已合并到 active `tests/unit` 套件，避免与 CTest 主入口重复。
@@ -314,6 +319,10 @@ make test-unit
 # 或只运行 Actuator 目标
 cmake --build build/tests/unit --target test_actuator_framework -j"$(nproc)"
 ctest --test-dir build/tests/unit -R '^actuator_framework$' --output-on-failure
+
+# 只运行 Actuator 示例 smoke 护栏
+cmake --build build/tests/unit --target test_actuator_example_relay_servo_pwm -j"$(nproc)"
+ctest --test-dir build/tests/unit -R '^actuator_example_relay_servo_pwm$' --output-on-failure
 ```
 
 ### 测试覆盖
@@ -327,6 +336,12 @@ ctest --test-dir build/tests/unit -R '^actuator_framework$' --output-on-failure
 - 舵机默认操作：角度设置、回中、范围与 PWM 配置
 - 批量操作：批量写入、序列执行、错误参数
 - 类型专用 helper 防御路径：继电器/舵机/PWM helper 拒绝错误类型并保持调用者输出与缓存状态
+
+#### example_relay_servo_pwm.c
+
+- 使用 public `xy_actuator.h` API 注册继电器、舵机和 PWM 设备
+- 演示继电器开/关、舵机角度设置、PWM duty/frequency 与批量 all-off
+- 在 `make test-unit` 中作为 host smoke CTest 编译/运行，防止 README 示例与公共 API 漂移
 
 ---
 
