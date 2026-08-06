@@ -98,11 +98,13 @@ Current host gates that should pass before any hardware run:
 
 ```bash
 cmake -B build/tests/unit -S tests/unit
-cmake --build build/tests/unit --target test_fg_bq40z50 test_fg_bq27z746 test_fg_bq27z561 test_fg_max17043 -j$(nproc)
-cd build/tests/unit && ctest --output-on-failure -R '^(fg_bq40z50|fg_bq27z746|fg_bq27z561|fg_max17043)$'
+cmake --build build/tests/unit --target test_fg_bq40z50 test_fg_bq27z746 test_fg_bq27z561 test_fg_max17043 test_fuel_gauge_smbus_hardware_smoke_example -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^(fg_bq40z50|fg_bq27z746|fg_bq27z561|fg_max17043|fuel_gauge_smbus_hardware_smoke_example)$'
 make test-unit
 git diff --check
 ```
+
+`test_fuel_gauge_smbus_hardware_smoke_example` is a build-guarded host skeleton for the board flow only. It exercises BQ40Z50 register/fetch/snapshot contracts through fake I2C so the eventual board-validation entrypoint stays compiled, but it does not upgrade the validation record beyond `pending` or `compile-only` without real board logs.
 
 ## Non-goals For This Slice
 

@@ -1410,7 +1410,23 @@ target_include_directories(test_fg_bq27z561 PRIVATE
     ${SENSOR}/inc
 )
 
-# --- Test 48: Unity + FFF framework smoke guard ---
+# --- Test 48: Fuel Gauge SMBus board-validation smoke skeleton ---
+xy_add_unit_test(test_fuel_gauge_smbus_hardware_smoke_example fuel_gauge_smbus_hardware_smoke_example UNITY
+    ${UNIT_FUEL_GAUGE}/test_fuel_gauge_smbus_hardware_smoke_example.c
+    ${ROOT}/components/fuel_gauge/drivers/xy_fg_bq40z50.c
+    ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
+target_include_directories(test_fuel_gauge_smbus_hardware_smoke_example PRIVATE
+    ${ROOT}/components/fuel_gauge/drivers
+    ${ROOT}/components/fuel_gauge/inc
+    ${SENSOR}/inc
+)
+
+# --- Test 49: Unity + FFF framework smoke guard ---
 xy_add_unit_test(test_fff_smoke fff_smoke UNITY
     ${UNIT_FRAMEWORK}/test_fff_smoke.c
 )
