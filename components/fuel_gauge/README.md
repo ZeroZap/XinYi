@@ -6,6 +6,7 @@
 
 - Standalone Fuel Gauge 核心：设备注册、初始化、数据抓取、通道读取、告警配置。
 - Host 覆盖驱动：BQ27Z746、BQ40Z50、MAX17043、BQ27Z561。
+- BQ40Z50 覆盖 SMBus transient NACK bounded retry、atomic fetch snapshot、cached status helper 与 direct balance-status read helper。
 - 扩展模块：状态查询、安全阈值/事件、安全认证与透传加解密接口。
 - 错误返回：驱动和扩展 API 使用公开 `XY_FG_ERROR_*` 状态码。
 
