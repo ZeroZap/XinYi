@@ -101,6 +101,7 @@
 - 已新增 `docs/design/xinyi-net-lte-hardware-validation-plan-2026-08-06.md`，把 LTE 后续工作收束为硬件验证计划：真实 modem 记录必须区分 compile-only 与 board UART/flow-control/AT/SIM/signal 证据；在记录存在前仍保持 `XY_NET_ENABLE_LTE=0` direct-opt-in。
 - 已新增 `docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`，把 LTE 真实硬件验证证据格式固定为 pending/compile-only/hardware-failed/hardware-passed-* 分级；后续只能用真实板级 UART/modem 日志填写，不允许用 host fake 或 STM32U5 compile-only 结果替代硬件证据。
 - 已新增 `test_lte_hal_uart_smoke_example` build-guarded smoke skeleton：它只验证 LTE core 绑定 HAL UART adapter 的 AT 成功/modem-absent timeout 路径与 default-off 策略，不伪造真实硬件记录；后续真实板级验证仍需按 validation record template 填写 UART/modem 证据。
+- 已新增 `docs/design/xinyi-net-lte-board-flow-control-design-2026-08-06.md`，把真实 LTE 板级验证前的 UART/RTS/CTS/电源时序边界固定下来：`components/net` 继续只负责 transport/HAL UART adapter，UART pinmux、PWRKEY/RESET、RTS/CTS 选择与硬件日志必须由 board/project smoke 记录。后续若无真实板卡证据，应保持 validation record pending，不允许用 host fake/compile-only 填硬件结果。
 
 ---
 
