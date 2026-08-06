@@ -388,6 +388,31 @@ int xy_fuel_gauge_bq40z50_get_cell_voltage(xy_fuel_gauge_t *fg,
     return 0;
 }
 
+int xy_fuel_gauge_bq40z50_read_balance_status(xy_fuel_gauge_t *fg,
+                                              uint8_t *balance_status)
+{
+    if (!fg || !fg->data || !balance_status) {
+        return XY_FG_ERROR_INVALID_PARAM;
+    }
+
+    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    if (!fg->initialized || !priv->initialized) {
+        return XY_FG_ERROR_NOT_INITIALIZED;
+    }
+
+    uint16_t value;
+    int ret = XY_FG_ERROR;
+    for (int attempt = 0; attempt < BQ40Z50_READ_RETRIES; attempt++) {
+        ret = xy_sensor_i2c_read_reg16(&priv->bus, BQ40Z50_REG_BAL_STATUS, &value);
+        if (ret == 0) {
+            *balance_status = (uint8_t)value;
+            return XY_FG_OK;
+        }
+    }
+
+    return XY_FG_ERROR;
+}
+
 /**
  * @brief 获取平衡状态
  */

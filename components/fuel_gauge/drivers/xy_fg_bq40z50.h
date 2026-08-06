@@ -33,6 +33,24 @@ extern "C" {
 int xy_fuel_gauge_bq40z50_register(void *i2c_handle, uint8_t addr);
 
 /**
+ * @brief 读取并返回实时平衡状态（不更新内部快照）
+ *
+ * 该 helper 通过底层寄存器读取路径处理 SMBus transient NACK，但只把成功读到的值
+ * 写给调用者，不修改 fetch() 维护的原子快照缓存。
+ *
+ * @param fg 电量计实例
+ * @param balance_status 输出平衡状态低 8 位
+ * @return XY_FG_OK 成功；XY_FG_ERROR_* 失败
+ */
+int xy_fuel_gauge_bq40z50_read_balance_status(xy_fuel_gauge_t *fg,
+                                              uint8_t *balance_status);
+
+/**
+ * @brief 获取缓存的电池平衡状态
+ */
+uint8_t xy_fuel_gauge_bq40z50_get_balance_status(xy_fuel_gauge_t *fg);
+
+/**
  * @brief 获取电池组电压
  * @param fg 电量计设备
  * @param voltage_mv 电压 (mV)
@@ -50,13 +68,6 @@ int xy_fuel_gauge_bq40z50_get_battery_voltage(xy_fuel_gauge_t *fg, uint16_t *vol
 int xy_fuel_gauge_bq40z50_get_cell_voltage(xy_fuel_gauge_t *fg, 
                                            uint8_t cell_index,
                                            uint16_t *voltage_mv);
-
-/**
- * @brief 获取平衡状态
- * @param fg 电量计设备
- * @return 平衡状态位掩码
- */
-uint8_t xy_fuel_gauge_bq40z50_get_balance_status(xy_fuel_gauge_t *fg);
 
 /**
  * @brief 获取保护状态

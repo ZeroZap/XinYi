@@ -61,6 +61,22 @@ static void fake_fail_reads(uint8_t reg, uint8_t failures)
     fake_read_failures[reg] = failures;
 }
 
+static uint16_t fake_get16(uint8_t reg)
+{
+    return ((uint16_t)fake_regs[reg][1] << 8) | fake_regs[reg][0];
+}
+
+static int xy_sensor_i2c_read_once(uint8_t reg, uint16_t *value)
+{
+    if (fake_read_failures[reg] > 0) {
+        fake_read_failures[reg]--;
+        return -1;
+    }
+
+    *value = fake_get16(reg);
+    return 0;
+}
+
 static void xy_sensor_bus_config_i2c_impl(xy_sensor_bus_t *bus, void *handle, uint8_t address)
 {
     TEST_ASSERT_NOT_NULL(bus);
@@ -93,12 +109,10 @@ static int xy_sensor_i2c_read_impl(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *d
 
 static int xy_sensor_i2c_read_reg16_impl(xy_sensor_bus_t *bus, uint8_t reg, uint16_t *value)
 {
-    uint8_t data[2];
-    int ret = xy_sensor_i2c_read_impl(bus, reg, data, sizeof(data));
-    if (ret == 0) {
-        *value = ((uint16_t)data[1] << 8) | data[0];
-    }
-    return ret;
+    TEST_ASSERT_NOT_NULL(bus);
+    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
+    TEST_ASSERT_NOT_NULL(value);
+    return xy_sensor_i2c_read_once(reg, value);
 }
 
 static void reset_sensor_fakes(void)
@@ -764,6 +778,35 @@ void test_bq40z50_late_cell_voltage_failure_preserves_cached_snapshot(void)
     TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
 }
 
+void test_bq40z50_balance_read_uses_bounded_retry_without_fetch_side_effects(void)
+{
+    xy_fuel_gauge_t *fg = registered_bq40z50();
+    uint8_t balance = 0;
+
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+
+    fake_set16(REG_BAL_STATUS, 0x000C);
+    fake_fail_reads(REG_BAL_STATUS, 2);
+    xy_sensor_i2c_read_reg16_fake.call_count = 0;
+    TEST_ASSERT_EQUAL(XY_FG_OK,
+                      xy_fuel_gauge_bq40z50_read_balance_status(fg, &balance));
+    TEST_ASSERT_EQUAL_UINT8(0x0C, balance);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+
+    balance = 0xAA;
+    fake_set16(REG_BAL_STATUS, 0x000D);
+    fake_fail_reads(REG_BAL_STATUS, 3);
+    xy_sensor_i2c_read_reg16_fake.call_count = 0;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR,
+                      xy_fuel_gauge_bq40z50_read_balance_status(fg, &balance));
+    TEST_ASSERT_EQUAL_UINT8(0xAA, balance);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0x05, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+}
+
 void test_bq40z50_direct_getters_preserve_outputs_on_invalid_or_uninitialized_calls(void)
 {
     xy_fuel_gauge_t *fg = registered_bq40z50();
@@ -837,6 +880,7 @@ int main(void)
     RUN_TEST(test_bq40z50_retries_discharge_status_path);
     RUN_TEST(test_bq40z50_inline_getters_preserve_outputs_on_fetch_failure);
     RUN_TEST(test_bq40z50_late_cell_voltage_failure_preserves_cached_snapshot);
+    RUN_TEST(test_bq40z50_balance_read_uses_bounded_retry_without_fetch_side_effects);
     RUN_TEST(test_bq40z50_direct_getters_preserve_outputs_on_invalid_or_uninitialized_calls);
     return UNITY_END();
 }
