@@ -265,6 +265,35 @@ static void test_smoke_keeps_snapshot_and_outputs_on_transient_smbus_failure(voi
     TEST_ASSERT_EQUAL_UINT32(last_timestamp, fg->latest.timestamp);
 }
 
+static void test_smoke_distinguishes_cached_and_direct_balance_status_paths(void)
+{
+    xy_fuel_gauge_t *fg = register_and_init_smoke_device();
+    uint8_t balance_status = 0xAAU;
+    uint32_t read_calls_after_fetch;
+
+    g_tick = 5050U;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    read_calls_after_fetch = g_i2c_read_calls;
+    TEST_ASSERT_EQUAL_UINT8(0x05U, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+
+    set16(REG_BAL_STATUS, 0x000AU);
+    TEST_ASSERT_EQUAL_UINT8(0x05U, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+    TEST_ASSERT_EQUAL_UINT32(read_calls_after_fetch, g_i2c_read_calls);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_bq40z50_read_balance_status(fg, &balance_status));
+    TEST_ASSERT_EQUAL_UINT8(0x0AU, balance_status);
+    TEST_ASSERT_EQUAL_UINT8(0x05U, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+    TEST_ASSERT_EQUAL_UINT32(read_calls_after_fetch + 1U, g_i2c_read_calls);
+
+    balance_status = 0xCCU;
+    fail_reads(REG_BAL_STATUS, 3U);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR,
+                      xy_fuel_gauge_bq40z50_read_balance_status(fg, &balance_status));
+    TEST_ASSERT_EQUAL_UINT8(0xCCU, balance_status);
+    TEST_ASSERT_EQUAL_UINT8(0x05U, xy_fuel_gauge_bq40z50_get_balance_status(fg));
+    TEST_ASSERT_EQUAL_UINT32(read_calls_after_fetch + 4U, g_i2c_read_calls);
+}
+
 static void test_smoke_record_template_must_stay_pending_without_real_board_logs(void)
 {
     TEST_PASS_MESSAGE("Host fake-I2C smoke is contract coverage only; validation record stays pending until real SMBus board logs are captured.");
@@ -275,6 +304,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_smoke_documents_bq40z50_smbus_init_fetch_flow);
     RUN_TEST(test_smoke_keeps_snapshot_and_outputs_on_transient_smbus_failure);
+    RUN_TEST(test_smoke_distinguishes_cached_and_direct_balance_status_paths);
     RUN_TEST(test_smoke_record_template_must_stay_pending_without_real_board_logs);
     return UNITY_END();
 }
