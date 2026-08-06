@@ -103,6 +103,7 @@
 - 已新增 `test_lte_hal_uart_smoke_example` build-guarded smoke skeleton：它只验证 LTE core 绑定 HAL UART adapter 的 AT 成功/modem-absent timeout 路径与 default-off 策略，不伪造真实硬件记录；后续真实板级验证仍需按 validation record template 填写 UART/modem 证据。
 - 已新增 `docs/design/xinyi-net-lte-board-flow-control-design-2026-08-06.md`，把真实 LTE 板级验证前的 UART/RTS/CTS/电源时序边界固定下来：`components/net` 继续只负责 transport/HAL UART adapter，UART pinmux、PWRKEY/RESET、RTS/CTS 选择与硬件日志必须由 board/project smoke 记录。后续若无真实板卡证据，应保持 validation record pending，不允许用 host fake/compile-only 填硬件结果。
 - 已新增 `docs/design/xinyi-fuel-gauge-smbus-hardware-validation-plan-2026-08-06.md`，把 Fuel Gauge 后续工作从继续堆 host fake 测试收束到真实 SMBus/I2C 板级验证：BQ40Z50/BQ27Z* 等 host CTest 仍作为契约护栏，但 clock stretching、放电期 transient NACK/retry、快照保持在真实硬件上的结论必须用 board log/trace 记录，不能用 fake-I2C 输出替代。
+- 已新增 `docs/validation/xinyi-fuel-gauge-smbus-hardware-validation-record-template-2026-08-06.md`，固定 Fuel Gauge 真实 SMBus 硬件验证证据格式：结果从 `pending` 开始，必须记录板卡/电池包/总线配置、init/fetch 日志、retry/NACK 计数、snapshot-preservation 与可选逻辑分析仪 trace；host fake-I2C 或 compile-only 结果不能提升为硬件通过。
 
 ---
 

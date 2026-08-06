@@ -44,4 +44,5 @@ make test-unit
 ## ⚠️ 后续硬件项
 
 - 在真实 SMBus/I2C 硬件上验证 clock stretching、放电期 NACK/retry 和告警阈值硬件编程。
+- 硬件证据需使用 `docs/validation/xinyi-fuel-gauge-smbus-hardware-validation-record-template-2026-08-06.md` 记录；host fake-I2C 或 STM32U5 compile-only 结果不能替代真实 SMBus/电池包日志。
 - 按具体电池包参数调整 safety 默认阈值与状态映射。
