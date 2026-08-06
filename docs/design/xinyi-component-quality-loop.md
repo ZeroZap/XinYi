@@ -96,6 +96,7 @@
 - LTE UART/AT adapter 仍处设计阶段，已新增 `docs/design/xinyi-net-lte-uart-at-adapter-proposal-2026-08-06.md`：建议下一步只做 callback-backed adapter + focused host CTest，不直接接 vendor HAL，也不改变 `XY_NET_ENABLE_LTE=0` 默认策略。若继续实现，应严格限定在 `xy_lte_uart_adapter.{h,c}` 与 `test_lte_uart_adapter`。
 - LTE callback-backed UART adapter 已按上述限定范围落地：`xy_lte_uart_adapter.{h,c}` 与 `test_lte_uart_adapter` 只使用回调 seam，不包含 vendor/HAL UART；后续若继续推进，应在保持 `XY_NET_ENABLE_LTE=0` 默认关闭的前提下，先验证 LTE core 绑定该 adapter 的端到端 AT command contract，再设计真实 HAL UART binding。
 - 已新增 `docs/design/xinyi-net-lte-hal-uart-binding-proposal-2026-08-06.md`，明确下一步 HAL UART binding 应作为独立 default-off adapter：只引用公开 HAL UART API、先用 host fake 覆盖 timeout/error/短写归一化，再做 STM32U5 compile probe；仍不允许直接把 LTE 设为 `XY_NET_ENABLE_LTE=1` 默认导出。
+- LTE HAL UART binding 已按 default-off 独立 adapter 落地：`xy_lte_hal_uart_adapter.{h,c}` 只引用公开 `xy_hal_uart_*` API，`test_lte_hal_uart_adapter` 覆盖 init/transport guard、send/recv/flush timeout 与错误归一化、rx buffer clamp，以及 LTE core `xy_lte_check()` 绑定路径；后续应先补 STM32U5 compile probe/真实硬件验证记录，再考虑任何 umbrella enablement。
 
 ---
 

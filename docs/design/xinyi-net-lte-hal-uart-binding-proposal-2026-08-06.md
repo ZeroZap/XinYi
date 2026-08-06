@@ -1,9 +1,9 @@
 # XinYi Net LTE HAL UART Binding Proposal
 
 **Date:** 2026-08-06
-**Status:** Draft / design-stage only
-**Scope:** future `components/net/inc/xy_lte_hal_uart_adapter.h`, future `components/net/src/xy_lte_hal_uart_adapter.c`, future `tests/unit/net/test_lte_hal_uart_adapter.c`
-**Decision type:** proposal only; no `XY_NET_ENABLE_LTE` default change
+**Status:** Implemented as default-off host-guarded adapter
+**Scope:** `components/net/inc/xy_lte_hal_uart_adapter.h`, `components/net/src/xy_lte_hal_uart_adapter.c`, `tests/unit/net/test_lte_hal_uart_adapter.c`
+**Decision type:** adapter implementation only; no `XY_NET_ENABLE_LTE` default change
 
 ## Background
 
