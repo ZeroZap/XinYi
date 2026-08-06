@@ -1414,6 +1414,7 @@ target_include_directories(test_fg_bq27z561 PRIVATE
 xy_add_unit_test(test_fuel_gauge_smbus_hardware_smoke_example fuel_gauge_smbus_hardware_smoke_example UNITY
     ${UNIT_FUEL_GAUGE}/test_fuel_gauge_smbus_hardware_smoke_example.c
     ${ROOT}/components/fuel_gauge/drivers/xy_fg_bq40z50.c
+    ${ROOT}/components/fuel_gauge/drivers/xy_fg_bq27z561.c
     ${ROOT}/components/fuel_gauge/core/fuel_gauge_core.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c

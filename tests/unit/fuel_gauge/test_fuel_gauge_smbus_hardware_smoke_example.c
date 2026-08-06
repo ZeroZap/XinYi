@@ -7,19 +7,27 @@
  */
 
 #include "unity.h"
+#include "xy_fg_bq27z561.h"
 #include "xy_fg_bq40z50.h"
 #include "xy_sensor_device.h"
 
 #include <stdint.h>
 #include <string.h>
 
+#define BQ27Z561_REG_NOM_CAP  0x12
+#define BQ27Z561_REG_REM_CAP  0x14
+#define BQ27Z561_REG_SOC      0x2C
+#define BQ27Z561_REG_CURR     0x58
+#define BQ27Z561_REG_AVG_CURR 0x5A
+
 #define REG_CTRL        0x00
+#define REG_DEVICE_ID   0x02
 #define REG_TEMP        0x06
 #define REG_VOLT        0x08
 #define REG_CURR        0x0A
 #define REG_AVG_CURR    0x0B
 #define REG_CYCLE_CNT   0x2A
-#define REG_SOC         0x2C
+#define BQ40Z50_REG_SOC 0x2C
 #define REG_REM_CAP     0x2E
 #define REG_FULL_CAP    0x30
 #define REG_CELL1_VOLT  0x3C
@@ -29,6 +37,7 @@
 #define REG_BAT_STATUS  0x64
 #define REG_PROT_STATUS 0x66
 #define REG_BAL_STATUS  0x68
+#define REG_SOH         0x7A
 
 static uint8_t g_regs[256][4];
 static uint8_t g_read_failures[256];
@@ -112,10 +121,19 @@ int xy_sensor_i2c_write(xy_sensor_bus_t *bus, uint8_t reg, const uint8_t *data, 
 
 int xy_sensor_i2c_read_reg(xy_sensor_bus_t *bus, uint8_t reg, uint8_t *value)
 {
-    (void)bus;
-    (void)reg;
-    (void)value;
-    return -1;
+    TEST_ASSERT_NOT_NULL(bus);
+    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, bus->type);
+    TEST_ASSERT_NOT_NULL(value);
+
+    g_i2c_read_calls++;
+    if (g_read_failures[reg] > 0U) {
+        g_read_failures[reg]--;
+        g_failed_reads++;
+        return -1;
+    }
+
+    *value = g_regs[reg][0];
+    return 0;
 }
 
 int xy_sensor_i2c_write_reg(xy_sensor_bus_t *bus, uint8_t reg, uint8_t value)
@@ -181,12 +199,18 @@ void setUp(void)
     g_failed_reads = 0U;
 
     set16(REG_CTRL, 0x4050);
+    set16(REG_DEVICE_ID, 0x0561);
     set16(REG_TEMP, 3001);
     set16(REG_VOLT, 15234);
     set16(REG_CURR, (uint16_t)(int16_t)-654);
     set16(REG_AVG_CURR, (uint16_t)(int16_t)-543);
+    set16(BQ27Z561_REG_CURR, (uint16_t)(int16_t)-654);
+    set16(BQ27Z561_REG_AVG_CURR, (uint16_t)(int16_t)-543);
     set16(REG_CYCLE_CNT, 222);
-    set16(REG_SOC, 7550);
+    set16(BQ40Z50_REG_SOC, 7550);
+    g_regs[REG_SOH][0] = 94U;
+    set16(BQ27Z561_REG_NOM_CAP, 6800);
+    set16(BQ27Z561_REG_REM_CAP, 5100);
     set16(REG_REM_CAP, 5100);
     set16(REG_FULL_CAP, 6800);
     set16(REG_CELL1_VOLT, 3810);
@@ -209,6 +233,20 @@ static xy_fuel_gauge_t *register_and_init_smoke_device(void)
         TEST_ASSERT_EQUAL(XY_FG_OK,
                           xy_fuel_gauge_bq40z50_register((void *)0x4050, BQ40Z50_ADDR));
         fg = xy_fuel_gauge_device_get("BQ40Z50");
+    }
+    TEST_ASSERT_NOT_NULL(fg);
+    fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
+    return fg;
+}
+
+static xy_fuel_gauge_t *register_and_init_single_cell_smoke_device(void)
+{
+    xy_fuel_gauge_t *fg = xy_fuel_gauge_device_get("BQ27z561");
+    if (!fg) {
+        TEST_ASSERT_EQUAL(XY_FG_OK,
+                          xy_fuel_gauge_bq27z561_register((void *)0x27561, BQ27Z561_ADDR));
+        fg = xy_fuel_gauge_device_get("BQ27z561");
     }
     TEST_ASSERT_NOT_NULL(fg);
     fg->initialized = false;
@@ -265,6 +303,31 @@ static void test_smoke_keeps_snapshot_and_outputs_on_transient_smbus_failure(voi
     TEST_ASSERT_EQUAL_UINT32(last_timestamp, fg->latest.timestamp);
 }
 
+static void test_smoke_documents_bq27z561_single_cell_fetch_flow(void)
+{
+    xy_fuel_gauge_t *fg = register_and_init_single_cell_smoke_device();
+    uint16_t voltage = 0U;
+    int16_t current = 0;
+    uint8_t soc = 0U;
+
+    TEST_ASSERT_EQUAL(XY_SENSOR_BUS_I2C, g_last_bus.type);
+    TEST_ASSERT_EQUAL_UINT8(BQ27Z561_ADDR, g_last_bus.address);
+
+    g_regs[BQ27Z561_REG_SOC][0] = 75U;
+    g_tick = 5610U;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(5610U, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_voltage(fg, &voltage));
+    TEST_ASSERT_EQUAL_UINT16(15234U, voltage);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_current(fg, &current));
+    TEST_ASSERT_EQUAL_INT16(-654, current);
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_get_soc(fg, &soc));
+    TEST_ASSERT_EQUAL_UINT8(75U, soc);
+    TEST_ASSERT_EQUAL_UINT8(94U, fg->latest.soh);
+    TEST_ASSERT_EQUAL_UINT16(6800U, fg->latest.full_capacity_mah);
+    TEST_ASSERT_EQUAL_UINT16(5100U, fg->latest.remain_capacity_mah);
+}
+
 static void test_smoke_distinguishes_cached_and_direct_balance_status_paths(void)
 {
     xy_fuel_gauge_t *fg = register_and_init_smoke_device();
@@ -304,6 +367,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_smoke_documents_bq40z50_smbus_init_fetch_flow);
     RUN_TEST(test_smoke_keeps_snapshot_and_outputs_on_transient_smbus_failure);
+    RUN_TEST(test_smoke_documents_bq27z561_single_cell_fetch_flow);
     RUN_TEST(test_smoke_distinguishes_cached_and_direct_balance_status_paths);
     RUN_TEST(test_smoke_record_template_must_stay_pending_without_real_board_logs);
     return UNITY_END();
