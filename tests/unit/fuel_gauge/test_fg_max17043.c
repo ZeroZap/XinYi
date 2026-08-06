@@ -322,9 +322,25 @@ void test_max17043_fetch_failure_preserves_cached_snapshot(void)
     fake_regs[REG_SOC] = 0x6400U;
     fake_regs[REG_CRATE] = 0x07D0U;
     fake_fail_reads(REG_SOC, 3);
+    xy_os_tick_get_fake.call_count = 0;
     xy_os_tick_get_fake.return_val = 18000;
     TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
     TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3906, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(75, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-208, value);
+
+    fake_fail_reads(REG_CRATE, 3);
+    xy_os_tick_get_fake.call_count = 0;
+    xy_os_tick_get_fake.return_val = 19000;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR, xy_fuel_gauge_fetch(fg));
+    TEST_ASSERT_EQUAL_UINT32(previous_timestamp, fg->latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT(0, xy_os_tick_get_fake.call_count);
 
     TEST_ASSERT_EQUAL(XY_FG_OK, fg->api->channel_get(fg, XY_FG_DATA_VOLTAGE, &value));
     TEST_ASSERT_EQUAL_INT32(3906, value);

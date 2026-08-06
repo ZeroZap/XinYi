@@ -119,34 +119,34 @@ static int max17043_fetch(xy_fuel_gauge_t *fg)
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
-    
+
+    xy_fuel_gauge_data_t snapshot = priv->data;
+
     /* 读取电压 (mV), VCELL LSB = 1.25mV */
     uint16_t vcell;
     if (max17043_read_reg16(priv, MAX17043_REG_VCELL, &vcell) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
-    uint16_t voltage_mv = (uint16_t)((uint32_t)(vcell >> 4) * 125U / 100U);
-    
+    snapshot.voltage_mv = (uint16_t)((uint32_t)(vcell >> 4) * 125U / 100U);
+
     /* 读取 SOC (%) */
     uint16_t soc_reg;
     if (max17043_read_reg16(priv, MAX17043_REG_SOC, &soc_reg) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
-    uint8_t soc = (uint8_t)(soc_reg >> 8);
-    
+    snapshot.soc = (uint8_t)(soc_reg >> 8);
+
     /* 读取充放电率 */
     uint16_t crate_reg;
     if (max17043_read_reg16(priv, MAX17043_REG_CRATE, &crate_reg) != XY_FG_OK) {
         return XY_FG_ERROR;
     }
-    int16_t current_ma = (int16_t)((int32_t)(int16_t)crate_reg * 208 / 1000);
-    
-    /* 存储数据 */
-    priv->data.voltage_mv = voltage_mv;
-    priv->data.current_ma = current_ma;
-    priv->data.soc = (uint8_t)soc;
-    priv->data.temperature_c = 0;  /* MAX17043 不支持温度 */
-    
+    snapshot.current_ma = (int16_t)((int32_t)(int16_t)crate_reg * 208 / 1000);
+    snapshot.temperature_c = 0;  /* MAX17043 不支持温度 */
+
+    priv->data = snapshot;
+    fg->latest = snapshot;
+
     return 0;
 }
 
