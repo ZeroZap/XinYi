@@ -959,6 +959,9 @@ static void test_registration_capacity_limit_does_not_mutate_rejected_device(voi
         TEST_ASSERT_EQUAL_UINT8(i + 1U, actuator_get_count());
     }
 
+    TEST_ASSERT_EQUAL(ACTUATOR_EINVAL, actuator_register(&devices[0]));
+    TEST_ASSERT_EQUAL_UINT8(32U, actuator_get_count());
+
     TEST_ASSERT_EQUAL(ACTUATOR_ENOMEM, actuator_register(&extra));
     TEST_ASSERT_EQUAL_UINT8(32U, actuator_get_count());
     TEST_ASSERT_EQUAL_UINT8(0xA5U, extra.id);

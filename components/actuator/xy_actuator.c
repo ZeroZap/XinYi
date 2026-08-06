@@ -90,15 +90,15 @@ actuator_err_t actuator_register(actuator_device_t *dev)
         return ACTUATOR_EINVAL;
     }
 
-    if (g_actuator_count >= MAX_ACTUATORS) {
-        return ACTUATOR_ENOMEM;
-    }
-
     /* 检查重名和重复注册同一设备 */
     for (int i = 0; i < g_actuator_count; i++) {
         if (g_actuators[i] == dev || strcmp(g_actuators[i]->name, dev->name) == 0) {
             return ACTUATOR_EINVAL;
         }
+    }
+
+    if (g_actuator_count >= MAX_ACTUATORS) {
+        return ACTUATOR_ENOMEM;
     }
 
     dev->id = g_actuator_count;
