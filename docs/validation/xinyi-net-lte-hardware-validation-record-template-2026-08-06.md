@@ -31,7 +31,7 @@ Do not fill success fields with assumed values. If hardware is unavailable, leav
 | `XY_NET_ENABLE_LTE` default | must remain `0` unless explicitly overridden for the smoke |
 | LTE binding used | `xy_lte_hal_uart_adapter` |
 | LTE core entrypoints exercised | at minimum `xy_lte_check()`, `xy_lte_check_sim()`, `xy_lte_get_signal_quality()` |
-| Host guard status | `test_lte`, `test_lte_uart_adapter`, `test_lte_hal_uart_adapter`, `test_net_feature_gated_umbrella`, `make test-unit` |
+| Host guard status | `test_lte`, `test_lte_uart_adapter`, `test_lte_hal_uart_adapter`, `test_lte_hal_uart_smoke_example`, `test_net_feature_gated_umbrella`, `make test-unit` |
 | Target compile status | STM32U5 build/probe result and log pointer |
 
 ## Board wiring and UART configuration

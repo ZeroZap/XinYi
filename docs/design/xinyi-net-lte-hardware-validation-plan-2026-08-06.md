@@ -78,7 +78,7 @@ Keep the HAL UART adapter unchanged until hardware evidence requires otherwise:
 
 Default enablement remains blocked until all of the following are true:
 
-1. `test_lte`, `test_lte_uart_adapter`, `test_lte_hal_uart_adapter`, and `test_net_feature_gated_umbrella` pass.
+1. `test_lte`, `test_lte_uart_adapter`, `test_lte_hal_uart_adapter`, `test_lte_hal_uart_smoke_example`, and `test_net_feature_gated_umbrella` pass.
 2. `make test-unit` passes.
 3. STM32U5 build or compile probe passes in the target environment.
 4. A real hardware validation record exists with at least `AT`, SIM, signal, and modem-absent timeout evidence.

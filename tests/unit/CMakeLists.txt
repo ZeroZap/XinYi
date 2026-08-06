@@ -252,6 +252,17 @@ target_include_directories(test_lte_hal_uart_adapter PRIVATE
     ${HAL}/inc
 )
 
+# --- Test 11e: LTE HAL UART adapter smoke skeleton stays build-guarded ---
+xy_add_unit_test(test_lte_hal_uart_smoke_example lte_hal_uart_smoke_example UNITY
+    ${UNIT_NET}/test_lte_hal_uart_smoke_example.c
+    ${NET}/src/xy_lte_hal_uart_adapter.c
+    ${NET}/src/xy_lte.c
+)
+
+target_include_directories(test_lte_hal_uart_smoke_example PRIVATE
+    ${HAL}/inc
+)
+
 # --- Test 12: nano_modbus compatibility API over mb_tiny ---
 xy_add_unit_test(test_nano_modbus nano_modbus_compat UNITY
     ${UNIT_NET}/test_nano_modbus.c
