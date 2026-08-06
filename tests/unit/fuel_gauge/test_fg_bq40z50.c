@@ -781,9 +781,25 @@ void test_bq40z50_late_cell_voltage_failure_preserves_cached_snapshot(void)
 void test_bq40z50_balance_read_uses_bounded_retry_without_fetch_side_effects(void)
 {
     xy_fuel_gauge_t *fg = registered_bq40z50();
-    uint8_t balance = 0;
+    xy_fuel_gauge_t missing_data = *fg;
+    uint8_t balance = 0xAA;
 
+    missing_data.data = NULL;
     fg->initialized = false;
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_read_balance_status(NULL, &balance));
+    TEST_ASSERT_EQUAL_UINT8(0xAA, balance);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_read_balance_status(&missing_data, &balance));
+    TEST_ASSERT_EQUAL_UINT8(0xAA, balance);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq40z50_read_balance_status(fg, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_sensor_i2c_read_reg16_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_NOT_INITIALIZED,
+                      xy_fuel_gauge_bq40z50_read_balance_status(fg, &balance));
+    TEST_ASSERT_EQUAL_UINT8(0xAA, balance);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_sensor_i2c_read_reg16_fake.call_count);
+
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(fg));
     TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(fg));
 
