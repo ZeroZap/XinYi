@@ -98,6 +98,7 @@
 - 已新增 `docs/design/xinyi-net-lte-hal-uart-binding-proposal-2026-08-06.md`，明确下一步 HAL UART binding 应作为独立 default-off adapter：只引用公开 HAL UART API、先用 host fake 覆盖 timeout/error/短写归一化，再做 STM32U5 compile probe；仍不允许直接把 LTE 设为 `XY_NET_ENABLE_LTE=1` 默认导出。
 - LTE HAL UART binding 已按 default-off 独立 adapter 落地：`xy_lte_hal_uart_adapter.{h,c}` 只引用公开 `xy_hal_uart_*` API，`test_lte_hal_uart_adapter` 覆盖 init/transport guard、send/recv/flush timeout 与错误归一化、rx buffer clamp，以及 LTE core `xy_lte_check()` 绑定路径；后续应先补 STM32U5 compile probe/真实硬件验证记录，再考虑任何 umbrella enablement。
 - LTE HAL UART binding 的 STM32U5 compile probe 已通过：`make HAL_PLATFORM=STM32U5 -j$(nproc)` 完成现有 `xy_net` 静态库构建，proposal 已记录这是 compile-only 结果；下一步不应重复做 host/fake adapter，而应在保持 default-off 的前提下补真实 UART/调制解调器硬件验证记录或板级 flow-control 设计。
+- 已新增 `docs/design/xinyi-net-lte-hardware-validation-plan-2026-08-06.md`，把 LTE 后续工作收束为硬件验证计划：真实 modem 记录必须区分 compile-only 与 board UART/flow-control/AT/SIM/signal 证据；在记录存在前仍保持 `XY_NET_ENABLE_LTE=0` direct-opt-in。
 
 ---
 
