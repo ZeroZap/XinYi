@@ -115,6 +115,7 @@
 
 - 已新增 `docs/design/xinyi-mux-component-status-sync-2026-08-08.md`，把 MUX 从旧完整度报告中的 45%/无示例/无测试同步为 100% 主线完善：`xy_mux`/`mux_component` 根构建入口、`mux_core/gpio/i2c/spi/uart/example_basic` host CTest 与 README 验证契约均已闭环；后续只按真实 packet/typed ops 失败或新增集成需求维护，不再重复作为基线补齐 backlog。
 - 已同步 Actuator 基线状态：`components/actuator/README.md`、根 `Kconfig` 的 `COMPONENT_ACTUATOR`/`XY_ACTUATOR_ENABLE` 兼容入口、`xy_actuator`/`actuator_component` CMake target、`test_actuator_framework` 与 `actuator_example_relay_servo_pwm` host CTest 均已存在。后续不应再按“缺 README/Kconfig/示例/测试”选择 Actuator slice，只在真实 helper/typed-ops 失败或新增硬件适配需求时补小回归；低优先级 `src/` 目录整理需单独 proposal/迁移验证。
+- 已同步 Fuel Gauge 组件完整度：`xy_fuel_gauge`/`fuel_gauge_component` 根构建目标、standalone README/Kconfig/CMake、`fuel_gauge_core`/4 个芯片驱动 CTest 与 `fuel_gauge_smbus_hardware_smoke_example` 均已闭环；完整度报告更新为 90% 主线可用/硬件验证待证据。后续不应继续堆等价 fake-I2C 证明，应等待真实 SMBus/I2C 板级日志或只补与真实失败对应的最小回归。
 
 ---
 

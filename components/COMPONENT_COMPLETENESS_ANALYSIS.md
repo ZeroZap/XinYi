@@ -34,7 +34,7 @@
 | display    | 10% 🔴 | 严重不足 | ❌      | ✅     | ❌   | ❌   |
 | actuator   | 80% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
 | mux        | 100% 🟢 | 主线完善 | ✅      | ✅     | ✅   | ✅   |
-| fuel_gauge | 85% 🟢 | 主线可用 | ✅      | ✅     | ⚠️   | ✅   |
+| fuel_gauge | 90% 🟢 | 主线可用 / 硬件验证待证据 | ✅      | ✅     | ⚠️   | ✅   |
 | charger    | 65% 🟡 | 已弃用   | ❌      | ✅     | ❌   | ❌   |
 
 ---
@@ -294,15 +294,15 @@ display/
 
 ## 🟡 低优先级问题（建议修复）
 
-### 11. fuel_gauge/ - 电量计组件 (85%)
+### 11. fuel_gauge/ - 电量计组件 (90%)
 
-**状态**: 主线可用，保留 standalone API；已补齐组件 README/Kconfig/CMake 和 5 个 host Unity/CTest 目标。历史“已弃用”结论已过期，当前通过 `xy_fuel_gauge` 组件库接入主线。
+**状态**: 主线可用，保留 standalone API；已补齐组件 README/Kconfig/CMake、`xy_fuel_gauge` 根构建目标和 6 个 host Unity/CTest 目标。历史“已弃用”结论已过期，当前通过 `xy_fuel_gauge` 组件库接入主线；真实 SMBus/I2C 硬件验证仍必须等待板级证据。
 
 | 序号 | 任务 | 工作量 | 优先级 |
 | ---- | ---- | ------ | ------ |
 | FG1  | 保持 standalone `components/fuel_gauge` 与 PM 旧路径边界清晰 | - | 已完成 |
-| FG2  | 维护 driver/core host coverage：`fuel_gauge_core`、`fg_bq27z746`、`fg_bq40z50`、`fg_max17043`、`fg_bq27z561` | - | 已完成 |
-| FG3  | 补充真实 SMBus/I2C 硬件验证记录：clock stretching、放电期 NACK/retry、告警阈值硬件编程 | 2h | 🟡 低 |
+| FG2  | 维护 driver/core/board-smoke host coverage：`fuel_gauge_core`、`fg_bq27z746`、`fg_bq40z50`、`fg_max17043`、`fg_bq27z561`、`fuel_gauge_smbus_hardware_smoke_example` | - | 已完成 |
+| FG3  | 补充真实 SMBus/I2C 硬件验证记录：clock stretching、放电期 NACK/retry、告警阈值硬件编程；记录必须保持 pending，直到有真实板级日志 | 2h | 🟡 低 |
 | FG4  | 后续如迁移到 `components/drivers/power/`，先产出兼容 proposal，不直接批量移动 API/目录 | 2h | 🟡 低 |
 
 ---
