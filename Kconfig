@@ -488,9 +488,7 @@ config ENABLE_SANITIZER
 
 endmenu # Advanced Options
 
-endmenu # XinYi Framework Configuration
-
-# ==================== Additional Components ====================
+menu "Additional Components"
 
 config XY_SENSOR_ENABLE
     bool "Sensor Component"
@@ -533,3 +531,7 @@ config COMPONENT_BMS
     default y
     help
       BMS component.
+
+endmenu # Additional Components
+
+endmenu # XinYi Framework Configuration

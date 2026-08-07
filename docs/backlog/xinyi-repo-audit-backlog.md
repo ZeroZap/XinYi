@@ -33,7 +33,7 @@ Purpose: keep the repository analysis items visible as an execution backlog. Per
 | A4 | P1 | Headers/clib | done | `components/clib/xy_clib/inc/xy_clib.h` uses `../` includes and omits many xy_clib headers. | Closed by `f5ec3352 fix: make xy_clib aggregate header public`: the public aggregate now uses canonical include-root headers and is included by the active `test_clib_core` CTest. Evidence recorded in that slice: `make test-unit` passed and `git diff --check` passed. |
 | A5 | P2 | Docs | done | `CLAUDE.md` build commands/options are stale versus Makefile/Kconfig. | Closed by `407b071e docs: sync Claude build instructions`: `CLAUDE.md` now matches the current Makefile/AGENTS.md command model (`make`, `make test-unit`, QEMU targets, `FOTA=ON`, `BUILD_TESTS=ON`, `build/pc`, active AT CTests). Evidence recorded in that slice: `make test-unit` passed (131/131 tests) and `git diff --check` passed. |
 | A6 | P2 | Architecture/Bank | blocked | `projects/Bank/` and root `components/{charger,fuel_gauge,pid}/` contain parallel implementations. | Requires Eugene architecture decision. Safe precursor: inventory overlap and propose migration plan only. |
-| A7 | P2 | Kconfig hygiene | ready | Root Kconfig `# Additional Components` block is after `endmenu`, relying on parser/file-order behavior. | Low-risk candidate: move into a proper menu or component Kconfig files; verify generated configs for PC/STM32U5. |
+| A7 | P2 | Kconfig hygiene | done | Root Kconfig `# Additional Components` block is after `endmenu`, relying on parser/file-order behavior. | Closed by this Kconfig hygiene slice: additional component symbols now live inside a proper `menu "Additional Components"` before the root `endmenu`, and the lightweight parser was verified for PC/STM32U5 generated config output. Evidence: `PYTHONPATH=. python3 tests/test_kconfig_parser.py`, direct `cmake/kconfig_parser.py --platform PC/STM32U5` probes, `make test-unit`, and `git diff --check` passed. |
 | A8 | P2 | Charger architecture | blocked | `components/charger/` is deprecated but still has Kconfig/build surface; Bank has a separate bq2562x implementation. | Requires Eugene decision: delete deprecated component, migrate Bank driver into component, or keep both intentionally. |
 | A9 | P2 | clib/Kconfig | ready | `XY_XY_CLIB_ENABLE` Kconfig switch defaults off but xy_clib is always added by CMake. | Candidate: either remove dead switch or rename/wire `XY_CLIB_ENABLE`; verify build matrix. |
 | A10 | P3 | Hygiene | done | `components/clib/xy_clib/xy_config copy.h` appears duplicated with `xy_config.h`. | Closed by `784e4b66 test: prune stale clib config copy`: current path scan finds no `*copy*` files under `components/clib/xy_clib`, and `git show --stat 784e4b66 -- components/clib/xy_clib` confirms the stale duplicate was deleted. Evidence for this backlog-sync slice: `make test-unit` and `git diff --check` passed before `docs/backlog/xinyi-repo-audit-backlog.md` was committed. |
@@ -45,7 +45,7 @@ Purpose: keep the repository analysis items visible as an execution backlog. Per
 
 ## Suggested execution order
 
-1. Safe low-risk execution: A7, A9, A14. A13 is closed.
+1. Safe low-risk execution: A9, A14. A7 and A13 are closed.
 2. Parser/build correctness: A2, after focused regression tests are in place.
 3. Documentation sync: A5 and A10 are closed; use AGENTS.md/Makefile as command truth if future docs drift appears.
 4. Architecture decisions: A1, A6, A8, A12, A15 need re-check and/or Eugene decision before invasive changes.
