@@ -81,6 +81,11 @@ static int32_t mock_ioctl_impl(uint8_t channel, int cmd, void *arg)
     return 0;
 }
 
+static void init_manager(xy_mux_manager_t *mgr, uint8_t *tx_buffer, uint8_t *rx_buffer)
+{
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+}
+
 /* ==================== Test Cases ==================== */
 
 /**
@@ -138,6 +143,17 @@ static void test_mux_init_invalid(void)
     printf("  [PASS] Zero buffer size rejected\n");
 }
 
+static void test_mux_null_manager_helpers_are_defensive(void)
+{
+    xy_mux_device_t *devices[1] = {(xy_mux_device_t *)0x1};
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM, xy_mux_deinit(NULL));
+    TEST_ASSERT_NULL(xy_mux_find(NULL, XY_MUX_TYPE_GPIO, 0));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mux_get_device_count(NULL));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mux_get_device_list(NULL, devices, 1));
+    TEST_ASSERT_EQUAL_PTR((xy_mux_device_t *)0x1, devices[0]);
+}
+
 /**
  * @brief Test device registration
  */
@@ -189,6 +205,24 @@ static void test_mux_register(void)
 
     xy_mux_deinit(&mgr);
     printf("  [PASS] All devices unregistered on deinit\n");
+}
+
+static void test_mux_register_rejects_null_ops_without_side_effects(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+
+    init_manager(&mgr, tx_buffer, rx_buffer);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_register(&mgr, XY_MUX_TYPE_GPIO, 0, NULL, NULL));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mux_get_device_count(&mgr));
+    TEST_ASSERT_NULL(mgr.devices);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_deinit_fake.call_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_deinit(&mgr));
 }
 
 static void test_mux_register_rolls_back_failed_init(void)
@@ -403,6 +437,60 @@ static void test_build_packet_rejects_length_that_cannot_fit_tlv_header(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_build_packet_rejects_null_destination_without_modifying_length(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t data = 0x5A;
+    size_t packet_len = 0x1234U;
+
+    init_manager(&mgr, tx_buffer, rx_buffer);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_build_packet(NULL, XY_MUX_TYPE_GPIO, 0, &data,
+                                              sizeof(data), tx_buffer, &packet_len));
+    TEST_ASSERT_EQUAL_UINT(0x1234U, packet_len);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_build_packet(&mgr, XY_MUX_TYPE_GPIO, 0, &data,
+                                              sizeof(data), NULL, &packet_len));
+    TEST_ASSERT_EQUAL_UINT(0x1234U, packet_len);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_build_packet(&mgr, XY_MUX_TYPE_GPIO, 0, &data,
+                                              sizeof(data), tx_buffer, NULL));
+    TEST_ASSERT_EQUAL_UINT(0x1234U, packet_len);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_deinit(&mgr));
+}
+
+static void test_build_packet_uses_caller_output_buffer_not_manager_tx_buffer(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t manager_tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t out_packet[BUFFER_SIZE];
+    uint8_t data[] = {0xA5, 0x5A};
+    size_t packet_len = 0;
+
+    memset(manager_tx_buffer, 0xCC, sizeof(manager_tx_buffer));
+    memset(out_packet, 0, sizeof(out_packet));
+    init_manager(&mgr, manager_tx_buffer, rx_buffer);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_build_packet(&mgr, XY_MUX_TYPE_UART, 7, data,
+                                                         sizeof(data), out_packet,
+                                                         &packet_len));
+    TEST_ASSERT_EQUAL_UINT(sizeof(xy_mux_header_t) + sizeof(data), packet_len);
+    TEST_ASSERT_EQUAL_UINT8(0xCCU, manager_tx_buffer[0]);
+    TEST_ASSERT_EQUAL_UINT8(0xCCU, manager_tx_buffer[sizeof(xy_mux_header_t)]);
+    TEST_ASSERT_EQUAL_UINT8(XY_MUX_TYPE_UART, out_packet[0]);
+    TEST_ASSERT_EQUAL_UINT8(7U, out_packet[1]);
+    TEST_ASSERT_EQUAL_MEMORY(data, out_packet + sizeof(xy_mux_header_t), sizeof(data));
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_deinit(&mgr));
+}
+
 /**
  * @brief Test packet processing
  */
@@ -538,6 +626,28 @@ static void test_process_packet_rejects_disabled_device_without_write_side_effec
     xy_mux_deinit(&mgr);
 }
 
+static void test_process_packet_rejects_null_and_short_inputs_without_side_effects(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t short_packet[sizeof(xy_mux_header_t) - 1U] = {0};
+
+    init_manager(&mgr, tx_buffer, rx_buffer);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_process_packet(NULL, tx_buffer, sizeof(xy_mux_header_t)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_process_packet(&mgr, NULL, sizeof(xy_mux_header_t)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_process_packet(&mgr, short_packet, sizeof(short_packet)));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_ioctl_fake.call_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_deinit(&mgr));
+}
+
 /**
  * @brief Test type string conversion
  */
@@ -648,6 +758,74 @@ static void test_read_write(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_read_write_and_ioctl_reject_invalid_inputs_without_side_effects(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t data[4] = {0};
+
+    init_manager(&mgr, tx_buffer, rx_buffer);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_read(NULL, XY_MUX_TYPE_GPIO, 0, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_read(&mgr, XY_MUX_TYPE_GPIO, 0, NULL, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_write(NULL, XY_MUX_TYPE_GPIO, 0, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_write(&mgr, XY_MUX_TYPE_GPIO, 0, NULL, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_INVALID_PARAM,
+                          xy_mux_ioctl(NULL, XY_MUX_TYPE_GPIO, 0, 0, NULL));
+
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_ioctl_fake.call_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_DEVICE,
+                          xy_mux_read(&mgr, XY_MUX_TYPE_GPIO, 99, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_DEVICE,
+                          xy_mux_write(&mgr, XY_MUX_TYPE_GPIO, 99, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_DEVICE,
+                          xy_mux_ioctl(&mgr, XY_MUX_TYPE_GPIO, 99, 0, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_ioctl_fake.call_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_deinit(&mgr));
+}
+
+static void test_read_write_and_ioctl_reject_disabled_device_without_side_effects(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t data[4] = {0};
+    xy_mux_ops_t ops = {
+        .read = mock_read,
+        .write = mock_write,
+        .ioctl = mock_ioctl,
+    };
+
+    init_manager(&mgr, tx_buffer, rx_buffer);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_register(&mgr, 4, &ops, NULL));
+    xy_mux_device_t *dev = xy_mux_find(&mgr, XY_MUX_TYPE_GPIO, 4);
+    TEST_ASSERT_NOT_NULL(dev);
+    dev->enabled = false;
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR,
+                          xy_mux_read(&mgr, XY_MUX_TYPE_GPIO, 4, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR,
+                          xy_mux_write(&mgr, XY_MUX_TYPE_GPIO, 4, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR,
+                          xy_mux_ioctl(&mgr, XY_MUX_TYPE_GPIO, 4, 0, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_read_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_ioctl_fake.call_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_deinit(&mgr));
+}
+
 /* ==================== Main Entry ==================== */
 
 void setUp(void)
@@ -675,19 +853,26 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_mux_init);
     RUN_TEST(test_mux_init_invalid);
+    RUN_TEST(test_mux_null_manager_helpers_are_defensive);
     RUN_TEST(test_mux_register);
+    RUN_TEST(test_mux_register_rejects_null_ops_without_side_effects);
     RUN_TEST(test_mux_register_rolls_back_failed_init);
     RUN_TEST(test_mux_unregister);
     RUN_TEST(test_mux_find);
     RUN_TEST(test_build_packet);
     RUN_TEST(test_build_packet_rejects_payload_without_source_data);
     RUN_TEST(test_build_packet_rejects_length_that_cannot_fit_tlv_header);
+    RUN_TEST(test_build_packet_rejects_null_destination_without_modifying_length);
+    RUN_TEST(test_build_packet_uses_caller_output_buffer_not_manager_tx_buffer);
     RUN_TEST(test_process_packet);
     RUN_TEST(test_process_packet_rejects_header_length_mismatch);
     RUN_TEST(test_process_packet_rejects_null_ops_without_write_side_effects);
     RUN_TEST(test_process_packet_rejects_disabled_device_without_write_side_effects);
+    RUN_TEST(test_process_packet_rejects_null_and_short_inputs_without_side_effects);
     RUN_TEST(test_type_string_conversion);
     RUN_TEST(test_get_device_list);
     RUN_TEST(test_read_write);
+    RUN_TEST(test_read_write_and_ioctl_reject_invalid_inputs_without_side_effects);
+    RUN_TEST(test_read_write_and_ioctl_reject_disabled_device_without_side_effects);
     return UNITY_END();
 }
