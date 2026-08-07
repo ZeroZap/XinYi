@@ -33,7 +33,7 @@
 | pid        | 85% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
 | display    | 10% 🔴 | 严重不足 | ❌      | ✅     | ❌   | ❌   |
 | actuator   | 60% 🟡 | 需补充   | ❌      | ❌     | ❌   | ❌   |
-| mux        | 45% 🟡 | 需补充   | ✅      | ✅     | ❌   | ❌   |
+| mux        | 100% 🟢 | 主线完善 | ✅      | ✅     | ✅   | ✅   |
 | fuel_gauge | 85% 🟢 | 主线可用 | ✅      | ✅     | ⚠️   | ✅   |
 | charger    | 65% 🟡 | 已弃用   | ❌      | ✅     | ❌   | ❌   |
 
@@ -180,15 +180,16 @@ display/
 
 ---
 
-### 6. mux/ - 多路复用组件 (80%)
+### 6. mux/ - 多路复用组件 (100%)
 
 #### 问题描述
 
-- **公共头文件/API 已补齐**：`xy_mux.h` 与 GPIO/I2C/SPI/UART typed capability headers 已有实际 API 声明，旧“空头文件”问题关闭
-- **README 已补齐核心入口**：包含核心 manager、typed GPIO/I2C/SPI/UART API、配置结构和用例片段，不再是“功能待补充”占位
-- **active Unity/CTest 已接入**：`tests/unit/mux/` 下 `test_mux_core/gpio/i2c/spi/uart.c` 均已注册到主线 unit suite，当前库存显示 `mux` 组件 5 个 Unity 测试文件、0 个 raw assert、0 个 unwired 源文件
-- **build-guarded 示例已补齐**：`components/mux/examples/example_mux_basic.c` 已作为 `mux_example_basic` CTest 纳入 `make test-unit`，覆盖 GPIO/I2C/SPI/UART public API smoke
-- **剩余缺口**：后续维护应围绕明确 packet/typed ops 契约 hardening 或真实失败回归，不再重复补“无测试/无示例”基线
+- **公共头文件/API 已补齐**：`xy_mux.h` 与 GPIO/I2C/SPI/UART typed capability headers 已有实际 API 声明，旧“空头文件”问题关闭。
+- **README 已补齐核心入口**：包含核心 manager、typed GPIO/I2C/SPI/UART API、配置结构、使用示例、CMake/Kconfig 状态与 host 验证契约。
+- **active Unity/CTest 已接入**：`tests/unit/mux/` 下 `test_mux_core/gpio/i2c/spi/uart.c` 均已注册到主线 unit suite，当前库存显示 `mux` 组件 5 个 Unity 测试文件、0 个 raw assert、0 个 unwired 源文件。
+- **build-guarded 示例已补齐**：`components/mux/examples/example_mux_basic.c` 已作为 `mux_example_basic` CTest 纳入 `make test-unit`，覆盖 GPIO/I2C/SPI/UART public API smoke。
+- **组件构建入口已闭环**：`components/mux/CMakeLists.txt` 在 `COMPONENT_MUX` 默认启用时产出 `xy_mux` / `mux_component` target，根构建可发现并编译该组件。
+- **剩余维护口径**：后续只围绕明确 packet/typed ops 契约 hardening、真实失败回归或硬件/上位机集成需求推进，不再重复补“无测试/无示例”基线。
 
 #### 修复计划
 
@@ -198,9 +199,9 @@ display/
 | M2   | 补充示例代码并纳入 host smoke/compile 护栏 | - | 已完成 |
 | M3   | 添加测试用例 | - | 已完成 |
 | M4   | 完善 README.md | - | 已完成 |
-| M5   | 按真实失败继续维护 packet/typed ops 边界回归测试 | 1–2h/次 | 🟡 低 |
+| M5   | 维护 packet/typed ops 边界回归测试 | 1–2h/次 | 按真实失败触发 |
 
-**预计剩余工时**: 1–2h/次（按真实失败维护）
+**预计剩余工时**: 按真实失败或新增集成需求维护，不再作为基线补齐 backlog。
 
 ---
 

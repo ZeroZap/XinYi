@@ -111,6 +111,10 @@
 - 巡检 backlog 中的 A10（`components/clib/xy_clib/xy_config copy.h` 重复文件）已由 `784e4b66 test: prune stale clib config copy` 关闭；后续不应重复选择该清理项。
 - Fuel Gauge SMBus 硬件验证已具备 build-guarded host smoke skeleton：`test_fuel_gauge_smbus_hardware_smoke_example` 只覆盖 BQ40Z50/BQ27Z561 fake-I2C board-flow 契约与 snapshot preservation，不把 host fake 结果提升为硬件证据。后续应继续保持 `docs/validation/xinyi-fuel-gauge-smbus-hardware-validation-record-template-2026-08-06.md` 为 pending，直到有真实板级 SMBus/I2C 日志。
 
+### 2026-08-08 状态同步
+
+- 已新增 `docs/design/xinyi-mux-component-status-sync-2026-08-08.md`，把 MUX 从旧完整度报告中的 45%/无示例/无测试同步为 100% 主线完善：`xy_mux`/`mux_component` 根构建入口、`mux_core/gpio/i2c/spi/uart/example_basic` host CTest 与 README 验证契约均已闭环；后续只按真实 packet/typed ops 失败或新增集成需求维护，不再重复作为基线补齐 backlog。
+
 ---
 
 ## 5. 周度架构回顾
