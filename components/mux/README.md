@@ -27,6 +27,8 @@ mux/
 │   ├── xy_mux_i2c.c       # I2C 实现
 │   ├── xy_mux_spi.c       # SPI 实现
 │   └── xy_mux_uart.c      # UART 实现
+├── examples/
+│   └── example_mux_basic.c # build-guarded public API smoke
 ├── CMakeLists.txt
 ├── Kconfig
 └── README.md
@@ -417,8 +419,8 @@ int main(void)
 - [x] SPI 复用 API (xy_mux_spi.c)
 - [x] UART 复用 API (xy_mux_uart.c)
 - [x] API 文档
-- [x] 使用示例
-- [x] Host Unity/CTest 覆盖 (`mux_core`, `mux_gpio`, `mux_i2c`, `mux_spi`, `mux_uart`)
+- [x] 使用示例（`components/mux/examples/example_mux_basic.c` 已纳入 `mux_example_basic` smoke）
+- [x] Host Unity/CTest 覆盖 (`mux_core`, `mux_gpio`, `mux_i2c`, `mux_spi`, `mux_uart`, `mux_example_basic`)
 
 ## ✅ Host 验证契约
 
@@ -431,13 +433,14 @@ int main(void)
 | `mux_i2c` | 配置、读写、复合 transfer、扫描、长度/返回值边界 |
 | `mux_spi` | 配置、读/写/transfer、错误码不能被正值 MUX error 吞掉的防护 |
 | `mux_uart` | 配置、读写带 timeout 参数传递、错误路径、注册时复制 per-channel ops、防止默认 ops 污染后续通道 |
+| `mux_example_basic` | 将 GPIO/I2C/SPI/UART public API 示例作为 build-guarded smoke 编译并运行，防止 README 级示例再次与实现漂移 |
 
 局部验证命令：
 
 ```bash
 cmake -B build/tests/unit -S tests/unit
-cmake --build build/tests/unit --target test_mux_core test_mux_gpio test_mux_i2c test_mux_spi test_mux_uart -j$(nproc)
-cd build/tests/unit && ctest -R '^mux_(core|gpio|i2c|spi|uart)$' --output-on-failure
+cmake --build build/tests/unit --target test_mux_core test_mux_gpio test_mux_i2c test_mux_spi test_mux_uart test_mux_example_basic -j$(nproc)
+cd build/tests/unit && ctest -R '^mux_(core|gpio|i2c|spi|uart|example_basic)$' --output-on-failure
 ```
 
 完整单测门禁仍使用：

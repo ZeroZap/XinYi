@@ -1114,6 +1114,22 @@ xy_add_unit_test(test_mux_uart mux_uart UNITY
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 
+# --- Test 31b: MUX build-guarded public API example ---
+xy_add_unit_test(test_mux_example_basic mux_example_basic
+    ${MUX}/examples/example_mux_basic.c
+    ${MUX}/src/xy_mux.c
+    ${MUX}/src/xy_mux_gpio.c
+    ${MUX}/src/xy_mux_i2c.c
+    ${MUX}/src/xy_mux_spi.c
+    ${MUX}/src/xy_mux_uart.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+    ${UNIT_PID}/test_pid_example_log_stub.c
+)
+
 # --- Test 28: DM base64 public vectors and binary roundtrip ---
 xy_add_unit_test(test_dm_base64 dm_base64 UNITY
     ${UNIT_DM}/test_dm_base64.c
