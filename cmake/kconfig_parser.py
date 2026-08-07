@@ -326,14 +326,18 @@ class KconfigParser:
                 legacy_var_name = f"XY_{name}"
                 
                 if cfg['type'] == 'bool':
-                    enabled = value == 'y'
-                    f.write(f"set({var_name} {'ON' if enabled else 'OFF'})\n")
+                    rendered_value = 'ON' if value == 'y' else 'OFF'
+                    f.write(f"set({var_name} {rendered_value})\n")
+                    f.write(f"set({legacy_var_name} {rendered_value})\n")
                 elif cfg['type'] == 'string':
-                    f.write(f"set({var_name} \"{self._format_string_value(value)}\")\n")
+                    rendered_value = self._format_string_value(value)
+                    f.write(f"set({var_name} \"{rendered_value}\")\n")
+                    f.write(f"set({legacy_var_name} \"{rendered_value}\")\n")
                 else:
-                    f.write(f"set({var_name} \"{value}\")\n")
+                    rendered_value = str(value)
+                    f.write(f"set({var_name} \"{rendered_value}\")\n")
+                    f.write(f"set({legacy_var_name} \"{rendered_value}\")\n")
 
-                f.write(f"set({legacy_var_name} \"${{{var_name}}}\")\n")
                 f.write(f"set(ENV{{{var_name}}} \"${{{var_name}}}\")\n")
                 f.write(f"set(ENV{{{legacy_var_name}}} \"${{{legacy_var_name}}}\")\n")
 
