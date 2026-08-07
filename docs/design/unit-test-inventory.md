@@ -114,7 +114,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/ipc/test_ipc_pipe.c` | `unity` | 0 |
 | `tests/unit/kernel/test_bootreason_check.c` | `unity` | 0 |
 | `tests/unit/kernel/test_osal.c` | `unity` | 2 |
-| `tests/unit/mux/test_mux_core.c` | `unity` | 18 |
+| `tests/unit/mux/test_mux_core.c` | `unity` | 19 |
 | `tests/unit/mux/test_mux_gpio.c` | `unity` | 35 |
 | `tests/unit/mux/test_mux_i2c.c` | `unity` | 37 |
 | `tests/unit/mux/test_mux_spi.c` | `unity` | 12 |

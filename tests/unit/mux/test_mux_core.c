@@ -372,6 +372,37 @@ static void test_build_packet_rejects_payload_without_source_data(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_build_packet_rejects_length_that_cannot_fit_tlv_header(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    uint8_t data[8] = {0};
+    size_t packet_len = 0xCAFEU;
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+    mgr.buffer_size = sizeof(xy_mux_header_t) - 1U;
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_MEMORY,
+                          xy_mux_build_packet(&mgr, XY_MUX_TYPE_UART, 4, data, 0,
+                                              tx_buffer, &packet_len));
+    TEST_ASSERT_EQUAL_UINT(0xCAFEU, packet_len);
+
+    mgr.buffer_size = sizeof(xy_mux_header_t) + sizeof(data) - 1U;
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_MEMORY,
+                          xy_mux_build_packet(&mgr, XY_MUX_TYPE_UART, 4, data,
+                                              sizeof(data), tx_buffer, &packet_len));
+    TEST_ASSERT_EQUAL_UINT(0xCAFEU, packet_len);
+
+    mgr.buffer_size = sizeof(xy_mux_header_t) + sizeof(data);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK,
+                          xy_mux_build_packet(&mgr, XY_MUX_TYPE_UART, 4, data,
+                                              sizeof(data), tx_buffer, &packet_len));
+    TEST_ASSERT_EQUAL_UINT(sizeof(xy_mux_header_t) + sizeof(data), packet_len);
+
+    xy_mux_deinit(&mgr);
+}
+
 /**
  * @brief Test packet processing
  */
@@ -650,6 +681,7 @@ int main(void)
     RUN_TEST(test_mux_find);
     RUN_TEST(test_build_packet);
     RUN_TEST(test_build_packet_rejects_payload_without_source_data);
+    RUN_TEST(test_build_packet_rejects_length_that_cannot_fit_tlv_header);
     RUN_TEST(test_process_packet);
     RUN_TEST(test_process_packet_rejects_header_length_mismatch);
     RUN_TEST(test_process_packet_rejects_null_ops_without_write_side_effects);
