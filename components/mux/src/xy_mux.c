@@ -46,7 +46,7 @@ int32_t xy_mux_init(xy_mux_manager_t *mgr,
     mgr->rx_buffer = rx_buffer;
     mgr->buffer_size = buffer_size;
     
-    xy_log_i("MUX manager initialized (buffer=%d bytes)\n", buffer_size);
+    xy_log_i("MUX manager initialized (buffer=%u bytes)\n", (unsigned)buffer_size);
     return XY_MUX_OK;
 }
 
@@ -119,7 +119,7 @@ int32_t xy_mux_register(xy_mux_manager_t *mgr,
     if (ops->init) {
         int32_t ret = ops->init(channel, NULL);
         if (ret != XY_MUX_OK) {
-            xy_log_e("MUX device init failed: %d\n", ret);
+            xy_log_e("MUX device init failed: %ld\n", (long)ret);
             mgr->devices = node->next;
             mgr->device_count--;
             free(node);
@@ -198,7 +198,8 @@ int32_t xy_mux_process_packet(xy_mux_manager_t *mgr,
     const uint8_t *data = packet + sizeof(xy_mux_header_t);
     size_t data_len = len - sizeof(xy_mux_header_t);
     if ((size_t)header->length != data_len) {
-        xy_log_w("MUX packet length mismatch: header=%d, actual=%d\n", header->length, data_len);
+        xy_log_w("MUX packet length mismatch: header=%u, actual=%u\n", (unsigned)header->length,
+                 (unsigned)data_len);
         return XY_MUX_ERROR_INVALID_PARAM;
     }
     
@@ -239,7 +240,8 @@ int32_t xy_mux_build_packet(xy_mux_manager_t *mgr,
     
     size_t total_len = sizeof(xy_mux_header_t) + len;
     if (total_len > mgr->buffer_size) {
-        xy_log_e("Packet too large: %d > %d\n", total_len, mgr->buffer_size);
+        xy_log_e("Packet too large: %u > %u\n", (unsigned)total_len,
+                 (unsigned)mgr->buffer_size);
         return XY_MUX_ERROR_NO_MEMORY;
     }
     
@@ -256,8 +258,8 @@ int32_t xy_mux_build_packet(xy_mux_manager_t *mgr,
     
     *out_len = total_len;
     
-    xy_log_d("MUX packet built: type=%s, channel=%d, len=%d\n",
-             xy_mux_type_to_string(type), channel, total_len);
+    xy_log_d("MUX packet built: type=%s, channel=%d, len=%u\n", xy_mux_type_to_string(type),
+             channel, (unsigned)total_len);
     
     return XY_MUX_OK;
 }
@@ -338,7 +340,7 @@ int32_t xy_mux_ioctl(xy_mux_manager_t *mgr,
 
 const char* xy_mux_type_to_string(xy_mux_type_t type)
 {
-    if (type >= 0 && type < sizeof(g_mux_type_strings) / sizeof(g_mux_type_strings[0])) {
+    if ((unsigned)type < sizeof(g_mux_type_strings) / sizeof(g_mux_type_strings[0])) {
         return g_mux_type_strings[type] ? g_mux_type_strings[type] : "UNKNOWN";
     }
     return "CUSTOM";

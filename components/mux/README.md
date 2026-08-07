@@ -419,6 +419,7 @@ int main(void)
 - [x] SPI 复用 API (xy_mux_spi.c)
 - [x] UART 复用 API (xy_mux_uart.c)
 - [x] API 文档
+- [x] CMake/Kconfig 入口（`COMPONENT_MUX` 默认启用，根构建产出 `xy_mux` / `mux_component` target）
 - [x] 使用示例（`components/mux/examples/example_mux_basic.c` 已纳入 `mux_example_basic` smoke）
 - [x] Host Unity/CTest 覆盖 (`mux_core`, `mux_gpio`, `mux_i2c`, `mux_spi`, `mux_uart`, `mux_example_basic`)
 
