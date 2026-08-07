@@ -99,6 +99,14 @@ static int32_t mock_uart_ioctl_impl(uint8_t channel, int cmd, void *arg)
     return XY_MUX_OK;
 }
 
+static int32_t mock_uart_ioctl_timeout_impl(uint8_t channel, int cmd, void *arg)
+{
+    (void)channel;
+    TEST_ASSERT_EQUAL_INT(XY_MUX_UART_CMD_SET_CONFIG, cmd);
+    TEST_ASSERT_NOT_NULL(arg);
+    return XY_MUX_ERROR_TIMEOUT;
+}
+
 static int32_t mock_uart_init_timeout_impl(uint8_t channel, const void *config)
 {
     (void)channel;
@@ -204,6 +212,32 @@ static void test_uart_register_init_failure_leaves_no_registered_device(void)
 
     TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, NULL, NULL));
     TEST_ASSERT_EQUAL_UINT8(1, mgr.device_count);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_uart_config_propagates_backend_ioctl_failure(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+    xy_mux_uart_config_t cfg = {
+        .baudrate = 57600,
+        .data_bits = 8,
+        .stop_bits = 1,
+        .parity = 0,
+        .flow_control = 1,
+    };
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 4, &ops, NULL));
+    mock_uart_ioctl_fake.custom_fake = mock_uart_ioctl_timeout_impl;
+
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_TIMEOUT, xy_mux_uart_config(&mgr, 4, &cfg));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(4, mock_uart_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_UART_CMD_SET_CONFIG, mock_uart_ioctl_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR(&cfg, mock_uart_ioctl_fake.arg2_val);
 
     xy_mux_deinit(&mgr);
 }
@@ -545,6 +579,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_uart_register_and_config);
     RUN_TEST(test_uart_register_init_failure_leaves_no_registered_device);
+    RUN_TEST(test_uart_config_propagates_backend_ioctl_failure);
     RUN_TEST(test_uart_register_keeps_per_channel_ops_independent);
     RUN_TEST(test_uart_write_header_and_payload);
     RUN_TEST(test_uart_read_request_and_data);

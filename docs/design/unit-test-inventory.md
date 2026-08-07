@@ -116,7 +116,7 @@ guard API drift in those examples.
 | `tests/unit/mux/test_mux_gpio.c` | `unity` | 35 |
 | `tests/unit/mux/test_mux_i2c.c` | `unity` | 37 |
 | `tests/unit/mux/test_mux_spi.c` | `unity` | 12 |
-| `tests/unit/mux/test_mux_uart.c` | `unity` | 12 |
+| `tests/unit/mux/test_mux_uart.c` | `unity` | 13 |
 | `tests/unit/net/test_at_client_core.c` | `unity` | 23 |
 | `tests/unit/net/test_at_server_core.c` | `unity` | 10 |
 | `tests/unit/net/test_can.c` | `unity` | 0 |
