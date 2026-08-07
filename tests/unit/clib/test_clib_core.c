@@ -2,13 +2,7 @@
 #include <string.h>
 
 #include "unity.h"
-#include "xy_common.h"
-#include "xy_rb.h"
-#include "xy_ctype.h"
-#include "xy_stdio.h"
-#include "xy_string.h"
-#include "xy_filter.h"
-#include "xy_sort.h"
+#include "xy_clib.h"
 
 static void test_clib_common_helpers(void)
 {

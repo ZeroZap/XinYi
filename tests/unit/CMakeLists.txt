@@ -88,6 +88,7 @@ include_directories(
     ${CRYPTO}/xy_sm3                # xy_sm3.h
     ${CRYPTO}/xy_sm4                # xy_sm4.h
     ${ROOT}/components/clib/xy_clib # xy_typedef.h
+    ${CLIB}/inc                     # xy_clib aggregate header
     ${CLIB}                         # xy_clib public headers
     ${ROOT}/components/trace/xy_log/inc # xy_log.h
     ${TRACE}/xy_log/inc              # xy_log.h
