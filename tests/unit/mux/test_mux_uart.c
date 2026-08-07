@@ -289,6 +289,48 @@ static void test_uart_register_keeps_per_channel_ops_independent(void)
     xy_mux_deinit(&mgr);
 }
 
+static void test_uart_register_resets_default_ops_after_custom_registration(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+    const uint8_t data[] = {0x55};
+    uint8_t read_back = 0xA5;
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 0, &ops, NULL));
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 1, NULL, NULL));
+
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NOT_SUPPORTED,
+                      xy_mux_uart_write(&mgr, 1, data, sizeof(data), 10));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_read_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_NOT_SUPPORTED, xy_mux_uart_read(&mgr, 1, &read_back, 1, 10));
+    TEST_ASSERT_EQUAL_HEX8(0xA5, read_back);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_read_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_uart_register_rejects_duplicate_channel_without_reinit(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 2, &ops, NULL));
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_BUSY, xy_mux_uart_register(&mgr, 2, &ops, NULL));
+    TEST_ASSERT_EQUAL_UINT8(1, mgr.device_count);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_uart_deinit_fake.call_count);
+
+    xy_mux_deinit(&mgr);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_deinit_fake.call_count);
+}
+
 static void test_uart_write_header_and_payload(void)
 {
     uint8_t tx[BUFFER_SIZE];
@@ -581,6 +623,8 @@ int main(void)
     RUN_TEST(test_uart_register_init_failure_leaves_no_registered_device);
     RUN_TEST(test_uart_config_propagates_backend_ioctl_failure);
     RUN_TEST(test_uart_register_keeps_per_channel_ops_independent);
+    RUN_TEST(test_uart_register_resets_default_ops_after_custom_registration);
+    RUN_TEST(test_uart_register_rejects_duplicate_channel_without_reinit);
     RUN_TEST(test_uart_write_header_and_payload);
     RUN_TEST(test_uart_read_request_and_data);
     RUN_TEST(test_uart_error_paths);
