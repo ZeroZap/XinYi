@@ -61,26 +61,28 @@ XinYi/
 ### 构建
 
 ```bash
-# PC 平台完整构建
-rm -rf build && mkdir build && cd build
-cmake .. -DPLATFORM_PC=ON -DXY_CONFIG_SENSOR_ENABLED=ON \
-         -DXY_CONFIG_ACTUATOR_ENABLED=ON -DXY_CONFIG_SMBUS_ENABLED=ON
-make -j4
+# PC 平台完整构建（默认本地构建）
+make
 
-# 构建单个目标
-make xy_sensor
-make xy_actuator
-make xy_smbus
+# 等价 CMake 命令：HAL_PLATFORM 取值为 PC/STM32F4/STM32U5/WCH/HC32
+cmake -B build/pc -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release
+cmake --build build/pc -j"$(nproc)"
+
+# 运行 PC 单元测试
+make test-unit
+
+# 构建单个组件目标（先完成对应配置）
+make configure
+cmake --build build/pc --target xy_sensor -j"$(nproc)"
+cmake --build build/pc --target xy_actuator -j"$(nproc)"
+cmake --build build/pc --target xy_net -j"$(nproc)"
 ```
 
 ### 清理
 
 ```bash
-# 删除构建目录
-rm -rf build
-
-# 删除所有 build_* 目录
-for d in build_*; do [ -d "$d" ] && rm -rf "$d"; done
+# 使用仓库维护的清理入口删除生成目录/配置缓存
+make distclean
 ```
 
 ---
@@ -113,37 +115,34 @@ for d in build_*; do [ -d "$d" ] && rm -rf "$d"; done
 
 ## 🔧 配置选项
 
-### CMake 选项
+### CMake / Kconfig 选项
+
+当前构建入口使用统一平台变量 `HAL_PLATFORM`，可选值为 `PC`、`STM32F4`、`STM32U5`、`WCH`、`HC32`。组件开关由根 `Kconfig` 生成到 `.config`、`autoconf.h` 和 `config.cmake`，不要再使用旧的 `PLATFORM_PC` / `XY_CONFIG_*_ENABLED` 命令行示例作为事实源。
 
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
-| `PLATFORM_PC` | PC 平台构建 | OFF |
-| `PLATFORM_STM32F4` | STM32F4 平台 | OFF |
-| `PLATFORM_STM32U5` | STM32U5 平台 | OFF |
-| `XY_CONFIG_SENSOR_ENABLED` | 启用传感器 | ON |
-| `XY_CONFIG_ACTUATOR_ENABLED` | 启用执行器 | ON |
-| `XY_CONFIG_SMBUS_ENABLED` | 启用 SMBus | ON |
+| `HAL_PLATFORM=PC` | PC 仿真平台 | 默认 |
+| `HAL_PLATFORM=STM32U5` | 主 MCU 平台 | 手动选择 |
+| `BUILD_TESTS=ON` | 目标平台测试构建 | OFF |
+| `FOTA=ON` | FOTA 构建变体 | OFF |
 
 ### 推荐构建配置
 
 ```bash
-# PC 平台完整功能
-cmake .. -DPLATFORM_PC=ON \
-         -DXY_CONFIG_SENSOR_ENABLED=ON \
-         -DXY_CONFIG_ACTUATOR_ENABLED=ON \
-         -DXY_CONFIG_SMBUS_ENABLED=ON
+# PC 平台默认 Release 构建
+make
 
-# STM32F4 平台
-cmake .. -DPLATFORM_STM32F4=ON -DXY_HAL_STM32=ON
+# STM32U5 平台
+make HAL_PLATFORM=STM32U5
 ```
 
 ---
 
 ## 🐛 遇到问题？
 
-1. **构建失败**: 检查 CMake 版本 (需要 3.10+)
-2. **找不到库**: 确认组件已启用 (`XY_CONFIG_*_ENABLED=ON`)
-3. **查看 BUILD_GUIDE.md**: `cat docs/BUILD_GUIDE.md`
+1. **构建失败**: 先以根 `Makefile` 为准运行 `make` 或 `make test-unit`，不要套用旧的 `-DPLATFORM_*` 示例
+2. **找不到库**: 先确认根 `Kconfig` 组件符号和生成的 `build/<platform>/config.cmake` 是否启用
+3. **查看 BUILD_GUIDE.md**: `less docs/BUILD_GUIDE.md`
 
 ---
 
