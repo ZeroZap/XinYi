@@ -36,7 +36,7 @@ Purpose: keep the repository analysis items visible as an execution backlog. Per
 | A7 | P2 | Kconfig hygiene | ready | Root Kconfig `# Additional Components` block is after `endmenu`, relying on parser/file-order behavior. | Low-risk candidate: move into a proper menu or component Kconfig files; verify generated configs for PC/STM32U5. |
 | A8 | P2 | Charger architecture | blocked | `components/charger/` is deprecated but still has Kconfig/build surface; Bank has a separate bq2562x implementation. | Requires Eugene decision: delete deprecated component, migrate Bank driver into component, or keep both intentionally. |
 | A9 | P2 | clib/Kconfig | ready | `XY_XY_CLIB_ENABLE` Kconfig switch defaults off but xy_clib is always added by CMake. | Candidate: either remove dead switch or rename/wire `XY_CLIB_ENABLE`; verify build matrix. |
-| A10 | P3 | Hygiene | ready | `components/clib/xy_clib/xy_config copy.h` appears duplicated with `xy_config.h`. | Very low-risk after diff confirms identical. Prefer path-limited deletion commit. |
+| A10 | P3 | Hygiene | done | `components/clib/xy_clib/xy_config copy.h` appears duplicated with `xy_config.h`. | Closed by `784e4b66 test: prune stale clib config copy`: current path scan finds no `*copy*` files under `components/clib/xy_clib`, and `git show --stat 784e4b66 -- components/clib/xy_clib` confirms the stale duplicate was deleted. Evidence for this backlog-sync slice: `make test-unit` and `git diff --check` passed before `docs/backlog/xinyi-repo-audit-backlog.md` was committed. |
 | A11 | P3 | PID organization | open | `components/pid/` has duplicate root/inc headers and confusing src/example organization. | Needs careful include/API audit before file moves. Medium-sized cleanup. |
 | A12 | P3 | Fuel gauge API | open | Fuel gauge drivers use static singleton devices, limiting multi-instance tests/use cases. | API-affecting. First write compatibility plan; preserve default singleton wrappers if changing. |
 | A13 | P3 | README docs | ready | README repeats device framework description in multiple sections. | Low-risk doc cleanup; verify section numbering and links. |
@@ -47,7 +47,7 @@ Purpose: keep the repository analysis items visible as an execution backlog. Per
 
 1. Safe low-risk execution: A7, A9, A13, A14.
 2. Parser/build correctness: A2, after focused regression tests are in place.
-3. Documentation sync: A5 is closed; use AGENTS.md/Makefile as command truth if future docs drift appears.
+3. Documentation sync: A5 and A10 are closed; use AGENTS.md/Makefile as command truth if future docs drift appears.
 4. Architecture decisions: A1, A6, A8, A12, A15 need re-check and/or Eugene decision before invasive changes.
 
 ## Periodic review checklist
