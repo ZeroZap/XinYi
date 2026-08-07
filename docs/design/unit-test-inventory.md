@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C unit-test files: 117
-- Unity-style files: 117
+- Total C files under `tests/unit`: 124
+- Unity-style files: 123
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/compile-smoke files without obvious Unity/assert markers: 0
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 119
+- Plain/support helper C files without obvious Unity/assert markers: 1
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 131
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -25,7 +25,7 @@
 
 ## Component Breakdown
 
-| Component | Total | Unity | Raw assert | Mixed | Plain | Fake-heavy candidates |
+| Component | Total | Unity | Raw assert | Mixed | Plain/helper | Fake-heavy candidates |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | `actuator` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `analog_devices` | 1 | 1 | 0 | 0 | 0 | 1 |
@@ -36,14 +36,14 @@
 | `dm` | 6 | 6 | 0 | 0 | 0 | 2 |
 | `fota` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
-| `fuel_gauge` | 5 | 5 | 0 | 0 | 0 | 5 |
+| `fuel_gauge` | 6 | 6 | 0 | 0 | 0 | 6 |
 | `gui` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `hal_component` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `kernel` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `mux` | 5 | 5 | 0 | 0 | 0 | 5 |
-| `net` | 13 | 13 | 0 | 0 | 0 | 5 |
-| `pid` | 2 | 2 | 0 | 0 | 0 | 0 |
+| `net` | 17 | 17 | 0 | 0 | 0 | 5 |
+| `pid` | 3 | 2 | 0 | 0 | 1 | 0 |
 | `pm` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `sensor` | 48 | 48 | 0 | 0 | 0 | 48 |
 | `storage` | 1 | 1 | 0 | 0 | 0 | 1 |
@@ -54,10 +54,11 @@
 ## Migration Priority
 
 Note: `tests/unit/CMakeLists.txt` also registers component example compile-smoke targets that
-reuse component example sources rather than adding extra `tests/unit/*.c` files; currently
+reuse component example sources rather than adding extra standalone `tests/unit/*.c` files; currently
 `pid_example_basic`, `pid_example_incremental`, `pid_example_auto_tune`,
-`pid_example_temperature`, `pid_example_charging`, and `actuator_example_relay_servo_pwm`
-guard API drift in those examples.
+`pid_example_temperature`, `pid_example_charging`, `actuator_example_relay_servo_pwm`,
+`lte_hal_uart_smoke_example`, and `fuel_gauge_smbus_hardware_smoke_example`
+guard API drift in those examples/skeletons.
 
 1. Keep all new tests on Unity assertions.
 2. Keep the raw `assert()` and unwired-source inventories at zero for tracked `tests/unit` sources.
@@ -104,6 +105,7 @@ guard API drift in those examples.
 | `tests/unit/fuel_gauge/test_fg_bq40z50.c` | `unity` | 115 |
 | `tests/unit/fuel_gauge/test_fg_max17043.c` | `unity` | 29 |
 | `tests/unit/fuel_gauge/test_fuel_gauge_core.c` | `unity` | 59 |
+| `tests/unit/fuel_gauge/test_fuel_gauge_smbus_hardware_smoke_example.c` | `unity` | 0 | Fuel Gauge SMBus board-validation smoke skeleton; fake-I2C only, hardware evidence remains pending. |
 | `tests/unit/gui/test_gui_core.c` | `unity` | 22 |
 | `tests/unit/gui/test_gui_widget_theme.c` | `unity` | 0 |
 | `tests/unit/gui/test_gui_widgets.c` | `unity` | 0 |
@@ -121,11 +123,14 @@ guard API drift in those examples.
 | `tests/unit/net/test_at_server_core.c` | `unity` | 10 |
 | `tests/unit/net/test_can.c` | `unity` | 0 |
 | `tests/unit/net/test_can_public_header.c` | `unity` | 0 | CAN public include-root/self-contained API smoke |
+| `tests/unit/net/test_net_feature_gated_umbrella.c` | `unity` | 0 | Net umbrella exports CAN/LTE only under explicit feature opt-in macros. |
 | `tests/unit/net/test_iso7816.c` | `unity` | 0 |
 | `tests/unit/net/test_iso7816_example_main.c` | `unity` | 0 |
 | `tests/unit/net/test_lte.c` | `unity` | 0 |
 | `tests/unit/net/test_lte_public_header.c` | `unity` | 0 | LTE public include-root/self-contained API smoke |
 | `tests/unit/net/test_lte_uart_adapter.c` | `unity` | 0 | LTE callback-backed UART adapter transport seam |
+| `tests/unit/net/test_lte_hal_uart_adapter.c` | `unity` | 0 | LTE default-off HAL UART adapter transport seam with host HAL fakes. |
+| `tests/unit/net/test_lte_hal_uart_smoke_example.c` | `unity` | 0 | Build-guarded LTE HAL UART smoke skeleton; not a hardware-validation record. |
 | `tests/unit/net/test_modbus_legacy.c` | `unity` | 3 |
 | `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
@@ -133,6 +138,7 @@ guard API drift in those examples.
 | `tests/unit/net/test_net_smbus_pmbus.c` | `unity` | 34 |
 | `tests/unit/pid/test_pid_auto.c` | `unity` | 12 |
 | `tests/unit/pid/test_pid_core.c` | `unity` | 5 |
+| `tests/unit/pid/test_pid_example_log_stub.c` | `plain/helper` | 0 | Shared no-op log shim linked into PID example smoke targets; not a standalone CTest source. |
 | `tests/unit/pm/test_charger_bq25620.c` | `unity` | 10 |
 | `tests/unit/pm/test_pm_core.c` | `unity` | 0 |
 | `tests/unit/pm/test_pm_platform_fallback.c` | `unity` | 0 |
