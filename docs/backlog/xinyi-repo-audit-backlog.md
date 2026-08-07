@@ -39,13 +39,13 @@ Purpose: keep the repository analysis items visible as an execution backlog. Per
 | A10 | P3 | Hygiene | done | `components/clib/xy_clib/xy_config copy.h` appears duplicated with `xy_config.h`. | Closed by `784e4b66 test: prune stale clib config copy`: current path scan finds no `*copy*` files under `components/clib/xy_clib`, and `git show --stat 784e4b66 -- components/clib/xy_clib` confirms the stale duplicate was deleted. Evidence for this backlog-sync slice: `make test-unit` and `git diff --check` passed before `docs/backlog/xinyi-repo-audit-backlog.md` was committed. |
 | A11 | P3 | PID organization | open | `components/pid/` has duplicate root/inc headers and confusing src/example organization. | Needs careful include/API audit before file moves. Medium-sized cleanup. |
 | A12 | P3 | Fuel gauge API | open | Fuel gauge drivers use static singleton devices, limiting multi-instance tests/use cases. | API-affecting. First write compatibility plan; preserve default singleton wrappers if changing. |
-| A13 | P3 | README docs | ready | README repeats device framework description in multiple sections. | Low-risk doc cleanup; verify section numbering and links. |
+| A13 | P3 | README docs | done | README repeats device framework description in multiple sections. | Closed by this README cleanup slice: duplicate `components/device` narrative sections (`### 5. Device Component` and `### 11. Device Framework (New)`) were removed while keeping the canonical earlier `### 3. Device Framework Component` plus the Additional Components table reference. Evidence: `make test-unit` and `git diff --check` passed before commit. |
 | A14 | P4 | PC HAL/log validation | ready | Need confirm `xy_log` PC fallback and `hal_*` PC no-op/no-op-with-log behavior. | Analysis/verification candidate. Read PC HAL/log backend and run focused host smoke if available. |
 | A15 | P4 | Toolchain UX | open | Cross-toolchain paths default to local Linux hardcoded paths. | Improve only after checking current CMake cache behavior and supported developer workflows. |
 
 ## Suggested execution order
 
-1. Safe low-risk execution: A7, A9, A13, A14.
+1. Safe low-risk execution: A7, A9, A14. A13 is closed.
 2. Parser/build correctness: A2, after focused regression tests are in place.
 3. Documentation sync: A5 and A10 are closed; use AGENTS.md/Makefile as command truth if future docs drift appears.
 4. Architecture decisions: A1, A6, A8, A12, A15 need re-check and/or Eugene decision before invasive changes.

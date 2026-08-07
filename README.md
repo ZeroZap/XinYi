@@ -359,44 +359,6 @@ xy_bus_release(bus);
 
 ---
 
-### 5. Device Component
-
-**Location:** `components/device/`
-
-**Capabilities:**
-- **Unified Device Model**: Single interface for all devices
-- **Bus Support**: SPI/I2C/CAN bus with device nodes
-- **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
-- **Async Operations**: Callback and DMA support
-- **Power Management**: Integrated power control
-- **Standardized API**: Consistent interface across all devices
-
-**Device Types:**
-- **Communication**: UART, SPI, I2C, CAN, I2S
-- **Analog**: ADC, DAC
-- **Digital**: GPIO, PWM, Timer
-- **System**: RTC, WDG, Flash
-- **Sensor**: Temperature, Accelerometer, Gyroscope
-- **Storage**: EEPROM, Flash, SD/MMC
-
-**Features:**
-- RT-Thread-like device model with Zephyr-style API separation
-- Static registration with dynamic fallback
-- Kconfig-based configuration
-- Integrated with XinYi HAL framework
-- Automatic device enumeration
-- Centralized device management
-
-**Use Cases:**
-- Hardware abstraction
-- Device management
-- Driver development
-- Bus communication
-- Sensor integration
-- Peripherals access
-
----
-
 ### 7. Network & Communication
 
 **Location:** `components/net/`
@@ -511,53 +473,7 @@ xy_log_e("Error: operation failed\n");
 
 ---
 
-### 11. Device Framework (New)
-
-**Location:** `components/device/`
-
-**Capabilities:**
-- **Unified Device Model**: Single interface for all devices
-- **Bus Support**: SPI/I2C/CAN bus with device nodes
-- **Multiple Backends**: Compatible with RT-Thread/Zephyr designs
-- **Async Operations**: Callback and DMA support
-- **Power Management**: Integrated power control
-- **Standardized API**: Consistent interface across all devices
-
-**Device Types:**
-- **Communication**: UART, SPI, I2C, CAN, I2S
-- **Analog**: ADC, DAC
-- **Digital**: GPIO, PWM, Timer
-- **System**: RTC, WDG, Flash
-- **Sensor**: Temperature, Accelerometer, Gyroscope
-- **Storage**: EEPROM, Flash, SD/MMC
-
-**Features:**
-- RT-Thread-like device model with Zephyr-style API separation
-- Static registration with dynamic fallback
-- Kconfig-based configuration
-- Integrated with XinYi HAL framework
-- Automatic device enumeration
-- Centralized device management
-
-**Core API**:
-```c
-// Device operation unified interface
-xy_device_t *dev = xy_device_find("uart1");
-xy_device_open(dev, XY_DEV_FLAG_RDWR);
-xy_device_write(dev, 0, data, len);
-xy_device_close(dev);
-
-// Bus device operation
-xy_bus_device_t *bus = (xy_bus_device_t *)xy_device_find("spi1");
-xy_bus_node_t *node = (xy_bus_node_t *)xy_device_find("spi_sensor");
-xy_bus_take(bus);
-xy_bus_transfer(bus, node, tx_data, rx_data, len);
-xy_bus_release(bus);
-```
-
----
-
-### 12. Kernel Components
+### 11. Kernel Components
 
 **Location:** `components/kernel/`
 
