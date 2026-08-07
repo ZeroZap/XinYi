@@ -11,10 +11,10 @@
 - The active PC unit suite is the independent `tests/unit` CMake project run by `make test-unit`; AT client/server coverage is registered there as `at_client` / `at_server` from `tests/unit/net/*_core.c`. There is currently no root `tests/CMakeLists.txt`; if one is reintroduced, update these instructions and the Makefile facts together.
 
 ## Toolchains And Platforms
-- CMake platform values are exactly `PC`, `STM32F4`, `STM32U5`, `WCH`, and `HC32`; pass them as `-DHAL_PLATFORM=<value>` or `make HAL_PLATFORM=<value>`.
+- CMake platform values are exactly `PC`, `STM32F4`, `STM32U5`, `STM32L4`, `WCH`, and `HC32`; pass them as `-DHAL_PLATFORM=<value>` or `make HAL_PLATFORM=<value>`.
 - Non-PC builds set cross-compilers before `project()`; STM32/HC32 default to `/home/eugene/Tools/arm-gnu-toolchain/bin/arm-none-eabi-*`.
 - WCH builds default to `/usr/share/MRS2/MRS-linux-x64/resources/app/resources/linux/components/WCH/Toolchain/RISC-V Embedded GCC15/bin/riscv32-wch-elf-*`.
-- Platform chip defaults can be overridden: `STM32F4_CHIP=STM32F407xx`, `STM32U5_CHIP=STM32U575xx`, `WCH_CHIP=CH32V30x`, `HC32_CHIP=HC32L021`.
+- Platform chip defaults can be overridden: `STM32F4_CHIP=STM32F407xx`, `STM32U5_CHIP=STM32U575xx`, `STM32L4_CHIP=STM32L431xx`, `WCH_CHIP=CH32V30x`, `HC32_CHIP=HC32L021`.
 - The repo uses submodules for MCU SDKs and USB/FlashDB dependencies; missing vendor headers usually means submodules are not initialized, not that includes should be rewritten.
 
 ## Architecture Rules
