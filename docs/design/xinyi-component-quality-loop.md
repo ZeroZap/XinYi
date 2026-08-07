@@ -109,6 +109,7 @@
 
 - 巡检 backlog 中的 A3（“root `tests/CMakeLists.txt` AT 路径未被 `make test` 覆盖”）经复查已不适用：当前仓库没有 `tests/CMakeLists.txt`，AT client/server 已作为 `tests/unit/CMakeLists.txt` 中的 `at_client` / `at_server` Unity CTest 纳入 `make test-unit`。后续不应为不存在的 root AT suite 新增 `test-at` 入口；若未来重新引入 root `BUILD_TESTING=ON` 测试树，应先更新 `AGENTS.md`/Makefile 事实源。
 - 巡检 backlog 中的 A10（`components/clib/xy_clib/xy_config copy.h` 重复文件）已由 `784e4b66 test: prune stale clib config copy` 关闭；后续不应重复选择该清理项。
+- Fuel Gauge SMBus 硬件验证已具备 build-guarded host smoke skeleton：`test_fuel_gauge_smbus_hardware_smoke_example` 只覆盖 BQ40Z50/BQ27Z561 fake-I2C board-flow 契约与 snapshot preservation，不把 host fake 结果提升为硬件证据。后续应继续保持 `docs/validation/xinyi-fuel-gauge-smbus-hardware-validation-record-template-2026-08-06.md` 为 pending，直到有真实板级 SMBus/I2C 日志。
 
 ---
 
