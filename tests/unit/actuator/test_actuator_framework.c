@@ -905,6 +905,46 @@ static void test_sleep_wakeup_dispatch_updates_status_only_on_success(void)
     TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, fallback.status);
 }
 
+static void test_sleep_wakeup_missing_individual_ops_preserve_status(void)
+{
+    reset_mock();
+
+    static const actuator_ops_t sleep_only_ops = {
+        .sleep = sleep_backend,
+    };
+    static const actuator_ops_t wakeup_only_ops = {
+        .wakeup = wakeup_backend,
+    };
+
+    actuator_device_t sleep_only = ACTUATOR_DEVICE_INIT(
+        "pm_sleep_only", ACTUATOR_TYPE_RELAY, &sleep_only_ops, NULL, NULL);
+    actuator_device_t wakeup_only = ACTUATOR_DEVICE_INIT(
+        "pm_wakeup_only", ACTUATOR_TYPE_RELAY, &wakeup_only_ops, NULL, NULL);
+
+    sleep_only.status = ACTUATOR_STATUS_READY;
+    wakeup_only.status = ACTUATOR_STATUS_DISABLED;
+
+    TEST_ASSERT_EQUAL(ACTUATOR_ENOSYS, actuator_wakeup(&sleep_only));
+    TEST_ASSERT_EQUAL_UINT(0, wakeup_backend_fake.call_count);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, sleep_only.status);
+
+    TEST_ASSERT_EQUAL(ACTUATOR_ENOSYS, actuator_sleep(&wakeup_only));
+    TEST_ASSERT_EQUAL_UINT(0, sleep_backend_fake.call_count);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_DISABLED, wakeup_only.status);
+
+    sleep_backend_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_sleep(&sleep_only));
+    TEST_ASSERT_EQUAL_UINT(1, sleep_backend_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&sleep_only, sleep_backend_fake.arg0_val);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_DISABLED, sleep_only.status);
+
+    wakeup_backend_fake.return_val = ACTUATOR_EOK;
+    TEST_ASSERT_EQUAL(ACTUATOR_EOK, actuator_wakeup(&wakeup_only));
+    TEST_ASSERT_EQUAL_UINT(1, wakeup_backend_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&wakeup_only, wakeup_backend_fake.arg0_val);
+    TEST_ASSERT_EQUAL(ACTUATOR_STATUS_READY, wakeup_only.status);
+}
+
 static void test_type_specific_helpers_reject_wrong_types_and_preserve_outputs(void)
 {
     reset_mock();
@@ -1044,6 +1084,7 @@ int main(void)
     RUN_TEST(test_reset_and_emergency_stop_fallbacks_propagate_type_ops_results);
     RUN_TEST(test_pwm_set_duty_preserves_state_on_backend_failure);
     RUN_TEST(test_sleep_wakeup_dispatch_updates_status_only_on_success);
+    RUN_TEST(test_sleep_wakeup_missing_individual_ops_preserve_status);
     RUN_TEST(test_type_specific_helpers_reject_wrong_types_and_preserve_outputs);
     RUN_TEST(test_custom_reset_and_emergency_stop_ops_propagate_without_fallback_side_effects);
     RUN_TEST(test_registration_capacity_limit_does_not_mutate_rejected_device);
