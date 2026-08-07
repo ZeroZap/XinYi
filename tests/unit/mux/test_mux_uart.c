@@ -400,6 +400,21 @@ static int32_t short_read_impl(uint8_t channel, void *data, size_t len)
     return 2;
 }
 
+static int32_t fail_read_impl(uint8_t channel, void *data, size_t len)
+{
+    (void)channel;
+    (void)data;
+    (void)len;
+    return XY_MUX_ERROR_TIMEOUT;
+}
+
+static void assert_buffer_unchanged(const uint8_t *data, const uint8_t *expected, size_t len)
+{
+    for (size_t i = 0; i < len; ++i) {
+        TEST_ASSERT_EQUAL_HEX8(expected[i], data[i]);
+    }
+}
+
 static void test_uart_write_stops_when_payload_write_fails(void)
 {
     uint8_t tx[BUFFER_SIZE];
@@ -467,6 +482,7 @@ static void test_uart_read_preserves_output_when_header_write_fails(void)
     xy_mux_manager_t mgr = make_mgr(tx, rx);
     xy_mux_ops_t ops = make_ops();
     uint8_t data[4] = {0x10, 0x20, 0x30, 0x40};
+    const uint8_t expected[sizeof(data)] = {0x10, 0x20, 0x30, 0x40};
 
     TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 3, &ops, NULL));
     mock_uart_write_fake.custom_fake = fail_header_write_impl;
@@ -474,10 +490,28 @@ static void test_uart_read_preserves_output_when_header_write_fails(void)
     TEST_ASSERT_EQUAL(XY_MUX_ERROR, xy_mux_uart_read(&mgr, 3, data, sizeof(data), 15));
     TEST_ASSERT_EQUAL_UINT(1U, mock_uart_write_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(0U, mock_uart_read_fake.call_count);
-    TEST_ASSERT_EQUAL_HEX8(0x10, data[0]);
-    TEST_ASSERT_EQUAL_HEX8(0x20, data[1]);
-    TEST_ASSERT_EQUAL_HEX8(0x30, data[2]);
-    TEST_ASSERT_EQUAL_HEX8(0x40, data[3]);
+    assert_buffer_unchanged(data, expected, sizeof(data));
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_uart_read_preserves_output_when_backend_read_fails(void)
+{
+    uint8_t tx[BUFFER_SIZE];
+    uint8_t rx[BUFFER_SIZE];
+    xy_mux_manager_t mgr = make_mgr(tx, rx);
+    xy_mux_ops_t ops = make_ops();
+    uint8_t data[4] = {0x10, 0x20, 0x30, 0x40};
+    const uint8_t expected[sizeof(data)] = {0x10, 0x20, 0x30, 0x40};
+
+    TEST_ASSERT_EQUAL(XY_MUX_OK, xy_mux_uart_register(&mgr, 3, &ops, NULL));
+    mock_uart_read_fake.custom_fake = fail_read_impl;
+
+    TEST_ASSERT_EQUAL(XY_MUX_ERROR_TIMEOUT, xy_mux_uart_read(&mgr, 3, data, sizeof(data), 15));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_write_fake.call_count);
+    assert_uart_request_header(g_write_history[0], sizeof(data), 15U);
+    TEST_ASSERT_EQUAL_UINT(1U, mock_uart_read_fake.call_count);
+    assert_buffer_unchanged(data, expected, sizeof(data));
 
     xy_mux_deinit(&mgr);
 }
@@ -520,6 +554,7 @@ int main(void)
     RUN_TEST(test_uart_write_returns_short_header_result_without_payload);
     RUN_TEST(test_uart_write_returns_short_payload_result);
     RUN_TEST(test_uart_read_preserves_output_when_header_write_fails);
+    RUN_TEST(test_uart_read_preserves_output_when_backend_read_fails);
     RUN_TEST(test_uart_read_preserves_tail_when_backend_short_reads);
     return UNITY_END();
 }
