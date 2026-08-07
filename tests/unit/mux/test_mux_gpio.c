@@ -118,6 +118,21 @@ static int32_t alt_gpio_ioctl_impl(uint8_t channel, int cmd, void *arg)
     return XY_MUX_OK;
 }
 
+static int32_t mock_gpio_init_timeout_impl(uint8_t channel, const void *config)
+{
+    (void)channel;
+    (void)config;
+    return XY_MUX_ERROR_TIMEOUT;
+}
+
+static int32_t mock_gpio_ioctl_timeout_impl(uint8_t channel, int cmd, void *arg)
+{
+    (void)channel;
+    (void)cmd;
+    (void)arg;
+    return XY_MUX_ERROR_TIMEOUT;
+}
+
 /* ==================== Test Cases ==================== */
 
 /**
@@ -212,6 +227,34 @@ static void test_gpio_register_keeps_per_channel_ops_independent(void)
     TEST_ASSERT_EQUAL_UINT(1U, alt_gpio_ioctl_fake.call_count);
     TEST_ASSERT_EQUAL_UINT8(1, alt_gpio_ioctl_fake.arg0_val);
     TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_LEVEL, alt_gpio_ioctl_fake.arg1_val);
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_gpio_register_init_failure_leaves_no_registered_device(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+
+    xy_mux_ops_t ops = {
+        .init = mock_gpio_init,
+        .deinit = mock_gpio_deinit,
+        .ioctl = mock_gpio_ioctl,
+    };
+    mock_gpio_init_fake.custom_fake = mock_gpio_init_timeout_impl;
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_TIMEOUT, xy_mux_gpio_register(&mgr, 0, &ops, NULL));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_init_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_gpio_deinit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mgr.device_count);
+    TEST_ASSERT_NULL(mgr.devices);
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_NO_DEVICE,
+                          xy_mux_gpio_write(&mgr, 0, XY_MUX_GPIO_HIGH));
+    TEST_ASSERT_EQUAL_UINT(0U, mock_gpio_ioctl_fake.call_count);
 
     xy_mux_deinit(&mgr);
 }
@@ -370,6 +413,34 @@ static void test_gpio_config(void)
     TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_CONFIG, mock_gpio_ioctl_fake.arg1_val);
     TEST_ASSERT_EQUAL_PTR(&config, mock_gpio_ioctl_fake.arg2_val);
     printf("  [PASS] GPIO configured as output\n");
+
+    xy_mux_deinit(&mgr);
+}
+
+static void test_gpio_config_propagates_backend_ioctl_failure(void)
+{
+    xy_mux_manager_t mgr;
+    uint8_t tx_buffer[BUFFER_SIZE];
+    uint8_t rx_buffer[BUFFER_SIZE];
+    xy_mux_gpio_config_t config = {
+        .dir = XY_MUX_GPIO_OUTPUT,
+        .pull = XY_MUX_GPIO_LOW,
+        .interrupt_enable = false,
+    };
+
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_init(&mgr, tx_buffer, rx_buffer, BUFFER_SIZE));
+
+    xy_mux_ops_t ops = {
+        .ioctl = mock_gpio_ioctl,
+    };
+    TEST_ASSERT_EQUAL_INT(XY_MUX_OK, xy_mux_gpio_register(&mgr, 0, &ops, NULL));
+
+    mock_gpio_ioctl_fake.custom_fake = mock_gpio_ioctl_timeout_impl;
+    TEST_ASSERT_EQUAL_INT(XY_MUX_ERROR_TIMEOUT, xy_mux_gpio_config(&mgr, 0, &config));
+    TEST_ASSERT_EQUAL_UINT(1U, mock_gpio_ioctl_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, mock_gpio_ioctl_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT(XY_MUX_GPIO_CMD_SET_CONFIG, mock_gpio_ioctl_fake.arg1_val);
+    TEST_ASSERT_EQUAL_PTR(&config, mock_gpio_ioctl_fake.arg2_val);
 
     xy_mux_deinit(&mgr);
 }
@@ -569,10 +640,12 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_gpio_register);
     RUN_TEST(test_gpio_register_keeps_per_channel_ops_independent);
+    RUN_TEST(test_gpio_register_init_failure_leaves_no_registered_device);
     RUN_TEST(test_gpio_write);
     RUN_TEST(test_gpio_read);
     RUN_TEST(test_gpio_toggle);
     RUN_TEST(test_gpio_config);
+    RUN_TEST(test_gpio_config_propagates_backend_ioctl_failure);
     RUN_TEST(test_gpio_error_handling);
     RUN_TEST(test_gpio_multi_channel);
     RUN_TEST(test_gpio_tlv_packet);
