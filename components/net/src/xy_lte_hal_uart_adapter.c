@@ -30,8 +30,7 @@ static int adapter_write(void *context, const uint8_t *data, size_t len, uint32_
 {
     xy_lte_hal_uart_adapter_t *adapter = (xy_lte_hal_uart_adapter_t *)context;
 
-    if (!adapter || !adapter->uart || !adapter->rx_buffer || adapter->rx_buffer_len == 0U ||
-        !data || len == 0U) {
+    if (!adapter || !adapter->uart || !data || len == 0U) {
         return XY_LTE_INVALID_PARAM;
     }
 
@@ -65,7 +64,7 @@ static int adapter_flush(void *context)
 {
     xy_lte_hal_uart_adapter_t *adapter = (xy_lte_hal_uart_adapter_t *)context;
 
-    if (!adapter || !adapter->uart || !adapter->rx_buffer || adapter->rx_buffer_len == 0U) {
+    if (!adapter || !adapter->uart) {
         return XY_LTE_INVALID_PARAM;
     }
 

@@ -315,6 +315,34 @@ static void test_lte_hal_uart_adapter_get_transport_rejects_corrupted_adapter_st
                       xy_lte_hal_uart_adapter_get_transport(&adapter, &transport));
 }
 
+static void test_lte_hal_uart_adapter_write_and_flush_do_not_require_rx_storage(void)
+{
+    xy_lte_hal_uart_adapter_t adapter;
+    xy_lte_transport_t transport;
+    uint8_t rx_storage[8];
+    uint8_t byte = 0xA5;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK,
+                      xy_lte_hal_uart_adapter_init(&adapter, &g_uart, rx_storage,
+                                                   sizeof(rx_storage), 1000));
+    TEST_ASSERT_EQUAL(XY_LTE_OK, xy_lte_hal_uart_adapter_get_transport(&adapter, &transport));
+
+    adapter.rx_buffer = NULL;
+    adapter.rx_buffer_len = 0U;
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, transport.write(transport.context, &byte, 1U, 10));
+    TEST_ASSERT_EQUAL_UINT(1U, g_uart.send_calls);
+    TEST_ASSERT_EQUAL_UINT8(byte, g_uart.tx[0]);
+
+    TEST_ASSERT_EQUAL(XY_LTE_OK, transport.flush(transport.context));
+    TEST_ASSERT_EQUAL_UINT(1U, g_uart.flush_calls);
+
+    byte = 0xCC;
+    TEST_ASSERT_EQUAL(XY_LTE_INVALID_PARAM, transport.read(transport.context, &byte, 1U, 10));
+    TEST_ASSERT_EQUAL_UINT8(0xCC, byte);
+    TEST_ASSERT_EQUAL_UINT(0U, g_uart.recv_calls);
+}
+
 static void test_lte_core_can_bind_hal_uart_adapter_for_at_commands(void)
 {
     xy_lte_hal_uart_adapter_t adapter;
@@ -353,6 +381,7 @@ int main(void)
     RUN_TEST(test_lte_hal_uart_adapter_normalizes_hal_errors);
     RUN_TEST(test_lte_hal_uart_adapter_rejects_bad_transport_arguments_without_hal_side_effects);
     RUN_TEST(test_lte_hal_uart_adapter_get_transport_rejects_corrupted_adapter_state);
+    RUN_TEST(test_lte_hal_uart_adapter_write_and_flush_do_not_require_rx_storage);
     RUN_TEST(test_lte_core_can_bind_hal_uart_adapter_for_at_commands);
     return UNITY_END();
 }
