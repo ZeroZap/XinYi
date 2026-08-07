@@ -30,8 +30,8 @@ Purpose: keep the repository analysis items visible as an execution backlog. Per
 | A1 | P0 | Git/vendor hygiene | blocked | Untracked ST CubeMX SDK bundles and modified submodules may be mixed into the worktree. | Re-check `git status --short --ignored`, `.gitignore`, and submodule diffs. Do not clean/reset/update submodules without Eugene confirmation. |
 | A2 | P1 | Kconfig/build | open | `cmake/kconfig_parser.py` is a simplified custom parser; `default "..." if ...` and duplicate config handling are unreliable. | First write focused regression tests for current parser behavior. Consider kconfiglib or explicitly documented supported subset. |
 | A3 | P1 | Tests/CI | obsolete | `tests/unit/` Unity suite and root `tests/CMakeLists.txt` AT-command tests are separate; default `make test` misses AT path. | Re-checked 2026-08-07: current repo has no root `tests/CMakeLists.txt`; AT client/server are registered in `tests/unit/CMakeLists.txt` as `at_client` / `at_server` and are covered by `make test-unit`. Do not add a stale `test-at` path unless a root BUILD_TESTING tree is reintroduced. |
-| A4 | P1 | Headers/clib | ready | `components/clib/xy_clib/inc/xy_clib.h` uses `../` includes and omits many xy_clib headers. | Low-risk candidate: replace with a real aggregate header or document concrete includes; verify PC build/tests. |
-| A5 | P2 | Docs | done | `CLAUDE.md` build commands/options are stale versus Makefile/Kconfig. | Closed 2026-08-07 by updating `CLAUDE.md` to the current Makefile/AGENTS.md command model: default `make`, `make test-unit`, QEMU targets, `FOTA=ON`, `BUILD_TESTS=ON`, `build/pc`, and active AT CTests. Evidence: `make test-unit` passed (131/131 tests), `git diff --check` passed, commit pending in this run. |
+| A4 | P1 | Headers/clib | done | `components/clib/xy_clib/inc/xy_clib.h` uses `../` includes and omits many xy_clib headers. | Closed by `f5ec3352 fix: make xy_clib aggregate header public`: the public aggregate now uses canonical include-root headers and is included by the active `test_clib_core` CTest. Evidence recorded in that slice: `make test-unit` passed and `git diff --check` passed. |
+| A5 | P2 | Docs | done | `CLAUDE.md` build commands/options are stale versus Makefile/Kconfig. | Closed by `407b071e docs: sync Claude build instructions`: `CLAUDE.md` now matches the current Makefile/AGENTS.md command model (`make`, `make test-unit`, QEMU targets, `FOTA=ON`, `BUILD_TESTS=ON`, `build/pc`, active AT CTests). Evidence recorded in that slice: `make test-unit` passed (131/131 tests) and `git diff --check` passed. |
 | A6 | P2 | Architecture/Bank | blocked | `projects/Bank/` and root `components/{charger,fuel_gauge,pid}/` contain parallel implementations. | Requires Eugene architecture decision. Safe precursor: inventory overlap and propose migration plan only. |
 | A7 | P2 | Kconfig hygiene | ready | Root Kconfig `# Additional Components` block is after `endmenu`, relying on parser/file-order behavior. | Low-risk candidate: move into a proper menu or component Kconfig files; verify generated configs for PC/STM32U5. |
 | A8 | P2 | Charger architecture | blocked | `components/charger/` is deprecated but still has Kconfig/build surface; Bank has a separate bq2562x implementation. | Requires Eugene decision: delete deprecated component, migrate Bank driver into component, or keep both intentionally. |
@@ -45,7 +45,7 @@ Purpose: keep the repository analysis items visible as an execution backlog. Per
 
 ## Suggested execution order
 
-1. Safe low-risk execution: A4, A7, A9, A13, A14.
+1. Safe low-risk execution: A7, A9, A13, A14.
 2. Parser/build correctness: A2, after focused regression tests are in place.
 3. Documentation sync: A5 is closed; use AGENTS.md/Makefile as command truth if future docs drift appears.
 4. Architecture decisions: A1, A6, A8, A12, A15 need re-check and/or Eugene decision before invasive changes.
