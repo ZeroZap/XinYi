@@ -72,7 +72,7 @@
 | --- | --- | --- | --- |
 | P0 | display | 完整度报告显示实现/配置严重不足；但风险较高 | 先写/更新 proposal，避免直接大改 |
 | P0 | net | MQTT client 与 README 已主线化，但 CAN 默认接入和 LTE transport 设计仍未闭环，测试已有 11 个 | 优先为 LTE transport 写 proposal；CAN 只在明确默认接入策略后推进 |
-| P1 | actuator | 执行器框架独立于 Sensor，已有测试入口 | 补 README/Kconfig/示例或增强测试 |
+| P1 | actuator | 执行器框架独立于 Sensor，README/Kconfig/示例/host CTest 基线已闭环 | 仅按真实 helper/typed-ops 失败补小回归；不再重复补基线 |
 | P1 | mux | 多个子接口已有测试但 API 边界需确认 | 先补测试覆盖与 README 对齐 |
 | P1 | pid | `pid_core`/`pid_auto` 与 PID 示例 smoke 已有主线 CTest 护栏；近期已补 auto-tune 边界回归 | 暂不按“明显 bug”重复开工；仅在新增实证失败时补最小回归测试 |
 | P1 | fuel_gauge | SMBus clock stretching/NACK 重试需关注 | 补边界测试，不重构大接口 |
@@ -114,6 +114,7 @@
 ### 2026-08-08 状态同步
 
 - 已新增 `docs/design/xinyi-mux-component-status-sync-2026-08-08.md`，把 MUX 从旧完整度报告中的 45%/无示例/无测试同步为 100% 主线完善：`xy_mux`/`mux_component` 根构建入口、`mux_core/gpio/i2c/spi/uart/example_basic` host CTest 与 README 验证契约均已闭环；后续只按真实 packet/typed ops 失败或新增集成需求维护，不再重复作为基线补齐 backlog。
+- 已同步 Actuator 基线状态：`components/actuator/README.md`、根 `Kconfig` 的 `COMPONENT_ACTUATOR`/`XY_ACTUATOR_ENABLE` 兼容入口、`xy_actuator`/`actuator_component` CMake target、`test_actuator_framework` 与 `actuator_example_relay_servo_pwm` host CTest 均已存在。后续不应再按“缺 README/Kconfig/示例/测试”选择 Actuator slice，只在真实 helper/typed-ops 失败或新增硬件适配需求时补小回归；低优先级 `src/` 目录整理需单独 proposal/迁移验证。
 
 ---
 
