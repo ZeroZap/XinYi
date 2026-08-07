@@ -113,7 +113,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_EQUAL(0, dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
 
     i2c_op_t *op = next_op(OP_READ_REG);
@@ -128,7 +128,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_EQUAL(0, dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
 
     i2c_op_t *op = next_op(OP_WRITE);
@@ -141,7 +141,7 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
 xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_EQUAL(0, dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
 
     i2c_op_t *op = next_op(OP_WRITE_REG);
