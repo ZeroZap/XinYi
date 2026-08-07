@@ -4,41 +4,63 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build System
 
-The project uses CMake with a Makefile wrapper. The ARM GCC toolchain must be at `/home/eugene/Tools/arm-gnu-toolchain/bin/`.
+The project uses CMake with a Makefile wrapper. Treat the root `Makefile` and
+`AGENTS.md` as the source of truth when commands drift. Non-PC builds default to
+the ARM GCC toolchain under `/home/eugene/Tools/arm-gnu-toolchain/bin/` unless a
+toolchain path is overridden by CMake/toolchain settings.
 
 ```bash
-# PC simulation (fastest iteration)
-mkdir -p build_xinyi && cd build_xinyi
-cmake .. -DCMAKE_BUILD_TYPE=Release && make -j$(nproc)
+# PC simulation (default local build)
+make
 
-# STM32F4 with QEMU test support
-cd build_stm32f4_test
-cmake .. -DHAL_PLATFORM=STM32F4 -DBUILD_TESTING=ON && make -j$(nproc)
+# Direct PC CMake equivalent
+cmake -B build/pc -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release
+cmake --build build/pc -j$(nproc)
 
-# STM32U5 with FOTA
-cd build_stm32u5_fota
-cmake .. -DHAL_PLATFORM=STM32U5 -DXY_FOTA_ENABLED=ON && make -j$(nproc)
+# PC debug build
+make BUILD_TYPE=debug
 
-# Via Makefile wrapper
-make all                  # Default build
-make BUILD_TYPE=debug     # Debug build (-O0 -g3)
-make BUILD_TESTS=1        # Include unit tests
+# STM32F4 with test sources enabled for build/QEMU flows
+make HAL_PLATFORM=STM32F4 BUILD_TESTS=ON
+
+# STM32U5 with FOTA enabled
+make HAL_PLATFORM=STM32U5 FOTA=ON
+
+# Common maintenance targets
+make configure
 make clean
+make distclean
 ```
 
-Platform is selected via `-DHAL_PLATFORM=` (values: `PC`, `STM32F4`, `STM32U5`, `WCH`, `HC32`). Kconfig (`Kconfig` at root) controls which components are included.
+Platform is selected via `-DHAL_PLATFORM=` or `make HAL_PLATFORM=...` (values:
+`PC`, `STM32F4`, `STM32U5`, `WCH`, `HC32`). Kconfig (`Kconfig` at root) controls
+which components are included; the Makefile passes feature overrides through
+`KCONFIG_OVERRIDES`.
 
 ## Running Tests
 
-Unit tests use the Unity framework (`third_party/unity/`). QEMU-based integration tests exist for STM32F4:
+The active PC unit suite is the independent `tests/unit` CMake project. Unit
+tests link the repo-local Unity copy under `tests/unity/`.
 
 ```bash
-# Run QEMU HAL tests
-cd tests/qemu_stm32f4/hal_test && make && qemu-system-arm ...
+# Run PC unit tests only (preferred fast regression gate)
+make test-unit
 
-# Run PC-simulation component tests
-cd build_xinyi && make test
+# Run all configured test suites: PC unit tests plus QEMU STM32F4 tests
+make test
+
+# Run only QEMU STM32F4 tests
+make test-qemu
+
+# Focused QEMU checks
+make -C tests/qemu_stm32f4 list
+make -C tests/qemu_stm32f4 hal_test
+make -C tests/qemu_stm32f4 run-hal_test
 ```
+
+AT client/server host coverage is registered in `tests/unit/CMakeLists.txt` as
+`at_client` / `at_server` and is covered by `make test-unit`; there is currently
+no root `tests/CMakeLists.txt` suite.
 
 ## Code Style
 
