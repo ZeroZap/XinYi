@@ -384,7 +384,8 @@ int main(void)
     // 初始化 MUX 管理器
     xy_mux_init(&mgr, tx_buffer, rx_buffer, sizeof(tx_buffer));
 
-    // 注册外设；ops 不能为空，实际工程中由物理总线/虚拟通道后端提供回调
+    // 注册外设；ops 可为 NULL，此时使用默认 no-op 回调并返回 NOT_SUPPORTED。
+    // 生产路径应提供物理总线/虚拟通道后端回调，host CTest 会守护该契约。
     xy_mux_ops_t gpio_ops = {
         .read = board_gpio_mux_read,
         .write = board_gpio_mux_write,
@@ -429,7 +430,7 @@ int main(void)
 | `mux_gpio` | GPIO 注册、配置、读/写/toggle、命令参数与低/高电平返回契约 |
 | `mux_i2c` | 配置、读写、复合 transfer、扫描、长度/返回值边界 |
 | `mux_spi` | 配置、读/写/transfer、错误码不能被正值 MUX error 吞掉的防护 |
-| `mux_uart` | 配置、读写带 timeout 参数传递、错误路径 |
+| `mux_uart` | 配置、读写带 timeout 参数传递、错误路径、注册时复制 per-channel ops、防止默认 ops 污染后续通道 |
 
 局部验证命令：
 
