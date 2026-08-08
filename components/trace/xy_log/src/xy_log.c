@@ -23,6 +23,10 @@ void xy_log_str(char *str)
 
 void xy_log_raw(char *data, size_t len)
 {
+    if (!data) {
+        return;
+    }
+
     char *ch = data;
     while (len--) {
         xy_log_char(*ch);

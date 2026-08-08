@@ -40,12 +40,12 @@ Purpose: keep the repository analysis items visible as an execution backlog. Per
 | A11 | P3 | PID organization | open | `components/pid/` has duplicate root/inc headers and confusing src/example organization. | Needs careful include/API audit before file moves. Medium-sized cleanup. |
 | A12 | P3 | Fuel gauge API | open | Fuel gauge drivers use static singleton devices, limiting multi-instance tests/use cases. | API-affecting. First write compatibility plan; preserve default singleton wrappers if changing. |
 | A13 | P3 | README docs | done | README repeats device framework description in multiple sections. | Closed by this README cleanup slice: duplicate `components/device` narrative sections (`### 5. Device Component` and `### 11. Device Framework (New)`) were removed while keeping the canonical earlier `### 3. Device Framework Component` plus the Additional Components table reference. Evidence: `make test-unit` and `git diff --check` passed before commit. |
-| A14 | P4 | PC HAL/log validation | ready | Need confirm `xy_log` PC fallback and `hal_*` PC no-op/no-op-with-log behavior. | Analysis/verification candidate. Read PC HAL/log backend and run focused host smoke if available. |
+| A14 | P4 | PC HAL/log validation | done | Need confirm `xy_log` PC fallback and `hal_*` PC no-op/no-op-with-log behavior. | Closed by this Trace/PC HAL validation slice: existing `hal_pc` and `trace_component` CTests already guard PC HAL clock/GPIO/UART/I2C/SPI no-op receive behavior and trace output/dynamic-level contracts; this slice added a defensive `xy_log_raw(NULL, len)` guard plus focused regression coverage. Evidence: focused `test_trace` build + `ctest -R '^trace_component$'`, full `make test-unit` (132/132), and `git diff --check` passed before commit. |
 | A15 | P4 | Toolchain UX | open | Cross-toolchain paths default to local Linux hardcoded paths. | Improve only after checking current CMake cache behavior and supported developer workflows. |
 
 ## Suggested execution order
 
-1. Safe low-risk execution: A14. A7, A9, and A13 are closed/obsolete.
+1. Safe low-risk execution: A14 is closed. A7, A9, and A13 are closed/obsolete.
 2. Parser/build correctness: A2, after focused regression tests are in place.
 3. Documentation sync: A5 and A10 are closed; use AGENTS.md/Makefile as command truth if future docs drift appears.
 4. Architecture decisions: A1, A6, A8, A12, A15 need re-check and/or Eugene decision before invasive changes.

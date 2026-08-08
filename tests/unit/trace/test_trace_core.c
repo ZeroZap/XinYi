@@ -64,6 +64,9 @@ static void test_log_raw_and_string_output(void)
 
     xy_log_str(NULL);
     TEST_ASSERT_EQUAL_UINT(0U, g_log_len);
+    xy_log_raw(NULL, 0U);
+    TEST_ASSERT_EQUAL_UINT(0U, g_log_len);
+
     xy_log_str(mutable_msg);
     TEST_ASSERT_EQUAL_STRING("abc", g_log_buffer);
 
@@ -73,6 +76,12 @@ static void test_log_raw_and_string_output(void)
 
     reset_capture();
     xy_log_raw(raw, 0U);
+    TEST_ASSERT_EQUAL_UINT(0U, g_log_len);
+}
+
+static void test_log_raw_rejects_null_nonzero_buffer(void)
+{
+    xy_log_raw(NULL, 3U);
     TEST_ASSERT_EQUAL_UINT(0U, g_log_len);
 }
 
@@ -110,6 +119,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_log_raw_and_string_output);
+    RUN_TEST(test_log_raw_rejects_null_nonzero_buffer);
     RUN_TEST(test_dynamic_level_bounds);
     RUN_TEST(test_log_init_and_public_macros);
     return UNITY_END();
