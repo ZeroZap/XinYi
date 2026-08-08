@@ -14,11 +14,11 @@
 | **dm** | 80% | ⚠️ | 7.5/10 |
 | **net** | 70% | ⚠️ | 7.0/10 |
 | **trace** | 80% | ⚠️ | 7.5/10 |
-| **sensor** | 40% | ❌ | 4.0/10 |
-| **ipc** | 40% | ❌ | 4.0/10 |
-| **pm** | 30% | ❌ | 3.0/10 |
-| **fota** | 20% | ❌ | 2.0/10 |
-| **gui** | 20% | ❌ | 2.0/10 |
+| **sensor** | 95% / tail coverage 收口 | 🟢 | 8.5/10 |
+| **ipc** | host-guarded / event group 已闭环 | 🟢 | 8.5/10 |
+| **pm** | host-guarded / 功耗待实证 | 🟡 | 7.5/10 |
+| **fota** | host-guarded / bootloader 与板级 NOR 待实证 | 🟡 | 8.0/10 |
+| **gui** | host-guarded core / 显示后端与字体待实证 | 🟡 | 7.5/10 |
 
 ### 1.2 优势总结
 
@@ -34,7 +34,7 @@
 
 ⚠️ **文档索引**: 缺少统一文档导航  
 ⚠️ **示例项目**: 应用示例不足  
-⚠️ **缺失组件**: sensor, ipc, pm, fota, gui  
+⚠️ **待实证组件**: pm 低功耗/charger、fota bootloader/board NOR、gui display backend/fonts、net LTE 硬件链路
 ⚠️ **性能基准**: 缺少性能测试数据  
 ⚠️ **安全功能**: 安全功能需要加强  
 ⚠️ **CI/CD**: 自动化流程需要集成  
@@ -550,9 +550,9 @@ echo "=== 检查完成 ==="
 
 ### 12.1 短期目标 (1-2 周)
 
-- [ ] 完善 sensor 组件文档
-- [ ] 完善 ipc 组件文档
-- [ ] 完善 pm 组件文档
+- [x] sensor tail host coverage 状态已收口，后续只按具体驱动失败补最小回归
+- [x] IPC pipe/broker/mq/observer/event group 文档与 host CTest 已闭环
+- [x] PM README 与 host CTest 已闭环；真实低功耗、charger GPIO、ADC 通道仍需板级记录
 - [ ] 创建文档索引页面
 
 ### 12.2 中期目标 (1 个月)
@@ -575,9 +575,9 @@ echo "=== 检查完成 ==="
 
 ### 13.1 高优先级 (立即执行)
 
-1. [ ] **完善缺失组件**: sensor, ipc, pm (当前 40% 完成度)
+1. [ ] **硬件/板级验证记录**: PM 低功耗/charger、FOTA bootloader/board NOR、GUI display/fonts、Net LTE modem
 2. [ ] **文档索引创建**: 统一导航
-3. [ ] **配置验证**: 确保配置选项有效性
+3. [ ] **配置验证**: 确保配置选项有效性；不把已关闭的 sensor/ipc/pm 基线当作缺失组件重复开工
 
 ### 13.2 中优先级 (1-2 周)
 
