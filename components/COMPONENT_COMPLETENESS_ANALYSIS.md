@@ -31,7 +31,7 @@
 | pm         | 50% 🟡 | 需补充   | ✅      | ❌     | ❌   | ⚠️   |
 | net        | 50% 🟡 | 需补充   | ✅      | ❌     | ⚠️   | ⚠️   |
 | pid        | 85% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
-| display    | 10% 🔴 | 严重不足 | ❌      | ✅     | ❌   | ❌   |
+| display    | driver host-guarded / 硬件待验证 | README 已收敛 | ✅      | ✅     | ⚠️   | ✅   |
 | actuator   | 80% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
 | mux        | 100% 🟢 | 主线完善 | ✅      | ✅     | ✅   | ✅   |
 | fuel_gauge | 90% 🟢 | 主线可用 / 硬件验证待证据 | ✅      | ✅     | ⚠️   | ✅   |
@@ -41,42 +41,26 @@
 
 ## 🔴 高优先级问题（必须修复）
 
-### 1. display/ - 显示驱动组件 (10%)
+### 1. display/ - 显示驱动组件（driver host-guarded / 硬件待验证）
 
-#### 问题描述
+#### 当前状态
 
-- **目录为空**：lcd/, led/, led's_fun/, dev/ 目录为空
-- **构建配置缺失**：无 Kconfig 和 CMakeLists.txt
-- **文档与实现不符**：README.md 描述了大量功能但实际不存在
-- **xy_ls/ 空函数**：`ls_show()`、`ls_clear_with_color()` 是空 stub 函数
+- **当前路径事实源**：显示驱动位于 `components/drivers/display/`，不是旧报告中的空白顶层 `components/display/` 基线。
+- **构建配置已存在**：root `Kconfig` 提供 `DRIVER_DISPLAY*` 选项，`components/drivers/CMakeLists.txt` 与 `components/drivers/display/CMakeLists.txt` 提供构建入口。
+- **README 已收敛**：`components/drivers/display/README.md` 已改为状态表，明确区分 host-guarded 软件契约、未验证 panel/backlog 与真实硬件验证缺口。
+- **host CTest 已存在**：`display_lcd`、`display_oled_ws2812`、`display_rgb_matrix`、`display_serial_rgb_headers`、`display_led_driver` 覆盖 LCD/OLED/WS2812/RGB Matrix/LED adapter 的当前软件契约。
+- **边界**：这些测试不能替代 GUI fonts/widgets/rendering 闭环，也不能替代真实屏幕/LED 硬件验证记录。
 
-#### 目录结构现状
+#### 剩余修复计划
 
-```path/to/display_structure.md#L1-20
-display/
-├── lcd/                     ❌ 空目录
-├── led/                     ❌ 空目录
-├── led_drivers/            ⚠️ 只有头文件，无 .c 实现
-├── oled/ssd1306/           ⚠️ 部分实现
-├── xy_ls/                  ⚠️ 部分 stub
-│   ├── dev/                ❌ 空目录
-│   └── led's_fun/          ❌ 空目录
-└── (无 CMakeLists.txt/Kconfig)
-```
+| 序号 | 任务 | 工作量 | 优先级 |
+| ---- | ---- | ------ | ------ |
+| D1   | 保持 README/display.md 与真实源码、root Kconfig、display CTest 同步 | - | 已完成 |
+| D2   | 新增 MAX7219、Charlieplex、QSPI/RGB LCD 或新 panel 前先写独立 proposal，并补 focused host CTest | 2–4h/项 | 🟡 中 |
+| D3   | 真实 OLED/LCD/LED 硬件验证记录 | 硬件驱动 | 🟡 中 |
+| D4   | GUI fonts/effects/widgets/rendering 在 `components/gui` 独立推进，不混入 Display driver | 实证驱动 | 🟡 中 |
 
-#### 修复计划
-
-| 序号 | 任务                              | 工作量 | 优先级 |
-| ---- | --------------------------------- | ------ | ------ |
-| D1   | 删除空目录或添加占位符说明        | 1h     | 🔴 高  |
-| D2   | 补充 LCD 驱动框架（如果计划实现） | 8h     | 🔴 高  |
-| D3   | 补充 LED 驱动实现或标记为 TODO    | 4h     | 🔴 高  |
-| D4   | 添加 CMakeLists.txt               | 2h     | 🔴 高  |
-| D5   | 添加 Kconfig                      | 2h     | 🔴 高  |
-| D6   | 补充 xy_ls/ 空函数实现            | 4h     | 🔴 高  |
-| D7   | 更新 README.md 与实际实现一致     | 2h     | 🟡 中  |
-
-**预计工时**: 23h
+**预计剩余工时**: 实证驱动；不再按“缺 Kconfig/CMake/测试”的旧基线重复开工。
 
 ---
 
@@ -317,7 +301,7 @@ display/
 
 | 优先级   | 组件       | 工时     |
 | -------- | ---------- | -------- |
-| 🔴 高    | display    | 23h      |
+| 🟡 中    | display    | 实证驱动 |
 | 🔴 高    | gui        | 48h      |
 | 🔴 高    | net        | 52h      |
 | 🟠 中    | actuator   | 20h      |
@@ -337,7 +321,7 @@ display/
 
 ### 第一阶段（1-2 周）- 清理和文档
 
-1. 删除 display/、dm/ 中的空目录
+1. 继续保持 Display driver README/display.md 与真实源码、root Kconfig、host CTest 同步；新 panel/interface 先 proposal 后 CTest
 2. 为所有缺失 README 的组件添加文档
 3. 添加 Kconfig 到缺失的组件
 
@@ -357,7 +341,7 @@ display/
 ### 第四阶段（9-12 周）- 完善功能
 
 1. 完成 gui/ 的 effects/ 和 fonts/
-2. 完成 display/ 的 lcd/ 和 led/ 驱动
+2. 按 proposal 与 focused CTest 推进 Display 新 panel/interface 或真实硬件验证记录
 3. 完成 net/ 的 CAN 和 LTE 模块
 
 ---
@@ -369,7 +353,7 @@ display/
 - `components/sensor/` - 传感器组件分析 (95%)
 - `components/fuel_gauge/` - 电量计组件分析 (70%)
 - `components/charger/` - 充电器组件分析 (65%)
-- `components/drivers/display/` - 显示驱动分析 (10%)
+- `components/drivers/display/` - 显示驱动状态同步（driver host-guarded / README 已收敛 / 硬件待验证）
 - `components/gui/` - 图形界面分析 (40%)
 - `components/pm/` - 电源管理分析 (50%)
 - `components/dm/` - 数据管理分析 (70%)
