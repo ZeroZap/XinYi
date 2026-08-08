@@ -63,7 +63,7 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
         return XY_MQ_INVALID_PARAM;
     }
     
-    if (msg->len > mq->config.msg_size) {
+    if (msg->len > mq->config.msg_size || (msg->len > 0 && !msg->data)) {
         return XY_MQ_INVALID_PARAM;
     }
     
@@ -97,7 +97,9 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
     
     /* 复制消息 */
     uint8_t *dest = mq->buffer + (mq->head * mq->config.msg_size);
-    memcpy(dest, msg->data, msg->len);
+    if (msg->len > 0) {
+        memcpy(dest, msg->data, msg->len);
+    }
     
     /* 更新写指针 */
     mq->head = (mq->head + 1) % mq->config.max_msgs;
@@ -112,6 +114,11 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
     uint32_t start;
     
     if (!mq || !msg || !mq->initialized) {
+        return XY_MQ_INVALID_PARAM;
+    }
+
+    uint16_t copy_len = msg->len < mq->config.msg_size ? msg->len : mq->config.msg_size;
+    if (copy_len > 0 && !msg->data) {
         return XY_MQ_INVALID_PARAM;
     }
     
@@ -130,7 +137,9 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
     
     /* 复制消息 */
     uint8_t *src = mq->buffer + (mq->tail * mq->config.msg_size);
-    memcpy(msg->data, src, msg->len < mq->config.msg_size ? msg->len : mq->config.msg_size);
+    if (copy_len > 0) {
+        memcpy(msg->data, src, copy_len);
+    }
     
     /* 更新读指针 */
     mq->tail = (mq->tail + 1) % mq->config.max_msgs;

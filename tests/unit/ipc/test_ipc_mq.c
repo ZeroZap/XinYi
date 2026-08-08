@@ -81,6 +81,48 @@ static void test_mq_init_deinit_and_invalid_params(void)
     TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_deinit(NULL));
 }
 
+static void test_mq_rejects_missing_payload_without_side_effects(void)
+{
+    xy_mq_t mq;
+    xy_mq_config_t config = {
+        .msg_size = 4,
+        .max_msgs = 2,
+        .priority_enabled = false,
+        .overwrite_old = false,
+    };
+    uint8_t payload[] = {0x10, 0x11, 0x12, 0x13};
+    uint8_t out[4] = {0xAA, 0xAA, 0xAA, 0xAA};
+    xy_mq_msg_t null_send = make_msg(1U, XY_MQ_PRIORITY_NORMAL, NULL, sizeof(payload));
+    xy_mq_msg_t zero_len_null_send = make_msg(2U, XY_MQ_PRIORITY_NORMAL, NULL, 0U);
+    xy_mq_msg_t good_send = make_msg(3U, XY_MQ_PRIORITY_NORMAL, payload, sizeof(payload));
+    xy_mq_msg_t null_recv = make_msg(0U, XY_MQ_PRIORITY_LOW, NULL, sizeof(out));
+    xy_mq_msg_t zero_len_null_recv = make_msg(0U, XY_MQ_PRIORITY_LOW, NULL, 0U);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_send(&mq, &null_send, 0));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT32(0U, mq.send_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, delay_call_count);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &zero_len_null_send, 0));
+    TEST_ASSERT_EQUAL_UINT16(1U, xy_mq_get_count(&mq));
+
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_recv(&mq, &null_recv, 0));
+    TEST_ASSERT_EQUAL_UINT16(1U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT32(0U, mq.recv_count);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &zero_len_null_recv, 0));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_count(&mq));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &good_send, 0));
+    null_recv.data = out;
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &null_recv, 0));
+    TEST_ASSERT_EQUAL_MEMORY(payload, out, sizeof(payload));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+}
+
 static void test_mq_send_receive_fifo_payloads(void)
 {
     xy_mq_t mq;
@@ -207,6 +249,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_mq_init_deinit_and_invalid_params);
+    RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);
     RUN_TEST(test_mq_send_receive_fifo_payloads);
     RUN_TEST(test_mq_full_returns_immediately_without_overwrite);
     RUN_TEST(test_mq_overwrite_old_drops_oldest);
