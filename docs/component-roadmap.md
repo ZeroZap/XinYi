@@ -88,7 +88,7 @@
 |------|--------|------------|----------|
 | **Device** | 70% | 设备注册/查找/电源管理；只按真实失败补小回归 | 10h |
 | **Net** | host-guarded / 硬件待验证 | MQTT/CAN/LTE fake/adapter 护栏已闭环；LTE 后续等待真实 UART/modem/flow-control 证据 | 硬件验证驱动 |
-| **IPC** | 65% | 消息队列/事件组 | 6h |
+| **IPC** | host-guarded / 事件组待设计 | pipe/broker/message queue 已有 README 与 host CTest；事件组仍需 proposal 后实现 | 设计驱动 |
 | **PM** | 文档已补齐 / 功耗待实证 | README 已存在；Fuel Gauge 保持 standalone，不回并 PM；后续只推进睡眠/功耗实证或明确 stub 失败 | 需实证 |
 | **GUI** | 40% | 字体/控件/渲染；大架构不清时先 proposal，不直接批量实现 | 16h |
 | **Kernel Service** | 60% | 系统监控/定时器 | 4h |
