@@ -33,8 +33,8 @@ make distclean
 ```
 
 Platform is selected via `-DHAL_PLATFORM=` or `make HAL_PLATFORM=...` (values:
-`PC`, `STM32F4`, `STM32U5`, `WCH`, `HC32`). Kconfig (`Kconfig` at root) controls
-which components are included; the Makefile passes feature overrides through
+`PC`, `STM32F4`, `STM32U5`, `STM32L4`, `WCH`, `HC32`). Kconfig (`Kconfig` at root)
+controls which components are included; the Makefile passes feature overrides through
 `KCONFIG_OVERRIDES`.
 
 ## Running Tests
