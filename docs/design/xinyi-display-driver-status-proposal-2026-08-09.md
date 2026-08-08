@@ -40,19 +40,19 @@
 
 这些测试说明 Display driver 已不是“无测试/无 CMake/Kconfig”的空白组件；后续只能按真实失败补小回归或补明确缺口。
 
-## 仍存在的风险
+## 当前已收敛内容与仍存在的风险
 
-1. `components/drivers/display/README.md` 仍包含较多超前/示意 API，例如 MAX7219 matrix scan、GUI effects/fonts、多个 LCD panel 的“✅”表述；这些并不全部等价于当前编译护栏。
-2. `components/drivers/display/display.md` 是空文件，无法承担设计入口职责。
+1. `components/drivers/display/README.md` 已收敛为实现状态表，区分 host-guarded 软件契约、未验证 panel/backlog 与真实硬件验证缺口。
+2. `components/drivers/display/display.md` 已从空入口收敛为设计边界说明，指向 README 的详细源码/CTest 事实源。
 3. Root `Kconfig` 与 `components/drivers/display/Kconfig` 的符号集合不完全一致；后者目前只能视为历史局部配置候选。
 4. GUI 组件仍是单独的基础状态，不能因为 Display driver host CTest 存在就宣称 GUI 字体/控件/渲染全部闭环。
 
 ## 建议闭环顺序
 
-1. **本轮**：记录本 status sync proposal，并在质量闭环文档中把 Display 从“严重不足/缺配置测试”修正为“driver host-guarded / README 待收敛”。
-2. 下一轮低风险 slice：重写 `components/drivers/display/README.md` 的实现状态表，只保留已由源码和 CTest 证明的 SSD1306、LCD core/SPI/I8080/ST7789、WS2812、RGB Matrix、LED GUI adapter；把 MAX7219、Charlieplex、GUI effects/fonts 等移入 backlog 或删除超前 ✅。
-3. 再下一轮：删除或改写空的 `components/drivers/display/display.md`，避免空文档入口误导。
-4. 只有在 README 收敛后，才考虑新的 display 示例 smoke 或 Kconfig 生成路径验证；禁止一次性目录/API 大迁移。
+1. **已完成**：记录本 status sync proposal，并在质量闭环文档中把 Display 从“严重不足/缺配置测试”修正为“driver host-guarded / README/display.md 已收敛”。
+2. **已完成**：重写 `components/drivers/display/README.md` 的实现状态表，只保留已由源码和 CTest 证明的 SSD1306、LCD core/SPI/I8080/ST7789、WS2812、RGB Matrix、LED GUI adapter；把 MAX7219、Charlieplex、GUI effects/fonts 等移入 backlog/未验证范围。
+3. **已完成**：改写 `components/drivers/display/display.md`，避免空文档入口误导。
+4. 后续只有在新增 panel/interface、补真实硬件记录或发现具体 display CTest 失败时再推进；禁止一次性目录/API 大迁移。
 
 ## 验证命令
 
