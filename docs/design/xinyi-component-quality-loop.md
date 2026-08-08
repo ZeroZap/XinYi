@@ -70,7 +70,7 @@
 
 | 优先级 | 方向 | 依据 | 推荐动作 |
 | --- | --- | --- | --- |
-| P0 | display | 完整度报告显示实现/配置严重不足；但风险较高 | 先写/更新 proposal，避免直接大改 |
+| P1 | display | Display driver 已同步为 `components/drivers/display/` host-guarded；README/display.md 与旧完整度报告已收敛，硬件仍待实证 | 不再按“缺 Kconfig/CMake/测试”重复开工；只在新增 panel/interface 前写 proposal + focused host CTest，或补真实硬件验证记录 |
 | P0 | net | MQTT client 与 README 已主线化，但 CAN 默认接入和 LTE transport 设计仍未闭环，测试已有 11 个 | 优先为 LTE transport 写 proposal；CAN 只在明确默认接入策略后推进 |
 | P1 | actuator | 执行器框架独立于 Sensor，README/Kconfig/示例/host CTest 基线已闭环 | 仅按真实 helper/typed-ops 失败补小回归；不再重复补基线 |
 | P1 | mux | 多个子接口已有测试但 API 边界需确认 | 先补测试覆盖与 README 对齐 |
