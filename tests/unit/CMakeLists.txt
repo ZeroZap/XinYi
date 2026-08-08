@@ -355,6 +355,17 @@ target_compile_definitions(test_osal PRIVATE
     XY_OS_DISABLE_ASM    # use no-op IRQ stubs on x86
 )
 
+# --- Test 5b: kernel misc AutoTask scheduler public contracts ---
+xy_add_unit_test(test_autotask kernel_autotask UNITY
+    ${UNIT_KERNEL}/test_autotask.c
+    ${OSAL_ROOT}/misc/src/xy_autotask.c
+)
+target_include_directories(test_autotask PRIVATE
+    ${OSAL_ROOT}/misc/inc
+    ${OSAL_ROOT}/osal
+    ${OSAL_ROOT}/osal/inc
+)
+
 enable_testing()
 
 # --- Test 16: Crypto CSPRNG lifecycle, buffering, and helpers ---

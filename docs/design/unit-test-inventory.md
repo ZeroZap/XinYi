@@ -40,7 +40,7 @@
 | `gui` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `hal_component` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
-| `kernel` | 2 | 2 | 0 | 0 | 0 | 1 |
+| `kernel` | 3 | 3 | 0 | 0 | 0 | 1 |
 | `mux` | 5 | 5 | 0 | 0 | 0 | 5 |
 | `net` | 17 | 17 | 0 | 0 | 0 | 5 |
 | `pid` | 3 | 2 | 0 | 0 | 1 | 0 |
@@ -115,6 +115,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/ipc/test_ipc_broker.c` | `unity` | 12 |
 | `tests/unit/ipc/test_ipc_mq.c` | `unity` | 0 | IPC message queue init/FIFO/full/overwrite/timeout/stat contracts |
 | `tests/unit/ipc/test_ipc_pipe.c` | `unity` | 0 |
+| `tests/unit/kernel/test_autotask.c` | `unity` | 0 | Kernel misc AutoTask init/trigger/idle-time/mutator public contracts with fake OS ticks. |
 | `tests/unit/kernel/test_bootreason_check.c` | `unity` | 0 |
 | `tests/unit/kernel/test_osal.c` | `unity` | 2 |
 | `tests/unit/mux/test_mux_core.c` | `unity` | 19 |

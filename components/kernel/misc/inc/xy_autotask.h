@@ -184,6 +184,12 @@ int xy_autotask_register_complete_callback(xy_autotask_scheduler_t *scheduler,
                                          xy_autotask_complete_cb_t callback);
 
 /**
+ * @brief 调度器主循环，检查空闲超时并触发自主任务
+ * @param scheduler 调度器句柄
+ */
+void xy_autotask_scheduler_loop(xy_autotask_scheduler_t *scheduler);
+
+/**
  * @brief 手动触发自主任务
  * @param scheduler 调度器句柄
  * @return XY_AUTOTASK_OK 成功，其他值失败
