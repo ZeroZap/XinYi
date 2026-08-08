@@ -13,6 +13,16 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+static uint32_t mq_slot_size(const xy_mq_t *mq)
+{
+    return (uint32_t)sizeof(xy_mq_msg_t) + mq->config.msg_size;
+}
+
+static uint8_t *mq_slot_at(const xy_mq_t *mq, uint16_t index)
+{
+    return mq->buffer + ((uint32_t)index * mq_slot_size(mq));
+}
+
 int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
 {
     if (!mq || !config || config->msg_size == 0 || config->max_msgs == 0) {
@@ -23,7 +33,7 @@ int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
     memcpy(&mq->config, config, sizeof(xy_mq_config_t));
     
     /* 分配缓冲区 */
-    uint32_t size = (uint32_t)config->msg_size * config->max_msgs;
+    uint32_t size = ((uint32_t)sizeof(xy_mq_msg_t) + config->msg_size) * config->max_msgs;
     mq->buffer = malloc(size);
     if (!mq->buffer) {
         return XY_MQ_NO_MEM;
@@ -96,7 +106,11 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
     }
     
     /* 复制消息 */
-    uint8_t *dest = mq->buffer + (mq->head * mq->config.msg_size);
+    uint8_t *slot = mq_slot_at(mq, mq->head);
+    xy_mq_msg_t *stored = (xy_mq_msg_t *)slot;
+    uint8_t *dest = slot + sizeof(*stored);
+    *stored = *msg;
+    stored->data = NULL;
     if (msg->len > 0) {
         memcpy(dest, msg->data, msg->len);
     }
@@ -117,8 +131,9 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
         return XY_MQ_INVALID_PARAM;
     }
 
-    uint16_t copy_len = msg->len < mq->config.msg_size ? msg->len : mq->config.msg_size;
-    if (copy_len > 0 && !msg->data) {
+    uint16_t caller_len = msg->len;
+    uint8_t *caller_data = msg->data;
+    if (caller_len > 0 && !caller_data) {
         return XY_MQ_INVALID_PARAM;
     }
     
@@ -136,9 +151,17 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
     }
     
     /* 复制消息 */
-    uint8_t *src = mq->buffer + (mq->tail * mq->config.msg_size);
+    uint8_t *slot = mq_slot_at(mq, mq->tail);
+    const xy_mq_msg_t *stored = (const xy_mq_msg_t *)slot;
+    uint8_t *src = slot + sizeof(*stored);
+    uint16_t copy_len = caller_len < stored->len ? caller_len : stored->len;
+    msg->id = stored->id;
+    msg->priority = stored->priority;
+    msg->timestamp = stored->timestamp;
+    msg->len = stored->len;
+    msg->data = caller_data;
     if (copy_len > 0) {
-        memcpy(msg->data, src, copy_len);
+        memcpy(caller_data, src, copy_len);
     }
     
     /* 更新读指针 */
