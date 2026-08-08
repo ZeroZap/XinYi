@@ -53,33 +53,32 @@ The XY LTE Module Communication Library provides a comprehensive, vendor-agnosti
 
 ## File Structure
 
+The active, build-guarded LTE slice now lives in the main Net component include/source
+roots rather than in this legacy planning directory:
+
 ```
-components/net/xy_lte/
-├── xy_lte.h                    # Main API header
-├── xy_lte_types.h              # Core data structures
-├── xy_lte_error.h              # Error codes and handling
-├── xy_lte_error.c              # Error handling implementation
-├── xy_lte_core.c               # Core module implementation (TODO)
-├── xy_lte_network.c            # Network management (TODO)
-├── xy_lte_signal.c             # Signal quality (TODO)
-├── xy_lte_sim.c                # SIM management (TODO)
-├── xy_lte_operator.c           # Operator selection (TODO)
-├── xy_lte_at_commands.c        # AT command builders (TODO)
-├── xy_lte_parser.c             # Response parsers (TODO)
-├── xy_lte_urc.c                # URC handlers (TODO)
-├── vendors/
-│   ├── simcom_a76xx.c          # SIMCOM adapter (TODO)
-│   ├── quectel_ec2x.c          # Quectel adapter (TODO)
-│   └── ublox_sara_r4.c         # U-blox adapter (TODO)
-├── examples/
-│   ├── basic_network.c         # Basic network connection (TODO)
-│   ├── signal_monitor.c        # Signal monitoring example (TODO)
-│   └── operator_selection.c    # Manual operator selection (TODO)
-├── tests/
-│   ├── test_at_commands.c      # Unit tests (TODO)
-│   └── test_parser.c           # Parser tests (TODO)
-└── README.md                   # This file
+components/net/inc/
+├── xy_lte.h                    # Main LTE API and transport hook
+├── xy_lte_uart_adapter.h       # Callback-backed byte transport seam
+└── xy_lte_hal_uart_adapter.h   # HAL UART-backed adapter, default-off
+
+components/net/src/
+├── xy_lte.c                    # Core AT-command helper implementation
+├── xy_lte_uart_adapter.c       # Callback-backed adapter implementation
+└── xy_lte_hal_uart_adapter.c   # HAL UART adapter implementation
+
+tests/unit/net/
+├── test_lte.c
+├── test_lte_public_header.c
+├── test_lte_uart_adapter.c
+├── test_lte_hal_uart_adapter.c
+└── test_lte_hal_uart_smoke_example.c
 ```
+
+This `components/net/at/atc/xy_lte/` subtree is retained as historical LTE design
+material only. Do not add new production code or unit tests here unless a migration
+proposal first moves ownership back from the active `components/net/inc` and
+`components/net/src` paths.
 
 ## API Reference
 
@@ -440,48 +439,53 @@ int main(void)
 ## Implementation Status
 
 ### Completed ✓
-- [x] Core data structures (`xy_lte_types.h`)
-- [x] Error codes and handling (`xy_lte_error.h/c`)
-- [x] Main API header with documentation (`xy_lte.h`)
-- [x] README documentation
+- [x] Public LTE API and transport seam (`components/net/inc/xy_lte.h`)
+- [x] Core AT command helper implementation (`components/net/src/xy_lte.c`)
+- [x] Fakeable transport coverage (`test_lte`)
+- [x] Public include-root smoke (`test_lte_public_header`)
+- [x] Callback-backed UART adapter (`xy_lte_uart_adapter.{h,c}` / `test_lte_uart_adapter`)
+- [x] HAL UART adapter (`xy_lte_hal_uart_adapter.{h,c}` / `test_lte_hal_uart_adapter`)
+- [x] Build-guarded HAL UART smoke skeleton (`test_lte_hal_uart_smoke_example`)
+- [x] Default-off `XY_NET_ENABLE_LTE` policy documented in the root Net README and proposals
 
-### In Progress 🚧
-- [ ] Core module implementation
-- [ ] AT command builders
-- [ ] Response parsers
-- [ ] URC handlers
-- [ ] Network management implementation
-- [ ] Signal quality implementation
-- [ ] SIM management implementation
-- [ ] Operator selection implementation
-- [ ] Vendor adapters (SIMCOM, Quectel, U-blox)
+### Pending hardware evidence 🚧
+- [ ] Real board UART/modem validation record with UART pins, flow-control, power sequencing,
+      SIM/signal evidence, and captured AT logs
+- [ ] Board/project-owned PWRKEY/RESET/RTS/CTS sequencing smoke
+- [ ] Network attach, PDP activation, TCP/UDP, and data-path validation on real hardware
 
-### Planned 📋
-- [ ] Unit tests
-- [ ] Integration tests
-- [ ] Example applications
-- [ ] Vendor-specific extensions
-- [ ] Power management (PSM/eDRX)
-- [ ] SMS support
-- [ ] GNSS integration (for modules with GNSS)
+### Explicitly not active here 📋
+- [ ] Vendor-specific adapters (SIMCOM, Quectel, U-blox) remain deferred until real hardware
+      evidence identifies the first board/module combination.
+- [ ] URC buffering/dispatch beyond the current transport seam remains future work and must be
+      guarded by focused host tests before any default enablement.
 
 ## Testing
 
 ### Unit Tests
 
 ```bash
-cd tests
-make test_at_commands
-make test_parser
+cmake --build build/tests/unit --target \
+  test_lte test_lte_public_header test_lte_uart_adapter \
+  test_lte_hal_uart_adapter test_lte_hal_uart_smoke_example -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R \
+  '^(lte_component|lte_public_header|lte_uart_adapter|lte_hal_uart_adapter|lte_hal_uart_smoke_example)$'
 ```
+
+These tests are host/fake or compile-smoke evidence only; they do not prove board UART,
+modem power sequencing, SIM registration, or carrier attachment.
 
 ### Integration Tests
 
+Use the repository-level hardware validation template instead of this legacy subtree:
+
 ```bash
-# Requires actual LTE module hardware
-cd tests
-make test_integration
+$EDITOR docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md
 ```
+
+A record may move beyond `pending` only with real board UART/modem logs. Host fake
+transport output, `make HAL_PLATFORM=STM32U5`, or the smoke skeleton above must stay
+classified as compile/smoke evidence.
 
 ## Troubleshooting
 
@@ -534,7 +538,10 @@ This library is part of the XinYi embedded framework. Follow the project's codin
 - Follow naming conventions (`lte_*`, `LTE_*`)
 - Document all public APIs
 - Include error handling
-- Add unit tests for new features
+- Add focused host tests for any new transport/URC/vendor slice before implementation.
+- Keep LTE default-off (`XY_NET_ENABLE_LTE=0`) until real board validation records justify an
+  enablement proposal.
+- Do not claim network/PDP/TCP/UDP readiness from host fake, compile-only, or smoke-skeleton output.
 
 ## License
 
