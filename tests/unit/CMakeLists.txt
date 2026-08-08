@@ -1205,6 +1205,14 @@ xy_add_unit_test(test_ipc_observer ipc_observer UNITY
 )
 target_include_directories(test_ipc_observer PRIVATE ${IPC}/observer)
 
+# --- Test 31d: IPC event-group OSAL wrapper contracts ---
+xy_add_unit_test(test_ipc_event_group ipc_event_group UNITY
+    ${UNIT_IPC}/test_ipc_event_group.c
+    ${IPC}/src/xy_event_group.c
+    ${OSAL}/backend/baremetal/xy_os_baremetal.c
+)
+target_include_directories(test_ipc_event_group PRIVATE ${IPC}/inc ${OSAL} ${OSAL}/inc)
+
 # --- Test 32: Storage EEPROM 24xx fake-I2C host contracts ---
 xy_add_unit_test(test_storage_eeprom_24xx storage_eeprom_24xx UNITY
     ${UNIT_STORAGE}/test_storage_eeprom_24xx.c
