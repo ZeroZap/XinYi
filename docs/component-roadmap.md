@@ -88,7 +88,7 @@
 |------|--------|------------|----------|
 | **Device** | 70% | 设备注册/查找/电源管理；只按真实失败补小回归 | 10h |
 | **Net** | host-guarded / 硬件待验证 | MQTT/CAN/LTE fake/adapter 护栏已闭环；LTE 后续等待真实 UART/modem/flow-control 证据 | 硬件验证驱动 |
-| **IPC** | host-guarded / 事件组待设计 | pipe/broker/message queue 已有 README 与 host CTest；事件组仍需 proposal 后实现 | 设计驱动 |
+| **IPC** | host-guarded / 事件组已闭环 | pipe/broker/message queue/observer/event group 均有 README 与 host CTest；后续只按真实失败补小回归或硬件/线程语义实证 | 实证驱动 |
 | **PM** | 文档已补齐 / 功耗待实证 | README 已存在；Fuel Gauge 保持 standalone，不回并 PM；后续只推进睡眠/功耗实证或明确 stub 失败 | 需实证 |
 | **GUI** | 40% | 字体/控件/渲染；大架构不清时先 proposal，不直接批量实现 | 16h |
 | **Kernel Service** | 60% | 系统监控/定时器 | 4h |
@@ -98,6 +98,7 @@
 - 本路线图的早期 Git 状态快照已过期；当前自动闭环以 `git status --short --branch` 的实时输出为准，不再要求切换到旧文档中的 develop。
 - MUX、Actuator、FOTA、Fuel Gauge 的 README/Kconfig/CMake/host CTest 基线已分别在组件完整度报告和 `docs/design/xinyi-component-quality-loop.md` 中同步；后续不再把这些组件作为“缺 README/缺测试/缺示例”的基线补齐项。
 - Net 的 CAN/LTE 仍保持 default-off/direct-opt-in 策略：host fake、adapter、umbrella opt-in 与 smoke guard 已覆盖，真实 LTE 硬件结果必须来自 UART/modem/flow-control validation record。
+- IPC event group 已从 proposal 推进为 host-guarded wrapper：`components/ipc/inc/xy_event_group.h`、`components/ipc/src/xy_event_group.c` 与 `test_ipc_event_group` / `ipc_event_group` CTest 已存在，IPC README 也已记录它只是 OSAL event-flags 的薄封装。后续不应继续按“事件组待设计/待实现”重复开工；若要扩展 ISR/threaded wait 语义，必须先有 OSAL backend 或真实线程/硬件证据。
 
 ---
 
@@ -428,25 +429,25 @@ struct rt_device {
   - 定时器管理
   - 回调机制
   
-- [ ] **IPC-001**: 消息队列完善 (2h)
-  - 优先级消息
-  - 超时处理
-  - 多读者/写者
+- [x] **IPC-001**: 消息队列 host contract 闭环
+  - FIFO/priority/urgent/overwrite-old 行为已有 `ipc_mq` CTest
+  - 超时/delay、统计、截断接收 metadata preservation 已纳入 host 护栏
+  - 多读者/写者线程语义仍需 OSAL/真实任务证据后再扩展
   
-- [ ] **IPC-002**: 事件组实现 (3h)
-  - 多事件等待
-  - 事件标志组
-  - 中断安全
+- [x] **IPC-002**: 事件组 host wrapper 闭环
+  - `xy_event_group.{h,c}` 已作为 OSAL event-flags 薄封装落地
+  - 多事件 wait-any/wait-all、clear/no-clear、timeout preservation 已有 `ipc_event_group` CTest
+  - ISR/threaded wait 安全性仍待 backend/硬件实证，不由当前 wrapper 先验宣称
 
 **输出**:
 - `components/kernel/service/xy_sysmon.c`
 - `components/kernel/service/xy_timer.c`
-- `components/ipc/src/xy_event.c`
+- `components/ipc/src/xy_event_group.c`（已存在；不要回退到旧 `xy_event.c` 名称）
 
 **验收标准**:
 - 系统监控信息完整
 - 定时器精度 < 1ms
-- IPC 机制线程安全
+- IPC host contract 已闭环；线程/ISR 安全性需要后续 OSAL/backend 实证记录
 
 ---
 
