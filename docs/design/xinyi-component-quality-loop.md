@@ -131,7 +131,7 @@
 ### 2026-08-09 Display driver status proposal
 
 - Display driver 的当前事实源不是旧报告里的顶层 `components/display/`，而是 `components/drivers/display/` 加 root `Kconfig` 的 `DRIVER_DISPLAY*` 选项、`components/drivers/CMakeLists.txt` source filter，以及 `tests/unit/display/*` 的 5 个 focused CTest。
-- 已新增 `docs/design/xinyi-display-driver-status-proposal-2026-08-09.md`，把 Display 从“缺 Kconfig/CMake/测试”的旧基线候选改为“driver host-guarded / README 待收敛”。后续不应重复按空白组件补基线；更合适的下一步是收敛 `components/drivers/display/README.md` 中超前的 MAX7219、Charlieplex、GUI effects/fonts、未验证 panel ✅ 表述。
+- 已新增 `docs/design/xinyi-display-driver-status-proposal-2026-08-09.md`，把 Display 从“缺 Kconfig/CMake/测试”的旧基线候选改为“driver host-guarded / README 已收敛”。`components/drivers/display/README.md` 与 `display.md` 已同步为真实源码、root Kconfig、5 个 focused display CTest 与硬件待验证边界；后续不应重复按空白组件补基线，只在新增 panel/interface、真实硬件记录或具体 display CTest 失败时推进。
 - GUI 仍保持单独基础状态；Display driver 的 host CTest 不能替代 GUI 字体/控件/渲染闭环，也不能作为真实显示硬件验证记录。
 
 ### 2026-08-09 PM component status sync
