@@ -65,9 +65,10 @@ the caller receive buffer is smaller than the stored payload.
 
 ## Backlog
 
-1. Decide whether IPC should receive a root `COMPONENT_IPC` Kconfig symbol or stay
-   as an always-discoverable component library. This should be a config proposal
-   before changing defaults.
+1. IPC config ownership is now captured in
+   `docs/design/xinyi-ipc-component-config-proposal-2026-08-08.md`: keep IPC as an
+   always-discoverable core component for now; do not add root `COMPONENT_IPC`
+   unless a future generated-config slice proves the disabled/enabled paths.
 2. Add an event-group proposal before implementing `components/ipc/src/xy_event.c`
    or public event APIs.
 3. If `observer/` is promoted to the active contract, add a focused Unity/CTest
