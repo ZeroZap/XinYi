@@ -76,34 +76,28 @@
 | **HAL** | 90% | STM32/WCH/PC 仿真 |
 | **Crypto** | 90% | AES/SHA/HMAC/CRC/Base64 |
 | **Sensor** | 90% | 10+ 传感器驱动 |
-| **FOTA** | 80% | 安全升级 (ChaCha20-Poly1305) |
+| **FOTA** | 90% / 硬件待验证 | `xy_fota`、host CTest、external-flash callback seam 与 smoke example 已闭环；真实 bootloader/board NOR 证据仍 pending |
 | **Clib** | 95% | 嵌入式标准库 |
 | **Trace** | 85% | 日志系统完善 |
 | **DM** | 85% | EEPROM/Flash/TLV |
-| **Fuel Gauge** | host-guarded / 硬件待验证 | 电量计独立组件；SMBus/I2C 真实板级验证仍 pending |
+| **Fuel Gauge** | 90% / 硬件待验证 | standalone 电量计组件；host CTest 与 fake board-flow smoke 已闭环，SMBus/I2C 真实板级验证仍 pending |
 
 ### 1.4 待完善组件 (🔧)
 
 | 组件 | 完成度 | 待完成任务 | 工时估算 |
 |------|--------|------------|----------|
-| **Device** | 70% | 设备注册/查找/电源管理 | 10h |
-| **Net** | 60% | CAN/LTE/MQTT 完善 | 12h |
+| **Device** | 70% | 设备注册/查找/电源管理；只按真实失败补小回归 | 10h |
+| **Net** | host-guarded / 硬件待验证 | MQTT/CAN/LTE fake/adapter 护栏已闭环；LTE 后续等待真实 UART/modem/flow-control 证据 | 硬件验证驱动 |
 | **IPC** | 65% | 消息队列/事件组 | 6h |
-| **PM** | 50% | 睡眠模式/功耗监控；Fuel Gauge 继续保持 standalone，不回并 PM | 8h |
-| **GUI** | 40% | 字体/控件/渲染 | 16h |
+| **PM** | 文档已补齐 / 功耗待实证 | README 已存在；Fuel Gauge 保持 standalone，不回并 PM；后续只推进睡眠/功耗实证或明确 stub 失败 | 需实证 |
+| **GUI** | 40% | 字体/控件/渲染；大架构不清时先 proposal，不直接批量实现 | 16h |
 | **Kernel Service** | 60% | 系统监控/定时器 | 4h |
 
-### 1.5 Git 状态
+### 1.5 当前闭环状态同步（2026-08-08）
 
-```
-当前分支：main (需切换到 develop)
-未提交变更：
-  - Makefile
-  - components/device/*
-  - components/hal/*
-未跟踪文件：
-  - components/hal/PC/* (PC 仿真层)
-```
+- 本路线图的早期 Git 状态快照已过期；当前自动闭环以 `git status --short --branch` 的实时输出为准，不再要求切换到旧文档中的 develop。
+- MUX、Actuator、FOTA、Fuel Gauge 的 README/Kconfig/CMake/host CTest 基线已分别在组件完整度报告和 `docs/design/xinyi-component-quality-loop.md` 中同步；后续不再把这些组件作为“缺 README/缺测试/缺示例”的基线补齐项。
+- Net 的 CAN/LTE 仍保持 default-off/direct-opt-in 策略：host fake、adapter、umbrella opt-in 与 smoke guard 已覆盖，真实 LTE 硬件结果必须来自 UART/modem/flow-control validation record。
 
 ---
 
