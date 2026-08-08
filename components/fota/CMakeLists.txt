@@ -25,12 +25,12 @@ set(FOTA_SOURCES
     ${FOTA_SRC_SOURCES}
 )
 
-# Add NOR Flash support if enabled (check CONFIG_* from Kconfig)
+# External Flash support is implemented through the generic flash ops/backup hooks in
+# xy_fota.c and the tracked src/*.c helpers. Do not append a board-specific NOR source
+# here unless that file actually exists; enabling FOTA_EXTERNAL_FLASH must remain a
+# valid compile-time configuration even when no dedicated NOR backend is present.
 if(CONFIG_FOTA_EXTERNAL_FLASH AND CONFIG_NOR_FLASH_ENABLED)
-    list(APPEND FOTA_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_fota_nor.c
-    )
-    message(STATUS "   FOTA: Using external NOR Flash")
+    message(STATUS "   FOTA: External Flash hooks enabled")
 else()
     message(STATUS "   FOTA: Using internal Flash")
 endif()
