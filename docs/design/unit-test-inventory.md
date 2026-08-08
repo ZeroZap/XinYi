@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 124
-- Unity-style files: 123
+- Total C files under `tests/unit`: 125
+- Unity-style files: 124
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 1
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 131
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 133
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -34,7 +34,7 @@
 | `device` | 4 | 4 | 0 | 0 | 0 | 3 |
 | `display` | 5 | 5 | 0 | 0 | 0 | 2 |
 | `dm` | 6 | 6 | 0 | 0 | 0 | 2 |
-| `fota` | 1 | 1 | 0 | 0 | 0 | 1 |
+| `fota` | 2 | 2 | 0 | 0 | 0 | 2 |
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `fuel_gauge` | 6 | 6 | 0 | 0 | 0 | 6 |
 | `gui` | 3 | 3 | 0 | 0 | 0 | 1 |
@@ -57,7 +57,8 @@ Note: `tests/unit/CMakeLists.txt` also registers component example compile-smoke
 reuse component example sources rather than adding extra standalone `tests/unit/*.c` files; currently
 `pid_example_basic`, `pid_example_incremental`, `pid_example_auto_tune`,
 `pid_example_temperature`, `pid_example_charging`, `actuator_example_relay_servo_pwm`,
-`lte_hal_uart_smoke_example`, and `fuel_gauge_smbus_hardware_smoke_example`
+`fota_smoke_example`, `lte_hal_uart_smoke_example`, and
+`fuel_gauge_smbus_hardware_smoke_example`
 guard API drift in those examples/skeletons.
 
 1. Keep all new tests on Unity assertions.
@@ -99,6 +100,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/dm/test_dm_nvm_core.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_tlv.c` | `unity` | 0 |
 | `tests/unit/fota/test_fota_core.c` | `unity` | 15 |
+| `tests/unit/fota/test_fota_smoke_example.c` | `unity` | 0 | Host-safe public FOTA flow smoke; fake Flash callbacks only, not board/bootloader validation. |
 | `tests/unit/framework/test_fff_smoke.c` | `unity` | 72 |
 | `tests/unit/fuel_gauge/test_fg_bq27z561.c` | `unity` | 42 |
 | `tests/unit/fuel_gauge/test_fg_bq27z746.c` | `unity` | 39 |

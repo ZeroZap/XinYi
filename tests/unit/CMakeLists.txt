@@ -1256,6 +1256,12 @@ xy_add_unit_test(test_fota_core fota_core UNITY
     ${FOTA}/xy_fota.c
 )
 
+# --- Test 33b: FOTA public update flow smoke example stays build-guarded ---
+xy_add_unit_test(test_fota_smoke_example fota_smoke_example UNITY
+    ${UNIT_FOTA}/test_fota_smoke_example.c
+    ${FOTA}/xy_fota.c
+)
+
 # --- Test 34: GUI core drawing and object contracts ---
 xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c

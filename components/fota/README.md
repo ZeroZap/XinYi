@@ -9,7 +9,8 @@ backends can be integrated without changing the component core.
 
 - **Build target**: root CMake creates `xy_fota` when `FOTA_ENABLED` is selected.
 - **Compatibility alias**: `fota_component` aliases `xy_fota` for existing component references.
-- **Unit coverage**: `make test-unit` registers the focused Unity/CTest case `fota_core`.
+- **Unit coverage**: `make test-unit` registers the focused Unity/CTest cases `fota_core` and
+  `fota_smoke_example`.
 - **External Flash policy**: `FOTA_EXTERNAL_FLASH` uses the public flash/backup operation hooks; no
   board-specific NOR source is required for the component to compile.
 - **Default platform policy**: FOTA is enabled by default for `STM32U5` and remains opt-in on PC unless
@@ -98,6 +99,14 @@ cmake --build build/tests/unit --target test_fota_core -j$(nproc)
 cd build/tests/unit && ctest -R '^fota_core$' --output-on-failure
 ```
 
+Build-guarded host-safe public flow smoke:
+
+```bash
+cmake -B build/tests/unit -S tests/unit
+cmake --build build/tests/unit --target test_fota_smoke_example -j$(nproc)
+cd build/tests/unit && ctest -R '^fota_smoke_example$' --output-on-failure
+```
+
 Full active host unit suite:
 
 ```bash
@@ -118,5 +127,5 @@ cmake --build build/fota_external_probe --target xy_fota -j$(nproc)
   exists and is separately verified.
 - Keep board pinmux, Flash geometry, bootloader handoff, and hardware logs in board/project validation
   records rather than in this platform-independent core.
-- A build-guarded public example is still a useful follow-up slice, but it should remain host-safe and
-  use fake Flash callbacks instead of real hardware access.
+- `fota_smoke_example` is intentionally host-safe: it uses fake Flash callbacks and does not claim
+  bootloader, board NOR, or real hardware validation coverage.
