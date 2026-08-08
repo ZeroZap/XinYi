@@ -121,7 +121,8 @@
 ### 2026-08-08 FOTA external-flash build closure
 
 - FOTA external-flash Kconfig combination is now buildable without a non-existent board-specific NOR source: `components/fota/CMakeLists.txt` no longer appends missing `src/xy_fota_nor.c` when `FOTA_EXTERNAL_FLASH=ON;NOR_FLASH_ENABLED=ON`; it relies on the existing flash-op/backup-op hooks and records the focused probe in `docs/design/xinyi-fota-external-flash-build-closure-2026-08-08.md`.
-- Verified slice: focused `fota_core` CTest, PC `xy_fota` build with external flash overrides, full `make test-unit`, and `git diff --check`. Remaining FOTA backlog should target a root README and build-guarded component example, not this compile gap.
+- Verified slice: focused `fota_core` CTest, PC `xy_fota` build with external flash overrides, full `make test-unit`, and `git diff --check`.
+- FOTA now has a root `components/fota/README.md` covering active root Kconfig symbols, `xy_fota`/`fota_component` target ownership, flash-op/external-backup hooks, focused verification commands, and the boundary that board NOR backends/hardware logs remain outside the platform-independent core. Remaining low-risk FOTA backlog is a build-guarded host-safe public example, not another README or fake external-flash compile proof.
 
 ---
 

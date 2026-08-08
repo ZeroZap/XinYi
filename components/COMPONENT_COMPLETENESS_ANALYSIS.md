@@ -25,7 +25,7 @@
 | ---------- | ------ | -------- | ------- | ------ | ---- | ---- |
 | sensor     | 95% 🟢 | 优秀     | ✅      | ✅     | ✅   | ❌   |
 | crypto     | 65% 🟡 | 中等     | ✅      | ✅     | ✅   | ⚠️   |
-| fota       | 75% 🟡 | 中等     | ✅      | ❌     | ❌   | ❌   |
+| fota       | 85% 🟡 | 可用     | ✅      | ✅     | ❌   | ✅   |
 | dm         | 70% 🟡 | 中等     | ✅      | ⚠️     | ⚠️   | ⚠️   |
 | gui        | 40% 🟡 | 需补充   | ❌      | ✅     | ❌   | ❌   |
 | pm         | 50% 🟡 | 需补充   | ✅      | ❌     | ❌   | ⚠️   |
@@ -205,25 +205,20 @@ display/
 
 ---
 
-### 7. fota/ - 固件升级组件 (75%)
+### 7. fota/ - 固件升级组件 (85%)
 
-#### 问题描述
+**状态**: 主线可用；`xy_fota` / `fota_component` 根构建入口、root `Kconfig` 的 `FOTA_*` 配置、`components/fota/README.md` 和 `fota_core` host Unity/CTest 已闭环。`xy_fota_flash.h` 已提供 flash/NOR 抽象声明，external Flash 通过 `xy_fota_set_flash_ops()` / `xy_fota_set_backup_flash_ops()` callback seam 接入，不依赖不存在的 board-specific NOR 源文件。
 
-- **缺少 README.md**：只有安全方案文档，无整体概览
-- **缺少示例代码**：用户难以上手
-- **缺少测试用例**：关键模块无测试
-- **xy_fota_flash.h 为空**：仅包含注释
+#### 剩余修复计划
 
-#### 修复计划
+| 序号 | 任务 | 工作量 | 优先级 |
+| ---- | ---- | ------ | ------ |
+| F1   | README 使用指南 | - | 已完成 |
+| F2   | `fota_core` host lifecycle/CRC/download/rollback/flash-op 契约测试 | - | 已完成 |
+| F3   | 补充 host-safe build-guarded public example，使用 fake Flash callback，不访问真实硬件 | 2h | 🟠 中 |
+| F4   | 若要接真实 external NOR backend，先提供 board/project 验证记录与独立 backend proposal | 4h | 🟡 低 |
 
-| 序号 | 任务                          | 工作量 | 优先级 |
-| ---- | ----------------------------- | ------ | ------ |
-| F1   | 创建 README.md 使用指南       | 4h     | 🟠 中  |
-| F2   | 补充示例代码                  | 8h     | 🟠 中  |
-| F3   | 添加测试用例                  | 16h    | 🟠 中  |
-| F4   | 补充 xy_fota_flash.h 实际内容 | 4h     | 🟡 低  |
-
-**预计工时**: 32h
+**预计剩余工时**: 6h
 
 ---
 
@@ -328,7 +323,7 @@ display/
 | 🟠 中    | actuator   | 20h      |
 | 🟠 中    | pid        | 2h       |
 | 🟠 中    | mux        | 22h      |
-| 🟠 中    | fota       | 32h      |
+| 🟠 中    | fota       | 6h       |
 | 🟠 中    | pm         | 28h      |
 | 🟠 中    | dm         | 25h      |
 | 🟠 中    | crypto     | 34h      |
