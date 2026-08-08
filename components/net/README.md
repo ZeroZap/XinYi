@@ -186,7 +186,9 @@ xy_can_register_rx_callback(&can, on_can_receive, user_data);
 - [x] Fakeable AT command transport seam
 - [x] Host coverage for command failure propagation and state/output preservation
 - [x] Callback-backed UART adapter compile probe
-- [ ] HAL UART binding compile probe
+- [x] HAL UART binding compile probe
+- [x] Build-guarded HAL UART smoke skeleton for modem-present/modem-absent flows
+- [ ] Real board UART/modem validation record with flow-control and power-sequencing evidence
 - [ ] URC buffering/dispatch backed by a real transport
 - [ ] Network attachment on validated hardware
 - [ ] PDP context management on validated hardware
@@ -202,9 +204,18 @@ cd build/tests/unit && ctest --output-on-failure -R '^lte_component$'
 
 cmake --build build/tests/unit --target test_lte_uart_adapter -j$(nproc)
 cd build/tests/unit && ctest --output-on-failure -R '^lte_uart_adapter$'
+
+cmake --build build/tests/unit --target test_lte_hal_uart_adapter -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^lte_hal_uart_adapter$'
+
+cmake --build build/tests/unit --target test_lte_hal_uart_smoke_example -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^lte_hal_uart_smoke_example$'
 ```
 
 See `docs/design/xinyi-net-lte-transport-proposal-2026-08-05.md` for the transport boundary and enablement criteria.
+See `docs/design/xinyi-net-lte-hal-uart-binding-proposal-2026-08-06.md`,
+`docs/design/xinyi-net-lte-board-flow-control-design-2026-08-06.md`, and
+`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md` before advancing beyond compile/smoke evidence.
 
 ## MQTT Client
 
