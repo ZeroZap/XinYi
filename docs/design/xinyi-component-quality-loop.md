@@ -127,6 +127,12 @@
 - FOTA now has a root `components/fota/README.md` covering active root Kconfig symbols, `xy_fota`/`fota_component` target ownership, flash-op/external-backup hooks, focused verification commands, and the boundary that board NOR backends/hardware logs remain outside the platform-independent core. Remaining low-risk FOTA backlog is a build-guarded host-safe public example, not another README or fake external-flash compile proof.
 - FOTA host-safe public example is now build-guarded as `test_fota_smoke_example` / `fota_smoke_example`: it exercises the documented init → flash-op registration → download → finish → update flow plus single-slot external-backup callback policy with fake Flash callbacks only. It does not claim bootloader, board NOR, or real hardware validation; next FOTA work should wait for real board/bootloader evidence or a specific failure.
 
+### 2026-08-09 Display driver status proposal
+
+- Display driver 的当前事实源不是旧报告里的顶层 `components/display/`，而是 `components/drivers/display/` 加 root `Kconfig` 的 `DRIVER_DISPLAY*` 选项、`components/drivers/CMakeLists.txt` source filter，以及 `tests/unit/display/*` 的 5 个 focused CTest。
+- 已新增 `docs/design/xinyi-display-driver-status-proposal-2026-08-09.md`，把 Display 从“缺 Kconfig/CMake/测试”的旧基线候选改为“driver host-guarded / README 待收敛”。后续不应重复按空白组件补基线；更合适的下一步是收敛 `components/drivers/display/README.md` 中超前的 MAX7219、Charlieplex、GUI effects/fonts、未验证 panel ✅ 表述。
+- GUI 仍保持单独基础状态；Display driver 的 host CTest 不能替代 GUI 字体/控件/渲染闭环，也不能作为真实显示硬件验证记录。
+
 ---
 
 ## 5. 周度架构回顾
