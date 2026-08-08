@@ -113,7 +113,9 @@ guard API drift in those examples/skeletons.
 | `tests/unit/gui/test_gui_widgets.c` | `unity` | 0 |
 | `tests/unit/hal_component/test_hal_pc.c` | `unity` | 0 |
 | `tests/unit/ipc/test_ipc_broker.c` | `unity` | 12 |
+| `tests/unit/ipc/test_ipc_event_group.c` | `unity` | 0 | IPC event-group set/clear/get/wait guard and timeout contracts with fake OS ticks. |
 | `tests/unit/ipc/test_ipc_mq.c` | `unity` | 0 | IPC message queue init/FIFO/full/overwrite/timeout/stat contracts |
+| `tests/unit/ipc/test_ipc_observer.c` | `unity` | 0 | IPC observer/subject init, attach, notify, detach, capacity, and clear contracts. |
 | `tests/unit/ipc/test_ipc_pipe.c` | `unity` | 0 |
 | `tests/unit/kernel/test_autotask.c` | `unity` | 0 | Kernel misc AutoTask init/trigger/idle-time/mutator public contracts with fake OS ticks. |
 | `tests/unit/kernel/test_bootreason_check.c` | `unity` | 0 |
