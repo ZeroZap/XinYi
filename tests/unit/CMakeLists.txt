@@ -1331,6 +1331,14 @@ xy_add_unit_test(test_gui_widgets gui_widgets UNITY
 )
 target_link_libraries(test_gui_widgets m)
 
+# --- Test 37: GUI effects public headers stay self-contained ---
+xy_add_unit_test(test_gui_effects_headers gui_effects_headers UNITY
+    ${UNIT_GUI}/test_gui_effects_headers.c
+)
+target_include_directories(test_gui_effects_headers PRIVATE
+    ${GUI}/effects
+)
+
 # --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---
 xy_add_unit_test(test_analog_devices analog_devices UNITY
     ${UNIT_ANALOG}/test_analog_devices.c
