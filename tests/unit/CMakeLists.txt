@@ -1189,6 +1189,15 @@ xy_add_unit_test(test_ipc_broker ipc_broker UNITY
     ${IPC}/xy_broker/xy_broker.c
 )
 
+# --- Test 31b: IPC message-queue FIFO/overflow/timeout contracts ---
+xy_add_unit_test(test_ipc_mq ipc_mq UNITY
+    ${UNIT_IPC}/test_ipc_mq.c
+    ${IPC}/src/xy_mq.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+)
+target_include_directories(test_ipc_mq PRIVATE ${IPC}/inc ${TRACE}/xy_log/inc)
+
 # --- Test 32: Storage EEPROM 24xx fake-I2C host contracts ---
 xy_add_unit_test(test_storage_eeprom_24xx storage_eeprom_24xx UNITY
     ${UNIT_STORAGE}/test_storage_eeprom_24xx.c

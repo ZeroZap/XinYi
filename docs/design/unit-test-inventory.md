@@ -113,6 +113,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/gui/test_gui_widgets.c` | `unity` | 0 |
 | `tests/unit/hal_component/test_hal_pc.c` | `unity` | 0 |
 | `tests/unit/ipc/test_ipc_broker.c` | `unity` | 12 |
+| `tests/unit/ipc/test_ipc_mq.c` | `unity` | 0 | IPC message queue init/FIFO/full/overwrite/timeout/stat contracts |
 | `tests/unit/ipc/test_ipc_pipe.c` | `unity` | 0 |
 | `tests/unit/kernel/test_bootreason_check.c` | `unity` | 0 |
 | `tests/unit/kernel/test_osal.c` | `unity` | 2 |

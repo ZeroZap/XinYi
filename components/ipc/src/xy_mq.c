@@ -80,10 +80,14 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
             mq->count--;
             mq->drop_count++;
         } else {
+            if (timeout == 0) {
+                return XY_MQ_FULL;
+            }
+
             /* 等待空间 */
             start = xy_os_tick_get();
             while (mq->count >= mq->config.max_msgs) {
-                if (timeout > 0 && (xy_os_tick_get() - start) > timeout) {
+                if ((xy_os_tick_get() - start) > timeout) {
                     return XY_MQ_TIMEOUT;
                 }
                 xy_os_delay(1);
@@ -112,9 +116,13 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
     }
     
     /* 等待消息 */
+    if (mq->count == 0 && timeout == 0) {
+        return XY_MQ_EMPTY;
+    }
+
     start = xy_os_tick_get();
     while (mq->count == 0) {
-        if (timeout > 0 && (xy_os_tick_get() - start) > timeout) {
+        if ((xy_os_tick_get() - start) > timeout) {
             return XY_MQ_TIMEOUT;
         }
         xy_os_delay(1);
