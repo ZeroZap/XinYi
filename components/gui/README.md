@@ -1,454 +1,136 @@
-# GUI 核心库使用指南
+# XinYi GUI Component Status
 
-**版本**: 1.0.0  
-**日期**: 2026-03-05
+**状态**: host-guarded core / 文档与显示硬件待收口<br>
+**事实源日期**: 2026-08-09
 
----
+本目录记录 `components/gui/` 的当前 GUI core、widget、event、theme 与扩展边界。它不是 Display driver 总说明，也不宣称真实屏幕硬件或完整 UI 产品已经验证通过。
 
-## 📋 目录
+## 当前边界
 
-1. [概述](#概述)
-2. [快速开始](#快速开始)
-3. [绘图 API](#绘图 api)
-4. [文本渲染](#文本渲染)
-5. [GUI 效果](#gui 效果)
-6. [控件系统](#控件系统)
-7. [示例](#示例)
+- GUI core 入口：`components/gui/xy_gui.h` / `components/gui/xy_gui.c`
+- Widget/event/theme 入口：`components/gui/inc/xy_gui_*.h` / `components/gui/src/xy_gui_*.c`
+- 根构建入口：`components/gui/CMakeLists.txt`
+- 当前 host 单元测试事实源：`tests/unit/gui/*` 与 `tests/unit/CMakeLists.txt`
 
----
+GUI core 使用显式 `xy_gui_t` context API；不要再使用旧文档中的全局 `xy_gui_init(display)`、`xy_gui_clear(color)`、`xy_gui_flush()` 风格示例。
 
-## 📖 概述
+## 已有源码与 host CTest 护栏
 
-XY_GUI 是一个轻量级嵌入式 GUI 库，提供统一的绘图接口，支持多种显示设备。
+| 范围 | 源码路径 | Host CTest | 当前结论 |
+| --- | --- | --- | --- |
+| GUI core | `xy_gui.c`, `xy_gui.h` | `gui_core` | lifecycle、clear/flush、像素/线/矩形/字符/字符串和 object contract 已由 host 测试守护 |
+| Widget base + theme | `src/xy_gui_widget.c`, `src/xy_gui_theme.c`, `inc/xy_gui_widget.h`, `inc/xy_gui_theme.h` | `gui_widget_theme` | widget init/style/text/value/parent-child 与 theme register/apply/list/unregister contract 已由 host 测试守护 |
+| Event + widgets | `src/xy_gui_event.c`, button/checkbox/label/progress/slider/container 源码与头文件 | `gui_widgets` | event queue/dispatch 与 button、checkbox/radio、label、progress、slider、container contract 已由 host 测试守护 |
 
-### 特性
+这些测试说明 GUI 已不是“完全无测试/待开发”的空白组件；后续只能按真实失败补小回归，或为尚未纳入测试的扩展写独立 proposal/CTest。
 
-- ✅ 统一绘图 API
-- ✅ 支持多种显示设备
-- ✅ 丰富的绘图原语
-- ✅ 字体渲染
-- ✅ 动画效果
-- ✅ 双缓冲支持
+## 当前 API 示例
 
-### 架构
-
-```
-┌─────────────────┐
-│   应用代码       │
-├─────────────────┤
-│   GUI API       │
-│  (xy_gui.h)     │
-├─────────────────┤
-│  显示设备接口   │
-│ (xy_display.h)  │
-├─────────────────┤
-│   硬件驱动       │
-└─────────────────┘
-```
-
----
-
-## 🚀 快速开始
-
-### 1. 初始化显示设备
+### 1. 初始化 explicit context GUI core
 
 ```c
 #include "xy_gui.h"
-#include "xy_lcd_spi.h"
 
-// LCD 驱动
-xy_lcd_spi_driver_t lcd_drv;
-xy_lcd_spi_config_t cfg = {
-    .spi_handle = hspi1,
-    .dc_pin = GPIO_DC,
-    .cs_pin = GPIO_CS,
-    .rst_pin = GPIO_RST,
-    .width = 240,
-    .height = 240,
+static int display_init(void) { return XY_GUI_OK; }
+static int display_draw_pixel(int16_t x, int16_t y, uint16_t color)
+{
+    (void)x;
+    (void)y;
+    (void)color;
+    return XY_GUI_OK;
+}
+static int display_fill_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
+{
+    (void)x;
+    (void)y;
+    (void)w;
+    (void)h;
+    (void)color;
+    return XY_GUI_OK;
+}
+static int display_flush(void) { return XY_GUI_OK; }
+
+xy_gui_t gui;
+xy_gui_disp_drv_t drv = {
+    .init = display_init,
+    .draw_pixel = display_draw_pixel,
+    .fill_rect = display_fill_rect,
+    .flush = display_flush,
 };
 
-// 初始化驱动
-xy_lcd_spi_init(&lcd_drv, &cfg);
-
-// 获取 GUI 显示接口
-xy_gui_display_t *display = xy_lcd_spi_get_gui(&lcd_drv);
-
-// 初始化 GUI
-xy_gui_init(display);
-```
-
-### 2. 基本绘图
-
-```c
-// 清空屏幕
-xy_gui_clear(WHITE);
-
-// 绘制矩形
-xy_gui_draw_rect(10, 10, 100, 50, BLUE, true);
-
-// 绘制圆形
-xy_gui_draw_circle(120, 120, 30, RED, false);
-
-// 绘制文字
-xy_gui_draw_string(20, 20, "Hello GUI!", BLACK, &font_8x8);
-
-// 刷新显示
-xy_gui_flush();
-```
-
----
-
-## 🎨 绘图 API
-
-### 像素操作
-
-```c
-// 设置像素
-xy_gui_set_pixel(10, 10, RED);
-
-// 获取像素
-xy_gui_color_t color = xy_gui_get_pixel(10, 10);
-```
-
-### 直线
-
-```c
-// 绘制直线
-xy_gui_draw_line(0, 0, 100, 100, BLACK);
-
-// 绘制虚线
-xy_gui_draw_line_dashed(0, 0, 100, 100, BLACK, 5, 3);
-```
-
-### 矩形
-
-```c
-// 空心矩形
-xy_gui_draw_rect(10, 10, 100, 50, BLUE, false);
-
-// 实心矩形
-xy_gui_draw_rect(10, 10, 100, 50, BLUE, true);
-
-// 圆角矩形
-xy_gui_draw_round_rect(10, 10, 100, 50, 10, BLUE, true);
-```
-
-### 圆形
-
-```c
-// 空心圆
-xy_gui_draw_circle(120, 120, 30, RED, false);
-
-// 实心圆
-xy_gui_draw_circle(120, 120, 30, RED, true);
-
-// 圆弧
-xy_gui_draw_arc(120, 120, 30, 0, 90, RED);
-
-// 扇形
-xy_gui_draw_sector(120, 120, 30, 0, 90, RED, true);
-```
-
-### 椭圆
-
-```c
-// 绘制椭圆
-xy_gui_draw_ellipse(120, 120, 50, 30, BLUE, true);
-```
-
-### 三角形
-
-```c
-// 绘制三角形
-xy_gui_draw_triangle(10, 10, 100, 10, 50, 100, GREEN, true);
-```
-
-### 多边形
-
-```c
-// 绘制多边形
-int16_t points[] = {50, 10, 90, 90, 10, 90};
-xy_gui_draw_polygon(points, 3, YELLOW, true);
-```
-
----
-
-## 📝 文本渲染
-
-### 字体
-
-```c
-// 可用字体
-extern const xy_gui_font_t font_5x7;    // 5x7 字体
-extern const xy_gui_font_t font_8x8;    // 8x8 字体
-extern const xy_gui_font_t font_16x16;  // 16x16 字体
-```
-
-### 绘制文字
-
-```c
-// 绘制单个字符
-xy_gui_draw_char(10, 10, 'A', BLACK, &font_8x8);
-
-// 绘制字符串
-xy_gui_draw_string(10, 10, "Hello", BLACK, &font_8x8);
-
-// 绘制字符串 (自动换行)
-xy_gui_draw_string_wrap(10, 10, 200, 
-                        "This is a long text that will wrap.",
-                        BLACK, &font_8x8);
-
-// 绘制字符串 (居中)
-xy_gui_draw_string_center(120, 120, "Center", BLACK, &font_8x8);
-```
-
-### 测量文字
-
-```c
-// 测量字符串宽度
-int16_t width = xy_gui_measure_string("Hello", &font_8x8);
-
-// 测量字符串高度
-int16_t height = xy_gui_font_get_height(&font_8x8);
-```
-
----
-
-## 🎬 GUI 效果
-
-### 滚动效果
-
-```c
-// 向左滚动
-xy_gui_scroll_text("Hello World", SCROLL_LEFT, 2);
-
-// 向上滚动
-xy_gui_scroll_text("Hello World", SCROLL_UP, 2);
-```
-
-### 淡入淡出
-
-```c
-// 淡入
-xy_gui_fade_in(5);
-
-// 淡出
-xy_gui_fade_out(5);
-```
-
-### 缩放效果
-
-```c
-// 放大 (从中心)
-xy_gui_zoom(200, true);  // 200% 缩放
-
-// 缩小
-xy_gui_zoom(50, true);   // 50% 缩放
-```
-
-### 波浪效果
-
-```c
-// 波浪
-xy_gui_wave(20, 5);  // 振幅 20, 频率 5
-```
-
----
-
-## 🎛️ 控件系统
-
-### 按钮
-
-```c
-#include "xy_gui_widget.h"
-
-// 创建按钮
-xy_gui_button_t btn;
-xy_gui_button_create(&btn, 50, 50, 100, 40, "Click", &font_8x8);
-
-// 绘制按钮
-xy_gui_button_draw(&btn);
-
-// 检查点击
-if (xy_gui_button_check_touch(&btn, touch_x, touch_y)) {
-    // 按钮被点击
+if (xy_gui_init(&gui, 128, 64, &drv) == XY_GUI_OK) {
+    xy_gui_clear(&gui, XY_GUI_COLOR_BLACK);
+    xy_gui_draw_pixel(&gui, 10, 10, XY_GUI_COLOR_RED);
+    xy_gui_flush(&gui);
 }
 ```
 
-### 标签
+### 2. 使用 widget/event API
 
 ```c
-// 创建标签
-xy_gui_label_t label;
-xy_gui_label_create(&label, 10, 10, "Status: OK", &font_8x8);
+#include "xy_gui_button.h"
+#include "xy_gui_event.h"
 
-// 更新文本
-xy_gui_label_set_text(&label, "Status: Running");
-
-// 绘制标签
-xy_gui_label_draw(&label);
-```
-
-### 滑块
-
-```c
-// 创建滑块
-xy_gui_slider_t slider;
-xy_gui_slider_create(&slider, 50, 100, 200, 20, 0, 100, 50);
-
-// 获取值
-int value = xy_gui_slider_get_value(&slider);
-
-// 设置值
-xy_gui_slider_set_value(&slider, 75);
-
-// 绘制滑块
-xy_gui_slider_draw(&slider);
-```
-
----
-
-## 📊 示例
-
-### 示例 1: 简单时钟
-
-```c
-#include "xy_gui.h"
-
-void draw_clock(int hour, int minute, int second)
+static void on_button_click(xy_gui_widget_t *widget, xy_gui_event_t *event, void *user_data)
 {
-    // 清空屏幕
-    xy_gui_clear(WHITE);
-    
-    // 绘制表盘
-    xy_gui_draw_circle(120, 120, 100, BLACK, false);
-    
-    // 绘制刻度
-    for (int i = 0; i < 12; i++) {
-        float angle = i * 30 * 3.14159 / 180;
-        int x1 = 120 + (int)(90 * cosf(angle));
-        int y1 = 120 + (int)(90 * sinf(angle));
-        int x2 = 120 + (int)(100 * cosf(angle));
-        int y2 = 120 + (int)(100 * sinf(angle));
-        xy_gui_draw_line(x1, y1, x2, y2, BLACK);
-    }
-    
-    // 绘制时针
-    float h_angle = (hour % 12 + minute / 60.0f) * 30 * 3.14159 / 180;
-    int hx1 = 120 + (int)(40 * cosf(h_angle));
-    int hy1 = 120 + (int)(40 * sinf(h_angle));
-    xy_gui_draw_line(120, 120, hx1, hy1, BLACK);
-    
-    // 绘制分针
-    float m_angle = (minute + second / 60.0f) * 6 * 3.14159 / 180;
-    int mx1 = 120 + (int)(60 * cosf(m_angle));
-    int my1 = 120 + (int)(60 * sinf(m_angle));
-    xy_gui_draw_line(120, 120, mx1, my1, BLACK);
-    
-    // 绘制秒针
-    float s_angle = second * 6 * 3.14159 / 180;
-    int sx1 = 120 + (int)(70 * cosf(s_angle));
-    int sy1 = 120 + (int)(70 * sinf(s_angle));
-    xy_gui_draw_line(120, 120, sx1, sy1, RED);
-    
-    // 刷新
-    xy_gui_flush();
+    (void)widget;
+    (void)event;
+    (void)user_data;
 }
+
+xy_gui_button_t button;
+xy_gui_button_create(&button, 4, 4, 64, 24, "Run", XY_GUI_BUTTON_TOGGLE);
+xy_gui_button_set_click_cb(&button, on_button_click, NULL);
+xy_gui_button_trigger_click(&button);
 ```
 
-### 示例 2: 进度条
+### 3. 使用 theme API
 
 ```c
-void draw_progress_bar(int x, int y, int width, int height, int percent)
-{
-    // 绘制边框
-    xy_gui_draw_rect(x, y, width, height, BLACK, false);
-    
-    // 计算填充宽度
-    int fill_width = (width - 4) * percent / 100;
-    
-    // 绘制填充
-    xy_gui_draw_rect(x + 2, y + 2, fill_width, height - 4, GREEN, true);
-    
-    // 绘制百分比文字
-    char text[8];
-    sprintf(text, "%d%%", percent);
-    xy_gui_draw_string_center(x + width / 2, y + height / 2 - 4, 
-                              text, BLACK, &font_8x8);
-    
-    // 刷新
-    xy_gui_flush();
-}
+#include "xy_gui_theme.h"
+
+xy_gui_theme_t light;
+xy_gui_theme_create_light(&light);
+xy_gui_theme_system_init();
+xy_gui_theme_register(&light);
+xy_gui_theme_apply("Light");
 ```
 
-### 示例 3: 简单菜单
+## 不应再宣称为已完成的内容
 
-```c
-void draw_menu(void)
-{
-    const char *items[] = {"Home", "Settings", "About", "Exit"};
-    int num_items = 4;
-    int selected = 0;
-    
-    // 清空
-    xy_gui_clear(WHITE);
-    
-    // 绘制标题
-    xy_gui_draw_string(10, 10, "Main Menu", BLACK, &font_16x16);
-    
-    // 绘制菜单项
-    for (int i = 0; i < num_items; i++) {
-        xy_gui_color_t bg = (i == selected) ? BLUE : WHITE;
-        xy_gui_color_t fg = (i == selected) ? WHITE : BLACK;
-        
-        xy_gui_draw_rect(10, 40 + i * 30, 200, 25, bg, true);
-        xy_gui_draw_string(20, 45 + i * 30, items[i], fg, &font_8x8);
-    }
-    
-    // 刷新
-    xy_gui_flush();
-}
+以下内容可能有历史说明、目录或部分源码，但当前没有等价的主线 CTest、真实屏幕日志或产品级验证记录，不能标记为完整：
+
+- GUI effects/LED-screen/extended animation 全量效果闭环
+- 字体资产完整度、中文字体渲染质量或字体生成流程闭环
+- 与 LCD/OLED/LED matrix 真实硬件 backend 的板级渲染验证
+- 触摸输入、窗口管理、多页面应用框架或完整 UI 产品流程
+- 用 Display driver 的 host CTest 替代 GUI core/widget/display-backend 验证
+
+这些项应进入 backlog 或单独 proposal；不要在 README 同步 slice 中批量改 effects、fonts 或 display backend。
+
+## 验证命令
+
+GUI 文档/测试收敛后至少运行：
+
+```bash
+cmake -B build/tests/unit -S tests/unit
+cmake --build build/tests/unit --target \
+  test_gui_core \
+  test_gui_widget_theme \
+  test_gui_widgets \
+  -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^gui_(core|widget_theme|widgets)$'
+
+make test-unit
+
+git diff --check
 ```
 
----
+触碰 GUI C/H 文件时，应先运行上述 focused gate；若涉及 display backend，还需额外运行 display driver focused CTest，且不能把 host fake 结果写成真实硬件验证。
 
-## ❓ 常见问题
+## 下一步 backlog
 
-### Q1: 如何切换显示方向？
-
-```c
-// 设置旋转角度 (0/90/180/270)
-xy_gui_set_rotation(90);
-```
-
-### Q2: 如何启用双缓冲？
-
-```c
-// 启用双缓冲
-xy_gui_enable_double_buffer(true);
-
-// 手动交换缓冲
-xy_gui_swap_buffers();
-```
-
-### Q3: 如何自定义颜色？
-
-```c
-// 创建自定义颜色
-xy_gui_color_t my_color = {255, 128, 0, 255};  // R,G,B,A
-
-// 使用颜色
-xy_gui_draw_rect(10, 10, 50, 50, my_color, true);
-```
-
----
-
-## 📚 相关文档
-
-- [DISPLAY_ARCHITECTURE.md](../DISPLAY_ARCHITECTURE.md) - 架构设计
-- [DISPLAY_DUAL_MODE.md](../DISPLAY_DUAL_MODE.md) - 双模式设计
-
----
-
-**维护者**: XinYi Team  
-**许可证**: Apache License 2.0
+1. 为 GUI effects public headers 增加 self-containment probe，先暴露 header/API drift，不改具体效果算法。
+2. 为 GUI ↔ Display driver backend 写独立 validation proposal，区分 host fake、PC sim 与真实屏幕日志。
+3. 若需要字体/中文渲染闭环，先固定字体资产范围与生成流程，再补 focused host CTest 或 snapshot smoke。
+4. 只有在真实板级日志存在后，才更新硬件验证结论；当前状态保持 `host-guarded core / hardware validation pending`。

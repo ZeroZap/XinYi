@@ -27,7 +27,7 @@
 | crypto     | 65% 🟡 | 中等     | ✅      | ✅     | ✅   | ⚠️   |
 | fota       | 90% 🟢 | 主线可用 / 硬件验证待证据 | ✅      | ✅     | ✅   | ✅   |
 | dm         | 70% 🟡 | 中等     | ✅      | ⚠️     | ⚠️   | ⚠️   |
-| gui        | 40% 🟡 | 需补充   | ❌      | ✅     | ❌   | ❌   |
+| gui        | host-guarded core / 硬件待验证 | core/widget/event/theme 已有 CTest | ✅      | ✅     | ❌   | ✅   |
 | pm         | 50% 🟡 | 需补充   | ✅      | ❌     | ❌   | ⚠️   |
 | net        | 50% 🟡 | 需补充   | ✅      | ❌     | ⚠️   | ⚠️   |
 | pid        | 85% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
@@ -80,27 +80,27 @@ display/
 
 ---
 
-### 2. gui/ - 图形界面组件 (40%)
+### 2. gui/ - 图形界面组件 (host-guarded core / 硬件待验证)
 
 #### 问题描述
 
-- **Kconfig 缺失**：无法通过 menuconfig 配置
-- **目录不存在**：effects/、fonts/ 目录在 README 中描述但不存在
-- **部分控件实现存疑**：需验证各 .c 文件是完整实现还是 stub
+- **Kconfig/CMake 已接入**：`components/gui/CMakeLists.txt` 已存在，root `Kconfig` 当前提供 `GUI_ENABLED`、`GUI_SDL`、`GUI_TFT`、`GUI_LVGL` 与 `GUI_WIDGETS` 等生成配置入口。
+- **核心护栏已存在**：`tests/unit/gui/test_gui_core.c`、`test_gui_widget_theme.c`、`test_gui_widgets.c` 已注册为 `gui_core` / `gui_widget_theme` / `gui_widgets` CTest，覆盖 core、widget、event、theme 与主要控件契约。
+- **README 已同步当前 API**：`components/gui/README.md` 已改为显式 `xy_gui_t` context API 示例，避免旧 `xy_gui_init(display)` / 全局绘图调用误导。
+- **剩余风险**：effects、fonts、display backend 与真实屏幕渲染仍需独立 proposal/验证；不能用当前 host CTest 替代硬件证据。
 
 #### 修复计划
 
-| 序号 | 任务                                                    | 工作量 | 优先级 |
-| ---- | ------------------------------------------------------- | ------ | ------ |
-| G1   | 添加 Kconfig                                            | 2h     | 🔴 高  |
-| G2   | 创建 effects/ 目录并补充效果实现（呼吸灯、闪烁等30+种） | 16h    | 🔴 高  |
-| G3   | 创建 fonts/ 目录并添加字体文件                          | 8h     | 🔴 高  |
-| G4   | 验证并修复所有 stub 控件实现                            | 8h     | 🔴 高  |
-| G5   | 添加示例代码                                            | 4h     | 🟡 中  |
-| G6   | 添加测试用例                                            | 8h     | 🟡 中  |
-| G7   | 更新 README.md                                          | 2h     | 🟡 中  |
+| 序号 | 任务 | 工作量 | 优先级 |
+| ---- | ---- | ------ | ------ |
+| G1   | 添加 Kconfig/CMake 基线 | - | 已完成 |
+| G2   | core/widget/event/theme host CTest | - | 已完成 |
+| G3   | README/API 示例同步 | - | 已完成 |
+| G4   | effects header self-containment probe | 1–2h | 🟡 中 |
+| G5   | display backend validation proposal | 1–2h | 🟡 中 |
+| G6   | 字体资产/中文渲染验证计划与 focused test | 2–4h | 🟡 中 |
 
-**预计工时**: 48h
+**预计剩余工时**: 实证驱动；仅在 effects/fonts/display backend 有明确验证目标时推进。
 
 ---
 

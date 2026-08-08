@@ -90,7 +90,7 @@
 | **Net** | host-guarded / 硬件待验证 | MQTT/CAN/LTE fake/adapter 护栏已闭环；LTE 后续等待真实 UART/modem/flow-control 证据 | 硬件验证驱动 |
 | **IPC** | host-guarded / 事件组已闭环 | pipe/broker/message queue/observer/event group 均有 README 与 host CTest；后续只按真实失败补小回归或硬件/线程语义实证 | 实证驱动 |
 | **PM** | 文档已补齐 / 功耗待实证 | README 已存在；Fuel Gauge 保持 standalone，不回并 PM；后续只推进睡眠/功耗实证或明确 stub 失败 | 需实证 |
-| **GUI** | 40% | 字体/控件/渲染；大架构不清时先 proposal，不直接批量实现 | 16h |
+| **GUI** | host-guarded core / 硬件待验证 | core/widget/event/theme 已有 3 个 host CTest；README 已按 explicit context API 同步，effects/fonts/display backend 继续独立 proposal/验证 | 实证驱动 |
 | **Kernel Service** | 60% | 系统监控/定时器 | 4h |
 
 ### 1.5 当前闭环状态同步（2026-08-08）
@@ -99,6 +99,7 @@
 - MUX、Actuator、FOTA、Fuel Gauge 的 README/Kconfig/CMake/host CTest 基线已分别在组件完整度报告和 `docs/design/xinyi-component-quality-loop.md` 中同步；后续不再把这些组件作为“缺 README/缺测试/缺示例”的基线补齐项。
 - Net 的 CAN/LTE 仍保持 default-off/direct-opt-in 策略：host fake、adapter、umbrella opt-in 与 smoke guard 已覆盖，真实 LTE 硬件结果必须来自 UART/modem/flow-control validation record。
 - IPC event group 已从 proposal 推进为 host-guarded wrapper：`components/ipc/inc/xy_event_group.h`、`components/ipc/src/xy_event_group.c` 与 `test_ipc_event_group` / `ipc_event_group` CTest 已存在，IPC README 也已记录它只是 OSAL event-flags 的薄封装。后续不应继续按“事件组待设计/待实现”重复开工；若要扩展 ISR/threaded wait 语义，必须先有 OSAL backend 或真实线程/硬件证据。
+- GUI 已从旧路线图“40% / 字体控件渲染待补”同步为 host-guarded core：`gui_core`、`gui_widget_theme`、`gui_widgets` 三个 CTest 已覆盖 core/widget/event/theme 基线，`components/gui/README.md` 已改为显式 `xy_gui_t` context API 示例。后续 GUI 工作应聚焦 effects header probe、display backend validation proposal 或真实屏幕/字体证据，不再按“完全无测试/待开发”重复开工。
 
 ---
 
