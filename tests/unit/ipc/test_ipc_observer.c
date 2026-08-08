@@ -117,6 +117,23 @@ static void test_subject_attach_notify_detach_and_clear(void)
     TEST_ASSERT_EQUAL(XY_OBSERVER_INVALID_PARAM, xy_subject_notify(NULL, &payload));
 }
 
+static void test_subject_clear_resets_notifying_state(void)
+{
+    xy_subject_t subject;
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_init(&subject, "subject"));
+
+    subject.notifying = true;
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_clear(&subject));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
+    TEST_ASSERT_FALSE(subject.notifying);
+
+    subject.notifying = true;
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_deinit(&subject));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
+    TEST_ASSERT_FALSE(subject.notifying);
+}
+
 static void test_subject_allows_same_callback_with_distinct_user_data(void)
 {
     xy_subject_t subject;
@@ -206,6 +223,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_observer_and_subject_init_guards);
     RUN_TEST(test_subject_attach_notify_detach_and_clear);
+    RUN_TEST(test_subject_clear_resets_notifying_state);
     RUN_TEST(test_subject_allows_same_callback_with_distinct_user_data);
     RUN_TEST(test_subject_rejects_inactive_or_callbackless_observers);
     RUN_TEST(test_subject_capacity_and_deinit);

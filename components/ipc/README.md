@@ -69,7 +69,8 @@ the caller receive buffer is smaller than the stored payload.
 
 `xy_observer` is a small local observer-pattern helper. The host test covers
 observer/subject init guards, name truncation, attach idempotency, notify data and
-user-data dispatch, detach/not-found behavior, capacity limits, clear, and deinit.
+user-data dispatch, detach/not-found behavior, capacity limits, clear/deinit
+notification-state reset, and deinit.
 
 ### Event group
 

@@ -164,6 +164,7 @@ int xy_subject_clear(xy_subject_t *subject)
 
     memset(subject->observers, 0, sizeof(subject->observers));
     subject->observer_count = 0;
+    subject->notifying = false;
 
     return XY_OBSERVER_OK;
 }
