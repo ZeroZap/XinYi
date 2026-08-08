@@ -25,7 +25,7 @@
 | ---------- | ------ | -------- | ------- | ------ | ---- | ---- |
 | sensor     | 95% 🟢 | 优秀     | ✅      | ✅     | ✅   | ❌   |
 | crypto     | 65% 🟡 | 中等     | ✅      | ✅     | ✅   | ⚠️   |
-| fota       | 85% 🟡 | 可用     | ✅      | ✅     | ❌   | ✅   |
+| fota       | 90% 🟢 | 主线可用 / 硬件验证待证据 | ✅      | ✅     | ✅   | ✅   |
 | dm         | 70% 🟡 | 中等     | ✅      | ⚠️     | ⚠️   | ⚠️   |
 | gui        | 40% 🟡 | 需补充   | ❌      | ✅     | ❌   | ❌   |
 | pm         | 50% 🟡 | 需补充   | ✅      | ❌     | ❌   | ⚠️   |
@@ -205,9 +205,9 @@ display/
 
 ---
 
-### 7. fota/ - 固件升级组件 (85%)
+### 7. fota/ - 固件升级组件 (90%)
 
-**状态**: 主线可用；`xy_fota` / `fota_component` 根构建入口、root `Kconfig` 的 `FOTA_*` 配置、`components/fota/README.md` 和 `fota_core` host Unity/CTest 已闭环。`xy_fota_flash.h` 已提供 flash/NOR 抽象声明，external Flash 通过 `xy_fota_set_flash_ops()` / `xy_fota_set_backup_flash_ops()` callback seam 接入，不依赖不存在的 board-specific NOR 源文件。
+**状态**: 主线可用 / 硬件验证待证据；`xy_fota` / `fota_component` 根构建入口、root `Kconfig` 的 `FOTA_*` 配置、`components/fota/README.md`、`fota_core` host Unity/CTest 和 `fota_smoke_example` host-safe public flow smoke 已闭环。`xy_fota_flash.h` 已提供 flash/NOR 抽象声明，external Flash 通过 `xy_fota_set_flash_ops()` / `xy_fota_set_backup_flash_ops()` callback seam 接入，不依赖不存在的 board-specific NOR 源文件；真实 bootloader/board NOR/hardware 结果仍必须来自板级验证记录。
 
 #### 剩余修复计划
 
@@ -215,10 +215,10 @@ display/
 | ---- | ---- | ------ | ------ |
 | F1   | README 使用指南 | - | 已完成 |
 | F2   | `fota_core` host lifecycle/CRC/download/rollback/flash-op 契约测试 | - | 已完成 |
-| F3   | 补充 host-safe build-guarded public example，使用 fake Flash callback，不访问真实硬件 | 2h | 🟠 中 |
+| F3   | 补充 host-safe build-guarded public example，使用 fake Flash callback，不访问真实硬件 | - | 已完成 |
 | F4   | 若要接真实 external NOR backend，先提供 board/project 验证记录与独立 backend proposal | 4h | 🟡 低 |
 
-**预计剩余工时**: 6h
+**预计剩余工时**: 4h（仅剩真实 board/project backend proposal 与硬件验证记录；不再用 host fake smoke 替代硬件证据）
 
 ---
 
