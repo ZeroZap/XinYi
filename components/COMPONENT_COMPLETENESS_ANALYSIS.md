@@ -28,7 +28,7 @@
 | fota       | 90% 🟢 | 主线可用 / 硬件验证待证据 | ✅      | ✅     | ✅   | ✅   |
 | dm         | 70% 🟡 | 中等     | ✅      | ⚠️     | ⚠️   | ⚠️   |
 | gui        | host-guarded core / 硬件待验证 | core/widget/event/theme 已有 CTest | ✅      | ✅     | ❌   | ✅   |
-| pm         | 50% 🟡 | 需补充   | ✅      | ❌     | ❌   | ⚠️   |
+| pm         | host-guarded / 功耗待实证 | 文档已补齐 | ✅      | ✅     | ⚠️   | ✅   |
 | net        | 50% 🟡 | 需补充   | ✅      | ❌     | ⚠️   | ⚠️   |
 | pid        | 85% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
 | display    | driver host-guarded / 硬件待验证 | README 已收敛 | ✅      | ✅     | ⚠️   | ✅   |
@@ -206,25 +206,27 @@
 
 ---
 
-### 8. pm/ - 电源管理组件 (50%)
+### 8. pm/ - 电源管理组件 (host-guarded / 功耗待实证)
 
 #### 问题描述
 
-- **缺少 README.md**
-- **Kconfig 过于简单**：只有 3 个选项
-- **Stub 代码多**：充电器使能、ADC 读取等是空 stub
+- **README 已补齐并同步边界**：`components/pm/README.md` 记录 PM framework、host CTest 与 standalone Fuel Gauge 独立维护边界。
+- **Kconfig/CMake 已存在**：`components/pm/Kconfig` 提供 `XY_PM_ENABLE`、charger/fuel-gauge 兼容选项，`components/pm/CMakeLists.txt` 产出 `xy_pm` target。
+- **host CTest 已存在**：`pm_component` 覆盖 PM lifecycle、ADC fallback、charger state、PM-local fuel-gauge wrapper；`pm_platform_fallback` 覆盖 fallback platform/tick/charger hook 契约。
+- **剩余风险**：`xy_pm_enter_sleep()` / `xy_pm_enter_shutdown()` 仍是框架入口；真实低功耗、charger GPIO、ADC 通道、电池曲线与整机功耗必须依赖 board/project 验证记录。
+- **产品边界**：standalone `components/fuel_gauge/` 保持独立，不因 PM README 或 PM-local wrapper 覆盖而回并 PM。
 
 #### 修复计划
 
-| 序号 | 任务                                        | 工作量 | 优先级 |
-| ---- | ------------------------------------------- | ------ | ------ |
-| PM1  | 创建 README.md                              | 4h     | 🟠 中  |
-| PM2  | 扩展 Kconfig 配置项（充电电流、电池容量等） | 4h     | 🟠 中  |
-| PM3  | 补充 stub 函数实际实现                      | 8h     | 🟠 中  |
-| PM4  | 补充示例代码                                | 4h     | 🟡 中  |
-| PM5  | 补充测试用例                                | 8h     | 🟡 中  |
+| 序号 | 任务 | 工作量 | 优先级 |
+| ---- | ---- | ------ | ------ |
+| PM1  | 创建 README.md 并同步 host/硬件边界 | - | 已完成 |
+| PM2  | 保持 Kconfig/CMake 与当前 PM framework 对齐 | - | 已完成 |
+| PM3  | 维护 `pm_component` / `pm_platform_fallback` host CTest | - | 持续维护 |
+| PM4  | 真实低功耗/charger GPIO/ADC/电池曲线验证记录 | 硬件驱动 | 🟡 中 |
+| PM5  | 若要新增 board-specific PM backend，先写 proposal + host seam | 2–4h | 🟡 中 |
 
-**预计工时**: 28h
+**预计剩余工时**: 硬件/板级实证驱动；不再按“缺 README/缺测试”的旧基线重复开工。
 
 ---
 
@@ -308,7 +310,7 @@
 | 🟠 中    | pid        | 2h       |
 | 🟠 中    | mux        | 22h      |
 | 🟠 中    | fota       | 6h       |
-| 🟠 中    | pm         | 28h      |
+| 🟠 中    | pm         | 实证驱动 |
 | 🟠 中    | dm         | 25h      |
 | 🟠 中    | crypto     | 34h      |
 | 🟡 低    | fuel_gauge | 4h       |
@@ -322,7 +324,7 @@
 ### 第一阶段（1-2 周）- 清理和文档
 
 1. 继续保持 Display driver README/display.md 与真实源码、root Kconfig、host CTest 同步；新 panel/interface 先 proposal 后 CTest
-2. 为所有缺失 README 的组件添加文档
+2. 为仍缺失 README 的组件添加文档（PM 已完成）
 3. 添加 Kconfig 到缺失的组件
 
 ### 第二阶段（3-4 周）- 核心功能修复
@@ -355,7 +357,7 @@
 - `components/charger/` - 充电器组件分析 (65%)
 - `components/drivers/display/` - 显示驱动状态同步（driver host-guarded / README 已收敛 / 硬件待验证）
 - `components/gui/` - 图形界面分析 (40%)
-- `components/pm/` - 电源管理分析 (50%)
+- `components/pm/` - 电源管理状态同步（host-guarded / 功耗待实证）
 - `components/dm/` - 数据管理分析 (70%)
 - `components/crypto/` - 加密组件分析 (65%)
 - `components/net/` - 网络组件分析 (50%)

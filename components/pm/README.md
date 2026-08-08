@@ -1,41 +1,45 @@
 # XinYi Power Management Component
 
 **版本**: 1.0.0
-**状态**: 🟢 完善中
+**状态**: 文档已补齐 / host-guarded PM core / 功耗与板级控制待实证
 
 ---
 
 ## 📋 概述
 
-电源管理组件 (Power Management)，负责系统电源监控、电池管理、充电控制等功能。支持电量计 (Fuel Gauge) 和充电器 (Charger) 管理。
+电源管理组件 (Power Management)，负责系统电源监控、电池状态聚合、充电控制与低功耗入口的框架层逻辑。
+
+当前 PM 是 framework/host-guarded 状态：`tests/unit/pm/test_pm_core.c` 与 `test_pm_platform_fallback.c` 已覆盖 PM lifecycle、ADC fallback、charger state、fuel-gauge wrapper、platform tick/charger hook 契约。真实低功耗、板级 charger GPIO、ADC 通道、电池曲线和整机功耗结论仍必须来自 board/project 验证，不能用 host stub 结果替代。
+
+> Product boundary: standalone `components/fuel_gauge/` 保持独立组件线；PM 侧的 `fuel-gauge/` 目录是历史/兼容入口，不应在没有单独 proposal 的情况下把 standalone Fuel Gauge 回并 PM。
 
 ---
 
 ## 🎯 特性
 
-- ✅ 电池状态监控（电压、电流、温度、SOC、SOH）
-- ✅ 充电控制与管理
-- ✅ 电量计功能
-- ✅ 低功耗模式支持
-- ✅ 系统电源状态管理
-- ✅ 平台无关设计 (STM32, WCH, HC32, PC)
+- ✅ Host 可验证的 PM lifecycle、状态查询、模拟 ADC 电压/SOC 估算
+- ✅ Host 可验证的 charger state machine wrapper 与平台 charger hook 记录
+- ✅ Host 可验证的 PM-local fuel-gauge wrapper 基础契约
+- ⚠️ 真实低功耗/睡眠/关机效果仍待 board/project 功耗实测
+- ⚠️ 真实 charger GPIO、ADC channel 与电池曲线仍待板级配置和验证记录
+- ⚠️ Standalone Fuel Gauge 继续独立维护，不由 PM README 宣称硬件通过
 
 ---
 
 ## 📁 文件结构
 
-```
+```text
 pm/
 ├── inc/
 │   └── xy_pm.h              # PM 主头文件（含 Charger API）
 ├── src/
 │   ├── xy_pm_system.c       # 电源系统管理
-│   ├── xy_pm_adc.c          # ADC 采样
-│   ├── xy_pm_platform.c     # 平台特定实现 ⭐ 新增
-│   ├── xy_charger.c         # 充电器实现
-│   └── xy_fuel_gauge.c      # 电量计实现
-├── charger/                 # 充电器子模块
-├── fuel-gauge/              # 电量计子模块
+│   ├── xy_pm_adc.c          # ADC 采样 / host fallback
+│   ├── xy_pm_platform.c     # 平台 tick 与 charger hook
+│   ├── xy_charger.c         # PM-local 充电器状态机
+│   └── xy_fuel_gauge.c      # PM-local 电量估算 wrapper
+├── charger/                 # PM charger public header
+├── fuel-gauge/              # 历史/兼容 PM-local fuel-gauge header
 ├── CMakeLists.txt
 └── Kconfig
 ```
@@ -49,26 +53,15 @@ pm/
 ```c
 #include "xy_pm.h"
 
-// 系统 PM 初始化
 xy_pm_init();
-
-// 设置电源模式
-xy_pm_set_mode(XY_PM_MODE_ACTIVE);  // 或 XY_PM_MODE_SLEEP
 ```
 
 ### 电池状态查询
 
 ```c
-// 获取电池电压 (mV)
 uint32_t voltage = xy_pm_get_battery_voltage_mV();
-
-// 获取电池电量百分比 (0-100%)
-uint8_t soc = xy_pm_get_battery_percent();
-
-// 获取 SOC (State of Charge)
+uint8_t percent = xy_pm_get_battery_percent();
 uint8_t soc = xy_pm_get_soc();
-
-// 检查是否在充电
 bool charging = xy_pm_is_charging();
 ```
 
@@ -78,116 +71,46 @@ bool charging = xy_pm_is_charging();
 #include "xy_pm.h"
 
 xy_charger_config_t charger_config = {
-    .charge_current_ma = 500,
-    .target_voltage_mv = 4200,
-    // ... 其他配置
+    .charge_current_mA = 500,
+    .charge_voltage_mV = 4200,
+    .cell_count = 1,
 };
 
-// 初始化充电器
 xy_charger_init(&charger_config);
-
-// 开始充电
 xy_charger_start();
-
-// 停止充电
 xy_charger_stop();
 
-// 获取充电状态
 xy_charger_state_t state;
-xy_charger_get_status(&state);
-
-// 检查是否正在充电
-if (xy_charger_is_charging()) {
-    // 正在充电
-}
+xy_charger_get_state(&state);
 ```
 
-### 电量计操作
+### PM-local 电量计操作
 
 ```c
-#include "xy_pm.h"
-
-// 初始化电量计
 xy_fuel_gauge_config_t fg_config = {
     .design_capacity_mAh = 2000,
     .full_capacity_mAh = 2000,
     .nominal_voltage_mV = 3700,
-    .cells = 1
+    .cells = 1,
 };
 xy_fuel_gauge_init(&fg_config);
-
-// 更新电量计数据
 xy_fuel_gauge_update(voltage_mV, current_mA, temperature_celsius);
 
-// 获取 SOC
 uint8_t soc = xy_fuel_gauge_get_soc();
-
-// 获取剩余容量 (mAh)
 uint32_t remaining = xy_fuel_gauge_get_remaining_mAh();
-
-// 获取预计剩余时间（分钟）
-uint32_t time_to_empty = xy_fuel_gauge_get_time_to_empty();
-
-// 获取预计充满时间（分钟）
-uint32_t time_to_full = xy_fuel_gauge_get_time_to_full();
 ```
 
-### 低功耗与关机
+真实芯片驱动请优先使用 standalone `components/fuel_gauge/`，PM-local wrapper 只作为 PM framework 的简化状态估算入口。
+
+### 低功耗与关机入口
 
 ```c
-// 进入低功耗模式
-xy_pm_set_low_power_mode(true);
-
-// 关机
-xy_pm_shutdown();
+xy_pm_enter_sleep();
+xy_pm_wakeup();
+xy_pm_enter_shutdown();
 ```
 
----
-
-## 🚀 简单使用示例
-
-```c
-#include "xy_pm.h"
-
-int main(void)
-{
-    // 初始化电源管理
-    xy_pm_init();
-
-    // 初始化充电器
-    xy_charger_config_t charger_cfg = {
-        .charge_current_ma = 1000,
-        .target_voltage_mv = 4200,
-    };
-    xy_charger_init(&charger_cfg);
-    xy_charger_start();
-
-    // 初始化电量计
-    xy_fuel_gauge_config_t fg_cfg = {
-        .design_capacity_mAh = 3000,
-        .full_capacity_mAh = 3000,
-        .nominal_voltage_mV = 3700,
-    };
-    xy_fuel_gauge_init(&fg_cfg);
-
-    // 主循环
-    while (1) {
-        uint32_t voltage = xy_pm_get_battery_voltage_mV();
-        uint8_t soc = xy_pm_get_battery_percent();
-
-        printf("Battery: %umV, %u%%\n", voltage, soc);
-
-        // 更新电量计
-        int32_t current = read_battery_current();
-        int32_t temp = read_battery_temperature();
-        xy_fuel_gauge_update(voltage, current, temp);
-
-        delay_ms(1000);
-    }
-
-    return 0;
-}
-```
+这些 API 当前是 framework entrypoint；实际 STOP/SLEEP/SHUTDOWN、外设恢复和功耗收益需要由 board/project backend 与硬件日志证明。
 
 ---
 
@@ -196,103 +119,108 @@ int main(void)
 ### CMake 构建
 
 ```cmake
-# 在您的 CMakeLists.txt 中
 add_subdirectory(components/pm)
 target_link_libraries(your_target xy_pm)
 ```
 
 ### Kconfig 配置
 
-```
+```text
 CONFIG_XY_PM_ENABLE=y
 CONFIG_XY_CHARGER_ENABLE=y       # 启用充电器 GPIO 控制
-CONFIG_XY_CHARGER_GPIO_PORT=0     # 充电器使能 GPIO 端口
-CONFIG_XY_CHARGER_GPIO_PIN=0      # 充电器使能 GPIO 引脚
-CONFIG_XY_FUEL_GAUGE_ENABLE=y    # 启用电量计
+CONFIG_XY_CHARGER_GPIO_PORT=0    # 充电器使能 GPIO 端口
+CONFIG_XY_CHARGER_GPIO_PIN=0     # 充电器使能 GPIO 引脚
+CONFIG_XY_FUEL_GAUGE_ENABLE=y    # 启用 PM-local 电量估算 wrapper
 ```
+
+### Host 验证入口
+
+PM 当前纳入主线 Unity/CTest：
+
+```bash
+cmake -B build/tests/unit -S tests/unit
+cmake --build build/tests/unit --target test_pm test_pm_platform_fallback -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^(pm_component|pm_platform_fallback)$'
+
+make test-unit
+```
+
+相关但独立的 standalone charger IC coverage 是 `charger_bq25620`；standalone Fuel Gauge coverage 在 `tests/unit/fuel_gauge/*`，不等同于 PM component 硬件验证。
 
 ### 平台特定配置
 
-| 平台  | 宏定义                                     | Tick 来源                     |
-| ----- | ------------------------------------------ | ----------------------------- |
-| STM32 | `STM32U5`, `STM32F4`, `STM32F1`, `STM32L4` | `HAL_GetTick()`               |
-| WCH   | `MCU_CH32`, `CH32V103`, `CH32V20X`         | 内部 tick stub                |
-| HC32  | `MCU_HC32`, `HC32L021`, `HC32L110`         | `xy_hal_sys_get_tick_count()` |
-| PC    | `CONFIG_PLATFORM_PC`                       | `GetTickCount()` / `clock()`  |
-
-### 依赖
-
-- 硬件 ADC（电池电压、电流采样）
-- 外部充电器 IC 驱动（如 LTC2944、LTC2945 等）
-- 平台特定 GPIO 驱动（用于充电器使能控制）
+| 平台 | 宏定义 | Tick 来源 |
+| --- | --- | --- |
+| STM32 | `STM32U5`, `STM32F4`, `STM32F1`, `STM32L4` | `HAL_GetTick()` |
+| WCH | `MCU_CH32`, `CH32V103`, `CH32V20X` | 内部 tick stub |
+| HC32 | `MCU_HC32`, `HC32L021`, `HC32L110` | `xy_hal_sys_get_tick_count()` |
+| PC | `CONFIG_PLATFORM_PC` / `PLATFORM_PC` | `GetTickCount()` / `clock()` |
 
 ---
 
 ## 📊 状态码
 
-| 状态码                    | 描述     |
-| ------------------------- | -------- |
-| XY_PM_OK                  | 成功     |
-| XY_PM_ERROR               | 一般错误 |
-| XY_PM_ERROR_INVALID_MODE  | 无效模式 |
-| XY_PM_ERROR_NOT_SUPPORTED | 不支持   |
-| XY_PM_INVALID_PARAM       | 无效参数 |
-| XY_PM_NOT_INITIALIZED     | 未初始化 |
+| 状态码 | 描述 |
+| --- | --- |
+| `XY_PM_OK` | 成功 |
+| `XY_PM_ERROR` | 一般错误 |
+| `XY_PM_ERROR_INVALID_MODE` | 无效模式 |
+| `XY_PM_ERROR_NOT_SUPPORTED` | 不支持 |
+| `XY_PM_INVALID_PARAM` | 无效参数 |
+| `XY_PM_NOT_INITIALIZED` | 未初始化 |
 
-充电器状态 (`xy_charger_state_t`)：
+充电器状态使用 `xy_charger_status_t`：
 
-- `XY_CHARGER_STATE_IDLE` - 空闲
-- `XY_CHARGER_STATE_CHARGING` - 充电中
-- `XY_CHARGER_STATE_COMPLETE` - 充电完成
-- `XY_CHARGER_STATE_FAULT` - 故障
+- `XY_CHARGER_STATUS_IDLE`
+- `XY_CHARGER_STATUS_PRE_CHARGE`
+- `XY_CHARGER_STATUS_FAST_CHARGE`
+- `XY_CHARGER_STATUS_CONSTANT_VOLTAGE`
+- `XY_CHARGER_STATUS_CHARGE_COMPLETE`
+- `XY_CHARGER_STATUS_FAULT`
 
 ---
 
 ## 🔌 平台接口
 
-### 平台检测
-
-```c
-// 获取平台名称
-const char* name = xy_pm_get_platform_name();  // 返回 "STM32", "WCH", "HC32", "PC"
-
-// 检查特定平台
-if (xy_pm_is_platform(XY_PLATFORM_ID_STM32)) {
-    // 运行在 STM32 上
-}
-```
-
-### 平台特定实现 (xy_pm_platform.c)
-
-| 函数                      | 说明                   |
-| ------------------------- | ---------------------- |
-| `xy_pm_tick_get()`        | 获取 OS tick 计数 (ms) |
-| `xy_charger_hw_init()`    | 初始化充电器 GPIO      |
-| `xy_charger_hw_enable()`  | 使能充电器             |
-| `xy_charger_hw_disable()` | 禁用充电器             |
+| 函数 | 说明 |
+| --- | --- |
+| `xy_pm_tick_get()` | 获取 OS/platform tick 计数 (ms) |
+| `xy_pm_get_platform_name()` | 返回当前编译平台名 |
+| `xy_pm_is_platform()` | 检查当前编译平台 |
+| `xy_charger_hw_init()` | 初始化 charger hook / board GPIO seam |
+| `xy_charger_hw_enable()` | 使能 charger hook |
+| `xy_charger_hw_disable()` | 禁用 charger hook |
 
 ---
 
 ## ⚠️ 注意事项
 
-1. 电量计需要定期调用 `xy_fuel_gauge_update()` 以保持数据准确
-2. 充电电流应根据电池规格合理配置
-3. 低功耗模式需要在不用时及时启用以节省电量
-4. 充电器 GPIO 引脚需要根据实际硬件连接配置
+1. 电量计需要定期调用 `xy_fuel_gauge_update()` 以保持 PM-local 状态准确；真实电量计芯片请优先使用 standalone `components/fuel_gauge/`。
+2. 充电电流、目标电压、温度窗口必须根据电池规格与 charger IC 数据手册配置。
+3. 当前 `xy_pm_enter_sleep()` / `xy_pm_enter_shutdown()` 是框架入口；真实省电效果需用板级功耗日志验证。
+4. 充电器 GPIO 引脚、极性、ADC 通道与分压比需要根据实际硬件连接配置；host 测试只验证软件契约。
+5. 不要把 `pm_component` host CTest 的通过结果写成真实低功耗或电池硬件验证通过。
 
 ---
 
 ## 📝 更新记录
 
+### v1.0.2 (2026-08-09)
+
+- 同步 PM 当前状态为 host-guarded / 功耗待实证
+- 记录 `pm_component`、`pm_platform_fallback` focused CTest 入口
+- 明确 standalone Fuel Gauge 不回并 PM 的产品边界
+- 明确 host stub 结果不能替代真实 charger/ADC/低功耗硬件验证
+
 ### v1.0.1 (2026-03-13)
 
-- ✅ 新增 `xy_pm_platform.c` 平台特定实现
-- ✅ 实现 `xy_charger_hw_enable()` GPIO 控制
-- ✅ 实现 `xy_charger_hw_disable()` GPIO 控制
-- ✅ 替换 `stub_tick_get()` 为平台真实 tick 函数
-- ✅ 添加平台检测宏 (`XY_PLATFORM_STM32`, `XY_PLATFORM_WCH`, etc.)
-- ✅ 新增 Kconfig 充电器配置选项
-- ✅ 更新 `xy_pm.h` 平台接口声明
+- 新增 `xy_pm_platform.c` 平台特定实现
+- 实现 `xy_charger_hw_enable()` GPIO 控制 seam
+- 实现 `xy_charger_hw_disable()` GPIO 控制 seam
+- 替换 `stub_tick_get()` 为平台 tick 函数
+- 添加平台检测宏 (`XY_PLATFORM_STM32`, `XY_PLATFORM_WCH`, etc.)
+- 新增 Kconfig 充电器配置选项
+- 更新 `xy_pm.h` 平台接口声明
 
 ### v1.0.0 (2026-03-13)
 

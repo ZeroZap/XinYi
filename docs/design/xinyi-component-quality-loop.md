@@ -76,6 +76,7 @@
 | P1 | mux | 多个子接口已有测试但 API 边界需确认 | 先补测试覆盖与 README 对齐 |
 | P1 | pid | `pid_core`/`pid_auto` 与 PID 示例 smoke 已有主线 CTest 护栏；近期已补 auto-tune 边界回归 | 暂不按“明显 bug”重复开工；仅在新增实证失败时补最小回归测试 |
 | P1 | fuel_gauge | SMBus clock stretching/NACK 重试需关注 | 补边界测试，不重构大接口 |
+| P1 | pm | PM README、Kconfig/CMake 与 `pm_component`/`pm_platform_fallback` host CTest 已闭环；真实低功耗/charger GPIO/ADC 仍待板级实证 | 不再按缺 README/缺测试开工；只推进硬件验证记录或明确 stub 失败的最小回归 |
 | P2 | sensor | legacy `sensor_*` tail host CTest 已进入收口状态，详见 `docs/design/xinyi-sensor-tail-host-coverage-closure-2026-07-25.md` | 不再盲目新增尾部目标；只做现有 target 的具体契约 hardening |
 
 ### 2026-08-04 状态同步
@@ -132,6 +133,11 @@
 - Display driver 的当前事实源不是旧报告里的顶层 `components/display/`，而是 `components/drivers/display/` 加 root `Kconfig` 的 `DRIVER_DISPLAY*` 选项、`components/drivers/CMakeLists.txt` source filter，以及 `tests/unit/display/*` 的 5 个 focused CTest。
 - 已新增 `docs/design/xinyi-display-driver-status-proposal-2026-08-09.md`，把 Display 从“缺 Kconfig/CMake/测试”的旧基线候选改为“driver host-guarded / README 待收敛”。后续不应重复按空白组件补基线；更合适的下一步是收敛 `components/drivers/display/README.md` 中超前的 MAX7219、Charlieplex、GUI effects/fonts、未验证 panel ✅ 表述。
 - GUI 仍保持单独基础状态；Display driver 的 host CTest 不能替代 GUI 字体/控件/渲染闭环，也不能作为真实显示硬件验证记录。
+
+### 2026-08-09 PM component status sync
+
+- PM 不再适合作为“缺 README/缺测试”的旧基线候选：`components/pm/README.md` 已同步为 host-guarded / 功耗待实证状态，`components/pm/Kconfig` 与 `components/pm/CMakeLists.txt` 已存在，`pm_component` / `pm_platform_fallback` 已在主线 `make test-unit` 中守护 PM lifecycle、ADC fallback、charger state、platform tick/charger hook 契约。
+- PM 后续工作应等待真实低功耗、charger GPIO、ADC channel、电池曲线或整机功耗日志，或只按具体 stub/board backend 失败补最小回归；standalone `components/fuel_gauge/` 继续独立维护，不应回并 PM。
 
 ---
 
