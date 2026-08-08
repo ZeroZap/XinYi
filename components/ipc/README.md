@@ -76,7 +76,10 @@ user-data dispatch, detach/not-found behavior, capacity limits, clear, and deini
    `docs/design/xinyi-ipc-component-config-proposal-2026-08-08.md`: keep IPC as an
    always-discoverable core component for now; do not add root `COMPONENT_IPC`
    unless a future generated-config slice proves the disabled/enabled paths.
-2. Add an event-group proposal before implementing `components/ipc/src/xy_event.c`
-   or public event APIs.
+2. Event-group ownership is now captured in
+   `docs/design/xinyi-ipc-event-group-proposal-2026-08-08.md`: treat future IPC
+   event groups as a thin optional OSAL event-flags wrapper, not a broker/topic
+   replacement or a second scheduler primitive. Prefer `xy_event_group.{h,c}` over
+   the stale roadmap name `xy_event.c` if implementation becomes necessary.
 3. Keep any future CMake/Kconfig changes path-limited to IPC and re-run the
    focused IPC CTests plus `make test-unit`.
