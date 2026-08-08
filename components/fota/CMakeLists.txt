@@ -10,22 +10,13 @@ endif()
 
 message(STATUS "=== FOTA Component: Building ===")
 
-# Include directories
-target_include_directories(xy_fota PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../hal/inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../kernel/osal/inc
-    ${CMAKE_CURRENT_SOURCE_DIR}/../trace/xy_log/inc
-)
-
 # Source files - main + src/
-file(GLOB FOTA_ROOT_SOURCES 
+file(GLOB FOTA_ROOT_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
 )
 list(FILTER FOTA_ROOT_SOURCES EXCLUDE REGEX "test/.*")
 
-file(GLOB FOTA_SRC_SOURCES 
+file(GLOB FOTA_SRC_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
@@ -39,16 +30,27 @@ if(CONFIG_FOTA_EXTERNAL_FLASH AND CONFIG_NOR_FLASH_ENABLED)
     list(APPEND FOTA_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_fota_nor.c
     )
-    message(STATUS "   FOTA: Using external NOR Flash backup")
+    message(STATUS "   FOTA: Using external NOR Flash")
 else()
     message(STATUS "   FOTA: Using internal Flash")
 endif()
 
-# Create static library
+# Create static library before attaching include directories/properties.
 add_library(xy_fota STATIC ${FOTA_SOURCES})
+add_library(fota_component ALIAS xy_fota)
+
+# Include directories
+target_include_directories(xy_fota PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../crypto/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../hal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../kernel/osal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../trace/xy_log/inc
+)
 
 # Compile definitions
-target_compile_definitions(xy_fota PRIVATE 
+target_compile_definitions(xy_fota PRIVATE
     FOTA_ENABLED=1
 )
 

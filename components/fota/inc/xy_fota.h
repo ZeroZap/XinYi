@@ -305,6 +305,11 @@ bool xy_fota_validate_version(xy_fota_t *fota, uint32_t version);
  */
 int xy_fota_set_patch_callback(xy_fota_t *fota, xy_fota_patch_cb cb, void *user_data);
 
+/* ==================== Dual-bank Helpers ==================== */
+int xy_fota_bank_swap(xy_fota_t *fota);
+int xy_fota_bank_mark_valid(xy_fota_t *fota, uint8_t slot);
+int xy_fota_bank_is_valid(xy_fota_t *fota, uint8_t slot, bool *valid);
+
 #ifdef __cplusplus
 }
 #endif
