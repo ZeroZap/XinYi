@@ -283,6 +283,72 @@ static void test_mq_empty_timeout_and_clear_stats(void)
     TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
 }
 
+static void test_mq_full_timeout_preserves_queue_and_stats(void)
+{
+    xy_mq_t mq;
+    xy_mq_config_t config = {
+        .msg_size = 2,
+        .max_msgs = 1,
+        .priority_enabled = false,
+        .overwrite_old = false,
+    };
+    uint8_t first[] = {0x11, 0x22};
+    uint8_t second[] = {0x33, 0x44};
+    uint8_t out[2] = {0};
+    xy_mq_msg_t msg = make_msg(1U, XY_MQ_PRIORITY_NORMAL, first, sizeof(first));
+    xy_mq_msg_t recv = make_msg(0U, XY_MQ_PRIORITY_LOW, out, sizeof(out));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0));
+
+    msg = make_msg(2U, XY_MQ_PRIORITY_HIGH, second, sizeof(second));
+    TEST_ASSERT_EQUAL(XY_MQ_TIMEOUT, xy_mq_send(&mq, &msg, 2U));
+    TEST_ASSERT_EQUAL_UINT32(3U, fake_tick);
+    TEST_ASSERT_EQUAL_UINT32(3U, delay_call_count);
+    TEST_ASSERT_EQUAL_UINT16(1U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT32(1U, mq.send_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, mq.drop_count);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0));
+    TEST_ASSERT_EQUAL_UINT32(1U, recv.id);
+    TEST_ASSERT_EQUAL(XY_MQ_PRIORITY_NORMAL, recv.priority);
+    TEST_ASSERT_EQUAL_MEMORY(first, out, sizeof(first));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+}
+
+static void test_mq_urgent_send_drops_oldest_even_without_overwrite(void)
+{
+    xy_mq_t mq;
+    xy_mq_config_t config = {
+        .msg_size = 2,
+        .max_msgs = 1,
+        .priority_enabled = true,
+        .overwrite_old = false,
+    };
+    uint8_t normal_payload[] = {0x10, 0x20};
+    uint8_t urgent_payload[] = {0xFE, 0xED};
+    uint8_t out[2] = {0};
+    xy_mq_msg_t msg = make_msg(1U, XY_MQ_PRIORITY_NORMAL, normal_payload,
+                               sizeof(normal_payload));
+    xy_mq_msg_t recv = make_msg(0U, XY_MQ_PRIORITY_LOW, out, sizeof(out));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0));
+
+    msg = make_msg(2U, XY_MQ_PRIORITY_URGENT, urgent_payload, sizeof(urgent_payload));
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0));
+    TEST_ASSERT_EQUAL_UINT16(1U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT32(1U, mq.drop_count);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0));
+    TEST_ASSERT_EQUAL_UINT32(2U, recv.id);
+    TEST_ASSERT_EQUAL(XY_MQ_PRIORITY_URGENT, recv.priority);
+    TEST_ASSERT_EQUAL_MEMORY(urgent_payload, out, sizeof(urgent_payload));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -293,5 +359,7 @@ int main(void)
     RUN_TEST(test_mq_full_returns_immediately_without_overwrite);
     RUN_TEST(test_mq_overwrite_old_drops_oldest);
     RUN_TEST(test_mq_empty_timeout_and_clear_stats);
+    RUN_TEST(test_mq_full_timeout_preserves_queue_and_stats);
+    RUN_TEST(test_mq_urgent_send_drops_oldest_even_without_overwrite);
     return UNITY_END();
 }
