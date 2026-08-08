@@ -1198,6 +1198,13 @@ xy_add_unit_test(test_ipc_mq ipc_mq UNITY
 )
 target_include_directories(test_ipc_mq PRIVATE ${IPC}/inc ${TRACE}/xy_log/inc)
 
+# --- Test 31c: IPC observer/subject public contracts ---
+xy_add_unit_test(test_ipc_observer ipc_observer UNITY
+    ${UNIT_IPC}/test_ipc_observer.c
+    ${IPC}/observer/xy_observer.c
+)
+target_include_directories(test_ipc_observer PRIVATE ${IPC}/observer)
+
 # --- Test 32: Storage EEPROM 24xx fake-I2C host contracts ---
 xy_add_unit_test(test_storage_eeprom_24xx storage_eeprom_24xx UNITY
     ${UNIT_STORAGE}/test_storage_eeprom_24xx.c
