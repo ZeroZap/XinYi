@@ -10,6 +10,11 @@
 
 /* ==================== Observer Implementation ==================== */
 
+static bool observer_matches(const xy_observer_t *lhs, const xy_observer_t *rhs)
+{
+    return lhs->callback == rhs->callback && lhs->user_data == rhs->user_data;
+}
+
 int xy_observer_init(xy_observer_t *observer, const char *name,
                      observer_callback_t callback, void *user_data)
 {
@@ -80,13 +85,17 @@ int xy_subject_attach(xy_subject_t *subject, xy_observer_t *observer)
         return XY_OBSERVER_INVALID_PARAM;
     }
 
+    if (!observer->active || !observer->callback) {
+        return XY_OBSERVER_INVALID_PARAM;
+    }
+
     if (subject->observer_count >= XY_OBSERVER_MAX_OBSERVERS) {
         return XY_OBSERVER_FULL;
     }
 
     /* Check if already attached */
     for (size_t i = 0; i < subject->observer_count; i++) {
-        if (subject->observers[i].callback == observer->callback) {
+        if (observer_matches(&subject->observers[i], observer)) {
             return XY_OBSERVER_OK; /* Already attached */
         }
     }
@@ -105,7 +114,7 @@ int xy_subject_detach(xy_subject_t *subject, xy_observer_t *observer)
     }
 
     for (size_t i = 0; i < subject->observer_count; i++) {
-        if (subject->observers[i].callback == observer->callback) {
+        if (observer_matches(&subject->observers[i], observer)) {
             /* Remove observer by shifting remaining observers */
             for (size_t j = i; j < subject->observer_count - 1; j++) {
                 memcpy(&subject->observers[j], &subject->observers[j + 1], sizeof(*observer));
