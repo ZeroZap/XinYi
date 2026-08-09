@@ -197,6 +197,11 @@ int xy_gui_draw_char(xy_gui_t *gui, int16_t x, int16_t y, char c, uint16_t color
         c = 32;
     }
     
+    if (gui->disp_drv && gui->disp_drv->draw_char) {
+        gui->disp_drv->draw_char(x, y, c, color);
+        return XY_GUI_OK;
+    }
+
     const uint8_t *char_data = gui_font5x7[c - 32];
     
     for (int i = 0; i < 5; i++) {

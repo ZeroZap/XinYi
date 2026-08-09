@@ -141,6 +141,8 @@ static void test_drawing_and_string_callbacks(void)
     unsigned int pixel_count_after_rect;
     unsigned int pixel_count_after_char;
 
+    drv.draw_char = NULL;
+
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_init(&gui, 64, 32, &drv));
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_draw_line(&gui, 0, 0, 3, 0, GUI_COLOR_GREEN));
     TEST_ASSERT_EQUAL_UINT(4U, mock_draw_pixel_fake.call_count);
@@ -178,6 +180,22 @@ static void test_drawing_and_string_callbacks(void)
     TEST_ASSERT_EQUAL_INT(XY_GUI_INVALID_PARAM, xy_gui_draw_string(&gui, 0, 0, NULL, GUI_COLOR_WHITE));
 }
 
+static void test_draw_char_uses_display_driver_callback_when_available(void)
+{
+    xy_gui_t gui;
+    xy_gui_disp_drv_t drv = mock_driver();
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_init(&gui, 64, 32, &drv));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_draw_char(&gui, 7, 5, 'A', GUI_COLOR_YELLOW));
+
+    TEST_ASSERT_EQUAL_UINT(1U, mock_draw_char_fake.call_count);
+    TEST_ASSERT_EQUAL_INT16(7, mock_draw_char_fake.arg0_val);
+    TEST_ASSERT_EQUAL_INT16(5, mock_draw_char_fake.arg1_val);
+    TEST_ASSERT_EQUAL_CHAR('A', mock_draw_char_fake.arg2_val);
+    TEST_ASSERT_EQUAL_HEX16(GUI_COLOR_YELLOW, mock_draw_char_fake.arg3_val);
+    TEST_ASSERT_EQUAL_UINT(0U, mock_draw_pixel_fake.call_count);
+}
+
 static void test_object_lifecycle_properties_and_redraw(void)
 {
     xy_gui_t gui;
@@ -189,6 +207,7 @@ static void test_object_lifecycle_properties_and_redraw(void)
     unsigned int pixel_count_after_label_text;
 
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_init(&gui, 80, 40, &drv));
+    drv.draw_char = NULL;
     label = xy_gui_obj_create(&gui, XY_GUI_OBJ_LABEL, &rect);
     TEST_ASSERT_NOT_NULL(label);
     TEST_ASSERT_EQUAL_INT(1, gui.obj_count);
@@ -237,6 +256,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_lifecycle_clear_flush_and_bounds);
     RUN_TEST(test_drawing_and_string_callbacks);
+    RUN_TEST(test_draw_char_uses_display_driver_callback_when_available);
     RUN_TEST(test_object_lifecycle_properties_and_redraw);
     return UNITY_END();
 }
