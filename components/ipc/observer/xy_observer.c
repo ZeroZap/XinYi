@@ -129,16 +129,33 @@ int xy_subject_detach(xy_subject_t *subject, xy_observer_t *observer)
 
 int xy_subject_notify(xy_subject_t *subject, const void *data)
 {
+    xy_observer_t snapshot[XY_OBSERVER_MAX_OBSERVERS];
+    size_t snapshot_count;
+
     if (!subject) {
         return XY_OBSERVER_INVALID_PARAM;
     }
 
+    snapshot_count = subject->observer_count;
+    memcpy(snapshot, subject->observers, snapshot_count * sizeof(snapshot[0]));
     subject->notifying = true;
 
-    /* Notify all observers */
-    for (size_t i = 0; i < subject->observer_count; i++) {
-        if (subject->observers[i].active && subject->observers[i].callback) {
-            subject->observers[i].callback(subject, data, subject->observers[i].user_data);
+    /* Notify the observers that were attached at the start of this cycle.
+     * Reentrant detach suppresses callbacks later in the same cycle, while
+     * reentrant attach is deferred until the next notification cycle.
+     */
+    for (size_t i = 0; i < snapshot_count; i++) {
+        bool still_attached = false;
+
+        for (size_t j = 0; j < subject->observer_count; j++) {
+            if (observer_matches(&subject->observers[j], &snapshot[i])) {
+                still_attached = true;
+                break;
+            }
+        }
+
+        if (still_attached && snapshot[i].active && snapshot[i].callback) {
+            snapshot[i].callback(subject, data, snapshot[i].user_data);
         }
     }
 
