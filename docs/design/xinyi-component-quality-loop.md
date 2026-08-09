@@ -119,7 +119,7 @@
 - 已同步 Fuel Gauge 组件完整度：`xy_fuel_gauge`/`fuel_gauge_component` 根构建目标、standalone README/Kconfig/CMake、`fuel_gauge_core`/4 个芯片驱动 CTest 与 `fuel_gauge_smbus_hardware_smoke_example` 均已闭环；完整度报告更新为 90% 主线可用/硬件验证待证据。后续不应继续堆等价 fake-I2C 证明，应等待真实 SMBus/I2C 板级日志或只补与真实失败对应的最小回归。
 - 已复查 repo audit A9：`components/clib/xy_clib/Kconfig` 中的 `XY_XY_CLIB_ENABLE` 不是当前根 Kconfig 事实源，PC 生成配置不导出该符号；`xy_clib` 作为核心 runtime 仍由根 `CMakeLists.txt` 无条件加入。A9 已标记 obsolete，后续不应把该 stale nested switch 直接接成可关闭选项，除非先设计完整的核心依赖/禁用模型。
 
-- IPC 已从旧路线图“65%/消息队列待完善”同步为 host-guarded：`components/ipc/README.md` 记录了 pipe/broker/message queue 的 active CTest 契约与 event-group/observer 后续边界。IPC config ownership 已由 `docs/design/xinyi-ipc-component-config-proposal-2026-08-08.md` 明确：当前保持 always-discoverable core component，不新增 root `COMPONENT_IPC`；后续 IPC 工作应优先写 event-group proposal、为 observer 补 focused CTest，或按真实失败补最小回归，不再按“无 README/无消息队列测试/缺 config 决策”重复开工。
+- IPC 已从旧路线图“65%/消息队列待完善”同步为 host-guarded：`components/ipc/README.md` 记录了 pipe/broker/message queue/observer/event-group 的 active CTest 契约。IPC config ownership 已由 `docs/design/xinyi-ipc-component-config-proposal-2026-08-08.md` 明确并完成 post-contract sync：当前保持 always-discoverable core component，不新增 root `COMPONENT_IPC`；后续 IPC 工作只在真实 consumer 需要 generated config、线程/ISR event backend 证据，或具体 observer/event 回归失败时推进，不再按“event-group proposal/observer CTest/无消息队列测试/缺 config 决策”重复开工。
 
 ### 2026-08-08 FOTA external-flash build closure
 
