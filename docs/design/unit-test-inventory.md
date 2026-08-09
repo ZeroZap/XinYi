@@ -113,7 +113,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/gui/test_gui_effects.c` | `unity` | 0 | GUI fade/blink/breath/slide/rotate algorithm and guard contracts. |
 | `tests/unit/gui/test_gui_fonts.c` | `unity` | 0 | GUI bitmap font lookup and measurement contracts for ASCII 8x16/16x24 and Chinese 16x16 assets. |
 | `tests/unit/gui/test_gui_led_screen_effects.c` | `unity` | 0 | GUI LED-screen extended effects public header self-containment; host include/type/signature contract only, not hardware validation. |
-| `tests/unit/gui/test_gui_rgb_extended_effects_compile.c` | `unity` | 0 | GUI RGB extended music effects compile-boundary guard with fake serial-RGB seam and test-owned frame counter; not visual or hardware validation. |
+| `tests/unit/gui/test_gui_rgb_extended_effects_compile.c` | `unity` | 0 | GUI RGB extended music/matrix effects compile-boundary guard with fake serial-RGB seam and test-owned frame counter; not visual or hardware validation. |
 | `tests/unit/gui/test_gui_widget_theme.c` | `unity` | 0 |
 | `tests/unit/gui/test_gui_widgets.c` | `unity` | 0 |
 | `tests/unit/hal_component/test_hal_pc.c` | `unity` | 0 |

@@ -13,6 +13,8 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+extern uint32_t g_frame_count;
+
 /* 矩阵配置 */
 static uint16_t g_matrix_width = 16;
 static uint16_t g_matrix_height = 16;
@@ -161,7 +163,6 @@ void xy_rgb_fx_fire_2d(xy_rgb_segment_t *seg)
     uint16_t len = seg->stop - seg->start;
     
     for (uint16_t i = 0; i < len; i++) {
-        uint16_t x = i % g_matrix_width;
         uint16_t y = i / g_matrix_width;
         
         /* 从底部向上衰减 */

@@ -61,4 +61,4 @@ The full unit gate is intentional: it proves this status sync did not disturb th
 
 ## Current conclusion
 
-The next RGB extended effect step should be a compile-boundary CTest, not a broad algorithm or hardware slice. Until that target exists and passes, `components/gui/README.md` should continue describing RGB extended effects as pending/design-stage rather than complete.
+The RGB extended effect compile-boundary CTest now covers `xy_rgb_fx_music.c` and `xy_rgb_fx_matrix.c` through a fake serial-RGB seam. Remaining work should continue file-by-file for `xy_rgb_fx_extended.c` / `xy_rgb_fx_3d.c`, not as a broad algorithm or hardware slice; `components/gui/README.md` should continue describing RGB extended effects as host compile-boundary guarded rather than visually or hardware complete.

@@ -1368,10 +1368,11 @@ target_include_directories(test_gui_led_screen_effects PRIVATE
     ${GUI}/effects
 )
 
-# --- Test 37d: GUI RGB extended music effects compile against serial-RGB seam ---
+# --- Test 37d: GUI RGB extended effects compile against serial-RGB seam ---
 xy_add_unit_test(test_gui_rgb_extended_effects_compile gui_rgb_extended_effects_compile UNITY
     ${UNIT_GUI}/test_gui_rgb_extended_effects_compile.c
     ${GUI}/effects/xy_rgb_fx_music.c
+    ${GUI}/effects/xy_rgb_fx_matrix.c
 )
 target_include_directories(test_gui_rgb_extended_effects_compile PRIVATE
     ${DISPLAY}/led_drivers/serial_rgb
