@@ -110,6 +110,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/fuel_gauge/test_fuel_gauge_smbus_hardware_smoke_example.c` | `unity` | 0 | Fuel Gauge SMBus board-validation smoke skeleton; fake-I2C only, hardware evidence remains pending. |
 | `tests/unit/gui/test_gui_core.c` | `unity` | 22 |
 | `tests/unit/gui/test_gui_effects.c` | `unity` | 0 | GUI fade/blink/breath/slide/rotate algorithm and guard contracts. |
+| `tests/unit/gui/test_gui_fonts.c` | `unity` | 0 | GUI bitmap font lookup and measurement contracts for ASCII 8x16/16x24 and Chinese 16x16 assets. |
 | `tests/unit/gui/test_gui_widget_theme.c` | `unity` | 0 |
 | `tests/unit/gui/test_gui_widgets.c` | `unity` | 0 |
 | `tests/unit/hal_component/test_hal_pc.c` | `unity` | 0 |

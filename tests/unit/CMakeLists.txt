@@ -1353,6 +1353,17 @@ target_include_directories(test_gui_effects PRIVATE
 )
 target_link_libraries(test_gui_effects m)
 
+# --- Test 37c: GUI bitmap font lookup and measurement contracts ---
+xy_add_unit_test(test_gui_fonts gui_fonts UNITY
+    ${UNIT_GUI}/test_gui_fonts.c
+    ${GUI}/fonts/xy_font_8x16.c
+    ${GUI}/fonts/xy_font_16x24.c
+    ${GUI}/fonts/xy_font_chinese_16x16.c
+)
+target_include_directories(test_gui_fonts PRIVATE
+    ${GUI}/fonts
+)
+
 # --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---
 xy_add_unit_test(test_analog_devices analog_devices UNITY
     ${UNIT_ANALOG}/test_analog_devices.c
