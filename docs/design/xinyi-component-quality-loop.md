@@ -139,6 +139,11 @@
 - PM 不再适合作为“缺 README/缺测试”的旧基线候选：`components/pm/README.md` 已同步为 host-guarded / 功耗待实证状态，`components/pm/Kconfig` 与 `components/pm/CMakeLists.txt` 已存在，`pm_component` / `pm_platform_fallback` 已在主线 `make test-unit` 中守护 PM lifecycle、ADC fallback、charger state、platform tick/charger hook 契约。
 - PM 后续工作应等待真实低功耗、charger GPIO、ADC channel、电池曲线或整机功耗日志，或只按具体 stub/board backend 失败补最小回归；standalone `components/fuel_gauge/` 继续独立维护，不应回并 PM。
 
+### 2026-08-09 GUI effects host coverage
+
+- GUI basic effects 已新增 `gui_effects` host CTest：覆盖 `xy_gui_effect_{fade,blink,breath,slide,rotate}.c` 的 create/update/getter、NULL guard、duration/period 边界、基础 lifecycle 与工具函数 contract；`components/gui/README.md` 与 unit-test inventory 已同步。
+- 本结论只适用于基础 effects 算法，不替代 LED-screen/RGB 扩展动画、字体/中文渲染、GUI↔Display backend 或真实屏幕硬件验证。后续若继续 GUI，应优先选择字体资产/渲染 proposal 或 display-backend validation proposal，而不是重复基础 effects host coverage。
+
 ---
 
 ## 5. 周度架构回顾

@@ -1339,6 +1339,20 @@ target_include_directories(test_gui_effects_headers PRIVATE
     ${GUI}/effects
 )
 
+# --- Test 37b: GUI effects algorithm contracts ---
+xy_add_unit_test(test_gui_effects gui_effects UNITY
+    ${UNIT_GUI}/test_gui_effects.c
+    ${GUI}/effects/xy_gui_effect_fade.c
+    ${GUI}/effects/xy_gui_effect_blink.c
+    ${GUI}/effects/xy_gui_effect_breath.c
+    ${GUI}/effects/xy_gui_effect_slide.c
+    ${GUI}/effects/xy_gui_effect_rotate.c
+)
+target_include_directories(test_gui_effects PRIVATE
+    ${GUI}/effects
+)
+target_link_libraries(test_gui_effects m)
+
 # --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---
 xy_add_unit_test(test_analog_devices analog_devices UNITY
     ${UNIT_ANALOG}/test_analog_devices.c

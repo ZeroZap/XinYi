@@ -21,9 +21,10 @@ GUI core 使用显式 `xy_gui_t` context API；不要再使用旧文档中的全
 | GUI core | `xy_gui.c`, `xy_gui.h` | `gui_core` | lifecycle、clear/flush、像素/线/矩形/字符/字符串和 object contract 已由 host 测试守护 |
 | Widget base + theme | `src/xy_gui_widget.c`, `src/xy_gui_theme.c`, `inc/xy_gui_widget.h`, `inc/xy_gui_theme.h` | `gui_widget_theme` | widget init/style/text/value/parent-child 与 theme register/apply/list/unregister contract 已由 host 测试守护 |
 | Event + widgets | `src/xy_gui_event.c`, button/checkbox/label/progress/slider/container 源码与头文件 | `gui_widgets` | event queue/dispatch 与 button、checkbox/radio、label、progress、slider、container contract 已由 host 测试守护 |
-| Effects public headers | `effects/xy_gui_effect*.h` | `gui_effects_headers` | effects 统一头与各效果头文件 self-containment、公共类型/函数签名编译契约已由 host 测试守护；效果算法仍未标记为完整闭环 |
+| Effects public headers | `effects/xy_gui_effect*.h` | `gui_effects_headers` | effects 统一头与各效果头文件 self-containment、公共类型/函数签名编译契约已由 host 测试守护 |
+| Basic effects algorithms | `effects/xy_gui_effect_{fade,blink,breath,slide,rotate}.c` | `gui_effects` | fade/blink/breath/slide/rotate create/update/getter、NULL guard、边界 duration/period 与基础 lifecycle contract 已由 host 测试守护；LED-screen/RGB 扩展效果仍不在本结论内 |
 
-这些测试说明 GUI 已不是“完全无测试/待开发”的空白组件；后续只能按真实失败补小回归，或为尚未纳入测试的扩展写独立 proposal/CTest。
+这些测试说明 GUI 已不是“完全无测试/待开发”的空白组件；后续只能按真实失败补小回归，或为尚未纳入测试的字体、LED-screen/RGB 扩展效果、display-backend 写独立 proposal/CTest。
 
 ## 当前 API 示例
 
@@ -119,9 +120,10 @@ cmake --build build/tests/unit --target \
   test_gui_core \
   test_gui_widget_theme \
   test_gui_widgets \
+  test_gui_effects \
   test_gui_effects_headers \
   -j$(nproc)
-cd build/tests/unit && ctest --output-on-failure -R '^gui_(core|widget_theme|widgets|effects_headers)$'
+cd build/tests/unit && ctest --output-on-failure -R '^gui_(core|widget_theme|widgets|effects|effects_headers)$'
 
 make test-unit
 
@@ -132,7 +134,7 @@ git diff --check
 
 ## 下一步 backlog
 
-1. 为 GUI effects 算法写独立 focused CTest/proposal 前，先明确只覆盖 fade/blink/breath/slide/rotate 的 host-safe public contract，不把 LED-screen/硬件动画一起混入。
+1. 为 GUI effects 后续扩展写独立 focused CTest/proposal 前，先明确当前已覆盖 fade/blink/breath/slide/rotate 的 host-safe public contract；不要把 LED-screen/RGB 硬件动画一起混入基础 effects slice。
 2. 为 GUI ↔ Display driver backend 写独立 validation proposal，区分 host fake、PC sim 与真实屏幕日志。
 3. 若需要字体/中文渲染闭环，先固定字体资产范围与生成流程，再补 focused host CTest 或 snapshot smoke。
 4. 只有在真实板级日志存在后，才更新硬件验证结论；当前状态保持 `host-guarded core / hardware validation pending`。

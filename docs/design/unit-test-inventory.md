@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 125
-- Unity-style files: 124
+- Total C files under `tests/unit`: 131
+- Unity-style files: 130
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 1
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 133
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 139
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -37,7 +37,7 @@
 | `fota` | 2 | 2 | 0 | 0 | 0 | 2 |
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `fuel_gauge` | 6 | 6 | 0 | 0 | 0 | 6 |
-| `gui` | 3 | 3 | 0 | 0 | 0 | 1 |
+| `gui` | 5 | 5 | 0 | 0 | 0 | 1 |
 | `hal_component` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `kernel` | 3 | 3 | 0 | 0 | 0 | 1 |
@@ -109,6 +109,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/fuel_gauge/test_fuel_gauge_core.c` | `unity` | 59 |
 | `tests/unit/fuel_gauge/test_fuel_gauge_smbus_hardware_smoke_example.c` | `unity` | 0 | Fuel Gauge SMBus board-validation smoke skeleton; fake-I2C only, hardware evidence remains pending. |
 | `tests/unit/gui/test_gui_core.c` | `unity` | 22 |
+| `tests/unit/gui/test_gui_effects.c` | `unity` | 0 | GUI fade/blink/breath/slide/rotate algorithm and guard contracts. |
 | `tests/unit/gui/test_gui_widget_theme.c` | `unity` | 0 |
 | `tests/unit/gui/test_gui_widgets.c` | `unity` | 0 |
 | `tests/unit/hal_component/test_hal_pc.c` | `unity` | 0 |
