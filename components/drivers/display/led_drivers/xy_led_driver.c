@@ -20,6 +20,10 @@ static xy_led_driver_t *led_gui_driver_at(size_t index)
         return NULL;
     }
 
+    if (!g_led_gui_registry[index].enabled) {
+        return NULL;
+    }
+
     return g_led_gui_registry[index].driver;
 }
 

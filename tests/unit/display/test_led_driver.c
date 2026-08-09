@@ -144,6 +144,29 @@ static void test_led_gui_can_be_disabled_and_reenabled(void)
     TEST_ASSERT_NOT_NULL(xy_led_get_gui_interface(&driver));
 }
 
+static void test_led_gui_disabled_display_pointer_has_no_backend_side_effects(void)
+{
+    int backend_state = 9;
+    xy_led_driver_t driver = make_driver(&backend_state);
+
+    TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&driver));
+    xy_gui_display_t *display = xy_led_get_gui_interface(&driver);
+    TEST_ASSERT_NOT_NULL(display);
+
+    xy_led_enable_gui(&driver, false);
+    TEST_ASSERT_FALSE(xy_led_is_gui_enabled(&driver));
+    TEST_ASSERT_NULL(xy_led_get_gui_interface(&driver));
+
+    display->set_pixel(1, 1, 0x112233U);
+    TEST_ASSERT_EQUAL_UINT32(0U, display->get_pixel(1, 1));
+    display->fill_rect(0, 0, 2, 2, 0x445566U);
+    display->flush();
+
+    TEST_ASSERT_EQUAL_UINT(0U, fake_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, fake_get_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, fake_show_fake.call_count);
+}
+
 static void test_led_gui_display_callbacks_remain_bound_to_their_registered_driver(void)
 {
     int first_state = 11;
@@ -234,6 +257,7 @@ int main(void)
     RUN_TEST(test_led_gui_rejects_invalid_driver);
     RUN_TEST(test_led_gui_registers_display_without_overwriting_user_data);
     RUN_TEST(test_led_gui_can_be_disabled_and_reenabled);
+    RUN_TEST(test_led_gui_disabled_display_pointer_has_no_backend_side_effects);
     RUN_TEST(test_led_gui_display_callbacks_remain_bound_to_their_registered_driver);
     RUN_TEST(test_led_gui_uses_monochrome_format_for_one_bpp);
     RUN_TEST(test_led_gui_callbacks_ignore_invalid_geometry_without_backend_side_effects);

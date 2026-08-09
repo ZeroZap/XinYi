@@ -92,7 +92,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/display/test_display_oled_ws2812.c` | `unity` | 0 |
 | `tests/unit/display/test_display_rgb_matrix.c` | `unity` | 4 |
 | `tests/unit/display/test_display_serial_rgb_headers.c` | `unity` | 0 |
-| `tests/unit/display/test_led_driver.c` | `unity` | 12 |
+| `tests/unit/display/test_led_driver.c` | `unity` | 10 |
 | `tests/unit/dm/test_dm_base64.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_corejson.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_factory.c` | `unity` | 1 |
