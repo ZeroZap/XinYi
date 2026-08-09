@@ -19,7 +19,7 @@ GUI core 使用显式 `xy_gui_t` context API；不要再使用旧文档中的全
 | 范围 | 源码路径 | Host CTest | 当前结论 |
 | --- | --- | --- | --- |
 | GUI core | `xy_gui.c`, `xy_gui.h` | `gui_core` | lifecycle、clear/flush、像素/线/矩形/字符/字符串和 object contract 已由 host 测试守护 |
-| GUI ↔ Display backend bridge | `xy_gui.c`, `xy_gui.h`, fake `xy_gui_disp_drv_t` backend fixture, LED GUI display adapter fixture | `gui_display_backend` | host-safe bridge CTest 证明 `xy_gui_clear/draw_pixel/fill_rect/flush` 会把坐标、尺寸、颜色与调用次数转发到 fake display backend，并覆盖 `xy_gui_t` 经 LED GUI display adapter 驱动 host framebuffer/flush 的集成路径；同时记录当前 backend 失败被 GUI core 归一化为 `XY_GUI_OK` 的现有 contract；仍不是任何真实屏幕硬件验证 |
+| GUI ↔ Display backend bridge | `xy_gui.c`, `xy_gui.h`, fake `xy_gui_disp_drv_t` backend fixture, LED GUI display adapter fixture | `gui_display_backend` | host-safe bridge CTest 证明 `xy_gui_clear/draw_pixel/fill_rect/flush` 会把坐标、尺寸、颜色与调用次数转发到 fake display backend，并覆盖 `xy_gui_t` 经 LED GUI display adapter 驱动 host framebuffer/flush 的集成路径、两个 LED GUI adapter channel 的 framebuffer/flush 隔离与 per-driver enable/disable 行为；同时记录当前 backend 失败被 GUI core 归一化为 `XY_GUI_OK` 的现有 contract；仍不是任何真实屏幕硬件验证 |
 | Widget base + theme | `src/xy_gui_widget.c`, `src/xy_gui_theme.c`, `inc/xy_gui_widget.h`, `inc/xy_gui_theme.h` | `gui_widget_theme` | widget init/style/text/value/parent-child 与 theme register/apply/list/unregister contract 已由 host 测试守护 |
 | Event + widgets | `src/xy_gui_event.c`, button/checkbox/label/progress/slider/container 源码与头文件 | `gui_widgets` | event queue/dispatch 与 button、checkbox/radio、label、progress、slider、container contract 已由 host 测试守护 |
 | Effects public headers | `effects/xy_gui_effect*.h` | `gui_effects_headers` | effects 统一头与各效果头文件 self-containment、公共类型/函数签名编译契约已由 host 测试守护 |
@@ -142,7 +142,7 @@ git diff --check
 
 ## 下一步 backlog
 
-1. GUI ↔ Display driver backend 已新增 host-safe `test_gui_display_backend` / `gui_display_backend` CTest：当前证明 `xy_gui_disp_drv_t` fake backend 转发 contract、LED GUI display adapter host framebuffer/flush 绑定路径与失败归一化现状，不代表真实 LCD/OLED/LED matrix hardware validation。后续若要接更多具体 display driver adapter，应继续保持 host fake transport/framebuffer，不直接改 HAL/vendor 或默认启用硬件路径。
+1. GUI ↔ Display driver backend 已新增 host-safe `test_gui_display_backend` / `gui_display_backend` CTest：当前证明 `xy_gui_disp_drv_t` fake backend 转发 contract、LED GUI display adapter host framebuffer/flush 绑定路径、双 adapter channel 隔离与 per-driver enable/disable 行为，以及失败归一化现状，不代表真实 LCD/OLED/LED matrix hardware validation。后续若要接更多具体 display driver adapter，应继续保持 host fake transport/framebuffer，不直接改 HAL/vendor 或默认启用硬件路径。
 2. GUI LED-screen/RGB extended effects 已由 `docs/design/xinyi-gui-led-screen-effects-proposal-2026-08-09.md` 固定边界，且 `gui_led_screen_effects` 已先补 public-header self-containment CTest：当前只证明 `xy_led_screen.h` / `xy_gui_screen_fx.h` 的 host include/type/signature contract，不链接 LED-screen 实现、不代表 RGB 扩展算法或真实屏幕效果验证；若继续推进，应再补独立 host fake framebuffer implementation CTest。
 3. RGB extended effect implementation (`xy_rgb_fx_extended/matrix/3d/music.c`) 已由 `docs/design/xinyi-gui-rgb-extended-effects-compile-proposal-2026-08-09.md` 明确为 compile-boundary 优先：当前已先为 `xy_rgb_fx_music.c` 增加 `gui_rgb_extended_effects_compile` host CTest，确认 fake `xy_rgb_*` strip seam 与 test-owned `g_frame_count` 可守护基础 setter/beat/frequency/autocorr/VU 调用路径；剩余 `extended/matrix/3d` 文件仍未纳入，不要把本目标扩展解读为硬件/视觉效果已验证。
 4. 若需要字体/中文渲染进一步闭环，先固定字体资产范围、完整字库与生成流程，再补渲染 snapshot smoke；不要把 `gui_fonts` 的 lookup/measurement host 测试等同于美术/字库质量验收。

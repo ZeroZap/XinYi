@@ -71,30 +71,38 @@ static inline void xy_gui_display_flush(xy_gui_display_t *display)
 #define FAKE_DISPLAY_HEIGHT 8U
 
 static uint16_t g_framebuffer[FAKE_DISPLAY_HEIGHT][FAKE_DISPLAY_WIDTH];
+static uint16_t g_alt_framebuffer[FAKE_DISPLAY_HEIGHT][FAKE_DISPLAY_WIDTH];
 static unsigned int g_init_calls;
 static unsigned int g_set_pixel_calls;
+static unsigned int g_alt_set_pixel_calls;
 static unsigned int g_fill_rect_calls;
 static unsigned int g_flush_calls;
+static unsigned int g_alt_flush_calls;
 static int16_t g_last_x;
 static int16_t g_last_y;
 static int16_t g_last_w;
 static int16_t g_last_h;
 static uint16_t g_last_color;
+static uint16_t g_alt_last_color;
 static bool g_backend_fail;
 static xy_gui_display_t *g_led_gui_display;
 
 void setUp(void)
 {
     memset(g_framebuffer, 0, sizeof(g_framebuffer));
+    memset(g_alt_framebuffer, 0, sizeof(g_alt_framebuffer));
     g_init_calls = 0;
     g_set_pixel_calls = 0;
+    g_alt_set_pixel_calls = 0;
     g_fill_rect_calls = 0;
     g_flush_calls = 0;
+    g_alt_flush_calls = 0;
     g_last_x = -1;
     g_last_y = -1;
     g_last_w = -1;
     g_last_h = -1;
     g_last_color = 0;
+    g_alt_last_color = 0;
     g_backend_fail = false;
     g_led_gui_display = NULL;
 }
@@ -209,6 +217,30 @@ static uint32_t fake_led_get_pixel(uint16_t x, uint16_t y)
 static void fake_led_show(void)
 {
     g_flush_calls++;
+}
+
+static void fake_alt_led_set_pixel(uint16_t x, uint16_t y, uint32_t color)
+{
+    g_alt_set_pixel_calls++;
+    g_alt_last_color = (uint16_t)color;
+
+    if (x < FAKE_DISPLAY_WIDTH && y < FAKE_DISPLAY_HEIGHT) {
+        g_alt_framebuffer[y][x] = (uint16_t)color;
+    }
+}
+
+static uint32_t fake_alt_led_get_pixel(uint16_t x, uint16_t y)
+{
+    if (x >= FAKE_DISPLAY_WIDTH || y >= FAKE_DISPLAY_HEIGHT) {
+        return 0xBEEFU;
+    }
+
+    return g_alt_framebuffer[y][x];
+}
+
+static void fake_alt_led_show(void)
+{
+    g_alt_flush_calls++;
 }
 
 static int led_gui_adapter_draw_pixel(int16_t x, int16_t y, uint16_t color)
@@ -435,6 +467,55 @@ static void test_gui_context_respects_disabled_led_gui_display_adapter(void)
     TEST_ASSERT_EQUAL_HEX16(0, g_framebuffer[1][1]);
 }
 
+static void test_led_gui_display_adapter_keeps_channels_isolated(void)
+{
+    xy_led_driver_t led_a = make_led_driver();
+    xy_led_driver_t led_b = make_led_driver();
+    led_a.set_pixel = fake_led_set_pixel;
+    led_a.get_pixel = fake_led_get_pixel;
+    led_a.show = fake_led_show;
+    led_b.set_pixel = fake_alt_led_set_pixel;
+    led_b.get_pixel = fake_alt_led_get_pixel;
+    led_b.show = fake_alt_led_show;
+
+    TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&led_a));
+    TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&led_b));
+    xy_gui_display_t *display_a = xy_led_get_gui_interface(&led_a);
+    xy_gui_display_t *display_b = xy_led_get_gui_interface(&led_b);
+    TEST_ASSERT_NOT_NULL(display_a);
+    TEST_ASSERT_NOT_NULL(display_b);
+    TEST_ASSERT_NOT_EQUAL(display_a, display_b);
+    TEST_ASSERT_EQUAL_PTR(&led_a, display_a->user_data);
+    TEST_ASSERT_EQUAL_PTR(&led_b, display_b->user_data);
+
+    xy_gui_display_set_pixel(display_a, 2, 3, XY_GUI_COLOR_RED);
+    xy_gui_display_set_pixel(display_b, 2, 3, XY_GUI_COLOR_GREEN);
+    TEST_ASSERT_EQUAL_UINT(1U, g_set_pixel_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, g_alt_set_pixel_calls);
+    TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_RED, g_framebuffer[3][2]);
+    TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_GREEN, g_alt_framebuffer[3][2]);
+    TEST_ASSERT_EQUAL_HEX16(0, g_framebuffer[0][0]);
+    TEST_ASSERT_EQUAL_HEX16(0, g_alt_framebuffer[0][0]);
+    TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_RED, display_a->get_pixel(2, 3));
+    TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_GREEN, display_b->get_pixel(2, 3));
+
+    xy_gui_display_flush(display_a);
+    TEST_ASSERT_EQUAL_UINT(1U, g_flush_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, g_alt_flush_calls);
+
+    xy_led_enable_gui(&led_a, false);
+    xy_gui_display_set_pixel(display_a, 4, 4, XY_GUI_COLOR_BLUE);
+    xy_gui_display_set_pixel(display_b, 4, 4, XY_GUI_COLOR_YELLOW);
+    xy_gui_display_flush(display_a);
+    xy_gui_display_flush(display_b);
+    TEST_ASSERT_EQUAL_UINT(1U, g_set_pixel_calls);
+    TEST_ASSERT_EQUAL_UINT(2U, g_alt_set_pixel_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, g_flush_calls);
+    TEST_ASSERT_EQUAL_UINT(1U, g_alt_flush_calls);
+    TEST_ASSERT_EQUAL_HEX16(0, g_framebuffer[4][4]);
+    TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_YELLOW, g_alt_framebuffer[4][4]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -445,5 +526,6 @@ int main(void)
     RUN_TEST(test_gui_context_can_drive_led_gui_display_adapter);
     RUN_TEST(test_led_gui_display_adapter_omits_get_pixel_when_backend_lacks_reader);
     RUN_TEST(test_gui_context_respects_disabled_led_gui_display_adapter);
+    RUN_TEST(test_led_gui_display_adapter_keeps_channels_isolated);
     return UNITY_END();
 }
