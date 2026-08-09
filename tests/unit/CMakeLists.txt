@@ -1360,7 +1360,15 @@ target_include_directories(test_gui_effects PRIVATE
 )
 target_link_libraries(test_gui_effects m)
 
-# --- Test 37c: GUI bitmap font lookup and measurement contracts ---
+# --- Test 37c: GUI LED-screen extended effects public headers stay self-contained ---
+xy_add_unit_test(test_gui_led_screen_effects gui_led_screen_effects UNITY
+    ${UNIT_GUI}/test_gui_led_screen_effects.c
+)
+target_include_directories(test_gui_led_screen_effects PRIVATE
+    ${GUI}/effects
+)
+
+# --- Test 37d: GUI bitmap font lookup and measurement contracts ---
 xy_add_unit_test(test_gui_fonts gui_fonts UNITY
     ${UNIT_GUI}/test_gui_fonts.c
     ${GUI}/fonts/xy_font_8x16.c

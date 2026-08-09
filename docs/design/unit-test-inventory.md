@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 131
-- Unity-style files: 130
+- Total C files under `tests/unit`: 132
+- Unity-style files: 131
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 1
@@ -37,7 +37,7 @@
 | `fota` | 2 | 2 | 0 | 0 | 0 | 2 |
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `fuel_gauge` | 6 | 6 | 0 | 0 | 0 | 6 |
-| `gui` | 5 | 5 | 0 | 0 | 0 | 1 |
+| `gui` | 6 | 6 | 0 | 0 | 0 | 1 |
 | `hal_component` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `kernel` | 3 | 3 | 0 | 0 | 0 | 1 |
@@ -112,6 +112,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/gui/test_gui_display_backend.c` | `unity` | 0 | GUI core to fake display backend bridge contract; host-only forwarding/output-preservation guard, not hardware validation. |
 | `tests/unit/gui/test_gui_effects.c` | `unity` | 0 | GUI fade/blink/breath/slide/rotate algorithm and guard contracts. |
 | `tests/unit/gui/test_gui_fonts.c` | `unity` | 0 | GUI bitmap font lookup and measurement contracts for ASCII 8x16/16x24 and Chinese 16x16 assets. |
+| `tests/unit/gui/test_gui_led_screen_effects.c` | `unity` | 0 | GUI LED-screen extended effects public header self-containment; host include/type/signature contract only, not hardware validation. |
 | `tests/unit/gui/test_gui_widget_theme.c` | `unity` | 0 |
 | `tests/unit/gui/test_gui_widgets.c` | `unity` | 0 |
 | `tests/unit/hal_component/test_hal_pc.c` | `unity` | 0 |
