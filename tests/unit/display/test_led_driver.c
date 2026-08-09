@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "fff.h"
+#include "xy_gui_display.h"
 #include "xy_led_driver.h"
 
 static uint32_t g_last_color;
@@ -251,6 +252,39 @@ static void test_led_gui_callbacks_ignore_invalid_geometry_without_backend_side_
     TEST_ASSERT_EQUAL_UINT32(0xAABBCCU, fake_set_pixel_fake.arg2_val);
 }
 
+static void test_led_gui_inline_display_helpers_forward_to_registered_backend(void)
+{
+    int backend_state = 5;
+    xy_led_driver_t driver = make_driver(&backend_state);
+
+    TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&driver));
+    xy_gui_display_t *display = xy_led_get_gui_interface(&driver);
+    TEST_ASSERT_NOT_NULL(display);
+
+    xy_gui_display_set_pixel(display, 2, 1, 0x00ABCDEFU);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(2, fake_set_pixel_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(1, fake_set_pixel_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(0x00ABCDEFU, fake_set_pixel_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT16(2, g_last_x);
+    TEST_ASSERT_EQUAL_UINT16(1, g_last_y);
+    TEST_ASSERT_EQUAL_UINT32(0x00ABCDEFU, g_last_color);
+
+    TEST_ASSERT_EQUAL_UINT32(0x00030002U, xy_gui_display_get_pixel(display, 3, 2));
+    TEST_ASSERT_EQUAL_UINT(1U, fake_get_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(3, fake_get_pixel_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(2, fake_get_pixel_fake.arg1_val);
+
+    xy_gui_display_flush(display);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_show_fake.call_count);
+
+    xy_gui_display_set_pixel(NULL, 1, 1, 0x111111U);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_gui_display_get_pixel(NULL, 1, 1));
+    xy_gui_display_flush(NULL);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_show_fake.call_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -261,5 +295,6 @@ int main(void)
     RUN_TEST(test_led_gui_display_callbacks_remain_bound_to_their_registered_driver);
     RUN_TEST(test_led_gui_uses_monochrome_format_for_one_bpp);
     RUN_TEST(test_led_gui_callbacks_ignore_invalid_geometry_without_backend_side_effects);
+    RUN_TEST(test_led_gui_inline_display_helpers_forward_to_registered_backend);
     return UNITY_END();
 }
