@@ -76,8 +76,9 @@ notification-state reset, and deinit.
 
 `xy_ipc_event_group` is an optional convenience wrapper over OSAL event flags, not
 a broker/topic replacement. The host test covers init/name guards, set/get/clear,
-wait-any, wait-all, clear-on-success, no-clear, timeout output preservation, and
-post-deinit not-initialized behavior using the host-safe bare-metal OSAL backend.
+wait-any, wait-all, clear-on-success, no-clear, timeout output preservation,
+reserved OSAL error-bit rejection, and post-deinit not-initialized behavior using
+the host-safe bare-metal OSAL backend.
 
 ## Backlog
 

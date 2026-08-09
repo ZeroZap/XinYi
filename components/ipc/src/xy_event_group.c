@@ -22,7 +22,10 @@ static int event_group_validate(xy_ipc_event_group_t *group)
 
 static int event_group_validate_bits(xy_ipc_event_bits_t bits)
 {
-    return bits == 0U ? XY_IPC_EVENT_INVALID_PARAM : XY_IPC_EVENT_OK;
+    if (bits == 0U || (bits & XY_IPC_EVENT_OS_ERROR_MASK)) {
+        return XY_IPC_EVENT_INVALID_PARAM;
+    }
+    return XY_IPC_EVENT_OK;
 }
 
 static int event_group_map_flags_result(uint32_t result, int no_match_status)

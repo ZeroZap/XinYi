@@ -73,6 +73,10 @@ static void test_event_group_set_get_and_clear_contracts(void)
 
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM, xy_ipc_event_group_set(&group, 0U, &bits));
     TEST_ASSERT_EQUAL_UINT32(0xDEADBEEFU, bits);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
+                          xy_ipc_event_group_set(&group, ~XY_IPC_EVENT_USER_BITS_MASK,
+                                                 &bits));
+    TEST_ASSERT_EQUAL_UINT32(0xDEADBEEFU, bits);
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_set(&group, 0x05U, &bits));
     TEST_ASSERT_EQUAL_UINT32(0x05U, bits);
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_set(&group, 0x02U, NULL));
@@ -84,6 +88,10 @@ static void test_event_group_set_get_and_clear_contracts(void)
 
     bits = 0xCAFEU;
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM, xy_ipc_event_group_clear(&group, 0U, &bits));
+    TEST_ASSERT_EQUAL_UINT32(0xCAFEU, bits);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
+                          xy_ipc_event_group_clear(&group, ~XY_IPC_EVENT_USER_BITS_MASK,
+                                                   &bits));
     TEST_ASSERT_EQUAL_UINT32(0xCAFEU, bits);
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_clear(&group, 0x03U, &bits));
     TEST_ASSERT_EQUAL_UINT32(0x07U, bits);
@@ -108,6 +116,10 @@ static void test_event_group_wait_any_all_clear_and_timeout(void)
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
                           xy_ipc_event_group_wait(&group, 0U, XY_IPC_EVENT_WAIT_ANY, 0U,
                                                   &matched));
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5U, matched);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
+                          xy_ipc_event_group_wait(&group, ~XY_IPC_EVENT_USER_BITS_MASK,
+                                                  XY_IPC_EVENT_WAIT_ANY, 0U, &matched));
     TEST_ASSERT_EQUAL_UINT32(0xA5A5U, matched);
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
                           xy_ipc_event_group_wait(&group, 0x01U, XY_IPC_EVENT_WAIT_ANY, 0U,

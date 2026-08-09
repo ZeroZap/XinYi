@@ -26,6 +26,10 @@ extern "C" {
 
 typedef uint32_t xy_ipc_event_bits_t;
 
+/* OSAL event-flag backends use bit 31 as the generic error marker. Keep IPC event
+ * groups to the lower 31 user bits so successful flag values are unambiguous. */
+#define XY_IPC_EVENT_USER_BITS_MASK 0x7FFFFFFFU
+
 typedef struct xy_ipc_event_group {
     xy_os_event_flags_id_t os_flags;
     char name[32];
