@@ -4,6 +4,7 @@
 #include "xy_rgb_fx.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define FAKE_LED_COUNT 32U
@@ -119,6 +120,10 @@ void xy_rgb_fx_music_fire(xy_rgb_segment_t *seg);
 void xy_rgb_fx_vu_meter_enhanced(xy_rgb_segment_t *seg);
 void xy_rgb_matrix_set_size(uint16_t width, uint16_t height);
 void xy_rgb_fx_matrix_plasma(xy_rgb_segment_t *seg);
+void xy_rgb_fx_color_wipe(xy_rgb_segment_t *seg);
+void xy_rgb_fx_lightning(xy_rgb_segment_t *seg);
+void xy_rgb_3d_set_size(uint8_t size);
+void xy_rgb_fx_plasma_3d(xy_rgb_segment_t *seg);
 
 static xy_rgb_segment_t make_segment(void)
 {
@@ -214,6 +219,56 @@ static void test_matrix_plasma_effect_compiles_against_2d_seam(void)
     TEST_ASSERT_EQUAL_UINT8(64U, fake_pixels[2].b);
 }
 
+static void test_extended_color_wipe_uses_frame_count_and_strip_seam(void)
+{
+    xy_rgb_segment_t seg = make_segment();
+
+    g_frame_count = 0U;
+    xy_rgb_fx_color_wipe(&seg);
+    TEST_ASSERT_EQUAL_UINT16(1U, fake_set_calls);
+    TEST_ASSERT_EQUAL_UINT8(10U, fake_pixels[2].r);
+    TEST_ASSERT_EQUAL_UINT8(20U, fake_pixels[2].g);
+    TEST_ASSERT_EQUAL_UINT8(30U, fake_pixels[2].b);
+
+    g_frame_count = 32U;
+    xy_rgb_fx_color_wipe(&seg);
+    TEST_ASSERT_EQUAL_UINT16(2U, fake_set_calls);
+    TEST_ASSERT_EQUAL_UINT16(9U, fake_last_set_index);
+    TEST_ASSERT_EQUAL_UINT8(40U, fake_pixels[9].r);
+    TEST_ASSERT_EQUAL_UINT8(50U, fake_pixels[9].g);
+    TEST_ASSERT_EQUAL_UINT8(60U, fake_pixels[9].b);
+}
+
+static void test_extended_lightning_uses_clear_show_delay_seam_when_intensity_hits(void)
+{
+    xy_rgb_segment_t seg = make_segment();
+
+    seg.intensity = 255U;
+    srand(3U);
+    for (uint8_t i = 0U; i < 64U && fake_show_calls == 0U; ++i) {
+        xy_rgb_fx_lightning(&seg);
+    }
+
+    TEST_ASSERT_GREATER_THAN_UINT16(0U, fake_clear_calls);
+    TEST_ASSERT_GREATER_THAN_UINT16(0U, fake_show_calls);
+    TEST_ASSERT_EQUAL_UINT16(fake_show_calls, fake_delay_calls);
+}
+
+static void test_3d_plasma_compiles_against_cube_size_and_color_seam(void)
+{
+    xy_rgb_segment_t seg = make_segment();
+
+    xy_rgb_3d_set_size(2U);
+    g_frame_count = 0U;
+    xy_rgb_fx_plasma_3d(&seg);
+
+    TEST_ASSERT_EQUAL_UINT16(8U, fake_set_calls);
+    TEST_ASSERT_EQUAL_UINT16(7U, fake_last_set_index);
+    TEST_ASSERT_EQUAL_UINT8(128U, fake_pixels[0].r);
+    TEST_ASSERT_EQUAL_UINT8(127U, fake_pixels[0].g);
+    TEST_ASSERT_EQUAL_UINT8(64U, fake_pixels[0].b);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -222,5 +277,8 @@ int main(void)
     RUN_TEST(test_music_autocorr_effect_uses_test_owned_frame_counter);
     RUN_TEST(test_music_vu_meter_enhanced_uses_peak_and_frame_counter_contract);
     RUN_TEST(test_matrix_plasma_effect_compiles_against_2d_seam);
+    RUN_TEST(test_extended_color_wipe_uses_frame_count_and_strip_seam);
+    RUN_TEST(test_extended_lightning_uses_clear_show_delay_seam_when_intensity_hits);
+    RUN_TEST(test_3d_plasma_compiles_against_cube_size_and_color_seam);
     return UNITY_END();
 }

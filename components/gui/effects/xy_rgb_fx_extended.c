@@ -13,6 +13,9 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+extern uint32_t g_frame_count;
+extern void xy_os_delay(uint32_t ms);
+
 /* ==================== 经典效果 ==================== */
 
 /**
@@ -199,8 +202,6 @@ void xy_rgb_fx_fireworks(xy_rgb_segment_t *seg)
  */
 void xy_rgb_fx_lightning(xy_rgb_segment_t *seg)
 {
-    uint16_t len = seg->stop - seg->start;
-    
     /* 随机闪电 */
     if (rand() % 256 < seg->intensity / 20) {
         /* 全亮 */
@@ -224,8 +225,13 @@ void xy_rgb_fx_lightning(xy_rgb_segment_t *seg)
 void xy_rgb_fx_bouncing_balls(xy_rgb_segment_t *seg)
 {
     uint16_t len = seg->stop - seg->start;
-    static uint16_t ball_pos[3] = {0, len/3, len*2/3};
+    static uint16_t ball_pos[3] = {0U, 0U, 0U};
     static int8_t ball_dir[3] = {1, 1, 1};
+
+    if (ball_pos[1] == 0U && ball_pos[2] == 0U) {
+        ball_pos[1] = len / 3U;
+        ball_pos[2] = len * 2U / 3U;
+    }
     
     xy_rgb_clear();
     

@@ -13,6 +13,8 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+extern uint32_t g_frame_count;
+
 /* 3D 配置 */
 static uint8_t g_cube_size = 4;
 
