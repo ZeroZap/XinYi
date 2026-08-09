@@ -26,7 +26,8 @@ static xy_led_driver_t *led_gui_driver_at(size_t index)
 static void led_gui_set_pixel_for(size_t index, int16_t x, int16_t y, uint32_t color)
 {
     xy_led_driver_t *driver = led_gui_driver_at(index);
-    if (!driver || !driver->set_pixel || x < 0 || y < 0) {
+    if (!driver || !driver->set_pixel || x < 0 || y < 0 || x >= (int16_t)driver->width ||
+        y >= (int16_t)driver->height) {
         return;
     }
 
@@ -36,7 +37,8 @@ static void led_gui_set_pixel_for(size_t index, int16_t x, int16_t y, uint32_t c
 static uint32_t led_gui_get_pixel_for(size_t index, int16_t x, int16_t y)
 {
     xy_led_driver_t *driver = led_gui_driver_at(index);
-    if (!driver || !driver->get_pixel || x < 0 || y < 0) {
+    if (!driver || !driver->get_pixel || x < 0 || y < 0 || x >= (int16_t)driver->width ||
+        y >= (int16_t)driver->height) {
         return 0U;
     }
 

@@ -113,10 +113,10 @@ static void test_led_gui_registers_display_without_overwriting_user_data(void)
     TEST_ASSERT_EQUAL_UINT16(2, g_last_x);
     TEST_ASSERT_EQUAL_UINT16(3, g_last_y);
     TEST_ASSERT_EQUAL_UINT32(0x112233U, g_last_color);
-    TEST_ASSERT_EQUAL_UINT32(0x00050006U, display->get_pixel(5, 6));
+    TEST_ASSERT_EQUAL_UINT32(0x00050003U, display->get_pixel(5, 3));
     TEST_ASSERT_EQUAL_UINT(1U, fake_get_pixel_fake.call_count);
     TEST_ASSERT_EQUAL_UINT16(5, fake_get_pixel_fake.arg0_val);
-    TEST_ASSERT_EQUAL_UINT16(6, fake_get_pixel_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT16(3, fake_get_pixel_fake.arg1_val);
 
     display->fill_rect(1, 2, 2, 2, 0x445566U);
     TEST_ASSERT_EQUAL_UINT(5U, fake_set_pixel_fake.call_count);
@@ -212,6 +212,20 @@ static void test_led_gui_callbacks_ignore_invalid_geometry_without_backend_side_
     TEST_ASSERT_EQUAL_UINT16(0, fake_set_pixel_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT16(0, fake_set_pixel_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT32(0x778899U, fake_set_pixel_fake.arg2_val);
+
+    display->set_pixel(8, 0, 0x010203U);
+    display->set_pixel(0, 4, 0x040506U);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_set_pixel_fake.call_count);
+
+    TEST_ASSERT_EQUAL_UINT32(0U, display->get_pixel(8, 0));
+    TEST_ASSERT_EQUAL_UINT32(0U, display->get_pixel(0, 4));
+    TEST_ASSERT_EQUAL_UINT(0U, fake_get_pixel_fake.call_count);
+
+    display->fill_rect(7, 3, 3, 3, 0xAABBCCU);
+    TEST_ASSERT_EQUAL_UINT(2U, fake_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(7, fake_set_pixel_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(3, fake_set_pixel_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(0xAABBCCU, fake_set_pixel_fake.arg2_val);
 }
 
 int main(void)
