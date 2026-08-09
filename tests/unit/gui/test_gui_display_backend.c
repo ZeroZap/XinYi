@@ -4,68 +4,7 @@
 
 #include "unity.h"
 #include "xy_gui.h"
-
-#include <stdbool.h>
-
-/* Local public-shape declarations for the LED GUI display adapter keep this bridge
- * test focused on the xy_gui_t integration path without pulling xy_gui_widget.h's
- * RGBA color typedefs into the same translation unit as xy_gui.h's RGB565 typedefs. */
-typedef enum {
-    XY_GUI_COLOR_MONO = 0,
-    XY_GUI_COLOR_GRAY4,
-    XY_GUI_COLOR_GRAY256,
-    XY_GUI_COLOR_RGB565,
-    XY_GUI_COLOR_RGB888,
-    XY_GUI_COLOR_ARGB8888,
-} xy_gui_color_format_t;
-
-typedef struct {
-    uint16_t width;
-    uint16_t height;
-    xy_gui_color_format_t format;
-    void (*set_pixel)(int16_t x, int16_t y, uint32_t color);
-    uint32_t (*get_pixel)(int16_t x, int16_t y);
-    void (*fill_rect)(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color);
-    void (*flush)(void);
-    void (*power_off)(void);
-    void *user_data;
-} xy_gui_display_t;
-
-typedef struct {
-    uint16_t width;
-    uint16_t height;
-    uint8_t bpp;
-    void *hw_handle;
-    void (*set_pixel)(uint16_t x, uint16_t y, uint32_t color);
-    uint32_t (*get_pixel)(uint16_t x, uint16_t y);
-    void (*fill)(uint32_t color);
-    void (*show)(void);
-    void (*effect_breath)(uint8_t led, uint16_t period);
-    void (*effect_blink)(uint8_t led, uint16_t interval);
-    void (*effect_rainbow)(uint16_t speed);
-    void (*effect_scroll_text)(const char *text, uint8_t speed);
-    void (*effect_custom)(void *params);
-    void *user_data;
-} xy_led_driver_t;
-
-int xy_led_register_gui(xy_led_driver_t *drv);
-xy_gui_display_t *xy_led_get_gui_interface(xy_led_driver_t *drv);
-void xy_led_enable_gui(xy_led_driver_t *drv, bool enable);
-
-static inline void xy_gui_display_set_pixel(xy_gui_display_t *display, int16_t x, int16_t y,
-                                            uint32_t color)
-{
-    if (display && display->set_pixel) {
-        display->set_pixel(x, y, color);
-    }
-}
-
-static inline void xy_gui_display_flush(xy_gui_display_t *display)
-{
-    if (display && display->flush) {
-        display->flush();
-    }
-}
+#include "xy_led_driver.h"
 
 #define FAKE_DISPLAY_WIDTH  16U
 #define FAKE_DISPLAY_HEIGHT 8U

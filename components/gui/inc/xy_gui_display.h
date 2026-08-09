@@ -12,7 +12,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "xy_gui_widget.h"  /* Include widget.h for xy_gui_color_t */
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,16 +27,6 @@ typedef enum {
     XY_GUI_COLOR_RGB888,      // 24 位 RGB
     XY_GUI_COLOR_ARGB8888,    // 32 位 ARGB
 } xy_gui_color_format_t;
-
-/* Pre-defined colors (using xy_gui_color_t from widget.h) */
-#define GUI_COLOR_BLACK     XY_GUI_COLOR_BLACK
-#define GUI_COLOR_WHITE     XY_GUI_COLOR_WHITE
-#define GUI_COLOR_RED       XY_GUI_COLOR_RED
-#define GUI_COLOR_GREEN     XY_GUI_COLOR_GREEN
-#define GUI_COLOR_BLUE      XY_GUI_COLOR_BLUE
-#define GUI_COLOR_YELLOW    XY_GUI_COLOR_YELLOW
-#define GUI_COLOR_CYAN      XY_GUI_COLOR_CYAN
-#define GUI_COLOR_MAGENTA   XY_GUI_COLOR_MAGENTA
 
 /**
  * @brief GUI 显示设备接口
