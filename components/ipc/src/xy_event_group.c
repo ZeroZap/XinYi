@@ -8,6 +8,8 @@
 #include <string.h>
 
 #define XY_IPC_EVENT_OS_ERROR_MASK 0x80000000U
+#define XY_IPC_EVENT_VALID_WAIT_OPTIONS \
+    (XY_IPC_EVENT_WAIT_ALL | XY_IPC_EVENT_NO_CLEAR | XY_IPC_EVENT_WAIT_ANY)
 
 static int event_group_validate(xy_ipc_event_group_t *group)
 {
@@ -23,6 +25,14 @@ static int event_group_validate(xy_ipc_event_group_t *group)
 static int event_group_validate_bits(xy_ipc_event_bits_t bits)
 {
     if (bits == 0U || (bits & XY_IPC_EVENT_OS_ERROR_MASK)) {
+        return XY_IPC_EVENT_INVALID_PARAM;
+    }
+    return XY_IPC_EVENT_OK;
+}
+
+static int event_group_validate_wait_options(uint32_t options)
+{
+    if (options & ~XY_IPC_EVENT_VALID_WAIT_OPTIONS) {
         return XY_IPC_EVENT_INVALID_PARAM;
     }
     return XY_IPC_EVENT_OK;
@@ -157,6 +167,10 @@ int xy_ipc_event_group_wait(xy_ipc_event_group_t *group, xy_ipc_event_bits_t bit
         return ret;
     }
     ret = event_group_validate_bits(bits);
+    if (ret != XY_IPC_EVENT_OK) {
+        return ret;
+    }
+    ret = event_group_validate_wait_options(options);
     if (ret != XY_IPC_EVENT_OK) {
         return ret;
     }

@@ -124,6 +124,9 @@ static void test_event_group_wait_any_all_clear_and_timeout(void)
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
                           xy_ipc_event_group_wait(&group, 0x01U, XY_IPC_EVENT_WAIT_ANY, 0U,
                                                   NULL));
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
+                          xy_ipc_event_group_wait(&group, 0x01U, 0x8000U, 0U, &matched));
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5U, matched);
 
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_set(&group, 0x0FU, NULL));
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK,
@@ -158,9 +161,17 @@ static void test_event_group_wait_any_all_clear_and_timeout(void)
     TEST_ASSERT_EQUAL_UINT32(0x80U, matched);
 
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_deinit(&group));
+    TEST_ASSERT_EQUAL_UINT32(0x80U, matched);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_NOT_INITIALIZED,
+                          xy_ipc_event_group_set(&group, 0x01U, &matched));
+    TEST_ASSERT_EQUAL_UINT32(0x80U, matched);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_NOT_INITIALIZED,
+                          xy_ipc_event_group_clear(&group, 0x01U, &matched));
+    TEST_ASSERT_EQUAL_UINT32(0x80U, matched);
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_NOT_INITIALIZED,
                           xy_ipc_event_group_wait(&group, 0x01U, XY_IPC_EVENT_WAIT_ANY, 0U,
                                                   &matched));
+    TEST_ASSERT_EQUAL_UINT32(0x80U, matched);
 }
 
 void setUp(void)
