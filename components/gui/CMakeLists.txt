@@ -27,6 +27,7 @@ set(GUI_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_gui_list.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_gui_tab.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_gui_theme.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_gui_ssd1306_adapter.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_font.c
 )
 
@@ -59,6 +60,10 @@ target_include_directories(xy_gui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/fonts
+    ${CMAKE_SOURCE_DIR}/components/device
+    ${CMAKE_SOURCE_DIR}/components/device/inc
+    ${CMAKE_SOURCE_DIR}/components/drivers/display/oled/ssd1306
+    ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_SOURCE_DIR}/components/trace/xy_log/inc
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
