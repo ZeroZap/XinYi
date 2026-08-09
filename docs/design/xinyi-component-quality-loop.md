@@ -144,6 +144,12 @@
 - GUI basic effects 已新增 `gui_effects` host CTest：覆盖 `xy_gui_effect_{fade,blink,breath,slide,rotate}.c` 的 create/update/getter、NULL guard、duration/period 边界、基础 lifecycle 与工具函数 contract；`components/gui/README.md` 与 unit-test inventory 已同步。
 - 本结论只适用于基础 effects 算法，不替代 LED-screen/RGB 扩展动画、字体/中文渲染、GUI↔Display backend 或真实屏幕硬件验证。后续若继续 GUI，应优先选择字体资产/渲染 proposal 或 display-backend validation proposal，而不是重复基础 effects host coverage。
 
+### 2026-08-09 GUI display-backend boundary proposal
+
+- 已新增 `docs/design/xinyi-gui-display-backend-validation-proposal-2026-08-09.md`，把 GUI core 的 `xy_gui_disp_drv_t` 回调、`xy_gui_display.h` 抽象接口、Display driver focused CTest 与真实屏幕硬件证据分层固定下来。
+- 当前 `gui_core`/`gui_widgets`/`gui_fonts`/`gui_effects*` 仍只能证明 display-independent host contract；`display_*` CTest 只能证明各 display driver 的 host fake transaction contract。二者都不能替代 GUI ↔ Display backend bridge CTest 或真实屏幕日志。
+- 后续若继续推进 GUI ↔ Display，应新增 host-safe `test_gui_display_backend` / `gui_display_backend`，证明 `xy_gui_clear/draw_pixel/fill_rect/flush` 经 `xy_gui_disp_drv_t` 转发到 fake/display adapter 的坐标、颜色、调用次数与失败归一化 contract；不要直接改 HAL/vendor 或声称 hardware validation passed。
+
 ---
 
 ## 5. 周度架构回顾

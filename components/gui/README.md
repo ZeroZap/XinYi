@@ -137,6 +137,6 @@ git diff --check
 ## 下一步 backlog
 
 1. 为 GUI effects 后续扩展写独立 focused CTest/proposal 前，先明确当前已覆盖 fade/blink/breath/slide/rotate 的 host-safe public contract；不要把 LED-screen/RGB 硬件动画一起混入基础 effects slice。
-2. 为 GUI ↔ Display driver backend 写独立 validation proposal，区分 host fake、PC sim 与真实屏幕日志。
+2. GUI ↔ Display driver backend 边界已由 `docs/design/xinyi-gui-display-backend-validation-proposal-2026-08-09.md` 固定：下一步若推进，应新增 host-safe bridge CTest（建议 `test_gui_display_backend` / `gui_display_backend`），只证明 `xy_gui_disp_drv_t` 到 fake/display adapter 的转发 contract，不把结果写成真实硬件验证。
 3. 若需要字体/中文渲染进一步闭环，先固定字体资产范围、完整字库与生成流程，再补渲染 snapshot smoke；不要把 `gui_fonts` 的 lookup/measurement host 测试等同于美术/字库质量验收。
 4. 只有在真实板级日志存在后，才更新硬件验证结论；当前状态保持 `host-guarded core / hardware validation pending`。
