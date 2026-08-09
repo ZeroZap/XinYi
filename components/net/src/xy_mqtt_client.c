@@ -794,17 +794,19 @@ static xy_mqtt_err_t xy_mqtt_handle_suback(xy_mqtt_client_t *mqtt,
     }
 
     uint16_t packet_id = ((uint16_t)data[2] << 8) | data[3];
+    xy_mqtt_err_t status = XY_MQTT_OK;
 
     /* Parse return codes (simplified - assumes single topic) */
     for (size_t i = 4; i < len; i++) {
-        uint8_t return_code = data[i] & 0x03;
-
-        if (return_code == 0x80) {
-            /* Subscription failed */
+        if (data[i] == 0x80U) {
             mqtt->last_error = XY_MQTT_ERR_SUBSCRIPTION_FAILED;
+            status = XY_MQTT_ERR_SUBSCRIPTION_FAILED;
+            continue;
         }
 
-        /* Notify callback */
+        uint8_t return_code = data[i] & 0x03U;
+
+        /* Notify callback only for granted QoS values. */
         if (mqtt->config.subscribed_cb) {
             mqtt->config.subscribed_cb(mqtt, packet_id, return_code,
                                        mqtt->config.user_data);
@@ -814,7 +816,7 @@ static xy_mqtt_err_t xy_mqtt_handle_suback(xy_mqtt_client_t *mqtt,
     /* Remove from pending acks */
     xy_mqtt_remove_pending_ack(mqtt, packet_id);
 
-    return XY_MQTT_OK;
+    return status;
 }
 
 /**
