@@ -106,6 +106,37 @@ static void test_event_group_set_get_and_clear_contracts(void)
     TEST_ASSERT_EQUAL_UINT32(0x55U, bits);
 }
 
+static void test_event_group_wait_guards_preserve_output_before_os_call(void)
+{
+    xy_ipc_event_group_t group = {0};
+    xy_ipc_event_bits_t matched = 0x1357U;
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_NOT_INITIALIZED,
+                          xy_ipc_event_group_wait(&group, 0x01U, XY_IPC_EVENT_WAIT_ANY, 0U,
+                                                  &matched));
+    TEST_ASSERT_EQUAL_UINT32(0x1357U, matched);
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_init(&group, "evt"));
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
+                          xy_ipc_event_group_wait(&group, 0U, XY_IPC_EVENT_WAIT_ANY, 0U,
+                                                  &matched));
+    TEST_ASSERT_EQUAL_UINT32(0x1357U, matched);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
+                          xy_ipc_event_group_wait(&group, ~XY_IPC_EVENT_USER_BITS_MASK,
+                                                  XY_IPC_EVENT_WAIT_ANY, 0U, &matched));
+    TEST_ASSERT_EQUAL_UINT32(0x1357U, matched);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
+                          xy_ipc_event_group_wait(&group, 0x01U, 0x8000U, 0U,
+                                                  &matched));
+    TEST_ASSERT_EQUAL_UINT32(0x1357U, matched);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_INVALID_PARAM,
+                          xy_ipc_event_group_wait(&group, 0x01U, XY_IPC_EVENT_WAIT_ANY, 0U,
+                                                  NULL));
+    TEST_ASSERT_EQUAL_UINT32(0x1357U, matched);
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_deinit(&group));
+}
+
 static void test_event_group_wait_any_all_clear_and_timeout(void)
 {
     xy_ipc_event_group_t group;
@@ -188,6 +219,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_event_group_init_guards_and_name);
     RUN_TEST(test_event_group_set_get_and_clear_contracts);
+    RUN_TEST(test_event_group_wait_guards_preserve_output_before_os_call);
     RUN_TEST(test_event_group_wait_any_all_clear_and_timeout);
     return UNITY_END();
 }
