@@ -89,15 +89,15 @@ int xy_subject_attach(xy_subject_t *subject, xy_observer_t *observer)
         return XY_OBSERVER_INVALID_PARAM;
     }
 
-    if (subject->observer_count >= XY_OBSERVER_MAX_OBSERVERS) {
-        return XY_OBSERVER_FULL;
-    }
-
     /* Check if already attached */
     for (size_t i = 0; i < subject->observer_count; i++) {
         if (observer_matches(&subject->observers[i], observer)) {
             return XY_OBSERVER_OK; /* Already attached */
         }
+    }
+
+    if (subject->observer_count >= XY_OBSERVER_MAX_OBSERVERS) {
+        return XY_OBSERVER_FULL;
     }
 
     /* Add observer */

@@ -336,6 +336,12 @@ static void test_subject_capacity_and_deinit(void)
     }
 
     TEST_ASSERT_EQUAL_UINT(XY_OBSERVER_MAX_OBSERVERS, xy_subject_observer_count(&subject));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &observer));
+    TEST_ASSERT_EQUAL_UINT(XY_OBSERVER_MAX_OBSERVERS, xy_subject_observer_count(&subject));
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&observer, "extra", capture_callback,
+                                       (void *)0xFFFFU));
     TEST_ASSERT_EQUAL(XY_OBSERVER_FULL, xy_subject_attach(&subject, &observer));
     TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_deinit(&subject));
     TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
