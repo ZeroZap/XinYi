@@ -18,11 +18,13 @@ typedef struct {
 
 static i2c_write_t g_i2c_writes[MAX_I2C_WRITES];
 static size_t g_i2c_write_count;
+static xy_oled_ssd1306_t *g_fail_refresh_for_oled;
 
 static void reset_i2c_writes(void)
 {
     memset(g_i2c_writes, 0, sizeof(g_i2c_writes));
     g_i2c_write_count = 0;
+    g_fail_refresh_for_oled = NULL;
 }
 
 void setUp(void)
@@ -52,7 +54,10 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
-    (void)dev;
+    if (g_fail_refresh_for_oled && dev == &g_fail_refresh_for_oled->i2c_dev) {
+        return XY_DEVICE_ERROR;
+    }
+
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_THAN_UINT(MAX_I2C_WRITES, g_i2c_write_count);
     TEST_ASSERT_LESS_OR_EQUAL_UINT(MAX_I2C_BYTES, len);
@@ -171,6 +176,20 @@ static void test_flush_forwards_to_ssd1306_refresh_transactions(void)
     TEST_ASSERT_EQUAL_HEX8(0xA5U, g_i2c_writes[3].bytes[0]);
 }
 
+static void test_flush_reports_ssd1306_refresh_bus_failures(void)
+{
+    xy_oled_ssd1306_t oled;
+    uint8_t buffer[TEST_OLED_BUFFER_SIZE];
+    xy_gui_disp_drv_t drv;
+
+    init_oled_fixture(&oled, buffer, TEST_OLED_WIDTH, TEST_OLED_HEIGHT);
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&drv, &oled));
+
+    g_fail_refresh_for_oled = &oled;
+    TEST_ASSERT_EQUAL_INT(XY_GUI_ERROR, drv.flush());
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
+}
+
 static void test_multiple_bound_oled_instances_keep_isolated_slots(void)
 {
     xy_oled_ssd1306_t first;
@@ -237,6 +256,7 @@ int main(void)
     RUN_TEST(test_draw_pixel_maps_rgb565_to_mono_bits);
     RUN_TEST(test_fill_rect_clips_through_ssd1306_driver_and_ignores_empty_rects);
     RUN_TEST(test_flush_forwards_to_ssd1306_refresh_transactions);
+    RUN_TEST(test_flush_reports_ssd1306_refresh_bus_failures);
     RUN_TEST(test_multiple_bound_oled_instances_keep_isolated_slots);
     RUN_TEST(test_slot_exhaustion_clears_output_driver_until_reset_releases_slots);
     return UNITY_END();

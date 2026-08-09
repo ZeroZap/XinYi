@@ -47,8 +47,9 @@ void xy_oled_ssd1306_clear(xy_oled_ssd1306_t *oled);
 /**
  * @brief 刷新屏幕
  * @param oled OLED 设备
+ * @return XY_DEVICE_OK on success, or an error code when an I2C write fails.
  */
-void xy_oled_ssd1306_refresh(xy_oled_ssd1306_t *oled);
+int xy_oled_ssd1306_refresh(xy_oled_ssd1306_t *oled);
 
 /**
  * @brief 绘制像素

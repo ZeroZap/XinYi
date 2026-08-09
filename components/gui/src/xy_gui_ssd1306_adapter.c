@@ -72,8 +72,7 @@ static int ssd1306_flush_for(size_t index)
         return XY_GUI_INVALID_PARAM;
     }
 
-    xy_oled_ssd1306_refresh(oled);
-    return XY_GUI_OK;
+    return xy_oled_ssd1306_refresh(oled) == XY_DEVICE_OK ? XY_GUI_OK : XY_GUI_ERROR;
 }
 
 #define DEFINE_SSD1306_GUI_SLOT(index)                                                             \

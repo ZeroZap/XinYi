@@ -78,10 +78,10 @@ void xy_oled_ssd1306_clear(xy_oled_ssd1306_t *oled)
     memset(oled->buffer, 0, (oled->width * oled->height) / 8);
 }
 
-void xy_oled_ssd1306_refresh(xy_oled_ssd1306_t *oled)
+int xy_oled_ssd1306_refresh(xy_oled_ssd1306_t *oled)
 {
     if (!oled || !oled->buffer) {
-        return;
+        return XY_DEVICE_INVALID_PARAM;
     }
 
     /* Set column address */
@@ -90,7 +90,9 @@ void xy_oled_ssd1306_refresh(xy_oled_ssd1306_t *oled)
         0x00, 0,
         0x00, oled->width - 1
     };
-    xy_i2c_device_write(&oled->i2c_dev, cmd, sizeof(cmd));
+    if (xy_i2c_device_write(&oled->i2c_dev, cmd, sizeof(cmd)) != XY_DEVICE_OK) {
+        return XY_DEVICE_ERROR;
+    }
 
     /* Set page address */
     uint8_t page_cmd[] = {
@@ -98,12 +100,21 @@ void xy_oled_ssd1306_refresh(xy_oled_ssd1306_t *oled)
         0x00, 0,
         0x00, (oled->height / 8) - 1
     };
-    xy_i2c_device_write(&oled->i2c_dev, page_cmd, sizeof(page_cmd));
+    if (xy_i2c_device_write(&oled->i2c_dev, page_cmd, sizeof(page_cmd)) != XY_DEVICE_OK) {
+        return XY_DEVICE_ERROR;
+    }
 
     /* Send data */
     uint8_t header = 0x40;
-    xy_i2c_device_write(&oled->i2c_dev, &header, 1);
-    xy_i2c_device_write(&oled->i2c_dev, oled->buffer, (oled->width * oled->height) / 8);
+    if (xy_i2c_device_write(&oled->i2c_dev, &header, 1) != XY_DEVICE_OK) {
+        return XY_DEVICE_ERROR;
+    }
+    if (xy_i2c_device_write(&oled->i2c_dev, oled->buffer, (oled->width * oled->height) / 8) !=
+        XY_DEVICE_OK) {
+        return XY_DEVICE_ERROR;
+    }
+
+    return XY_DEVICE_OK;
 }
 
 void xy_oled_ssd1306_draw_pixel(xy_oled_ssd1306_t *oled, 
