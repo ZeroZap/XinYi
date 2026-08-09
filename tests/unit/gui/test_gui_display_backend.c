@@ -197,6 +197,15 @@ static void fake_led_set_pixel(uint16_t x, uint16_t y, uint32_t color)
     }
 }
 
+static uint32_t fake_led_get_pixel(uint16_t x, uint16_t y)
+{
+    if (x >= FAKE_DISPLAY_WIDTH || y >= FAKE_DISPLAY_HEIGHT) {
+        return 0xDEADU;
+    }
+
+    return g_framebuffer[y][x];
+}
+
 static void fake_led_show(void)
 {
     g_flush_calls++;
@@ -352,6 +361,7 @@ static void test_gui_context_can_drive_led_gui_display_adapter(void)
 {
     xy_led_driver_t led = make_led_driver();
     led.set_pixel = fake_led_set_pixel;
+    led.get_pixel = fake_led_get_pixel;
     led.show = fake_led_show;
 
     TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&led));
@@ -359,6 +369,7 @@ static void test_gui_context_can_drive_led_gui_display_adapter(void)
     TEST_ASSERT_NOT_NULL(g_led_gui_display);
     TEST_ASSERT_EQUAL_UINT16(FAKE_DISPLAY_WIDTH, g_led_gui_display->width);
     TEST_ASSERT_EQUAL_UINT16(FAKE_DISPLAY_HEIGHT, g_led_gui_display->height);
+    TEST_ASSERT_NOT_NULL(g_led_gui_display->get_pixel);
 
     xy_gui_t gui;
     xy_gui_disp_drv_t drv = led_gui_adapter_driver();
@@ -370,6 +381,9 @@ static void test_gui_context_can_drive_led_gui_display_adapter(void)
     TEST_ASSERT_EQUAL_INT16(2, g_last_y);
     TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_RED, g_last_color);
     TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_RED, g_framebuffer[2][6]);
+    TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_RED, g_led_gui_display->get_pixel(6, 2));
+    TEST_ASSERT_EQUAL_HEX16(0, g_led_gui_display->get_pixel(-1, 2));
+    TEST_ASSERT_EQUAL_HEX16(0, g_led_gui_display->get_pixel(FAKE_DISPLAY_WIDTH, 2));
 
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_fill_rect(&gui, 14, 6, 4, 3, XY_GUI_COLOR_GREEN));
     TEST_ASSERT_EQUAL_UINT(5U, g_set_pixel_calls);
@@ -380,6 +394,21 @@ static void test_gui_context_can_drive_led_gui_display_adapter(void)
 
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_flush(&gui));
     TEST_ASSERT_EQUAL_UINT(1U, g_flush_calls);
+}
+
+static void test_led_gui_display_adapter_omits_get_pixel_when_backend_lacks_reader(void)
+{
+    xy_led_driver_t led = make_led_driver();
+    led.set_pixel = fake_led_set_pixel;
+    led.show = fake_led_show;
+
+    TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&led));
+    g_led_gui_display = xy_led_get_gui_interface(&led);
+    TEST_ASSERT_NOT_NULL(g_led_gui_display);
+    TEST_ASSERT_NULL(g_led_gui_display->get_pixel);
+
+    xy_gui_display_set_pixel(g_led_gui_display, 0, 0, XY_GUI_COLOR_BLUE);
+    TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_BLUE, g_framebuffer[0][0]);
 }
 
 static void test_gui_context_respects_disabled_led_gui_display_adapter(void)
@@ -414,6 +443,7 @@ int main(void)
     RUN_TEST(test_gui_backend_guard_paths_do_not_touch_fake_display);
     RUN_TEST(test_gui_fill_rect_fallback_clips_through_draw_pixel_guard);
     RUN_TEST(test_gui_context_can_drive_led_gui_display_adapter);
+    RUN_TEST(test_led_gui_display_adapter_omits_get_pixel_when_backend_lacks_reader);
     RUN_TEST(test_gui_context_respects_disabled_led_gui_display_adapter);
     return UNITY_END();
 }
