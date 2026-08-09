@@ -151,6 +151,11 @@
 - GUI ↔ Display backend bridge CTest 已落地并扩展到 LED GUI display adapter host 绑定：`test_gui_display_backend` / `gui_display_backend` 使用 host fake `xy_gui_disp_drv_t` backend 与 fake LED driver framebuffer，覆盖 `xy_gui_clear/draw_pixel/fill_rect/flush` 的坐标、尺寸、颜色、调用次数转发、`xy_gui_t` 经 LED adapter 驱动 host framebuffer/flush 的路径、两个 LED GUI adapter channel 的 framebuffer/flush 隔离与 per-driver enable/disable 行为，以及当前 backend error 被 GUI core 归一化为 `XY_GUI_OK` 的现有 contract。该测试仍不代表真实 LCD/OLED/LED matrix 硬件验证。
 - 后续若继续推进 GUI ↔ Display，应优先做具体 display driver adapter 的 host fake framebuffer/transport 绑定，或等待真实屏幕硬件日志；不要直接改 HAL/vendor 或声称 hardware validation passed。
 
+### 2026-08-10 GUI SSD1306 adapter proposal
+
+- 已新增 `docs/design/xinyi-gui-ssd1306-display-adapter-proposal-2026-08-10.md`，把 GUI core、旧 `xy_gui_display_t`、LED GUI adapter 与 SSD1306 display driver 的职责边界拆开：GUI core 不直接依赖 `xy_oled_ssd1306_t`，SSD1306 adapter 只调用 display driver public API，真实 I2C/HAL/vendor 与硬件验证仍在 adapter 之外。
+- 后续若实现，应严格限定在 `xy_gui_ssd1306_adapter.{h,c}` + `test_gui_ssd1306_adapter`，覆盖 bind guard、RGB565→mono 映射、fill-rect clipping、flush I2C transaction、多实例 slot 隔离；不要用单一全局 OLED 指针造成多屏串扰，也不要把 host fake 结果升级为真实 OLED 验证。
+
 ---
 
 ## 5. 周度架构回顾
