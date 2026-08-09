@@ -56,7 +56,8 @@ writes, and wraparound ordering.
 
 `xy_broker` is a fixed-ID in-process message broker. The host test covers
 lifecycle, server registration, direct queue delivery, pub/sub, unsubscribe, queue
-limits/statistics, request/response helpers, timeout, and debug-name helpers.
+limits/statistics, request/response helpers, timeout, null-payload guard behavior,
+and debug-name helpers.
 
 ### Message queue
 

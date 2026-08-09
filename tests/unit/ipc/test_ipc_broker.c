@@ -147,6 +147,14 @@ static void test_direct_message_queue_and_limits(void)
                                          XY_BROKER_MSG_COMM_SEND, payload,
                                          XY_BROKER_MAX_MSG_SIZE + 1U,
                                          XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_COMM_SEND, NULL, 1U,
+                                         XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_COMM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_sent);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_delivered);
 
     for (uint16_t i = 0; i < XY_BROKER_MSG_QUEUE_SIZE; i++) {
         TEST_ASSERT_EQUAL(XY_BROKER_OK,
@@ -186,6 +194,17 @@ static void test_pubsub_create_publish_and_unsubscribe(void)
                       xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA,
                                           XY_BROKER_SERVER_SENSOR,
                                           topic_capture_handler, NULL));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM,
+                                        XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA, NULL, 1U,
+                                        XY_BROKER_PRIORITY_LOW));
+    TEST_ASSERT_EQUAL_UINT(0U, topic_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.active_topics);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_sent);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_delivered);
 
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_publish(XY_BROKER_SERVER_SYSTEM, XY_BROKER_TOPIC_SENSOR_DATA,
