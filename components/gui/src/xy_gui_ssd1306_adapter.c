@@ -166,3 +166,8 @@ int xy_gui_ssd1306_bind(xy_gui_disp_drv_t *out_drv, xy_oled_ssd1306_t *oled)
 
     return XY_GUI_OK;
 }
+
+void xy_gui_ssd1306_adapter_reset(void)
+{
+    memset(g_ssd1306_slots, 0, sizeof(g_ssd1306_slots));
+}

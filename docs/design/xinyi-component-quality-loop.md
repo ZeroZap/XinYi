@@ -154,7 +154,7 @@
 ### 2026-08-10 GUI SSD1306 adapter proposal
 
 - 已新增 `docs/design/xinyi-gui-ssd1306-display-adapter-proposal-2026-08-10.md`，把 GUI core、旧 `xy_gui_display_t`、LED GUI adapter 与 SSD1306 display driver 的职责边界拆开：GUI core 不直接依赖 `xy_oled_ssd1306_t`，SSD1306 adapter 只调用 display driver public API，真实 I2C/HAL/vendor 与硬件验证仍在 adapter 之外。
-- 后续若实现，应严格限定在 `xy_gui_ssd1306_adapter.{h,c}` + `test_gui_ssd1306_adapter`，覆盖 bind guard、RGB565→mono 映射、fill-rect clipping、flush I2C transaction、多实例 slot 隔离；不要用单一全局 OLED 指针造成多屏串扰，也不要把 host fake 结果升级为真实 OLED 验证。
+- 后续若扩展，应严格限定在 `xy_gui_ssd1306_adapter.{h,c}` + `test_gui_ssd1306_adapter`，当前已覆盖 bind guard、RGB565→mono 映射、fill-rect clipping、flush I2C transaction、多实例 slot 隔离，以及 slot exhaustion/reset 契约；不要用单一全局 OLED 指针造成多屏串扰，也不要把 host fake 结果升级为真实 OLED 验证。
 
 ---
 

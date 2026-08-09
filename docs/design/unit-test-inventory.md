@@ -110,7 +110,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/fuel_gauge/test_fuel_gauge_smbus_hardware_smoke_example.c` | `unity` | 0 | Fuel Gauge SMBus board-validation smoke skeleton; fake-I2C only, hardware evidence remains pending. |
 | `tests/unit/gui/test_gui_core.c` | `unity` | 22 |
 | `tests/unit/gui/test_gui_display_backend.c` | `unity` | 0 | GUI core to fake display backend bridge contract; host-only forwarding/output-preservation guard, not hardware validation. |
-| `tests/unit/gui/test_gui_ssd1306_adapter.c` | `unity` | 0 | GUI to SSD1306 display-driver adapter contract; host-only mono mapping/flush/multi-instance guard, not hardware validation. |
+| `tests/unit/gui/test_gui_ssd1306_adapter.c` | `unity` | 0 | GUI to SSD1306 display-driver adapter contract; host-only mono mapping/flush/multi-instance/slot-exhaustion guard, not hardware validation. |
 | `tests/unit/gui/test_gui_effects.c` | `unity` | 0 | GUI fade/blink/breath/slide/rotate algorithm and guard contracts. |
 | `tests/unit/gui/test_gui_fonts.c` | `unity` | 0 | GUI bitmap font lookup and measurement contracts for ASCII 8x16/16x24 and Chinese 16x16 assets. |
 | `tests/unit/gui/test_gui_led_screen_effects.c` | `unity` | 0 | GUI LED-screen extended effects public header self-containment; host include/type/signature contract only, not hardware validation. |

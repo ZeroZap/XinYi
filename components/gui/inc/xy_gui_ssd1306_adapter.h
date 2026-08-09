@@ -22,6 +22,15 @@ extern "C" {
  */
 int xy_gui_ssd1306_bind(xy_gui_disp_drv_t *out_drv, xy_oled_ssd1306_t *oled);
 
+/**
+ * @brief Clear all SSD1306 adapter slots.
+ *
+ * Use this before rebuilding a GUI scene or during host tests when previously-bound OLED driver
+ * instances are no longer valid. Existing callback tables obtained from xy_gui_ssd1306_bind()
+ * become invalid after reset and must be rebound before use.
+ */
+void xy_gui_ssd1306_adapter_reset(void);
+
 #ifdef __cplusplus
 }
 #endif

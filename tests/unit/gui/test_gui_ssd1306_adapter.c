@@ -19,10 +19,16 @@ typedef struct {
 static i2c_write_t g_i2c_writes[MAX_I2C_WRITES];
 static size_t g_i2c_write_count;
 
-void setUp(void)
+static void reset_i2c_writes(void)
 {
     memset(g_i2c_writes, 0, sizeof(g_i2c_writes));
     g_i2c_write_count = 0;
+}
+
+void setUp(void)
+{
+    reset_i2c_writes();
+    xy_gui_ssd1306_adapter_reset();
 }
 
 void tearDown(void)
@@ -191,10 +197,37 @@ static void test_multiple_bound_oled_instances_keep_isolated_slots(void)
     TEST_ASSERT_EQUAL_UINT(4U, g_i2c_write_count);
     TEST_ASSERT_EQUAL_HEX8(0x01U, g_i2c_writes[3].bytes[2]);
 
-    setUp();
+    reset_i2c_writes();
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, second_drv.flush());
     TEST_ASSERT_EQUAL_UINT(4U, g_i2c_write_count);
     TEST_ASSERT_EQUAL_HEX8(0x01U, g_i2c_writes[3].bytes[3]);
+}
+
+static void test_slot_exhaustion_clears_output_driver_until_reset_releases_slots(void)
+{
+    xy_oled_ssd1306_t oleds[5];
+    uint8_t buffers[5][TEST_OLED_BUFFER_SIZE];
+    xy_gui_disp_drv_t drivers[5];
+
+    for (size_t index = 0; index < 5U; ++index) {
+        init_oled_fixture(&oleds[index], buffers[index], TEST_OLED_WIDTH, TEST_OLED_HEIGHT);
+        memset(&drivers[index], 0xA5, sizeof(drivers[index]));
+    }
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&drivers[0], &oleds[0]));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&drivers[1], &oleds[1]));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&drivers[2], &oleds[2]));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&drivers[3], &oleds[3]));
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_NO_MEM, xy_gui_ssd1306_bind(&drivers[4], &oleds[4]));
+    TEST_ASSERT_NULL(drivers[4].init);
+    TEST_ASSERT_NULL(drivers[4].draw_pixel);
+    TEST_ASSERT_NULL(drivers[4].fill_rect);
+    TEST_ASSERT_NULL(drivers[4].flush);
+
+    xy_gui_ssd1306_adapter_reset();
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&drivers[4], &oleds[4]));
+    TEST_ASSERT_NOT_NULL(drivers[4].draw_pixel);
 }
 
 int main(void)
@@ -205,5 +238,6 @@ int main(void)
     RUN_TEST(test_fill_rect_clips_through_ssd1306_driver_and_ignores_empty_rects);
     RUN_TEST(test_flush_forwards_to_ssd1306_refresh_transactions);
     RUN_TEST(test_multiple_bound_oled_instances_keep_isolated_slots);
+    RUN_TEST(test_slot_exhaustion_clears_output_driver_until_reset_releases_slots);
     return UNITY_END();
 }

@@ -72,6 +72,7 @@ components/gui/src/xy_gui_ssd1306_adapter.c
 3. fill_rect：矩形被裁剪到 SSD1306 buffer 范围内，宽高为 0/负数不写。
 4. flush：调用 SSD1306 refresh，host fake I2C 捕获 column/page/data transaction。
 5. 多实例隔离：两个 OLED + 两个 `xy_gui_disp_drv_t` slot 不应互相写 buffer/flush。
+6. slot exhaustion/reset：第 5 个不同 OLED bind 返回 `XY_GUI_NO_MEM` 并清空输出 driver；显式 `xy_gui_ssd1306_adapter_reset()` 释放 slot 后可重新 bind。
 
 该测试仍只证明 adapter 与 SSD1306 public API 的 host contract；不能把 host fake I2C
 transaction 记录写成真实 OLED/I2C 硬件验证。
