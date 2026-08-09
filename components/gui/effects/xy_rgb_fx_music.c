@@ -13,6 +13,8 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+extern uint32_t g_frame_count;
+
 /* 音频数据 */
 static uint8_t g_spectrum[16] = {0};
 static uint8_t g_volume = 0;

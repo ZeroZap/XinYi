@@ -1368,7 +1368,18 @@ target_include_directories(test_gui_led_screen_effects PRIVATE
     ${GUI}/effects
 )
 
-# --- Test 37d: GUI bitmap font lookup and measurement contracts ---
+# --- Test 37d: GUI RGB extended music effects compile against serial-RGB seam ---
+xy_add_unit_test(test_gui_rgb_extended_effects_compile gui_rgb_extended_effects_compile UNITY
+    ${UNIT_GUI}/test_gui_rgb_extended_effects_compile.c
+    ${GUI}/effects/xy_rgb_fx_music.c
+)
+target_include_directories(test_gui_rgb_extended_effects_compile PRIVATE
+    ${DISPLAY}/led_drivers/serial_rgb
+    ${GUI}/effects
+)
+target_link_libraries(test_gui_rgb_extended_effects_compile m)
+
+# --- Test 37e: GUI bitmap font lookup and measurement contracts ---
 xy_add_unit_test(test_gui_fonts gui_fonts UNITY
     ${UNIT_GUI}/test_gui_fonts.c
     ${GUI}/fonts/xy_font_8x16.c
