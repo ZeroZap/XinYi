@@ -1331,7 +1331,13 @@ xy_add_unit_test(test_gui_widgets gui_widgets UNITY
 )
 target_link_libraries(test_gui_widgets m)
 
-# --- Test 37: GUI effects public headers stay self-contained ---
+# --- Test 37: GUI display backend bridge contract ---
+xy_add_unit_test(test_gui_display_backend gui_display_backend UNITY
+    ${UNIT_GUI}/test_gui_display_backend.c
+    ${GUI}/xy_gui.c
+)
+
+# --- Test 37b: GUI effects public headers stay self-contained ---
 xy_add_unit_test(test_gui_effects_headers gui_effects_headers UNITY
     ${UNIT_GUI}/test_gui_effects_headers.c
 )
