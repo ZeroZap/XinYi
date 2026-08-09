@@ -139,6 +139,6 @@ git diff --check
 ## 下一步 backlog
 
 1. GUI ↔ Display driver backend 已新增 host-safe `test_gui_display_backend` / `gui_display_backend` CTest：当前证明 `xy_gui_disp_drv_t` fake backend 转发 contract、LED GUI display adapter host framebuffer/flush 绑定路径与失败归一化现状，不代表真实 LCD/OLED/LED matrix hardware validation。后续若要接更多具体 display driver adapter，应继续保持 host fake transport/framebuffer，不直接改 HAL/vendor 或默认启用硬件路径。
-2. 为 GUI effects 后续扩展写独立 focused CTest/proposal 前，先明确当前已覆盖 fade/blink/breath/slide/rotate 的 host-safe public contract；不要把 LED-screen/RGB 硬件动画一起混入基础 effects slice。
+2. GUI LED-screen/RGB extended effects 已由 `docs/design/xinyi-gui-led-screen-effects-proposal-2026-08-09.md` 固定下一步边界：先补独立 `gui_led_screen_effects` host fake framebuffer CTest，覆盖现有 LED-screen public contract；不要把 LED-screen/RGB 硬件动画、音乐输入或真实屏幕效果混入基础 `gui_effects` slice。
 3. 若需要字体/中文渲染进一步闭环，先固定字体资产范围、完整字库与生成流程，再补渲染 snapshot smoke；不要把 `gui_fonts` 的 lookup/measurement host 测试等同于美术/字库质量验收。
 4. 只有在真实板级日志存在后，才更新硬件验证结论；当前状态保持 `host-guarded core / hardware validation pending`。
