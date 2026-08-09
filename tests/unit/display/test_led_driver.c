@@ -186,6 +186,34 @@ static void test_led_gui_uses_monochrome_format_for_one_bpp(void)
     TEST_ASSERT_EQUAL_INT(XY_GUI_COLOR_MONO, display->format);
 }
 
+static void test_led_gui_callbacks_ignore_invalid_geometry_without_backend_side_effects(void)
+{
+    int backend_state = 3;
+    xy_led_driver_t driver = make_driver(&backend_state);
+
+    TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&driver));
+    xy_gui_display_t *display = xy_led_get_gui_interface(&driver);
+    TEST_ASSERT_NOT_NULL(display);
+
+    display->set_pixel(-1, 0, 0x010203U);
+    display->set_pixel(0, -1, 0x040506U);
+    TEST_ASSERT_EQUAL_UINT(0U, fake_set_pixel_fake.call_count);
+
+    TEST_ASSERT_EQUAL_UINT32(0U, display->get_pixel(-1, 0));
+    TEST_ASSERT_EQUAL_UINT32(0U, display->get_pixel(0, -1));
+    TEST_ASSERT_EQUAL_UINT(0U, fake_get_pixel_fake.call_count);
+
+    display->fill_rect(1, 1, 0, 2, 0x112233U);
+    display->fill_rect(1, 1, 2, 0, 0x445566U);
+    TEST_ASSERT_EQUAL_UINT(0U, fake_set_pixel_fake.call_count);
+
+    display->fill_rect(-1, -1, 2, 2, 0x778899U);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(0, fake_set_pixel_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(0, fake_set_pixel_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(0x778899U, fake_set_pixel_fake.arg2_val);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -194,5 +222,6 @@ int main(void)
     RUN_TEST(test_led_gui_can_be_disabled_and_reenabled);
     RUN_TEST(test_led_gui_display_callbacks_remain_bound_to_their_registered_driver);
     RUN_TEST(test_led_gui_uses_monochrome_format_for_one_bpp);
+    RUN_TEST(test_led_gui_callbacks_ignore_invalid_geometry_without_backend_side_effects);
     return UNITY_END();
 }
