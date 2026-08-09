@@ -1326,7 +1326,15 @@ xy_mqtt_err_t xy_mqtt_keepalive_check(xy_mqtt_client_t *mqtt)
 
     /* Send PING if keep-alive timeout reached (1.5x interval) */
     if (elapsed >= (mqtt->keepalive_interval * 1500)) {
-        return xy_mqtt_send_pingreq(mqtt);
+        xy_mqtt_err_t err = xy_mqtt_send_pingreq(mqtt);
+        if (err != XY_MQTT_OK) {
+            mqtt->last_error = err;
+            mqtt->state = XY_MQTT_STATE_DISCONNECTED;
+            if (mqtt->config.disconnected_cb) {
+                mqtt->config.disconnected_cb(mqtt, err, mqtt->config.user_data);
+            }
+        }
+        return err;
     }
 
     return XY_MQTT_OK;

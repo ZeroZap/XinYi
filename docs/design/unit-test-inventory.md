@@ -143,7 +143,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/net/test_lte_hal_uart_adapter.c` | `unity` | 0 | LTE default-off HAL UART adapter transport seam with host HAL fakes. |
 | `tests/unit/net/test_lte_hal_uart_smoke_example.c` | `unity` | 0 | Build-guarded LTE HAL UART smoke skeleton; not a hardware-validation record. |
 | `tests/unit/net/test_modbus_legacy.c` | `unity` | 3 |
-| `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 | MQTT client CONNECT, publish/subscribe/unsubscribe callbacks, and SUBACK failure contract |
+| `tests/unit/net/test_mqtt_client_core.c` | `unity` | 4 | MQTT client CONNECT, publish/subscribe/unsubscribe callbacks, SUBACK failure, and keep-alive transport failure contracts |
 | `tests/unit/net/test_nano_modbus.c` | `unity` | 0 |
 | `tests/unit/net/test_net_core.c` | `unity` | 0 |
 | `tests/unit/net/test_net_smbus_pmbus.c` | `unity` | 34 |

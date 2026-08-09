@@ -222,7 +222,8 @@ See `docs/design/xinyi-net-lte-hal-uart-binding-proposal-2026-08-06.md`,
 The active MQTT client is `src/xy_mqtt_client.c` with public API in
 `src/xy_mqtt_client.h`. It is host-guarded by `mqtt_client` Unity/CTest coverage
 for remaining-length encoding, topic filters, client lifecycle validation,
-CONNECT/CONNACK flow, and connection-return-code strings. It implements the
+CONNECT/CONNACK flow, publish/subscribe/unsubscribe callbacks, SUBACK failure,
+keep-alive transport failure handling, and connection-return-code strings. It implements the
 small embeddable MQTT 3.1.1 surface used by XinYi network slices:
 
 - CONNECT/CONNACK state transition through caller-provided transport callbacks

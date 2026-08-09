@@ -418,6 +418,39 @@ static void test_suback_failure_sets_error_without_claiming_success_callback(voi
     xy_mqtt_client_delete(client);
 }
 
+static void test_keepalive_send_failure_reports_transport_error(void)
+{
+    xy_mqtt_config_t config = {0};
+    config.transport_context = MOCK_CONTEXT;
+    config.send = mock_send;
+    config.recv = mock_recv;
+    config.keepalive = 200;
+    config.tx_buffer_size = 128;
+    config.rx_buffer_size = 128;
+
+    xy_mqtt_client_t *client = xy_mqtt_client_new(&config);
+    TEST_ASSERT_NOT_NULL(client);
+    TEST_ASSERT_EQUAL(XY_MQTT_OK, xy_mqtt_connect(client, "client1", NULL, NULL));
+
+    const uint8_t connack[] = { (uint8_t)(XY_MQTT_TYPE_CONNACK << 4), 0x02, 0x00, 0x00 };
+    mock_recv_feed(connack, sizeof(connack));
+    TEST_ASSERT_EQUAL(XY_MQTT_OK, xy_mqtt_process(client, 250));
+    TEST_ASSERT_TRUE(xy_mqtt_is_connected(client));
+
+    mock_send_fake.return_val = -1;
+    mock_send_fake.custom_fake = NULL;
+
+    for (uint32_t i = 0; i < 299998U; i++) {
+        TEST_ASSERT_EQUAL(XY_MQTT_OK, xy_mqtt_keepalive_check(client));
+    }
+
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_TCP_DISCONNECTED, xy_mqtt_keepalive_check(client));
+    TEST_ASSERT_EQUAL(XY_MQTT_ERR_TCP_DISCONNECTED, xy_mqtt_get_error(client));
+    TEST_ASSERT_EQUAL(XY_MQTT_STATE_DISCONNECTED, xy_mqtt_get_state(client));
+
+    xy_mqtt_client_delete(client);
+}
+
 static void test_disconnect_sends_mqtt_disconnect_before_clearing_state(void)
 {
     xy_mqtt_client_t *client = connected_client_with_callbacks();
@@ -450,6 +483,7 @@ int main(void)
     RUN_TEST(test_publish_qos1_ack_and_inbound_subscription_callback_flow);
     RUN_TEST(test_subscribe_and_unsubscribe_ack_callbacks);
     RUN_TEST(test_suback_failure_sets_error_without_claiming_success_callback);
+    RUN_TEST(test_keepalive_send_failure_reports_transport_error);
     RUN_TEST(test_disconnect_sends_mqtt_disconnect_before_clearing_state);
     RUN_TEST(test_connack_strings);
     return UNITY_END();
