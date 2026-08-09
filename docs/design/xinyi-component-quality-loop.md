@@ -148,7 +148,7 @@
 
 - 已新增 `docs/design/xinyi-gui-display-backend-validation-proposal-2026-08-09.md`，把 GUI core 的 `xy_gui_disp_drv_t` 回调、`xy_gui_display.h` 抽象接口、Display driver focused CTest 与真实屏幕硬件证据分层固定下来。
 - 当前 `gui_core`/`gui_widgets`/`gui_fonts`/`gui_effects*` 仍只能证明 display-independent host contract；`display_*` CTest 只能证明各 display driver 的 host fake transaction contract。二者都不能替代 GUI ↔ Display backend bridge CTest 或真实屏幕日志。
-- GUI ↔ Display backend bridge CTest 已落地：`test_gui_display_backend` / `gui_display_backend` 使用 host fake `xy_gui_disp_drv_t` backend，覆盖 `xy_gui_clear/draw_pixel/fill_rect/flush` 的坐标、尺寸、颜色、调用次数转发，以及当前 backend error 被 GUI core 归一化为 `XY_GUI_OK` 的现有 contract。该测试仍不代表真实 LCD/OLED/LED matrix 硬件验证。
+- GUI ↔ Display backend bridge CTest 已落地并扩展到 LED GUI display adapter host 绑定：`test_gui_display_backend` / `gui_display_backend` 使用 host fake `xy_gui_disp_drv_t` backend 与 fake LED driver framebuffer，覆盖 `xy_gui_clear/draw_pixel/fill_rect/flush` 的坐标、尺寸、颜色、调用次数转发、`xy_gui_t` 经 LED adapter 驱动 host framebuffer/flush 的路径，以及当前 backend error 被 GUI core 归一化为 `XY_GUI_OK` 的现有 contract。该测试仍不代表真实 LCD/OLED/LED matrix 硬件验证。
 - 后续若继续推进 GUI ↔ Display，应优先做具体 display driver adapter 的 host fake framebuffer/transport 绑定，或等待真实屏幕硬件日志；不要直接改 HAL/vendor 或声称 hardware validation passed。
 
 ---

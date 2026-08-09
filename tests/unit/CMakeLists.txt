@@ -1335,6 +1335,7 @@ target_link_libraries(test_gui_widgets m)
 xy_add_unit_test(test_gui_display_backend gui_display_backend UNITY
     ${UNIT_GUI}/test_gui_display_backend.c
     ${GUI}/xy_gui.c
+    ${DISPLAY}/led_drivers/xy_led_driver.c
 )
 
 # --- Test 37b: GUI effects public headers stay self-contained ---
