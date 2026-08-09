@@ -13,45 +13,106 @@ typedef struct {
 } xy_led_gui_entry_t;
 
 static xy_led_gui_entry_t g_led_gui_registry[XY_LED_GUI_REGISTRY_SIZE];
-static xy_led_driver_t *g_active_gui_driver;
 
-static void led_gui_set_pixel(int16_t x, int16_t y, uint32_t color)
+static xy_led_driver_t *led_gui_driver_at(size_t index)
 {
-    if (!g_active_gui_driver || !g_active_gui_driver->set_pixel || x < 0 || y < 0) {
+    if (index >= XY_LED_GUI_REGISTRY_SIZE) {
+        return NULL;
+    }
+
+    return g_led_gui_registry[index].driver;
+}
+
+static void led_gui_set_pixel_for(size_t index, int16_t x, int16_t y, uint32_t color)
+{
+    xy_led_driver_t *driver = led_gui_driver_at(index);
+    if (!driver || !driver->set_pixel || x < 0 || y < 0) {
         return;
     }
 
-    g_active_gui_driver->set_pixel((uint16_t)x, (uint16_t)y, color);
+    driver->set_pixel((uint16_t)x, (uint16_t)y, color);
 }
 
-static uint32_t led_gui_get_pixel(int16_t x, int16_t y)
+static uint32_t led_gui_get_pixel_for(size_t index, int16_t x, int16_t y)
 {
-    if (!g_active_gui_driver || !g_active_gui_driver->get_pixel || x < 0 || y < 0) {
+    xy_led_driver_t *driver = led_gui_driver_at(index);
+    if (!driver || !driver->get_pixel || x < 0 || y < 0) {
         return 0U;
     }
 
-    return g_active_gui_driver->get_pixel((uint16_t)x, (uint16_t)y);
+    return driver->get_pixel((uint16_t)x, (uint16_t)y);
 }
 
-static void led_gui_fill_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint32_t color)
+static void led_gui_fill_rect_for(size_t index, int16_t x, int16_t y, int16_t w, int16_t h,
+                                  uint32_t color)
 {
-    if (!g_active_gui_driver || !g_active_gui_driver->set_pixel || w <= 0 || h <= 0) {
+    xy_led_driver_t *driver = led_gui_driver_at(index);
+    if (!driver || !driver->set_pixel || w <= 0 || h <= 0) {
         return;
     }
 
     for (int16_t row = 0; row < h; ++row) {
         for (int16_t col = 0; col < w; ++col) {
-            led_gui_set_pixel((int16_t)(x + col), (int16_t)(y + row), color);
+            led_gui_set_pixel_for(index, (int16_t)(x + col), (int16_t)(y + row), color);
         }
     }
 }
 
-static void led_gui_flush(void)
+static void led_gui_flush_for(size_t index)
 {
-    if (g_active_gui_driver && g_active_gui_driver->show) {
-        g_active_gui_driver->show();
+    xy_led_driver_t *driver = led_gui_driver_at(index);
+    if (driver && driver->show) {
+        driver->show();
     }
 }
+
+#define DEFINE_LED_GUI_SLOT(index)                                                                 \
+    static void led_gui_set_pixel_##index(int16_t x, int16_t y, uint32_t color)                    \
+    {                                                                                              \
+        led_gui_set_pixel_for((index), x, y, color);                                               \
+    }                                                                                              \
+    static uint32_t led_gui_get_pixel_##index(int16_t x, int16_t y)                                \
+    {                                                                                              \
+        return led_gui_get_pixel_for((index), x, y);                                               \
+    }                                                                                              \
+    static void led_gui_fill_rect_##index(int16_t x, int16_t y, int16_t w, int16_t h,              \
+                                          uint32_t color)                                          \
+    {                                                                                              \
+        led_gui_fill_rect_for((index), x, y, w, h, color);                                        \
+    }                                                                                              \
+    static void led_gui_flush_##index(void)                                                        \
+    {                                                                                              \
+        led_gui_flush_for((index));                                                                \
+    }
+
+DEFINE_LED_GUI_SLOT(0)
+DEFINE_LED_GUI_SLOT(1)
+DEFINE_LED_GUI_SLOT(2)
+DEFINE_LED_GUI_SLOT(3)
+DEFINE_LED_GUI_SLOT(4)
+DEFINE_LED_GUI_SLOT(5)
+DEFINE_LED_GUI_SLOT(6)
+DEFINE_LED_GUI_SLOT(7)
+
+static void (*const g_led_gui_set_pixel_slots[])(int16_t, int16_t, uint32_t) = {
+    led_gui_set_pixel_0, led_gui_set_pixel_1, led_gui_set_pixel_2, led_gui_set_pixel_3,
+    led_gui_set_pixel_4, led_gui_set_pixel_5, led_gui_set_pixel_6, led_gui_set_pixel_7,
+};
+
+static uint32_t (*const g_led_gui_get_pixel_slots[])(int16_t, int16_t) = {
+    led_gui_get_pixel_0, led_gui_get_pixel_1, led_gui_get_pixel_2, led_gui_get_pixel_3,
+    led_gui_get_pixel_4, led_gui_get_pixel_5, led_gui_get_pixel_6, led_gui_get_pixel_7,
+};
+
+static void (*const g_led_gui_fill_rect_slots[])(int16_t, int16_t, int16_t, int16_t, uint32_t) = {
+    led_gui_fill_rect_0, led_gui_fill_rect_1, led_gui_fill_rect_2, led_gui_fill_rect_3,
+    led_gui_fill_rect_4, led_gui_fill_rect_5, led_gui_fill_rect_6, led_gui_fill_rect_7,
+};
+
+static void (*const g_led_gui_flush_slots[])(void) = {
+    led_gui_flush_0, led_gui_flush_1, led_gui_flush_2, led_gui_flush_3,
+    led_gui_flush_4, led_gui_flush_5, led_gui_flush_6, led_gui_flush_7,
+};
 
 static xy_led_gui_entry_t *led_gui_find(xy_led_driver_t *drv)
 {
@@ -78,6 +139,10 @@ static xy_led_gui_entry_t *led_gui_alloc(xy_led_driver_t *drv)
     for (size_t index = 0; index < XY_LED_GUI_REGISTRY_SIZE; ++index) {
         if (!g_led_gui_registry[index].driver) {
             g_led_gui_registry[index].driver = drv;
+            g_led_gui_registry[index].display.set_pixel = g_led_gui_set_pixel_slots[index];
+            g_led_gui_registry[index].display.get_pixel = g_led_gui_get_pixel_slots[index];
+            g_led_gui_registry[index].display.fill_rect = g_led_gui_fill_rect_slots[index];
+            g_led_gui_registry[index].display.flush = g_led_gui_flush_slots[index];
             return &g_led_gui_registry[index];
         }
     }
@@ -96,13 +161,14 @@ int xy_led_register_gui(xy_led_driver_t *drv)
         return -1;
     }
 
+    size_t index = (size_t)(entry - g_led_gui_registry);
     entry->display.width = drv->width;
     entry->display.height = drv->height;
     entry->display.format = drv->bpp <= 1U ? XY_GUI_COLOR_MONO : XY_GUI_COLOR_RGB888;
-    entry->display.set_pixel = led_gui_set_pixel;
-    entry->display.get_pixel = drv->get_pixel ? led_gui_get_pixel : NULL;
-    entry->display.fill_rect = led_gui_fill_rect;
-    entry->display.flush = led_gui_flush;
+    entry->display.set_pixel = g_led_gui_set_pixel_slots[index];
+    entry->display.get_pixel = drv->get_pixel ? g_led_gui_get_pixel_slots[index] : NULL;
+    entry->display.fill_rect = g_led_gui_fill_rect_slots[index];
+    entry->display.flush = g_led_gui_flush_slots[index];
     entry->display.user_data = drv;
     entry->enabled = true;
 
@@ -116,7 +182,6 @@ xy_gui_display_t *xy_led_get_gui_interface(xy_led_driver_t *drv)
         return NULL;
     }
 
-    g_active_gui_driver = drv;
     return &entry->display;
 }
 

@@ -9,8 +9,11 @@ static uint16_t g_last_y;
 DEFINE_FFF_GLOBALS;
 
 FAKE_VOID_FUNC(fake_set_pixel, uint16_t, uint16_t, uint32_t)
+FAKE_VOID_FUNC(fake_alt_set_pixel, uint16_t, uint16_t, uint32_t)
 FAKE_VALUE_FUNC(uint32_t, fake_get_pixel, uint16_t, uint16_t)
+FAKE_VALUE_FUNC(uint32_t, fake_alt_get_pixel, uint16_t, uint16_t)
 FAKE_VOID_FUNC(fake_show)
+FAKE_VOID_FUNC(fake_alt_show)
 
 static void fake_set_pixel_impl(uint16_t x, uint16_t y, uint32_t color)
 {
@@ -27,8 +30,11 @@ static uint32_t fake_get_pixel_impl(uint16_t x, uint16_t y)
 void setUp(void)
 {
     RESET_FAKE(fake_set_pixel);
+    RESET_FAKE(fake_alt_set_pixel);
     RESET_FAKE(fake_get_pixel);
+    RESET_FAKE(fake_alt_get_pixel);
     RESET_FAKE(fake_show);
+    RESET_FAKE(fake_alt_show);
     FFF_RESET_HISTORY();
 
     fake_set_pixel_fake.custom_fake = fake_set_pixel_impl;
@@ -52,6 +58,20 @@ static xy_led_driver_t make_driver(void *user_data)
         .set_pixel = fake_set_pixel,
         .get_pixel = fake_get_pixel,
         .show = fake_show,
+        .user_data = user_data,
+    };
+    return driver;
+}
+
+static xy_led_driver_t make_alt_driver(void *user_data)
+{
+    xy_led_driver_t driver = {
+        .width = 8,
+        .height = 4,
+        .bpp = 24,
+        .set_pixel = fake_alt_set_pixel,
+        .get_pixel = fake_alt_get_pixel,
+        .show = fake_alt_show,
         .user_data = user_data,
     };
     return driver;
@@ -124,6 +144,36 @@ static void test_led_gui_can_be_disabled_and_reenabled(void)
     TEST_ASSERT_NOT_NULL(xy_led_get_gui_interface(&driver));
 }
 
+static void test_led_gui_display_callbacks_remain_bound_to_their_registered_driver(void)
+{
+    int first_state = 11;
+    int second_state = 22;
+    xy_led_driver_t first = make_driver(&first_state);
+    xy_led_driver_t second = make_alt_driver(&second_state);
+
+    TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&first));
+    xy_gui_display_t *first_display = xy_led_get_gui_interface(&first);
+    TEST_ASSERT_NOT_NULL(first_display);
+
+    TEST_ASSERT_EQUAL_INT(0, xy_led_register_gui(&second));
+    xy_gui_display_t *second_display = xy_led_get_gui_interface(&second);
+    TEST_ASSERT_NOT_NULL(second_display);
+
+    first_display->set_pixel(1, 2, 0x010203U);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, fake_alt_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(1, fake_set_pixel_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(2, fake_set_pixel_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(0x010203U, fake_set_pixel_fake.arg2_val);
+
+    second_display->set_pixel(3, 1, 0x0A0B0CU);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, fake_alt_set_pixel_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT16(3, fake_alt_set_pixel_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(1, fake_alt_set_pixel_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(0x0A0B0CU, fake_alt_set_pixel_fake.arg2_val);
+}
+
 static void test_led_gui_uses_monochrome_format_for_one_bpp(void)
 {
     int backend_state = 1;
@@ -142,6 +192,7 @@ int main(void)
     RUN_TEST(test_led_gui_rejects_invalid_driver);
     RUN_TEST(test_led_gui_registers_display_without_overwriting_user_data);
     RUN_TEST(test_led_gui_can_be_disabled_and_reenabled);
+    RUN_TEST(test_led_gui_display_callbacks_remain_bound_to_their_registered_driver);
     RUN_TEST(test_led_gui_uses_monochrome_format_for_one_bpp);
     return UNITY_END();
 }
