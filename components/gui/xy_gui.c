@@ -149,7 +149,7 @@ int xy_gui_fill_rect(xy_gui_t *gui, int16_t x, int16_t y, int16_t w, int16_t h, 
     } else {
         /* Fallback: draw horizontal lines */
         for (int16_t i = 0; i < h; i++) {
-            xy_gui_draw_line(gui, x, y + i, x + w, y + i, color);
+            xy_gui_draw_line(gui, x, y + i, x + w - 1, y + i, color);
         }
     }
     
