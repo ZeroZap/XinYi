@@ -142,5 +142,6 @@ git diff --check
 
 1. GUI ↔ Display driver backend 已新增 host-safe `test_gui_display_backend` / `gui_display_backend` CTest：当前证明 `xy_gui_disp_drv_t` fake backend 转发 contract、LED GUI display adapter host framebuffer/flush 绑定路径与失败归一化现状，不代表真实 LCD/OLED/LED matrix hardware validation。后续若要接更多具体 display driver adapter，应继续保持 host fake transport/framebuffer，不直接改 HAL/vendor 或默认启用硬件路径。
 2. GUI LED-screen/RGB extended effects 已由 `docs/design/xinyi-gui-led-screen-effects-proposal-2026-08-09.md` 固定边界，且 `gui_led_screen_effects` 已先补 public-header self-containment CTest：当前只证明 `xy_led_screen.h` / `xy_gui_screen_fx.h` 的 host include/type/signature contract，不链接 LED-screen 实现、不代表 RGB 扩展算法或真实屏幕效果验证；若继续推进，应再补独立 host fake framebuffer implementation CTest。
-3. 若需要字体/中文渲染进一步闭环，先固定字体资产范围、完整字库与生成流程，再补渲染 snapshot smoke；不要把 `gui_fonts` 的 lookup/measurement host 测试等同于美术/字库质量验收。
-4. 只有在真实板级日志存在后，才更新硬件验证结论；当前状态保持 `host-guarded core / hardware validation pending`。
+3. RGB extended effect implementation (`xy_rgb_fx_extended/matrix/3d/music.c`) 已由 `docs/design/xinyi-gui-rgb-extended-effects-compile-proposal-2026-08-09.md` 明确为 compile-boundary 优先：下一步应先补 host fake RGB-strip backend compile CTest，确认 `xy_rgb_*` public seam 与 `g_frame_count` ownership，再考虑 deterministic algorithm coverage；不要直接把这些文件并入 `gui_effects` 或声称硬件/视觉效果已验证。
+4. 若需要字体/中文渲染进一步闭环，先固定字体资产范围、完整字库与生成流程，再补渲染 snapshot smoke；不要把 `gui_fonts` 的 lookup/measurement host 测试等同于美术/字库质量验收。
+5. 只有在真实板级日志存在后，才更新硬件验证结论；当前状态保持 `host-guarded core / hardware validation pending`。
