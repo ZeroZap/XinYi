@@ -120,7 +120,7 @@ Any future font asset/generator slice should run at least:
 ```bash
 cmake -B build/tests/unit -S tests/unit
 cmake --build build/tests/unit --target test_gui_fonts test_gui_font_engine test_gui_font_manifest -j$(nproc)
-cd build/tests/unit && ctest --output-on-failure -R '^gui_(fonts|font_engine|font_manifest|font_generator_manifest|font_generator_output)$'
+cd build/tests/unit && ctest --output-on-failure -R '^gui_(fonts|font_engine|font_manifest|font_generator_manifest|font_generator_output|font_generator_write)$'
 make test-unit
 git diff --check
 ```

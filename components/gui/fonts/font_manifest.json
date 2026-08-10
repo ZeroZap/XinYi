@@ -59,7 +59,7 @@
   ],
   "generation_plan": {
     "generator": "components/gui/fonts/tools/generate_bitmap_font.py",
-    "state": "planned-not-implemented",
-    "next_step": "Add a deterministic generator and manifest/table consistency checks before importing or regenerating larger font sets."
+    "state": "manifest-header-write-guarded",
+    "next_step": "Use --write-manifest-header for explicit generated manifest-inventory header review, then add host framebuffer snapshot review before importing or regenerating larger font sets."
   }
 }

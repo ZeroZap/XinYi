@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Deterministic XinYi bitmap-font manifest validator/generator bootstrap.
 
-This first bootstrap slice intentionally validates the current checked-in font
-manifest only.  It does not import external font files or rewrite the legacy C
-bitmap tables.  Future generator modes should preserve the same strict manifest
-checks before emitting regenerated tables.
+This bootstrap validates the current checked-in font manifest and can emit the
+manifest-inventory generated header.  It does not import external font files or
+rewrite the legacy C bitmap tables.  Future glyph-table modes should preserve
+the same strict manifest checks before emitting regenerated bitmap data.
 """
 
 from __future__ import annotations
@@ -253,6 +253,27 @@ def self_test_generated_output(data: dict[str, Any]) -> None:
     _require("\t" not in header_once, "generated manifest header must not contain tabs")
 
 
+def write_manifest_header(data: dict[str, Any], output_path: Path) -> None:
+    """Write the deterministic manifest-inventory header to ``output_path``."""
+
+    output_path = output_path.resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(build_manifest_header(data), encoding="utf-8")
+
+
+def self_test_written_output(data: dict[str, Any]) -> None:
+    """Validate that the write path emits the same deterministic header preview."""
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="xinyi-font-manifest-") as tmpdir:
+        output_path = Path(tmpdir) / "generated" / "xy_gui_font_manifest_generated.h"
+        write_manifest_header(data, output_path)
+        written_header = output_path.read_text(encoding="utf-8")
+    _require(written_header == build_manifest_header(data),
+             "written manifest header differs from emitted preview")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default="components/gui/fonts/font_manifest.json",
@@ -261,8 +282,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--summary", action="store_true", help="Print a deterministic manifest summary")
     parser.add_argument("--emit-manifest-header", action="store_true",
                         help="Print deterministic generated-header preview for manifest inventory")
+    parser.add_argument("--write-manifest-header", metavar="PATH",
+                        help="Write deterministic generated-header output for manifest inventory")
     parser.add_argument("--self-test-output", action="store_true",
                         help="Validate deterministic generated-output contracts and exit")
+    parser.add_argument("--self-test-write", action="store_true",
+                        help="Validate that written output matches the generated-header preview")
     args = parser.parse_args(argv)
 
     try:
@@ -278,6 +303,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font generated-output self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font generated-output self-test passed")
+    elif args.self_test_write:
+        try:
+            self_test_written_output(data)
+        except ManifestError as exc:
+            print(f"font written-output self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font written-output self-test passed")
+    elif args.write_manifest_header:
+        try:
+            write_manifest_header(data, Path(args.write_manifest_header))
+        except OSError as exc:
+            print(f"font manifest header write failed: {exc}", file=sys.stderr)
+            return 1
+        print(f"font manifest header written: {args.write_manifest_header}")
     elif args.emit_manifest_header:
         print(build_manifest_header(data), end="")
     elif args.summary or not args.check:

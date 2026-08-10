@@ -12,18 +12,25 @@ Current host guard:
 python3 components/gui/fonts/tools/generate_bitmap_font.py --check
 python3 components/gui/fonts/tools/generate_bitmap_font.py --summary
 python3 components/gui/fonts/tools/generate_bitmap_font.py --emit-manifest-header
+python3 components/gui/fonts/tools/generate_bitmap_font.py --write-manifest-header /tmp/xy_gui_font_manifest_generated.h
 python3 components/gui/fonts/tools/generate_bitmap_font.py --self-test-output
+python3 components/gui/fonts/tools/generate_bitmap_font.py --self-test-write
 ```
 
 `--emit-manifest-header` prints a deterministic generated-header preview with
 manifest inventory constants only (asset count, per-font dimensions, glyph
 counts, byte sizes, and ASCII codepoint bounds). It deliberately does not write
-files or regenerate bitmap glyph tables yet. `--self-test-output` validates that
-preview output is deterministic and contains the current asset contract markers.
+files or regenerate bitmap glyph tables yet. `--write-manifest-header` writes
+the same deterministic inventory header to an explicit path for review or
+packaging smoke tests. `--self-test-output` validates that preview output is
+deterministic and contains the current asset contract markers; `--self-test-write`
+validates that the write path matches the preview without checking generated files
+into the repo.
 
-`tests/unit/CMakeLists.txt` registers `--check` as `gui_font_generator_manifest`
-and `--self-test-output` as `gui_font_generator_output`, so `make test-unit`
-catches both manifest/schema drift and deterministic output-preview drift.
+`tests/unit/CMakeLists.txt` registers `--check` as `gui_font_generator_manifest`,
+`--self-test-output` as `gui_font_generator_output`, and `--self-test-write` as
+`gui_font_generator_write`, so `make test-unit` catches manifest/schema drift,
+deterministic output-preview drift, and write-path drift.
 
 Future implementation requirements:
 
