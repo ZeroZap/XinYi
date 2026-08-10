@@ -160,6 +160,7 @@
 
 - GUI font engine 已从“字体/中文渲染待补”推进为 host-guarded：`gui_fonts` 覆盖 8x16/16x24/Chinese 16x16 bitmap asset lookup 与 measurement contract，`gui_font_engine` 覆盖 runtime font init、glyph lookup、draw/cache/multi-line measurement、unsupported/null guards、load-stub guard 与 wide-glyph row bounds。
 - 本结论仍只代表 host-side 字体资产/引擎契约；不代表完整中文字库、美术质量、真实屏幕渲染或 GUI↔Display 硬件验证已通过。后续若继续字体方向，应先写字体资产范围/生成流程或真实渲染 snapshot proposal，不再重复补同类 font engine guard。
+- 已新增 `docs/design/xinyi-gui-font-asset-generation-proposal-2026-08-11.md`，把字体方向的下一步收束为四级证据：当前 contract-guarded assets、可复现 manifest/generator、host framebuffer snapshot review、真实屏幕硬件记录。后续不要再把 `gui_fonts` / `gui_font_engine` 等同于完整中文字库或美术验收；若继续实现，应先做 current-asset manifest/generator 与 manifest consistency host smoke，不要同轮 bulk-import 完整 CJK 字库。
 
 ---
 
