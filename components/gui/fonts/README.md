@@ -8,14 +8,14 @@ This directory contains bitmap fonts for the XinYi GUI system.
 
 | Font | Size | Characters | File |
 |------|------|------------|------|
-| 8x16 | 8x16 pixels | ASCII 0x20-0x7E (94 chars) | `xy_font_8x16.c/.h` |
-| 16x24 | 16x24 pixels | ASCII 0x20-0x7E (94 chars) | `xy_font_16x24.c/.h` |
+| 8x16 | 8x16 pixels | ASCII 0x20-0x7E (95 chars) | `xy_font_8x16.c/.h` |
+| 16x24 | 16x24 pixels | ASCII 0x20-0x7E (95 chars) | `xy_font_16x24.c/.h` |
 
 ### Chinese Fonts
 
 | Font | Size | Characters | File |
 |------|------|------------|------|
-| 16x16 Chinese | 16x16 pixels | 150 common characters | `xy_font_chinese_16x16.c/.h` |
+| 16x16 Chinese | 16x16 pixels | 168 table entries | `xy_font_chinese_16x16.c/.h` |
 
 ## Font Format
 
@@ -89,6 +89,9 @@ uint16_t cn_width = xy_font_chinese_16x16_measure("Hello中文");
 - Common UI characters: 上、下、左、右、确认、取消、设置、返回、菜单
 - Numbers: 一、二、三、四、五、六、七、八、九、十
 - Additional common characters for general UI use
+- The current table intentionally includes duplicate Unicode entries and placeholder
+  bitmaps for some UI characters; `gui_fonts` guards the exported count/lookup/measure
+  contract only, not complete Chinese coverage or final glyph art quality.
 
 ## Adding New Fonts
 

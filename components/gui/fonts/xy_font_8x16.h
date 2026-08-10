@@ -22,7 +22,7 @@ extern const uint8_t g_font_8x16_data[];
 /**
  * @brief 8x16 字体字符数量
  */
-#define FONT_8X16_CHAR_COUNT 94
+#define FONT_8X16_CHAR_COUNT 95
 
 /**
  * @brief 8x16 字体宽度

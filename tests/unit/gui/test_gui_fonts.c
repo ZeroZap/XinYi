@@ -20,7 +20,7 @@ static void test_ascii_font_handles_and_boundaries(void)
     TEST_ASSERT_EQUAL_UINT8(FONT_8X16_WIDTH, font8->width);
     TEST_ASSERT_EQUAL_UINT8(FONT_8X16_HEIGHT, font8->height);
     TEST_ASSERT_EQUAL_UINT8(0x20U, font8->first_char);
-    TEST_ASSERT_EQUAL_UINT8(95U, font8->char_count);
+    TEST_ASSERT_EQUAL_UINT8(FONT_8X16_CHAR_COUNT, font8->char_count);
     TEST_ASSERT_NOT_NULL(font8->data);
 
     TEST_ASSERT_NOT_NULL(xy_font_8x16_get_char(' '));
@@ -38,7 +38,7 @@ static void test_ascii_font_handles_and_boundaries(void)
     TEST_ASSERT_EQUAL_UINT8(FONT_16X24_WIDTH, font16->width);
     TEST_ASSERT_EQUAL_UINT8(FONT_16X24_HEIGHT, font16->height);
     TEST_ASSERT_EQUAL_UINT8(0x20U, font16->first_char);
-    TEST_ASSERT_EQUAL_UINT8(95U, font16->char_count);
+    TEST_ASSERT_EQUAL_UINT8(FONT_16X24_CHAR_COUNT, font16->char_count);
     TEST_ASSERT_NOT_NULL(font16->data);
 
     TEST_ASSERT_NOT_NULL(xy_font_16x24_get_char(' '));
@@ -58,7 +58,7 @@ static void test_chinese_font_lookup_and_measure_boundaries(void)
     TEST_ASSERT_NOT_NULL(font);
     TEST_ASSERT_EQUAL_UINT8(FONT_CHINESE_WIDTH, font->width);
     TEST_ASSERT_EQUAL_UINT8(FONT_CHINESE_HEIGHT, font->height);
-    TEST_ASSERT_GREATER_OR_EQUAL_UINT16(1U, font->char_count);
+    TEST_ASSERT_EQUAL_UINT16(FONT_CHINESE_CHAR_COUNT, font->char_count);
     TEST_ASSERT_NOT_NULL(font->data);
 
     const xy_chinese_char_t *chars = xy_font_chinese_16x16_get_chars();

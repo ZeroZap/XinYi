@@ -17,7 +17,7 @@ extern "C" {
 /**
  * @brief 常用汉字数量
  */
-#define FONT_CHINESE_CHAR_COUNT 150
+#define FONT_CHINESE_CHAR_COUNT 168
 
 /**
  * @brief 汉字字体宽度
