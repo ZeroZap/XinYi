@@ -1,6 +1,6 @@
 # XinYi GUI LED-screen / RGB extended effects proposal
 
-**Status**: proposal / host-contract first  
+**Status**: host-contract partial / implementation source pending
 **Date**: 2026-08-09  
 **Scope**: `components/gui/effects/xy_led_screen*.{h,c}` and RGB extended effect helpers only; no HAL/vendor/display-driver hardware binding in this slice.
 
@@ -27,30 +27,34 @@ Keep three layers separate:
    - Already covers fade/blink/breath/slide/rotate object lifecycle and boundary contracts.
 
 2. **LED-screen framebuffer/effect math**
-   - Candidate future target: `gui_led_screen_effects`
-   - Should use a host-only fake LED-screen/framebuffer fixture.
-   - May cover drawing primitives, clipping, swap/update behavior, and deterministic effect-step math.
+   - Current target: `gui_led_screen_effects`
+   - Current coverage is intentionally limited to public-header self-containment, public types, enums, and function signatures because the repository currently has `xy_led_screen.h` / `xy_gui_screen_fx.h` but no matching `.c` implementation files.
+   - When implementation sources are added, extend the same target with a host-only fake LED-screen/framebuffer fixture.
+   - Future implementation coverage may cover drawing primitives, clipping, swap/update behavior, and deterministic effect-step math.
    - Must not call real HAL GPIO/SPI/I2C/UART or real display drivers.
 
 3. **RGB/extended/hardware-adjacent effects**
-   - Candidate future target(s): `gui_rgb_effects_headers` first, then narrower implementation tests only where the public contract is deterministic.
+   - Current target: `gui_rgb_extended_effects_compile`
+   - Current coverage links `xy_rgb_fx_extended.c`, `xy_rgb_fx_music.c`, `xy_rgb_fx_matrix.c`, and `xy_rgb_fx_3d.c` through a fake serial-RGB seam to guard compile boundaries and deterministic low-risk smoke paths.
    - Hardware timing, audio/music input quality, LED-strip electrical behavior, and real screen output remain validation-record territory, not host fake proof.
 
-## Proposed first implementation slice
+## Completed host-contract slice
 
-A safe next code/test slice is:
+The first safe code/test slice has already landed:
 
-1. Add `tests/unit/gui/test_gui_led_screen_effects.c`.
-2. Link only the minimal LED-screen/effect sources required by the test.
-3. Use a fake in-memory framebuffer; no Display driver, HAL, or vendor tree.
-4. Cover existing public contracts only:
-   - init rejects NULL/zero geometry and accepts a small fixed buffer;
-   - set/get pixel clips out-of-range coordinates without side effects;
-   - clear/fill/swap/update mutate only the expected buffer state;
-   - line/rectangle primitives clip to the framebuffer;
-   - one deterministic simple effect step, if current implementation already exposes stable state.
-5. Wire as CTest name `gui_led_screen_effects` and build target `test_gui_led_screen_effects`.
-6. Update `components/gui/README.md` and `docs/design/unit-test-inventory.md` only after the focused target passes.
+1. `tests/unit/gui/test_gui_led_screen_effects.c` now verifies `xy_led_screen.h` and `xy_gui_screen_fx.h` public types, enums, and function-signature contracts without linking hardware or nonexistent implementation sources.
+2. `tests/unit/gui/test_gui_rgb_extended_effects_compile.c` now verifies the RGB extended implementation files through fake `xy_rgb_*` strip callbacks, test-owned `g_frame_count`, and local delay/color helper seams.
+3. `components/gui/README.md` and `docs/design/unit-test-inventory.md` already describe these targets as host-only contract guards, not hardware or visual-quality validation.
+
+## Remaining implementation slice
+
+Only after real `xy_led_screen*.c` / `xy_gui_screen_fx*.c` implementation files exist, extend `test_gui_led_screen_effects` to link those sources and use a fake in-memory framebuffer. Cover existing public contracts only:
+
+- init rejects NULL/zero geometry and accepts a small fixed buffer;
+- set/get pixel clips out-of-range coordinates without side effects;
+- clear/fill/swap/update mutate only the expected buffer state;
+- line/rectangle primitives clip to the framebuffer;
+- one deterministic simple effect step, if the implementation exposes stable state.
 
 ## Explicit non-goals
 
@@ -60,18 +64,20 @@ A safe next code/test slice is:
 - Do not merge this with GUI font-rendering or display-driver hardware validation work.
 - Do not change the default component enablement policy unless a separate Kconfig/CMake proposal proves the boundary.
 
-## Verification plan for the future code slice
+## Verification plan
 
 ```bash
 cmake -B build/tests/unit -S tests/unit
 cmake --build build/tests/unit --target test_gui_led_screen_effects -j$(nproc)
+cmake --build build/tests/unit --target test_gui_rgb_extended_effects_compile -j$(nproc)
 cd build/tests/unit && ctest --output-on-failure -R '^gui_led_screen_effects$'
+cd build/tests/unit && ctest --output-on-failure -R '^gui_rgb_extended_effects_compile$'
 make test-unit
 git diff --check
 ```
 
-If the first focused build exposes stale API drift in `xy_led_screen*.c`, fix only the smallest contract required by the focused host test and keep the implementation hardware-free.
+If a future focused build exposes stale API drift in newly added `xy_led_screen*.c`, fix only the smallest contract required by the focused host test and keep the implementation hardware-free.
 
 ## Current conclusion
 
-This proposal closes the design ambiguity for the next GUI effects step: LED-screen/RGB extended effects should proceed through a separate host-contract target before any hardware or UX claims. Until that target exists and passes, `components/gui/README.md` should continue describing extended effects as pending rather than complete.
+This proposal now records the closed first step: LED-screen headers and RGB extended effects have host-only contract guards, but no result here represents visual algorithm quality, LED timing, or real screen hardware validation. The remaining LED-screen work is implementation-source driven: do not add fake implementation tests until matching production `.c` files exist, and do not mark hardware validation complete without board logs.
