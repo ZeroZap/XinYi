@@ -16,7 +16,8 @@ extern "C" {
  * every other color maps to a set mono pixel.
  *
  * @param out_drv GUI display callback table to populate.
- * @param oled Initialized SSD1306 driver instance with a non-NULL framebuffer and dimensions.
+ * @param oled Initialized SSD1306 driver instance with a non-NULL framebuffer and page-aligned
+ *        dimensions (height must be a non-zero multiple of 8 pixels).
  * @return XY_GUI_OK on success, XY_GUI_INVALID_PARAM for NULL inputs, or XY_GUI_NO_MEM if no
  *         adapter slot is available.
  */

@@ -229,7 +229,8 @@ static size_t ssd1306_find_or_alloc_slot(xy_oled_ssd1306_t *oled)
 
 int xy_gui_ssd1306_bind(xy_gui_disp_drv_t *out_drv, xy_oled_ssd1306_t *oled)
 {
-    if (!out_drv || !oled || !oled->buffer || oled->width == 0U || oled->height == 0U) {
+    if (!out_drv || !oled || !oled->buffer || oled->width == 0U || oled->height == 0U ||
+        (oled->height % 8U) != 0U) {
         return XY_GUI_INVALID_PARAM;
     }
 

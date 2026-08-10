@@ -121,6 +121,10 @@ static void test_bind_rejects_unusable_oled_geometry_without_mutating_existing_d
     oled.height = 0U;
     TEST_ASSERT_EQUAL_INT(XY_GUI_INVALID_PARAM, xy_gui_ssd1306_bind(&drv, &oled));
     TEST_ASSERT_NOT_NULL(drv.flush);
+
+    oled.height = 7U;
+    TEST_ASSERT_EQUAL_INT(XY_GUI_INVALID_PARAM, xy_gui_ssd1306_bind(&drv, &oled));
+    TEST_ASSERT_NOT_NULL(drv.draw_pixel);
 }
 
 static void test_draw_pixel_maps_rgb565_to_mono_bits(void)
