@@ -112,11 +112,15 @@ uint16_t cn_width = xy_font_chinese_16x16_measure("Hello中文");
 
 - `font_manifest.json` is the current software evidence boundary for bundled
   assets.
-- `tools/README.md` records the planned deterministic generator requirements;
-  no generator output is claimed yet.
+- `tools/generate_bitmap_font.py` is the first deterministic generator
+  bootstrap: today it validates manifest schema/ranges/source-file presence and
+  prints a stable summary; it does not rewrite bitmap tables or import external
+  fonts yet.
 - `gui_font_manifest` validates that the manifest-level public contracts match
   the checked-in tables and keeps the legacy duplicate/placeholder Chinese
   inventory visible.
+- `gui_font_generator_manifest` runs the Python manifest validator in the main
+  unit suite so generator/manifest drift is caught by `make test-unit`.
 
 ## Dependencies
 
@@ -129,7 +133,7 @@ fonts/
 ├── CMakeLists.txt
 ├── README.md
 ├── font_manifest.json       # Current checked-in asset manifest
-├── tools/                   # Planned deterministic generator notes
+├── tools/                   # Generator bootstrap + deterministic requirements
 ├── xy_font_8x16.c          # 8x16 ASCII font implementation
 ├── xy_font_8x16.h          # 8x16 ASCII font header
 ├── xy_font_16x24.c         # 16x24 ASCII font implementation

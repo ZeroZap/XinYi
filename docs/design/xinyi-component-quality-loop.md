@@ -162,6 +162,7 @@
 - 本结论仍只代表 host-side 字体资产/引擎契约；不代表完整中文字库、美术质量、真实屏幕渲染或 GUI↔Display 硬件验证已通过。后续若继续字体方向，应先写字体资产范围/生成流程或真实渲染 snapshot proposal，不再重复补同类 font engine guard。
 - 已新增 `docs/design/xinyi-gui-font-asset-generation-proposal-2026-08-11.md`，把字体方向的下一步收束为四级证据：当前 contract-guarded assets、可复现 manifest/generator、host framebuffer snapshot review、真实屏幕硬件记录。后续不要再把 `gui_fonts` / `gui_font_engine` 等同于完整中文字库或美术验收；若继续实现，应先做 current-asset manifest/generator 与 manifest consistency host smoke，不要同轮 bulk-import 完整 CJK 字库。
 - 已新增 `components/gui/fonts/font_manifest.json` 与 `gui_font_manifest` host CTest，先把当前 legacy ASCII/Chinese bitmap asset 的范围、provenance、duplicate/placeholder inventory 固定为可验证事实；`components/gui/fonts/tools/README.md` 只记录 deterministic generator 要求，尚未实现生成器或导入完整 CJK 字库。后续字体方向应推进 generator 或 snapshot review，而不是重复补字体表边界测试。
+- 已新增 `components/gui/fonts/tools/generate_bitmap_font.py` generator bootstrap 与 `gui_font_generator_manifest` CTest：当前只做 manifest schema/range/source-file/known-inventory validation 和 deterministic summary，不导入外部字体、不改写 legacy bitmap table、不声称字体美术或真实屏幕验证。后续 generator slice 应在此基础上实现可复现 `.c/.h` 输出或 host snapshot review。
 
 ---
 

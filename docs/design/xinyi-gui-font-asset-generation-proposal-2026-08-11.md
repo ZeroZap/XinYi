@@ -31,6 +31,11 @@ Evidence:
 - `gui_fonts` CTest passes.
 - `gui_font_engine` CTest passes.
 - `components/gui/fonts/README.md` documents the exported tables and limitations.
+- `gui_font_manifest` CTest validates manifest/table inventory for the current
+  legacy assets.
+- `gui_font_generator_manifest` CTest validates the generator bootstrap against
+  manifest schema/range/source-file contracts; it is not generated glyph output
+  yet.
 
 ### 2. Generated/reviewable font asset set (next software-only milestone)
 
@@ -112,8 +117,8 @@ Any future font asset/generator slice should run at least:
 
 ```bash
 cmake -B build/tests/unit -S tests/unit
-cmake --build build/tests/unit --target test_gui_fonts test_gui_font_engine -j$(nproc)
-cd build/tests/unit && ctest --output-on-failure -R '^gui_(fonts|font_engine)$'
+cmake --build build/tests/unit --target test_gui_fonts test_gui_font_engine test_gui_font_manifest -j$(nproc)
+cd build/tests/unit && ctest --output-on-failure -R '^gui_(fonts|font_engine|font_manifest|font_generator_manifest)$'
 make test-unit
 git diff --check
 ```
