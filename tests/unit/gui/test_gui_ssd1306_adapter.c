@@ -99,6 +99,30 @@ static void test_bind_rejects_null_inputs_without_mutating_existing_driver(void)
     TEST_ASSERT_NOT_NULL(drv.flush);
 }
 
+static void test_bind_rejects_unusable_oled_geometry_without_mutating_existing_driver(void)
+{
+    xy_oled_ssd1306_t oled;
+    uint8_t buffer[TEST_OLED_BUFFER_SIZE];
+    xy_gui_disp_drv_t drv;
+
+    init_oled_fixture(&oled, buffer, TEST_OLED_WIDTH, TEST_OLED_HEIGHT);
+    memset(&drv, 0xA5, sizeof(drv));
+
+    oled.buffer = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_GUI_INVALID_PARAM, xy_gui_ssd1306_bind(&drv, &oled));
+    TEST_ASSERT_NOT_NULL(drv.draw_pixel);
+
+    oled.buffer = buffer;
+    oled.width = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_GUI_INVALID_PARAM, xy_gui_ssd1306_bind(&drv, &oled));
+    TEST_ASSERT_NOT_NULL(drv.fill_rect);
+
+    oled.width = TEST_OLED_WIDTH;
+    oled.height = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_GUI_INVALID_PARAM, xy_gui_ssd1306_bind(&drv, &oled));
+    TEST_ASSERT_NOT_NULL(drv.flush);
+}
+
 static void test_draw_pixel_maps_rgb565_to_mono_bits(void)
 {
     xy_oled_ssd1306_t oled;
@@ -337,6 +361,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_bind_rejects_null_inputs_without_mutating_existing_driver);
+    RUN_TEST(test_bind_rejects_unusable_oled_geometry_without_mutating_existing_driver);
     RUN_TEST(test_draw_pixel_maps_rgb565_to_mono_bits);
     RUN_TEST(test_draw_line_rect_and_char_callbacks_forward_to_ssd1306_driver);
     RUN_TEST(test_fill_rect_clips_through_ssd1306_driver_and_ignores_empty_rects);
