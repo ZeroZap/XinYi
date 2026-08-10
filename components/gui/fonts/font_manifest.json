@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "component": "xinyi-gui-fonts",
+  "status": "legacy-assets-manifest",
+  "notes": [
+    "This manifest documents the currently checked-in bitmap font assets only.",
+    "It does not claim complete Chinese coverage, final glyph art quality, or hardware rendering validation.",
+    "Current Chinese entries intentionally include duplicate codepoints and placeholder bitmaps; the manifest-smoke target reports these as inventory facts."
+  ],
+  "fonts": [
+    {
+      "id": "ascii_8x16",
+      "family": "XinYi legacy ASCII bitmap",
+      "provenance": "legacy-project-asset",
+      "license": "project-review-pending",
+      "pixel_size": {"width": 8, "height": 16},
+      "encoding": "ASCII",
+      "range": {"first": "0x20", "last": "0x7E", "count": 95},
+      "bytes_per_glyph": 16,
+      "source_files": ["xy_font_8x16.c", "xy_font_8x16.h"],
+      "public_handle": "xy_font_8x16_get"
+    },
+    {
+      "id": "ascii_16x24",
+      "family": "XinYi legacy ASCII bitmap",
+      "provenance": "legacy-project-asset",
+      "license": "project-review-pending",
+      "pixel_size": {"width": 16, "height": 24},
+      "encoding": "ASCII",
+      "range": {"first": "0x20", "last": "0x7E", "count": 95},
+      "bytes_per_glyph": 48,
+      "source_files": ["xy_font_16x24.c", "xy_font_16x24.h"],
+      "public_handle": "xy_font_16x24_get"
+    },
+    {
+      "id": "chinese_16x16_ui_legacy",
+      "family": "XinYi legacy Chinese UI bitmap",
+      "provenance": "legacy-project-asset",
+      "license": "project-review-pending",
+      "pixel_size": {"width": 16, "height": 16},
+      "encoding": "Unicode BMP table",
+      "range": {"explicit_codepoints": "xy_font_chinese_16x16_get_chars", "count": 168},
+      "bytes_per_glyph": 32,
+      "source_files": ["xy_font_chinese_16x16.c", "xy_font_chinese_16x16.h"],
+      "public_handle": "xy_font_chinese_16x16_get",
+      "known_inventory_flags": {
+        "duplicate_codepoints_allowed": true,
+        "duplicate_codepoints_reason": "legacy table contains repeated UI/common characters and repeated placeholder expansion entries",
+        "placeholder_bitmaps_allowed": true,
+        "placeholder_bitmaps_reason": "legacy common-character rows share the same placeholder glyph pattern until a licensed generated asset set replaces them"
+      },
+      "required_ui_codepoints": [
+        "0x4E0A", "0x4E0B", "0x5DE6", "0x53F3",
+        "0x786E", "0x8BA4", "0x53D6", "0x6D88",
+        "0x8BBE", "0x7F6E", "0x8FD8", "0x56DE",
+        "0x83DC", "0x5355", "0x5B9A"
+      ]
+    }
+  ],
+  "generation_plan": {
+    "generator": "components/gui/fonts/tools/generate_bitmap_font.py",
+    "state": "planned-not-implemented",
+    "next_step": "Add a deterministic generator and manifest/table consistency checks before importing or regenerating larger font sets."
+  }
+}

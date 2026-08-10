@@ -2,6 +2,11 @@
 
 This directory contains bitmap fonts for the XinYi GUI system.
 
+The current tables are **legacy project assets** documented by
+`font_manifest.json`. The manifest captures public counts/ranges, provenance
+state, and known duplicate/placeholder inventory; it is not a claim of complete
+Chinese coverage, final glyph art, or hardware rendering validation.
+
 ## Font Types
 
 ### ASCII Fonts
@@ -96,9 +101,22 @@ uint16_t cn_width = xy_font_chinese_16x16_measure("Hello中文");
 ## Adding New Fonts
 
 1. Create new `.c/.h` pair following the existing pattern
-2. Define font data as arrays of bytes
-3. Implement the getter and measurement functions
-4. Update this README with the new font information
+2. Update `font_manifest.json` with provenance/license, size, range or explicit
+   codepoint list, bytes-per-glyph, and output files
+3. Define font data as arrays of bytes
+4. Implement the getter and measurement functions
+5. Add or update a manifest/asset consistency host test
+6. Update this README with the new font information
+
+## Manifest and generator status
+
+- `font_manifest.json` is the current software evidence boundary for bundled
+  assets.
+- `tools/README.md` records the planned deterministic generator requirements;
+  no generator output is claimed yet.
+- `gui_font_manifest` validates that the manifest-level public contracts match
+  the checked-in tables and keeps the legacy duplicate/placeholder Chinese
+  inventory visible.
 
 ## Dependencies
 
@@ -110,6 +128,8 @@ uint16_t cn_width = xy_font_chinese_16x16_measure("Hello中文");
 fonts/
 ├── CMakeLists.txt
 ├── README.md
+├── font_manifest.json       # Current checked-in asset manifest
+├── tools/                   # Planned deterministic generator notes
 ├── xy_font_8x16.c          # 8x16 ASCII font implementation
 ├── xy_font_8x16.h          # 8x16 ASCII font header
 ├── xy_font_16x24.c         # 16x24 ASCII font implementation

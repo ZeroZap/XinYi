@@ -1398,6 +1398,14 @@ xy_add_unit_test(test_gui_fonts gui_fonts UNITY
     ${GUI}/fonts/xy_font_chinese_16x16.c
 )
 
+# --- Test 37g: GUI bitmap font manifest/inventory contracts ---
+xy_add_unit_test(test_gui_font_manifest gui_font_manifest UNITY
+    ${UNIT_GUI}/test_gui_font_manifest.c
+    ${GUI}/fonts/xy_font_8x16.c
+    ${GUI}/fonts/xy_font_16x24.c
+    ${GUI}/fonts/xy_font_chinese_16x16.c
+)
+
 # --- Test 37f: GUI font engine draw/cache contracts ---
 xy_add_unit_test(test_gui_font_engine gui_font_engine UNITY
     ${UNIT_GUI}/test_gui_font_engine.c
@@ -1409,6 +1417,9 @@ xy_add_unit_test(test_gui_font_engine gui_font_engine UNITY
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 target_include_directories(test_gui_fonts PRIVATE
+    ${GUI}/fonts
+)
+target_include_directories(test_gui_font_manifest PRIVATE
     ${GUI}/fonts
 )
 target_include_directories(test_gui_font_engine PRIVATE
