@@ -1397,8 +1397,22 @@ xy_add_unit_test(test_gui_fonts gui_fonts UNITY
     ${GUI}/fonts/xy_font_16x24.c
     ${GUI}/fonts/xy_font_chinese_16x16.c
 )
+
+# --- Test 37f: GUI font engine draw/cache contracts ---
+xy_add_unit_test(test_gui_font_engine gui_font_engine UNITY
+    ${UNIT_GUI}/test_gui_font_engine.c
+    ${GUI}/src/xy_font.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
 target_include_directories(test_gui_fonts PRIVATE
     ${GUI}/fonts
+)
+target_include_directories(test_gui_font_engine PRIVATE
+    ${GUI}/inc
 )
 
 # --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---

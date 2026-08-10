@@ -1,7 +1,7 @@
 # XinYi GUI Component Status
 
-**状态**: host-guarded core / SSD1306 adapter host-guarded / 显示硬件待实证<br>
-**事实源日期**: 2026-08-10
+**状态**: host-guarded core / font engine host-guarded / SSD1306 adapter host-guarded / 显示硬件待实证<br>
+**事实源日期**: 2026-08-11
 
 本目录记录 `components/gui/` 的当前 GUI core、widget、event、theme 与扩展边界。它不是 Display driver 总说明，也不宣称真实屏幕硬件或完整 UI 产品已经验证通过。
 
@@ -28,6 +28,7 @@ GUI core 使用显式 `xy_gui_t` context API；不要再使用旧文档中的全
 | LED-screen extended effects headers | `effects/xy_led_screen.h`, `effects/xy_gui_screen_fx.h` | `gui_led_screen_effects` | LED-screen framebuffer/effect-engine public types、枚举和函数签名已由 host include/compile CTest 守护；该目标不链接硬件、未覆盖实现算法，也不代表真实 LED/screen 效果验证 |
 | RGB extended effects compile seam | `effects/xy_rgb_fx_{extended,music,matrix,3d}.c`, serial-RGB public headers, fake RGB-strip fixture | `gui_rgb_extended_effects_compile` | music extended implementation 已由 fake `xy_rgb_*` strip seam 与 test-owned `g_frame_count` 覆盖 setter/beat/frequency/autocorr/VU 基础路径；matrix/extended/3D implementation 已覆盖 2D matrix size/plasma、color-wipe/lightning seam 与 3D plasma 基础路径；该目标只证明 compile-boundary 与低风险调用契约，不代表视觉算法质量或硬件验证 |
 | Bitmap font assets | `fonts/xy_font_8x16.c`, `fonts/xy_font_16x24.c`, `fonts/xy_font_chinese_16x16.c` | `gui_fonts` | ASCII 8x16/16x24 与 Chinese 16x16 font handle、boundary lookup、NULL/空串 measurement、基础 UTF-8 中文宽度 contract 已由 host 测试守护；字体美术质量、完整中文字库与生成流程仍不在本结论内 |
+| Font engine | `src/xy_font.c`, `inc/xy_font.h` | `gui_font_engine` | host CTest 覆盖 runtime font init、glyph lookup、multi-line measurement、draw char/string/aligned text framebuffer writes、NULL/unsupported char guards、cache disable/init/cache hit/LRU replacement/clear contract；仍不代表字库美术质量或真实屏幕渲染验证 |
 
 这些测试说明 GUI 已不是“完全无测试/待开发”的空白组件；后续只能按真实失败补小回归，或为尚未纳入测试的 RGB 扩展实现效果、display-backend 写独立 proposal/CTest。
 
@@ -132,8 +133,9 @@ cmake --build build/tests/unit --target \
   test_gui_led_screen_effects \
   test_gui_rgb_extended_effects_compile \
   test_gui_fonts \
+  test_gui_font_engine \
   -j$(nproc)
-cd build/tests/unit && ctest --output-on-failure -R '^gui_(core|display_backend|ssd1306_adapter|widget_theme|widgets|effects|effects_headers|led_screen_effects|rgb_extended_effects_compile|fonts)$'
+cd build/tests/unit && ctest --output-on-failure -R '^gui_(core|display_backend|ssd1306_adapter|widget_theme|widgets|effects|effects_headers|led_screen_effects|rgb_extended_effects_compile|fonts|font_engine)$'
 
 make test-unit
 
@@ -147,5 +149,5 @@ git diff --check
 1. GUI ↔ Display driver backend 已新增 host-safe `test_gui_display_backend` / `gui_display_backend` 与 `test_gui_ssd1306_adapter` / `gui_ssd1306_adapter` CTest：当前证明 `xy_gui_disp_drv_t` fake backend 转发 contract、LED GUI display adapter host framebuffer/flush 绑定路径、SSD1306 adapter 的 mono 映射/flush/多实例隔离/slot reset，以及失败归一化现状，不代表真实 LCD/OLED/LED matrix hardware validation。后续若要接更多具体 display driver adapter，应继续保持 host fake transport/framebuffer，不直接改 HAL/vendor 或默认启用硬件路径。
 2. GUI LED-screen/RGB extended effects 已由 `docs/design/xinyi-gui-led-screen-effects-proposal-2026-08-09.md` 固定边界，且 `gui_led_screen_effects` 已先补 public-header self-containment CTest：当前只证明 `xy_led_screen.h` / `xy_gui_screen_fx.h` 的 host include/type/signature contract，不链接 LED-screen 实现、不代表 RGB 扩展算法或真实屏幕效果验证；若继续推进，应再补独立 host fake framebuffer implementation CTest。
 3. RGB extended effect implementation (`xy_rgb_fx_extended/matrix/3d/music.c`) 已由 `docs/design/xinyi-gui-rgb-extended-effects-compile-proposal-2026-08-09.md` 明确为 compile-boundary 优先：当前 `gui_rgb_extended_effects_compile` 已纳入全部 4 个 RGB extended implementation 文件，确认 fake `xy_rgb_*` strip seam、test-owned `g_frame_count`、delay/color helper seam 可守护 music setter/beat/frequency/autocorr/VU、matrix size/plasma、extended color-wipe/lightning 与 3D plasma 基础路径；不要把本目标解读为视觉算法质量或硬件效果已验证。
-4. 若需要字体/中文渲染进一步闭环，先固定字体资产范围、完整字库与生成流程，再补渲染 snapshot smoke；不要把 `gui_fonts` 的 lookup/measurement host 测试等同于美术/字库质量验收。
+4. GUI font engine 已由 `gui_font_engine` 追加 host CTest，证明 `xy_font.c` 的 draw/cache 基础 contract；若需要字体/中文渲染进一步闭环，先固定字体资产范围、完整字库与生成流程，再补渲染 snapshot smoke；不要把 `gui_fonts` / `gui_font_engine` 的 host 测试等同于美术/字库质量验收。
 5. 只有在真实板级日志存在后，才更新硬件验证结论；当前状态保持 `host-guarded core / hardware validation pending`。

@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 132
-- Unity-style files: 131
+- Total C files under `tests/unit`: 133
+- Unity-style files: 132
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 1
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 139
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 140
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -37,7 +37,7 @@
 | `fota` | 2 | 2 | 0 | 0 | 0 | 2 |
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `fuel_gauge` | 6 | 6 | 0 | 0 | 0 | 6 |
-| `gui` | 6 | 6 | 0 | 0 | 0 | 1 |
+| `gui` | 7 | 7 | 0 | 0 | 0 | 1 |
 | `hal_component` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `kernel` | 3 | 3 | 0 | 0 | 0 | 1 |
@@ -112,6 +112,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/gui/test_gui_display_backend.c` | `unity` | 0 | GUI core to fake display backend bridge contract; host-only forwarding/output-preservation guard, not hardware validation. |
 | `tests/unit/gui/test_gui_ssd1306_adapter.c` | `unity` | 0 | GUI to SSD1306 display-driver adapter contract; host-only mono mapping/draw-line/draw-rect/draw-char callback forwarding/flush bus-failure propagation/multi-instance/slot-exhaustion guard, not hardware validation. |
 | `tests/unit/gui/test_gui_effects.c` | `unity` | 0 | GUI fade/blink/breath/slide/rotate algorithm and guard contracts. |
+| `tests/unit/gui/test_gui_font_engine.c` | `unity` | 0 | GUI runtime font engine glyph/measurement/draw/cache contracts with local tick/log stubs; host-only, not font art or hardware rendering validation. |
 | `tests/unit/gui/test_gui_fonts.c` | `unity` | 0 | GUI bitmap font lookup and measurement contracts for ASCII 8x16/16x24 and Chinese 16x16 assets. |
 | `tests/unit/gui/test_gui_led_screen_effects.c` | `unity` | 0 | GUI LED-screen extended effects public header self-containment; host include/type/signature contract only, not hardware validation. |
 | `tests/unit/gui/test_gui_rgb_extended_effects_compile.c` | `unity` | 0 | GUI RGB extended music/matrix/extended/3D effects compile-boundary guard with fake serial-RGB seam, test-owned frame counter, delay/color helper seams, and deterministic low-risk smoke paths; not visual or hardware validation. |
