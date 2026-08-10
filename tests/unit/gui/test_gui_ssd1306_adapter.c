@@ -250,6 +250,38 @@ static void test_multiple_bound_oled_instances_keep_isolated_slots(void)
     TEST_ASSERT_EQUAL_HEX8(0x01U, g_i2c_writes[3].bytes[3]);
 }
 
+static void test_rebinding_same_oled_reuses_existing_slot_without_exhaustion(void)
+{
+    xy_oled_ssd1306_t oled;
+    uint8_t buffer[TEST_OLED_BUFFER_SIZE];
+    xy_gui_disp_drv_t first_drv;
+    xy_gui_disp_drv_t second_drv;
+    xy_oled_ssd1306_t other_oleds[4];
+    uint8_t other_buffers[4][TEST_OLED_BUFFER_SIZE];
+    xy_gui_disp_drv_t other_drivers[4];
+
+    init_oled_fixture(&oled, buffer, TEST_OLED_WIDTH, TEST_OLED_HEIGHT);
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&first_drv, &oled));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&second_drv, &oled));
+
+    TEST_ASSERT_EQUAL_PTR(first_drv.draw_pixel, second_drv.draw_pixel);
+    TEST_ASSERT_EQUAL_PTR(first_drv.flush, second_drv.flush);
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, second_drv.draw_pixel(4, 0, XY_GUI_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_HEX8(0x01U, buffer[4]);
+
+    for (size_t index = 0; index < 4U; ++index) {
+        init_oled_fixture(&other_oleds[index], other_buffers[index], TEST_OLED_WIDTH,
+                          TEST_OLED_HEIGHT);
+        memset(&other_drivers[index], 0xA5, sizeof(other_drivers[index]));
+    }
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&other_drivers[0], &other_oleds[0]));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&other_drivers[1], &other_oleds[1]));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&other_drivers[2], &other_oleds[2]));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_NO_MEM, xy_gui_ssd1306_bind(&other_drivers[3], &other_oleds[3]));
+    TEST_ASSERT_NULL(other_drivers[3].draw_pixel);
+}
+
 static void test_slot_exhaustion_clears_output_driver_until_reset_releases_slots(void)
 {
     xy_oled_ssd1306_t oleds[5];
@@ -311,6 +343,7 @@ int main(void)
     RUN_TEST(test_flush_forwards_to_ssd1306_refresh_transactions);
     RUN_TEST(test_flush_reports_ssd1306_refresh_bus_failures);
     RUN_TEST(test_multiple_bound_oled_instances_keep_isolated_slots);
+    RUN_TEST(test_rebinding_same_oled_reuses_existing_slot_without_exhaustion);
     RUN_TEST(test_slot_exhaustion_clears_output_driver_until_reset_releases_slots);
     RUN_TEST(test_reset_invalidates_existing_callbacks_until_rebound);
     return UNITY_END();
