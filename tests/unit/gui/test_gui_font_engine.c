@@ -152,10 +152,32 @@ static void test_font_cache_lifecycle_and_lru_contracts(void)
     xy_font_cache_clear(&font);
 }
 
+static void test_font_load_public_stub_contract(void)
+{
+    xy_font_t font;
+    const uint8_t fake_font_blob[4] = {0x58U, 0x59U, 0x46U, 0x54U};
+
+    make_test_font(&font);
+    TEST_ASSERT_EQUAL_INT(-1, xy_font_load(NULL, fake_font_blob, sizeof(fake_font_blob)));
+    TEST_ASSERT_EQUAL_INT(-1, xy_font_load(&font, NULL, sizeof(fake_font_blob)));
+    TEST_ASSERT_EQUAL_INT(-1, xy_font_load(&font, fake_font_blob, 0U));
+    TEST_ASSERT_EQUAL_INT(0, xy_font_load(&font, fake_font_blob, sizeof(fake_font_blob)));
+
+    /* Loading a custom blob is currently a host-guarded stub: it validates inputs
+     * but preserves the caller-provided runtime font descriptor until a real font
+     * file format/parser is designed.
+     */
+    TEST_ASSERT_EQUAL_STRING("test", font.name);
+    TEST_ASSERT_EQUAL_INT(XY_FONT_TYPE_BITMAP, font.type);
+    TEST_ASSERT_EQUAL_UINT16(2U, font.glyph_count);
+    TEST_ASSERT_TRUE(font.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_font_engine_glyph_measure_and_draw_contracts);
     RUN_TEST(test_font_cache_lifecycle_and_lru_contracts);
+    RUN_TEST(test_font_load_public_stub_contract);
     return UNITY_END();
 }

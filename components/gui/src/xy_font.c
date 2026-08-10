@@ -97,6 +97,20 @@ int xy_font_init(xy_font_t *font, const char *name, xy_font_type_t type)
     return 0;
 }
 
+int xy_font_load(xy_font_t *font, const void *data, uint32_t size)
+{
+    if (!font || !data || size == 0U) {
+        return -1;
+    }
+
+    /* Custom font blob parsing is intentionally not implemented yet. Keep this
+     * API as a validated no-op so callers can guard load flows without silently
+     * corrupting an existing runtime font descriptor.
+     */
+    xy_log_i("Font load stub accepted %u bytes\n", (unsigned int)size);
+    return 0;
+}
+
 const xy_glyph_t* xy_font_get_glyph(const xy_font_t *font, char ch)
 {
     if (!font || !font->glyphs) {
