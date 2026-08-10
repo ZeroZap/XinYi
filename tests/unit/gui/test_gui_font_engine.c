@@ -109,6 +109,46 @@ static void test_font_engine_glyph_measure_and_draw_contracts(void)
                                             NULL, 8U, 8U));
 }
 
+static void test_font_engine_draws_and_caches_wide_glyph_rows(void)
+{
+    static const uint8_t wide_data[4] = {
+        0x80, 0x80, /* pixels 0 and 8 set */
+        0x40, 0x40, /* pixels 1 and 9 set */
+    };
+    static const xy_glyph_t wide_glyph[] = {
+        {wide_data, 10U, 2U, 10, 0, 0},
+    };
+    xy_font_t font;
+    uint16_t framebuffer[12 * 3];
+    const uint8_t *cached_wide;
+
+    memset(&font, 0, sizeof(font));
+    font.name = "wide";
+    font.type = XY_FONT_TYPE_BITMAP;
+    font.style.size = 10U;
+    font.glyphs = wide_glyph;
+    font.glyph_count = 1U;
+    font.first_char = 'W';
+    font.last_char = 'W';
+    font.line_height = 3U;
+    font.initialized = true;
+
+    memset(framebuffer, 0, sizeof(framebuffer));
+    TEST_ASSERT_EQUAL_INT(0, xy_font_draw_char(&font, 'W', 1, 1, 0x0ACEU, framebuffer, 12U, 3U));
+    TEST_ASSERT_EQUAL_UINT16(0x0ACEU, framebuffer[1U * 12U + 1U]);
+    TEST_ASSERT_EQUAL_UINT16(0x0ACEU, framebuffer[1U * 12U + 9U]);
+    TEST_ASSERT_EQUAL_UINT16(0x0ACEU, framebuffer[2U * 12U + 2U]);
+    TEST_ASSERT_EQUAL_UINT16(0x0ACEU, framebuffer[2U * 12U + 10U]);
+    TEST_ASSERT_EQUAL_UINT16(0U, framebuffer[1U * 12U + 8U]);
+
+    TEST_ASSERT_EQUAL_INT(0, xy_font_cache_init(&font, 1U));
+    TEST_ASSERT_EQUAL_INT(0, xy_font_cache_glyph(&font, 'W'));
+    cached_wide = xy_font_cache_get(&font, 'W');
+    TEST_ASSERT_NOT_NULL(cached_wide);
+    TEST_ASSERT_EQUAL_HEX8_ARRAY(wide_data, cached_wide, sizeof(wide_data));
+    xy_font_cache_clear(&font);
+}
+
 static void test_font_cache_lifecycle_and_lru_contracts(void)
 {
     xy_font_t font;
@@ -177,6 +217,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_font_engine_glyph_measure_and_draw_contracts);
+    RUN_TEST(test_font_engine_draws_and_caches_wide_glyph_rows);
     RUN_TEST(test_font_cache_lifecycle_and_lru_contracts);
     RUN_TEST(test_font_load_public_stub_contract);
     return UNITY_END();

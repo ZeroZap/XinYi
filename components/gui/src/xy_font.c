@@ -212,11 +212,13 @@ int xy_font_draw_char(const xy_font_t *font, char ch, int16_t x, int16_t y,
     }
     
     uint16_t *fb = (uint16_t*)framebuffer;
+    uint8_t bytes_per_row = (uint8_t)((glyph->width + 7U) / 8U);
     
     /* 绘制点阵 */
     for (uint8_t row = 0; row < glyph->height; row++) {
         for (uint8_t col = 0; col < glyph->width; col++) {
-            uint8_t pixel = (glyph->data[row] >> (7 - col)) & 0x01;
+            uint8_t row_byte = glyph->data[(uint16_t)row * bytes_per_row + (col / 8U)];
+            uint8_t pixel = (row_byte >> (7U - (col % 8U))) & 0x01U;
             if (pixel) {
                 int16_t px = x + col + glyph->offset_x;
                 int16_t py = y + row + glyph->offset_y;
@@ -378,7 +380,8 @@ int xy_font_cache_glyph(xy_font_t *font, char ch)
     }
     
     /* 分配并复制位图数据 */
-    uint32_t data_size = glyph->width * glyph->height;
+    uint32_t bytes_per_row = (uint32_t)((glyph->width + 7U) / 8U);
+    uint32_t data_size = bytes_per_row * glyph->height;
     font->cache.entries[index].cached_data = (uint8_t *)malloc(data_size);
     if (!font->cache.entries[index].cached_data) {
         return -1;
