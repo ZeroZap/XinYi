@@ -156,6 +156,11 @@
 - 已新增 `docs/design/xinyi-gui-ssd1306-display-adapter-proposal-2026-08-10.md`，把 GUI core、旧 `xy_gui_display_t`、LED GUI adapter 与 SSD1306 display driver 的职责边界拆开：GUI core 不直接依赖 `xy_oled_ssd1306_t`，SSD1306 adapter 只调用 display driver public API，真实 I2C/HAL/vendor 与硬件验证仍在 adapter 之外。
 - 后续若扩展，应严格限定在 `xy_gui_ssd1306_adapter.{h,c}` + `test_gui_ssd1306_adapter`，当前已覆盖 bind guard、RGB565→mono 映射、draw-line/draw-rect/draw-char callback 转发、fill-rect clipping、flush I2C transaction、多实例 slot 隔离，以及 slot exhaustion/reset 契约；不要用单一全局 OLED 指针造成多屏串扰，也不要把 host fake 结果升级为真实 OLED 验证。
 
+### 2026-08-11 GUI font engine closure
+
+- GUI font engine 已从“字体/中文渲染待补”推进为 host-guarded：`gui_fonts` 覆盖 8x16/16x24/Chinese 16x16 bitmap asset lookup 与 measurement contract，`gui_font_engine` 覆盖 runtime font init、glyph lookup、draw/cache/multi-line measurement、unsupported/null guards、load-stub guard 与 wide-glyph row bounds。
+- 本结论仍只代表 host-side 字体资产/引擎契约；不代表完整中文字库、美术质量、真实屏幕渲染或 GUI↔Display 硬件验证已通过。后续若继续字体方向，应先写字体资产范围/生成流程或真实渲染 snapshot proposal，不再重复补同类 font engine guard。
+
 ---
 
 ## 5. 周度架构回顾
