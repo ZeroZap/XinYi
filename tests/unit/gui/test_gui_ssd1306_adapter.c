@@ -109,9 +109,9 @@ static void test_draw_pixel_maps_rgb565_to_mono_bits(void)
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&drv, &oled));
     TEST_ASSERT_NOT_NULL(drv.init);
     TEST_ASSERT_NOT_NULL(drv.draw_pixel);
-    TEST_ASSERT_NULL(drv.draw_line);
-    TEST_ASSERT_NULL(drv.draw_rect);
-    TEST_ASSERT_NULL(drv.draw_char);
+    TEST_ASSERT_NOT_NULL(drv.draw_line);
+    TEST_ASSERT_NOT_NULL(drv.draw_rect);
+    TEST_ASSERT_NOT_NULL(drv.draw_char);
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, drv.init());
 
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, drv.draw_pixel(0, 0, XY_GUI_COLOR_RED));
@@ -126,6 +126,34 @@ static void test_draw_pixel_maps_rgb565_to_mono_bits(void)
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, drv.draw_pixel(-1, 0, XY_GUI_COLOR_WHITE));
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, drv.draw_pixel((int16_t)TEST_OLED_WIDTH, 0, XY_GUI_COLOR_WHITE));
     TEST_ASSERT_EQUAL_HEX8(0x01U, buffer[0]);
+}
+
+static void test_draw_line_rect_and_char_callbacks_forward_to_ssd1306_driver(void)
+{
+    xy_oled_ssd1306_t oled;
+    uint8_t buffer[TEST_OLED_BUFFER_SIZE];
+    xy_gui_disp_drv_t drv;
+
+    init_oled_fixture(&oled, buffer, TEST_OLED_WIDTH, TEST_OLED_HEIGHT);
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&drv, &oled));
+
+    TEST_ASSERT_NOT_NULL(drv.draw_line);
+    TEST_ASSERT_NOT_NULL(drv.draw_rect);
+    TEST_ASSERT_NOT_NULL(drv.draw_char);
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, drv.draw_line(0, 8, 3, 8, XY_GUI_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_HEX8(0x01U, buffer[TEST_OLED_WIDTH + 0U]);
+    TEST_ASSERT_EQUAL_HEX8(0x01U, buffer[TEST_OLED_WIDTH + 1U]);
+    TEST_ASSERT_EQUAL_HEX8(0x01U, buffer[TEST_OLED_WIDTH + 2U]);
+    TEST_ASSERT_EQUAL_HEX8(0x01U, buffer[TEST_OLED_WIDTH + 3U]);
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, drv.draw_rect(4, 8, 2, 2, XY_GUI_COLOR_RED));
+    TEST_ASSERT_EQUAL_HEX8(0x03U, buffer[TEST_OLED_WIDTH + 4U]);
+    TEST_ASSERT_EQUAL_HEX8(0x03U, buffer[TEST_OLED_WIDTH + 5U]);
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, drv.draw_char(0, 0, '!', XY_GUI_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_HEX8(0x00U, buffer[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x4FU, buffer[2]);
 }
 
 static void test_fill_rect_clips_through_ssd1306_driver_and_ignores_empty_rects(void)
@@ -254,6 +282,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_bind_rejects_null_inputs_without_mutating_existing_driver);
     RUN_TEST(test_draw_pixel_maps_rgb565_to_mono_bits);
+    RUN_TEST(test_draw_line_rect_and_char_callbacks_forward_to_ssd1306_driver);
     RUN_TEST(test_fill_rect_clips_through_ssd1306_driver_and_ignores_empty_rects);
     RUN_TEST(test_flush_forwards_to_ssd1306_refresh_transactions);
     RUN_TEST(test_flush_reports_ssd1306_refresh_bus_failures);

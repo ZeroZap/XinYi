@@ -43,6 +43,42 @@ static int ssd1306_draw_pixel_for(size_t index, int16_t x, int16_t y, uint16_t c
     return XY_GUI_OK;
 }
 
+static int ssd1306_draw_line_for(size_t index, int16_t x1, int16_t y1, int16_t x2,
+                                 int16_t y2, uint16_t color)
+{
+    xy_oled_ssd1306_t *oled = ssd1306_oled_at(index);
+    if (!oled) {
+        return XY_GUI_INVALID_PARAM;
+    }
+
+    xy_oled_ssd1306_draw_line(oled, x1, y1, x2, y2, ssd1306_color_is_on(color));
+    return XY_GUI_OK;
+}
+
+static int ssd1306_draw_rect_for(size_t index, int16_t x, int16_t y, int16_t w, int16_t h,
+                                 uint16_t color)
+{
+    if (w <= 0 || h <= 0) {
+        return XY_GUI_OK;
+    }
+
+    int ret = ssd1306_draw_line_for(index, x, y, (int16_t)(x + w - 1), y, color);
+    if (ret != XY_GUI_OK) {
+        return ret;
+    }
+    ret = ssd1306_draw_line_for(index, x, (int16_t)(y + h - 1), (int16_t)(x + w - 1),
+                                (int16_t)(y + h - 1), color);
+    if (ret != XY_GUI_OK) {
+        return ret;
+    }
+    ret = ssd1306_draw_line_for(index, x, y, x, (int16_t)(y + h - 1), color);
+    if (ret != XY_GUI_OK) {
+        return ret;
+    }
+    return ssd1306_draw_line_for(index, (int16_t)(x + w - 1), y, (int16_t)(x + w - 1),
+                                 (int16_t)(y + h - 1), color);
+}
+
 static int ssd1306_fill_rect_for(size_t index, int16_t x, int16_t y, int16_t w, int16_t h,
                                  uint16_t color)
 {
@@ -65,6 +101,17 @@ static int ssd1306_fill_rect_for(size_t index, int16_t x, int16_t y, int16_t w, 
     return XY_GUI_OK;
 }
 
+static int ssd1306_draw_char_for(size_t index, int16_t x, int16_t y, char c, uint16_t color)
+{
+    xy_oled_ssd1306_t *oled = ssd1306_oled_at(index);
+    if (!oled) {
+        return XY_GUI_INVALID_PARAM;
+    }
+
+    xy_oled_ssd1306_draw_char(oled, x, y, c, ssd1306_color_is_on(color));
+    return XY_GUI_OK;
+}
+
 static int ssd1306_flush_for(size_t index)
 {
     xy_oled_ssd1306_t *oled = ssd1306_oled_at(index);
@@ -84,10 +131,24 @@ static int ssd1306_flush_for(size_t index)
     {                                                                                              \
         return ssd1306_draw_pixel_for((index), x, y, color);                                      \
     }                                                                                              \
+    static int ssd1306_draw_line_##index(int16_t x1, int16_t y1, int16_t x2, int16_t y2,           \
+                                         uint16_t color)                                           \
+    {                                                                                              \
+        return ssd1306_draw_line_for((index), x1, y1, x2, y2, color);                             \
+    }                                                                                              \
+    static int ssd1306_draw_rect_##index(int16_t x, int16_t y, int16_t w, int16_t h,               \
+                                         uint16_t color)                                           \
+    {                                                                                              \
+        return ssd1306_draw_rect_for((index), x, y, w, h, color);                                 \
+    }                                                                                              \
     static int ssd1306_fill_rect_##index(int16_t x, int16_t y, int16_t w, int16_t h,               \
                                          uint16_t color)                                           \
     {                                                                                              \
         return ssd1306_fill_rect_for((index), x, y, w, h, color);                                 \
+    }                                                                                              \
+    static int ssd1306_draw_char_##index(int16_t x, int16_t y, char c, uint16_t color)             \
+    {                                                                                              \
+        return ssd1306_draw_char_for((index), x, y, c, color);                                    \
     }                                                                                              \
     static int ssd1306_flush_##index(void)                                                         \
     {                                                                                              \
@@ -113,11 +174,32 @@ static int (*const g_ssd1306_draw_pixel_slots[])(int16_t, int16_t, uint16_t) = {
     ssd1306_draw_pixel_3,
 };
 
+static int (*const g_ssd1306_draw_line_slots[])(int16_t, int16_t, int16_t, int16_t, uint16_t) = {
+    ssd1306_draw_line_0,
+    ssd1306_draw_line_1,
+    ssd1306_draw_line_2,
+    ssd1306_draw_line_3,
+};
+
+static int (*const g_ssd1306_draw_rect_slots[])(int16_t, int16_t, int16_t, int16_t, uint16_t) = {
+    ssd1306_draw_rect_0,
+    ssd1306_draw_rect_1,
+    ssd1306_draw_rect_2,
+    ssd1306_draw_rect_3,
+};
+
 static int (*const g_ssd1306_fill_rect_slots[])(int16_t, int16_t, int16_t, int16_t, uint16_t) = {
     ssd1306_fill_rect_0,
     ssd1306_fill_rect_1,
     ssd1306_fill_rect_2,
     ssd1306_fill_rect_3,
+};
+
+static int (*const g_ssd1306_draw_char_slots[])(int16_t, int16_t, char, uint16_t) = {
+    ssd1306_draw_char_0,
+    ssd1306_draw_char_1,
+    ssd1306_draw_char_2,
+    ssd1306_draw_char_3,
 };
 
 static int (*const g_ssd1306_flush_slots[])(void) = {
@@ -160,7 +242,10 @@ int xy_gui_ssd1306_bind(xy_gui_disp_drv_t *out_drv, xy_oled_ssd1306_t *oled)
     memset(out_drv, 0, sizeof(*out_drv));
     out_drv->init = g_ssd1306_init_slots[index];
     out_drv->draw_pixel = g_ssd1306_draw_pixel_slots[index];
+    out_drv->draw_line = g_ssd1306_draw_line_slots[index];
+    out_drv->draw_rect = g_ssd1306_draw_rect_slots[index];
     out_drv->fill_rect = g_ssd1306_fill_rect_slots[index];
+    out_drv->draw_char = g_ssd1306_draw_char_slots[index];
     out_drv->flush = g_ssd1306_flush_slots[index];
 
     return XY_GUI_OK;

@@ -48,8 +48,9 @@ int xy_gui_ssd1306_bind(xy_gui_disp_drv_t *out_drv, xy_oled_ssd1306_t *oled);
 语义：
 
 - `out_drv == NULL` 或 `oled == NULL` 返回 `XY_GUI_INVALID_PARAM`；
-- 成功后填充 `out_drv->draw_pixel`、`out_drv->fill_rect`、`out_drv->flush`；
+- 成功后填充 `out_drv->draw_pixel`、`out_drv->draw_line`、`out_drv->draw_rect`、`out_drv->fill_rect`、`out_drv->draw_char`、`out_drv->flush`；
 - `draw_pixel` 将 RGB565/非零颜色映射为 SSD1306 `true`，`XY_GUI_COLOR_BLACK` 映射为 `false`；
+- `draw_line`、`draw_rect`、`draw_char` 转发到 SSD1306 public driver helpers，避免调用方只能使用 pixel/fill 子集；
 - `fill_rect` 通过裁剪后多次调用 `xy_oled_ssd1306_draw_pixel()`，避免在 adapter 中直接访问 buffer 布局；
 - `flush` 调用 `xy_oled_ssd1306_refresh()`；
 - 若继续沿用无 `user_data` 的 `xy_gui_disp_drv_t`，adapter 需要像 LED adapter 一样使用小型 static registry/slot，确保多个 OLED 实例隔离；不要使用单一全局 `g_oled` 导致多屏串扰。
@@ -69,10 +70,11 @@ components/gui/src/xy_gui_ssd1306_adapter.c
 
 1. bind guard：NULL `out_drv` / NULL `oled` 不产生可调用回调。
 2. draw_pixel：GUI red/white 写 SSD1306 buffer bit，black 清 bit，越界由 SSD1306 public API 保持 no-op。
-3. fill_rect：矩形被裁剪到 SSD1306 buffer 范围内，宽高为 0/负数不写。
-4. flush：调用 SSD1306 refresh，host fake I2C 捕获 column/page/data transaction。
-5. 多实例隔离：两个 OLED + 两个 `xy_gui_disp_drv_t` slot 不应互相写 buffer/flush。
-6. slot exhaustion/reset：第 5 个不同 OLED bind 返回 `XY_GUI_NO_MEM` 并清空输出 driver；显式 `xy_gui_ssd1306_adapter_reset()` 释放 slot 后可重新 bind。
+3. draw_line/draw_rect/draw_char：legacy GUI callback table 的线、矩形边框、字符入口转发到 SSD1306 public driver helper。
+4. fill_rect：矩形被裁剪到 SSD1306 buffer 范围内，宽高为 0/负数不写。
+5. flush：调用 SSD1306 refresh，host fake I2C 捕获 column/page/data transaction。
+6. 多实例隔离：两个 OLED + 两个 `xy_gui_disp_drv_t` slot 不应互相写 buffer/flush。
+7. slot exhaustion/reset：第 5 个不同 OLED bind 返回 `XY_GUI_NO_MEM` 并清空输出 driver；显式 `xy_gui_ssd1306_adapter_reset()` 释放 slot 后可重新 bind。
 
 该测试仍只证明 adapter 与 SSD1306 public API 的 host contract；不能把 host fake I2C
 transaction 记录写成真实 OLED/I2C 硬件验证。
