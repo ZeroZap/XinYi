@@ -245,7 +245,7 @@ int xy_font_draw_string(const xy_font_t *font, const char *text,
     
     while (*text) {
         if (*text == '\n') {
-            x = current_x;
+            current_x = x;
             y += font->line_height;
             text++;
             continue;

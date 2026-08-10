@@ -100,6 +100,12 @@ static void test_font_engine_glyph_measure_and_draw_contracts(void)
     TEST_ASSERT_EQUAL_INT(-1, xy_font_draw_string(&font, NULL, 0, 0, 0x00FFU, framebuffer, 8U, 8U));
 
     memset(framebuffer, 0, sizeof(framebuffer));
+    TEST_ASSERT_EQUAL_INT(0, xy_font_draw_string(&font, "A\nA", 0, 0, 0x0CC0U, framebuffer, 8U, 8U));
+    TEST_ASSERT_EQUAL_UINT16(0x0CC0U, framebuffer[0U * 8U + 0U]);
+    TEST_ASSERT_EQUAL_UINT16(0x0CC0U, framebuffer[5U * 8U + 0U]);
+    TEST_ASSERT_EQUAL_UINT16(0U, framebuffer[5U * 8U + 3U]);
+
+    memset(framebuffer, 0, sizeof(framebuffer));
     TEST_ASSERT_EQUAL_INT(0,
                           xy_font_draw_text(&font, "A", 0, 0, 8, 0x0F0FU, XY_ALIGN_CENTER,
                                             framebuffer, 8U, 8U));
