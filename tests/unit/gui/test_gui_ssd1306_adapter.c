@@ -277,6 +277,30 @@ static void test_slot_exhaustion_clears_output_driver_until_reset_releases_slots
     TEST_ASSERT_NOT_NULL(drivers[4].draw_pixel);
 }
 
+static void test_reset_invalidates_existing_callbacks_until_rebound(void)
+{
+    xy_oled_ssd1306_t oled;
+    uint8_t buffer[TEST_OLED_BUFFER_SIZE];
+    xy_gui_disp_drv_t stale_drv;
+    xy_gui_disp_drv_t rebound_drv;
+
+    init_oled_fixture(&oled, buffer, TEST_OLED_WIDTH, TEST_OLED_HEIGHT);
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&stale_drv, &oled));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, stale_drv.draw_pixel(0, 0, XY_GUI_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_HEX8(0x01U, buffer[0]);
+
+    xy_gui_ssd1306_adapter_reset();
+    TEST_ASSERT_EQUAL_INT(XY_GUI_INVALID_PARAM,
+                          stale_drv.draw_pixel(1, 0, XY_GUI_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_INVALID_PARAM, stale_drv.flush());
+    TEST_ASSERT_EQUAL_HEX8(0x00U, buffer[1]);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_ssd1306_bind(&rebound_drv, &oled));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, rebound_drv.draw_pixel(1, 0, XY_GUI_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_HEX8(0x01U, buffer[1]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -288,5 +312,6 @@ int main(void)
     RUN_TEST(test_flush_reports_ssd1306_refresh_bus_failures);
     RUN_TEST(test_multiple_bound_oled_instances_keep_isolated_slots);
     RUN_TEST(test_slot_exhaustion_clears_output_driver_until_reset_releases_slots);
+    RUN_TEST(test_reset_invalidates_existing_callbacks_until_rebound);
     return UNITY_END();
 }
