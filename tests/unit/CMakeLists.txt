@@ -1341,6 +1341,7 @@ xy_add_unit_test(test_gui_display_backend gui_display_backend UNITY
 # --- Test 37a: GUI to SSD1306 display-driver adapter contract ---
 xy_add_unit_test(test_gui_ssd1306_adapter gui_ssd1306_adapter UNITY
     ${UNIT_GUI}/test_gui_ssd1306_adapter.c
+    ${GUI}/xy_gui.c
     ${GUI}/src/xy_gui_ssd1306_adapter.c
     ${DISPLAY}/oled/ssd1306/xy_oled_ssd1306.c
 )
