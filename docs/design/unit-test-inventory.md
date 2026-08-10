@@ -9,7 +9,7 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 1
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 140
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 141
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and

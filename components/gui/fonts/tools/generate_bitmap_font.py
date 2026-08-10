@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, cast
@@ -176,12 +177,92 @@ def build_summary(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _macro_name(font_id: str) -> str:
+    macro = re.sub(r"[^A-Za-z0-9]+", "_", font_id).strip("_").upper()
+    if not macro:
+        raise ManifestError("font id does not produce a usable macro name")
+    if macro[0].isdigit():
+        macro = f"FONT_{macro}"
+    return macro
+
+
+def build_manifest_header(data: dict[str, Any]) -> str:
+    """Build deterministic generated-header preview from the manifest.
+
+    This output intentionally contains manifest inventory constants only. It is
+    safe for host review and tests because it does not rewrite checked-in bitmap
+    tables or claim generated glyph art exists yet.
+    """
+
+    lines = [
+        "/* Auto-generated from components/gui/fonts/font_manifest.json; do not edit. */",
+        "#ifndef XY_GUI_FONT_MANIFEST_GENERATED_H",
+        "#define XY_GUI_FONT_MANIFEST_GENERATED_H",
+        "",
+        f"#define XY_GUI_FONT_MANIFEST_SCHEMA_VERSION {data['schema_version']}U",
+        f"#define XY_GUI_FONT_ASSET_COUNT {len(data['fonts'])}U",
+        "",
+    ]
+
+    for index, font in enumerate(data["fonts"]):
+        macro = _macro_name(cast(str, font["id"]))
+        pixel_size = cast(dict[str, Any], font["pixel_size"])
+        range_spec = cast(dict[str, Any], font["range"])
+        lines.extend([
+            f"#define XY_GUI_FONT_{macro}_INDEX {index}U",
+            f"#define XY_GUI_FONT_{macro}_WIDTH {pixel_size['width']}U",
+            f"#define XY_GUI_FONT_{macro}_HEIGHT {pixel_size['height']}U",
+            f"#define XY_GUI_FONT_{macro}_BYTES_PER_GLYPH {font['bytes_per_glyph']}U",
+            f"#define XY_GUI_FONT_{macro}_GLYPH_COUNT {range_spec['count']}U",
+        ])
+        if "first" in range_spec:
+            first = _parse_hex(cast(str, range_spec["first"]), f"{font['id']}: range.first")
+            last = _parse_hex(cast(str, range_spec["last"]), f"{font['id']}: range.last")
+            lines.extend([
+                f"#define XY_GUI_FONT_{macro}_FIRST_CODEPOINT 0x{first:X}U",
+                f"#define XY_GUI_FONT_{macro}_LAST_CODEPOINT 0x{last:X}U",
+            ])
+        if "required_ui_codepoints" in font:
+            codepoints = cast(list[Any], font.get("required_ui_codepoints", []))
+            lines.append(f"#define XY_GUI_FONT_{macro}_REQUIRED_UI_CODEPOINT_COUNT {len(codepoints)}U")
+
+        lines.append("")
+
+    lines.extend([
+        "#endif /* XY_GUI_FONT_MANIFEST_GENERATED_H */",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def self_test_generated_output(data: dict[str, Any]) -> None:
+    header_once = build_manifest_header(data)
+    header_twice = build_manifest_header(data)
+    _require(header_once == header_twice, "generated manifest header is not deterministic")
+    _require("#define XY_GUI_FONT_ASSET_COUNT 3U" in header_once,
+             "generated manifest header is missing font asset count")
+    _require("#define XY_GUI_FONT_ASCII_8X16_WIDTH 8U" in header_once,
+             "generated manifest header is missing ASCII 8x16 width")
+    _require("#define XY_GUI_FONT_ASCII_16X24_BYTES_PER_GLYPH 48U" in header_once,
+             "generated manifest header is missing ASCII 16x24 byte count")
+    _require("#define XY_GUI_FONT_CHINESE_16X16_UI_LEGACY_GLYPH_COUNT 168U" in header_once,
+             "generated manifest header is missing Chinese legacy glyph count")
+    _require("#define XY_GUI_FONT_CHINESE_16X16_UI_LEGACY_REQUIRED_UI_CODEPOINT_COUNT 15U"
+             in header_once,
+             "generated manifest header is missing required UI codepoint count")
+    _require("\t" not in header_once, "generated manifest header must not contain tabs")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default="components/gui/fonts/font_manifest.json",
                         help="Path to the font manifest JSON")
     parser.add_argument("--check", action="store_true", help="Validate the manifest and exit")
     parser.add_argument("--summary", action="store_true", help="Print a deterministic manifest summary")
+    parser.add_argument("--emit-manifest-header", action="store_true",
+                        help="Print deterministic generated-header preview for manifest inventory")
+    parser.add_argument("--self-test-output", action="store_true",
+                        help="Validate deterministic generated-output contracts and exit")
     args = parser.parse_args(argv)
 
     try:
@@ -190,7 +271,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"font manifest validation failed: {exc}", file=sys.stderr)
         return 1
 
-    if args.summary or not args.check:
+    if args.self_test_output:
+        try:
+            self_test_generated_output(data)
+        except ManifestError as exc:
+            print(f"font generated-output self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font generated-output self-test passed")
+    elif args.emit_manifest_header:
+        print(build_manifest_header(data), end="")
+    elif args.summary or not args.check:
         print(build_summary(data))
     else:
         print("font manifest validation passed")

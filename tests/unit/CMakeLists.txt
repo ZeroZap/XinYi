@@ -1406,9 +1406,13 @@ xy_add_unit_test(test_gui_font_manifest gui_font_manifest UNITY
     ${GUI}/fonts/xy_font_chinese_16x16.c
 )
 
-# --- Test 37h: GUI bitmap font generator validates manifest structure ---
+# --- Test 37h: GUI bitmap font generator validates manifest structure/output preview ---
 add_test(NAME gui_font_generator_manifest
     COMMAND python3 ${GUI}/fonts/tools/generate_bitmap_font.py --check
+    WORKING_DIRECTORY ${ROOT}
+)
+add_test(NAME gui_font_generator_output
+    COMMAND python3 ${GUI}/fonts/tools/generate_bitmap_font.py --self-test-output
     WORKING_DIRECTORY ${ROOT}
 )
 

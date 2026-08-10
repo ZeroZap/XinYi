@@ -11,10 +11,19 @@ Current host guard:
 ```bash
 python3 components/gui/fonts/tools/generate_bitmap_font.py --check
 python3 components/gui/fonts/tools/generate_bitmap_font.py --summary
+python3 components/gui/fonts/tools/generate_bitmap_font.py --emit-manifest-header
+python3 components/gui/fonts/tools/generate_bitmap_font.py --self-test-output
 ```
 
-`tests/unit/CMakeLists.txt` registers the first command as
-`gui_font_generator_manifest`, so `make test-unit` catches manifest/schema drift.
+`--emit-manifest-header` prints a deterministic generated-header preview with
+manifest inventory constants only (asset count, per-font dimensions, glyph
+counts, byte sizes, and ASCII codepoint bounds). It deliberately does not write
+files or regenerate bitmap glyph tables yet. `--self-test-output` validates that
+preview output is deterministic and contains the current asset contract markers.
+
+`tests/unit/CMakeLists.txt` registers `--check` as `gui_font_generator_manifest`
+and `--self-test-output` as `gui_font_generator_output`, so `make test-unit`
+catches both manifest/schema drift and deterministic output-preview drift.
 
 Future implementation requirements:
 

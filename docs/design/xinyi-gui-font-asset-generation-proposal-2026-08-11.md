@@ -49,12 +49,14 @@ XinYi may claim a generated/reviewable font asset set only after a small, reprod
    - output `.c/.h` files;
    - generator version/options.
 2. A repo-local generator script produces deterministic `.c/.h` tables from the manifest.
-3. A host CTest validates manifest/table consistency:
+3. A host CTest validates manifest/table consistency and generator output preview:
    - ASCII table count and range;
    - Chinese/UI codepoint list presence;
    - every manifest codepoint has a bitmap entry;
    - duplicate codepoints are rejected unless explicitly allowed with a reason;
-   - placeholder bitmap patterns are counted and reported.
+   - placeholder bitmap patterns are counted and reported;
+   - generated manifest-inventory header preview is deterministic and contains
+     asset-count, glyph-count, dimensions, byte-size, and ASCII codepoint bounds.
 4. The generator can run without GUI or hardware dependencies.
 
 This milestone still does not prove visual quality; it only proves reproducibility and declared coverage.
@@ -118,7 +120,7 @@ Any future font asset/generator slice should run at least:
 ```bash
 cmake -B build/tests/unit -S tests/unit
 cmake --build build/tests/unit --target test_gui_fonts test_gui_font_engine test_gui_font_manifest -j$(nproc)
-cd build/tests/unit && ctest --output-on-failure -R '^gui_(fonts|font_engine|font_manifest|font_generator_manifest)$'
+cd build/tests/unit && ctest --output-on-failure -R '^gui_(fonts|font_engine|font_manifest|font_generator_manifest|font_generator_output)$'
 make test-unit
 git diff --check
 ```
