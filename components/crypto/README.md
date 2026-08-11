@@ -73,7 +73,7 @@ Important ownership notes:
 
 ## Remaining backlog
 
-1. **Security/provenance review**: document intended security level, non-goals, third-party/upstream provenance, and whether any algorithm is placeholder-grade.
+1. **Security/provenance review**: initial review policy now lives in `docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md`, with record template `docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md`; all algorithms remain review-pending until those records are filled with real evidence.
 2. **Root target naming policy**: decide whether to keep historical `xy_tiny_crypto` or introduce a compatibility alias such as `xy_crypto` in a separate build-system slice.
 3. **Duplicate source ownership**: reconcile `src/` copies vs module-directory copies only after a proposal and focused source-map verification.
 4. **Examples**: add small host-safe smoke examples only for active public APIs; do not revive stale broad demos in one batch.

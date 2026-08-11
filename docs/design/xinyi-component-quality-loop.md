@@ -202,6 +202,12 @@
 - Device 已新增统一入口 `components/device/README.md`，把当前 split ownership 固定为事实源：`src/xy_device.c` 负责 lifecycle/dispatch，`xy_device_core.c` 负责 static-array registry，`src/xy_device_bus_helpers.c` 负责 I2C/SPI/UART/GPIO compatibility helpers，`src/xy_device_pm.c`/`src/xy_device_async.c` 分别负责 PM 与 optional async helper。
 - Device 当前由 `device_framework`、`spi_device`、`auto_register`、`device_async_helper`、`device_registry_example`、`device_driver_template` 等 host CTest 守护；后续不应再按旧路线图“Device 70% / 设备注册待完善”重复开工，只在真实 helper/group API/PM backend 失败时补最小回归或先写 proposal。
 
+### 2026-08-12 Crypto security/provenance review policy
+
+- 已新增 `docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md` 与 `docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md`，把 Crypto 后续工作从“host CTest 已过所以安全可用”的误区收束为分级证据：当前只能声称 `contract-guarded`，provenance/security/hardware 结论都必须有单独审查记录或真实硬件证据。
+- 初始 matrix 已标记 SM2 placeholder-grade、MD5 legacy/integrity-only、CSPRNG entropy-source non-goal、Curve25519 M0 upstream/assembly TODO 等审查重点；本轮不移动 `src/`/module duplicate source，不改变 `COMPONENT_CRYPTO` 默认关闭策略，也不引入外部 crypto 库。
+- 后续 Crypto 低风险 slice 应优先做 source ownership map 或单算法 review manifest smoke；不要直接批量整理 duplicate source 或把 focused CTest 结果升级为安全审计结论。
+
 ---
 
 ## 5. 周度架构回顾
