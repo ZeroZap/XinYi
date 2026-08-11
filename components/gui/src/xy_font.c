@@ -427,6 +427,11 @@ void xy_font_cache_clear(xy_font_t *font)
         }
         font->cache.entries[i].valid = false;
     }
-    
+
+    free(font->cache.entries);
+    font->cache.entries = NULL;
+    font->cache.max_entries = 0;
+    font->cache.enabled = false;
+
     xy_log_d("Font cache cleared\n");
 }

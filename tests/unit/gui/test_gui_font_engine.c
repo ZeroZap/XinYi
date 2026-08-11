@@ -192,9 +192,11 @@ static void test_font_cache_lifecycle_and_lru_contracts(void)
 
     xy_font_cache_clear(&font);
     TEST_ASSERT_NULL(xy_font_cache_get(&font, 'B'));
+    TEST_ASSERT_FALSE(font.cache.enabled);
+    TEST_ASSERT_EQUAL_UINT8(0U, font.cache.max_entries);
+    TEST_ASSERT_NULL(font.cache.entries);
 
     xy_font_cache_clear(NULL);
-    font.cache.enabled = false;
     xy_font_cache_clear(&font);
 }
 
