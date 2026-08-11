@@ -12,7 +12,7 @@ This is a documentation/control-plane slice only. It does not change runtime fon
 - The manifest intentionally keeps `license` / `source_license` as `project-review-pending` for all current assets.
 - `components/gui/fonts/tools/generate_bitmap_font.py` enforces that pending status in its manifest/glyph metadata self-tests, so generated preview work cannot silently convert pending provenance into approved provenance.
 - `components/gui/fonts/generated/*` is only a legacy-passthrough generated preview tier; it references existing public handles and is not new licensed glyph art.
-- `gui_font_snapshot` provides deterministic host framebuffer/checksum evidence, but it is not a legal/provenance review, art approval, or real display evidence.
+- `gui_font_snapshot` provides deterministic host framebuffer/checksum evidence; the current machine-verifiable artifact is `docs/validation/xinyi-gui-font-host-snapshot-artifact-2026-08-11.md`. It is still not a legal/provenance review, art approval, or real display evidence.
 
 ## Review checklist before changing license status
 

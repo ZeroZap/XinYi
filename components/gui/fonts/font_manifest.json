@@ -23,7 +23,10 @@
       "ascii_16x24",
       "chinese_16x16_ui_legacy"
     ],
-    "evidence_level": "host-snapshot-only-pending"
+    "evidence_level": "host-snapshot-only-pending",
+    "host_snapshot_artifacts": [
+      "docs/validation/xinyi-gui-font-host-snapshot-artifact-2026-08-11.md"
+    ]
   },
   "notes": [
     "This manifest documents the currently checked-in bitmap font assets only.",

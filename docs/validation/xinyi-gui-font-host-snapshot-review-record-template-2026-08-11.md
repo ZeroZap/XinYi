@@ -24,9 +24,9 @@ It is not a license/provenance approval, not a generated glyph-byte check-in app
   - ASCII 16x24:
   - Chinese 16x16 UI glyphs:
 - Host snapshot metadata:
-  - framebuffer dimensions:
-  - checksum/hash:
-  - ASCII-art or image artifact path:
+  - framebuffer dimensions: `32x16 RGB565`
+  - checksum/hash: `0x8DD0D797` for the current deterministic `OK\n!~` fixture; clipping checksum `0x3ABE3861`
+  - ASCII-art or image artifact path: `docs/validation/xinyi-gui-font-host-snapshot-artifact-2026-08-11.md`
 - Visual conclusion:
   - pending / accepted-for-current-legacy-assets / rejected-needs-regeneration
 - Remaining blockers:

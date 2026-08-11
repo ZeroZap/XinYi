@@ -238,6 +238,16 @@ def validate_manifest(manifest_path: Path) -> dict[str, Any]:
              "snapshot_review_status.policy must describe the host snapshot review gate")
     _require(snapshot_status.get("evidence_level") == "host-snapshot-only-pending",
              "snapshot_review_status.evidence_level must remain host-snapshot-only-pending")
+    snapshot_artifacts = snapshot_status.get("host_snapshot_artifacts")
+    _require(isinstance(snapshot_artifacts, list) and len(snapshot_artifacts) > 0,
+             "snapshot_review_status.host_snapshot_artifacts must list host snapshot artifacts")
+    snapshot_artifacts = cast(list[Any], snapshot_artifacts)
+    for artifact in snapshot_artifacts:
+        _require(isinstance(artifact, str) and artifact.startswith("docs/validation/")
+                 and artifact.endswith(".md"),
+                 "snapshot_review_status.host_snapshot_artifacts entries must be docs/validation/*.md")
+        artifact_path = (manifest_path.parents[3] / cast(str, artifact)).resolve()
+        _require(artifact_path.exists(), f"font host snapshot artifact is missing: {artifact_path}")
     snapshot_pending_ids = snapshot_status.get("pending_font_ids")
     snapshot_reviewed_ids = snapshot_status.get("reviewed_font_ids")
     _require(isinstance(snapshot_pending_ids, list),
@@ -655,6 +665,23 @@ def self_test_snapshot_review_manifest(data: dict[str, Any], manifest_path: Path
              "font host snapshot review note must not approve license/provenance")
     _require("not real LCD/OLED/LED-matrix hardware validation" in review_note_text,
              "font host snapshot review note must not approve hardware validation")
+    artifacts = cast(list[str], snapshot_status["host_snapshot_artifacts"])
+    _require(len(artifacts) == 1,
+             "font host snapshot review must reference exactly one current host artifact record")
+    artifact_path = (manifest_path.resolve().parents[3] / artifacts[0]).resolve()
+    artifact_text = artifact_path.read_text(encoding="utf-8")
+    _require("status: host-snapshot-only" in artifact_text,
+             "font host snapshot artifact must declare host-snapshot-only status")
+    _require("framebuffer: 32x16 RGB565" in artifact_text,
+             "font host snapshot artifact must record framebuffer dimensions")
+    _require("lit_pixels: 19" in artifact_text,
+             "font host snapshot artifact must record deterministic lit pixel count")
+    _require("checksum_fnv1a32: 0x8DD0D797" in artifact_text,
+             "font host snapshot artifact must record deterministic checksum")
+    _require("not a visual-quality approval" in artifact_text,
+             "font host snapshot artifact must keep visual approval out of scope")
+    _require("not real LCD/OLED/LED-matrix hardware validation" in artifact_text,
+             "font host snapshot artifact must keep hardware validation out of scope")
 
     pending_ids = set(cast(list[str], snapshot_status["pending_font_ids"]))
     _require(snapshot_status["state"] == "host-snapshot-review-pending",
