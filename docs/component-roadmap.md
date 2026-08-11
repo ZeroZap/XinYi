@@ -87,7 +87,7 @@
 
 | 组件 | 完成度 | 待完成任务 | 工时估算 |
 |------|--------|------------|----------|
-| **Device** | 70% | 设备注册/查找/电源管理；只按真实失败补小回归 | 10h |
+| **Device** | host-guarded | `xy_device` root build、README、registry/bus-helper/async/example CTest 已闭环；后续只按真实 helper/group API/PM backend 失败补小回归 | 实证驱动 |
 | **Net** | host-guarded / 硬件待验证 | MQTT/CAN/LTE fake/adapter 护栏已闭环；LTE 后续等待真实 UART/modem/flow-control 证据 | 硬件验证驱动 |
 | **IPC** | host-guarded / 事件组已闭环 | pipe/broker/message queue/observer/event group 均有 README 与 host CTest；后续只按真实失败补小回归或硬件/线程语义实证 | 实证驱动 |
 | **PM** | 文档已补齐 / 功耗待实证 | README 已存在；Fuel Gauge 保持 standalone，不回并 PM；后续只推进睡眠/功耗实证或明确 stub 失败 | 需实证 |

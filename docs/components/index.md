@@ -6,7 +6,7 @@
 
 ## 📊 组件完成度
 
-### ✅ 完善 / host-guarded 组件 (12 个)
+### ✅ 完善 / host-guarded 组件 (13 个)
 
 | 组件 | 代码 | 测试 | 文档 | 构建 | 测试用例 | 状态 |
 |------|------|------|------|------|---------|------|
@@ -16,6 +16,7 @@
 | **CLib** | ✅ | ✅ | ✅ | ✅ | 21 | 🟢 完善 |
 | **DM** | ✅ | ✅ | ✅ | ✅ | 24 | 🟢 host-guarded |
 | **NET** | ✅ | ✅ | ✅ | ✅ | 22 | 🟢 host-guarded；LTE 硬件待证据 |
+| **Device** | ✅ | ✅ | ✅ | ✅ | 6 | 🟢 host-guarded |
 | **Trace** | ✅ | ✅ | ✅ | ✅ | 10 | 🟢 完善 |
 | **Sensor** | ✅ | ✅ | ✅ | ✅ | 18 | 🟢 tail host coverage 已收口 |
 | **IPC** | ✅ | ✅ | ✅ | ✅ | 14 | 🟢 host-guarded |
@@ -43,6 +44,7 @@ Crypto    ███████████████████████�
 CLib      █████████████████████     21
 DM        ████████████████████████  24
 NET       ██████████████████████  22
+Device    ██████  6
 Sensor    ██████████████████  18
 IPC       ██████████████  14
 PM        ███████████████████  19
@@ -51,15 +53,15 @@ PID       ████████████████████  20
 ADDC      ████████████████████████  24
 Trace     ██████████  10
 ────────────────────────────────────
-总计：228 个测试用例
+总计：234 个测试用例
 ```
 
 ### 组件状态分布
 
 | 状态 | 数量 | 百分比 |
 |------|------|--------|
-| 🟢 完善 / host-guarded | 12 | 80% |
-| 🟡 主线可用 / 硬件或人工证据待补 | 3 | 20% |
+| 🟢 完善 / host-guarded | 13 | 81% |
+| 🟡 主线可用 / 硬件或人工证据待补 | 3 | 19% |
 | 🟡 进行中 | 0 | 0% |
 | 🔴 缺失 | 0 | 0% |
 
@@ -153,6 +155,7 @@ Trace     ██████████  10
 
 - [x] 完善 FOTA host-safe 主线实现、README、focused CTest 与 public smoke example
 - [x] 将 GUI core/widgets/effects/fonts/display-backend adapter 推进到 host-guarded 状态
+- [x] 将 Device 组件状态同步为 host-guarded，并补统一 README/current CTest 事实源
 - [ ] 补真实硬件或人工证据：GUI 字体来源/host snapshot review/真实屏幕记录、FOTA bootloader/board NOR、Fuel Gauge SMBus/I2C
 
 ### 中期 (1 个月)

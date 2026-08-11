@@ -107,7 +107,7 @@
 |------|--------|----------|------|
 | HAL 组件文档 | 90% | 2026-02-28 | ✅ 完善 |
 | OSAL 组件文档 | 95% | 2026-02-28 | ✅ 完善 |
-| Device 组件文档 | 90% | 2026-02-28 | ✅ 完善 |
+| Device 组件文档 | host-guarded | 2026-08-11 | ✅ README/xy_device root build/registry+buses+async CTest 已护栏 |
 | CLIB 组件文档 | 85% | 2026-02-28 | ✅ 完善 |
 | Crypto 组件文档 | 90% | 2026-08-11 | ✅ host-guarded |
 | DM 组件文档 | 85% | 2026-08-11 | ✅ host-guarded |
