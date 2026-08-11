@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST_PATH = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
+UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
 ALLOWED_REVIEW_PENDING = {"review-pending"}
@@ -59,6 +61,14 @@ def _require(condition: bool, message: str, errors: list[str]) -> None:
         errors.append(message)
 
 
+def _registered_crypto_ctests() -> set[str]:
+    """Return crypto-related CTest names declared in tests/unit/CMakeLists.txt."""
+    cmake_text = UNIT_CMAKE_PATH.read_text(encoding="utf-8")
+    names = set(re.findall(r"xy_add_unit_test\(\s*\S+\s+(crypto_[A-Za-z0-9_]+)\s+UNITY", cmake_text))
+    names.update(re.findall(r"add_test\(\s*NAME\s+(crypto_[A-Za-z0-9_]+)", cmake_text))
+    return names
+
+
 def validate_manifest(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 
@@ -96,6 +106,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
         return errors
 
     seen_ids: set[str] = set()
+    registered_crypto_ctests = _registered_crypto_ctests()
     for index, algorithm in enumerate(algorithms):
         prefix = f"algorithms[{index}]"
         _require(isinstance(algorithm, dict), f"{prefix} must be an object", errors)
@@ -123,6 +134,16 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             _require(isinstance(algorithm.get(key), list), f"{prefix}.{key} must be a list", errors)
         _require(bool(algorithm.get("contract_tests")), f"{prefix}.contract_tests must not be empty", errors)
         _require(bool(algorithm.get("focused_test_sources")), f"{prefix}.focused_test_sources must not be empty", errors)
+        contract_tests = algorithm.get("contract_tests")
+        if isinstance(contract_tests, list):
+            for ctest_name in contract_tests:
+                _require(isinstance(ctest_name, str) and len(ctest_name) > 0, f"{prefix}.contract_tests entries must be strings", errors)
+                if isinstance(ctest_name, str) and len(ctest_name) > 0:
+                    _require(
+                        ctest_name in registered_crypto_ctests,
+                        f"{prefix}.contract_tests references unregistered CTest: {ctest_name}",
+                        errors,
+                    )
 
         for source_key in ("runtime_sources", "focused_test_sources"):
             sources = algorithm.get(source_key)
