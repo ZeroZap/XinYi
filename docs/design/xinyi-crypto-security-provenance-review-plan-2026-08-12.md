@@ -54,7 +54,7 @@ Crypto 组件当前已经具备主线构建入口 `xy_tiny_crypto`、root `COMPO
 
 1. **Review record template**：新增 `docs/validation/xinyi-crypto-security-provenance-review-record-template-YYYY-MM-DD.md`，固定人工审查证据格式。
 2. **Source ownership map**：为 `src/` aggregate copy 与 module-directory source 写只读 source-map proposal，并用 focused build/CTest 证明当前使用路径。
-3. **Manifest smoke**：如需要机器护栏，可新增轻量 JSON/YAML manifest，记录每个 algorithm 的 status、source path、review tier，并用 host smoke 防止无记录地改成 `security-approved`。
+3. **Manifest smoke**：已新增 `components/crypto/crypto_review_manifest.json` 与 `crypto_review_manifest` CTest，记录每个 algorithm 的 status、source path、review tier，并防止无记录地改成 `security-approved` / `provenance-reviewed`。
 4. **Specific algorithm review**：每次只审一个区域（例如 SM2 placeholder 或 CSPRNG entropy boundary），补最小 docs/test guard。
 
 ## 6. 验证口径

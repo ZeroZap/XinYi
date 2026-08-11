@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "component": "components/crypto",
+  "status": "contract-guarded",
+  "policy": {
+    "plan": "docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md",
+    "record_template": "docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md",
+    "default_component_enablement": "COMPONENT_CRYPTO remains default-off until product/security/hardware evidence exists",
+    "approval_guard": "security_status and provenance_status must remain review-pending unless a review_record path is provided"
+  },
+  "algorithms": [
+    {
+      "id": "crc",
+      "description": "CRC public vectors, software/table/HW-fallback contract",
+      "contract_tests": ["crypto_crc"],
+      "runtime_sources": ["components/crypto/src/xy_crc.c"],
+      "focused_test_sources": ["components/crypto/xy_crc/xy_crc.c"],
+      "duplicate_source_policy": "source-map-pending",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "non-security integrity/checksum utility only until reviewed",
+      "review_record": null
+    },
+    {
+      "id": "base64_hex",
+      "description": "Base64/Hex encode/decode helpers",
+      "contract_tests": ["crypto_encode", "crypto_smoke_example"],
+      "runtime_sources": ["components/crypto/src/xy_base64.c", "components/crypto/src/xy_hex.c"],
+      "focused_test_sources": ["components/crypto/xy_base/xy_base64.c", "components/crypto/xy_hex/xy_hex.c"],
+      "duplicate_source_policy": "source-map-pending",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "encoding utility only; no security claim",
+      "review_record": null
+    },
+    {
+      "id": "random_csprng",
+      "description": "Simple RNG and CSPRNG API/lifecycle helpers",
+      "contract_tests": ["crypto_random", "crypto_csprng", "crypto_smoke_example"],
+      "runtime_sources": ["components/crypto/src/xy_random.c", "components/crypto/src/xy_csprng.c"],
+      "focused_test_sources": ["components/crypto/xy_rng/xy_random.c", "components/crypto/xy_rng/xy_csprng.c"],
+      "duplicate_source_policy": "source-map-pending",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "test/API contract only; host deterministic paths are not entropy-source evidence",
+      "review_record": null
+    },
+    {
+      "id": "md5_sha256_hmac",
+      "description": "MD5, SHA-256, and HMAC vectors/incremental contracts",
+      "contract_tests": ["crypto_hash", "crypto_cipher_hmac"],
+      "runtime_sources": ["components/crypto/src/xy_md5.c", "components/crypto/src/xy_sha256.c", "components/crypto/src/xy_hmac.c", "components/crypto/src/xy_sha256_hmac.c"],
+      "focused_test_sources": ["components/crypto/xy_md/xy_md5.c", "components/crypto/xy_hmac/xy_sha256.c", "components/crypto/xy_hmac/xy_hmac.c"],
+      "duplicate_source_policy": "source-map-pending",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "contract-guarded only; MD5 is legacy/integrity-only and not collision-resistant",
+      "review_record": null
+    },
+    {
+      "id": "aes_sm3_sm4_chacha20",
+      "description": "AES/SM3/SM4/ChaCha20 vector/API contracts",
+      "contract_tests": ["crypto_cipher_hmac"],
+      "runtime_sources": ["components/crypto/src/xy_aes.c", "components/crypto/src/xy_chacha20poly1305.c"],
+      "focused_test_sources": ["components/crypto/xy_aes/xy_aes.c", "components/crypto/xy_sm3/xy_sm3.c", "components/crypto/xy_sm4/xy_sm4.c", "components/crypto/xy_chacha/xy_chacha20_poly1305.c"],
+      "duplicate_source_policy": "source-map-pending",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "contract-guarded only; nonce/key-management/padding/side-channel review pending",
+      "review_record": null
+    },
+    {
+      "id": "sm2",
+      "description": "SM2 public guard paths and placeholder-grade implementation contract",
+      "contract_tests": ["crypto_sm2"],
+      "runtime_sources": ["components/crypto/xy_sm2/xy_sm2.c"],
+      "focused_test_sources": ["components/crypto/xy_sm2/xy_sm2.c"],
+      "duplicate_source_policy": "single-active-source",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "test-only placeholder; not production signing/encryption",
+      "review_record": null
+    },
+    {
+      "id": "lwc_ascon_tinyjambu_photon_beetle",
+      "description": "Lightweight crypto public contracts",
+      "contract_tests": ["crypto_lwc"],
+      "runtime_sources": [],
+      "focused_test_sources": ["components/crypto/xy_ascon/xy_ascon.c", "components/crypto/xy_tinyjambu/xy_tinyjambu.c", "components/crypto/xy_photon_beetle/xy_photon_beetle.c"],
+      "duplicate_source_policy": "focused-test-only-until-root-ownership-decided",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "contract-guarded only; algorithm/version/parameter-set review pending",
+      "review_record": null
+    },
+    {
+      "id": "curve25519_generic",
+      "description": "Curve25519 generic public API contracts",
+      "contract_tests": ["crypto_25519"],
+      "runtime_sources": [],
+      "focused_test_sources": ["components/crypto/xy_25519/xy_25519.c"],
+      "duplicate_source_policy": "focused-test-only-until-root-ownership-decided",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "contract-guarded only; provenance/constant-time/vector review pending",
+      "review_record": null
+    },
+    {
+      "id": "curve25519_cortex_m0",
+      "description": "Curve25519 Cortex-M0 fallback/API and field smoke contracts",
+      "contract_tests": ["crypto_25519_m0"],
+      "runtime_sources": [],
+      "focused_test_sources": ["components/crypto/xy_25519/xy_25519_m0.c", "components/crypto/xy_25519/fe25519_m0.c"],
+      "duplicate_source_policy": "focused-test-only-upstream-material",
+      "provenance_status": "review-pending",
+      "security_status": "review-pending",
+      "allowed_usage": "contract-guarded only; upstream CC0/assembly TODO/target correctness review pending",
+      "review_record": null
+    }
+  ]
+}

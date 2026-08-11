@@ -466,6 +466,12 @@ target_include_directories(test_crypto_smoke_example PRIVATE
     ${CRYPTO}/inc
 )
 
+# --- Test 20g: Crypto security/provenance review manifest policy guard ---
+add_test(NAME crypto_review_manifest
+    COMMAND python3 ${UNIT_CRYPTO}/check_crypto_review_manifest.py
+    WORKING_DIRECTORY ${ROOT}
+)
+
 # --- Support: host malloc-backed CLIB allocation shim contract ---
 xy_add_unit_test(test_clib_alloc_shim clib_alloc_shim UNITY
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c

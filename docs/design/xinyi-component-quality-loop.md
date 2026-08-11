@@ -194,6 +194,7 @@
 
 - Crypto 已新增统一入口 `components/crypto/README.md`，把当前 root auto-discovered target `xy_tiny_crypto`、root `COMPONENT_CRYPTO` 默认关闭策略、10 个 active `tests/unit/crypto` focused CTest、历史 `src/` 与 module-directory duplicate source ownership 风险，以及“host CTest 不等于安全审计/硬件加速验证”的边界固定为事实源。
 - `components/COMPONENT_COMPLETENESS_ANALYSIS.md` 与 `docs/component-roadmap.md` 已同步：Crypto 不再按“Base64/Hex 源码位置不明 / SM 测试不足 / 无 README”旧基线重复开工；后续应优先做 security/provenance review、duplicate-source ownership proposal、或 active public API 的 host-safe smoke 示例，不直接批量整理源码目录。
+- Crypto security/provenance review 已补机器护栏：`components/crypto/crypto_review_manifest.json` 记录每个算法区域的 contract tests、root/runtime source 与 focused-test source、review-pending 状态与允许用途；`crypto_review_manifest` CTest 会阻止没有 review record 的算法被静默改成 provenance/security approved。后续应先补真实 review record 或 source ownership map，不把该 manifest 视为安全审计结论。
 
 ---
 
