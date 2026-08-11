@@ -175,6 +175,11 @@
 - Font license/provenance review 已补机器护栏：`font_manifest.json` 新增 `review_status` pending block，`docs/validation/xinyi-gui-font-license-provenance-review-record-template-2026-08-11.md` 固定人工审查证据格式，`gui_font_license_manifest` CTest 会阻止 license/source_license 在缺少 review record 前被静默改为 approved。后续若继续字体资产方向，应填写真实来源/许可审查记录或推进 host snapshot 人审流程，不应用 generator/preview/snapshot checksum 替代 license 证据。
 - 已新增 `docs/validation/xinyi-gui-font-host-snapshot-review-record-template-2026-08-11.md` 与 `gui_font_snapshot_review_manifest` host smoke：`font_manifest.json` 现在把 host snapshot 人审状态作为独立 pending evidence tier 记录，明确不能替代 license/provenance approval、generated glyph byte check-in 或真实屏幕硬件验证。后续若继续字体方向，应填写真实 snapshot 人审 artifact/结论，或在有真实来源证据后推进 license/provenance review；不要再用 generator/preview/focused CTest 结果替代人工/硬件证据。
 
+### 2026-08-11 DM component status sync
+
+- DM 已新增统一入口 `components/dm/README.md`，把 `COMPONENT_DM` / `xy_dm` root build、Base64/TLV/NVM/Factory/FEE/coreJSON 的 6 个 focused CTest、FS/JSON abstraction backlog，以及 NOR/FlashDB 硬件验证边界固定为当前事实源。
+- `components/COMPONENT_COMPLETENESS_ANALYSIS.md` 与 `docs/component-roadmap.md` 已同步：DM 不再按“无统一 README/测试不足”旧基线重复开工；后续只在 FS/JSON abstraction 成为活跃 public dependency、NOR/FlashDB 有真实板级证据，或现有 `dm_*` CTest 暴露具体失败时推进。
+
 ---
 
 ## 5. 周度架构回顾

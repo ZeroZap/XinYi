@@ -26,7 +26,7 @@
 | sensor     | 95% 🟢 | 优秀     | ✅      | ✅     | ✅   | ❌   |
 | crypto     | 65% 🟡 | 中等     | ✅      | ✅     | ✅   | ⚠️   |
 | fota       | 90% 🟢 | 主线可用 / 硬件验证待证据 | ✅      | ✅     | ✅   | ✅   |
-| dm         | 70% 🟡 | 中等     | ✅      | ⚠️     | ⚠️   | ⚠️   |
+| dm         | host-guarded / 文档已补齐 | README 已收敛 | ✅      | ✅     | ⚠️   | ✅   |
 | gui        | host-guarded core / 硬件待验证 | core/widget/event/theme 已有 CTest | ✅      | ✅     | ❌   | ✅   |
 | pm         | host-guarded / 功耗待实证 | 文档已补齐 | ✅      | ✅     | ⚠️   | ✅   |
 | net        | 50% 🟡 | 需补充   | ✅      | ❌     | ⚠️   | ⚠️   |
@@ -230,24 +230,26 @@
 
 ---
 
-### 9. dm/ - 数据管理组件 (70%)
+### 9. dm/ - 数据管理组件 (host-guarded / 文档已补齐)
 
-#### 问题描述
+#### 当前状态
 
-- **空目录**：libyaml/、xy_flash/ 为空
-- **无统一 README**：各子模块有独立 README，无入口文档
-- **测试覆盖**：旧 `fee-test.c` 已收敛到统一 `tests/unit/dm/`；继续按 `make test-unit` / CTest 维护覆盖
+- **统一 README 已补齐**：`components/dm/README.md` 现在记录 root `COMPONENT_DM` / `xy_dm` 构建入口、子模块路径、host CTest 名称与硬件验证边界。
+- **主线 host CTest 已存在**：`tests/unit/dm/` 下 `dm_base64`、`dm_tlv`、`dm_nvm`、`dm_factory`、`dm_fee`、`dm_corejson` 已纳入 `make test-unit`。
+- **根构建入口已存在**：`components/dm/CMakeLists.txt` 在 `XY_COMPONENT_DM` 启用时产出 `xy_dm`，默认包含 FS/JSON abstraction，并按生成配置条件接入 NOR/FlashDB glue。
+- **剩余风险**：FS/JSON abstraction 暂无 dedicated focused CTest；NOR/FlashDB 真实擦写、掉电与板级 timing 仍必须等待硬件验证记录，不能用 host fake 结果替代。
 
-#### 修复计划
+#### 剩余修复计划
 
-| 序号 | 任务                        | 工作量 | 优先级 |
-| ---- | --------------------------- | ------ | ------ |
-| DM1  | 删除空目录或添加占位符说明  | 1h     | 🟠 中  |
-| DM2  | 创建 dm/README.md 统一入口  | 4h     | 🟠 中  |
-| DM3  | 按统一 `tests/unit/dm/` 补充其他模块测试用例 | 16h    | 🟠 中  |
-| DM4  | 整理散落的根目录文件到 src/ | 4h     | 🟡 低  |
+| 序号 | 任务 | 工作量 | 优先级 |
+| ---- | ---- | ------ | ------ |
+| DM1  | 创建统一 `components/dm/README.md` 入口 | - | 已完成 |
+| DM2  | 维护 `tests/unit/dm/` 6 个 host CTest 契约 | - | 持续维护 |
+| DM3  | 为 FS/JSON abstraction 补 focused host CTest（仅在成为活跃 public dependency 时） | 2–4h | 🟡 中 |
+| DM4  | NOR/FlashDB 真实硬件验证记录模板与 board log | 硬件驱动 | 🟡 中 |
+| DM5  | 历史规划文档与当前 layout 的 docs-only reconciliation | 1–2h | 🟡 低 |
 
-**预计工时**: 25h
+**预计剩余工时**: 实证/真实失败驱动；不再按“无统一 README/测试缺失”的旧基线重复开工。
 
 ---
 
