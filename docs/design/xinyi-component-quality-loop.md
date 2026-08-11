@@ -168,6 +168,7 @@
 - Font generator 已补 `--write-glyph-preview` 与 `gui_font_generator_glyph_write` write-path CTest：当前可把 legacy-passthrough glyph header/source preview 写入指定输出路径，并验证写出内容与 emit preview 完全一致；仍不提交生成表、不导入完整 CJK 字库、不替代 framebuffer snapshot 或真实屏幕硬件验证。
 - 已新增 `docs/design/xinyi-gui-font-framebuffer-snapshot-proposal-2026-08-11.md`，把字体方向下一步从继续补 API/generator guard 收束为 host framebuffer snapshot review：只渲染当前 manifest-declared ASCII/Chinese UI 样本，检查 deterministic framebuffer/checksum/ASCII-art metadata，不提交生成 glyph byte 表、不导入完整 CJK、不声明真实屏幕硬件通过。
 - GUI font snapshot 已新增 `gui_font_snapshot` host CTest：使用 runtime font engine 渲染 host-only framebuffer，锁定 ASCII-art/checksum metadata、unknown glyph output-preservation 与 clipping guard；该结果仍只是 deterministic host snapshot，不代表字体美术验收或真实屏幕硬件验证通过。
+- 已新增 `docs/validation/xinyi-gui-font-rendering-hardware-validation-record-template-2026-08-11.md`，把 GUI 字体/显示后续证据固定为 pending/compile-only/host-snapshot-only/hardware-failed/hardware-passed-* 分级；后续不能用 `gui_font_snapshot` checksum、fake display backend CTest 或生成器 preview 替代真实屏幕照片/日志。
 
 ---
 
