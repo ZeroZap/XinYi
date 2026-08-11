@@ -31,10 +31,10 @@
 | **IPC** | `components/ipc/` | 🟢 稳定 | ✅ | 进程间通信 |
 | **PM** | `components/pm/` | 🟢 稳定 | ✅ | 电源管理 |
 | **Fuel Gauge** | `components/fuel_gauge/` | 🟡 host-guarded | ✅ | standalone 电量计；SMBus 硬件验证 pending |
-| **GUI** | `components/gui/` | 🟡 开发中 | ⚠️ | 图形界面 |
-| **FOTA** | `components/fota/` | 🟡 开发中 | ⚠️ | 固件升级 |
+| **GUI** | `components/gui/` | 🟡 host-guarded | ✅ | core/widgets/effects/fonts/display-backend adapter 已有 CTest；真实屏幕、字体来源/美术审查 pending |
+| **FOTA** | `components/fota/` | 🟢 主线可用 | ✅ | host CTest + smoke example 已闭环；bootloader/board NOR 硬件记录 pending |
 
-**图例**: ✅ 完善 | 🟡 开发中 | ⚠️ 需要工作
+**图例**: 🟢 稳定/主线可用 | 🟡 host-guarded 但仍待硬件或人工证据 | ⚠️ 需要工作
 
 ---
 
