@@ -51,9 +51,15 @@ A safe first code slice has been implemented:
 3. Add `--self-test-glyph-metadata` to verify deterministic output filenames, mode validation, and unsupported-mode errors without writing generated glyph tables.
 4. Register the Python smoke as `gui_font_generator_glyph_metadata`.
 
-The next safe slice has also been implemented without importing full CJK assets: `--emit-glyph-header <font-id>` and `--emit-glyph-source <font-id>` now emit deterministic `legacy-passthrough` previews for reviewed manifest entries, guarded by `gui_font_generator_glyph_preview`. These previews reference current legacy public handles/constants and deliberately avoid committing generated glyph bytes.
+The next safe slices have also been implemented without importing full CJK assets:
 
-The next safe slice is still **not** a full CJK import. It should either add a write path for these reviewed preview files, or add a host framebuffer snapshot-review proposal before any generated glyph-byte files are committed.
+1. `--emit-glyph-header <font-id>` and `--emit-glyph-source <font-id>` emit deterministic `legacy-passthrough` previews for reviewed manifest entries, guarded by `gui_font_generator_glyph_preview`.
+2. `--write-glyph-preview <font-id> <header> <source>` writes those reviewed preview files to an explicit caller-provided path, guarded by `gui_font_generator_glyph_write`.
+3. `gui_font_generator_glyph_compile` writes each preview to a temporary generated tree and compiles it with `gcc -std=c99 -Wall -Wextra -Werror`, proving the preview artifacts are host C99-buildable.
+
+These previews reference current legacy public handles/constants and deliberately avoid committing generated glyph bytes.
+
+The next safe slice is still **not** a full CJK import. It should either add a deterministic generated-source check-in policy for these reviewed previews, or continue the host framebuffer snapshot-review path before any generated glyph-byte files are committed.
 
 Recommended path limit:
 
@@ -78,9 +84,9 @@ Future implementation should run at least:
 
 ```bash
 cmake -B build/tests/unit -S tests/unit
-cd build/tests/unit && ctest --output-on-failure -R '^gui_font_generator_(manifest|output|write|glyph_metadata|glyph_preview)$'
+cd build/tests/unit && ctest --output-on-failure -R '^gui_font_generator_(manifest|output|write|glyph_metadata|glyph_preview|glyph_write|glyph_compile)$'
 make test-unit
 git diff --check
 ```
 
-If real generated `.c/.h` output is added later, add a focused compile target that includes the generated header and links the generated source before committing generated files.
+If real generated `.c/.h` output is added later, keep the compile gate but change it from temporary preview artifacts to the exact checked-in generated source/header pair before committing generated files.
