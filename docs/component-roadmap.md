@@ -74,7 +74,7 @@
 |------|--------|------|
 | **OSAL** | 95% | 支持 FreeRTOS/RT-Thread/Bare-metal |
 | **HAL** | 90% | STM32/WCH/PC 仿真 |
-| **Crypto** | 90% | AES/SHA/HMAC/CRC/Base64 |
+| **Crypto** | host-guarded / 安全审查待证据 | `xy_tiny_crypto` root target、10 个 focused crypto CTest 与 README 入口已同步；后续优先 security/provenance review 与 duplicate-source ownership proposal |
 | **Sensor** | 90% | 10+ 传感器驱动 |
 | **FOTA** | 90% / 硬件待验证 | `xy_fota`、host CTest、external-flash callback seam 与 smoke example 已闭环；真实 bootloader/board NOR 证据仍 pending |
 | **Clib** | 95% | 嵌入式标准库 |
@@ -99,6 +99,7 @@
 - 本路线图的早期 Git 状态快照已过期；当前自动闭环以 `git status --short --branch` 的实时输出为准，不再要求切换到旧文档中的 develop。
 - MUX、Actuator、FOTA、Fuel Gauge 的 README/Kconfig/CMake/host CTest 基线已分别在组件完整度报告和 `docs/design/xinyi-component-quality-loop.md` 中同步；后续不再把这些组件作为“缺 README/缺测试/缺示例”的基线补齐项。
 - Net 的 CAN/LTE 仍保持 default-off/direct-opt-in 策略：host fake、adapter、umbrella opt-in 与 smoke guard 已覆盖，真实 LTE 硬件结果必须来自 UART/modem/flow-control validation record。
+- Crypto 已从旧路线图“Base64/Hex 源码位置不明 / SM 测试不足”同步为 host-guarded：`components/crypto/README.md` 记录 `xy_tiny_crypto` root target、root `COMPONENT_CRYPTO` 默认关闭策略、10 个 focused CTest 与安全边界；后续不应直接批量整理 `src/`/module duplicate sources，需先写 ownership/security/provenance proposal。
 - DM 已从旧路线图“70% / 无统一 README / 测试覆盖不足”同步为 host-guarded：`components/dm/README.md` 记录 `xy_dm` root build、root `COMPONENT_DM` 配置、Base64/TLV/NVM/Factory/FEE/coreJSON 的 6 个 focused CTest 与 NOR/FlashDB 硬件验证边界；后续不应重复按 README 缺失开工，FS/JSON abstraction 或 NOR/FlashDB 只在真实 public dependency/硬件证据需要时推进。
 - IPC event group 已从 proposal 推进为 host-guarded wrapper：`components/ipc/inc/xy_event_group.h`、`components/ipc/src/xy_event_group.c` 与 `test_ipc_event_group` / `ipc_event_group` CTest 已存在，IPC README 也已记录它只是 OSAL event-flags 的薄封装。后续不应继续按“事件组待设计/待实现”重复开工；若要扩展 ISR/threaded wait 语义，必须先有 OSAL backend 或真实线程/硬件证据。
 - GUI 已从旧路线图“40% / 字体控件渲染待补”同步为 host-guarded core：`gui_core`、`gui_widget_theme`、`gui_widgets` 三个 CTest 已覆盖 core/widget/event/theme 基线，`components/gui/README.md` 已改为显式 `xy_gui_t` context API 示例。后续 GUI 工作应聚焦 effects header probe、display backend validation proposal 或真实屏幕/字体证据，不再按“完全无测试/待开发”重复开工。

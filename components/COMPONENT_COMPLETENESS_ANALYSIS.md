@@ -24,7 +24,7 @@
 | 组件       | 完整度 | 状态     | Kconfig | README | 示例 | 测试 |
 | ---------- | ------ | -------- | ------- | ------ | ---- | ---- |
 | sensor     | 95% 🟢 | 优秀     | ✅      | ✅     | ✅   | ❌   |
-| crypto     | 65% 🟡 | 中等     | ✅      | ✅     | ✅   | ⚠️   |
+| crypto     | host-guarded / 文档已补齐 | 需安全审查 | ✅      | ✅     | ⚠️   | ✅   |
 | fota       | 90% 🟢 | 主线可用 / 硬件验证待证据 | ✅      | ✅     | ✅   | ✅   |
 | dm         | host-guarded / 文档已补齐 | README 已收敛 | ✅      | ✅     | ⚠️   | ✅   |
 | gui        | host-guarded core / 硬件待验证 | core/widget/event/theme 已有 CTest | ✅      | ✅     | ❌   | ✅   |
@@ -253,25 +253,26 @@
 
 ---
 
-### 10. crypto/ - 加密组件 (65%)
+### 10. crypto/ - 加密组件 (host-guarded / 文档已补齐)
 
-#### 问题描述
+#### 当前状态
 
-- **缺少 Base64/Hex 实现**：README 有 API 文档但源码位置不明
-- **测试覆盖不均**：SM2/SM3/SM4/Blake2b 等无测试
-- **代码组织混乱**：src/ 只有 3 个文件，其他散落在各 xy\_\*/ 目录
+- **统一 README 已补齐**：`components/crypto/README.md` 现在是组件闭环入口，记录 root `xy_tiny_crypto` target、root `COMPONENT_CRYPTO` 默认关闭策略、active CTest 与安全边界。
+- **host CTest 已存在**：`tests/unit/crypto/` 下 10 个 Unity/CTest 目标覆盖 CRC、RNG/CSPRNG、Base64/Hex、MD5/SHA-256、AES/HMAC/SM3/SM4/ChaCha20、SM2、LWC/Ascon、Curve25519 generic 与 Cortex-M0 fallback。
+- **实现位置已明确**：Base64/Hex、hash、AES/HMAC、SM 系列与 25519 等实现位于 module 目录和历史 `src/` aggregate copy 中；后续不应再按“Base64/Hex 源码位置不明”重复开工。
+- **剩余风险**：重复源码 ownership、`xy_tiny_crypto` 历史 target 命名、placeholder-grade 算法安全等级、硬件加速与第三方来源审查仍需独立 proposal/验证，不能由 host CTest 直接替代。
 
 #### 修复计划
 
 | 序号 | 任务                                   | 工作量 | 优先级 |
 | ---- | -------------------------------------- | ------ | ------ |
-| C1   | 定位或补充 Base64 编解码实现           | 4h     | 🟠 中  |
-| C2   | 定位或补充 Hex 编解码实现              | 4h     | 🟠 中  |
-| C3   | 补充 SM2/SM3/SM4/Blake2b/ChaCha20 测试 | 16h    | 🟠 中  |
-| C4   | 整理代码组织（统一到 src/）            | 8h     | 🟡 中  |
-| C5   | 更新 README 与代码一致                 | 2h     | 🟡 低  |
+| C1   | 定位或补充 Base64/Hex 实现             | -      | 已完成 |
+| C2   | 维护 10 个 active crypto host CTest     | -      | 持续维护 |
+| C3   | 补安全等级/来源/provenance review plan | 1–2h   | 🟡 中  |
+| C4   | 重复源码 ownership 与 target 命名 proposal | 1–2h | 🟡 低  |
+| C5   | active public API 的 host-safe smoke 示例 | 1–2h/个 | 🟡 低  |
 
-**预计工时**: 34h
+**预计剩余工时**: 实证/审查驱动；不再按“无 Base64/Hex / 无 SM 测试 / 无 README”旧基线重复开工。
 
 ---
 
@@ -314,7 +315,7 @@
 | 🟠 中    | fota       | 6h       |
 | 🟠 中    | pm         | 实证驱动 |
 | 🟠 中    | dm         | 25h      |
-| 🟠 中    | crypto     | 34h      |
+| 🟠 中    | crypto     | 审查驱动 |
 | 🟡 低    | fuel_gauge | 4h       |
 | 🟡 低    | charger    | 1h       |
 | **总计** |            | **304h** |
@@ -334,7 +335,7 @@
 1. 将低风险示例纳入 host smoke 构建护栏
 2. 补充 mux/ 空头文件的 API
 3. 补充 fota/ 的 xy_fota_flash.h
-4. 整理 crypto/ 代码组织
+4. Crypto 后续先做安全/provenance review 或 duplicate-source ownership proposal，不直接批量整理代码组织
 
 ### 第三阶段（5-8 周）- 示例和测试
 
@@ -361,7 +362,7 @@
 - `components/gui/` - 图形界面分析 (40%)
 - `components/pm/` - 电源管理状态同步（host-guarded / 功耗待实证）
 - `components/dm/` - 数据管理分析 (70%)
-- `components/crypto/` - 加密组件分析 (65%)
+- `components/crypto/` - 加密组件状态同步（host-guarded / 文档已补齐 / 安全审查待证据）
 - `components/net/` - 网络组件分析 (50%)
 - `components/actuator/` - 执行器分析 (60%)
 - `components/fota/` - 固件升级分析 (75%)

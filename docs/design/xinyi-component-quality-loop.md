@@ -190,6 +190,11 @@
 - Net 组件完整度报告与 `components/net/README.md` 已同步到当前事实：CAN/MQTT/AT/Modbus 维持 host CTest 护栏，LTE 已有 fake AT seam、callback UART adapter、default-off HAL UART adapter、smoke skeleton 与 STM32U5 compile probe。
 - Net 后续不应再按“缺 README/缺测试/LTE 无 adapter”重复开工；CAN/LTE umbrella 默认导出仍需产品决策或真实 UART/modem/flow-control 硬件证据，host fake/HAL adapter smoke 不能替代硬件验证记录。
 
+### 2026-08-12 Crypto component status sync
+
+- Crypto 已新增统一入口 `components/crypto/README.md`，把当前 root auto-discovered target `xy_tiny_crypto`、root `COMPONENT_CRYPTO` 默认关闭策略、10 个 active `tests/unit/crypto` focused CTest、历史 `src/` 与 module-directory duplicate source ownership 风险，以及“host CTest 不等于安全审计/硬件加速验证”的边界固定为事实源。
+- `components/COMPONENT_COMPLETENESS_ANALYSIS.md` 与 `docs/component-roadmap.md` 已同步：Crypto 不再按“Base64/Hex 源码位置不明 / SM 测试不足 / 无 README”旧基线重复开工；后续应优先做 security/provenance review、duplicate-source ownership proposal、或 active public API 的 host-safe smoke 示例，不直接批量整理源码目录。
+
 ---
 
 ### 2026-08-11 Device component status sync
