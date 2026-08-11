@@ -1431,6 +1431,10 @@ add_test(NAME gui_font_generator_glyph_write
     COMMAND python3 ${GUI}/fonts/tools/generate_bitmap_font.py --self-test-glyph-write
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME gui_font_generator_glyph_compile
+    COMMAND python3 ${GUI}/fonts/tools/generate_bitmap_font.py --self-test-glyph-compile
+    WORKING_DIRECTORY ${ROOT}
+)
 
 # --- Test 37f: GUI font engine draw/cache contracts ---
 xy_add_unit_test(test_gui_font_engine gui_font_engine UNITY

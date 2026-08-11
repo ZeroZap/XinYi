@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, cast
@@ -347,14 +348,14 @@ def build_glyph_header(data: dict[str, Any], font_id: str) -> str:
     return "\n".join(lines)
 
 
-def build_glyph_source(data: dict[str, Any], font_id: str) -> str:
+def build_glyph_source(data: dict[str, Any], font_id: str, output_header_name: str | None = None) -> str:
     """Build a deterministic legacy-passthrough glyph source preview."""
 
     font = _find_font(data, font_id)
     _require(font["generator_mode"] == "legacy-passthrough",
              f"{font_id}: glyph source preview only supports legacy-passthrough")
     macro = _macro_name(font_id)
-    output_header = Path(cast(str, font["output_header"])).name
+    output_header = output_header_name or Path(cast(str, font["output_header"])).name
     public_handle = cast(str, font["public_handle"])
     data_symbol = f"g_xy_gui_font_{macro.lower()}_generated_preview"
 
@@ -415,7 +416,7 @@ def write_glyph_preview(data: dict[str, Any], font_id: str, header_path: Path, s
     header_output.parent.mkdir(parents=True, exist_ok=True)
     source_output.parent.mkdir(parents=True, exist_ok=True)
     header_output.write_text(build_glyph_header(data, font_id), encoding="utf-8")
-    source_output.write_text(build_glyph_source(data, font_id), encoding="utf-8")
+    source_output.write_text(build_glyph_source(data, font_id, header_output.name), encoding="utf-8")
 
 
 def self_test_written_output(data: dict[str, Any]) -> None:
@@ -445,8 +446,11 @@ def self_test_glyph_write(data: dict[str, Any]) -> None:
             write_glyph_preview(data, font_id, header_path, source_path)
             _require(header_path.read_text(encoding="utf-8") == build_glyph_header(data, font_id),
                      f"{font_id}: written glyph header differs from preview")
-            _require(source_path.read_text(encoding="utf-8") == build_glyph_source(data, font_id),
+            written_source = source_path.read_text(encoding="utf-8")
+            _require(written_source == build_glyph_source(data, font_id, header_path.name),
                      f"{font_id}: written glyph source differs from preview")
+            _require(f'#include "{header_path.name}"' in written_source,
+                     f"{font_id}: glyph source does not include the requested header basename")
 
     try:
         with tempfile.TemporaryDirectory(prefix="xinyi-font-glyph-negative-") as tmpdir:
@@ -456,6 +460,44 @@ def self_test_glyph_write(data: dict[str, Any]) -> None:
         _require("must differ" in str(exc), "same-path glyph write probe failed for the wrong reason")
     else:
         raise ManifestError("same-path glyph write probe was accepted")
+
+
+def self_test_glyph_compile(data: dict[str, Any], manifest_path: Path) -> None:
+    """Validate that written glyph previews are C99-compilable host artifacts."""
+
+    import tempfile
+
+    fonts_root = manifest_path.resolve().parent
+    with tempfile.TemporaryDirectory(prefix="xinyi-font-glyph-compile-") as tmpdir:
+        output_root = Path(tmpdir) / "generated"
+        for font in data["fonts"]:
+            font_id = cast(str, font["id"])
+            header_path = Path(tmpdir) / cast(str, font["output_header"])
+            source_path = Path(tmpdir) / cast(str, font["output_source"])
+            write_glyph_preview(data, font_id, header_path, source_path)
+            result = subprocess.run(
+                [
+                    "gcc",
+                    "-std=c99",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-I",
+                    str(output_root),
+                    "-I",
+                    str(fonts_root),
+                    "-c",
+                    str(source_path),
+                    "-o",
+                    str(output_root / f"{font_id}.o"),
+                ],
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            _require(result.returncode == 0,
+                     f"{font_id}: glyph preview compile failed: {result.stderr.strip()}")
 
 
 def self_test_glyph_metadata(data: dict[str, Any]) -> None:
@@ -557,6 +599,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Write deterministic legacy-passthrough glyph header/source previews")
     parser.add_argument("--self-test-glyph-write", action="store_true",
                         help="Validate that glyph preview write mode matches preview output")
+    parser.add_argument("--self-test-glyph-compile", action="store_true",
+                        help="Validate that written glyph previews compile as C99 host artifacts")
     args = parser.parse_args(argv)
 
     try:
@@ -600,6 +644,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font glyph-write self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font glyph-write self-test passed")
+    elif args.self_test_glyph_compile:
+        try:
+            self_test_glyph_compile(data, Path(args.manifest))
+        except (ManifestError, OSError) as exc:
+            print(f"font glyph-compile self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font glyph-compile self-test passed")
     elif args.emit_glyph_header:
         try:
             print(build_glyph_header(data, args.emit_glyph_header), end="")
