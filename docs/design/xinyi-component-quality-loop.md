@@ -163,7 +163,8 @@
 - 已新增 `docs/design/xinyi-gui-font-asset-generation-proposal-2026-08-11.md`，把字体方向的下一步收束为四级证据：当前 contract-guarded assets、可复现 manifest/generator、host framebuffer snapshot review、真实屏幕硬件记录。后续不要再把 `gui_fonts` / `gui_font_engine` 等同于完整中文字库或美术验收；若继续实现，应先做 current-asset manifest/generator 与 manifest consistency host smoke，不要同轮 bulk-import 完整 CJK 字库。
 - 已新增 `components/gui/fonts/font_manifest.json` 与 `gui_font_manifest` host CTest，先把当前 legacy ASCII/Chinese bitmap asset 的范围、provenance、duplicate/placeholder inventory 固定为可验证事实；`components/gui/fonts/tools/README.md` 只记录 deterministic generator 要求，尚未实现生成器或导入完整 CJK 字库。后续字体方向应推进 generator 或 snapshot review，而不是重复补字体表边界测试。
 - 已新增 `components/gui/fonts/tools/generate_bitmap_font.py` generator bootstrap 与 `gui_font_generator_manifest`/`gui_font_generator_output` CTest：当前做 manifest schema/range/source-file/known-inventory validation、deterministic summary，以及 manifest-inventory generated-header preview/self-test；不导入外部字体、不改写 legacy bitmap table、不声称字体美术或真实屏幕验证。后续 generator slice 应在此基础上实现可复现 `.c/.h` 写入或 host snapshot review。
-- Font generator 已补 `--write-manifest-header` 与 `gui_font_generator_write` write-path CTest：当前可把 manifest-inventory header 明确写到指定输出路径，并验证写出内容与 preview 完全一致；仍不把生成文件纳入源码、不生成 glyph bitmap、不替代 snapshot/hardware validation。后续字体方向应优先做 host framebuffer snapshot review 或真实 `.c/.h` glyph generation proposal，而不是继续重复 manifest header smoke。
+- Font generator 已补 `--write-manifest-header` 与 `gui_font_generator_write` write-path CTest：当前可把 manifest-inventory header 明确写到指定输出路径，并验证写出内容与 preview 完全一致；仍不把生成文件纳入源码、不生成 glyph bitmap、不替代 snapshot/hardware validation。
+- 已新增 `docs/design/xinyi-gui-font-glyph-generation-proposal-2026-08-11.md`，把下一步真实 `.c/.h` glyph generation 收束为独立 metadata-first slice：先为 manifest 增加 output/source/mode/license 字段与 `gui_font_generator_glyph_metadata` smoke，再考虑写出/提交生成表；不得同轮 bulk-import 完整 CJK 字库或声称视觉/硬件验收。
 
 ---
 
