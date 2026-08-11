@@ -225,6 +225,36 @@ def validate_manifest(manifest_path: Path) -> dict[str, Any]:
     _require(not reviewed_ids,
              "review_status.reviewed_font_ids must stay empty until a review record approves fonts")
 
+    snapshot_status = data.get("snapshot_review_status")
+    _require(isinstance(snapshot_status, dict), "snapshot_review_status must be an object")
+    snapshot_status = cast(dict[str, Any], snapshot_status)
+    _require(snapshot_status.get("state") == "host-snapshot-review-pending",
+             "snapshot_review_status.state must remain host-snapshot-review-pending until reviewed artifacts exist")
+    snapshot_note = snapshot_status.get("review_note")
+    _require(isinstance(snapshot_note, str) and snapshot_note.startswith("docs/validation/")
+             and snapshot_note.endswith(".md"),
+             "snapshot_review_status.review_note must point to a docs/validation/*.md record")
+    _require(isinstance(snapshot_status.get("policy"), str) and bool(snapshot_status["policy"]),
+             "snapshot_review_status.policy must describe the host snapshot review gate")
+    _require(snapshot_status.get("evidence_level") == "host-snapshot-only-pending",
+             "snapshot_review_status.evidence_level must remain host-snapshot-only-pending")
+    snapshot_pending_ids = snapshot_status.get("pending_font_ids")
+    snapshot_reviewed_ids = snapshot_status.get("reviewed_font_ids")
+    _require(isinstance(snapshot_pending_ids, list),
+             "snapshot_review_status.pending_font_ids must be a list")
+    _require(isinstance(snapshot_reviewed_ids, list),
+             "snapshot_review_status.reviewed_font_ids must be a list")
+    snapshot_pending_ids = cast(list[Any], snapshot_pending_ids)
+    snapshot_reviewed_ids = cast(list[Any], snapshot_reviewed_ids)
+    _require(all(isinstance(item, str) for item in snapshot_pending_ids),
+             "snapshot_review_status.pending_font_ids entries must be strings")
+    _require(all(isinstance(item, str) for item in snapshot_reviewed_ids),
+             "snapshot_review_status.reviewed_font_ids entries must be strings")
+    _require(set(snapshot_pending_ids) == seen_ids,
+             "snapshot_review_status.pending_font_ids must list every current font while review is pending")
+    _require(not snapshot_reviewed_ids,
+             "snapshot_review_status.reviewed_font_ids must stay empty until snapshot review evidence exists")
+
     generation_plan = data.get("generation_plan")
     _require(isinstance(generation_plan, dict), "generation_plan must be an object")
     generator_rel = generation_plan.get("generator")
@@ -609,6 +639,37 @@ def self_test_license_manifest(data: dict[str, Any], manifest_path: Path) -> Non
                  f"{font_id}: provenance changed before source review was recorded")
 
 
+def self_test_snapshot_review_manifest(data: dict[str, Any], manifest_path: Path) -> None:
+    """Validate that host snapshot review remains a separate pending evidence tier."""
+
+    snapshot_status = cast(dict[str, Any], data["snapshot_review_status"])
+    review_note = cast(str, snapshot_status["review_note"])
+    review_note_path = (manifest_path.resolve().parents[3] / review_note).resolve()
+    _require(review_note_path.exists(), f"font host snapshot review note is missing: {review_note_path}")
+    review_note_text = review_note_path.read_text(encoding="utf-8")
+    _require("status: pending" in review_note_text,
+             "font host snapshot review note must keep status pending")
+    _require("host-snapshot-only" in review_note_text,
+             "font host snapshot review note must declare host-snapshot-only scope")
+    _require("not a license/provenance approval" in review_note_text,
+             "font host snapshot review note must not approve license/provenance")
+    _require("not real LCD/OLED/LED-matrix hardware validation" in review_note_text,
+             "font host snapshot review note must not approve hardware validation")
+
+    pending_ids = set(cast(list[str], snapshot_status["pending_font_ids"]))
+    _require(snapshot_status["state"] == "host-snapshot-review-pending",
+             "font host snapshot review state changed before reviewed artifacts were recorded")
+    _require(snapshot_status["evidence_level"] == "host-snapshot-only-pending",
+             "font host snapshot evidence level must remain pending")
+    _require(len(pending_ids) == len(data["fonts"]),
+             "font host snapshot pending list must cover every current font")
+    _require(not cast(list[str], snapshot_status["reviewed_font_ids"]),
+             "font host snapshot reviewed list must stay empty until a real review record exists")
+    for font in data["fonts"]:
+        font_id = cast(str, font["id"])
+        _require(font_id in pending_ids, f"{font_id}: missing from pending host snapshot list")
+
+
 def self_test_glyph_metadata(data: dict[str, Any]) -> None:
     """Validate glyph-generation metadata before real glyph table output exists."""
 
@@ -714,6 +775,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Validate checked-in generated previews against the generator and compile them")
     parser.add_argument("--self-test-license-manifest", action="store_true",
                         help="Validate pending font license/provenance review manifest contracts")
+    parser.add_argument("--self-test-snapshot-review-manifest", action="store_true",
+                        help="Validate pending host snapshot review manifest contracts")
     args = parser.parse_args(argv)
 
     try:
@@ -778,6 +841,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font license-manifest self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font license-manifest self-test passed")
+    elif args.self_test_snapshot_review_manifest:
+        try:
+            self_test_snapshot_review_manifest(data, Path(args.manifest))
+        except (ManifestError, OSError) as exc:
+            print(f"font snapshot-review-manifest self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font snapshot-review-manifest self-test passed")
     elif args.emit_glyph_header:
         try:
             print(build_glyph_header(data, args.emit_glyph_header), end="")

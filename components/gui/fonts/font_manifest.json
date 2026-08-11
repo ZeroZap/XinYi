@@ -13,6 +13,18 @@
       "chinese_16x16_ui_legacy"
     ]
   },
+  "snapshot_review_status": {
+    "state": "host-snapshot-review-pending",
+    "review_note": "docs/validation/xinyi-gui-font-host-snapshot-review-record-template-2026-08-11.md",
+    "policy": "Host framebuffer snapshots may review current legacy glyph appearance only; they must not approve license/provenance, generated glyph-byte check-in, or real display hardware validation.",
+    "reviewed_font_ids": [],
+    "pending_font_ids": [
+      "ascii_8x16",
+      "ascii_16x24",
+      "chinese_16x16_ui_legacy"
+    ],
+    "evidence_level": "host-snapshot-only-pending"
+  },
   "notes": [
     "This manifest documents the currently checked-in bitmap font assets only.",
     "It does not claim complete Chinese coverage, final glyph art quality, or hardware rendering validation.",
