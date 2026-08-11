@@ -109,13 +109,17 @@
 | OSAL 组件文档 | 95% | 2026-02-28 | ✅ 完善 |
 | Device 组件文档 | 90% | 2026-02-28 | ✅ 完善 |
 | CLIB 组件文档 | 85% | 2026-02-28 | ✅ 完善 |
-| Crypto 组件文档 | 70% | 2026-02-28 | ⚠️ 部分完善 |
-| DM 组件文档 | 70% | 2026-02-28 | ⚠️ 部分完善 |
-| Net 组件文档 | 60% | 2026-02-28 | ⚠️ 需完善 |
-| Trace 组件文档 | 70% | 2026-02-28 | ⚠️ 部分完善 |
-| Sensor 组件文档 | 30% | 2026-02-28 | ❌ 缺失 |
-| IPC 组件文档 | 30% | 2026-02-28 | ❌ 缺失 |
-| PM 组件文档 | 30% | 2026-02-28 | ❌ 缺失 |
+| Crypto 组件文档 | 90% | 2026-08-11 | ✅ host-guarded |
+| DM 组件文档 | 85% | 2026-08-11 | ✅ host-guarded |
+| Net 组件文档 | host-guarded / LTE 硬件待证据 | 2026-08-11 | ✅ 软件契约已护栏 |
+| Trace 组件文档 | 85% | 2026-08-11 | ✅ 完善 |
+| Sensor 组件文档 | 95% | 2026-08-11 | ✅ tail host coverage 已收口 |
+| IPC 组件文档 | host-guarded | 2026-08-11 | ✅ pipe/broker/message queue/observer/event group 已护栏 |
+| PM 组件文档 | host-guarded / 功耗待实证 | 2026-08-11 | ✅ README/Kconfig/CMake/CTest 已闭环 |
+| FOTA 组件文档 | 主线可用 / 硬件待证据 | 2026-08-11 | ✅ host CTest + smoke example 已闭环 |
+| GUI 组件文档 | host-guarded core / 硬件待验证 | 2026-08-11 | ✅ core/widgets/effects/fonts/display-backend adapter 已有护栏 |
+
+> 说明：该表只记录软件文档与 host-side 契约状态；LTE modem、Fuel Gauge SMBus、FOTA bootloader/board NOR、GUI/Display 真实屏幕等硬件结论仍必须来自 `docs/validation/` 下的真实板级记录，不能由 host fake 或 compile-only 结果替代。
 
 ---
 
