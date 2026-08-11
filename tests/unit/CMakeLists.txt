@@ -1456,6 +1456,20 @@ target_include_directories(test_gui_font_engine PRIVATE
     ${GUI}/inc
 )
 
+# --- Test 37i: GUI font framebuffer snapshot metadata contracts ---
+xy_add_unit_test(test_gui_font_snapshot gui_font_snapshot UNITY
+    ${UNIT_GUI}/test_gui_font_snapshot.c
+    ${GUI}/src/xy_font.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
+target_include_directories(test_gui_font_snapshot PRIVATE
+    ${GUI}/inc
+)
+
 # --- Test 38: Analog ADC/DAC, MCP3008, and HX711 host contracts ---
 xy_add_unit_test(test_analog_devices analog_devices UNITY
     ${UNIT_ANALOG}/test_analog_devices.c
