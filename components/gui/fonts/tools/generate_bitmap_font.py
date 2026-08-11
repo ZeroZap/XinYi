@@ -500,6 +500,61 @@ def self_test_glyph_compile(data: dict[str, Any], manifest_path: Path) -> None:
                      f"{font_id}: glyph preview compile failed: {result.stderr.strip()}")
 
 
+def self_test_checked_in_preview(data: dict[str, Any], manifest_path: Path) -> None:
+    """Validate that checked-in generated previews are reproducible and buildable."""
+
+    fonts_root = manifest_path.resolve().parent
+    generated_root = fonts_root / "generated"
+    readme_path = generated_root / "README.md"
+    _require(readme_path.exists(), "generated preview README is missing")
+    readme_text = readme_path.read_text(encoding="utf-8")
+    _require("legacy-passthrough preview" in readme_text,
+             "generated README must declare the legacy-passthrough preview tier")
+    _require("do not prove display hardware rendering" in readme_text,
+             "generated README must keep hardware validation out of scope")
+
+    manifest_header_path = generated_root / "xy_gui_font_manifest_generated.h"
+    _require(manifest_header_path.exists(), "checked-in manifest generated header is missing")
+    _require(manifest_header_path.read_text(encoding="utf-8") == build_manifest_header(data),
+             "checked-in manifest generated header differs from generator output")
+
+    for font in data["fonts"]:
+        font_id = cast(str, font["id"])
+        header_path = fonts_root / cast(str, font["output_header"])
+        source_path = fonts_root / cast(str, font["output_source"])
+        _require(header_path.exists(), f"{font_id}: checked-in generated header is missing")
+        _require(source_path.exists(), f"{font_id}: checked-in generated source is missing")
+        _require(header_path.read_text(encoding="utf-8") == build_glyph_header(data, font_id),
+                 f"{font_id}: checked-in generated header differs from generator output")
+        expected_source = build_glyph_source(data, font_id, header_path.name)
+        _require(source_path.read_text(encoding="utf-8") == expected_source,
+                 f"{font_id}: checked-in generated source differs from generator output")
+
+        result = subprocess.run(
+            [
+                "gcc",
+                "-std=c99",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-I",
+                str(generated_root),
+                "-I",
+                str(fonts_root),
+                "-c",
+                str(source_path),
+                "-o",
+                "/tmp/xinyi-font-checked-in-preview.o",
+            ],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        _require(result.returncode == 0,
+                 f"{font_id}: checked-in generated source compile failed: {result.stderr.strip()}")
+
+
 def self_test_glyph_metadata(data: dict[str, Any]) -> None:
     """Validate glyph-generation metadata before real glyph table output exists."""
 
@@ -601,6 +656,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Validate that glyph preview write mode matches preview output")
     parser.add_argument("--self-test-glyph-compile", action="store_true",
                         help="Validate that written glyph previews compile as C99 host artifacts")
+    parser.add_argument("--self-test-checked-in-preview", action="store_true",
+                        help="Validate checked-in generated previews against the generator and compile them")
     args = parser.parse_args(argv)
 
     try:
@@ -651,6 +708,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font glyph-compile self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font glyph-compile self-test passed")
+    elif args.self_test_checked_in_preview:
+        try:
+            self_test_checked_in_preview(data, Path(args.manifest))
+        except (ManifestError, OSError) as exc:
+            print(f"font checked-in-preview self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font checked-in-preview self-test passed")
     elif args.emit_glyph_header:
         try:
             print(build_glyph_header(data, args.emit_glyph_header), end="")
