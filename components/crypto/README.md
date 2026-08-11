@@ -75,7 +75,7 @@ Important ownership notes:
 
 ## Remaining backlog
 
-1. **Security/provenance review**: initial review policy now lives in `docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md`, with record template `docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md`; `crypto_review_manifest` guards `components/crypto/crypto_review_manifest.json` so all algorithms stay review-pending unless a real review record is linked.
+1. **Security/provenance review**: initial review policy now lives in `docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md`, with record template `docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md`; `crypto_review_manifest` guards `components/crypto/crypto_review_manifest.json` so all algorithms stay review-pending unless a real review record is linked. It also records root aggregate BLAKE2/ECDSA copies as `root-source-unreviewed` so mapped-but-unreviewed code is not mistaken for reviewed algorithm coverage.
 2. **Root target compatibility alias**: historical `xy_tiny_crypto` remains the real runtime/install target, while `components/crypto/CMakeLists.txt` now provides an `xy_crypto` ALIAS for examples/consumers that already use the component-style name; any full rename still needs a separate proposal.
 3. **Duplicate source ownership**: current root/runtime vs focused-test source ownership is mapped in `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md`; reconcile `src/` copies vs module-directory copies only after a proposal and focused source-map verification.
 4. **Examples**: add small host-safe smoke examples only for active public APIs; do not revive stale broad demos in one batch.

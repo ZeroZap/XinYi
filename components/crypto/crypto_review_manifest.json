@@ -118,5 +118,21 @@
       "allowed_usage": "contract-guarded only; upstream CC0/assembly TODO/target correctness review pending",
       "review_record": null
     }
+  ],
+  "unreviewed_root_sources": [
+    {
+      "id": "blake2_root_copy",
+      "source": "components/crypto/src/xy_blake2.c",
+      "mapped_in": "docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md",
+      "status": "root-source-unreviewed",
+      "reason": "root aggregate copy exists, but no active focused CTest or security/provenance review is currently declared in the algorithm manifest"
+    },
+    {
+      "id": "ecdsa_root_copy",
+      "source": "components/crypto/src/xy_ecdsa.c",
+      "mapped_in": "docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md",
+      "status": "root-source-unreviewed",
+      "reason": "simplified root aggregate ECDSA verifier exists without a focused CTest or security/provenance review; do not treat it as production signature validation"
+    }
   ]
 }

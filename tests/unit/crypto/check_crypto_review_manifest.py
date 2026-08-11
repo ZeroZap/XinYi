@@ -37,6 +37,11 @@ REQUIRED_ALGORITHM_IDS = {
     "curve25519_generic",
     "curve25519_cortex_m0",
 }
+REQUIRED_UNREVIEWED_ROOT_SOURCE_IDS = {
+    "blake2_root_copy",
+    "ecdsa_root_copy",
+}
+ALLOWED_UNREVIEWED_ROOT_SOURCE_STATUS = {"root-source-unreviewed"}
 APPROVED_STATUSES = {
     "provenance-reviewed",
     "security-reviewed-limited",
@@ -182,6 +187,59 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
     _require(not missing, f"missing required algorithm ids: {sorted(missing)}", errors)
     _require(not extra, f"unexpected algorithm ids: {sorted(extra)}", errors)
 
+    unreviewed_root_sources = data.get("unreviewed_root_sources")
+    _require(
+        isinstance(unreviewed_root_sources, list),
+        "unreviewed_root_sources must be a list of root aggregate copies that lack algorithm review",
+        errors,
+    )
+    if isinstance(unreviewed_root_sources, list):
+        seen_unreviewed_ids: set[str] = set()
+        for index, entry in enumerate(unreviewed_root_sources):
+            prefix = f"unreviewed_root_sources[{index}]"
+            _require(isinstance(entry, dict), f"{prefix} must be an object", errors)
+            if not isinstance(entry, dict):
+                continue
+
+            entry_id = entry.get("id")
+            _require(isinstance(entry_id, str) and len(entry_id) > 0, f"{prefix}.id is required", errors)
+            if isinstance(entry_id, str):
+                _require(entry_id not in seen_unreviewed_ids, f"duplicate unreviewed root source id: {entry_id}", errors)
+                seen_unreviewed_ids.add(entry_id)
+                prefix = f"unreviewed root source {entry_id}"
+
+            for key in ("source", "mapped_in", "status", "reason"):
+                value = entry.get(key)
+                _require(isinstance(value, str) and len(value) > 0, f"{prefix}.{key} is required", errors)
+
+            source = entry.get("source")
+            if isinstance(source, str) and len(source) > 0:
+                _require(_rel_exists(source), f"{prefix}.source path does not exist: {source}", errors)
+                _require(source in source_map_text, f"{prefix}.source is missing from source ownership map: {source}", errors)
+
+            mapped_in = entry.get("mapped_in")
+            if isinstance(mapped_in, str) and len(mapped_in) > 0:
+                _require(_rel_exists(mapped_in), f"{prefix}.mapped_in path does not exist: {mapped_in}", errors)
+
+            _require(
+                entry.get("status") in ALLOWED_UNREVIEWED_ROOT_SOURCE_STATUS,
+                f"{prefix}.status must remain root-source-unreviewed",
+                errors,
+            )
+
+        missing_unreviewed = REQUIRED_UNREVIEWED_ROOT_SOURCE_IDS - seen_unreviewed_ids
+        extra_unreviewed = seen_unreviewed_ids - REQUIRED_UNREVIEWED_ROOT_SOURCE_IDS
+        _require(
+            not missing_unreviewed,
+            f"missing required unreviewed root source ids: {sorted(missing_unreviewed)}",
+            errors,
+        )
+        _require(
+            not extra_unreviewed,
+            f"unexpected unreviewed root source ids: {sorted(extra_unreviewed)}",
+            errors,
+        )
+
     return errors
 
 
@@ -199,7 +257,12 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print(f"crypto_review_manifest_ok algorithms={len(data['algorithms'])} status={data['status']}")
+    print(
+        "crypto_review_manifest_ok "
+        f"algorithms={len(data['algorithms'])} "
+        f"unreviewed_root_sources={len(data.get('unreviewed_root_sources', []))} "
+        f"status={data['status']}"
+    )
     return 0
 
 
