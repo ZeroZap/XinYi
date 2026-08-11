@@ -20,18 +20,20 @@ components/net/
 ├── modbus_full/               # Full-featured Modbus (RTU + TCP + ASCII)
 ├── smbus/                      # SMBus protocol
 ├── xy_iso7816/                # ISO7816 smart card
-├── src/                        # Source implementations
-│   ├── nano_modbus.c          # Unified Modbus API
-│   ├── xy_can.c              # CAN bus implementation
-│   ├── xy_lte.c              # LTE/4G module driver (host-guarded)
-│   ├── xy_lte_uart_adapter.c # Callback-backed LTE UART transport adapter
-│   ├── xy_net.c              # Network core
-│   └── xy_net_platform.c     # Platform abstraction
-├── inc/                        # Public headers
+├── src/                         # Source implementations
+│   ├── nano_modbus.c            # Unified Modbus API
+│   ├── xy_can.c                 # CAN bus implementation
+│   ├── xy_lte.c                 # LTE/4G module driver (host-guarded)
+│   ├── xy_lte_uart_adapter.c    # Callback-backed LTE UART transport adapter
+│   ├── xy_lte_hal_uart_adapter.c # Default-off HAL UART binding adapter
+│   ├── xy_net.c                 # Network core
+│   └── xy_net_platform.c        # Platform abstraction
+├── inc/                         # Public headers
 │   ├── nano_modbus.h
 │   ├── xy_can.h
 │   ├── xy_lte.h
 │   ├── xy_lte_uart_adapter.h
+│   ├── xy_lte_hal_uart_adapter.h
 │   ├── xy_net.h
 │   └── xy_net_config.h
 ├── CMakeLists.txt
@@ -47,7 +49,7 @@ components/net/
 | **Modbus Tiny** | ✅ Production Ready | Lightweight version for constrained MCUs |
 | **Modbus Full** | ✅ Production Ready | RTU + TCP + ASCII support |
 | **CAN** | ✅ Implemented | FIFO-based host-guarded CAN core; not enabled in `xy_net` by default |
-| **LTE** | 🟡 Host-guarded | Public API, fakeable AT transport seam, and callback-backed UART adapter are covered by focused CTests; still disabled by default until a real HAL UART binding is proven |
+| **LTE** | 🟡 Host-guarded / hardware pending | Public API, fakeable AT transport seam, callback-backed UART adapter, HAL UART adapter, and smoke skeleton are covered by focused CTests; still disabled by default until real board UART/modem evidence exists |
 | **MQTT Client** | 🟡 Host-guarded | `src/xy_mqtt_client.c` covers CONNECT/CONNACK, QoS0/1 publish, subscribe, keepalive helpers; legacy `xy_mqtt/` remains deprecated |
 | **AT Client/Server** | 🟡 Host-guarded | Lightweight AT client/server cores have Unity/CTest coverage; larger vendor-style AT trees are not part of the default library |
 
@@ -172,10 +174,12 @@ xy_can_register_rx_callback(&can, on_can_receive, user_data);
 - Header exposes the LTE public API and the local `xy_lte_transport_t` AT command seam
 - `src/xy_lte.c` preserves lifecycle, attach/PDP, callback, and caller-output contracts behind a fakeable transport
 - `src/xy_lte_uart_adapter.c` provides a callback-backed UART byte transport adapter with no vendor/HAL UART dependency
+- `src/xy_lte_hal_uart_adapter.c` provides a default-off public HAL UART binding adapter; it is compile/smoke guarded, but still not hardware-validated
 - `tests/unit/net/test_lte.c` (`lte_component`) covers fake transport command success/failure, AT/CSQ/SIM/attach/PDP/send/recv contracts, and output/state preservation
 - `tests/unit/net/test_lte_uart_adapter.c` (`lte_uart_adapter`) covers adapter guards, byte forwarding, timeout propagation, backend-error propagation, and LTE core AT-command binding through the adapter
-- `XY_NET_ENABLE_LTE` remains `0` by default; include `xy_lte.h` / `xy_lte_uart_adapter.h` directly for focused consumers until a real HAL UART binding is designed and compile-probed
-- Needs a real HAL UART binding before being exported from `xy_net.h` by default
+- `tests/unit/net/test_lte_hal_uart_adapter.c` (`lte_hal_uart_adapter`) and `test_lte_hal_uart_smoke_example.c` (`lte_hal_uart_smoke_example`) cover HAL UART binding guard/error/timeout/clamp behavior plus modem-present/modem-absent smoke flows
+- `XY_NET_ENABLE_LTE` remains `0` by default; include `xy_lte.h`, `xy_lte_uart_adapter.h`, or `xy_lte_hal_uart_adapter.h` directly for focused consumers
+- Needs real board UART/modem validation before being exported from `xy_net.h` by default
 
 ### Supported Modules (Planned)
 - 移远 EC100Y/EC200Y
@@ -386,7 +390,7 @@ MQTT users/tests.
 - **FIFO overflow**: Increase buffer size or poll more frequently
 
 ### LTE
-- **AT commands fail**: In host tests, run `lte_component` plus `lte_uart_adapter` and inspect the fake transport command/response queue plus callback-backed UART byte forwarding; on hardware, verify UART wiring and AT command syntax after a HAL UART binding exists.
+- **AT commands fail**: In host tests, run `lte_component`, `lte_uart_adapter`, `lte_hal_uart_adapter`, and `lte_hal_uart_smoke_example`; inspect fake transport queues, callback-backed byte forwarding, and HAL UART timeout/error normalization. On hardware, verify UART wiring, RTS/CTS/power sequencing, SIM state, and AT command syntax before recording a hardware-passed result.
 - **Network attach fails**: Check SIM card and antenna; the current direct-opt-in API only marks `attached` after the attach command path succeeds.
 - **Unexpected `xy_net.h` export**: Confirm `XY_NET_ENABLE_LTE` is explicitly set to `1`; default builds intentionally keep LTE out of the umbrella.
 

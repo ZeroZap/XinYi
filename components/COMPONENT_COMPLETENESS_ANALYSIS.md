@@ -29,7 +29,7 @@
 | dm         | host-guarded / 文档已补齐 | README 已收敛 | ✅      | ✅     | ⚠️   | ✅   |
 | gui        | host-guarded core / 硬件待验证 | core/widget/event/theme 已有 CTest | ✅      | ✅     | ❌   | ✅   |
 | pm         | host-guarded / 功耗待实证 | 文档已补齐 | ✅      | ✅     | ⚠️   | ✅   |
-| net        | 50% 🟡 | 需补充   | ✅      | ❌     | ⚠️   | ⚠️   |
+| net        | host-guarded / 硬件待验证 | LTE/CAN/MQTT/AT/Modbus 护栏已收敛 | ✅      | ✅     | ⚠️   | ✅   |
 | pid        | 85% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
 | display    | driver host-guarded / 硬件待验证 | README 已收敛 | ✅      | ✅     | ⚠️   | ✅   |
 | actuator   | 80% 🟢 | 可用     | ✅      | ✅     | ✅   | ✅   |
@@ -88,13 +88,13 @@
 
 ---
 
-### 3. net/ - 网络组件 (60%)
+### 3. net/ - 网络组件 (host-guarded / 硬件待验证)
 
 #### 问题描述
 
 - **MQTT 主线已迁移**：活跃实现为 `src/xy_mqtt_client.c`/`src/xy_mqtt_client.h`，已覆盖 CONNECT/CONNACK、QoS0/1 publish、SUBACK/UNSUBACK、inbound publish callback 与 keepalive；旧 `xy_mqtt/` 子树仅作历史规划材料
-- **CAN/LTE 状态分化**：CAN 已有 FIFO host coverage 但仍未默认纳入 `xy_net` 库；LTE 仍是骨架实现，最近已补命令 guard，后续需要 UART/AT transport 设计后再推进
-- **统一 README 已补齐**：`components/net/README.md` 现为组件入口，包含模块状态、MQTT 活跃入口与 focused verification
+- **CAN/LTE 状态分化**：CAN 已有 FIFO/timeout/output-preservation host coverage 且仍保持 direct opt-in；LTE 已有 fake AT seam、callback UART adapter、default-off HAL UART adapter、smoke skeleton 与 STM32U5 compile probe，但仍需真实 UART/modem/flow-control 硬件证据
+- **统一 README 已补齐**：`components/net/README.md` 现为组件入口，包含模块状态、MQTT/CAN/LTE/AT 活跃入口与 focused verification
 - **AT 模块混乱**：依赖多个第三方仓库，组织结构复杂
 
 #### 修复计划
@@ -102,14 +102,14 @@
 | 序号 | 任务                                                  | 工作量 | 优先级 |
 | ---- | ----------------------------------------------------- | ------ | ------ |
 | N1   | 维护活跃 MQTT client host coverage，后续只按真实失败补契约 | 1–2h/次 | 🟡 低  |
-| N2   | 明确 CAN 是否默认接入 `xy_net`，接入前保持 focused CTest 护栏 | 4h     | 🟠 中  |
-| N3   | 为 LTE UART/AT transport 写小 proposal 后再实现        | 4h     | 🔴 高  |
+| N2   | CAN 继续保持 default-off/direct-opt-in，只有产品决策明确时再做 umbrella 默认接入 proposal | 实证驱动 | 🟡 中  |
+| N3   | LTE 等待真实 UART/modem/flow-control 验证记录；host fake/HAL adapter 不替代硬件证据 | 硬件驱动 | 🔴 高  |
 | N4   | 保持 `components/net/README.md` 与主线实现同步          | -      | 已完成 |
 | N5   | 整理 AT 模块依赖边界，避免把 vendor-style 树默认编入主库 | 8h     | 🟡 中  |
 | N6   | 补充活跃 API 的最小 host smoke 示例                    | 4h     | 🟡 中  |
 | N7   | 针对 CAN/LTE/AT 的真实失败追加小回归测试                | 1–2h/次 | 🟡 中  |
 
-**预计剩余工时**: 20–28h
+**预计剩余工时**: 硬件验证/产品接入决策驱动；不再按“无 README/无测试/LTE 无 adapter”重复开工。
 
 ---
 

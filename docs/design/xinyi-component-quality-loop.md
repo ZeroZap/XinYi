@@ -185,6 +185,11 @@
 - Trace 已新增统一入口 `components/trace/README.md`，把 `xy_trace` root build、`xy_log` public logging API、弱 `xy_log_char()` 输出 seam、nested Kconfig 非根事实源边界，以及 `trace_component` host CTest 固定为当前事实源。
 - Trace 后续不应再按“缺 README/无测试”旧基线重复开工；只有在真实 backend、动态等级运行时过滤策略、或 shell/command runtime 需求明确时，才先写 proposal 并补 focused 回归。
 
+### 2026-08-12 Net component status sync
+
+- Net 组件完整度报告与 `components/net/README.md` 已同步到当前事实：CAN/MQTT/AT/Modbus 维持 host CTest 护栏，LTE 已有 fake AT seam、callback UART adapter、default-off HAL UART adapter、smoke skeleton 与 STM32U5 compile probe。
+- Net 后续不应再按“缺 README/缺测试/LTE 无 adapter”重复开工；CAN/LTE umbrella 默认导出仍需产品决策或真实 UART/modem/flow-control 硬件证据，host fake/HAL adapter smoke 不能替代硬件验证记录。
+
 ---
 
 ### 2026-08-11 Device component status sync
