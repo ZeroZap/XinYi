@@ -166,6 +166,7 @@
 - Font generator 已补 `--write-manifest-header` 与 `gui_font_generator_write` write-path CTest：当前可把 manifest-inventory header 明确写到指定输出路径，并验证写出内容与 preview 完全一致；仍不把生成文件纳入源码、不生成 glyph bitmap、不替代 snapshot/hardware validation。
 - 已新增 `docs/design/xinyi-gui-font-glyph-generation-proposal-2026-08-11.md`，把下一步真实 `.c/.h` glyph generation 收束为独立 metadata-first slice：先为 manifest 增加 output/source/mode/license 字段与 `gui_font_generator_glyph_metadata` smoke，再考虑写出/提交生成表；不得同轮 bulk-import 完整 CJK 字库或声称视觉/硬件验收。
 - Font generator 已补 `--write-glyph-preview` 与 `gui_font_generator_glyph_write` write-path CTest：当前可把 legacy-passthrough glyph header/source preview 写入指定输出路径，并验证写出内容与 emit preview 完全一致；仍不提交生成表、不导入完整 CJK 字库、不替代 framebuffer snapshot 或真实屏幕硬件验证。
+- 已新增 `docs/design/xinyi-gui-font-framebuffer-snapshot-proposal-2026-08-11.md`，把字体方向下一步从继续补 API/generator guard 收束为 host framebuffer snapshot review：只渲染当前 manifest-declared ASCII/Chinese UI 样本，检查 deterministic framebuffer/checksum/ASCII-art metadata，不提交生成 glyph byte 表、不导入完整 CJK、不声明真实屏幕硬件通过。
 
 ---
 
