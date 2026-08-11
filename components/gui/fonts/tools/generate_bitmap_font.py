@@ -406,6 +406,18 @@ def write_manifest_header(data: dict[str, Any], output_path: Path) -> None:
     output_path.write_text(build_manifest_header(data), encoding="utf-8")
 
 
+def write_glyph_preview(data: dict[str, Any], font_id: str, header_path: Path, source_path: Path) -> None:
+    """Write deterministic legacy-passthrough glyph header/source previews."""
+
+    header_output = header_path.resolve()
+    source_output = source_path.resolve()
+    _require(header_output != source_output, "glyph header/source output paths must differ")
+    header_output.parent.mkdir(parents=True, exist_ok=True)
+    source_output.parent.mkdir(parents=True, exist_ok=True)
+    header_output.write_text(build_glyph_header(data, font_id), encoding="utf-8")
+    source_output.write_text(build_glyph_source(data, font_id), encoding="utf-8")
+
+
 def self_test_written_output(data: dict[str, Any]) -> None:
     """Validate that the write path emits the same deterministic header preview."""
 
@@ -417,6 +429,33 @@ def self_test_written_output(data: dict[str, Any]) -> None:
         written_header = output_path.read_text(encoding="utf-8")
     _require(written_header == build_manifest_header(data),
              "written manifest header differs from emitted preview")
+
+
+def self_test_glyph_write(data: dict[str, Any]) -> None:
+    """Validate that glyph preview write mode emits the same bytes as preview mode."""
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="xinyi-font-glyph-") as tmpdir:
+        output_root = Path(tmpdir) / "generated"
+        for font in data["fonts"]:
+            font_id = cast(str, font["id"])
+            header_path = output_root / f"{font_id}.h"
+            source_path = output_root / f"{font_id}.c"
+            write_glyph_preview(data, font_id, header_path, source_path)
+            _require(header_path.read_text(encoding="utf-8") == build_glyph_header(data, font_id),
+                     f"{font_id}: written glyph header differs from preview")
+            _require(source_path.read_text(encoding="utf-8") == build_glyph_source(data, font_id),
+                     f"{font_id}: written glyph source differs from preview")
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="xinyi-font-glyph-negative-") as tmpdir:
+            same_path = Path(tmpdir) / "same_output.h"
+            write_glyph_preview(data, "ascii_8x16", same_path, same_path)
+    except ManifestError as exc:
+        _require("must differ" in str(exc), "same-path glyph write probe failed for the wrong reason")
+    else:
+        raise ManifestError("same-path glyph write probe was accepted")
 
 
 def self_test_glyph_metadata(data: dict[str, Any]) -> None:
@@ -514,6 +553,10 @@ def main(argv: list[str] | None = None) -> int:
                         help="Print deterministic legacy-passthrough glyph source preview for FONT_ID")
     parser.add_argument("--self-test-glyph-preview", action="store_true",
                         help="Validate deterministic glyph header/source preview contracts")
+    parser.add_argument("--write-glyph-preview", nargs=3, metavar=("FONT_ID", "HEADER", "SOURCE"),
+                        help="Write deterministic legacy-passthrough glyph header/source previews")
+    parser.add_argument("--self-test-glyph-write", action="store_true",
+                        help="Validate that glyph preview write mode matches preview output")
     args = parser.parse_args(argv)
 
     try:
@@ -550,6 +593,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font glyph-preview self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font glyph-preview self-test passed")
+    elif args.self_test_glyph_write:
+        try:
+            self_test_glyph_write(data)
+        except (ManifestError, OSError) as exc:
+            print(f"font glyph-write self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font glyph-write self-test passed")
     elif args.emit_glyph_header:
         try:
             print(build_glyph_header(data, args.emit_glyph_header), end="")
@@ -562,6 +612,14 @@ def main(argv: list[str] | None = None) -> int:
         except ManifestError as exc:
             print(f"font glyph-source preview failed: {exc}", file=sys.stderr)
             return 1
+    elif args.write_glyph_preview:
+        font_id, header_path, source_path = args.write_glyph_preview
+        try:
+            write_glyph_preview(data, font_id, Path(header_path), Path(source_path))
+        except (ManifestError, OSError) as exc:
+            print(f"font glyph-preview write failed: {exc}", file=sys.stderr)
+            return 1
+        print(f"font glyph preview written: {header_path} {source_path}")
     elif args.write_manifest_header:
         try:
             write_manifest_header(data, Path(args.write_manifest_header))
