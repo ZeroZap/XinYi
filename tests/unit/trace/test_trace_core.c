@@ -95,6 +95,14 @@ static void test_dynamic_level_bounds(void)
     TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_DEBUG, xy_log_dynamic_level());
 }
 
+static void test_dynamic_level_bounds_after_trace_relink(void)
+{
+    xy_log_set_dynamic_level(XY_LOG_LEVEL_WARN);
+    TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_WARN, xy_log_dynamic_level());
+    xy_log_set_dynamic_level((uint8_t)(XY_LOG_LEVEL_DEBUG + 2U));
+    TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_WARN, xy_log_dynamic_level());
+}
+
 static void test_log_init_and_public_macros(void)
 {
     xy_stdio_printf_init(capture_printf);
@@ -115,12 +123,24 @@ static void test_log_init_and_public_macros(void)
     TEST_ASSERT_EQUAL_STRING("[W] warn", g_log_buffer);
 }
 
+static void test_dynamic_level_macro_calls_remain_unfiltered(void)
+{
+    xy_stdio_printf_init(capture_printf);
+    xy_log_set_dynamic_level(XY_LOG_LEVEL_ERROR);
+
+    XY_LOG_W("warn still emitted");
+    TEST_ASSERT_EQUAL_UINT(1U, capture_printf_fake.call_count);
+    TEST_ASSERT_EQUAL_STRING("[W] warn still emitted", g_log_buffer);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_log_raw_and_string_output);
     RUN_TEST(test_log_raw_rejects_null_nonzero_buffer);
     RUN_TEST(test_dynamic_level_bounds);
+    RUN_TEST(test_dynamic_level_bounds_after_trace_relink);
     RUN_TEST(test_log_init_and_public_macros);
+    RUN_TEST(test_dynamic_level_macro_calls_remain_unfiltered);
     return UNITY_END();
 }

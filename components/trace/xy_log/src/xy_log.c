@@ -4,10 +4,23 @@
 
 extern void xy_log_char(char ch);
 
-#ifdef RELEASE
-uint8_t g_xy_log_dinamic_level = XY_LOG_LEVEL_WARN;
+#ifndef XY_LOG_WEAK
+#if defined(__GNUC__)
+#define XY_LOG_WEAK __attribute__((weak))
 #else
-uint8_t g_xy_log_dinamic_level = XY_LOG_LEVEL_DEBUG;
+#define XY_LOG_WEAK
+#endif
+#endif
+
+XY_LOG_WEAK void xy_log_char(char ch)
+{
+    (void)ch;
+}
+
+#ifdef RELEASE
+XY_LOG_WEAK uint8_t g_xy_log_dinamic_level = XY_LOG_LEVEL_WARN;
+#else
+XY_LOG_WEAK uint8_t g_xy_log_dinamic_level = XY_LOG_LEVEL_DEBUG;
 #endif
 
 void xy_log_str(char *str)
