@@ -89,6 +89,10 @@ else()
     endif()
 endif()
 
+if(NOT XY_DRIVER_STORAGE)
+    list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*/storage/.*")
+endif()
+
 file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 
 # Create static library
