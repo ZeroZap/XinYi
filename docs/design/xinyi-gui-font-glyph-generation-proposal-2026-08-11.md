@@ -10,7 +10,7 @@ This proposal does **not** generate new font art, import third-party font files,
 
 - `components/gui/fonts/font_manifest.json` records the current legacy ASCII 8x16, ASCII 16x24, and Chinese 16x16 UI asset inventory.
 - `components/gui/fonts/tools/generate_bitmap_font.py` currently validates the manifest and can emit/write a manifest-inventory generated header preview.
-- `gui_font_generator_manifest`, `gui_font_generator_output`, and `gui_font_generator_write` guard schema, deterministic preview, and explicit write-path behavior.
+- `gui_font_generator_manifest`, `gui_font_generator_output`, `gui_font_generator_write`, and `gui_font_generator_glyph_metadata` guard schema, deterministic preview, explicit write-path behavior, and reviewed glyph-output metadata.
 - The current generator still does not emit glyph bitmap `.c/.h` tables and does not have a source-font/license input contract.
 
 ## Proposed generator boundary
@@ -44,12 +44,14 @@ The generator should reject entries that request glyph output without a declared
 
 ## First implementation slice
 
-A safe next code slice is:
+A safe first code slice has been implemented:
 
-1. Extend `font_manifest.json` with `output_header`, `output_source`, and `generator_mode` for the three current assets.
+1. Extend `font_manifest.json` with `output_header`, `output_source`, `source_font`, `source_license`, `generator_mode`, and `glyph_order` for the three current assets.
 2. Extend `generate_bitmap_font.py --check` to validate those fields.
 3. Add `--self-test-glyph-metadata` to verify deterministic output filenames, mode validation, and unsupported-mode errors without writing generated glyph tables.
-4. Register the Python smoke as a CTest, for example `gui_font_generator_glyph_metadata`.
+4. Register the Python smoke as `gui_font_generator_glyph_metadata`.
+
+The next safe slice is still **not** a full CJK import. It should either add reviewed generated-header/source previews for `legacy-passthrough` only, or add a host framebuffer snapshot-review proposal before generated glyph files are committed.
 
 Recommended path limit:
 

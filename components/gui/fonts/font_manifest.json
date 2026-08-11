@@ -18,6 +18,12 @@
       "range": {"first": "0x20", "last": "0x7E", "count": 95},
       "bytes_per_glyph": 16,
       "source_files": ["xy_font_8x16.c", "xy_font_8x16.h"],
+      "output_header": "generated/xy_font_8x16_generated.h",
+      "output_source": "generated/xy_font_8x16_generated.c",
+      "source_font": "legacy-table",
+      "source_license": "project-review-pending",
+      "generator_mode": "legacy-passthrough",
+      "glyph_order": "ascii-range",
       "public_handle": "xy_font_8x16_get"
     },
     {
@@ -30,6 +36,12 @@
       "range": {"first": "0x20", "last": "0x7E", "count": 95},
       "bytes_per_glyph": 48,
       "source_files": ["xy_font_16x24.c", "xy_font_16x24.h"],
+      "output_header": "generated/xy_font_16x24_generated.h",
+      "output_source": "generated/xy_font_16x24_generated.c",
+      "source_font": "legacy-table",
+      "source_license": "project-review-pending",
+      "generator_mode": "legacy-passthrough",
+      "glyph_order": "ascii-range",
       "public_handle": "xy_font_16x24_get"
     },
     {
@@ -42,6 +54,12 @@
       "range": {"explicit_codepoints": "xy_font_chinese_16x16_get_chars", "count": 168},
       "bytes_per_glyph": 32,
       "source_files": ["xy_font_chinese_16x16.c", "xy_font_chinese_16x16.h"],
+      "output_header": "generated/xy_font_chinese_16x16_generated.h",
+      "output_source": "generated/xy_font_chinese_16x16_generated.c",
+      "source_font": "legacy-table",
+      "source_license": "project-review-pending",
+      "generator_mode": "legacy-passthrough",
+      "glyph_order": "explicit-codepoints",
       "public_handle": "xy_font_chinese_16x16_get",
       "known_inventory_flags": {
         "duplicate_codepoints_allowed": true,
@@ -59,7 +77,7 @@
   ],
   "generation_plan": {
     "generator": "components/gui/fonts/tools/generate_bitmap_font.py",
-    "state": "manifest-header-write-guarded",
-    "next_step": "Use --write-manifest-header for explicit generated manifest-inventory header review, then add host framebuffer snapshot review before importing or regenerating larger font sets."
+    "state": "glyph-metadata-guarded",
+    "next_step": "Use glyph metadata validation to review output paths and provenance before adding generated glyph .c/.h write modes or importing larger font sets."
   }
 }

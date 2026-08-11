@@ -27,8 +27,17 @@ REQUIRED_FONT_FIELDS = {
     "range",
     "bytes_per_glyph",
     "source_files",
+    "output_header",
+    "output_source",
+    "source_font",
+    "source_license",
+    "generator_mode",
+    "glyph_order",
     "public_handle",
 }
+
+SUPPORTED_GENERATOR_MODES = {"legacy-inventory", "legacy-passthrough", "font-rasterize"}
+SUPPORTED_GLYPH_ORDERS = {"ascii-range", "explicit-codepoints"}
 
 
 class ManifestError(ValueError):
@@ -108,6 +117,48 @@ def _validate_source_files(fonts_root: Path, font: dict[str, Any]) -> None:
         _require(source_path.exists(), f"{font.get('id')}: missing source file {source_path}")
 
 
+def _validate_generation_metadata(font: dict[str, Any]) -> None:
+    font_id = font.get("id")
+
+    for key in ("output_header", "output_source"):
+        value = font.get(key)
+        _require(isinstance(value, str) and value.endswith((".h", ".c")),
+                 f"{font_id}: {key} must be a relative generated .h/.c path")
+        value_str = cast(str, value)
+        _require(not Path(value_str).is_absolute(), f"{font_id}: {key} must be relative")
+        _require(".." not in Path(value_str).parts, f"{font_id}: {key} must not escape the fonts directory")
+        _require(value_str.startswith("generated/"), f"{font_id}: {key} must be under generated/")
+
+    _require(cast(str, font["output_header"]).endswith(".h"),
+             f"{font_id}: output_header must end with .h")
+    _require(cast(str, font["output_source"]).endswith(".c"),
+             f"{font_id}: output_source must end with .c")
+    _require(cast(str, font["output_header"]) != cast(str, font["output_source"]),
+             f"{font_id}: output_header and output_source must differ")
+
+    source_font = font.get("source_font")
+    source_license = font.get("source_license")
+    generator_mode = font.get("generator_mode")
+    glyph_order = font.get("glyph_order")
+    _require(isinstance(source_font, str) and bool(source_font),
+             f"{font_id}: source_font must declare provenance or legacy-table")
+    _require(isinstance(source_license, str) and bool(source_license),
+             f"{font_id}: source_license must declare SPDX/provenance status")
+    _require(generator_mode in SUPPORTED_GENERATOR_MODES,
+             f"{font_id}: unsupported generator_mode {generator_mode!r}")
+    _require(glyph_order in SUPPORTED_GLYPH_ORDERS,
+             f"{font_id}: unsupported glyph_order {glyph_order!r}")
+    if generator_mode == "legacy-passthrough":
+        _require(source_font == "legacy-table",
+                 f"{font_id}: legacy-passthrough requires source_font=legacy-table")
+    range_spec = cast(dict[str, Any], font["range"])
+    if glyph_order == "ascii-range":
+        _require("first" in range_spec, f"{font_id}: ascii-range glyph_order requires first/last range")
+    if glyph_order == "explicit-codepoints":
+        _require("explicit_codepoints" in range_spec,
+                 f"{font_id}: explicit-codepoints glyph_order requires explicit_codepoints range")
+
+
 def validate_manifest(manifest_path: Path) -> dict[str, Any]:
     manifest_path = manifest_path.resolve()
     fonts_root = manifest_path.parent
@@ -135,6 +186,7 @@ def validate_manifest(manifest_path: Path) -> dict[str, Any]:
         _validate_range(font)
         _validate_required_codepoints(font)
         _validate_source_files(fonts_root, font)
+        _validate_generation_metadata(font)
 
         if "known_inventory_flags" in font:
             flags = font["known_inventory_flags"]
@@ -274,6 +326,49 @@ def self_test_written_output(data: dict[str, Any]) -> None:
              "written manifest header differs from emitted preview")
 
 
+def self_test_glyph_metadata(data: dict[str, Any]) -> None:
+    """Validate glyph-generation metadata before real glyph table output exists."""
+
+    seen_outputs: set[str] = set()
+    expected = {
+        "ascii_8x16": ("generated/xy_font_8x16_generated.h", "generated/xy_font_8x16_generated.c", "ascii-range"),
+        "ascii_16x24": ("generated/xy_font_16x24_generated.h", "generated/xy_font_16x24_generated.c", "ascii-range"),
+        "chinese_16x16_ui_legacy": (
+            "generated/xy_font_chinese_16x16_generated.h",
+            "generated/xy_font_chinese_16x16_generated.c",
+            "explicit-codepoints",
+        ),
+    }
+
+    for font in data["fonts"]:
+        font_id = cast(str, font["id"])
+        output_header = cast(str, font["output_header"])
+        output_source = cast(str, font["output_source"])
+        glyph_order = cast(str, font["glyph_order"])
+        _require(font_id in expected, f"unexpected font id in glyph metadata self-test: {font_id}")
+        _require((output_header, output_source, glyph_order) == expected[font_id],
+                 f"{font_id}: glyph metadata does not match reviewed output contract")
+        _require(output_header not in seen_outputs, f"duplicate generated output path: {output_header}")
+        _require(output_source not in seen_outputs, f"duplicate generated output path: {output_source}")
+        seen_outputs.add(output_header)
+        seen_outputs.add(output_source)
+        _require(font["generator_mode"] == "legacy-passthrough",
+                 f"{font_id}: current slice only permits legacy-passthrough metadata")
+        _require(font["source_license"] == "project-review-pending",
+                 f"{font_id}: license provenance must remain explicit until reviewed")
+
+    broken = dict(cast(dict[str, Any], data["fonts"][0]))
+    broken["id"] = "metadata_negative_probe"
+    broken["generator_mode"] = "unsupported-mode"
+    try:
+        _validate_generation_metadata(broken)
+    except ManifestError as exc:
+        _require("unsupported generator_mode" in str(exc),
+                 "negative metadata probe failed for the wrong reason")
+    else:
+        raise ManifestError("unsupported generator_mode was accepted")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default="components/gui/fonts/font_manifest.json",
@@ -288,6 +383,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Validate deterministic generated-output contracts and exit")
     parser.add_argument("--self-test-write", action="store_true",
                         help="Validate that written output matches the generated-header preview")
+    parser.add_argument("--self-test-glyph-metadata", action="store_true",
+                        help="Validate glyph-output metadata contracts without writing glyph tables")
     args = parser.parse_args(argv)
 
     try:
@@ -310,6 +407,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font written-output self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font written-output self-test passed")
+    elif args.self_test_glyph_metadata:
+        try:
+            self_test_glyph_metadata(data)
+        except ManifestError as exc:
+            print(f"font glyph-metadata self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font glyph-metadata self-test passed")
     elif args.write_manifest_header:
         try:
             write_manifest_header(data, Path(args.write_manifest_header))
