@@ -169,6 +169,7 @@
 - 已新增 `docs/design/xinyi-gui-font-framebuffer-snapshot-proposal-2026-08-11.md`，把字体方向下一步从继续补 API/generator guard 收束为 host framebuffer snapshot review：只渲染当前 manifest-declared ASCII/Chinese UI 样本，检查 deterministic framebuffer/checksum/ASCII-art metadata，不提交生成 glyph byte 表、不导入完整 CJK、不声明真实屏幕硬件通过。
 - GUI font snapshot 已新增 `gui_font_snapshot` host CTest：使用 runtime font engine 渲染 host-only framebuffer，锁定 ASCII-art/checksum metadata、unknown glyph output-preservation 与 clipping guard；该结果仍只是 deterministic host snapshot，不代表字体美术验收或真实屏幕硬件验证通过。
 - 已新增 `docs/validation/xinyi-gui-font-rendering-hardware-validation-record-template-2026-08-11.md`，把 GUI 字体/显示后续证据固定为 pending/compile-only/host-snapshot-only/hardware-failed/hardware-passed-* 分级；后续不能用 `gui_font_snapshot` checksum、fake display backend CTest 或生成器 preview 替代真实屏幕照片/日志。
+- 已新增 `docs/design/xinyi-gui-font-generated-preview-checkin-policy-2026-08-11.md`，把后续是否提交 `components/gui/fonts/generated/*` 收束为 legacy-passthrough preview 的独立政策：只有在 generator 能 byte-for-byte 复现、focused CTest/compile gate 证明、且不改变 runtime lookup/不导入新字库/不宣称硬件通过时，才允许单独提交生成预览文件；下一步不应直接 bulk-import CJK 或把 generated preview 当成美术验收。
 
 ---
 
