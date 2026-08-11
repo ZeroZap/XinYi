@@ -168,6 +168,22 @@ def validate_manifest(manifest_path: Path) -> dict[str, Any]:
     _require(data.get("schema_version") == 1, "schema_version must be 1")
     _require(data.get("component") == "xinyi-gui-fonts", "component must be xinyi-gui-fonts")
 
+    review_status = data.get("review_status")
+    _require(isinstance(review_status, dict), "review_status must be an object")
+    review_status = cast(dict[str, Any], review_status)
+    _require(review_status.get("state") == "project-review-pending",
+             "review_status.state must remain project-review-pending until review evidence exists")
+    review_note = review_status.get("review_note")
+    _require(isinstance(review_note, str) and review_note.startswith("docs/validation/")
+             and review_note.endswith(".md"),
+             "review_status.review_note must point to a docs/validation/*.md record")
+    _require(isinstance(review_status.get("policy"), str) and bool(review_status["policy"]),
+             "review_status.policy must describe the license/provenance review gate")
+    _require(isinstance(review_status.get("reviewed_font_ids"), list),
+             "review_status.reviewed_font_ids must be a list")
+    _require(isinstance(review_status.get("pending_font_ids"), list),
+             "review_status.pending_font_ids must be a list")
+
     fonts = data.get("fonts")
     _require(isinstance(fonts, list) and fonts, "fonts must be a non-empty list")
 
@@ -197,6 +213,17 @@ def validate_manifest(manifest_path: Path) -> dict[str, Any]:
                     _require(isinstance(value, bool), f"{font_id}: {key} must be boolean")
                 if key.endswith("_reason"):
                     _require(isinstance(value, str) and value, f"{font_id}: {key} must be non-empty")
+
+    pending_ids = review_status["pending_font_ids"]
+    reviewed_ids = review_status["reviewed_font_ids"]
+    _require(all(isinstance(item, str) for item in pending_ids),
+             "review_status.pending_font_ids entries must be strings")
+    _require(all(isinstance(item, str) for item in reviewed_ids),
+             "review_status.reviewed_font_ids entries must be strings")
+    _require(set(pending_ids) == seen_ids,
+             "review_status.pending_font_ids must list every current font while review is pending")
+    _require(not reviewed_ids,
+             "review_status.reviewed_font_ids must stay empty until a review record approves fonts")
 
     generation_plan = data.get("generation_plan")
     _require(isinstance(generation_plan, dict), "generation_plan must be an object")
@@ -555,6 +582,33 @@ def self_test_checked_in_preview(data: dict[str, Any], manifest_path: Path) -> N
                  f"{font_id}: checked-in generated source compile failed: {result.stderr.strip()}")
 
 
+def self_test_license_manifest(data: dict[str, Any], manifest_path: Path) -> None:
+    """Validate that font provenance remains pending without review evidence."""
+
+    review_status = cast(dict[str, Any], data["review_status"])
+    review_note = cast(str, review_status["review_note"])
+    review_note_path = (manifest_path.resolve().parents[3] / review_note).resolve()
+    _require(review_note_path.exists(), f"font license/provenance review note is missing: {review_note_path}")
+    review_note_text = review_note_path.read_text(encoding="utf-8")
+    _require("status: pending" in review_note_text,
+             "font license/provenance review note must keep status pending")
+    _require("Do not mark any font as approved" in review_note_text,
+             "font license/provenance review note must preserve the approval gate")
+
+    pending_ids = set(cast(list[str], review_status["pending_font_ids"]))
+    _require(len(pending_ids) == len(data["fonts"]),
+             "font license review pending list must cover every current font")
+    for font in data["fonts"]:
+        font_id = cast(str, font["id"])
+        _require(font_id in pending_ids, f"{font_id}: missing from pending font review list")
+        _require(font["license"] == "project-review-pending",
+                 f"{font_id}: font license changed before review evidence was recorded")
+        _require(font["source_license"] == "project-review-pending",
+                 f"{font_id}: source license changed before review evidence was recorded")
+        _require(font["provenance"] == "legacy-project-asset",
+                 f"{font_id}: provenance changed before source review was recorded")
+
+
 def self_test_glyph_metadata(data: dict[str, Any]) -> None:
     """Validate glyph-generation metadata before real glyph table output exists."""
 
@@ -658,6 +712,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Validate that written glyph previews compile as C99 host artifacts")
     parser.add_argument("--self-test-checked-in-preview", action="store_true",
                         help="Validate checked-in generated previews against the generator and compile them")
+    parser.add_argument("--self-test-license-manifest", action="store_true",
+                        help="Validate pending font license/provenance review manifest contracts")
     args = parser.parse_args(argv)
 
     try:
@@ -715,6 +771,13 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font checked-in-preview self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font checked-in-preview self-test passed")
+    elif args.self_test_license_manifest:
+        try:
+            self_test_license_manifest(data, Path(args.manifest))
+        except (ManifestError, OSError) as exc:
+            print(f"font license-manifest self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font license-manifest self-test passed")
     elif args.emit_glyph_header:
         try:
             print(build_glyph_header(data, args.emit_glyph_header), end="")

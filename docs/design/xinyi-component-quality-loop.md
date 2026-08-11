@@ -172,6 +172,7 @@
 - 已新增 `docs/design/xinyi-gui-font-generated-preview-checkin-policy-2026-08-11.md`，把后续是否提交 `components/gui/fonts/generated/*` 收束为 legacy-passthrough preview 的独立政策：只有在 generator 能 byte-for-byte 复现、focused CTest/compile gate 证明、且不改变 runtime lookup/不导入新字库/不宣称硬件通过时，才允许单独提交生成预览文件；下一步不应直接 bulk-import CJK 或把 generated preview 当成美术验收。
 - 已按上述政策提交 `components/gui/fonts/generated/*` legacy-passthrough generated preview，并新增 `gui_font_generator_checked_in_preview` CTest：当前只证明 checked-in generated preview 与 manifest/generator byte-for-byte 可复现且 generated `.c` 可 C99 编译；runtime font lookup、legacy bitmap tables、字体美术质量、完整 CJK 导入与真实屏幕验证均未因此改变。后续字体方向不应重复补 generator reproducibility guard，应转向 license/provenance review、host snapshot 人审流程或真实屏幕日志。
 - 已新增 `docs/design/xinyi-gui-font-license-provenance-review-plan-2026-08-11.md`，把字体资产 license/provenance review 从 generator/preview 工作中拆出：当前 manifest 中 `project-review-pending` 必须保持到有来源、许可兼容性、placeholder/duplicate 处理与 review note 证据；后续低风险实现应先补 review_status/validation-template/manifest smoke，而不是直接改成 license-approved 或导入外部字体。
+- Font license/provenance review 已补机器护栏：`font_manifest.json` 新增 `review_status` pending block，`docs/validation/xinyi-gui-font-license-provenance-review-record-template-2026-08-11.md` 固定人工审查证据格式，`gui_font_license_manifest` CTest 会阻止 license/source_license 在缺少 review record 前被静默改为 approved。后续若继续字体资产方向，应填写真实来源/许可审查记录或推进 host snapshot 人审流程，不应用 generator/preview/snapshot checksum 替代 license 证据。
 
 ---
 

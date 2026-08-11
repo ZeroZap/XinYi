@@ -2,6 +2,17 @@
   "schema_version": 1,
   "component": "xinyi-gui-fonts",
   "status": "legacy-assets-manifest",
+  "review_status": {
+    "state": "project-review-pending",
+    "review_note": "docs/validation/xinyi-gui-font-license-provenance-review-record-template-2026-08-11.md",
+    "policy": "All current bitmap assets must keep license/source_license as project-review-pending until a dated review record identifies source, ownership/license compatibility, derivative scope, and placeholder/duplicate handling.",
+    "reviewed_font_ids": [],
+    "pending_font_ids": [
+      "ascii_8x16",
+      "ascii_16x24",
+      "chinese_16x16_ui_legacy"
+    ]
+  },
   "notes": [
     "This manifest documents the currently checked-in bitmap font assets only.",
     "It does not claim complete Chinese coverage, final glyph art quality, or hardware rendering validation.",
