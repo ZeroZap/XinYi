@@ -112,17 +112,25 @@ uint16_t cn_width = xy_font_chinese_16x16_measure("Hello中文");
 
 - `font_manifest.json` is the current software evidence boundary for bundled
   assets.
-- `tools/generate_bitmap_font.py` is the first deterministic generator
-  bootstrap: today it validates manifest schema/ranges/source-file presence,
-  prints a stable summary, and can emit/self-test a generated-header preview of
-  manifest inventory constants; it does not rewrite bitmap tables or import
-  external fonts yet.
+- `tools/generate_bitmap_font.py` is the deterministic generator bootstrap:
+  today it validates manifest schema/ranges/source-file presence, prints a
+  stable summary, writes manifest-inventory headers, writes legacy-passthrough
+  glyph preview `.h/.c` pairs, and compiles both temporary and checked-in
+  generated previews. It still does not import external fonts, bulk-generate a
+  complete CJK table, or replace the reviewed legacy runtime handles.
+- `generated/` contains checked-in **legacy-passthrough preview** artifacts only:
+  they are byte-for-byte reproducibility evidence for the generator path, not
+  new glyph art, font-quality approval, or display hardware validation.
 - `gui_font_manifest` validates that the manifest-level public contracts match
   the checked-in tables and keeps the legacy duplicate/placeholder Chinese
   inventory visible.
-- `gui_font_generator_manifest` and `gui_font_generator_output` run the Python
-  manifest validator/output-preview self-test in the main unit suite so
-  generator/manifest drift is caught by `make test-unit`.
+- `gui_font_generator_manifest`, `gui_font_generator_output`,
+  `gui_font_generator_write`, `gui_font_generator_glyph_metadata`,
+  `gui_font_generator_glyph_preview`, `gui_font_generator_glyph_write`,
+  `gui_font_generator_glyph_compile`, and
+  `gui_font_generator_checked_in_preview` run the Python manifest/generator
+  checks in the main unit suite so generated-preview drift is caught by
+  `make test-unit`.
 
 ## Dependencies
 
