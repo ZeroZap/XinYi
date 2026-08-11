@@ -474,7 +474,26 @@ add_test(NAME crypto_alias_target
         -DROOT=${ROOT}
 )
 
-# --- Test 20h: Crypto security/provenance review manifest policy guard ---
+# --- Test 20h: Crypto root/runtime target smoke guard ---
+add_test(NAME crypto_root_target_smoke
+    COMMAND ${CMAKE_COMMAND}
+        --build ${CMAKE_BINARY_DIR}/crypto_root_target_smoke_probe
+        --target run_crypto_root_target_smoke
+)
+set_tests_properties(crypto_root_target_smoke PROPERTIES
+    FIXTURES_REQUIRED crypto_root_target_smoke_configure
+)
+add_test(NAME crypto_root_target_smoke_configure
+    COMMAND ${CMAKE_COMMAND}
+        -S ${UNIT_CRYPTO}/crypto_root_target_smoke_probe
+        -B ${CMAKE_BINARY_DIR}/crypto_root_target_smoke_probe
+        -DROOT=${ROOT}
+)
+set_tests_properties(crypto_root_target_smoke_configure PROPERTIES
+    FIXTURES_SETUP crypto_root_target_smoke_configure
+)
+
+# --- Test 20i: Crypto security/provenance review manifest policy guard ---
 add_test(NAME crypto_review_manifest
     COMMAND python3 ${UNIT_CRYPTO}/check_crypto_review_manifest.py
     WORKING_DIRECTORY ${ROOT}

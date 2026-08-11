@@ -38,8 +38,9 @@ Focused CTest 名称：
 | `crypto_cipher_hmac` | AES/HMAC/SM3/SM4/ChaCha20 API/vector contracts |
 | `crypto_sm2` | SM2 public API guard paths and placeholder-grade contract |
 | `crypto_lwc` | lightweight crypto/Ascon style public contracts |
-| `crypto_smoke_example` | host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; not a security/hardware proof |
+| `crypto_smoke_example` | Host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; links focused module sources and remains API-drift guard only, not a security/hardware proof |
 | `crypto_alias_target` | CMake configure smoke that proves `xy_tiny_crypto` still exists and `xy_crypto` compatibility alias is exported |
+| `crypto_root_target_smoke` | Standalone public consumer linked against the real `xy_tiny_crypto` root/runtime target; proves aggregate `src/` Base64/Hex/SHA-256 path for one small API flow |
 | `crypto_25519` | Curve25519 generic public API contracts |
 | `crypto_25519_m0` | Cortex-M0 fallback/API and field smoke contracts |
 

@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 133
-- Unity-style files: 132
+- Total C files under `tests/unit`: 141
+- Unity-style files: 139
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/support helper C files without obvious Unity/assert markers: 1
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 141
+- Plain/support helper C files without obvious Unity/assert markers: 2
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 163
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -30,7 +30,7 @@
 | `actuator` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `analog_devices` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `clib` | 1 | 1 | 0 | 0 | 0 | 0 |
-| `crypto` | 11 | 11 | 0 | 0 | 0 | 2 |
+| `crypto` | 12 | 11 | 0 | 0 | 1 | 2 |
 | `device` | 4 | 4 | 0 | 0 | 0 | 3 |
 | `display` | 5 | 5 | 0 | 0 | 0 | 2 |
 | `dm` | 6 | 6 | 0 | 0 | 0 | 2 |
@@ -57,8 +57,8 @@ Note: `tests/unit/CMakeLists.txt` also registers component example compile-smoke
 reuse component example sources rather than adding extra standalone `tests/unit/*.c` files; currently
 `pid_example_basic`, `pid_example_incremental`, `pid_example_auto_tune`,
 `pid_example_temperature`, `pid_example_charging`, `actuator_example_relay_servo_pwm`,
-`crypto_smoke_example`, `fota_smoke_example`, `lte_hal_uart_smoke_example`, and
-`fuel_gauge_smbus_hardware_smoke_example`
+`crypto_smoke_example`, `crypto_root_target_smoke`, `fota_smoke_example`,
+`lte_hal_uart_smoke_example`, and `fuel_gauge_smbus_hardware_smoke_example`
 guard API drift in those examples/skeletons.
 
 1. Keep all new tests on Unity assertions.
@@ -79,6 +79,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/crypto/test_cipher_hmac.c` | `unity` | 0 |
 | `tests/unit/crypto/test_crc.c` | `unity` | 2 |
 | `tests/unit/crypto/test_crypto_smoke_example.c` | `unity` | 0 | Host-safe Crypto public Base64/Hex/SHA-256/simple-RNG smoke; API-drift guard only, not security audit/compliance/hardware acceleration validation. |
+| `tests/unit/crypto/crypto_root_target_smoke_probe/main.c` | plain CTest probe | 0 | Standalone public consumer linked against real root `xy_tiny_crypto`; proves aggregate `src/` Base64/Hex/SHA-256 API smoke only, not duplicate-source reconciliation or security/hardware validation. |
 | `tests/unit/crypto/test_csprng.c` | `unity` | 0 |
 | `tests/unit/crypto/test_encode.c` | `unity` | 0 |
 | `tests/unit/crypto/test_hash.c` | `unity` | 0 |

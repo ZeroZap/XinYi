@@ -25,6 +25,7 @@ include_directories(
 )
 
 # 添加子模块
+set(XY_CRYPTO_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(xy_sm3)
 add_subdirectory(xy_sm4)
 add_subdirectory(xy_sm2)

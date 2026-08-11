@@ -6,10 +6,10 @@ add_library(xy_sm2 STATIC
 
 target_include_directories(xy_sm2 PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/components/crypto
-    ${CMAKE_SOURCE_DIR}/components/crypto/xy_sm3
-    ${CMAKE_SOURCE_DIR}/components/crypto/xy_sm4
-    ${CMAKE_SOURCE_DIR}/components/crypto/xy_rng
+    ${XY_CRYPTO_ROOT}
+    ${XY_CRYPTO_ROOT}/xy_sm3
+    ${XY_CRYPTO_ROOT}/xy_sm4
+    ${XY_CRYPTO_ROOT}/xy_rng
 )
 
 target_compile_options(xy_sm2 PRIVATE
