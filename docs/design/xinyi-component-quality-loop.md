@@ -180,6 +180,13 @@
 - DM 已新增统一入口 `components/dm/README.md`，把 `COMPONENT_DM` / `xy_dm` root build、Base64/TLV/NVM/Factory/FEE/coreJSON 的 6 个 focused CTest、FS/JSON abstraction backlog，以及 NOR/FlashDB 硬件验证边界固定为当前事实源。
 - `components/COMPONENT_COMPLETENESS_ANALYSIS.md` 与 `docs/component-roadmap.md` 已同步：DM 不再按“无统一 README/测试不足”旧基线重复开工；后续只在 FS/JSON abstraction 成为活跃 public dependency、NOR/FlashDB 有真实板级证据，或现有 `dm_*` CTest 暴露具体失败时推进。
 
+### 2026-08-12 Trace component status sync
+
+- Trace 已新增统一入口 `components/trace/README.md`，把 `xy_trace` root build、`xy_log` public logging API、弱 `xy_log_char()` 输出 seam、nested Kconfig 非根事实源边界，以及 `trace_component` host CTest 固定为当前事实源。
+- Trace 后续不应再按“缺 README/无测试”旧基线重复开工；只有在真实 backend、动态等级运行时过滤策略、或 shell/command runtime 需求明确时，才先写 proposal 并补 focused 回归。
+
+---
+
 ### 2026-08-11 Device component status sync
 
 - Device 已新增统一入口 `components/device/README.md`，把当前 split ownership 固定为事实源：`src/xy_device.c` 负责 lifecycle/dispatch，`xy_device_core.c` 负责 static-array registry，`src/xy_device_bus_helpers.c` 负责 I2C/SPI/UART/GPIO compatibility helpers，`src/xy_device_pm.c`/`src/xy_device_async.c` 分别负责 PM 与 optional async helper。
