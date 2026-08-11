@@ -51,7 +51,9 @@ A safe first code slice has been implemented:
 3. Add `--self-test-glyph-metadata` to verify deterministic output filenames, mode validation, and unsupported-mode errors without writing generated glyph tables.
 4. Register the Python smoke as `gui_font_generator_glyph_metadata`.
 
-The next safe slice is still **not** a full CJK import. It should either add reviewed generated-header/source previews for `legacy-passthrough` only, or add a host framebuffer snapshot-review proposal before generated glyph files are committed.
+The next safe slice has also been implemented without importing full CJK assets: `--emit-glyph-header <font-id>` and `--emit-glyph-source <font-id>` now emit deterministic `legacy-passthrough` previews for reviewed manifest entries, guarded by `gui_font_generator_glyph_preview`. These previews reference current legacy public handles/constants and deliberately avoid committing generated glyph bytes.
+
+The next safe slice is still **not** a full CJK import. It should either add a write path for these reviewed preview files, or add a host framebuffer snapshot-review proposal before any generated glyph-byte files are committed.
 
 Recommended path limit:
 
@@ -76,7 +78,7 @@ Future implementation should run at least:
 
 ```bash
 cmake -B build/tests/unit -S tests/unit
-cd build/tests/unit && ctest --output-on-failure -R '^gui_font_generator_(manifest|output|write|glyph_metadata)$'
+cd build/tests/unit && ctest --output-on-failure -R '^gui_font_generator_(manifest|output|write|glyph_metadata|glyph_preview)$'
 make test-unit
 git diff --check
 ```

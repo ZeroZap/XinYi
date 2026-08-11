@@ -238,6 +238,13 @@ def _macro_name(font_id: str) -> str:
     return macro
 
 
+def _find_font(data: dict[str, Any], font_id: str) -> dict[str, Any]:
+    for font in data["fonts"]:
+        if font["id"] == font_id:
+            return cast(dict[str, Any], font)
+    raise ManifestError(f"unknown font id: {font_id}")
+
+
 def build_manifest_header(data: dict[str, Any]) -> str:
     """Build deterministic generated-header preview from the manifest.
 
@@ -284,6 +291,92 @@ def build_manifest_header(data: dict[str, Any]) -> str:
         "#endif /* XY_GUI_FONT_MANIFEST_GENERATED_H */",
         "",
     ])
+    return "\n".join(lines)
+
+
+def build_glyph_header(data: dict[str, Any], font_id: str) -> str:
+    """Build a deterministic legacy-passthrough glyph header preview.
+
+    This output is still a preview: it references the current reviewed public
+    legacy font handles and constants instead of emitting regenerated bitmap
+    bytes. That keeps the generator path reviewable before any generated glyph
+    table is checked in.
+    """
+
+    font = _find_font(data, font_id)
+    _require(font["generator_mode"] == "legacy-passthrough",
+             f"{font_id}: glyph header preview only supports legacy-passthrough")
+    macro = _macro_name(font_id)
+    pixel_size = cast(dict[str, Any], font["pixel_size"])
+    range_spec = cast(dict[str, Any], font["range"])
+    include_name = Path(cast(list[Any], font["source_files"])[-1]).name
+    public_handle = cast(str, font["public_handle"])
+
+    lines = [
+        f"/* Auto-generated preview for {font_id}; do not edit. */",
+        f"#ifndef XY_GUI_FONT_{macro}_GENERATED_H",
+        f"#define XY_GUI_FONT_{macro}_GENERATED_H",
+        "",
+        f"#include \"{include_name}\"",
+        "",
+        f"#define XY_GUI_FONT_{macro}_GENERATED_WIDTH {pixel_size['width']}U",
+        f"#define XY_GUI_FONT_{macro}_GENERATED_HEIGHT {pixel_size['height']}U",
+        f"#define XY_GUI_FONT_{macro}_GENERATED_BYTES_PER_GLYPH {font['bytes_per_glyph']}U",
+        f"#define XY_GUI_FONT_{macro}_GENERATED_GLYPH_COUNT {range_spec['count']}U",
+    ]
+    if "first" in range_spec:
+        first = _parse_hex(cast(str, range_spec["first"]), f"{font_id}: range.first")
+        last = _parse_hex(cast(str, range_spec["last"]), f"{font_id}: range.last")
+        lines.extend([
+            f"#define XY_GUI_FONT_{macro}_GENERATED_FIRST_CODEPOINT 0x{first:X}U",
+            f"#define XY_GUI_FONT_{macro}_GENERATED_LAST_CODEPOINT 0x{last:X}U",
+        ])
+
+    lines.extend([
+        "",
+        f"#define XY_GUI_FONT_{macro}_GENERATED_HANDLE() {public_handle}()",
+    ])
+    if font["glyph_order"] == "explicit-codepoints":
+        lines.append(f"#define XY_GUI_FONT_{macro}_GENERATED_CODEPOINTS() {range_spec['explicit_codepoints']}()")
+
+    lines.extend([
+        "",
+        f"#endif /* XY_GUI_FONT_{macro}_GENERATED_H */",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def build_glyph_source(data: dict[str, Any], font_id: str) -> str:
+    """Build a deterministic legacy-passthrough glyph source preview."""
+
+    font = _find_font(data, font_id)
+    _require(font["generator_mode"] == "legacy-passthrough",
+             f"{font_id}: glyph source preview only supports legacy-passthrough")
+    macro = _macro_name(font_id)
+    output_header = Path(cast(str, font["output_header"])).name
+    public_handle = cast(str, font["public_handle"])
+    data_symbol = f"g_xy_gui_font_{macro.lower()}_generated_preview"
+
+    lines = [
+        f"/* Auto-generated preview for {font_id}; do not edit. */",
+        f"#include \"{output_header}\"",
+        "",
+        "#include <stdint.h>",
+        "",
+        f"const uint8_t {data_symbol}[] = {{",
+        f"    XY_GUI_FONT_{macro}_GENERATED_WIDTH,",
+        f"    XY_GUI_FONT_{macro}_GENERATED_HEIGHT,",
+        f"    XY_GUI_FONT_{macro}_GENERATED_BYTES_PER_GLYPH,",
+        f"    XY_GUI_FONT_{macro}_GENERATED_GLYPH_COUNT,",
+        "};",
+        "",
+        f"const void *xy_gui_font_{macro.lower()}_generated_legacy_handle(void)",
+        "{",
+        f"    return (const void *){public_handle}();",
+        "}",
+        "",
+    ]
     return "\n".join(lines)
 
 
@@ -369,6 +462,36 @@ def self_test_glyph_metadata(data: dict[str, Any]) -> None:
         raise ManifestError("unsupported generator_mode was accepted")
 
 
+def self_test_glyph_preview(data: dict[str, Any]) -> None:
+    """Validate deterministic legacy-passthrough glyph header/source previews."""
+
+    for font in data["fonts"]:
+        font_id = cast(str, font["id"])
+        header_once = build_glyph_header(data, font_id)
+        header_twice = build_glyph_header(data, font_id)
+        source_once = build_glyph_source(data, font_id)
+        source_twice = build_glyph_source(data, font_id)
+        macro = _macro_name(font_id)
+
+        _require(header_once == header_twice, f"{font_id}: glyph header preview is not deterministic")
+        _require(source_once == source_twice, f"{font_id}: glyph source preview is not deterministic")
+        _require(f"XY_GUI_FONT_{macro}_GENERATED_WIDTH" in header_once,
+                 f"{font_id}: glyph header preview is missing width macro")
+        _require(f"XY_GUI_FONT_{macro}_GENERATED_HANDLE()" in header_once,
+                 f"{font_id}: glyph header preview is missing legacy handle macro")
+        _require(cast(str, font["public_handle"]) in source_once,
+                 f"{font_id}: glyph source preview is missing legacy handle reference")
+        _require("\t" not in header_once and "\t" not in source_once,
+                 f"{font_id}: glyph preview output must not contain tabs")
+
+    try:
+        build_glyph_header(data, "missing_font")
+    except ManifestError as exc:
+        _require("unknown font id" in str(exc), "missing-font probe failed for the wrong reason")
+    else:
+        raise ManifestError("missing font id was accepted")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default="components/gui/fonts/font_manifest.json",
@@ -385,6 +508,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="Validate that written output matches the generated-header preview")
     parser.add_argument("--self-test-glyph-metadata", action="store_true",
                         help="Validate glyph-output metadata contracts without writing glyph tables")
+    parser.add_argument("--emit-glyph-header", metavar="FONT_ID",
+                        help="Print deterministic legacy-passthrough glyph header preview for FONT_ID")
+    parser.add_argument("--emit-glyph-source", metavar="FONT_ID",
+                        help="Print deterministic legacy-passthrough glyph source preview for FONT_ID")
+    parser.add_argument("--self-test-glyph-preview", action="store_true",
+                        help="Validate deterministic glyph header/source preview contracts")
     args = parser.parse_args(argv)
 
     try:
@@ -414,6 +543,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font glyph-metadata self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font glyph-metadata self-test passed")
+    elif args.self_test_glyph_preview:
+        try:
+            self_test_glyph_preview(data)
+        except ManifestError as exc:
+            print(f"font glyph-preview self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font glyph-preview self-test passed")
+    elif args.emit_glyph_header:
+        try:
+            print(build_glyph_header(data, args.emit_glyph_header), end="")
+        except ManifestError as exc:
+            print(f"font glyph-header preview failed: {exc}", file=sys.stderr)
+            return 1
+    elif args.emit_glyph_source:
+        try:
+            print(build_glyph_source(data, args.emit_glyph_source), end="")
+        except ManifestError as exc:
+            print(f"font glyph-source preview failed: {exc}", file=sys.stderr)
+            return 1
     elif args.write_manifest_header:
         try:
             write_manifest_header(data, Path(args.write_manifest_header))
