@@ -62,10 +62,16 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
     policy = data.get("policy")
     _require(isinstance(policy, dict), "policy must be an object", errors)
     if isinstance(policy, dict):
-        for key in ("plan", "record_template", "default_component_enablement", "approval_guard"):
+        for key in (
+            "plan",
+            "source_ownership_map",
+            "record_template",
+            "default_component_enablement",
+            "approval_guard",
+        ):
             value = policy.get(key)
             _require(isinstance(value, str) and len(value) > 0, f"policy.{key} is required", errors)
-        for key in ("plan", "record_template"):
+        for key in ("plan", "source_ownership_map", "record_template"):
             if isinstance(policy.get(key), str):
                 _require(_rel_exists(policy[key]), f"policy.{key} path does not exist: {policy[key]}", errors)
         _require(

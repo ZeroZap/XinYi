@@ -4,6 +4,7 @@
   "status": "contract-guarded",
   "policy": {
     "plan": "docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md",
+    "source_ownership_map": "docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md",
     "record_template": "docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md",
     "default_component_enablement": "COMPONENT_CRYPTO remains default-off until product/security/hardware evidence exists",
     "approval_guard": "security_status and provenance_status must remain review-pending unless a review_record path is provided"
