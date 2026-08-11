@@ -54,11 +54,11 @@ The canonical host contract suite links algorithm sources directly from `tests/u
 | `crypto_random` | `components/crypto/xy_rng/xy_random.c` | Guards module RNG copy. |
 | `crypto_encode` | `components/crypto/xy_base/xy_base64.c`, `components/crypto/xy_hex/xy_hex.c` | Guards module Base64/Hex copies. |
 | `crypto_hash` | `components/crypto/xy_md/xy_md5.c`, `components/crypto/xy_hmac/xy_sha256.c` | Guards module MD5/SHA-256 copies. |
-| `crypto_cipher_hmac` | `xy_aes/`, `xy_hmac/`, `xy_md/`, `xy_sm3/`, `xy_sm4/`, `xy_chacha/` | Guards module cipher/HMAC/SM copies. |
+| `crypto_cipher_hmac` | `components/crypto/xy_aes/xy_aes.c`, `components/crypto/xy_hmac/xy_hmac.c`, `components/crypto/xy_md/xy_md5.c`, `components/crypto/xy_hmac/xy_sha256.c`, `components/crypto/xy_sm3/xy_sm3.c`, `components/crypto/xy_sm4/xy_sm4.c`, `components/crypto/xy_chacha/xy_chacha20_poly1305.c` | Guards module cipher/HMAC/SM copies. |
 | `crypto_sm2` | `xy_sm2/`, `xy_sm3/`, `xy_sm4/`, `xy_rng/` | Guards SM2 public placeholder-grade contract plus helper modules. |
-| `crypto_lwc` | `xy_ascon/`, `xy_tinyjambu/`, `xy_photon_beetle/` | Focused-test-only until root ownership is intentionally decided. |
-| `crypto_25519` | `xy_25519/xy_25519.c` | Focused-test-only until root ownership is intentionally decided. |
-| `crypto_25519_m0` | `xy_25519/xy_25519_m0.c`, `xy_25519/fe25519_m0.c` | Focused-test-only/upstream-material boundary. |
+| `crypto_lwc` | `components/crypto/xy_ascon/xy_ascon.c`, `components/crypto/xy_tinyjambu/xy_tinyjambu.c`, `components/crypto/xy_photon_beetle/xy_photon_beetle.c` | Focused-test-only until root ownership is intentionally decided. |
+| `crypto_25519` | `components/crypto/xy_25519/xy_25519.c` | Focused-test-only until root ownership is intentionally decided. |
+| `crypto_25519_m0` | `components/crypto/xy_25519/xy_25519_m0.c`, `components/crypto/xy_25519/fe25519_m0.c` | Focused-test-only/upstream-material boundary. |
 | `crypto_smoke_example` | module Base64/Hex/SHA-256/RNG sources | Host-safe API smoke only; not a root aggregate source proof. |
 | `crypto_review_manifest` | `components/crypto/crypto_review_manifest.json` | Policy guard only; not cryptographic validation. |
 

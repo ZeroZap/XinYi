@@ -47,6 +47,13 @@ def _rel_exists(rel_path: str) -> bool:
     return (ROOT / rel_path).exists()
 
 
+def _read_policy_document(rel_path: str) -> str:
+    path = ROOT / rel_path
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8")
+
+
 def _require(condition: bool, message: str, errors: list[str]) -> None:
     if not condition:
         errors.append(message)
@@ -60,6 +67,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
     _require(data.get("status") in ALLOWED_TOP_STATUS, "top-level status must remain contract-guarded", errors)
 
     policy = data.get("policy")
+    source_map_text = ""
     _require(isinstance(policy, dict), "policy must be an object", errors)
     if isinstance(policy, dict):
         for key in (
@@ -74,6 +82,8 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
         for key in ("plan", "source_ownership_map", "record_template"):
             if isinstance(policy.get(key), str):
                 _require(_rel_exists(policy[key]), f"policy.{key} path does not exist: {policy[key]}", errors)
+        if isinstance(policy.get("source_ownership_map"), str):
+            source_map_text = _read_policy_document(policy["source_ownership_map"])
         _require(
             "default-off" in policy.get("default_component_enablement", ""),
             "policy.default_component_enablement must preserve default-off wording",
@@ -121,6 +131,11 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
                     _require(isinstance(rel_source, str) and len(rel_source) > 0, f"{prefix}.{source_key} entries must be strings", errors)
                     if isinstance(rel_source, str) and len(rel_source) > 0:
                         _require(_rel_exists(rel_source), f"{prefix}.{source_key} path does not exist: {rel_source}", errors)
+                        _require(
+                            rel_source in source_map_text,
+                            f"{prefix}.{source_key} is missing from source ownership map: {rel_source}",
+                            errors,
+                        )
 
         for status_key in ("provenance_status", "security_status"):
             status = algorithm.get(status_key)
