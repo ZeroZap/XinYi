@@ -170,6 +170,7 @@
 - GUI font snapshot 已新增 `gui_font_snapshot` host CTest：使用 runtime font engine 渲染 host-only framebuffer，锁定 ASCII-art/checksum metadata、unknown glyph output-preservation 与 clipping guard；该结果仍只是 deterministic host snapshot，不代表字体美术验收或真实屏幕硬件验证通过。
 - 已新增 `docs/validation/xinyi-gui-font-rendering-hardware-validation-record-template-2026-08-11.md`，把 GUI 字体/显示后续证据固定为 pending/compile-only/host-snapshot-only/hardware-failed/hardware-passed-* 分级；后续不能用 `gui_font_snapshot` checksum、fake display backend CTest 或生成器 preview 替代真实屏幕照片/日志。
 - 已新增 `docs/design/xinyi-gui-font-generated-preview-checkin-policy-2026-08-11.md`，把后续是否提交 `components/gui/fonts/generated/*` 收束为 legacy-passthrough preview 的独立政策：只有在 generator 能 byte-for-byte 复现、focused CTest/compile gate 证明、且不改变 runtime lookup/不导入新字库/不宣称硬件通过时，才允许单独提交生成预览文件；下一步不应直接 bulk-import CJK 或把 generated preview 当成美术验收。
+- 已按上述政策提交 `components/gui/fonts/generated/*` legacy-passthrough generated preview，并新增 `gui_font_generator_checked_in_preview` CTest：当前只证明 checked-in generated preview 与 manifest/generator byte-for-byte 可复现且 generated `.c` 可 C99 编译；runtime font lookup、legacy bitmap tables、字体美术质量、完整 CJK 导入与真实屏幕验证均未因此改变。后续字体方向不应重复补 generator reproducibility guard，应转向 license/provenance review、host snapshot 人审流程或真实屏幕日志。
 
 ---
 

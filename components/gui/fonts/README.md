@@ -143,6 +143,7 @@ fonts/
 ├── CMakeLists.txt
 ├── README.md
 ├── font_manifest.json       # Current checked-in asset manifest
+├── generated/               # Legacy-passthrough generated preview artifacts
 ├── tools/                   # Generator bootstrap + deterministic requirements
 ├── xy_font_8x16.c          # 8x16 ASCII font implementation
 ├── xy_font_8x16.h          # 8x16 ASCII font header
