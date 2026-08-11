@@ -38,6 +38,7 @@ Focused CTest 名称：
 | `crypto_cipher_hmac` | AES/HMAC/SM3/SM4/ChaCha20 API/vector contracts |
 | `crypto_sm2` | SM2 public API guard paths and placeholder-grade contract |
 | `crypto_lwc` | lightweight crypto/Ascon style public contracts |
+| `crypto_smoke_example` | host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; not a security/hardware proof |
 | `crypto_25519` | Curve25519 generic public API contracts |
 | `crypto_25519_m0` | Cortex-M0 fallback/API and field smoke contracts |
 

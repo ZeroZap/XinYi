@@ -453,6 +453,19 @@ target_include_directories(test_lwc PRIVATE
     ${CRYPTO}/xy_photon_beetle
 )
 
+# --- Test 20f: Crypto host-safe public API smoke example ---
+xy_add_unit_test(test_crypto_smoke_example crypto_smoke_example UNITY
+    ${UNIT_CRYPTO}/test_crypto_smoke_example.c
+    ${CRYPTO}/xy_base/xy_base64.c
+    ${CRYPTO}/xy_hex/xy_hex.c
+    ${CRYPTO}/xy_hmac/xy_sha256.c
+    ${CRYPTO}/xy_rng/xy_random.c
+)
+target_include_directories(test_crypto_smoke_example PRIVATE
+    ${CRYPTO}
+    ${CRYPTO}/inc
+)
+
 # --- Support: host malloc-backed CLIB allocation shim contract ---
 xy_add_unit_test(test_clib_alloc_shim clib_alloc_shim UNITY
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
