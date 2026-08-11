@@ -466,7 +466,15 @@ target_include_directories(test_crypto_smoke_example PRIVATE
     ${CRYPTO}/inc
 )
 
-# --- Test 20g: Crypto security/provenance review manifest policy guard ---
+# --- Test 20g: Crypto target-name compatibility alias policy guard ---
+add_test(NAME crypto_alias_target
+    COMMAND ${CMAKE_COMMAND}
+        -S ${UNIT_CRYPTO}/crypto_alias_target_probe
+        -B ${CMAKE_BINARY_DIR}/crypto_alias_target_probe
+        -DROOT=${ROOT}
+)
+
+# --- Test 20h: Crypto security/provenance review manifest policy guard ---
 add_test(NAME crypto_review_manifest
     COMMAND python3 ${UNIT_CRYPTO}/check_crypto_review_manifest.py
     WORKING_DIRECTORY ${ROOT}

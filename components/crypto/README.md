@@ -39,6 +39,7 @@ Focused CTest 名称：
 | `crypto_sm2` | SM2 public API guard paths and placeholder-grade contract |
 | `crypto_lwc` | lightweight crypto/Ascon style public contracts |
 | `crypto_smoke_example` | host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; not a security/hardware proof |
+| `crypto_alias_target` | CMake configure smoke that proves `xy_tiny_crypto` still exists and `xy_crypto` compatibility alias is exported |
 | `crypto_25519` | Curve25519 generic public API contracts |
 | `crypto_25519_m0` | Cortex-M0 fallback/API and field smoke contracts |
 
@@ -74,7 +75,7 @@ Important ownership notes:
 ## Remaining backlog
 
 1. **Security/provenance review**: initial review policy now lives in `docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md`, with record template `docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md`; `crypto_review_manifest` guards `components/crypto/crypto_review_manifest.json` so all algorithms stay review-pending unless a real review record is linked.
-2. **Root target naming policy**: decide whether to keep historical `xy_tiny_crypto` or introduce a compatibility alias such as `xy_crypto` in a separate build-system slice.
+2. **Root target compatibility alias**: historical `xy_tiny_crypto` remains the real runtime/install target, while `components/crypto/CMakeLists.txt` now provides an `xy_crypto` ALIAS for examples/consumers that already use the component-style name; any full rename still needs a separate proposal.
 3. **Duplicate source ownership**: current root/runtime vs focused-test source ownership is mapped in `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md`; reconcile `src/` copies vs module-directory copies only after a proposal and focused source-map verification.
 4. **Examples**: add small host-safe smoke examples only for active public APIs; do not revive stale broad demos in one batch.
 5. **Hardware acceleration**: keep HAL/SDK acceleration default-off until a focused host seam plus MCU compile/hardware evidence exists.

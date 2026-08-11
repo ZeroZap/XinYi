@@ -35,6 +35,11 @@ file(GLOB CRYPTO_HEADERS "inc/*.h")
 
 # 创建静态库
 add_library(xy_tiny_crypto STATIC ${CRYPTO_SOURCES})
+# Compatibility target for examples/consumers that use the component-style xy_crypto name.
+# Keep xy_tiny_crypto as the installed/runtime target until a separate rename proposal lands.
+if(NOT TARGET xy_crypto)
+    add_library(xy_crypto ALIAS xy_tiny_crypto)
+endif()
 
 # 链接子模块
 target_link_libraries(xy_tiny_crypto PRIVATE
