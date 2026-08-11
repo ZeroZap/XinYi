@@ -1,7 +1,7 @@
 # XinYi 组件状态汇总
 
-**最后更新**: 2026-03-30  
-**版本**: 2.1.0
+**最后更新**: 2026-08-11
+**版本**: 2.1.1
 
 ---
 
@@ -30,15 +30,31 @@
 | **PID** | `components/pid/` | 🟢 稳定 | ✅ | PID 控制器 |
 | **IPC** | `components/ipc/` | 🟢 稳定 | ✅ | 进程间通信 |
 | **PM** | `components/pm/` | 🟢 稳定 | ✅ | 电源管理 |
-| **Fuel Gauge** | `components/fuel_gauge/` | 🟡 host-guarded | ✅ | standalone 电量计；SMBus 硬件验证 pending |
-| **GUI** | `components/gui/` | 🟡 host-guarded | ✅ | core/widgets/effects/fonts/display-backend adapter 已有 CTest；真实屏幕、字体来源/美术审查 pending |
+| **Fuel Gauge** | `components/fuel_gauge/` | 🟡 host-guarded | ✅ | standalone 电量计；SMBus/I2C 硬件验证 pending |
+| **GUI** | `components/gui/` | 🟡 host-guarded | ✅ | core/widgets/effects/fonts/display-backend/SSD1306 adapter 已有 CTest；字体 license/provenance、host snapshot 人审与真实屏幕记录 pending |
 | **FOTA** | `components/fota/` | 🟢 主线可用 | ✅ | host CTest + smoke example 已闭环；bootloader/board NOR 硬件记录 pending |
 
 **图例**: 🟢 稳定/主线可用 | 🟡 host-guarded 但仍待硬件或人工证据 | ⚠️ 需要工作
 
 ---
 
-## 新增组件 (2026-03-30)
+## 新增闭环同步 (2026-08-11)
+
+### GUI 字体与 Display backend 护栏
+
+- **文件**: `components/gui/fonts/font_manifest.json`, `components/gui/fonts/tools/generate_bitmap_font.py`, `tests/unit/gui/test_gui_font_snapshot.c`
+- **功能**: 字体 manifest/generator、checked-in generated preview、host framebuffer snapshot、license/provenance 与 snapshot-review 证据分级
+- **状态**: 🟡 host-guarded；字体来源、人审结论与真实屏幕硬件记录 pending
+
+### FOTA / Fuel Gauge / Net 硬件证据边界
+
+- FOTA 已具备 host CTest、external-flash build closure 与 public smoke example；bootloader/board NOR 仍必须由真实硬件记录证明。
+- Fuel Gauge standalone 已具备 core/driver/SMBus smoke host 护栏；clock-stretching/NACK/snapshot preservation 的硬件结论仍 pending。
+- Net LTE 已具备 default-off adapter、HAL UART binding smoke 与 flow-control 设计；真实 modem/UART/SIM/signal 证据仍 pending。
+
+---
+
+## 历史新增组件 (2026-03-30)
 
 ### GPS Sensor 驱动
 
@@ -207,29 +223,33 @@ pmbus_get_status(&pmbus, &status);
 
 | 用途 | 目录 | 说明 |
 |------|------|------|
-| 开发调试 | `build/` | PC 平台快速验证 |
-| 功能测试 | `build_full_test/` | 完整功能测试 |
-| STM32F4 | `build_stm32f4_test/` | F4 芯片测试 |
-| STM32U5 | `build_stm32u5_validation/` | U5 芯片验证 |
+| PC 默认构建 | `build/pc` | `make` 使用的 Release PC 仿真构建目录 |
+| PC 单元测试 | `build/tests/unit` | `make test-unit` 配置并运行的 Unity/CTest 套件 |
+| QEMU STM32F4 | `tests/qemu_stm32f4` | `make test-qemu` 委托的 QEMU 验证目录 |
 
 ### 构建命令
 
 ```bash
-# PC 平台
-cd XinYi
-rm -rf build && mkdir build && cd build
-cmake .. -DPLATFORM_PC=ON -DXY_CONFIG_SENSOR_ENABLED=ON \
-         -DXY_CONFIG_ACTUATOR_ENABLED=ON -DXY_CONFIG_SMBUS_ENABLED=ON
-make -j4
+# PC 默认构建
+make
+
+# PC 单元测试
+make test-unit
+
+# STM32U5 compile gate（需要本机 ARM toolchain 与 SDK submodules）
+make HAL_PLATFORM=STM32U5 -j$(nproc)
 ```
 
-### 静态库
+### 静态库 / 组件目标
 
-| 组件 | 库文件 | 大小 |
-|------|--------|------|
-| Sensor | `libsensor_component.a` | 311 KB |
-| Actuator | `libxy_actuator.a` | 14.6 KB |
-| SMBus | `libxy_smbus.a` | 28.5 KB |
+当前根 CMake/Makefile 会按组件目录发现主线库目标；不要再使用旧 `-DPLATFORM_PC=ON` 示例作为事实源。
+
+| 组件 | 典型目标 / CTest 护栏 | 说明 |
+|------|----------------------|------|
+| Sensor | `sensor_*` focused CTests | legacy tail host coverage 已收口 |
+| GUI | `gui_core`, `gui_widgets`, `gui_fonts`, `gui_font_engine`, `gui_font_snapshot` 等 | host-only；不代表真实屏幕通过 |
+| FOTA | `fota_core`, `fota_smoke_example` | board NOR/bootloader 仍待实证 |
+| Fuel Gauge | `fuel_gauge_core`, driver CTests, `fuel_gauge_smbus_hardware_smoke_example` | fake-I2C smoke 不能替代真实 SMBus 记录 |
 
 ---
 
@@ -237,6 +257,8 @@ make -j4
 
 | 日期 | 更新内容 |
 |------|----------|
+| 2026-08-11 | 同步 GUI font/display-backend、FOTA、Fuel Gauge、Net LTE 的 host-guarded 与硬件/人工证据 pending 边界 |
+| 2026-08-11 | 修正构建命令为当前 Makefile/CMake 事实源：`make`、`make test-unit`、`make HAL_PLATFORM=STM32U5` |
 | 2026-03-30 | 新增 GPS 传感器驱动 |
 | 2026-03-30 | 新增 Actuator 执行器框架 |
 | 2026-03-30 | 新增 SMBus/PMBus 协议栈 |
