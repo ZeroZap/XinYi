@@ -171,6 +171,7 @@
 - 已新增 `docs/validation/xinyi-gui-font-rendering-hardware-validation-record-template-2026-08-11.md`，把 GUI 字体/显示后续证据固定为 pending/compile-only/host-snapshot-only/hardware-failed/hardware-passed-* 分级；后续不能用 `gui_font_snapshot` checksum、fake display backend CTest 或生成器 preview 替代真实屏幕照片/日志。
 - 已新增 `docs/design/xinyi-gui-font-generated-preview-checkin-policy-2026-08-11.md`，把后续是否提交 `components/gui/fonts/generated/*` 收束为 legacy-passthrough preview 的独立政策：只有在 generator 能 byte-for-byte 复现、focused CTest/compile gate 证明、且不改变 runtime lookup/不导入新字库/不宣称硬件通过时，才允许单独提交生成预览文件；下一步不应直接 bulk-import CJK 或把 generated preview 当成美术验收。
 - 已按上述政策提交 `components/gui/fonts/generated/*` legacy-passthrough generated preview，并新增 `gui_font_generator_checked_in_preview` CTest：当前只证明 checked-in generated preview 与 manifest/generator byte-for-byte 可复现且 generated `.c` 可 C99 编译；runtime font lookup、legacy bitmap tables、字体美术质量、完整 CJK 导入与真实屏幕验证均未因此改变。后续字体方向不应重复补 generator reproducibility guard，应转向 license/provenance review、host snapshot 人审流程或真实屏幕日志。
+- 已新增 `docs/design/xinyi-gui-font-license-provenance-review-plan-2026-08-11.md`，把字体资产 license/provenance review 从 generator/preview 工作中拆出：当前 manifest 中 `project-review-pending` 必须保持到有来源、许可兼容性、placeholder/duplicate 处理与 review note 证据；后续低风险实现应先补 review_status/validation-template/manifest smoke，而不是直接改成 license-approved 或导入外部字体。
 
 ---
 
