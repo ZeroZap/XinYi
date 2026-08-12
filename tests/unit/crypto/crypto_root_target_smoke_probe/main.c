@@ -29,6 +29,13 @@ static const uint8_t abc_blake2s[XY_BLAKE2S_OUTBYTES] = {
     0x4d, 0x99, 0x9b, 0x4c, 0x86, 0x67, 0x59, 0x82,
 };
 
+static const uint8_t quick_brown_hmac_sha256[XY_SHA256_DIGEST_SIZE] = {
+    0xf7, 0xbc, 0x83, 0xf4, 0x30, 0x53, 0x84, 0x24,
+    0xb1, 0x32, 0x98, 0xe6, 0xaa, 0x6f, 0xb1, 0x43,
+    0xef, 0x4d, 0x59, 0xa1, 0x49, 0x46, 0x17, 0x59,
+    0x97, 0x47, 0x9d, 0xbc, 0x2d, 0x1a, 0x3c, 0xd8,
+};
+
 static int require_int_equal(int expected, int actual)
 {
     return expected == actual ? 0 : 1;
@@ -114,6 +121,12 @@ static int exercise_ecdsa_format_only_contract(void)
 int main(void)
 {
     const uint8_t payload[] = {'X', 'i', 'n', 'Y', 'i'};
+    const uint8_t hmac_key[] = {'k', 'e', 'y'};
+    const uint8_t hmac_msg[] = {
+        'T', 'h', 'e', ' ', 'q', 'u', 'i', 'c', 'k', ' ', 'b', 'r', 'o', 'w', 'n', ' ',
+        'f', 'o', 'x', ' ', 'j', 'u', 'm', 'p', 's', ' ', 'o', 'v', 'e', 'r', ' ', 't',
+        'h', 'e', ' ', 'l', 'a', 'z', 'y', ' ', 'd', 'o', 'g',
+    };
     char b64[16] = {0};
     char hex[16] = {0};
     uint8_t decoded[8] = {0};
@@ -158,17 +171,28 @@ int main(void)
         return 10;
     }
 
-    if (require_int_equal(XY_BLAKE2_SUCCESS,
-                          xy_blake2s(blake2s_digest, sizeof(blake2s_digest),
-                                      (const uint8_t *)"abc", 3U, NULL, 0U))) {
+    memset(digest, 0, sizeof(digest));
+    if (require_int_equal(XY_CRYPTO_SUCCESS,
+                          xy_hmac_sha256(hmac_key, sizeof(hmac_key), hmac_msg,
+                                          sizeof(hmac_msg), digest))) {
         return 11;
     }
-    if (require_memory_equal(abc_blake2s, blake2s_digest, sizeof(abc_blake2s))) {
+    if (require_memory_equal(quick_brown_hmac_sha256, digest,
+                             sizeof(quick_brown_hmac_sha256))) {
         return 12;
     }
 
-    if (exercise_ecdsa_format_only_contract()) {
+    if (require_int_equal(XY_BLAKE2_SUCCESS,
+                          xy_blake2s(blake2s_digest, sizeof(blake2s_digest),
+                                      (const uint8_t *)"abc", 3U, NULL, 0U))) {
         return 13;
+    }
+    if (require_memory_equal(abc_blake2s, blake2s_digest, sizeof(abc_blake2s))) {
+        return 14;
+    }
+
+    if (exercise_ecdsa_format_only_contract()) {
+        return 15;
     }
 
     return 0;

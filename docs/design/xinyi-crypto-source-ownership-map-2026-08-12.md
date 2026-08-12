@@ -33,8 +33,8 @@ Therefore the root `xy_tiny_crypto` runtime build uses:
 | Random | `components/crypto/src/xy_random.c` | Separate focused-test copy exists in `xy_rng/xy_random.c`. |
 | CSPRNG | `components/crypto/src/xy_csprng.c` | Separate focused-test copy exists in `xy_rng/xy_csprng.c`. |
 | MD5 | `components/crypto/src/xy_md5.c` | Separate focused-test copy exists in `xy_md/xy_md5.c`. |
-| SHA-256 | `components/crypto/src/xy_sha256.c` | Separate focused-test copy exists in `xy_hmac/xy_sha256.c`. |
-| HMAC | `components/crypto/src/xy_hmac.c`, `components/crypto/src/xy_sha256_hmac.c` | Focused tests link `xy_hmac/xy_hmac.c` plus module SHA-256/MD5 sources. |
+| SHA-256 | `components/crypto/src/xy_sha256_hmac.c` | Root public `xy_tiny_crypto.h` SHA-256/HMAC contract is implemented here; `components/crypto/src/xy_sha256.c` is excluded from `xy_tiny_crypto` because it exposes the older `xy_sha256.h` API shape and duplicate `xy_sha256_*` symbols. Separate focused-test copy exists in `xy_hmac/xy_sha256.c`. |
+| HMAC | `components/crypto/src/xy_hmac.c`, `components/crypto/src/xy_sha256_hmac.c` | Focused tests link `xy_hmac/xy_hmac.c` plus module SHA-256/MD5 sources. Root-target HMAC smoke must link the aggregate library so the stale `src/xy_sha256.c` duplicate cannot silently re-enter. |
 | AES | `components/crypto/src/xy_aes.c` | Separate focused-test copy exists in `xy_aes/xy_aes.c`. |
 | ChaCha20/Poly1305 | `components/crypto/src/xy_chacha20poly1305.c` | Focused tests use `xy_chacha/xy_chacha20_poly1305.c`; basename differs. |
 | BLAKE2 | `components/crypto/src/xy_blake2.c` | Module copy exists in `xy_blake/xy_blake2.c`; no current root focused CTest called out in the manifest. |
@@ -69,6 +69,12 @@ Additional root aggregate sources currently mapped but intentionally not represe
 | --- | --- | --- |
 | `components/crypto/src/xy_blake2.c` | `root-source-unreviewed` in `crypto_review_manifest.json`; root smoke path is exercised by `crypto_root_target_smoke` | Root aggregate copy has root-target smoke coverage, but no active focused CTest or review record currently promotes it beyond mapped/unreviewed status. |
 | `components/crypto/src/xy_ecdsa.c` | `root-source-unreviewed` in `crypto_review_manifest.json`; format-only guard path is exercised by `crypto_root_target_smoke` | Simplified verifier returns success after format checks; do not treat it as production signature validation without a focused CTest plus real security/provenance review. |
+
+Excluded historical root source:
+
+| Source | Current guard status | Notes |
+| --- | --- | --- |
+| `components/crypto/src/xy_sha256.c` | excluded from `xy_tiny_crypto` by `components/crypto/CMakeLists.txt`; policy-guarded by `crypto_review_manifest` | This older `xy_sha256.h` implementation defines `xy_sha256_init/update` with a different API shape from the public `xy_tiny_crypto.h` SHA-256/HMAC contract. Keeping it in the aggregate archive caused root HMAC consumers to fail with duplicate `xy_sha256_*` symbols once `xy_hmac_sha256()` was referenced. Do not re-enable it without a separate SHA-256 ownership reconciliation slice. |
 
 ## 4. Cleanup policy
 

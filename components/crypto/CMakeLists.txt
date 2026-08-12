@@ -32,6 +32,7 @@ add_subdirectory(xy_sm2)
 
 # 收集源文件 - 核心算法在 src/
 file(GLOB CRYPTO_SOURCES "src/*.c")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_sha256\\.c$")
 file(GLOB CRYPTO_HEADERS "inc/*.h")
 
 # 创建静态库

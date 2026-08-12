@@ -20,6 +20,10 @@ UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
 CRYPTO_CMAKE_PATH = ROOT / "components" / "crypto" / "CMakeLists.txt"
 CRYPTO_SRC_DIR = ROOT / "components" / "crypto" / "src"
 
+EXCLUDED_ROOT_AGGREGATE_SOURCES = {
+    "components/crypto/src/xy_sha256.c",
+}
+
 IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
     "crc": (
         "components/crypto/src/xy_crc.c",
@@ -129,7 +133,19 @@ def _crypto_root_target_sources() -> set[str]:
     )
     if _require_messages:
         raise ValueError("\n".join(_require_messages))
-    return {f"components/crypto/src/{path.name}" for path in CRYPTO_SRC_DIR.glob("*.c")}
+    cmake_exclude_pattern = r'list\(\s*FILTER\s+CRYPTO_SOURCES\s+EXCLUDE\s+REGEX\s+"\.\*/src/xy_sha256\\\\\.c\$"\s*\)'
+    _require(
+        bool(re.search(cmake_exclude_pattern, cmake_text)),
+        "components/crypto/CMakeLists.txt must exclude stale src/xy_sha256.c from the mapped root target to avoid duplicate xy_sha256_* symbols",
+        _require_messages,
+    )
+    if _require_messages:
+        raise ValueError("\n".join(_require_messages))
+    return {
+        f"components/crypto/src/{path.name}"
+        for path in CRYPTO_SRC_DIR.glob("*.c")
+        if f"components/crypto/src/{path.name}" not in EXCLUDED_ROOT_AGGREGATE_SOURCES
+    }
 
 
 def _validate_identical_duplicate_sources(source_map_text: str, errors: list[str]) -> None:
