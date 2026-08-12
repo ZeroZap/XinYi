@@ -106,6 +106,13 @@ def _read_policy_document(rel_path: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _read_review_record(rel_path: str) -> str:
+    path = ROOT / rel_path
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8")
+
+
 def _require(condition: bool, message: str, errors: list[str]) -> None:
     if not condition:
         errors.append(message)
@@ -304,11 +311,32 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             else:
                 _require(status in ALLOWED_REVIEW_PENDING, f"{prefix}.{status_key} must remain review-pending", errors)
 
+        review_record_text = ""
         if algorithm.get("review_record") is not None:
             review_record = algorithm.get("review_record")
             _require(isinstance(review_record, str) and len(review_record) > 0, f"{prefix}.review_record must be null or path", errors)
             if isinstance(review_record, str) and len(review_record) > 0:
                 _require(_rel_exists(review_record), f"{prefix}.review_record path does not exist: {review_record}", errors)
+                review_record_text = _read_review_record(review_record)
+
+        if algorithm.get("security_status") in APPROVED_STATUSES:
+            for phrase in (
+                "host CTest",
+                "Decision status",
+                "Required follow-up before stronger claims",
+            ):
+                _require(
+                    phrase in review_record_text,
+                    f"{prefix}.review_record must preserve evidence-boundary phrase: {phrase}",
+                    errors,
+                )
+            duplicate_policy = algorithm.get("duplicate_source_policy")
+            if duplicate_policy == "source-map-pending":
+                _require(
+                    "Duplicate" in review_record_text,
+                    f"{prefix}.review_record must preserve duplicate source evidence-boundary phrase",
+                    errors,
+                )
 
     missing = REQUIRED_ALGORITHM_IDS - seen_ids
     extra = seen_ids - REQUIRED_ALGORITHM_IDS
