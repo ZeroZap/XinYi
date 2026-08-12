@@ -20,6 +20,21 @@ UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
 CRYPTO_CMAKE_PATH = ROOT / "components" / "crypto" / "CMakeLists.txt"
 CRYPTO_SRC_DIR = ROOT / "components" / "crypto" / "src"
 
+IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
+    "crc": (
+        "components/crypto/src/xy_crc.c",
+        "components/crypto/xy_crc/xy_crc.c",
+    ),
+    "base64": (
+        "components/crypto/src/xy_base64.c",
+        "components/crypto/xy_base/xy_base64.c",
+    ),
+    "hex": (
+        "components/crypto/src/xy_hex.c",
+        "components/crypto/xy_hex/xy_hex.c",
+    ),
+}
+
 ALLOWED_TOP_STATUS = {"contract-guarded"}
 ALLOWED_REVIEW_PENDING = {"review-pending"}
 ALLOWED_DUPLICATE_POLICIES = {
@@ -97,6 +112,28 @@ def _crypto_root_target_sources() -> set[str]:
     return {f"components/crypto/src/{path.name}" for path in CRYPTO_SRC_DIR.glob("*.c")}
 
 
+def _validate_identical_duplicate_sources(source_map_text: str, errors: list[str]) -> None:
+    """Keep currently byte-identical root/module copies from silently diverging.
+
+    This is not a cleanup or canonical-ownership decision. It only protects source pairs
+    already documented as duplicate copies while the component remains in source-map-pending
+    state.
+    """
+    for pair_id, (runtime_source, focused_source) in IDENTICAL_DUPLICATE_SOURCE_PAIRS.items():
+        _require(runtime_source in source_map_text, f"duplicate pair {pair_id} runtime source is missing from source map", errors)
+        _require(focused_source in source_map_text, f"duplicate pair {pair_id} focused source is missing from source map", errors)
+        runtime_path = ROOT / runtime_source
+        focused_path = ROOT / focused_source
+        _require(runtime_path.exists(), f"duplicate pair {pair_id} runtime source missing: {runtime_source}", errors)
+        _require(focused_path.exists(), f"duplicate pair {pair_id} focused source missing: {focused_source}", errors)
+        if runtime_path.exists() and focused_path.exists():
+            _require(
+                runtime_path.read_bytes() == focused_path.read_bytes(),
+                f"duplicate pair {pair_id} diverged: {runtime_source} != {focused_source}; update source ownership map and focused/root tests before allowing divergence",
+                errors,
+            )
+
+
 def validate_manifest(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 
@@ -153,6 +190,8 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
                 f"policy.record_template must preserve review-evidence warning phrase: {phrase}",
                 errors,
             )
+
+    _validate_identical_duplicate_sources(source_map_text, errors)
 
     algorithms = data.get("algorithms")
     _require(isinstance(algorithms, list) and len(algorithms) > 0, "algorithms must be a non-empty list", errors)
@@ -363,6 +402,7 @@ def main() -> int:
         f"algorithms={len(data['algorithms'])} "
         f"unreviewed_root_sources={len(data.get('unreviewed_root_sources', []))} "
         f"root_contract_links={sum(len(entry.get('root_contract_tests', [])) for entry in data.get('unreviewed_root_sources', []))} "
+        f"identical_duplicate_pairs={len(IDENTICAL_DUPLICATE_SOURCE_PAIRS)} "
         f"status={data['status']}"
     )
     return 0

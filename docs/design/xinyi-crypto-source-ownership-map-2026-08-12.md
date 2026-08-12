@@ -61,7 +61,7 @@ The canonical host contract suite links algorithm sources directly from `tests/u
 | `crypto_25519_m0` | `components/crypto/xy_25519/xy_25519_m0.c`, `components/crypto/xy_25519/fe25519_m0.c` | Focused-test-only/upstream-material boundary. |
 | `crypto_smoke_example` | module Base64/Hex/SHA-256/RNG sources | Host-safe API smoke only; not a root aggregate source proof. |
 | `crypto_root_target_smoke` | links `xy_tiny_crypto` root target, therefore uses `components/crypto/src/xy_base64.c`, `components/crypto/src/xy_hex.c`, `components/crypto/src/xy_sha256.c`, `components/crypto/src/xy_blake2.c`, and `components/crypto/src/xy_ecdsa.c` through the aggregate library | Minimal root/runtime public consumer proof for Base64/Hex/SHA-256, one BLAKE2s vector, and ECDSA format-only guard paths; not broad duplicate-source reconciliation or security validation. |
-| `crypto_review_manifest` | `components/crypto/crypto_review_manifest.json` plus `components/crypto/CMakeLists.txt` root-source glob shape | Policy guard only; not cryptographic validation. It now also records root aggregate copies that are mapped but still unreviewed, and it fails if the root target stops using the mapped `file(GLOB CRYPTO_SOURCES "src/*.c")` ownership shape without a matching map update. |
+| `crypto_review_manifest` | `components/crypto/crypto_review_manifest.json` plus `components/crypto/CMakeLists.txt` root-source glob shape | Policy guard only; not cryptographic validation. It now also records root aggregate copies that are mapped but still unreviewed, fails if the root target stops using the mapped `file(GLOB CRYPTO_SOURCES "src/*.c")` ownership shape without a matching map update, and guards currently byte-identical CRC/Base64/Hex root/module duplicate copies from silently diverging before an explicit ownership slice. |
 
 Additional root aggregate sources currently mapped but intentionally not represented as reviewed algorithm entries:
 
@@ -75,8 +75,9 @@ Additional root aggregate sources currently mapped but intentionally not represe
 Allowed low-risk follow-ups:
 
 1. Keep machine checks that this map and `crypto_review_manifest.json` stay in sync, including the current root `file(GLOB CRYPTO_SOURCES "src/*.c")` collection shape.
-2. Add root-target smoke coverage for one algorithm at a time if a consumer needs `xy_tiny_crypto` behavior specifically.
-3. For a single algorithm, compare aggregate and module copies, decide canonical ownership, then update CMake/tests/docs in one path-limited verified slice.
+2. Keep byte-identical duplicate-copy guards for pairs already proven identical and still marked `source-map-pending`; the current guarded pairs are CRC (`src/xy_crc.c` vs `xy_crc/xy_crc.c`), Base64 (`src/xy_base64.c` vs `xy_base/xy_base64.c`), and Hex (`src/xy_hex.c` vs `xy_hex/xy_hex.c`). If one of these pairs intentionally diverges, update this map plus focused/root tests in the same explicit ownership slice.
+3. Add root-target smoke coverage for one algorithm at a time if a consumer needs `xy_tiny_crypto` behavior specifically.
+4. For a single algorithm, compare aggregate and module copies, decide canonical ownership, then update CMake/tests/docs in one path-limited verified slice.
 
 Explicit non-goals for this slice:
 
