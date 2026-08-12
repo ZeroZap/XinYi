@@ -10,6 +10,7 @@ add_subdirectory("${ROOT}/components/crypto" "${CMAKE_BINARY_DIR}/crypto")
 add_executable(crypto_root_target_smoke main.c)
 target_include_directories(crypto_root_target_smoke PRIVATE
     "${ROOT}/components/crypto/inc"
+    "${ROOT}/components/crypto/xy_blake"
 )
 target_link_libraries(crypto_root_target_smoke PRIVATE xy_tiny_crypto)
 
