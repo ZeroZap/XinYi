@@ -66,9 +66,9 @@
       "focused_test_sources": ["components/crypto/xy_aes/xy_aes.c", "components/crypto/xy_sm3/xy_sm3.c", "components/crypto/xy_sm4/xy_sm4.c", "components/crypto/xy_chacha/xy_chacha20_poly1305.c", "components/crypto/xy_blake/xy_blake2.c"],
       "duplicate_source_policy": "source-map-pending",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "contract-guarded only; nonce/key-management/padding/side-channel review pending",
-      "review_record": null
+      "security_status": "security-reviewed-limited",
+      "allowed_usage": "contract-guarded lightweight helper use only when caller-owned key/nonce/padding policy and missing provenance/side-channel evidence are explicitly accepted; no certification, hardware-validation, or compliance claim",
+      "review_record": "docs/validation/xinyi-crypto-aes-sm3-sm4-chacha-limited-security-review-2026-08-13.md"
     },
     {
       "id": "sm2",
