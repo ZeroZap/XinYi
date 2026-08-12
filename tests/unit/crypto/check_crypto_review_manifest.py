@@ -84,6 +84,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
 
     policy = data.get("policy")
     source_map_text = ""
+    record_template_text = ""
     _require(isinstance(policy, dict), "policy must be an object", errors)
     if isinstance(policy, dict):
         for key in (
@@ -100,11 +101,25 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
                 _require(_rel_exists(policy[key]), f"policy.{key} path does not exist: {policy[key]}", errors)
         if isinstance(policy.get("source_ownership_map"), str):
             source_map_text = _read_policy_document(policy["source_ownership_map"])
+        if isinstance(policy.get("record_template"), str):
+            record_template_text = _read_policy_document(policy["record_template"])
         _require(
             "default-off" in policy.get("default_component_enablement", ""),
             "policy.default_component_enablement must preserve default-off wording",
             errors,
         )
+        for status in sorted(APPROVED_STATUSES | {"pending"}):
+            _require(
+                status in record_template_text,
+                f"policy.record_template must document status enum: {status}",
+                errors,
+            )
+        for phrase in ("host CTest", "不得用", "安全/来源审查"):
+            _require(
+                phrase in record_template_text,
+                f"policy.record_template must preserve review-evidence warning phrase: {phrase}",
+                errors,
+            )
 
     algorithms = data.get("algorithms")
     _require(isinstance(algorithms, list) and len(algorithms) > 0, "algorithms must be a non-empty list", errors)
