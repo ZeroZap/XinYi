@@ -33,6 +33,22 @@ IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
         "components/crypto/src/xy_hex.c",
         "components/crypto/xy_hex/xy_hex.c",
     ),
+    "random": (
+        "components/crypto/src/xy_random.c",
+        "components/crypto/xy_rng/xy_random.c",
+    ),
+    "csprng": (
+        "components/crypto/src/xy_csprng.c",
+        "components/crypto/xy_rng/xy_csprng.c",
+    ),
+    "md5": (
+        "components/crypto/src/xy_md5.c",
+        "components/crypto/xy_md/xy_md5.c",
+    ),
+    "aes": (
+        "components/crypto/src/xy_aes.c",
+        "components/crypto/xy_aes/xy_aes.c",
+    ),
 }
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
