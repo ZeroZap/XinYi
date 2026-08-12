@@ -42,9 +42,9 @@
       "focused_test_sources": ["components/crypto/xy_rng/xy_random.c", "components/crypto/xy_rng/xy_csprng.c"],
       "duplicate_source_policy": "source-map-pending",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "test/API contract only; host deterministic paths are not entropy-source evidence",
-      "review_record": null
+      "security_status": "security-reviewed-limited",
+      "allowed_usage": "xy_random_* is non-security utility/test/demo only; xy_csprng_* is a contract-guarded helper only when caller-owned seed/entropy quality, reseed policy, and missing audit evidence are explicitly accepted; no entropy-source, certification, hardware RNG, or production key/nonce/token claim",
+      "review_record": "docs/validation/xinyi-crypto-random-csprng-limited-security-review-2026-08-13.md"
     },
     {
       "id": "md5_sha256_hmac",
