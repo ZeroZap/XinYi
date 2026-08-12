@@ -92,6 +92,42 @@ static void test_ecdsa_root_rejects_out_of_range_signature_or_key_bytes(void)
     TEST_ASSERT_EQUAL_INT(-1, xy_ecdsa_p256_verify(&pub_key, kMessage, sizeof(kMessage), &sig));
 }
 
+static void test_ecdsa_simple_wrapper_rejects_malformed_serialized_inputs(void)
+{
+    xy_ecdsa_pub_key_t pub_key;
+    xy_ecdsa_sig_t sig;
+    uint8_t pub_key_bytes[XY_ECDSA_P256_PUB_KEY_SIZE];
+    uint8_t sig_bytes[XY_ECDSA_P256_SIG_SIZE];
+
+    make_valid_looking_inputs(&pub_key, &sig);
+    memcpy(pub_key_bytes, pub_key.x, sizeof(pub_key.x));
+    memcpy(pub_key_bytes + sizeof(pub_key.x), pub_key.y, sizeof(pub_key.y));
+    memcpy(sig_bytes, sig.r, sizeof(sig.r));
+    memcpy(sig_bytes + sizeof(sig.r), sig.s, sizeof(sig.s));
+
+    memset(pub_key_bytes, 0, sizeof(pub_key_bytes));
+    TEST_ASSERT_EQUAL_INT(
+        -1, xy_ecdsa_verify_simple(pub_key_bytes, kMessage, sizeof(kMessage), sig_bytes));
+
+    make_valid_looking_inputs(&pub_key, &sig);
+    memcpy(pub_key_bytes, pub_key.x, sizeof(pub_key.x));
+    memcpy(pub_key_bytes + sizeof(pub_key.x), pub_key.y, sizeof(pub_key.y));
+    memcpy(sig_bytes, sig.r, sizeof(sig.r));
+    memcpy(sig_bytes + sizeof(sig.r), sig.s, sizeof(sig.s));
+    memset(sig_bytes, 0, sizeof(sig.r));
+    TEST_ASSERT_EQUAL_INT(
+        -1, xy_ecdsa_verify_simple(pub_key_bytes, kMessage, sizeof(kMessage), sig_bytes));
+
+    make_valid_looking_inputs(&pub_key, &sig);
+    memcpy(pub_key_bytes, pub_key.x, sizeof(pub_key.x));
+    memcpy(pub_key_bytes + sizeof(pub_key.x), pub_key.y, sizeof(pub_key.y));
+    memcpy(sig_bytes, sig.r, sizeof(sig.r));
+    memcpy(sig_bytes + sizeof(sig.r), sig.s, sizeof(sig.s));
+    fill_bytes(pub_key_bytes + sizeof(pub_key.x), sizeof(pub_key.y), 0xFFU);
+    TEST_ASSERT_EQUAL_INT(
+        -1, xy_ecdsa_verify_simple(pub_key_bytes, kMessage, sizeof(kMessage), sig_bytes));
+}
+
 static void test_ecdsa_root_documents_format_only_success_contract(void)
 {
     xy_ecdsa_pub_key_t pub_key;
@@ -119,6 +155,7 @@ int main(void)
     RUN_TEST(test_ecdsa_root_rejects_null_inputs);
     RUN_TEST(test_ecdsa_root_rejects_zero_public_key);
     RUN_TEST(test_ecdsa_root_rejects_out_of_range_signature_or_key_bytes);
+    RUN_TEST(test_ecdsa_simple_wrapper_rejects_malformed_serialized_inputs);
     RUN_TEST(test_ecdsa_root_documents_format_only_success_contract);
     return UNITY_END();
 }
