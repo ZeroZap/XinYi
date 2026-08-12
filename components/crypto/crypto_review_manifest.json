@@ -54,9 +54,9 @@
       "focused_test_sources": ["components/crypto/xy_md/xy_md5.c", "components/crypto/xy_hmac/xy_sha256.c", "components/crypto/xy_hmac/xy_hmac.c"],
       "duplicate_source_policy": "source-map-pending",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "contract-guarded only; MD5 is legacy/integrity-only and not collision-resistant",
-      "review_record": null
+      "security_status": "security-reviewed-limited",
+      "allowed_usage": "MD5 is legacy/non-security checksum compatibility only; SHA-256/HMAC-SHA256 are contract-guarded lightweight helpers pending provenance and side-channel review",
+      "review_record": "docs/validation/xinyi-crypto-md5-sha256-hmac-limited-security-review-2026-08-13.md"
     },
     {
       "id": "aes_sm3_sm4_chacha20",
