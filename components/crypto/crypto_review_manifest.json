@@ -18,9 +18,9 @@
       "focused_test_sources": ["components/crypto/xy_crc/xy_crc.c"],
       "duplicate_source_policy": "source-map-pending",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "non-security integrity/checksum utility only until reviewed",
-      "review_record": null
+      "security_status": "security-reviewed-limited",
+      "allowed_usage": "non-security checksum/integrity helper only; prohibited as authentication, signature substitute, tamper-proof checksum, authorization input, or any production security control",
+      "review_record": "docs/validation/xinyi-crypto-crc-encoding-limited-security-review-2026-08-13.md"
     },
     {
       "id": "base64_hex",
@@ -30,9 +30,9 @@
       "focused_test_sources": ["components/crypto/xy_base/xy_base64.c", "components/crypto/xy_hex/xy_hex.c"],
       "duplicate_source_policy": "source-map-pending",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "encoding utility only; no security claim",
-      "review_record": null
+      "security_status": "security-reviewed-limited",
+      "allowed_usage": "encoding/decoding utility only; no encryption, integrity, authentication, semantic validation, compliance, hardware-validation, or production security claim",
+      "review_record": "docs/validation/xinyi-crypto-crc-encoding-limited-security-review-2026-08-13.md"
     },
     {
       "id": "random_csprng",
