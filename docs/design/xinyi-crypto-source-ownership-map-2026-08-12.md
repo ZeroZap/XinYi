@@ -60,7 +60,7 @@ The canonical host contract suite links algorithm sources directly from `tests/u
 | `crypto_25519` | `components/crypto/xy_25519/xy_25519.c` | Focused-test-only until root ownership is intentionally decided. |
 | `crypto_25519_m0` | `components/crypto/xy_25519/xy_25519_m0.c`, `components/crypto/xy_25519/fe25519_m0.c` | Focused-test-only/upstream-material boundary. |
 | `crypto_smoke_example` | module Base64/Hex/SHA-256/RNG sources | Host-safe API smoke only; not a root aggregate source proof. |
-| `crypto_root_target_smoke` | links `xy_tiny_crypto` root target, therefore uses `components/crypto/src/xy_base64.c`, `components/crypto/src/xy_hex.c`, `components/crypto/src/xy_sha256.c`, and `components/crypto/src/xy_blake2.c` through the aggregate library | Minimal root/runtime public consumer proof for Base64/Hex/SHA-256 and one BLAKE2s vector; not broad duplicate-source reconciliation or security validation. |
+| `crypto_root_target_smoke` | links `xy_tiny_crypto` root target, therefore uses `components/crypto/src/xy_base64.c`, `components/crypto/src/xy_hex.c`, `components/crypto/src/xy_sha256.c`, `components/crypto/src/xy_blake2.c`, and `components/crypto/src/xy_ecdsa.c` through the aggregate library | Minimal root/runtime public consumer proof for Base64/Hex/SHA-256, one BLAKE2s vector, and ECDSA format-only guard paths; not broad duplicate-source reconciliation or security validation. |
 | `crypto_review_manifest` | `components/crypto/crypto_review_manifest.json` | Policy guard only; not cryptographic validation. It now also records root aggregate copies that are mapped but still unreviewed. |
 
 Additional root aggregate sources currently mapped but intentionally not represented as reviewed algorithm entries:
@@ -68,7 +68,7 @@ Additional root aggregate sources currently mapped but intentionally not represe
 | Source | Current guard status | Notes |
 | --- | --- | --- |
 | `components/crypto/src/xy_blake2.c` | `root-source-unreviewed` in `crypto_review_manifest.json` | Root aggregate copy exists, but no active focused CTest or review record currently promotes it beyond mapped/unreviewed status. |
-| `components/crypto/src/xy_ecdsa.c` | `root-source-unreviewed` in `crypto_review_manifest.json` | Simplified verifier returns success after format checks; do not treat it as production signature validation without a focused CTest plus real security/provenance review. |
+| `components/crypto/src/xy_ecdsa.c` | `root-source-unreviewed` in `crypto_review_manifest.json`; format-only guard path is exercised by `crypto_root_target_smoke` | Simplified verifier returns success after format checks; do not treat it as production signature validation without a focused CTest plus real security/provenance review. |
 
 ## 4. Cleanup policy
 

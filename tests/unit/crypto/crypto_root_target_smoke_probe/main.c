@@ -10,6 +10,7 @@
 
 #include "xy_tiny_crypto.h"
 #include "xy_blake2.h"
+#include "xy_ecdsa.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -41,6 +42,73 @@ static int require_memory_equal(const void *expected, const void *actual, size_t
 static int require_string_equal(const char *expected, const char *actual)
 {
     return strcmp(expected, actual) == 0 ? 0 : 1;
+}
+
+static void fill_u8(uint8_t *buffer, size_t len, uint8_t value)
+{
+    size_t i;
+
+    for (i = 0; i < len; ++i) {
+        buffer[i] = value;
+    }
+}
+
+static int exercise_ecdsa_format_only_contract(void)
+{
+    const uint8_t message[] = {'r', 'o', 'o', 't', '-', 's', 'm', 'o', 'k', 'e'};
+    const uint8_t empty_message[] = {0};
+    xy_ecdsa_pub_key_t pub_key;
+    xy_ecdsa_sig_t sig;
+    uint8_t pub_key_bytes[XY_ECDSA_P256_PUB_KEY_SIZE];
+    uint8_t sig_bytes[XY_ECDSA_P256_SIG_SIZE];
+
+    memset(&pub_key, 0, sizeof(pub_key));
+    memset(&sig, 0, sizeof(sig));
+    fill_u8(sig.r, sizeof(sig.r), 0x01U);
+    fill_u8(sig.s, sizeof(sig.s), 0x02U);
+
+    if (require_int_equal(
+            -1,
+            xy_ecdsa_p256_verify((const xy_ecdsa_pub_key_t *)0, message, sizeof(message),
+                                  &sig))) {
+        return 1;
+    }
+    if (require_int_equal(
+            -1,
+            xy_ecdsa_p256_verify(&pub_key, (const uint8_t *)0, sizeof(message), &sig))) {
+        return 2;
+    }
+    if (require_int_equal(
+            -1,
+            xy_ecdsa_p256_verify(&pub_key, message, sizeof(message),
+                                  (const xy_ecdsa_sig_t *)0))) {
+        return 3;
+    }
+    if (require_int_equal(-1, xy_ecdsa_p256_verify(&pub_key, message, sizeof(message), &sig))) {
+        return 4;
+    }
+
+    fill_u8(pub_key.x, sizeof(pub_key.x), 0x01U);
+    fill_u8(pub_key.y, sizeof(pub_key.y), 0x02U);
+
+    /* Current root ECDSA is format-only: valid-looking values return success without
+     * real elliptic-curve signature verification. This is a build/API guard only. */
+    if (require_int_equal(
+            0,
+            xy_ecdsa_p256_verify(&pub_key, empty_message, 0U, &sig))) {
+        return 5;
+    }
+
+    memset(pub_key_bytes, 0, sizeof(pub_key_bytes));
+    memset(sig_bytes, 0, sizeof(sig_bytes));
+    fill_u8(pub_key_bytes, sizeof(pub_key_bytes), 0x03U);
+    fill_u8(sig_bytes, sizeof(sig_bytes), 0x04U);
+    if (require_int_equal(0, xy_ecdsa_verify_simple(pub_key_bytes, empty_message, 0U,
+                                                    sig_bytes))) {
+        return 6;
+    }
+
+    return 0;
 }
 
 int main(void)
@@ -97,6 +165,10 @@ int main(void)
     }
     if (require_memory_equal(abc_blake2s, blake2s_digest, sizeof(abc_blake2s))) {
         return 12;
+    }
+
+    if (exercise_ecdsa_format_only_contract()) {
+        return 13;
     }
 
     return 0;

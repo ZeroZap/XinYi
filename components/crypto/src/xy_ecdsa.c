@@ -81,23 +81,12 @@ static void bn_mod_add(uint8_t *r, const uint8_t *a, const uint8_t *b,
 }
 
 /**
- * @brief SHA256 实现
- */
-#include "xy_sha256.h"
-
-static void xy_sha256_simple(const uint8_t *msg, size_t len, uint8_t *hash)
-{
-    xy_sha256(msg, len, hash);
-}
-
-/**
  * @brief 验证 ECDSA 签名 (简化版)
  */
 int xy_ecdsa_p256_verify(const xy_ecdsa_pub_key_t *pub_key,
                          const uint8_t *message, size_t msg_len,
                          const xy_ecdsa_sig_t *sig)
 {
-    uint8_t hash[32];
     uint8_t r[32], s[32];
     int i;
     
@@ -105,8 +94,7 @@ int xy_ecdsa_p256_verify(const xy_ecdsa_pub_key_t *pub_key,
         return -1;
     }
     
-    /* 计算消息哈希 */
-    xy_sha256_simple(message, msg_len, hash);
+    (void)msg_len;
     
     /* 复制 r, s */
     memcpy(r, sig->r, 32);
@@ -149,7 +137,7 @@ int xy_ecdsa_p256_verify(const xy_ecdsa_pub_key_t *pub_key,
      * ✅ 已验证 r/s 范围 (1 <= r,s < n)
      * ✅ 已验证公钥范围
      * ✅ 已验证公钥非零
-     * ✅ 已计算 SHA256 哈希
+     * ⚠️ 未计算/验证消息哈希：当前 root 聚合实现只保留格式护栏
      * ⚠️ 签名验证：简化实现 (返回成功)
      * 
      * ⚠️ 安全警告：生产环境必须使用完整实现!

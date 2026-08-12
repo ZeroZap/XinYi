@@ -40,7 +40,7 @@ Focused CTest 名称：
 | `crypto_lwc` | lightweight crypto/Ascon style public contracts |
 | `crypto_smoke_example` | Host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; links focused module sources and remains API-drift guard only, not a security/hardware proof |
 | `crypto_alias_target` | CMake configure smoke that proves `xy_tiny_crypto` still exists and `xy_crypto` compatibility alias is exported |
-| `crypto_root_target_smoke` | Standalone public consumer linked against the real `xy_tiny_crypto` root/runtime target; proves aggregate `src/` Base64/Hex/SHA-256 plus BLAKE2s path for one small API flow |
+| `crypto_root_target_smoke` | Standalone public consumer linked against the real `xy_tiny_crypto` root/runtime target; proves aggregate `src/` Base64/Hex/SHA-256, BLAKE2s, and ECDSA format-only guard paths for one small API flow |
 | `crypto_25519` | Curve25519 generic public API contracts |
 | `crypto_25519_m0` | Cortex-M0 fallback/API and field smoke contracts |
 
@@ -75,7 +75,7 @@ Important ownership notes:
 
 ## Remaining backlog
 
-1. **Security/provenance review**: initial review policy now lives in `docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md`, with record template `docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md`; `crypto_review_manifest` guards `components/crypto/crypto_review_manifest.json` so all algorithms stay review-pending unless a real review record is linked. It also records root aggregate BLAKE2/ECDSA copies as `root-source-unreviewed` so mapped-but-unreviewed code is not mistaken for reviewed algorithm coverage.
+1. **Security/provenance review**: initial review policy now lives in `docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md`, with record template `docs/validation/xinyi-crypto-security-provenance-review-record-template-2026-08-12.md`; `crypto_review_manifest` guards `components/crypto/crypto_review_manifest.json` so all algorithms stay review-pending unless a real review record is linked. It also records root aggregate BLAKE2/ECDSA copies as `root-source-unreviewed` so mapped-but-unreviewed code is not mistaken for reviewed algorithm coverage. The root smoke now exercises ECDSA only as the documented format-only guard contract; root ECDSA no longer pulls the duplicate SHA-256 implementation into `xy_tiny_crypto`, and it is still not production signature validation.
 2. **Root target compatibility alias**: historical `xy_tiny_crypto` remains the real runtime/install target, while `components/crypto/CMakeLists.txt` now provides an `xy_crypto` ALIAS for examples/consumers that already use the component-style name; any full rename still needs a separate proposal.
 3. **Duplicate source ownership**: current root/runtime vs focused-test source ownership is mapped in `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md`; reconcile `src/` copies vs module-directory copies only after a proposal and focused source-map verification.
 4. **Examples**: add small host-safe smoke examples only for active public APIs; do not revive stale broad demos in one batch.

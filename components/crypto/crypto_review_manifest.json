@@ -132,7 +132,7 @@
       "source": "components/crypto/src/xy_ecdsa.c",
       "mapped_in": "docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md",
       "status": "root-source-unreviewed",
-      "reason": "simplified root aggregate ECDSA verifier exists without a focused CTest or security/provenance review; do not treat it as production signature validation"
+      "reason": "simplified root aggregate ECDSA verifier has a root smoke for format-only guard paths, but no focused CTest or security/provenance review; do not treat it as production signature validation"
     }
   ]
 }
