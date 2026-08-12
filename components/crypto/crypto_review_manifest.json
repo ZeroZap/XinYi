@@ -90,9 +90,9 @@
       "focused_test_sources": ["components/crypto/xy_ascon/xy_ascon.c", "components/crypto/xy_tinyjambu/xy_tinyjambu.c", "components/crypto/xy_photon_beetle/xy_photon_beetle.c"],
       "duplicate_source_policy": "focused-test-only-until-root-ownership-decided",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "contract-guarded only; algorithm/version/parameter-set review pending",
-      "review_record": null
+      "security_status": "security-reviewed-limited",
+      "allowed_usage": "contract-guarded lightweight helper experimentation only where focused-test-only ownership, missing upstream provenance, missing authoritative full KAT coverage, and missing side-channel evidence are explicitly accepted; no certification, hardware-validation, root-runtime, or production security claim",
+      "review_record": "docs/validation/xinyi-crypto-lwc-limited-security-review-2026-08-13.md"
     },
     {
       "id": "curve25519_generic",
