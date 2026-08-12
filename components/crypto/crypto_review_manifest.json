@@ -78,9 +78,9 @@
       "focused_test_sources": ["components/crypto/xy_sm2/xy_sm2.c"],
       "duplicate_source_policy": "single-active-source",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "test-only placeholder; not production signing/encryption",
-      "review_record": null
+      "security_status": "security-rejected",
+      "allowed_usage": "test-only/compatibility-only placeholder; prohibited for production signing, verification, encryption, key exchange, authentication, or other security-sensitive paths",
+      "review_record": "docs/validation/xinyi-crypto-sm2-placeholder-security-review-2026-08-13.md"
     },
     {
       "id": "lwc_ascon_tinyjambu_photon_beetle",

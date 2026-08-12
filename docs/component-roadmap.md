@@ -405,8 +405,13 @@ struct rt_device {
   - duplicate `src/` vs module copy 先保持 source-map-pending
   - 已有 byte-identical duplicate guard；不得同轮批量移动/删除源码
   
-- [ ] **CRYPTO-003**: 单算法 review record 或 source ownership reconciliation
-  - 每次只选择一个区域（例如 SM2 placeholder、CSPRNG entropy boundary、Curve25519 provenance）
+- [x] **CRYPTO-003a**: SM2 placeholder security rejection record
+  - `docs/validation/xinyi-crypto-sm2-placeholder-security-review-2026-08-13.md`
+  - `components/crypto/crypto_review_manifest.json` links SM2 to `security-rejected`
+  - Allowed usage is test-only/compatibility-only; not production signing/verification/encryption/key exchange/authentication
+
+- [ ] **CRYPTO-003b**: 下一单算法 review record 或 source ownership reconciliation
+  - 每次只选择一个区域（例如 CSPRNG entropy boundary、Curve25519 provenance、MD5 legacy boundary）
   - 补 review record / manifest smoke / focused CTest
   - 不把 host CTest 输出等同于安全审计结论
 
