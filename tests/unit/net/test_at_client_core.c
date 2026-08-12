@@ -105,6 +105,12 @@ static void test_device_registration_and_default_command(void)
     TEST_ASSERT_NOT_NULL(client);
     TEST_ASSERT_EQUAL_UINT8(0, client->device_count);
 
+    TEST_ASSERT_NULL(at_device_register(NULL, mock_read_byte, mock_write, mock_get_tick, NULL));
+    TEST_ASSERT_NULL(at_device_register("no-read", NULL, mock_write, mock_get_tick, NULL));
+    TEST_ASSERT_NULL(at_device_register("no-write", mock_read_byte, NULL, mock_get_tick, NULL));
+    TEST_ASSERT_NULL(at_device_register("no-tick", mock_read_byte, mock_write, NULL, NULL));
+    TEST_ASSERT_EQUAL_UINT8(0, client->device_count);
+
     at_device_t *dev = at_device_register("modem", mock_read_byte, mock_write, mock_get_tick, NULL);
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_EQUAL_UINT8(0, dev->id);
@@ -126,6 +132,39 @@ static void test_device_registration_and_default_command(void)
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(4U, mock_read_byte_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(dev, mock_read_byte_fake.arg0_val);
     TEST_ASSERT_GREATER_THAN_UINT(0U, mock_get_tick_fake.call_count);
+}
+
+static void test_default_device_selection_guards_and_switches(void)
+{
+    reset_io();
+    at_client_t *client = at_client_init();
+    TEST_ASSERT_NOT_NULL(client);
+
+    TEST_ASSERT_EQUAL_INT(-1, at_set_default_device(NULL));
+    TEST_ASSERT_EQUAL(AT_RESP_ERROR, at_send_cmd("AT", NULL, NULL, 100));
+
+    at_device_t orphan = {0};
+    TEST_ASSERT_EQUAL_INT(-1, at_set_default_device(&orphan));
+    TEST_ASSERT_EQUAL_UINT8(0, client->device_count);
+
+    at_device_t *first = at_device_register("first", mock_read_byte, mock_write, mock_get_tick, NULL);
+    at_device_t *second = at_device_register("second", mock_read_byte, mock_write, mock_get_tick, NULL);
+    TEST_ASSERT_NOT_NULL(first);
+    TEST_ASSERT_NOT_NULL(second);
+    TEST_ASSERT_EQUAL_UINT8(0, client->default_device);
+
+    mock_feed("OK\r\n");
+    TEST_ASSERT_EQUAL(AT_RESP_OK, at_send_cmd("AT", NULL, NULL, 100));
+    TEST_ASSERT_EQUAL_UINT32(4, first->tx_count);
+    TEST_ASSERT_EQUAL_UINT32(0, second->tx_count);
+
+    reset_io();
+    TEST_ASSERT_EQUAL_INT(0, at_set_default_device(second));
+    TEST_ASSERT_EQUAL_UINT8(1, client->default_device);
+    mock_feed("OK\r\n");
+    TEST_ASSERT_EQUAL(AT_RESP_OK, at_send_cmd("AT+SECOND", NULL, NULL, 100));
+    TEST_ASSERT_EQUAL_UINT32(4, first->tx_count);
+    TEST_ASSERT_EQUAL_UINT32(11, second->tx_count);
 }
 
 static void test_send_command_validation_and_busy_state(void)
@@ -217,6 +256,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_device_registration_and_default_command);
+    RUN_TEST(test_default_device_selection_guards_and_switches);
     RUN_TEST(test_send_command_validation_and_busy_state);
     RUN_TEST(test_ok_error_timeout_and_custom_response);
     RUN_TEST(test_raw_readline_expect_and_stats);

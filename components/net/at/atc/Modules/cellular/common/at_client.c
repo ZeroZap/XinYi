@@ -46,6 +46,10 @@ at_device_t *at_device_register(const char *name, at_read_byte_t read_byte,
                                 at_write_t write_data,
                                 at_tick_t (*get_tick)(void), void *user_data)
 {
+    if (!name || !read_byte || !write_data || !get_tick) {
+        return NULL;
+    }
+
     if (g_at_client.device_count >= AT_MAX_DEVICES) {
         return NULL;
     }
@@ -75,6 +79,22 @@ at_device_t *at_device_register(const char *name, at_read_byte_t read_byte,
     }
 
     return dev;
+}
+
+int at_set_default_device(at_device_t *dev)
+{
+    if (!dev) {
+        return -1;
+    }
+
+    for (uint8_t i = 0; i < g_at_client.device_count; i++) {
+        if (g_at_client.devices[i] == dev) {
+            g_at_client.default_device = i;
+            return 0;
+        }
+    }
+
+    return -1;
 }
 
 /* 发送AT命令 */
