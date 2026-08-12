@@ -17,6 +17,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST_PATH = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
 UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
+CRYPTO_CMAKE_PATH = ROOT / "components" / "crypto" / "CMakeLists.txt"
 CRYPTO_SRC_DIR = ROOT / "components" / "crypto" / "src"
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
@@ -73,6 +74,27 @@ def _registered_crypto_ctests() -> set[str]:
     names = set(re.findall(r"xy_add_unit_test\(\s*\S+\s+(crypto_[A-Za-z0-9_]+)\s+UNITY", cmake_text))
     names.update(re.findall(r"add_test\(\s*NAME\s+(crypto_[A-Za-z0-9_]+)", cmake_text))
     return names
+
+
+def _crypto_root_target_sources() -> set[str]:
+    """Return root aggregate src/*.c sources collected by components/crypto/CMakeLists.txt.
+
+    This policy guard intentionally supports the current simple source collection shape only:
+    a direct file(GLOB ... "src/*.c") entry. If crypto root ownership changes to an explicit
+    list or a different glob, this check should fail until the ownership map/manifest guard is
+    updated in the same slice.
+    """
+    cmake_text = CRYPTO_CMAKE_PATH.read_text(encoding="utf-8")
+    glob_pattern = r'file\(\s*GLOB\s+CRYPTO_SOURCES\s+"src/\*\.c"\s*\)'
+    _require_messages: list[str] = []
+    _require(
+        bool(re.search(glob_pattern, cmake_text)),
+        "components/crypto/CMakeLists.txt must keep the mapped root source collection shape: file(GLOB CRYPTO_SOURCES \"src/*.c\")",
+        _require_messages,
+    )
+    if _require_messages:
+        raise ValueError("\n".join(_require_messages))
+    return {f"components/crypto/src/{path.name}" for path in CRYPTO_SRC_DIR.glob("*.c")}
 
 
 def validate_manifest(data: dict[str, Any]) -> list[str]:
@@ -301,9 +323,11 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             errors,
         )
 
-    actual_root_sources = {
-        f"components/crypto/src/{path.name}" for path in CRYPTO_SRC_DIR.glob("*.c")
-    }
+    try:
+        actual_root_sources = _crypto_root_target_sources()
+    except ValueError as exc:
+        errors.extend(str(exc).splitlines())
+        actual_root_sources = set()
     missing_root_sources = actual_root_sources - manifest_root_sources
     stale_root_sources = manifest_root_sources - actual_root_sources
     _require(
