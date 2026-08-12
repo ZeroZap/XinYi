@@ -57,6 +57,10 @@ IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
         "components/crypto/src/xy_aes.c",
         "components/crypto/xy_aes/xy_aes.c",
     ),
+    "blake2": (
+        "components/crypto/src/xy_blake2.c",
+        "components/crypto/xy_blake/xy_blake2.c",
+    ),
 }
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}

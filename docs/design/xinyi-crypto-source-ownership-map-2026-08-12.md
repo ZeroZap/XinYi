@@ -37,7 +37,7 @@ Therefore the root `xy_tiny_crypto` runtime build uses:
 | HMAC | `components/crypto/src/xy_hmac.c`, `components/crypto/src/xy_sha256_hmac.c` | Focused tests link `xy_hmac/xy_hmac.c` plus module SHA-256/MD5 sources. Root-target HMAC smoke must link the aggregate library so the stale `src/xy_sha256.c` duplicate cannot silently re-enter. |
 | AES | `components/crypto/src/xy_aes.c` | Separate focused-test copy exists in `xy_aes/xy_aes.c`. |
 | ChaCha20/Poly1305 | `components/crypto/src/xy_chacha20poly1305.c` | Focused tests use `xy_chacha/xy_chacha20_poly1305.c`; basename differs. |
-| BLAKE2 | `components/crypto/src/xy_blake2.c` | Module copy exists in `xy_blake/xy_blake2.c`; no current root focused CTest called out in the manifest. |
+| BLAKE2 | `components/crypto/src/xy_blake2.c` | Byte-identical module copy exists in `components/crypto/xy_blake/xy_blake2.c`; no current root focused CTest called out in the manifest. |
 | ECDSA | `components/crypto/src/xy_ecdsa.c` | Root aggregate source only in current map; no focused CTest contract in current manifest. |
 | SM3 | `components/crypto/xy_sm3/xy_sm3.c` | Linked via subdirectory target `xy_sm3`, not `src/*.c`. |
 | SM4 | `components/crypto/xy_sm4/xy_sm4.c` | Linked via subdirectory target `xy_sm4`, not `src/*.c`. |
@@ -81,7 +81,7 @@ Excluded historical root source:
 Allowed low-risk follow-ups:
 
 1. Keep machine checks that this map and `crypto_review_manifest.json` stay in sync, including the current root `file(GLOB CRYPTO_SOURCES "src/*.c")` collection shape.
-2. Keep byte-identical duplicate-copy guards for pairs already proven identical and still marked `source-map-pending`; the current guarded pairs are CRC (`src/xy_crc.c` vs `xy_crc/xy_crc.c`), Base64 (`src/xy_base64.c` vs `xy_base/xy_base64.c`), Hex (`src/xy_hex.c` vs `xy_hex/xy_hex.c`), Random (`src/xy_random.c` vs `xy_rng/xy_random.c`), CSPRNG (`src/xy_csprng.c` vs `xy_rng/xy_csprng.c`), MD5 (`src/xy_md5.c` vs `xy_md/xy_md5.c`), HMAC (`src/xy_hmac.c` vs `xy_hmac/xy_hmac.c`), and AES (`src/xy_aes.c` vs `xy_aes/xy_aes.c`). If one of these pairs intentionally diverges, update this map plus focused/root tests in the same explicit ownership slice.
+2. Keep byte-identical duplicate-copy guards for pairs already proven identical and still marked `source-map-pending`; the current guarded pairs are CRC (`src/xy_crc.c` vs `xy_crc/xy_crc.c`), Base64 (`src/xy_base64.c` vs `xy_base/xy_base64.c`), Hex (`src/xy_hex.c` vs `xy_hex/xy_hex.c`), Random (`src/xy_random.c` vs `xy_rng/xy_random.c`), CSPRNG (`src/xy_csprng.c` vs `xy_rng/xy_csprng.c`), MD5 (`src/xy_md5.c` vs `xy_md/xy_md5.c`), HMAC (`src/xy_hmac.c` vs `xy_hmac/xy_hmac.c`), AES (`src/xy_aes.c` vs `xy_aes/xy_aes.c`), and BLAKE2 (`src/xy_blake2.c` vs `xy_blake/xy_blake2.c`). If one of these pairs intentionally diverges, update this map plus focused/root tests in the same explicit ownership slice.
 3. Add root-target smoke coverage for one algorithm at a time if a consumer needs `xy_tiny_crypto` behavior specifically.
 4. For a single algorithm, compare aggregate and module copies, decide canonical ownership, then update CMake/tests/docs in one path-limited verified slice.
 5. Prune stale historical documentation duplicates only when they are tracked, unreferenced, and demonstrably superseded by the current component README/source map. The truncated `components/crypto/xy_tiny_boot_crypto copy.md` stale duplicate was removed; `xy_tiny_boot_crypto.md` remains as historical material.
