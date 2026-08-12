@@ -83,6 +83,18 @@
       "review_record": "docs/validation/xinyi-crypto-sm2-placeholder-security-review-2026-08-13.md"
     },
     {
+      "id": "ecdsa_root_format_only",
+      "description": "Root aggregate ECDSA P-256 format-only placeholder contract",
+      "contract_tests": ["crypto_ecdsa_root_contract", "crypto_root_target_smoke"],
+      "runtime_sources": ["components/crypto/src/xy_ecdsa.c"],
+      "focused_test_sources": ["components/crypto/src/xy_ecdsa.c"],
+      "duplicate_source_policy": "single-active-source",
+      "provenance_status": "review-pending",
+      "security_status": "security-rejected",
+      "allowed_usage": "test-only/format-guard-only placeholder; prohibited for production signature verification, signing, secure boot, firmware authenticity, authentication, key exchange, authorization, or other security-sensitive paths",
+      "review_record": "docs/validation/xinyi-crypto-ecdsa-placeholder-security-review-2026-08-13.md"
+    },
+    {
       "id": "lwc_ascon_tinyjambu_photon_beetle",
       "description": "Lightweight crypto public contracts",
       "contract_tests": ["crypto_lwc"],
@@ -127,14 +139,6 @@
       "root_contract_tests": ["crypto_root_target_smoke"],
       "status": "root-source-unreviewed",
       "reason": "root aggregate copy has only root-target smoke coverage; no focused algorithm CTest or security/provenance review is currently declared in the algorithm manifest"
-    },
-    {
-      "id": "ecdsa_root_copy",
-      "source": "components/crypto/src/xy_ecdsa.c",
-      "mapped_in": "docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md",
-      "root_contract_tests": ["crypto_root_target_smoke", "crypto_ecdsa_root_contract"],
-      "status": "root-source-unreviewed",
-      "reason": "simplified root aggregate ECDSA verifier has root-target smoke plus focused host format-only guard coverage, but still has no security/provenance review; do not treat it as production signature validation"
     }
   ]
 }

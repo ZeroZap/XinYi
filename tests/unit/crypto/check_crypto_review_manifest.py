@@ -78,13 +78,13 @@ REQUIRED_ALGORITHM_IDS = {
     "md5_sha256_hmac",
     "aes_sm3_sm4_chacha20",
     "sm2",
+    "ecdsa_root_format_only",
     "lwc_ascon_tinyjambu_photon_beetle",
     "curve25519_generic",
     "curve25519_cortex_m0",
 }
 REQUIRED_UNREVIEWED_ROOT_SOURCE_IDS = {
     "blake2_root_copy",
-    "ecdsa_root_copy",
 }
 ALLOWED_UNREVIEWED_ROOT_SOURCE_STATUS = {"root-source-unreviewed"}
 APPROVED_STATUSES = {
