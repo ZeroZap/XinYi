@@ -648,6 +648,10 @@ int xy_blake2s(uint8_t *digest, size_t outlen,
     xy_blake2s_ctx_t ctx;
     int ret;
 
+    if (!digest || (!data && datalen > 0)) {
+        return XY_BLAKE2_ERROR_INVALID_PARAM;
+    }
+
     if (key && keylen > 0) {
         ret = xy_blake2s_init_key(&ctx, outlen, key, keylen);
     } else {

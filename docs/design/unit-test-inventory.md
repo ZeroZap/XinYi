@@ -4,8 +4,8 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 141
-- Unity-style files: 139
+- Total C files under `tests/unit`: 142
+- Unity-style files: 140
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 2
@@ -30,7 +30,7 @@
 | `actuator` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `analog_devices` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `clib` | 1 | 1 | 0 | 0 | 0 | 0 |
-| `crypto` | 12 | 11 | 0 | 0 | 1 | 2 |
+| `crypto` | 13 | 12 | 0 | 0 | 1 | 2 |
 | `device` | 4 | 4 | 0 | 0 | 0 | 3 |
 | `display` | 5 | 5 | 0 | 0 | 0 | 2 |
 | `dm` | 6 | 6 | 0 | 0 | 0 | 2 |
@@ -77,6 +77,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/crypto/test_25519.c` | `unity` | 0 |
 | `tests/unit/crypto/test_25519_m0.c` | `unity` | 6 |
 | `tests/unit/crypto/test_cipher_hmac.c` | `unity` | 0 |
+| `tests/unit/crypto/test_blake2.c` | `unity` | 0 | Focused BLAKE2s host vectors, incremental/keyed behavior, invalid-parameter guards, and output-preservation contract; API-drift guard only, not security/provenance validation. |
 | `tests/unit/crypto/test_crc.c` | `unity` | 2 |
 | `tests/unit/crypto/test_crypto_smoke_example.c` | `unity` | 0 | Host-safe Crypto public Base64/Hex/SHA-256/simple-RNG smoke; API-drift guard only, not security audit/compliance/hardware acceleration validation. |
 | `tests/unit/crypto/crypto_root_target_smoke_probe/main.c` | plain CTest probe | 0 | Standalone public consumer linked against real root `xy_tiny_crypto`; proves aggregate `src/` Base64/Hex/SHA-256 API smoke only, not duplicate-source reconciliation or security/hardware validation. |

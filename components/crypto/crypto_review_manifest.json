@@ -61,9 +61,9 @@
     {
       "id": "aes_sm3_sm4_chacha20",
       "description": "AES/SM3/SM4/ChaCha20 vector/API contracts",
-      "contract_tests": ["crypto_cipher_hmac"],
+      "contract_tests": ["crypto_cipher_hmac", "crypto_blake2"],
       "runtime_sources": ["components/crypto/src/xy_aes.c", "components/crypto/src/xy_chacha20poly1305.c"],
-      "focused_test_sources": ["components/crypto/xy_aes/xy_aes.c", "components/crypto/xy_sm3/xy_sm3.c", "components/crypto/xy_sm4/xy_sm4.c", "components/crypto/xy_chacha/xy_chacha20_poly1305.c"],
+      "focused_test_sources": ["components/crypto/xy_aes/xy_aes.c", "components/crypto/xy_sm3/xy_sm3.c", "components/crypto/xy_sm4/xy_sm4.c", "components/crypto/xy_chacha/xy_chacha20_poly1305.c", "components/crypto/xy_blake/xy_blake2.c"],
       "duplicate_source_policy": "source-map-pending",
       "provenance_status": "review-pending",
       "security_status": "review-pending",

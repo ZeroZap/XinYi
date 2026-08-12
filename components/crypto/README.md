@@ -36,6 +36,7 @@ Focused CTest 名称：
 | `crypto_encode` | Base64/Hex vectors、invalid input、buffer-too-small |
 | `crypto_hash` | MD5/SHA-256 vectors、incremental vs one-shot |
 | `crypto_cipher_hmac` | AES/HMAC/SM3/SM4/ChaCha20/Poly1305/ChaCha20-Poly1305 AEAD API/vector contracts, including RFC 8439 host vectors and auth-failure output preservation |
+| `crypto_blake2` | BLAKE2s public vectors, incremental/keyed behavior, invalid-parameter guards, and output-preservation contract; host contract only, not security/provenance review |
 | `crypto_sm2` | SM2 public API guard paths and placeholder-grade contract |
 | `crypto_lwc` | lightweight crypto/Ascon style public contracts |
 | `crypto_smoke_example` | Host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; links focused module sources and remains API-drift guard only, not a security/hardware proof |
@@ -93,4 +94,4 @@ cd build/tests/unit && ctest --output-on-failure -R '^crypto_'
 git diff --check
 ```
 
-The `xy_tiny_crypto` build currently succeeds but may still emit pre-existing warning classes in placeholder/aggregate sources. Treat warning cleanup as a separate code-quality slice with focused regression tests, not as part of this README/status sync. The focused module-source `crypto_cipher_hmac` CTest now guards RFC 8439 Poly1305/AEAD vectors, but this is still host contract evidence only and must not be promoted to security/provenance approval.
+The `xy_tiny_crypto` build currently succeeds but may still emit pre-existing warning classes in placeholder/aggregate sources. Treat warning cleanup as a separate code-quality slice with focused regression tests, not as part of this README/status sync. The focused module-source `crypto_cipher_hmac` CTest now guards RFC 8439 Poly1305/AEAD vectors, and `crypto_blake2` guards focused BLAKE2s vector/guard contracts while `crypto_review_manifest` keeps the duplicate root/module BLAKE2 copies synchronized. These are still host contract evidence only and must not be promoted to security/provenance approval.
