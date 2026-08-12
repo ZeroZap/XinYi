@@ -45,6 +45,10 @@ IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
         "components/crypto/src/xy_md5.c",
         "components/crypto/xy_md/xy_md5.c",
     ),
+    "hmac": (
+        "components/crypto/src/xy_hmac.c",
+        "components/crypto/xy_hmac/xy_hmac.c",
+    ),
     "aes": (
         "components/crypto/src/xy_aes.c",
         "components/crypto/xy_aes/xy_aes.c",
