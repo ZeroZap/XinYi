@@ -508,6 +508,15 @@ target_include_directories(test_blake2 PRIVATE
     ${CRYPTO}/xy_blake
 )
 
+# --- Test 20k: Crypto root aggregate ECDSA format-only contract guard ---
+xy_add_unit_test(test_ecdsa_root_contract crypto_ecdsa_root_contract UNITY
+    ${UNIT_CRYPTO}/test_ecdsa_root_contract.c
+    ${CRYPTO}/src/xy_ecdsa.c
+)
+target_include_directories(test_ecdsa_root_contract PRIVATE
+    ${CRYPTO}/inc
+)
+
 # --- Support: host malloc-backed CLIB allocation shim contract ---
 xy_add_unit_test(test_clib_alloc_shim clib_alloc_shim UNITY
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c

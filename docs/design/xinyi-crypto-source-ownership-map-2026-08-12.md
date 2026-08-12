@@ -69,7 +69,7 @@ Additional root aggregate sources currently mapped but intentionally not represe
 | Source | Current guard status | Notes |
 | --- | --- | --- |
 | `components/crypto/src/xy_blake2.c` | `root-source-unreviewed` in `crypto_review_manifest.json`; root smoke path is exercised by `crypto_root_target_smoke` | Root aggregate copy has root-target smoke coverage, but no active focused CTest or review record currently promotes it beyond mapped/unreviewed status. |
-| `components/crypto/src/xy_ecdsa.c` | `root-source-unreviewed` in `crypto_review_manifest.json`; format-only guard path is exercised by `crypto_root_target_smoke` | Simplified verifier returns success after format checks; do not treat it as production signature validation without a focused CTest plus real security/provenance review. |
+| `components/crypto/src/xy_ecdsa.c` | `root-source-unreviewed` in `crypto_review_manifest.json`; format-only guard paths are exercised by `crypto_root_target_smoke` and focused `crypto_ecdsa_root_contract` | Simplified verifier returns success after format checks; do not treat it as production signature validation without real security/provenance review. |
 
 Excluded historical root source:
 
@@ -83,7 +83,7 @@ Allowed low-risk follow-ups:
 
 1. Keep machine checks that this map and `crypto_review_manifest.json` stay in sync, including the current root `file(GLOB CRYPTO_SOURCES "src/*.c")` collection shape.
 2. Keep byte-identical duplicate-copy guards for pairs already proven identical and still marked `source-map-pending`; the current guarded pairs are CRC (`src/xy_crc.c` vs `xy_crc/xy_crc.c`), Base64 (`src/xy_base64.c` vs `xy_base/xy_base64.c`), Hex (`src/xy_hex.c` vs `xy_hex/xy_hex.c`), Random (`src/xy_random.c` vs `xy_rng/xy_random.c`), CSPRNG (`src/xy_csprng.c` vs `xy_rng/xy_csprng.c`), MD5 (`src/xy_md5.c` vs `xy_md/xy_md5.c`), HMAC (`src/xy_hmac.c` vs `xy_hmac/xy_hmac.c`), AES (`src/xy_aes.c` vs `xy_aes/xy_aes.c`), and BLAKE2 (`src/xy_blake2.c` vs `xy_blake/xy_blake2.c`). If one of these pairs intentionally diverges, update this map plus focused/root tests in the same explicit ownership slice.
-3. Add root-target smoke coverage for one algorithm at a time if a consumer needs `xy_tiny_crypto` behavior specifically.
+3. Add root-target smoke or focused root-copy coverage for one algorithm at a time if a consumer needs `xy_tiny_crypto` behavior specifically; `crypto_ecdsa_root_contract` is the current example for the root-only placeholder-grade ECDSA copy.
 4. For a single algorithm, compare aggregate and module copies, decide canonical ownership, then update CMake/tests/docs in one path-limited verified slice.
 5. Prune stale historical documentation duplicates only when they are tracked, unreferenced, and demonstrably superseded by the current component README/source map. The truncated `components/crypto/xy_tiny_boot_crypto copy.md` stale duplicate was removed; `xy_tiny_boot_crypto.md` remains as historical material.
 
