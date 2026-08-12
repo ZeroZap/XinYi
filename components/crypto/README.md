@@ -7,7 +7,7 @@ Crypto 组件当前是 **host-guarded / API 契约已覆盖 / 安全等级待产
 - 根构建会自动发现 `components/crypto/CMakeLists.txt`，当前产出 `xy_tiny_crypto` 静态库。
 - root `Kconfig` 提供 `COMPONENT_CRYPTO` 入口，但默认仍为 `n`；当前核心算法源和 focused 单测可以 direct-opt-in 使用。
 - 活跃 host Unity/CTest 位于 `tests/unit/crypto/`，覆盖 CRC、RNG、CSPRNG、Base64/Hex、MD5/SHA-256、AES/HMAC/SM3/SM4/ChaCha20、SM2 public contract、LWC/Ascon、Curve25519 generic 与 Cortex-M0 fallback。
-- 旧 `ReadMe.md`/`crypto.md`/`xy_tiny_boot_crypto*.md` 保留历史材料；本文件是组件闭环入口与当前事实源。
+- 旧 `ReadMe.md`/`crypto.md`/`xy_tiny_boot_crypto.md` 保留历史材料；已删除截断的 `xy_tiny_boot_crypto copy.md` stale duplicate；本文件是组件闭环入口与当前事实源。
 
 > 安全边界：该组件用于 XinYi firmware 的轻量级/嵌入式软件契约护栏。现有 host CTest 证明 API 行为、向量与 guard path，不等同于正式密码学安全审计、侧信道评估、FIPS/国密合规认证或硬件加速验证。
 
