@@ -1,6 +1,8 @@
 #ifndef _XY_SYS_H_
 #define _XY_SYS_H_
 
+void xy_sys_init(void);
+
 int xy_sys_reset(int reset_by);
 
 int xy_sys_reboot_reason(void *data);
