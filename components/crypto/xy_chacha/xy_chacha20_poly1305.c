@@ -200,6 +200,8 @@ static void prv_poly1305_multiply(xy_poly1305_ctx_t *ctx)
 {
     uint64_t d0, d1, d2, d3, d4;
     uint32_t h0, h1, h2, h3, h4;
+    uint32_t r0, r1, r2, r3, r4;
+    uint32_t s1, s2, s3, s4;
     uint64_t c;
 
     h0 = ctx->h[0];
@@ -207,37 +209,46 @@ static void prv_poly1305_multiply(xy_poly1305_ctx_t *ctx)
     h2 = ctx->h[2];
     h3 = ctx->h[3];
     h4 = ctx->h[4];
+    r0 = ctx->r[0];
+    r1 = ctx->r[1];
+    r2 = ctx->r[2];
+    r3 = ctx->r[3];
+    r4 = ctx->r[4];
+    s1 = r1 * 5;
+    s2 = r2 * 5;
+    s3 = r3 * 5;
+    s4 = r4 * 5;
 
     /* h * r */
-    d0 = ((uint64_t)h0 * ctx->r[0])
-        + ((uint64_t)h1 * ctx->r[4])
-        + ((uint64_t)h2 * ctx->r[3])
-        + ((uint64_t)h3 * ctx->r[2])
-        + ((uint64_t)h4 * ctx->r[1]);
+    d0 = ((uint64_t)h0 * r0)
+        + ((uint64_t)h1 * s4)
+        + ((uint64_t)h2 * s3)
+        + ((uint64_t)h3 * s2)
+        + ((uint64_t)h4 * s1);
 
-    d1 = ((uint64_t)h0 * ctx->r[1])
-        + ((uint64_t)h1 * ctx->r[0])
-        + ((uint64_t)h2 * ctx->r[4])
-        + ((uint64_t)h3 * ctx->r[3])
-        + ((uint64_t)h4 * ctx->r[2]);
+    d1 = ((uint64_t)h0 * r1)
+        + ((uint64_t)h1 * r0)
+        + ((uint64_t)h2 * s4)
+        + ((uint64_t)h3 * s3)
+        + ((uint64_t)h4 * s2);
 
-    d2 = ((uint64_t)h0 * ctx->r[2])
-        + ((uint64_t)h1 * ctx->r[1])
-        + ((uint64_t)h2 * ctx->r[0])
-        + ((uint64_t)h3 * ctx->r[4])
-        + ((uint64_t)h4 * ctx->r[3]);
+    d2 = ((uint64_t)h0 * r2)
+        + ((uint64_t)h1 * r1)
+        + ((uint64_t)h2 * r0)
+        + ((uint64_t)h3 * s4)
+        + ((uint64_t)h4 * s3);
 
-    d3 = ((uint64_t)h0 * ctx->r[3])
-        + ((uint64_t)h1 * ctx->r[2])
-        + ((uint64_t)h2 * ctx->r[1])
-        + ((uint64_t)h3 * ctx->r[0])
-        + ((uint64_t)h4 * ctx->r[4]);
+    d3 = ((uint64_t)h0 * r3)
+        + ((uint64_t)h1 * r2)
+        + ((uint64_t)h2 * r1)
+        + ((uint64_t)h3 * r0)
+        + ((uint64_t)h4 * s4);
 
-    d4 = ((uint64_t)h0 * ctx->r[4])
-        + ((uint64_t)h1 * ctx->r[3])
-        + ((uint64_t)h2 * ctx->r[2])
-        + ((uint64_t)h3 * ctx->r[1])
-        + ((uint64_t)h4 * ctx->r[0]);
+    d4 = ((uint64_t)h0 * r4)
+        + ((uint64_t)h1 * r3)
+        + ((uint64_t)h2 * r2)
+        + ((uint64_t)h3 * r1)
+        + ((uint64_t)h4 * r0);
 
     /* Partial reduction modulo 2^130-5 */
     c = (d0 >> 26);
@@ -271,7 +282,7 @@ static void prv_poly1305_multiply(xy_poly1305_ctx_t *ctx)
  * @param ctx Poly1305 context
  * @param block 16-byte input block
  */
-static void prv_poly1305_block(xy_poly1305_ctx_t *ctx, const uint8_t block[16])
+static void prv_poly1305_block(xy_poly1305_ctx_t *ctx, const uint8_t block[16], uint32_t hibit)
 {
     uint32_t t0, t1, t2, t3;
 
@@ -286,7 +297,7 @@ static void prv_poly1305_block(xy_poly1305_ctx_t *ctx, const uint8_t block[16])
     ctx->h[1] += ((t0 >> 26) | (t1 << 6)) & 0x3ffffff;
     ctx->h[2] += ((t1 >> 20) | (t2 << 12)) & 0x3ffffff;
     ctx->h[3] += ((t2 >> 14) | (t3 << 18)) & 0x3ffffff;
-    ctx->h[4] += (t3 >> 8) | (1 << 24); /* Add 2^128 */
+    ctx->h[4] += (t3 >> 8) | hibit;
 
     /* Multiply by r */
     prv_poly1305_multiply(ctx);
@@ -308,17 +319,18 @@ int xy_poly1305_init(xy_poly1305_ctx_t *ctx,
     ctx->h[4] = 0;
 
     /* Load and clamp r */
-    ctx->r[0] = (prv_load32_le(&key[0])) & 0x3ffffff;
-    ctx->r[1] = (prv_load32_le(&key[3]) >> 2) & 0x3ffff03;
-    ctx->r[2] = (prv_load32_le(&key[6]) >> 4) & 0x3ffc0ff;
-    ctx->r[3] = (prv_load32_le(&key[9]) >> 6) & 0x3f03fff;
-    ctx->r[4] = (prv_load32_le(&key[12]) >> 8) & 0x00fffff;
+    {
+        uint32_t t0 = prv_load32_le(&key[0]);
+        uint32_t t1 = prv_load32_le(&key[4]);
+        uint32_t t2 = prv_load32_le(&key[8]);
+        uint32_t t3 = prv_load32_le(&key[12]);
 
-    /* Precompute 5*r for modular reduction */
-    ctx->r[1] *= 5;
-    ctx->r[2] *= 5;
-    ctx->r[3] *= 5;
-    ctx->r[4] *= 5;
+        ctx->r[0] = t0 & 0x3ffffff;
+        ctx->r[1] = ((t0 >> 26) | (t1 << 6)) & 0x3ffff03;
+        ctx->r[2] = ((t1 >> 20) | (t2 << 12)) & 0x3ffc0ff;
+        ctx->r[3] = ((t2 >> 14) | (t3 << 18)) & 0x3f03fff;
+        ctx->r[4] = (t3 >> 8) & 0x00fffff;
+    }
 
     /* Load s */
     ctx->s[0] = prv_load32_le(&key[16]);
@@ -341,6 +353,9 @@ int xy_poly1305_update(xy_poly1305_ctx_t *ctx,
     if (!ctx || (!data && length > 0)) {
         return XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM;
     }
+    if (length == 0) {
+        return XY_CHACHA20_POLY1305_SUCCESS;
+    }
 
     i = 0;
 
@@ -356,14 +371,14 @@ int xy_poly1305_update(xy_poly1305_ctx_t *ctx,
         i += to_copy;
 
         if (ctx->buffer_len == 16) {
-            prv_poly1305_block(ctx, ctx->buffer);
+            prv_poly1305_block(ctx, ctx->buffer, 1U << 24);
             ctx->buffer_len = 0;
         }
     }
 
     /* Process complete blocks */
     while (i + 16 <= length) {
-        prv_poly1305_block(ctx, &data[i]);
+        prv_poly1305_block(ctx, &data[i], 1U << 24);
         i += 16;
     }
 
@@ -391,28 +406,32 @@ int xy_poly1305_finish(xy_poly1305_ctx_t *ctx,
     /* Process final partial block if any */
     if (ctx->buffer_len > 0) {
         size_t i;
-        /* Pad with zeros */
-        for (i = ctx->buffer_len; i < 16; i++) {
+        ctx->buffer[ctx->buffer_len] = 1;
+        for (i = ctx->buffer_len + 1; i < 16; i++) {
             ctx->buffer[i] = 0;
         }
-
-        /* Process with padding bit at position buffer_len */
-        {
-            uint32_t t0, t1, t2, t3;
-            t0 = prv_load32_le(&ctx->buffer[0]);
-            t1 = prv_load32_le(&ctx->buffer[4]);
-            t2 = prv_load32_le(&ctx->buffer[8]);
-            t3 = prv_load32_le(&ctx->buffer[12]);
-
-            ctx->h[0] += t0 & 0x3ffffff;
-            ctx->h[1] += ((t0 >> 26) | (t1 << 6)) & 0x3ffffff;
-            ctx->h[2] += ((t1 >> 20) | (t2 << 12)) & 0x3ffffff;
-            ctx->h[3] += ((t2 >> 14) | (t3 << 18)) & 0x3ffffff;
-            ctx->h[4] += (t3 >> 8) | (1 << (ctx->buffer_len * 8 - 104));
-
-            prv_poly1305_multiply(ctx);
-        }
+        prv_poly1305_block(ctx, ctx->buffer, 0);
     }
+
+    /* Fully carry the accumulator before final reduction. */
+    f0 = ctx->h[1] >> 26;
+    ctx->h[1] &= 0x3ffffff;
+    ctx->h[2] += (uint32_t)f0;
+    f0 = ctx->h[2] >> 26;
+    ctx->h[2] &= 0x3ffffff;
+    ctx->h[3] += (uint32_t)f0;
+    f0 = ctx->h[3] >> 26;
+    ctx->h[3] &= 0x3ffffff;
+    ctx->h[4] += (uint32_t)f0;
+    f0 = ctx->h[4] >> 26;
+    ctx->h[4] &= 0x3ffffff;
+    ctx->h[0] += (uint32_t)(f0 * 5);
+    f0 = ctx->h[0] >> 26;
+    ctx->h[0] &= 0x3ffffff;
+    ctx->h[1] += (uint32_t)f0;
+    f0 = ctx->h[1] >> 26;
+    ctx->h[1] &= 0x3ffffff;
+    ctx->h[2] += (uint32_t)f0;
 
     /* Final reduction modulo 2^130-5 */
     g0 = ctx->h[0] + 5;
@@ -425,8 +444,8 @@ int xy_poly1305_finish(xy_poly1305_ctx_t *ctx,
     g4 = ctx->h[4] + (g3 >> 26) - (1 << 26);
     g3 &= 0x3ffffff;
 
-    /* Select h if h < p, else select g = h - p */
-    mask = (g4 >> 31) - 1; /* All 1s if g4 negative, all 0s otherwise */
+    /* Select g when h >= p; otherwise keep h. */
+    mask = (g4 >> 31) - 1; /* All 0s if g4 underflowed, all 1s otherwise */
     ctx->h[0] = (ctx->h[0] & ~mask) | (g0 & mask);
     ctx->h[1] = (ctx->h[1] & ~mask) | (g1 & mask);
     ctx->h[2] = (ctx->h[2] & ~mask) | (g2 & mask);
@@ -434,15 +453,13 @@ int xy_poly1305_finish(xy_poly1305_ctx_t *ctx,
     ctx->h[4] = (ctx->h[4] & ~mask) | (g4 & mask);
 
     /* Combine into 128-bit value */
-    f0 = ((ctx->h[0]) | ((uint64_t)ctx->h[1] << 26)) + ctx->s[0];
-    f1 = ((ctx->h[1] >> 6) | ((uint64_t)ctx->h[2] << 20)) + ctx->s[1];
-    f2 = ((ctx->h[2] >> 12) | ((uint64_t)ctx->h[3] << 14)) + ctx->s[2];
-    f3 = ((ctx->h[3] >> 18) | ((uint64_t)ctx->h[4] << 8)) + ctx->s[3];
-
-    /* Handle carries */
-    f1 += (f0 >> 32);
-    f2 += (f1 >> 32);
-    f3 += (f2 >> 32);
+    f0 = (uint32_t)((ctx->h[0]) | ((uint64_t)ctx->h[1] << 26)) + ctx->s[0];
+    f1 = (((ctx->h[1] >> 6) | ((uint64_t)ctx->h[2] << 20)) & 0xffffffffULL)
+         + ctx->s[1] + (f0 >> 32);
+    f2 = (((ctx->h[2] >> 12) | ((uint64_t)ctx->h[3] << 14)) & 0xffffffffULL)
+         + ctx->s[2] + (f1 >> 32);
+    f3 = (((ctx->h[3] >> 18) | ((uint64_t)ctx->h[4] << 8)) & 0xffffffffULL)
+         + ctx->s[3] + (f2 >> 32);
 
     /* Output tag */
     prv_store32_le(&tag[0], (uint32_t)f0);

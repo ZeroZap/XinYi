@@ -205,6 +205,107 @@ static void test_chacha20_vectors(void)
     TEST_ASSERT_EQUAL_MEMORY(chacha_plain, roundtrip, sizeof(chacha_plain));
 }
 
+static void test_poly1305_rfc8439_vector(void)
+{
+    static const uint8_t key[XY_POLY1305_KEY_SIZE] = {
+        0x85, 0xd6, 0xbe, 0x78, 0x57, 0x55, 0x6d, 0x33,
+        0x7f, 0x44, 0x52, 0xfe, 0x42, 0xd5, 0x06, 0xa8,
+        0x01, 0x03, 0x80, 0x8a, 0xfb, 0x0d, 0xb2, 0xfd,
+        0x4a, 0xbf, 0xf6, 0xaf, 0x41, 0x49, 0xf5, 0x1b,
+    };
+    static const uint8_t msg[] = "Cryptographic Forum Research Group";
+    static const uint8_t expected_tag[XY_POLY1305_TAG_SIZE] = {
+        0xa8, 0x06, 0x1d, 0xc1, 0x30, 0x51, 0x36, 0xc6,
+        0xc2, 0x2b, 0x8b, 0xaf, 0x0c, 0x01, 0x27, 0xa9,
+    };
+    xy_poly1305_ctx_t ctx;
+    uint8_t tag[XY_POLY1305_TAG_SIZE];
+
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM, xy_poly1305_init(NULL, key));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM, xy_poly1305_init(&ctx, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM, xy_poly1305_update(NULL, msg, sizeof(msg) - 1));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM, xy_poly1305_finish(NULL, tag));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM, xy_poly1305_finish(&ctx, NULL));
+
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_SUCCESS, xy_poly1305_init(&ctx, key));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_SUCCESS, xy_poly1305_update(&ctx, msg, 16));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_SUCCESS, xy_poly1305_update(&ctx, &msg[16], sizeof(msg) - 17));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_SUCCESS, xy_poly1305_update(&ctx, NULL, 0));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_SUCCESS, xy_poly1305_finish(&ctx, tag));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_tag, tag, sizeof(expected_tag));
+}
+
+static void test_chacha20_poly1305_rfc8439_aead_vector(void)
+{
+    static const uint8_t key[XY_CHACHA20_POLY1305_KEY_SIZE] = {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+    };
+    static const uint8_t nonce[XY_CHACHA20_POLY1305_NONCE_SIZE] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x4a, 0x00, 0x00, 0x00, 0x00,
+    };
+    static const uint8_t aad[] = {
+        0x50, 0x51, 0x52, 0x53, 0xc0, 0xc1, 0xc2, 0xc3,
+        0xc4, 0xc5, 0xc6, 0xc7,
+    };
+    static const uint8_t expected_cipher[] = {
+        0x6e, 0x2e, 0x35, 0x9a, 0x25, 0x68, 0xf9, 0x80,
+        0x41, 0xba, 0x07, 0x28, 0xdd, 0x0d, 0x69, 0x81,
+        0xe9, 0x7e, 0x7a, 0xec, 0x1d, 0x43, 0x60, 0xc2,
+        0x0a, 0x27, 0xaf, 0xcc, 0xfd, 0x9f, 0xae, 0x0b,
+        0xf9, 0x1b, 0x65, 0xc5, 0x52, 0x47, 0x33, 0xab,
+        0x8f, 0x59, 0x3d, 0xab, 0xcd, 0x62, 0xb3, 0x57,
+        0x16, 0x39, 0xd6, 0x24, 0xe6, 0x51, 0x52, 0xab,
+        0x8f, 0x53, 0x0c, 0x35, 0x9f, 0x08, 0x61, 0xd8,
+        0x07, 0xca, 0x0d, 0xbf, 0x50, 0x0d, 0x6a, 0x61,
+        0x56, 0xa3, 0x8e, 0x08, 0x8a, 0x22, 0xb6, 0x5e,
+        0x52, 0xbc, 0x51, 0x4d, 0x16, 0xcc, 0xf8, 0x06,
+        0x81, 0x8c, 0xe9, 0x1a, 0xb7, 0x79, 0x37, 0x36,
+        0x5a, 0xf9, 0x0b, 0xbf, 0x74, 0xa3, 0x5b, 0xe6,
+        0xb4, 0x0b, 0x8e, 0xed, 0xf2, 0x78, 0x5e, 0x42,
+        0x87, 0x4d,
+    };
+    static const uint8_t expected_tag[XY_CHACHA20_POLY1305_TAG_SIZE] = {
+        0x31, 0x79, 0x26, 0x7b, 0x0b, 0xa7, 0x1e, 0x40,
+        0xa2, 0xad, 0x86, 0x6f, 0xce, 0x5f, 0x80, 0x52,
+    };
+    uint8_t ciphertext[sizeof(chacha_cipher)];
+    uint8_t plaintext[sizeof(chacha_plain)];
+    uint8_t tampered_tag[XY_CHACHA20_POLY1305_TAG_SIZE];
+
+    memset(ciphertext, 0xa5, sizeof(ciphertext));
+    memset(plaintext, 0x5a, sizeof(plaintext));
+
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM,
+                          xy_chacha20_poly1305_encrypt(NULL, nonce, aad, sizeof(aad), chacha_plain, sizeof(chacha_cipher), ciphertext, tampered_tag));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM,
+                          xy_chacha20_poly1305_encrypt(key, NULL, aad, sizeof(aad), chacha_plain, sizeof(chacha_cipher), ciphertext, tampered_tag));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM,
+                          xy_chacha20_poly1305_encrypt(key, nonce, aad, sizeof(aad), NULL, sizeof(chacha_cipher), ciphertext, tampered_tag));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_INVALID_PARAM,
+                          xy_chacha20_poly1305_decrypt(key, nonce, aad, sizeof(aad), expected_cipher, sizeof(expected_cipher), NULL, plaintext));
+
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_SUCCESS,
+                          xy_chacha20_poly1305_encrypt(key, nonce, aad, sizeof(aad), chacha_plain, sizeof(chacha_plain), ciphertext, tampered_tag));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_cipher, ciphertext, sizeof(expected_cipher));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_tag, tampered_tag, sizeof(expected_tag));
+
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_SUCCESS,
+                          xy_chacha20_poly1305_decrypt(key, nonce, aad, sizeof(aad), ciphertext, sizeof(ciphertext), tampered_tag, plaintext));
+    TEST_ASSERT_EQUAL_MEMORY(chacha_plain, plaintext, sizeof(chacha_plain));
+
+    tampered_tag[0] ^= 0x01;
+    memset(plaintext, 0x5a, sizeof(plaintext));
+    TEST_ASSERT_EQUAL_INT(XY_CHACHA20_POLY1305_ERROR_AUTH_FAILED,
+                          xy_chacha20_poly1305_decrypt(key, nonce, aad, sizeof(aad), ciphertext, sizeof(ciphertext), tampered_tag, plaintext));
+    for (size_t i = 0; i < sizeof(plaintext); i++) {
+        TEST_ASSERT_EQUAL_UINT8(0x5a, plaintext[i]);
+    }
+}
+
 void setUp(void)
 {
 }
@@ -221,5 +322,7 @@ int main(void)
     RUN_TEST(test_sm3_api_shape);
     RUN_TEST(test_sm4_api_shape);
     RUN_TEST(test_chacha20_vectors);
+    RUN_TEST(test_poly1305_rfc8439_vector);
+    RUN_TEST(test_chacha20_poly1305_rfc8439_aead_vector);
     return UNITY_END();
 }
