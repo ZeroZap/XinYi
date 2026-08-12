@@ -97,13 +97,25 @@ static int exercise_ecdsa_format_only_contract(void)
 
     fill_u8(pub_key.x, sizeof(pub_key.x), 0x01U);
     fill_u8(pub_key.y, sizeof(pub_key.y), 0x02U);
+    memset(&sig, 0, sizeof(sig));
+
+    if (require_int_equal(-1, xy_ecdsa_p256_verify(&pub_key, message, sizeof(message), &sig))) {
+        return 5;
+    }
+
+    fill_u8(sig.r, sizeof(sig.r), 0x01U);
+    if (require_int_equal(-1, xy_ecdsa_p256_verify(&pub_key, message, sizeof(message), &sig))) {
+        return 6;
+    }
+
+    fill_u8(sig.s, sizeof(sig.s), 0x02U);
 
     /* Current root ECDSA is format-only: valid-looking values return success without
      * real elliptic-curve signature verification. This is a build/API guard only. */
     if (require_int_equal(
             0,
             xy_ecdsa_p256_verify(&pub_key, empty_message, 0U, &sig))) {
-        return 5;
+        return 7;
     }
 
     memset(pub_key_bytes, 0, sizeof(pub_key_bytes));
@@ -112,7 +124,7 @@ static int exercise_ecdsa_format_only_contract(void)
     fill_u8(sig_bytes, sizeof(sig_bytes), 0x04U);
     if (require_int_equal(0, xy_ecdsa_verify_simple(pub_key_bytes, empty_message, 0U,
                                                     sig_bytes))) {
-        return 6;
+        return 8;
     }
 
     return 0;

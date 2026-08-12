@@ -40,6 +40,19 @@ static int bn_cmp(const uint8_t *a, const uint8_t *b, size_t len)
     return 0;
 }
 
+static int bn_is_zero(const uint8_t *a, size_t len)
+{
+    size_t i;
+
+    for (i = 0; i < len; i++) {
+        if (a[i] != 0U) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 /**
  * @brief 验证 ECDSA 签名 (简化版)
  */
@@ -61,7 +74,8 @@ int xy_ecdsa_p256_verify(const xy_ecdsa_pub_key_t *pub_key,
     memcpy(s, sig->s, 32);
     
     /* 验证 r, s 范围 */
-    if (bn_cmp(r, g_p256_n, 32) >= 0 || bn_cmp(s, g_p256_n, 32) >= 0) {
+    if (bn_is_zero(r, 32) || bn_is_zero(s, 32) ||
+        bn_cmp(r, g_p256_n, 32) >= 0 || bn_cmp(s, g_p256_n, 32) >= 0) {
         return -1;
     }
     

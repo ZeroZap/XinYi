@@ -68,6 +68,14 @@ static void test_ecdsa_root_rejects_out_of_range_signature_or_key_bytes(void)
     xy_ecdsa_sig_t sig;
 
     make_valid_looking_inputs(&pub_key, &sig);
+    memset(sig.r, 0, sizeof(sig.r));
+    TEST_ASSERT_EQUAL_INT(-1, xy_ecdsa_p256_verify(&pub_key, kMessage, sizeof(kMessage), &sig));
+
+    make_valid_looking_inputs(&pub_key, &sig);
+    memset(sig.s, 0, sizeof(sig.s));
+    TEST_ASSERT_EQUAL_INT(-1, xy_ecdsa_p256_verify(&pub_key, kMessage, sizeof(kMessage), &sig));
+
+    make_valid_looking_inputs(&pub_key, &sig);
     fill_bytes(sig.r, sizeof(sig.r), 0xFFU);
     TEST_ASSERT_EQUAL_INT(-1, xy_ecdsa_p256_verify(&pub_key, kMessage, sizeof(kMessage), &sig));
 
