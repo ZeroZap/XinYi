@@ -67,7 +67,7 @@ Additional root aggregate sources currently mapped but intentionally not represe
 
 | Source | Current guard status | Notes |
 | --- | --- | --- |
-| `components/crypto/src/xy_blake2.c` | `root-source-unreviewed` in `crypto_review_manifest.json` | Root aggregate copy exists, but no active focused CTest or review record currently promotes it beyond mapped/unreviewed status. |
+| `components/crypto/src/xy_blake2.c` | `root-source-unreviewed` in `crypto_review_manifest.json`; root smoke path is exercised by `crypto_root_target_smoke` | Root aggregate copy has root-target smoke coverage, but no active focused CTest or review record currently promotes it beyond mapped/unreviewed status. |
 | `components/crypto/src/xy_ecdsa.c` | `root-source-unreviewed` in `crypto_review_manifest.json`; format-only guard path is exercised by `crypto_root_target_smoke` | Simplified verifier returns success after format checks; do not treat it as production signature validation without a focused CTest plus real security/provenance review. |
 
 ## 4. Cleanup policy

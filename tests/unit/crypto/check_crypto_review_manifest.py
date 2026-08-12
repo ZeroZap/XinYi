@@ -226,6 +226,26 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
                 value = entry.get(key)
                 _require(isinstance(value, str) and len(value) > 0, f"{prefix}.{key} is required", errors)
 
+            root_contract_tests = entry.get("root_contract_tests")
+            _require(
+                isinstance(root_contract_tests, list) and len(root_contract_tests) > 0,
+                f"{prefix}.root_contract_tests must name the root smoke CTest(s) that exercise this unreviewed copy",
+                errors,
+            )
+            if isinstance(root_contract_tests, list):
+                for ctest_name in root_contract_tests:
+                    _require(
+                        isinstance(ctest_name, str) and len(ctest_name) > 0,
+                        f"{prefix}.root_contract_tests entries must be strings",
+                        errors,
+                    )
+                    if isinstance(ctest_name, str) and len(ctest_name) > 0:
+                        _require(
+                            ctest_name in registered_crypto_ctests,
+                            f"{prefix}.root_contract_tests references unregistered CTest: {ctest_name}",
+                            errors,
+                        )
+
             source = entry.get("source")
             if isinstance(source, str) and len(source) > 0:
                 manifest_root_sources.add(source)
@@ -292,6 +312,7 @@ def main() -> int:
         "crypto_review_manifest_ok "
         f"algorithms={len(data['algorithms'])} "
         f"unreviewed_root_sources={len(data.get('unreviewed_root_sources', []))} "
+        f"root_contract_links={sum(len(entry.get('root_contract_tests', [])) for entry in data.get('unreviewed_root_sources', []))} "
         f"status={data['status']}"
     )
     return 0

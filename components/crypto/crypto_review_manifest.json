@@ -124,13 +124,15 @@
       "id": "blake2_root_copy",
       "source": "components/crypto/src/xy_blake2.c",
       "mapped_in": "docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md",
+      "root_contract_tests": ["crypto_root_target_smoke"],
       "status": "root-source-unreviewed",
-      "reason": "root aggregate copy exists, but no active focused CTest or security/provenance review is currently declared in the algorithm manifest"
+      "reason": "root aggregate copy has only root-target smoke coverage; no focused algorithm CTest or security/provenance review is currently declared in the algorithm manifest"
     },
     {
       "id": "ecdsa_root_copy",
       "source": "components/crypto/src/xy_ecdsa.c",
       "mapped_in": "docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md",
+      "root_contract_tests": ["crypto_root_target_smoke"],
       "status": "root-source-unreviewed",
       "reason": "simplified root aggregate ECDSA verifier has a root smoke for format-only guard paths, but no focused CTest or security/provenance review; do not treat it as production signature validation"
     }
