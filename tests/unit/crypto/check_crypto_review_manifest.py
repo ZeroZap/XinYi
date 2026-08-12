@@ -17,6 +17,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST_PATH = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
 UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
+CRYPTO_SRC_DIR = ROOT / "components" / "crypto" / "src"
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
 ALLOWED_REVIEW_PENDING = {"review-pending"}
@@ -193,6 +194,19 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
         "unreviewed_root_sources must be a list of root aggregate copies that lack algorithm review",
         errors,
     )
+
+    manifest_root_sources: set[str] = set()
+    for algorithm in algorithms:
+        if not isinstance(algorithm, dict):
+            continue
+        runtime_sources = algorithm.get("runtime_sources")
+        if isinstance(runtime_sources, list):
+            manifest_root_sources.update(
+                rel_source
+                for rel_source in runtime_sources
+                if isinstance(rel_source, str) and rel_source.startswith("components/crypto/src/")
+            )
+
     if isinstance(unreviewed_root_sources, list):
         seen_unreviewed_ids: set[str] = set()
         for index, entry in enumerate(unreviewed_root_sources):
@@ -214,6 +228,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
 
             source = entry.get("source")
             if isinstance(source, str) and len(source) > 0:
+                manifest_root_sources.add(source)
                 _require(_rel_exists(source), f"{prefix}.source path does not exist: {source}", errors)
                 _require(source in source_map_text, f"{prefix}.source is missing from source ownership map: {source}", errors)
 
@@ -239,6 +254,22 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             f"unexpected unreviewed root source ids: {sorted(extra_unreviewed)}",
             errors,
         )
+
+    actual_root_sources = {
+        f"components/crypto/src/{path.name}" for path in CRYPTO_SRC_DIR.glob("*.c")
+    }
+    missing_root_sources = actual_root_sources - manifest_root_sources
+    stale_root_sources = manifest_root_sources - actual_root_sources
+    _require(
+        not missing_root_sources,
+        f"root aggregate sources missing from algorithms or unreviewed_root_sources: {sorted(missing_root_sources)}",
+        errors,
+    )
+    _require(
+        not stale_root_sources,
+        f"manifest references non-existent root aggregate sources: {sorted(stale_root_sources)}",
+        errors,
+    )
 
     return errors
 
