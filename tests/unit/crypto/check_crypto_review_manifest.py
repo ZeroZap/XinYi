@@ -103,6 +103,17 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             source_map_text = _read_policy_document(policy["source_ownership_map"])
         if isinstance(policy.get("record_template"), str):
             record_template_text = _read_policy_document(policy["record_template"])
+        for phrase in (
+            "no source moves",
+            "not broad duplicate-source reconciliation or security validation",
+            "do not treat it as production signature validation",
+            "No source movement or deletion",
+        ):
+            _require(
+                phrase in source_map_text,
+                f"policy.source_ownership_map must preserve evidence-boundary phrase: {phrase}",
+                errors,
+            )
         _require(
             "default-off" in policy.get("default_component_enablement", ""),
             "policy.default_component_enablement must preserve default-off wording",
