@@ -388,34 +388,42 @@ struct rt_device {
 
 ---
 
-### Day 14-16: Crypto 汇编优化 (P1)
+### Day 14-16: Crypto 安全审查 / source ownership 收敛 (P1)
 
-**目标**: 针对 Cortex-M0/M4 优化密码学算法
+**当前状态**: Crypto 已进入 host-guarded / review-pending 阶段；`xy_tiny_crypto` root target、focused crypto CTest、source ownership map 与 review manifest 已存在。旧的“直接做汇编优化并宣称性能提升”目标在缺少安全/来源审查、真实 MCU benchmark 和硬件证据前不得作为默认开发项。
+
+**目标**: 先固定安全等级、来源、duplicate source ownership 和真实 benchmark 证据边界；只有在 review record 与可复现性能基准存在后，才推进 Cortex-M0/M4 汇编或 T-table 优化。
 
 **任务**:
-- [ ] **CRYPTO-001**: 64-bit 乘法优化 (3h)
-  - Cortex-M0 汇编实现
-  - 性能对比测试
+- [x] **CRYPTO-001**: 安全/来源审查 policy 与 manifest 护栏
+  - `docs/design/xinyi-crypto-security-provenance-review-plan-2026-08-12.md`
+  - `components/crypto/crypto_review_manifest.json`
+  - `crypto_review_manifest` CTest 防止无记录升级为 approved
   
-- [ ] **CRYPTO-002**: Curve25519 优化 (4h)
-  - 平方运算高 32 位
-  - 约减运算优化
-  - 256 位乘法
+- [x] **CRYPTO-002**: root/runtime 与 focused-test source ownership map
+  - `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md`
+  - duplicate `src/` vs module copy 先保持 source-map-pending
+  - 已有 byte-identical duplicate guard；不得同轮批量移动/删除源码
   
-- [ ] **CRYPTO-003**: AES 查表优化 (2h)
-  - T-Table 实现
-  - 防侧信道攻击
-  - 性能测试
+- [ ] **CRYPTO-003**: 单算法 review record 或 source ownership reconciliation
+  - 每次只选择一个区域（例如 SM2 placeholder、CSPRNG entropy boundary、Curve25519 provenance）
+  - 补 review record / manifest smoke / focused CTest
+  - 不把 host CTest 输出等同于安全审计结论
+
+- [ ] **CRYPTO-004**: 优化 proposal + benchmark harness（待审查后）
+  - 先写可复现 benchmark plan 与 MCU target 约束
+  - 保留 C fallback；汇编/T-table 改动必须有 correctness + benchmark gate
+  - 侧信道/常数时间风险需在 review record 中单独说明
 
 **输出**:
-- `components/crypto/xy_25519/asm/xy_asm_m0.s`
-- `components/crypto/xy_aes/xy_aes_table.c`
-- 性能基准测试报告
+- 安全/来源审查记录或保持 `review-pending` 的 manifest 护栏
+- source ownership map 与 duplicate-source reconciliation proposal
+- 后续若进入优化阶段，再输出 benchmark harness、C fallback 对照与 MCU 实测报告
 
 **验收标准**:
-- Curve25519 点乘 < 100ms @ 48MHz
-- AES-128 加密 > 100KB/s
-- 代码大小增加 < 2KB
+- 未经 review record，不宣称 `security-reviewed`、`provenance-reviewed` 或 `hardware-validated`
+- duplicate source 任何有意分叉都必须同步 source map、manifest 与 focused/root 测试
+- 性能优化必须同时给出 host correctness、MCU compile、benchmark 数据与回退路径
 
 ---
 
@@ -579,7 +587,7 @@ struct rt_device {
 2. OSAL 后端                - P0 - 多 RTOS 支持
 3. HAL 统一                 - P0 - 跨平台基础
 4. 网络协议栈 (Net)         - P1 - IoT 核心
-5. Crypto 优化              - P1 - 性能关键
+5. Crypto 审查/ownership    - P1 - 安全边界与来源先行
 6. 系统服务 (Kernel)        - P2 - 易用性
 7. IPC 完善                 - P2 - 多任务协作
 8. 包管理工具               - P1 - 生态建设
@@ -618,7 +626,7 @@ struct rt_device {
 - [ ] OSAL RTX5/RT-Thread 后端
 - [ ] HAL 统一接口 + PC 仿真
 - [ ] 网络协议栈完善 (CAN/LTE/SAL)
-- [ ] Crypto 汇编优化
+- [ ] Crypto 安全/来源审查与 source ownership 收敛
 - [ ] 系统服务 (监控/定时器)
 - [ ] IPC 完善 (事件组/消息队列)
 - [ ] 包管理工具
@@ -649,7 +657,7 @@ struct rt_device {
 - ✅ 设备框架支持 20+ 设备类型
 - ✅ HAL 覆盖 10+ 外设接口
 - ✅ 网络协议支持 CAN/MQTT/LTE
-- ✅ Crypto 性能提升 50%+
+- ✅ Crypto 保持 contract-guarded；安全/来源/硬件等级有独立证据
 - ✅ 代码覆盖率 > 70%
 
 ### 7.2 生态指标
