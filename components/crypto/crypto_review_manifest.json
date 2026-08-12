@@ -102,9 +102,9 @@
       "focused_test_sources": ["components/crypto/xy_25519/xy_25519.c"],
       "duplicate_source_policy": "focused-test-only-until-root-ownership-decided",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "contract-guarded only; provenance/constant-time/vector review pending",
-      "review_record": null
+      "security_status": "security-reviewed-limited",
+      "allowed_usage": "contract-guarded experimentation only where missing provenance, missing constant-time/RNG/hash evidence, and focused-test-only ownership are explicitly accepted; prohibited for production security-sensitive key exchange, signatures, authentication, secure boot, identity, pairing, or certificate workflows until separate review exists",
+      "review_record": "docs/validation/xinyi-crypto-curve25519-limited-security-review-2026-08-13.md"
     },
     {
       "id": "curve25519_cortex_m0",
@@ -114,9 +114,9 @@
       "focused_test_sources": ["components/crypto/xy_25519/xy_25519_m0.c", "components/crypto/xy_25519/fe25519_m0.c"],
       "duplicate_source_policy": "focused-test-only-upstream-material",
       "provenance_status": "review-pending",
-      "security_status": "review-pending",
-      "allowed_usage": "contract-guarded only; upstream CC0/assembly TODO/target correctness review pending",
-      "review_record": null
+      "security_status": "security-reviewed-limited",
+      "allowed_usage": "contract-guarded Cortex-M0 experimentation only where host fallback smoke limits, upstream/license gaps, missing target assembly equivalence/timing evidence, and focused-test-only ownership are explicitly accepted; no production MCU security or performance claim",
+      "review_record": "docs/validation/xinyi-crypto-curve25519-limited-security-review-2026-08-13.md"
     }
   ],
   "unreviewed_root_sources": [
