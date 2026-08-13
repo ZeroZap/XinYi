@@ -366,6 +366,20 @@ target_include_directories(test_autotask PRIVATE
     ${OSAL_ROOT}/osal/inc
 )
 
+# --- Test 5c: kernel misc SysMon portable host contracts ---
+xy_add_unit_test(test_sysmon kernel_sysmon UNITY
+    ${UNIT_KERNEL}/test_sysmon.c
+    ${OSAL_ROOT}/misc/src/xy_sysmon.c
+    ${CLIB}/xy_stdio.c
+)
+target_include_directories(test_sysmon PRIVATE
+    ${OSAL_ROOT}/misc/inc
+    ${OSAL_ROOT}/osal
+    ${OSAL_ROOT}/osal/inc
+    ${TRACE}/xy_log/inc
+    ${CLIB}
+)
+
 enable_testing()
 
 # --- Test 16: Crypto CSPRNG lifecycle, buffering, and helpers ---

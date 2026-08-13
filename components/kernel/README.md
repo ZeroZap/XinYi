@@ -115,13 +115,14 @@ config OSAL_BACKEND_FREERTOS
 | --- | --- |
 | `osal_baremetal` | Bare-metal OSAL mutex/semaphore/event flags/message queue/memory pool/tick/delay/software timer 单线程契约。 |
 | `kernel_autotask` | `xy_autotask` 初始化、手动/空闲触发、暂停/恢复、tick wraparound、回调与统计契约。 |
+| `kernel_sysmon` | `xy_sysmon` portable host contract：init/stats/getter、zero-heap guard、任务列表打印 stub 与 alarm registration 日志契约；不代表真实 RTOS task/heap telemetry。 |
 | `bootreason_check` | bootreason kernel service 的 portable guard/override 路径。 |
 
 常用验证命令：
 
 ```bash
 make test-unit
-cd build/tests/unit && ctest -R '^(osal_baremetal|kernel_autotask|bootreason_check)$' --output-on-failure
+cd build/tests/unit && ctest -R '^(osal_baremetal|kernel_autotask|kernel_sysmon|bootreason_check)$' --output-on-failure
 ```
 
 这些测试只证明 host/portable contract；RTOS backend 的真实线程调度、ISR 语义、低功耗唤醒和板级 bootreason 来源仍需要目标平台验证。
@@ -133,10 +134,10 @@ cd build/tests/unit && ctest -R '^(osal_baremetal|kernel_autotask|bootreason_che
 | 模块 | 完成度 | 状态 |
 |------|--------|------|
 | **OSAL** | 98% | ✅ Host-guarded / backend 实证持续补齐 |
-| **Misc** | 85% | 🟢 `xy_sysmon` + `xy_autotask` 主线可发现，AutoTask 有 host CTest 护栏 |
+| **Misc** | 90% | 🟢 `xy_sysmon` + `xy_autotask` 主线可发现，SysMon/AutoTask 均有 host CTest 护栏 |
 | **Service** | 65% | 🟡 bootreason check 有 host CTest，更多板级服务按需求推进 |
 
-**总体**: 88% 🟡
+**总体**: 90% 🟡
 
 ---
 
@@ -181,9 +182,8 @@ int main(void) {
 
 ## 📝 待完成任务
 
-- [ ] 继续对齐 OSAL 与 CMSIS-RTOS2 能力面，补齐 backend compile/contract 测试。
+- [x] `xy_sysmon` portable stats/getter/print/alarm stub contract 已由 `kernel_sysmon` host CTest 守护；后续只按真实监控指标/平台失败补最小回归。
 - [ ] 在有目标平台证据时补 RTOS backend 线程调度、ISR/event flags 与低功耗唤醒验证记录。
-- [ ] `xy_sysmon` 后续只按真实监控指标/平台失败补 focused host 测试或板级 smoke；不做大范围服务框架迁移。
 - [ ] bootreason check 的板级来源仍需由项目/BSP 记录真实 RTC/backup-register/复位源证据。
 - [ ] Kernel 当前 host guard 状态与后续边界见 `docs/design/xinyi-kernel-host-guard-status-sync-2026-08-08.md`。
 - [ ] Kconfig 聚合与后端命名如需继续整理，先写 proposal，再做小步 build-gated 迁移。
