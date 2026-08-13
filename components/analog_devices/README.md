@@ -1,6 +1,6 @@
 # XinYi Analog Devices 组件
 
-**状态**: host-guarded / root build integration pending
+**状态**: host-guarded / root build integrated for current active sources
 **范围**: ADC/DAC helper、MCP3008 SPI ADC、HX711 load-cell ADC
 
 ## 当前事实源
@@ -26,17 +26,19 @@
 cmake --build build/tests/unit --target test_analog_devices -j$(nproc)
 cd build/tests/unit && ctest --output-on-failure -R '^analog_devices$'
 make test-unit
-cmake --build build/pc --target xy_adc -j$(nproc)   # 如果 root target 已配置存在
+cmake --build build/pc --target xy_adc -j$(nproc)
 make HAL_PLATFORM=STM32U5 -j$(nproc)                # MCU compile probe；仍非硬件验证
 ```
 
 ## 构建/配置边界
 
-- 当前 `components/analog_devices/CMakeLists.txt` 仍是历史 ADDC 片段，引用的 `src/xy_addc*.c` / `inc/xy_addc*.h` 在当前目录并不存在；不要把它视为已闭环 root component target。
-- `components/analog_devices/Kconfig` 只提供 nested `COMPONENT_ADDC` 历史开关；当前 root `Kconfig` 不导出专门的 analog devices component enablement。
-- `tests/unit/analog_devices/test_analog_devices.c` 直接链接当前 active 源文件，因此 focused host CTest 通过不等于 root firmware component integration 已完成。
+- `components/analog_devices/CMakeLists.txt` 现在只把当前已有实现且已有 host CTest 的源文件纳入 root build：`xy_adc.c`、`src/xy_mcp3008.c`、`src/xy_hx711.c`。
+- root target include roots 同步到这些源码实际使用的 HAL/Trace/CLIB/Device/Sensor public headers；`inc/xy_adc_ext.h` 仍会经历史 ADS1115 umbrella 间接需要 `components/device/inc`。
+- root auto-discovery 会生成 `xy_adc` 静态库；同时提供 `analog_devices_component` CMake ALIAS，方便未来 component-style consumer 迁移，但当前安装/runtime target 名仍保持 `xy_adc`。
+- `components/analog_devices/Kconfig` 仍只提供 nested `COMPONENT_ADDC` 历史开关；当前 root `Kconfig` 不导出专门的 analog devices component enablement。
+- `tests/unit/analog_devices/test_analog_devices.c` 与 root `xy_adc` target 使用同一组 active 源文件；focused host CTest 与 root PC/STM32U5 compile gate 共同证明当前 active 子集，不代表所有历史外部 ADC 声明已实现。
 
-后续如要让 analog devices 成为 root component，应先做小步 proposal/实现：明确 target 名称（例如 `xy_adc` / `analog_devices_component`）、只纳入当前存在并有 host coverage 的源文件，再补 root PC/STM32U5 compile gate。不要同轮复活所有历史 ADS*/MAX*/MCP* 声明。
+后续如要扩展 analog devices，应先写小步 proposal：为单个已声明但未实现的 ADS*/MAX*/MCP* driver 明确 source/header/API 归属，补 focused host CTest，再纳入 root target。不要同轮复活所有历史声明。
 
 ## 硬件验证边界
 
@@ -50,8 +52,8 @@ make HAL_PLATFORM=STM32U5 -j$(nproc)                # MCU compile probe；仍非
 
 ## 回滚
 
-本 README 同步未改动实现。未提交前可回滚：
+本轮 root-build 集成只改动 CMake 与 README。未提交前可回滚：
 
 ```bash
-git checkout -- components/analog_devices/README.md
+git checkout -- components/analog_devices/CMakeLists.txt components/analog_devices/README.md
 ```
