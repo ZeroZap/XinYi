@@ -1,41 +1,37 @@
 @echo off
-echo XY Tiny Crypto Build Script
-echo ============================
+setlocal
 
-set CC=gcc
-set CFLAGS=-Wall -Wextra -std=c99 -O2 -Iinclude
-set LDFLAGS=-ladvapi32
+rem XinYi Crypto Windows helper.
+rem
+rem The historical version of this script compiled src/xy_*.c files directly.
+rem Most crypto algorithms now use module-directory sources through the canonical
+rem CMake target, so this wrapper delegates to the repository CMake build instead
+rem of naming individual implementation files that may no longer exist.
 
-if not exist build mkdir build
+set SCRIPT_DIR=%~dp0
+for %%I in ("%SCRIPT_DIR%..\..") do set REPO_ROOT=%%~fI
 
-echo Compiling source files...
-%CC% %CFLAGS% -c src/xy_md5.c -o build/xy_md5.o
-%CC% %CFLAGS% -c src/xy_sha256.c -o build/xy_sha256.o
-%CC% %CFLAGS% -c src/xy_aes.c -o build/xy_aes.o
-%CC% %CFLAGS% -c src/xy_base64.c -o build/xy_base64.o
-%CC% %CFLAGS% -c src/xy_hex.c -o build/xy_hex.o
-%CC% %CFLAGS% -c src/xy_crc32.c -o build/xy_crc32.o
-%CC% %CFLAGS% -c src/xy_random.c -o build/xy_random.o
-%CC% %CFLAGS% -c src/xy_hmac.c -o build/xy_hmac.o
+if "%BUILD_DIR%"=="" set BUILD_DIR=%REPO_ROOT%\build\pc
+if "%BUILD_TYPE%"=="" set BUILD_TYPE=Release
+if "%HAL_PLATFORM%"=="" set HAL_PLATFORM=PC
 
-echo Creating static library...
-ar rcs build/libxy_tiny_crypto.a build/xy_md5.o build/xy_sha256.o build/xy_aes.o build/xy_base64.o build/xy_hex.o build/xy_crc32.o build/xy_random.o build/xy_hmac.o
+echo XinYi Crypto CMake Build Wrapper
+echo ================================
+echo Repository : %REPO_ROOT%
+echo Build dir  : %BUILD_DIR%
+echo Platform   : %HAL_PLATFORM%
+echo Build type : %BUILD_TYPE%
+echo.
 
-echo Compiling test program...
-%CC% %CFLAGS% -c test/test_crypto.c -o build/test_crypto.o
-%CC% build/test_crypto.o build/libxy_tiny_crypto.a -o build/test_crypto.exe %LDFLAGS%
+cmake -B "%BUILD_DIR%" -S "%REPO_ROOT%" -DHAL_PLATFORM=%HAL_PLATFORM% -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+if errorlevel 1 exit /b %errorlevel%
 
-echo Compiling example program...
-%CC% %CFLAGS% -c example.c -o build/example.o
-%CC% build/example.o build/libxy_tiny_crypto.a -o build/example.exe %LDFLAGS%
+cmake --build "%BUILD_DIR%" --target xy_tiny_crypto --config %BUILD_TYPE%
+if errorlevel 1 exit /b %errorlevel%
 
 echo.
-echo Build completed!
-echo Generated files:
-echo   - build/libxy_tiny_crypto.a  (static library)
-echo   - build/test_crypto.exe      (test program)
-echo   - build/example.exe          (example program)
-echo.
-echo Run test: build\test_crypto.exe
-echo Run example: build\example.exe
-pause
+echo Crypto target build completed: xy_tiny_crypto
+echo Optional unit gate from the repository root:
+echo   make test-unit
+
+endlocal

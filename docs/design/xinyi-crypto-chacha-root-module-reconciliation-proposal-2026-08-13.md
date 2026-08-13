@@ -55,7 +55,7 @@ Use a compatibility-wrapper slice rather than direct deletion:
 
 ### Slice C: stale documentation/tooling cleanup
 
-- After Slice B is verified, update or retire stale ad-hoc material such as `components/crypto/build.bat` only if it still claims removed `src/*.c` files as authoritative.
+- After Slice B is verified, update stale ad-hoc material such as `components/crypto/build.bat` if it still claims removed `src/*.c` files as authoritative. **Done for the ad-hoc Windows helper: it now delegates to the canonical CMake `xy_tiny_crypto` target instead of compiling removed root duplicate files directly.**
 - Keep this separate from arithmetic/wrapper changes so Windows/demo tooling cleanup does not hide source-ownership regressions.
 
 ## 5. Required verification

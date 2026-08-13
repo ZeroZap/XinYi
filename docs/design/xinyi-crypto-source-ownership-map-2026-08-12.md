@@ -86,7 +86,8 @@ Allowed low-risk follow-ups:
 2. Keep byte-identical duplicate-copy guards for pairs already proven identical and still marked `source-map-pending`; no root/module byte-identical duplicate pairs remain guarded after MD5/HMAC/AES moved to module ownership. Base64/Hex/CRC/BLAKE2/Random/CSPRNG/MD5/HMAC/AES have left this pending set because the root target now consumes the module copies, and stale Base64/Hex/Random/CSPRNG root duplicates have been pruned.
 3. Add root-target smoke or focused root-copy coverage for one algorithm at a time if a consumer needs `xy_tiny_crypto` behavior specifically; `crypto_ecdsa_root_contract` is the current example for the root-only placeholder-grade ECDSA copy.
 4. For a single algorithm, compare aggregate and module copies, decide canonical ownership, then update CMake/tests/docs in one path-limited verified slice.
-5. Prune stale historical documentation duplicates only when they are tracked, unreferenced, and demonstrably superseded by the current component README/source map. The truncated `components/crypto/xy_tiny_boot_crypto copy.md` stale duplicate was removed; `xy_tiny_boot_crypto.md` remains as historical material.
+5. Keep ad-hoc build helpers from naming removed historical `src/*.c` duplicates: `components/crypto/build.bat` now delegates to the canonical CMake `xy_tiny_crypto` target instead of compiling stale root copies directly.
+6. Prune stale historical documentation duplicates only when they are tracked, unreferenced, and demonstrably superseded by the current component README/source map. The truncated `components/crypto/xy_tiny_boot_crypto copy.md` stale duplicate was removed; `xy_tiny_boot_crypto.md` remains as historical material.
 
 Explicit non-goals for this slice:
 
