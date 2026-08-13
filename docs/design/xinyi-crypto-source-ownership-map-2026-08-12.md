@@ -15,10 +15,31 @@ This map records the current build facts. It is a guardrail for staged cleanup: 
 
 ## 2. Root target source facts
 
-`components/crypto/CMakeLists.txt` currently owns the root static library as follows:
+`components/crypto/CMakeLists.txt` currently owns the root static library with a hybrid source list:
 
 ```cmake
 file(GLOB CRYPTO_SOURCES "src/*.c")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_sha256\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_crc\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_base64\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_hex\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_blake2\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_random\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_csprng\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_md5\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_hmac\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_aes\\.c$")
+list(APPEND CRYPTO_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_crc/xy_crc.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_hex/xy_hex.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_blake/xy_blake2.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_random.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_csprng.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_md/xy_md5.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c"
+)
 add_library(xy_tiny_crypto STATIC ${CRYPTO_SOURCES})
 target_link_libraries(xy_tiny_crypto PRIVATE xy_sm3 xy_sm4 xy_sm2)
 ```
