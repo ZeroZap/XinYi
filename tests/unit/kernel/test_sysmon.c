@@ -115,6 +115,10 @@ static void test_sysmon_print_helpers_emit_portable_task_contract(void)
 
 static void test_sysmon_alarm_registration_is_host_stubbed_contract(void)
 {
+    TEST_ASSERT_EQUAL_INT(XY_SYSMON_INVALID_PARAM,
+                          xy_sysmon_register_alarm(NULL, 75.0F, NULL));
+    TEST_ASSERT_EQUAL_STRING("", print_log);
+
     TEST_ASSERT_EQUAL_INT(XY_SYSMON_OK,
                           xy_sysmon_register_alarm("heap", 75.0F, NULL));
     TEST_ASSERT_NOT_NULL(strstr(print_log, "Sysmon alarm registered: heap"));

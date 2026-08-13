@@ -180,6 +180,10 @@ uint32_t xy_sysmon_get_task_count(void)
 
 int xy_sysmon_register_alarm(const char *name, float threshold, xy_sysmon_alarm_cb callback)
 {
+    if (!name) {
+        return XY_SYSMON_INVALID_PARAM;
+    }
+
     /* 告警注册 - 简化实现：记录日志 */
     xy_log_i("Sysmon alarm registered: %s (threshold=%.1f)\r\n", name, threshold);
     (void)callback;
