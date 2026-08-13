@@ -50,7 +50,7 @@
       "id": "md5_sha256_hmac",
       "description": "MD5, SHA-256, and HMAC vectors/incremental contracts",
       "contract_tests": ["crypto_hash", "crypto_cipher_hmac"],
-      "runtime_sources": ["components/crypto/xy_md/xy_md5.c", "components/crypto/xy_hmac/xy_hmac.c", "components/crypto/src/xy_sha256_hmac.c"],
+      "runtime_sources": ["components/crypto/xy_md/xy_md5.c", "components/crypto/xy_hmac/xy_sha256.c", "components/crypto/xy_hmac/xy_hmac.c"],
       "focused_test_sources": ["components/crypto/xy_md/xy_md5.c", "components/crypto/xy_hmac/xy_sha256.c", "components/crypto/xy_hmac/xy_hmac.c"],
       "duplicate_source_policy": "single-active-source",
       "provenance_status": "review-pending",

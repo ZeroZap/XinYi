@@ -23,6 +23,7 @@ ECDSA_PUBLIC_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_ecdsa.h"
 
 EXCLUDED_ROOT_AGGREGATE_SOURCES = {
     "components/crypto/src/xy_sha256.c",
+    "components/crypto/src/xy_sha256_hmac.c",
 }
 
 IDENTICAL_DUPLICATE_SOURCE_PAIRS: dict[str, tuple[str, str]] = {}
@@ -36,6 +37,7 @@ RECONCILED_MODULE_RUNTIME_SOURCES = {
     "csprng": "components/crypto/xy_rng/xy_csprng.c",
     "md5": "components/crypto/xy_md/xy_md5.c",
     "hmac": "components/crypto/xy_hmac/xy_hmac.c",
+    "sha256_hmac": "components/crypto/xy_hmac/xy_sha256.c",
     "aes": "components/crypto/xy_aes/xy_aes.c",
     "lwc_ascon": "components/crypto/xy_ascon/xy_ascon.c",
     "lwc_tinyjambu": "components/crypto/xy_tinyjambu/xy_tinyjambu.c",
@@ -55,6 +57,7 @@ RECONCILED_MODULE_CMAKE_SOURCES = {
     "csprng": "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_csprng.c",
     "md5": "${CMAKE_CURRENT_SOURCE_DIR}/xy_md/xy_md5.c",
     "hmac": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c",
+    "sha256_hmac": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_sha256.c",
     "aes": "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c",
     "lwc_ascon": "${CMAKE_CURRENT_SOURCE_DIR}/xy_ascon/xy_ascon.c",
     "lwc_tinyjambu": "${CMAKE_CURRENT_SOURCE_DIR}/xy_tinyjambu/xy_tinyjambu.c",
