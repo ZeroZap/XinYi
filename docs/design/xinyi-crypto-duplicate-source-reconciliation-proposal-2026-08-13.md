@@ -13,21 +13,21 @@ Crypto is now host-guarded and has an explicit security/provenance review manife
 
 The current `crypto_review_manifest` intentionally guards these duplicate pairs from silently diverging while their ownership remains `source-map-pending`. This proposal defines the low-risk reconciliation sequence for a later implementation slice. It does **not** move files, delete files, change `COMPONENT_CRYPTO`, rename `xy_tiny_crypto`, or upgrade any algorithm's security/provenance status.
 
-## 2. Current duplicate pairs
+## 2. Current duplicate/source-ownership pairs
 
-The currently guarded byte-identical pairs are:
+The duplicate-source reconciliation is now mostly complete. Current module-owned pairs/status are:
 
 | Area | Root/runtime source | Module/focused-test source | Current policy |
 | --- | --- | --- | --- |
-| CRC | `components/crypto/src/xy_crc.c` | `components/crypto/xy_crc/xy_crc.c` | `source-map-pending` |
-| Base64 | `components/crypto/src/xy_base64.c` | `components/crypto/xy_base/xy_base64.c` | `source-map-pending` |
-| Hex | `components/crypto/src/xy_hex.c` | `components/crypto/xy_hex/xy_hex.c` | `source-map-pending` |
-| Random | `components/crypto/src/xy_random.c` | `components/crypto/xy_rng/xy_random.c` | `source-map-pending` |
-| CSPRNG | `components/crypto/src/xy_csprng.c` | `components/crypto/xy_rng/xy_csprng.c` | `source-map-pending` |
-| MD5 | `components/crypto/src/xy_md5.c` | `components/crypto/xy_md/xy_md5.c` | `source-map-pending` |
-| HMAC | `components/crypto/src/xy_hmac.c` | `components/crypto/xy_hmac/xy_hmac.c` | `source-map-pending` |
-| AES | `components/crypto/src/xy_aes.c` | `components/crypto/xy_aes/xy_aes.c` | `source-map-pending` |
-| BLAKE2 | `components/crypto/src/xy_blake2.c` | `components/crypto/xy_blake/xy_blake2.c` | `source-map-pending` |
+| CRC | removed | `components/crypto/xy_crc/xy_crc.c` | `single-active-source` |
+| Base64 | removed | `components/crypto/xy_base/xy_base64.c` | `single-active-source` |
+| Hex | removed | `components/crypto/xy_hex/xy_hex.c` | `single-active-source` |
+| Random | removed | `components/crypto/xy_rng/xy_random.c` | `single-active-source` |
+| CSPRNG | removed | `components/crypto/xy_rng/xy_csprng.c` | `single-active-source` |
+| MD5 | removed | `components/crypto/xy_md/xy_md5.c` | `single-active-source` |
+| HMAC | removed | `components/crypto/xy_hmac/xy_hmac.c` | `single-active-source` |
+| AES | removed | `components/crypto/xy_aes/xy_aes.c` | `single-active-source` |
+| BLAKE2 | removed | `components/crypto/xy_blake/xy_blake2.c` | `single-active-source` |
 
 Related non-duplicate or special cases:
 
@@ -51,14 +51,14 @@ The final target shape should still keep `xy_tiny_crypto` as the public root/run
 
 Do not reconcile all pairs in one patch. Use one small algorithm group per verified slice:
 
-1. **Encoding group**: Base64 + Hex. **Done in first reconciliation slice.**
+1. **Encoding group**: Base64 + Hex. **Done in first reconciliation slice; stale root duplicates pruned in follow-up closure.**
    - Switch root `xy_tiny_crypto` to compile `xy_base/xy_base64.c` and `xy_hex/xy_hex.c` instead of `src/xy_base64.c` and `src/xy_hex.c`.
    - Keep public root headers and focused `crypto_encode`/`crypto_smoke_example` unchanged.
    - Add or extend a root-target smoke assertion if root aggregate behavior is not already covered.
 2. **Checksum/hash utility group**: CRC and BLAKE2. **Done in second reconciliation slice.**
    - Reuse module CRC/BLAKE2 sources in root target.
    - Run focused `crypto_crc`, `crypto_blake2`, `crypto_root_target_smoke`, and `crypto_review_manifest`.
-3. **RNG group**: Random + CSPRNG. **Done in third reconciliation slice.**
+3. **RNG group**: Random + CSPRNG. **Done in third reconciliation slice; stale root duplicates pruned in follow-up closure.**
    - Reuse module RNG/CSPRNG sources in root target.
    - Preserve the current warning that `xy_random_*` is non-security utility/demo only and `xy_csprng_*` depends on caller-owned entropy/seed quality.
 4. **MD5/HMAC/AES group**: MD5, HMAC, AES. **Done in fourth reconciliation slice.**

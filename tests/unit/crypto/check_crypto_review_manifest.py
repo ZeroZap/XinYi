@@ -148,17 +148,7 @@ def _crypto_root_target_sources() -> set[str]:
     if _require_messages:
         raise ValueError("\n".join(_require_messages))
 
-    excluded_root_sources = EXCLUDED_ROOT_AGGREGATE_SOURCES | {
-        "components/crypto/src/xy_crc.c",
-        "components/crypto/src/xy_base64.c",
-        "components/crypto/src/xy_hex.c",
-        "components/crypto/src/xy_blake2.c",
-        "components/crypto/src/xy_random.c",
-        "components/crypto/src/xy_csprng.c",
-        "components/crypto/src/xy_md5.c",
-        "components/crypto/src/xy_hmac.c",
-        "components/crypto/src/xy_aes.c",
-    }
+    excluded_root_sources = EXCLUDED_ROOT_AGGREGATE_SOURCES
     return {
         f"components/crypto/src/{path.name}"
         for path in CRYPTO_SRC_DIR.glob("*.c")
@@ -467,17 +457,6 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
         source
         for source in manifest_root_sources - actual_root_sources
         if source.startswith("components/crypto/src/")
-        and source not in {
-            "components/crypto/src/xy_crc.c",
-            "components/crypto/src/xy_base64.c",
-            "components/crypto/src/xy_hex.c",
-            "components/crypto/src/xy_blake2.c",
-            "components/crypto/src/xy_random.c",
-            "components/crypto/src/xy_csprng.c",
-            "components/crypto/src/xy_md5.c",
-            "components/crypto/src/xy_hmac.c",
-            "components/crypto/src/xy_aes.c",
-        }
     }
     _require(
         not missing_root_sources,
