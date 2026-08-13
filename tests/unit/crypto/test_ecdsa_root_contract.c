@@ -132,6 +132,7 @@ static void test_ecdsa_root_documents_format_only_success_contract(void)
 {
     xy_ecdsa_pub_key_t pub_key;
     xy_ecdsa_sig_t sig;
+    static const uint8_t tampered_message[] = {'X', 'i', 'n', 'Y', 'i', '!'};
     uint8_t pub_key_bytes[XY_ECDSA_P256_PUB_KEY_SIZE];
     uint8_t sig_bytes[XY_ECDSA_P256_SIG_SIZE];
 
@@ -141,6 +142,8 @@ static void test_ecdsa_root_documents_format_only_success_contract(void)
      * without real elliptic-curve signature verification. This assertion documents the
      * existing contract so consumers do not confuse the source with security-reviewed ECDSA. */
     TEST_ASSERT_EQUAL_INT(0, xy_ecdsa_p256_verify(&pub_key, kMessage, sizeof(kMessage), &sig));
+    TEST_ASSERT_EQUAL_INT(
+        0, xy_ecdsa_p256_verify(&pub_key, tampered_message, sizeof(tampered_message), &sig));
 
     memcpy(pub_key_bytes, pub_key.x, sizeof(pub_key.x));
     memcpy(pub_key_bytes + sizeof(pub_key.x), pub_key.y, sizeof(pub_key.y));

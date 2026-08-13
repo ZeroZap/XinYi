@@ -43,11 +43,11 @@
   - No production signature verification, signing, secure boot, firmware authenticity, authentication, authorization, key exchange, certificate workflow, certified P-256 implementation, side-channel resistance, or hardware acceleration claim.
 - Known placeholder/legacy/weak areas:
   - `xy_ecdsa_p256_verify()` validates null pointers, non-zero public key, public key byte range, and `r/s` byte ranges, then returns success for valid-looking fields.
-  - It explicitly does not hash the message, compute modular inverse, perform elliptic-curve scalar multiplication, perform point addition, or compare the calculated signature relation.
-  - The focused `crypto_ecdsa_root_contract` CTest documents the current format-only success contract so consumers do not mistake it for real ECDSA validation.
+  - It explicitly does not hash or bind the message, compute modular inverse, perform elliptic-curve scalar multiplication, perform point addition, or compare the calculated signature relation.
+  - The focused `crypto_ecdsa_root_contract` CTest documents the current format-only success contract, including that a tampered/different message still returns success when the public key and signature bytes are valid-looking, so consumers do not mistake it for real ECDSA validation.
   - Historical FOTA/security docs may mention ECDSA/signature verification as desired or historical capability; those statements must not be read as current production security evidence for this placeholder source.
 - Test evidence:
-  - `crypto_ecdsa_root_contract` covers null guards, zero/out-of-range fields, simple-wrapper malformed input, and the documented format-only success path.
+  - `crypto_ecdsa_root_contract` covers null guards, zero/out-of-range fields, simple-wrapper malformed input, and the documented format-only success path including message non-binding.
   - `crypto_root_target_smoke` links the real `xy_tiny_crypto` root target and exercises ECDSA only as a minimal format-only guard path.
   - `crypto_review_manifest` now links this review record so the rejected security status cannot be set silently without evidence.
 - Missing evidence:
