@@ -27,36 +27,32 @@
   - `components/crypto/xy_sm3/xy_sm3.c`
   - `components/crypto/xy_sm4/xy_sm4.c`
   - `components/crypto/xy_chacha/xy_chacha20_poly1305.c`
-  - `components/crypto/xy_blake/xy_blake2.c`
   - `tests/unit/crypto/test_cipher_hmac.c`
-  - `tests/unit/crypto/test_blake2.c`
   - `components/crypto/crypto_review_manifest.json`
 - Upstream/project origin:
   - Current repository-owned lightweight C implementations; no external upstream audit evidence was linked in this slice.
 - License evidence:
   - Repository component inherits project licensing context; no separate upstream license/provenance record was linked for these files in this slice.
 - Local modifications:
-  - No AES/SM3/SM4/ChaCha20/Poly1305/BLAKE2 implementation code changes in this review slice.
+  - No AES/SM3/SM4/ChaCha20/Poly1305 implementation code changes in this review slice.
 - Duplicate ownership notes:
-  - `xy_aes.c` and `xy_blake2.c` still have root/runtime copies under `components/crypto/src/` and focused-test module copies under `xy_aes/` / `xy_blake/`; `crypto_review_manifest` keeps the byte-identical duplicate-copy guard active.
+  - `xy_aes.c` still has root/runtime copies under `components/crypto/src/` and focused-test module copies under `xy_aes/`; `crypto_review_manifest` keeps the byte-identical duplicate-copy guard active for that pair.
   - `components/crypto/src/xy_chacha20poly1305.c` is the root/runtime aggregate copy for the ChaCha20-Poly1305 area; focused tests use `components/crypto/xy_chacha/xy_chacha20_poly1305.c`. This record does not reconcile the root/module source split.
   - SM3 and SM4 are currently focused-test module sources only in the manifest; this record does not add them to the root aggregate target.
-  - BLAKE2 remains listed in the same manifest row because `crypto_blake2` is the focused contract test for the module source, while `components/crypto/src/xy_blake2.c` is still separately tracked as `root-source-unreviewed` for root aggregate ownership.
 
 ## 3. Security review
 
 - Intended use:
-  - AES/SM3/SM4/ChaCha20/Poly1305/BLAKE2: host contract-guarded lightweight crypto helpers for explicitly opted-in firmware consumers that accept current implementation risk and missing audit evidence.
+  - AES/SM3/SM4/ChaCha20/Poly1305: host contract-guarded lightweight crypto helpers for explicitly opted-in firmware consumers that accept current implementation risk and missing audit evidence.
 - Explicit non-goals:
   - No FIPS, 国密 certification, formal verification, side-channel resistance, constant-time audit, hardware acceleration, key-management, nonce-management, padding-scheme approval, AEAD misuse-resistance proof, or compliance certification claim for any file in this area.
   - No approval for enabling `COMPONENT_CRYPTO` by default or exporting these helpers as production security primitives without product-level review.
 - Known placeholder/legacy/weak areas:
-  - AES/SM3/SM4/ChaCha20/Poly1305/BLAKE2 have vector/API host tests, but no independent implementation audit or side-channel review.
+  - AES/SM3/SM4/ChaCha20/Poly1305 have vector/API host tests, but no independent implementation audit or side-channel review.
   - Correct production use depends on caller-owned key storage, nonce uniqueness, mode selection, padding policy, and error handling; these are outside the current component contract tests.
   - Duplicate root/module source ownership remains `source-map-pending`; this record does not reconcile or delete copies.
 - Test evidence:
   - `crypto_cipher_hmac` covers AES-128, SM3, SM4, ChaCha20, Poly1305, ChaCha20-Poly1305 AEAD vectors, invalid-parameter guards, and tampered-tag output preservation.
-  - `crypto_blake2` covers BLAKE2s public vectors, incremental/keyed behavior, invalid-parameter guards, and output-preservation contract.
   - `crypto_review_manifest` links this review record and keeps duplicate-copy/source-map policy checks active.
 - Missing evidence:
   - External provenance/license record, independent security audit, side-channel/constant-time review, fuzzing, misuse-resistance review, hardware acceleration evidence, and a source-ownership reconciliation decision.
@@ -78,7 +74,7 @@
 Recorded for this review-record/manifest slice:
 
 ```bash
-cd build/tests/unit && ctest --output-on-failure -R '^(crypto_review_manifest|crypto_cipher_hmac|crypto_blake2)$'
+cd build/tests/unit && ctest --output-on-failure -R '^(crypto_review_manifest|crypto_cipher_hmac)$'
 make test-unit
 git diff --check
 ```
@@ -86,6 +82,5 @@ git diff --check
 ## 6. Attachments / evidence
 
 - `tests/unit/crypto/test_cipher_hmac.c` AES/HMAC/SM3/SM4/ChaCha20/Poly1305/AEAD host vector and guard coverage.
-- `tests/unit/crypto/test_blake2.c` BLAKE2s host vector and guard coverage.
 - `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md` root/runtime vs focused-test source ownership map.
 - `components/crypto/crypto_review_manifest.json` `aes_sm3_sm4_chacha20` entry.
