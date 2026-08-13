@@ -23,8 +23,8 @@
 - Source paths reviewed:
   - `components/crypto/xy_md/xy_md5.c`
   - `components/crypto/xy_hmac/xy_hmac.c`
-  - `components/crypto/src/xy_sha256_hmac.c`
   - `components/crypto/xy_hmac/xy_sha256.c`
+  - `components/crypto/src/xy_sha256_hmac.c` (historical duplicate, excluded from root runtime)
   - `tests/unit/crypto/test_crypto_hash.c`
   - `tests/unit/crypto/test_cipher_hmac.c`
   - `components/crypto/crypto_review_manifest.json`
@@ -36,7 +36,7 @@
   - No MD5/SHA-256/HMAC implementation code changes in this review slice.
 - Duplicate ownership notes:
   - MD5 and generic HMAC have been reconciled to module-directory single active source ownership: root `xy_tiny_crypto` and focused CTests both consume `components/crypto/xy_md/xy_md5.c` and `components/crypto/xy_hmac/xy_hmac.c`; the historical `components/crypto/src/xy_md5.c` and `components/crypto/src/xy_hmac.c` duplicates have been removed.
-  - Root SHA-256/HMAC public contract is implemented by `components/crypto/src/xy_sha256_hmac.c`; focused tests use `components/crypto/xy_hmac/xy_sha256.c`. The stale `components/crypto/src/xy_sha256.c` remains excluded from the root aggregate target and is not approved by this record.
+  - SHA-256/HMAC ownership has been reconciled to the module-directory source: root `xy_tiny_crypto` and focused CTests both consume `components/crypto/xy_hmac/xy_sha256.c`. The historical `components/crypto/src/xy_sha256_hmac.c` is excluded as a byte-identical duplicate, and the stale `components/crypto/src/xy_sha256.c` remains excluded from the root aggregate target and is not approved by this record.
 
 ## 3. Security review
 
@@ -50,7 +50,7 @@
 - Known placeholder/legacy/weak areas:
   - MD5 is cryptographically broken for collision-resistant/security-sensitive uses and must not be used for authentication, signatures, password hashing, or new security protocol design.
   - The SHA-256/HMAC helpers have host vector and incremental contract tests, but no independent audit or side-channel review.
-  - MD5/HMAC source ownership has been reconciled, but SHA-256/HMAC provenance, side-channel, fuzzing, hardware, and compliance evidence remain outside this limited review record.
+  - MD5/SHA-256/HMAC source ownership has been reconciled, but SHA-256/HMAC provenance, side-channel, fuzzing, hardware, and compliance evidence remain outside this limited review record.
 - Test evidence:
   - `crypto_hash` covers MD5/SHA-256 invalid params, empty/`abc` vectors, and incremental-vs-one-shot behavior.
   - `crypto_cipher_hmac` covers HMAC-MD5/HMAC-SHA256 vectors plus related cipher/HMAC API contracts.
@@ -66,7 +66,7 @@
   - SHA-256/HMAC-SHA256: contract-guarded lightweight helper use is acceptable only where current implementation risk and missing audit evidence are explicitly accepted by the consuming product; not certified or hardware-validated.
 - Required follow-up before stronger claims:
   - Add provenance/license evidence for each implementation source.
-  - Keep source-map and manifest guards aligned with the MD5/HMAC module-directory single-active-source policy.
+  - Keep source-map and manifest guards aligned with the MD5/SHA-256/HMAC module-directory single-active-source policy.
   - Add side-channel/constant-time review if used in security-sensitive product paths.
   - Add hardware acceleration/RNG/entropy evidence only through separate hardware validation records.
 
