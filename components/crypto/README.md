@@ -42,7 +42,7 @@ Focused CTest 名称：
 | `crypto_smoke_example` | Host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; links focused module sources and remains API-drift guard only, not a security/hardware proof |
 | `crypto_alias_target` | CMake configure smoke that proves `xy_tiny_crypto` still exists and `xy_crypto` compatibility alias is exported |
 | `crypto_root_target_smoke` | Standalone public consumer linked against the real `xy_tiny_crypto` root/runtime target; proves aggregate `src/` Base64/Hex/SHA-256, BLAKE2s, and ECDSA format-only guard paths for one small API flow |
-| `crypto_review_manifest` | Policy smoke for security/provenance review status, source ownership map links, mapped root aggregate sources, root `src/*.c` collection shape, SM2/ECDSA security-rejected review-record linkage, and currently byte-identical CRC/Base64/Hex root/module duplicate pairs; not cryptographic validation |
+| `crypto_review_manifest` | Policy smoke for security/provenance review status, source ownership map links, mapped root aggregate sources, root `src/*.c` collection shape, SM2/ECDSA security-rejected review-record linkage, and currently byte-identical CRC/Base64/Hex/Random/CSPRNG/MD5/HMAC/AES/BLAKE2 root/module duplicate pairs; not cryptographic validation |
 | `crypto_25519` | Curve25519 generic public API contracts |
 | `crypto_25519_m0` | Cortex-M0 fallback/API and field smoke contracts |
 
@@ -94,4 +94,4 @@ cd build/tests/unit && ctest --output-on-failure -R '^crypto_'
 git diff --check
 ```
 
-The `xy_tiny_crypto` build currently succeeds but may still emit pre-existing warning classes in placeholder/aggregate sources. Treat warning cleanup as a separate code-quality slice with focused regression tests, not as part of this README/status sync. The focused module-source `crypto_cipher_hmac` CTest now guards RFC 8439 Poly1305/AEAD vectors, and `crypto_blake2` guards focused BLAKE2s vector/guard contracts while `crypto_review_manifest` keeps the duplicate root/module BLAKE2 copies synchronized. These are still host contract evidence only and must not be promoted to security/provenance approval.
+The `xy_tiny_crypto` build currently succeeds but may still emit pre-existing warning classes in placeholder/aggregate sources. Treat warning cleanup as a separate code-quality slice with focused regression tests, not as part of this README/status sync. The focused module-source `crypto_cipher_hmac` CTest now guards RFC 8439 Poly1305/AEAD vectors, and `crypto_blake2` guards focused BLAKE2s vector/guard contracts while `crypto_review_manifest` keeps the currently byte-identical duplicate root/module copies synchronized for CRC, Base64, Hex, Random, CSPRNG, MD5, HMAC, AES, and BLAKE2. These are still host contract evidence only and must not be promoted to security/provenance approval or source-ownership reconciliation.
