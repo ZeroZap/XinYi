@@ -30,9 +30,17 @@ add_subdirectory(xy_sm3)
 add_subdirectory(xy_sm4)
 add_subdirectory(xy_sm2)
 
-# 收集源文件 - 核心算法在 src/
+# 收集源文件 - remaining root-only aggregate algorithms stay in src/.
+# Encoding helpers are intentionally sourced from their module directories so the
+# root runtime target and focused crypto_encode CTest share one implementation.
 file(GLOB CRYPTO_SOURCES "src/*.c")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_sha256\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_base64\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_hex\\.c$")
+list(APPEND CRYPTO_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_hex/xy_hex.c"
+)
 file(GLOB CRYPTO_HEADERS "inc/*.h")
 
 # 创建静态库

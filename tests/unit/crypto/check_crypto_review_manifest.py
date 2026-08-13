@@ -30,14 +30,6 @@ IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
         "components/crypto/src/xy_crc.c",
         "components/crypto/xy_crc/xy_crc.c",
     ),
-    "base64": (
-        "components/crypto/src/xy_base64.c",
-        "components/crypto/xy_base/xy_base64.c",
-    ),
-    "hex": (
-        "components/crypto/src/xy_hex.c",
-        "components/crypto/xy_hex/xy_hex.c",
-    ),
     "random": (
         "components/crypto/src/xy_random.c",
         "components/crypto/xy_rng/xy_random.c",
@@ -62,6 +54,16 @@ IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
         "components/crypto/src/xy_blake2.c",
         "components/crypto/xy_blake/xy_blake2.c",
     ),
+}
+
+RECONCILED_MODULE_RUNTIME_SOURCES = {
+    "base64": "components/crypto/xy_base/xy_base64.c",
+    "hex": "components/crypto/xy_hex/xy_hex.c",
+}
+
+RECONCILED_MODULE_CMAKE_SOURCES = {
+    "base64": "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c",
+    "hex": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hex/xy_hex.c",
 }
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
@@ -129,10 +131,10 @@ def _registered_crypto_ctests() -> set[str]:
 def _crypto_root_target_sources() -> set[str]:
     """Return root aggregate src/*.c sources collected by components/crypto/CMakeLists.txt.
 
-    This policy guard intentionally supports the current simple source collection shape only:
-    a direct file(GLOB ... "src/*.c") entry. If crypto root ownership changes to an explicit
-    list or a different glob, this check should fail until the ownership map/manifest guard is
-    updated in the same slice.
+    This policy guard intentionally supports the current staged ownership shape only:
+    a direct file(GLOB ... "src/*.c") entry plus explicitly reconciled module runtime sources.
+    If crypto root ownership changes to an explicit list or a different glob, this check should
+    fail until the ownership map/manifest guard is updated in the same slice.
     """
     cmake_text = CRYPTO_CMAKE_PATH.read_text(encoding="utf-8")
     glob_pattern = r'file\(\s*GLOB\s+CRYPTO_SOURCES\s+"src/\*\.c"\s*\)'
@@ -152,11 +154,24 @@ def _crypto_root_target_sources() -> set[str]:
     )
     if _require_messages:
         raise ValueError("\n".join(_require_messages))
+    for rel_source in RECONCILED_MODULE_CMAKE_SOURCES.values():
+        _require(
+            rel_source in cmake_text,
+            f"components/crypto/CMakeLists.txt must append reconciled module runtime source: {rel_source}",
+            _require_messages,
+        )
+    if _require_messages:
+        raise ValueError("\n".join(_require_messages))
+
+    excluded_root_sources = EXCLUDED_ROOT_AGGREGATE_SOURCES | {
+        "components/crypto/src/xy_base64.c",
+        "components/crypto/src/xy_hex.c",
+    }
     return {
         f"components/crypto/src/{path.name}"
         for path in CRYPTO_SRC_DIR.glob("*.c")
-        if f"components/crypto/src/{path.name}" not in EXCLUDED_ROOT_AGGREGATE_SOURCES
-    }
+        if f"components/crypto/src/{path.name}" not in excluded_root_sources
+    } | set(RECONCILED_MODULE_RUNTIME_SOURCES.values())
 
 
 def _validate_identical_duplicate_sources(source_map_text: str, errors: list[str]) -> None:
@@ -230,10 +245,8 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
         if isinstance(policy.get("record_template"), str):
             record_template_text = _read_policy_document(policy["record_template"])
         for phrase in (
-            "no source moves",
             "not broad duplicate-source reconciliation or security validation",
             "do not treat it as production signature validation",
-            "No source movement or deletion",
         ):
             _require(
                 phrase in source_map_text,
@@ -381,7 +394,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             manifest_root_sources.update(
                 rel_source
                 for rel_source in runtime_sources
-                if isinstance(rel_source, str) and rel_source.startswith("components/crypto/src/")
+                if isinstance(rel_source, str)
             )
 
     if isinstance(unreviewed_root_sources, list):
@@ -458,7 +471,15 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
         errors.extend(str(exc).splitlines())
         actual_root_sources = set()
     missing_root_sources = actual_root_sources - manifest_root_sources
-    stale_root_sources = manifest_root_sources - actual_root_sources
+    stale_root_sources = {
+        source
+        for source in manifest_root_sources - actual_root_sources
+        if source.startswith("components/crypto/src/")
+        and source not in {
+            "components/crypto/src/xy_base64.c",
+            "components/crypto/src/xy_hex.c",
+        }
+    }
     _require(
         not missing_root_sources,
         f"root aggregate sources missing from algorithms or unreviewed_root_sources: {sorted(missing_root_sources)}",
