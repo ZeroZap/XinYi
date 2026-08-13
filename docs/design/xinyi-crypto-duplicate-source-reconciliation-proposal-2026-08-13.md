@@ -61,7 +61,7 @@ Do not reconcile all pairs in one patch. Use one small algorithm group per verif
 3. **RNG group**: Random + CSPRNG. **Done in third reconciliation slice.**
    - Reuse module RNG/CSPRNG sources in root target.
    - Preserve the current warning that `xy_random_*` is non-security utility/demo only and `xy_csprng_*` depends on caller-owned entropy/seed quality.
-4. **MD5/HMAC/AES group**: MD5, HMAC, AES.
+4. **MD5/HMAC/AES group**: MD5, HMAC, AES. **Done in fourth reconciliation slice.**
    - Reuse module copies only after confirming root public `xy_tiny_crypto.h` signatures still bind correctly.
    - Keep `src/xy_sha256_hmac.c` ownership separate unless a dedicated SHA-256/HMAC root API reconciliation is designed.
 

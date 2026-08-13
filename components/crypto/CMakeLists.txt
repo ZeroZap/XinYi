@@ -41,6 +41,9 @@ list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_hex\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_blake2\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_random\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_csprng\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_md5\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_hmac\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_aes\\.c$")
 list(APPEND CRYPTO_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_crc/xy_crc.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c"
@@ -48,6 +51,9 @@ list(APPEND CRYPTO_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_blake/xy_blake2.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_random.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_csprng.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_md/xy_md5.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c"
 )
 file(GLOB CRYPTO_HEADERS "inc/*.h")
 

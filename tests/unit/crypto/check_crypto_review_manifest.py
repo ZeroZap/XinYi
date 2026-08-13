@@ -25,20 +25,7 @@ EXCLUDED_ROOT_AGGREGATE_SOURCES = {
     "components/crypto/src/xy_sha256.c",
 }
 
-IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
-    "md5": (
-        "components/crypto/src/xy_md5.c",
-        "components/crypto/xy_md/xy_md5.c",
-    ),
-    "hmac": (
-        "components/crypto/src/xy_hmac.c",
-        "components/crypto/xy_hmac/xy_hmac.c",
-    ),
-    "aes": (
-        "components/crypto/src/xy_aes.c",
-        "components/crypto/xy_aes/xy_aes.c",
-    ),
-}
+IDENTICAL_DUPLICATE_SOURCE_PAIRS: dict[str, tuple[str, str]] = {}
 
 RECONCILED_MODULE_RUNTIME_SOURCES = {
     "crc": "components/crypto/xy_crc/xy_crc.c",
@@ -47,6 +34,9 @@ RECONCILED_MODULE_RUNTIME_SOURCES = {
     "blake2": "components/crypto/xy_blake/xy_blake2.c",
     "random": "components/crypto/xy_rng/xy_random.c",
     "csprng": "components/crypto/xy_rng/xy_csprng.c",
+    "md5": "components/crypto/xy_md/xy_md5.c",
+    "hmac": "components/crypto/xy_hmac/xy_hmac.c",
+    "aes": "components/crypto/xy_aes/xy_aes.c",
 }
 
 RECONCILED_MODULE_CMAKE_SOURCES = {
@@ -56,6 +46,9 @@ RECONCILED_MODULE_CMAKE_SOURCES = {
     "blake2": "${CMAKE_CURRENT_SOURCE_DIR}/xy_blake/xy_blake2.c",
     "random": "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_random.c",
     "csprng": "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_csprng.c",
+    "md5": "${CMAKE_CURRENT_SOURCE_DIR}/xy_md/xy_md5.c",
+    "hmac": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c",
+    "aes": "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c",
 }
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
@@ -162,6 +155,9 @@ def _crypto_root_target_sources() -> set[str]:
         "components/crypto/src/xy_blake2.c",
         "components/crypto/src/xy_random.c",
         "components/crypto/src/xy_csprng.c",
+        "components/crypto/src/xy_md5.c",
+        "components/crypto/src/xy_hmac.c",
+        "components/crypto/src/xy_aes.c",
     }
     return {
         f"components/crypto/src/{path.name}"
@@ -478,6 +474,9 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             "components/crypto/src/xy_blake2.c",
             "components/crypto/src/xy_random.c",
             "components/crypto/src/xy_csprng.c",
+            "components/crypto/src/xy_md5.c",
+            "components/crypto/src/xy_hmac.c",
+            "components/crypto/src/xy_aes.c",
         }
     }
     _require(
