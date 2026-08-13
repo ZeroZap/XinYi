@@ -10,6 +10,7 @@
 
 #include "xy_tiny_crypto.h"
 #include "xy_blake2.h"
+#include "xy_chacha20poly1305.h"
 #include "xy_ecdsa.h"
 
 #include <stdint.h>
@@ -51,6 +52,19 @@ static int require_string_equal(const char *expected, const char *actual)
     return strcmp(expected, actual) == 0 ? 0 : 1;
 }
 
+static int require_buffer_filled(const uint8_t *buffer, size_t len, uint8_t expected)
+{
+    size_t i;
+
+    for (i = 0; i < len; ++i) {
+        if (buffer[i] != expected) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static void fill_u8(uint8_t *buffer, size_t len, uint8_t value)
 {
     size_t i;
@@ -58,6 +72,116 @@ static void fill_u8(uint8_t *buffer, size_t len, uint8_t value)
     for (i = 0; i < len; ++i) {
         buffer[i] = value;
     }
+}
+
+static int exercise_root_chacha20poly1305_contract(void)
+{
+    static const uint8_t key[32] = {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+    };
+    static const uint8_t nonce[12] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x4a, 0x00, 0x00, 0x00, 0x00,
+    };
+    static const uint8_t aad[] = {
+        0x50, 0x51, 0x52, 0x53, 0xc0, 0xc1, 0xc2, 0xc3,
+        0xc4, 0xc5, 0xc6, 0xc7,
+    };
+    static const uint8_t plaintext[] = {
+        'L', 'a', 'd', 'i', 'e', 's', ' ', 'a', 'n', 'd', ' ', 'G', 'e', 'n', 't', 'l',
+        'e', 'm', 'e', 'n', ' ', 'o', 'f', ' ', 't', 'h', 'e', ' ', 'c', 'l', 'a', 's',
+        's', ' ', 'o', 'f', ' ', '\'', '9', '9', ':', ' ', 'I', 'f', ' ', 'I', ' ', 'c',
+        'o', 'u', 'l', 'd', ' ', 'o', 'f', 'f', 'e', 'r', ' ', 'y', 'o', 'u', ' ', 'o',
+        'n', 'l', 'y', ' ', 'o', 'n', 'e', ' ', 't', 'i', 'p', ' ', 'f', 'o', 'r', ' ',
+        't', 'h', 'e', ' ', 'f', 'u', 't', 'u', 'r', 'e', ',', ' ', 's', 'u', 'n', 's',
+        'c', 'r', 'e', 'e', 'n', ' ', 'w', 'o', 'u', 'l', 'd', ' ', 'b', 'e', ' ', 'i',
+        't', '.',
+    };
+    static const uint8_t expected_cipher_with_tag[] = {
+        0x6e, 0x2e, 0x35, 0x9a, 0x25, 0x68, 0xf9, 0x80,
+        0x41, 0xba, 0x07, 0x28, 0xdd, 0x0d, 0x69, 0x81,
+        0xe9, 0x7e, 0x7a, 0xec, 0x1d, 0x43, 0x60, 0xc2,
+        0x0a, 0x27, 0xaf, 0xcc, 0xfd, 0x9f, 0xae, 0x0b,
+        0xf9, 0x1b, 0x65, 0xc5, 0x52, 0x47, 0x33, 0xab,
+        0x8f, 0x59, 0x3d, 0xab, 0xcd, 0x62, 0xb3, 0x57,
+        0x16, 0x39, 0xd6, 0x24, 0xe6, 0x51, 0x52, 0xab,
+        0x8f, 0x53, 0x0c, 0x35, 0x9f, 0x08, 0x61, 0xd8,
+        0x07, 0xca, 0x0d, 0xbf, 0x50, 0x0d, 0x6a, 0x61,
+        0x56, 0xa3, 0x8e, 0x08, 0x8a, 0x22, 0xb6, 0x5e,
+        0x52, 0xbc, 0x51, 0x4d, 0x16, 0xcc, 0xf8, 0x06,
+        0x81, 0x8c, 0xe9, 0x1a, 0xb7, 0x79, 0x37, 0x36,
+        0x5a, 0xf9, 0x0b, 0xbf, 0x74, 0xa3, 0x5b, 0xe6,
+        0xb4, 0x0b, 0x8e, 0xed, 0xf2, 0x78, 0x5e, 0x42,
+        0x87, 0x4d, 0x31, 0x79, 0x26, 0x7b, 0x0b, 0xa7,
+        0x1e, 0x40, 0xa2, 0xad, 0x86, 0x6f, 0xce, 0x5f,
+        0x80, 0x52,
+    };
+    uint8_t ciphertext[sizeof(expected_cipher_with_tag)];
+    uint8_t plaintext_out[sizeof(plaintext)];
+    size_t ciphertext_len;
+    size_t plaintext_len;
+
+    fill_u8(ciphertext, sizeof(ciphertext), 0xa5U);
+    ciphertext_len = 0U;
+    if (require_int_equal(-1, xy_chacha20poly1305_encrypt(NULL, nonce, aad, sizeof(aad),
+                                                          plaintext, sizeof(plaintext),
+                                                          ciphertext, &ciphertext_len))) {
+        return 1;
+    }
+    if (require_int_equal(0U, (int)ciphertext_len)) {
+        return 2;
+    }
+    if (require_buffer_filled(ciphertext, sizeof(ciphertext), 0xa5U)) {
+        return 3;
+    }
+
+    ciphertext_len = sizeof(ciphertext);
+    if (require_int_equal(0, xy_chacha20poly1305_encrypt(key, nonce, aad, sizeof(aad),
+                                                         plaintext, sizeof(plaintext),
+                                                         ciphertext, &ciphertext_len))) {
+        return 4;
+    }
+    if (require_int_equal((int)sizeof(expected_cipher_with_tag), (int)ciphertext_len)) {
+        return 5;
+    }
+    if (require_memory_equal(expected_cipher_with_tag, ciphertext,
+                             sizeof(expected_cipher_with_tag))) {
+        return 6;
+    }
+
+    fill_u8(plaintext_out, sizeof(plaintext_out), 0x5aU);
+    plaintext_len = 0U;
+    if (require_int_equal(0, xy_chacha20poly1305_decrypt(key, nonce, aad, sizeof(aad),
+                                                         ciphertext, ciphertext_len,
+                                                         plaintext_out, &plaintext_len))) {
+        return 7;
+    }
+    if (require_int_equal((int)sizeof(plaintext), (int)plaintext_len)) {
+        return 8;
+    }
+    if (require_memory_equal(plaintext, plaintext_out, sizeof(plaintext))) {
+        return 9;
+    }
+
+    ciphertext[sizeof(ciphertext) - 1U] ^= 0x01U;
+    fill_u8(plaintext_out, sizeof(plaintext_out), 0x5aU);
+    plaintext_len = sizeof(plaintext_out);
+    if (require_int_equal(-1, xy_chacha20poly1305_decrypt(key, nonce, aad, sizeof(aad),
+                                                          ciphertext, ciphertext_len,
+                                                          plaintext_out, &plaintext_len))) {
+        return 10;
+    }
+    if (require_int_equal((int)sizeof(plaintext_out), (int)plaintext_len)) {
+        return 11;
+    }
+    if (require_buffer_filled(plaintext_out, sizeof(plaintext_out), 0x5aU)) {
+        return 12;
+    }
+
+    return 0;
 }
 
 static int exercise_ecdsa_format_only_contract(void)
@@ -203,8 +327,12 @@ int main(void)
         return 14;
     }
 
-    if (exercise_ecdsa_format_only_contract()) {
+    if (exercise_root_chacha20poly1305_contract()) {
         return 15;
+    }
+
+    if (exercise_ecdsa_format_only_contract()) {
+        return 16;
     }
 
     return 0;

@@ -557,9 +557,9 @@ int xy_chacha20_poly1305_encrypt(
 
     /* Add lengths (64-bit little-endian) */
     prv_store32_le(&length_block[0], (uint32_t)aad_len);
-    prv_store32_le(&length_block[4], (uint32_t)(aad_len >> 32));
+    prv_store32_le(&length_block[4], (uint32_t)((uint64_t)aad_len >> 32));
     prv_store32_le(&length_block[8], (uint32_t)plaintext_len);
-    prv_store32_le(&length_block[12], (uint32_t)(plaintext_len >> 32));
+    prv_store32_le(&length_block[12], (uint32_t)((uint64_t)plaintext_len >> 32));
     xy_poly1305_update(&poly_ctx, length_block, 16);
 
     /* Generate tag */
@@ -629,9 +629,9 @@ int xy_chacha20_poly1305_decrypt(
     }
 
     prv_store32_le(&length_block[0], (uint32_t)aad_len);
-    prv_store32_le(&length_block[4], (uint32_t)(aad_len >> 32));
+    prv_store32_le(&length_block[4], (uint32_t)((uint64_t)aad_len >> 32));
     prv_store32_le(&length_block[8], (uint32_t)ciphertext_len);
-    prv_store32_le(&length_block[12], (uint32_t)(ciphertext_len >> 32));
+    prv_store32_le(&length_block[12], (uint32_t)((uint64_t)ciphertext_len >> 32));
     xy_poly1305_update(&poly_ctx, length_block, 16);
 
     ret = xy_poly1305_finish(&poly_ctx, computed_tag);

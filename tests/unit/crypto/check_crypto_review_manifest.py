@@ -39,6 +39,10 @@ RECONCILED_MODULE_RUNTIME_SOURCES = {
     "aes": "components/crypto/xy_aes/xy_aes.c",
 }
 
+ROOT_COMPATIBILITY_WRAPPER_SOURCES = {
+    "chacha20poly1305_root_wrapper": "components/crypto/src/xy_chacha20poly1305.c",
+}
+
 RECONCILED_MODULE_CMAKE_SOURCES = {
     "crc": "${CMAKE_CURRENT_SOURCE_DIR}/xy_crc/xy_crc.c",
     "base64": "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c",
@@ -56,6 +60,7 @@ ALLOWED_REVIEW_PENDING = {"review-pending"}
 ALLOWED_DUPLICATE_POLICIES = {
     "source-map-pending",
     "single-active-source",
+    "root-compatibility-wrapper",
     "focused-test-only-until-root-ownership-decided",
     "focused-test-only-upstream-material",
 }
@@ -143,6 +148,12 @@ def _crypto_root_target_sources() -> set[str]:
         _require(
             rel_source in cmake_text,
             f"components/crypto/CMakeLists.txt must append reconciled module runtime source: {rel_source}",
+            _require_messages,
+        )
+    for rel_source in ROOT_COMPATIBILITY_WRAPPER_SOURCES.values():
+        _require(
+            (ROOT / rel_source).exists(),
+            f"root compatibility wrapper source is missing: {rel_source}",
             _require_messages,
         )
     if _require_messages:

@@ -17,6 +17,7 @@ include_directories(
     xy_crc
     xy_blake
     xy_25519
+    xy_chacha
     inc
     ../hal/inc
     ../kernel/osal
