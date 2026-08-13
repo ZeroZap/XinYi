@@ -201,6 +201,7 @@
 - 已新增 `docs/design/xinyi-crypto-lwc-root-ownership-proposal-2026-08-14.md`，把 Ascon/TinyJAMBU/Photon-Beetle 从“umbrella header 可见”与“focused `crypto_lwc` 可测”之间的 runtime ownership 边界固定下来：当前仍是 `focused-test-only-until-root-ownership-decided`，若未来 consumer 需要 root `xy_tiny_crypto` 链接 LWC，必须先补 root-link smoke，再在同一小 slice 更新 CMake/source map/manifest；不得把 host CTest 或 header include 视为安全/来源审查或默认启用证据。
 - LWC root ownership 已按上述 proposal 的小步路径落地：`xy_tiny_crypto` 现在显式链接 Ascon/TinyJAMBU/Photon-Beetle module sources，`crypto_root_target_smoke` 覆盖最小 aggregate-link/API flow，source map 与 review manifest 已同步为 `root-runtime-module-source-limited`；这仍不代表 provenance/security/hardware approval，也不改变 `COMPONENT_CRYPTO` default-off 策略。后续 Crypto 不应重复做 LWC root-link smoke，只能按真实 consumer failure 或真实 review/provenance 证据补最小 slice。
 - 已新增 `docs/design/xinyi-crypto-curve25519-root-ownership-proposal-2026-08-14.md`，明确 Curve25519/Ed25519 与 LWC 不同：虽然 `xy_tiny_crypto.h` 有 X25519/Ed25519 声明，但 `xy_25519.c`/M0 material 仍保持 focused-test-only，依赖 RNG/SHA-512 seam 且 Ed25519 verify/security/provenance 证据不足。推荐继续 Option A（不接入 root runtime）直到出现真实 root consumer 或产品安全决策；后续若要接 root，必须另做 root-link/unsupported-wrapper 小 slice，并更新 source map、manifest、root smoke 与真实验证。
+- Curve25519 root ownership 已补 policy smoke：`crypto_curve25519_root_policy` 会检查 `xy_tiny_crypto` 未静默链接 `xy_25519`/M0 sources，manifest runtime_sources 保持 empty，source map/proposal 保留 focused-test-only 与 no-security-claim 边界。后续不应重复做该 policy guard；若出现真实 root consumer，应按 proposal Option B/C 单独实现并补 root-link/unsupported-wrapper smoke。
 
 ---
 
