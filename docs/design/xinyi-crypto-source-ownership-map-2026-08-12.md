@@ -59,7 +59,7 @@ Therefore the root `xy_tiny_crypto` runtime build uses:
 | AES | `components/crypto/xy_aes/xy_aes.c` | Reconciled MD5/HMAC/AES slice: root `xy_tiny_crypto` now consumes the same module source as `crypto_cipher_hmac`; stale duplicate `src/xy_aes.c` was removed. |
 | ChaCha20/Poly1305 | `components/crypto/src/xy_chacha20poly1305.c` | Root compact compatibility wrapper over the module-owned RFC 8439 implementation in `xy_chacha/xy_chacha20_poly1305.c`; `crypto_root_target_smoke` covers root `ciphertext || tag` behavior and auth-failure output preservation. |
 | BLAKE2 | `components/crypto/xy_blake/xy_blake2.c` | Reconciled checksum/hash utility slice: root `xy_tiny_crypto` now consumes the same module source as `crypto_blake2`; stale duplicate `src/xy_blake2.c` was removed. |
-| ECDSA | `components/crypto/src/xy_ecdsa.c` | Root aggregate source only in current map; no focused CTest contract in current manifest. |
+| ECDSA | `components/crypto/src/xy_ecdsa.c` | Root aggregate source only in current map; explicit format-only placeholder contract is covered by `crypto_ecdsa_root_contract` and linked from `crypto_review_manifest` as `security-rejected`. |
 | SM3 | `components/crypto/xy_sm3/xy_sm3.c` | Linked via subdirectory target `xy_sm3`, not `src/*.c`. |
 | SM4 | `components/crypto/xy_sm4/xy_sm4.c` | Linked via subdirectory target `xy_sm4`, not `src/*.c`. |
 | SM2 | `components/crypto/xy_sm2/xy_sm2.c` | Linked via subdirectory target `xy_sm2`, single active source in manifest. |
@@ -77,6 +77,7 @@ The canonical host contract suite links algorithm sources directly from `tests/u
 | `crypto_hash` | `components/crypto/xy_md/xy_md5.c`, `components/crypto/xy_hmac/xy_sha256.c` | Guards module MD5/SHA-256 copies. |
 | `crypto_cipher_hmac` | `components/crypto/xy_aes/xy_aes.c`, `components/crypto/xy_hmac/xy_hmac.c`, `components/crypto/xy_md/xy_md5.c`, `components/crypto/xy_hmac/xy_sha256.c`, `components/crypto/xy_sm3/xy_sm3.c`, `components/crypto/xy_sm4/xy_sm4.c`, `components/crypto/xy_chacha/xy_chacha20_poly1305.c` | Guards module cipher/HMAC/SM copies and the canonical ChaCha20/Poly1305 arithmetic implementation. |
 | `crypto_blake2` | `components/crypto/xy_blake/xy_blake2.c` | Focused BLAKE2s host vectors, incremental/keyed behavior, invalid-parameter output preservation, and the canonical source now shared by focused tests and the root runtime target; still not security/provenance review. |
+| `crypto_ecdsa_root_contract` | `components/crypto/src/xy_ecdsa.c` | Focused root-only ECDSA format-guard placeholder contract: null/malformed/range guards plus explicit message-non-binding success behavior; security status remains `security-rejected`. |
 | `crypto_sm2` | `xy_sm2/`, `xy_sm3/`, `xy_sm4/`, `xy_rng/` | Guards SM2 public placeholder-grade contract plus helper modules. |
 | `crypto_lwc` | `components/crypto/xy_ascon/xy_ascon.c`, `components/crypto/xy_tinyjambu/xy_tinyjambu.c`, `components/crypto/xy_photon_beetle/xy_photon_beetle.c` | Focused-test-only until root ownership is intentionally decided. |
 | `crypto_25519` | `components/crypto/xy_25519/xy_25519.c` | Focused-test-only until root ownership is intentionally decided. |
