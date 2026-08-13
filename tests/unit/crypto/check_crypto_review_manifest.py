@@ -341,9 +341,10 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
                 review_record_text = _read_review_record(review_record)
 
         if algorithm.get("security_status") in APPROVED_STATUSES:
+            expected_decision = f"Decision status: `{algorithm.get('security_status')}`"
             for phrase in (
                 "host CTest",
-                "Decision status",
+                expected_decision,
                 "Required follow-up before stronger claims",
             ):
                 _require(
