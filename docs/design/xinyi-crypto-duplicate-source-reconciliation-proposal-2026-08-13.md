@@ -1,17 +1,17 @@
 # XinYi Crypto duplicate source reconciliation proposal
 
 **Date**: 2026-08-13  
-**Status**: proposal / no source moves  
+**Status**: implemented for current duplicate groups / remaining root wrappers documented
 **Scope**: `components/crypto/src/*`, algorithm module directories, `xy_tiny_crypto`, and `tests/unit/crypto` source ownership guards.
 
 ## 1. Why this proposal exists
 
-Crypto is now host-guarded and has an explicit security/provenance review manifest, but several algorithms still exist in two byte-identical source copies:
+Crypto is now host-guarded and has an explicit security/provenance review manifest. Earlier duplicate root/module copies have been reconciled to module-owned single active sources, while remaining root `src/` files are compatibility or placeholder sources rather than byte-identical duplicates:
 
-- root/runtime aggregate copies under `components/crypto/src/*.c`, used by the `xy_tiny_crypto` target;
-- module-directory copies under paths such as `xy_crc/`, `xy_base/`, `xy_rng/`, `xy_md/`, `xy_hmac/`, `xy_aes/`, and `xy_blake/`, used by focused host CTests.
+- root/runtime compatibility or root-only sources under `components/crypto/src/*.c`, used by the `xy_tiny_crypto` target;
+- module-directory sources under paths such as `xy_crc/`, `xy_base/`, `xy_rng/`, `xy_md/`, `xy_hmac/`, `xy_aes/`, and `xy_blake/`, now shared by the root target and focused host CTests for reconciled algorithm groups.
 
-The current `crypto_review_manifest` intentionally guards these duplicate pairs from silently diverging while their ownership remains `source-map-pending`. This proposal defines the low-risk reconciliation sequence for a later implementation slice. It does **not** move files, delete files, change `COMPONENT_CRYPTO`, rename `xy_tiny_crypto`, or upgrade any algorithm's security/provenance status.
+The current `crypto_review_manifest` guards this ownership map so reconciled algorithms remain `single-active-source`, and the ChaCha root compact API remains a documented compatibility-wrapper boundary. This document is now a status/safety record for the completed reconciliation sequence. It does **not** change `COMPONENT_CRYPTO`, rename `xy_tiny_crypto`, or upgrade any algorithm's security/provenance status.
 
 ## 2. Current duplicate/source-ownership pairs
 
@@ -36,9 +36,9 @@ Related non-duplicate or special cases:
 - `components/crypto/src/xy_ecdsa.c` is root-runtime-only and explicitly `security-rejected` as a format-only placeholder.
 - SM2/SM3/SM4 are module targets linked into the root crypto library rather than duplicated in `src/*.c`.
 
-## 3. Proposed reconciliation direction
+## 3. Implemented reconciliation direction
 
-For byte-identical pairs, prefer **module-directory source ownership** and make the root target consume module sources explicitly or through small module libraries. Rationale:
+For byte-identical pairs, prefer **module-directory source ownership** and make the root target consume module sources explicitly or through small module libraries. This is now the implemented shape for Base64/Hex/CRC/BLAKE2/Random/CSPRNG/MD5/HMAC/AES. Rationale:
 
 1. Focused CTests already guard the module-directory implementations.
 2. Module directories preserve algorithm-local headers, examples, and review records.
@@ -47,9 +47,9 @@ For byte-identical pairs, prefer **module-directory source ownership** and make 
 
 The final target shape should still keep `xy_tiny_crypto` as the public root/runtime target. A future `xy_crypto` full rename remains out of scope.
 
-## 4. Safe implementation sequence
+## 4. Safe implementation sequence status
 
-Do not reconcile all pairs in one patch. Use one small algorithm group per verified slice:
+Do not reconcile future source-ownership changes in one patch. The completed sequence used one small algorithm group per verified slice:
 
 1. **Encoding group**: Base64 + Hex. **Done in first reconciliation slice; stale root duplicates pruned in follow-up closure.**
    - Switch root `xy_tiny_crypto` to compile `xy_base/xy_base64.c` and `xy_hex/xy_hex.c` instead of `src/xy_base64.c` and `src/xy_hex.c`.
@@ -65,7 +65,7 @@ Do not reconcile all pairs in one patch. Use one small algorithm group per verif
    - Reuse module copies only after confirming root public `xy_tiny_crypto.h` signatures still bind correctly.
    - Keep `src/xy_sha256_hmac.c` ownership separate unless a dedicated SHA-256/HMAC root API reconciliation is designed.
 
-After each remaining slice:
+After any future ownership slice:
 
 - update `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md` for only the reconciled pair(s);
 - update `components/crypto/crypto_review_manifest.json` duplicate policy for only the reconciled pair(s);
