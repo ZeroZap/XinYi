@@ -26,14 +26,6 @@ EXCLUDED_ROOT_AGGREGATE_SOURCES = {
 }
 
 IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
-    "random": (
-        "components/crypto/src/xy_random.c",
-        "components/crypto/xy_rng/xy_random.c",
-    ),
-    "csprng": (
-        "components/crypto/src/xy_csprng.c",
-        "components/crypto/xy_rng/xy_csprng.c",
-    ),
     "md5": (
         "components/crypto/src/xy_md5.c",
         "components/crypto/xy_md/xy_md5.c",
@@ -53,6 +45,8 @@ RECONCILED_MODULE_RUNTIME_SOURCES = {
     "base64": "components/crypto/xy_base/xy_base64.c",
     "hex": "components/crypto/xy_hex/xy_hex.c",
     "blake2": "components/crypto/xy_blake/xy_blake2.c",
+    "random": "components/crypto/xy_rng/xy_random.c",
+    "csprng": "components/crypto/xy_rng/xy_csprng.c",
 }
 
 RECONCILED_MODULE_CMAKE_SOURCES = {
@@ -60,6 +54,8 @@ RECONCILED_MODULE_CMAKE_SOURCES = {
     "base64": "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c",
     "hex": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hex/xy_hex.c",
     "blake2": "${CMAKE_CURRENT_SOURCE_DIR}/xy_blake/xy_blake2.c",
+    "random": "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_random.c",
+    "csprng": "${CMAKE_CURRENT_SOURCE_DIR}/xy_rng/xy_csprng.c",
 }
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
@@ -164,6 +160,8 @@ def _crypto_root_target_sources() -> set[str]:
         "components/crypto/src/xy_base64.c",
         "components/crypto/src/xy_hex.c",
         "components/crypto/src/xy_blake2.c",
+        "components/crypto/src/xy_random.c",
+        "components/crypto/src/xy_csprng.c",
     }
     return {
         f"components/crypto/src/{path.name}"
@@ -478,6 +476,8 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             "components/crypto/src/xy_base64.c",
             "components/crypto/src/xy_hex.c",
             "components/crypto/src/xy_blake2.c",
+            "components/crypto/src/xy_random.c",
+            "components/crypto/src/xy_csprng.c",
         }
     }
     _require(

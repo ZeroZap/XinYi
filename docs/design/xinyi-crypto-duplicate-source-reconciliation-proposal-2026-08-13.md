@@ -58,7 +58,7 @@ Do not reconcile all pairs in one patch. Use one small algorithm group per verif
 2. **Checksum/hash utility group**: CRC and BLAKE2. **Done in second reconciliation slice.**
    - Reuse module CRC/BLAKE2 sources in root target.
    - Run focused `crypto_crc`, `crypto_blake2`, `crypto_root_target_smoke`, and `crypto_review_manifest`.
-3. **RNG group**: Random + CSPRNG.
+3. **RNG group**: Random + CSPRNG. **Done in third reconciliation slice.**
    - Reuse module RNG/CSPRNG sources in root target.
    - Preserve the current warning that `xy_random_*` is non-security utility/demo only and `xy_csprng_*` depends on caller-owned entropy/seed quality.
 4. **MD5/HMAC/AES group**: MD5, HMAC, AES.
