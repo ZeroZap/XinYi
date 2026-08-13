@@ -34,7 +34,7 @@
   - No RNG/CSPRNG implementation code changes in this review slice.
 - Duplicate ownership notes:
   - Root/runtime `xy_tiny_crypto` now consumes `xy_rng/xy_random.c` and `xy_rng/xy_csprng.c`, the same sources as the focused `crypto_random` and `crypto_csprng` CTests.
-  - Historical `components/crypto/src/xy_random.c` and `components/crypto/src/xy_csprng.c` copies remain only as rollback/reference files in this slice; `crypto_review_manifest` records the active runtime policy as `single-active-source` for the module-owned RNG sources.
+  - Historical `components/crypto/src/xy_random.c` and `components/crypto/src/xy_csprng.c` duplicates have been removed; `crypto_review_manifest` records the active runtime policy as `single-active-source` for the module-owned RNG sources.
   - This record does not expose new APIs, enable `COMPONENT_CRYPTO` by default, or claim hardware entropy availability.
 
 ## 3. Security review
@@ -50,13 +50,13 @@
   - `crypto_random` intentionally validates API shape, zero-length behavior, and non-zero output shape only; it does not assert unpredictability.
   - `crypto_csprng` uses deterministic seed/entropy fixtures to check lifecycle, buffering, reseed, and integer helpers; those fixtures are not entropy-source evidence.
   - CSPRNG security depends on caller-owned seed/entropy source quality and reseed policy, neither of which is reviewed or implemented as a product-level hardware source in this slice.
-  - Historical root duplicate files remain present as rollback/reference material; this record does not delete them or upgrade provenance/security claims.
+  - Historical root duplicate files have been removed in a later verified source-ownership slice; this record still does not upgrade provenance/security claims.
 - Test evidence:
   - `crypto_random` covers invalid params, zero-length no-op behavior, requested-length writes, and repeated `xy_random_uint32()` availability.
   - `crypto_csprng` covers init/cleanup guards, deterministic split-vs-full buffering, reseed output change, and integer/uniform helper boundaries.
-  - `crypto_review_manifest` links this review record and keeps provenance pending plus duplicate-copy/source-map policy checks active.
+  - `crypto_review_manifest` links this review record and keeps provenance pending plus single-active-source/source-map policy checks active.
 - Missing evidence:
-  - External provenance/license record, independent DRBG/CSPRNG security audit, authoritative DRBG vectors, entropy-source design, entropy health tests, side-channel review, fuzzing, hardware RNG evidence, and source-ownership reconciliation.
+  - External provenance/license record, independent DRBG/CSPRNG security audit, authoritative DRBG vectors, entropy-source design, entropy health tests, side-channel review, fuzzing, and hardware RNG evidence.
 
 ## 4. Decision
 
@@ -68,7 +68,7 @@
   - Link provenance/license evidence for each RNG/CSPRNG implementation source.
   - Define and validate a product entropy-source/HWRNG/seed-injection policy.
   - Add DRBG/CSPRNG review, authoritative vectors, health tests, and side-channel considerations for security-sensitive use.
-  - Delete stale historical root duplicate files only in a later path-limited cleanup slice after focused/root tests and source-map guards pass.
+  - Keep source-map and manifest guards aligned with the RNG/CSPRNG module-directory single-active-source policy.
   - Add hardware RNG or board entropy evidence only through separate hardware validation records.
 
 ## 5. Verification commands

@@ -21,11 +21,8 @@
 ## 2. Source / provenance
 
 - Source paths reviewed:
-  - `components/crypto/src/xy_crc.c`
   - `components/crypto/xy_crc/xy_crc.c`
-  - `components/crypto/src/xy_base64.c`
   - `components/crypto/xy_base/xy_base64.c`
-  - `components/crypto/src/xy_hex.c`
   - `components/crypto/xy_hex/xy_hex.c`
   - `tests/unit/crypto/test_crypto_crc.c`
   - `tests/unit/crypto/test_crypto_encode.c`
@@ -38,7 +35,8 @@
 - Local modifications:
   - No CRC/Base64/Hex implementation code changes in this review slice.
 - Duplicate ownership notes:
-  - CRC, Base64, and Hex still have root/runtime copies under `components/crypto/src/` and focused-test module copies under `xy_crc/`, `xy_base/`, and `xy_hex/`; `crypto_review_manifest` keeps the byte-identical duplicate-copy guard active.
+  - CRC, Base64, and Hex have been reconciled to module-directory single active sources for the root `xy_tiny_crypto` target and focused CTests; the historical root/runtime duplicates under `components/crypto/src/` have been removed.
+  - This record is a limited security boundary record only; it does not upgrade provenance, side-channel, fuzzing, hardware, or compliance evidence.
 
 ## 3. Security review
 
@@ -48,18 +46,18 @@
 - Explicit non-goals:
   - No authentication, signature, confidentiality, anti-tamper, password hashing, secure boot, protocol security, certification, side-channel, constant-time, hardware-acceleration, or compliance claim.
   - No provenance/license approval beyond current repository context.
-  - No duplicate-source ownership reconciliation or source deletion.
+  - No further duplicate-source ownership work in this review record.
 - Known placeholder/legacy/weak areas:
   - CRC is linear and not collision-resistant; it must not be used as a MAC, signature substitute, tamper-proof checksum, or authorization decision.
   - Base64/Hex only encode bytes for transport/debug/storage. They provide no encryption, integrity, authentication, or validation of semantic content.
-  - Duplicate root/module source ownership remains `source-map-pending`; this record does not choose a canonical copy.
+  - Source ownership has been reconciled to module-directory single active sources, but provenance and security evidence remain limited as stated in this record.
 - Test evidence:
   - `crypto_crc` covers CRC public vectors plus software/table/HW-fallback contract.
   - `crypto_encode` covers Base64/Hex vectors, invalid inputs, buffer-too-small handling, and public length helpers.
   - `crypto_smoke_example` exercises host-safe public Base64/Hex APIs as API-drift smoke only.
-  - `crypto_review_manifest` links this review record and keeps duplicate-copy/source-map policy checks active.
+  - `crypto_review_manifest` links this review record and keeps the single-active-source runtime source map policy checks active.
 - Missing evidence:
-  - External provenance/license record, independent audit, fuzzing, hardware acceleration evidence, and a source-ownership reconciliation decision.
+  - External provenance/license record, independent audit, fuzzing, and hardware acceleration evidence.
 
 ## 4. Decision
 
@@ -69,7 +67,7 @@
   - Base64/Hex may be used only as encoding/decoding helpers with no security claim.
 - Required follow-up before stronger claims:
   - Add provenance/license evidence for each implementation source.
-  - Reconcile or intentionally preserve root/module duplicate source ownership with focused and root-target tests.
+  - Keep source-map and manifest guards aligned with the module-directory single-active-source policy.
   - Add fuzz/boundary evidence if these helpers become public input parsers in a product surface.
   - Do not promote CRC/Base64/Hex to security controls; use reviewed cryptographic MAC/signature/encryption primitives instead.
 

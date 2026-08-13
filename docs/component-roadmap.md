@@ -402,8 +402,8 @@ struct rt_device {
   
 - [x] **CRYPTO-002**: root/runtime 与 focused-test source ownership map
   - `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md`
-  - duplicate `src/` vs module copy 先保持 source-map-pending
-  - 已有 byte-identical duplicate guard；不得同轮批量移动/删除源码
+  - Base64/Hex/CRC/BLAKE2/Random/CSPRNG/MD5/HMAC/AES 已收敛到 module-directory single-active-source
+  - ChaCha20-Poly1305 保留 root compact compatibility wrapper + module arithmetic ownership；不得同轮批量删除 `src/` 或重命名 root target
   
 - [x] **CRYPTO-003a**: SM2 placeholder security rejection record
   - `docs/validation/xinyi-crypto-sm2-placeholder-security-review-2026-08-13.md`

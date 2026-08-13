@@ -21,9 +21,8 @@
 ## 2. Source / provenance
 
 - Source paths reviewed:
-  - `components/crypto/src/xy_aes.c`
-  - `components/crypto/src/xy_chacha20poly1305.c`
   - `components/crypto/xy_aes/xy_aes.c`
+  - `components/crypto/src/xy_chacha20poly1305.c`
   - `components/crypto/xy_sm3/xy_sm3.c`
   - `components/crypto/xy_sm4/xy_sm4.c`
   - `components/crypto/xy_chacha/xy_chacha20_poly1305.c`
@@ -36,8 +35,8 @@
 - Local modifications:
   - No AES/SM3/SM4/ChaCha20/Poly1305 implementation code changes in this review slice.
 - Duplicate ownership notes:
-  - `xy_aes.c` still has root/runtime copies under `components/crypto/src/` and focused-test module copies under `xy_aes/`; `crypto_review_manifest` keeps the byte-identical duplicate-copy guard active for that pair.
-  - `components/crypto/src/xy_chacha20poly1305.c` is the root/runtime aggregate copy for the ChaCha20-Poly1305 area; focused tests use `components/crypto/xy_chacha/xy_chacha20_poly1305.c`. This record does not reconcile the root/module source split.
+  - AES has been reconciled to module-directory single active source ownership: root `xy_tiny_crypto` and focused `crypto_cipher_hmac` both consume `components/crypto/xy_aes/xy_aes.c`; the historical duplicate `components/crypto/src/xy_aes.c` has been removed.
+  - `components/crypto/src/xy_chacha20poly1305.c` remains a compact root compatibility wrapper over the module-owned RFC 8439 arithmetic implementation in `components/crypto/xy_chacha/xy_chacha20_poly1305.c`, guarded by `crypto_root_target_smoke` plus `crypto_cipher_hmac`.
   - SM3 and SM4 are currently focused-test module sources only in the manifest; this record does not add them to the root aggregate target.
 
 ## 3. Security review
@@ -50,12 +49,12 @@
 - Known placeholder/legacy/weak areas:
   - AES/SM3/SM4/ChaCha20/Poly1305 have vector/API host tests, but no independent implementation audit or side-channel review.
   - Correct production use depends on caller-owned key storage, nonce uniqueness, mode selection, padding policy, and error handling; these are outside the current component contract tests.
-  - Duplicate root/module source ownership remains `source-map-pending`; this record does not reconcile or delete copies.
+  - AES source ownership and the ChaCha root-wrapper boundary are now reconciled in the source map, but this record still does not provide provenance, side-channel, fuzzing, hardware, or compliance evidence.
 - Test evidence:
   - `crypto_cipher_hmac` covers AES-128, SM3, SM4, ChaCha20, Poly1305, ChaCha20-Poly1305 AEAD vectors, invalid-parameter guards, and tampered-tag output preservation.
-  - `crypto_review_manifest` links this review record and keeps duplicate-copy/source-map policy checks active.
+  - `crypto_review_manifest` links this review record and keeps single-active-source / root-compatibility-wrapper source-map policy checks active.
 - Missing evidence:
-  - External provenance/license record, independent security audit, side-channel/constant-time review, fuzzing, misuse-resistance review, hardware acceleration evidence, and a source-ownership reconciliation decision.
+  - External provenance/license record, independent security audit, side-channel/constant-time review, fuzzing, misuse-resistance review, and hardware acceleration evidence.
 
 ## 4. Decision
 
@@ -65,7 +64,7 @@
   - These helpers remain prohibited as certified, compliance-sensitive, hardware-validated, or side-channel-reviewed implementations until separate evidence exists.
 - Required follow-up before stronger claims:
   - Add provenance/license evidence for each implementation source.
-  - Reconcile or intentionally preserve root/module duplicate source ownership with focused and root-target tests.
+  - Keep source-map and manifest guards aligned with the AES single-active-source policy and ChaCha root compatibility-wrapper boundary.
   - Add side-channel/constant-time and misuse-resistance review for any security-sensitive product path.
   - Add hardware acceleration or MCU-specific validation only through separate hardware validation records.
 
