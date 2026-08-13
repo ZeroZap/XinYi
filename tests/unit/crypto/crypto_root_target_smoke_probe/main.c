@@ -184,6 +184,63 @@ static int exercise_root_chacha20poly1305_contract(void)
     return 0;
 }
 
+static int exercise_lwc_root_link_contract(void)
+{
+    uint8_t ascon_key[XY_ASCON_128_KEY_SIZE] = {0};
+    uint8_t ascon_nonce[XY_ASCON_128_NONCE_SIZE] = {0};
+    uint8_t ascon_plaintext[16] = {0};
+    uint8_t ascon_ciphertext[sizeof(ascon_plaintext)];
+    uint8_t ascon_tag[XY_ASCON_128_TAG_SIZE];
+    uint8_t tinyjambu_key[XY_TINYJAMBU_128_KEY_SIZE] = {0};
+    uint8_t tinyjambu_nonce[XY_TINYJAMBU_128_NONCE_SIZE] = {0};
+    uint8_t tinyjambu_plaintext[16] = {0};
+    uint8_t tinyjambu_ciphertext[sizeof(tinyjambu_plaintext)];
+    uint8_t tinyjambu_tag[XY_TINYJAMBU_128_TAG_SIZE];
+    uint8_t photon_key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
+    uint8_t photon_nonce[XY_PHOTON_BEETLE_NONCE_SIZE] = {0};
+    uint8_t photon_plaintext[16] = {0};
+    uint8_t photon_ciphertext[sizeof(photon_plaintext)];
+    uint8_t photon_tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    uint8_t photon_hash[XY_PHOTON_HASH_SIZE];
+
+    fill_u8(ascon_plaintext, sizeof(ascon_plaintext), 0x11U);
+    fill_u8(tinyjambu_plaintext, sizeof(tinyjambu_plaintext), 0x22U);
+    fill_u8(photon_plaintext, sizeof(photon_plaintext), 0x33U);
+
+    if (require_int_equal(XY_ASCON_SUCCESS,
+                          xy_ascon_128_encrypt(ascon_key, ascon_nonce, (const uint8_t *)0, 0,
+                                                ascon_plaintext, sizeof(ascon_plaintext),
+                                                ascon_ciphertext, ascon_tag))) {
+        return 1;
+    }
+
+    if (require_int_equal(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt(tinyjambu_key, tinyjambu_nonce,
+                                                    (const uint8_t *)0, 0,
+                                                    tinyjambu_plaintext,
+                                                    sizeof(tinyjambu_plaintext),
+                                                    tinyjambu_ciphertext, tinyjambu_tag))) {
+        return 2;
+    }
+
+    if (require_int_equal(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt(photon_key, photon_nonce,
+                                                    (const uint8_t *)0, 0, photon_plaintext,
+                                                    sizeof(photon_plaintext), photon_ciphertext,
+                                                    photon_tag))) {
+        return 3;
+    }
+    if (require_int_equal(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_hash((const uint8_t *)"root-lwc", 8, photon_hash))) {
+        return 4;
+    }
+    if (photon_hash[0] == 0U && photon_hash[1] == 0U) {
+        return 5;
+    }
+
+    return 0;
+}
+
 static int exercise_ecdsa_format_only_contract(void)
 {
     const uint8_t message[] = {'r', 'o', 'o', 't', '-', 's', 'm', 'o', 'k', 'e'};
@@ -333,6 +390,13 @@ int main(void)
 
     if (exercise_ecdsa_format_only_contract()) {
         return 16;
+    }
+
+    {
+        int lwc_status = exercise_lwc_root_link_contract();
+        if (lwc_status) {
+            return 16 + lwc_status;
+        }
     }
 
     return 0;

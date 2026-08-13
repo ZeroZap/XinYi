@@ -37,6 +37,9 @@ RECONCILED_MODULE_RUNTIME_SOURCES = {
     "md5": "components/crypto/xy_md/xy_md5.c",
     "hmac": "components/crypto/xy_hmac/xy_hmac.c",
     "aes": "components/crypto/xy_aes/xy_aes.c",
+    "lwc_ascon": "components/crypto/xy_ascon/xy_ascon.c",
+    "lwc_tinyjambu": "components/crypto/xy_tinyjambu/xy_tinyjambu.c",
+    "lwc_photon_beetle": "components/crypto/xy_photon_beetle/xy_photon_beetle.c",
 }
 
 ROOT_COMPATIBILITY_WRAPPER_SOURCES = {
@@ -53,6 +56,9 @@ RECONCILED_MODULE_CMAKE_SOURCES = {
     "md5": "${CMAKE_CURRENT_SOURCE_DIR}/xy_md/xy_md5.c",
     "hmac": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c",
     "aes": "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c",
+    "lwc_ascon": "${CMAKE_CURRENT_SOURCE_DIR}/xy_ascon/xy_ascon.c",
+    "lwc_tinyjambu": "${CMAKE_CURRENT_SOURCE_DIR}/xy_tinyjambu/xy_tinyjambu.c",
+    "lwc_photon_beetle": "${CMAKE_CURRENT_SOURCE_DIR}/xy_photon_beetle/xy_photon_beetle.c",
 }
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
@@ -61,6 +67,7 @@ ALLOWED_DUPLICATE_POLICIES = {
     "source-map-pending",
     "single-active-source",
     "root-compatibility-wrapper",
+    "root-runtime-module-source-limited",
     "focused-test-only-until-root-ownership-decided",
     "focused-test-only-upstream-material",
 }

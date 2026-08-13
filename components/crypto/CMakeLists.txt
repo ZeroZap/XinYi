@@ -18,6 +18,9 @@ include_directories(
     xy_blake
     xy_25519
     xy_chacha
+    xy_ascon
+    xy_tinyjambu
+    xy_photon_beetle
     inc
     ../hal/inc
     ../kernel/osal
@@ -55,6 +58,9 @@ list(APPEND CRYPTO_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_md/xy_md5.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_ascon/xy_ascon.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_tinyjambu/xy_tinyjambu.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/xy_photon_beetle/xy_photon_beetle.c"
 )
 file(GLOB CRYPTO_HEADERS "inc/*.h")
 
