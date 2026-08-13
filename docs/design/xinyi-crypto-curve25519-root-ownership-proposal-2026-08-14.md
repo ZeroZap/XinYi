@@ -77,7 +77,7 @@ Use **Option A** until a real root consumer or product decision exists.
 
 Next low-risk implementation, if needed, should be a policy-smoke slice rather than a runtime change:
 
-- Add a `crypto_curve25519_root_policy` smoke that verifies the source map and manifest keep Curve25519 focused-test-only while root `xy_tiny_crypto` does not claim X25519/Ed25519 root runtime ownership.
+- Add a `crypto_curve25519_root_policy` smoke that verifies the source map and manifest keep Curve25519 focused-test-only while root `xy_tiny_crypto` does not claim X25519/Ed25519 root runtime ownership. **Implemented:** `tests/unit/crypto/check_crypto_curve25519_root_policy.py` is registered as the `crypto_curve25519_root_policy` CTest.
 - Keep it documentation/policy-only; do not link `xy_25519.c` into the root target in the same slice.
 
 ## 5. Non-goals
