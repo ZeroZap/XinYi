@@ -1,8 +1,14 @@
 /**
  * @file xy_ecdsa.h
- * @brief ECDSA P-256 Signature Verification
+ * @brief ECDSA P-256 format guard placeholder API.
  * @version 1.0.0
  * @date 2026-03-02
+ *
+ * @warning The current root aggregate implementation only validates the serialized
+ * public-key/signature field shape and returns success for valid-looking inputs. It
+ * does not hash the message or perform elliptic-curve signature verification. Treat
+ * this API as test-only / compatibility-only until a separate security/provenance
+ * review and real implementation replace the placeholder.
  */
 
 #ifndef XY_ECDSA_H
@@ -40,24 +46,33 @@ typedef struct {
 } xy_ecdsa_sig_t;
 
 /**
- * @brief 验证 ECDSA P-256 签名
- * @param pub_key 公钥 (64 字节)
- * @param message 消息数据
- * @param msg_len 消息长度
- * @param sig 签名 (64 字节)
- * @return 0 成功，-1 失败
+ * @brief Validate the current placeholder P-256 public-key/signature field shape.
+ *
+ * @warning This function does not perform real ECDSA verification. A return value of
+ * 0 only means the current format/range guards accepted the public key and signature
+ * fields; it does not bind @p sig to @p message or prove authenticity.
+ *
+ * @param pub_key Public key fields.
+ * @param message Message data; currently only checked for non-NULL.
+ * @param msg_len Message length; currently ignored by the placeholder.
+ * @param sig Signature fields.
+ * @return 0 if the placeholder format guard accepts the fields, -1 otherwise.
  */
 int xy_ecdsa_p256_verify(const xy_ecdsa_pub_key_t *pub_key,
                          const uint8_t *message, size_t msg_len,
                          const xy_ecdsa_sig_t *sig);
 
 /**
- * @brief 简化版验证接口
- * @param pub_key 公钥 (64 字节)
- * @param message 消息数据
- * @param msg_len 消息长度
- * @param sig 签名 (64 字节)
- * @return 0 成功，-1 失败
+ * @brief Serialized-input wrapper around xy_ecdsa_p256_verify().
+ *
+ * @warning Same placeholder boundary as xy_ecdsa_p256_verify(): success is only a
+ * format-guard result and must not be used as production signature verification.
+ *
+ * @param pub_key Serialized public key (64 bytes: x || y).
+ * @param message Message data; currently only checked for non-NULL.
+ * @param msg_len Message length; currently ignored by the placeholder.
+ * @param sig Serialized signature (64 bytes: r || s).
+ * @return 0 if the placeholder format guard accepts the fields, -1 otherwise.
  */
 int xy_ecdsa_verify_simple(const uint8_t *pub_key,
                            const uint8_t *message, size_t msg_len,

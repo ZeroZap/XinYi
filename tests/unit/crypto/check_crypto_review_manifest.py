@@ -19,6 +19,7 @@ MANIFEST_PATH = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
 UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
 CRYPTO_CMAKE_PATH = ROOT / "components" / "crypto" / "CMakeLists.txt"
 CRYPTO_SRC_DIR = ROOT / "components" / "crypto" / "src"
+ECDSA_PUBLIC_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_ecdsa.h"
 
 EXCLUDED_ROOT_AGGREGATE_SOURCES = {
     "components/crypto/src/xy_sha256.c",
@@ -180,6 +181,26 @@ def _validate_identical_duplicate_sources(source_map_text: str, errors: list[str
             )
 
 
+def _validate_placeholder_api_warnings(errors: list[str]) -> None:
+    """Keep placeholder-grade public APIs from looking production-ready."""
+    if not ECDSA_PUBLIC_HEADER_PATH.exists():
+        errors.append("ECDSA public header is missing: components/crypto/inc/xy_ecdsa.h")
+        return
+
+    header_text = ECDSA_PUBLIC_HEADER_PATH.read_text(encoding="utf-8")
+    for phrase in (
+        "format guard placeholder API",
+        "does not perform real ECDSA verification",
+        "does not bind @p sig to @p message",
+        "must not be used as production signature verification",
+    ):
+        _require(
+            phrase in header_text,
+            f"xy_ecdsa.h must preserve placeholder/evidence-boundary warning phrase: {phrase}",
+            errors,
+        )
+
+
 def validate_manifest(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 
@@ -238,6 +259,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             )
 
     _validate_identical_duplicate_sources(source_map_text, errors)
+    _validate_placeholder_api_warnings(errors)
 
     algorithms = data.get("algorithms")
     _require(isinstance(algorithms, list) and len(algorithms) > 0, "algorithms must be a non-empty list", errors)
