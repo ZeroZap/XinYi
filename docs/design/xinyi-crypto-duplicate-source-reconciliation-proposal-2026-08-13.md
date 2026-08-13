@@ -51,11 +51,11 @@ The final target shape should still keep `xy_tiny_crypto` as the public root/run
 
 Do not reconcile all pairs in one patch. Use one small algorithm group per verified slice:
 
-1. **Encoding group**: Base64 + Hex.
+1. **Encoding group**: Base64 + Hex. **Done in first reconciliation slice.**
    - Switch root `xy_tiny_crypto` to compile `xy_base/xy_base64.c` and `xy_hex/xy_hex.c` instead of `src/xy_base64.c` and `src/xy_hex.c`.
    - Keep public root headers and focused `crypto_encode`/`crypto_smoke_example` unchanged.
    - Add or extend a root-target smoke assertion if root aggregate behavior is not already covered.
-2. **Checksum/hash utility group**: CRC and BLAKE2.
+2. **Checksum/hash utility group**: CRC and BLAKE2. **Done in second reconciliation slice.**
    - Reuse module CRC/BLAKE2 sources in root target.
    - Run focused `crypto_crc`, `crypto_blake2`, `crypto_root_target_smoke`, and `crypto_review_manifest`.
 3. **RNG group**: Random + CSPRNG.
@@ -65,7 +65,7 @@ Do not reconcile all pairs in one patch. Use one small algorithm group per verif
    - Reuse module copies only after confirming root public `xy_tiny_crypto.h` signatures still bind correctly.
    - Keep `src/xy_sha256_hmac.c` ownership separate unless a dedicated SHA-256/HMAC root API reconciliation is designed.
 
-After each slice:
+After each remaining slice:
 
 - update `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md` for only the reconciled pair(s);
 - update `components/crypto/crypto_review_manifest.json` duplicate policy for only the reconciled pair(s);

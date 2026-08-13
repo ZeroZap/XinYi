@@ -17,6 +17,8 @@
 
 /* ==================== Helper Functions (shared) ==================== */
 
+#if XY_BLAKE2_ENABLE_BLAKE2B
+
 static uint64_t prv_load64_le(const uint8_t *src)
 {
     return ((uint64_t)src[0])
@@ -41,6 +43,10 @@ static void prv_store64_le(uint8_t *dst, uint64_t value)
     dst[7] = (uint8_t)((value >> 56) & 0xff);
 }
 
+#endif /* XY_BLAKE2_ENABLE_BLAKE2B */
+
+#if XY_BLAKE2_ENABLE_BLAKE2S
+
 static uint32_t prv_load32_le(const uint8_t *src)
 {
     return ((uint32_t)src[0])
@@ -57,15 +63,25 @@ static void prv_store32_le(uint8_t *dst, uint32_t value)
     dst[3] = (uint8_t)((value >> 24) & 0xff);
 }
 
+#endif /* XY_BLAKE2_ENABLE_BLAKE2S */
+
+#if XY_BLAKE2_ENABLE_BLAKE2B
+
 static uint64_t prv_rotr64(uint64_t w, unsigned c)
 {
     return (w >> c) | (w << (64 - c));
 }
 
+#endif /* XY_BLAKE2_ENABLE_BLAKE2B */
+
+#if XY_BLAKE2_ENABLE_BLAKE2S
+
 static uint32_t prv_rotr32(uint32_t w, unsigned c)
 {
     return (w >> c) | (w << (32 - c));
 }
+
+#endif /* XY_BLAKE2_ENABLE_BLAKE2S */
 
 #endif /* XY_BLAKE2_ENABLE_BLAKE2B || XY_BLAKE2_ENABLE_BLAKE2S */
 

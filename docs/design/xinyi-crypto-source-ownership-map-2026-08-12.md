@@ -1,7 +1,7 @@
 # XinYi Crypto source ownership map
 
 **Date**: 2026-08-12
-**Status**: source-map / encoding module-source ownership in progress
+**Status**: source-map / encoding and checksum module-source ownership in progress
 **Scope**: `components/crypto/src/*`, algorithm module directories, root `xy_tiny_crypto` target, and `tests/unit/crypto` focused CTest source wiring.
 
 ## 1. Purpose
@@ -27,7 +27,7 @@ Therefore the root `xy_tiny_crypto` runtime build uses:
 
 | Area | Root/runtime source path | Notes |
 | --- | --- | --- |
-| CRC | `components/crypto/src/xy_crc.c` | Separate focused-test copy exists in `xy_crc/xy_crc.c`. |
+| CRC | `components/crypto/xy_crc/xy_crc.c` | Reconciled checksum/hash utility slice: root `xy_tiny_crypto` now consumes the same module source as `crypto_crc`; stale duplicate `src/xy_crc.c` was removed. |
 | Base64 | `components/crypto/xy_base/xy_base64.c` | Reconciled first encoding slice: root `xy_tiny_crypto` now consumes the same module source as `crypto_encode`; stale duplicate `src/xy_base64.c` remains only as a rollback/reference copy until a later deletion slice. |
 | Hex | `components/crypto/xy_hex/xy_hex.c` | Reconciled first encoding slice: root `xy_tiny_crypto` now consumes the same module source as `crypto_encode`; stale duplicate `src/xy_hex.c` remains only as a rollback/reference copy until a later deletion slice. |
 | Random | `components/crypto/src/xy_random.c` | Separate focused-test copy exists in `xy_rng/xy_random.c`. |
@@ -37,7 +37,7 @@ Therefore the root `xy_tiny_crypto` runtime build uses:
 | HMAC | `components/crypto/src/xy_hmac.c`, `components/crypto/src/xy_sha256_hmac.c` | Focused tests link `xy_hmac/xy_hmac.c` plus module SHA-256/MD5 sources. Root-target HMAC smoke must link the aggregate library so the stale `src/xy_sha256.c` duplicate cannot silently re-enter. |
 | AES | `components/crypto/src/xy_aes.c` | Separate focused-test copy exists in `xy_aes/xy_aes.c`. |
 | ChaCha20/Poly1305 | `components/crypto/src/xy_chacha20poly1305.c` | Focused tests use `xy_chacha/xy_chacha20_poly1305.c`; basename differs. |
-| BLAKE2 | `components/crypto/src/xy_blake2.c` | Byte-identical module copy exists in `components/crypto/xy_blake/xy_blake2.c`; no current root focused CTest called out in the manifest. |
+| BLAKE2 | `components/crypto/xy_blake/xy_blake2.c` | Reconciled checksum/hash utility slice: root `xy_tiny_crypto` now consumes the same module source as `crypto_blake2`; stale duplicate `src/xy_blake2.c` was removed. |
 | ECDSA | `components/crypto/src/xy_ecdsa.c` | Root aggregate source only in current map; no focused CTest contract in current manifest. |
 | SM3 | `components/crypto/xy_sm3/xy_sm3.c` | Linked via subdirectory target `xy_sm3`, not `src/*.c`. |
 | SM4 | `components/crypto/xy_sm4/xy_sm4.c` | Linked via subdirectory target `xy_sm4`, not `src/*.c`. |
@@ -49,26 +49,26 @@ The canonical host contract suite links algorithm sources directly from `tests/u
 
 | CTest | Linked implementation source roots | Ownership implication |
 | --- | --- | --- |
-| `crypto_crc` | `components/crypto/xy_crc/xy_crc.c` | Guards module CRC copy, not the root aggregate `src/xy_crc.c` directly. |
+| `crypto_crc` | `components/crypto/xy_crc/xy_crc.c` | Guards the canonical CRC source now shared by focused tests and the root runtime target. |
 | `crypto_csprng` | `components/crypto/xy_rng/xy_csprng.c` | Guards module CSPRNG copy. |
 | `crypto_random` | `components/crypto/xy_rng/xy_random.c` | Guards module RNG copy. |
 | `crypto_encode` | `components/crypto/xy_base/xy_base64.c`, `components/crypto/xy_hex/xy_hex.c` | Guards the canonical Base64/Hex sources now shared by focused tests and the root runtime target. |
 | `crypto_hash` | `components/crypto/xy_md/xy_md5.c`, `components/crypto/xy_hmac/xy_sha256.c` | Guards module MD5/SHA-256 copies. |
 | `crypto_cipher_hmac` | `components/crypto/xy_aes/xy_aes.c`, `components/crypto/xy_hmac/xy_hmac.c`, `components/crypto/xy_md/xy_md5.c`, `components/crypto/xy_hmac/xy_sha256.c`, `components/crypto/xy_sm3/xy_sm3.c`, `components/crypto/xy_sm4/xy_sm4.c`, `components/crypto/xy_chacha/xy_chacha20_poly1305.c` | Guards module cipher/HMAC/SM copies. |
-| `crypto_blake2` | `components/crypto/xy_blake/xy_blake2.c` | Focused BLAKE2s host vectors, incremental/keyed behavior, invalid-parameter output preservation, and root/module duplicate guard via `crypto_review_manifest`; still not security/provenance review. |
+| `crypto_blake2` | `components/crypto/xy_blake/xy_blake2.c` | Focused BLAKE2s host vectors, incremental/keyed behavior, invalid-parameter output preservation, and the canonical source now shared by focused tests and the root runtime target; still not security/provenance review. |
 | `crypto_sm2` | `xy_sm2/`, `xy_sm3/`, `xy_sm4/`, `xy_rng/` | Guards SM2 public placeholder-grade contract plus helper modules. |
 | `crypto_lwc` | `components/crypto/xy_ascon/xy_ascon.c`, `components/crypto/xy_tinyjambu/xy_tinyjambu.c`, `components/crypto/xy_photon_beetle/xy_photon_beetle.c` | Focused-test-only until root ownership is intentionally decided. |
 | `crypto_25519` | `components/crypto/xy_25519/xy_25519.c` | Focused-test-only until root ownership is intentionally decided. |
 | `crypto_25519_m0` | `components/crypto/xy_25519/xy_25519_m0.c`, `components/crypto/xy_25519/fe25519_m0.c` | Focused-test-only/upstream-material boundary. |
 | `crypto_smoke_example` | module Base64/Hex/SHA-256/RNG sources | Host-safe API smoke only; not a root aggregate source proof. |
-| `crypto_root_target_smoke` | links `xy_tiny_crypto` root target, therefore uses reconciled `components/crypto/xy_base/xy_base64.c`, reconciled `components/crypto/xy_hex/xy_hex.c`, plus `components/crypto/src/xy_sha256_hmac.c`, `components/crypto/src/xy_hmac.c`, `components/crypto/src/xy_blake2.c`, and `components/crypto/src/xy_ecdsa.c` through the aggregate library; `components/crypto/src/xy_sha256.c` is intentionally excluded | Minimal root/runtime public consumer proof for Base64/Hex/SHA-256/HMAC-SHA256, one BLAKE2s vector, and ECDSA format-only guard paths; not broad duplicate-source reconciliation or security validation. |
-| `crypto_review_manifest` | `components/crypto/crypto_review_manifest.json` plus `components/crypto/CMakeLists.txt` root-source glob and reconciled module append shape | Policy guard only; not cryptographic validation. It now fails if the root target stops using the mapped source ownership shape without a matching map update, guards currently pending byte-identical duplicate pairs (CRC/Random/CSPRNG/MD5/HMAC/AES/BLAKE2) from silently diverging before an explicit ownership slice, records Base64/Hex as module-owned `single-active-source` runtime paths, links the root ECDSA placeholder to an explicit `security-rejected` review record, and links BLAKE2 root/module copies to a limited review record without resolving duplicate ownership. |
+| `crypto_root_target_smoke` | links `xy_tiny_crypto` root target, therefore uses reconciled `components/crypto/xy_crc/xy_crc.c`, reconciled `components/crypto/xy_base/xy_base64.c`, reconciled `components/crypto/xy_hex/xy_hex.c`, reconciled `components/crypto/xy_blake/xy_blake2.c`, plus `components/crypto/src/xy_sha256_hmac.c`, `components/crypto/src/xy_hmac.c`, and `components/crypto/src/xy_ecdsa.c` through the aggregate library; `components/crypto/src/xy_sha256.c` is intentionally excluded | Minimal root/runtime public consumer proof for Base64/Hex/SHA-256/HMAC-SHA256, one BLAKE2s vector, and ECDSA format-only guard paths; not broad duplicate-source reconciliation or security validation. |
+| `crypto_review_manifest` | `components/crypto/crypto_review_manifest.json` plus `components/crypto/CMakeLists.txt` root-source glob and reconciled module append shape | Policy guard only; not cryptographic validation. It now fails if the root target stops using the mapped source ownership shape without a matching map update, guards currently pending byte-identical duplicate pairs (Random/CSPRNG/MD5/HMAC/AES) from silently diverging before an explicit ownership slice, records Base64/Hex/CRC/BLAKE2 as module-owned `single-active-source` runtime paths, and links the root ECDSA placeholder to an explicit `security-rejected` review record. |
 
 Additional root aggregate sources currently mapped but intentionally not represented as reviewed algorithm entries:
 
 | Source | Current guard status | Notes |
 | --- | --- | --- |
-| `components/crypto/src/xy_blake2.c` | `security-reviewed-limited` in the `blake2` manifest entry; root smoke path is exercised by `crypto_root_target_smoke` and module copy by `crypto_blake2` | Root aggregate and module copies have a limited boundary record, but duplicate ownership remains `source-map-pending`; this is not provenance approval, security audit, or canonical-source reconciliation. |
+| `components/crypto/xy_blake/xy_blake2.c` | `security-reviewed-limited` in the `blake2` manifest entry; root smoke path is exercised by `crypto_root_target_smoke` and focused contract by `crypto_blake2` | Single active source after the checksum/hash utility reconciliation slice; this is still not provenance approval, security audit, hardware validation, or compliance evidence. |
 | `components/crypto/src/xy_ecdsa.c` | `security-rejected` algorithm entry `ecdsa_root_format_only` in `crypto_review_manifest.json`; format-only guard paths are exercised by `crypto_root_target_smoke` and focused `crypto_ecdsa_root_contract` | Simplified verifier returns success after format checks; do not treat it as production signature validation, secure boot evidence, or firmware authenticity validation. |
 
 Excluded historical root source:
@@ -81,8 +81,8 @@ Excluded historical root source:
 
 Allowed low-risk follow-ups:
 
-1. Keep machine checks that this map and `crypto_review_manifest.json` stay in sync, including the current root `file(GLOB CRYPTO_SOURCES "src/*.c")` collection shape plus explicit Base64/Hex module-source append.
-2. Keep byte-identical duplicate-copy guards for pairs already proven identical and still marked `source-map-pending`; the current guarded pairs are CRC (`src/xy_crc.c` vs `xy_crc/xy_crc.c`), Random (`src/xy_random.c` vs `xy_rng/xy_random.c`), CSPRNG (`src/xy_csprng.c` vs `xy_rng/xy_csprng.c`), MD5 (`src/xy_md5.c` vs `xy_md/xy_md5.c`), HMAC (`src/xy_hmac.c` vs `xy_hmac/xy_hmac.c`), AES (`src/xy_aes.c` vs `xy_aes/xy_aes.c`), and BLAKE2 (`src/xy_blake2.c` vs `xy_blake/xy_blake2.c`). If one of these pairs intentionally diverges, update this map plus focused/root tests in the same explicit ownership slice. Base64/Hex have left this pending set because the root target now consumes the module copies.
+1. Keep machine checks that this map and `crypto_review_manifest.json` stay in sync, including the current root `file(GLOB CRYPTO_SOURCES "src/*.c")` collection shape plus explicit Base64/Hex/CRC/BLAKE2 module-source append.
+2. Keep byte-identical duplicate-copy guards for pairs already proven identical and still marked `source-map-pending`; the current guarded pairs are Random (`src/xy_random.c` vs `xy_rng/xy_random.c`), CSPRNG (`src/xy_csprng.c` vs `xy_rng/xy_csprng.c`), MD5 (`src/xy_md5.c` vs `xy_md/xy_md5.c`), HMAC (`src/xy_hmac.c` vs `xy_hmac/xy_hmac.c`), and AES (`src/xy_aes.c` vs `xy_aes/xy_aes.c`). If one of these pairs intentionally diverges, update this map plus focused/root tests in the same explicit ownership slice. Base64/Hex/CRC/BLAKE2 have left this pending set because the root target now consumes the module copies.
 3. Add root-target smoke or focused root-copy coverage for one algorithm at a time if a consumer needs `xy_tiny_crypto` behavior specifically; `crypto_ecdsa_root_contract` is the current example for the root-only placeholder-grade ECDSA copy.
 4. For a single algorithm, compare aggregate and module copies, decide canonical ownership, then update CMake/tests/docs in one path-limited verified slice.
 5. Prune stale historical documentation duplicates only when they are tracked, unreferenced, and demonstrably superseded by the current component README/source map. The truncated `components/crypto/xy_tiny_boot_crypto copy.md` stale duplicate was removed; `xy_tiny_boot_crypto.md` remains as historical material.

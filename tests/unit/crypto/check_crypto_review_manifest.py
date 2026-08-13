@@ -26,10 +26,6 @@ EXCLUDED_ROOT_AGGREGATE_SOURCES = {
 }
 
 IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
-    "crc": (
-        "components/crypto/src/xy_crc.c",
-        "components/crypto/xy_crc/xy_crc.c",
-    ),
     "random": (
         "components/crypto/src/xy_random.c",
         "components/crypto/xy_rng/xy_random.c",
@@ -50,20 +46,20 @@ IDENTICAL_DUPLICATE_SOURCE_PAIRS = {
         "components/crypto/src/xy_aes.c",
         "components/crypto/xy_aes/xy_aes.c",
     ),
-    "blake2": (
-        "components/crypto/src/xy_blake2.c",
-        "components/crypto/xy_blake/xy_blake2.c",
-    ),
 }
 
 RECONCILED_MODULE_RUNTIME_SOURCES = {
+    "crc": "components/crypto/xy_crc/xy_crc.c",
     "base64": "components/crypto/xy_base/xy_base64.c",
     "hex": "components/crypto/xy_hex/xy_hex.c",
+    "blake2": "components/crypto/xy_blake/xy_blake2.c",
 }
 
 RECONCILED_MODULE_CMAKE_SOURCES = {
+    "crc": "${CMAKE_CURRENT_SOURCE_DIR}/xy_crc/xy_crc.c",
     "base64": "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c",
     "hex": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hex/xy_hex.c",
+    "blake2": "${CMAKE_CURRENT_SOURCE_DIR}/xy_blake/xy_blake2.c",
 }
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
@@ -164,8 +160,10 @@ def _crypto_root_target_sources() -> set[str]:
         raise ValueError("\n".join(_require_messages))
 
     excluded_root_sources = EXCLUDED_ROOT_AGGREGATE_SOURCES | {
+        "components/crypto/src/xy_crc.c",
         "components/crypto/src/xy_base64.c",
         "components/crypto/src/xy_hex.c",
+        "components/crypto/src/xy_blake2.c",
     }
     return {
         f"components/crypto/src/{path.name}"
@@ -476,8 +474,10 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
         for source in manifest_root_sources - actual_root_sources
         if source.startswith("components/crypto/src/")
         and source not in {
+            "components/crypto/src/xy_crc.c",
             "components/crypto/src/xy_base64.c",
             "components/crypto/src/xy_hex.c",
+            "components/crypto/src/xy_blake2.c",
         }
     }
     _require(
