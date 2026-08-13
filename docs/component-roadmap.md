@@ -92,7 +92,7 @@
 | **IPC** | host-guarded / 事件组已闭环 | pipe/broker/message queue/observer/event group 均有 README 与 host CTest；后续只按真实失败补小回归或硬件/线程语义实证 | 实证驱动 |
 | **PM** | 文档已补齐 / 功耗待实证 | README 已存在；Fuel Gauge 保持 standalone，不回并 PM；后续只推进睡眠/功耗实证或明确 stub 失败 | 需实证 |
 | **GUI** | host-guarded core / 硬件待验证 | core/widget/event/theme 已有 3 个 host CTest；README 已按 explicit context API 同步，effects/fonts/display backend 继续独立 proposal/验证 | 实证驱动 |
-| **Kernel Service** | 60% | 系统监控/定时器 | 4h |
+| **Kernel Service** | host-guarded / backend 与板级实证待补 | `osal_baremetal`、`kernel_autotask`、`kernel_sysmon`、`bootreason_check` 已有主线 CTest 护栏；后续只按真实 backend/板级失败补最小回归或验证记录 | 实证驱动 |
 
 ### 1.5 当前闭环状态同步（2026-08-08）
 
@@ -593,7 +593,7 @@ struct rt_device {
 3. HAL 统一                 - P0 - 跨平台基础
 4. 网络协议栈 (Net)         - P1 - IoT 核心
 5. Crypto 审查/ownership    - P1 - 安全边界与来源先行
-6. 系统服务 (Kernel)        - P2 - 易用性
+6. 系统服务 (Kernel)        - P2 - host-guarded，backend/板级证据待补
 7. IPC 完善                 - P2 - 多任务协作
 8. 包管理工具               - P1 - 生态建设
 9. 文档系统                 - P2 - 用户体验
@@ -632,7 +632,7 @@ struct rt_device {
 - [ ] HAL 统一接口 + PC 仿真
 - [ ] 网络协议栈完善 (CAN/LTE/SAL)
 - [ ] Crypto 安全/来源审查与 source ownership 收敛
-- [ ] 系统服务 (监控/定时器)
+- [ ] 系统服务 (监控/定时器) host guard 已闭环；后续补 backend/板级验证证据
 - [ ] IPC 完善 (事件组/消息队列)
 - [ ] 包管理工具
 

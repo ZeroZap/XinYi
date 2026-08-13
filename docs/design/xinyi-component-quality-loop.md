@@ -210,6 +210,11 @@
 - 初始 matrix 已标记 SM2 placeholder-grade、MD5 legacy/integrity-only、CSPRNG entropy-source non-goal、Curve25519 M0 upstream/assembly TODO 等审查重点；本轮不移动 `src/`/module duplicate source，不改变 `COMPONENT_CRYPTO` 默认关闭策略，也不引入外部 crypto 库。
 - 后续 Crypto 低风险 slice 应优先做 source ownership map 或单算法 review manifest smoke；不要直接批量整理 duplicate source 或把 focused CTest 结果升级为安全审计结论。
 
+### 2026-08-13 Kernel service roadmap sync
+
+- Kernel Service 不再适合作为旧路线图中的“60% / 系统监控/定时器待完善”基线候选：`components/kernel/README.md` 与 `docs/design/xinyi-kernel-host-guard-status-sync-2026-08-08.md` 已记录 `osal_baremetal`、`kernel_autotask`、`kernel_sysmon`、`bootreason_check` 四个主线 host CTest 护栏。
+- `docs/component-roadmap.md` 已同步为 host-guarded / backend 与板级实证待补；后续 Kernel 方向应只按真实 OSAL backend 调度/ISR/低功耗、SysMon RTOS telemetry、bootreason 板级来源等证据或具体失败推进，不再重复补等价 host stub 或按旧“无监控/无定时器测试”开工。
+
 ---
 
 ## 5. 周度架构回顾
