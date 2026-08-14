@@ -155,6 +155,12 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        "crypto_benchmark_host_contract" in unit_cmake_text
+        and "test_crypto_benchmark_host.py" in unit_cmake_text,
+        "crypto_benchmark_host_contract must guard invalid manifest inputs in the record builder",
+        errors,
+    )
+    require(
         "crypto_benchmark_host_timing_refuses_without_ack" in unit_cmake_text
         and "--run-timing" in unit_cmake_text
         and "WILL_FAIL TRUE" in unit_cmake_text,

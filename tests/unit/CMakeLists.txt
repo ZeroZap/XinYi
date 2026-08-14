@@ -537,6 +537,12 @@ add_test(NAME crypto_benchmark_host_json_plan
     WORKING_DIRECTORY ${ROOT}
 )
 
+# --- Test 20i5a: Crypto host benchmark rejects invalid manifest input sizes instead of omitting them ---
+add_test(NAME crypto_benchmark_host_contract
+    COMMAND python3 ${UNIT_CRYPTO}/test_crypto_benchmark_host.py
+    WORKING_DIRECTORY ${ROOT}
+)
+
 # --- Test 20i6: Crypto host benchmark timing remains opt-in and refuses missing acknowledgement ---
 add_test(NAME crypto_benchmark_host_timing_refuses_without_ack
     COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --run-timing

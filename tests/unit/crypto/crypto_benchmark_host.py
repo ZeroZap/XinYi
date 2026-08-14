@@ -86,16 +86,27 @@ def synthetic_workload(algorithm_id: str, size: int, iteration: int) -> int:
     return state
 
 
+def validated_input_sizes(group: dict[str, Any]) -> list[int]:
+    sizes = group.get("input_sizes")
+    if not isinstance(sizes, list) or not sizes:
+        raise ValueError(f"algorithm group {group.get('id')} input_sizes must be a non-empty list")
+    if not all(
+        type(size) is int and 0 <= size <= HOST_TIMING_MAX_INPUT_SIZE
+        for size in sizes
+    ):
+        raise ValueError(
+            f"algorithm group {group.get('id')} input_sizes must be integers within "
+            f"0..{HOST_TIMING_MAX_INPUT_SIZE}"
+        )
+    return sizes
+
+
 def build_timing_record(manifest: dict[str, Any], iterations: int) -> dict[str, Any]:
     groups = []
     for group in manifest.get("algorithm_groups", []):
         if not isinstance(group, dict):
             continue
-        sizes = [
-            size
-            for size in group.get("input_sizes", [])
-            if isinstance(size, int) and 0 <= size <= HOST_TIMING_MAX_INPUT_SIZE
-        ]
+        sizes = validated_input_sizes(group)
         samples = []
         correctness_accumulator = 0
         for size in sizes:
