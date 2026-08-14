@@ -3,6 +3,7 @@
   "status": "policy-smoke-only-no-timing",
   "component": "components/crypto",
   "proposal": "docs/design/xinyi-crypto-benchmark-harness-proposal-2026-08-14.md",
+  "benchmark_record_template": "docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md",
   "policy": {
     "purpose": "Define benchmark evidence boundaries before any timing, optimization, assembly, hardware acceleration, or external crypto library work lands.",
     "default_execution": "manifest-validation-only; make test-unit must not depend on machine speed or timing thresholds",

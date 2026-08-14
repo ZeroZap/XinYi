@@ -15,6 +15,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST_PATH = ROOT / "tests" / "unit" / "crypto" / "crypto_benchmark_manifest.json"
 PROPOSAL_PATH = ROOT / "docs" / "design" / "xinyi-crypto-benchmark-harness-proposal-2026-08-14.md"
+RECORD_TEMPLATE_PATH = ROOT / "docs" / "validation" / "xinyi-crypto-benchmark-record-template-2026-08-14.md"
 REVIEW_MANIFEST_PATH = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
 UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
 
@@ -114,6 +115,12 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        manifest.get("benchmark_record_template")
+        == "docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md",
+        "manifest must link the benchmark record template",
+        errors,
+    )
+    require(
         "crypto_benchmark_manifest" in unit_cmake_text,
         "crypto_benchmark_manifest CTest must remain registered",
         errors,
@@ -198,6 +205,28 @@ def validate() -> list[str]:
         "不使用真实密钥",
     ):
         require(phrase in proposal_text, f"benchmark proposal must preserve no-claim phrase: {phrase}", errors)
+
+    record_template_text = RECORD_TEMPLATE_PATH.read_text(encoding="utf-8")
+    for phrase in (
+        "Current result: `pending`",
+        "host-timing-recorded",
+        "target-compile-only",
+        "mcu-cycle-recorded",
+        "does not prove security approval, provenance approval, constant-time behavior",
+        "production key",
+        "secure-boot signing key",
+        "customer secret",
+        "certificate private key",
+        "ctest --output-on-failure -R '^crypto_benchmark_manifest$'",
+    ):
+        require(phrase in record_template_text, f"benchmark record template must preserve: {phrase}", errors)
+
+    for word in FORBIDDEN_APPROVAL_WORDS:
+        require(
+            word not in record_template_text,
+            f"benchmark record template must not contain approval phrase: {word}",
+            errors,
+        )
 
     return errors
 

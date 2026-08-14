@@ -417,11 +417,17 @@ struct rt_device {
 
 - [x] **CRYPTO-004a**: 优化前 benchmark harness proposal
   - `docs/design/xinyi-crypto-benchmark-harness-proposal-2026-08-14.md`
+  - `docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md`
   - 已固定 correctness gate、host micro-benchmark、MCU cycle benchmark 与 hardware/security review 的证据分层
   - 仍不实现汇编/T-table/硬件加速，不改变 `COMPONENT_CRYPTO` default-off，也不把 host CTest 当作性能或安全结论
 
-- [ ] **CRYPTO-004b**: opt-in benchmark harness skeleton（待审查后）
-  - 先写 manifest/policy smoke，不让默认 `make test-unit` 因机器性能波动失败
+- [x] **CRYPTO-004b**: opt-in benchmark harness policy skeleton（no timing）
+  - `tests/unit/crypto/crypto_benchmark_manifest.json`
+  - `crypto_benchmark_manifest` CTest 已守住 manifest/schema/evidence boundary、记录模板、forbidden inputs 与 no-claim wording
+  - 默认 `make test-unit` 不执行 timing loop，也不因机器性能波动失败
+
+- [ ] **CRYPTO-004c**: opt-in PC timing prototype（待审查后）
+  - 必须显式 opt-in，不进入默认 timing gate
   - 保留 C fallback；任何优化实现必须有 correctness + benchmark gate
   - 侧信道/常数时间风险需在 review record 中单独说明
 
