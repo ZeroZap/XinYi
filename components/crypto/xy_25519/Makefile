@@ -14,7 +14,9 @@ ifeq ($(TARGET_CPU),cortex-m0)
     ASFLAGS = -mcpu=cortex-m0 -mthumb
 
     SOURCES = fe25519_m0.c xy_25519_m0.c
-    # Use optimized reference assembly from curve25519-cortexm0 (verified, production-ready)
+    # Focused-test-only/upstream-material assembly path.  Host CTests and this
+    # ad-hoc Makefile do not prove production key exchange, signature security,
+    # target timing, or side-channel behavior.
     ASM_SOURCES = asm/cortex_m0_mul256_reference.s \
                   asm/cortex_m0_reduce_reference.s \
                   asm/cortex_m0_mpy121666_reference.s \
@@ -35,7 +37,9 @@ else ifeq ($(TARGET_CPU),cortex-m0plus)
     ASFLAGS = -mcpu=cortex-m0plus -mthumb
 
     SOURCES = fe25519_m0.c xy_25519_m0.c
-    # Use optimized reference assembly from curve25519-cortexm0 (verified, production-ready)
+    # Focused-test-only/upstream-material assembly path.  Host CTests and this
+    # ad-hoc Makefile do not prove production key exchange, signature security,
+    # target timing, or side-channel behavior.
     ASM_SOURCES = asm/cortex_m0_mul256_reference.s \
                   asm/cortex_m0_reduce_reference.s \
                   asm/cortex_m0_mpy121666_reference.s \
@@ -56,7 +60,9 @@ else ifeq ($(TARGET_CPU),cortex-m23)
     ASFLAGS = -mcpu=cortex-m23 -mthumb
 
     SOURCES = fe25519_m0.c xy_25519_m0.c
-    # Use optimized reference assembly from curve25519-cortexm0 (verified, production-ready)
+    # Focused-test-only/upstream-material assembly path.  Host CTests and this
+    # ad-hoc Makefile do not prove production key exchange, signature security,
+    # target timing, or side-channel behavior.
     ASM_SOURCES = asm/cortex_m0_mul256_reference.s \
                   asm/cortex_m0_reduce_reference.s \
                   asm/cortex_m0_mpy121666_reference.s \
@@ -186,7 +192,6 @@ help:
 	@echo "  Cortex-M4:   make TARGET_CPU=cortex-m4  (uses generic)"
 	@echo "  Generic:     make  (no TARGET_CPU)"
 	@echo ""
-	@echo "Performance @ 48MHz:"
-	@echo "  M0/M0+/M23:  ~3.7ms (with assembly)"
-	@echo "  M3/M4:       ~3.7ms (generic, could be 2-3ms with UMULL optimizations)"
-	@echo "  Generic:     ~15ms"
+	@echo "Evidence boundary: focused-test-only / upstream-material"
+	@echo "  This ad-hoc Makefile is not the root xy_tiny_crypto ownership path."
+	@echo "  It does not prove production security, provenance, target timing, or side-channel behavior."

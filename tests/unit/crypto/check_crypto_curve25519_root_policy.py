@@ -19,6 +19,7 @@ MANIFEST = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
 SOURCE_MAP = ROOT / "docs" / "design" / "xinyi-crypto-source-ownership-map-2026-08-12.md"
 PROPOSAL = ROOT / "docs" / "design" / "xinyi-crypto-curve25519-root-ownership-proposal-2026-08-14.md"
 UNIT_CMAKE = ROOT / "tests" / "unit" / "CMakeLists.txt"
+XY_25519_MAKEFILE = ROOT / "components" / "crypto" / "xy_25519" / "Makefile"
 
 CURVE_RUNTIME_SOURCES = {
     "components/crypto/xy_25519/xy_25519.c",
@@ -52,6 +53,7 @@ def validate() -> list[str]:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     source_map_text = SOURCE_MAP.read_text(encoding="utf-8")
     proposal_text = PROPOSAL.read_text(encoding="utf-8")
+    makefile_text = XY_25519_MAKEFILE.read_text(encoding="utf-8")
     ctests = registered_crypto_ctests()
 
     require("crypto_curve25519_root_policy" in ctests,
@@ -111,6 +113,20 @@ def validate() -> list[str]:
     ):
         require(phrase in proposal_text,
                 f"Curve25519 proposal must preserve policy phrase: {phrase}",
+                errors)
+
+    for forbidden in ("production-ready", "Performance @ 48MHz"):
+        require(forbidden not in makefile_text,
+                f"xy_25519 ad-hoc Makefile must not preserve obsolete approval/performance claim: {forbidden}",
+                errors)
+
+    for phrase in (
+        "focused-test-only / upstream-material",
+        "not the root xy_tiny_crypto ownership path",
+        "does not prove production security, provenance, target timing, or side-channel behavior",
+    ):
+        require(phrase in makefile_text,
+                f"xy_25519 ad-hoc Makefile must preserve evidence-boundary phrase: {phrase}",
                 errors)
 
     return errors

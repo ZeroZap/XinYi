@@ -27,6 +27,7 @@ This proposal records the boundary so the next cron slice does not silently add 
 | Cortex-M0 25519 material | `crypto_25519_m0` | Host fallback public guard and field smoke contracts | Target assembly equivalence, target timing/cycle behavior, side-channel behavior |
 | Review manifest | `crypto_review_manifest` | Both entries remain `review-pending` provenance and `security-reviewed-limited`, with focused-test-only ownership | Security approval, provenance approval, root runtime link availability |
 | Root target | `crypto_root_target_smoke` | Other reconciled module/root paths link through `xy_tiny_crypto` | X25519/Ed25519 root link availability |
+| Ad-hoc 25519 Makefile | `crypto_curve25519_root_policy` now checks `components/crypto/xy_25519/Makefile` wording | The local Makefile preserves a focused-test-only/upstream-material evidence boundary | Production readiness, target timing, provenance, or side-channel evidence |
 
 ## 3. Proposed ownership options
 
@@ -78,6 +79,7 @@ Use **Option A** until a real root consumer or product decision exists.
 Next low-risk implementation, if needed, should be a policy-smoke slice rather than a runtime change:
 
 - Add a `crypto_curve25519_root_policy` smoke that verifies the source map and manifest keep Curve25519 focused-test-only while root `xy_tiny_crypto` does not claim X25519/Ed25519 root runtime ownership. **Implemented:** `tests/unit/crypto/check_crypto_curve25519_root_policy.py` is registered as the `crypto_curve25519_root_policy` CTest.
+- Keep ad-hoc helper material such as `components/crypto/xy_25519/Makefile` from advertising obsolete production-ready/performance claims; it may remain as a focused-test-only/upstream-material helper, but not as approval evidence.
 - Keep it documentation/policy-only; do not link `xy_25519.c` into the root target in the same slice.
 
 ## 5. Non-goals
