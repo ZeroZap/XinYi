@@ -57,6 +57,21 @@ ROOT_SUBDIRECTORY_TARGET_RUNTIME_SOURCES = {
     "sm4": "components/crypto/xy_sm4/xy_sm4.c",
 }
 
+ROOT_SUBDIRECTORY_TARGETS = {
+    "xy_sm2": {
+        "cmake": ROOT / "components" / "crypto" / "xy_sm2" / "CMakeLists.txt",
+        "source": "xy_sm2.c",
+    },
+    "xy_sm3": {
+        "cmake": ROOT / "components" / "crypto" / "xy_sm3" / "CMakeLists.txt",
+        "source": "xy_sm3.c",
+    },
+    "xy_sm4": {
+        "cmake": ROOT / "components" / "crypto" / "xy_sm4" / "CMakeLists.txt",
+        "source": "xy_sm4.c",
+    },
+}
+
 RECONCILED_MODULE_CMAKE_SOURCES = {
     "crc": "${CMAKE_CURRENT_SOURCE_DIR}/xy_crc/xy_crc.c",
     "base64": "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c",
@@ -169,12 +184,26 @@ def _crypto_root_target_sources() -> set[str]:
             f"components/crypto/CMakeLists.txt must append reconciled module runtime source: {rel_source}",
             _require_messages,
         )
-    for target_name in ("xy_sm2", "xy_sm3", "xy_sm4"):
+    for target_name, target_info in ROOT_SUBDIRECTORY_TARGETS.items():
         _require(
             re.search(rf"target_link_libraries\(\s*xy_tiny_crypto\s+PRIVATE[\s\S]*\b{target_name}\b", cmake_text) is not None,
             f"components/crypto/CMakeLists.txt must link root runtime subdirectory target: {target_name}",
             _require_messages,
         )
+        target_cmake = target_info["cmake"]
+        target_source = target_info["source"]
+        _require(
+            target_cmake.exists(),
+            f"root runtime subdirectory target CMakeLists.txt is missing for {target_name}: {target_cmake.relative_to(ROOT)}",
+            _require_messages,
+        )
+        if target_cmake.exists():
+            target_cmake_text = target_cmake.read_text(encoding="utf-8")
+            _require(
+                re.search(rf"add_library\(\s*{target_name}\s+STATIC[\s\S]*\b{re.escape(target_source)}\b", target_cmake_text) is not None,
+                f"root runtime subdirectory target {target_name} must build source {target_source}",
+                _require_messages,
+            )
     for rel_source in ROOT_COMPATIBILITY_WRAPPER_SOURCES.values():
         _require(
             (ROOT / rel_source).exists(),
