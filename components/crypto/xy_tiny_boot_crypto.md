@@ -821,6 +821,9 @@ components/crypto/xy_25519/
 ```
 
 **Expected Performance (Based on curve25519-cortexm0 benchmarks)**:
+
+> Benchmark boundary: these numbers are historical estimates, not current benchmark evidence. They must not be copied into benchmark records, MCU performance summaries, hardware-validation records, or product/security decisions. Any optimization claim requires a fresh opt-in benchmark record using `docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md` plus the focused correctness gate for the changed backend.
+
 - **X25519**: ~15ms → **~3-5ms** (3-5x faster) @ 48MHz M0
 - **Code size**: +2 KB (assembly routines)
 - **Stack**: Same (~250 bytes)
@@ -1407,6 +1410,8 @@ CFLAGS_M0 = -mcpu=cortex-m0 -mthumb \
 ```
 
 #### Performance Projections
+
+> Benchmark boundary: the following projections are historical planning notes, not current benchmark evidence. They must not be copied into benchmark records or treated as MCU timing/hardware proof without a fresh opt-in benchmark record, compiler/clock metadata, dirty-state record, raw output artifact, and focused correctness gate.
 
 | Operation | Generic | xy_25519_m0 | Speedup |
 |-----------|---------|-------------|----------|

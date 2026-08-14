@@ -18,6 +18,7 @@ PROPOSAL_PATH = ROOT / "docs" / "design" / "xinyi-crypto-benchmark-harness-propo
 RECORD_TEMPLATE_PATH = ROOT / "docs" / "validation" / "xinyi-crypto-benchmark-record-template-2026-08-14.md"
 REVIEW_MANIFEST_PATH = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
 UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
+HISTORICAL_BOOT_CRYPTO_PATH = ROOT / "components" / "crypto" / "xy_tiny_boot_crypto.md"
 
 REQUIRED_NO_CLAIMS = {
     "no security approval",
@@ -101,6 +102,7 @@ def validate() -> list[str]:
     proposal_text = PROPOSAL_PATH.read_text(encoding="utf-8")
     unit_cmake_text = UNIT_CMAKE_PATH.read_text(encoding="utf-8")
     manifest_text = MANIFEST_PATH.read_text(encoding="utf-8")
+    historical_boot_crypto_text = HISTORICAL_BOOT_CRYPTO_PATH.read_text(encoding="utf-8")
 
     require(manifest.get("schema_version") == 1, "schema_version must be 1", errors)
     require(
@@ -225,6 +227,18 @@ def validate() -> list[str]:
         require(
             word not in record_template_text,
             f"benchmark record template must not contain approval phrase: {word}",
+            errors,
+        )
+
+    for phrase in (
+        "历史设计材料 / 非当前安全结论",
+        "not current benchmark evidence",
+        "must not be copied into benchmark records",
+        "requires a fresh opt-in benchmark record",
+    ):
+        require(
+            phrase in historical_boot_crypto_text,
+            f"historical boot crypto doc must preserve benchmark/no-claim guard: {phrase}",
             errors,
         )
 
