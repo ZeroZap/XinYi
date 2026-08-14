@@ -139,9 +139,19 @@ def validate() -> list[str]:
         errors,
     )
     require(
-        "crypto_benchmark_host_refuses_timing" in unit_cmake_text
+        "crypto_benchmark_host_timing_refuses_without_ack" in unit_cmake_text
+        and "--run-timing" in unit_cmake_text
         and "WILL_FAIL TRUE" in unit_cmake_text,
-        "crypto_benchmark_host_refuses_timing CTest must keep timing explicitly rejected by default",
+        "crypto_benchmark_host_timing_refuses_without_ack must guard the missing acknowledgement path",
+        errors,
+    )
+    require("crypto_benchmark_host_refuses_timing" not in unit_cmake_text,
+            "stale refuses_timing CTest name must not remain after opt-in timing smoke lands", errors)
+    require(
+        "crypto_benchmark_host_timing_smoke" in unit_cmake_text
+        and "--i-understand-host-only-timing" in unit_cmake_text
+        and "--iterations" in unit_cmake_text,
+        "crypto_benchmark_host_timing_smoke must keep opt-in PC timing bounded and explicit",
         errors,
     )
     require(

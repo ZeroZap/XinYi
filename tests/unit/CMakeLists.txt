@@ -537,12 +537,18 @@ add_test(NAME crypto_benchmark_host_json_plan
     WORKING_DIRECTORY ${ROOT}
 )
 
-# --- Test 20i6: Crypto host benchmark skeleton refuses timing until opt-in implementation lands ---
-add_test(NAME crypto_benchmark_host_refuses_timing
+# --- Test 20i6: Crypto host benchmark timing remains opt-in and refuses missing acknowledgement ---
+add_test(NAME crypto_benchmark_host_timing_refuses_without_ack
     COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --run-timing
     WORKING_DIRECTORY ${ROOT}
 )
-set_tests_properties(crypto_benchmark_host_refuses_timing PROPERTIES WILL_FAIL TRUE)
+set_tests_properties(crypto_benchmark_host_timing_refuses_without_ack PROPERTIES WILL_FAIL TRUE)
+
+# --- Test 20i7: Crypto host benchmark opt-in timing smoke remains PC-only/no-claim/bounded ---
+add_test(NAME crypto_benchmark_host_timing_smoke
+    COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --run-timing --i-understand-host-only-timing --iterations 1
+    WORKING_DIRECTORY ${ROOT}
+)
 
 # --- Test 20j: Crypto BLAKE2 focused vectors and guard contracts ---
 xy_add_unit_test(test_blake2 crypto_blake2 UNITY
