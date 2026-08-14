@@ -1,8 +1,14 @@
 /**
  * @file xy_sha256.h
- * @brief SHA256 Hash Interface
+ * @brief Historical SHA256 Hash Interface
  * @version 1.0.0
  * @date 2026-03-02
+ *
+ * Historical compatibility header / not the current root runtime SHA-256 API:
+ * `xy_tiny_crypto` intentionally excludes `components/crypto/src/xy_sha256.c`
+ * and uses `components/crypto/xy_hmac/xy_sha256.c` plus `xy_tiny_crypto.h`
+ * for the active SHA-256/HMAC contract. Do not use this header/source pair as
+ * production SHA-256 ownership, security, provenance, or root-target evidence.
  */
 
 #ifndef XY_SHA256_H

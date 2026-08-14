@@ -20,6 +20,7 @@ UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
 CRYPTO_CMAKE_PATH = ROOT / "components" / "crypto" / "CMakeLists.txt"
 CRYPTO_SRC_DIR = ROOT / "components" / "crypto" / "src"
 ECDSA_PUBLIC_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_ecdsa.h"
+SHA256_LEGACY_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_sha256.h"
 CRYPTO_HISTORICAL_README_PATH = ROOT / "components" / "crypto" / "ReadMe.md"
 CRYPTO_TINY_BOOT_DOC_PATH = ROOT / "components" / "crypto" / "xy_tiny_boot_crypto.md"
 
@@ -220,6 +221,28 @@ def _validate_placeholder_api_warnings(errors: list[str]) -> None:
         )
 
 
+def _validate_legacy_sha256_header_warning(errors: list[str]) -> None:
+    """Keep the excluded old SHA-256 API from looking like root-runtime evidence."""
+    if not SHA256_LEGACY_HEADER_PATH.exists():
+        errors.append("legacy SHA-256 header is missing: components/crypto/inc/xy_sha256.h")
+        return
+
+    header_text = SHA256_LEGACY_HEADER_PATH.read_text(encoding="utf-8")
+    for phrase in (
+        "Historical compatibility header / not the current root runtime SHA-256 API",
+        "xy_tiny_crypto` intentionally excludes `components/crypto/src/xy_sha256.c",
+        "components/crypto/xy_hmac/xy_sha256.c",
+        "Do not use this header/source pair as",
+        "production SHA-256 ownership, security, provenance, or root-target evidence",
+    ):
+        _require(
+            phrase in header_text,
+            "components/crypto/inc/xy_sha256.h must preserve "
+            f"legacy/evidence-boundary warning phrase: {phrase}",
+            errors,
+        )
+
+
 def _validate_historical_readme_warning(errors: list[str]) -> None:
     """Keep the stale historical crypto ReadMe from looking like the current entrypoint."""
     if not CRYPTO_HISTORICAL_README_PATH.exists():
@@ -325,6 +348,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
 
     _validate_identical_duplicate_sources(source_map_text, errors)
     _validate_placeholder_api_warnings(errors)
+    _validate_legacy_sha256_header_warning(errors)
     _validate_historical_readme_warning(errors)
     _validate_tiny_boot_doc_warning(errors)
 
