@@ -525,6 +525,12 @@ add_test(NAME crypto_benchmark_manifest
     WORKING_DIRECTORY ${ROOT}
 )
 
+# --- Test 20i4: Crypto host benchmark skeleton stays plan-only/no-timing by default ---
+add_test(NAME crypto_benchmark_host_plan
+    COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --plan-only
+    WORKING_DIRECTORY ${ROOT}
+)
+
 # --- Test 20j: Crypto BLAKE2 focused vectors and guard contracts ---
 xy_add_unit_test(test_blake2 crypto_blake2 UNITY
     ${UNIT_CRYPTO}/test_blake2.c

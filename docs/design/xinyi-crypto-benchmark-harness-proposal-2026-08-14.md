@@ -51,6 +51,7 @@ Crypto 组件已经进入 `contract-guarded` 阶段：root `xy_tiny_crypto`、fo
 
 1. **host-only skeleton**：新增 `tests/unit/crypto/crypto_benchmark_manifest.json` 与一个 policy smoke，先校验 manifest 字段与 no-claim wording，不计时。
    当前状态：已落地 `crypto_benchmark_manifest` CTest 与 `docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md`；它只验证 manifest schema/evidence boundary、benchmark 记录模板以及历史 boot-crypto 设计材料中的 benchmark no-claim guard，禁止 timing threshold、security/provenance/hardware approval 词汇进入默认 `make test-unit`。
+   已新增 `crypto_benchmark_host.py` / `crypto_benchmark_host_plan` 作为 host skeleton：默认只从 manifest 生成 plan-only metadata（iterations/warmup 均为 0）并拒绝 `--run-timing`，因此仍不产生 PC timing 或 MCU benchmark 结论。
 2. **PC timing prototype**：增加 opt-in CLI 或 CTest-disabled helper，只输出 PC timing metadata；默认 `make test-unit` 不因机器性能波动失败。
 3. **STM32U5 compile probe**：只证明 benchmark harness 可编译，不声称硬件 timing。
 4. **真实 MCU run record**：手工/自动记录 UART/SWO/log 输出、clock 配置、样本统计与 dirty 状态，写入 `docs/validation/`。

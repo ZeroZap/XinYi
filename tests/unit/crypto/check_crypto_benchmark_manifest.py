@@ -127,6 +127,16 @@ def validate() -> list[str]:
         "crypto_benchmark_manifest CTest must remain registered",
         errors,
     )
+    require(
+        "crypto_benchmark_host_plan" in unit_cmake_text,
+        "crypto_benchmark_host_plan CTest must keep the host skeleton plan-only by default",
+        errors,
+    )
+    require(
+        (ROOT / "tests" / "unit" / "crypto" / "crypto_benchmark_host.py").is_file(),
+        "host benchmark skeleton script must remain present",
+        errors,
+    )
 
     policy = as_dict(manifest.get("policy"), "policy", errors)
     no_claims = set(as_list(policy.get("no_claims"), "policy.no_claims", errors))
