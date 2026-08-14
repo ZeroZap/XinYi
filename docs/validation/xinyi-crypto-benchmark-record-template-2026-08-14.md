@@ -48,6 +48,14 @@ python3 tests/unit/crypto/crypto_benchmark_stm32u5_compile_probe.py \
 
 This may support `target-compile-only` classification when the command exits successfully. It still records no benchmark timing and does not prove hardware validation, MCU cycle measurements, security approval, provenance approval, side-channel safety, production readiness, or algorithm correctness beyond the separately listed focused CTest gates.
 
+The default JSON plan path may be used to inspect intended commands and evidence boundaries without invoking the ARM toolchain:
+
+```bash
+python3 tests/unit/crypto/crypto_benchmark_stm32u5_compile_probe.py --plan-only --json
+```
+
+That JSON output remains plan-only/no-build metadata and cannot be pasted into result fields as target compile, timing, hardware, security, or provenance evidence.
+
 | Field | Value |
 | --- | --- |
 | Target HAL_PLATFORM | pending |

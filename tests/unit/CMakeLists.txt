@@ -556,6 +556,12 @@ add_test(NAME crypto_benchmark_stm32u5_compile_probe_plan
     WORKING_DIRECTORY ${ROOT}
 )
 
+# --- Test 20i8a: Crypto benchmark STM32U5 compile probe JSON plan preserves no-claim metadata ---
+add_test(NAME crypto_benchmark_stm32u5_compile_probe_json_plan
+    COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_stm32u5_compile_probe.py --plan-only --json
+    WORKING_DIRECTORY ${ROOT}
+)
+
 # --- Test 20i9: Crypto benchmark STM32U5 compile probe refuses missing compile-only acknowledgement ---
 add_test(NAME crypto_benchmark_stm32u5_compile_probe_refuses_without_ack
     COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_stm32u5_compile_probe.py --run-compile

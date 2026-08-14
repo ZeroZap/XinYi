@@ -161,6 +161,12 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        "crypto_benchmark_stm32u5_compile_probe_json_plan" in unit_cmake_text
+        and "crypto_benchmark_stm32u5_compile_probe.py --plan-only --json" in unit_cmake_text,
+        "crypto_benchmark_stm32u5_compile_probe_json_plan must validate compile-probe JSON metadata without building",
+        errors,
+    )
+    require(
         "crypto_benchmark_stm32u5_compile_probe_refuses_without_ack" in unit_cmake_text
         and "--run-compile" in unit_cmake_text
         and "WILL_FAIL TRUE" in unit_cmake_text,
