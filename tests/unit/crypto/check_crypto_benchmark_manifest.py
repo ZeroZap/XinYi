@@ -155,6 +155,13 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        "crypto_benchmark_host_timing_invalid_iterations" in unit_cmake_text
+        and "--iterations 0" in unit_cmake_text
+        and "WILL_FAIL TRUE" in unit_cmake_text,
+        "crypto_benchmark_host_timing_invalid_iterations must guard empty/unbounded timing records",
+        errors,
+    )
+    require(
         "crypto_benchmark_stm32u5_compile_probe_plan" in unit_cmake_text
         and "crypto_benchmark_stm32u5_compile_probe.py --plan-only" in unit_cmake_text,
         "crypto_benchmark_stm32u5_compile_probe_plan must keep target compile probe disabled by default",

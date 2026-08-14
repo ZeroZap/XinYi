@@ -288,6 +288,13 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 2
+        if args.iterations < HOST_TIMING_MIN_ITERATIONS or args.iterations > HOST_TIMING_MAX_ITERATIONS:
+            print(
+                "crypto_benchmark_host refused: --iterations must stay within "
+                f"{HOST_TIMING_MIN_ITERATIONS}..{HOST_TIMING_MAX_ITERATIONS} for bounded PC-only smoke",
+                file=sys.stderr,
+            )
+            return 2
         record = build_timing_record(manifest, args.iterations)
         errors = validate_timing_record(record, args.iterations)
         if errors:

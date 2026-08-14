@@ -550,6 +550,13 @@ add_test(NAME crypto_benchmark_host_timing_smoke
     WORKING_DIRECTORY ${ROOT}
 )
 
+# --- Test 20i7a: Crypto host benchmark rejects unbounded/empty timing iterations ---
+add_test(NAME crypto_benchmark_host_timing_invalid_iterations
+    COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --run-timing --i-understand-host-only-timing --iterations 0
+    WORKING_DIRECTORY ${ROOT}
+)
+set_tests_properties(crypto_benchmark_host_timing_invalid_iterations PROPERTIES WILL_FAIL TRUE)
+
 # --- Test 20i8: Crypto benchmark STM32U5 compile probe stays plan-only by default ---
 add_test(NAME crypto_benchmark_stm32u5_compile_probe_plan
     COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_stm32u5_compile_probe.py --plan-only
