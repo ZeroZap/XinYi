@@ -114,12 +114,19 @@ def validated_iterations(iterations: int) -> int:
     return iterations
 
 
+def validated_algorithm_groups(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    groups = manifest.get("algorithm_groups")
+    if not isinstance(groups, list) or not groups:
+        raise ValueError("algorithm_groups must be a non-empty list")
+    if not all(isinstance(group, dict) for group in groups):
+        raise ValueError("algorithm_groups entries must be objects")
+    return groups
+
+
 def build_timing_record(manifest: dict[str, Any], iterations: int) -> dict[str, Any]:
     iterations = validated_iterations(iterations)
     groups = []
-    for group in manifest.get("algorithm_groups", []):
-        if not isinstance(group, dict):
-            continue
+    for group in validated_algorithm_groups(manifest):
         sizes = validated_input_sizes(group)
         samples = []
         correctness_accumulator = 0
