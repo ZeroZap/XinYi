@@ -1,5 +1,12 @@
 # XY Tiny Crypto
 
+> ⚠️ **历史材料 / 非当前事实源**: 当前 Crypto 组件闭环入口是
+> [`components/crypto/README.md`](README.md)，source ownership/security/provenance
+> 边界由 `components/crypto/crypto_review_manifest.json` 与
+> `docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md` 守护。本文件保留
+> 2026 年早期设计/示例材料，可能包含已过时目录、命令或硬件加速设想；不得用本文件替代
+> `make test-unit`、focused `crypto_*` CTest、安全/来源审查记录或真实硬件验证证据。
+
 一个轻量级的 C 语言加密算法库，提供常用的加密、哈希和编码功能。
 
 > ⚠️ **注意**: 本库主要用于学习和轻量级应用，不建议在高安全要求的生产环境中使用。

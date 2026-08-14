@@ -20,6 +20,7 @@ UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
 CRYPTO_CMAKE_PATH = ROOT / "components" / "crypto" / "CMakeLists.txt"
 CRYPTO_SRC_DIR = ROOT / "components" / "crypto" / "src"
 ECDSA_PUBLIC_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_ecdsa.h"
+CRYPTO_HISTORICAL_README_PATH = ROOT / "components" / "crypto" / "ReadMe.md"
 
 EXCLUDED_ROOT_AGGREGATE_SOURCES = {
     "components/crypto/src/xy_sha256.c",
@@ -219,6 +220,30 @@ def _validate_placeholder_api_warnings(errors: list[str]) -> None:
         )
 
 
+def _validate_historical_readme_warning(errors: list[str]) -> None:
+    """Keep the stale historical crypto ReadMe from looking like the current entrypoint."""
+    if not CRYPTO_HISTORICAL_README_PATH.exists():
+        errors.append("historical crypto ReadMe is missing: components/crypto/ReadMe.md")
+        return
+
+    readme_text = CRYPTO_HISTORICAL_README_PATH.read_text(encoding="utf-8")
+    for phrase in (
+        "历史材料 / 非当前事实源",
+        "components/crypto/README.md",
+        "crypto_review_manifest.json",
+        "xinyi-crypto-source-ownership-map-2026-08-12.md",
+        "不得用本文件替代",
+        "安全/来源审查记录",
+        "真实硬件验证证据",
+    ):
+        _require(
+            phrase in readme_text,
+            "components/crypto/ReadMe.md must preserve "
+            f"historical/evidence-boundary warning phrase: {phrase}",
+            errors,
+        )
+
+
 def validate_manifest(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 
@@ -276,6 +301,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
 
     _validate_identical_duplicate_sources(source_map_text, errors)
     _validate_placeholder_api_warnings(errors)
+    _validate_historical_readme_warning(errors)
 
     algorithms = data.get("algorithms")
     _require(isinstance(algorithms, list) and len(algorithms) > 0, "algorithms must be a non-empty list", errors)
