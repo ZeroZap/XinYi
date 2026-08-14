@@ -132,6 +132,41 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "benchmark_input_policy"):
             BENCHMARK_HOST.build_plan(manifest)
 
+    def test_record_builder_rejects_missing_component(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        del manifest["component"]
+
+        with self.assertRaisesRegex(ValueError, "component"):
+            BENCHMARK_HOST.build_timing_record(manifest, 1)
+
+    def test_plan_builder_rejects_empty_proposal(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["proposal"] = ""
+
+        with self.assertRaisesRegex(ValueError, "proposal"):
+            BENCHMARK_HOST.build_plan(manifest)
+
+    def test_record_builder_rejects_missing_record_template(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        del manifest["benchmark_record_template"]
+
+        with self.assertRaisesRegex(ValueError, "benchmark_record_template"):
+            BENCHMARK_HOST.build_timing_record(manifest, 1)
+
+    def test_plan_builder_rejects_empty_no_claims(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["policy"]["no_claims"] = []
+
+        with self.assertRaisesRegex(ValueError, "policy.no_claims"):
+            BENCHMARK_HOST.build_plan(manifest)
+
+    def test_record_builder_rejects_non_string_no_claim(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["policy"]["no_claims"][0] = True
+
+        with self.assertRaisesRegex(ValueError, "policy.no_claims"):
+            BENCHMARK_HOST.build_timing_record(manifest, 1)
+
     def test_policy_checker_rejects_empty_input_sizes(self) -> None:
         self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([]))
 

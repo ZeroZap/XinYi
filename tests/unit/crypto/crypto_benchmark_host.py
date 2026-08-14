@@ -138,8 +138,31 @@ def validated_algorithm_groups(manifest: dict[str, Any]) -> list[dict[str, Any]]
     return groups
 
 
+def validated_manifest_metadata(manifest: dict[str, Any]) -> dict[str, Any]:
+    metadata: dict[str, Any] = {}
+    for field in ("component", "proposal", "benchmark_record_template"):
+        value = manifest.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{field} must be a non-empty string")
+        metadata[field] = value
+
+    policy = manifest.get("policy")
+    if not isinstance(policy, dict):
+        raise ValueError("policy must be an object")
+    no_claims = policy.get("no_claims")
+    if (
+        not isinstance(no_claims, list)
+        or not no_claims
+        or not all(isinstance(claim, str) and claim.strip() for claim in no_claims)
+    ):
+        raise ValueError("policy.no_claims must be a non-empty list of non-empty strings")
+    metadata["no_claims"] = no_claims
+    return metadata
+
+
 def build_timing_record(manifest: dict[str, Any], iterations: int) -> dict[str, Any]:
     iterations = validated_iterations(iterations)
+    metadata = validated_manifest_metadata(manifest)
     groups = []
     for group in validated_algorithm_groups(manifest):
         sizes = validated_input_sizes(group)
@@ -183,10 +206,10 @@ def build_timing_record(manifest: dict[str, Any], iterations: int) -> dict[str, 
 
     return {
         "status": HOST_TIMING_ALLOWED_STATUS,
-        "component": manifest.get("component"),
+        "component": metadata["component"],
         "manifest": str(MANIFEST_PATH.relative_to(ROOT)),
-        "proposal": manifest.get("proposal"),
-        "record_template": manifest.get("benchmark_record_template"),
+        "proposal": metadata["proposal"],
+        "record_template": metadata["benchmark_record_template"],
         "host": {
             "python": sys.version.split()[0],
             "system": platform.system(),
@@ -195,7 +218,7 @@ def build_timing_record(manifest: dict[str, Any], iterations: int) -> dict[str, 
             "commit_context": git_value(["git", "rev-parse", "--short", "HEAD"]),
             "dirty_context": git_dirty_state(),
         },
-        "no_claims": manifest.get("policy", {}).get("no_claims", []),
+        "no_claims": metadata["no_claims"],
         "evidence_boundary": "opt-in PC host timing plumbing only; not MCU timing, hardware validation, security approval, provenance approval, constant-time proof, or production enablement",
         "groups": groups,
     }
@@ -224,6 +247,7 @@ def validate_timing_record(record: dict[str, Any], iterations: int) -> list[str]
 
 
 def build_plan(manifest: dict[str, Any]) -> dict[str, Any]:
+    metadata = validated_manifest_metadata(manifest)
     groups = []
     for group in validated_algorithm_groups(manifest):
         groups.append(
@@ -239,10 +263,10 @@ def build_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "status": "host-plan-only-no-timing",
-        "component": manifest.get("component"),
+        "component": metadata["component"],
         "manifest": str(MANIFEST_PATH.relative_to(ROOT)),
-        "proposal": manifest.get("proposal"),
-        "record_template": manifest.get("benchmark_record_template"),
+        "proposal": metadata["proposal"],
+        "record_template": metadata["benchmark_record_template"],
         "host": {
             "python": sys.version.split()[0],
             "system": platform.system(),
@@ -250,7 +274,7 @@ def build_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             "commit_context": git_value(["git", "rev-parse", "--short", "HEAD"]),
             "dirty_context": git_value(["git", "status", "--short"]),
         },
-        "no_claims": manifest.get("policy", {}).get("no_claims", []),
+        "no_claims": metadata["no_claims"],
         "groups": groups,
     }
 
