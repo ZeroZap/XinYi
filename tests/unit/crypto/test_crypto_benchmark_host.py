@@ -14,6 +14,12 @@ assert SPEC is not None and SPEC.loader is not None
 BENCHMARK_HOST = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(BENCHMARK_HOST)
 
+CHECKER_PATH = Path(__file__).with_name("check_crypto_benchmark_manifest.py")
+CHECKER_SPEC = importlib.util.spec_from_file_location("check_crypto_benchmark_manifest", CHECKER_PATH)
+assert CHECKER_SPEC is not None and CHECKER_SPEC.loader is not None
+BENCHMARK_CHECKER = importlib.util.module_from_spec(CHECKER_SPEC)
+CHECKER_SPEC.loader.exec_module(BENCHMARK_CHECKER)
+
 
 class CryptoBenchmarkHostTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -97,6 +103,12 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "input_sizes"):
             BENCHMARK_HOST.build_plan(manifest)
+
+    def test_policy_checker_rejects_empty_input_sizes(self) -> None:
+        self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([]))
+
+    def test_policy_checker_rejects_boolean_input_sizes(self) -> None:
+        self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([True]))
 
 
 if __name__ == "__main__":

@@ -103,6 +103,18 @@ def as_list(value: Any, field: str, errors: list[str]) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+def valid_host_input_sizes(value: Any) -> bool:
+    return (
+        isinstance(value, list)
+        and len(value) > 0
+        and all(
+            type(size) is int
+            and 0 <= size <= REQUIRED_HOST_TIMING_BOUNDS["max_input_size_bytes"]
+            for size in value
+        )
+    )
+
+
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -275,12 +287,9 @@ def validate() -> list[str]:
         require(len(tests) > 0, f"algorithm group {group.get('id')} must list at least one correctness gate", errors)
         sizes = as_list(group.get("input_sizes"), f"algorithm_groups[{group.get('id')}].input_sizes", errors)
         require(
-            all(
-                isinstance(size, int)
-                and 0 <= size <= REQUIRED_HOST_TIMING_BOUNDS["max_input_size_bytes"]
-                for size in sizes
-            ),
-            f"algorithm group {group.get('id')} input_sizes must be integers within the host timing bound",
+            valid_host_input_sizes(sizes),
+            f"algorithm group {group.get('id')} input_sizes must be a non-empty list of integers "
+            "within the host timing bound",
             errors,
         )
         input_policy = str(group.get("benchmark_input_policy", ""))
