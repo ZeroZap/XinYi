@@ -64,6 +64,13 @@ REQUIRED_ALGORITHM_GROUPS = {
     "placeholder_or_focused_only",
 }
 
+REQUIRED_HOST_TIMING_BOUNDS = {
+    "min_iterations": 1,
+    "max_iterations": 1000,
+    "max_input_size_bytes": 4096,
+    "default_ctest_iterations": 1,
+}
+
 FORBIDDEN_APPROVAL_WORDS = {
     "security-approved",
     "provenance-approved",
@@ -218,6 +225,19 @@ def validate() -> list[str]:
         errors,
     )
 
+    host_timing_bounds = as_dict(policy.get("host_timing_bounds"), "policy.host_timing_bounds", errors)
+    for field, expected in REQUIRED_HOST_TIMING_BOUNDS.items():
+        require(
+            host_timing_bounds.get(field) == expected,
+            f"policy.host_timing_bounds.{field} must remain {expected}",
+            errors,
+        )
+    require(
+        "performance thresholds" in str(host_timing_bounds.get("default_execution_note", "")),
+        "policy.host_timing_bounds.default_execution_note must forbid performance thresholds",
+        errors,
+    )
+
     platform_tiers = as_list(manifest.get("platform_tiers"), "platform_tiers", errors)
     tier_ids = {tier.get("id") for tier in platform_tiers if isinstance(tier, dict)}
     require(REQUIRED_PLATFORM_TIERS == tier_ids, "platform_tiers must keep the four evidence tiers", errors)
@@ -284,6 +304,7 @@ def validate() -> list[str]:
     for phrase in (
         "Current result: `pending`",
         "host-timing-recorded",
+        "default checked-in CTest smoke remains bounded to 1 iteration",
         "target-compile-only",
         "crypto_benchmark_stm32u5_compile_probe.py",
         "--i-understand-target-compile-only",

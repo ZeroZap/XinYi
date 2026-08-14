@@ -203,6 +203,7 @@
 - 已新增 `docs/design/xinyi-crypto-curve25519-root-ownership-proposal-2026-08-14.md`，明确 Curve25519/Ed25519 与 LWC 不同：虽然 `xy_tiny_crypto.h` 有 X25519/Ed25519 声明，但 `xy_25519.c`/M0 material 仍保持 focused-test-only，依赖 RNG/SHA-512 seam 且 Ed25519 verify/security/provenance 证据不足。推荐继续 Option A（不接入 root runtime）直到出现真实 root consumer 或产品安全决策；后续若要接 root，必须另做 root-link/unsupported-wrapper 小 slice，并更新 source map、manifest、root smoke 与真实验证。
 - Curve25519 root ownership 已补 policy smoke：`crypto_curve25519_root_policy` 会检查 `xy_tiny_crypto` 未静默链接 `xy_25519`/M0 sources，manifest runtime_sources 保持 empty，source map/proposal 保留 focused-test-only 与 no-security-claim 边界。后续不应重复做该 policy guard；若出现真实 root consumer，应按 proposal Option B/C 单独实现并补 root-link/unsupported-wrapper smoke。
 - SHA-256/HMAC root ownership 已完成 module-source follow-up：`xy_tiny_crypto` 现在显式链接 `components/crypto/xy_hmac/xy_sha256.c` 与 `xy_hmac.c`，已 prune byte-identical historical `src/xy_sha256_hmac.c`，并继续排除旧 API `src/xy_sha256.c`；`crypto_root_target_smoke`/`crypto_hash`/`crypto_cipher_hmac`/`crypto_review_manifest` 共同守护 root 与 focused CTest 使用同一 SHA-256/HMAC module source。后续不应重复做 SHA-256 module-source 接入；只能在真实 consumer failure 或后续 provenance/security 证据出现时补最小 slice。
+- Crypto benchmark harness 已补 host timing bounds 护栏：`crypto_benchmark_manifest.json` 现在显式记录默认 CTest 1 iteration、最大 1000 iterations、最大 4096B 输入与 no-performance-threshold policy，`crypto_benchmark_manifest` smoke 会同时校验 record template 的 bounded wording。后续若继续 benchmark，只能按真实 opt-in record 或算法 API timing plumbing 小步推进，不得把默认 smoke 当成性能结论。
 
 ---
 

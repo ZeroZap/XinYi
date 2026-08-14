@@ -35,7 +35,14 @@
       "product_identity_material",
       "customer_secret",
       "certificate_private_key"
-    ]
+    ],
+    "host_timing_bounds": {
+      "min_iterations": 1,
+      "max_iterations": 1000,
+      "max_input_size_bytes": 4096,
+      "default_ctest_iterations": 1,
+      "default_execution_note": "default make test-unit uses only a bounded opt-in smoke and must not contain performance thresholds"
+    }
   },
   "platform_tiers": [
     {
