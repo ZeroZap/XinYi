@@ -32,7 +32,7 @@ The duplicate-source reconciliation is now mostly complete. Current module-owned
 Related non-duplicate or special cases:
 
 - `components/crypto/src/xy_sha256.c` remains excluded from `xy_tiny_crypto` because it exposes an older API shape and can collide with the aggregate SHA-256/HMAC implementation.
-- `components/crypto/src/xy_sha256_hmac.c` is now an excluded byte-identical historical root duplicate; root `xy_tiny_crypto` and focused CTests both use `components/crypto/xy_hmac/xy_sha256.c` for the current SHA-256/HMAC contract.
+- `components/crypto/src/xy_sha256_hmac.c` has been pruned as a byte-identical historical root duplicate; root `xy_tiny_crypto` and focused CTests both use `components/crypto/xy_hmac/xy_sha256.c` for the current SHA-256/HMAC contract.
 - `components/crypto/src/xy_ecdsa.c` is root-runtime-only and explicitly `security-rejected` as a format-only placeholder.
 - SM2/SM3/SM4 are module targets linked into the root crypto library rather than duplicated in `src/*.c`.
 
@@ -63,7 +63,7 @@ Do not reconcile future source-ownership changes in one patch. The completed seq
    - Preserve the current warning that `xy_random_*` is non-security utility/demo only and `xy_csprng_*` depends on caller-owned entropy/seed quality.
 4. **MD5/HMAC/AES group**: MD5, HMAC, AES. **Done in fourth reconciliation slice.**
    - Reuse module copies only after confirming root public `xy_tiny_crypto.h` signatures still bind correctly.
-   - SHA-256/HMAC follow-up is also closed: root `xy_tiny_crypto` explicitly links `xy_hmac/xy_sha256.c` and excludes both historical `src/xy_sha256_hmac.c` and old-API `src/xy_sha256.c`.
+   - SHA-256/HMAC follow-up is also closed: root `xy_tiny_crypto` explicitly links `xy_hmac/xy_sha256.c`, prunes historical `src/xy_sha256_hmac.c`, and excludes old-API `src/xy_sha256.c`.
 
 After any future ownership slice:
 

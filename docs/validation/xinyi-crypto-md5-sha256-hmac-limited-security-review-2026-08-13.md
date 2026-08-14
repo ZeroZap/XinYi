@@ -24,7 +24,7 @@
   - `components/crypto/xy_md/xy_md5.c`
   - `components/crypto/xy_hmac/xy_hmac.c`
   - `components/crypto/xy_hmac/xy_sha256.c`
-  - `components/crypto/src/xy_sha256_hmac.c` (historical duplicate, excluded from root runtime)
+  - `components/crypto/src/xy_sha256_hmac.c` (historical duplicate, pruned after module-source ownership was proven)
   - `tests/unit/crypto/test_crypto_hash.c`
   - `tests/unit/crypto/test_cipher_hmac.c`
   - `components/crypto/crypto_review_manifest.json`
@@ -36,7 +36,7 @@
   - No MD5/SHA-256/HMAC implementation code changes in this review slice.
 - Duplicate ownership notes:
   - MD5 and generic HMAC have been reconciled to module-directory single active source ownership: root `xy_tiny_crypto` and focused CTests both consume `components/crypto/xy_md/xy_md5.c` and `components/crypto/xy_hmac/xy_hmac.c`; the historical `components/crypto/src/xy_md5.c` and `components/crypto/src/xy_hmac.c` duplicates have been removed.
-  - SHA-256/HMAC ownership has been reconciled to the module-directory source: root `xy_tiny_crypto` and focused CTests both consume `components/crypto/xy_hmac/xy_sha256.c`. The historical `components/crypto/src/xy_sha256_hmac.c` is excluded as a byte-identical duplicate, and the stale `components/crypto/src/xy_sha256.c` remains excluded from the root aggregate target and is not approved by this record.
+  - SHA-256/HMAC ownership has been reconciled to the module-directory source: root `xy_tiny_crypto` and focused CTests both consume `components/crypto/xy_hmac/xy_sha256.c`. The historical `components/crypto/src/xy_sha256_hmac.c` has been pruned as a byte-identical duplicate, and the stale `components/crypto/src/xy_sha256.c` remains excluded from the root aggregate target and is not approved by this record.
 
 ## 3. Security review
 

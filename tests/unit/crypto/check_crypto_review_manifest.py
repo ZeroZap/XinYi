@@ -25,7 +25,6 @@ CRYPTO_TINY_BOOT_DOC_PATH = ROOT / "components" / "crypto" / "xy_tiny_boot_crypt
 
 EXCLUDED_ROOT_AGGREGATE_SOURCES = {
     "components/crypto/src/xy_sha256.c",
-    "components/crypto/src/xy_sha256_hmac.c",
 }
 
 IDENTICAL_DUPLICATE_SOURCE_PAIRS: dict[str, tuple[str, str]] = {}

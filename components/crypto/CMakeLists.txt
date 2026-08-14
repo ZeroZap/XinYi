@@ -48,7 +48,6 @@ list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_csprng\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_md5\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_hmac\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_aes\\.c$")
-list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_sha256_hmac\\.c$")
 list(APPEND CRYPTO_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_crc/xy_crc.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_base/xy_base64.c"
