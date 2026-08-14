@@ -80,7 +80,7 @@ That JSON output remains plan-only/no-build metadata and cannot be pasted into r
 ## Host timing section
 
 Use only for an explicit opt-in host benchmark. Do not interpret this as MCU performance.
-The default checked-in CTest smoke remains bounded to 1 iteration and must not contain throughput, latency, or pass/fail performance thresholds. Any real host timing record must state the requested iteration count, stay within the manifest bounds, and keep raw timing output as PC-only evidence. The checked-in refusal guards cover both zero iterations and requests above the current manifest maximum (`1000`) before any timing record can be accepted.
+The default checked-in CTest smoke remains bounded to 1 iteration and must not contain throughput, latency, or pass/fail performance thresholds. Any real host timing record must state the requested iteration count, stay within the manifest bounds, and keep raw timing output as PC-only evidence. The checked-in refusal guards cover both zero iterations and requests above the current manifest maximum (`1000`) before any timing record can be accepted. Manifest input sizes must also remain non-negative and no larger than the current `4096`-byte host-smoke bound; out-of-range sizes are invalid rather than silently omitted from a record.
 
 | Field | Value |
 | --- | --- |

@@ -268,7 +268,15 @@ def validate() -> list[str]:
         tests = as_list(group.get("contract_tests"), f"algorithm_groups[{group.get('id')}].contract_tests", errors)
         require(len(tests) > 0, f"algorithm group {group.get('id')} must list at least one correctness gate", errors)
         sizes = as_list(group.get("input_sizes"), f"algorithm_groups[{group.get('id')}].input_sizes", errors)
-        require(all(isinstance(size, int) and size >= 0 for size in sizes), f"algorithm group {group.get('id')} input_sizes must be non-negative integers", errors)
+        require(
+            all(
+                isinstance(size, int)
+                and 0 <= size <= REQUIRED_HOST_TIMING_BOUNDS["max_input_size_bytes"]
+                for size in sizes
+            ),
+            f"algorithm group {group.get('id')} input_sizes must be integers within the host timing bound",
+            errors,
+        )
         input_policy = str(group.get("benchmark_input_policy", ""))
         require(
             "production" in input_policy or "secret" in input_policy or "policy boundary" in input_policy,
