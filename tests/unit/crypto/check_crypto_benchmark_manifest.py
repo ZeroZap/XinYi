@@ -155,8 +155,26 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        "crypto_benchmark_stm32u5_compile_probe_plan" in unit_cmake_text
+        and "crypto_benchmark_stm32u5_compile_probe.py --plan-only" in unit_cmake_text,
+        "crypto_benchmark_stm32u5_compile_probe_plan must keep target compile probe disabled by default",
+        errors,
+    )
+    require(
+        "crypto_benchmark_stm32u5_compile_probe_refuses_without_ack" in unit_cmake_text
+        and "--run-compile" in unit_cmake_text
+        and "WILL_FAIL TRUE" in unit_cmake_text,
+        "crypto_benchmark_stm32u5_compile_probe_refuses_without_ack must guard compile-only acknowledgement",
+        errors,
+    )
+    require(
         (ROOT / "tests" / "unit" / "crypto" / "crypto_benchmark_host.py").is_file(),
         "host benchmark skeleton script must remain present",
+        errors,
+    )
+    require(
+        (ROOT / "tests" / "unit" / "crypto" / "crypto_benchmark_stm32u5_compile_probe.py").is_file(),
+        "STM32U5 compile probe helper must remain present",
         errors,
     )
 
@@ -245,6 +263,9 @@ def validate() -> list[str]:
         "Current result: `pending`",
         "host-timing-recorded",
         "target-compile-only",
+        "crypto_benchmark_stm32u5_compile_probe.py",
+        "--i-understand-target-compile-only",
+        "records no benchmark timing",
         "mcu-cycle-recorded",
         "does not prove security approval, provenance approval, constant-time behavior",
         "production key",

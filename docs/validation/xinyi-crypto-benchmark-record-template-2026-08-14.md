@@ -37,6 +37,25 @@ Current result: `pending`
 | Benchmark harness commit/path | pending |
 | Correctness gate command/output | pending |
 
+## Target compile-only section
+
+Use only for an explicit target compile probe such as:
+
+```bash
+python3 tests/unit/crypto/crypto_benchmark_stm32u5_compile_probe.py \
+  --run-compile --i-understand-target-compile-only
+```
+
+This may support `target-compile-only` classification when the command exits successfully. It still records no benchmark timing and does not prove hardware validation, MCU cycle measurements, security approval, provenance approval, side-channel safety, production readiness, or algorithm correctness beyond the separately listed focused CTest gates.
+
+| Field | Value |
+| --- | --- |
+| Target HAL_PLATFORM | pending |
+| Build target | pending |
+| Configure command/output | pending |
+| Build command/output | pending |
+| Compile-only evidence boundary | pending |
+
 ## Algorithm group under test
 
 | Field | Value |

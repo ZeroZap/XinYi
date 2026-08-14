@@ -550,6 +550,19 @@ add_test(NAME crypto_benchmark_host_timing_smoke
     WORKING_DIRECTORY ${ROOT}
 )
 
+# --- Test 20i8: Crypto benchmark STM32U5 compile probe stays plan-only by default ---
+add_test(NAME crypto_benchmark_stm32u5_compile_probe_plan
+    COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_stm32u5_compile_probe.py --plan-only
+    WORKING_DIRECTORY ${ROOT}
+)
+
+# --- Test 20i9: Crypto benchmark STM32U5 compile probe refuses missing compile-only acknowledgement ---
+add_test(NAME crypto_benchmark_stm32u5_compile_probe_refuses_without_ack
+    COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_stm32u5_compile_probe.py --run-compile
+    WORKING_DIRECTORY ${ROOT}
+)
+set_tests_properties(crypto_benchmark_stm32u5_compile_probe_refuses_without_ack PROPERTIES WILL_FAIL TRUE)
+
 # --- Test 20j: Crypto BLAKE2 focused vectors and guard contracts ---
 xy_add_unit_test(test_blake2 crypto_blake2 UNITY
     ${UNIT_CRYPTO}/test_blake2.c
