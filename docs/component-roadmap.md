@@ -427,15 +427,21 @@ struct rt_device {
   - `crypto_benchmark_host_plan` / `crypto_benchmark_host_json_plan` 已守住 plan-only compact/JSON 输出的 reproducibility metadata 与 no-claim 边界
   - 默认 `make test-unit` 不执行 timing loop，也不因机器性能波动失败
 
-- [ ] **CRYPTO-004c**: opt-in PC timing prototype（待审查后）
-  - 必须显式 opt-in，不进入默认 timing gate
-  - 保留 C fallback；任何优化实现必须有 correctness + benchmark gate
-  - 侧信道/常数时间风险需在 review record 中单独说明
+- [x] **CRYPTO-004c**: opt-in PC timing prototype（bounded synthetic smoke）
+  - `crypto_benchmark_host_timing_refuses_without_ack` / `crypto_benchmark_host_timing_invalid_iterations` 用 `WILL_FAIL` 守住未确认与空/越界 iteration 拒绝路径
+  - `crypto_benchmark_host_timing_smoke` 仅在 `--i-understand-host-only-timing --iterations 1` 下运行 bounded synthetic PC timing plumbing；manifest 固定 default CTest 1 iteration、最大 1000 iterations、最大 4096B input，且禁止性能阈值
+  - 输出只允许标记为 PC-only/no-MCU/security/hardware claim；仍不是算法 throughput 结论、MCU timing、常数时间证明或安全/来源审查
+
+- [x] **CRYPTO-004d**: STM32U5 benchmark compile-probe default-disabled guard
+  - `crypto_benchmark_stm32u5_compile_probe_plan` / `crypto_benchmark_stm32u5_compile_probe_json_plan` 默认只验证 plan/JSON metadata，不运行 ARM 工具链
+  - `crypto_benchmark_stm32u5_compile_probe_refuses_without_ack` 用 `WILL_FAIL` 守住 `--run-compile` 缺少 `--i-understand-target-compile-only` 的拒绝路径
+  - 后续真实 target compile 必须显式 opt-in，并只能记录为 target-compile-only：no timing / no hardware pass / no security or provenance approval
 
 **输出**:
 - 安全/来源审查记录或保持 `review-pending` 的 manifest 护栏
 - source ownership map 与 duplicate-source reconciliation proposal
-- 后续若进入优化阶段，再输出 benchmark harness、C fallback 对照与 MCU 实测报告
+- benchmark harness 的 no-claim policy、bounded PC timing plumbing、default-disabled STM32U5 compile-probe plumbing
+- 后续若进入优化阶段，再补真实算法 API timing helper、C fallback 对照与 MCU 实测报告；不得把 synthetic smoke 或 compile-only 输出当成性能/硬件结论
 
 **验收标准**:
 - 未经 review record，不宣称 `security-reviewed`、`provenance-reviewed` 或 `hardware-validated`
