@@ -77,6 +77,27 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "algorithm_groups"):
             BENCHMARK_HOST.build_timing_record(manifest, 1)
 
+    def test_plan_builder_rejects_missing_algorithm_groups(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        del manifest["algorithm_groups"]
+
+        with self.assertRaisesRegex(ValueError, "algorithm_groups"):
+            BENCHMARK_HOST.build_plan(manifest)
+
+    def test_plan_builder_rejects_non_object_algorithm_group(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["algorithm_groups"][0] = "not-an-object"
+
+        with self.assertRaisesRegex(ValueError, "algorithm_groups"):
+            BENCHMARK_HOST.build_plan(manifest)
+
+    def test_plan_builder_rejects_invalid_input_sizes(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["algorithm_groups"][0]["input_sizes"] = [True]
+
+        with self.assertRaisesRegex(ValueError, "input_sizes"):
+            BENCHMARK_HOST.build_plan(manifest)
+
 
 if __name__ == "__main__":
     unittest.main()

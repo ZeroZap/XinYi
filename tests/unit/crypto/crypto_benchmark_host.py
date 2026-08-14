@@ -210,14 +210,12 @@ def validate_timing_record(record: dict[str, Any], iterations: int) -> list[str]
 
 def build_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     groups = []
-    for group in manifest.get("algorithm_groups", []):
-        if not isinstance(group, dict):
-            continue
+    for group in validated_algorithm_groups(manifest):
         groups.append(
             {
                 "algorithm_id": group.get("id"),
                 "source_ownership": group.get("source_ownership"),
-                "input_sizes": group.get("input_sizes", []),
+                "input_sizes": validated_input_sizes(group),
                 "test_key_or_seed_policy": group.get("benchmark_input_policy"),
                 "contract_tests": group.get("contract_tests", []),
                 **REQUIRED_METADATA_DEFAULTS,
