@@ -120,6 +120,21 @@ def validated_algorithm_groups(manifest: dict[str, Any]) -> list[dict[str, Any]]
         raise ValueError("algorithm_groups must be a non-empty list")
     if not all(isinstance(group, dict) for group in groups):
         raise ValueError("algorithm_groups entries must be objects")
+    for index, group in enumerate(groups):
+        for field in ("id", "source_ownership", "benchmark_input_policy"):
+            value = group.get(field)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"algorithm_groups[{index}].{field} must be a non-empty string")
+        contract_tests = group.get("contract_tests")
+        if (
+            not isinstance(contract_tests, list)
+            or not contract_tests
+            or not all(isinstance(test, str) and test.strip() for test in contract_tests)
+        ):
+            raise ValueError(
+                f"algorithm_groups[{index}].contract_tests must be a non-empty list "
+                "of non-empty strings"
+            )
     return groups
 
 

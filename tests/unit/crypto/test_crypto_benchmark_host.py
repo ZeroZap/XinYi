@@ -104,6 +104,34 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "input_sizes"):
             BENCHMARK_HOST.build_plan(manifest)
 
+    def test_record_builder_rejects_missing_group_id(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        del manifest["algorithm_groups"][0]["id"]
+
+        with self.assertRaisesRegex(ValueError, "id"):
+            BENCHMARK_HOST.build_timing_record(manifest, 1)
+
+    def test_plan_builder_rejects_empty_source_ownership(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["algorithm_groups"][0]["source_ownership"] = ""
+
+        with self.assertRaisesRegex(ValueError, "source_ownership"):
+            BENCHMARK_HOST.build_plan(manifest)
+
+    def test_record_builder_rejects_empty_contract_tests(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["algorithm_groups"][0]["contract_tests"] = []
+
+        with self.assertRaisesRegex(ValueError, "contract_tests"):
+            BENCHMARK_HOST.build_timing_record(manifest, 1)
+
+    def test_plan_builder_rejects_missing_benchmark_input_policy(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        del manifest["algorithm_groups"][0]["benchmark_input_policy"]
+
+        with self.assertRaisesRegex(ValueError, "benchmark_input_policy"):
+            BENCHMARK_HOST.build_plan(manifest)
+
     def test_policy_checker_rejects_empty_input_sizes(self) -> None:
         self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([]))
 
