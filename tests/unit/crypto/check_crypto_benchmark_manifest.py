@@ -133,6 +133,12 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        "crypto_benchmark_host_refuses_timing" in unit_cmake_text
+        and "WILL_FAIL TRUE" in unit_cmake_text,
+        "crypto_benchmark_host_refuses_timing CTest must keep timing explicitly rejected by default",
+        errors,
+    )
+    require(
         (ROOT / "tests" / "unit" / "crypto" / "crypto_benchmark_host.py").is_file(),
         "host benchmark skeleton script must remain present",
         errors,

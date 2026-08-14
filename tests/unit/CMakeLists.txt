@@ -531,6 +531,13 @@ add_test(NAME crypto_benchmark_host_plan
     WORKING_DIRECTORY ${ROOT}
 )
 
+# --- Test 20i5: Crypto host benchmark skeleton refuses timing until opt-in implementation lands ---
+add_test(NAME crypto_benchmark_host_refuses_timing
+    COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --run-timing
+    WORKING_DIRECTORY ${ROOT}
+)
+set_tests_properties(crypto_benchmark_host_refuses_timing PROPERTIES WILL_FAIL TRUE)
+
 # --- Test 20j: Crypto BLAKE2 focused vectors and guard contracts ---
 xy_add_unit_test(test_blake2 crypto_blake2 UNITY
     ${UNIT_CRYPTO}/test_blake2.c
