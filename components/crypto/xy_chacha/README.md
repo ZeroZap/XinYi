@@ -1,5 +1,11 @@
 # XY_CHACHA: ChaCha20-Poly1305 AEAD Cipher
 
+> ⚠️ **Contract-guarded module / not a security approval**: Current XinYi evidence for this
+> module is limited to host `crypto_cipher_hmac` / `crypto_root_target_smoke` API-vector tests
+> plus the security/provenance review manifest. Do not treat this historical module README as
+> constant-time proof, side-channel review, certification, hardware validation, or production security approval.
+> Stronger claims require a separate review record and real target/hardware evidence.
+
 ## Overview
 
 **xy_chacha** is a high-performance AEAD (Authenticated Encryption with Associated Data) implementation that combines the ChaCha20 stream cipher with the Poly1305 MAC, as specified in RFC 8439. It provides both confidentiality and authenticity for encrypted data with minimal computational overhead.

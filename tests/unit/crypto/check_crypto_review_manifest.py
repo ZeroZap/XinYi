@@ -23,6 +23,7 @@ ECDSA_PUBLIC_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_ecdsa.h"
 SHA256_LEGACY_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_sha256.h"
 CRYPTO_HISTORICAL_README_PATH = ROOT / "components" / "crypto" / "ReadMe.md"
 CRYPTO_TINY_BOOT_DOC_PATH = ROOT / "components" / "crypto" / "xy_tiny_boot_crypto.md"
+CRYPTO_CHACHA_README_PATH = ROOT / "components" / "crypto" / "xy_chacha" / "README.md"
 FOTA_HISTORICAL_INTRO_PATH = ROOT / "docs" / "components" / "fota" / "introduction.md"
 
 EXCLUDED_ROOT_AGGREGATE_SOURCES = {
@@ -333,6 +334,31 @@ def _validate_tiny_boot_doc_warning(errors: list[str]) -> None:
         )
 
 
+def _validate_chacha_readme_warning(errors: list[str]) -> None:
+    """Keep module-local ChaCha20-Poly1305 README claims tied to review evidence."""
+    if not CRYPTO_CHACHA_README_PATH.exists():
+        errors.append("ChaCha module README is missing: components/crypto/xy_chacha/README.md")
+        return
+
+    readme_text = CRYPTO_CHACHA_README_PATH.read_text(encoding="utf-8")
+    for phrase in (
+        "Contract-guarded module / not a security approval",
+        "crypto_cipher_hmac",
+        "crypto_root_target_smoke",
+        "Do not treat this historical module README as",
+        "constant-time proof",
+        "side-channel review",
+        "hardware validation",
+        "production security approval",
+    ):
+        _require(
+            phrase in readme_text,
+            "components/crypto/xy_chacha/README.md must preserve "
+            f"security/evidence-boundary warning phrase: {phrase}",
+            errors,
+        )
+
+
 def _validate_fota_historical_intro_warning(errors: list[str]) -> None:
     """Keep historical FOTA ECDSA/secure-boot wording from looking approved."""
     if not FOTA_HISTORICAL_INTRO_PATH.exists():
@@ -419,6 +445,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
     _validate_legacy_sha256_header_warning(errors)
     _validate_historical_readme_warning(errors)
     _validate_tiny_boot_doc_warning(errors)
+    _validate_chacha_readme_warning(errors)
     _validate_fota_historical_intro_warning(errors)
 
     algorithms = data.get("algorithms")
