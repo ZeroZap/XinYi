@@ -141,6 +141,14 @@ int xy_md5_final(xy_md5_ctx_t *ctx, uint8_t digest[XY_MD5_DIGEST_SIZE]);
 ```
 
 #### SHA-256
+
+> ⚠️ **历史 API 片段**: 下方签名反映早期 `xy_tiny_crypto.h` 设计材料，当前
+> root/runtime SHA-256 与 HMAC 实现由 `components/crypto/xy_hmac/xy_sha256.c`
+> 和 `components/crypto/xy_hmac/xy_hmac.c` 提供，并由 `crypto_hash`、
+> `crypto_cipher_hmac`、`crypto_root_target_smoke` 与 `crypto_review_manifest`
+> 守护。旧 `components/crypto/src/xy_sha256.c` 仍排除在 root target 外，
+> 不得用本历史片段作为当前源码归属、安全/来源审查或 root-target 证据。
+
 ```c
 int xy_sha256_hash(const uint8_t *data, size_t len, uint8_t digest[XY_SHA256_DIGEST_SIZE]);
 int xy_sha256_init(xy_sha256_ctx_t *ctx);
@@ -211,6 +219,13 @@ int xy_hmac_sha256(const uint8_t *key, size_t key_len,
 - `XY_CRYPTO_BUFFER_TOO_SMALL` (-3) - 缓冲区太小
 
 ## 文件结构
+
+> ⚠️ **历史目录示意**: 本节保留早期 `xy_tiny_crypto/` 独立库布局示例。
+> 当前 XinYi root target 使用 `components/crypto/CMakeLists.txt` 的 hybrid
+> ownership map；Base64/Hex/CRC/BLAKE2/RNG/CSPRNG/MD5/SHA-256/HMAC/AES/LWC
+> 已迁到 module-source runtime ownership，ChaCha20-Poly1305 是 root wrapper，
+> ECDSA 是 format-only placeholder。不要把下方 `src/xy_sha256.c` 等示意当作
+> 当前 root aggregate 源列表或 production/security/provenance 结论。
 
 ```
 xy_tiny_crypto/
