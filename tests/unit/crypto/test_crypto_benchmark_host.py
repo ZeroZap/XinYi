@@ -209,6 +209,49 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "policy.no_claims"):
             COMPILE_PROBE.build_plan(manifest)
 
+    def test_compile_probe_plan_validator_rejects_missing_identity_metadata(self) -> None:
+        plan = COMPILE_PROBE.build_plan(copy.deepcopy(self.manifest))
+        del plan["proposal"]
+
+        errors = COMPILE_PROBE.validate_plan(plan)
+
+        self.assertTrue(any("proposal" in error for error in errors))
+
+    def test_compile_probe_plan_validator_rejects_empty_no_claims(self) -> None:
+        plan = COMPILE_PROBE.build_plan(copy.deepcopy(self.manifest))
+        plan["no_claims"] = []
+
+        errors = COMPILE_PROBE.validate_plan(plan)
+
+        self.assertTrue(any("no_claims" in error for error in errors))
+
+    def test_compile_probe_record_validator_rejects_missing_record_template(self) -> None:
+        record = {
+            "status": COMPILE_PROBE.COMPILE_ONLY_STATUS,
+            "component": self.manifest["component"],
+            "proposal": self.manifest["proposal"],
+            "no_claims": self.manifest["policy"]["no_claims"],
+            "evidence_boundary": "not benchmark timing",
+        }
+
+        errors = COMPILE_PROBE.validate_compile_record(record)
+
+        self.assertTrue(any("record_template" in error for error in errors))
+
+    def test_compile_probe_record_validator_rejects_non_string_no_claim(self) -> None:
+        record = {
+            "status": COMPILE_PROBE.COMPILE_ONLY_STATUS,
+            "component": self.manifest["component"],
+            "proposal": self.manifest["proposal"],
+            "record_template": self.manifest["benchmark_record_template"],
+            "no_claims": [True],
+            "evidence_boundary": "not benchmark timing",
+        }
+
+        errors = COMPILE_PROBE.validate_compile_record(record)
+
+        self.assertTrue(any("no_claims" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

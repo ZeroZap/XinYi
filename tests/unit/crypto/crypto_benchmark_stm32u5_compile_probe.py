@@ -88,8 +88,24 @@ def build_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def validate_plan(plan: dict[str, Any]) -> list[str]:
+def validate_record_metadata(record: dict[str, Any]) -> list[str]:
     errors: list[str] = []
+    for field in ("component", "proposal", "record_template"):
+        value = record.get(field)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"{field} must be a non-empty string")
+    no_claims = record.get("no_claims")
+    if (
+        not isinstance(no_claims, list)
+        or not no_claims
+        or not all(isinstance(claim, str) and claim.strip() for claim in no_claims)
+    ):
+        errors.append("no_claims must be a non-empty list of non-empty strings")
+    return errors
+
+
+def validate_plan(plan: dict[str, Any]) -> list[str]:
+    errors = validate_record_metadata(plan)
     if plan.get("status") != "stm32u5-compile-probe-plan-only-no-build":
         errors.append("plan status must stay plan-only/no-build")
     if plan.get("hal_platform") != "STM32U5":
@@ -163,7 +179,7 @@ def run_compile_probe(manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def validate_compile_record(record: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
+    errors = validate_record_metadata(record)
     if record.get("status") != COMPILE_ONLY_STATUS:
         errors.append("compile probe did not complete successfully")
     if "not benchmark timing" not in str(record.get("evidence_boundary", "")):
