@@ -21,6 +21,7 @@ CRYPTO_CMAKE_PATH = ROOT / "components" / "crypto" / "CMakeLists.txt"
 CRYPTO_SRC_DIR = ROOT / "components" / "crypto" / "src"
 ECDSA_PUBLIC_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_ecdsa.h"
 CRYPTO_HISTORICAL_README_PATH = ROOT / "components" / "crypto" / "ReadMe.md"
+CRYPTO_TINY_BOOT_DOC_PATH = ROOT / "components" / "crypto" / "xy_tiny_boot_crypto.md"
 
 EXCLUDED_ROOT_AGGREGATE_SOURCES = {
     "components/crypto/src/xy_sha256.c",
@@ -244,6 +245,30 @@ def _validate_historical_readme_warning(errors: list[str]) -> None:
         )
 
 
+def _validate_tiny_boot_doc_warning(errors: list[str]) -> None:
+    """Keep the historical boot-crypto concept doc from looking product-approved."""
+    if not CRYPTO_TINY_BOOT_DOC_PATH.exists():
+        errors.append("historical crypto boot doc is missing: components/crypto/xy_tiny_boot_crypto.md")
+        return
+
+    doc_text = CRYPTO_TINY_BOOT_DOC_PATH.read_text(encoding="utf-8")
+    for phrase in (
+        "历史设计材料 / 非当前安全结论",
+        "不得用本文件替代",
+        "crypto_review_manifest.json",
+        "xinyi-crypto-source-ownership-map-2026-08-12.md",
+        "安全/来源审查记录",
+        "真实硬件验证证据",
+        "不得据此启用 secure boot",
+    ):
+        _require(
+            phrase in doc_text,
+            "components/crypto/xy_tiny_boot_crypto.md must preserve "
+            f"historical/evidence-boundary warning phrase: {phrase}",
+            errors,
+        )
+
+
 def validate_manifest(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 
@@ -302,6 +327,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
     _validate_identical_duplicate_sources(source_map_text, errors)
     _validate_placeholder_api_warnings(errors)
     _validate_historical_readme_warning(errors)
+    _validate_tiny_boot_doc_warning(errors)
 
     algorithms = data.get("algorithms")
     _require(isinstance(algorithms, list) and len(algorithms) > 0, "algorithms must be a non-empty list", errors)

@@ -1,5 +1,7 @@
 # XY Tiny Boot Crypto
 
+> 历史设计材料 / 非当前安全结论：本文件保留早期 boot crypto 设想，不能作为当前 XinYi Crypto 组件事实源、安全审计结论、来源审查结论或硬件验证记录。不得用本文件替代 `components/crypto/README.md`、`components/crypto/crypto_review_manifest.json`、`docs/design/xinyi-crypto-source-ownership-map-2026-08-12.md`、安全/来源审查记录、真实硬件验证证据或 secure-boot 产品决策；不得据此启用 secure boot、签名验证、加密更新、认证、授权或其它安全敏感路径。
+
 ## Overview
 
 **xy_tiny_boot_crypto** is a secure bootloader cryptographic library inspired by WireGuard's efficient cryptographic design. It provides authenticated and encrypted firmware updates over UART/USB for resource-constrained Cortex-M0 microcontrollers.
