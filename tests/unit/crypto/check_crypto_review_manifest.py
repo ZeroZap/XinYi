@@ -23,6 +23,7 @@ ECDSA_PUBLIC_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_ecdsa.h"
 SHA256_LEGACY_HEADER_PATH = ROOT / "components" / "crypto" / "inc" / "xy_sha256.h"
 CRYPTO_HISTORICAL_README_PATH = ROOT / "components" / "crypto" / "ReadMe.md"
 CRYPTO_TINY_BOOT_DOC_PATH = ROOT / "components" / "crypto" / "xy_tiny_boot_crypto.md"
+FOTA_HISTORICAL_INTRO_PATH = ROOT / "docs" / "components" / "fota" / "introduction.md"
 
 EXCLUDED_ROOT_AGGREGATE_SOURCES = {
     "components/crypto/src/xy_sha256.c",
@@ -303,6 +304,32 @@ def _validate_tiny_boot_doc_warning(errors: list[str]) -> None:
         )
 
 
+def _validate_fota_historical_intro_warning(errors: list[str]) -> None:
+    """Keep historical FOTA ECDSA/secure-boot wording from looking approved."""
+    if not FOTA_HISTORICAL_INTRO_PATH.exists():
+        errors.append("historical FOTA introduction doc is missing: docs/components/fota/introduction.md")
+        return
+
+    doc_text = FOTA_HISTORICAL_INTRO_PATH.read_text(encoding="utf-8")
+    for phrase in (
+        "历史材料 / 非当前安全结论",
+        "components/fota/README.md",
+        "crypto_review_manifest.json",
+        "xinyi-crypto-ecdsa-placeholder-security-review-2026-08-13.md",
+        "不得用本页的历史“安全启动/ECDSA”表述替代真实安全/来源审查或板级验证证据",
+        "安全启动（历史设想）",
+        "format-only placeholder",
+        "security-rejected",
+        "不得用于 production secure boot / firmware authenticity",
+    ):
+        _require(
+            phrase in doc_text,
+            "docs/components/fota/introduction.md must preserve "
+            f"historical/evidence-boundary warning phrase: {phrase}",
+            errors,
+        )
+
+
 def validate_manifest(data: dict[str, Any]) -> list[str]:
     errors: list[str] = []
 
@@ -363,6 +390,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
     _validate_legacy_sha256_header_warning(errors)
     _validate_historical_readme_warning(errors)
     _validate_tiny_boot_doc_warning(errors)
+    _validate_fota_historical_intro_warning(errors)
 
     algorithms = data.get("algorithms")
     _require(isinstance(algorithms, list) and len(algorithms) > 0, "algorithms must be a non-empty list", errors)

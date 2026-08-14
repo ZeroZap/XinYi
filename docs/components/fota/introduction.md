@@ -1,5 +1,12 @@
 # FOTA 组件 - 固件无线升级
 
+> 历史材料 / 非当前安全结论：本页保留早期 FOTA 功能介绍，不能作为当前
+> secure boot、ECDSA 签名验证、安全审计、来源审查或真实硬件验证记录。
+> 当前 FOTA 事实源请以 `components/fota/README.md` 为准；Crypto/ECDSA 安全边界请以
+> `components/crypto/crypto_review_manifest.json` 与
+> `docs/validation/xinyi-crypto-ecdsa-placeholder-security-review-2026-08-13.md` 为准。
+> 不得用本页的历史“安全启动/ECDSA”表述替代真实安全/来源审查或板级验证证据。
+
 **状态**: ✅ 完整 | **测试**: 0 用例 | **版本**: 1.1.0
 
 ---
@@ -16,7 +23,9 @@ XinYi FOTA 组件提供固件 Over-The-Air 升级框架，支持多种升级模�
 - ✅ **回滚机制 (Rollback)** - 版本号校验 + 备份恢复
 - ✅ **CRC32 校验** - 完整性验证
 - ✅ **进度回调** - 升级进度跟踪
-- ✅ **安全启动** - 可选 ECDSA 签名验证
+- ⚠️ **安全启动（历史设想）** - 早期文档曾写作“可选 ECDSA 签名验证”；当前
+  `components/crypto/src/xy_ecdsa.c` 是 format-only placeholder，已标记
+  `security-rejected`，不得用于 production secure boot / firmware authenticity。
 
 ---
 
