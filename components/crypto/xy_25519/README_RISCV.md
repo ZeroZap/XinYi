@@ -1,5 +1,13 @@
 # XY_25519 on RISC-V Platforms
 
+> Benchmark boundary: this is historical design guidance, not current XinYi benchmark evidence,
+> MCU performance approval, security approval, provenance approval, or production-readiness proof.
+> Any timing, throughput, side-channel, or production-use claim must be backed by a fresh opt-in
+> benchmark record using `docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md`,
+> the focused correctness CTest(s), compiler/clock/dirty-state metadata, and raw output artifacts.
+> Do not copy the estimates below into benchmark records, hardware-validation records, or product
+> decisions without that evidence.
+
 ## Overview
 
 This document provides performance analysis and usage guidelines for the **xy_25519** library on **RISC-V** platforms, with focus on the **CH32X035** microcontroller series featuring the QingKe-V4C core.

@@ -1,6 +1,15 @@
 /**
  * Assembly Implementation Comparison
  *
+ * Benchmark boundary: this file is historical assembly comparison material, not current XinYi
+ * benchmark evidence, MCU performance approval, security approval, provenance approval, or
+ * production-readiness proof. Any timing, throughput, side-channel, or production-use claim must
+ * be backed by a fresh opt-in benchmark record using
+ * docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md, focused correctness
+ * CTest output, compiler/clock/dirty-state metadata, and raw artifacts. Do not copy estimates
+ * from this file into benchmark records, hardware-validation records, or product decisions without
+ * that evidence.
+ *
  * This directory contains two sets of assembly implementations:
  *
  * 1. Template implementations (cortex_m0_*.s)

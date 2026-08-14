@@ -1,5 +1,14 @@
 # XY_25519_M0: Cortex-M0 Optimized Implementation
 
+> Benchmark boundary: this is historical Cortex-M0 optimization guidance, not current XinYi
+> benchmark evidence, MCU performance approval, security approval, provenance approval, or
+> production-readiness proof. Any timing, throughput, side-channel, or production-use claim must be
+> backed by a fresh opt-in benchmark record using
+> `docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md`, focused correctness
+> CTest output, compiler/clock/dirty-state metadata, and raw artifacts. Do not copy the estimates
+> below into benchmark records, hardware-validation records, or product decisions without that
+> evidence.
+
 ## Overview
 
 **xy_25519_m0** is a high-performance X25519 ECDH implementation specifically optimized for ARM Cortex-M0 microcontrollers. It achieves **4x performance improvement** over generic C implementations through assembly-optimized field arithmetic.

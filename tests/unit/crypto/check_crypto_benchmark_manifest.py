@@ -19,6 +19,11 @@ RECORD_TEMPLATE_PATH = ROOT / "docs" / "validation" / "xinyi-crypto-benchmark-re
 REVIEW_MANIFEST_PATH = ROOT / "components" / "crypto" / "crypto_review_manifest.json"
 UNIT_CMAKE_PATH = ROOT / "tests" / "unit" / "CMakeLists.txt"
 HISTORICAL_BOOT_CRYPTO_PATH = ROOT / "components" / "crypto" / "xy_tiny_boot_crypto.md"
+HISTORICAL_25519_DOC_PATHS = (
+    ROOT / "components" / "crypto" / "xy_25519" / "README_RISCV.md",
+    ROOT / "components" / "crypto" / "xy_25519" / "README_M0.md",
+    ROOT / "components" / "crypto" / "xy_25519" / "asm" / "ASSEMBLY_COMPARISON.txt",
+)
 
 REQUIRED_NO_CLAIMS = {
     "no security approval",
@@ -103,6 +108,10 @@ def validate() -> list[str]:
     unit_cmake_text = UNIT_CMAKE_PATH.read_text(encoding="utf-8")
     manifest_text = MANIFEST_PATH.read_text(encoding="utf-8")
     historical_boot_crypto_text = HISTORICAL_BOOT_CRYPTO_PATH.read_text(encoding="utf-8")
+    historical_25519_doc_texts = {
+        path.relative_to(ROOT).as_posix(): path.read_text(encoding="utf-8")
+        for path in HISTORICAL_25519_DOC_PATHS
+    }
 
     require(manifest.get("schema_version") == 1, "schema_version must be 1", errors)
     require(
@@ -307,6 +316,24 @@ def validate() -> list[str]:
             f"historical boot crypto doc must preserve benchmark/no-claim guard: {phrase}",
             errors,
         )
+
+    for rel_path, text in historical_25519_doc_texts.items():
+        for phrase in (
+            "Benchmark boundary",
+            "not current XinYi",
+            "benchmark evidence",
+            "docs/validation/xinyi-crypto-benchmark-record-template-2026-08-14.md",
+            "focused correctness",
+            "dirty-state metadata",
+            "Do not copy",
+            "hardware-validation records",
+            "product",
+        ):
+            require(
+                phrase in text,
+                f"{rel_path} must preserve historical benchmark/no-claim guard: {phrase}",
+                errors,
+            )
 
     return errors
 
