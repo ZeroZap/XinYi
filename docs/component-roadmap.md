@@ -424,6 +424,7 @@ struct rt_device {
 - [x] **CRYPTO-004b**: opt-in benchmark harness policy skeleton（no timing）
   - `tests/unit/crypto/crypto_benchmark_manifest.json`
   - `crypto_benchmark_manifest` CTest 已守住 manifest/schema/evidence boundary、记录模板、forbidden inputs 与 no-claim wording
+  - `crypto_benchmark_host_plan` / `crypto_benchmark_host_json_plan` 已守住 plan-only compact/JSON 输出的 reproducibility metadata 与 no-claim 边界
   - 默认 `make test-unit` 不执行 timing loop，也不因机器性能波动失败
 
 - [ ] **CRYPTO-004c**: opt-in PC timing prototype（待审查后）

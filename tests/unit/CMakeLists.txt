@@ -531,7 +531,13 @@ add_test(NAME crypto_benchmark_host_plan
     WORKING_DIRECTORY ${ROOT}
 )
 
-# --- Test 20i5: Crypto host benchmark skeleton refuses timing until opt-in implementation lands ---
+# --- Test 20i5: Crypto host benchmark JSON plan keeps reproducibility metadata without timing ---
+add_test(NAME crypto_benchmark_host_json_plan
+    COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --plan-only --json
+    WORKING_DIRECTORY ${ROOT}
+)
+
+# --- Test 20i6: Crypto host benchmark skeleton refuses timing until opt-in implementation lands ---
 add_test(NAME crypto_benchmark_host_refuses_timing
     COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --run-timing
     WORKING_DIRECTORY ${ROOT}

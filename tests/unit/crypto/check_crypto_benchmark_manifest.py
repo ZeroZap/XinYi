@@ -133,6 +133,12 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        "crypto_benchmark_host_json_plan" in unit_cmake_text
+        and "--plan-only --json" in unit_cmake_text,
+        "crypto_benchmark_host_json_plan CTest must validate JSON plan metadata without timing",
+        errors,
+    )
+    require(
         "crypto_benchmark_host_refuses_timing" in unit_cmake_text
         and "WILL_FAIL TRUE" in unit_cmake_text,
         "crypto_benchmark_host_refuses_timing CTest must keep timing explicitly rejected by default",
