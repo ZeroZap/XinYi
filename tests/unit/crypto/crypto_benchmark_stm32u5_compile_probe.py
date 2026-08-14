@@ -35,6 +35,28 @@ def load_manifest() -> dict[str, Any]:
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
+def validated_manifest_metadata(manifest: dict[str, Any]) -> dict[str, Any]:
+    metadata: dict[str, Any] = {}
+    for field in ("component", "proposal", "benchmark_record_template"):
+        value = manifest.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{field} must be a non-empty string")
+        metadata[field] = value
+
+    policy = manifest.get("policy")
+    if not isinstance(policy, dict):
+        raise ValueError("policy must be an object")
+    no_claims = policy.get("no_claims")
+    if (
+        not isinstance(no_claims, list)
+        or not no_claims
+        or not all(isinstance(claim, str) and claim.strip() for claim in no_claims)
+    ):
+        raise ValueError("policy.no_claims must be a non-empty list of non-empty strings")
+    metadata["no_claims"] = no_claims
+    return metadata
+
+
 def command_strings() -> dict[str, str]:
     configure = (
         f"cmake -S {ROOT} -B {BUILD_DIR} -DHAL_PLATFORM=STM32U5 "
@@ -45,12 +67,14 @@ def command_strings() -> dict[str, str]:
 
 
 def build_plan(manifest: dict[str, Any]) -> dict[str, Any]:
+    metadata = validated_manifest_metadata(manifest)
     return {
         "status": "stm32u5-compile-probe-plan-only-no-build",
-        "component": manifest.get("component"),
+        "component": metadata["component"],
         "manifest": str(MANIFEST_PATH.relative_to(ROOT)),
-        "proposal": manifest.get("proposal"),
-        "record_template": manifest.get("benchmark_record_template"),
+        "proposal": metadata["proposal"],
+        "record_template": metadata["benchmark_record_template"],
+        "no_claims": metadata["no_claims"],
         "hal_platform": "STM32U5",
         "target": TARGET,
         "build_dir": str(BUILD_DIR.relative_to(ROOT)),
@@ -103,6 +127,7 @@ def run_command(args: list[str]) -> dict[str, Any]:
 
 
 def run_compile_probe(manifest: dict[str, Any]) -> dict[str, Any]:
+    metadata = validated_manifest_metadata(manifest)
     configure_result = run_command([
         "cmake",
         "-S",
@@ -120,8 +145,11 @@ def run_compile_probe(manifest: dict[str, Any]) -> dict[str, Any]:
     ok = configure_result["exit_code"] == 0 and build_result is not None and build_result["exit_code"] == 0
     return {
         "status": COMPILE_ONLY_STATUS if ok else "target-compile-probe-failed",
-        "component": manifest.get("component"),
+        "component": metadata["component"],
         "manifest": str(MANIFEST_PATH.relative_to(ROOT)),
+        "proposal": metadata["proposal"],
+        "record_template": metadata["benchmark_record_template"],
+        "no_claims": metadata["no_claims"],
         "hal_platform": "STM32U5",
         "target": TARGET,
         "build_dir": str(BUILD_DIR.relative_to(ROOT)),

@@ -20,6 +20,14 @@ assert CHECKER_SPEC is not None and CHECKER_SPEC.loader is not None
 BENCHMARK_CHECKER = importlib.util.module_from_spec(CHECKER_SPEC)
 CHECKER_SPEC.loader.exec_module(BENCHMARK_CHECKER)
 
+COMPILE_PROBE_PATH = Path(__file__).with_name("crypto_benchmark_stm32u5_compile_probe.py")
+COMPILE_PROBE_SPEC = importlib.util.spec_from_file_location(
+    "crypto_benchmark_stm32u5_compile_probe", COMPILE_PROBE_PATH
+)
+assert COMPILE_PROBE_SPEC is not None and COMPILE_PROBE_SPEC.loader is not None
+COMPILE_PROBE = importlib.util.module_from_spec(COMPILE_PROBE_SPEC)
+COMPILE_PROBE_SPEC.loader.exec_module(COMPILE_PROBE)
+
 
 class CryptoBenchmarkHostTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -172,6 +180,34 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
 
     def test_policy_checker_rejects_boolean_input_sizes(self) -> None:
         self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([True]))
+
+    def test_compile_probe_plan_rejects_missing_component(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        del manifest["component"]
+
+        with self.assertRaisesRegex(ValueError, "component"):
+            COMPILE_PROBE.build_plan(manifest)
+
+    def test_compile_probe_plan_rejects_empty_proposal(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["proposal"] = ""
+
+        with self.assertRaisesRegex(ValueError, "proposal"):
+            COMPILE_PROBE.build_plan(manifest)
+
+    def test_compile_probe_plan_rejects_missing_record_template(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        del manifest["benchmark_record_template"]
+
+        with self.assertRaisesRegex(ValueError, "benchmark_record_template"):
+            COMPILE_PROBE.build_plan(manifest)
+
+    def test_compile_probe_plan_rejects_empty_no_claims(self) -> None:
+        manifest = copy.deepcopy(self.manifest)
+        manifest["policy"]["no_claims"] = []
+
+        with self.assertRaisesRegex(ValueError, "policy.no_claims"):
+            COMPILE_PROBE.build_plan(manifest)
 
 
 if __name__ == "__main__":
