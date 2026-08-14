@@ -42,6 +42,20 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "input_sizes"):
             BENCHMARK_HOST.build_timing_record(manifest, 1)
 
+    def test_record_builder_rejects_zero_iterations(self) -> None:
+        with self.assertRaisesRegex(ValueError, "iterations"):
+            BENCHMARK_HOST.build_timing_record(self.manifest, 0)
+
+    def test_record_builder_rejects_iterations_above_host_bound(self) -> None:
+        with self.assertRaisesRegex(ValueError, "iterations"):
+            BENCHMARK_HOST.build_timing_record(
+                self.manifest, BENCHMARK_HOST.HOST_TIMING_MAX_ITERATIONS + 1
+            )
+
+    def test_record_builder_rejects_boolean_iterations(self) -> None:
+        with self.assertRaisesRegex(ValueError, "iterations"):
+            BENCHMARK_HOST.build_timing_record(self.manifest, True)
+
 
 if __name__ == "__main__":
     unittest.main()

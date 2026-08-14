@@ -101,7 +101,21 @@ def validated_input_sizes(group: dict[str, Any]) -> list[int]:
     return sizes
 
 
+def validated_iterations(iterations: int) -> int:
+    if (
+        type(iterations) is not int
+        or iterations < HOST_TIMING_MIN_ITERATIONS
+        or iterations > HOST_TIMING_MAX_ITERATIONS
+    ):
+        raise ValueError(
+            "iterations must be an integer within "
+            f"{HOST_TIMING_MIN_ITERATIONS}..{HOST_TIMING_MAX_ITERATIONS}"
+        )
+    return iterations
+
+
 def build_timing_record(manifest: dict[str, Any], iterations: int) -> dict[str, Any]:
+    iterations = validated_iterations(iterations)
     groups = []
     for group in manifest.get("algorithm_groups", []):
         if not isinstance(group, dict):
