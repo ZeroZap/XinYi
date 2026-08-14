@@ -335,6 +335,33 @@ def validate() -> list[str]:
                 errors,
             )
 
+    assembly_text = historical_25519_doc_texts[
+        "components/crypto/xy_25519/asm/ASSEMBLY_COMPARISON.txt"
+    ]
+    for phrase in (
+        "Production Use",
+        "Production-ready",
+        "Build system currently uses the REFERENCE implementations for production",
+        "**Build Status**: Production-ready",
+        "**Performance**: Verified",
+    ):
+        require(
+            phrase not in assembly_text,
+            f"25519 assembly comparison must not preserve stale production/benchmark claim: {phrase}",
+            errors,
+        )
+    for phrase in (
+        "focused-test-only until",
+        "not current XinYi production approval",
+        "not a current XinYi benchmark result",
+        "Historical estimate only",
+    ):
+        require(
+            phrase in assembly_text,
+            f"25519 assembly comparison must preserve no-claim replacement wording: {phrase}",
+            errors,
+        )
+
     return errors
 
 

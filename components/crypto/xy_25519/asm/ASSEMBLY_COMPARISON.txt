@@ -15,13 +15,15 @@
  * 1. Template implementations (cortex_m0_*.s)
  * 2. Reference implementations (cortex_m0_*_reference.s)
  *
- * The build system currently uses the REFERENCE implementations for production.
+ * Historical notes below may say "reference" or "production" because this file was imported from
+ * an older planning pass. In current XinYi, the Cortex-M0 material remains focused-test-only until
+ * a separate root/security/provenance decision lands.
  */
 
-## Reference Implementations (Production Use) ✅
+## Reference Implementations (Historical / Focused-Test-Only) ✅
 
 **Source**: curve25519-cortexm0-20150813 by Haase & Schwabe
-**Status**: Production-ready, academically verified (AFRICACRYPT 2013)
+**Status**: Historical optimized reference material; not current XinYi production approval
 **License**: CC0 1.0 Universal (Public Domain)
 
 ### Files
@@ -63,7 +65,8 @@
 - `fe25519_reduceTo256Bits_asm(uint32_t result[8], const uint32_t input[16])`
 - `fe25519_mpyWith121666_asm(uint32_t out[8], const uint32_t in[8])`
 
-✅ **Build system configured** - Makefile uses `*_reference.s` files automatically
+✅ **Historical build-system note** - legacy local Makefiles may select `*_reference.s` files, but
+XinYi root/runtime ownership does not treat this file as a production approval record.
 
 ---
 
@@ -160,7 +163,7 @@ str r0, [r3]
 
 ## Usage Recommendations
 
-### For Production ✅
+### For Historical/Focused Test Builds ✅
 
 ```makefile
 # Makefile automatically uses reference implementations
@@ -169,13 +172,13 @@ make TARGET_CPU=cortex-m0
 make m0
 ```
 
-This uses:
+Historical local M0 test builds may use:
 - ✅ `cortex_m0_mul256_reference.s`
 - ✅ `cortex_m0_square_reference.s`
 - ✅ `cortex_m0_reduce_reference.s`
 - ✅ `cortex_m0_mpy121666_reference.s`
 
-**Expected Performance**: X25519 in ~3.7ms @ 48MHz Cortex-M0
+**Historical estimate only**: X25519 in ~3.7ms @ 48MHz Cortex-M0. This is not a current XinYi benchmark result; use the benchmark record template before citing any number.
 
 ### For Learning/Documentation ℹ️
 
@@ -288,5 +291,5 @@ No conditions, attribution appreciated but not required.
 ---
 
 **Last Updated**: 2025-11-02
-**Build Status**: Production-ready with reference assembly ✅
-**Performance**: Verified ~3.7ms X25519 @ 48MHz Cortex-M0
+**Build Status**: Historical reference assembly material / focused-test-only in current XinYi ✅
+**Performance**: Historical estimate only; no current XinYi benchmark result recorded
