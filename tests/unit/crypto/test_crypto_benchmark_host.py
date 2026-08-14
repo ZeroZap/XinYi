@@ -175,6 +175,30 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "policy.no_claims"):
             BENCHMARK_HOST.build_timing_record(manifest, 1)
 
+    def test_timing_record_validator_rejects_missing_identity_metadata(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
+        del record["proposal"]
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, 1)
+
+        self.assertTrue(any("proposal" in error for error in errors))
+
+    def test_timing_record_validator_rejects_empty_no_claims(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
+        record["no_claims"] = []
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, 1)
+
+        self.assertTrue(any("no_claims" in error for error in errors))
+
+    def test_timing_record_validator_rejects_non_string_no_claim(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
+        record["no_claims"] = [True]
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, 1)
+
+        self.assertTrue(any("no_claims" in error for error in errors))
+
     def test_policy_checker_rejects_empty_input_sizes(self) -> None:
         self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([]))
 

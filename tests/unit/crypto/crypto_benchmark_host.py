@@ -224,8 +224,24 @@ def build_timing_record(manifest: dict[str, Any], iterations: int) -> dict[str, 
     }
 
 
-def validate_timing_record(record: dict[str, Any], iterations: int) -> list[str]:
+def validate_record_metadata(record: dict[str, Any]) -> list[str]:
     errors: list[str] = []
+    for field in ("component", "proposal", "record_template"):
+        value = record.get(field)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(f"{field} must be a non-empty string")
+    no_claims = record.get("no_claims")
+    if (
+        not isinstance(no_claims, list)
+        or not no_claims
+        or not all(isinstance(claim, str) and claim.strip() for claim in no_claims)
+    ):
+        errors.append("no_claims must be a non-empty list of non-empty strings")
+    return errors
+
+
+def validate_timing_record(record: dict[str, Any], iterations: int) -> list[str]:
+    errors = validate_record_metadata(record)
     if record.get("status") != HOST_TIMING_ALLOWED_STATUS:
         errors.append("timing record must stay PC-only/no-MCU-claim")
     if iterations < HOST_TIMING_MIN_ITERATIONS or iterations > HOST_TIMING_MAX_ITERATIONS:
