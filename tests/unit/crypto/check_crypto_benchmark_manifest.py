@@ -178,6 +178,13 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        "crypto_benchmark_host_timing_too_many_iterations" in unit_cmake_text
+        and "--iterations 1001" in unit_cmake_text
+        and "WILL_FAIL TRUE" in unit_cmake_text,
+        "crypto_benchmark_host_timing_too_many_iterations must guard requests above manifest bounds",
+        errors,
+    )
+    require(
         "crypto_benchmark_stm32u5_compile_probe_plan" in unit_cmake_text
         and "crypto_benchmark_stm32u5_compile_probe.py --plan-only" in unit_cmake_text,
         "crypto_benchmark_stm32u5_compile_probe_plan must keep target compile probe disabled by default",
