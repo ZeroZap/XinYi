@@ -1,81 +1,38 @@
-# XY Tiny Crypto Makefile
+# XinYi Crypto compatibility Makefile
+#
+# The canonical component build is the repository CMake target `xy_tiny_crypto`.
+# Historical versions of this file compiled every src/*.c file directly, but most
+# active algorithms now live in module directories (xy_crc/, xy_base/, xy_hmac/,
+# etc.) and some remaining src/*.c files are compatibility wrappers or excluded
+# stale API copies.  Keep this wrapper thin so ad-hoc `make -C components/crypto`
+# users exercise the same source ownership as root builds.
 
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -O2 -Iinc -I.
-LDFLAGS =
+REPO_ROOT := $(abspath ../..)
+BUILD_DIR ?= $(REPO_ROOT)/build/pc
+BUILD_TYPE ?= Release
+HAL_PLATFORM ?= PC
+CMAKE ?= cmake
 
-# Windows 系统需要链接额外库
-ifeq ($(OS),Windows_NT)
-    LDFLAGS += -ladvapi32
-endif
+.PHONY: all library test run_test clean help
 
-# 源文件和对象文件
-SRCDIR = src
-TESTDIR = test
-OBJDIR = build
-INCDIR = include
-
-SOURCES = $(wildcard $(SRCDIR)/*.c)
-OBJECTS = $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
-
-TEST_SOURCES = $(wildcard $(TESTDIR)/*.c)
-TEST_OBJECTS = $(TEST_SOURCES:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
-
-# 库文件
-LIBRARY = libxy_tiny_crypto.a
-TEST_EXECUTABLE = test_crypto
-
-.PHONY: all clean library test
-
-# 默认只构建库，跳过测试 (测试需要完整的加密函数实现)
 all: library
 
-# 创建构建目录
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
+library:
+	$(CMAKE) -B "$(BUILD_DIR)" -S "$(REPO_ROOT)" -DHAL_PLATFORM=$(HAL_PLATFORM) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+	$(CMAKE) --build "$(BUILD_DIR)" --target xy_tiny_crypto -j$$(nproc)
 
-# 编译库源文件
-$(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# Component-local legacy tests are no longer authoritative.  Run the repository
+# Unity/CTest gate so crypto targets and policy smokes stay in sync.
+test run_test:
+	$(MAKE) -C "$(REPO_ROOT)" test-unit
 
-# 编译测试文件
-$(OBJDIR)/%.o: $(TESTDIR)/%.c | $(OBJDIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# 创建静态库
-library: $(LIBRARY)
-
-$(LIBRARY): $(OBJECTS)
-	ar rcs $@ $^
-	@echo "库文件 $(LIBRARY) 创建完成"
-
-# 创建测试可执行文件
-test: $(TEST_EXECUTABLE)
-
-$(TEST_EXECUTABLE): $(TEST_OBJECTS) $(LIBRARY)
-	$(CC) $^ -o $@ $(LDFLAGS)
-	@echo "测试程序 $(TEST_EXECUTABLE) 创建完成"
-
-# 运行测试
-run_test: $(TEST_EXECUTABLE)
-	./$(TEST_EXECUTABLE)
-
-# 清理
 clean:
-	rm -rf $(OBJDIR) $(LIBRARY) $(TEST_EXECUTABLE)
+	$(CMAKE) --build "$(BUILD_DIR)" --target clean || true
 
-# 安装头文件和库文件（可选）
-install: library
-	@echo "安装库文件到系统目录"
-	# cp $(LIBRARY) /usr/local/lib/
-	# cp $(INCDIR)/*.h /usr/local/include/
-
-# 显示帮助信息
 help:
-	@echo "可用目标:"
-	@echo "  all       - 编译库和测试程序"
-	@echo "  library   - 编译库文件"
-	@echo "  test      - 编译测试程序"
-	@echo "  run_test  - 运行测试程序"
-	@echo "  clean     - 清理生成的文件"
-	@echo "  help      - 显示此帮助信息"
+	@echo "XinYi Crypto targets:"
+	@echo "  all/library - configure/build canonical xy_tiny_crypto via root CMake"
+	@echo "  test        - run repository make test-unit"
+	@echo "  run_test    - alias for test"
+	@echo "  clean       - clean the configured CMake build directory"
+	@echo "Variables: BUILD_DIR=$(BUILD_DIR) BUILD_TYPE=$(BUILD_TYPE) HAL_PLATFORM=$(HAL_PLATFORM)"
