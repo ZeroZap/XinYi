@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "status": "policy-smoke-only-no-timing",
+  "component": "components/crypto",
+  "proposal": "docs/design/xinyi-crypto-benchmark-harness-proposal-2026-08-14.md",
+  "policy": {
+    "purpose": "Define benchmark evidence boundaries before any timing, optimization, assembly, hardware acceleration, or external crypto library work lands.",
+    "default_execution": "manifest-validation-only; make test-unit must not depend on machine speed or timing thresholds",
+    "no_claims": [
+      "no security approval",
+      "no provenance approval",
+      "no MCU timing claim",
+      "no hardware validation",
+      "no side-channel claim",
+      "no production enablement"
+    ],
+    "required_result_metadata": [
+      "algorithm_id",
+      "source_ownership",
+      "input_sizes",
+      "iterations",
+      "warmup_iterations",
+      "test_key_or_seed_policy",
+      "correctness_gate",
+      "compiler",
+      "compile_flags",
+      "hal_platform",
+      "commit_hash",
+      "dirty_state"
+    ],
+    "forbidden_inputs": [
+      "production_key",
+      "secure_boot_signing_key",
+      "product_identity_material",
+      "customer_secret",
+      "certificate_private_key"
+    ]
+  },
+  "platform_tiers": [
+    {
+      "id": "host_manifest_smoke",
+      "evidence": "json/schema/policy validation only",
+      "allowed_claim": "benchmark harness policy is present and no timing is executed"
+    },
+    {
+      "id": "host_micro_benchmark_opt_in",
+      "evidence": "future opt-in PC timing metadata plus correctness gate",
+      "allowed_claim": "PC-only timing sample, not MCU performance"
+    },
+    {
+      "id": "stm32u5_compile_probe",
+      "evidence": "future target compile output only",
+      "allowed_claim": "benchmark harness compiles for STM32U5, not timing or hardware pass"
+    },
+    {
+      "id": "mcu_cycle_record",
+      "evidence": "future board run record with clock/compiler/interrupt/cache/sample metadata",
+      "allowed_claim": "recorded target measurement for the named board and commit only"
+    }
+  ],
+  "algorithm_groups": [
+    {
+      "id": "crc_base64_hex",
+      "contract_tests": ["crypto_crc", "crypto_encode"],
+      "source_ownership": "single-active-module-source",
+      "input_sizes": [0, 1, 16, 64, 1024, 4096],
+      "benchmark_input_policy": "fixed public test vectors only; never production data or customer secret material"
+    },
+    {
+      "id": "hash_hmac_blake2",
+      "contract_tests": ["crypto_hash", "crypto_cipher_hmac", "crypto_blake2"],
+      "source_ownership": "single-active-module-source-with-limited-security-review-records",
+      "input_sizes": [0, 1, 55, 64, 65, 1024, 4096],
+      "benchmark_input_policy": "fixed public messages and non-secret benchmark keys only"
+    },
+    {
+      "id": "cipher_aead_lwc",
+      "contract_tests": ["crypto_cipher_hmac", "crypto_lwc", "crypto_root_target_smoke"],
+      "source_ownership": "module-source-or-root-compatibility-wrapper depending on algorithm",
+      "input_sizes": [0, 1, 16, 64, 1024, 4096],
+      "benchmark_input_policy": "fixed non-secret keys/nonces for measurement only; no production nonce/key reuse claim"
+    },
+    {
+      "id": "random_csprng",
+      "contract_tests": ["crypto_random", "crypto_csprng"],
+      "source_ownership": "single-active-module-source",
+      "input_sizes": [1, 16, 32, 64, 1024],
+      "benchmark_input_policy": "fixed benchmark seed only; no entropy-source, secret, token, or key generation claim"
+    },
+    {
+      "id": "placeholder_or_focused_only",
+      "contract_tests": ["crypto_sm2", "crypto_ecdsa_root_contract", "crypto_25519", "crypto_25519_m0"],
+      "source_ownership": "placeholder-or-focused-test-only-boundary",
+      "input_sizes": [32, 64, 128],
+      "benchmark_input_policy": "policy boundary only unless separate root/security/provenance decision exists"
+    }
+  ]
+}
