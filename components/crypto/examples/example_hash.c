@@ -71,7 +71,7 @@ int main(void)
         printf("SHA256 hash failed\n");
     }
 
-    /* Incremental SHA-256 hash using xy_sha256.h API */
+    /* Incremental SHA-256 hash using the active xy_tiny_crypto.h API */
     xy_sha256_ctx_t sha_ctx;
     xy_sha256_init(&sha_ctx);
 
@@ -81,7 +81,7 @@ int main(void)
     xy_sha256_update(&sha_ctx, (const uint8_t *)test_data + chunk1_len + chunk2_len, chunk3_len);
 
     uint8_t sha256_digest_incremental[XY_SHA256_DIGEST_SIZE];
-    xy_sha256_finish(&sha_ctx, sha256_digest_incremental);
+    xy_sha256_final(&sha_ctx, sha256_digest_incremental);
     print_hash("SHA256 (incremental)", sha256_digest_incremental, XY_SHA256_DIGEST_SIZE);
 
     /* Verify both methods produce same result */
