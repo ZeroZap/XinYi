@@ -199,6 +199,45 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
 
         self.assertTrue(any("no_claims" in error for error in errors))
 
+    def test_timing_record_validator_rejects_missing_groups(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
+        del record["groups"]
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, 1)
+
+        self.assertTrue(any("groups" in error for error in errors))
+
+    def test_timing_record_validator_rejects_non_object_group(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
+        record["groups"][0] = "not-an-object"
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, 1)
+
+        self.assertTrue(any("groups[0]" in error for error in errors))
+
+    def test_timing_record_validator_rejects_missing_group_identity(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
+        del record["groups"][0]["source_ownership"]
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, 1)
+
+        self.assertTrue(any("source_ownership" in error for error in errors))
+
+    def test_timing_record_validator_rejects_malformed_samples(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
+        record["groups"][0]["samples"][0]["samples_ns"] = [True]
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, 1)
+
+        self.assertTrue(any("samples_ns" in error for error in errors))
+
+    def test_timing_record_validator_rejects_boolean_iterations(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, True)
+
+        self.assertTrue(any("iterations" in error for error in errors))
+
     def test_policy_checker_rejects_empty_input_sizes(self) -> None:
         self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([]))
 

@@ -244,7 +244,11 @@ def validate_timing_record(record: dict[str, Any], iterations: int) -> list[str]
     errors = validate_record_metadata(record)
     if record.get("status") != HOST_TIMING_ALLOWED_STATUS:
         errors.append("timing record must stay PC-only/no-MCU-claim")
-    if iterations < HOST_TIMING_MIN_ITERATIONS or iterations > HOST_TIMING_MAX_ITERATIONS:
+    if (
+        type(iterations) is not int
+        or iterations < HOST_TIMING_MIN_ITERATIONS
+        or iterations > HOST_TIMING_MAX_ITERATIONS
+    ):
         errors.append("iterations must stay inside the bounded host-smoke range")
     record_text = json.dumps(record, sort_keys=True)
     for claim in FORBIDDEN_APPROVAL_CLAIMS:
@@ -252,13 +256,69 @@ def validate_timing_record(record: dict[str, Any], iterations: int) -> list[str]
             errors.append(f"timing record must not contain approval phrase: {claim}")
     if "not MCU timing" not in record.get("evidence_boundary", ""):
         errors.append("timing record must explicitly reject MCU timing claims")
-    for group in record.get("groups", []):
-        if not group.get("contract_tests"):
-            errors.append(f"group {group.get('algorithm_id')} must list correctness gates")
+
+    groups = record.get("groups")
+    if not isinstance(groups, list) or not groups:
+        errors.append("timing record groups must be a non-empty list")
+        return errors
+
+    for group_index, group in enumerate(groups):
+        if not isinstance(group, dict):
+            errors.append(f"groups[{group_index}] must be an object")
+            continue
+        group_name = group.get("algorithm_id")
+        for field in ("algorithm_id", "source_ownership", "test_key_or_seed_policy"):
+            value = group.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"groups[{group_index}].{field} must be a non-empty string")
+        contract_tests = group.get("contract_tests")
+        if (
+            not isinstance(contract_tests, list)
+            or not contract_tests
+            or not all(isinstance(test, str) and test.strip() for test in contract_tests)
+        ):
+            errors.append(f"group {group_name} must list non-empty correctness gates")
         if group.get("iterations") != iterations:
-            errors.append(f"group {group.get('algorithm_id')} must record requested iterations")
-        if not group.get("samples"):
-            errors.append(f"group {group.get('algorithm_id')} must contain host timing samples")
+            errors.append(f"group {group_name} must record requested iterations")
+        if group.get("warmup_iterations") != 0:
+            errors.append(f"group {group_name} must record zero warmup iterations")
+
+        input_sizes = group.get("input_sizes")
+        if not isinstance(input_sizes, list) or not input_sizes or not all(
+            type(size) is int and 0 <= size <= HOST_TIMING_MAX_INPUT_SIZE for size in input_sizes
+        ):
+            errors.append(f"group {group_name} input_sizes must stay within the host timing bound")
+            input_sizes = []
+
+        samples = group.get("samples")
+        if not isinstance(samples, list) or not samples:
+            errors.append(f"group {group_name} must contain host timing samples")
+            continue
+        if input_sizes and len(samples) != len(input_sizes):
+            errors.append(f"group {group_name} must contain one sample record per input size")
+        for sample_index, sample in enumerate(samples):
+            if not isinstance(sample, dict):
+                errors.append(f"group {group_name} samples[{sample_index}] must be an object")
+                continue
+            sample_values = sample.get("samples_ns")
+            if (
+                not isinstance(sample_values, list)
+                or len(sample_values) != iterations
+                or not all(type(value) is int and value >= 0 for value in sample_values)
+            ):
+                errors.append(
+                    f"group {group_name} samples[{sample_index}].samples_ns must contain "
+                    "the requested number of non-negative integer samples"
+                )
+            input_size = sample.get("input_size")
+            if type(input_size) is not int or input_size not in input_sizes:
+                errors.append(f"group {group_name} samples[{sample_index}].input_size is invalid")
+            for field in ("min_ns", "median_ns", "max_ns"):
+                value = sample.get(field)
+                if not isinstance(value, (int, float)) or isinstance(value, bool) or value < 0:
+                    errors.append(
+                        f"group {group_name} samples[{sample_index}].{field} must be non-negative numeric data"
+                    )
     return errors
 
 
