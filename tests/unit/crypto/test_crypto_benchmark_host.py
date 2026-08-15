@@ -371,6 +371,56 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
 
         self.assertTrue(any("no_claims" in error for error in errors))
 
+    def test_compile_probe_record_validator_rejects_missing_build_result(self) -> None:
+        record = self._valid_compile_probe_record()
+        del record["build"]
+
+        errors = COMPILE_PROBE.validate_compile_record(record)
+
+        self.assertTrue(any("build must be an object" in error for error in errors))
+
+    def test_compile_probe_record_validator_rejects_boolean_exit_code(self) -> None:
+        record = self._valid_compile_probe_record()
+        record["configure"]["exit_code"] = False
+
+        errors = COMPILE_PROBE.validate_compile_record(record)
+
+        self.assertTrue(any("configure.exit_code" in error for error in errors))
+
+    def test_compile_probe_record_validator_rejects_wrong_target(self) -> None:
+        record = self._valid_compile_probe_record()
+        record["target"] = "not-xy-tiny-crypto"
+
+        errors = COMPILE_PROBE.validate_compile_record(record)
+
+        self.assertTrue(any("target" in error for error in errors))
+
+    def _valid_compile_probe_record(self) -> dict:
+        return {
+            "status": COMPILE_PROBE.COMPILE_ONLY_STATUS,
+            "component": self.manifest["component"],
+            "proposal": self.manifest["proposal"],
+            "record_template": self.manifest["benchmark_record_template"],
+            "no_claims": self.manifest["policy"]["no_claims"],
+            "hal_platform": "STM32U5",
+            "target": COMPILE_PROBE.TARGET,
+            "build_dir": "build/crypto_benchmark_stm32u5_probe",
+            "evidence_boundary": (
+                "not benchmark timing, not MCU cycle measurement, not hardware validation, "
+                "not security approval, not provenance approval"
+            ),
+            "configure": {
+                "command": "cmake -S . -B build/crypto_benchmark_stm32u5_probe",
+                "exit_code": 0,
+                "output_tail": ["configured"],
+            },
+            "build": {
+                "command": "cmake --build build/crypto_benchmark_stm32u5_probe --target xy_tiny_crypto",
+                "exit_code": 0,
+                "output_tail": ["built"],
+            },
+        }
+
 
 if __name__ == "__main__":
     unittest.main()

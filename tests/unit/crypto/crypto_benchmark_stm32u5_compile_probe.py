@@ -178,12 +178,43 @@ def run_compile_probe(manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def validate_command_result(value: Any, field: str) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(value, dict):
+        return [f"{field} must be an object"]
+    command = value.get("command")
+    if not isinstance(command, str) or not command.strip():
+        errors.append(f"{field}.command must be a non-empty string")
+    if type(value.get("exit_code")) is not int or value["exit_code"] != 0:
+        errors.append(f"{field}.exit_code must be integer zero")
+    output_tail = value.get("output_tail")
+    if not isinstance(output_tail, list) or not all(isinstance(line, str) for line in output_tail):
+        errors.append(f"{field}.output_tail must be a list of strings")
+    return errors
+
+
 def validate_compile_record(record: dict[str, Any]) -> list[str]:
     errors = validate_record_metadata(record)
     if record.get("status") != COMPILE_ONLY_STATUS:
         errors.append("compile probe did not complete successfully")
-    if "not benchmark timing" not in str(record.get("evidence_boundary", "")):
-        errors.append("compile record must reject timing claims")
+    if record.get("hal_platform") != "STM32U5":
+        errors.append("compile record must target STM32U5")
+    if record.get("target") != TARGET:
+        errors.append(f"compile record target must be {TARGET}")
+    build_dir = record.get("build_dir")
+    if not isinstance(build_dir, str) or not build_dir.strip():
+        errors.append("compile record build_dir must be a non-empty string")
+    errors.extend(validate_command_result(record.get("configure"), "configure"))
+    errors.extend(validate_command_result(record.get("build"), "build"))
+    boundary = str(record.get("evidence_boundary", ""))
+    for phrase in (
+        "not benchmark timing",
+        "not hardware validation",
+        "not security approval",
+        "not provenance approval",
+    ):
+        if phrase not in boundary:
+            errors.append(f"compile record evidence boundary missing: {phrase}")
     for claim in FORBIDDEN_CLAIMS:
         if claim in json.dumps(record, sort_keys=True):
             errors.append(f"compile record must not contain approval/result phrase: {claim}")
