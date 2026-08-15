@@ -388,8 +388,6 @@ def validate_plan(plan: dict[str, Any]) -> list[str]:
             if not isinstance(value, str) or not value.strip():
                 errors.append(f"groups[{group_index}].{field} must be a non-empty string")
         for field in (
-            "iterations",
-            "warmup_iterations",
             "correctness_gate",
             "compiler",
             "compile_flags",
@@ -397,8 +395,12 @@ def validate_plan(plan: dict[str, Any]) -> list[str]:
             "commit_hash",
             "dirty_state",
         ):
-            if field not in group:
-                errors.append(f"group {group_name} missing metadata field: {field}")
+            value = group.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"group {group_name} {field} must be a non-empty string")
+        for field in ("iterations", "warmup_iterations"):
+            if type(group.get(field)) is not int or group[field] != 0:
+                errors.append(f"group {group_name} {field} must be integer zero in plan-only mode")
         input_sizes = group.get("input_sizes")
         if not isinstance(input_sizes, list) or not input_sizes or not all(
             type(size) is int and 0 <= size <= HOST_TIMING_MAX_INPUT_SIZE for size in input_sizes

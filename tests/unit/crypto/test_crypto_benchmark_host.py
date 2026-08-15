@@ -278,6 +278,22 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
 
         self.assertTrue(any("contract_tests" in error for error in errors))
 
+    def test_plan_validator_rejects_empty_reproducibility_metadata(self) -> None:
+        plan = BENCHMARK_HOST.build_plan(copy.deepcopy(self.manifest))
+        plan["groups"][0]["compiler"] = ""
+
+        errors = BENCHMARK_HOST.validate_plan(plan)
+
+        self.assertTrue(any("compiler" in error for error in errors))
+
+    def test_plan_validator_rejects_boolean_zero_iteration_metadata(self) -> None:
+        plan = BENCHMARK_HOST.build_plan(copy.deepcopy(self.manifest))
+        plan["groups"][0]["iterations"] = False
+
+        errors = BENCHMARK_HOST.validate_plan(plan)
+
+        self.assertTrue(any("iterations" in error for error in errors))
+
     def test_policy_checker_rejects_empty_input_sizes(self) -> None:
         self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([]))
 
