@@ -97,14 +97,19 @@ The default checked-in CTest smoke remains bounded to 1 iteration and must not c
 
 Use only after a real board run. Compile-only output belongs in `target-compile-only`, not here.
 
+Pending-record rule: while the current result remains `pending`, all MCU cycle fields must remain `pending` and must not contain numeric cycle, latency, throughput, or sample values. Only a real board run may change the result to `mcu-cycle-recorded`; that run must preserve the raw artifact and the metadata below in the same validation record. Compile-only, host timing, synthetic workload, estimated, or copied historical values are invalid substitutions.
+
 | Field | Value |
 | --- | --- |
 | Board / revision | pending |
 | MCU / clock tree | pending |
 | Cache / interrupt state | pending |
 | Cycle counter or timer source | pending |
+| Counter width / overflow handling | pending |
+| Warm-up count | pending |
+| Sample count | pending |
+| Raw sample values | pending |
 | UART/SWO/log artifact | pending |
-| Samples | pending |
 | bytes/s or cycles/byte | pending |
 | Known measurement limitations | pending |
 

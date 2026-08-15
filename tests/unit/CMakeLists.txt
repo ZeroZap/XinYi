@@ -525,6 +525,12 @@ add_test(NAME crypto_benchmark_manifest
     WORKING_DIRECTORY ${ROOT}
 )
 
+# --- Test 20i3a: Crypto MCU cycle record template stays pending until real board evidence exists ---
+add_test(NAME crypto_benchmark_mcu_cycle_record_template
+    COMMAND python3 ${UNIT_CRYPTO}/check_crypto_mcu_cycle_record_template.py
+    WORKING_DIRECTORY ${ROOT}
+)
+
 # --- Test 20i4: Crypto host benchmark skeleton stays plan-only/no-timing by default ---
 add_test(NAME crypto_benchmark_host_plan
     COMMAND python3 ${UNIT_CRYPTO}/crypto_benchmark_host.py --plan-only

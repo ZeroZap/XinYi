@@ -156,6 +156,12 @@ def validate() -> list[str]:
         errors,
     )
     require(
+        "crypto_benchmark_mcu_cycle_record_template" in unit_cmake_text
+        and "check_crypto_mcu_cycle_record_template.py" in unit_cmake_text,
+        "crypto_benchmark_mcu_cycle_record_template must guard pending MCU evidence fields",
+        errors,
+    )
+    require(
         "crypto_benchmark_host_plan" in unit_cmake_text,
         "crypto_benchmark_host_plan CTest must keep the host skeleton plan-only by default",
         errors,
