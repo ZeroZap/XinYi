@@ -301,11 +301,12 @@ def validate_timing_record(record: dict[str, Any], iterations: int) -> list[str]
                 errors.append(f"group {group_name} samples[{sample_index}] must be an object")
                 continue
             sample_values = sample.get("samples_ns")
-            if (
-                not isinstance(sample_values, list)
-                or len(sample_values) != iterations
-                or not all(type(value) is int and value >= 0 for value in sample_values)
-            ):
+            valid_sample_values = (
+                isinstance(sample_values, list)
+                and len(sample_values) == iterations
+                and all(type(value) is int and value >= 0 for value in sample_values)
+            )
+            if not valid_sample_values:
                 errors.append(
                     f"group {group_name} samples[{sample_index}].samples_ns must contain "
                     "the requested number of non-negative integer samples"
@@ -319,6 +320,18 @@ def validate_timing_record(record: dict[str, Any], iterations: int) -> list[str]
                     errors.append(
                         f"group {group_name} samples[{sample_index}].{field} must be non-negative numeric data"
                     )
+            if valid_sample_values and isinstance(sample_values, list):
+                validated_samples = [int(value) for value in sample_values]
+                expected_summaries = {
+                    "min_ns": min(validated_samples),
+                    "median_ns": statistics.median(validated_samples),
+                    "max_ns": max(validated_samples),
+                }
+                for field, expected in expected_summaries.items():
+                    if sample.get(field) != expected:
+                        errors.append(
+                            f"group {group_name} samples[{sample_index}].{field} must match samples_ns"
+                        )
     return errors
 
 

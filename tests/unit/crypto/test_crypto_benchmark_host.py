@@ -231,6 +231,14 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
 
         self.assertTrue(any("samples_ns" in error for error in errors))
 
+    def test_timing_record_validator_rejects_inconsistent_sample_summary(self) -> None:
+        record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 2)
+        record["groups"][0]["samples"][0]["min_ns"] += 1
+
+        errors = BENCHMARK_HOST.validate_timing_record(record, 2)
+
+        self.assertTrue(any("min_ns" in error for error in errors))
+
     def test_timing_record_validator_rejects_boolean_iterations(self) -> None:
         record = BENCHMARK_HOST.build_timing_record(copy.deepcopy(self.manifest), 1)
 
