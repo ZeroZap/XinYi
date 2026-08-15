@@ -369,19 +369,27 @@ def build_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def validate_plan(plan: dict[str, Any]) -> list[str]:
-    errors: list[str] = []
+    errors = validate_record_metadata(plan)
     if plan.get("status") != "host-plan-only-no-timing":
         errors.append("plan status must remain host-plan-only-no-timing")
-    if "groups" not in plan or not plan["groups"]:
-        errors.append("plan must include algorithm groups from the manifest")
-    for group in plan.get("groups", []):
+
+    groups = plan.get("groups")
+    if not isinstance(groups, list) or not groups:
+        errors.append("plan groups must be a non-empty list")
+        return errors
+
+    for group_index, group in enumerate(groups):
+        if not isinstance(group, dict):
+            errors.append(f"groups[{group_index}] must be an object")
+            continue
+        group_name = group.get("algorithm_id")
+        for field in ("algorithm_id", "source_ownership", "test_key_or_seed_policy"):
+            value = group.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"groups[{group_index}].{field} must be a non-empty string")
         for field in (
-            "algorithm_id",
-            "source_ownership",
-            "input_sizes",
             "iterations",
             "warmup_iterations",
-            "test_key_or_seed_policy",
             "correctness_gate",
             "compiler",
             "compile_flags",
@@ -390,11 +398,21 @@ def validate_plan(plan: dict[str, Any]) -> list[str]:
             "dirty_state",
         ):
             if field not in group:
-                errors.append(f"group {group.get('algorithm_id')} missing metadata field: {field}")
+                errors.append(f"group {group_name} missing metadata field: {field}")
+        input_sizes = group.get("input_sizes")
+        if not isinstance(input_sizes, list) or not input_sizes or not all(
+            type(size) is int and 0 <= size <= HOST_TIMING_MAX_INPUT_SIZE for size in input_sizes
+        ):
+            errors.append(f"group {group_name} input_sizes must stay within the host timing bound")
         if group.get("iterations") != 0 or group.get("warmup_iterations") != 0:
-            errors.append(f"group {group.get('algorithm_id')} must not run timing in plan-only mode")
-        if not group.get("contract_tests"):
-            errors.append(f"group {group.get('algorithm_id')} must list correctness gates")
+            errors.append(f"group {group_name} must not run timing in plan-only mode")
+        contract_tests = group.get("contract_tests")
+        if (
+            not isinstance(contract_tests, list)
+            or not contract_tests
+            or not all(isinstance(test, str) and test.strip() for test in contract_tests)
+        ):
+            errors.append(f"group {group_name} contract_tests must list non-empty correctness gates")
     forbidden_claims = {"security-approved", "provenance-approved", "hardware-passed", "constant-time-proven"}
     plan_text = json.dumps(plan, sort_keys=True)
     for claim in forbidden_claims:

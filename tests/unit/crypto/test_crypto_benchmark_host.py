@@ -246,6 +246,38 @@ class CryptoBenchmarkHostTests(unittest.TestCase):
 
         self.assertTrue(any("iterations" in error for error in errors))
 
+    def test_plan_validator_rejects_missing_identity_metadata(self) -> None:
+        plan = BENCHMARK_HOST.build_plan(copy.deepcopy(self.manifest))
+        del plan["record_template"]
+
+        errors = BENCHMARK_HOST.validate_plan(plan)
+
+        self.assertTrue(any("record_template" in error for error in errors))
+
+    def test_plan_validator_rejects_non_object_group(self) -> None:
+        plan = BENCHMARK_HOST.build_plan(copy.deepcopy(self.manifest))
+        plan["groups"][0] = "not-an-object"
+
+        errors = BENCHMARK_HOST.validate_plan(plan)
+
+        self.assertTrue(any("groups[0]" in error for error in errors))
+
+    def test_plan_validator_rejects_boolean_input_size(self) -> None:
+        plan = BENCHMARK_HOST.build_plan(copy.deepcopy(self.manifest))
+        plan["groups"][0]["input_sizes"] = [True]
+
+        errors = BENCHMARK_HOST.validate_plan(plan)
+
+        self.assertTrue(any("input_sizes" in error for error in errors))
+
+    def test_plan_validator_rejects_empty_contract_tests(self) -> None:
+        plan = BENCHMARK_HOST.build_plan(copy.deepcopy(self.manifest))
+        plan["groups"][0]["contract_tests"] = []
+
+        errors = BENCHMARK_HOST.validate_plan(plan)
+
+        self.assertTrue(any("contract_tests" in error for error in errors))
+
     def test_policy_checker_rejects_empty_input_sizes(self) -> None:
         self.assertFalse(BENCHMARK_CHECKER.valid_host_input_sizes([]))
 
