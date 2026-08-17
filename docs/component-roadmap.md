@@ -1,4 +1,6 @@
-# XinYi 组件生态建设 - 30 天开发路线图
+# XinYi 组件生态建设 - 历史 30 天路线图
+
+> **状态说明（2026-08-17）**：本文保留为历史路线与演进记录，其中早期百分比、分支操作和“立即执行”命令已经过期。当前组件状态与 Sprint 范围请以 [`docs/plans/2026-08-17-component-audit-sprint-plan.md`](plans/2026-08-17-component-audit-sprint-plan.md) 为准；执行进度以 [`docs/plans/SPRINT_TRACKER.md`](plans/SPRINT_TRACKER.md) 为准；Host/compile/QEMU/硬件/安全证据以 [`docs/validation/component-evidence-matrix.md`](validation/component-evidence-matrix.md) 为准。
 
 **创建日期**: 2026-03-12  
 **作者**: ese (嵌入式系统工程师 agent)  
@@ -699,9 +701,11 @@ struct rt_device {
 
 ---
 
-## 8️⃣ 下一步行动
+## 8️⃣ 历史下一步行动（已废弃）
 
-### 立即执行 (Today)
+> 以下命令与目标是 2026-03-12 快照，不得直接执行。当前工作从 `docs/plans/SPRINT_TRACKER.md` 中选择 `READY` 项，并按组件质量闭环执行。
+
+### 历史立即执行 (Do not execute)
 
 1. **切换到 develop 分支**
    ```bash

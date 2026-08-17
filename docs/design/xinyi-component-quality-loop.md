@@ -21,6 +21,9 @@
 每日巡检只做分析和建议，默认不修改源码。
 
 输入：
+- `docs/plans/SPRINT_TRACKER.md`（当前执行状态唯一入口）
+- `docs/validation/component-evidence-matrix.md`（组件证据等级台账）
+- `docs/plans/2026-08-17-component-audit-sprint-plan.md`（Sprint 范围与验收基线）
 - `components/COMPONENT_COMPLETENESS_ANALYSIS.md`
 - `docs/component-roadmap.md`
 - `docs/design/unit-test-inventory.md`
@@ -62,11 +65,15 @@
 5. 执行验证：优先 `make test-unit`；若耗时或受环境阻塞，至少运行相关 CTest/构建命令并记录阻塞。
 6. `git diff --check`。
 7. 只 stage 本轮文件并提交；若验证失败，不提交，改为汇报 blocker。
-8. 汇报：改动路径、验证输出、提交哈希或阻塞原因、下一 slice 建议。
+8. 更新 `docs/plans/SPRINT_TRACKER.md`：状态、负责人、证据/阻塞、提交与更新时间。
+9. 若证据等级发生变化，更新 `docs/validation/component-evidence-matrix.md`；Host/compile/QEMU 不得自动升级为硬件、安全或性能通过。
+10. 汇报：改动路径、验证输出、提交哈希或阻塞原因、下一 slice 建议。
 
 ---
 
 ## 4. 当前优先 backlog
+
+> 自 2026-08-17 起，本节只保留历史演进说明；可执行优先级以 `docs/plans/SPRINT_TRACKER.md` 为准，组件成熟度与硬件/安全边界以 `docs/validation/component-evidence-matrix.md` 为准。若本节与两份台账冲突，以台账为准。
 
 | 优先级 | 方向 | 依据 | 推荐动作 |
 | --- | --- | --- | --- |
@@ -227,7 +234,10 @@
 
 ## 5. 周度架构回顾
 
-每周输出一次组件地图：
+每周输出一次组件地图，并同步更新：
+
+- `docs/plans/SPRINT_TRACKER.md`：完成项、未完成项、阻塞、下周最多 3 个主要 slice。
+- `docs/validation/component-evidence-matrix.md`：仅更新本周真实变化的证据等级。
 
 ```text
 组件成熟度：成熟 / 可用但缺测试 / 草稿 / 设计待定 / 废弃候选

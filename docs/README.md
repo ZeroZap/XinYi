@@ -1,7 +1,7 @@
 # XinYi 文档中心
 
-**最后更新**: 2026-03-30  
-**文档版本**: 1.1
+**最后更新**: 2026-08-17
+**文档版本**: 1.2
 
 ---
 
@@ -13,6 +13,14 @@
 ---
 
 ## 📚 文档导航
+
+### 🎯 当前计划与跟踪
+
+- [全组件状态审计与 Sprint 计划](plans/2026-08-17-component-audit-sprint-plan.md) - 当前组件状态、风险与 Sprint 0–6 范围
+- [Sprint 跟踪看板](plans/SPRINT_TRACKER.md) - 当前执行状态、负责人、阻塞和周报入口
+- [组件证据台账](validation/component-evidence-matrix.md) - Host、编译、QEMU、实板、安全与发布证据等级
+- [组件设计与质量闭环](design/xinyi-component-quality-loop.md) - 每个 slice 的开发、验证、提交和跟进流程
+- [历史 30 天路线图](component-roadmap.md) - 仅作演进记录，不作为当前执行清单
 
 ### 🏗️ 设计文档 (design/)
 
