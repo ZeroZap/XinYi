@@ -117,3 +117,13 @@
 - 分支：`main`；2026-08-23 已将本地累计提交推送至 `origin/main`，同步状态 `0/0`，两端 SHA 均为 `9cea83f00ac661685f8d4b0384ff247fb4b87ac1`。
 - 仓库：审计前干净；建档提交为 `9cea83f0`。
 - 当前重点：Sprint 0 治理门禁、GUI Sprint 1 准备、STM32U5 HIL 准备。
+
+### 2026-08-23 Sprint 0 周报
+
+- Sprint：Sprint 0（未完成项滚入下一周期，保持原 ID 与依赖顺序）。
+- 完成：S0-01（`9cea83f0`）、S0-02（`02a9be45` 校准记录）、S0-03（`045a9e56`）。
+- 未完成：S0-04～S0-08；本周优先完成远端事实校准与 canonical CI 收敛，配置矩阵、版本/声明治理、GUI 准备和 HIL 模板顺延。
+- 新阻塞：无；既有 D-001/D-002/D-003/D-005 保持 OPEN。
+- 验证：`make test-unit` 178/178；PC Release root build 通过；workflow YAML 解析通过；`git diff --check` 通过。以上不构成实板、安全或产品证据。
+- 仓库：`main`；本地/`origin/main` ahead/behind `0/0`；工作树干净。
+- 下一周期：S0-04 Kconfig/CMake 配置组合矩阵 → S0-05 版本/release 事实源 → S0-06 能力声明与 Known Limitations。
