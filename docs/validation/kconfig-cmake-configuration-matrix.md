@@ -50,7 +50,7 @@ cmake --build build/pc -j$(nproc)
 git diff --check
 ```
 
-结果：parser 4/4、Host CTest 178/178、PC root build 和 whitespace gate均通过；OLED/SSD1306 合法组合生成值、focused `xy_drivers` 构建与归档 source inventory 通过。
+结果：parser 4/4、Host CTest 178/178、PC root build 和 whitespace gate 均通过；OLED/SSD1306 合法组合生成值、focused `xy_drivers` 构建与归档 source inventory 通过。
 
 ## 本轮发现并修复的配置风险
 
