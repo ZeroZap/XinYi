@@ -58,7 +58,7 @@
 | GUI | H1 | PC build | pending | visual/performance pending | Host GUI/font/backend contract | backend 错误传播 + 屏幕 B1/P1 |
 | Net | H1 | LTE C1 部分 | pending | long-run pending | Host 协议与 adapter 契约 | modem UART/flow-control/PDP/URC B1/B2 |
 | FOTA | H1（状态机） | 项目 compile 不可信 | pending | Secure FOTA blocked | Host 原型；禁止 secure product 声明 | provider fail-closed + bootloader/掉电 B2 |
-| CI/Release | canonical Host gate + PC root build 可用（2026-08-24：178/178） | PC build；[Kconfig/CMake 配置矩阵](kconfig-cmake-configuration-matrix.md)已建立，all-off 配置不再泄漏关闭组件 target，Device-only 组合的生成值、focused target 与归档对象已验证；非法 Display 子功能组合 fail-closed，OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合已验证 source selection；无实现源的 standalone RGB 配置已移除 | n/a | supply-chain pending | development CI only；`unit-tests.yml` 为单一可信 Host/PC gate | 完成 Crypto/DM/Sensor/Actuator/STM32U5 矩阵、SBOM、可复现制品 R1 |
+| CI/Release | canonical Host gate + PC root build 可用（2026-08-24：178/178） | PC build；[Kconfig/CMake 配置矩阵](kconfig-cmake-configuration-matrix.md)已建立，all-off 配置不再泄漏关闭组件 target，Device-only 与 Crypto-only 组合的生成值、focused target 与归档对象已验证；非法 Display 子功能组合 fail-closed，OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合已验证 source selection；无实现源的 standalone RGB 配置已移除 | n/a | supply-chain pending | development CI only；`unit-tests.yml` 为单一可信 Host/PC gate；Crypto compile 不构成安全证据 | 完成 DM/Sensor/Actuator/STM32U5 矩阵、SBOM、可复现制品 R1 |
 
 ---
 
