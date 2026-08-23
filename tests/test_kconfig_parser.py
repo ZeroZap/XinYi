@@ -118,6 +118,34 @@ config GUI_ENABLED
         self.assertEqual(u5["GUI_SDL"], "n")
         self.assertEqual(u5["SDL2"], "n")
 
+    def test_overrides_cannot_enable_symbols_with_unsatisfied_dependencies(self):
+        parser = self.parse_text(
+            """
+config DRIVER_DISPLAY
+    bool
+    default n
+
+config DRIVER_DISPLAY_LCD
+    bool
+    depends on DRIVER_DISPLAY
+    default n
+
+config DRIVER_DISPLAY_LCD_SPI
+    bool
+    depends on DRIVER_DISPLAY_LCD
+    default n
+"""
+        )
+
+        values = parser.resolve_values(
+            platform="PC",
+            overrides={"DRIVER_DISPLAY_LCD_SPI": "ON"},
+        )
+
+        self.assertEqual(values["DRIVER_DISPLAY"], "n")
+        self.assertEqual(values["DRIVER_DISPLAY_LCD"], "n")
+        self.assertEqual(values["DRIVER_DISPLAY_LCD_SPI"], "n")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -203,6 +203,19 @@ class KconfigParser:
                         continue
                     values[selected] = 'y'
                     changed = True
+
+    def _disable_symbols_with_unsatisfied_dependencies(self, values: Dict[str, str]) -> None:
+        """Force bool symbols off when their dependencies are not enabled."""
+        changed = True
+        while changed:
+            changed = False
+            context = {name: value == 'y' for name, value in values.items()}
+            for name, cfg in self.config.items():
+                depends_on = cfg.get('depends_on')
+                if (cfg['type'] == 'bool' and values.get(name) == 'y' and depends_on
+                        and not self._eval_expr(depends_on, context)):
+                    values[name] = 'n'
+                    changed = True
     
     def _platform_symbol_value(self, name: str, platform: Optional[str]) -> Optional[bool]:
         """Return forced value for platform selector symbols when platform is set."""
@@ -260,7 +273,9 @@ class KconfigParser:
         for name, value in (overrides or {}).items():
             values[name] = self._normalize_override_value(name, value)
 
+        self._disable_symbols_with_unsatisfied_dependencies(values)
         self._selects_for_enabled_defaults(values)
+        self._disable_symbols_with_unsatisfied_dependencies(values)
         return values
     
     def generate_config(self, output_file: str, platform: Optional[str] = None,

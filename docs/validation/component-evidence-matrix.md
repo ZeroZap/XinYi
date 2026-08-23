@@ -58,7 +58,7 @@
 | GUI | H1 | PC build | pending | visual/performance pending | Host GUI/font/backend contract | backend 错误传播 + 屏幕 B1/P1 |
 | Net | H1 | LTE C1 部分 | pending | long-run pending | Host 协议与 adapter 契约 | modem UART/flow-control/PDP/URC B1/B2 |
 | FOTA | H1（状态机） | 项目 compile 不可信 | pending | Secure FOTA blocked | Host 原型；禁止 secure product 声明 | provider fail-closed + bootloader/掉电 B2 |
-| CI/Release | canonical Host gate + PC root build 可用（2026-08-23：178/178） | PC build | n/a | supply-chain pending | development CI only；`unit-tests.yml` 为单一可信 Host/PC gate | 配置/目标 compile matrix、SBOM、可复现制品 R1 |
+| CI/Release | canonical Host gate + PC root build 可用（2026-08-23：178/178） | PC build；[Kconfig/CMake 配置矩阵](kconfig-cmake-configuration-matrix.md)已建立，首个非法 Display 子功能组合 fail-closed | n/a | supply-chain pending | development CI only；`unit-tests.yml` 为单一可信 Host/PC gate | 完成全关/逐组件/合法 Display/Sensor/STM32U5 矩阵、SBOM、可复现制品 R1 |
 
 ---
 
