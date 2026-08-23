@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install build dependencies
         run: |
@@ -28,6 +30,12 @@ jobs:
 
       - name: Run unit tests
         run: ctest --test-dir build/tests/unit --output-on-failure
+
+      - name: Configure PC root build
+        run: cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+
+      - name: Build PC root target
+        run: cmake --build build/pc -j$(nproc)
 
       - name: Check whitespace in changed files
         run: git diff --check
