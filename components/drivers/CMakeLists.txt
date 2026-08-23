@@ -24,6 +24,7 @@ include_directories(
     ../pm/fuel-gauge
     ../pm/charger
     ../pm/inc
+    ../gui/inc
 )
 
 # Add subdirectories for organized drivers
