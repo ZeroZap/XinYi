@@ -16,7 +16,7 @@
 |---|---|---|---|
 | 非法 Display 子功能单开 | `DRIVER_DISPLAY_LCD_SPI=ON` 且父符号关闭时，子符号必须保持 `OFF` | PASS | `python3 -m unittest tests.test_kconfig_parser -v`（4/4）；root PC configure 后检查三个生成变量均为 `OFF` |
 | PC 默认基线 | 默认 Kconfig + FOTA off 可 configure/build | PASS | `cmake -S . -B build/pc ...`；`cmake --build build/pc -j$(nproc)` |
-| 全关最小配置 | 可选组件、GUI、网络、驱动和额外组件关闭后仍可 configure/build | PENDING | 下一 slice 建立显式 override 集并检查 target inventory |
+| 全关最小配置 | 可选组件、GUI、网络、驱动和额外组件关闭后仍可 configure/build，关闭项不得泄漏 root target | PASS | 显式 all-off override configure/build 通过；target inventory 不含 Device/Charger/Crypto/DM/Sensor/Actuator/Drivers/GUI/Net/FOTA/PM/PID/MUX/SYS/Fuel Gauge |
 | 核心组件逐项开启 | Device/Crypto/DM/Sensor/Actuator 各自具备可重复 configure/build 结果 | PENDING | 逐项验证生成变量与 root target |
 | Display 子功能 | OLED/SSD1306、LCD SPI/I8080/ST7789、LED/serial RGB 的父子依赖和 source selection 一致 | PASS | 合法组合的生成变量、focused targets 和归档 source inventory 一致；无实现源的 standalone `DRIVER_DISPLAY_RGB` 已从 root/local Kconfig 和 dormant CMake 分支移除，由 parser regression guard 锁定 |
 | Sensor 兼容模式 | legacy `XY_SENSOR_ENABLE`、`COMPONENT_SENSOR` 与新 Device driver 路径的 active ownership 明确 | PENDING | 先记录现有双入口行为，再定义迁移期组合 |
@@ -63,6 +63,14 @@ python3 -c "from pathlib import Path; p=Path('build/config-matrix-display-led/co
 /home/eugene/Tools/arm-gnu-toolchain/bin/arm-none-eabi-ar t \
   build/config-matrix-display-led/components/drivers/display/led_drivers/serial_rgb/libxy_serial_rgb.a
 
+cmake -S . -B build/config-matrix-minimal \
+  -DHAL_PLATFORM=PC \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DKCONFIG_OVERRIDES='<all optional component/driver/GUI/network/FS/FOTA/PM symbols OFF>'
+cmake --build build/config-matrix-minimal -j$(nproc)
+cmake --build build/config-matrix-minimal --target help
+# Verify disabled component targets are absent from the generated target inventory.
+
 make test-unit
 cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release \
   -DKCONFIG_OVERRIDES='BUILD_TESTING=OFF;FOTA_ENABLED=OFF'
@@ -70,8 +78,10 @@ cmake --build build/pc -j$(nproc)
 git diff --check
 ```
 
-结果：parser 5/5、Host CTest 178/178、PC root build 和 whitespace gate 均通过；OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合的生成值、focused target 构建与归档 source inventory 通过。LCD 归档包含 `xy_lcd.c.o`、`xy_lcd_spi.c.o`、`xy_lcd_i8080.c.o`、`xy_lcd_st7789.c.o`；LED 归档包含 `xy_led_driver.c.o`，serial RGB 归档包含 `xy_rgb_matrix.c.o` 与 `xy_ws2812.c.o`。无实现源的 standalone `DRIVER_DISPLAY_RGB` 已移除，避免配置成功但不产生实现对象。
+结果：parser 5/5、Host CTest 178/178、PC root build 和 whitespace gate 均通过；all-off 最小配置 configure/build 与 target inventory 通过；OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合的生成值、focused target 构建与归档 source inventory 通过。LCD 归档包含 `xy_lcd.c.o`、`xy_lcd_spi.c.o`、`xy_lcd_i8080.c.o`、`xy_lcd_st7789.c.o`；LED 归档包含 `xy_led_driver.c.o`，serial RGB 归档包含 `xy_rgb_matrix.c.o` 与 `xy_ws2812.c.o`。无实现源的 standalone `DRIVER_DISPLAY_RGB` 已移除，避免配置成功但不产生实现对象。
 
 ## 本轮发现并修复的配置风险
 
 命令行 override 原先在默认依赖解析之后直接写入 resolved values，因此可以启用父依赖关闭的子符号。此行为会让配置文件声称启用某个 Display 子功能，但 root CMake source selection 仍缺少完整父功能上下文。解析器现在会在 override/select 收敛期间重复关闭依赖不满足的 bool 符号，并由回归测试锁定 fail-closed 行为。
+
+root CMake 原先无条件 auto-discover 大部分组件；即使 all-off 生成值正确，Device、Crypto、Drivers、Net 等 target 仍会进入构建，Crypto 子库尤其会绕过任何组件内 guard。root discovery 现按 Kconfig 生成的 `XY_*` 值跳过关闭组件，all-off target inventory 作为 focused probe 防止“配置关闭、源码仍编译”的假矩阵。

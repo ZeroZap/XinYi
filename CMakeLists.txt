@@ -147,7 +147,49 @@ foreach(_entry ${_comp_entries})
         continue()
     endif()
 
-    if(EXISTS "${_entry}/CMakeLists.txt")
+    # Keep root target discovery aligned with Kconfig. Component-local guards remain
+    # useful for standalone builds, but cannot prevent unconditional subdirectories
+    # (for example Crypto's algorithm libraries) from leaking into an all-off build.
+    set(_component_enabled TRUE)
+    if(_name STREQUAL "device" AND NOT XY_COMPONENT_DEVICE)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "charger" AND NOT XY_COMPONENT_CHARGER)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "crypto" AND NOT XY_COMPONENT_CRYPTO)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "dm" AND NOT XY_COMPONENT_DM)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "sensor" AND NOT XY_XY_SENSOR_ENABLE AND NOT XY_COMPONENT_SENSOR)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "actuator" AND NOT XY_XY_ACTUATOR_ENABLE AND NOT XY_COMPONENT_ACTUATOR)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "drivers"
+           AND NOT XY_DRIVER_SENSOR
+           AND NOT XY_DRIVER_DISPLAY
+           AND NOT XY_DRIVER_STORAGE
+           AND NOT XY_DRIVER_POWER
+           AND NOT XY_DRIVER_WIRELESS
+           AND NOT XY_DRIVER_SYSTEM)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "gui" AND NOT XY_GUI_ENABLED)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "net" AND NOT XY_NETWORK)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "fota" AND NOT XY_FOTA_ENABLED)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "pm" AND NOT XY_PM_ENABLED)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "pid" AND NOT XY_COMPONENT_PID)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "mux" AND NOT XY_COMPONENT_MUX)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "sys" AND NOT XY_COMPONENT_SYS)
+        set(_component_enabled FALSE)
+    elseif(_name STREQUAL "fuel_gauge" AND NOT XY_COMPONENT_FUEL_GAUGE)
+        set(_component_enabled FALSE)
+    endif()
+
+    if(_component_enabled AND EXISTS "${_entry}/CMakeLists.txt")
         add_subdirectory("${_entry}" "${CMAKE_BINARY_DIR}/components/${_name}")
     endif()
 endforeach()
