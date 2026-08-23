@@ -46,9 +46,9 @@
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
-| S0-01 | P0 | 建立 Sprint 看板与组件证据台账 | IN_PROGRESS | Zero | 审计计划 | 文档链接完整；`git diff --check`；path-limited commit | pending | 2026-08-17 |
-| S0-02 | P0 | 将本地 477 个提交直接推送 `origin/main`，以服务器作为单机开发备份 | IN_PROGRESS | Zero | SSH/远端权限 | `origin/main` 与本地 `main` SHA 一致；ahead/behind 为 0/0；不重写历史 | pending | 2026-08-17 |
-| S0-03 | P0 | 收敛 canonical CI workflow | READY | - | S0-02 | Host 178/178；PC root build；禁止 empty CTest 与无说明 `|| true` | - | 2026-08-17 |
+| S0-01 | P0 | 建立 Sprint 看板与组件证据台账 | DONE | Zero | 审计计划 | 看板、审计计划与证据台账已建立；`git diff --check` 通过 | `9cea83f0` | 2026-08-23 |
+| S0-02 | P0 | 将本地 477 个提交直接推送 `origin/main`，以服务器作为单机开发备份 | DONE | Zero | SSH/远端权限 | 2026-08-23 实测 `HEAD`=`origin/main`=`9cea83f00ac661685f8d4b0384ff247fb4b87ac1`，ahead/behind `0/0`；无历史重写 | `9cea83f0` | 2026-08-23 |
+| S0-03 | P0 | 收敛 canonical CI workflow | READY | Zero | S0-02（DONE） | Host 178/178；PC root build；禁止 empty CTest 与无说明 `|| true` | - | 2026-08-23 |
 | S0-04 | P0 | 建立 Kconfig/CMake 配置组合矩阵 | READY | - | S0-03 | 全关、逐组件、Display 子功能、Sensor 兼容模式均有明确 configure/build 结果 | - | 2026-08-17 |
 | S0-05 | P0 | 统一版本、tag、release note 与 workflow 触发 | BACKLOG | - | S0-03 | 单一版本事实源；tag 流程可验证；release note 路径存在 | - | 2026-08-17 |
 | S0-06 | P0 | 降级无证据的 production/security/hardware 宣称 | BACKLOG | - | 组件证据台账 | README 声明逐项链接证据；Known Limitations 存在 | - | 2026-08-17 |
@@ -57,7 +57,7 @@
 
 ### Sprint 0 退出条件
 
-- [ ] 本地 477 个提交与本轮文档提交已直接推送到 `origin/main`，本地/远端 SHA 一致。
+- [x] 本地 477 个提交与本轮文档提交已直接推送到 `origin/main`，本地/远端 SHA 一致（2026-08-23：`9cea83f0`，ahead/behind `0/0`）。
 - [ ] canonical Host gate 实跑 178/178 通过。
 - [ ] PC root build 通过。
 - [ ] stale workflow 不再产生假绿。
@@ -114,6 +114,6 @@
 - Host：178/178 CTest 通过。
 - PC 根构建：通过。
 - STM32F4 QEMU：46/46 通过；含测试内模拟 HAL，不是实板证据。
-- 分支：`main`，相对 `origin/main` 领先 477。
-- 仓库：审计前干净；本轮仅新增/修改规划跟踪文档。
+- 分支：`main`；2026-08-23 已将本地累计提交推送至 `origin/main`，同步状态 `0/0`，两端 SHA 均为 `9cea83f00ac661685f8d4b0384ff247fb4b87ac1`。
+- 仓库：审计前干净；建档提交为 `9cea83f0`。
 - 当前重点：Sprint 0 治理门禁、GUI Sprint 1 准备、STM32U5 HIL 准备。

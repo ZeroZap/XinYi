@@ -4,7 +4,7 @@
 
 **目标**：基于当前源码、构建配置、测试、文档和近期活动，重新建立可信组件状态，并安排后续 Sprint。
 
-**当前事实源**：`main@b769476e`；审计开始时工作树干净；本地相对 `origin/main` 领先 477 个提交。当前执行状态由 [Sprint 跟踪看板](SPRINT_TRACKER.md) 维护，证据等级由 [组件证据台账](../validation/component-evidence-matrix.md) 维护。
+**当前事实源**：`main@9cea83f0`；2026-08-23 校准时工作树干净，且本地 `main` 与 `origin/main` ahead/behind 为 `0/0`。当前执行状态由 [Sprint 跟踪看板](SPRINT_TRACKER.md) 维护，证据等级由 [组件证据台账](../validation/component-evidence-matrix.md) 维护。
 
 ---
 
