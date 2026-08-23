@@ -48,7 +48,7 @@
 |---|---:|---|---|---|---|---|---|---|
 | S0-01 | P0 | 建立 Sprint 看板与组件证据台账 | DONE | Zero | 审计计划 | 看板、审计计划与证据台账已建立；`git diff --check` 通过 | `9cea83f0` | 2026-08-23 |
 | S0-02 | P0 | 将本地 477 个提交直接推送 `origin/main`，以服务器作为单机开发备份 | DONE | Zero | SSH/远端权限 | 2026-08-23 实测 `HEAD`=`origin/main`=`9cea83f00ac661685f8d4b0384ff247fb4b87ac1`，ahead/behind `0/0`；无历史重写 | `9cea83f0` | 2026-08-23 |
-| S0-03 | P0 | 收敛 canonical CI workflow | DONE | Zero | S0-02（DONE） | canonical `unit-tests.yml`：Host 178/178 + PC root build；删除 stale `ci.yml`/`ci-cd.yml`，移除过期 `-DPLATFORM`、empty root CTest 与无说明 `|| true` 路径；`git diff --check` | 本轮提交 | 2026-08-23 |
+| S0-03 | P0 | 收敛 canonical CI workflow | DONE | Zero | S0-02（DONE） | canonical `unit-tests.yml`：Host 178/178 + PC root build；删除 stale `ci.yml`/`ci-cd.yml`，移除过期 `-DPLATFORM`、empty root CTest 与无说明 `|| true` 路径；`git diff --check` | `045a9e56` | 2026-08-23 |
 | S0-04 | P0 | 建立 Kconfig/CMake 配置组合矩阵 | READY | - | S0-03 | 全关、逐组件、Display 子功能、Sensor 兼容模式均有明确 configure/build 结果 | - | 2026-08-17 |
 | S0-05 | P0 | 统一版本、tag、release note 与 workflow 触发 | BACKLOG | - | S0-03 | 单一版本事实源；tag 流程可验证；release note 路径存在 | - | 2026-08-17 |
 | S0-06 | P0 | 降级无证据的 production/security/hardware 宣称 | BACKLOG | - | 组件证据台账 | README 声明逐项链接证据；Known Limitations 存在 | - | 2026-08-17 |
