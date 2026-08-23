@@ -30,13 +30,6 @@ config DRIVER_DISPLAY_LED
     help
       Enable LED display driver support.
 
-config DRIVER_DISPLAY_RGB
-    bool "RGB LED driver"
-    default n
-    depends on DRIVER_DISPLAY
-    help
-      Enable RGB LED matrix driver support.
-
 config DRIVER_DISPLAY_TEST
     bool "Enable display driver tests"
     default n

@@ -22,7 +22,6 @@
   - `DRIVER_DISPLAY_LCD_ST7789`
   - `DRIVER_DISPLAY_LED`
   - `DRIVER_DISPLAY_LED_SERIAL_RGB`
-  - `DRIVER_DISPLAY_RGB`
 
 `components/drivers/display/Kconfig` 仍是组件局部/历史配置候选，不应替代 root `Kconfig` 作为当前生成配置事实源。
 
@@ -44,7 +43,7 @@
 
 1. `components/drivers/display/README.md` 已收敛为实现状态表，区分 host-guarded 软件契约、未验证 panel/backlog 与真实硬件验证缺口。
 2. `components/drivers/display/display.md` 已从空入口收敛为设计边界说明，指向 README 的详细源码/CTest 事实源。
-3. Root `Kconfig` 与 `components/drivers/display/Kconfig` 的符号集合不完全一致；后者目前只能视为历史局部配置候选。
+3. Root `Kconfig` 是配置事实源；未对应实现源的 standalone `DRIVER_DISPLAY_RGB` 已移除，已实现的 RGB matrix/WS2812 由 `DRIVER_DISPLAY_LED_SERIAL_RGB` 选择。
 4. GUI 组件仍是单独的基础状态，不能因为 Display driver host CTest 存在就宣称 GUI 字体/控件/渲染全部闭环。
 
 ## 建议闭环顺序

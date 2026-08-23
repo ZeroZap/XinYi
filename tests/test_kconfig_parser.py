@@ -146,6 +146,14 @@ config DRIVER_DISPLAY_LCD_SPI
         self.assertEqual(values["DRIVER_DISPLAY_LCD"], "n")
         self.assertEqual(values["DRIVER_DISPLAY_LCD_SPI"], "n")
 
+    def test_root_kconfig_does_not_expose_unimplemented_standalone_rgb_driver(self):
+        root = Path(__file__).resolve().parents[1]
+        parser = KconfigParser()
+        parser.parse(str(root / "Kconfig"))
+
+        self.assertNotIn("DRIVER_DISPLAY_RGB", parser.config)
+        self.assertIn("DRIVER_DISPLAY_LED_SERIAL_RGB", parser.config)
+
 
 if __name__ == "__main__":
     unittest.main()

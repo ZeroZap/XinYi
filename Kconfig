@@ -202,12 +202,6 @@ config DRIVER_DISPLAY_LED_SERIAL_RGB
     help
       Enable serial RGB LED driver support.
 
-config DRIVER_DISPLAY_RGB
-    bool "RGB LED matrix driver"
-    default n
-    help
-      Enable RGB LED matrix driver support.
-
 endif # DRIVER_DISPLAY
 
 config DRIVER_STORAGE

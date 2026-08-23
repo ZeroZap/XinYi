@@ -18,7 +18,7 @@
 | PC 默认基线 | 默认 Kconfig + FOTA off 可 configure/build | PASS | `cmake -S . -B build/pc ...`；`cmake --build build/pc -j$(nproc)` |
 | 全关最小配置 | 可选组件、GUI、网络、驱动和额外组件关闭后仍可 configure/build | PENDING | 下一 slice 建立显式 override 集并检查 target inventory |
 | 核心组件逐项开启 | Device/Crypto/DM/Sensor/Actuator 各自具备可重复 configure/build 结果 | PENDING | 逐项验证生成变量与 root target |
-| Display 子功能 | OLED/SSD1306、LCD SPI/I8080/ST7789、LED/serial RGB 的父子依赖和 source selection 一致 | IN_PROGRESS | OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合 PASS：生成变量、focused targets 和归档 source inventory 一致；独立 `DRIVER_DISPLAY_RGB` 当前无实现源，待单独收敛 |
+| Display 子功能 | OLED/SSD1306、LCD SPI/I8080/ST7789、LED/serial RGB 的父子依赖和 source selection 一致 | PASS | 合法组合的生成变量、focused targets 和归档 source inventory 一致；无实现源的 standalone `DRIVER_DISPLAY_RGB` 已从 root/local Kconfig 和 dormant CMake 分支移除，由 parser regression guard 锁定 |
 | Sensor 兼容模式 | legacy `XY_SENSOR_ENABLE`、`COMPONENT_SENSOR` 与新 Device driver 路径的 active ownership 明确 | PENDING | 先记录现有双入口行为，再定义迁移期组合 |
 | STM32U5 默认配置 | 平台条件默认值与 target compile 一致 | PENDING | clean STM32U5 configure/build；仅记 C1 compile evidence |
 
@@ -70,7 +70,7 @@ cmake --build build/pc -j$(nproc)
 git diff --check
 ```
 
-结果：parser 4/4、Host CTest 178/178、PC root build 和 whitespace gate 均通过；OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合的生成值、focused target 构建与归档 source inventory 通过。LCD 归档包含 `xy_lcd.c.o`、`xy_lcd_spi.c.o`、`xy_lcd_i8080.c.o`、`xy_lcd_st7789.c.o`；LED 归档包含 `xy_led_driver.c.o`，serial RGB 归档包含 `xy_rgb_matrix.c.o` 与 `xy_ws2812.c.o`。独立 `DRIVER_DISPLAY_RGB` 虽可解析为 `ON`，但当前没有 `display/xy_ls` 实现目录或对应归档对象，因此不记为实现通过。
+结果：parser 5/5、Host CTest 178/178、PC root build 和 whitespace gate 均通过；OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合的生成值、focused target 构建与归档 source inventory 通过。LCD 归档包含 `xy_lcd.c.o`、`xy_lcd_spi.c.o`、`xy_lcd_i8080.c.o`、`xy_lcd_st7789.c.o`；LED 归档包含 `xy_led_driver.c.o`，serial RGB 归档包含 `xy_rgb_matrix.c.o` 与 `xy_ws2812.c.o`。无实现源的 standalone `DRIVER_DISPLAY_RGB` 已移除，避免配置成功但不产生实现对象。
 
 ## 本轮发现并修复的配置风险
 

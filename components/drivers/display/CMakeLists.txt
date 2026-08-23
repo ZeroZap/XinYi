@@ -35,13 +35,6 @@ if(XY_DRIVER_DISPLAY_LED)
     endif()
 endif()
 
-# RGB Display Support
-if(XY_DRIVER_DISPLAY_RGB)
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/xy_ls)
-        add_subdirectory(xy_ls)
-    endif()
-endif()
-
 # Common display sources (if any files exist in display root)
 file(GLOB DISPLAY_COMMON_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
 if(DISPLAY_COMMON_SOURCES)
