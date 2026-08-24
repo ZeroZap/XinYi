@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-release:
+    name: Validate version and publish notes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+
+      - name: Validate tag and release facts
+        run: python3 tools/scripts/check_release_facts.py --tag "${{ github.ref_name }}"
+
+      - name: Configure unit tests
+        run: cmake -S tests/unit -B build/tests/unit
+
+      - name: Build unit tests
+        run: cmake --build build/tests/unit -j$(nproc)
+
+      - name: Run unit tests
+        run: ctest --test-dir build/tests/unit --output-on-failure
+
+      - name: Configure PC root build
+        run: cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+
+      - name: Build PC root target
+        run: cmake --build build/pc -j$(nproc)
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            printf 'Canonical release notes: docs/release/CHANGELOG.md\n\n'
+            sed -n "/^## \[${GITHUB_REF_NAME#v}\]/,/^## \[/p" docs/release/CHANGELOG.md
+            printf '\n## Known Limitations\n\n'
+            sed '1d' docs/release/known-limitations.md
+          } > release-notes.md
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "XinYi $GITHUB_REF_NAME" --notes-file release-notes.md

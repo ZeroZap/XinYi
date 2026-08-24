@@ -17,6 +17,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Validate release facts
+        run: python3 tools/scripts/check_release_facts.py
+
       - name: Install build dependencies
         run: |
           sudo apt-get update

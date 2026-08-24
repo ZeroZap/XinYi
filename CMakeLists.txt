@@ -43,7 +43,12 @@ endif()
 # =============================================================================
 # Project
 # =============================================================================
-project(XY_Framework VERSION 1.0.0 LANGUAGES C ASM)
+file(READ "${CMAKE_SOURCE_DIR}/VERSION" XY_FRAMEWORK_VERSION)
+string(STRIP "${XY_FRAMEWORK_VERSION}" XY_FRAMEWORK_VERSION)
+if(NOT XY_FRAMEWORK_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    message(FATAL_ERROR "VERSION must contain MAJOR.MINOR.PATCH, got '${XY_FRAMEWORK_VERSION}'")
+endif()
+project(XY_Framework VERSION ${XY_FRAMEWORK_VERSION} LANGUAGES C ASM)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
