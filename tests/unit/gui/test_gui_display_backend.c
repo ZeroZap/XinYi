@@ -255,27 +255,37 @@ static void test_gui_context_forwards_to_fake_display_backend(void)
     TEST_ASSERT_EQUAL_UINT(1U, g_flush_calls);
 }
 
-static void test_gui_backend_failures_are_currently_normalized_to_success(void)
+static void test_gui_backend_failures_propagate_without_committing_state(void)
 {
     xy_gui_t gui;
     xy_gui_disp_drv_t drv = fake_display_driver();
 
+    g_backend_fail = true;
+    TEST_ASSERT_EQUAL_INT(XY_GUI_ERROR,
+                          xy_gui_init(&gui, FAKE_DISPLAY_WIDTH, FAKE_DISPLAY_HEIGHT, &drv));
+    TEST_ASSERT_FALSE(gui.initialized);
+    TEST_ASSERT_EQUAL_UINT(1U, g_init_calls);
+
+    g_backend_fail = false;
     TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_init(&gui, FAKE_DISPLAY_WIDTH, FAKE_DISPLAY_HEIGHT, &drv));
+    gui.bg_color = XY_GUI_COLOR_BLUE;
     g_backend_fail = true;
 
-    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_clear(&gui, XY_GUI_COLOR_WHITE));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_ERROR, xy_gui_clear(&gui, XY_GUI_COLOR_WHITE));
     TEST_ASSERT_EQUAL_UINT(1U, g_fill_rect_calls);
+    TEST_ASSERT_EQUAL_HEX16(XY_GUI_COLOR_BLUE, gui.bg_color);
     TEST_ASSERT_EQUAL_HEX16(0, g_framebuffer[0][0]);
 
-    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_draw_pixel(&gui, 1, 1, XY_GUI_COLOR_RED));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_ERROR, xy_gui_draw_pixel(&gui, 1, 1, XY_GUI_COLOR_RED));
     TEST_ASSERT_EQUAL_UINT(1U, g_set_pixel_calls);
     TEST_ASSERT_EQUAL_HEX16(0, g_framebuffer[1][1]);
 
-    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_fill_rect(&gui, 0, 0, 2, 2, XY_GUI_COLOR_GREEN));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_ERROR,
+                          xy_gui_fill_rect(&gui, 0, 0, 2, 2, XY_GUI_COLOR_GREEN));
     TEST_ASSERT_EQUAL_UINT(2U, g_fill_rect_calls);
     TEST_ASSERT_EQUAL_HEX16(0, g_framebuffer[0][0]);
 
-    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_flush(&gui));
+    TEST_ASSERT_EQUAL_INT(XY_GUI_ERROR, xy_gui_flush(&gui));
     TEST_ASSERT_EQUAL_UINT(1U, g_flush_calls);
 }
 
@@ -323,8 +333,9 @@ static void test_gui_fill_rect_fallback_clips_through_draw_pixel_guard(void)
     TEST_ASSERT_EQUAL_HEX16(0, g_framebuffer[5][14]);
 
     g_backend_fail = true;
-    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_fill_rect(&gui, 0, 0, 2, 2, XY_GUI_COLOR_RED));
-    TEST_ASSERT_EQUAL_UINT(8U, g_set_pixel_calls);
+    TEST_ASSERT_EQUAL_INT(XY_GUI_ERROR,
+                          xy_gui_fill_rect(&gui, 0, 0, 2, 2, XY_GUI_COLOR_RED));
+    TEST_ASSERT_EQUAL_UINT(5U, g_set_pixel_calls);
     TEST_ASSERT_EQUAL_HEX16(0, g_framebuffer[0][0]);
 }
 
@@ -459,7 +470,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_gui_context_forwards_to_fake_display_backend);
-    RUN_TEST(test_gui_backend_failures_are_currently_normalized_to_success);
+    RUN_TEST(test_gui_backend_failures_propagate_without_committing_state);
     RUN_TEST(test_gui_backend_guard_paths_do_not_touch_fake_display);
     RUN_TEST(test_gui_fill_rect_fallback_clips_through_draw_pixel_guard);
     RUN_TEST(test_gui_context_can_drive_led_gui_display_adapter);

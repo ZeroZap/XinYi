@@ -13,6 +13,8 @@
 
 int xy_gui_init(xy_gui_t *gui, uint16_t width, uint16_t height, xy_gui_disp_drv_t *drv)
 {
+    int ret;
+
     if (!gui || !drv) {
         return XY_GUI_INVALID_PARAM;
     }
@@ -23,13 +25,15 @@ int xy_gui_init(xy_gui_t *gui, uint16_t width, uint16_t height, xy_gui_disp_drv_
     gui->disp_drv = drv;
     gui->obj_count = 0;
     gui->bg_color = GUI_COLOR_WHITE;
-    gui->initialized = true;
-    
     /* Initialize display driver */
     if (drv->init) {
-        drv->init();
+        ret = drv->init();
+        if (ret != XY_GUI_OK) {
+            return ret;
+        }
     }
-    
+
+    gui->initialized = true;
     return XY_GUI_OK;
 }
 
@@ -45,16 +49,20 @@ int xy_gui_deinit(xy_gui_t *gui)
 
 int xy_gui_clear(xy_gui_t *gui, uint16_t color)
 {
+    int ret;
+
     if (!gui || !gui->initialized) {
         return XY_GUI_INVALID_PARAM;
     }
-    
-    gui->bg_color = color;
-    
+
     if (gui->disp_drv && gui->disp_drv->fill_rect) {
-        gui->disp_drv->fill_rect(0, 0, gui->width, gui->height, color);
+        ret = gui->disp_drv->fill_rect(0, 0, gui->width, gui->height, color);
+        if (ret != XY_GUI_OK) {
+            return ret;
+        }
     }
-    
+
+    gui->bg_color = color;
     return XY_GUI_OK;
 }
 
@@ -63,11 +71,11 @@ int xy_gui_flush(xy_gui_t *gui)
     if (!gui || !gui->initialized) {
         return XY_GUI_INVALID_PARAM;
     }
-    
+
     if (gui->disp_drv && gui->disp_drv->flush) {
-        gui->disp_drv->flush();
+        return gui->disp_drv->flush();
     }
-    
+
     return XY_GUI_OK;
 }
 
@@ -80,11 +88,11 @@ int xy_gui_draw_pixel(xy_gui_t *gui, int16_t x, int16_t y, uint16_t color)
     if (x < 0 || x >= gui->width || y < 0 || y >= gui->height) {
         return XY_GUI_INVALID_PARAM;
     }
-    
+
     if (gui->disp_drv && gui->disp_drv->draw_pixel) {
-        gui->disp_drv->draw_pixel(x, y, color);
+        return gui->disp_drv->draw_pixel(x, y, color);
     }
-    
+
     return XY_GUI_OK;
 }
 
@@ -140,19 +148,34 @@ int xy_gui_draw_rect(xy_gui_t *gui, int16_t x, int16_t y, int16_t w, int16_t h, 
 
 int xy_gui_fill_rect(xy_gui_t *gui, int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
+    int ret;
+
     if (!gui || !gui->initialized) {
         return XY_GUI_INVALID_PARAM;
     }
-    
+
     if (gui->disp_drv && gui->disp_drv->fill_rect) {
-        gui->disp_drv->fill_rect(x, y, w, h, color);
+        return gui->disp_drv->fill_rect(x, y, w, h, color);
     } else {
-        /* Fallback: draw horizontal lines */
-        for (int16_t i = 0; i < h; i++) {
-            xy_gui_draw_line(gui, x, y + i, x + w - 1, y + i, color);
+        /* Fallback: draw clipped pixels and stop at the first backend failure. */
+        for (int16_t row = 0; row < h; row++) {
+            for (int16_t col = 0; col < w; col++) {
+                int16_t pixel_x = (int16_t)(x + col);
+                int16_t pixel_y = (int16_t)(y + row);
+
+                if (pixel_x < 0 || pixel_x >= gui->width || pixel_y < 0 ||
+                    pixel_y >= gui->height) {
+                    continue;
+                }
+
+                ret = xy_gui_draw_pixel(gui, pixel_x, pixel_y, color);
+                if (ret != XY_GUI_OK) {
+                    return ret;
+                }
+            }
         }
     }
-    
+
     return XY_GUI_OK;
 }
 
