@@ -78,7 +78,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 |---|---:|---|---|---|---|---|---|---|
 | S1-01 | P0 | GUI backend 错误传播 | DONE | Zero | S0-07（DONE） | RED probe 证明 init/clear/draw/fill/flush 吞错；修复后 `gui_core`、`gui_display_backend`、`gui_ssd1306_adapter` 3/3，Host 178/178、PC root build、`git diff --check` 通过；clear 失败不提交背景色，fallback 首错即停 | `e4faf3c3` | 2026-08-24 |
 | S1-02 | P0 | SDL/backend strict selection | DONE | Zero | S1-01（DONE） | `GUI_SDL` 改为显式 opt-in；缺 SDL2 的 RED 配置曾错误成功，修复后 `CMAKE_DISABLE_FIND_PACKAGE_SDL2=TRUE` 配置按预期失败；默认配置生成 `CONFIG_GUI_SDL=OFF` 且 `xy_gui` 构建通过。仓库缺 SDL backend source，已显式 fail-closed 并记录为后续恢复项，不虚报 backend 可用 | `d2979d41` | 2026-08-25 |
-| S1-03 | P1 | 字体清单、生成器与 Host snapshot 收口 | DONE | Zero | S1-01（DONE） | 3 个 legacy 资产清单/source SHA-256 已固定；source-table Host review 判定 `rejected-needs-regeneration`（16x24 布局异常、必需中文 UI glyph 为空），license/provenance 仍 `project-review-pending`；font focused 14/14、Host 178/178、PC root build、`git diff --check` 通过，不升级视觉/许可证/实板状态 | `ca96d82b`、本轮提交 | 2026-08-25 |
+| S1-03 | P1 | 字体清单、生成器与 Host snapshot 收口 | DONE | Zero | S1-01（DONE） | 3 个 legacy 资产清单/source SHA-256 已固定；source-table Host review 判定 `rejected-needs-regeneration`（16x24 布局异常、必需中文 UI glyph 为空），license/provenance 仍 `project-review-pending`；font focused 14/14、Host 178/178、PC root build、`git diff --check` 通过，不升级视觉/许可证/实板状态 | `ca96d82b`、`6b14af59` | 2026-08-25 |
 | S1-04 | P1 | SSD1306 单一显示纵切记录 | BLOCKED | - | 可用板卡/显示屏 | 板卡、接线、固件 SHA、init/fill/text/flush/error/re-init、帧时间和 RAM 记录 | 缺实板环境 | 2026-08-24 |
 
 ---
