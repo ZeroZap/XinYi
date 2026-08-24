@@ -17,7 +17,7 @@
 | 非法 Display 子功能单开 | `DRIVER_DISPLAY_LCD_SPI=ON` 且父符号关闭时，子符号必须保持 `OFF` | PASS | `python3 -m unittest tests.test_kconfig_parser -v`（4/4）；root PC configure 后检查三个生成变量均为 `OFF` |
 | PC 默认基线 | 默认 Kconfig + FOTA off 可 configure/build | PASS | `cmake -S . -B build/pc ...`；`cmake --build build/pc -j$(nproc)` |
 | 全关最小配置 | 可选组件、GUI、网络、驱动和额外组件关闭后仍可 configure/build，关闭项不得泄漏 root target | PASS | 显式 all-off override configure/build 通过；target inventory 不含 Device/Charger/Crypto/DM/Sensor/Actuator/Drivers/GUI/Net/FOTA/PM/PID/MUX/SYS/Fuel Gauge |
-| 核心组件逐项开启 | Device/Crypto/DM/Sensor/Actuator 各自具备可重复 configure/build 结果 | IN PROGRESS | Device-only 与 Crypto-only 组合已验证生成变量、focused build、target inventory 与归档对象；DM/Sensor/Actuator 待逐项验证 |
+| 核心组件逐项开启 | Device/Crypto/DM/Sensor/Actuator 各自具备可重复 configure/build 结果 | IN PROGRESS | Device-only、Crypto-only 与 DM-only 组合已验证生成变量、focused build、target inventory 与归档对象；Sensor/Actuator 待逐项验证 |
 | Display 子功能 | OLED/SSD1306、LCD SPI/I8080/ST7789、LED/serial RGB 的父子依赖和 source selection 一致 | PASS | 合法组合的生成变量、focused targets 和归档 source inventory 一致；无实现源的 standalone `DRIVER_DISPLAY_RGB` 已从 root/local Kconfig 和 dormant CMake 分支移除，由 parser regression guard 锁定 |
 | Sensor 兼容模式 | legacy `XY_SENSOR_ENABLE`、`COMPONENT_SENSOR` 与新 Device driver 路径的 active ownership 明确 | PENDING | 先记录现有双入口行为，再定义迁移期组合 |
 | STM32U5 默认配置 | 平台条件默认值与 target compile 一致 | PENDING | clean STM32U5 configure/build；仅记 C1 compile evidence |
@@ -95,6 +95,16 @@ ar t build/config-matrix-crypto/components/crypto/xy_sm2/libxy_sm2.a
 ar t build/config-matrix-crypto/components/crypto/xy_sm3/libxy_sm3.a
 ar t build/config-matrix-crypto/components/crypto/xy_sm4/libxy_sm4.a
 
+cmake -S . -B build/config-matrix-dm \
+  -DHAL_PLATFORM=PC \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DKCONFIG_OVERRIDES='<all optional components OFF except COMPONENT_DM=ON>'
+cmake --build build/config-matrix-dm --target xy_dm -j$(nproc)
+python3 -c "from pathlib import Path; p=Path('build/config-matrix-dm/config.cmake').read_text(); required=['set(CONFIG_COMPONENT_DM ON)','set(CONFIG_COMPONENT_DEVICE OFF)','set(CONFIG_COMPONENT_CRYPTO OFF)','set(CONFIG_COMPONENT_SENSOR OFF)','set(CONFIG_COMPONENT_ACTUATOR OFF)','set(CONFIG_FS_ENABLED OFF)','set(CONFIG_FS_FLASHDB OFF)','set(CONFIG_NOR_FLASH_ENABLED OFF)']; missing=[x for x in required if x not in p]; assert not missing, missing"
+cmake --build build/config-matrix-dm --target help
+# Verify xy_dm is present and disabled component targets are absent.
+ar t build/config-matrix-dm/components/dm/libxy_dm.a
+
 make test-unit
 cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release \
   -DKCONFIG_OVERRIDES='BUILD_TESTING=OFF;FOTA_ENABLED=OFF'
@@ -102,7 +112,7 @@ cmake --build build/pc -j$(nproc)
 git diff --check
 ```
 
-结果：parser 5/5、Host CTest 178/178、PC root build 和 whitespace gate 均通过；all-off 最小配置 configure/build 与 target inventory 通过；Device-only 组合仅启用 `COMPONENT_DEVICE`，`xy_device` focused build、target inventory 与归档对象检查通过；Crypto-only 组合仅启用 `COMPONENT_CRYPTO`，`xy_tiny_crypto` 及其 `xy_sm2`/`xy_sm3`/`xy_sm4` 依赖构建、target inventory 与归档对象检查通过（现有 SM2/PHOTON warning 保留为已知源码风险，本矩阵不将 compile 结果升级为安全证据）；OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合的生成值、focused target 构建与归档 source inventory 通过。LCD 归档包含 `xy_lcd.c.o`、`xy_lcd_spi.c.o`、`xy_lcd_i8080.c.o`、`xy_lcd_st7789.c.o`；LED 归档包含 `xy_led_driver.c.o`，serial RGB 归档包含 `xy_rgb_matrix.c.o` 与 `xy_ws2812.c.o`。无实现源的 standalone `DRIVER_DISPLAY_RGB` 已移除，避免配置成功但不产生实现对象。
+结果：parser 5/5、Host CTest 178/178、PC root build 和 whitespace gate 均通过；all-off 最小配置 configure/build 与 target inventory 通过；Device-only 组合仅启用 `COMPONENT_DEVICE`，`xy_device` focused build、target inventory 与归档对象检查通过；Crypto-only 组合仅启用 `COMPONENT_CRYPTO`，`xy_tiny_crypto` 及其 `xy_sm2`/`xy_sm3`/`xy_sm4` 依赖构建、target inventory 与归档对象检查通过（现有 SM2/PHOTON warning 保留为已知源码风险，本矩阵不将 compile 结果升级为安全证据）；DM-only 组合仅启用 `COMPONENT_DM`，`xy_dm` focused build、target inventory 与归档对象检查通过，归档仅含 `xy_json.c.o` 与 `xy_fs.c.o`，FlashDB/NOR 均保持关闭（现有 CLIB unused-variable warning 保留为已知源码风险）；OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合的生成值、focused target 构建与归档 source inventory 通过。LCD 归档包含 `xy_lcd.c.o`、`xy_lcd_spi.c.o`、`xy_lcd_i8080.c.o`、`xy_lcd_st7789.c.o`；LED 归档包含 `xy_led_driver.c.o`，serial RGB 归档包含 `xy_rgb_matrix.c.o` 与 `xy_ws2812.c.o`。无实现源的 standalone `DRIVER_DISPLAY_RGB` 已移除，避免配置成功但不产生实现对象。
 
 ## 本轮发现并修复的配置风险
 
