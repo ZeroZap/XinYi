@@ -1,7 +1,7 @@
 # XinYi Sprint 跟踪看板
 
 **建立日期**：2026-08-17
-**当前阶段**：Sprint 0 — 可信基线与治理门禁
+**当前阶段**：Sprint 1 — GUI 产品化纵切
 **状态事实源**：本文件
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
@@ -51,8 +51,8 @@
 | S0-03 | P0 | 收敛 canonical CI workflow | DONE | Zero | S0-02（DONE） | canonical `unit-tests.yml`：Host 178/178 + PC root build；删除 stale `ci.yml`/`ci-cd.yml`，移除过期 `-DPLATFORM`、empty root CTest 与无说明 `|| true` 路径；`git diff --check` | `045a9e56` | 2026-08-23 |
 | S0-04 | P0 | 建立 Kconfig/CMake 配置组合矩阵 | DONE | Zero | S0-03（DONE） | [矩阵](../validation/kconfig-cmake-configuration-matrix.md)已覆盖 Display 全组合、all-off、Device/Crypto/DM/Sensor/Actuator-only 及 STM32U5 默认组合；STM32U5 clean root compile、条件默认值检查、Host 178/178、PC root build 与 `git diff --check` 通过 | `cc1b3b75`～`e4c0ff4c` | 2026-08-24 |
 | S0-05 | P0 | 统一版本、tag、release note 与 workflow 触发 | DONE | Zero | S0-03（DONE） | `VERSION` 驱动 root CMake；Kconfig/public header 为受检镜像；canonical changelog、Known Limitations 与 fail-closed `vMAJOR.MINOR.PATCH` workflow 已建立；release facts 正/负向 probe、workflow YAML、Host 178/178、PC root build 与 `git diff --check` 通过 | `5b1943e1` | 2026-08-24 |
-| S0-06 | P0 | 降级无证据的 production/security/hardware 宣称 | DONE | Zero | 组件证据台账 | 根/组件/HAL/Net/Modbus/OSAL/Crypto 公开 README 已降级到 Host/compile/hardware/security 分层口径并链接证据台账；CI capability-claim guard、release facts、workflow YAML、Host 178/178、PC root build、`git diff --check` 通过 | 本轮 capability claims commit | 2026-08-24 |
-| S0-07 | P1 | GUI Sprint 1 任务细化与失败测试清单 | READY | - | GUI 独立变更规则 | backend 错误传播、SDL strict、字体/显示三组任务可直接执行 | - | 2026-08-17 |
+| S0-06 | P0 | 降级无证据的 production/security/hardware 宣称 | DONE | Zero | 组件证据台账 | 根/组件/HAL/Net/Modbus/OSAL/Crypto 公开 README 已降级到 Host/compile/hardware/security 分层口径并链接证据台账；CI capability-claim guard、release facts、workflow YAML、Host 178/178、PC root build、`git diff --check` 通过 | `73464378` | 2026-08-24 |
+| S0-07 | P1 | GUI Sprint 1 任务细化与失败测试清单 | DONE | Zero | GUI 独立变更规则 | 审计计划已明确 backend 错误传播、SDL strict、字体/显示三组任务及验收；首个失败测试已于 Sprint 1 RED→GREEN | `e4faf3c3` | 2026-08-24 |
 | S0-08 | P1 | STM32U5 HAL/HIL 夹具与记录模板准备 | READY | - | 可用板卡/仪器 | GPIO/UART/I2C/SPI/IRQ/DMA 测试夹具清单和 record template | - | 2026-08-17 |
 
 ### Sprint 0 退出条件
@@ -63,15 +63,31 @@
 - [x] stale workflow 不再产生假绿（删除 `.github/workflows/ci.yml` 与 `ci-cd.yml`；canonical workflow 无 empty CTest/无说明 `|| true`）。
 - [x] 版本和 release note 事实源唯一（`VERSION` + `docs/release/CHANGELOG.md`；2026-08-24）。
 - [x] 公开组件能力声明已按证据层级降级，并由 CI claim guard 防止关键 README 回归到无条件 production-ready（2026-08-24）。
-- [ ] Sprint 1 GUI 工作项达到 `READY`。
+- [x] Sprint 1 GUI 工作项达到 `READY`，且 S1-01 已进入执行并闭环（2026-08-24：`e4faf3c3`）。
+
+Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退出门禁的 HIL 准备项滚入 Sprint 2 前置队列。
 
 ---
 
-## 3. 后续 Sprint 队列
+## 3. 当前 Sprint：Sprint 1
+
+**周期**：2026-08-24 ～ 2026-09-06
+**目标**：完成 GUI backend 可信错误边界、strict backend 选择与字体/单一显示纵切；GUI 提交不混入固件/HAL/FOTA。
+
+| ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
+|---|---:|---|---|---|---|---|---|---|
+| S1-01 | P0 | GUI backend 错误传播 | DONE | Zero | S0-07（DONE） | RED probe 证明 init/clear/draw/fill/flush 吞错；修复后 `gui_core`、`gui_display_backend`、`gui_ssd1306_adapter` 3/3，Host 178/178、PC root build、`git diff --check` 通过；clear 失败不提交背景色，fallback 首错即停 | `e4faf3c3` | 2026-08-24 |
+| S1-02 | P0 | SDL/backend strict selection | READY | - | S1-01（DONE） | 显式启用且 SDL2 缺失时配置必须失败；依赖存在时 backend source/link 可验证 | - | 2026-08-24 |
+| S1-03 | P1 | 字体清单、生成器与 Host snapshot 收口 | READY | - | S1-01（DONE） | glyph 清单固定、生成无漂移、snapshot review 记录可复核 | - | 2026-08-24 |
+| S1-04 | P1 | SSD1306 单一显示纵切记录 | BLOCKED | - | 可用板卡/显示屏 | 板卡、接线、固件 SHA、init/fill/text/flush/error/re-init、帧时间和 RAM 记录 | 缺实板环境 | 2026-08-24 |
+
+---
+
+## 4. 后续 Sprint 队列
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
-| Sprint 1 | 2 周 | GUI backend 错误传播、strict backend、字体与单一显示纵切 | Sprint 0 门禁可信 | BACKLOG |
+| Sprint 1 | 2 周 | GUI backend 错误传播、strict backend、字体与单一显示纵切 | Sprint 0 门禁可信 | IN_PROGRESS |
 | Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | HIL 夹具可用；HAL 证据矩阵建立 | BACKLOG |
 | Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 安全算法清单和 provider 决策 | BACKLOG |
 | Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | canonical Sensor API 决策 | BACKLOG |
@@ -80,7 +96,7 @@
 
 ---
 
-## 4. 决策与阻塞日志
+## 5. 决策与阻塞日志
 
 | 日期 | ID | 类型 | 内容 | 所需决策/解除条件 | 状态 |
 |---|---|---|---|---|---|
@@ -93,7 +109,7 @@
 
 ---
 
-## 5. 周度更新模板
+## 6. 周度更新模板
 
 每周结束时在本文件追加一节：
 
@@ -127,3 +143,12 @@
 - 验证：`make test-unit` 178/178；PC Release root build 通过；workflow YAML 解析通过；`git diff --check` 通过。以上不构成实板、安全或产品证据。
 - 仓库：`main`；本地/`origin/main` ahead/behind `0/0`；工作树干净。
 - 下一周期：S0-04 Kconfig/CMake 配置组合矩阵 → S0-05 版本/release 事实源 → S0-06 能力声明与 Known Limitations。
+
+### 2026-08-24 Sprint 0 收口 / Sprint 1 启动
+
+- Sprint：Sprint 0 退出条件全部完成；Sprint 1 已启动。
+- 完成：S0-04（`cc1b3b75`～`e4c0ff4c`）、S0-05（`5b1943e1`）、S0-06（`73464378`）、S0-07 与 S1-01（`e4faf3c3`）。
+- 未完成：S0-08 滚入 Sprint 2 前置队列；S1-04 因缺实板环境保持 `BLOCKED`，Host 证据不替代实板。
+- 验证：GUI focused 3/3；Host 178/178；PC Release root build；`git diff --check`。以上仅构成 Host/PC 证据。
+- 仓库：本轮开始 `main` 与 `origin/main` 为 `0/0`、SHA 同为 `73464378c9ddcfbc0e28fccf00e468c15caf85d0`；本轮提交将在看板校准后直接推送并复核。
+- 下一步：S1-02 SDL/backend strict selection，先做缺 SDL2 的失败配置 probe。
