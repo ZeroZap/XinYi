@@ -44,6 +44,10 @@
       "range": {"first": "0x20", "last": "0x7E", "count": 95},
       "bytes_per_glyph": 16,
       "source_files": ["xy_font_8x16.c", "xy_font_8x16.h"],
+      "source_sha256": {
+        "xy_font_8x16.c": "e63ed87d6edc65d2cc96e0c9f9d929714ce65a88a3db66bcdc60fb564e1a7356",
+        "xy_font_8x16.h": "892fd030c6875dd52d46e8b77a0e205d3866b557db6485d9a2993ffb9d56e42a"
+      },
       "output_header": "generated/xy_font_8x16_generated.h",
       "output_source": "generated/xy_font_8x16_generated.c",
       "source_font": "legacy-table",
@@ -62,6 +66,10 @@
       "range": {"first": "0x20", "last": "0x7E", "count": 95},
       "bytes_per_glyph": 48,
       "source_files": ["xy_font_16x24.c", "xy_font_16x24.h"],
+      "source_sha256": {
+        "xy_font_16x24.c": "56771492bf2c4008a8270f475bf6976da52b2867b0c7eccda25d85aef16de6e2",
+        "xy_font_16x24.h": "ab1c8d99d96f639f8ef62d09f0c2bfeb9025ec0c75c12bc429bfbae774cd6583"
+      },
       "output_header": "generated/xy_font_16x24_generated.h",
       "output_source": "generated/xy_font_16x24_generated.c",
       "source_font": "legacy-table",
@@ -80,6 +88,10 @@
       "range": {"explicit_codepoints": "xy_font_chinese_16x16_get_chars", "count": 168},
       "bytes_per_glyph": 32,
       "source_files": ["xy_font_chinese_16x16.c", "xy_font_chinese_16x16.h"],
+      "source_sha256": {
+        "xy_font_chinese_16x16.c": "c57625bc352ee71b31c5cc3505368060375d8019033171b588f6ab30e0f05f96",
+        "xy_font_chinese_16x16.h": "d3d1ef3abb7d97a240299dc42dd0f893b29a5b5c74135d789d886febe5b5eed8"
+      },
       "output_header": "generated/xy_font_chinese_16x16_generated.h",
       "output_source": "generated/xy_font_chinese_16x16_generated.c",
       "source_font": "legacy-table",
@@ -103,7 +115,7 @@
   ],
   "generation_plan": {
     "generator": "components/gui/fonts/tools/generate_bitmap_font.py",
-    "state": "glyph-metadata-guarded",
-    "next_step": "Use glyph metadata validation to review output paths and provenance before adding generated glyph .c/.h write modes or importing larger font sets."
+    "state": "legacy-source-digests-and-generated-previews-guarded",
+    "next_step": "Complete human host-snapshot and license/provenance review before accepting the current legacy assets or importing a licensed replacement font set."
   }
 }

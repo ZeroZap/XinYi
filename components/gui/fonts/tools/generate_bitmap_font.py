@@ -10,6 +10,7 @@ the same strict manifest checks before emitting regenerated bitmap data.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
@@ -28,6 +29,7 @@ REQUIRED_FONT_FIELDS = {
     "range",
     "bytes_per_glyph",
     "source_files",
+    "source_sha256",
     "output_header",
     "output_source",
     "source_font",
@@ -111,11 +113,23 @@ def _validate_source_files(fonts_root: Path, font: dict[str, Any]) -> None:
     _require(isinstance(source_files, list) and len(source_files) > 0,
              f"{font.get('id')}: source_files must be a non-empty list")
     source_files = cast(list[Any], source_files)
+    source_sha256 = font.get("source_sha256")
+    _require(isinstance(source_sha256, dict),
+             f"{font.get('id')}: source_sha256 must map every source file to a digest")
+    source_sha256 = cast(dict[str, Any], source_sha256)
+    _require(set(source_sha256) == set(source_files),
+             f"{font.get('id')}: source_sha256 keys must match source_files")
     for item in source_files:
         _require(isinstance(item, str) and len(item) > 0,
                  f"{font.get('id')}: source_files entries must be strings")
         source_path = fonts_root / item
         _require(source_path.exists(), f"{font.get('id')}: missing source file {source_path}")
+        expected_digest = source_sha256[item]
+        _require(isinstance(expected_digest, str) and re.fullmatch(r"[0-9a-f]{64}", expected_digest) is not None,
+                 f"{font.get('id')}: source_sha256[{item}] must be a lowercase SHA-256 digest")
+        actual_digest = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        _require(actual_digest == expected_digest,
+                 f"{font.get('id')}: source file digest drifted for {item}")
 
 
 def _validate_generation_metadata(font: dict[str, Any]) -> None:
