@@ -38,19 +38,21 @@ set(FONT_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/fonts/xy_font_chinese_16x16.c
 )
 
-# PC SDL Backend (optional)
-if(GUI_SDL)
-    # Try to find SDL2, but don't fail if not found
-    find_package(SDL2 QUIET)
-    if(SDL2_FOUND)
-        set(GUI_SOURCES ${GUI_SOURCES}
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_gui_sdl.c
-        )
-        target_link_libraries(xy_gui INTERFACE SDL2::SDL2)
-        message(STATUS "GUI: SDL2 backend enabled")
-    else()
-        message(STATUS "GUI: SDL2 not found, SDL backend disabled")
+# PC SDL backend is explicit opt-in: never silently downgrade an enabled backend.
+if(XY_GUI_SDL)
+    if(NOT HAL_PLATFORM STREQUAL "PC")
+        message(FATAL_ERROR "GUI: GUI_SDL is supported only with HAL_PLATFORM=PC")
     endif()
+
+    find_package(SDL2 REQUIRED)
+
+    set(_gui_sdl_source ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_gui_sdl.c)
+    if(NOT EXISTS ${_gui_sdl_source})
+        message(FATAL_ERROR
+            "GUI: GUI_SDL=ON requires the missing backend source ${_gui_sdl_source}; "
+            "disable GUI_SDL until the SDL backend implementation is restored")
+    endif()
+    list(APPEND GUI_SOURCES ${_gui_sdl_source})
 endif()
 
 # Create GUI library
@@ -76,6 +78,12 @@ target_link_libraries(xy_gui PUBLIC xy_trace)
 
 # Link with effects library
 target_link_libraries(xy_gui PUBLIC xy_gui_effects)
+
+if(XY_GUI_SDL)
+    target_link_libraries(xy_gui PRIVATE SDL2::SDL2)
+    target_compile_definitions(xy_gui PRIVATE GUI_BACKEND_SDL2 HAVE_SDL2)
+    message(STATUS "GUI: SDL2 backend enabled")
+endif()
 
 # Compiler options
 target_compile_options(xy_gui PRIVATE -Wall -Wextra -O2)

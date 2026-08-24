@@ -240,13 +240,15 @@ config GUI_ENABLED
       Enable graphical user interface support.
 
 config GUI_SDL
-    default y
     bool "SDL2 Backend (PC)"
+    default n
     depends on GUI_ENABLED && PLATFORM_PC
     select SDL2
     help
       SDL2-based GUI backend for PC platforms.
       Provides windowing, input, and rendering.
+      This is an explicit opt-in backend. Configuration fails if SDL2 or
+      the backend implementation is unavailable.
 
 config GUI_TFT
     bool "TFT LCD Backend (Embedded)"
