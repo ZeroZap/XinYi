@@ -20,7 +20,7 @@
 | 核心组件逐项开启 | Device/Crypto/DM/Sensor/Actuator 各自具备可重复 configure/build 结果 | PASS | Device-only、Crypto-only、DM-only、Sensor-only 与 Actuator-only 组合已验证生成变量、focused build、target inventory 与归档对象；Sensor/Actuator 的两个兼容入口分别生成相同 root target 对象 |
 | Display 子功能 | OLED/SSD1306、LCD SPI/I8080/ST7789、LED/serial RGB 的父子依赖和 source selection 一致 | PASS | 合法组合的生成变量、focused targets 和归档 source inventory 一致；无实现源的 standalone `DRIVER_DISPLAY_RGB` 已从 root/local Kconfig 和 dormant CMake 分支移除，由 parser regression guard 锁定 |
 | Sensor 兼容模式 | legacy `XY_SENSOR_ENABLE`、`COMPONENT_SENSOR` 与新 Device driver 路径的 active ownership 明确 | PASS | 两个 framework 符号分别单开均生成同一 `sensor_component` 和相同归档对象；`src/xy_*` 不在该 root target；`DRIVER_SENSOR` 是独立 Device-driver 路径且本 probe 保持关闭。此结果记录现状，不将三轨实现认定为已收敛 |
-| STM32U5 默认配置 | 平台条件默认值与 target compile 一致 | PENDING | clean STM32U5 configure/build；仅记 C1 compile evidence |
+| STM32U5 默认配置 | 平台条件默认值与 target compile 一致 | PASS | clean STM32U5 configure/build 通过；生成配置确认 STM32/U5、FS/FlashDB 条件默认值，FOTA 显式关闭；`arm-none-eabi-gcc` 完成 root static-library compile。仅记 C1，不构成实板证据 |
 
 ## 已验证命令
 
@@ -141,6 +141,13 @@ python3 -c "from pathlib import Path; p=Path('build/config-matrix-actuator-legac
 cmp <(ar t build/config-matrix-actuator/components/actuator/libxy_actuator.a) \
     <(ar t build/config-matrix-actuator-legacy/components/actuator/libxy_actuator.a)
 
+cmake -S . -B build/config-matrix-stm32u5-default-20260824 \
+  -DHAL_PLATFORM=STM32U5 \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DKCONFIG_OVERRIDES='BUILD_TESTING=OFF;FOTA_ENABLED=OFF'
+cmake --build build/config-matrix-stm32u5-default-20260824 -j$(nproc)
+python3 -c "from pathlib import Path; p=Path('build/config-matrix-stm32u5-default-20260824/config.cmake').read_text(); required=['set(CONFIG_PLATFORM_PC OFF)','set(CONFIG_PLATFORM_STM32 ON)','set(CONFIG_PLATFORM_STM32U5 ON)','set(CONFIG_FS_ENABLED ON)','set(CONFIG_FS_FLASHDB ON)','set(CONFIG_FOTA_ENABLED OFF)']; missing=[x for x in required if x not in p]; assert not missing, missing; cache=Path('build/config-matrix-stm32u5-default-20260824/CMakeCache.txt').read_text(); assert 'CMAKE_C_COMPILER:STRING=/home/eugene/Tools/arm-gnu-toolchain/bin/arm-none-eabi-gcc' in cache"
+
 make test-unit
 cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release \
   -DKCONFIG_OVERRIDES='BUILD_TESTING=OFF;FOTA_ENABLED=OFF'
@@ -148,7 +155,7 @@ cmake --build build/pc -j$(nproc)
 git diff --check
 ```
 
-结果：parser 5/5、Host CTest 178/178、PC root build 和 whitespace gate 均通过；all-off 最小配置 configure/build 与 target inventory 通过；Device-only 组合仅启用 `COMPONENT_DEVICE`，`xy_device` focused build、target inventory 与归档对象检查通过；Crypto-only 组合仅启用 `COMPONENT_CRYPTO`，`xy_tiny_crypto` 及其 `xy_sm2`/`xy_sm3`/`xy_sm4` 依赖构建、target inventory 与归档对象检查通过（现有 SM2/PHOTON warning 保留为已知源码风险，本矩阵不将 compile 结果升级为安全证据）；DM-only 组合仅启用 `COMPONENT_DM`，`xy_dm` focused build、target inventory 与归档对象检查通过，归档仅含 `xy_json.c.o` 与 `xy_fs.c.o`，FlashDB/NOR 均保持关闭（现有 CLIB unused-variable warning 保留为已知源码风险）；Sensor-only 的 `COMPONENT_SENSOR` 与兼容 `XY_SENSOR_ENABLE` 两种单开配置均构建同一 `sensor_component`，归档对象列表完全相同，且独立 `DRIVER_SENSOR`/Device 路径保持关闭；Actuator-only 的 `COMPONENT_ACTUATOR` 与兼容 `XY_ACTUATOR_ENABLE` 两种单开配置均构建同一 `xy_actuator`，归档均仅含 `xy_actuator.c.o`，Device/Sensor 等关闭组件未泄漏 target。现有 Sensor 源码 warning 保留为已知风险，本矩阵只确认配置 ownership 现状。OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合的生成值、focused target 构建与归档 source inventory 通过。LCD 归档包含 `xy_lcd.c.o`、`xy_lcd_spi.c.o`、`xy_lcd_i8080.c.o`、`xy_lcd_st7789.c.o`；LED 归档包含 `xy_led_driver.c.o`，serial RGB 归档包含 `xy_rgb_matrix.c.o` 与 `xy_ws2812.c.o`。无实现源的 standalone `DRIVER_DISPLAY_RGB` 已移除，避免配置成功但不产生实现对象。
+结果：parser 5/5、Host CTest 178/178、PC root build 和 whitespace gate 均通过；all-off 最小配置 configure/build 与 target inventory 通过；Device-only 组合仅启用 `COMPONENT_DEVICE`，`xy_device` focused build、target inventory 与归档对象检查通过；Crypto-only 组合仅启用 `COMPONENT_CRYPTO`，`xy_tiny_crypto` 及其 `xy_sm2`/`xy_sm3`/`xy_sm4` 依赖构建、target inventory 与归档对象检查通过（现有 SM2/PHOTON warning 保留为已知源码风险，本矩阵不将 compile 结果升级为安全证据）；DM-only 组合仅启用 `COMPONENT_DM`，`xy_dm` focused build、target inventory 与归档对象检查通过，归档仅含 `xy_json.c.o` 与 `xy_fs.c.o`，FlashDB/NOR 均保持关闭（现有 CLIB unused-variable warning 保留为已知源码风险）；Sensor-only 的 `COMPONENT_SENSOR` 与兼容 `XY_SENSOR_ENABLE` 两种单开配置均构建同一 `sensor_component`，归档对象列表完全相同，且独立 `DRIVER_SENSOR`/Device 路径保持关闭；Actuator-only 的 `COMPONENT_ACTUATOR` 与兼容 `XY_ACTUATOR_ENABLE` 两种单开配置均构建同一 `xy_actuator`，归档均仅含 `xy_actuator.c.o`，Device/Sensor 等关闭组件未泄漏 target。现有 Sensor 源码 warning 保留为已知风险，本矩阵只确认配置 ownership 现状。OLED/SSD1306、LCD SPI/I8080/ST7789 与 LED/serial RGB 合法组合的生成值、focused target 构建与归档 source inventory 通过。LCD 归档包含 `xy_lcd.c.o`、`xy_lcd_spi.c.o`、`xy_lcd_i8080.c.o`、`xy_lcd_st7789.c.o`；LED 归档包含 `xy_led_driver.c.o`，serial RGB 归档包含 `xy_rgb_matrix.c.o` 与 `xy_ws2812.c.o`。无实现源的 standalone `DRIVER_DISPLAY_RGB` 已移除，避免配置成功但不产生实现对象。STM32U5 默认配置使用 `arm-none-eabi-gcc` 完成 clean root static-library compile，生成值确认 `PLATFORM_STM32=ON`、`PLATFORM_STM32U5=ON`、`FS_ENABLED=ON`、`FS_FLASHDB=ON`，且本 probe 显式保持 `FOTA_ENABLED=OFF`；编译日志中的既有 warning 未被升级为硬件、安全或产品证据。
 
 ## 本轮发现并修复的配置风险
 
