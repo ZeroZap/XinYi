@@ -529,6 +529,6 @@ The implementation follows RFC 8439 (ChaCha20 and Poly1305 for IETF Protocols) w
 
 ---
 
-**Status**: Production Ready
+**Status**: Host-correctness guarded; security/provenance and side-channel review pending
 **Maintainers**: XinYi Crypto Team
 **Last Updated**: 2025-11-02

@@ -18,7 +18,9 @@ jobs:
           submodules: recursive
 
       - name: Validate release facts
-        run: python3 tools/scripts/check_release_facts.py
+        run: |
+          python3 tools/scripts/check_release_facts.py
+          python3 tools/scripts/check_capability_claims.py
 
       - name: Install build dependencies
         run: |

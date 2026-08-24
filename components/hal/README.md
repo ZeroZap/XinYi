@@ -3,7 +3,8 @@
 **版本**: 1.0.0  
 **日期**: 2026-03-16  
 **维护者**: XinYi Team  
-**状态**: ✅ 生产就绪
+**状态**: Host PC 契约已覆盖、部分目标可编译/QEMU；统一实板验证待完成
+**证据边界**: [`docs/validation/component-evidence-matrix.md`](../../docs/validation/component-evidence-matrix.md)
 
 ---
 
@@ -14,7 +15,7 @@ XinYi HAL (Hardware Abstraction Layer) 提供统一的硬件抽象接口，支�
 ### 核心特性
 - ✅ 统一 API 设计
 - ✅ 多平台支持
-- ✅ 完整测试覆盖
+- ✅ PC simulation Host 契约覆盖；目标运行时与真实硬件覆盖不完整
 - ✅ 向后兼容
 
 ---
@@ -73,10 +74,10 @@ xy_hal_i2c_scan()           /* 扫描总线 */
 
 | API | STM32U5 | WCH CH32U5 | HC32 | Bare-metal |
 |-----|---------|------------|------|------------|
-| **GPIO** | ✅ | ✅ | ⏸️ | ✅ |
-| **UART** | ✅ | ✅ | ❌ | ✅ |
-| **SPI** | ✅ | ✅ | ❌ | ✅ |
-| **I2C** | ✅ | ✅ | ❌ | ✅ |
+| **GPIO** | compile/Host | compile pending | incomplete | Host only |
+| **UART** | compile/Host | compile pending | unsupported | Host only |
+| **SPI** | compile/Host | compile pending | unsupported | Host only |
+| **I2C** | compile/Host | compile pending | unsupported | Host only |
 
 **图例**:
 - ✅ 完整支持
@@ -244,12 +245,9 @@ make -j$(nproc)
 | 16 核并行 | 16 | ~15s | 8x |
 
 ### 运行时性能
-| 操作 | 延迟 | 说明 |
-|------|------|------|
-| GPIO 翻转 | <10ns | Cortex-M @ 100MHz |
-| UART 发送 | ~1μs/字节 | 115200bps |
-| SPI 传输 | ~125ns/字节 | 8MHz |
-| I2C 传输 | ~10μs/字节 | 100kHz |
+
+尚无符合项目 P1 证据要求的统一性能记录。Host、compile-only 或按总线频率推算的数值不得
+作为真实 MCU 延迟结论；后续记录必须包含板卡、时钟、编译参数、样本与统计。
 
 ---
 

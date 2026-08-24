@@ -31,4 +31,4 @@ xy_os_thread_id_t task = xy_os_thread_new(my_task_func, NULL, &attr);
 ```
 
 ## Status
-Version 1.0.0 | Production Ready | Tested with FreeRTOS 10.4.6
+Version 1.0.0 | Development / target validation pending | Written for FreeRTOS 10.4.6

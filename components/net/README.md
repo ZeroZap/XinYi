@@ -15,7 +15,7 @@ components/net/
 │   ├── ats/                    # AT command server
 │   └── rtthread-at/           # RT-Thread AT package
 ├── xy_mqtt/                    # MQTT protocol (INCOMPLETE)
-├── modbus/                     # Modbus RTU Slave (Production Ready)
+├── modbus/                     # Modbus RTU Slave (Host-guarded)
 ├── modbus_tiny/               # Lightweight Modbus RTU
 ├── modbus_full/               # Full-featured Modbus (RTU + TCP + ASCII)
 ├── smbus/                      # SMBus protocol
@@ -45,9 +45,9 @@ components/net/
 
 | Module | Status | Description |
 |--------|--------|-------------|
-| **Modbus** | ✅ Production Ready | Full RTU slave implementation with examples |
-| **Modbus Tiny** | ✅ Production Ready | Lightweight version for constrained MCUs |
-| **Modbus Full** | ✅ Production Ready | RTU + TCP + ASCII support |
+| **Modbus** | 🟡 Host-guarded | RTU slave contract and examples; hardware UART evidence pending |
+| **Modbus Tiny** | 🟡 Host-guarded | Lightweight API contract; hardware evidence pending |
+| **Modbus Full** | 🟡 Development | RTU/TCP/ASCII source exists; product integration evidence pending |
 | **CAN** | ✅ Implemented | FIFO-based host-guarded CAN core; not enabled in `xy_net` by default |
 | **LTE** | 🟡 Host-guarded / hardware pending | Public API, fakeable AT transport seam, callback-backed UART adapter, HAL UART adapter, and smoke skeleton are covered by focused CTests; still disabled by default until real board UART/modem evidence exists |
 | **MQTT Client** | 🟡 Host-guarded | `src/xy_mqtt_client.c` covers CONNECT/CONNACK, QoS0/1 publish, subscribe, keepalive helpers; legacy `xy_mqtt/` remains deprecated |
@@ -398,4 +398,4 @@ MQTT users/tests.
 
 - **Version**: 1.0.0
 - **Date**: 2025-10-27
-- **Status**: Mixed (Modbus production-ready, others incomplete)
+- **Status**: Host-guarded protocol contracts; hardware/product qualification pending

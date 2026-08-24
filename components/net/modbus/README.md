@@ -458,4 +458,4 @@ Same as XinYi project
 
 - **Version**: 1.0.0
 - **Date**: 2025-10-27
-- **Status**: Production Ready
+- **Status**: Host-guarded RTU contract; UART/RS-485 board validation and long-run recovery pending

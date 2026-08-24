@@ -2,7 +2,8 @@
 
 **版本**: 2.0.0
 **日期**: 2026-05-01
-**状态**: 生产就绪
+**状态**: Host-guarded development baseline；各组件等级见
+[`docs/validation/component-evidence-matrix.md`](../docs/validation/component-evidence-matrix.md)
 
 ---
 

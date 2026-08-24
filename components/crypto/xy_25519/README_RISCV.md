@@ -272,10 +272,10 @@ void benchmark_x25519(void) {
 
 | Platform | Target Time | Status |
 |----------|-------------|--------|
-| **CH32X035 @ 48MHz** | ~5.2ms | ✅ Expected (Generic C) |
-| **CH32X035 @ 48MHz** | ~2.5-3.0ms | ⚡ Possible (RISC-V ASM) |
-| GD32VF103 @ 108MHz | ~2.3ms | ✅ Verified (similar core) |
-| FE310 @ 320MHz | ~0.8ms | ✅ Verified (reference) |
+| **CH32X035 @ 48MHz** | ~5.2ms | Historical estimate; not project P1 evidence |
+| **CH32X035 @ 48MHz** | ~2.5-3.0ms | Hypothetical ASM target; unverified |
+| GD32VF103 @ 108MHz | ~2.3ms | External/reference estimate; not XinYi evidence |
+| FE310 @ 320MHz | ~0.8ms | External/reference estimate; not XinYi evidence |
 
 ## Comparison with Other Platforms
 
@@ -300,7 +300,7 @@ void benchmark_x25519(void) {
    - RISC-V: Assembly gives 1.7-2x speedup (optional)
 
 3. **Development efficiency**
-   - RISC-V: Generic C is production-ready ✅
+   - RISC-V: Generic C is the current development fallback; security/performance approval pending
    - M0: Assembly required for good performance ⚠️
 
 ## Security Considerations
@@ -416,5 +416,5 @@ riscv-none-embed-gcc -mabi=ilp32 ...
 ---
 
 **Last Updated**: 2025-11-02
-**Performance**: ~5.2ms @ 48MHz (Generic C on CH32X035) ✅
+**Performance**: historical ~5.2ms estimate at 48MHz; no XinYi P1 benchmark record exists
 **Recommendation**: Use generic C implementation - excellent performance without assembly!

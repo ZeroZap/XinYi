@@ -426,6 +426,6 @@ Part of the XinYi embedded framework. Follow project licensing guidelines.
 
 ---
 
-**Status**: Production Ready
+**Status**: Host-correctness guarded; security/provenance and side-channel review pending
 **Maintainers**: XinYi Crypto Team
 **Last Updated**: 2025-11-02

@@ -23,13 +23,18 @@
 
 ## Executive Summary
 
-**XinYi** is a modular, production-ready embedded C framework designed for resource-constrained microcontroller systems. It provides a unified abstraction layer for hardware, communication protocols, cryptography, and RTOS management, enabling developers to build portable, maintainable embedded applications across multiple platforms.
+**XinYi** is a modular, host-guarded embedded C development framework for resource-constrained
+microcontroller systems. Its current evidence boundaries are tracked in the
+[component evidence matrix](docs/validation/component-evidence-matrix.md), and unresolved product,
+hardware, security, and release gaps are listed in
+[Known Limitations](docs/release/known-limitations.md).
 
 ### Key Characteristics
 
 - **Modular Architecture**: Independent, reusable components with minimal coupling
 - **Cross-Platform**: Supports STM32, RT-Thread, FreeRTOS, and bare-metal environments
-- **Production-Grade**: Comprehensive error handling, logging, and documentation
+- **Evidence-Gated**: Host contracts are guarded; target, hardware, security, and release claims
+  require their own recorded evidence
 - **Developer-Friendly**: Unified APIs, extensive examples, and clear coding standards
 - **Scalable**: From simple sensor drivers to complex IoT applications
 - **Hardware Abstraction Layer (HAL)**: Portable interfaces for UART, SPI, I2C, PWM, RTC, timers, DMA, and GPIO
@@ -45,9 +50,9 @@
 #### ✅ 已完成优化
 
 - **OSAL 多后端支持**: 支持 4 种后端 (Bare-metal/FreeRTOS/RT-Thread/CMSIS-RTX)
-- **HAL STM32U5**: 20+ 外设完整实现
+- **HAL STM32U5**: 可交叉编译的外设实现；统一实板 B1/B2 证据仍待补齐
 - **Device Framework**: 统一设备模型，支持总线和节点 (SPI/I2C/CAN)
-- **统一测试系统**: Unity 框架集成，17+ 测试用例
+- **统一测试系统**: Unity + CTest Host 回归门禁（具体数量以当前 CTest 运行结果为准）
 - **智能代理系统**: 项目经理/架构师/开发/测试 四大智能代理
 - **构建系统统一**: CMake/Kconfig/Makefile 规范化
 - **文档系统完善**: API 参考 + 使用指南 + 架构文档
@@ -336,7 +341,7 @@ xy_bus_release(bus);
 **Features:**
 - Optimized for embedded systems
 - Configurable algorithm selection
-- Hardware acceleration support (where available)
+- Optional hardware-specific paths where implemented; no general hardware-acceleration validation
 - Comprehensive test suite
 
 ---
@@ -537,7 +542,7 @@ Application Projects
 - Device (Unified device access)
 - Logging
 
-**Status:** Production-ready
+**Status:** Reference architecture only; product hardware and safety validation pending
 
 ---
 
