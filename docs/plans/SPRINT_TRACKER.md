@@ -49,7 +49,7 @@
 | S0-01 | P0 | 建立 Sprint 看板与组件证据台账 | DONE | Zero | 审计计划 | 看板、审计计划与证据台账已建立；`git diff --check` 通过 | `9cea83f0` | 2026-08-23 |
 | S0-02 | P0 | 将本地 477 个提交直接推送 `origin/main`，以服务器作为单机开发备份 | DONE | Zero | SSH/远端权限 | 2026-08-23 实测 `HEAD`=`origin/main`=`9cea83f00ac661685f8d4b0384ff247fb4b87ac1`，ahead/behind `0/0`；无历史重写 | `9cea83f0` | 2026-08-23 |
 | S0-03 | P0 | 收敛 canonical CI workflow | DONE | Zero | S0-02（DONE） | canonical `unit-tests.yml`：Host 178/178 + PC root build；删除 stale `ci.yml`/`ci-cd.yml`，移除过期 `-DPLATFORM`、empty root CTest 与无说明 `|| true` 路径；`git diff --check` | `045a9e56` | 2026-08-23 |
-| S0-04 | P0 | 建立 Kconfig/CMake 配置组合矩阵 | IN_PROGRESS | Zero | S0-03（DONE） | [矩阵](../validation/kconfig-cmake-configuration-matrix.md)已建立；Display 全组合、all-off、Device-only、Crypto-only 与 DM-only 组合已闭环，关闭组件不再泄漏 root target；Sensor/Actuator/STM32U5 组合待闭环 | `cc1b3b75`, `5375c930`, `e918c375`, `6b951a0d`, `bb651cdb`, `c13a5059`, `f9a72eb6`, `6d012701` | 2026-08-24 |
+| S0-04 | P0 | 建立 Kconfig/CMake 配置组合矩阵 | IN_PROGRESS | Zero | S0-03（DONE） | [矩阵](../validation/kconfig-cmake-configuration-matrix.md)已建立；Display 全组合、all-off、Device-only、Crypto-only、DM-only 与 Sensor-only 组合已闭环，两个 Sensor framework 开关确认映射同一 legacy target，独立 Device-driver 路径未混入；Actuator/STM32U5 组合待闭环 | `cc1b3b75`, `5375c930`, `e918c375`, `6b951a0d`, `bb651cdb`, `c13a5059`, `f9a72eb6`, `6d012701` | 2026-08-24 |
 | S0-05 | P0 | 统一版本、tag、release note 与 workflow 触发 | BACKLOG | - | S0-03 | 单一版本事实源；tag 流程可验证；release note 路径存在 | - | 2026-08-17 |
 | S0-06 | P0 | 降级无证据的 production/security/hardware 宣称 | BACKLOG | - | 组件证据台账 | README 声明逐项链接证据；Known Limitations 存在 | - | 2026-08-17 |
 | S0-07 | P1 | GUI Sprint 1 任务细化与失败测试清单 | READY | - | GUI 独立变更规则 | backend 错误传播、SDL strict、字体/显示三组任务可直接执行 | - | 2026-08-17 |
