@@ -262,6 +262,15 @@ def validate_manifest(manifest_path: Path) -> dict[str, Any]:
                  "snapshot_review_status.host_snapshot_artifacts entries must be docs/validation/*.md")
         artifact_path = (manifest_path.parents[3] / cast(str, artifact)).resolve()
         _require(artifact_path.exists(), f"font host snapshot artifact is missing: {artifact_path}")
+    technical_reviews = snapshot_status.get("technical_review_records", [])
+    _require(isinstance(technical_reviews, list),
+             "snapshot_review_status.technical_review_records must be a list")
+    for review in cast(list[Any], technical_reviews):
+        _require(isinstance(review, str) and review.startswith("docs/validation/")
+                 and review.endswith(".md"),
+                 "snapshot_review_status.technical_review_records entries must be docs/validation/*.md")
+        review_path = (manifest_path.parents[3] / cast(str, review)).resolve()
+        _require(review_path.exists(), f"font host technical review record is missing: {review_path}")
     snapshot_pending_ids = snapshot_status.get("pending_font_ids")
     snapshot_reviewed_ids = snapshot_status.get("reviewed_font_ids")
     _require(isinstance(snapshot_pending_ids, list),
@@ -693,7 +702,20 @@ def self_test_snapshot_review_manifest(data: dict[str, Any], manifest_path: Path
     _require("checksum_fnv1a32: 0x8DD0D797" in artifact_text,
              "font host snapshot artifact must record deterministic checksum")
     _require("not a visual-quality approval" in artifact_text,
-             "font host snapshot artifact must keep visual approval out of scope")
+             "font host snapshot artifact must not claim visual approval")
+
+    technical_reviews = cast(list[str], snapshot_status.get("technical_review_records", []))
+    _require(len(technical_reviews) > 0,
+             "font host snapshot review must reference at least one technical review record")
+    for review in technical_reviews:
+        review_path = (manifest_path.resolve().parents[3] / review).resolve()
+        review_text = review_path.read_text(encoding="utf-8")
+        _require("status: rejected-needs-regeneration" in review_text,
+                 "font host technical review must record the current rejection status")
+        _require("not a human art approval" in review_text,
+                 "font host technical review must preserve the human-review boundary")
+        _require("License/provenance remains `project-review-pending`" in review_text,
+                 "font host technical review must preserve the license/provenance boundary")
     _require("not real LCD/OLED/LED-matrix hardware validation" in artifact_text,
              "font host snapshot artifact must keep hardware validation out of scope")
 
