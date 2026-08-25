@@ -42,6 +42,8 @@ static const uint8_t init_sequence[] = {
 int xy_oled_ssd1306_init(xy_oled_ssd1306_t *oled, void *i2c_handle, 
                          uint16_t width, uint16_t height)
 {
+    int ret;
+
     if (!oled || !i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
@@ -50,7 +52,10 @@ int xy_oled_ssd1306_init(xy_oled_ssd1306_t *oled, void *i2c_handle,
     oled->width = width;
     oled->height = height;
     
-    xy_i2c_device_init(&oled->i2c_dev, i2c_handle, 0x3C, 1000);
+    ret = xy_i2c_device_init(&oled->i2c_dev, i2c_handle, 0x3C, 1000);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
 
     /* Allocate buffer */
     uint16_t buffer_size = (width * height) / 8;
@@ -62,7 +67,12 @@ int xy_oled_ssd1306_init(xy_oled_ssd1306_t *oled, void *i2c_handle,
     /* Send init commands */
     for (size_t i = 0; i < sizeof(init_sequence); i++) {
         uint8_t cmd[2] = {0x00, init_sequence[i]};
-        xy_i2c_device_write(&oled->i2c_dev, cmd, 2);
+        ret = xy_i2c_device_write(&oled->i2c_dev, cmd, 2);
+        if (ret != XY_DEVICE_OK) {
+            free(oled->buffer);
+            oled->buffer = NULL;
+            return ret;
+        }
         xy_hal_delay_ms(1);
     }
 

@@ -31,6 +31,8 @@ typedef struct {
 static i2c_write_t i2c_writes[MAX_I2C_WRITES];
 static uint32_t delay_ms_total;
 static gpio_event_t gpio_events[MAX_GPIO_EVENTS];
+static xy_error_t i2c_init_result;
+static xy_error_t i2c_write_result;
 
 static size_t logged_i2c_write_count(void);
 static size_t logged_gpio_event_count(void);
@@ -57,6 +59,8 @@ static void reset_i2c_log(void)
 
     memset(i2c_writes, 0, sizeof(i2c_writes));
     delay_ms_total = 0;
+    i2c_init_result = XY_DEVICE_OK;
+    i2c_write_result = XY_DEVICE_OK;
 }
 
 static void reset_gpio_log(void)
@@ -83,6 +87,9 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle,
 {
     if (!dev || !i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
+    }
+    if (i2c_init_result != XY_DEVICE_OK) {
+        return i2c_init_result;
     }
     memset(dev, 0, sizeof(*dev));
     dev->i2c_handle = i2c_handle;
@@ -121,6 +128,9 @@ xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 static xy_error_t fake_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     (void)dev;
+    if (i2c_write_result != XY_DEVICE_OK) {
+        return i2c_write_result;
+    }
     size_t index = logged_i2c_write_count() - 1U;
     TEST_ASSERT_LESS_THAN_UINT32(MAX_I2C_WRITES, index);
     TEST_ASSERT_LESS_OR_EQUAL_UINT32(MAX_I2C_BYTES, len);
@@ -212,6 +222,29 @@ static void test_oled_init_pixel_line_refresh(void)
         TEST_ASSERT_EQUAL_HEX8(0U, oled.buffer[i]);
     }
     free(oled.buffer);
+}
+
+static void test_oled_init_propagates_i2c_failures_without_false_ready_state(void)
+{
+    xy_oled_ssd1306_t oled;
+
+    reset_i2c_log();
+    memset(&oled, 0xA5, sizeof(oled));
+    i2c_init_result = XY_DEVICE_IO_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_oled_ssd1306_init(&oled, (void *)0x1, 128, 64));
+    TEST_ASSERT_NULL(oled.buffer);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_i2c_device_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_hal_delay_ms_fake.call_count);
+
+    reset_i2c_log();
+    memset(&oled, 0xA5, sizeof(oled));
+    i2c_write_result = XY_DEVICE_IO_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_oled_ssd1306_init(&oled, (void *)0x1, 128, 64));
+    TEST_ASSERT_NULL(oled.buffer);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_i2c_device_write_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_hal_delay_ms_fake.call_count);
 }
 
 static xy_ws2812_config_t make_ws_config(xy_ws2812_color_order_t order)
@@ -333,6 +366,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_oled_init_pixel_line_refresh);
+    RUN_TEST(test_oled_init_propagates_i2c_failures_without_false_ready_state);
     RUN_TEST(test_ws2812_pixels_show_and_order);
     RUN_TEST(test_ws2812_rgbw_and_color_math);
     return UNITY_END();

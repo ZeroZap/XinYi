@@ -168,3 +168,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 修复：24xx read/write-page 过去忽略 `xy_i2c_device_write()` 错误，可能在地址阶段 NACK/timeout 后继续读取或返回写入成功；现原样传播 Device I/O 错误。
 - 验证：focused `storage_eeprom_24xx` 1/1、Host 182/182、PC Release root build 与 `git diff --check` 通过；只构成 Host/PC 证据。
 - 阻塞：STM32U5 compile/board 和 EEPROM 写保护、write-cycle polling、掉电恢复仍待 SDK/toolchain、板卡与夹具。
+
+### 2026-08-26 Sprint 2 SSD1306 Host 前置推进
+
+- 完成：S2-3 的另一条推荐纵切 I2C→Device helper→SSD1306 新增 init 错误传播契约；I2C helper 初始化或首条面板命令失败时返回原始 Device 错误，释放并清空 framebuffer，且不继续延时/发送命令。
+- RED：focused `display_oled_ws2812` 证明 init command I/O 失败此前仍返回 `XY_DEVICE_OK`。
+- 验证：focused `display_oled_ws2812` + `gui_ssd1306_adapter` 2/2、Host 全量、PC Release root build 与 `git diff --check`；只构成 Host/PC 证据。
+- 阻塞：SSD1306 NACK/timeout/re-init 的实板 B2、帧时间与 RAM 仍待板卡、调试器、接线和仪器。
