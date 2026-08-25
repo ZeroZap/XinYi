@@ -1607,6 +1607,10 @@ add_test(NAME gui_font_snapshot_review_manifest
     COMMAND python3 ${GUI}/fonts/tools/generate_bitmap_font.py --self-test-snapshot-review-manifest
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME gui_font_licensed_candidate_snapshot
+    COMMAND python3 ${GUI}/fonts/tools/generate_bitmap_font.py --self-test-licensed-candidate-snapshot
+    WORKING_DIRECTORY ${ROOT}
+)
 
 # --- Test 37f: GUI font engine draw/cache contracts ---
 xy_add_unit_test(test_gui_font_engine gui_font_engine UNITY

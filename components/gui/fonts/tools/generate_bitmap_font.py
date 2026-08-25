@@ -41,6 +41,11 @@ REQUIRED_FONT_FIELDS = {
 
 SUPPORTED_GENERATOR_MODES = {"legacy-inventory", "legacy-passthrough", "font-rasterize"}
 SUPPORTED_GLYPH_ORDERS = {"ascii-range", "explicit-codepoints"}
+REPLACEMENT_CANDIDATE_FIELDS = {
+    "id", "family", "style", "source_collection_index", "source_filename",
+    "source_sha256", "source_url", "license", "license_file", "pixel_size",
+    "render_mode", "output_snapshot", "status",
+}
 
 
 class ManifestError(ValueError):
@@ -296,6 +301,33 @@ def validate_manifest(manifest_path: Path) -> dict[str, Any]:
     generator_rel = cast(str, generator_rel)
     generator_path = (manifest_path.parents[3] / generator_rel).resolve()
     _require(generator_path.exists(), f"generation_plan.generator path does not exist: {generator_path}")
+
+    candidate = data.get("replacement_candidate")
+    _require(isinstance(candidate, dict), "replacement_candidate must be an object")
+    candidate = cast(dict[str, Any], candidate)
+    _require(REPLACEMENT_CANDIDATE_FIELDS <= set(candidate),
+             "replacement_candidate is missing required provenance fields")
+    _require(candidate["license"] == "OFL-1.1",
+             "replacement_candidate.license must be OFL-1.1")
+    _require(candidate["status"] == "generated-host-candidate-not-active",
+             "replacement_candidate must remain explicitly non-active")
+    _require(candidate["render_mode"] == "Pillow-1bit-centered-bbox",
+             "replacement_candidate.render_mode is unsupported")
+    _require(isinstance(candidate["source_collection_index"], int)
+             and candidate["source_collection_index"] >= 0,
+             "replacement_candidate.source_collection_index must be a non-negative integer")
+    _require(isinstance(candidate["pixel_size"], int) and candidate["pixel_size"] > 0,
+             "replacement_candidate.pixel_size must be a positive integer")
+    _require(re.fullmatch(r"[0-9a-f]{64}", candidate["source_sha256"]) is not None,
+             "replacement_candidate.source_sha256 must be a lowercase SHA-256 digest")
+    license_path = fonts_root / cast(str, candidate["license_file"])
+    _require(license_path.exists(), f"replacement candidate license is missing: {license_path}")
+    _require("SIL OPEN FONT LICENSE Version 1.1" in license_path.read_text(encoding="utf-8"),
+             "replacement candidate license file does not contain OFL-1.1")
+    snapshot_rel = Path(cast(str, candidate["output_snapshot"]))
+    _require(not snapshot_rel.is_absolute() and ".." not in snapshot_rel.parts
+             and cast(str, candidate["output_snapshot"]).startswith("generated/"),
+             "replacement_candidate.output_snapshot must stay under generated/")
 
     return data
 
@@ -806,6 +838,108 @@ def self_test_glyph_preview(data: dict[str, Any]) -> None:
         raise ManifestError("missing font id was accepted")
 
 
+def build_licensed_candidate_snapshot(data: dict[str, Any], source_path: Path) -> str:
+    """Rasterize the required UI glyph set from the reviewed replacement source."""
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError as exc:
+        raise ManifestError("Pillow is required to rasterize the licensed font candidate") from exc
+
+    candidate = cast(dict[str, Any], data["replacement_candidate"])
+    source_bytes = source_path.read_bytes()
+    _require(hashlib.sha256(source_bytes).hexdigest() == candidate["source_sha256"],
+             "replacement candidate source digest does not match the manifest")
+    chinese = _find_font(data, "chinese_16x16_ui_legacy")
+    codepoints = [_parse_hex(item, "required_ui_codepoints")
+                  for item in cast(list[str], chinese["required_ui_codepoints"])]
+    size = cast(int, candidate["pixel_size"])
+    font = ImageFont.truetype(str(source_path), size,
+                              index=cast(int, candidate["source_collection_index"]))
+    _require(font.getname() == (candidate["family"], candidate["style"]),
+             f"replacement candidate face mismatch: {font.getname()!r}")
+
+    glyphs = []
+    for codepoint in codepoints:
+        image = Image.new("1", (size, size))
+        draw = ImageDraw.Draw(image)
+        bbox = draw.textbbox((0, 0), chr(codepoint), font=font)
+        x = (size - (bbox[2] - bbox[0])) // 2 - bbox[0]
+        y = (size - (bbox[3] - bbox[1])) // 2 - bbox[1]
+        draw.text((x, y), chr(codepoint), font=font, fill=1)
+        rows = []
+        for row in range(size):
+            value = 0
+            for column in range(size):
+                value = (value << 1) | int(image.getpixel((column, row)) != 0)
+            rows.append(f"{value:04x}")
+        _require(any(row != "0000" for row in rows),
+                 f"replacement candidate rendered blank glyph U+{codepoint:04X}")
+        glyphs.append({"codepoint": f"U+{codepoint:04X}", "rows_be16": rows})
+
+    snapshot = {
+        "schema_version": 1,
+        "status": candidate["status"],
+        "font_id": candidate["id"],
+        "source_filename": candidate["source_filename"],
+        "source_sha256": candidate["source_sha256"],
+        "source_collection_index": candidate["source_collection_index"],
+        "license": candidate["license"],
+        "pixel_size": size,
+        "render_mode": candidate["render_mode"],
+        "glyphs": glyphs,
+        "evidence_boundary": "Host-generated candidate only; not active firmware, visual approval, or hardware evidence.",
+    }
+    return json.dumps(snapshot, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+
+def write_licensed_candidate_snapshot(data: dict[str, Any], source_path: Path, output_path: Path) -> None:
+    output_path = output_path.resolve()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(build_licensed_candidate_snapshot(data, source_path), encoding="utf-8")
+
+
+def self_test_licensed_candidate_snapshot(data: dict[str, Any], manifest_path: Path) -> None:
+    """Verify the checked-in candidate without requiring Pillow or the 19 MB source font in CI."""
+
+    candidate = cast(dict[str, Any], data["replacement_candidate"])
+    snapshot_path = manifest_path.resolve().parent / cast(str, candidate["output_snapshot"])
+    _require(snapshot_path.exists(), f"licensed replacement snapshot is missing: {snapshot_path}")
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    _require(snapshot["status"] == "generated-host-candidate-not-active",
+             "licensed snapshot must remain explicitly non-active")
+    expected_metadata = {
+        "font_id": candidate["id"],
+        "source_filename": candidate["source_filename"],
+        "source_sha256": candidate["source_sha256"],
+        "source_collection_index": candidate["source_collection_index"],
+        "license": candidate["license"],
+        "pixel_size": candidate["pixel_size"],
+        "render_mode": candidate["render_mode"],
+    }
+    for field, expected_value in expected_metadata.items():
+        _require(snapshot[field] == expected_value,
+                 f"licensed snapshot metadata drifted: {field}")
+    chinese = _find_font(data, "chinese_16x16_ui_legacy")
+    expected = [f"U+{_parse_hex(item, 'required_ui_codepoints'):04X}"
+                for item in cast(list[str], chinese["required_ui_codepoints"])]
+    glyphs = cast(list[dict[str, Any]], snapshot["glyphs"])
+    _require([glyph["codepoint"] for glyph in glyphs] == expected,
+             "licensed snapshot glyph order/coverage does not match required UI codepoints")
+    _require(len({tuple(glyph["rows_be16"]) for glyph in glyphs}) == len(glyphs),
+             "licensed snapshot contains duplicate required UI glyph bitmaps")
+    for glyph in glyphs:
+        rows = glyph["rows_be16"]
+        _require(isinstance(rows, list) and len(rows) == candidate["pixel_size"],
+                 f"{glyph['codepoint']}: licensed snapshot row count is invalid")
+        _require(all(re.fullmatch(r"[0-9a-f]{4}", row) is not None for row in rows),
+                 f"{glyph['codepoint']}: licensed snapshot rows must be 16-bit lowercase hex")
+        _require(any(row != "0000" for row in rows),
+                 f"{glyph['codepoint']}: licensed snapshot glyph is blank")
+    _require("not active firmware" in snapshot["evidence_boundary"],
+             "licensed snapshot must preserve its non-product evidence boundary")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default="components/gui/fonts/font_manifest.json",
@@ -840,6 +974,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="Validate pending font license/provenance review manifest contracts")
     parser.add_argument("--self-test-snapshot-review-manifest", action="store_true",
                         help="Validate pending host snapshot review manifest contracts")
+    parser.add_argument("--write-licensed-candidate-snapshot", nargs=2,
+                        metavar=("SOURCE_FONT", "OUTPUT"),
+                        help="Rasterize the reviewed licensed source into a deterministic UI-glyph snapshot")
+    parser.add_argument("--self-test-licensed-candidate-snapshot", action="store_true",
+                        help="Validate the checked-in licensed replacement snapshot without the source font")
     args = parser.parse_args(argv)
 
     try:
@@ -911,6 +1050,21 @@ def main(argv: list[str] | None = None) -> int:
             print(f"font snapshot-review-manifest self-test failed: {exc}", file=sys.stderr)
             return 1
         print("font snapshot-review-manifest self-test passed")
+    elif args.self_test_licensed_candidate_snapshot:
+        try:
+            self_test_licensed_candidate_snapshot(data, Path(args.manifest))
+        except (ManifestError, json.JSONDecodeError, OSError) as exc:
+            print(f"font licensed-candidate snapshot self-test failed: {exc}", file=sys.stderr)
+            return 1
+        print("font licensed-candidate snapshot self-test passed")
+    elif args.write_licensed_candidate_snapshot:
+        source_path, output_path = args.write_licensed_candidate_snapshot
+        try:
+            write_licensed_candidate_snapshot(data, Path(source_path), Path(output_path))
+        except (ManifestError, OSError) as exc:
+            print(f"font licensed-candidate snapshot write failed: {exc}", file=sys.stderr)
+            return 1
+        print(f"font licensed-candidate snapshot written: {output_path}")
     elif args.emit_glyph_header:
         try:
             print(build_glyph_header(data, args.emit_glyph_header), end="")

@@ -36,6 +36,21 @@
     "It does not claim complete Chinese coverage, final glyph art quality, or hardware rendering validation.",
     "Current Chinese entries intentionally include duplicate codepoints and placeholder bitmaps; the manifest-smoke target reports these as inventory facts."
   ],
+  "replacement_candidate": {
+    "id": "noto_sans_cjk_sc_16_ui",
+    "family": "Noto Sans CJK SC",
+    "style": "Regular",
+    "source_collection_index": 2,
+    "source_filename": "NotoSansCJK-Regular.ttc",
+    "source_sha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+    "source_url": "https://github.com/notofonts/noto-cjk",
+    "license": "OFL-1.1",
+    "license_file": "LICENSE-NotoSansCJK-OFL-1.1.txt",
+    "pixel_size": 16,
+    "render_mode": "Pillow-1bit-centered-bbox",
+    "output_snapshot": "generated/noto_sans_cjk_sc_16_ui_snapshot.json",
+    "status": "generated-host-candidate-not-active"
+  },
   "fonts": [
     {
       "id": "ascii_8x16",

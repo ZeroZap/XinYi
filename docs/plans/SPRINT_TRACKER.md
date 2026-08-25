@@ -78,7 +78,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 |---|---:|---|---|---|---|---|---|---|
 | S1-01 | P0 | GUI backend 错误传播 | DONE | Zero | S0-07（DONE） | RED probe 证明 init/clear/draw/fill/flush 吞错；修复后 `gui_core`、`gui_display_backend`、`gui_ssd1306_adapter` 3/3，Host 178/178、PC root build、`git diff --check` 通过；clear 失败不提交背景色，fallback 首错即停 | `e4faf3c3` | 2026-08-24 |
 | S1-02 | P0 | SDL/backend strict selection | DONE | Zero | S1-01（DONE） | `GUI_SDL` 改为显式 opt-in；缺 SDL2 的 RED 配置曾错误成功，修复后 `CMAKE_DISABLE_FIND_PACKAGE_SDL2=TRUE` 配置按预期失败；默认配置生成 `CONFIG_GUI_SDL=OFF` 且 `xy_gui` 构建通过。仓库缺 SDL backend source，已显式 fail-closed 并记录为后续恢复项，不虚报 backend 可用 | `d2979d41` | 2026-08-25 |
-| S1-03 | P1 | 字体清单、生成器与 Host snapshot 收口 | DONE | Zero | S1-01（DONE） | 3 个 legacy 资产清单/source SHA-256 已固定；source-table Host review 判定 `rejected-needs-regeneration`（16x24 布局异常、必需中文 UI glyph 为空），license/provenance 仍 `project-review-pending`；font focused 14/14、Host 178/178、PC root build、`git diff --check` 通过，不升级视觉/许可证/实板状态 | `ca96d82b`、`6b14af59` | 2026-08-25 |
+| S1-03 | P1 | 字体清单、生成器与 Host snapshot 收口 | DONE | Zero | S1-01（DONE） | legacy 资产 review 为 `rejected-needs-regeneration`；已选 OFL-1.1 Noto Sans CJK SC replacement candidate，固定 TTC SHA-256/index/license，并生成 15 个必需 UI glyph 的非 active Host snapshot；font focused 14/14、Host 179/179、PC root build、`git diff --check` 通过，不升级 legacy provenance、视觉或实板状态 | `ca96d82b`～`6b14af59`、本轮提交 | 2026-08-25 |
 | S1-04 | P1 | SSD1306 单一显示纵切记录 | BLOCKED | - | 可用板卡/显示屏 | 板卡、接线、固件 SHA、init/fill/text/flush/error/re-init、帧时间和 RAM 记录 | 缺实板环境 | 2026-08-24 |
 
 ---
@@ -151,4 +151,4 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 未完成：S0-08 滚入 Sprint 2 前置队列；S1-04 因缺实板环境保持 `BLOCKED`，Host 证据不替代实板。
 - 验证：GUI focused 3/3；Host 178/178；PC Release root build；`git diff --check`。以上仅构成 Host/PC 证据。
 - 仓库：本轮开始 `main` 与 `origin/main` 为 `0/0`、SHA 同为 `73464378c9ddcfbc0e28fccf00e468c15caf85d0`；本轮提交将在看板校准后直接推送并复核。
-- 下一步：S1-03 的 Host source-table review 已得出 `rejected-needs-regeneration`，license/provenance 因缺来源/许可证证据继续 pending；下一可闭环 slice 是选择有可再分发证据的字体源并建立真实 asset snapshot，S1-04 继续等待实板。SDL backend source/link 恢复作为后续独立实现 slice。
+- 下一步：S1-03 已选择 OFL-1.1 Noto Sans CJK SC，并建立 15 个必需 UI glyph 的可复现、非 active Host snapshot；legacy 三项 provenance 仍 pending。下一独立软件 slice 是审查并接入 replacement table；S1-04 继续等待实板，SDL backend source/link 恢复保持独立实现 slice。

@@ -43,3 +43,23 @@ Future implementation requirements:
 
 Do not bulk-import full CJK font data or claim hardware rendering validation as
 part of the generator bootstrap slice.
+
+## Licensed replacement candidate
+
+The manifest also pins a software-only replacement candidate: the Simplified
+Chinese face (TTC index 2) of `NotoSansCJK-Regular.ttc`, licensed under OFL-1.1.
+The 19 MB source font is not vendored. To reproduce the checked-in required-UI
+glyph snapshot, provide the exact source whose SHA-256 is recorded in the
+manifest and run:
+
+```bash
+python3 components/gui/fonts/tools/generate_bitmap_font.py \
+  --write-licensed-candidate-snapshot /path/to/NotoSansCJK-Regular.ttc \
+  components/gui/fonts/generated/noto_sans_cjk_sc_16_ui_snapshot.json
+python3 components/gui/fonts/tools/generate_bitmap_font.py \
+  --self-test-licensed-candidate-snapshot
+```
+
+CI validates the checked-in metadata and 15 required UI glyphs without Pillow
+or the source TTC. The snapshot is not wired into firmware and is not a visual
+or hardware approval; activating it requires a separate reviewed slice.
