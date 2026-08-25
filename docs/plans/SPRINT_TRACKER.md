@@ -1,7 +1,7 @@
 # XinYi Sprint 跟踪看板
 
 **建立日期**：2026-08-17
-**当前阶段**：Sprint 1 — GUI 产品化纵切
+**当前阶段**：Sprint 1 — GUI 产品化纵切；Sprint 2 非实板前置并行推进
 **状态事实源**：本文件
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
@@ -87,10 +87,25 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 ## 4. 后续 Sprint 队列
 
+### Sprint 2 前置看板
+
+> Sprint 1 的 SSD1306 实板项仍受硬件阻塞；为避免空转，只推进不冒充实板证据的
+> HAL/Device/Driver Host 前置。S2-2/S2-3 在 B1/B2 与 clean STM32U5 compile 补齐前不得标记
+> `DONE`。
+
+| ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
+|---|---:|---|---|---|---|---|---|---|
+| S2-01 | P0 | HAL 平台实现与证据矩阵 | DONE | Zero | S0-08（DONE） | STM32U5/F4/L4/WCH/HC32 的 implementation/unsupported/Host/compile/QEMU/HIL 边界已逐项记录；未升级实板声明 | `fef4f1fe` | 2026-08-26 |
+| S2-02 | P0 | STM32U5 GPIO/UART/I2C/SPI/IRQ/DMA 实板基础外设 | BLOCKED | - | 板卡、调试器、SDK/toolchain、夹具/仪器 | fail-closed HIL 记录已建立；当前缺 B1/B2 原始日志与 capture | 缺实板环境 | 2026-08-26 |
+| S2-03 | P0 | I2C→Device helper→24xx/SSD1306 纵切 | BLOCKED | Zero | S2-02；Host 前置已完成 | 24xx 已覆盖 timeout/NACK 错误传播与 re-init；SSD1306 已覆盖 helper/首命令失败清理与停止副作用；focused、Host 182/182、PC root build、`git diff --check` 通过。尚缺 clean STM32U5 compile 与 B1/B2 | `72391b51`、`6ec6081c` | 2026-08-26 |
+| S2-04 | P1 | SYS reset/bootreason/chip-ID strong backend | READY | - | 参考板/board ownership 决策 | 尚未开工；不得以 weak/no-op Host 路径作为验收 | - | 2026-08-26 |
+
+### 后续 Sprint 队列
+
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
 | Sprint 1 | 2 周 | GUI backend 错误传播、strict backend、字体与单一显示纵切 | Sprint 0 门禁可信 | IN_PROGRESS |
-| Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | [HAL 平台实现与证据矩阵](../validation/hal-platform-evidence-matrix.md)已建立；HIL 夹具仍缺 | BLOCKED |
+| Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | [HAL 平台实现与证据矩阵](../validation/hal-platform-evidence-matrix.md)已建立；Host 前置推进中，HIL 夹具仍缺 | IN_PROGRESS（Host 前置）/BLOCKED（实板） |
 | Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 安全算法清单和 provider 决策 | BACKLOG |
 | Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | canonical Sensor API 决策 | BACKLOG |
 | Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | reference RTOS/board 决策 | BACKLOG |
