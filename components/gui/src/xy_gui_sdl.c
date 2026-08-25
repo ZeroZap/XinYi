@@ -5,7 +5,7 @@
 
 #include "xy_gui_sdl.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <stdlib.h>
 
 typedef struct {

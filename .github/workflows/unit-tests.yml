@@ -25,7 +25,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake gcovr clang-format
+          sudo apt-get install -y build-essential cmake gcovr clang-format libsdl2-dev
 
       - name: Configure unit tests
         run: cmake -S tests/unit -B build/tests/unit
@@ -41,6 +41,16 @@ jobs:
 
       - name: Build PC root target
         run: cmake --build build/pc -j$(nproc)
+
+      - name: Configure SDL2-enabled PC root build
+        run: >-
+          cmake -S . -B build/pc-sdl
+          -DHAL_PLATFORM=PC
+          -DCMAKE_BUILD_TYPE=Release
+          -DKCONFIG_OVERRIDES=BUILD_TESTING=OFF\;GUI_SDL=ON
+
+      - name: Build real SDL2 GUI backend
+        run: cmake --build build/pc-sdl --target xy_gui -j$(nproc)
 
       - name: Check whitespace in changed files
         run: git diff --check

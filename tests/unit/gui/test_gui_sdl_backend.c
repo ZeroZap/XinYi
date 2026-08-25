@@ -1,7 +1,7 @@
 #include "unity.h"
 #include "xy_gui_sdl.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
