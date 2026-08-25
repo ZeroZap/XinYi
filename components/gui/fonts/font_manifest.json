@@ -34,7 +34,8 @@
   "notes": [
     "This manifest documents the currently checked-in bitmap font assets only.",
     "It does not claim complete Chinese coverage, final glyph art quality, or hardware rendering validation.",
-    "Current Chinese entries intentionally include duplicate codepoints and placeholder bitmaps; the manifest-smoke target reports these as inventory facts."
+    "Current Chinese entries intentionally include duplicate codepoints and placeholder bitmaps outside the required UI subset; the manifest-smoke target reports these as inventory facts.",
+    "The 15 required UI codepoints use the manifest-pinned OFL-1.1 replacement snapshot in the active table; this is Host-guarded only and does not imply visual or hardware approval."
   ],
   "replacement_candidate": {
     "id": "noto_sans_cjk_sc_16_ui",
@@ -49,7 +50,13 @@
     "pixel_size": 16,
     "render_mode": "Pillow-1bit-centered-bbox",
     "output_snapshot": "generated/noto_sans_cjk_sc_16_ui_snapshot.json",
-    "status": "generated-host-candidate-not-active"
+    "status": "generated-host-candidate-not-active",
+    "active_required_ui_subset": {
+      "source_file": "xy_font_chinese_16x16.c",
+      "codepoint_count": 15,
+      "status": "active-host-guarded-not-visual-or-hardware-approved",
+      "validation_record": "docs/validation/xinyi-gui-font-required-ui-import-2026-08-25.md"
+    }
   },
   "fonts": [
     {
@@ -107,7 +114,7 @@
       "bytes_per_glyph": 32,
       "source_files": ["xy_font_chinese_16x16.c", "xy_font_chinese_16x16.h"],
       "source_sha256": {
-        "xy_font_chinese_16x16.c": "c57625bc352ee71b31c5cc3505368060375d8019033171b588f6ab30e0f05f96",
+        "xy_font_chinese_16x16.c": "14692f11da704411a57dd0efcacb2410a1e69a16dafcf44a9054ab15dd9bbbe4",
         "xy_font_chinese_16x16.h": "d3d1ef3abb7d97a240299dc42dd0f893b29a5b5c74135d789d886febe5b5eed8"
       },
       "output_header": "generated/xy_font_chinese_16x16_generated.h",
