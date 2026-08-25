@@ -161,3 +161,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 阻塞：S1-04 与 Sprint 2 实板纵切仍缺板卡、调试器、夹具、仪器、STM32U5 SDK checkout 与 ARM toolchain；保持 `BLOCKED_NO_HARDWARE`，Host/compile/QEMU 不替代实板。
 - 仓库：本轮开始本地 `main` 领先 `origin/main` 2 个提交；已 fast-forward push，并以 `git ls-remote` 核对两端 SHA=`c8ac794f45acc1203be549b48620cfa51e5ce3de`、ahead/behind `0/0`。
 - 下一步：硬件阻塞未解除时，继续 S2-3 I2C→Device→Driver 的 Host error/re-init contract；硬件到位后执行 SSD1306 和 STM32U5 HAL 记录中的 B1/B2 场景。
+
+### 2026-08-26 Sprint 2 非实板前置推进
+
+- 完成：S2-1 HAL 平台实现与证据矩阵提交 `fef4f1fe` 已推送并与 `origin/main` 同步；S2-3 选择 I2C→Device helper→24xx EEPROM，新增 transmit/receive timeout、失败时不延时假成功及 re-init recovery Host 契约。
+- 修复：24xx read/write-page 过去忽略 `xy_i2c_device_write()` 错误，可能在地址阶段 NACK/timeout 后继续读取或返回写入成功；现原样传播 Device I/O 错误。
+- 验证：focused `storage_eeprom_24xx` 1/1、Host 182/182、PC Release root build 与 `git diff --check` 通过；只构成 Host/PC 证据。
+- 阻塞：STM32U5 compile/board 和 EEPROM 写保护、write-cycle polling、掉电恢复仍待 SDK/toolchain、板卡与夹具。

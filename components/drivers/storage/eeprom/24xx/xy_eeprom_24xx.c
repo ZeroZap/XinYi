@@ -40,13 +40,17 @@ int xy_eeprom_24xx_read(xy_eeprom_24xx_t *eeprom, uint16_t addr,
 
     /* Send address */
     uint8_t addr_buf[2];
+    int ret;
     if (eeprom->address_bits == 16) {
         addr_buf[0] = (addr >> 8) & 0xFF;
         addr_buf[1] = addr & 0xFF;
-        xy_i2c_device_write(&eeprom->i2c_dev, addr_buf, 2);
+        ret = xy_i2c_device_write(&eeprom->i2c_dev, addr_buf, 2);
     } else {
         addr_buf[0] = addr & 0xFF;
-        xy_i2c_device_write(&eeprom->i2c_dev, addr_buf, 1);
+        ret = xy_i2c_device_write(&eeprom->i2c_dev, addr_buf, 1);
+    }
+    if (ret < 0) {
+        return ret;
     }
 
     /* Read data */
@@ -69,17 +73,21 @@ int xy_eeprom_24xx_write_page(xy_eeprom_24xx_t *eeprom, uint16_t addr,
         len = page_end - addr;
     }
 
-    /* Send address */
+    /* Send address and page payload */
     uint8_t buffer[128];
+    int ret;
     if (eeprom->address_bits == 16) {
         buffer[0] = (addr >> 8) & 0xFF;
         buffer[1] = addr & 0xFF;
         memcpy(&buffer[2], data, len);
-        xy_i2c_device_write(&eeprom->i2c_dev, buffer, len + 2);
+        ret = xy_i2c_device_write(&eeprom->i2c_dev, buffer, len + 2);
     } else {
         buffer[0] = addr & 0xFF;
         memcpy(&buffer[1], data, len);
-        xy_i2c_device_write(&eeprom->i2c_dev, buffer, len + 1);
+        ret = xy_i2c_device_write(&eeprom->i2c_dev, buffer, len + 1);
+    }
+    if (ret < 0) {
+        return ret;
     }
 
     /* Wait for write complete (max 5ms) */

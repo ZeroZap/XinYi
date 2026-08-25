@@ -20,7 +20,11 @@ typedef struct {
     uint8_t storage[EEPROM_SIZE];
     uint16_t current_addr;
     uint16_t last_dev_addr;
+    uint8_t address_bits;
 } fake_i2c_t;
+
+static xy_hal_error_t g_transmit_result;
+static xy_hal_error_t g_receive_result;
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
                                                const uint8_t *data, size_t len,
@@ -36,6 +40,8 @@ void setUp(void)
     RESET_FAKE(xy_hal_i2c_master_receive);
     FFF_RESET_HISTORY();
 
+    g_transmit_result = XY_HAL_OK;
+    g_receive_result = XY_HAL_OK;
     xy_hal_i2c_master_transmit_fake.custom_fake = fake_i2c_master_transmit;
     xy_hal_i2c_master_receive_fake.custom_fake = fake_i2c_master_receive;
 }
@@ -98,6 +104,9 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_NOT_NULL(fake);
     TEST_ASSERT_NOT_NULL(data);
     fake->last_dev_addr = dev_addr;
+    if (g_transmit_result != XY_HAL_OK) {
+        return g_transmit_result;
+    }
 
     if (len == 1U) {
         fake->current_addr = data[0];
@@ -108,11 +117,12 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
         return XY_HAL_ERROR_INVALID_PARAM;
     }
 
-    mem_addr = ((uint16_t)data[0] << 8) | data[1];
-    offset = 2U;
-    if (mem_addr >= EEPROM_SIZE) {
+    if (fake->address_bits == 8U) {
         mem_addr = data[0];
         offset = 1U;
+    } else {
+        mem_addr = ((uint16_t)data[0] << 8) | data[1];
+        offset = 2U;
     }
 
     payload_len = len - offset;
@@ -135,6 +145,9 @@ static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_NOT_NULL(fake);
     TEST_ASSERT_NOT_NULL(data);
     fake->last_dev_addr = dev_addr;
+    if (g_receive_result != XY_HAL_OK) {
+        return g_receive_result;
+    }
 
     if ((size_t)fake->current_addr + len > EEPROM_SIZE) {
         return XY_HAL_ERROR_OVERFLOW;
@@ -212,6 +225,7 @@ static void test_8bit_address_devices(void)
 
     memset(&fake, 0, sizeof(fake));
     memset(fake.storage, 0xFF, sizeof(fake.storage));
+    fake.address_bits = 8U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x51, 8, 128));
     TEST_ASSERT_EQUAL_UINT8(8U, eeprom.address_bits);
     TEST_ASSERT_EQUAL_INT((int)sizeof(payload),
@@ -229,10 +243,54 @@ static void test_bounds_and_page_write_contracts(void)
 
     memset(&fake, 0, sizeof(fake));
     memset(fake.storage, 0xFF, sizeof(fake.storage));
+    fake.address_bits = 8U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 32));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_eeprom_24xx_read(&eeprom, 31, payload, 2));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_eeprom_24xx_write(&eeprom, 31, payload, 2));
     TEST_ASSERT_EQUAL_INT(2, xy_eeprom_24xx_write_page(&eeprom, 6, payload, sizeof(payload)));
+}
+
+static void test_bus_errors_propagate_without_false_success(void)
+{
+    fake_i2c_t fake;
+    xy_eeprom_24xx_t eeprom;
+    uint8_t data[2] = {0x12, 0x34};
+
+    memset(&fake, 0, sizeof(fake));
+    fake.address_bits = 8U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 32));
+
+    g_transmit_result = XY_HAL_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_eeprom_24xx_read(&eeprom, 0, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_eeprom_24xx_write_page(&eeprom, 0, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_hal_delay_ms_fake.call_count);
+
+    g_transmit_result = XY_HAL_OK;
+    g_receive_result = XY_HAL_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_eeprom_24xx_read(&eeprom, 0, data, sizeof(data)));
+}
+
+static void test_reinit_recovers_after_bus_error(void)
+{
+    fake_i2c_t fake;
+    xy_eeprom_24xx_t eeprom;
+    const uint8_t payload[] = {0xA5, 0x5A};
+    uint8_t out[sizeof(payload)] = {0};
+
+    memset(&fake, 0, sizeof(fake));
+    fake.address_bits = 8U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 32));
+    g_transmit_result = XY_HAL_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_eeprom_24xx_write(&eeprom, 0, payload, sizeof(payload)));
+
+    g_transmit_result = XY_HAL_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 32));
+    TEST_ASSERT_EQUAL_INT((int)sizeof(payload),
+                          xy_eeprom_24xx_write(&eeprom, 30, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_INT((int)sizeof(out), xy_eeprom_24xx_read(&eeprom, 30, out, sizeof(out)));
+    TEST_ASSERT_EQUAL_MEMORY(payload, out, sizeof(payload));
 }
 
 int main(void)
@@ -242,5 +300,7 @@ int main(void)
     RUN_TEST(test_write_read_and_page_splitting);
     RUN_TEST(test_8bit_address_devices);
     RUN_TEST(test_bounds_and_page_write_contracts);
+    RUN_TEST(test_bus_errors_propagate_without_false_success);
+    RUN_TEST(test_reinit_recovers_after_bus_error);
     return UNITY_END();
 }

@@ -39,7 +39,7 @@
 | HAL | H1（PC） | Q1 部分；[HAL 平台实现与证据矩阵](hal-platform-evidence-matrix.md)逐平台列明 source/unsupported/compile 状态 | [STM32U5 HAL/HIL 记录](xinyi-stm32u5-hal-hardware-validation-record.md)为 `BLOCKED_NO_HARDWARE`（2026-08-25） | pending | PC simulation、部分 QEMU；不得从 Host/QEMU/compile 升级实板声明 | 恢复 SDK/toolchain 后重跑 U5 clean compile；按记录补 GPIO/UART/I2C/SPI/IRQ/DMA B1/B2 原始日志与 capture |
 | Device | H1 | PC build | pending | n/a | 软件层 registry/lifecycle 可用 | 与真实 Driver 的 B1/B2 纵切 |
 | Display drivers | H1 | PC build | pending；[SSD1306 实板记录](xinyi-display-hardware-validation-record.md)为 `BLOCKED_NO_HARDWARE`（2026-08-25） | pending | Host transaction contract；不得从 Host/compile 升级实板或性能声明 | 按记录补 SSD1306 板卡/接线/SHA、NACK/timeout/re-init、帧时间与 RAM 证据 |
-| Storage/24xx | H1 | PC build | pending | pending | fake-I2C 契约 | 页边界、写保护、掉电 B2 |
+| Storage/24xx | H1（page split、I2C error propagation、re-init recovery） | PC build | pending | pending | fake-I2C Device→Driver 契约；失败事务不假成功且不进入 write delay | 写保护、write-cycle polling、掉电 B2 |
 | Sensor legacy | H1 | PC build | pending | pending | 当前根库 Host 契约 | active-source 清单 + 代表芯片 B1/B2 |
 | Sensor new `xy_*` | H1（独立测试） | 未进入根 Sensor target | pending | pending | 仅独立 Host 实验实现 | root-link/source manifest + 迁移试点 |
 | Drivers Sensor | H1（少量） | PC build | pending | pending | 少量 Device/PC 集成 | canonical ownership 决策 |
