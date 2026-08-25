@@ -53,7 +53,7 @@
 | S0-05 | P0 | 统一版本、tag、release note 与 workflow 触发 | DONE | Zero | S0-03（DONE） | `VERSION` 驱动 root CMake；Kconfig/public header 为受检镜像；canonical changelog、Known Limitations 与 fail-closed `vMAJOR.MINOR.PATCH` workflow 已建立；release facts 正/负向 probe、workflow YAML、Host 178/178、PC root build 与 `git diff --check` 通过 | `5b1943e1` | 2026-08-24 |
 | S0-06 | P0 | 降级无证据的 production/security/hardware 宣称 | DONE | Zero | 组件证据台账 | 根/组件/HAL/Net/Modbus/OSAL/Crypto 公开 README 已降级到 Host/compile/hardware/security 分层口径并链接证据台账；CI capability-claim guard、release facts、workflow YAML、Host 178/178、PC root build、`git diff --check` 通过 | `73464378` | 2026-08-24 |
 | S0-07 | P1 | GUI Sprint 1 任务细化与失败测试清单 | DONE | Zero | GUI 独立变更规则 | 审计计划已明确 backend 错误传播、SDL strict、字体/显示三组任务及验收；首个失败测试已于 Sprint 1 RED→GREEN | `e4faf3c3` | 2026-08-24 |
-| S0-08 | P1 | STM32U5 HAL/HIL 夹具与记录模板准备 | READY | - | 可用板卡/仪器 | GPIO/UART/I2C/SPI/IRQ/DMA 测试夹具清单和 record template | - | 2026-08-17 |
+| S0-08 | P1 | STM32U5 HAL/HIL 夹具与记录模板准备 | DONE | Zero | S0-04（DONE）；实板执行仍依赖板卡/仪器 | 已建立 fail-closed record、夹具/接线清单及 GPIO/UART/I2C/SPI/IRQ/DMA normal/negative/recovery 场景；focused policy guard、Host 181/181、PC root build 与 `git diff --check` 通过；当前环境缺板卡、调试器、SDK checkout 与 ARM toolchain，分类保持 `BLOCKED_NO_HARDWARE` | pending commit | 2026-08-25 |
 
 ### Sprint 0 退出条件
 

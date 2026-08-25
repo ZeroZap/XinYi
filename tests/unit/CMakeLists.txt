@@ -66,6 +66,12 @@ set(UNIT_SUPPORT ${CMAKE_CURRENT_SOURCE_DIR}/support)
 set(UNIT_SYS ${CMAKE_CURRENT_SOURCE_DIR}/sys)
 set(UNIT_TRACE ${CMAKE_CURRENT_SOURCE_DIR}/trace)
 
+# --- Policy guard: STM32U5 HAL/HIL record stays fail-closed without real board evidence ---
+add_test(NAME stm32u5_hal_hardware_record
+    COMMAND python3 ${UNIT_HAL}/check_stm32u5_hal_hardware_record.py
+    WORKING_DIRECTORY ${ROOT}
+)
+
 include_directories(
     ${DEV}                          # xy_device_core.h
     ${DEV}/inc                      # xy_device.h
