@@ -36,7 +36,7 @@
 |---|---|---|---|---|---|---|
 | Clib | H1 | PC build | pending | pending | Host 软件可用 | MCU size/heap/性能记录 |
 | Kernel/OSAL | H1（bare-metal） | Q1 部分 | pending | pending | bare-metal Host 契约 | 单一 RTOS 并发/ISR 板级记录 |
-| HAL | H1（PC） | Q1 部分 | [STM32U5 HAL/HIL 记录](xinyi-stm32u5-hal-hardware-validation-record.md)为 `BLOCKED_NO_HARDWARE`（2026-08-25） | pending | PC simulation、部分 QEMU；不得从 Host/QEMU/compile 升级实板声明 | 按记录补 STM32U5 GPIO/UART/I2C/SPI/IRQ/DMA B1/B2 原始日志与 capture |
+| HAL | H1（PC） | Q1 部分；[HAL 平台实现与证据矩阵](hal-platform-evidence-matrix.md)逐平台列明 source/unsupported/compile 状态 | [STM32U5 HAL/HIL 记录](xinyi-stm32u5-hal-hardware-validation-record.md)为 `BLOCKED_NO_HARDWARE`（2026-08-25） | pending | PC simulation、部分 QEMU；不得从 Host/QEMU/compile 升级实板声明 | 恢复 SDK/toolchain 后重跑 U5 clean compile；按记录补 GPIO/UART/I2C/SPI/IRQ/DMA B1/B2 原始日志与 capture |
 | Device | H1 | PC build | pending | n/a | 软件层 registry/lifecycle 可用 | 与真实 Driver 的 B1/B2 纵切 |
 | Display drivers | H1 | PC build | pending；[SSD1306 实板记录](xinyi-display-hardware-validation-record.md)为 `BLOCKED_NO_HARDWARE`（2026-08-25） | pending | Host transaction contract；不得从 Host/compile 升级实板或性能声明 | 按记录补 SSD1306 板卡/接线/SHA、NACK/timeout/re-init、帧时间与 RAM 证据 |
 | Storage/24xx | H1 | PC build | pending | pending | fake-I2C 契约 | 页边界、写保护、掉电 B2 |

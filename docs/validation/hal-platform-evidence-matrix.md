@@ -1,0 +1,60 @@
+# XinYi HAL 平台实现与证据矩阵
+
+**建立日期**：2026-08-26
+
+**范围**：Sprint 2 前置项 S2-1
+
+**事实源**：`components/hal/CMakeLists.txt`、各平台 `xy_hal_*.c`、当前可追溯验证记录
+
+**证据边界**：源文件存在只表示 implementation source present；compile、QEMU、Host 和 Board 必须分别取证，不能互相升级。
+
+## 1. 状态定义
+
+- `SOURCE_PRESENT`：平台目录存在对应 wrapper；不代表已编译或运行。
+- `PARTIAL_SOURCE`：存在 wrapper，但明确包含 unsupported 路径或只覆盖部分 API。
+- `UNSUPPORTED`：缺少该平台 wrapper，或实现明确 fail-closed 返回 not-supported。
+- `HOST_CONTRACT`：PC fake/simulation 契约已由 canonical Host CTest 覆盖；不代表目标平台行为。
+- `COMPILE_ONLY`：有可追溯 clean target compile；不代表板级运行。
+- `QEMU_PARTIAL`：仅有部分 STM32F4 QEMU 场景；不代表完整外设或实板。
+- `BOARD_PENDING`：没有满足项目证据要求的板级日志与 capture。
+
+## 2. 平台实现矩阵
+
+下表审计 Sprint 2 最小证据链关注的 GPIO、UART、I2C、SPI、Timer、I2S、DMA。STM32L4 当前在 CMake 中复用 STM32F4 wrapper，因此单独列出，不能误称为 dedicated L4 implementation。
+
+| Platform | GPIO | UART | I2C | SPI | Timer | I2S | DMA | Host | Compile/QEMU | Board |
+|---|---|---|---|---|---|---|---|---|---|---|
+| STM32U5 | `PARTIAL_SOURCE`（EXTI 依赖 SDK IRQ 定义） | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `UNSUPPORTED`（显式 stub） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC，不是 U5 runtime） | `COMPILE_ONLY` 历史记录；当前 SDK/toolchain 不可用，需重跑 | `BOARD_PENDING` |
+| STM32F4 | `SOURCE_PRESENT` | `UNSUPPORTED`（wrapper 返回 not-supported） | `SOURCE_PRESENT` | `UNSUPPORTED`（wrapper 返回 not-supported） | `UNSUPPORTED`（wrapper 返回 not-supported） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
+| STM32L4 | `PARTIAL_SOURCE`（复用 F4 wrapper） | `UNSUPPORTED`（复用 F4 stub） | `PARTIAL_SOURCE`（复用 F4 wrapper，非 dedicated） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED` | `PARTIAL_SOURCE`（复用 F4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
+| WCH CH32V30x | `PARTIAL_SOURCE`（IRQ configure unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
+| HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
+| PC simulation | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `UNSUPPORTED`（PC source set 未选 Timer wrapper） | `UNSUPPORTED` | `UNSUPPORTED`（PC source set 未选 DMA wrapper） | `HOST_CONTRACT` | n/a | n/a |
+
+> PC 的 SYS 实现位于聚合文件 `xy_hal_pc.c`；矩阵仍以 `components/hal/CMakeLists.txt` 实际
+> source selection 为准，不能把未选入 `xy_hal` 的 helper 文件或通用声明记作 Host contract。
+
+## 3. 平台结论
+
+### STM32U5
+
+S2-2 所需 GPIO/UART/I2C/SPI/Timer/DMA wrapper 已存在，I2S 明确 fail-closed。当前只允许声明 source-present、历史 compile-only 和通用 Host contract；板级结果仍由 [STM32U5 HAL/HIL 记录](xinyi-stm32u5-hal-hardware-validation-record.md)保持 `BLOCKED_NO_HARDWARE`。
+
+### STM32F4 / STM32L4
+
+STM32F4 的 UART、SPI、Timer 大量路径为显式 not-supported；STM32L4 又复用这组 wrapper。现有 QEMU 结果只能记为 partial，不能写成完整 HAL 支持或 L4 专用实现。
+
+### WCH / HC32
+
+WCH 只有部分基础 wrapper，Timer/I2S/DMA 缺失；HC32L021 当前只有 GPIO wrapper，且 IRQ 不支持。两者都没有 canonical compile 或实板证据，不得描述为 production-ready。
+
+## 4. Sprint 2 非实板前置门禁
+
+- [x] 逐平台拆分 implementation / unsupported / Host / compile / QEMU / Board 状态。
+- [x] 明确 STM32L4 复用 STM32F4 wrapper，而非 dedicated implementation。
+- [x] 明确 STM32U5 I2S、STM32F4 UART/SPI/Timer、WCH 长尾、HC32 非 GPIO 缺口。
+- [ ] 恢复 STM32U5 SDK 与 ARM toolchain 后重跑 clean compile，并保存原始日志。
+- [ ] 为选定 I2C→Device→Driver 纵切建立 Host error/re-init contract。
+- [ ] 硬件到位后按 HAL-01～HAL-09 填写 Board 证据。
+
+只有最后一项完成并保留原始日志/capture 后，才能升级相应 Board 状态。

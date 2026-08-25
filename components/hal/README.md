@@ -70,19 +70,17 @@ xy_hal_i2c_scan()           /* 扫描总线 */
 
 ---
 
-## 🖥️ 平台支持矩阵
+## 🖥️ 平台支持与证据
 
-| API | STM32U5 | WCH CH32U5 | HC32 | Bare-metal |
-|-----|---------|------------|------|------------|
-| **GPIO** | compile/Host | compile pending | incomplete | Host only |
-| **UART** | compile/Host | compile pending | unsupported | Host only |
-| **SPI** | compile/Host | compile pending | unsupported | Host only |
-| **I2C** | compile/Host | compile pending | unsupported | Host only |
+逐平台、逐外设的 implementation / unsupported / Host / compile / QEMU / Board 状态，以
+[HAL 平台实现与证据矩阵](../../docs/validation/hal-platform-evidence-matrix.md)为事实源。
 
-**图例**:
-- ✅ 完整支持
-- ⏸️ 暂停 (等待 GCC)
-- ❌ 未实现
+关键边界：
+
+- STM32U5 的基础 wrapper 存在，但当前没有可升级为板级结论的证据；I2S 明确不支持。
+- STM32F4 的 UART、SPI、Timer 仍有显式 unsupported 路径；STM32L4 当前复用 F4 wrapper。
+- WCH 仅部分基础外设有 wrapper；HC32L021 当前主要为 GPIO，不能笼统宣称完整平台支持。
+- PC simulation 和 QEMU 结果不能替代目标平台 clean compile 或实板运行。
 
 ---
 
