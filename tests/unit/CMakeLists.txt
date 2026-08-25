@@ -1506,6 +1506,13 @@ xy_add_unit_test(test_gui_ssd1306_adapter gui_ssd1306_adapter UNITY
     ${DISPLAY}/oled/ssd1306/xy_oled_ssd1306.c
 )
 
+# --- Test 37aa: SDL backend lifecycle and framebuffer bridge with a fake SDL2 seam ---
+xy_add_unit_test(test_gui_sdl_backend gui_sdl_backend UNITY
+    ${UNIT_GUI}/test_gui_sdl_backend.c
+    ${GUI}/src/xy_gui_sdl.c
+)
+target_include_directories(test_gui_sdl_backend BEFORE PRIVATE ${UNIT_GUI}/fake_sdl)
+
 # --- Test 37b: GUI effects public headers stay self-contained ---
 xy_add_unit_test(test_gui_effects_headers gui_effects_headers UNITY
     ${UNIT_GUI}/test_gui_effects_headers.c

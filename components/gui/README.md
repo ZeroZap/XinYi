@@ -20,7 +20,7 @@ GUI core 使用显式 `xy_gui_t` context API；不要再使用旧文档中的全
 | --- | --- | --- | --- |
 | GUI core | `xy_gui.c`, `xy_gui.h` | `gui_core` | lifecycle、clear/flush、像素/线/矩形/字符/字符串和 object contract 已由 host 测试守护 |
 | GUI ↔ Display backend bridge | `xy_gui.c`, `xy_gui.h`, fake `xy_gui_disp_drv_t` backend fixture, LED GUI display adapter fixture | `gui_display_backend` | host-safe bridge CTest 证明 `xy_gui_clear/draw_pixel/fill_rect/flush` 会转发参数和 backend 返回值，并覆盖状态保存、fallback 首错即停、LED adapter host framebuffer/flush、多 channel 隔离与 per-driver enable/disable；仍不是任何真实屏幕硬件验证 |
-| PC SDL2 backend selection | `Kconfig`, `components/gui/CMakeLists.txt` | configure probe | `GUI_SDL` 默认关闭；显式启用时 SDL2 缺失会以可读错误终止配置，不再静默降级。当前仓库尚缺 `src/xy_gui_sdl.c`，因此即使安装 SDL2 也会 fail-closed，不能宣称 SDL backend 可用 |
+| PC SDL2 backend | `Kconfig`, `components/gui/CMakeLists.txt`, `inc/xy_gui_sdl.h`, `src/xy_gui_sdl.c` | `gui_sdl_backend` + configure probe | `GUI_SDL` 默认关闭；显式启用时 SDL2 缺失会以可读错误终止配置，不再静默降级。Host fake-SDL CTest 守护 configure/init、RGB565 framebuffer、flush 错误与 quit event；当前机器未安装 SDL2，尚无真实 SDL window/runtime 证据 |
 | GUI ↔ SSD1306 adapter | `inc/xy_gui_ssd1306_adapter.h`, `src/xy_gui_ssd1306_adapter.c`, display SSD1306 public driver API | `gui_ssd1306_adapter` | host-safe adapter CTest 覆盖 bind guard、RGB565→mono 映射、draw-line/draw-rect/draw-char callback 转发、fill-rect clipping、flush 到 SSD1306 refresh I2C transaction、多 OLED instance slot 隔离，以及 slot exhaustion/reset 契约；仍不是真实 OLED/I2C 硬件验证 |
 | Widget base + theme | `src/xy_gui_widget.c`, `src/xy_gui_theme.c`, `inc/xy_gui_widget.h`, `inc/xy_gui_theme.h` | `gui_widget_theme` | widget init/style/text/value/parent-child 与 theme register/apply/list/unregister contract 已由 host 测试守护 |
 | Event + widgets | `src/xy_gui_event.c`, button/checkbox/label/progress/slider/container 源码与头文件 | `gui_widgets` | event queue/dispatch 与 button、checkbox/radio、label、progress、slider、container contract 已由 host 测试守护 |
@@ -128,6 +128,7 @@ cmake --build build/tests/unit --target \
   test_gui_core \
   test_gui_display_backend \
   test_gui_ssd1306_adapter \
+  test_gui_sdl_backend \
   test_gui_widget_theme \
   test_gui_widgets \
   test_gui_effects \
@@ -139,7 +140,7 @@ cmake --build build/tests/unit --target \
   test_gui_font_engine \
   test_gui_font_snapshot \
   -j$(nproc)
-cd build/tests/unit && ctest --output-on-failure -R '^gui_(core|display_backend|ssd1306_adapter|widget_theme|widgets|effects|effects_headers|led_screen_effects|rgb_extended_effects_compile|fonts|font_manifest|font_generator_manifest|font_generator_output|font_generator_write|font_generator_glyph_metadata|font_generator_glyph_preview|font_generator_glyph_write|font_generator_glyph_compile|font_generator_checked_in_preview|font_engine|font_snapshot)$'
+cd build/tests/unit && ctest --output-on-failure -R '^gui_(core|display_backend|ssd1306_adapter|sdl_backend|widget_theme|widgets|effects|effects_headers|led_screen_effects|rgb_extended_effects_compile|fonts|font_manifest|font_generator_manifest|font_generator_output|font_generator_write|font_generator_glyph_metadata|font_generator_glyph_preview|font_generator_glyph_write|font_generator_glyph_compile|font_generator_checked_in_preview|font_engine|font_snapshot)$'
 
 make test-unit
 
@@ -150,7 +151,7 @@ git diff --check
 
 ## 下一步 backlog
 
-1. GUI ↔ Display driver backend 已新增 host-safe `test_gui_display_backend` / `gui_display_backend` 与 `test_gui_ssd1306_adapter` / `gui_ssd1306_adapter` CTest：当前证明 `xy_gui_disp_drv_t` backend 错误传播、LED GUI display adapter host framebuffer/flush 绑定路径、SSD1306 adapter 的 mono 映射/flush/多实例隔离/slot reset，不代表真实 LCD/OLED/LED matrix hardware validation。SDL2 仍是默认关闭、实现缺失时 fail-closed 的 opt-in backend；恢复实现后才可补依赖存在时的 source/link gate。
+1. GUI ↔ Display driver backend 已新增 host-safe `test_gui_display_backend` / `gui_display_backend`、`test_gui_ssd1306_adapter` / `gui_ssd1306_adapter` 与 `test_gui_sdl_backend` / `gui_sdl_backend` CTest：当前证明 `xy_gui_disp_drv_t` backend 错误传播、LED/SSD1306 adapter 契约，以及 SDL configure/init/framebuffer/flush/event 的 fake-library contract，不代表真实 LCD/OLED/LED matrix hardware 或真实 SDL window/runtime validation。SDL2 保持默认关闭；依赖存在时仍需 real source/link/run gate。
 2. GUI LED-screen/RGB extended effects 已由 `docs/design/xinyi-gui-led-screen-effects-proposal-2026-08-09.md` 固定边界，且 `gui_led_screen_effects` 已先补 public-header self-containment CTest：当前只证明 `xy_led_screen.h` / `xy_gui_screen_fx.h` 的 host include/type/signature contract，不链接 LED-screen 实现、不代表 RGB 扩展算法或真实屏幕效果验证；若继续推进，应再补独立 host fake framebuffer implementation CTest。
 3. RGB extended effect implementation (`xy_rgb_fx_extended/matrix/3d/music.c`) 已由 `docs/design/xinyi-gui-rgb-extended-effects-compile-proposal-2026-08-09.md` 明确为 compile-boundary 优先：当前 `gui_rgb_extended_effects_compile` 已纳入全部 4 个 RGB extended implementation 文件，确认 fake `xy_rgb_*` strip seam、test-owned `g_frame_count`、delay/color helper seam 可守护 music setter/beat/frequency/autocorr/VU、matrix size/plasma、extended color-wipe/lightning 与 3D plasma 基础路径；不要把本目标解读为视觉算法质量或硬件效果已验证。
 4. GUI font asset manifest 已由 `gui_font_manifest` 追加 host CTest，证明当前 legacy asset 范围/重复/placeholder inventory 与 manifest contract 对齐；generator bootstrap/write-path 已追加 `gui_font_generator_manifest` / `gui_font_generator_output` / `gui_font_generator_write` / `gui_font_generator_glyph_metadata` / `gui_font_generator_glyph_preview` / `gui_font_generator_glyph_write` / `gui_font_generator_glyph_compile` / `gui_font_generator_checked_in_preview`，证明 manifest validation、deterministic summary、manifest-inventory header preview/write、legacy-passthrough glyph preview/write、temporary generated C99 compile 与 checked-in generated preview byte-for-byte reproducibility/compile contract；host framebuffer snapshot review 已由 `gui_font_snapshot` 固定 deterministic ASCII-art/checksum metadata、unknown-glyph preservation 与 clipping guard。`docs/validation/xinyi-gui-font-rendering-hardware-validation-record-template-2026-08-11.md` 已把真实屏幕证据格式固定为 pending/compile-only/host-snapshot-only/hardware-failed/hardware-passed-*；后续字体方向应推进 generated preview 的 license/provenance review、真实屏幕记录，或按该模板补板级照片/日志；不要重复补同类 font engine/snapshot/generator reproducibility guard，也不要把这些 host 测试等同于美术/字库质量或硬件验收。
