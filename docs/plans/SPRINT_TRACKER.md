@@ -98,7 +98,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S2-01 | P0 | HAL 平台实现与证据矩阵 | DONE | Zero | S0-08（DONE） | STM32U5/F4/L4/WCH/HC32 的 implementation/unsupported/Host/compile/QEMU/HIL 边界已逐项记录；未升级实板声明 | `fef4f1fe` | 2026-08-26 |
 | S2-02 | P0 | STM32U5 GPIO/UART/I2C/SPI/IRQ/DMA 实板基础外设 | BLOCKED | - | 板卡、调试器、SDK/toolchain、夹具/仪器 | fail-closed HIL 记录已建立；当前缺 B1/B2 原始日志与 capture | 缺实板环境 | 2026-08-26 |
 | S2-03 | P0 | I2C→Device helper→24xx/SSD1306 纵切 | BLOCKED | Zero | S2-02；Host 前置已完成 | 24xx 已覆盖 timeout/NACK 错误传播与 re-init；SSD1306 已覆盖 helper/首命令失败清理与停止副作用；focused、Host 182/182、PC root build、`git diff --check` 通过。尚缺 clean STM32U5 compile 与 B1/B2 | `72391b51`、`6ec6081c` | 2026-08-26 |
-| S2-04 | P1 | SYS reset/bootreason/chip-ID strong backend | READY | - | 参考板/board ownership 决策 | 尚未开工；不得以 weak/no-op Host 路径作为验收 | - | 2026-08-26 |
+| S2-04 | P1 | SYS reset/bootreason/chip-ID strong backend | BLOCKED | Zero | 参考板/board ownership 决策 | Host fail-closed 子项完成：默认 reset/reboot-reason/chip-ID/MAC/version 不再返回伪成功，focused `sys_core`、Host 183/183、PC root build 与 `git diff --check` 通过；strong backend 与上电/软件/看门狗复位 B1/B2 仍缺参考板决策和实板 | 本次 path-limited 提交 | 2026-08-26 |
 
 ### 后续 Sprint 队列
 
@@ -190,3 +190,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - RED：focused `display_oled_ws2812` 证明 init command I/O 失败此前仍返回 `XY_DEVICE_OK`。
 - 验证：focused `display_oled_ws2812` + `gui_ssd1306_adapter` 2/2、Host 全量、PC Release root build 与 `git diff --check`；只构成 Host/PC 证据。
 - 阻塞：SSD1306 NACK/timeout/re-init 的实板 B2、帧时间与 RAM 仍待板卡、调试器、接线和仪器。
+
+### 2026-08-26 Sprint 2 SYS fail-closed 前置推进
+
+- 完成：S2-4 最小可验收 Host 子项；新增 `sys_core` focused CTest，默认 weak/no-board reset、reboot-reason、chip-ID、MAC 与版本查询不再返回伪成功，统一返回 `XY_ERROR_NOT_SUPPORTED` 并保留调用方输出。
+- RED：focused `sys_core` 3/3 用例最初全部失败（expected `-3`, was `0`）；实现后 1/1 CTest 通过。
+- 验证：focused `sys_core` 1/1、Host 183/183、PC Release root build 与 `git diff --check` 通过；只构成 Host/PC fail-closed 证据。
+- 阻塞：参考板和 board ownership 尚未决策，strong reset/bootreason/chip-ID backend 及上电/软件/看门狗复位 B1/B2 保持 `BLOCKED`。

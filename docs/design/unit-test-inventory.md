@@ -211,5 +211,6 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_stub_accel_sensors.c` | `unity` | 0 | DMP6100/CMS/GD30DF/HS-ADS1100/QMA6100 legacy accel contracts |
 | `tests/unit/storage/test_storage_eeprom_24xx.c` | `unity` | 67 |
 | `tests/unit/support/test_clib_alloc_shim.c` | `unity` | 0 |
+| `tests/unit/sys/test_sys_core.c` | `unity` | 0 | SYS weak/default reset and identity/version queries fail closed without board ownership. |
 | `tests/unit/sys/test_sys_timer_sm.c` | `unity` | 0 |
 | `tests/unit/trace/test_trace_core.c` | `unity` | 0 |

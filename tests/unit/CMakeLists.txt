@@ -1686,13 +1686,19 @@ xy_add_unit_test(test_analog_devices analog_devices UNITY
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
 
-# --- Test 39: SYS timer and state-machine host contracts ---
+# --- Test 39: SYS timer, state-machine, and fail-closed core host contracts ---
 xy_add_unit_test(test_sys_timer_sm sys_timer_sm UNITY
     ${UNIT_SYS}/test_sys_timer_sm.c
     ${SYS}/xy_timer/xy_timer.c
     ${SYS}/xy_state_machine/xy_st.c
 )
 target_compile_definitions(test_sys_timer_sm PRIVATE reentrant= PLATFORM=0 PLATFORM_C51=1)
+
+xy_add_unit_test(test_sys_core sys_core UNITY
+    ${UNIT_SYS}/test_sys_core.c
+    ${SYS}/xy_sys/xy_sys.c
+)
+target_include_directories(test_sys_core PRIVATE ${SYS}/xy_sys)
 
 xy_add_unit_test(test_bootreason_check bootreason_check UNITY
     ${UNIT_KERNEL}/test_bootreason_check.c
