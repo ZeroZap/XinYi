@@ -1513,6 +1513,16 @@ xy_add_unit_test(test_gui_sdl_backend gui_sdl_backend UNITY
 )
 target_include_directories(test_gui_sdl_backend BEFORE PRIVATE ${UNIT_GUI}/fake_sdl)
 
+# --- Test 37ab: real SDL2 headless lifecycle (enabled when development files are available) ---
+find_package(SDL2 QUIET)
+if(SDL2_FOUND)
+    xy_add_unit_test(test_gui_sdl_runtime gui_sdl_runtime UNITY
+        ${UNIT_GUI}/test_gui_sdl_runtime.c
+        ${GUI}/src/xy_gui_sdl.c
+    )
+    target_link_libraries(test_gui_sdl_runtime SDL2::SDL2)
+endif()
+
 # --- Test 37b: GUI effects public headers stay self-contained ---
 xy_add_unit_test(test_gui_effects_headers gui_effects_headers UNITY
     ${UNIT_GUI}/test_gui_effects_headers.c

@@ -52,6 +52,9 @@ jobs:
       - name: Build real SDL2 GUI backend
         run: cmake --build build/pc-sdl --target xy_gui -j$(nproc)
 
+      - name: Run real SDL2 headless runtime contract
+        run: ctest --test-dir build/tests/unit --output-on-failure -R '^gui_sdl_runtime$'
+
       - name: Check whitespace in changed files
         run: git diff --check
 

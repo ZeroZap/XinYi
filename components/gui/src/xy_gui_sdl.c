@@ -97,6 +97,9 @@ static int sdl_init(void)
     }
     g_sdl.renderer = SDL_CreateRenderer(g_sdl.window, -1, SDL_RENDERER_ACCELERATED);
     if (!g_sdl.renderer) {
+        g_sdl.renderer = SDL_CreateRenderer(g_sdl.window, -1, SDL_RENDERER_SOFTWARE);
+    }
+    if (!g_sdl.renderer) {
         xy_gui_sdl_deinit();
         return XY_GUI_ERROR;
     }

@@ -21,6 +21,7 @@ static struct SDL_Renderer g_renderer;
 static struct SDL_Texture g_texture;
 static uint32_t g_uploaded_pixels[12];
 static int g_init_result;
+static int g_renderer_calls;
 static int g_create_failure;
 static int g_update_result;
 static int g_present_calls;
@@ -31,6 +32,7 @@ void setUp(void)
     xy_gui_sdl_deinit();
     memset(g_uploaded_pixels, 0, sizeof(g_uploaded_pixels));
     g_init_result = 0;
+    g_renderer_calls = 0;
     g_create_failure = 0;
     g_update_result = 0;
     g_present_calls = 0;
@@ -67,7 +69,12 @@ SDL_Renderer *SDL_CreateRenderer(SDL_Window *window, int index, uint32_t flags)
 {
     TEST_ASSERT_EQUAL_PTR(&g_window, window);
     TEST_ASSERT_EQUAL_INT(-1, index);
-    TEST_ASSERT_EQUAL_HEX32(SDL_RENDERER_ACCELERATED, flags);
+    g_renderer_calls++;
+    if (g_renderer_calls == 1) {
+        TEST_ASSERT_EQUAL_HEX32(SDL_RENDERER_ACCELERATED, flags);
+        return g_create_failure == 2 || g_create_failure == 4 ? NULL : &g_renderer;
+    }
+    TEST_ASSERT_EQUAL_HEX32(SDL_RENDERER_SOFTWARE, flags);
     return g_create_failure == 2 ? NULL : &g_renderer;
 }
 
@@ -171,11 +178,23 @@ static void test_flush_propagates_texture_failure(void)
     TEST_ASSERT_EQUAL_INT(0, g_present_calls);
 }
 
+static void test_init_falls_back_to_software_renderer(void)
+{
+    xy_gui_disp_drv_t *driver = xy_gui_sdl_get_driver();
+
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, xy_gui_sdl_configure(4, 3, 2, "XinYi"));
+    g_create_failure = 4;
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, driver->init());
+    TEST_ASSERT_EQUAL_INT(2, g_renderer_calls);
+    TEST_ASSERT_EQUAL_INT(XY_GUI_OK, driver->flush());
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_configuration_guards_and_init_failure);
     RUN_TEST(test_driver_renders_rgb565_and_pumps_quit);
     RUN_TEST(test_flush_propagates_texture_failure);
+    RUN_TEST(test_init_falls_back_to_software_renderer);
     return UNITY_END();
 }
