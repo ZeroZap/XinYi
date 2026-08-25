@@ -38,7 +38,7 @@
 | Kernel/OSAL | H1（bare-metal） | Q1 部分 | pending | pending | bare-metal Host 契约 | 单一 RTOS 并发/ISR 板级记录 |
 | HAL | H1（PC） | Q1 部分 | pending | pending | PC simulation、部分 QEMU | STM32U5 GPIO/UART/I2C/SPI/IRQ/DMA B1/B2 |
 | Device | H1 | PC build | pending | n/a | 软件层 registry/lifecycle 可用 | 与真实 Driver 的 B1/B2 纵切 |
-| Display drivers | H1 | PC build | pending | pending | Host transaction contract | SSD1306/ST7789 实板日志 |
+| Display drivers | H1 | PC build | pending；[SSD1306 实板记录](xinyi-display-hardware-validation-record.md)为 `BLOCKED_NO_HARDWARE`（2026-08-25） | pending | Host transaction contract；不得从 Host/compile 升级实板或性能声明 | 按记录补 SSD1306 板卡/接线/SHA、NACK/timeout/re-init、帧时间与 RAM 证据 |
 | Storage/24xx | H1 | PC build | pending | pending | fake-I2C 契约 | 页边界、写保护、掉电 B2 |
 | Sensor legacy | H1 | PC build | pending | pending | 当前根库 Host 契约 | active-source 清单 + 代表芯片 B1/B2 |
 | Sensor new `xy_*` | H1（独立测试） | 未进入根 Sensor target | pending | pending | 仅独立 Host 实验实现 | root-link/source manifest + 迁移试点 |
@@ -76,7 +76,7 @@
 ### Sprint 0 待补模板
 
 - [ ] `docs/validation/xinyi-stm32u5-hal-hardware-validation-record.md`
-- [ ] `docs/validation/xinyi-display-hardware-validation-record.md`
+- [x] `docs/validation/xinyi-display-hardware-validation-record.md`（2026-08-25 已建立；当前 `BLOCKED_NO_HARDWARE`，未产生实板通过证据）
 - [ ] `docs/validation/xinyi-dm-power-loss-validation-record.md`
 - [x] `docs/release/known-limitations.md`
 - [ ] `docs/release/release-checklist.md`
