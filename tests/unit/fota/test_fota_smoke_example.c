@@ -144,7 +144,7 @@ static void test_public_dual_bank_flow_uses_fake_flash_callbacks(void)
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_finish_download(&fota));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, xy_fota_get_state(&fota));
-    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_update(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_NOT_SUPPORTED, xy_fota_start_update(&fota));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, xy_fota_get_state(&fota));
     TEST_ASSERT_EQUAL_UINT32(2U, xy_fota_get_current_version(&fota));
 

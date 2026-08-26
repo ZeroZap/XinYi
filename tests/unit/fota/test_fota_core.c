@@ -19,6 +19,9 @@ static uint32_t g_last_erase_size;
 static uint32_t g_progress_current;
 static uint32_t g_progress_total;
 static int g_progress_user;
+static uint8_t g_handoff_slot;
+static uint32_t g_handoff_version;
+static int g_handoff_result;
 
 FAKE_VALUE_FUNC(int, mock_flash_init)
 FAKE_VALUE_FUNC(int, mock_flash_deinit)
@@ -63,7 +66,18 @@ static void reset_fixture(void)
     g_progress_current = 0;
     g_progress_total = 0;
     g_progress_user = 0;
+    g_handoff_slot = UINT8_MAX;
+    g_handoff_version = 0;
+    g_handoff_result = XY_FOTA_OK;
     mock_flash_reset_fakes();
+}
+
+static int boot_handoff_cb(uint8_t slot, uint32_t version, void *user_data)
+{
+    TEST_ASSERT_EQUAL_PTR(&g_handoff_result, user_data);
+    g_handoff_slot = slot;
+    g_handoff_version = version;
+    return g_handoff_result;
 }
 
 static uint32_t flash_offset(uint32_t addr)
@@ -240,8 +254,23 @@ static void test_download_writes_progress_and_control(void)
     TEST_ASSERT_EQUAL_INT(XY_FOTA_IN_PROGRESS, xy_fota_download_chunk(&fota, chunk2, sizeof(chunk2)));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_finish_download(&fota));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, fota.state);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_NOT_SUPPORTED, xy_fota_start_update(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, fota.state);
+    TEST_ASSERT_EQUAL_UINT32(0, fota.current_slot);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_set_boot_handoff(&fota, boot_handoff_cb, &g_handoff_result));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_update(&fota));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, fota.state);
+    TEST_ASSERT_EQUAL_UINT8(1, g_handoff_slot);
+    TEST_ASSERT_EQUAL_UINT32(3, g_handoff_version);
+    TEST_ASSERT_EQUAL_UINT32(1, fota.current_slot);
+
+    g_handoff_result = XY_FOTA_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_set_boot_handoff(&fota, boot_handoff_cb, &g_handoff_result));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_ERROR, xy_fota_start_update(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_ERROR, fota.state);
+    TEST_ASSERT_EQUAL_UINT32(1, fota.current_slot);
     TEST_ASSERT_FALSE(xy_fota_needs_rollback(&fota));
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_cancel(&fota));

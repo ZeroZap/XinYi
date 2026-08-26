@@ -249,6 +249,9 @@ int xy_fota_finish_download(xy_fota_t *fota)
 
 int xy_fota_start_update(xy_fota_t *fota)
 {
+    uint8_t target_slot;
+    int ret;
+
     if (!fota || !fota->initialized) {
         return XY_FOTA_INVALID_PARAM;
     }
@@ -257,13 +260,16 @@ int xy_fota_start_update(xy_fota_t *fota)
         return XY_FOTA_ERROR;
     }
     
-    fota->state = XY_FOTA_STATE_UPDATING;
-    
-    /* 根据模式执行更新 */
+    if (!fota->boot_handoff_cb) {
+        return XY_FOTA_NOT_SUPPORTED;
+    }
+
+    /* Select a candidate but do not commit local state until the durable
+     * board/bootloader handoff accepts it. */
+    target_slot = (uint8_t)fota->current_slot;
     switch (fota->config.mode) {
         case XY_FOTA_MODE_DUAL_BANK:
-            /* 双槽模式：切换启动槽位 */
-            fota->current_slot = 1 - fota->current_slot;
+            target_slot = (uint8_t)(1U - fota->current_slot);
             break;
             
         case XY_FOTA_MODE_SINGLE_SLOT:
@@ -278,10 +284,15 @@ int xy_fota_start_update(xy_fota_t *fota)
             break;
     }
     
-    fota->state = XY_FOTA_STATE_VERIFYING;
-    
-    /* 验证新固件 (实际实现应跳转到新固件运行) */
-    /* 这里仅模拟完成 */
+    fota->state = XY_FOTA_STATE_UPDATING;
+    ret = fota->boot_handoff_cb(target_slot, fota->header.version,
+                                fota->boot_handoff_user_data);
+    if (ret != XY_FOTA_OK) {
+        fota->state = XY_FOTA_STATE_ERROR;
+        return ret;
+    }
+
+    fota->current_slot = target_slot;
     fota->state = XY_FOTA_STATE_COMPLETE;
     
     return XY_FOTA_OK;
@@ -577,6 +588,17 @@ int xy_fota_set_progress_callback(xy_fota_t *fota, xy_fota_progress_cb cb, void 
     fota->progress_cb = cb;
     fota->user_data = user_data;
     
+    return XY_FOTA_OK;
+}
+
+int xy_fota_set_boot_handoff(xy_fota_t *fota, xy_fota_boot_handoff_cb cb, void *user_data)
+{
+    if (!fota || !fota->initialized || !cb) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    fota->boot_handoff_cb = cb;
+    fota->boot_handoff_user_data = user_data;
     return XY_FOTA_OK;
 }
 

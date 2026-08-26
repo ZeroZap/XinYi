@@ -40,6 +40,7 @@ extern "C" {
 #define XY_FOTA_VERSION_ERROR       (-10)  /* 版本过旧 */
 #define XY_FOTA_NO_BACKUP           (-11)  /* 无备份 */
 #define XY_FOTA_DELTA_ERROR         (-12)  /* 增量升级失败 */
+#define XY_FOTA_NOT_SUPPORTED       (-13)  /* 缺少必需的平台/bootloader 实现 */
 
 /* ==================== FOTA Mode ==================== */
 
@@ -121,6 +122,15 @@ typedef struct {
 typedef void (*xy_fota_progress_cb)(uint32_t current, uint32_t total, void *user_data);
 
 /**
+ * @brief Bootloader handoff callback
+ * @param slot Candidate slot selected by the FOTA core
+ * @param version Candidate image version
+ * @param user_data Caller-owned context
+ * @return XY_FOTA_OK only after the durable boot selection was accepted
+ */
+typedef int (*xy_fota_boot_handoff_cb)(uint8_t slot, uint32_t version, void *user_data);
+
+/**
  * @brief 增量升级补丁回调 (前置声明)
  */
 typedef int (*xy_fota_patch_cb)(uint32_t offset, const uint8_t *data, uint32_t size, void *user_data);
@@ -138,6 +148,8 @@ typedef struct {
     uint32_t backup_version;        /* 备份版本号 */
     xy_fota_progress_cb progress_cb;
     void *user_data;
+    xy_fota_boot_handoff_cb boot_handoff_cb;
+    void *boot_handoff_user_data;
     const xy_fota_flash_ops_t *flash_ops;
     const xy_fota_flash_ops_t *backup_flash_ops;  /* 备份区 Flash (可选) */
     bool initialized;
@@ -236,6 +248,14 @@ uint8_t xy_fota_get_progress(xy_fota_t *fota);
  * @return XY_FOTA_OK 成功
  */
 int xy_fota_set_progress_callback(xy_fota_t *fota, xy_fota_progress_cb cb, void *user_data);
+
+/**
+ * @brief Register the board/bootloader handoff implementation
+ *
+ * The core has no safe default. Without this callback, xy_fota_start_update()
+ * returns XY_FOTA_NOT_SUPPORTED and leaves the completed candidate untouched.
+ */
+int xy_fota_set_boot_handoff(xy_fota_t *fota, xy_fota_boot_handoff_cb cb, void *user_data);
 
 /**
  * @brief 取消更新

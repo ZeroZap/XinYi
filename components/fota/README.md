@@ -75,6 +75,13 @@ xy_fota_set_backup_flash_ops(&fota, &external_nor_ops);
 7. Begin the install handoff with `xy_fota_start_update()`.
 8. Use `xy_fota_needs_rollback()` / `xy_fota_rollback()` for rollback-capable flows.
 
+`xy_fota_start_update()` is deliberately fail-closed: the platform must first register a
+`xy_fota_boot_handoff_cb` with `xy_fota_set_boot_handoff()`. The callback owns durable boot-slot
+selection and must return `XY_FOTA_OK` only after that request is accepted. Without it, the core returns
+`XY_FOTA_NOT_SUPPORTED`; callback failure leaves the selected slot uncommitted and moves the handle to
+`XY_FOTA_STATE_ERROR`. Host callback acceptance does not prove a bootloader, reset, mark-valid, rollback,
+anti-rollback, or power-loss implementation.
+
 ## Configuration
 
 Relevant root Kconfig symbols:
@@ -130,6 +137,8 @@ cmake --build build/fota_external_probe --target xy_fota -j$(nproc)
   exists and is separately verified.
 - Keep board pinmux, Flash geometry, bootloader handoff, and hardware logs in board/project validation
   records rather than in this platform-independent core.
+- The core now requires an explicit boot-handoff callback instead of simulating a successful slot switch.
+  A real board implementation and durable metadata protocol remain pending.
 - `fota_smoke_example` is intentionally host-safe: it uses fake Flash callbacks and does not claim
   bootloader, board NOR, or real hardware validation coverage.
 - The signature-provider seam and its Host negative tests are only a fail-closed boundary. No provider
