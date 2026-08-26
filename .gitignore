@@ -128,5 +128,4 @@ components/dm/xy_flash/
 components/third_party/flashdb/
 components/third_party/usb/nimble/
 components/third_party/usb/tinyusb/
-projects/stm32u5_fota/
 build_full_test/
