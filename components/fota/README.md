@@ -15,6 +15,9 @@ backends can be integrated without changing the component core.
   board-specific NOR source is required for the component to compile.
 - **Default platform policy**: FOTA is enabled by default for `STM32U5` and remains opt-in on PC unless
   selected through Kconfig overrides or explicit build configuration.
+- **Secure-update policy**: `xy_fota_secure_init()` fails closed unless the caller supplies a signature
+  provider. The provider receives an explicit key ID and must perform real message/signature binding;
+  the repository's format-only ECDSA placeholder is never used as a fallback.
 
 ## Public API shape
 
@@ -129,3 +132,6 @@ cmake --build build/fota_external_probe --target xy_fota -j$(nproc)
   records rather than in this platform-independent core.
 - `fota_smoke_example` is intentionally host-safe: it uses fake Flash callbacks and does not claim
   bootloader, board NOR, or real hardware validation coverage.
+- The signature-provider seam and its Host negative tests are only a fail-closed boundary. No provider
+  in this repository is security-approved, and Host acceptance/rejection does not constitute a
+  cryptographic review, key-provisioning proof, bootloader integration, or hardware evidence.

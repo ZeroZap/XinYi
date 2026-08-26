@@ -49,6 +49,10 @@ target_include_directories(xy_fota PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../trace/xy_log/inc
 )
 
+# Secure FOTA has no built-in signature verifier. Consumers must inject a
+# reviewed provider at runtime; the security-rejected ECDSA placeholder is not
+# linked as an authentication fallback.
+
 # Compile definitions
 target_compile_definitions(xy_fota PRIVATE
     FOTA_ENABLED=1

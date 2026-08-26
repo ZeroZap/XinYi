@@ -7,53 +7,11 @@
 
 #include "xy_fota_secure.h"
 #include "xy_log.h"
-#include "xy_ecdsa.h"
 #include "xy_chacha20poly1305.h"
 #include <stdlib.h>
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
-
-/**
- * @brief ECDSA 验证实现
- */
-static int xy_fota_ecdsa_verify_impl(const uint8_t *pub_key,
-                                     const uint8_t *message,
-                                     uint32_t msg_size,
-                                     const uint8_t *signature)
-{
-    /* 使用 ECDSA P-256 验证 */
-    return xy_ecdsa_verify_simple(pub_key, message, msg_size, signature);
-}
-
-/**
- * @brief ChaCha20 流加密核心 - ✅ 已实现
- * 
- * 算法说明:
- * - ChaCha20 是流加密算法，生成 keystream 与数据异或
- * - 256-bit key + 96-bit nonce + 32-bit counter
- * - 每次调用生成 64 字节 keystream
- * 
- * 使用场景:
- * - FOTA 固件加密/解密
- * - 安全 Boot 镜像验证
- */
-static void xy_fota_chacha20_block(const uint8_t *key,
-                                   const uint8_t *nonce,
-                                   uint32_t counter,
-                                   uint8_t *keystream)
-{
-    /* 使用 xy_chacha20poly1305 库实现 */
-    xy_chacha20_ctx_t ctx;
-    xy_chacha20_init(&ctx, key, nonce);
-    
-    /* 设置计数器 */
-    ctx.state[12] = counter;
-    
-    /* 生成 64 字节 keystream */
-    memset(keystream, 0, 64);
-    xy_chacha20_encrypt(&ctx, keystream, keystream, 64);
-}
 
 int xy_fota_secure_init(xy_fota_secure_t *fota,
                         const xy_fota_secure_config_t *config,
@@ -67,10 +25,10 @@ int xy_fota_secure_init(xy_fota_secure_t *fota,
     memcpy(&fota->config, config, sizeof(xy_fota_secure_config_t));
     fota->flash = flash;
     
-    /* 验证配置 */
-    if (!config->pub_key) {
-        xy_log_e("Public key is NULL\n");
-        return XY_FOTA_INVALID_PARAM;
+    /* Secure updates must never fall back to the format-only ECDSA placeholder. */
+    if (!config->signature_provider || !config->signature_provider->verify) {
+        xy_log_e("Production signature provider is unavailable\n");
+        return XY_FOTA_AUTH_ERROR;
     }
     
     if (config->slot_size < 32 * 1024) {
@@ -114,7 +72,8 @@ int xy_fota_secure_verify(xy_fota_secure_t *fota,
                           const uint8_t *fw_pkg,
                           uint32_t pkg_size)
 {
-    if (!fota || !fw_pkg || pkg_size < sizeof(xy_fota_secure_header_t)) {
+    if (!fota || !fota->initialized || !fw_pkg ||
+        pkg_size < sizeof(xy_fota_secure_header_t)) {
         return XY_FOTA_INVALID_PARAM;
     }
     
@@ -133,17 +92,28 @@ int xy_fota_secure_verify(xy_fota_secure_t *fota,
                  fota->header.fw_size, fota->config.slot_size);
         return XY_FOTA_ERROR;
     }
+
+    if (fota->header.version < fota->config.min_version) {
+        xy_log_e("Firmware version is below anti-rollback floor\n");
+        return XY_FOTA_VERSION_ERROR;
+    }
+
+    if (pkg_size < sizeof(xy_fota_secure_header_t) + XY_FOTA_POLY1305_TAG_SIZE ||
+        fota->header.fw_size >
+            pkg_size - sizeof(xy_fota_secure_header_t) - XY_FOTA_POLY1305_TAG_SIZE) {
+        xy_log_e("Firmware package is truncated\n");
+        return XY_FOTA_ERROR;
+    }
     
-    /* 验证 ECDSA 签名 */
+    /* Verify through the caller-supplied production provider. */
     const uint8_t *message = fw_pkg + sizeof(xy_fota_secure_header_t);
     uint32_t msg_size = fota->header.fw_size + XY_FOTA_POLY1305_TAG_SIZE;
     
-    int ret = xy_fota_ecdsa_verify_impl(fota->config.pub_key,
-                                        message,
-                                        msg_size,
-                                        fota->header.ecdsa_sig);
-    if (ret != 0) {
-        xy_log_e("ECDSA signature verification failed\n");
+    int ret = fota->config.signature_provider->verify(
+        fota->config.signature_provider->context, fota->config.key_id, message, msg_size,
+        fota->header.ecdsa_sig, XY_FOTA_ECDSA_P256_SIG_SIZE);
+    if (ret != XY_FOTA_OK) {
+        xy_log_e("Signature provider rejected firmware\n");
         return XY_FOTA_AUTH_ERROR;
     }
     

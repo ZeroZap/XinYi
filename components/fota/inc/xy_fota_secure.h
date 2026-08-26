@@ -1,4 +1,3 @@
-#include "xy_fota_flash.h"
 /**
  * @file xy_fota_secure.h
  * @brief Secure FOTA with MCUboot + WireGuard Style Encryption
@@ -44,10 +43,31 @@ typedef struct __attribute__((packed)) {
 } xy_fota_secure_header_t;
 
 /**
+ * @brief Production signature verification provider.
+ *
+ * Secure FOTA deliberately owns no built-in signature implementation. The
+ * provider must bind the key identifier, message, and signature and return
+ * XY_FOTA_OK only after authentic cryptographic verification.
+ */
+typedef int (*xy_fota_signature_verify_fn)(void *context,
+                                           uint32_t key_id,
+                                           const uint8_t *message,
+                                           uint32_t message_size,
+                                           const uint8_t *signature,
+                                           uint32_t signature_size);
+
+typedef struct {
+    xy_fota_signature_verify_fn verify;
+    void *context;
+} xy_fota_signature_provider_t;
+
+/**
  * @brief 安全 FOTA 配置
  */
 typedef struct {
-    const uint8_t *pub_key;         /* 公钥 (64 字节) */
+    const xy_fota_signature_provider_t *signature_provider;
+    uint32_t key_id;                /* provider-owned public-key identifier */
+    uint32_t min_version;           /* anti-rollback version floor */
     uint32_t slot0_addr;            /* Slot 0 地址 */
     uint32_t slot1_addr;            /* Slot 1 地址 */
     uint32_t slot_size;             /* 每个 Slot 大小 */
@@ -148,19 +168,6 @@ int xy_fota_secure_mark_valid(xy_fota_secure_t *fota, uint8_t slot);
  * @return XY_FOTA_OK 成功，其他值失败
  */
 int xy_fota_secure_is_valid(xy_fota_secure_t *fota, uint8_t slot, bool *valid);
-
-/**
- * @brief ECDSA P-256 签名验证
- * @param pub_key 公钥 (64 字节)
- * @param message 消息数据
- * @param msg_size 消息大小
- * @param signature 签名 (64 字节)
- * @return 0 成功，-1 失败
- */
-int xy_fota_ecdsa_verify(const uint8_t *pub_key,
-                         const uint8_t *message,
-                         uint32_t msg_size,
-                         const uint8_t *signature);
 
 /**
  * @brief ChaCha20-Poly1305 解密

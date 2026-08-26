@@ -1467,6 +1467,22 @@ xy_add_unit_test(test_fota_smoke_example fota_smoke_example UNITY
     ${FOTA}/xy_fota.c
 )
 
+# --- Test 33c: Secure FOTA signature provider boundary is fail-closed ---
+xy_add_unit_test(test_fota_secure_provider fota_secure_provider UNITY
+    ${UNIT_FOTA}/test_fota_secure_provider.c
+    ${FOTA}/src/xy_fota_secure.c
+    ${FOTA}/src/xy_fota_bank.c
+    ${FOTA}/xy_fota.c
+    ${CRYPTO}/src/xy_chacha20poly1305.c
+)
+target_include_directories(test_fota_secure_provider PRIVATE
+    ${FOTA}/inc
+    ${CRYPTO}/inc
+    ${TRACE}/xy_log/inc
+    ${CLIB}
+)
+target_compile_definitions(test_fota_secure_provider PRIVATE XY_LOG_LEVEL=-1)
+
 # --- Test 34: GUI core drawing and object contracts ---
 xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c
