@@ -40,3 +40,8 @@ bootloader 或固件镜像，因此不得标记为可烧录或硬件通过。
 - `main.c`：fail-closed 项目入口。
 - `STM32U5x8_FLASH_NOR.ld`：历史内存布局草案；使用前须由目标芯片/bootloader owner 审核。
 - `template.config.cmake`：已弃用的历史配置示例，不再作为 canonical 构建入口。
+
+FOTA component 现提供 `xy_fota_metadata_flash_*` 双副本 journal 作为可复用的 Host-guarded
+metadata backend；它使用 generation、CRC 与 commit marker，并在 newest copy partial/corrupt 时
+回退到上一有效记录。该 backend 尚未接入本项目的 board callbacks，也未经过 STM32U5 Flash
+擦写粒度、耐久性或实板掉电验证。

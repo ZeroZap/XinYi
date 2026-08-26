@@ -1461,6 +1461,14 @@ xy_add_unit_test(test_fota_core fota_core UNITY
     ${FOTA}/xy_fota.c
 )
 
+# --- Test 33a: FOTA redundant metadata journal rejects partial/corrupt commits ---
+xy_add_unit_test(test_fota_metadata fota_metadata UNITY
+    ${UNIT_FOTA}/test_fota_metadata.c
+    ${FOTA}/src/xy_fota_metadata.c
+    ${FOTA}/xy_fota.c
+)
+target_include_directories(test_fota_metadata PRIVATE ${FOTA}/inc)
+
 # --- Test 33b: FOTA public update flow smoke example stays build-guarded ---
 xy_add_unit_test(test_fota_smoke_example fota_smoke_example UNITY
     ${UNIT_FOTA}/test_fota_smoke_example.c
