@@ -2,12 +2,13 @@
  * @file main.c
  * @brief STM32U5 FOTA integration skeleton with fail-closed board hooks
  *
- * This project intentionally does not provide a production flash, bootloader,
- * metadata, or reset backend. Board owners must replace the callbacks below
- * before an update can be handed off or confirmed.
+ * This project intentionally does not provide production flash or bootloader
+ * implementations. Board owners must bind the metadata backend below to a
+ * reserved internal-Flash region before an update can be handed off or confirmed.
  */
 
 #include "xy_fota.h"
+#include "xy_fota_metadata.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -24,20 +25,20 @@ static xy_fota_config_t fota_config = {
     .min_version = 1U,
 };
 
+static xy_fota_metadata_flash_t metadata_backend = {
+    .ops = NULL,
+    .base_addr = 0U,
+    .erase_size = 0U,
+};
+
 static int board_boot_handoff(uint8_t slot, uint32_t version, void *user_data)
 {
-    (void)slot;
-    (void)version;
-    (void)user_data;
-    return XY_FOTA_NOT_SUPPORTED;
+    return xy_fota_metadata_boot_handoff(slot, version, user_data);
 }
 
 static int board_boot_confirm(uint8_t slot, uint32_t version, void *user_data)
 {
-    (void)slot;
-    (void)version;
-    (void)user_data;
-    return XY_FOTA_NOT_SUPPORTED;
+    return xy_fota_metadata_boot_confirm(slot, version, user_data);
 }
 
 int main(void)
@@ -53,13 +54,13 @@ int main(void)
         return ret;
     }
 
-    ret = xy_fota_set_boot_handoff(&fota, board_boot_handoff, NULL);
+    ret = xy_fota_set_boot_handoff(&fota, board_boot_handoff, &metadata_backend);
     if (ret != XY_FOTA_OK) {
         printf("FOTA handoff registration failed: %d\n", ret);
         return ret;
     }
 
-    ret = xy_fota_set_boot_confirm(&fota, board_boot_confirm, NULL);
+    ret = xy_fota_set_boot_confirm(&fota, board_boot_confirm, &metadata_backend);
     if (ret != XY_FOTA_OK) {
         printf("FOTA confirmation registration failed: %d\n", ret);
         return ret;

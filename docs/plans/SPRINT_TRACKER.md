@@ -112,7 +112,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S3-01 | P0 | Crypto 产品算法清单 | DONE | Zero | Sprint 0 证据边界（DONE） | 11 个算法区域已记录 product classification、implementation owner、source origin、license status、side-channel target、allowed usage、runtime/focused sources 与 review record；policy RED 后 focused 5/5、Host 183/183、PC root build、`git diff --check` 通过；SM2/ECDSA 强制 `security-rejected`，无安全批准升级 | `fdce5449` | 2026-08-26 |
 | S3-02 | P0 | Signature provider 边界与 Secure FOTA fail-closed | DONE | Zero | S3-01（DONE） | Secure FOTA 不再调用 format-only ECDSA placeholder；缺 provider、provider 拒绝（含错误 key ID）、回滚版本及截断包均 fail-closed；focused 1/1、Host 184/184、PC root/FOTA target build、`git diff --check` 通过；不升级安全批准 | `12cdb5f6` | 2026-08-26 |
 | S3-03 | P0 | SHA-256/HMAC 单算法重建试点 | DONE | Zero | S3-01（DONE） | RED 证明 zero-length `NULL` 输入被错误拒绝；实现后 SHA-256/HMAC focused 2/2、Host 184/184、PC root 与 Crypto-enabled `xy_tiny_crypto` target build、`git diff --check` 通过；补充 SHA-256 context 与 HMAC working-key/pad volatile clearing。仍缺 provenance、独立审计、target compile、side-channel 与硬件证据 | `dc47807c` | 2026-08-26 |
-| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | boot handoff/delta/mark-valid 均 fail-closed；双副本 metadata journal 持久化 generation+CRC+commit marker、pending version/slot 与 boot-attempt count；候选启动达到 caller-defined 次数上限后清除 pending 并要求回滚，确认后才推进 active/min version。FOTA focused 4/4、Host 185/185、PC root、FOTA-enabled `xy_fota` target、`git diff --check` 通过。尚缺 metadata 与 core/project callback 的板级接线、可链接 STM32U5 board image 与实板 | `54d8b735`～本轮提交 | 2026-08-27 |
+| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | boot handoff/delta/mark-valid 均 fail-closed；双副本 metadata journal 持久化 generation+CRC+commit marker、pending version/slot 与 boot-attempt count；metadata callback 已接入 STM32U5 project skeleton，handoff/confirm 会 load→校验→commit，commit marker 最后写且失败时擦除未提交目标副本。FOTA focused 4/4、Host 185/185、PC root、FOTA-enabled `xy_fota` target、Arm M33 syntax probe、`git diff --check` 通过。尚缺 board-owned Flash ops/保留区、可链接 STM32U5 image、bootloader 调用与实板 | `54d8b735`～本轮提交 | 2026-08-27 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -271,3 +271,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：metadata format 升级为 v2；候选 stage 后持久化 version/slot/attempt count，每次未确认启动递增计数，达到 caller-defined 上限即清除 pending 并返回 rollback required；confirm 才切换 active slot/version 并推进 anti-rollback floor。
 - 验证：focused `fota_metadata` 1/1、Host 185/185、PC Release root、通过 `KCONFIG_OVERRIDES=FOTA_ENABLED=ON` 启用的 `xy_fota` target 与 `git diff --check` 通过。FOTA target 保留既存 CLIB/flash warning。以上仅为 Host policy contract，不构成 bootloader、真实掉电、STM32U5 link/image、安全或实板批准。
 - 剩余：board-owned Flash 与 bootloader 在每次状态转换后调用 journal commit；补 callback wiring、掉电矩阵、完整 image link 与 B1/B2。
+
+### 2026-08-27 Sprint 3 FOTA metadata callback wiring
+
+- RED：`fota_metadata` 新增 callback contract 后因缺 `xy_fota_metadata_boot_handoff()` / `boot_confirm()` 编译链接失败；随后 commit-marker 写失败测试暴露目标槽可能残留看似已提交的有效 record。
+- 实现：新增 load→stage/confirm→双副本 commit 的 core callback adapter；slot/version 不匹配 fail-closed；STM32U5 project skeleton 已注册 metadata backend context。journal 改为先写 record body、最后写 commit marker，marker 写失败时擦除目标副本。
+- 验证：FOTA focused 4/4、Host 185/185、PC Release root、FOTA-enabled `xy_fota` target、Arm GNU Cortex-M33 `-Wall -Wextra -Werror -fsyntax-only` 与 `git diff --check` 通过。以上仍不是可链接/可烧录 STM32U5 image，也不构成真实 Flash、bootloader、掉电、安全或实板批准。
+- 剩余：board owner 必须提供 internal-Flash ops 与保留区；bootloader 在启动计数路径持久化 journal；完整 STM32U5 link/image 与 B1/B2。

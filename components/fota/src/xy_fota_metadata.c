@@ -155,9 +155,20 @@ int xy_fota_metadata_flash_commit(const xy_fota_metadata_flash_t *backend,
 
     target_addr = backend->base_addr + target_slot * backend->erase_size;
     if (backend->ops->erase(target_addr, backend->erase_size) != XY_FOTA_OK ||
-        backend->ops->write(target_addr, (const uint8_t *)&record, sizeof(record)) != XY_FOTA_OK ||
-        read_record(backend, target_slot, &verify) != XY_FOTA_OK ||
-        !record_is_valid(&verify) || memcmp(&record, &verify, sizeof(record)) != 0) {
+        backend->ops->write(target_addr, (const uint8_t *)&record,
+                            (uint32_t)offsetof(xy_fota_metadata_record_t, committed)) != XY_FOTA_OK) {
+        return XY_FOTA_FLASH_ERROR;
+    }
+
+    if (backend->ops->write(target_addr + (uint32_t)offsetof(xy_fota_metadata_record_t, committed),
+                            (const uint8_t *)&record.committed,
+                            (uint32_t)sizeof(record.committed)) != XY_FOTA_OK) {
+        (void)backend->ops->erase(target_addr, backend->erase_size);
+        return XY_FOTA_FLASH_ERROR;
+    }
+
+    if (read_record(backend, target_slot, &verify) != XY_FOTA_OK || !record_is_valid(&verify) ||
+        memcmp(&record, &verify, sizeof(record)) != 0) {
         return XY_FOTA_FLASH_ERROR;
     }
 
@@ -223,4 +234,52 @@ int xy_fota_metadata_confirm_candidate(xy_fota_metadata_t *metadata)
     metadata->boot_attempts = 0U;
     metadata->flags &= (uint8_t)~XY_FOTA_METADATA_FLAG_PENDING;
     return XY_FOTA_OK;
+}
+
+int xy_fota_metadata_boot_handoff(uint8_t slot, uint32_t version, void *user_data)
+{
+    xy_fota_metadata_flash_t *backend = (xy_fota_metadata_flash_t *)user_data;
+    xy_fota_metadata_t metadata;
+    int ret;
+
+    if (validate_backend(backend) != XY_FOTA_OK) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    ret = xy_fota_metadata_flash_load(backend, &metadata);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    ret = xy_fota_metadata_stage_candidate(&metadata, slot, version);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    return xy_fota_metadata_flash_commit(backend, &metadata, NULL);
+}
+
+int xy_fota_metadata_boot_confirm(uint8_t slot, uint32_t version, void *user_data)
+{
+    xy_fota_metadata_flash_t *backend = (xy_fota_metadata_flash_t *)user_data;
+    xy_fota_metadata_t metadata;
+    int ret;
+
+    if (validate_backend(backend) != XY_FOTA_OK) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    ret = xy_fota_metadata_flash_load(backend, &metadata);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    if (slot != metadata.pending_slot) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    if (version != metadata.pending_version) {
+        return XY_FOTA_VERSION_ERROR;
+    }
+    ret = xy_fota_metadata_confirm_candidate(&metadata);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    return xy_fota_metadata_flash_commit(backend, &metadata, NULL);
 }

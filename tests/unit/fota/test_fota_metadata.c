@@ -10,6 +10,7 @@
 
 static uint8_t g_storage[STORAGE_SIZE];
 static int g_write_result;
+static uint32_t g_fail_write_call;
 static uint32_t g_partial_write_size;
 static uint32_t g_read_calls;
 static uint32_t g_write_calls;
@@ -45,7 +46,10 @@ static int flash_write(uint32_t addr, const uint8_t *data, uint32_t size)
     }
     memcpy(&g_storage[offset], data, write_size);
     g_write_calls++;
-    return g_write_result;
+    if (g_fail_write_call == 0U || g_write_calls == g_fail_write_call) {
+        return g_write_result;
+    }
+    return XY_FOTA_OK;
 }
 
 static int flash_erase(uint32_t addr, uint32_t size)
@@ -75,6 +79,7 @@ void setUp(void)
 {
     memset(g_storage, 0xFF, sizeof(g_storage));
     g_write_result = XY_FOTA_OK;
+    g_fail_write_call = 0U;
     g_partial_write_size = 0U;
     g_read_calls = 0U;
     g_write_calls = 0U;
@@ -174,6 +179,57 @@ static void test_boot_attempt_policy_rejects_invalid_transitions(void)
                                                                &rollback_required));
 }
 
+static void test_boot_callbacks_persist_handoff_and_confirmation(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t loaded = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_boot_handoff(1U, 4U, (void *)&backend));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT8(1U, loaded.pending_slot);
+    TEST_ASSERT_EQUAL_UINT32(4U, loaded.pending_version);
+    TEST_ASSERT_BITS_HIGH(XY_FOTA_METADATA_FLAG_PENDING, loaded.flags);
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_boot_confirm(1U, 4U, (void *)&backend));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT8(1U, loaded.active_slot);
+    TEST_ASSERT_EQUAL_UINT32(4U, loaded.active_version);
+    TEST_ASSERT_EQUAL_UINT32(4U, loaded.min_version);
+    TEST_ASSERT_EQUAL_UINT8(XY_FOTA_METADATA_NO_SLOT, loaded.pending_slot);
+    TEST_ASSERT_BITS_LOW(XY_FOTA_METADATA_FLAG_PENDING, loaded.flags);
+}
+
+static void test_boot_callbacks_fail_closed_on_mismatch_or_flash_failure(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t loaded = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_boot_handoff(1U, 4U, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_boot_handoff(1U, 4U, (void *)&backend));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_VERSION_ERROR,
+                          xy_fota_metadata_boot_confirm(1U, 5U, (void *)&backend));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_boot_confirm(0U, 4U, (void *)&backend));
+
+    g_write_result = XY_FOTA_FLASH_ERROR;
+    g_fail_write_call = g_write_calls + 2U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR,
+                          xy_fota_metadata_boot_confirm(1U, 4U, (void *)&backend));
+    g_write_result = XY_FOTA_OK;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT8(0U, loaded.active_slot);
+    TEST_ASSERT_EQUAL_UINT8(1U, loaded.pending_slot);
+    TEST_ASSERT_EQUAL_UINT32(4U, loaded.pending_version);
+}
+
 static void test_metadata_guards_and_empty_flash_fail_closed(void)
 {
     xy_fota_metadata_t metadata = initial_metadata();
@@ -202,7 +258,7 @@ static void test_metadata_commit_roundtrip_and_generation(void)
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
                           xy_fota_metadata_flash_commit(&backend, &metadata, &committed));
     TEST_ASSERT_EQUAL_UINT32(1U, committed.generation);
-    TEST_ASSERT_EQUAL_UINT32(1U, g_write_calls);
+    TEST_ASSERT_EQUAL_UINT32(2U, g_write_calls);
     TEST_ASSERT_EQUAL_UINT32(1U, g_erase_calls);
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
     TEST_ASSERT_EQUAL_UINT32(1U, loaded.generation);
@@ -277,5 +333,7 @@ int main(void)
     RUN_TEST(test_boot_attempt_policy_rolls_back_after_bounded_failures);
     RUN_TEST(test_boot_attempt_confirmation_advances_floor_and_clears_pending);
     RUN_TEST(test_boot_attempt_policy_rejects_invalid_transitions);
+    RUN_TEST(test_boot_callbacks_persist_handoff_and_confirmation);
+    RUN_TEST(test_boot_callbacks_fail_closed_on_mismatch_or_flash_failure);
     return UNITY_END();
 }

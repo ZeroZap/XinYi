@@ -60,6 +60,12 @@ int xy_fota_metadata_record_boot_attempt(xy_fota_metadata_t *metadata, uint8_t m
                                          bool *rollback_required);
 int xy_fota_metadata_confirm_candidate(xy_fota_metadata_t *metadata);
 
+/** Persist a candidate selected by the FOTA core before boot handoff. */
+int xy_fota_metadata_boot_handoff(uint8_t slot, uint32_t version, void *user_data);
+
+/** Persist confirmation of the running candidate and advance the rollback floor. */
+int xy_fota_metadata_boot_confirm(uint8_t slot, uint32_t version, void *user_data);
+
 #ifdef __cplusplus
 }
 #endif
