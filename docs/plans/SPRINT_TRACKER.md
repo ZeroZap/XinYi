@@ -112,12 +112,13 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S3-01 | P0 | Crypto 产品算法清单 | DONE | Zero | Sprint 0 证据边界（DONE） | 11 个算法区域已记录 product classification、implementation owner、source origin、license status、side-channel target、allowed usage、runtime/focused sources 与 review record；policy RED 后 focused 5/5、Host 183/183、PC root build、`git diff --check` 通过；SM2/ECDSA 强制 `security-rejected`，无安全批准升级 | `fdce5449` | 2026-08-26 |
 | S3-02 | P0 | Signature provider 边界与 Secure FOTA fail-closed | DONE | Zero | S3-01（DONE） | Secure FOTA 不再调用 format-only ECDSA placeholder；缺 provider、provider 拒绝（含错误 key ID）、回滚版本及截断包均 fail-closed；focused 1/1、Host 184/184、PC root/FOTA target build、`git diff --check` 通过；不升级安全批准 | `12cdb5f6` | 2026-08-26 |
 | S3-03 | P0 | SHA-256/HMAC 单算法重建试点 | DONE | Zero | S3-01（DONE） | RED 证明 zero-length `NULL` 输入被错误拒绝；实现后 SHA-256/HMAC focused 2/2、Host 184/184、PC root 与 Crypto-enabled `xy_tiny_crypto` target build、`git diff --check` 通过；补充 SHA-256 context 与 HMAC working-key/pad volatile clearing。仍缺 provenance、独立审计、target compile、side-channel 与硬件证据 | `dc47807c` | 2026-08-26 |
+| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | 首个子项：`start_update` 缺显式 boot-handoff callback 时返回 `XY_FOTA_NOT_SUPPORTED`，callback 失败不提交 slot 且进入 ERROR；focused 2/2、Host 184/184、PC root、FOTA-enabled `xy_fota` target 与 `git diff --check` 通过。尚缺 durable metadata、mark-valid/rollback/anti-rollback、掉电恢复、STM32U5 项目 compile gate 与实板 | `54d8b735` | 2026-08-26 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
 | Sprint 1 | 2 周 | GUI backend 错误传播、strict backend、字体与单一显示纵切 | Sprint 0 门禁可信 | IN_PROGRESS |
 | Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | [HAL 平台实现与证据矩阵](../validation/hal-platform-evidence-matrix.md)已建立；Host 前置推进中，HIL 夹具仍缺 | IN_PROGRESS（Host 前置）/BLOCKED（实板） |
-| Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 产品算法清单已完成；signature provider 边界 READY | IN_PROGRESS（非安全批准前置） |
+| Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 产品算法清单与 signature provider 边界已完成 | IN_PROGRESS（FOTA 去模拟化；非安全批准前置） |
 | Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | canonical Sensor API 决策 | BACKLOG |
 | Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | reference RTOS/board 决策 | BACKLOG |
 | Sprint 6 | 1–2 周 | Release Candidate | 目标平台 HIL、安全边界和发布门禁达标 | BLOCKED |
@@ -228,3 +229,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：zero-length update/HMAC 允许 `NULL` data，非零长度仍 fail-closed；SHA-256 final 清除 context，HMAC 清除 pads、长 key digest 与 working context。
 - 验证：focused 2/2、Host 184/184、PC root build、Crypto-enabled `xy_tiny_crypto` target build 与 `git diff --check` 通过；target compile 仅为 PC，不构成 MCU、安全、constant-time、provenance 或硬件批准。
 - 剩余：外部来源/许可证证据、独立实现审计、target compile、fuzz、side-channel 与真实 MCU 记录仍 pending。
+
+### 2026-08-26 Sprint 3 FOTA boot-handoff 去模拟化
+
+- RED：`fota_core` 首先因缺少 `XY_FOTA_NOT_SUPPORTED` 与 boot-handoff API 编译失败，证明 public contract 尚不存在；旧 `xy_fota_start_update()` 会在没有 bootloader 的情况下本地翻转 slot 并返回成功。
+- 实现：新增 caller-owned boot-handoff callback；缺 callback 明确返回 unsupported，callback 拒绝时不提交目标 slot 并进入 ERROR，只有 callback 接受后才更新 core slot 状态。
+- 验证：focused `fota_core` + `fota_smoke_example` 2/2、Host 184/184、PC Release root build、FOTA-enabled `xy_fota` target build、`git diff --check` 通过。FOTA probe 仍有既存 CLIB/FOTA Flash warning；不构成 STM32U5、bootloader、掉电、硬件或安全批准。
+- 剩余：durable boot metadata、mark-valid/rollback/anti-rollback、掉电恢复、`projects/stm32u5_fota` stale API/compile gate 与实板 B1/B2。
