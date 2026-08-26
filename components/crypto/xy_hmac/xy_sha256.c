@@ -1,6 +1,6 @@
-#include <stdint.h>
-#include <string.h>
 #include "xy_tiny_crypto.h"
+
+#include <stdint.h>
 #include <string.h>
 
 // SHA256 常量
@@ -17,6 +17,14 @@ static const uint32_t sha256_k[64] = {
     0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
+
+static void sha256_secure_zero(void *data, size_t len)
+{
+    volatile uint8_t *bytes = (volatile uint8_t *)data;
+
+    while (len-- > 0U)
+        *bytes++ = 0U;
+}
 
 #define SHA256_ROTR(x, n)   (((x) >> (n)) | ((x) << (32 - (n))))
 #define SHA256_CH(x, y, z)  (((x) & (y)) ^ ((~(x)) & (z)))
@@ -102,8 +110,11 @@ int xy_sha256_init(xy_sha256_ctx_t *ctx)
 
 int xy_sha256_update(xy_sha256_ctx_t *ctx, const uint8_t *data, size_t len)
 {
-    if (!ctx || !data)
+    if (!ctx || (!data && len != 0U))
         return XY_CRYPTO_INVALID_PARAM;
+
+    if (len == 0U)
+        return XY_CRYPTO_SUCCESS;
 
     size_t buffer_pos = (size_t)(ctx->count % XY_SHA256_BLOCK_SIZE);
     ctx->count += len;
@@ -161,6 +172,8 @@ int xy_sha256_final(xy_sha256_ctx_t *ctx, uint8_t digest[XY_SHA256_DIGEST_SIZE])
         digest[i * 4 + 3] = (uint8_t)(ctx->state[i]);
     }
 
+    sha256_secure_zero(ctx, sizeof(*ctx));
+
     return XY_CRYPTO_SUCCESS;
 }
 
@@ -172,10 +185,14 @@ int xy_sha256_hash(const uint8_t *data, size_t len,
 
     if ((ret = xy_sha256_init(&ctx)) != XY_CRYPTO_SUCCESS)
         return ret;
-    if ((ret = xy_sha256_update(&ctx, data, len)) != XY_CRYPTO_SUCCESS)
+    if ((ret = xy_sha256_update(&ctx, data, len)) != XY_CRYPTO_SUCCESS) {
+        sha256_secure_zero(&ctx, sizeof(ctx));
         return ret;
-    if ((ret = xy_sha256_final(&ctx, digest)) != XY_CRYPTO_SUCCESS)
+    }
+    if ((ret = xy_sha256_final(&ctx, digest)) != XY_CRYPTO_SUCCESS) {
+        sha256_secure_zero(&ctx, sizeof(ctx));
         return ret;
+    }
 
     return XY_CRYPTO_SUCCESS;
 }

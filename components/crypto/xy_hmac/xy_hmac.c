@@ -5,10 +5,18 @@
 #define HMAC_IPAD 0x36
 #define HMAC_OPAD 0x5C
 
+static void hmac_secure_zero(void *data, size_t len)
+{
+    volatile uint8_t *bytes = (volatile uint8_t *)data;
+
+    while (len-- > 0U)
+        *bytes++ = 0U;
+}
+
 int xy_hmac_md5(const uint8_t *key, size_t key_len, const uint8_t *data,
                 size_t data_len, uint8_t digest[XY_MD5_DIGEST_SIZE])
 {
-    if (!key || !data || !digest)
+    if (!key || (!data && data_len != 0U) || !digest)
         return XY_CRYPTO_INVALID_PARAM;
 
     uint8_t k_ipad[XY_MD5_BLOCK_SIZE];
@@ -48,13 +56,18 @@ int xy_hmac_md5(const uint8_t *key, size_t key_len, const uint8_t *data,
     xy_md5_update(&ctx, digest, XY_MD5_DIGEST_SIZE);
     xy_md5_final(&ctx, digest);
 
+    hmac_secure_zero(&ctx, sizeof(ctx));
+    hmac_secure_zero(temp_key, sizeof(temp_key));
+    hmac_secure_zero(k_ipad, sizeof(k_ipad));
+    hmac_secure_zero(k_opad, sizeof(k_opad));
+
     return XY_CRYPTO_SUCCESS;
 }
 
 int xy_hmac_sha256(const uint8_t *key, size_t key_len, const uint8_t *data,
                    size_t data_len, uint8_t digest[XY_SHA256_DIGEST_SIZE])
 {
-    if (!key || !data || !digest)
+    if (!key || (!data && data_len != 0U) || !digest)
         return XY_CRYPTO_INVALID_PARAM;
 
     uint8_t k_ipad[XY_SHA256_BLOCK_SIZE];
@@ -93,6 +106,11 @@ int xy_hmac_sha256(const uint8_t *key, size_t key_len, const uint8_t *data,
     xy_sha256_update(&ctx, k_opad, XY_SHA256_BLOCK_SIZE);
     xy_sha256_update(&ctx, digest, XY_SHA256_DIGEST_SIZE);
     xy_sha256_final(&ctx, digest);
+
+    hmac_secure_zero(&ctx, sizeof(ctx));
+    hmac_secure_zero(temp_key, sizeof(temp_key));
+    hmac_secure_zero(k_ipad, sizeof(k_ipad));
+    hmac_secure_zero(k_opad, sizeof(k_opad));
 
     return XY_CRYPTO_SUCCESS;
 }

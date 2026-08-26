@@ -137,6 +137,24 @@ static void test_hmac_vectors(void)
     TEST_ASSERT_EQUAL_MEMORY(hmac_sha256_expected, digest, XY_SHA256_DIGEST_SIZE);
 }
 
+static void test_hmac_sha256_zero_length_contract(void)
+{
+    static const uint8_t expected[XY_SHA256_DIGEST_SIZE] = {
+        0x5d, 0x5d, 0x13, 0x95, 0x63, 0xc9, 0x5b, 0x59,
+        0x67, 0xb9, 0xbd, 0x9a, 0x8c, 0x9b, 0x23, 0x3a,
+        0x9d, 0xed, 0xb4, 0x50, 0x72, 0x79, 0x4c, 0xd2,
+        0x32, 0xdc, 0x1b, 0x74, 0x83, 0x26, 0x07, 0xd0,
+    };
+    const uint8_t key[] = "key";
+    uint8_t digest[XY_SHA256_DIGEST_SIZE] = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS,
+                          xy_hmac_sha256(key, sizeof(key) - 1, NULL, 0, digest));
+    TEST_ASSERT_EQUAL_MEMORY(expected, digest, sizeof(expected));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM,
+                          xy_hmac_sha256(key, sizeof(key) - 1, NULL, 1, digest));
+}
+
 static void test_sm3_api_shape(void)
 {
     xy_sm3_ctx_t ctx;
@@ -319,6 +337,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_aes_vectors);
     RUN_TEST(test_hmac_vectors);
+    RUN_TEST(test_hmac_sha256_zero_length_contract);
     RUN_TEST(test_sm3_api_shape);
     RUN_TEST(test_sm4_api_shape);
     RUN_TEST(test_chacha20_vectors);

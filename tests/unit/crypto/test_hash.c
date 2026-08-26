@@ -105,6 +105,23 @@ static void test_sha256_incremental_matches_oneshot(void)
     TEST_ASSERT_EQUAL_MEMORY(one_shot, incremental, sizeof(one_shot));
 }
 
+static void test_sha256_zero_length_and_context_cleanup(void)
+{
+    uint8_t digest[XY_SHA256_DIGEST_SIZE] = {0};
+    xy_sha256_ctx_t ctx;
+    const uint8_t zeroed_ctx[sizeof(ctx)] = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_sha256_hash(NULL, 0, digest));
+    TEST_ASSERT_EQUAL_MEMORY(sha256_empty, digest, sizeof(sha256_empty));
+
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_sha256_init(&ctx));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_sha256_update(&ctx, NULL, 0));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_INVALID_PARAM, xy_sha256_update(&ctx, NULL, 1));
+    TEST_ASSERT_EQUAL_INT(XY_CRYPTO_SUCCESS, xy_sha256_final(&ctx, digest));
+    TEST_ASSERT_EQUAL_MEMORY(sha256_empty, digest, sizeof(sha256_empty));
+    TEST_ASSERT_EQUAL_MEMORY(zeroed_ctx, &ctx, sizeof(ctx));
+}
+
 void setUp(void)
 {
 }
@@ -120,5 +137,6 @@ int main(void)
     RUN_TEST(test_md5_incremental_matches_oneshot);
     RUN_TEST(test_sha256_validation_and_vectors);
     RUN_TEST(test_sha256_incremental_matches_oneshot);
+    RUN_TEST(test_sha256_zero_length_and_context_cleanup);
     return UNITY_END();
 }

@@ -33,7 +33,10 @@
 - License evidence:
   - Repository component inherits project licensing context; no separate upstream license/provenance record was linked for these files in this slice.
 - Local modifications:
-  - No MD5/SHA-256/HMAC implementation code changes in this review slice.
+  - 2026-08-26 S3-03 pilot hardened the active SHA-256/HMAC sources: zero-length input
+    now accepts `data == NULL` while nonzero input remains rejected; SHA-256 finalization
+    clears its context through a volatile write loop; HMAC clears inner/outer pads, hashed
+    long-key material, and working contexts before return.
 - Duplicate ownership notes:
   - MD5 and generic HMAC have been reconciled to module-directory single active source ownership: root `xy_tiny_crypto` and focused CTests both consume `components/crypto/xy_md/xy_md5.c` and `components/crypto/xy_hmac/xy_hmac.c`; the historical `components/crypto/src/xy_md5.c` and `components/crypto/src/xy_hmac.c` duplicates have been removed.
   - SHA-256/HMAC ownership has been reconciled to the module-directory source: root `xy_tiny_crypto` and focused CTests both consume `components/crypto/xy_hmac/xy_sha256.c`. The historical `components/crypto/src/xy_sha256_hmac.c` has been pruned as a byte-identical duplicate, and the stale `components/crypto/src/xy_sha256.c` remains excluded from the root aggregate target and is not approved by this record.
@@ -53,10 +56,16 @@
   - MD5/SHA-256/HMAC source ownership has been reconciled, but SHA-256/HMAC provenance, side-channel, fuzzing, hardware, and compliance evidence remain outside this limited review record.
 - Test evidence:
   - `crypto_hash` covers MD5/SHA-256 invalid params, empty/`abc` vectors, and incremental-vs-one-shot behavior.
-  - `crypto_cipher_hmac` covers HMAC-MD5/HMAC-SHA256 vectors plus related cipher/HMAC API contracts.
+  - `crypto_hash` additionally covers the zero-length `NULL` input contract and SHA-256
+    context clearing after finalization.
+  - `crypto_cipher_hmac` covers HMAC-MD5/HMAC-SHA256 vectors, the HMAC-SHA256
+    zero-length `NULL` input contract, plus related cipher/HMAC API contracts.
   - `crypto_review_manifest` links this review record and keeps single-active-source/source-map policy checks active.
 - Missing evidence:
-  - External provenance/license record, independent security audit, side-channel review, fuzzing, and hardware acceleration evidence.
+  - External provenance/license record, independent security audit, whole-function
+    constant-time/side-channel review, fuzzing, target compile, MCU timing, and hardware
+    acceleration evidence. The volatile clearing loop is a memory-hygiene contract, not
+    proof of compiler-independent erasure or side-channel safety.
 
 ## 4. Decision
 
