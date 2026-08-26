@@ -150,6 +150,8 @@ typedef struct {
     void *user_data;
     xy_fota_boot_handoff_cb boot_handoff_cb;
     void *boot_handoff_user_data;
+    xy_fota_patch_cb patch_cb;
+    void *patch_user_data;
     const xy_fota_flash_ops_t *flash_ops;
     const xy_fota_flash_ops_t *backup_flash_ops;  /* 备份区 Flash (可选) */
     bool initialized;

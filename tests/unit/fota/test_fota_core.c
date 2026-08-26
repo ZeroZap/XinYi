@@ -22,6 +22,10 @@ static int g_progress_user;
 static uint8_t g_handoff_slot;
 static uint32_t g_handoff_version;
 static int g_handoff_result;
+static uint32_t g_patch_offset;
+static uint32_t g_patch_size;
+static int g_patch_calls;
+static int g_patch_result;
 
 FAKE_VALUE_FUNC(int, mock_flash_init)
 FAKE_VALUE_FUNC(int, mock_flash_deinit)
@@ -69,6 +73,10 @@ static void reset_fixture(void)
     g_handoff_slot = UINT8_MAX;
     g_handoff_version = 0;
     g_handoff_result = XY_FOTA_OK;
+    g_patch_offset = 0;
+    g_patch_size = 0;
+    g_patch_calls = 0;
+    g_patch_result = XY_FOTA_OK;
     mock_flash_reset_fakes();
 }
 
@@ -78,6 +86,16 @@ static int boot_handoff_cb(uint8_t slot, uint32_t version, void *user_data)
     g_handoff_slot = slot;
     g_handoff_version = version;
     return g_handoff_result;
+}
+
+static int patch_cb(uint32_t offset, const uint8_t *data, uint32_t size, void *user_data)
+{
+    TEST_ASSERT_EQUAL_PTR(&g_patch_result, user_data);
+    TEST_ASSERT_NOT_NULL(data);
+    g_patch_offset = offset;
+    g_patch_size = size;
+    g_patch_calls++;
+    return g_patch_result;
 }
 
 static uint32_t flash_offset(uint32_t addr)
@@ -300,6 +318,41 @@ static void test_single_slot_backup_download_path(void)
     TEST_ASSERT_EQUAL_HEX32(BACKUP_BASE, g_last_write_addr);
 }
 
+static void test_delta_patch_requires_and_dispatches_real_callback(void)
+{
+    xy_fota_t fota;
+    xy_fota_config_t config = default_config();
+    uint8_t patch[] = {0x10, 0x20, 0x30, 0x40};
+
+    reset_fixture();
+    config.mode = XY_FOTA_MODE_DELTA;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_init(&fota, &config));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_set_flash_ops(&fota, &mock_ops));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_set_patch_callback(NULL, patch_cb, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_set_patch_callback(&fota, NULL, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_download(&fota, 3, sizeof(patch), true));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, patch, sizeof(patch)));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_DELTA_ERROR, xy_fota_finish_download(&fota));
+    TEST_ASSERT_EQUAL_INT(0, g_patch_calls);
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_reset(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_set_patch_callback(&fota, patch_cb, &g_patch_result));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_download(&fota, 3, sizeof(patch), true));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, patch, sizeof(patch)));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_finish_download(&fota));
+    TEST_ASSERT_EQUAL_INT(1, g_patch_calls);
+    TEST_ASSERT_EQUAL_UINT32(0, g_patch_offset);
+    TEST_ASSERT_EQUAL_UINT32(sizeof(patch), g_patch_size);
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_reset(&fota));
+    g_patch_result = XY_FOTA_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_download(&fota, 3, sizeof(patch), true));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, patch, sizeof(patch)));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_DELTA_ERROR, xy_fota_finish_download(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_ERROR, fota.state);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -307,5 +360,6 @@ int main(void)
     RUN_TEST(test_header_crc_and_version_guards);
     RUN_TEST(test_download_writes_progress_and_control);
     RUN_TEST(test_single_slot_backup_download_path);
+    RUN_TEST(test_delta_patch_requires_and_dispatches_real_callback);
     return UNITY_END();
 }

@@ -82,6 +82,12 @@ selection and must return `XY_FOTA_OK` only after that request is accepted. With
 `XY_FOTA_STATE_ERROR`. Host callback acceptance does not prove a bootloader, reset, mark-valid, rollback,
 anti-rollback, or power-loss implementation.
 
+Delta mode is also fail-closed. Register a non-NULL `xy_fota_patch_cb` before finishing a delta
+download; the core reads the staged patch in bounded chunks and dispatches each chunk to that callback.
+Missing callbacks, staged-patch read failures, or callback rejection return `XY_FOTA_DELTA_ERROR` and
+move the handle to `XY_FOTA_STATE_ERROR`. The callback owns the actual patch algorithm and durable image
+write; Host callback dispatch does not prove a production patch format or power-loss recovery.
+
 ## Configuration
 
 Relevant root Kconfig symbols:

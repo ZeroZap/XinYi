@@ -540,21 +540,24 @@ static int xy_fota_do_restore(xy_fota_t *fota)
 
 static int xy_fota_apply_delta(xy_fota_t *fota)
 {
-    /* 增量补丁应用逻辑
-     * 实际实现需要:
-     * 1. 读取增量补丁数据
-     * 2. 对当前固件应用 bsdiff/bspatch
-     * 3. 生成新固件
-     * 
-     * 此处为框架实现
-     */
-    
-    /* 检查是否有补丁回调 */
-    /* 如果没有，回退到全量模式 */
-    if (!fota->progress_cb) {
+    uint8_t buffer[256];
+
+    if (!fota->patch_cb) {
         return XY_FOTA_DELTA_ERROR;
     }
-    
+
+    for (uint32_t offset = 0; offset < fota->header.delta_size; offset += sizeof(buffer)) {
+        uint32_t size = fota->header.delta_size - offset;
+        if (size > sizeof(buffer)) {
+            size = sizeof(buffer);
+        }
+
+        if (xy_fota_flash_read(fota, offset, buffer, size) != XY_FOTA_OK ||
+            fota->patch_cb(offset, buffer, size, fota->patch_user_data) != XY_FOTA_OK) {
+            return XY_FOTA_DELTA_ERROR;
+        }
+    }
+
     fota->state = XY_FOTA_STATE_VALIDATING;
     return XY_FOTA_OK;
 }
@@ -604,10 +607,12 @@ int xy_fota_set_boot_handoff(xy_fota_t *fota, xy_fota_boot_handoff_cb cb, void *
 
 int xy_fota_set_patch_callback(xy_fota_t *fota, xy_fota_patch_cb cb, void *user_data)
 {
-    /* 占位：增量补丁回调设置 */
-    (void)fota;
-    (void)cb;
-    (void)user_data;
+    if (!fota || !fota->initialized || !cb) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    fota->patch_cb = cb;
+    fota->patch_user_data = user_data;
     return XY_FOTA_OK;
 }
 
