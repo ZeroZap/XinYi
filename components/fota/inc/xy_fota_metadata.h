@@ -22,8 +22,10 @@ typedef struct {
     uint32_t generation;
     uint32_t active_version;
     uint32_t min_version;
+    uint32_t pending_version;
     uint8_t active_slot;
     uint8_t pending_slot;
+    uint8_t boot_attempts;
     uint8_t flags;
 } xy_fota_metadata_t;
 
@@ -51,6 +53,12 @@ int xy_fota_metadata_flash_load(const xy_fota_metadata_flash_t *backend,
 int xy_fota_metadata_flash_commit(const xy_fota_metadata_flash_t *backend,
                                   const xy_fota_metadata_t *metadata,
                                   xy_fota_metadata_t *committed);
+
+int xy_fota_metadata_stage_candidate(xy_fota_metadata_t *metadata, uint8_t slot,
+                                     uint32_t version);
+int xy_fota_metadata_record_boot_attempt(xy_fota_metadata_t *metadata, uint8_t max_attempts,
+                                         bool *rollback_required);
+int xy_fota_metadata_confirm_candidate(xy_fota_metadata_t *metadata);
 
 #ifdef __cplusplus
 }

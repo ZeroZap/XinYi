@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define XY_FOTA_METADATA_MAGIC 0x58464D44U
-#define XY_FOTA_METADATA_FORMAT_VERSION 1U
+#define XY_FOTA_METADATA_FORMAT_VERSION 2U
 #define XY_FOTA_METADATA_SLOT_COUNT 2U
 #define XY_FOTA_METADATA_COMMITTED 0xA55AC33CU
 
@@ -14,10 +14,11 @@ typedef struct {
     uint32_t generation;
     uint32_t active_version;
     uint32_t min_version;
+    uint32_t pending_version;
     uint8_t active_slot;
     uint8_t pending_slot;
+    uint8_t boot_attempts;
     uint8_t flags;
-    uint8_t reserved;
     uint32_t crc32;
     uint32_t committed;
 } xy_fota_metadata_record_t;
@@ -68,8 +69,10 @@ static void record_to_metadata(const xy_fota_metadata_record_t *record,
     metadata->generation = record->generation;
     metadata->active_version = record->active_version;
     metadata->min_version = record->min_version;
+    metadata->pending_version = record->pending_version;
     metadata->active_slot = record->active_slot;
     metadata->pending_slot = record->pending_slot;
+    metadata->boot_attempts = record->boot_attempts;
     metadata->flags = record->flags;
 }
 
@@ -141,8 +144,10 @@ int xy_fota_metadata_flash_commit(const xy_fota_metadata_flash_t *backend,
     record.generation = (ret == XY_FOTA_OK) ? latest.generation + 1U : 1U;
     record.active_version = metadata->active_version;
     record.min_version = metadata->min_version;
+    record.pending_version = metadata->pending_version;
     record.active_slot = metadata->active_slot;
     record.pending_slot = metadata->pending_slot;
+    record.boot_attempts = metadata->boot_attempts;
     record.flags = metadata->flags;
     record.crc32 = xy_fota_calc_crc32((const uint8_t *)&record,
                                       (uint32_t)offsetof(xy_fota_metadata_record_t, crc32));
@@ -159,5 +164,63 @@ int xy_fota_metadata_flash_commit(const xy_fota_metadata_flash_t *backend,
     if (committed) {
         record_to_metadata(&record, committed);
     }
+    return XY_FOTA_OK;
+}
+
+int xy_fota_metadata_stage_candidate(xy_fota_metadata_t *metadata, uint8_t slot,
+                                     uint32_t version)
+{
+    if (!metadata || slot > 1U || slot == metadata->active_slot || version == 0U) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    if (version < metadata->min_version) {
+        return XY_FOTA_VERSION_ERROR;
+    }
+    metadata->pending_version = version;
+    metadata->pending_slot = slot;
+    metadata->boot_attempts = 0U;
+    metadata->flags |= XY_FOTA_METADATA_FLAG_PENDING;
+    return XY_FOTA_OK;
+}
+
+int xy_fota_metadata_record_boot_attempt(xy_fota_metadata_t *metadata, uint8_t max_attempts,
+                                         bool *rollback_required)
+{
+    if (!metadata || !rollback_required || max_attempts == 0U) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    if ((metadata->flags & XY_FOTA_METADATA_FLAG_PENDING) == 0U ||
+        metadata->pending_slot == XY_FOTA_METADATA_NO_SLOT) {
+        return XY_FOTA_NO_IMAGE;
+    }
+    metadata->boot_attempts++;
+    *rollback_required = metadata->boot_attempts >= max_attempts;
+    if (*rollback_required) {
+        metadata->pending_version = 0U;
+        metadata->pending_slot = XY_FOTA_METADATA_NO_SLOT;
+        metadata->boot_attempts = 0U;
+        metadata->flags &= (uint8_t)~XY_FOTA_METADATA_FLAG_PENDING;
+    }
+    return XY_FOTA_OK;
+}
+
+int xy_fota_metadata_confirm_candidate(xy_fota_metadata_t *metadata)
+{
+    if (!metadata) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    if ((metadata->flags & XY_FOTA_METADATA_FLAG_PENDING) == 0U ||
+        metadata->pending_slot == XY_FOTA_METADATA_NO_SLOT || metadata->pending_version == 0U) {
+        return XY_FOTA_NO_IMAGE;
+    }
+    metadata->active_slot = metadata->pending_slot;
+    metadata->active_version = metadata->pending_version;
+    if (metadata->min_version < metadata->active_version) {
+        metadata->min_version = metadata->active_version;
+    }
+    metadata->pending_version = 0U;
+    metadata->pending_slot = XY_FOTA_METADATA_NO_SLOT;
+    metadata->boot_attempts = 0U;
+    metadata->flags &= (uint8_t)~XY_FOTA_METADATA_FLAG_PENDING;
     return XY_FOTA_OK;
 }

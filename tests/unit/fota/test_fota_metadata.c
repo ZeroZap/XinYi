@@ -97,6 +97,83 @@ static xy_fota_metadata_t initial_metadata(void)
     return metadata;
 }
 
+static void test_boot_attempt_policy_rolls_back_after_bounded_failures(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    bool rollback_required = true;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_stage_candidate(&metadata, 1U, 4U));
+    TEST_ASSERT_EQUAL_UINT32(4U, metadata.pending_version);
+    TEST_ASSERT_EQUAL_UINT8(1U, metadata.pending_slot);
+    TEST_ASSERT_EQUAL_UINT8(0U, metadata.boot_attempts);
+    TEST_ASSERT_BITS_HIGH(XY_FOTA_METADATA_FLAG_PENDING, metadata.flags);
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_record_boot_attempt(&metadata, 3U,
+                                                               &rollback_required));
+    TEST_ASSERT_FALSE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT8(1U, metadata.boot_attempts);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_record_boot_attempt(&metadata, 3U,
+                                                               &rollback_required));
+    TEST_ASSERT_FALSE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT8(2U, metadata.boot_attempts);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_record_boot_attempt(&metadata, 3U,
+                                                               &rollback_required));
+    TEST_ASSERT_TRUE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT8(0U, metadata.boot_attempts);
+    TEST_ASSERT_EQUAL_UINT8(XY_FOTA_METADATA_NO_SLOT, metadata.pending_slot);
+    TEST_ASSERT_EQUAL_UINT32(0U, metadata.pending_version);
+    TEST_ASSERT_BITS_LOW(XY_FOTA_METADATA_FLAG_PENDING, metadata.flags);
+    TEST_ASSERT_EQUAL_UINT8(0U, metadata.active_slot);
+    TEST_ASSERT_EQUAL_UINT32(3U, metadata.active_version);
+    TEST_ASSERT_EQUAL_UINT32(3U, metadata.min_version);
+}
+
+static void test_boot_attempt_confirmation_advances_floor_and_clears_pending(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    bool rollback_required = false;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_stage_candidate(&metadata, 1U, 4U));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_record_boot_attempt(&metadata, 3U,
+                                                               &rollback_required));
+    TEST_ASSERT_FALSE(rollback_required);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_confirm_candidate(&metadata));
+    TEST_ASSERT_EQUAL_UINT8(1U, metadata.active_slot);
+    TEST_ASSERT_EQUAL_UINT32(4U, metadata.active_version);
+    TEST_ASSERT_EQUAL_UINT32(4U, metadata.min_version);
+    TEST_ASSERT_EQUAL_UINT8(XY_FOTA_METADATA_NO_SLOT, metadata.pending_slot);
+    TEST_ASSERT_EQUAL_UINT32(0U, metadata.pending_version);
+    TEST_ASSERT_EQUAL_UINT8(0U, metadata.boot_attempts);
+    TEST_ASSERT_BITS_LOW(XY_FOTA_METADATA_FLAG_PENDING, metadata.flags);
+}
+
+static void test_boot_attempt_policy_rejects_invalid_transitions(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    bool rollback_required = false;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_stage_candidate(NULL, 1U, 4U));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_stage_candidate(&metadata, 0U, 4U));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_VERSION_ERROR,
+                          xy_fota_metadata_stage_candidate(&metadata, 1U, 2U));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_NO_IMAGE,
+                          xy_fota_metadata_record_boot_attempt(&metadata, 3U,
+                                                               &rollback_required));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_NO_IMAGE,
+                          xy_fota_metadata_confirm_candidate(&metadata));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_record_boot_attempt(&metadata, 0U,
+                                                               &rollback_required));
+}
+
 static void test_metadata_guards_and_empty_flash_fail_closed(void)
 {
     xy_fota_metadata_t metadata = initial_metadata();
@@ -197,5 +274,8 @@ int main(void)
     RUN_TEST(test_metadata_commit_roundtrip_and_generation);
     RUN_TEST(test_partial_write_preserves_previous_committed_record);
     RUN_TEST(test_corrupt_newest_copy_falls_back_to_previous_generation);
+    RUN_TEST(test_boot_attempt_policy_rolls_back_after_bounded_failures);
+    RUN_TEST(test_boot_attempt_confirmation_advances_floor_and_clears_pending);
+    RUN_TEST(test_boot_attempt_policy_rejects_invalid_transitions);
     return UNITY_END();
 }
