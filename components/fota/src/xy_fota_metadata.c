@@ -257,6 +257,34 @@ int xy_fota_metadata_boot_handoff(uint8_t slot, uint32_t version, void *user_dat
     return xy_fota_metadata_flash_commit(backend, &metadata, NULL);
 }
 
+int xy_fota_metadata_boot_attempt(uint8_t max_attempts, bool *rollback_required,
+                                  void *user_data)
+{
+    xy_fota_metadata_flash_t *backend = (xy_fota_metadata_flash_t *)user_data;
+    xy_fota_metadata_t metadata;
+    bool rollback;
+    int ret;
+
+    if (!rollback_required || validate_backend(backend) != XY_FOTA_OK) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    ret = xy_fota_metadata_flash_load(backend, &metadata);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    ret = xy_fota_metadata_record_boot_attempt(&metadata, max_attempts, &rollback);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    ret = xy_fota_metadata_flash_commit(backend, &metadata, NULL);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    *rollback_required = rollback;
+    return XY_FOTA_OK;
+}
+
 int xy_fota_metadata_boot_confirm(uint8_t slot, uint32_t version, void *user_data)
 {
     xy_fota_metadata_flash_t *backend = (xy_fota_metadata_flash_t *)user_data;

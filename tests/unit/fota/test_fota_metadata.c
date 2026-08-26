@@ -203,6 +203,62 @@ static void test_boot_callbacks_persist_handoff_and_confirmation(void)
     TEST_ASSERT_BITS_LOW(XY_FOTA_METADATA_FLAG_PENDING, loaded.flags);
 }
 
+static void test_boot_attempt_callback_persists_count_and_rollback(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t loaded = {0};
+    bool rollback_required = true;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_boot_handoff(1U, 4U, (void *)&backend));
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_boot_attempt(2U, &rollback_required,
+                                                        (void *)&backend));
+    TEST_ASSERT_FALSE(rollback_required);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT8(1U, loaded.boot_attempts);
+    TEST_ASSERT_EQUAL_UINT8(1U, loaded.pending_slot);
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_boot_attempt(2U, &rollback_required,
+                                                        (void *)&backend));
+    TEST_ASSERT_TRUE(rollback_required);
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT8(0U, loaded.boot_attempts);
+    TEST_ASSERT_EQUAL_UINT8(XY_FOTA_METADATA_NO_SLOT, loaded.pending_slot);
+    TEST_ASSERT_BITS_LOW(XY_FOTA_METADATA_FLAG_PENDING, loaded.flags);
+    TEST_ASSERT_EQUAL_UINT8(0U, loaded.active_slot);
+    TEST_ASSERT_EQUAL_UINT32(3U, loaded.active_version);
+}
+
+static void test_boot_attempt_callback_preserves_durable_count_on_commit_failure(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t loaded = {0};
+    bool rollback_required = true;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_boot_attempt(2U, &rollback_required, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_boot_handoff(1U, 4U, (void *)&backend));
+
+    g_write_result = XY_FOTA_FLASH_ERROR;
+    g_fail_write_call = g_write_calls + 1U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR,
+                          xy_fota_metadata_boot_attempt(2U, &rollback_required,
+                                                        (void *)&backend));
+    g_write_result = XY_FOTA_OK;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT8(0U, loaded.boot_attempts);
+    TEST_ASSERT_EQUAL_UINT8(1U, loaded.pending_slot);
+    TEST_ASSERT_TRUE(rollback_required);
+}
+
 static void test_boot_callbacks_fail_closed_on_mismatch_or_flash_failure(void)
 {
     xy_fota_metadata_t metadata = initial_metadata();
@@ -334,6 +390,8 @@ int main(void)
     RUN_TEST(test_boot_attempt_confirmation_advances_floor_and_clears_pending);
     RUN_TEST(test_boot_attempt_policy_rejects_invalid_transitions);
     RUN_TEST(test_boot_callbacks_persist_handoff_and_confirmation);
+    RUN_TEST(test_boot_attempt_callback_persists_count_and_rollback);
+    RUN_TEST(test_boot_attempt_callback_preserves_durable_count_on_commit_failure);
     RUN_TEST(test_boot_callbacks_fail_closed_on_mismatch_or_flash_failure);
     return UNITY_END();
 }

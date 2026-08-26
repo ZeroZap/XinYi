@@ -41,6 +41,11 @@ static int board_boot_confirm(uint8_t slot, uint32_t version, void *user_data)
     return xy_fota_metadata_boot_confirm(slot, version, user_data);
 }
 
+static int board_record_boot_attempt(uint8_t max_attempts, bool *rollback_required)
+{
+    return xy_fota_metadata_boot_attempt(max_attempts, rollback_required, &metadata_backend);
+}
+
 int main(void)
 {
     xy_fota_t fota;
@@ -66,7 +71,9 @@ int main(void)
         return ret;
     }
 
-    printf("FOTA core ready; board flash/metadata/bootloader backends remain unsupported\n");
+    printf("FOTA core ready; bootloader must call board_record_boot_attempt before candidate boot\n");
+
+    (void)board_record_boot_attempt;
 
     for (;;) {
         /* Product integration supplies transport and board event processing. */
