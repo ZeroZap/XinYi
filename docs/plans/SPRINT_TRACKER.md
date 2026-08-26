@@ -111,6 +111,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 |---|---:|---|---|---|---|---|---|---|
 | S3-01 | P0 | Crypto 产品算法清单 | DONE | Zero | Sprint 0 证据边界（DONE） | 11 个算法区域已记录 product classification、implementation owner、source origin、license status、side-channel target、allowed usage、runtime/focused sources 与 review record；policy RED 后 focused 5/5、Host 183/183、PC root build、`git diff --check` 通过；SM2/ECDSA 强制 `security-rejected`，无安全批准升级 | `fdce5449` | 2026-08-26 |
 | S3-02 | P0 | Signature provider 边界与 Secure FOTA fail-closed | DONE | Zero | S3-01（DONE） | Secure FOTA 不再调用 format-only ECDSA placeholder；缺 provider、provider 拒绝（含错误 key ID）、回滚版本及截断包均 fail-closed；focused 1/1、Host 184/184、PC root/FOTA target build、`git diff --check` 通过；不升级安全批准 | `12cdb5f6` | 2026-08-26 |
+| S3-03 | P0 | SHA-256/HMAC 单算法重建试点 | DONE | Zero | S3-01（DONE） | RED 证明 zero-length `NULL` 输入被错误拒绝；实现后 SHA-256/HMAC focused 2/2、Host 184/184、PC root 与 Crypto-enabled `xy_tiny_crypto` target build、`git diff --check` 通过；补充 SHA-256 context 与 HMAC working-key/pad volatile clearing。仍缺 provenance、独立审计、target compile、side-channel 与硬件证据 | `dc47807c` | 2026-08-26 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -220,3 +221,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - RED/GREEN：focused target 初次暴露 secure source 未纳入现有 FOTA CTest 以及 bank/core link 依赖；闭环后 `fota_secure_provider` 1/1 通过，覆盖缺 provider、provider 拒绝（含错误 key ID）、版本回滚和截断包。
 - 验证：Host 184/184、PC root build、FOTA-enabled `xy_fota` target build、`git diff --check` 通过；clang-format 当前环境不可用。以上仅为 Host/PC fail-closed 边界，不构成 cryptographic/security/key-provisioning/bootloader/hardware 批准。
 - 下一步：S3-03 单算法重建试点，优先 SHA-256/HMAC provenance 与 API/error/memory-clearing contract；不先做 benchmark 扩张。
+
+### 2026-08-26 Sprint 3 SHA-256/HMAC 重建试点
+
+- RED：`crypto_hash` 与 `crypto_cipher_hmac` 证明 zero-length `NULL` 输入此前返回 `XY_CRYPTO_INVALID_PARAM`，与空消息契约不一致。
+- 实现：zero-length update/HMAC 允许 `NULL` data，非零长度仍 fail-closed；SHA-256 final 清除 context，HMAC 清除 pads、长 key digest 与 working context。
+- 验证：focused 2/2、Host 184/184、PC root build、Crypto-enabled `xy_tiny_crypto` target build 与 `git diff --check` 通过；target compile 仅为 PC，不构成 MCU、安全、constant-time、provenance 或硬件批准。
+- 剩余：外部来源/许可证证据、独立实现审计、target compile、fuzz、side-channel 与真实 MCU 记录仍 pending。
