@@ -91,6 +91,18 @@ RECONCILED_MODULE_CMAKE_SOURCES = {
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
 ALLOWED_REVIEW_PENDING = {"review-pending"}
+ALLOWED_PRODUCT_CLASSIFICATIONS = {
+    "production-candidate",
+    "legacy-compatibility",
+    "test-only",
+    "security-rejected",
+}
+ALLOWED_LICENSE_STATUSES = {"review-pending", "documented"}
+ALLOWED_SIDE_CHANNEL_TARGETS = {
+    "not-applicable-non-security",
+    "review-required-before-security-use",
+    "prohibited-security-use",
+}
 ALLOWED_DUPLICATE_POLICIES = {
     "source-map-pending",
     "single-active-source",
@@ -468,9 +480,45 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             seen_ids.add(algorithm_id)
             prefix = f"algorithm {algorithm_id}"
 
-        for key in ("description", "allowed_usage", "duplicate_source_policy"):
+        for key in (
+            "description",
+            "allowed_usage",
+            "duplicate_source_policy",
+            "product_classification",
+            "implementation_owner",
+            "source_origin",
+            "license_status",
+            "side_channel_target",
+        ):
             value = algorithm.get(key)
             _require(isinstance(value, str) and len(value) > 0, f"{prefix}.{key} is required", errors)
+
+        _require(
+            algorithm.get("product_classification") in ALLOWED_PRODUCT_CLASSIFICATIONS,
+            f"{prefix}.product_classification is not recognized",
+            errors,
+        )
+        _require(
+            algorithm.get("license_status") in ALLOWED_LICENSE_STATUSES,
+            f"{prefix}.license_status is not recognized",
+            errors,
+        )
+        _require(
+            algorithm.get("side_channel_target") in ALLOWED_SIDE_CHANNEL_TARGETS,
+            f"{prefix}.side_channel_target is not recognized",
+            errors,
+        )
+        if algorithm.get("security_status") == "security-rejected":
+            _require(
+                algorithm.get("product_classification") == "security-rejected",
+                f"{prefix}.security-rejected implementation must use product_classification=security-rejected",
+                errors,
+            )
+            _require(
+                algorithm.get("side_channel_target") == "prohibited-security-use",
+                f"{prefix}.security-rejected implementation must prohibit security use",
+                errors,
+            )
 
         _require(
             algorithm.get("duplicate_source_policy") in ALLOWED_DUPLICATE_POLICIES,
