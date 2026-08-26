@@ -131,6 +131,15 @@ typedef void (*xy_fota_progress_cb)(uint32_t current, uint32_t total, void *user
 typedef int (*xy_fota_boot_handoff_cb)(uint8_t slot, uint32_t version, void *user_data);
 
 /**
+ * @brief Confirm that the running candidate is durably accepted by the bootloader
+ * @param slot Running slot to mark valid
+ * @param version Running image version used to advance the anti-rollback floor
+ * @param user_data Caller-owned context
+ * @return XY_FOTA_OK only after durable metadata was committed
+ */
+typedef int (*xy_fota_boot_confirm_cb)(uint8_t slot, uint32_t version, void *user_data);
+
+/**
  * @brief 增量升级补丁回调 (前置声明)
  */
 typedef int (*xy_fota_patch_cb)(uint32_t offset, const uint8_t *data, uint32_t size, void *user_data);
@@ -150,6 +159,8 @@ typedef struct {
     void *user_data;
     xy_fota_boot_handoff_cb boot_handoff_cb;
     void *boot_handoff_user_data;
+    xy_fota_boot_confirm_cb boot_confirm_cb;
+    void *boot_confirm_user_data;
     xy_fota_patch_cb patch_cb;
     void *patch_user_data;
     const xy_fota_flash_ops_t *flash_ops;
@@ -258,6 +269,20 @@ int xy_fota_set_progress_callback(xy_fota_t *fota, xy_fota_progress_cb cb, void 
  * returns XY_FOTA_NOT_SUPPORTED and leaves the completed candidate untouched.
  */
 int xy_fota_set_boot_handoff(xy_fota_t *fota, xy_fota_boot_handoff_cb cb, void *user_data);
+
+/**
+ * @brief Register the board/bootloader durable image-confirmation implementation
+ *
+ * The core has no safe default. Confirmation success advances the in-memory
+ * active slot and anti-rollback floor only after the callback has committed the
+ * corresponding durable metadata.
+ */
+int xy_fota_set_boot_confirm(xy_fota_t *fota, xy_fota_boot_confirm_cb cb, void *user_data);
+
+/**
+ * @brief Mark the currently running candidate valid through durable boot metadata
+ */
+int xy_fota_mark_valid(xy_fota_t *fota);
 
 /**
  * @brief 取消更新

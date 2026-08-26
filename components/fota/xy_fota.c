@@ -605,6 +605,42 @@ int xy_fota_set_boot_handoff(xy_fota_t *fota, xy_fota_boot_handoff_cb cb, void *
     return XY_FOTA_OK;
 }
 
+int xy_fota_set_boot_confirm(xy_fota_t *fota, xy_fota_boot_confirm_cb cb, void *user_data)
+{
+    if (!fota || !fota->initialized || !cb) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    fota->boot_confirm_cb = cb;
+    fota->boot_confirm_user_data = user_data;
+    return XY_FOTA_OK;
+}
+
+int xy_fota_mark_valid(xy_fota_t *fota)
+{
+    int ret;
+
+    if (!fota || !fota->initialized) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    if (!fota->boot_confirm_cb) {
+        return XY_FOTA_NOT_SUPPORTED;
+    }
+
+    ret = fota->boot_confirm_cb((uint8_t)fota->current_slot, fota->header.version,
+                                fota->boot_confirm_user_data);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+
+    fota->active_slot = fota->current_slot;
+    if (fota->config.enable_rollback && fota->header.version > fota->config.min_version) {
+        fota->config.min_version = fota->header.version;
+    }
+    return XY_FOTA_OK;
+}
+
 int xy_fota_set_patch_callback(xy_fota_t *fota, xy_fota_patch_cb cb, void *user_data)
 {
     if (!fota || !fota->initialized || !cb) {

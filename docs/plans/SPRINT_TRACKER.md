@@ -112,7 +112,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S3-01 | P0 | Crypto 产品算法清单 | DONE | Zero | Sprint 0 证据边界（DONE） | 11 个算法区域已记录 product classification、implementation owner、source origin、license status、side-channel target、allowed usage、runtime/focused sources 与 review record；policy RED 后 focused 5/5、Host 183/183、PC root build、`git diff --check` 通过；SM2/ECDSA 强制 `security-rejected`，无安全批准升级 | `fdce5449` | 2026-08-26 |
 | S3-02 | P0 | Signature provider 边界与 Secure FOTA fail-closed | DONE | Zero | S3-01（DONE） | Secure FOTA 不再调用 format-only ECDSA placeholder；缺 provider、provider 拒绝（含错误 key ID）、回滚版本及截断包均 fail-closed；focused 1/1、Host 184/184、PC root/FOTA target build、`git diff --check` 通过；不升级安全批准 | `12cdb5f6` | 2026-08-26 |
 | S3-03 | P0 | SHA-256/HMAC 单算法重建试点 | DONE | Zero | S3-01（DONE） | RED 证明 zero-length `NULL` 输入被错误拒绝；实现后 SHA-256/HMAC focused 2/2、Host 184/184、PC root 与 Crypto-enabled `xy_tiny_crypto` target build、`git diff --check` 通过；补充 SHA-256 context 与 HMAC working-key/pad volatile clearing。仍缺 provenance、独立审计、target compile、side-channel 与硬件证据 | `dc47807c` | 2026-08-26 |
-| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | boot handoff 已 fail-closed；delta path 不再以 progress callback 假装补丁成功，缺 patch callback、暂存读取失败或 callback 拒绝均 `XY_FOTA_DELTA_ERROR`，真实 callback 按 bounded chunks 接收 patch。focused 1/1、Host 184/184、PC root、FOTA-enabled `xy_fota` target 与 `git diff --check` 通过。尚缺 durable metadata、mark-valid/rollback/anti-rollback、掉电恢复、STM32U5 项目 compile gate 与实板 | `54d8b735`、`d4e66c0b` | 2026-08-26 |
+| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | boot handoff/delta/mark-valid 均 fail-closed；mark-valid 只有在 caller-owned boot confirm callback 持久化接受后才提交 active slot 并推进 anti-rollback floor，缺 callback 或 callback 失败不修改状态。focused 1/1、Host 184/184、PC root、FOTA-enabled `xy_fota` target 与 `git diff --check` 通过。尚缺 durable metadata 具体 backend、rollback metadata/掉电恢复、STM32U5 项目 compile gate 与实板 | `54d8b735`、`d4e66c0b`、本轮待提交 | 2026-08-26 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -243,3 +243,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：FOTA handle 持有 caller-owned patch callback/context；delta finish 从暂存区按 256-byte bounded chunks 读取并派发，缺 callback、读取失败或 callback 拒绝均 fail-closed 为 `XY_FOTA_DELTA_ERROR`/ERROR state。
 - 验证：focused `fota_core` 1/1、Host 184/184、PC Release root build、FOTA-enabled `xy_fota` target 与 `git diff --check` 通过；既存 CLIB/FOTA Flash warning 未由本 slice 引入。以上仅证明 Host callback/error contract，不构成 patch 算法、掉电、STM32U5、bootloader、安全或实板批准。
 - 剩余：durable metadata、mark-valid/rollback/anti-rollback、掉电恢复、STM32U5 项目 compile gate与 B1/B2。
+
+### 2026-08-26 Sprint 3 FOTA mark-valid/anti-rollback 边界
+
+- RED：`fota_core` 因缺 `xy_fota_mark_valid()` / boot-confirm API 编译链接失败，证明 core 没有可验证的 durable confirmation 边界。
+- 实现：新增 caller-owned boot-confirm callback；缺 callback 返回 `XY_FOTA_NOT_SUPPORTED`，callback 拒绝时 active slot 与版本下限保持不变，只有 durable confirmation 成功后才提交 active slot 并推进 anti-rollback floor。
+- 验证：focused `fota_core` 1/1、Host 184/184、PC Release root build、FOTA-enabled `xy_fota` target 与 `git diff --check` 通过；clang-format 当前环境不可用。以上不构成 durable metadata backend、掉电、STM32U5、bootloader、安全或实板批准。
+- 剩余：durable metadata 具体 backend、rollback metadata/掉电恢复、`projects/stm32u5_fota` compile gate 与 B1/B2。

@@ -22,6 +22,9 @@ static int g_progress_user;
 static uint8_t g_handoff_slot;
 static uint32_t g_handoff_version;
 static int g_handoff_result;
+static uint8_t g_confirm_slot;
+static uint32_t g_confirm_version;
+static int g_confirm_result;
 static uint32_t g_patch_offset;
 static uint32_t g_patch_size;
 static int g_patch_calls;
@@ -73,6 +76,9 @@ static void reset_fixture(void)
     g_handoff_slot = UINT8_MAX;
     g_handoff_version = 0;
     g_handoff_result = XY_FOTA_OK;
+    g_confirm_slot = UINT8_MAX;
+    g_confirm_version = 0;
+    g_confirm_result = XY_FOTA_OK;
     g_patch_offset = 0;
     g_patch_size = 0;
     g_patch_calls = 0;
@@ -86,6 +92,14 @@ static int boot_handoff_cb(uint8_t slot, uint32_t version, void *user_data)
     g_handoff_slot = slot;
     g_handoff_version = version;
     return g_handoff_result;
+}
+
+static int boot_confirm_cb(uint8_t slot, uint32_t version, void *user_data)
+{
+    TEST_ASSERT_EQUAL_PTR(&g_confirm_result, user_data);
+    g_confirm_slot = slot;
+    g_confirm_version = version;
+    return g_confirm_result;
 }
 
 static int patch_cb(uint32_t offset, const uint8_t *data, uint32_t size, void *user_data)
@@ -353,6 +367,40 @@ static void test_delta_patch_requires_and_dispatches_real_callback(void)
     TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_ERROR, fota.state);
 }
 
+static void test_mark_valid_requires_durable_boot_confirmation(void)
+{
+    xy_fota_t fota;
+    xy_fota_config_t config = default_config();
+
+    reset_fixture();
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_init(&fota, &config));
+    fota.current_slot = 1U;
+    fota.header.version = 7U;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_NOT_SUPPORTED, xy_fota_mark_valid(&fota));
+    TEST_ASSERT_EQUAL_UINT32(0U, fota.active_slot);
+    TEST_ASSERT_EQUAL_UINT32(2U, fota.config.min_version);
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_set_boot_confirm(NULL, boot_confirm_cb, &g_confirm_result));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_set_boot_confirm(&fota, NULL, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_set_boot_confirm(&fota, boot_confirm_cb, &g_confirm_result));
+
+    g_confirm_result = XY_FOTA_FLASH_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR, xy_fota_mark_valid(&fota));
+    TEST_ASSERT_EQUAL_UINT8(1U, g_confirm_slot);
+    TEST_ASSERT_EQUAL_UINT32(7U, g_confirm_version);
+    TEST_ASSERT_EQUAL_UINT32(0U, fota.active_slot);
+    TEST_ASSERT_EQUAL_UINT32(2U, fota.config.min_version);
+
+    g_confirm_result = XY_FOTA_OK;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_mark_valid(&fota));
+    TEST_ASSERT_EQUAL_UINT32(1U, fota.active_slot);
+    TEST_ASSERT_EQUAL_UINT32(7U, fota.config.min_version);
+    TEST_ASSERT_FALSE(xy_fota_validate_version(&fota, 6U));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -361,5 +409,6 @@ int main(void)
     RUN_TEST(test_download_writes_progress_and_control);
     RUN_TEST(test_single_slot_backup_download_path);
     RUN_TEST(test_delta_patch_requires_and_dispatches_real_callback);
+    RUN_TEST(test_mark_valid_requires_durable_boot_confirmation);
     return UNITY_END();
 }
