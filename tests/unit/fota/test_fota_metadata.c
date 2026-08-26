@@ -12,6 +12,7 @@ static uint8_t g_storage[STORAGE_SIZE];
 static int g_write_result;
 static uint32_t g_fail_write_call;
 static uint32_t g_partial_write_size;
+static uint32_t g_fail_read_call;
 static uint32_t g_read_calls;
 static uint32_t g_write_calls;
 static uint32_t g_erase_calls;
@@ -29,8 +30,11 @@ static int flash_read(uint32_t addr, uint8_t *data, uint32_t size)
 
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_OR_EQUAL_UINT32(STORAGE_SIZE, offset + size);
-    memcpy(data, &g_storage[offset], size);
     g_read_calls++;
+    if (g_fail_read_call == g_read_calls) {
+        return XY_FOTA_FLASH_ERROR;
+    }
+    memcpy(data, &g_storage[offset], size);
     return XY_FOTA_OK;
 }
 
@@ -81,6 +85,7 @@ void setUp(void)
     g_write_result = XY_FOTA_OK;
     g_fail_write_call = 0U;
     g_partial_write_size = 0U;
+    g_fail_read_call = 0U;
     g_read_calls = 0U;
     g_write_calls = 0U;
     g_erase_calls = 0U;
@@ -379,6 +384,45 @@ static void test_corrupt_newest_copy_falls_back_to_previous_generation(void)
     TEST_ASSERT_EQUAL_UINT8(0U, loaded.active_slot);
 }
 
+static void test_load_reports_flash_error_when_no_copy_can_be_read(void)
+{
+    xy_fota_metadata_t loaded = {
+        .active_version = 0xA5A5A5A5U,
+        .active_slot = 0x5AU,
+    };
+
+    g_fail_read_call = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR,
+                          xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, loaded.active_version);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, loaded.active_slot);
+}
+
+static void test_commit_refuses_to_overwrite_when_journal_scan_has_read_error(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t loaded = {0};
+    uint8_t snapshot[STORAGE_SIZE];
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    memcpy(snapshot, g_storage, sizeof(snapshot));
+
+    metadata.active_version = 4U;
+    metadata.min_version = 4U;
+    metadata.active_slot = 1U;
+    g_fail_read_call = g_read_calls + 2U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_UINT32(1U, g_erase_calls);
+    TEST_ASSERT_EQUAL_MEMORY(snapshot, g_storage, sizeof(snapshot));
+
+    g_fail_read_call = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT32(3U, loaded.active_version);
+    TEST_ASSERT_EQUAL_UINT8(0U, loaded.active_slot);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -386,6 +430,8 @@ int main(void)
     RUN_TEST(test_metadata_commit_roundtrip_and_generation);
     RUN_TEST(test_partial_write_preserves_previous_committed_record);
     RUN_TEST(test_corrupt_newest_copy_falls_back_to_previous_generation);
+    RUN_TEST(test_load_reports_flash_error_when_no_copy_can_be_read);
+    RUN_TEST(test_commit_refuses_to_overwrite_when_journal_scan_has_read_error);
     RUN_TEST(test_boot_attempt_policy_rolls_back_after_bounded_failures);
     RUN_TEST(test_boot_attempt_confirmation_advances_floor_and_clears_pending);
     RUN_TEST(test_boot_attempt_policy_rejects_invalid_transitions);

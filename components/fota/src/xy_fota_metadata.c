@@ -81,9 +81,14 @@ static int load_latest_record(const xy_fota_metadata_flash_t *backend,
 {
     xy_fota_metadata_record_t record;
     bool found = false;
+    bool read_failed = false;
 
     for (uint32_t slot = 0; slot < XY_FOTA_METADATA_SLOT_COUNT; ++slot) {
-        if (read_record(backend, slot, &record) != XY_FOTA_OK || !record_is_valid(&record)) {
+        if (read_record(backend, slot, &record) != XY_FOTA_OK) {
+            read_failed = true;
+            continue;
+        }
+        if (!record_is_valid(&record)) {
             continue;
         }
         if (!found || generation_is_newer(record.generation, latest->generation)) {
@@ -93,6 +98,9 @@ static int load_latest_record(const xy_fota_metadata_flash_t *backend,
         }
     }
 
+    if (read_failed) {
+        return XY_FOTA_FLASH_ERROR;
+    }
     return found ? XY_FOTA_OK : XY_FOTA_NO_IMAGE;
 }
 
