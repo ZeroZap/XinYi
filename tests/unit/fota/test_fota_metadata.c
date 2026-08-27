@@ -142,6 +142,25 @@ static void test_boot_attempt_policy_rolls_back_after_bounded_failures(void)
     TEST_ASSERT_EQUAL_UINT32(3U, metadata.min_version);
 }
 
+static void test_boot_attempt_policy_does_not_wrap_counter(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    bool rollback_required = false;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_stage_candidate(&metadata, 1U, 4U));
+    metadata.boot_attempts = UINT8_MAX;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_record_boot_attempt(&metadata, UINT8_MAX,
+                                                               &rollback_required));
+    TEST_ASSERT_TRUE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT8(0U, metadata.boot_attempts);
+    TEST_ASSERT_EQUAL_UINT8(XY_FOTA_METADATA_NO_SLOT, metadata.pending_slot);
+    TEST_ASSERT_EQUAL_UINT32(0U, metadata.pending_version);
+    TEST_ASSERT_BITS_LOW(XY_FOTA_METADATA_FLAG_PENDING, metadata.flags);
+}
+
 static void test_boot_attempt_confirmation_advances_floor_and_clears_pending(void)
 {
     xy_fota_metadata_t metadata = initial_metadata();
@@ -457,6 +476,7 @@ int main(void)
     RUN_TEST(test_commit_refuses_to_overwrite_when_journal_scan_has_read_error);
     RUN_TEST(test_commit_cleans_target_when_readback_fails);
     RUN_TEST(test_boot_attempt_policy_rolls_back_after_bounded_failures);
+    RUN_TEST(test_boot_attempt_policy_does_not_wrap_counter);
     RUN_TEST(test_boot_attempt_confirmation_advances_floor_and_clears_pending);
     RUN_TEST(test_boot_attempt_policy_rejects_invalid_transitions);
     RUN_TEST(test_boot_callbacks_persist_handoff_and_confirmation);

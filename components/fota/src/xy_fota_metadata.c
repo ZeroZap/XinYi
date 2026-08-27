@@ -213,8 +213,12 @@ int xy_fota_metadata_record_boot_attempt(xy_fota_metadata_t *metadata, uint8_t m
         metadata->pending_slot == XY_FOTA_METADATA_NO_SLOT) {
         return XY_FOTA_NO_IMAGE;
     }
-    metadata->boot_attempts++;
-    *rollback_required = metadata->boot_attempts >= max_attempts;
+    if (metadata->boot_attempts >= max_attempts) {
+        *rollback_required = true;
+    } else {
+        metadata->boot_attempts++;
+        *rollback_required = metadata->boot_attempts >= max_attempts;
+    }
     if (*rollback_required) {
         metadata->pending_version = 0U;
         metadata->pending_slot = XY_FOTA_METADATA_NO_SLOT;
