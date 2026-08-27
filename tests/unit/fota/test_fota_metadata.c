@@ -177,6 +177,28 @@ static void test_boot_attempt_policy_does_not_wrap_counter(void)
     TEST_ASSERT_BITS_LOW(XY_FOTA_METADATA_FLAG_PENDING, metadata.flags);
 }
 
+static void test_staging_does_not_reset_an_existing_candidate_attempt_count(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t snapshot;
+    bool rollback_required = false;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_stage_candidate(&metadata, 1U, 4U));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_record_boot_attempt(&metadata, 3U,
+                                                               &rollback_required));
+    TEST_ASSERT_FALSE(rollback_required);
+    snapshot = metadata;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_IN_PROGRESS,
+                          xy_fota_metadata_stage_candidate(&metadata, 1U, 4U));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &metadata, sizeof(metadata));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_IN_PROGRESS,
+                          xy_fota_metadata_stage_candidate(&metadata, 1U, 5U));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &metadata, sizeof(metadata));
+}
+
 static void test_boot_attempt_confirmation_advances_floor_and_clears_pending(void)
 {
     xy_fota_metadata_t metadata = initial_metadata();
@@ -604,6 +626,7 @@ int main(void)
     RUN_TEST(test_commit_cleans_target_when_readback_fails);
     RUN_TEST(test_boot_attempt_policy_rolls_back_after_bounded_failures);
     RUN_TEST(test_boot_attempt_policy_does_not_wrap_counter);
+    RUN_TEST(test_staging_does_not_reset_an_existing_candidate_attempt_count);
     RUN_TEST(test_boot_attempt_confirmation_advances_floor_and_clears_pending);
     RUN_TEST(test_boot_attempt_policy_rejects_invalid_transitions);
     RUN_TEST(test_boot_callbacks_persist_handoff_and_confirmation);

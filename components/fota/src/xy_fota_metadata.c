@@ -239,6 +239,9 @@ int xy_fota_metadata_stage_candidate(xy_fota_metadata_t *metadata, uint8_t slot,
         slot == metadata->active_slot || version == 0U) {
         return XY_FOTA_INVALID_PARAM;
     }
+    if ((metadata->flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U) {
+        return XY_FOTA_IN_PROGRESS;
+    }
     if (version < metadata->min_version) {
         return XY_FOTA_VERSION_ERROR;
     }
