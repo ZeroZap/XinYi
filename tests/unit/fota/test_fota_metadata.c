@@ -550,6 +550,43 @@ static void test_ambiguous_generation_order_fails_closed(void)
     TEST_ASSERT_EQUAL_MEMORY(snapshot, g_storage, sizeof(snapshot));
 }
 
+static void test_conflicting_equal_generations_fail_closed(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t loaded = {
+        .generation = 0xA5A5A5A5U,
+        .active_version = 0x5A5A5A5AU,
+    };
+    metadata_record_fixture_t *second;
+    uint8_t snapshot[STORAGE_SIZE];
+    uint32_t erase_calls;
+    uint32_t write_calls;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    memcpy(&g_storage[ERASE_SIZE], &g_storage[0], sizeof(metadata_record_fixture_t));
+    second = (metadata_record_fixture_t *)&g_storage[ERASE_SIZE];
+    second->active_version = 4U;
+    second->min_version = 4U;
+    second->active_slot = 1U;
+    second->crc32 = xy_fota_calc_crc32((const uint8_t *)second,
+                                       (uint32_t)offsetof(metadata_record_fixture_t, crc32));
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR,
+                          xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, loaded.generation);
+    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, loaded.active_version);
+
+    memcpy(snapshot, g_storage, sizeof(snapshot));
+    erase_calls = g_erase_calls;
+    write_calls = g_write_calls;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_UINT32(erase_calls, g_erase_calls);
+    TEST_ASSERT_EQUAL_UINT32(write_calls, g_write_calls);
+    TEST_ASSERT_EQUAL_MEMORY(snapshot, g_storage, sizeof(snapshot));
+}
+
 static void test_corrupt_newest_copy_falls_back_to_previous_generation(void)
 {
     xy_fota_metadata_t metadata = initial_metadata();
@@ -665,6 +702,7 @@ int main(void)
     RUN_TEST(test_metadata_commit_roundtrip_and_generation);
     RUN_TEST(test_partial_write_preserves_previous_committed_record);
     RUN_TEST(test_ambiguous_generation_order_fails_closed);
+    RUN_TEST(test_conflicting_equal_generations_fail_closed);
     RUN_TEST(test_corrupt_newest_copy_falls_back_to_previous_generation);
     RUN_TEST(test_semantically_invalid_newest_copy_falls_back_to_previous_generation);
     RUN_TEST(test_load_reports_flash_error_when_no_copy_can_be_read);

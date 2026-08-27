@@ -67,6 +67,13 @@ static bool generation_order_is_ambiguous(uint32_t first, uint32_t second)
     return first != second && first - second == 0x80000000U;
 }
 
+static bool records_have_equal_generation_but_different_state(
+    const xy_fota_metadata_record_t *first, const xy_fota_metadata_record_t *second)
+{
+    return first->generation == second->generation &&
+           memcmp(first, second, offsetof(xy_fota_metadata_record_t, crc32)) != 0;
+}
+
 static bool generation_is_newer(uint32_t candidate, uint32_t current)
 {
     return (int32_t)(candidate - current) > 0;
@@ -141,7 +148,9 @@ static int load_latest_record(const xy_fota_metadata_flash_t *backend,
         if (!record_is_valid(&record)) {
             continue;
         }
-        if (found && generation_order_is_ambiguous(record.generation, latest->generation)) {
+        if (found &&
+            (generation_order_is_ambiguous(record.generation, latest->generation) ||
+             records_have_equal_generation_but_different_state(&record, latest))) {
             return XY_FOTA_FLASH_ERROR;
         }
         if (!found || generation_is_newer(record.generation, latest->generation)) {
