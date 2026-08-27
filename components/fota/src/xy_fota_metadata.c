@@ -62,6 +62,11 @@ static bool record_is_valid(const xy_fota_metadata_record_t *record)
                                      record->pending_slot, record->boot_attempts, record->flags);
 }
 
+static bool generation_order_is_ambiguous(uint32_t first, uint32_t second)
+{
+    return first != second && first - second == 0x80000000U;
+}
+
 static bool generation_is_newer(uint32_t candidate, uint32_t current)
 {
     return (int32_t)(candidate - current) > 0;
@@ -135,6 +140,9 @@ static int load_latest_record(const xy_fota_metadata_flash_t *backend,
         }
         if (!record_is_valid(&record)) {
             continue;
+        }
+        if (found && generation_order_is_ambiguous(record.generation, latest->generation)) {
+            return XY_FOTA_FLASH_ERROR;
         }
         if (!found || generation_is_newer(record.generation, latest->generation)) {
             *latest = record;

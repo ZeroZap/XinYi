@@ -348,3 +348,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：已有 pending candidate 时，`xy_fota_metadata_stage_candidate()` 在修改状态前统一返回 `XY_FOTA_IN_PROGRESS`；同版本与不同版本的重复 stage 都保持 pending metadata 与 attempt count 不变。
 - 验证：focused `fota_metadata` 1/1、Host 185/185、PC Release root、FOTA-enabled `xy_fota` target、Arm GNU Cortex-M33 `-Wall -Wextra -Werror -fsyntax-only` 与 `git diff --check` 通过。以上仍仅为 Host/源级 contract，不构成真实 bootloader、Flash 掉电、安全或实板批准。
 - 剩余：board-owned internal-Flash ops/保留区、真实 bootloader 调用、完整 STM32U5 link/image、掉电矩阵与 B1/B2。
+
+### 2026-08-27 Sprint 3 FOTA ambiguous generation ordering guard
+
+- RED：构造两份 CRC/commit marker 与 payload 均有效、generation 恰好相差 `2^31` 的 journal records 后，focused `fota_metadata` 仍按 slot 扫描顺序选择其中一份并返回成功；RFC1982 风格的串号比较在该距离没有唯一新旧顺序。
+- 实现：journal scan 显式识别两份有效 record 的 generation 半范围歧义并返回 `XY_FOTA_FLASH_ERROR`；load 不修改调用方输出，commit 也不会在无法可靠确定 inactive slot 时擦写 Flash。
+- 验证：focused `fota_metadata` 1/1（内部 19/19）、Host 185/185、PC Release root、FOTA-enabled `xy_fota` target、Arm GNU 15.2 Cortex-M33 对 metadata 与 STM32U5 FOTA main 的 `-Wall -Wextra -Werror -fsyntax-only`、`git diff --check` 均通过。PC root 仍有既存 warning，本 slice 未新增。以上仍仅为 Host/源级 contract，不构成真实 bootloader、Flash 掉电、安全或实板批准。
+- 剩余：board-owned internal-Flash ops/保留区、真实 bootloader 调用、完整 STM32U5 link/image、真实掉电矩阵与 B1/B2。
