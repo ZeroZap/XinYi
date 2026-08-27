@@ -8,8 +8,9 @@ bootloader、Secure FOTA、掉电恢复或实板验证证据。
 `main.c` 只证明公开 FOTA API 可由 Cortex-M33/STM32U5 项目消费：
 
 - 双槽地址与 anti-rollback 最低版本配置；
-- 显式注册 boot handoff 与 image confirmation callback；
-- 默认 board callback 返回 `XY_FOTA_NOT_SUPPORTED`，不会伪造持久化成功。
+- 启动阶段先验证 metadata backend 的 read/write/erase、擦除粒度和地址范围；
+- 只有 backend 校验通过后才注册 boot handoff 与 image confirmation callback；
+- 默认 `.ops = NULL`，因此 skeleton 在进入事件循环前返回 `XY_FOTA_INVALID_PARAM`，不会暴露一个“ready”但无法持久化的更新入口。
 
 以下能力仍必须由具体参考板/bootloader 提供后才能执行升级：
 

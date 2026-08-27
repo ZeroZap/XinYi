@@ -59,6 +59,12 @@ int main(void)
         return ret;
     }
 
+    ret = xy_fota_metadata_flash_validate(&metadata_backend);
+    if (ret != XY_FOTA_OK) {
+        printf("FOTA metadata backend unavailable: %d\n", ret);
+        return ret;
+    }
+
     ret = xy_fota_set_boot_handoff(&fota, board_boot_handoff, &metadata_backend);
     if (ret != XY_FOTA_OK) {
         printf("FOTA handoff registration failed: %d\n", ret);

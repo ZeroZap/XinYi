@@ -41,6 +41,8 @@ typedef struct {
  * Returns XY_FOTA_NO_IMAGE when neither copy is valid. Corrupt or partially
  * written copies are ignored rather than promoted to boot state.
  */
+int xy_fota_metadata_flash_validate(const xy_fota_metadata_flash_t *backend);
+
 int xy_fota_metadata_flash_load(const xy_fota_metadata_flash_t *backend,
                                 xy_fota_metadata_t *metadata);
 

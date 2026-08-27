@@ -166,6 +166,11 @@ static int load_latest_record(const xy_fota_metadata_flash_t *backend,
     return found ? XY_FOTA_OK : XY_FOTA_NO_IMAGE;
 }
 
+int xy_fota_metadata_flash_validate(const xy_fota_metadata_flash_t *backend)
+{
+    return validate_backend(backend);
+}
+
 int xy_fota_metadata_flash_load(const xy_fota_metadata_flash_t *backend,
                                 xy_fota_metadata_t *metadata)
 {

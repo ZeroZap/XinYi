@@ -382,6 +382,9 @@ static void test_metadata_guards_and_empty_flash_fail_closed(void)
     xy_fota_metadata_t metadata = initial_metadata();
     xy_fota_metadata_flash_t invalid_backend = backend;
 
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_validate(&backend));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM, xy_fota_metadata_flash_validate(NULL));
+
     TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
                           xy_fota_metadata_flash_load(NULL, &metadata));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,

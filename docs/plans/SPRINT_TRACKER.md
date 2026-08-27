@@ -361,3 +361,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：两份有效 record generation 相等但受 CRC 保护的状态字段不一致时，journal scan 返回 `XY_FOTA_FLASH_ERROR`；load 保持调用方输出，commit 不擦写 Flash。完全相同的冗余副本仍可读取。
 - 验证：focused `fota_metadata` 1/1（内部 20/20）、Host 185/185、PC Release root、FOTA-enabled `xy_fota` target、Arm GNU Cortex-M33 metadata `-Wall -Wextra -Werror -fsyntax-only` 与 `git diff --check` 通过；clang-format 当前环境不可用。以上仅为 Host/源级 split-brain contract，不构成真实 bootloader、Flash 掉电、安全或实板批准。
 - 剩余：board-owned internal-Flash ops/保留区、真实 bootloader 调用、完整 STM32U5 link/image、真实掉电矩阵与 B1/B2。
+
+### 2026-08-28 Sprint 3 STM32U5 metadata backend startup gate
+
+- RED：focused `fota_metadata` 在调用预期的 `xy_fota_metadata_flash_validate()` 时编译警告并链接失败，证明项目骨架无法在注册 callback/进入事件循环前显式验证 board backend；默认 `.ops = NULL` 的 skeleton 仍打印 ready。
+- 实现：公开复用 journal backend validation；STM32U5 skeleton 在注册 handoff/confirm callback 前校验 read/write/erase、erase size 与地址范围，默认未绑定 backend 时返回错误而不是宣称 ready。README 同步说明 fail-closed 启动边界。
+- 验证：focused `fota_metadata` 1/1、Host 185/185、PC Release root、FOTA-enabled `xy_fota` target、Arm GNU 15.2 Cortex-M33 对 metadata 与 STM32U5 FOTA main 的 `-Wall -Wextra -Werror -fsyntax-only`、`git diff --check` 均通过。以上仅证明 Host contract 与源级项目 gate，不构成完整 STM32U5 link/image、真实 Flash、bootloader runtime 或实板证据。
+- 剩余：board-owned internal-Flash ops/保留区、真实 bootloader 调用、完整 STM32U5 link/image、真实掉电矩阵与 B1/B2。
