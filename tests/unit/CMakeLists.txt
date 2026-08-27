@@ -66,13 +66,17 @@ set(UNIT_SUPPORT ${CMAKE_CURRENT_SOURCE_DIR}/support)
 set(UNIT_SYS ${CMAKE_CURRENT_SOURCE_DIR}/sys)
 set(UNIT_TRACE ${CMAKE_CURRENT_SOURCE_DIR}/trace)
 
-# --- Policy guards: HAL evidence stays explicit and fail-closed ---
+# --- Policy guards: evidence and source ownership stay explicit and fail-closed ---
 add_test(NAME stm32u5_hal_hardware_record
     COMMAND python3 ${UNIT_HAL}/check_stm32u5_hal_hardware_record.py
     WORKING_DIRECTORY ${ROOT}
 )
 add_test(NAME hal_platform_evidence_matrix
     COMMAND python3 ${UNIT_HAL}/check_hal_platform_evidence_matrix.py
+    WORKING_DIRECTORY ${ROOT}
+)
+add_test(NAME sensor_active_source_manifest
+    COMMAND python3 ${UNIT_SENSOR}/check_sensor_active_source_manifest.py
     WORKING_DIRECTORY ${ROOT}
 )
 

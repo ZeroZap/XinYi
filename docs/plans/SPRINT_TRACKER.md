@@ -113,13 +113,14 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S3-02 | P0 | Signature provider 边界与 Secure FOTA fail-closed | DONE | Zero | S3-01（DONE） | Secure FOTA 不再调用 format-only ECDSA placeholder；缺 provider、provider 拒绝（含错误 key ID）、回滚版本及截断包均 fail-closed；focused 1/1、Host 184/184、PC root/FOTA target build、`git diff --check` 通过；不升级安全批准 | `12cdb5f6` | 2026-08-26 |
 | S3-03 | P0 | SHA-256/HMAC 单算法重建试点 | DONE | Zero | S3-01（DONE） | RED 证明 zero-length `NULL` 输入被错误拒绝；实现后 SHA-256/HMAC focused 2/2、Host 184/184、PC root 与 Crypto-enabled `xy_tiny_crypto` target build、`git diff --check` 通过；补充 SHA-256 context 与 HMAC working-key/pad volatile clearing。仍缺 provenance、独立审计、target compile、side-channel 与硬件证据 | `dc47807c` | 2026-08-26 |
 | S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | boot handoff/delta/mark-valid 均 fail-closed；双副本 metadata journal 持久化 generation+CRC+commit marker、pending version/slot 与 boot-attempt count；handoff/confirm/boot-attempt callback 均执行 load→状态转换→commit，boot-attempt 只有持久化成功才向 bootloader 返回 rollback 决策，提交失败不推进 durable count；已有 pending candidate 时重复 handoff/stage 返回 `XY_FOTA_IN_PROGRESS` 且不重置 attempt count，避免重复请求绕过 bounded rollback；饱和/损坏的 `uint8_t` attempt count 不再 wrap 后错误继续启动；journal 扫描遇到任一 Flash read 错误即 fail-closed，不把 unreadable copy 当作 empty/corrupt 后继续覆盖；两份有效副本 generation 半范围歧义或相同 generation 却 payload 冲突时均拒绝选择，不依赖 slot 顺序静默提升；提交后的 read-back 失败会擦除目标副本；commit/load 及公开 stage/attempt/confirm 状态转换均校验 slot/flags/pending、`active_version >= min_version`，非法内存状态不被推进；backend 地址范围也在任何 Flash I/O 前校验，避免双槽地址计算发生 `uint32_t` wrap；STM32U5 skeleton 在 callback 注册前验证 backend，默认未绑定 Flash ops 时 fail-closed。FOTA focused 4/4、Host 185/185、PC root、FOTA-enabled `xy_fota` target、Arm M33 syntax probe、`git diff --check` 通过。尚缺 board-owned Flash ops/保留区、可链接 STM32U5 image、bootloader 实际调用与实板 | `54d8b735`～`b832a7ae` | 2026-08-28 |
+| S4-01 | P0 | Sensor active-source manifest 与三轨 ownership 冻结 | DONE | Zero | S3-04 的 board-owned 集成阻塞不影响治理子项 | manifest 明确 55 个 `legacy-active-root`、23 个 `experimental-test-only` 与 4 个 `device-active-root`；policy CTest 防止 test-local source 被误报为 root product source，并冻结第四套生命周期；focused policy + SHT30/multi 3/3、Host 186/186、PC root build、`git diff --check` 通过；不升级硬件声明 | 本轮提交 | 2026-08-28 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
 | Sprint 1 | 2 周 | GUI backend 错误传播、strict backend、字体与单一显示纵切 | Sprint 0 门禁可信 | IN_PROGRESS |
 | Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | [HAL 平台实现与证据矩阵](../validation/hal-platform-evidence-matrix.md)已建立；Host 前置推进中，HIL 夹具仍缺 | IN_PROGRESS（Host 前置）/BLOCKED（实板） |
 | Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 产品算法清单与 signature provider 边界已完成 | IN_PROGRESS（FOTA 去模拟化；非安全批准前置） |
-| Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | canonical Sensor API 决策 | BACKLOG |
+| Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | active-source manifest 已建立；逐芯片 canonical owner 迁移待执行 | IN_PROGRESS（Sensor ownership 前置）/BLOCKED（实板） |
 | Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | reference RTOS/board 决策 | BACKLOG |
 | Sprint 6 | 1–2 周 | Release Candidate | 目标平台 HIL、安全边界和发布门禁达标 | BLOCKED |
 
@@ -375,3 +376,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 推送：累计 3 个已验证提交已 fast-forward 推送；本地 `HEAD`、tracking ref 与远端 `main` 均为 `b832a7ae71ddbebe4ed5e86b8bac817900ee6789`，ahead/behind `0/0`。
 - 边界：该同步与文档校准不增加 STM32U5 link/image、真实 Flash、bootloader runtime、掉电、安全或实板证据。
 - 下一步：在参考板 owner 提供 Flash 保留区与 ops 前，S3-04 保持 `IN_PROGRESS`；不以继续扩张 Host metadata policy 代替 board-owned 集成。
+
+### 2026-08-28 Sprint 4 Sensor ownership 前置
+
+- RED：新增 policy probe 首次执行因缺 `sensor-active-source-manifest.md` 失败，证明三轨 ownership 只有审计描述、没有受检事实源。
+- 完成：建立 active-source manifest，固定 55 个 legacy root sources、23 个 test-local experimental sources 与 4 个 Device-model root sources；明确 Host 测试不等于根产品链接，并禁止第四套生命周期。
+- 验证：focused `sensor_active_source_manifest`、`sht30_integration`、`sensors_multi` 3/3；Host 全量与 PC root gate；`git diff --check`。以上仅为 source ownership/Host 证据，不构成 Sensor 精度、时序、校准或实板批准。
+- 下一步：以 SHT30 为首个迁移候选，先判定 legacy/new/Device 三份实现的唯一 canonical owner 与 compatibility wrapper，再做单一实现链接闭环；不新增传感器型号。
