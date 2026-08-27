@@ -329,6 +329,44 @@ static void test_metadata_guards_and_empty_flash_fail_closed(void)
                           xy_fota_metadata_flash_load(&backend, &metadata));
 }
 
+static void test_metadata_commit_rejects_inconsistent_boot_state(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+
+    metadata.active_slot = 2U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_erase_calls);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_write_calls);
+
+    metadata = initial_metadata();
+    metadata.pending_slot = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+
+    metadata = initial_metadata();
+    metadata.flags = XY_FOTA_METADATA_FLAG_PENDING;
+    metadata.pending_slot = 0U;
+    metadata.pending_version = 4U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+
+    metadata.pending_slot = 1U;
+    metadata.pending_version = 2U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+
+    metadata = initial_metadata();
+    metadata.flags = (uint8_t)(XY_FOTA_METADATA_FLAG_PENDING | (1U << 7));
+    metadata.pending_slot = 1U;
+    metadata.pending_version = 4U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+
+    TEST_ASSERT_EQUAL_UINT32(0U, g_erase_calls);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_write_calls);
+}
+
 static void test_metadata_commit_roundtrip_and_generation(void)
 {
     xy_fota_metadata_t metadata = initial_metadata();
@@ -349,6 +387,7 @@ static void test_metadata_commit_roundtrip_and_generation(void)
     metadata.min_version = 4U;
     metadata.active_slot = 1U;
     metadata.pending_slot = 0U;
+    metadata.pending_version = 5U;
     metadata.flags = XY_FOTA_METADATA_FLAG_PENDING;
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
                           xy_fota_metadata_flash_commit(&backend, &metadata, &committed));
@@ -469,6 +508,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_metadata_guards_and_empty_flash_fail_closed);
+    RUN_TEST(test_metadata_commit_rejects_inconsistent_boot_state);
     RUN_TEST(test_metadata_commit_roundtrip_and_generation);
     RUN_TEST(test_partial_write_preserves_previous_committed_record);
     RUN_TEST(test_corrupt_newest_copy_falls_back_to_previous_generation);

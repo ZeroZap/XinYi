@@ -52,6 +52,29 @@ static int validate_backend(const xy_fota_metadata_flash_t *backend)
     return XY_FOTA_OK;
 }
 
+static int validate_metadata(const xy_fota_metadata_t *metadata)
+{
+    bool pending;
+
+    if (!metadata || metadata->active_slot > 1U ||
+        (metadata->flags & (uint8_t)~XY_FOTA_METADATA_FLAG_PENDING) != 0U) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    pending = (metadata->flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U;
+    if (pending) {
+        if (metadata->pending_slot > 1U || metadata->pending_slot == metadata->active_slot ||
+            metadata->pending_version == 0U || metadata->pending_version < metadata->min_version) {
+            return XY_FOTA_INVALID_PARAM;
+        }
+    } else if (metadata->pending_slot != XY_FOTA_METADATA_NO_SLOT ||
+               metadata->pending_version != 0U || metadata->boot_attempts != 0U) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    return XY_FOTA_OK;
+}
+
 static int read_record(const xy_fota_metadata_flash_t *backend, uint32_t slot,
                        xy_fota_metadata_record_t *record)
 {
@@ -136,7 +159,7 @@ int xy_fota_metadata_flash_commit(const xy_fota_metadata_flash_t *backend,
     uint32_t target_addr;
     int ret;
 
-    if (!metadata || validate_backend(backend) != XY_FOTA_OK) {
+    if (validate_metadata(metadata) != XY_FOTA_OK || validate_backend(backend) != XY_FOTA_OK) {
         return XY_FOTA_INVALID_PARAM;
     }
 
