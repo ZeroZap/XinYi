@@ -112,7 +112,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S3-01 | P0 | Crypto 产品算法清单 | DONE | Zero | Sprint 0 证据边界（DONE） | 11 个算法区域已记录 product classification、implementation owner、source origin、license status、side-channel target、allowed usage、runtime/focused sources 与 review record；policy RED 后 focused 5/5、Host 183/183、PC root build、`git diff --check` 通过；SM2/ECDSA 强制 `security-rejected`，无安全批准升级 | `fdce5449` | 2026-08-26 |
 | S3-02 | P0 | Signature provider 边界与 Secure FOTA fail-closed | DONE | Zero | S3-01（DONE） | Secure FOTA 不再调用 format-only ECDSA placeholder；缺 provider、provider 拒绝（含错误 key ID）、回滚版本及截断包均 fail-closed；focused 1/1、Host 184/184、PC root/FOTA target build、`git diff --check` 通过；不升级安全批准 | `12cdb5f6` | 2026-08-26 |
 | S3-03 | P0 | SHA-256/HMAC 单算法重建试点 | DONE | Zero | S3-01（DONE） | RED 证明 zero-length `NULL` 输入被错误拒绝；实现后 SHA-256/HMAC focused 2/2、Host 184/184、PC root 与 Crypto-enabled `xy_tiny_crypto` target build、`git diff --check` 通过；补充 SHA-256 context 与 HMAC working-key/pad volatile clearing。仍缺 provenance、独立审计、target compile、side-channel 与硬件证据 | `dc47807c` | 2026-08-26 |
-| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | boot handoff/delta/mark-valid 均 fail-closed；双副本 metadata journal 持久化 generation+CRC+commit marker、pending version/slot 与 boot-attempt count；handoff/confirm/boot-attempt callback 均执行 load→状态转换→commit，boot-attempt 只有持久化成功才向 bootloader 返回 rollback 决策，提交失败不推进 durable count；journal 扫描遇到任一 Flash read 错误即 fail-closed，不把 unreadable copy 当作 empty/corrupt 后继续覆盖。FOTA focused 4/4、Host 185/185、PC root、FOTA-enabled `xy_fota` target、Arm M33 syntax probe、`git diff --check` 通过。尚缺 board-owned Flash ops/保留区、可链接 STM32U5 image、bootloader 实际调用与实板 | `54d8b735`～本轮提交 | 2026-08-27 |
+| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | boot handoff/delta/mark-valid 均 fail-closed；双副本 metadata journal 持久化 generation+CRC+commit marker、pending version/slot 与 boot-attempt count；handoff/confirm/boot-attempt callback 均执行 load→状态转换→commit，boot-attempt 只有持久化成功才向 bootloader 返回 rollback 决策，提交失败不推进 durable count；journal 扫描遇到任一 Flash read 错误即 fail-closed，不把 unreadable copy 当作 empty/corrupt 后继续覆盖；提交后的 read-back 失败会擦除目标副本，避免重启后提升未经验证的新记录。FOTA focused 4/4、Host 185/185、PC root、FOTA-enabled `xy_fota` target、Arm M33 syntax probe、`git diff --check` 通过。尚缺 board-owned Flash ops/保留区、可链接 STM32U5 image、bootloader 实际调用与实板 | `54d8b735`～本轮提交 | 2026-08-27 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -291,4 +291,11 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - RED：`fota_metadata` 注入 journal slot read failure 后，load 错误返回 `XY_FOTA_NO_IMAGE`，commit 仍擦除/写入目标槽，证明 I/O failure 被错误降级为 empty/corrupt record。
 - 实现：双槽扫描单独区分 invalid record 与 read failure；任一槽不可读即返回 `XY_FOTA_FLASH_ERROR`，load 保留调用方输出，commit 不 erase/write，上一 durable record 保持不变。
 - 验证：focused `fota_metadata` 1/1、Host 185/185、PC Release root、FOTA-enabled `xy_fota` target、Arm GNU Cortex-M33 `-Wall -Wextra -Werror -fsyntax-only` 与 `git diff --check`。以上仍不构成真实 Flash 掉电、bootloader runtime、安全或实板批准。
+- 剩余：board-owned internal-Flash ops/保留区、真实 bootloader 调用、完整 STM32U5 link/image、erase/write/read 各掉电边界矩阵与 B1/B2。
+
+### 2026-08-27 Sprint 3 FOTA metadata read-back cleanup
+
+- RED：提交 body 与 marker 后注入 read-back I/O failure，focused `fota_metadata` 观察到目标副本未被擦除；本次 API 虽返回 Flash error，但重启后仍可能把未经 read-back 验证的新 generation 识别为有效。
+- 实现：最终 read-back 失败、CRC/marker 无效或内容不一致时 best-effort 擦除目标 slot；上一 committed copy 继续作为 newest valid record。
+- 验证：focused `fota_metadata` 1/1、Host 185/185、PC Release root、FOTA-enabled `xy_fota` target、Arm GNU Cortex-M33 syntax probe 与 `git diff --check` 通过。以上仍不构成真实掉电、Flash 耐久性、bootloader runtime、安全或实板批准。
 - 剩余：board-owned internal-Flash ops/保留区、真实 bootloader 调用、完整 STM32U5 link/image、erase/write/read 各掉电边界矩阵与 B1/B2。

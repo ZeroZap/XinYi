@@ -177,6 +177,7 @@ int xy_fota_metadata_flash_commit(const xy_fota_metadata_flash_t *backend,
 
     if (read_record(backend, target_slot, &verify) != XY_FOTA_OK || !record_is_valid(&verify) ||
         memcmp(&record, &verify, sizeof(record)) != 0) {
+        (void)backend->ops->erase(target_addr, backend->erase_size);
         return XY_FOTA_FLASH_ERROR;
     }
 

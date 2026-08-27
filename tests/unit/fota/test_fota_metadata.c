@@ -423,6 +423,29 @@ static void test_commit_refuses_to_overwrite_when_journal_scan_has_read_error(vo
     TEST_ASSERT_EQUAL_UINT8(0U, loaded.active_slot);
 }
 
+static void test_commit_cleans_target_when_readback_fails(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t loaded = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+
+    metadata.active_version = 4U;
+    metadata.min_version = 4U;
+    metadata.active_slot = 1U;
+    g_fail_read_call = g_read_calls + 3U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_UINT32(3U, g_erase_calls);
+
+    g_fail_read_call = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT32(1U, loaded.generation);
+    TEST_ASSERT_EQUAL_UINT32(3U, loaded.active_version);
+    TEST_ASSERT_EQUAL_UINT8(0U, loaded.active_slot);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -432,6 +455,7 @@ int main(void)
     RUN_TEST(test_corrupt_newest_copy_falls_back_to_previous_generation);
     RUN_TEST(test_load_reports_flash_error_when_no_copy_can_be_read);
     RUN_TEST(test_commit_refuses_to_overwrite_when_journal_scan_has_read_error);
+    RUN_TEST(test_commit_cleans_target_when_readback_fails);
     RUN_TEST(test_boot_attempt_policy_rolls_back_after_bounded_failures);
     RUN_TEST(test_boot_attempt_confirmation_advances_floor_and_clears_pending);
     RUN_TEST(test_boot_attempt_policy_rejects_invalid_transitions);
