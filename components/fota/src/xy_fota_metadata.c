@@ -29,7 +29,8 @@ static bool metadata_fields_are_valid(uint32_t active_version, uint32_t min_vers
 {
     bool pending;
 
-    if (active_slot > 1U || (flags & (uint8_t)~XY_FOTA_METADATA_FLAG_PENDING) != 0U) {
+    if (active_slot > 1U || active_version < min_version ||
+        (flags & (uint8_t)~XY_FOTA_METADATA_FLAG_PENDING) != 0U) {
         return false;
     }
 

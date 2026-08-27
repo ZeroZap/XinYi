@@ -361,6 +361,11 @@ static void test_metadata_commit_rejects_inconsistent_boot_state(void)
                           xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
 
     metadata = initial_metadata();
+    metadata.min_version = metadata.active_version + 1U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+
+    metadata = initial_metadata();
     metadata.flags = XY_FOTA_METADATA_FLAG_PENDING;
     metadata.pending_slot = 0U;
     metadata.pending_version = 4U;
@@ -473,7 +478,7 @@ static void test_semantically_invalid_newest_copy_falls_back_to_previous_generat
                           xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
 
     newest = (metadata_record_fixture_t *)&g_storage[ERASE_SIZE];
-    newest->active_slot = 2U;
+    newest->min_version = newest->active_version + 1U;
     newest->crc32 = xy_fota_calc_crc32((const uint8_t *)newest,
                                        (uint32_t)offsetof(metadata_record_fixture_t, crc32));
 
