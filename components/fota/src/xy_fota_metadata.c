@@ -23,6 +23,26 @@ typedef struct {
     uint32_t committed;
 } xy_fota_metadata_record_t;
 
+static bool metadata_fields_are_valid(uint32_t active_version, uint32_t min_version,
+                                      uint32_t pending_version, uint8_t active_slot,
+                                      uint8_t pending_slot, uint8_t boot_attempts, uint8_t flags)
+{
+    bool pending;
+
+    if (active_slot > 1U || (flags & (uint8_t)~XY_FOTA_METADATA_FLAG_PENDING) != 0U) {
+        return false;
+    }
+
+    pending = (flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U;
+    if (pending) {
+        return pending_slot <= 1U && pending_slot != active_slot && pending_version != 0U &&
+               pending_version >= min_version;
+    }
+
+    return pending_slot == XY_FOTA_METADATA_NO_SLOT && pending_version == 0U &&
+           boot_attempts == 0U;
+}
+
 static bool record_is_valid(const xy_fota_metadata_record_t *record)
 {
     uint32_t expected_crc;
@@ -35,7 +55,10 @@ static bool record_is_valid(const xy_fota_metadata_record_t *record)
 
     expected_crc = xy_fota_calc_crc32((const uint8_t *)record,
                                       (uint32_t)offsetof(xy_fota_metadata_record_t, crc32));
-    return record->crc32 == expected_crc;
+    return record->crc32 == expected_crc &&
+           metadata_fields_are_valid(record->active_version, record->min_version,
+                                     record->pending_version, record->active_slot,
+                                     record->pending_slot, record->boot_attempts, record->flags);
 }
 
 static bool generation_is_newer(uint32_t candidate, uint32_t current)
@@ -54,21 +77,10 @@ static int validate_backend(const xy_fota_metadata_flash_t *backend)
 
 static int validate_metadata(const xy_fota_metadata_t *metadata)
 {
-    bool pending;
-
-    if (!metadata || metadata->active_slot > 1U ||
-        (metadata->flags & (uint8_t)~XY_FOTA_METADATA_FLAG_PENDING) != 0U) {
-        return XY_FOTA_INVALID_PARAM;
-    }
-
-    pending = (metadata->flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U;
-    if (pending) {
-        if (metadata->pending_slot > 1U || metadata->pending_slot == metadata->active_slot ||
-            metadata->pending_version == 0U || metadata->pending_version < metadata->min_version) {
-            return XY_FOTA_INVALID_PARAM;
-        }
-    } else if (metadata->pending_slot != XY_FOTA_METADATA_NO_SLOT ||
-               metadata->pending_version != 0U || metadata->boot_attempts != 0U) {
+    if (!metadata || !metadata_fields_are_valid(metadata->active_version, metadata->min_version,
+                                                 metadata->pending_version, metadata->active_slot,
+                                                 metadata->pending_slot, metadata->boot_attempts,
+                                                 metadata->flags)) {
         return XY_FOTA_INVALID_PARAM;
     }
 

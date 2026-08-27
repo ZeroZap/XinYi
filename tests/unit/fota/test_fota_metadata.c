@@ -1,6 +1,7 @@
 #include "xy_fota_metadata.h"
 #include "unity.h"
 
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -16,6 +17,21 @@ static uint32_t g_fail_read_call;
 static uint32_t g_read_calls;
 static uint32_t g_write_calls;
 static uint32_t g_erase_calls;
+
+typedef struct {
+    uint32_t magic;
+    uint32_t format_version;
+    uint32_t generation;
+    uint32_t active_version;
+    uint32_t min_version;
+    uint32_t pending_version;
+    uint8_t active_slot;
+    uint8_t pending_slot;
+    uint8_t boot_attempts;
+    uint8_t flags;
+    uint32_t crc32;
+    uint32_t committed;
+} metadata_record_fixture_t;
 
 static uint32_t storage_offset(uint32_t addr)
 {
@@ -442,6 +458,31 @@ static void test_corrupt_newest_copy_falls_back_to_previous_generation(void)
     TEST_ASSERT_EQUAL_UINT8(0U, loaded.active_slot);
 }
 
+static void test_semantically_invalid_newest_copy_falls_back_to_previous_generation(void)
+{
+    xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t loaded = {0};
+    metadata_record_fixture_t *newest;
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+    metadata.active_version = 4U;
+    metadata.min_version = 4U;
+    metadata.active_slot = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_metadata_flash_commit(&backend, &metadata, NULL));
+
+    newest = (metadata_record_fixture_t *)&g_storage[ERASE_SIZE];
+    newest->active_slot = 2U;
+    newest->crc32 = xy_fota_calc_crc32((const uint8_t *)newest,
+                                       (uint32_t)offsetof(metadata_record_fixture_t, crc32));
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_metadata_flash_load(&backend, &loaded));
+    TEST_ASSERT_EQUAL_UINT32(1U, loaded.generation);
+    TEST_ASSERT_EQUAL_UINT32(3U, loaded.active_version);
+    TEST_ASSERT_EQUAL_UINT8(0U, loaded.active_slot);
+}
+
 static void test_load_reports_flash_error_when_no_copy_can_be_read(void)
 {
     xy_fota_metadata_t loaded = {
@@ -512,6 +553,7 @@ int main(void)
     RUN_TEST(test_metadata_commit_roundtrip_and_generation);
     RUN_TEST(test_partial_write_preserves_previous_committed_record);
     RUN_TEST(test_corrupt_newest_copy_falls_back_to_previous_generation);
+    RUN_TEST(test_semantically_invalid_newest_copy_falls_back_to_previous_generation);
     RUN_TEST(test_load_reports_flash_error_when_no_copy_can_be_read);
     RUN_TEST(test_commit_refuses_to_overwrite_when_journal_scan_has_read_error);
     RUN_TEST(test_commit_cleans_target_when_readback_fails);
