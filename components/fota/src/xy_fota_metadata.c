@@ -235,7 +235,8 @@ int xy_fota_metadata_flash_commit(const xy_fota_metadata_flash_t *backend,
 int xy_fota_metadata_stage_candidate(xy_fota_metadata_t *metadata, uint8_t slot,
                                      uint32_t version)
 {
-    if (!metadata || slot > 1U || slot == metadata->active_slot || version == 0U) {
+    if (validate_metadata(metadata) != XY_FOTA_OK || slot > 1U ||
+        slot == metadata->active_slot || version == 0U) {
         return XY_FOTA_INVALID_PARAM;
     }
     if (version < metadata->min_version) {
@@ -251,7 +252,7 @@ int xy_fota_metadata_stage_candidate(xy_fota_metadata_t *metadata, uint8_t slot,
 int xy_fota_metadata_record_boot_attempt(xy_fota_metadata_t *metadata, uint8_t max_attempts,
                                          bool *rollback_required)
 {
-    if (!metadata || !rollback_required || max_attempts == 0U) {
+    if (!rollback_required || max_attempts == 0U || validate_metadata(metadata) != XY_FOTA_OK) {
         return XY_FOTA_INVALID_PARAM;
     }
     if ((metadata->flags & XY_FOTA_METADATA_FLAG_PENDING) == 0U ||
@@ -275,7 +276,7 @@ int xy_fota_metadata_record_boot_attempt(xy_fota_metadata_t *metadata, uint8_t m
 
 int xy_fota_metadata_confirm_candidate(xy_fota_metadata_t *metadata)
 {
-    if (!metadata) {
+    if (validate_metadata(metadata) != XY_FOTA_OK) {
         return XY_FOTA_INVALID_PARAM;
     }
     if ((metadata->flags & XY_FOTA_METADATA_FLAG_PENDING) == 0U ||

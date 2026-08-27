@@ -201,6 +201,7 @@ static void test_boot_attempt_confirmation_advances_floor_and_clears_pending(voi
 static void test_boot_attempt_policy_rejects_invalid_transitions(void)
 {
     xy_fota_metadata_t metadata = initial_metadata();
+    xy_fota_metadata_t snapshot;
     bool rollback_required = false;
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
@@ -217,6 +218,34 @@ static void test_boot_attempt_policy_rejects_invalid_transitions(void)
     TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
                           xy_fota_metadata_record_boot_attempt(&metadata, 0U,
                                                                &rollback_required));
+
+    metadata = initial_metadata();
+    metadata.active_slot = 2U;
+    snapshot = metadata;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_stage_candidate(&metadata, 1U, 4U));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &metadata, sizeof(metadata));
+
+    metadata = initial_metadata();
+    metadata.flags = XY_FOTA_METADATA_FLAG_PENDING;
+    metadata.pending_slot = 1U;
+    metadata.pending_version = 4U;
+    metadata.active_version = metadata.min_version - 1U;
+    snapshot = metadata;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_record_boot_attempt(&metadata, 3U,
+                                                               &rollback_required));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &metadata, sizeof(metadata));
+
+    metadata = initial_metadata();
+    metadata.flags = XY_FOTA_METADATA_FLAG_PENDING;
+    metadata.pending_slot = 1U;
+    metadata.pending_version = 4U;
+    metadata.flags |= (uint8_t)(1U << 7);
+    snapshot = metadata;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_confirm_candidate(&metadata));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &metadata, sizeof(metadata));
 }
 
 static void test_boot_callbacks_persist_handoff_and_confirmation(void)
