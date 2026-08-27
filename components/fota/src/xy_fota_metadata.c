@@ -69,8 +69,17 @@ static bool generation_is_newer(uint32_t candidate, uint32_t current)
 
 static int validate_backend(const xy_fota_metadata_flash_t *backend)
 {
+    uint32_t last_slot_offset;
+
     if (!backend || !backend->ops || !backend->ops->read || !backend->ops->write ||
         !backend->ops->erase || backend->erase_size < sizeof(xy_fota_metadata_record_t)) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+
+    last_slot_offset = (XY_FOTA_METADATA_SLOT_COUNT - 1U) * backend->erase_size;
+    if (backend->base_addr > UINT32_MAX - last_slot_offset ||
+        backend->base_addr + last_slot_offset >
+            UINT32_MAX - (uint32_t)sizeof(xy_fota_metadata_record_t)) {
         return XY_FOTA_INVALID_PARAM;
     }
     return XY_FOTA_OK;

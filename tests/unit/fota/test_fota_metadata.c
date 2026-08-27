@@ -341,6 +341,17 @@ static void test_metadata_guards_and_empty_flash_fail_closed(void)
     invalid_backend.erase_size = 1U;
     TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
                           xy_fota_metadata_flash_commit(&invalid_backend, &metadata, NULL));
+
+    invalid_backend = backend;
+    invalid_backend.base_addr = UINT32_MAX - ERASE_SIZE + 1U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_flash_load(&invalid_backend, &metadata));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_metadata_flash_commit(&invalid_backend, &metadata, NULL));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_read_calls);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_erase_calls);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_write_calls);
+
     TEST_ASSERT_EQUAL_INT(XY_FOTA_NO_IMAGE,
                           xy_fota_metadata_flash_load(&backend, &metadata));
 }
