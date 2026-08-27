@@ -44,5 +44,6 @@ bootloader 或固件镜像，因此不得标记为可烧录或硬件通过。
 
 FOTA component 现提供 `xy_fota_metadata_flash_*` 双副本 journal 作为可复用的 Host-guarded
 metadata backend；它使用 generation、CRC 与 commit marker，并在 newest copy partial/corrupt 时
-回退到上一有效记录。该 backend 尚未接入本项目的 board callbacks，也未经过 STM32U5 Flash
-擦写粒度、耐久性或实板掉电验证。
+回退到上一有效记录。本 skeleton 已将该 backend context 接到 handoff、confirmation 与 boot-attempt
+callbacks，并在启动时执行 fail-closed 校验；但默认 Flash ops/保留区仍未绑定，也未经过 STM32U5
+Flash 擦写粒度、耐久性或实板掉电验证。
