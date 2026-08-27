@@ -13,23 +13,48 @@
 #define SHT30_CMD_MEASURE       0x2C06
 #define SHT30_CMD_SOFT_RESET    0x30A2
 
+static uint8_t sht30_crc8(const uint8_t *data, size_t len)
+{
+    uint8_t crc = 0xFFU;
+
+    for (size_t i = 0; i < len; ++i) {
+        crc ^= data[i];
+        for (uint8_t bit = 0; bit < 8U; ++bit) {
+            crc = (crc & 0x80U) ? (uint8_t)((crc << 1) ^ 0x31U) : (uint8_t)(crc << 1);
+        }
+    }
+
+    return crc;
+}
+
 int xy_sht30_init(xy_sht30_t *sht, void *i2c_handle)
 {
+    int result;
+
     if (!sht || !i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    
+
     memset(sht, 0, sizeof(*sht));
-    xy_i2c_device_init(&sht->i2c_dev, i2c_handle, 0x44, 1000);
-    
+    result = xy_i2c_device_init(&sht->i2c_dev, i2c_handle, 0x44, 1000);
+    if (result != XY_DEVICE_OK) {
+        return result;
+    }
+
     /* Soft reset */
     uint8_t reset_cmd[2] = {0x30, 0xA2};
-    return xy_i2c_device_write(&sht->i2c_dev, reset_cmd, 2);
+    result = xy_i2c_device_write(&sht->i2c_dev, reset_cmd, 2);
+    if (result < 0) {
+        sht->i2c_dev.base.initialized = false;
+        return result;
+    }
+
+    return XY_DEVICE_OK;
 }
 
 int xy_sht30_read(xy_sht30_t *sht)
 {
-    if (!sht) {
+    if (!sht || !sht->i2c_dev.base.initialized) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -49,7 +74,11 @@ int xy_sht30_read(xy_sht30_t *sht)
     if (result < 0) {
         return result;
     }
-    
+
+    if (sht30_crc8(buffer, 2U) != buffer[2] || sht30_crc8(&buffer[3], 2U) != buffer[5]) {
+        return XY_DEVICE_IO_ERROR;
+    }
+
     /* Parse temperature */
     uint16_t temp_raw = (buffer[0] << 8) | buffer[1];
     sht->temperature = (int16_t)((int32_t)temp_raw * 17500 / 65535 - 4500);

@@ -181,6 +181,12 @@ xy_add_unit_test(test_sht30_integration sht30_integration UNITY
     ${FRAMEWORK_SOURCES}
 )
 
+# --- Test 2b: canonical SHT30 Device-driver transaction contract ---
+xy_add_unit_test(test_sht30_device sensor_sht30_device UNITY
+    ${UNIT_SENSOR}/test_sht30_device.c
+    ${DRV}/sensor/temperature/sht30/xy_sht30.c
+)
+
 # --- Test 3: heterogeneous sensor coexistence ---
 xy_add_unit_test(test_sensors_multi sensors_multi UNITY
     ${UNIT_SENSOR}/test_sensors_multi.c

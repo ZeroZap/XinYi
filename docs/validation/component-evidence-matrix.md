@@ -42,7 +42,7 @@
 | Storage/24xx | H1（page split、I2C error propagation、re-init recovery） | PC build | pending | pending | fake-I2C Device→Driver 契约；失败事务不假成功且不进入 write delay | 写保护、write-cycle polling、掉电 B2 |
 | Sensor legacy | H1 | PC build；[active-source manifest](sensor-active-source-manifest.md) 记录 55 个 root sources | pending | pending | `legacy-active-root` 当前根库 Host 契约；冻结新增型号 | 逐芯片 compatibility wrapper + 代表芯片 B1/B2 |
 | Sensor new `xy_*` | H1（独立测试） | [manifest](sensor-active-source-manifest.md) 记录 23 个 `experimental-test-only` sources，未进入根 Sensor target | pending | pending | 仅 test-local Host 实验实现；不得因 focused test 宣称 product-linked | SHT30/MPU6050/ADS1115 ownership 迁移试点 |
-| Drivers Sensor | H1（少量） | PC build；[manifest](sensor-active-source-manifest.md) 记录 SHT30/MPU6050/BMP280/ADS1115 四个 `device-active-root` sources | pending | pending | Device-model canonical migration destination | 首个芯片去 duplicate lifecycle + B1/B2 |
+| Drivers Sensor | H1（少量；SHT30 Device driver 已覆盖 init/reset I/O、CRC、输出保持与未初始化 guard） | PC build；[manifest](sensor-active-source-manifest.md) 记录 SHT30/MPU6050/BMP280/ADS1115 四个 `device-active-root` sources | pending | pending | Device-model canonical migration destination；SHT30 Host transaction contract 不等于 duplicate lifecycle 已移除 | SHT30 compatibility wrapper/唯一 owner 收口 + B1/B2 |
 | Actuator | H1 | PC build | pending | safety pending | Host 框架可用 | Device adapter + PWM/GPIO B1/B2 |
 | Fuel Gauge | H1 | PC build | pending | AES passthrough rejected/pending | Host 驱动契约 | AES fail-closed；SMBus B1/B2 |
 | Charger | H1（单芯片） | PC build | pending | safety pending | legacy/迁移状态 | ownership 决策；充电/热故障 B1/B2 |
