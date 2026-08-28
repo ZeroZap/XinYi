@@ -52,7 +52,7 @@
 | Trace | H1 | PC build | pending | throughput pending | Host weak sink/format contract | UART/RTT/ITM、并发和丢日志策略 |
 | IPC | H1 | Q1 间接/部分 | pending | concurrency pending | 单线程/Host 契约可用 | RTOS 并发/ISR stress |
 | SYS | H1（timer/SM；默认系统 API fail-closed） | PC build | pending | n/a | timer/state-machine Host 契约；无 board backend 时 reset/identity/version 查询明确返回 unsupported 且保留输出 | reset/bootreason/chip ID strong backend + B1/B2 |
-| DM | H1（8 目标；FS lifecycle/path/I/O/error contract，coreJSON parser/search，active `xy_json` parse/mutation/malformed-input contract） | PC build | pending | durability pending | Host 数据格式、FS abstraction、active JSON 与 NVM 契约 | 掉电/布局恢复 B2 |
+| DM | H1（8 目标；FS lifecycle/path/I/O/error contract，coreJSON parser/search，active `xy_json` parse/mutation/malformed-input contract；NVM newest-complete/restart/torn-append recovery） | PC build | [DM 掉电记录](xinyi-dm-power-loss-validation-record.md)当前为 `HOST_INTERRUPTION_GUARDED`，真实 Flash/board pending | durability pending | Host 数据格式、FS abstraction、active JSON 与 NVM restart/corruption 契约 | erase/write 全边界注入、layout migration 与真实 Flash B2 |
 | PM | H1 | PC build | pending | power pending | Host framework/fallback | sleep/wakeup/ADC/charger GPIO 功耗记录 |
 | Crypto | H1（契约；SHA-256/HMAC zero-length 与工作状态清理） | C1 部分；本轮仅 PC Crypto target compile | pending | product-classification/owner/origin/license/side-channel/allowed-use 清单已机器守护；provenance 均 review-pending；SM2/ECDSA rejected | contract-guarded；SHA-256/HMAC 已补 API/error/memory-hygiene Host contract，但 production-candidate 仍不等于安全、constant-time、provenance、MCU 或性能批准 | SHA-256/HMAC 外部 provenance/license、独立审计、target compile、fuzz/side-channel；reviewed signature provider |
 | GUI | H1（backend 错误传播；SDL fake + real-library headless contract；字体 source-table review；licensed required-UI subset active） | PC build；SDL2 opt-in 缺依赖 fail-closed；canonical CI 用真实 SDL2 headers/library 编译链接 backend，并以 dummy video driver 实跑 window/renderer/texture/fill/flush/event/deinit；fake seam 覆盖错误路径 | pending | legacy 字体视觉 `rejected-needs-regeneration` 且 provenance pending；OFL-1.1 Noto Sans CJK SC 的 15 个 required UI glyph 已按 pinned Host snapshot 接入 active 16x16 table，但尚未视觉/实板批准；performance pending | Host GUI/font/backend contract；SDL headless runtime 仅为 PC runtime evidence，不是人工视觉、性能或屏幕硬件证据；required UI subset 为 distinct/nonblank active table；其余 legacy 16x24/中文 placeholder 不得作为最终产品字体 | 人工视觉审查；替换其余 legacy table；屏幕 B1/P1 |
@@ -77,7 +77,7 @@
 
 - [x] `docs/validation/xinyi-stm32u5-hal-hardware-validation-record.md`（2026-08-25 已建立；当前 `BLOCKED_NO_HARDWARE`，有 focused policy guard，未产生实板通过证据）
 - [x] `docs/validation/xinyi-display-hardware-validation-record.md`（2026-08-25 已建立；当前 `BLOCKED_NO_HARDWARE`，未产生实板通过证据）
-- [ ] `docs/validation/xinyi-dm-power-loss-validation-record.md`
+- [x] `docs/validation/xinyi-dm-power-loss-validation-record.md`（2026-08-28 已建立；当前仅 `HOST_INTERRUPTION_GUARDED`，不构成真实 Flash/板级掉电证据）
 - [x] `docs/release/known-limitations.md`
 - [ ] `docs/release/release-checklist.md`
 

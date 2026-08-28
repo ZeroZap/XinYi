@@ -71,6 +71,47 @@ static void test_set_get_delete_roundtrip(void)
     printf("  [PASS] set/get/delete roundtrip\n");
 }
 
+static void test_restart_recovers_last_complete_value(void)
+{
+    xy_nvm_t nvm = make_nvm();
+    const uint8_t first[] = {0x11, 0x22, 0x33, 0x44};
+    const uint8_t second[] = {0xAA, 0xBB, 0xCC, 0xDD};
+
+    TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_set(&nvm, 9, first, sizeof(first)));
+    TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_set(&nvm, 9, second, sizeof(second)));
+
+    xy_nvm_t restarted;
+    xy_nvm_config_t cfg = {
+        .flash_base = flash_area,
+        .page_size = 64,
+        .num_pages = 4,
+    };
+    TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&restarted, &cfg));
+
+    xy_nvm_result_t result = xy_nvm_get(&restarted, 9);
+    TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
+    TEST_ASSERT_EQUAL_UINT16((uint16_t)sizeof(second), result.len);
+    TEST_ASSERT_EQUAL_MEMORY(second, result.data, sizeof(second));
+
+    /* Simulate a torn append: recognizable header with an incomplete payload. */
+    flash_area[32] = 0x55;
+    flash_area[33] = 0xAA;
+    flash_area[34] = 0x55;
+    flash_area[35] = 0xAA;
+    flash_area[36] = 9;
+    flash_area[37] = 0xFF;
+    flash_area[38] = 4;
+    flash_area[39] = 0;
+    flash_area[40] = 0;
+
+    TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&restarted, &cfg));
+    result = xy_nvm_get(&restarted, 9);
+    TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
+    TEST_ASSERT_EQUAL_MEMORY(second, result.data, sizeof(second));
+
+    printf("  [PASS] restart recovery keeps last complete value\n");
+}
+
 static void test_typed_helpers(void)
 {
     xy_nvm_t nvm = make_nvm();
@@ -149,6 +190,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_validation);
     RUN_TEST(test_set_get_delete_roundtrip);
+    RUN_TEST(test_restart_recovers_last_complete_value);
     RUN_TEST(test_typed_helpers);
     RUN_TEST(test_capacity_stats_and_format);
     RUN_TEST(test_invalid_lengths_and_full);

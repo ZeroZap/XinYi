@@ -119,6 +119,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-04 | P1 | MPU6050 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 range/calibration/converted-output/error-preservation contract；删除 duplicate test-local source/header；focused `sensor_mpu6050`、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `bb5863d7` | 2026-08-28 |
 | S4-05 | P1 | DM FS focused contract | DONE | Zero | S4-04（DONE） | RED：未注册 FS mount 空指针崩溃；新增 lifecycle/path/I/O/seek/close-error focused contract，修复未注册 mount、deinit/close 错误传播与 seek 边界；focused 1/1、Host 187/187、PC root/`xy_dm` 与 `git diff --check` 通过 | `fa0a8044` | 2026-08-28 |
 | S4-06 | P1 | DM active `xy_json` focused contract | DONE | Zero | S4-05（DONE） | RED：trailing/incomplete JSON、非法 number token 被接受且重复 key 形成 duplicate member；新增 dedicated parse/mutation/guard contract，修复完整输入消费、字符串终止、严格 number grammar、重复 key replacement 与 realloc fail-closed；focused 1/1、Host 188/188、PC root/`xy_dm` 与 `git diff --check` 通过 | `9b64f4fb` | 2026-08-28 |
+| S4-07 | P1 | DM NVM restart/torn-append recovery | DONE | Zero | S4-06（DONE） | RED：同 key append 两个完整版本后 re-init 读取旧值；改为扫描并选择 newest complete record，checksum-invalid torn append 不覆盖上一完整值；建立 fail-closed 掉电记录；focused 1/1、Host 188/188、PC root/`xy_dm` 与 `git diff --check` 通过 | 本轮提交 | 2026-08-28 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -425,3 +426,11 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 推送：默认 GitHub SSH 端点超时；改用官方 SSH-over-443 URL 后完成 fast-forward push。推送后本地与远端 `main` 均为 `0439c8619fad0a4fc6f9d99ff87d5f9727973075`，ahead/behind `0/0`。
 - 边界：本轮只校准远端备份和 Sprint 事实，不新增 Host、target、持久性或实板证据。
 - 下一步：按 S4-3 建立 DM power-loss fail-closed record，并以可注入 interruption 的 NVM/Flash recovery 最小 slice 启动 RED→GREEN。
+
+### 2026-08-28 Sprint 4 DM NVM restart recovery
+
+- RED：同一 key 顺序写入两个完整值并重新初始化后，`xy_nvm_get()` 返回首个旧值，证明 append-only 更新没有 newest-record recovery 语义。
+- 实现：查找过程继续扫描并选择最后一个 checksum-valid/enabled record；Host fixture 在第三个 append 位置注入 header 可识别但 checksum 不完整的 torn record，重启后仍读取最后一个完整值。
+- 记录：建立 `xinyi-dm-power-loss-validation-record.md`，当前严格分类为 `HOST_INTERRUPTION_GUARDED`；erase/write 全边界、layout migration、真实 Flash 掉电与耐久性仍 pending。
+- 验证：focused `dm_nvm` 1/1、Host 188/188、PC Release root、`xy_dm` target 与 `git diff --check` 通过；clang-format 当前环境不可用。以上不构成真实 Flash、板级掉电、性能或耐久性证据。
+- 下一步：为 NVM 引入可注入 Flash backend，逐步覆盖 header/data 写入失败与 erase interruption；之后再做 layout migration，避免把 Host byte-array seam 当作 B2。

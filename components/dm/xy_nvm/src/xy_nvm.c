@@ -105,6 +105,7 @@ static uintptr_t find_kv_addr(xy_nvm_t *nvm, uint8_t key_id)
 {
     uintptr_t addr = (uintptr_t)nvm->config.flash_base;
     uintptr_t end_addr = addr + (uintptr_t)nvm->config.page_size * nvm->config.num_pages;
+    uintptr_t latest_addr = 0;
     
     while (addr < end_addr) {
         kv_header_t hdr;
@@ -130,7 +131,7 @@ static uintptr_t find_kv_addr(xy_nvm_t *nvm, uint8_t key_id)
         
         /* 检查键 ID 和使能 */
         if (hdr.key_id == key_id && hdr.is_en == 0xFF) {
-            return addr;
+            latest_addr = addr;
         }
         
         /* 移动到下一个 KV */
@@ -140,7 +141,7 @@ static uintptr_t find_kv_addr(xy_nvm_t *nvm, uint8_t key_id)
         }
     }
     
-    return 0;
+    return latest_addr;
 }
 
 /**
