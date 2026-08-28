@@ -241,19 +241,24 @@ xy_nvm_status_t xy_nvm_set(xy_nvm_t *nvm, uint8_t key_id,
             if (status != XY_NVM_OK) {
                 return status;
             }
-            
+
             /* 写入数据部分 */
             status = storage_write(nvm, addr + KV_HEAD_SIZE, data, len);
             if (status != XY_NVM_OK) {
                 return status;
             }
-            
+
             return XY_NVM_OK;
         }
-        
-        /* 跳过已用空间 */
+
+        /* 跳过完整记录；按 4 字节扫描无法解释的 torn header。 */
+        if (existing.head != KV_HEAD_MAGIC) {
+            addr += 4U;
+            continue;
+        }
         if (existing.len > XY_NVM_MAX_DATA_LEN || addr + KV_HEAD_SIZE + existing.len > end_addr) {
-            return XY_NVM_ERROR_FULL;
+            addr += KV_HEAD_SIZE;
+            continue;
         }
 
         addr += KV_HEAD_SIZE + existing.len;

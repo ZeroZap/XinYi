@@ -26,6 +26,7 @@ void xy_log_char(char ch)
 static uint8_t flash_area[256];
 static size_t backend_write_calls;
 static size_t backend_fail_write_call;
+static size_t backend_partial_write_bytes;
 
 static xy_nvm_status_t backend_read(void *context, size_t offset, void *buf, size_t len)
 {
@@ -37,6 +38,8 @@ static xy_nvm_status_t backend_write(void *context, size_t offset, const void *b
 {
     backend_write_calls++;
     if (backend_write_calls == backend_fail_write_call) {
+        size_t written = backend_partial_write_bytes < len ? backend_partial_write_bytes : len;
+        memcpy((uint8_t *)context + offset, buf, written);
         return XY_NVM_ERROR;
     }
     memcpy((uint8_t *)context + offset, buf, len);
@@ -176,6 +179,7 @@ static void test_backend_write_interruption_preserves_last_complete_value(void)
     memset(flash_area, 0xFF, sizeof(flash_area));
     backend_write_calls = 0;
     backend_fail_write_call = 0;
+    backend_partial_write_bytes = 0;
     xy_nvm_config_t cfg = {
         .flash_base = flash_area,
         .page_size = 64,
@@ -205,6 +209,52 @@ static void test_backend_write_interruption_preserves_last_complete_value(void)
     result = xy_nvm_get(&restarted, 12);
     TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
     TEST_ASSERT_EQUAL_MEMORY(stable, result.data, sizeof(stable));
+}
+
+static void test_partial_program_interruption_allows_restart_and_retry(void)
+{
+    const uint8_t stable[] = {0x11, 0x22};
+    const uint8_t replacement[] = {0xAA, 0xBB};
+    xy_nvm_config_t cfg = {
+        .flash_base = flash_area,
+        .page_size = 64,
+        .num_pages = 4,
+        .storage_ops = &backend_ops,
+        .storage_context = flash_area,
+    };
+
+    for (size_t failed_call = 1U; failed_call <= 2U; failed_call++) {
+        size_t write_size = failed_call == 1U ? 12U : sizeof(replacement);
+        for (size_t partial = 0U; partial < write_size; partial++) {
+            memset(flash_area, 0xFF, sizeof(flash_area));
+            backend_write_calls = 0U;
+            backend_fail_write_call = 0U;
+            backend_partial_write_bytes = 0U;
+
+            xy_nvm_t nvm;
+            TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&nvm, &cfg));
+            TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_set(&nvm, 12, stable, sizeof(stable)));
+
+            backend_fail_write_call = backend_write_calls + failed_call;
+            backend_partial_write_bytes = partial;
+            TEST_ASSERT_EQUAL(XY_NVM_ERROR,
+                              xy_nvm_set(&nvm, 12, replacement, sizeof(replacement)));
+
+            xy_nvm_t restarted;
+            TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&restarted, &cfg));
+            xy_nvm_result_t result = xy_nvm_get(&restarted, 12);
+            TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
+            TEST_ASSERT_EQUAL_MEMORY(stable, result.data, sizeof(stable));
+
+            backend_fail_write_call = 0U;
+            backend_partial_write_bytes = 0U;
+            TEST_ASSERT_EQUAL(XY_NVM_OK,
+                              xy_nvm_set(&restarted, 12, replacement, sizeof(replacement)));
+            result = xy_nvm_get(&restarted, 12);
+            TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
+            TEST_ASSERT_EQUAL_MEMORY(replacement, result.data, sizeof(replacement));
+        }
+    }
 }
 
 static void test_capacity_stats_and_format(void)
@@ -258,6 +308,7 @@ int main(void)
     RUN_TEST(test_set_get_delete_roundtrip);
     RUN_TEST(test_restart_recovers_last_complete_value);
     RUN_TEST(test_backend_write_interruption_preserves_last_complete_value);
+    RUN_TEST(test_partial_program_interruption_allows_restart_and_retry);
     RUN_TEST(test_typed_helpers);
     RUN_TEST(test_capacity_stats_and_format);
     RUN_TEST(test_invalid_lengths_and_full);
