@@ -418,3 +418,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：parser 现在要求完整消费输入、拒绝未终止字符串与非法 JSON number grammar；同名 object set 原子替换旧 member；array/object mutation 的 realloc 失败返回 `XY_JSON_ERROR_NO_MEMORY` 而不覆盖 owner pointer。
 - 验证：focused `dm_json` 1/1、Host 188/188、PC Release root、`xy_dm` target 与 `git diff --check` 通过。以上仅为 Host/PC parser contract，不构成掉电、持久化、资源上限或实板证据。
 - 下一步：建立 DM power-loss fail-closed record，并为 NVM/Flash recovery 增加可注入 interruption 的最小 slice。
+
+### 2026-08-28 Sprint 4 远端备份校准
+
+- 校准：本轮开始本地 `main` 领先 `origin/main` 4 个已验证提交（`fa0a8044`、`6b06e06e`、`9b64f4fb`、`0439c861`），工作树无未提交改动。
+- 推送：默认 GitHub SSH 端点超时；改用官方 SSH-over-443 URL 后完成 fast-forward push。推送后本地与远端 `main` 均为 `0439c8619fad0a4fc6f9d99ff87d5f9727973075`，ahead/behind `0/0`。
+- 边界：本轮只校准远端备份和 Sprint 事实，不新增 Host、target、持久性或实板证据。
+- 下一步：按 S4-3 建立 DM power-loss fail-closed record，并以可注入 interruption 的 NVM/Flash recovery 最小 slice 启动 RED→GREEN。
