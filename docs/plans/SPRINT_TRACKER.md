@@ -117,6 +117,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-02 | P1 | SHT30 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 为单一实现 owner；root `sensor_sht30.c` 改为 compatibility-only 委托，保留 0x44 API 并支持 0x45；focused 3/3、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `10543486`～`a60ee6de` | 2026-08-28 |
 | S4-03 | P1 | ADS1115 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 channel/diff/PGA/data-rate/voltage/error/output-preservation contract；删除 duplicate test-local source/header；focused 3/3、Host 186/186、PC root/`sensor_component`/`xy_adc` 与 `git diff --check` 通过；不升级硬件声明 | `f317cb11` | 2026-08-28 |
 | S4-04 | P1 | MPU6050 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 range/calibration/converted-output/error-preservation contract；删除 duplicate test-local source/header；focused `sensor_mpu6050`、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `bb5863d7` | 2026-08-28 |
+| S4-05 | P1 | DM FS focused contract | DONE | Zero | S4-04（DONE） | RED：未注册 FS mount 空指针崩溃；新增 lifecycle/path/I/O/seek/close-error focused contract，修复未注册 mount、deinit/close 错误传播与 seek 边界；focused 1/1、Host 187/187、PC root/`xy_dm` 与 `git diff --check` 通过 | `fa0a8044` | 2026-08-28 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -402,3 +403,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：将 range、校准、物理量转换与 I/O 输出保持 contract 合并到唯一 Device owner；默认 0x68 init 保持兼容，显式地址入口支持 0x69；init/deinit/range/calibration I/O 失败 fail-closed；删除 test-local duplicate，并由 root `sensor_component` 显式链接 canonical source。
 - 验证：focused `sensor_mpu6050` 1/1；Host 186/186；PC Release root 与 `sensor_component`；`git diff --check`。既存 Sensor strict-aliasing/unused warning 未由本 slice 引入；不构成 IMU 精度、校准质量、总线恢复或实板证据。
 - 下一步：评估 BMP280 是否仍有 duplicate lifecycle，或转入 S4-3 DM FS/JSON focused test；不新增 Sensor 型号。
+
+### 2026-08-28 Sprint 4 DM FS focused contract
+
+- RED：新 `dm_fs` focused test 对未注册、`ops == NULL` 的 FS 调用 mount 时稳定触发空指针崩溃；随后覆盖 deinit/close error、非法 seek、整文件 I/O 与跨 drive rename。
+- 实现：mount/unmount/read/write/seek/tell 增加结构完整性 guard；unmount 不再吞 deinit 错误；整文件 helper 传播 read/write/close 错误并拒绝短写，失败时不提交 `actual`。
+- 验证：focused `dm_fs` 1/1、Host 187/187、PC Release root、`xy_dm` target 与 `git diff --check` 通过。以上仅为 Host/PC FS abstraction contract，不构成 Flash/NOR 掉电、磨损、布局恢复或实板证据。
+- 下一步：为 active `xy_json` 补 dedicated focused test；之后建立 DM power-loss fail-closed record 与可注入 interruption 的 NVM/Flash recovery slice。
