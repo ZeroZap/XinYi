@@ -67,6 +67,35 @@ static const xy_nvm_storage_ops_t backend_ops = {
     .erase = backend_erase,
 };
 
+#define LEGACY_KV_HEAD_MAGIC 0xAA55AA55UL
+
+typedef struct {
+    uint32_t head;
+    uint8_t key_id;
+    uint8_t is_en;
+    uint16_t len;
+    uint8_t sum;
+    uint8_t reserved[3];
+} legacy_kv_header_t;
+
+static void write_legacy_record(size_t offset, uint8_t key_id, const uint8_t *data, uint16_t len)
+{
+    legacy_kv_header_t header = {
+        .head = LEGACY_KV_HEAD_MAGIC,
+        .key_id = key_id,
+        .is_en = 0xFF,
+        .len = len,
+        .reserved = {0xFF, 0xFF, 0xFF},
+    };
+    uint16_t sum = header.key_id + header.is_en + header.len;
+    for (uint16_t i = 0; i < len; i++) {
+        sum += data[i];
+    }
+    header.sum = (uint8_t)sum;
+    memcpy(flash_area + offset, &header, sizeof(header));
+    memcpy(flash_area + offset + sizeof(header), data, len);
+}
+
 static xy_nvm_t make_nvm(void)
 {
     memset(flash_area, 0xFF, sizeof(flash_area));
@@ -152,6 +181,37 @@ static void test_restart_recovers_last_complete_value(void)
     TEST_ASSERT_EQUAL_MEMORY(second, result.data, sizeof(second));
 
     printf("  [PASS] restart recovery keeps last complete value\n");
+}
+
+static void test_layout_migration_reads_legacy_and_appends_current_records(void)
+{
+    const uint8_t legacy[] = {0x10, 0x20, 0x30, 0x40};
+    const uint8_t current[] = {0xA1, 0xB2, 0xC3, 0xD4};
+    memset(flash_area, 0xFF, sizeof(flash_area));
+    write_legacy_record(0U, 21U, legacy, sizeof(legacy));
+
+    xy_nvm_config_t cfg = {
+        .flash_base = flash_area,
+        .page_size = 64,
+        .num_pages = 4,
+    };
+    xy_nvm_t nvm;
+    TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&nvm, &cfg));
+
+    xy_nvm_result_t result = xy_nvm_get(&nvm, 21U);
+    TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
+    TEST_ASSERT_EQUAL_MEMORY(legacy, result.data, sizeof(legacy));
+
+    TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_set(&nvm, 21U, current, sizeof(current)));
+    uint32_t appended_magic = 0U;
+    memcpy(&appended_magic, flash_area + 16U, sizeof(appended_magic));
+    TEST_ASSERT_NOT_EQUAL(LEGACY_KV_HEAD_MAGIC, appended_magic);
+
+    xy_nvm_t restarted;
+    TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&restarted, &cfg));
+    result = xy_nvm_get(&restarted, 21U);
+    TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
+    TEST_ASSERT_EQUAL_MEMORY(current, result.data, sizeof(current));
 }
 
 static void test_typed_helpers(void)
@@ -364,6 +424,7 @@ int main(void)
     RUN_TEST(test_init_validation);
     RUN_TEST(test_set_get_delete_roundtrip);
     RUN_TEST(test_restart_recovers_last_complete_value);
+    RUN_TEST(test_layout_migration_reads_legacy_and_appends_current_records);
     RUN_TEST(test_backend_write_interruption_preserves_last_complete_value);
     RUN_TEST(test_partial_program_interruption_allows_restart_and_retry);
     RUN_TEST(test_typed_helpers);

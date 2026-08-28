@@ -23,8 +23,15 @@ typedef struct {
     uint8_t sum;        // 校验和
 } kv_header_t;
 
-#define KV_HEAD_MAGIC   0xAA55AA55
+#define KV_HEAD_MAGIC_V1 0xAA55AA55UL
+#define KV_HEAD_MAGIC_V2 0xAA55AA56UL
+#define KV_HEAD_MAGIC    KV_HEAD_MAGIC_V2
 #define KV_HEAD_SIZE    ((uintptr_t)sizeof(kv_header_t))
+
+static bool is_known_head(uint32_t head)
+{
+    return head == KV_HEAD_MAGIC_V1 || head == KV_HEAD_MAGIC_V2;
+}
 
 /**
  * @brief 计算校验和
@@ -130,7 +137,7 @@ static uintptr_t find_kv_addr(xy_nvm_t *nvm, uint8_t key_id)
         }
 
         /* 检查头标志 */
-        if (hdr.head != KV_HEAD_MAGIC) {
+        if (!is_known_head(hdr.head)) {
             addr += 4;
             continue;
         }
@@ -252,7 +259,7 @@ xy_nvm_status_t xy_nvm_set(xy_nvm_t *nvm, uint8_t key_id,
         }
 
         /* 跳过完整记录；按 4 字节扫描无法解释的 torn header。 */
-        if (existing.head != KV_HEAD_MAGIC) {
+        if (!is_known_head(existing.head)) {
             addr += 4U;
             continue;
         }
