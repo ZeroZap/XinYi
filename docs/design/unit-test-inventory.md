@@ -101,6 +101,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/dm/test_dm_factory.c` | `unity` | 1 |
 | `tests/unit/dm/test_dm_fee.c` | `unity` | 12 |
 | `tests/unit/dm/test_dm_fs.c` | `unity` | 0 | FS lifecycle, path dispatch, I/O, seek and close-error contracts |
+| `tests/unit/dm/test_dm_json.c` | `unity` | 0 | active `xy_json` parse, mutation, malformed-input and guard contracts |
 | `tests/unit/dm/test_dm_nvm_core.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_tlv.c` | `unity` | 0 |
 | `tests/unit/fota/test_fota_core.c` | `unity` | 15 |

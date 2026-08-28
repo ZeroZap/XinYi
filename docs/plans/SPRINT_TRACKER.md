@@ -118,6 +118,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-03 | P1 | ADS1115 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 channel/diff/PGA/data-rate/voltage/error/output-preservation contract；删除 duplicate test-local source/header；focused 3/3、Host 186/186、PC root/`sensor_component`/`xy_adc` 与 `git diff --check` 通过；不升级硬件声明 | `f317cb11` | 2026-08-28 |
 | S4-04 | P1 | MPU6050 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 range/calibration/converted-output/error-preservation contract；删除 duplicate test-local source/header；focused `sensor_mpu6050`、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `bb5863d7` | 2026-08-28 |
 | S4-05 | P1 | DM FS focused contract | DONE | Zero | S4-04（DONE） | RED：未注册 FS mount 空指针崩溃；新增 lifecycle/path/I/O/seek/close-error focused contract，修复未注册 mount、deinit/close 错误传播与 seek 边界；focused 1/1、Host 187/187、PC root/`xy_dm` 与 `git diff --check` 通过 | `fa0a8044` | 2026-08-28 |
+| S4-06 | P1 | DM active `xy_json` focused contract | DONE | Zero | S4-05（DONE） | RED：trailing/incomplete JSON、非法 number token 被接受且重复 key 形成 duplicate member；新增 dedicated parse/mutation/guard contract，修复完整输入消费、字符串终止、严格 number grammar、重复 key replacement 与 realloc fail-closed；focused 1/1、Host 188/188、PC root/`xy_dm` 与 `git diff --check` 通过 | `9b64f4fb` | 2026-08-28 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -410,3 +411,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：mount/unmount/read/write/seek/tell 增加结构完整性 guard；unmount 不再吞 deinit 错误；整文件 helper 传播 read/write/close 错误并拒绝短写，失败时不提交 `actual`。
 - 验证：focused `dm_fs` 1/1、Host 187/187、PC Release root、`xy_dm` target 与 `git diff --check` 通过。以上仅为 Host/PC FS abstraction contract，不构成 Flash/NOR 掉电、磨损、布局恢复或实板证据。
 - 下一步：为 active `xy_json` 补 dedicated focused test；之后建立 DM power-loss fail-closed record 与可注入 interruption 的 NVM/Flash recovery slice。
+
+### 2026-08-28 Sprint 4 DM active JSON focused contract
+
+- RED：新 `dm_json` focused test 证明 active `xy_json` 接受 trailing/incomplete document、非法 number token，且同名 object set 追加 duplicate member。
+- 实现：parser 现在要求完整消费输入、拒绝未终止字符串与非法 JSON number grammar；同名 object set 原子替换旧 member；array/object mutation 的 realloc 失败返回 `XY_JSON_ERROR_NO_MEMORY` 而不覆盖 owner pointer。
+- 验证：focused `dm_json` 1/1、Host 188/188、PC Release root、`xy_dm` target 与 `git diff --check` 通过。以上仅为 Host/PC parser contract，不构成掉电、持久化、资源上限或实板证据。
+- 下一步：建立 DM power-loss fail-closed record，并为 NVM/Flash recovery 增加可注入 interruption 的最小 slice。
