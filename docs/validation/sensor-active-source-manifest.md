@@ -26,7 +26,7 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 21 | `experimental-test-only`; no product-root claim | selected MPU6050/BMP280 and other driver contracts | `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 20 | `experimental-test-only`; no product-root claim | selected BMP280 and other driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 4 | `device-active-root`; canonical migration destination | SHT30 integration, transaction/CRC/error contract, and heterogeneous four-driver test | `hardware-pending` |
 
 The Device-model root set is currently exactly:
@@ -72,6 +72,16 @@ rate, voltage, I/O error, and output-preservation contracts. The duplicate test-
 `components/sensor/src/xy_ads1115.c` implementation and header were removed, and the existing
 focused ADC/power-monitor target now compiles the Device owner directly. This remains Host/PC source
 ownership evidence only; conversion accuracy, timing, recovery, and board support remain pending.
+
+### MPU6050 migration status
+
+The Device-model source is the single canonical implementation and is explicitly linked into the
+root `sensor_component`. It absorbs the richer range, calibration, converted-output and I/O failure
+contracts from the former test-local implementation while preserving the existing default-address
+initializer for Device consumers. The focused MPU6050 target now compiles this owner directly, and
+the duplicate `components/sensor/src/xy_mpu6050.c` implementation and header were removed. This is
+Host/PC ownership evidence only; IMU accuracy, calibration quality, timing and board recovery remain
+pending.
 
 ## Guard and update rule
 

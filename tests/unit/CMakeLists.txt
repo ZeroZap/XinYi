@@ -1047,10 +1047,10 @@ target_link_libraries(test_coulomb PRIVATE m)
 
 xy_add_unit_test(test_mpu6050 sensor_mpu6050 UNITY
     ${UNIT_SENSOR}/test_mpu6050.c
-    ${SENSOR}/src/xy_mpu6050.c
+    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
 )
 target_include_directories(test_mpu6050 BEFORE PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/motion/mpu6050
     ${HAL}/inc
     ${KERNEL}/osal
 )

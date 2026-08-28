@@ -34,6 +34,7 @@ file(GLOB SENSOR_DRIVERS "${CMAKE_CURRENT_LIST_DIR}/sensors/sensor_*.c")
 list(APPEND SENSOR_DRIVERS
     "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/sht30/xy_sht30.c"
     "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/adc/ads1115/xy_ads1115.c"
+    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/mpu6050/xy_mpu6050.c"
 )
 list(APPEND SENSOR_SOURCES ${SENSOR_DRIVERS})
 
@@ -44,7 +45,10 @@ target_include_directories(sensor_component PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../device/inc
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/sht30
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/adc/ads1115
+    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/mpu6050
     ${CMAKE_CURRENT_LIST_DIR}/../hal/inc
     ${CMAKE_CURRENT_LIST_DIR}/../kernel/osal
+    ${CMAKE_CURRENT_LIST_DIR}/../trace/xy_log/inc
+    ${CMAKE_CURRENT_LIST_DIR}/../clib/xy_clib
 )
 target_link_libraries(sensor_component PUBLIC hardware_abstraction xy_device)

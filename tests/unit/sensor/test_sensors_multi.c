@@ -26,6 +26,12 @@ xy_os_status_t xy_os_delay(uint32_t ticks)
     return XY_OS_OK;
 }
 
+int xy_printf(const char *fmt, ...)
+{
+    (void)fmt;
+    return 0;
+}
+
 static int g_fake_bus = 1;
 static char g_extra_names[XY_DEVICE_REGISTRY_MAX][24];
 
