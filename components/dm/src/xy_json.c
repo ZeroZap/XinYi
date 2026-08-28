@@ -65,10 +65,20 @@ static char* parse_string_raw(xy_json_parser_t *parser)
     
     size_t start = parser->pos;
     while (parser->pos < parser->len && parser->json[parser->pos] != '"') {
+        if ((unsigned char)parser->json[parser->pos] < 0x20U) {
+            return NULL;
+        }
         if (parser->json[parser->pos] == '\\') {
             parser->pos++;
+            if (parser->pos >= parser->len) {
+                return NULL;
+            }
         }
         parser->pos++;
+    }
+
+    if (parser->pos >= parser->len) {
+        return NULL;
     }
     
     size_t len = parser->pos - start;
@@ -287,14 +297,56 @@ static xy_json_t* parse_value(xy_json_parser_t *parser)
         
         size_t start = parser->pos;
         if (c == '-') parser->pos++;
-        
-        while (parser->pos < parser->len) {
-            char ch = parser->json[parser->pos];
-            if ((ch >= '0' && ch <= '9') || ch == '.' || ch == 'e' || ch == 'E' || 
-                ch == '+' || ch == '-') {
+
+        if (parser->pos >= parser->len) {
+            free(json);
+            return NULL;
+        }
+        if (parser->json[parser->pos] == '0') {
+            parser->pos++;
+            if (parser->pos < parser->len && parser->json[parser->pos] >= '0' &&
+                parser->json[parser->pos] <= '9') {
+                free(json);
+                return NULL;
+            }
+        } else if (parser->json[parser->pos] >= '1' && parser->json[parser->pos] <= '9') {
+            while (parser->pos < parser->len && parser->json[parser->pos] >= '0' &&
+                   parser->json[parser->pos] <= '9') {
                 parser->pos++;
-            } else {
-                break;
+            }
+        } else {
+            free(json);
+            return NULL;
+        }
+
+        if (parser->pos < parser->len && parser->json[parser->pos] == '.') {
+            parser->pos++;
+            if (parser->pos >= parser->len || parser->json[parser->pos] < '0' ||
+                parser->json[parser->pos] > '9') {
+                free(json);
+                return NULL;
+            }
+            while (parser->pos < parser->len && parser->json[parser->pos] >= '0' &&
+                   parser->json[parser->pos] <= '9') {
+                parser->pos++;
+            }
+        }
+
+        if (parser->pos < parser->len &&
+            (parser->json[parser->pos] == 'e' || parser->json[parser->pos] == 'E')) {
+            parser->pos++;
+            if (parser->pos < parser->len &&
+                (parser->json[parser->pos] == '+' || parser->json[parser->pos] == '-')) {
+                parser->pos++;
+            }
+            if (parser->pos >= parser->len || parser->json[parser->pos] < '0' ||
+                parser->json[parser->pos] > '9') {
+                free(json);
+                return NULL;
+            }
+            while (parser->pos < parser->len && parser->json[parser->pos] >= '0' &&
+                   parser->json[parser->pos] <= '9') {
+                parser->pos++;
             }
         }
         
@@ -328,6 +380,11 @@ xy_json_t* xy_json_parse(const char *json_str)
     parser.len = strlen(json_str);
     
     xy_json_t *result = parse_value(&parser);
+    skip_whitespace(&parser);
+    if (result && parser.pos != parser.len) {
+        xy_json_free(result);
+        result = NULL;
+    }
     
     if (!result) {
         xy_log_e("JSON parse failed\n");
@@ -432,14 +489,30 @@ xy_json_status_t xy_json_object_set(xy_json_t *obj, const char *key, xy_json_t *
         return XY_JSON_ERROR_INVALID_PARAM;
     }
     
-    value->key = strdup(key);
-    
-    obj->value.object.count++;
-    obj->value.object.members = (xy_json_t **)realloc(
-        obj->value.object.members,
-        obj->value.object.count * sizeof(xy_json_t *)
-    );
-    obj->value.object.members[obj->value.object.count - 1] = value;
+    char *new_key = strdup(key);
+    if (!new_key) {
+        return XY_JSON_ERROR_NO_MEMORY;
+    }
+
+    for (uint16_t i = 0; i < obj->value.object.count; i++) {
+        xy_json_t *member = obj->value.object.members[i];
+        if (member && member->key && strcmp(member->key, key) == 0) {
+            value->key = new_key;
+            obj->value.object.members[i] = value;
+            xy_json_free(member);
+            return XY_JSON_OK;
+        }
+    }
+
+    xy_json_t **members = (xy_json_t **)realloc(
+        obj->value.object.members, (obj->value.object.count + 1U) * sizeof(xy_json_t *));
+    if (!members) {
+        free(new_key);
+        return XY_JSON_ERROR_NO_MEMORY;
+    }
+    value->key = new_key;
+    obj->value.object.members = members;
+    obj->value.object.members[obj->value.object.count++] = value;
     
     return XY_JSON_OK;
 }
@@ -516,12 +589,13 @@ xy_json_status_t xy_json_array_append(xy_json_t *arr, xy_json_t *value)
         return XY_JSON_ERROR_INVALID_PARAM;
     }
     
-    arr->value.array.count++;
-    arr->value.array.items = (xy_json_t **)realloc(
-        arr->value.array.items,
-        arr->value.array.count * sizeof(xy_json_t *)
-    );
-    arr->value.array.items[arr->value.array.count - 1] = value;
+    xy_json_t **items = (xy_json_t **)realloc(
+        arr->value.array.items, (arr->value.array.count + 1U) * sizeof(xy_json_t *));
+    if (!items) {
+        return XY_JSON_ERROR_NO_MEMORY;
+    }
+    arr->value.array.items = items;
+    arr->value.array.items[arr->value.array.count++] = value;
     
     return XY_JSON_OK;
 }
@@ -539,11 +613,13 @@ xy_json_status_t xy_json_array_insert(xy_json_t *arr, uint16_t index, xy_json_t 
         return XY_JSON_ERROR_INVALID_PARAM;
     }
     
+    xy_json_t **items = (xy_json_t **)realloc(
+        arr->value.array.items, (arr->value.array.count + 1U) * sizeof(xy_json_t *));
+    if (!items) {
+        return XY_JSON_ERROR_NO_MEMORY;
+    }
+    arr->value.array.items = items;
     arr->value.array.count++;
-    arr->value.array.items = (xy_json_t **)realloc(
-        arr->value.array.items,
-        arr->value.array.count * sizeof(xy_json_t *)
-    );
     
     /* 移动后续元素 */
     for (uint16_t i = arr->value.array.count - 1; i > index; i--) {

@@ -1375,6 +1375,18 @@ xy_add_unit_test(test_dm_fs dm_fs UNITY
 )
 target_include_directories(test_dm_fs PRIVATE ${DM}/inc)
 
+# --- Test 29f: DM xy_json parser and mutation contracts ---
+xy_add_unit_test(test_dm_json dm_json UNITY
+    ${UNIT_DM}/test_dm_json.c
+    ${DM}/src/xy_json.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
+target_include_directories(test_dm_json PRIVATE ${DM}/inc)
+
 # --- Test 30: IPC pipe ring-buffer contracts ---
 xy_add_unit_test(test_ipc_pipe ipc_pipe UNITY
     ${UNIT_IPC}/test_ipc_pipe.c
