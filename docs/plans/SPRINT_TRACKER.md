@@ -119,7 +119,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-04 | P1 | MPU6050 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 range/calibration/converted-output/error-preservation contract；删除 duplicate test-local source/header；focused `sensor_mpu6050`、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `bb5863d7` | 2026-08-28 |
 | S4-05 | P1 | DM FS focused contract | DONE | Zero | S4-04（DONE） | RED：未注册 FS mount 空指针崩溃；新增 lifecycle/path/I/O/seek/close-error focused contract，修复未注册 mount、deinit/close 错误传播与 seek 边界；focused 1/1、Host 187/187、PC root/`xy_dm` 与 `git diff --check` 通过 | `fa0a8044` | 2026-08-28 |
 | S4-06 | P1 | DM active `xy_json` focused contract | DONE | Zero | S4-05（DONE） | RED：trailing/incomplete JSON、非法 number token 被接受且重复 key 形成 duplicate member；新增 dedicated parse/mutation/guard contract，修复完整输入消费、字符串终止、严格 number grammar、重复 key replacement 与 realloc fail-closed；focused 1/1、Host 188/188、PC root/`xy_dm` 与 `git diff --check` 通过 | `9b64f4fb` | 2026-08-28 |
-| S4-07 | P1 | DM NVM restart/torn-append recovery | DONE | Zero | S4-06（DONE） | RED：partial header 使后续 retry 错误返回 FULL；现对 header/payload 每个 byte boundary 注入 partial-write failure，重启保留上一完整值并可跳过 torn append 后重试；caller-owned storage ops 与 fail-closed 掉电记录已建立；focused/full/PC/`xy_dm` gate 见本轮提交 | `b8db6135`～本轮提交 | 2026-08-29 |
+| S4-07 | P1 | DM NVM restart/torn-append recovery | DONE | Zero | S4-06（DONE） | RED：partial header 使后续 retry 错误返回 FULL；现对 header/payload 每个 byte boundary 注入 partial-write failure，并对 256-byte Host format 区域逐 byte 注入 partial erase；错误均传播，重启只提升完整记录且后续 write/erase 可重试；caller-owned storage ops 与 fail-closed 掉电记录已建立；focused/full/PC/`xy_dm` gate 通过 | `b8db6135`～`04fe1026` | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -448,3 +448,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：append 扫描以 4-byte 步进跳过无法解释或越界的 torn header，不再将其误判为永久满载；完整 record 仍按对齐长度跳过。
 - 验证：focused `dm_nvm`、Host 全量、PC root、`xy_dm` 与 `git diff --check` 见本轮提交。以上仅为 Host byte-boundary fault injection，不构成目标 Flash 写粒度、真实掉电、耐久性或板级证据。
 - 下一步：覆盖 erase interruption，再进入 layout migration；真实 Flash 可用后按记录补 program-granule 与 B2。
+
+### 2026-08-29 Sprint 4 DM NVM partial-erase recovery
+
+- Probe：Host backend 在 format 的 256-byte erase 区域每个 byte boundary 执行部分擦除后返回错误，验证 active NVM 的 erase 错误传播和重启边界。
+- 契约：`xy_nvm_format()` 必须传播 backend error；重启扫描只允许返回仍完整的最后值或 `NOT_FOUND`，不得提升 torn record；移除故障后完整 format 必须成功并恢复为空。
+- 验证：focused `dm_nvm`、Host 全量、PC root、`xy_dm` 与 `git diff --check` 见本轮提交。以上仅为 Host byte-array erase fault injection，不构成目标 Flash erase 粒度、真实掉电、耐久性或板级证据。
+- 下一步：进入 NVM layout migration contract；真实 Flash 可用后按记录补 program/erase B2。
