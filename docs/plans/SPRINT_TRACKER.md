@@ -116,7 +116,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-01 | P0 | Sensor active-source manifest 与三轨 ownership 冻结 | DONE | Zero | S3-04 的 board-owned 集成阻塞不影响治理子项 | manifest 初始校准 55 个 `legacy-active-root`、23 个 `experimental-test-only` 与 4 个 `device-active-root`；SHT30/ADS1115/MPU6050 duplicate test-local owners 移除后当前为 55/20/4；policy CTest 防止 source ownership 漂移并冻结第四套生命周期；不升级硬件声明 | `f691bd23`、`2fde1393` | 2026-08-28 |
 | S4-02 | P1 | SHT30 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 为单一实现 owner；root `sensor_sht30.c` 改为 compatibility-only 委托，保留 0x44 API 并支持 0x45；focused 3/3、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `10543486`～`a60ee6de` | 2026-08-28 |
 | S4-03 | P1 | ADS1115 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 channel/diff/PGA/data-rate/voltage/error/output-preservation contract；删除 duplicate test-local source/header；focused 3/3、Host 186/186、PC root/`sensor_component`/`xy_adc` 与 `git diff --check` 通过；不升级硬件声明 | `f317cb11` | 2026-08-28 |
-| S4-04 | P1 | MPU6050 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 range/calibration/converted-output/error-preservation contract；删除 duplicate test-local source/header；focused `sensor_mpu6050`、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | 本轮提交 | 2026-08-28 |
+| S4-04 | P1 | MPU6050 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 range/calibration/converted-output/error-preservation contract；删除 duplicate test-local source/header；focused `sensor_mpu6050`、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `bb5863d7` | 2026-08-28 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
