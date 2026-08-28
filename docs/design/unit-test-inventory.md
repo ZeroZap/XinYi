@@ -165,7 +165,6 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_mlx90614.c` | `unity` | 0 |
 | `tests/unit/sensor/test_aht20.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sht40.c` | `unity` | 0 |
-| `tests/unit/sensor/test_sht30.c` | `unity` | 0 |
 | `tests/unit/sensor/test_oled_ssd1306.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bq25620.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bh1750.c` | `unity` | 0 |

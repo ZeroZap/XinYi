@@ -136,7 +136,7 @@ static int system_init(void)
     /* xy_hal_i2c_init(&hi2c1, &i2c_config); */
     
     /* 初始化 SHT30 */
-    ret = xy_sht30_init(&g_sht30, NULL, 0x44);  /* I2C 句柄需要根据实际平台提供 */
+    ret = xy_sht30_init(&g_sht30, NULL);  /* I2C 句柄需要根据实际平台提供 */
     if (ret != XY_DEVICE_OK) {
         xy_log_e("Failed to initialize SHT30\n");
         return ret;

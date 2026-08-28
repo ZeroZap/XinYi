@@ -35,8 +35,8 @@ def main() -> int:
     device = sorted((ROOT / "components" / "drivers" / "sensor").glob("**/xy_*.c"))
 
     require(len(legacy) == 55, f"expected 55 legacy active sources, found {len(legacy)}", errors)
-    require(len(experimental) == 23,
-            f"expected 23 experimental xy_* sources, found {len(experimental)}", errors)
+    require(len(experimental) == 22,
+            f"expected 22 experimental xy_* sources, found {len(experimental)}", errors)
     require(len(device) == 4, f"expected 4 Device-model sources, found {len(device)}", errors)
 
     for token in (
@@ -68,7 +68,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=23 "
+    print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=22 "
           "device_active=4 hardware=pending")
     return 0
 

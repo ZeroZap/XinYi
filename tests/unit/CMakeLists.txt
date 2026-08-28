@@ -702,14 +702,6 @@ target_include_directories(test_sht40 PRIVATE
     ${SENSOR}/inc
 )
 
-xy_add_unit_test(test_sht30 sensor_sht30 UNITY
-    ${UNIT_SENSOR}/test_sht30.c
-    ${SENSOR}/src/xy_sht30.c
-)
-target_include_directories(test_sht30 BEFORE PRIVATE
-    ${SENSOR}/inc
-)
-
 xy_add_unit_test(test_oled_ssd1306 sensor_oled_ssd1306 UNITY
     ${UNIT_SENSOR}/test_oled_ssd1306.c
     ${SENSOR}/src/xy_oled_ssd1306.c

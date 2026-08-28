@@ -51,7 +51,7 @@ static void sensor_task(void *arg)
     
     while (1) {
         /* 读取温湿度 */
-        if (xy_sht30_read(&g_sht30) == XY_SHT30_OK) {
+        if (xy_sht30_read(&g_sht30) == XY_DEVICE_OK) {
             data.temperature = (float)g_sht30.temperature / 100.0f;
             data.humidity = (float)g_sht30.humidity / 100.0f;
         }
@@ -179,7 +179,7 @@ static int system_init(void)
     xy_os_kernel_init();
     
     /* 初始化传感器 */
-    // xy_sht30_init(&g_sht30, NULL, 0x44);
+    // xy_sht30_init(&g_sht30, NULL);
     // xy_mpu6050_init(&g_mpu, NULL, 0x68);
     
     /* 初始化消息队列 */

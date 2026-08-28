@@ -26,7 +26,7 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 23 | `experimental-test-only`; no product-root claim | selected SHT30/MPU6050/ADS1115/BMP280 and other driver contracts | `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 22 | `experimental-test-only`; no product-root claim | selected MPU6050/ADS1115/BMP280 and other driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 4 | `device-active-root`; canonical migration destination | SHT30 integration, transaction/CRC/error contract, and heterogeneous four-driver test | `hardware-pending` |
 
 The Device-model root set is currently exactly:
@@ -54,12 +54,13 @@ new copy.
 
 ### SHT30 migration status
 
-The Device-model source is the selected canonical destination and now has a focused transaction
+The Device-model source is the selected canonical implementation and has a focused transaction
 contract covering helper/reset failure propagation, initialization state, CRC rejection, cached
-output preservation, conversion, and uninitialized access. The legacy `sensor_sht30.c` and
-test-local `components/sensor/src/xy_sht30.c` remain compatibility/experimental implementations in
-this intermediate slice; therefore SHT30 duplicate lifecycle removal is not yet complete and no
-hardware status is upgraded.
+output preservation, conversion, and uninitialized access. The duplicate test-local
+`components/sensor/src/xy_sht30.c` implementation, header, and CTest were removed; tracked example
+source lists now select the Device owner. The root-linked `sensor_sht30.c` remains a frozen legacy
+lifecycle for compatibility, so SHT30 migration is not complete until that public compatibility
+boundary delegates to the Device owner or is retired. No hardware status is upgraded.
 
 ## Guard and update rule
 
