@@ -1,27 +1,31 @@
 /**
  * @file sensor_sht30.c
- * @brief Sensirion SHT30 温湿度传感器驱动
+ * @brief Legacy Sensor lifecycle compatibility wrapper for the canonical SHT30 Device driver
  */
 #include "sensor_sht30.h"
+#include "xy_sht30.h"
+
 #include <string.h>
 
-extern int hal_i2c_master_send(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
-extern int hal_i2c_master_recv(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
+static sensor_err_t sht30_map_error(int result)
+{
+    if (result == XY_DEVICE_OK) {
+        return SENSOR_EOK;
+    }
+    if (result == XY_DEVICE_INVALID_PARAM) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EIO;
+}
 
 static sensor_err_t sht30_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
     sht30_priv_t *priv = (sht30_priv_t *)sensor->priv_data;
-    SENSOR_LOG("Initializing SHT30");
-    uint8_t cmd[2] = {0x30, 0xA2};
-    if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 2) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
-    SENSOR_LOG("SHT30 initialized");
-    return SENSOR_EOK;
+    return sht30_map_error(xy_sht30_init_addr(&priv->device, sensor->bus, priv->i2c_addr));
 }
 
 static sensor_err_t sht30_read(sensor_device_t *sensor, sensor_data_t *data)
@@ -30,24 +34,20 @@ static sensor_err_t sht30_read(sensor_device_t *sensor, sensor_data_t *data)
         return SENSOR_EINVAL;
     }
 
-    uint8_t buf[6];
     sht30_priv_t *priv = (sht30_priv_t *)sensor->priv_data;
-    uint8_t cmd[2] = {0x24, 0x00};
-    if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 2) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
-    SENSOR_DELAY_MS(10);
-    if (hal_i2c_master_recv(sensor->bus, priv->i2c_addr, buf, 6) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    int result = xy_sht30_read(&priv->device);
+    if (result != XY_DEVICE_OK) {
+        return sht30_map_error(result);
     }
 
-    uint16_t hum = (buf[3] << 8) | buf[4];
-
-    data->type = SENSOR_TYPE_RELATIVE_HUMIDITY;
-    data->unit = SENSOR_UNIT_PERCENT;
-    data->value.val_float = (float)hum / 65535.0f * 100.0f;
-    data->timestamp = SENSOR_GET_TICK();
-    data->accuracy = 95;
+    sensor_data_t measurement = {
+        .type = SENSOR_TYPE_RELATIVE_HUMIDITY,
+        .unit = SENSOR_UNIT_PERCENT,
+        .value.val_float = (float)priv->device.humidity / 100.0f,
+        .timestamp = SENSOR_GET_TICK(),
+        .accuracy = 95U,
+    };
+    *data = measurement;
     return SENSOR_EOK;
 }
 
@@ -57,31 +57,32 @@ static const sensor_ops_t sht30_ops = {
 
 sensor_device_t *sht30_create(const char *name, void *i2c_bus, uint8_t addr)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     sht30_priv_t *priv = (sht30_priv_t *)SENSOR_MALLOC(sizeof(sht30_priv_t));
-    if (!sensor || !priv) {
+    if (sensor == NULL || priv == NULL) {
         SENSOR_FREE(sensor);
         SENSOR_FREE(priv);
         return NULL;
     }
 
     memset(sensor, 0, sizeof(sensor_device_t));
-    priv->i2c_addr = addr ? addr : SHT30_ADDR_DEFAULT;
+    memset(priv, 0, sizeof(*priv));
+    priv->i2c_addr = addr != 0U ? addr : SHT30_ADDR_DEFAULT;
 
-    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
+    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1U);
     sensor->info.vendor = "Sensirion";
     sensor->info.model = "SHT30";
     sensor->info.type = SENSOR_TYPE_RELATIVE_HUMIDITY;
-    sensor->info.max_odr = 10;
+    sensor->info.max_odr = 10U;
 
     sensor->ops = &sht30_ops;
     sensor->bus = i2c_bus;
     sensor->priv_data = priv;
     sensor->status = SENSOR_STATUS_IDLE;
-    sensor->odr = 10;
+    sensor->odr = 10U;
     return sensor;
 }

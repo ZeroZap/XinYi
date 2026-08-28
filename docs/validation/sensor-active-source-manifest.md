@@ -54,13 +54,15 @@ new copy.
 
 ### SHT30 migration status
 
-The Device-model source is the selected canonical implementation and has a focused transaction
-contract covering helper/reset failure propagation, initialization state, CRC rejection, cached
-output preservation, conversion, and uninitialized access. The duplicate test-local
-`components/sensor/src/xy_sht30.c` implementation, header, and CTest were removed; tracked example
-source lists now select the Device owner. The root-linked `sensor_sht30.c` remains a frozen legacy
-lifecycle for compatibility, so SHT30 migration is not complete until that public compatibility
-boundary delegates to the Device owner or is retired. No hardware status is upgraded.
+The Device-model source is the single canonical implementation. The root-linked
+`sensor_sht30.c` is now a compatibility-only legacy lifecycle wrapper: it delegates init/read and
+CRC/error/output-preservation behavior to `components/drivers/sensor/temperature/sht30/xy_sht30.c`,
+and `sensor_component` explicitly links that owner. The canonical driver accepts both documented
+addresses through `xy_sht30_init_addr()`, while the existing two-argument initializer remains the
+0x44 compatibility API. The duplicate test-local `components/sensor/src/xy_sht30.c` implementation,
+header, and CTest were removed; tracked examples select the Device owner. Focused wrapper, Device,
+and integration tests plus the root `sensor_component` build prove one implementation owner with
+one compatibility boundary. No hardware status is upgraded.
 
 ## Guard and update rule
 

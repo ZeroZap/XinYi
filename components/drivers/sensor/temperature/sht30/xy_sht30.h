@@ -30,7 +30,15 @@ typedef struct {
  * @param i2c_handle I2C 句柄
  * @return XY_DEVICE_OK 成功
  */
-int xy_sht30_init(xy_sht30_t *sht, void *i2c_handle);
+int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr);
+
+/**
+ * @brief Initialize an SHT30 at the default 0x44 address.
+ */
+static inline int xy_sht30_init(xy_sht30_t *sht, void *i2c_handle)
+{
+    return xy_sht30_init_addr(sht, i2c_handle, 0x44U);
+}
 
 /**
  * @brief 读取温度和湿度

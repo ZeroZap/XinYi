@@ -27,16 +27,16 @@ static uint8_t sht30_crc8(const uint8_t *data, size_t len)
     return crc;
 }
 
-int xy_sht30_init(xy_sht30_t *sht, void *i2c_handle)
+int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr)
 {
     int result;
 
-    if (!sht || !i2c_handle) {
+    if (!sht || !i2c_handle || (i2c_addr != 0x44U && i2c_addr != 0x45U)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
     memset(sht, 0, sizeof(*sht));
-    result = xy_i2c_device_init(&sht->i2c_dev, i2c_handle, 0x44, 1000);
+    result = xy_i2c_device_init(&sht->i2c_dev, i2c_handle, i2c_addr, 1000);
     if (result != XY_DEVICE_OK) {
         return result;
     }

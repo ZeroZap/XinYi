@@ -29,9 +29,19 @@ set(SENSOR_SOURCES
 
 # Add driver sources from sensors/ directory
 file(GLOB SENSOR_DRIVERS "${CMAKE_CURRENT_LIST_DIR}/sensors/sensor_*.c")
+# The legacy SHT30 lifecycle is a compatibility wrapper around the canonical
+# Device driver, so the root Sensor target must link that single implementation.
+list(APPEND SENSOR_DRIVERS
+    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/sht30/xy_sht30.c"
+)
 list(APPEND SENSOR_SOURCES ${SENSOR_DRIVERS})
 
 add_library(sensor_component STATIC ${SENSOR_SOURCES})
 target_include_directories(sensor_component PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 target_include_directories(sensor_component PUBLIC ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(sensor_component PUBLIC hardware_abstraction)
+target_include_directories(sensor_component PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/../device/inc
+    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/sht30
+    ${CMAKE_CURRENT_LIST_DIR}/../hal/inc
+)
+target_link_libraries(sensor_component PUBLIC hardware_abstraction xy_device)

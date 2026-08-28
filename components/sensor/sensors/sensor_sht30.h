@@ -6,12 +6,14 @@
 #define __SENSOR_SHT30_H__
 
 #include "sensor_core.h"
+#include "xy_sht30.h"
 
 #define SHT30_ADDR_DEFAULT 0x44
 #define SHT30_ADDR_ALT    0x45
 
 typedef struct {
     uint8_t i2c_addr;
+    xy_sht30_t device;
 } sht30_priv_t;
 
 sensor_device_t *sht30_create(const char *name, void *i2c_bus, uint8_t addr);
