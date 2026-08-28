@@ -27,6 +27,9 @@ static uint8_t flash_area[256];
 static size_t backend_write_calls;
 static size_t backend_fail_write_call;
 static size_t backend_partial_write_bytes;
+static size_t backend_erase_calls;
+static size_t backend_fail_erase_call;
+static size_t backend_partial_erase_bytes;
 
 static xy_nvm_status_t backend_read(void *context, size_t offset, void *buf, size_t len)
 {
@@ -48,6 +51,12 @@ static xy_nvm_status_t backend_write(void *context, size_t offset, const void *b
 
 static xy_nvm_status_t backend_erase(void *context, size_t offset, size_t len)
 {
+    backend_erase_calls++;
+    if (backend_erase_calls == backend_fail_erase_call) {
+        size_t erased = backend_partial_erase_bytes < len ? backend_partial_erase_bytes : len;
+        memset((uint8_t *)context + offset, 0xFF, erased);
+        return XY_NVM_ERROR;
+    }
     memset((uint8_t *)context + offset, 0xFF, len);
     return XY_NVM_OK;
 }
@@ -280,6 +289,54 @@ static void test_capacity_stats_and_format(void)
     printf("  [PASS] stats and format\n");
 }
 
+static void test_partial_erase_interruption_is_reported_and_retryable(void)
+{
+    const uint8_t first[] = {0x11, 0x22};
+    const uint8_t latest[] = {0xAA, 0xBB};
+    xy_nvm_config_t cfg = {
+        .flash_base = flash_area,
+        .page_size = 64,
+        .num_pages = 4,
+        .storage_ops = &backend_ops,
+        .storage_context = flash_area,
+    };
+
+    for (size_t partial = 0U; partial < sizeof(flash_area); partial++) {
+        memset(flash_area, 0xFF, sizeof(flash_area));
+        backend_write_calls = 0U;
+        backend_fail_write_call = 0U;
+        backend_partial_write_bytes = 0U;
+        backend_erase_calls = 0U;
+        backend_fail_erase_call = 0U;
+        backend_partial_erase_bytes = 0U;
+
+        xy_nvm_t nvm;
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&nvm, &cfg));
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_set(&nvm, 13, first, sizeof(first)));
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_set(&nvm, 13, latest, sizeof(latest)));
+
+        backend_fail_erase_call = 1U;
+        backend_partial_erase_bytes = partial;
+        TEST_ASSERT_EQUAL(XY_NVM_ERROR, xy_nvm_format(&nvm));
+        TEST_ASSERT_EQUAL_UINT(1U, backend_erase_calls);
+
+        xy_nvm_t restarted;
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&restarted, &cfg));
+        xy_nvm_result_t result = xy_nvm_get(&restarted, 13);
+        TEST_ASSERT_TRUE(result.status == XY_NVM_OK || result.status == XY_NVM_ERROR_NOT_FOUND);
+        if (result.status == XY_NVM_OK) {
+            TEST_ASSERT_EQUAL_UINT16((uint16_t)sizeof(latest), result.len);
+            TEST_ASSERT_EQUAL_MEMORY(latest, result.data, sizeof(latest));
+        }
+
+        backend_fail_erase_call = 0U;
+        backend_partial_erase_bytes = 0U;
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_format(&restarted));
+        result = xy_nvm_get(&restarted, 13);
+        TEST_ASSERT_EQUAL(XY_NVM_ERROR_NOT_FOUND, result.status);
+    }
+}
+
 static void test_invalid_lengths_and_full(void)
 {
     xy_nvm_t nvm = make_nvm();
@@ -311,6 +368,7 @@ int main(void)
     RUN_TEST(test_partial_program_interruption_allows_restart_and_retry);
     RUN_TEST(test_typed_helpers);
     RUN_TEST(test_capacity_stats_and_format);
+    RUN_TEST(test_partial_erase_interruption_is_reported_and_retryable);
     RUN_TEST(test_invalid_lengths_and_full);
     printf("[PASS] DM NVM focused host contracts\n");
     return UNITY_END();
