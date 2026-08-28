@@ -120,6 +120,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-05 | P1 | DM FS focused contract | DONE | Zero | S4-04（DONE） | RED：未注册 FS mount 空指针崩溃；新增 lifecycle/path/I/O/seek/close-error focused contract，修复未注册 mount、deinit/close 错误传播与 seek 边界；focused 1/1、Host 187/187、PC root/`xy_dm` 与 `git diff --check` 通过 | `fa0a8044` | 2026-08-28 |
 | S4-06 | P1 | DM active `xy_json` focused contract | DONE | Zero | S4-05（DONE） | RED：trailing/incomplete JSON、非法 number token 被接受且重复 key 形成 duplicate member；新增 dedicated parse/mutation/guard contract，修复完整输入消费、字符串终止、严格 number grammar、重复 key replacement 与 realloc fail-closed；focused 1/1、Host 188/188、PC root/`xy_dm` 与 `git diff --check` 通过 | `9b64f4fb` | 2026-08-28 |
 | S4-07 | P1 | DM NVM restart/torn-append recovery | DONE | Zero | S4-06（DONE） | RED：partial header 使后续 retry 错误返回 FULL；现对 header/payload 每个 byte boundary 注入 partial-write failure，并对 256-byte Host format 区域逐 byte 注入 partial erase；错误均传播，重启只提升完整记录且后续 write/erase 可重试；caller-owned storage ops 与 fail-closed 掉电记录已建立；focused/full/PC/`xy_dm` gate 通过 | `b8db6135`～`04fe1026` | 2026-08-29 |
+| S4-08 | P1 | DM NVM layout migration contract | DONE | Zero | S4-07（DONE） | RED：legacy/current record 无版本区分，新 append 仍写 legacy magic；实现 legacy magic 可读、current magic 只写，并验证同 key 跨格式 append/restart 提升最新值；focused、Host 188/188、PC root/`xy_dm`、`git diff --check` 通过 | `b9742b98` | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -455,3 +456,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 契约：`xy_nvm_format()` 必须传播 backend error；重启扫描只允许返回仍完整的最后值或 `NOT_FOUND`，不得提升 torn record；移除故障后完整 format 必须成功并恢复为空。
 - 验证：focused `dm_nvm`、Host 全量、PC root、`xy_dm` 与 `git diff --check` 见本轮提交。以上仅为 Host byte-array erase fault injection，不构成目标 Flash erase 粒度、真实掉电、耐久性或板级证据。
 - 下一步：进入 NVM layout migration contract；真实 Flash 可用后按记录补 program/erase B2。
+
+### 2026-08-29 Sprint 4 DM NVM layout migration
+
+- RED：legacy/current record 共用 `0xAA55AA55` magic，新 append 无法表明当前 layout；focused contract 要求升级后保留 legacy 数据并只写 current record，初次运行在 magic 断言失败。
+- 实现：读取路径兼容 legacy `0xAA55AA55` 与 current `0xAA55AA56`；新记录只写 current magic。同 key 从 legacy 追加 current 值后，重启选择最新 current 值，无需升级时先擦除。
+- 验证：focused `dm_nvm` 1/1、Host 188/188、PC Release root、`xy_dm` target 与 `git diff --check` 通过；clang-format 当前环境不可用。以上仅为 Host layout contract，不构成真实旧版本 Flash image、目标 Flash 掉电、耐久性或板级证据。
+- 下一步：在真实 Flash 可用前，补 checksum/metadata corruption 的 exhaustive Host contract；真实板到位后用保存的 legacy image dump 执行迁移与 B2。
