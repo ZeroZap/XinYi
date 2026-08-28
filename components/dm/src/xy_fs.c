@@ -47,7 +47,7 @@ int xy_fs_register(xy_fs_t *fs, const char *name, const xy_fs_ops_t *ops)
  */
 int xy_fs_mount(xy_fs_t *fs, const char *mount_point)
 {
-    if (!fs || !mount_point) {
+    if (!fs || !fs->ops || !mount_point) {
         return XY_FS_INVALID_PARAM;
     }
 
@@ -74,12 +74,15 @@ int xy_fs_mount(xy_fs_t *fs, const char *mount_point)
  */
 int xy_fs_unmount(xy_fs_t *fs)
 {
-    if (!fs || !fs->mounted) {
+    if (!fs || !fs->ops || !fs->mounted) {
         return XY_FS_INVALID_PARAM;
     }
 
     if (fs->ops->deinit) {
-        fs->ops->deinit();
+        int ret = fs->ops->deinit();
+        if (ret != XY_FS_OK) {
+            return ret;
+        }
     }
 
     fs->mounted = false;
@@ -92,7 +95,7 @@ int xy_fs_unmount(xy_fs_t *fs)
  */
 static xy_fs_t* xy_fs_find_drive(const char *path, const char **rel_path)
 {
-    if (!path || !rel_path) {
+    if (!path || !rel_path || path[0] == '\0' || path[1] == '\0') {
         return NULL;
     }
 
@@ -183,7 +186,7 @@ int xy_fs_close(xy_fs_file_t *file)
  */
 int xy_fs_read(xy_fs_file_t *file, void *buf, size_t len)
 {
-    if (!file || !buf || len == 0) {
+    if (!file || !file->fs || !file->fs->ops || !buf || len == 0) {
         return XY_FS_INVALID_PARAM;
     }
 
@@ -207,7 +210,7 @@ int xy_fs_read(xy_fs_file_t *file, void *buf, size_t len)
  */
 int xy_fs_write(xy_fs_file_t *file, const void *buf, size_t len)
 {
-    if (!file || !buf || len == 0) {
+    if (!file || !file->fs || !file->fs->ops || !buf || len == 0) {
         return XY_FS_INVALID_PARAM;
     }
 
@@ -231,7 +234,11 @@ int xy_fs_write(xy_fs_file_t *file, const void *buf, size_t len)
  */
 int xy_fs_seek(xy_fs_file_t *file, long offset, int whence)
 {
-    if (!file) {
+    if (!file || !file->fs || !file->fs->ops) {
+        return XY_FS_INVALID_PARAM;
+    }
+
+    if (offset < 0 && whence == 0) {
         return XY_FS_INVALID_PARAM;
     }
 
@@ -249,11 +256,16 @@ int xy_fs_seek(xy_fs_file_t *file, long offset, int whence)
             file->pos = offset;
             break;
         case 1: /* SEEK_CUR */
+            if (offset < 0 && (unsigned long)(-offset) > file->pos) {
+                return XY_FS_INVALID_PARAM;
+            }
             file->pos += offset;
             break;
         case 2: /* SEEK_END */
             /* 需要知道文件大小 */
             return XY_FS_NOT_SUPPORTED;
+        default:
+            return XY_FS_INVALID_PARAM;
     }
 
     return XY_FS_OK;
@@ -264,7 +276,7 @@ int xy_fs_seek(xy_fs_file_t *file, long offset, int whence)
  */
 long xy_fs_tell(xy_fs_file_t *file)
 {
-    if (!file) {
+    if (!file || !file->fs || !file->fs->ops) {
         return -1;
     }
 
@@ -371,18 +383,27 @@ bool xy_fs_exists(const char *path)
  */
 int xy_fs_read_file(const char *path, void *buf, size_t len, size_t *actual)
 {
+    if (!path || !buf || len == 0) {
+        return XY_FS_INVALID_PARAM;
+    }
+
     xy_fs_file_t *file = xy_fs_open(path, XY_FS_MODE_READ);
     if (!file) {
         return XY_FS_ERROR;
     }
 
     int ret = xy_fs_read(file, buf, len);
-    if (ret > 0 && actual) {
-        *actual = ret;
+    int close_ret = xy_fs_close(file);
+    if (ret < 0) {
+        return ret;
     }
-
-    xy_fs_close(file);
-    return ret > 0 ? XY_FS_OK : XY_FS_ERROR;
+    if (close_ret != XY_FS_OK) {
+        return close_ret;
+    }
+    if (actual) {
+        *actual = (size_t)ret;
+    }
+    return XY_FS_OK;
 }
 
 /**
@@ -390,13 +411,22 @@ int xy_fs_read_file(const char *path, void *buf, size_t len, size_t *actual)
  */
 int xy_fs_write_file(const char *path, const void *buf, size_t len)
 {
+    if (!path || !buf || len == 0) {
+        return XY_FS_INVALID_PARAM;
+    }
+
     xy_fs_file_t *file = xy_fs_open(path, XY_FS_MODE_WRITE | XY_FS_MODE_CREATE | XY_FS_MODE_TRUNC);
     if (!file) {
         return XY_FS_ERROR;
     }
 
     int ret = xy_fs_write(file, buf, len);
-    xy_fs_close(file);
-
-    return ret > 0 ? XY_FS_OK : XY_FS_ERROR;
+    int close_ret = xy_fs_close(file);
+    if (ret < 0) {
+        return ret;
+    }
+    if ((size_t)ret != len) {
+        return XY_FS_ERROR;
+    }
+    return close_ret;
 }
