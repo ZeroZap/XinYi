@@ -392,4 +392,4 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 验证：focused `sht30_integration`、`sensor_sht30_device`、`sensor_sht30_legacy` 3/3；Host 186/186；PC Release root 与 `sensor_component` target；`git diff --check`。clang-format 当前环境不可用；既存 Sensor strict-aliasing/unused warning 未由本 slice 引入。
 - 边界：只构成 Host/PC source-ownership 证据，不构成 SHT30 精度、总线时序、恢复或实板批准。
 - 下一步：按同一准入契约选择 MPU6050 或 ADS1115 做第二个 canonical-owner migration；SHT30 B1/B2 继续受硬件环境阻塞。
-- 仓库：实现提交 `a60ee6dec2c87a767e7cd148703b98f05be8951d` 已完成；阻塞记录提交 `f9a141f6e5aeb0988eb92f102698d2d31401db81` 后，本地相对 tracking `origin/main` 为 ahead/behind `7/0`。2026-08-28 再次执行默认 SSH push 等待 600 秒超时；随后验证 `ssh.github.com:443` 可完成认证，但 Git push 在 banner exchange 阶段仍超时；tracking `origin/main` 保持 `65a4148d225a37a998df35d72849f8dc25a805c5`，故 push 状态诚实保持 `BLOCKED_NETWORK`，不继续堆叠新的 Sensor 实现提交。
+- 仓库：实现提交 `a60ee6dec2c87a767e7cd148703b98f05be8951d` 与累计 8 个本地提交已在默认 SSH 路径持续超时后，改用 GitHub 官方 SSH-over-443 endpoint 成功 fast-forward 推送；本地 `HEAD`、tracking ref 与远端 `main` 均为 `5a7bc2a8e5f5625fa609ce7352c21befe396dcf8`，ahead/behind `0/0`。
