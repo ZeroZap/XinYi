@@ -18,6 +18,13 @@
 #include "xy_mpu6050.h"
 #include "xy_bmp280.h"
 #include "xy_ads1115.h"
+#include "xy_os.h"
+
+xy_os_status_t xy_os_delay(uint32_t ticks)
+{
+    (void)ticks;
+    return XY_OS_OK;
+}
 
 static int g_fake_bus = 1;
 static char g_extra_names[XY_DEVICE_REGISTRY_MAX][24];
@@ -58,7 +65,7 @@ static void test_four_drivers_coexist(void)
     xy_sht30_init(&sht, &g_fake_bus);
     xy_mpu6050_init(&mpu, &g_fake_bus);
     xy_bmp280_init(&bmp, &g_fake_bus);
-    xy_ads1115_init(&ads, &g_fake_bus, 3.3f);
+    xy_ads1115_init(&ads, &g_fake_bus, ADS1115_ADDR_GND);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_i2c_device_register(&sht.i2c_dev, "sht30", XY_DEV_TYPE_SENSOR));

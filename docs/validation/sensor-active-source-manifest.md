@@ -26,7 +26,7 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 22 | `experimental-test-only`; no product-root claim | selected MPU6050/ADS1115/BMP280 and other driver contracts | `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 21 | `experimental-test-only`; no product-root claim | selected MPU6050/BMP280 and other driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 4 | `device-active-root`; canonical migration destination | SHT30 integration, transaction/CRC/error contract, and heterogeneous four-driver test | `hardware-pending` |
 
 The Device-model root set is currently exactly:
@@ -63,6 +63,15 @@ addresses through `xy_sht30_init_addr()`, while the existing two-argument initia
 header, and CTest were removed; tracked examples select the Device owner. Focused wrapper, Device,
 and integration tests plus the root `sensor_component` build prove one implementation owner with
 one compatibility boundary. No hardware status is upgraded.
+
+### ADS1115 migration status
+
+The Device-model source is the single canonical implementation and is explicitly linked into the
+root `sensor_component`. Its public API preserves the established channel, differential, PGA/data
+rate, voltage, I/O error, and output-preservation contracts. The duplicate test-local
+`components/sensor/src/xy_ads1115.c` implementation and header were removed, and the existing
+focused ADC/power-monitor target now compiles the Device owner directly. This remains Host/PC source
+ownership evidence only; conversion accuracy, timing, recovery, and board support remain pending.
 
 ## Guard and update rule
 

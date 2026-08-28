@@ -1,95 +1,166 @@
 /**
  * @file xy_ads1115.c
- * @brief ADS1115 16-bit ADC Device Driver Implementation
- * @version 1.0.0
- * @date 2026-02-28
+ * @brief Canonical ADS1115 4-channel 16-bit ADC Device driver
  */
 
 #include "xy_ads1115.h"
-#include "xy_hal_delay.h"
+#include "xy_os.h"
 #include <string.h>
 
-/* ADS1115 Registers */
-#define ADS1115_REG_CONVERSION  0x00
-#define ADS1115_REG_CONFIG      0x01
+static const float g_lsb_mv[] = {
+    0.187500F,
+    0.125000F,
+    0.062500F,
+    0.031250F,
+    0.015625F,
+    0.007812F,
+};
 
-/* Config values */
-#define ADS1115_CONFIG_OS       (1 << 15)
-#define ADS1115_CONFIG_MUX_SINGLE_0  (4 << 12)
-#define ADS1115_CONFIG_PGA_6_144      (0 << 9)
-#define ADS1115_CONFIG_MODE_SINGLE    (1 << 8)
-#define ADS1115_CONFIG_DR_128         (5 << 5)
-#define ADS1115_CONFIG_COMP_MODE      (0 << 4)
-#define ADS1115_CONFIG_COMP_POLAR     (0 << 3)
-#define ADS1115_CONFIG_COMP_LAT       (0 << 2)
-#define ADS1115_CONFIG_COMP_QUE       (3 << 0)
-
-int xy_ads1115_init(xy_ads1115_t *ads, void *i2c_handle, float vref)
+static int ads1115_write_config(xy_ads1115_t *dev, uint16_t config)
 {
-    if (!ads || !i2c_handle) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    memset(ads, 0, sizeof(*ads));
-    xy_i2c_device_init(&ads->i2c_dev, i2c_handle, 0x48, 1000);
-    ads->vref = vref ? vref : 4.096f;
-    
-    /* Write config register */
-    uint8_t config[2];
-    config[0] = (ADS1115_CONFIG_OS | ADS1115_CONFIG_MUX_SINGLE_0 | 
-                 ADS1115_CONFIG_PGA_6_144 | ADS1115_CONFIG_MODE_SINGLE |
-                 ADS1115_CONFIG_DR_128 | ADS1115_CONFIG_COMP_QUE) >> 8;
-    config[1] = (ADS1115_CONFIG_OS | ADS1115_CONFIG_MUX_SINGLE_0 | 
-                 ADS1115_CONFIG_PGA_6_144 | ADS1115_CONFIG_MODE_SINGLE |
-                 ADS1115_CONFIG_DR_128 | ADS1115_CONFIG_COMP_QUE) & 0xFF;
-    
-    return xy_i2c_device_write(&ads->i2c_dev, config, 2);
+    uint8_t data[3] = {
+        ADS1115_REG_CONFIG,
+        (uint8_t)(config >> 8),
+        (uint8_t)config,
+    };
+
+    return xy_i2c_device_write_reg(&dev->i2c_dev, ADS1115_REG_CONFIG, data, sizeof(data));
 }
 
-int xy_ads1115_read(xy_ads1115_t *ads)
+static int ads1115_read_word(xy_ads1115_t *dev, uint8_t reg, int16_t *value)
 {
-    if (!ads) {
-        return XY_DEVICE_INVALID_PARAM;
+    uint8_t data[2];
+    int ret = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, sizeof(data));
+
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
-    for (uint8_t ch = 0; ch < 4; ch++) {
-        ads->adc_value[ch] = xy_ads1115_read_channel(ads, ch);
-        ads->voltage[ch] = xy_ads1115_get_voltage(ads, ch);
-    }
-    
+    *value = (int16_t)(((uint16_t)data[0] << 8) | data[1]);
     return XY_DEVICE_OK;
 }
 
-int16_t xy_ads1115_read_channel(xy_ads1115_t *ads, uint8_t channel)
+static uint16_t ads1115_base_config(const xy_ads1115_t *dev)
 {
-    if (!ads || channel > 3) {
-        return 0;
-    }
-    
-    /* Update config for channel */
-    uint8_t config[2];
-    uint16_t mux = (4 + channel) << 12;
-    uint16_t cfg = ADS1115_CONFIG_OS | mux | ADS1115_CONFIG_PGA_6_144 |
-                   ADS1115_CONFIG_MODE_SINGLE | ADS1115_CONFIG_DR_128 |
-                   ADS1115_CONFIG_COMP_QUE;
-    
-    config[0] = cfg >> 8;
-    config[1] = cfg & 0xFF;
-    
-    xy_i2c_device_write(&ads->i2c_dev, config, 2);
-    
-    /* Wait for conversion (8ms at 128SPS) */
-    xy_hal_delay_ms(8);
-    
-    /* Read conversion register */
-    uint8_t data[2];
-    xy_i2c_device_read(&ads->i2c_dev, data, 2);
-    
-    return (int16_t)((data[0] << 8) | data[1]);
+    return ADS1115_CONFIG_OS_SINGLE | ((uint16_t)dev->pga << 9) |
+           ADS1115_CONFIG_MODE_SINGLE | ((uint16_t)dev->dr << 5) |
+           ADS1115_CONFIG_COMP_DISABLE;
 }
 
-float xy_ads1115_get_voltage(xy_ads1115_t *ads, uint8_t channel)
+static int ads1115_convert(xy_ads1115_t *dev, uint16_t mux, int16_t *value)
 {
-    int16_t adc = ads->adc_value[channel];
-    return (float)adc * ads->vref / 32768.0f;
+    int16_t sample;
+    int ret = ads1115_write_config(dev, ads1115_base_config(dev) | mux);
+
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+    xy_os_delay(10);
+    ret = ads1115_read_word(dev, ADS1115_REG_CONVERT, &sample);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    dev->last_value = sample;
+    *value = sample;
+    return XY_ADS1115_OK;
+}
+
+int xy_ads1115_init(xy_ads1115_t *dev, void *i2c_handle, uint8_t addr)
+{
+    int16_t config;
+    int ret;
+
+    if (dev == NULL || i2c_handle == NULL || addr < ADS1115_ADDR_GND || addr > ADS1115_ADDR_SCL) {
+        return XY_ADS1115_INVALID_PARAM;
+    }
+
+    memset(dev, 0, sizeof(*dev));
+    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000U);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+    dev->addr = addr;
+    dev->pga = ADS1115_PGA_2_048V;
+    dev->dr = ADS1115_DR_128SPS;
+
+    ret = ads1115_read_word(dev, ADS1115_REG_CONFIG, &config);
+    if (ret != XY_DEVICE_OK) {
+        return XY_ADS1115_NOT_FOUND;
+    }
+
+    dev->initialized = 1U;
+    return XY_ADS1115_OK;
+}
+
+int xy_ads1115_deinit(xy_ads1115_t *dev)
+{
+    if (dev == NULL) {
+        return XY_ADS1115_INVALID_PARAM;
+    }
+    dev->initialized = 0U;
+    return XY_ADS1115_OK;
+}
+
+int xy_ads1115_read_single(xy_ads1115_t *dev, uint8_t channel, int16_t *value)
+{
+    if (dev == NULL || value == NULL || dev->initialized == 0U || channel > 3U) {
+        return XY_ADS1115_INVALID_PARAM;
+    }
+    return ads1115_convert(dev, (uint16_t)(4U + channel) << 12, value);
+}
+
+int xy_ads1115_read_diff(xy_ads1115_t *dev, uint8_t channel_p, uint8_t channel_n, int16_t *value)
+{
+    uint16_t mux;
+
+    if (dev == NULL || value == NULL || dev->initialized == 0U) {
+        return XY_ADS1115_INVALID_PARAM;
+    }
+    if (channel_p == 0U && channel_n == 1U) {
+        mux = ADS1115_CONFIG_MUX_DIFF_0_1;
+    } else if (channel_p == 0U && channel_n == 3U) {
+        mux = ADS1115_CONFIG_MUX_DIFF_0_3;
+    } else if (channel_p == 1U && channel_n == 3U) {
+        mux = ADS1115_CONFIG_MUX_DIFF_1_3;
+    } else if (channel_p == 2U && channel_n == 3U) {
+        mux = ADS1115_CONFIG_MUX_DIFF_2_3;
+    } else {
+        return XY_ADS1115_INVALID_PARAM;
+    }
+
+    return ads1115_convert(dev, mux, value);
+}
+
+int xy_ads1115_read_voltage(xy_ads1115_t *dev, uint8_t channel, int32_t *voltage_mv)
+{
+    int16_t sample;
+    int ret;
+
+    if (dev == NULL || voltage_mv == NULL || channel > 3U) {
+        return XY_ADS1115_INVALID_PARAM;
+    }
+    ret = xy_ads1115_read_single(dev, channel, &sample);
+    if (ret != XY_ADS1115_OK) {
+        return ret;
+    }
+    *voltage_mv = (int32_t)((float)sample * g_lsb_mv[dev->pga]);
+    return XY_ADS1115_OK;
+}
+
+int xy_ads1115_set_pga(xy_ads1115_t *dev, xy_ads1115_pga_t pga)
+{
+    if (dev == NULL || pga > ADS1115_PGA_0_256V) {
+        return XY_ADS1115_INVALID_PARAM;
+    }
+    dev->pga = pga;
+    return XY_ADS1115_OK;
+}
+
+int xy_ads1115_set_dr(xy_ads1115_t *dev, xy_ads1115_dr_t dr)
+{
+    if (dev == NULL || dr > ADS1115_DR_860SPS) {
+        return XY_ADS1115_INVALID_PARAM;
+    }
+    dev->dr = dr;
+    return XY_ADS1115_OK;
 }

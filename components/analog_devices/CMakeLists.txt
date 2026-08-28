@@ -21,7 +21,7 @@ target_include_directories(xy_adc PUBLIC
     ${CMAKE_SOURCE_DIR}/components/trace/xy_log/inc
     ${CMAKE_SOURCE_DIR}/components/clib/xy_clib
     ${CMAKE_SOURCE_DIR}/components/device/inc
-    ${CMAKE_SOURCE_DIR}/components/sensor/inc
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/adc/ads1115
 )
 
 if(TARGET xy_clib)
