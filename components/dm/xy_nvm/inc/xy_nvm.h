@@ -8,8 +8,9 @@
 #ifndef XY_NVM_H
 #define XY_NVM_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +48,17 @@ typedef struct {
     uint16_t len;               // 数据长度
 } xy_nvm_result_t;
 
+typedef xy_nvm_status_t (*xy_nvm_read_fn)(void *context, size_t offset, void *buf, size_t len);
+typedef xy_nvm_status_t (*xy_nvm_write_fn)(void *context, size_t offset, const void *buf,
+                                          size_t len);
+typedef xy_nvm_status_t (*xy_nvm_erase_fn)(void *context, size_t offset, size_t len);
+
+typedef struct {
+    xy_nvm_read_fn read;
+    xy_nvm_write_fn write;
+    xy_nvm_erase_fn erase;
+} xy_nvm_storage_ops_t;
+
 /**
  * @brief KV 存储配置
  */
@@ -54,6 +66,8 @@ typedef struct {
     uint8_t *flash_base;        // Flash 基地址
     uint16_t page_size;         // Flash 页大小
     uint8_t num_pages;          // 可用页数
+    const xy_nvm_storage_ops_t *storage_ops; // 可选板级后端；NULL 使用内存映射模拟
+    void *storage_context;      // 存储后端上下文
 } xy_nvm_config_t;
 
 /**

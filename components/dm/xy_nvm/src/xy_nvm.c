@@ -41,30 +41,44 @@ static uint8_t calc_checksum(const kv_header_t *hdr, const uint8_t *data)
 /**
  * @brief Flash 读取 (模拟)
  */
-static void flash_read(uintptr_t addr, void *buf, size_t len)
+static xy_nvm_status_t storage_read(const xy_nvm_t *nvm, uintptr_t addr, void *buf, size_t len)
 {
+    if (nvm->config.storage_ops) {
+        size_t offset = (size_t)(addr - (uintptr_t)nvm->config.flash_base);
+        return nvm->config.storage_ops->read(nvm->config.storage_context, offset, buf, len);
+    }
     /* 实际实现需要调用底层 Flash 读取 */
     memcpy(buf, (const void *)addr, len);
+    return XY_NVM_OK;
 }
 
 /**
  * @brief Flash 写入 (模拟)
  */
-static int flash_write(uintptr_t addr, const void *buf, size_t len)
+static xy_nvm_status_t storage_write(const xy_nvm_t *nvm, uintptr_t addr, const void *buf,
+                                     size_t len)
 {
+    if (nvm->config.storage_ops) {
+        size_t offset = (size_t)(addr - (uintptr_t)nvm->config.flash_base);
+        return nvm->config.storage_ops->write(nvm->config.storage_context, offset, buf, len);
+    }
     /* 实际实现需要调用底层 Flash 写入 */
     memcpy((void *)addr, buf, len);
-    return 0;
+    return XY_NVM_OK;
 }
 
 /**
  * @brief Flash 擦除 (模拟)
  */
-static int flash_erase(uintptr_t addr, size_t len)
+static xy_nvm_status_t storage_erase(const xy_nvm_t *nvm, uintptr_t addr, size_t len)
 {
+    if (nvm->config.storage_ops) {
+        size_t offset = (size_t)(addr - (uintptr_t)nvm->config.flash_base);
+        return nvm->config.storage_ops->erase(nvm->config.storage_context, offset, len);
+    }
     /* 实际实现需要调用底层 Flash 擦除 */
     memset((void *)addr, 0xFF, len);
-    return 0;
+    return XY_NVM_OK;
 }
 
 /**
@@ -72,7 +86,9 @@ static int flash_erase(uintptr_t addr, size_t len)
  */
 xy_nvm_status_t xy_nvm_init(xy_nvm_t *nvm, const xy_nvm_config_t *cfg)
 {
-    if (!nvm || !cfg || !cfg->flash_base) {
+    if (!nvm || !cfg || !cfg->flash_base || cfg->page_size == 0U || cfg->num_pages == 0U ||
+        (cfg->storage_ops && (!cfg->storage_ops->read || !cfg->storage_ops->write ||
+                             !cfg->storage_ops->erase))) {
         return XY_NVM_ERROR_INVALID_PARAM;
     }
     
@@ -109,8 +125,10 @@ static uintptr_t find_kv_addr(xy_nvm_t *nvm, uint8_t key_id)
     
     while (addr < end_addr) {
         kv_header_t hdr;
-        flash_read(addr, &hdr, sizeof(hdr));
-        
+        if (storage_read(nvm, addr, &hdr, sizeof(hdr)) != XY_NVM_OK) {
+            return 0;
+        }
+
         /* 检查头标志 */
         if (hdr.head != KV_HEAD_MAGIC) {
             addr += 4;
@@ -165,11 +183,17 @@ xy_nvm_result_t xy_nvm_get(xy_nvm_t *nvm, uint8_t key_id)
     
     /* 读取头 */
     kv_header_t hdr;
-    flash_read(addr, &hdr, sizeof(hdr));
+    if (storage_read(nvm, addr, &hdr, sizeof(hdr)) != XY_NVM_OK) {
+        result.status = XY_NVM_ERROR;
+        return result;
+    }
     
     /* 读取数据部分 */
     uintptr_t data_addr = addr + KV_HEAD_SIZE;
-    flash_read(data_addr, result.data, hdr.len);
+    if (storage_read(nvm, data_addr, result.data, hdr.len) != XY_NVM_OK) {
+        result.status = XY_NVM_ERROR;
+        return result;
+    }
     
     result.len = hdr.len;
     result.status = XY_NVM_OK;
@@ -201,7 +225,10 @@ xy_nvm_status_t xy_nvm_set(xy_nvm_t *nvm, uint8_t key_id,
     
     while (addr < end_addr) {
         kv_header_t existing;
-        flash_read(addr, &existing, sizeof(existing));
+        xy_nvm_status_t status = storage_read(nvm, addr, &existing, sizeof(existing));
+        if (status != XY_NVM_OK) {
+            return status;
+        }
         
         /* 找到空闲空间 */
         if (existing.head == 0xFFFFFFFF) {
@@ -210,10 +237,16 @@ xy_nvm_status_t xy_nvm_set(xy_nvm_t *nvm, uint8_t key_id,
             }
 
             /* 写入头 */
-            flash_write(addr, &hdr, sizeof(hdr));
+            status = storage_write(nvm, addr, &hdr, sizeof(hdr));
+            if (status != XY_NVM_OK) {
+                return status;
+            }
             
             /* 写入数据部分 */
-            flash_write(addr + KV_HEAD_SIZE, data, len);
+            status = storage_write(nvm, addr + KV_HEAD_SIZE, data, len);
+            if (status != XY_NVM_OK) {
+                return status;
+            }
             
             return XY_NVM_OK;
         }
@@ -250,7 +283,11 @@ xy_nvm_status_t xy_nvm_delete(xy_nvm_t *nvm, uint8_t key_id)
     
     /* 标记为删除 (is_en = 0x00) */
     uint8_t is_en = 0x00;
-    flash_write(addr + offsetof(kv_header_t, is_en), &is_en, 1);
+    xy_nvm_status_t status =
+        storage_write(nvm, addr + offsetof(kv_header_t, is_en), &is_en, 1);
+    if (status != XY_NVM_OK) {
+        return status;
+    }
     
     return XY_NVM_OK;
 }
@@ -268,7 +305,10 @@ xy_nvm_status_t xy_nvm_format(xy_nvm_t *nvm)
     size_t size = (size_t)nvm->config.page_size * nvm->config.num_pages;
     
     /* 擦除所有区域 */
-    flash_erase(addr, size);
+    xy_nvm_status_t status = storage_erase(nvm, addr, size);
+    if (status != XY_NVM_OK) {
+        return status;
+    }
     
     xy_log_i("NVM formatted\n");
     return XY_NVM_OK;
@@ -289,7 +329,9 @@ void xy_nvm_get_stats(xy_nvm_t *nvm, uint16_t *used, uint16_t *free)
     
     while (addr < end_addr) {
         kv_header_t hdr;
-        flash_read(addr, &hdr, sizeof(hdr));
+        if (storage_read(nvm, addr, &hdr, sizeof(hdr)) != XY_NVM_OK) {
+            return;
+        }
         
         if (hdr.head == 0xFFFFFFFF) {
             break;

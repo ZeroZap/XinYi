@@ -10,7 +10,7 @@
 
 ## 1. 当前结论
 
-本记录当前只包含 Host 内存镜像上的 restart/corruption contract。`dm_nvm` focused test 会写入同一 key 的两个完整版本，重新初始化后要求读取最后一个完整版本；随后在 append 尾部注入可识别但 checksum 不完整的 torn record，再次初始化时必须保留最后一个完整值。
+本记录当前只包含 Host 内存镜像上的 restart/corruption contract。`dm_nvm` focused test 会写入同一 key 的两个完整版本，重新初始化后要求读取最后一个完整版本；随后在 append 尾部注入可识别但 checksum 不完整的 torn record，再次初始化时必须保留最后一个完整值。NVM 现支持 caller-owned storage ops；Host fault backend 分别在 header write 和 payload write 返回失败，`xy_nvm_set()` 必须传播错误，重启后仍读取上一完整值。
 
 Current result: `HOST_INTERRUPTION_GUARDED`
 
@@ -34,7 +34,7 @@ Current result: `HOST_INTERRUPTION_GUARDED`
 | DM-PL-01 | restart after complete append | newest complete value survives re-init | pending |
 | DM-PL-02 | torn header/payload append | incomplete checksum record is ignored; previous complete value remains | pending |
 | DM-PL-03 | erase interruption | pending | pending |
-| DM-PL-04 | write interruption at every supported program granule | pending | pending |
+| DM-PL-04 | write interruption at every supported program granule | header/payload write-return interruption guarded；exhaustive byte/program-granule sweep pending | pending |
 | DM-PL-05 | CRC/metadata corruption | checksum-invalid record ignored on Host; exhaustive corruption pending | pending |
 | DM-PL-06 | layout migration | pending | pending |
 | DM-PL-07 | repeated reset/endurance | pending | pending |
