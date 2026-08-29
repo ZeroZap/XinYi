@@ -187,6 +187,12 @@ xy_add_unit_test(test_sht30_device sensor_sht30_device UNITY
     ${DRV}/sensor/temperature/sht30/xy_sht30.c
 )
 
+# --- Test 2c: canonical BMP280 Device-driver transaction contract ---
+xy_add_unit_test(test_bmp280_device sensor_bmp280_device UNITY
+    ${UNIT_SENSOR}/test_bmp280_device.c
+    ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
+)
+
 # --- Test 3: heterogeneous sensor coexistence ---
 xy_add_unit_test(test_sensors_multi sensors_multi UNITY
     ${UNIT_SENSOR}/test_sensors_multi.c
