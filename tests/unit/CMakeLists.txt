@@ -83,6 +83,10 @@ add_test(NAME charger_ownership
     COMMAND python3 ${UNIT_PM}/check_charger_ownership.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME reference_rtos_decision
+    COMMAND python3 ${UNIT_KERNEL}/check_reference_rtos_decision.py
+    WORKING_DIRECTORY ${ROOT}
+)
 
 include_directories(
     ${DEV}                          # xy_device_core.h

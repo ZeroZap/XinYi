@@ -319,7 +319,10 @@ git diff --check
 
 #### S5-1 单一 RTOS 后端
 
-**选择**：FreeRTOS 或 RT-Thread，只选一个作为本轮 reference backend。
+**选择**：FreeRTOS，作为本轮唯一 reference backend；选择依据与未完成边界见
+[reference RTOS 决策记录](../validation/reference-rtos-decision.md)。当前仍缺 project-owned
+`FreeRTOSConfig.h`、STM32U5 Cortex-M33 port、target compile 与 runtime/stress，不能升级为
+RTOS 或实板证据。
 **覆盖**：OSAL thread/event、IPC MQ/broker、Trace 多任务、Device registry/PM 并发。
 
 **验收**：并发 stress、ISR→task、timeout、资源耗尽、shutdown/re-init；有真实板卡或可信 RTOS 仿真记录。

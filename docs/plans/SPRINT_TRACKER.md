@@ -127,13 +127,22 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-12 | P1 | BMP280 stale lifecycle/example 收口 | DONE | Zero | S4-11（DONE） | RED policy probe 发现未引用第四生命周期仍存在，且 smart-hygrometer 指向不存在的 experimental source/旧三参数 API；移除 stale source、切换 canonical owner，并加入防回归 guard；focused 4/4、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过 | `219917db` | 2026-08-29 |
 | S4-13 | P1 | Charger ownership 与弃用文档事实收口 | DONE | Zero | S4-12（DONE） | RED probe 证明 `DEPRECATED.md` 指向不存在的 `components/drivers/power/charger/`；已校准 standalone BQ25620 canonical owner、legacy-maintained/Host-only 边界并加入 policy guard；focused 2/2、Host 190/190、PC root、Charger-enabled `charger` target 与 `git diff --check` 通过；不升级硬件/安全声明 | `5c18b117` | 2026-08-29 |
 
+### Sprint 5 前置看板
+
+> 只选择一个 reference RTOS。选择记录不等于 compile/runtime/ISR/并发或实板证据；
+> 在 project-owned config、Cortex-M33 port 与 runtime stress 到位前不得标记 `DONE`。
+
+| ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
+|---|---:|---|---|---|---|---|---|---|
+| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/port 决策 | `REFERENCE_SELECTED`：选择 FreeRTOS；[决策记录](../validation/reference-rtos-decision.md)列明现有 kernel/adapter、缺失 `FreeRTOSConfig.h`/Cortex-M33 port、RT-Thread 未选原因及下一 compile/runtime slice；policy focused guard 通过。仍缺 C1、runtime、ISR→task、并发 stress 与 B1/B2 | 待本轮提交 | 2026-08-29 |
+
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
 | Sprint 1 | 2 周 | GUI backend 错误传播、strict backend、字体与单一显示纵切 | Sprint 0 门禁可信 | IN_PROGRESS |
 | Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | [HAL 平台实现与证据矩阵](../validation/hal-platform-evidence-matrix.md)已建立；Host 前置推进中，HIL 夹具仍缺 | IN_PROGRESS（Host 前置）/BLOCKED（实板） |
 | Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 产品算法清单与 signature provider 边界已完成 | IN_PROGRESS（FOTA 去模拟化；非安全批准前置） |
 | Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | active-source manifest 与 SHT30/ADS1115/MPU6050 single-owner migrations 已完成 | IN_PROGRESS（Sensor ownership 前置）/BLOCKED（实板） |
-| Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | reference RTOS/board 决策 | BACKLOG |
+| Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | FreeRTOS 已选为 reference；board/config/port/runtime 仍待闭环 | IN_PROGRESS（reference selected）/BLOCKED（runtime/实板） |
 | Sprint 6 | 1–2 周 | Release Candidate | 目标平台 HIL、安全边界和发布门禁达标 | BLOCKED |
 
 ---
@@ -520,3 +529,17 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   校准或 B1/B2 实板证据。
 - 下一步：不新增 Sensor 型号；无硬件环境时进入 Sprint 5 reference RTOS/board 决策，
   硬件到位后按四个 canonical owner 补 B1/B2。
+
+### 2026-08-29 Sprint 5 reference RTOS 选择
+
+- RED：`reference_rtos_decision` probe 首次因决策记录缺失而失败，证明 Sprint 5 仍只有
+  “FreeRTOS 或 RT-Thread”二选一的未决计划。
+- 决策：选择 FreeRTOS 作为唯一 reference backend；RT-Thread 本 Sprint 不选。记录已核对
+  adapter、kernel tree、CMake 路径，并明确当前缺 project-owned `FreeRTOSConfig.h`、
+  STM32U5 Cortex-M33 port 与 runtime fixture。
+- Guard：focused policy CTest 固定选择和 fail-closed 证据边界，同时要求默认 backend 在
+  integration 通过前保持 bare-metal。
+- 边界：`REFERENCE_SELECTED` 不构成 C1、RTOS runtime、ISR、并发或 B1/B2；S5-01 保持
+  `IN_PROGRESS`。
+- 下一步：最小 integration slice 为 config + Cortex-M33 port + adapter/kernel clean compile；
+  再进入 thread/sync/queue/timeout/ISR-to-task runtime stress。
