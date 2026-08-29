@@ -124,7 +124,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-09 | P1 | DM NVM metadata/checksum corruption contract | DONE | Zero | S4-08（DONE） | RED：caller-owned backend 使用非映射逻辑地址时 checksum scan 直接解引用并崩溃；V2 record 改用 CRC-8，legacy additive checksum 保持兼容；逐 byte 破坏 V2 magic/key/enable/length/CRC/payload 后重启均回退上一完整值；focused、Host 188/188、PC root/`xy_dm`、`git diff --check` 通过 | `0966f67d` | 2026-08-29 |
 | S4-10 | P0 | Fuel Gauge security passthrough fail-closed | DONE | Zero | D-002 | RED：AES128 encrypt 仍返回成功并原样复制明文；现未接入受审查 provider 的安全模式返回 `XY_FG_ERROR_NOT_SUPPORTED`，encrypt/decrypt 输出与长度保持不变；`NONE` 明文兼容行为保留；focused、Host、PC root/`xy_fuel_gauge` 与 `git diff --check` 通过；不构成安全批准 | `4fb59bf8` | 2026-08-29 |
 | S4-11 | P1 | BMP280 canonical Device owner contract | DONE | Zero | S4-04（DONE） | RED：Device owner 缺双地址 API；现补 Bosch 补偿、初始化/反初始化错误传播、缓存输出保持与 root `sensor_component` ownership；focused 3/3、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `35b2f7d0` | 2026-08-29 |
-| S4-12 | P1 | BMP280 stale lifecycle/example 收口 | DONE | Zero | S4-11（DONE） | RED policy probe 发现未引用第四生命周期仍存在，且 smart-hygrometer 指向不存在的 experimental source/旧三参数 API；移除 stale source、切换 canonical owner，并加入防回归 guard；focused 4/4、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过 | `PENDING_COMMIT` | 2026-08-29 |
+| S4-12 | P1 | BMP280 stale lifecycle/example 收口 | DONE | Zero | S4-11（DONE） | RED policy probe 发现未引用第四生命周期仍存在，且 smart-hygrometer 指向不存在的 experimental source/旧三参数 API；移除 stale source、切换 canonical owner，并加入防回归 guard；focused 4/4、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过 | `219917db` | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
