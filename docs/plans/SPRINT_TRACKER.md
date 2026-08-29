@@ -134,7 +134,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
-| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/port 决策 | `REFERENCE_SELECTED`：选择 FreeRTOS；[决策记录](../validation/reference-rtos-decision.md)列明现有 kernel/adapter、缺失 `FreeRTOSConfig.h`/Cortex-M33 port、RT-Thread 未选原因及下一 compile/runtime slice；policy focused guard 通过。仍缺 C1、runtime、ISR→task、并发 stress 与 B1/B2 | `a7de72e7` | 2026-08-29 |
+| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；已新增 project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` compile gate（adapter + kernel + heap + port 共 9 objects）。仍缺 root Kconfig/CMake selection、link/runtime、ISR→task、并发 stress 与 B1/B2；compile-only 不升级运行时/实板声明 | `a7de72e7`、`7962141d` | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -543,3 +543,16 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `IN_PROGRESS`。
 - 下一步：最小 integration slice 为 config + Cortex-M33 port + adapter/kernel clean compile；
   再进入 thread/sync/queue/timeout/ISR-to-task runtime stress。
+
+### 2026-08-29 Sprint 5 FreeRTOS STM32U5 compile 前置
+
+- RED：`reference_rtos_decision` guard 在要求 project-owned `FreeRTOSConfig.h` 与 compile probe 后
+  失败，确认选择记录尚无可执行 target integration gate。
+- 实现：新增 bounded STM32U5 config；从 FreeRTOS-Kernel V10.4.6 commit
+  `a4b28e35103d699edf074dfff4835921b481b301` 固定 Cortex-M33 non-secure GCC port，记录
+  provenance/SHA-256；新增 compile-only CTest，使用 Arm GNU 15.2 对 adapter、kernel、heap、
+  event/timer 与 port 共 9 个对象执行 `-Werror` 编译。
+- 边界：该 gate 不链接 startup/vector/HAL，不运行 scheduler，故不构成 RTOS runtime、ISR、
+  并发或 B1/B2 实板证据；S5-01 保持 `IN_PROGRESS`。
+- 下一步：让 root Kconfig/CMake FreeRTOS selection 只消费受检 config/port，并在缺输入时
+  fail closed；之后再建立 runtime fixture。
