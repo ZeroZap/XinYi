@@ -1,11 +1,14 @@
 # XY OSAL FreeRTOS Backend
 
 ## Overview
-Complete FreeRTOS implementation of XY OSAL providing full multitasking support.
+FreeRTOS adapter source for the XinYi OSAL. The STM32U5 reference configuration currently has
+Arm Cortex-M33 source/static-library compile evidence only; scheduler, ISR, concurrency and board
+runtime validation remain pending.
 
 ## Features
-✅ Kernel, Tasks, Mutex, Semaphore, Event Groups, Message Queue, Software Timers
-⚠️ Memory Pool (stub), Thread Join (not supported)
+- Source mappings: kernel/tasks, mutex, semaphore, event groups, message queue and software timers
+- Known limitations: thread join/enumeration and queue message-size reporting are unsupported;
+  runtime semantics and resource exhaustion are not yet validated
 
 ## Priority Mapping
 Direct mapping: XY 0 (lowest) → FreeRTOS 0, capped at `configMAX_PRIORITIES - 1`
@@ -31,4 +34,7 @@ xy_os_thread_id_t task = xy_os_thread_new(my_task_func, NULL, &attr);
 ```
 
 ## Status
-Version 1.0.0 | Development / target validation pending | Written for FreeRTOS 10.4.6
+Version 1.0.0 | `compile-guarded-runtime-pending` | Written for pinned FreeRTOS 10.4.6
+
+See `docs/validation/reference-rtos-decision.md` and `BACKEND_COMPARISON.md` for the authoritative
+evidence boundary. This README does not claim runtime, performance, safety or hardware approval.

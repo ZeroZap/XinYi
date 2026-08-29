@@ -11,6 +11,8 @@ AUDIT_PLAN = ROOT / "docs" / "plans" / "2026-08-17-component-audit-sprint-plan.m
 EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 OSAL_CMAKE = ROOT / "components" / "kernel" / "osal" / "CMakeLists.txt"
 BACKEND_COMPARISON = ROOT / "components" / "kernel" / "osal" / "BACKEND_COMPARISON.md"
+FREERTOS_README = ROOT / "components" / "kernel" / "osal" / "freertos" / "README.md"
+KERNEL_README = ROOT / "components" / "kernel" / "README.md"
 ROOT_KCONFIG = ROOT / "Kconfig"
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
 THIRD_PARTY_CMAKE = ROOT / "third_party" / "CMakeLists.txt"
@@ -52,6 +54,8 @@ def main() -> int:
     evidence = EVIDENCE.read_text(encoding="utf-8")
     osal_cmake = OSAL_CMAKE.read_text(encoding="utf-8")
     backend_comparison = BACKEND_COMPARISON.read_text(encoding="utf-8")
+    freertos_readme = FREERTOS_README.read_text(encoding="utf-8")
+    kernel_readme = KERNEL_README.read_text(encoding="utf-8")
     root_kconfig = ROOT_KCONFIG.read_text(encoding="utf-8")
     root_cmake = ROOT_CMAKE.read_text(encoding="utf-8")
     third_party_cmake = THIRD_PARTY_CMAKE.read_text(encoding="utf-8")
@@ -106,6 +110,14 @@ def main() -> int:
     ):
         require(token in backend_comparison,
                 f"backend comparison must preserve evidence boundary: {token}", errors)
+    for forbidden in ("Complete FreeRTOS implementation", "full multitasking support"):
+        require(forbidden not in freertos_readme,
+                f"FreeRTOS README must not preserve unverified claim: {forbidden}", errors)
+    for token in ("compile-guarded-runtime-pending", "does not claim runtime"):
+        require(token in freertos_readme,
+                f"FreeRTOS README must preserve evidence boundary: {token}", errors)
+    require("source/static-library gate" in kernel_readme and "runtime/ISR/并发/实板 pending" in kernel_readme,
+            "kernel README must record the bounded FreeRTOS compile evidence", errors)
     require(FREERTOS_BACKEND.is_file(), "FreeRTOS OSAL adapter is missing", errors)
     require((FREERTOS_KERNEL / "include" / "FreeRTOS.h").is_file(),
             "vendored FreeRTOS kernel headers are missing", errors)

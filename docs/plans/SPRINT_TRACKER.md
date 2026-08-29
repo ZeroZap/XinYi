@@ -134,7 +134,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
-| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；stale backend comparison 的无证据性能/内存/可移植性声明已移除并由 policy guard 防回归。仍缺 runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本轮提交 | 2026-08-29 |
+| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；backend comparison、kernel 与 FreeRTOS README 的无证据完成度/性能/可移植性声明已降级并由 policy guard 防回归。MPS2-AN505 runtime spike 在 secure/non-secure boot/alias 边界 HardFault，未提交为 runtime gate；仍缺 board-correct runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本轮提交 | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -582,3 +582,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   与 `git diff --check` 见本轮 gate。以上不新增 runtime、performance、ISR、并发或实板证据。
 - 下一步：继续 S5-01 的 runnable link/runtime fixture；若 QEMU Cortex-M33 启动模型不能安全闭环，
   保持 BLOCKED 并等待 reference board，不用 Host fake 冒充 scheduler runtime。
+
+### 2026-08-30 Sprint 5 FreeRTOS README 声明收口
+
+- Probe：继续尝试 MPS2-AN505 Cortex-M33 runtime fixture，但 secure/non-secure 启动与地址 alias
+  边界触发 HardFault，未观察到 scheduler marker；该 spike 已移除，未注册成假绿 CTest。
+- 收口：FreeRTOS backend README 不再宣称 “Complete/full multitasking”；kernel backend 表不再用
+  `✅` 将 FreeRTOS/RT-Thread/CMSIS-RTX5 源码存在误写为 runtime 完成，统一记录 compile/source
+  evidence 与 pending 边界，并由 `reference_rtos_decision` guard 防回归。
+- 边界：现有证据仍只有 Arm STM32U5 source/static-library compile；无 runnable scheduler、ISR、
+  并发、性能或实板升级，S5-01 保持 `IN_PROGRESS`。
+- 下一步：选择与 reference board 安全域/启动布局一致的 linker/startup owner 后再恢复 runtime gate；
+  在此之前继续清理同域 stale completion 声明，不用 QEMU boot failure 冒充 RTOS 缺陷。

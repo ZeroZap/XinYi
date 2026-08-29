@@ -38,9 +38,9 @@ kernel/
 | 后端 | 状态 | 说明 |
 |------|------|------|
 | **Bare-metal** | ✅ | 基础内核控制、tick/delay、软件定时器，以及主 CMSIS-like API 下的 mutex/semaphore/event flags/message queue/memory pool 单线程契约；thread creation 仍为 stub |
-| **FreeRTOS** | ✅ | 最常用的 RTOS |
-| **RT-Thread** | ✅ | 国产 RTOS |
-| **CMSIS-RTX5** | ✅ | ARM 官方 RTOS |
+| **FreeRTOS** | 编译前置 | Sprint 5 唯一 reference；STM32U5 Cortex-M33 source/static-library gate 已有，runtime/ISR/并发/实板 pending |
+| **RT-Thread** | source candidate | 本 Sprint 未选；无 XinYi STM32U5 runtime gate |
+| **CMSIS-RTX5** | source candidate | 未建立 canonical root/runtime 证据 |
 
 ---
 
