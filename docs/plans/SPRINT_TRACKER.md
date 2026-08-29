@@ -125,7 +125,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-10 | P0 | Fuel Gauge security passthrough fail-closed | DONE | Zero | D-002 | RED：AES128 encrypt 仍返回成功并原样复制明文；现未接入受审查 provider 的安全模式返回 `XY_FG_ERROR_NOT_SUPPORTED`，encrypt/decrypt 输出与长度保持不变；`NONE` 明文兼容行为保留；focused、Host、PC root/`xy_fuel_gauge` 与 `git diff --check` 通过；不构成安全批准 | `4fb59bf8` | 2026-08-29 |
 | S4-11 | P1 | BMP280 canonical Device owner contract | DONE | Zero | S4-04（DONE） | RED：Device owner 缺双地址 API；现补 Bosch 补偿、初始化/反初始化错误传播、缓存输出保持与 root `sensor_component` ownership；focused 3/3、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `35b2f7d0` | 2026-08-29 |
 | S4-12 | P1 | BMP280 stale lifecycle/example 收口 | DONE | Zero | S4-11（DONE） | RED policy probe 发现未引用第四生命周期仍存在，且 smart-hygrometer 指向不存在的 experimental source/旧三参数 API；移除 stale source、切换 canonical owner，并加入防回归 guard；focused 4/4、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过 | `219917db` | 2026-08-29 |
-| S4-13 | P1 | Charger ownership 与弃用文档事实收口 | DONE | Zero | S4-12（DONE） | RED probe 证明 `DEPRECATED.md` 指向不存在的 `components/drivers/power/charger/`；已校准 standalone BQ25620 canonical owner、legacy-maintained/Host-only 边界并加入 policy guard；focused 2/2、Host 190/190、PC root、Charger-enabled `charger` target 与 `git diff --check` 通过；不升级硬件/安全声明 | `PENDING_SHA` | 2026-08-29 |
+| S4-13 | P1 | Charger ownership 与弃用文档事实收口 | DONE | Zero | S4-12（DONE） | RED probe 证明 `DEPRECATED.md` 指向不存在的 `components/drivers/power/charger/`；已校准 standalone BQ25620 canonical owner、legacy-maintained/Host-only 边界并加入 policy guard；focused 2/2、Host 190/190、PC root、Charger-enabled `charger` target 与 `git diff --check` 通过；不升级硬件/安全声明 | `5c18b117` | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
