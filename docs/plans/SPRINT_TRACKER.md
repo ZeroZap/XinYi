@@ -134,7 +134,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
-| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed。仍缺 runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本轮提交 | 2026-08-29 |
+| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；stale backend comparison 的无证据性能/内存/可移植性声明已移除并由 policy guard 防回归。仍缺 runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本轮提交 | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -570,3 +570,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   library compile 前置，不构成 runnable image、scheduler、ISR、并发或 B1/B2。
 - 下一步：建立可链接/可运行的 FreeRTOS runtime fixture，再覆盖 thread/sync/queue/timeout 与
   ISR→task；S5-01 继续保持 `IN_PROGRESS`。
+
+### 2026-08-29 Sprint 5 OSAL backend 声明收口
+
+- RED：`reference_rtos_decision` guard 新增证据边界后失败，证明 stale
+  `BACKEND_COMPARISON.md` 仍发布无 XinYi record 的 context-switch/IRQ latency、内存占用、
+  “seamless migration”与 safety/use-case 排名。
+- 收口：backend 文档改为 source/compile inventory，只记录 adapter mapping、当前 root selection、
+  已知 unsupported 路径与 runtime gate；移除全部无来源性能数字和产品选择结论。
+- 验证：focused `reference_rtos_decision` + `freertos_stm32u5_compile` 2/2、Host 全量、PC root
+  与 `git diff --check` 见本轮 gate。以上不新增 runtime、performance、ISR、并发或实板证据。
+- 下一步：继续 S5-01 的 runnable link/runtime fixture；若 QEMU Cortex-M33 启动模型不能安全闭环，
+  保持 BLOCKED 并等待 reference board，不用 Host fake 冒充 scheduler runtime。

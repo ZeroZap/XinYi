@@ -10,6 +10,7 @@ TRACKER = ROOT / "docs" / "plans" / "SPRINT_TRACKER.md"
 AUDIT_PLAN = ROOT / "docs" / "plans" / "2026-08-17-component-audit-sprint-plan.md"
 EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 OSAL_CMAKE = ROOT / "components" / "kernel" / "osal" / "CMakeLists.txt"
+BACKEND_COMPARISON = ROOT / "components" / "kernel" / "osal" / "BACKEND_COMPARISON.md"
 ROOT_KCONFIG = ROOT / "Kconfig"
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
 THIRD_PARTY_CMAKE = ROOT / "third_party" / "CMakeLists.txt"
@@ -50,6 +51,7 @@ def main() -> int:
     audit_plan = AUDIT_PLAN.read_text(encoding="utf-8")
     evidence = EVIDENCE.read_text(encoding="utf-8")
     osal_cmake = OSAL_CMAKE.read_text(encoding="utf-8")
+    backend_comparison = BACKEND_COMPARISON.read_text(encoding="utf-8")
     root_kconfig = ROOT_KCONFIG.read_text(encoding="utf-8")
     root_cmake = ROOT_CMAKE.read_text(encoding="utf-8")
     third_party_cmake = THIRD_PARTY_CMAKE.read_text(encoding="utf-8")
@@ -87,6 +89,23 @@ def main() -> int:
             "third-party CMake must use the pinned FreeRTOS kernel layout", errors)
     require("ARM_CM33_NTZ" in third_party_cmake,
             "third-party CMake must use the guarded Cortex-M33 port", errors)
+    for forbidden in (
+        "0.3-0.5",
+        "50-80",
+        "~6 KB",
+        "~1-2 µs",
+        "same application-level API",
+        "migration seamless",
+    ):
+        require(forbidden not in backend_comparison,
+                f"backend comparison must not preserve unverified claim: {forbidden}", errors)
+    for token in (
+        "source/compile inventory only",
+        "no project-owned runtime benchmark evidence",
+        "runtime-pending",
+    ):
+        require(token in backend_comparison,
+                f"backend comparison must preserve evidence boundary: {token}", errors)
     require(FREERTOS_BACKEND.is_file(), "FreeRTOS OSAL adapter is missing", errors)
     require((FREERTOS_KERNEL / "include" / "FreeRTOS.h").is_file(),
             "vendored FreeRTOS kernel headers are missing", errors)

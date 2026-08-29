@@ -1,304 +1,94 @@
 # XY OSAL Backend Comparison
 
-## Executive Summary
+## Evidence boundary
 
-This document compares the three OSAL backends: Bare-metal, FreeRTOS, and RT-Thread.
+This document is a **source/compile inventory only**. XinYi currently selects FreeRTOS as the
+Sprint 5 reference backend and has a guarded STM32U5 Cortex-M33 source/static-library compile
+path. The integration state is `runtime-pending`.
 
-## Feature Comparison Matrix
+XinYi has **no project-owned runtime benchmark evidence** for context-switch latency, interrupt
+latency, memory footprint, power, scheduler behavior, ISR-to-task wakeups, or concurrent stress.
+The tables below describe visible adapter mappings; they do not claim runtime, hardware,
+performance, safety, or production qualification. Upstream ecosystem features are not XinYi
+integration evidence.
 
-| Feature | Bare-metal | FreeRTOS | RT-Thread |
-|---------|-----------|----------|-----------|
-| **Lines of Code** | 149 | 383 | 397 |
-| **Kernel Control** | ✅ Basic | ✅ Full | ✅ Full |
-| **Threading** | ❌ | ✅ | ✅ |
-| **Mutex** | ❌ | ✅ | ✅ |
-| **Semaphore** | ❌ | ✅ | ✅ |
-| **Event Flags** | ❌ | ✅ | ✅ |
-| **Message Queue** | ❌ | ✅ | ✅ |
-| **Memory Pool** | ❌ | ⚠️ Stub | ✅ Native |
-| **Software Timers** | ❌ | ✅ | ✅ |
-| **Priority Levels** | N/A | 0-configMAX | 0-56 |
-| **ISR Support** | ✅ | ✅ | ✅ |
-| **Power Management** | Manual | Limited | ✅ Full |
+## Current backend status
 
-## Priority System
+| Backend | Sprint role | Root selection | Current evidence | Known gaps |
+|---|---|---|---|---|
+| Bare-metal | Default fallback | Default on supported configurations | Host contract + PC build | No scheduler; thread and synchronization semantics are limited |
+| FreeRTOS | Single Sprint 5 reference | Explicit STM32U5-only opt-in | Pinned V10.4.6 config/port; Arm GNU `-Werror` compile; root static-library build | No runnable image, scheduler/ISR/concurrency test, resource-exhaustion test, shutdown/re-init, or B1/B2 |
+| RT-Thread | Not selected this Sprint | Not a canonical root selection | Source candidate only | Adapter has unsupported/simplified paths; no XinYi-owned STM32U5 config/port/runtime gate |
 
-### Bare-metal
-- **Not applicable** (no threading)
+The authoritative selection and evidence boundary are in
+[`docs/validation/reference-rtos-decision.md`](../../../docs/validation/reference-rtos-decision.md).
 
-### FreeRTOS
-- **Direction**: 0 = lowest, higher = higher priority
-- **Range**: 0 to `configMAX_PRIORITIES - 1` (typically 0-31)
-- **Mapping**: Direct (XY → FreeRTOS)
-- **Formula**: `freertos_prio = xy_prio` (capped)
+## Adapter mapping inventory
 
-### RT-Thread
-- **Direction**: 0 = highest, higher = lower priority ⚠️ **INVERTED**
-- **Range**: 0 to `RT_THREAD_PRIORITY_MAX - 1` (typically 0-255)
-- **Mapping**: Inverted (XY → RT-Thread)
-- **Formula**: `rt_prio = (RT_THREAD_PRIORITY_MAX - 1) - xy_prio`
+A mapped call means that the adapter references an RTOS primitive. It does **not** mean the path
+has been executed or qualified.
 
-## API Implementation Details
+### Kernel and thread mapping
 
-### Kernel Functions
+| OSAL call | Bare-metal adapter | FreeRTOS adapter | RT-Thread adapter |
+|---|---|---|---|
+| `xy_os_kernel_start()` | Local state transition | `vTaskStartScheduler()` | Kernel assumed externally started |
+| `xy_os_kernel_lock()` | Local nesting counter | `vTaskSuspendAll()` | `rt_enter_critical()` |
+| `xy_os_thread_new()` | Unsupported | `xTaskCreate()` | `rt_thread_create()` |
+| `xy_os_thread_terminate()` | Unsupported | `vTaskDelete()` | `rt_thread_delete()` |
+| `xy_os_thread_suspend()` | Unsupported | `vTaskSuspend()` | `rt_thread_suspend()` |
+| `xy_os_thread_set_priority()` | Unsupported | `vTaskPrioritySet()` | `rt_thread_control()` |
+| `xy_os_thread_yield()` | No-op | `taskYIELD()` | `rt_thread_yield()` |
 
-| Function | Bare-metal | FreeRTOS | RT-Thread |
-|----------|-----------|----------|-----------|
-| `xy_os_kernel_init()` | ✅ State set | ✅ No-op | ✅ No-op |
-| `xy_os_kernel_start()` | ✅ State set | ✅ `vTaskStartScheduler()` | ✅ Auto-start |
-| `xy_os_kernel_lock()` | ✅ Counter | ✅ `vTaskSuspendAll()` | ✅ `rt_enter_critical()` |
-| `xy_os_kernel_get_tick_count()` | ✅ `xy_tick_get()` | ✅ `xTaskGetTickCount()` | ✅ `rt_tick_get()` |
+### Synchronization and communication mapping
 
-### Thread Management
+| Capability | FreeRTOS adapter | RT-Thread adapter | Evidence note |
+|---|---|---|---|
+| Mutex | FreeRTOS semaphore/mutex API | `rt_mutex_*` | Source mapping only |
+| Semaphore | FreeRTOS semaphore API | `rt_sem_*` | ISR behavior not yet tested by XinYi |
+| Event flags | FreeRTOS event groups | RT-Thread event API | Timeout/clear semantics need runtime coverage |
+| Message queue | FreeRTOS queue API | RT-Thread message queue API | Queue full/empty and concurrency need runtime coverage |
+| Memory pool | Adapter-owned free list over RTOS allocation | RT-Thread memory pool API | FreeRTOS adapter allocation ownership and exhaustion need runtime coverage |
+| Software timer | FreeRTOS timer daemon | RT-Thread timer API | Callback context and shutdown/re-init need runtime coverage |
 
-| Function | Bare-metal | FreeRTOS | RT-Thread |
-|----------|-----------|----------|-----------|
-| `xy_os_thread_new()` | ❌ NULL | ✅ `xTaskCreate()` | ✅ `rt_thread_create()` |
-| `xy_os_thread_terminate()` | ❌ Error | ✅ `vTaskDelete()` | ✅ `rt_thread_delete()` |
-| `xy_os_thread_suspend()` | ❌ Error | ✅ `vTaskSuspend()` | ✅ `rt_thread_suspend()` |
-| `xy_os_thread_set_priority()` | ❌ Error | ✅ `vTaskPrioritySet()` | ✅ `rt_thread_control()` |
-| `xy_os_thread_yield()` | ✅ No-op | ✅ `taskYIELD()` | ✅ `rt_thread_yield()` |
+### Known API limitations
 
-### Synchronization Primitives
+- Bare-metal remains the default but cannot provide real concurrent thread scheduling.
+- The FreeRTOS adapter explicitly does not implement thread join or enumeration; stack-size
+  reporting is incomplete.
+- The RT-Thread adapter contains unsupported or simplified thread-flag/enumeration paths.
+- Application portability is not yet proven: backend timeout units, ISR-safe entry points,
+  lifecycle, priority mapping, and resource limits still require tests.
+- FreeRTOS is the only reference backend in this Sprint. Do not maintain two simultaneous
+  runtime integration tracks.
 
-#### Mutex
+## Selection guidance
 
-| Aspect | FreeRTOS | RT-Thread |
-|--------|----------|-----------|
-| **Creation** | `xSemaphoreCreateMutex()` | `rt_mutex_create()` |
-| **Recursive** | `xSemaphoreCreateRecursiveMutex()` | Flag in `rt_mutex_create()` |
-| **Priority Inheritance** | ✅ Built-in | ✅ `RT_IPC_FLAG_PRIO` |
-| **Overhead** | ~20 cycles | ~25 cycles |
+Use the backend selected by the product's validated configuration, not this file as a performance
+ranking:
 
-#### Semaphore
+- Keep bare-metal for simple/default builds that do not require concurrency.
+- Use the FreeRTOS opt-in only for continued STM32U5 integration work until runtime evidence is
+  complete.
+- Do not select RT-Thread for the current Sprint unless the reference decision is deliberately
+  reopened and the same config/port/runtime evidence is supplied.
 
-| Aspect | FreeRTOS | RT-Thread |
-|--------|----------|-----------|
-| **Binary** | `xSemaphoreCreateBinary()` | max_count=1 |
-| **Counting** | `xSemaphoreCreateCounting()` | `rt_sem_create()` |
-| **ISR Support** | `xSemaphoreGiveFromISR()` | `rt_sem_release()` |
-| **Max Count** | Configurable | Configurable |
+No backend is currently approved by XinYi for safety-critical use, hardware timing claims, power
+claims, or production readiness.
 
-#### Event Flags
+## Required runtime gate
 
-| Aspect | FreeRTOS | RT-Thread |
-|--------|----------|-----------|
-| **API** | Event Groups | Event |
-| **Bits Available** | 24 bits | 32 bits |
-| **Wait Options** | AND/OR | AND/OR |
-| **Auto-Clear** | ✅ | ✅ |
-| **ISR Support** | Separate API | Same API |
+Before FreeRTOS can move beyond `runtime-pending`, a runnable and repeatable fixture must cover:
 
-### Communication
+1. scheduler start and at least two task context switches;
+2. mutex, semaphore, queue, event flags, thread flags, and timeout semantics;
+3. resource exhaustion with explicit error propagation;
+4. ISR-to-task wakeup through supported ISR-safe primitives;
+5. timer callback behavior and tick progression;
+6. shutdown/re-init or an explicit documented unsupported contract;
+7. IPC MQ/broker, Trace multi-task behavior, and Device registry/PM concurrency;
+8. board-owned STM32U5 B1/B2 logs before any hardware claim.
 
-#### Message Queue
-
-| Aspect | FreeRTOS | RT-Thread |
-|--------|----------|-----------|
-| **Creation** | `xQueueCreate()` | `rt_mq_create()` |
-| **Priority Support** | ❌ FIFO only | ❌ FIFO only |
-| **Urgent Send** | `xQueueSendToFront()` | Not exposed |
-| **Peek** | `xQueuePeek()` | Not exposed |
-| **Fixed Size** | ✅ | ✅ |
-| **Zero-Copy** | ❌ Copy | ❌ Copy |
-
-#### Memory Pool
-
-| Aspect | FreeRTOS | RT-Thread |
-|--------|----------|-----------|
-| **Native Support** | ❌ | ✅ |
-| **Implementation** | Stub (needs custom) | `rt_mp_create()` |
-| **Fixed Block** | - | ✅ |
-| **Block Count** | - | Configurable |
-| **Allocation** | - | O(1) |
-
-### Timers
-
-| Aspect | FreeRTOS | RT-Thread |
-|--------|----------|-----------|
-| **API** | Software Timers | Software Timers |
-| **One-Shot** | ✅ `pdFALSE` | ✅ `RT_TIMER_FLAG_ONE_SHOT` |
-| **Periodic** | ✅ `pdTRUE` | ✅ `RT_TIMER_FLAG_PERIODIC` |
-| **Context** | Timer daemon task | Timer thread |
-| **Priority** | `configTIMER_TASK_PRIORITY` | `RT_TIMER_THREAD_PRIO` |
-| **Callback ISR-safe** | ✅ | ✅ |
-
-## Performance Comparison
-
-### Context Switch Time (Cortex-M4, 168MHz)
-
-| Backend | Time (µs) | Cycles |
-|---------|-----------|---------|
-| FreeRTOS | 0.3-0.5 | 50-80 |
-| RT-Thread | 0.4-0.6 | 70-100 |
-
-### Memory Footprint (Cortex-M4)
-
-| Component | FreeRTOS | RT-Thread |
-|-----------|----------|-----------|
-| **Kernel Code** | ~6 KB | ~12 KB |
-| **Kernel RAM** | ~200 B | ~400 B |
-| **TCB Size** | 96 B | 128 B |
-| **Mutex Size** | 80 B | 48 B |
-| **Semaphore** | 80 B | 40 B |
-| **Queue (10 msg)** | 120 B + data | 96 B + data |
-
-### Interrupt Latency
-
-| Backend | Max Latency | Notes |
-|---------|-------------|-------|
-| Bare-metal | Minimal | No scheduler |
-| FreeRTOS | ~1-2 µs | Critical sections |
-| RT-Thread | ~1-3 µs | Critical sections |
-
-## Use Case Recommendations
-
-### Choose Bare-metal When
-- ✅ Very simple application (no multitasking needed)
-- ✅ Bootloader or firmware updater
-- ✅ Ultra-low power requirements
-- ✅ Code size < 16KB total
-- ✅ Response time critical (no scheduler overhead)
-- ❌ Need inter-task communication
-- ❌ Need multiple concurrent tasks
-
-### Choose FreeRTOS When
-- ✅ Industry standard RTOS needed
-- ✅ Wide hardware support required
-- ✅ Large community and ecosystem
-- ✅ Commercial support available
-- ✅ AWS IoT integration needed
-- ✅ Safety-critical (SafeRTOS available)
-- ❌ Need Chinese documentation
-- ❌ Need advanced features (built-in file system, network stack)
-
-### Choose RT-Thread When
-- ✅ Chinese development team
-- ✅ Rich component ecosystem needed
-- ✅ Built-in device drivers wanted
-- ✅ Excellent documentation (Chinese)
-- ✅ Active community in China
-- ✅ Package manager (RT-Thread packages)
-- ✅ Native memory pool support
-- ❌ Need Western commercial support
-- ❌ Working with legacy FreeRTOS code
-
-## Code Portability
-
-### Migrating Between Backends
-
-**Effort Required**: ⭐️ Minimal (just rebuild)
-
-All three backends use **identical application code**:
-
-```c
-// This code works with ANY backend!
-void my_app(void) {
-    xy_os_kernel_init();
-
-    xy_os_thread_attr_t attr = {
-        .name = "Task",
-        .stack_size = 1024,
-        .priority = XY_OS_PRIORITY_NORMAL
-    };
-
-    xy_os_thread_new(worker_task, NULL, &attr);
-    xy_os_kernel_start();
-}
-```
-
-**To switch backends**:
-1. Change `.c` file in build system
-2. Update RTOS library linkage
-3. Rebuild
-4. Done! ✅
-
-### API Compatibility
-
-| API Call | Works on All Backends? |
-|----------|----------------------|
-| Kernel functions | ✅ Yes |
-| Delay | ✅ Yes (busy-wait on bare-metal) |
-| Thread create | ⚠️ Error on bare-metal |
-| Mutex | ⚠️ Error on bare-metal |
-| Semaphore | ⚠️ Error on bare-metal |
-| All others | ⚠️ Error on bare-metal |
-
-## Ecosystem Comparison
-
-### FreeRTOS Ecosystem
-- **AWS IoT Core** integration
-- **FreeRTOS+TCP** network stack
-- **FreeRTOS+FAT** file system
-- **SafeRTOS** (certified for safety-critical)
-- **Percepio Tracealyzer** (tracing tool)
-- **SEGGER SystemView** support
-
-### RT-Thread Ecosystem
-- **RT-Thread packages** (250+ packages)
-- **Device drivers** (UART, SPI, I2C, etc.)
-- **Network stack** (LwIP, SAL)
-- **File systems** (FAT, ROMFS, DevFS)
-- **GUI** (Persimmon UI, LVGL)
-- **IoT protocols** (MQTT, CoAP, HTTP)
-- **RT-Thread Studio** IDE
-
-### Bare-metal Ecosystem
-- Direct hardware access
-- Custom implementation freedom
-- Minimal dependencies
-
-## Development Tools
-
-| Tool | FreeRTOS | RT-Thread | Bare-metal |
-|------|----------|-----------|------------|
-| **IDE** | Any | RT-Thread Studio | Any |
-| **Debugger** | All standard | All standard | All standard |
-| **Trace** | Percepio, SystemView | RT-Thread Studio | None |
-| **Analysis** | Static analysis tools | Built-in commands | Custom |
-
-## Testing Strategy
-
-### Recommended Test Cases
-
-```c
-void test_osal_backend(void) {
-    // Test 1: Kernel basics
-    assert(xy_os_kernel_get_tick_count() >= 0);
-
-    // Test 2: Delay accuracy
-    uint32_t start = xy_os_kernel_get_tick_count();
-    xy_os_delay(100);
-    uint32_t elapsed = xy_os_kernel_get_tick_count() - start;
-    assert(elapsed >= 100 && elapsed <= 110);
-
-    #if !BARE_METAL
-    // Test 3: Mutex (RTOS only)
-    xy_os_mutex_id_t mutex = xy_os_mutex_new(NULL);
-    assert(mutex != NULL);
-    assert(xy_os_mutex_acquire(mutex, 100) == XY_OS_OK);
-    assert(xy_os_mutex_release(mutex) == XY_OS_OK);
-
-    // Test 4: Semaphore
-    xy_os_semaphore_id_t sem = xy_os_semaphore_new(1, 0, NULL);
-    xy_os_semaphore_release(sem);
-    assert(xy_os_semaphore_acquire(sem, 100) == XY_OS_OK);
-    #endif
-}
-```
-
-## Conclusion
-
-| Criteria | Best Choice |
-|----------|-------------|
-| **Simplest** | Bare-metal |
-| **Most Features** | RT-Thread |
-| **Industry Standard** | FreeRTOS |
-| **Best Documentation** | FreeRTOS (EN), RT-Thread (CN) |
-| **Smallest Footprint** | Bare-metal |
-| **Fastest Context Switch** | FreeRTOS |
-| **Best Ecosystem** | Tie (FreeRTOS for Western, RT-Thread for Chinese) |
-| **Easiest to Start** | Bare-metal |
-| **Most Portable** | All (same API!) |
-
-**Bottom Line**: All three backends provide the **same application-level API**, making migration seamless. Choose based on project requirements, not API limitations!
+Performance or memory tables may be added only with a reproducible XinYi record containing the
+exact board/QEMU model, CPU frequency, toolchain, optimization, config, sample method, raw output,
+and commit SHA.
