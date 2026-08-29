@@ -4,7 +4,7 @@
 
 **目标**：基于当前源码、构建配置、测试、文档和近期活动，重新建立可信组件状态，并安排后续 Sprint。
 
-**当前事实源**：`main@9cea83f0`；2026-08-23 校准时工作树干净，且本地 `main` 与 `origin/main` ahead/behind 为 `0/0`。当前执行状态由 [Sprint 跟踪看板](SPRINT_TRACKER.md) 维护，证据等级由 [组件证据台账](../validation/component-evidence-matrix.md) 维护。
+**审计基线**：`main@9cea83f0`；2026-08-23 校准时工作树干净，且本地 `main` 与 `origin/main` ahead/behind 为 `0/0`。当前执行状态与最新 SHA 由 [Sprint 跟踪看板](SPRINT_TRACKER.md) 维护，证据等级由 [组件证据台账](../validation/component-evidence-matrix.md) 维护；本文件中的初始计数和风险描述不覆盖后续已验证事实。
 
 ---
 
@@ -53,8 +53,8 @@ XinYi 已不是“缺少组件骨架”的早期仓库，而是一个具有强 H
 | `drivers/sensor`（新 Device 模型） | B | SHT30/MPU6050/BMP280/ADS1115 与 Device/PC HAL 集成测试 | 仅少量 active 驱动；与 legacy Sensor 双轨并存 | 定义新驱动准入与 legacy 迁移模板 |
 | `drivers/power/wireless/system` | D/C | 目录与部分配置入口 | active 源很少或为空，历史声明大于实现 | 不扩张宣称；按产品需求逐项 proposal |
 | `sensor` legacy `sensor_*` | B | 根 `sensor_component` 实际编译 framework 与约 55 个 `sensor_*.c`；大量 focused CTest 覆盖解析、边界和 I/O 失败 | 当前产品主路径，但部分 stub/简单驱动的测试不等于完整数据手册实现；fusion 部分路径仍返回 `SENSOR_ENOSYS`；多数无实板证据 | 冻结新增 legacy；逐批迁移到 Device 模型，保留兼容层 |
-| `sensor` 新 `xy_*` | B-/C | 约 23 个 `src/xy_*.c`，多个环境/IMU/光学/存储 Host 测试 | 当前根 `components/sensor/CMakeLists.txt` 未纳入这些新实现，即“测试过但未进入根产品库”；MLX90614 EEPROM 写未实现 | 先建立 active-source manifest，再迁移高价值驱动并验证进入根 target |
-| `drivers/sensor` 第三路径 | C | SHT30/MPU6050/BMP280/ADS1115 共 4 个独立驱动及部分 Device 集成测试 | 与 legacy/new 路径形成第三套同名实现；近 90 天基本停滞，生命周期与 active ownership 不统一 | 纳入 canonical Sensor API 决策，禁止继续形成第四套生命周期 |
+| `sensor` 新 `xy_*` | B-/C | 约 20 个 `src/xy_*.c`，多个环境/光学/存储 Host 测试 | 当前根 `components/sensor/CMakeLists.txt` 未纳入这些实验实现，即“测试过但未进入根产品库”；MLX90614 EEPROM 写未实现 | 保持 `experimental-test-only`，按 manifest 迁移而不新增平行 owner |
+| `drivers/sensor` Device 路径 | B | SHT30/MPU6050/BMP280/ADS1115 共 4 个 Device-model canonical owner，均进入 root Sensor target 并有 focused Host 契约 | legacy compatibility wrapper 与其余 experimental source 尚待逐步收敛；全部仍缺 B1/B2 | 维持 Device-model canonical owner 决策，禁止第四套生命周期；按芯片迁移兼容边界 |
 | `actuator` | A- | relay/servo/PWM/batch/callback 与示例 CTest | 自建 registry/lifecycle，尚未接入 Device；真实 PWM/timer/GPIO、故障态和安全默认值未证 | 增加 Device adapter；随 HAL 纵切补实板证据 |
 | `fuel_gauge` | A-/B | core + BQ27Z746/BQ40Z50/MAX17043/BQ27Z561 共 6 个 Host CTest | SMBus clock stretching、放电期 NACK/retry、告警写入、板级日志未证；security AES 当前存在明文透传风险 | 保持 standalone、不回并 PM；AES passthrough 改 fail-closed 或接可信 provider；安排硬件验证 |
 | `charger` | X/C | 旧 BQ25620 实现、Host CTest 与弃用文档 | 弃用文档推荐迁往实际为空的 `drivers/power/charger`，事实冲突；无热保护/充电故障实证 | 先纠正文档与 ownership；只维护迁移，禁止新功能 |
@@ -99,7 +99,7 @@ new src/xy_*     -> 多数有独立 Host 测试，但未进入根 sensor target
 drivers/sensor   -> 4 个独立驱动，形成第三套实现路径
 ```
 
-因此近期最高优先级不是新增驱动，而是决定 canonical API、建立逐芯片 ownership/active-source 清单，并用 SHT30、MPU6050、ADS1115 做单一路径迁移试点。
+canonical API 已确定为 Device model；SHT30、MPU6050、ADS1115 与 BMP280 已完成 canonical owner/root-link 试点，legacy 生命周期仅作为明确兼容边界保留。后续优先级不是新增驱动，而是按 active-source manifest 继续消除 duplicate ownership，并保持全部硬件状态为 pending。
 
 ### 3.3 配置事实源漂移
 

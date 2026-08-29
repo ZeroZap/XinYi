@@ -6,6 +6,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 MANIFEST = ROOT / "docs" / "validation" / "sensor-active-source-manifest.md"
+TRACKER = ROOT / "docs" / "plans" / "SPRINT_TRACKER.md"
+AUDIT_PLAN = ROOT / "docs" / "plans" / "2026-08-17-component-audit-sprint-plan.md"
 SENSOR_CMAKE = ROOT / "components" / "sensor" / "CMakeLists.txt"
 DRIVERS_CMAKE = ROOT / "components" / "drivers" / "CMakeLists.txt"
 UNIT_CMAKE = ROOT / "tests" / "unit" / "CMakeLists.txt"
@@ -29,6 +31,8 @@ def main() -> int:
         return 1
 
     manifest = MANIFEST.read_text(encoding="utf-8")
+    tracker = TRACKER.read_text(encoding="utf-8")
+    audit_plan = AUDIT_PLAN.read_text(encoding="utf-8")
     sensor_cmake = SENSOR_CMAKE.read_text(encoding="utf-8")
     drivers_cmake = DRIVERS_CMAKE.read_text(encoding="utf-8")
     unit_cmake = UNIT_CMAKE.read_text(encoding="utf-8")
@@ -66,6 +70,14 @@ def main() -> int:
             "Device driver root source ownership changed without manifest update", errors)
     require("sensor_active_source_manifest" in unit_cmake,
             "sensor_active_source_manifest CTest must remain registered", errors)
+    require("| 2026-08-17 | D-001 | 决策 |" in tracker and
+            "canonical API 已确定为 Device model" in tracker and
+            "| CLOSED |" in tracker,
+            "D-001 must be closed after the canonical Device-model decision", errors)
+    require("约 20 个 `src/xy_*.c`" in audit_plan,
+            "audit plan must use the current experimental source count", errors)
+    require("Device-model canonical owner" in audit_plan,
+            "audit plan must record the resolved Sensor ownership direction", errors)
     require(not STALE_BMP280.exists(),
             "retired xy_sensor_bmp280 lifecycle must not reappear", errors)
     require("components/drivers/sensor/pressure/bmp280" in smart_hygrometer_cmake,

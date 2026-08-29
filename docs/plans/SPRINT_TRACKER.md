@@ -142,7 +142,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | 日期 | ID | 类型 | 内容 | 所需决策/解除条件 | 状态 |
 |---|---|---|---|---|---|
-| 2026-08-17 | D-001 | 决策 | Sensor 实际有 legacy/new/drivers 三条实现路径 | 选择 canonical API；建议 `xy_sensor_device_t` + Device adapter | OPEN |
+| 2026-08-17 | D-001 | 决策 | Sensor 实际有 legacy/new/drivers 三条实现路径 | 2026-08-29 canonical API 已确定为 Device model；SHT30/ADS1115/MPU6050/BMP280 四个 owner 已进入 root target，legacy 仅保留明确 compatibility boundary，experimental 保持 test-only | CLOSED |
 | 2026-08-17 | D-002 | 安全阻塞 | Fuel Gauge security AES 曾存在明文透传风险 | 2026-08-29 已改为缺 provider 时 fail-closed；真实认证/加密仍须受审查 provider | CLOSED |
 | 2026-08-17 | D-003 | 安全阻塞 | Secure FOTA 依赖 security-rejected ECDSA placeholder | production signature provider 未落地前保持 feature-off | OPEN |
 | 2026-08-17 | D-004 | 仓库策略 | XinYi 当前仅此 PC 开发，无其他设备并行同步；`origin` 用作服务器备份 | 本地 path-limited commit 后直接推送 `origin/main`；不需要为多设备同步保留审查缓冲 | CLOSED |
@@ -508,3 +508,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   以上仅为 Host/PC ownership 证据，不构成充电、热保护、电池安全或实板批准。
 - 下一步：Charger 硬件仍不可用时，不扩张新芯片；转入 Sprint 5 reference RTOS/board 决策，
   或等待 BQ25620 充电/热故障 B1/B2 环境。
+
+### 2026-08-29 Sprint 4 Sensor canonical 决策收口
+
+- 校准：D-001 从 `OPEN` 更新为 `CLOSED`；四个迁移试点已证明 Device model 为 canonical
+  owner 路径，legacy 只保留 compatibility boundary，20 个 `xy_*` source 保持
+  `experimental-test-only`，不再沿用审计基线中的 23 个旧计数或“尚未决定”措辞。
+- Guard：`sensor_active_source_manifest` 同时检查 tracker 决策、审计计划当前计数和
+  canonical owner 方向，避免完成事实再次漂回 pending。
+- 边界：该收口仅为 Host/source-ownership 治理，不构成 Sensor 精度、时序、总线恢复、
+  校准或 B1/B2 实板证据。
+- 下一步：不新增 Sensor 型号；无硬件环境时进入 Sprint 5 reference RTOS/board 决策，
+  硬件到位后按四个 canonical owner 补 B1/B2。
