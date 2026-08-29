@@ -121,6 +121,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-06 | P1 | DM active `xy_json` focused contract | DONE | Zero | S4-05（DONE） | RED：trailing/incomplete JSON、非法 number token 被接受且重复 key 形成 duplicate member；新增 dedicated parse/mutation/guard contract，修复完整输入消费、字符串终止、严格 number grammar、重复 key replacement 与 realloc fail-closed；focused 1/1、Host 188/188、PC root/`xy_dm` 与 `git diff --check` 通过 | `9b64f4fb` | 2026-08-28 |
 | S4-07 | P1 | DM NVM restart/torn-append recovery | DONE | Zero | S4-06（DONE） | RED：partial header 使后续 retry 错误返回 FULL；现对 header/payload 每个 byte boundary 注入 partial-write failure，并对 256-byte Host format 区域逐 byte 注入 partial erase；错误均传播，重启只提升完整记录且后续 write/erase 可重试；caller-owned storage ops 与 fail-closed 掉电记录已建立；focused/full/PC/`xy_dm` gate 通过 | `b8db6135`～`04fe1026` | 2026-08-29 |
 | S4-08 | P1 | DM NVM layout migration contract | DONE | Zero | S4-07（DONE） | RED：legacy/current record 无版本区分，新 append 仍写 legacy magic；实现 legacy magic 可读、current magic 只写，并验证同 key 跨格式 append/restart 提升最新值；focused、Host 188/188、PC root/`xy_dm`、`git diff --check` 通过 | `b9742b98` | 2026-08-29 |
+| S4-09 | P1 | DM NVM metadata/checksum corruption contract | DONE | Zero | S4-08（DONE） | RED：caller-owned backend 使用非映射逻辑地址时 checksum scan 直接解引用并崩溃；V2 record 改用 CRC-8，legacy additive checksum 保持兼容；逐 byte 破坏 V2 magic/key/enable/length/CRC/payload 后重启均回退上一完整值；focused、Host 188/188、PC root/`xy_dm`、`git diff --check` 通过 | 本轮提交 | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -463,3 +464,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：读取路径兼容 legacy `0xAA55AA55` 与 current `0xAA55AA56`；新记录只写 current magic。同 key 从 legacy 追加 current 值后，重启选择最新 current 值，无需升级时先擦除。
 - 验证：focused `dm_nvm` 1/1、Host 188/188、PC Release root、`xy_dm` target 与 `git diff --check` 通过；clang-format 当前环境不可用。以上仅为 Host layout contract，不构成真实旧版本 Flash image、目标 Flash 掉电、耐久性或板级证据。
 - 下一步：在真实 Flash 可用前，补 checksum/metadata corruption 的 exhaustive Host contract；真实板到位后用保存的 legacy image dump 执行迁移与 B2。
+
+### 2026-08-29 Sprint 4 DM NVM metadata/checksum corruption
+
+- RED：使用 caller-owned storage backend 与非映射逻辑 `flash_base` 后，focused `dm_nvm` 在 checksum 扫描中直接解引用逻辑地址并崩溃，证明 backend 抽象未贯穿读取路径。
+- 实现：checksum 数据统一通过 storage ops 读取；V2 current record 使用 CRC-8（poly `0x07`）保护 key、enable、length 与 payload，legacy V1 additive checksum 保持可读兼容。
+- 验证：逐 byte 破坏 newest V2 record 的 magic、key、enable、length、CRC 与 payload 后，重启均回退上一完整值；focused `dm_nvm` 1/1、Host 188/188、PC Release root、`xy_dm` target 与 `git diff --check` 通过。以上仅为 Host corruption contract，不构成目标 Flash ECC、真实掉电、耐久性或板级证据。
+- 下一步：DM Host 前置已覆盖计划中的 restart/interruption/corruption/layout；真实硬件未到位时转入下一个无硬件依赖的 Sprint slice，不继续扩张 NVM policy。

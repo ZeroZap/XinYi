@@ -38,6 +38,25 @@ static bool is_known_head(uint32_t head)
  */
 static uint8_t calc_checksum(const kv_header_t *hdr, const uint8_t *data)
 {
+    if (hdr->head == KV_HEAD_MAGIC_V2) {
+        uint8_t crc = 0U;
+        const uint8_t metadata[] = {
+            hdr->key_id,
+            hdr->is_en,
+            (uint8_t)(hdr->len & 0xFFU),
+            (uint8_t)(hdr->len >> 8U),
+        };
+        for (size_t i = 0U; i < sizeof(metadata) + hdr->len; i++) {
+            uint8_t value = i < sizeof(metadata) ? metadata[i] : data[i - sizeof(metadata)];
+            crc ^= value;
+            for (uint8_t bit = 0U; bit < 8U; bit++) {
+                crc = (crc & 0x80U) != 0U ? (uint8_t)((crc << 1U) ^ 0x07U)
+                                           : (uint8_t)(crc << 1U);
+            }
+        }
+        return crc;
+    }
+
     uint16_t sum = hdr->key_id + hdr->is_en + hdr->len;
     for (uint16_t i = 0; i < hdr->len; i++) {
         sum += data[i];
@@ -57,6 +76,15 @@ static xy_nvm_status_t storage_read(const xy_nvm_t *nvm, uintptr_t addr, void *b
     /* 实际实现需要调用底层 Flash 读取 */
     memcpy(buf, (const void *)addr, len);
     return XY_NVM_OK;
+}
+
+static xy_nvm_status_t read_checksum_data(const xy_nvm_t *nvm, uintptr_t addr,
+                                          const kv_header_t *hdr, uint8_t *data)
+{
+    if (hdr->len == 0U) {
+        return XY_NVM_OK;
+    }
+    return storage_read(nvm, addr + KV_HEAD_SIZE, data, hdr->len);
 }
 
 /**
@@ -147,8 +175,11 @@ static uintptr_t find_kv_addr(xy_nvm_t *nvm, uint8_t key_id)
             continue;
         }
 
-        /* 检查校验和 */
-        const uint8_t *data = (const uint8_t *)(addr + KV_HEAD_SIZE);
+        /* 检查校验和；数据必须通过配置的 storage backend 读取。 */
+        uint8_t data[XY_NVM_MAX_DATA_LEN];
+        if (read_checksum_data(nvm, addr, &hdr, data) != XY_NVM_OK) {
+            return 0;
+        }
         if (calc_checksum(&hdr, data) != hdr.sum) {
             addr += KV_HEAD_SIZE;
             continue;

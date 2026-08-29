@@ -67,7 +67,8 @@ static const xy_nvm_storage_ops_t backend_ops = {
     .erase = backend_erase,
 };
 
-#define LEGACY_KV_HEAD_MAGIC 0xAA55AA55UL
+#define LEGACY_KV_HEAD_MAGIC  0xAA55AA55UL
+#define CURRENT_KV_HEAD_MAGIC 0xAA55AA56UL
 
 typedef struct {
     uint32_t head;
@@ -212,6 +213,46 @@ static void test_layout_migration_reads_legacy_and_appends_current_records(void)
     result = xy_nvm_get(&restarted, 21U);
     TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
     TEST_ASSERT_EQUAL_MEMORY(current, result.data, sizeof(current));
+}
+
+static void test_backend_corruption_scan_uses_storage_ops_and_falls_back(void)
+{
+    static const size_t protected_offsets[] = {
+        0U, 1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U, 12U, 13U, 14U, 15U,
+    };
+    const uint8_t stable[] = {0x11, 0x22, 0x33, 0x44};
+    const uint8_t latest[] = {0xAA, 0xBB, 0xCC, 0xDD};
+    xy_nvm_config_t cfg = {
+        .flash_base = (uint8_t *)(uintptr_t)0x1000U,
+        .page_size = 64,
+        .num_pages = 4,
+        .storage_ops = &backend_ops,
+        .storage_context = flash_area,
+    };
+
+    for (size_t i = 0U; i < sizeof(protected_offsets) / sizeof(protected_offsets[0]); i++) {
+        memset(flash_area, 0xFF, sizeof(flash_area));
+        backend_write_calls = 0U;
+        backend_fail_write_call = 0U;
+        backend_partial_write_bytes = 0U;
+
+        xy_nvm_t nvm;
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&nvm, &cfg));
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_set(&nvm, 22U, stable, sizeof(stable)));
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_set(&nvm, 22U, latest, sizeof(latest)));
+
+        uint32_t magic = 0U;
+        memcpy(&magic, flash_area + 16U, sizeof(magic));
+        TEST_ASSERT_EQUAL_HEX32(CURRENT_KV_HEAD_MAGIC, magic);
+        flash_area[16U + protected_offsets[i]] ^= 0x01U;
+
+        xy_nvm_t restarted;
+        TEST_ASSERT_EQUAL(XY_NVM_OK, xy_nvm_init(&restarted, &cfg));
+        xy_nvm_result_t result = xy_nvm_get(&restarted, 22U);
+        TEST_ASSERT_EQUAL(XY_NVM_OK, result.status);
+        TEST_ASSERT_EQUAL_UINT16((uint16_t)sizeof(stable), result.len);
+        TEST_ASSERT_EQUAL_MEMORY(stable, result.data, sizeof(stable));
+    }
 }
 
 static void test_typed_helpers(void)
@@ -425,6 +466,7 @@ int main(void)
     RUN_TEST(test_set_get_delete_roundtrip);
     RUN_TEST(test_restart_recovers_last_complete_value);
     RUN_TEST(test_layout_migration_reads_legacy_and_appends_current_records);
+    RUN_TEST(test_backend_corruption_scan_uses_storage_ops_and_falls_back);
     RUN_TEST(test_backend_write_interruption_preserves_last_complete_value);
     RUN_TEST(test_partial_program_interruption_allows_restart_and_retry);
     RUN_TEST(test_typed_helpers);
