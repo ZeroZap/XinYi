@@ -10,6 +10,15 @@
 
 XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管理芯片。
 
+### 当前状态与 ownership
+
+- `components/charger/src/xy_bq25620.c` 是 BQ25620 的 **canonical implementation owner**；
+  `components/drivers/power/charger/` 当前不存在，不能作为迁移目标。
+- 组件状态为 `legacy-maintained`：保留现有 API 与错误修复，不在 ownership 决策前扩张新芯片。
+- 当前证据仅为 `Host-guarded` 的 fake-I2C transaction/status contract 与 PC build；
+  真实充电、热保护、故障恢复和电池安全仍为 `hardware-pending`。
+- Host 测试或 PC 编译不构成硬件验证、充电安全批准或 production-ready 声明。
+
 ### 核心特性
 
 - ✅ 统一的充电器 API
@@ -24,7 +33,7 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
 
 | 型号        | 厂商 | 类型             | 状态    |
 | ----------- | ---- | ---------------- | ------- |
-| **BQ25620** | TI   | 1 节 Li-Ion, I2C | ✅ 完成 |
+| **BQ25620** | TI   | 1 节 Li-Ion, I2C | Host-guarded / hardware-pending |
 | BQ2561x     | TI   | 1 节 Li-Ion, I2C | 📋 计划 |
 | MP2615      | MPS  | 1-2 节 Li-Ion    | 📋 计划 |
 

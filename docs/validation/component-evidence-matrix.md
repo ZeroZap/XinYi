@@ -45,7 +45,7 @@
 | Drivers Sensor | H1（SHT30、ADS1115、MPU6050 与 BMP280 Device owners 已覆盖 focused transaction/error/output-preservation contracts） | PC build；[manifest](sensor-active-source-manifest.md) 记录四个 `device-active-root` sources，且四个 canonical owners 均进入 `xy_drivers` 与 root `sensor_component`；BMP280 legacy lifecycle 仍冻结兼容，未引用的第四生命周期已移除，tracked smart-hygrometer example 使用 canonical owner | pending | pending | Device-model canonical migration destination；四个 owner 的 root/source 边界已明确 | 四个 owner 的 B1/B2；逐步收敛 legacy compatibility wrappers |
 | Actuator | H1 | PC build | pending | safety pending | Host 框架可用 | Device adapter + PWM/GPIO B1/B2 |
 | Fuel Gauge | H1（未实现安全模式 fail-closed） | PC build | pending | AES/SHA provider pending；plaintext passthrough 已移除 | Host 驱动契约；`NONE` 明文兼容，未接入 provider 的安全模式返回 unsupported 且保持输出 | 受审查 authentication/encryption provider；SMBus B1/B2 |
-| Charger | H1（单芯片） | PC build | pending | safety pending | legacy/迁移状态 | ownership 决策；充电/热故障 B1/B2 |
+| Charger | H1（standalone BQ25620 fake-I2C transaction/status contract） | PC build | pending | safety pending | `components/charger/src/xy_bq25620.c` 为 canonical owner、状态 `legacy-maintained`；原文档指向的 `components/drivers/power/charger/` 不存在，禁止迁往空目标 | 真实替代 owner 决策；充电/热故障 B1/B2 |
 | Analog Devices | H1 | PC build | pending | calibration pending | active 3-source Host 契约 | MCP3008/HX711 实测与标定 |
 | MUX | H1 | PC build | pending | protocol security pending | Host typed ops 可用 | Device adapter/真实跨接口验证 |
 | PID | H1 | PC build | pending | performance pending | Host 算法可用 | plant simulation/HIL、抖动和饱和恢复 |

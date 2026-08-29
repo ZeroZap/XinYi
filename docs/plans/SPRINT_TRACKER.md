@@ -125,6 +125,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-10 | P0 | Fuel Gauge security passthrough fail-closed | DONE | Zero | D-002 | RED：AES128 encrypt 仍返回成功并原样复制明文；现未接入受审查 provider 的安全模式返回 `XY_FG_ERROR_NOT_SUPPORTED`，encrypt/decrypt 输出与长度保持不变；`NONE` 明文兼容行为保留；focused、Host、PC root/`xy_fuel_gauge` 与 `git diff --check` 通过；不构成安全批准 | `4fb59bf8` | 2026-08-29 |
 | S4-11 | P1 | BMP280 canonical Device owner contract | DONE | Zero | S4-04（DONE） | RED：Device owner 缺双地址 API；现补 Bosch 补偿、初始化/反初始化错误传播、缓存输出保持与 root `sensor_component` ownership；focused 3/3、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `35b2f7d0` | 2026-08-29 |
 | S4-12 | P1 | BMP280 stale lifecycle/example 收口 | DONE | Zero | S4-11（DONE） | RED policy probe 发现未引用第四生命周期仍存在，且 smart-hygrometer 指向不存在的 experimental source/旧三参数 API；移除 stale source、切换 canonical owner，并加入防回归 guard；focused 4/4、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过 | `219917db` | 2026-08-29 |
+| S4-13 | P1 | Charger ownership 与弃用文档事实收口 | DONE | Zero | S4-12（DONE） | RED probe 证明 `DEPRECATED.md` 指向不存在的 `components/drivers/power/charger/`；已校准 standalone BQ25620 canonical owner、legacy-maintained/Host-only 边界并加入 policy guard；focused 2/2、Host 190/190、PC root、Charger-enabled `charger` target 与 `git diff --check` 通过；不升级硬件/安全声明 | `PENDING_SHA` | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -495,3 +496,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：删除无引用第四生命周期；smart-hygrometer 改为编译 canonical Device owner，并使用 `xy_bmp280_init_addr()`；policy guard 防止 stale source、缺失 experimental source 和旧 API 回归。
 - 验证：focused/full/PC/`sensor_component` 与 `git diff --check` 见本轮 gate；以上只构成 source ownership/Host/PC 证据，不构成 BMP280 实板、精度或时序批准。
 - 下一步：不继续扩张 Sensor；转入下一项无硬件依赖治理，或等待四个 canonical owner 的 B1/B2 环境。
+
+### 2026-08-29 Sprint 4 Charger ownership 事实收口
+
+- RED：事实 probe 发现 `components/charger/DEPRECATED.md` 推荐迁往不存在的
+  `components/drivers/power/charger/`，与实际 root Kconfig/CMake、BQ25620 focused test owner 冲突。
+- 收口：明确 `components/charger/src/xy_bq25620.c` 为当前 canonical owner，状态为
+  `legacy-maintained`；移除不存在的 include/迁移时间表，新增 policy CTest 防止空目标再次成为推荐路径。
+- 验证：focused `charger_ownership` + `charger_bq25620` 2/2、Host 190/190、默认 PC root、
+  `KCONFIG_OVERRIDES=COMPONENT_CHARGER=ON` 的 `charger` target 与 `git diff --check` 通过。
+  以上仅为 Host/PC ownership 证据，不构成充电、热保护、电池安全或实板批准。
+- 下一步：Charger 硬件仍不可用时，不扩张新芯片；转入 Sprint 5 reference RTOS/board 决策，
+  或等待 BQ25620 充电/热故障 B1/B2 环境。

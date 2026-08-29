@@ -79,6 +79,10 @@ add_test(NAME sensor_active_source_manifest
     COMMAND python3 ${UNIT_SENSOR}/check_sensor_active_source_manifest.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME charger_ownership
+    COMMAND python3 ${UNIT_PM}/check_charger_ownership.py
+    WORKING_DIRECTORY ${ROOT}
+)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
