@@ -48,9 +48,9 @@ are explicit in one reviewed slice:
 5. legacy wrapper marked compatibility-only when retained;
 6. board evidence remains separately recorded as `hardware-pending`, B1, or B2.
 
-The first migration candidates are SHT30, MPU6050, and ADS1115; BMP280 remains the fourth existing
-Device-model reference. Migration must remove duplicate active ownership rather than merely add a
-new copy.
+The first migration candidates were SHT30, MPU6050, ADS1115, and BMP280. All four Device-model
+sources now have explicit root Sensor ownership; migration must remove duplicate active ownership
+rather than merely add a new copy.
 
 ### SHT30 migration status
 
@@ -82,6 +82,17 @@ initializer for Device consumers. The focused MPU6050 target now compiles this o
 the duplicate `components/sensor/src/xy_mpu6050.c` implementation and header were removed. This is
 Host/PC ownership evidence only; IMU accuracy, calibration quality, timing and board recovery remain
 pending.
+
+### BMP280 migration status
+
+The Device-model source is the canonical root-linked owner for new consumers and now carries the
+Bosch integer compensation, both documented I2C addresses, init/deinit I/O propagation, cached
+output preservation, and status-returning getter contracts. The root `sensor_component` explicitly
+links this owner while the existing `sensor_bmp280.c` remains a frozen legacy lifecycle for current
+compatibility consumers. The separate experimental `xy_sensor_bmp280.c` remains test-only and is
+not product-linked; removing that stale API requires an explicit compatibility decision. Focused
+Device, legacy and heterogeneous registry tests prove Host/source ownership only; accuracy, timing,
+recovery and board status remain pending.
 
 ## Guard and update rule
 

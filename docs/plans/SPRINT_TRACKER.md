@@ -123,6 +123,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-08 | P1 | DM NVM layout migration contract | DONE | Zero | S4-07（DONE） | RED：legacy/current record 无版本区分，新 append 仍写 legacy magic；实现 legacy magic 可读、current magic 只写，并验证同 key 跨格式 append/restart 提升最新值；focused、Host 188/188、PC root/`xy_dm`、`git diff --check` 通过 | `b9742b98` | 2026-08-29 |
 | S4-09 | P1 | DM NVM metadata/checksum corruption contract | DONE | Zero | S4-08（DONE） | RED：caller-owned backend 使用非映射逻辑地址时 checksum scan 直接解引用并崩溃；V2 record 改用 CRC-8，legacy additive checksum 保持兼容；逐 byte 破坏 V2 magic/key/enable/length/CRC/payload 后重启均回退上一完整值；focused、Host 188/188、PC root/`xy_dm`、`git diff --check` 通过 | `0966f67d` | 2026-08-29 |
 | S4-10 | P0 | Fuel Gauge security passthrough fail-closed | DONE | Zero | D-002 | RED：AES128 encrypt 仍返回成功并原样复制明文；现未接入受审查 provider 的安全模式返回 `XY_FG_ERROR_NOT_SUPPORTED`，encrypt/decrypt 输出与长度保持不变；`NONE` 明文兼容行为保留；focused、Host、PC root/`xy_fuel_gauge` 与 `git diff --check` 通过；不构成安全批准 | `4fb59bf8` | 2026-08-29 |
+| S4-11 | P1 | BMP280 canonical Device owner contract | DONE | Zero | S4-04（DONE） | RED：Device owner 缺双地址 API；现补 Bosch 补偿、初始化/反初始化错误传播、缓存输出保持与 root `sensor_component` ownership；focused 3/3、Host 189/189、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `35b2f7d0` | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -479,3 +480,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：未接入受审查 provider 的 AES/SHA 安全模式统一返回 `XY_FG_ERROR_NOT_SUPPORTED`，encrypt/decrypt 输出及长度保持不变；显式 `XY_FG_SECURITY_NONE` 的兼容复制契约不变。
 - 验证：focused `fuel_gauge_core`、Host 全量、PC Release root、`xy_fuel_gauge` target 与 `git diff --check` 见本轮 gate。以上仅关闭 plaintext passthrough 风险，不构成 authentication、cryptographic provider、安全审查或实板批准。
 - 下一步：硬件仍不可用时，校准 Sprint 4 剩余无硬件依赖 ownership/治理项；真实 Fuel Gauge SMBus 与安全 provider 分别等待板卡和 security review。
+
+### 2026-08-29 Sprint 4 BMP280 Device owner contract
+
+- RED：heterogeneous Sensor test 改用 `xy_bmp280_init_addr()` 后因 API/地址常量不存在而编译失败，证明第四个 Device owner 仍只有简化占位契约。
+- 实现：canonical BMP280 Device source 新增 0x76/0x77 初始化、完整 Bosch 整数补偿、所有 init/deinit I/O 错误传播、缓存输出保持与 status-returning getters，并显式进入 root `sensor_component`；legacy lifecycle 保持冻结兼容，experimental source 仍不进入产品 root。
+- 验证：focused `sensor_bmp280_device`/`sensors_multi`/`sensor_bmp280` 3/3、Host 189/189、PC Release root、`sensor_component` target 与 `git diff --check` 通过；clang-format 当前环境不可用。以上仅为 Host/PC source/contract 证据，不构成精度、时序、总线恢复或实板批准。
+- 下一步：不继续扩张 Sensor 型号；校准 BMP280 experimental API 的 compatibility/deprecation 决策，或转入下一个 Sprint 无硬件依赖治理项。
