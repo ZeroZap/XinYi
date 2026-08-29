@@ -134,7 +134,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
-| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；backend comparison、kernel 与 FreeRTOS README 的无证据完成度/性能/可移植性声明已降级并由 policy guard 防回归。MPS2-AN505 runtime spike 在 secure/non-secure boot/alias 边界 HardFault，未提交为 runtime gate；仍缺 board-correct runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本轮提交 | 2026-08-30 |
+| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；backend comparison、kernel、OSAL 总览/quick-start/status 与 FreeRTOS README 的无证据完成度/性能/可移植性声明已降级并由 policy guard 防回归。MPS2-AN505 runtime spike 在 secure/non-secure boot/alias 边界 HardFault，未提交为 runtime gate；仍缺 board-correct runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～`1d5b740d` | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -594,3 +594,16 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   并发、性能或实板升级，S5-01 保持 `IN_PROGRESS`。
 - 下一步：选择与 reference board 安全域/启动布局一致的 linker/startup owner 后再恢复 runtime gate；
   在此之前继续清理同域 stale completion 声明，不用 QEMU boot failure 冒充 RTOS 缺陷。
+
+### 2026-08-30 Sprint 5 OSAL 使用/状态文档声明收口
+
+- RED：扩展 `reference_rtos_decision` policy probe 后，`OSAL README`、`QUICK_START` 与
+  `IMPLEMENTATION_STATUS` 因缺 `runtime-pending` 边界并保留“只切 backend 源文件即可迁移”、
+  “Complete implementation / 无需应用改动”等无运行时证据声明而失败。
+- 收口：三份入口文档统一区分 bare-metal Host contract、FreeRTOS source/static-library compile
+  与 RT-Thread/CMSIS source candidate；迁移步骤明确还需 Kconfig/CMake、kernel/config/port、
+  startup/link 与 runtime 验证。
+- 边界：该文档/policy slice 不新增 scheduler、ISR、并发、性能或实板证据；S5-01 保持
+  `IN_PROGRESS`。
+- 下一步：等待 reference board 的安全域/startup/link owner；到位前不再扩张无硬件 RTOS
+  runtime fake，转向下一个可独立闭环的无硬件 Sprint 治理项。
