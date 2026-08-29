@@ -109,25 +109,9 @@ int xy_fuel_gauge_encrypt_data(xy_fuel_gauge_t *fg,
         return 0;
     }
     
-    /* AES 加密实现框架
-     * 
-     * 推荐方案:
-     * 1. 使用 xy_crypto_aes_encrypt() (XinYi Crypto 组件)
-     * 2. 使用 mbedTLS: mbedtls_aes_crypt_cbc()
-     * 3. 使用硬件 AES 引擎 (如果有)
-     * 
-     * 加密参数:
-     * - 算法：AES-128-CBC
-     * - Key: sec_data->aes_key (16 字节)
-     * - IV: sec_data->aes_iv (16 字节，每次加密应更新)
-     */
-    xy_log_w("⚠️ AES encryption not implemented - using passthrough\n");
-    xy_log_w("   Use xy_crypto_aes_encrypt() or mbedTLS for production\n");
-    
-    /* 简化实现：不加密 (仅调试用) */
-    memcpy(encrypted, data, len);
-    *encrypted_len = len;
-    return 0;
+    /* Secure modes require a reviewed provider. Never return plaintext as ciphertext. */
+    xy_log_w("Fuel gauge encryption provider is not available\n");
+    return XY_FG_ERROR_NOT_SUPPORTED;
 }
 
 /**
@@ -150,23 +134,7 @@ int xy_fuel_gauge_decrypt_data(xy_fuel_gauge_t *fg,
         return 0;
     }
     
-    /* AES 解密实现框架
-     * 
-     * 推荐方案:
-     * 1. 使用 xy_crypto_aes_decrypt() (XinYi Crypto 组件)
-     * 2. 使用 mbedTLS: mbedtls_aes_crypt_cbc()
-     * 3. 使用硬件 AES 引擎 (如果有)
-     * 
-     * 解密参数:
-     * - 算法：AES-128-CBC
-     * - Key: sec_data->aes_key (16 字节)
-     * - IV: sec_data->aes_iv (16 字节，需与加密时相同)
-     */
-    xy_log_w("⚠️ AES decryption not implemented - using passthrough\n");
-    xy_log_w("   Use xy_crypto_aes_decrypt() or mbedTLS for production\n");
-    
-    /* 简化实现：不加密 (仅调试用) */
-    memcpy(data, encrypted, encrypted_len);
-    *len = encrypted_len;
-    return 0;
+    /* Secure modes require a reviewed provider. Never return ciphertext as plaintext. */
+    xy_log_w("Fuel gauge decryption provider is not available\n");
+    return XY_FG_ERROR_NOT_SUPPORTED;
 }

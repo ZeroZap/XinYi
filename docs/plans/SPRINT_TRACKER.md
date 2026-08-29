@@ -122,6 +122,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-07 | P1 | DM NVM restart/torn-append recovery | DONE | Zero | S4-06（DONE） | RED：partial header 使后续 retry 错误返回 FULL；现对 header/payload 每个 byte boundary 注入 partial-write failure，并对 256-byte Host format 区域逐 byte 注入 partial erase；错误均传播，重启只提升完整记录且后续 write/erase 可重试；caller-owned storage ops 与 fail-closed 掉电记录已建立；focused/full/PC/`xy_dm` gate 通过 | `b8db6135`～`04fe1026` | 2026-08-29 |
 | S4-08 | P1 | DM NVM layout migration contract | DONE | Zero | S4-07（DONE） | RED：legacy/current record 无版本区分，新 append 仍写 legacy magic；实现 legacy magic 可读、current magic 只写，并验证同 key 跨格式 append/restart 提升最新值；focused、Host 188/188、PC root/`xy_dm`、`git diff --check` 通过 | `b9742b98` | 2026-08-29 |
 | S4-09 | P1 | DM NVM metadata/checksum corruption contract | DONE | Zero | S4-08（DONE） | RED：caller-owned backend 使用非映射逻辑地址时 checksum scan 直接解引用并崩溃；V2 record 改用 CRC-8，legacy additive checksum 保持兼容；逐 byte 破坏 V2 magic/key/enable/length/CRC/payload 后重启均回退上一完整值；focused、Host 188/188、PC root/`xy_dm`、`git diff --check` 通过 | `0966f67d` | 2026-08-29 |
+| S4-10 | P0 | Fuel Gauge security passthrough fail-closed | DONE | Zero | D-002 | RED：AES128 encrypt 仍返回成功并原样复制明文；现未接入受审查 provider 的安全模式返回 `XY_FG_ERROR_NOT_SUPPORTED`，encrypt/decrypt 输出与长度保持不变；`NONE` 明文兼容行为保留；focused、Host、PC root/`xy_fuel_gauge` 与 `git diff --check` 通过；不构成安全批准 | 本轮提交 | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -139,7 +140,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | 日期 | ID | 类型 | 内容 | 所需决策/解除条件 | 状态 |
 |---|---|---|---|---|---|
 | 2026-08-17 | D-001 | 决策 | Sensor 实际有 legacy/new/drivers 三条实现路径 | 选择 canonical API；建议 `xy_sensor_device_t` + Device adapter | OPEN |
-| 2026-08-17 | D-002 | 安全阻塞 | Fuel Gauge security AES 存在明文透传风险 | 改 fail-closed 或接入已审查 provider | OPEN |
+| 2026-08-17 | D-002 | 安全阻塞 | Fuel Gauge security AES 曾存在明文透传风险 | 2026-08-29 已改为缺 provider 时 fail-closed；真实认证/加密仍须受审查 provider | CLOSED |
 | 2026-08-17 | D-003 | 安全阻塞 | Secure FOTA 依赖 security-rejected ECDSA placeholder | production signature provider 未落地前保持 feature-off | OPEN |
 | 2026-08-17 | D-004 | 仓库策略 | XinYi 当前仅此 PC 开发，无其他设备并行同步；`origin` 用作服务器备份 | 本地 path-limited commit 后直接推送 `origin/main`；不需要为多设备同步保留审查缓冲 | CLOSED |
 | 2026-08-17 | D-005 | 硬件阻塞 | 缺统一 STM32U5 HIL/总线/功耗证据 | 明确参考板、仪器、接线和记录位置 | OPEN |
@@ -471,3 +472,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 实现：checksum 数据统一通过 storage ops 读取；V2 current record 使用 CRC-8（poly `0x07`）保护 key、enable、length 与 payload，legacy V1 additive checksum 保持可读兼容。
 - 验证：逐 byte 破坏 newest V2 record 的 magic、key、enable、length、CRC 与 payload 后，重启均回退上一完整值；focused `dm_nvm` 1/1、Host 188/188、PC Release root、`xy_dm` target 与 `git diff --check` 通过。以上仅为 Host corruption contract，不构成目标 Flash ECC、真实掉电、耐久性或板级证据。
 - 下一步：DM Host 前置已覆盖计划中的 restart/interruption/corruption/layout；真实硬件未到位时转入下一个无硬件依赖的 Sprint slice，不继续扩张 NVM policy。
+
+### 2026-08-29 Sprint 4 Fuel Gauge security fail-closed
+
+- RED：配置 `XY_FG_SECURITY_AES128` 后，`xy_fuel_gauge_encrypt_data()` 仍返回成功并把明文原样写入“密文”输出。
+- 实现：未接入受审查 provider 的 AES/SHA 安全模式统一返回 `XY_FG_ERROR_NOT_SUPPORTED`，encrypt/decrypt 输出及长度保持不变；显式 `XY_FG_SECURITY_NONE` 的兼容复制契约不变。
+- 验证：focused `fuel_gauge_core`、Host 全量、PC Release root、`xy_fuel_gauge` target 与 `git diff --check` 见本轮 gate。以上仅关闭 plaintext passthrough 风险，不构成 authentication、cryptographic provider、安全审查或实板批准。
+- 下一步：硬件仍不可用时，校准 Sprint 4 剩余无硬件依赖 ownership/治理项；真实 Fuel Gauge SMBus 与安全 provider 分别等待板卡和 security review。

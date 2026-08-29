@@ -8,7 +8,8 @@
 - Host 覆盖驱动：BQ27Z746、BQ40Z50、MAX17043、BQ27Z561。
 - BQ40Z50 覆盖 SMBus transient NACK bounded retry、atomic fetch snapshot、cached status helper 与 direct balance-status read helper。
 - `test_fuel_gauge_smbus_hardware_smoke_example` 固化真实板级验证前的 init/fetch/snapshot smoke 流程，但只代表 fake-I2C contract coverage。
-- 扩展模块：状态查询、安全阈值/事件、安全认证与透传加解密接口。
+- 扩展模块：状态查询、安全阈值/事件及 fail-closed 安全模式接口；未接入受审查 provider
+  时，AES/SHA 配置不会把明文作为“密文”成功返回。
 - 错误返回：驱动和扩展 API 使用公开 `XY_FG_ERROR_*` 状态码。
 
 ## 📁 目录
@@ -43,6 +44,8 @@ Host 覆盖当前固定以下公共契约，避免后续驱动回归：
 - 芯片驱动 `fetch()` 失败时保持上一份完整快照和状态位，不提交半更新数据。
 - inline getter 与芯片专用 getter 在底层失败时保持调用者传入的 sentinel 输出值。
 - 告警阈值 API 在 host 侧使用本地 cache；真实硬件阈值编程仍归入硬件验证项。
+- `XY_FG_SECURITY_NONE` 保留显式明文复制兼容行为；AES/SHA 等安全模式在 provider
+  尚未实现时返回 `XY_FG_ERROR_NOT_SUPPORTED` 并保持输出不变。
 - BQ40Z50 cached status helper 不触发新 I2C 读；direct balance-status read helper 可单独 bounded-read 且失败时保留调用者输出。
 - SMBus smoke skeleton 的 `record_template_must_stay_pending` 用例明确：没有真实板级 UART/SMBus/逻辑分析仪日志时，硬件验证记录必须保持 `pending`。
 

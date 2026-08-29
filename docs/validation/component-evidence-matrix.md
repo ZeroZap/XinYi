@@ -44,7 +44,7 @@
 | Sensor new `xy_*` | H1（独立测试） | [manifest](sensor-active-source-manifest.md) 记录 20 个 `experimental-test-only` sources，未进入根 Sensor target；SHT30/ADS1115/MPU6050 duplicate test-local implementations 已移除 | pending | pending | 仅 test-local Host 实验实现；不得因 focused test 宣称 product-linked | 继续冻结新增并迁移高价值 owner |
 | Drivers Sensor | H1（少量；SHT30、ADS1115 与 MPU6050 Device owners 已覆盖 focused transaction/error/output-preservation contracts） | PC build；[manifest](sensor-active-source-manifest.md) 记录 SHT30/MPU6050/BMP280/ADS1115 四个 `device-active-root` sources；SHT30、ADS1115 与 MPU6050 canonical owners 同时进入 `xy_drivers` ownership 与 root `sensor_component` | pending | pending | Device-model canonical migration destination；SHT30/ADS1115/MPU6050 各只有一个实现 owner | 三个迁移 owner 的 B1/B2；评估 BMP280 duplicate lifecycle |
 | Actuator | H1 | PC build | pending | safety pending | Host 框架可用 | Device adapter + PWM/GPIO B1/B2 |
-| Fuel Gauge | H1 | PC build | pending | AES passthrough rejected/pending | Host 驱动契约 | AES fail-closed；SMBus B1/B2 |
+| Fuel Gauge | H1（未实现安全模式 fail-closed） | PC build | pending | AES/SHA provider pending；plaintext passthrough 已移除 | Host 驱动契约；`NONE` 明文兼容，未接入 provider 的安全模式返回 unsupported 且保持输出 | 受审查 authentication/encryption provider；SMBus B1/B2 |
 | Charger | H1（单芯片） | PC build | pending | safety pending | legacy/迁移状态 | ownership 决策；充电/热故障 B1/B2 |
 | Analog Devices | H1 | PC build | pending | calibration pending | active 3-source Host 契约 | MCP3008/HX711 实测与标定 |
 | MUX | H1 | PC build | pending | protocol security pending | Host typed ops 可用 | Device adapter/真实跨接口验证 |

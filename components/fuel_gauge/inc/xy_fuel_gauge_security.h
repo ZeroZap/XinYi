@@ -5,9 +5,8 @@
  * @date 2026-03-05
  * 
  * 电量计安全认证功能:
- * - SHA256 认证
- * - 加密通信
- * - 防篡改保护
+ * Security-mode configuration and fail-closed extension points. Cryptographic
+ * authentication/encryption providers are not implemented by this component.
  */
 
 #ifndef XY_FUEL_GAUGE_SECURITY_H
@@ -86,7 +85,8 @@ bool xy_fuel_gauge_verify_device(xy_fuel_gauge_t *fg);
  * @param len 数据长度
  * @param encrypted 加密数据
  * @param encrypted_len 加密数据长度
- * @return 状态码
+ * @return `XY_FG_OK` only for `XY_FG_SECURITY_NONE`; configured secure modes
+ *         return `XY_FG_ERROR_NOT_SUPPORTED` without modifying outputs
  */
 int xy_fuel_gauge_encrypt_data(xy_fuel_gauge_t *fg,
                                const uint8_t *data, uint16_t len,
@@ -99,7 +99,8 @@ int xy_fuel_gauge_encrypt_data(xy_fuel_gauge_t *fg,
  * @param encrypted_len 加密数据长度
  * @param data 解密数据
  * @param len 解密数据长度
- * @return 状态码
+ * @return `XY_FG_OK` only for `XY_FG_SECURITY_NONE`; configured secure modes
+ *         return `XY_FG_ERROR_NOT_SUPPORTED` without modifying outputs
  */
 int xy_fuel_gauge_decrypt_data(xy_fuel_gauge_t *fg,
                                const uint8_t *encrypted, uint16_t encrypted_len,

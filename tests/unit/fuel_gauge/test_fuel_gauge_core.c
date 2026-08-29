@@ -660,6 +660,25 @@ static void test_status_safety_security_helpers(void)
     TEST_ASSERT_EQUAL_UINT16(sizeof(plain), out_len);
     TEST_ASSERT_EQUAL_MEMORY(plain, decrypted, sizeof(plain));
     TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_INVALID_PARAM, xy_fuel_gauge_decrypt_data(&fg, NULL, 0, decrypted, &out_len));
+
+    security_config.type = XY_FG_SECURITY_AES128;
+    TEST_ASSERT_EQUAL_INT(XY_FG_OK, xy_fuel_gauge_security_config(&fg, &security_config));
+
+    memset(encrypted, 0xA5, sizeof(encrypted));
+    out_len = 0xBEEF;
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED,
+                          xy_fuel_gauge_encrypt_data(&fg, plain, sizeof(plain), encrypted,
+                                                     &out_len));
+    TEST_ASSERT_EACH_EQUAL_HEX8(0xA5, encrypted, sizeof(encrypted));
+    TEST_ASSERT_EQUAL_HEX16(0xBEEF, out_len);
+
+    memset(decrypted, 0x5A, sizeof(decrypted));
+    out_len = 0xCAFE;
+    TEST_ASSERT_EQUAL_INT(XY_FG_ERROR_NOT_SUPPORTED,
+                          xy_fuel_gauge_decrypt_data(&fg, encrypted, sizeof(encrypted),
+                                                     decrypted, &out_len));
+    TEST_ASSERT_EACH_EQUAL_HEX8(0x5A, decrypted, sizeof(decrypted));
+    TEST_ASSERT_EQUAL_HEX16(0xCAFE, out_len);
 }
 
 static void test_security_helpers_reject_missing_private_data_without_outputs(void)
