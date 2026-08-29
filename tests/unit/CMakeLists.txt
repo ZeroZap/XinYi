@@ -87,6 +87,10 @@ add_test(NAME reference_rtos_decision
     COMMAND python3 ${UNIT_KERNEL}/check_reference_rtos_decision.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME freertos_stm32u5_compile
+    COMMAND python3 ${ROOT}/components/kernel/osal/scripts/compile_freertos_stm32u5.py
+    WORKING_DIRECTORY ${ROOT}
+)
 
 include_directories(
     ${DEV}                          # xy_device_core.h

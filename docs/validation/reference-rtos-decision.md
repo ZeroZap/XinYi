@@ -4,7 +4,7 @@
 **Owner**: Zero
 **Status**: `REFERENCE_SELECTED`
 **Reference backend**: **FreeRTOS**
-**Integration**: `integration-pending`
+**Integration**: `compile-guarded-runtime-pending`
 **Hardware**: `hardware-pending`
 
 ## Decision
@@ -26,27 +26,26 @@ single-backend Sprint scope.
 - The XinYi adapter exists at
   `components/kernel/osal/backend/freertos/xy_os_freertos.c` and covers the OSAL API surface,
   while documenting unsupported join/enumeration behavior.
-- The repository does **not** contain a project-owned `FreeRTOSConfig.h` or an STM32U5
-  Cortex-M33 FreeRTOS port. The checked-in kernel currently exposes only a RISC-V GCC port.
-- `components/kernel/osal/CMakeLists.txt` still points to stale third-party include paths and
-  only links a kernel target if one already exists. The root default must therefore remain
-  bare-metal until the integration gate is implemented.
+- XinYi now owns a bounded reference `FreeRTOSConfig.h` plus a pinned upstream V10.4.6
+  Cortex-M33 non-secure port outside `third_party/`; provenance and file hashes are recorded
+  beside the port.
+- `freertos_stm32u5_compile` compiles the adapter, required kernel modules, heap and port into
+  nine Arm Cortex-M33 objects with `-Werror`. The root default remains bare-metal because this
+  gate does not link startup/vector/HAL code and provides no scheduler runtime evidence.
 - RT-Thread has a larger source tree, but current CMake paths and the STM32U5 adapter/port
   assumptions are also stale or incomplete; source volume is not evidence of readiness.
 
 ## Next bounded integration slice
 
-1. Add a XinYi-owned minimal `FreeRTOSConfig.h` for the selected reference target.
-2. Add or pin a Cortex-M33 non-secure FreeRTOS kernel port without editing vendor source.
-3. Make the Kconfig/CMake selection fail closed when config, port, or kernel target is absent.
-4. Compile the FreeRTOS adapter and kernel with the real ARM toolchain.
-5. Add runtime coverage for thread scheduling, mutex/semaphore, queue, event flags, timeout,
+1. Make the root Kconfig/CMake FreeRTOS selection consume the compile-guarded config/port and
+   fail closed when any required integration input is absent.
+2. Add runtime coverage for thread scheduling, mutex/semaphore, queue, event flags, timeout,
    resource exhaustion, ISR-to-task wakeup, and shutdown/re-init.
-6. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
+3. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
    concurrency before S5-01 can become `DONE`.
 
 ## Evidence boundary
 
-This decision is a repository-grounded selection and policy guard only. It **不构成 RTOS runtime、ISR、并发或实板证据**. Host bare-metal tests, source inspection, and the presence of
-third-party kernel files do not satisfy C1/Q1/B1/B2. S5-01 remains in progress until a real
-reference configuration compiles and the required runtime/stress evidence exists.
+This slice adds a clean source-level STM32U5 Cortex-M33 compile gate. It **不构成 RTOS runtime、ISR、并发或实板证据**. The gate does not link startup/vector/HAL code or execute a scheduler,
+so S5-01 remains in progress until root integration and the required runtime/stress evidence
+exist.

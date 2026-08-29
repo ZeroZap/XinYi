@@ -14,7 +14,18 @@ FREERTOS_BACKEND = (
     ROOT / "components" / "kernel" / "osal" / "backend" / "freertos" / "xy_os_freertos.c"
 )
 FREERTOS_KERNEL = ROOT / "third_party" / "freertos" / "FreeRTOS"
-FREERTOS_CONFIG = ROOT / "third_party" / "freertos" / "FreeRTOSConfig.h"
+FREERTOS_CONFIG = (
+    ROOT
+    / "components"
+    / "kernel"
+    / "osal"
+    / "config"
+    / "freertos"
+    / "FreeRTOSConfig.h"
+)
+FREERTOS_COMPILE_PROBE = (
+    ROOT / "components" / "kernel" / "osal" / "scripts" / "compile_freertos_stm32u5.py"
+)
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -40,7 +51,7 @@ def main() -> int:
     for token in (
         "FreeRTOS",
         "REFERENCE_SELECTED",
-        "integration-pending",
+        "compile-guarded-runtime-pending",
         "hardware-pending",
         "不构成 RTOS runtime、ISR、并发或实板证据",
         "FreeRTOSConfig.h",
@@ -55,16 +66,27 @@ def main() -> int:
             "Sprint tracker must record the bounded S5-01 reference decision", errors)
     require("**选择**：FreeRTOS" in audit_plan,
             "audit plan must resolve the reference RTOS choice to FreeRTOS", errors)
-    require("FreeRTOS reference selected" in evidence,
-            "evidence matrix must preserve the selected-but-not-integrated boundary", errors)
+    require("[FreeRTOS reference](reference-rtos-decision.md)" in evidence,
+            "evidence matrix must preserve the selected compile-only reference boundary", errors)
     require('set(OSAL_BACKEND "baremetal"' in osal_cmake,
             "default OSAL backend must remain baremetal until integration is proven", errors)
     require(FREERTOS_BACKEND.is_file(), "FreeRTOS OSAL adapter is missing", errors)
     require((FREERTOS_KERNEL / "include" / "FreeRTOS.h").is_file(),
             "vendored FreeRTOS kernel headers are missing", errors)
-    require(not FREERTOS_CONFIG.exists(),
-            "guard assumptions changed: a root FreeRTOSConfig.h now exists; perform integration review",
-            errors)
+    require(FREERTOS_CONFIG.is_file(),
+            "XinYi-owned STM32U5 FreeRTOSConfig.h is missing", errors)
+    require(FREERTOS_COMPILE_PROBE.is_file(),
+            "STM32U5 FreeRTOS adapter/kernel compile probe is missing", errors)
+    if FREERTOS_CONFIG.is_file():
+        config = FREERTOS_CONFIG.read_text(encoding="utf-8")
+        for token in (
+            "configCPU_CLOCK_HZ",
+            "configTICK_RATE_HZ",
+            "configMAX_PRIORITIES",
+            "configCHECK_FOR_STACK_OVERFLOW",
+            "configASSERT",
+        ):
+            require(token in config, f"FreeRTOS config must preserve token: {token}", errors)
 
     if errors:
         print("reference_rtos_decision failed:")
@@ -72,7 +94,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("reference_rtos_decision_ok reference=FreeRTOS integration=pending hardware=pending")
+    print("reference_rtos_decision_ok reference=FreeRTOS integration=compile-guarded runtime=pending hardware=pending")
     return 0
 
 
