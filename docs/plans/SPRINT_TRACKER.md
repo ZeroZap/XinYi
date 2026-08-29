@@ -134,7 +134,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
-| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/port 决策 | `REFERENCE_SELECTED`：选择 FreeRTOS；[决策记录](../validation/reference-rtos-decision.md)列明现有 kernel/adapter、缺失 `FreeRTOSConfig.h`/Cortex-M33 port、RT-Thread 未选原因及下一 compile/runtime slice；policy focused guard 通过。仍缺 C1、runtime、ISR→task、并发 stress 与 B1/B2 | 待本轮提交 | 2026-08-29 |
+| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/port 决策 | `REFERENCE_SELECTED`：选择 FreeRTOS；[决策记录](../validation/reference-rtos-decision.md)列明现有 kernel/adapter、缺失 `FreeRTOSConfig.h`/Cortex-M33 port、RT-Thread 未选原因及下一 compile/runtime slice；policy focused guard 通过。仍缺 C1、runtime、ISR→task、并发 stress 与 B1/B2 | `a7de72e7` | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
