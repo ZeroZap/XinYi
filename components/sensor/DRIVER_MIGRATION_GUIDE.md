@@ -142,7 +142,7 @@ int xy_sensor_aht20_register(void *i2c_handle, uint8_t addr)
 
 | 驱动 | 状态 | 文件 |
 |------|------|------|
-| **BMP280** | ✅ | `drivers/pressure/xy_sensor_bmp280.c` |
+| **BMP280** | ✅ canonical Device owner | `../drivers/sensor/pressure/bmp280/xy_bmp280.c` |
 | **BME280** | ⏳ | 待迁移 |
 
 ### 运动传感器 (3 个)

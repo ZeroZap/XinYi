@@ -26,7 +26,7 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 20 | `experimental-test-only`; no product-root claim | selected BMP280 and other driver contracts | `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 20 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 4 | `device-active-root`; canonical migration destination | SHT30 integration, transaction/CRC/error contract, and heterogeneous four-driver test | `hardware-pending` |
 
 The Device-model root set is currently exactly:
@@ -89,10 +89,12 @@ The Device-model source is the canonical root-linked owner for new consumers and
 Bosch integer compensation, both documented I2C addresses, init/deinit I/O propagation, cached
 output preservation, and status-returning getter contracts. The root `sensor_component` explicitly
 links this owner while the existing `sensor_bmp280.c` remains a frozen legacy lifecycle for current
-compatibility consumers. The separate experimental `xy_sensor_bmp280.c` remains test-only and is
-not product-linked; removing that stale API requires an explicit compatibility decision. Focused
-Device, legacy and heterogeneous registry tests prove Host/source ownership only; accuracy, timing,
-recovery and board status remain pending.
+compatibility consumers. The unreferenced fourth-lifecycle prototype
+`components/sensor/drivers/pressure/xy_sensor_bmp280.c` has been retired, and the tracked smart
+hygrometer example now compiles the canonical owner through its explicit-address API instead of a
+missing experimental source. The ownership policy guard prevents both stale paths from returning.
+Focused Device, legacy and heterogeneous registry tests prove Host/source ownership only; accuracy,
+timing, recovery and board status remain pending.
 
 ## Guard and update rule
 

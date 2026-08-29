@@ -9,6 +9,9 @@ MANIFEST = ROOT / "docs" / "validation" / "sensor-active-source-manifest.md"
 SENSOR_CMAKE = ROOT / "components" / "sensor" / "CMakeLists.txt"
 DRIVERS_CMAKE = ROOT / "components" / "drivers" / "CMakeLists.txt"
 UNIT_CMAKE = ROOT / "tests" / "unit" / "CMakeLists.txt"
+STALE_BMP280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sensor_bmp280.c"
+SMART_HYGROMETER_CMAKE = ROOT / "projects" / "examples" / "smart_hygrometer" / "CMakeLists.txt"
+SMART_HYGROMETER_MAIN = ROOT / "projects" / "examples" / "smart_hygrometer" / "main.c"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -29,6 +32,8 @@ def main() -> int:
     sensor_cmake = SENSOR_CMAKE.read_text(encoding="utf-8")
     drivers_cmake = DRIVERS_CMAKE.read_text(encoding="utf-8")
     unit_cmake = UNIT_CMAKE.read_text(encoding="utf-8")
+    smart_hygrometer_cmake = SMART_HYGROMETER_CMAKE.read_text(encoding="utf-8")
+    smart_hygrometer_main = SMART_HYGROMETER_MAIN.read_text(encoding="utf-8")
 
     legacy = sorted((ROOT / "components" / "sensor" / "sensors").glob("sensor_*.c"))
     experimental = sorted((ROOT / "components" / "sensor" / "src").glob("xy_*.c"))
@@ -61,6 +66,16 @@ def main() -> int:
             "Device driver root source ownership changed without manifest update", errors)
     require("sensor_active_source_manifest" in unit_cmake,
             "sensor_active_source_manifest CTest must remain registered", errors)
+    require(not STALE_BMP280.exists(),
+            "retired xy_sensor_bmp280 lifecycle must not reappear", errors)
+    require("components/drivers/sensor/pressure/bmp280" in smart_hygrometer_cmake,
+            "smart_hygrometer must include the canonical BMP280 owner", errors)
+    require("components/drivers/sensor/pressure/bmp280/xy_bmp280.c" in smart_hygrometer_cmake,
+            "smart_hygrometer must compile the canonical BMP280 owner", errors)
+    require("components/sensor/src/xy_bmp280.c" not in smart_hygrometer_cmake,
+            "smart_hygrometer must not reference the removed experimental BMP280 source", errors)
+    require("xy_bmp280_init_addr(&g_bmp280, NULL, BMP280_ADDR_DEFAULT)" in smart_hygrometer_main,
+            "smart_hygrometer must use the canonical explicit-address BMP280 API", errors)
 
     if errors:
         print("sensor_active_source_manifest failed:")

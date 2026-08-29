@@ -144,7 +144,7 @@ static int system_init(void)
     xy_log_i("SHT30 initialized\n");
     
     /* 初始化 BMP280 */
-    ret = xy_bmp280_init(&g_bmp280, NULL, 0x76);  /* I2C 句柄需要根据实际平台提供 */
+    ret = xy_bmp280_init_addr(&g_bmp280, NULL, BMP280_ADDR_DEFAULT);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("Failed to initialize BMP280\n");
         return ret;

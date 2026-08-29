@@ -15,6 +15,7 @@ include_directories(
     ${XINYI_ROOT}/components/hal/inc
     ${XINYI_ROOT}/components/device/inc
     ${XINYI_ROOT}/components/drivers/sensor/temperature/sht30
+    ${XINYI_ROOT}/components/drivers/sensor/pressure/bmp280
     ${XINYI_ROOT}/components/sensor/inc
 )
 
@@ -26,7 +27,7 @@ set(SOURCES
     ${XINYI_ROOT}/components/trace/xy_log/src/xy_log.c
     ${XINYI_ROOT}/components/device/src/xy_device.c
     ${XINYI_ROOT}/components/drivers/sensor/temperature/sht30/xy_sht30.c
-    ${XINYI_ROOT}/components/sensor/src/xy_bmp280.c
+    ${XINYI_ROOT}/components/drivers/sensor/pressure/bmp280/xy_bmp280.c
     ${XINYI_ROOT}/components/sensor/src/xy_oled.c
 )
 
