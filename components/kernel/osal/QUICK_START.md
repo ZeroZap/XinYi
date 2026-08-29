@@ -1,12 +1,17 @@
 # XY OSAL Quick Start Guide
 
+> Evidence boundary: `runtime-pending`. The default bare-metal backend is Host-guarded. The
+> FreeRTOS reference backend currently has only a source/static-library STM32U5 compile gate;
+> RT-Thread has no XinYi STM32U5 compile/runtime gate. The RTOS snippets below are integration
+> examples, not proof that the scheduler, ISR paths, concurrency, or hardware have run.
+
 ## 1. Choose Your Backend
 
 | Backend | When to Use |
 |---------|-------------|
 | **Bare-metal** | No RTOS needed, simple app, minimal code |
-| **FreeRTOS** | Industry standard, wide support, mature ecosystem |
-| **RT-Thread** | Chinese RTOS, rich features, good documentation |
+| **FreeRTOS** | Sprint 5 reference backend; compile-guarded, runtime pending |
+| **RT-Thread** | Source candidate; not selected for the current Sprint |
 
 ## 2. Add to Build
 
@@ -111,6 +116,8 @@ xy_os_msgqueue_get(queue, &rx_msg, NULL, XY_OS_WAIT_FOREVER);
 
 ## That's It
 
-Same code runs on bare-metal, FreeRTOS, or RT-Thread. Just switch the backend .c file in your build.
+The public API is intended to reduce application changes between backends, but backend selection
+also requires the matching Kconfig/CMake integration, kernel, config, port, startup/link ownership,
+and runtime validation. Do not treat a source-file switch as a qualified migration.
 
 See [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) for complete API reference.

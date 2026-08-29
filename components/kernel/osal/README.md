@@ -4,6 +4,10 @@
 
 XinYi OSAL 是一个操作系统抽象层，为嵌入式系统提供统一的 RTOS 接口。它支持多种 RTOS 后端，包括 FreeRTOS、RT-Thread、CMSIS-RTX，以及裸机（无 RTOS）环境。
 
+证据状态：`runtime-pending`。默认 bare-metal 具有 Host contract；Sprint 5 选择的 FreeRTOS
+仅通过 STM32U5 Cortex-M33 source/static-library compile gate。RT-Thread 与 CMSIS-RTX 仍是
+source candidates。下表描述源码映射，不代表 scheduler、ISR、并发或实板验证。
+
 ## 架构层次
 
 ```
@@ -35,10 +39,10 @@ XinYi OSAL 是一个操作系统抽象层，为嵌入式系统提供统一的 RT
 
 | 后端 | 描述 | 线程 | 同步 | 通信 | 定时器 |
 |------|------|------|------|------|--------|
-| **Bare-metal** | 裸机（无 RTOS） | stub | ✅ | ✅ | ✅ (软件) |
-| **FreeRTOS** | FreeRTOS RTOS | ✅ | ✅ | ✅ | ✅ |
-| **RT-Thread** | RT-Thread RTOS | ✅ | ✅ | ✅ | ✅ |
-| **CMSIS-RTX** | ARM CMSIS-RTOS2 | ✅ | ✅ | ✅ | ✅ |
+| **Bare-metal** | 默认；Host-guarded | stub | Host | Host | Host software |
+| **FreeRTOS** | reference；compile-guarded | source | source | source | source |
+| **RT-Thread** | 未选择；source candidate | source | source | source | source |
+| **CMSIS-RTX** | source candidate | source | source | source | source |
 
 ## 快速开始
 
@@ -162,7 +166,9 @@ xy_os_timer_start(timer, 1000);  // 1 秒周期
 | `xy_os_delay()` | 相对延时 | ✅ (忙等) | ✅ (睡眠) | ✅ (睡眠) |
 | `xy_os_delay_until()` | 绝对延时 | ✅ (忙等) | ✅ (睡眠) | ✅ (睡眠) |
 
-图例：✅ 支持，❌ 不支持，⚠️ 部分支持
+图例：表中 `✅` 只表示相应 adapter 源码存在；FreeRTOS 以外的 RTOS backend 尚无本 Sprint
+target compile gate，所有 RTOS backend 均为 `runtime-pending`。`❌` 表示接口不支持，`⚠️` 表示
+部分实现或 stub。
 
 ## 构建配置
 

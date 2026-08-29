@@ -13,6 +13,11 @@ OSAL_CMAKE = ROOT / "components" / "kernel" / "osal" / "CMakeLists.txt"
 BACKEND_COMPARISON = ROOT / "components" / "kernel" / "osal" / "BACKEND_COMPARISON.md"
 FREERTOS_README = ROOT / "components" / "kernel" / "osal" / "freertos" / "README.md"
 KERNEL_README = ROOT / "components" / "kernel" / "README.md"
+OSAL_README = ROOT / "components" / "kernel" / "osal" / "README.md"
+OSAL_QUICK_START = ROOT / "components" / "kernel" / "osal" / "QUICK_START.md"
+OSAL_IMPLEMENTATION_STATUS = (
+    ROOT / "components" / "kernel" / "osal" / "IMPLEMENTATION_STATUS.md"
+)
 ROOT_KCONFIG = ROOT / "Kconfig"
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
 THIRD_PARTY_CMAKE = ROOT / "third_party" / "CMakeLists.txt"
@@ -56,6 +61,9 @@ def main() -> int:
     backend_comparison = BACKEND_COMPARISON.read_text(encoding="utf-8")
     freertos_readme = FREERTOS_README.read_text(encoding="utf-8")
     kernel_readme = KERNEL_README.read_text(encoding="utf-8")
+    osal_readme = OSAL_README.read_text(encoding="utf-8")
+    osal_quick_start = OSAL_QUICK_START.read_text(encoding="utf-8")
+    osal_implementation_status = OSAL_IMPLEMENTATION_STATUS.read_text(encoding="utf-8")
     root_kconfig = ROOT_KCONFIG.read_text(encoding="utf-8")
     root_cmake = ROOT_CMAKE.read_text(encoding="utf-8")
     third_party_cmake = THIRD_PARTY_CMAKE.read_text(encoding="utf-8")
@@ -118,6 +126,21 @@ def main() -> int:
                 f"FreeRTOS README must preserve evidence boundary: {token}", errors)
     require("source/static-library gate" in kernel_readme and "runtime/ISR/并发/实板 pending" in kernel_readme,
             "kernel README must record the bounded FreeRTOS compile evidence", errors)
+    for document_name, document in (
+        ("OSAL README", osal_readme),
+        ("OSAL quick start", osal_quick_start),
+        ("OSAL implementation status", osal_implementation_status),
+    ):
+        require("runtime-pending" in document,
+                f"{document_name} must preserve the RTOS runtime-pending boundary", errors)
+    for forbidden in (
+        "Same code runs on bare-metal, FreeRTOS, or RT-Thread. Just switch the backend .c file",
+        "✅ Complete implementation",
+        "No application code changes required",
+    ):
+        require(forbidden not in osal_quick_start + osal_implementation_status,
+                f"OSAL docs must not preserve unverified portability/completion claim: {forbidden}",
+                errors)
     require(FREERTOS_BACKEND.is_file(), "FreeRTOS OSAL adapter is missing", errors)
     require((FREERTOS_KERNEL / "include" / "FreeRTOS.h").is_file(),
             "vendored FreeRTOS kernel headers are missing", errors)

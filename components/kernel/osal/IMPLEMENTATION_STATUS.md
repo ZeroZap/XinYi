@@ -1,10 +1,15 @@
 # XY OSAL Implementation Status
 
-## Completed Implementations
+## Evidence-bounded implementation inventory
 
-### ✅ 1. Bare-metal Backend
+Overall status: `runtime-pending`. This file inventories adapter source coverage, not completed
+runtime qualification. The default bare-metal backend is Host-guarded; FreeRTOS has a bounded
+STM32U5 Cortex-M33 source/static-library compile gate; RT-Thread has no current XinYi target or
+runtime gate.
+
+### 1. Bare-metal Backend
 **File**: `baremetal/xy_os_baremetal.c` (149 lines)
-**Status**: ✅ Complete, compiles successfully
+**Status**: Host-guarded default; thread creation remains a stub
 **Features**:
 - Kernel init/start/lock/unlock
 - Tick count via `xy_tick_get()`
@@ -15,9 +20,9 @@
 
 ---
 
-### ✅ 2. FreeRTOS Backend
+### 2. FreeRTOS Backend
 **File**: `freertos/xy_os_freertos.c` (383 lines)
-**Status**: ✅ Complete implementation
+**Status**: source/static-library compile-guarded; runtime/ISR/concurrency/hardware pending
 **Features**:
 - Full task management
 - Mutex (standard + recursive)
@@ -33,9 +38,9 @@
 
 ---
 
-### ✅ 3. RT-Thread Backend
+### 3. RT-Thread Backend
 **File**: `rt-thread/xy_os_rtthread.c` (397 lines)
-**Status**: ✅ Complete implementation
+**Status**: source candidate; not selected and not target/runtime guarded in Sprint 5
 **Features**:
 - Full thread management
 - Mutex with priority inheritance
@@ -74,7 +79,7 @@
 | **Delay** | ✅ (busy) | ✅ (sleep) | ✅ (sleep) |
 
 Legend:
-- ✅ Fully supported
+- ✅ Adapter source path present; not runtime qualification
 - ⚠️ Partial/stub
 - ❌ Not supported
 
@@ -121,8 +126,8 @@ endif()
 
 ### Current Status
 - ✅ **Bare-metal**: Compiles successfully (no external dependencies)
-- ⚠️ **FreeRTOS**: Implementation complete, needs FreeRTOS headers
-- ⚠️ **RT-Thread**: Implementation complete, needs RT-Thread headers
+- ⚠️ **FreeRTOS**: STM32U5 source/static-library compile gate passes; runtime remains pending
+- ⚠️ **RT-Thread**: Source candidate; no current XinYi STM32U5 target/runtime gate
 
 ### Header Issues (xy_os.h)
 The current `xy_os.h` has a type issue:
@@ -180,13 +185,13 @@ For each backend:
 2. Add RTOS initialization before `xy_os_kernel_start()`
 3. Convert main loop to RTOS task
 4. Add threading/synchronization as needed
-5. **No application code changes required** (same API)
+5. Revalidate application behavior; a shared API does not guarantee identical backend semantics.
 
 ### Between RTOSes
 
 1. Change backend file
 2. Adjust build configuration for new RTOS
-3. **No application code changes required** (same API)
+3. Revalidate application behavior, startup/link integration, timeouts, ISR use, and shutdown.
 
 ---
 
