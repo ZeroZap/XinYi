@@ -10,6 +10,9 @@ TRACKER = ROOT / "docs" / "plans" / "SPRINT_TRACKER.md"
 AUDIT_PLAN = ROOT / "docs" / "plans" / "2026-08-17-component-audit-sprint-plan.md"
 EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 OSAL_CMAKE = ROOT / "components" / "kernel" / "osal" / "CMakeLists.txt"
+ROOT_KCONFIG = ROOT / "Kconfig"
+ROOT_CMAKE = ROOT / "CMakeLists.txt"
+THIRD_PARTY_CMAKE = ROOT / "third_party" / "CMakeLists.txt"
 FREERTOS_BACKEND = (
     ROOT / "components" / "kernel" / "osal" / "backend" / "freertos" / "xy_os_freertos.c"
 )
@@ -47,11 +50,14 @@ def main() -> int:
     audit_plan = AUDIT_PLAN.read_text(encoding="utf-8")
     evidence = EVIDENCE.read_text(encoding="utf-8")
     osal_cmake = OSAL_CMAKE.read_text(encoding="utf-8")
+    root_kconfig = ROOT_KCONFIG.read_text(encoding="utf-8")
+    root_cmake = ROOT_CMAKE.read_text(encoding="utf-8")
+    third_party_cmake = THIRD_PARTY_CMAKE.read_text(encoding="utf-8")
 
     for token in (
         "FreeRTOS",
         "REFERENCE_SELECTED",
-        "compile-guarded-runtime-pending",
+        "root-selected-compile-guarded-runtime-pending",
         "hardware-pending",
         "不构成 RTOS runtime、ISR、并发或实板证据",
         "FreeRTOSConfig.h",
@@ -70,6 +76,17 @@ def main() -> int:
             "evidence matrix must preserve the selected compile-only reference boundary", errors)
     require('set(OSAL_BACKEND "baremetal"' in osal_cmake,
             "default OSAL backend must remain baremetal until integration is proven", errors)
+    for token in ("config KERNEL_OSAL", "config OSAL_BACKEND_FREERTOS"):
+        require(token in root_kconfig,
+                f"root Kconfig must expose the reference backend token: {token}", errors)
+    require("CONFIG_OSAL_BACKEND_FREERTOS" in root_cmake,
+            "root CMake must map the generated FreeRTOS selection", errors)
+    require('set(RTOS_BACKEND "freertos"' in root_cmake,
+            "root CMake must select the matching third-party kernel", errors)
+    require("freertos/FreeRTOS" in third_party_cmake and "${FREERTOS_DIR}/tasks.c" in third_party_cmake,
+            "third-party CMake must use the pinned FreeRTOS kernel layout", errors)
+    require("ARM_CM33_NTZ" in third_party_cmake,
+            "third-party CMake must use the guarded Cortex-M33 port", errors)
     require(FREERTOS_BACKEND.is_file(), "FreeRTOS OSAL adapter is missing", errors)
     require((FREERTOS_KERNEL / "include" / "FreeRTOS.h").is_file(),
             "vendored FreeRTOS kernel headers are missing", errors)

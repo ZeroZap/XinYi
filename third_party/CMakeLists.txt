@@ -20,34 +20,30 @@ if(RTOS_BACKEND STREQUAL "freertos" OR RTOS_FREERTOS)
     set(USE_FREERTOS ON)
 
     # FreeRTOS source directory
-    set(FREERTOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/freertos)
+    set(FREERTOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/freertos/FreeRTOS)
 
     if(EXISTS ${FREERTOS_DIR})
         # FreeRTOS source files
         set(FREERTOS_SOURCES
-            ${FREERTOS_DIR}/src/tasks.c
-            ${FREERTOS_DIR}/src/queue.c
-            ${FREERTOS_DIR}/src/list.c
-            ${FREERTOS_DIR}/src/portable/MemMang/heap_4.c
+            ${FREERTOS_DIR}/tasks.c
+            ${FREERTOS_DIR}/queue.c
+            ${FREERTOS_DIR}/list.c
+            ${FREERTOS_DIR}/timers.c
+            ${FREERTOS_DIR}/event_groups.c
+            ${FREERTOS_DIR}/portable/MemMang/heap_4.c
         )
 
         # Find portable layer based on MCU
-        if(MCU_FAMILY STREQUAL "STM32F4" OR MCU_FAMILY STREQUAL "STM32U5")
+        if(HAL_PLATFORM STREQUAL "STM32U5")
+            set(FREERTOS_PORT_DIR
+                ${CMAKE_SOURCE_DIR}/components/kernel/osal/portable/freertos/GCC/ARM_CM33_NTZ/non_secure)
             list(APPEND FREERTOS_SOURCES
-                ${FREERTOS_DIR}/src/portable/GCC/ARM_CM4F/port.c
+                ${FREERTOS_PORT_DIR}/port.c
+                ${FREERTOS_PORT_DIR}/portasm.c
             )
-            set(FREERTOS_PORT "ARM_CM4F")
-        elseif(MCU_FAMILY STREQUAL "STM32F1")
-            list(APPEND FREERTOS_SOURCES
-                ${FREERTOS_DIR}/src/portable/GCC/ARM_CM3/port.c
-            )
-            set(FREERTOS_PORT "ARM_CM3")
+            set(FREERTOS_PORT "ARM_CM33_NTZ/non_secure")
         else()
-            message(WARNING "Unknown MCU family, using default ARM_CM4F port")
-            list(APPEND FREERTOS_SOURCES
-                ${FREERTOS_DIR}/src/portable/GCC/ARM_CM4F/port.c
-            )
-            set(FREERTOS_PORT "ARM_CM4F")
+            message(FATAL_ERROR "The guarded FreeRTOS reference kernel currently supports STM32U5 only")
         endif()
 
         # Create FreeRTOS library
@@ -55,7 +51,8 @@ if(RTOS_BACKEND STREQUAL "freertos" OR RTOS_FREERTOS)
 
         target_include_directories(freertos_kernel PUBLIC
             ${FREERTOS_DIR}/include
-            ${FREERTOS_DIR}/src/portable/GCC/${FREERTOS_PORT}
+            ${FREERTOS_PORT_DIR}
+            ${CMAKE_SOURCE_DIR}/components/kernel/osal/config/freertos
         )
 
         target_compile_definitions(freertos_kernel PUBLIC

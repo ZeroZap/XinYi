@@ -134,7 +134,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
-| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；已新增 project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` compile gate（adapter + kernel + heap + port 共 9 objects）。仍缺 root Kconfig/CMake selection、link/runtime、ISR→task、并发 stress 与 B1/B2；compile-only 不升级运行时/实板声明 | `a7de72e7`、`7962141d` | 2026-08-29 |
+| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed。仍缺 runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本轮提交 | 2026-08-29 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -556,3 +556,17 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   并发或 B1/B2 实板证据；S5-01 保持 `IN_PROGRESS`。
 - 下一步：让 root Kconfig/CMake FreeRTOS selection 只消费受检 config/port，并在缺输入时
   fail closed；之后再建立 runtime fixture。
+
+### 2026-08-29 Sprint 5 FreeRTOS root selection
+
+- RED：显式 `KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON` 首先被 root parser 以 unknown symbol
+  拒绝，证明 compile probe 尚未成为产品构建选择；policy guard 同时指出 root/third-party CMake
+  没有映射受检 kernel/config/port。
+- 实现：root Kconfig 新增默认关闭、仅 STM32U5 可选的 reference backend；root CMake 同步选择
+  OSAL adapter 与 kernel，third-party target 使用 pinned V10.4.6 kernel layout、project-owned config
+  和 Cortex-M33 non-secure port；PC 显式误选 fail-closed，默认 PC/bare-metal 不变。
+- 验证：focused policy/compile 2/2；STM32U5 root configure + `xy_osal` target 构建成功（同时构建
+  `freertos_kernel`）；Host 190/190、PC root build、`git diff --check` 通过。以上只构成 source/static-
+  library compile 前置，不构成 runnable image、scheduler、ISR、并发或 B1/B2。
+- 下一步：建立可链接/可运行的 FreeRTOS runtime fixture，再覆盖 thread/sync/queue/timeout 与
+  ISR→task；S5-01 继续保持 `IN_PROGRESS`。

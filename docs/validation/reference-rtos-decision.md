@@ -4,7 +4,7 @@
 **Owner**: Zero
 **Status**: `REFERENCE_SELECTED`
 **Reference backend**: **FreeRTOS**
-**Integration**: `compile-guarded-runtime-pending`
+**Integration**: `root-selected-compile-guarded-runtime-pending`
 **Hardware**: `hardware-pending`
 
 ## Decision
@@ -30,22 +30,23 @@ single-backend Sprint scope.
   Cortex-M33 non-secure port outside `third_party/`; provenance and file hashes are recorded
   beside the port.
 - `freertos_stm32u5_compile` compiles the adapter, required kernel modules, heap and port into
-  nine Arm Cortex-M33 objects with `-Werror`. The root default remains bare-metal because this
-  gate does not link startup/vector/HAL code and provides no scheduler runtime evidence.
+  nine Arm Cortex-M33 objects with `-Werror`.
+- Root Kconfig/CMake now exposes an STM32U5-only `OSAL_BACKEND_FREERTOS` opt-in, maps it to both
+  the canonical OSAL adapter and matching pinned kernel/config/port, and builds `xy_osal` plus
+  `freertos_kernel`. An explicit FreeRTOS request on PC fails closed. The root default remains
+  bare-metal because this gate still does not link a runnable image or provide scheduler evidence.
 - RT-Thread has a larger source tree, but current CMake paths and the STM32U5 adapter/port
   assumptions are also stale or incomplete; source volume is not evidence of readiness.
 
 ## Next bounded integration slice
 
-1. Make the root Kconfig/CMake FreeRTOS selection consume the compile-guarded config/port and
-   fail closed when any required integration input is absent.
-2. Add runtime coverage for thread scheduling, mutex/semaphore, queue, event flags, timeout,
+1. Add runtime coverage for thread scheduling, mutex/semaphore, queue, event flags, timeout,
    resource exhaustion, ISR-to-task wakeup, and shutdown/re-init.
-3. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
+2. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
    concurrency before S5-01 can become `DONE`.
 
 ## Evidence boundary
 
 This slice adds a clean source-level STM32U5 Cortex-M33 compile gate. It **不构成 RTOS runtime、ISR、并发或实板证据**. The gate does not link startup/vector/HAL code or execute a scheduler,
-so S5-01 remains in progress until root integration and the required runtime/stress evidence
+so S5-01 remains in progress until a link/runtime fixture and the required runtime/stress evidence
 exist.

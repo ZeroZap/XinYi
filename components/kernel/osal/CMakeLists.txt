@@ -61,8 +61,9 @@ elseif(OSAL_BACKEND STREQUAL "freertos")
     )
     set(OSAL_BACKEND_INCLUDES
         ${OSAL_INCLUDE_DIRS}
-        # FreeRTOS headers from third_party
-        ${CMAKE_SOURCE_DIR}/third_party/freertos/include
+        ${CMAKE_SOURCE_DIR}/third_party/freertos/FreeRTOS/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/config/freertos
+        ${CMAKE_CURRENT_SOURCE_DIR}/portable/freertos/GCC/ARM_CM33_NTZ/non_secure
     )
     message(STATUS "XY OSAL: Using FreeRTOS backend")
 
@@ -216,9 +217,10 @@ endif()
 
 # Link with backend RTOS if needed
 if(OSAL_BACKEND STREQUAL "freertos")
-    if(TARGET freertos_kernel)
-        target_link_libraries(xy_osal PUBLIC freertos_kernel)
+    if(NOT TARGET freertos_kernel)
+        message(FATAL_ERROR "FreeRTOS OSAL selected without the matching freertos_kernel target")
     endif()
+    target_link_libraries(xy_osal PUBLIC freertos_kernel)
 elseif(OSAL_BACKEND STREQUAL "rtthread")
     if(TARGET rtthread)
         target_link_libraries(xy_osal PUBLIC rtthread)

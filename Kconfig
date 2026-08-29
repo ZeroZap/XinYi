@@ -133,6 +133,31 @@ config COMPONENT_ACTUATOR
 
 endmenu # Core Components
 
+menu "Kernel Configuration"
+
+config KERNEL_OSAL
+    bool "Enable OS Abstraction Layer"
+    default y
+    help
+      Build the canonical XinYi OSAL target.
+
+config OSAL_BACKEND_FREERTOS
+    bool "FreeRTOS reference backend"
+    depends on KERNEL_OSAL && PLATFORM_STM32U5
+    default n
+    help
+      Select the compile-guarded FreeRTOS V10.4.6 Cortex-M33 non-secure
+      reference backend. Runtime and hardware validation remain separate gates.
+
+config OSAL_BACKEND_BAREMETAL
+    bool "Bare-metal backend"
+    depends on KERNEL_OSAL
+    default y if !OSAL_BACKEND_FREERTOS
+    help
+      Use the default single-thread bare-metal OSAL backend.
+
+endmenu # Kernel Configuration
+
 menu "Device Drivers"
 
 config DRIVER_SENSOR
