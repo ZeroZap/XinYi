@@ -6,11 +6,11 @@
 
 ## 📊 组件完成度
 
-### ✅ 完善 / host-guarded 组件 (13 个)
+### Host-guarded / 分层证据组件
 
 | 组件 | 代码 | 测试 | 文档 | 构建 | 测试用例 | 状态 |
 |------|------|------|------|------|---------|------|
-| **OSAL** | ✅ | ✅ | ✅ | ✅ | 17 | 🟢 完善 |
+| **OSAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Bare-metal Host-guarded；FreeRTOS `compile-guarded-runtime-pending` |
 | **HAL** | ✅ | ✅ | ✅ | ✅ | 11 | 🟢 完善 |
 | **Crypto** | ✅ | ✅ | ✅ | ✅ | 28 | 🟢 host-guarded |
 | **CLib** | ✅ | ✅ | ✅ | ✅ | 21 | 🟢 完善 |
@@ -73,13 +73,11 @@ Trace     ██████████  10
 
 **目录**: `components/kernel/osal/`
 
-**功能**:
-- ✅ Bare-metal 后端
-- ✅ FreeRTOS 后端
-- ✅ RT-Thread 后端
-- ✅ CMSIS-RTX 配置
-- ✅ 软件定时器
-- ✅ Tick 模块
+**证据边界**:
+- Bare-metal：Host contract
+- FreeRTOS：Sprint 5 reference，STM32U5 source/static-library compile gate；runtime/ISR/并发/实板 pending
+- RT-Thread/CMSIS-RTX：source candidate，未建立 target/runtime gate
+- 软件定时器与 Tick：Host contract；不能外推为所有 RTOS backend runtime 通过
 
 **文档**:
 - [简介](components/osal/introduction.md)

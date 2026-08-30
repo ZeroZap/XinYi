@@ -18,6 +18,10 @@ OSAL_QUICK_START = ROOT / "components" / "kernel" / "osal" / "QUICK_START.md"
 OSAL_IMPLEMENTATION_STATUS = (
     ROOT / "components" / "kernel" / "osal" / "IMPLEMENTATION_STATUS.md"
 )
+COMPONENTS_README = ROOT / "components" / "README.md"
+DEVELOPMENT_PRIORITY = ROOT / "components" / "DEVELOPMENT_PRIORITY.md"
+COMPONENT_INDEX = ROOT / "docs" / "components" / "index.md"
+OSAL_INTRODUCTION = ROOT / "docs" / "components" / "osal" / "introduction.md"
 ROOT_KCONFIG = ROOT / "Kconfig"
 ROOT_CMAKE = ROOT / "CMakeLists.txt"
 THIRD_PARTY_CMAKE = ROOT / "third_party" / "CMakeLists.txt"
@@ -64,6 +68,10 @@ def main() -> int:
     osal_readme = OSAL_README.read_text(encoding="utf-8")
     osal_quick_start = OSAL_QUICK_START.read_text(encoding="utf-8")
     osal_implementation_status = OSAL_IMPLEMENTATION_STATUS.read_text(encoding="utf-8")
+    components_readme = COMPONENTS_README.read_text(encoding="utf-8")
+    development_priority = DEVELOPMENT_PRIORITY.read_text(encoding="utf-8")
+    component_index = COMPONENT_INDEX.read_text(encoding="utf-8")
+    osal_introduction = OSAL_INTRODUCTION.read_text(encoding="utf-8")
     root_kconfig = ROOT_KCONFIG.read_text(encoding="utf-8")
     root_cmake = ROOT_CMAKE.read_text(encoding="utf-8")
     third_party_cmake = THIRD_PARTY_CMAKE.read_text(encoding="utf-8")
@@ -140,6 +148,27 @@ def main() -> int:
     ):
         require(forbidden not in osal_quick_start + osal_implementation_status,
                 f"OSAL docs must not preserve unverified portability/completion claim: {forbidden}",
+                errors)
+    for document_name, document in (
+        ("components README", components_readme),
+        ("development priority", development_priority),
+        ("component index", component_index),
+        ("OSAL introduction", osal_introduction),
+    ):
+        require("runtime-pending" in document,
+                f"{document_name} must preserve the RTOS runtime-pending boundary", errors)
+    for forbidden in (
+        "✅ 支持主流 RTOS",
+        "| `kernel/` | OS 抽象层 (FreeRTOS/RT-Thread/RTX) | ✅ |",
+        "| **OSAL** | ✅ | ✅ | ✅ | ✅ | 17 | 🟢 完善 |",
+        "**状态**: ✅ 完善",
+        "✅ **多 RTOS 支持**",
+        "| FreeRTOS | MIT | ✅ 完善 |",
+        "| RT-Thread | Apache-2.0 | ✅ 完善 |",
+        "| CMSIS-RTX | Apache-2.0 | ✅ 完善 |",
+    ):
+        require(forbidden not in components_readme + development_priority + component_index + osal_introduction,
+                f"public component docs must not preserve unverified RTOS claim: {forbidden}",
                 errors)
     require(FREERTOS_BACKEND.is_file(), "FreeRTOS OSAL adapter is missing", errors)
     require((FREERTOS_KERNEL / "include" / "FreeRTOS.h").is_file(),

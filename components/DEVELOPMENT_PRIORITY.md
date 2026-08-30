@@ -1,15 +1,16 @@
 # XinYi 开发优先级
 
-**更新时间**: 2026-03-11  
-**维护者**: ese
+**更新时间**: 2026-08-30
+**维护者**: ese / Zero
 
 ---
 
 ## 🎯 核心原则
 
 **XinYi 是一个参考 RT-Thread 和 Zephyr 设计的嵌入式框架**
-- ✅ 支持主流 RTOS (FreeRTOS/RT-Thread/CMSIS-RTX/RTX5/Bare-metal)
-- ✅ 不绑定特定 RTOS，保持灵活性
+- Bare-metal 有 Host contract；FreeRTOS 是 Sprint 5 唯一 reference backend，当前仅
+  `compile-guarded-runtime-pending`
+- RT-Thread/CMSIS-RTX 仅为 source candidate，尚无 XinYi runtime/ISR/并发或实板证据
 - ✅ 优先完善 C 版本 xinyi，Rust 版本延后
 
 ---
@@ -23,7 +24,7 @@
 | **P0** | 设备模型 | 🟡 中 | 10h | 参考 RT-Thread/Zephyr |
 | **P1** | Crypto 优化 | 🟡 中 | 11h | 汇编优化 |
 | **P1** | Net 完善 | 🟡 中 | 4h | CAN/LTE |
-| **P2** | FOTA 增强 | ✅ 完成 | - | 已完成 |
+| **P2** | FOTA 增强 | 🟡 进行中 | - | Host fail-closed；bootloader/实板 pending |
 | **P3** | XinYi_rs | ⏸️ 搁置 | - | 等 xinyi 成熟 |
 
 ---
@@ -198,4 +199,4 @@ P3 延后任务：░░░░░░░░░░░░░░░░░░ 0%
 
 ---
 
-**最后更新**: 2026-03-11 by ese
+**最后更新**: 2026-08-30 by Zero（能力证据边界校准）

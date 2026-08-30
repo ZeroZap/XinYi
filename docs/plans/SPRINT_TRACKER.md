@@ -134,7 +134,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
-| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；backend comparison、kernel、OSAL 总览/quick-start/status 与 FreeRTOS README 的无证据完成度/性能/可移植性声明已降级并由 policy guard 防回归。MPS2-AN505 runtime spike 在 secure/non-secure boot/alias 边界 HardFault，未提交为 runtime gate；仍缺 board-correct runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～`1d5b740d` | 2026-08-30 |
+| S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；backend/kernel/OSAL 与公开 component index/introduction/priority README 的无证据完成度、性能及多 RTOS 声明已降级并由 policy guard 防回归。MPS2-AN505 runtime spike 在 secure/non-secure boot/alias 边界 HardFault，未提交为 runtime gate；仍缺 board-correct runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本项提交 | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -607,3 +607,16 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `IN_PROGRESS`。
 - 下一步：等待 reference board 的安全域/startup/link owner；到位前不再扩张无硬件 RTOS
   runtime fake，转向下一个可独立闭环的无硬件 Sprint 治理项。
+
+### 2026-08-30 Sprint 5 公开组件入口声明收口
+
+- RED：扩展 `reference_rtos_decision` policy probe 后，公开 `components/README.md`、
+  `DEVELOPMENT_PRIORITY.md`、`docs/components/index.md` 与 OSAL introduction 仍把多 RTOS、
+  FreeRTOS/RT-Thread/CMSIS-RTX 标为完整或统一通过，focused probe 按预期失败 12 项。
+- 收口：公开入口统一为 Bare-metal Host contract、FreeRTOS
+  `compile-guarded-runtime-pending`、RT-Thread/CMSIS-RTX source candidate；同时移除 FOTA
+  “已完成”旧状态及 OSAL backend README 的模糊 `Complete` 标签。
+- 验证：focused `reference_rtos_decision` + `freertos_stm32u5_compile` 2/2；full Host、PC root
+  与 `git diff --check` 见本轮提交 gate。以上不新增 scheduler、ISR、并发、性能或实板证据。
+- 下一步：S5-01 runtime 继续等待 reference board startup/link owner；下一无硬件 slice 优先校准
+  同一公开 component index 中 HAL/FOTA 等仍高于证据台账的状态，不扩张 RTOS fake。

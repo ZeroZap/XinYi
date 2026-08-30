@@ -1,6 +1,10 @@
 # OSAL 组件 - OS 抽象层
 
-**状态**: ✅ 完善 | **测试**: 17 用例 | **版本**: 1.0
+**状态**: Host-guarded / RTOS `runtime-pending` | **版本**: 1.0
+
+> 当前证据边界：Bare-metal 有 Host contract；FreeRTOS 仅完成 STM32U5 Cortex-M33
+> source/static-library compile gate。RT-Thread 与 CMSIS-RTX 仅为 source candidate。尚无
+> scheduler、ISR→task、并发、性能或实板证据。
 
 ---
 
@@ -10,19 +14,18 @@ XinYi OS 抽象层（OSAL）提供统一的操作系统接口，支持多种 RTO
 
 ### 核心特性
 
-- ✅ **多 RTOS 支持** - FreeRTOS、RT-Thread、CMSIS-RTX、Bare-metal
-- ✅ **统一 API** - 一套接口适配所有后端
-- ✅ **零开销** - 编译时选择后端，无运行时开销
-- ✅ **完整功能** - 内核管理、定时器、Tick、信号量等
+- **统一 API** - 提供跨后端接口；各后端支持度必须按证据分别判断
+- **编译时选择** - 不引入运行时 backend dispatch；尚无性能/“零开销”测量
+- **当前基线** - Bare-metal Host contract；FreeRTOS compile-guarded-runtime-pending
 
 ### 支持的 RTOS
 
 | RTOS | 许可证 | 状态 | 适用场景 |
 |------|--------|------|---------|
-| Bare-metal | - | ✅ 完善 | 简单应用 |
-| FreeRTOS | MIT | ✅ 完善 | 通用嵌入式 |
-| RT-Thread | Apache-2.0 | ✅ 完善 | 物联网应用 |
-| CMSIS-RTX | Apache-2.0 | ✅ 完善 | ARM 生态 |
+| Bare-metal | - | Host-guarded | Host contract；真实并发/实板 pending |
+| FreeRTOS | MIT | compile-guarded-runtime-pending | Sprint 5 reference；scheduler/ISR/并发 pending |
+| RT-Thread | Apache-2.0 | source candidate | 本 Sprint 未选择，无 target/runtime gate |
+| CMSIS-RTX | Apache-2.0 | source candidate | 无 target/runtime gate |
 
 ---
 
@@ -30,21 +33,13 @@ XinYi OS 抽象层（OSAL）提供统一的操作系统接口，支持多种 RTO
 
 ### 1. 配置 RTOS 后端
 
-使用 Kconfig 配置：
+FreeRTOS reference backend 使用 root Kconfig/CMake opt-in；默认仍为 bare-metal：
 
 ```bash
-make menuconfig
-# 选择 Kernel -> OSAL -> Backend
+KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON make HAL_PLATFORM=STM32U5 configure
 ```
 
-或修改 `xy_os_cfg.h`：
-
-```c
-// 选择后端
-#define XY_OS_BACKEND XY_OS_BACKEND_FREERTOS
-// #define XY_OS_BACKEND XY_OS_BACKEND_RTTHREAD
-// #define XY_OS_BACKEND XY_OS_BACKEND_BAREMETAL
-```
+该命令目前只证明 root-selected source/static-library compile；不可当作 runnable firmware。
 
 ### 2. 初始化内核
 

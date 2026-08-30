@@ -115,10 +115,10 @@ components/drivers/
 
 | 组件 | 说明 | 状态 |
 |------|------|------|
-| `kernel/` | OS 抽象层 (FreeRTOS/RT-Thread/RTX) | ✅ |
-| `hal/` | 硬件抽象层 (多平台支持) | ✅ |
-| `device/` | 统一设备管理框架 | ✅ |
-| `drivers/` | 器件驱动层 (新组织) | ✅ |
+| `kernel/` | OS 抽象层；Bare-metal Host contract，FreeRTOS `compile-guarded-runtime-pending` | H1/C1 前置 |
+| `hal/` | 硬件抽象层（逐平台证据见矩阵） | Host/部分 QEMU |
+| `device/` | 统一设备管理框架 | Host-guarded |
+| `drivers/` | 器件驱动层（多数硬件证据 pending） | Host-guarded |
 
 ### 功能组件
 

@@ -170,9 +170,9 @@ For each backend:
 |----------|--------|
 | Main README | ✅ Complete |
 | Implementation Guide | ✅ Complete (572 lines) |
-| Bare-metal README | ✅ Complete |
-| FreeRTOS README | ✅ Complete |
-| RT-Thread README | ✅ Complete |
+| Bare-metal README | Present; Host contract documented |
+| FreeRTOS README | Present; `compile-guarded-runtime-pending` documented |
+| RT-Thread README | Present; source-candidate boundary documented |
 | API Reference | ✅ (in xy_os.h) |
 
 ---
