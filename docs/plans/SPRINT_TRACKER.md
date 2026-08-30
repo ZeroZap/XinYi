@@ -145,6 +145,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-09 | P1 | 组件差距清单成熟度事实校准 | DONE | Zero | S5-03（DONE）；S5-08（DONE） | RED guard 证明 `COMPONENT_GAP_ANALYSIS.md` 仍以静态百分比宣称 HAL/FOTA/GUI 等完整并按生态凑数排期；现降级为历史候选清单，删除无证据成熟度/数量预测，改以 tracker/evidence/root selection 为事实源；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `9e2ab686` | 2026-08-30 |
 | S5-10 | P1 | 历史构建系统报告事实校准 | DONE | Zero | S0-03/S0-04（DONE）；S5-09（DONE） | RED guard 证明 `docs/build_system_analysis.md` 仍包含无证据“完善”状态、8.5/10 评分及不存在的 build/config 命令；已降级为 superseded 历史报告并改指 root facts 与配置矩阵；focused 1/1、Host 194/194、PC root、`git diff --check` 通过 | `a7319445` | 2026-08-30 |
 | S5-11 | P1 | Release fail-closed checklist 与 R1 边界 | DONE | Zero | S0-05/S0-06（DONE）；S5-10（DONE） | RED probe 证明 checklist 缺失；现建立 source/version、Host/target、HIL/recovery、security/SBOM、reproducible artifacts/checksum/signature 的 fail-closed 门禁，当前固定 `BLOCKED`/`NO-GO`；focused 1/1、Host 195/195、PC root 与 `git diff --check` 通过，不升级 R1 | `bb556e5b` | 2026-08-31 |
+| S5-12 | P1 | Tracked source dependency inventory 前置 | DONE | Zero | S5-11（DONE） | RED：focused guard 因 inventory 缺失失败；现机器守护 7 个 vendored source inputs 与 10 个 top-level gitlinks/path/SHA，旧候选许可证清单标记 superseded；状态固定 `REVIEW_PENDING`，不冒充 artifact SBOM/license approval；focused 1/1、Host 196/196、PC root 与 `git diff --check` 通过 | `86f6cdde` | 2026-08-31 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
