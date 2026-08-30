@@ -1,6 +1,6 @@
 # 组件状态总览
 
-**最后更新**: 2026-08-11
+**最后更新**: 2026-08-30
 
 ---
 
@@ -11,7 +11,7 @@
 | 组件 | 代码 | 测试 | 文档 | 构建 | 测试用例 | 状态 |
 |------|------|------|------|------|---------|------|
 | **OSAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Bare-metal Host-guarded；FreeRTOS `compile-guarded-runtime-pending` |
-| **HAL** | ✅ | ✅ | ✅ | ✅ | 11 | 🟢 完善 |
+| **HAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | PC Host contract、部分 QEMU；目标实板 pending |
 | **Crypto** | ✅ | ✅ | ✅ | ✅ | 28 | 🟢 host-guarded |
 | **CLib** | ✅ | ✅ | ✅ | ✅ | 21 | 🟢 完善 |
 | **DM** | ✅ | ✅ | ✅ | ✅ | 24 | 🟢 host-guarded |
@@ -28,7 +28,7 @@
 
 | 组件 | 代码 | 测试 | 文档 | 构建 | 状态 |
 |------|------|------|------|------|------|
-| **FOTA** | ✅ | ✅ | ✅ | ✅ | 🟢 主线可用；bootloader/board NOR 仍待真实硬件记录 |
+| **FOTA** | ✅ | ✅ | ✅ | ✅ | 🟡 Host fail-closed contract；board Flash/bootloader/security/hardware pending |
 | **Fuel Gauge** | ✅ | ✅ | ✅ | ✅ | 🟡 standalone host-guarded；SMBus/I2C 硬件验证 pending |
 | **GUI** | ✅ | ✅ | ✅ | ✅ | 🟡 host-guarded core/widgets/effects/fonts/display-backend；真实屏幕、字体美术/来源审查仍待证据 |
 
@@ -60,10 +60,10 @@ Trace     ██████████  10
 
 | 状态 | 数量 | 百分比 |
 |------|------|--------|
-| 🟢 完善 / host-guarded | 13 | 81% |
-| 🟡 主线可用 / 硬件或人工证据待补 | 3 | 19% |
-| 🟡 进行中 | 0 | 0% |
-| 🔴 缺失 | 0 | 0% |
+| Host-guarded / 分层证据 | 13 | 81% |
+| 硬件、安全或人工证据待补 | 3 | 19% |
+
+这些比例只分类公开组件入口，不是产品完成度。Host/PC/QEMU/compile-only 不构成实板、安全或 production-ready 证据。
 
 ---
 
@@ -90,18 +90,17 @@ Trace     ██████████  10
 
 **目录**: `components/hal/`
 
-**功能**:
-- ✅ GPIO, UART, SPI, I2C
-- ✅ Timer, PWM, RTC, DMA
-- ✅ ADC, DAC, Flash
-- ✅ Watchdog, RNG, EXTI
-- ✅ I2S, CAN, LP Timer
+**证据边界**:
+- HAL：PC Host contract、部分 QEMU；STM32U5/WCH/HC32 实板证据 pending
+- 外设 API/source 存在不等于每个平台均已实现或运行验证
+- 逐平台、逐外设状态以 [HAL 平台证据矩阵](../validation/hal-platform-evidence-matrix.md)为准
 
-**支持平台**:
-- STM32U5 (完整实现)
-- STM32F1/F4/L4
-- HC32, WCH (占位符)
-- PC 仿真层
+**支持平台与当前证据**:
+- STM32U5（source/compile 前置；Board pending）
+- STM32F4（部分 QEMU；部分外设仍 unsupported）
+- STM32L4（当前复用 STM32F4 wrapper；Board pending）
+- WCH/HC32（部分 source；Board pending）
+- PC simulation（Host contract）
 
 **文档**:
 - [简介](components/hal/introduction.md)
@@ -144,6 +143,9 @@ Trace     ██████████  10
 - [FOTA - 固件升级](components/fota/index.md)
 - [GUI - 图形界面](components/gui/index.md)
 - [Trace - 日志系统](components/trace/index.md)
+
+FOTA：Host fail-closed contract；board Flash、bootloader、secure provider 与实板 pending。其
+Host metadata journal、callback 和错误边界不能升级为可烧录镜像、真实掉电恢复或安全批准。
 
 ---
 

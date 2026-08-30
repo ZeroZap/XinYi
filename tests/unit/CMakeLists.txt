@@ -91,6 +91,10 @@ add_test(NAME freertos_stm32u5_compile
     COMMAND python3 ${ROOT}/components/kernel/osal/scripts/compile_freertos_stm32u5.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME public_component_evidence
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_public_component_evidence.py
+    WORKING_DIRECTORY ${ROOT}
+)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
