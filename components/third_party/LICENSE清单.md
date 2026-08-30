@@ -1,5 +1,10 @@
 # 第三方库许可证清单
 
+> **SUPERSEDED historical candidate list.** 本文件不是当前源码或发布 SBOM，也不构成许可证
+> 审批。受检的 tracked source/submodule 事实入口为
+> `docs/validation/source-dependency-inventory.json`；发布级 SBOM、传递依赖、制品和法律审查仍
+> 保持 pending。
+
 **日期**: 2026-03-05  
 **政策**: ✅ 仅 MIT/Apache-2.0/BSD-2/3
 

@@ -54,5 +54,8 @@ A release tag does not upgrade any evidence level.
 
 - Reference-board HIL/B1/B2 remains unavailable.
 - Secure FOTA has no approved production signature provider or real bootloader/board integration evidence.
-- SBOM, reproducible artifacts, and signed checksum publication are not established.
+- The machine-guarded [source dependency inventory](../validation/source-dependency-inventory.json)
+  records tracked vendored inputs and top-level gitlinks, but remains `REVIEW_PENDING`; it is not an
+  artifact SBOM or license approval. SBOM, reproducible artifacts, and signed checksum publication
+  are not established.
 - Therefore Sprint 6 and R1 remain blocked; this checklist does not authorize a release.
