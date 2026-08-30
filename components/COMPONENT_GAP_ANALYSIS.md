@@ -1,406 +1,119 @@
-# 组件完整性排查报告
+# 组件差距历史清单
 
-**日期**: 2026-03-05  
-**状态**: 🔍 全面排查
+**原始日期**：2026-03-05
+**事实校准**：2026-08-30
+**状态**：历史差距清单（非当前执行计划）
 
----
-
-## 📊 当前组件清单
-
-### 已存在组件 (19 个)
-
-| 类别 | 组件 | 完成度 |
-|------|------|--------|
-| **基础** | clib | 100% |
-| **系统** | kernel, sys, trace | 100% |
-| **硬件** | hal, device | 100% |
-| **驱动** | sensor, fuel_gauge, addc | 96% |
-| **通信** | net, ipc, mux | 100% |
-| **控制** | pid, pm | 100% |
-| **存储** | dm, fota | 100% |
-| **显示** | gui, drivers/display | 100% |
-| **安全** | crypto | 95% |
+> 本文保留早期生态差距调查的主题，但不作为当前组件成熟度、产品优先级或支持状态的事实源。
+> 当前执行状态以 `docs/plans/SPRINT_TRACKER.md` 为准，能力证据以
+> `docs/validation/component-evidence-matrix.md` 为准，root source/config ownership 以 Kconfig、
+> CMake 与对应 manifest 为准。Host/PC/QEMU/compile-only 不构成实板、安全、性能或 production-ready 证据。
 
 ---
 
-## 🔍 对比业界标准
+## 1. 为什么降级为历史清单
 
-### 参考项目
+原报告用目录存在、源码数量和静态百分比推导“完成度”，并据此给出长期集成顺序。后续审计证明
+这种口径会混淆以下不同事实：
 
-1. **Zephyr RTOS** - 嵌入式 RTOS
-2. **RT-Thread** - 国产 RTOS
-3. **ESP-IDF** - ESP32 开发框架
-4. **Arduino** - 开源硬件平台
-5. **PlatformIO** - 物联网开发平台
+- source inventory 与 root product target；
+- focused Host contract 与真实板卡行为；
+- compile/QEMU reachability 与 runtime/HIL；
+- 算法向量与安全审查；
+- 框架 API 与具体产品需求。
 
----
-
-## ❌ 缺失组件清单
-
-### 高优先级 (核心功能)
-
-#### 1. 网络协议栈 🔴
-
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **TCP/IP** | LwIP 集成 | 🔴 高 |
-| **HTTP/HTTPS** | HTTP 客户端/服务器 | 🔴 高 |
-| **MQTT** | MQTT 客户端 | 🔴 高 |
-| **WebSocket** | WebSocket 支持 | 🔴 高 |
-| **DNS** | DNS 解析 | 🔴 高 |
-| **NTP** | 时间同步 | 🔴 高 |
-
-**现状**: 
-- ✅ net 组件有 AT 命令和 Modbus
-- ❌ 缺少 TCP/IP 协议栈
-- ❌ 缺少 HTTP/MQTT 等应用协议
-
-**建议**:
-- 集成 LwIP 协议栈
-- 实现 HTTP 客户端
-- 实现 MQTT 客户端
+因此删除旧的完成度百分比、组件数量预测和“完整/完善”结论。本文剩余条目只表示曾被识别的
+候选能力，不代表已批准 backlog，也不要求为了凑齐生态而集成。
 
 ---
 
-#### 2. 文件系统 🔴
+## 2. 当前已校准边界
 
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **FatFS** | FAT 文件系统 | 🔴 高 |
-| **LittleFS** | 掉电安全文件系统 | 🔴 高 |
-| **SPIFFS** | SPI Flash 文件系统 | 🟡 中 |
-| **SDIO** | SD 卡接口 | 🟡 中 |
-
-**现状**:
-- ✅ dm 组件有 xy_fs 抽象层
-- ✅ 有 SD 卡驱动 (待优化)
-- ❌ 缺少具体文件系统实现
-
-**建议**:
-- 集成 FatFS
-- 集成 LittleFS
-- 完善 SDIO 驱动
+| 领域 | 当前事实边界 | 当前事实源 |
+|---|---|---|
+| HAL / Device | PC Host contract、部分 QEMU/target compile；目标板 IRQ/DMA/timeout/recovery 仍 pending | `docs/validation/hal-platform-evidence-matrix.md` |
+| Sensor | Device model 为 canonical migration destination；legacy 仅保留明确 compatibility boundary；experimental source 不等于 product-linked | `docs/validation/sensor-active-source-manifest.md` |
+| GUI / Display | GUI backend、字体 subset、SDL headless 与显示 adapter 有 Host contract；视觉、帧率、RAM 和屏幕实板仍 pending | `docs/validation/component-evidence-matrix.md` |
+| Net | root Kconfig 选择的协议默认关闭；active AT/MQTT owner 已冻结；modem/CAN controller/长稳与实板 pending | `components/net/README.md` |
+| DM | FS/JSON/NVM 有 Host contract；真实 Flash 掉电、擦写粒度、寿命和板级恢复 pending | `docs/validation/xinyi-dm-power-loss-validation-record.md` |
+| Crypto / FOTA | Host fail-closed contract；security provenance/provider、bootloader、board Flash 与实板 pending | `docs/validation/component-evidence-matrix.md` |
+| OSAL / RTOS | Bare-metal 有 Host contract；FreeRTOS 有 STM32U5 source/static-library compile 前置；scheduler/ISR/concurrency runtime pending | `docs/validation/reference-rtos-decision.md` |
+| Charger / Fuel Gauge | BQ25620 standalone owner 与 Fuel Gauge standalone ownership 已冻结；充电安全、SMBus 与实板 pending | `components/charger/README.md` |
 
 ---
 
-#### 3. USB 协议栈 🔴
+## 3. 历史候选能力目录
 
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **USB Device** | 设备模式 | 🔴 高 |
-| **USB Host** | 主机模式 | 🟡 中 |
-| **USB CDC** | 虚拟串口 | 🔴 高 |
-| **USB HID** | 人机接口 | 🟡 中 |
-| **USB MSC** | 大容量存储 | 🟡 中 |
+以下主题只在明确产品需求、owner、许可证、资源预算和验证环境齐备后进入 Sprint。
 
-**现状**:
-- ❌ 缺少 USB 协议栈
-- ✅ 有 USB2P 项目 (待整合)
+### 3.1 网络与连接
 
-**建议**:
-- 集成 TinyUSB
-- 实现 CDC 类
-- 实现 HID 类
+- TCP/IP、HTTP/HTTPS、WebSocket、DNS、NTP；
+- Wi-Fi、LoRa、NRF24L01；
+- BLE/GATT/GAP、NFC；
+- USB Device/Host、CDC/HID/MSC。
 
----
+约束：不得因为 third-party/submodule 或协议源码存在就宣称 product-linked。Net/USB/BLE 的具体
+选择必须先明确硬件、transport、root Kconfig/CMake owner 和 B1/B2 验收。
 
-#### 4. 蓝牙协议栈 🟡
+### 3.2 存储与文件系统
 
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **BLE** | 低功耗蓝牙 | 🟡 中 |
-| **GATT** | GATT 协议 | 🟡 中 |
-| **GAP** | GAP 协议 | 🟡 中 |
-| **NFC** | 近场通信 | 🟢 低 |
+- FatFS、LittleFS、SPIFFS；
+- SD/SDIO；
+- NOR/EEPROM 的写周期、掉电恢复、磨损与迁移。
 
-**现状**:
-- ❌ 缺少蓝牙协议栈
+约束：DM 抽象层和 Host fault injection 不等于具体文件系统或 Flash 硬件已验证。引入第三方
+文件系统前须记录 license、版本固定、block-device owner 和 recovery matrix。
 
-**建议**:
-- 集成 NimBLE
-- 实现 BLE 外设模式
-- 实现 GATT 服务
+### 3.3 显示与音频
 
----
+- LVGL、TFT、E-Ink、LED Matrix；
+- I2S、PDM、Audio Codec。
 
-### 中优先级 (增强功能)
+约束：优先完成单一真实显示/音频纵切，不为扩大“驱动数量”新增平行生命周期。视觉、时序、
+DMA、帧率、内存和音质必须分别记录，Host snapshot 不能替代。
 
-#### 5. 无线通信 🟡
+### 3.4 控制、电源与调试
 
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **WiFi** | WiFi 驱动 | 🟡 中 |
-| **LoRa** | LoRa 驱动 | 🟡 中 |
-| **NRF24L01** | 2.4G 驱动 | 🟡 中 |
-| **ESP-NOW** | ESP 私有协议 | 🟢 低 |
+- Encoder、Stepper、FOC；
+- Low Power、Wake Source、Power Domain；
+- SEGGER RTT、ITM、CoreSight。
 
-**现状**:
-- ❌ 缺少无线驱动
+约束：PID、PM、Trace 或 HAL API 存在只说明框架入口存在。控制稳定性、功耗、唤醒成功率、
+日志吞吐与丢失策略须在选定 board/RTOS 上验证。
 
-**建议**:
-- 集成 ESP32 WiFi
-- 集成 LoRa 驱动
-- 集成 NRF24L01
+### 3.5 安全与传感器算法
+
+- TLS/SSL、TrustZone、Secure Boot、Key Manager；
+- AHRS、Kalman、Complementary filtering。
+
+约束：Crypto Host vector 不构成 security review；Sensor 算法输出不构成精度/校准批准。安全能力
+必须有 provenance、license、threat model、provider、key provisioning 和 side-channel 边界；融合
+算法必须有数据集、误差指标和目标设备记录。
 
 ---
 
-#### 6. 显示驱动 🟡
+## 4. 候选能力进入 Sprint 的准入条件
 
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **LVGL** | 图形库 | 🟡 中 |
-| **TFT** | TFT 驱动 | 🟡 中 |
-| **E-Ink** | 电子墨水屏 | 🟢 低 |
-| **LED Matrix** | LED 点阵 | 🟡 中 |
+候选项只有同时满足下列条件才可从本历史清单进入 tracker：
 
-**现状**:
-- ✅ gui 组件有基础功能
-- ✅ drivers/display 有 LED 驱动
-- ❌ 缺少 LVGL 集成
-- ❌ 缺少 TFT 驱动
+1. 有明确产品用例和目标硬件，不以“业界项目通常包含”为理由；
+2. 已指定唯一 implementation owner、public API 与 root Kconfig/CMake 选择门；
+3. 已检查仓库现有 dormant/experimental/source ownership，避免第四套生命周期；
+4. 已定义 focused RED→GREEN contract 和适用的 Host/target/HIL gate；
+5. third-party 依赖有固定版本、许可证与可重现获取路径；
+6. 文档声明按 H1/C1/Q1/B1/B2/P1/S1/R1 分层，不从低层证据自动升级。
 
-**建议**:
-- 集成 LVGL
-- 添加 TFT 驱动
-- 添加 E-Ink 驱动
+未满足条件的条目保持历史候选，不自动排期，也不影响当前 Sprint 的完成度。
 
 ---
 
-#### 7. 音频处理 🟡
+## 5. 当前执行入口
 
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **I2S** | I2S 驱动 | 🟡 中 |
-| **PDM** | PDM 麦克风 | 🟢 低 |
-| **DAC** | DAC 驱动 | 🟡 中 |
-| **Audio Codec** | 音频编解码 | 🟢 低 |
+- Sprint 状态与优先级：`docs/plans/SPRINT_TRACKER.md`
+- 组件审计与 DoD：`docs/plans/2026-08-17-component-audit-sprint-plan.md`
+- 组件证据等级：`docs/validation/component-evidence-matrix.md`
+- Known limitations：`docs/release/known-limitations.md`
+- Root build facts：`AGENTS.md`、`Makefile`、`CMakeLists.txt`、`Kconfig`
 
-**现状**:
-- ✅ hal 有 I2S 抽象
-- ❌ 缺少具体实现
-- ❌ 缺少音频编解码
-
-**建议**:
-- 实现 I2S 驱动
-- 集成 WM8960
-- 集成 MAX98357A
-
----
-
-#### 8. 电机控制 🟡
-
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **PWM** | PWM 驱动 | 🟡 中 |
-| **Encoder** | 编码器 | 🟡 中 |
-| **FOC** | 磁场定向控制 | 🟢 低 |
-| **Stepper** | 步进电机 | 🟡 中 |
-
-**现状**:
-- ✅ pid 组件有 PID 控制
-- ✅ hal 有 PWM 抽象
-- ❌ 缺少电机专用驱动
-
-**建议**:
-- 实现步进电机驱动
-- 实现编码器驱动
-- 集成 SimpleFOC
-
----
-
-### 低优先级 (可选功能)
-
-#### 9. 安全加密 🟢
-
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **TLS/SSL** | 安全传输 | 🟢 低 |
-| **TrustZone** | 安全区域 | 🟢 低 |
-| **Secure Boot** | 安全启动 | 🟡 中 |
-| **Key Manager** | 密钥管理 | 🟢 低 |
-
-**现状**:
-- ✅ crypto 组件有基础加密
-- ❌ 缺少 TLS/SSL
-- ❌ 缺少安全启动
-
-**建议**:
-- 集成 MbedTLS
-- 实现安全启动
-- 实现密钥管理
-
----
-
-#### 10. 调试工具 🟢
-
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **SEGGER RTT** | RTT 调试 | 🟢 低 |
-| **ITM** | ITM 输出 | 🟢 低 |
-| **CoreSight** | CoreSight 调试 | 🟢 低 |
-| **Trace** | 执行跟踪 | 🟢 低 |
-
-**现状**:
-- ✅ trace 组件有日志
-- ❌ 缺少 RTT
-- ❌ 缺少 ITM
-
-**建议**:
-- 集成 SEGGER RTT
-- 实现 ITM 输出
-- 实现 Trace 功能
-
----
-
-#### 11. 电源管理 🟢
-
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **Low Power** | 低功耗模式 | 🟡 中 |
-| **Wake Source** | 唤醒源管理 | 🟢 低 |
-| **Power Domain** | 电源域管理 | 🟢 低 |
-
-**现状**:
-- ✅ pm 组件有基础功能
-- ❌ 缺少低功耗模式
-
-**建议**:
-- 实现低功耗模式
-- 实现唤醒源管理
-- 实现电源域管理
-
----
-
-#### 12. 传感器融合 🟢
-
-| 组件 | 说明 | 优先级 |
-|------|------|--------|
-| **AHRS** | 姿态解算 | 🟢 低 |
-| **Kalman** | 卡尔曼滤波 | 🟢 低 |
-| **Complementary** | 互补滤波 | 🟢 低 |
-
-**现状**:
-- ✅ sensor 组件有基础传感器
-- ❌ 缺少传感器融合
-
-**建议**:
-- 实现 AHRS
-- 实现卡尔曼滤波
-- 实现互补滤波
-
----
-
-## 📊 缺失组件统计
-
-### 按优先级
-
-| 优先级 | 类别 | 数量 |
-|--------|------|------|
-| **🔴 高** | 网络协议栈 | 6 |
-| **🔴 高** | 文件系统 | 4 |
-| **🔴 高** | USB 协议栈 | 5 |
-| **🟡 中** | 蓝牙协议栈 | 4 |
-| **🟡 中** | 无线通信 | 4 |
-| **🟡 中** | 显示驱动 | 4 |
-| **🟡 中** | 音频处理 | 4 |
-| **🟡 中** | 电机控制 | 4 |
-| **🟢 低** | 安全加密 | 4 |
-| **🟢 低** | 调试工具 | 4 |
-| **🟢 低** | 电源管理 | 3 |
-| **🟢 低** | 传感器融合 | 3 |
-| **总计** | - | **49** |
-
-### 按类别
-
-| 类别 | 已有 | 缺失 | 完成度 |
-|------|------|------|--------|
-| **基础** | 3 | 0 | 100% |
-| **系统** | 3 | 0 | 100% |
-| **硬件** | 2 | 0 | 100% |
-| **驱动** | 3 | 12 | 20% |
-| **通信** | 3 | 15 | 17% |
-| **控制** | 2 | 4 | 33% |
-| **存储** | 2 | 4 | 33% |
-| **显示** | 2 | 4 | 33% |
-| **安全** | 1 | 4 | 20% |
-| **总体** | 21 | 49 | **30%** |
-
----
-
-## 🎯 建议优先级
-
-### 第一阶段 (核心功能)
-
-1. **TCP/IP 协议栈** - LwIP 集成
-2. **HTTP/MQTT** - 应用协议
-3. **FatFS/LittleFS** - 文件系统
-4. **USB Device** - USB 协议栈
-
-### 第二阶段 (增强功能)
-
-5. **BLE 蓝牙** - 低功耗蓝牙
-6. **WiFi 驱动** - 无线通信
-7. **LVGL** - 图形库
-8. **I2S 音频** - 音频处理
-
-### 第三阶段 (可选功能)
-
-9. **电机控制** - 步进电机
-10. **TLS/SSL** - 安全传输
-11. **调试工具** - RTT/ITM
-12. **传感器融合** - AHRS
-
----
-
-## 📈 完成度预测
-
-```
-当前完成度：96% (现有组件)
-包含缺失组件：30% (整体架构)
-
-如果实现所有缺失组件:
-- 高优先级 (15 个): 完成度 → 70%
-- 中优先级 (16 个): 完成度 → 85%
-- 低优先级 (18 个): 完成度 → 100%
-```
-
----
-
-## 🎊 总结
-
-### 现有优势
-
-1. ✅ **基础组件完整** - clib/kernel/hal 100%
-2. ✅ **驱动组件完善** - sensor/fuel_gauge 96%
-3. ✅ **架构清晰** - 模块化设计
-4. ✅ **文档完善** - 覆盖率 92%
-
-### 待补充
-
-1. ❌ **网络协议栈** - TCP/IP/HTTP/MQTT
-2. ❌ **文件系统** - FatFS/LittleFS
-3. ❌ **USB 协议栈** - Device/Host
-4. ❌ **无线通信** - WiFi/BLE/LoRa
-
-### 建议
-
-**短期 (1-3 个月)**:
-- 集成 LwIP
-- 集成 FatFS
-- 集成 TinyUSB
-
-**中期 (3-6 个月)**:
-- 集成 BLE
-- 集成 WiFi
-- 集成 LVGL
-
-**长期 (6-12 个月)**:
-- 完善所有缺失组件
-- 达到 100% 完成度
-
----
-
-**XinYi 组件 - 现有 96% 完成，整体架构 30% 完成，需补充 49 个组件！** 📊
-
-**维护者**: XinYi Team  
-**许可证**: Apache License 2.0
+后续更新不得恢复静态“完成度”百分比，或用目录/源码/测试数量替代可追溯证据。

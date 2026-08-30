@@ -13,6 +13,7 @@ HAL_MATRIX = ROOT / "docs" / "validation" / "hal-platform-evidence-matrix.md"
 ARCHITECTURE_ANALYSIS = ROOT / "components" / "ARCHITECTURE_ANALYSIS.md"
 REFACTORING_STATUS = ROOT / "components" / "REFACTORING_COMPLETED.md"
 REFACTORING_PLAN = ROOT / "components" / "ARCHITECTURE_REFACTORING_PLAN.md"
+COMPONENT_GAP_ANALYSIS = ROOT / "components" / "COMPONENT_GAP_ANALYSIS.md"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -29,6 +30,7 @@ def validate() -> list[str]:
     architecture_analysis = ARCHITECTURE_ANALYSIS.read_text(encoding="utf-8")
     refactoring_status = REFACTORING_STATUS.read_text(encoding="utf-8")
     refactoring_plan = REFACTORING_PLAN.read_text(encoding="utf-8")
+    component_gap_analysis = COMPONENT_GAP_ANALYSIS.read_text(encoding="utf-8")
 
     for token in (
         "HAL | H1（PC）",
@@ -113,6 +115,29 @@ def validate() -> list[str]:
         require(required in refactoring_plan,
                 f"{REFACTORING_PLAN.name} is missing the canonical ownership boundary: {required}",
                 errors)
+
+    for stale_gap_claim in (
+        "| **基础** | clib | 100% |",
+        "| **硬件** | hal, device | 100% |",
+        "| **存储** | dm, fota | 100% |",
+        "| **显示** | gui, drivers/display | 100% |",
+        "当前完成度：96% (现有组件)",
+        "基础组件完整",
+        "驱动组件完善",
+        "现有 96% 完成",
+    ):
+        require(stale_gap_claim not in component_gap_analysis,
+                f"{COMPONENT_GAP_ANALYSIS.name} retains unqualified maturity claim: "
+                f"{stale_gap_claim}", errors)
+    for required in (
+        "历史差距清单",
+        "不作为当前组件成熟度、产品优先级或支持状态的事实源",
+        "docs/validation/component-evidence-matrix.md",
+        "Host/PC/QEMU/compile-only 不构成实板、安全、性能或 production-ready 证据",
+    ):
+        require(required in component_gap_analysis,
+                f"{COMPONENT_GAP_ANALYSIS.name} is missing its historical/evidence boundary: "
+                f"{required}", errors)
 
     return errors
 
