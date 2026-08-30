@@ -15,7 +15,8 @@ A release tag does not upgrade any evidence level.
 
 - [ ] Release Candidate approved by the named release owner with date and commit SHA.
 - [ ] `VERSION`, tag `vMAJOR.MINOR.PATCH`, and the matching `CHANGELOG.md` entry agree.
-- [ ] Release scope lists supported platforms, components, examples, and explicitly unsupported paths.
+- [ ] Release scope promotes reviewed entries from the
+  [release input inventory](../validation/release-input-inventory.json) and explicitly lists unsupported paths.
 - [ ] The tagged commit is pushed, immutable for the release decision, and the worktree/submodules are clean.
 - [ ] Known Limitations are reviewed against the current evidence matrix and included in release notes.
 
@@ -58,4 +59,7 @@ A release tag does not upgrade any evidence level.
   records tracked vendored inputs and top-level gitlinks, but remains `REVIEW_PENDING`; it is not an
   artifact SBOM or license approval. SBOM, reproducible artifacts, and signed checksum publication
   are not established.
+- The machine-guarded [release input inventory](../validation/release-input-inventory.json) classifies
+  every tracked top-level `examples/` and `projects/` entry. All remain `excluded-pending-review`;
+  Host CTest or compile-only evidence does not select an entry for release support.
 - Therefore Sprint 6 and R1 remain blocked; this checklist does not authorize a release.

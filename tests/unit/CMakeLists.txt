@@ -103,6 +103,10 @@ add_test(NAME supply_chain_inventory
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_supply_chain_inventory.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME release_input_inventory
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_release_input_inventory.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME net_product_selection
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/check_net_product_selection.py
     WORKING_DIRECTORY ${ROOT}

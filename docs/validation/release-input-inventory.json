@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "status": "REVIEW_PENDING",
+  "scope": "tracked top-level examples and projects considered as release inputs",
+  "no_claim": "This inventory does not make an entry release-supported and does not provide runtime, hardware, security, or release qualification evidence.",
+  "entries": [
+    {
+      "path": "examples/at_server_example",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "tracked standalone CMake example; no canonical release gate",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/component_demo",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "tracked source snippets; no standalone canonical gate",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/device_driver_template.c",
+      "kind": "example",
+      "status": "host-guarded",
+      "evidence": "canonical CTest device_driver_template",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/device_registry_example.c",
+      "kind": "example",
+      "status": "host-guarded",
+      "evidence": "canonical CTest device_registry_example",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/fota_example",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "standalone legacy example suite; canonical FOTA CTests use separate fixtures",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/gui_pc_test",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "tracked PC GUI example; not selected by canonical release gate",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/mux_example",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "standalone examples differ from canonical CTest mux_example_basic source",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/net_mqtt_example",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "tracked standalone CMake example; real transport and broker pending",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/pc_all_components",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "standalone aggregate build outside canonical root PC gate",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/pc_all_components_test",
+      "kind": "example",
+      "status": "historical-unverified",
+      "evidence": "stale standalone aggregate with disabled components and noncanonical targets",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/pc_core_components",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "standalone subset build outside canonical root PC gate",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/qemu_test",
+      "kind": "example",
+      "status": "historical-unverified",
+      "evidence": "references obsolete core/hal layout; canonical QEMU gate is tests/qemu_stm32f4",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/stm32u5_all_components",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "standalone target example without current clean link or board record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/stm32u5_demo",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "tracked STM32U5 demo without canonical link, flash, or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/stm32u5_gui_demo",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "tracked GUI demo without canonical link, display, or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "examples/weather_station",
+      "kind": "example",
+      "status": "candidate-unverified",
+      "evidence": "tracked standalone application without canonical build or hardware record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/Bank",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "independent BMS research/prototype tree; intentionally outside unified component release scope",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/CVMeter",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "design material only; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/Demo",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "standalone historical project; no canonical release gate",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/ExtUART",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "design document only; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/LCRMeter",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "design document only; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/MilliOhmMeter",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "prototype sources and documents; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/MultiStepper",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "design documents only; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/MuxLink",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "product/design documents without canonical firmware release gate",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/Projects.md",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "historical idea index; not a buildable release input",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/SmartCard_USB_Bridge",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "standalone prototype and protocol documents; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/Soldering Iron",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "design document only; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/Transistor _Tester",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "design/source document bundle; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/USB2P",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "prototype sources without canonical CMake, release gate, or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/USBBridge",
+      "kind": "project",
+      "status": "historical-unverified",
+      "evidence": "design document only; no canonical build or HIL record",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/examples",
+      "kind": "project",
+      "status": "candidate-unverified",
+      "evidence": "smart hygrometer source uses canonical Sensor owners but lacks clean target link and HIL",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/stm32_test",
+      "kind": "project",
+      "status": "candidate-unverified",
+      "evidence": "standalone STM32F4 blink project; historical build output is not clean-checkout evidence",
+      "release_scope": "excluded-pending-review"
+    },
+    {
+      "path": "projects/stm32u5_fota",
+      "kind": "project",
+      "status": "compile-only",
+      "evidence": "Arm Cortex-M33 -fsyntax-only gate; no linked image, bootloader, Flash backend, or HIL",
+      "release_scope": "excluded-pending-review"
+    }
+  ]
+}
