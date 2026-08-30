@@ -12,19 +12,19 @@
 |------|------|------|------|------|---------|------|
 | **OSAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Bare-metal Host-guarded；FreeRTOS `compile-guarded-runtime-pending` |
 | **HAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | PC Host contract、部分 QEMU；目标实板 pending |
-| **Crypto** | ✅ | ✅ | ✅ | ✅ | 28 | 🟢 host-guarded |
-| **CLib** | ✅ | ✅ | ✅ | ✅ | 21 | 🟢 完善 |
-| **DM** | ✅ | ✅ | ✅ | ✅ | 24 | 🟢 host-guarded |
-| **NET** | ✅ | ✅ | ✅ | ✅ | 22 | 🟢 host-guarded；LTE 硬件待证据 |
-| **Device** | ✅ | ✅ | ✅ | ✅ | 6 | 🟢 host-guarded |
-| **Trace** | ✅ | ✅ | ✅ | ✅ | 10 | 🟢 完善 |
-| **Sensor** | ✅ | ✅ | ✅ | ✅ | 18 | 🟢 tail host coverage 已收口 |
-| **IPC** | ✅ | ✅ | ✅ | ✅ | 14 | 🟢 host-guarded |
-| **PM** | ✅ | ✅ | ✅ | ✅ | 19 | 🟢 host-guarded；功耗待实证 |
-| **PID** | ✅ | ✅ | ✅ | ✅ | 20 | 🟢 完善 |
-| **ADDC** | ✅ | ✅ | ✅ | ✅ | 24 | 🟢 完善 |
+| **Crypto** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；security review pending |
+| **CLib** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；MCU size/heap pending |
+| **DM** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；真实 Flash durability pending |
+| **NET** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；modem/硬件/长稳 pending |
+| **Device** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；RTOS/Driver B1/B2 pending |
+| **Trace** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；并发/吞吐 pending |
+| **Sensor** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；精度/时序/实板 pending |
+| **IPC** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；RTOS 并发/ISR pending |
+| **PM** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；功耗/唤醒实证 pending |
+| **PID** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；plant/HIL pending |
+| **ADDC** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；精度/标定 pending |
 
-### 🟡 主线可用 / 硬件或人工证据待补 (3 个)
+### Host-guarded，但关键硬件、安全或人工证据待补
 
 | 组件 | 代码 | 测试 | 文档 | 构建 | 状态 |
 |------|------|------|------|------|------|
@@ -34,36 +34,11 @@
 
 ---
 
-## 📈 统计图表
+## 📈 统计口径
 
-### 测试用例分布
-
-```
-OSAL      ████████████████  17
-Crypto    ████████████████████████████  28
-CLib      █████████████████████     21
-DM        ████████████████████████  24
-NET       ██████████████████████  22
-Device    ██████  6
-Sensor    ██████████████████  18
-IPC       ██████████████  14
-PM        ███████████████████  19
-HAL       ███████████  11
-PID       ████████████████████  20
-ADDC      ████████████████████████  24
-Trace     ██████████  10
-────────────────────────────────────
-总计：234 个测试用例
-```
-
-### 组件状态分布
-
-| 状态 | 数量 | 百分比 |
-|------|------|--------|
-| Host-guarded / 分层证据 | 13 | 81% |
-| 硬件、安全或人工证据待补 | 3 | 19% |
-
-这些比例只分类公开组件入口，不是产品完成度。Host/PC/QEMU/compile-only 不构成实板、安全或 production-ready 证据。
+- 测试数量以 canonical CTest 实际发现结果为准，不在本页维护易漂移的静态分组件计数。
+- 公开入口分类不是产品完成度或 maturity 百分比；代码、文档或 Host 测试存在也不自动提升产品状态。
+- Host/PC/QEMU/compile-only 不构成实板、安全或 production-ready 证据。
 
 ---
 

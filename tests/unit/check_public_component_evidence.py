@@ -34,6 +34,12 @@ def validate() -> list[str]:
         "| **FOTA** | ✅ | ✅ | ✅ | ✅ | 🟢 主线可用",
         "- STM32U5 (完整实现)",
         "- ✅ HAL 统一工程 100% 完成",
+        "🟢 完善",
+        "🟢 tail host coverage 已收口",
+        "### 🟡 主线可用",
+        "总计：234 个测试用例",
+        "Host-guarded / 分层证据 | 13 | 81%",
+        "硬件、安全或人工证据待补 | 3 | 19%",
     ):
         require(forbidden not in index, f"public component index overclaims evidence: {forbidden}", errors)
 
@@ -42,6 +48,8 @@ def validate() -> list[str]:
         "FOTA：Host fail-closed contract；board Flash、bootloader、secure provider 与实板 pending",
         "STM32U5（source/compile 前置；Board pending）",
         "Host/PC/QEMU/compile-only 不构成实板、安全或 production-ready 证据",
+        "测试数量以 canonical CTest 实际发现结果为准",
+        "公开入口分类不是产品完成度或 maturity 百分比",
     ):
         require(required in index, f"public component index is missing evidence boundary: {required}", errors)
 

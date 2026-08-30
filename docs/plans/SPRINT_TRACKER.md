@@ -136,6 +136,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 |---|---:|---|---|---|---|---|---|---|
 | S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；backend/kernel/OSAL 与公开 component index/introduction/priority README 的无证据完成度、性能及多 RTOS 声明已降级并由 policy guard 防回归。MPS2-AN505 runtime spike 在 secure/non-secure boot/alias 边界 HardFault，未提交为 runtime gate；仍缺 board-correct runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本项提交 | 2026-08-30 |
 | S5-02 | P1 | 公开 HAL/FOTA 组件状态证据校准 | DONE | Zero | S2/S3 Host 前置与证据矩阵 | RED guard 证明公开 component index 仍将 HAL 标为“完善”、STM32U5 标为“完整实现”并将 FOTA 标为“主线可用”；现统一为 HAL Host/部分 QEMU、FOTA Host fail-closed，Board/security/runtime 均 pending；focused 3/3、Host 193/193、PC root 与 `git diff --check` 通过 | `323fbca3` | 2026-08-30 |
+| S5-03 | P1 | 公开组件完成度与静态测试计数校准 | DONE | Zero | S5-02（DONE） | RED guard 证明 component index 仍将 CLib/Trace/PID/ADDC 标为“完善”、Sensor 标为“已收口”，并维护已漂移的 234 项静态计数与 81% maturity 比例；现统一为分层 Host contract/pending 边界，测试数改以 canonical CTest 为准；focused、Host 193/193、PC root 与 `git diff --check` 通过 | 本项提交 | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -634,3 +635,14 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   掉电恢复或安全批准。
 - 下一步：S5-01 继续等待 board-correct startup/link owner；下一无硬件治理 slice 校准公开
   component index 中其余“完善”与静态测试计数；Net 产品选择门后续使用独立 ID，不与本项混用。
+
+### 2026-08-30 Sprint 5 公开组件完成度/测试计数校准
+
+- RED：扩展 `public_component_evidence` guard 后，公开 component index 中 CLib/Trace/PID/ADDC
+  “完善”、Sensor “tail host coverage 已收口”、234 项静态测试总数和 81% maturity 比例按预期失败。
+- 收口：全部公开组件行改为 Host contract + 明确 pending 证据；删除易漂移的静态分组件测试图和
+  maturity 百分比，测试数量统一以 canonical CTest 实际发现结果为准，并由 policy guard 防回归。
+- 验证：focused `public_component_evidence` 1/1、Host 193/193、PC root build 与
+  `git diff --check` 通过。以上不新增硬件、安全、性能、并发或 production-ready 证据。
+- 下一步：S5-01 继续等待 board-correct startup/link owner；下一无硬件 slice 进入独立的 Net
+  产品选择门，先校准 AT ownership 与 MQTT/CAN/LTE Kconfig，不推进 modem runtime 假证据。
