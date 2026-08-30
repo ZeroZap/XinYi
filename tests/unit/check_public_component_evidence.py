@@ -12,6 +12,7 @@ EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 HAL_MATRIX = ROOT / "docs" / "validation" / "hal-platform-evidence-matrix.md"
 ARCHITECTURE_ANALYSIS = ROOT / "components" / "ARCHITECTURE_ANALYSIS.md"
 REFACTORING_STATUS = ROOT / "components" / "REFACTORING_COMPLETED.md"
+REFACTORING_PLAN = ROOT / "components" / "ARCHITECTURE_REFACTORING_PLAN.md"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -27,6 +28,7 @@ def validate() -> list[str]:
     hal_matrix = HAL_MATRIX.read_text(encoding="utf-8")
     architecture_analysis = ARCHITECTURE_ANALYSIS.read_text(encoding="utf-8")
     refactoring_status = REFACTORING_STATUS.read_text(encoding="utf-8")
+    refactoring_plan = REFACTORING_PLAN.read_text(encoding="utf-8")
 
     for token in (
         "HAL | H1（PC）",
@@ -93,6 +95,24 @@ def validate() -> list[str]:
                 f"{path.name} must identify the canonical BQ25620 owner", errors)
         require("components/drivers/power/charger/` 当前不存在" in text,
                 f"{path.name} must retain the nonexistent-target boundary", errors)
+
+    for stale_plan_token in (
+        "方案 A: 完全重构（推荐）",
+        "mv components/driver/charger/* components/drivers/power/charger/",
+        "mkdir -p components/drivers/power/{charger,fuel_gauge}",
+    ):
+        require(stale_plan_token not in refactoring_plan,
+                f"{REFACTORING_PLAN.name} retains an executable stale power migration: "
+                f"{stale_plan_token}", errors)
+    for required in (
+        "未执行历史提案",
+        "components/charger/src/xy_bq25620.c",
+        "Fuel Gauge 保持 standalone",
+        "不得执行本文旧命令",
+    ):
+        require(required in refactoring_plan,
+                f"{REFACTORING_PLAN.name} is missing the canonical ownership boundary: {required}",
+                errors)
 
     return errors
 
