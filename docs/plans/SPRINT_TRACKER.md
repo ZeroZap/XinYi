@@ -140,6 +140,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-04 | P1 | Net 产品选择门与 active owner 收口 | DONE | Zero | S5-01 runtime 阻塞不影响配置治理 | RED guard 证明 NETWORK/MQTT 默认开启、AT/MQTT 源无选择门且 CAN/LTE Kconfig 缺失；现 NETWORK 与 MQTT/AT client/AT server/CAN/LTE 均 default-off，root Kconfig 直接驱动 active source、umbrella export 与 compile definitions；active AT/MQTT owner 已冻结。focused 6/6、全协议 `xy_net` root opt-in target、Host 194/194、PC root 与 `git diff --check` 通过；不升级 modem/CAN controller/长稳/实板声明 | `3e8181fc` | 2026-08-30 |
 | S5-05 | P1 | Net README 与 active selection 事实同步 | DONE | Zero | S5-04（DONE） | RED guard 证明 README 仍把 CAN 标为 implemented、示例指向未选 AT-Command-V2，并称 MQTT 尚未由 root/umbrella 接入；已切换为 active AT owner 示例、selected MQTT export 与 Host/hardware pending 边界；focused 5/5、Host 194/194、PC root 与 `git diff --check` 通过 | `51f7902e` | 2026-08-30 |
 | S5-06 | P1 | 公开 components README 驱动/构建事实校准 | DONE | Zero | S5-03（DONE）；S4 canonical ownership | RED guard 证明公开 README 仍以无条件 `✅` 标记 experimental/legacy 驱动与 PM/FOTA/Crypto 等组件，并建议绕过 root selection 直接加入 driver 子目录；已改为 canonical owner、Host/Board 分层与 root Kconfig/CMake 事实源；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `f17305ed` | 2026-08-30 |
+| S5-07 | P1 | Charger/Fuel Gauge 架构历史事实校准 | DONE | Zero | S5-06（DONE）；S4-13（DONE） | RED guard 证明两份公开架构/重构记录仍把不存在的 `components/drivers/power/charger/` 写成已迁移 owner；已改为 BQ25620 standalone canonical owner、Fuel Gauge independent 与历史提案边界；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `81b9bc04` | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -683,3 +684,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   以上不新增硬件、安全、性能或 production-ready 证据。
 - 下一步：S5-01 runtime 继续等待 board-correct startup/link owner；下一无硬件 slice 校准仍指向
   不存在 `components/power/`、`drivers/power/charger` 的公开架构图，避免与已冻结 ownership 冲突。
+
+### 2026-08-30 Sprint 5 Charger/Fuel Gauge 架构历史事实校准
+
+- RED：扩展 `public_component_evidence` 后，`ARCHITECTURE_ANALYSIS.md` 与
+  `REFACTORING_COMPLETED.md` 仍把不存在的 `components/drivers/power/charger/` 记录为已迁移 owner，
+  focused probe 按预期失败 6 项。
+- 收口：两份历史记录明确 BQ25620 canonical owner 为 `components/charger/src/xy_bq25620.c`，
+  Fuel Gauge 继续 standalone；power-driver 迁移方案降级为未执行历史提案，不覆盖 root/证据台账。
+- 验证：focused `public_component_evidence` 1/1、Host 194/194、PC root build 与
+  `git diff --check` 通过。以上不新增 charger/Fuel Gauge 硬件、安全、热保护或 SMBus 证据。
+- 下一步：S5-01 runtime 继续等待 board-correct startup/link owner；下一无硬件 slice 清理
+  `ARCHITECTURE_REFACTORING_PLAN.md` 中同一未执行迁移命令，保持历史文档与 canonical owner 一致。
