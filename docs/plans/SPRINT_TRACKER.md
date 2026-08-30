@@ -144,6 +144,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-08 | P1 | 旧架构重组执行命令收口 | DONE | Zero | S5-07（DONE） | RED guard 证明 `ARCHITECTURE_REFACTORING_PLAN.md` 仍推荐并可复制执行不存在的 power/charger 与 Fuel Gauge 批量迁移；现降级为 superseded 历史提案，固定 BQ25620 standalone canonical owner、Fuel Gauge standalone 与 Device-model 迁移边界；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `6f9937d7` | 2026-08-30 |
 | S5-09 | P1 | 组件差距清单成熟度事实校准 | DONE | Zero | S5-03（DONE）；S5-08（DONE） | RED guard 证明 `COMPONENT_GAP_ANALYSIS.md` 仍以静态百分比宣称 HAL/FOTA/GUI 等完整并按生态凑数排期；现降级为历史候选清单，删除无证据成熟度/数量预测，改以 tracker/evidence/root selection 为事实源；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `9e2ab686` | 2026-08-30 |
 | S5-10 | P1 | 历史构建系统报告事实校准 | DONE | Zero | S0-03/S0-04（DONE）；S5-09（DONE） | RED guard 证明 `docs/build_system_analysis.md` 仍包含无证据“完善”状态、8.5/10 评分及不存在的 build/config 命令；已降级为 superseded 历史报告并改指 root facts 与配置矩阵；focused 1/1、Host 194/194、PC root、`git diff --check` 通过 | `a7319445` | 2026-08-30 |
+| S5-11 | P1 | Release fail-closed checklist 与 R1 边界 | DONE | Zero | S0-05/S0-06（DONE）；S5-10（DONE） | RED probe 证明 checklist 缺失；现建立 source/version、Host/target、HIL/recovery、security/SBOM、reproducible artifacts/checksum/signature 的 fail-closed 门禁，当前固定 `BLOCKED`/`NO-GO`；focused 1/1、Host 195/195、PC root 与 `git diff --check` 通过，不升级 R1 | `PENDING_SHA` | 2026-08-31 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -734,3 +735,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `git diff --check` 通过。以上仅为文档/构建事实治理，不新增 target runtime、实板、安全或 release 证据。
 - 下一步：S5-01 继续等待 reference board startup/link owner；无硬件时优先建立
   `docs/release/release-checklist.md`，保持 Release Sprint 6 为 BLOCKED，不能把 checklist 当作 R1。
+
+### 2026-08-31 Sprint 5 Release fail-closed checklist
+
+- RED：新增 `release_readiness` policy probe 后因 `docs/release/release-checklist.md` 不存在而按预期失败。
+- 收口：建立 release checklist，覆盖 tagged clean checkout、canonical Host/PC、supported target matrix、
+  reference-board HIL/B2、Secure FOTA/security review、SBOM/license、可复现制品、checksum/signature 与最终批准记录；
+  当前显式为 `BLOCKED` / `NO-GO`，unchecked item 均为 blocker。
+- 验证：focused `release_readiness` 1/1、Host 195/195、PC root 与 `git diff --check` 通过。以上仅为
+  release policy guard，不构成 R1、实板、安全、供应链或可复现制品证据。
+- 阻塞：reference-board HIL、approved signature provider/bootloader 集成、SBOM、可复现制品与签名发布仍缺。
+- 下一步：S5-01 等待 board-correct startup/link owner；无硬件时继续 supported examples/projects 的
+  active/archive 清单与 clean-checkout release 输入边界，不以文档门禁替代执行证据。

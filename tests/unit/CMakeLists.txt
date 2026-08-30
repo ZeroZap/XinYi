@@ -95,6 +95,10 @@ add_test(NAME public_component_evidence
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_public_component_evidence.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME release_readiness
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_release_readiness.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME net_product_selection
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/check_net_product_selection.py
     WORKING_DIRECTORY ${ROOT}
