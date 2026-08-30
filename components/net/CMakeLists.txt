@@ -15,6 +15,7 @@ endif()
 # Include directories
 include_directories(
     inc
+    src
     modbus
     xy_mqtt
     at/atc/core
@@ -48,8 +49,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/modbus_full/mb_full.c)
     list(APPEND NET_SOURCES modbus_full/mb_full.c)
 endif()
 
-# AT Client (enabled)
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/atc/Modules/cellular/common/at_client.c)
+# AT Client (explicit opt-in; this is the active client owner)
+if(XY_PROTO_AT_CLIENT)
     # Core AT Client only - disable modules for now
     list(APPEND NET_SOURCES at/atc/Modules/cellular/common/at_client.c)
     # list(APPEND NET_SOURCES at/atc/Modules/cellular/common/at_integrated.c)
@@ -57,8 +58,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/atc/Modules/cellular/common/at_client.c
     # list(APPEND NET_SOURCES at/atc/Modules/cellular/common/at_protocols.c)
 endif()
 
-# AT Server (enabled - with hash table command mapping)
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/ats/xy_ats.c)
+# AT Server (explicit opt-in; this is the active server owner)
+if(XY_PROTO_AT_SERVER)
     list(APPEND NET_SOURCES
         at/ats/xy_ats.c
         at/ats/xy_ats_hash.c
@@ -69,18 +70,18 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/at/ats/xy_ats.c)
     # list(APPEND NET_SOURCES ${ATS_SIMCOM_SOURCES})
 endif()
 
-# CAN (disabled - incomplete implementation)
-# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_can.c)
-#     list(APPEND NET_SOURCES src/xy_can.c)
-# endif()
+# CAN (explicit opt-in; hardware controller binding remains caller-owned)
+if(XY_PROTO_CAN)
+    list(APPEND NET_SOURCES src/xy_can.c)
+endif()
 
-# LTE (disabled by default)
-# if(CONFIG_NET_LTE AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_lte.c)
-#     list(APPEND NET_SOURCES src/xy_lte.c)
-# endif()
+# LTE (explicit opt-in; transport remains caller-owned)
+if(XY_PROTO_LTE)
+    list(APPEND NET_SOURCES src/xy_lte.c)
+endif()
 
-# MQTT Client (full implementation)
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/xy_mqtt_client.c)
+# MQTT Client (explicit opt-in; legacy xy_mqtt remains excluded)
+if(XY_PROTO_MQTT)
     list(APPEND NET_SOURCES src/xy_mqtt_client.c)
 endif()
 
@@ -89,6 +90,14 @@ file(GLOB_RECURSE NET_HEADERS "inc/*.h")
 
 # Create static library
 add_library(xy_net STATIC ${NET_SOURCES})
+
+target_compile_definitions(xy_net PUBLIC
+    XY_NET_ENABLE_AT_CLIENT=$<BOOL:${XY_PROTO_AT_CLIENT}>
+    XY_NET_ENABLE_AT_SERVER=$<BOOL:${XY_PROTO_AT_SERVER}>
+    XY_NET_ENABLE_MQTT=$<BOOL:${XY_PROTO_MQTT}>
+    XY_NET_ENABLE_CAN=$<BOOL:${XY_PROTO_CAN}>
+    XY_NET_ENABLE_LTE=$<BOOL:${XY_PROTO_LTE}>
+)
 
 # Set library properties
 set_target_properties(xy_net PROPERTIES

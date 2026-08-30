@@ -95,6 +95,10 @@ add_test(NAME public_component_evidence
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_public_component_evidence.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME net_product_selection
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/check_net_product_selection.py
+    WORKING_DIRECTORY ${ROOT}
+)
 
 include_directories(
     ${DEV}                          # xy_device_core.h
@@ -345,6 +349,7 @@ target_include_directories(test_net_core PRIVATE
     ${NET}/modbus_full
     ${NET}/at/atc/core
 )
+target_compile_definitions(test_net_core PRIVATE XY_NET_ENABLE_AT_CLIENT=1)
 
 # --- Test 15b: Net umbrella exports CAN/LTE headers only when explicitly enabled ---
 xy_add_unit_test(test_net_feature_gated_umbrella net_feature_gated_umbrella UNITY

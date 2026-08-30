@@ -136,7 +136,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 |---|---:|---|---|---|---|---|---|---|
 | S5-01 | P0 | 单一 reference RTOS 并发验证 | IN_PROGRESS | Zero | reference board/runtime fixture | `REFERENCE_SELECTED`：选择 FreeRTOS；project-owned config、pinned V10.4.6 Cortex-M33 non-secure port 与 Arm GNU `-Werror` 9-object gate 已建立；root STM32U5 Kconfig/CMake opt-in 现构建匹配的 `freertos_kernel` + `xy_osal`，PC 误选 fail-closed；backend/kernel/OSAL 与公开 component index/introduction/priority README 的无证据完成度、性能及多 RTOS 声明已降级并由 policy guard 防回归。MPS2-AN505 runtime spike 在 secure/non-secure boot/alias 边界 HardFault，未提交为 runtime gate；仍缺 board-correct runnable link/runtime、ISR→task、并发 stress 与 B1/B2；static-library compile 不升级运行时/实板声明 | `a7de72e7`～本项提交 | 2026-08-30 |
 | S5-02 | P1 | 公开 HAL/FOTA 组件状态证据校准 | DONE | Zero | S2/S3 Host 前置与证据矩阵 | RED guard 证明公开 component index 仍将 HAL 标为“完善”、STM32U5 标为“完整实现”并将 FOTA 标为“主线可用”；现统一为 HAL Host/部分 QEMU、FOTA Host fail-closed，Board/security/runtime 均 pending；focused 3/3、Host 193/193、PC root 与 `git diff --check` 通过 | `323fbca3` | 2026-08-30 |
-| S5-03 | P1 | 公开组件完成度与静态测试计数校准 | DONE | Zero | S5-02（DONE） | RED guard 证明 component index 仍将 CLib/Trace/PID/ADDC 标为“完善”、Sensor 标为“已收口”，并维护已漂移的 234 项静态计数与 81% maturity 比例；现统一为分层 Host contract/pending 边界，测试数改以 canonical CTest 为准；focused、Host 193/193、PC root 与 `git diff --check` 通过 | 本项提交 | 2026-08-30 |
+| S5-03 | P1 | 公开组件完成度与静态测试计数校准 | DONE | Zero | S5-02（DONE） | RED guard 证明 component index 仍将 CLib/Trace/PID/ADDC 标为“完善”、Sensor 标为“已收口”，并维护已漂移的 234 项静态计数与 81% maturity 比例；现统一为分层 Host contract/pending 边界，测试数改以 canonical CTest 为准；focused、Host 193/193、PC root 与 `git diff --check` 通过 | `0364bb8c` | 2026-08-30 |
+| S5-04 | P1 | Net 产品选择门与 active owner 收口 | DONE | Zero | S5-01 runtime 阻塞不影响配置治理 | RED guard 证明 NETWORK/MQTT 默认开启、AT/MQTT 源无选择门且 CAN/LTE Kconfig 缺失；现 NETWORK 与 MQTT/AT client/AT server/CAN/LTE 均 default-off，root Kconfig 直接驱动 active source、umbrella export 与 compile definitions；active AT/MQTT owner 已冻结。focused 6/6、全协议 `xy_net` root opt-in target、Host 194/194、PC root 与 `git diff --check` 通过；不升级 modem/CAN controller/长稳/实板声明 | 本项提交 | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -646,3 +647,16 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `git diff --check` 通过。以上不新增硬件、安全、性能、并发或 production-ready 证据。
 - 下一步：S5-01 继续等待 board-correct startup/link owner；下一无硬件 slice 进入独立的 Net
   产品选择门，先校准 AT ownership 与 MQTT/CAN/LTE Kconfig，不推进 modem runtime 假证据。
+
+### 2026-08-30 Sprint 5 Net 产品选择门
+
+- RED：新增 `net_product_selection` guard 后，root `NETWORK`/`PROTO_MQTT` 默认开启，AT/MQTT
+  sources 仅按文件存在即进入 `xy_net`，CAN/LTE 无 root 选择项，且 MQTT 未由 umbrella 导出。
+- 收口：Net core 与 MQTT、AT client/server、CAN、LTE 全部 default-off；root Kconfig 选择直接控制
+  active source、公开 feature definitions 与 umbrella export。active owner 固定为 lightweight
+  `at_client.c`/`xy_ats.c` 和 `src/xy_mqtt_client.c`，vendor AT trees 与 legacy MQTT 不进入 root target。
+- 验证：focused policy/core/umbrella/MQTT/AT 6/6；全协议显式 opt-in 的 `xy_net` root target；
+  Host 194/194；默认 PC root build；`git diff --check`。以上不构成 modem、CAN controller、
+  flow-control、attach/PDP/URC、长稳或实板证据。
+- 下一步：S5-01 runtime 继续等待 board-correct startup/link owner；Net 无明确 modem/board 产品输入时
+  保持 default-off，不扩张 LTE Host fake。

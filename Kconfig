@@ -302,28 +302,56 @@ menu "Communication Protocols"
 
 config NETWORK
     bool "Network Support"
-    default y
+    default n
     help
-      Basic network support for communication protocols.
+      Basic network support. Product protocols remain explicit opt-ins.
 
 config PROTO_MQTT
     bool "MQTT Protocol"
-    default y
-    select NETWORK
+    depends on NETWORK
+    default n
     help
       MQTT client for IoT connectivity.
+
+config PROTO_AT_CLIENT
+    bool "AT Client"
+    depends on NETWORK
+    default n
+    help
+      Lightweight XinYi AT client. Vendor AT trees remain excluded.
+
+config PROTO_AT_SERVER
+    bool "AT Server"
+    depends on NETWORK
+    default n
+    help
+      Lightweight XinYi AT server. Vendor modem modules remain excluded.
+
+config PROTO_CAN
+    bool "CAN Protocol"
+    depends on NETWORK
+    default n
+    help
+      Host-guarded CAN protocol core; hardware controller binding is pending.
+
+config PROTO_LTE
+    bool "LTE/4G Module"
+    depends on NETWORK && PROTO_AT_CLIENT
+    default n
+    help
+      Host-guarded LTE core. Keep disabled without a selected modem and board evidence.
 
 config PROTO_HTTP
     bool "HTTP Client"
     default n
-    select NETWORK
+    depends on NETWORK
     help
       HTTP/HTTPS client support.
 
 config PROTO_COAP
     bool "CoAP Protocol"
     default n
-    select NETWORK
+    depends on NETWORK
     help
       CoAP for constrained devices.
 

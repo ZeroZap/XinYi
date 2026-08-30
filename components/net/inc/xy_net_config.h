@@ -16,7 +16,15 @@
 #endif
 
 #ifndef XY_NET_ENABLE_MQTT
-#define XY_NET_ENABLE_MQTT      0  // Disabled due to incomplete implementation
+#define XY_NET_ENABLE_MQTT      0  // Disabled by default; active owner is direct opt-in
+#endif
+
+#ifndef XY_NET_ENABLE_AT_CLIENT
+#define XY_NET_ENABLE_AT_CLIENT 0  // Disabled by default; direct opt-in only
+#endif
+
+#ifndef XY_NET_ENABLE_AT_SERVER
+#define XY_NET_ENABLE_AT_SERVER 0  // Disabled by default; direct opt-in only
 #endif
 
 #ifndef XY_NET_ENABLE_CAN

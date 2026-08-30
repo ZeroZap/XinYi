@@ -30,8 +30,13 @@ int xy_net_deinit(void);
 #include "nano_modbus.h"
 #endif
 
-// AT Client (Server disabled for now)
+#if XY_NET_ENABLE_AT_CLIENT
 #include "xy_at_client.h"
+#endif
+
+#if XY_NET_ENABLE_MQTT
+#include "xy_mqtt_client.h"
+#endif
 
 #if XY_NET_ENABLE_CAN
 #include "xy_can.h"
