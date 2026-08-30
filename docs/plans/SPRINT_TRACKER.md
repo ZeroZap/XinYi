@@ -139,6 +139,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-03 | P1 | 公开组件完成度与静态测试计数校准 | DONE | Zero | S5-02（DONE） | RED guard 证明 component index 仍将 CLib/Trace/PID/ADDC 标为“完善”、Sensor 标为“已收口”，并维护已漂移的 234 项静态计数与 81% maturity 比例；现统一为分层 Host contract/pending 边界，测试数改以 canonical CTest 为准；focused、Host 193/193、PC root 与 `git diff --check` 通过 | `0364bb8c` | 2026-08-30 |
 | S5-04 | P1 | Net 产品选择门与 active owner 收口 | DONE | Zero | S5-01 runtime 阻塞不影响配置治理 | RED guard 证明 NETWORK/MQTT 默认开启、AT/MQTT 源无选择门且 CAN/LTE Kconfig 缺失；现 NETWORK 与 MQTT/AT client/AT server/CAN/LTE 均 default-off，root Kconfig 直接驱动 active source、umbrella export 与 compile definitions；active AT/MQTT owner 已冻结。focused 6/6、全协议 `xy_net` root opt-in target、Host 194/194、PC root 与 `git diff --check` 通过；不升级 modem/CAN controller/长稳/实板声明 | `3e8181fc` | 2026-08-30 |
 | S5-05 | P1 | Net README 与 active selection 事实同步 | DONE | Zero | S5-04（DONE） | RED guard 证明 README 仍把 CAN 标为 implemented、示例指向未选 AT-Command-V2，并称 MQTT 尚未由 root/umbrella 接入；已切换为 active AT owner 示例、selected MQTT export 与 Host/hardware pending 边界；focused 5/5、Host 194/194、PC root 与 `git diff --check` 通过 | `51f7902e` | 2026-08-30 |
+| S5-06 | P1 | 公开 components README 驱动/构建事实校准 | DONE | Zero | S5-03（DONE）；S4 canonical ownership | RED guard 证明公开 README 仍以无条件 `✅` 标记 experimental/legacy 驱动与 PM/FOTA/Crypto 等组件，并建议绕过 root selection 直接加入 driver 子目录；已改为 canonical owner、Host/Board 分层与 root Kconfig/CMake 事实源；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | 本轮提交（待回填 SHA） | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -670,3 +671,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   MQTT 配置与剩余工作同步为 root-selected umbrella export，并保留真实 transport/broker/长稳 pending。
 - 验证：focused Net 5/5、Host 194/194、PC root 与 `git diff --check` 通过；不升级 modem、CAN controller、
   broker 长稳、性能或实板声明。
+
+### 2026-08-30 Sprint 5 components README 事实校准
+
+- RED：扩展 `public_component_evidence` 后，公开 `components/README.md` 因 SHT40/DHT11 等
+  experimental/legacy source、SSD1306/BQ25620 及 PM/FOTA/Crypto 等组件仍使用无条件 `✅`，并建议
+  应用绕过 root selection 直接 `add_subdirectory(components/drivers/sensor)` 而按预期失败。
+- 收口：驱动清单改为 canonical owner、Host contract 与 Board pending 分层；功能组件状态与证据台账
+  对齐；Kconfig/CMake 指南改为 root facts，禁止把目录/source 存在等同 product-linked 或硬件通过。
+- 验证：focused `public_component_evidence`、Host 全量、PC root 与 `git diff --check` 见本轮 gate。
+  以上不新增硬件、安全、性能或 production-ready 证据。
+- 下一步：S5-01 runtime 继续等待 board-correct startup/link owner；下一无硬件 slice 校准仍指向
+  不存在 `components/power/`、`drivers/power/charger` 的公开架构图，避免与已冻结 ownership 冲突。

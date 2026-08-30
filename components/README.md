@@ -74,38 +74,40 @@ components/drivers/
 
 ---
 
-## 🔌 驱动列表
+## 🔌 驱动清单与证据边界
+
+> 下表的 `✅` 仅表示源码/目录存在，不代表进入 root product target，也不代表硬件通过。
+> Active owner、root source selection 与验证等级以 root Kconfig/CMake 与组件证据台账为准。
 
 ### 传感器驱动 (Sensor Drivers)
 
-| 型号 | 类型 | 接口 | 状态 |
+| 型号 | 类型 | 接口 | 当前边界 |
 |------|------|------|------|
-| SHT30 | 温湿度 | I2C | ✅ |
-| SHT40 | 温湿度 | I2C | ✅ |
-| DHT11 | 温湿度 | GPIO | ✅ |
-| MPU6050 | IMU | I2C | ✅ |
-| BMP280 | 气压 | I2C | ✅ |
-| ADS1115 | ADC | I2C | ✅ |
+| SHT30 | 温湿度 | I2C | Device-model canonical owners 之一；Host contract；实板 pending |
+| MPU6050 | IMU | I2C | Device-model canonical owner；Host contract；实板 pending |
+| BMP280 | 气压 | I2C | Device-model canonical owner；Host contract；实板 pending |
+| ADS1115 | ADC | I2C | Device-model canonical owner；Host contract；实板 pending |
+| 其他 Sensor source | 多类 | 多类 | legacy root 或 experimental test-only；见 active-source manifest |
 
 ### 显示驱动 (Display Drivers)
 
-| 型号 | 类型 | 接口 | 状态 |
+| 型号 | 类型 | 接口 | 当前边界 |
 |------|------|------|------|
-| SSD1306 | OLED | I2C | ✅ |
-| WS2812 | RGB LED | GPIO/SPI | ✅ |
+| SSD1306 | OLED | I2C | Host transaction/adapter contract；实板 pending |
+| WS2812 | RGB LED | GPIO/SPI | Host transaction contract；实板 pending |
 
 ### 存储驱动 (Storage Drivers)
 
-| 型号 | 类型 | 接口 | 状态 |
+| 型号 | 类型 | 接口 | 当前边界 |
 |------|------|------|------|
-| 24xx | EEPROM | I2C | ✅ |
-| W25Qxx | Flash | SPI | ✅ |
+| 24xx | EEPROM | I2C | Host transaction/error contract；掉电与实板 pending |
+| W25Qxx | Flash | SPI | Host contract；目标 Flash 时序/实板 pending |
 
 ### 电源驱动 (Power Drivers)
 
-| 型号 | 类型 | 功能 | 状态 |
+| 型号 | 类型 | 功能 | 当前边界 |
 |------|------|------|------|
-| BQ25620 | 充电器 | 三段式充电 | ✅ |
+| BQ25620 | 充电器 | 配置/状态控制 | standalone legacy-maintained owner；Host contract；实板 pending |
 
 ---
 
@@ -124,16 +126,16 @@ components/drivers/
 
 | 组件 | 说明 | 状态 |
 |------|------|------|
-| `sensor/` | 传感器抽象层 | ✅ |
-| `actuator/` | 执行器组件 | ✅ |
-| `charger/` | 充电管理 | ✅ |
-| `fuel_gauge/` | 电量计 | ✅ |
-| `pid/` | PID 控制 | ✅ |
-| `fota/` | 固件升级 | ✅ |
-| `gui/` | 图形界面 | ✅ |
-| `crypto/` | 加密库 | ✅ |
-| `dm/` | 数据管理 | ✅ |
-| `pm/` | 电源管理 | ✅ |
+| `sensor/` | legacy compatibility + Device canonical owners | Host-guarded；实板 pending |
+| `actuator/` | 执行器框架 | Host-guarded；GPIO/PWM 实板 pending |
+| `charger/` | standalone 充电管理 | legacy-maintained；实板/安全 pending |
+| `fuel_gauge/` | standalone 电量计 | Host-guarded；SMBus 实板 pending |
+| `pid/` | PID 控制 | Host-guarded；plant/HIL pending |
+| `fota/` | 固件升级 | Host fail-closed；bootloader/security/实板 pending |
+| `gui/` | 图形界面 | Host-guarded；显示/视觉/性能 pending |
+| `crypto/` | 加密库 | Host contract；security review pending |
+| `dm/` | 数据管理 | Host-guarded；真实 Flash durability pending |
+| `pm/` | 电源管理 | Host-guarded；功耗/唤醒实证 pending |
 
 ---
 
@@ -141,43 +143,13 @@ components/drivers/
 
 ### Kconfig 选项
 
-```kconfig
-# Device Drivers
-config DRIVER_SENSOR
-    bool "Sensor Drivers"
-    default n
-
-config DRIVER_DISPLAY
-    bool "Display Drivers"
-    default n
-
-config DRIVER_STORAGE
-    bool "Storage Drivers"
-    default n
-
-config DRIVER_POWER
-    bool "Power Management Drivers"
-    default n
-
-config DRIVER_WIRELESS
-    bool "Wireless Drivers"
-    default n
-
-config DRIVER_SYSTEM
-    bool "System Drivers"
-    default n
-```
+不要从本页复制可能漂移的符号清单。使用 root `Kconfig` 与各组件 `Kconfig`，并通过
+`KCONFIG_OVERRIDES` 显式选择；非法父子组合必须在配置阶段 fail-closed。
 
 ### CMake 构建
 
-```cmake
-# 自动构建所有类别
-add_subdirectory(components/drivers)
-
-# 或选择性构建
-add_subdirectory(components/drivers/sensor)
-add_subdirectory(components/drivers/display)
-```
+root `CMakeLists.txt` 负责组件发现和 Kconfig 选择。应用不应绕过 root selection 直接
+`add_subdirectory()` 某个 driver 子目录；先通过正常配置生成 source/target，再构建所需 target。
 
 ---
 
