@@ -94,7 +94,7 @@ components/
 
 | 源目录 | 新位置 | 说明 |
 |--------|--------|------|
-| `driver/charger/` | `drivers/power/charger/` | 充电器驱动 |
+| `driver/charger/` | 未迁移到 power driver | 当前 owner 为 `components/charger/src/xy_bq25620.c` |
 | `driver/rfid/` | `drivers/wireless/rfid/` | RFID 驱动 |
 | `driver/sensor/` | `drivers/sensor/` | 传感器驱动 |
 | `driver/storage/` | `drivers/storage/` | 存储驱动 |
@@ -107,7 +107,11 @@ components/
 | `drivers/xy_rtc/` | `drivers/system/rtc/` | RTC 驱动 |
 | `drivers/xy_sys/` | `drivers/system/` | 系统驱动 |
 
-**总计**: 13 个驱动/模块完成迁移
+**2026-08-30 事实校准**：`components/drivers/power/charger/` 当前不存在，不能计为已迁移；
+当前 BQ25620 canonical owner 是 `components/charger/src/xy_bq25620.c`，状态为
+`legacy-maintained`。本文件记录历史重构，不覆盖 root Kconfig/CMake 与组件证据台账。
+
+**历史统计**: 原记录称 13 个驱动/模块完成迁移；charger 项已从完成计数中撤回。
 
 ---
 

@@ -74,30 +74,30 @@ git commit -m "cleanup: Remove old driver backup directory"
 
 **位置** (4 个位置):
 ```
-components/charger/              # 独立组件
-components/fuel_gauge/           # 独立组件
-components/pm/charger/           # PM 子模块
-components/pm/fuel-gauge/        # PM 子模块
-drivers/power/charger/           # 驱动层（已迁移）
-drivers/power/fuel_gauge/        # 驱动层（空目录）
+components/charger/              # BQ25620 canonical owner（legacy-maintained）
+components/fuel_gauge/           # standalone canonical component
+components/pm/charger/           # PM-local compatibility/module path
+components/pm/fuel-gauge/        # PM-local legacy path
+components/drivers/power/        # category scaffold only
 ```
 
-**问题分析**:
-- 充电器和电量计在 4 个位置重复
-- 可能导致头文件冲突
-- 维护困难，版本不一致风险
+**2026-08-30 事实校准**:
+- `components/charger/src/xy_bq25620.c` 是当前 BQ25620 canonical implementation owner。
+- `components/drivers/power/charger/` 当前不存在，不能作为已完成迁移或可用替代 owner。
+- `components/fuel_gauge/` 继续保持 standalone；不回并 PM，也不迁往空的 power-driver 路径。
+- 本文后续方案仅保留为历史提案，不能覆盖 root Kconfig/CMake、组件证据台账与 focused test 的当前事实。
 
 **层次混淆**:
 ```
 ❌ 当前混乱状态:
    应用 → charger/ ← 组件层？
    应用 → pm/charger/ ← PM 子模块？
-   应用 → drivers/power/charger/ ← 驱动层？
+   应用 → components/drivers/power/charger/ ← 不存在，禁止作为当前入口
 ```
 
 **解决方案**:
 
-**方案 A: 完全分层（推荐）**
+**方案 A: 完全分层（历史提案，未执行）**
 ```
 drivers/power/           # 底层硬件驱动
 ├── charger/
@@ -115,7 +115,7 @@ components/charger/      # 兼容层（标记为 deprecated）
 components/fuel_gauge/   # 兼容层（标记为 deprecated）
 ```
 
-**方案 B: 保守迁移**
+**方案 B: 保守迁移（历史提案，未执行）**
 ```
 # 只删除重复，保留主要位置
 1. 保留 components/charger/ 和 components/fuel_gauge/

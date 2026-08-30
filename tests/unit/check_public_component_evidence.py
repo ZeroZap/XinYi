@@ -10,6 +10,8 @@ INDEX = ROOT / "docs" / "components" / "index.md"
 COMPONENTS_README = ROOT / "components" / "README.md"
 EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 HAL_MATRIX = ROOT / "docs" / "validation" / "hal-platform-evidence-matrix.md"
+ARCHITECTURE_ANALYSIS = ROOT / "components" / "ARCHITECTURE_ANALYSIS.md"
+REFACTORING_STATUS = ROOT / "components" / "REFACTORING_COMPLETED.md"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -23,6 +25,8 @@ def validate() -> list[str]:
     components_readme = COMPONENTS_README.read_text(encoding="utf-8")
     evidence = EVIDENCE.read_text(encoding="utf-8")
     hal_matrix = HAL_MATRIX.read_text(encoding="utf-8")
+    architecture_analysis = ARCHITECTURE_ANALYSIS.read_text(encoding="utf-8")
+    refactoring_status = REFACTORING_STATUS.read_text(encoding="utf-8")
 
     for token in (
         "HAL | H1（PC）",
@@ -76,6 +80,19 @@ def validate() -> list[str]:
     ):
         require(required in components_readme,
                 f"components README is missing source/build/evidence boundary: {required}", errors)
+
+    for path, text in (
+        (ARCHITECTURE_ANALYSIS, architecture_analysis),
+        (REFACTORING_STATUS, refactoring_status),
+    ):
+        require("drivers/power/charger/           # 驱动层（已迁移）" not in text,
+                f"{path.name} claims the nonexistent charger migration is complete", errors)
+        require("`driver/charger/` | `drivers/power/charger/` | 充电器驱动" not in text,
+                f"{path.name} lists the nonexistent charger owner as migrated", errors)
+        require("components/charger/src/xy_bq25620.c" in text,
+                f"{path.name} must identify the canonical BQ25620 owner", errors)
+        require("components/drivers/power/charger/` 当前不存在" in text,
+                f"{path.name} must retain the nonexistent-target boundary", errors)
 
     return errors
 
