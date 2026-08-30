@@ -141,6 +141,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-05 | P1 | Net README 与 active selection 事实同步 | DONE | Zero | S5-04（DONE） | RED guard 证明 README 仍把 CAN 标为 implemented、示例指向未选 AT-Command-V2，并称 MQTT 尚未由 root/umbrella 接入；已切换为 active AT owner 示例、selected MQTT export 与 Host/hardware pending 边界；focused 5/5、Host 194/194、PC root 与 `git diff --check` 通过 | `51f7902e` | 2026-08-30 |
 | S5-06 | P1 | 公开 components README 驱动/构建事实校准 | DONE | Zero | S5-03（DONE）；S4 canonical ownership | RED guard 证明公开 README 仍以无条件 `✅` 标记 experimental/legacy 驱动与 PM/FOTA/Crypto 等组件，并建议绕过 root selection 直接加入 driver 子目录；已改为 canonical owner、Host/Board 分层与 root Kconfig/CMake 事实源；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `f17305ed` | 2026-08-30 |
 | S5-07 | P1 | Charger/Fuel Gauge 架构历史事实校准 | DONE | Zero | S5-06（DONE）；S4-13（DONE） | RED guard 证明两份公开架构/重构记录仍把不存在的 `components/drivers/power/charger/` 写成已迁移 owner；已改为 BQ25620 standalone canonical owner、Fuel Gauge independent 与历史提案边界；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `81b9bc04` | 2026-08-30 |
+| S5-08 | P1 | 旧架构重组执行命令收口 | DONE | Zero | S5-07（DONE） | RED guard 证明 `ARCHITECTURE_REFACTORING_PLAN.md` 仍推荐并可复制执行不存在的 power/charger 与 Fuel Gauge 批量迁移；现降级为 superseded 历史提案，固定 BQ25620 standalone canonical owner、Fuel Gauge standalone 与 Device-model 迁移边界；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `6f9937d7` | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -696,3 +697,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `git diff --check` 通过。以上不新增 charger/Fuel Gauge 硬件、安全、热保护或 SMBus 证据。
 - 下一步：S5-01 runtime 继续等待 board-correct startup/link owner；下一无硬件 slice 清理
   `ARCHITECTURE_REFACTORING_PLAN.md` 中同一未执行迁移命令，保持历史文档与 canonical owner 一致。
+
+### 2026-08-30 Sprint 5 旧架构重组执行命令收口
+
+- RED：扩展 `public_component_evidence` 后，`ARCHITECTURE_REFACTORING_PLAN.md` 因仍推荐“完全重构”、
+  创建不存在的 power owner 并批量迁移 Charger/Fuel Gauge 而按预期失败 7 项。
+- 收口：旧计划降级为 superseded 历史提案，删除可复制执行的批量 `mkdir`/`mv`/`rm` 脚本；固定
+  BQ25620 canonical owner 为 `components/charger/src/xy_bq25620.c`，Fuel Gauge 保持 standalone，
+  Sensor 后续迁移保持 Device model 与 compatibility boundary。
+- 验证：focused `public_component_evidence` 1/1、Host 194/194、PC root build 与
+  `git diff --check` 通过。以上不新增硬件、安全、性能或 production-ready 证据。
+- 下一步：S5-01 runtime 继续等待 reference board startup/link owner；无硬件时下一 slice 校准
+  `COMPONENT_GAP_ANALYSIS.md` 中已漂移的组件能力/成熟度声明，不扩张 legacy driver 或 RTOS fake。
