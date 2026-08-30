@@ -143,6 +143,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-07 | P1 | Charger/Fuel Gauge 架构历史事实校准 | DONE | Zero | S5-06（DONE）；S4-13（DONE） | RED guard 证明两份公开架构/重构记录仍把不存在的 `components/drivers/power/charger/` 写成已迁移 owner；已改为 BQ25620 standalone canonical owner、Fuel Gauge independent 与历史提案边界；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `81b9bc04` | 2026-08-30 |
 | S5-08 | P1 | 旧架构重组执行命令收口 | DONE | Zero | S5-07（DONE） | RED guard 证明 `ARCHITECTURE_REFACTORING_PLAN.md` 仍推荐并可复制执行不存在的 power/charger 与 Fuel Gauge 批量迁移；现降级为 superseded 历史提案，固定 BQ25620 standalone canonical owner、Fuel Gauge standalone 与 Device-model 迁移边界；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `6f9937d7` | 2026-08-30 |
 | S5-09 | P1 | 组件差距清单成熟度事实校准 | DONE | Zero | S5-03（DONE）；S5-08（DONE） | RED guard 证明 `COMPONENT_GAP_ANALYSIS.md` 仍以静态百分比宣称 HAL/FOTA/GUI 等完整并按生态凑数排期；现降级为历史候选清单，删除无证据成熟度/数量预测，改以 tracker/evidence/root selection 为事实源；focused 1/1、Host 194/194、PC root 与 `git diff --check` 通过 | `9e2ab686` | 2026-08-30 |
+| S5-10 | P1 | 历史构建系统报告事实校准 | DONE | Zero | S0-03/S0-04（DONE）；S5-09（DONE） | RED guard 证明 `docs/build_system_analysis.md` 仍包含无证据“完善”状态、8.5/10 评分及不存在的 build/config 命令；已降级为 superseded 历史报告并改指 root facts 与配置矩阵；focused 1/1、Host 194/194、PC root、`git diff --check` 通过 | 本轮提交 | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -721,3 +722,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `git diff --check` 通过。以上不新增硬件、安全、性能、runtime 或 production-ready 证据。
 - 下一步：S5-01 runtime 继续等待 reference board startup/link owner；下一无硬件治理 slice 检查
   `docs/build_system_analysis.md` 等历史报告中的无条件“完善”构建声明，不扩张组件功能。
+
+### 2026-08-30 Sprint 5 历史构建系统报告事实校准
+
+- RED：`public_component_evidence` 加入 build-report contract 后，旧报告因无条件 `✅ 完善`、
+  “所有 CMakeLists 同结构/所有主要组件有构建配置”、8.5/10 静态评分及不存在的
+  `make test-all`/`XY_COMPONENT_FEATURE_*` 命令按预期失败 11 项。
+- 收口：`docs/build_system_analysis.md` 降级为 superseded 历史报告；canonical 命令改指 root
+  Makefile/CMake/Kconfig 与 `AGENTS.md`，配置事实改指受检矩阵，并删除虚构模板、评分和另建 CI 的建议。
+- 验证：focused `public_component_evidence` 1/1、Host 194/194、PC root build 与
+  `git diff --check` 通过。以上仅为文档/构建事实治理，不新增 target runtime、实板、安全或 release 证据。
+- 下一步：S5-01 继续等待 reference board startup/link owner；无硬件时优先建立
+  `docs/release/release-checklist.md`，保持 Release Sprint 6 为 BLOCKED，不能把 checklist 当作 R1。

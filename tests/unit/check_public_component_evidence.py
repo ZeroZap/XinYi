@@ -14,6 +14,7 @@ ARCHITECTURE_ANALYSIS = ROOT / "components" / "ARCHITECTURE_ANALYSIS.md"
 REFACTORING_STATUS = ROOT / "components" / "REFACTORING_COMPLETED.md"
 REFACTORING_PLAN = ROOT / "components" / "ARCHITECTURE_REFACTORING_PLAN.md"
 COMPONENT_GAP_ANALYSIS = ROOT / "components" / "COMPONENT_GAP_ANALYSIS.md"
+BUILD_SYSTEM_ANALYSIS = ROOT / "docs" / "build_system_analysis.md"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -31,6 +32,7 @@ def validate() -> list[str]:
     refactoring_status = REFACTORING_STATUS.read_text(encoding="utf-8")
     refactoring_plan = REFACTORING_PLAN.read_text(encoding="utf-8")
     component_gap_analysis = COMPONENT_GAP_ANALYSIS.read_text(encoding="utf-8")
+    build_system_analysis = BUILD_SYSTEM_ANALYSIS.read_text(encoding="utf-8")
 
     for token in (
         "HAL | H1（PC）",
@@ -137,6 +139,28 @@ def validate() -> list[str]:
     ):
         require(required in component_gap_analysis,
                 f"{COMPONENT_GAP_ANALYSIS.name} is missing its historical/evidence boundary: "
+                f"{required}", errors)
+
+    for stale_build_claim in (
+        "✅ 完善",
+        "所有 CMakeLists.txt 遵循相同结构",
+        "所有主要组件都有构建配置",
+        "总体评分**: 8.5/10",
+        "make test-all",
+        "-DXY_COMPONENT_FEATURE_A=ON",
+    ):
+        require(stale_build_claim not in build_system_analysis,
+                f"{BUILD_SYSTEM_ANALYSIS.name} retains stale build claim/command: "
+                f"{stale_build_claim}", errors)
+    for required in (
+        "历史构建系统分析",
+        "不作为当前构建命令、组件选择或成熟度的事实源",
+        "root Makefile、CMakeLists.txt 与 Kconfig",
+        "docs/validation/kconfig-cmake-configuration-matrix.md",
+        "Host/PC/compile-only 不构成实板、安全或 production-ready 证据",
+    ):
+        require(required in build_system_analysis,
+                f"{BUILD_SYSTEM_ANALYSIS.name} is missing its historical/build-evidence boundary: "
                 f"{required}", errors)
 
     return errors
