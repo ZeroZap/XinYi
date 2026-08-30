@@ -48,7 +48,7 @@ components/net/
 | **Modbus** | 🟡 Host-guarded | RTU slave contract and examples; hardware UART evidence pending |
 | **Modbus Tiny** | 🟡 Host-guarded | Lightweight API contract; hardware evidence pending |
 | **Modbus Full** | 🟡 Development | RTU/TCP/ASCII source exists; product integration evidence pending |
-| **CAN** | ✅ Implemented | FIFO-based host-guarded CAN core; not enabled in `xy_net` by default |
+| **CAN** | 🟡 Host-guarded / hardware pending | FIFO-based Host contract; disabled by default and not validated with a CAN controller or bus |
 | **LTE** | 🟡 Host-guarded / hardware pending | Public API, fakeable AT transport seam, callback-backed UART adapter, HAL UART adapter, and smoke skeleton are covered by focused CTests; still disabled by default until real board UART/modem evidence exists |
 | **MQTT Client** | 🟡 Host-guarded | `src/xy_mqtt_client.c` covers CONNECT/CONNACK, QoS0/1 publish, subscribe, keepalive helpers; legacy `xy_mqtt/` remains deprecated |
 | **AT Client/Server** | 🟡 Host-guarded | Lightweight AT client/server cores have Unity/CTest coverage; larger vendor-style AT trees are not part of the default library |
@@ -73,21 +73,19 @@ remain direct opt-ins with Host contracts only, pending controller/modem board e
 4. **FreeRTOS-Cellular-Interface** - FreeRTOS integration for cellular modules
 5. **rtthread-at** - RT-Thread OS AT package
 
-### Quick Start (AT Command V2)
+### Quick Start (Active AT Client)
 
 ```c
-#include "at_command_v2.h"
+#include "xy_at_client.h"
 
-// Define command handler
-at_cmd_status_t handle_test(at_context_t *ctx, char *resp) {
-    at_response(ctx, "OK");
-    return AT_OK;
-}
+xy_at_client_t *client = xy_at_client_create("modem", 256, 1024);
+xy_at_client_set_hal(client, modem_get_char, modem_send, modem_recv);
 
-// Register and run
-at_init();
-at_register("AT+TEST", handle_test);
-at_process();
+xy_at_response_t *resp = xy_at_create_resp(256, 0, 1000);
+xy_at_exec_cmd(client, resp, "AT");
+
+xy_at_delete_resp(resp);
+xy_at_client_delete(client);
 ```
 
 ## Modbus RTU Slave
@@ -280,9 +278,8 @@ cd build/tests/unit && ctest --output-on-failure -R '^mqtt_client$'
 
 ### Remaining MQTT work
 
-- Add host coverage for successful publish/subscribe/unsubscribe callback paths.
-- Align root Kconfig (`PROTO_MQTT`) with the component-local default/library policy
-  before enabling MQTT through `xy_net` automatically.
+- Add target transport integration and real broker reconnect/long-run evidence before
+  treating the Host contract as product-ready.
 - Do not extend the legacy `xy_mqtt/` stub without first writing a migration
   proposal; prefer the active `xy_mqtt_client` API.
 
@@ -322,7 +319,7 @@ Via Kconfig or defines:
 
 // Component-local policy in components/net/inc/xy_net_config.h
 #define XY_NET_ENABLE_MODBUS    1
-#define XY_NET_ENABLE_MQTT      0  // not auto-exported by xy_net yet
+#define XY_NET_ENABLE_MQTT      1  // selected by CONFIG_PROTO_MQTT
 #define XY_NET_ENABLE_CAN       0  // host-guarded, direct opt-in only
 #define XY_NET_ENABLE_LTE       0  // host-guarded stub, direct opt-in only
 

@@ -138,6 +138,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-02 | P1 | 公开 HAL/FOTA 组件状态证据校准 | DONE | Zero | S2/S3 Host 前置与证据矩阵 | RED guard 证明公开 component index 仍将 HAL 标为“完善”、STM32U5 标为“完整实现”并将 FOTA 标为“主线可用”；现统一为 HAL Host/部分 QEMU、FOTA Host fail-closed，Board/security/runtime 均 pending；focused 3/3、Host 193/193、PC root 与 `git diff --check` 通过 | `323fbca3` | 2026-08-30 |
 | S5-03 | P1 | 公开组件完成度与静态测试计数校准 | DONE | Zero | S5-02（DONE） | RED guard 证明 component index 仍将 CLib/Trace/PID/ADDC 标为“完善”、Sensor 标为“已收口”，并维护已漂移的 234 项静态计数与 81% maturity 比例；现统一为分层 Host contract/pending 边界，测试数改以 canonical CTest 为准；focused、Host 193/193、PC root 与 `git diff --check` 通过 | `0364bb8c` | 2026-08-30 |
 | S5-04 | P1 | Net 产品选择门与 active owner 收口 | DONE | Zero | S5-01 runtime 阻塞不影响配置治理 | RED guard 证明 NETWORK/MQTT 默认开启、AT/MQTT 源无选择门且 CAN/LTE Kconfig 缺失；现 NETWORK 与 MQTT/AT client/AT server/CAN/LTE 均 default-off，root Kconfig 直接驱动 active source、umbrella export 与 compile definitions；active AT/MQTT owner 已冻结。focused 6/6、全协议 `xy_net` root opt-in target、Host 194/194、PC root 与 `git diff --check` 通过；不升级 modem/CAN controller/长稳/实板声明 | `3e8181fc` | 2026-08-30 |
+| S5-05 | P1 | Net README 与 active selection 事实同步 | DONE | Zero | S5-04（DONE） | RED guard 证明 README 仍把 CAN 标为 implemented、示例指向未选 AT-Command-V2，并称 MQTT 尚未由 root/umbrella 接入；已切换为 active AT owner 示例、selected MQTT export 与 Host/hardware pending 边界；focused 5/5、Host 194/194、PC root 与 `git diff --check` 通过 | 本轮提交 | 2026-08-30 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -660,3 +661,12 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   flow-control、attach/PDP/URC、长稳或实板证据。
 - 下一步：S5-01 runtime 继续等待 board-correct startup/link owner；Net 无明确 modem/board 产品输入时
   保持 default-off，不扩张 LTE Host fake。
+
+### 2026-08-30 Sprint 5 Net README selection 事实同步
+
+- RED：扩展 `net_product_selection` 后，README 因 CAN `Implemented`、AT-Command-V2 quick start、
+  MQTT “尚未自动导出/待对齐 Kconfig”等与 S5-04 active selection 冲突的说明按预期失败。
+- 收口：CAN 明确为 Host-guarded/hardware pending；quick start 改用 active `xy_at_client` owner；
+  MQTT 配置与剩余工作同步为 root-selected umbrella export，并保留真实 transport/broker/长稳 pending。
+- 验证：focused Net 5/5、Host 194/194、PC root 与 `git diff --check` 通过；不升级 modem、CAN controller、
+  broker 长稳、性能或实板声明。

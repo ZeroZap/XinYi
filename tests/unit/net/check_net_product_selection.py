@@ -51,6 +51,18 @@ def validate() -> list[str]:
             "Net README must freeze active AT ownership", errors)
     require("All Net product protocols are default-off" in readme,
             "Net README must preserve the default-off product gate", errors)
+    for stale_claim in (
+        "| **CAN** | ✅ Implemented |",
+        "### Quick Start (AT Command V2)",
+        "not auto-exported by xy_net yet",
+        "Align root Kconfig (`PROTO_MQTT`)",
+    ):
+        require(stale_claim not in readme,
+                f"Net README retains stale product-selection guidance: {stale_claim}", errors)
+    require("### Quick Start (Active AT Client)" in readme,
+            "Net README must demonstrate the selected AT client owner", errors)
+    require("XY_NET_ENABLE_MQTT      1  // selected by CONFIG_PROTO_MQTT" in readme,
+            "Net README must describe the selected MQTT umbrella export", errors)
     return errors
 
 
