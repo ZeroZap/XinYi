@@ -147,6 +147,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-11 | P1 | Release fail-closed checklist 与 R1 边界 | DONE | Zero | S0-05/S0-06（DONE）；S5-10（DONE） | RED probe 证明 checklist 缺失；现建立 source/version、Host/target、HIL/recovery、security/SBOM、reproducible artifacts/checksum/signature 的 fail-closed 门禁，当前固定 `BLOCKED`/`NO-GO`；focused 1/1、Host 195/195、PC root 与 `git diff --check` 通过，不升级 R1 | `bb556e5b` | 2026-08-31 |
 | S5-12 | P1 | Tracked source dependency inventory 前置 | DONE | Zero | S5-11（DONE） | RED：focused guard 因 inventory 缺失失败；现机器守护 7 个 vendored source inputs 与 10 个 top-level gitlinks/path/SHA，旧候选许可证清单标记 superseded；状态固定 `REVIEW_PENDING`，不冒充 artifact SBOM/license approval；focused 1/1、Host 196/196、PC root 与 `git diff --check` 通过 | `86f6cdde` | 2026-08-31 |
 | S5-13 | P1 | Examples/projects release input 清单 | DONE | Zero | S5-11（DONE）；S5-12（DONE） | RED：focused guard 因 release input inventory 缺失失败；现机器守护 16 个 tracked top-level examples 与 16 个 projects，逐项区分 Host/compile-only/candidate/historical，且全部保持 `excluded-pending-review`；focused 5/5、Host 197/197、PC root 与 `git diff --check` 通过，不升级 release/hardware 声明 | `9f7bf41d` | 2026-08-31 |
+| S5-14 | P1 | 首个 release input clean-export 可复现 gate | DONE | Zero | S5-13（DONE） | RED：直接配置 exported canonical unit tree 因 ignored Crypto sources 缺失而 fail；现使用 tracked minimal CMake smoke 从 `git archive HEAD` 配置、构建并运行 canonical device-driver template，release scope 仍为 `excluded-pending-review`；focused 3/3、Host 198/198、PC root 与 `git diff --check` 通过 | 本轮提交 | 2026-08-31 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -763,3 +764,16 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   仍缺；Sprint 6 保持 `BLOCKED`。
 - 下一步：无硬件时对首个候选 entry 做 clean-checkout build 可复现性 probe；优先 canonical
   Host example 或 `projects/stm32u5_fota`，不得从 compile-only 直接升级 supported。
+
+### 2026-08-31 Sprint 5 首个 release input clean-export gate
+
+- RED：从 `git archive HEAD` 导出的 tracked source 直接配置 canonical `tests/unit` 时，因本地 ignored
+  Crypto lightweight sources 不在 Git 快照中而失败，证明全量开发树不是首个 release input 的最小可复现边界。
+- 实现：为 `examples/device_driver_template.c` 建立 tracked minimal CMake smoke；clean-export probe 在临时目录
+  配置、构建并运行 `device_driver_template`，同时由 inventory guard 固定 source/target/CTest metadata。
+- 边界：该 entry 继续保持 `excluded-pending-review`；clean export Host 通过不构成 supported release、target、
+  hardware、security、artifact reproducibility 或 R1。
+- 验证：focused `release_input_inventory`、`release_input_clean_checkout`、`device_driver_template` 3/3；
+  full Host/PC root 与 `git diff --check` 见本轮提交 gate。
+- 下一步：保持 S5-01 runtime/实板阻塞；下一无硬件 slice 审查第二个可独立导出的 Host example，或先处理
+  ignored-but-required source 对 clean checkout canonical Host suite 的可复现性风险，不将单 entry gate 泛化为全仓可复现。

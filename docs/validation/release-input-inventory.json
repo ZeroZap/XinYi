@@ -22,7 +22,13 @@
       "path": "examples/device_driver_template.c",
       "kind": "example",
       "status": "host-guarded",
-      "evidence": "canonical CTest device_driver_template",
+      "evidence": "canonical CTest device_driver_template; clean git-archive HEAD configure/build/run gate",
+      "clean_checkout_gate": {
+        "source": "git-archive-head",
+        "cmake_source": "tests/unit/release_input_smoke",
+        "build_target": "test_device_driver_template",
+        "test_name": "device_driver_template"
+      },
       "release_scope": "excluded-pending-review"
     },
     {

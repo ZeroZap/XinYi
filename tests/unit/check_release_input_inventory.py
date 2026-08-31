@@ -15,6 +15,12 @@ ALLOWED_STATUS = {
     "candidate-unverified",
     "historical-unverified",
 }
+EXPECTED_CLEAN_GATE = {
+    "source": "git-archive-head",
+    "cmake_source": "tests/unit/release_input_smoke",
+    "build_target": "test_device_driver_template",
+    "test_name": "device_driver_template",
+}
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -62,6 +68,7 @@ def validate() -> list[str]:
     entries = manifest.get("entries")
     require(isinstance(entries, list) and bool(entries), "inventory entries must be non-empty", errors)
     inventoried: set[str] = set()
+    clean_gates: list[tuple[str, object]] = []
     if isinstance(entries, list):
         for index, entry in enumerate(entries):
             prefix = f"entries[{index}]"
@@ -83,9 +90,17 @@ def validate() -> list[str]:
             if entry.get("status") == "host-guarded":
                 require("CTest" in entry.get("evidence", ""),
                         f"{prefix} host-guarded status requires CTest evidence", errors)
+            if "clean_checkout_gate" in entry:
+                clean_gates.append((str(path), entry.get("clean_checkout_gate")))
 
     expected = tracked_children("examples") | tracked_children("projects")
     require(inventoried == expected, "inventory paths do not match tracked top-level examples/projects", errors)
+    require(len(clean_gates) == 1, "exactly one release input must have a clean-checkout gate", errors)
+    if len(clean_gates) == 1:
+        path, gate = clean_gates[0]
+        require(path == "examples/device_driver_template.c",
+                "the first clean-checkout gate must cover the canonical device driver template", errors)
+        require(gate == EXPECTED_CLEAN_GATE, "clean-checkout gate metadata is invalid", errors)
     return errors
 
 
