@@ -47,6 +47,7 @@ jobs:
         run: >-
           python3 tests/unit/check_pc_artifact_reproducibility.py
           --record build/release-evidence/pc-artifact-reproducibility.json
+          --artifact-dir build/release-artifacts/pc
 
       - name: Upload PC artifact reproducibility evidence
         uses: actions/upload-artifact@v4
@@ -54,6 +55,14 @@ jobs:
           name: pc-artifact-reproducibility-evidence
           path: build/release-evidence/pc-artifact-reproducibility.json
           if-no-files-found: error
+
+      - name: Upload reproducible PC gate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pc-release-gate-artifact
+          path: build/release-artifacts/pc/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Configure PC root build
         run: cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF

@@ -23,6 +23,11 @@ ARTIFACT_MANIFEST = ROOT / "docs/validation/pc-release-artifact-manifest.json"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--record", type=Path, help="write machine-readable evidence JSON")
+    parser.add_argument(
+        "--artifact-dir",
+        type=Path,
+        help="write the verified gate artifact and SHA-256 checksum to this directory",
+    )
     return parser.parse_args()
 
 
@@ -99,7 +104,7 @@ def extract(archive: bytes, destination: Path) -> None:
         tar.extractall(destination, filter="data")
 
 
-def build_artifact(archive: bytes, root: Path, name: str) -> tuple[str, int]:
+def build_artifact(archive: bytes, root: Path, name: str) -> tuple[str, int, bytes]:
     source = root / f"source-{name}"
     build = root / f"build-{name}"
     extract(archive, source)
@@ -119,7 +124,7 @@ def build_artifact(archive: bytes, root: Path, name: str) -> tuple[str, int]:
     run(["cmake", "--build", str(build), "--target", TARGET, "-j2"], root)
     artifact = build / ARTIFACT
     payload = artifact.read_bytes()
-    return hashlib.sha256(payload).hexdigest(), len(payload)
+    return hashlib.sha256(payload).hexdigest(), len(payload), payload
 
 
 def main() -> int:
@@ -146,14 +151,23 @@ def main() -> int:
     source_archive_sha256 = hashlib.sha256(archive).hexdigest()
     with tempfile.TemporaryDirectory(prefix="xinyi-pc-artifact-") as temporary:
         temporary_root = Path(temporary)
-        first_hash, first_size = build_artifact(archive, temporary_root, "first")
-        second_hash, second_size = build_artifact(archive, temporary_root, "second")
+        first_hash, first_size, first_payload = build_artifact(archive, temporary_root, "first")
+        second_hash, second_size, _ = build_artifact(archive, temporary_root, "second")
 
     if (first_hash, first_size) != (second_hash, second_size):
         raise SystemExit(
             "PC artifact is not reproducible: "
             f"first={first_hash}/{first_size} second={second_hash}/{second_size}"
         )
+
+    artifact_output = None
+    checksum_output = None
+    if args.artifact_dir is not None:
+        args.artifact_dir.mkdir(parents=True, exist_ok=True)
+        artifact_output = args.artifact_dir / ARTIFACT.name
+        checksum_output = args.artifact_dir / f"{ARTIFACT.name}.sha256"
+        artifact_output.write_bytes(first_payload)
+        checksum_output.write_text(f"{first_hash}  {ARTIFACT.name}\n", encoding="utf-8")
 
     record = {
         "schema_version": 1,
@@ -171,6 +185,8 @@ def main() -> int:
         "environment_manifest_schema_version": manifest["schema_version"],
         "artifact_manifest_schema_version": artifact_manifest["schema_version"],
         "artifact_set_status": artifact_manifest["status"],
+        "archived_artifact": str(artifact_output) if artifact_output is not None else None,
+        "archived_checksum": str(checksum_output) if checksum_output is not None else None,
         "evidence": "PC static library only",
         "release_scope": "blocked",
     }
@@ -181,6 +197,7 @@ def main() -> int:
     print(
         "pc_artifact_reproducibility_ok source=git-archive-head "
         f"target={TARGET} artifact={ARTIFACT} sha256={first_hash} size={first_size} "
+        f"archived={artifact_output is not None} "
         f"identity={json.dumps(identity, sort_keys=True, separators=(',', ':'))} "
         "evidence=pc-static-library-only release_scope=blocked"
     )

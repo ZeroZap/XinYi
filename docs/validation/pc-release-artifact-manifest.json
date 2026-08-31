@@ -10,6 +10,14 @@
       "target": "xy_device",
       "path": "components/device/libxy_device.a",
       "selection": "reproducibility-gate-only",
+      "ci_archive": {
+        "artifact_name": "pc-release-gate-artifact",
+        "files": [
+          "libxy_device.a",
+          "libxy_device.a.sha256"
+        ],
+        "retention_days": 14
+      },
       "cmake_options": [
         "HAL_PLATFORM=PC",
         "CMAKE_BUILD_TYPE=Release",
@@ -22,7 +30,7 @@
     "MCU artifacts",
     "installable packages",
     "SBOM and license approval",
-    "checksums and signatures",
+    "independently verified or signed release checksums",
     "hardware and security evidence"
   ],
   "evidence_boundary": "The selected set contains one PC static library for reproducibility gating only; it is not a complete release artifact set and does not establish target, hardware, security, signed publication, or R1 evidence."

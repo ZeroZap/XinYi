@@ -66,5 +66,7 @@ A release tag does not upgrade any evidence level.
   Ubuntu 24.04 runner contract and emits actual CMake/CC/AR/Python identity. The bounded
   [PC release artifact manifest](../validation/pc-release-artifact-manifest.json) selects only
   `xy_device` / `libxy_device.a` for the current reproducibility gate. This is not a complete release
-  artifact set; no immutable container digest or complete dependency lock exists.
+  artifact set. Canonical CI archives that verified library plus its SHA-256 for 14 days as bounded
+  gate output; the checksum is not independently verified or signed release publication, and no
+  immutable container digest or complete dependency lock exists.
 - Therefore Sprint 6 and R1 remain blocked; this checklist does not authorize a release.

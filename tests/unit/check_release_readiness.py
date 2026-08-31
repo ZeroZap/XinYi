@@ -85,6 +85,16 @@ def validate() -> list[str]:
                         "PC release artifact manifest path mismatch", errors)
                 require(artifact.get("selection") == "reproducibility-gate-only",
                         "PC release artifact selection must remain gate-only", errors)
+                archive = artifact.get("ci_archive")
+                require(isinstance(archive, dict),
+                        "PC release artifact manifest must define bounded CI archival", errors)
+                if isinstance(archive, dict):
+                    require(archive.get("artifact_name") == "pc-release-gate-artifact",
+                            "PC release artifact CI archive name mismatch", errors)
+                    require(archive.get("files") == ["libxy_device.a", "libxy_device.a.sha256"],
+                            "PC release artifact CI archive files mismatch", errors)
+                    require(archive.get("retention_days") == 14,
+                            "PC release artifact CI archive retention mismatch", errors)
             boundary = str(manifest.get("evidence_boundary", ""))
             for phrase in ("not a complete release artifact set", "hardware", "security", "R1"):
                 require(phrase in boundary,
