@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import io
 import json
@@ -16,6 +17,12 @@ ROOT = Path(__file__).resolve().parents[2]
 TARGET = "xy_device"
 ARTIFACT = Path("components/device/libxy_device.a")
 ENVIRONMENT_MANIFEST = ROOT / "docs/validation/pc-release-build-environment.json"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--record", type=Path, help="write machine-readable evidence JSON")
+    return parser.parse_args()
 
 
 def run(command: list[str], cwd: Path) -> None:
@@ -100,7 +107,8 @@ def build_artifact(archive: bytes, root: Path, name: str) -> tuple[str, int]:
 
 
 def main() -> int:
-    load_environment_manifest()
+    args = parse_args()
+    manifest = load_environment_manifest()
     identity = {
         "system": platform.system(),
         "machine": platform.machine(),
@@ -117,6 +125,8 @@ def main() -> int:
         check=True,
         capture_output=True,
     ).stdout
+    source_sha = first_line(["git", "-C", str(ROOT), "rev-parse", "HEAD"])
+    source_archive_sha256 = hashlib.sha256(archive).hexdigest()
     with tempfile.TemporaryDirectory(prefix="xinyi-pc-artifact-") as temporary:
         temporary_root = Path(temporary)
         first_hash, first_size = build_artifact(archive, temporary_root, "first")
@@ -127,6 +137,27 @@ def main() -> int:
             "PC artifact is not reproducible: "
             f"first={first_hash}/{first_size} second={second_hash}/{second_size}"
         )
+
+    record = {
+        "schema_version": 1,
+        "status": "PASS",
+        "source": "git archive HEAD",
+        "source_commit": source_sha,
+        "source_archive_sha256": source_archive_sha256,
+        "target": TARGET,
+        "artifact": str(ARTIFACT),
+        "builds": [
+            {"name": "first", "sha256": first_hash, "size": first_size},
+            {"name": "second", "sha256": second_hash, "size": second_size},
+        ],
+        "identity": identity,
+        "environment_manifest_schema_version": manifest["schema_version"],
+        "evidence": "PC static library only",
+        "release_scope": "blocked",
+    }
+    if args.record is not None:
+        args.record.parent.mkdir(parents=True, exist_ok=True)
+        args.record.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print(
         "pc_artifact_reproducibility_ok source=git-archive-head "

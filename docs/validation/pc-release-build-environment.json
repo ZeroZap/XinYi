@@ -32,5 +32,19 @@
     "parallel_jobs": 2,
     "source": "git archive HEAD"
   },
+  "evidence_record": {
+    "format": "JSON",
+    "schema_version": 1,
+    "required_fields": [
+      "status",
+      "source_commit",
+      "source_archive_sha256",
+      "builds",
+      "identity",
+      "evidence",
+      "release_scope"
+    ],
+    "ci_path": "build/release-evidence/pc-artifact-reproducibility.json"
+  },
   "evidence_boundary": "PC static library only; this records runner and tool identity but is not a container digest, not a complete dependency lock, not target or hardware evidence, and not R1."
 }

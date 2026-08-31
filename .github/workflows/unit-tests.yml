@@ -45,8 +45,15 @@ jobs:
 
       - name: Verify reproducible PC static-library artifact
         run: >-
-          ctest --test-dir build/tests/unit --output-on-failure
-          -R '^pc_artifact_reproducibility$'
+          python3 tests/unit/check_pc_artifact_reproducibility.py
+          --record build/release-evidence/pc-artifact-reproducibility.json
+
+      - name: Upload PC artifact reproducibility evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pc-artifact-reproducibility-evidence
+          path: build/release-evidence/pc-artifact-reproducibility.json
+          if-no-files-found: error
 
       - name: Configure PC root build
         run: cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
