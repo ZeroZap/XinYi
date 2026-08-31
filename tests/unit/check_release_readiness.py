@@ -11,6 +11,7 @@ CHECKLIST = ROOT / "docs" / "release" / "release-checklist.md"
 EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 ARTIFACT_MANIFEST = ROOT / "docs" / "validation" / "pc-release-artifact-manifest.json"
 SIGNING_POLICY = ROOT / "docs" / "validation" / "release-signing-policy.json"
+SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -155,6 +156,51 @@ def validate() -> list[str]:
             for phrase in ("ephemeral CI key", "not a release identity", "R1 remains blocked"):
                 require(phrase in boundary,
                         f"release signing policy evidence boundary missing phrase: {phrase}", errors)
+
+    require(SBOM_POLICY.is_file(), "PC release SBOM policy is missing", errors)
+    if SBOM_POLICY.is_file():
+        try:
+            policy = json.loads(SBOM_POLICY.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"PC release SBOM policy is invalid JSON: {exc}")
+        else:
+            required = {
+                "schema_version",
+                "status",
+                "format",
+                "artifact_scope",
+                "required_inputs",
+                "approval",
+                "evidence_boundary",
+            }
+            missing = sorted(required - policy.keys())
+            require(not missing, f"PC release SBOM policy missing fields: {missing}", errors)
+            require(policy.get("status") == "DESIGN_RECORDED_GENERATION_BLOCKED",
+                    "PC release SBOM policy must remain fail-closed before generation exists", errors)
+            require(policy.get("format") == "CycloneDX JSON 1.6",
+                    "PC release SBOM format mismatch", errors)
+            require(policy.get("artifact_scope") == {
+                        "platform": "PC",
+                        "target": "xy_device",
+                        "artifact": "libxy_device.a",
+                        "selection": "reproducibility-gate-only",
+                    },
+                    "PC release SBOM artifact scope mismatch", errors)
+            require(policy.get("required_inputs") == [
+                        "committed source SHA and source-archive SHA-256",
+                        "exact artifact SHA-256",
+                        "artifact build tool identity",
+                        "tracked direct source inputs for xy_device",
+                        "resolved vendored and submodule dependency identity",
+                        "license identifiers and evidence references",
+                    ],
+                    "PC release SBOM required inputs mismatch", errors)
+            require(policy.get("approval") == "REVIEW_PENDING",
+                    "PC release SBOM approval must remain pending", errors)
+            boundary = str(policy.get("evidence_boundary", ""))
+            for phrase in ("does not generate an SBOM", "license approval", "R1 remains blocked"):
+                require(phrase in boundary,
+                        f"PC release SBOM policy evidence boundary missing phrase: {phrase}", errors)
 
     return errors
 

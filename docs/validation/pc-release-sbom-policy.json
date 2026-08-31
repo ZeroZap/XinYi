@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "status": "DESIGN_RECORDED_GENERATION_BLOCKED",
+  "format": "CycloneDX JSON 1.6",
+  "artifact_scope": {
+    "platform": "PC",
+    "target": "xy_device",
+    "artifact": "libxy_device.a",
+    "selection": "reproducibility-gate-only"
+  },
+  "required_inputs": [
+    "committed source SHA and source-archive SHA-256",
+    "exact artifact SHA-256",
+    "artifact build tool identity",
+    "tracked direct source inputs for xy_device",
+    "resolved vendored and submodule dependency identity",
+    "license identifiers and evidence references"
+  ],
+  "generation_requirements": [
+    "generate from the same committed clean export used for the artifact build",
+    "bind the SBOM to the exact artifact SHA-256 and source commit",
+    "record every direct source input selected into xy_device",
+    "record resolved dependency versions or gitlink SHAs without silently dropping unknown values",
+    "fail if required license identity or evidence is missing",
+    "validate the generated document against the declared CycloneDX schema",
+    "archive and independently verify the SBOM beside the bounded gate artifact"
+  ],
+  "approval": "REVIEW_PENDING",
+  "prohibited_claims": [
+    "treating the tracked source dependency inventory as an artifact SBOM",
+    "treating schema-valid output as legal or license approval",
+    "treating the bounded PC static-library SBOM as complete PC or MCU release coverage",
+    "upgrading the artifact, security, hardware, or R1 evidence level"
+  ],
+  "next_gate": "Implement deterministic CycloneDX generation for the bounded xy_device artifact, validate its schema and artifact/source bindings, then archive it in canonical CI without changing approval from REVIEW_PENDING.",
+  "evidence_boundary": "This policy records the required deterministic CycloneDX JSON 1.6 boundary but does not generate an SBOM. It provides no license approval, legal review, complete dependency closure, MCU coverage, hardware evidence, or release qualification; R1 remains blocked."
+}
