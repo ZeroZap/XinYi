@@ -33,6 +33,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="independently verify an archived artifact against its SHA-256 file",
     )
+    parser.add_argument(
+        "--sign-artifact-dir",
+        type=Path,
+        help="sign the archived artifact with an ephemeral Ed25519 CI gate key",
+    )
     return parser.parse_args()
 
 
@@ -154,12 +159,64 @@ def verify_archived_artifact(artifact_dir: Path) -> None:
     )
 
 
+def sign_archived_artifact(artifact_dir: Path) -> None:
+    artifact = artifact_dir / ARTIFACT.name
+    signature = artifact_dir / f"{ARTIFACT.name}.sig"
+    public_key = artifact_dir / "pc-artifact-signing-public.pem"
+    if not artifact.is_file():
+        raise SystemExit("archived artifact is missing")
+    with tempfile.TemporaryDirectory(prefix="xinyi-pc-artifact-signing-") as temporary:
+        private_key = Path(temporary) / "private.pem"
+        run(["openssl", "genpkey", "-algorithm", "ED25519", "-out", str(private_key)], ROOT)
+        run(
+            ["openssl", "pkey", "-in", str(private_key), "-pubout", "-out", str(public_key)],
+            ROOT,
+        )
+        run(
+            [
+                "openssl", "pkeyutl", "-sign", "-rawin", "-inkey", str(private_key),
+                "-in", str(artifact), "-out", str(signature),
+            ],
+            ROOT,
+        )
+    print(
+        f"pc_artifact_signature_created artifact={artifact} signature={signature} "
+        "algorithm=Ed25519 key_scope=ephemeral-ci-gate-only release_scope=blocked"
+    )
+
+
+def verify_archived_signature(artifact_dir: Path) -> None:
+    artifact = artifact_dir / ARTIFACT.name
+    signature = artifact_dir / f"{ARTIFACT.name}.sig"
+    public_key = artifact_dir / "pc-artifact-signing-public.pem"
+    if not artifact.is_file() or not signature.is_file() or not public_key.is_file():
+        raise SystemExit("archived artifact, signature, or public key is missing")
+    run(
+        [
+            "openssl", "pkeyutl", "-verify", "-rawin", "-pubin", "-inkey",
+            str(public_key), "-in", str(artifact), "-sigfile", str(signature),
+        ],
+        ROOT,
+    )
+    print(
+        f"pc_artifact_signature_ok artifact={artifact} signature={signature} "
+        "algorithm=Ed25519 key_scope=ephemeral-ci-gate-only release_scope=blocked"
+    )
+
+
 def main() -> int:
     args = parse_args()
+    if args.sign_artifact_dir is not None:
+        if args.record is not None or args.artifact_dir is not None or args.verify_artifact_dir is not None:
+            raise SystemExit("--sign-artifact-dir cannot be combined with other modes")
+        sign_archived_artifact(args.sign_artifact_dir)
+        verify_archived_signature(args.sign_artifact_dir)
+        return 0
     if args.verify_artifact_dir is not None:
         if args.record is not None or args.artifact_dir is not None:
             raise SystemExit("--verify-artifact-dir cannot be combined with build output options")
         verify_archived_artifact(args.verify_artifact_dir)
+        verify_archived_signature(args.verify_artifact_dir)
         return 0
 
     manifest = load_environment_manifest()

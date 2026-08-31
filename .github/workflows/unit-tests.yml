@@ -49,7 +49,12 @@ jobs:
           --record build/release-evidence/pc-artifact-reproducibility.json
           --artifact-dir build/release-artifacts/pc
 
-      - name: Independently verify archived PC artifact checksum
+      - name: Sign archived PC artifact with ephemeral CI gate key
+        run: >-
+          python3 tests/unit/check_pc_artifact_reproducibility.py
+          --sign-artifact-dir build/release-artifacts/pc
+
+      - name: Independently verify archived PC artifact checksum and signature
         run: >-
           python3 tests/unit/check_pc_artifact_reproducibility.py
           --verify-artifact-dir build/release-artifacts/pc

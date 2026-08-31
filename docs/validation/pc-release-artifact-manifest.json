@@ -14,9 +14,16 @@
         "artifact_name": "pc-release-gate-artifact",
         "files": [
           "libxy_device.a",
-          "libxy_device.a.sha256"
+          "libxy_device.a.sha256",
+          "libxy_device.a.sig",
+          "pc-artifact-signing-public.pem"
         ],
         "checksum_verification": "independent-ci-step",
+        "signature": {
+          "algorithm": "Ed25519",
+          "key_scope": "ephemeral-ci-gate-only",
+          "verification": "independent-ci-step"
+        },
         "retention_days": 14
       },
       "cmake_options": [
@@ -31,8 +38,8 @@
     "MCU artifacts",
     "installable packages",
     "SBOM and license approval",
-    "signed release checksums",
+    "release-owned signing keys and published signed checksums",
     "hardware and security evidence"
   ],
-  "evidence_boundary": "The selected set contains one PC static library for reproducibility gating only; its archived SHA-256 is independently verified in the same CI job but is not signed or published as a release checksum. This is not a complete release artifact set and does not establish target, hardware, security, signed publication, or R1 evidence."
+  "evidence_boundary": "The selected set contains one PC static library for reproducibility gating only; its archived SHA-256 and ephemeral CI-gate Ed25519 signature are independently verified in the same CI job. The ephemeral private key is discarded and has no release identity or publication authority. This is not a complete release artifact set and does not establish target, hardware, security, signed publication, or R1 evidence."
 }

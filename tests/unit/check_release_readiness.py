@@ -91,10 +91,21 @@ def validate() -> list[str]:
                 if isinstance(archive, dict):
                     require(archive.get("artifact_name") == "pc-release-gate-artifact",
                             "PC release artifact CI archive name mismatch", errors)
-                    require(archive.get("files") == ["libxy_device.a", "libxy_device.a.sha256"],
+                    require(archive.get("files") == [
+                                "libxy_device.a",
+                                "libxy_device.a.sha256",
+                                "libxy_device.a.sig",
+                                "pc-artifact-signing-public.pem",
+                            ],
                             "PC release artifact CI archive files mismatch", errors)
                     require(archive.get("checksum_verification") == "independent-ci-step",
                             "PC release artifact checksum verification mismatch", errors)
+                    require(archive.get("signature") == {
+                                "algorithm": "Ed25519",
+                                "key_scope": "ephemeral-ci-gate-only",
+                                "verification": "independent-ci-step",
+                            },
+                            "PC release artifact signature boundary mismatch", errors)
                     require(archive.get("retention_days") == 14,
                             "PC release artifact CI archive retention mismatch", errors)
             boundary = str(manifest.get("evidence_boundary", ""))

@@ -51,7 +51,7 @@ A release tag does not upgrade any evidence level.
 - [ ] Final release record links CI, target build, HIL, security, SBOM/license, artifact, checksum/signature, and approval evidence.
 - [ ] R1 release qualified is recorded in the component evidence matrix only after every applicable item above passes.
 
-## Current blocking facts (2026-08-31)
+## Current blocking facts (2026-09-01)
 
 - Reference-board HIL/B1/B2 remains unavailable.
 - Secure FOTA has no approved production signature provider or real bootloader/board integration evidence.
@@ -67,7 +67,9 @@ A release tag does not upgrade any evidence level.
   [PC release artifact manifest](../validation/pc-release-artifact-manifest.json) selects only
   `xy_device` / `libxy_device.a` for the current reproducibility gate. This is not a complete release
   artifact set. Canonical CI archives that verified library plus its SHA-256 for 14 days as bounded
-  gate output; a separate CI step independently verifies the archived library against that checksum,
-  but it is not signed or published as a release checksum, and no
+  gate output; a separate CI step independently verifies the archived library against that checksum
+  and an ephemeral CI-gate Ed25519 signature. The private key is discarded after each run, so this
+  proves signature plumbing and tamper detection but provides no stable release identity or publication
+  authority. No release-owned key, published signed checksum, or
   immutable container digest or complete dependency lock exists.
 - Therefore Sprint 6 and R1 remain blocked; this checklist does not authorize a release.
