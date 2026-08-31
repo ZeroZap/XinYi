@@ -11,6 +11,7 @@ import platform
 import subprocess
 import tarfile
 import tempfile
+import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,6 +19,20 @@ TARGET = "xy_device"
 ARTIFACT = Path("components/device/libxy_device.a")
 ENVIRONMENT_MANIFEST = ROOT / "docs/validation/pc-release-build-environment.json"
 ARTIFACT_MANIFEST = ROOT / "docs/validation/pc-release-artifact-manifest.json"
+SBOM = Path("libxy_device.a.cdx.json")
+SBOM_POLICY = ROOT / "docs/validation/pc-release-sbom-policy.json"
+DIRECT_SOURCES = [
+    "components/device/src/xy_device.c",
+    "components/device/src/xy_device_bus_helpers.c",
+    "components/device/xy_device_core.c",
+    "components/device/src/xy_device_pm.c",
+    "components/device/src/xy_device_async.c",
+    "components/hal/PC/xy_hal_pc.c",
+    "components/hal/PC/xy_hal_gpio_pc.c",
+    "components/hal/PC/xy_hal_i2c_pc.c",
+    "components/hal/PC/xy_hal_spi_pc.c",
+    "components/hal/PC/xy_hal_uart_pc.c",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -108,6 +123,122 @@ def load_artifact_manifest() -> dict[str, object]:
     return manifest
 
 
+def load_sbom_policy() -> dict[str, object]:
+    policy = json.loads(SBOM_POLICY.read_text(encoding="utf-8"))
+    if policy.get("status") != "GENERATED_REVIEW_PENDING":
+        raise SystemExit("PC release SBOM policy status is not generated/review-pending")
+    if policy.get("format") != "CycloneDX JSON 1.6" or policy.get("approval") != "REVIEW_PENDING":
+        raise SystemExit("PC release SBOM policy format or approval mismatch")
+    return policy
+
+
+def archive_file_hashes(archive: bytes) -> dict[str, str]:
+    required = DIRECT_SOURCES + ["LICENSE"]
+    hashes: dict[str, str] = {}
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+        members = {member.name: member for member in tar.getmembers() if member.isfile()}
+        for path in required:
+            member = members.get(path)
+            if member is None:
+                raise SystemExit(f"SBOM required tracked input is missing from source archive: {path}")
+            extracted = tar.extractfile(member)
+            if extracted is None:
+                raise SystemExit(f"SBOM cannot read tracked input from source archive: {path}")
+            hashes[path] = hashlib.sha256(extracted.read()).hexdigest()
+    return hashes
+
+
+def generate_sbom(
+    archive: bytes,
+    source_commit: str,
+    source_archive_sha256: str,
+    artifact_sha256: str,
+    artifact_size: int,
+) -> dict[str, object]:
+    load_sbom_policy()
+    source_hashes = archive_file_hashes(archive)
+    artifact_ref = "pkg:generic/xinyi-xy-device@0?platform=pc&type=static-library"
+    file_refs = [f"file:{path}" for path in DIRECT_SOURCES]
+    components = [
+        {
+            "type": "file",
+            "bom-ref": reference,
+            "name": path,
+            "hashes": [{"alg": "SHA-256", "content": source_hashes[path]}],
+            "licenses": [{"license": {"id": "Apache-2.0"}}],
+            "properties": [
+                {"name": "xinyi:license-evidence", "value": "LICENSE"},
+                {"name": "xinyi:selection", "value": "direct-compiled-source"},
+            ],
+        }
+        for path, reference in zip(DIRECT_SOURCES, file_refs)
+    ]
+    return {
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.6",
+        "serialNumber": f"urn:uuid:{uuid.uuid5(uuid.NAMESPACE_URL, source_commit + artifact_sha256)}",
+        "version": 1,
+        "metadata": {
+            "component": {
+                "type": "library",
+                "bom-ref": artifact_ref,
+                "name": "libxy_device.a",
+                "group": "XinYi",
+                "version": source_commit,
+                "hashes": [{"alg": "SHA-256", "content": artifact_sha256}],
+                "licenses": [{"license": {"id": "Apache-2.0"}}],
+                "properties": [
+                    {"name": "xinyi:artifact-size", "value": str(artifact_size)},
+                    {"name": "xinyi:source-commit", "value": source_commit},
+                    {"name": "xinyi:source-archive-sha256", "value": source_archive_sha256},
+                    {"name": "xinyi:scope", "value": "pc-reproducibility-gate-only"},
+                    {"name": "xinyi:approval", "value": "REVIEW_PENDING"},
+                ],
+            }
+        },
+        "components": components,
+        "dependencies": [{"ref": artifact_ref, "dependsOn": file_refs}],
+    }
+
+
+def properties_by_name(component: dict[str, object]) -> dict[str, str]:
+    properties = component.get("properties")
+    if not isinstance(properties, list):
+        raise SystemExit("SBOM component properties are missing")
+    return {
+        str(item.get("name")): str(item.get("value"))
+        for item in properties
+        if isinstance(item, dict)
+    }
+
+
+def validate_sbom(sbom: dict[str, object], artifact_sha256: str) -> None:
+    if sbom.get("bomFormat") != "CycloneDX" or sbom.get("specVersion") != "1.6":
+        raise SystemExit("archived SBOM is not CycloneDX JSON 1.6")
+    metadata = sbom.get("metadata")
+    component = metadata.get("component") if isinstance(metadata, dict) else None
+    if not isinstance(component, dict) or component.get("name") != ARTIFACT.name:
+        raise SystemExit("archived SBOM metadata component mismatch")
+    hashes = component.get("hashes")
+    if hashes != [{"alg": "SHA-256", "content": artifact_sha256}]:
+        raise SystemExit("archived SBOM artifact SHA-256 binding mismatch")
+    properties = properties_by_name(component)
+    if properties.get("xinyi:approval") != "REVIEW_PENDING":
+        raise SystemExit("archived SBOM approval boundary mismatch")
+    if len(properties.get("xinyi:source-commit", "")) != 40:
+        raise SystemExit("archived SBOM source commit binding is invalid")
+    source_components = sbom.get("components")
+    if not isinstance(source_components, list) or len(source_components) != len(DIRECT_SOURCES):
+        raise SystemExit("archived SBOM direct source inventory mismatch")
+    names = [item.get("name") for item in source_components if isinstance(item, dict)]
+    if names != DIRECT_SOURCES:
+        raise SystemExit("archived SBOM direct source ordering/content mismatch")
+    dependency = sbom.get("dependencies")
+    expected_refs = [f"file:{path}" for path in DIRECT_SOURCES]
+    if not isinstance(dependency, list) or len(dependency) != 1 or dependency[0].get("dependsOn") != expected_refs:
+        raise SystemExit("archived SBOM dependency closure mismatch")
+
+
 def extract(archive: bytes, destination: Path) -> None:
     destination.mkdir()
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
@@ -153,9 +284,17 @@ def verify_archived_artifact(artifact_dir: Path) -> None:
     actual = hashlib.sha256(artifact.read_bytes()).hexdigest()
     if actual != expected:
         raise SystemExit(f"archived artifact SHA-256 mismatch: expected={expected} actual={actual}")
+    sbom_path = artifact_dir / SBOM
+    if not sbom_path.is_file():
+        raise SystemExit("archived CycloneDX SBOM is missing")
+    try:
+        sbom = json.loads(sbom_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"archived CycloneDX SBOM is invalid JSON: {exc}") from exc
+    validate_sbom(sbom, actual)
     print(
         f"pc_artifact_checksum_ok artifact={artifact} sha256={actual} "
-        "verification=independent release_scope=blocked"
+        "sbom=cyclonedx-1.6-verified verification=independent release_scope=blocked"
     )
 
 
@@ -221,6 +360,7 @@ def main() -> int:
 
     manifest = load_environment_manifest()
     artifact_manifest = load_artifact_manifest()
+    load_sbom_policy()
     identity = {
         "system": platform.system(),
         "machine": platform.machine(),
@@ -252,12 +392,19 @@ def main() -> int:
 
     artifact_output = None
     checksum_output = None
+    sbom_output = None
     if args.artifact_dir is not None:
         args.artifact_dir.mkdir(parents=True, exist_ok=True)
         artifact_output = args.artifact_dir / ARTIFACT.name
         checksum_output = args.artifact_dir / f"{ARTIFACT.name}.sha256"
         artifact_output.write_bytes(first_payload)
         checksum_output.write_text(f"{first_hash}  {ARTIFACT.name}\n", encoding="utf-8")
+        sbom_output = args.artifact_dir / SBOM
+        sbom = generate_sbom(
+            archive, source_sha, source_archive_sha256, first_hash, first_size
+        )
+        validate_sbom(sbom, first_hash)
+        sbom_output.write_text(json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     record = {
         "schema_version": 1,
@@ -277,6 +424,9 @@ def main() -> int:
         "artifact_set_status": artifact_manifest["status"],
         "archived_artifact": str(artifact_output) if artifact_output is not None else None,
         "archived_checksum": str(checksum_output) if checksum_output is not None else None,
+        "archived_sbom": str(sbom_output) if sbom_output is not None else None,
+        "sbom_format": "CycloneDX JSON 1.6" if sbom_output is not None else None,
+        "sbom_approval": "REVIEW_PENDING",
         "evidence": "PC static library only",
         "release_scope": "blocked",
     }
@@ -288,6 +438,7 @@ def main() -> int:
         "pc_artifact_reproducibility_ok source=git-archive-head "
         f"target={TARGET} artifact={ARTIFACT} sha256={first_hash} size={first_size} "
         f"archived={artifact_output is not None} "
+        f"sbom={sbom_output is not None} "
         f"identity={json.dumps(identity, sort_keys=True, separators=(',', ':'))} "
         "evidence=pc-static-library-only release_scope=blocked"
     )

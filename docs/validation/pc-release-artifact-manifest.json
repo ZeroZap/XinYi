@@ -15,6 +15,7 @@
         "files": [
           "libxy_device.a",
           "libxy_device.a.sha256",
+          "libxy_device.a.cdx.json",
           "libxy_device.a.sig",
           "pc-artifact-signing-public.pem"
         ],
