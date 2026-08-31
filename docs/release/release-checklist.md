@@ -72,4 +72,9 @@ A release tag does not upgrade any evidence level.
   proves signature plumbing and tamper detection but provides no stable release identity or publication
   authority. No release-owned key, published signed checksum, or
   immutable container digest or complete dependency lock exists.
+- The [release signing policy](../validation/release-signing-policy.json) records Ed25519 as the intended
+  release-signature algorithm, but release identity is `UNASSIGNED`, key custody is
+  `NOT_ESTABLISHED`, and signed publication remains `BLOCKED`. A named release owner, protected
+  external signer, custodian, recovery/revocation procedure, and independently published public-key
+  fingerprint are required before any release-owned key is created or used.
 - Therefore Sprint 6 and R1 remain blocked; this checklist does not authorize a release.

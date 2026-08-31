@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CHECKLIST = ROOT / "docs" / "release" / "release-checklist.md"
 EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 ARTIFACT_MANIFEST = ROOT / "docs" / "validation" / "pc-release-artifact-manifest.json"
+SIGNING_POLICY = ROOT / "docs" / "validation" / "release-signing-policy.json"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -112,6 +113,48 @@ def validate() -> list[str]:
             for phrase in ("not a complete release artifact set", "hardware", "security", "R1"):
                 require(phrase in boundary,
                         f"PC release artifact evidence boundary missing phrase: {phrase}", errors)
+
+    require(SIGNING_POLICY.is_file(), "release signing policy is missing", errors)
+    if SIGNING_POLICY.is_file():
+        try:
+            policy = json.loads(SIGNING_POLICY.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"release signing policy is invalid JSON: {exc}")
+        else:
+            required = {
+                "schema_version",
+                "status",
+                "algorithm",
+                "release_identity",
+                "key_custody",
+                "publication",
+                "approval_requirements",
+                "evidence_boundary",
+            }
+            missing = sorted(required - policy.keys())
+            require(not missing, f"release signing policy missing fields: {missing}", errors)
+            require(policy.get("status") == "DESIGN_RECORDED_NO_RELEASE_KEY",
+                    "release signing policy must remain fail-closed until a release key exists", errors)
+            require(policy.get("algorithm") == "Ed25519",
+                    "release signing policy algorithm mismatch", errors)
+            require(policy.get("release_identity") == "UNASSIGNED",
+                    "release signing identity must remain unassigned", errors)
+            require(policy.get("key_custody") == "NOT_ESTABLISHED",
+                    "release signing key custody must remain unestablished", errors)
+            require(policy.get("publication") == "BLOCKED",
+                    "signed release publication must remain blocked", errors)
+            approvals = policy.get("approval_requirements")
+            require(isinstance(approvals, list) and approvals == [
+                        "named release owner",
+                        "documented key custodian",
+                        "recovery and revocation procedure",
+                        "independent signature verification record",
+                    ],
+                    "release signing approval requirements mismatch", errors)
+            boundary = str(policy.get("evidence_boundary", ""))
+            for phrase in ("ephemeral CI key", "not a release identity", "R1 remains blocked"):
+                require(phrase in boundary,
+                        f"release signing policy evidence boundary missing phrase: {phrase}", errors)
 
     return errors
 

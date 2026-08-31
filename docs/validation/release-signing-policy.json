@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "status": "DESIGN_RECORDED_NO_RELEASE_KEY",
+  "algorithm": "Ed25519",
+  "release_identity": "UNASSIGNED",
+  "key_custody": "NOT_ESTABLISHED",
+  "publication": "BLOCKED",
+  "intended_scope": [
+    "release artifact checksums",
+    "release artifact manifest"
+  ],
+  "prohibited_uses": [
+    "reuse of ephemeral CI gate keys as release keys",
+    "committing private keys or passphrases to the repository",
+    "publishing signed artifacts before a named release owner and key custodian approve the release identity",
+    "treating signature plumbing as security review or R1 evidence"
+  ],
+  "approval_requirements": [
+    "named release owner",
+    "documented key custodian",
+    "recovery and revocation procedure",
+    "independent signature verification record"
+  ],
+  "custody_decision_required": [
+    "select an external protected key store or hardware-backed signing service",
+    "define least-privilege signer access and audit retention",
+    "define offline recovery, rotation, and revocation handling",
+    "publish the trusted public-key fingerprint through an independently controlled channel"
+  ],
+  "evidence_boundary": "The existing ephemeral CI key proves only gate plumbing and tamper detection; an ephemeral CI key is not a release identity. No release private key, custodian, protected signer, recovery procedure, revocation procedure, or trusted public-key publication channel has been established, so signed publication is blocked and R1 remains blocked."
+}
