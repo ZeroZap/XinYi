@@ -150,7 +150,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-14 | P1 | 首个 release input clean-export 可复现 gate | DONE | Zero | S5-13（DONE） | RED：直接配置 exported canonical unit tree 因 ignored Crypto sources 缺失而 fail；现使用 tracked minimal CMake smoke 从 `git archive HEAD` 配置、构建并运行 canonical device-driver template，release scope 仍为 `excluded-pending-review`；focused 3/3、Host 198/198、PC root 与 `git diff --check` 通过 | `b402ba74` | 2026-08-31 |
 | S5-15 | P0 | Clean export canonical Host source closure | DONE | Zero | S5-14（DONE） | RED：`git archive HEAD` 的 canonical unit configure 因 LWC runtime sources 被 `.gitignore` 排除而失败；现跟踪 Ascon/TinyJambu/Photon Beetle canonical module sources，staged-tree clean export configure/build 后 195/195 非递归 CTest 通过，focused `crypto_lwc`、Host 198/198、PC root 与 `git diff --check` 通过；不升级 LWC 安全/provenance/release 声明 | `cd48110b` | 2026-08-31 |
 | S5-16 | P0 | Canonical Host committed clean-export gate | DONE | Zero | S5-15（DONE） | 将一次性 staged-tree probe 固化为 `git archive HEAD` 独立 configure/build/CTest；排除 4 个依赖 Git 仓库状态或递归 archive 的 policy tests，其余 195/195 通过；Host 199/199、PC root 与 `git diff --check` 通过 | `a383327e` | 2026-08-31 |
-| S5-17 | P0 | Canonical CI 接入 committed clean-export gate | DONE | Zero | S5-16（DONE） | canonical workflow 将常规 Host 198 项与 committed clean-export gate 显式分步执行，避免递归/重复且确保该 gate 在 CI 必跑；workflow YAML、focused 1/1（内部 195/195）、Host 199/199、PC root 与 `git diff --check` 通过 | 本轮提交 | 2026-08-31 |
+| S5-17 | P0 | Canonical CI 接入 committed clean-export gate | DONE | Zero | S5-16（DONE） | canonical workflow 将常规 Host 198 项与 committed clean-export gate 显式分步执行，避免递归/重复且确保该 gate 在 CI 必跑；workflow YAML、focused 1/1（内部 195/195）、Host 199/199、PC root 与 `git diff --check` 通过 | `8025a05b` | 2026-08-31 |
+| S5-18 | P0 | PC static-library artifact reproducibility 最小 gate | DONE | Zero | S5-17（DONE） | RED：root 默认配置没有 `xy_device` target，证明 artifact probe 必须显式固定 release config；现从同一 `git archive HEAD` 两次独立配置/构建 PC Release `xy_device`，比较 `libxy_device.a` SHA-256 与 size，并在 canonical CI 独立必跑；focused 1/1、Host 200/200、PC root 与 `git diff --check` 通过。仅为单一 PC static library，不构成 tagged release/target/SBOM/R1 | 本轮提交 | 2026-08-31 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -819,3 +820,17 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   artifact、SBOM/license、硬件、安全或 R1 证据；Sprint 6 保持 `BLOCKED`。
 - 下一步：建立 tagged/clean-checkout artifact reproducibility 最小 probe；S5-01 runtime/实板继续等待
   board-correct startup/link owner。
+
+### 2026-08-31 Sprint 5 PC artifact reproducibility 最小 gate
+
+- RED：首个 probe 使用 root 默认配置时不存在 `xy_device` target，明确 artifact gate 必须固定
+  `COMPONENT_DEVICE=ON` 与 PC Release 配置，不能依赖开发树缓存或默认组件集合。
+- 实现：脚本从同一 committed `git archive HEAD` 提取两份独立 source tree，分别 configure/build
+  `xy_device`，并要求 `libxy_device.a` SHA-256 与 byte size 完全一致；canonical CI 将该高成本 gate
+  与常规 Host、committed clean-export 分步执行。
+- 验证：focused `pc_artifact_reproducibility` 1/1；Host 200/200；PC Release root build；workflow YAML；
+  `git diff --check`。
+- 边界：只证明当前环境中单一 PC static library 的 committed-source byte reproducibility；不构成 tag、
+  完整 PC/MCU artifact set、toolchain container、SBOM/license、签名、硬件、安全或 R1 证据。
+- 下一步：固定 release build environment/toolchain identity，再扩展到选定 PC artifact manifest；实板与
+  FreeRTOS runtime 继续保持阻塞。

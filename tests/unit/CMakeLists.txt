@@ -115,6 +115,10 @@ add_test(NAME canonical_host_clean_checkout
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_canonical_host_clean_checkout.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pc_artifact_reproducibility
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_pc_artifact_reproducibility.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME net_product_selection
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/check_net_product_selection.py
     WORKING_DIRECTORY ${ROOT}

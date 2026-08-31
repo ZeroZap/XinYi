@@ -36,12 +36,17 @@ jobs:
       - name: Run unit tests
         run: >-
           ctest --test-dir build/tests/unit --output-on-failure
-          -E '^canonical_host_clean_checkout$'
+          -E '^(canonical_host_clean_checkout|pc_artifact_reproducibility)$'
 
       - name: Verify canonical Host committed clean export
         run: >-
           ctest --test-dir build/tests/unit --output-on-failure
           -R '^canonical_host_clean_checkout$'
+
+      - name: Verify reproducible PC static-library artifact
+        run: >-
+          ctest --test-dir build/tests/unit --output-on-failure
+          -R '^pc_artifact_reproducibility$'
 
       - name: Configure PC root build
         run: cmake -S . -B build/pc -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF

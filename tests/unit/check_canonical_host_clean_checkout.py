@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORY_STATE_TESTS = (
     "supply_chain_inventory|release_input_inventory|release_input_clean_checkout|"
-    "canonical_host_clean_checkout"
+    "canonical_host_clean_checkout|pc_artifact_reproducibility"
 )
 
 
