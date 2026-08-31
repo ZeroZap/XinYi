@@ -157,6 +157,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-21 | P0 | PC release artifact set 事实源 | DONE | Zero | S5-20（DONE） | RED：release readiness 因 artifact manifest 缺失失败；现机器守护唯一选定项 `xy_device` / `libxy_device.a`、固定 build config 与 gate-only 边界，并由 reproducibility record 引用 manifest schema/status；focused 2/2、Host 200/200、PC root 与 `git diff --check` 通过。不构成完整 PC/MCU artifact set、SBOM、签名或 R1 | `a7691932` | 2026-08-31 |
 | S5-22 | P0 | PC reproducible gate artifact 归档 | DONE | Zero | S5-21（DONE） | RED：既有脚本拒绝 `--artifact-dir`，证明 CI 只归档 evidence JSON、未保存已验证 binary；现双构建一致后输出 `libxy_device.a` 与 SHA-256，manifest 固定文件集/14 天 retention，canonical CI 缺文件即失败上传；focused artifact/readiness contract、Host 200/200、PC root、workflow YAML 与 `git diff --check` 通过。checksum 未独立验证/签名，不构成 release publication 或 R1 | `2130ecf2` | 2026-08-31 |
 | S5-23 | P0 | PC 归档制品 checksum 独立验证 | DONE | Zero | S5-22（DONE） | RED：脚本拒绝 `--verify-artifact-dir`，证明归档 checksum 只生成未独立读取校验；现 CI 在上传前以独立调用重读 library/checksum，严格校验格式、文件名与 SHA-256，并以篡改 artifact 负向 probe 证明 fail-closed；focused 2/2、Host 200/200、PC root、workflow YAML 与 `git diff --check` 通过。仍无签名/发布/不可变环境，不构成 R1 | `2f4e9ff6` | 2026-09-01 |
+| S5-24 | P0 | PC 归档制品签名管道与独立验证 | DONE | Zero | S5-23（DONE） | RED：release guard 要求 signature 文件/public key/签名边界后按预期失败 2 项；现 CI 用每轮临时 Ed25519 key 签名归档 library，丢弃 private key，并由独立调用重读验证 checksum 与 signature；篡改 artifact/signature 负向 probe 均 fail-closed；focused 2/2、Host 200/200、PC root、workflow YAML 与 `git diff --check` 通过。临时 key 无 release identity/publication authority，不构成签名发布或 R1 | `05720b61` | 2026-09-01 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -853,3 +854,17 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   transitive dependency lock、tagged checkout、target/hardware/security 或 R1 证据。
 - 下一步：建立选定 PC artifact manifest 并明确 artifact set；完整 release environment 仍需 immutable
   container/toolchain digest 与 SBOM/license 审查。
+
+### 2026-09-01 Sprint 5 PC artifact ephemeral signature gate
+
+- RED：`release_readiness` 将归档文件集扩展为 signature/public key，并要求 Ed25519 ephemeral-key
+  边界后按预期失败 2 项，证明此前只有 checksum、没有签名管道。
+- 实现：reproducibility helper 新增独立 sign mode；CI 生成每轮临时 Ed25519 key，归档 signature 与
+  public key、丢弃 private key，再以独立 verify mode 同时重读 checksum 与 signature。
+- 验证：focused `release_readiness` + `pc_artifact_reproducibility` 2/2；真实双构建 artifact 后签名/
+  验签成功；篡改 artifact 与 signature 均 fail-closed；Host 200/200、PC Release root、workflow YAML 与
+  `git diff --check` 通过。
+- 边界：ephemeral key 只证明 CI 签名/验证管道和篡改检测；它没有稳定 release identity、key custody
+  或 publication authority，不满足 release checklist 的 signed-publication 门禁，Sprint 6/R1 保持阻塞。
+- 下一步：无硬件时建立 release-owned signing identity/key-custody 决策记录，或推进 artifact SBOM/license
+  review；不得把临时 CI key 升级为 release signing key。
