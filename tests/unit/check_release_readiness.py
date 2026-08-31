@@ -3,11 +3,13 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECKLIST = ROOT / "docs" / "release" / "release-checklist.md"
 EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
+ARTIFACT_MANIFEST = ROOT / "docs" / "validation" / "pc-release-artifact-manifest.json"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -47,6 +49,46 @@ def validate() -> list[str]:
             "release checklist must not claim R1 qualification", errors)
     require("docs/release/release-checklist.md" in evidence,
             "component evidence matrix must index the release checklist", errors)
+    require(ARTIFACT_MANIFEST.is_file(), "PC release artifact manifest is missing", errors)
+    if ARTIFACT_MANIFEST.is_file():
+        try:
+            manifest = json.loads(ARTIFACT_MANIFEST.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"PC release artifact manifest is invalid JSON: {exc}")
+        else:
+            required = {
+                "schema_version",
+                "status",
+                "platform",
+                "build_type",
+                "source",
+                "artifacts",
+                "excluded_scope",
+                "evidence_boundary",
+            }
+            missing = sorted(required - manifest.keys())
+            require(not missing, f"PC release artifact manifest missing fields: {missing}", errors)
+            require(manifest.get("status") == "SELECTED_PC_ARTIFACT_SET_RECORDED",
+                    "PC release artifact manifest status is not fail-closed", errors)
+            require(manifest.get("platform") == "PC" and manifest.get("build_type") == "Release",
+                    "PC release artifact manifest platform/build type mismatch", errors)
+            require(manifest.get("source") == "git archive HEAD",
+                    "PC release artifact manifest source must be git archive HEAD", errors)
+            artifacts = manifest.get("artifacts")
+            require(isinstance(artifacts, list) and len(artifacts) == 1,
+                    "PC release artifact manifest must select exactly one bounded artifact", errors)
+            if isinstance(artifacts, list) and len(artifacts) == 1:
+                artifact = artifacts[0]
+                require(artifact.get("target") == "xy_device",
+                        "PC release artifact manifest target must be xy_device", errors)
+                require(artifact.get("path") == "components/device/libxy_device.a",
+                        "PC release artifact manifest path mismatch", errors)
+                require(artifact.get("selection") == "reproducibility-gate-only",
+                        "PC release artifact selection must remain gate-only", errors)
+            boundary = str(manifest.get("evidence_boundary", ""))
+            for phrase in ("not a complete release artifact set", "hardware", "security", "R1"):
+                require(phrase in boundary,
+                        f"PC release artifact evidence boundary missing phrase: {phrase}", errors)
 
     return errors
 

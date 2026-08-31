@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TARGET = "xy_device"
 ARTIFACT = Path("components/device/libxy_device.a")
 ENVIRONMENT_MANIFEST = ROOT / "docs/validation/pc-release-build-environment.json"
+ARTIFACT_MANIFEST = ROOT / "docs/validation/pc-release-artifact-manifest.json"
 
 
 def parse_args() -> argparse.Namespace:
@@ -77,6 +78,21 @@ def load_environment_manifest() -> dict[str, object]:
     return manifest
 
 
+def load_artifact_manifest() -> dict[str, object]:
+    manifest = json.loads(ARTIFACT_MANIFEST.read_text(encoding="utf-8"))
+    artifacts = manifest.get("artifacts")
+    if manifest.get("status") != "SELECTED_PC_ARTIFACT_SET_RECORDED":
+        raise SystemExit("PC release artifact manifest status is not fail-closed")
+    if not isinstance(artifacts, list) or len(artifacts) != 1:
+        raise SystemExit("PC release artifact manifest must select exactly one artifact")
+    selected = artifacts[0]
+    if selected.get("target") != TARGET or selected.get("path") != str(ARTIFACT):
+        raise SystemExit("PC release artifact manifest does not match the reproducibility target")
+    if selected.get("selection") != "reproducibility-gate-only":
+        raise SystemExit("PC release artifact manifest selection must remain gate-only")
+    return manifest
+
+
 def extract(archive: bytes, destination: Path) -> None:
     destination.mkdir()
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
@@ -109,6 +125,7 @@ def build_artifact(archive: bytes, root: Path, name: str) -> tuple[str, int]:
 def main() -> int:
     args = parse_args()
     manifest = load_environment_manifest()
+    artifact_manifest = load_artifact_manifest()
     identity = {
         "system": platform.system(),
         "machine": platform.machine(),
@@ -152,6 +169,8 @@ def main() -> int:
         ],
         "identity": identity,
         "environment_manifest_schema_version": manifest["schema_version"],
+        "artifact_manifest_schema_version": artifact_manifest["schema_version"],
+        "artifact_set_status": artifact_manifest["status"],
         "evidence": "PC static library only",
         "release_scope": "blocked",
     }

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "SELECTED_PC_ARTIFACT_SET_RECORDED",
+  "platform": "PC",
+  "build_type": "Release",
+  "source": "git archive HEAD",
+  "artifacts": [
+    {
+      "id": "xy_device_static_library",
+      "target": "xy_device",
+      "path": "components/device/libxy_device.a",
+      "selection": "reproducibility-gate-only",
+      "cmake_options": [
+        "HAL_PLATFORM=PC",
+        "CMAKE_BUILD_TYPE=Release",
+        "KCONFIG_OVERRIDES=BUILD_TESTING=OFF;COMPONENT_DEVICE=ON"
+      ]
+    }
+  ],
+  "excluded_scope": [
+    "complete PC firmware artifact set",
+    "MCU artifacts",
+    "installable packages",
+    "SBOM and license approval",
+    "checksums and signatures",
+    "hardware and security evidence"
+  ],
+  "evidence_boundary": "The selected set contains one PC static library for reproducibility gating only; it is not a complete release artifact set and does not establish target, hardware, security, signed publication, or R1 evidence."
+}

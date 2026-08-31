@@ -63,6 +63,8 @@ A release tag does not upgrade any evidence level.
   every tracked top-level `examples/` and `projects/` entry. All remain `excluded-pending-review`;
   Host CTest or compile-only evidence does not select an entry for release support.
 - The [PC release build environment](../validation/pc-release-build-environment.json) records a fixed
-  Ubuntu 24.04 runner contract and emits actual CMake/CC/AR/Python identity for the single `xy_device`
-  artifact gate, but no immutable container digest, complete dependency lock, or release artifact set exists.
+  Ubuntu 24.04 runner contract and emits actual CMake/CC/AR/Python identity. The bounded
+  [PC release artifact manifest](../validation/pc-release-artifact-manifest.json) selects only
+  `xy_device` / `libxy_device.a` for the current reproducibility gate. This is not a complete release
+  artifact set; no immutable container digest or complete dependency lock exists.
 - Therefore Sprint 6 and R1 remain blocked; this checklist does not authorize a release.
