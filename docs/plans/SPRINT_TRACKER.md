@@ -149,7 +149,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-13 | P1 | Examples/projects release input 清单 | DONE | Zero | S5-11（DONE）；S5-12（DONE） | RED：focused guard 因 release input inventory 缺失失败；现机器守护 16 个 tracked top-level examples 与 16 个 projects，逐项区分 Host/compile-only/candidate/historical，且全部保持 `excluded-pending-review`；focused 5/5、Host 197/197、PC root 与 `git diff --check` 通过，不升级 release/hardware 声明 | `9f7bf41d` | 2026-08-31 |
 | S5-14 | P1 | 首个 release input clean-export 可复现 gate | DONE | Zero | S5-13（DONE） | RED：直接配置 exported canonical unit tree 因 ignored Crypto sources 缺失而 fail；现使用 tracked minimal CMake smoke 从 `git archive HEAD` 配置、构建并运行 canonical device-driver template，release scope 仍为 `excluded-pending-review`；focused 3/3、Host 198/198、PC root 与 `git diff --check` 通过 | `b402ba74` | 2026-08-31 |
 | S5-15 | P0 | Clean export canonical Host source closure | DONE | Zero | S5-14（DONE） | RED：`git archive HEAD` 的 canonical unit configure 因 LWC runtime sources 被 `.gitignore` 排除而失败；现跟踪 Ascon/TinyJambu/Photon Beetle canonical module sources，staged-tree clean export configure/build 后 195/195 非递归 CTest 通过，focused `crypto_lwc`、Host 198/198、PC root 与 `git diff --check` 通过；不升级 LWC 安全/provenance/release 声明 | `cd48110b` | 2026-08-31 |
-| S5-16 | P0 | Canonical Host committed clean-export gate | DONE | Zero | S5-15（DONE） | 将一次性 staged-tree probe 固化为 `git archive HEAD` 独立 configure/build/CTest；排除 4 个依赖 Git 仓库状态或递归 archive 的 policy tests，其余 195/195 通过；Host 199/199、PC root 与 `git diff --check` 通过 | 本轮提交 | 2026-08-31 |
+| S5-16 | P0 | Canonical Host committed clean-export gate | DONE | Zero | S5-15（DONE） | 将一次性 staged-tree probe 固化为 `git archive HEAD` 独立 configure/build/CTest；排除 4 个依赖 Git 仓库状态或递归 archive 的 policy tests，其余 195/195 通过；Host 199/199、PC root 与 `git diff --check` 通过 | `a383327e` | 2026-08-31 |
+| S5-17 | P0 | Canonical CI 接入 committed clean-export gate | DONE | Zero | S5-16（DONE） | canonical workflow 将常规 Host 198 项与 committed clean-export gate 显式分步执行，避免递归/重复且确保该 gate 在 CI 必跑；workflow YAML、focused 1/1（内部 195/195）、Host 199/199、PC root 与 `git diff --check` 通过 | 本轮提交 | 2026-08-31 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -805,4 +806,16 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `git diff --check` 通过。
 - 状态：只构成 committed-source Host reproducibility gate，不构成 tagged clean checkout、PC/target
   artifact reproducibility、SBOM/license、硬件、安全或 R1 证据；Sprint 6 保持 `BLOCKED`。
-- 下一步：将 gate 接入 canonical CI；S5-01 runtime/实板继续等待 board-correct startup/link owner。
+
+### 2026-08-31 Sprint 5 Canonical CI clean-export 接入
+
+- RED：workflow 文本 probe 证明 committed clean-export CTest 只隐式包含在全量 Host 命令中，缺少独立的
+  canonical CI 步骤，无法从 CI 日志直接确认该高成本可复现性 gate 的执行边界。
+- 实现：常规 Host 步骤显式排除 `canonical_host_clean_checkout`，新增独立必跑步骤按精确 CTest 名称执行；
+  避免重复运行，同时保留失败即阻断的 canonical workflow 语义。
+- 验证：workflow wiring probe 与 YAML parse 通过；focused 1/1（clean export 内部 195/195）；Host
+  199/199；PC Release root build；`git diff --check`。
+- 边界：该 CI wiring 只提升 committed Host source 可复现性可见性，不构成 tagged checkout、target
+  artifact、SBOM/license、硬件、安全或 R1 证据；Sprint 6 保持 `BLOCKED`。
+- 下一步：建立 tagged/clean-checkout artifact reproducibility 最小 probe；S5-01 runtime/实板继续等待
+  board-correct startup/link owner。
