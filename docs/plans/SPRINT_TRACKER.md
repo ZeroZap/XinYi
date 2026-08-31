@@ -148,6 +148,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-12 | P1 | Tracked source dependency inventory 前置 | DONE | Zero | S5-11（DONE） | RED：focused guard 因 inventory 缺失失败；现机器守护 7 个 vendored source inputs 与 10 个 top-level gitlinks/path/SHA，旧候选许可证清单标记 superseded；状态固定 `REVIEW_PENDING`，不冒充 artifact SBOM/license approval；focused 1/1、Host 196/196、PC root 与 `git diff --check` 通过 | `86f6cdde` | 2026-08-31 |
 | S5-13 | P1 | Examples/projects release input 清单 | DONE | Zero | S5-11（DONE）；S5-12（DONE） | RED：focused guard 因 release input inventory 缺失失败；现机器守护 16 个 tracked top-level examples 与 16 个 projects，逐项区分 Host/compile-only/candidate/historical，且全部保持 `excluded-pending-review`；focused 5/5、Host 197/197、PC root 与 `git diff --check` 通过，不升级 release/hardware 声明 | `9f7bf41d` | 2026-08-31 |
 | S5-14 | P1 | 首个 release input clean-export 可复现 gate | DONE | Zero | S5-13（DONE） | RED：直接配置 exported canonical unit tree 因 ignored Crypto sources 缺失而 fail；现使用 tracked minimal CMake smoke 从 `git archive HEAD` 配置、构建并运行 canonical device-driver template，release scope 仍为 `excluded-pending-review`；focused 3/3、Host 198/198、PC root 与 `git diff --check` 通过 | `b402ba74` | 2026-08-31 |
+| S5-15 | P0 | Clean export canonical Host source closure | DONE | Zero | S5-14（DONE） | RED：`git archive HEAD` 的 canonical unit configure 因 LWC runtime sources 被 `.gitignore` 排除而失败；现跟踪 Ascon/TinyJambu/Photon Beetle canonical module sources，staged-tree clean export configure/build 后 195/195 非递归 CTest 通过，focused `crypto_lwc`、Host 198/198、PC root 与 `git diff --check` 通过；不升级 LWC 安全/provenance/release 声明 | `cd48110b` | 2026-08-31 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -777,3 +778,18 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   full Host/PC root 与 `git diff --check` 见本轮提交 gate。
 - 下一步：保持 S5-01 runtime/实板阻塞；下一无硬件 slice 审查第二个可独立导出的 Host example，或先处理
   ignored-but-required source 对 clean checkout canonical Host suite 的可复现性风险，不将单 entry gate 泛化为全仓可复现。
+
+### 2026-08-31 Sprint 5 Clean export canonical Host source 收口
+
+- RED：从 `git archive HEAD` 导出的 canonical `tests/unit` 配置因
+  `components/crypto/xy_ascon`、`xy_tinyjambu`、`xy_photon_beetle` 被 `.gitignore` 排除而失败；
+  本地 Host 绿灯依赖未跟踪源码，无法由仓库快照重建。
+- 收口：移除三个 canonical LWC module 目录的 ignore 规则并纳入版本控制；不修改算法行为，
+  其 product classification 继续保持 `test-only`、provenance/license `review-pending`。
+- 验证：focused `crypto_lwc` 1/1；staged-tree clean export 独立 configure/build 后，排除三个会递归
+  调用 `git archive HEAD` 的仓库状态 policy tests，其余 195/195 CTest 通过；常规 Host 198/198、
+  PC Release root build 与 `git diff --check` 通过。
+- 边界：该结果只关闭 tracked-source reproducibility blocker，不构成 LWC KAT 完整性、安全、
+  side-channel、硬件、artifact reproducibility 或 R1。
+- 下一步：提交看板校准并推送；随后审查剩余 ignored-but-required source，或选择第二个独立 Host
+  release input，保持 S5-01 runtime/实板阻塞不被 Host gate 替代。
