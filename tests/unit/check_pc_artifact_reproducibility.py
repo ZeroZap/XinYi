@@ -28,6 +28,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="write the verified gate artifact and SHA-256 checksum to this directory",
     )
+    parser.add_argument(
+        "--verify-artifact-dir",
+        type=Path,
+        help="independently verify an archived artifact against its SHA-256 file",
+    )
     return parser.parse_args()
 
 
@@ -127,8 +132,36 @@ def build_artifact(archive: bytes, root: Path, name: str) -> tuple[str, int, byt
     return hashlib.sha256(payload).hexdigest(), len(payload), payload
 
 
+def verify_archived_artifact(artifact_dir: Path) -> None:
+    artifact = artifact_dir / ARTIFACT.name
+    checksum = artifact_dir / f"{ARTIFACT.name}.sha256"
+    if not artifact.is_file() or not checksum.is_file():
+        raise SystemExit("archived artifact or SHA-256 file is missing")
+
+    fields = checksum.read_text(encoding="utf-8").strip().split()
+    if len(fields) != 2 or fields[1] != ARTIFACT.name:
+        raise SystemExit("archived SHA-256 file has an invalid format or artifact name")
+    expected = fields[0]
+    if len(expected) != 64 or any(character not in "0123456789abcdef" for character in expected):
+        raise SystemExit("archived SHA-256 value is invalid")
+
+    actual = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    if actual != expected:
+        raise SystemExit(f"archived artifact SHA-256 mismatch: expected={expected} actual={actual}")
+    print(
+        f"pc_artifact_checksum_ok artifact={artifact} sha256={actual} "
+        "verification=independent release_scope=blocked"
+    )
+
+
 def main() -> int:
     args = parse_args()
+    if args.verify_artifact_dir is not None:
+        if args.record is not None or args.artifact_dir is not None:
+            raise SystemExit("--verify-artifact-dir cannot be combined with build output options")
+        verify_archived_artifact(args.verify_artifact_dir)
+        return 0
+
     manifest = load_environment_manifest()
     artifact_manifest = load_artifact_manifest()
     identity = {

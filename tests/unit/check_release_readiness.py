@@ -93,6 +93,8 @@ def validate() -> list[str]:
                             "PC release artifact CI archive name mismatch", errors)
                     require(archive.get("files") == ["libxy_device.a", "libxy_device.a.sha256"],
                             "PC release artifact CI archive files mismatch", errors)
+                    require(archive.get("checksum_verification") == "independent-ci-step",
+                            "PC release artifact checksum verification mismatch", errors)
                     require(archive.get("retention_days") == 14,
                             "PC release artifact CI archive retention mismatch", errors)
             boundary = str(manifest.get("evidence_boundary", ""))

@@ -67,6 +67,7 @@ A release tag does not upgrade any evidence level.
   [PC release artifact manifest](../validation/pc-release-artifact-manifest.json) selects only
   `xy_device` / `libxy_device.a` for the current reproducibility gate. This is not a complete release
   artifact set. Canonical CI archives that verified library plus its SHA-256 for 14 days as bounded
-  gate output; the checksum is not independently verified or signed release publication, and no
+  gate output; a separate CI step independently verifies the archived library against that checksum,
+  but it is not signed or published as a release checksum, and no
   immutable container digest or complete dependency lock exists.
 - Therefore Sprint 6 and R1 remain blocked; this checklist does not authorize a release.

@@ -49,6 +49,11 @@ jobs:
           --record build/release-evidence/pc-artifact-reproducibility.json
           --artifact-dir build/release-artifacts/pc
 
+      - name: Independently verify archived PC artifact checksum
+        run: >-
+          python3 tests/unit/check_pc_artifact_reproducibility.py
+          --verify-artifact-dir build/release-artifacts/pc
+
       - name: Upload PC artifact reproducibility evidence
         uses: actions/upload-artifact@v4
         with:

@@ -16,6 +16,7 @@
           "libxy_device.a",
           "libxy_device.a.sha256"
         ],
+        "checksum_verification": "independent-ci-step",
         "retention_days": 14
       },
       "cmake_options": [
@@ -30,8 +31,8 @@
     "MCU artifacts",
     "installable packages",
     "SBOM and license approval",
-    "independently verified or signed release checksums",
+    "signed release checksums",
     "hardware and security evidence"
   ],
-  "evidence_boundary": "The selected set contains one PC static library for reproducibility gating only; it is not a complete release artifact set and does not establish target, hardware, security, signed publication, or R1 evidence."
+  "evidence_boundary": "The selected set contains one PC static library for reproducibility gating only; its archived SHA-256 is independently verified in the same CI job but is not signed or published as a release checksum. This is not a complete release artifact set and does not establish target, hardware, security, signed publication, or R1 evidence."
 }
