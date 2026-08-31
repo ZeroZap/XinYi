@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "PINNED_IDENTITY_RECORDED",
+  "platform": "PC",
+  "architecture": "x86_64",
+  "build_type": "Release",
+  "hal_platform": "PC",
+  "target": "xy_device",
+  "artifact": "components/device/libxy_device.a",
+  "ci_runner": "ubuntu-24.04",
+  "required_tools": [
+    "cmake",
+    "cc",
+    "ar",
+    "python3"
+  ],
+  "identity_capture": {
+    "commands": [
+      "cmake --version",
+      "cc --version",
+      "ar --version",
+      "python3 --version"
+    ],
+    "scope": "The reproducibility gate records the first output line from each tool for every run."
+  },
+  "build_configuration": {
+    "cmake_options": [
+      "HAL_PLATFORM=PC",
+      "CMAKE_BUILD_TYPE=Release",
+      "KCONFIG_OVERRIDES=BUILD_TESTING=OFF;COMPONENT_DEVICE=ON"
+    ],
+    "parallel_jobs": 2,
+    "source": "git archive HEAD"
+  },
+  "evidence_boundary": "PC static library only; this records runner and tool identity but is not a container digest, not a complete dependency lock, not target or hardware evidence, and not R1."
+}

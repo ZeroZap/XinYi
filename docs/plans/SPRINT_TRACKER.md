@@ -152,6 +152,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-16 | P0 | Canonical Host committed clean-export gate | DONE | Zero | S5-15（DONE） | 将一次性 staged-tree probe 固化为 `git archive HEAD` 独立 configure/build/CTest；排除 4 个依赖 Git 仓库状态或递归 archive 的 policy tests，其余 195/195 通过；Host 199/199、PC root 与 `git diff --check` 通过 | `a383327e` | 2026-08-31 |
 | S5-17 | P0 | Canonical CI 接入 committed clean-export gate | DONE | Zero | S5-16（DONE） | canonical workflow 将常规 Host 198 项与 committed clean-export gate 显式分步执行，避免递归/重复且确保该 gate 在 CI 必跑；workflow YAML、focused 1/1（内部 195/195）、Host 199/199、PC root 与 `git diff --check` 通过 | `8025a05b` | 2026-08-31 |
 | S5-18 | P0 | PC static-library artifact reproducibility 最小 gate | DONE | Zero | S5-17（DONE） | RED：root 默认配置没有 `xy_device` target，证明 artifact probe 必须显式固定 release config；现从同一 `git archive HEAD` 两次独立配置/构建 PC Release `xy_device`，比较 `libxy_device.a` SHA-256 与 size，并在 canonical CI 独立必跑；focused 1/1、Host 200/200、PC root 与 `git diff --check` 通过。仅为单一 PC static library，不构成 tagged release/target/SBOM/R1 | `8aa76252` | 2026-08-31 |
+| S5-19 | P0 | PC release build environment/tool identity 固定 | DONE | Zero | S5-18（DONE） | RED：artifact gate 只记录 hash/size，CI runner 使用漂移的 `ubuntu-latest`；现固定 `ubuntu-24.04`，机器守护 PC/x86_64/Release/target/artifact/config/tool 命令并在每次 gate 输出实际 CMake/CC/AR/Python identity；focused 1/1、Host 200/200、PC root、workflow YAML 与 `git diff --check` 通过。尚无 container digest/完整依赖锁，不构成 R1 | `待提交` | 2026-08-31 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -834,3 +835,17 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   完整 PC/MCU artifact set、toolchain container、SBOM/license、签名、硬件、安全或 R1 证据。
 - 下一步：固定 release build environment/toolchain identity，再扩展到选定 PC artifact manifest；实板与
   FreeRTOS runtime 继续保持阻塞。
+
+### 2026-08-31 Sprint 5 PC release build environment identity
+
+- RED：既有 artifact gate 仅输出 SHA-256/size，未记录构建工具 identity；canonical CI 仍使用会漂移的
+  `ubuntu-latest`，无法把同一字节结果关联到明确 runner/tool 环境。
+- 实现：新增机器可读 PC release build environment manifest，固定 PC/x86_64、Release、`xy_device`、
+  artifact 路径、CMake options、并行度和 required tool commands；CI runner 固定为 `ubuntu-24.04`；
+  reproducibility gate 每次输出实际 CMake、CC、AR、Python identity 并拒绝非 Linux/x86_64 host。
+- 验证：focused `pc_artifact_reproducibility` 1/1；Host 200/200；PC Release root build；workflow YAML；
+  `git diff --check`。
+- 边界：这是 runner/tool identity 与单一 PC static-library gate，不是 OCI/container digest、完整系统包/
+  transitive dependency lock、tagged checkout、target/hardware/security 或 R1 证据。
+- 下一步：建立选定 PC artifact manifest 并明确 artifact set；完整 release environment 仍需 immutable
+  container/toolchain digest 与 SBOM/license 审查。
