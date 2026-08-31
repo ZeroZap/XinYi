@@ -158,6 +158,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-22 | P0 | PC reproducible gate artifact 归档 | DONE | Zero | S5-21（DONE） | RED：既有脚本拒绝 `--artifact-dir`，证明 CI 只归档 evidence JSON、未保存已验证 binary；现双构建一致后输出 `libxy_device.a` 与 SHA-256，manifest 固定文件集/14 天 retention，canonical CI 缺文件即失败上传；focused artifact/readiness contract、Host 200/200、PC root、workflow YAML 与 `git diff --check` 通过。checksum 未独立验证/签名，不构成 release publication 或 R1 | `2130ecf2` | 2026-08-31 |
 | S5-23 | P0 | PC 归档制品 checksum 独立验证 | DONE | Zero | S5-22（DONE） | RED：脚本拒绝 `--verify-artifact-dir`，证明归档 checksum 只生成未独立读取校验；现 CI 在上传前以独立调用重读 library/checksum，严格校验格式、文件名与 SHA-256，并以篡改 artifact 负向 probe 证明 fail-closed；focused 2/2、Host 200/200、PC root、workflow YAML 与 `git diff --check` 通过。仍无签名/发布/不可变环境，不构成 R1 | `2f4e9ff6` | 2026-09-01 |
 | S5-24 | P0 | PC 归档制品签名管道与独立验证 | DONE | Zero | S5-23（DONE） | RED：release guard 要求 signature 文件/public key/签名边界后按预期失败 2 项；现 CI 用每轮临时 Ed25519 key 签名归档 library，丢弃 private key，并由独立调用重读验证 checksum 与 signature；篡改 artifact/signature 负向 probe 均 fail-closed；focused 2/2、Host 200/200、PC root、workflow YAML 与 `git diff --check` 通过。临时 key 无 release identity/publication authority，不构成签名发布或 R1 | `05720b61` | 2026-09-01 |
+| S5-25 | P0 | Release signing identity/key-custody 决策门 | DONE | Zero | S5-24（DONE） | RED：release readiness 因 signing policy 缺失失败；现机器记录 Ed25519 设计、release identity `UNASSIGNED`、custody `NOT_ESTABLISHED`、publication `BLOCKED`，并固定 owner/custodian/recovery/revocation/独立验签前置；focused、Host、PC root 与 `git diff --check` 通过。不创建/提交 release private key，不构成签名发布或 R1 | `f6b2cf26` | 2026-09-01 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -868,3 +869,15 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   或 publication authority，不满足 release checklist 的 signed-publication 门禁，Sprint 6/R1 保持阻塞。
 - 下一步：无硬件时建立 release-owned signing identity/key-custody 决策记录，或推进 artifact SBOM/license
   review；不得把临时 CI key 升级为 release signing key。
+
+### 2026-09-01 Sprint 5 Release signing identity/key-custody 决策门
+
+- RED：`release_readiness` 在要求机器可读 signing policy 后因文件缺失按预期失败，证明 ephemeral
+  CI key 之外没有 release identity/custody 事实源。
+- 收口：新增 fail-closed signing policy，固定 Ed25519 设计边界；release identity 仍为
+  `UNASSIGNED`，key custody 为 `NOT_ESTABLISHED`，signed publication 为 `BLOCKED`。在命名 release
+  owner/key custodian、受保护外部 signer、recovery/revocation 与独立验签记录到位前，不创建或使用
+  release-owned private key。
+- 验证：focused `release_readiness`、Host 全量、PC Release root build 与 `git diff --check` 见本轮
+  gate。该决策门不构成 key provisioning、签名发布、安全审查或 R1。
+- 下一步：推进 artifact SBOM/license review；release key 实施继续等待 owner/custodian 决策。
