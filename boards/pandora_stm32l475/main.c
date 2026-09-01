@@ -78,12 +78,130 @@ static int soft_i2c_write_byte(uint8_t value)
     return ack;
 }
 
+static uint8_t soft_i2c_read_byte(int send_ack)
+{
+    GPIO_InitTypeDef gpio = {0};
+    uint8_t value = 0;
+    gpio.Pin = SOFT_I2C_SDA_PIN;
+    gpio.Mode = GPIO_MODE_INPUT;
+    gpio.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(SOFT_I2C_SDA_PORT, &gpio);
+    for (uint32_t bit = 0; bit < 8U; ++bit) {
+        value <<= 1;
+        soft_i2c_scl(GPIO_PIN_SET);
+        if (HAL_GPIO_ReadPin(SOFT_I2C_SDA_PORT, SOFT_I2C_SDA_PIN) == GPIO_PIN_SET) {
+            value |= 1U;
+        }
+        soft_i2c_scl(GPIO_PIN_RESET);
+    }
+    gpio.Mode = GPIO_MODE_OUTPUT_OD;
+    HAL_GPIO_Init(SOFT_I2C_SDA_PORT, &gpio);
+    soft_i2c_sda(send_ack ? GPIO_PIN_RESET : GPIO_PIN_SET);
+    soft_i2c_scl(GPIO_PIN_SET);
+    soft_i2c_scl(GPIO_PIN_RESET);
+    soft_i2c_sda(GPIO_PIN_SET);
+    return value;
+}
+
+static int aht10_write(const uint8_t *data, uint32_t length)
+{
+    soft_i2c_start();
+    if (!soft_i2c_write_byte(0x38U << 1)) {
+        soft_i2c_stop();
+        return 0;
+    }
+    for (uint32_t i = 0; i < length; ++i) {
+        if (!soft_i2c_write_byte(data[i])) {
+            soft_i2c_stop();
+            return 0;
+        }
+    }
+    soft_i2c_stop();
+    return 1;
+}
+
+static int aht10_read(uint8_t *data, uint32_t length)
+{
+    soft_i2c_start();
+    if (!soft_i2c_write_byte((0x38U << 1) | 1U)) {
+        soft_i2c_stop();
+        return 0;
+    }
+    for (uint32_t i = 0; i < length; ++i) {
+        data[i] = soft_i2c_read_byte(i + 1U < length);
+    }
+    soft_i2c_stop();
+    return 1;
+}
+
 static int aht10_probe(void)
 {
     soft_i2c_start();
     int ack = soft_i2c_write_byte(0x38U << 1);
     soft_i2c_stop();
     return ack;
+}
+
+static int aht10_init(void)
+{
+    static const uint8_t command[] = {0xE1U, 0x08U, 0x00U};
+    HAL_Delay(40U);
+    if (!aht10_write(command, sizeof(command))) {
+        return 0;
+    }
+    HAL_Delay(10U);
+    return 1;
+}
+
+static int aht10_measure(uint32_t *humidity_milli_percent, int32_t *temperature_milli_c)
+{
+    static const uint8_t command[] = {0xACU, 0x33U, 0x00U};
+    uint8_t data[6];
+    if (!aht10_write(command, sizeof(command))) {
+        return 0;
+    }
+    HAL_Delay(80U);
+    if (!aht10_read(data, sizeof(data)) || (data[0] & 0x80U) != 0U) {
+        return 0;
+    }
+    uint32_t raw_humidity = ((uint32_t)data[1] << 12) | ((uint32_t)data[2] << 4) |
+                            ((uint32_t)data[3] >> 4);
+    uint32_t raw_temperature = ((uint32_t)(data[3] & 0x0FU) << 16) |
+                               ((uint32_t)data[4] << 8) | data[5];
+    *humidity_milli_percent = (uint32_t)(((uint64_t)raw_humidity * 100000U) >> 20);
+    *temperature_milli_c = (int32_t)(((uint64_t)raw_temperature * 200000U) >> 20) - 50000;
+    return 1;
+}
+
+static void uart_text(const char *text)
+{
+    uint16_t length = 0;
+    while (text[length] != '\0') ++length;
+    HAL_UART_Transmit(&uart1, (uint8_t *)text, length, 100U);
+}
+
+static void uart_u32(uint32_t value)
+{
+    uint8_t digits[10];
+    uint32_t count = 0;
+    do {
+        digits[count++] = (uint8_t)('0' + value % 10U);
+        value /= 10U;
+    } while (value != 0U);
+    while (count != 0U) {
+        --count;
+        HAL_UART_Transmit(&uart1, &digits[count], 1U, 100U);
+    }
+}
+
+static void uart_i32(int32_t value)
+{
+    if (value < 0) {
+        uart_text("-");
+        uart_u32((uint32_t)(-(int64_t)value));
+    } else {
+        uart_u32((uint32_t)value);
+    }
 }
 
 static void clock_init(void)
@@ -175,17 +293,26 @@ int main(void)
     static const uint8_t key0[] = "KEY0\r\n";
     static const uint8_t aht_ack[] = "AHT10 0x38 ACK\r\n";
     static const uint8_t aht_nack[] = "AHT10 0x38 NACK\r\n";
+    uint32_t humidity_milli_percent = 0;
+    int32_t temperature_milli_c = 0;
 
     HAL_Init();
     clock_init();
     gpio_uart_init();
+    int aht_initialized = aht10_init();
     for (;;) {
         HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);
         HAL_UART_Transmit(&uart1, (uint8_t *)banner, sizeof(banner) - 1U, 100U);
-        if (aht10_probe()) {
+        if (aht_initialized && aht10_measure(&humidity_milli_percent, &temperature_milli_c)) {
             HAL_UART_Transmit(&uart1, (uint8_t *)aht_ack, sizeof(aht_ack) - 1U, 100U);
+            uart_text("AHT10 RH_milli_percent=");
+            uart_u32(humidity_milli_percent);
+            uart_text(" T_milli_c=");
+            uart_i32(temperature_milli_c);
+            uart_text("\r\n");
         } else {
             HAL_UART_Transmit(&uart1, (uint8_t *)aht_nack, sizeof(aht_nack) - 1U, 100U);
+            aht_initialized = aht10_probe() && aht10_init();
         }
         if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_10) == GPIO_PIN_RESET) {
             HAL_UART_Transmit(&uart1, (uint8_t *)key0, sizeof(key0) - 1U, 100U);
