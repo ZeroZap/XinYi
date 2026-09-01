@@ -91,6 +91,26 @@ class PandoraUartCaptureTest(unittest.TestCase):
         os.close(master)
         os.close(slave)
 
+    def test_device_disconnect_is_not_reported_as_no_data_timeout(self):
+        master, slave = pty.openpty()
+        device = os.ttyname(slave)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(device, output, metadata, timeout=1.0)
+            time.sleep(0.1)
+            os.close(master)
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertEqual(process.returncode, 3, stderr)
+            self.assertEqual(output.read_bytes(), b"")
+            record = json.loads(metadata.read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "CAPTURE_IO_FAILED")
+            self.assertEqual(record["bytes_captured"], 0)
+            self.assertIn("device returned EOF", record["error"])
+            self.assertIn("CAPTURE_IO_FAILED", stdout)
+        os.close(slave)
+
     def test_missing_device_fails_without_creating_false_runtime_evidence(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "uart.log"

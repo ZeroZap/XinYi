@@ -59,8 +59,9 @@ def capture(device: str, timeout: float) -> tuple[str, bytes, str | None]:
                 chunk = os.read(fd, 4096)
             except BlockingIOError:
                 continue
-            if chunk:
-                payload.extend(chunk)
+            if not chunk:
+                return "CAPTURE_IO_FAILED", bytes(payload), "device returned EOF"
+            payload.extend(chunk)
     except OSError as error:
         return "CAPTURE_IO_FAILED", bytes(payload), str(error)
     finally:
