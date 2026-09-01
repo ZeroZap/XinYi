@@ -58,6 +58,22 @@ def validate() -> list[str]:
             "release checklist must not claim bounded SBOM generation is blocked", errors)
     require("now generates and independently validates one bounded CycloneDX JSON 1.6 SBOM" in checklist,
             "release checklist must record the bounded generated SBOM without upgrading approval", errors)
+    known_limitations = (ROOT / "docs" / "release" / "known-limitations.md").read_text(
+        encoding="utf-8"
+    )
+    known_limitations_normalized = " ".join(known_limitations.split()).lower()
+    require("no sbom, reproducible release artifact, signed checksum set" not in
+            known_limitations_normalized,
+            "Known Limitations must not claim bounded release evidence is absent", errors)
+    for token in (
+        "one bounded pc static-library artifact",
+        "cyclonedx json 1.6 sbom",
+        "ephemeral ci-gate ed25519 signature",
+        "legal_review_pending",
+        "not a complete release artifact set",
+    ):
+        require(token in known_limitations_normalized,
+                f"Known Limitations is missing bounded release evidence boundary: {token}", errors)
     require("docs/release/release-checklist.md" in evidence,
             "component evidence matrix must index the release checklist", errors)
     require(ARTIFACT_MANIFEST.is_file(), "PC release artifact manifest is missing", errors)

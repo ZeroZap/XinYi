@@ -12,7 +12,12 @@ production-ready framework.
 - GUI rendering is Host-guarded; real-display quality, frame time, RAM peak, and recovery are pending.
 - Sensor, Fuel Gauge, DM, PM, Net, and storage have unresolved ownership, durability, concurrency, or
   real-hardware evidence gaps described in `docs/validation/component-evidence-matrix.md`.
-- No SBOM, reproducible release artifact, signed checksum set, or release-candidate HIL gate exists yet.
+- One bounded PC static-library artifact (`libxy_device.a`) is rebuilt reproducibly from
+  `git archive HEAD` and archived with a checksum, CycloneDX JSON 1.6 SBOM, ephemeral CI-gate
+  Ed25519 signature, Apache-2.0 license text, and bounded license/NOTICE records. This is not a
+  complete release artifact set: legal review remains `LEGAL_REVIEW_PENDING`, the signing key has
+  no release identity or publication authority, and no complete PC/MCU SBOM or release-candidate
+  HIL gate exists.
 
 The component evidence matrix is the authority for current evidence levels. A release tag must not be
 interpreted as upgrading any component beyond that matrix.
