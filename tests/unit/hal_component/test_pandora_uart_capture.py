@@ -70,6 +70,29 @@ class PandoraUartCaptureTest(unittest.TestCase):
         os.close(master)
         os.close(slave)
 
+    def test_unrecognized_bytes_do_not_grant_successful_capture_status(self):
+        master, slave = pty.openpty()
+        device = os.ttyname(slave)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(device, output, metadata)
+            time.sleep(0.1)
+            payload = b"bootloader noise\r\n"
+            os.write(master, payload)
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertEqual(process.returncode, 3, stderr)
+            self.assertEqual(output.read_bytes(), payload)
+            record = json.loads(metadata.read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "CAPTURE_CONTENT_MISMATCH")
+            self.assertEqual(record["bytes_captured"], len(payload))
+            self.assertEqual(record["required_marker"], "PANDORA STM32L475VE XINYI SMOKE OK")
+            self.assertIn("required Pandora banner not found", record["error"])
+            self.assertIn("CAPTURE_CONTENT_MISMATCH", stdout)
+        os.close(master)
+        os.close(slave)
+
     def test_no_data_timeout_is_bounded_and_fail_closed(self):
         master, slave = pty.openpty()
         device = os.ttyname(slave)

@@ -31,6 +31,8 @@ def main() -> None:
         BOARD / "capture_uart.py",
         "NO_DATA_TIMEOUT",
         "DEVICE_OPEN_FAILED",
+        "CAPTURE_CONTENT_MISMATCH",
+        "PANDORA STM32L475VE XINYI SMOKE OK",
         'default="/dev/ttyACM0"',
         "--firmware-commit",
         "firmware_commit",

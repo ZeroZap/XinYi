@@ -13,6 +13,9 @@ import termios
 import time
 
 
+PANDORA_BANNER = b"PANDORA STM32L475VE XINYI SMOKE OK"
+
+
 def validate_firmware_commit(revision: str) -> str:
     if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
         raise ValueError("firmware commit must be an exact 40-character lowercase Git SHA")
@@ -90,6 +93,9 @@ def main() -> int:
     except ValueError as error:
         parser.error(str(error))
     status, payload, error = capture(args.device, args.timeout)
+    if status == "CAPTURED" and PANDORA_BANNER not in payload:
+        status = "CAPTURE_CONTENT_MISMATCH"
+        error = "required Pandora banner not found"
     if status != "DEVICE_OPEN_FAILED":
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_bytes(payload)
@@ -102,6 +108,7 @@ def main() -> int:
         "error": error,
         "format": "8-N-1",
         "firmware_commit": firmware_commit,
+        "required_marker": PANDORA_BANNER.decode("ascii"),
         "status": status,
         "timeout_seconds": args.timeout,
     }

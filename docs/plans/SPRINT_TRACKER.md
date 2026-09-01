@@ -178,6 +178,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-42 | P0 | Pandora bounded UART capture gate | DONE | Zero | S5-41（BLOCKED） | 新增 fail-closed 115200-8-N-1 capture helper；PTY Host contract 覆盖真实字节保存、source SHA/metadata、bounded no-data timeout 与 missing-device refusal；focused、Host 203/203、PC root 与 `git diff --check` 通过。当前 `lsusb` 无 ST-Link、无 `/dev/ttyACM*`/`ttyUSB*`，不升级 runtime/B1/B2 | `564b9600` | 2026-09-02 |
 | S5-43 | P0 | Pandora UART capture 固件身份绑定 | DONE | Zero | S5-42（DONE） | RED：capture metadata 自动记录当前 checkout `HEAD`，无法绑定被烧录固件；现要求显式 exact 40-char `--firmware-commit`，并覆盖缺失/非 exact identity；focused 2/2、committed clean-export、Host 203/203、PC root 与 `git diff --check` 通过，不升级 runtime/B1/B2 | `5efff54b` | 2026-09-02 |
 | S5-44 | P0 | Pandora UART 掉线 fail-closed 分类 | DONE | Zero | S5-43（DONE） | RED：PTY peer 断开时 `read()` 返回 EOF，helper 曾等待到期并误记 `NO_DATA_TIMEOUT`；现立即记录 `CAPTURE_IO_FAILED`，保留已捕获字节并返回失败。focused 2/2、Host 203/203、PC root 与 `git diff --check` 通过，不升级 runtime/B1/B2 | `79010108` | 2026-09-02 |
+| S5-45 | P0 | Pandora UART 内容身份 fail-closed 分类 | DONE | Zero | S5-44（DONE） | RED：任意 bootloader/noise bytes 曾被记为 `CAPTURED`；现仅 exact Pandora firmware banner 可获得成功状态，其他字节保留并记为 `CAPTURE_CONTENT_MISMATCH`；focused 2/2、Host 203/203、PC root 与 `git diff --check` 通过，不升级 runtime/B1/B2 | 待提交 | 2026-09-02 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
