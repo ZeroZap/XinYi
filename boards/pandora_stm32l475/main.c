@@ -54,6 +54,7 @@ static void gpio_uart_init(void)
     GPIO_InitTypeDef gpio = {0};
     __HAL_RCC_GPIOE_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
     __HAL_RCC_USART1_CLK_ENABLE();
 
     gpio.Pin = GPIO_PIN_7;
@@ -61,6 +62,11 @@ static void gpio_uart_init(void)
     gpio.Pull = GPIO_NOPULL;
     gpio.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOE, &gpio);
+
+    gpio.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10; /* KEY2/KEY1/KEY0 */
+    gpio.Mode = GPIO_MODE_INPUT;
+    gpio.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(GPIOD, &gpio);
 
     gpio.Pin = GPIO_PIN_9 | GPIO_PIN_10;
     gpio.Mode = GPIO_MODE_AF_PP;
@@ -86,12 +92,23 @@ static void gpio_uart_init(void)
 int main(void)
 {
     static const uint8_t banner[] = "PANDORA STM32L475VE XINYI SMOKE OK\r\n";
+    static const uint8_t key0[] = "KEY0\r\n";
+    /* AHT10 0x38 ACK is the next I2C4 acceptance marker; STM32L475 has no I2C4. */
+    /* Reference BSP routes its software I2C4 bus over PC1 SDA and PD6 SCL. */
+    const uint16_t i2c_sda_pin = GPIO_PIN_1;
+    const uint16_t i2c_scl_pin = GPIO_PIN_6;
+    (void)i2c_sda_pin;
+    (void)i2c_scl_pin;
+
     HAL_Init();
     clock_init();
     gpio_uart_init();
     for (;;) {
         HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);
         HAL_UART_Transmit(&uart1, (uint8_t *)banner, sizeof(banner) - 1U, 100U);
+        if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_10) == GPIO_PIN_RESET) {
+            HAL_UART_Transmit(&uart1, (uint8_t *)key0, sizeof(key0) - 1U, 100U);
+        }
         HAL_Delay(500U);
     }
 }

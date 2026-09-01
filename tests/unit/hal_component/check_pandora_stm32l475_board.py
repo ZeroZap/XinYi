@@ -31,7 +31,11 @@ def main() -> None:
         "GPIO_PIN_7",
         "GPIO_PIN_9",
         "GPIO_PIN_10",
+        "GPIO_PIN_1",
+        "GPIO_PIN_6",
         "USART1",
+        "AHT10 0x38 ACK",
+        "KEY0",
         "PANDORA STM32L475VE",
     )
     require(
