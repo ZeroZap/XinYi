@@ -21,6 +21,10 @@ ENVIRONMENT_MANIFEST = ROOT / "docs/validation/pc-release-build-environment.json
 ARTIFACT_MANIFEST = ROOT / "docs/validation/pc-release-artifact-manifest.json"
 SBOM = Path("libxy_device.a.cdx.json")
 SBOM_POLICY = ROOT / "docs/validation/pc-release-sbom-policy.json"
+LICENSE_REVIEW = Path("docs/validation/pc-release-license-review.json")
+NOTICE_REVIEW = Path("docs/validation/pc-release-notice-review.json")
+ARCHIVED_LICENSE_REVIEW = Path("pc-release-license-review.json")
+ARCHIVED_NOTICE_REVIEW = Path("pc-release-notice-review.json")
 DIRECT_SOURCES = [
     "components/device/src/xy_device.c",
     "components/device/src/xy_device_bus_helpers.c",
@@ -148,6 +152,18 @@ def archive_file_hashes(archive: bytes) -> dict[str, str]:
     return hashes
 
 
+def archive_file(archive: bytes, path: Path) -> bytes:
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
+        try:
+            member = tar.getmember(path.as_posix())
+        except KeyError as exc:
+            raise SystemExit(f"required tracked evidence is missing from source archive: {path}") from exc
+        extracted = tar.extractfile(member)
+        if extracted is None:
+            raise SystemExit(f"cannot read tracked evidence from source archive: {path}")
+        return extracted.read()
+
+
 def generate_sbom(
     archive: bytes,
     source_commit: str,
@@ -239,6 +255,29 @@ def validate_sbom(sbom: dict[str, object], artifact_sha256: str) -> None:
         raise SystemExit("archived SBOM dependency closure mismatch")
 
 
+def validate_archived_legal_evidence(artifact_dir: Path) -> None:
+    license_path = artifact_dir / ARCHIVED_LICENSE_REVIEW
+    notice_path = artifact_dir / ARCHIVED_NOTICE_REVIEW
+    if not license_path.is_file() or not notice_path.is_file():
+        raise SystemExit("archived bounded license or NOTICE evidence is missing")
+    try:
+        license_review = json.loads(license_path.read_text(encoding="utf-8"))
+        notice_review = json.loads(notice_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"archived bounded legal evidence is invalid JSON: {exc}") from exc
+    if license_review.get("approval") != "LEGAL_REVIEW_PENDING":
+        raise SystemExit("archived bounded license review must remain legal-pending")
+    if license_review.get("sources") != DIRECT_SOURCES:
+        raise SystemExit("archived bounded license review source inventory mismatch")
+    if notice_review.get("approval") != "LEGAL_REVIEW_PENDING":
+        raise SystemExit("archived bounded NOTICE review must remain legal-pending")
+    scope = notice_review.get("scope")
+    if not isinstance(scope, dict) or scope.get("direct_source_count") != len(DIRECT_SOURCES):
+        raise SystemExit("archived bounded NOTICE review source scope mismatch")
+    if notice_review.get("notice_output") is not None:
+        raise SystemExit("archived bounded NOTICE review must not invent a NOTICE file")
+
+
 def extract(archive: bytes, destination: Path) -> None:
     destination.mkdir()
     with tarfile.open(fileobj=io.BytesIO(archive), mode="r:") as tar:
@@ -292,9 +331,11 @@ def verify_archived_artifact(artifact_dir: Path) -> None:
     except json.JSONDecodeError as exc:
         raise SystemExit(f"archived CycloneDX SBOM is invalid JSON: {exc}") from exc
     validate_sbom(sbom, actual)
+    validate_archived_legal_evidence(artifact_dir)
     print(
         f"pc_artifact_checksum_ok artifact={artifact} sha256={actual} "
-        "sbom=cyclonedx-1.6-verified verification=independent release_scope=blocked"
+        "sbom=cyclonedx-1.6-verified legal_evidence=bounded-pending-verified "
+        "verification=independent release_scope=blocked"
     )
 
 
@@ -405,6 +446,12 @@ def main() -> int:
         )
         validate_sbom(sbom, first_hash)
         sbom_output.write_text(json.dumps(sbom, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        (args.artifact_dir / ARCHIVED_LICENSE_REVIEW).write_bytes(
+            archive_file(archive, LICENSE_REVIEW)
+        )
+        (args.artifact_dir / ARCHIVED_NOTICE_REVIEW).write_bytes(
+            archive_file(archive, NOTICE_REVIEW)
+        )
 
     record = {
         "schema_version": 1,

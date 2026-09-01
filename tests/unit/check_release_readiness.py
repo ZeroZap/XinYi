@@ -108,6 +108,8 @@ def validate() -> list[str]:
                                 "libxy_device.a.cdx.json",
                                 "libxy_device.a.sig",
                                 "pc-artifact-signing-public.pem",
+                                "pc-release-license-review.json",
+                                "pc-release-notice-review.json",
                             ],
                             "PC release artifact CI archive files mismatch", errors)
                     require(archive.get("checksum_verification") == "independent-ci-step",

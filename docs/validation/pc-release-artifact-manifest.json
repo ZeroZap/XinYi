@@ -17,7 +17,9 @@
           "libxy_device.a.sha256",
           "libxy_device.a.cdx.json",
           "libxy_device.a.sig",
-          "pc-artifact-signing-public.pem"
+          "pc-artifact-signing-public.pem",
+          "pc-release-license-review.json",
+          "pc-release-notice-review.json"
         ],
         "checksum_verification": "independent-ci-step",
         "signature": {
@@ -42,5 +44,5 @@
     "release-owned signing keys and published signed checksums",
     "hardware and security evidence"
   ],
-  "evidence_boundary": "The selected set contains one PC static library for reproducibility gating only; its archived SHA-256 and ephemeral CI-gate Ed25519 signature are independently verified in the same CI job. The ephemeral private key is discarded and has no release identity or publication authority. This is not a complete release artifact set and does not establish target, hardware, security, signed publication, or R1 evidence."
+  "evidence_boundary": "The selected set contains one PC static library for reproducibility gating only; its archived SHA-256, ephemeral CI-gate Ed25519 signature, bounded license review, and bounded NOTICE review are independently verified in the same CI job. Both legal records remain LEGAL_REVIEW_PENDING. The ephemeral private key is discarded and has no release identity or publication authority. This is not a complete release artifact set and does not establish target, hardware, security, legal approval, signed publication, or R1 evidence."
 }

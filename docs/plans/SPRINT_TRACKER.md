@@ -165,6 +165,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-29 | P1 | PC bounded artifact 技术许可证审查记录 | DONE | Zero | S5-27（DONE） | RED：release readiness 因 license review record 缺失失败；现记录 10 个直接 first-party source、根 Apache-2.0 license hash、文件级冲突声明扫描及开放 NOTICE/redistribution/legal 要求；状态固定 `LEGAL_REVIEW_PENDING`，不构成法律批准或 R1；focused、Host 200/200、PC root 与 `git diff --check` 通过 | `d2571881` | 2026-09-01 |
 | S5-30 | P1 | PC bounded artifact NOTICE 判定记录 | DONE | Zero | S5-29（DONE） | RED：release readiness 因 NOTICE record 缺失失败；现限定审查 10 个 first-party direct source，未发现第三方 attribution/license marker，故不为 bounded artifact 虚构 NOTICE 文件；完整 release scope、独立 legal review 与 R1 仍阻塞；focused、Host 200/200、PC root 与 `git diff --check` 通过 | `e313e644` | 2026-09-01 |
 | S5-31 | P1 | PC bounded license/NOTICE 证据漂移门 | DONE | Zero | S5-30（DONE） | probe 发现 release guard 只检查 license source 数量，未绑定 artifact gate 的 exact source inventory，也未重算 LICENSE hash；现绑定 10 个 direct source、artifact selection、license identity/hash 与 NOTICE scope；focused 1/1、Host 200/200、PC root 与 `git diff --check` 通过，legal/完整 release/R1 仍阻塞 | `4000bed0` | 2026-09-01 |
+| S5-32 | P1 | PC bounded legal evidence 随制品归档 | DONE | Zero | S5-31（DONE） | RED：artifact manifest 未归档 license/NOTICE records；现将两份 committed records 与 artifact 同包，并独立校验 `LEGAL_REVIEW_PENDING` 与 exact direct-source scope；focused 2/2、真实 build/sign/verify archive 7-file contract、Host 200/200、PC root 与 `git diff --check` 通过；不构成 legal approval、完整 release 或 R1 | 本轮提交 | 2026-09-01 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
