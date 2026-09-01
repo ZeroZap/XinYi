@@ -18,6 +18,7 @@ SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
 LICENSE_REVIEW = ROOT / "docs" / "validation" / "pc-release-license-review.json"
 NOTICE_REVIEW = ROOT / "docs" / "validation" / "pc-release-notice-review.json"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+RELEASE_CHECKOUT_ACTION = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -86,6 +87,10 @@ def validate() -> list[str]:
                 "release workflow must not use the drifting ubuntu-latest runner", errors)
         require("--require-release-authorization" in workflow,
                 "release workflow must require explicit publication authorization", errors)
+        require(RELEASE_CHECKOUT_ACTION in workflow,
+                "release workflow must pin actions/checkout to the reviewed commit", errors)
+        require("uses: actions/checkout@v" not in workflow,
+                "release workflow must not use a movable checkout version tag", errors)
     require(ARTIFACT_MANIFEST.is_file(), "PC release artifact manifest is missing", errors)
     if ARTIFACT_MANIFEST.is_file():
         try:
