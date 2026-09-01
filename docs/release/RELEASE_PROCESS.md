@@ -27,10 +27,20 @@
    git diff --check
    ```
 
-5. Commit and push the verified release preparation to `main`.
-6. Create and push an annotated tag whose name exactly matches `v$(cat VERSION)`, without moving or
+5. Complete every release checklist gate, record the exact marker **R1 status:** `QUALIFIED` in the
+   evidence matrix, then change the checklist status/decision to `READY` / `GO` in the reviewed
+   release-preparation commit. Do not add that marker before the R1 evidence package is approved.
+6. Verify the publication authorization gate explicitly:
+
+   ```bash
+   python3 tools/scripts/check_release_facts.py --require-release-authorization
+   ```
+
+7. Commit and push the verified release preparation to `main`.
+8. Create and push an annotated tag whose name exactly matches `v$(cat VERSION)`, without moving or
    rewriting an existing tag.
 
-The `release.yml` workflow validates the tag against `VERSION`, reruns the canonical Host/PC gates,
-and creates a GitHub Release using this changelog plus Known Limitations. It does not publish firmware
-artifacts until a later release-qualified build pipeline exists.
+The `release.yml` workflow validates the tag against `VERSION` and requires the same explicit release
+authorization before running Host/PC gates or creating a GitHub Release. With the current checklist at
+`BLOCKED` / `NO-GO`, a pushed version tag fails closed and cannot reach publication. Future authorization
+must not be inferred from a tag: every checklist item and the `R1` evidence record must exist first.

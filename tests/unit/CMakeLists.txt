@@ -99,6 +99,12 @@ add_test(NAME release_readiness
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_release_readiness.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME release_publication_refuses_without_authorization
+    COMMAND python3 ${ROOT}/tools/scripts/check_release_facts.py
+            --require-release-authorization
+    WORKING_DIRECTORY ${ROOT}
+)
+set_tests_properties(release_publication_refuses_without_authorization PROPERTIES WILL_FAIL TRUE)
 add_test(NAME supply_chain_inventory
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_supply_chain_inventory.py
     WORKING_DIRECTORY ${ROOT}

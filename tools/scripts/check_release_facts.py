@@ -21,7 +21,21 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def validate(repo: Path, tag: str | None = None) -> str:
+def validate_release_authorization(repo: Path) -> None:
+    checklist = read_text(repo / "docs/release/release-checklist.md")
+    evidence = read_text(repo / "docs/validation/component-evidence-matrix.md")
+
+    if "**Status:** `READY`" not in checklist:
+        fail("release publication is blocked: checklist status is not READY")
+    if "**Release decision:** `GO`" not in checklist:
+        fail("release publication is blocked: checklist decision is not GO")
+    if re.search(r"^- \[ \] ", checklist, flags=re.MULTILINE):
+        fail("release publication is blocked: checklist contains incomplete gates")
+    if "**R1 status:** `QUALIFIED`" not in evidence:
+        fail("release publication is blocked: R1 evidence is not recorded")
+
+
+def validate(repo: Path, tag: str | None = None, require_release_authorization: bool = False) -> str:
     version = read_text(repo / "VERSION").strip()
     match = VERSION_RE.fullmatch(version)
     if match is None:
@@ -66,6 +80,9 @@ def validate(repo: Path, tag: str | None = None) -> str:
         if tag != f"v{version}":
             fail(f"tag {tag} does not match canonical version v{version}")
 
+    if require_release_authorization:
+        validate_release_authorization(repo)
+
     return version
 
 
@@ -73,10 +90,15 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--tag", help="tag to validate, normally github.ref_name")
+    parser.add_argument(
+        "--require-release-authorization",
+        action="store_true",
+        help="fail unless the release checklist is complete and explicitly authorized",
+    )
     args = parser.parse_args()
 
     try:
-        version = validate(args.repo.resolve(), args.tag)
+        version = validate(args.repo.resolve(), args.tag, args.require_release_authorization)
     except ValueError as exc:
         print(f"release facts: FAIL: {exc}", file=sys.stderr)
         return 1
