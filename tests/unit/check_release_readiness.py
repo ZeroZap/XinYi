@@ -18,7 +18,9 @@ SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
 LICENSE_REVIEW = ROOT / "docs" / "validation" / "pc-release-license-review.json"
 NOTICE_REVIEW = ROOT / "docs" / "validation" / "pc-release-notice-review.json"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+UNIT_WORKFLOW = ROOT / ".github" / "workflows" / "unit-tests.yml"
 RELEASE_CHECKOUT_ACTION = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+UNIT_UPLOAD_ACTION = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -91,6 +93,18 @@ def validate() -> list[str]:
                 "release workflow must pin actions/checkout to the reviewed commit", errors)
         require("uses: actions/checkout@v" not in workflow,
                 "release workflow must not use a movable checkout version tag", errors)
+    require(UNIT_WORKFLOW.is_file(), "canonical unit workflow is missing", errors)
+    if UNIT_WORKFLOW.is_file():
+        unit_workflow = UNIT_WORKFLOW.read_text(encoding="utf-8")
+        require(RELEASE_CHECKOUT_ACTION in unit_workflow,
+                "canonical unit workflow must pin actions/checkout to the reviewed commit", errors)
+        require(unit_workflow.count(UNIT_UPLOAD_ACTION) == 4,
+                "canonical unit workflow must pin every upload-artifact use to the reviewed commit",
+                errors)
+        require("uses: actions/checkout@v" not in unit_workflow,
+                "canonical unit workflow must not use a movable checkout version tag", errors)
+        require("uses: actions/upload-artifact@v" not in unit_workflow,
+                "canonical unit workflow must not use a movable upload-artifact version tag", errors)
     require(ARTIFACT_MANIFEST.is_file(), "PC release artifact manifest is missing", errors)
     if ARTIFACT_MANIFEST.is_file():
         try:
