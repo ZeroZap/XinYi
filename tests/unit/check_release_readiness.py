@@ -17,6 +17,7 @@ SIGNING_POLICY = ROOT / "docs" / "validation" / "release-signing-policy.json"
 SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
 LICENSE_REVIEW = ROOT / "docs" / "validation" / "pc-release-license-review.json"
 NOTICE_REVIEW = ROOT / "docs" / "validation" / "pc-release-notice-review.json"
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -76,6 +77,15 @@ def validate() -> list[str]:
                 f"Known Limitations is missing bounded release evidence boundary: {token}", errors)
     require("docs/release/release-checklist.md" in evidence,
             "component evidence matrix must index the release checklist", errors)
+    require(RELEASE_WORKFLOW.is_file(), "release workflow is missing", errors)
+    if RELEASE_WORKFLOW.is_file():
+        workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        require("runs-on: ubuntu-24.04" in workflow,
+                "release workflow must use the canonical pinned Ubuntu runner", errors)
+        require("runs-on: ubuntu-latest" not in workflow,
+                "release workflow must not use the drifting ubuntu-latest runner", errors)
+        require("--require-release-authorization" in workflow,
+                "release workflow must require explicit publication authorization", errors)
     require(ARTIFACT_MANIFEST.is_file(), "PC release artifact manifest is missing", errors)
     if ARTIFACT_MANIFEST.is_file():
         try:
