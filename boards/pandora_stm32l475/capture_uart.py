@@ -14,6 +14,9 @@ import time
 
 
 PANDORA_BANNER = b"PANDORA STM32L475VE XINYI SMOKE OK"
+AHT10_MEASUREMENT = re.compile(
+    rb"AHT10 RH_milli_percent=[0-9]+ T_milli_c=-?[0-9]+(?:\r?\n|$)"
+)
 
 
 def validate_firmware_commit(revision: str) -> str:
@@ -93,9 +96,18 @@ def main() -> int:
     except ValueError as error:
         parser.error(str(error))
     status, payload, error = capture(args.device, args.timeout)
-    if status == "CAPTURED" and PANDORA_BANNER not in payload:
-        status = "CAPTURE_CONTENT_MISMATCH"
-        error = "required Pandora banner not found"
+    runtime_evidence = "NONE"
+    if status == "CAPTURED":
+        missing_markers = []
+        if PANDORA_BANNER not in payload:
+            missing_markers.append("Pandora banner")
+        if AHT10_MEASUREMENT.search(payload) is None:
+            missing_markers.append("AHT10 measurement")
+        if missing_markers:
+            status = "CAPTURE_CONTENT_MISMATCH"
+            error = "required runtime marker(s) not found: " + ", ".join(missing_markers)
+        else:
+            runtime_evidence = "B1_REVIEW_CANDIDATE"
     if status != "DEVICE_OPEN_FAILED":
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_bytes(payload)
@@ -109,6 +121,8 @@ def main() -> int:
         "format": "8-N-1",
         "firmware_commit": firmware_commit,
         "required_marker": PANDORA_BANNER.decode("ascii"),
+        "required_measurement_pattern": AHT10_MEASUREMENT.pattern.decode("ascii"),
+        "runtime_evidence": runtime_evidence,
         "status": status,
         "timeout_seconds": args.timeout,
     }

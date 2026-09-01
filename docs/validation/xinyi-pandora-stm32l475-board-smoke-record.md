@@ -79,9 +79,12 @@ python3 boards/pandora_stm32l475/capture_uart.py \
 
 The helper exits nonzero and records `NO_DATA_TIMEOUT`, `DEVICE_OPEN_FAILED`, `CAPTURE_IO_FAILED`, or
 `CAPTURE_CONTENT_MISMATCH` rather than creating false runtime evidence. Captured bytes only receive
-`CAPTURED` status when they contain the exact firmware banner `PANDORA STM32L475VE XINYI SMOKE OK`;
-unrelated bootloader/noise bytes are retained but rejected. A serial EOF/disconnect is classified
+`CAPTURED` and `B1_REVIEW_CANDIDATE` when they contain both the exact firmware banner
+`PANDORA STM32L475VE XINYI SMOKE OK` and a numeric AHT10 measurement line; banner-only and unrelated
+bootloader/noise bytes are retained but rejected. The candidate classification still requires human
+review of the real device path, flashed commit, raw log and metadata before this record may grant B1.
+A serial EOF/disconnect is classified
 immediately as an I/O failure instead of being mislabeled as a no-data timeout. Its PTY Host contract
-covers successful identified byte capture, content mismatch, bounded no-data timeout, disconnect and
+enforces banner-plus-measurement eligibility, content mismatch, bounded no-data timeout, disconnect,
 missing-device refusal, firmware commit binding, and metadata generation. A successful PTY test is not
 board evidence; only retained bytes from the real board/adapter may support B1/B2.
