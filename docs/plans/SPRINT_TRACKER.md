@@ -179,7 +179,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-43 | P0 | Pandora UART capture 固件身份绑定 | DONE | Zero | S5-42（DONE） | RED：capture metadata 自动记录当前 checkout `HEAD`，无法绑定被烧录固件；现要求显式 exact 40-char `--firmware-commit`，并覆盖缺失/非 exact identity；focused 2/2、committed clean-export、Host 203/203、PC root 与 `git diff --check` 通过，不升级 runtime/B1/B2 | `5efff54b` | 2026-09-02 |
 | S5-44 | P0 | Pandora UART 掉线 fail-closed 分类 | DONE | Zero | S5-43（DONE） | RED：PTY peer 断开时 `read()` 返回 EOF，helper 曾等待到期并误记 `NO_DATA_TIMEOUT`；现立即记录 `CAPTURE_IO_FAILED`，保留已捕获字节并返回失败。focused 2/2、Host 203/203、PC root 与 `git diff --check` 通过，不升级 runtime/B1/B2 | `79010108` | 2026-09-02 |
 | S5-45 | P0 | Pandora UART 内容身份 fail-closed 分类 | DONE | Zero | S5-44（DONE） | RED：任意 bootloader/noise bytes 曾被记为 `CAPTURED`；现仅 exact Pandora firmware banner 可获得成功状态，其他字节保留并记为 `CAPTURE_CONTENT_MISMATCH`；focused 2/2、Host 203/203、PC root 与 `git diff --check` 通过，不升级 runtime/B1/B2 | `3152073a` | 2026-09-02 |
-| S5-46 | P0 | Pandora UART B1 候选内容门 | DONE | Zero | S5-45（DONE） | RED：仅 banner 即可成功，未证明 AHT10 测量路径；现要求 banner + 数值测量行才标记 `B1_REVIEW_CANDIDATE`，banner-only/noise 保留但 fail-closed；focused 1/1、Host 203/203、PC root 与 `git diff --check` 通过；PTY 结果不升级 B1 | `待本提交` | 2026-09-02 |
+| S5-46 | P0 | Pandora UART B1 候选内容门 | DONE | Zero | S5-45（DONE） | RED：仅 banner 即可成功，未证明 AHT10 测量路径；现要求 banner + 数值测量行才标记 `B1_REVIEW_CANDIDATE`，banner-only/noise 保留但 fail-closed；focused 1/1、Host 203/203、PC root 与 `git diff --check` 通过；PTY 结果不升级 B1 | `03e35fcb` | 2026-09-02 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
