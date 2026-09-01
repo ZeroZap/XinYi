@@ -68,8 +68,9 @@ A release tag does not upgrade any evidence level.
   [NOTICE review](../validation/pc-release-notice-review.json) found no third-party attribution text
   in those direct sources and therefore does not create a NOTICE file for this artifact. Both records
   remain `LEGAL_REVIEW_PENDING`; complete release NOTICE/redistribution scope is unresolved and neither
-  record is legal advice. Canonical CI archives both bounded review records beside the artifact and
-  independently verifies their pending status and exact direct-source scope before upload.
+  record is legal advice. Canonical CI archives the exact Apache-2.0 `LICENSE` text and both bounded
+  review records beside the artifact, then independently verifies the license hash, pending status,
+  and exact direct-source scope before upload.
 - The machine-guarded [release input inventory](../validation/release-input-inventory.json) classifies
   every tracked top-level `examples/` and `projects/` entry. All remain `excluded-pending-review`;
   Host CTest or compile-only evidence does not select an entry for release support.

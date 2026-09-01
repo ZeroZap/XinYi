@@ -23,6 +23,8 @@ SBOM = Path("libxy_device.a.cdx.json")
 SBOM_POLICY = ROOT / "docs/validation/pc-release-sbom-policy.json"
 LICENSE_REVIEW = Path("docs/validation/pc-release-license-review.json")
 NOTICE_REVIEW = Path("docs/validation/pc-release-notice-review.json")
+LICENSE_FILE = Path("LICENSE")
+ARCHIVED_LICENSE_FILE = Path("LICENSE")
 ARCHIVED_LICENSE_REVIEW = Path("pc-release-license-review.json")
 ARCHIVED_NOTICE_REVIEW = Path("pc-release-notice-review.json")
 DIRECT_SOURCES = [
@@ -256,10 +258,11 @@ def validate_sbom(sbom: dict[str, object], artifact_sha256: str) -> None:
 
 
 def validate_archived_legal_evidence(artifact_dir: Path) -> None:
+    license_file_path = artifact_dir / ARCHIVED_LICENSE_FILE
     license_path = artifact_dir / ARCHIVED_LICENSE_REVIEW
     notice_path = artifact_dir / ARCHIVED_NOTICE_REVIEW
-    if not license_path.is_file() or not notice_path.is_file():
-        raise SystemExit("archived bounded license or NOTICE evidence is missing")
+    if not license_file_path.is_file() or not license_path.is_file() or not notice_path.is_file():
+        raise SystemExit("archived license text or bounded license/NOTICE evidence is missing")
     try:
         license_review = json.loads(license_path.read_text(encoding="utf-8"))
         notice_review = json.loads(notice_path.read_text(encoding="utf-8"))
@@ -269,6 +272,14 @@ def validate_archived_legal_evidence(artifact_dir: Path) -> None:
         raise SystemExit("archived bounded license review must remain legal-pending")
     if license_review.get("sources") != DIRECT_SOURCES:
         raise SystemExit("archived bounded license review source inventory mismatch")
+    license_evidence = license_review.get("license_evidence")
+    expected_license_sha256 = hashlib.sha256(license_file_path.read_bytes()).hexdigest()
+    if (
+        not isinstance(license_evidence, dict)
+        or license_evidence.get("path") != LICENSE_FILE.as_posix()
+        or license_evidence.get("sha256") != expected_license_sha256
+    ):
+        raise SystemExit("archived LICENSE text does not match bounded license review")
     if notice_review.get("approval") != "LEGAL_REVIEW_PENDING":
         raise SystemExit("archived bounded NOTICE review must remain legal-pending")
     scope = notice_review.get("scope")
@@ -276,6 +287,13 @@ def validate_archived_legal_evidence(artifact_dir: Path) -> None:
         raise SystemExit("archived bounded NOTICE review source scope mismatch")
     if notice_review.get("notice_output") is not None:
         raise SystemExit("archived bounded NOTICE review must not invent a NOTICE file")
+    notice_evidence = notice_review.get("evidence")
+    if (
+        not isinstance(notice_evidence, dict)
+        or notice_evidence.get("repository_license") != LICENSE_FILE.as_posix()
+        or notice_evidence.get("repository_license_sha256") != expected_license_sha256
+    ):
+        raise SystemExit("archived LICENSE text does not match bounded NOTICE review")
 
 
 def extract(archive: bytes, destination: Path) -> None:
@@ -451,6 +469,9 @@ def main() -> int:
         )
         (args.artifact_dir / ARCHIVED_NOTICE_REVIEW).write_bytes(
             archive_file(archive, NOTICE_REVIEW)
+        )
+        (args.artifact_dir / ARCHIVED_LICENSE_FILE).write_bytes(
+            archive_file(archive, LICENSE_FILE)
         )
 
     record = {

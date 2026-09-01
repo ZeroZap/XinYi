@@ -108,6 +108,7 @@ def validate() -> list[str]:
                                 "libxy_device.a.cdx.json",
                                 "libxy_device.a.sig",
                                 "pc-artifact-signing-public.pem",
+                                "LICENSE",
                                 "pc-release-license-review.json",
                                 "pc-release-notice-review.json",
                             ],
