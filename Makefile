@@ -20,6 +20,7 @@ BUILD_TYPE    ?= Release
 BUILD_TESTS   ?= OFF
 FOTA          ?= OFF
 KCONFIG_OVERRIDES ?=
+STM32L4_BOARD ?=
 JOBS          ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
 # Normalise build type
@@ -47,6 +48,7 @@ endif
 
 CMAKE_FLAGS := \
     -DHAL_PLATFORM=$(HAL_PLATFORM) \
+    -DSTM32L4_BOARD=$(STM32L4_BOARD) \
     -DCMAKE_BUILD_TYPE=$(_BUILD_TYPE) \
     -DKCONFIG_OVERRIDES=$(_KCONFIG_OVERRIDES)
 
@@ -124,6 +126,7 @@ help:
 	@echo "  BUILD_TESTS=ON|OFF                          (default: OFF)"
 	@echo "  FOTA=ON|OFF                                 (default: OFF)"
 	@echo "  KCONFIG_OVERRIDES=A=ON\;B=OFF               extra Kconfig overrides"
+	@echo "  STM32L4_BOARD=pandora_stm32l475             build Pandora smoke image"
 	@echo "  BUILD_ROOT=DIR                              (default: build)"
 	@echo "  BUILD_DIR=DIR                               (default: build/<platform>)"
 	@echo "  JOBS=N                                      (default: nproc)"
@@ -144,4 +147,5 @@ help:
 	@echo "  make test"
 	@echo "  make BUILD_TYPE=debug"
 	@echo "  make HAL_PLATFORM=STM32U5"
+	@echo "  make HAL_PLATFORM=STM32L4 STM32L4_BOARD=pandora_stm32l475"
 	@echo ""

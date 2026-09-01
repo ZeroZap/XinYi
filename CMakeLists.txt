@@ -230,6 +230,12 @@ foreach(_sub osal misc)
     endif()
 endforeach()
 
+# Board-owned, linkable smoke image. It is opt-in so library-only platform
+# builds remain unchanged.
+if(HAL_PLATFORM STREQUAL "STM32L4" AND STM32L4_BOARD STREQUAL "pandora_stm32l475")
+    add_subdirectory(boards/pandora_stm32l475)
+endif()
+
 # clib sub-component
 set(_dir "${CMAKE_SOURCE_DIR}/components/clib/xy_clib")
 if(EXISTS "${_dir}/CMakeLists.txt")

@@ -75,6 +75,10 @@ add_test(NAME hal_platform_evidence_matrix
     COMMAND python3 ${UNIT_HAL}/check_hal_platform_evidence_matrix.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_stm32l475_board
+    COMMAND python3 ${UNIT_HAL}/check_pandora_stm32l475_board.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME sensor_active_source_manifest
     COMMAND python3 ${UNIT_SENSOR}/check_sensor_active_source_manifest.py
     WORKING_DIRECTORY ${ROOT}

@@ -8,10 +8,12 @@ set(CPU_FLAGS
     -mfpu=fpv4-sp-d16
 )
 
-# Default chip; override with -DSTM32L4_CHIP=STM32L476xx etc.
+# Default chip; override with -DSTM32L4_CHIP=STM32L475xx etc.
 if(NOT DEFINED STM32L4_CHIP)
-    set(STM32L4_CHIP STM32L476xx)
+    set(STM32L4_CHIP STM32L475xx)
 endif()
+
+set(STM32L4_BOARD "" CACHE STRING "STM32L4 board target (pandora_stm32l475 or empty)")
 
 set(PLATFORM_DEFINES
     HAL_PLATFORM_STM32
