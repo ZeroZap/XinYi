@@ -65,3 +65,18 @@ ACK/measurement, and NACK recovery were not independently observed and remain
    measurement.
 3. Observe the PE7 LED and KEY0 path, then force an AHT10 NACK/recovery cycle and retain the log.
 4. Only then update this record and the HAL evidence matrix to B1/B2 as supported by the observations.
+
+Use the bounded capture helper after the board or independent USB-TTL adapter appears:
+
+```text
+python3 boards/pandora_stm32l475/capture_uart.py \
+  --device /dev/ttyACM0 \
+  --timeout 6 \
+  --output build/pandora-runtime/uart.log \
+  --metadata build/pandora-runtime/capture.json
+```
+
+The helper exits nonzero and records `NO_DATA_TIMEOUT` or `DEVICE_OPEN_FAILED` rather than creating
+false runtime evidence. Its PTY Host contract covers successful byte capture, bounded no-data timeout,
+missing-device refusal, source commit binding, and metadata generation. A successful PTY test is not
+board evidence; only retained bytes from the real board/adapter may support B1/B2.

@@ -28,6 +28,14 @@ def main() -> None:
         "-O binary",
     )
     require(
+        BOARD / "capture_uart.py",
+        "NO_DATA_TIMEOUT",
+        "DEVICE_OPEN_FAILED",
+        'default="/dev/ttyACM0"',
+        "source_commit",
+        "bytes_captured",
+    )
+    require(
         BOARD / "main.c",
         "GPIO_PIN_7",
         "GPIO_PIN_9",
