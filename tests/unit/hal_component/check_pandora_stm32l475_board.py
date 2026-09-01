@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards" / "pandora_stm32l475"
+RECORD = ROOT / "docs" / "validation" / "xinyi-pandora-stm32l475-board-smoke-record.md"
 
 
 def require(path: Path, *needles: str) -> None:
@@ -56,6 +57,16 @@ def main() -> None:
         "LENGTH = 96K",
     )
     require(ROOT / "CMakeLists.txt", "STM32L4_BOARD", "add_subdirectory(boards/pandora_stm32l475)")
+    require(
+        RECORD,
+        "BLOCKED_VCP_UNSTABLE",
+        "00cc9ee97256c5114c5e218717fc12253ad6e0f9",
+        "0483:374b",
+        "V2J24S11",
+        "Flash written and verified",
+        "CAPTURE_BYTES=0",
+        "BOARD_RUNTIME_PENDING",
+    )
     print("Pandora STM32L475VE board contract: PASS")
 
 
