@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+from collections import Counter
 from pathlib import Path
 
 from check_pc_artifact_reproducibility import DIRECT_SOURCES
@@ -21,6 +23,15 @@ RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 UNIT_WORKFLOW = ROOT / ".github" / "workflows" / "unit-tests.yml"
 RELEASE_CHECKOUT_ACTION = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
 UNIT_UPLOAD_ACTION = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+WORKFLOW_ACTIONS = {
+    "actions/checkout@11d5960a326750d5838078e36cf38b85af677262": 5,
+    "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065": 3,
+    "actions/configure-pages@1f0c5cde4bc74cd7e1254d0cb4de8d49e9068c7d": 1,
+    "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa": 1,
+    "actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e": 1,
+    "actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b": 2,
+    "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02": 4,
+}
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -33,6 +44,13 @@ def validate() -> list[str]:
     require(CHECKLIST.is_file(), "release checklist is missing", errors)
     if not CHECKLIST.is_file():
         return errors
+
+    action_uses: Counter[str] = Counter()
+    for workflow_path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        workflow_text = workflow_path.read_text(encoding="utf-8")
+        action_uses.update(re.findall(r"^\s*uses:\s*([^\s#]+)", workflow_text, re.MULTILINE))
+    require(action_uses == Counter(WORKFLOW_ACTIONS),
+            f"workflow actions must match the reviewed immutable set: {dict(action_uses)}", errors)
 
     checklist = CHECKLIST.read_text(encoding="utf-8")
     evidence = EVIDENCE.read_text(encoding="utf-8")
