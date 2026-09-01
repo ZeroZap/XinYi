@@ -56,12 +56,13 @@ A release tag does not upgrade any evidence level.
 - Reference-board HIL/B1/B2 remains unavailable.
 - Secure FOTA has no approved production signature provider or real bootloader/board integration evidence.
 - The machine-guarded [source dependency inventory](../validation/source-dependency-inventory.json)
-  records tracked vendored inputs and top-level gitlinks, but remains `REVIEW_PENDING`; it is not an
-  artifact SBOM or license approval. The [PC release SBOM policy](../validation/pc-release-sbom-policy.json)
-  now fixes a CycloneDX JSON 1.6 design for the bounded `xy_device` artifact, exact source/artifact
-  binding, fail-closed dependency/license inputs, schema validation, and independent archival checks.
-  Generation is still `BLOCKED`, approval remains `REVIEW_PENDING`, and this design is not an SBOM or
-  license review.
+  records tracked vendored inputs and top-level gitlinks, but remains `REVIEW_PENDING`; it is not a
+  complete artifact SBOM or license approval. The [PC release SBOM policy](../validation/pc-release-sbom-policy.json)
+  fixes CycloneDX JSON 1.6 for the bounded `xy_device` artifact, exact source/artifact binding,
+  fail-closed dependency/license inputs, schema validation, and independent archival checks. The
+  canonical PC gate now generates and independently validates one bounded CycloneDX JSON 1.6 SBOM
+  beside `libxy_device.a`; its approval remains `REVIEW_PENDING`. This does not constitute legal or
+  license review, complete PC/MCU SBOM coverage, or R1.
 - The machine-guarded [release input inventory](../validation/release-input-inventory.json) classifies
   every tracked top-level `examples/` and `projects/` entry. All remain `excluded-pending-review`;
   Host CTest or compile-only evidence does not select an entry for release support.

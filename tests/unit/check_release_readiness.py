@@ -49,6 +49,10 @@ def validate() -> list[str]:
             "release checklist must not claim Release Candidate approval", errors)
     require("- [x] R1 release qualified" not in checklist,
             "release checklist must not claim R1 qualification", errors)
+    require("Generation is still `BLOCKED`" not in checklist,
+            "release checklist must not claim bounded SBOM generation is blocked", errors)
+    require("now generates and independently validates one bounded CycloneDX JSON 1.6 SBOM" in checklist,
+            "release checklist must record the bounded generated SBOM without upgrading approval", errors)
     require("docs/release/release-checklist.md" in evidence,
             "component evidence matrix must index the release checklist", errors)
     require(ARTIFACT_MANIFEST.is_file(), "PC release artifact manifest is missing", errors)
