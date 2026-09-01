@@ -12,6 +12,7 @@ EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 ARTIFACT_MANIFEST = ROOT / "docs" / "validation" / "pc-release-artifact-manifest.json"
 SIGNING_POLICY = ROOT / "docs" / "validation" / "release-signing-policy.json"
 SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
+LICENSE_REVIEW = ROOT / "docs" / "validation" / "pc-release-license-review.json"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -208,6 +209,27 @@ def validate() -> list[str]:
             for phrase in ("independently validates", "not license approval", "R1 remains blocked"):
                 require(phrase in boundary,
                         f"PC release SBOM policy evidence boundary missing phrase: {phrase}", errors)
+
+    require(LICENSE_REVIEW.is_file(), "PC bounded artifact license review is missing", errors)
+    if LICENSE_REVIEW.is_file():
+        try:
+            review = json.loads(LICENSE_REVIEW.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"PC bounded artifact license review is invalid JSON: {exc}")
+        else:
+            require(review.get("status") == "TECHNICAL_REVIEW_RECORDED_LEGAL_PENDING",
+                    "PC bounded artifact license review status must remain legal-pending", errors)
+            require(review.get("artifact") == "libxy_device.a",
+                    "PC bounded artifact license review artifact mismatch", errors)
+            require(review.get("approval") == "LEGAL_REVIEW_PENDING",
+                    "PC bounded artifact license review must not claim legal approval", errors)
+            sources = review.get("sources")
+            require(isinstance(sources, list) and len(sources) == 10,
+                    "PC bounded artifact license review source inventory mismatch", errors)
+            boundary = str(review.get("evidence_boundary", ""))
+            for phrase in ("technical evidence review", "not legal advice", "R1 remains blocked"):
+                require(phrase in boundary,
+                        f"PC bounded artifact license boundary missing phrase: {phrase}", errors)
 
     return errors
 

@@ -62,7 +62,10 @@ A release tag does not upgrade any evidence level.
   fail-closed dependency/license inputs, schema validation, and independent archival checks. The
   canonical PC gate now generates and independently validates one bounded CycloneDX JSON 1.6 SBOM
   beside `libxy_device.a`; its approval remains `REVIEW_PENDING`. This does not constitute legal or
-  license review, complete PC/MCU SBOM coverage, or R1.
+  license approval, complete PC/MCU SBOM coverage, or R1. A bounded
+  [technical license review](../validation/pc-release-license-review.json) records the ten direct
+  first-party sources, repository Apache-2.0 evidence and unresolved NOTICE/redistribution scope;
+  its status remains `LEGAL_REVIEW_PENDING` and it is not legal advice.
 - The machine-guarded [release input inventory](../validation/release-input-inventory.json) classifies
   every tracked top-level `examples/` and `projects/` entry. All remain `excluded-pending-review`;
   Host CTest or compile-only evidence does not select an entry for release support.

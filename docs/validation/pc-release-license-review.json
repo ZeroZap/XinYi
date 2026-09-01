@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "status": "TECHNICAL_REVIEW_RECORDED_LEGAL_PENDING",
+  "artifact": "libxy_device.a",
+  "artifact_selection": "reproducibility-gate-only",
+  "review_date": "2026-09-01",
+  "reviewer": "Zero",
+  "approval": "LEGAL_REVIEW_PENDING",
+  "declared_license": "Apache-2.0",
+  "license_evidence": {
+    "path": "LICENSE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "identification": "Apache License Version 2.0, January 2004"
+  },
+  "sources": [
+    "components/device/src/xy_device.c",
+    "components/device/src/xy_device_bus_helpers.c",
+    "components/device/xy_device_core.c",
+    "components/device/src/xy_device_pm.c",
+    "components/device/src/xy_device_async.c",
+    "components/hal/PC/xy_hal_pc.c",
+    "components/hal/PC/xy_hal_gpio_pc.c",
+    "components/hal/PC/xy_hal_i2c_pc.c",
+    "components/hal/PC/xy_hal_spi_pc.c",
+    "components/hal/PC/xy_hal_uart_pc.c"
+  ],
+  "technical_findings": [
+    "all ten direct compiled sources are tracked first-party XinYi paths",
+    "the bounded artifact does not compile vendored or submodule source inputs",
+    "repository history for the reviewed files is attributable to the ZeroZap project identity",
+    "the reviewed source files do not contain conflicting SPDX, copyright, or license notices",
+    "the generated CycloneDX record binds every reviewed source and the repository LICENSE by SHA-256"
+  ],
+  "open_requirements": [
+    "named release owner approval",
+    "independent legal or license review for redistribution",
+    "confirmation that repository-level Apache-2.0 coverage applies to every reviewed source contribution",
+    "NOTICE and attribution determination for the eventual complete release scope",
+    "review of generated assets, transitive dependencies, submodules, and redistributed binaries outside this bounded artifact"
+  ],
+  "prohibited_claims": [
+    "legal approval",
+    "complete PC or MCU license closure",
+    "third-party dependency approval",
+    "release qualification"
+  ],
+  "evidence_boundary": "This is a technical evidence review of the ten direct sources selected into the bounded PC xy_device static-library gate. It is not legal advice or legal approval, it does not cover the complete PC or MCU release scope, and R1 remains blocked."
+}
