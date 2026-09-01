@@ -64,8 +64,11 @@ A release tag does not upgrade any evidence level.
   beside `libxy_device.a`; its approval remains `REVIEW_PENDING`. This does not constitute legal or
   license approval, complete PC/MCU SBOM coverage, or R1. A bounded
   [technical license review](../validation/pc-release-license-review.json) records the ten direct
-  first-party sources, repository Apache-2.0 evidence and unresolved NOTICE/redistribution scope;
-  its status remains `LEGAL_REVIEW_PENDING` and it is not legal advice.
+  first-party sources and repository Apache-2.0 evidence. The bounded
+  [NOTICE review](../validation/pc-release-notice-review.json) found no third-party attribution text
+  in those direct sources and therefore does not create a NOTICE file for this artifact. Both records
+  remain `LEGAL_REVIEW_PENDING`; complete release NOTICE/redistribution scope is unresolved and neither
+  record is legal advice.
 - The machine-guarded [release input inventory](../validation/release-input-inventory.json) classifies
   every tracked top-level `examples/` and `projects/` entry. All remain `excluded-pending-review`;
   Host CTest or compile-only evidence does not select an entry for release support.

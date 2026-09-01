@@ -13,6 +13,7 @@ ARTIFACT_MANIFEST = ROOT / "docs" / "validation" / "pc-release-artifact-manifest
 SIGNING_POLICY = ROOT / "docs" / "validation" / "release-signing-policy.json"
 SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
 LICENSE_REVIEW = ROOT / "docs" / "validation" / "pc-release-license-review.json"
+NOTICE_REVIEW = ROOT / "docs" / "validation" / "pc-release-notice-review.json"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -230,6 +231,26 @@ def validate() -> list[str]:
             for phrase in ("technical evidence review", "not legal advice", "R1 remains blocked"):
                 require(phrase in boundary,
                         f"PC bounded artifact license boundary missing phrase: {phrase}", errors)
+
+    require(NOTICE_REVIEW.is_file(), "PC bounded artifact NOTICE review is missing", errors)
+    if NOTICE_REVIEW.is_file():
+        try:
+            notice = json.loads(NOTICE_REVIEW.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"PC bounded artifact NOTICE review is invalid JSON: {exc}")
+        else:
+            require(notice.get("status") == "BOUNDED_NOTICE_NOT_REQUIRED_LEGAL_PENDING",
+                    "PC bounded artifact NOTICE review status mismatch", errors)
+            require(notice.get("artifact") == "libxy_device.a",
+                    "PC bounded artifact NOTICE review artifact mismatch", errors)
+            require(notice.get("approval") == "LEGAL_REVIEW_PENDING",
+                    "PC bounded artifact NOTICE review must not claim legal approval", errors)
+            require(notice.get("notice_output") is None,
+                    "PC bounded artifact NOTICE review must not invent a NOTICE file", errors)
+            boundary = str(notice.get("evidence_boundary", ""))
+            for phrase in ("bounded artifact", "not legal advice", "complete release scope", "R1 remains blocked"):
+                require(phrase in boundary,
+                        f"PC bounded artifact NOTICE boundary missing phrase: {phrase}", errors)
 
     return errors
 

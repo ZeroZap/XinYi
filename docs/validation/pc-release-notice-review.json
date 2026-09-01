@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "BOUNDED_NOTICE_NOT_REQUIRED_LEGAL_PENDING",
+  "artifact": "libxy_device.a",
+  "artifact_selection": "reproducibility-gate-only",
+  "review_date": "2026-09-01",
+  "reviewer": "Zero",
+  "approval": "LEGAL_REVIEW_PENDING",
+  "notice_output": null,
+  "scope": {
+    "platform": "PC",
+    "target": "xy_device",
+    "direct_source_count": 10,
+    "source_inventory": "docs/validation/pc-release-license-review.json"
+  },
+  "evidence": {
+    "repository_license": "LICENSE",
+    "repository_license_sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "declared_license": "Apache-2.0",
+    "source_notice_scan": "No SPDX, copyright, NOTICE, or conflicting license markers were found in the ten direct compiled sources.",
+    "history_identity_scan": "All commits touching the ten direct sources use the ZeroZap project email zerozap2020@gmail.com.",
+    "vendored_source_in_artifact": false,
+    "submodule_source_in_artifact": false
+  },
+  "determination": "No third-party attribution text was found within the bounded first-party source set, so this technical review does not create a NOTICE file for libxy_device.a.",
+  "open_requirements": [
+    "named release owner approval",
+    "independent legal or license review for redistribution",
+    "confirmation that repository-level Apache-2.0 coverage applies to every reviewed contribution",
+    "repeat NOTICE and attribution review when the artifact source set changes",
+    "determine NOTICE and attribution requirements for the eventual complete release scope, including generated assets, dependencies, submodules, and redistributed binaries"
+  ],
+  "prohibited_claims": [
+    "legal approval",
+    "complete release NOTICE closure",
+    "complete PC or MCU license closure",
+    "third-party dependency approval",
+    "release qualification"
+  ],
+  "evidence_boundary": "This technical determination applies only to the ten first-party direct sources in the bounded artifact libxy_device.a. It is not legal advice, does not close NOTICE or attribution for the complete release scope, and R1 remains blocked."
+}
