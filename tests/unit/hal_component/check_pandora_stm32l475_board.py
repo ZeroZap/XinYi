@@ -32,7 +32,8 @@ def main() -> None:
         "NO_DATA_TIMEOUT",
         "DEVICE_OPEN_FAILED",
         'default="/dev/ttyACM0"',
-        "source_commit",
+        "--firmware-commit",
+        "firmware_commit",
         "bytes_captured",
     )
     require(

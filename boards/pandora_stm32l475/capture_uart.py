@@ -6,21 +6,17 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import select
-import subprocess
 import sys
 import termios
 import time
 
 
-def source_commit(root: Path) -> str:
-    return subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
+def validate_firmware_commit(revision: str) -> str:
+    if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+        raise ValueError("firmware commit must be an exact 40-character lowercase Git SHA")
+    return revision
 
 
 def write_metadata(path: Path, record: dict) -> None:
@@ -79,11 +75,19 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--metadata", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=6.0)
+    parser.add_argument(
+        "--firmware-commit",
+        required=True,
+        help="Git revision used to build and program the captured firmware",
+    )
     args = parser.parse_args()
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
 
-    root = Path(__file__).resolve().parents[2]
+    try:
+        firmware_commit = validate_firmware_commit(args.firmware_commit)
+    except ValueError as error:
+        parser.error(str(error))
     status, payload, error = capture(args.device, args.timeout)
     if status != "DEVICE_OPEN_FAILED":
         args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -96,7 +100,7 @@ def main() -> int:
         "device": args.device,
         "error": error,
         "format": "8-N-1",
-        "source_commit": source_commit(root),
+        "firmware_commit": firmware_commit,
         "status": status,
         "timeout_seconds": args.timeout,
     }

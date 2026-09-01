@@ -13,23 +13,34 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 CAPTURE = ROOT / "boards" / "pandora_stm32l475" / "capture_uart.py"
+FIRMWARE_COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 
 class PandoraUartCaptureTest(unittest.TestCase):
-    def run_capture(self, device: str, output: Path, metadata: Path, timeout: float = 0.5):
+    def run_capture(
+        self,
+        device: str,
+        output: Path,
+        metadata: Path,
+        timeout: float = 0.5,
+        firmware_commit: str = FIRMWARE_COMMIT,
+    ):
+        command = [
+            sys.executable,
+            str(CAPTURE),
+            "--device",
+            device,
+            "--output",
+            str(output),
+            "--metadata",
+            str(metadata),
+            "--timeout",
+            str(timeout),
+        ]
+        if firmware_commit:
+            command.extend(["--firmware-commit", firmware_commit])
         return subprocess.Popen(
-            [
-                sys.executable,
-                str(CAPTURE),
-                "--device",
-                device,
-                "--output",
-                str(output),
-                "--metadata",
-                str(metadata),
-                "--timeout",
-                str(timeout),
-            ],
+            command,
             cwd=ROOT,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -54,7 +65,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             self.assertEqual(record["status"], "CAPTURED")
             self.assertEqual(record["device"], device)
             self.assertEqual(record["bytes_captured"], len(payload))
-            self.assertRegex(record["source_commit"], r"^[0-9a-f]{40}$")
+            self.assertEqual(record["firmware_commit"], FIRMWARE_COMMIT)
             self.assertIn("CAPTURED", stdout)
         os.close(master)
         os.close(slave)
@@ -93,6 +104,40 @@ class PandoraUartCaptureTest(unittest.TestCase):
             self.assertEqual(record["status"], "DEVICE_OPEN_FAILED")
             self.assertEqual(record["bytes_captured"], 0)
             self.assertIn("DEVICE_OPEN_FAILED", stdout)
+
+    def test_missing_firmware_commit_refuses_capture(self):
+        master, slave = pty.openpty()
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(
+                os.ttyname(slave), output, metadata, timeout=0.1, firmware_commit=""
+            )
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertNotEqual(process.returncode, 0, stdout)
+            self.assertIn("--firmware-commit", stderr)
+            self.assertFalse(output.exists())
+            self.assertFalse(metadata.exists())
+        os.close(master)
+        os.close(slave)
+
+    def test_non_exact_firmware_commit_refuses_capture(self):
+        master, slave = pty.openpty()
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(
+                os.ttyname(slave), output, metadata, timeout=0.1, firmware_commit="HEAD"
+            )
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertNotEqual(process.returncode, 0, stdout)
+            self.assertIn("exact 40-character lowercase Git SHA", stderr)
+            self.assertFalse(output.exists())
+            self.assertFalse(metadata.exists())
+        os.close(master)
+        os.close(slave)
 
 
 if __name__ == "__main__":

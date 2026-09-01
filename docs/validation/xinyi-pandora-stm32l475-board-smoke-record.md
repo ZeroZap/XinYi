@@ -72,6 +72,7 @@ Use the bounded capture helper after the board or independent USB-TTL adapter ap
 python3 boards/pandora_stm32l475/capture_uart.py \
   --device /dev/ttyACM0 \
   --timeout 6 \
+  --firmware-commit <exact-flashed-commit> \
   --output build/pandora-runtime/uart.log \
   --metadata build/pandora-runtime/capture.json
 ```
