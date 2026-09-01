@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
+
+from check_pc_artifact_reproducibility import DIRECT_SOURCES
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECKLIST = ROOT / "docs" / "release" / "release-checklist.md"
@@ -225,8 +228,23 @@ def validate() -> list[str]:
             require(review.get("approval") == "LEGAL_REVIEW_PENDING",
                     "PC bounded artifact license review must not claim legal approval", errors)
             sources = review.get("sources")
-            require(isinstance(sources, list) and len(sources) == 10,
+            require(sources == DIRECT_SOURCES,
                     "PC bounded artifact license review source inventory mismatch", errors)
+            require(review.get("artifact_selection") == "reproducibility-gate-only",
+                    "PC bounded artifact license review selection mismatch", errors)
+            require(review.get("declared_license") == "Apache-2.0",
+                    "PC bounded artifact declared license mismatch", errors)
+            license_evidence = review.get("license_evidence")
+            require(isinstance(license_evidence, dict),
+                    "PC bounded artifact license evidence is missing", errors)
+            if isinstance(license_evidence, dict):
+                license_path = ROOT / str(license_evidence.get("path", ""))
+                require(license_path == ROOT / "LICENSE" and license_path.is_file(),
+                        "PC bounded artifact license evidence path mismatch", errors)
+                if license_path.is_file():
+                    actual_license_sha256 = hashlib.sha256(license_path.read_bytes()).hexdigest()
+                    require(license_evidence.get("sha256") == actual_license_sha256,
+                            "PC bounded artifact license evidence hash mismatch", errors)
             boundary = str(review.get("evidence_boundary", ""))
             for phrase in ("technical evidence review", "not legal advice", "R1 remains blocked"):
                 require(phrase in boundary,
@@ -247,6 +265,26 @@ def validate() -> list[str]:
                     "PC bounded artifact NOTICE review must not claim legal approval", errors)
             require(notice.get("notice_output") is None,
                     "PC bounded artifact NOTICE review must not invent a NOTICE file", errors)
+            require(notice.get("artifact_selection") == "reproducibility-gate-only",
+                    "PC bounded artifact NOTICE review selection mismatch", errors)
+            scope = notice.get("scope")
+            require(isinstance(scope, dict),
+                    "PC bounded artifact NOTICE review scope is missing", errors)
+            if isinstance(scope, dict):
+                require(scope.get("direct_source_count") == len(DIRECT_SOURCES),
+                        "PC bounded artifact NOTICE source count mismatch", errors)
+                require(scope.get("source_inventory") ==
+                        "docs/validation/pc-release-license-review.json",
+                        "PC bounded artifact NOTICE source inventory mismatch", errors)
+            notice_evidence = notice.get("evidence")
+            require(isinstance(notice_evidence, dict),
+                    "PC bounded artifact NOTICE evidence is missing", errors)
+            if isinstance(notice_evidence, dict):
+                require(notice_evidence.get("repository_license") == "LICENSE",
+                        "PC bounded artifact NOTICE license path mismatch", errors)
+                actual_license_sha256 = hashlib.sha256((ROOT / "LICENSE").read_bytes()).hexdigest()
+                require(notice_evidence.get("repository_license_sha256") == actual_license_sha256,
+                        "PC bounded artifact NOTICE license hash mismatch", errors)
             boundary = str(notice.get("evidence_boundary", ""))
             for phrase in ("bounded artifact", "not legal advice", "complete release scope", "R1 remains blocked"):
                 require(phrase in boundary,
