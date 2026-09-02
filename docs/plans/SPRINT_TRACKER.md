@@ -186,7 +186,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-50 | P0 | Pandora AHT10 恢复事件顺序门 | DONE | Zero | S5-49（DONE） | RED：ACK/measurement 后出现 trailing NACK 仍被误标 B2 candidate；现要求 NACK→后续 ACK→后续 plausible measurement 的严格顺序；focused 2/2、Host 203/203、PC root 与 `git diff --check` 通过；PTY 不升级 B2 | `37edb207` | 2026-09-02 |
 | S5-51 | P0 | Pandora B1 启动事件顺序门 | DONE | Zero | S5-50（DONE） | RED：measurement→ACK 的乱序 capture 曾获 B1 candidate；现要求 banner→ACK→plausible measurement 的严格顺序，乱序字节保留但 fail-closed；focused 1/1、Host 203/203、PC root、Pandora Arm target 与 `git diff --check` 通过；PTY 不升级 B1/B2 | `0772a0f4` | 2026-09-02 |
 | S5-52 | P0 | Pandora B2 启动身份顺序门 | DONE | Zero | S5-51（DONE） | RED：firmware banner 前的 stale NACK 曾与后续 ACK/measurement 组合并误获 B2 candidate；现要求 banner→NACK→ACK→plausible measurement；focused 2/2、Host 203/203、PC root、Pandora Arm target 与 `git diff --check` 通过；PTY 不升级 B1/B2 | `f558cbaf` | 2026-09-02 |
-| S5-53 | P0 | Pandora B2 恢复窗口唯一性门 | DONE | Zero | S5-52（DONE） | RED：同一 capture 先有成功测量、后有 NACK→ACK→measurement 时仍误获 B2 candidate；现仅当首次 banner 后、NACK 前没有 plausible measurement 才形成 recovery candidate，避免把后续周期故障拼接为启动恢复证据；focused 1/1、Host 203/203、PC root、Pandora Arm target 与 `git diff --check` 通过；PTY 不升级 B1/B2 | 本轮提交 | 2026-09-02 |
+| S5-53 | P0 | Pandora B2 恢复窗口唯一性门 | DONE | Zero | S5-52（DONE） | RED：同一 capture 先有成功测量、后有 NACK→ACK→measurement 时仍误获 B2 candidate；现仅当首次 banner 后、NACK 前没有 plausible measurement 才形成 recovery candidate，避免把后续周期故障拼接为启动恢复证据；focused 1/1、Host 203/203、PC root、Pandora Arm target 与 `git diff --check` 通过；PTY 不升级 B1/B2 | `0d286c75` | 2026-09-02 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
