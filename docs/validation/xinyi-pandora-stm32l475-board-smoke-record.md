@@ -93,8 +93,9 @@ bounded no-data timeout, disconnect, missing-device refusal, firmware commit bin
 generation. A successful PTY test is not board evidence; only retained bytes from the real
 board/adapter may support B1/B2.
 
-If the same retained capture also contains `AHT10 0x38 NACK` followed in order by a later ACK and
-plausible measurement, the helper records `B2_REVIEW_CANDIDATE`. A trailing NACK after an earlier
-successful measurement remains only a B1 candidate. This only identifies a recovery-log candidate;
+If the same retained capture also contains the firmware banner followed in order by `AHT10 0x38 NACK`,
+a later ACK and a plausible measurement, the helper records `B2_REVIEW_CANDIDATE`. A NACK before the
+firmware banner or after an earlier successful measurement remains only a B1 candidate. This only
+identifies a recovery-log candidate;
 human review must still confirm the real device path, ordering, flashed commit and raw bytes before the
 record can grant B2.
