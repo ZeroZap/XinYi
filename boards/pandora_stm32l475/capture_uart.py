@@ -34,9 +34,15 @@ def has_ordered_aht10_recovery(payload: bytes) -> bool:
     banner_offset = payload.find(PANDORA_BANNER)
     if banner_offset < 0:
         return False
-    nack_offset = payload.find(AHT10_NACK, banner_offset + len(PANDORA_BANNER))
+    banner_end = banner_offset + len(PANDORA_BANNER)
+    nack_offset = payload.find(AHT10_NACK, banner_end)
     if nack_offset < 0:
         return False
+    for earlier_measurement in AHT10_MEASUREMENT.finditer(payload, banner_end, nack_offset):
+        humidity_milli_percent = int(earlier_measurement.group(1))
+        temperature_milli_c = int(earlier_measurement.group(2))
+        if 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000:
+            return False
     ack_offset = payload.find(AHT10_ACK, nack_offset + len(AHT10_NACK))
     if ack_offset < 0:
         return False

@@ -270,6 +270,35 @@ class PandoraUartCaptureTest(unittest.TestCase):
         os.close(master)
         os.close(slave)
 
+    def test_recovery_after_an_earlier_successful_cycle_does_not_grant_b2_candidate(self):
+        master, slave = pty.openpty()
+        device = os.ttyname(slave)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(device, output, metadata)
+            time.sleep(0.1)
+            payload = (
+                b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"AHT10 0x38 ACK\r\n"
+                b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
+                b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"AHT10 0x38 NACK\r\n"
+                b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"AHT10 0x38 ACK\r\n"
+                b"AHT10 RH_milli_percent=50100 T_milli_c=23000\r\n"
+            )
+            os.write(master, payload)
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertEqual(process.returncode, 0, stderr)
+            record = json.loads(metadata.read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "CAPTURED")
+            self.assertEqual(record["runtime_evidence"], "B1_REVIEW_CANDIDATE")
+            self.assertIn("CAPTURED", stdout)
+        os.close(master)
+        os.close(slave)
+
     def test_no_data_timeout_is_bounded_and_fail_closed(self):
         master, slave = pty.openpty()
         device = os.ttyname(slave)
