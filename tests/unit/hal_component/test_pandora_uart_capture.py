@@ -120,6 +120,30 @@ class PandoraUartCaptureTest(unittest.TestCase):
         os.close(master)
         os.close(slave)
 
+    def test_out_of_range_measurement_remains_review_ineligible(self):
+        master, slave = pty.openpty()
+        device = os.ttyname(slave)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(device, output, metadata)
+            time.sleep(0.1)
+            payload = (
+                b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"AHT10 RH_milli_percent=999999 T_milli_c=999999\r\n"
+            )
+            os.write(master, payload)
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertEqual(process.returncode, 3, stderr)
+            record = json.loads(metadata.read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "CAPTURE_CONTENT_MISMATCH")
+            self.assertEqual(record["runtime_evidence"], "NONE")
+            self.assertIn("AHT10 measurement", record["error"])
+            self.assertIn("CAPTURE_CONTENT_MISMATCH", stdout)
+        os.close(master)
+        os.close(slave)
+
     def test_no_data_timeout_is_bounded_and_fail_closed(self):
         master, slave = pty.openpty()
         device = os.ttyname(slave)

@@ -15,8 +15,17 @@ import time
 
 PANDORA_BANNER = b"PANDORA STM32L475VE XINYI SMOKE OK"
 AHT10_MEASUREMENT = re.compile(
-    rb"AHT10 RH_milli_percent=[0-9]+ T_milli_c=-?[0-9]+(?:\r?\n|$)"
+    rb"AHT10 RH_milli_percent=([0-9]+) T_milli_c=(-?[0-9]+)(?:\r?\n|$)"
 )
+
+
+def has_plausible_aht10_measurement(payload: bytes) -> bool:
+    match = AHT10_MEASUREMENT.search(payload)
+    if match is None:
+        return False
+    humidity_milli_percent = int(match.group(1))
+    temperature_milli_c = int(match.group(2))
+    return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
 
 
 def validate_firmware_commit(revision: str) -> str:
@@ -101,8 +110,8 @@ def main() -> int:
         missing_markers = []
         if PANDORA_BANNER not in payload:
             missing_markers.append("Pandora banner")
-        if AHT10_MEASUREMENT.search(payload) is None:
-            missing_markers.append("AHT10 measurement")
+        if not has_plausible_aht10_measurement(payload):
+            missing_markers.append("plausible AHT10 measurement")
         if missing_markers:
             status = "CAPTURE_CONTENT_MISMATCH"
             error = "required runtime marker(s) not found: " + ", ".join(missing_markers)
