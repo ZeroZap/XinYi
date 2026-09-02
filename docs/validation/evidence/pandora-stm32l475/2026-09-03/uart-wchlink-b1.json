@@ -1,0 +1,18 @@
+{
+  "baudrate": 115200,
+  "bytes_captured": 1560,
+  "captured_at_utc": "2026-09-02T17:28:27.246031+00:00",
+  "device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "error": null,
+  "firmware_commit": "9b50ec38c4e32f9e37c93a0f3f70379453c9622f",
+  "firmware_commit_marker_matched": true,
+  "format": "8-N-1",
+  "required_ack_marker": "AHT10 0x38 ACK",
+  "required_firmware_commit_marker": "FIRMWARE_COMMIT 9b50ec38c4e32f9e37c93a0f3f70379453c9622f",
+  "required_marker": "PANDORA STM32L475VE XINYI SMOKE OK",
+  "required_measurement_pattern": "AHT10 RH_milli_percent=([0-9]+) T_milli_c=(-?[0-9]+)(?:\\r?\\n|$)",
+  "required_nack_marker": "AHT10 0x38 NACK",
+  "runtime_evidence": "B1_REVIEW_CANDIDATE",
+  "status": "CAPTURED",
+  "timeout_seconds": 6.0
+}

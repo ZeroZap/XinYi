@@ -1,13 +1,13 @@
 # Pandora STM32L475VE Board Smoke Record
 
-**Date**: 2026-09-02
-**Source commit**: `00cc9ee97256c5114c5e218717fc12253ad6e0f9`
+**Date**: 2026-09-03
+**Source commit**: `9b50ec38c4e32f9e37c93a0f3f70379453c9622f`
 **Board**: Pandora STM32L475VE
-**Status**: `BLOCKED_VCP_UNSTABLE`
-**Evidence classification**: `PROGRAMMING_VERIFIED`; `BOARD_RUNTIME_PENDING`
+**Status**: `B1_BOARD_SMOKE_VERIFIED`; `B2_PENDING`
+**Evidence classification**: `PROGRAMMING_VERIFIED`; `BOARD_RUNTIME_B1`
 
-This record separates a verified ST-Link flash operation from unobserved firmware runtime. A
-successful programmer verify does not prove the UART banner, LED, key, or AHT10 paths executed.
+This record separates verified programming, observed normal-path board runtime, and still-pending
+negative/recovery evidence. B1 does not imply KEY0 or AHT10 NACK/recovery verification.
 
 ## Environment
 
@@ -43,7 +43,7 @@ Attempting to write 7248 bytes
 Flash written and verified
 ```
 
-## Runtime observation blocker
+## Historical ST-Link VCP blocker
 
 Before programming, Linux exposed `/dev/ttyACM0` and the probe was visible. Opening the VCP for a
 six-second 115200-8-N-1 capture did not return data and did not terminate normally; the capture was
@@ -55,16 +55,47 @@ stopped by the 20-second command timeout (`CAPTURE_BYTES=0`). Immediately afterw
 
 This matches an unstable ST-Link V2.1 VCP/USB path, so no UART banner was captured. LED, KEY0, AHT10
 ACK/measurement, and NACK recovery were not independently observed and remain
-`BOARD_RUNTIME_PENDING`. No B1/B2 status is granted by this record.
+`BOARD_RUNTIME_PENDING` at that time. The independent-UART result below supersedes that B1 blocker;
+the board-local ST-Link VCP limitation remains.
 
-## Unblock and rerun
+## 2026-09-03 independent-UART B1 result
 
-1. Power-cycle/reconnect the board and upgrade the ST-Link firmware, or connect an independent
-   USB-TTL adapter to PA9 (USART1 TX), PA10 (USART1 RX), and GND.
-2. Reflash the same committed image and save a bounded raw UART log containing the banner and AHT10
-   measurement.
-3. Observe the PE7 LED and KEY0 path, then force an AHT10 NACK/recovery cycle and retain the log.
-4. Only then update this record and the HAL evidence matrix to B1/B2 as supported by the observations.
+The current committed image was rebuilt with embedded identity
+`9b50ec38c4e32f9e37c93a0f3f70379453c9622f`, programmed once with `st-flash --reset write`, and
+reported `Flash written and verified`. PE7 was then visually observed toggling at the firmware's
+500 ms interval.
+
+An independent WCH-Link UART connected to PA9/PA10/GND enumerated as
+`/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01`. A bounded six-second 115200-8-N-1
+capture retained 1560 bytes and was classified `B1_REVIEW_CANDIDATE`; review confirmed the real
+adapter path, exact flashed commit, and ordered runtime content. The log contains ten complete
+normal-path cycles, each with the Pandora banner, matching firmware identity, AHT10 ACK, and a
+plausible measurement. Observed ranges were 77153–77180 milli-percent RH and 28583–28601
+milli-degrees C.
+
+Retained evidence:
+
+- [raw UART log](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-b1.txt), SHA-256
+  `93d4dc22669b26b8b666f4bc4d25968f9b2aa02959968f476fbfe4191730a658`
+- [capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-b1.json), SHA-256
+  `54f357183833ace492f2382e591fda3e4f75dc90002d625c7ae4d0f676652532`
+
+This closes the normal-path board smoke at B1 for this exact board/image/wiring.
+
+A second eight-second capture retained 2052 bytes while KEY0 was held for about two seconds. It
+contains 13 matching firmware cycles and four `KEY0` events, verifying the PD10 active-low key path:
+
+- [KEY0 UART log](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-key0.txt), SHA-256
+  `57e69784ce8a436f969fd9562826cf667aca34c3561523a99544e8e33b720f1b`
+
+No retained capture contains an AHT10 NACK, so negative/recovery behavior remains pending and B2 is
+not granted.
+
+## Remaining B2 work
+
+1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained
+   capture.
+2. Grant B2 only after reviewing the real device path and ordered negative/recovery bytes.
 
 Use the bounded capture helper after the board or independent USB-TTL adapter appears:
 
