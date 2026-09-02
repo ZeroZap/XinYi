@@ -30,6 +30,21 @@ def has_plausible_aht10_measurement(payload: bytes) -> bool:
     return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
 
 
+def has_ordered_aht10_recovery(payload: bytes) -> bool:
+    nack_offset = payload.find(AHT10_NACK)
+    if nack_offset < 0:
+        return False
+    ack_offset = payload.find(AHT10_ACK, nack_offset + len(AHT10_NACK))
+    if ack_offset < 0:
+        return False
+    measurement = AHT10_MEASUREMENT.search(payload, ack_offset + len(AHT10_ACK))
+    if measurement is None:
+        return False
+    humidity_milli_percent = int(measurement.group(1))
+    temperature_milli_c = int(measurement.group(2))
+    return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
+
+
 def validate_firmware_commit(revision: str) -> str:
     if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
         raise ValueError("firmware commit must be an exact 40-character lowercase Git SHA")
@@ -121,7 +136,9 @@ def main() -> int:
             error = "required runtime marker(s) not found: " + ", ".join(missing_markers)
         else:
             runtime_evidence = (
-                "B2_REVIEW_CANDIDATE" if AHT10_NACK in payload else "B1_REVIEW_CANDIDATE"
+                "B2_REVIEW_CANDIDATE"
+                if has_ordered_aht10_recovery(payload)
+                else "B1_REVIEW_CANDIDATE"
             )
     if status != "DEVICE_OPEN_FAILED":
         args.output.parent.mkdir(parents=True, exist_ok=True)
