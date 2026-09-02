@@ -83,8 +83,10 @@ The helper exits nonzero and records `NO_DATA_TIMEOUT`, `DEVICE_OPEN_FAILED`, `C
 `PANDORA STM32L475VE XINYI SMOKE OK`, the exact sensor acknowledgement `AHT10 0x38 ACK`, and an
 AHT10 measurement within the sensor's plausible output range (0–100000 milli-percent RH and
 -50000–150000 milli-degrees C); banner-only, missing-ACK, out-of-range, and unrelated bootloader/noise
-bytes are retained but rejected. The candidate classification still requires human review of the real
-device path, flashed commit, raw log and metadata before this record may grant B1. A serial
+bytes are retained but rejected. These markers must occur in firmware order: banner, then ACK, then
+plausible measurement; reordered retained bytes are also rejected. The candidate classification still
+requires human review of the real device path, flashed commit, raw log and metadata before this record
+may grant B1. A serial
 EOF/disconnect is classified immediately as an I/O failure instead of being mislabeled as a no-data
 timeout. Its PTY Host contract enforces banner-plus-ACK-plus-measurement eligibility, content mismatch,
 bounded no-data timeout, disconnect, missing-device refusal, firmware commit binding, and metadata

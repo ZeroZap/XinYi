@@ -45,6 +45,21 @@ def has_ordered_aht10_recovery(payload: bytes) -> bool:
     return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
 
 
+def has_ordered_aht10_startup(payload: bytes) -> bool:
+    banner_offset = payload.find(PANDORA_BANNER)
+    if banner_offset < 0:
+        return False
+    ack_offset = payload.find(AHT10_ACK, banner_offset + len(PANDORA_BANNER))
+    if ack_offset < 0:
+        return False
+    measurement = AHT10_MEASUREMENT.search(payload, ack_offset + len(AHT10_ACK))
+    if measurement is None:
+        return False
+    humidity_milli_percent = int(measurement.group(1))
+    temperature_milli_c = int(measurement.group(2))
+    return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
+
+
 def validate_firmware_commit(revision: str) -> str:
     if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
         raise ValueError("firmware commit must be an exact 40-character lowercase Git SHA")
@@ -131,6 +146,8 @@ def main() -> int:
             missing_markers.append("AHT10 ACK")
         if not has_plausible_aht10_measurement(payload):
             missing_markers.append("plausible AHT10 measurement")
+        if not missing_markers and not has_ordered_aht10_startup(payload):
+            missing_markers.append("ordered Pandora/AHT10 startup")
         if missing_markers:
             status = "CAPTURE_CONTENT_MISMATCH"
             error = "required runtime marker(s) not found: " + ", ".join(missing_markers)
