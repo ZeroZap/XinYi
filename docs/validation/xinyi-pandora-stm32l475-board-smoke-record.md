@@ -90,3 +90,8 @@ timeout. Its PTY Host contract enforces banner-plus-ACK-plus-measurement eligibi
 bounded no-data timeout, disconnect, missing-device refusal, firmware commit binding, and metadata
 generation. A successful PTY test is not board evidence; only retained bytes from the real
 board/adapter may support B1/B2.
+
+If the same retained capture also contains `AHT10 0x38 NACK` before a later ACK and plausible
+measurement, the helper records `B2_REVIEW_CANDIDATE`. This only identifies a recovery-log candidate;
+human review must still confirm the real device path, ordering, flashed commit and raw bytes before the
+record can grant B2.

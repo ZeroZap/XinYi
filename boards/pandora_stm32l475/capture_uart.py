@@ -15,6 +15,7 @@ import time
 
 PANDORA_BANNER = b"PANDORA STM32L475VE XINYI SMOKE OK"
 AHT10_ACK = b"AHT10 0x38 ACK"
+AHT10_NACK = b"AHT10 0x38 NACK"
 AHT10_MEASUREMENT = re.compile(
     rb"AHT10 RH_milli_percent=([0-9]+) T_milli_c=(-?[0-9]+)(?:\r?\n|$)"
 )
@@ -119,7 +120,9 @@ def main() -> int:
             status = "CAPTURE_CONTENT_MISMATCH"
             error = "required runtime marker(s) not found: " + ", ".join(missing_markers)
         else:
-            runtime_evidence = "B1_REVIEW_CANDIDATE"
+            runtime_evidence = (
+                "B2_REVIEW_CANDIDATE" if AHT10_NACK in payload else "B1_REVIEW_CANDIDATE"
+            )
     if status != "DEVICE_OPEN_FAILED":
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_bytes(payload)
@@ -133,6 +136,7 @@ def main() -> int:
         "format": "8-N-1",
         "firmware_commit": firmware_commit,
         "required_ack_marker": AHT10_ACK.decode("ascii"),
+        "required_nack_marker": AHT10_NACK.decode("ascii"),
         "required_marker": PANDORA_BANNER.decode("ascii"),
         "required_measurement_pattern": AHT10_MEASUREMENT.pattern.decode("ascii"),
         "runtime_evidence": runtime_evidence,
