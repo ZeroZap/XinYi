@@ -70,6 +70,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             self.assertEqual(record["device"], device)
             self.assertEqual(record["bytes_captured"], len(payload))
             self.assertEqual(record["firmware_commit"], FIRMWARE_COMMIT)
+            self.assertEqual(record["required_ack_marker"], "AHT10 0x38 ACK")
             self.assertEqual(record["runtime_evidence"], "B1_REVIEW_CANDIDATE")
             self.assertIn("CAPTURED", stdout)
         os.close(master)
@@ -140,6 +141,30 @@ class PandoraUartCaptureTest(unittest.TestCase):
             self.assertEqual(record["status"], "CAPTURE_CONTENT_MISMATCH")
             self.assertEqual(record["runtime_evidence"], "NONE")
             self.assertIn("AHT10 measurement", record["error"])
+            self.assertIn("CAPTURE_CONTENT_MISMATCH", stdout)
+        os.close(master)
+        os.close(slave)
+
+    def test_measurement_without_ack_remains_review_ineligible(self):
+        master, slave = pty.openpty()
+        device = os.ttyname(slave)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(device, output, metadata)
+            time.sleep(0.1)
+            payload = (
+                b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
+            )
+            os.write(master, payload)
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertEqual(process.returncode, 3, stderr)
+            record = json.loads(metadata.read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "CAPTURE_CONTENT_MISMATCH")
+            self.assertEqual(record["runtime_evidence"], "NONE")
+            self.assertIn("AHT10 ACK", record["error"])
             self.assertIn("CAPTURE_CONTENT_MISMATCH", stdout)
         os.close(master)
         os.close(slave)

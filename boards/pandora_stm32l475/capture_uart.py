@@ -14,6 +14,7 @@ import time
 
 
 PANDORA_BANNER = b"PANDORA STM32L475VE XINYI SMOKE OK"
+AHT10_ACK = b"AHT10 0x38 ACK"
 AHT10_MEASUREMENT = re.compile(
     rb"AHT10 RH_milli_percent=([0-9]+) T_milli_c=(-?[0-9]+)(?:\r?\n|$)"
 )
@@ -110,6 +111,8 @@ def main() -> int:
         missing_markers = []
         if PANDORA_BANNER not in payload:
             missing_markers.append("Pandora banner")
+        if AHT10_ACK not in payload:
+            missing_markers.append("AHT10 ACK")
         if not has_plausible_aht10_measurement(payload):
             missing_markers.append("plausible AHT10 measurement")
         if missing_markers:
@@ -129,6 +132,7 @@ def main() -> int:
         "error": error,
         "format": "8-N-1",
         "firmware_commit": firmware_commit,
+        "required_ack_marker": AHT10_ACK.decode("ascii"),
         "required_marker": PANDORA_BANNER.decode("ascii"),
         "required_measurement_pattern": AHT10_MEASUREMENT.pattern.decode("ascii"),
         "runtime_evidence": runtime_evidence,
