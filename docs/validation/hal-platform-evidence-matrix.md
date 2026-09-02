@@ -26,7 +26,7 @@
 |---|---|---|---|---|---|---|---|---|---|---|
 | STM32U5 | `PARTIAL_SOURCE`（EXTI 依赖 SDK IRQ 定义） | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `UNSUPPORTED`（显式 stub） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC，不是 U5 runtime） | `COMPILE_ONLY` 历史记录；当前 SDK/toolchain 不可用，需重跑 | `BOARD_PENDING` |
 | STM32F4 | `SOURCE_PRESENT` | `UNSUPPORTED`（wrapper 返回 not-supported） | `SOURCE_PRESENT` | `UNSUPPORTED`（wrapper 返回 not-supported） | `UNSUPPORTED`（wrapper 返回 not-supported） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
-| STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `UNSUPPORTED`（框架 wrapper 复用 F4 stub；Pandora smoke 直接使用 CubeL4 UART） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED` | `PARTIAL_SOURCE`（复用 F4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY`：Pandora STM32L475VE smoke image；ST-Link Flash write/verify 成功 | [`B1_BOARD_SMOKE`](xinyi-pandora-stm32l475-board-smoke-record.md)：独立 UART 已取得匹配固件 SHA 的 banner、AHT10 ACK 与 10 组测量；KEY0/NACK recovery 仍 pending |
+| STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `UNSUPPORTED`（框架 wrapper 复用 F4 stub；Pandora smoke 直接使用 CubeL4 UART） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED` | `PARTIAL_SOURCE`（复用 F4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY`：Pandora STM32L475VE smoke image；ST-Link Flash write/verify 成功 | [`B1_BOARD_SMOKE`](xinyi-pandora-stm32l475-board-smoke-record.md)：独立 UART 已取得匹配固件 SHA 的 banner、AHT10 ACK/测量与 KEY0 事件；NACK recovery 仍 pending |
 | WCH CH32V30x | `PARTIAL_SOURCE`（IRQ configure unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | PC simulation | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `UNSUPPORTED`（PC source set 未选 Timer wrapper） | `UNSUPPORTED` | `UNSUPPORTED`（PC source set 未选 DMA wrapper） | `HOST_CONTRACT` | n/a | n/a |
@@ -49,9 +49,10 @@ KEY0 和 AHT10 `0x38` software-I2C 初始化、测量、数值换算及 ACK/NACK
 链接 STM32CubeL4 HAL，不会升级 XinYi STM32L4 framework wrapper 的能力状态；本次结果仅为
 `COMPILE_ONLY`。2026-09-03 已通过 ST-Link 完成当前 image write/verify，并通过接入 PA9/PA10/GND
 的独立 WCH-Link UART 留存匹配固件 SHA 的 banner、10 次 AHT10 ACK 与合理测量；PE7 500 ms
-翻转也已观察。详见 [Pandora board smoke record](xinyi-pandora-stm32l475-board-smoke-record.md)。
+翻转及 KEY0 输入也已观察并留存日志。详见
+[Pandora board smoke record](xinyi-pandora-stm32l475-board-smoke-record.md)。
 这些证据将 board-local smoke 正常路径升级为 B1，但不会升级 XinYi STM32L4 framework wrapper，
-也不构成 KEY0 或 AHT10 NACK/recovery 的 B2。
+也不构成 AHT10 NACK/recovery 的 B2。
 
 ### WCH / HC32
 

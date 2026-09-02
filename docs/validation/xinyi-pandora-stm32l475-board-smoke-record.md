@@ -7,7 +7,7 @@
 **Evidence classification**: `PROGRAMMING_VERIFIED`; `BOARD_RUNTIME_B1`
 
 This record separates verified programming, observed normal-path board runtime, and still-pending
-negative/recovery evidence. B1 does not imply KEY0 or AHT10 NACK/recovery verification.
+negative/recovery evidence. B1 does not imply AHT10 NACK/recovery verification.
 
 ## Environment
 
