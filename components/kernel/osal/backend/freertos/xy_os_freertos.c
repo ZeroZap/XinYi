@@ -247,11 +247,7 @@ uint32_t xy_os_thread_flags_set(xy_os_thread_id_t thread_id, uint32_t flags)
 
 uint32_t xy_os_thread_flags_clear(uint32_t flags)
 {
-    uint32_t prev;
-    xTaskNotifyStateClear(NULL);
-    xTaskNotifyAndQuery(xTaskGetCurrentTaskHandle(), 0, eNoAction, &prev);
-    xTaskNotify(xTaskGetCurrentTaskHandle(), ~flags, eSetValueWithOverwrite);
-    return prev;
+    return ulTaskNotifyValueClear(NULL, flags);
 }
 
 uint32_t xy_os_thread_flags_get(void)
