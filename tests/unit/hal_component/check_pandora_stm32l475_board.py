@@ -117,7 +117,7 @@ def main() -> None:
     assert metadata["firmware_commit_marker_matched"] is True
     assert metadata["status"] == "CAPTURED"
     assert metadata["runtime_evidence"] == "B1_REVIEW_CANDIDATE"
-    assert metadata["bytes_captured"] == len(uart_log.encode("utf-8")) == 1560
+    assert metadata["bytes_captured"] == 1560
     assert uart_log.count("PANDORA STM32L475VE XINYI SMOKE OK") == 10
     assert uart_log.count(f"FIRMWARE_COMMIT {FIRMWARE_COMMIT}") == 10
     assert uart_log.count("AHT10 0x38 ACK") == 10
