@@ -182,6 +182,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-46 | P0 | Pandora UART B1 候选内容门 | DONE | Zero | S5-45（DONE） | RED：仅 banner 即可成功，未证明 AHT10 测量路径；现要求 banner + 数值测量行才标记 `B1_REVIEW_CANDIDATE`，banner-only/noise 保留但 fail-closed；focused 1/1、Host 203/203、PC root 与 `git diff --check` 通过；PTY 结果不升级 B1 | `03e35fcb` | 2026-09-02 |
 | S5-47 | P0 | Pandora AHT10 候选值域门 | DONE | Zero | S5-46（DONE） | RED：格式正确但明显越界的 RH/温度仍获 `B1_REVIEW_CANDIDATE`；现仅接受 AHT10 plausible range（0–100000 milli-percent、-50000–150000 milli-C），越界 capture 保留但 fail-closed；focused 2/2、Host 203/203、PC root 与 `git diff --check` 通过；当前无 ST-Link/串口设备，不升级 runtime/B1/B2 | `b67e02f1` | 2026-09-02 |
 | S5-48 | P0 | Pandora AHT10 ACK 候选内容门 | DONE | Zero | S5-47（DONE） | RED：banner + 合法测量但无 `AHT10 0x38 ACK` 曾获候选；现要求 banner、ACK 与 plausible measurement 三者齐备；focused 2/2、Host 203/203、PC root、`git diff --check` 通过；PTY 不升级 runtime/B1/B2 | `882d66c7` | 2026-09-02 |
+| S5-49 | P0 | Pandora AHT10 NACK→恢复候选门 | DONE | Zero | S5-48（DONE） | RED：NACK 后恢复的 capture 仍只能标为 B1 candidate 且 metadata 不记录 NACK marker；现要求同一 capture 含 NACK、后续 ACK 与 plausible measurement 才标记 `B2_REVIEW_CANDIDATE`；focused 2/2、Host 203/203、PC root 与 `git diff --check` 通过；PTY 不升级 B2 | `969c262e` | 2026-09-02 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
