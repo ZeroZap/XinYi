@@ -31,15 +31,18 @@ def has_plausible_aht10_measurement(payload: bytes) -> bool:
     return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
 
 
-def has_ordered_aht10_recovery(payload: bytes) -> bool:
+def has_ordered_aht10_recovery(payload: bytes, firmware_commit_marker: bytes) -> bool:
     banner_offset = payload.find(PANDORA_BANNER)
     if banner_offset < 0:
         return False
-    banner_end = banner_offset + len(PANDORA_BANNER)
-    nack_offset = payload.find(AHT10_NACK, banner_end)
+    marker_offset = payload.find(firmware_commit_marker, banner_offset + len(PANDORA_BANNER))
+    if marker_offset < 0:
+        return False
+    recovery_start = marker_offset + len(firmware_commit_marker)
+    nack_offset = payload.find(AHT10_NACK, recovery_start)
     if nack_offset < 0:
         return False
-    for earlier_measurement in AHT10_MEASUREMENT.finditer(payload, banner_end, nack_offset):
+    for earlier_measurement in AHT10_MEASUREMENT.finditer(payload, recovery_start, nack_offset):
         humidity_milli_percent = int(earlier_measurement.group(1))
         temperature_milli_c = int(earlier_measurement.group(2))
         if 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000:
@@ -179,7 +182,7 @@ def main() -> int:
         else:
             runtime_evidence = (
                 "B2_REVIEW_CANDIDATE"
-                if has_ordered_aht10_recovery(payload)
+                if has_ordered_aht10_recovery(payload, firmware_commit_marker)
                 else "B1_REVIEW_CANDIDATE"
             )
     if status != "DEVICE_OPEN_FAILED":
