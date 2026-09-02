@@ -58,30 +58,46 @@ def has_ordered_aht10_recovery(payload: bytes, firmware_commit_marker: bytes) ->
     return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
 
 
-def has_ordered_aht10_startup(payload: bytes) -> bool:
-    banner_offset = payload.find(PANDORA_BANNER)
-    if banner_offset < 0:
-        return False
-    ack_offset = payload.find(AHT10_ACK, banner_offset + len(PANDORA_BANNER))
-    if ack_offset < 0:
-        return False
-    measurement = AHT10_MEASUREMENT.search(payload, ack_offset + len(AHT10_ACK))
-    if measurement is None:
-        return False
-    humidity_milli_percent = int(measurement.group(1))
-    temperature_milli_c = int(measurement.group(2))
-    return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
+def find_ordered_aht10_startup(
+    payload: bytes, firmware_commit_marker: bytes
+) -> tuple[int, int, re.Match[bytes]] | None:
+    search_offset = 0
+    while True:
+        banner_offset = payload.find(PANDORA_BANNER, search_offset)
+        if banner_offset < 0:
+            return None
+        next_banner_offset = payload.find(PANDORA_BANNER, banner_offset + len(PANDORA_BANNER))
+        cycle_end = len(payload) if next_banner_offset < 0 else next_banner_offset
+        marker_offset = payload.find(
+            firmware_commit_marker, banner_offset + len(PANDORA_BANNER), cycle_end
+        )
+        if marker_offset >= 0:
+            ack_offset = payload.find(
+                AHT10_ACK, marker_offset + len(firmware_commit_marker), cycle_end
+            )
+            if ack_offset >= 0:
+                measurement = AHT10_MEASUREMENT.search(
+                    payload, ack_offset + len(AHT10_ACK), cycle_end
+                )
+                if measurement is not None:
+                    humidity_milli_percent = int(measurement.group(1))
+                    temperature_milli_c = int(measurement.group(2))
+                    if (
+                        0 <= humidity_milli_percent <= 100000
+                        and -50000 <= temperature_milli_c <= 150000
+                    ):
+                        return banner_offset, marker_offset, measurement
+        if next_banner_offset < 0:
+            return None
+        search_offset = next_banner_offset
+
+
+def has_ordered_aht10_startup(payload: bytes, firmware_commit_marker: bytes) -> bool:
+    return find_ordered_aht10_startup(payload, firmware_commit_marker) is not None
 
 
 def has_ordered_firmware_commit(payload: bytes, firmware_commit_marker: bytes) -> bool:
-    banner_offset = payload.find(PANDORA_BANNER)
-    if banner_offset < 0:
-        return False
-    marker_offset = payload.find(firmware_commit_marker, banner_offset + len(PANDORA_BANNER))
-    if marker_offset < 0:
-        return False
-    ack_offset = payload.find(AHT10_ACK, marker_offset + len(firmware_commit_marker))
-    return ack_offset >= 0
+    return find_ordered_aht10_startup(payload, firmware_commit_marker) is not None
 
 
 def validate_firmware_commit(revision: str) -> str:
@@ -174,8 +190,8 @@ def main() -> int:
             missing_markers.append("plausible AHT10 measurement")
         if not firmware_commit_marker_matched:
             missing_markers.append("ordered firmware commit marker")
-        if not has_ordered_aht10_startup(payload):
-            missing_markers.append("ordered Pandora/AHT10 startup")
+        if not has_ordered_aht10_startup(payload, firmware_commit_marker):
+            missing_markers.append("ordered firmware/startup chain")
         if missing_markers:
             status = "CAPTURE_CONTENT_MISMATCH"
             error = "required runtime marker(s) not found: " + ", ".join(missing_markers)

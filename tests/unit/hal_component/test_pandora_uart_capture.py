@@ -245,7 +245,35 @@ class PandoraUartCaptureTest(unittest.TestCase):
             record = json.loads(metadata.read_text(encoding="utf-8"))
             self.assertEqual(record["status"], "CAPTURE_CONTENT_MISMATCH")
             self.assertEqual(record["runtime_evidence"], "NONE")
-            self.assertIn("ordered Pandora/AHT10 startup", record["error"])
+            self.assertIn("ordered firmware/startup chain", record["error"])
+            self.assertIn("CAPTURE_CONTENT_MISMATCH", stdout)
+        os.close(master)
+        os.close(slave)
+
+    def test_commit_and_measurement_from_different_cycles_are_review_ineligible(self):
+        master, slave = pty.openpty()
+        device = os.ttyname(slave)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(device, output, metadata)
+            time.sleep(0.1)
+            payload = (
+                b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"AHT10 0x38 ACK\r\n"
+                b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
+                b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
+                b"AHT10 0x38 ACK\r\n"
+            )
+            os.write(master, payload)
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertEqual(process.returncode, 3, stderr)
+            record = json.loads(metadata.read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "CAPTURE_CONTENT_MISMATCH")
+            self.assertEqual(record["runtime_evidence"], "NONE")
+            self.assertIn("ordered firmware/startup chain", record["error"])
             self.assertIn("CAPTURE_CONTENT_MISMATCH", stdout)
         os.close(master)
         os.close(slave)
