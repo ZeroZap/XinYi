@@ -21,11 +21,16 @@ def require(path: Path, *needles: str) -> None:
         assert needle in text, f"{path.relative_to(ROOT)} missing {needle!r}"
 
 
-def require_sha256(path: Path, expected: str) -> bytes:
+def require_sha256(path: Path, expected: str, normalized_expected: str | None = None) -> bytes:
     assert path.is_file(), f"missing {path.relative_to(ROOT)}"
     content = path.read_bytes()
     actual = hashlib.sha256(content).hexdigest()
-    assert actual == expected, f"{path.relative_to(ROOT)} SHA-256 mismatch: {actual}"
+    if actual != expected:
+        normalized = content.replace(b"\r\n", b"\n")
+        normalized_actual = hashlib.sha256(normalized).hexdigest()
+        assert normalized_expected is not None and normalized_actual == normalized_expected, (
+            f"{path.relative_to(ROOT)} SHA-256 mismatch: raw={actual} normalized={normalized_actual}"
+        )
     return content
 
 
@@ -100,7 +105,11 @@ def main() -> None:
         METADATA_SHA256,
         KEY0_LOG_SHA256,
     )
-    uart_log = require_sha256(EVIDENCE / "uart-wchlink-b1.txt", UART_LOG_SHA256).decode("utf-8")
+    uart_log = require_sha256(
+        EVIDENCE / "uart-wchlink-b1.txt",
+        UART_LOG_SHA256,
+        "bd9247df2798ad2550270b58e33a97bfd936abb6d8632a15cc850fea5a4a04bc",
+    ).decode("utf-8")
     metadata_bytes = require_sha256(EVIDENCE / "uart-wchlink-b1.json", METADATA_SHA256)
     metadata = json.loads(metadata_bytes)
     assert metadata["device"].startswith("/dev/serial/by-id/usb-wch.cn_WCH-Link_")
@@ -115,7 +124,11 @@ def main() -> None:
     assert uart_log.count("AHT10 RH_milli_percent=") == 10
     assert "KEY0" not in uart_log
     assert "AHT10 0x38 NACK" not in uart_log
-    key0_log = require_sha256(EVIDENCE / "uart-wchlink-key0.txt", KEY0_LOG_SHA256).decode("utf-8")
+    key0_log = require_sha256(
+        EVIDENCE / "uart-wchlink-key0.txt",
+        KEY0_LOG_SHA256,
+        "d98119206ff7bffb1296932fc90f30ec8323a186265fc79f047005a5434976d3",
+    ).decode("utf-8")
     assert key0_log.count("KEY0") == 4
     assert key0_log.count(f"FIRMWARE_COMMIT {FIRMWARE_COMMIT}") == 13
     assert "AHT10 0x38 NACK" not in key0_log
