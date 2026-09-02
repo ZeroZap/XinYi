@@ -70,6 +70,17 @@ def has_ordered_aht10_startup(payload: bytes) -> bool:
     return 0 <= humidity_milli_percent <= 100000 and -50000 <= temperature_milli_c <= 150000
 
 
+def has_ordered_firmware_commit(payload: bytes, firmware_commit_marker: bytes) -> bool:
+    banner_offset = payload.find(PANDORA_BANNER)
+    if banner_offset < 0:
+        return False
+    marker_offset = payload.find(firmware_commit_marker, banner_offset + len(PANDORA_BANNER))
+    if marker_offset < 0:
+        return False
+    ack_offset = payload.find(AHT10_ACK, marker_offset + len(firmware_commit_marker))
+    return ack_offset >= 0
+
+
 def validate_firmware_commit(revision: str) -> str:
     if re.fullmatch(r"[0-9a-f]{40}", revision) is None:
         raise ValueError("firmware commit must be an exact 40-character lowercase Git SHA")
@@ -149,7 +160,7 @@ def main() -> int:
     status, payload, error = capture(args.device, args.timeout)
     runtime_evidence = "NONE"
     firmware_commit_marker = FIRMWARE_COMMIT_PREFIX + firmware_commit.encode("ascii")
-    firmware_commit_marker_matched = firmware_commit_marker in payload
+    firmware_commit_marker_matched = has_ordered_firmware_commit(payload, firmware_commit_marker)
     if status == "CAPTURED":
         missing_markers = []
         if PANDORA_BANNER not in payload:
@@ -159,7 +170,7 @@ def main() -> int:
         if not has_plausible_aht10_measurement(payload):
             missing_markers.append("plausible AHT10 measurement")
         if not firmware_commit_marker_matched:
-            missing_markers.append("matching firmware commit marker")
+            missing_markers.append("ordered firmware commit marker")
         if not has_ordered_aht10_startup(payload):
             missing_markers.append("ordered Pandora/AHT10 startup")
         if missing_markers:
