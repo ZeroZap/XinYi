@@ -2,6 +2,19 @@ set(_cube ${CMAKE_SOURCE_DIR}/MCU/ST/STM32L4/STM32CubeL4)
 set(_hal ${_cube}/Drivers/STM32L4xx_HAL_Driver/Src)
 set(_cmsis ${_cube}/Drivers/CMSIS/Device/ST/STM32L4xx)
 
+execute_process(
+    COMMAND git rev-parse HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE _firmware_commit
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _firmware_commit_result)
+string(LENGTH "${_firmware_commit}" _firmware_commit_length)
+if(NOT _firmware_commit_result EQUAL 0 OR
+   NOT _firmware_commit_length EQUAL 40 OR
+   NOT _firmware_commit MATCHES "^[0-9a-f]+$")
+    message(FATAL_ERROR "Pandora firmware requires an exact Git source commit identity")
+endif()
+
 add_executable(pandora_stm32l475_smoke
     main.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
@@ -20,7 +33,10 @@ add_executable(pandora_stm32l475_smoke
 )
 
 target_include_directories(pandora_stm32l475_smoke BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_definitions(pandora_stm32l475_smoke PRIVATE STM32L475xx USE_HAL_DRIVER)
+target_compile_definitions(pandora_stm32l475_smoke PRIVATE
+    STM32L475xx
+    USE_HAL_DRIVER
+    XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
 target_link_options(pandora_stm32l475_smoke PRIVATE
     -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld
     --specs=nano.specs

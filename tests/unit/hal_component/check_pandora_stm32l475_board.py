@@ -36,6 +36,7 @@ def main() -> None:
         'default="/dev/ttyACM0"',
         "--firmware-commit",
         "firmware_commit",
+        "firmware_commit_marker_matched",
         "bytes_captured",
     )
     require(
@@ -57,6 +58,8 @@ def main() -> None:
         "0x38U << 1",
         "USART1",
         "AHT10 0x38 ACK",
+        "FIRMWARE_COMMIT",
+        "XINYI_FIRMWARE_COMMIT",
         "KEY0",
         "PANDORA STM32L475VE",
     )

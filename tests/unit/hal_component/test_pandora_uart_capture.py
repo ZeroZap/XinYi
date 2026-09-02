@@ -57,6 +57,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             time.sleep(0.1)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
                 b"AHT10 0x38 ACK\r\n"
                 b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
             )
@@ -70,6 +71,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             self.assertEqual(record["device"], device)
             self.assertEqual(record["bytes_captured"], len(payload))
             self.assertEqual(record["firmware_commit"], FIRMWARE_COMMIT)
+            self.assertEqual(record["firmware_commit_marker_matched"], True)
             self.assertEqual(record["required_ack_marker"], "AHT10 0x38 ACK")
             self.assertEqual(record["runtime_evidence"], "B1_REVIEW_CANDIDATE")
             self.assertIn("CAPTURED", stdout)
@@ -97,6 +99,33 @@ class PandoraUartCaptureTest(unittest.TestCase):
             self.assertIn("Pandora banner", record["error"])
             self.assertIn("AHT10 measurement", record["error"])
             self.assertEqual(record["runtime_evidence"], "NONE")
+            self.assertIn("CAPTURE_CONTENT_MISMATCH", stdout)
+        os.close(master)
+        os.close(slave)
+
+    def test_mismatched_firmware_commit_marker_is_review_ineligible(self):
+        master, slave = pty.openpty()
+        device = os.ttyname(slave)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "uart.log"
+            metadata = Path(temporary) / "capture.json"
+            process = self.run_capture(device, output, metadata)
+            time.sleep(0.1)
+            payload = (
+                b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"FIRMWARE_COMMIT ffffffffffffffffffffffffffffffffffffffff\r\n"
+                b"AHT10 0x38 ACK\r\n"
+                b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
+            )
+            os.write(master, payload)
+            stdout, stderr = process.communicate(timeout=2)
+
+            self.assertEqual(process.returncode, 3, stderr)
+            record = json.loads(metadata.read_text(encoding="utf-8"))
+            self.assertEqual(record["status"], "CAPTURE_CONTENT_MISMATCH")
+            self.assertEqual(record["firmware_commit_marker_matched"], False)
+            self.assertEqual(record["runtime_evidence"], "NONE")
+            self.assertIn("firmware commit marker", record["error"])
             self.assertIn("CAPTURE_CONTENT_MISMATCH", stdout)
         os.close(master)
         os.close(slave)
@@ -204,6 +233,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             time.sleep(0.1)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
                 b"AHT10 0x38 NACK\r\n"
                 b"AHT10 0x38 ACK\r\n"
                 b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
@@ -231,6 +261,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             payload = (
                 b"AHT10 0x38 NACK\r\n"
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
                 b"AHT10 0x38 ACK\r\n"
                 b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
             )
@@ -255,6 +286,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             time.sleep(0.1)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
                 b"AHT10 0x38 ACK\r\n"
                 b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
                 b"AHT10 0x38 NACK\r\n"
@@ -280,6 +312,7 @@ class PandoraUartCaptureTest(unittest.TestCase):
             time.sleep(0.1)
             payload = (
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"
+                b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
                 b"AHT10 0x38 ACK\r\n"
                 b"AHT10 RH_milli_percent=50234 T_milli_c=23125\r\n"
                 b"PANDORA STM32L475VE XINYI SMOKE OK\r\n"

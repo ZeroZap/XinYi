@@ -16,6 +16,7 @@ import time
 PANDORA_BANNER = b"PANDORA STM32L475VE XINYI SMOKE OK"
 AHT10_ACK = b"AHT10 0x38 ACK"
 AHT10_NACK = b"AHT10 0x38 NACK"
+FIRMWARE_COMMIT_PREFIX = b"FIRMWARE_COMMIT "
 AHT10_MEASUREMENT = re.compile(
     rb"AHT10 RH_milli_percent=([0-9]+) T_milli_c=(-?[0-9]+)(?:\r?\n|$)"
 )
@@ -147,6 +148,8 @@ def main() -> int:
         parser.error(str(error))
     status, payload, error = capture(args.device, args.timeout)
     runtime_evidence = "NONE"
+    firmware_commit_marker = FIRMWARE_COMMIT_PREFIX + firmware_commit.encode("ascii")
+    firmware_commit_marker_matched = firmware_commit_marker in payload
     if status == "CAPTURED":
         missing_markers = []
         if PANDORA_BANNER not in payload:
@@ -155,7 +158,9 @@ def main() -> int:
             missing_markers.append("AHT10 ACK")
         if not has_plausible_aht10_measurement(payload):
             missing_markers.append("plausible AHT10 measurement")
-        if not missing_markers and not has_ordered_aht10_startup(payload):
+        if not firmware_commit_marker_matched:
+            missing_markers.append("matching firmware commit marker")
+        if not has_ordered_aht10_startup(payload):
             missing_markers.append("ordered Pandora/AHT10 startup")
         if missing_markers:
             status = "CAPTURE_CONTENT_MISMATCH"
@@ -178,6 +183,8 @@ def main() -> int:
         "error": error,
         "format": "8-N-1",
         "firmware_commit": firmware_commit,
+        "firmware_commit_marker_matched": firmware_commit_marker_matched,
+        "required_firmware_commit_marker": firmware_commit_marker.decode("ascii"),
         "required_ack_marker": AHT10_ACK.decode("ascii"),
         "required_nack_marker": AHT10_NACK.decode("ascii"),
         "required_marker": PANDORA_BANNER.decode("ascii"),

@@ -7,6 +7,10 @@ static UART_HandleTypeDef uart1;
 #define SOFT_I2C_SCL_PORT GPIOD
 #define SOFT_I2C_SCL_PIN GPIO_PIN_6
 
+#ifndef XINYI_FIRMWARE_COMMIT
+#error "XINYI_FIRMWARE_COMMIT must identify the source commit used for this image"
+#endif
+
 void _init(void) {}
 void _fini(void) {}
 
@@ -290,6 +294,7 @@ static void gpio_uart_init(void)
 int main(void)
 {
     static const uint8_t banner[] = "PANDORA STM32L475VE XINYI SMOKE OK\r\n";
+    static const uint8_t firmware_commit[] = "FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n";
     static const uint8_t key0[] = "KEY0\r\n";
     static const uint8_t aht_ack[] = "AHT10 0x38 ACK\r\n";
     static const uint8_t aht_nack[] = "AHT10 0x38 NACK\r\n";
@@ -303,6 +308,7 @@ int main(void)
     for (;;) {
         HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);
         HAL_UART_Transmit(&uart1, (uint8_t *)banner, sizeof(banner) - 1U, 100U);
+        HAL_UART_Transmit(&uart1, (uint8_t *)firmware_commit, sizeof(firmware_commit) - 1U, 100U);
         if (aht_initialized && aht10_measure(&humidity_milli_percent, &temperature_milli_c)) {
             HAL_UART_Transmit(&uart1, (uint8_t *)aht_ack, sizeof(aht_ack) - 1U, 100U);
             uart_text("AHT10 RH_milli_percent=");
