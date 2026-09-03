@@ -1,7 +1,7 @@
 # XinYi Sprint 跟踪看板
 
 **建立日期**：2026-08-17
-**当前阶段**：Sprint 5 — FreeRTOS/Pandora 并发实证；其余硬件与 Release 门禁按证据保持阻塞
+**当前阶段**：Sprint 5 — Pandora STM32L475VE reference-board 闭环；STM32U5 仅保留增强兼容门，Release 门禁按证据保持阻塞
 **状态事实源**：本文件
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
@@ -79,7 +79,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S1-01 | P0 | GUI backend 错误传播 | DONE | Zero | S0-07（DONE） | RED probe 证明 init/clear/draw/fill/flush 吞错；修复后 `gui_core`、`gui_display_backend`、`gui_ssd1306_adapter` 3/3，Host 178/178、PC root build、`git diff --check` 通过；clear 失败不提交背景色，fallback 首错即停 | `e4faf3c3` | 2026-08-24 |
 | S1-02 | P0 | SDL/backend strict selection | DONE | Zero | S1-01（DONE） | `GUI_SDL` 改为显式 opt-in；缺 SDL2 的 RED 配置曾错误成功，修复后 `CMAKE_DISABLE_FIND_PACKAGE_SDL2=TRUE` 配置按预期失败；默认配置生成 `CONFIG_GUI_SDL=OFF` 且 `xy_gui` 构建通过。仓库缺 SDL backend source，已显式 fail-closed 并记录为后续恢复项，不虚报 backend 可用 | `d2979d41` | 2026-08-25 |
 | S1-03 | P1 | 字体清单、生成器与 Host snapshot 收口 | DONE | Zero | S1-01（DONE） | legacy 资产 review 为 `rejected-needs-regeneration`；已固定 OFL-1.1 Noto Sans CJK SC TTC SHA-256/index/license，将 15 个必需 UI glyph 按 deterministic snapshot 接入 active 16x16 table，并以 distinct/nonblank Host contract 守护；font focused 15/15、Host 179/179、PC root build、`git diff --check` 通过；其余 legacy 字体、视觉与实板状态不升级 | `ca96d82b`～`019d9206` | 2026-08-25 |
-| S1-04 | P1 | SSD1306 单一显示纵切记录 | BLOCKED | - | 可用板卡/显示屏 | 板卡、接线、固件 SHA、init/fill/text/flush/error/re-init、帧时间和 RAM 记录 | 缺实板环境 | 2026-08-24 |
+| S1-04 | P1 | SSD1306 单一显示纵切记录 | CANCELLED | - | 产品路线已调整 | 2026-09-04 明确 deferred；当前 Sprint 不选择、不推进，也不作为其他工作阻塞项。既有 Host/模板记录保留但不升级为 B1/B2 | deferred | 2026-09-04 |
 | S1-05 | P1 | 恢复 SDL2 backend source 与 Host contract | DONE | Zero | S1-02（DONE） | 新增 explicit-context SDL2 backend；fake seam 覆盖错误与 RGB565 contract；real-library `gui_sdl_runtime` 使用 dummy video driver 实跑 window/renderer/texture/fill/flush/event/deinit，并修复无 accelerated renderer 时缺少 software fallback 的 headless 初始化失败；Host 180/180、默认 PC root、SDL-enabled `xy_gui`、real SDL runtime 与 `git diff --check` 通过。不宣称人工视觉、性能或硬件证据 | `2fd4e668`～`a881eb55` | 2026-08-25 |
 | S1-06 | P1 | SSD1306 实板验证记录与阻塞探测 | DONE | Zero | S1-03（DONE）；S1-04 硬件阻塞 | 已建立 fail-closed 记录，覆盖板卡/接线/SHA、init/fill/text/flush、NACK/timeout、re-init、帧时间与 RAM；2026-08-25 focused 2/2、Host 180/180、`git diff --check` 通过；`lsusb` 未发现开发板/调试器，且无 `/dev/ttyACM*`/`ttyUSB*`，故记录为 `BLOCKED_NO_HARDWARE`，不填写实板通过 | `f9ebc4a9` | 2026-08-25 |
 
@@ -89,16 +89,17 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 ### Sprint 2 前置看板
 
-> Sprint 1 的 SSD1306 实板项仍受硬件阻塞；为避免空转，只推进不冒充实板证据的
-> HAL/Device/Driver Host 前置。S2-2/S2-3 在 B1/B2 与 clean STM32U5 compile 补齐前不得标记
-> `DONE`。
+> Pandora STM32L475VE 是正式 reference board 与 Sprint 1–4 当前实板验收基线；STM32U5/M33/
+> TrustZone 只保留后续 enhancement compile compatibility，不再阻塞基础验收。SSD1306 deferred，
+> 当前不选择、不推进、不作为依赖。无人值守运行仅执行构建、自动测试、ST-Link 烧录/复位与
+> 独立 UART 采集；不得依赖人工接线、按键、目视确认或物理故障注入。
 
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
 | S2-01 | P0 | HAL 平台实现与证据矩阵 | DONE | Zero | S0-08（DONE） | STM32U5/F4/L4/WCH/HC32 的 implementation/unsupported/Host/compile/QEMU/HIL 边界已逐项记录；未升级实板声明 | `fef4f1fe` | 2026-08-26 |
-| S2-02 | P0 | STM32U5 GPIO/UART/I2C/SPI/IRQ/DMA 实板基础外设 | BLOCKED | - | 板卡、调试器、SDK/toolchain、夹具/仪器 | fail-closed HIL 记录已建立；当前缺 B1/B2 原始日志与 capture | 缺实板环境 | 2026-08-26 |
-| S2-03 | P0 | I2C→Device helper→24xx/SSD1306 纵切 | BLOCKED | Zero | S2-02；Host 前置已完成 | 24xx 已覆盖 timeout/NACK 错误传播与 re-init；SSD1306 已覆盖 helper/首命令失败清理与停止副作用；focused、Host 182/182、PC root build、`git diff --check` 通过。尚缺 clean STM32U5 compile 与 B1/B2 | `72391b51`、`6ec6081c` | 2026-08-26 |
-| S2-04 | P1 | SYS reset/bootreason/chip-ID strong backend | BLOCKED | Zero | 参考板/board ownership 决策 | Host fail-closed 子项完成：默认 reset/reboot-reason/chip-ID/MAC/version 不再返回伪成功，focused `sys_core`、Host 183/183、PC root build 与 `git diff --check` 通过；strong backend 与上电/软件/看门狗复位 B1/B2 仍缺参考板决策和实板 | `648b1a31` | 2026-08-26 |
+| S2-02 | P0 | Pandora GPIO/UART/I2C/SPI/IRQ/DMA 实板基础外设 | IN_PROGRESS | Zero | Pandora STM32L475VE；自动化链路 | Pandora 已有 board-local GPIO/UART/software-I2C/KEY0 B1 与 FreeRTOS SysTick ISR 证据；仍缺 framework SPI/DMA 与外设 IRQ B1/B2。STM32U5 仅保留 compile compatibility，不是本项完成依赖 | `683ab5ea`～`50fad12a` | 2026-09-04 |
+| S2-03 | P0 | Pandora I2C→Device helper→现有非 SSD1306 设备纵切 | IN_PROGRESS | Zero | S2-02；Host 前置已完成 | 24xx Host 已覆盖 timeout/NACK 错误传播与 re-init；下一实板纵切使用 Pandora 板载或已接设备，排除 deferred SSD1306。验收以 Pandora B1/B2 为准；U5 compile 仅补充 | `72391b51`、`6ec6081c` | 2026-09-04 |
+| S2-04 | P1 | Pandora SYS reset/bootreason/chip-ID strong backend | READY | Zero | Pandora STM32L475VE board ownership 已确定 | Host fail-closed 子项完成；下一步在 board 层提供 strong backend，并自动验证上电/软件复位原因与 chip ID。看门狗/物理复位若需人工或故障注入则保持明确 pending；U5 不阻塞本项 | `648b1a31` | 2026-09-04 |
 
 ### 后续 Sprint 队列
 
@@ -112,7 +113,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S3-01 | P0 | Crypto 产品算法清单 | DONE | Zero | Sprint 0 证据边界（DONE） | 11 个算法区域已记录 product classification、implementation owner、source origin、license status、side-channel target、allowed usage、runtime/focused sources 与 review record；policy RED 后 focused 5/5、Host 183/183、PC root build、`git diff --check` 通过；SM2/ECDSA 强制 `security-rejected`，无安全批准升级 | `fdce5449` | 2026-08-26 |
 | S3-02 | P0 | Signature provider 边界与 Secure FOTA fail-closed | DONE | Zero | S3-01（DONE） | Secure FOTA 不再调用 format-only ECDSA placeholder；缺 provider、provider 拒绝（含错误 key ID）、回滚版本及截断包均 fail-closed；focused 1/1、Host 184/184、PC root/FOTA target build、`git diff --check` 通过；不升级安全批准 | `12cdb5f6` | 2026-08-26 |
 | S3-03 | P0 | SHA-256/HMAC 单算法重建试点 | DONE | Zero | S3-01（DONE） | RED 证明 zero-length `NULL` 输入被错误拒绝；实现后 SHA-256/HMAC focused 2/2、Host 184/184、PC root 与 Crypto-enabled `xy_tiny_crypto` target build、`git diff --check` 通过；补充 SHA-256 context 与 HMAC working-key/pad volatile clearing。仍缺 provenance、独立审计、target compile、side-channel 与硬件证据 | `dc47807c` | 2026-08-26 |
-| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE） | boot handoff/delta/mark-valid 均 fail-closed；双副本 metadata journal 持久化 generation+CRC+commit marker、pending version/slot 与 boot-attempt count；handoff/confirm/boot-attempt callback 均执行 load→状态转换→commit，boot-attempt 只有持久化成功才向 bootloader 返回 rollback 决策，提交失败不推进 durable count；已有 pending candidate 时重复 handoff/stage 返回 `XY_FOTA_IN_PROGRESS` 且不重置 attempt count，避免重复请求绕过 bounded rollback；饱和/损坏的 `uint8_t` attempt count 不再 wrap 后错误继续启动；journal 扫描遇到任一 Flash read 错误即 fail-closed，不把 unreadable copy 当作 empty/corrupt 后继续覆盖；两份有效副本 generation 半范围歧义或相同 generation 却 payload 冲突时均拒绝选择，不依赖 slot 顺序静默提升；提交后的 read-back 失败会擦除目标副本；commit/load 及公开 stage/attempt/confirm 状态转换均校验 slot/flags/pending、`active_version >= min_version`，非法内存状态不被推进；backend 地址范围也在任何 Flash I/O 前校验，避免双槽地址计算发生 `uint32_t` wrap；STM32U5 skeleton 在 callback 注册前验证 backend，默认未绑定 Flash ops 时 fail-closed。FOTA focused 4/4、Host 185/185、PC root、FOTA-enabled `xy_fota` target、Arm M33 syntax probe、`git diff --check` 通过。尚缺 board-owned Flash ops/保留区、可链接 STM32U5 image、bootloader 实际调用与实板 | `54d8b735`～`b832a7ae` | 2026-08-28 |
+| S3-04 | P0 | FOTA 状态机去模拟化与 bootloader contract | IN_PROGRESS | Zero | S3-02（DONE）；Pandora board owner | boot handoff/delta/mark-valid 均 fail-closed；双副本 metadata journal持久化 generation+CRC+commit marker、pending version/slot 与 boot-attempt count；handoff/confirm/boot-attempt callback 均执行 load→状态转换→commit，boot-attempt 只有持久化成功才向 bootloader 返回 rollback 决策，提交失败不推进 durable count；已有 pending candidate 时重复 handoff/stage 返回 `XY_FOTA_IN_PROGRESS` 且不重置 attempt count，避免重复请求绕过 bounded rollback；饱和/损坏的 `uint8_t` attempt count 不再 wrap 后错误继续启动；journal 扫描遇到任一 Flash read 错误即 fail-closed，不把 unreadable copy 当作 empty/corrupt 后继续覆盖；两份有效副本 generation 半范围歧义或相同 generation 却 payload 冲突时均拒绝选择；提交后的 read-back 失败会擦除目标副本；commit/load 及公开状态转换校验状态与地址范围。FOTA focused、Host、PC target 与 U5/M33 source compile 前置已通过。下一验收改为 Pandora board-owned Flash 保留区、可链接 image 与 bootloader 调用；STM32U5 仅保留增强兼容，不阻塞基础闭环 | `54d8b735`～`b832a7ae` | 2026-09-04 |
 | S4-01 | P0 | Sensor active-source manifest 与三轨 ownership 冻结 | DONE | Zero | S3-04 的 board-owned 集成阻塞不影响治理子项 | manifest 初始校准 55 个 `legacy-active-root`、23 个 `experimental-test-only` 与 4 个 `device-active-root`；SHT30/ADS1115/MPU6050 duplicate test-local owners 移除后当前为 55/20/4；policy CTest 防止 source ownership 漂移并冻结第四套生命周期；不升级硬件声明 | `f691bd23`、`2fde1393` | 2026-08-28 |
 | S4-02 | P1 | SHT30 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 为单一实现 owner；root `sensor_sht30.c` 改为 compatibility-only 委托，保留 0x44 API 并支持 0x45；focused 3/3、Host 186/186、PC root/`sensor_component` 与 `git diff --check` 通过；不升级硬件声明 | `10543486`～`a60ee6de` | 2026-08-28 |
 | S4-03 | P1 | ADS1115 canonical Device owner 迁移 | DONE | Zero | S4-01（DONE） | Device driver 吸收 channel/diff/PGA/data-rate/voltage/error/output-preservation contract；删除 duplicate test-local source/header；focused 3/3、Host 186/186、PC root/`sensor_component`/`xy_adc` 与 `git diff --check` 通过；不升级硬件声明 | `f317cb11` | 2026-08-28 |
@@ -212,8 +213,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
 | Sprint 1 | 2 周 | GUI backend 错误传播、strict backend、字体与单一显示纵切 | Sprint 0 门禁可信 | IN_PROGRESS |
-| Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | [HAL 平台实现与证据矩阵](../validation/hal-platform-evidence-matrix.md)已建立；Host 前置推进中，HIL 夹具仍缺 | IN_PROGRESS（Host 前置）/BLOCKED（实板） |
-| Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 产品算法清单与 signature provider 边界已完成 | IN_PROGRESS（FOTA 去模拟化；非安全批准前置） |
+| Sprint 2 | 2 周 | Pandora HAL→Device→Driver 最小实板证据链；U5 compile compatibility | Pandora reference board、ST-Link/WCH-Link 自动链路与 Host 前置 | IN_PROGRESS（Pandora-first；SSD1306 deferred） |
+| Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Pandora Secure FOTA fail-closed | 产品算法清单与 signature provider 边界已完成 | IN_PROGRESS（Pandora FOTA board contract；非安全批准前置） |
 | Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | active-source manifest 与 SHT30/ADS1115/MPU6050 single-owner migrations 已完成 | IN_PROGRESS（Sensor ownership 前置）/BLOCKED（实板） |
 | Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | FreeRTOS 已选为 reference；Pandora 已有 bounded task/ISR/resource-lifecycle/120 秒 stress B1 | IN_PROGRESS（跨组件并发/多小时耐久 pending）/BLOCKED（剩余实板矩阵） |
 | Sprint 6 | 1–2 周 | Release Candidate | 目标平台 HIL、安全边界和发布门禁达标 | BLOCKED |
@@ -228,7 +229,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | 2026-08-17 | D-002 | 安全阻塞 | Fuel Gauge security AES 曾存在明文透传风险 | 2026-08-29 已改为缺 provider 时 fail-closed；真实认证/加密仍须受审查 provider | CLOSED |
 | 2026-08-17 | D-003 | 安全阻塞 | Secure FOTA 依赖 security-rejected ECDSA placeholder | production signature provider 未落地前保持 feature-off | OPEN |
 | 2026-08-17 | D-004 | 仓库策略 | XinYi 当前仅此 PC 开发，无其他设备并行同步；`origin` 用作服务器备份 | 本地 path-limited commit 后直接推送 `origin/main`；不需要为多设备同步保留审查缓冲 | CLOSED |
-| 2026-08-17 | D-005 | 硬件阻塞 | 缺统一 STM32U5 HIL/总线/功耗证据 | 明确参考板、仪器、接线和记录位置 | OPEN |
+| 2026-08-17 | D-005 | 路线决策 | 原 STM32U5-first HIL 路线缺统一硬件证据 | 2026-09-04 确认 Pandora STM32L475VE 为正式 reference board；U5/M33/TrustZone 转为 enhancement-only compile gate，SSD1306 deferred；无人值守边界固定 | CLOSED |
 | 2026-08-17 | D-006 | 路线决策 | GUI 继续、PM 后置、Crypto 产品级重建、Release 最后 | 已纳入 Sprint 顺序 | CLOSED |
 
 ---
