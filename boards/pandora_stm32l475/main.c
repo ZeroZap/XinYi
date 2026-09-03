@@ -1,4 +1,5 @@
 #include "stm32l4xx_hal.h"
+#include "xy_sys.h"
 
 static UART_HandleTypeDef uart1;
 
@@ -304,6 +305,7 @@ int main(void)
     HAL_Init();
     clock_init();
     gpio_uart_init();
+    xy_sys_init();
     int aht_initialized = aht10_init();
     for (;;) {
         HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);

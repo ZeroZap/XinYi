@@ -43,6 +43,7 @@ def main() -> None:
     require(
         BOARD / "CMakeLists.txt",
         "pandora_stm32l475_smoke",
+        "pandora_sys.c",
         "startup_stm32l475xx.s",
         "STM32L475VETX_FLASH.ld",
         "-O binary",
@@ -58,6 +59,16 @@ def main() -> None:
         "firmware_commit",
         "firmware_commit_marker_matched",
         "bytes_captured",
+    )
+    require(
+        BOARD / "pandora_sys.c",
+        "xy_sys_init",
+        "xy_sys_reset",
+        "xy_sys_reboot_reason",
+        "xy_sys_get_chip_id",
+        "NVIC_SystemReset",
+        "HAL_GetUIDw0",
+        "__HAL_RCC_CLEAR_RESET_FLAGS",
     )
     require(
         BOARD / "main.c",
@@ -82,6 +93,7 @@ def main() -> None:
         "XINYI_FIRMWARE_COMMIT",
         "KEY0",
         "PANDORA STM32L475VE",
+        "xy_sys_init",
     )
     require(
         BOARD / "STM32L475VETX_FLASH.ld",

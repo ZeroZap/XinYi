@@ -17,6 +17,7 @@ endif()
 
 add_executable(pandora_stm32l475_smoke
     main.c
+    pandora_sys.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
     ${_hal}/stm32l4xx_hal.c
@@ -32,7 +33,10 @@ add_executable(pandora_stm32l475_smoke
     ${_hal}/stm32l4xx_hal_uart.c
 )
 
-target_include_directories(pandora_stm32l475_smoke BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pandora_stm32l475_smoke BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/components/sys/xy_sys
+    ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
 target_compile_definitions(pandora_stm32l475_smoke PRIVATE
     STM32L475xx
     USE_HAL_DRIVER
@@ -42,6 +46,9 @@ target_link_options(pandora_stm32l475_smoke PRIVATE
     --specs=nano.specs
     --specs=nosys.specs
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_smoke.map
+    -Wl,-u,xy_sys_reset
+    -Wl,-u,xy_sys_reboot_reason
+    -Wl,-u,xy_sys_get_chip_id
 )
 set_target_properties(pandora_stm32l475_smoke PROPERTIES SUFFIX ".elf")
 
@@ -71,7 +78,8 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${_hal}/stm32l4xx_hal_uart.c
     )
     target_include_directories(pandora_stm32l475_rtos BEFORE PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR})
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/components/sys/xy_sys)
     target_compile_definitions(pandora_stm32l475_rtos PRIVATE
         STM32L475xx
         USE_HAL_DRIVER
