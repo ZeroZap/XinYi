@@ -91,6 +91,28 @@ contains 13 matching firmware cycles and four `KEY0` events, verifying the PD10 
 No retained capture contains an AHT10 NACK, so negative/recovery behavior remains pending and B2 is
 not granted.
 
+## 2026-09-03 OSAL/FreeRTOS current-HEAD runtime revalidation
+
+The clean source commit `ac3f20f48c4a7c2044f6befa2758b4e2a335b628` was rebuilt as the
+Pandora RTOS image. The ELF contained that exact identity; the BIN SHA-256 was
+`88855cc10c94108a55023a75c7fdd4a759a40e873fc4237dd43022ad7fd953f9`. `st-flash --reset write`
+reported `Flash written and verified` for 11688 bytes.
+
+A reset-synchronized eight-second capture from the independent WCH-Link retained 489 bytes. It
+contains the exact banner and source identity, 16 `OSAL_TASK_FAST` events at 506–508 ms intervals
+(mean 506.53 ms), and eight `OSAL_TASK_SLOW` events at 1013–1014 ms intervals (mean 1013.14 ms).
+This verifies OSAL-created FreeRTOS task scheduling, SysTick progress, and `xy_os_delay()` timing on
+the current board/image at B1. PE7 is toggled by the fast task in the verified source, but its physical
+state was not visually reconfirmed during this run; ISR-to-task signaling and queue/semaphore stress
+remain pending.
+
+Retained evidence:
+
+- [raw RTOS UART log](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos-ac3f20f4.txt),
+  SHA-256 `fe0e414949acc2ea694c4f5c4c3aa8de5b1cc14856f0b3a6f52002cd7c33a2e5`
+- [RTOS capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos-ac3f20f4.json),
+  SHA-256 `d36ed473012d57ef61b70025a3bcb64641029df94b746b44968f3e7efe081e44`
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained

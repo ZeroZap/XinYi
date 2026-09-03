@@ -1,0 +1,30 @@
+{
+  "source_commit": "ac3f20f48c4a7c2044f6befa2758b4e2a335b628",
+  "board": "Pandora STM32L475VE",
+  "probe_serial": "066AFF313933554D43244015",
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "programmer": "st-flash 1.8.0",
+  "programming_result": "Flash written and verified",
+  "capture_duration_ms": 8000,
+  "capture_bytes": 489,
+  "fast_task_count": 16,
+  "fast_interval_ms": {
+    "min": 506,
+    "max": 508,
+    "mean": 506.53
+  },
+  "slow_task_count": 8,
+  "slow_interval_ms": {
+    "min": 1013,
+    "max": 1014,
+    "mean": 1013.14
+  },
+  "elf_sha256": "8ef2492e5ec0f67a969662343190449176618f23a2fa52293c8032f7b555da0c",
+  "bin_sha256": "88855cc10c94108a55023a75c7fdd4a759a40e873fc4237dd43022ad7fd953f9",
+  "evidence": "BOARD_RUNTIME_B1_OSAL_FREERTOS_SCHEDULER",
+  "limits": [
+    "PE7 toggle was not visually reconfirmed in this run",
+    "ISR-to-task synchronization is not covered",
+    "queue/semaphore stress is not covered"
+  ]
+}
