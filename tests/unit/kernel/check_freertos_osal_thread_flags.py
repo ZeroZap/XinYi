@@ -18,6 +18,17 @@ def main() -> int:
             "value while clearing only the requested bits"
         )
 
+    required_set_contract = (
+        "xTaskNotifyAndQuery(h, flags, eSetBits, &previous) != pdPASS",
+        "return previous | flags;",
+    )
+    for required in required_set_contract:
+        if required not in source:
+            errors.append(
+                "xy_os_thread_flags_set must propagate notification failure and return "
+                f"the complete post-set flag value; missing: {required}"
+            )
+
     for forbidden in (
         "xTaskNotifyStateClear(NULL);",
         "xTaskNotify(xTaskGetCurrentTaskHandle(), ~flags, eSetValueWithOverwrite);",

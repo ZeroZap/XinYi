@@ -239,10 +239,13 @@ uint32_t xy_os_thread_enumerate(xy_os_thread_id_t *thread_array,
 uint32_t xy_os_thread_flags_set(xy_os_thread_id_t thread_id, uint32_t flags)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
+    uint32_t previous;
+
     if (!h)
         return 0x80000000;
-    xTaskNotify(h, flags, eSetBits);
-    return flags;
+    if (xTaskNotifyAndQuery(h, flags, eSetBits, &previous) != pdPASS)
+        return 0x80000000;
+    return previous | flags;
 }
 
 uint32_t xy_os_thread_flags_clear(uint32_t flags)
