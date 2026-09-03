@@ -12,6 +12,7 @@ static xy_os_event_flags_id_t sync_events;
 static xy_os_mutex_id_t sync_mutex;
 xy_os_semaphore_id_t pandora_isr_sem;
 static uint32_t shared_sequence;
+static uint8_t resource_pool_memory[2U * sizeof(uint32_t)];
 
 #define SYNC_EVENT_DATA_READY (1UL << 0)
 
@@ -200,6 +201,64 @@ static void isr_task(void *argument)
     }
 }
 
+static void resource_task(void *argument)
+{
+    static const xy_os_mempool_attr_t pool_attr = {
+        .name = "stress-pool",
+        .mp_mem = resource_pool_memory,
+        .mp_size = sizeof(resource_pool_memory),
+    };
+    uint32_t sequence = 0x12345678U;
+    uint32_t received = 0U;
+    xy_os_mempool_id_t pool;
+    xy_os_msgqueue_id_t queue;
+    void *block0;
+    void *block1;
+
+    (void)argument;
+    (void)xy_os_delay(250U);
+
+    pool = xy_os_mempool_new(2U, sizeof(uint32_t), &pool_attr);
+    queue = xy_os_msgqueue_new(1U, sizeof(sequence), NULL);
+    if (pool == NULL || queue == NULL) {
+        uart_text("OSAL_RESOURCE_ERROR\r\n");
+        fail();
+    }
+    block0 = xy_os_mempool_alloc(pool, XY_OS_NO_WAIT);
+    block1 = xy_os_mempool_alloc(pool, XY_OS_NO_WAIT);
+    if (block0 == NULL || block1 == NULL || xy_os_mempool_alloc(pool, XY_OS_NO_WAIT) != NULL ||
+        xy_os_msgqueue_put(queue, &sequence, 0U, XY_OS_NO_WAIT) != XY_OS_OK ||
+        xy_os_msgqueue_put(queue, &sequence, 0U, XY_OS_NO_WAIT) == XY_OS_OK) {
+        uart_text("OSAL_RESOURCE_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_RESOURCE_EXHAUSTED\r\n");
+
+    if (xy_os_mempool_free(pool, block0) != XY_OS_OK ||
+        xy_os_mempool_alloc(pool, XY_OS_NO_WAIT) == NULL ||
+        xy_os_msgqueue_get(queue, &received, NULL, XY_OS_NO_WAIT) != XY_OS_OK ||
+        received != sequence ||
+        xy_os_msgqueue_put(queue, &sequence, 0U, XY_OS_NO_WAIT) != XY_OS_OK) {
+        uart_text("OSAL_RESOURCE_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_RESOURCE_RECOVERED\r\n");
+
+    if (xy_os_msgqueue_delete(queue) != XY_OS_OK || xy_os_mempool_delete(pool) != XY_OS_OK) {
+        uart_text("OSAL_RESOURCE_ERROR\r\n");
+        fail();
+    }
+    pool = xy_os_mempool_new(2U, sizeof(uint32_t), &pool_attr);
+    queue = xy_os_msgqueue_new(1U, sizeof(sequence), NULL);
+    if (pool == NULL || queue == NULL || xy_os_mempool_delete(pool) != XY_OS_OK ||
+        xy_os_msgqueue_delete(queue) != XY_OS_OK) {
+        uart_text("OSAL_RESOURCE_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_LIFECYCLE_REINIT\r\n");
+    xy_os_thread_exit();
+}
+
 int main(void)
 {
     static const xy_os_thread_attr_t fast_attr = {
@@ -217,6 +276,11 @@ int main(void)
         .stack_size = 512U,
         .priority = XY_OS_PRIORITY_ABOVE_NORMAL,
     };
+    static const xy_os_thread_attr_t resource_attr = {
+        .name = "osal-resource",
+        .stack_size = 768U,
+        .priority = XY_OS_PRIORITY_NORMAL,
+    };
 
     HAL_Init();
     clock_init();
@@ -232,7 +296,8 @@ int main(void)
         (pandora_isr_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL ||
-        xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL) {
+        xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL ||
+        xy_os_thread_new(resource_task, NULL, &resource_attr) == NULL) {
         fail();
     }
     (void)xy_os_kernel_start();

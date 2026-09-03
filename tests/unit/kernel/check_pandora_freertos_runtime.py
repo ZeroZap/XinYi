@@ -47,6 +47,11 @@ def main() -> int:
             "xy_os_mutex_new",
             "xy_os_mutex_acquire",
             "xy_os_mutex_release",
+            "xy_os_mempool_new",
+            "xy_os_mempool_alloc",
+            "xy_os_mempool_free",
+            "xy_os_mempool_delete",
+            "xy_os_msgqueue_delete",
             "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
             "OSAL_TASK_FAST",
             "OSAL_TASK_SLOW",
@@ -63,6 +68,10 @@ def main() -> int:
             "OSAL_MUTEX_MISMATCH",
             "OSAL_ISR_TAKE",
             "OSAL_ISR_TIMEOUT",
+            "OSAL_RESOURCE_EXHAUSTED",
+            "OSAL_RESOURCE_RECOVERED",
+            "OSAL_LIFECYCLE_REINIT",
+            "OSAL_RESOURCE_ERROR",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
