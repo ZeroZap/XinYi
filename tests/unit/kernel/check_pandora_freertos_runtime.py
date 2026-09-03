@@ -9,13 +9,18 @@ BOARD = ROOT / "boards" / "pandora_stm32l475"
 CMAKE = BOARD / "CMakeLists.txt"
 MAIN = BOARD / "rtos_main.c"
 HANDLERS = BOARD / "rtos_handlers.c"
+STRESS_VALIDATOR = BOARD / "validate_rtos_stress.py"
 
 
 def main() -> int:
     errors: list[str] = []
     cmake = CMAKE.read_text(encoding="utf-8")
 
-    for path, label in ((MAIN, "runtime main"), (HANDLERS, "runtime handlers")):
+    for path, label in (
+        (MAIN, "runtime main"),
+        (HANDLERS, "runtime handlers"),
+        (STRESS_VALIDATOR, "stress validator"),
+    ):
         if not path.is_file():
             errors.append(f"Pandora OSAL/FreeRTOS {label} is missing")
 
@@ -80,12 +85,26 @@ def main() -> int:
             "timeout_elapsed > BLOCKING_TIMEOUT_TICKS + BLOCKING_TIMEOUT_TOLERANCE_TICKS",
             "OSAL_BLOCKING_TIMEOUT_OK",
             "OSAL_BLOCKING_TIMEOUT_ERROR",
+            "OSAL_STRESS_READY",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
         for forbidden in ("xTaskCreate(", "vTaskStartScheduler(", "vTaskDelay("):
             if forbidden in main_source:
                 errors.append(f"board application must use OSAL, not direct FreeRTOS API: {forbidden}")
+
+    if STRESS_VALIDATOR.is_file():
+        validator_source = STRESS_VALIDATOR.read_text(encoding="utf-8")
+        for token in (
+            "STRESS_REVIEW_CANDIDATE",
+            "STRESS_VALIDATION_FAILED",
+            "min_pipeline_cycles",
+            "min_isr_wakes",
+            "runtime error markers present",
+            "firmware identity mismatch",
+        ):
+            if token not in validator_source:
+                errors.append(f"stress validator must preserve token: {token}")
 
     if HANDLERS.is_file():
         handler_source = HANDLERS.read_text(encoding="utf-8")

@@ -107,6 +107,10 @@ add_test(NAME pandora_freertos_runtime
     COMMAND python3 ${UNIT_KERNEL}/check_pandora_freertos_runtime.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_rtos_stress_validator
+    COMMAND python3 ${UNIT_KERNEL}/test_pandora_rtos_stress.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}

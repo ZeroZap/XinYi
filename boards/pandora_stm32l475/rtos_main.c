@@ -305,6 +305,7 @@ int main(void)
     gpio_uart_init();
     uart_text("PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n");
     uart_text("FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
+    uart_text("OSAL_STRESS_READY\r\n");
 
     if (xy_os_kernel_init() != XY_OS_OK ||
         (sync_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
