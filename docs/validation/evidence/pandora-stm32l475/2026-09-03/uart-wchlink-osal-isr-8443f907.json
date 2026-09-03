@@ -1,0 +1,30 @@
+{
+  "record_type": "xinyi-pandora-stm32l475-osal-isr-semaphore-runtime",
+  "recorded_at": "2026-09-03T20:15:12+08:00",
+  "status": "B1_ISR_TO_TASK_REVIEWED",
+  "board": "Pandora STM32L475VE",
+  "firmware_commit": "8443f907a8ec912317a774f2129d03b7746ac7b0",
+  "firmware_binary": "pandora_stm32l475_rtos.bin",
+  "firmware_sha256": "b27254d848216e920c65ace6aa4a8bf1cf753a37275c187b05be780d7392a3ba",
+  "programmer": "ST-LINK/V2.1 via st-flash 1.8.0",
+  "uart_adapter": "WCH-Link /dev/ttyACM1",
+  "uart": "115200-8-N-1",
+  "capture_duration_seconds": 7,
+  "capture_file": "uart-wchlink-osal-isr-8443f907.txt",
+  "capture_sha256": "90555a79311f360e1c72ebd920d4d533caec940cd4b8f5b1fb8aa8c5ac470fdc",
+  "capture_bytes": 2025,
+  "observations": {
+    "OSAL_ISR_TAKE": 6,
+    "OSAL_ISR_TIMEOUT": 0,
+    "OSAL_TASK_FAST": 13
+  },
+  "scope": "SysTick ISR releases an OSAL binary semaphore through the FreeRTOS FromISR backend and unblocks a task.",
+  "not_evidence_for": [
+    "arbitrary peripheral IRQ callbacks",
+    "message queue or event flags from ISR",
+    "resource exhaustion",
+    "shutdown or re-init",
+    "long-duration stress",
+    "STM32U5 runtime"
+  ]
+}

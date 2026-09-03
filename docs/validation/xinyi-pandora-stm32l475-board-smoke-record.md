@@ -194,6 +194,27 @@ Retained evidence:
 - [mutex capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-mutex-33c3a665.json),
   SHA-256 `42acc0c119ad50f8d613b977df020f4ffdf00547197d866ba8f61a75c0764486`
 
+### OSAL/FreeRTOS ISR-to-task semaphore result
+
+Firmware `8443f907a8ec912317a774f2129d03b7746ac7b0` adds the explicit
+`xy_os_semaphore_release_from_isr()` boundary. The FreeRTOS backend uses
+`xSemaphoreGiveFromISR()` and `portYIELD_FROM_ISR()`; the Pandora SysTick handler releases a dedicated
+binary semaphore once per second, and a task blocks on the public OSAL acquire API.
+
+The clean image linked at 14912 bytes and embedded the exact firmware commit. Its binary SHA-256 is
+`b27254d848216e920c65ace6aa4a8bf1cf753a37275c187b05be780d7392a3ba`. `st-flash 1.8.0`
+programmed and verified all 14912 bytes through the ST-LINK/V2.1. A seven-second capture from the
+independent WCH-Link UART retained 2025 bytes and contained 6 `OSAL_ISR_TAKE` markers, 13 producer
+cycles, and no `OSAL_ISR_TIMEOUT` marker. This grants bounded SysTick ISR-to-task semaphore B1 for
+this exact board/image. It does not establish arbitrary peripheral IRQ, other ISR-safe primitives,
+resource exhaustion, shutdown/re-init, long-duration stress, or STM32U5 runtime evidence.
+
+Retained evidence:
+
+- [raw ISR semaphore UART log](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-isr-8443f907.txt),
+  SHA-256 `90555a79311f360e1c72ebd920d4d533caec940cd4b8f5b1fb8aa8c5ac470fdc`
+- [ISR semaphore capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-isr-8443f907.json)
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained
