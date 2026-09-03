@@ -8,6 +8,9 @@
 static UART_HandleTypeDef uart1;
 static xy_os_semaphore_id_t sync_sem;
 static xy_os_msgqueue_id_t sync_queue;
+static xy_os_event_flags_id_t sync_events;
+
+#define SYNC_EVENT_DATA_READY (1UL << 0)
 
 void _init(void) {}
 void _fini(void) {}
@@ -119,6 +122,11 @@ static void fast_task(void *argument)
             fail();
         }
         uart_text("OSAL_QUEUE_SEND\r\n");
+        if ((xy_os_event_flags_set(sync_events, SYNC_EVENT_DATA_READY) & SYNC_EVENT_DATA_READY) ==
+            0U) {
+            fail();
+        }
+        uart_text("OSAL_EVENT_SET\r\n");
         ++sequence;
         (void)xy_os_delay(500U);
     }
@@ -137,6 +145,13 @@ static void slow_task(void *argument)
             uart_text("OSAL_SEM_TIMEOUT\r\n");
             fail();
         }
+        if ((xy_os_event_flags_wait(sync_events, SYNC_EVENT_DATA_READY, XY_OS_FLAGS_WAIT_ALL,
+                                    100U) &
+             SYNC_EVENT_DATA_READY) == 0U) {
+            uart_text("OSAL_EVENT_MISMATCH\r\n");
+            fail();
+        }
+        uart_text("OSAL_EVENT_WAIT\r\n");
         if (xy_os_msgqueue_get(sync_queue, &sequence, NULL, 100U) != XY_OS_OK ||
             sequence != expected_sequence) {
             uart_text("OSAL_QUEUE_MISMATCH\r\n");
@@ -170,6 +185,7 @@ int main(void)
     if (xy_os_kernel_init() != XY_OS_OK ||
         (sync_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         (sync_queue = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL)) == NULL ||
+        (sync_events = xy_os_event_flags_new(NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL) {
         fail();

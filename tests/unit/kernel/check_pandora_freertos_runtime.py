@@ -41,6 +41,9 @@ def main() -> int:
             "xy_os_msgqueue_new",
             "xy_os_msgqueue_put",
             "xy_os_msgqueue_get",
+            "xy_os_event_flags_new",
+            "xy_os_event_flags_set",
+            "xy_os_event_flags_wait",
             "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
             "OSAL_TASK_FAST",
             "OSAL_TASK_SLOW",
@@ -48,6 +51,9 @@ def main() -> int:
             "OSAL_QUEUE_SEND",
             "OSAL_QUEUE_RECV",
             "OSAL_QUEUE_MISMATCH",
+            "OSAL_EVENT_SET",
+            "OSAL_EVENT_WAIT",
+            "OSAL_EVENT_MISMATCH",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
