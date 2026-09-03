@@ -7,7 +7,7 @@
   "programming_result": "Flash written and verified",
   "programmed_bytes": 14144,
   "capture_duration_ms": 6000,
-  "capture_bytes": 1368,
+  "capture_bytes": 1284,
   "fast_task_count": 12,
   "queue_send_count": 12,
   "event_set_count": 12,
@@ -21,7 +21,7 @@
   "ordered_fast_send_event_set_take_event_wait_receive_slow_cycles": 12,
   "elf_sha256": "15487c86b369c0646917b9ecd906f62d2df0102a0a80f847894924944450dee0",
   "bin_sha256": "5df5b56a8b391de3469739977425fa9fe359db81af381434c9504ae20af5fa5a",
-  "raw_log_sha256": "7bb11d1b9de480fda3de3390a6d417ff23538f2b6a707d09d326acdf9057a301",
+  "raw_log_sha256": "b802709edaf1215d176abf64d7336555a50e98599f162eb6fc70826e5428bad2",
   "evidence": "BOARD_RUNTIME_B1_OSAL_FREERTOS_EVENT_FLAGS",
   "limits": [
     "task-context event flags normal path only",
