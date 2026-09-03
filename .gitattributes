@@ -35,6 +35,9 @@ Makefile text eol=lf
 *.rst text eol=lf
 *.adoc text eol=lf
 
+# Retained hardware captures preserve the exact UART byte stream (including CRLF).
+docs/validation/evidence/**/*.txt -text -diff -merge
+
 # Scripts
 *.sh text eol=lf
 *.py text eol=lf

@@ -55,6 +55,7 @@ RESOURCE_LOG = RESOURCE_EVIDENCE / "uart-wchlink-osal-resource-e6cd0906.txt"
 RESOURCE_METADATA = RESOURCE_EVIDENCE / "uart-wchlink-osal-resource-e6cd0906.json"
 RESOURCE_COMMIT = "e6cd0906f0937c36d566eb88439b510b545d8250"
 RESOURCE_LOG_SHA256 = "3808c1623b409665ac6d6c89171e4294c66a7c2b52cbb8ac80ec95d66b327c37"
+RESOURCE_LOG_LF_SHA256 = "f6191cfced99d1df5b9ea9aec105901d09e5420eecc7fa193e7eb35ecf4a9fea"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -118,10 +119,15 @@ def main() -> int:
         payload = RESOURCE_LOG.read_bytes()
         metadata = json.loads(RESOURCE_METADATA.read_text(encoding="utf-8"))
         log_lines = payload.decode("utf-8").splitlines()
-        require(hashlib.sha256(payload).hexdigest() == RESOURCE_LOG_SHA256,
-                "Pandora resource/lifecycle UART SHA-256 mismatch", errors)
-        require(len(payload) == 2651,
-                "Pandora resource/lifecycle UART byte count must remain 2651", errors)
+        raw_sha256 = hashlib.sha256(payload).hexdigest()
+        normalized_payload = payload.replace(b"\r\n", b"\n")
+        normalized_sha256 = hashlib.sha256(normalized_payload).hexdigest()
+        require(
+            (raw_sha256 == RESOURCE_LOG_SHA256 and len(payload) == 2651)
+            or (normalized_sha256 == RESOURCE_LOG_LF_SHA256 and len(normalized_payload) == 2495),
+            "Pandora resource/lifecycle UART content mismatch after LF normalization",
+            errors,
+        )
         expected_identity = (
             "FIRMWARE_COMMIT " + RESOURCE_COMMIT
         )
