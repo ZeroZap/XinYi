@@ -205,7 +205,7 @@ int main(void)
     static const xy_os_thread_attr_t fast_attr = {
         .name = "osal-fast",
         .stack_size = 512U,
-        .priority = XY_OS_PRIORITY_LOW,
+        .priority = XY_OS_PRIORITY_NORMAL,
     };
     static const xy_os_thread_attr_t slow_attr = {
         .name = "osal-slow",
