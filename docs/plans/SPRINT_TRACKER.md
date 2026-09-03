@@ -194,6 +194,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-58 | P0 | Pandora B2 单周期恢复闭环门 | DONE | Zero | S5-57（DONE） | RED：matching commit 与后续另一 banner 周期的 NACK→ACK→measurement 可拼接并误获 B2 candidate；现将 B2 恢复链限制在同一 banner 周期；Python 20/20、focused 1/1、Host 203/203、PC root 与 `git diff --check` 通过；不升级 B1/B2 | `de4f85a7` | 2026-09-03 |
 | S5-59 | P0 | FreeRTOS OSAL thread flags 选择性清除 | DONE | Zero | S5-01（IN_PROGRESS） | RED：旧 `xy_os_thread_flags_clear()` 以 `~flags` 覆盖通知值，会将未指定 bit 错误置位；现使用 `ulTaskNotifyValueClear(NULL, flags)` 原子返回旧值并仅清指定 bit；focused 3/3、Host 204/204、`xy_device`、PC root、STM32U5 root 与 `git diff --check` 通过；不升级 scheduler/runtime/ISR/实板声明 | `8465b830` | 2026-09-03 |
 | S5-60 | P0 | FreeRTOS OSAL thread flags set 返回值与失败传播 | DONE | Zero | S5-59（DONE） | RED：旧 `xy_os_thread_flags_set()` 忽略 `xTaskNotify()` 失败且只返回本次 mask，丢失已存在 flags；现改用 `xTaskNotifyAndQuery(..., eSetBits, ...)`，backend 拒绝时 fail-closed，成功时返回完整 post-set flags；focused 2/2、Host 204/204、PC root、FreeRTOS-enabled STM32U5 root 与 `git diff --check` 通过；不升级 scheduler/runtime/ISR/实板声明 | `381ba52e` | 2026-09-03 |
+| S5-61 | P0 | FreeRTOS OSAL thread flags get 失败传播 | DONE | Zero | S5-60（DONE） | RED：旧 `xy_os_thread_flags_get()` 忽略 `xTaskNotifyAndQuery(..., eNoAction, ...)` 失败并返回未初始化值；现 backend 拒绝时返回 OSAL flag error sentinel；focused 3/3、Host 204/204、PC root、FreeRTOS-enabled STM32U5 root 与 `git diff --check` 通过；不升级 scheduler/runtime/ISR/实板声明 | `deac74a0` | 2026-09-03 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
