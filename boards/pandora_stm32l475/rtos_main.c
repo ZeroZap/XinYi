@@ -9,6 +9,8 @@ static UART_HandleTypeDef uart1;
 static xy_os_semaphore_id_t sync_sem;
 static xy_os_msgqueue_id_t sync_queue;
 static xy_os_event_flags_id_t sync_events;
+static xy_os_mutex_id_t sync_mutex;
+static uint32_t shared_sequence;
 
 #define SYNC_EVENT_DATA_READY (1UL << 0)
 
@@ -113,6 +115,15 @@ static void fast_task(void *argument)
 
     (void)argument;
     for (;;) {
+        if (xy_os_mutex_acquire(sync_mutex, 100U) != XY_OS_OK) {
+            uart_text("OSAL_MUTEX_TIMEOUT\r\n");
+            fail();
+        }
+        shared_sequence = sequence;
+        uart_text("OSAL_MUTEX_FAST\r\n");
+        if (xy_os_mutex_release(sync_mutex) != XY_OS_OK) {
+            fail();
+        }
         HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);
         uart_text("OSAL_TASK_FAST\r\n");
         if (xy_os_semaphore_release(sync_sem) != XY_OS_OK) {
@@ -158,6 +169,18 @@ static void slow_task(void *argument)
             fail();
         }
         uart_text("OSAL_QUEUE_RECV\r\n");
+        if (xy_os_mutex_acquire(sync_mutex, 100U) != XY_OS_OK) {
+            uart_text("OSAL_MUTEX_TIMEOUT\r\n");
+            fail();
+        }
+        if (shared_sequence != sequence) {
+            uart_text("OSAL_MUTEX_MISMATCH\r\n");
+            fail();
+        }
+        uart_text("OSAL_MUTEX_SLOW\r\n");
+        if (xy_os_mutex_release(sync_mutex) != XY_OS_OK) {
+            fail();
+        }
         ++expected_sequence;
         uart_text("OSAL_TASK_SLOW\r\n");
     }
@@ -186,6 +209,7 @@ int main(void)
         (sync_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         (sync_queue = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL)) == NULL ||
         (sync_events = xy_os_event_flags_new(NULL)) == NULL ||
+        (sync_mutex = xy_os_mutex_new(NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL) {
         fail();

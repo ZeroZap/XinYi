@@ -44,6 +44,9 @@ def main() -> int:
             "xy_os_event_flags_new",
             "xy_os_event_flags_set",
             "xy_os_event_flags_wait",
+            "xy_os_mutex_new",
+            "xy_os_mutex_acquire",
+            "xy_os_mutex_release",
             "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
             "OSAL_TASK_FAST",
             "OSAL_TASK_SLOW",
@@ -54,6 +57,10 @@ def main() -> int:
             "OSAL_EVENT_SET",
             "OSAL_EVENT_WAIT",
             "OSAL_EVENT_MISMATCH",
+            "OSAL_MUTEX_FAST",
+            "OSAL_MUTEX_SLOW",
+            "OSAL_MUTEX_TIMEOUT",
+            "OSAL_MUTEX_MISMATCH",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
