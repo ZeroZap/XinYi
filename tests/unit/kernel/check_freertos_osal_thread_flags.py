@@ -29,6 +29,17 @@ def main() -> int:
                 f"the complete post-set flag value; missing: {required}"
             )
 
+    required_get_contract = (
+        "if (xTaskNotifyAndQuery(xTaskGetCurrentTaskHandle(), 0, eNoAction, &flags) != pdPASS)",
+        "return 0x80000000;",
+    )
+    for required in required_get_contract:
+        if required not in source:
+            errors.append(
+                "xy_os_thread_flags_get must fail closed when the FreeRTOS notification "
+                f"query is rejected; missing: {required}"
+            )
+
     for forbidden in (
         "xTaskNotifyStateClear(NULL);",
         "xTaskNotify(xTaskGetCurrentTaskHandle(), ~flags, eSetValueWithOverwrite);",

@@ -256,7 +256,9 @@ uint32_t xy_os_thread_flags_clear(uint32_t flags)
 uint32_t xy_os_thread_flags_get(void)
 {
     uint32_t flags;
-    xTaskNotifyAndQuery(xTaskGetCurrentTaskHandle(), 0, eNoAction, &flags);
+
+    if (xTaskNotifyAndQuery(xTaskGetCurrentTaskHandle(), 0, eNoAction, &flags) != pdPASS)
+        return 0x80000000;
     return flags;
 }
 
