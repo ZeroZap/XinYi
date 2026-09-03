@@ -56,6 +56,10 @@ RESOURCE_METADATA = RESOURCE_EVIDENCE / "uart-wchlink-osal-resource-e6cd0906.jso
 RESOURCE_COMMIT = "e6cd0906f0937c36d566eb88439b510b545d8250"
 RESOURCE_LOG_SHA256 = "3808c1623b409665ac6d6c89171e4294c66a7c2b52cbb8ac80ec95d66b327c37"
 RESOURCE_LOG_LF_SHA256 = "f6191cfced99d1df5b9ea9aec105901d09e5420eecc7fa193e7eb35ecf4a9fea"
+TIMEOUT_LOG = RESOURCE_EVIDENCE / "uart-wchlink-osal-timeout-34bb39f4.txt"
+TIMEOUT_METADATA = RESOURCE_EVIDENCE / "uart-wchlink-osal-timeout-34bb39f4.json"
+TIMEOUT_COMMIT = "34bb39f4f6f944c608bdf0381aa2fc6a878fe1a7"
+TIMEOUT_LOG_SHA256 = "01a5f25a77d393bea4fe633275977ac170485bd551318f1180a20c26e0845979"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -96,8 +100,8 @@ def main() -> int:
         "BOARD_RUNTIME_PARTIAL",
         "root-selected-pandora-task-sync-isr-smoke-verified",
         "pandora-thread-sync-systick-isr-b1",
-        "pandora-resource-lifecycle-b1",
-        "不构成 blocking timeout、长稳压力、性能、STM32U5",
+        "pandora-resource-lifecycle-timeout-b1",
+        "long-duration stress, performance, STM32U5 runtime",
         "46499b33e332f2b4111e1c0149366b5c86064909",
         "4ebf46dacd8c906455fb541ca70c25b692cc51d8",
         "48ca0509640fd9f4fbb745957ec588e25131e160",
@@ -106,6 +110,8 @@ def main() -> int:
         "9c2d4d4e811a8b835f6432290bd12b6fd5000dcd",
         RESOURCE_COMMIT,
         RESOURCE_LOG_SHA256,
+        TIMEOUT_COMMIT,
+        TIMEOUT_LOG_SHA256,
         "6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627",
         "FreeRTOSConfig.h",
         "Cortex-M33",
@@ -181,6 +187,64 @@ def main() -> int:
                 "Pandora resource/lifecycle metadata must preserve zero resource errors", errors)
         require(observations.get("required_resource_marker_order") is True,
                 "Pandora resource/lifecycle metadata must preserve ordered markers", errors)
+
+    require(TIMEOUT_LOG.is_file(), "Pandora blocking-timeout UART log is missing", errors)
+    require(TIMEOUT_METADATA.is_file(), "Pandora blocking-timeout metadata is missing", errors)
+    if TIMEOUT_LOG.is_file() and TIMEOUT_METADATA.is_file():
+        payload = TIMEOUT_LOG.read_bytes()
+        metadata = json.loads(TIMEOUT_METADATA.read_text(encoding="utf-8"))
+        log_lines = payload.decode("utf-8").splitlines()
+        require(hashlib.sha256(payload).hexdigest() == TIMEOUT_LOG_SHA256,
+                "Pandora blocking-timeout UART SHA-256 mismatch", errors)
+        require(len(payload) == 2677,
+                "Pandora blocking-timeout UART byte count must remain 2677", errors)
+        ordered_markers = (
+            "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
+            "FIRMWARE_COMMIT " + TIMEOUT_COMMIT,
+            "OSAL_RESOURCE_EXHAUSTED",
+            "OSAL_BLOCKING_TIMEOUT_OK",
+            "OSAL_RESOURCE_RECOVERED",
+            "OSAL_LIFECYCLE_REINIT",
+        )
+        positions = []
+        for marker in ordered_markers:
+            require(log_lines.count(marker) == 1,
+                    f"Pandora blocking-timeout UART must preserve one {marker}", errors)
+            positions.append(next((index for index, line in enumerate(log_lines)
+                                   if line == marker), -1))
+        require(-1 not in positions and positions == sorted(positions),
+                "Pandora blocking-timeout UART markers must remain ordered", errors)
+        for marker in (
+            "OSAL_BLOCKING_TIMEOUT_ERROR",
+            "OSAL_RESOURCE_ERROR",
+            "OSAL_ISR_TIMEOUT",
+            "OSAL_SEM_TIMEOUT",
+            "OSAL_QUEUE_MISMATCH",
+            "OSAL_EVENT_MISMATCH",
+            "OSAL_MUTEX_TIMEOUT",
+            "OSAL_MUTEX_MISMATCH",
+        ):
+            require(marker not in log_lines,
+                    f"Pandora blocking-timeout UART must not contain {marker}", errors)
+        require(metadata.get("status") == "B1_BLOCKING_TIMEOUT_REVIEWED",
+                "Pandora blocking-timeout metadata must remain reviewed B1", errors)
+        require(metadata.get("firmware_commit") == TIMEOUT_COMMIT,
+                "Pandora blocking-timeout metadata must bind the flashed commit", errors)
+        require(metadata.get("capture_sha256") == TIMEOUT_LOG_SHA256,
+                "Pandora blocking-timeout metadata must bind the UART log", errors)
+        require(metadata.get("programmed_bytes") == 16216,
+                "Pandora blocking-timeout metadata must preserve programmed size", errors)
+        require(metadata.get("timeout_ticks") == 100,
+                "Pandora blocking-timeout metadata must preserve the requested ticks", errors)
+        require(metadata.get("timeout_tolerance_ticks") == 20,
+                "Pandora blocking-timeout metadata must preserve the tolerance", errors)
+        observations = metadata.get("observations", {})
+        require(observations.get("OSAL_BLOCKING_TIMEOUT_OK") == 1,
+                "Pandora blocking-timeout metadata must preserve one success marker", errors)
+        require(observations.get("OSAL_BLOCKING_TIMEOUT_ERROR") == 0,
+                "Pandora blocking-timeout metadata must preserve zero timeout errors", errors)
+        require(observations.get("required_timeout_marker_order") is True,
+                "Pandora blocking-timeout metadata must preserve ordered markers", errors)
 
     require("RT-Thread" in decision and "not selected" in decision,
             "decision must record why RT-Thread is not the reference backend", errors)
@@ -288,7 +352,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("reference_rtos_decision_ok reference=FreeRTOS pandora_runtime=task-sync-isr-resource-lifecycle-b1 remaining=timeout-long-stress")
+    print("reference_rtos_decision_ok reference=FreeRTOS pandora_runtime=task-sync-isr-resource-timeout-b1 remaining=long-stress")
     return 0
 
 

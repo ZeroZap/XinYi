@@ -246,6 +246,34 @@ Retained evidence:
   SHA-256 `3808c1623b409665ac6d6c89171e4294c66a7c2b52cbb8ac80ec95d66b327c37`
 - [resource/lifecycle metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-resource-e6cd0906.json)
 
+### 2026-09-04 OSAL blocking-timeout runtime result
+
+The first blocking-timeout image exposed a real adapter bug: FreeRTOS queue/semaphore/mutex wait
+failures all used a generic mapping and returned `XY_OS_ERROR` after the requested wait expired.
+Commit `34bb39f4f6f944c608bdf0381aa2fc6a878fe1a7` adds a dedicated wait-result mapping to
+`XY_OS_ERROR_TIMEOUT` and preserves generic error mapping for non-wait operations.
+
+The clean image embedded that exact commit, linked at text/data/bss `16192/16/19768`, and produced a
+16216-byte BIN with SHA-256 `2c80d81840570461ef54096a1c49b857b18fb2fd5d4b3697100038398836aae3`.
+`st-flash 1.8.0` programmed and verified all bytes; a separate 16216-byte read-back was byte-identical.
+An eight-second WCH-Link capture retained 2677 bytes and one ordered
+`OSAL_RESOURCE_EXHAUSTED → OSAL_BLOCKING_TIMEOUT_OK → OSAL_RESOURCE_RECOVERED →
+OSAL_LIFECYCLE_REINIT` chain. The timeout probe keeps the queue full, requests 100 ticks, verifies
+the OSAL status, and accepts only an elapsed 100–120 tick window before printing success. The same
+capture retained 16 complete task pipeline cycles and seven ISR wake markers with no timeout,
+resource, queue, event, mutex, semaphore, or ISR error marker.
+
+This grants B1 only for the bounded queue blocking-timeout/error-mapping path. The UART marker proves
+the firmware's tick-window assertion passed; it is not an external timing/performance measurement and
+does not establish long-duration stress, arbitrary peripheral IRQ, cross-component concurrency, or
+STM32U5 runtime.
+
+Retained evidence:
+
+- [raw blocking-timeout UART log](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-timeout-34bb39f4.txt),
+  SHA-256 `01a5f25a77d393bea4fe633275977ac170485bd551318f1180a20c26e0845979`
+- [blocking-timeout metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-timeout-34bb39f4.json)
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained

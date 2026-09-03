@@ -5,7 +5,7 @@
 **Status**: `BOARD_RUNTIME_PARTIAL`
 **Reference backend**: **FreeRTOS**
 **Integration**: `root-selected-pandora-task-sync-isr-smoke-verified`
-**Hardware**: `pandora-thread-sync-systick-isr-b1`; `pandora-resource-lifecycle-b1`
+**Hardware**: `pandora-thread-sync-systick-isr-b1`; `pandora-resource-lifecycle-timeout-b1`
 
 ## Decision
 
@@ -63,13 +63,19 @@ single-backend Sprint scope.
   matching embedded identity followed by ordered `OSAL_RESOURCE_EXHAUSTED`,
   `OSAL_RESOURCE_RECOVERED`, and `OSAL_LIFECYCLE_REINIT`, with no resource or existing pipeline
   error marker. This is bounded B1 for those exact normal/recovery paths only.
+- Image `34bb39f4f6f944c608bdf0381aa2fc6a878fe1a7` fixed the FreeRTOS adapter's generic
+  failure mapping so mutex/semaphore/message-queue waits return `XY_OS_ERROR_TIMEOUT` when their
+  requested wait expires. A full depth-one queue then blocked for 100 ticks; the firmware accepted
+  only the 100–120 tick window and emitted one ordered `OSAL_BLOCKING_TIMEOUT_OK` before resource
+  recovery/re-init. The eight-second WCH-Link capture retained 16 complete task pipeline cycles and
+  seven ISR wakeups with no timeout/resource/pipeline error marker. This is bounded timeout behavior,
+  not a performance measurement or long-duration stress result.
 - RT-Thread has a larger source tree, but current CMake paths and the STM32U5 adapter/port
   assumptions are also stale or incomplete; source volume is not evidence of readiness.
 
 ## Next bounded integration slice
 
-1. Add independent blocking-timeout behavior rather than inferring it from successful waits, then run
-   a declared long-duration stress interval with marker/count thresholds.
+1. Run a declared long-duration stress interval with marker/count thresholds.
 2. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
    concurrency before S5-01 can become `DONE`.
 
@@ -78,7 +84,8 @@ single-backend Sprint scope.
 The STM32U5 gate remains source/static-library compile-only. Pandora now supplies bounded real-board
 scheduler/thread, task-context semaphore/message-queue/event-flags/mutex, one SysTick
 ISR-to-semaphore-to-task normal path, and bounded no-wait resource exhaustion/recovery plus
-delete/recreate. These captures **不构成 blocking timeout、长稳压力、性能、STM32U5 或完整 RTOS 产品证据**.
+delete/recreate and one bounded blocking queue timeout. **These captures do not establish
+long-duration stress, performance, STM32U5 runtime, or complete RTOS product qualification.**
 S5-01 remains in progress until the required runtime/stress matrix exists.
 
 Retained UART evidence: [Pandora OSAL/FreeRTOS capture](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos.txt),
@@ -86,3 +93,6 @@ SHA-256 `6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627`.
 Resource/lifecycle evidence: [UART capture](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-resource-e6cd0906.txt),
 SHA-256 `3808c1623b409665ac6d6c89171e4294c66a7c2b52cbb8ac80ec95d66b327c37`, with
 [metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-resource-e6cd0906.json).
+Blocking-timeout evidence: [UART capture](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-timeout-34bb39f4.txt),
+SHA-256 `01a5f25a77d393bea4fe633275977ac170485bd551318f1180a20c26e0845979`, with
+[metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-timeout-34bb39f4.json).
