@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Guard the Sprint 5 reference RTOS decision and evidence boundary."""
 
+import hashlib
+import json
 from pathlib import Path
 import sys
 
@@ -41,6 +43,18 @@ FREERTOS_CONFIG = (
 FREERTOS_COMPILE_PROBE = (
     ROOT / "components" / "kernel" / "osal" / "scripts" / "compile_freertos_stm32u5.py"
 )
+RESOURCE_EVIDENCE = (
+    ROOT
+    / "docs"
+    / "validation"
+    / "evidence"
+    / "pandora-stm32l475"
+    / "2026-09-04"
+)
+RESOURCE_LOG = RESOURCE_EVIDENCE / "uart-wchlink-osal-resource-e6cd0906.txt"
+RESOURCE_METADATA = RESOURCE_EVIDENCE / "uart-wchlink-osal-resource-e6cd0906.json"
+RESOURCE_COMMIT = "e6cd0906f0937c36d566eb88439b510b545d8250"
+RESOURCE_LOG_SHA256 = "3808c1623b409665ac6d6c89171e4294c66a7c2b52cbb8ac80ec95d66b327c37"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -81,21 +95,86 @@ def main() -> int:
         "BOARD_RUNTIME_PARTIAL",
         "root-selected-pandora-task-sync-isr-smoke-verified",
         "pandora-thread-sync-systick-isr-b1",
-        "resource-lifecycle-candidate-not-run",
-        "不构成资源恢复、生命周期、",
-        "压力、性能、STM32U5 或完整 RTOS 产品证据",
+        "pandora-resource-lifecycle-b1",
+        "不构成 blocking timeout、长稳压力、性能、STM32U5",
         "46499b33e332f2b4111e1c0149366b5c86064909",
         "4ebf46dacd8c906455fb541ca70c25b692cc51d8",
         "48ca0509640fd9f4fbb745957ec588e25131e160",
         "33c3a665032f62efde0e410cf21a4fd74d04975d",
         "8443f907a8ec912317a774f2129d03b7746ac7b0",
         "9c2d4d4e811a8b835f6432290bd12b6fd5000dcd",
+        RESOURCE_COMMIT,
+        RESOURCE_LOG_SHA256,
         "6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627",
         "FreeRTOSConfig.h",
         "Cortex-M33",
         "third_party/freertos/FreeRTOS",
     ):
         require(token in decision, f"decision must preserve token: {token}", errors)
+
+    require(RESOURCE_LOG.is_file(), "Pandora resource/lifecycle UART log is missing", errors)
+    require(RESOURCE_METADATA.is_file(), "Pandora resource/lifecycle metadata is missing", errors)
+    if RESOURCE_LOG.is_file() and RESOURCE_METADATA.is_file():
+        payload = RESOURCE_LOG.read_bytes()
+        metadata = json.loads(RESOURCE_METADATA.read_text(encoding="utf-8"))
+        log_lines = payload.decode("utf-8").splitlines()
+        require(hashlib.sha256(payload).hexdigest() == RESOURCE_LOG_SHA256,
+                "Pandora resource/lifecycle UART SHA-256 mismatch", errors)
+        require(len(payload) == 2651,
+                "Pandora resource/lifecycle UART byte count must remain 2651", errors)
+        expected_identity = (
+            "FIRMWARE_COMMIT " + RESOURCE_COMMIT
+        )
+        for marker in (
+            "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
+            expected_identity,
+            "OSAL_RESOURCE_EXHAUSTED",
+            "OSAL_RESOURCE_RECOVERED",
+            "OSAL_LIFECYCLE_REINIT",
+        ):
+            require(log_lines.count(marker) == 1,
+                    f"Pandora resource/lifecycle UART must preserve one {marker}", errors)
+        resource_positions = [
+            next((index for index, line in enumerate(log_lines) if line == marker), -1)
+            for marker in (
+                "OSAL_RESOURCE_EXHAUSTED",
+                "OSAL_RESOURCE_RECOVERED",
+                "OSAL_LIFECYCLE_REINIT",
+            )
+        ]
+        require(-1 not in resource_positions and resource_positions == sorted(resource_positions),
+                "Pandora resource/lifecycle UART markers must remain ordered", errors)
+        for marker in (
+            "OSAL_RESOURCE_ERROR",
+            "OSAL_ISR_TIMEOUT",
+            "OSAL_SEM_TIMEOUT",
+            "OSAL_QUEUE_MISMATCH",
+            "OSAL_EVENT_MISMATCH",
+            "OSAL_MUTEX_TIMEOUT",
+            "OSAL_MUTEX_MISMATCH",
+        ):
+            require(marker not in log_lines,
+                    f"Pandora resource/lifecycle UART must not contain {marker}", errors)
+        require(metadata.get("status") == "B1_RESOURCE_LIFECYCLE_REVIEWED",
+                "Pandora resource/lifecycle metadata must remain reviewed B1", errors)
+        require(metadata.get("firmware_commit") == RESOURCE_COMMIT,
+                "Pandora resource/lifecycle metadata must bind the flashed commit", errors)
+        require(metadata.get("capture_sha256") == RESOURCE_LOG_SHA256,
+                "Pandora resource/lifecycle metadata must bind the UART log", errors)
+        require(metadata.get("programmed_bytes") == 16080,
+                "Pandora resource/lifecycle metadata must preserve programmed size", errors)
+        observations = metadata.get("observations", {})
+        for marker in (
+            "OSAL_RESOURCE_EXHAUSTED",
+            "OSAL_RESOURCE_RECOVERED",
+            "OSAL_LIFECYCLE_REINIT",
+        ):
+            require(observations.get(marker) == 1,
+                    f"Pandora resource/lifecycle metadata must preserve one {marker}", errors)
+        require(observations.get("OSAL_RESOURCE_ERROR") == 0,
+                "Pandora resource/lifecycle metadata must preserve zero resource errors", errors)
+        require(observations.get("required_resource_marker_order") is True,
+                "Pandora resource/lifecycle metadata must preserve ordered markers", errors)
 
     require("RT-Thread" in decision and "not selected" in decision,
             "decision must record why RT-Thread is not the reference backend", errors)
@@ -203,7 +282,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("reference_rtos_decision_ok reference=FreeRTOS pandora_runtime=task-sync-systick-isr-b1 remaining=resource-runtime-stress")
+    print("reference_rtos_decision_ok reference=FreeRTOS pandora_runtime=task-sync-isr-resource-lifecycle-b1 remaining=timeout-long-stress")
     return 0
 
 

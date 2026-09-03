@@ -215,7 +215,7 @@ Retained evidence:
   SHA-256 `90555a79311f360e1c72ebd920d4d533caec940cd4b8f5b1fb8aa8c5ac470fdc`
 - [ISR semaphore capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-isr-8443f907.json)
 
-### OSAL resource recovery candidate — not board evidence
+### 2026-09-04 OSAL resource recovery and lifecycle runtime result
 
 Commit `9c2d4d4e811a8b835f6432290bd12b6fd5000dcd` adds a one-shot OSAL task that exhausts
 a two-block memory pool and a depth-one message queue without waiting, frees/receives one item,
@@ -224,10 +224,27 @@ guard, full 206-test Host suite, PC/STM32U5/STM32L4 root builds and Pandora Free
 linked ELF has text/data/bss `16056/16/19768`; the BIN SHA-256 is
 `731fe90a3a7cfe32e53b5f0d94517cea85999fd244dae02f8ba70a5d3387cb21`.
 
-During this verification WCH-Link UART remained visible as `/dev/ttyACM1`, but `st-info --probe`
-found zero ST-Link programmers. Therefore the candidate was not programmed and no UART runtime log
-was captured. `OSAL_RESOURCE_EXHAUSTED`, `OSAL_RESOURCE_RECOVERED`, and
-`OSAL_LIFECYCLE_REINIT` remain required future markers, not B1 observations.
+That first verification found zero ST-Link programmers, so it did not produce board evidence. On
+2026-09-04 the same board/probe returned. Clean HEAD
+`e6cd0906f0937c36d566eb88439b510b545d8250` rebuilt to text/data/bss `16056/16/19768`; its ELF and
+BIN SHA-256 values are `f30104ef1d9d92fc7d97fb4f6816301e767748216062623700f5a12cc34186ae`
+and `62eb007d21d12676af98abdcb38db9613be3e21023cc8004cf09afcf4bc20b1f`.
+
+`st-flash 1.8.0` programmed and verified 16080 bytes, then a separate 16080-byte read-back matched
+the BIN byte-for-byte. An eight-second reset-synchronized independent WCH-Link capture retained 2651
+bytes with the exact firmware identity followed by one ordered
+`OSAL_RESOURCE_EXHAUSTED → OSAL_RESOURCE_RECOVERED → OSAL_LIFECYCLE_REINIT` chain. It also retained
+16 complete pre-existing task pipeline cycles and seven ISR wake markers, with zero resource,
+semaphore, queue, event, mutex, or ISR error marker. This grants bounded B1 for no-wait memory-pool
+and queue exhaustion/recovery plus delete/recreate on this exact board/image. It does not establish
+blocking timeout, long-duration stress, performance, arbitrary peripheral IRQ, STM32U5 runtime, or
+complete RTOS qualification.
+
+Retained evidence:
+
+- [raw resource/lifecycle UART log](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-resource-e6cd0906.txt),
+  SHA-256 `3808c1623b409665ac6d6c89171e4294c66a7c2b52cbb8ac80ec95d66b327c37`
+- [resource/lifecycle metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-resource-e6cd0906.json)
 
 ## Remaining B2 work
 

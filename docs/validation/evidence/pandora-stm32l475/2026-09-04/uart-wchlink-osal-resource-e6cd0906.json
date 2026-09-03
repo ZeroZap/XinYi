@@ -1,0 +1,41 @@
+{
+  "record_type": "xinyi-pandora-stm32l475-osal-resource-lifecycle-runtime",
+  "recorded_at": "2026-09-04T01:43:22+08:00",
+  "status": "B1_RESOURCE_LIFECYCLE_REVIEWED",
+  "board": "Pandora STM32L475VE",
+  "firmware_commit": "e6cd0906f0937c36d566eb88439b510b545d8250",
+  "firmware_binary": "pandora_stm32l475_rtos.bin",
+  "firmware_sha256": "62eb007d21d12676af98abdcb38db9613be3e21023cc8004cf09afcf4bc20b1f",
+  "firmware_elf_sha256": "f30104ef1d9d92fc7d97fb4f6816301e767748216062623700f5a12cc34186ae",
+  "programmer": "ST-LINK/V2.1 via st-flash 1.8.0",
+  "probe_serial": "066AFF313933554D43244015",
+  "programmed_bytes": 16080,
+  "programming_result": "Flash written and verified; 16080-byte read-back matched the programmed binary byte-for-byte",
+  "uart_adapter": "WCH-Link /dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "uart": "115200-8-N-1",
+  "capture_duration_seconds": 8,
+  "capture_file": "uart-wchlink-osal-resource-e6cd0906.txt",
+  "capture_sha256": "3808c1623b409665ac6d6c89171e4294c66a7c2b52cbb8ac80ec95d66b327c37",
+  "capture_bytes": 2651,
+  "observations": {
+    "firmware_banner": 1,
+    "matching_firmware_commit": 1,
+    "OSAL_RESOURCE_EXHAUSTED": 1,
+    "OSAL_RESOURCE_RECOVERED": 1,
+    "OSAL_LIFECYCLE_REINIT": 1,
+    "OSAL_RESOURCE_ERROR": 0,
+    "existing_pipeline_error_markers": 0,
+    "required_resource_marker_order": true
+  },
+  "scope": "A two-block OSAL memory pool and depth-one message queue reject no-wait work when full, accept work after release/dequeue, and can both be deleted and recreated on Pandora.",
+  "not_evidence_for": [
+    "blocking timeout behavior",
+    "long-duration stress",
+    "arbitrary peripheral IRQ callbacks",
+    "IPC broker concurrency",
+    "Trace multi-task behavior",
+    "Device registry or PM concurrency",
+    "STM32U5 runtime",
+    "complete RTOS product qualification"
+  ]
+}
