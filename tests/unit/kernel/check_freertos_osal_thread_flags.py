@@ -49,6 +49,20 @@ def main() -> int:
         if forbidden in source:
             errors.append(f"thread flag clear retains invalid FreeRTOS sequence: {forbidden}")
 
+    for required in (
+        "pdstatus_to_xy_wait",
+        "return XY_OS_ERROR_TIMEOUT;",
+        "pdstatus_to_xy_wait(xSemaphoreTake(m, ticks))",
+        "pdstatus_to_xy_wait(xSemaphoreTake(s, ticks))",
+        "pdstatus_to_xy_wait(xQueueSendToBack(q, msg_ptr, ticks))",
+        "pdstatus_to_xy_wait(xQueueReceive(q, msg_ptr, ticks))",
+    ):
+        if required not in source:
+            errors.append(
+                "FreeRTOS blocking synchronization operations must map an expired wait to "
+                f"XY_OS_ERROR_TIMEOUT; missing: {required}"
+            )
+
     if "xy_os_semaphore_release_from_isr" not in public_api:
         errors.append("OSAL public API must expose an explicit ISR-safe semaphore release")
     for token in (

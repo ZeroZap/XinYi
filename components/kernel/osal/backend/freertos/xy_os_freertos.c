@@ -32,6 +32,13 @@ static xy_os_status_t pdstatus_to_xy(BaseType_t status)
     return (status == pdPASS) ? XY_OS_OK : XY_OS_ERROR;
 }
 
+static xy_os_status_t pdstatus_to_xy_wait(BaseType_t status)
+{
+    if (status == pdPASS)
+        return XY_OS_OK;
+    return XY_OS_ERROR_TIMEOUT;
+}
+
 /* Kernel Control */
 xy_os_status_t xy_os_kernel_init(void)
 {
@@ -416,7 +423,7 @@ xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
         return XY_OS_ERROR_PARAMETER;
     TickType_t ticks =
         (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
-    return pdstatus_to_xy(xSemaphoreTake(m, ticks));
+    return pdstatus_to_xy_wait(xSemaphoreTake(m, ticks));
 }
 
 xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
@@ -472,7 +479,7 @@ xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id,
         return XY_OS_ERROR_PARAMETER;
     TickType_t ticks =
         (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
-    return pdstatus_to_xy(xSemaphoreTake(s, ticks));
+    return pdstatus_to_xy_wait(xSemaphoreTake(s, ticks));
 }
 
 xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
@@ -666,7 +673,7 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
     (void)msg_prio;
     TickType_t ticks =
         (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
-    return pdstatus_to_xy(xQueueSendToBack(q, msg_ptr, ticks));
+    return pdstatus_to_xy_wait(xQueueSendToBack(q, msg_ptr, ticks));
 }
 
 xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
@@ -679,7 +686,7 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
         *msg_prio = 0;
     TickType_t ticks =
         (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
-    return pdstatus_to_xy(xQueueReceive(q, msg_ptr, ticks));
+    return pdstatus_to_xy_wait(xQueueReceive(q, msg_ptr, ticks));
 }
 
 uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)
