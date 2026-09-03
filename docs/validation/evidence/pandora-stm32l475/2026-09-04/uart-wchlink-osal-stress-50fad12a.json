@@ -1,0 +1,50 @@
+{
+  "record_type": "xinyi-pandora-stm32l475-osal-freertos-bounded-stress",
+  "recorded_at": "2026-09-04T05:38:00+08:00",
+  "status": "B1_BOUNDED_STRESS_REVIEWED",
+  "board": "Pandora STM32L475VE",
+  "firmware_commit": "50fad12a4da72d8ec6ca83f2ac36cbc44666c967",
+  "firmware_binary": "pandora_stm32l475_rtos.bin",
+  "firmware_sha256": "6474ba7a8c2efa36367fc29cda0f76635fd1ce6d0879c40773ac36716fd2616d",
+  "firmware_elf_sha256": "0c45c9289fcfdd2484f70718e2af9057fada97b2f966e276435496274a6f462b",
+  "programmer": "ST-LINK/V2.1 via st-flash 1.8.0",
+  "probe_serial": "066AFF313933554D43244015",
+  "programmed_bytes": 16252,
+  "programming_result": "Flash written and verified; 16252-byte read-back matched the programmed binary byte-for-byte",
+  "uart_adapter": "WCH-Link /dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "uart": "115200-8-N-1",
+  "capture_duration_seconds": 120,
+  "capture_file": "uart-wchlink-osal-stress-50fad12a.txt",
+  "capture_sha256": "8eb267be19e9948fec672bcd3068502a2d0ce4c1e4a8aca004ad95f2348413cd",
+  "capture_bytes": 36677,
+  "thresholds": {
+    "minimum_ordered_pipeline_cycles": 200,
+    "minimum_isr_take_count": 100,
+    "maximum_error_marker_count": 0
+  },
+  "observations": {
+    "firmware_banner": 1,
+    "matching_firmware_commit": 1,
+    "OSAL_STRESS_READY": 1,
+    "ordered_pipeline_cycles": 234,
+    "OSAL_TASK_FAST": 234,
+    "OSAL_TASK_SLOW": 235,
+    "OSAL_ISR_TAKE": 116,
+    "OSAL_RESOURCE_EXHAUSTED": 1,
+    "OSAL_BLOCKING_TIMEOUT_OK": 1,
+    "OSAL_RESOURCE_RECOVERED": 1,
+    "OSAL_LIFECYCLE_REINIT": 1,
+    "runtime_error_markers": 0
+  },
+  "scope": "A reset-synchronized 120-second Pandora run preserved the existing OSAL task pipeline, SysTick ISR-to-task wakeups, resource exhaustion/recovery, blocking-timeout mapping and lifecycle re-init above declared count thresholds.",
+  "not_evidence_for": [
+    "performance or timing qualification",
+    "multi-hour or endurance stress",
+    "arbitrary peripheral IRQ callbacks",
+    "IPC broker concurrency",
+    "Trace multi-task behavior",
+    "Device registry or PM concurrency",
+    "STM32U5 runtime",
+    "complete RTOS product qualification"
+  ]
+}

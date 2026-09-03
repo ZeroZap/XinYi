@@ -274,6 +274,29 @@ Retained evidence:
   SHA-256 `01a5f25a77d393bea4fe633275977ac170485bd551318f1180a20c26e0845979`
 - [blocking-timeout metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-timeout-34bb39f4.json)
 
+### 2026-09-04 OSAL bounded stress result
+
+Firmware `50fad12a4da72d8ec6ca83f2ac36cbc44666c967` adds an explicit `OSAL_STRESS_READY`
+marker and a fail-closed Host-tested validator for identity, ordered task cycles, ISR wake counts,
+one-shot resource/timeout/lifecycle markers, and all known runtime error markers. The image linked at
+text/data/bss `16228/16/19768`, produced a 16252-byte BIN with SHA-256
+`6474ba7a8c2efa36367fc29cda0f76635fd1ce6d0879c40773ac36716fd2616d`, and was programmed,
+verified, and read back byte-for-byte through ST-Link.
+
+A reset-synchronized 120-second WCH-Link capture retained 36677 bytes. Against declared thresholds
+of at least 200 complete ordered task-pipeline cycles, 100 SysTick ISR-to-task wakeups, and zero
+runtime error markers, the validator reported `STRESS_REVIEW_CANDIDATE` with 234 cycles, 116 wakeups,
+and no errors. The resource exhaustion, bounded queue timeout, recovery, and lifecycle re-init markers
+each appeared once in order. Review grants bounded stress B1 for this exact board/image/interval.
+It does not establish multi-hour endurance, performance, arbitrary peripheral IRQ, cross-component
+IPC/Trace/Device/PM concurrency, STM32U5 runtime, or complete RTOS qualification.
+
+Retained evidence:
+
+- [raw bounded-stress UART log](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-stress-50fad12a.txt),
+  SHA-256 `8eb267be19e9948fec672bcd3068502a2d0ce4c1e4a8aca004ad95f2348413cd`
+- [bounded-stress metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-stress-50fad12a.json)
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained

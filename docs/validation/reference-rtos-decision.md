@@ -70,13 +70,18 @@ single-backend Sprint scope.
   recovery/re-init. The eight-second WCH-Link capture retained 16 complete task pipeline cycles and
   seven ISR wakeups with no timeout/resource/pipeline error marker. This is bounded timeout behavior,
   not a performance measurement or long-duration stress result.
+- Image `50fad12a4da72d8ec6ca83f2ac36cbc44666c967` added an explicit stress-ready marker and a
+  fail-closed capture validator. After byte-identical Flash read-back, a reset-synchronized
+  120-second WCH-Link capture retained 234 complete ordered task-pipeline cycles, 116 SysTick
+  ISR-to-task wakeups, the one-shot resource/timeout/recovery/re-init chain, and zero runtime error
+  markers. This closes only the declared bounded stress interval; it is not an endurance or
+  performance result.
 - RT-Thread has a larger source tree, but current CMake paths and the STM32U5 adapter/port
   assumptions are also stale or incomplete; source volume is not evidence of readiness.
 
 ## Next bounded integration slice
 
-1. Run a declared long-duration stress interval with marker/count thresholds.
-2. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
+1. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
    concurrency before S5-01 can become `DONE`.
 
 ## Evidence boundary
@@ -84,8 +89,9 @@ single-backend Sprint scope.
 The STM32U5 gate remains source/static-library compile-only. Pandora now supplies bounded real-board
 scheduler/thread, task-context semaphore/message-queue/event-flags/mutex, one SysTick
 ISR-to-semaphore-to-task normal path, and bounded no-wait resource exhaustion/recovery plus
-delete/recreate and one bounded blocking queue timeout. **These captures do not establish
-long-duration stress, performance, STM32U5 runtime, or complete RTOS product qualification.**
+delete/recreate, one bounded blocking queue timeout, and one declared 120-second stress interval.
+**These captures do not establish multi-hour endurance, performance, STM32U5 runtime, or complete
+RTOS product qualification.**
 S5-01 remains in progress until the required runtime/stress matrix exists.
 
 Retained UART evidence: [Pandora OSAL/FreeRTOS capture](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos.txt),
@@ -96,3 +102,6 @@ SHA-256 `3808c1623b409665ac6d6c89171e4294c66a7c2b52cbb8ac80ec95d66b327c37`, with
 Blocking-timeout evidence: [UART capture](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-timeout-34bb39f4.txt),
 SHA-256 `01a5f25a77d393bea4fe633275977ac170485bd551318f1180a20c26e0845979`, with
 [metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-timeout-34bb39f4.json).
+Bounded-stress evidence: [UART capture](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-stress-50fad12a.txt),
+SHA-256 `8eb267be19e9948fec672bcd3068502a2d0ce4c1e4a8aca004ad95f2348413cd`, with
+[metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-stress-50fad12a.json).

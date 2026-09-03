@@ -60,6 +60,10 @@ TIMEOUT_LOG = RESOURCE_EVIDENCE / "uart-wchlink-osal-timeout-34bb39f4.txt"
 TIMEOUT_METADATA = RESOURCE_EVIDENCE / "uart-wchlink-osal-timeout-34bb39f4.json"
 TIMEOUT_COMMIT = "34bb39f4f6f944c608bdf0381aa2fc6a878fe1a7"
 TIMEOUT_LOG_SHA256 = "01a5f25a77d393bea4fe633275977ac170485bd551318f1180a20c26e0845979"
+STRESS_LOG = RESOURCE_EVIDENCE / "uart-wchlink-osal-stress-50fad12a.txt"
+STRESS_METADATA = RESOURCE_EVIDENCE / "uart-wchlink-osal-stress-50fad12a.json"
+STRESS_COMMIT = "50fad12a4da72d8ec6ca83f2ac36cbc44666c967"
+STRESS_LOG_SHA256 = "8eb267be19e9948fec672bcd3068502a2d0ce4c1e4a8aca004ad95f2348413cd"
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -101,7 +105,7 @@ def main() -> int:
         "root-selected-pandora-task-sync-isr-smoke-verified",
         "pandora-thread-sync-systick-isr-b1",
         "pandora-resource-lifecycle-timeout-b1",
-        "long-duration stress, performance, STM32U5 runtime",
+        "multi-hour endurance, performance, STM32U5 runtime",
         "46499b33e332f2b4111e1c0149366b5c86064909",
         "4ebf46dacd8c906455fb541ca70c25b692cc51d8",
         "48ca0509640fd9f4fbb745957ec588e25131e160",
@@ -112,6 +116,8 @@ def main() -> int:
         RESOURCE_LOG_SHA256,
         TIMEOUT_COMMIT,
         TIMEOUT_LOG_SHA256,
+        STRESS_COMMIT,
+        STRESS_LOG_SHA256,
         "6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627",
         "FreeRTOSConfig.h",
         "Cortex-M33",
@@ -245,6 +251,36 @@ def main() -> int:
                 "Pandora blocking-timeout metadata must preserve zero timeout errors", errors)
         require(observations.get("required_timeout_marker_order") is True,
                 "Pandora blocking-timeout metadata must preserve ordered markers", errors)
+
+    require(STRESS_LOG.is_file(), "Pandora bounded-stress UART log is missing", errors)
+    require(STRESS_METADATA.is_file(), "Pandora bounded-stress metadata is missing", errors)
+    if STRESS_LOG.is_file() and STRESS_METADATA.is_file():
+        payload = STRESS_LOG.read_bytes()
+        metadata = json.loads(STRESS_METADATA.read_text(encoding="utf-8"))
+        require(hashlib.sha256(payload).hexdigest() == STRESS_LOG_SHA256,
+                "Pandora bounded-stress UART SHA-256 mismatch", errors)
+        require(len(payload) == 36677,
+                "Pandora bounded-stress UART byte count must remain 36677", errors)
+        require(metadata.get("status") == "B1_BOUNDED_STRESS_REVIEWED",
+                "Pandora bounded-stress metadata must remain reviewed B1", errors)
+        require(metadata.get("firmware_commit") == STRESS_COMMIT,
+                "Pandora bounded-stress metadata must bind the flashed commit", errors)
+        require(metadata.get("capture_sha256") == STRESS_LOG_SHA256,
+                "Pandora bounded-stress metadata must bind the UART log", errors)
+        require(metadata.get("capture_duration_seconds") == 120,
+                "Pandora bounded-stress metadata must preserve the declared interval", errors)
+        thresholds = metadata.get("thresholds", {})
+        observations = metadata.get("observations", {})
+        require(thresholds.get("minimum_ordered_pipeline_cycles") == 200,
+                "Pandora bounded-stress metadata must preserve the pipeline threshold", errors)
+        require(thresholds.get("minimum_isr_take_count") == 100,
+                "Pandora bounded-stress metadata must preserve the ISR threshold", errors)
+        require(observations.get("ordered_pipeline_cycles", 0) >= 200,
+                "Pandora bounded-stress metadata must meet the pipeline threshold", errors)
+        require(observations.get("OSAL_ISR_TAKE", 0) >= 100,
+                "Pandora bounded-stress metadata must meet the ISR threshold", errors)
+        require(observations.get("runtime_error_markers") == 0,
+                "Pandora bounded-stress metadata must preserve zero runtime errors", errors)
 
     require("RT-Thread" in decision and "not selected" in decision,
             "decision must record why RT-Thread is not the reference backend", errors)

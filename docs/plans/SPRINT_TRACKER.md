@@ -207,6 +207,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-71 | P0 | Pandora OSAL 资源耗尽/恢复与 lifecycle re-init 候选 | DONE | Zero | S5-70（DONE）；实板运行依赖 ST-Link 恢复 | runtime candidate 使用容量 2 的 memory pool 与深度 1 的 queue 验证 no-wait exhaustion、释放后恢复、delete→recreate；focused `pandora_freertos_runtime` 1/1、Host 206/206、PC/U5/L4、Pandora FreeRTOS link 与 `git diff --check` 通过，ELF text/data/bss=`16056/16/19768`、BIN SHA-256=`731fe90a...`。本轮实测 WCH-Link UART 在线但 `st-info --probe` 为 0 个 ST-Link，故未烧录/捕获，不升级 resource/lifecycle B1 | `9c2d4d4e` + 本记录提交 | 2026-09-03 |
 | S5-72 | P0 | Pandora OSAL 资源耗尽/恢复与 lifecycle re-init 实板闭环 | DONE | Zero | S5-71（DONE）；ST-Link/WCH-Link 恢复在线 | clean `e6cd0906` image write/verify 16080 bytes 且同长度 read-back 与 BIN byte-identical；8 秒 WCH-Link capture 2651 bytes，匹配固件身份并严格出现 `RESOURCE_EXHAUSTED→RESOURCE_RECOVERED→LIFECYCLE_REINIT` 各 1 次，resource/既有 pipeline error marker 为 0；focused 2/2、Host 206/206、PC/U5/L4、Pandora link 与 `git diff --check` 通过。仅升级 bounded no-wait resource/lifecycle B1，blocking timeout/长稳/STM32U5 runtime 仍 pending | `4e74c8d4` | 2026-09-04 |
 | S5-73 | P0 | Pandora OSAL blocking timeout 错误映射与实板闭环 | DONE | Zero | S5-72（DONE）；ST-Link/WCH-Link 在线 | 实板 RED：满队列等待 100 ticks 后 FreeRTOS adapter 返回 generic `XY_OS_ERROR`；现 mutex/semaphore/queue wait 失败映射 `XY_OS_ERROR_TIMEOUT`。clean `34bb39f4` image write/verify 16216 bytes且同长度 read-back byte-identical；8 秒 capture 2677 bytes，严格出现 `RESOURCE_EXHAUSTED→BLOCKING_TIMEOUT_OK→RESOURCE_RECOVERED→LIFECYCLE_REINIT`，并保留 16 轮 task pipeline/7 次 ISR wake、错误 marker 为 0；focused 6/6、Host 206/206、PC/U5/L4/Pandora link、`git diff --check` 通过。100–120 tick 判定为固件内部 bounded contract，不升级性能/长稳 | `1ad861ff`、`34bb39f4` + 本记录提交 | 2026-09-04 |
+| S5-74 | P0 | Pandora OSAL 120 秒 bounded stress 实板闭环 | DONE | Zero | S5-73（DONE）；ST-Link/WCH-Link 在线 | RED：validator 单测先因模块缺失失败；新增 identity/顺序/阈值/error fail-closed gate 与固件 stress-ready marker。`50fad12a` image write/verify 16252 bytes且 read-back byte-identical；reset 同步 120 秒 capture 36677 bytes，234 个完整 ordered pipeline cycles、116 次 ISR wake、resource/timeout/recovery/re-init 各 1 次且错误 marker 为 0；focused 2/2、Host 207/207、Pandora link 与 `git diff --check` 通过。仅为 bounded B1，不升级性能、多小时耐久、跨组件并发或 STM32U5 runtime | `50fad12a` + 本记录提交 | 2026-09-04 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -214,7 +215,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | [HAL 平台实现与证据矩阵](../validation/hal-platform-evidence-matrix.md)已建立；Host 前置推进中，HIL 夹具仍缺 | IN_PROGRESS（Host 前置）/BLOCKED（实板） |
 | Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 产品算法清单与 signature provider 边界已完成 | IN_PROGRESS（FOTA 去模拟化；非安全批准前置） |
 | Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | active-source manifest 与 SHT30/ADS1115/MPU6050 single-owner migrations 已完成 | IN_PROGRESS（Sensor ownership 前置）/BLOCKED（实板） |
-| Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | FreeRTOS 已选为 reference；Pandora 已有 bounded task/ISR/resource-lifecycle B1 | IN_PROGRESS（timeout/长稳/跨组件并发 pending）/BLOCKED（剩余实板矩阵） |
+| Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | FreeRTOS 已选为 reference；Pandora 已有 bounded task/ISR/resource-lifecycle/120 秒 stress B1 | IN_PROGRESS（跨组件并发/多小时耐久 pending）/BLOCKED（剩余实板矩阵） |
 | Sprint 6 | 1–2 周 | Release Candidate | 目标平台 HIL、安全边界和发布门禁达标 | BLOCKED |
 
 ---
