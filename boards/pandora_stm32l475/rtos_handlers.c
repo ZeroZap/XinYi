@@ -1,4 +1,6 @@
 #include "stm32l4xx_hal.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 void vPortSVCHandler(void);
 void xPortPendSVHandler(void);
@@ -19,5 +21,7 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
     HAL_IncTick();
-    xPortSysTickHandler();
+    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+        xPortSysTickHandler();
+    }
 }

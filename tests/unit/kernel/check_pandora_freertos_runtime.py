@@ -52,6 +52,7 @@ def main() -> int:
             "xPortPendSVHandler",
             "xPortSysTickHandler",
             "HAL_IncTick",
+            "xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED",
         ):
             if token not in handler_source:
                 errors.append(f"runtime handlers must preserve token: {token}")
