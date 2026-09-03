@@ -113,6 +113,26 @@ Retained evidence:
 - [RTOS capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos-ac3f20f4.json),
   SHA-256 `d36ed473012d57ef61b70025a3bcb64641029df94b746b44968f3e7efe081e44`
 
+## 2026-09-03 OSAL semaphore runtime result
+
+The clean firmware commit `c9b2d3d18fd6ffdc2f9ade88ecb176f5a8f1d046` added a binary OSAL
+semaphore between the existing tasks. The fast task releases it every 500 ticks; the slow task blocks
+with a 1200-tick timeout and emits `OSAL_SEM_TAKE` only after a successful acquire. The application
+continues to use only `xy_os_*` synchronization APIs.
+
+`st-flash --reset write` programmed and verified 13084 bytes. A reset-synchronized six-second capture
+retained 670 bytes and showed 12 strictly ordered `OSAL_TASK_FAST → OSAL_SEM_TAKE → OSAL_TASK_SLOW`
+cycles, no timeout marker, and release-to-acquire latency of 0–2 ms. Fast-task intervals were
+506–507 ms (mean 506.64 ms). This grants task-context OSAL semaphore B1 for this board/image; queues,
+ISR-to-task synchronization, and long-duration stress remain pending.
+
+Retained evidence:
+
+- [raw semaphore UART log](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-semaphore-c9b2d3d1.txt),
+  SHA-256 `70063960c910ae32fddbbab0ca2180a7bd0297d34638b518358a7e0dfb517b12`
+- [semaphore capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-semaphore-c9b2d3d1.json),
+  SHA-256 `ab1fc1d39d4ecc1fcb7eb95ded8b4a5f88396bc3c7d5b753676802f577c67ee5`
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained

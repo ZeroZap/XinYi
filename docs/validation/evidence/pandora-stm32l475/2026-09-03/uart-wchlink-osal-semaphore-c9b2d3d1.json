@@ -1,0 +1,33 @@
+{
+  "source_commit": "c9b2d3d18fd6ffdc2f9ade88ecb176f5a8f1d046",
+  "board": "Pandora STM32L475VE",
+  "probe_serial": "066AFF313933554D43244015",
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "programming_result": "Flash written and verified",
+  "programmed_bytes": 13084,
+  "capture_duration_ms": 6000,
+  "capture_bytes": 670,
+  "fast_task_count": 12,
+  "semaphore_take_count": 12,
+  "slow_task_count": 12,
+  "semaphore_timeout_count": 0,
+  "ordered_fast_take_slow_cycles": 12,
+  "release_to_take_ms": {
+    "min": 0,
+    "max": 2
+  },
+  "fast_interval_ms": {
+    "min": 506,
+    "max": 507,
+    "mean": 506.64
+  },
+  "elf_sha256": "fb3900f64f03286bef16a29eb41e36b935934f7ca74727440a206849ae4c66a1",
+  "bin_sha256": "bd028e00ecf3f779fc86571e029d4dc1b1d4e7438b018d2144293d7ff53aa15a",
+  "raw_log_sha256": "70063960c910ae32fddbbab0ca2180a7bd0297d34638b518358a7e0dfb517b12",
+  "evidence": "BOARD_RUNTIME_B1_OSAL_FREERTOS_SEMAPHORE",
+  "limits": [
+    "queue behavior is not covered",
+    "ISR-to-task synchronization is not covered",
+    "long-duration stress is not covered"
+  ]
+}
