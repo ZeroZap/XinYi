@@ -133,6 +133,27 @@ Retained evidence:
 - [semaphore capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-semaphore-c9b2d3d1.json),
   SHA-256 `ab1fc1d39d4ecc1fcb7eb95ded8b4a5f88396bc3c7d5b753676802f577c67ee5`
 
+## 2026-09-03 OSAL message queue runtime result
+
+The clean firmware commit `4ebf46dacd8c906455fb541ca70c25b692cc51d8` added a depth-2 OSAL
+message queue carrying a monotonic `uint32_t` sequence from the fast task to the slow task. The
+consumer checks every payload against its expected sequence and stops with `OSAL_QUEUE_MISMATCH`
+before printing a receive marker on any gap, duplicate, or reorder.
+
+`st-flash --reset write` programmed and verified 13336 bytes. A reset-synchronized six-second
+WCH-Link capture retained 1078 bytes and showed 12 repeated ordered cycles of
+`OSAL_TASK_FAST → OSAL_QUEUE_SEND → OSAL_SEM_TAKE → OSAL_QUEUE_RECV → OSAL_TASK_SLOW`, with no
+queue mismatch or semaphore timeout marker. This grants task-context OSAL message-queue B1 for this
+board/image. The sequence values are checked inside the firmware but are not separately printed in
+the retained UART log; ISR-to-task behavior, resource exhaustion, and long-duration stress remain
+pending.
+
+Retained evidence:
+
+- [raw message-queue UART log](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-queue-4ebf46da.txt),
+  SHA-256 `72496d9db75e6a615fb12884754e4dc457a89a6a4b1df9e7801a085e2c9bc193`
+- [message-queue capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-queue-4ebf46da.json)
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained

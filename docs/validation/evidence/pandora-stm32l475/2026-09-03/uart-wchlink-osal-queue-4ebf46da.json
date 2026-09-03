@@ -1,0 +1,28 @@
+{
+  "source_commit": "4ebf46dacd8c906455fb541ca70c25b692cc51d8",
+  "board": "Pandora STM32L475VE",
+  "probe_serial": "066AFF313933554D43244015",
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "programming_result": "Flash written and verified",
+  "programmed_bytes": 13336,
+  "capture_duration_ms": 6000,
+  "capture_bytes": 1078,
+  "fast_task_count": 12,
+  "queue_send_count": 12,
+  "semaphore_take_count": 12,
+  "queue_receive_count": 12,
+  "slow_task_count": 12,
+  "queue_mismatch_count": 0,
+  "semaphore_timeout_count": 0,
+  "ordered_fast_send_take_receive_slow_cycles": 12,
+  "elf_sha256": "b5964b1f9be3c4ef3f65992418286bc937619c4aa1b08fc4ab0411fec161c71d",
+  "bin_sha256": "e6fae0e4fc85b576c743d4bf2d6b7541c848ea81a13edbd3bdc63d9f26992933",
+  "raw_log_sha256": "72496d9db75e6a615fb12884754e4dc457a89a6a4b1df9e7801a085e2c9bc193",
+  "evidence": "BOARD_RUNTIME_B1_OSAL_FREERTOS_MESSAGE_QUEUE",
+  "limits": [
+    "payload sequence is checked fail-closed by firmware but values are not printed in UART",
+    "ISR-to-task synchronization is not covered",
+    "resource exhaustion is not covered",
+    "long-duration stress is not covered"
+  ]
+}
