@@ -633,6 +633,11 @@ xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
     return (status == osOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
+xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_id)
+{
+    return xy_os_semaphore_release(semaphore_id);
+}
+
 uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
 {
     return osSemaphoreGetCount((osSemaphoreId_t)semaphore_id);

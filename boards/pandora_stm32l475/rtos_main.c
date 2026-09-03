@@ -10,6 +10,7 @@ static xy_os_semaphore_id_t sync_sem;
 static xy_os_msgqueue_id_t sync_queue;
 static xy_os_event_flags_id_t sync_events;
 static xy_os_mutex_id_t sync_mutex;
+xy_os_semaphore_id_t pandora_isr_sem;
 static uint32_t shared_sequence;
 
 #define SYNC_EVENT_DATA_READY (1UL << 0)
@@ -186,17 +187,35 @@ static void slow_task(void *argument)
     }
 }
 
+static void isr_task(void *argument)
+{
+    (void)argument;
+    for (;;) {
+        if (xy_os_semaphore_acquire(pandora_isr_sem, 1500U) == XY_OS_OK) {
+            uart_text("OSAL_ISR_TAKE\r\n");
+        } else {
+            uart_text("OSAL_ISR_TIMEOUT\r\n");
+            fail();
+        }
+    }
+}
+
 int main(void)
 {
     static const xy_os_thread_attr_t fast_attr = {
         .name = "osal-fast",
         .stack_size = 512U,
-        .priority = XY_OS_PRIORITY_NORMAL,
+        .priority = XY_OS_PRIORITY_LOW,
     };
     static const xy_os_thread_attr_t slow_attr = {
         .name = "osal-slow",
         .stack_size = 512U,
         .priority = XY_OS_PRIORITY_LOW,
+    };
+    static const xy_os_thread_attr_t isr_attr = {
+        .name = "osal-isr",
+        .stack_size = 512U,
+        .priority = XY_OS_PRIORITY_ABOVE_NORMAL,
     };
 
     HAL_Init();
@@ -210,8 +229,10 @@ int main(void)
         (sync_queue = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL)) == NULL ||
         (sync_events = xy_os_event_flags_new(NULL)) == NULL ||
         (sync_mutex = xy_os_mutex_new(NULL)) == NULL ||
+        (pandora_isr_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
-        xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL) {
+        xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL ||
+        xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL) {
         fail();
     }
     (void)xy_os_kernel_start();

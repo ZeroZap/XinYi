@@ -704,6 +704,13 @@ xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id,
 xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id);
 
 /**
+ * @brief Release a Semaphore token from interrupt context
+ * @param[in] semaphore_id Semaphore ID
+ * @return Status code
+ */
+xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_id);
+
+/**
  * @brief Get current Semaphore token count
  * @param[in] semaphore_id Semaphore ID
  * @return Number of available tokens

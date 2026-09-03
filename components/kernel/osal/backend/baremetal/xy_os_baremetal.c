@@ -844,6 +844,11 @@ xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
     return XY_OS_OK;
 }
 
+xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_id)
+{
+    return xy_os_semaphore_release(semaphore_id);
+}
+
 uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
 {
     bm_sem_t *s = (bm_sem_t *)semaphore_id;

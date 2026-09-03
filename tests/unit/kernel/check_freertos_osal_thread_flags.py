@@ -6,10 +6,12 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 BACKEND = ROOT / "components/kernel/osal/backend/freertos/xy_os_freertos.c"
+PUBLIC_API = ROOT / "components/kernel/osal/xy_os.h"
 
 
 def main() -> int:
     source = BACKEND.read_text(encoding="utf-8")
+    public_api = PUBLIC_API.read_text(encoding="utf-8")
     errors: list[str] = []
 
     if "return ulTaskNotifyValueClear(NULL, flags);" not in source:
@@ -46,6 +48,16 @@ def main() -> int:
     ):
         if forbidden in source:
             errors.append(f"thread flag clear retains invalid FreeRTOS sequence: {forbidden}")
+
+    if "xy_os_semaphore_release_from_isr" not in public_api:
+        errors.append("OSAL public API must expose an explicit ISR-safe semaphore release")
+    for token in (
+        "xy_os_semaphore_release_from_isr",
+        "xSemaphoreGiveFromISR",
+        "portYIELD_FROM_ISR",
+    ):
+        if token not in source:
+            errors.append(f"FreeRTOS ISR-safe semaphore release must preserve token: {token}")
 
     if errors:
         print("freertos_osal_thread_flags failed:")

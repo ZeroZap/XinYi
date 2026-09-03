@@ -61,6 +61,8 @@ def main() -> int:
             "OSAL_MUTEX_SLOW",
             "OSAL_MUTEX_TIMEOUT",
             "OSAL_MUTEX_MISMATCH",
+            "OSAL_ISR_TAKE",
+            "OSAL_ISR_TIMEOUT",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
@@ -76,6 +78,7 @@ def main() -> int:
             "xPortSysTickHandler",
             "HAL_IncTick",
             "xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED",
+            "xy_os_semaphore_release_from_isr",
         ):
             if token not in handler_source:
                 errors.append(f"runtime handlers must preserve token: {token}")

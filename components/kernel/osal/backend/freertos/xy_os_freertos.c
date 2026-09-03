@@ -482,6 +482,19 @@ xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
                : XY_OS_ERROR_PARAMETER;
 }
 
+xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_id)
+{
+    BaseType_t higher_priority_task_woken = pdFALSE;
+
+    if (!semaphore_id)
+        return XY_OS_ERROR_PARAMETER;
+    if (xSemaphoreGiveFromISR((SemaphoreHandle_t)semaphore_id,
+                              &higher_priority_task_woken) != pdPASS)
+        return XY_OS_ERROR_RESOURCE;
+    portYIELD_FROM_ISR(higher_priority_task_woken);
+    return XY_OS_OK;
+}
+
 uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
 {
     return semaphore_id
