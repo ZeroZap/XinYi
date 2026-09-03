@@ -215,6 +215,20 @@ Retained evidence:
   SHA-256 `90555a79311f360e1c72ebd920d4d533caec940cd4b8f5b1fb8aa8c5ac470fdc`
 - [ISR semaphore capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-isr-8443f907.json)
 
+### OSAL resource recovery candidate — not board evidence
+
+Commit `9c2d4d4e811a8b835f6432290bd12b6fd5000dcd` adds a one-shot OSAL task that exhausts
+a two-block memory pool and a depth-one message queue without waiting, frees/receives one item,
+verifies both objects accept work again, then deletes and recreates both objects. The focused source
+guard, full 206-test Host suite, PC/STM32U5/STM32L4 root builds and Pandora FreeRTOS link pass. The
+linked ELF has text/data/bss `16056/16/19768`; the BIN SHA-256 is
+`731fe90a3a7cfe32e53b5f0d94517cea85999fd244dae02f8ba70a5d3387cb21`.
+
+During this verification WCH-Link UART remained visible as `/dev/ttyACM1`, but `st-info --probe`
+found zero ST-Link programmers. Therefore the candidate was not programmed and no UART runtime log
+was captured. `OSAL_RESOURCE_EXHAUSTED`, `OSAL_RESOURCE_RECOVERED`, and
+`OSAL_LIFECYCLE_REINIT` remain required future markers, not B1 observations.
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained

@@ -4,8 +4,8 @@
 **Owner**: Zero
 **Status**: `BOARD_RUNTIME_PARTIAL`
 **Reference backend**: **FreeRTOS**
-**Integration**: `root-selected-pandora-task-sync-smoke-verified`
-**Hardware**: `pandora-thread-semaphore-queue-event-flags-b1`; `isr-to-task/stress-pending`
+**Integration**: `root-selected-pandora-task-sync-isr-smoke-verified`
+**Hardware**: `pandora-thread-sync-systick-isr-b1`; `resource-lifecycle-candidate-not-run`
 
 ## Decision
 
@@ -52,23 +52,32 @@ single-backend Sprint scope.
   queue send. Its six-second WCH-Link capture retained 12 strictly ordered
   `FAST → QUEUE_SEND → EVENT_SET → SEM_TAKE → EVENT_WAIT → QUEUE_RECV → SLOW` cycles, with no
   event/queue mismatch or semaphore timeout. This proves only the bounded task-context normal path.
+- Image `33c3a665032f62efde0e410cf21a4fd74d04975d` added a mutex-protected shared sequence;
+  its retained capture completed 12 ordered producer/consumer cycles with no mutex timeout or
+  mismatch. Image `8443f907a8ec912317a774f2129d03b7746ac7b0` then completed six SysTick
+  ISR-to-task semaphore wakeups with no ISR timeout while the task pipeline remained active.
+- Commit `9c2d4d4e811a8b835f6432290bd12b6fd5000dcd` adds a bounded resource candidate:
+  no-wait memory-pool/queue exhaustion, release/dequeue recovery, and delete/recreate. It passes the
+  source policy, Host suite, PC/U5/L4 builds and Pandora link, but was not programmed because
+  `st-info --probe` found no ST-Link. WCH-Link UART presence alone is not runtime evidence.
 - RT-Thread has a larger source tree, but current CMake paths and the STM32U5 adapter/port
   assumptions are also stale or incomplete; source volume is not evidence of readiness.
 
 ## Next bounded integration slice
 
-1. Add runtime coverage for mutex, timeout, resource exhaustion, ISR-to-task wakeup, and
-   shutdown/re-init; scheduler, task-context semaphore, message queue, and event-flags normal paths
-   are now bounded B1 on Pandora.
+1. Program and retain UART evidence for the existing resource exhaustion/recovery and delete/recreate
+   candidate after ST-Link returns; mutex and SysTick ISR-to-task are already bounded B1 on Pandora.
+   Add independent blocking-timeout behavior rather than inferring it from successful waits.
 2. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
    concurrency before S5-01 can become `DONE`.
 
 ## Evidence boundary
 
-The STM32U5 gate remains source/static-library compile-only. Pandora now supplies a bounded real-board
-scheduler/thread plus task-context semaphore/message-queue/event-flags smoke for bounded STM32L4
-images; it **不构成 ISR-to-task、mutex、压力、性能、STM32U5 或完整 RTOS 产品证据**. S5-01 remains
-in progress until the required runtime/stress matrix exists.
+The STM32U5 gate remains source/static-library compile-only. Pandora now supplies bounded real-board
+scheduler/thread, task-context semaphore/message-queue/event-flags/mutex, and one SysTick
+ISR-to-semaphore-to-task normal path. The unprogrammed resource candidate **不构成资源恢复、生命周期、
+压力、性能、STM32U5 或完整 RTOS 产品证据**. S5-01 remains in progress until the required
+runtime/stress matrix exists.
 
 Retained UART evidence: [Pandora OSAL/FreeRTOS capture](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos.txt),
 SHA-256 `6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627`.

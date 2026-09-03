@@ -79,12 +79,17 @@ def main() -> int:
     for token in (
         "FreeRTOS",
         "BOARD_RUNTIME_PARTIAL",
-        "root-selected-pandora-task-sync-smoke-verified",
-        "pandora-thread-semaphore-queue-event-flags-b1",
-        "不构成 ISR-to-task、mutex、压力、性能、STM32U5",
+        "root-selected-pandora-task-sync-isr-smoke-verified",
+        "pandora-thread-sync-systick-isr-b1",
+        "resource-lifecycle-candidate-not-run",
+        "不构成资源恢复、生命周期、",
+        "压力、性能、STM32U5 或完整 RTOS 产品证据",
         "46499b33e332f2b4111e1c0149366b5c86064909",
         "4ebf46dacd8c906455fb541ca70c25b692cc51d8",
         "48ca0509640fd9f4fbb745957ec588e25131e160",
+        "33c3a665032f62efde0e410cf21a4fd74d04975d",
+        "8443f907a8ec912317a774f2129d03b7746ac7b0",
+        "9c2d4d4e811a8b835f6432290bd12b6fd5000dcd",
         "6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627",
         "FreeRTOSConfig.h",
         "Cortex-M33",
@@ -198,7 +203,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("reference_rtos_decision_ok reference=FreeRTOS pandora_runtime=thread-scheduling-b1 remaining=isr-sync-stress")
+    print("reference_rtos_decision_ok reference=FreeRTOS pandora_runtime=task-sync-systick-isr-b1 remaining=resource-runtime-stress")
     return 0
 
 

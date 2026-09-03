@@ -204,6 +204,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S5-68 | P0 | Pandora OSAL event flags 任务同步实板纵切 | DONE | Zero | S5-67（DONE）；ST-Link/WCH-Link 在线 | RED policy probe 要求 event-flags OSAL 调用与错误 marker；固件 `48ca0509` 每轮 queue send 后 set data-ready bit，接收端阻塞 wait-all 并自动清除。write/verify 14144 bytes；6 秒 capture 1284 normalized bytes，12 轮严格 `FAST→QUEUE_SEND→EVENT_SET→SEM_TAKE→EVENT_WAIT→QUEUE_RECV→SLOW`，event/queue mismatch 与 semaphore timeout 均为 0；focused、Host 206/206、PC/U5/L4/Pandora link 与 `git diff --check` 通过。证明 task-context event-flags B1；ISR-to-task、timeout/resource exhaustion 与长稳仍 pending | `48ca0509` + 本记录提交 | 2026-09-03 |
 | S5-69 | P0 | Pandora OSAL mutex 共享状态实板纵切 | DONE | Zero | S5-68（DONE）；ST-Link/WCH-Link 在线 | RED policy probe 要求 mutex create/acquire/release 与 timeout/mismatch marker；固件 `33c3a665` 用 mutex 保护 producer/consumer 共享序号。write/verify 14448 bytes；6 秒 capture 1881 bytes，12 轮严格 `MUTEX_FAST→FAST→QUEUE_SEND→EVENT_SET→SEM_TAKE→EVENT_WAIT→QUEUE_RECV→MUTEX_SLOW→SLOW`，mutex/queue/event/semaphore 错误均为 0，mutex roundtrip 9–10 ms；Host 206/206、PC/U5/L4/Pandora link 与 `git diff --check` 通过。证明 task-context mutex B1；ISR-to-task、资源耗尽与长稳仍 pending | `33c3a665` + 本记录提交 | 2026-09-03 |
 | S5-70 | P0 | Pandora OSAL ISR→task semaphore 实板纵切 | DONE | Zero | S5-69（DONE）；ST-Link/WCH-Link 在线 | 新增显式 ISR-safe semaphore release；FreeRTOS backend 使用 `xSemaphoreGiveFromISR` + `portYIELD_FROM_ISR`。固件 `8443f907` write/verify 14912 bytes；7 秒独立 UART capture 2025 bytes，`OSAL_ISR_TAKE` 6 次、timeout 0，且原 task pipeline 继续运行；focused 2/2、Host 206/206、PC/U5/L4/Pandora link 与 `git diff --check` 通过。仅证明 SysTick ISR→semaphore→task B1；外设 IRQ、资源耗尽、shutdown/re-init、长稳与 STM32U5 runtime 仍 pending | `13af9bc2`～`8443f907` + 本记录提交 | 2026-09-03 |
+| S5-71 | P0 | Pandora OSAL 资源耗尽/恢复与 lifecycle re-init 候选 | DONE | Zero | S5-70（DONE）；实板运行依赖 ST-Link 恢复 | runtime candidate 使用容量 2 的 memory pool 与深度 1 的 queue 验证 no-wait exhaustion、释放后恢复、delete→recreate；focused `pandora_freertos_runtime` 1/1、Host 206/206、PC/U5/L4、Pandora FreeRTOS link 与 `git diff --check` 通过，ELF text/data/bss=`16056/16/19768`、BIN SHA-256=`731fe90a...`。本轮实测 WCH-Link UART 在线但 `st-info --probe` 为 0 个 ST-Link，故未烧录/捕获，不升级 resource/lifecycle B1 | `9c2d4d4e` + 本记录提交 | 2026-09-03 |
 
 | Sprint | 周期 | 目标 | 进入条件 | 当前状态 |
 |---|---:|---|---|---|
@@ -211,7 +212,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | Sprint 2 | 2 周 | STM32U5 HAL→Device→Driver 最小实板证据链 | [HAL 平台实现与证据矩阵](../validation/hal-platform-evidence-matrix.md)已建立；Host 前置推进中，HIL 夹具仍缺 | IN_PROGRESS（Host 前置）/BLOCKED（实板） |
 | Sprint 3 | 2 周 | Crypto 产品级重建 Phase 1；Secure FOTA fail-closed | 产品算法清单与 signature provider 边界已完成 | IN_PROGRESS（FOTA 去模拟化；非安全批准前置） |
 | Sprint 4 | 2 周 | Sensor 三轨收敛、DM 掉电测试、Fuel Gauge 实板 | active-source manifest 与 SHT30/ADS1115/MPU6050 single-owner migrations 已完成 | IN_PROGRESS（Sensor ownership 前置）/BLOCKED（实板） |
-| Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | FreeRTOS 已选为 reference；board/config/port/runtime 仍待闭环 | IN_PROGRESS（reference selected）/BLOCKED（runtime/实板） |
+| Sprint 5 | 2 周 | 单一 RTOS 并发验证；Net/PM 按产品需求推进 | FreeRTOS 已选为 reference；Pandora 已有 bounded task/ISR B1，资源恢复候选待烧录 | IN_PROGRESS（runtime partial）/BLOCKED（剩余实板矩阵） |
 | Sprint 6 | 1–2 周 | Release Candidate | 目标平台 HIL、安全边界和发布门禁达标 | BLOCKED |
 
 ---
