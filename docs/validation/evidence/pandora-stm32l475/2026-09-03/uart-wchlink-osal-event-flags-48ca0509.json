@@ -1,0 +1,32 @@
+{
+  "source_commit": "48ca0509640fd9f4fbb745957ec588e25131e160",
+  "board": "Pandora STM32L475VE",
+  "probe_serial": "066AFF313933554D43244015",
+  "uart_device": "/dev/ttyACM1",
+  "uart_identity": "wch.cn_WCH-Link_B49C8F0639CE",
+  "programming_result": "Flash written and verified",
+  "programmed_bytes": 14144,
+  "capture_duration_ms": 6000,
+  "capture_bytes": 1368,
+  "fast_task_count": 12,
+  "queue_send_count": 12,
+  "event_set_count": 12,
+  "semaphore_take_count": 12,
+  "event_wait_count": 12,
+  "queue_receive_count": 12,
+  "slow_task_count": 12,
+  "event_mismatch_count": 0,
+  "queue_mismatch_count": 0,
+  "semaphore_timeout_count": 0,
+  "ordered_fast_send_event_set_take_event_wait_receive_slow_cycles": 12,
+  "elf_sha256": "15487c86b369c0646917b9ecd906f62d2df0102a0a80f847894924944450dee0",
+  "bin_sha256": "5df5b56a8b391de3469739977425fa9fe359db81af381434c9504ae20af5fa5a",
+  "raw_log_sha256": "7bb11d1b9de480fda3de3390a6d417ff23538f2b6a707d09d326acdf9057a301",
+  "evidence": "BOARD_RUNTIME_B1_OSAL_FREERTOS_EVENT_FLAGS",
+  "limits": [
+    "task-context event flags normal path only",
+    "ISR-to-task synchronization is not covered",
+    "timeout and resource exhaustion are not covered",
+    "long-duration stress is not covered"
+  ]
+}

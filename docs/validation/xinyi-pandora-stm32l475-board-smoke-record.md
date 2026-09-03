@@ -154,6 +154,26 @@ Retained evidence:
   SHA-256 `72496d9db75e6a615fb12884754e4dc457a89a6a4b1df9e7801a085e2c9bc193`
 - [message-queue capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-queue-4ebf46da.json)
 
+## 2026-09-03 OSAL event-flags runtime result
+
+The clean firmware commit `48ca0509640fd9f4fbb745957ec588e25131e160` added an OSAL event-flags
+object to the existing synchronized task pipeline. The fast task sets a data-ready bit after queueing
+each payload; the slow task waits for that bit with wait-all/auto-clear semantics before receiving the
+queue item. All application synchronization remains behind `xy_os_*` APIs.
+
+`st-flash --reset write` programmed and verified 14144 bytes. A six-second capture from the
+independent WCH-Link UART retained 1368 bytes and showed 12 strictly ordered
+`OSAL_TASK_FAST → OSAL_QUEUE_SEND → OSAL_EVENT_SET → OSAL_SEM_TAKE → OSAL_EVENT_WAIT →
+OSAL_QUEUE_RECV → OSAL_TASK_SLOW` cycles. There were no event/queue mismatch or semaphore-timeout
+markers. This grants bounded task-context event-flags B1 for this exact board/image; ISR-to-task,
+timeout/resource exhaustion, shutdown/re-init, and long-duration stress remain pending.
+
+Retained evidence:
+
+- [raw event-flags UART log](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-event-flags-48ca0509.txt),
+  SHA-256 `7bb11d1b9de480fda3de3390a6d417ff23538f2b6a707d09d326acdf9057a301`
+- [event-flags capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-event-flags-48ca0509.json)
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained

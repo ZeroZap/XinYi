@@ -5,7 +5,7 @@
 **Status**: `BOARD_RUNTIME_PARTIAL`
 **Reference backend**: **FreeRTOS**
 **Integration**: `root-selected-pandora-task-sync-smoke-verified`
-**Hardware**: `pandora-thread-semaphore-queue-b1`; `isr-to-task/stress-pending`
+**Hardware**: `pandora-thread-semaphore-queue-event-flags-b1`; `isr-to-task/stress-pending`
 
 ## Decision
 
@@ -48,22 +48,26 @@ single-backend Sprint scope.
   `FAST → QUEUE_SEND → SEM_TAKE → QUEUE_RECV → SLOW` cycles with no mismatch or timeout marker.
   The consumer verifies a monotonic sequence before printing `QUEUE_RECV`; this does not prove ISR
   safety, event flags, resource exhaustion, long-duration stress, or another target.
+- Image `48ca0509640fd9f4fbb745957ec588e25131e160` added task-context event flags after
+  queue send. Its six-second WCH-Link capture retained 12 strictly ordered
+  `FAST → QUEUE_SEND → EVENT_SET → SEM_TAKE → EVENT_WAIT → QUEUE_RECV → SLOW` cycles, with no
+  event/queue mismatch or semaphore timeout. This proves only the bounded task-context normal path.
 - RT-Thread has a larger source tree, but current CMake paths and the STM32U5 adapter/port
   assumptions are also stale or incomplete; source volume is not evidence of readiness.
 
 ## Next bounded integration slice
 
-1. Add runtime coverage for mutex, event flags, timeout, resource exhaustion, ISR-to-task wakeup,
-   and shutdown/re-init; scheduler, task-context semaphore, and message queue normal paths are now
-   bounded B1 on Pandora.
+1. Add runtime coverage for mutex, timeout, resource exhaustion, ISR-to-task wakeup, and
+   shutdown/re-init; scheduler, task-context semaphore, message queue, and event-flags normal paths
+   are now bounded B1 on Pandora.
 2. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
    concurrency before S5-01 can become `DONE`.
 
 ## Evidence boundary
 
 The STM32U5 gate remains source/static-library compile-only. Pandora now supplies a bounded real-board
-scheduler/thread plus task-context semaphore/message-queue smoke for bounded STM32L4 images; it
-**不构成 ISR-to-task、event/mutex、压力、性能、STM32U5 或完整 RTOS 产品证据**. S5-01 remains
+scheduler/thread plus task-context semaphore/message-queue/event-flags smoke for bounded STM32L4
+images; it **不构成 ISR-to-task、mutex、压力、性能、STM32U5 或完整 RTOS 产品证据**. S5-01 remains
 in progress until the required runtime/stress matrix exists.
 
 Retained UART evidence: [Pandora OSAL/FreeRTOS capture](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos.txt),
