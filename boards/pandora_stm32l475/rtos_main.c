@@ -15,6 +15,8 @@ static uint32_t shared_sequence;
 static uint8_t resource_pool_memory[2U * sizeof(uint32_t)];
 
 #define SYNC_EVENT_DATA_READY (1UL << 0)
+#define BLOCKING_TIMEOUT_TICKS 100U
+#define BLOCKING_TIMEOUT_TOLERANCE_TICKS 20U
 
 void _init(void) {}
 void _fini(void) {}
@@ -210,6 +212,8 @@ static void resource_task(void *argument)
     };
     uint32_t sequence = 0x12345678U;
     uint32_t received = 0U;
+    uint32_t timeout_start;
+    uint32_t timeout_elapsed;
     xy_os_mempool_id_t pool;
     xy_os_msgqueue_id_t queue;
     void *block0;
@@ -233,6 +237,20 @@ static void resource_task(void *argument)
         fail();
     }
     uart_text("OSAL_RESOURCE_EXHAUSTED\r\n");
+
+    timeout_start = xy_os_kernel_get_tick_count();
+    if (xy_os_msgqueue_put(queue, &sequence, 0U, BLOCKING_TIMEOUT_TICKS) !=
+        XY_OS_ERROR_TIMEOUT) {
+        uart_text("OSAL_BLOCKING_TIMEOUT_ERROR\r\n");
+        fail();
+    }
+    timeout_elapsed = xy_os_kernel_get_tick_count() - timeout_start;
+    if (timeout_elapsed < BLOCKING_TIMEOUT_TICKS ||
+        timeout_elapsed > BLOCKING_TIMEOUT_TICKS + BLOCKING_TIMEOUT_TOLERANCE_TICKS) {
+        uart_text("OSAL_BLOCKING_TIMEOUT_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_BLOCKING_TIMEOUT_OK\r\n");
 
     if (xy_os_mempool_free(pool, block0) != XY_OS_OK ||
         xy_os_mempool_alloc(pool, XY_OS_NO_WAIT) == NULL ||

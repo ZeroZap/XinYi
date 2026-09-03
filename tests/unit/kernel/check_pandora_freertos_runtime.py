@@ -72,6 +72,14 @@ def main() -> int:
             "OSAL_RESOURCE_RECOVERED",
             "OSAL_LIFECYCLE_REINIT",
             "OSAL_RESOURCE_ERROR",
+            "xy_os_kernel_get_tick_count",
+            "XY_OS_ERROR_TIMEOUT",
+            "BLOCKING_TIMEOUT_TICKS 100U",
+            "BLOCKING_TIMEOUT_TOLERANCE_TICKS 20U",
+            "timeout_elapsed < BLOCKING_TIMEOUT_TICKS",
+            "timeout_elapsed > BLOCKING_TIMEOUT_TICKS + BLOCKING_TIMEOUT_TOLERANCE_TICKS",
+            "OSAL_BLOCKING_TIMEOUT_OK",
+            "OSAL_BLOCKING_TIMEOUT_ERROR",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
