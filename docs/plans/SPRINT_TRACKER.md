@@ -1,7 +1,7 @@
 # XinYi Sprint 跟踪看板
 
 **建立日期**：2026-08-17
-**当前阶段**：Sprint 1 — GUI 产品化纵切；Sprint 2 非实板前置并行推进
+**当前阶段**：Sprint 5 — FreeRTOS/Pandora 并发实证；其余硬件与 Release 门禁按证据保持阻塞
 **状态事实源**：本文件
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
@@ -47,7 +47,7 @@
 | ID | 优先级 | 工作项 | 状态 | 负责人 | 依赖 | 验收/证据 | 分支/提交 | 更新时间 |
 |---|---:|---|---|---|---|---|---|---|
 | S0-01 | P0 | 建立 Sprint 看板与组件证据台账 | DONE | Zero | 审计计划 | 看板、审计计划与证据台账已建立；`git diff --check` 通过 | `9cea83f0` | 2026-08-23 |
-| S0-02 | P0 | 将本地 477 个提交直接推送 `origin/main`，以服务器作为单机开发备份 | DONE | Zero | SSH/远端权限 | 2026-08-23 实测 `HEAD`=`origin/main`=`9cea83f00ac661685f8d4b0384ff247fb4b87ac1`，ahead/behind `0/0`；无历史重写 | `9cea83f0` | 2026-08-23 |
+| S0-02 | P0 | 将本地 477 个提交直接推送 `origin/main`，以服务器作为单机开发备份 | DONE | Zero | SSH/远端权限 | 2026-09-04 复核 `HEAD`、tracking ref 与远端 `refs/heads/main` 均为 `a000ca66cc141ef8d47836769cde356b03a712ef`，ahead/behind `0/0`；初始 477 个提交已于 2026-08-23 无历史重写推送 | `02a9be45`；复核 `a000ca66` | 2026-09-04 |
 | S0-03 | P0 | 收敛 canonical CI workflow | DONE | Zero | S0-02（DONE） | canonical `unit-tests.yml`：Host 178/178 + PC root build；删除 stale `ci.yml`/`ci-cd.yml`，移除过期 `-DPLATFORM`、empty root CTest 与无说明 `|| true` 路径；`git diff --check` | `045a9e56` | 2026-08-23 |
 | S0-04 | P0 | 建立 Kconfig/CMake 配置组合矩阵 | DONE | Zero | S0-03（DONE） | [矩阵](../validation/kconfig-cmake-configuration-matrix.md)已覆盖 Display 全组合、all-off、Device/Crypto/DM/Sensor/Actuator-only 及 STM32U5 默认组合；STM32U5 clean root compile、条件默认值检查、Host 178/178、PC root build 与 `git diff --check` 通过 | `cc1b3b75`～`e4c0ff4c` | 2026-08-24 |
 | S0-05 | P0 | 统一版本、tag、release note 与 workflow 触发 | DONE | Zero | S0-03（DONE） | `VERSION` 驱动 root CMake；Kconfig/public header 为受检镜像；canonical changelog、Known Limitations 与 fail-closed `vMAJOR.MINOR.PATCH` workflow 已建立；release facts 正/负向 probe、workflow YAML、Host 178/178、PC root build 与 `git diff --check` 通过 | `5b1943e1` | 2026-08-24 |
@@ -57,7 +57,7 @@
 
 ### Sprint 0 退出条件
 
-- [x] 本地 477 个提交与本轮文档提交已直接推送到 `origin/main`，本地/远端 SHA 一致（2026-08-23：`9cea83f0`，ahead/behind `0/0`）。
+- [x] 本地 477 个提交与后续已验证提交均已直接推送到 `origin/main`；2026-09-04 复核本地/远端 SHA 均为 `a000ca66cc141ef8d47836769cde356b03a712ef`，ahead/behind `0/0`。
 - [x] canonical Host gate 实跑 178/178 通过（2026-08-23，`make test-unit`）。
 - [x] PC root build 通过（2026-08-23，Release、`BUILD_TESTS=OFF`）。
 - [x] stale workflow 不再产生假绿（删除 `.github/workflows/ci.yml` 与 `ci-cd.yml`；canonical workflow 无 empty CTest/无说明 `|| true`）。
@@ -930,3 +930,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 验证：focused `release_readiness`、Host 全量、PC Release root build 与 `git diff --check` 见本轮
   gate。该决策门不构成 key provisioning、签名发布、安全审查或 R1。
 - 下一步：推进 artifact SBOM/license review；release key 实施继续等待 owner/custodian 决策。
+
+### 2026-09-04 Sprint 0 远端备份退出条件复核
+
+- 校准：S0-02 与对应退出条件继续保持 `DONE`；初始同步提交为 `02a9be45`，不是建档基线 `9cea83f0`。
+- 验证：`git fetch origin main` 后 `git rev-list --left-right --count HEAD...origin/main` 返回 `0 0`；`git rev-parse HEAD origin/main` 与 `git ls-remote origin refs/heads/main` 均返回 `a000ca66cc141ef8d47836769cde356b03a712ef`。
+- 仓库：复核开始时 `main` 工作树干净；本次仅校准 Sprint 看板，不新增 Host、target、硬件、安全或 Release 证据。
+- 下一步：继续 S5-01 的 IPC/Trace/Device/PM 跨组件并发最小纵切；多小时耐久与 STM32U5 runtime 仍保持 pending。
