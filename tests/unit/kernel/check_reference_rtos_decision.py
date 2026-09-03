@@ -78,10 +78,12 @@ def main() -> int:
 
     for token in (
         "FreeRTOS",
-        "REFERENCE_SELECTED",
-        "root-selected-compile-guarded-runtime-pending",
-        "hardware-pending",
-        "不构成 RTOS runtime、ISR、并发或实板证据",
+        "BOARD_RUNTIME_PARTIAL",
+        "root-selected-pandora-scheduler-smoke-verified",
+        "pandora-thread-scheduling-b1",
+        "不构成 ISR-to-task、同步原语、压力、性能、STM32U5",
+        "46499b33e332f2b4111e1c0149366b5c86064909",
+        "6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627",
         "FreeRTOSConfig.h",
         "Cortex-M33",
         "third_party/freertos/FreeRTOS",
@@ -194,7 +196,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("reference_rtos_decision_ok reference=FreeRTOS integration=compile-guarded runtime=pending hardware=pending")
+    print("reference_rtos_decision_ok reference=FreeRTOS pandora_runtime=thread-scheduling-b1 remaining=isr-sync-stress")
     return 0
 
 

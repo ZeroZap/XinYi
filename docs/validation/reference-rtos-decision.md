@@ -2,10 +2,10 @@
 
 **Date**: 2026-08-29
 **Owner**: Zero
-**Status**: `REFERENCE_SELECTED`
+**Status**: `BOARD_RUNTIME_PARTIAL`
 **Reference backend**: **FreeRTOS**
-**Integration**: `root-selected-compile-guarded-runtime-pending`
-**Hardware**: `hardware-pending`
+**Integration**: `root-selected-pandora-scheduler-smoke-verified`
+**Hardware**: `pandora-thread-scheduling-b1`; `isr-to-task/stress-pending`
 
 ## Decision
 
@@ -31,10 +31,18 @@ single-backend Sprint scope.
   beside the port.
 - `freertos_stm32u5_compile` compiles the adapter, required kernel modules, heap and port into
   nine Arm Cortex-M33 objects with `-Werror`.
-- Root Kconfig/CMake now exposes an STM32U5-only `OSAL_BACKEND_FREERTOS` opt-in, maps it to both
-  the canonical OSAL adapter and matching pinned kernel/config/port, and builds `xy_osal` plus
-  `freertos_kernel`. An explicit FreeRTOS request on PC fails closed. The root default remains
-  bare-metal because this gate still does not link a runnable image or provide scheduler evidence.
+- Root Kconfig/CMake now exposes target-gated `OSAL_BACKEND_FREERTOS` opt-in for STM32U5 and
+  STM32L4, maps it to the canonical OSAL adapter and matching pinned kernel/config/port, and builds
+  `xy_osal` plus `freertos_kernel`. An explicit FreeRTOS request on PC fails closed. The root
+  default remains bare-metal; STM32U5 remains compile-only while Pandora has the bounded runtime
+  evidence recorded below.
+- The same pinned FreeRTOS V10.4.6 integration now has an STM32L4 Cortex-M4F port/config and a
+  Pandora STM32L475VE runtime image. On 2026-09-03, `46499b33e332f2b4111e1c0149366b5c86064909`
+  was programmed and verified with ST-Link; a six-second independent WCH-Link UART capture retained
+  the exact embedded commit plus interleaved 500 ms/1000 ms `OSAL_TASK_FAST`/`OSAL_TASK_SLOW`
+  markers. This is bounded B1 thread
+  scheduling evidence only, not ISR-to-task, synchronization, stress, shutdown/re-init, STM32U5,
+  or product RTOS qualification.
 - RT-Thread has a larger source tree, but current CMake paths and the STM32U5 adapter/port
   assumptions are also stale or incomplete; source volume is not evidence of readiness.
 
@@ -47,6 +55,9 @@ single-backend Sprint scope.
 
 ## Evidence boundary
 
-This slice adds a clean source-level STM32U5 Cortex-M33 compile gate. It **不构成 RTOS runtime、ISR、并发或实板证据**. The gate does not link startup/vector/HAL code or execute a scheduler,
-so S5-01 remains in progress until a link/runtime fixture and the required runtime/stress evidence
-exist.
+The STM32U5 gate remains source/static-library compile-only. Pandora now supplies a bounded real-board
+scheduler/thread smoke for one STM32L4 image; it **不构成 ISR-to-task、同步原语、压力、性能、STM32U5
+或完整 RTOS 产品证据**. S5-01 remains in progress until the required runtime/stress matrix exists.
+
+Retained UART evidence: [Pandora OSAL/FreeRTOS capture](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos.txt),
+SHA-256 `6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627`.
