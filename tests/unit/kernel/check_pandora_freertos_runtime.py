@@ -38,10 +38,16 @@ def main() -> int:
             "xy_os_semaphore_new",
             "xy_os_semaphore_acquire",
             "xy_os_semaphore_release",
+            "xy_os_msgqueue_new",
+            "xy_os_msgqueue_put",
+            "xy_os_msgqueue_get",
             "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
             "OSAL_TASK_FAST",
             "OSAL_TASK_SLOW",
             "OSAL_SEM_TAKE",
+            "OSAL_QUEUE_SEND",
+            "OSAL_QUEUE_RECV",
+            "OSAL_QUEUE_MISMATCH",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")

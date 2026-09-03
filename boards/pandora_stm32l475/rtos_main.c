@@ -7,6 +7,7 @@
 
 static UART_HandleTypeDef uart1;
 static xy_os_semaphore_id_t sync_sem;
+static xy_os_msgqueue_id_t sync_queue;
 
 void _init(void) {}
 void _fini(void) {}
@@ -105,6 +106,8 @@ static void gpio_uart_init(void)
 
 static void fast_task(void *argument)
 {
+    uint32_t sequence = 0U;
+
     (void)argument;
     for (;;) {
         HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);
@@ -112,12 +115,20 @@ static void fast_task(void *argument)
         if (xy_os_semaphore_release(sync_sem) != XY_OS_OK) {
             fail();
         }
+        if (xy_os_msgqueue_put(sync_queue, &sequence, 0U, 100U) != XY_OS_OK) {
+            fail();
+        }
+        uart_text("OSAL_QUEUE_SEND\r\n");
+        ++sequence;
         (void)xy_os_delay(500U);
     }
 }
 
 static void slow_task(void *argument)
 {
+    uint32_t expected_sequence = 0U;
+    uint32_t sequence;
+
     (void)argument;
     for (;;) {
         if (xy_os_semaphore_acquire(sync_sem, 1200U) == XY_OS_OK) {
@@ -126,6 +137,13 @@ static void slow_task(void *argument)
             uart_text("OSAL_SEM_TIMEOUT\r\n");
             fail();
         }
+        if (xy_os_msgqueue_get(sync_queue, &sequence, NULL, 100U) != XY_OS_OK ||
+            sequence != expected_sequence) {
+            uart_text("OSAL_QUEUE_MISMATCH\r\n");
+            fail();
+        }
+        uart_text("OSAL_QUEUE_RECV\r\n");
+        ++expected_sequence;
         uart_text("OSAL_TASK_SLOW\r\n");
     }
 }
@@ -151,6 +169,7 @@ int main(void)
 
     if (xy_os_kernel_init() != XY_OS_OK ||
         (sync_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
+        (sync_queue = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL) {
         fail();
