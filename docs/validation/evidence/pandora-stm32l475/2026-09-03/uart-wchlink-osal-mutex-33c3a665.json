@@ -1,0 +1,46 @@
+{
+  "source_commit": "33c3a665032f62efde0e410cf21a4fd74d04975d",
+  "board": "Pandora STM32L475VE",
+  "probe_serial": "066AFF313933554D43244015",
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "programming_result": "Flash written and verified",
+  "programmed_bytes": 14448,
+  "capture_duration_ms": 6000,
+  "capture_bytes": 1881,
+  "complete_cycles": 12,
+  "cycle_order": [
+    "OSAL_MUTEX_FAST",
+    "OSAL_TASK_FAST",
+    "OSAL_QUEUE_SEND",
+    "OSAL_EVENT_SET",
+    "OSAL_SEM_TAKE",
+    "OSAL_EVENT_WAIT",
+    "OSAL_QUEUE_RECV",
+    "OSAL_MUTEX_SLOW",
+    "OSAL_TASK_SLOW"
+  ],
+  "mutex_roundtrip_ms": {
+    "min": 9,
+    "max": 10,
+    "mean": 9.83
+  },
+  "cycle_period_ms": {
+    "min": 510,
+    "max": 511,
+    "mean": 510.73
+  },
+  "mutex_timeout_count": 0,
+  "mutex_mismatch_count": 0,
+  "queue_mismatch_count": 0,
+  "event_mismatch_count": 0,
+  "semaphore_timeout_count": 0,
+  "elf_sha256": "c86c27389fc4ee2f8be0e13c510f558c59978b8b6374323154ed0eed0e0a7c3c",
+  "bin_sha256": "3b9756e849fe4b935a5f3a553038340b88a055d42b4e6b7e1e15f08539bc9ced",
+  "raw_capture_sha256": "327fa9f1a060204a1555c0fd6319c067749527d16db41ef61772b66896ede63a",
+  "evidence": "BOARD_RUNTIME_B1_OSAL_FREERTOS_MUTEX",
+  "limits": [
+    "ISR-to-task synchronization is not covered",
+    "resource exhaustion is not covered",
+    "long-duration stress is not covered"
+  ]
+}

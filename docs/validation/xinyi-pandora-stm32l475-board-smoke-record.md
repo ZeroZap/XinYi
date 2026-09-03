@@ -174,6 +174,26 @@ Retained evidence:
   SHA-256 `b802709edaf1215d176abf64d7336555a50e98599f162eb6fc70826e5428bad2`
 - [event-flags capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-event-flags-48ca0509.json)
 
+### OSAL/FreeRTOS mutex runtime result
+
+Firmware `33c3a665032f62efde0e410cf21a4fd74d04975d` protects a shared producer/consumer
+sequence with an OSAL mutex while retaining the semaphore, message-queue, and event-flags chain.
+`st-flash --reset write` programmed and verified 14448 bytes. A six-second WCH-Link capture retained
+1881 bytes and contained 12 complete ordered cycles:
+`OSAL_MUTEX_FAST → OSAL_TASK_FAST → OSAL_QUEUE_SEND → OSAL_EVENT_SET → OSAL_SEM_TAKE →
+OSAL_EVENT_WAIT → OSAL_QUEUE_RECV → OSAL_MUTEX_SLOW → OSAL_TASK_SLOW`.
+The mutex-protected value matched in all cycles; mutex timeout/mismatch and all prior primitive error
+markers were absent. Producer-to-consumer mutex roundtrip was 9–10 ms. This grants task-context OSAL
+mutex B1 for this exact board/image; ISR-to-task, resource exhaustion, and long-duration stress remain
+pending.
+
+Retained evidence:
+
+- [raw mutex UART log](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-mutex-33c3a665.txt),
+  SHA-256 `327fa9f1a060204a1555c0fd6319c067749527d16db41ef61772b66896ede63a`
+- [mutex capture metadata](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-mutex-33c3a665.json),
+  SHA-256 `42acc0c119ad50f8d613b977df020f4ffdf00547197d866ba8f61a75c0764486`
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained
