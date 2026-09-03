@@ -6,6 +6,7 @@
 #endif
 
 static UART_HandleTypeDef uart1;
+static xy_os_semaphore_id_t sync_sem;
 
 void _init(void) {}
 void _fini(void) {}
@@ -108,6 +109,9 @@ static void fast_task(void *argument)
     for (;;) {
         HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);
         uart_text("OSAL_TASK_FAST\r\n");
+        if (xy_os_semaphore_release(sync_sem) != XY_OS_OK) {
+            fail();
+        }
         (void)xy_os_delay(500U);
     }
 }
@@ -116,8 +120,13 @@ static void slow_task(void *argument)
 {
     (void)argument;
     for (;;) {
+        if (xy_os_semaphore_acquire(sync_sem, 1200U) == XY_OS_OK) {
+            uart_text("OSAL_SEM_TAKE\r\n");
+        } else {
+            uart_text("OSAL_SEM_TIMEOUT\r\n");
+            fail();
+        }
         uart_text("OSAL_TASK_SLOW\r\n");
-        (void)xy_os_delay(1000U);
     }
 }
 
@@ -141,6 +150,7 @@ int main(void)
     uart_text("FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
 
     if (xy_os_kernel_init() != XY_OS_OK ||
+        (sync_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL) {
         fail();
