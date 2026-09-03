@@ -143,11 +143,12 @@ config KERNEL_OSAL
 
 config OSAL_BACKEND_FREERTOS
     bool "FreeRTOS reference backend"
-    depends on KERNEL_OSAL && PLATFORM_STM32U5
+    depends on KERNEL_OSAL && (PLATFORM_STM32U5 || PLATFORM_STM32L4)
     default n
     help
-      Select the compile-guarded FreeRTOS V10.4.6 Cortex-M33 non-secure
-      reference backend. Runtime and hardware validation remain separate gates.
+      Select the compile-guarded FreeRTOS V10.4.6 backend for STM32U5
+      Cortex-M33 non-secure or STM32L4 Cortex-M4F. Runtime and hardware
+      validation remain separate gates.
 
 config OSAL_BACKEND_BAREMETAL
     bool "Bare-metal backend"

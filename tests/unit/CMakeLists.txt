@@ -99,6 +99,10 @@ add_test(NAME freertos_stm32u5_compile
     COMMAND python3 ${ROOT}/components/kernel/osal/scripts/compile_freertos_stm32u5.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME freertos_stm32l4_compile
+    COMMAND python3 ${ROOT}/components/kernel/osal/scripts/compile_freertos_stm32l4.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}

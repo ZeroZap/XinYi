@@ -52,6 +52,17 @@ if(OSAL_BACKEND STREQUAL "baremetal")
     message(STATUS "XY OSAL: Using Bare-metal backend")
 
 elseif(OSAL_BACKEND STREQUAL "freertos")
+    if(HAL_PLATFORM STREQUAL "STM32L4")
+        set(OSAL_FREERTOS_CONFIG_DIR
+            ${CMAKE_CURRENT_SOURCE_DIR}/config/freertos/stm32l4)
+        set(OSAL_FREERTOS_PORT_DIR
+            ${CMAKE_CURRENT_SOURCE_DIR}/portable/freertos/GCC/ARM_CM4F)
+    else()
+        set(OSAL_FREERTOS_CONFIG_DIR
+            ${CMAKE_CURRENT_SOURCE_DIR}/config/freertos)
+        set(OSAL_FREERTOS_PORT_DIR
+            ${CMAKE_CURRENT_SOURCE_DIR}/portable/freertos/GCC/ARM_CM33_NTZ/non_secure)
+    endif()
     set(OSAL_BACKEND_SOURCES
         backend/freertos/xy_os_freertos.c
     )
@@ -62,8 +73,8 @@ elseif(OSAL_BACKEND STREQUAL "freertos")
     set(OSAL_BACKEND_INCLUDES
         ${OSAL_INCLUDE_DIRS}
         ${CMAKE_SOURCE_DIR}/third_party/freertos/FreeRTOS/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/config/freertos
-        ${CMAKE_CURRENT_SOURCE_DIR}/portable/freertos/GCC/ARM_CM33_NTZ/non_secure
+        ${OSAL_FREERTOS_CONFIG_DIR}
+        ${OSAL_FREERTOS_PORT_DIR}
     )
     message(STATUS "XY OSAL: Using FreeRTOS backend")
 

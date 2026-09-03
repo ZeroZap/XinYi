@@ -37,13 +37,24 @@ if(RTOS_BACKEND STREQUAL "freertos" OR RTOS_FREERTOS)
         if(HAL_PLATFORM STREQUAL "STM32U5")
             set(FREERTOS_PORT_DIR
                 ${CMAKE_SOURCE_DIR}/components/kernel/osal/portable/freertos/GCC/ARM_CM33_NTZ/non_secure)
+            set(FREERTOS_CONFIG_DIR
+                ${CMAKE_SOURCE_DIR}/components/kernel/osal/config/freertos)
             list(APPEND FREERTOS_SOURCES
                 ${FREERTOS_PORT_DIR}/port.c
                 ${FREERTOS_PORT_DIR}/portasm.c
             )
             set(FREERTOS_PORT "ARM_CM33_NTZ/non_secure")
+        elseif(HAL_PLATFORM STREQUAL "STM32L4")
+            set(FREERTOS_PORT_DIR
+                ${CMAKE_SOURCE_DIR}/components/kernel/osal/portable/freertos/GCC/ARM_CM4F)
+            set(FREERTOS_CONFIG_DIR
+                ${CMAKE_SOURCE_DIR}/components/kernel/osal/config/freertos/stm32l4)
+            list(APPEND FREERTOS_SOURCES
+                ${FREERTOS_PORT_DIR}/port.c
+            )
+            set(FREERTOS_PORT "ARM_CM4F")
         else()
-            message(FATAL_ERROR "The guarded FreeRTOS reference kernel currently supports STM32U5 only")
+            message(FATAL_ERROR "The guarded FreeRTOS reference kernel supports STM32U5 and STM32L4 only")
         endif()
 
         # Create FreeRTOS library
@@ -52,7 +63,7 @@ if(RTOS_BACKEND STREQUAL "freertos" OR RTOS_FREERTOS)
         target_include_directories(freertos_kernel PUBLIC
             ${FREERTOS_DIR}/include
             ${FREERTOS_PORT_DIR}
-            ${CMAKE_SOURCE_DIR}/components/kernel/osal/config/freertos
+            ${FREERTOS_CONFIG_DIR}
         )
 
         target_compile_definitions(freertos_kernel PUBLIC
