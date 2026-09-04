@@ -231,10 +231,49 @@ int main(void)
             loaded.active_slot != 0U) {
             fail();
         }
-    } else if (xy_fota_metadata_flash_load(metadata_backend, &loaded) != XY_FOTA_OK ||
-               loaded.active_version != 1U || loaded.active_slot != 0U) {
+    } else if (xy_fota_metadata_flash_load(metadata_backend, &loaded) != XY_FOTA_OK) {
         fail();
     }
+
+    if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) == 0U && loaded.active_slot == 0U &&
+        loaded.active_version == 1U) {
+        if (xy_fota_metadata_boot_handoff(1U, 2U, (void *)metadata_backend) != XY_FOTA_OK) {
+            fail();
+        }
+        uart_text("FOTA_BOOT_HANDOFF_COMMITTED slot=1 version=2\r\n");
+        HAL_Delay(10U);
+        (void)xy_sys_reset(1);
+        fail();
+    }
+
+    if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U && loaded.pending_slot == 1U &&
+        loaded.pending_version == 2U && loaded.boot_attempts == 0U) {
+        bool rollback_required = true;
+        if (xy_fota_metadata_boot_attempt(3U, &rollback_required, (void *)metadata_backend) !=
+                XY_FOTA_OK ||
+            rollback_required) {
+            fail();
+        }
+        uart_text("FOTA_BOOT_ATTEMPT_COMMITTED count=1\r\n");
+        HAL_Delay(10U);
+        (void)xy_sys_reset(1);
+        fail();
+    }
+
+    if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U && loaded.pending_slot == 1U &&
+        loaded.pending_version == 2U && loaded.boot_attempts == 1U) {
+        if (xy_fota_metadata_boot_confirm(1U, 2U, (void *)metadata_backend) != XY_FOTA_OK ||
+            xy_fota_metadata_flash_load(metadata_backend, &loaded) != XY_FOTA_OK) {
+            fail();
+        }
+        uart_text("FOTA_BOOT_CONFIRM_COMMITTED slot=1 version=2\r\n");
+    }
+
+    if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U || loaded.active_slot != 1U ||
+        loaded.active_version != 2U || loaded.min_version != 2U || loaded.boot_attempts != 0U) {
+        fail();
+    }
+    uart_text("FOTA_BOOT_CONTRACT_OK active_slot=1 version=2 min_version=2\r\n");
     uart_text("FOTA_METADATA_FLASH_OK\r\n");
     if (xy_i2c_device_init(&aht10, pandora_soft_i2c_init(), 0x38U, 100U) != XY_DEVICE_OK) {
         fail();

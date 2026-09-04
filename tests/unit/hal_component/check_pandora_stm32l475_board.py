@@ -134,6 +134,13 @@ def main() -> None:
         "xy_fota_metadata_flash_validate",
         "xy_fota_metadata_flash_commit",
         "xy_fota_metadata_flash_load",
+        "xy_fota_metadata_boot_handoff",
+        "xy_fota_metadata_boot_attempt",
+        "xy_fota_metadata_boot_confirm",
+        "FOTA_BOOT_HANDOFF_COMMITTED",
+        "FOTA_BOOT_ATTEMPT_COMMITTED",
+        "FOTA_BOOT_CONFIRM_COMMITTED",
+        "FOTA_BOOT_CONTRACT_OK",
         "FOTA_METADATA_FLASH_OK",
     )
     require(
