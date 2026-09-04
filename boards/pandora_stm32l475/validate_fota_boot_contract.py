@@ -16,6 +16,9 @@ ATTEMPT = "FOTA_BOOT_ATTEMPT_COMMITTED count=1"
 CONFIRM = "FOTA_BOOT_CONFIRM_COMMITTED slot=1 version=2"
 CONTRACT_OK = "FOTA_BOOT_CONTRACT_OK active_slot=1 version=2 min_version=2"
 ANTI_ROLLBACK = "FOTA_ANTI_ROLLBACK_REJECTED version=1 floor=2"
+ROLLBACK_HANDOFF = "FOTA_ROLLBACK_HANDOFF_COMMITTED slot=0 version=3"
+ROLLBACK_ATTEMPT = "FOTA_ROLLBACK_ATTEMPT_COMMITTED count=1"
+AUTOMATIC_ROLLBACK = "FOTA_AUTOMATIC_ROLLBACK_COMMITTED active_slot=1 version=2"
 METADATA_OK = "FOTA_METADATA_FLASH_OK"
 ERROR_MARKER = "FOTA_BOOT_CONTRACT_ERROR"
 
@@ -34,10 +37,21 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     failures: list[str] = []
 
     identity_positions = [index for index, line in enumerate(lines) if line == identity]
-    if len(identity_positions) != 3:
+    if len(identity_positions) != 5:
         failures.append("boot identity chain mismatch")
 
-    expected = (INITIALIZED, HANDOFF, ATTEMPT, CONFIRM, CONTRACT_OK, ANTI_ROLLBACK, METADATA_OK)
+    expected = (
+        INITIALIZED,
+        HANDOFF,
+        ATTEMPT,
+        CONFIRM,
+        CONTRACT_OK,
+        ANTI_ROLLBACK,
+        ROLLBACK_HANDOFF,
+        ROLLBACK_ATTEMPT,
+        AUTOMATIC_ROLLBACK,
+        METADATA_OK,
+    )
     positions = []
     for marker in expected:
         count = lines.count(marker)
@@ -47,7 +61,7 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     if -1 not in positions and positions != sorted(positions):
         failures.append("FOTA transition markers are not ordered")
 
-    if len(identity_positions) == 3 and -1 not in positions:
+    if len(identity_positions) == 5 and -1 not in positions:
         (
             initialized_pos,
             handoff_pos,
@@ -55,6 +69,9 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
             confirm_pos,
             contract_pos,
             anti_rollback_pos,
+            rollback_handoff_pos,
+            rollback_attempt_pos,
+            automatic_rollback_pos,
             metadata_pos,
         ) = positions
         if not (
@@ -64,9 +81,12 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
             < confirm_pos
             < contract_pos
             < anti_rollback_pos
-            < metadata_pos
+            < rollback_handoff_pos
+            < identity_positions[3]
+            and identity_positions[3] < rollback_attempt_pos < identity_positions[4]
+            and identity_positions[4] < automatic_rollback_pos < metadata_pos
         ):
-            failures.append("FOTA transitions do not belong to three ordered boots")
+            failures.append("FOTA transitions do not belong to five ordered boots")
 
     if ERROR_MARKER in lines:
         failures.append("runtime error marker present")
@@ -83,13 +103,12 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "boot_count": len(identity_positions),
         "failures": failures,
         "scope": (
-            "Pandora metadata handoff/attempt/confirm persistence across software resets "
-            "and anti-rollback rejection at the committed floor"
+            "Pandora metadata handoff/attempt/confirm persistence across software resets, "
+            "anti-rollback rejection, and bounded automatic rollback metadata recovery"
         ),
         "not_evidence_for": [
             "candidate image execution",
             "bootloader vector handoff",
-            "automatic rollback",
             "power-loss recovery",
             "secure FOTA",
         ],
