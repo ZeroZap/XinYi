@@ -293,6 +293,27 @@ static void isr_task(void *argument)
 static void tim6_irq_task(void *argument)
 {
     (void)argument;
+    if (xy_os_semaphore_acquire(pandora_tim6_sem, 1500U) != XY_OS_OK) {
+        uart_text("OSAL_TIM6_IRQ_TIMEOUT\r\n");
+        fail();
+    }
+    uart_text("OSAL_TIM6_IRQ_TAKE\r\n");
+    if (HAL_TIM_Base_Stop_IT(&pandora_tim6) != HAL_OK) {
+        fail();
+    }
+    while (xy_os_semaphore_acquire(pandora_tim6_sem, XY_OS_NO_WAIT) == XY_OS_OK) {
+    }
+    if (xy_os_semaphore_acquire(pandora_tim6_sem, 900U) != XY_OS_ERROR_TIMEOUT) {
+        uart_text("OSAL_TIM6_IRQ_RECOVERY_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_TIM6_IRQ_TIMEOUT_EXPECTED\r\n");
+    if (HAL_TIM_Base_Start_IT(&pandora_tim6) != HAL_OK ||
+        xy_os_semaphore_acquire(pandora_tim6_sem, 1500U) != XY_OS_OK) {
+        uart_text("OSAL_TIM6_IRQ_RECOVERY_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_TIM6_IRQ_RECOVERED\r\n");
     for (;;) {
         if (xy_os_semaphore_acquire(pandora_tim6_sem, 1500U) == XY_OS_OK) {
             uart_text("OSAL_TIM6_IRQ_TAKE\r\n");

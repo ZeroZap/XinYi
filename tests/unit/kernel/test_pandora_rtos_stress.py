@@ -33,6 +33,8 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
         "OSAL_BLOCKING_TIMEOUT_OK",
         "OSAL_RESOURCE_RECOVERED",
         "OSAL_LIFECYCLE_REINIT",
+        "OSAL_TIM6_IRQ_TIMEOUT_EXPECTED",
+        "OSAL_TIM6_IRQ_RECOVERED",
     ]
     for index in range(cycles):
         lines.extend(CYCLE)
@@ -64,6 +66,21 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn("TIM6 IRQ wakes 49 < 50", result["failures"])
+
+    def test_rejects_missing_or_reordered_peripheral_irq_recovery(self) -> None:
+        payload = make_capture(120, 60).replace(b"OSAL_TIM6_IRQ_RECOVERED\r\n", b"")
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("TIM6 IRQ recovery marker count mismatch", result["failures"])
+
+        payload = make_capture(120, 60).replace(
+            b"OSAL_TIM6_IRQ_TIMEOUT_EXPECTED\r\nOSAL_TIM6_IRQ_RECOVERED",
+            b"OSAL_TIM6_IRQ_RECOVERED\r\nOSAL_TIM6_IRQ_TIMEOUT_EXPECTED",
+        )
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("TIM6 IRQ recovery markers are not ordered", result["failures"])
 
     def test_rejects_error_marker_and_wrong_identity(self) -> None:
         payload = make_capture(120, 60).replace(
