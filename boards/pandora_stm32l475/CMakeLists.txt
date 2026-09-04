@@ -71,6 +71,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
         ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
         ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker.c
+        ${CMAKE_SOURCE_DIR}/components/pm/src/xy_pm_platform.c
         ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
         ${_cmsis}/Source/Templates/system_stm32l4xx.c
         ${_hal}/stm32l4xx_hal.c
@@ -92,6 +93,9 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/device
         ${CMAKE_SOURCE_DIR}/components/hal/inc
         ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker
+        ${CMAKE_SOURCE_DIR}/components/pm/inc
+        ${CMAKE_SOURCE_DIR}/components/pm/charger
+        ${CMAKE_SOURCE_DIR}/components/pm/fuel-gauge
         ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
     target_compile_definitions(pandora_stm32l475_rtos PRIVATE
         STM32L475xx
@@ -100,6 +104,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         XY_BROKER_MAX_SUBSCRIBERS=2
         XY_BROKER_MAX_TOPICS=2
         XY_BROKER_MSG_QUEUE_SIZE=2
+        XY_OSAL_AVAILABLE
         XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
     target_link_libraries(pandora_stm32l475_rtos PRIVATE
         xy_osal

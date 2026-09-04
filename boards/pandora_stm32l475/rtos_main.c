@@ -2,6 +2,7 @@
 #include "xy_broker.h"
 #include "xy_device.h"
 #include "xy_os.h"
+#include "xy_pm.h"
 #include "xy_stdio.h"
 
 #ifndef XINYI_FIRMWARE_COMMIT
@@ -17,6 +18,7 @@ xy_os_semaphore_id_t pandora_isr_sem;
 static uint32_t shared_sequence;
 static uint32_t ipc_expected_sequence;
 static uint32_t ipc_delivered_count;
+static uint32_t pm_last_tick;
 static xy_device_t ipc_device = {
     .name = "pandora-ipc",
     .type = XY_DEV_TYPE_MISC,
@@ -194,6 +196,16 @@ static void fast_task(void *argument)
             fail();
         }
         uart_text("OSAL_IPC_SEND\r\n");
+        {
+            uint32_t pm_tick = xy_pm_tick_get();
+            uint32_t os_tick = xy_os_kernel_get_tick_count();
+            if (pm_tick < pm_last_tick || pm_tick > os_tick || os_tick - pm_tick > 1U) {
+                uart_text("OSAL_PM_ERROR\r\n");
+                fail();
+            }
+            pm_last_tick = pm_tick;
+            uart_text("OSAL_PM_TICK\r\n");
+        }
         ++sequence;
         (void)xy_os_delay(500U);
     }
