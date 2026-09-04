@@ -15,12 +15,12 @@ COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 def valid_capture() -> bytes:
     return (
-        f"PANDORA STM32L475VE XINYI SMOKE OK\r\nFIRMWARE_COMMIT {COMMIT}\r\n"
+        f"FOTA_FIRMWARE_COMMIT {COMMIT}\r\n"
         "FOTA_METADATA_INITIALIZED slot=0 version=1\r\n"
         "FOTA_BOOT_HANDOFF_COMMITTED slot=1 version=2\r\n"
-        f"PANDORA STM32L475VE XINYI SMOKE OK\r\nFIRMWARE_COMMIT {COMMIT}\r\n"
+        f"FOTA_FIRMWARE_COMMIT {COMMIT}\r\n"
         "FOTA_BOOT_ATTEMPT_COMMITTED count=1\r\n"
-        f"PANDORA STM32L475VE XINYI SMOKE OK\r\nFIRMWARE_COMMIT {COMMIT}\r\n"
+        f"FOTA_FIRMWARE_COMMIT {COMMIT}\r\n"
         "FOTA_BOOT_CONFIRM_COMMITTED slot=1 version=2\r\n"
         "FOTA_BOOT_CONTRACT_OK active_slot=1 version=2 min_version=2\r\n"
         "FOTA_METADATA_FLASH_OK\r\n"

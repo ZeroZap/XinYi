@@ -220,6 +220,7 @@ int main(void)
         (void)xy_sys_reset(1);
         fail();
     }
+    uart_text("FOTA_FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
     metadata_backend = pandora_fota_metadata_backend();
     if (xy_fota_metadata_flash_validate(metadata_backend) != XY_FOTA_OK) {
         fail();
