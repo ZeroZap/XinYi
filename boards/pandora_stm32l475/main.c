@@ -269,34 +269,36 @@ int main(void)
         uart_text("FOTA_BOOT_CONFIRM_COMMITTED slot=1 version=2\r\n");
     }
 
-    if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U || loaded.active_slot != 1U ||
-        loaded.active_version != 2U || loaded.min_version != 2U || loaded.boot_attempts != 0U) {
-        fail();
-    }
-    uart_text("FOTA_BOOT_CONTRACT_OK active_slot=1 version=2 min_version=2\r\n");
-    if (xy_fota_metadata_boot_handoff(0U, 1U, (void *)metadata_backend) !=
-            XY_FOTA_VERSION_ERROR ||
-        xy_fota_metadata_flash_load(metadata_backend, &committed) != XY_FOTA_OK ||
-        committed.generation != loaded.generation ||
-        committed.active_slot != loaded.active_slot ||
-        committed.active_version != loaded.active_version ||
-        committed.min_version != loaded.min_version ||
-        committed.pending_slot != loaded.pending_slot ||
-        committed.pending_version != loaded.pending_version || committed.flags != loaded.flags) {
-        fail();
-    }
-    uart_text("FOTA_ANTI_ROLLBACK_REJECTED version=1 floor=2\r\n");
-    if (loaded.generation == 4U) {
-        if (xy_fota_metadata_boot_handoff(0U, 3U, (void *)metadata_backend) != XY_FOTA_OK) {
+    if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) == 0U) {
+        if (loaded.active_slot != 1U || loaded.active_version != 2U || loaded.min_version != 2U ||
+            loaded.boot_attempts != 0U) {
             fail();
         }
-        uart_text("FOTA_ROLLBACK_HANDOFF_COMMITTED slot=0 version=3\r\n");
-        HAL_Delay(250U);
-        (void)xy_sys_reset(1);
-        fail();
-    }
-    if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U && loaded.pending_slot == 0U &&
-        loaded.pending_version == 3U && loaded.boot_attempts == 0U) {
+        uart_text("FOTA_BOOT_CONTRACT_OK active_slot=1 version=2 min_version=2\r\n");
+        if (loaded.generation == 4U) {
+            if (xy_fota_metadata_boot_handoff(0U, 1U, (void *)metadata_backend) !=
+                    XY_FOTA_VERSION_ERROR ||
+                xy_fota_metadata_flash_load(metadata_backend, &committed) != XY_FOTA_OK ||
+                committed.generation != loaded.generation ||
+                committed.active_slot != loaded.active_slot ||
+                committed.active_version != loaded.active_version ||
+                committed.min_version != loaded.min_version ||
+                committed.pending_slot != loaded.pending_slot ||
+                committed.pending_version != loaded.pending_version ||
+                committed.flags != loaded.flags) {
+                fail();
+            }
+            uart_text("FOTA_ANTI_ROLLBACK_REJECTED version=1 floor=2\r\n");
+            if (xy_fota_metadata_boot_handoff(0U, 3U, (void *)metadata_backend) != XY_FOTA_OK) {
+                fail();
+            }
+            uart_text("FOTA_ROLLBACK_HANDOFF_COMMITTED slot=0 version=3\r\n");
+            HAL_Delay(250U);
+            (void)xy_sys_reset(1);
+            fail();
+        }
+    } else if (loaded.pending_slot == 0U && loaded.pending_version == 3U &&
+               loaded.boot_attempts == 0U) {
         bool rollback_required = true;
         if (xy_fota_metadata_boot_attempt(2U, &rollback_required, (void *)metadata_backend) !=
                 XY_FOTA_OK ||
@@ -307,9 +309,8 @@ int main(void)
         HAL_Delay(250U);
         (void)xy_sys_reset(1);
         fail();
-    }
-    if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) != 0U && loaded.pending_slot == 0U &&
-        loaded.pending_version == 3U && loaded.boot_attempts == 1U) {
+    } else if (loaded.pending_slot == 0U && loaded.pending_version == 3U &&
+               loaded.boot_attempts == 1U) {
         bool rollback_required = false;
         if (xy_fota_metadata_boot_attempt(2U, &rollback_required, (void *)metadata_backend) !=
                 XY_FOTA_OK ||
@@ -321,6 +322,8 @@ int main(void)
             fail();
         }
         uart_text("FOTA_AUTOMATIC_ROLLBACK_COMMITTED active_slot=1 version=2\r\n");
+    } else {
+        fail();
     }
     uart_text("FOTA_METADATA_FLASH_OK\r\n");
     if (xy_i2c_device_init(&aht10, pandora_soft_i2c_init(), 0x38U, 100U) != XY_DEVICE_OK) {
