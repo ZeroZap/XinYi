@@ -137,8 +137,9 @@ def main() -> None:
     require(
         BOARD / "STM32L475VETX_FLASH.ld",
         "ORIGIN = 0x08000000",
-        "LENGTH = 508K",
-        "FOTA_METADATA (rx) : ORIGIN = 0x0807F000, LENGTH = 4K",
+        "LENGTH = 504K",
+        "FOTA_METADATA (rx) : ORIGIN = 0x0807E000, LENGTH = 4K",
+        "BOARD_RESERVED (rx) : ORIGIN = 0x0807F000, LENGTH = 4K",
         "ORIGIN = 0x20000000",
         "LENGTH = 96K",
     )
