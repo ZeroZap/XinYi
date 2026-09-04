@@ -85,6 +85,8 @@ def main() -> None:
         "PANDORA_FOTA_METADATA_BASE",
         "FLASH_TYPEPROGRAM_DOUBLEWORD",
         "FLASH_TYPEERASE_PAGES",
+        "FLASH_BANK_SIZE",
+        "FLASH_BANK_2",
         "HAL_FLASHEx_Erase",
         "HAL_FLASH_Program",
         "pandora_fota_metadata_backend",

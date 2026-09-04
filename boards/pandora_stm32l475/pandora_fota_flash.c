@@ -59,8 +59,13 @@ static int flash_erase(uint32_t addr, uint32_t size)
         return XY_FOTA_INVALID_PARAM;
     }
     erase.TypeErase = FLASH_TYPEERASE_PAGES;
-    erase.Banks = FLASH_BANK_1;
-    erase.Page = (addr - FLASH_BASE) / FLASH_PAGE_SIZE;
+    if (addr >= FLASH_BASE + FLASH_BANK_SIZE) {
+        erase.Banks = FLASH_BANK_2;
+        erase.Page = (addr - FLASH_BASE - FLASH_BANK_SIZE) / FLASH_PAGE_SIZE;
+    } else {
+        erase.Banks = FLASH_BANK_1;
+        erase.Page = (addr - FLASH_BASE) / FLASH_PAGE_SIZE;
+    }
     erase.NbPages = 1U;
     if (HAL_FLASH_Unlock() != HAL_OK) {
         return XY_FOTA_FLASH_ERROR;
