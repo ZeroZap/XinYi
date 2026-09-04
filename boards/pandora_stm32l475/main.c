@@ -216,7 +216,7 @@ int main(void)
         uart_text("SYS_RESET_KIND SOFTWARE\r\nSYS_SOFTWARE_RESET_OK\r\n");
     } else {
         uart_text("SYS_RESET_KIND POWER_OR_PIN\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
-        HAL_Delay(10U);
+        HAL_Delay(250U);
         (void)xy_sys_reset(1);
         fail();
     }
@@ -240,7 +240,7 @@ int main(void)
             fail();
         }
         uart_text("FOTA_BOOT_HANDOFF_COMMITTED slot=1 version=2\r\n");
-        HAL_Delay(10U);
+        HAL_Delay(250U);
         (void)xy_sys_reset(1);
         fail();
     }
@@ -254,7 +254,7 @@ int main(void)
             fail();
         }
         uart_text("FOTA_BOOT_ATTEMPT_COMMITTED count=1\r\n");
-        HAL_Delay(10U);
+        HAL_Delay(250U);
         (void)xy_sys_reset(1);
         fail();
     }
