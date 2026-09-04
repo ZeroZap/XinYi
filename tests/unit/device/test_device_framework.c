@@ -23,6 +23,19 @@ void tearDown(void)
 /* A non-NULL placeholder bus handle for the PC-stub I2C HAL. */
 static int g_fake_i2c_bus = 1;
 
+static void test_i2c_helpers_return_status_not_transfer_length(void)
+{
+    xy_i2c_device_t dev = {0};
+    uint8_t data[2] = {0x12, 0x34};
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_init(&dev, &g_fake_i2c_bus, 0x44, 1000));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_write(&dev, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_read(&dev, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_write_reg(&dev, 0x10, data, sizeof(data)));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_i2c_device_read_reg(&dev, 0x10, data, sizeof(data)));
+}
+
 static void test_device_registry_init(void)
 {
     int ret = xy_device_registry_init();
@@ -115,6 +128,7 @@ int main(void)
 {
     UNITY_BEGIN();
 
+    RUN_TEST(test_i2c_helpers_return_status_not_transfer_length);
     RUN_TEST(test_device_registry_init);
     RUN_TEST(test_device_register_via_helper);
     RUN_TEST(test_find_by_name);

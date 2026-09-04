@@ -66,7 +66,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg,
         return XY_DEVICE_IO_ERROR;
     }
 
-    return (int)len;
+    return XY_DEVICE_OK;
 }
 
 xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, 
@@ -93,7 +93,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg,
         return XY_DEVICE_IO_ERROR;
     }
 
-    return (int)len;
+    return XY_DEVICE_OK;
 }
 
 xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
@@ -110,7 +110,7 @@ xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
         return XY_DEVICE_IO_ERROR;
     }
 
-    return (int)len;
+    return XY_DEVICE_OK;
 }
 
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
@@ -127,7 +127,7 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
         return XY_DEVICE_IO_ERROR;
     }
 
-    return (int)len;
+    return XY_DEVICE_OK;
 }
 
 xy_error_t xy_i2c_device_register(xy_i2c_device_t *dev, const char *name, xy_dev_type_t type)
