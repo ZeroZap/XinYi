@@ -343,6 +343,25 @@ static void resource_task(void *argument)
     (void)argument;
     (void)xy_os_delay(250U);
 
+    if (xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                           XY_BROKER_MSG_SENSOR_DATA, &sequence, sizeof(sequence),
+                           XY_BROKER_PRIORITY_NORMAL) != XY_BROKER_OK ||
+        xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                           XY_BROKER_MSG_SENSOR_DATA, &sequence, sizeof(sequence),
+                           XY_BROKER_PRIORITY_NORMAL) != XY_BROKER_OK ||
+        xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                           XY_BROKER_MSG_SENSOR_DATA, &sequence, sizeof(sequence),
+                           XY_BROKER_PRIORITY_NORMAL) != XY_BROKER_QUEUE_FULL) {
+        uart_text("OSAL_IPC_SATURATION_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_IPC_SATURATED\r\n");
+    if (xy_broker_clear_queue(XY_BROKER_SERVER_SYSTEM) != XY_BROKER_OK) {
+        uart_text("OSAL_IPC_SATURATION_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_IPC_RECOVERED\r\n");
+
     pool = xy_os_mempool_new(2U, sizeof(uint32_t), &pool_attr);
     queue = xy_os_msgqueue_new(1U, sizeof(sequence), NULL);
     if (pool == NULL || queue == NULL) {

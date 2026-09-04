@@ -32,9 +32,14 @@ TIM6_RECOVERY = (
     "OSAL_TIM6_IRQ_TIMEOUT_EXPECTED",
     "OSAL_TIM6_IRQ_RECOVERED",
 )
+IPC_RECOVERY = (
+    "OSAL_IPC_SATURATED",
+    "OSAL_IPC_RECOVERED",
+)
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
+    "OSAL_IPC_SATURATION_ERROR",
     "OSAL_ISR_TIMEOUT",
     "OSAL_TIM6_IRQ_RECOVERY_ERROR",
     "OSAL_TIM6_IRQ_TIMEOUT",
@@ -105,6 +110,16 @@ def analyze_capture(
         tim6_recovery_positions
     ):
         failures.append("TIM6 IRQ recovery markers are not ordered")
+
+    ipc_recovery_positions = []
+    for marker in IPC_RECOVERY:
+        if lines.count(marker) != 1:
+            failures.append("IPC saturation/recovery marker count mismatch")
+        ipc_recovery_positions.append(lines.index(marker) if marker in lines else -1)
+    if -1 not in ipc_recovery_positions and ipc_recovery_positions != sorted(
+        ipc_recovery_positions
+    ):
+        failures.append("IPC saturation/recovery markers are not ordered")
 
     cycles = count_ordered_cycles(lines)
     isr_wakes = lines.count("OSAL_ISR_TAKE")
