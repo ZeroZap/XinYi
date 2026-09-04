@@ -89,6 +89,8 @@ def main() -> int:
             "OSAL_MUTEX_MISMATCH",
             "OSAL_ISR_TAKE",
             "OSAL_ISR_TIMEOUT",
+            "OSAL_TIM6_IRQ_TAKE",
+            "OSAL_TIM6_IRQ_TIMEOUT",
             "OSAL_RESOURCE_EXHAUSTED",
             "OSAL_RESOURCE_RECOVERED",
             "OSAL_LIFECYCLE_REINIT",
@@ -131,6 +133,8 @@ def main() -> int:
             "HAL_IncTick",
             "xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED",
             "xy_os_semaphore_release_from_isr",
+            "TIM6_DAC_IRQHandler",
+            "HAL_TIM_IRQHandler",
         ):
             if token not in handler_source:
                 errors.append(f"runtime handlers must preserve token: {token}")

@@ -88,6 +88,8 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${_hal}/stm32l4xx_hal_pwr_ex.c
         ${_hal}/stm32l4xx_hal_rcc.c
         ${_hal}/stm32l4xx_hal_rcc_ex.c
+        ${_hal}/stm32l4xx_hal_tim.c
+        ${_hal}/stm32l4xx_hal_tim_ex.c
         ${_hal}/stm32l4xx_hal_uart.c
     )
     target_include_directories(pandora_stm32l475_rtos BEFORE PRIVATE

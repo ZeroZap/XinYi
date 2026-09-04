@@ -1,4 +1,5 @@
 #include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_tim.h"
 #include "xy_broker.h"
 #include "xy_device.h"
 #include "xy_os.h"
@@ -15,6 +16,8 @@ static xy_os_msgqueue_id_t sync_queue;
 static xy_os_event_flags_id_t sync_events;
 static xy_os_mutex_id_t sync_mutex;
 xy_os_semaphore_id_t pandora_isr_sem;
+xy_os_semaphore_id_t pandora_tim6_sem;
+TIM_HandleTypeDef pandora_tim6;
 static uint32_t shared_sequence;
 static uint32_t ipc_expected_sequence;
 static uint32_t ipc_delivered_count;
@@ -160,6 +163,21 @@ static void gpio_uart_init(void)
     }
 }
 
+static void tim6_init(void)
+{
+    __HAL_RCC_TIM6_CLK_ENABLE();
+    pandora_tim6.Instance = TIM6;
+    pandora_tim6.Init.Prescaler = 7999U;
+    pandora_tim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+    pandora_tim6.Init.Period = 6999U;
+    pandora_tim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&pandora_tim6) != HAL_OK) {
+        fail();
+    }
+    HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 5U, 0U);
+    HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+}
+
 static void fast_task(void *argument)
 {
     uint32_t sequence = 0U;
@@ -272,6 +290,19 @@ static void isr_task(void *argument)
     }
 }
 
+static void tim6_irq_task(void *argument)
+{
+    (void)argument;
+    for (;;) {
+        if (xy_os_semaphore_acquire(pandora_tim6_sem, 1500U) == XY_OS_OK) {
+            uart_text("OSAL_TIM6_IRQ_TAKE\r\n");
+        } else {
+            uart_text("OSAL_TIM6_IRQ_TIMEOUT\r\n");
+            fail();
+        }
+    }
+}
+
 static void resource_task(void *argument)
 {
     static const xy_os_mempool_attr_t pool_attr = {
@@ -368,10 +399,16 @@ int main(void)
         .stack_size = 768U,
         .priority = XY_OS_PRIORITY_NORMAL,
     };
+    static const xy_os_thread_attr_t tim6_attr = {
+        .name = "osal-tim6",
+        .stack_size = 512U,
+        .priority = XY_OS_PRIORITY_ABOVE_NORMAL,
+    };
 
     HAL_Init();
     clock_init();
     gpio_uart_init();
+    tim6_init();
     uart_text("PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n");
     uart_text("FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
     uart_text("OSAL_STRESS_READY\r\n");
@@ -386,10 +423,15 @@ int main(void)
         (sync_events = xy_os_event_flags_new(NULL)) == NULL ||
         (sync_mutex = xy_os_mutex_new(NULL)) == NULL ||
         (pandora_isr_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
+        (pandora_tim6_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL ||
         xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL ||
+        xy_os_thread_new(tim6_irq_task, NULL, &tim6_attr) == NULL ||
         xy_os_thread_new(resource_task, NULL, &resource_attr) == NULL) {
+        fail();
+    }
+    if (HAL_TIM_Base_Start_IT(&pandora_tim6) != HAL_OK) {
         fail();
     }
     (void)xy_os_kernel_start();

@@ -38,6 +38,7 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
         lines.extend(CYCLE)
         if index < isr_wakes:
             lines.append("OSAL_ISR_TAKE")
+            lines.append("OSAL_TIM6_IRQ_TAKE")
     return ("\r\n".join(lines) + "\r\n").encode("ascii")
 
 
@@ -48,6 +49,7 @@ class StressCaptureContract(unittest.TestCase):
         self.assertEqual(result["status"], "STRESS_REVIEW_CANDIDATE")
         self.assertEqual(result["ordered_pipeline_cycles"], 120)
         self.assertEqual(result["isr_take_count"], 60)
+        self.assertEqual(result["tim6_irq_take_count"], 60)
         self.assertEqual(result["error_markers"], {})
 
     def test_rejects_too_few_pipeline_cycles(self) -> None:
@@ -55,6 +57,13 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn("pipeline cycles 99 < 100", result["failures"])
+
+    def test_rejects_too_few_peripheral_irq_wakes(self) -> None:
+        payload = make_capture(120, 60).replace(b"OSAL_TIM6_IRQ_TAKE\r\n", b"", 11)
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("TIM6 IRQ wakes 49 < 50", result["failures"])
 
     def test_rejects_error_marker_and_wrong_identity(self) -> None:
         payload = make_capture(120, 60).replace(

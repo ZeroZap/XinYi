@@ -32,6 +32,7 @@ ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
     "OSAL_ISR_TIMEOUT",
+    "OSAL_TIM6_IRQ_TIMEOUT",
     "OSAL_MUTEX_MISMATCH",
     "OSAL_MUTEX_TIMEOUT",
     "OSAL_QUEUE_MISMATCH",
@@ -92,10 +93,13 @@ def analyze_capture(
 
     cycles = count_ordered_cycles(lines)
     isr_wakes = lines.count("OSAL_ISR_TAKE")
+    tim6_irq_wakes = lines.count("OSAL_TIM6_IRQ_TAKE")
     if cycles < min_pipeline_cycles:
         failures.append(f"pipeline cycles {cycles} < {min_pipeline_cycles}")
     if isr_wakes < min_isr_wakes:
         failures.append(f"ISR wakes {isr_wakes} < {min_isr_wakes}")
+    if tim6_irq_wakes < min_isr_wakes:
+        failures.append(f"TIM6 IRQ wakes {tim6_irq_wakes} < {min_isr_wakes}")
 
     errors = {marker: lines.count(marker) for marker in ERROR_MARKERS if marker in lines}
     if errors:
@@ -109,6 +113,7 @@ def analyze_capture(
         "capture_sha256": hashlib.sha256(payload).hexdigest(),
         "ordered_pipeline_cycles": cycles,
         "isr_take_count": isr_wakes,
+        "tim6_irq_take_count": tim6_irq_wakes,
         "error_markers": errors,
         "failures": failures,
         "scope": "bounded Pandora OSAL/FreeRTOS runtime stress candidate",
