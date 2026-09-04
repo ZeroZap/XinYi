@@ -146,6 +146,8 @@ def main() -> int:
             "HAL_DMA_Start",
             "HAL_DMA_PollForTransfer",
             "HAL_DMA_DeInit",
+            "DMA_PDATAALIGN_WORD",
+            "DMA_MDATAALIGN_WORD",
             "XY_HAL_ERROR_INVALID_PARAM",
             "XY_HAL_ERROR_NOT_INIT",
         ):

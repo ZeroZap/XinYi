@@ -43,7 +43,7 @@ static uint32_t to_priority(xy_hal_dma_priority_t priority)
     }
 }
 
-static uint32_t to_alignment(xy_hal_dma_width_t width)
+static uint32_t to_periph_alignment(xy_hal_dma_width_t width)
 {
     switch (width) {
     case XY_HAL_DMA_WIDTH_HALFWORD:
@@ -53,6 +53,19 @@ static uint32_t to_alignment(xy_hal_dma_width_t width)
     case XY_HAL_DMA_WIDTH_BYTE:
     default:
         return DMA_PDATAALIGN_BYTE;
+    }
+}
+
+static uint32_t to_mem_alignment(xy_hal_dma_width_t width)
+{
+    switch (width) {
+    case XY_HAL_DMA_WIDTH_HALFWORD:
+        return DMA_MDATAALIGN_HALFWORD;
+    case XY_HAL_DMA_WIDTH_WORD:
+        return DMA_MDATAALIGN_WORD;
+    case XY_HAL_DMA_WIDTH_BYTE:
+    default:
+        return DMA_MDATAALIGN_BYTE;
     }
 }
 
@@ -69,8 +82,8 @@ xy_hal_error_t xy_hal_dma_init(void *dma, const xy_hal_dma_config_t *config)
                                                                          : DMA_PINC_DISABLE;
     hdma->Init.MemInc = config->mem_incr == XY_HAL_DMA_INCR_ENABLE ? DMA_MINC_ENABLE
                                                                    : DMA_MINC_DISABLE;
-    hdma->Init.PeriphDataAlignment = to_alignment(config->periph_width);
-    hdma->Init.MemDataAlignment = to_alignment(config->mem_width);
+    hdma->Init.PeriphDataAlignment = to_periph_alignment(config->periph_width);
+    hdma->Init.MemDataAlignment = to_mem_alignment(config->mem_width);
     hdma->Init.Mode = to_mode(config->mode);
     hdma->Init.Priority = to_priority(config->priority);
 #if defined(DMAMUX1)
