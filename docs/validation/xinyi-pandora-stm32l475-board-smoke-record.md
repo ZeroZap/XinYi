@@ -1,5 +1,26 @@
 # Pandora STM32L475VE Board Smoke Record
 
+## 2026-09-04 TIM6 peripheral IRQ timeout/restart recovery result
+
+The clean committed firmware `f78f441712322447f81582e95185bbc6a2efd5a8` was built with Arm GNU
+15.2.1 and retained SVC, PendSV, SysTick, and TIM6 handler symbols. Its 19652-byte BIN SHA-256 was
+`287b48dbda98bb7e364c32f895198e941826d05f8b48b0eefa6a873a86aa5d1b`. ST-Link programmed and
+verified the image; a same-length read-back was byte-identical. The runtime deliberately stopped
+TIM6 interrupt generation, observed the bounded 900-tick OSAL semaphore timeout, restarted TIM6,
+and then observed a fresh IRQ-to-task wake.
+
+The independent WCH-Link 10-second capture retained 5415 bytes and matched the exact firmware
+identity. Machine validation found one ordered `OSAL_TIM6_IRQ_TIMEOUT_EXPECTED →
+OSAL_TIM6_IRQ_RECOVERED` transition, 20 complete task-pipeline cycles, nine SysTick ISR wakes,
+11 TIM6 IRQ wakes, and zero runtime error markers. This grants B2 only for controlled TIM6 update
+interrupt disable/timeout/re-enable recovery. It is not physical fault injection, arbitrary IRQ
+recovery, IRQ timing performance, SPI/DMA, or complete HAL/RTOS qualification.
+
+Retained evidence:
+
+- [raw UART](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-tim6-recovery-f78f4417.txt)
+- [machine analysis](evidence/pandora-stm32l475/2026-09-04/rtos-tim6-recovery-f78f4417.json)
+
 ## 2026-09-04 TIM6 peripheral IRQ-to-task result
 
 The clean committed firmware `c9509e81a4338229b48ddd8ad98e16cf9fa596ee` configured TIM6 for a
