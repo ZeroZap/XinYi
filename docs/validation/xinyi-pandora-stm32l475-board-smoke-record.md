@@ -1,5 +1,19 @@
 # Pandora STM32L475VE Board Smoke Record
 
+## 2026-09-04 TIM6 peripheral IRQ-to-task result
+
+The clean committed firmware `c9509e81a4338229b48ddd8ad98e16cf9fa596ee` configured TIM6 for a
+700 ms update interrupt at NVIC priority 5. `TIM6_DAC_IRQHandler` dispatches through the STM32 HAL
+callback, which uses `xy_os_semaphore_release_from_isr()` to wake an OSAL-created task. The 19372-byte
+image was programmed and verified by ST-Link. An independent WCH-Link 8-second capture retained 4337
+bytes and the exact firmware identity: 16 complete task pipeline cycles, 6 SysTick ISR wakes, 10 TIM6
+IRQ wakes, and zero runtime error markers. Capture SHA-256 was
+`105c37b0189813dda090852ef1798da8fc4ae8320d37ff6501c5c8b32847bf02`.
+
+This grants B1 only for the TIM6 update IRQ → ISR-safe OSAL semaphore → task path. It does not prove
+arbitrary peripheral IRQ support, negative/recovery behavior, IRQ timing performance, SPI/DMA, or
+complete HAL/RTOS qualification.
+
 **Date**: 2026-09-03
 **Source commit**: `9b50ec38c4e32f9e37c93a0f3f70379453c9622f`
 **Board**: Pandora STM32L475VE
