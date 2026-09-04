@@ -6,7 +6,7 @@
 #define XY_FOTA_METADATA_MAGIC 0x58464D44U
 #define XY_FOTA_METADATA_FORMAT_VERSION 3U
 #define XY_FOTA_METADATA_SLOT_COUNT 2U
-#define XY_FOTA_METADATA_COMMITTED 0xA55AC33CU
+#define XY_FOTA_METADATA_COMMITTED UINT64_C(0xFFFFFFFFA55AC33C)
 
 typedef struct {
     uint32_t magic;
@@ -20,8 +20,7 @@ typedef struct {
     uint8_t boot_attempts;
     uint8_t flags;
     uint32_t crc32;
-    uint32_t program_padding;
-    uint32_t committed;
+    uint64_t committed;
 } xy_fota_metadata_record_t;
 
 static bool metadata_fields_are_valid(uint32_t active_version, uint32_t min_version,
