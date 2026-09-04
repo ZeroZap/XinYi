@@ -274,6 +274,18 @@ int main(void)
         fail();
     }
     uart_text("FOTA_BOOT_CONTRACT_OK active_slot=1 version=2 min_version=2\r\n");
+    if (xy_fota_metadata_boot_handoff(0U, 1U, (void *)metadata_backend) !=
+            XY_FOTA_VERSION_ERROR ||
+        xy_fota_metadata_flash_load(metadata_backend, &committed) != XY_FOTA_OK ||
+        committed.generation != loaded.generation ||
+        committed.active_slot != loaded.active_slot ||
+        committed.active_version != loaded.active_version ||
+        committed.min_version != loaded.min_version ||
+        committed.pending_slot != loaded.pending_slot ||
+        committed.pending_version != loaded.pending_version || committed.flags != loaded.flags) {
+        fail();
+    }
+    uart_text("FOTA_ANTI_ROLLBACK_REJECTED version=1 floor=2\r\n");
     uart_text("FOTA_METADATA_FLASH_OK\r\n");
     if (xy_i2c_device_init(&aht10, pandora_soft_i2c_init(), 0x38U, 100U) != XY_DEVICE_OK) {
         fail();

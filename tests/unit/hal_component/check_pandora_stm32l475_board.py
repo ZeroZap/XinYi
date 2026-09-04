@@ -143,6 +143,7 @@ def main() -> None:
         "FOTA_BOOT_ATTEMPT_COMMITTED",
         "FOTA_BOOT_CONFIRM_COMMITTED",
         "FOTA_BOOT_CONTRACT_OK",
+        "FOTA_ANTI_ROLLBACK_REJECTED",
         "FOTA_METADATA_FLASH_OK",
     )
     require(

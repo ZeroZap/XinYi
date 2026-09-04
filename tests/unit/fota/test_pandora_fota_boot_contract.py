@@ -23,6 +23,7 @@ def valid_capture() -> bytes:
         f"FOTA_FIRMWARE_COMMIT {COMMIT}\r\n"
         "FOTA_BOOT_CONFIRM_COMMITTED slot=1 version=2\r\n"
         "FOTA_BOOT_CONTRACT_OK active_slot=1 version=2 min_version=2\r\n"
+        "FOTA_ANTI_ROLLBACK_REJECTED version=1 floor=2\r\n"
         "FOTA_METADATA_FLASH_OK\r\n"
     ).encode("ascii")
 
@@ -51,6 +52,13 @@ def main() -> int:
     result = analyze_capture(error_capture, COMMIT)
     assert result["status"] == "FOTA_BOOT_CONTRACT_VALIDATION_FAILED"
     assert "runtime error marker present" in result["failures"]
+
+    missing_anti_rollback = valid_capture().replace(
+        b"FOTA_ANTI_ROLLBACK_REJECTED version=1 floor=2\r\n", b"", 1
+    )
+    result = analyze_capture(missing_anti_rollback, COMMIT)
+    assert result["status"] == "FOTA_BOOT_CONTRACT_VALIDATION_FAILED"
+    assert "FOTA_ANTI_ROLLBACK_REJECTED version=1 floor=2 count 0 != 1" in result["failures"]
     return 0
 
 

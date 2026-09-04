@@ -15,6 +15,7 @@ HANDOFF = "FOTA_BOOT_HANDOFF_COMMITTED slot=1 version=2"
 ATTEMPT = "FOTA_BOOT_ATTEMPT_COMMITTED count=1"
 CONFIRM = "FOTA_BOOT_CONFIRM_COMMITTED slot=1 version=2"
 CONTRACT_OK = "FOTA_BOOT_CONTRACT_OK active_slot=1 version=2 min_version=2"
+ANTI_ROLLBACK = "FOTA_ANTI_ROLLBACK_REJECTED version=1 floor=2"
 METADATA_OK = "FOTA_METADATA_FLASH_OK"
 ERROR_MARKER = "FOTA_BOOT_CONTRACT_ERROR"
 
@@ -36,7 +37,7 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     if len(identity_positions) != 3:
         failures.append("boot identity chain mismatch")
 
-    expected = (INITIALIZED, HANDOFF, ATTEMPT, CONFIRM, CONTRACT_OK, METADATA_OK)
+    expected = (INITIALIZED, HANDOFF, ATTEMPT, CONFIRM, CONTRACT_OK, ANTI_ROLLBACK, METADATA_OK)
     positions = []
     for marker in expected:
         count = lines.count(marker)
@@ -47,11 +48,23 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         failures.append("FOTA transition markers are not ordered")
 
     if len(identity_positions) == 3 and -1 not in positions:
-        initialized_pos, handoff_pos, attempt_pos, confirm_pos, contract_pos, metadata_pos = positions
+        (
+            initialized_pos,
+            handoff_pos,
+            attempt_pos,
+            confirm_pos,
+            contract_pos,
+            anti_rollback_pos,
+            metadata_pos,
+        ) = positions
         if not (
             identity_positions[0] < initialized_pos < handoff_pos < identity_positions[1]
             and identity_positions[1] < attempt_pos < identity_positions[2]
-            and identity_positions[2] < confirm_pos < contract_pos < metadata_pos
+            and identity_positions[2]
+            < confirm_pos
+            < contract_pos
+            < anti_rollback_pos
+            < metadata_pos
         ):
             failures.append("FOTA transitions do not belong to three ordered boots")
 
@@ -69,7 +82,10 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "capture_sha256": hashlib.sha256(payload).hexdigest(),
         "boot_count": len(identity_positions),
         "failures": failures,
-        "scope": "Pandora metadata handoff/attempt/confirm persistence across software resets",
+        "scope": (
+            "Pandora metadata handoff/attempt/confirm persistence across software resets "
+            "and anti-rollback rejection at the committed floor"
+        ),
         "not_evidence_for": [
             "candidate image execution",
             "bootloader vector handoff",
