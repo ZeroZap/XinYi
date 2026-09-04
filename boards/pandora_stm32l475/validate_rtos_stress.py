@@ -43,6 +43,11 @@ IPC_RECOVERY = (
 )
 MULTI_PRODUCER_COMPLETION = "OSAL_MULTI_PRODUCER_OK"
 MULTI_CONSUMER_DISTRIBUTION = "OSAL_MULTI_CONSUMER_DISTRIBUTED"
+MULTI_CONSUMER_TAKES = (
+    "OSAL_MULTI_CONSUMER_0_TAKE",
+    "OSAL_MULTI_CONSUMER_1_TAKE",
+)
+EXPECTED_MULTI_MESSAGES = 16
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
@@ -140,6 +145,14 @@ def analyze_capture(
             f"{MULTI_CONSUMER_DISTRIBUTION} count "
             f"{lines.count(MULTI_CONSUMER_DISTRIBUTION)} != 1"
         )
+    multi_consumer_take_counts = [lines.count(marker) for marker in MULTI_CONSUMER_TAKES]
+    if sum(multi_consumer_take_counts) != EXPECTED_MULTI_MESSAGES:
+        failures.append(
+            f"multi-consumer take total {sum(multi_consumer_take_counts)} "
+            f"!= {EXPECTED_MULTI_MESSAGES}"
+        )
+    if any(count == 0 for count in multi_consumer_take_counts):
+        failures.append("both multi-consumers must receive payloads")
 
     cycles = count_ordered_cycles(lines)
     isr_wakes = lines.count("OSAL_ISR_TAKE")
@@ -164,6 +177,7 @@ def analyze_capture(
         "ordered_pipeline_cycles": cycles,
         "isr_take_count": isr_wakes,
         "tim6_irq_take_count": tim6_irq_wakes,
+        "multi_consumer_take_counts": multi_consumer_take_counts,
         "error_markers": errors,
         "failures": failures,
         "scope": "bounded Pandora OSAL/FreeRTOS runtime stress candidate",

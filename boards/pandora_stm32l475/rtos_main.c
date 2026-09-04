@@ -498,6 +498,8 @@ static void multi_consumer_task(void *argument)
         if (xy_os_mutex_release(sync_mutex) != XY_OS_OK) {
             fail();
         }
+        uart_text(consumer == 0U ? "OSAL_MULTI_CONSUMER_0_TAKE\r\n"
+                                 : "OSAL_MULTI_CONSUMER_1_TAKE\r\n");
         (void)xy_os_delay(1U);
     }
 

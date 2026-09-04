@@ -45,6 +45,8 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
         "OSAL_MULTI_PRODUCER_OK",
         "OSAL_MULTI_CONSUMER_DISTRIBUTED",
     ]
+    lines.extend(["OSAL_MULTI_CONSUMER_0_TAKE"] * 8)
+    lines.extend(["OSAL_MULTI_CONSUMER_1_TAKE"] * 8)
     for index in range(cycles):
         lines.extend(CYCLE)
         if index < isr_wakes:
@@ -61,6 +63,7 @@ class StressCaptureContract(unittest.TestCase):
         self.assertEqual(result["ordered_pipeline_cycles"], 120)
         self.assertEqual(result["isr_take_count"], 60)
         self.assertEqual(result["tim6_irq_take_count"], 60)
+        self.assertEqual(result["multi_consumer_take_counts"], [8, 8])
         self.assertEqual(result["error_markers"], {})
 
     def test_rejects_too_few_pipeline_cycles(self) -> None:
@@ -156,6 +159,24 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn("OSAL_MULTI_CONSUMER_DISTRIBUTED count 0 != 1", result["failures"])
+
+    def test_rejects_missing_consumer_payload_count(self) -> None:
+        payload = make_capture(120, 60).replace(b"OSAL_MULTI_CONSUMER_1_TAKE\r\n", b"", 1)
+
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("multi-consumer take total 15 != 16", result["failures"])
+
+    def test_rejects_single_consumer_monopoly(self) -> None:
+        payload = make_capture(120, 60).replace(
+            b"OSAL_MULTI_CONSUMER_1_TAKE", b"OSAL_MULTI_CONSUMER_0_TAKE"
+        )
+
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("both multi-consumers must receive payloads", result["failures"])
 
 
 if __name__ == "__main__":
