@@ -12,6 +12,10 @@ FIRMWARE_COMMIT = "9b50ec38c4e32f9e37c93a0f3f70379453c9622f"
 UART_LOG_SHA256 = "93d4dc22669b26b8b666f4bc4d25968f9b2aa02959968f476fbfe4191730a658"
 METADATA_SHA256 = "54f357183833ace492f2382e591fda3e4f75dc90002d625c7ae4d0f676652532"
 KEY0_LOG_SHA256 = "57e69784ce8a436f969fd9562826cf667aca34c3561523a99544e8e33b720f1b"
+SYS_EVIDENCE = ROOT / "docs" / "validation" / "evidence" / "pandora-stm32l475" / "2026-09-04"
+SYS_LOG_SHA256 = "15bf255077d82b0aeec1496a9d0e38e11ff240ceb7131f8173857cc3b9b6ae9a"
+SYS_METADATA_SHA256 = "a0a1edf0e0f529c6121748f1b752be4029c4addf695e88e4fa86200b791f2099"
+SYS_FIRMWARE_COMMIT = "28f4b21dc06e2189145dadc67e78340f9a22be90"
 
 
 def require(path: Path, *needles: str) -> None:
@@ -153,6 +157,22 @@ def main() -> None:
     assert key0_log.count("KEY0") == 4
     assert key0_log.count(f"FIRMWARE_COMMIT {FIRMWARE_COMMIT}") == 13
     assert "AHT10 0x38 NACK" not in key0_log
+    sys_log = require_sha256(
+        SYS_EVIDENCE / "uart-wchlink-sys-reset-28f4b21d.txt", SYS_LOG_SHA256
+    ).decode("utf-8")
+    sys_metadata = json.loads(
+        require_sha256(
+            SYS_EVIDENCE / "uart-wchlink-sys-reset-28f4b21d.json", SYS_METADATA_SHA256
+        )
+    )
+    assert sys_metadata["firmware_commit"] == SYS_FIRMWARE_COMMIT
+    assert sys_metadata["firmware_commit_marker_matched"] is True
+    assert sys_metadata["status"] == "CAPTURED"
+    assert sys_log.count("SYS_SOFTWARE_RESET_REQUEST") == 1
+    assert sys_log.count("SYS_SOFTWARE_RESET_OK") == 1
+    assert sys_log.count("SYS_RESET_KIND SOFTWARE") == 1
+    assert sys_log.count("SYS_CHIP_ID 001B002E3647501320313556") == 2
+    assert sys_log.count(f"FIRMWARE_COMMIT {SYS_FIRMWARE_COMMIT}") == 2
     print("Pandora STM32L475VE board contract: PASS")
 
 

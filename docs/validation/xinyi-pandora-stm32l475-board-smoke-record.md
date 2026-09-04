@@ -9,6 +9,29 @@
 This record separates verified programming, observed normal-path board runtime, and still-pending
 negative/recovery evidence. B1 does not imply AHT10 NACK/recovery verification.
 
+## 2026-09-04 SYS strong-backend reset and identity result
+
+The clean firmware commit `28f4b21dc06e2189145dadc67e78340f9a22be90` linked the Pandora-owned
+`xy_sys_init()`, reset-reason, chip-ID, and software-reset implementations. The 7824-byte BIN had
+SHA-256 `fff3594813642400df343c765a8e1d84b2fc491d40af7519efb342cb19721b38` and was programmed with
+ST-Link write verification. A separate 7824-byte Flash read-back was byte-identical.
+
+An eight-second WCH-Link capture retained the transition from the previously running RTOS image to
+the SYS image. The first SYS boot recorded RCC CSR `0x0C000600`, stable 96-bit UID
+`001B002E3647501320313556`, and `SYS_SOFTWARE_RESET_REQUEST`. The board then reset through
+`NVIC_SystemReset()` without human input. The next boot recorded RCC CSR `0x14000600`, the same UID,
+`SYS_RESET_KIND SOFTWARE`, and `SYS_SOFTWARE_RESET_OK`, followed by two matching firmware/AHT10
+normal-path cycles. This grants B1 for Pandora chip identity and B2 for the automated software-reset
+reason/recovery path only. Power-on versus NRST is not disambiguated by this run; watchdog and
+physical-reset causes remain pending.
+
+Retained evidence:
+
+- [raw SYS UART log](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-sys-reset-28f4b21d.txt),
+  SHA-256 `15bf255077d82b0aeec1496a9d0e38e11ff240ceb7131f8173857cc3b9b6ae9a`
+- [SYS capture metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-sys-reset-28f4b21d.json),
+  SHA-256 `a0a1edf0e0f529c6121748f1b752be4029c4addf695e88e4fa86200b791f2099`
+
 ## Environment
 
 - ST-Link USB identity: `0483:374b` (`ST-LINK/V2.1`)
