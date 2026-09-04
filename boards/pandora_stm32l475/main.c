@@ -1,4 +1,5 @@
 #include "stm32l4xx_hal.h"
+#include "xy_error.h"
 #include "xy_sys.h"
 
 static UART_HandleTypeDef uart1;
@@ -25,6 +26,18 @@ static void fail(void)
     __disable_irq();
     for (;;) {
     }
+}
+
+static void uart_hex32(uint32_t value)
+{
+    static const char digits[] = "0123456789ABCDEF";
+    uint8_t text[8];
+
+    for (uint32_t index = 0; index < sizeof(text); ++index) {
+        uint32_t shift = (uint32_t)(sizeof(text) - 1U - index) * 4U;
+        text[index] = (uint8_t)digits[(value >> shift) & 0x0FU];
+    }
+    HAL_UART_Transmit(&uart1, text, sizeof(text), 100U);
 }
 
 static void soft_i2c_delay(void)
@@ -301,11 +314,31 @@ int main(void)
     static const uint8_t aht_nack[] = "AHT10 0x38 NACK\r\n";
     uint32_t humidity_milli_percent = 0;
     int32_t temperature_milli_c = 0;
+    uint32_t reset_reason = 0;
+    uint32_t chip_id[3] = {0};
 
     HAL_Init();
     clock_init();
     gpio_uart_init();
     xy_sys_init();
+    if (xy_sys_reboot_reason(&reset_reason) != XY_OK || xy_sys_get_chip_id(chip_id) != XY_OK) {
+        fail();
+    }
+    uart_text("SYS_RESET_CSR 0x");
+    uart_hex32(reset_reason);
+    uart_text("\r\nSYS_CHIP_ID ");
+    uart_hex32(chip_id[0]);
+    uart_hex32(chip_id[1]);
+    uart_hex32(chip_id[2]);
+    uart_text("\r\n");
+    if ((reset_reason & RCC_CSR_SFTRSTF) != 0U) {
+        uart_text("SYS_RESET_KIND SOFTWARE\r\nSYS_SOFTWARE_RESET_OK\r\n");
+    } else {
+        uart_text("SYS_RESET_KIND POWER_OR_PIN\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
+        HAL_Delay(10U);
+        (void)xy_sys_reset(1);
+        fail();
+    }
     int aht_initialized = aht10_init();
     for (;;) {
         HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);

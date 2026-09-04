@@ -69,6 +69,7 @@ def main() -> None:
         "NVIC_SystemReset",
         "HAL_GetUIDw0",
         "__HAL_RCC_CLEAR_RESET_FLAGS",
+        "RCC->CSR",
     )
     require(
         BOARD / "main.c",
@@ -94,6 +95,14 @@ def main() -> None:
         "KEY0",
         "PANDORA STM32L475VE",
         "xy_sys_init",
+        "xy_sys_reboot_reason",
+        "xy_sys_get_chip_id",
+        "RCC_CSR_SFTRSTF",
+        "SYS_RESET_CSR",
+        "SYS_CHIP_ID",
+        "SYS_RESET_KIND SOFTWARE",
+        "SYS_SOFTWARE_RESET_REQUEST",
+        "SYS_SOFTWARE_RESET_OK",
     )
     require(
         BOARD / "STM32L475VETX_FLASH.ld",
