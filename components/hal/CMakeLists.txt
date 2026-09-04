@@ -45,12 +45,13 @@ elseif(HAL_PLATFORM STREQUAL "STM32U5")
     message(STATUS "XY HAL: Building for STM32U5")
 
 elseif(HAL_PLATFORM STREQUAL "STM32L4")
-    # STM32L4 implementation currently reuses the STM32F4 wrapper sources
-    # until dedicated components/hal/stm32/stm32l4 sources are added.
+    # STM32L4 reuses F4 wrappers except where a dedicated L4 source exists.
     file(GLOB HAL_SOURCES
         "stm32/stm32f4/*.c"
         "stm32/src/*.c"
     )
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_dma\\.c$")
+    list(APPEND HAL_SOURCES "stm32/stm32l4/xy_hal_dma.c")
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32L4

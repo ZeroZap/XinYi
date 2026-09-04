@@ -10,6 +10,7 @@ CMAKE = BOARD / "CMakeLists.txt"
 MAIN = BOARD / "rtos_main.c"
 HANDLERS = BOARD / "rtos_handlers.c"
 STRESS_VALIDATOR = BOARD / "validate_rtos_stress.py"
+L4_DMA = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_dma.c"
 
 
 def main() -> int:
@@ -30,6 +31,8 @@ def main() -> int:
         "rtos_handlers.c",
         "xy_osal",
         "freertos_kernel",
+        "components/hal/stm32/stm32l4/xy_hal_dma.c",
+        "stm32l4xx_hal_dma.c",
     ):
         if token not in cmake:
             errors.append(f"Pandora CMake must wire token: {token}")
@@ -111,6 +114,12 @@ def main() -> int:
             "OSAL_BLOCKING_TIMEOUT_OK",
             "OSAL_BLOCKING_TIMEOUT_ERROR",
             "OSAL_STRESS_READY",
+            "xy_hal_dma_init",
+            "xy_hal_dma_start",
+            "xy_hal_dma_poll_complete",
+            "xy_hal_dma_deinit",
+            "PANDORA_DMA_MEM2MEM_OK",
+            "PANDORA_DMA_MEM2MEM_ERROR",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
@@ -121,6 +130,22 @@ def main() -> int:
             "if (primask == 0U)"
         ) != 1:
             errors.append("Pandora runtime must serialize concurrent UART evidence output")
+
+    if not L4_DMA.is_file():
+        errors.append("dedicated STM32L4 DMA wrapper is missing")
+    else:
+        dma_source = L4_DMA.read_text(encoding="utf-8")
+        for token in (
+            "STM32L4",
+            "HAL_DMA_Init",
+            "HAL_DMA_Start",
+            "HAL_DMA_PollForTransfer",
+            "HAL_DMA_DeInit",
+            "XY_HAL_ERROR_INVALID_PARAM",
+            "XY_HAL_ERROR_NOT_INIT",
+        ):
+            if token not in dma_source:
+                errors.append(f"STM32L4 DMA wrapper must preserve token: {token}")
 
     if STRESS_VALIDATOR.is_file():
         validator_source = STRESS_VALIDATOR.read_text(encoding="utf-8")

@@ -2,6 +2,7 @@
 #include "stm32l4xx_hal_tim.h"
 #include "xy_broker.h"
 #include "xy_device.h"
+#include "xy_hal_dma.h"
 #include "xy_os.h"
 #include "xy_pm.h"
 #include "xy_stdio.h"
@@ -34,6 +35,9 @@ static xy_device_t ipc_device = {
     .state = XY_DEV_STATE_CLOSED,
 };
 static uint8_t resource_pool_memory[2U * sizeof(uint32_t)];
+static DMA_HandleTypeDef dma1_channel1;
+static uint32_t dma_source[8];
+static uint32_t dma_destination[8];
 
 #define SYNC_EVENT_DATA_READY (1UL << 0)
 #define BLOCKING_TIMEOUT_TICKS 100U
@@ -436,6 +440,47 @@ static void resource_task(void *argument)
     xy_os_thread_exit();
 }
 
+static void dma_task(void *argument)
+{
+    static const xy_hal_dma_config_t config = {
+        .direction = XY_HAL_DMA_DIR_MEM_TO_MEM,
+        .mode = XY_HAL_DMA_MODE_NORMAL,
+        .priority = XY_HAL_DMA_PRIORITY_HIGH,
+        .periph_width = XY_HAL_DMA_WIDTH_WORD,
+        .mem_width = XY_HAL_DMA_WIDTH_WORD,
+        .periph_incr = XY_HAL_DMA_INCR_ENABLE,
+        .mem_incr = XY_HAL_DMA_INCR_ENABLE,
+    };
+
+    (void)argument;
+    (void)xy_os_delay(750U);
+    __HAL_RCC_DMA1_CLK_ENABLE();
+    dma1_channel1.Instance = DMA1_Channel1;
+    for (uint32_t index = 0U; index < 8U; ++index) {
+        dma_source[index] = 0x5A5A0000U | index;
+        dma_destination[index] = 0U;
+    }
+    if (xy_hal_dma_init(&dma1_channel1, &config) != XY_HAL_OK ||
+        xy_hal_dma_start(&dma1_channel1, (uint32_t)dma_source, (uint32_t)dma_destination, 8U) !=
+            XY_HAL_OK ||
+        xy_hal_dma_poll_complete(&dma1_channel1, 100U) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_MEM2MEM_ERROR\r\n");
+        fail();
+    }
+    for (uint32_t index = 0U; index < 8U; ++index) {
+        if (dma_destination[index] != dma_source[index]) {
+            uart_text("PANDORA_DMA_MEM2MEM_ERROR\r\n");
+            fail();
+        }
+    }
+    if (xy_hal_dma_deinit(&dma1_channel1) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_MEM2MEM_ERROR\r\n");
+        fail();
+    }
+    uart_text("PANDORA_DMA_MEM2MEM_OK\r\n");
+    xy_os_thread_exit();
+}
+
 static void multi_producer_task(void *argument)
 {
     multi_message_t message = {.producer = (uint32_t)(uintptr_t)argument};
@@ -563,6 +608,11 @@ int main(void)
         .stack_size = 512U,
         .priority = XY_OS_PRIORITY_NORMAL,
     };
+    static const xy_os_thread_attr_t dma_attr = {
+        .name = "hal-dma",
+        .stack_size = 512U,
+        .priority = XY_OS_PRIORITY_NORMAL,
+    };
 
     HAL_Init();
     clock_init();
@@ -589,6 +639,7 @@ int main(void)
         xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL ||
         xy_os_thread_new(tim6_irq_task, NULL, &tim6_attr) == NULL ||
         xy_os_thread_new(resource_task, NULL, &resource_attr) == NULL ||
+        xy_os_thread_new(dma_task, NULL, &dma_attr) == NULL ||
         xy_os_thread_new(multi_producer_task, (void *)(uintptr_t)0U, &multi_attr) == NULL ||
         xy_os_thread_new(multi_producer_task, (void *)(uintptr_t)1U, &multi_attr) == NULL ||
         xy_os_thread_new(multi_consumer_task, (void *)(uintptr_t)0U, &multi_attr) == NULL ||
