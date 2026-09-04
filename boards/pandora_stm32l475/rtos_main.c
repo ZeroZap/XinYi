@@ -1,5 +1,8 @@
 #include "stm32l4xx_hal.h"
+#include "xy_broker.h"
+#include "xy_device.h"
 #include "xy_os.h"
+#include "xy_stdio.h"
 
 #ifndef XINYI_FIRMWARE_COMMIT
 #error "XINYI_FIRMWARE_COMMIT must identify the source commit used for this image"
@@ -12,6 +15,13 @@ static xy_os_event_flags_id_t sync_events;
 static xy_os_mutex_id_t sync_mutex;
 xy_os_semaphore_id_t pandora_isr_sem;
 static uint32_t shared_sequence;
+static uint32_t ipc_expected_sequence;
+static uint32_t ipc_delivered_count;
+static xy_device_t ipc_device = {
+    .name = "pandora-ipc",
+    .type = XY_DEV_TYPE_MISC,
+    .state = XY_DEV_STATE_CLOSED,
+};
 static uint8_t resource_pool_memory[2U * sizeof(uint32_t)];
 
 #define SYNC_EVENT_DATA_READY (1UL << 0)
@@ -44,6 +54,41 @@ static void uart_text(const char *text)
         ++length;
     }
     (void)HAL_UART_Transmit(&uart1, (uint8_t *)text, length, 100U);
+}
+
+static void uart_log_text(char *text)
+{
+    uart_text(text);
+}
+
+uint32_t xy_os_tick_get(void)
+{
+    return xy_os_kernel_get_tick_count();
+}
+
+static int ipc_handler(const xy_broker_msg_t *msg, void *user_data)
+{
+    uint32_t sequence;
+
+    (void)user_data;
+    if (msg == NULL || msg->msg_id != XY_BROKER_MSG_SENSOR_DATA ||
+        msg->payload_len != sizeof(sequence)) {
+        return XY_BROKER_ERROR;
+    }
+    sequence = (uint32_t)msg->payload[0] | ((uint32_t)msg->payload[1] << 8) |
+               ((uint32_t)msg->payload[2] << 16) | ((uint32_t)msg->payload[3] << 24);
+    if (sequence != ipc_expected_sequence || xy_device_find("pandora-ipc") != &ipc_device) {
+        return XY_BROKER_ERROR;
+    }
+    ++ipc_expected_sequence;
+    ++ipc_delivered_count;
+    uart_text("OSAL_DEVICE_LOOKUP\r\n");
+    if (xy_printf("[I] OSAL_TRACE_DELIVER\r\n") < 0) {
+        uart_text("OSAL_TRACE_ERROR\r\n");
+        return XY_BROKER_ERROR;
+    }
+    uart_text("OSAL_IPC_DELIVER\r\n");
+    return XY_BROKER_OK;
 }
 
 static void clock_init(void)
@@ -142,6 +187,13 @@ static void fast_task(void *argument)
             fail();
         }
         uart_text("OSAL_EVENT_SET\r\n");
+        if (xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                               XY_BROKER_MSG_SENSOR_DATA, &sequence, sizeof(sequence),
+                               XY_BROKER_PRIORITY_NORMAL) != XY_BROKER_OK) {
+            uart_text("OSAL_IPC_ERROR\r\n");
+            fail();
+        }
+        uart_text("OSAL_IPC_SEND\r\n");
         ++sequence;
         (void)xy_os_delay(500U);
     }
@@ -173,6 +225,11 @@ static void slow_task(void *argument)
             fail();
         }
         uart_text("OSAL_QUEUE_RECV\r\n");
+        if (xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U) != 1 ||
+            ipc_delivered_count != expected_sequence + 1U) {
+            uart_text("OSAL_IPC_ERROR\r\n");
+            fail();
+        }
         if (xy_os_mutex_acquire(sync_mutex, 100U) != XY_OS_OK) {
             uart_text("OSAL_MUTEX_TIMEOUT\r\n");
             fail();
@@ -307,7 +364,11 @@ int main(void)
     uart_text("FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
     uart_text("OSAL_STRESS_READY\r\n");
 
-    if (xy_os_kernel_init() != XY_OS_OK ||
+    xy_stdio_printf_init(uart_log_text);
+    if (xy_os_kernel_init() != XY_OS_OK || xy_device_init() != XY_DEVICE_OK ||
+        xy_device_register(&ipc_device) != XY_DEVICE_OK ||
+        xy_broker_init() != XY_BROKER_OK ||
+        xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, ipc_handler, NULL) != XY_BROKER_OK ||
         (sync_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         (sync_queue = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL)) == NULL ||
         (sync_events = xy_os_event_flags_new(NULL)) == NULL ||

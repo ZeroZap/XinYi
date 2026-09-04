@@ -68,6 +68,9 @@ if(OSAL_BACKEND STREQUAL "freertos")
     add_executable(pandora_stm32l475_rtos
         rtos_main.c
         rtos_handlers.c
+        ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
+        ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
+        ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker.c
         ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
         ${_cmsis}/Source/Templates/system_stm32l4xx.c
         ${_hal}/stm32l4xx_hal.c
@@ -84,12 +87,24 @@ if(OSAL_BACKEND STREQUAL "freertos")
     )
     target_include_directories(pandora_stm32l475_rtos BEFORE PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/components/sys/xy_sys)
+        ${CMAKE_SOURCE_DIR}/components/sys/xy_sys
+        ${CMAKE_SOURCE_DIR}/components/device/inc
+        ${CMAKE_SOURCE_DIR}/components/device
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
+        ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker
+        ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
     target_compile_definitions(pandora_stm32l475_rtos PRIVATE
         STM32L475xx
         USE_HAL_DRIVER
+        XY_BROKER_MAX_SERVERS=2
+        XY_BROKER_MAX_SUBSCRIBERS=2
+        XY_BROKER_MAX_TOPICS=2
+        XY_BROKER_MSG_QUEUE_SIZE=2
         XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
-    target_link_libraries(pandora_stm32l475_rtos PRIVATE xy_osal freertos_kernel)
+    target_link_libraries(pandora_stm32l475_rtos PRIVATE
+        xy_osal
+        freertos_kernel
+        xy_xy_clib)
     target_link_options(pandora_stm32l475_rtos PRIVATE
         -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld
         --specs=nano.specs
