@@ -43,6 +43,7 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
         "OSAL_IPC_SATURATED",
         "OSAL_IPC_RECOVERED",
         "OSAL_MULTI_PRODUCER_OK",
+        "OSAL_MULTI_CONSUMER_DISTRIBUTED",
     ]
     for index in range(cycles):
         lines.extend(CYCLE)
@@ -145,6 +146,16 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn("OSAL_MULTI_PRODUCER_OK count 0 != 1", result["failures"])
+
+    def test_rejects_missing_multi_consumer_distribution(self) -> None:
+        payload = make_capture(120, 60).replace(
+            b"OSAL_MULTI_CONSUMER_DISTRIBUTED\r\n", b""
+        )
+
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("OSAL_MULTI_CONSUMER_DISTRIBUTED count 0 != 1", result["failures"])
 
 
 if __name__ == "__main__":

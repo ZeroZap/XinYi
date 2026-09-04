@@ -42,6 +42,7 @@ IPC_RECOVERY = (
     "OSAL_IPC_RECOVERED",
 )
 MULTI_PRODUCER_COMPLETION = "OSAL_MULTI_PRODUCER_OK"
+MULTI_CONSUMER_DISTRIBUTION = "OSAL_MULTI_CONSUMER_DISTRIBUTED"
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
@@ -133,6 +134,11 @@ def analyze_capture(
         failures.append(
             f"{MULTI_PRODUCER_COMPLETION} count "
             f"{lines.count(MULTI_PRODUCER_COMPLETION)} != 1"
+        )
+    if lines.count(MULTI_CONSUMER_DISTRIBUTION) != 1:
+        failures.append(
+            f"{MULTI_CONSUMER_DISTRIBUTION} count "
+            f"{lines.count(MULTI_CONSUMER_DISTRIBUTION)} != 1"
         )
 
     cycles = count_ordered_cycles(lines)

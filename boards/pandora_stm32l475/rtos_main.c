@@ -25,6 +25,7 @@ static uint32_t ipc_delivered_count;
 static uint32_t pm_last_tick;
 static uint32_t multi_seen[2];
 static uint32_t multi_received_count;
+static uint32_t multi_consumer_counts[2];
 static uint32_t multi_producers_done;
 static uint32_t multi_consumers_done;
 static xy_device_t ipc_device = {
@@ -467,9 +468,13 @@ static void multi_producer_task(void *argument)
 static void multi_consumer_task(void *argument)
 {
     multi_message_t message;
+    uint32_t consumer = (uint32_t)(uintptr_t)argument;
     uint32_t consumer_done;
 
-    (void)argument;
+    if (consumer >= 2U) {
+        uart_text("OSAL_MULTI_CONSUMER_ERROR\r\n");
+        fail();
+    }
     for (;;) {
         if (xy_os_msgqueue_get(multi_queue, &message, NULL, 3000U) != XY_OS_OK) {
             uart_text("OSAL_MULTI_CONSUMER_ERROR\r\n");
@@ -489,9 +494,11 @@ static void multi_consumer_task(void *argument)
         }
         multi_seen[message.producer] |= 1UL << message.sequence;
         ++multi_received_count;
+        ++multi_consumer_counts[consumer];
         if (xy_os_mutex_release(sync_mutex) != XY_OS_OK) {
             fail();
         }
+        (void)xy_os_delay(1U);
     }
 
     if (xy_os_mutex_acquire(sync_mutex, 100U) != XY_OS_OK) {
@@ -502,10 +509,12 @@ static void multi_consumer_task(void *argument)
     if (consumer_done == 2U) {
         if (multi_received_count != 2U * MULTI_MESSAGES_PER_PRODUCER ||
             multi_seen[0] != ((1UL << MULTI_MESSAGES_PER_PRODUCER) - 1U) ||
-            multi_seen[1] != ((1UL << MULTI_MESSAGES_PER_PRODUCER) - 1U)) {
+            multi_seen[1] != ((1UL << MULTI_MESSAGES_PER_PRODUCER) - 1U) ||
+            multi_consumer_counts[0] == 0U || multi_consumer_counts[1] == 0U) {
             uart_text("OSAL_MULTI_CONSUMER_ERROR\r\n");
             fail();
         }
+        uart_text("OSAL_MULTI_CONSUMER_DISTRIBUTED\r\n");
         uart_text("OSAL_MULTI_PRODUCER_OK\r\n");
     }
     if (xy_os_mutex_release(sync_mutex) != XY_OS_OK) {
@@ -574,8 +583,8 @@ int main(void)
         xy_os_thread_new(resource_task, NULL, &resource_attr) == NULL ||
         xy_os_thread_new(multi_producer_task, (void *)(uintptr_t)0U, &multi_attr) == NULL ||
         xy_os_thread_new(multi_producer_task, (void *)(uintptr_t)1U, &multi_attr) == NULL ||
-        xy_os_thread_new(multi_consumer_task, NULL, &multi_attr) == NULL ||
-        xy_os_thread_new(multi_consumer_task, NULL, &multi_attr) == NULL) {
+        xy_os_thread_new(multi_consumer_task, (void *)(uintptr_t)0U, &multi_attr) == NULL ||
+        xy_os_thread_new(multi_consumer_task, (void *)(uintptr_t)1U, &multi_attr) == NULL) {
         fail();
     }
     if (HAL_TIM_Base_Start_IT(&pandora_tim6) != HAL_OK) {
