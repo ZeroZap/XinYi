@@ -68,10 +68,16 @@ static void fail(void)
 static void uart_text(const char *text)
 {
     uint16_t length = 0;
+    uint32_t primask = __get_PRIMASK();
+
+    __disable_irq();
     while (text[length] != '\0') {
         ++length;
     }
     (void)HAL_UART_Transmit(&uart1, (uint8_t *)text, length, 100U);
+    if (primask == 0U) {
+        __enable_irq();
+    }
 }
 
 static void uart_log_text(char *text)

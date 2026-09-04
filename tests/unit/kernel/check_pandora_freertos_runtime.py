@@ -117,6 +117,10 @@ def main() -> int:
         for forbidden in ("xTaskCreate(", "vTaskStartScheduler(", "vTaskDelay("):
             if forbidden in main_source:
                 errors.append(f"board application must use OSAL, not direct FreeRTOS API: {forbidden}")
+        if main_source.count("uint32_t primask = __get_PRIMASK();") != 1 or main_source.count(
+            "if (primask == 0U)"
+        ) != 1:
+            errors.append("Pandora runtime must serialize concurrent UART evidence output")
 
     if STRESS_VALIDATOR.is_file():
         validator_source = STRESS_VALIDATOR.read_text(encoding="utf-8")
