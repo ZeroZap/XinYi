@@ -1,0 +1,46 @@
+{
+  "board": "Pandora STM32L475VE",
+  "captured_at_utc": "2026-09-04T10:03:10+00:00",
+  "elf_sha256": "72f63f1d57ccb8814fc1b2966be26ddcc6bac0e4c0c73eaf95833c621d9d98ef",
+  "failures": [],
+  "firmware_bin_bytes": 11632,
+  "firmware_bin_sha256": "c5dd4819fd63718499b01ca8b59df2204a9ef048a91ddce5f1c59e47ce2f4183",
+  "firmware_commit": "33011a766a489c79bb2cb9ede0496520f90ed458",
+  "flash_readback_sha256": "c5dd4819fd63718499b01ca8b59df2204a9ef048a91ddce5f1c59e47ce2f4183",
+  "metadata_after_sha256": "56c51ef60e80cbae53e693a208d70253645479e54906797b3af623940e9a9695",
+  "metadata_before_sha256": "56c51ef60e80cbae53e693a208d70253645479e54906797b3af623940e9a9695",
+  "metadata_latest": {
+    "active_slot": 1,
+    "active_version": 2,
+    "boot_attempts": 0,
+    "crc_ok": true,
+    "flags": 0,
+    "generation": 4,
+    "min_version": 2,
+    "pending_slot": 255,
+    "pending_version": 0
+  },
+  "not_evidence_for": [
+    "candidate image execution",
+    "bootloader vector handoff",
+    "automatic rollback",
+    "power-loss recovery",
+    "secure FOTA"
+  ],
+  "probe": {
+    "chipid": "0x415",
+    "dev_type": "STM32L47x_L48x",
+    "serial": "066AFF313933554D43244015",
+    "stlink_firmware": "V2J24S11"
+  },
+  "rejected_candidate": {
+    "slot": 0,
+    "version": 1
+  },
+  "scope": "Pandora runtime rejection of a version below the committed anti-rollback floor, with unchanged raw metadata",
+  "source_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "status": "FOTA_ANTI_ROLLBACK_BOARD_VERIFIED",
+  "toolchain": "arm-none-eabi-gcc 15.2.1 20251203",
+  "uart_bytes": 2959,
+  "uart_sha256": "0c818f91f3908b0a5c7e2da38503864fdcdfe396426bdccf941e62b731434f07"
+}
