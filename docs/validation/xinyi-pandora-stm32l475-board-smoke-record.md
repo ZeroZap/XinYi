@@ -380,6 +380,28 @@ Retained evidence:
 - [Device/AHT10 capture metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-device-aht10-b94fc3c2.json),
   SHA-256 `118446a3d8894781b609915ce231c73e9362142fb0f284b07010ba45a0971ebc`
 
+## 2026-09-05 IPC Broker queue saturation/recovery result
+
+Clean committed firmware `1e3acc3452b13d036310c59e144575118fa8d1e0` fills the bounded
+Broker server queue to its configured depth of two and requires the third send to return
+`XY_BROKER_QUEUE_FULL`. It then clears the queue and leaves the established producer/consumer,
+Device lookup, Trace, PM tick, SysTick ISR, and TIM6 paths running.
+
+The 19868-byte BIN (SHA-256 `6fcf312e963560f45299618d585a37770e3416c5bb39205745ba8c9245531512`)
+was programmed with ST-Link write verification and read back byte-identically. A reset-synchronized
+12-second WCH-Link capture retained 6257 bytes and matched the exact firmware identity. The validator
+found one ordered `OSAL_IPC_SATURATED → OSAL_IPC_RECOVERED` chain, 23 complete ordered application
+pipeline cycles, 12 SysTick ISR wakes, 13 TIM6 peripheral IRQ wakes, and no runtime error markers.
+This grants bounded task-context IPC queue saturation/recovery B2 for this board/image. It does not
+establish ISR ingress, multiple producers/consumers, throughput, performance, or long-duration stress.
+
+Retained evidence:
+
+- [raw IPC saturation UART log](evidence/pandora-stm32l475/2026-09-05/uart-wchlink-ipc-saturation-1e3acc34.txt),
+  SHA-256 `f55af0509d927f0e6f3ccaa89cad4ea3e58e8198735dbbcd1886c1c94b7aa630`
+- [IPC saturation metadata](evidence/pandora-stm32l475/2026-09-05/rtos-ipc-saturation-1e3acc34.json),
+  SHA-256 `256e56c8f7168426a1096c2625b3ec096d8c3084dc48feba9fd60c83b62e7ea9`
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained
