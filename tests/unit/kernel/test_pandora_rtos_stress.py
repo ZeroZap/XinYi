@@ -17,9 +17,14 @@ CYCLE = [
     "OSAL_TASK_FAST",
     "OSAL_QUEUE_SEND",
     "OSAL_EVENT_SET",
+    "OSAL_IPC_SEND",
+    "OSAL_PM_TICK",
     "OSAL_SEM_TAKE",
     "OSAL_EVENT_WAIT",
     "OSAL_QUEUE_RECV",
+    "OSAL_DEVICE_LOOKUP",
+    "[I] OSAL_TRACE_DELIVER",
+    "OSAL_IPC_DELIVER",
     "OSAL_MUTEX_SLOW",
     "OSAL_TASK_SLOW",
 ]
@@ -118,6 +123,14 @@ class StressCaptureContract(unittest.TestCase):
             b"OSAL_EVENT_SET\r\nOSAL_QUEUE_SEND",
             1,
         )
+
+        result = analyze_capture(payload, COMMIT, 120, 120, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("pipeline cycles 119 < 120", result["failures"])
+
+    def test_rejects_missing_cross_component_delivery_marker(self) -> None:
+        payload = make_capture(120, 60).replace(b"OSAL_DEVICE_LOOKUP\r\n", b"", 1)
 
         result = analyze_capture(payload, COMMIT, 120, 120, 50)
 
