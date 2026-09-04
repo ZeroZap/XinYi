@@ -20,13 +20,13 @@
 
 ## 2. 平台实现矩阵
 
-下表审计 Sprint 2 最小证据链关注的 GPIO、UART、I2C、SPI、Timer、I2S、DMA。STM32L4 当前在 CMake 中复用 STM32F4 wrapper，因此单独列出，不能误称为 dedicated L4 implementation。
+下表审计 Sprint 2 最小证据链关注的 GPIO、UART、I2C、SPI、Timer、I2S、DMA。STM32L4 除 DMA 已有 dedicated wrapper 外仍复用 STM32F4 wrapper，因此单独列出。
 
 | Platform | GPIO | UART | I2C | SPI | Timer | I2S | DMA | Host | Compile/QEMU | Board |
 |---|---|---|---|---|---|---|---|---|---|---|
 | STM32U5 | `PARTIAL_SOURCE`（EXTI 依赖 SDK IRQ 定义） | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `UNSUPPORTED`（显式 stub） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC，不是 U5 runtime） | `COMPILE_ONLY` 历史记录；当前 SDK/toolchain 不可用，需重跑 | `BOARD_PENDING` |
 | STM32F4 | `SOURCE_PRESENT` | `UNSUPPORTED`（wrapper 返回 not-supported） | `SOURCE_PRESENT` | `UNSUPPORTED`（wrapper 返回 not-supported） | `UNSUPPORTED`（wrapper 返回 not-supported） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
-| STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `UNSUPPORTED`（框架 wrapper 复用 F4 stub；Pandora smoke 直接使用 CubeL4 UART） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED` | `PARTIAL_SOURCE`（复用 F4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY`：Pandora STM32L475VE smoke image；ST-Link Flash write/verify 成功 | [`B1_BOARD_SMOKE`](xinyi-pandora-stm32l475-board-smoke-record.md)：独立 UART 已取得匹配固件 SHA 的 banner、AHT10 ACK/测量与 KEY0 事件；NACK recovery 仍 pending |
+| STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `UNSUPPORTED`（框架 wrapper 复用 F4 stub；Pandora smoke 直接使用 CubeL4 UART） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED` | `SOURCE_PRESENT`（dedicated L4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | PC/L4/U5 compile；Pandora FreeRTOS image link | `B1_BOARD_SMOKE`；framework DMA1 Channel1、8-word SRAM→SRAM polling B1；SPI/peripheral-DMA/IRQ/callback/recovery pending |
 | WCH CH32V30x | `PARTIAL_SOURCE`（IRQ configure unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | PC simulation | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `UNSUPPORTED`（PC source set 未选 Timer wrapper） | `UNSUPPORTED` | `UNSUPPORTED`（PC source set 未选 DMA wrapper） | `HOST_CONTRACT` | n/a | n/a |
@@ -42,7 +42,7 @@ S2-2 所需 GPIO/UART/I2C/SPI/Timer/DMA wrapper 已存在，I2S 明确 fail-clos
 
 ### STM32F4 / STM32L4
 
-STM32F4 的 UART、SPI、Timer 大量路径为显式 not-supported；STM32L4 又复用这组 wrapper。现有 QEMU 结果只能记为 partial，不能写成完整 HAL 支持或 L4 专用实现。
+STM32F4 的 UART、SPI、Timer 大量路径为显式 not-supported；STM32L4 对这些路径仍复用该组 wrapper。DMA 已改用 dedicated STM32L4 实现，但不能据此写成完整 HAL 支持。
 
 Pandora STM32L475VE 现有 board-local smoke target 可 clean cross-compile/link，并包含 LED、USART1、
 KEY0 和 AHT10 `0x38` software-I2C 初始化、测量、数值换算及 ACK/NACK 恢复 probe。该目标直接
@@ -51,8 +51,14 @@ KEY0 和 AHT10 `0x38` software-I2C 初始化、测量、数值换算及 ACK/NACK
 的独立 WCH-Link UART 留存匹配固件 SHA 的 banner、10 次 AHT10 ACK 与合理测量；PE7 500 ms
 翻转及 KEY0 输入也已观察并留存日志。详见
 [Pandora board smoke record](xinyi-pandora-stm32l475-board-smoke-record.md)。
-这些证据将 board-local smoke 正常路径升级为 B1，但不会升级 XinYi STM32L4 framework wrapper，
-也不构成 AHT10 NACK/recovery 的 B2。
+这些证据将 board-local smoke 正常路径升级为 B1，但不会升级对应 framework GPIO/UART/I2C wrapper，
+也不构成 AHT10 NACK/recovery 的 B2。2026-09-05 clean `6b2ff630` image 另以 framework
+`xy_hal_dma_*` 完成 DMA1 Channel1 的 8-word SRAM→SRAM polling copy；22152-byte image write/verify
+及 read-back byte-identical，20 秒 reset-synchronized UART capture 为 10975 bytes、SHA-256=`ed4ed44d...`，
+出现一次 `PANDORA_DMA_MEM2MEM_OK`、39 个完整跨组件周期、19 次 SysTick ISR、26 次 TIM6
+wake、2P/2C consumer 为 9/7，错误 marker 为 0。
+该结果仅升级 STM32L4 framework DMA mem2mem polling 为 B1；SPI、peripheral request、IRQ/callback、
+stop/recovery 与性能仍 pending。
 
 ### WCH / HC32
 
