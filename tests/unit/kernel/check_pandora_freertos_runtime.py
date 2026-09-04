@@ -118,8 +118,13 @@ def main() -> int:
             "xy_hal_dma_start",
             "xy_hal_dma_poll_complete",
             "xy_hal_dma_deinit",
+            "__HAL_RCC_DMA1_CLK_ENABLE",
             "PANDORA_DMA_MEM2MEM_OK",
-            "PANDORA_DMA_MEM2MEM_ERROR",
+            "PANDORA_DMA_INIT_ERROR",
+            "PANDORA_DMA_START_ERROR",
+            "PANDORA_DMA_POLL_ERROR",
+            "PANDORA_DMA_COMPARE_ERROR",
+            "PANDORA_DMA_DEINIT_ERROR",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
