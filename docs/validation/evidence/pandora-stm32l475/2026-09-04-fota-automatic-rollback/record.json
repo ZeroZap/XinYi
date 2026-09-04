@@ -1,0 +1,49 @@
+{
+  "artifact": {
+    "bin_sha256": "a07bc90c623c9a6ad7b22ced084e8cb9060aeedd538451723b04c6a5eb3bdd47",
+    "bin_size": 11992,
+    "elf_sha256": "cffe0e2331f484881c3b94c2f3f3e5343a56dc92db6ec9b335f616ecd3c09f6d",
+    "firmware_commit": "d37ecf1c10dad90a55a5ee318b7b2bfe2fd870af",
+    "readback_sha256": "a07bc90c623c9a6ad7b22ced084e8cb9060aeedd538451723b04c6a5eb3bdd47"
+  },
+  "board": {
+    "chip_id": "0x415",
+    "dev_type": "STM32L47x_L48x",
+    "probe_serial": "066AFF313933554D43244015",
+    "reference_board": "Pandora STM32L475VE",
+    "stlink_firmware": "V2J24S11",
+    "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01"
+  },
+  "capture": {
+    "boot_count": 5,
+    "bytes": 2734,
+    "captured_at_utc": "2026-09-04T11:22:55+00:00",
+    "failures": [],
+    "sha256": "2cdc54d02d851acbb49bf83527126c63092d607dbf43cceac0eda3cc5c997162"
+  },
+  "metadata_readback": {
+    "address": "0x0807e000",
+    "latest": {
+      "active_slot": 1,
+      "active_version": 2,
+      "boot_attempts": 0,
+      "crc_ok": true,
+      "flags": 0,
+      "generation": 7,
+      "min_version": 2,
+      "pending_slot": 255,
+      "pending_version": 0
+    },
+    "sha256": "08dd61a6baf107b700ee5cc78c7d070a8139a926f60404401050f86de9b8a4a8",
+    "size": 4096
+  },
+  "not_evidence_for": [
+    "candidate image execution",
+    "bootloader vector handoff",
+    "power-loss recovery",
+    "secure FOTA"
+  ],
+  "scope": "Pandora board-owned metadata journal: confirmed v2, rejected v1 below floor, staged v3, counted two failed attempts, then automatically cleared pending state while retaining active v2/floor v2",
+  "status": "FOTA_AUTOMATIC_ROLLBACK_BOARD_VERIFIED",
+  "toolchain": "arm-none-eabi-gcc 15.2.1 20251203"
+}
