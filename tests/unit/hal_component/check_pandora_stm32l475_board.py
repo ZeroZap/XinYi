@@ -137,6 +137,7 @@ def main() -> None:
         "xy_fota_metadata_boot_handoff",
         "xy_fota_metadata_boot_attempt",
         "xy_fota_metadata_boot_confirm",
+        "FOTA_METADATA_INITIALIZED",
         "FOTA_BOOT_HANDOFF_COMMITTED",
         "FOTA_BOOT_ATTEMPT_COMMITTED",
         "FOTA_BOOT_CONFIRM_COMMITTED",

@@ -83,6 +83,10 @@ add_test(NAME pandora_uart_capture
     COMMAND python3 ${UNIT_HAL}/test_pandora_uart_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_fota_boot_contract_validator
+    COMMAND python3 ${UNIT_FOTA}/test_pandora_fota_boot_contract.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME sensor_active_source_manifest
     COMMAND python3 ${UNIT_SENSOR}/check_sensor_active_source_manifest.py
     WORKING_DIRECTORY ${ROOT}

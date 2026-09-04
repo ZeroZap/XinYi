@@ -231,8 +231,7 @@ int main(void)
             loaded.active_slot != 0U) {
             fail();
         }
-    } else if (xy_fota_metadata_flash_load(metadata_backend, &loaded) != XY_FOTA_OK) {
-        fail();
+        uart_text("FOTA_METADATA_INITIALIZED slot=0 version=1\r\n");
     }
 
     if ((loaded.flags & XY_FOTA_METADATA_FLAG_PENDING) == 0U && loaded.active_slot == 0U &&
