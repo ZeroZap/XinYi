@@ -1,0 +1,54 @@
+{
+  "board": "Pandora STM32L475VE",
+  "boot_count": 3,
+  "capture_bytes": 1563,
+  "capture_sha256": "a67ccaac466d1fa456b03dfb5e61bdd3a11ec4037ed83e1aac6b25a6941de23b",
+  "captured_at_utc": "2026-09-04T09:06:35+00:00..2026-09-04T09:07:11+00:00",
+  "elf_sha256": "0246bad8b39ceb3d26fc37e0d19c0dbbc0650017d730a19a9582d523c5beded5",
+  "failures": [],
+  "firmware_bin_bytes": 11488,
+  "firmware_bin_sha256": "61c048ddb7bae3168d2a7277d2e641aac4b0d6fd11e65a2795e63be2d36f3793",
+  "firmware_commit": "e4828a2733368faf9f0cf5305f4828ff76a5e74e",
+  "flash_readback_sha256": "61c048ddb7bae3168d2a7277d2e641aac4b0d6fd11e65a2795e63be2d36f3793",
+  "metadata_readback_bytes": 4096,
+  "metadata_readback_sha256": "56c51ef60e80cbae53e693a208d70253645479e54906797b3af623940e9a9695",
+  "metadata_slots": [
+    {
+      "active_slot": 0,
+      "active_version": 1,
+      "boot_attempts": 1,
+      "flags": 1,
+      "generation": 3,
+      "min_version": 1,
+      "pending_slot": 1,
+      "pending_version": 2
+    },
+    {
+      "active_slot": 1,
+      "active_version": 2,
+      "boot_attempts": 0,
+      "flags": 0,
+      "generation": 4,
+      "min_version": 2,
+      "pending_slot": 255,
+      "pending_version": 0
+    }
+  ],
+  "not_evidence_for": [
+    "candidate image execution",
+    "bootloader vector handoff",
+    "automatic rollback",
+    "power-loss recovery",
+    "secure FOTA"
+  ],
+  "probe": {
+    "chipid": "0x415",
+    "dev_type": "STM32L47x_L48x",
+    "serial": "066AFF313933554D43244015",
+    "stlink_firmware": "V2J24S11"
+  },
+  "scope": "Pandora internal-Flash metadata handoff, one boot attempt, and confirmation persisted across software resets",
+  "source_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "status": "FOTA_BOOT_CONTRACT_REVIEW_CANDIDATE",
+  "toolchain": "arm-none-eabi-gcc 15.2.1 20251203"
+}
