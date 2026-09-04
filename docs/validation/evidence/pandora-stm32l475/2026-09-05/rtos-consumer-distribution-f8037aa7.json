@@ -1,0 +1,21 @@
+{
+  "capture_bytes": 9711,
+  "capture_duration_seconds": 25,
+  "capture_sha256": "98ca1163d751a06d31940b05faec54f66297422dca322ce4733178092a789a71",
+  "error_markers": {},
+  "failures": [],
+  "firmware_commit": "f8037aa71c12b85213f3e67841cb2e2d6114e076",
+  "isr_take_count": 18,
+  "not_evidence_for": [
+    "performance",
+    "arbitrary peripheral IRQ",
+    "STM32U5 runtime",
+    "complete RTOS product qualification"
+  ],
+  "ordered_pipeline_cycles": 36,
+  "recorded_at_utc": "2026-09-04T20:40:28.235861+00:00",
+  "scope": "bounded Pandora OSAL/FreeRTOS runtime stress candidate",
+  "source_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "status": "STRESS_REVIEW_CANDIDATE",
+  "tim6_irq_take_count": 23
+}
