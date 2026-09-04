@@ -15,6 +15,7 @@ static xy_os_semaphore_id_t sync_sem;
 static xy_os_msgqueue_id_t sync_queue;
 static xy_os_event_flags_id_t sync_events;
 static xy_os_mutex_id_t sync_mutex;
+static xy_os_msgqueue_id_t multi_queue;
 xy_os_semaphore_id_t pandora_isr_sem;
 xy_os_semaphore_id_t pandora_tim6_sem;
 TIM_HandleTypeDef pandora_tim6;
@@ -22,6 +23,10 @@ static uint32_t shared_sequence;
 static uint32_t ipc_expected_sequence;
 static uint32_t ipc_delivered_count;
 static uint32_t pm_last_tick;
+static uint32_t multi_seen[2];
+static uint32_t multi_received_count;
+static uint32_t multi_producers_done;
+static uint32_t multi_consumers_done;
 static xy_device_t ipc_device = {
     .name = "pandora-ipc",
     .type = XY_DEV_TYPE_MISC,
@@ -32,6 +37,13 @@ static uint8_t resource_pool_memory[2U * sizeof(uint32_t)];
 #define SYNC_EVENT_DATA_READY (1UL << 0)
 #define BLOCKING_TIMEOUT_TICKS 100U
 #define BLOCKING_TIMEOUT_TOLERANCE_TICKS 20U
+#define MULTI_MESSAGES_PER_PRODUCER 8U
+#define MULTI_STOP_PRODUCER 0xFFFFFFFFU
+
+typedef struct {
+    uint32_t producer;
+    uint32_t sequence;
+} multi_message_t;
 
 void _init(void) {}
 void _fini(void) {}
@@ -417,6 +429,91 @@ static void resource_task(void *argument)
     xy_os_thread_exit();
 }
 
+static void multi_producer_task(void *argument)
+{
+    multi_message_t message = {.producer = (uint32_t)(uintptr_t)argument};
+    uint32_t producer_done;
+
+    (void)xy_os_delay(1500U);
+    for (message.sequence = 0U; message.sequence < MULTI_MESSAGES_PER_PRODUCER;
+         ++message.sequence) {
+        if (xy_os_msgqueue_put(multi_queue, &message, 0U, 1000U) != XY_OS_OK) {
+            uart_text("OSAL_MULTI_PRODUCER_ERROR\r\n");
+            fail();
+        }
+        (void)xy_os_delay(7U + message.producer);
+    }
+
+    if (xy_os_mutex_acquire(sync_mutex, 100U) != XY_OS_OK) {
+        uart_text("OSAL_MULTI_PRODUCER_ERROR\r\n");
+        fail();
+    }
+    producer_done = ++multi_producers_done;
+    if (xy_os_mutex_release(sync_mutex) != XY_OS_OK) {
+        fail();
+    }
+    if (producer_done == 2U) {
+        message.producer = MULTI_STOP_PRODUCER;
+        message.sequence = 0U;
+        if (xy_os_msgqueue_put(multi_queue, &message, 0U, 1000U) != XY_OS_OK ||
+            xy_os_msgqueue_put(multi_queue, &message, 0U, 1000U) != XY_OS_OK) {
+            uart_text("OSAL_MULTI_PRODUCER_ERROR\r\n");
+            fail();
+        }
+    }
+    xy_os_thread_exit();
+}
+
+static void multi_consumer_task(void *argument)
+{
+    multi_message_t message;
+    uint32_t consumer_done;
+
+    (void)argument;
+    for (;;) {
+        if (xy_os_msgqueue_get(multi_queue, &message, NULL, 3000U) != XY_OS_OK) {
+            uart_text("OSAL_MULTI_CONSUMER_ERROR\r\n");
+            fail();
+        }
+        if (message.producer == MULTI_STOP_PRODUCER) {
+            break;
+        }
+        if (message.producer >= 2U || message.sequence >= MULTI_MESSAGES_PER_PRODUCER ||
+            xy_os_mutex_acquire(sync_mutex, 100U) != XY_OS_OK) {
+            uart_text("OSAL_MULTI_CONSUMER_ERROR\r\n");
+            fail();
+        }
+        if ((multi_seen[message.producer] & (1UL << message.sequence)) != 0U) {
+            uart_text("OSAL_MULTI_CONSUMER_ERROR\r\n");
+            fail();
+        }
+        multi_seen[message.producer] |= 1UL << message.sequence;
+        ++multi_received_count;
+        if (xy_os_mutex_release(sync_mutex) != XY_OS_OK) {
+            fail();
+        }
+    }
+
+    if (xy_os_mutex_acquire(sync_mutex, 100U) != XY_OS_OK) {
+        uart_text("OSAL_MULTI_CONSUMER_ERROR\r\n");
+        fail();
+    }
+    consumer_done = ++multi_consumers_done;
+    if (consumer_done == 2U) {
+        if (multi_received_count != 2U * MULTI_MESSAGES_PER_PRODUCER ||
+            multi_seen[0] != ((1UL << MULTI_MESSAGES_PER_PRODUCER) - 1U) ||
+            multi_seen[1] != ((1UL << MULTI_MESSAGES_PER_PRODUCER) - 1U)) {
+            uart_text("OSAL_MULTI_CONSUMER_ERROR\r\n");
+            fail();
+        }
+        uart_text("OSAL_MULTI_PRODUCER_OK\r\n");
+    }
+    if (xy_os_mutex_release(sync_mutex) != XY_OS_OK) {
+        fail();
+    }
+    xy_os_thread_exit();
+}
+
 int main(void)
 {
     static const xy_os_thread_attr_t fast_attr = {
@@ -444,6 +541,11 @@ int main(void)
         .stack_size = 512U,
         .priority = XY_OS_PRIORITY_ABOVE_NORMAL,
     };
+    static const xy_os_thread_attr_t multi_attr = {
+        .name = "osal-multi",
+        .stack_size = 512U,
+        .priority = XY_OS_PRIORITY_NORMAL,
+    };
 
     HAL_Init();
     clock_init();
@@ -462,13 +564,18 @@ int main(void)
         (sync_queue = xy_os_msgqueue_new(2U, sizeof(uint32_t), NULL)) == NULL ||
         (sync_events = xy_os_event_flags_new(NULL)) == NULL ||
         (sync_mutex = xy_os_mutex_new(NULL)) == NULL ||
+        (multi_queue = xy_os_msgqueue_new(4U, sizeof(multi_message_t), NULL)) == NULL ||
         (pandora_isr_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         (pandora_tim6_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL ||
         xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL ||
         xy_os_thread_new(tim6_irq_task, NULL, &tim6_attr) == NULL ||
-        xy_os_thread_new(resource_task, NULL, &resource_attr) == NULL) {
+        xy_os_thread_new(resource_task, NULL, &resource_attr) == NULL ||
+        xy_os_thread_new(multi_producer_task, (void *)(uintptr_t)0U, &multi_attr) == NULL ||
+        xy_os_thread_new(multi_producer_task, (void *)(uintptr_t)1U, &multi_attr) == NULL ||
+        xy_os_thread_new(multi_consumer_task, NULL, &multi_attr) == NULL ||
+        xy_os_thread_new(multi_consumer_task, NULL, &multi_attr) == NULL) {
         fail();
     }
     if (HAL_TIM_Base_Start_IT(&pandora_tim6) != HAL_OK) {

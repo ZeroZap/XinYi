@@ -41,6 +41,7 @@ IPC_RECOVERY = (
     "OSAL_IPC_SATURATED",
     "OSAL_IPC_RECOVERED",
 )
+MULTI_PRODUCER_COMPLETION = "OSAL_MULTI_PRODUCER_OK"
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
@@ -50,6 +51,8 @@ ERROR_MARKERS = (
     "OSAL_TIM6_IRQ_TIMEOUT",
     "OSAL_MUTEX_MISMATCH",
     "OSAL_MUTEX_TIMEOUT",
+    "OSAL_MULTI_CONSUMER_ERROR",
+    "OSAL_MULTI_PRODUCER_ERROR",
     "OSAL_QUEUE_MISMATCH",
     "OSAL_RESOURCE_ERROR",
     "OSAL_SEM_TIMEOUT",
@@ -125,6 +128,12 @@ def analyze_capture(
         ipc_recovery_positions
     ):
         failures.append("IPC saturation/recovery markers are not ordered")
+
+    if lines.count(MULTI_PRODUCER_COMPLETION) != 1:
+        failures.append(
+            f"{MULTI_PRODUCER_COMPLETION} count "
+            f"{lines.count(MULTI_PRODUCER_COMPLETION)} != 1"
+        )
 
     cycles = count_ordered_cycles(lines)
     isr_wakes = lines.count("OSAL_ISR_TAKE")
