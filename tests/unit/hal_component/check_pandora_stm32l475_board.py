@@ -51,6 +51,8 @@ def main() -> None:
         BOARD / "CMakeLists.txt",
         "pandora_stm32l475_smoke",
         "pandora_sys.c",
+        "pandora_fota_flash.c",
+        "xy_fota_metadata.c",
         "startup_stm32l475xx.s",
         "STM32L475VETX_FLASH.ld",
         "-O binary",
@@ -77,6 +79,15 @@ def main() -> None:
         "HAL_GetUIDw0",
         "__HAL_RCC_CLEAR_RESET_FLAGS",
         "RCC->CSR",
+    )
+    require(
+        BOARD / "pandora_fota_flash.c",
+        "PANDORA_FOTA_METADATA_BASE",
+        "FLASH_TYPEPROGRAM_DOUBLEWORD",
+        "FLASH_TYPEERASE_PAGES",
+        "HAL_FLASHEx_Erase",
+        "HAL_FLASH_Program",
+        "pandora_fota_metadata_backend",
     )
     require(
         BOARD / "pandora_soft_i2c.c",
@@ -118,11 +129,16 @@ def main() -> None:
         "SYS_RESET_KIND SOFTWARE",
         "SYS_SOFTWARE_RESET_REQUEST",
         "SYS_SOFTWARE_RESET_OK",
+        "xy_fota_metadata_flash_validate",
+        "xy_fota_metadata_flash_commit",
+        "xy_fota_metadata_flash_load",
+        "FOTA_METADATA_FLASH_OK",
     )
     require(
         BOARD / "STM32L475VETX_FLASH.ld",
         "ORIGIN = 0x08000000",
-        "LENGTH = 512K",
+        "LENGTH = 508K",
+        "FOTA_METADATA (rx) : ORIGIN = 0x0807F000, LENGTH = 4K",
         "ORIGIN = 0x20000000",
         "LENGTH = 96K",
     )

@@ -17,8 +17,11 @@ endif()
 
 add_executable(pandora_stm32l475_smoke
     main.c
+    pandora_fota_flash.c
     pandora_soft_i2c.c
     pandora_sys.c
+    ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
+    ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_metadata.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
@@ -40,6 +43,7 @@ target_include_directories(pandora_stm32l475_smoke BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/components/device/inc
     ${CMAKE_SOURCE_DIR}/components/device
     ${CMAKE_SOURCE_DIR}/components/hal/inc
+    ${CMAKE_SOURCE_DIR}/components/fota/inc
     ${CMAKE_SOURCE_DIR}/components/sys/xy_sys
     ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
 target_compile_definitions(pandora_stm32l475_smoke PRIVATE

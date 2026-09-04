@@ -1,4 +1,5 @@
 #include "stm32l4xx_hal.h"
+#include "pandora_fota_flash.h"
 #include "pandora_soft_i2c.h"
 #include "xy_device.h"
 #include "xy_sys.h"
@@ -187,6 +188,15 @@ int main(void)
     uint32_t reset_reason = 0;
     uint32_t chip_id[3] = {0};
     xy_i2c_device_t aht10 = {0};
+    const xy_fota_metadata_flash_t *metadata_backend;
+    xy_fota_metadata_t metadata = {
+        .active_version = 1U,
+        .min_version = 1U,
+        .active_slot = 0U,
+        .pending_slot = XY_FOTA_METADATA_NO_SLOT,
+    };
+    xy_fota_metadata_t committed;
+    xy_fota_metadata_t loaded;
 
     HAL_Init();
     clock_init();
@@ -210,6 +220,22 @@ int main(void)
         (void)xy_sys_reset(1);
         fail();
     }
+    metadata_backend = pandora_fota_metadata_backend();
+    if (xy_fota_metadata_flash_validate(metadata_backend) != XY_FOTA_OK) {
+        fail();
+    }
+    if (xy_fota_metadata_flash_load(metadata_backend, &loaded) == XY_FOTA_NO_IMAGE) {
+        if (xy_fota_metadata_flash_commit(metadata_backend, &metadata, &committed) != XY_FOTA_OK ||
+            xy_fota_metadata_flash_load(metadata_backend, &loaded) != XY_FOTA_OK ||
+            loaded.generation != committed.generation || loaded.active_version != 1U ||
+            loaded.active_slot != 0U) {
+            fail();
+        }
+    } else if (xy_fota_metadata_flash_load(metadata_backend, &loaded) != XY_FOTA_OK ||
+               loaded.active_version != 1U || loaded.active_slot != 0U) {
+        fail();
+    }
+    uart_text("FOTA_METADATA_FLASH_OK\r\n");
     if (xy_i2c_device_init(&aht10, pandora_soft_i2c_init(), 0x38U, 100U) != XY_DEVICE_OK) {
         fail();
     }

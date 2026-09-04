@@ -30,6 +30,7 @@ typedef struct {
     uint8_t boot_attempts;
     uint8_t flags;
     uint32_t crc32;
+    uint32_t program_padding;
     uint32_t committed;
 } metadata_record_fixture_t;
 
