@@ -320,6 +320,31 @@ Retained evidence:
   SHA-256 `8eb267be19e9948fec672bcd3068502a2d0ce4c1e4a8aca004ad95f2348413cd`
 - [bounded-stress metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-osal-stress-50fad12a.json)
 
+## 2026-09-04 Device-helper AHT10 vertical-slice result
+
+Commit `b94fc3c2161042603b7c02dd055f86caf21ed36b` moved the board-owned software-I2C
+transport behind `xy_hal_i2c_master_transmit/receive()` and routed the AHT10 application path through
+`xy_i2c_device_init/write/read()`. It also corrected the canonical I2C Device helpers to return
+`XY_DEVICE_OK` on successful transfers rather than a positive byte count, matching their public
+`xy_error_t` contract and existing drivers.
+
+The clean image embedded the exact commit, linked at text/data/bss `8160/12/2708`, and produced an
+8172-byte BIN with SHA-256 `4abeccb02f9bec6847ff87f72c01e9c0b2e45c345936781df47a9a28de9a93b7`.
+ST-Link programmed and verified all bytes; a separate 8172-byte read-back was byte-identical. An
+eight-second reset-synchronized WCH-Link capture retained 2355 bytes and 13 complete ordered
+`banner → matching firmware identity → AHT10 ACK → plausible measurement` cycles. Humidity ranged
+from 64596 to 64653 milli-percent and temperature from 31187 to 31202 milli-degrees C; no NACK marker
+appeared. This grants B1 for the Pandora board-owned software-I2C → HAL API → Device helper → AHT10
+vertical slice on this exact image. It does not establish hardware-I2C peripheral, NACK recovery,
+timing performance, or another Device-model sensor driver.
+
+Retained evidence:
+
+- [raw Device/AHT10 UART log](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-device-aht10-b94fc3c2.txt),
+  SHA-256 `3b00c2be1fe95dab4c4de21902ffc38c06d70fdc8f76599232d6bce9ccb0972c`
+- [Device/AHT10 capture metadata](evidence/pandora-stm32l475/2026-09-04/uart-wchlink-device-aht10-b94fc3c2.json),
+  SHA-256 `118446a3d8894781b609915ce231c73e9362142fb0f284b07010ba45a0971ebc`
+
 ## Remaining B2 work
 
 1. Force an AHT10 NACK followed by reconnection, ACK, and a plausible measurement in one retained

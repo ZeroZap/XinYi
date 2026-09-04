@@ -98,7 +98,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 |---|---:|---|---|---|---|---|---|---|
 | S2-01 | P0 | HAL 平台实现与证据矩阵 | DONE | Zero | S0-08（DONE） | STM32U5/F4/L4/WCH/HC32 的 implementation/unsupported/Host/compile/QEMU/HIL 边界已逐项记录；未升级实板声明 | `fef4f1fe` | 2026-08-26 |
 | S2-02 | P0 | Pandora GPIO/UART/I2C/SPI/IRQ/DMA 实板基础外设 | IN_PROGRESS | Zero | Pandora STM32L475VE；自动化链路 | Pandora 已有 board-local GPIO/UART/software-I2C/KEY0 B1 与 FreeRTOS SysTick ISR 证据；仍缺 framework SPI/DMA 与外设 IRQ B1/B2。STM32U5 仅保留 compile compatibility，不是本项完成依赖 | `683ab5ea`～`50fad12a` | 2026-09-04 |
-| S2-03 | P0 | Pandora I2C→Device helper→现有非 SSD1306 设备纵切 | IN_PROGRESS | Zero | S2-02；Host 前置已完成 | 24xx Host 已覆盖 timeout/NACK 错误传播与 re-init；下一实板纵切使用 Pandora 板载或已接设备，排除 deferred SSD1306。验收以 Pandora B1/B2 为准；U5 compile 仅补充 | `72391b51`、`6ec6081c` | 2026-09-04 |
+| S2-03 | P0 | Pandora I2C→Device helper→现有非 SSD1306 设备纵切 | IN_PROGRESS | Zero | S2-02；Host 前置已完成 | Pandora board-owned software-I2C 已置于 `xy_hal_i2c_master_*` 后并通过 canonical `xy_i2c_device_*` 驱动板载 AHT10；8172-byte image write/verify/read-back，8 秒 UART 13 个完整 ACK/测量周期，取得该纵切 B1。24xx Host timeout/NACK/re-init 前置已覆盖；仍缺真实 NACK→recovery B2 与 hardware-I2C peripheral 纵切，SSD1306 排除。U5 compile 仅补充 | `72391b51`、`6ec6081c`、`b94fc3c2` + 本记录提交 | 2026-09-04 |
 | S2-04 | P1 | Pandora SYS reset/bootreason/chip-ID strong backend | DONE | Zero | Pandora STM32L475VE board ownership 已确定 | board strong backend 已接入；7824-byte image ST-Link write/verify 与同长度 read-back byte-identical，WCH-Link 自动捕获相同 96-bit UID、首次 reset request 与复位后 `SFTRSTF`/software-reset OK。仅 software reset B2；看门狗/物理复位保持 pending；U5 不阻塞本项 | `620b06a0`、`28f4b21d` + 本记录提交 | 2026-09-04 |
 
 ### 后续 Sprint 队列

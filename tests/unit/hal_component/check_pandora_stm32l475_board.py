@@ -16,6 +16,9 @@ SYS_EVIDENCE = ROOT / "docs" / "validation" / "evidence" / "pandora-stm32l475" /
 SYS_LOG_SHA256 = "15bf255077d82b0aeec1496a9d0e38e11ff240ceb7131f8173857cc3b9b6ae9a"
 SYS_METADATA_SHA256 = "a0a1edf0e0f529c6121748f1b752be4029c4addf695e88e4fa86200b791f2099"
 SYS_FIRMWARE_COMMIT = "28f4b21dc06e2189145dadc67e78340f9a22be90"
+DEVICE_FIRMWARE_COMMIT = "b94fc3c2161042603b7c02dd055f86caf21ed36b"
+DEVICE_LOG_SHA256 = "3b00c2be1fe95dab4c4de21902ffc38c06d70fdc8f76599232d6bce9ccb0972c"
+DEVICE_METADATA_SHA256 = "118446a3d8894781b609915ce231c73e9362142fb0f284b07010ba45a0971ebc"
 
 
 def require(path: Path, *needles: str) -> None:
@@ -181,6 +184,23 @@ def main() -> None:
     assert sys_log.count("SYS_RESET_KIND SOFTWARE") == 1
     assert sys_log.count("SYS_CHIP_ID 001B002E3647501320313556") == 2
     assert sys_log.count(f"FIRMWARE_COMMIT {SYS_FIRMWARE_COMMIT}") == 2
+
+    device_log = require_sha256(
+        SYS_EVIDENCE / "uart-wchlink-device-aht10-b94fc3c2.txt", DEVICE_LOG_SHA256
+    ).decode("utf-8")
+    device_metadata = json.loads(
+        require_sha256(
+            SYS_EVIDENCE / "uart-wchlink-device-aht10-b94fc3c2.json", DEVICE_METADATA_SHA256
+        )
+    )
+    assert device_metadata["firmware_commit"] == DEVICE_FIRMWARE_COMMIT
+    assert device_metadata["firmware_commit_marker_matched"] is True
+    assert device_metadata["runtime_evidence"] == "B1_REVIEW_CANDIDATE"
+    assert device_metadata["bytes_captured"] == 2355
+    assert device_log.count(f"FIRMWARE_COMMIT {DEVICE_FIRMWARE_COMMIT}") == 14
+    assert device_log.count("AHT10 0x38 ACK") == 13
+    assert device_log.count("AHT10 RH_milli_percent=") == 13
+    assert "AHT10 0x38 NACK" not in device_log
     print("Pandora STM32L475VE board contract: PASS")
 
 
