@@ -83,6 +83,15 @@ JEDEC ID `EF 40 18`；27600-byte image write/verify/read-back byte-identical，2
 该结果只证明板载 16 MiB Flash 的识别 B1；擦写、四线模式、掉电恢复、耐久和 FOTA candidate
 storage 仍 pending。
 
+clean committed `5375f02f` image 随后固定使用 W25Q128 末尾独立 4 KiB 测试扇区
+`0x00FFF000`，执行 write-enable/WEL 校验、sector erase、busy polling、256-byte pattern page
+program 与 byte-for-byte read-back。首次实板运行暴露 512-byte task stack 不足；增至 1536 bytes
+后，28332-byte image write/verify/read-back byte-identical，BIN SHA-256=`ce548238...`；20 秒
+reset-synchronized capture 11187 bytes、SHA-256=`79186b49...`，
+`PANDORA_W25Q128_ERASE_WRITE_READ_OK` 一次、39 个完整跨组件周期、19 次 SysTick ISR、
+26 次 TIM6 IRQ、2P/2C consumer 为 9/7，错误 marker 为 0。该结果只升级受控测试区
+erase/program/read B1；四线模式、真实掉电、耐久和 FOTA candidate storage 仍 pending。
+
 ### WCH / HC32
 
 WCH 只有部分基础 wrapper，Timer/I2S/DMA 缺失；HC32L021 当前只有 GPIO wrapper，且 IRQ 不支持。两者都没有 canonical compile 或实板证据，不得描述为 production-ready。
