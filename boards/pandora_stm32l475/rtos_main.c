@@ -45,6 +45,7 @@ static uint32_t dma_source[8];
 static uint32_t dma_destination[8];
 static volatile xy_hal_dma_event_t dma_event;
 static volatile xy_hal_spi_event_t spi_event;
+static uint32_t w25q128_mcu_reset_recovery_pending;
 
 #define SYNC_EVENT_DATA_READY (1UL << 0)
 #define BLOCKING_TIMEOUT_TICKS 100U
@@ -53,6 +54,7 @@ static volatile xy_hal_spi_event_t spi_event;
 #define MULTI_STOP_PRODUCER 0xFFFFFFFFU
 #define W25Q128_TEST_ADDRESS 0x00FFF000U
 #define W25Q128_TEST_LENGTH 256U
+#define W25Q128_MCU_RESET_MAGIC 0x51315253U
 
 typedef struct {
     uint32_t producer;
@@ -659,6 +661,22 @@ static void dma_task(void *argument)
             uart_text("PANDORA_W25Q128_JEDEC_ID_ERROR\r\n");
             fail();
         }
+        if (w25q128_mcu_reset_recovery_pending != 0U) {
+            uint8_t recovered[W25Q128_TEST_LENGTH];
+
+            if (w25q128_command(0x03U, W25Q128_TEST_ADDRESS, W25Q128_TEST_LENGTH) != HAL_OK ||
+                HAL_QSPI_Receive(&qspi, recovered, 100U) != HAL_OK) {
+                uart_text("PANDORA_W25Q128_MCU_RESET_ERROR\r\n");
+                fail();
+            }
+            for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
+                if (recovered[index] != (uint8_t)(index ^ 0xA5U)) {
+                    uart_text("PANDORA_W25Q128_MCU_RESET_ERROR\r\n");
+                    fail();
+                }
+            }
+            uart_text("PANDORA_W25Q128_MCU_RESET_RECOVERED\r\n");
+        }
         command.Instruction = 0x9FU;
         command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
         command.AddressMode = QSPI_ADDRESS_NONE;
@@ -702,6 +720,12 @@ static void dma_task(void *argument)
             }
         }
         uart_text("PANDORA_W25Q128_PERSISTENCE_RECOVERED\r\n");
+        if (w25q128_mcu_reset_recovery_pending == 0U) {
+            RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
+            uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");
+            NVIC_SystemReset();
+            fail();
+        }
         if (HAL_QSPI_DeInit(&qspi) != HAL_OK) {
             uart_text("PANDORA_W25Q128_PERSISTENCE_ERROR\r\n");
             fail();
@@ -922,6 +946,12 @@ int main(void)
     clock_init();
     gpio_uart_init();
     tim6_init();
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWR_EnableBkUpAccess();
+    if (RTC->BKP0R == W25Q128_MCU_RESET_MAGIC) {
+        w25q128_mcu_reset_recovery_pending = 1U;
+        RTC->BKP0R = 0U;
+    }
     uart_text("PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n");
     uart_text("FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
     uart_text("OSAL_STRESS_READY\r\n");

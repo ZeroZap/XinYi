@@ -155,6 +155,10 @@ def main() -> int:
             "PANDORA_W25Q128_PERSISTENCE_STAGED",
             "PANDORA_W25Q128_PERSISTENCE_RECOVERED",
             "PANDORA_W25Q128_PERSISTENCE_ERROR",
+            "PANDORA_W25Q128_MCU_RESET_STAGED",
+            "PANDORA_W25Q128_MCU_RESET_RECOVERED",
+            "PANDORA_W25Q128_MCU_RESET_ERROR",
+            "NVIC_SystemReset",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR",
         ):
             if token not in main_source:

@@ -58,6 +58,10 @@ W25Q128_JEDEC_ID = "PANDORA_W25Q128_JEDEC_ID_OK"
 W25Q128_ERASE_WRITE_READ = "PANDORA_W25Q128_ERASE_WRITE_READ_OK"
 W25Q128_PERSISTENCE_STAGED = "PANDORA_W25Q128_PERSISTENCE_STAGED"
 W25Q128_PERSISTENCE_RECOVERED = "PANDORA_W25Q128_PERSISTENCE_RECOVERED"
+W25Q128_MCU_RESET = (
+    "PANDORA_W25Q128_MCU_RESET_STAGED",
+    "PANDORA_W25Q128_MCU_RESET_RECOVERED",
+)
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
@@ -126,15 +130,18 @@ def analyze_capture(
     identity = IDENTITY_PREFIX + firmware_commit
     failures: list[str] = []
 
-    if lines.count(BANNER) != 1:
-        failures.append(f"banner count {lines.count(BANNER)} != 1")
-    if lines.count(identity) != 1:
+    if lines.count(BANNER) != 2:
+        failures.append(f"banner count {lines.count(BANNER)} != 2")
+    if lines.count(identity) != 2:
         failures.append("firmware identity mismatch")
 
-    identity_index = lines.index(identity) if identity in lines else -1
-    banner_index = lines.index(BANNER) if BANNER in lines else -1
-    if identity_index < 0 or banner_index < 0 or identity_index <= banner_index:
-        failures.append("firmware identity is not ordered after banner")
+    banner_positions = [index for index, line in enumerate(lines) if line == BANNER]
+    identity_positions = [index for index, line in enumerate(lines) if line == identity]
+    if len(banner_positions) != 2 or len(identity_positions) != 2 or any(
+        identity_position <= banner_position
+        for banner_position, identity_position in zip(banner_positions, identity_positions)
+    ):
+        failures.append("firmware identities are not ordered after their banners")
 
     positions = []
     for marker in REQUIRED_ONESHOT:
@@ -214,6 +221,13 @@ def analyze_capture(
     for marker in (W25Q128_PERSISTENCE_STAGED, W25Q128_PERSISTENCE_RECOVERED):
         if lines.count(marker) != 1:
             failures.append(f"{marker} count {lines.count(marker)} != 1")
+    reset_positions = []
+    for marker in W25Q128_MCU_RESET:
+        if lines.count(marker) != 1:
+            failures.append("W25Q128 MCU reset recovery marker count mismatch")
+        reset_positions.append(lines.index(marker) if marker in lines else -1)
+    if -1 not in reset_positions and reset_positions != sorted(reset_positions):
+        failures.append("W25Q128 MCU reset recovery markers are not ordered")
 
     cycles = count_ordered_cycles(lines)
     isr_wakes = lines.count("OSAL_ISR_TAKE")

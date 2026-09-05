@@ -34,6 +34,10 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
     lines = [
         "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
         f"FIRMWARE_COMMIT {COMMIT}",
+        "PANDORA_W25Q128_MCU_RESET_STAGED",
+        "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
+        f"FIRMWARE_COMMIT {COMMIT}",
+        "PANDORA_W25Q128_MCU_RESET_RECOVERED",
         "OSAL_RESOURCE_EXHAUSTED",
         "OSAL_BLOCKING_TIMEOUT_OK",
         "OSAL_RESOURCE_RECOVERED",
@@ -259,6 +263,30 @@ class StressCaptureContract(unittest.TestCase):
         self.assertIn(
             "PANDORA_W25Q128_PERSISTENCE_RECOVERED count 0 != 1", result["failures"]
         )
+
+    def test_rejects_missing_or_reordered_w25q128_mcu_reset_recovery(self) -> None:
+        payload = make_capture(120, 60).replace(
+            b"PANDORA_W25Q128_MCU_RESET_RECOVERED\r\n", b""
+        )
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("W25Q128 MCU reset recovery marker count mismatch", result["failures"])
+
+        payload = make_capture(120, 60).replace(
+            b"PANDORA_W25Q128_MCU_RESET_STAGED", b"PANDORA_W25Q128_MCU_RESET_TEMP", 1
+        ).replace(
+            b"PANDORA_W25Q128_MCU_RESET_RECOVERED",
+            b"PANDORA_W25Q128_MCU_RESET_STAGED",
+            1,
+        ).replace(
+            b"PANDORA_W25Q128_MCU_RESET_TEMP",
+            b"PANDORA_W25Q128_MCU_RESET_RECOVERED",
+            1,
+        )
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("W25Q128 MCU reset recovery markers are not ordered", result["failures"])
 
     def test_rejects_missing_spi_dma_abort_recovery_evidence(self) -> None:
         payload = make_capture(120, 60).replace(
