@@ -52,6 +52,7 @@ DMA_COMPLETION = "PANDORA_DMA_MEM2MEM_OK"
 DMA_IRQ_COMPLETION = "PANDORA_DMA_IRQ_CALLBACK_OK"
 DMA_STOP_RECOVERY = "PANDORA_DMA_STOP_RECOVERY_OK"
 SPI_DMA_COMPLETION = "PANDORA_SPI_DMA_TX_OK"
+SPI_DMA_RECOVERY = "PANDORA_SPI_DMA_RECOVERY_OK"
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
@@ -80,6 +81,7 @@ ERROR_MARKERS = (
     "PANDORA_DMA_RECOMPARE_ERROR",
     "PANDORA_DMA_REDEINIT_ERROR",
     "PANDORA_SPI_DMA_ERROR",
+    "PANDORA_SPI_DMA_RECOVERY_ERROR",
 )
 
 
@@ -184,6 +186,10 @@ def analyze_capture(
     if lines.count(SPI_DMA_COMPLETION) != 1:
         failures.append(
             f"{SPI_DMA_COMPLETION} count {lines.count(SPI_DMA_COMPLETION)} != 1"
+        )
+    if lines.count(SPI_DMA_RECOVERY) != 1:
+        failures.append(
+            f"{SPI_DMA_RECOVERY} count {lines.count(SPI_DMA_RECOVERY)} != 1"
         )
 
     cycles = count_ordered_cycles(lines)

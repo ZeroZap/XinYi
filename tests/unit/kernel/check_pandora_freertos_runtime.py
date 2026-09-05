@@ -142,7 +142,9 @@ def main() -> int:
             "xy_hal_spi_transmit_dma",
             "xy_hal_spi_register_callback",
             "PANDORA_SPI_DMA_TX_OK",
+            "PANDORA_SPI_DMA_RECOVERY_OK",
             "PANDORA_SPI_DMA_ERROR",
+            "PANDORA_SPI_DMA_RECOVERY_ERROR",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
