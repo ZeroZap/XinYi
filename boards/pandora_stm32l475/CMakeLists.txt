@@ -80,6 +80,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
+        ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_w25q128.c
         ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
         ${_cmsis}/Source/Templates/system_stm32l4xx.c
         ${_hal}/stm32l4xx_hal.c
@@ -105,6 +106,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/device
         ${CMAKE_SOURCE_DIR}/components/hal/inc
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128
+        ${CMAKE_SOURCE_DIR}/components/fota/inc
         ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker
         ${CMAKE_SOURCE_DIR}/components/pm/inc
         ${CMAKE_SOURCE_DIR}/components/pm/charger

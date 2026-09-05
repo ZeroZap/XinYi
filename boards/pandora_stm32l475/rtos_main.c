@@ -2,6 +2,7 @@
 #include "stm32l4xx_hal_tim.h"
 #include "xy_broker.h"
 #include "xy_device.h"
+#include "xy_fota_w25q128.h"
 #include "xy_hal_dma.h"
 #include "xy_hal_qspi.h"
 #include "xy_hal_spi.h"
@@ -58,6 +59,8 @@ static uint32_t w25q128_mcu_reset_recovery_pending;
 #define W25Q128_TEST_ADDRESS 0x00FFF000U
 #define W25Q128_TEST_LENGTH 256U
 #define W25Q128_MCU_RESET_MAGIC 0x51315253U
+#define W25Q128_FOTA_TEST_ADDRESS 0x00FFE000U
+#define W25Q128_FOTA_TEST_SIZE 4096U
 
 static const xy_hal_qspi_config_t w25q128_qspi_config = {
     .clock_prescaler = 3U,
@@ -720,6 +723,34 @@ static void dma_task(void *argument)
             fail();
         }
         uart_text("PANDORA_W25Q128_QUAD_PROGRAM_OK\r\n");
+        {
+            const xy_fota_flash_ops_t *fota_ops;
+            uint8_t candidate[300];
+            uint8_t readback[300] = {0};
+
+            for (uint32_t index = 0U; index < sizeof(candidate); ++index) {
+                candidate[index] = (uint8_t)(index ^ 0x3CU);
+            }
+            if (xy_fota_w25q128_bind(&w25q128, W25Q128_FOTA_TEST_ADDRESS,
+                                      W25Q128_FOTA_TEST_SIZE, 1000U) != XY_FOTA_OK ||
+                (fota_ops = xy_fota_w25q128_ops()) == NULL || fota_ops->init() != XY_FOTA_OK ||
+                fota_ops->erase(W25Q128_FOTA_TEST_ADDRESS, sizeof(candidate)) != XY_FOTA_OK ||
+                fota_ops->write(W25Q128_FOTA_TEST_ADDRESS + 0xF0U, candidate,
+                                sizeof(candidate)) != XY_FOTA_OK ||
+                fota_ops->read(W25Q128_FOTA_TEST_ADDRESS + 0xF0U, readback,
+                               sizeof(readback)) != XY_FOTA_OK ||
+                fota_ops->deinit() != XY_FOTA_OK) {
+                uart_text("PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_ERROR\r\n");
+                fail();
+            }
+            for (uint32_t index = 0U; index < sizeof(candidate); ++index) {
+                if (readback[index] != candidate[index]) {
+                    uart_text("PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_ERROR\r\n");
+                    fail();
+                }
+            }
+            uart_text("PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_OK\r\n");
+        }
         if (w25q128_mcu_reset_recovery_pending == 0U) {
             RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
             uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");

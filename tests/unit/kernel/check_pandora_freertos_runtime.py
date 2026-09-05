@@ -167,6 +167,10 @@ def main() -> int:
             "PANDORA_W25Q128_QUAD_READ_ERROR",
             "PANDORA_W25Q128_QUAD_PROGRAM_OK",
             "PANDORA_W25Q128_QUAD_PROGRAM_ERROR",
+            "xy_fota_w25q128_bind",
+            "xy_fota_w25q128_ops",
+            "PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_OK",
+            "PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_ERROR",
             "NVIC_SystemReset",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR",
         ):

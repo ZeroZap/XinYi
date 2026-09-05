@@ -1585,6 +1585,17 @@ xy_add_unit_test(test_fota_core fota_core UNITY
     ${FOTA}/xy_fota.c
 )
 
+xy_add_unit_test(test_fota_w25q128 fota_w25q128 UNITY
+    ${UNIT_FOTA}/test_fota_w25q128.c
+    ${FOTA}/src/xy_fota_w25q128.c
+)
+target_include_directories(test_fota_w25q128 BEFORE PRIVATE
+    ${FOTA}/inc
+    ${DRV}/storage/flash/w25q128
+    ${DEV}/inc
+    ${HAL}/inc
+)
+
 # --- Test 33a: FOTA redundant metadata journal rejects partial/corrupt commits ---
 xy_add_unit_test(test_fota_metadata fota_metadata UNITY
     ${UNIT_FOTA}/test_fota_metadata.c
