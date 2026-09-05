@@ -70,6 +70,12 @@ SHA-256=`9e05bbc3...`，`PANDORA_SPI_DMA_TX_OK` 与 `PANDORA_SPI_DMA_RECOVERY_OK
 错误 marker 为 0。该链未配置 SPI GPIO 或外设，不能作为电气信号、外设响应、RX/full-duplex、
 物理故障或性能证据。
 
+clean committed `480c3f1c` image 又在第三轮 active TX DMA 上执行 `HAL_SPI_DMAStop`，随后
+deinit/re-init SPI/DMA、重注册 callback 并完成 fresh TX DMA IRQ→OSAL task。26160-byte image
+write/verify/read-back byte-identical，BIN SHA-256=`5562ace4...`；20 秒 UART capture 11141 bytes、
+SHA-256=`d9d9ae29...`，normal/re-init/abort-recovery marker 各一次，validator error marker 为 0。
+这只升级受控 software abort recovery B2，不是物理故障、电气响应、RX/full-duplex 或性能证据。
+
 ### WCH / HC32
 
 WCH 只有部分基础 wrapper，Timer/I2S/DMA 缺失；HC32L021 当前只有 GPIO wrapper，且 IRQ 不支持。两者都没有 canonical compile 或实板证据，不得描述为 production-ready。
