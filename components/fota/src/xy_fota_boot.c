@@ -61,6 +61,37 @@ static int journal_record_valid(const boot_journal_record_t *record)
            record->record_crc32 == journal_crc(record);
 }
 
+static int execution_image_matches(const xy_fota_boot_candidate_config_t *config,
+                                   const xy_fota_boot_install_ops_t *ops,
+                                   const xy_fota_boot_candidate_header_t *header)
+{
+    uint8_t source[CRC_CHUNK_SIZE];
+    uint8_t installed[CRC_CHUNK_SIZE];
+    uint32_t offset = 0U;
+
+    while (offset < header->image_size) {
+        uint32_t size = header->image_size - offset;
+        int ret;
+
+        if (size > sizeof(source)) {
+            size = sizeof(source);
+        }
+        ret = config->read(config->storage_address + header->image_offset + offset, source, size);
+        if (ret != XY_FOTA_OK) {
+            return ret;
+        }
+        ret = ops->read(header->load_address + offset, installed, size);
+        if (ret != XY_FOTA_OK) {
+            return ret;
+        }
+        if (memcmp(source, installed, size) != 0) {
+            return XY_FOTA_CRC_ERROR;
+        }
+        offset += size;
+    }
+    return XY_FOTA_OK;
+}
+
 static int journal_load(const xy_fota_boot_journal_config_t *config,
                         boot_journal_record_t *record, uint32_t *slot)
 {
@@ -307,7 +338,13 @@ int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *c
     if (ret == XY_FOTA_OK && current.state == JOURNAL_INSTALLED &&
         current.image_version == header.image_version && current.image_size == header.image_size &&
         current.image_crc32 == header.image_crc32) {
-        return XY_FOTA_OK;
+        ret = execution_image_matches(config, ops, &header);
+        if (ret == XY_FOTA_OK) {
+            return XY_FOTA_OK;
+        }
+        if (ret != XY_FOTA_CRC_ERROR) {
+            return ret;
+        }
     }
     if (ret == XY_FOTA_NO_IMAGE) {
         memset(&current, 0, sizeof(current));
