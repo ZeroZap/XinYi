@@ -61,6 +61,10 @@ static uint32_t w25q128_mcu_reset_recovery_pending;
 #define W25Q128_MCU_RESET_MAGIC 0x51315253U
 #define W25Q128_FOTA_TEST_ADDRESS 0x00FFE000U
 #define W25Q128_FOTA_TEST_SIZE 4096U
+#define W25Q128_FOTA_IMAGE_ADDRESS 0x00F00000U
+#define W25Q128_FOTA_IMAGE_SIZE 0x00080000U
+
+extern const uint8_t __flash_image_end;
 
 static const xy_hal_qspi_config_t w25q128_qspi_config = {
     .clock_prescaler = 3U,
@@ -176,6 +180,51 @@ static int w25q128_quad_program_test(void)
         if (actual[index] != expected[index]) {
             return 0;
         }
+    }
+    return 1;
+}
+
+static int w25q128_fota_full_image_test(void)
+{
+    const xy_fota_flash_ops_t *fota_ops;
+    const uint8_t *image = (const uint8_t *)0x08000000U;
+    uint32_t image_size = (uint32_t)((uintptr_t)&__flash_image_end - (uintptr_t)image);
+    uint32_t expected_crc;
+    xy_fota_t fota;
+    xy_fota_config_t fota_config = {
+        .mode = XY_FOTA_MODE_DUAL_BANK,
+        .flash_base_addr = W25Q128_FOTA_IMAGE_ADDRESS,
+        .slot_size = W25Q128_FOTA_IMAGE_SIZE,
+        .slot_count = 1U,
+        .enable_rollback = true,
+        .min_version = 1U,
+    };
+
+    if (image_size == 0U || image_size > W25Q128_FOTA_IMAGE_SIZE) {
+        return 0;
+    }
+    expected_crc = xy_fota_calc_crc32(image, image_size);
+    if (xy_fota_w25q128_bind(&w25q128, W25Q128_FOTA_IMAGE_ADDRESS,
+                              W25Q128_FOTA_IMAGE_SIZE, 1000U) != XY_FOTA_OK ||
+        (fota_ops = xy_fota_w25q128_ops()) == NULL || fota_ops->init() != XY_FOTA_OK ||
+        fota_ops->erase(W25Q128_FOTA_IMAGE_ADDRESS, image_size) != XY_FOTA_OK ||
+        xy_fota_init(&fota, &fota_config) != XY_FOTA_OK ||
+        xy_fota_set_flash_ops(&fota, fota_ops) != XY_FOTA_OK ||
+        xy_fota_start_download(&fota, 2U, image_size, false) != XY_FOTA_OK ||
+        xy_fota_set_expected_crc32(&fota, expected_crc) != XY_FOTA_OK) {
+        return 0;
+    }
+    for (uint32_t offset = 0U; offset < image_size; offset += 256U) {
+        uint32_t chunk = image_size - offset;
+        if (chunk > 256U) {
+            chunk = 256U;
+        }
+        if (xy_fota_download_chunk(&fota, image + offset, chunk) != XY_FOTA_OK) {
+            return 0;
+        }
+    }
+    if (xy_fota_finish_download(&fota) != XY_FOTA_OK || fota_ops->deinit() != XY_FOTA_OK) {
+        return 0;
     }
     return 1;
 }
@@ -768,6 +817,11 @@ static void dma_task(void *argument)
             }
             uart_text("PANDORA_W25Q128_FOTA_DOWNLOAD_CRC_OK\r\n");
         }
+        if (!w25q128_fota_full_image_test()) {
+            uart_text("PANDORA_W25Q128_FOTA_FULL_IMAGE_ERROR\r\n");
+            fail();
+        }
+        uart_text("PANDORA_W25Q128_FOTA_FULL_IMAGE_OK\r\n");
         if (w25q128_mcu_reset_recovery_pending == 0U) {
             RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
             uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");

@@ -175,6 +175,9 @@ def main() -> int:
             "xy_fota_finish_download",
             "PANDORA_W25Q128_FOTA_DOWNLOAD_CRC_OK",
             "PANDORA_W25Q128_FOTA_DOWNLOAD_CRC_ERROR",
+            "PANDORA_W25Q128_FOTA_FULL_IMAGE_OK",
+            "PANDORA_W25Q128_FOTA_FULL_IMAGE_ERROR",
+            "__flash_image_end",
             "NVIC_SystemReset",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR",
         ):

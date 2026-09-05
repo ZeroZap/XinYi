@@ -25,6 +25,7 @@ SECTIONS
   .fini_array : { PROVIDE_HIDDEN(__fini_array_start = .); KEEP(*(SORT(.fini_array.*))) KEEP(*(.fini_array*)) PROVIDE_HIDDEN(__fini_array_end = .); } >FLASH
   _sidata = LOADADDR(.data);
   .data : { . = ALIGN(4); _sdata = .; *(.data .data*) . = ALIGN(4); _edata = .; } >RAM AT> FLASH
+  __flash_image_end = LOADADDR(.data) + SIZEOF(.data);
   .bss : { . = ALIGN(4); _sbss = .; __bss_start__ = _sbss; *(.bss .bss*) *(COMMON) . = ALIGN(4); _ebss = .; __bss_end__ = _ebss; } >RAM
   ._user_heap_stack : { . = ALIGN(8); PROVIDE(end = .); PROVIDE(_end = .); . = . + _Min_Heap_Size + _Min_Stack_Size; . = ALIGN(8); } >RAM
   /DISCARD/ : { libc.a(*) libm.a(*) libgcc.a(*) }
