@@ -116,13 +116,15 @@ def main() -> int:
             "OSAL_STRESS_READY",
             "xy_hal_dma_init",
             "xy_hal_dma_start",
-            "xy_hal_dma_poll_complete",
+            "xy_hal_dma_register_callback",
             "xy_hal_dma_deinit",
             "__HAL_RCC_DMA1_CLK_ENABLE",
+            "DMA1_Channel1_IRQn",
+            "PANDORA_DMA_IRQ_CALLBACK_OK",
             "PANDORA_DMA_MEM2MEM_OK",
             "PANDORA_DMA_INIT_ERROR",
             "PANDORA_DMA_START_ERROR",
-            "PANDORA_DMA_POLL_ERROR",
+            "PANDORA_DMA_IRQ_ERROR",
             "PANDORA_DMA_COMPARE_ERROR",
             "PANDORA_DMA_DEINIT_ERROR",
         ):
@@ -144,12 +146,14 @@ def main() -> int:
             "STM32L4",
             "HAL_DMA_Init",
             "HAL_DMA_Start",
+            "HAL_DMA_Start_IT",
             "HAL_DMA_PollForTransfer",
             "HAL_DMA_DeInit",
             "DMA_PDATAALIGN_WORD",
             "DMA_MDATAALIGN_WORD",
             "XY_HAL_ERROR_INVALID_PARAM",
             "XY_HAL_ERROR_NOT_INIT",
+            "XY_HAL_DMA_EVENT_COMPLETE",
         ):
             if token not in dma_source:
                 errors.append(f"STM32L4 DMA wrapper must preserve token: {token}")
@@ -178,6 +182,8 @@ def main() -> int:
             "xy_os_semaphore_release_from_isr",
             "TIM6_DAC_IRQHandler",
             "HAL_TIM_IRQHandler",
+            "DMA1_Channel1_IRQHandler",
+            "HAL_DMA_IRQHandler",
         ):
             if token not in handler_source:
                 errors.append(f"runtime handlers must preserve token: {token}")

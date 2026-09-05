@@ -10,6 +10,7 @@ void xPortSysTickHandler(void);
 extern xy_os_semaphore_id_t pandora_isr_sem;
 extern xy_os_semaphore_id_t pandora_tim6_sem;
 extern TIM_HandleTypeDef pandora_tim6;
+extern DMA_HandleTypeDef dma1_channel1;
 
 void SVC_Handler(void) __attribute__((naked));
 void SVC_Handler(void)
@@ -41,6 +42,11 @@ void SysTick_Handler(void)
 void TIM6_DAC_IRQHandler(void)
 {
     HAL_TIM_IRQHandler(&pandora_tim6);
+}
+
+void DMA1_Channel1_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&dma1_channel1);
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *timer)

@@ -49,6 +49,7 @@ MULTI_CONSUMER_TAKES = (
 )
 EXPECTED_MULTI_MESSAGES = 16
 DMA_COMPLETION = "PANDORA_DMA_MEM2MEM_OK"
+DMA_IRQ_COMPLETION = "PANDORA_DMA_IRQ_CALLBACK_OK"
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
@@ -68,6 +69,8 @@ ERROR_MARKERS = (
     "PANDORA_DMA_POLL_ERROR",
     "PANDORA_DMA_COMPARE_ERROR",
     "PANDORA_DMA_DEINIT_ERROR",
+    "PANDORA_DMA_CALLBACK_ERROR",
+    "PANDORA_DMA_IRQ_ERROR",
 )
 
 
@@ -161,6 +164,10 @@ def analyze_capture(
         failures.append("both multi-consumers must receive payloads")
     if lines.count(DMA_COMPLETION) != 1:
         failures.append(f"{DMA_COMPLETION} count {lines.count(DMA_COMPLETION)} != 1")
+    if lines.count(DMA_IRQ_COMPLETION) != 1:
+        failures.append(
+            f"{DMA_IRQ_COMPLETION} count {lines.count(DMA_IRQ_COMPLETION)} != 1"
+        )
 
     cycles = count_ordered_cycles(lines)
     isr_wakes = lines.count("OSAL_ISR_TAKE")

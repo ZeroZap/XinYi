@@ -19,6 +19,7 @@ static xy_os_mutex_id_t sync_mutex;
 static xy_os_msgqueue_id_t multi_queue;
 xy_os_semaphore_id_t pandora_isr_sem;
 xy_os_semaphore_id_t pandora_tim6_sem;
+xy_os_semaphore_id_t pandora_dma_sem;
 TIM_HandleTypeDef pandora_tim6;
 static uint32_t shared_sequence;
 static uint32_t ipc_expected_sequence;
@@ -35,9 +36,10 @@ static xy_device_t ipc_device = {
     .state = XY_DEV_STATE_CLOSED,
 };
 static uint8_t resource_pool_memory[2U * sizeof(uint32_t)];
-static DMA_HandleTypeDef dma1_channel1;
+DMA_HandleTypeDef dma1_channel1;
 static uint32_t dma_source[8];
 static uint32_t dma_destination[8];
+static volatile xy_hal_dma_event_t dma_event;
 
 #define SYNC_EVENT_DATA_READY (1UL << 0)
 #define BLOCKING_TIMEOUT_TICKS 100U
@@ -67,6 +69,14 @@ static void fail(void)
     __disable_irq();
     for (;;) {
     }
+}
+
+static void dma_callback(void *dma, xy_hal_dma_event_t event, void *arg)
+{
+    (void)dma;
+    (void)arg;
+    dma_event = event;
+    (void)xy_os_semaphore_release_from_isr(pandora_dma_sem);
 }
 
 static void uart_text(const char *text)
@@ -464,15 +474,26 @@ static void dma_task(void *argument)
         uart_text("PANDORA_DMA_INIT_ERROR\r\n");
         fail();
     }
+    if (xy_hal_dma_register_callback(&dma1_channel1, XY_HAL_DMA_EVENT_COMPLETE,
+                                     dma_callback, NULL) != XY_HAL_OK ||
+        xy_hal_dma_register_callback(&dma1_channel1, XY_HAL_DMA_EVENT_ERROR, dma_callback,
+                                     NULL) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_CALLBACK_ERROR\r\n");
+        fail();
+    }
+    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 6U, 0U);
+    HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
     if (xy_hal_dma_start(&dma1_channel1, (uint32_t)dma_source, (uint32_t)dma_destination,
                          8U) != XY_HAL_OK) {
         uart_text("PANDORA_DMA_START_ERROR\r\n");
         fail();
     }
-    if (xy_hal_dma_poll_complete(&dma1_channel1, 100U) != XY_HAL_OK) {
-        uart_text("PANDORA_DMA_POLL_ERROR\r\n");
+    if (xy_os_semaphore_acquire(pandora_dma_sem, 100U) != XY_OS_OK ||
+        dma_event != XY_HAL_DMA_EVENT_COMPLETE) {
+        uart_text("PANDORA_DMA_IRQ_ERROR\r\n");
         fail();
     }
+    HAL_NVIC_DisableIRQ(DMA1_Channel1_IRQn);
     for (uint32_t index = 0U; index < 8U; ++index) {
         if (dma_destination[index] != dma_source[index]) {
             uart_text("PANDORA_DMA_COMPARE_ERROR\r\n");
@@ -484,6 +505,7 @@ static void dma_task(void *argument)
         fail();
     }
     uart_text("PANDORA_DMA_MEM2MEM_OK\r\n");
+    uart_text("PANDORA_DMA_IRQ_CALLBACK_OK\r\n");
     xy_os_thread_exit();
 }
 
@@ -640,6 +662,7 @@ int main(void)
         (multi_queue = xy_os_msgqueue_new(4U, sizeof(multi_message_t), NULL)) == NULL ||
         (pandora_isr_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         (pandora_tim6_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
+        (pandora_dma_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL ||
         xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL ||
