@@ -127,7 +127,12 @@ def main() -> int:
             "PANDORA_DMA_INIT_ERROR",
             "PANDORA_DMA_START_ERROR",
             "PANDORA_DMA_IRQ_ERROR",
-            "PANDORA_DMA_STOP_RECOVERY_ERROR",
+            "PANDORA_DMA_STOP_ERROR",
+            "PANDORA_DMA_REINIT_ERROR",
+            "PANDORA_DMA_RESTART_ERROR",
+            "PANDORA_DMA_REPOLL_ERROR",
+            "PANDORA_DMA_RECOMPARE_ERROR",
+            "PANDORA_DMA_REDEINIT_ERROR",
             "PANDORA_DMA_COMPARE_ERROR",
             "PANDORA_DMA_DEINIT_ERROR",
         ):

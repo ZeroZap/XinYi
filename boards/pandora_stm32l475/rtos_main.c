@@ -510,24 +510,36 @@ static void dma_task(void *argument)
         dma_source[index] = 0xA5A50000U | index;
         dma_destination[index] = 0U;
     }
-    if (xy_hal_dma_init(&dma1_channel1, &config) != XY_HAL_OK ||
-        xy_hal_dma_stop(&dma1_channel1) != XY_HAL_OK ||
-        xy_hal_dma_deinit(&dma1_channel1) != XY_HAL_OK ||
-        xy_hal_dma_init(&dma1_channel1, &config) != XY_HAL_OK ||
-        xy_hal_dma_start(&dma1_channel1, (uint32_t)dma_source, (uint32_t)dma_destination,
-                         8U) != XY_HAL_OK ||
-        xy_hal_dma_poll_complete(&dma1_channel1, 100U) != XY_HAL_OK) {
-        uart_text("PANDORA_DMA_STOP_RECOVERY_ERROR\r\n");
+    if (xy_hal_dma_init(&dma1_channel1, &config) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_REINIT_ERROR\r\n");
+        fail();
+    }
+    if (xy_hal_dma_stop(&dma1_channel1) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_STOP_ERROR\r\n");
+        fail();
+    }
+    if (xy_hal_dma_deinit(&dma1_channel1) != XY_HAL_OK ||
+        xy_hal_dma_init(&dma1_channel1, &config) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_REINIT_ERROR\r\n");
+        fail();
+    }
+    if (xy_hal_dma_start(&dma1_channel1, (uint32_t)dma_source, (uint32_t)dma_destination,
+                         8U) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_RESTART_ERROR\r\n");
+        fail();
+    }
+    if (xy_hal_dma_poll_complete(&dma1_channel1, 100U) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_REPOLL_ERROR\r\n");
         fail();
     }
     for (uint32_t index = 0U; index < 8U; ++index) {
         if (dma_destination[index] != dma_source[index]) {
-            uart_text("PANDORA_DMA_STOP_RECOVERY_ERROR\r\n");
+            uart_text("PANDORA_DMA_RECOMPARE_ERROR\r\n");
             fail();
         }
     }
     if (xy_hal_dma_deinit(&dma1_channel1) != XY_HAL_OK) {
-        uart_text("PANDORA_DMA_STOP_RECOVERY_ERROR\r\n");
+        uart_text("PANDORA_DMA_REDEINIT_ERROR\r\n");
         fail();
     }
     uart_text("PANDORA_DMA_STOP_RECOVERY_OK\r\n");
