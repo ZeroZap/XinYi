@@ -461,3 +461,21 @@ firmware banner or after an earlier successful measurement remains only a B1 can
 identifies a recovery-log candidate;
 human review must still confirm the real device path, ordering, flashed commit and raw bytes before the
 record can grant B2.
+
+## 2026-09-05 W25Q128 quad-output read result
+
+Clean committed firmware `8f2981b2bca29af62fcda9200f9c235ff16804e0` added a `0x6B`
+quad-output fast-read transaction: instruction and 24-bit address use one line, data uses four lines,
+and the command supplies eight dummy cycles. The firmware reads the existing 256-byte pattern from
+the dedicated final 4 KiB test sector and compares every byte before emitting the success marker.
+
+The 29116-byte BIN had SHA-256
+`323b473021eccf7f36465c245ff877a36dacac80d4ed93f81bc5e2f2f2004d84`. ST-Link reported write
+verification success, and a same-length read-back was byte-identical. The ELF retained the exact
+firmware identity and SVC/PendSV/SysTick/TIM6/DMA handler symbols.
+
+A reset-synchronized 30-second independent WCH-Link capture retained 16312 bytes. It contained the
+exact firmware identity, `PANDORA_W25Q128_QUAD_READ_OK` once, 58 complete ordered cross-component
+cycles, 29 SysTick ISR task wakes, and no validator error marker. This grants B1 only for this bounded
+quad-output data-read transaction. It does not prove quad page programming, throughput, endurance,
+power-loss/NRST recovery, or FOTA candidate-image storage.
