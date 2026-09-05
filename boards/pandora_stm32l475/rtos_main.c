@@ -514,7 +514,9 @@ static void dma_task(void *argument)
         uart_text("PANDORA_DMA_REINIT_ERROR\r\n");
         fail();
     }
-    if (xy_hal_dma_stop(&dma1_channel1) != XY_HAL_OK) {
+    if (xy_hal_dma_start(&dma1_channel1, (uint32_t)dma_source, (uint32_t)dma_destination,
+                         8U) != XY_HAL_OK ||
+        xy_hal_dma_stop(&dma1_channel1) != XY_HAL_OK) {
         uart_text("PANDORA_DMA_STOP_ERROR\r\n");
         fail();
     }
