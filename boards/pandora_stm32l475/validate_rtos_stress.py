@@ -54,6 +54,7 @@ DMA_STOP_RECOVERY = "PANDORA_DMA_STOP_RECOVERY_OK"
 SPI_DMA_COMPLETION = "PANDORA_SPI_DMA_TX_OK"
 SPI_DMA_RECOVERY = "PANDORA_SPI_DMA_RECOVERY_OK"
 SPI_DMA_ABORT_RECOVERY = "PANDORA_SPI_DMA_ABORT_RECOVERY_OK"
+W25Q128_JEDEC_ID = "PANDORA_W25Q128_JEDEC_ID_OK"
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
@@ -84,6 +85,7 @@ ERROR_MARKERS = (
     "PANDORA_SPI_DMA_ERROR",
     "PANDORA_SPI_DMA_RECOVERY_ERROR",
     "PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR",
+    "PANDORA_W25Q128_JEDEC_ID_ERROR",
 )
 
 
@@ -197,6 +199,8 @@ def analyze_capture(
         failures.append(
             f"{SPI_DMA_ABORT_RECOVERY} count {lines.count(SPI_DMA_ABORT_RECOVERY)} != 1"
         )
+    if lines.count(W25Q128_JEDEC_ID) != 1:
+        failures.append(f"{W25Q128_JEDEC_ID} count {lines.count(W25Q128_JEDEC_ID)} != 1")
 
     cycles = count_ordered_cycles(lines)
     isr_wakes = lines.count("OSAL_ISR_TAKE")

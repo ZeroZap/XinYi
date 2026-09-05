@@ -88,6 +88,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${_hal}/stm32l4xx_hal_gpio.c
         ${_hal}/stm32l4xx_hal_pwr.c
         ${_hal}/stm32l4xx_hal_pwr_ex.c
+        ${_hal}/stm32l4xx_hal_qspi.c
         ${_hal}/stm32l4xx_hal_rcc.c
         ${_hal}/stm32l4xx_hal_rcc_ex.c
         ${_hal}/stm32l4xx_hal_spi.c

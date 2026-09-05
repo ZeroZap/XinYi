@@ -40,6 +40,7 @@ static uint8_t resource_pool_memory[2U * sizeof(uint32_t)];
 DMA_HandleTypeDef dma1_channel1;
 DMA_HandleTypeDef spi1_tx_dma;
 static SPI_HandleTypeDef spi1;
+static QSPI_HandleTypeDef qspi;
 static uint32_t dma_source[8];
 static uint32_t dma_destination[8];
 static volatile xy_hal_dma_event_t dma_event;
@@ -557,6 +558,51 @@ static void dma_task(void *argument)
         fail();
     }
     uart_text("PANDORA_DMA_STOP_RECOVERY_OK\r\n");
+
+    {
+        GPIO_InitTypeDef gpio = {0};
+        QSPI_CommandTypeDef command = {0};
+        uint8_t jedec_id[3] = {0};
+
+        __HAL_RCC_GPIOE_CLK_ENABLE();
+        __HAL_RCC_QSPI_CLK_ENABLE();
+        gpio.Pin = GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 |
+                   GPIO_PIN_15;
+        gpio.Mode = GPIO_MODE_AF_PP;
+        gpio.Pull = GPIO_PULLUP;
+        gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        gpio.Alternate = GPIO_AF10_QUADSPI;
+        HAL_GPIO_Init(GPIOE, &gpio);
+
+        qspi.Instance = QUADSPI;
+        qspi.Init.ClockPrescaler = 3U;
+        qspi.Init.FifoThreshold = 1U;
+        qspi.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_NONE;
+        qspi.Init.FlashSize = 23U;
+        qspi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_2_CYCLE;
+        qspi.Init.ClockMode = QSPI_CLOCK_MODE_0;
+        if (HAL_QSPI_Init(&qspi) != HAL_OK) {
+            uart_text("PANDORA_W25Q128_JEDEC_ID_ERROR\r\n");
+            fail();
+        }
+        command.Instruction = 0x9FU;
+        command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
+        command.AddressMode = QSPI_ADDRESS_NONE;
+        command.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+        command.DataMode = QSPI_DATA_1_LINE;
+        command.DummyCycles = 0U;
+        command.NbData = sizeof(jedec_id);
+        command.DdrMode = QSPI_DDR_MODE_DISABLE;
+        command.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
+        command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
+        if (HAL_QSPI_Command(&qspi, &command, 100U) != HAL_OK ||
+            HAL_QSPI_Receive(&qspi, jedec_id, 100U) != HAL_OK || jedec_id[0] != 0xEFU ||
+            jedec_id[1] != 0x40U || jedec_id[2] != 0x18U || HAL_QSPI_DeInit(&qspi) != HAL_OK) {
+            uart_text("PANDORA_W25Q128_JEDEC_ID_ERROR\r\n");
+            fail();
+        }
+        uart_text("PANDORA_W25Q128_JEDEC_ID_OK\r\n");
+    }
 
     {
         static const xy_hal_spi_config_t spi_config = {
