@@ -50,6 +50,7 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
         "PANDORA_SPI_DMA_TX_OK",
         "PANDORA_SPI_DMA_RECOVERY_OK",
         "PANDORA_W25Q128_JEDEC_ID_OK",
+        "PANDORA_W25Q128_ERASE_WRITE_READ_OK",
         "PANDORA_SPI_DMA_ABORT_RECOVERY_OK",
     ]
     lines.extend(["OSAL_MULTI_CONSUMER_0_TAKE"] * 8)
@@ -232,6 +233,18 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn("PANDORA_W25Q128_JEDEC_ID_OK count 0 != 1", result["failures"])
+
+    def test_rejects_missing_w25q128_erase_write_read_evidence(self) -> None:
+        payload = make_capture(120, 60).replace(
+            b"PANDORA_W25Q128_ERASE_WRITE_READ_OK\r\n", b""
+        )
+
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn(
+            "PANDORA_W25Q128_ERASE_WRITE_READ_OK count 0 != 1", result["failures"]
+        )
 
     def test_rejects_missing_spi_dma_abort_recovery_evidence(self) -> None:
         payload = make_capture(120, 60).replace(

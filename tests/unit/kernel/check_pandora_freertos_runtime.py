@@ -150,6 +150,8 @@ def main() -> int:
             "HAL_QSPI_Receive",
             "PANDORA_W25Q128_JEDEC_ID_OK",
             "PANDORA_W25Q128_JEDEC_ID_ERROR",
+            "PANDORA_W25Q128_ERASE_WRITE_READ_OK",
+            "PANDORA_W25Q128_ERASE_WRITE_READ_ERROR",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR",
         ):
             if token not in main_source:

@@ -51,6 +51,8 @@ static volatile xy_hal_spi_event_t spi_event;
 #define BLOCKING_TIMEOUT_TOLERANCE_TICKS 20U
 #define MULTI_MESSAGES_PER_PRODUCER 8U
 #define MULTI_STOP_PRODUCER 0xFFFFFFFFU
+#define W25Q128_TEST_ADDRESS 0x00FFF000U
+#define W25Q128_TEST_LENGTH 256U
 
 typedef struct {
     uint32_t producer;
@@ -90,6 +92,78 @@ static void spi_callback(void *spi, xy_hal_spi_event_t event, void *arg)
     (void)arg;
     spi_event = event;
     (void)xy_os_semaphore_release_from_isr(pandora_dma_sem);
+}
+
+static HAL_StatusTypeDef w25q128_command(uint8_t instruction, uint32_t address,
+                                        uint32_t data_length)
+{
+    QSPI_CommandTypeDef command = {0};
+
+    command.Instruction = instruction;
+    command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
+    command.AddressMode = address == UINT32_MAX ? QSPI_ADDRESS_NONE : QSPI_ADDRESS_1_LINE;
+    command.AddressSize = QSPI_ADDRESS_24_BITS;
+    command.Address = address == UINT32_MAX ? 0U : address;
+    command.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+    command.DataMode = data_length == 0U ? QSPI_DATA_NONE : QSPI_DATA_1_LINE;
+    command.DummyCycles = 0U;
+    command.NbData = data_length;
+    command.DdrMode = QSPI_DDR_MODE_DISABLE;
+    command.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
+    command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
+    return HAL_QSPI_Command(&qspi, &command, 100U);
+}
+
+static int w25q128_wait_ready(uint32_t timeout_ms)
+{
+    uint32_t start = HAL_GetTick();
+    uint8_t status;
+
+    do {
+        if (w25q128_command(0x05U, UINT32_MAX, 1U) != HAL_OK ||
+            HAL_QSPI_Receive(&qspi, &status, 100U) != HAL_OK) {
+            return 0;
+        }
+        if ((status & 0x01U) == 0U) {
+            return 1;
+        }
+    } while ((HAL_GetTick() - start) < timeout_ms);
+    return 0;
+}
+
+static int w25q128_write_enable(void)
+{
+    uint8_t status;
+
+    return w25q128_command(0x06U, UINT32_MAX, 0U) == HAL_OK &&
+           w25q128_command(0x05U, UINT32_MAX, 1U) == HAL_OK &&
+           HAL_QSPI_Receive(&qspi, &status, 100U) == HAL_OK && (status & 0x02U) != 0U;
+}
+
+static int w25q128_erase_write_read_test(void)
+{
+    uint8_t expected[W25Q128_TEST_LENGTH];
+    uint8_t actual[W25Q128_TEST_LENGTH];
+
+    for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
+        expected[index] = (uint8_t)(index ^ 0xA5U);
+        actual[index] = 0U;
+    }
+    if (!w25q128_write_enable() ||
+        w25q128_command(0x20U, W25Q128_TEST_ADDRESS, 0U) != HAL_OK ||
+        !w25q128_wait_ready(1000U) || !w25q128_write_enable() ||
+        w25q128_command(0x02U, W25Q128_TEST_ADDRESS, W25Q128_TEST_LENGTH) != HAL_OK ||
+        HAL_QSPI_Transmit(&qspi, expected, 100U) != HAL_OK || !w25q128_wait_ready(100U) ||
+        w25q128_command(0x03U, W25Q128_TEST_ADDRESS, W25Q128_TEST_LENGTH) != HAL_OK ||
+        HAL_QSPI_Receive(&qspi, actual, 100U) != HAL_OK) {
+        return 0;
+    }
+    for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
+        if (actual[index] != expected[index]) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 static void uart_text(const char *text)
@@ -597,11 +671,20 @@ static void dma_task(void *argument)
         command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
         if (HAL_QSPI_Command(&qspi, &command, 100U) != HAL_OK ||
             HAL_QSPI_Receive(&qspi, jedec_id, 100U) != HAL_OK || jedec_id[0] != 0xEFU ||
-            jedec_id[1] != 0x40U || jedec_id[2] != 0x18U || HAL_QSPI_DeInit(&qspi) != HAL_OK) {
+            jedec_id[1] != 0x40U || jedec_id[2] != 0x18U) {
             uart_text("PANDORA_W25Q128_JEDEC_ID_ERROR\r\n");
             fail();
         }
         uart_text("PANDORA_W25Q128_JEDEC_ID_OK\r\n");
+        if (!w25q128_erase_write_read_test()) {
+            uart_text("PANDORA_W25Q128_ERASE_WRITE_READ_ERROR\r\n");
+            fail();
+        }
+        uart_text("PANDORA_W25Q128_ERASE_WRITE_READ_OK\r\n");
+        if (HAL_QSPI_DeInit(&qspi) != HAL_OK) {
+            uart_text("PANDORA_W25Q128_ERASE_WRITE_READ_ERROR\r\n");
+            fail();
+        }
     }
 
     {
