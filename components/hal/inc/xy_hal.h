@@ -9,6 +9,7 @@
 #include "xy_hal_gpio.h"
 #include "xy_hal_uart.h"
 #include "xy_hal_spi.h"
+#include "xy_hal_qspi.h"
 #include "xy_hal_i2c.h"
 #include "xy_hal_adc.h"
 #include "xy_hal_pwm.h"

@@ -146,8 +146,12 @@ def main() -> int:
             "PANDORA_SPI_DMA_ABORT_RECOVERY_OK",
             "PANDORA_SPI_DMA_ERROR",
             "PANDORA_SPI_DMA_RECOVERY_ERROR",
-            "HAL_QSPI_Command",
-            "HAL_QSPI_Receive",
+            "xy_hal_qspi_init",
+            "xy_w25q128_init",
+            "xy_w25q128_sector_erase",
+            "xy_w25q128_page_program",
+            "xy_w25q128_read",
+            "xy_w25q128_quad_read",
             "PANDORA_W25Q128_JEDEC_ID_OK",
             "PANDORA_W25Q128_JEDEC_ID_ERROR",
             "PANDORA_W25Q128_ERASE_WRITE_READ_OK",
@@ -158,7 +162,6 @@ def main() -> int:
             "PANDORA_W25Q128_MCU_RESET_STAGED",
             "PANDORA_W25Q128_MCU_RESET_RECOVERED",
             "PANDORA_W25Q128_MCU_RESET_ERROR",
-            "QSPI_DATA_4_LINES",
             "PANDORA_W25Q128_QUAD_READ_OK",
             "PANDORA_W25Q128_QUAD_READ_ERROR",
             "NVIC_SystemReset",
@@ -166,7 +169,14 @@ def main() -> int:
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
-        for forbidden in ("xTaskCreate(", "vTaskStartScheduler(", "vTaskDelay("):
+        for forbidden in (
+            "xTaskCreate(",
+            "vTaskStartScheduler(",
+            "vTaskDelay(",
+            "HAL_QSPI_Command(",
+            "HAL_QSPI_Transmit(",
+            "HAL_QSPI_Receive(",
+        ):
             if forbidden in main_source:
                 errors.append(f"board application must use OSAL, not direct FreeRTOS API: {forbidden}")
         if main_source.count("uint32_t primask = __get_PRIMASK();") != 1 or main_source.count(

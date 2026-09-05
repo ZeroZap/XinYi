@@ -1168,6 +1168,16 @@ target_include_directories(test_w25qxx BEFORE PRIVATE
     ${KERNEL}/osal
 )
 
+xy_add_unit_test(test_w25q128 storage_w25q128 UNITY
+    ${UNIT_STORAGE}/test_w25q128.c
+    ${DRV}/storage/flash/w25q128/xy_w25q128.c
+)
+target_include_directories(test_w25q128 BEFORE PRIVATE
+    ${DRV}/storage/flash/w25q128
+    ${DEVICE}/inc
+    ${HAL}/inc
+)
+
 xy_add_unit_test(test_vl53l1x sensor_vl53l1x UNITY
     ${UNIT_SENSOR}/test_vl53l1x.c
     ${SENSOR}/src/xy_vl53l1x.c
