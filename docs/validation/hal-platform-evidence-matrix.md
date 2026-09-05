@@ -63,6 +63,13 @@ wake、2P/2C consumer 为 9/7，错误 marker 为 0。
 SHA-256=`fcfe3674...`，`PANDORA_DMA_STOP_RECOVERY_OK` 一次且错误 marker 为 0。SPI、peripheral
 request、error IRQ、物理故障、DMA timeout 与性能仍 pending。
 
+SPI1 TX request→DMA1 Channel3→completion IRQ→framework callback→OSAL task 已取得 B1；clean
+`3c3e5f60` image 进一步完成 SPI/DMA deinit→re-init→重新注册 callback→第二次 TX DMA 的受控
+recovery B2。25828-byte image write/verify/read-back byte-identical，20 秒 UART capture 11086 bytes、
+SHA-256=`9e05bbc3...`，`PANDORA_SPI_DMA_TX_OK` 与 `PANDORA_SPI_DMA_RECOVERY_OK` 各一次，
+错误 marker 为 0。该链未配置 SPI GPIO 或外设，不能作为电气信号、外设响应、RX/full-duplex、
+物理故障或性能证据。
+
 ### WCH / HC32
 
 WCH 只有部分基础 wrapper，Timer/I2S/DMA 缺失；HC32L021 当前只有 GPIO wrapper，且 IRQ 不支持。两者都没有 canonical compile 或实板证据，不得描述为 production-ready。
