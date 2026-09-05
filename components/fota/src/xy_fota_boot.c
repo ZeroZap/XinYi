@@ -6,6 +6,22 @@
 #define CRC32_INITIAL 0xFFFFFFFFU
 #define CRC32_POLYNOMIAL 0xEDB88320U
 #define CRC_CHUNK_SIZE 128U
+#define JOURNAL_MAGIC 0x58424A52U
+#define JOURNAL_COMMIT UINT64_C(0x434F4D54434F4D54)
+#define JOURNAL_INSTALLING 1U
+#define JOURNAL_INSTALLED 2U
+
+typedef struct {
+    uint32_t magic;
+    uint32_t generation;
+    uint32_t state;
+    uint32_t image_version;
+    uint32_t image_size;
+    uint32_t image_crc32;
+    uint32_t record_crc32;
+    uint32_t reserved;
+    uint64_t commit;
+} boot_journal_record_t;
 
 static int range_fits(uint32_t start, uint32_t size, uint32_t base, uint32_t limit)
 {
@@ -30,6 +46,93 @@ static uint32_t crc32_update(uint32_t crc, const uint8_t *data, uint32_t size)
         }
     }
     return crc;
+}
+
+static uint32_t journal_crc(const boot_journal_record_t *record)
+{
+    return ~crc32_update(CRC32_INITIAL, (const uint8_t *)record,
+                         offsetof(boot_journal_record_t, record_crc32));
+}
+
+static int journal_record_valid(const boot_journal_record_t *record)
+{
+    return record->magic == JOURNAL_MAGIC && record->commit == JOURNAL_COMMIT &&
+           (record->state == JOURNAL_INSTALLING || record->state == JOURNAL_INSTALLED) &&
+           record->record_crc32 == journal_crc(record);
+}
+
+static int journal_load(const xy_fota_boot_journal_config_t *config,
+                        boot_journal_record_t *record, uint32_t *slot)
+{
+    boot_journal_record_t copies[2];
+    int valid[2];
+
+    if (config == NULL || record == NULL || slot == NULL || config->read == NULL ||
+        config->erase == NULL || config->write == NULL ||
+        config->slot_size < sizeof(boot_journal_record_t) ||
+        config->address > UINT32_MAX - config->slot_size ||
+        config->address + config->slot_size > UINT32_MAX - config->slot_size) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    for (uint32_t index = 0U; index < 2U; ++index) {
+        int ret = config->read(config->address + index * config->slot_size,
+                               (uint8_t *)&copies[index], sizeof(copies[index]));
+        if (ret != XY_FOTA_OK) {
+            return ret;
+        }
+        valid[index] = journal_record_valid(&copies[index]);
+    }
+    if (!valid[0] && !valid[1]) {
+        memset(record, 0, sizeof(*record));
+        *slot = 1U;
+        return XY_FOTA_NO_IMAGE;
+    }
+    *slot = valid[1] && (!valid[0] || (int32_t)(copies[1].generation - copies[0].generation) > 0)
+                ? 1U
+                : 0U;
+    *record = copies[*slot];
+    return XY_FOTA_OK;
+}
+
+static int journal_commit(const xy_fota_boot_journal_config_t *config,
+                          const boot_journal_record_t *current, uint32_t current_slot,
+                          uint32_t state, const xy_fota_boot_candidate_header_t *header)
+{
+    boot_journal_record_t record = {
+        .magic = JOURNAL_MAGIC,
+        .generation = current->generation + 1U,
+        .state = state,
+        .image_version = header->image_version,
+        .image_size = header->image_size,
+        .image_crc32 = header->image_crc32,
+        .reserved = UINT32_MAX,
+        .commit = UINT64_MAX,
+    };
+    uint32_t address = config->address + (current_slot ^ 1U) * config->slot_size;
+    uint64_t marker = JOURNAL_COMMIT;
+    boot_journal_record_t verify;
+    int ret;
+
+    record.record_crc32 = journal_crc(&record);
+    ret = config->erase(address, config->slot_size);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    ret = config->write(address, (const uint8_t *)&record,
+                        offsetof(boot_journal_record_t, commit));
+    if (ret == XY_FOTA_OK) {
+        ret = config->write(address + offsetof(boot_journal_record_t, commit),
+                            (const uint8_t *)&marker, sizeof(marker));
+    }
+    if (ret == XY_FOTA_OK) {
+        ret = config->read(address, (uint8_t *)&verify, sizeof(verify));
+    }
+    if (ret != XY_FOTA_OK || !journal_record_valid(&verify) ||
+        memcmp(&verify, &record, offsetof(boot_journal_record_t, commit)) != 0) {
+        (void)config->erase(address, config->slot_size);
+        return ret != XY_FOTA_OK ? ret : XY_FOTA_FLASH_ERROR;
+    }
+    return XY_FOTA_OK;
 }
 
 int xy_fota_boot_candidate_validate(const xy_fota_boot_candidate_config_t *config,
@@ -176,5 +279,53 @@ int xy_fota_boot_candidate_install(const xy_fota_boot_candidate_config_t *config
     if (installed_header != NULL) {
         *installed_header = header;
     }
+    return XY_FOTA_OK;
+}
+
+int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *config,
+                                        const xy_fota_boot_install_ops_t *ops,
+                                        const xy_fota_boot_journal_config_t *journal,
+                                        int *installed)
+{
+    xy_fota_boot_candidate_header_t header;
+    boot_journal_record_t current;
+    uint32_t current_slot;
+    int ret;
+
+    if (installed == NULL) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    *installed = 0;
+    ret = xy_fota_boot_candidate_validate(config, &header);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    ret = journal_load(journal, &current, &current_slot);
+    if (ret != XY_FOTA_OK && ret != XY_FOTA_NO_IMAGE) {
+        return ret;
+    }
+    if (ret == XY_FOTA_OK && current.state == JOURNAL_INSTALLED &&
+        current.image_version == header.image_version && current.image_size == header.image_size &&
+        current.image_crc32 == header.image_crc32) {
+        return XY_FOTA_OK;
+    }
+    if (ret == XY_FOTA_NO_IMAGE) {
+        memset(&current, 0, sizeof(current));
+    }
+    ret = journal_commit(journal, &current, current_slot, JOURNAL_INSTALLING, &header);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    current.generation++;
+    current_slot ^= 1U;
+    ret = xy_fota_boot_candidate_install(config, ops, NULL);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    ret = journal_commit(journal, &current, current_slot, JOURNAL_INSTALLED, &header);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    *installed = 1;
     return XY_FOTA_OK;
 }

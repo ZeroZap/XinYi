@@ -95,3 +95,15 @@ const xy_fota_metadata_flash_t *pandora_fota_metadata_backend(void)
 {
     return &metadata_backend;
 }
+
+xy_fota_boot_journal_config_t pandora_fota_boot_journal_config(void)
+{
+    xy_fota_boot_journal_config_t config = {
+        .address = PANDORA_FOTA_METADATA_BASE,
+        .slot_size = PANDORA_FOTA_METADATA_ERASE_SIZE,
+        .read = flash_read,
+        .erase = flash_erase,
+        .write = flash_write,
+    };
+    return config;
+}

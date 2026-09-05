@@ -71,6 +71,7 @@ add_custom_command(TARGET pandora_stm32l475_smoke POST_BUILD
 if(OSAL_BACKEND STREQUAL "freertos")
     add_executable(pandora_stm32l475_fota_bootloader
         fota_bootloader_main.c
+        pandora_fota_flash.c
         pandora_fota_install_flash.c
         ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
         ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c

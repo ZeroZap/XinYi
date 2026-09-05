@@ -1,4 +1,5 @@
 #include "pandora_fota_install_flash.h"
+#include "pandora_fota_flash.h"
 
 #include "stm32l4xx_hal.h"
 #include "xy_device.h"
@@ -146,6 +147,8 @@ int main(void)
 {
     const xy_fota_flash_ops_t *candidate_ops;
     xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_journal_config_t journal = pandora_fota_boot_journal_config();
+    int installed = 0;
     xy_fota_boot_candidate_config_t candidate = {
         .storage_address = W25Q128_FOTA_IMAGE_ADDRESS,
         .storage_size = W25Q128_FOTA_IMAGE_SIZE,
@@ -174,12 +177,13 @@ int main(void)
     }
     candidate.read = candidate_ops->read;
     if (xy_fota_boot_candidate_validate(&candidate, &header) == XY_FOTA_OK) {
-        if (xy_fota_boot_candidate_install(&candidate, pandora_fota_install_ops(), &header) !=
-            XY_FOTA_OK) {
+        if (xy_fota_boot_candidate_install_once(&candidate, pandora_fota_install_ops(), &journal,
+                                                &installed) != XY_FOTA_OK) {
             uart_text("PANDORA_BOOT_INSTALL_ERROR\r\n");
             stop();
         }
-        uart_text("PANDORA_BOOT_CANDIDATE_INSTALLED\r\n");
+        uart_text(installed ? "PANDORA_BOOT_CANDIDATE_INSTALLED\r\n"
+                            : "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED\r\n");
     } else if (!pandora_fota_application_vectors_valid()) {
         uart_text("PANDORA_BOOT_NO_VALID_IMAGE\r\n");
         stop();

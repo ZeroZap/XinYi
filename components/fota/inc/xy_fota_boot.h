@@ -49,6 +49,14 @@ typedef struct {
     uint32_t erase_granule;
 } xy_fota_boot_install_ops_t;
 
+typedef struct {
+    uint32_t address;
+    uint32_t slot_size;
+    xy_fota_boot_candidate_read_cb read;
+    xy_fota_boot_erase_cb erase;
+    xy_fota_boot_write_cb write;
+} xy_fota_boot_journal_config_t;
+
 int xy_fota_boot_candidate_validate(const xy_fota_boot_candidate_config_t *config,
                                     xy_fota_boot_candidate_header_t *validated_header);
 int xy_fota_boot_candidate_handoff(const xy_fota_boot_candidate_config_t *config, uint8_t slot,
@@ -57,6 +65,10 @@ int xy_fota_boot_candidate_handoff(const xy_fota_boot_candidate_config_t *config
 int xy_fota_boot_candidate_install(const xy_fota_boot_candidate_config_t *config,
                                    const xy_fota_boot_install_ops_t *ops,
                                    xy_fota_boot_candidate_header_t *installed_header);
+int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *config,
+                                        const xy_fota_boot_install_ops_t *ops,
+                                        const xy_fota_boot_journal_config_t *journal,
+                                        int *installed);
 
 #ifdef __cplusplus
 }
