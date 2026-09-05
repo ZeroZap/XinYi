@@ -1,5 +1,23 @@
 # Pandora STM32L475VE Board Smoke Record
 
+## 2026-09-05 W25Q128 MCU software-reset persistence result
+
+Clean committed firmware `3b6fa2176ad007027941ba23053d071ceb9b29a7` erased the dedicated
+W25Q128 test sector at `0x00FFF000`, programmed and verified the 256-byte pattern, recorded a
+one-shot recovery marker in an RTC backup register, and called `NVIC_SystemReset()`. On the second
+boot it reinitialized QSPI and read the same pattern before any erase/program operation, then emitted
+`PANDORA_W25Q128_MCU_RESET_RECOVERED`.
+
+The 28904-byte BIN SHA-256 was `e021f3953135f5242ac3789d78510103c2d30b89a1464f7c335a8465344ae022`.
+ST-Link reported write verification, and an independent 28904-byte read-back was byte-identical. A
+50-second WCH-Link capture retained 26170 bytes with two matching firmware identities and the strict
+`MCU_RESET_STAGED → second boot → MCU_RESET_RECOVERED` chain. Machine validation reported 94
+complete cross-component cycles, 46 SysTick ISR wakes, and zero known runtime error markers; capture
+SHA-256 was `fc37f6a3194af12747602cc73ac2b35e239e577e4452921b6ce7016de105c64a`.
+
+This grants B2 only for W25Q128 persistence across one MCU software reset. It is not power-loss,
+external NRST, four-line QSPI, endurance, performance, or FOTA candidate-storage evidence.
+
 ## 2026-09-04 TIM6 peripheral IRQ timeout/restart recovery result
 
 The clean committed firmware `f78f441712322447f81582e95185bbc6a2efd5a8` was built with Arm GNU

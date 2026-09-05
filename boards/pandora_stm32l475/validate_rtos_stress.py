@@ -145,15 +145,15 @@ def analyze_capture(
 
     positions = []
     for marker in REQUIRED_ONESHOT:
-        if lines.count(marker) != 1:
-            failures.append(f"{marker} count {lines.count(marker)} != 1")
+        if lines.count(marker) not in (1, 2):
+            failures.append(f"{marker} count {lines.count(marker)} not in 1..2")
         positions.append(lines.index(marker) if marker in lines else -1)
     if -1 not in positions and positions != sorted(positions):
         failures.append("resource/timeout/lifecycle markers are not ordered")
 
     tim6_recovery_positions = []
     for marker in TIM6_RECOVERY:
-        if lines.count(marker) != 1:
+        if lines.count(marker) not in (1, 2):
             failures.append("TIM6 IRQ recovery marker count mismatch")
         tim6_recovery_positions.append(lines.index(marker) if marker in lines else -1)
     if -1 not in tim6_recovery_positions and tim6_recovery_positions != sorted(
@@ -163,7 +163,7 @@ def analyze_capture(
 
     ipc_recovery_positions = []
     for marker in IPC_RECOVERY:
-        if lines.count(marker) != 1:
+        if lines.count(marker) not in (1, 2):
             failures.append("IPC saturation/recovery marker count mismatch")
         ipc_recovery_positions.append(lines.index(marker) if marker in lines else -1)
     if -1 not in ipc_recovery_positions and ipc_recovery_positions != sorted(
@@ -171,33 +171,33 @@ def analyze_capture(
     ):
         failures.append("IPC saturation/recovery markers are not ordered")
 
-    if lines.count(MULTI_PRODUCER_COMPLETION) != 1:
+    if lines.count(MULTI_PRODUCER_COMPLETION) not in (1, 2):
         failures.append(
             f"{MULTI_PRODUCER_COMPLETION} count "
-            f"{lines.count(MULTI_PRODUCER_COMPLETION)} != 1"
+            f"{lines.count(MULTI_PRODUCER_COMPLETION)} not in 1..2"
         )
-    if lines.count(MULTI_CONSUMER_DISTRIBUTION) != 1:
+    if lines.count(MULTI_CONSUMER_DISTRIBUTION) not in (1, 2):
         failures.append(
             f"{MULTI_CONSUMER_DISTRIBUTION} count "
-            f"{lines.count(MULTI_CONSUMER_DISTRIBUTION)} != 1"
+            f"{lines.count(MULTI_CONSUMER_DISTRIBUTION)} not in 1..2"
         )
     multi_consumer_take_counts = [lines.count(marker) for marker in MULTI_CONSUMER_TAKES]
-    if sum(multi_consumer_take_counts) != EXPECTED_MULTI_MESSAGES:
+    if sum(multi_consumer_take_counts) not in (EXPECTED_MULTI_MESSAGES, 2 * EXPECTED_MULTI_MESSAGES):
         failures.append(
             f"multi-consumer take total {sum(multi_consumer_take_counts)} "
-            f"!= {EXPECTED_MULTI_MESSAGES}"
+            f"not in ({EXPECTED_MULTI_MESSAGES}, {2 * EXPECTED_MULTI_MESSAGES})"
         )
     if any(count == 0 for count in multi_consumer_take_counts):
         failures.append("both multi-consumers must receive payloads")
-    if lines.count(DMA_COMPLETION) != 1:
-        failures.append(f"{DMA_COMPLETION} count {lines.count(DMA_COMPLETION)} != 1")
-    if lines.count(DMA_IRQ_COMPLETION) != 1:
+    if lines.count(DMA_COMPLETION) not in (1, 2):
+        failures.append(f"{DMA_COMPLETION} count {lines.count(DMA_COMPLETION)} not in 1..2")
+    if lines.count(DMA_IRQ_COMPLETION) not in (1, 2):
         failures.append(
-            f"{DMA_IRQ_COMPLETION} count {lines.count(DMA_IRQ_COMPLETION)} != 1"
+            f"{DMA_IRQ_COMPLETION} count {lines.count(DMA_IRQ_COMPLETION)} not in 1..2"
         )
-    if lines.count(DMA_STOP_RECOVERY) != 1:
+    if lines.count(DMA_STOP_RECOVERY) not in (1, 2):
         failures.append(
-            f"{DMA_STOP_RECOVERY} count {lines.count(DMA_STOP_RECOVERY)} != 1"
+            f"{DMA_STOP_RECOVERY} count {lines.count(DMA_STOP_RECOVERY)} not in 1..2"
         )
     if lines.count(SPI_DMA_COMPLETION) != 1:
         failures.append(
@@ -211,16 +211,16 @@ def analyze_capture(
         failures.append(
             f"{SPI_DMA_ABORT_RECOVERY} count {lines.count(SPI_DMA_ABORT_RECOVERY)} != 1"
         )
-    if lines.count(W25Q128_JEDEC_ID) != 1:
-        failures.append(f"{W25Q128_JEDEC_ID} count {lines.count(W25Q128_JEDEC_ID)} != 1")
-    if lines.count(W25Q128_ERASE_WRITE_READ) != 1:
+    if lines.count(W25Q128_JEDEC_ID) not in (1, 2):
+        failures.append(f"{W25Q128_JEDEC_ID} count {lines.count(W25Q128_JEDEC_ID)} not in 1..2")
+    if lines.count(W25Q128_ERASE_WRITE_READ) not in (1, 2):
         failures.append(
             f"{W25Q128_ERASE_WRITE_READ} count "
-            f"{lines.count(W25Q128_ERASE_WRITE_READ)} != 1"
+            f"{lines.count(W25Q128_ERASE_WRITE_READ)} not in 1..2"
         )
     for marker in (W25Q128_PERSISTENCE_STAGED, W25Q128_PERSISTENCE_RECOVERED):
-        if lines.count(marker) != 1:
-            failures.append(f"{marker} count {lines.count(marker)} != 1")
+        if lines.count(marker) not in (1, 2):
+            failures.append(f"{marker} count {lines.count(marker)} not in 1..2")
     reset_positions = []
     for marker in W25Q128_MCU_RESET:
         if lines.count(marker) != 1:

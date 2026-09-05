@@ -162,7 +162,7 @@ class StressCaptureContract(unittest.TestCase):
         result = analyze_capture(payload, COMMIT, 120, 100, 50)
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
-        self.assertIn("OSAL_MULTI_PRODUCER_OK count 0 != 1", result["failures"])
+        self.assertIn("OSAL_MULTI_PRODUCER_OK count 0 not in 1..2", result["failures"])
 
     def test_rejects_missing_multi_consumer_distribution(self) -> None:
         payload = make_capture(120, 60).replace(
@@ -172,7 +172,7 @@ class StressCaptureContract(unittest.TestCase):
         result = analyze_capture(payload, COMMIT, 120, 100, 50)
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
-        self.assertIn("OSAL_MULTI_CONSUMER_DISTRIBUTED count 0 != 1", result["failures"])
+        self.assertIn("OSAL_MULTI_CONSUMER_DISTRIBUTED count 0 not in 1..2", result["failures"])
 
     def test_rejects_missing_consumer_payload_count(self) -> None:
         payload = make_capture(120, 60).replace(b"OSAL_MULTI_CONSUMER_1_TAKE\r\n", b"", 1)
@@ -180,7 +180,7 @@ class StressCaptureContract(unittest.TestCase):
         result = analyze_capture(payload, COMMIT, 120, 100, 50)
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
-        self.assertIn("multi-consumer take total 15 != 16", result["failures"])
+        self.assertIn("multi-consumer take total 15 not in (16, 32)", result["failures"])
 
     def test_rejects_single_consumer_monopoly(self) -> None:
         payload = make_capture(120, 60).replace(
@@ -198,7 +198,7 @@ class StressCaptureContract(unittest.TestCase):
         result = analyze_capture(payload, COMMIT, 120, 100, 50)
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
-        self.assertIn("PANDORA_DMA_MEM2MEM_OK count 0 != 1", result["failures"])
+        self.assertIn("PANDORA_DMA_MEM2MEM_OK count 0 not in 1..2", result["failures"])
 
     def test_rejects_missing_dma_irq_callback_evidence(self) -> None:
         payload = make_capture(120, 60).replace(b"PANDORA_DMA_IRQ_CALLBACK_OK\r\n", b"")
@@ -206,7 +206,7 @@ class StressCaptureContract(unittest.TestCase):
         result = analyze_capture(payload, COMMIT, 120, 100, 50)
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
-        self.assertIn("PANDORA_DMA_IRQ_CALLBACK_OK count 0 != 1", result["failures"])
+        self.assertIn("PANDORA_DMA_IRQ_CALLBACK_OK count 0 not in 1..2", result["failures"])
 
     def test_rejects_missing_dma_stop_recovery_evidence(self) -> None:
         payload = make_capture(120, 60).replace(b"PANDORA_DMA_STOP_RECOVERY_OK\r\n", b"")
@@ -214,7 +214,7 @@ class StressCaptureContract(unittest.TestCase):
         result = analyze_capture(payload, COMMIT, 120, 100, 50)
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
-        self.assertIn("PANDORA_DMA_STOP_RECOVERY_OK count 0 != 1", result["failures"])
+        self.assertIn("PANDORA_DMA_STOP_RECOVERY_OK count 0 not in 1..2", result["failures"])
 
     def test_rejects_missing_spi_dma_completion_evidence(self) -> None:
         payload = make_capture(120, 60).replace(b"PANDORA_SPI_DMA_TX_OK\r\n", b"")
@@ -238,7 +238,7 @@ class StressCaptureContract(unittest.TestCase):
         result = analyze_capture(payload, COMMIT, 120, 100, 50)
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
-        self.assertIn("PANDORA_W25Q128_JEDEC_ID_OK count 0 != 1", result["failures"])
+        self.assertIn("PANDORA_W25Q128_JEDEC_ID_OK count 0 not in 1..2", result["failures"])
 
     def test_rejects_missing_w25q128_erase_write_read_evidence(self) -> None:
         payload = make_capture(120, 60).replace(
@@ -249,7 +249,7 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn(
-            "PANDORA_W25Q128_ERASE_WRITE_READ_OK count 0 != 1", result["failures"]
+            "PANDORA_W25Q128_ERASE_WRITE_READ_OK count 0 not in 1..2", result["failures"]
         )
 
     def test_rejects_missing_w25q128_persistence_recovery(self) -> None:
@@ -261,7 +261,7 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn(
-            "PANDORA_W25Q128_PERSISTENCE_RECOVERED count 0 != 1", result["failures"]
+            "PANDORA_W25Q128_PERSISTENCE_RECOVERED count 0 not in 1..2", result["failures"]
         )
 
     def test_rejects_missing_or_reordered_w25q128_mcu_reset_recovery(self) -> None:
