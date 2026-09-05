@@ -1085,6 +1085,9 @@ int main(void)
     HAL_Init();
     clock_init();
     gpio_uart_init();
+    SCB->VTOR = 0x08008000U;
+    __DSB();
+    __ISB();
     tim6_init();
     __HAL_RCC_PWR_CLK_ENABLE();
     HAL_PWR_EnableBkUpAccess();

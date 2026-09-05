@@ -17,6 +17,7 @@
 static UART_HandleTypeDef uart1;
 static QSPI_HandleTypeDef qspi;
 static xy_w25q128_t w25q128;
+static const uint32_t *const app_vectors = (const uint32_t *)PANDORA_FOTA_APP_BASE;
 
 static const xy_hal_qspi_config_t qspi_config = {
     .clock_prescaler = 3U,
@@ -114,8 +115,7 @@ static void peripherals_init(void)
 
 static void jump_to_application(void)
 {
-    const uint32_t *vectors = (const uint32_t *)PANDORA_FOTA_APP_BASE;
-    void (*reset_handler)(void) = (void (*)(void))(uintptr_t)vectors[1];
+    void (*reset_handler)(void) = (void (*)(void))(uintptr_t)app_vectors[1];
 
     uart_text("PANDORA_BOOT_JUMP_APP\r\n");
     (void)HAL_UART_DeInit(&uart1);
@@ -132,7 +132,7 @@ static void jump_to_application(void)
     SCB->VTOR = PANDORA_FOTA_APP_BASE;
     __DSB();
     __ISB();
-    __set_MSP(vectors[0]);
+    __set_MSP(app_vectors[0]);
     reset_handler();
     stop();
 }
@@ -155,6 +155,9 @@ int main(void)
     HAL_Init();
     clock_init();
     peripherals_init();
+    SCB->VTOR = 0x08000000U;
+    __DSB();
+    __ISB();
     uart_text("PANDORA FOTA BOOTLOADER READY\r\n");
     uart_text("BOOTLOADER_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
     if (xy_device_init() != XY_DEVICE_OK || xy_hal_qspi_init(&qspi, &qspi_config) != XY_HAL_OK ||

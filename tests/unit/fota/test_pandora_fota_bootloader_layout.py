@@ -29,7 +29,7 @@ def main() -> int:
         "xy_fota_boot_candidate_validate",
         "xy_fota_boot_candidate_install",
         "SCB->VTOR = PANDORA_FOTA_APP_BASE",
-        "__set_MSP(vectors[0])",
+        "__set_MSP(app_vectors[0])",
         "PANDORA_BOOT_CANDIDATE_INSTALLED",
         "PANDORA_BOOT_JUMP_APP",
     ):
