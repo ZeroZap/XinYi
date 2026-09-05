@@ -76,6 +76,13 @@ write/verify/read-back byte-identical，BIN SHA-256=`5562ace4...`；20 秒 UART 
 SHA-256=`d9d9ae29...`，normal/re-init/abort-recovery marker 各一次，validator error marker 为 0。
 这只升级受控 software abort recovery B2，不是物理故障、电气响应、RX/full-duplex 或性能证据。
 
+Pandora V2.4 原理图确认 U9 为 W25Q128，QSPI Bank1 使用 PE10 CLK、PE11 NCS、PE12–PE15
+IO0–IO3。clean committed `37fa7b95` image 通过 CubeL4 QSPI 单线 `0x9F` 读取并严格匹配
+JEDEC ID `EF 40 18`；27600-byte image write/verify/read-back byte-identical，20 秒 UART capture
+11150 bytes、SHA-256=`36258be5...`，`PANDORA_W25Q128_JEDEC_ID_OK` 一次且错误 marker 为 0。
+该结果只证明板载 16 MiB Flash 的识别 B1；擦写、四线模式、掉电恢复、耐久和 FOTA candidate
+storage 仍 pending。
+
 ### WCH / HC32
 
 WCH 只有部分基础 wrapper，Timer/I2S/DMA 缺失；HC32L021 当前只有 GPIO wrapper，且 IRQ 不支持。两者都没有 canonical compile 或实板证据，不得描述为 production-ready。
