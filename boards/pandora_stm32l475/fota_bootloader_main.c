@@ -29,6 +29,11 @@ static const xy_hal_qspi_config_t qspi_config = {
 void _init(void) {}
 void _fini(void) {}
 
+void SysTick_Handler(void)
+{
+    HAL_IncTick();
+}
+
 static void stop(void)
 {
     __disable_irq();

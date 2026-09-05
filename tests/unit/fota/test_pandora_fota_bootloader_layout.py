@@ -28,6 +28,7 @@ def main() -> int:
     for token in (
         "xy_fota_boot_candidate_validate",
         "xy_fota_boot_candidate_install",
+        "void SysTick_Handler(void)",
         "SCB->VTOR = PANDORA_FOTA_APP_BASE",
         "__set_MSP(app_vectors[0])",
         "PANDORA_BOOT_CANDIDATE_INSTALLED",
