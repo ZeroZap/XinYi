@@ -681,8 +681,29 @@ static void dma_task(void *argument)
             fail();
         }
         uart_text("PANDORA_W25Q128_ERASE_WRITE_READ_OK\r\n");
+        uart_text("PANDORA_W25Q128_PERSISTENCE_STAGED\r\n");
+        if (HAL_QSPI_DeInit(&qspi) != HAL_OK || HAL_QSPI_Init(&qspi) != HAL_OK) {
+            uart_text("PANDORA_W25Q128_PERSISTENCE_ERROR\r\n");
+            fail();
+        }
+        {
+            uint8_t persisted[W25Q128_TEST_LENGTH];
+
+            if (w25q128_command(0x03U, W25Q128_TEST_ADDRESS, W25Q128_TEST_LENGTH) != HAL_OK ||
+                HAL_QSPI_Receive(&qspi, persisted, 100U) != HAL_OK) {
+                uart_text("PANDORA_W25Q128_PERSISTENCE_ERROR\r\n");
+                fail();
+            }
+            for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
+                if (persisted[index] != (uint8_t)(index ^ 0xA5U)) {
+                    uart_text("PANDORA_W25Q128_PERSISTENCE_ERROR\r\n");
+                    fail();
+                }
+            }
+        }
+        uart_text("PANDORA_W25Q128_PERSISTENCE_RECOVERED\r\n");
         if (HAL_QSPI_DeInit(&qspi) != HAL_OK) {
-            uart_text("PANDORA_W25Q128_ERASE_WRITE_READ_ERROR\r\n");
+            uart_text("PANDORA_W25Q128_PERSISTENCE_ERROR\r\n");
             fail();
         }
     }
