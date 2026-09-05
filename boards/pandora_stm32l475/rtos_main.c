@@ -168,6 +168,40 @@ static int w25q128_erase_write_read_test(void)
     return 1;
 }
 
+static int w25q128_quad_read_test(void)
+{
+    uint8_t expected[W25Q128_TEST_LENGTH];
+    uint8_t actual[W25Q128_TEST_LENGTH];
+    QSPI_CommandTypeDef command = {0};
+
+    for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
+        expected[index] = (uint8_t)(index ^ 0xA5U);
+        actual[index] = 0U;
+    }
+    command.Instruction = 0x6BU;
+    command.InstructionMode = QSPI_INSTRUCTION_1_LINE;
+    command.AddressMode = QSPI_ADDRESS_1_LINE;
+    command.AddressSize = QSPI_ADDRESS_24_BITS;
+    command.Address = W25Q128_TEST_ADDRESS;
+    command.AlternateByteMode = QSPI_ALTERNATE_BYTES_NONE;
+    command.DataMode = QSPI_DATA_4_LINES;
+    command.DummyCycles = 8U;
+    command.NbData = W25Q128_TEST_LENGTH;
+    command.DdrMode = QSPI_DDR_MODE_DISABLE;
+    command.DdrHoldHalfCycle = QSPI_DDR_HHC_ANALOG_DELAY;
+    command.SIOOMode = QSPI_SIOO_INST_EVERY_CMD;
+    if (HAL_QSPI_Command(&qspi, &command, 100U) != HAL_OK ||
+        HAL_QSPI_Receive(&qspi, actual, 100U) != HAL_OK) {
+        return 0;
+    }
+    for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
+        if (actual[index] != expected[index]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static void uart_text(const char *text)
 {
     uint16_t length = 0;
@@ -720,6 +754,11 @@ static void dma_task(void *argument)
             }
         }
         uart_text("PANDORA_W25Q128_PERSISTENCE_RECOVERED\r\n");
+        if (!w25q128_quad_read_test()) {
+            uart_text("PANDORA_W25Q128_QUAD_READ_ERROR\r\n");
+            fail();
+        }
+        uart_text("PANDORA_W25Q128_QUAD_READ_OK\r\n");
         if (w25q128_mcu_reset_recovery_pending == 0U) {
             RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
             uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");

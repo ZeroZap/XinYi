@@ -158,6 +158,9 @@ def main() -> int:
             "PANDORA_W25Q128_MCU_RESET_STAGED",
             "PANDORA_W25Q128_MCU_RESET_RECOVERED",
             "PANDORA_W25Q128_MCU_RESET_ERROR",
+            "QSPI_DATA_4_LINES",
+            "PANDORA_W25Q128_QUAD_READ_OK",
+            "PANDORA_W25Q128_QUAD_READ_ERROR",
             "NVIC_SystemReset",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR",
         ):
