@@ -614,6 +614,23 @@ static void dma_task(void *argument)
             fail();
         }
         uart_text("PANDORA_SPI_DMA_RECOVERY_OK\r\n");
+        spi_event = XY_HAL_SPI_EVENT_ERROR;
+        if (HAL_DMA_Init(&spi1_tx_dma) != HAL_OK ||
+            xy_hal_spi_init(&spi1, &spi_config) != XY_HAL_OK ||
+            xy_hal_spi_register_callback(&spi1, spi_callback, NULL) != XY_HAL_OK ||
+            xy_hal_spi_transmit_dma(&spi1, spi_tx_data, sizeof(spi_tx_data)) != XY_HAL_OK ||
+            HAL_SPI_DMAStop(&spi1) != HAL_OK || xy_hal_spi_deinit(&spi1) != XY_HAL_OK ||
+            HAL_DMA_DeInit(&spi1_tx_dma) != HAL_OK || HAL_DMA_Init(&spi1_tx_dma) != HAL_OK ||
+            xy_hal_spi_init(&spi1, &spi_config) != XY_HAL_OK ||
+            xy_hal_spi_register_callback(&spi1, spi_callback, NULL) != XY_HAL_OK ||
+            xy_hal_spi_transmit_dma(&spi1, spi_tx_data, sizeof(spi_tx_data)) != XY_HAL_OK ||
+            xy_os_semaphore_acquire(pandora_dma_sem, 100U) != XY_OS_OK ||
+            spi_event != XY_HAL_SPI_EVENT_TX_DONE ||
+            xy_hal_spi_deinit(&spi1) != XY_HAL_OK || HAL_DMA_DeInit(&spi1_tx_dma) != HAL_OK) {
+            uart_text("PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR\r\n");
+            fail();
+        }
+        uart_text("PANDORA_SPI_DMA_ABORT_RECOVERY_OK\r\n");
     }
     xy_os_thread_exit();
 }
