@@ -87,6 +87,17 @@ add_test(NAME pandora_fota_boot_contract_validator
     COMMAND python3 ${UNIT_FOTA}/test_pandora_fota_boot_contract.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_executable(test_fota_boot_candidate
+    ${UNIT_FOTA}/test_fota_boot_candidate.c
+    ${FOTA}/src/xy_fota_boot.c
+    ${FOTA}/xy_fota.c
+    ${ROOT}/tests/unity/unity.c
+)
+target_include_directories(test_fota_boot_candidate PRIVATE
+    ${FOTA}/inc
+    ${ROOT}/tests/unity
+)
+add_test(NAME fota_boot_candidate COMMAND test_fota_boot_candidate)
 add_test(NAME sensor_active_source_manifest
     COMMAND python3 ${UNIT_SENSOR}/check_sensor_active_source_manifest.py
     WORKING_DIRECTORY ${ROOT}

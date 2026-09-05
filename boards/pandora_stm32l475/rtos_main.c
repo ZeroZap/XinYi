@@ -2,6 +2,8 @@
 #include "stm32l4xx_hal_tim.h"
 #include "xy_broker.h"
 #include "xy_device.h"
+#include "xy_fota.h"
+#include "xy_fota_boot.h"
 #include "xy_fota_w25q128.h"
 #include "xy_hal_dma.h"
 #include "xy_hal_qspi.h"
@@ -191,23 +193,36 @@ static int w25q128_fota_full_image_test(void)
     uint32_t image_size = (uint32_t)((uintptr_t)&__flash_image_end - (uintptr_t)image);
     uint32_t expected_crc;
     xy_fota_t fota;
+    xy_fota_boot_candidate_header_t candidate_header = {
+        .magic = XY_FOTA_BOOT_CANDIDATE_MAGIC,
+        .format_version = XY_FOTA_BOOT_CANDIDATE_FORMAT_VERSION,
+        .header_size = sizeof(xy_fota_boot_candidate_header_t),
+        .image_offset = sizeof(xy_fota_boot_candidate_header_t),
+        .image_version = 2U,
+        .load_address = 0x08000000U,
+    };
     xy_fota_config_t fota_config = {
         .mode = XY_FOTA_MODE_DUAL_BANK,
-        .flash_base_addr = W25Q128_FOTA_IMAGE_ADDRESS,
+        .flash_base_addr = W25Q128_FOTA_IMAGE_ADDRESS + sizeof(candidate_header),
         .slot_size = W25Q128_FOTA_IMAGE_SIZE,
         .slot_count = 1U,
         .enable_rollback = true,
         .min_version = 1U,
     };
 
-    if (image_size == 0U || image_size > W25Q128_FOTA_IMAGE_SIZE) {
+    if (image_size == 0U || image_size > W25Q128_FOTA_IMAGE_SIZE - sizeof(candidate_header)) {
         return 0;
     }
     expected_crc = xy_fota_calc_crc32(image, image_size);
+    candidate_header.image_size = image_size;
+    candidate_header.image_crc32 = expected_crc;
     if (xy_fota_w25q128_bind(&w25q128, W25Q128_FOTA_IMAGE_ADDRESS,
                               W25Q128_FOTA_IMAGE_SIZE, 1000U) != XY_FOTA_OK ||
         (fota_ops = xy_fota_w25q128_ops()) == NULL || fota_ops->init() != XY_FOTA_OK ||
-        fota_ops->erase(W25Q128_FOTA_IMAGE_ADDRESS, image_size) != XY_FOTA_OK ||
+        fota_ops->erase(W25Q128_FOTA_IMAGE_ADDRESS,
+                        image_size + sizeof(candidate_header)) != XY_FOTA_OK ||
+        fota_ops->write(W25Q128_FOTA_IMAGE_ADDRESS, (const uint8_t *)&candidate_header,
+                        sizeof(candidate_header)) != XY_FOTA_OK ||
         xy_fota_init(&fota, &fota_config) != XY_FOTA_OK ||
         xy_fota_set_flash_ops(&fota, fota_ops) != XY_FOTA_OK ||
         xy_fota_start_download(&fota, 2U, image_size, false) != XY_FOTA_OK ||
@@ -223,7 +238,28 @@ static int w25q128_fota_full_image_test(void)
             return 0;
         }
     }
-    if (xy_fota_finish_download(&fota) != XY_FOTA_OK || fota_ops->deinit() != XY_FOTA_OK) {
+    if (xy_fota_finish_download(&fota) != XY_FOTA_OK) {
+        return 0;
+    }
+    {
+        xy_fota_boot_candidate_header_t validated_header;
+        xy_fota_boot_candidate_config_t boot_config = {
+            .storage_address = W25Q128_FOTA_IMAGE_ADDRESS,
+            .storage_size = W25Q128_FOTA_IMAGE_SIZE,
+            .execution_base = 0x08000000U,
+            .execution_limit = 0x0807E000U,
+            .sram_base = 0x20000000U,
+            .sram_limit = 0x20018000U,
+            .sram2_base = 0x10000000U,
+            .sram2_limit = 0x10008000U,
+            .read = fota_ops->read,
+        };
+        if (xy_fota_boot_candidate_validate(&boot_config, &validated_header) != XY_FOTA_OK ||
+            validated_header.image_version != 2U || validated_header.image_size != image_size) {
+            return 0;
+        }
+    }
+    if (fota_ops->deinit() != XY_FOTA_OK) {
         return 0;
     }
     return 1;
@@ -819,9 +855,11 @@ static void dma_task(void *argument)
         }
         if (!w25q128_fota_full_image_test()) {
             uart_text("PANDORA_W25Q128_FOTA_FULL_IMAGE_ERROR\r\n");
+            uart_text("PANDORA_FOTA_BOOTABLE_CANDIDATE_ERROR\r\n");
             fail();
         }
         uart_text("PANDORA_W25Q128_FOTA_FULL_IMAGE_OK\r\n");
+        uart_text("PANDORA_FOTA_BOOTABLE_CANDIDATE_VALIDATED\r\n");
         if (w25q128_mcu_reset_recovery_pending == 0U) {
             RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
             uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");

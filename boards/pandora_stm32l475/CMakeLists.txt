@@ -81,6 +81,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
         ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
+        ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_boot.c
         ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_w25q128.c
         ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
         ${_cmsis}/Source/Templates/system_stm32l4xx.c
