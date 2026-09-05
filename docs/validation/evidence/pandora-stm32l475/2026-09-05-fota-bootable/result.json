@@ -1,0 +1,17 @@
+{
+  "capture_bytes": 1341,
+  "capture_sha256": "363b75b172d95f45159903d9806962b8d40dd5a225ef6567c020959953b2f5f9",
+  "error_marker_count": 0,
+  "firmware_commit": "1faafe50bb10ea40380fe5e0c8f88322c43018f4",
+  "full_image_marker_count": 1,
+  "not_evidence_for": [
+    "independent bootloader",
+    "candidate execution",
+    "vector jump",
+    "secure FOTA",
+    "power-loss recovery"
+  ],
+  "scope": "Pandora W25Q128 stored candidate header/layout/full-image CRC/Cortex-M vector validation before metadata handoff",
+  "status": "BOOTABLE_CANDIDATE_VALIDATION_REVIEW_CANDIDATE",
+  "validated_marker_count": 1
+}
