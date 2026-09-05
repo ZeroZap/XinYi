@@ -1,0 +1,30 @@
+{
+  "board": "Pandora STM32L475VE",
+  "capture_bytes": 11057,
+  "capture_duration_seconds": 20,
+  "capture_sha256": "11fa5cd83fca73503d7720df7fc1ceb2f84fc7d715347b9d792b055fa7d7efdf",
+  "error_markers": {},
+  "failures": [],
+  "firmware_bin_sha256": "b70ae145ffb7cbd9b36197085dca573758e01c64cec51c0c893e16fc3508ad4c",
+  "firmware_commit": "d904cbf2d01cb1ffdbd2bfedbc4feae73b78a1f2",
+  "firmware_size_bytes": 25636,
+  "flash_program_result": "Flash written and verified",
+  "flash_readback": "25636 bytes byte-identical",
+  "isr_take_count": 19,
+  "multi_consumer_take_counts": [9, 7],
+  "not_evidence_for": [
+    "SPI electrical signaling or pin routing",
+    "external SPI peripheral response",
+    "full-duplex or receive DMA",
+    "performance",
+    "STM32U5 runtime",
+    "complete HAL or RTOS product qualification"
+  ],
+  "ordered_pipeline_cycles": 39,
+  "recorded_at_utc": "2026-09-05T02:12:56.572117+00:00",
+  "scope": "Pandora SPI1 transmit request driving DMA1 Channel3 completion IRQ through framework SPI callback to OSAL task",
+  "source_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "spi_dma_marker": "PANDORA_SPI_DMA_TX_OK",
+  "status": "B1",
+  "tim6_irq_take_count": 26
+}
