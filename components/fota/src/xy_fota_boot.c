@@ -275,7 +275,10 @@ int xy_fota_boot_candidate_install(const xy_fota_boot_candidate_config_t *config
     if (ret != XY_FOTA_OK) {
         return ret;
     }
-    if (header.image_size > UINT32_MAX - (ops->erase_granule - 1U)) {
+    if (header.load_address % ops->program_granule != 0U ||
+        header.load_address % ops->erase_granule != 0U ||
+        CRC_CHUNK_SIZE % ops->program_granule != 0U ||
+        header.image_size > UINT32_MAX - (ops->erase_granule - 1U)) {
         return XY_FOTA_INVALID_PARAM;
     }
     erase_size = ((header.image_size + ops->erase_granule - 1U) / ops->erase_granule) *

@@ -305,6 +305,42 @@ static void test_installs_validated_candidate_and_verifies_execution_slot(void)
     TEST_ASSERT_EQUAL_UINT(1U, erase_calls);
 }
 
+static void test_rejects_unaligned_install_layout_before_erasing_execution_slot(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    uint8_t image[384];
+    uint32_t reset_handler;
+
+    build_candidate(&header, image, sizeof(image));
+    config.execution_base += 4U;
+    ((xy_fota_boot_candidate_header_t *)storage)->load_address = config.execution_base;
+    reset_handler = config.execution_base + 0x101U;
+    memcpy(storage + sizeof(header) + sizeof(uint32_t), &reset_handler, sizeof(reset_handler));
+    ((xy_fota_boot_candidate_header_t *)storage)->image_crc32 =
+        xy_fota_calc_crc32(storage + sizeof(header), sizeof(image));
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_boot_candidate_install(&config, &ops, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, write_calls);
+
+    config = default_config();
+    build_candidate(&header, image, sizeof(image));
+    ops.program_granule = 7U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_boot_candidate_install(&config, &ops, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, write_calls);
+}
+
 static void test_install_journal_skips_same_installed_candidate_after_restart(void)
 {
     xy_fota_boot_candidate_header_t header;
@@ -481,6 +517,7 @@ int main(void)
     RUN_TEST(test_rejects_malformed_layout_crc_and_vectors_without_handoff);
     RUN_TEST(test_rejects_read_failures_and_out_of_range_images);
     RUN_TEST(test_installs_validated_candidate_and_verifies_execution_slot);
+    RUN_TEST(test_rejects_unaligned_install_layout_before_erasing_execution_slot);
     RUN_TEST(test_install_journal_skips_same_installed_candidate_after_restart);
     RUN_TEST(test_install_journal_recovers_failed_and_corrupt_records);
     RUN_TEST(test_install_journal_revalidates_execution_slot_before_skipping_install);
