@@ -38,11 +38,25 @@ typedef struct {
     xy_fota_boot_candidate_read_cb read;
 } xy_fota_boot_candidate_config_t;
 
+typedef int (*xy_fota_boot_erase_cb)(uint32_t address, uint32_t size);
+typedef int (*xy_fota_boot_write_cb)(uint32_t address, const uint8_t *data, uint32_t size);
+
+typedef struct {
+    xy_fota_boot_erase_cb erase;
+    xy_fota_boot_write_cb write;
+    xy_fota_boot_candidate_read_cb read;
+    uint32_t program_granule;
+    uint32_t erase_granule;
+} xy_fota_boot_install_ops_t;
+
 int xy_fota_boot_candidate_validate(const xy_fota_boot_candidate_config_t *config,
                                     xy_fota_boot_candidate_header_t *validated_header);
 int xy_fota_boot_candidate_handoff(const xy_fota_boot_candidate_config_t *config, uint8_t slot,
                                    xy_fota_boot_handoff_cb handoff, void *user_data,
                                    xy_fota_boot_candidate_header_t *validated_header);
+int xy_fota_boot_candidate_install(const xy_fota_boot_candidate_config_t *config,
+                                   const xy_fota_boot_install_ops_t *ops,
+                                   xy_fota_boot_candidate_header_t *installed_header);
 
 #ifdef __cplusplus
 }

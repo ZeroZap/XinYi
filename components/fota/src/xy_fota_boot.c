@@ -1,6 +1,7 @@
 #include "xy_fota_boot.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #define CRC32_INITIAL 0xFFFFFFFFU
 #define CRC32_POLYNOMIAL 0xEDB88320U
@@ -110,4 +111,70 @@ int xy_fota_boot_candidate_handoff(const xy_fota_boot_candidate_config_t *config
         *validated_header = header;
     }
     return ret;
+}
+
+int xy_fota_boot_candidate_install(const xy_fota_boot_candidate_config_t *config,
+                                   const xy_fota_boot_install_ops_t *ops,
+                                   xy_fota_boot_candidate_header_t *installed_header)
+{
+    xy_fota_boot_candidate_header_t header;
+    uint8_t source[CRC_CHUNK_SIZE];
+    uint8_t verify[CRC_CHUNK_SIZE];
+    uint32_t erase_size;
+    uint32_t offset = 0U;
+    int ret;
+
+    if (ops == NULL || ops->erase == NULL || ops->write == NULL || ops->read == NULL ||
+        ops->program_granule == 0U || ops->program_granule > sizeof(source) ||
+        ops->erase_granule == 0U) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    ret = xy_fota_boot_candidate_validate(config, &header);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    if (header.image_size > UINT32_MAX - (ops->erase_granule - 1U)) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    erase_size = ((header.image_size + ops->erase_granule - 1U) / ops->erase_granule) *
+                 ops->erase_granule;
+    if (!range_fits(header.load_address, erase_size, config->execution_base,
+                    config->execution_limit)) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    ret = ops->erase(header.load_address, erase_size);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    while (offset < header.image_size) {
+        uint32_t payload_size = header.image_size - offset;
+        uint32_t write_size;
+        if (payload_size > sizeof(source)) {
+            payload_size = sizeof(source);
+        }
+        write_size = ((payload_size + ops->program_granule - 1U) / ops->program_granule) *
+                     ops->program_granule;
+        memset(source, 0xFF, write_size);
+        ret = config->read(config->storage_address + header.image_offset + offset, source,
+                           payload_size);
+        if (ret != XY_FOTA_OK) {
+            return ret;
+        }
+        ret = ops->write(header.load_address + offset, source, write_size);
+        if (ret != XY_FOTA_OK) {
+            return ret;
+        }
+        ret = ops->read(header.load_address + offset, verify, payload_size);
+        if (ret != XY_FOTA_OK) {
+            return ret;
+        }
+        if (memcmp(source, verify, payload_size) != 0) {
+            return XY_FOTA_FLASH_ERROR;
+        }
+        offset += payload_size;
+    }
+    if (installed_header != NULL) {
+        *installed_header = header;
+    }
+    return XY_FOTA_OK;
 }

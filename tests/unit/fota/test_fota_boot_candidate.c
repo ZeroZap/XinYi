@@ -14,6 +14,9 @@ static int read_result;
 static unsigned int handoff_calls;
 static uint8_t handoff_slot;
 static uint32_t handoff_version;
+static uint8_t execution[1024];
+static unsigned int erase_calls;
+static unsigned int write_calls;
 
 static int candidate_read(uint32_t address, uint8_t *data, uint32_t size)
 {
@@ -24,6 +27,35 @@ static int candidate_read(uint32_t address, uint8_t *data, uint32_t size)
         return XY_FOTA_FLASH_ERROR;
     }
     memcpy(data, &storage[address - STORAGE_BASE], size);
+    return XY_FOTA_OK;
+}
+
+static int execution_erase(uint32_t address, uint32_t size)
+{
+    if (address != EXECUTION_BASE || size > sizeof(execution)) {
+        return XY_FOTA_FLASH_ERROR;
+    }
+    memset(execution, 0xFF, size);
+    ++erase_calls;
+    return XY_FOTA_OK;
+}
+
+static int execution_write(uint32_t address, const uint8_t *data, uint32_t size)
+{
+    if (address < EXECUTION_BASE || size > sizeof(execution) - (address - EXECUTION_BASE)) {
+        return XY_FOTA_FLASH_ERROR;
+    }
+    memcpy(execution + address - EXECUTION_BASE, data, size);
+    ++write_calls;
+    return XY_FOTA_OK;
+}
+
+static int execution_read(uint32_t address, uint8_t *data, uint32_t size)
+{
+    if (address < EXECUTION_BASE || size > sizeof(execution) - (address - EXECUTION_BASE)) {
+        return XY_FOTA_FLASH_ERROR;
+    }
+    memcpy(data, execution + address - EXECUTION_BASE, size);
     return XY_FOTA_OK;
 }
 
@@ -82,6 +114,9 @@ void setUp(void)
     handoff_calls = 0U;
     handoff_slot = UINT8_MAX;
     handoff_version = 0U;
+    memset(execution, 0, sizeof(execution));
+    erase_calls = 0U;
+    write_calls = 0U;
 }
 
 void tearDown(void) {}
@@ -163,11 +198,39 @@ static void test_rejects_read_failures_and_out_of_range_images(void)
                           xy_fota_boot_candidate_handoff(&config, 1U, NULL, NULL, NULL));
 }
 
+static void test_installs_validated_candidate_and_verifies_execution_slot(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_header_t installed;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    uint8_t image[384];
+
+    build_candidate(&header, image, sizeof(image));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_boot_candidate_install(&config, &ops, &installed));
+    TEST_ASSERT_EQUAL_UINT(1U, erase_calls);
+    TEST_ASSERT_GREATER_THAN_UINT(1U, write_calls);
+    TEST_ASSERT_EQUAL_MEMORY(image, execution, sizeof(image));
+    TEST_ASSERT_EQUAL_UINT32(sizeof(image), installed.image_size);
+
+    storage[sizeof(header) + 20U] ^= 1U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_CRC_ERROR,
+                          xy_fota_boot_candidate_install(&config, &ops, NULL));
+    TEST_ASSERT_EQUAL_UINT(1U, erase_calls);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_validates_header_image_crc_and_cortex_m_vectors_before_handoff);
     RUN_TEST(test_rejects_malformed_layout_crc_and_vectors_without_handoff);
     RUN_TEST(test_rejects_read_failures_and_out_of_range_images);
+    RUN_TEST(test_installs_validated_candidate_and_verifies_execution_slot);
     return UNITY_END();
 }

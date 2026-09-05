@@ -28,6 +28,8 @@ def main() -> int:
 
     for token in (
         "pandora_stm32l475_rtos",
+        "pandora_stm32l475_fota_app",
+        "STM32L475VETX_FOTA_APP.ld",
         "rtos_main.c",
         "rtos_handlers.c",
         "xy_osal",
