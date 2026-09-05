@@ -57,8 +57,11 @@ KEY0 和 AHT10 `0x38` software-I2C 初始化、测量、数值换算及 ACK/NACK
 及 read-back byte-identical，20 秒 reset-synchronized UART capture 为 10975 bytes、SHA-256=`ed4ed44d...`，
 出现一次 `PANDORA_DMA_MEM2MEM_OK`、39 个完整跨组件周期、19 次 SysTick ISR、26 次 TIM6
 wake、2P/2C consumer 为 9/7，错误 marker 为 0。
-该结果仅升级 STM32L4 framework DMA mem2mem polling 为 B1；SPI、peripheral request、IRQ/callback、
-stop/recovery 与性能仍 pending。
+该结果升级 STM32L4 framework DMA mem2mem polling 与 completion IRQ/callback 为 B1。随后 clean
+`f95dfed6` image 以 active transfer software abort→deinit→re-init→polling copy 完成受控恢复 B2；
+23684-byte image write/verify/read-back byte-identical，20 秒 UART capture 11034 bytes、
+SHA-256=`fcfe3674...`，`PANDORA_DMA_STOP_RECOVERY_OK` 一次且错误 marker 为 0。SPI、peripheral
+request、error IRQ、物理故障、DMA timeout 与性能仍 pending。
 
 ### WCH / HC32
 
