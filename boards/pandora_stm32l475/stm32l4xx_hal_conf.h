@@ -8,6 +8,7 @@
 #define HAL_GPIO_MODULE_ENABLED
 #define HAL_PWR_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
+#define HAL_SPI_MODULE_ENABLED
 #define HAL_TIM_MODULE_ENABLED
 #define HAL_UART_MODULE_ENABLED
 
@@ -37,6 +38,7 @@
 #include "stm32l4xx_hal_dma.h"
 #include "stm32l4xx_hal_flash.h"
 #include "stm32l4xx_hal_pwr.h"
+#include "stm32l4xx_hal_spi.h"
 #include "stm32l4xx_hal_tim.h"
 #include "stm32l4xx_hal_uart.h"
 #endif

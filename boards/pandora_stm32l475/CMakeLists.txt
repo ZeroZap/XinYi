@@ -77,6 +77,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker.c
         ${CMAKE_SOURCE_DIR}/components/pm/src/xy_pm_platform.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
         ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
         ${_cmsis}/Source/Templates/system_stm32l4xx.c
         ${_hal}/stm32l4xx_hal.c
@@ -89,6 +90,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${_hal}/stm32l4xx_hal_pwr_ex.c
         ${_hal}/stm32l4xx_hal_rcc.c
         ${_hal}/stm32l4xx_hal_rcc_ex.c
+        ${_hal}/stm32l4xx_hal_spi.c
         ${_hal}/stm32l4xx_hal_tim.c
         ${_hal}/stm32l4xx_hal_tim_ex.c
         ${_hal}/stm32l4xx_hal_uart.c

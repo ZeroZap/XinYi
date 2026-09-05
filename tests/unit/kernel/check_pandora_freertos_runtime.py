@@ -11,6 +11,7 @@ MAIN = BOARD / "rtos_main.c"
 HANDLERS = BOARD / "rtos_handlers.c"
 STRESS_VALIDATOR = BOARD / "validate_rtos_stress.py"
 L4_DMA = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_dma.c"
+L4_SPI = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_spi.c"
 
 
 def main() -> int:
@@ -32,7 +33,9 @@ def main() -> int:
         "xy_osal",
         "freertos_kernel",
         "components/hal/stm32/stm32l4/xy_hal_dma.c",
+        "components/hal/stm32/stm32l4/xy_hal_spi.c",
         "stm32l4xx_hal_dma.c",
+        "stm32l4xx_hal_spi.c",
     ):
         if token not in cmake:
             errors.append(f"Pandora CMake must wire token: {token}")
@@ -135,6 +138,11 @@ def main() -> int:
             "PANDORA_DMA_REDEINIT_ERROR",
             "PANDORA_DMA_COMPARE_ERROR",
             "PANDORA_DMA_DEINIT_ERROR",
+            "xy_hal_spi_init",
+            "xy_hal_spi_transmit_dma",
+            "xy_hal_spi_register_callback",
+            "PANDORA_SPI_DMA_TX_OK",
+            "PANDORA_SPI_DMA_ERROR",
         ):
             if token not in main_source:
                 errors.append(f"runtime image must preserve token: {token}")
@@ -165,6 +173,22 @@ def main() -> int:
         ):
             if token not in dma_source:
                 errors.append(f"STM32L4 DMA wrapper must preserve token: {token}")
+
+    if not L4_SPI.is_file():
+        errors.append("dedicated STM32L4 SPI wrapper is missing")
+    else:
+        spi_source = L4_SPI.read_text(encoding="utf-8")
+        for token in (
+            "STM32L4",
+            "HAL_SPI_Init",
+            "HAL_SPI_Transmit_DMA",
+            "HAL_SPI_TxCpltCallback",
+            "XY_HAL_SPI_EVENT_TX_DONE",
+            "XY_HAL_ERROR_INVALID_PARAM",
+            "XY_HAL_ERROR_NOT_INIT",
+        ):
+            if token not in spi_source:
+                errors.append(f"STM32L4 SPI wrapper must preserve token: {token}")
 
     if STRESS_VALIDATOR.is_file():
         validator_source = STRESS_VALIDATOR.read_text(encoding="utf-8")
