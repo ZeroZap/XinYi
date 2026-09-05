@@ -893,7 +893,7 @@ int main(void)
     };
     static const xy_os_thread_attr_t dma_attr = {
         .name = "hal-dma",
-        .stack_size = 512U,
+        .stack_size = 1536U,
         .priority = XY_OS_PRIORITY_NORMAL,
     };
 
