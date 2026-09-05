@@ -11,6 +11,8 @@
 #define JOURNAL_MAGIC 0x58424A52U
 #define JOURNAL_COMMIT UINT64_C(0x434F4D54434F4D54)
 #define JOURNAL_INSTALLED 2U
+#define JOURNAL_CONFIRMED 3U
+#define JOURNAL_ROLLED_BACK 4U
 
 typedef struct {
     uint32_t magic;
@@ -20,7 +22,7 @@ typedef struct {
     uint32_t image_size;
     uint32_t image_crc32;
     uint32_t record_crc32;
-    uint32_t reserved;
+    uint32_t boot_attempts;
     uint64_t commit;
 } test_boot_journal_record_t;
 
@@ -33,6 +35,7 @@ static uint8_t execution[1024];
 static unsigned int erase_calls;
 static unsigned int write_calls;
 static int execution_read_result;
+static int journal_read_result;
 static uint8_t journal[512];
 static unsigned int journal_erase_calls;
 static unsigned int journal_write_calls;
@@ -84,6 +87,9 @@ static int execution_read(uint32_t address, uint8_t *data, uint32_t size)
 
 static int journal_read(uint32_t address, uint8_t *data, uint32_t size)
 {
+    if (journal_read_result != XY_FOTA_OK) {
+        return journal_read_result;
+    }
     if (address < 0x0807E000U || size > sizeof(journal) - (address - 0x0807E000U)) {
         return XY_FOTA_FLASH_ERROR;
     }
@@ -172,7 +178,7 @@ static void write_journal_record(uint32_t slot, uint32_t generation, uint32_t st
         .image_version = header->image_version,
         .image_size = header->image_size,
         .image_crc32 = header->image_crc32,
-        .reserved = UINT32_MAX,
+        .boot_attempts = 0U,
         .commit = JOURNAL_COMMIT,
     };
 
@@ -180,6 +186,15 @@ static void write_journal_record(uint32_t slot, uint32_t generation, uint32_t st
         xy_fota_calc_crc32((const uint8_t *)&record,
                            offsetof(test_boot_journal_record_t, record_crc32));
     memcpy(journal + slot * 256U, &record, sizeof(record));
+}
+
+static const test_boot_journal_record_t *latest_journal_record(void)
+{
+    const test_boot_journal_record_t *first = (const test_boot_journal_record_t *)journal;
+    const test_boot_journal_record_t *second =
+        (const test_boot_journal_record_t *)(journal + 256U);
+
+    return (int32_t)(second->generation - first->generation) > 0 ? second : first;
 }
 
 void setUp(void)
@@ -193,6 +208,7 @@ void setUp(void)
     erase_calls = 0U;
     write_calls = 0U;
     execution_read_result = XY_FOTA_OK;
+    journal_read_result = XY_FOTA_OK;
     memset(journal, 0xFF, sizeof(journal));
     journal_erase_calls = 0U;
     journal_write_calls = 0U;
@@ -543,6 +559,196 @@ static void test_install_journal_rejects_ambiguous_valid_generations_without_fla
     TEST_ASSERT_EQUAL_UINT(0U, journal_write_calls);
 }
 
+static void test_install_journal_confirms_first_candidate_boot_attempt(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    uint8_t image[384];
+    int installed = 0;
+    int rollback_required = 1;
+
+    build_candidate(&header, image, sizeof(image));
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_TRUE(installed);
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_record_attempt(&config, &install_ops, &journal_config, 3U,
+                                              &rollback_required));
+    TEST_ASSERT_FALSE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT32(JOURNAL_INSTALLED, latest_journal_record()->state);
+    TEST_ASSERT_EQUAL_UINT32(1U, latest_journal_record()->boot_attempts);
+
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_confirm(&config, &install_ops, &journal_config));
+    TEST_ASSERT_EQUAL_UINT32(JOURNAL_CONFIRMED, latest_journal_record()->state);
+    TEST_ASSERT_EQUAL_UINT32(0U, latest_journal_record()->boot_attempts);
+
+    installed = 1;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_FALSE(installed);
+    TEST_ASSERT_EQUAL_UINT(1U, erase_calls);
+
+    rollback_required = 1;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_record_attempt(&config, &install_ops, &journal_config, 3U,
+                                              &rollback_required));
+    TEST_ASSERT_FALSE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT32(JOURNAL_CONFIRMED, latest_journal_record()->state);
+    TEST_ASSERT_EQUAL_UINT32(0U, latest_journal_record()->boot_attempts);
+}
+
+static void test_install_journal_treats_legacy_reserved_field_as_zero_attempts(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    uint8_t image[384];
+    int rollback_required = 1;
+
+    build_candidate(&header, image, sizeof(image));
+    memcpy(execution, image, sizeof(image));
+    write_journal_record(0U, 7U, JOURNAL_INSTALLED, &header);
+    ((test_boot_journal_record_t *)journal)->boot_attempts = UINT32_MAX;
+    ((test_boot_journal_record_t *)journal)->record_crc32 = xy_fota_calc_crc32(
+        journal, offsetof(test_boot_journal_record_t, record_crc32));
+
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_record_attempt(&config, &install_ops, &journal_config, 3U,
+                                              &rollback_required));
+    TEST_ASSERT_FALSE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT32(1U, latest_journal_record()->boot_attempts);
+}
+
+static void test_install_journal_rolls_back_after_bounded_unconfirmed_boots(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    uint8_t image[384];
+    int installed = 0;
+    int rollback_required = 0;
+
+    build_candidate(&header, image, sizeof(image));
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_record_attempt(&config, &install_ops, &journal_config, 2U,
+                                              &rollback_required));
+    TEST_ASSERT_FALSE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT32(1U, latest_journal_record()->boot_attempts);
+
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_record_attempt(&config, &install_ops, &journal_config, 2U,
+                                              &rollback_required));
+    TEST_ASSERT_TRUE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT32(JOURNAL_ROLLED_BACK, latest_journal_record()->state);
+    TEST_ASSERT_EQUAL_UINT32(2U, latest_journal_record()->boot_attempts);
+
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_NO_IMAGE,
+        xy_fota_boot_candidate_confirm(&config, &install_ops, &journal_config));
+    installed = 1;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_VERSION_ERROR,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_FALSE(installed);
+    TEST_ASSERT_EQUAL_UINT(1U, erase_calls);
+}
+
+static void test_attempt_and_confirmation_fail_closed_without_durable_commit(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    uint8_t image[384];
+    int installed = 0;
+    int rollback_required = 1;
+    unsigned int durable_writes;
+
+    build_candidate(&header, image, sizeof(image));
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    durable_writes = journal_write_calls;
+    journal_fail_write = 1;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_FLASH_ERROR,
+        xy_fota_boot_candidate_record_attempt(&config, &install_ops, &journal_config, 3U,
+                                              &rollback_required));
+    TEST_ASSERT_TRUE(rollback_required);
+    TEST_ASSERT_EQUAL_UINT(durable_writes, journal_write_calls);
+
+    journal_fail_write = 0;
+    journal_read_result = XY_FOTA_FLASH_ERROR;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_FLASH_ERROR,
+        xy_fota_boot_candidate_confirm(&config, &install_ops, &journal_config));
+    TEST_ASSERT_EQUAL_UINT(durable_writes, journal_write_calls);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -556,5 +762,9 @@ int main(void)
     RUN_TEST(test_install_journal_recovers_failed_and_corrupt_records);
     RUN_TEST(test_install_journal_revalidates_execution_slot_before_skipping_install);
     RUN_TEST(test_install_journal_rejects_ambiguous_valid_generations_without_flash_changes);
+    RUN_TEST(test_install_journal_confirms_first_candidate_boot_attempt);
+    RUN_TEST(test_install_journal_treats_legacy_reserved_field_as_zero_attempts);
+    RUN_TEST(test_install_journal_rolls_back_after_bounded_unconfirmed_boots);
+    RUN_TEST(test_attempt_and_confirmation_fail_closed_without_durable_commit);
     return UNITY_END();
 }

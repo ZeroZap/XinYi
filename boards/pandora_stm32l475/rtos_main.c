@@ -65,6 +65,8 @@ static uint32_t w25q128_mcu_reset_recovery_pending;
 #define W25Q128_FOTA_TEST_SIZE 4096U
 #define W25Q128_FOTA_IMAGE_ADDRESS 0x00F00000U
 #define W25Q128_FOTA_IMAGE_SIZE 0x00080000U
+#define PANDORA_FOTA_CONFIRM_REQUEST_MAGIC 0x46525132U
+#define PANDORA_FOTA_CONFIRM_ACK_MAGIC 0x46414332U
 
 extern const uint8_t __flash_image_end;
 
@@ -1096,6 +1098,17 @@ int main(void)
     }
     uart_text("PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n");
     uart_text("FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
+#ifdef PANDORA_FOTA_APPLICATION
+    if (RTC->BKP1R == PANDORA_FOTA_CONFIRM_ACK_MAGIC) {
+        RTC->BKP1R = 0U;
+        uart_text("PANDORA_FOTA_CONFIRM_ACKNOWLEDGED\r\n");
+    } else {
+        RTC->BKP1R = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
+        uart_text("PANDORA_FOTA_CONFIRM_REQUESTED\r\n");
+        NVIC_SystemReset();
+        fail();
+    }
+#endif
     uart_text("OSAL_STRESS_READY\r\n");
 
     xy_stdio_printf_init(uart_log_text);

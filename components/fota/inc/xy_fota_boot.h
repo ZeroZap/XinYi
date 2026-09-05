@@ -69,6 +69,13 @@ int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *c
                                         const xy_fota_boot_install_ops_t *ops,
                                         const xy_fota_boot_journal_config_t *journal,
                                         int *installed);
+int xy_fota_boot_candidate_record_attempt(const xy_fota_boot_candidate_config_t *config,
+                                          const xy_fota_boot_install_ops_t *ops,
+                                          const xy_fota_boot_journal_config_t *journal,
+                                          uint32_t max_attempts, int *rollback_required);
+int xy_fota_boot_candidate_confirm(const xy_fota_boot_candidate_config_t *config,
+                                   const xy_fota_boot_install_ops_t *ops,
+                                   const xy_fota_boot_journal_config_t *journal);
 
 #ifdef __cplusplus
 }

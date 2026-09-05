@@ -10,6 +10,8 @@
 #define JOURNAL_COMMIT UINT64_C(0x434F4D54434F4D54)
 #define JOURNAL_INSTALLING 1U
 #define JOURNAL_INSTALLED 2U
+#define JOURNAL_CONFIRMED 3U
+#define JOURNAL_ROLLED_BACK 4U
 
 typedef struct {
     uint32_t magic;
@@ -19,7 +21,7 @@ typedef struct {
     uint32_t image_size;
     uint32_t image_crc32;
     uint32_t record_crc32;
-    uint32_t reserved;
+    uint32_t boot_attempts;
     uint64_t commit;
 } boot_journal_record_t;
 
@@ -57,7 +59,8 @@ static uint32_t journal_crc(const boot_journal_record_t *record)
 static int journal_record_valid(const boot_journal_record_t *record)
 {
     return record->magic == JOURNAL_MAGIC && record->commit == JOURNAL_COMMIT &&
-           (record->state == JOURNAL_INSTALLING || record->state == JOURNAL_INSTALLED) &&
+           (record->state == JOURNAL_INSTALLING || record->state == JOURNAL_INSTALLED ||
+            record->state == JOURNAL_CONFIRMED || record->state == JOURNAL_ROLLED_BACK) &&
            record->record_crc32 == journal_crc(record);
 }
 
@@ -155,7 +158,8 @@ static int journal_load(const xy_fota_boot_journal_config_t *config,
 
 static int journal_commit(const xy_fota_boot_journal_config_t *config,
                           const boot_journal_record_t *current, uint32_t current_slot,
-                          uint32_t state, const xy_fota_boot_candidate_header_t *header)
+                          uint32_t state, uint32_t boot_attempts,
+                          const xy_fota_boot_candidate_header_t *header)
 {
     boot_journal_record_t record = {
         .magic = JOURNAL_MAGIC,
@@ -164,7 +168,7 @@ static int journal_commit(const xy_fota_boot_journal_config_t *config,
         .image_version = header->image_version,
         .image_size = header->image_size,
         .image_crc32 = header->image_crc32,
-        .reserved = UINT32_MAX,
+        .boot_attempts = boot_attempts,
         .commit = UINT64_MAX,
     };
     uint32_t address = config->address + (current_slot ^ 1U) * config->slot_size;
@@ -361,7 +365,8 @@ int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *c
     if (ret != XY_FOTA_OK && ret != XY_FOTA_NO_IMAGE) {
         return ret;
     }
-    if (ret == XY_FOTA_OK && current.state == JOURNAL_INSTALLED &&
+    if (ret == XY_FOTA_OK &&
+        (current.state == JOURNAL_INSTALLED || current.state == JOURNAL_CONFIRMED) &&
         current.image_version == header.image_version && current.image_size == header.image_size &&
         current.image_crc32 == header.image_crc32) {
         ret = execution_image_matches(config, ops, &header);
@@ -375,7 +380,12 @@ int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *c
     if (ret == XY_FOTA_NO_IMAGE) {
         memset(&current, 0, sizeof(current));
     }
-    ret = journal_commit(journal, &current, current_slot, JOURNAL_INSTALLING, &header);
+    if (ret == XY_FOTA_OK && current.state == JOURNAL_ROLLED_BACK &&
+        current.image_version == header.image_version && current.image_size == header.image_size &&
+        current.image_crc32 == header.image_crc32) {
+        return XY_FOTA_VERSION_ERROR;
+    }
+    ret = journal_commit(journal, &current, current_slot, JOURNAL_INSTALLING, 0U, &header);
     if (ret != XY_FOTA_OK) {
         return ret;
     }
@@ -385,10 +395,92 @@ int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *c
     if (ret != XY_FOTA_OK) {
         return ret;
     }
-    ret = journal_commit(journal, &current, current_slot, JOURNAL_INSTALLED, &header);
+    ret = journal_commit(journal, &current, current_slot, JOURNAL_INSTALLED, 0U, &header);
     if (ret != XY_FOTA_OK) {
         return ret;
     }
     *installed = 1;
     return XY_FOTA_OK;
+}
+
+static int load_matching_installed_candidate(const xy_fota_boot_candidate_config_t *config,
+                                             const xy_fota_boot_install_ops_t *ops,
+                                             const xy_fota_boot_journal_config_t *journal,
+                                             xy_fota_boot_candidate_header_t *header,
+                                             boot_journal_record_t *current,
+                                             uint32_t *current_slot)
+{
+    int ret = xy_fota_boot_candidate_validate(config, header);
+
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    if (!install_layout_valid(config, ops, header)) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    ret = journal_load(journal, current, current_slot);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    if (current->image_version != header->image_version ||
+        current->image_size != header->image_size || current->image_crc32 != header->image_crc32 ||
+        (current->state != JOURNAL_INSTALLED && current->state != JOURNAL_CONFIRMED)) {
+        return XY_FOTA_NO_IMAGE;
+    }
+    return execution_image_matches(config, ops, header);
+}
+
+int xy_fota_boot_candidate_record_attempt(const xy_fota_boot_candidate_config_t *config,
+                                          const xy_fota_boot_install_ops_t *ops,
+                                          const xy_fota_boot_journal_config_t *journal,
+                                          uint32_t max_attempts, int *rollback_required)
+{
+    xy_fota_boot_candidate_header_t header;
+    boot_journal_record_t current;
+    uint32_t current_slot;
+    uint32_t attempts;
+    uint32_t state;
+    int ret;
+
+    int local_rollback_required = 0;
+
+    if (rollback_required == NULL || max_attempts == 0U) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    ret = load_matching_installed_candidate(config, ops, journal, &header, &current,
+                                            &current_slot);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    if (current.state == JOURNAL_CONFIRMED) {
+        *rollback_required = local_rollback_required;
+        return XY_FOTA_OK;
+    }
+    attempts = current.boot_attempts == UINT32_MAX ? 1U : current.boot_attempts + 1U;
+    state = attempts >= max_attempts ? JOURNAL_ROLLED_BACK : JOURNAL_INSTALLED;
+    local_rollback_required = state == JOURNAL_ROLLED_BACK;
+    ret = journal_commit(journal, &current, current_slot, state, attempts, &header);
+    if (ret == XY_FOTA_OK) {
+        *rollback_required = local_rollback_required;
+    }
+    return ret;
+}
+
+int xy_fota_boot_candidate_confirm(const xy_fota_boot_candidate_config_t *config,
+                                   const xy_fota_boot_install_ops_t *ops,
+                                   const xy_fota_boot_journal_config_t *journal)
+{
+    xy_fota_boot_candidate_header_t header;
+    boot_journal_record_t current;
+    uint32_t current_slot;
+    int ret = load_matching_installed_candidate(config, ops, journal, &header, &current,
+                                                &current_slot);
+
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    if (current.state == JOURNAL_CONFIRMED) {
+        return XY_FOTA_OK;
+    }
+    return journal_commit(journal, &current, current_slot, JOURNAL_CONFIRMED, 0U, &header);
 }

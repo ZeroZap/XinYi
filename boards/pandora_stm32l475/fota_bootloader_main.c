@@ -14,6 +14,9 @@
 
 #define W25Q128_FOTA_IMAGE_ADDRESS 0x00F00000U
 #define W25Q128_FOTA_IMAGE_SIZE 0x00080000U
+#define PANDORA_FOTA_CONFIRM_REQUEST_MAGIC 0x46525132U
+#define PANDORA_FOTA_CONFIRM_ACK_MAGIC 0x46414332U
+#define PANDORA_FOTA_MAX_ATTEMPTS 3U
 
 static UART_HandleTypeDef uart1;
 static QSPI_HandleTypeDef qspi;
@@ -164,6 +167,7 @@ int main(void)
     HAL_Init();
     clock_init();
     peripherals_init();
+    HAL_PWR_EnableBkUpAccess();
 
     uart_text("PANDORA FOTA BOOTLOADER READY\r\n");
     uart_text("BOOTLOADER_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
@@ -184,6 +188,29 @@ int main(void)
         }
         uart_text(installed ? "PANDORA_BOOT_CANDIDATE_INSTALLED\r\n"
                             : "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED\r\n");
+        if (RTC->BKP1R == PANDORA_FOTA_CONFIRM_REQUEST_MAGIC) {
+            if (xy_fota_boot_candidate_confirm(&candidate, pandora_fota_install_ops(), &journal) !=
+                XY_FOTA_OK) {
+                uart_text("PANDORA_BOOT_CONFIRM_ERROR\r\n");
+                stop();
+            }
+            RTC->BKP1R = PANDORA_FOTA_CONFIRM_ACK_MAGIC;
+            uart_text("PANDORA_BOOT_CANDIDATE_CONFIRMED\r\n");
+        } else {
+            int rollback_required = 0;
+
+            if (xy_fota_boot_candidate_record_attempt(&candidate, pandora_fota_install_ops(),
+                                                      &journal, PANDORA_FOTA_MAX_ATTEMPTS,
+                                                      &rollback_required) != XY_FOTA_OK) {
+                uart_text("PANDORA_BOOT_ATTEMPT_ERROR\r\n");
+                stop();
+            }
+            if (rollback_required) {
+                uart_text("PANDORA_BOOT_ROLLBACK_REQUIRED\r\n");
+                stop();
+            }
+            uart_text("PANDORA_BOOT_ATTEMPT_COMMITTED\r\n");
+        }
     } else if (!pandora_fota_application_vectors_valid()) {
         uart_text("PANDORA_BOOT_NO_VALID_IMAGE\r\n");
         stop();

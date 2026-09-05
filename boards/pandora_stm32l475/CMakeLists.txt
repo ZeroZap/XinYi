@@ -234,6 +234,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
     target_compile_definitions(pandora_stm32l475_fota_app PRIVATE
         STM32L475xx USE_HAL_DRIVER XY_BROKER_MAX_SERVERS=2 XY_BROKER_MAX_SUBSCRIBERS=2
         XY_BROKER_MAX_TOPICS=2 XY_BROKER_MSG_QUEUE_SIZE=2 XY_OSAL_AVAILABLE
+        PANDORA_FOTA_APPLICATION
         XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
     target_link_libraries(pandora_stm32l475_fota_app PRIVATE xy_osal freertos_kernel xy_xy_clib)
     target_link_options(pandora_stm32l475_fota_app PRIVATE

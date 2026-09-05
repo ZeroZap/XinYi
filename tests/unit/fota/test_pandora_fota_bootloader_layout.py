@@ -16,6 +16,7 @@ def main() -> int:
     linker = (BOARD / "STM32L475VETX_BOOTLOADER.ld").read_text(encoding="utf-8")
     boot = (BOARD / "fota_bootloader_main.c").read_text(encoding="utf-8")
     flash = (BOARD / "pandora_fota_install_flash.c").read_text(encoding="utf-8")
+    application = (BOARD / "rtos_main.c").read_text(encoding="utf-8")
 
     for token in (
         "add_executable(pandora_stm32l475_fota_bootloader",
@@ -32,6 +33,11 @@ def main() -> int:
         "SCB->VTOR = PANDORA_FOTA_APP_BASE",
         "__set_MSP(app_vectors[0])",
         "PANDORA_BOOT_CANDIDATE_INSTALLED",
+        "xy_fota_boot_candidate_record_attempt",
+        "xy_fota_boot_candidate_confirm",
+        "PANDORA_BOOT_ATTEMPT_COMMITTED",
+        "PANDORA_BOOT_CANDIDATE_CONFIRMED",
+        "PANDORA_BOOT_ROLLBACK_REQUIRED",
         "PANDORA_BOOT_JUMP_APP",
     ):
         require(boot, token)
@@ -42,6 +48,9 @@ def main() -> int:
         "PANDORA_FOTA_EXECUTION_LIMIT",
     ):
         require(flash, token)
+    require(cmake, "PANDORA_FOTA_APPLICATION")
+    require(application, "PANDORA_FOTA_CONFIRM_REQUESTED")
+    require(application, "PANDORA_FOTA_CONFIRM_ACKNOWLEDGED")
     return 0
 
 
