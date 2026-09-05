@@ -61,6 +61,26 @@ static int journal_record_valid(const boot_journal_record_t *record)
            record->record_crc32 == journal_crc(record);
 }
 
+static int install_layout_valid(const xy_fota_boot_candidate_config_t *config,
+                                const xy_fota_boot_install_ops_t *ops,
+                                const xy_fota_boot_candidate_header_t *header)
+{
+    uint32_t erase_size;
+
+    if (ops == NULL || ops->erase == NULL || ops->write == NULL || ops->read == NULL ||
+        ops->program_granule == 0U || ops->program_granule > CRC_CHUNK_SIZE ||
+        ops->erase_granule == 0U || header->load_address % ops->program_granule != 0U ||
+        header->load_address % ops->erase_granule != 0U ||
+        CRC_CHUNK_SIZE % ops->program_granule != 0U ||
+        header->image_size > UINT32_MAX - (ops->erase_granule - 1U)) {
+        return 0;
+    }
+    erase_size = ((header->image_size + ops->erase_granule - 1U) / ops->erase_granule) *
+                 ops->erase_granule;
+    return range_fits(header->load_address, erase_size, config->execution_base,
+                      config->execution_limit);
+}
+
 static int execution_image_matches(const xy_fota_boot_candidate_config_t *config,
                                    const xy_fota_boot_install_ops_t *ops,
                                    const xy_fota_boot_candidate_header_t *header)
@@ -266,19 +286,11 @@ int xy_fota_boot_candidate_install(const xy_fota_boot_candidate_config_t *config
     uint32_t offset = 0U;
     int ret;
 
-    if (ops == NULL || ops->erase == NULL || ops->write == NULL || ops->read == NULL ||
-        ops->program_granule == 0U || ops->program_granule > sizeof(source) ||
-        ops->erase_granule == 0U) {
-        return XY_FOTA_INVALID_PARAM;
-    }
     ret = xy_fota_boot_candidate_validate(config, &header);
     if (ret != XY_FOTA_OK) {
         return ret;
     }
-    if (header.load_address % ops->program_granule != 0U ||
-        header.load_address % ops->erase_granule != 0U ||
-        CRC_CHUNK_SIZE % ops->program_granule != 0U ||
-        header.image_size > UINT32_MAX - (ops->erase_granule - 1U)) {
+    if (!install_layout_valid(config, ops, &header)) {
         return XY_FOTA_INVALID_PARAM;
     }
     erase_size = ((header.image_size + ops->erase_granule - 1U) / ops->erase_granule) *
@@ -341,6 +353,9 @@ int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *c
     ret = xy_fota_boot_candidate_validate(config, &header);
     if (ret != XY_FOTA_OK) {
         return ret;
+    }
+    if (!install_layout_valid(config, ops, &header)) {
+        return XY_FOTA_INVALID_PARAM;
     }
     ret = journal_load(journal, &current, &current_slot);
     if (ret != XY_FOTA_OK && ret != XY_FOTA_NO_IMAGE) {

@@ -341,6 +341,39 @@ static void test_rejects_unaligned_install_layout_before_erasing_execution_slot(
     TEST_ASSERT_EQUAL_UINT(0U, write_calls);
 }
 
+static void test_install_once_rejects_invalid_layout_before_journaling(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 7U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    uint8_t image[384];
+    int installed = 1;
+
+    build_candidate(&header, image, sizeof(image));
+
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_INVALID_PARAM,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_FALSE(installed);
+    TEST_ASSERT_EQUAL_UINT(0U, erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, write_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, journal_erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, journal_write_calls);
+}
+
 static void test_install_journal_skips_same_installed_candidate_after_restart(void)
 {
     xy_fota_boot_candidate_header_t header;
@@ -518,6 +551,7 @@ int main(void)
     RUN_TEST(test_rejects_read_failures_and_out_of_range_images);
     RUN_TEST(test_installs_validated_candidate_and_verifies_execution_slot);
     RUN_TEST(test_rejects_unaligned_install_layout_before_erasing_execution_slot);
+    RUN_TEST(test_install_once_rejects_invalid_layout_before_journaling);
     RUN_TEST(test_install_journal_skips_same_installed_candidate_after_restart);
     RUN_TEST(test_install_journal_recovers_failed_and_corrupt_records);
     RUN_TEST(test_install_journal_revalidates_execution_slot_before_skipping_install);
