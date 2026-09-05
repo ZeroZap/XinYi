@@ -675,7 +675,7 @@ static void dma_task(void *argument)
                 fail();
             }
             for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
-                if (recovered[index] != (uint8_t)(index ^ 0xA5U)) {
+                if (recovered[index] != (uint8_t)(index ^ 0x5AU)) {
                     uart_text("PANDORA_W25Q128_MCU_RESET_ERROR\r\n");
                     fail();
                 }
