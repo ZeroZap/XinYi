@@ -35,7 +35,7 @@ def validate() -> list[str]:
     build_system_analysis = BUILD_SYSTEM_ANALYSIS.read_text(encoding="utf-8")
 
     for token in (
-        "HAL | H1（PC）",
+        "HAL / Storage | H1（PC；canonical W25Q128 command/error/page-boundary contract）",
         "FOTA | H1（状态机 + signature-provider/boot-handoff/delta/boot-confirm fail-closed",
     ):
         require(token in evidence, f"canonical evidence matrix is missing token: {token}", errors)
