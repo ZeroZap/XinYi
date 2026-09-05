@@ -118,9 +118,17 @@ static int journal_load(const xy_fota_boot_journal_config_t *config,
         *slot = 1U;
         return XY_FOTA_NO_IMAGE;
     }
-    *slot = valid[1] && (!valid[0] || (int32_t)(copies[1].generation - copies[0].generation) > 0)
-                ? 1U
-                : 0U;
+    if (valid[0] && valid[1]) {
+        uint32_t generation_delta = copies[1].generation - copies[0].generation;
+
+        if ((generation_delta == 0U && memcmp(&copies[0], &copies[1], sizeof(copies[0])) != 0) ||
+            generation_delta == 0x80000000U) {
+            return XY_FOTA_FLASH_ERROR;
+        }
+        *slot = generation_delta != 0U && generation_delta < 0x80000000U ? 1U : 0U;
+    } else {
+        *slot = valid[1] ? 1U : 0U;
+    }
     *record = copies[*slot];
     return XY_FOTA_OK;
 }

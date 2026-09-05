@@ -8,6 +8,21 @@
 
 #define STORAGE_BASE 0x00100000U
 #define EXECUTION_BASE 0x08000000U
+#define JOURNAL_MAGIC 0x58424A52U
+#define JOURNAL_COMMIT UINT64_C(0x434F4D54434F4D54)
+#define JOURNAL_INSTALLED 2U
+
+typedef struct {
+    uint32_t magic;
+    uint32_t generation;
+    uint32_t state;
+    uint32_t image_version;
+    uint32_t image_size;
+    uint32_t image_crc32;
+    uint32_t record_crc32;
+    uint32_t reserved;
+    uint64_t commit;
+} test_boot_journal_record_t;
 
 static uint8_t storage[1024];
 static int read_result;
@@ -145,6 +160,26 @@ static void build_candidate(xy_fota_boot_candidate_header_t *header, uint8_t *im
     header->image_crc32 = xy_fota_calc_crc32(image, image_size);
     memcpy(storage, header, sizeof(*header));
     memcpy(storage + sizeof(*header), image, image_size);
+}
+
+static void write_journal_record(uint32_t slot, uint32_t generation, uint32_t state,
+                                 const xy_fota_boot_candidate_header_t *header)
+{
+    test_boot_journal_record_t record = {
+        .magic = JOURNAL_MAGIC,
+        .generation = generation,
+        .state = state,
+        .image_version = header->image_version,
+        .image_size = header->image_size,
+        .image_crc32 = header->image_crc32,
+        .reserved = UINT32_MAX,
+        .commit = JOURNAL_COMMIT,
+    };
+
+    record.record_crc32 =
+        xy_fota_calc_crc32((const uint8_t *)&record,
+                           offsetof(test_boot_journal_record_t, record_crc32));
+    memcpy(journal + slot * 256U, &record, sizeof(record));
 }
 
 void setUp(void)
@@ -391,6 +426,54 @@ static void test_install_journal_revalidates_execution_slot_before_skipping_inst
     TEST_ASSERT_EQUAL_UINT(2U, erase_calls);
 }
 
+static void test_install_journal_rejects_ambiguous_valid_generations_without_flash_changes(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    uint8_t image[384];
+    int installed = 1;
+
+    build_candidate(&header, image, sizeof(image));
+    write_journal_record(0U, 7U, JOURNAL_INSTALLED, &header);
+    write_journal_record(1U, 7U, JOURNAL_INSTALLED, &header);
+    ((test_boot_journal_record_t *)(journal + 256U))->image_version++;
+    ((test_boot_journal_record_t *)(journal + 256U))->record_crc32 = xy_fota_calc_crc32(
+        journal + 256U, offsetof(test_boot_journal_record_t, record_crc32));
+
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_FLASH_ERROR,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_FALSE(installed);
+    TEST_ASSERT_EQUAL_UINT(0U, erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, journal_erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, journal_write_calls);
+
+    write_journal_record(0U, 1U, JOURNAL_INSTALLED, &header);
+    write_journal_record(1U, 0x80000001U, JOURNAL_INSTALLED, &header);
+    installed = 1;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_FLASH_ERROR,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_FALSE(installed);
+    TEST_ASSERT_EQUAL_UINT(0U, erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, journal_erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, journal_write_calls);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -401,5 +484,6 @@ int main(void)
     RUN_TEST(test_install_journal_skips_same_installed_candidate_after_restart);
     RUN_TEST(test_install_journal_recovers_failed_and_corrupt_records);
     RUN_TEST(test_install_journal_revalidates_execution_slot_before_skipping_install);
+    RUN_TEST(test_install_journal_rejects_ambiguous_valid_generations_without_flash_changes);
     return UNITY_END();
 }
