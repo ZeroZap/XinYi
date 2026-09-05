@@ -92,6 +92,13 @@ reset-synchronized capture 11187 bytes、SHA-256=`79186b49...`，
 26 次 TIM6 IRQ、2P/2C consumer 为 9/7，错误 marker 为 0。该结果只升级受控测试区
 erase/program/read B1；四线模式、真实掉电、耐久和 FOTA candidate storage 仍 pending。
 
+clean committed `11002838` image 在上述写入完成后显式 QSPI deinit→re-init，再读取同一测试地址并
+逐字节匹配 256-byte pattern。28560-byte image write/verify/read-back byte-identical，BIN
+SHA-256=`6e1eb361...`；20 秒 capture 11355 bytes、SHA-256=`0c30e2b2...`，
+`PANDORA_W25Q128_PERSISTENCE_STAGED` 与 `PANDORA_W25Q128_PERSISTENCE_RECOVERED` 各一次，
+错误 marker 为 0。该结果仅证明 QSPI controller re-init 后的数据保持，不等于 MCU/板级复位、
+真实掉电恢复、耐久、四线模式或 FOTA candidate storage。
+
 ### WCH / HC32
 
 WCH 只有部分基础 wrapper，Timer/I2S/DMA 缺失；HC32L021 当前只有 GPIO wrapper，且 IRQ 不支持。两者都没有 canonical compile 或实板证据，不得描述为 production-ready。
