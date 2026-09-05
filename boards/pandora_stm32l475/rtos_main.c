@@ -153,6 +153,30 @@ static int w25q128_quad_read_test(void)
     return 1;
 }
 
+static int w25q128_quad_program_test(void)
+{
+    uint8_t expected[W25Q128_TEST_LENGTH];
+    uint8_t actual[W25Q128_TEST_LENGTH];
+
+    for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
+        expected[index] = (uint8_t)(index ^ 0x5AU);
+        actual[index] = 0U;
+    }
+    if (xy_w25q128_sector_erase(&w25q128, W25Q128_TEST_ADDRESS, 1000U) != XY_W25Q128_OK ||
+        xy_w25q128_quad_page_program(&w25q128, W25Q128_TEST_ADDRESS, expected,
+                                     sizeof(expected), 100U) != XY_W25Q128_OK ||
+        xy_w25q128_quad_read(&w25q128, W25Q128_TEST_ADDRESS, actual, sizeof(actual), 8U) !=
+            XY_W25Q128_OK) {
+        return 0;
+    }
+    for (uint32_t index = 0U; index < W25Q128_TEST_LENGTH; ++index) {
+        if (actual[index] != expected[index]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static void uart_text(const char *text)
 {
     uint16_t length = 0;
@@ -691,6 +715,11 @@ static void dma_task(void *argument)
             fail();
         }
         uart_text("PANDORA_W25Q128_QUAD_READ_OK\r\n");
+        if (!w25q128_quad_program_test()) {
+            uart_text("PANDORA_W25Q128_QUAD_PROGRAM_ERROR\r\n");
+            fail();
+        }
+        uart_text("PANDORA_W25Q128_QUAD_PROGRAM_OK\r\n");
         if (w25q128_mcu_reset_recovery_pending == 0U) {
             RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
             uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");

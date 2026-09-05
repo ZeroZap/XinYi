@@ -152,6 +152,7 @@ def main() -> int:
             "xy_w25q128_page_program",
             "xy_w25q128_read",
             "xy_w25q128_quad_read",
+            "xy_w25q128_quad_page_program",
             "PANDORA_W25Q128_JEDEC_ID_OK",
             "PANDORA_W25Q128_JEDEC_ID_ERROR",
             "PANDORA_W25Q128_ERASE_WRITE_READ_OK",
@@ -164,6 +165,8 @@ def main() -> int:
             "PANDORA_W25Q128_MCU_RESET_ERROR",
             "PANDORA_W25Q128_QUAD_READ_OK",
             "PANDORA_W25Q128_QUAD_READ_ERROR",
+            "PANDORA_W25Q128_QUAD_PROGRAM_OK",
+            "PANDORA_W25Q128_QUAD_PROGRAM_ERROR",
             "NVIC_SystemReset",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR",
         ):

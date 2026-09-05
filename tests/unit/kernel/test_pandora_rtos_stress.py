@@ -58,6 +58,7 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
         "PANDORA_W25Q128_PERSISTENCE_STAGED",
         "PANDORA_W25Q128_PERSISTENCE_RECOVERED",
         "PANDORA_W25Q128_QUAD_READ_OK",
+        "PANDORA_W25Q128_QUAD_PROGRAM_OK",
         "PANDORA_SPI_DMA_ABORT_RECOVERY_OK",
     ]
     lines.extend(["OSAL_MULTI_CONSUMER_0_TAKE"] * 8)
@@ -271,6 +272,15 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn("PANDORA_W25Q128_QUAD_READ_OK count 0 not in 1..2", result["failures"])
+
+    def test_rejects_missing_w25q128_quad_program_evidence(self) -> None:
+        payload = make_capture(120, 60).replace(b"PANDORA_W25Q128_QUAD_PROGRAM_OK\r\n", b"")
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn(
+            "PANDORA_W25Q128_QUAD_PROGRAM_OK count 0 not in 1..2", result["failures"]
+        )
 
     def test_rejects_missing_or_reordered_w25q128_mcu_reset_recovery(self) -> None:
         payload = make_capture(120, 60).replace(

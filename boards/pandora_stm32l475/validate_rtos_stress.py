@@ -59,6 +59,7 @@ W25Q128_ERASE_WRITE_READ = "PANDORA_W25Q128_ERASE_WRITE_READ_OK"
 W25Q128_PERSISTENCE_STAGED = "PANDORA_W25Q128_PERSISTENCE_STAGED"
 W25Q128_PERSISTENCE_RECOVERED = "PANDORA_W25Q128_PERSISTENCE_RECOVERED"
 W25Q128_QUAD_READ = "PANDORA_W25Q128_QUAD_READ_OK"
+W25Q128_QUAD_PROGRAM = "PANDORA_W25Q128_QUAD_PROGRAM_OK"
 W25Q128_MCU_RESET = (
     "PANDORA_W25Q128_MCU_RESET_STAGED",
     "PANDORA_W25Q128_MCU_RESET_RECOVERED",
@@ -97,6 +98,7 @@ ERROR_MARKERS = (
     "PANDORA_W25Q128_ERASE_WRITE_READ_ERROR",
     "PANDORA_W25Q128_PERSISTENCE_ERROR",
     "PANDORA_W25Q128_QUAD_READ_ERROR",
+    "PANDORA_W25Q128_QUAD_PROGRAM_ERROR",
 )
 
 
@@ -225,6 +227,10 @@ def analyze_capture(
             failures.append(f"{marker} count {lines.count(marker)} not in 1..2")
     if lines.count(W25Q128_QUAD_READ) not in (1, 2):
         failures.append(f"{W25Q128_QUAD_READ} count {lines.count(W25Q128_QUAD_READ)} not in 1..2")
+    if lines.count(W25Q128_QUAD_PROGRAM) not in (1, 2):
+        failures.append(
+            f"{W25Q128_QUAD_PROGRAM} count {lines.count(W25Q128_QUAD_PROGRAM)} not in 1..2"
+        )
     reset_positions = []
     for marker in W25Q128_MCU_RESET:
         if lines.count(marker) != 1:
