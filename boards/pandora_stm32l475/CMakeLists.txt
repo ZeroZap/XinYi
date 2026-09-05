@@ -69,6 +69,52 @@ add_custom_command(TARGET pandora_stm32l475_smoke POST_BUILD
     COMMENT "Generating Pandora STM32L475VE smoke BIN")
 
 if(OSAL_BACKEND STREQUAL "freertos")
+    add_executable(pandora_stm32l475_fota_bootloader
+        fota_bootloader_main.c
+        pandora_fota_install_flash.c
+        ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
+        ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+        ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
+        ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_boot.c
+        ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_w25q128.c
+        ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
+        ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
+        ${_cmsis}/Source/Templates/system_stm32l4xx.c
+        ${_hal}/stm32l4xx_hal.c
+        ${_hal}/stm32l4xx_hal_cortex.c
+        ${_hal}/stm32l4xx_hal_dma.c
+        ${_hal}/stm32l4xx_hal_flash.c
+        ${_hal}/stm32l4xx_hal_flash_ex.c
+        ${_hal}/stm32l4xx_hal_gpio.c
+        ${_hal}/stm32l4xx_hal_pwr.c
+        ${_hal}/stm32l4xx_hal_pwr_ex.c
+        ${_hal}/stm32l4xx_hal_qspi.c
+        ${_hal}/stm32l4xx_hal_rcc.c
+        ${_hal}/stm32l4xx_hal_rcc_ex.c
+        ${_hal}/stm32l4xx_hal_uart.c)
+    target_include_directories(pandora_stm32l475_fota_bootloader BEFORE PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/components/device/inc
+        ${CMAKE_SOURCE_DIR}/components/device
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
+        ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128
+        ${CMAKE_SOURCE_DIR}/components/fota/inc
+        ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
+    target_compile_definitions(pandora_stm32l475_fota_bootloader PRIVATE
+        STM32L475xx USE_HAL_DRIVER XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+    target_link_libraries(pandora_stm32l475_fota_bootloader PRIVATE xy_xy_clib)
+    target_link_options(pandora_stm32l475_fota_bootloader PRIVATE
+        -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_BOOTLOADER.ld
+        --specs=nano.specs --specs=nosys.specs
+        -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_fota_bootloader.map)
+    set_target_properties(pandora_stm32l475_fota_bootloader PROPERTIES SUFFIX ".elf")
+    add_custom_command(TARGET pandora_stm32l475_fota_bootloader POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:pandora_stm32l475_fota_bootloader>
+                ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_fota_bootloader.bin
+        COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_fota_bootloader>
+        COMMENT "Generating resident Pandora FOTA bootloader BIN")
+
     add_executable(pandora_stm32l475_rtos
         rtos_main.c
         rtos_handlers.c

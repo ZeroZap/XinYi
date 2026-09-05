@@ -189,7 +189,7 @@ static int w25q128_quad_program_test(void)
 static int w25q128_fota_full_image_test(void)
 {
     const xy_fota_flash_ops_t *fota_ops;
-    const uint8_t *image = (const uint8_t *)0x08000000U;
+    const uint8_t *image = (const uint8_t *)0x08008000U;
     uint32_t image_size = (uint32_t)((uintptr_t)&__flash_image_end - (uintptr_t)image);
     uint32_t expected_crc;
     xy_fota_t fota;
@@ -199,7 +199,7 @@ static int w25q128_fota_full_image_test(void)
         .header_size = sizeof(xy_fota_boot_candidate_header_t),
         .image_offset = sizeof(xy_fota_boot_candidate_header_t),
         .image_version = 2U,
-        .load_address = 0x08000000U,
+        .load_address = 0x08008000U,
     };
     xy_fota_config_t fota_config = {
         .mode = XY_FOTA_MODE_DUAL_BANK,
@@ -246,7 +246,7 @@ static int w25q128_fota_full_image_test(void)
         xy_fota_boot_candidate_config_t boot_config = {
             .storage_address = W25Q128_FOTA_IMAGE_ADDRESS,
             .storage_size = W25Q128_FOTA_IMAGE_SIZE,
-            .execution_base = 0x08000000U,
+            .execution_base = 0x08008000U,
             .execution_limit = 0x0807E000U,
             .sram_base = 0x20000000U,
             .sram_limit = 0x20018000U,
