@@ -152,12 +152,11 @@ int main(void)
         .sram2_limit = 0x10008000U,
     };
 
+    SCB->VTOR = 0x08000000U;
     HAL_Init();
     clock_init();
     peripherals_init();
-    SCB->VTOR = 0x08000000U;
-    __DSB();
-    __ISB();
+
     uart_text("PANDORA FOTA BOOTLOADER READY\r\n");
     uart_text("BOOTLOADER_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
     if (xy_device_init() != XY_DEVICE_OK || xy_hal_qspi_init(&qspi, &qspi_config) != XY_HAL_OK ||
