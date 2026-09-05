@@ -159,6 +159,19 @@ int xy_fota_start_download(xy_fota_t *fota, uint32_t version, uint32_t size, boo
     return XY_FOTA_OK;
 }
 
+int xy_fota_set_expected_crc32(xy_fota_t *fota, uint32_t expected_crc32)
+{
+    if (!fota || !fota->initialized) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    if (fota->state != XY_FOTA_STATE_DOWNLOADING) {
+        return XY_FOTA_ERROR;
+    }
+
+    fota->header.crc32 = expected_crc32;
+    return XY_FOTA_OK;
+}
+
 int xy_fota_download_chunk(xy_fota_t *fota, const uint8_t *data, uint32_t size)
 {
     int ret;
@@ -228,6 +241,14 @@ int xy_fota_finish_download(xy_fota_t *fota)
     if (fota->state != XY_FOTA_STATE_VALIDATING && 
         fota->state != XY_FOTA_STATE_PATCHING) {
         return XY_FOTA_ERROR;
+    }
+
+    if (fota->state == XY_FOTA_STATE_VALIDATING) {
+        ret = xy_fota_validate(fota);
+        if (ret != XY_FOTA_OK) {
+            fota->state = XY_FOTA_STATE_ERROR;
+            return ret;
+        }
     }
     
     /* 在单槽模式下，下载完成后需要备份当前固件 */
@@ -706,7 +727,7 @@ int xy_fota_set_backup_flash_ops(xy_fota_t *fota, const xy_fota_flash_ops_t *ops
 int xy_fota_validate(xy_fota_t *fota)
 {
     int ret;
-    uint32_t crc;
+    uint32_t crc = 0xFFFFFFFFU;
     uint8_t *buffer;
     
     if (!fota || !fota->initialized) {
@@ -718,8 +739,7 @@ int xy_fota_validate(xy_fota_t *fota)
         return XY_FOTA_NO_MEM;
     }
     
-    /* 计算 CRC */
-    crc = 0;
+    /* Compute one CRC over the complete image, preserving state across chunks. */
     for (uint32_t i = 0; i < fota->header.image_size; i += 256) {
         uint32_t size = (fota->header.image_size - i) > 256 ? 256 : (fota->header.image_size - i);
         
@@ -729,13 +749,18 @@ int xy_fota_validate(xy_fota_t *fota)
             return XY_FOTA_FLASH_ERROR;
         }
         
-        crc = xy_fota_calc_crc32(buffer, size);
+        for (uint32_t index = 0U; index < size; ++index) {
+            crc ^= buffer[index];
+            for (uint32_t bit = 0U; bit < 8U; ++bit) {
+                crc = (crc >> 1) ^ ((crc & 1U) != 0U ? 0xEDB88320U : 0U);
+            }
+        }
     }
     
     free(buffer);
     
     /* 验证 CRC */
-    if (crc != fota->header.crc32) {
+    if (~crc != fota->header.crc32) {
         return XY_FOTA_CRC_ERROR;
     }
     

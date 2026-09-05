@@ -131,6 +131,9 @@ static void test_public_dual_bank_flow_uses_fake_flash_callbacks(void)
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_set_progress_callback(&fota, smoke_progress_cb, NULL));
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_download(&fota, 2U, sizeof(image), false));
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_set_expected_crc32(&fota, xy_fota_calc_crc32(image, sizeof(image))));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, image, sizeof(image)));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_VALIDATING, xy_fota_get_state(&fota));
     TEST_ASSERT_EQUAL_UINT32(sizeof(image), g_progress_current);
@@ -148,7 +151,7 @@ static void test_public_dual_bank_flow_uses_fake_flash_callbacks(void)
     TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, xy_fota_get_state(&fota));
     TEST_ASSERT_EQUAL_UINT32(2U, xy_fota_get_current_version(&fota));
 
-    TEST_ASSERT_EQUAL_UINT(1U, g_flash_read_calls);
+    TEST_ASSERT_EQUAL_UINT(2U, g_flash_read_calls);
     TEST_ASSERT_EQUAL_UINT(0U, g_flash_erase_calls);
 }
 

@@ -725,31 +725,48 @@ static void dma_task(void *argument)
         uart_text("PANDORA_W25Q128_QUAD_PROGRAM_OK\r\n");
         {
             const xy_fota_flash_ops_t *fota_ops;
+            xy_fota_t fota;
+            xy_fota_config_t fota_config = {
+                .mode = XY_FOTA_MODE_DUAL_BANK,
+                .flash_base_addr = W25Q128_FOTA_TEST_ADDRESS,
+                .slot_size = W25Q128_FOTA_TEST_SIZE,
+                .slot_count = 1U,
+                .enable_rollback = true,
+                .min_version = 1U,
+            };
             uint8_t candidate[300];
             uint8_t readback[300] = {0};
+            uint32_t candidate_crc;
 
             for (uint32_t index = 0U; index < sizeof(candidate); ++index) {
                 candidate[index] = (uint8_t)(index ^ 0x3CU);
             }
+            candidate_crc = xy_fota_calc_crc32(candidate, sizeof(candidate));
             if (xy_fota_w25q128_bind(&w25q128, W25Q128_FOTA_TEST_ADDRESS,
                                       W25Q128_FOTA_TEST_SIZE, 1000U) != XY_FOTA_OK ||
                 (fota_ops = xy_fota_w25q128_ops()) == NULL || fota_ops->init() != XY_FOTA_OK ||
                 fota_ops->erase(W25Q128_FOTA_TEST_ADDRESS, sizeof(candidate)) != XY_FOTA_OK ||
-                fota_ops->write(W25Q128_FOTA_TEST_ADDRESS + 0xF0U, candidate,
-                                sizeof(candidate)) != XY_FOTA_OK ||
-                fota_ops->read(W25Q128_FOTA_TEST_ADDRESS + 0xF0U, readback,
-                               sizeof(readback)) != XY_FOTA_OK ||
+                xy_fota_init(&fota, &fota_config) != XY_FOTA_OK ||
+                xy_fota_set_flash_ops(&fota, fota_ops) != XY_FOTA_OK ||
+                xy_fota_start_download(&fota, 2U, sizeof(candidate), false) != XY_FOTA_OK ||
+                xy_fota_set_expected_crc32(&fota, candidate_crc) != XY_FOTA_OK ||
+                xy_fota_download_chunk(&fota, candidate, 173U) != XY_FOTA_OK ||
+                xy_fota_download_chunk(&fota, candidate + 173U, sizeof(candidate) - 173U) !=
+                    XY_FOTA_OK ||
+                xy_fota_finish_download(&fota) != XY_FOTA_OK ||
+                fota_ops->read(W25Q128_FOTA_TEST_ADDRESS, readback, sizeof(readback)) !=
+                    XY_FOTA_OK ||
                 fota_ops->deinit() != XY_FOTA_OK) {
-                uart_text("PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_ERROR\r\n");
+                uart_text("PANDORA_W25Q128_FOTA_DOWNLOAD_CRC_ERROR\r\n");
                 fail();
             }
             for (uint32_t index = 0U; index < sizeof(candidate); ++index) {
                 if (readback[index] != candidate[index]) {
-                    uart_text("PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_ERROR\r\n");
+                    uart_text("PANDORA_W25Q128_FOTA_DOWNLOAD_CRC_ERROR\r\n");
                     fail();
                 }
             }
-            uart_text("PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_OK\r\n");
+            uart_text("PANDORA_W25Q128_FOTA_DOWNLOAD_CRC_OK\r\n");
         }
         if (w25q128_mcu_reset_recovery_pending == 0U) {
             RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;

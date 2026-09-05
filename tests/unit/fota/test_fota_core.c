@@ -244,6 +244,7 @@ static void test_download_writes_progress_and_control(void)
     xy_fota_config_t config = default_config();
     uint8_t chunk1[] = {1, 2, 3, 4};
     uint8_t chunk2[] = {5, 6};
+    uint8_t image[] = {1, 2, 3, 4, 5, 6};
     int user = 77;
 
     reset_fixture();
@@ -272,6 +273,10 @@ static void test_download_writes_progress_and_control(void)
     TEST_ASSERT_EQUAL_UINT32(sizeof(chunk1) + sizeof(chunk2), g_progress_total);
     TEST_ASSERT_EQUAL_INT(user, g_progress_user);
     TEST_ASSERT_EQUAL_UINT8(66, xy_fota_get_progress(&fota));
+
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_set_expected_crc32(&fota, xy_fota_calc_crc32(image, sizeof(image))));
 
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, chunk2, sizeof(chunk2)));
     TEST_ASSERT_EQUAL_UINT(2, mock_flash_write_fake.call_count);
@@ -310,6 +315,43 @@ static void test_download_writes_progress_and_control(void)
     TEST_ASSERT_EQUAL_UINT32(0, fota.downloaded_bytes);
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_reset(&fota));
     TEST_ASSERT_EQUAL_HEX32(0, fota.header.magic);
+}
+
+static void test_finish_download_validates_complete_image_crc(void)
+{
+    xy_fota_t fota;
+    xy_fota_config_t config = default_config();
+    uint8_t chunk1[] = {1, 2, 3, 4};
+    uint8_t chunk2[] = {5, 6, 7};
+    uint8_t image[sizeof(chunk1) + sizeof(chunk2)];
+    uint32_t expected_crc;
+
+    reset_fixture();
+    memcpy(image, chunk1, sizeof(chunk1));
+    memcpy(&image[sizeof(chunk1)], chunk2, sizeof(chunk2));
+    expected_crc = xy_fota_calc_crc32(image, sizeof(image));
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_init(&fota, &config));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_set_flash_ops(&fota, &mock_ops));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_start_download(&fota, 3U, sizeof(image), false));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_set_expected_crc32(&fota, expected_crc));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_download_chunk(&fota, chunk1, sizeof(chunk1)));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_download_chunk(&fota, chunk2, sizeof(chunk2)));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_finish_download(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_COMPLETE, fota.state);
+    TEST_ASSERT_GREATER_THAN_UINT(0U, mock_flash_read_fake.call_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_reset(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_start_download(&fota, 4U, sizeof(image), false));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_set_expected_crc32(&fota, expected_crc ^ 1U));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, image, sizeof(image)));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_CRC_ERROR, xy_fota_finish_download(&fota));
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_STATE_ERROR, fota.state);
 }
 
 static void test_single_slot_backup_download_path(void)
@@ -353,6 +395,9 @@ static void test_delta_patch_requires_and_dispatches_real_callback(void)
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
                           xy_fota_set_patch_callback(&fota, patch_cb, &g_patch_result));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_start_download(&fota, 3, sizeof(patch), true));
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_set_expected_crc32(&fota, xy_fota_calc_crc32(patch, sizeof(patch))));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_download_chunk(&fota, patch, sizeof(patch)));
     TEST_ASSERT_EQUAL_INT(XY_FOTA_OK, xy_fota_finish_download(&fota));
     TEST_ASSERT_EQUAL_INT(1, g_patch_calls);
@@ -407,6 +452,7 @@ int main(void)
     RUN_TEST(test_init_validation_and_state_helpers);
     RUN_TEST(test_header_crc_and_version_guards);
     RUN_TEST(test_download_writes_progress_and_control);
+    RUN_TEST(test_finish_download_validates_complete_image_crc);
     RUN_TEST(test_single_slot_backup_download_path);
     RUN_TEST(test_delta_patch_requires_and_dispatches_real_callback);
     RUN_TEST(test_mark_valid_requires_durable_boot_confirmation);

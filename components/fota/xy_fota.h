@@ -196,6 +196,13 @@ int xy_fota_deinit(xy_fota_t *fota);
 int xy_fota_start_download(xy_fota_t *fota, uint32_t version, uint32_t size, bool is_delta);
 
 /**
+ * @brief Set the expected CRC32 for the current download
+ *
+ * Must be called while the handle is downloading, before finish validation.
+ */
+int xy_fota_set_expected_crc32(xy_fota_t *fota, uint32_t expected_crc32);
+
+/**
  * @brief 下载固件数据块
  * @param fota FOTA 句柄
  * @param data 数据块
@@ -325,6 +332,11 @@ int xy_fota_set_backup_flash_ops(xy_fota_t *fota, const xy_fota_flash_ops_t *ops
  * @return CRC32 值
  */
 uint32_t xy_fota_calc_crc32(const uint8_t *data, uint32_t size);
+
+/**
+ * @brief Validate the stored image against the configured expected CRC32
+ */
+int xy_fota_validate(xy_fota_t *fota);
 
 /**
  * @brief 验证固件头
