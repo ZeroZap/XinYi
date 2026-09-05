@@ -99,6 +99,13 @@ SHA-256=`6e1eb361...`；20 秒 capture 11355 bytes、SHA-256=`0c30e2b2...`，
 错误 marker 为 0。该结果仅证明 QSPI controller re-init 后的数据保持，不等于 MCU/板级复位、
 真实掉电恢复、耐久、四线模式或 FOTA candidate storage。
 
+FOTA 现通过 `xy_fota_w25q128` flash-ops adapter 使用 canonical W25Q128 driver。clean committed
+`2b5d04a2` image 在独立 `0x00FFE000` 4 KiB candidate 测试区完成 300-byte erase、跨页
+program 与 read-back；30820-byte image write/verify/read-back byte-identical，BIN
+SHA-256=`a7a41e0e...`。双 boot UART chain 17714 bytes、SHA-256=`865c20a9...`，
+`PANDORA_W25Q128_FOTA_CANDIDATE_STORAGE_OK` 出现且错误 marker 为 0。该结果仅证明 bounded
+candidate storage B1，不是完整 image download/CRC/signature、bootloader handoff、掉电或 secure FOTA。
+
 ### WCH / HC32
 
 WCH 只有部分基础 wrapper，Timer/I2S/DMA 缺失；HC32L021 当前只有 GPIO wrapper，且 IRQ 不支持。两者都没有 canonical compile 或实板证据，不得描述为 production-ready。

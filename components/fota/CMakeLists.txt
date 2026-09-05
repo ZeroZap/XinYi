@@ -45,6 +45,8 @@ target_include_directories(xy_fota PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../crypto/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../hal/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../device/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/../drivers/storage/flash/w25q128
     ${CMAKE_CURRENT_SOURCE_DIR}/../kernel/osal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}/../trace/xy_log/inc
 )
