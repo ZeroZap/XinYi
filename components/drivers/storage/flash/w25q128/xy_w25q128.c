@@ -137,7 +137,7 @@ xy_w25q128_status_t xy_w25q128_page_program(xy_w25q128_t *flash, uint32_t addres
                                             const uint8_t *data, size_t length,
                                             uint32_t timeout_ms)
 {
-    xy_w25q128_status_t result;
+    xy_w25q128_status_t result = XY_W25Q128_ERROR;
     if (flash == NULL || data == NULL || length == 0U || length > W25Q128_PAGE_SIZE ||
         flash->initialized == 0U || address > flash->capacity ||
         length > flash->capacity - address || (address % W25Q128_PAGE_SIZE) + length > W25Q128_PAGE_SIZE ||
@@ -147,6 +147,25 @@ xy_w25q128_status_t xy_w25q128_page_program(xy_w25q128_t *flash, uint32_t addres
     result = write_enable(flash, timeout_ms);
     if (result == XY_W25Q128_OK) {
         result = command(flash, 0x02U, address, 1U, XY_HAL_QSPI_LINES_1, (uint8_t *)data,
+                         length, true, timeout_ms);
+    }
+    return result == XY_W25Q128_OK ? wait_ready(flash, timeout_ms) : result;
+}
+
+xy_w25q128_status_t xy_w25q128_quad_page_program(xy_w25q128_t *flash, uint32_t address,
+                                                 const uint8_t *data, size_t length,
+                                                 uint32_t timeout_ms)
+{
+    xy_w25q128_status_t result = XY_W25Q128_ERROR;
+    if (flash == NULL || data == NULL || length == 0U || length > W25Q128_PAGE_SIZE ||
+        flash->initialized == 0U || address > flash->capacity ||
+        length > flash->capacity - address ||
+        (address % W25Q128_PAGE_SIZE) + length > W25Q128_PAGE_SIZE || timeout_ms == 0U) {
+        return XY_W25Q128_INVALID_PARAM;
+    }
+    result = write_enable(flash, timeout_ms);
+    if (result == XY_W25Q128_OK) {
+        result = command(flash, 0x32U, address, 1U, XY_HAL_QSPI_LINES_4, (uint8_t *)data,
                          length, true, timeout_ms);
     }
     return result == XY_W25Q128_OK ? wait_ready(flash, timeout_ms) : result;

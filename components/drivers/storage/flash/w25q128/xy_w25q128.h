@@ -36,6 +36,9 @@ xy_w25q128_status_t xy_w25q128_sector_erase(xy_w25q128_t *flash, uint32_t addres
 xy_w25q128_status_t xy_w25q128_page_program(xy_w25q128_t *flash, uint32_t address,
                                             const uint8_t *data, size_t length,
                                             uint32_t timeout_ms);
+xy_w25q128_status_t xy_w25q128_quad_page_program(xy_w25q128_t *flash, uint32_t address,
+                                                 const uint8_t *data, size_t length,
+                                                 uint32_t timeout_ms);
 
 #ifdef __cplusplus
 }

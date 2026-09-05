@@ -143,11 +143,34 @@ static void test_erase_program_read_uses_qspi_bus_and_propagates_errors(void)
                           xy_w25q128_read(&flash, 0x1000U, actual, sizeof(actual)));
 }
 
+static void test_quad_program_uses_four_data_lines_and_checks_page_bounds(void)
+{
+    xy_w25q128_t flash = {.initialized = 1U};
+    uint8_t qspi;
+    const uint8_t payload[] = {0xA5U, 0x5AU, 0x3CU, 0xC3U};
+    const uint8_t ready[] = {0U};
+    flash.qspi = &qspi;
+    flash.capacity = 16U * 1024U * 1024U;
+
+    queue_operation(0x06U, 0U, 0U, XY_HAL_QSPI_LINES_NONE, NULL, 0U, XY_HAL_OK);
+    queue_operation(0x32U, 0x1100U, 1U, XY_HAL_QSPI_LINES_4, payload, sizeof(payload),
+                    XY_HAL_OK);
+    queue_operation(0x05U, 0U, 0U, XY_HAL_QSPI_LINES_1, ready, 1U, XY_HAL_OK);
+    TEST_ASSERT_EQUAL_INT(
+        XY_W25Q128_OK,
+        xy_w25q128_quad_page_program(&flash, 0x1100U, payload, sizeof(payload), 10U));
+
+    TEST_ASSERT_EQUAL_INT(
+        XY_W25Q128_INVALID_PARAM,
+        xy_w25q128_quad_page_program(&flash, 0x11FFU, payload, sizeof(payload), 10U));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_probe_identifies_w25q128_and_registers_flash_device);
     RUN_TEST(test_probe_rejects_wrong_identity);
     RUN_TEST(test_erase_program_read_uses_qspi_bus_and_propagates_errors);
+    RUN_TEST(test_quad_program_uses_four_data_lines_and_checks_page_bounds);
     return UNITY_END();
 }
