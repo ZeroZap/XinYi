@@ -46,6 +46,7 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
         "OSAL_MULTI_CONSUMER_DISTRIBUTED",
         "PANDORA_DMA_MEM2MEM_OK",
         "PANDORA_DMA_IRQ_CALLBACK_OK",
+        "PANDORA_DMA_STOP_RECOVERY_OK",
     ]
     lines.extend(["OSAL_MULTI_CONSUMER_0_TAKE"] * 8)
     lines.extend(["OSAL_MULTI_CONSUMER_1_TAKE"] * 8)
@@ -195,6 +196,14 @@ class StressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn("PANDORA_DMA_IRQ_CALLBACK_OK count 0 != 1", result["failures"])
+
+    def test_rejects_missing_dma_stop_recovery_evidence(self) -> None:
+        payload = make_capture(120, 60).replace(b"PANDORA_DMA_STOP_RECOVERY_OK\r\n", b"")
+
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("PANDORA_DMA_STOP_RECOVERY_OK count 0 != 1", result["failures"])
 
 
 if __name__ == "__main__":

@@ -50,6 +50,7 @@ MULTI_CONSUMER_TAKES = (
 EXPECTED_MULTI_MESSAGES = 16
 DMA_COMPLETION = "PANDORA_DMA_MEM2MEM_OK"
 DMA_IRQ_COMPLETION = "PANDORA_DMA_IRQ_CALLBACK_OK"
+DMA_STOP_RECOVERY = "PANDORA_DMA_STOP_RECOVERY_OK"
 ERROR_MARKERS = (
     "OSAL_BLOCKING_TIMEOUT_ERROR",
     "OSAL_EVENT_MISMATCH",
@@ -71,6 +72,7 @@ ERROR_MARKERS = (
     "PANDORA_DMA_DEINIT_ERROR",
     "PANDORA_DMA_CALLBACK_ERROR",
     "PANDORA_DMA_IRQ_ERROR",
+    "PANDORA_DMA_STOP_RECOVERY_ERROR",
 )
 
 
@@ -167,6 +169,10 @@ def analyze_capture(
     if lines.count(DMA_IRQ_COMPLETION) != 1:
         failures.append(
             f"{DMA_IRQ_COMPLETION} count {lines.count(DMA_IRQ_COMPLETION)} != 1"
+        )
+    if lines.count(DMA_STOP_RECOVERY) != 1:
+        failures.append(
+            f"{DMA_STOP_RECOVERY} count {lines.count(DMA_STOP_RECOVERY)} != 1"
         )
 
     cycles = count_ordered_cycles(lines)
