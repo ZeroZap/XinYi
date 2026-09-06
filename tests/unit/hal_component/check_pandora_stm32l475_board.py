@@ -106,9 +106,9 @@ def main() -> None:
     )
     require(
         BOARD / "pandora_soft_i2c.c",
-        "GPIO_PIN_1",
-        "GPIO_PIN_6",
-        "GPIO_PIN_0",
+        "xy_hal_gpio_init",
+        "xy_hal_gpio_write",
+        "xy_hal_gpio_read",
         "pandora_soft_i2c3_init",
         "soft_i2c_start",
         "soft_i2c_write_byte",
@@ -118,6 +118,9 @@ def main() -> None:
         "xy_hal_i2c_master_receive",
         "dev_addr << 1",
     )
+    soft_i2c = (BOARD / "pandora_soft_i2c.c").read_text(encoding="utf-8")
+    for forbidden in ("HAL_GPIO_Init(", "HAL_GPIO_WritePin(", "HAL_GPIO_ReadPin("):
+        assert forbidden not in soft_i2c, f"Pandora software I2C bypasses xy_hal GPIO: {forbidden}"
     require(
         BOARD / "pandora_hw_i2c.c",
         "I2C3",

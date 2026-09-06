@@ -20,6 +20,7 @@ add_executable(pandora_stm32l475_smoke
     pandora_fota_flash.c
     pandora_soft_i2c.c
     pandora_sys.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
     ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_metadata.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
@@ -72,6 +73,7 @@ add_custom_command(TARGET pandora_stm32l475_smoke POST_BUILD
 add_executable(pandora_stm32l475_icm20608
     sensor_icm20608_main.c
     pandora_soft_i2c.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_icm20608.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
