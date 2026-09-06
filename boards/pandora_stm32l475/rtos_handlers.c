@@ -19,7 +19,6 @@ extern volatile uint32_t pandora_ipc_isr_accepted;
 extern volatile uint32_t pandora_ipc_isr_full;
 extern volatile int pandora_ipc_isr_result;
 
-#define IPC_ISR_STREAM_COUNT 16U
 #define IPC_ISR_SEQUENCE_FLAG 0x80000000U
 
 static void pandora_ipc_isr_publish(void)
@@ -82,7 +81,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *timer)
 {
     if (timer == &pandora_tim6) {
         (void)xy_os_semaphore_release_from_isr(pandora_tim6_sem);
-        if (pandora_ipc_isr_accepted < IPC_ISR_STREAM_COUNT) {
+        if (pandora_ipc_isr_accepted < 16U) {
             pandora_ipc_isr_publish();
         }
     }

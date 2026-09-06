@@ -71,6 +71,8 @@ static uint32_t w25q128_mcu_reset_recovery_pending;
 #define MULTI_MESSAGES_PER_PRODUCER 8U
 #define MULTI_STOP_PRODUCER 0xFFFFFFFFU
 #define IPC_ISR_STREAM_COUNT 16U
+#define IPC_ISR_STRESS_CYCLES 12U
+#define IPC_ISR_STRESS_INTERVAL_TICKS 44000U
 #define IPC_ISR_SEQUENCE_FLAG 0x80000000U
 #define W25Q128_TEST_ADDRESS 0x00FFF000U
 #define W25Q128_TEST_LENGTH 256U
@@ -339,7 +341,10 @@ static int ipc_handler(const xy_broker_msg_t *msg, void *user_data)
         }
         ipc_isr_last_sequence = stream_sequence;
         ++ipc_isr_delivered;
-        uart_text("OSAL_IPC_ISR_STREAM_DELIVER\r\n");
+        if (xy_printf("OSAL_IPC_ISR_STREAM_DELIVER %lu\r\n",
+                      (unsigned long)stream_sequence) < 0) {
+            return XY_BROKER_ERROR;
+        }
         return XY_BROKER_OK;
     }
     if (sequence == ipc_probe_sequence) {
@@ -371,49 +376,59 @@ static int ipc_isr_wake(void *context)
 
 static void ipc_isr_task(void *argument)
 {
-    uint32_t task_producer_start;
+    uint32_t recovery_cycle;
 
     (void)argument;
-    if (xy_os_semaphore_acquire(pandora_ipc_isr_sem, 2500U) != XY_OS_OK ||
-        pandora_ipc_isr_result == XY_BROKER_ERROR) {
-        uart_text("OSAL_IPC_ISR_ERROR\r\n");
-        fail();
-    }
-    task_producer_start = ipc_delivered_count;
-    (void)xy_os_delay(6000U);
-    if (pandora_ipc_isr_full == 0U) {
-        uart_text("OSAL_IPC_ISR_ERROR\r\n");
-        fail();
-    }
-    uart_text("OSAL_IPC_ISR_BACKPRESSURE\r\n");
-    while (ipc_isr_delivered < IPC_ISR_STREAM_COUNT) {
-        int result = xy_broker_isr_drain_one(&pandora_ipc_isr_ingress);
+    for (recovery_cycle = 0U; recovery_cycle < IPC_ISR_STRESS_CYCLES; ++recovery_cycle) {
+        uint32_t cycle_delivery_target = ipc_isr_delivered + IPC_ISR_STREAM_COUNT;
+        uint32_t task_producer_start;
 
-        if (result == XY_BROKER_OK) {
-            if (xy_broker_process_msgs(XY_BROKER_SERVER_TIMER, 1U) != 1) {
-                uart_text("OSAL_IPC_ISR_ERROR\r\n");
-                fail();
-            }
-            continue;
+        if (recovery_cycle > 0U) {
+            (void)xy_os_delay(IPC_ISR_STRESS_INTERVAL_TICKS);
         }
-        if (result != XY_BROKER_NOT_FOUND ||
-            xy_os_semaphore_acquire(pandora_ipc_isr_sem, 1500U) != XY_OS_OK ||
+        if (xy_os_semaphore_acquire(pandora_ipc_isr_sem, 2500U) != XY_OS_OK ||
             pandora_ipc_isr_result == XY_BROKER_ERROR) {
             uart_text("OSAL_IPC_ISR_ERROR\r\n");
             fail();
         }
+        task_producer_start = ipc_delivered_count;
+        (void)xy_os_delay(6000U);
+        if (pandora_ipc_isr_full == 0U) {
+            uart_text("OSAL_IPC_ISR_ERROR\r\n");
+            fail();
+        }
+        uart_text("OSAL_IPC_ISR_BACKPRESSURE\r\n");
+        while (ipc_isr_delivered < cycle_delivery_target) {
+            int result = xy_broker_isr_drain_one(&pandora_ipc_isr_ingress);
+
+            if (result == XY_BROKER_OK) {
+                if (xy_broker_process_msgs(XY_BROKER_SERVER_TIMER, 1U) != 1) {
+                    uart_text("OSAL_IPC_ISR_ERROR\r\n");
+                    fail();
+                }
+                continue;
+            }
+            if (result != XY_BROKER_NOT_FOUND ||
+                xy_os_semaphore_acquire(pandora_ipc_isr_sem, 1500U) != XY_OS_OK ||
+                pandora_ipc_isr_result == XY_BROKER_ERROR) {
+                uart_text("OSAL_IPC_ISR_ERROR\r\n");
+                fail();
+            }
+        }
+        if (pandora_ipc_isr_accepted != IPC_ISR_STREAM_COUNT ||
+            ipc_isr_last_sequence != pandora_ipc_isr_attempts ||
+            ipc_delivered_count <= task_producer_start) {
+            uart_text("OSAL_IPC_ISR_ERROR\r\n");
+            fail();
+        }
+        uart_text("OSAL_IPC_TASK_PRODUCER_PROGRESS\r\n");
+        uart_text("OSAL_IPC_ISR_RECOVERED\r\n");
+
+        __disable_irq();
+        pandora_ipc_isr_accepted = 0U;
+        pandora_ipc_isr_full = 0U;
+        __enable_irq();
     }
-    if (pandora_ipc_isr_accepted != IPC_ISR_STREAM_COUNT ||
-        ipc_isr_last_sequence != pandora_ipc_isr_attempts) {
-        uart_text("OSAL_IPC_ISR_ERROR\r\n");
-        fail();
-    }
-    if (ipc_delivered_count <= task_producer_start) {
-        uart_text("OSAL_IPC_ISR_ERROR\r\n");
-        fail();
-    }
-    uart_text("OSAL_IPC_TASK_PRODUCER_PROGRESS\r\n");
-    uart_text("OSAL_IPC_ISR_RECOVERED\r\n");
     uart_text("OSAL_IPC_ISR_SUSTAINED_OK\r\n");
     xy_os_thread_exit();
 }

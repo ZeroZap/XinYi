@@ -366,16 +366,25 @@ class StressCaptureContract(unittest.TestCase):
 
 
 class IpcIsrIngressCaptureContract(unittest.TestCase):
-    def make_capture(self) -> bytes:
+    def make_capture(self, cycles: int = 1) -> bytes:
+        recovery = []
+        for cycle_index in range(cycles):
+            recovery.append("OSAL_IPC_ISR_BACKPRESSURE\r\n")
+            recovery.extend(
+                f"OSAL_IPC_ISR_STREAM_DELIVER {cycle_index * 16 + index + 1}\r\n"
+                for index in range(16)
+            )
+            recovery.append("OSAL_IPC_TASK_PRODUCER_PROGRESS\r\n")
+            recovery.append("OSAL_IPC_ISR_RECOVERED\r\n")
+        recovery_text = "".join(recovery)
         return (
             "stale boot noise\r\n"
             "PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n"
             f"FIRMWARE_COMMIT {COMMIT}\r\n"
-            "OSAL_IPC_ISR_BACKPRESSURE\r\n"
-            + "OSAL_IPC_ISR_STREAM_DELIVER\r\n" * 16
-            + "OSAL_IPC_TASK_PRODUCER_PROGRESS\r\n"
-            "OSAL_IPC_ISR_RECOVERED\r\n"
-            "OSAL_IPC_ISR_SUSTAINED_OK\r\n"
+            + recovery_text
+            + "OSAL_IPC_ISR_SUSTAINED_OK\r\n"
+            + ("OSAL_IPC_SEND\r\nOSAL_PM_TICK\r\nOSAL_DEVICE_LOOKUP\r\n"
+               "[I] OSAL_TRACE_DELIVER\r\nOSAL_IPC_DELIVER\r\n") * (cycles * 50)
         ).encode("ascii")
 
     def test_accepts_last_boot_bounded_ingress_recovery(self) -> None:
@@ -390,18 +399,64 @@ class IpcIsrIngressCaptureContract(unittest.TestCase):
             "OSAL_IPC_ISR_SUSTAINED_OK": 1,
         })
 
+    def test_accepts_ten_minute_repeated_recovery_and_pipeline_continuity(self) -> None:
+        result = analyze_ipc_isr_capture(
+            self.make_capture(12), COMMIT, duration_seconds=660,
+            expected_recovery_cycles=12, min_pipeline_cycles=600,
+        )
+
+        self.assertEqual(result["status"], "IPC_ISR_STRESS_REVIEW_CANDIDATE")
+        self.assertEqual(result["marker_counts"]["OSAL_IPC_ISR_STREAM_DELIVER"], 192)
+        self.assertEqual(result["ordered_pipeline_cycles"], 600)
+
+    def test_rejects_missing_recovery_cycle_and_short_duration(self) -> None:
+        payload = self.make_capture(12).replace(b"OSAL_IPC_ISR_RECOVERED\r\n", b"", 1)
+        result = analyze_ipc_isr_capture(
+            payload, COMMIT, duration_seconds=599,
+            expected_recovery_cycles=12, min_pipeline_cycles=600,
+        )
+
+        self.assertEqual(result["status"], "IPC_ISR_VALIDATION_FAILED")
+        self.assertIn("capture duration 599 < 600 seconds", result["failures"])
+        self.assertIn("IPC ISR recovery cycle ordering/count mismatch", result["failures"])
+
+    def test_rejects_pipeline_discontinuity_in_long_stress(self) -> None:
+        payload = self.make_capture(12).replace(b"OSAL_PM_TICK\r\n", b"", 1)
+        result = analyze_ipc_isr_capture(
+            payload, COMMIT, duration_seconds=660,
+            expected_recovery_cycles=12, min_pipeline_cycles=600,
+        )
+
+        self.assertEqual(result["status"], "IPC_ISR_VALIDATION_FAILED")
+        self.assertIn("cross-component pipeline continuity mismatch", result["failures"])
+
+    def test_rejects_non_monotonic_isr_payload_delivery(self) -> None:
+        payload = self.make_capture(12).replace(
+            b"OSAL_IPC_ISR_STREAM_DELIVER 18\r\n",
+            b"OSAL_IPC_ISR_STREAM_DELIVER 17\r\n",
+        )
+        result = analyze_ipc_isr_capture(
+            payload, COMMIT, duration_seconds=660,
+            expected_recovery_cycles=12, min_pipeline_cycles=600,
+        )
+
+        self.assertEqual(result["status"], "IPC_ISR_VALIDATION_FAILED")
+        self.assertIn(
+            "IPC ISR payload sequence is not strictly monotonic delivery", result["failures"]
+        )
+
     def test_rejects_missing_reordered_or_error_ingress(self) -> None:
-        payload = self.make_capture().replace(b"OSAL_IPC_ISR_STREAM_DELIVER\r\n", b"", 1)
+        payload = self.make_capture().replace(b"OSAL_IPC_ISR_STREAM_DELIVER 1\r\n", b"", 1)
         result = analyze_ipc_isr_capture(payload, COMMIT)
         self.assertEqual(result["status"], "IPC_ISR_VALIDATION_FAILED")
         self.assertIn("IPC ISR ingress marker count mismatch", result["failures"])
 
         payload = self.make_capture().replace(
-            b"OSAL_IPC_ISR_BACKPRESSURE\r\nOSAL_IPC_ISR_STREAM_DELIVER",
-            b"OSAL_IPC_ISR_STREAM_DELIVER\r\nOSAL_IPC_ISR_BACKPRESSURE",
+            b"OSAL_IPC_ISR_BACKPRESSURE\r\nOSAL_IPC_ISR_STREAM_DELIVER 1",
+            b"OSAL_IPC_ISR_STREAM_DELIVER 1\r\nOSAL_IPC_ISR_BACKPRESSURE",
         )
         result = analyze_ipc_isr_capture(payload, COMMIT)
-        self.assertIn("IPC ISR ingress markers are not ordered", result["failures"])
+        self.assertIn("IPC ISR recovery cycle ordering/count mismatch", result["failures"])
 
         payload = self.make_capture().replace(b"OSAL_IPC_TASK_PRODUCER_PROGRESS\r\n", b"")
         result = analyze_ipc_isr_capture(payload, COMMIT)
