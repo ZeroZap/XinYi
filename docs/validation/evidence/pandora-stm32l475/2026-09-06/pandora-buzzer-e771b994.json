@@ -1,0 +1,16 @@
+{
+  "status": "CONTROL_PATH_REVIEW_CANDIDATE",
+  "firmware_commit": "e771b99403fe0e3db5fe9eb657da8667f971aa25",
+  "captured_bytes": 186,
+  "required_markers": [
+    "PANDORA BUZZER PB2 READY",
+    "FIRMWARE_COMMIT e771b99403fe0e3db5fe9eb657da8667f971aa25",
+    "PANDORA_BUZZER_PATTERN_START SHORT_SHORT_LONG",
+    "PANDORA_BUZZER_PATTERN_DONE",
+    "PANDORA_BUZZER_FINAL_OFF"
+  ],
+  "errors": [],
+  "audible_confirmation": "HUMAN_CONFIRMED_SHORT_SHORT_LONG_AND_STOPPED",
+  "human_observer": "Eugene",
+  "claim_boundary": "Audible B1 for this committed PB2 fixed pattern only; no sound-pressure, frequency, power, or endurance qualification"
+}
