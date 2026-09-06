@@ -129,8 +129,13 @@ int main(void)
     uart_text("AP3216C_CONFIG=0x"); uart_hex8(config); uart_text(" MODE=ALS_PS_IR\r\n");
 
     for (;;) {
-        if (xy_i2c_device_read_reg(&ap_bus, AP3216C_REG_IR_DATA_L, raw, sizeof(raw)) != XY_DEVICE_OK ||
-            light->ops->read(light, &als_data) != SENSOR_EOK ||
+        for (uint32_t i = 0U; i < sizeof(raw); ++i) {
+            if (xy_i2c_device_read_reg(&ap_bus, (uint8_t)(AP3216C_REG_IR_DATA_L + i),
+                                       &raw[i], 1U) != XY_DEVICE_OK) {
+                uart_text("PANDORA_AP3216C_RAW_IO_ERROR\r\n"); fail();
+            }
+        }
+        if (light->ops->read(light, &als_data) != SENSOR_EOK ||
             proximity->ops->read(proximity, &ps_data) != SENSOR_EOK ||
             ir->ops->read(ir, &ir_data) != SENSOR_EOK) {
             uart_text("PANDORA_AP3216C_SAMPLE_ERROR\r\n"); fail();
