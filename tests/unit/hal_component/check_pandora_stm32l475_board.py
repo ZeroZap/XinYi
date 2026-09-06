@@ -119,6 +119,25 @@ def main() -> None:
         "dev_addr << 1",
     )
     require(
+        BOARD / "pandora_hw_i2c.c",
+        "I2C3",
+        "GPIO_PIN_0 | GPIO_PIN_1",
+        "GPIO_AF4_I2C3",
+        "HAL_I2C_Init",
+        "HAL_I2C_Master_Transmit",
+        "HAL_I2C_Master_Receive",
+        "dev_addr << 1",
+    )
+    require(
+        BOARD / "sensor_ap3216c_main.c",
+        "AP3216C_BUS=HW_I2C3",
+        "pandora_hw_i2c3_init",
+        "PANDORA_AP3216C_HW_I2C_INIT_ERROR",
+        "AP3216C_HW_I2C_READY",
+        "xy_i2c_device_init",
+        "AP3216C_MODE_ALS_PS",
+    )
+    require(
         BOARD / "sensor_icm20608_main.c",
         "PANDORA ICM20608 SENSOR READY",
         "I2C3_PINS SCL=PC0 SDA=PC1",

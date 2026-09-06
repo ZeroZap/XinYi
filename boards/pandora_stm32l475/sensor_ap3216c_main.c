@@ -1,4 +1,4 @@
-#include "pandora_soft_i2c.h"
+#include "pandora_hw_i2c.h"
 #include "sensor_ap3216c.h"
 #include "stm32l4xx_hal.h"
 #include "xy_device.h"
@@ -111,12 +111,12 @@ int main(void)
 
     HAL_Init(); clock_init(); uart_init();
     uart_text("PANDORA AP3216C SENSOR READY\r\nFIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT
-              "\r\nAP3216C_BUS=SOFT_I2C3 SCL=PC0 SDA=PC1 ADDR=0x1E\r\n");
-    i2c3 = pandora_soft_i2c3_init();
-    if (!pandora_soft_i2c_probe(i2c3, AP3216C_ADDR_DEFAULT)) {
-        uart_text("PANDORA_AP3216C_ACK_ERROR\r\n"); fail();
+              "\r\nAP3216C_BUS=HW_I2C3 SCL=PC0 SDA=PC1 ADDR=0x1E\r\n");
+    i2c3 = pandora_hw_i2c3_init();
+    if (i2c3 == NULL) {
+        uart_text("PANDORA_AP3216C_HW_I2C_INIT_ERROR\r\n"); fail();
     }
-    uart_text("AP3216C_ACK=0x1E\r\n");
+    uart_text("AP3216C_HW_I2C_READY\r\n");
     if (xy_i2c_device_init(&ap_bus, i2c3, AP3216C_ADDR_DEFAULT, 100U) != XY_DEVICE_OK) {
         uart_text("PANDORA_AP3216C_DEVICE_ERROR\r\n"); fail();
     }
