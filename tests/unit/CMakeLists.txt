@@ -138,6 +138,10 @@ add_test(NAME pandora_ap3216c_capture_validator
     COMMAND python3 ${UNIT_SENSOR}/test_pandora_ap3216c_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_buzzer_capture_validator
+    COMMAND python3 ${UNIT_ACTUATOR}/test_pandora_buzzer_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}
@@ -1907,7 +1911,14 @@ xy_add_unit_test(test_actuator_framework actuator_framework UNITY
 )
 target_link_libraries(test_actuator_framework m)
 
-# --- Test 41b: Actuator example stays aligned with public APIs ---
+# --- Test 41b: GPIO-backed buzzer contract and fail-safe sequencing ---
+xy_add_unit_test(test_actuator_buzzer actuator_buzzer UNITY
+    ${UNIT_ACTUATOR}/test_actuator_buzzer.c
+    ${ACTUATOR}/xy_actuator_buzzer.c
+)
+target_include_directories(test_actuator_buzzer PRIVATE ${HAL}/inc)
+
+# --- Test 41c: Actuator example stays aligned with public APIs ---
 xy_add_unit_test(test_actuator_example_relay_servo_pwm actuator_example_relay_servo_pwm
     ${ACTUATOR}/examples/example_relay_servo_pwm.c
     ${ACTUATOR}/xy_actuator.c

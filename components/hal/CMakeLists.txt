@@ -51,7 +51,10 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
         "stm32/src/*.c"
     )
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_dma\\.c$")
-    list(APPEND HAL_SOURCES "stm32/stm32l4/xy_hal_dma.c")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_gpio\\.c$")
+    list(APPEND HAL_SOURCES
+        "stm32/stm32l4/xy_hal_dma.c"
+        "stm32/stm32l4/xy_hal_gpio.c")
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32L4
