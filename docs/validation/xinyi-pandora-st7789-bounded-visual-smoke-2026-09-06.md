@@ -41,7 +41,21 @@ failures. The ST7789 inversion constants are corrected to DCS `0x21` ON / `0x20`
 
 ## Evidence boundary
 
-Status: `UART_PENDING_VISUAL_CONFIRMATION`.
+Status: `UART_VERIFIED_VISUAL_PENDING`.
+
+Clean committed image `e125038eba6723ccf654d610573b55e96bc74c4f` was built with Arm GNU
+15.2.1. ELF/BIN sizes are 35,556/12,820 bytes; BIN SHA-256 is
+`e41a0b0db4dc9118b95443522728af61ed6abfcfed8b5b48bfda34b671ec2fdf`. ST-Link
+V2J24S11 reported `Flash written and verified`; a 12,820-byte read-back was byte-identical.
+The independent WCH-Link UART capture is 304 bytes with SHA-256
+`fc5ceb584514bd2c3abb476acfe2fa509fd66f53eb54816246eeb714b33d2071`; machine parsing
+confirmed the exact firmware identity and all nine ordered startup/color/pattern/final-state markers,
+with zero error markers.
+
+Evidence:
+
+- `evidence/pandora-stm32l475/2026-09-06/pandora-st7789-e125038e-readback.bin`
+- `evidence/pandora-stm32l475/2026-09-06/pandora-st7789-e125038e-uart.txt`
 
 Host/compile/flash/UART evidence may establish software control-path execution. Visual B1 requires a
 human report that the five colors appeared in order and the final quadrant/black-center pattern is
