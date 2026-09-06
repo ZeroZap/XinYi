@@ -197,6 +197,7 @@ int main(void)
     };
     xy_fota_metadata_t committed;
     xy_fota_metadata_t loaded;
+    IWDG_HandleTypeDef watchdog = {0};
 
     HAL_Init();
     clock_init();
@@ -212,8 +213,21 @@ int main(void)
     uart_hex32(chip_id[1]);
     uart_hex32(chip_id[2]);
     uart_text("\r\n");
-    if ((reset_reason & RCC_CSR_SFTRSTF) != 0U) {
+    if ((reset_reason & RCC_CSR_IWDGRSTF) != 0U) {
+        uart_text("SYS_RESET_KIND WATCHDOG\r\nSYS_WATCHDOG_RESET_OK\r\n");
+    } else if ((reset_reason & RCC_CSR_SFTRSTF) != 0U) {
         uart_text("SYS_RESET_KIND SOFTWARE\r\nSYS_SOFTWARE_RESET_OK\r\n");
+        uart_text("SYS_WATCHDOG_RESET_REQUEST\r\n");
+        HAL_Delay(250U);
+        watchdog.Instance = IWDG;
+        watchdog.Init.Prescaler = IWDG_PRESCALER_32;
+        watchdog.Init.Reload = 125U;
+        watchdog.Init.Window = IWDG_WINDOW_DISABLE;
+        if (HAL_IWDG_Init(&watchdog) != HAL_OK) {
+            fail();
+        }
+        for (;;) {
+        }
     } else {
         uart_text("SYS_RESET_KIND POWER_OR_PIN\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
         HAL_Delay(250U);

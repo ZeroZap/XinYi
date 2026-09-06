@@ -31,6 +31,7 @@ add_executable(pandora_stm32l475_smoke
     ${_hal}/stm32l4xx_hal_flash.c
     ${_hal}/stm32l4xx_hal_flash_ex.c
     ${_hal}/stm32l4xx_hal_gpio.c
+    ${_hal}/stm32l4xx_hal_iwdg.c
     ${_hal}/stm32l4xx_hal_pwr.c
     ${_hal}/stm32l4xx_hal_pwr_ex.c
     ${_hal}/stm32l4xx_hal_rcc.c

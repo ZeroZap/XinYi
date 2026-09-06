@@ -51,11 +51,17 @@ def main() -> None:
         BOARD / "CMakeLists.txt",
         "pandora_stm32l475_smoke",
         "pandora_sys.c",
+        "stm32l4xx_hal_iwdg.c",
         "pandora_fota_flash.c",
         "xy_fota_metadata.c",
         "startup_stm32l475xx.s",
         "STM32L475VETX_FLASH.ld",
         "-O binary",
+    )
+    require(
+        BOARD / "stm32l4xx_hal_conf.h",
+        "HAL_IWDG_MODULE_ENABLED",
+        "stm32l4xx_hal_iwdg.h",
     )
     require(
         BOARD / "capture_uart.py",
@@ -131,6 +137,11 @@ def main() -> None:
         "SYS_RESET_KIND SOFTWARE",
         "SYS_SOFTWARE_RESET_REQUEST",
         "SYS_SOFTWARE_RESET_OK",
+        "RCC_CSR_IWDGRSTF",
+        "SYS_WATCHDOG_RESET_REQUEST",
+        "SYS_RESET_KIND WATCHDOG",
+        "SYS_WATCHDOG_RESET_OK",
+        "HAL_IWDG_Init",
         "xy_fota_metadata_flash_validate",
         "xy_fota_metadata_flash_commit",
         "xy_fota_metadata_flash_load",
