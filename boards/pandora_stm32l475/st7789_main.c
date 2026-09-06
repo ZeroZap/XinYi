@@ -1,6 +1,7 @@
 #include "stm32l4xx_hal.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_spi.h"
+#include "xy_hal_uart.h"
 #include "xy_lcd_st7789.h"
 
 #ifndef XINYI_FIRMWARE_COMMIT
@@ -41,7 +42,7 @@ static void uart_text(const char *text)
     while (text[length] != '\0') {
         ++length;
     }
-    (void)HAL_UART_Transmit(&uart1, (uint8_t *)text, length, 100U);
+    (void)xy_hal_uart_send(&uart1, (const uint8_t *)text, length, 100U);
 }
 
 static void clock_init(void)
@@ -71,30 +72,26 @@ static void clock_init(void)
 
 static void uart_init(void)
 {
-    GPIO_InitTypeDef gpio = {0};
+    const xy_hal_gpio_config_t gpio = {XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_UP,
+                                       XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_VERY_HIGH,
+                                       GPIO_AF7_USART1};
+    const xy_hal_uart_config_t uart = {115200U, XY_HAL_UART_WORDLEN_8B,
+                                       XY_HAL_UART_STOPBITS_1, XY_HAL_UART_PARITY_NONE,
+                                       XY_HAL_UART_FLOWCTRL_NONE, XY_HAL_UART_MODE_TX_RX};
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_USART1_CLK_ENABLE();
-    gpio.Pin = GPIO_PIN_9 | GPIO_PIN_10;
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF7_USART1;
-    HAL_GPIO_Init(GPIOA, &gpio);
+    if (xy_hal_gpio_init(GPIOA, 9U, &gpio) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOA, 10U, &gpio) != XY_HAL_OK) fail();
     uart1.Instance = USART1;
-    uart1.Init.BaudRate = 115200U;
-    uart1.Init.WordLength = UART_WORDLENGTH_8B;
-    uart1.Init.StopBits = UART_STOPBITS_1;
-    uart1.Init.Parity = UART_PARITY_NONE;
-    uart1.Init.Mode = UART_MODE_TX_RX;
-    uart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    uart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    uart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-    if (HAL_UART_Init(&uart1) != HAL_OK) fail();
+    if (xy_hal_uart_init(&uart1, &uart) != XY_HAL_OK) fail();
 }
 
 static void display_bus_init(void)
 {
-    GPIO_InitTypeDef gpio = {0};
+    const xy_hal_gpio_config_t alternate = {
+        XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_NONE, XY_HAL_GPIO_OTYPE_PP,
+        XY_HAL_GPIO_SPEED_VERY_HIGH, GPIO_AF6_SPI3,
+    };
     xy_hal_gpio_config_t output = {
         .mode = XY_HAL_GPIO_MODE_OUTPUT,
         .otype = XY_HAL_GPIO_OTYPE_PP,
@@ -114,12 +111,8 @@ static void display_bus_init(void)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
     __HAL_RCC_SPI3_CLK_ENABLE();
-    gpio.Pin = GPIO_PIN_3 | GPIO_PIN_5;
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Pull = GPIO_NOPULL;
-    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF6_SPI3;
-    HAL_GPIO_Init(GPIOB, &gpio);
+    if (xy_hal_gpio_init(GPIOB, 3U, &alternate) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOB, 5U, &alternate) != XY_HAL_OK) fail();
     if (xy_hal_gpio_init(GPIOB, 4U, &output) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOD, 7U, &output) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOB, 6U, &output) != XY_HAL_OK ||

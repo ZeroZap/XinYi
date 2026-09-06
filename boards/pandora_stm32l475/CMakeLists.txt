@@ -150,6 +150,7 @@ add_executable(pandora_stm32l475_buzzer
     buzzer_main.c
     ${CMAKE_SOURCE_DIR}/components/actuator/xy_actuator_buzzer.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
     ${_hal}/stm32l4xx_hal.c
@@ -182,6 +183,7 @@ add_executable(pandora_stm32l475_motor
     motor_main.c
     ${CMAKE_SOURCE_DIR}/components/actuator/xy_actuator_motor.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
     ${_hal}/stm32l4xx_hal.c
@@ -214,6 +216,7 @@ add_executable(pandora_stm32l475_rgb_led
     rgb_led_main.c
     ${CMAKE_SOURCE_DIR}/components/actuator/xy_actuator_rgb_led.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
     ${_hal}/stm32l4xx_hal.c
@@ -249,6 +252,7 @@ add_executable(pandora_stm32l475_st7789
     ${CMAKE_SOURCE_DIR}/components/drivers/display/lcd/xy_lcd_st7789.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
     ${_hal}/stm32l4xx_hal.c ${_hal}/stm32l4xx_hal_cortex.c ${_hal}/stm32l4xx_hal_dma.c

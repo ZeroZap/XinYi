@@ -121,6 +121,19 @@ def main() -> None:
     soft_i2c = (BOARD / "pandora_soft_i2c.c").read_text(encoding="utf-8")
     for forbidden in ("HAL_GPIO_Init(", "HAL_GPIO_WritePin(", "HAL_GPIO_ReadPin("):
         assert forbidden not in soft_i2c, f"Pandora software I2C bypasses xy_hal GPIO: {forbidden}"
+    for board_entry in ("buzzer_main.c", "motor_main.c", "rgb_led_main.c", "st7789_main.c"):
+        entry = (BOARD / board_entry).read_text(encoding="utf-8")
+        for required in ("xy_hal_uart_init", "xy_hal_uart_send", "xy_hal_gpio_init"):
+            assert required in entry, f"{board_entry} missing canonical HAL call {required}"
+        for forbidden in ("HAL_UART_Init(", "HAL_UART_Transmit(", "HAL_GPIO_Init("):
+            assert forbidden not in entry, f"{board_entry} bypasses canonical XinYi HAL: {forbidden}"
+    require(
+        ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_uart.c",
+        "xy_hal_uart_init",
+        "xy_hal_uart_send",
+        "HAL_UART_Init",
+        "HAL_UART_Transmit",
+    )
     require(
         BOARD / "pandora_hw_i2c.c",
         "I2C3",

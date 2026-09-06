@@ -23,7 +23,8 @@ def main() -> None:
     require(
         BOARD / "st7789_main.c",
         "SPI3",
-        "GPIO_PIN_3 | GPIO_PIN_5",
+        "xy_hal_gpio_init(GPIOB, 3U",
+        "xy_hal_gpio_init(GPIOB, 5U",
         "GPIO_AF6_SPI3",
         "GPIOB, 4U",
         "GPIOD, 7U",
