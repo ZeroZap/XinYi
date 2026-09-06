@@ -333,6 +333,26 @@ static void test_icm20608_failure_contracts_preserve_output(void)
     destroy_sensor(accel);
 }
 
+static void test_icm20608_accepts_pandora_identity(void)
+{
+    int fake_bus;
+    const uint8_t pandora_whoami = ICM20608_WHOAMI_VALUE;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    TEST_ASSERT_NOT_NULL(accel);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &pandora_whoami, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x80U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x01U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_2, 0x00U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_GYRO_CONFIG, 0x08U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG, 0x08U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+
+    destroy_sensor(accel);
+}
+
 static void test_icm20608_spi_bus_path_smoke(void)
 {
     int fake_bus;
@@ -365,6 +385,7 @@ int main(void)
     RUN_TEST(test_icm20608_create_identity_and_bus_contracts);
     RUN_TEST(test_icm20608_i2c_init_read_deinit_contracts);
     RUN_TEST(test_icm20608_failure_contracts_preserve_output);
+    RUN_TEST(test_icm20608_accepts_pandora_identity);
     RUN_TEST(test_icm20608_spi_bus_path_smoke);
     return UNITY_END();
 }

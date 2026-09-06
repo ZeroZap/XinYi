@@ -166,6 +166,20 @@ int main(void)
     uart_text("PANDORA ICM20608 SENSOR READY\r\nFIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT
               "\r\nI2C3_PINS SCL=PC0 SDA=PC1\r\n");
     i2c3 = pandora_soft_i2c3_init();
+    uart_text("PANDORA_I2C3_INIT_DONE\r\n");
+    uint32_t ack_count = 0U;
+    for (uint32_t address = 0x08U; address <= 0x77U; ++address) {
+        if (pandora_soft_i2c_probe(i2c3, (uint8_t)address)) {
+            uart_text("I2C3_ACK=0x");
+            static const char hex[] = "0123456789ABCDEF";
+            char encoded[4] = {hex[address >> 4], hex[address & 0x0FU], '\r', '\n'};
+            (void)HAL_UART_Transmit(&uart1, (uint8_t *)encoded, sizeof(encoded), 100U);
+            ++ack_count;
+        }
+    }
+    uart_text("PANDORA_I2C3_SCAN_DONE count=");
+    uart_u32(ack_count);
+    uart_text("\r\n");
     if (xy_i2c_device_init(&icm_bus, i2c3, ICM20608_ADDR_DEFAULT, 100U) != XY_DEVICE_OK) {
         uart_text("PANDORA_ICM20608_INIT_ERROR\r\n");
         fail();
@@ -200,7 +214,7 @@ int main(void)
         uart_text("PANDORA_ICM20608_INIT_ERROR\r\n");
         fail();
     }
-    uart_text("ICM20608_ADDR=0x68 WHO_AM_I=0xAF\r\n");
+    uart_text("ICM20608_ADDR=0x68 WHO_AM_I=0xAE\r\n");
 
     for (;;) {
         if (accel->ops->read(accel, &accel_data) != SENSOR_EOK ||

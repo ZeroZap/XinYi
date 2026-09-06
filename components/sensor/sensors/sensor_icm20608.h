@@ -20,7 +20,7 @@
 #define ICM20608_REG_TEMP_OUT_H    0x41
 
 /* WHO_AM_I值 */
-#define ICM20608_WHOAMI_VALUE 0xAF
+#define ICM20608_WHOAMI_VALUE 0xAE
 
 /* 私有数据 */
 typedef struct {

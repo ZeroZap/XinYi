@@ -131,6 +131,19 @@ void *pandora_soft_i2c_init(void)
     return pandora_soft_i2c4_init();
 }
 
+int pandora_soft_i2c_probe(void *i2c, uint8_t dev_addr)
+{
+    if ((i2c != &soft_i2c3 && i2c != &soft_i2c4) || dev_addr > 0x7FU) {
+        return 0;
+    }
+
+    active_bus = i2c;
+    soft_i2c_start();
+    int ack = soft_i2c_write_byte((uint8_t)(dev_addr << 1));
+    soft_i2c_stop();
+    return ack;
+}
+
 xy_hal_error_t xy_hal_i2c_master_transmit(void *i2c, uint16_t dev_addr,
                                           const uint8_t *data, size_t len,
                                           uint32_t timeout)
