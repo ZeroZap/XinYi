@@ -1,0 +1,23 @@
+{
+  "capture_bytes": 371021,
+  "capture_sha256": "76bb3c83182b6a4b74b2caee310bd347db2c4009286fa047d66ef43147218994",
+  "failures": [],
+  "firmware_commit": "be7cf9509a2d7400804606ce7f19be5a387f0829",
+  "marker_counts": {
+    "OSAL_IPC_ISR_BACKPRESSURE": 12,
+    "OSAL_IPC_ISR_RECOVERED": 12,
+    "OSAL_IPC_ISR_STREAM_DELIVER": 192,
+    "OSAL_IPC_ISR_SUSTAINED_OK": 1,
+    "OSAL_IPC_TASK_PRODUCER_PROGRESS": 12
+  },
+  "not_evidence_for": [
+    "performance throughput",
+    "multi-ISR producer",
+    "multi-hour endurance"
+  ],
+  "ordered_pipeline_cycles": 1387,
+  "recorded_at_utc": "2026-09-06T07:53:36.028489+00:00",
+  "scope": "last-boot bounded Pandora single TIM6 ISR ingress repeated recovery stress",
+  "source_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "status": "IPC_ISR_STRESS_REVIEW_CANDIDATE"
+}

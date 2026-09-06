@@ -501,3 +501,28 @@ Retained evidence:
 
 - [raw sustained-ingress UART log](evidence/pandora-stm32l475/2026-09-06/uart-wchlink-ipc-isr-sustained-e33f8d28.txt)
 - [machine validation metadata](evidence/pandora-stm32l475/2026-09-06/ipc-isr-sustained-e33f8d28.json)
+
+## 2026-09-06 single-ISR repeated recovery stress
+
+Clean committed stress-only firmware `be7cf9509a2d7400804606ce7f19be5a387f0829` disables the
+unrelated one-shot FOTA reset while preserving the established TIM6 ISR ingress and cross-component
+task pipeline. The 35020-byte BIN had SHA-256
+`6aef27b0b1ddb54140fe0e98674b425135ad28acc51ff09c10129c5df949e1ef`; an exact-length ST-Link
+read-back was byte-identical. The ELF contained the exact firmware identity and distinct
+SVC/PendSV/SysTick wrapper and FreeRTOS port-handler symbols.
+
+The first reset-synchronized 660-second capture completed only 11 of the required 12 recovery cycles,
+so the exact-count validator rejected it and no stress evidence was granted. Without changing the
+firmware, a second reset-synchronized capture ran for 720 seconds and retained 371021 bytes (SHA-256
+`76bb3c83182b6a4b74b2caee310bd347db2c4009286fa047d66ef43147218994`). The dedicated fail-closed
+validator matched the exact firmware identity, 12 backpressure markers, 192 strictly monotonic ISR
+stream deliveries, 12 normal-task producer-progress markers, 12 recoveries, one sustained-completion
+marker, 1387 complete ordered `IPC -> PM -> Device -> Trace -> IPC` cycles, and zero ISR ingress error
+markers. This grants bounded B2 for a single TIM6 producer across 12 repeated recovery cycles and a
+12-minute interval. It is not a throughput result, multi-ISR-producer evidence, or multi-hour
+endurance qualification.
+
+Retained evidence:
+
+- [raw 12-cycle stress UART log](evidence/pandora-stm32l475/2026-09-06/uart-wchlink-ipc-isr-stress-be7cf950.txt)
+- [machine validation metadata](evidence/pandora-stm32l475/2026-09-06/ipc-isr-stress-be7cf950.json)
