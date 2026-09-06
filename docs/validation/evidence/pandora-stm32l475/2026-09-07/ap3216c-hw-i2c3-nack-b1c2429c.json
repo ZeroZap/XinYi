@@ -1,0 +1,10 @@
+{
+  "address_7bit": "0x1E",
+  "bus": "HW_I2C3 SCL=PC0 SDA=PC1",
+  "failures": [],
+  "firmware_commit": "b1c2429c34743070fb0fa883c9f86a346de41f93",
+  "non_ascii_byte_count": 0,
+  "sample_count": 59,
+  "status": "AP3216C_HW_I2C3_B1",
+  "unique_sample_count": 27
+}

@@ -15,6 +15,25 @@ This closes the previously pending hardware-I2C peripheral normal path for AP321
 claim NACK recovery, controlled optical response, accuracy, calibration, or general I2C HAL
 qualification.
 
+## Bounded NACK recovery extension
+
+Clean committed firmware `b1c2429c34743070fb0fa883c9f86a346de41f93` first issued a one-byte
+hardware-I2C3 receive to unused 7-bit address `0x7F` and required the HAL boundary to return
+`XY_HAL_ERROR_IO`. It then initialized the canonical Device helper at AP3216C address `0x1E`, read
+back mode `0x03`, and continued sampling. The reset-synchronized capture retained 7449 bytes and
+the fail-closed validator found the ordered markers `NACK_OBSERVED→NACK_RECOVERED→CONFIG`, 59
+in-range samples, 27 unique tuples, and no firmware error marker. The 11856-byte programmed image
+and ST-Link read-back both have SHA-256 `d493618000c69182b656e35edb3d2c6691c61ee85ccc99f0fa25437d767f2f56`.
+
+This grants a bounded address-NACK→next-transaction recovery B2 only. It does not cover SDA/SCL
+stuck-low, hot unplug, physical line faults, arbitration, timeout recovery, or general I2C HAL
+qualification.
+
+Retained extension files:
+
+- `evidence/pandora-stm32l475/2026-09-07/ap3216c-hw-i2c3-nack-b1c2429c.raw`
+- `evidence/pandora-stm32l475/2026-09-07/ap3216c-hw-i2c3-nack-b1c2429c.json`
+
 ## Firmware and programming
 
 - Source commit embedded in ELF/UART: `4873bd914b2f595eb6715f3a6021539d55fe34f1`.
