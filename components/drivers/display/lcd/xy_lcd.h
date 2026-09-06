@@ -153,6 +153,7 @@ typedef struct {
     xy_lcd_rotation_t rotation;    /**< Initial rotation */
     uint8_t backlight_pin;         /**< Backlight pin */
     bool use_dma;                  /**< Use DMA */
+    bool disable_framebuffer;      /**< Stream-only device; do not allocate a framebuffer */
 } xy_lcd_config_t;
 
 /* ==================== LCD API ==================== */

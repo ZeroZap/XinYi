@@ -360,6 +360,7 @@ xy_error_t xy_lcd_spi_init(xy_lcd_spi_device_t *lcd, const xy_lcd_spi_config_t *
         .rotation = config->base.rotation,
         .backlight_pin = config->bl_pin,
         .use_dma = config->use_dma,
+        .disable_framebuffer = config->base.disable_framebuffer,
     };
 
     xy_error_t err = xy_lcd_init(&lcd->base, &base_config);

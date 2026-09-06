@@ -76,10 +76,12 @@ xy_error_t xy_lcd_init(xy_lcd_device_t *lcd, const xy_lcd_config_t *config)
     lcd->rotation = config->rotation;
 
     /* Allocate framebuffer */
-    uint32_t fb_size = config->width * config->height * sizeof(uint16_t);
-    lcd->framebuffer = (uint16_t *)calloc(1, fb_size);
-    if (!lcd->framebuffer) {
-        return XY_ERR_NO_MEM;
+    if (!config->disable_framebuffer) {
+        uint32_t fb_size = config->width * config->height * sizeof(uint16_t);
+        lcd->framebuffer = (uint16_t *)calloc(1, fb_size);
+        if (!lcd->framebuffer) {
+            return XY_ERR_NO_MEM;
+        }
     }
     lcd->fb_width = config->width;
     lcd->fb_height = config->height;

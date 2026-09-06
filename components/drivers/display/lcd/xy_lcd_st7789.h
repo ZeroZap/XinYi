@@ -71,8 +71,8 @@ typedef struct {
 #define ST7789_CMD_NORON       0x13    /**< Normal display mode ON */
 
 /* Inversion commands */
-#define ST7789_CMD_INVON       0x20    /**< Display inversion ON */
-#define ST7789_CMD_INVOFF      0x21    /**< Display inversion OFF */
+#define ST7789_CMD_INVOFF      0x20    /**< Display inversion OFF */
+#define ST7789_CMD_INVON       0x21    /**< Display inversion ON */
 
 /* Gamma commands */
 #define ST7789_CMD_GAMSET      0x26    /**< Gamma set */
@@ -240,6 +240,10 @@ void xy_lcd_st7789_draw_pixel(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t 
  */
 void xy_lcd_st7789_fill(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t y,
                         uint16_t w, uint16_t h, uint16_t color);
+
+/** Fill a rectangle using bounded storage and report transport failures. */
+xy_error_t xy_lcd_st7789_fill_checked(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t y,
+                                      uint16_t w, uint16_t h, uint16_t color);
 
 /**
  * @brief Refresh display from framebuffer

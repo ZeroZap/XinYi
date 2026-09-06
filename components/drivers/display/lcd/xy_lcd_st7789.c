@@ -9,7 +9,6 @@
 #include "xy_hal_delay.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_spi.h"
-#include <stdlib.h>
 #include <string.h>
 
 /* ==================== MADCTL Bits ==================== */
@@ -51,7 +50,13 @@ static const uint8_t st7789_init_sequence[] = {
 /**
  * @brief Send initialization sequence
  */
-static void xy_lcd_st7789_send_init_sequence(xy_lcd_st7789_device_t *lcd)
+static xy_error_t xy_lcd_st7789_write_cmd_checked(xy_lcd_st7789_device_t *lcd, uint8_t cmd);
+static xy_error_t xy_lcd_st7789_write_data_checked(xy_lcd_st7789_device_t *lcd,
+                                                   const uint8_t *data, uint32_t len);
+static xy_error_t xy_lcd_st7789_set_window_checked(xy_lcd_st7789_device_t *lcd, uint16_t x,
+                                                   uint16_t y, uint16_t w, uint16_t h);
+
+static xy_error_t xy_lcd_st7789_send_init_sequence(xy_lcd_st7789_device_t *lcd)
 {
     const uint8_t *ptr = st7789_init_sequence;
 
@@ -59,11 +64,13 @@ static void xy_lcd_st7789_send_init_sequence(xy_lcd_st7789_device_t *lcd)
         uint8_t cmd = *ptr++;
         uint8_t len = *ptr++;
 
-        xy_lcd_st7789_write_cmd(lcd, cmd);
-
-        for (uint8_t i = 0; i < len; i++) {
-            xy_lcd_st7789_write_data8(lcd, *ptr++);
+        if (xy_lcd_st7789_write_cmd_checked(lcd, cmd) != XY_ERR_OK) {
+            return XY_ERR_IO;
         }
+        if (len != 0U && xy_lcd_st7789_write_data_checked(lcd, ptr, len) != XY_ERR_OK) {
+            return XY_ERR_IO;
+        }
+        ptr += len;
 
         /* Delay after certain commands */
         if (cmd == 0x01 || cmd == 0x11) {
@@ -72,6 +79,7 @@ static void xy_lcd_st7789_send_init_sequence(xy_lcd_st7789_device_t *lcd)
             xy_hal_delay_ms(50);
         }
     }
+    return XY_ERR_OK;
 }
 
 /* ==================== Low-Level Operations ==================== */
@@ -81,16 +89,22 @@ static void xy_lcd_st7789_send_init_sequence(xy_lcd_st7789_device_t *lcd)
  */
 void xy_lcd_st7789_write_cmd(xy_lcd_st7789_device_t *lcd, uint8_t cmd)
 {
+    (void)xy_lcd_st7789_write_cmd_checked(lcd, cmd);
+}
+
+static xy_error_t xy_lcd_st7789_write_cmd_checked(xy_lcd_st7789_device_t *lcd, uint8_t cmd)
+{
     xy_lcd_spi_device_t *spi = &lcd->spi_dev;
 
     /* Set DC low for command */
     xy_hal_gpio_write(spi->dc_port, spi->dc_pin, 0);
     xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 0);
 
-    /* Transfer command */
-    xy_hal_spi_transmit(spi->spi_handle, &cmd, 1, ST7789_TRANSFER_TIMEOUT_MS);
+    xy_hal_error_t status =
+        xy_hal_spi_transmit(spi->spi_handle, &cmd, 1, ST7789_TRANSFER_TIMEOUT_MS);
 
     xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 1);
+    return status == XY_HAL_OK ? XY_ERR_OK : XY_ERR_IO;
 }
 
 /**
@@ -98,16 +112,23 @@ void xy_lcd_st7789_write_cmd(xy_lcd_st7789_device_t *lcd, uint8_t cmd)
  */
 void xy_lcd_st7789_write_data(xy_lcd_st7789_device_t *lcd, const uint8_t *data, uint32_t len)
 {
+    (void)xy_lcd_st7789_write_data_checked(lcd, data, len);
+}
+
+static xy_error_t xy_lcd_st7789_write_data_checked(xy_lcd_st7789_device_t *lcd,
+                                                   const uint8_t *data, uint32_t len)
+{
     xy_lcd_spi_device_t *spi = &lcd->spi_dev;
 
     /* Set DC high for data */
     xy_hal_gpio_write(spi->dc_port, spi->dc_pin, 1);
     xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 0);
 
-    /* Transfer data */
-    xy_hal_spi_transmit(spi->spi_handle, data, len, ST7789_TRANSFER_TIMEOUT_MS);
+    xy_hal_error_t status =
+        xy_hal_spi_transmit(spi->spi_handle, data, len, ST7789_TRANSFER_TIMEOUT_MS);
 
     xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 1);
+    return status == XY_HAL_OK ? XY_ERR_OK : XY_ERR_IO;
 }
 
 /**
@@ -201,9 +222,30 @@ void xy_lcd_st7789_set_window(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t 
 {
     xy_lcd_st7789_set_column(lcd, x, w);
     xy_lcd_st7789_set_row(lcd, y, h);
-
-    /* Start memory write */
     xy_lcd_st7789_write_cmd(lcd, ST7789_CMD_RAMWR);
+}
+
+static xy_error_t xy_lcd_st7789_set_window_checked(xy_lcd_st7789_device_t *lcd, uint16_t x,
+                                                   uint16_t y, uint16_t w, uint16_t h)
+{
+    uint16_t values[] = {x + lcd->offset_x, x + lcd->offset_x + w - 1U,
+                         y + lcd->offset_y, y + lcd->offset_y + h - 1U};
+
+    if (xy_lcd_st7789_write_cmd_checked(lcd, ST7789_CMD_CASET) != XY_ERR_OK) return XY_ERR_IO;
+    for (uint32_t i = 0U; i < 2U; ++i) {
+        uint8_t high = (uint8_t)(values[i] >> 8);
+        uint8_t low = (uint8_t)values[i];
+        if (xy_lcd_st7789_write_data_checked(lcd, &high, 1U) != XY_ERR_OK ||
+            xy_lcd_st7789_write_data_checked(lcd, &low, 1U) != XY_ERR_OK) return XY_ERR_IO;
+    }
+    if (xy_lcd_st7789_write_cmd_checked(lcd, ST7789_CMD_RASET) != XY_ERR_OK) return XY_ERR_IO;
+    for (uint32_t i = 2U; i < 4U; ++i) {
+        uint8_t high = (uint8_t)(values[i] >> 8);
+        uint8_t low = (uint8_t)values[i];
+        if (xy_lcd_st7789_write_data_checked(lcd, &high, 1U) != XY_ERR_OK ||
+            xy_lcd_st7789_write_data_checked(lcd, &low, 1U) != XY_ERR_OK) return XY_ERR_IO;
+    }
+    return xy_lcd_st7789_write_cmd_checked(lcd, ST7789_CMD_RAMWR);
 }
 
 /**
@@ -237,26 +279,8 @@ void xy_lcd_st7789_write_pixel(xy_lcd_st7789_device_t *lcd, const uint16_t *data
  */
 void xy_lcd_st7789_clear(xy_lcd_st7789_device_t *lcd, uint16_t color)
 {
-    xy_lcd_spi_device_t *spi = &lcd->spi_dev;
-    uint16_t width = spi->base.width;
-    uint16_t height = spi->base.height;
-
-    xy_lcd_st7789_set_window(lcd, 0, 0, width, height);
-
-    /* Fill entire screen with color */
-    uint32_t total = (uint32_t)width * height;
-
-    /* For efficiency, we send all data at once */
-    uint8_t *fill_buf = (uint8_t *)malloc(total * 2);
-    if (fill_buf) {
-        for (uint32_t i = 0; i < total; i++) {
-            fill_buf[i * 2] = (uint8_t)(color >> 8);
-            fill_buf[i * 2 + 1] = (uint8_t)(color & 0xFF);
-        }
-
-        xy_lcd_spi_write_data(spi, fill_buf, total * 2);
-        free(fill_buf);
-    }
+    (void)xy_lcd_st7789_fill_checked(lcd, 0, 0, lcd->spi_dev.base.width,
+                                     lcd->spi_dev.base.height, color);
 }
 
 /**
@@ -276,20 +300,36 @@ void xy_lcd_st7789_draw_pixel(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t 
 void xy_lcd_st7789_fill(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t y,
                         uint16_t w, uint16_t h, uint16_t color)
 {
-    xy_lcd_st7789_set_window(lcd, x, y, w, h);
+    (void)xy_lcd_st7789_fill_checked(lcd, x, y, w, h, color);
+}
 
-    /* For efficiency, prepare buffer and send at once */
-    uint32_t total = (uint32_t)w * h;
-    uint8_t *fill_buf = (uint8_t *)malloc(total * 2);
-    if (fill_buf) {
-        for (uint32_t i = 0; i < total; i++) {
-            fill_buf[i * 2] = (uint8_t)(color >> 8);
-            fill_buf[i * 2 + 1] = (uint8_t)(color & 0xFF);
-        }
+xy_error_t xy_lcd_st7789_fill_checked(xy_lcd_st7789_device_t *lcd, uint16_t x, uint16_t y,
+                                      uint16_t w, uint16_t h, uint16_t color)
+{
+    uint8_t fill_buf[256];
+    uint32_t remaining;
 
-        xy_lcd_spi_write_data(&lcd->spi_dev, fill_buf, total * 2);
-        free(fill_buf);
+    if (lcd == NULL || !lcd->initialized || w == 0U || h == 0U ||
+        x >= lcd->spi_dev.base.width || y >= lcd->spi_dev.base.height ||
+        w > lcd->spi_dev.base.width - x || h > lcd->spi_dev.base.height - y) {
+        return XY_ERR_INVALID_PARAM;
     }
+    if (xy_lcd_st7789_set_window_checked(lcd, x, y, w, h) != XY_ERR_OK) {
+        return XY_ERR_IO;
+    }
+    for (uint32_t i = 0U; i < sizeof(fill_buf); i += 2U) {
+        fill_buf[i] = (uint8_t)(color >> 8);
+        fill_buf[i + 1U] = (uint8_t)color;
+    }
+    remaining = (uint32_t)w * h * 2U;
+    while (remaining != 0U) {
+        uint32_t chunk = remaining < sizeof(fill_buf) ? remaining : sizeof(fill_buf);
+        if (xy_lcd_st7789_write_data_checked(lcd, fill_buf, chunk) != XY_ERR_OK) {
+            return XY_ERR_IO;
+        }
+        remaining -= chunk;
+    }
+    return XY_ERR_OK;
 }
 
 /**
@@ -459,7 +499,10 @@ xy_error_t xy_lcd_st7789_init(xy_lcd_st7789_device_t *lcd, const xy_lcd_st7789_c
     xy_lcd_st7789_reset(lcd);
 
     /* Send initialization sequence */
-    xy_lcd_st7789_send_init_sequence(lcd);
+    if (xy_lcd_st7789_send_init_sequence(lcd) != XY_ERR_OK) {
+        (void)xy_lcd_spi_deinit(&lcd->spi_dev);
+        return XY_ERR_IO;
+    }
 
     /* Additional configuration */
     xy_lcd_st7789_set_pixel_format(lcd, 0x55);  /* 16-bit RGB565 */

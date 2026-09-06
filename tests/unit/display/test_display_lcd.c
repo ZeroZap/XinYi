@@ -45,6 +45,7 @@ static gpio_op_t gpio_ops[MAX_GPIO_OPS];
 static uint32_t delay_ms_total;
 static uint32_t delay_us_total;
 static uint32_t read_pattern;
+static uint32_t spi_fail_on_call;
 
 static void reset_logs(void);
 static size_t logged_spi_op_count(void);
@@ -104,6 +105,7 @@ static void reset_logs(void)
     delay_ms_total = 0;
     delay_us_total = 0;
     read_pattern = 0;
+    spi_fail_on_call = 0;
 }
 
 static size_t logged_spi_op_count(void)
@@ -128,6 +130,9 @@ static xy_hal_error_t fake_spi_transmit(void *spi, const uint8_t *data, size_t l
     spi_ops[index].dma = 0;
     size_t copy = len < sizeof(spi_ops[index].bytes) ? len : sizeof(spi_ops[index].bytes);
     memcpy(spi_ops[index].bytes, data, copy);
+    if (spi_fail_on_call != 0U && xy_hal_spi_transmit_fake.call_count == spi_fail_on_call) {
+        return XY_HAL_ERROR_IO;
+    }
     return XY_HAL_OK;
 }
 
@@ -312,6 +317,19 @@ static void test_spi_reset_backlight_and_dma(void)
     xy_lcd_spi_deinit(&lcd);
 }
 
+static void test_spi_stream_only_init_skips_framebuffer(void)
+{
+    xy_lcd_spi_device_t lcd;
+    xy_lcd_spi_config_t cfg = make_spi_config();
+
+    cfg.base.disable_framebuffer = true;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_spi_init(&lcd, &cfg));
+    TEST_ASSERT_NULL(lcd.base.framebuffer);
+    TEST_ASSERT_EQUAL_UINT16(cfg.base.width, lcd.base.fb_width);
+    TEST_ASSERT_EQUAL_UINT16(cfg.base.height, lcd.base.fb_height);
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_spi_deinit(&lcd));
+}
+
 static xy_lcd_i8080_config_t make_i8080_config(void)
 {
     xy_lcd_i8080_config_t cfg;
@@ -453,6 +471,8 @@ static void test_st7789_offsets_rotation_and_ops(void)
     reset_logs();
     xy_lcd_st7789_set_inversion(&lcd, true);
     xy_lcd_st7789_set_inversion(&lcd, false);
+    TEST_ASSERT_EQUAL_HEX8(0x21, ST7789_CMD_INVON);
+    TEST_ASSERT_EQUAL_HEX8(0x20, ST7789_CMD_INVOFF);
     TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_INVON, spi_ops[0].bytes[0]);
     TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_INVOFF, spi_ops[1].bytes[0]);
 
@@ -460,12 +480,52 @@ static void test_st7789_offsets_rotation_and_ops(void)
     TEST_ASSERT_FALSE(lcd.initialized);
 }
 
+static void test_st7789_checked_fill_is_bounded_and_propagates_spi_error(void)
+{
+    xy_lcd_st7789_device_t lcd;
+    xy_lcd_st7789_config_t cfg = make_st7789_config();
+
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_init(&lcd, &cfg));
+    reset_logs();
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_fill_checked(&lcd, 0, 0, 8, 6, 0xA55A));
+    TEST_ASSERT_GREATER_THAN_UINT32(11U, logged_spi_op_count());
+    TEST_ASSERT_LESS_OR_EQUAL_UINT32(256U, spi_ops[11].len);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, spi_ops[11].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x5A, spi_ops[11].bytes[1]);
+
+    reset_logs();
+    spi_fail_on_call = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO,
+                          xy_lcd_st7789_fill_checked(&lcd, 0, 0, 8, 6, 0x1234));
+
+    reset_logs();
+    spi_fail_on_call = 12U;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO,
+                          xy_lcd_st7789_fill_checked(&lcd, 0, 0, 8, 6, 0x1234));
+
+    xy_lcd_st7789_deinit(&lcd);
+}
+
+static void test_st7789_init_propagates_spi_error_and_releases_framebuffer(void)
+{
+    xy_lcd_st7789_device_t lcd;
+    xy_lcd_st7789_config_t cfg = make_st7789_config();
+
+    spi_fail_on_call = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_init(&lcd, &cfg));
+    TEST_ASSERT_FALSE(lcd.initialized);
+    TEST_ASSERT_NULL(lcd.spi_dev.base.framebuffer);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_spi_init_window_and_pixel_endian);
     RUN_TEST(test_spi_reset_backlight_and_dma);
+    RUN_TEST(test_spi_stream_only_init_skips_framebuffer);
     RUN_TEST(test_i8080_bus_write_read_and_window);
     RUN_TEST(test_st7789_offsets_rotation_and_ops);
+    RUN_TEST(test_st7789_checked_fill_is_bounded_and_propagates_spi_error);
+    RUN_TEST(test_st7789_init_propagates_spi_error_and_releases_framebuffer);
     return UNITY_END();
 }
