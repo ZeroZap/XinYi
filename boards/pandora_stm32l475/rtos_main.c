@@ -341,8 +341,7 @@ static int ipc_handler(const xy_broker_msg_t *msg, void *user_data)
         }
         ipc_isr_last_sequence = stream_sequence;
         ++ipc_isr_delivered;
-        if (xy_printf("OSAL_IPC_ISR_STREAM_DELIVER %lu\r\n",
-                      (unsigned long)stream_sequence) < 0) {
+        if (xy_printf("OSAL_IPC_ISR_STREAM_DELIVER %u\r\n", (unsigned int)stream_sequence) < 0) {
             return XY_BROKER_ERROR;
         }
         return XY_BROKER_OK;
