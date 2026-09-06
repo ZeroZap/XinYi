@@ -33,6 +33,8 @@ def main() -> int:
         "SCB->VTOR = PANDORA_FOTA_APP_BASE",
         "__set_MSP(app_vectors[0])",
         "PANDORA_BOOT_CANDIDATE_INSTALLED",
+        "PANDORA_FOTA_RESTAGE_REQUEST_MAGIC",
+        "PANDORA_BOOT_RESTAGE_REQUESTED",
         "xy_fota_boot_candidate_record_attempt",
         "xy_fota_boot_candidate_confirm",
         "PANDORA_BOOT_ATTEMPT_COMMITTED",
