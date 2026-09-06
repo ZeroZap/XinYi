@@ -16,7 +16,6 @@
 #define W25Q128_FOTA_IMAGE_SIZE 0x00080000U
 #define PANDORA_FOTA_CONFIRM_REQUEST_MAGIC 0x46525132U
 #define PANDORA_FOTA_CONFIRM_ACK_MAGIC 0x46414332U
-#define PANDORA_FOTA_RESTAGE_REQUEST_MAGIC 0x46525332U
 #define PANDORA_FOTA_MAX_ATTEMPTS 3U
 
 static UART_HandleTypeDef uart1;
@@ -182,16 +181,6 @@ int main(void)
     }
     candidate.read = candidate_ops->read;
     if (xy_fota_boot_candidate_validate(&candidate, &header) == XY_FOTA_OK) {
-        if (RTC->BKP1R == PANDORA_FOTA_RESTAGE_REQUEST_MAGIC) {
-            const xy_fota_boot_install_ops_t *install_ops = pandora_fota_install_ops();
-
-            RTC->BKP1R = 0U;
-            if (install_ops->erase(journal.address, journal.slot_size * 2U) != XY_FOTA_OK) {
-                uart_text("PANDORA_BOOT_RESTAGE_ERROR\r\n");
-                stop();
-            }
-            uart_text("PANDORA_BOOT_RESTAGE_REQUESTED\r\n");
-        }
         if (xy_fota_boot_candidate_install_once(&candidate, pandora_fota_install_ops(), &journal,
                                                 &installed) != XY_FOTA_OK) {
             uart_text("PANDORA_BOOT_INSTALL_ERROR\r\n");
