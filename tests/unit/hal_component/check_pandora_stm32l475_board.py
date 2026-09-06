@@ -123,11 +123,20 @@ def main() -> None:
         "I2C3",
         "GPIO_PIN_0 | GPIO_PIN_1",
         "GPIO_AF4_I2C3",
+        "xy_hal_i2c_init",
+    )
+    require(
+        ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_i2c.c",
         "HAL_I2C_Init",
         "HAL_I2C_Master_Transmit",
         "HAL_I2C_Master_Receive",
         "dev_addr << 1",
     )
+    hal_cmake = (ROOT / "components" / "hal" / "CMakeLists.txt").read_text(encoding="utf-8")
+    assert 'stm32/stm32l4/xy_hal_i2c.c' in hal_cmake
+    board_i2c = (BOARD / "pandora_hw_i2c.c").read_text(encoding="utf-8")
+    assert "HAL_I2C_Master_Transmit" not in board_i2c
+    assert "HAL_I2C_Master_Receive" not in board_i2c
     require(
         BOARD / "sensor_ap3216c_main.c",
         "AP3216C_BUS=HW_I2C3",
