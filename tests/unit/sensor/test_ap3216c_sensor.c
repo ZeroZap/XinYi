@@ -173,7 +173,7 @@ static void test_create_variants_set_identity_and_reject_null_names(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_PROXIMITY, prox->info.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_IR, ir->info.type);
     TEST_ASSERT_EQUAL_UINT8(AP3216C_ADDR_DEFAULT, ((ap3216c_priv_t *)light->priv_data)->i2c_addr);
-    TEST_ASSERT_EQUAL_UINT8(AP3216C_MODE_ALS_PS_IR, ((ap3216c_priv_t *)prox->priv_data)->mode);
+    TEST_ASSERT_EQUAL_UINT8(AP3216C_MODE_ALS_PS, ((ap3216c_priv_t *)prox->priv_data)->mode);
     TEST_ASSERT_EQUAL_PTR(&bus, ir->bus);
     TEST_ASSERT_NOT_NULL(light->ops->init);
     TEST_ASSERT_NOT_NULL(prox->ops->deinit);
@@ -189,7 +189,7 @@ static void test_init_deinit_propagate_config_write_failures(void)
     int bus;
     sensor_device_t *sensor = ap3216c_create_light("ap-init", &bus);
     uint8_t reset = 0x04U;
-    uint8_t mode = AP3216C_MODE_ALS_PS_IR;
+    uint8_t mode = AP3216C_MODE_ALS_PS;
     uint8_t off = AP3216C_MODE_POWER_DOWN;
 
     TEST_ASSERT_NOT_NULL(sensor);
@@ -343,7 +343,7 @@ static void test_public_ops_reject_null_and_missing_private_data_without_i2c(voi
     light->priv_data = SENSOR_MALLOC(sizeof(ap3216c_priv_t));
     TEST_ASSERT_NOT_NULL(light->priv_data);
     ((ap3216c_priv_t *)light->priv_data)->i2c_addr = AP3216C_ADDR_DEFAULT;
-    ((ap3216c_priv_t *)light->priv_data)->mode = AP3216C_MODE_ALS_PS_IR;
+    ((ap3216c_priv_t *)light->priv_data)->mode = AP3216C_MODE_ALS_PS;
     light->bus = NULL;
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->init(light));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->deinit(light));

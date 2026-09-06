@@ -19,13 +19,13 @@
 
 /* 工作模式 */
 #define AP3216C_MODE_POWER_DOWN 0x00
-#define AP3216C_MODE_ALS        0x01
-#define AP3216C_MODE_PS         0x02
-#define AP3216C_MODE_ALS_PS     0x03
-#define AP3216C_MODE_IR         0x04
-#define AP3216C_MODE_ALS_IR     0x05
-#define AP3216C_MODE_PS_IR      0x06
-#define AP3216C_MODE_ALS_PS_IR  0x07
+#define AP3216C_MODE_ALS         0x01
+#define AP3216C_MODE_PS          0x02 /* PS mode includes the IR measurement. */
+#define AP3216C_MODE_ALS_PS      0x03
+#define AP3216C_MODE_SW_RESET    0x04
+#define AP3216C_MODE_ALS_ONCE    0x05
+#define AP3216C_MODE_PS_ONCE     0x06
+#define AP3216C_MODE_ALS_PS_ONCE 0x07
 
 /* 私有数据 */
 typedef struct {

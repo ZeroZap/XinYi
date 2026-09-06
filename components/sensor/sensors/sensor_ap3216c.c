@@ -214,7 +214,7 @@ sensor_device_t *ap3216c_create_light(const char *name, void *i2c_bus)
     memset(priv, 0, sizeof(ap3216c_priv_t));
 
     priv->i2c_addr = AP3216C_ADDR_DEFAULT;
-    priv->mode     = AP3216C_MODE_ALS_PS_IR;
+    priv->mode     = AP3216C_MODE_ALS_PS;
 
     strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
     sensor->info.vendor     = "Liteon";
@@ -263,7 +263,7 @@ sensor_device_t *ap3216c_create_proximity(const char *name, void *i2c_bus)
     memset(priv, 0, sizeof(ap3216c_priv_t));
 
     priv->i2c_addr = AP3216C_ADDR_DEFAULT;
-    priv->mode     = AP3216C_MODE_ALS_PS_IR;
+    priv->mode     = AP3216C_MODE_ALS_PS;
 
     strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
     sensor->info.vendor     = "Liteon";
@@ -312,7 +312,7 @@ sensor_device_t *ap3216c_create_ir(const char *name, void *i2c_bus)
     memset(priv, 0, sizeof(ap3216c_priv_t));
 
     priv->i2c_addr = AP3216C_ADDR_DEFAULT;
-    priv->mode     = AP3216C_MODE_ALS_PS_IR;
+    priv->mode     = AP3216C_MODE_ALS_PS;
 
     strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
     sensor->info.vendor     = "Liteon";

@@ -102,6 +102,10 @@ int main(void)
     sensor_device_t *ir;
     sensor_data_t als_data, ps_data, ir_data;
     uint8_t config = 0U;
+    uint8_t status = 0U;
+    uint8_t als_config = 0U;
+    uint8_t ps_config = 0U;
+    uint8_t ps_led = 0U;
     uint8_t raw[6];
     void *i2c3;
 
@@ -123,12 +127,26 @@ int main(void)
         uart_text("PANDORA_AP3216C_INIT_ERROR\r\n"); fail();
     }
     if (xy_i2c_device_read_reg(&ap_bus, AP3216C_REG_SYS_CONFIG, &config, 1U) != XY_DEVICE_OK ||
-        config != AP3216C_MODE_ALS_PS_IR) {
+        config != AP3216C_MODE_ALS_PS) {
         uart_text("PANDORA_AP3216C_CONFIG_ERROR\r\n"); fail();
     }
-    uart_text("AP3216C_CONFIG=0x"); uart_hex8(config); uart_text(" MODE=ALS_PS_IR\r\n");
+    uart_text("AP3216C_CONFIG=0x"); uart_hex8(config); uart_text(" MODE=ALS_PS\r\n");
+    if (xy_i2c_device_read_reg(&ap_bus, AP3216C_REG_INT_STATUS, &status, 1U) != XY_DEVICE_OK ||
+        xy_i2c_device_read_reg(&ap_bus, 0x10U, &als_config, 1U) != XY_DEVICE_OK ||
+        xy_i2c_device_read_reg(&ap_bus, 0x20U, &ps_config, 1U) != XY_DEVICE_OK ||
+        xy_i2c_device_read_reg(&ap_bus, 0x21U, &ps_led, 1U) != XY_DEVICE_OK) {
+        uart_text("PANDORA_AP3216C_DIAG_IO_ERROR\r\n"); fail();
+    }
+    uart_text("AP3216C_DIAG INT=0x"); uart_hex8(status);
+    uart_text(" ALS_CONF=0x"); uart_hex8(als_config);
+    uart_text(" PS_CONF=0x"); uart_hex8(ps_config);
+    uart_text(" PS_LED=0x"); uart_hex8(ps_led); uart_text("\r\n");
 
     for (;;) {
+        if (xy_i2c_device_read_reg(&ap_bus, AP3216C_REG_INT_STATUS, &status, 1U) !=
+            XY_DEVICE_OK) {
+            uart_text("PANDORA_AP3216C_STATUS_IO_ERROR\r\n"); fail();
+        }
         for (uint32_t i = 0U; i < sizeof(raw); ++i) {
             if (xy_i2c_device_read_reg(&ap_bus, (uint8_t)(AP3216C_REG_IR_DATA_L + i),
                                        &raw[i], 1U) != XY_DEVICE_OK) {
@@ -144,7 +162,7 @@ int main(void)
             ps_data.value.val_int32 > 1023 || ir_data.value.val_uint32 > 1023U) {
             uart_text("PANDORA_AP3216C_RANGE_ERROR\r\n"); fail();
         }
-        uart_text("AP3216C_RAW_HEX=");
+        uart_text("AP3216C_INT=0x"); uart_hex8(status); uart_text(" RAW_HEX=");
         for (uint32_t i = 0U; i < sizeof(raw); ++i) { uart_hex8(raw[i]); }
         uart_text(" ALS_lux="); uart_u32(als_data.value.val_uint32);
         uart_text(" PS_raw="); uart_u32((uint32_t)ps_data.value.val_int32);
