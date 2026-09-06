@@ -51,6 +51,7 @@ def main() -> int:
     require(cmake, "PANDORA_FOTA_APPLICATION")
     require(application, "PANDORA_FOTA_CONFIRM_REQUESTED")
     require(application, "PANDORA_FOTA_CONFIRM_ACKNOWLEDGED")
+    require(application, "else if (w25q128_mcu_reset_recovery_pending != 0U)")
     return 0
 
 

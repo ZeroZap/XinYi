@@ -1102,7 +1102,7 @@ int main(void)
     if (RTC->BKP1R == PANDORA_FOTA_CONFIRM_ACK_MAGIC) {
         RTC->BKP1R = 0U;
         uart_text("PANDORA_FOTA_CONFIRM_ACKNOWLEDGED\r\n");
-    } else {
+    } else if (w25q128_mcu_reset_recovery_pending != 0U) {
         RTC->BKP1R = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
         uart_text("PANDORA_FOTA_CONFIRM_REQUESTED\r\n");
         NVIC_SystemReset();
