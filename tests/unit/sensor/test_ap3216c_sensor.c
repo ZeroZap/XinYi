@@ -340,6 +340,18 @@ static void test_public_ops_reject_null_and_missing_private_data_without_i2c(voi
     TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
     TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
 
+    light->priv_data = SENSOR_MALLOC(sizeof(ap3216c_priv_t));
+    TEST_ASSERT_NOT_NULL(light->priv_data);
+    ((ap3216c_priv_t *)light->priv_data)->i2c_addr = AP3216C_ADDR_DEFAULT;
+    ((ap3216c_priv_t *)light->priv_data)->mode = AP3216C_MODE_ALS_PS_IR;
+    light->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->init(light));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->deinit(light));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->read(light, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
+
     destroy_sensor(light);
     destroy_sensor(prox);
     destroy_sensor(ir);

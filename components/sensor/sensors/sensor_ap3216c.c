@@ -10,7 +10,7 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
  */
 static sensor_err_t ap3216c_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -47,7 +47,7 @@ static sensor_err_t ap3216c_init(sensor_device_t *sensor)
  */
 static sensor_err_t ap3216c_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -68,7 +68,7 @@ static sensor_err_t ap3216c_deinit(sensor_device_t *sensor)
 static sensor_err_t ap3216c_light_read(sensor_device_t *sensor,
                                        sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -103,7 +103,7 @@ static sensor_err_t ap3216c_light_read(sensor_device_t *sensor,
 static sensor_err_t ap3216c_proximity_read(sensor_device_t *sensor,
                                            sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -141,7 +141,7 @@ static sensor_err_t ap3216c_proximity_read(sensor_device_t *sensor,
 static sensor_err_t ap3216c_ir_read(sensor_device_t *sensor,
                                     sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
