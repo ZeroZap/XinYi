@@ -19,6 +19,12 @@
 #define PANDORA_FOTA_MAX_ATTEMPTS 3U
 #define PANDORA_FOTA_RESTAGE_DONE_MAGIC 0x52535444U
 
+#ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
+#ifndef PANDORA_FOTA_RESTAGE_SOURCE_COMMIT
+#error "Reviewed restage requires an exact approved source commit"
+#endif
+#endif
+
 static UART_HandleTypeDef uart1;
 static QSPI_HandleTypeDef qspi;
 static xy_w25q128_t w25q128;
@@ -30,6 +36,26 @@ static const xy_hal_qspi_config_t qspi_config = {
     .flash_size_bits = 24U,
     .chip_select_high_cycles = 2U,
 };
+
+static int parse_hex_word(const char *text, uint32_t *value)
+{
+    uint32_t result = 0U;
+
+    for (uint32_t index = 0U; index < 8U; ++index) {
+        char digit = text[index];
+        uint32_t nibble;
+        if (digit >= '0' && digit <= '9') {
+            nibble = (uint32_t)(digit - '0');
+        } else if (digit >= 'a' && digit <= 'f') {
+            nibble = (uint32_t)(digit - 'a' + 10);
+        } else {
+            return 0;
+        }
+        result = (result << 4) | nibble;
+    }
+    *value = result;
+    return 1;
+}
 
 void _init(void) {}
 void _fini(void) {}
@@ -184,17 +210,30 @@ int main(void)
     if (xy_fota_boot_candidate_validate(&candidate, &header) == XY_FOTA_OK) {
 #ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
         if (RTC->BKP2R != PANDORA_FOTA_RESTAGE_DONE_MAGIC) {
-            const xy_fota_boot_restage_authorization_t authorization = {
-                .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
-                .format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION,
-                .size = sizeof(xy_fota_boot_restage_authorization_t),
-                .image_version = header.image_version,
-                .image_size = header.image_size,
-                .image_crc32 = header.image_crc32,
+            xy_fota_boot_reviewed_restage_authorization_t authorization = {
+                .candidate = {
+                    .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
+                    .format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION,
+                    .size = sizeof(xy_fota_boot_restage_authorization_t),
+                    .image_version = header.image_version,
+                    .image_size = header.image_size,
+                    .image_crc32 = header.image_crc32,
+                },
             };
+            uint32_t expected_source_commit[5];
 
-            if (xy_fota_boot_candidate_authorize_restage(
-                    &candidate, pandora_fota_install_ops(), &journal, &authorization) != XY_FOTA_OK) {
+            for (uint32_t index = 0U; index < 5U; ++index) {
+                if (!parse_hex_word(PANDORA_FOTA_RESTAGE_SOURCE_COMMIT + index * 8U,
+                                    &expected_source_commit[index])) {
+                    uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR\r\n");
+                    stop();
+                }
+                authorization.source_commit[index] = expected_source_commit[index];
+            }
+
+            if (xy_fota_boot_candidate_authorize_reviewed_restage(
+                    &candidate, pandora_fota_install_ops(), &journal, &authorization,
+                    expected_source_commit) != XY_FOTA_OK) {
                 uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR\r\n");
                 stop();
             }

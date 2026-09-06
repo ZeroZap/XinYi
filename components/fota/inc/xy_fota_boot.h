@@ -68,6 +68,11 @@ typedef struct {
     uint32_t image_crc32;
 } xy_fota_boot_restage_authorization_t;
 
+typedef struct {
+    xy_fota_boot_restage_authorization_t candidate;
+    uint32_t source_commit[5];
+} xy_fota_boot_reviewed_restage_authorization_t;
+
 int xy_fota_boot_candidate_validate(const xy_fota_boot_candidate_config_t *config,
                                     xy_fota_boot_candidate_header_t *validated_header);
 int xy_fota_boot_candidate_handoff(const xy_fota_boot_candidate_config_t *config, uint8_t slot,
@@ -91,6 +96,11 @@ int xy_fota_boot_candidate_authorize_restage(
     const xy_fota_boot_candidate_config_t *config, const xy_fota_boot_install_ops_t *ops,
     const xy_fota_boot_journal_config_t *journal,
     const xy_fota_boot_restage_authorization_t *authorization);
+int xy_fota_boot_candidate_authorize_reviewed_restage(
+    const xy_fota_boot_candidate_config_t *config, const xy_fota_boot_install_ops_t *ops,
+    const xy_fota_boot_journal_config_t *journal,
+    const xy_fota_boot_reviewed_restage_authorization_t *authorization,
+    const uint32_t expected_source_commit[5]);
 
 #ifdef __cplusplus
 }

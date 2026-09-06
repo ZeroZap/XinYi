@@ -17,6 +17,7 @@ def main() -> int:
     boot = (BOARD / "fota_bootloader_main.c").read_text(encoding="utf-8")
     flash = (BOARD / "pandora_fota_install_flash.c").read_text(encoding="utf-8")
     application = (BOARD / "rtos_main.c").read_text(encoding="utf-8")
+    programmer = (BOARD / "fota_candidate_programmer_main.c").read_text(encoding="utf-8")
 
     for token in (
         "add_executable(pandora_stm32l475_fota_bootloader",
@@ -33,7 +34,7 @@ def main() -> int:
         "SCB->VTOR = PANDORA_FOTA_APP_BASE",
         "__set_MSP(app_vectors[0])",
         "PANDORA_BOOT_CANDIDATE_INSTALLED",
-        "xy_fota_boot_candidate_authorize_restage",
+        "xy_fota_boot_candidate_authorize_reviewed_restage",
         "PANDORA_BOOT_RESTAGE_AUTHORIZED",
         "PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR",
         "xy_fota_boot_candidate_record_attempt",
@@ -53,6 +54,18 @@ def main() -> int:
         require(flash, token)
     require(cmake, "PANDORA_FOTA_APPLICATION")
     require(cmake, "option(PANDORA_FOTA_AUTHORIZE_RESTAGE")
+    require(cmake, "PANDORA_FOTA_RESTAGE_SOURCE_COMMIT")
+    require(cmake, "PANDORA_FOTA_CANDIDATE")
+    require(cmake, "pandora_stm32l475_fota_candidate_programmer")
+    for token in (
+        "PANDORA_FOTA_CANDIDATE_PROGRAMMED_VERIFIED",
+        "PANDORA_FOTA_CANDIDATE_VERIFY_ERROR",
+        "PANDORA_FOTA_CANDIDATE_SOURCE_COMMIT",
+        "ops->erase",
+        "ops->write",
+        "ops->read",
+    ):
+        require(programmer, token)
     require(application, "PANDORA_FOTA_CONFIRM_REQUESTED")
     require(application, "PANDORA_FOTA_CONFIRM_ACKNOWLEDGED")
     require(application, "else if (w25q128_mcu_reset_recovery_pending != 0U)")

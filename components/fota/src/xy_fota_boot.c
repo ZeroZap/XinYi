@@ -528,3 +528,18 @@ int xy_fota_boot_candidate_authorize_restage(
     }
     return journal_commit(journal, &current, current_slot, JOURNAL_RESTAGE_AUTHORIZED, 0U, &header);
 }
+
+int xy_fota_boot_candidate_authorize_reviewed_restage(
+    const xy_fota_boot_candidate_config_t *config, const xy_fota_boot_install_ops_t *ops,
+    const xy_fota_boot_journal_config_t *journal,
+    const xy_fota_boot_reviewed_restage_authorization_t *authorization,
+    const uint32_t expected_source_commit[5])
+{
+    if (authorization == NULL || expected_source_commit == NULL ||
+        memcmp(authorization->source_commit, expected_source_commit,
+               sizeof(authorization->source_commit)) != 0) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    return xy_fota_boot_candidate_authorize_restage(config, ops, journal,
+                                                     &authorization->candidate);
+}

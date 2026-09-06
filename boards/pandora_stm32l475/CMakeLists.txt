@@ -71,6 +71,10 @@ add_custom_command(TARGET pandora_stm32l475_smoke POST_BUILD
 if(OSAL_BACKEND STREQUAL "freertos")
     option(PANDORA_FOTA_AUTHORIZE_RESTAGE
            "Build a one-shot reviewed restage-authorizing bootloader" OFF)
+    set(PANDORA_FOTA_RESTAGE_SOURCE_COMMIT "" CACHE STRING
+        "Exact source commit approved for one-shot candidate restage")
+    set(PANDORA_FOTA_CANDIDATE "" CACHE FILEPATH
+        "Validated candidate envelope to embed in the one-shot W25Q128 programmer")
     add_executable(pandora_stm32l475_fota_bootloader
         fota_bootloader_main.c
         pandora_fota_flash.c
@@ -107,8 +111,15 @@ if(OSAL_BACKEND STREQUAL "freertos")
     target_compile_definitions(pandora_stm32l475_fota_bootloader PRIVATE
         STM32L475xx USE_HAL_DRIVER XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
     if(PANDORA_FOTA_AUTHORIZE_RESTAGE)
+        string(LENGTH "${PANDORA_FOTA_RESTAGE_SOURCE_COMMIT}" _restage_commit_length)
+        if(NOT _restage_commit_length EQUAL 40 OR
+           NOT PANDORA_FOTA_RESTAGE_SOURCE_COMMIT MATCHES "^[0-9a-f]+$")
+            message(FATAL_ERROR
+                "PANDORA_FOTA_AUTHORIZE_RESTAGE requires exact PANDORA_FOTA_RESTAGE_SOURCE_COMMIT")
+        endif()
         target_compile_definitions(pandora_stm32l475_fota_bootloader PRIVATE
-            PANDORA_FOTA_AUTHORIZE_RESTAGE=1)
+            PANDORA_FOTA_AUTHORIZE_RESTAGE=1
+            PANDORA_FOTA_RESTAGE_SOURCE_COMMIT="${PANDORA_FOTA_RESTAGE_SOURCE_COMMIT}")
     endif()
     target_link_libraries(pandora_stm32l475_fota_bootloader PRIVATE xy_xy_clib)
     target_link_options(pandora_stm32l475_fota_bootloader PRIVATE
@@ -121,6 +132,58 @@ if(OSAL_BACKEND STREQUAL "freertos")
                 ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_fota_bootloader.bin
         COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_fota_bootloader>
         COMMENT "Generating resident Pandora FOTA bootloader BIN")
+
+    if(PANDORA_FOTA_CANDIDATE)
+        if(NOT EXISTS "${PANDORA_FOTA_CANDIDATE}")
+            message(FATAL_ERROR "PANDORA_FOTA_CANDIDATE does not exist")
+        endif()
+        if(NOT _restage_commit_length EQUAL 40 OR
+           NOT PANDORA_FOTA_RESTAGE_SOURCE_COMMIT MATCHES "^[0-9a-f]+$")
+            message(FATAL_ERROR
+                "PANDORA_FOTA_CANDIDATE requires exact PANDORA_FOTA_RESTAGE_SOURCE_COMMIT")
+        endif()
+        set(_candidate_header ${CMAKE_CURRENT_BINARY_DIR}/pandora_fota_candidate_blob.h)
+        add_custom_command(
+            OUTPUT ${_candidate_header}
+            COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/make_fota_candidate.py
+                    --candidate ${PANDORA_FOTA_CANDIDATE}
+                    --source-commit ${PANDORA_FOTA_RESTAGE_SOURCE_COMMIT}
+                    --c-header ${_candidate_header}
+            DEPENDS ${PANDORA_FOTA_CANDIDATE} ${CMAKE_CURRENT_SOURCE_DIR}/make_fota_candidate.py
+            VERBATIM)
+        add_executable(pandora_stm32l475_fota_candidate_programmer
+            fota_candidate_programmer_main.c
+            pandora_fota_flash.c
+            ${_candidate_header}
+            ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
+            ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
+            ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+            ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
+            ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_w25q128.c
+            ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
+            ${_cmsis}/Source/Templates/system_stm32l4xx.c
+            ${_hal}/stm32l4xx_hal.c ${_hal}/stm32l4xx_hal_cortex.c ${_hal}/stm32l4xx_hal_dma.c
+            ${_hal}/stm32l4xx_hal_gpio.c
+            ${_hal}/stm32l4xx_hal_pwr.c ${_hal}/stm32l4xx_hal_pwr_ex.c ${_hal}/stm32l4xx_hal_qspi.c
+            ${_hal}/stm32l4xx_hal_rcc.c ${_hal}/stm32l4xx_hal_rcc_ex.c ${_hal}/stm32l4xx_hal_uart.c)
+        target_include_directories(pandora_stm32l475_fota_candidate_programmer BEFORE PRIVATE
+            ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_SOURCE_DIR}/components/device/inc ${CMAKE_SOURCE_DIR}/components/device
+            ${CMAKE_SOURCE_DIR}/components/hal/inc
+            ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128
+            ${CMAKE_SOURCE_DIR}/components/fota/inc ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
+        target_compile_definitions(pandora_stm32l475_fota_candidate_programmer PRIVATE
+            STM32L475xx USE_HAL_DRIVER XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+        target_link_libraries(pandora_stm32l475_fota_candidate_programmer PRIVATE xy_xy_clib)
+        target_link_options(pandora_stm32l475_fota_candidate_programmer PRIVATE
+            -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld --specs=nano.specs --specs=nosys.specs)
+        set_target_properties(pandora_stm32l475_fota_candidate_programmer PROPERTIES SUFFIX ".elf")
+        add_custom_command(TARGET pandora_stm32l475_fota_candidate_programmer POST_BUILD
+            COMMAND ${CMAKE_OBJCOPY} -O binary
+                    $<TARGET_FILE:pandora_stm32l475_fota_candidate_programmer>
+                    ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_fota_candidate_programmer.bin
+            COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_fota_candidate_programmer>)
+    endif()
 
     add_executable(pandora_stm32l475_rtos
         rtos_main.c

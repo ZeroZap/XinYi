@@ -91,6 +91,10 @@ add_test(NAME pandora_fota_bootloader_layout
     COMMAND python3 ${UNIT_FOTA}/test_pandora_fota_bootloader_layout.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_fota_candidate_tool
+    COMMAND python3 ${UNIT_FOTA}/test_pandora_fota_candidate_tool.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_executable(test_fota_boot_candidate
     ${UNIT_FOTA}/test_fota_boot_candidate.c
     ${FOTA}/src/xy_fota_boot.c

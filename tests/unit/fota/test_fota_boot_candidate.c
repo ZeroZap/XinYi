@@ -863,6 +863,52 @@ static void test_restage_flash_failure_preserves_rollback_and_success_allows_ins
     TEST_ASSERT_EQUAL_UINT32(JOURNAL_INSTALLED, latest_journal_record()->state);
 }
 
+static void test_reviewed_restage_requires_exact_source_commit(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    const uint32_t expected_commit[5] = {1U, 2U, 3U, 4U, 5U};
+    xy_fota_boot_reviewed_restage_authorization_t authorization = {
+        .candidate = {
+            .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
+            .format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION,
+            .size = sizeof(xy_fota_boot_restage_authorization_t),
+        },
+        .source_commit = {1U, 2U, 3U, 4U, 6U},
+    };
+    uint8_t image[384];
+
+    build_candidate(&header, image, sizeof(image));
+    write_journal_record(0U, 7U, JOURNAL_ROLLED_BACK, &header);
+    authorization.candidate.image_version = header.image_version;
+    authorization.candidate.image_size = header.image_size;
+    authorization.candidate.image_crc32 = header.image_crc32;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_INVALID_PARAM,
+        xy_fota_boot_candidate_authorize_reviewed_restage(
+            &config, &install_ops, &journal_config, &authorization, expected_commit));
+    TEST_ASSERT_EQUAL_UINT(0U, journal_write_calls);
+    authorization.source_commit[4] = 5U;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK, xy_fota_boot_candidate_authorize_reviewed_restage(
+                        &config, &install_ops, &journal_config, &authorization, expected_commit));
+    TEST_ASSERT_EQUAL_UINT32(JOURNAL_RESTAGE_AUTHORIZED, latest_journal_record()->state);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -882,5 +928,6 @@ int main(void)
     RUN_TEST(test_attempt_and_confirmation_fail_closed_without_durable_commit);
     RUN_TEST(test_restage_requires_exact_authorization_without_side_effects);
     RUN_TEST(test_restage_flash_failure_preserves_rollback_and_success_allows_install);
+    RUN_TEST(test_reviewed_restage_requires_exact_source_commit);
     return UNITY_END();
 }
