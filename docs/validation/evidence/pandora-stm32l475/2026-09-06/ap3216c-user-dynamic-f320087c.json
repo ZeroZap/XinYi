@@ -1,0 +1,46 @@
+{
+  "address_7bit": "0x1E",
+  "board": "Pandora STM32L475VE V2.4",
+  "bus": "SOFT_I2C3 SCL=PC0 SDA=PC1",
+  "capture_bytes": 16812,
+  "capture_sha256": "7fc69e9fab215a547c3b08f251fdce0379d33c75ebbea312b5f4ff0c9c43c835",
+  "error_marker_count": 0,
+  "evidence_scope": "AP3216C static B1 plus bounded IR stimulus-response B1",
+  "failures": [],
+  "firmware_commit": "f320087cbcbe5d0ae107b27b96b42528438219e2",
+  "first_window_ir_median": 2.5,
+  "first_window_samples": 50,
+  "ir_median_response_delta": 254.5,
+  "malformed_line_count": 0,
+  "max_later_window_ir_median": 257.0,
+  "not_evidence_for": [
+    "quantitative ALS response",
+    "quantitative proximity response",
+    "interrupt-pin behavior",
+    "sensor accuracy or calibration"
+  ],
+  "ranges": {
+    "als_lux": {
+      "max": 11,
+      "min": 10,
+      "unique": 2
+    },
+    "ir_raw": {
+      "max": 514,
+      "min": 0,
+      "unique": 10
+    },
+    "ps_raw": {
+      "max": 15,
+      "min": 0,
+      "unique": 13
+    }
+  },
+  "recorded_at_utc": "2026-09-06T13:57:24.514291+00:00",
+  "sample_count": 244,
+  "source": "user-assisted bounded optical stimulus capture",
+  "status": "AP3216C_BOUNDED_IR_RESPONSE_B1",
+  "system_config": "0x03",
+  "unique_line_count": 139,
+  "unique_raw_count": 120
+}

@@ -134,6 +134,10 @@ add_test(NAME pandora_rtos_stress_validator
     COMMAND python3 ${UNIT_KERNEL}/test_pandora_rtos_stress.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_ap3216c_capture_validator
+    COMMAND python3 ${UNIT_SENSOR}/test_pandora_ap3216c_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}
