@@ -142,6 +142,10 @@ add_test(NAME pandora_buzzer_capture_validator
     COMMAND python3 ${UNIT_ACTUATOR}/test_pandora_buzzer_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_rgb_led_capture_validator
+    COMMAND python3 ${UNIT_ACTUATOR}/test_pandora_rgb_led_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}
