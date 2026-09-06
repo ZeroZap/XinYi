@@ -64,9 +64,23 @@ direct evidence of a red/blue channel swap. The premature visual B1 claim is ret
 flash/read-back/UART evidence remains valid only for control-path execution.
 
 The correction configures this Pandora panel for RGB order (MADCTL BGR clear) and adds a Host
-transaction contract that distinguishes RGB from BGR configuration. A newly built and flashed image
-must be visually confirmed as red → green → blue → white → black, with correct quadrant colors,
-before visual B1 can be restored.
+transaction contract that distinguishes RGB from BGR configuration. Clean committed image
+`c2e34a4a64f9b37eb875866c30c54bed871f5f8b` was built with Arm GNU 15.2.1; its 12,820-byte BIN
+has SHA-256 `42a148f57975b4ff95f614bde6b2c7755b847535402869966d758bde40e38fb0`. ST-Link
+reported write/verify success, and a 12,820-byte read-back was byte-identical. An independent
+304-byte WCH-Link UART capture has SHA-256
+`527cb33aee9f386ed61e100cae9349d25825ebf0de0c5c6f9aa65062915722d2`; machine parsing found the
+exact firmware identity, all nine ordered markers, and zero error markers. This upgrades only the
+corrected image's control-path execution evidence; unattended UART cannot establish displayed color.
+
+Correction evidence:
+
+- `evidence/pandora-stm32l475/2026-09-07/pandora-st7789-c2e34a4a-readback.bin`
+- `evidence/pandora-stm32l475/2026-09-07/pandora-st7789-c2e34a4a-uart.txt`
+- `evidence/pandora-stm32l475/2026-09-07/pandora-st7789-c2e34a4a.json`
+
+The corrected image must still be visually confirmed as red → green → blue → white → black, with
+correct quadrant colors, before visual B1 can be restored.
 
 This observation does not establish colorimetry, pixel-by-pixel integrity, tearing behavior, refresh
 throughput, DMA operation, touch input, brightness, orientation qualification, performance, or

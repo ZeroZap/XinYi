@@ -1,0 +1,18 @@
+{
+  "status": "COLOR_ORDER_CORRECTION_CONTROL_PATH_B1_VISUAL_PENDING",
+  "firmware_commit": "c2e34a4a64f9b37eb875866c30c54bed871f5f8b",
+  "toolchain": "arm-none-eabi-gcc 15.2.1 20251203",
+  "probe": "ST-LINK/V2.1 V2J24S11 serial 066AFF313933554D43244015",
+  "uart": "WCH-Link B49C8F0639CE 115200-8-N-1",
+  "binary_size_bytes": 12820,
+  "binary_sha256": "42a148f57975b4ff95f614bde6b2c7755b847535402869966d758bde40e38fb0",
+  "readback_size_bytes": 12820,
+  "readback_sha256": "42a148f57975b4ff95f614bde6b2c7755b847535402869966d758bde40e38fb0",
+  "uart_size_bytes": 304,
+  "uart_sha256": "527cb33aee9f386ed61e100cae9349d25825ebf0de0c5c6f9aa65062915722d2",
+  "uart_ordered_marker_count": 9,
+  "error_marker_count": 0,
+  "programming_result": "Flash written and verified; 12820-byte read-back matched the binary byte-for-byte",
+  "visual_confirmation": "PENDING_HUMAN_OBSERVATION",
+  "claim_boundary": "Machine evidence proves corrected committed image control-path execution only; RGB color correctness and visual B1 remain pending human observation"
+}
