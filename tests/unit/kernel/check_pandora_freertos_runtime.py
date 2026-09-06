@@ -10,6 +10,7 @@ CMAKE = BOARD / "CMakeLists.txt"
 MAIN = BOARD / "rtos_main.c"
 HANDLERS = BOARD / "rtos_handlers.c"
 STRESS_VALIDATOR = BOARD / "validate_rtos_stress.py"
+IPC_ISR_VALIDATOR = BOARD / "validate_ipc_isr_ingress.py"
 L4_DMA = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_dma.c"
 L4_SPI = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_spi.c"
 
@@ -22,6 +23,7 @@ def main() -> int:
         (MAIN, "runtime main"),
         (HANDLERS, "runtime handlers"),
         (STRESS_VALIDATOR, "stress validator"),
+        (IPC_ISR_VALIDATOR, "IPC ISR ingress validator"),
     ):
         if not path.is_file():
             errors.append(f"Pandora OSAL/FreeRTOS {label} is missing")
@@ -84,6 +86,10 @@ def main() -> int:
             "OSAL_IPC_HANDLER_REJECTED",
             "OSAL_IPC_HANDLER_RECOVERED",
             "OSAL_IPC_HANDLER_RECOVERY_ERROR",
+            "OSAL_IPC_ISR_QUEUE_FULL",
+            "OSAL_IPC_ISR_RECOVERED",
+            "OSAL_IPC_ISR_DELIVER",
+            "OSAL_IPC_ISR_ERROR",
             "OSAL_TRACE_ERROR",
             "OSAL_PM_TICK",
             "OSAL_PM_ERROR",
@@ -272,6 +278,7 @@ def main() -> int:
             "HAL_IncTick",
             "xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED",
             "xy_os_semaphore_release_from_isr",
+            "pandora_ipc_isr_publish",
             "TIM6_DAC_IRQHandler",
             "HAL_TIM_IRQHandler",
             "DMA1_Channel1_IRQHandler",

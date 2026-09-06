@@ -9,6 +9,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "boards" / "pandora_stm32l475"))
 
 from validate_rtos_stress import analyze_capture  # noqa: E402
+from validate_ipc_isr_ingress import analyze_capture as analyze_ipc_isr_capture  # noqa: E402
 
 
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
@@ -362,6 +363,44 @@ class StressCaptureContract(unittest.TestCase):
             "PANDORA_FOTA_BOOTABLE_CANDIDATE_VALIDATED count 0 not in 1..2",
             result["failures"],
         )
+
+
+class IpcIsrIngressCaptureContract(unittest.TestCase):
+    def make_capture(self) -> bytes:
+        return (
+            "stale boot noise\r\n"
+            "PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n"
+            f"FIRMWARE_COMMIT {COMMIT}\r\n"
+            "OSAL_IPC_ISR_QUEUE_FULL\r\n"
+            "OSAL_IPC_ISR_DELIVER\r\n"
+            "OSAL_IPC_ISR_RECOVERED\r\n"
+        ).encode("ascii")
+
+    def test_accepts_last_boot_bounded_ingress_recovery(self) -> None:
+        result = analyze_ipc_isr_capture(self.make_capture(), COMMIT)
+
+        self.assertEqual(result["status"], "IPC_ISR_REVIEW_CANDIDATE")
+        self.assertEqual(result["marker_counts"], {
+            "OSAL_IPC_ISR_QUEUE_FULL": 1,
+            "OSAL_IPC_ISR_DELIVER": 1,
+            "OSAL_IPC_ISR_RECOVERED": 1,
+        })
+
+    def test_rejects_missing_reordered_or_error_ingress(self) -> None:
+        payload = self.make_capture().replace(b"OSAL_IPC_ISR_DELIVER\r\n", b"")
+        result = analyze_ipc_isr_capture(payload, COMMIT)
+        self.assertEqual(result["status"], "IPC_ISR_VALIDATION_FAILED")
+        self.assertIn("IPC ISR ingress marker count mismatch", result["failures"])
+
+        payload = self.make_capture().replace(
+            b"OSAL_IPC_ISR_QUEUE_FULL\r\nOSAL_IPC_ISR_DELIVER",
+            b"OSAL_IPC_ISR_DELIVER\r\nOSAL_IPC_ISR_QUEUE_FULL",
+        )
+        result = analyze_ipc_isr_capture(payload, COMMIT)
+        self.assertIn("IPC ISR ingress markers are not ordered", result["failures"])
+
+        result = analyze_ipc_isr_capture(self.make_capture() + b"OSAL_IPC_ISR_ERROR\r\n", COMMIT)
+        self.assertIn("IPC ISR ingress error marker present", result["failures"])
 
 
 if __name__ == "__main__":

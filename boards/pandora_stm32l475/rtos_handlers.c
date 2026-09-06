@@ -2,6 +2,7 @@
 #include "stm32l4xx_hal_tim.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "xy_broker_isr_ingress.h"
 #include "xy_os.h"
 
 void vPortSVCHandler(void);
@@ -12,6 +13,18 @@ extern xy_os_semaphore_id_t pandora_tim6_sem;
 extern TIM_HandleTypeDef pandora_tim6;
 extern DMA_HandleTypeDef dma1_channel1;
 extern DMA_HandleTypeDef spi1_tx_dma;
+extern xy_broker_isr_ingress_t pandora_ipc_isr_ingress;
+extern volatile uint32_t pandora_ipc_isr_sequence;
+extern volatile int pandora_ipc_isr_result;
+
+static void pandora_ipc_isr_publish(void)
+{
+    pandora_ipc_isr_sequence = 0U;
+    pandora_ipc_isr_result = xy_broker_isr_publish(
+        &pandora_ipc_isr_ingress, XY_BROKER_SERVER_TIMER, XY_BROKER_SERVER_SYSTEM,
+        XY_BROKER_MSG_SENSOR_DATA, (const void *)&pandora_ipc_isr_sequence,
+        sizeof(pandora_ipc_isr_sequence), XY_BROKER_PRIORITY_HIGH);
+}
 
 void SVC_Handler(void) __attribute__((naked));
 void SVC_Handler(void)
@@ -59,5 +72,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *timer)
 {
     if (timer == &pandora_tim6) {
         (void)xy_os_semaphore_release_from_isr(pandora_tim6_sem);
+        if (pandora_ipc_isr_sequence == UINT32_MAX) {
+            pandora_ipc_isr_publish();
+        }
     }
 }

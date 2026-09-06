@@ -1511,6 +1511,7 @@ xy_add_unit_test(test_ipc_pipe ipc_pipe UNITY
 xy_add_unit_test(test_ipc_broker ipc_broker UNITY
     ${UNIT_IPC}/test_ipc_broker.c
     ${IPC}/xy_broker/xy_broker.c
+    ${IPC}/xy_broker/xy_broker_isr_ingress.c
 )
 
 # --- Test 31b: IPC message-queue FIFO/overflow/timeout contracts ---

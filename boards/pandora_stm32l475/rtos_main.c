@@ -1,6 +1,7 @@
 #include "stm32l4xx_hal.h"
 #include "stm32l4xx_hal_tim.h"
 #include "xy_broker.h"
+#include "xy_broker_isr_ingress.h"
 #include "xy_device.h"
 #include "xy_fota.h"
 #include "xy_fota_boot.h"
@@ -26,6 +27,11 @@ static xy_os_msgqueue_id_t multi_queue;
 xy_os_semaphore_id_t pandora_isr_sem;
 xy_os_semaphore_id_t pandora_tim6_sem;
 xy_os_semaphore_id_t pandora_dma_sem;
+xy_os_semaphore_id_t pandora_ipc_isr_sem;
+xy_broker_isr_ingress_t pandora_ipc_isr_ingress;
+static xy_broker_isr_msg_t pandora_ipc_isr_storage[2];
+volatile uint32_t pandora_ipc_isr_sequence;
+volatile int pandora_ipc_isr_result;
 TIM_HandleTypeDef pandora_tim6;
 static uint32_t shared_sequence;
 static uint32_t ipc_expected_sequence;
@@ -318,6 +324,15 @@ static int ipc_handler(const xy_broker_msg_t *msg, void *user_data)
     }
     sequence = (uint32_t)msg->payload[0] | ((uint32_t)msg->payload[1] << 8) |
                ((uint32_t)msg->payload[2] << 16) | ((uint32_t)msg->payload[3] << 24);
+    if (msg->src_server == XY_BROKER_SERVER_TIMER) {
+        if (sequence > 1U) {
+            return XY_BROKER_ERROR;
+        }
+        if (sequence == 1U) {
+            uart_text("OSAL_IPC_ISR_DELIVER\r\n");
+        }
+        return XY_BROKER_OK;
+    }
     if (sequence == ipc_probe_sequence) {
         return ipc_probe_reject ? XY_BROKER_ERROR : XY_BROKER_OK;
     }
@@ -333,6 +348,50 @@ static int ipc_handler(const xy_broker_msg_t *msg, void *user_data)
     }
     uart_text("OSAL_IPC_DELIVER\r\n");
     return XY_BROKER_OK;
+}
+
+static int ipc_isr_wake(void *context)
+{
+    return xy_os_semaphore_release_from_isr((xy_os_semaphore_id_t)context) == XY_OS_OK
+               ? XY_BROKER_OK
+               : XY_BROKER_ERROR;
+}
+
+static void ipc_isr_task(void *argument)
+{
+    (void)argument;
+    if (xy_os_semaphore_acquire(pandora_ipc_isr_sem, 2500U) != XY_OS_OK ||
+        pandora_ipc_isr_result != XY_BROKER_OK) {
+        uart_text("OSAL_IPC_ISR_ERROR\r\n");
+        fail();
+    }
+    if (xy_broker_isr_publish(&pandora_ipc_isr_ingress, XY_BROKER_SERVER_TIMER,
+                              XY_BROKER_SERVER_SYSTEM, XY_BROKER_MSG_SENSOR_DATA,
+                              (const void *)&pandora_ipc_isr_sequence,
+                              sizeof(pandora_ipc_isr_sequence), XY_BROKER_PRIORITY_HIGH) !=
+        XY_BROKER_QUEUE_FULL) {
+        uart_text("OSAL_IPC_ISR_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_IPC_ISR_QUEUE_FULL\r\n");
+    if (xy_broker_isr_drain_one(&pandora_ipc_isr_ingress) != XY_BROKER_OK ||
+        xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U) != 1) {
+        uart_text("OSAL_IPC_ISR_ERROR\r\n");
+        fail();
+    }
+    pandora_ipc_isr_sequence = 1U;
+    if (xy_broker_isr_publish(&pandora_ipc_isr_ingress, XY_BROKER_SERVER_TIMER,
+                              XY_BROKER_SERVER_SYSTEM, XY_BROKER_MSG_SENSOR_DATA,
+                              (const void *)&pandora_ipc_isr_sequence,
+                              sizeof(pandora_ipc_isr_sequence), XY_BROKER_PRIORITY_HIGH) !=
+            XY_BROKER_OK ||
+        xy_broker_isr_drain_one(&pandora_ipc_isr_ingress) != XY_BROKER_OK ||
+        xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U) != 1) {
+        uart_text("OSAL_IPC_ISR_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_IPC_ISR_RECOVERED\r\n");
+    xy_os_thread_exit();
 }
 
 static void clock_init(void)
@@ -1168,9 +1227,13 @@ int main(void)
         (pandora_isr_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         (pandora_tim6_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
         (pandora_dma_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
+        (pandora_ipc_isr_sem = xy_os_semaphore_new(1U, 0U, NULL)) == NULL ||
+        xy_broker_isr_ingress_init(&pandora_ipc_isr_ingress, pandora_ipc_isr_storage, 2U,
+                                   ipc_isr_wake, pandora_ipc_isr_sem) != XY_BROKER_OK ||
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL ||
         xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL ||
+        xy_os_thread_new(ipc_isr_task, NULL, &isr_attr) == NULL ||
         xy_os_thread_new(tim6_irq_task, NULL, &tim6_attr) == NULL ||
         xy_os_thread_new(resource_task, NULL, &resource_attr) == NULL ||
         xy_os_thread_new(dma_task, NULL, &dma_attr) == NULL ||
@@ -1180,6 +1243,7 @@ int main(void)
         xy_os_thread_new(multi_consumer_task, (void *)(uintptr_t)1U, &multi_attr) == NULL) {
         fail();
     }
+    pandora_ipc_isr_sequence = UINT32_MAX;
     if (HAL_TIM_Base_Start_IT(&pandora_tim6) != HAL_OK) {
         fail();
     }

@@ -191,6 +191,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
         ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
         ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker.c
+        ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker_isr_ingress.c
         ${CMAKE_SOURCE_DIR}/components/pm/src/xy_pm_platform.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
@@ -262,6 +263,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
         ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
         ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker.c
+        ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker_isr_ingress.c
         ${CMAKE_SOURCE_DIR}/components/pm/src/xy_pm_platform.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
