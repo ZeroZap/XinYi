@@ -526,3 +526,23 @@ Retained evidence:
 
 - [raw 12-cycle stress UART log](evidence/pandora-stm32l475/2026-09-06/uart-wchlink-ipc-isr-stress-be7cf950.txt)
 - [machine validation metadata](evidence/pandora-stm32l475/2026-09-06/ipc-isr-stress-be7cf950.json)
+
+## 2026-09-06 SYS independent-watchdog reset recovery
+
+Clean committed firmware `12bf990f2488d3810575781e2ce0d92890047d02` extends the board-owned
+SYS smoke with an automatic IWDG reset after the already-proven software-reset path. The 12248-byte
+BIN had SHA-256 `a22ed235e5c64d4f203e5c32e113d7d38e456bb7814923641eddeea918468dfb`;
+ST-Link reported write/verify success and an exact-length read-back was byte-identical.
+
+After reset synchronization, the independent WCH-Link retained 1602 bytes (SHA-256
+`01841e3fb69ca9c7e1ca588da2caed431a5ef660ff73f6c643ca2efeab142b85`). The last boot reported
+RCC CSR `0x24000600`, stable UID `001B002E3647501320313556`, `SYS_RESET_KIND WATCHDOG`, and
+`SYS_WATCHDOG_RESET_OK`, followed by the matching firmware identity and eight AHT10 ACK cycles.
+This grants B2 for automatic IWDG timeout reset detection and post-reset recovery on this exact
+board/image. It does not prove external NRST, power-loss recovery, watchdog refresh policy, or
+multi-hour endurance.
+
+Retained evidence:
+
+- [raw watchdog-reset UART log](evidence/pandora-stm32l475/2026-09-06/uart-wchlink-sys-watchdog-12bf990f.txt)
+- [machine validation metadata](evidence/pandora-stm32l475/2026-09-06/sys-watchdog-12bf990f.json)

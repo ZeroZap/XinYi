@@ -1,0 +1,25 @@
+{
+  "board": "Pandora STM32L475VE",
+  "capture_bytes": 1602,
+  "capture_sha256": "01841e3fb69ca9c7e1ca588da2caed431a5ef660ff73f6c643ca2efeab142b85",
+  "chip_id": "001B002E3647501320313556",
+  "firmware_bin_sha256": "a22ed235e5c64d4f203e5c32e113d7d38e456bb7814923641eddeea918468dfb",
+  "firmware_commit": "12bf990f2488d3810575781e2ce0d92890047d02",
+  "flash_readback_sha256": "a22ed235e5c64d4f203e5c32e113d7d38e456bb7814923641eddeea918468dfb",
+  "marker_counts": {
+    "AHT10 0x38 ACK": 8,
+    "SYS_RESET_KIND WATCHDOG": 1,
+    "SYS_WATCHDOG_RESET_OK": 1
+  },
+  "not_evidence_for": [
+    "external NRST",
+    "power loss",
+    "watchdog refresh policy",
+    "multi-hour endurance"
+  ],
+  "probe": "ST-Link V2J24S11 066AFF313933554D43244015",
+  "reset_csr": "0x24000600",
+  "scope": "automatic IWDG timeout reset and post-reset board recovery",
+  "status": "WATCHDOG_RESET_B2_REVIEW_CANDIDATE",
+  "uart": "WCH-Link B49C8F0639CE 115200-8-N-1"
+}

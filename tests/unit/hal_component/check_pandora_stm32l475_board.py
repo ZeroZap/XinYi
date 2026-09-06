@@ -19,6 +19,9 @@ SYS_FIRMWARE_COMMIT = "28f4b21dc06e2189145dadc67e78340f9a22be90"
 DEVICE_FIRMWARE_COMMIT = "b94fc3c2161042603b7c02dd055f86caf21ed36b"
 DEVICE_LOG_SHA256 = "3b00c2be1fe95dab4c4de21902ffc38c06d70fdc8f76599232d6bce9ccb0972c"
 DEVICE_METADATA_SHA256 = "118446a3d8894781b609915ce231c73e9362142fb0f284b07010ba45a0971ebc"
+WATCHDOG_EVIDENCE = ROOT / "docs" / "validation" / "evidence" / "pandora-stm32l475" / "2026-09-06"
+WATCHDOG_LOG_SHA256 = "01841e3fb69ca9c7e1ca588da2caed431a5ef660ff73f6c643ca2efeab142b85"
+WATCHDOG_FIRMWARE_COMMIT = "12bf990f2488d3810575781e2ce0d92890047d02"
 
 
 def require(path: Path, *needles: str) -> None:
@@ -244,6 +247,23 @@ def main() -> None:
     assert device_log.count("AHT10 0x38 ACK") == 13
     assert device_log.count("AHT10 RH_milli_percent=") == 13
     assert "AHT10 0x38 NACK" not in device_log
+
+    watchdog_log = require_sha256(
+        WATCHDOG_EVIDENCE / "uart-wchlink-sys-watchdog-12bf990f.txt",
+        WATCHDOG_LOG_SHA256,
+    ).decode("utf-8")
+    watchdog_metadata = json.loads(
+        (WATCHDOG_EVIDENCE / "sys-watchdog-12bf990f.json").read_text(encoding="utf-8")
+    )
+    assert watchdog_metadata["status"] == "WATCHDOG_RESET_B2_REVIEW_CANDIDATE"
+    assert watchdog_metadata["firmware_commit"] == WATCHDOG_FIRMWARE_COMMIT
+    assert watchdog_metadata["capture_sha256"] == WATCHDOG_LOG_SHA256
+    assert watchdog_metadata["flash_readback_sha256"] == watchdog_metadata["firmware_bin_sha256"]
+    assert watchdog_log.count("SYS_RESET_KIND WATCHDOG") == 1
+    assert watchdog_log.count("SYS_WATCHDOG_RESET_OK") == 1
+    assert watchdog_log.count("SYS_CHIP_ID 001B002E3647501320313556") == 1
+    assert watchdog_log.count(f"FIRMWARE_COMMIT {WATCHDOG_FIRMWARE_COMMIT}") >= 1
+    assert watchdog_log.count("AHT10 0x38 ACK") == 8
     print("Pandora STM32L475VE board contract: PASS")
 
 
