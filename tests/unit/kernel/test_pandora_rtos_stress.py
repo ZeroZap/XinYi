@@ -371,9 +371,11 @@ class IpcIsrIngressCaptureContract(unittest.TestCase):
             "stale boot noise\r\n"
             "PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n"
             f"FIRMWARE_COMMIT {COMMIT}\r\n"
-            "OSAL_IPC_ISR_QUEUE_FULL\r\n"
-            "OSAL_IPC_ISR_DELIVER\r\n"
+            "OSAL_IPC_ISR_BACKPRESSURE\r\n"
+            + "OSAL_IPC_ISR_STREAM_DELIVER\r\n" * 16
+            + "OSAL_IPC_TASK_PRODUCER_PROGRESS\r\n"
             "OSAL_IPC_ISR_RECOVERED\r\n"
+            "OSAL_IPC_ISR_SUSTAINED_OK\r\n"
         ).encode("ascii")
 
     def test_accepts_last_boot_bounded_ingress_recovery(self) -> None:
@@ -381,23 +383,29 @@ class IpcIsrIngressCaptureContract(unittest.TestCase):
 
         self.assertEqual(result["status"], "IPC_ISR_REVIEW_CANDIDATE")
         self.assertEqual(result["marker_counts"], {
-            "OSAL_IPC_ISR_QUEUE_FULL": 1,
-            "OSAL_IPC_ISR_DELIVER": 1,
+            "OSAL_IPC_ISR_BACKPRESSURE": 1,
+            "OSAL_IPC_ISR_STREAM_DELIVER": 16,
+            "OSAL_IPC_TASK_PRODUCER_PROGRESS": 1,
             "OSAL_IPC_ISR_RECOVERED": 1,
+            "OSAL_IPC_ISR_SUSTAINED_OK": 1,
         })
 
     def test_rejects_missing_reordered_or_error_ingress(self) -> None:
-        payload = self.make_capture().replace(b"OSAL_IPC_ISR_DELIVER\r\n", b"")
+        payload = self.make_capture().replace(b"OSAL_IPC_ISR_STREAM_DELIVER\r\n", b"", 1)
         result = analyze_ipc_isr_capture(payload, COMMIT)
         self.assertEqual(result["status"], "IPC_ISR_VALIDATION_FAILED")
         self.assertIn("IPC ISR ingress marker count mismatch", result["failures"])
 
         payload = self.make_capture().replace(
-            b"OSAL_IPC_ISR_QUEUE_FULL\r\nOSAL_IPC_ISR_DELIVER",
-            b"OSAL_IPC_ISR_DELIVER\r\nOSAL_IPC_ISR_QUEUE_FULL",
+            b"OSAL_IPC_ISR_BACKPRESSURE\r\nOSAL_IPC_ISR_STREAM_DELIVER",
+            b"OSAL_IPC_ISR_STREAM_DELIVER\r\nOSAL_IPC_ISR_BACKPRESSURE",
         )
         result = analyze_ipc_isr_capture(payload, COMMIT)
         self.assertIn("IPC ISR ingress markers are not ordered", result["failures"])
+
+        payload = self.make_capture().replace(b"OSAL_IPC_TASK_PRODUCER_PROGRESS\r\n", b"")
+        result = analyze_ipc_isr_capture(payload, COMMIT)
+        self.assertIn("IPC task producer made no bounded progress", result["failures"])
 
         result = analyze_ipc_isr_capture(self.make_capture() + b"OSAL_IPC_ISR_ERROR\r\n", COMMIT)
         self.assertIn("IPC ISR ingress error marker present", result["failures"])

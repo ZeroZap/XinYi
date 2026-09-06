@@ -14,16 +14,26 @@ extern TIM_HandleTypeDef pandora_tim6;
 extern DMA_HandleTypeDef dma1_channel1;
 extern DMA_HandleTypeDef spi1_tx_dma;
 extern xy_broker_isr_ingress_t pandora_ipc_isr_ingress;
-extern volatile uint32_t pandora_ipc_isr_sequence;
+extern volatile uint32_t pandora_ipc_isr_attempts;
+extern volatile uint32_t pandora_ipc_isr_accepted;
+extern volatile uint32_t pandora_ipc_isr_full;
 extern volatile int pandora_ipc_isr_result;
+
+#define IPC_ISR_STREAM_COUNT 16U
+#define IPC_ISR_SEQUENCE_FLAG 0x80000000U
 
 static void pandora_ipc_isr_publish(void)
 {
-    pandora_ipc_isr_sequence = 0U;
+    uint32_t sequence = IPC_ISR_SEQUENCE_FLAG | ++pandora_ipc_isr_attempts;
+
     pandora_ipc_isr_result = xy_broker_isr_publish(
-        &pandora_ipc_isr_ingress, XY_BROKER_SERVER_TIMER, XY_BROKER_SERVER_SYSTEM,
-        XY_BROKER_MSG_SENSOR_DATA, (const void *)&pandora_ipc_isr_sequence,
-        sizeof(pandora_ipc_isr_sequence), XY_BROKER_PRIORITY_HIGH);
+        &pandora_ipc_isr_ingress, XY_BROKER_SERVER_TIMER, XY_BROKER_SERVER_TIMER,
+        XY_BROKER_MSG_SENSOR_DATA, &sequence, sizeof(sequence), XY_BROKER_PRIORITY_HIGH);
+    if (pandora_ipc_isr_result == XY_BROKER_OK) {
+        ++pandora_ipc_isr_accepted;
+    } else if (pandora_ipc_isr_result == XY_BROKER_QUEUE_FULL) {
+        ++pandora_ipc_isr_full;
+    }
 }
 
 void SVC_Handler(void) __attribute__((naked));
@@ -72,7 +82,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *timer)
 {
     if (timer == &pandora_tim6) {
         (void)xy_os_semaphore_release_from_isr(pandora_tim6_sem);
-        if (pandora_ipc_isr_sequence == UINT32_MAX) {
+        if (pandora_ipc_isr_accepted < IPC_ISR_STREAM_COUNT) {
             pandora_ipc_isr_publish();
         }
     }

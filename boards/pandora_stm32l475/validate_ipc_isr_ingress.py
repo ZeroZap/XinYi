@@ -12,10 +12,19 @@ import sys
 BANNER = "PANDORA STM32L475VE XINYI OSAL FREERTOS READY"
 IDENTITY_PREFIX = "FIRMWARE_COMMIT "
 MARKERS = (
-    "OSAL_IPC_ISR_QUEUE_FULL",
-    "OSAL_IPC_ISR_DELIVER",
+    "OSAL_IPC_ISR_BACKPRESSURE",
+    "OSAL_IPC_ISR_STREAM_DELIVER",
+    "OSAL_IPC_TASK_PRODUCER_PROGRESS",
     "OSAL_IPC_ISR_RECOVERED",
+    "OSAL_IPC_ISR_SUSTAINED_OK",
 )
+EXPECTED_COUNTS = {
+    "OSAL_IPC_ISR_BACKPRESSURE": 1,
+    "OSAL_IPC_ISR_STREAM_DELIVER": 16,
+    "OSAL_IPC_TASK_PRODUCER_PROGRESS": 1,
+    "OSAL_IPC_ISR_RECOVERED": 1,
+    "OSAL_IPC_ISR_SUSTAINED_OK": 1,
+}
 ERROR = "OSAL_IPC_ISR_ERROR"
 
 
@@ -41,11 +50,13 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         failures.append("last-boot firmware identity mismatch")
 
     counts = {marker: boot_lines.count(marker) for marker in MARKERS}
-    if any(count != 1 for count in counts.values()):
+    if counts != EXPECTED_COUNTS:
         failures.append("IPC ISR ingress marker count mismatch")
     positions = [boot_lines.index(marker) if marker in boot_lines else -1 for marker in MARKERS]
     if -1 not in positions and positions != sorted(positions):
         failures.append("IPC ISR ingress markers are not ordered")
+    if counts["OSAL_IPC_TASK_PRODUCER_PROGRESS"] != 1:
+        failures.append("IPC task producer made no bounded progress")
     if ERROR in boot_lines:
         failures.append("IPC ISR ingress error marker present")
 
@@ -56,8 +67,8 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "capture_sha256": hashlib.sha256(payload).hexdigest(),
         "marker_counts": counts,
         "failures": failures,
-        "scope": "last-boot bounded Pandora TIM6 ISR to Broker ingress recovery",
-        "not_evidence_for": ["full-chain stress", "throughput", "arbitrary ISR producer"],
+        "scope": "last-boot bounded Pandora single TIM6 ISR ingress sustained recovery",
+        "not_evidence_for": ["performance throughput", "multi-ISR producer", "long-duration stress"],
     }
 
 
