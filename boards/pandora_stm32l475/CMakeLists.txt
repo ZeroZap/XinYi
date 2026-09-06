@@ -69,6 +69,8 @@ add_custom_command(TARGET pandora_stm32l475_smoke POST_BUILD
     COMMENT "Generating Pandora STM32L475VE smoke BIN")
 
 if(OSAL_BACKEND STREQUAL "freertos")
+    option(PANDORA_IPC_ISR_STRESS_ONLY
+           "Keep the Pandora runtime in one boot for bounded IPC ISR stress capture" OFF)
     option(PANDORA_FOTA_AUTHORIZE_RESTAGE
            "Build a one-shot reviewed restage-authorizing bootloader" OFF)
     set(PANDORA_FOTA_RESTAGE_SOURCE_COMMIT "" CACHE STRING
@@ -240,6 +242,9 @@ if(OSAL_BACKEND STREQUAL "freertos")
         XY_BROKER_MSG_QUEUE_SIZE=2
         XY_OSAL_AVAILABLE
         XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+    if(PANDORA_IPC_ISR_STRESS_ONLY)
+        target_compile_definitions(pandora_stm32l475_rtos PRIVATE PANDORA_IPC_ISR_STRESS_ONLY=1)
+    endif()
     target_link_libraries(pandora_stm32l475_rtos PRIVATE
         xy_osal
         freertos_kernel

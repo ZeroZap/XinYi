@@ -1000,10 +1000,12 @@ static void dma_task(void *argument)
         uart_text("PANDORA_W25Q128_FOTA_FULL_IMAGE_OK\r\n");
         uart_text("PANDORA_FOTA_BOOTABLE_CANDIDATE_VALIDATED\r\n");
         if (w25q128_mcu_reset_recovery_pending == 0U) {
+#ifndef PANDORA_IPC_ISR_STRESS_ONLY
             RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
             uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");
             NVIC_SystemReset();
             fail();
+#endif
         }
         if (xy_hal_qspi_deinit(&qspi) != XY_HAL_OK) {
             uart_text("PANDORA_W25Q128_PERSISTENCE_ERROR\r\n");

@@ -90,6 +90,7 @@ def main() -> int:
             "OSAL_IPC_ISR_RECOVERED",
             "OSAL_IPC_ISR_STREAM_DELIVER",
             "OSAL_IPC_ISR_STREAM_DELIVER %u",
+            "#ifndef PANDORA_IPC_ISR_STRESS_ONLY",
             "OSAL_IPC_TASK_PRODUCER_PROGRESS",
             "OSAL_IPC_ISR_SUSTAINED_OK",
             "OSAL_IPC_ISR_ERROR",
