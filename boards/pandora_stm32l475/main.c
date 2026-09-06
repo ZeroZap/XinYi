@@ -228,8 +228,15 @@ int main(void)
         }
         for (;;) {
         }
+    } else if ((reset_reason & RCC_CSR_PINRSTF) != 0U &&
+               (reset_reason & RCC_CSR_BORRSTF) == 0U) {
+        uart_text("SYS_RESET_KIND EXTERNAL_PIN\r\nSYS_EXTERNAL_PIN_RESET_OK\r\n");
+        uart_text("SYS_SOFTWARE_RESET_REQUEST\r\n");
+        HAL_Delay(250U);
+        (void)xy_sys_reset(1);
+        fail();
     } else {
-        uart_text("SYS_RESET_KIND POWER_OR_PIN\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
+        uart_text("SYS_RESET_KIND POWER_ON\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
         HAL_Delay(250U);
         (void)xy_sys_reset(1);
         fail();
