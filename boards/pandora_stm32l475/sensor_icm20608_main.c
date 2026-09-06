@@ -170,9 +170,31 @@ int main(void)
         uart_text("PANDORA_ICM20608_INIT_ERROR\r\n");
         fail();
     }
+    if (xy_i2c_device_read_reg(&icm_bus, ICM20608_REG_WHOAMI, &whoami, 1U) != XY_DEVICE_OK) {
+        uart_text("PANDORA_ICM20608_WHOAMI_IO_ERROR\r\n");
+        fail();
+    }
+    uart_text("ICM20608_WHO_AM_I_RAW=");
+    uart_u32(whoami);
+    uart_text("\r\n");
+    if (whoami != ICM20608_WHOAMI_VALUE) {
+        uart_text("PANDORA_ICM20608_WHOAMI_MISMATCH\r\n");
+        fail();
+    }
     accel = icm20608_create_accel("pandora-icm-accel", &icm_bus, false);
     gyro = icm20608_create_gyro("pandora-icm-gyro", &icm_bus, false);
-    if (accel == NULL || gyro == NULL || accel->ops->init(accel) != SENSOR_EOK ||
+    if (accel == NULL || gyro == NULL) {
+        uart_text("PANDORA_ICM20608_CREATE_ERROR\r\n");
+        fail();
+    }
+    sensor_err_t init_result = accel->ops->init(accel);
+    if (init_result != SENSOR_EOK) {
+        uart_text("PANDORA_ICM20608_DRIVER_INIT_ERROR result=");
+        uart_i32(init_result);
+        uart_text("\r\n");
+        fail();
+    }
+    if (
         xy_i2c_device_read_reg(&icm_bus, ICM20608_REG_WHOAMI, &whoami, 1U) != XY_DEVICE_OK ||
         whoami != ICM20608_WHOAMI_VALUE) {
         uart_text("PANDORA_ICM20608_INIT_ERROR\r\n");
