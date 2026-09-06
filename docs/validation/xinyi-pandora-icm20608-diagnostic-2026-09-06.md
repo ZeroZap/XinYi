@@ -56,8 +56,25 @@ The ignored binary read-back is intentionally identified by hash rather than com
 
 ## Next evidence boundary
 
-Do not request another movement capture merely to repeat the same procedure. First identify the
-physical assembly containing the `0x68` ICM20608 (the I2C scan also finds `0x10` and `0x1E`). Once
-that assembly is confirmed, capture raw bursts while moving that exact board. Dynamic acceptance
-requires substantial accel-axis redistribution during held 90-degree orientations and non-static
-gyro raw values during rotation; otherwise record a board/mechanical limitation rather than a pass.
+The checked-in Pandora V2.4 schematic identifies the axis sensor as `U11 ICM-20608`, connected to
+`IIC_SCL1`/`IIC_SDA1`. The vendor's official product page identifies its photograph as the front of
+the Pandora IoT development board, but the available 350×243 image does not make the `U11` silkscreen
+legible. Therefore the safe unambiguous object to move is the complete Pandora STM32L475VE main PCB,
+not the ST-Link, WCH-Link, LCD, Wi-Fi module, or another attached/daughter PCB. The main PCB should be
+held by its edges with both USB/UART leads slack, then moved through flat, left-edge-down, and
+right-edge-down 90-degree holds while briefly rotating between holds.
+
+A fresh reset-synchronized 30-second capture was armed against the independent WCH-Link UART, but no
+operator action could be coordinated from the unattended cron run. It retained 222 samples, all 222
+raw bursts unique, and the exact `e3c5f87d69db8b2f04611779dbdbd7f32d73a965` firmware identity.
+Accelerometer ranges remained X `-42..-37`, Y `-21..-17`, Z `998..1003` mg; gyro ranges remained X
+`0..1`, Y `0`, Z `0` dps. This is a valid reset/capture-path recheck but not a movement attempt and
+does not upgrade dynamic evidence. The raw capture is
+`evidence/pandora-stm32l475/2026-09-06/icm20608-main-pcb-orientation-30s.raw`, SHA-256
+`d8fd721bd8a423163297e9ef0ac1aae8fff409941a393d895e0a5eb388eb9293`.
+
+Dynamic acceptance still requires substantial accel-axis redistribution during those held
+orientations and a non-static gyro transient during rotation. If moving the complete main PCB is not
+safe, stop this validation rather than repeat stationary captures and proceed to the board's `U8`
+AP3216C at the positively scanned `0x1E` address; cover/proximity response still requires a separately
+coordinated optical stimulus.
