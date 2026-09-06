@@ -1918,7 +1918,14 @@ xy_add_unit_test(test_actuator_buzzer actuator_buzzer UNITY
 )
 target_include_directories(test_actuator_buzzer PRIVATE ${HAL}/inc)
 
-# --- Test 41c: Actuator example stays aligned with public APIs ---
+# --- Test 41c: GPIO-backed discrete RGB LED fail-safe sequencing ---
+xy_add_unit_test(test_actuator_rgb_led actuator_rgb_led UNITY
+    ${UNIT_ACTUATOR}/test_actuator_rgb_led.c
+    ${ACTUATOR}/xy_actuator_rgb_led.c
+)
+target_include_directories(test_actuator_rgb_led PRIVATE ${HAL}/inc)
+
+# --- Test 41d: Actuator example stays aligned with public APIs ---
 xy_add_unit_test(test_actuator_example_relay_servo_pwm actuator_example_relay_servo_pwm
     ${ACTUATOR}/examples/example_relay_servo_pwm.c
     ${ACTUATOR}/xy_actuator.c

@@ -11,6 +11,7 @@ endif()
 set(ACTUATOR_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/xy_actuator.c
     ${CMAKE_CURRENT_SOURCE_DIR}/xy_actuator_buzzer.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/xy_actuator_rgb_led.c
 )
 
 # Add library

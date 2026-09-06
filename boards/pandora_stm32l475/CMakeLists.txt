@@ -173,6 +173,38 @@ add_custom_command(TARGET pandora_stm32l475_buzzer POST_BUILD
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_buzzer>
     COMMENT "Generating Pandora PB2 buzzer validation BIN")
 
+add_executable(pandora_stm32l475_rgb_led
+    rgb_led_main.c
+    ${CMAKE_SOURCE_DIR}/components/actuator/xy_actuator_rgb_led.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
+    ${_cmsis}/Source/Templates/system_stm32l4xx.c
+    ${_hal}/stm32l4xx_hal.c
+    ${_hal}/stm32l4xx_hal_cortex.c
+    ${_hal}/stm32l4xx_hal_gpio.c
+    ${_hal}/stm32l4xx_hal_pwr.c
+    ${_hal}/stm32l4xx_hal_pwr_ex.c
+    ${_hal}/stm32l4xx_hal_rcc.c
+    ${_hal}/stm32l4xx_hal_rcc_ex.c
+    ${_hal}/stm32l4xx_hal_uart.c)
+target_include_directories(pandora_stm32l475_rgb_led BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/components/actuator
+    ${CMAKE_SOURCE_DIR}/components/hal/inc)
+target_compile_definitions(pandora_stm32l475_rgb_led PRIVATE
+    STM32L4 STM32L475xx USE_HAL_DRIVER
+    XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+target_link_options(pandora_stm32l475_rgb_led PRIVATE
+    -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld
+    --specs=nano.specs --specs=nosys.specs
+    -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_rgb_led.map)
+set_target_properties(pandora_stm32l475_rgb_led PROPERTIES SUFFIX ".elf")
+add_custom_command(TARGET pandora_stm32l475_rgb_led POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:pandora_stm32l475_rgb_led>
+            ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_rgb_led.bin
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_rgb_led>
+    COMMENT "Generating Pandora PE7/PE8/PE9 RGB validation BIN")
+
 if(OSAL_BACKEND STREQUAL "freertos")
     option(PANDORA_IPC_ISR_STRESS_ONLY
            "Keep the Pandora runtime in one boot for bounded IPC ISR stress capture" OFF)
