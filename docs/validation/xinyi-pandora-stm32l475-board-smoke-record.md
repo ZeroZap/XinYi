@@ -479,3 +479,25 @@ exact firmware identity, `PANDORA_W25Q128_QUAD_READ_OK` once, 58 complete ordere
 cycles, 29 SysTick ISR task wakes, and no validator error marker. This grants B1 only for this bounded
 quad-output data-read transaction. It does not prove quad page programming, throughput, endurance,
 power-loss/NRST recovery, or FOTA candidate-image storage.
+
+## 2026-09-06 single-ISR sustained ingress/backpressure recovery
+
+Clean committed firmware `e33f8d284bcff46a327e04cd9e89c094ad07f140` lets the existing TIM6
+producer fill a four-slot single-producer ISR ingress ring while the task consumer is deliberately
+delayed. The task then drains 16 monotonic accepted payloads through a dedicated Broker server,
+requires observed queue-full backpressure, and verifies that the normal task producer completed at
+least one independent Broker delivery during the same bounded interval.
+
+The 35052-byte BIN (SHA-256 `8268eef46fd47c547c0ba1eff5303055a4ecc3760873a619328967be7e136bc0`)
+was programmed with ST-Link verification. A reset-synchronized 30-second independent WCH-Link
+capture retained 14201 bytes (SHA-256 `e2ae3a3b2086e42e5f5e06424c0fec79f2d21680167e2732cc9662f74055a512`).
+The last-boot validator found one backpressure marker, exactly 16 ordered ISR stream deliveries, one
+normal-task producer progress marker, one recovery marker, one sustained-completion marker, and no
+ISR ingress error marker. This grants bounded B2 for single-TIM6-producer backpressure recovery and
+non-starvation of the established normal task producer. It is not a performance/throughput result,
+multi-ISR-producer evidence, or long-duration stress qualification.
+
+Retained evidence:
+
+- [raw sustained-ingress UART log](evidence/pandora-stm32l475/2026-09-06/uart-wchlink-ipc-isr-sustained-e33f8d28.txt)
+- [machine validation metadata](evidence/pandora-stm32l475/2026-09-06/ipc-isr-sustained-e33f8d28.json)
