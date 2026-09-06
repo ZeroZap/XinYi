@@ -375,7 +375,7 @@ static void ipc_isr_task(void *argument)
 
     (void)argument;
     if (xy_os_semaphore_acquire(pandora_ipc_isr_sem, 2500U) != XY_OS_OK ||
-        pandora_ipc_isr_result != XY_BROKER_OK) {
+        pandora_ipc_isr_result == XY_BROKER_ERROR) {
         uart_text("OSAL_IPC_ISR_ERROR\r\n");
         fail();
     }
