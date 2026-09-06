@@ -380,7 +380,7 @@ static void ipc_isr_task(void *argument)
         fail();
     }
     task_producer_start = ipc_delivered_count;
-    (void)xy_os_delay(2800U);
+    (void)xy_os_delay(6000U);
     if (pandora_ipc_isr_full == 0U) {
         uart_text("OSAL_IPC_ISR_ERROR\r\n");
         fail();
