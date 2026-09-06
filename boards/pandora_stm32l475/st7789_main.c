@@ -165,7 +165,8 @@ int main(void)
     config.spi.rst_pin = 6U;
     config.spi.bl_port = GPIOB;
     config.spi.bl_pin = 7U;
-    config.rgb_order = false;
+    /* This Pandora panel accepts RGB565 when MADCTL BGR is clear. */
+    config.rgb_order = true;
     config.invert_on_init = true;
     if (xy_lcd_st7789_init(&lcd, &config) != XY_ERR_OK) {
         uart_text("PANDORA_ST7789_INIT_ERROR\r\n");

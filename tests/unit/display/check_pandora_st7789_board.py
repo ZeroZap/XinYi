@@ -37,6 +37,7 @@ def main() -> None:
         "PANDORA_ST7789_PATTERN_DONE",
         "PANDORA_ST7789_FINAL_SAFE",
         "xy_lcd_st7789_fill_checked",
+        "config.rgb_order = true;",
     )
     print("pandora_st7789_board_contract=passed")
 

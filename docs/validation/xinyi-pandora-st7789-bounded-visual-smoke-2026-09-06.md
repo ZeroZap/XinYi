@@ -41,7 +41,7 @@ failures. The ST7789 inversion constants are corrected to DCS `0x21` ON / `0x20`
 
 ## Evidence boundary
 
-Status: `FIXED_PATTERN_VISUAL_B1`.
+Status: `COLOR_ORDER_CORRECTION_VISUAL_PENDING`.
 
 Clean committed image `e125038eba6723ccf654d610573b55e96bc74c4f` was built with Arm GNU
 15.2.1. ELF/BIN sizes are 35,556/12,820 bytes; BIN SHA-256 is
@@ -57,9 +57,16 @@ Evidence:
 - `evidence/pandora-stm32l475/2026-09-06/pandora-st7789-e125038e-readback.bin`
 - `evidence/pandora-stm32l475/2026-09-06/pandora-st7789-e125038e-uart.txt`
 
-Eugene reported observing the complete sequence red → green → blue → white → black, followed by the
-final four colored quadrants with a central black square. This closes visual B1 only for this exact
-committed image and fixed pattern, when combined with the machine evidence above.
+The initial visual report recorded in commit `653f1905` was incorrect. Eugene's corrected observation
+for image `e125038e` is blue → green → red → white → black, followed by four quadrants with a central
+black square. The firmware sent RGB565 red → green → blue while configuring MADCTL BGR, so this is
+direct evidence of a red/blue channel swap. The premature visual B1 claim is retracted; the prior
+flash/read-back/UART evidence remains valid only for control-path execution.
+
+The correction configures this Pandora panel for RGB order (MADCTL BGR clear) and adds a Host
+transaction contract that distinguishes RGB from BGR configuration. A newly built and flashed image
+must be visually confirmed as red → green → blue → white → black, with correct quadrant colors,
+before visual B1 can be restored.
 
 This observation does not establish colorimetry, pixel-by-pixel integrity, tearing behavior, refresh
 throughput, DMA operation, touch input, brightness, orientation qualification, performance, or

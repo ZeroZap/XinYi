@@ -480,6 +480,37 @@ static void test_st7789_offsets_rotation_and_ops(void)
     TEST_ASSERT_FALSE(lcd.initialized);
 }
 
+static void test_st7789_rgb565_color_order_controls_madctl_bgr(void)
+{
+    xy_lcd_st7789_device_t lcd;
+    xy_lcd_st7789_config_t cfg = make_st7789_config();
+    size_t madctl_index = MAX_SPI_OPS;
+
+    cfg.rgb_order = true;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_init(&lcd, &cfg));
+    for (size_t i = 0U; i + 1U < logged_spi_op_count(); ++i) {
+        if (spi_ops[i].len == 1U && spi_ops[i].bytes[0] == ST7789_CMD_MADCTL) {
+            madctl_index = i;
+        }
+    }
+    TEST_ASSERT_LESS_THAN_UINT32(logged_spi_op_count() - 1U, madctl_index);
+    TEST_ASSERT_EQUAL_HEX8(0x00U, spi_ops[madctl_index + 1U].bytes[0]);
+    xy_lcd_st7789_deinit(&lcd);
+
+    reset_logs();
+    madctl_index = MAX_SPI_OPS;
+    cfg.rgb_order = false;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_init(&lcd, &cfg));
+    for (size_t i = 0U; i + 1U < logged_spi_op_count(); ++i) {
+        if (spi_ops[i].len == 1U && spi_ops[i].bytes[0] == ST7789_CMD_MADCTL) {
+            madctl_index = i;
+        }
+    }
+    TEST_ASSERT_LESS_THAN_UINT32(logged_spi_op_count() - 1U, madctl_index);
+    TEST_ASSERT_EQUAL_HEX8(0x08U, spi_ops[madctl_index + 1U].bytes[0]);
+    xy_lcd_st7789_deinit(&lcd);
+}
+
 static void test_st7789_checked_fill_is_bounded_and_propagates_spi_error(void)
 {
     xy_lcd_st7789_device_t lcd;
@@ -525,6 +556,7 @@ int main(void)
     RUN_TEST(test_spi_stream_only_init_skips_framebuffer);
     RUN_TEST(test_i8080_bus_write_read_and_window);
     RUN_TEST(test_st7789_offsets_rotation_and_ops);
+    RUN_TEST(test_st7789_rgb565_color_order_controls_madctl_bgr);
     RUN_TEST(test_st7789_checked_fill_is_bounded_and_propagates_spi_error);
     RUN_TEST(test_st7789_init_propagates_spi_error_and_releases_framebuffer);
     return UNITY_END();
