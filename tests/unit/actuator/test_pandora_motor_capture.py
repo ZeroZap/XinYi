@@ -31,8 +31,11 @@ GOOD = (
 good = run(GOOD, 0)
 assert good["status"] == "CONTROL_PATH_REVIEW_CANDIDATE"
 assert good["schematic_mapping"] == "PA1_MOTOR_A_IA;PA0_MOTOR_B_IB"
+assert good["driver_identification"] == "TC214B_USER_CONFIRMED;TC214B_SCHEMATIC_LABEL"
+assert good["identification_provenance"] == (
+    "USER_SUPPLIED_MODEL_AND_DATASHEET_TRUTH_TABLE;NOT_INDEPENDENTLY_FETCHED")
 assert good["final_state"] == "STANDBY_LOW_LOW"
-assert good["physical_confirmation"] == "PENDING_HUMAN_CONFIRMATION"
+assert good["physical_confirmation"] == "USER_CONFIRMED_SHORT_SHORT_LONG_AND_FINAL_STOP"
 assert run(GOOD.replace("PANDORA_MOTOR_PATTERN_DONE\r\n", ""), 1)["status"] == "FAILED"
 assert run(GOOD.replace("PANDORA_MOTOR_PATTERN_DONE", "PANDORA_MOTOR_PATTERN_ERROR"), 1)[
     "status"] == "FAILED"

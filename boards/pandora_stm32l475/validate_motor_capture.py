@@ -44,10 +44,12 @@ def main() -> int:
         "firmware_commit": args.firmware_commit,
         "bytes_captured": len(text.encode("ascii", errors="ignore")),
         "schematic_mapping": "PA1_MOTOR_A_IA;PA0_MOTOR_B_IB",
-        "driver_marking": "TC214B_SCHEMATIC_LABEL;EXACT_MODEL_UNCONFIRMED",
+        "driver_identification": "TC214B_USER_CONFIRMED;TC214B_SCHEMATIC_LABEL",
+        "identification_provenance":
+            "USER_SUPPLIED_MODEL_AND_DATASHEET_TRUTH_TABLE;NOT_INDEPENDENTLY_FETCHED",
         "pattern": "FORWARD_120MS;STANDBY_120MS;FORWARD_120MS;STANDBY_120MS;FORWARD_300MS",
         "final_state": "STANDBY_LOW_LOW",
-        "physical_confirmation": "PENDING_HUMAN_CONFIRMATION",
+        "physical_confirmation": "USER_CONFIRMED_SHORT_SHORT_LONG_AND_FINAL_STOP",
         "reasons": reasons,
     }
     args.json.parent.mkdir(parents=True, exist_ok=True)
