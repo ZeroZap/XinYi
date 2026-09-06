@@ -186,7 +186,11 @@ int main(void)
             const xy_fota_boot_install_ops_t *install_ops = pandora_fota_install_ops();
 
             RTC->BKP1R = 0U;
-            if (install_ops->erase(journal.address, journal.slot_size * 2U) != XY_FOTA_OK) {
+            if (journal.erase(journal.address, journal.slot_size) != XY_FOTA_OK ||
+                journal.erase(journal.address + journal.slot_size, journal.slot_size) != XY_FOTA_OK ||
+                install_ops->erase(PANDORA_FOTA_APP_BASE,
+                                   PANDORA_FOTA_EXECUTION_LIMIT - PANDORA_FOTA_APP_BASE) !=
+                    XY_FOTA_OK) {
                 uart_text("PANDORA_BOOT_RESTAGE_ERROR\r\n");
                 stop();
             }
