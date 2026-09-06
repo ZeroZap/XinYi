@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
-"""Validate a bounded Pandora discrete RGB LED UART capture."""
+"""Validate a bounded Pandora motor/vibration UART capture."""
 
 import argparse
 import json
 import re
 from pathlib import Path
-
-ORDER = (
-    "PANDORA RGB PE7/PE8/PE9 READY ACTIVE_LOW",
-    "FIRMWARE_COMMIT {commit}",
-    "PANDORA_RGB_PATTERN_START RED_GREEN_BLUE_WHITE",
-    "PANDORA_RGB_PATTERN_DONE",
-    "PANDORA_RGB_FINAL_OFF",
-)
-ERROR_MARKERS = ("_ERROR", "HardFault", "ASSERT")
 
 
 def main() -> int:
@@ -22,8 +13,6 @@ def main() -> int:
     parser.add_argument("--firmware-commit", required=True)
     parser.add_argument("--json", required=True, type=Path)
     args = parser.parse_args()
-
-    status = "FAILED"
     reasons = []
     text = ""
     if not re.fullmatch(r"[0-9a-f]{40}", args.firmware_commit):
@@ -32,34 +21,39 @@ def main() -> int:
         text = args.capture.read_text(encoding="ascii")
     except (OSError, UnicodeError) as error:
         reasons.append(f"capture unreadable: {error}")
-
+    required = (
+        "PANDORA MOTOR PA1=INA PA0=INB READY",
+        f"FIRMWARE_COMMIT {args.firmware_commit}",
+        "PANDORA_MOTOR_PATTERN_START FORWARD_120_120_300",
+        "PANDORA_MOTOR_PATTERN_DONE",
+        "PANDORA_MOTOR_FINAL_STANDBY",
+    )
     position = -1
-    for template in ORDER:
-        marker = template.format(commit=args.firmware_commit)
+    for marker in required:
         found = text.find(marker, position + 1)
         if found < 0:
             reasons.append(f"missing or out-of-order marker: {marker}")
         else:
             position = found
-    for marker in ERROR_MARKERS:
+    for marker in ("_ERROR", "HardFault", "ASSERT"):
         if marker in text:
             reasons.append(f"error marker present: {marker}")
-    if not reasons:
-        status = "CONTROL_PATH_REVIEW_CANDIDATE"
-
+    status = "CONTROL_PATH_REVIEW_CANDIDATE" if not reasons else "FAILED"
     record = {
         "status": status,
         "firmware_commit": args.firmware_commit,
         "bytes_captured": len(text.encode("ascii", errors="ignore")),
-        "motor_drive": "NOT_EXERCISED_BY_RGB_TARGET",
-        "visual_confirmation": "PENDING_HUMAN_CONFIRMATION",
-        "expected_visual_pattern": "RED_GREEN_BLUE_WHITE_THEN_OFF",
+        "schematic_mapping": "PA1_MOTOR_A_IA;PA0_MOTOR_B_IB",
+        "driver_marking": "TC214B_SCHEMATIC_LABEL;EXACT_MODEL_UNCONFIRMED",
+        "pattern": "FORWARD_120MS;STANDBY_120MS;FORWARD_120MS;STANDBY_120MS;FORWARD_300MS",
+        "final_state": "STANDBY_LOW_LOW",
+        "physical_confirmation": "PENDING_HUMAN_CONFIRMATION",
         "reasons": reasons,
     }
     args.json.parent.mkdir(parents=True, exist_ok=True)
     args.json.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     print(status)
-    return 0 if status == "CONTROL_PATH_REVIEW_CANDIDATE" else 1
+    return 0 if not reasons else 1
 
 
 if __name__ == "__main__":

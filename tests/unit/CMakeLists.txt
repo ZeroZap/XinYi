@@ -146,6 +146,10 @@ add_test(NAME pandora_rgb_led_capture_validator
     COMMAND python3 ${UNIT_ACTUATOR}/test_pandora_rgb_led_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_motor_capture_validator
+    COMMAND python3 ${UNIT_ACTUATOR}/test_pandora_motor_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}
@@ -1922,14 +1926,21 @@ xy_add_unit_test(test_actuator_buzzer actuator_buzzer UNITY
 )
 target_include_directories(test_actuator_buzzer PRIVATE ${HAL}/inc)
 
-# --- Test 41c: GPIO-backed discrete RGB LED fail-safe sequencing ---
+# --- Test 41c: GPIO H-bridge motor truth table and fail-safe sequencing ---
+xy_add_unit_test(test_actuator_motor actuator_motor UNITY
+    ${UNIT_ACTUATOR}/test_actuator_motor.c
+    ${ACTUATOR}/xy_actuator_motor.c
+)
+target_include_directories(test_actuator_motor PRIVATE ${HAL}/inc)
+
+# --- Test 41d: GPIO-backed discrete RGB LED fail-safe sequencing ---
 xy_add_unit_test(test_actuator_rgb_led actuator_rgb_led UNITY
     ${UNIT_ACTUATOR}/test_actuator_rgb_led.c
     ${ACTUATOR}/xy_actuator_rgb_led.c
 )
 target_include_directories(test_actuator_rgb_led PRIVATE ${HAL}/inc)
 
-# --- Test 41d: Actuator example stays aligned with public APIs ---
+# --- Test 41e: Actuator example stays aligned with public APIs ---
 xy_add_unit_test(test_actuator_example_relay_servo_pwm actuator_example_relay_servo_pwm
     ${ACTUATOR}/examples/example_relay_servo_pwm.c
     ${ACTUATOR}/xy_actuator.c
