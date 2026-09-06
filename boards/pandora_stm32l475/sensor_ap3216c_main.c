@@ -117,6 +117,13 @@ int main(void)
         uart_text("PANDORA_AP3216C_HW_I2C_INIT_ERROR\r\n"); fail();
     }
     uart_text("AP3216C_HW_I2C_READY\r\n");
+    {
+        uint8_t probe = 0U;
+        if (xy_hal_i2c_master_receive(i2c3, 0x7FU, &probe, 1U, 20U) != XY_HAL_ERROR_IO) {
+            uart_text("PANDORA_AP3216C_NACK_EXPECTED_ERROR\r\n"); fail();
+        }
+        uart_text("AP3216C_NACK_OBSERVED ADDR=0x7F\r\n");
+    }
     if (xy_i2c_device_init(&ap_bus, i2c3, AP3216C_ADDR_DEFAULT, 100U) != XY_DEVICE_OK) {
         uart_text("PANDORA_AP3216C_DEVICE_ERROR\r\n"); fail();
     }
@@ -130,6 +137,7 @@ int main(void)
         config != AP3216C_MODE_ALS_PS) {
         uart_text("PANDORA_AP3216C_CONFIG_ERROR\r\n"); fail();
     }
+    uart_text("AP3216C_NACK_RECOVERED ADDR=0x1E\r\n");
     uart_text("AP3216C_CONFIG=0x"); uart_hex8(config); uart_text(" MODE=ALS_PS\r\n");
     if (xy_i2c_device_read_reg(&ap_bus, AP3216C_REG_INT_STATUS, &status, 1U) != XY_DEVICE_OK ||
         xy_i2c_device_read_reg(&ap_bus, 0x10U, &als_config, 1U) != XY_DEVICE_OK ||

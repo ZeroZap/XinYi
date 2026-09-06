@@ -17,6 +17,8 @@ HEADER = "\r\n".join(
         f"FIRMWARE_COMMIT {COMMIT}",
         "AP3216C_BUS=HW_I2C3 SCL=PC0 SDA=PC1 ADDR=0x1E",
         "AP3216C_HW_I2C_READY",
+        "AP3216C_NACK_OBSERVED ADDR=0x7F",
+        "AP3216C_NACK_RECOVERED ADDR=0x1E",
         "AP3216C_CONFIG=0x03 MODE=ALS_PS",
         "AP3216C_DIAG INT=0x00 ALS_CONF=0x00 PS_CONF=0x05 PS_LED=0x13",
     )
@@ -52,6 +54,19 @@ class PandoraAp3216cHwI2cCaptureContract(unittest.TestCase):
         self.assertEqual(result["status"], "AP3216C_HW_I2C3_VALIDATION_FAILED")
         self.assertTrue(any("HW_I2C3" in failure for failure in result["failures"]))
         self.assertTrue(any("error marker" in failure for failure in result["failures"]))
+
+    def test_rejects_missing_or_out_of_order_nack_recovery(self) -> None:
+        samples = "\n".join(sample(i) for i in range(10))
+        missing = HEADER.replace("AP3216C_NACK_OBSERVED ADDR=0x7F\r\n", "")
+        out_of_order = HEADER.replace(
+            "AP3216C_NACK_OBSERVED ADDR=0x7F\r\nAP3216C_NACK_RECOVERED ADDR=0x1E",
+            "AP3216C_NACK_RECOVERED ADDR=0x1E\r\nAP3216C_NACK_OBSERVED ADDR=0x7F",
+        )
+
+        for payload in (missing, out_of_order):
+            result = analyze_capture((payload + "\n" + samples).encode(), COMMIT)
+            self.assertEqual(result["status"], "AP3216C_HW_I2C3_VALIDATION_FAILED")
+            self.assertTrue(any("NACK" in failure for failure in result["failures"]))
 
     def test_rejects_short_malformed_or_out_of_range_samples(self) -> None:
         payload = (HEADER + "\n" + "\n".join(sample(i) for i in range(8)) +

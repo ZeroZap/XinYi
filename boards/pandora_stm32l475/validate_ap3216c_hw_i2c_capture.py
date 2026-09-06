@@ -28,6 +28,8 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         f"FIRMWARE_COMMIT {firmware_commit}",
         "AP3216C_BUS=HW_I2C3 SCL=PC0 SDA=PC1 ADDR=0x1E",
         "AP3216C_HW_I2C_READY",
+        "AP3216C_NACK_OBSERVED ADDR=0x7F",
+        "AP3216C_NACK_RECOVERED ADDR=0x1E",
         "AP3216C_CONFIG=0x03 MODE=ALS_PS",
         "AP3216C_DIAG ",
     )

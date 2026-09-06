@@ -134,6 +134,9 @@ def main() -> None:
         "pandora_hw_i2c3_init",
         "PANDORA_AP3216C_HW_I2C_INIT_ERROR",
         "AP3216C_HW_I2C_READY",
+        "AP3216C_NACK_OBSERVED ADDR=0x7F",
+        "PANDORA_AP3216C_NACK_EXPECTED_ERROR",
+        "AP3216C_NACK_RECOVERED ADDR=0x1E",
         "xy_i2c_device_init",
         "AP3216C_MODE_ALS_PS",
     )
