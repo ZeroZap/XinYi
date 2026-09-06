@@ -191,7 +191,11 @@ static int w25q128_quad_program_test(void)
 static int w25q128_fota_full_image_test(void)
 {
     const xy_fota_flash_ops_t *fota_ops;
+#ifdef PANDORA_FOTA_APPLICATION
     const uint8_t *image = (const uint8_t *)0x08008000U;
+#else
+    const uint8_t *image = (const uint8_t *)0x08000000U;
+#endif
     uint32_t image_size = (uint32_t)((uintptr_t)&__flash_image_end - (uintptr_t)image);
     uint32_t expected_crc;
     xy_fota_t fota;
@@ -201,7 +205,6 @@ static int w25q128_fota_full_image_test(void)
         .header_size = sizeof(xy_fota_boot_candidate_header_t),
         .image_offset = sizeof(xy_fota_boot_candidate_header_t),
         .image_version = 2U,
-        .load_address = 0x08008000U,
     };
     xy_fota_config_t fota_config = {
         .mode = XY_FOTA_MODE_DUAL_BANK,
@@ -211,6 +214,12 @@ static int w25q128_fota_full_image_test(void)
         .enable_rollback = true,
         .min_version = 1U,
     };
+
+#ifdef PANDORA_FOTA_APPLICATION
+    candidate_header.load_address = 0x08008000U;
+#else
+    candidate_header.load_address = 0x08000000U;
+#endif
 
     if (image_size == 0U || image_size > W25Q128_FOTA_IMAGE_SIZE - sizeof(candidate_header)) {
         return 0;
@@ -248,7 +257,6 @@ static int w25q128_fota_full_image_test(void)
         xy_fota_boot_candidate_config_t boot_config = {
             .storage_address = W25Q128_FOTA_IMAGE_ADDRESS,
             .storage_size = W25Q128_FOTA_IMAGE_SIZE,
-            .execution_base = 0x08008000U,
             .execution_limit = 0x0807E000U,
             .sram_base = 0x20000000U,
             .sram_limit = 0x20018000U,
@@ -256,6 +264,11 @@ static int w25q128_fota_full_image_test(void)
             .sram2_limit = 0x10008000U,
             .read = fota_ops->read,
         };
+#ifdef PANDORA_FOTA_APPLICATION
+        boot_config.execution_base = 0x08008000U;
+#else
+        boot_config.execution_base = 0x08000000U;
+#endif
         if (xy_fota_boot_candidate_validate(&boot_config, &validated_header) != XY_FOTA_OK ||
             validated_header.image_version != 2U || validated_header.image_size != image_size) {
             return 0;
@@ -1084,7 +1097,11 @@ int main(void)
         .priority = XY_OS_PRIORITY_NORMAL,
     };
 
+#ifdef PANDORA_FOTA_APPLICATION
     SCB->VTOR = 0x08008000U;
+#else
+    SCB->VTOR = 0x08000000U;
+#endif
     HAL_Init();
     clock_init();
     gpio_uart_init();

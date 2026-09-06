@@ -36,7 +36,7 @@ def validate() -> list[str]:
 
     for token in (
         "HAL / Storage | H1（PC；canonical W25Q128 command/error/page-boundary contract；FOTA adapter range/page-split/error contract）",
-        "FOTA | H1（状态机 + signature-provider/boot-handoff/delta/boot-confirm fail-closed",
+        "FOTA | H1（状态机、candidate envelope/tool、source-commit-bound reviewed restage、signature-provider/boot-confirm fail-closed",
     ):
         require(token in evidence, f"canonical evidence matrix is missing token: {token}", errors)
     require("BOARD_PENDING" in hal_matrix, "HAL matrix must retain BOARD_PENDING", errors)
