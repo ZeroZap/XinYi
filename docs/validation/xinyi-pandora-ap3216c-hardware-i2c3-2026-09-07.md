@@ -29,6 +29,31 @@ This grants a bounded address-NACK→next-transaction recovery B2 only. It does 
 stuck-low, hot unplug, physical line faults, arbitration, timeout recovery, or general I2C HAL
 qualification.
 
+## Canonical STM32L4 HAL ownership
+
+Commit `058bcb958a07d3aa61bacb8d2f70e7c0c5ca2f38` moved initialization and blocking transactions
+out of the Pandora board-local wrapper into `components/hal/stm32/stm32l4/xy_hal_i2c.c`, and wired
+that source into root `xy_hal`. The board file now owns only I2C3 clock/pin/timing selection and
+calls `xy_hal_i2c_init()`; Device and Sensor layers continue to use the same public path.
+
+The clean committed image is 12116 bytes. ELF SHA-256 is
+`52a2452debb79445f0384f0a2635c862b72366fa96836cc69e1c54d85d31a9fd`; BIN and 12116-byte
+ST-Link read-back SHA-256 are both
+`1d35c7a8df6ca9e9d57c3d83da7d89f3bda929e61d45ad374956671a5c6b71e8`.
+`st-flash --reset write` reported `Flash written and verified`.
+
+The reset-synchronized WCH-Link capture retained 12325 bytes (SHA-256
+`18025d61fd1e264a89d3a4d72e9fbdff7eb4fcdcf68f9fd839173683ae6b6a19`). The AP3216C validator
+accepted exact firmware identity, ordered address NACK→recovery, 117 in-range samples, 42 unique
+tuples, zero non-ASCII bytes, and zero firmware error markers. This preserves the earlier bounded
+B1/B2 while proving it through the canonical STM32L4 HAL owner; it does not broaden the hardware
+claim.
+
+Retained canonical-backend files:
+
+- `evidence/pandora-stm32l475/2026-09-07/ap3216c-hw-i2c3-canonical-058bcb95.raw`
+- `evidence/pandora-stm32l475/2026-09-07/ap3216c-hw-i2c3-canonical-058bcb95.json`
+
 Retained extension files:
 
 - `evidence/pandora-stm32l475/2026-09-07/ap3216c-hw-i2c3-nack-b1c2429c.raw`
