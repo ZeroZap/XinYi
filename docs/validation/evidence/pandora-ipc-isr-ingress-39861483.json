@@ -1,0 +1,25 @@
+{
+  "status": "PASSED_BOUNDED_B2",
+  "board": "Pandora STM32L475VE",
+  "probe": "ST-Link V2J24S11 066AFF313933554D43244015",
+  "uart": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "firmware_commit": "398614834e2f438dfb49b67f7efffa275acb66f1",
+  "firmware_bin_bytes": 34820,
+  "firmware_bin_sha256": "37f8ddedfe5bcfc508c80369fd272845e6e8326fb1fcdd4652e66b334bb8573b",
+  "flash_readback_sha256": "37f8ddedfe5bcfc508c80369fd272845e6e8326fb1fcdd4652e66b334bb8573b",
+  "capture_bytes": 1980,
+  "capture_sha256": "2de9646b4e3ac0c882fe14334b7ff0a95102403d887fdfeb16c7de53f63862cd",
+  "validator_status": "IPC_ISR_REVIEW_CANDIDATE",
+  "marker_counts": {
+    "OSAL_IPC_ISR_QUEUE_FULL": 1,
+    "OSAL_IPC_ISR_DELIVER": 1,
+    "OSAL_IPC_ISR_RECOVERED": 1,
+    "OSAL_IPC_ISR_ERROR": 0
+  },
+  "scope": "TIM6 peripheral ISR publishes to a single-producer ingress ring, wakes an OSAL task through xy_os_semaphore_release_from_isr, observes queue-full fail-closed behavior, drains through Broker task context, then publishes and delivers a fresh payload",
+  "limitations": [
+    "The bounded validator deliberately analyzes only the last boot and does not claim the historical full-chain stress record",
+    "No throughput, arbitrary ISR producer, multi-producer ISR, or long-duration qualification claim",
+    "SPI RX/full-duplex remains blocked without a confirmed physical source"
+  ]
+}
