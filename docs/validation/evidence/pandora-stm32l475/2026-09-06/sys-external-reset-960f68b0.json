@@ -1,0 +1,26 @@
+{
+  "status": "EXTERNAL_RESET_B2_REVIEW_CANDIDATE",
+  "board": "Pandora STM32L475VE",
+  "firmware_commit": "960f68b0fc9e97d26c4bb13720af439513639a92",
+  "firmware_bin_size": 12348,
+  "firmware_bin_sha256": "6d6d4cddf2a989516f3ab5e2c32e659c2d6ff7b3f80d9da3afe8882e94446869",
+  "flash_readback_sha256": "6d6d4cddf2a989516f3ab5e2c32e659c2d6ff7b3f80d9da3afe8882e94446869",
+  "capture_sha256": "bf244d5557a6834108e97c712c8015cf8f6da0d3d6972f8db01adb2bc8a140e8",
+  "capture_bytes": 2394,
+  "reset_command": "st-flash reset",
+  "reset_csr": "0x04000600",
+  "chip_id": "001B002E3647501320313556",
+  "marker_counts": {
+    "SYS_RESET_KIND EXTERNAL_PIN": 1,
+    "SYS_EXTERNAL_PIN_RESET_OK": 1,
+    "SYS_SOFTWARE_RESET_REQUEST": 1,
+    "AHT10 0x38 ACK": 15,
+    "FIRMWARE_COMMIT 960f68b0fc9e97d26c4bb13720af439513639a92": 14
+  },
+  "not_evidence_for": [
+    "power-loss recovery",
+    "brownout threshold",
+    "manual reset-button validation",
+    "multi-hour reset endurance"
+  ]
+}

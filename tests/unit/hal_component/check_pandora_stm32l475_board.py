@@ -22,6 +22,8 @@ DEVICE_METADATA_SHA256 = "118446a3d8894781b609915ce231c73e9362142fb0f284b07010ba
 WATCHDOG_EVIDENCE = ROOT / "docs" / "validation" / "evidence" / "pandora-stm32l475" / "2026-09-06"
 WATCHDOG_LOG_SHA256 = "01841e3fb69ca9c7e1ca588da2caed431a5ef660ff73f6c643ca2efeab142b85"
 WATCHDOG_FIRMWARE_COMMIT = "12bf990f2488d3810575781e2ce0d92890047d02"
+EXTERNAL_RESET_LOG_SHA256 = "bf244d5557a6834108e97c712c8015cf8f6da0d3d6972f8db01adb2bc8a140e8"
+EXTERNAL_RESET_FIRMWARE_COMMIT = "960f68b0fc9e97d26c4bb13720af439513639a92"
 
 
 def require(path: Path, *needles: str) -> None:
@@ -269,6 +271,26 @@ def main() -> None:
     assert watchdog_log.count("SYS_CHIP_ID 001B002E3647501320313556") == 1
     assert watchdog_log.count(f"FIRMWARE_COMMIT {WATCHDOG_FIRMWARE_COMMIT}") >= 1
     assert watchdog_log.count("AHT10 0x38 ACK") == 8
+
+    external_reset_log = require_sha256(
+        WATCHDOG_EVIDENCE / "uart-wchlink-sys-external-reset-960f68b0.txt",
+        EXTERNAL_RESET_LOG_SHA256,
+    ).decode("utf-8")
+    external_reset_metadata = json.loads(
+        (WATCHDOG_EVIDENCE / "sys-external-reset-960f68b0.json").read_text(encoding="utf-8")
+    )
+    assert external_reset_metadata["status"] == "EXTERNAL_RESET_B2_REVIEW_CANDIDATE"
+    assert external_reset_metadata["firmware_commit"] == EXTERNAL_RESET_FIRMWARE_COMMIT
+    assert external_reset_metadata["capture_sha256"] == EXTERNAL_RESET_LOG_SHA256
+    assert (
+        external_reset_metadata["flash_readback_sha256"]
+        == external_reset_metadata["firmware_bin_sha256"]
+    )
+    assert external_reset_log.count("SYS_RESET_KIND EXTERNAL_PIN") == 1
+    assert external_reset_log.count("SYS_EXTERNAL_PIN_RESET_OK") == 1
+    assert external_reset_log.count("SYS_CHIP_ID 001B002E3647501320313556") == 1
+    assert external_reset_log.count(f"FIRMWARE_COMMIT {EXTERNAL_RESET_FIRMWARE_COMMIT}") >= 1
+    assert external_reset_log.count("AHT10 0x38 ACK") == 15
     print("Pandora STM32L475VE board contract: PASS")
 
 

@@ -546,3 +546,23 @@ Retained evidence:
 
 - [raw watchdog-reset UART log](evidence/pandora-stm32l475/2026-09-06/uart-wchlink-sys-watchdog-12bf990f.txt)
 - [machine validation metadata](evidence/pandora-stm32l475/2026-09-06/sys-watchdog-12bf990f.json)
+
+### 2026-09-06 ST-Link reset-pin reason/recovery
+
+Clean committed firmware `960f68b0fc9e97d26c4bb13720af439513639a92` classified reset flags in
+priority order: IWDG, software, then `PINRSTF` only when `BORRSTF` is absent. The 12348-byte image
+was written and verified by ST-Link; the same-length read-back was byte-identical with SHA-256
+`6d6d4cddf2a989516f3ab5e2c32e659c2d6ff7b3f80d9da3afe8882e94446869`.
+
+The independent WCH-Link capture retained 2394 bytes (SHA-256
+`bf244d5557a6834108e97c712c8015cf8f6da0d3d6972f8db01adb2bc8a140e8`). After `st-flash reset`,
+the last boot reported CSR `0x04000600`, stable UID `001B002E3647501320313556`,
+`SYS_RESET_KIND EXTERNAL_PIN`, and `SYS_EXTERNAL_PIN_RESET_OK`; 15 AHT10 ACK cycles in the same
+capture show continued board operation. This grants B2 only for the ST-Link-commanded reset-pin
+path. It does not prove power-loss/brownout behavior, a manually pressed reset button, or reset
+endurance.
+
+Retained evidence:
+
+- [raw external-reset UART log](evidence/pandora-stm32l475/2026-09-06/uart-wchlink-sys-external-reset-960f68b0.txt)
+- [machine validation metadata](evidence/pandora-stm32l475/2026-09-06/sys-external-reset-960f68b0.json)
