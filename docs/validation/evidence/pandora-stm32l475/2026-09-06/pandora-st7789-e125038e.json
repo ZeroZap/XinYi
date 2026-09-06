@@ -1,5 +1,5 @@
 {
-  "status": "FIXED_PATTERN_VISUAL_B1",
+  "status": "COLOR_ORDER_FAILED_VISUAL_B1_RETRACTED",
   "firmware_commit": "e125038eba6723ccf654d610573b55e96bc74c4f",
   "binary_size_bytes": 12820,
   "binary_sha256": "e41a0b0db4dc9118b95443522728af61ed6abfcfed8b5b48bfda34b671ec2fdf",
@@ -8,8 +8,10 @@
   "uart_size_bytes": 304,
   "uart_sha256": "fc5ceb584514bd2c3abb476acfe2fa509fd66f53eb54816246eeb714b33d2071",
   "uart_ordered_marker_count": 9,
-  "errors": [],
-  "visual_confirmation": "HUMAN_CONFIRMED_RED_GREEN_BLUE_WHITE_BLACK_THEN_FOUR_COLORED_QUADRANTS_WITH_CENTRAL_BLACK_SQUARE",
+  "errors": [
+    "VISUAL_COLOR_ORDER_RED_BLUE_SWAPPED"
+  ],
+  "visual_confirmation": "HUMAN_CORRECTED_BLUE_GREEN_RED_WHITE_BLACK_THEN_FOUR_QUADRANTS_WITH_CENTRAL_BLACK_SQUARE",
   "human_observer": "Eugene",
-  "claim_boundary": "Visual B1 for this exact committed fixed pattern only; no colorimetry, pixel integrity, tearing, refresh throughput, DMA, touch, brightness, orientation qualification, performance, or endurance claim"
+  "claim_boundary": "Control-path execution only; visual B1 and color correctness retracted because observed blue/green/red disagreed with emitted red/green/blue"
 }
