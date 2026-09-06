@@ -142,6 +142,10 @@ add_test(NAME pandora_ap3216c_capture_validator
     COMMAND python3 ${UNIT_SENSOR}/test_pandora_ap3216c_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_ap3216c_hw_i2c_capture_validator
+    COMMAND python3 ${UNIT_SENSOR}/test_pandora_ap3216c_hw_i2c_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_buzzer_capture_validator
     COMMAND python3 ${UNIT_ACTUATOR}/test_pandora_buzzer_capture.py
     WORKING_DIRECTORY ${ROOT}
