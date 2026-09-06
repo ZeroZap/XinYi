@@ -57,6 +57,56 @@ static void uart_i32(int32_t value)
     }
 }
 
+static void uart_hex8(uint8_t value)
+{
+    static const char hex[] = "0123456789ABCDEF";
+    char encoded[2] = {hex[value >> 4], hex[value & 0x0FU]};
+    (void)HAL_UART_Transmit(&uart1, (uint8_t *)encoded, sizeof(encoded), 100U);
+}
+
+static int read_reg(uint8_t reg, uint8_t *data, size_t len)
+{
+    return xy_i2c_device_read_reg(&icm_bus, reg, data, len) == XY_DEVICE_OK;
+}
+
+static void log_register_snapshot(void)
+{
+    static const uint8_t registers[] = {
+        ICM20608_REG_PWR_MGMT_1, ICM20608_REG_PWR_MGMT_2, ICM20608_REG_ACCEL_CONFIG,
+        ICM20608_REG_GYRO_CONFIG, ICM20608_REG_CONFIG, ICM20608_REG_ACCEL_CONFIG2,
+        ICM20608_REG_INT_STATUS,
+    };
+    uint8_t value;
+
+    uart_text("ICM20608_REGS_HEX=");
+    for (size_t i = 0; i < sizeof(registers); ++i) {
+        if (!read_reg(registers[i], &value, 1U)) {
+            uart_text("IO_ERROR\r\n");
+            fail();
+        }
+        if (i != 0U) {
+            uart_text(",");
+        }
+        uart_hex8(value);
+    }
+    uart_text("\r\n");
+}
+
+static void log_raw_burst(void)
+{
+    uint8_t raw[14];
+
+    if (!read_reg(ICM20608_REG_ACCEL_XOUT_H, raw, sizeof(raw))) {
+        uart_text("PANDORA_ICM20608_BURST_IO_ERROR\r\n");
+        fail();
+    }
+    uart_text("ICM20608_RAW14_HEX=");
+    for (size_t i = 0; i < sizeof(raw); ++i) {
+        uart_hex8(raw[i]);
+    }
+    uart_text("\r\n");
+}
+
 static void clock_init(void)
 {
     RCC_OscInitTypeDef osc = {0};
@@ -171,9 +221,8 @@ int main(void)
     for (uint32_t address = 0x08U; address <= 0x77U; ++address) {
         if (pandora_soft_i2c_probe(i2c3, (uint8_t)address)) {
             uart_text("I2C3_ACK=0x");
-            static const char hex[] = "0123456789ABCDEF";
-            char encoded[4] = {hex[address >> 4], hex[address & 0x0FU], '\r', '\n'};
-            (void)HAL_UART_Transmit(&uart1, (uint8_t *)encoded, sizeof(encoded), 100U);
+            uart_hex8((uint8_t)address);
+            uart_text("\r\n");
             ++ack_count;
         }
     }
@@ -215,8 +264,12 @@ int main(void)
         fail();
     }
     uart_text("ICM20608_ADDR=0x68 WHO_AM_I=0xAE\r\n");
+    uart_text("ICM20608_INIT_PATH=ACCEL_ONLY RESET_COUNT=1\r\n");
+    log_register_snapshot();
 
     for (;;) {
+        log_raw_burst();
+        log_register_snapshot();
         if (accel->ops->read(accel, &accel_data) != SENSOR_EOK ||
             gyro->ops->read(gyro, &gyro_data) != SENSOR_EOK) {
             uart_text("PANDORA_ICM20608_READ_ERROR\r\n");
