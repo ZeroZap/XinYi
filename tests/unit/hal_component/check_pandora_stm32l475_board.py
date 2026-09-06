@@ -55,6 +55,8 @@ def main() -> None:
     require(
         BOARD / "CMakeLists.txt",
         "pandora_stm32l475_smoke",
+        "pandora_stm32l475_icm20608",
+        "sensor_icm20608.c",
         "pandora_sys.c",
         "stm32l4xx_hal_iwdg.c",
         "pandora_fota_flash.c",
@@ -106,12 +108,28 @@ def main() -> None:
         BOARD / "pandora_soft_i2c.c",
         "GPIO_PIN_1",
         "GPIO_PIN_6",
+        "GPIO_PIN_0",
+        "pandora_soft_i2c3_init",
         "soft_i2c_start",
         "soft_i2c_write_byte",
         "soft_i2c_read_byte",
         "xy_hal_i2c_master_transmit",
         "xy_hal_i2c_master_receive",
         "dev_addr << 1",
+    )
+    require(
+        BOARD / "sensor_icm20608_main.c",
+        "PANDORA ICM20608 SENSOR READY",
+        "I2C3_PINS SCL=PC0 SDA=PC1",
+        "xy_i2c_device_init",
+        "xy_i2c_device_read_reg",
+        "icm20608_create_accel",
+        "icm20608_create_gyro",
+        "ICM20608_ADDR=0x68 WHO_AM_I=0xAF",
+        "ICM20608 ACCEL_mg=",
+        "GYRO_dps=",
+        "PANDORA_ICM20608_INIT_ERROR",
+        "PANDORA_ICM20608_READ_ERROR",
     )
     require(
         BOARD / "main.c",
