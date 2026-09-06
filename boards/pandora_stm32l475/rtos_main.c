@@ -30,6 +30,8 @@ TIM_HandleTypeDef pandora_tim6;
 static uint32_t shared_sequence;
 static uint32_t ipc_expected_sequence;
 static uint32_t ipc_delivered_count;
+static uint32_t ipc_probe_sequence = UINT32_MAX;
+static bool ipc_probe_reject;
 static uint32_t pm_last_tick;
 static uint32_t multi_seen[2];
 static uint32_t multi_received_count;
@@ -316,6 +318,9 @@ static int ipc_handler(const xy_broker_msg_t *msg, void *user_data)
     }
     sequence = (uint32_t)msg->payload[0] | ((uint32_t)msg->payload[1] << 8) |
                ((uint32_t)msg->payload[2] << 16) | ((uint32_t)msg->payload[3] << 24);
+    if (sequence == ipc_probe_sequence) {
+        return ipc_probe_reject ? XY_BROKER_ERROR : XY_BROKER_OK;
+    }
     if (sequence != ipc_expected_sequence || xy_device_find("pandora-ipc") != &ipc_device) {
         return XY_BROKER_ERROR;
     }
@@ -595,6 +600,28 @@ static void resource_task(void *argument)
         fail();
     }
     uart_text("OSAL_IPC_RECOVERED\r\n");
+
+    ipc_probe_sequence = sequence;
+    ipc_probe_reject = true;
+    if (xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                           XY_BROKER_MSG_SENSOR_DATA, &sequence, sizeof(sequence),
+                           XY_BROKER_PRIORITY_NORMAL) != XY_BROKER_OK ||
+        xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U) != XY_BROKER_ERROR ||
+        xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM) != 0) {
+        uart_text("OSAL_IPC_HANDLER_RECOVERY_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_IPC_HANDLER_REJECTED\r\n");
+    ipc_probe_reject = false;
+    if (xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                           XY_BROKER_MSG_SENSOR_DATA, &sequence, sizeof(sequence),
+                           XY_BROKER_PRIORITY_NORMAL) != XY_BROKER_OK ||
+        xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U) != 1) {
+        uart_text("OSAL_IPC_HANDLER_RECOVERY_ERROR\r\n");
+        fail();
+    }
+    ipc_probe_sequence = UINT32_MAX;
+    uart_text("OSAL_IPC_HANDLER_RECOVERED\r\n");
 
     pool = xy_os_mempool_new(2U, sizeof(uint32_t), &pool_attr);
     queue = xy_os_msgqueue_new(1U, sizeof(sequence), NULL);

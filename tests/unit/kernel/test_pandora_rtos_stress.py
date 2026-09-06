@@ -46,6 +46,8 @@ def make_capture(cycles: int, isr_wakes: int) -> bytes:
         "OSAL_TIM6_IRQ_RECOVERED",
         "OSAL_IPC_SATURATED",
         "OSAL_IPC_RECOVERED",
+        "OSAL_IPC_HANDLER_REJECTED",
+        "OSAL_IPC_HANDLER_RECOVERED",
         "OSAL_MULTI_PRODUCER_OK",
         "OSAL_MULTI_CONSUMER_DISTRIBUTED",
         "PANDORA_DMA_MEM2MEM_OK",
@@ -105,6 +107,21 @@ class StressCaptureContract(unittest.TestCase):
         result = analyze_capture(payload, COMMIT, 120, 100, 50)
         self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
         self.assertIn("IPC saturation/recovery markers are not ordered", result["failures"])
+
+    def test_rejects_missing_or_reordered_ipc_handler_recovery(self) -> None:
+        payload = make_capture(120, 60).replace(b"OSAL_IPC_HANDLER_RECOVERED\r\n", b"")
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("IPC handler recovery marker count mismatch", result["failures"])
+
+        payload = make_capture(120, 60).replace(
+            b"OSAL_IPC_HANDLER_REJECTED\r\nOSAL_IPC_HANDLER_RECOVERED",
+            b"OSAL_IPC_HANDLER_RECOVERED\r\nOSAL_IPC_HANDLER_REJECTED",
+        )
+        result = analyze_capture(payload, COMMIT, 120, 100, 50)
+        self.assertEqual(result["status"], "STRESS_VALIDATION_FAILED")
+        self.assertIn("IPC handler recovery markers are not ordered", result["failures"])
 
     def test_rejects_too_few_peripheral_irq_wakes(self) -> None:
         payload = make_capture(120, 60).replace(b"OSAL_TIM6_IRQ_TAKE\r\n", b"", 11)

@@ -20,6 +20,7 @@ FAKE_VALUE_FUNC(uint32_t, xy_os_tick_get)
 FAKE_VALUE_FUNC(xy_os_status_t, xy_os_delay, uint32_t)
 FAKE_VALUE_FUNC(int, direct_capture_handler, const xy_broker_msg_t *, void *)
 FAKE_VALUE_FUNC(int, topic_capture_handler, const xy_broker_msg_t *, void *)
+FAKE_VALUE_FUNC(int, rejecting_handler, const xy_broker_msg_t *, void *)
 
 static uint32_t xy_os_tick_get_impl(void)
 {
@@ -63,6 +64,7 @@ static void reset_fakes(void)
     RESET_FAKE(xy_os_delay);
     RESET_FAKE(direct_capture_handler);
     RESET_FAKE(topic_capture_handler);
+    RESET_FAKE(rejecting_handler);
     FFF_RESET_HISTORY();
 
     xy_os_tick_get_fake.custom_fake = xy_os_tick_get_impl;
@@ -273,6 +275,41 @@ static void test_request_response_and_timeout(void)
     TEST_ASSERT_EQUAL_UINT32(1U, xy_os_delay_fake.arg0_val);
 }
 
+static void test_handler_failure_is_propagated_and_queue_recovers(void)
+{
+    const uint32_t payload = 0xA5A55A5AU;
+    xy_broker_stats_t stats;
+
+    reset_broker();
+    rejecting_handler_fake.return_val = XY_BROKER_ERROR;
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM, rejecting_handler,
+                                                NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SYSTEM_STATUS, &payload, sizeof(payload),
+                                         XY_BROKER_PRIORITY_NORMAL));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR,
+                      xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U));
+    TEST_ASSERT_EQUAL_UINT(1U, rejecting_handler_fake.call_count);
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_delivered);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_dropped);
+
+    rejecting_handler_fake.return_val = XY_BROKER_OK;
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SYSTEM_STATUS, &payload, sizeof(payload),
+                                         XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U));
+    TEST_ASSERT_EQUAL_UINT(2U, rejecting_handler_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_delivered);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_dropped);
+}
+
 static void test_debug_name_helpers(void)
 {
     TEST_ASSERT_EQUAL_STRING("SYSTEM", xy_broker_get_server_name(XY_BROKER_SERVER_SYSTEM));
@@ -299,6 +336,7 @@ int main(void)
     RUN_TEST(test_direct_message_queue_and_limits);
     RUN_TEST(test_pubsub_create_publish_and_unsubscribe);
     RUN_TEST(test_request_response_and_timeout);
+    RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
     RUN_TEST(test_debug_name_helpers);
     TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_deinit());
     return UNITY_END();

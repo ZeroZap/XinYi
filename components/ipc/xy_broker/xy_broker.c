@@ -261,7 +261,12 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
             break;
 
         if (broker_dequeue_msg(server, &msg) == XY_BROKER_OK) {
-            server->handler(&msg, server->user_data);
+            int handler_result = server->handler(&msg, server->user_data);
+
+            if (handler_result != XY_BROKER_OK) {
+                g_broker.stats.total_msg_dropped++;
+                return handler_result;
+            }
             g_broker.stats.total_msg_delivered++;
             processed++;
         }
