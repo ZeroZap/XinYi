@@ -41,7 +41,7 @@ failures. The ST7789 inversion constants are corrected to DCS `0x21` ON / `0x20`
 
 ## Evidence boundary
 
-Status: `UART_VERIFIED_VISUAL_PENDING`.
+Status: `FIXED_PATTERN_VISUAL_B1`.
 
 Clean committed image `e125038eba6723ccf654d610573b55e96bc74c4f` was built with Arm GNU
 15.2.1. ELF/BIN sizes are 35,556/12,820 bytes; BIN SHA-256 is
@@ -57,7 +57,10 @@ Evidence:
 - `evidence/pandora-stm32l475/2026-09-06/pandora-st7789-e125038e-readback.bin`
 - `evidence/pandora-stm32l475/2026-09-06/pandora-st7789-e125038e-uart.txt`
 
-Host/compile/flash/UART evidence may establish software control-path execution. Visual B1 requires a
-human report that the five colors appeared in order and the final quadrant/black-center pattern is
-visible. Until that report exists, do not claim display visual B1, color correctness, orientation,
-brightness, frame rate, or performance.
+Eugene reported observing the complete sequence red → green → blue → white → black, followed by the
+final four colored quadrants with a central black square. This closes visual B1 only for this exact
+committed image and fixed pattern, when combined with the machine evidence above.
+
+This observation does not establish colorimetry, pixel-by-pixel integrity, tearing behavior, refresh
+throughput, DMA operation, touch input, brightness, orientation qualification, performance, or
+endurance. Those require separate fixtures and records.
