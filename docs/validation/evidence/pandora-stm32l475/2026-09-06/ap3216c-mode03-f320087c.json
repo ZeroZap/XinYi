@@ -1,0 +1,50 @@
+{
+  "status": "DIAGNOSTIC_MODE_FIX_RESPONSIVE",
+  "evidence_tier": "B1_DIAGNOSTIC_ONLY",
+  "board": "Pandora STM32L475VE V2.4",
+  "schematic_component": "U8 AP3216C",
+  "schematic_path": "docs/hardware/pandora_stm32l475/Pandora_STM32L4_Board_V2.4_SCH.pdf",
+  "firmware_commit": "f320087cbcbe5d0ae107b27b96b42528438219e2",
+  "firmware_bin_size": 10512,
+  "firmware_bin_sha256": "7d1d566d6ace2a621228490135c064c18e632be5dce4af378a81e4d1e38e4c55",
+  "flash_readback_path": "docs/validation/evidence/pandora-stm32l475/2026-09-06/pandora-ap3216c-f320087c-readback.bin",
+  "flash_readback_sha256": "7d1d566d6ace2a621228490135c064c18e632be5dce4af378a81e4d1e38e4c55",
+  "flash_readback_byte_identical": true,
+  "uart_raw_path": "docs/validation/evidence/pandora-stm32l475/2026-09-06/ap3216c-mode03-f320087c.raw",
+  "uart_raw_bytes": 6951,
+  "uart_raw_sha256": "ad69f7ad5533b48b63a46b6f80781611ce0015610784ee1167e3d88f86b99836",
+  "capture_seconds": 12,
+  "bus": "SOFT_I2C3 SCL=PC0 SDA=PC1",
+  "address_7bit": "0x1E",
+  "system_config": "0x03",
+  "system_config_semantics": "continuous ALS plus PS/IR",
+  "startup_registers": {
+    "interrupt_status": "0x00",
+    "als_configuration": "0x00",
+    "ps_configuration": "0x05",
+    "ps_led_driver": "0x13"
+  },
+  "sample_count": 97,
+  "unique_raw_count": 60,
+  "unique_decoded_count": 47,
+  "interrupt_status_values": [0],
+  "ranges": {
+    "als_lux": {"min": 10, "max": 11, "unique": 2},
+    "ps_raw": {"min": 0, "max": 14, "unique": 13},
+    "ir_raw": {"min": 0, "max": 514, "unique": 10}
+  },
+  "diagnosis": "The former 0x07 setting was AP3216C one-shot ALS+PS mode, not continuous ALS+PS+IR. Repeated reads therefore returned one conversion. Mode 0x03 is the documented continuous ALS+PS mode; PS includes IR. With 0x03, independently read 0x0A-0x0F registers vary autonomously.",
+  "identity_basis": "Pandora V2.4 schematic explicitly labels U8 as AP3216C; the maintained RT-Thread AP3216C package uses the same 0x1E address, mode encoding, and register map.",
+  "source_references": {
+    "pandora_bsp_repo": "https://github.com/RT-Thread-Studio/sdk-bsp-stm32l475-atk-pandora.git",
+    "pandora_bsp_commit": "9eb6e6264e37fb1846e69d99632255ce3a75aa1c",
+    "ap3216c_package_repo": "https://github.com/RT-Thread-packages/ap3216c.git",
+    "ap3216c_package_commit": "8948932f5bfac70130b0c19cc3e7e52c78c1251b"
+  },
+  "limitations": [
+    "No controlled uncovered/far versus covered/near stimulus was performed after the fix.",
+    "This capture proves fresh autonomous register updates, not a qualified optical/proximity delta.",
+    "Interrupt status remained 0x00; interrupt threshold/INT-pin behavior was not tested.",
+    "The earlier /tmp/ap3216c-user-dynamic.raw capture remains diagnostic only and must not be promoted to dynamic B1."
+  ]
+}
