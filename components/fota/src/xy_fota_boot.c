@@ -12,6 +12,7 @@
 #define JOURNAL_INSTALLED 2U
 #define JOURNAL_CONFIRMED 3U
 #define JOURNAL_ROLLED_BACK 4U
+#define JOURNAL_RESTAGE_AUTHORIZED 5U
 
 typedef struct {
     uint32_t magic;
@@ -60,7 +61,8 @@ static int journal_record_valid(const boot_journal_record_t *record)
 {
     return record->magic == JOURNAL_MAGIC && record->commit == JOURNAL_COMMIT &&
            (record->state == JOURNAL_INSTALLING || record->state == JOURNAL_INSTALLED ||
-            record->state == JOURNAL_CONFIRMED || record->state == JOURNAL_ROLLED_BACK) &&
+            record->state == JOURNAL_CONFIRMED || record->state == JOURNAL_ROLLED_BACK ||
+            record->state == JOURNAL_RESTAGE_AUTHORIZED) &&
            record->record_crc32 == journal_crc(record);
 }
 
@@ -385,6 +387,11 @@ int xy_fota_boot_candidate_install_once(const xy_fota_boot_candidate_config_t *c
         current.image_crc32 == header.image_crc32) {
         return XY_FOTA_VERSION_ERROR;
     }
+    if (ret == XY_FOTA_OK && current.state == JOURNAL_RESTAGE_AUTHORIZED &&
+        (current.image_version != header.image_version || current.image_size != header.image_size ||
+         current.image_crc32 != header.image_crc32)) {
+        return XY_FOTA_VERSION_ERROR;
+    }
     ret = journal_commit(journal, &current, current_slot, JOURNAL_INSTALLING, 0U, &header);
     if (ret != XY_FOTA_OK) {
         return ret;
@@ -483,4 +490,41 @@ int xy_fota_boot_candidate_confirm(const xy_fota_boot_candidate_config_t *config
         return XY_FOTA_OK;
     }
     return journal_commit(journal, &current, current_slot, JOURNAL_CONFIRMED, 0U, &header);
+}
+
+int xy_fota_boot_candidate_authorize_restage(
+    const xy_fota_boot_candidate_config_t *config, const xy_fota_boot_install_ops_t *ops,
+    const xy_fota_boot_journal_config_t *journal,
+    const xy_fota_boot_restage_authorization_t *authorization)
+{
+    xy_fota_boot_candidate_header_t header;
+    boot_journal_record_t current;
+    uint32_t current_slot;
+    int ret;
+
+    if (authorization == NULL ||
+        authorization->magic != XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC ||
+        authorization->format_version != XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION ||
+        authorization->size != sizeof(*authorization)) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    ret = xy_fota_boot_candidate_validate(config, &header);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    if (!install_layout_valid(config, ops, &header) ||
+        authorization->image_version != header.image_version ||
+        authorization->image_size != header.image_size ||
+        authorization->image_crc32 != header.image_crc32) {
+        return XY_FOTA_INVALID_PARAM;
+    }
+    ret = journal_load(journal, &current, &current_slot);
+    if (ret != XY_FOTA_OK) {
+        return ret;
+    }
+    if (current.state != JOURNAL_ROLLED_BACK || current.image_version != header.image_version ||
+        current.image_size != header.image_size || current.image_crc32 != header.image_crc32) {
+        return XY_FOTA_VERSION_ERROR;
+    }
+    return journal_commit(journal, &current, current_slot, JOURNAL_RESTAGE_AUTHORIZED, 0U, &header);
 }

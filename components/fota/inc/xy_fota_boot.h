@@ -11,6 +11,8 @@ extern "C" {
 
 #define XY_FOTA_BOOT_CANDIDATE_MAGIC 0x58424643U
 #define XY_FOTA_BOOT_CANDIDATE_FORMAT_VERSION 1U
+#define XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC 0x58524155U
+#define XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION 1U
 
 typedef struct {
     uint32_t magic;
@@ -57,6 +59,15 @@ typedef struct {
     xy_fota_boot_write_cb write;
 } xy_fota_boot_journal_config_t;
 
+typedef struct {
+    uint32_t magic;
+    uint16_t format_version;
+    uint16_t size;
+    uint32_t image_version;
+    uint32_t image_size;
+    uint32_t image_crc32;
+} xy_fota_boot_restage_authorization_t;
+
 int xy_fota_boot_candidate_validate(const xy_fota_boot_candidate_config_t *config,
                                     xy_fota_boot_candidate_header_t *validated_header);
 int xy_fota_boot_candidate_handoff(const xy_fota_boot_candidate_config_t *config, uint8_t slot,
@@ -76,6 +87,10 @@ int xy_fota_boot_candidate_record_attempt(const xy_fota_boot_candidate_config_t 
 int xy_fota_boot_candidate_confirm(const xy_fota_boot_candidate_config_t *config,
                                    const xy_fota_boot_install_ops_t *ops,
                                    const xy_fota_boot_journal_config_t *journal);
+int xy_fota_boot_candidate_authorize_restage(
+    const xy_fota_boot_candidate_config_t *config, const xy_fota_boot_install_ops_t *ops,
+    const xy_fota_boot_journal_config_t *journal,
+    const xy_fota_boot_restage_authorization_t *authorization);
 
 #ifdef __cplusplus
 }

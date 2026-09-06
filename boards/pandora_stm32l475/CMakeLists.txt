@@ -69,6 +69,8 @@ add_custom_command(TARGET pandora_stm32l475_smoke POST_BUILD
     COMMENT "Generating Pandora STM32L475VE smoke BIN")
 
 if(OSAL_BACKEND STREQUAL "freertos")
+    option(PANDORA_FOTA_AUTHORIZE_RESTAGE
+           "Build a one-shot reviewed restage-authorizing bootloader" OFF)
     add_executable(pandora_stm32l475_fota_bootloader
         fota_bootloader_main.c
         pandora_fota_flash.c
@@ -104,6 +106,10 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
     target_compile_definitions(pandora_stm32l475_fota_bootloader PRIVATE
         STM32L475xx USE_HAL_DRIVER XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+    if(PANDORA_FOTA_AUTHORIZE_RESTAGE)
+        target_compile_definitions(pandora_stm32l475_fota_bootloader PRIVATE
+            PANDORA_FOTA_AUTHORIZE_RESTAGE=1)
+    endif()
     target_link_libraries(pandora_stm32l475_fota_bootloader PRIVATE xy_xy_clib)
     target_link_options(pandora_stm32l475_fota_bootloader PRIVATE
         -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_BOOTLOADER.ld

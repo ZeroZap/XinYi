@@ -17,6 +17,7 @@
 #define PANDORA_FOTA_CONFIRM_REQUEST_MAGIC 0x46525132U
 #define PANDORA_FOTA_CONFIRM_ACK_MAGIC 0x46414332U
 #define PANDORA_FOTA_MAX_ATTEMPTS 3U
+#define PANDORA_FOTA_RESTAGE_DONE_MAGIC 0x52535444U
 
 static UART_HandleTypeDef uart1;
 static QSPI_HandleTypeDef qspi;
@@ -181,6 +182,26 @@ int main(void)
     }
     candidate.read = candidate_ops->read;
     if (xy_fota_boot_candidate_validate(&candidate, &header) == XY_FOTA_OK) {
+#ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
+        if (RTC->BKP2R != PANDORA_FOTA_RESTAGE_DONE_MAGIC) {
+            const xy_fota_boot_restage_authorization_t authorization = {
+                .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
+                .format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION,
+                .size = sizeof(xy_fota_boot_restage_authorization_t),
+                .image_version = header.image_version,
+                .image_size = header.image_size,
+                .image_crc32 = header.image_crc32,
+            };
+
+            if (xy_fota_boot_candidate_authorize_restage(
+                    &candidate, pandora_fota_install_ops(), &journal, &authorization) != XY_FOTA_OK) {
+                uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR\r\n");
+                stop();
+            }
+            RTC->BKP2R = PANDORA_FOTA_RESTAGE_DONE_MAGIC;
+            uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZED\r\n");
+        }
+#endif
         if (xy_fota_boot_candidate_install_once(&candidate, pandora_fota_install_ops(), &journal,
                                                 &installed) != XY_FOTA_OK) {
             uart_text("PANDORA_BOOT_INSTALL_ERROR\r\n");

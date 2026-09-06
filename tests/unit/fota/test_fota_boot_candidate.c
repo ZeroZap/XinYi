@@ -13,6 +13,7 @@
 #define JOURNAL_INSTALLED 2U
 #define JOURNAL_CONFIRMED 3U
 #define JOURNAL_ROLLED_BACK 4U
+#define JOURNAL_RESTAGE_AUTHORIZED 5U
 
 typedef struct {
     uint32_t magic;
@@ -749,6 +750,119 @@ static void test_attempt_and_confirmation_fail_closed_without_durable_commit(voi
     TEST_ASSERT_EQUAL_UINT(durable_writes, journal_write_calls);
 }
 
+static void test_restage_requires_exact_authorization_without_side_effects(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    xy_fota_boot_restage_authorization_t authorization;
+    uint8_t image[384];
+    uint8_t journal_before[sizeof(journal)];
+    uint8_t execution_before[sizeof(execution)];
+
+    build_candidate(&header, image, sizeof(image));
+    write_journal_record(0U, 7U, JOURNAL_ROLLED_BACK, &header);
+    memcpy(journal_before, journal, sizeof(journal));
+    memcpy(execution_before, execution, sizeof(execution));
+    memset(&authorization, 0, sizeof(authorization));
+
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_boot_candidate_authorize_restage(
+                              &config, &install_ops, &journal_config, &authorization));
+    TEST_ASSERT_EQUAL_MEMORY(journal_before, journal, sizeof(journal));
+    TEST_ASSERT_EQUAL_MEMORY(execution_before, execution, sizeof(execution));
+    TEST_ASSERT_EQUAL_UINT(0U, journal_erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, journal_write_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, write_calls);
+
+    authorization.magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC;
+    authorization.format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION;
+    authorization.size = sizeof(authorization);
+    authorization.image_version = header.image_version;
+    authorization.image_size = header.image_size;
+    authorization.image_crc32 = header.image_crc32 ^ 1U;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_INVALID_PARAM,
+                          xy_fota_boot_candidate_authorize_restage(
+                              &config, &install_ops, &journal_config, &authorization));
+    TEST_ASSERT_EQUAL_MEMORY(journal_before, journal, sizeof(journal));
+    TEST_ASSERT_EQUAL_MEMORY(execution_before, execution, sizeof(execution));
+}
+
+static void test_restage_flash_failure_preserves_rollback_and_success_allows_install(void)
+{
+    xy_fota_boot_candidate_header_t header;
+    xy_fota_boot_candidate_config_t config = default_config();
+    xy_fota_boot_install_ops_t install_ops = {
+        .erase = execution_erase,
+        .write = execution_write,
+        .read = execution_read,
+        .program_granule = 8U,
+        .erase_granule = 256U,
+    };
+    xy_fota_boot_journal_config_t journal_config = {
+        .address = 0x0807E000U,
+        .slot_size = 256U,
+        .read = journal_read,
+        .erase = journal_erase,
+        .write = journal_write,
+    };
+    xy_fota_boot_restage_authorization_t authorization;
+    uint8_t image[384];
+    uint8_t execution_before[sizeof(execution)];
+    int installed = 0;
+
+    build_candidate(&header, image, sizeof(image));
+    write_journal_record(0U, 7U, JOURNAL_ROLLED_BACK, &header);
+    authorization.magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC;
+    authorization.format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION;
+    authorization.size = sizeof(authorization);
+    authorization.image_version = header.image_version;
+    authorization.image_size = header.image_size;
+    authorization.image_crc32 = header.image_crc32;
+    memcpy(execution_before, execution, sizeof(execution));
+
+    journal_fail_write = 1;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_FLASH_ERROR,
+                          xy_fota_boot_candidate_authorize_restage(
+                              &config, &install_ops, &journal_config, &authorization));
+    TEST_ASSERT_EQUAL_MEMORY(execution_before, execution, sizeof(execution));
+    TEST_ASSERT_EQUAL_UINT32(JOURNAL_ROLLED_BACK,
+                             ((const test_boot_journal_record_t *)journal)->state);
+    TEST_ASSERT_EQUAL_UINT(0U, erase_calls);
+    TEST_ASSERT_EQUAL_UINT(0U, write_calls);
+    installed = 1;
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_VERSION_ERROR,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_FALSE(installed);
+
+    journal_fail_write = 0;
+    TEST_ASSERT_EQUAL_INT(XY_FOTA_OK,
+                          xy_fota_boot_candidate_authorize_restage(
+                              &config, &install_ops, &journal_config, &authorization));
+    TEST_ASSERT_EQUAL_UINT32(JOURNAL_RESTAGE_AUTHORIZED, latest_journal_record()->state);
+    TEST_ASSERT_EQUAL_INT(
+        XY_FOTA_OK,
+        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
+    TEST_ASSERT_TRUE(installed);
+    TEST_ASSERT_EQUAL_MEMORY(image, execution, sizeof(image));
+    TEST_ASSERT_EQUAL_UINT32(JOURNAL_INSTALLED, latest_journal_record()->state);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -766,5 +880,7 @@ int main(void)
     RUN_TEST(test_install_journal_treats_legacy_reserved_field_as_zero_attempts);
     RUN_TEST(test_install_journal_rolls_back_after_bounded_unconfirmed_boots);
     RUN_TEST(test_attempt_and_confirmation_fail_closed_without_durable_commit);
+    RUN_TEST(test_restage_requires_exact_authorization_without_side_effects);
+    RUN_TEST(test_restage_flash_failure_preserves_rollback_and_success_allows_install);
     return UNITY_END();
 }

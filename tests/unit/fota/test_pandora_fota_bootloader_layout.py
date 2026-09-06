@@ -33,6 +33,9 @@ def main() -> int:
         "SCB->VTOR = PANDORA_FOTA_APP_BASE",
         "__set_MSP(app_vectors[0])",
         "PANDORA_BOOT_CANDIDATE_INSTALLED",
+        "xy_fota_boot_candidate_authorize_restage",
+        "PANDORA_BOOT_RESTAGE_AUTHORIZED",
+        "PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR",
         "xy_fota_boot_candidate_record_attempt",
         "xy_fota_boot_candidate_confirm",
         "PANDORA_BOOT_ATTEMPT_COMMITTED",
@@ -49,6 +52,7 @@ def main() -> int:
     ):
         require(flash, token)
     require(cmake, "PANDORA_FOTA_APPLICATION")
+    require(cmake, "option(PANDORA_FOTA_AUTHORIZE_RESTAGE")
     require(application, "PANDORA_FOTA_CONFIRM_REQUESTED")
     require(application, "PANDORA_FOTA_CONFIRM_ACKNOWLEDGED")
     require(application, "else if (w25q128_mcu_reset_recovery_pending != 0U)")
