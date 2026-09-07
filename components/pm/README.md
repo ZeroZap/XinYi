@@ -110,6 +110,10 @@ xy_pm_wakeup();
 xy_pm_enter_shutdown();
 ```
 
+`xy_pm_set_mode()` 与 `xy_pm_set_low_power_mode()` 是上述入口的公开 dispatch API：ACTIVE 仅从
+SLEEP 状态唤醒，SLEEP 委托 `xy_pm_enter_sleep()`，DEEP_SLEEP 明确返回 unsupported，SHUTDOWN
+委托 fail-closed shutdown 入口；非法模式和重复状态转换不会返回伪成功。
+
 `xy_pm_enter_sleep()` / `xy_pm_wakeup()` 由 platform backend 执行；当前 Pandora backend 仅实现
 shallow SLEEP/WFI。`xy_pm_enter_shutdown()` 与 `xy_pm_shutdown()` 在没有 board-owned shutdown
 backend 时 fail-closed 返回 `XY_PM_ERROR_NOT_SUPPORTED`，不得把未实现的关机流程报告为成功。

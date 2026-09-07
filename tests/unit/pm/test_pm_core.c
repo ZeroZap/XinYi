@@ -106,6 +106,36 @@ static void test_pm_sleep_lifecycle_guards(void)
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
 }
 
+static void test_pm_public_mode_dispatch_is_fail_closed(void)
+{
+    xy_pm_system_state_info_t state;
+
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
+    TEST_ASSERT_EQUAL_INT(XY_PM_NOT_INITIALIZED, xy_pm_set_mode(XY_PM_MODE_ACTIVE));
+    TEST_ASSERT_EQUAL_INT(XY_PM_NOT_INITIALIZED, xy_pm_set_low_power_mode(true));
+
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_init());
+    TEST_ASSERT_EQUAL_INT(XY_PM_ERROR_INVALID_MODE, xy_pm_set_mode((xy_pm_mode_t)99));
+    TEST_ASSERT_EQUAL_INT(XY_PM_ERROR_NOT_SUPPORTED, xy_pm_set_mode(XY_PM_MODE_DEEP_SLEEP));
+    TEST_ASSERT_EQUAL_INT(XY_PM_ERROR_NOT_SUPPORTED, xy_pm_set_mode(XY_PM_MODE_SHUTDOWN));
+
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_set_low_power_mode(true));
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_EQUAL_INT(XY_PM_SYSTEM_STATE_SLEEP, state.state);
+    TEST_ASSERT_EQUAL_INT(XY_PM_ERROR_INVALID_MODE, xy_pm_set_low_power_mode(true));
+
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_set_mode(XY_PM_MODE_ACTIVE));
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_EQUAL_INT(XY_PM_SYSTEM_STATE_IDLE, state.state);
+    TEST_ASSERT_EQUAL_INT(XY_PM_ERROR_INVALID_MODE, xy_pm_set_mode(XY_PM_MODE_ACTIVE));
+
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_set_mode(XY_PM_MODE_SLEEP));
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_set_low_power_mode(false));
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_EQUAL_INT(XY_PM_SYSTEM_STATE_IDLE, state.state);
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
+}
+
 static void test_charger_contracts(void)
 {
     xy_charger_config_t cfg = {
@@ -212,6 +242,7 @@ int main(void)
     RUN_TEST(test_pm_platform_contracts);
     RUN_TEST(test_pm_lifecycle_and_charging);
     RUN_TEST(test_pm_sleep_lifecycle_guards);
+    RUN_TEST(test_pm_public_mode_dispatch_is_fail_closed);
     RUN_TEST(test_charger_contracts);
     RUN_TEST(test_fuel_gauge_and_adc_contracts);
     RUN_TEST(test_fuel_gauge_uses_platform_tick);

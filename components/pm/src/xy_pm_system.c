@@ -182,6 +182,32 @@ uint32_t xy_pm_get_battery_voltage(void)
     return xy_pm_get_battery_voltage_mV();
 }
 
+int xy_pm_set_mode(xy_pm_mode_t mode)
+{
+    if (!s_pm.initialized) return XY_PM_NOT_INITIALIZED;
+
+    switch (mode) {
+        case XY_PM_MODE_ACTIVE:
+            if (s_pm.state.state != XY_PM_SYSTEM_STATE_SLEEP) {
+                return XY_PM_ERROR_INVALID_MODE;
+            }
+            return xy_pm_wakeup();
+        case XY_PM_MODE_SLEEP:
+            return xy_pm_enter_sleep();
+        case XY_PM_MODE_DEEP_SLEEP:
+            return XY_PM_ERROR_NOT_SUPPORTED;
+        case XY_PM_MODE_SHUTDOWN:
+            return xy_pm_enter_shutdown();
+        default:
+            return XY_PM_ERROR_INVALID_MODE;
+    }
+}
+
+xy_pm_status_t xy_pm_set_low_power_mode(bool enable)
+{
+    return (xy_pm_status_t)xy_pm_set_mode(enable ? XY_PM_MODE_SLEEP : XY_PM_MODE_ACTIVE);
+}
+
 /* 低功耗模式控制 */
 int xy_pm_enter_sleep(void)
 {
