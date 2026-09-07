@@ -1,4 +1,5 @@
 #include "stm32l4xx_hal.h"
+#include "xy_hal_delay.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_spi.h"
 #include "xy_hal_uart.h"
@@ -15,14 +16,6 @@ static xy_lcd_st7789_device_t lcd;
 void _init(void) {}
 void _fini(void) {}
 void SysTick_Handler(void) { HAL_IncTick(); }
-void xy_hal_delay_ms(uint32_t ms) { HAL_Delay(ms); }
-void xy_hal_delay_us(uint32_t us)
-{
-    uint32_t cycles = (SystemCoreClock / 1000000U) * us;
-    while (cycles-- != 0U) {
-        __NOP();
-    }
-}
 
 static void backlight(uint8_t on)
 {
@@ -130,7 +123,7 @@ static void fill(uint16_t color, const char *marker)
         fail();
     }
     uart_text(marker);
-    HAL_Delay(500U);
+    xy_hal_delay_ms(500U);
 }
 
 int main(void)
@@ -180,5 +173,5 @@ int main(void)
         fail();
     }
     uart_text("PANDORA_ST7789_PATTERN_DONE\r\nPANDORA_ST7789_FINAL_SAFE backlight=ON pattern=HELD\r\n");
-    for (;;) HAL_Delay(1000U);
+    for (;;) xy_hal_delay_ms(1000U);
 }

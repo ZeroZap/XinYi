@@ -108,6 +108,12 @@ def main() -> None:
         "RCC->CSR",
     )
     require(
+        ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_delay.c",
+        "xy_hal_delay_ms",
+        "xy_hal_delay_us",
+        "HAL_Delay",
+    )
+    require(
         BOARD / "pandora_fota_flash.c",
         "PANDORA_FOTA_METADATA_BASE",
         "xy_hal_flash_write",
@@ -143,19 +149,39 @@ def main() -> None:
     soft_i2c = (BOARD / "pandora_soft_i2c.c").read_text(encoding="utf-8")
     for forbidden in ("HAL_GPIO_Init(", "HAL_GPIO_WritePin(", "HAL_GPIO_ReadPin("):
         assert forbidden not in soft_i2c, f"Pandora software I2C bypasses xy_hal GPIO: {forbidden}"
-    for board_entry in (
+    delay_entries = (
+        "main.c",
         "buzzer_main.c",
         "motor_main.c",
         "rgb_led_main.c",
         "st7789_main.c",
         "sensor_ap3216c_main.c",
         "sensor_icm20608_main.c",
-    ):
+    )
+    for board_entry in delay_entries[1:]:
         entry = (BOARD / board_entry).read_text(encoding="utf-8")
-        for required in ("xy_hal_uart_init", "xy_hal_uart_send", "xy_hal_gpio_init"):
+        for required in (
+            "xy_hal_uart_init",
+            "xy_hal_uart_send",
+            "xy_hal_gpio_init",
+            "xy_hal_delay_ms",
+        ):
             assert required in entry, f"{board_entry} missing canonical HAL call {required}"
-        for forbidden in ("HAL_UART_Init(", "HAL_UART_Transmit(", "HAL_GPIO_Init("):
+        for forbidden in (
+            "HAL_UART_Init(",
+            "HAL_UART_Transmit(",
+            "HAL_GPIO_Init(",
+            "HAL_Delay(",
+            "HAL_GetTick(",
+        ):
             assert forbidden not in entry, f"{board_entry} bypasses canonical XinYi HAL: {forbidden}"
+    smoke_entry = (BOARD / "main.c").read_text(encoding="utf-8")
+    assert "xy_hal_delay_ms" in smoke_entry
+    assert "HAL_Delay(" not in smoke_entry
+    for sensor_entry in ("sensor_ap3216c_main.c", "sensor_icm20608_main.c"):
+        entry = (BOARD / sensor_entry).read_text(encoding="utf-8")
+        assert "xy_hal_sys_get_tick_count" in entry
+        assert "HAL_GetTick(" not in entry
     for fota_entry in ("fota_bootloader_main.c", "fota_candidate_programmer_main.c"):
         entry = (BOARD / fota_entry).read_text(encoding="utf-8")
         for required in ("xy_hal_uart_init", "xy_hal_uart_send", "xy_hal_gpio_init"):

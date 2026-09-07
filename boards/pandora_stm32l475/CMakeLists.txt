@@ -21,6 +21,7 @@ add_executable(pandora_stm32l475_smoke
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_flash.c
     pandora_soft_i2c.c
     pandora_sys.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
@@ -78,7 +79,9 @@ add_custom_command(TARGET pandora_stm32l475_smoke POST_BUILD
 add_executable(pandora_stm32l475_icm20608
     sensor_icm20608_main.c
     pandora_soft_i2c.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_icm20608.c
@@ -116,8 +119,10 @@ add_custom_command(TARGET pandora_stm32l475_icm20608 POST_BUILD
 add_executable(pandora_stm32l475_ap3216c
     sensor_ap3216c_main.c
     pandora_hw_i2c.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_i2c.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_ap3216c.c
@@ -157,6 +162,7 @@ add_custom_command(TARGET pandora_stm32l475_ap3216c POST_BUILD
 add_executable(pandora_stm32l475_buzzer
     buzzer_main.c
     ${CMAKE_SOURCE_DIR}/components/actuator/xy_actuator_buzzer.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
@@ -190,6 +196,7 @@ add_custom_command(TARGET pandora_stm32l475_buzzer POST_BUILD
 add_executable(pandora_stm32l475_motor
     motor_main.c
     ${CMAKE_SOURCE_DIR}/components/actuator/xy_actuator_motor.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
@@ -223,6 +230,7 @@ add_custom_command(TARGET pandora_stm32l475_motor POST_BUILD
 add_executable(pandora_stm32l475_rgb_led
     rgb_led_main.c
     ${CMAKE_SOURCE_DIR}/components/actuator/xy_actuator_rgb_led.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
@@ -258,6 +266,7 @@ add_executable(pandora_stm32l475_st7789
     ${CMAKE_SOURCE_DIR}/components/drivers/display/lcd/xy_lcd.c
     ${CMAKE_SOURCE_DIR}/components/drivers/display/lcd/xy_lcd_spi.c
     ${CMAKE_SOURCE_DIR}/components/drivers/display/lcd/xy_lcd_st7789.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c

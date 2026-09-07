@@ -2,6 +2,7 @@
 #include "pandora_fota_flash.h"
 #include "pandora_soft_i2c.h"
 #include "xy_device.h"
+#include "xy_hal_delay.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
@@ -45,11 +46,11 @@ static void uart_hex32(uint32_t value)
 static int aht10_init(xy_i2c_device_t *device)
 {
     static const uint8_t command[] = {0xE1U, 0x08U, 0x00U};
-    HAL_Delay(40U);
+    xy_hal_delay_ms(40U);
     if (xy_i2c_device_write(device, command, sizeof(command)) != XY_DEVICE_OK) {
         return 0;
     }
-    HAL_Delay(10U);
+    xy_hal_delay_ms(10U);
     return 1;
 }
 
@@ -61,7 +62,7 @@ static int aht10_measure(xy_i2c_device_t *device, uint32_t *humidity_milli_perce
     if (xy_i2c_device_write(device, command, sizeof(command)) != XY_DEVICE_OK) {
         return 0;
     }
-    HAL_Delay(80U);
+    xy_hal_delay_ms(80U);
     if (xy_i2c_device_read(device, data, sizeof(data)) != XY_DEVICE_OK ||
         (data[0] & 0x80U) != 0U) {
         return 0;
@@ -220,7 +221,7 @@ int main(void)
     } else if ((reset_reason & XY_HAL_SYS_RESET_REASON_SOFTWARE) != 0U) {
         uart_text("SYS_RESET_KIND SOFTWARE\r\nSYS_SOFTWARE_RESET_OK\r\n");
         uart_text("SYS_WATCHDOG_RESET_REQUEST\r\n");
-        HAL_Delay(250U);
+        xy_hal_delay_ms(250U);
         watchdog.Instance = IWDG;
         if (xy_hal_iwdg_init(&watchdog, &watchdog_config) != XY_HAL_OK) {
             fail();
@@ -231,12 +232,12 @@ int main(void)
                (reset_reason & XY_HAL_SYS_RESET_REASON_BROWNOUT) == 0U) {
         uart_text("SYS_RESET_KIND EXTERNAL_PIN\r\nSYS_EXTERNAL_PIN_RESET_OK\r\n");
         uart_text("SYS_SOFTWARE_RESET_REQUEST\r\n");
-        HAL_Delay(250U);
+        xy_hal_delay_ms(250U);
         (void)xy_sys_reset(1);
         fail();
     } else {
         uart_text("SYS_RESET_KIND POWER_ON\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
-        HAL_Delay(250U);
+        xy_hal_delay_ms(250U);
         (void)xy_sys_reset(1);
         fail();
     }
@@ -261,7 +262,7 @@ int main(void)
             fail();
         }
         uart_text("FOTA_BOOT_HANDOFF_COMMITTED slot=1 version=2\r\n");
-        HAL_Delay(250U);
+        xy_hal_delay_ms(250U);
         (void)xy_sys_reset(1);
         fail();
     }
@@ -275,7 +276,7 @@ int main(void)
             fail();
         }
         uart_text("FOTA_BOOT_ATTEMPT_COMMITTED count=1\r\n");
-        HAL_Delay(250U);
+        xy_hal_delay_ms(250U);
         (void)xy_sys_reset(1);
         fail();
     }
@@ -313,7 +314,7 @@ int main(void)
                 fail();
             }
             uart_text("FOTA_ROLLBACK_HANDOFF_COMMITTED slot=0 version=3\r\n");
-            HAL_Delay(250U);
+            xy_hal_delay_ms(250U);
             (void)xy_sys_reset(1);
             fail();
         }
@@ -326,7 +327,7 @@ int main(void)
             fail();
         }
         uart_text("FOTA_ROLLBACK_ATTEMPT_COMMITTED count=1\r\n");
-        HAL_Delay(250U);
+        xy_hal_delay_ms(250U);
         (void)xy_sys_reset(1);
         fail();
     } else if (loaded.pending_slot == 0U && loaded.pending_version == 3U &&
@@ -369,6 +370,6 @@ int main(void)
         if (xy_hal_gpio_read(GPIOD, 10U) == 0) {
             (void)xy_hal_uart_send(&uart1, key0, sizeof(key0) - 1U, 100U);
         }
-        HAL_Delay(500U);
+        xy_hal_delay_ms(500U);
     }
 }

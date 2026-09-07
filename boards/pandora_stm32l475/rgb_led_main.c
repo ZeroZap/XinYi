@@ -1,5 +1,6 @@
 #include "stm32l4xx_hal.h"
 #include "xy_actuator_rgb_led.h"
+#include "xy_hal_delay.h"
 #include "xy_hal_uart.h"
 
 #ifndef XINYI_FIRMWARE_COMMIT
@@ -87,7 +88,7 @@ static void uart_init(void)
 
 static void board_delay(uint32_t milliseconds)
 {
-    HAL_Delay(milliseconds);
+    xy_hal_delay_ms(milliseconds);
 }
 
 int main(void)
@@ -135,6 +136,6 @@ int main(void)
     }
     uart_text("PANDORA_RGB_FINAL_OFF\r\n");
     for (;;) {
-        HAL_Delay(1000U);
+        xy_hal_delay_ms(1000U);
     }
 }

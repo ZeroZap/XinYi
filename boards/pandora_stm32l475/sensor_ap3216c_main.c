@@ -2,6 +2,8 @@
 #include "sensor_ap3216c.h"
 #include "stm32l4xx_hal.h"
 #include "xy_device.h"
+#include "xy_hal_delay.h"
+#include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
 
 #ifndef XINYI_FIRMWARE_COMMIT
@@ -14,9 +16,9 @@ static xy_i2c_device_t ap_bus;
 void _init(void) {}
 void _fini(void) {}
 void SysTick_Handler(void) { HAL_IncTick(); }
-void delay_ms(uint32_t ms) { HAL_Delay(ms); }
-uint32_t get_tick_ms(void) { return HAL_GetTick(); }
-uint32_t xy_os_tick_get(void) { return HAL_GetTick(); }
+void delay_ms(uint32_t ms) { xy_hal_delay_ms(ms); }
+uint32_t get_tick_ms(void) { return xy_hal_sys_get_tick_count(); }
+uint32_t xy_os_tick_get(void) { return xy_hal_sys_get_tick_count(); }
 
 static void fail(void)
 {
@@ -184,6 +186,6 @@ int main(void)
         uart_text(" ALS_lux="); uart_u32(als_data.value.val_uint32);
         uart_text(" PS_raw="); uart_u32((uint32_t)ps_data.value.val_int32);
         uart_text(" IR_raw="); uart_u32(ir_data.value.val_uint32); uart_text("\r\n");
-        HAL_Delay(100U);
+        xy_hal_delay_ms(100U);
     }
 }
