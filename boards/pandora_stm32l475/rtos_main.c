@@ -10,6 +10,7 @@
 #include "xy_hal_gpio.h"
 #include "xy_hal_qspi.h"
 #include "xy_hal_spi.h"
+#include "xy_hal_sys.h"
 #include "xy_hal_timer.h"
 #include "xy_hal_uart.h"
 #include "xy_os.h"
@@ -1028,7 +1029,7 @@ static void dma_task(void *argument)
 #ifndef PANDORA_IPC_ISR_STRESS_ONLY
             RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
             uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");
-            NVIC_SystemReset();
+            (void)xy_hal_sys_software_reset();
             fail();
 #endif
         }
@@ -1279,7 +1280,7 @@ int main(void)
     } else if (w25q128_mcu_reset_recovery_pending != 0U) {
         RTC->BKP1R = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
         uart_text("PANDORA_FOTA_CONFIRM_REQUESTED\r\n");
-        NVIC_SystemReset();
+        (void)xy_hal_sys_software_reset();
         fail();
     }
 #endif

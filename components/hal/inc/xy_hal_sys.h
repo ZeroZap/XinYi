@@ -46,6 +46,16 @@ typedef struct {
 
 /* ==================== 系统控制 ==================== */
 
+/** Platform-independent reset-cause bits returned by xy_hal_sys_get_reset_reason(). */
+typedef enum {
+    XY_HAL_SYS_RESET_REASON_NONE = 0U,
+    XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN = 1U << 0,
+    XY_HAL_SYS_RESET_REASON_BROWNOUT = 1U << 1,
+    XY_HAL_SYS_RESET_REASON_SOFTWARE = 1U << 2,
+    XY_HAL_SYS_RESET_REASON_WATCHDOG = 1U << 3,
+    XY_HAL_SYS_RESET_REASON_LOW_POWER = 1U << 4,
+} xy_hal_sys_reset_reason_t;
+
 /**
  * @brief 系统初始化
  * @return XY_HAL_OK 成功，其他值失败
@@ -105,6 +115,13 @@ xy_hal_error_t xy_hal_sys_clear_reset_reason(void);
  * @return 芯片 ID，负值表示错误
  */
 int32_t xy_hal_sys_get_chip_id(void);
+
+/**
+ * @brief Read the MCU's 96-bit unique identifier.
+ * @param[out] id Three 32-bit words in device-defined order.
+ * @return XY_HAL_OK on success, otherwise an error.
+ */
+xy_hal_error_t xy_hal_sys_get_unique_id(uint32_t id[3]);
 
 /**
  * @brief 获取芯片版本

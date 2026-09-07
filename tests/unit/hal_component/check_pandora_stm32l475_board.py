@@ -89,9 +89,22 @@ def main() -> None:
         "xy_sys_reset",
         "xy_sys_reboot_reason",
         "xy_sys_get_chip_id",
+        "xy_hal_sys_get_reset_reason",
+        "xy_hal_sys_clear_reset_reason",
+        "xy_hal_sys_get_unique_id",
+        "xy_hal_sys_software_reset",
+    )
+    pandora_sys = (BOARD / "pandora_sys.c").read_text(encoding="utf-8")
+    for forbidden in ("NVIC_SystemReset", "HAL_GetUID", "__HAL_RCC_", "RCC->"):
+        assert forbidden not in pandora_sys, f"pandora_sys.c bypasses canonical SYS HAL: {forbidden}"
+    require(
+        ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_sys.c",
+        "xy_hal_sys_get_reset_reason",
+        "xy_hal_sys_clear_reset_reason",
+        "xy_hal_sys_get_unique_id",
+        "xy_hal_sys_software_reset",
         "NVIC_SystemReset",
         "HAL_GetUIDw0",
-        "__HAL_RCC_CLEAR_RESET_FLAGS",
         "RCC->CSR",
     )
     require(
@@ -165,6 +178,9 @@ def main() -> None:
             "HAL_GPIO_TogglePin(",
         ):
             assert forbidden not in entry, f"{primary_entry} bypasses canonical XinYi HAL: {forbidden}"
+    rtos_entry = (BOARD / "rtos_main.c").read_text(encoding="utf-8")
+    assert "xy_hal_sys_software_reset" in rtos_entry
+    assert "NVIC_SystemReset" not in rtos_entry
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_uart.c",
         "xy_hal_uart_init",
@@ -248,18 +264,18 @@ def main() -> None:
         "xy_sys_init",
         "xy_sys_reboot_reason",
         "xy_sys_get_chip_id",
-        "RCC_CSR_SFTRSTF",
+        "XY_HAL_SYS_RESET_REASON_SOFTWARE",
         "SYS_RESET_CSR",
         "SYS_CHIP_ID",
         "SYS_RESET_KIND SOFTWARE",
         "SYS_SOFTWARE_RESET_REQUEST",
         "SYS_SOFTWARE_RESET_OK",
-        "RCC_CSR_PINRSTF",
-        "RCC_CSR_BORRSTF",
+        "XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN",
+        "XY_HAL_SYS_RESET_REASON_BROWNOUT",
         "SYS_RESET_KIND EXTERNAL_PIN",
         "SYS_EXTERNAL_PIN_RESET_OK",
         "SYS_RESET_KIND POWER_ON",
-        "RCC_CSR_IWDGRSTF",
+        "XY_HAL_SYS_RESET_REASON_WATCHDOG",
         "SYS_WATCHDOG_RESET_REQUEST",
         "SYS_RESET_KIND WATCHDOG",
         "SYS_WATCHDOG_RESET_OK",

@@ -211,7 +211,7 @@ def main() -> int:
             "PANDORA_FOTA_BOOTABLE_CANDIDATE_VALIDATED",
             "PANDORA_FOTA_BOOTABLE_CANDIDATE_ERROR",
             "__flash_image_end",
-            "NVIC_SystemReset",
+            "xy_hal_sys_software_reset",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_ERROR",
         ):
             if token not in main_source:

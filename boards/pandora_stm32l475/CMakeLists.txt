@@ -22,6 +22,7 @@ add_executable(pandora_stm32l475_smoke
     pandora_soft_i2c.c
     pandora_sys.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32f4/xy_hal_wdg.c
     ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
@@ -420,6 +421,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_timer.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
@@ -498,6 +500,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_timer.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c

@@ -1,14 +1,14 @@
 #include "xy_sys.h"
 
-#include "stm32l4xx_hal.h"
 #include "xy_error.h"
+#include "xy_hal_sys.h"
 
 static uint32_t pandora_reset_reason;
 
 void xy_sys_init(void)
 {
-    pandora_reset_reason = RCC->CSR;
-    __HAL_RCC_CLEAR_RESET_FLAGS();
+    pandora_reset_reason = xy_hal_sys_get_reset_reason();
+    (void)xy_hal_sys_clear_reset_reason();
 }
 
 int xy_sys_reset(int reset_by)
@@ -17,10 +17,7 @@ int xy_sys_reset(int reset_by)
         return XY_ERROR_INVALID_PARAM;
     }
 
-    __DSB();
-    NVIC_SystemReset();
-    for (;;) {
-    }
+    return xy_hal_sys_software_reset() == XY_HAL_OK ? XY_OK : XY_ERROR;
 }
 
 int xy_sys_reboot_reason(void *data)
@@ -41,8 +38,5 @@ int xy_sys_get_chip_id(void *data)
         return XY_ERROR_INVALID_PARAM;
     }
 
-    chip_id[0] = HAL_GetUIDw0();
-    chip_id[1] = HAL_GetUIDw1();
-    chip_id[2] = HAL_GetUIDw2();
-    return XY_OK;
+    return xy_hal_sys_get_unique_id(chip_id) == XY_HAL_OK ? XY_OK : XY_ERROR;
 }

@@ -3,6 +3,7 @@
 #include "pandora_soft_i2c.h"
 #include "xy_device.h"
 #include "xy_hal_gpio.h"
+#include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
 #include "xy_hal_wdg.h"
 #include "xy_sys.h"
@@ -214,9 +215,9 @@ int main(void)
     uart_hex32(chip_id[1]);
     uart_hex32(chip_id[2]);
     uart_text("\r\n");
-    if ((reset_reason & RCC_CSR_IWDGRSTF) != 0U) {
+    if ((reset_reason & XY_HAL_SYS_RESET_REASON_WATCHDOG) != 0U) {
         uart_text("SYS_RESET_KIND WATCHDOG\r\nSYS_WATCHDOG_RESET_OK\r\n");
-    } else if ((reset_reason & RCC_CSR_SFTRSTF) != 0U) {
+    } else if ((reset_reason & XY_HAL_SYS_RESET_REASON_SOFTWARE) != 0U) {
         uart_text("SYS_RESET_KIND SOFTWARE\r\nSYS_SOFTWARE_RESET_OK\r\n");
         uart_text("SYS_WATCHDOG_RESET_REQUEST\r\n");
         HAL_Delay(250U);
@@ -226,8 +227,8 @@ int main(void)
         }
         for (;;) {
         }
-    } else if ((reset_reason & RCC_CSR_PINRSTF) != 0U &&
-               (reset_reason & RCC_CSR_BORRSTF) == 0U) {
+    } else if ((reset_reason & XY_HAL_SYS_RESET_REASON_EXTERNAL_PIN) != 0U &&
+               (reset_reason & XY_HAL_SYS_RESET_REASON_BROWNOUT) == 0U) {
         uart_text("SYS_RESET_KIND EXTERNAL_PIN\r\nSYS_EXTERNAL_PIN_RESET_OK\r\n");
         uart_text("SYS_SOFTWARE_RESET_REQUEST\r\n");
         HAL_Delay(250U);
