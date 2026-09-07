@@ -185,13 +185,15 @@ uint32_t xy_pm_get_battery_voltage(void)
 /* 低功耗模式控制 */
 int xy_pm_enter_sleep(void)
 {
+    int result;
+
+    if (!s_pm.initialized) return XY_PM_NOT_INITIALIZED;
+    if (s_pm.state.state == XY_PM_SYSTEM_STATE_SLEEP) return XY_PM_ERROR_INVALID_MODE;
     xy_log_i("PM: Entering sleep mode\n");
-
-    /* 停止非必要外设 */
-    /* 降低系统频率 */
-    /* 进入 STOP/SLEEP 模式 */
-
-    return XY_PM_OK;
+    result = xy_pm_platform_enter_sleep();
+    if (result != XY_PM_OK) return result;
+    s_pm.state.state = XY_PM_SYSTEM_STATE_SLEEP;
+    return result;
 }
 
 int xy_pm_enter_shutdown(void)
@@ -207,10 +209,13 @@ int xy_pm_enter_shutdown(void)
 
 int xy_pm_wakeup(void)
 {
+    int result;
+
+    if (!s_pm.initialized) return XY_PM_NOT_INITIALIZED;
+    if (s_pm.state.state != XY_PM_SYSTEM_STATE_SLEEP) return XY_PM_ERROR_INVALID_MODE;
     xy_log_i("PM: Waking up from sleep\n");
-
-    /* 恢复系统时钟 */
-    /* 恢复外设 */
-
-    return XY_PM_OK;
+    result = xy_pm_platform_wakeup();
+    if (result != XY_PM_OK) return result;
+    s_pm.state.state = XY_PM_SYSTEM_STATE_IDLE;
+    return result;
 }

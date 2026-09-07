@@ -1277,6 +1277,7 @@ xy_add_unit_test(test_pm pm_component UNITY
     ${PM}/src/xy_pm_platform.c
     ${PM}/src/xy_charger.c
     ${PM}/src/xy_fuel_gauge.c
+    ${HAL}/PC/xy_hal_pc.c
     ${CLIB}/xy_stdio.c
     ${CLIB}/xy_string.c
     ${CLIB}/xy_ctype.c
@@ -1287,6 +1288,7 @@ target_compile_definitions(test_pm PRIVATE PLATFORM_PC XY_PM_PLATFORM_OWNS_CHARG
 xy_add_unit_test(test_pm_platform_fallback pm_platform_fallback UNITY
     ${UNIT_PM}/test_pm_platform_fallback.c
     ${PM}/src/xy_pm_platform.c
+    ${HAL}/PC/xy_hal_pc.c
 )
 target_compile_definitions(test_pm_platform_fallback PRIVATE XY_PM_ENABLE_TEST_HOOKS)
 

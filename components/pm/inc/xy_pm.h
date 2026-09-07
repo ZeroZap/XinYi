@@ -107,6 +107,9 @@ uint8_t xy_pm_get_battery_percent(void);
 xy_pm_status_t xy_pm_set_low_power_mode(bool enable);
 xy_pm_status_t xy_pm_shutdown(void);
 int xy_pm_get_state(xy_pm_system_state_info_t *state);
+int xy_pm_enter_sleep(void);
+int xy_pm_enter_shutdown(void);
+int xy_pm_wakeup(void);
 
 /* Charger API */
 int xy_charger_init(const xy_charger_config_t *config);
@@ -137,6 +140,8 @@ int xy_pm_adc_read(uint32_t *value);
 
 /* Platform-specific functions (implemented in xy_pm_platform.c) */
 uint32_t xy_pm_tick_get(void);
+int xy_pm_platform_enter_sleep(void);
+int xy_pm_platform_wakeup(void);
 const char* xy_pm_get_platform_name(void);
 bool xy_pm_is_platform(int platform);
 int xy_charger_hw_init(void);

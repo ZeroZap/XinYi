@@ -1201,6 +1201,32 @@ static void multi_consumer_task(void *argument)
     xy_os_thread_exit();
 }
 
+static void pm_sleep_task(void *argument)
+{
+    xy_pm_system_state_info_t state;
+
+    (void)argument;
+    (void)xy_os_delay(2000U);
+    if (xy_pm_init() != XY_PM_OK) {
+        uart_text("OSAL_PM_SLEEP_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_PM_SLEEP_ENTER\r\n");
+    if (xy_pm_enter_sleep() != XY_PM_OK || xy_pm_get_state(&state) != XY_PM_OK ||
+        state.state != XY_PM_SYSTEM_STATE_SLEEP) {
+        uart_text("OSAL_PM_SLEEP_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_PM_WAKE_IRQ\r\n");
+    if (xy_pm_wakeup() != XY_PM_OK || xy_pm_get_state(&state) != XY_PM_OK ||
+        state.state != XY_PM_SYSTEM_STATE_IDLE) {
+        uart_text("OSAL_PM_WAKE_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_PM_SLEEP_WAKE_OK\r\n");
+    xy_os_thread_exit();
+}
+
 int main(void)
 {
     static const xy_os_thread_attr_t fast_attr = {
@@ -1236,6 +1262,11 @@ int main(void)
     static const xy_os_thread_attr_t dma_attr = {
         .name = "hal-dma",
         .stack_size = 1536U,
+        .priority = XY_OS_PRIORITY_NORMAL,
+    };
+    static const xy_os_thread_attr_t pm_sleep_attr = {
+        .name = "pm-sleep",
+        .stack_size = 768U,
         .priority = XY_OS_PRIORITY_NORMAL,
     };
 
@@ -1312,7 +1343,8 @@ int main(void)
         xy_os_thread_new(multi_producer_task, (void *)(uintptr_t)0U, &multi_attr) == NULL ||
         xy_os_thread_new(multi_producer_task, (void *)(uintptr_t)1U, &multi_attr) == NULL ||
         xy_os_thread_new(multi_consumer_task, (void *)(uintptr_t)0U, &multi_attr) == NULL ||
-        xy_os_thread_new(multi_consumer_task, (void *)(uintptr_t)1U, &multi_attr) == NULL) {
+        xy_os_thread_new(multi_consumer_task, (void *)(uintptr_t)1U, &multi_attr) == NULL ||
+        xy_os_thread_new(pm_sleep_task, NULL, &pm_sleep_attr) == NULL) {
         fail();
     }
 

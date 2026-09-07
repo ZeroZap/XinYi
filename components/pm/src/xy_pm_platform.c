@@ -9,6 +9,7 @@
  */
 
 #include "../inc/xy_pm.h"
+#include "xy_hal_sys.h"
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -102,6 +103,17 @@ uint32_t xy_pm_tick_get(void)
     }
 #endif
     return platform_tick_get();
+}
+
+int xy_pm_platform_enter_sleep(void)
+{
+    return xy_hal_sys_enter_pwr_mode(XY_HAL_SYS_PWR_SLEEP) == XY_HAL_OK ? XY_PM_OK
+                                                                        : XY_PM_ERROR;
+}
+
+int xy_pm_platform_wakeup(void)
+{
+    return xy_hal_sys_exit_pwr_mode() == XY_HAL_OK ? XY_PM_OK : XY_PM_ERROR;
 }
 
 /* ============================================================
