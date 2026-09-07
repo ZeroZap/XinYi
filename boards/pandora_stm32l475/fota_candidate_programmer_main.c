@@ -4,7 +4,9 @@
 #include "stm32l4xx_hal.h"
 #include "xy_device.h"
 #include "xy_fota_w25q128.h"
+#include "xy_hal_gpio.h"
 #include "xy_hal_qspi.h"
+#include "xy_hal_uart.h"
 #include "xy_w25q128.h"
 
 #ifndef XINYI_FIRMWARE_COMMIT
@@ -41,11 +43,11 @@ static void stop(void)
 
 static void uart_text(const char *text)
 {
-    uint16_t length = 0U;
+    size_t length = 0U;
     while (text[length] != '\0') {
         ++length;
     }
-    (void)HAL_UART_Transmit(&uart1, (uint8_t *)text, length, 200U);
+    (void)xy_hal_uart_send(&uart1, (const uint8_t *)text, length, 200U);
 }
 
 static void clock_init(void)
@@ -82,37 +84,34 @@ static void clock_init(void)
 
 static void peripherals_init(void)
 {
-    GPIO_InitTypeDef gpio = {0};
+    const xy_hal_gpio_config_t uart_gpio = {
+        XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_UP, XY_HAL_GPIO_OTYPE_PP,
+        XY_HAL_GPIO_SPEED_VERY_HIGH, GPIO_AF7_USART1,
+    };
+    const xy_hal_gpio_config_t qspi_gpio = {
+        XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_UP, XY_HAL_GPIO_OTYPE_PP,
+        XY_HAL_GPIO_SPEED_VERY_HIGH, GPIO_AF10_QUADSPI,
+    };
+    const xy_hal_uart_config_t uart_config = {
+        115200U, XY_HAL_UART_WORDLEN_8B, XY_HAL_UART_STOPBITS_1, XY_HAL_UART_PARITY_NONE,
+        XY_HAL_UART_FLOWCTRL_NONE, XY_HAL_UART_MODE_TX_RX,
+    };
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOE_CLK_ENABLE();
     __HAL_RCC_USART1_CLK_ENABLE();
     __HAL_RCC_QSPI_CLK_ENABLE();
-    gpio.Pin = GPIO_PIN_9 | GPIO_PIN_10;
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF7_USART1;
-    HAL_GPIO_Init(GPIOA, &gpio);
     uart1.Instance = USART1;
-    uart1.Init.BaudRate = 115200U;
-    uart1.Init.WordLength = UART_WORDLENGTH_8B;
-    uart1.Init.StopBits = UART_STOPBITS_1;
-    uart1.Init.Parity = UART_PARITY_NONE;
-    uart1.Init.Mode = UART_MODE_TX_RX;
-    uart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    uart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    uart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-    if (HAL_UART_Init(&uart1) != HAL_OK) {
+    if (xy_hal_gpio_init(GPIOA, 9U, &uart_gpio) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOA, 10U, &uart_gpio) != XY_HAL_OK ||
+        xy_hal_uart_init(&uart1, &uart_config) != XY_HAL_OK) {
         stop();
     }
-    gpio.Pin = GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 |
-               GPIO_PIN_15;
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF10_QUADSPI;
-    HAL_GPIO_Init(GPIOE, &gpio);
+    for (uint8_t pin = 10U; pin <= 15U; ++pin) {
+        if (xy_hal_gpio_init(GPIOE, pin, &qspi_gpio) != XY_HAL_OK) {
+            stop();
+        }
+    }
     qspi.Instance = QUADSPI;
 }
 

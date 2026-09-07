@@ -287,6 +287,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
            "Build a one-shot reviewed restage-authorizing bootloader" OFF)
     set(PANDORA_FOTA_RESTAGE_SOURCE_COMMIT "" CACHE STRING
         "Exact source commit approved for one-shot candidate restage")
+    string(LENGTH "${PANDORA_FOTA_RESTAGE_SOURCE_COMMIT}" _restage_commit_length)
     set(PANDORA_FOTA_CANDIDATE "" CACHE FILEPATH
         "Validated candidate envelope to embed in the one-shot W25Q128 programmer")
     add_executable(pandora_stm32l475_fota_bootloader
@@ -295,7 +296,9 @@ if(OSAL_BACKEND STREQUAL "freertos")
         pandora_fota_install_flash.c
         ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
         ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
         ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_boot.c
         ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_w25q128.c
@@ -325,7 +328,6 @@ if(OSAL_BACKEND STREQUAL "freertos")
     target_compile_definitions(pandora_stm32l475_fota_bootloader PRIVATE
         STM32L475xx USE_HAL_DRIVER XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
     if(PANDORA_FOTA_AUTHORIZE_RESTAGE)
-        string(LENGTH "${PANDORA_FOTA_RESTAGE_SOURCE_COMMIT}" _restage_commit_length)
         if(NOT _restage_commit_length EQUAL 40 OR
            NOT PANDORA_FOTA_RESTAGE_SOURCE_COMMIT MATCHES "^[0-9a-f]+$")
             message(FATAL_ERROR
@@ -371,7 +373,9 @@ if(OSAL_BACKEND STREQUAL "freertos")
             ${_candidate_header}
             ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
             ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
+            ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
             ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+            ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
             ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
             ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_w25q128.c
             ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s

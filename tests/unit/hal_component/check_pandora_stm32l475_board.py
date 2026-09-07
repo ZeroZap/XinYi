@@ -61,6 +61,7 @@ def main() -> None:
         "stm32l4xx_hal_iwdg.c",
         "pandora_fota_flash.c",
         "xy_fota_metadata.c",
+        'string(LENGTH "${PANDORA_FOTA_RESTAGE_SOURCE_COMMIT}" _restage_commit_length)',
         "startup_stm32l475xx.s",
         "STM32L475VETX_FLASH.ld",
         "-O binary",
@@ -134,6 +135,12 @@ def main() -> None:
             assert required in entry, f"{board_entry} missing canonical HAL call {required}"
         for forbidden in ("HAL_UART_Init(", "HAL_UART_Transmit(", "HAL_GPIO_Init("):
             assert forbidden not in entry, f"{board_entry} bypasses canonical XinYi HAL: {forbidden}"
+    for fota_entry in ("fota_bootloader_main.c", "fota_candidate_programmer_main.c"):
+        entry = (BOARD / fota_entry).read_text(encoding="utf-8")
+        for required in ("xy_hal_uart_init", "xy_hal_uart_send", "xy_hal_gpio_init"):
+            assert required in entry, f"{fota_entry} missing canonical HAL call {required}"
+        for forbidden in ("HAL_UART_Init(", "HAL_UART_Transmit(", "HAL_GPIO_Init("):
+            assert forbidden not in entry, f"{fota_entry} bypasses canonical XinYi HAL: {forbidden}"
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_uart.c",
         "xy_hal_uart_init",
