@@ -107,6 +107,13 @@ int xy_charger_stop(void);
 int xy_charger_get_state(xy_charger_state_t *state);
 
 /**
+ * @brief Compatibility alias for retrieving charger state
+ * @param state Pointer to state structure
+ * @return XY_CHARGER_OK on success
+ */
+int xy_charger_get_status(xy_charger_state_t *state);
+
+/**
  * @brief Set charge current
  * @param current_mA Charge current in mA
  * @return XY_CHARGER_OK on success

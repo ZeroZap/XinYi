@@ -152,6 +152,7 @@ static void test_charger_contracts(void)
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_deinit());
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_NOT_CHARGING, xy_charger_start());
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_INVALID_PARAM, xy_charger_get_state(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_INVALID_PARAM, xy_charger_get_status(NULL));
     memset(&state, 0xA5, sizeof(state));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_NOT_CHARGING, xy_charger_get_state(&state));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_STATUS_IDLE, state.status);
@@ -171,6 +172,10 @@ static void test_charger_contracts(void)
     } else {
         TEST_ASSERT_EQUAL_INT(XY_CHARGER_STATUS_CONSTANT_VOLTAGE, state.status);
     }
+    memset(&state, 0xA5, sizeof(state));
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_get_status(&state));
+    TEST_ASSERT_TRUE(state.charging);
+    TEST_ASSERT_NOT_EQUAL(XY_CHARGER_STATUS_IDLE, state.status);
     TEST_ASSERT_EQUAL_UINT(3700U, state.battery_voltage_mV);
     TEST_ASSERT_EQUAL_UINT(40U, state.soc_percent);
 

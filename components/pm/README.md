@@ -84,6 +84,9 @@ xy_charger_state_t state;
 xy_charger_get_state(&state);
 ```
 
+`xy_charger_get_status()` 是同一完整状态快照的 public compatibility alias，与
+`xy_charger_get_state()` 共享参数校验和错误语义。
+
 ### PM-local 电量计操作
 
 ```c

@@ -202,6 +202,11 @@ int xy_charger_get_state(xy_charger_state_t *state)
     return XY_CHARGER_OK;
 }
 
+int xy_charger_get_status(xy_charger_state_t *state)
+{
+    return xy_charger_get_state(state);
+}
+
 int xy_charger_set_current(uint32_t current_mA)
 {
     if (!s_charger.initialized) return XY_CHARGER_NOT_CHARGING;
