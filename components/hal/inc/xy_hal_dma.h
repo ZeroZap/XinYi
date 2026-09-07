@@ -133,6 +133,12 @@ int xy_hal_dma_get_counter(void *dma);
  */
 xy_hal_error_t xy_hal_dma_poll_complete(void *dma, uint32_t timeout);
 
+/**
+ * @brief Dispatch a DMA interrupt through the selected HAL backend
+ * @param dma Platform DMA handle associated with the active IRQ
+ */
+void xy_hal_dma_irq_handler(void *dma);
+
 #ifdef __cplusplus
 }
 #endif

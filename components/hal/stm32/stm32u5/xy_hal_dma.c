@@ -287,4 +287,11 @@ xy_hal_error_t xy_hal_dma_poll_complete(void *dma, uint32_t timeout)
     return (st == HAL_TIMEOUT) ? XY_HAL_ERROR_TIMEOUT : XY_HAL_ERROR_FAIL;
 }
 
+void xy_hal_dma_irq_handler(void *dma)
+{
+    if (dma != NULL) {
+        HAL_DMA_IRQHandler((DMA_HandleTypeDef *)dma);
+    }
+}
+
 #endif /* STM32U5 || STM32U5xx */

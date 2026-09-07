@@ -8,6 +8,7 @@ if(HAL_PLATFORM STREQUAL "PC")
         PC/xy_hal_pc.c
         PC/xy_hal_gpio_pc.c
         PC/xy_hal_i2c_pc.c
+        PC/xy_hal_irq_pc.c
         PC/xy_hal_rtc_pc.c
         PC/xy_hal_spi_pc.c
         PC/xy_hal_uart_pc.c

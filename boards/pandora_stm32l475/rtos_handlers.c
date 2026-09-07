@@ -2,6 +2,8 @@
 #include "stm32l4xx_hal_tim.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "xy_hal_dma.h"
+#include "xy_hal_timer.h"
 #include "xy_os.h"
 
 void vPortSVCHandler(void);
@@ -42,15 +44,15 @@ void SysTick_Handler(void)
 
 void TIM6_DAC_IRQHandler(void)
 {
-    HAL_TIM_IRQHandler(&pandora_tim6);
+    xy_hal_timer_irq_handler(&pandora_tim6);
 }
 
 void DMA1_Channel1_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(&dma1_channel1);
+    xy_hal_dma_irq_handler(&dma1_channel1);
 }
 
 void DMA1_Channel3_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(&spi1_tx_dma);
+    xy_hal_dma_irq_handler(&spi1_tx_dma);
 }

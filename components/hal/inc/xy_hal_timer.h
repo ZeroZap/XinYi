@@ -138,6 +138,12 @@ xy_hal_error_t xy_hal_timer_enable_irq(void *timer, xy_hal_timer_event_t event);
 xy_hal_error_t xy_hal_timer_disable_irq(void *timer,
                                         xy_hal_timer_event_t event);
 
+/**
+ * @brief Dispatch a timer interrupt through the selected HAL backend
+ * @param timer Platform timer handle associated with the active IRQ
+ */
+void xy_hal_timer_irq_handler(void *timer);
+
 #ifdef __cplusplus
 }
 #endif

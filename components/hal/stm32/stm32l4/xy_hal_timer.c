@@ -239,6 +239,13 @@ xy_hal_error_t xy_hal_timer_disable_irq(void *timer, xy_hal_timer_event_t event)
                                                                      : XY_HAL_ERROR_FAIL;
 }
 
+void xy_hal_timer_irq_handler(void *timer)
+{
+    if (timer != NULL) {
+        HAL_TIM_IRQHandler((TIM_HandleTypeDef *)timer);
+    }
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     timer_ctx_t *context = find_context(htim);

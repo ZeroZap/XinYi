@@ -313,12 +313,48 @@ def main() -> int:
             "xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED",
             "xy_os_semaphore_release_from_isr",
             "TIM6_DAC_IRQHandler",
-            "HAL_TIM_IRQHandler",
+            "xy_hal_timer_irq_handler",
             "DMA1_Channel1_IRQHandler",
-            "HAL_DMA_IRQHandler",
+            "xy_hal_dma_irq_handler",
         ):
             if token not in handler_source:
                 errors.append(f"runtime handlers must preserve token: {token}")
+        for forbidden in ("HAL_TIM_IRQHandler(", "HAL_DMA_IRQHandler("):
+            if forbidden in handler_source:
+                errors.append(f"runtime handlers bypass canonical XinYi HAL: {forbidden}")
+
+        timer_header = (ROOT / "components" / "hal" / "inc" / "xy_hal_timer.h").read_text(
+            encoding="utf-8"
+        )
+        dma_header = (ROOT / "components" / "hal" / "inc" / "xy_hal_dma.h").read_text(
+            encoding="utf-8"
+        )
+        if "void xy_hal_timer_irq_handler(void *timer);" not in timer_header:
+            errors.append("timer HAL must publish the canonical IRQ dispatch entry")
+        if "void xy_hal_dma_irq_handler(void *dma);" not in dma_header:
+            errors.append("DMA HAL must publish the canonical IRQ dispatch entry")
+
+        for backend, dispatch in (
+            (L4_TIMER, "HAL_TIM_IRQHandler((TIM_HandleTypeDef *)timer)"),
+            (L4_DMA, "HAL_DMA_IRQHandler((DMA_HandleTypeDef *)dma)"),
+            (
+                ROOT / "components" / "hal" / "stm32" / "stm32u5" / "xy_hal_timer.c",
+                "HAL_TIM_IRQHandler((TIM_HandleTypeDef *)timer)",
+            ),
+            (
+                ROOT / "components" / "hal" / "stm32" / "stm32u5" / "xy_hal_dma.c",
+                "HAL_DMA_IRQHandler((DMA_HandleTypeDef *)dma)",
+            ),
+        ):
+            if dispatch not in backend.read_text(encoding="utf-8"):
+                errors.append(f"{backend.relative_to(ROOT)} must own vendor IRQ dispatch")
+        pc_irq = ROOT / "components" / "hal" / "PC" / "xy_hal_irq_pc.c"
+        if not pc_irq.is_file():
+            errors.append("PC HAL must provide no-op IRQ dispatch compatibility")
+        elif "xy_hal_timer_irq_handler" not in pc_irq.read_text(
+            encoding="utf-8"
+        ) or "xy_hal_dma_irq_handler" not in pc_irq.read_text(encoding="utf-8"):
+            errors.append("PC HAL must implement both IRQ dispatch entries")
 
     if errors:
         print("pandora_freertos_runtime failed:")
