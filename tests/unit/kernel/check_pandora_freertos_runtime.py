@@ -15,6 +15,8 @@ L4_DMA = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_dma.c"
 L4_SPI = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_spi.c"
 L4_TIMER = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_timer.c"
 L4_SYS = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_sys.c"
+U5_SYS = ROOT / "components" / "hal" / "stm32" / "stm32u5" / "xy_hal_sys.c"
+PC_SYS = ROOT / "components" / "hal" / "PC" / "xy_hal_pc.c"
 
 
 def main() -> int:
@@ -316,7 +318,7 @@ def main() -> int:
             "vPortSVCHandler",
             "xPortPendSVHandler",
             "xPortSysTickHandler",
-            "HAL_IncTick",
+            "xy_hal_sys_tick_irq_handler",
             "xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED",
             "xy_os_semaphore_release_from_isr",
             "TIM6_DAC_IRQHandler",
@@ -326,7 +328,7 @@ def main() -> int:
         ):
             if token not in handler_source:
                 errors.append(f"runtime handlers must preserve token: {token}")
-        for forbidden in ("HAL_TIM_IRQHandler(", "HAL_DMA_IRQHandler("):
+        for forbidden in ("HAL_IncTick(", "HAL_TIM_IRQHandler(", "HAL_DMA_IRQHandler("):
             if forbidden in handler_source:
                 errors.append(f"runtime handlers bypass canonical XinYi HAL: {forbidden}")
 
@@ -348,6 +350,7 @@ def main() -> int:
             "xy_hal_sys_set_irq_priority",
             "xy_hal_sys_enable_irq_num",
             "xy_hal_sys_disable_irq_num",
+            "xy_hal_sys_tick_irq_handler",
         ):
             if token not in sys_header:
                 errors.append(f"SYS HAL must publish the canonical NVIC operation: {token}")
@@ -374,9 +377,17 @@ def main() -> int:
             "HAL_NVIC_SetPriority",
             "HAL_NVIC_EnableIRQ",
             "HAL_NVIC_DisableIRQ",
+            "xy_hal_sys_tick_irq_handler",
+            "HAL_IncTick",
         ):
             if token not in l4_sys_source:
                 errors.append(f"STM32L4 SYS wrapper must own NVIC token: {token}")
+        for backend, label in ((U5_SYS, "STM32U5"), (PC_SYS, "PC")):
+            source = backend.read_text(encoding="utf-8")
+            if "xy_hal_sys_tick_irq_handler" not in source:
+                errors.append(f"{label} SYS backend must implement canonical SysTick dispatch")
+        if "HAL_IncTick" not in U5_SYS.read_text(encoding="utf-8"):
+            errors.append("STM32U5 SYS backend must own vendor SysTick dispatch")
         pc_irq = ROOT / "components" / "hal" / "PC" / "xy_hal_irq_pc.c"
         if not pc_irq.is_file():
             errors.append("PC HAL must provide no-op IRQ dispatch compatibility")

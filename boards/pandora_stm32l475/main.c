@@ -21,7 +21,7 @@ void _fini(void) {}
 
 void SysTick_Handler(void)
 {
-    HAL_IncTick();
+    xy_hal_sys_tick_irq_handler();
 }
 
 static void fail(void)

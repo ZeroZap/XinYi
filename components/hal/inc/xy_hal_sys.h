@@ -80,6 +80,9 @@ uint32_t xy_hal_sys_get_tick_count(void);
  */
 uint32_t xy_hal_sys_get_tick_freq(void);
 
+/** Dispatch the platform vendor tick from the board SysTick ISR. */
+void xy_hal_sys_tick_irq_handler(void);
+
 /**
  * @brief 获取系统时钟信息
  * @param[out] info 时钟信息输出结构

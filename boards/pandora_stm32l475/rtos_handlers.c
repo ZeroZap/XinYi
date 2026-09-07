@@ -3,6 +3,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "xy_hal_dma.h"
+#include "xy_hal_sys.h"
 #include "xy_hal_timer.h"
 #include "xy_os.h"
 
@@ -31,7 +32,7 @@ void SysTick_Handler(void)
 {
     static uint32_t isr_ticks;
 
-    HAL_IncTick();
+    xy_hal_sys_tick_irq_handler();
     if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
         xPortSysTickHandler();
         ++isr_ticks;

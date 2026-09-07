@@ -59,8 +59,9 @@ static void test_hal_sys_pc_clock_and_tick(void)
     TEST_ASSERT_EQUAL_UINT32(XY_HAL_SYS_TICK_FREQ, xy_hal_sys_get_tick_freq());
 
     tick0 = xy_hal_sys_get_tick_count();
+    xy_hal_sys_tick_irq_handler();
     tick1 = xy_hal_sys_get_tick_count();
-    TEST_ASSERT_EQUAL_UINT32(10u, tick1 - tick0);
+    TEST_ASSERT_EQUAL_UINT32(11u, tick1 - tick0);
 }
 
 static void test_gpio_pc_config_state_and_batch(void)

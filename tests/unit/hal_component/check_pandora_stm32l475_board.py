@@ -158,6 +158,17 @@ def main() -> None:
         "sensor_ap3216c_main.c",
         "sensor_icm20608_main.c",
     )
+    tick_entries = delay_entries + (
+        "fota_bootloader_main.c",
+        "fota_candidate_programmer_main.c",
+        "rtos_handlers.c",
+    )
+    for board_entry in tick_entries:
+        entry = (BOARD / board_entry).read_text(encoding="utf-8")
+        assert "xy_hal_sys_tick_irq_handler" in entry, (
+            f"{board_entry} missing canonical SysTick dispatch"
+        )
+        assert "HAL_IncTick(" not in entry, f"{board_entry} owns vendor SysTick dispatch"
     for board_entry in delay_entries[1:]:
         entry = (BOARD / board_entry).read_text(encoding="utf-8")
         for required in (

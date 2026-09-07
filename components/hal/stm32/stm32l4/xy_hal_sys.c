@@ -12,6 +12,11 @@ uint32_t xy_hal_sys_get_tick_freq(void)
     return 1000U;
 }
 
+void xy_hal_sys_tick_irq_handler(void)
+{
+    HAL_IncTick();
+}
+
 xy_hal_error_t xy_hal_sys_software_reset(void)
 {
     __DSB();

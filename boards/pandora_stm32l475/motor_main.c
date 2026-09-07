@@ -1,6 +1,7 @@
 #include "stm32l4xx_hal.h"
 #include "xy_actuator_motor.h"
 #include "xy_hal_delay.h"
+#include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
 
 #ifndef XINYI_FIRMWARE_COMMIT
@@ -11,7 +12,7 @@ static UART_HandleTypeDef uart1;
 
 void _init(void) {}
 void _fini(void) {}
-void SysTick_Handler(void) { HAL_IncTick(); }
+void SysTick_Handler(void) { xy_hal_sys_tick_irq_handler(); }
 
 static void force_standby(void)
 {

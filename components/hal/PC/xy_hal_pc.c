@@ -12,6 +12,7 @@
 #define PC_IRQ_PRIORITY_COUNT 256U
 
 static uint8_t pc_irq_priorities[PC_IRQ_COUNT];
+static uint32_t pc_tick;
 
 /**
  * @brief Delay in milliseconds (PC simulation)
@@ -26,9 +27,13 @@ void xy_hal_delay_ms(uint32_t ms)
  */
 uint32_t xy_hal_sys_get_tick_count(void)
 {
-    static uint32_t tick = 0;
-    tick += 10; /* Simulate 10ms ticks */
-    return tick;
+    pc_tick += 10; /* Simulate 10ms ticks */
+    return pc_tick;
+}
+
+void xy_hal_sys_tick_irq_handler(void)
+{
+    ++pc_tick;
 }
 
 /**

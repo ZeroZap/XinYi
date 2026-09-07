@@ -6,6 +6,7 @@
 #include "xy_fota_w25q128.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_qspi.h"
+#include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
 #include "xy_w25q128.h"
 
@@ -31,7 +32,7 @@ void _fini(void) {}
 
 void SysTick_Handler(void)
 {
-    HAL_IncTick();
+    xy_hal_sys_tick_irq_handler();
 }
 
 static void stop(void)

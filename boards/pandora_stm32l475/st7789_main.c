@@ -2,6 +2,7 @@
 #include "xy_hal_delay.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_spi.h"
+#include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
 #include "xy_lcd_st7789.h"
 
@@ -15,7 +16,7 @@ static xy_lcd_st7789_device_t lcd;
 
 void _init(void) {}
 void _fini(void) {}
-void SysTick_Handler(void) { HAL_IncTick(); }
+void SysTick_Handler(void) { xy_hal_sys_tick_irq_handler(); }
 
 static void backlight(uint8_t on)
 {

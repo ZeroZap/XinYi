@@ -15,7 +15,7 @@ static xy_i2c_device_t ap_bus;
 
 void _init(void) {}
 void _fini(void) {}
-void SysTick_Handler(void) { HAL_IncTick(); }
+void SysTick_Handler(void) { xy_hal_sys_tick_irq_handler(); }
 void delay_ms(uint32_t ms) { xy_hal_delay_ms(ms); }
 uint32_t get_tick_ms(void) { return xy_hal_sys_get_tick_count(); }
 uint32_t xy_os_tick_get(void) { return xy_hal_sys_get_tick_count(); }
