@@ -97,13 +97,21 @@ def main() -> None:
     require(
         BOARD / "pandora_fota_flash.c",
         "PANDORA_FOTA_METADATA_BASE",
-        "FLASH_TYPEPROGRAM_DOUBLEWORD",
-        "FLASH_TYPEERASE_PAGES",
-        "FLASH_BANK_SIZE",
-        "FLASH_BANK_2",
-        "HAL_FLASHEx_Erase",
-        "HAL_FLASH_Program",
+        "xy_hal_flash_write",
+        "xy_hal_flash_erase",
         "pandora_fota_metadata_backend",
+    )
+    for flash_owner in ("pandora_fota_flash.c", "pandora_fota_install_flash.c"):
+        source = (BOARD / flash_owner).read_text(encoding="utf-8")
+        for forbidden in ("HAL_FLASH_", "HAL_FLASHEx_", "FLASH_TYPEPROGRAM_", "FLASH_TYPEERASE_"):
+            assert forbidden not in source, f"{flash_owner} bypasses canonical Flash HAL: {forbidden}"
+    require(
+        ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_flash.c",
+        "xy_hal_flash_init",
+        "xy_hal_flash_write",
+        "xy_hal_flash_erase",
+        "HAL_FLASH_Program",
+        "HAL_FLASHEx_Erase",
     )
     require(
         BOARD / "pandora_soft_i2c.c",

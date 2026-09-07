@@ -46,12 +46,15 @@ def main() -> int:
     ):
         require(boot, token)
     for token in (
-        "HAL_FLASHEx_Erase",
-        "HAL_FLASH_Program",
+        "xy_hal_flash_erase",
+        "xy_hal_flash_write",
+        "xy_hal_flash_read",
         "PANDORA_FOTA_APP_BASE",
         "PANDORA_FOTA_EXECUTION_LIMIT",
     ):
         require(flash, token)
+    for forbidden in ("HAL_FLASH_", "HAL_FLASHEx_", "FLASH_TYPEPROGRAM_", "FLASH_TYPEERASE_"):
+        assert forbidden not in flash, f"install owner bypasses canonical Flash HAL: {forbidden}"
     require(cmake, "PANDORA_FOTA_APPLICATION")
     require(cmake, "option(PANDORA_FOTA_AUTHORIZE_RESTAGE")
     require(cmake, "PANDORA_FOTA_RESTAGE_SOURCE_COMMIT")

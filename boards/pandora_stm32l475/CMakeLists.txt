@@ -18,6 +18,7 @@ endif()
 add_executable(pandora_stm32l475_smoke
     main.c
     pandora_fota_flash.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_flash.c
     pandora_soft_i2c.c
     pandora_sys.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
@@ -297,6 +298,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         fota_bootloader_main.c
         pandora_fota_flash.c
         pandora_fota_install_flash.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_flash.c
         ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
         ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
@@ -373,6 +375,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         add_executable(pandora_stm32l475_fota_candidate_programmer
             fota_candidate_programmer_main.c
             pandora_fota_flash.c
+            ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_flash.c
             ${_candidate_header}
             ${CMAKE_SOURCE_DIR}/components/device/src/xy_device.c
             ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
