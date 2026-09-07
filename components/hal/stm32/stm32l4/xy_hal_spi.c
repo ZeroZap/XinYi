@@ -236,6 +236,20 @@ xy_hal_error_t xy_hal_spi_transmit_receive_dma(void *spi, const uint8_t *tx_data
                                                   rx_data, (uint16_t)len));
 }
 
+xy_hal_error_t xy_hal_spi_stop(void *spi)
+{
+    spi_ctx_t *context;
+
+    if (spi == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    context = find_context(spi);
+    if (context == NULL || context->initialized == 0U) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+    return map_status(HAL_SPI_DMAStop((SPI_HandleTypeDef *)spi));
+}
+
 xy_hal_error_t xy_hal_spi_register_callback(void *spi, xy_hal_spi_callback_t callback, void *arg)
 {
     spi_ctx_t *context;

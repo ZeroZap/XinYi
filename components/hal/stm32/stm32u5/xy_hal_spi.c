@@ -352,6 +352,24 @@ xy_hal_error_t xy_hal_spi_transmit_receive_dma(void *spi,
     return XY_HAL_OK;
 }
 
+xy_hal_error_t xy_hal_spi_stop(void *spi)
+{
+    if (!spi) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+
+    spi_ctx_t *ctx = find_spi_ctx(spi);
+    if (ctx == NULL || !ctx->initialized) {
+        return XY_HAL_ERROR_NOT_INIT;
+    }
+
+    HAL_StatusTypeDef status = HAL_SPI_DMAStop((SPI_HandleTypeDef *)spi);
+    if (status == HAL_BUSY) {
+        return XY_HAL_ERROR_BUSY;
+    }
+    return status == HAL_OK ? XY_HAL_OK : XY_HAL_ERROR_IO;
+}
+
 xy_hal_error_t xy_hal_spi_register_callback(void *spi,
                                             xy_hal_spi_callback_t callback,
                                             void *arg)

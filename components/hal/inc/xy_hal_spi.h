@@ -156,6 +156,13 @@ xy_hal_error_t xy_hal_spi_transmit_receive_dma(void *spi,
                                                uint8_t *rx_data, size_t len);
 
 /**
+ * @brief Stop an active interrupt or DMA SPI transfer
+ * @param spi SPI instance
+ * @return 0 on success, negative on error
+ */
+xy_hal_error_t xy_hal_spi_stop(void *spi);
+
+/**
  * @brief Register SPI callback
  * @param spi SPI instance
  * @param callback Callback function

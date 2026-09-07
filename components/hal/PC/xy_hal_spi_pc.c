@@ -27,3 +27,8 @@ xy_hal_error_t xy_hal_spi_transmit_receive(void *hspi, const uint8_t *tx_data,
     if (rx_data && len > 0) memset(rx_data, 0, len);
     return XY_HAL_OK;
 }
+
+xy_hal_error_t xy_hal_spi_stop(void *hspi)
+{
+    return hspi != NULL ? XY_HAL_OK : XY_HAL_ERROR_INVALID_PARAM;
+}

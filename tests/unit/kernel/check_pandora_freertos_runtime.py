@@ -164,6 +164,7 @@ def main() -> int:
             "PANDORA_DMA_DEINIT_ERROR",
             "xy_hal_spi_init",
             "xy_hal_spi_transmit_dma",
+            "xy_hal_spi_stop",
             "xy_hal_spi_register_callback",
             "PANDORA_SPI_DMA_TX_OK",
             "PANDORA_SPI_DMA_RECOVERY_OK",
@@ -216,6 +217,9 @@ def main() -> int:
             "HAL_QSPI_Command(",
             "HAL_QSPI_Transmit(",
             "HAL_QSPI_Receive(",
+            "HAL_SPI_DMAStop(",
+            "HAL_DMA_Init(",
+            "HAL_DMA_DeInit(",
         ):
             if forbidden in main_source:
                 errors.append(f"board application must use OSAL, not direct FreeRTOS API: {forbidden}")
@@ -252,6 +256,7 @@ def main() -> int:
             "STM32L4",
             "HAL_SPI_Init",
             "HAL_SPI_Transmit_DMA",
+            "HAL_SPI_DMAStop",
             "HAL_SPI_TxCpltCallback",
             "XY_HAL_SPI_EVENT_TX_DONE",
             "XY_HAL_ERROR_INVALID_PARAM",
