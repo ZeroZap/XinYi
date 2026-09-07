@@ -198,13 +198,13 @@ int xy_pm_enter_sleep(void)
 
 int xy_pm_enter_shutdown(void)
 {
-    xy_log_i("PM: Entering shutdown mode\n");
+    if (!s_pm.initialized) return XY_PM_NOT_INITIALIZED;
+    return XY_PM_ERROR_NOT_SUPPORTED;
+}
 
-    /* 保存状态 */
-    /* 关闭所有外设 */
-    /* 关闭电源输出 */
-
-    return XY_PM_OK;
+xy_pm_status_t xy_pm_shutdown(void)
+{
+    return (xy_pm_status_t)xy_pm_enter_shutdown();
 }
 
 int xy_pm_wakeup(void)

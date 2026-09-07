@@ -77,7 +77,10 @@ static void test_pm_lifecycle_and_charging(void)
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_wakeup());
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
     TEST_ASSERT_EQUAL_INT(XY_PM_SYSTEM_STATE_IDLE, state.state);
-    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_enter_shutdown());
+    TEST_ASSERT_EQUAL_INT(XY_PM_ERROR_NOT_SUPPORTED, xy_pm_enter_shutdown());
+    TEST_ASSERT_EQUAL_INT(XY_PM_ERROR_NOT_SUPPORTED, xy_pm_shutdown());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_EQUAL_INT(XY_PM_SYSTEM_STATE_IDLE, state.state);
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
     TEST_ASSERT_EQUAL_UINT(0U, xy_pm_get_soc());
     TEST_ASSERT_EQUAL_UINT(0U, xy_pm_get_battery_voltage());
@@ -89,6 +92,8 @@ static void test_pm_sleep_lifecycle_guards(void)
 
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
     TEST_ASSERT_EQUAL_INT(XY_PM_NOT_INITIALIZED, xy_pm_enter_sleep());
+    TEST_ASSERT_EQUAL_INT(XY_PM_NOT_INITIALIZED, xy_pm_enter_shutdown());
+    TEST_ASSERT_EQUAL_INT(XY_PM_NOT_INITIALIZED, xy_pm_shutdown());
     TEST_ASSERT_EQUAL_INT(XY_PM_NOT_INITIALIZED, xy_pm_wakeup());
 
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_init());

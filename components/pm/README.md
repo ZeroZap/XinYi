@@ -110,7 +110,10 @@ xy_pm_wakeup();
 xy_pm_enter_shutdown();
 ```
 
-这些 API 当前是 framework entrypoint；实际 STOP/SLEEP/SHUTDOWN、外设恢复和功耗收益需要由 board/project backend 与硬件日志证明。
+`xy_pm_enter_sleep()` / `xy_pm_wakeup()` 由 platform backend 执行；当前 Pandora backend 仅实现
+shallow SLEEP/WFI。`xy_pm_enter_shutdown()` 与 `xy_pm_shutdown()` 在没有 board-owned shutdown
+backend 时 fail-closed 返回 `XY_PM_ERROR_NOT_SUPPORTED`，不得把未实现的关机流程报告为成功。
+实际低功耗深度、外设恢复和功耗收益仍需要板级 UART/电流证据。
 
 ---
 
@@ -197,7 +200,7 @@ make test-unit
 
 1. 电量计需要定期调用 `xy_fuel_gauge_update()` 以保持 PM-local 状态准确；真实电量计芯片请优先使用 standalone `components/fuel_gauge/`。
 2. 充电电流、目标电压、温度窗口必须根据电池规格与 charger IC 数据手册配置。
-3. 当前 `xy_pm_enter_sleep()` / `xy_pm_enter_shutdown()` 是框架入口；真实省电效果需用板级功耗日志验证。
+3. 当前 `xy_pm_enter_sleep()` 是 platform-backed framework 入口；shutdown 未接 board backend 时明确返回 unsupported。真实省电效果仍需板级 UART/功耗日志验证。
 4. 充电器 GPIO 引脚、极性、ADC 通道与分压比需要根据实际硬件连接配置；host 测试只验证软件契约。
 5. 不要把 `pm_component` host CTest 的通过结果写成真实低功耗或电池硬件验证通过。
 
