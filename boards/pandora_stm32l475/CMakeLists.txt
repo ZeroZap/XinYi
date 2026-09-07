@@ -74,6 +74,7 @@ add_executable(pandora_stm32l475_icm20608
     sensor_icm20608_main.c
     pandora_soft_i2c.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_icm20608.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
@@ -111,6 +112,8 @@ add_executable(pandora_stm32l475_ap3216c
     sensor_ap3216c_main.c
     pandora_hw_i2c.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_i2c.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_ap3216c.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
