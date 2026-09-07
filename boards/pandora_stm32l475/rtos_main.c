@@ -10,6 +10,7 @@
 #include "xy_hal_gpio.h"
 #include "xy_hal_qspi.h"
 #include "xy_hal_spi.h"
+#include "xy_hal_timer.h"
 #include "xy_hal_uart.h"
 #include "xy_os.h"
 #include "xy_pm.h"
@@ -135,6 +136,28 @@ static void spi_callback(void *spi, xy_hal_spi_event_t event, void *arg)
     (void)arg;
     spi_event = event;
     (void)xy_os_semaphore_release_from_isr(pandora_dma_sem);
+}
+
+static void tim6_callback(void *timer, xy_hal_timer_event_t event, void *arg)
+{
+    uint32_t sequence;
+
+    (void)timer;
+    (void)arg;
+    if (event == XY_HAL_TIMER_EVENT_UPDATE) {
+        (void)xy_os_semaphore_release_from_isr(pandora_tim6_sem);
+        if (pandora_ipc_isr_accepted < 16U) {
+            sequence = IPC_ISR_SEQUENCE_FLAG | ++pandora_ipc_isr_attempts;
+            pandora_ipc_isr_result = xy_broker_isr_publish(
+                &pandora_ipc_isr_ingress, XY_BROKER_SERVER_TIMER, XY_BROKER_SERVER_TIMER,
+                XY_BROKER_MSG_SENSOR_DATA, &sequence, sizeof(sequence), XY_BROKER_PRIORITY_HIGH);
+            if (pandora_ipc_isr_result == XY_BROKER_OK) {
+                ++pandora_ipc_isr_accepted;
+            } else if (pandora_ipc_isr_result == XY_BROKER_QUEUE_FULL) {
+                ++pandora_ipc_isr_full;
+            }
+        }
+    }
 }
 
 static int w25q128_erase_write_read_test(void)
@@ -495,13 +518,19 @@ static void gpio_uart_init(void)
 
 static void tim6_init(void)
 {
+    const xy_hal_timer_config_t timer_config = {
+        .prescaler = 7999U,
+        .period = 6999U,
+        .mode = XY_HAL_TIMER_COUNT_UP,
+        .clock_div = XY_HAL_TIMER_CKDIV_1,
+        .auto_reload_preload = 0U,
+    };
+
     __HAL_RCC_TIM6_CLK_ENABLE();
     pandora_tim6.Instance = TIM6;
-    pandora_tim6.Init.Prescaler = 7999U;
-    pandora_tim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-    pandora_tim6.Init.Period = 6999U;
-    pandora_tim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_Base_Init(&pandora_tim6) != HAL_OK) {
+    if (xy_hal_timer_init(&pandora_tim6, &timer_config) != XY_HAL_OK ||
+        xy_hal_timer_register_callback(&pandora_tim6, XY_HAL_TIMER_EVENT_UPDATE, tim6_callback,
+                                       NULL) != XY_HAL_OK) {
         fail();
     }
     HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 5U, 0U);
@@ -628,7 +657,7 @@ static void tim6_irq_task(void *argument)
         fail();
     }
     uart_text("OSAL_TIM6_IRQ_TAKE\r\n");
-    if (HAL_TIM_Base_Stop_IT(&pandora_tim6) != HAL_OK) {
+    if (xy_hal_timer_disable_irq(&pandora_tim6, XY_HAL_TIMER_EVENT_UPDATE) != XY_HAL_OK) {
         fail();
     }
     while (xy_os_semaphore_acquire(pandora_tim6_sem, XY_OS_NO_WAIT) == XY_OS_OK) {
@@ -638,7 +667,7 @@ static void tim6_irq_task(void *argument)
         fail();
     }
     uart_text("OSAL_TIM6_IRQ_TIMEOUT_EXPECTED\r\n");
-    if (HAL_TIM_Base_Start_IT(&pandora_tim6) != HAL_OK ||
+    if (xy_hal_timer_enable_irq(&pandora_tim6, XY_HAL_TIMER_EVENT_UPDATE) != XY_HAL_OK ||
         xy_os_semaphore_acquire(pandora_tim6_sem, 1500U) != XY_OS_OK) {
         uart_text("OSAL_TIM6_IRQ_RECOVERY_ERROR\r\n");
         fail();
@@ -1287,7 +1316,7 @@ int main(void)
         fail();
     }
 
-    if (HAL_TIM_Base_Start_IT(&pandora_tim6) != HAL_OK) {
+    if (xy_hal_timer_enable_irq(&pandora_tim6, XY_HAL_TIMER_EVENT_UPDATE) != XY_HAL_OK) {
         fail();
     }
     (void)xy_os_kernel_start();

@@ -417,6 +417,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_timer.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
@@ -494,6 +495,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_timer.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c

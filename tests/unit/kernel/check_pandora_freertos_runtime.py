@@ -13,6 +13,7 @@ STRESS_VALIDATOR = BOARD / "validate_rtos_stress.py"
 IPC_ISR_VALIDATOR = BOARD / "validate_ipc_isr_ingress.py"
 L4_DMA = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_dma.c"
 L4_SPI = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_spi.c"
+L4_TIMER = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_timer.c"
 
 
 def main() -> int:
@@ -38,6 +39,7 @@ def main() -> int:
         "freertos_kernel",
         "components/hal/stm32/stm32l4/xy_hal_dma.c",
         "components/hal/stm32/stm32l4/xy_hal_spi.c",
+        "components/hal/stm32/stm32l4/xy_hal_timer.c",
         "stm32l4xx_hal_dma.c",
         "stm32l4xx_hal_spi.c",
     ):
@@ -127,7 +129,7 @@ def main() -> int:
             "OSAL_TIM6_IRQ_TIMEOUT_EXPECTED",
             "OSAL_TIM6_IRQ_RECOVERED",
             "OSAL_TIM6_IRQ_RECOVERY_ERROR",
-            "HAL_TIM_Base_Stop_IT",
+            "xy_hal_timer_disable_irq",
             "OSAL_RESOURCE_EXHAUSTED",
             "OSAL_RESOURCE_RECOVERED",
             "OSAL_LIFECYCLE_REINIT",
@@ -166,6 +168,10 @@ def main() -> int:
             "xy_hal_spi_transmit_dma",
             "xy_hal_spi_stop",
             "xy_hal_spi_register_callback",
+            "xy_hal_timer_init",
+            "xy_hal_timer_enable_irq",
+            "xy_hal_timer_disable_irq",
+            "xy_hal_timer_register_callback",
             "PANDORA_SPI_DMA_TX_OK",
             "PANDORA_SPI_DMA_RECOVERY_OK",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_OK",
@@ -220,6 +226,9 @@ def main() -> int:
             "HAL_SPI_DMAStop(",
             "HAL_DMA_Init(",
             "HAL_DMA_DeInit(",
+            "HAL_TIM_Base_Init(",
+            "HAL_TIM_Base_Start_IT(",
+            "HAL_TIM_Base_Stop_IT(",
         ):
             if forbidden in main_source:
                 errors.append(f"board application must use OSAL, not direct FreeRTOS API: {forbidden}")
@@ -265,6 +274,22 @@ def main() -> int:
             if token not in spi_source:
                 errors.append(f"STM32L4 SPI wrapper must preserve token: {token}")
 
+    if not L4_TIMER.is_file():
+        errors.append("dedicated STM32L4 timer wrapper is missing")
+    else:
+        timer_source = L4_TIMER.read_text(encoding="utf-8")
+        for token in (
+            "STM32L4",
+            "HAL_TIM_Base_Init",
+            "HAL_TIM_Base_Start_IT",
+            "HAL_TIM_Base_Stop_IT",
+            "XY_HAL_TIMER_EVENT_UPDATE",
+            "XY_HAL_ERROR_INVALID_PARAM",
+            "XY_HAL_ERROR_NOT_INIT",
+        ):
+            if token not in timer_source:
+                errors.append(f"STM32L4 timer wrapper must preserve token: {token}")
+
     if STRESS_VALIDATOR.is_file():
         validator_source = STRESS_VALIDATOR.read_text(encoding="utf-8")
         for token in (
@@ -287,7 +312,6 @@ def main() -> int:
             "HAL_IncTick",
             "xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED",
             "xy_os_semaphore_release_from_isr",
-            "pandora_ipc_isr_publish",
             "TIM6_DAC_IRQHandler",
             "HAL_TIM_IRQHandler",
             "DMA1_Channel1_IRQHandler",
