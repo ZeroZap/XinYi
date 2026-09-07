@@ -79,6 +79,10 @@ add_test(NAME pandora_stm32l475_board
     COMMAND python3 ${UNIT_HAL}/check_pandora_stm32l475_board.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_hal_boundary_policy
+    COMMAND python3 ${UNIT_HAL}/test_pandora_hal_boundary_policy.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_st7789_board
     COMMAND python3 ${UNIT_DISPLAY}/check_pandora_st7789_board.py
     WORKING_DIRECTORY ${ROOT}
