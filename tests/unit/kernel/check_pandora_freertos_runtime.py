@@ -14,6 +14,7 @@ IPC_ISR_VALIDATOR = BOARD / "validate_ipc_isr_ingress.py"
 L4_DMA = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_dma.c"
 L4_SPI = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_spi.c"
 L4_TIMER = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_timer.c"
+L4_SYS = ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_sys.c"
 
 
 def main() -> int:
@@ -172,6 +173,9 @@ def main() -> int:
             "xy_hal_timer_enable_irq",
             "xy_hal_timer_disable_irq",
             "xy_hal_timer_register_callback",
+            "xy_hal_sys_set_irq_priority",
+            "xy_hal_sys_enable_irq_num",
+            "xy_hal_sys_disable_irq_num",
             "PANDORA_SPI_DMA_TX_OK",
             "PANDORA_SPI_DMA_RECOVERY_OK",
             "PANDORA_SPI_DMA_ABORT_RECOVERY_OK",
@@ -229,6 +233,9 @@ def main() -> int:
             "HAL_TIM_Base_Init(",
             "HAL_TIM_Base_Start_IT(",
             "HAL_TIM_Base_Stop_IT(",
+            "HAL_NVIC_SetPriority(",
+            "HAL_NVIC_EnableIRQ(",
+            "HAL_NVIC_DisableIRQ(",
         ):
             if forbidden in main_source:
                 errors.append(f"board application must use OSAL, not direct FreeRTOS API: {forbidden}")
@@ -334,6 +341,17 @@ def main() -> int:
         if "void xy_hal_dma_irq_handler(void *dma);" not in dma_header:
             errors.append("DMA HAL must publish the canonical IRQ dispatch entry")
 
+        sys_header = (ROOT / "components" / "hal" / "inc" / "xy_hal_sys.h").read_text(
+            encoding="utf-8"
+        )
+        for token in (
+            "xy_hal_sys_set_irq_priority",
+            "xy_hal_sys_enable_irq_num",
+            "xy_hal_sys_disable_irq_num",
+        ):
+            if token not in sys_header:
+                errors.append(f"SYS HAL must publish the canonical NVIC operation: {token}")
+
         for backend, dispatch in (
             (L4_TIMER, "HAL_TIM_IRQHandler((TIM_HandleTypeDef *)timer)"),
             (L4_DMA, "HAL_DMA_IRQHandler((DMA_HandleTypeDef *)dma)"),
@@ -348,6 +366,17 @@ def main() -> int:
         ):
             if dispatch not in backend.read_text(encoding="utf-8"):
                 errors.append(f"{backend.relative_to(ROOT)} must own vendor IRQ dispatch")
+        l4_sys_source = L4_SYS.read_text(encoding="utf-8")
+        for token in (
+            "xy_hal_sys_set_irq_priority",
+            "xy_hal_sys_enable_irq_num",
+            "xy_hal_sys_disable_irq_num",
+            "HAL_NVIC_SetPriority",
+            "HAL_NVIC_EnableIRQ",
+            "HAL_NVIC_DisableIRQ",
+        ):
+            if token not in l4_sys_source:
+                errors.append(f"STM32L4 SYS wrapper must own NVIC token: {token}")
         pc_irq = ROOT / "components" / "hal" / "PC" / "xy_hal_irq_pc.c"
         if not pc_irq.is_file():
             errors.append("PC HAL must provide no-op IRQ dispatch compatibility")

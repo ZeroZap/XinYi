@@ -65,3 +65,43 @@ xy_hal_error_t xy_hal_sys_get_unique_id(uint32_t id[3])
     id[2] = HAL_GetUIDw2();
     return XY_HAL_OK;
 }
+
+static int valid_external_irq(uint32_t irq_no)
+{
+    return irq_no <= (uint32_t)FPU_IRQn;
+}
+
+xy_hal_error_t xy_hal_sys_set_irq_priority(uint32_t irq_no, uint32_t priority)
+{
+    if (!valid_external_irq(irq_no) || priority >= (1UL << __NVIC_PRIO_BITS)) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    HAL_NVIC_SetPriority((IRQn_Type)irq_no, priority, 0U);
+    return XY_HAL_OK;
+}
+
+int32_t xy_hal_sys_get_irq_priority(uint32_t irq_no)
+{
+    if (!valid_external_irq(irq_no)) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    return (int32_t)NVIC_GetPriority((IRQn_Type)irq_no);
+}
+
+xy_hal_error_t xy_hal_sys_enable_irq_num(uint32_t irq_no)
+{
+    if (!valid_external_irq(irq_no)) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    HAL_NVIC_EnableIRQ((IRQn_Type)irq_no);
+    return XY_HAL_OK;
+}
+
+xy_hal_error_t xy_hal_sys_disable_irq_num(uint32_t irq_no)
+{
+    if (!valid_external_irq(irq_no)) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    HAL_NVIC_DisableIRQ((IRQn_Type)irq_no);
+    return XY_HAL_OK;
+}

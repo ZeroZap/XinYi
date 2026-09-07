@@ -535,8 +535,10 @@ static void tim6_init(void)
                                        NULL) != XY_HAL_OK) {
         fail();
     }
-    HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 5U, 0U);
-    HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
+    if (xy_hal_sys_set_irq_priority((uint32_t)TIM6_DAC_IRQn, 5U) != XY_HAL_OK ||
+        xy_hal_sys_enable_irq_num((uint32_t)TIM6_DAC_IRQn) != XY_HAL_OK) {
+        fail();
+    }
 }
 
 static void fast_task(void *argument)
@@ -831,8 +833,11 @@ static void dma_task(void *argument)
         uart_text("PANDORA_DMA_CALLBACK_ERROR\r\n");
         fail();
     }
-    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 6U, 0U);
-    HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+    if (xy_hal_sys_set_irq_priority((uint32_t)DMA1_Channel1_IRQn, 6U) != XY_HAL_OK ||
+        xy_hal_sys_enable_irq_num((uint32_t)DMA1_Channel1_IRQn) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_IRQ_ERROR\r\n");
+        fail();
+    }
     if (xy_hal_dma_start(&dma1_channel1, (uint32_t)dma_source, (uint32_t)dma_destination,
                          8U) != XY_HAL_OK) {
         uart_text("PANDORA_DMA_START_ERROR\r\n");
@@ -843,7 +848,10 @@ static void dma_task(void *argument)
         uart_text("PANDORA_DMA_IRQ_ERROR\r\n");
         fail();
     }
-    HAL_NVIC_DisableIRQ(DMA1_Channel1_IRQn);
+    if (xy_hal_sys_disable_irq_num((uint32_t)DMA1_Channel1_IRQn) != XY_HAL_OK) {
+        uart_text("PANDORA_DMA_IRQ_ERROR\r\n");
+        fail();
+    }
     for (uint32_t index = 0U; index < 8U; ++index) {
         if (dma_destination[index] != dma_source[index]) {
             uart_text("PANDORA_DMA_COMPARE_ERROR\r\n");
@@ -1076,8 +1084,11 @@ static void dma_task(void *argument)
         spi1.Instance = SPI1;
         spi1.hdmatx = &spi1_tx_dma;
         spi1_tx_dma.Parent = &spi1;
-        HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 6U, 0U);
-        HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+        if (xy_hal_sys_set_irq_priority((uint32_t)DMA1_Channel3_IRQn, 6U) != XY_HAL_OK ||
+            xy_hal_sys_enable_irq_num((uint32_t)DMA1_Channel3_IRQn) != XY_HAL_OK) {
+            uart_text("PANDORA_SPI_DMA_ERROR\r\n");
+            fail();
+        }
         if (xy_hal_spi_init(&spi1, &spi_config) != XY_HAL_OK ||
             xy_hal_spi_register_callback(&spi1, spi_callback, NULL) != XY_HAL_OK ||
             xy_hal_spi_transmit_dma(&spi1, spi_tx_data, sizeof(spi_tx_data)) != XY_HAL_OK ||

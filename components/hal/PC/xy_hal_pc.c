@@ -8,6 +8,11 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#define PC_IRQ_COUNT 256U
+#define PC_IRQ_PRIORITY_COUNT 256U
+
+static uint8_t pc_irq_priorities[PC_IRQ_COUNT];
+
 /**
  * @brief Delay in milliseconds (PC simulation)
  */
@@ -54,4 +59,31 @@ xy_hal_error_t xy_hal_sys_get_clock_info(xy_hal_sys_clock_info_t *info)
     info->pll_ready = 1;
     
     return XY_HAL_OK;
+}
+
+xy_hal_error_t xy_hal_sys_set_irq_priority(uint32_t irq_no, uint32_t priority)
+{
+    if (irq_no >= PC_IRQ_COUNT || priority >= PC_IRQ_PRIORITY_COUNT) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    pc_irq_priorities[irq_no] = (uint8_t)priority;
+    return XY_HAL_OK;
+}
+
+int32_t xy_hal_sys_get_irq_priority(uint32_t irq_no)
+{
+    if (irq_no >= PC_IRQ_COUNT) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    return pc_irq_priorities[irq_no];
+}
+
+xy_hal_error_t xy_hal_sys_enable_irq_num(uint32_t irq_no)
+{
+    return irq_no < PC_IRQ_COUNT ? XY_HAL_OK : XY_HAL_ERROR_INVALID_PARAM;
+}
+
+xy_hal_error_t xy_hal_sys_disable_irq_num(uint32_t irq_no)
+{
+    return irq_no < PC_IRQ_COUNT ? XY_HAL_OK : XY_HAL_ERROR_INVALID_PARAM;
 }

@@ -183,6 +183,20 @@ static void test_rtc_backup_register_pc_contract(void)
     TEST_ASSERT_EQUAL_HEX32(0x12345678U, value);
 }
 
+static void test_sys_irq_control_pc_contract(void)
+{
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_sys_set_irq_priority(UINT32_MAX, 5U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_sys_set_irq_priority(1U, UINT32_MAX));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_sys_set_irq_priority(1U, 5U));
+    TEST_ASSERT_EQUAL_INT(5, xy_hal_sys_get_irq_priority(1U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_sys_enable_irq_num(1U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_sys_disable_irq_num(1U));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_sys_enable_irq_num(UINT32_MAX));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_sys_disable_irq_num(UINT32_MAX));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -192,5 +206,6 @@ int main(void)
     RUN_TEST(test_gpio_pc_irq_and_extended_helpers);
     RUN_TEST(test_uart_i2c_spi_pc_smoke);
     RUN_TEST(test_rtc_backup_register_pc_contract);
+    RUN_TEST(test_sys_irq_control_pc_contract);
     return UNITY_END();
 }
