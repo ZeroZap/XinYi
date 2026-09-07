@@ -194,7 +194,12 @@ static void test_fuel_gauge_and_adc_contracts(void)
     };
     xy_battery_state_t state;
 
+    uint32_t adc_voltage = 0xA5A5A5A5U;
+
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_adc_init());
+    TEST_ASSERT_EQUAL_INT(XY_PM_INVALID_PARAM, xy_pm_adc_read(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_adc_read(&adc_voltage));
+    TEST_ASSERT_EQUAL_UINT(3700U, adc_voltage);
     TEST_ASSERT_EQUAL_UINT(3700U, xy_pm_get_battery_voltage_mV());
     TEST_ASSERT_EQUAL_UINT(100U, xy_pm_estimate_soc_from_voltage(4200));
     TEST_ASSERT_EQUAL_UINT(40U, xy_pm_estimate_soc_from_voltage(3700));

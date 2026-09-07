@@ -136,6 +136,7 @@ uint8_t xy_pm_get_soc(void);
 
 /* ADC functions (implemented in xy_pm_adc.c) */
 int xy_pm_adc_init(void);
+/** Read one battery-voltage sample in millivolts. */
 int xy_pm_adc_read(uint32_t *value);
 
 /* Platform-specific functions (implemented in xy_pm_platform.c) */

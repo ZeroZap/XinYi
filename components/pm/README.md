@@ -18,6 +18,7 @@
 ## 🎯 特性
 
 - ✅ Host 可验证的 PM lifecycle、状态查询、模拟 ADC 电压/SOC 估算
+- ✅ Public `xy_pm_adc_read()` 提供受检的 NULL guard 与毫伏输出契约
 - ✅ Host 可验证的 charger state machine wrapper 与平台 charger hook 记录
 - ✅ Host 可验证的 PM-local fuel-gauge wrapper 基础契约
 - ⚠️ 真实低功耗/睡眠/关机效果仍待 board/project 功耗实测
@@ -60,6 +61,8 @@ xy_pm_init();
 
 ```c
 uint32_t voltage = xy_pm_get_battery_voltage_mV();
+uint32_t sampled_voltage;
+xy_pm_adc_read(&sampled_voltage);
 uint8_t percent = xy_pm_get_battery_percent();
 uint8_t soc = xy_pm_get_soc();
 bool charging = xy_pm_is_charging();

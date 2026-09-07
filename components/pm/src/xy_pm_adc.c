@@ -130,6 +130,15 @@ uint32_t xy_pm_adc_read_battery_voltage(void)
 
 #endif
 
+/* Public ADC sample API */
+int xy_pm_adc_read(uint32_t *value)
+{
+    if (!value) return XY_PM_INVALID_PARAM;
+
+    *value = xy_pm_adc_read_battery_voltage();
+    return XY_PM_OK;
+}
+
 /* 通用电池电量估算 */
 uint8_t xy_pm_estimate_soc_from_voltage(uint32_t voltage_mV)
 {
