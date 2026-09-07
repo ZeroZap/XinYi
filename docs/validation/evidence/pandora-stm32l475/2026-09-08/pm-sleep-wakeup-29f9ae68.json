@@ -1,0 +1,64 @@
+{
+  "record_type": "xinyi-pandora-stm32l475-pm-sleep-wakeup-attempt",
+  "recorded_at": "2026-09-08T04:03:58+08:00",
+  "status": "BLOCKED_UART_NO_DATA",
+  "board": "Pandora STM32L475VE",
+  "firmware_commit": "29f9ae6825e05c3ba5759f2514f3343cb9080f0b",
+  "firmware_binary": "pandora_stm32l475_rtos.bin",
+  "firmware_binary_size": 38576,
+  "firmware_binary_sha256": "ad7c5aa1e61c3f8ee14468d314987395e9b80c3929e8ca77e264beaf428685d7",
+  "firmware_elf_sha256": "6f696b174edfba748efc1966f430df195248e2444533ae1ebd763eca924aea2d",
+  "probe": {
+    "tool": "st-flash 1.8.0",
+    "serial": "066AFF313933554D43244015",
+    "firmware": "V2J24S11",
+    "device": "STM32L47x_L48x",
+    "flash_bytes": 524288,
+    "sram_bytes": 98304
+  },
+  "programming": {
+    "address": "0x08000000",
+    "result": "Flash written and verified",
+    "programmed_bytes": 38576,
+    "readback_bytes": 38576,
+    "readback_sha256": "ad7c5aa1e61c3f8ee14468d314987395e9b80c3929e8ca77e264beaf428685d7",
+    "byte_identical": true
+  },
+  "image_symbols": [
+    "SVC_Handler",
+    "PendSV_Handler",
+    "SysTick_Handler",
+    "xPortSysTickHandler",
+    "xy_pm_enter_sleep",
+    "xy_pm_wakeup"
+  ],
+  "uart": {
+    "adapter": "WCH-Link",
+    "device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+    "configuration": "115200-8-N-1",
+    "open_before_program_reset": true,
+    "duration_seconds": 15,
+    "captured_bytes": 0,
+    "capture_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "required_runtime_markers": [
+    "FIRMWARE_COMMIT 29f9ae6825e05c3ba5759f2514f3343cb9080f0b",
+    "OSAL_PM_SLEEP_ENTER",
+    "OSAL_PM_WAKE_IRQ",
+    "OSAL_PM_SLEEP_WAKE_OK"
+  ],
+  "observed_runtime_marker_counts": {
+    "firmware_commit": 0,
+    "OSAL_PM_SLEEP_ENTER": 0,
+    "OSAL_PM_WAKE_IRQ": 0,
+    "OSAL_PM_SLEEP_WAKE_OK": 0,
+    "OSAL_PM_SLEEP_ERROR": 0,
+    "OSAL_PM_WAKE_ERROR": 0
+  },
+  "limitations": [
+    "No UART bytes were captured, so reset-synchronized firmware identity was not observed.",
+    "No sleep, tick-IRQ wake, or post-wake state recovery marker was observed.",
+    "Successful image link, Flash programming, verification, and byte-identical read-back do not establish PM runtime evidence.",
+    "This record does not provide power-current, low-power-mode depth, wake-latency, endurance, or STM32U5 runtime evidence."
+  ]
+}
