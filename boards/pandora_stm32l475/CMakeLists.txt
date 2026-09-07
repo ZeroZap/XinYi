@@ -1,6 +1,7 @@
 set(_cube ${CMAKE_SOURCE_DIR}/MCU/ST/STM32L4/STM32CubeL4)
 set(_hal ${_cube}/Drivers/STM32L4xx_HAL_Driver/Src)
 set(_cmsis ${_cube}/Drivers/CMSIS/Device/ST/STM32L4xx)
+set(PANDORA_PLATFORM_STARTUP ${CMAKE_CURRENT_SOURCE_DIR}/pandora_platform_startup.c)
 
 execute_process(
     COMMAND git rev-parse HEAD
@@ -24,6 +25,7 @@ add_executable(pandora_stm32l475_smoke
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_wdg.c
     ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
@@ -82,6 +84,7 @@ add_executable(pandora_stm32l475_icm20608
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_icm20608.c
@@ -123,6 +126,7 @@ add_executable(pandora_stm32l475_ap3216c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_i2c.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_ap3216c.c
@@ -165,6 +169,7 @@ add_executable(pandora_stm32l475_buzzer
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
@@ -200,6 +205,7 @@ add_executable(pandora_stm32l475_motor
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
@@ -235,6 +241,7 @@ add_executable(pandora_stm32l475_rgb_led
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
@@ -273,6 +280,7 @@ add_executable(pandora_stm32l475_st7789
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${PANDORA_PLATFORM_STARTUP}
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
@@ -319,6 +327,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_rtc.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+        ${PANDORA_PLATFORM_STARTUP}
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
         ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_boot.c
@@ -400,6 +409,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
             ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
             ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
             ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+            ${PANDORA_PLATFORM_STARTUP}
             ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
             ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
             ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_w25q128.c
@@ -440,6 +450,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+        ${PANDORA_PLATFORM_STARTUP}
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_timer.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_rtc.c
@@ -522,6 +533,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+        ${PANDORA_PLATFORM_STARTUP}
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_timer.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_rtc.c

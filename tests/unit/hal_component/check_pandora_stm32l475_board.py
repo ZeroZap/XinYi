@@ -58,6 +58,7 @@ def main() -> None:
         "pandora_stm32l475_icm20608",
         "sensor_icm20608.c",
         "pandora_sys.c",
+        "pandora_platform_startup.c",
         "stm32l4xx_hal_iwdg.c",
         "pandora_fota_flash.c",
         "xy_fota_metadata.c",
@@ -179,6 +180,27 @@ def main() -> None:
         entry = (BOARD / board_entry).read_text(encoding="utf-8")
         assert "xy_hal_sys_init()" in entry, f"{board_entry} missing canonical SYS init"
         assert "HAL_Init(" not in entry, f"{board_entry} bypasses canonical SYS init HAL"
+        assert "pandora_platform_startup()" in entry, (
+            f"{board_entry} missing board-owned startup policy"
+        )
+        for forbidden in (
+            "HAL_PWREx_ControlVoltageScaling(",
+            "HAL_RCC_OscConfig(",
+            "HAL_RCC_ClockConfig(",
+        ):
+            assert forbidden not in entry, (
+                f"{board_entry} bypasses board-owned startup policy: {forbidden}"
+            )
+    require(
+        BOARD / "pandora_platform_startup.c",
+        "pandora_platform_startup",
+        "HAL_PWREx_ControlVoltageScaling",
+        "HAL_RCC_OscConfig",
+        "HAL_RCC_ClockConfig",
+        "PWR_REGULATOR_VOLTAGE_SCALE1",
+        "RCC_PLLSOURCE_HSE",
+        "FLASH_LATENCY_4",
+    )
     tick_entries = delay_entries + (
         "fota_bootloader_main.c",
         "fota_candidate_programmer_main.c",
