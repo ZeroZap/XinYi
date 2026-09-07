@@ -114,6 +114,13 @@ def main() -> None:
         "HAL_Delay",
     )
     require(
+        ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_wdg.c",
+        "xy_hal_iwdg_init",
+        "xy_hal_iwdg_feed",
+        "HAL_IWDG_Init",
+        "HAL_IWDG_Refresh",
+    )
+    require(
         BOARD / "pandora_fota_flash.c",
         "PANDORA_FOTA_METADATA_BASE",
         "xy_hal_flash_write",
@@ -256,6 +263,10 @@ def main() -> None:
     )
     hal_cmake = (ROOT / "components" / "hal" / "CMakeLists.txt").read_text(encoding="utf-8")
     assert 'stm32/stm32l4/xy_hal_i2c.c' in hal_cmake
+    assert 'stm32/stm32l4/xy_hal_wdg.c' in hal_cmake
+    board_cmake = (BOARD / "CMakeLists.txt").read_text(encoding="utf-8")
+    assert "components/hal/stm32/stm32f4/xy_hal_wdg.c" not in board_cmake
+    assert "components/hal/stm32/stm32l4/xy_hal_wdg.c" in board_cmake
     board_i2c = (BOARD / "pandora_hw_i2c.c").read_text(encoding="utf-8")
     assert "HAL_I2C_Master_Transmit" not in board_i2c
     assert "HAL_I2C_Master_Receive" not in board_i2c

@@ -59,6 +59,7 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_rtc\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_sys\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_uart\\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_wdg\\.c$")
     list(APPEND HAL_SOURCES
         "stm32/stm32l4/xy_hal_delay.c"
         "stm32/stm32l4/xy_hal_dma.c"
@@ -67,7 +68,8 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
         "stm32/stm32l4/xy_hal_i2c.c"
         "stm32/stm32l4/xy_hal_rtc.c"
         "stm32/stm32l4/xy_hal_sys.c"
-        "stm32/stm32l4/xy_hal_uart.c")
+        "stm32/stm32l4/xy_hal_uart.c"
+        "stm32/stm32l4/xy_hal_wdg.c")
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32L4
