@@ -255,7 +255,7 @@ def main() -> None:
         "SYS_WATCHDOG_RESET_REQUEST",
         "SYS_RESET_KIND WATCHDOG",
         "SYS_WATCHDOG_RESET_OK",
-        "HAL_IWDG_Init",
+        "xy_hal_iwdg_init",
         "xy_fota_metadata_flash_validate",
         "xy_fota_metadata_flash_commit",
         "xy_fota_metadata_flash_load",
@@ -274,6 +274,8 @@ def main() -> None:
         "FOTA_AUTOMATIC_ROLLBACK_COMMITTED",
         "FOTA_METADATA_FLASH_OK",
     )
+    smoke_entry = (BOARD / "main.c").read_text(encoding="utf-8")
+    assert "HAL_IWDG_Init(" not in smoke_entry
     require(
         BOARD / "STM32L475VETX_FLASH.ld",
         "ORIGIN = 0x08000000",

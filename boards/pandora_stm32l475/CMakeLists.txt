@@ -22,6 +22,7 @@ add_executable(pandora_stm32l475_smoke
     pandora_sys.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32f4/xy_hal_wdg.c
     ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
     ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_metadata.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
@@ -51,6 +52,7 @@ target_include_directories(pandora_stm32l475_smoke BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/components/clib/xy_clib)
 target_compile_definitions(pandora_stm32l475_smoke PRIVATE
     STM32L475xx
+    STM32_HAL_ENABLED
     USE_HAL_DRIVER
     XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
 target_link_options(pandora_stm32l475_smoke PRIVATE

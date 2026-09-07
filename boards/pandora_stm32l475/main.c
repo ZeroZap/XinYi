@@ -4,6 +4,7 @@
 #include "xy_device.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_uart.h"
+#include "xy_hal_wdg.h"
 #include "xy_sys.h"
 
 static UART_HandleTypeDef uart1;
@@ -193,6 +194,11 @@ int main(void)
     xy_fota_metadata_t committed;
     xy_fota_metadata_t loaded;
     IWDG_HandleTypeDef watchdog = {0};
+    const xy_hal_iwdg_config_t watchdog_config = {
+        .prescaler = IWDG_PRESCALER_32,
+        .reload = 125U,
+        .timeout_ms = 0U,
+    };
 
     HAL_Init();
     clock_init();
@@ -215,10 +221,7 @@ int main(void)
         uart_text("SYS_WATCHDOG_RESET_REQUEST\r\n");
         HAL_Delay(250U);
         watchdog.Instance = IWDG;
-        watchdog.Init.Prescaler = IWDG_PRESCALER_32;
-        watchdog.Init.Reload = 125U;
-        watchdog.Init.Window = IWDG_WINDOW_DISABLE;
-        if (HAL_IWDG_Init(&watchdog) != HAL_OK) {
+        if (xy_hal_iwdg_init(&watchdog, &watchdog_config) != XY_HAL_OK) {
             fail();
         }
         for (;;) {
