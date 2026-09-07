@@ -21,6 +21,7 @@ add_executable(pandora_stm32l475_smoke
     pandora_soft_i2c.c
     pandora_sys.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
     ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_metadata.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
@@ -412,8 +413,10 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker_isr_ingress.c
         ${CMAKE_SOURCE_DIR}/components/pm/src/xy_pm_platform.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
         ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
         ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_boot.c
@@ -487,8 +490,10 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/ipc/xy_broker/xy_broker_isr_ingress.c
         ${CMAKE_SOURCE_DIR}/components/pm/src/xy_pm_platform.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_dma.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
         ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
         ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_boot.c

@@ -2,6 +2,8 @@
 #include "pandora_fota_flash.h"
 #include "pandora_soft_i2c.h"
 #include "xy_device.h"
+#include "xy_hal_gpio.h"
+#include "xy_hal_uart.h"
 #include "xy_sys.h"
 
 static UART_HandleTypeDef uart1;
@@ -35,7 +37,7 @@ static void uart_hex32(uint32_t value)
         uint32_t shift = (uint32_t)(sizeof(text) - 1U - index) * 4U;
         text[index] = (uint8_t)digits[(value >> shift) & 0x0FU];
     }
-    HAL_UART_Transmit(&uart1, text, sizeof(text), 100U);
+    (void)xy_hal_uart_send(&uart1, text, sizeof(text), 100U);
 }
 
 static int aht10_init(xy_i2c_device_t *device)
@@ -75,7 +77,7 @@ static void uart_text(const char *text)
 {
     uint16_t length = 0;
     while (text[length] != '\0') ++length;
-    HAL_UART_Transmit(&uart1, (uint8_t *)text, length, 100U);
+    (void)xy_hal_uart_send(&uart1, (const uint8_t *)text, length, 100U);
 }
 
 static void uart_u32(uint32_t value)
@@ -88,7 +90,7 @@ static void uart_u32(uint32_t value)
     } while (value != 0U);
     while (count != 0U) {
         --count;
-        HAL_UART_Transmit(&uart1, &digits[count], 1U, 100U);
+        (void)xy_hal_uart_send(&uart1, &digits[count], 1U, 100U);
     }
 }
 
@@ -136,42 +138,35 @@ static void clock_init(void)
 
 static void gpio_uart_init(void)
 {
-    GPIO_InitTypeDef gpio = {0};
+    const xy_hal_gpio_config_t led_gpio = {
+        XY_HAL_GPIO_MODE_OUTPUT, XY_HAL_GPIO_PULL_NONE, XY_HAL_GPIO_OTYPE_PP,
+        XY_HAL_GPIO_SPEED_LOW, 0U,
+    };
+    const xy_hal_gpio_config_t key_gpio = {
+        XY_HAL_GPIO_MODE_INPUT, XY_HAL_GPIO_PULL_UP, XY_HAL_GPIO_OTYPE_PP,
+        XY_HAL_GPIO_SPEED_LOW, 0U,
+    };
+    const xy_hal_gpio_config_t uart_gpio = {
+        XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_UP, XY_HAL_GPIO_OTYPE_PP,
+        XY_HAL_GPIO_SPEED_VERY_HIGH, GPIO_AF7_USART1,
+    };
+    const xy_hal_uart_config_t uart_config = {
+        115200U, XY_HAL_UART_WORDLEN_8B, XY_HAL_UART_STOPBITS_1, XY_HAL_UART_PARITY_NONE,
+        XY_HAL_UART_FLOWCTRL_NONE, XY_HAL_UART_MODE_TX_RX,
+    };
     __HAL_RCC_GPIOE_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
 
     __HAL_RCC_USART1_CLK_ENABLE();
 
-    gpio.Pin = GPIO_PIN_7;
-    gpio.Mode = GPIO_MODE_OUTPUT_PP;
-    gpio.Pull = GPIO_NOPULL;
-    gpio.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOE, &gpio);
-
-    gpio.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10; /* KEY2/KEY1/KEY0 */
-    gpio.Mode = GPIO_MODE_INPUT;
-    gpio.Pull = GPIO_PULLUP;
-    HAL_GPIO_Init(GPIOD, &gpio);
-
-
-    gpio.Pin = GPIO_PIN_9 | GPIO_PIN_10;
-    gpio.Mode = GPIO_MODE_AF_PP;
-    gpio.Pull = GPIO_PULLUP;
-    gpio.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    gpio.Alternate = GPIO_AF7_USART1;
-    HAL_GPIO_Init(GPIOA, &gpio);
-
-    uart1.Instance = USART1;
-    uart1.Init.BaudRate = 115200;
-    uart1.Init.WordLength = UART_WORDLENGTH_8B;
-    uart1.Init.StopBits = UART_STOPBITS_1;
-    uart1.Init.Parity = UART_PARITY_NONE;
-    uart1.Init.Mode = UART_MODE_TX_RX;
-    uart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    uart1.Init.OverSampling = UART_OVERSAMPLING_16;
-    uart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-    if (HAL_UART_Init(&uart1) != HAL_OK) {
+    if (xy_hal_gpio_init(GPIOE, 7U, &led_gpio) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOD, 8U, &key_gpio) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOD, 9U, &key_gpio) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOD, 10U, &key_gpio) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOA, 9U, &uart_gpio) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOA, 10U, &uart_gpio) != XY_HAL_OK ||
+        xy_hal_uart_init(&uart1, &uart_config) != XY_HAL_OK) {
         fail();
     }
 }
@@ -352,23 +347,23 @@ int main(void)
     }
     int aht_initialized = aht10_init(&aht10);
     for (;;) {
-        HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_7);
-        HAL_UART_Transmit(&uart1, (uint8_t *)banner, sizeof(banner) - 1U, 100U);
-        HAL_UART_Transmit(&uart1, (uint8_t *)firmware_commit, sizeof(firmware_commit) - 1U, 100U);
+        (void)xy_hal_gpio_toggle(GPIOE, 7U);
+        (void)xy_hal_uart_send(&uart1, banner, sizeof(banner) - 1U, 100U);
+        (void)xy_hal_uart_send(&uart1, firmware_commit, sizeof(firmware_commit) - 1U, 100U);
         if (aht_initialized &&
             aht10_measure(&aht10, &humidity_milli_percent, &temperature_milli_c)) {
-            HAL_UART_Transmit(&uart1, (uint8_t *)aht_ack, sizeof(aht_ack) - 1U, 100U);
+            (void)xy_hal_uart_send(&uart1, aht_ack, sizeof(aht_ack) - 1U, 100U);
             uart_text("AHT10 RH_milli_percent=");
             uart_u32(humidity_milli_percent);
             uart_text(" T_milli_c=");
             uart_i32(temperature_milli_c);
             uart_text("\r\n");
         } else {
-            HAL_UART_Transmit(&uart1, (uint8_t *)aht_nack, sizeof(aht_nack) - 1U, 100U);
+            (void)xy_hal_uart_send(&uart1, aht_nack, sizeof(aht_nack) - 1U, 100U);
             aht_initialized = aht10_init(&aht10);
         }
-        if (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_10) == GPIO_PIN_RESET) {
-            HAL_UART_Transmit(&uart1, (uint8_t *)key0, sizeof(key0) - 1U, 100U);
+        if (xy_hal_gpio_read(GPIOD, 10U) == 0) {
+            (void)xy_hal_uart_send(&uart1, key0, sizeof(key0) - 1U, 100U);
         }
         HAL_Delay(500U);
     }

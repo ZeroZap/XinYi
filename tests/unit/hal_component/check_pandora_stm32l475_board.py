@@ -141,6 +141,22 @@ def main() -> None:
             assert required in entry, f"{fota_entry} missing canonical HAL call {required}"
         for forbidden in ("HAL_UART_Init(", "HAL_UART_Transmit(", "HAL_GPIO_Init("):
             assert forbidden not in entry, f"{fota_entry} bypasses canonical XinYi HAL: {forbidden}"
+    for primary_entry in ("main.c", "rtos_main.c"):
+        entry = (BOARD / primary_entry).read_text(encoding="utf-8")
+        for required in (
+            "xy_hal_uart_init",
+            "xy_hal_uart_send",
+            "xy_hal_gpio_init",
+            "xy_hal_gpio_toggle",
+        ):
+            assert required in entry, f"{primary_entry} missing canonical HAL call {required}"
+        for forbidden in (
+            "HAL_UART_Init(",
+            "HAL_UART_Transmit(",
+            "HAL_GPIO_Init(",
+            "HAL_GPIO_TogglePin(",
+        ):
+            assert forbidden not in entry, f"{primary_entry} bypasses canonical XinYi HAL: {forbidden}"
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_uart.c",
         "xy_hal_uart_init",
@@ -201,9 +217,11 @@ def main() -> None:
     )
     require(
         BOARD / "main.c",
-        "GPIO_PIN_7",
-        "GPIO_PIN_9",
-        "GPIO_PIN_10",
+        "xy_hal_gpio_init",
+        "xy_hal_gpio_read",
+        "xy_hal_gpio_toggle",
+        "xy_hal_uart_init",
+        "xy_hal_uart_send",
         "xy_i2c_device_init",
         "xy_i2c_device_write",
         "xy_i2c_device_read",
