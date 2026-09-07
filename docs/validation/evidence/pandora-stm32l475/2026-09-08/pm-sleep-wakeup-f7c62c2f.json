@@ -1,0 +1,82 @@
+{
+  "record_type": "xinyi-pandora-stm32l475-pm-sleep-wakeup-attempt",
+  "recorded_at": "2026-09-08T01:35:35+08:00",
+  "status": "VERIFYING_UART_NO_DATA",
+  "board": "Pandora STM32L475VE",
+  "firmware_commit": "f7c62c2f97ce51bb3689b9412af823480ffa9d1a",
+  "firmware_binary": "pandora_stm32l475_rtos.bin",
+  "firmware_binary_size": 38576,
+  "firmware_binary_sha256": "7c883f485444a0d3e0d8ed7e1132fc9dc042759b44bd46003325ae4c974df21c",
+  "firmware_elf_sha256": "07f1fcb8d0096b0e7a7b7f4fb5dbcc23a719d1479892b74f4cc0de721383684f",
+  "probe": {
+    "tool": "st-flash 1.8.0",
+    "serial": "066AFF313933554D43244015",
+    "firmware": "V2J24S11",
+    "device": "STM32L47x_L48x",
+    "flash_bytes": 524288,
+    "sram_bytes": 98304
+  },
+  "programming": {
+    "address": "0x08000000",
+    "result": "Flash written and verified",
+    "programmed_bytes": 38576,
+    "readback_bytes": 38576,
+    "readback_sha256": "7c883f485444a0d3e0d8ed7e1132fc9dc042759b44bd46003325ae4c974df21c",
+    "byte_identical": true
+  },
+  "image_symbols": [
+    "SVC_Handler",
+    "PendSV_Handler",
+    "SysTick_Handler",
+    "xPortSysTickHandler",
+    "xy_pm_enter_sleep",
+    "xy_pm_wakeup"
+  ],
+  "uart": {
+    "adapter": "WCH-Link",
+    "device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+    "resolved_device": "/dev/ttyACM1",
+    "configuration": "115200-8-N-1",
+    "capture_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "attempts": [
+      {
+        "duration_seconds": 12,
+        "open_mode": "read-only",
+        "trigger": "st-flash reset",
+        "captured_bytes": 0
+      },
+      {
+        "duration_seconds": 12,
+        "open_mode": "read-write",
+        "trigger": "st-flash reset",
+        "captured_bytes": 0
+      },
+      {
+        "duration_seconds": 12,
+        "open_mode": "read-write",
+        "trigger": "st-flash --reset write",
+        "captured_bytes": 0
+      }
+    ]
+  },
+  "required_runtime_markers": [
+    "FIRMWARE_COMMIT f7c62c2f97ce51bb3689b9412af823480ffa9d1a",
+    "OSAL_PM_SLEEP_ENTER",
+    "OSAL_PM_WAKE_IRQ",
+    "OSAL_PM_SLEEP_WAKE_OK"
+  ],
+  "observed_runtime_marker_counts": {
+    "firmware_commit": 0,
+    "OSAL_PM_SLEEP_ENTER": 0,
+    "OSAL_PM_WAKE_IRQ": 0,
+    "OSAL_PM_SLEEP_WAKE_OK": 0,
+    "OSAL_PM_SLEEP_ERROR": 0,
+    "OSAL_PM_WAKE_ERROR": 0
+  },
+  "limitations": [
+    "No UART bytes were captured, so reset-synchronized firmware identity was not observed.",
+    "No sleep, tick-IRQ wake, or post-wake state recovery marker was observed.",
+    "Successful image link, Flash programming, verification, and byte-identical read-back do not establish PM runtime evidence.",
+    "This record does not provide power-current, low-power-mode depth, wake-latency, endurance, or STM32U5 runtime evidence."
+  ]
+}
