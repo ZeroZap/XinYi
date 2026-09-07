@@ -99,6 +99,8 @@ def main() -> None:
         assert forbidden not in pandora_sys, f"pandora_sys.c bypasses canonical SYS HAL: {forbidden}"
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_sys.c",
+        "xy_hal_sys_deinit",
+        "HAL_DeInit",
         "xy_hal_sys_get_reset_reason",
         "xy_hal_sys_clear_reset_reason",
         "xy_hal_sys_get_unique_id",
@@ -107,6 +109,9 @@ def main() -> None:
         "HAL_GetUIDw0",
         "RCC->CSR",
     )
+    fota_bootloader = (BOARD / "fota_bootloader_main.c").read_text(encoding="utf-8")
+    assert "xy_hal_sys_deinit()" in fota_bootloader
+    assert "HAL_DeInit(" not in fota_bootloader
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_delay.c",
         "xy_hal_delay_ms",

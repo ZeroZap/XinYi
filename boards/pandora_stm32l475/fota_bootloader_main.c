@@ -157,7 +157,9 @@ static void jump_to_application(void)
     uart_text("PANDORA_BOOT_JUMP_APP\r\n");
     (void)xy_hal_uart_deinit(&uart1);
     (void)xy_hal_qspi_deinit(&qspi);
-    HAL_DeInit();
+    if (xy_hal_sys_deinit() != XY_HAL_OK) {
+        stop();
+    }
     __disable_irq();
     SysTick->CTRL = 0U;
     SysTick->LOAD = 0U;

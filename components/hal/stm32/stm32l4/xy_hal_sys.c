@@ -2,6 +2,11 @@
 
 #include "stm32l4xx_hal.h"
 
+xy_hal_error_t xy_hal_sys_deinit(void)
+{
+    return HAL_DeInit() == HAL_OK ? XY_HAL_OK : XY_HAL_ERROR;
+}
+
 uint32_t xy_hal_sys_get_tick_count(void)
 {
     return HAL_GetTick();
