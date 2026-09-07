@@ -170,6 +170,15 @@ def main() -> None:
         "sensor_ap3216c_main.c",
         "sensor_icm20608_main.c",
     )
+    init_entries = delay_entries + (
+        "fota_bootloader_main.c",
+        "fota_candidate_programmer_main.c",
+        "rtos_main.c",
+    )
+    for board_entry in init_entries:
+        entry = (BOARD / board_entry).read_text(encoding="utf-8")
+        assert "xy_hal_sys_init()" in entry, f"{board_entry} missing canonical SYS init"
+        assert "HAL_Init(" not in entry, f"{board_entry} bypasses canonical SYS init HAL"
     tick_entries = delay_entries + (
         "fota_bootloader_main.c",
         "fota_candidate_programmer_main.c",

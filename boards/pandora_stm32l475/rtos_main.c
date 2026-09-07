@@ -1274,7 +1274,9 @@ int main(void)
 #else
     SCB->VTOR = 0x08000000U;
 #endif
-    HAL_Init();
+    if (xy_hal_sys_init() != XY_HAL_OK) {
+        fail();
+    }
     clock_init();
     gpio_uart_init();
 

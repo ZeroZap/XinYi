@@ -112,7 +112,9 @@ int main(void)
         .delay_ms = board_delay,
     };
 
-    HAL_Init();
+    if (xy_hal_sys_init() != XY_HAL_OK) {
+        fail();
+    }
     rgb_force_off();
     clock_init();
     uart_init();

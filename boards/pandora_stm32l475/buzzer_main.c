@@ -97,7 +97,9 @@ int main(void)
         .delay_ms = board_delay,
     };
 
-    HAL_Init();
+    if (xy_hal_sys_init() != XY_HAL_OK) {
+        fail();
+    }
     clock_init();
     uart_init();
     __HAL_RCC_GPIOB_CLK_ENABLE();

@@ -207,7 +207,9 @@ int main(void)
     uint8_t whoami = 0U;
     void *i2c3;
 
-    HAL_Init();
+    if (xy_hal_sys_init() != XY_HAL_OK) {
+        fail();
+    }
     clock_init();
     uart_init();
     uart_text("PANDORA ICM20608 SENSOR READY\r\nFIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT

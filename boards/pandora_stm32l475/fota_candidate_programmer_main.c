@@ -122,7 +122,9 @@ int main(void)
     uint8_t verify[256];
 
     SCB->VTOR = 0x08000000U;
-    HAL_Init();
+    if (xy_hal_sys_init() != XY_HAL_OK) {
+        stop();
+    }
     clock_init();
     peripherals_init();
     uart_text("PANDORA FOTA CANDIDATE PROGRAMMER READY\r\n");

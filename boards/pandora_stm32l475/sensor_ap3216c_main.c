@@ -120,7 +120,8 @@ int main(void)
     uint8_t raw[6];
     void *i2c3;
 
-    HAL_Init(); clock_init(); uart_init();
+    if (xy_hal_sys_init() != XY_HAL_OK) { fail(); }
+    clock_init(); uart_init();
     uart_text("PANDORA AP3216C SENSOR READY\r\nFIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT
               "\r\nAP3216C_BUS=HW_I2C3 SCL=PC0 SDA=PC1 ADDR=0x1E\r\n");
     i2c3 = pandora_hw_i2c3_init();

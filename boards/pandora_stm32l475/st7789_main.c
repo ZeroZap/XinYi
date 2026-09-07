@@ -130,7 +130,7 @@ static void fill(uint16_t color, const char *marker)
 int main(void)
 {
     xy_lcd_st7789_config_t config = {0};
-    HAL_Init();
+    if (xy_hal_sys_init() != XY_HAL_OK) fail();
     clock_init();
     uart_init();
     display_bus_init();

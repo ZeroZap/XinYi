@@ -202,7 +202,9 @@ int main(void)
         .timeout_ms = 0U,
     };
 
-    HAL_Init();
+    if (xy_hal_sys_init() != XY_HAL_OK) {
+        fail();
+    }
     clock_init();
     gpio_uart_init();
     xy_sys_init();
