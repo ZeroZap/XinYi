@@ -93,6 +93,10 @@ xy_hal_error_t xy_hal_rtc_register_callback(void *rtc, xy_hal_rtc_event_t event,
 int64_t xy_hal_rtc_get_timestamp(void *rtc);
 xy_hal_error_t xy_hal_rtc_set_timestamp(void *rtc, int64_t timestamp);
 
+#define XY_HAL_RTC_BACKUP_REGISTER_COUNT 20U
+xy_hal_error_t xy_hal_rtc_backup_read(uint32_t index, uint32_t *value);
+xy_hal_error_t xy_hal_rtc_backup_write(uint32_t index, uint32_t value);
+
 #ifdef __cplusplus
 }
 #endif

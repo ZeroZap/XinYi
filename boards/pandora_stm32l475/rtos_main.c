@@ -9,6 +9,7 @@
 #include "xy_hal_dma.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_qspi.h"
+#include "xy_hal_rtc.h"
 #include "xy_hal_spi.h"
 #include "xy_hal_sys.h"
 #include "xy_hal_timer.h"
@@ -1027,7 +1028,9 @@ static void dma_task(void *argument)
         uart_text("PANDORA_FOTA_BOOTABLE_CANDIDATE_VALIDATED\r\n");
         if (w25q128_mcu_reset_recovery_pending == 0U) {
 #ifndef PANDORA_IPC_ISR_STRESS_ONLY
-            RTC->BKP0R = W25Q128_MCU_RESET_MAGIC;
+            if (xy_hal_rtc_backup_write(0U, W25Q128_MCU_RESET_MAGIC) != XY_HAL_OK) {
+                fail();
+            }
             uart_text("PANDORA_W25Q128_MCU_RESET_STAGED\r\n");
             (void)xy_hal_sys_software_reset();
             fail();
@@ -1265,20 +1268,31 @@ int main(void)
     gpio_uart_init();
 
     tim6_init();
-    __HAL_RCC_PWR_CLK_ENABLE();
-    HAL_PWR_EnableBkUpAccess();
-    if (RTC->BKP0R == W25Q128_MCU_RESET_MAGIC) {
+    uint32_t backup_value = 0U;
+    if (xy_hal_rtc_backup_read(0U, &backup_value) != XY_HAL_OK) {
+        fail();
+    }
+    if (backup_value == W25Q128_MCU_RESET_MAGIC) {
         w25q128_mcu_reset_recovery_pending = 1U;
-        RTC->BKP0R = 0U;
+        if (xy_hal_rtc_backup_write(0U, 0U) != XY_HAL_OK) {
+            fail();
+        }
     }
     uart_text("PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n");
     uart_text("FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
 #ifdef PANDORA_FOTA_APPLICATION
-    if (RTC->BKP1R == PANDORA_FOTA_CONFIRM_ACK_MAGIC) {
-        RTC->BKP1R = 0U;
+    if (xy_hal_rtc_backup_read(1U, &backup_value) != XY_HAL_OK) {
+        fail();
+    }
+    if (backup_value == PANDORA_FOTA_CONFIRM_ACK_MAGIC) {
+        if (xy_hal_rtc_backup_write(1U, 0U) != XY_HAL_OK) {
+            fail();
+        }
         uart_text("PANDORA_FOTA_CONFIRM_ACKNOWLEDGED\r\n");
     } else if (w25q128_mcu_reset_recovery_pending != 0U) {
-        RTC->BKP1R = PANDORA_FOTA_CONFIRM_REQUEST_MAGIC;
+        if (xy_hal_rtc_backup_write(1U, PANDORA_FOTA_CONFIRM_REQUEST_MAGIC) != XY_HAL_OK) {
+            fail();
+        }
         uart_text("PANDORA_FOTA_CONFIRM_REQUESTED\r\n");
         (void)xy_hal_sys_software_reset();
         fail();

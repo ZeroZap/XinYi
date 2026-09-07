@@ -304,6 +304,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/device/xy_device_core.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_rtc.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
         ${CMAKE_SOURCE_DIR}/components/fota/src/xy_fota_boot.c
@@ -322,6 +323,8 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${_hal}/stm32l4xx_hal_qspi.c
         ${_hal}/stm32l4xx_hal_rcc.c
         ${_hal}/stm32l4xx_hal_rcc_ex.c
+        ${_hal}/stm32l4xx_hal_rtc.c
+        ${_hal}/stm32l4xx_hal_rtc_ex.c
         ${_hal}/stm32l4xx_hal_uart.c)
     target_include_directories(pandora_stm32l475_fota_bootloader BEFORE PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
@@ -424,6 +427,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_timer.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_rtc.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
         ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
@@ -442,6 +446,8 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${_hal}/stm32l4xx_hal_qspi.c
         ${_hal}/stm32l4xx_hal_rcc.c
         ${_hal}/stm32l4xx_hal_rcc_ex.c
+        ${_hal}/stm32l4xx_hal_rtc.c
+        ${_hal}/stm32l4xx_hal_rtc_ex.c
         ${_hal}/stm32l4xx_hal_spi.c
         ${_hal}/stm32l4xx_hal_tim.c
         ${_hal}/stm32l4xx_hal_tim_ex.c
@@ -503,6 +509,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_timer.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_qspi.c
+        ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_rtc.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/drivers/storage/flash/w25q128/xy_w25q128.c
         ${CMAKE_SOURCE_DIR}/components/fota/xy_fota.c
@@ -521,6 +528,8 @@ if(OSAL_BACKEND STREQUAL "freertos")
         ${_hal}/stm32l4xx_hal_qspi.c
         ${_hal}/stm32l4xx_hal_rcc.c
         ${_hal}/stm32l4xx_hal_rcc_ex.c
+        ${_hal}/stm32l4xx_hal_rtc.c
+        ${_hal}/stm32l4xx_hal_rtc_ex.c
         ${_hal}/stm32l4xx_hal_spi.c
         ${_hal}/stm32l4xx_hal_tim.c
         ${_hal}/stm32l4xx_hal_tim_ex.c

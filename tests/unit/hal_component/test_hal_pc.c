@@ -7,6 +7,7 @@
 #include "xy_hal_gpio.h"
 #include "xy_hal_i2c.h"
 #include "xy_hal_pc.h"
+#include "xy_hal_rtc.h"
 #include "xy_hal_spi.h"
 #include "xy_hal_sys.h"
 #include "xy_hal_uart.h"
@@ -168,6 +169,20 @@ static void test_uart_i2c_spi_pc_smoke(void)
     TEST_ASSERT_EQUAL_UINT8(0, rx[3]);
 }
 
+static void test_rtc_backup_register_pc_contract(void)
+{
+    uint32_t value = 0xAAAAAAAAU;
+
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM, xy_hal_rtc_backup_read(0U, NULL));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_rtc_backup_read(XY_HAL_RTC_BACKUP_REGISTER_COUNT, &value));
+    TEST_ASSERT_EQUAL(XY_HAL_ERROR_INVALID_PARAM,
+                      xy_hal_rtc_backup_write(XY_HAL_RTC_BACKUP_REGISTER_COUNT, value));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_backup_write(0U, 0x12345678U));
+    TEST_ASSERT_EQUAL(XY_HAL_OK, xy_hal_rtc_backup_read(0U, &value));
+    TEST_ASSERT_EQUAL_HEX32(0x12345678U, value);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -176,5 +191,6 @@ int main(void)
     RUN_TEST(test_gpio_pc_config_state_and_batch);
     RUN_TEST(test_gpio_pc_irq_and_extended_helpers);
     RUN_TEST(test_uart_i2c_spi_pc_smoke);
+    RUN_TEST(test_rtc_backup_register_pc_contract);
     return UNITY_END();
 }

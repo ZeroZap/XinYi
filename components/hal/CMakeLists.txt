@@ -8,6 +8,7 @@ if(HAL_PLATFORM STREQUAL "PC")
         PC/xy_hal_pc.c
         PC/xy_hal_gpio_pc.c
         PC/xy_hal_i2c_pc.c
+        PC/xy_hal_rtc_pc.c
         PC/xy_hal_spi_pc.c
         PC/xy_hal_uart_pc.c
     )
@@ -54,6 +55,7 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_flash\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_gpio\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_i2c\\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_rtc\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_sys\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_uart\\.c$")
     list(APPEND HAL_SOURCES
@@ -61,6 +63,7 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
         "stm32/stm32l4/xy_hal_flash.c"
         "stm32/stm32l4/xy_hal_gpio.c"
         "stm32/stm32l4/xy_hal_i2c.c"
+        "stm32/stm32l4/xy_hal_rtc.c"
         "stm32/stm32l4/xy_hal_sys.c"
         "stm32/stm32l4/xy_hal_uart.c")
     set(HAL_DEFINES

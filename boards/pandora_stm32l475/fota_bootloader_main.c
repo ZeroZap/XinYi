@@ -7,6 +7,7 @@
 #include "xy_fota_w25q128.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_qspi.h"
+#include "xy_hal_rtc.h"
 #include "xy_hal_uart.h"
 #include "xy_w25q128.h"
 
@@ -193,8 +194,6 @@ int main(void)
     HAL_Init();
     clock_init();
     peripherals_init();
-    HAL_PWR_EnableBkUpAccess();
-
     uart_text("PANDORA FOTA BOOTLOADER READY\r\n");
     uart_text("BOOTLOADER_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
     if (xy_device_init() != XY_DEVICE_OK || xy_hal_qspi_init(&qspi, &qspi_config) != XY_HAL_OK ||
@@ -208,7 +207,11 @@ int main(void)
     candidate.read = candidate_ops->read;
     if (xy_fota_boot_candidate_validate(&candidate, &header) == XY_FOTA_OK) {
 #ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
-        if (RTC->BKP2R != PANDORA_FOTA_RESTAGE_DONE_MAGIC) {
+        uint32_t backup_value = 0U;
+        if (xy_hal_rtc_backup_read(2U, &backup_value) != XY_HAL_OK) {
+            stop();
+        }
+        if (backup_value != PANDORA_FOTA_RESTAGE_DONE_MAGIC) {
             xy_fota_boot_reviewed_restage_authorization_t authorization = {
                 .candidate = {
                     .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
@@ -236,7 +239,9 @@ int main(void)
                 uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR\r\n");
                 stop();
             }
-            RTC->BKP2R = PANDORA_FOTA_RESTAGE_DONE_MAGIC;
+            if (xy_hal_rtc_backup_write(2U, PANDORA_FOTA_RESTAGE_DONE_MAGIC) != XY_HAL_OK) {
+                stop();
+            }
             uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZED\r\n");
         }
 #endif
@@ -247,13 +252,19 @@ int main(void)
         }
         uart_text(installed ? "PANDORA_BOOT_CANDIDATE_INSTALLED\r\n"
                             : "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED\r\n");
-        if (RTC->BKP1R == PANDORA_FOTA_CONFIRM_REQUEST_MAGIC) {
+        uint32_t backup_value = 0U;
+        if (xy_hal_rtc_backup_read(1U, &backup_value) != XY_HAL_OK) {
+            stop();
+        }
+        if (backup_value == PANDORA_FOTA_CONFIRM_REQUEST_MAGIC) {
             if (xy_fota_boot_candidate_confirm(&candidate, pandora_fota_install_ops(), &journal) !=
                 XY_FOTA_OK) {
                 uart_text("PANDORA_BOOT_CONFIRM_ERROR\r\n");
                 stop();
             }
-            RTC->BKP1R = PANDORA_FOTA_CONFIRM_ACK_MAGIC;
+            if (xy_hal_rtc_backup_write(1U, PANDORA_FOTA_CONFIRM_ACK_MAGIC) != XY_HAL_OK) {
+                stop();
+            }
             uart_text("PANDORA_BOOT_CANDIDATE_CONFIRMED\r\n");
         } else {
             int rollback_required = 0;

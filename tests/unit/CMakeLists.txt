@@ -1250,12 +1250,13 @@ target_include_directories(test_dmp BEFORE PRIVATE
 )
 target_link_libraries(test_dmp PRIVATE m)
 
-# --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS ---
+# --- Test 22: HAL PC simulation contracts for GPIO/UART/I2C/SPI/SYS/RTC backup ---
 xy_add_unit_test(test_hal_pc hal_pc UNITY
     ${UNIT_HAL}/test_hal_pc.c
     ${HAL}/PC/xy_hal_pc.c
     ${HAL}/PC/xy_hal_gpio_pc.c
     ${HAL}/PC/xy_hal_i2c_pc.c
+    ${HAL}/PC/xy_hal_rtc_pc.c
     ${HAL}/PC/xy_hal_spi_pc.c
     ${HAL}/PC/xy_hal_uart_pc.c
 )

@@ -181,6 +181,20 @@ def main() -> None:
     rtos_entry = (BOARD / "rtos_main.c").read_text(encoding="utf-8")
     assert "xy_hal_sys_software_reset" in rtos_entry
     assert "NVIC_SystemReset" not in rtos_entry
+    for backup_entry in ("rtos_main.c", "fota_bootloader_main.c"):
+        entry = (BOARD / backup_entry).read_text(encoding="utf-8")
+        for required in ("xy_hal_rtc_backup_read", "xy_hal_rtc_backup_write"):
+            assert required in entry, f"{backup_entry} missing canonical RTC backup call {required}"
+        for forbidden in ("HAL_PWR_EnableBkUpAccess", "RTC->BKP"):
+            assert forbidden not in entry, f"{backup_entry} bypasses canonical RTC HAL: {forbidden}"
+    require(
+        ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_rtc.c",
+        "xy_hal_rtc_backup_read",
+        "xy_hal_rtc_backup_write",
+        "HAL_PWR_EnableBkUpAccess",
+        "HAL_RTCEx_BKUPRead",
+        "HAL_RTCEx_BKUPWrite",
+    )
     require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_uart.c",
         "xy_hal_uart_init",
