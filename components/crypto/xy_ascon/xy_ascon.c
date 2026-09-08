@@ -1015,6 +1015,17 @@ int xy_ascon_hash(const uint8_t *message, size_t message_len,
 
 /* ==================== Incremental API ==================== */
 
+static void ascon_128a_context_clear(xy_ascon_128a_ctx_t *ctx)
+{
+    volatile uint8_t *bytes = (volatile uint8_t *)ctx;
+    size_t i;
+
+    for (i = 0U; i < sizeof(*ctx); ++i) {
+        bytes[i] = 0U;
+    }
+    ctx->mode = 2;
+}
+
 int xy_ascon_128a_encrypt_init(xy_ascon_128a_ctx_t *ctx,
                                 const uint8_t *key,
                                 const uint8_t *nonce)
@@ -1101,7 +1112,11 @@ int xy_ascon_128a_encrypt_update(xy_ascon_128a_ctx_t *ctx,
 int xy_ascon_128a_encrypt_final(xy_ascon_128a_ctx_t *ctx,
                                  uint8_t tag[XY_ASCON_128A_TAG_SIZE])
 {
-    if (!ctx || !tag || ctx->mode != 1) {
+    if (!ctx || ctx->mode != 1) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    if (!tag) {
+        ascon_128a_context_clear(ctx);
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -1134,7 +1149,7 @@ int xy_ascon_128a_encrypt_final(xy_ascon_128a_ctx_t *ctx,
     tag[14] = (uint8_t)(ctx->S[4] >> 48);
     tag[15] = (uint8_t)(ctx->S[4] >> 56);
 
-    ctx->mode = 2;
+    ascon_128a_context_clear(ctx);
 
     return XY_ASCON_SUCCESS;
 }
@@ -1234,7 +1249,14 @@ int xy_ascon_128a_decrypt_final(xy_ascon_128a_ctx_t *ctx,
     uint8_t expected_tag[XY_ASCON_128A_TAG_SIZE];
     size_t i;
 
-    if (!ctx || !tag || ctx->mode != 1) {
+    if (!ctx || ctx->mode != 1) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    if (!tag) {
+        if (ctx->plaintext_start) {
+            memset(ctx->plaintext_start, 0, ctx->plaintext_len);
+        }
+        ascon_128a_context_clear(ctx);
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -1273,14 +1295,14 @@ int xy_ascon_128a_decrypt_final(xy_ascon_128a_ctx_t *ctx,
         diff |= tag[i] ^ expected_tag[i];
     }
 
-    ctx->mode = 2;
-
     if (diff) {
         if (ctx->plaintext_start) {
             memset(ctx->plaintext_start, 0, ctx->plaintext_len);
         }
+        ascon_128a_context_clear(ctx);
         return XY_ASCON_AUTH_FAILED;
     }
 
+    ascon_128a_context_clear(ctx);
     return XY_ASCON_SUCCESS;
 }
