@@ -323,7 +323,8 @@ int xy_ascon_128_encrypt(const uint8_t *key,
     uint8_t buffer[16];
     size_t i;
 
-    if (!key || !nonce || !ciphertext || !tag) {
+    if (!key || !nonce || !ciphertext || !tag ||
+        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -419,7 +420,8 @@ int xy_ascon_128_decrypt(const uint8_t *key,
     uint8_t expected_tag[XY_ASCON_128_TAG_SIZE];
     size_t i;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag) {
+    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
+        (ad_len > 0U && !ad)) {
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -527,7 +529,8 @@ int xy_ascon_128a_encrypt(const uint8_t *key,
     uint8_t buffer[16];
     size_t i;
 
-    if (!key || !nonce || !ciphertext || !tag) {
+    if (!key || !nonce || !ciphertext || !tag ||
+        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -623,7 +626,8 @@ int xy_ascon_128a_decrypt(const uint8_t *key,
     uint8_t expected_tag[XY_ASCON_128A_TAG_SIZE];
     size_t i;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag) {
+    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
+        (ad_len > 0U && !ad)) {
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -730,7 +734,8 @@ int xy_ascon_80pq_encrypt(const uint8_t *key,
     uint8_t buffer[16];
     size_t i;
 
-    if (!key || !nonce || !ciphertext || !tag) {
+    if (!key || !nonce || !ciphertext || !tag ||
+        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -822,7 +827,8 @@ int xy_ascon_80pq_decrypt(const uint8_t *key,
     uint8_t expected_tag[XY_ASCON_80PQ_TAG_SIZE];
     size_t i;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag) {
+    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
+        (ad_len > 0U && !ad)) {
         return XY_ASCON_INVALID_PARAM;
     }
 

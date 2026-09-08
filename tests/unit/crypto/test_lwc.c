@@ -299,6 +299,37 @@ static void test_tinyjambu_192_and_256_roundtrip_boundaries(void)
     }
 }
 
+static void test_ascon_and_tinyjambu_reject_inconsistent_buffers(void)
+{
+    uint8_t key128[XY_ASCON_128_KEY_SIZE] = {0};
+    uint8_t key80pq[XY_ASCON_80PQ_KEY_SIZE] = {0};
+    uint8_t tiny_key192[XY_TINYJAMBU_192_KEY_SIZE] = {0};
+    uint8_t tiny_key256[XY_TINYJAMBU_256_KEY_SIZE] = {0};
+    uint8_t nonce[XY_ASCON_128_NONCE_SIZE] = {0};
+    uint8_t input[16] = {0};
+    uint8_t output[16] = {0};
+    uint8_t tag[XY_ASCON_128_TAG_SIZE] = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128_encrypt(key128, nonce, NULL, 1U, input, 1U, output, tag));
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128a_encrypt(key128, nonce, NULL, 0U, NULL, 1U, output, tag));
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_80pq_decrypt(key80pq, nonce, NULL, 1U, input, 1U, output, tag));
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_encrypt(key128, nonce, NULL, 1U, input, 1U, output, tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_encrypt_tag128(key128, nonce, NULL, 0U, NULL, 1U,
+                                                         output, tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_192_decrypt(tiny_key192, nonce, NULL, 1U, input, 1U,
+                                                   output, tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_256_encrypt(tiny_key256, nonce, NULL, 0U, NULL, 1U,
+                                                   output, tag));
+}
+
 static void test_photon_beetle_roundtrip_boundaries(void)
 {
     static const size_t lengths[] = {1U, 15U, 16U, 17U, 32U};
@@ -428,6 +459,7 @@ int main(void)
     RUN_TEST(test_tinyjambu_encrypt_variants);
     RUN_TEST(test_tinyjambu_128_roundtrips_and_rejects_bad_tag);
     RUN_TEST(test_tinyjambu_192_and_256_roundtrip_boundaries);
+    RUN_TEST(test_ascon_and_tinyjambu_reject_inconsistent_buffers);
     RUN_TEST(test_photon_beetle_roundtrip_boundaries);
     RUN_TEST(test_photon_beetle_roundtrips_tag_sizes_and_hashes);
     RUN_TEST(test_photon_beetle_rejects_wrong_tag);
