@@ -363,6 +363,66 @@ static void test_photon_beetle_incremental_matches_one_shot(void)
     TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_tag, incremental_tag, sizeof(expected_tag));
 }
 
+static void test_photon_beetle_incremental_accepts_chunked_data(void)
+{
+    static const size_t chunks[] = {1U, 7U, 9U, 16U};
+    uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
+    uint8_t nonce[XY_PHOTON_BEETLE_NONCE_SIZE] = {0};
+    uint8_t ad[3] = {0xA1U, 0xB2U, 0xC3U};
+    uint8_t plaintext[33];
+    uint8_t expected_ciphertext[sizeof(plaintext)];
+    uint8_t incremental_ciphertext[sizeof(plaintext)];
+    uint8_t decrypted[sizeof(plaintext)];
+    uint8_t expected_tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    uint8_t incremental_tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    xy_photon_beetle_ctx_t ctx;
+    size_t chunk_index;
+    size_t index;
+    size_t offset;
+
+    for (index = 0U; index < sizeof(plaintext); ++index) {
+        plaintext[index] = (uint8_t)(0x30U + index);
+    }
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt(key, nonce, ad, sizeof(ad), plaintext,
+                                                    sizeof(plaintext), expected_ciphertext,
+                                                    expected_tag));
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_ad(&ctx, ad, sizeof(ad)));
+    offset = 0U;
+    for (chunk_index = 0U; chunk_index < sizeof(chunks) / sizeof(chunks[0]); ++chunk_index) {
+        TEST_ASSERT_EQUAL_INT(
+            XY_PHOTON_BEETLE_SUCCESS,
+            xy_photon_beetle_encrypt_update(&ctx, plaintext + offset, chunks[chunk_index],
+                                            incremental_ciphertext + offset));
+        offset += chunks[chunk_index];
+    }
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_final(&ctx, incremental_tag));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_ciphertext, incremental_ciphertext,
+                                  sizeof(expected_ciphertext));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_tag, incremental_tag, sizeof(expected_tag));
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_ad(&ctx, ad, sizeof(ad)));
+    offset = 0U;
+    for (chunk_index = 0U; chunk_index < sizeof(chunks) / sizeof(chunks[0]); ++chunk_index) {
+        TEST_ASSERT_EQUAL_INT(
+            XY_PHOTON_BEETLE_SUCCESS,
+            xy_photon_beetle_decrypt_update(&ctx, incremental_ciphertext + offset,
+                                            chunks[chunk_index], decrypted + offset));
+        offset += chunks[chunk_index];
+    }
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_final(&ctx, incremental_tag));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(plaintext, decrypted, sizeof(plaintext));
+}
+
 static void test_photon_beetle_incremental_guards_state_and_inputs(void)
 {
     uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
@@ -521,6 +581,7 @@ int main(void)
     RUN_TEST(test_tinyjambu_192_and_256_roundtrip_boundaries);
     RUN_TEST(test_ascon_and_tinyjambu_reject_inconsistent_buffers);
     RUN_TEST(test_photon_beetle_incremental_matches_one_shot);
+    RUN_TEST(test_photon_beetle_incremental_accepts_chunked_data);
     RUN_TEST(test_photon_beetle_incremental_guards_state_and_inputs);
     RUN_TEST(test_photon_beetle_roundtrip_boundaries);
     RUN_TEST(test_photon_beetle_roundtrips_tag_sizes_and_hashes);

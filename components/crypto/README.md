@@ -39,7 +39,7 @@ Focused CTest 名称：
 | `crypto_blake2` | BLAKE2s public vectors, incremental/keyed behavior, invalid-parameter guards, and output-preservation contract; host contract only, not security/provenance review |
 | `crypto_ecdsa_root_contract` | Root aggregate ECDSA format-only placeholder contract: null/malformed/range guards plus documented message-non-binding success behavior; security status remains rejected |
 | `crypto_sm2` | SM2 public API guard paths and placeholder-grade contract |
-| `crypto_lwc` | Focused test-only LWC contracts; includes Photon one-shot/incremental equivalence, incremental state-order guards, rate-boundary roundtrips, tampered tags, pointer/length guards, bounded wipe, and canaries |
+| `crypto_lwc` | Focused test-only LWC contracts; includes Photon one-shot/incremental equivalence across split updates, incremental state-order guards, rate-boundary roundtrips, tampered tags, pointer/length guards, bounded wipe, and canaries |
 | `crypto_photon_warning_clean` | Active Photon-Beetle source compiles as C99 with `-Wall -Wextra -Wpedantic -Werror`; guards exact S-box initializer bounds and dead-code regressions, not algorithm correctness/security |
 | `crypto_smoke_example` | Host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; links focused module sources and remains API-drift guard only, not a security/hardware proof |
 | `crypto_alias_target` | CMake configure smoke that proves `xy_tiny_crypto` still exists and `xy_crypto` compatibility alias is exported |
