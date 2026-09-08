@@ -133,6 +133,7 @@ typedef struct {
     size_t plaintext_len;     /* Total plaintext length */
     uint8_t data_block[16];   /* Current partial data block */
     size_t data_block_len;    /* Bytes used in current data block */
+    uint8_t *plaintext;       /* Contiguous decrypt output awaiting authentication */
     int mode;                 /* 0=init, 1=AD, 2=data, 3=done */
 } xy_photon_beetle_ctx_t;
 

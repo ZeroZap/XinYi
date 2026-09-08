@@ -421,6 +421,24 @@ static void test_photon_beetle_incremental_accepts_chunked_data(void)
     TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
                           xy_photon_beetle_decrypt_final(&ctx, incremental_tag));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(plaintext, decrypted, sizeof(plaintext));
+
+    incremental_tag[0] ^= 0x01U;
+    memset(decrypted, 0xA5, sizeof(decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_ad(&ctx, ad, sizeof(ad)));
+    offset = 0U;
+    for (chunk_index = 0U; chunk_index < sizeof(chunks) / sizeof(chunks[0]); ++chunk_index) {
+        TEST_ASSERT_EQUAL_INT(
+            XY_PHOTON_BEETLE_SUCCESS,
+            xy_photon_beetle_decrypt_update(&ctx, incremental_ciphertext + offset,
+                                            chunks[chunk_index], decrypted + offset));
+        offset += chunks[chunk_index];
+    }
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_AUTH_FAILED,
+                          xy_photon_beetle_decrypt_final(&ctx, incremental_tag));
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, decrypted, sizeof(plaintext));
 }
 
 static void test_photon_beetle_incremental_guards_state_and_inputs(void)
@@ -428,7 +446,7 @@ static void test_photon_beetle_incremental_guards_state_and_inputs(void)
     uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
     uint8_t nonce[XY_PHOTON_BEETLE_NONCE_SIZE] = {0};
     uint8_t data[1] = {0};
-    uint8_t output[1] = {0};
+    uint8_t output[2] = {0};
     uint8_t tag[XY_PHOTON_BEETLE_TAG_SIZE];
     xy_photon_beetle_ctx_t ctx;
 
@@ -448,6 +466,15 @@ static void test_photon_beetle_incremental_guards_state_and_inputs(void)
                           xy_photon_beetle_encrypt_final(&ctx, tag));
     TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
                           xy_photon_beetle_encrypt_final(&ctx, tag));
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_update(&ctx, data, sizeof(data), output));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_decrypt_update(&ctx, data, sizeof(data), output));
 }
 
 static void test_photon_beetle_roundtrip_boundaries(void)

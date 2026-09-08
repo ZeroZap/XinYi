@@ -753,6 +753,12 @@ int xy_photon_beetle_decrypt_update(xy_photon_beetle_ctx_t *ctx,
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
+    if (ctx->plaintext_len == 0U) {
+        ctx->plaintext = plaintext;
+    } else if (plaintext != ctx->plaintext + ctx->plaintext_len) {
+        return XY_PHOTON_BEETLE_INVALID_PARAM;
+    }
+
     for (i = 0U; i < ciphertext_len; ++i) {
         size_t offset = ctx->data_block_len;
 
@@ -800,6 +806,7 @@ int xy_photon_beetle_decrypt_final(xy_photon_beetle_ctx_t *ctx,
     ctx->mode = 3;
 
     if (diff != 0U) {
+        memset(ctx->plaintext, 0, ctx->plaintext_len);
         return XY_PHOTON_BEETLE_AUTH_FAILED;
     }
     return XY_PHOTON_BEETLE_SUCCESS;
