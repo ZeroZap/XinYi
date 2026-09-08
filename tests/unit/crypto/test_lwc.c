@@ -244,6 +244,7 @@ static void test_photon_beetle_roundtrips_tag_sizes_and_hashes(void)
     uint8_t decrypted[sizeof(plaintext)];
     uint8_t tag[XY_PHOTON_BEETLE_TAG_SIZE];
     uint8_t tag64[XY_PHOTON_BEETLE_TAG_64_SIZE];
+    uint8_t bad_tag64[XY_PHOTON_BEETLE_TAG_64_SIZE];
     uint8_t hash[XY_PHOTON_HASH_SIZE];
 
     TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
@@ -262,6 +263,15 @@ static void test_photon_beetle_roundtrips_tag_sizes_and_hashes(void)
                                                           decrypted, tag64));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(plaintext, decrypted, 16);
 
+    memcpy(bad_tag64, tag64, sizeof(bad_tag64));
+    bad_tag64[0] ^= 0x01U;
+    memset(decrypted, 0xA5, sizeof(decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_AUTH_FAILED,
+                          xy_photon_beetle_decrypt_tag64(key, nonce, NULL, 0, ciphertext, 16,
+                                                          decrypted, bad_tag64));
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, decrypted, 16U);
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, decrypted[16]);
+
     TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
                           xy_photon_hash((const uint8_t *)"Test message for Photon hash", 28,
                                          hash));
@@ -277,6 +287,13 @@ static void test_photon_beetle_rejects_wrong_tag(void)
     uint8_t decrypted[sizeof(plaintext)];
     uint8_t tag[XY_PHOTON_BEETLE_TAG_SIZE];
     uint8_t bad_tag[XY_PHOTON_BEETLE_TAG_SIZE] = {0xFF};
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_encrypt_tag64(key, nonce, NULL, 0, plaintext,
+                                                          sizeof(plaintext), ciphertext, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_decrypt_tag64(key, nonce, NULL, 0, ciphertext,
+                                                          sizeof(ciphertext), decrypted, NULL));
 
     TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
                           xy_photon_beetle_encrypt(key, nonce, NULL, 0, plaintext,

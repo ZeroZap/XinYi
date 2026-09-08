@@ -411,6 +411,9 @@ int xy_photon_beetle_encrypt_tag64(const uint8_t *key,
     uint8_t full_tag[16];
     int ret;
 
+    if (!tag) {
+        return XY_PHOTON_BEETLE_INVALID_PARAM;
+    }
     ret = xy_photon_beetle_encrypt(key, nonce, ad, ad_len,
                                      plaintext, plaintext_len, ciphertext, full_tag);
     if (ret == XY_PHOTON_BEETLE_SUCCESS) {
@@ -427,13 +430,72 @@ int xy_photon_beetle_decrypt_tag64(const uint8_t *key,
                                     uint8_t *plaintext,
                                     const uint8_t tag[XY_PHOTON_BEETLE_TAG_64_SIZE])
 {
-    uint8_t full_tag[16];
+    uint8_t state[PHOTON_STATE_SIZE];
+    uint8_t buffer[16];
+    uint8_t expected_tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    size_t blocks;
+    size_t i;
+    uint8_t diff = 0U;
 
-    memcpy(full_tag, tag, 8);
-    memset(full_tag + 8, 0, 8);
+    if (!key || !nonce || !ciphertext || !plaintext || !tag) {
+        return XY_PHOTON_BEETLE_INVALID_PARAM;
+    }
 
-    return xy_photon_beetle_decrypt(key, nonce, ad, ad_len,
-                                     ciphertext, ciphertext_len, plaintext, full_tag);
+    photon_beetle_init(state, key, nonce);
+    if (ad && ad_len > 0U) {
+        i = 0U;
+        while (i < ad_len) {
+            if (i + 16U <= ad_len) {
+                photon_beetle_absorb(state, ad + i, 16);
+                i += 16U;
+            } else {
+                memset(buffer, 0, sizeof(buffer));
+                memcpy(buffer, ad + i, ad_len - i);
+                buffer[ad_len - i] = 0x80U;
+                photon_beetle_absorb(state, buffer, 16);
+                break;
+            }
+        }
+    } else {
+        memset(buffer, 0, sizeof(buffer));
+        buffer[0] = 0x80U;
+        photon_beetle_absorb(state, buffer, 16);
+    }
+
+    blocks = ciphertext_len / 16U;
+    for (i = 0U; i < blocks; ++i) {
+        size_t j;
+
+        memcpy(buffer, ciphertext + i * 16U, 16U);
+        for (j = 0U; j < 16U; ++j) {
+            plaintext[i * 16U + j] = state[j] ^ buffer[j];
+            state[j] = buffer[j];
+        }
+        photon_permutation(state);
+    }
+    if (ciphertext_len % 16U) {
+        size_t rem = ciphertext_len % 16U;
+
+        memcpy(buffer, ciphertext + blocks * 16U, rem);
+        for (i = 0U; i < rem; ++i) {
+            plaintext[blocks * 16U + i] = state[i] ^ buffer[i];
+            state[i] = buffer[i];
+        }
+        buffer[rem] = 0x80U;
+        photon_beetle_absorb(state, buffer, 16);
+    }
+
+    state[15] ^= 0x01U;
+    photon_permutation(state);
+    memcpy(expected_tag, state + 16, sizeof(expected_tag));
+    for (i = 0U; i < XY_PHOTON_BEETLE_TAG_64_SIZE; ++i) {
+        diff |= tag[i] ^ expected_tag[i];
+    }
+    if (diff != 0U) {
+        memset(plaintext, 0, ciphertext_len);
+        return XY_PHOTON_BEETLE_AUTH_FAILED;
+    }
+    return XY_PHOTON_BEETLE_SUCCESS;
 }
 
 /* ==================== PHOTON Hash ==================== */
