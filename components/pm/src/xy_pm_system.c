@@ -151,18 +151,26 @@ int xy_pm_get_state(xy_pm_system_state_info_t *state)
 
 int xy_pm_start_charging(void)
 {
+    int result;
+
     if (!s_pm.initialized) return XY_PM_NOT_INITIALIZED;
 
+    result = xy_charger_start();
+    if (result != XY_CHARGER_OK) return result;
     s_pm.state.enabled = true;
-    return xy_charger_start();
+    return result;
 }
 
 int xy_pm_stop_charging(void)
 {
+    int result;
+
     if (!s_pm.initialized) return XY_PM_NOT_INITIALIZED;
 
+    result = xy_charger_stop();
+    if (result != XY_CHARGER_OK) return result;
     s_pm.state.enabled = false;
-    return xy_charger_stop();
+    return result;
 }
 
 bool xy_pm_is_charging(void)

@@ -125,6 +125,40 @@ static void test_pm_public_mode_dispatch_is_fail_closed(void)
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
 }
 
+static void test_pm_charging_intent_commits_only_after_hardware_success(void)
+{
+    xy_pm_system_state_info_t state;
+
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_init());
+
+    xy_pm_platform_set_charger_result(XY_PM_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_ERROR, xy_pm_start_charging());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_FALSE(state.enabled);
+    TEST_ASSERT_FALSE(xy_pm_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_pm_start_charging());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_TRUE(state.enabled);
+    TEST_ASSERT_TRUE(xy_pm_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_ERROR, xy_pm_stop_charging());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_TRUE(state.enabled);
+    TEST_ASSERT_TRUE(xy_pm_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_pm_stop_charging());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_FALSE(state.enabled);
+    TEST_ASSERT_FALSE(xy_pm_is_charging());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
+}
+
 static void test_charger_contracts(void)
 {
     xy_charger_config_t cfg = {
@@ -252,6 +286,7 @@ int main(void)
     RUN_TEST(test_pm_lifecycle_and_charging);
     RUN_TEST(test_pm_sleep_lifecycle_guards);
     RUN_TEST(test_pm_public_mode_dispatch_is_fail_closed);
+    RUN_TEST(test_pm_charging_intent_commits_only_after_hardware_success);
     RUN_TEST(test_charger_contracts);
     RUN_TEST(test_fuel_gauge_and_adc_contracts);
     RUN_TEST(test_fuel_gauge_uses_platform_tick);
