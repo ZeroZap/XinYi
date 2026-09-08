@@ -1046,10 +1046,11 @@ int xy_ascon_128a_encrypt_ad(xy_ascon_128a_ctx_t *ctx,
     uint8_t buffer[8];
     size_t i;
 
-    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0 || ctx->ad_len != 0U) {
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0 || ctx->ad_processed) {
         return XY_ASCON_INVALID_PARAM;
     }
 
+    ctx->ad_processed = 1;
     ctx->ad_len = ad_len;
     i = 0;
 
@@ -1174,10 +1175,11 @@ int xy_ascon_128a_decrypt_ad(xy_ascon_128a_ctx_t *ctx,
     uint8_t buffer[8];
     size_t i;
 
-    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0 || ctx->ad_len != 0U) {
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0 || ctx->ad_processed) {
         return XY_ASCON_INVALID_PARAM;
     }
 
+    ctx->ad_processed = 1;
     ctx->ad_len = ad_len;
     i = 0;
 

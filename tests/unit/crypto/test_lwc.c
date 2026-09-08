@@ -471,6 +471,28 @@ static void test_ascon_128a_incremental_scrubs_context_on_final_paths(void)
     assert_ascon_context_scrubbed(&ctx);
 }
 
+static void test_ascon_128a_incremental_rejects_repeated_ad_phase(void)
+{
+    uint8_t key[XY_ASCON_128A_KEY_SIZE] = {0};
+    uint8_t nonce[XY_ASCON_128A_NONCE_SIZE] = {0};
+    uint8_t byte = 0x42U;
+    xy_ascon_128a_ctx_t ctx;
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS, xy_ascon_128a_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS, xy_ascon_128a_encrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128a_encrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128a_encrypt_ad(&ctx, &byte, 1U));
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS, xy_ascon_128a_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS, xy_ascon_128a_decrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128a_decrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128a_decrypt_ad(&ctx, &byte, 1U));
+}
+
 static void assert_tinyjambu_context_scrubbed(const xy_tinyjambu_128_ctx_t *ctx)
 {
     xy_tinyjambu_128_ctx_t expected;
@@ -1027,6 +1049,7 @@ int main(void)
     RUN_TEST(test_ascon_and_tinyjambu_reject_inconsistent_buffers);
     RUN_TEST(test_ascon_128a_incremental_matches_split_one_shot);
     RUN_TEST(test_ascon_128a_incremental_scrubs_context_on_final_paths);
+    RUN_TEST(test_ascon_128a_incremental_rejects_repeated_ad_phase);
     RUN_TEST(test_tinyjambu_incremental_scrubs_context_on_final_paths);
     RUN_TEST(test_tinyjambu_incremental_matches_split_one_shot);
     RUN_TEST(test_photon_beetle_incremental_matches_one_shot);
