@@ -1,10 +1,12 @@
 # OSAL 组件 - OS 抽象层
 
-**状态**: Host-guarded / RTOS `runtime-pending` | **版本**: 1.0
+**状态**: Host-guarded / FreeRTOS `runtime-pending`（部分 Pandora bounded runtime） | **版本**: 1.0
 
-> 当前证据边界：Bare-metal 有 Host contract；FreeRTOS 仅完成 STM32U5 Cortex-M33
-> source/static-library compile gate。RT-Thread 与 CMSIS-RTX 仅为 source candidate。尚无
-> scheduler、ISR→task、并发、性能或实板证据。
+> 当前证据边界：Pandora STM32L475VE 是正式 reference board；FreeRTOS/CM4F 已取得 bounded
+> scheduler、同步、ISR→task、资源恢复、2P/2C、120 秒与 12-cycle stress、跨组件并发及 shallow
+> sleep/wakeup 实板证据。STM32U5/M33 仅保留 enhancement compile compatibility；RT-Thread 与
+> CMSIS-RTX 仅为 source candidate。多小时耐久、性能和完整产品资格仍为 `runtime-pending`。
+> SSD1306 deferred，不是 OSAL 或 Sprint 1–4 基础验收依赖。
 
 ---
 
@@ -23,7 +25,7 @@ XinYi OS 抽象层（OSAL）提供统一的操作系统接口，支持多种 RTO
 | RTOS | 许可证 | 状态 | 适用场景 |
 |------|--------|------|---------|
 | Bare-metal | - | Host-guarded | Host contract；真实并发/实板 pending |
-| FreeRTOS | MIT | compile-guarded-runtime-pending | Sprint 5 reference；scheduler/ISR/并发 pending |
+| FreeRTOS | MIT | Pandora bounded runtime / runtime-pending | Sprint 5 reference；Pandora 已有受限运行证据，U5 仅 compile compatibility |
 | RT-Thread | Apache-2.0 | source candidate | 本 Sprint 未选择，无 target/runtime gate |
 | CMSIS-RTX | Apache-2.0 | source candidate | 无 target/runtime gate |
 
@@ -33,13 +35,15 @@ XinYi OS 抽象层（OSAL）提供统一的操作系统接口，支持多种 RTO
 
 ### 1. 配置 RTOS 后端
 
-FreeRTOS reference backend 使用 root Kconfig/CMake opt-in；默认仍为 bare-metal：
+FreeRTOS reference backend 使用 root Kconfig/CMake opt-in；默认仍为 bare-metal。Pandora 是 runtime
+基线；以下 STM32U5 命令只保留 enhancement compile compatibility：
 
 ```bash
 KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON make HAL_PLATFORM=STM32U5 configure
 ```
 
-该命令目前只证明 root-selected source/static-library compile；不可当作 runnable firmware。
+该命令只证明 U5 root-selected source/static-library compile；不可当作 runnable firmware，也不阻塞
+Pandora-first 的基础验收。
 
 ### 2. 初始化内核
 

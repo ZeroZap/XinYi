@@ -326,8 +326,14 @@ def main() -> int:
     for token in ("compile-guarded-runtime-pending", "does not claim runtime"):
         require(token in freertos_readme,
                 f"FreeRTOS README must preserve evidence boundary: {token}", errors)
-    require("source/static-library gate" in kernel_readme and "runtime/ISR/并发/实板 pending" in kernel_readme,
-            "kernel README must record the bounded FreeRTOS compile evidence", errors)
+    for token in (
+        "Pandora STM32L475VE",
+        "STM32U5",
+        "enhancement compile compatibility",
+        "bounded",
+    ):
+        require(token in kernel_readme,
+                f"kernel README must preserve the Pandora-first boundary: {token}", errors)
     for document_name, document in (
         ("OSAL README", osal_readme),
         ("OSAL quick start", osal_quick_start),
@@ -351,6 +357,14 @@ def main() -> int:
     ):
         require("runtime-pending" in document,
                 f"{document_name} must preserve the RTOS runtime-pending boundary", errors)
+    for token in (
+        "Pandora STM32L475VE",
+        "STM32U5/M33",
+        "enhancement compile compatibility",
+        "SSD1306 deferred",
+    ):
+        require(token in component_index + osal_introduction,
+                f"public component docs must preserve platform decision: {token}", errors)
     for forbidden in (
         "✅ 支持主流 RTOS",
         "| `kernel/` | OS 抽象层 (FreeRTOS/RT-Thread/RTX) | ✅ |",

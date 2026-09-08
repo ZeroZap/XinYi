@@ -1,6 +1,9 @@
 # 组件状态总览
 
-**最后更新**: 2026-08-30
+**最后更新**: 2026-09-08
+
+> 平台事实：Pandora STM32L475VE 是正式 reference board；STM32U5/M33/TrustZone 仅保留
+> enhancement compile compatibility。SSD1306 deferred，不选择、不推进，也不阻塞 Sprint 1–4。
 
 ---
 
@@ -10,17 +13,17 @@
 
 | 组件 | 代码 | 测试 | 文档 | 构建 | 测试用例 | 状态 |
 |------|------|------|------|------|---------|------|
-| **OSAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Bare-metal Host-guarded；FreeRTOS `compile-guarded-runtime-pending` |
-| **HAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | PC Host contract、部分 QEMU；目标实板 pending |
+| **OSAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Bare-metal Host；FreeRTOS Pandora bounded runtime；多小时/性能 `runtime-pending` |
+| **HAL** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | PC Host、部分 QEMU；Pandora L4 多条 B1/B2；U5 compile-only |
 | **Crypto** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；security review pending |
 | **CLib** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；MCU size/heap pending |
 | **DM** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；真实 Flash durability pending |
 | **NET** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；modem/硬件/长稳 pending |
-| **Device** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；RTOS/Driver B1/B2 pending |
-| **Trace** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；并发/吞吐 pending |
+| **Device** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Host；Pandora I2C/跨组件 bounded B1/B2 |
+| **Trace** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Host；Pandora 跨组件并发 B1；吞吐 pending |
 | **Sensor** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；精度/时序/实板 pending |
-| **IPC** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；RTOS 并发/ISR pending |
-| **PM** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；功耗/唤醒实证 pending |
+| **IPC** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Host；Pandora task/ISR ingress bounded B1/B2；多小时 pending |
+| **PM** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | Host；Pandora shallow sleep/tick wake B1；功耗/深度模式 pending |
 | **PID** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；plant/HIL pending |
 | **ADDC** | ✅ | ✅ | ✅ | ✅ | 以 CTest 为准 | host-guarded；精度/标定 pending |
 
@@ -50,7 +53,9 @@
 
 **证据边界**:
 - Bare-metal：Host contract
-- FreeRTOS：Sprint 5 reference，STM32U5 source/static-library compile gate；runtime/ISR/并发/实板 pending
+- FreeRTOS：Sprint 5 reference；Pandora STM32L475VE/CM4F 已有 bounded scheduler、同步、ISR→task、资源恢复、2P/2C、stress 与跨组件实板证据；多小时/性能仍 `runtime-pending`
+- STM32U5/M33：enhancement compile compatibility，不阻塞 Pandora-first 基础验收
+- SSD1306 deferred，不是 OSAL 验收依赖
 - RT-Thread/CMSIS-RTX：source candidate，未建立 target/runtime gate
 - 软件定时器与 Tick：Host contract；不能外推为所有 RTOS backend runtime 通过
 
@@ -66,14 +71,14 @@
 **目录**: `components/hal/`
 
 **证据边界**:
-- HAL：PC Host contract、部分 QEMU；STM32U5/WCH/HC32 实板证据 pending
+- HAL：PC Host contract、部分 QEMU；Pandora L4 已有 UART/I2C/QSPI/DMA/SPI-TX/SYS/RTC/IWDG 等受限 B1/B2；未覆盖项仍 pending
 - 外设 API/source 存在不等于每个平台均已实现或运行验证
 - 逐平台、逐外设状态以 [HAL 平台证据矩阵](../validation/hal-platform-evidence-matrix.md)为准
 
 **支持平台与当前证据**:
-- STM32U5（source/compile 前置；Board pending）
+- STM32U5（enhancement compile compatibility；Board pending，不阻塞基础验收）
 - STM32F4（部分 QEMU；部分外设仍 unsupported）
-- STM32L4（当前复用 STM32F4 wrapper；Board pending）
+- STM32L4（Pandora 正式 reference board；dedicated HAL owners 与受限 B1/B2）
 - WCH/HC32（部分 source；Board pending）
 - PC simulation（Host contract）
 

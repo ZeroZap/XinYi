@@ -56,9 +56,11 @@ def validate() -> list[str]:
         require(forbidden not in index, f"public component index overclaims evidence: {forbidden}", errors)
 
     for required in (
-        "HAL：PC Host contract、部分 QEMU；STM32U5/WCH/HC32 实板证据 pending",
+        "HAL：PC Host contract、部分 QEMU；Pandora L4 已有",
         "FOTA：Host fail-closed contract；board Flash、bootloader、secure provider 与实板 pending",
-        "STM32U5（source/compile 前置；Board pending）",
+        "STM32U5（enhancement compile compatibility；Board pending，不阻塞基础验收）",
+        "Pandora STM32L475VE 是正式 reference board",
+        "SSD1306 deferred",
         "Host/PC/QEMU/compile-only 不构成实板、安全或 production-ready 证据",
         "测试数量以 canonical CTest 实际发现结果为准",
         "公开入口分类不是产品完成度或 maturity 百分比",

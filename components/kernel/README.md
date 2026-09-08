@@ -38,8 +38,8 @@ kernel/
 | 后端 | 状态 | 说明 |
 |------|------|------|
 | **Bare-metal** | ✅ | 基础内核控制、tick/delay、软件定时器，以及主 CMSIS-like API 下的 mutex/semaphore/event flags/message queue/memory pool 单线程契约；thread creation 仍为 stub |
-| **FreeRTOS** | 编译前置 | Sprint 5 唯一 reference；STM32U5 Cortex-M33 source/static-library gate 已有，runtime/ISR/并发/实板 pending |
-| **RT-Thread** | source candidate | 本 Sprint 未选；无 XinYi STM32U5 runtime gate |
+| **FreeRTOS** | Pandora bounded runtime | Sprint 5 唯一 reference；Pandora STM32L475VE/CM4F 已有 scheduler、task synchronization、SysTick/TIM6 ISR→task、资源恢复、2P/2C 与 bounded stress 实板证据 |
+| **RT-Thread** | source candidate | 本 Sprint 未选；无 XinYi reference-board runtime gate |
 | **CMSIS-RTX5** | source candidate | 未建立 canonical root/runtime 证据 |
 
 ---
@@ -125,7 +125,9 @@ make test-unit
 cd build/tests/unit && ctest -R '^(osal_baremetal|kernel_autotask|kernel_sysmon|bootreason_check)$' --output-on-failure
 ```
 
-这些测试只证明 host/portable contract；RTOS backend 的真实线程调度、ISR 语义、低功耗唤醒和板级 bootreason 来源仍需要目标平台验证。
+这些测试只证明 host/portable contract。FreeRTOS 的目标运行证据以 Pandora STM32L475VE 的受限
+记录为准；STM32U5/M33 仅保留 enhancement compile compatibility。既有 bounded capture 不证明
+多小时耐久、性能或完整 RTOS 产品资格。
 
 ---
 
@@ -133,11 +135,11 @@ cd build/tests/unit && ctest -R '^(osal_baremetal|kernel_autotask|kernel_sysmon|
 
 | 模块 | 完成度 | 状态 |
 |------|--------|------|
-| **OSAL** | 98% | ✅ Host-guarded / backend 实证持续补齐 |
-| **Misc** | 90% | 🟢 `xy_sysmon` + `xy_autotask` 主线可发现，SysMon/AutoTask 均有 host CTest 护栏 |
-| **Service** | 65% | 🟡 bootreason check 有 host CTest，更多板级服务按需求推进 |
+| **OSAL** | 分层证据 | Host-guarded；Pandora FreeRTOS bounded runtime；U5 compile compatibility |
+| **Misc** | Host-guarded | `xy_sysmon` + `xy_autotask` 主线可发现，SysMon/AutoTask 均有 host CTest 护栏 |
+| **Service** | 分层证据 | bootreason check 有 host CTest；Pandora strong SYS backend 已有受限 B1/B2 |
 
-**总体**: 90% 🟡
+**总体**: 分层验证中；不使用静态百分比推导产品完成度。
 
 ---
 
@@ -183,8 +185,9 @@ int main(void) {
 ## 📝 待完成任务
 
 - [x] `xy_sysmon` portable stats/getter/print/alarm stub contract 已由 `kernel_sysmon` host CTest 守护；后续只按真实监控指标/平台失败补最小回归。
-- [ ] 在有目标平台证据时补 RTOS backend 线程调度、ISR/event flags 与低功耗唤醒验证记录。
-- [ ] bootreason check 的板级来源仍需由项目/BSP 记录真实 RTC/backup-register/复位源证据。
+- [x] Pandora FreeRTOS 已补线程调度、同步、ISR→task、资源恢复、bounded stress 与 shallow sleep/wakeup 记录。
+- [x] Pandora strong SYS backend 已补 UID、software/IWDG/external-pin reset reason/recovery 记录。
+- [ ] 补多小时 endurance、功耗/唤醒延迟与剩余外设负向恢复；U5 仅保持 compile compatibility。
 - [ ] Kernel 当前 host guard 状态与后续边界见 `docs/design/xinyi-kernel-host-guard-status-sync-2026-08-08.md`。
 - [ ] Kconfig 聚合与后端命名如需继续整理，先写 proposal，再做小步 build-gated 迁移。
 
