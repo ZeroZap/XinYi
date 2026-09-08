@@ -1,0 +1,26 @@
+{
+  "capture_sha256": "d9b5cad2c6d31ded803d4ddbc6b4d8fa538f677bf69a6f4d5ac337dc01c996ec",
+  "captured_bytes": 4806,
+  "error_marker_count": 0,
+  "failures": [],
+  "firmware_commit": "0cfd921e4d00ac86e1404449d21f6f8e6a058148",
+  "marker_counts": {
+    "OSAL_PM_SLEEP_ENTER": 1,
+    "OSAL_PM_SLEEP_ERROR": 0,
+    "OSAL_PM_SLEEP_WAKE_OK": 1,
+    "OSAL_PM_WAKE_ERROR": 0,
+    "OSAL_PM_WAKE_IRQ": 1
+  },
+  "not_evidence_for": [
+    "power current",
+    "STOP/STANDBY/SHUTDOWN mode",
+    "wake latency or performance",
+    "multi-hour endurance",
+    "STM32U5 runtime"
+  ],
+  "record_type": "xinyi-pandora-stm32l475-pm-sleep-wakeup",
+  "recorded_at_utc": "2026-09-08T00:29:10.688403+00:00",
+  "scope": "Pandora shallow SLEEP/WFI entered through PM/HAL and resumed by configured IRQ",
+  "source_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "status": "B1_PM_SLEEP_WAKE_PASS"
+}
