@@ -41,10 +41,12 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
 
     if not payload:
         failures.append("capture is empty")
-    if lines.count(BANNER) != 1:
-        failures.append(f"banner count {lines.count(BANNER)} != 1")
-    if lines.count(identity) != 1:
-        failures.append(f"firmware identity count {lines.count(identity)} != 1")
+    banner_positions = [index for index, line in enumerate(lines) if line.endswith(BANNER)]
+    identity_positions = [index for index, line in enumerate(lines) if line == identity]
+    if not banner_positions:
+        failures.append("banner count 0")
+    if not identity_positions:
+        failures.append("firmware identity count 0")
     for marker in PM_MARKERS:
         if marker_counts[marker] != PM_REPEAT_CYCLES:
             failures.append(
@@ -53,12 +55,12 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     if marker_counts[PM_REPEAT_MARKER] != 1:
         failures.append(f"{PM_REPEAT_MARKER} count {marker_counts[PM_REPEAT_MARKER]} != 1")
 
-    ordered = [BANNER, identity]
+    ordered = [identity]
     for cycle in range(1, PM_REPEAT_CYCLES + 1):
         ordered.extend((*PM_MARKERS, f"{PM_CYCLE_PREFIX}{cycle}"))
     ordered.append(PM_REPEAT_MARKER)
     positions = []
-    search_start = 0
+    search_start = identity_positions[-1] if identity_positions else 0
     for marker in ordered:
         try:
             position = lines.index(marker, search_start)
@@ -81,6 +83,7 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "captured_bytes": len(payload),
         "capture_sha256": hashlib.sha256(payload).hexdigest(),
         "marker_counts": marker_counts,
+        "boot_count": len(identity_positions),
         "error_marker_count": error_marker_count,
         "failures": failures,
         "repeat_cycles": PM_REPEAT_CYCLES,

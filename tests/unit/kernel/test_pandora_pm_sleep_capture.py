@@ -74,7 +74,17 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
         payload = valid_payload().replace(COMMIT.encode(), b"f" * 40)
         result, record = self.run_validator(payload)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("firmware identity count 0 != 1", record["failures"])
+        self.assertIn("firmware identity count 0", record["failures"])
+
+    def test_accepts_latest_complete_boot_after_an_earlier_identity(self):
+        payload = (
+            b"PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n"
+            b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
+            + valid_payload()
+        )
+        result, record = self.run_validator(payload)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(record["boot_count"], 2)
 
     def test_rejects_out_of_order_wakeup_chain(self):
         payload = valid_payload().replace(
