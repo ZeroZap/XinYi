@@ -136,19 +136,17 @@ static void tinyjambu_encrypt_block(uint64_t R[3], const uint8_t *plaintext,
          ((uint64_t)plaintext[12] << 32) | ((uint64_t)plaintext[13] << 40) |
          ((uint64_t)plaintext[14] << 48) | ((uint64_t)plaintext[15] << 56);
 
-    /* XOR with rate */
-    R[0] ^= x0;
-    R[1] ^= x1;
+    /* Encrypt with the current rate and commit ciphertext to the state. */
+    c0 = R[0] ^ x0;
+    c1 = R[1] ^ x1;
+    R[0] = c0;
+    R[1] = c1;
 
     /* Permutation */
     tinyjambu_permutation(R, rounds);
 
     /* XOR with capacity and key */
     R[2] ^= K[0] ^ K[1];
-
-    /* Extract ciphertext */
-    c0 = R[0];
-    c1 = R[1];
 
     ciphertext[0] = (uint8_t)(c0 >> 0);
     ciphertext[1] = (uint8_t)(c0 >> 8);
@@ -186,19 +184,17 @@ static void tinyjambu_decrypt_block(uint64_t R[3], const uint8_t *ciphertext,
          ((uint64_t)ciphertext[12] << 32) | ((uint64_t)ciphertext[13] << 40) |
          ((uint64_t)ciphertext[14] << 48) | ((uint64_t)ciphertext[15] << 56);
 
-    /* XOR rate with ciphertext (same as encrypt) */
-    R[0] ^= c0;
-    R[1] ^= c1;
+    /* Recover plaintext from the current rate, then commit ciphertext. */
+    x0 = R[0] ^ c0;
+    x1 = R[1] ^ c1;
+    R[0] = c0;
+    R[1] = c1;
 
     /* Permutation */
     tinyjambu_permutation(R, rounds);
 
     /* XOR capacity with key (same as encrypt) */
     R[2] ^= K[0] ^ K[1];
-
-    /* Extract plaintext */
-    x0 = R[0];
-    x1 = R[1];
 
     plaintext[0] = (uint8_t)(x0 >> 0);
     plaintext[1] = (uint8_t)(x0 >> 8);
@@ -216,6 +212,27 @@ static void tinyjambu_decrypt_block(uint64_t R[3], const uint8_t *ciphertext,
     plaintext[13] = (uint8_t)(x1 >> 40);
     plaintext[14] = (uint8_t)(x1 >> 48);
     plaintext[15] = (uint8_t)(x1 >> 56);
+}
+
+static void tinyjambu_crypt_partial(uint64_t R[3], const uint8_t *input,
+                                    uint8_t *output, size_t length,
+                                    uint64_t K[2], int rounds, int decrypt)
+{
+    size_t i;
+
+    for (i = 0; i < length; ++i) {
+        size_t word = i / 8U;
+        unsigned int shift = (unsigned int)((i % 8U) * 8U);
+        uint8_t rate_byte = (uint8_t)(R[word] >> shift);
+        uint8_t ciphertext = decrypt ? input[i] : (uint8_t)(rate_byte ^ input[i]);
+
+        output[i] = decrypt ? (uint8_t)(rate_byte ^ input[i]) : ciphertext;
+        R[word] = (R[word] & ~((uint64_t)0xFFU << shift)) |
+                  ((uint64_t)ciphertext << shift);
+    }
+
+    tinyjambu_permutation(R, rounds);
+    R[2] ^= K[0] ^ K[1];
 }
 
 /**
@@ -309,10 +326,9 @@ int xy_tinyjambu_128_encrypt(const uint8_t *key,
 
     /* Handle remaining bytes */
     if (plaintext_len % 16) {
-        memset(buffer, 0, 16);
-        memcpy(buffer, plaintext + blocks * 16, plaintext_len % 16);
-        tinyjambu_encrypt_block(R, buffer, buffer, K, TINYJAMBU_ROUNDS_128);
-        memcpy(ciphertext + blocks * 16, buffer, plaintext_len % 16);
+        tinyjambu_crypt_partial(R, plaintext + blocks * 16,
+                                ciphertext + blocks * 16, plaintext_len % 16,
+                                K, TINYJAMBU_ROUNDS_128, 0);
     }
 
     /* Finalize and extract tag */
@@ -366,10 +382,9 @@ int xy_tinyjambu_128_decrypt(const uint8_t *key,
 
     /* Handle remaining bytes */
     if (ciphertext_len % 16) {
-        memset(buffer, 0, 16);
-        memcpy(buffer, ciphertext + blocks * 16, ciphertext_len % 16);
-        tinyjambu_decrypt_block(R, buffer, buffer, K, TINYJAMBU_ROUNDS_128);
-        memcpy(plaintext + blocks * 16, buffer, ciphertext_len % 16);
+        tinyjambu_crypt_partial(R, ciphertext + blocks * 16,
+                                plaintext + blocks * 16, ciphertext_len % 16,
+                                K, TINYJAMBU_ROUNDS_128, 1);
     }
 
     /* Finalize and extract expected tag */
@@ -428,10 +443,9 @@ int xy_tinyjambu_128_encrypt_tag128(const uint8_t *key,
     }
 
     if (plaintext_len % 16) {
-        memset(buffer, 0, 16);
-        memcpy(buffer, plaintext + blocks * 16, plaintext_len % 16);
-        tinyjambu_encrypt_block(R, buffer, buffer, K, TINYJAMBU_ROUNDS_128);
-        memcpy(ciphertext + blocks * 16, buffer, plaintext_len % 16);
+        tinyjambu_crypt_partial(R, plaintext + blocks * 16,
+                                ciphertext + blocks * 16, plaintext_len % 16,
+                                K, TINYJAMBU_ROUNDS_128, 0);
     }
 
     tinyjambu_finalize(R, K, tag, 16, TINYJAMBU_ROUNDS_128);
@@ -480,10 +494,9 @@ int xy_tinyjambu_128_decrypt_tag128(const uint8_t *key,
     }
 
     if (ciphertext_len % 16) {
-        memset(buffer, 0, 16);
-        memcpy(buffer, ciphertext + blocks * 16, ciphertext_len % 16);
-        tinyjambu_decrypt_block(R, buffer, buffer, K, TINYJAMBU_ROUNDS_128);
-        memcpy(plaintext + blocks * 16, buffer, ciphertext_len % 16);
+        tinyjambu_crypt_partial(R, ciphertext + blocks * 16,
+                                plaintext + blocks * 16, ciphertext_len % 16,
+                                K, TINYJAMBU_ROUNDS_128, 1);
     }
 
     tinyjambu_finalize(R, K, expected_tag, 16, TINYJAMBU_ROUNDS_128);
