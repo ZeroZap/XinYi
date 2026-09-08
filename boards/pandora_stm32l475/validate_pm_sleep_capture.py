@@ -19,6 +19,7 @@ PM_MARKERS = (
 PM_REPEAT_CYCLES = 32
 PM_CYCLE_PREFIX = "OSAL_PM_SLEEP_CYCLE "
 PM_REPEAT_MARKER = "OSAL_PM_SLEEP_REPEAT_OK"
+POST_REPEAT_PROGRESS_MARKER = "OSAL_IPC_SEND"
 ERROR_MARKERS = (
     "OSAL_PM_SLEEP_ERROR",
     "OSAL_PM_WAKE_ERROR",
@@ -72,6 +73,18 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     if -1 in positions:
         failures.append("PM markers are not strictly ordered")
 
+    repeat_position = positions[-1]
+    post_repeat_task_progress = False
+    if repeat_position >= 0:
+        next_identity_position = next(
+            (position for position in identity_positions if position > repeat_position), len(lines)
+        )
+        post_repeat_task_progress = POST_REPEAT_PROGRESS_MARKER in lines[
+            repeat_position + 1 : next_identity_position
+        ]
+    if not post_repeat_task_progress:
+        failures.append("no task progress after PM repeat completion")
+
     error_marker_count = sum(marker_counts[marker] for marker in ERROR_MARKERS)
     if error_marker_count:
         failures.append(f"PM error marker count {error_marker_count} != 0")
@@ -87,6 +100,7 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "error_marker_count": error_marker_count,
         "failures": failures,
         "repeat_cycles": PM_REPEAT_CYCLES,
+        "post_repeat_task_progress": post_repeat_task_progress,
         "scope": "Pandora shallow SLEEP/WFI repeated through PM/HAL and resumed by configured tick IRQ",
         "not_evidence_for": [
             "power current",

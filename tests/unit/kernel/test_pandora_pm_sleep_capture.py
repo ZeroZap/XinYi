@@ -62,6 +62,7 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
         self.assertEqual(record["captured_bytes"], len(valid_payload()))
         self.assertEqual(record["marker_counts"]["OSAL_PM_SLEEP_WAKE_OK"], 32)
         self.assertEqual(record["repeat_cycles"], 32)
+        self.assertTrue(record["post_repeat_task_progress"])
         self.assertEqual(record["error_marker_count"], 0)
 
     def test_rejects_empty_capture(self):
@@ -100,6 +101,13 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
         result, record = self.run_validator(payload)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("PM markers are not strictly ordered", record["failures"])
+
+    def test_rejects_missing_task_progress_after_repeat(self):
+        payload = valid_payload().replace(b"OSAL_IPC_SEND\r\n", b"")
+        result, record = self.run_validator(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(record["post_repeat_task_progress"])
+        self.assertIn("no task progress after PM repeat completion", record["failures"])
 
     def test_rejects_any_pm_error_marker(self):
         payload = valid_payload() + b"OSAL_PM_WAKE_ERROR\r\n"
