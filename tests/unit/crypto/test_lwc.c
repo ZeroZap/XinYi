@@ -662,6 +662,46 @@ static void test_tinyjambu_incremental_matches_split_one_shot(void)
                                         decrypted + chunks[0] + 1U));
 }
 
+static void test_tinyjambu_incremental_accepts_zero_length_null_update(void)
+{
+    uint8_t key[XY_TINYJAMBU_128_KEY_SIZE] = {0};
+    uint8_t nonce[XY_TINYJAMBU_128_NONCE_SIZE] = {0};
+    uint8_t dummy = 0U;
+    uint8_t expected_tag[XY_TINYJAMBU_128_TAG_SIZE];
+    uint8_t incremental_tag[XY_TINYJAMBU_128_TAG_SIZE];
+    xy_tinyjambu_128_ctx_t ctx;
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt(key, nonce, NULL, 0U, NULL, 0U, &dummy,
+                                                   expected_tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_encrypt_update(&ctx, NULL, 1U, &dummy));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_encrypt_update(&ctx, &dummy, 1U, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_update(&ctx, NULL, 0U, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_final(&ctx, incremental_tag));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_tag, incremental_tag, sizeof(expected_tag));
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_decrypt_update(&ctx, NULL, 1U, &dummy));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_decrypt_update(&ctx, &dummy, 1U, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_update(&ctx, NULL, 0U, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_final(&ctx, expected_tag));
+}
+
 static void test_photon_beetle_incremental_matches_one_shot(void)
 {
     uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
@@ -1052,6 +1092,7 @@ int main(void)
     RUN_TEST(test_ascon_128a_incremental_rejects_repeated_ad_phase);
     RUN_TEST(test_tinyjambu_incremental_scrubs_context_on_final_paths);
     RUN_TEST(test_tinyjambu_incremental_matches_split_one_shot);
+    RUN_TEST(test_tinyjambu_incremental_accepts_zero_length_null_update);
     RUN_TEST(test_photon_beetle_incremental_matches_one_shot);
     RUN_TEST(test_photon_beetle_incremental_accepts_chunked_data);
     RUN_TEST(test_photon_beetle_incremental_guards_state_and_inputs);
