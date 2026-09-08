@@ -32,13 +32,13 @@ include_directories(
 set(XY_CRYPTO_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 add_subdirectory(xy_sm3)
 add_subdirectory(xy_sm4)
-add_subdirectory(xy_sm2)
 
 # 收集源文件 - remaining root-only aggregate algorithms stay in src/.
 # Reconciled helpers are intentionally sourced from their module directories so the
 # root runtime target and focused crypto CTests share one implementation.
 file(GLOB CRYPTO_SOURCES "src/*.c")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_sha256\\.c$")
+list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_ecdsa\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_crc\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_base64\\.c$")
 list(FILTER CRYPTO_SOURCES EXCLUDE REGEX ".*/src/xy_hex\\.c$")
@@ -77,7 +77,6 @@ endif()
 target_link_libraries(xy_tiny_crypto PRIVATE
     xy_sm3
     xy_sm4
-    xy_sm2
 )
 
 # 设置库属性

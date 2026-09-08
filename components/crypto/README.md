@@ -42,8 +42,8 @@ Focused CTest 名称：
 | `crypto_lwc` | lightweight crypto/Ascon style public contracts |
 | `crypto_smoke_example` | Host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; links focused module sources and remains API-drift guard only, not a security/hardware proof |
 | `crypto_alias_target` | CMake configure smoke that proves `xy_tiny_crypto` still exists and `xy_crypto` compatibility alias is exported |
-| `crypto_root_target_smoke` | Standalone public consumer linked against the real `xy_tiny_crypto` root/runtime target; proves module-owned Base64/Hex/BLAKE2/RNG plus aggregate SHA-256/HMAC and ECDSA format-only guard paths for one small API flow |
-| `crypto_review_manifest` | Policy smoke for security/provenance review status, source ownership map links, mapped root aggregate/module sources, root `src/*.c` collection shape, SM2/ECDSA security-rejected review-record linkage, reconciled Base64/Hex/CRC/BLAKE2/Random/CSPRNG/MD5/HMAC/AES single-active-source policy, and ChaCha20-Poly1305 root-compatibility-wrapper boundary; not cryptographic validation |
+| `crypto_root_target_smoke` | Standalone public consumer linked against the real `xy_tiny_crypto` root/runtime target; proves the bounded non-rejected runtime source set and excludes security-rejected SM2/ECDSA placeholders |
+| `crypto_review_manifest` | Policy smoke for security/provenance review status, source ownership map links, mapped root aggregate/module sources, root `src/*.c` collection shape, SM2/ECDSA focused-test-only rejection boundary, reconciled Base64/Hex/CRC/BLAKE2/Random/CSPRNG/MD5/HMAC/AES single-active-source policy, and ChaCha20-Poly1305 root-compatibility-wrapper boundary; not cryptographic validation |
 | `crypto_25519` | Curve25519 generic public API contracts |
 | `crypto_25519_m0` | Cortex-M0 fallback/API and field smoke contracts |
 
@@ -73,7 +73,8 @@ components/crypto/
 Important ownership notes:
 
 - Base64/Hex/CRC/BLAKE2/Random/CSPRNG/MD5/HMAC/AES have been reconciled to module-directory single active sources for the root `xy_tiny_crypto` target; `components/crypto/src/xy_chacha20poly1305.c` remains a compact root compatibility wrapper over the tested ChaCha module API.
-- Do not delete remaining root-only compatibility/placeholder sources, rename `xy_tiny_crypto`, or enable `COMPONENT_CRYPTO` by default without a path-limited ownership/security proposal and focused root-target tests.
+- Security-rejected SM2 and format-only ECDSA remain available only to their focused rejection-contract CTests; they are excluded from `xy_tiny_crypto` and must not be restored to runtime linkage without replacement by reviewed implementations.
+- Do not delete remaining focused placeholder sources, rename `xy_tiny_crypto`, or enable `COMPONENT_CRYPTO` by default without a path-limited ownership/security proposal and focused root-target tests.
 - `tests/unit/crypto` intentionally links specific algorithm sources directly for deterministic host CTests; this does not by itself prove every historical example or aggregate copy is product-ready.
 - The Cortex-M0 upstream helper tests under `curve25519-cortexm0-20150813/test/` remain excluded from the canonical Unity inventory.
 

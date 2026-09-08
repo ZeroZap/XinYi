@@ -11,7 +11,7 @@
 #include "xy_tiny_crypto.h"
 #include "xy_blake2.h"
 #include "xy_chacha20poly1305.h"
-#include "xy_ecdsa.h"
+
 
 #include <stdint.h>
 #include <string.h>
@@ -241,75 +241,6 @@ static int exercise_lwc_root_link_contract(void)
     return 0;
 }
 
-static int exercise_ecdsa_format_only_contract(void)
-{
-    const uint8_t message[] = {'r', 'o', 'o', 't', '-', 's', 'm', 'o', 'k', 'e'};
-    const uint8_t empty_message[] = {0};
-    xy_ecdsa_pub_key_t pub_key;
-    xy_ecdsa_sig_t sig;
-    uint8_t pub_key_bytes[XY_ECDSA_P256_PUB_KEY_SIZE];
-    uint8_t sig_bytes[XY_ECDSA_P256_SIG_SIZE];
-
-    memset(&pub_key, 0, sizeof(pub_key));
-    memset(&sig, 0, sizeof(sig));
-    fill_u8(sig.r, sizeof(sig.r), 0x01U);
-    fill_u8(sig.s, sizeof(sig.s), 0x02U);
-
-    if (require_int_equal(
-            -1,
-            xy_ecdsa_p256_verify((const xy_ecdsa_pub_key_t *)0, message, sizeof(message),
-                                  &sig))) {
-        return 1;
-    }
-    if (require_int_equal(
-            -1,
-            xy_ecdsa_p256_verify(&pub_key, (const uint8_t *)0, sizeof(message), &sig))) {
-        return 2;
-    }
-    if (require_int_equal(
-            -1,
-            xy_ecdsa_p256_verify(&pub_key, message, sizeof(message),
-                                  (const xy_ecdsa_sig_t *)0))) {
-        return 3;
-    }
-    if (require_int_equal(-1, xy_ecdsa_p256_verify(&pub_key, message, sizeof(message), &sig))) {
-        return 4;
-    }
-
-    fill_u8(pub_key.x, sizeof(pub_key.x), 0x01U);
-    fill_u8(pub_key.y, sizeof(pub_key.y), 0x02U);
-    memset(&sig, 0, sizeof(sig));
-
-    if (require_int_equal(-1, xy_ecdsa_p256_verify(&pub_key, message, sizeof(message), &sig))) {
-        return 5;
-    }
-
-    fill_u8(sig.r, sizeof(sig.r), 0x01U);
-    if (require_int_equal(-1, xy_ecdsa_p256_verify(&pub_key, message, sizeof(message), &sig))) {
-        return 6;
-    }
-
-    fill_u8(sig.s, sizeof(sig.s), 0x02U);
-
-    /* Current root ECDSA is format-only: valid-looking values return success without
-     * real elliptic-curve signature verification. This is a build/API guard only. */
-    if (require_int_equal(
-            0,
-            xy_ecdsa_p256_verify(&pub_key, empty_message, 0U, &sig))) {
-        return 7;
-    }
-
-    memset(pub_key_bytes, 0, sizeof(pub_key_bytes));
-    memset(sig_bytes, 0, sizeof(sig_bytes));
-    fill_u8(pub_key_bytes, sizeof(pub_key_bytes), 0x03U);
-    fill_u8(sig_bytes, sizeof(sig_bytes), 0x04U);
-    if (require_int_equal(0, xy_ecdsa_verify_simple(pub_key_bytes, empty_message, 0U,
-                                                    sig_bytes))) {
-        return 8;
-    }
-
-    return 0;
-}
 
 int main(void)
 {
@@ -388,14 +319,10 @@ int main(void)
         return 15;
     }
 
-    if (exercise_ecdsa_format_only_contract()) {
-        return 16;
-    }
-
     {
         int lwc_status = exercise_lwc_root_link_contract();
         if (lwc_status) {
-            return 16 + lwc_status;
+            return 15 + lwc_status;
         }
     }
 

@@ -33,8 +33,8 @@ Related non-duplicate or special cases:
 
 - `components/crypto/src/xy_sha256.c` remains excluded from `xy_tiny_crypto` because it exposes an older API shape and can collide with the aggregate SHA-256/HMAC implementation.
 - `components/crypto/src/xy_sha256_hmac.c` has been pruned as a byte-identical historical root duplicate; root `xy_tiny_crypto` and focused CTests both use `components/crypto/xy_hmac/xy_sha256.c` for the current SHA-256/HMAC contract.
-- `components/crypto/src/xy_ecdsa.c` is root-runtime-only and explicitly `security-rejected` as a format-only placeholder.
-- SM2/SM3/SM4 are module targets linked into the root crypto library rather than duplicated in `src/*.c`.
+- `components/crypto/src/xy_ecdsa.c` is explicitly `security-rejected`, excluded from root runtime, and retained only for focused rejection-contract coverage.
+- SM3/SM4 remain module targets linked into the root crypto library; security-rejected SM2 is focused-test-only and excluded from runtime linkage.
 
 ## 3. Implemented reconciliation direction
 

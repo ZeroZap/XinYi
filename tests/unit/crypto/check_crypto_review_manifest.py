@@ -28,6 +28,7 @@ FOTA_HISTORICAL_INTRO_PATH = ROOT / "docs" / "components" / "fota" / "introducti
 
 EXCLUDED_ROOT_AGGREGATE_SOURCES = {
     "components/crypto/src/xy_sha256.c",
+    "components/crypto/src/xy_ecdsa.c",
 }
 
 IDENTICAL_DUPLICATE_SOURCE_PAIRS: dict[str, tuple[str, str]] = {}
@@ -53,16 +54,11 @@ ROOT_COMPATIBILITY_WRAPPER_SOURCES = {
 }
 
 ROOT_SUBDIRECTORY_TARGET_RUNTIME_SOURCES = {
-    "sm2": "components/crypto/xy_sm2/xy_sm2.c",
     "sm3": "components/crypto/xy_sm3/xy_sm3.c",
     "sm4": "components/crypto/xy_sm4/xy_sm4.c",
 }
 
 ROOT_SUBDIRECTORY_TARGETS = {
-    "xy_sm2": {
-        "cmake": ROOT / "components" / "crypto" / "xy_sm2" / "CMakeLists.txt",
-        "source": "xy_sm2.c",
-    },
     "xy_sm3": {
         "cmake": ROOT / "components" / "crypto" / "xy_sm3" / "CMakeLists.txt",
         "source": "xy_sm3.c",
@@ -519,6 +515,11 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
                 f"{prefix}.security-rejected implementation must prohibit security use",
                 errors,
             )
+            _require(
+                algorithm.get("runtime_sources") == [],
+                f"{prefix}.security-rejected implementation must not be linked into the root runtime target",
+                errors,
+            )
 
         _require(
             algorithm.get("duplicate_source_policy") in ALLOWED_DUPLICATE_POLICIES,
@@ -697,6 +698,7 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
         source
         for source in manifest_root_sources - actual_root_sources
         if source.startswith("components/crypto/src/")
+        and source not in EXCLUDED_ROOT_AGGREGATE_SOURCES
     }
     _require(
         not missing_root_sources,
