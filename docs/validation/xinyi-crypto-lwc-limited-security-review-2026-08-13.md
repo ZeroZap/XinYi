@@ -52,6 +52,7 @@
   - Correct security-sensitive use would require caller-owned key storage, nonce uniqueness, associated-data policy, algorithm/version selection, error handling, and reviewed upstream provenance.
 - Test evidence:
   - `crypto_lwc` covers Ascon encrypt variants/hash, current Ascon decrypt authentication-failure behavior, TinyJambu encrypt/roundtrip/bad-tag behavior, and Photon-Beetle roundtrip/tag/hash/bad-tag behavior.
+  - `crypto_photon_warning_clean` compiles the active Photon-Beetle source with C99 `-Wall -Wextra -Wpedantic -Werror`; this is code-quality evidence only, not authoritative KAT or security evidence.
   - `crypto_review_manifest` links this review record and keeps the LWC area out of provenance-approved or hardware-validated status.
 - Missing evidence:
   - Upstream URL/tag/hash, license/provenance review, authoritative KAT corpus, independent security audit, side-channel/constant-time review, fuzzing, misuse-resistance review, MCU/hardware acceleration evidence, and a root-runtime ownership decision.

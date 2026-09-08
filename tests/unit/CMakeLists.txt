@@ -622,6 +622,10 @@ target_include_directories(test_lwc PRIVATE
     ${CRYPTO}/xy_tinyjambu
     ${CRYPTO}/xy_photon_beetle
 )
+add_test(NAME crypto_photon_warning_clean
+    COMMAND python3 ${UNIT_CRYPTO}/check_photon_warning_clean.py
+    WORKING_DIRECTORY ${ROOT}
+)
 
 # --- Test 20f: Crypto host-safe public API smoke example ---
 xy_add_unit_test(test_crypto_smoke_example crypto_smoke_example UNITY

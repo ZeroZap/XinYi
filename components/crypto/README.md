@@ -40,6 +40,7 @@ Focused CTest 名称：
 | `crypto_ecdsa_root_contract` | Root aggregate ECDSA format-only placeholder contract: null/malformed/range guards plus documented message-non-binding success behavior; security status remains rejected |
 | `crypto_sm2` | SM2 public API guard paths and placeholder-grade contract |
 | `crypto_lwc` | lightweight crypto/Ascon style public contracts |
+| `crypto_photon_warning_clean` | Active Photon-Beetle source compiles as C99 with `-Wall -Wextra -Wpedantic -Werror`; guards exact S-box initializer bounds and dead-code regressions, not algorithm correctness/security |
 | `crypto_smoke_example` | Host-safe public Base64/Hex/SHA-256/simple-RNG API smoke; links focused module sources and remains API-drift guard only, not a security/hardware proof |
 | `crypto_alias_target` | CMake configure smoke that proves `xy_tiny_crypto` still exists and `xy_crypto` compatibility alias is exported |
 | `crypto_root_target_smoke` | Standalone public consumer linked against the real `xy_tiny_crypto` root/runtime target; proves the bounded non-rejected runtime source set and excludes security-rejected SM2/ECDSA placeholders |
@@ -98,4 +99,4 @@ cd build/tests/unit && ctest --output-on-failure -R '^crypto_'
 git diff --check
 ```
 
-The `xy_tiny_crypto` build currently succeeds but may still emit pre-existing warning classes in placeholder/aggregate sources. Treat warning cleanup as a separate code-quality slice with focused regression tests, not as part of this README/status sync. The focused module-source `crypto_cipher_hmac` CTest now guards RFC 8439 Poly1305/AEAD vectors, `crypto_blake2` guards focused BLAKE2s vector/guard contracts, `crypto_root_target_smoke` guards the compact root compatibility path, and `crypto_review_manifest` keeps the current module-owned single-active-source plus ChaCha root-wrapper ownership map in sync. These are still host contract evidence only and must not be promoted to security/provenance approval, constant-time evidence, hardware validation, or compliance claims.
+The active Photon-Beetle source now passes a dedicated warning-as-error compile gate after removing eight excess S-box initializers and an unused padding helper; `crypto_lwc` still guards its existing host roundtrip/tag/hash contracts. The focused module-source `crypto_cipher_hmac` CTest guards RFC 8439 Poly1305/AEAD vectors, `crypto_blake2` guards focused BLAKE2s vector/guard contracts, `crypto_root_target_smoke` guards the compact root compatibility path, and `crypto_review_manifest` keeps source ownership in sync. These remain host contract evidence only and must not be promoted to security/provenance approval, authoritative Photon KAT conformance, constant-time evidence, hardware validation, or compliance claims.
