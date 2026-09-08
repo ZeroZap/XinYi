@@ -200,9 +200,9 @@ make test-unit
 | `xy_pm_tick_get()` | 获取 OS/platform tick 计数 (ms) |
 | `xy_pm_get_platform_name()` | 返回当前编译平台名 |
 | `xy_pm_is_platform()` | 检查当前编译平台 |
-| `xy_charger_hw_init()` | 初始化 charger hook / board GPIO seam |
-| `xy_charger_hw_enable()` | 使能 charger hook |
-| `xy_charger_hw_disable()` | 禁用 charger hook |
+| `xy_charger_hw_init()` | 初始化 charger hook；无 board backend 时返回 unsupported |
+| `xy_charger_hw_enable()` | 使能 charger hook；失败时不提交软件 charging 状态 |
+| `xy_charger_hw_disable()` | 禁用 charger hook；失败时不提交软件 idle 状态 |
 
 ---
 
@@ -211,7 +211,7 @@ make test-unit
 1. 电量计需要定期调用 `xy_fuel_gauge_update()` 以保持 PM-local 状态准确；真实电量计芯片请优先使用 standalone `components/fuel_gauge/`。
 2. 充电电流、目标电压、温度窗口必须根据电池规格与 charger IC 数据手册配置。
 3. 当前 `xy_pm_enter_sleep()` 是 platform-backed framework 入口；shutdown 未接 board backend 时明确返回 unsupported。真实省电效果仍需板级 UART/功耗日志验证。
-4. 充电器 GPIO 引脚、极性、ADC 通道与分压比需要根据实际硬件连接配置；host 测试只验证软件契约。
+4. 充电器 GPIO 引脚、极性、ADC 通道与分压比需要根据实际硬件连接配置；未接入 board charger backend 时 init/start/enable fail-closed，host 测试只验证软件契约。
 5. 不要把 `pm_component` host CTest 的通过结果写成真实低功耗或电池硬件验证通过。
 
 ---

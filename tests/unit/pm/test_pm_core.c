@@ -7,6 +7,7 @@
 
 void xy_pm_platform_set_fallback_tick(uint32_t tick);
 int xy_pm_platform_get_charger_enable_level(void);
+void xy_pm_platform_set_charger_result(int result);
 
 void setUp(void)
 {
@@ -146,8 +147,18 @@ static void test_charger_contracts(void)
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_STATUS_IDLE, state.status);
 
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_INVALID_PARAM, xy_charger_init(NULL));
+    xy_pm_platform_set_charger_result(XY_PM_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_ERROR, xy_charger_init(&cfg));
+    TEST_ASSERT_FALSE(xy_charger_is_charging());
+    xy_pm_platform_set_charger_result(XY_PM_OK);
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_init(&cfg));
     TEST_ASSERT_FALSE(xy_charger_is_charging());
+    xy_pm_platform_set_charger_result(XY_PM_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_ERROR, xy_charger_start());
+    TEST_ASSERT_FALSE(xy_charger_is_charging());
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_ERROR, xy_charger_enable(true));
+    TEST_ASSERT_FALSE(xy_charger_is_charging());
+    xy_pm_platform_set_charger_result(XY_PM_OK);
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_set_current(750));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_enable(true));
     TEST_ASSERT_TRUE(xy_charger_is_charging());

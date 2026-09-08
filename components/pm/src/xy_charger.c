@@ -78,6 +78,7 @@ int xy_charger_init(const xy_charger_config_t *config)
     if (!config) return XY_CHARGER_INVALID_PARAM;
 
     memset(&s_charger, 0, sizeof(s_charger));
+    if (xy_charger_hw_init() != XY_PM_OK) return XY_CHARGER_ERROR;
     memcpy(&s_charger.config, config, sizeof(xy_charger_config_t));
 
     /* 默认参数 */
@@ -113,6 +114,8 @@ int xy_charger_start(void)
 {
     if (!s_charger.initialized) return XY_CHARGER_NOT_CHARGING;
 
+    if (xy_charger_hw_enable(1) != XY_PM_OK) return XY_CHARGER_ERROR;
+
     s_charger.enabled = true;
     s_charger.charge_start_time = xy_os_tick_get();
     s_charger.state.status = XY_CHARGER_STATUS_PRE_CHARGE;
@@ -125,6 +128,8 @@ int xy_charger_start(void)
 int xy_charger_stop(void)
 {
     if (!s_charger.initialized) return XY_CHARGER_NOT_CHARGING;
+
+    if (xy_charger_hw_disable() != XY_PM_OK) return XY_CHARGER_ERROR;
 
     s_charger.enabled = false;
     s_charger.state.status = XY_CHARGER_STATUS_IDLE;
@@ -219,16 +224,7 @@ int xy_charger_set_current(uint32_t current_mA)
 int xy_charger_enable(bool enable)
 {
     if (!s_charger.initialized) return XY_CHARGER_NOT_CHARGING;
-
-    s_charger.enabled = enable;
-
-    if (enable) {
-        xy_charger_start();
-    } else {
-        xy_charger_stop();
-    }
-
-    return XY_CHARGER_OK;
+    return enable ? xy_charger_start() : xy_charger_stop();
 }
 
 bool xy_charger_is_charging(void)

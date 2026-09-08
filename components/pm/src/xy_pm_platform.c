@@ -44,6 +44,7 @@
 static bool g_test_tick_override_enabled = false;
 static uint32_t g_test_tick_override = 0;
 static int g_test_charger_enable_level = 0;
+static int g_test_charger_result = XY_PM_OK;
 
 void xy_pm_platform_set_fallback_tick(uint32_t tick)
 {
@@ -54,6 +55,11 @@ void xy_pm_platform_set_fallback_tick(uint32_t tick)
 int xy_pm_platform_get_charger_enable_level(void)
 {
     return g_test_charger_enable_level;
+}
+
+void xy_pm_platform_set_charger_result(int result)
+{
+    g_test_charger_result = result;
 }
 #endif
 
@@ -138,20 +144,10 @@ int xy_pm_platform_wakeup(void)
  */
 int xy_charger_hw_init(void)
 {
-#if XY_PLATFORM_STM32
-    /* TODO: Initialize charger enable pin as output */
-    return XY_PM_OK;
-
-#elif XY_PLATFORM_WCH
-    /* TODO: Initialize WCH charger GPIO */
-    return XY_PM_OK;
-
-#elif XY_PLATFORM_HC32
-    /* TODO: Initialize HC32 charger GPIO */
-    return XY_PM_OK;
-
+#if defined(XY_PM_ENABLE_TEST_HOOKS)
+    return g_test_charger_result;
 #else
-    return XY_PM_OK;
+    return XY_PM_ERROR_NOT_SUPPORTED;
 #endif
 }
 
@@ -163,10 +159,13 @@ int xy_charger_hw_enable(int enable)
 {
 #if defined(XY_PM_ENABLE_TEST_HOOKS)
     g_test_charger_enable_level = enable ? CHARGER_EN_ACTIVE_HIGH : !CHARGER_EN_ACTIVE_HIGH;
-#else
+    return g_test_charger_result;
+#elif !defined(XY_PM_CHARGER_HW_AVAILABLE)
     (void)enable;
+    return XY_PM_ERROR_NOT_SUPPORTED;
+#else
+#error "XY_PM_CHARGER_HW_AVAILABLE requires a board-owned charger hardware implementation"
 #endif
-    return XY_PM_OK;
 }
 
 /**
