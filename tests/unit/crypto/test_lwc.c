@@ -543,6 +543,48 @@ static void test_photon_beetle_incremental_scrubs_context_after_final(void)
     assert_photon_context_scrubbed(&ctx);
 }
 
+static void test_photon_beetle_incremental_scrubs_context_when_tag_is_missing(void)
+{
+    uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE];
+    uint8_t nonce[XY_PHOTON_BEETLE_NONCE_SIZE];
+    uint8_t plaintext[17];
+    uint8_t ciphertext[sizeof(plaintext)];
+    uint8_t decrypted[sizeof(plaintext)];
+    uint8_t tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    xy_photon_beetle_ctx_t ctx;
+
+    memset(key, 0x11, sizeof(key));
+    memset(nonce, 0x22, sizeof(nonce));
+    memset(plaintext, 0x33, sizeof(plaintext));
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_update(&ctx, plaintext, sizeof(plaintext),
+                                                          ciphertext));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_encrypt_final(&ctx, NULL));
+    assert_photon_context_scrubbed(&ctx);
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt(key, nonce, NULL, 0U, plaintext,
+                                                    sizeof(plaintext), ciphertext, tag));
+    memset(decrypted, 0xA5, sizeof(decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_update(&ctx, ciphertext, sizeof(ciphertext),
+                                                          decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_decrypt_final(&ctx, NULL));
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, decrypted, sizeof(decrypted));
+    assert_photon_context_scrubbed(&ctx);
+}
+
 static void test_photon_beetle_roundtrip_boundaries(void)
 {
     static const size_t lengths[] = {1U, 15U, 16U, 17U, 32U};
@@ -677,6 +719,7 @@ int main(void)
     RUN_TEST(test_photon_beetle_incremental_accepts_chunked_data);
     RUN_TEST(test_photon_beetle_incremental_guards_state_and_inputs);
     RUN_TEST(test_photon_beetle_incremental_scrubs_context_after_final);
+    RUN_TEST(test_photon_beetle_incremental_scrubs_context_when_tag_is_missing);
     RUN_TEST(test_photon_beetle_roundtrip_boundaries);
     RUN_TEST(test_photon_beetle_roundtrips_tag_sizes_and_hashes);
     RUN_TEST(test_photon_beetle_rejects_wrong_tag);
