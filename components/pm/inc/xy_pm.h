@@ -100,6 +100,8 @@ typedef struct {
 } xy_fuel_gauge_config_t;
 
 int xy_pm_init(void);
+int xy_pm_deinit(void);
+int xy_pm_update(void);
 int xy_pm_set_mode(xy_pm_mode_t mode);
 uint32_t xy_pm_get_battery_voltage(void);
 uint32_t xy_pm_get_battery_voltage_mV(void);
@@ -113,16 +115,22 @@ int xy_pm_wakeup(void);
 
 /* Charger API */
 int xy_charger_init(const xy_charger_config_t *config);
+int xy_charger_deinit(void);
 int xy_charger_start(void);
 int xy_charger_stop(void);
 bool xy_charger_is_charging(void);
+int xy_charger_get_state(xy_charger_state_t *state);
 int xy_charger_get_status(xy_charger_state_t *state);
+int xy_charger_set_current(uint32_t current_mA);
+int xy_charger_enable(bool enable);
 
 /* Fuel Gauge API */
 int xy_fuel_gauge_init(const xy_fuel_gauge_config_t *config);
 int xy_fuel_gauge_deinit(void);
 int xy_fuel_gauge_update(uint32_t voltage_mV, int32_t current_mA, int32_t temperature_celsius);
+int xy_fuel_gauge_get_state(xy_battery_state_t *state);
 uint8_t xy_fuel_gauge_get_soc(void);
+uint8_t xy_fuel_gauge_get_soh(void);
 uint32_t xy_fuel_gauge_get_remaining_mAh(void);
 uint32_t xy_fuel_gauge_get_time_to_empty(void);
 uint32_t xy_fuel_gauge_get_time_to_full(void);
@@ -138,6 +146,8 @@ uint8_t xy_pm_get_soc(void);
 int xy_pm_adc_init(void);
 /** Read one battery-voltage sample in millivolts. */
 int xy_pm_adc_read(uint32_t *value);
+uint32_t xy_pm_adc_read_battery_voltage(void);
+uint8_t xy_pm_estimate_soc_from_voltage(uint32_t voltage_mV);
 
 /* Platform-specific functions (implemented in xy_pm_platform.c) */
 uint32_t xy_pm_tick_get(void);

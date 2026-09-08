@@ -5,18 +5,6 @@
 #include "unity.h"
 #include "xy_pm.h"
 
-int xy_pm_deinit(void);
-int xy_pm_update(void);
-int xy_pm_enter_sleep(void);
-int xy_pm_enter_shutdown(void);
-int xy_pm_wakeup(void);
-int xy_charger_deinit(void);
-int xy_charger_set_current(uint32_t current_mA);
-int xy_charger_enable(bool enable);
-int xy_charger_get_state(xy_charger_state_t *state);
-int xy_fuel_gauge_get_state(xy_battery_state_t *state);
-uint8_t xy_fuel_gauge_get_soh(void);
-uint8_t xy_pm_estimate_soc_from_voltage(uint32_t voltage_mV);
 void xy_pm_platform_set_fallback_tick(uint32_t tick);
 int xy_pm_platform_get_charger_enable_level(void);
 
