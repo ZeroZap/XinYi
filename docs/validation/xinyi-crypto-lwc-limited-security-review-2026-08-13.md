@@ -48,10 +48,10 @@
   - No approval to export these helpers through the default root runtime target or enable `COMPONENT_CRYPTO` by default.
 - Known placeholder/legacy/weak areas:
   - `crypto_lwc` currently proves host API behavior and some roundtrip/auth-failure contracts, but not authoritative upstream KAT conformance for every variant/parameter set.
-  - Local Ascon-128 encrypt/decrypt now roundtrips tested 1/7/8/9/16-byte messages with associated data and rejects a tampered tag while wiping only the requested plaintext span; this remains self-consistency evidence, not authoritative KAT conformance.
+  - Local Ascon-128 and Ascon-128a encrypt/decrypt now roundtrip tested rate-boundary message lengths with associated data and reject a tampered tag while wiping only the requested plaintext span; this remains self-consistency evidence, not authoritative KAT conformance.
   - Correct security-sensitive use would require caller-owned key storage, nonce uniqueness, associated-data policy, algorithm/version selection, error handling, and reviewed upstream provenance.
 - Test evidence:
-  - `crypto_lwc` covers Ascon encrypt variants/hash, Ascon-128 multi-length roundtrip/bad-tag/bounded-wipe behavior, TinyJambu encrypt/roundtrip/bad-tag behavior, and Photon-Beetle roundtrip/tag/hash/bad-tag behavior.
+  - `crypto_lwc` covers Ascon encrypt variants/hash, Ascon-128/128a multi-length roundtrip/bad-tag/bounded-wipe behavior, TinyJambu encrypt/roundtrip/bad-tag behavior, and Photon-Beetle roundtrip/tag/hash/bad-tag behavior.
   - `crypto_photon_warning_clean` compiles the active Photon-Beetle source with C99 `-Wall -Wextra -Wpedantic -Werror`; this is code-quality evidence only, not authoritative KAT or security evidence.
   - `crypto_review_manifest` links this review record and keeps the LWC area out of provenance-approved or hardware-validated status.
 - Missing evidence:

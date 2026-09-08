@@ -286,10 +286,19 @@ static uint64_t ascon_load64_le(const uint8_t data[8])
 
 static void ascon_set_rate_byte(uint64_t S[5], size_t index, uint8_t value)
 {
-    uint64_t shift = (uint64_t)(index * 8U);
+    size_t word = index / 8U;
+    uint64_t shift = (uint64_t)((index % 8U) * 8U);
     uint64_t mask = (uint64_t)0xffU << shift;
 
-    S[0] = (S[0] & ~mask) | ((uint64_t)value << shift);
+    S[word] = (S[word] & ~mask) | ((uint64_t)value << shift);
+}
+
+static void ascon_set_rate_block(uint64_t S[5], const uint8_t *data, size_t rate)
+{
+    S[0] = ascon_load64_le(data);
+    if (rate == ASCON_RATE_128A) {
+        S[1] = ascon_load64_le(data + 8U);
+    }
 }
 
 /**
@@ -551,49 +560,26 @@ int xy_ascon_128a_encrypt(const uint8_t *key,
     i = 0;
     while (i < plaintext_len) {
         if (i + ASCON_RATE_128A <= plaintext_len) {
-            ascon_absorb(S, plaintext + i, ASCON_RATE_128A);
-            ascon_squeeze(ciphertext + i, S, ASCON_RATE_128A);
-            ciphertext[i + 0] ^= plaintext[i + 0];
-            ciphertext[i + 1] ^= plaintext[i + 1];
-            ciphertext[i + 2] ^= plaintext[i + 2];
-            ciphertext[i + 3] ^= plaintext[i + 3];
-            ciphertext[i + 4] ^= plaintext[i + 4];
-            ciphertext[i + 5] ^= plaintext[i + 5];
-            ciphertext[i + 6] ^= plaintext[i + 6];
-            ciphertext[i + 7] ^= plaintext[i + 7];
-            ciphertext[i + 8] ^= plaintext[i + 8];
-            ciphertext[i + 9] ^= plaintext[i + 9];
-            ciphertext[i + 10] ^= plaintext[i + 10];
-            ciphertext[i + 11] ^= plaintext[i + 11];
-            ciphertext[i + 12] ^= plaintext[i + 12];
-            ciphertext[i + 13] ^= plaintext[i + 13];
-            ciphertext[i + 14] ^= plaintext[i + 14];
-            ciphertext[i + 15] ^= plaintext[i + 15];
+            size_t j;
+
+            ascon_squeeze(buffer, S, ASCON_RATE_128A);
+            for (j = 0; j < ASCON_RATE_128A; ++j) {
+                ciphertext[i + j] = buffer[j] ^ plaintext[i + j];
+            }
+            ascon_set_rate_block(S, ciphertext + i, ASCON_RATE_128A);
             ascon_p(S, ASCON_ROUNDS_A);
             i += ASCON_RATE_128A;
         } else {
-            memset(buffer, 0, ASCON_RATE_128A);
-            memcpy(buffer, plaintext + i, plaintext_len - i);
-            ascon_pad(buffer, plaintext_len - i);
-            ascon_absorb(S, buffer, ASCON_RATE_128A);
+            size_t j;
+            size_t remaining = plaintext_len - i;
+
             ascon_squeeze(buffer, S, ASCON_RATE_128A);
-            memcpy(ciphertext + i, buffer, plaintext_len - i);
-            ciphertext[i + 0] ^= plaintext[i + 0];
-            ciphertext[i + 1] ^= plaintext[i + 1];
-            ciphertext[i + 2] ^= plaintext[i + 2];
-            ciphertext[i + 3] ^= plaintext[i + 3];
-            ciphertext[i + 4] ^= plaintext[i + 4];
-            ciphertext[i + 5] ^= plaintext[i + 5];
-            ciphertext[i + 6] ^= plaintext[i + 6];
-            ciphertext[i + 7] ^= plaintext[i + 7];
-            ciphertext[i + 8] ^= plaintext[i + 8];
-            ciphertext[i + 9] ^= plaintext[i + 9];
-            ciphertext[i + 10] ^= plaintext[i + 10];
-            ciphertext[i + 11] ^= plaintext[i + 11];
-            ciphertext[i + 12] ^= plaintext[i + 12];
-            ciphertext[i + 13] ^= plaintext[i + 13];
-            ciphertext[i + 14] ^= plaintext[i + 14];
-            ciphertext[i + 15] ^= plaintext[i + 15];
+            for (j = 0; j < remaining; ++j) {
+                ciphertext[i + j] = buffer[j] ^ plaintext[i + j];
+                ascon_set_rate_byte(S, j, ciphertext[i + j]);
+            }
+            ascon_set_rate_byte(S, remaining,
+                                (uint8_t)(buffer[remaining] ^ 0x80U));
             break;
         }
     }
@@ -670,48 +656,26 @@ int xy_ascon_128a_decrypt(const uint8_t *key,
     i = 0;
     while (i < ciphertext_len) {
         if (i + ASCON_RATE_128A <= ciphertext_len) {
-            ascon_absorb(S, ciphertext + i, ASCON_RATE_128A);
+            size_t j;
+
             ascon_squeeze(buffer, S, ASCON_RATE_128A);
-            plaintext[i + 0] = buffer[0] ^ ciphertext[i + 0];
-            plaintext[i + 1] = buffer[1] ^ ciphertext[i + 1];
-            plaintext[i + 2] = buffer[2] ^ ciphertext[i + 2];
-            plaintext[i + 3] = buffer[3] ^ ciphertext[i + 3];
-            plaintext[i + 4] = buffer[4] ^ ciphertext[i + 4];
-            plaintext[i + 5] = buffer[5] ^ ciphertext[i + 5];
-            plaintext[i + 6] = buffer[6] ^ ciphertext[i + 6];
-            plaintext[i + 7] = buffer[7] ^ ciphertext[i + 7];
-            plaintext[i + 8] = buffer[8] ^ ciphertext[i + 8];
-            plaintext[i + 9] = buffer[9] ^ ciphertext[i + 9];
-            plaintext[i + 10] = buffer[10] ^ ciphertext[i + 10];
-            plaintext[i + 11] = buffer[11] ^ ciphertext[i + 11];
-            plaintext[i + 12] = buffer[12] ^ ciphertext[i + 12];
-            plaintext[i + 13] = buffer[13] ^ ciphertext[i + 13];
-            plaintext[i + 14] = buffer[14] ^ ciphertext[i + 14];
-            plaintext[i + 15] = buffer[15] ^ ciphertext[i + 15];
+            for (j = 0; j < ASCON_RATE_128A; ++j) {
+                plaintext[i + j] = buffer[j] ^ ciphertext[i + j];
+            }
+            ascon_set_rate_block(S, ciphertext + i, ASCON_RATE_128A);
             ascon_p(S, ASCON_ROUNDS_A);
             i += ASCON_RATE_128A;
         } else {
-            memset(buffer, 0, ASCON_RATE_128A);
-            memcpy(buffer, ciphertext + i, ciphertext_len - i);
-            ascon_pad(buffer, ciphertext_len - i);
-            ascon_absorb(S, buffer, ASCON_RATE_128A);
+            size_t j;
+            size_t remaining = ciphertext_len - i;
+
             ascon_squeeze(buffer, S, ASCON_RATE_128A);
-            plaintext[i + 0] = buffer[0] ^ ciphertext[i + 0];
-            plaintext[i + 1] = buffer[1] ^ ciphertext[i + 1];
-            plaintext[i + 2] = buffer[2] ^ ciphertext[i + 2];
-            plaintext[i + 3] = buffer[3] ^ ciphertext[i + 3];
-            plaintext[i + 4] = buffer[4] ^ ciphertext[i + 4];
-            plaintext[i + 5] = buffer[5] ^ ciphertext[i + 5];
-            plaintext[i + 6] = buffer[6] ^ ciphertext[i + 6];
-            plaintext[i + 7] = buffer[7] ^ ciphertext[i + 7];
-            plaintext[i + 8] = buffer[8] ^ ciphertext[i + 8];
-            plaintext[i + 9] = buffer[9] ^ ciphertext[i + 9];
-            plaintext[i + 10] = buffer[10] ^ ciphertext[i + 10];
-            plaintext[i + 11] = buffer[11] ^ ciphertext[i + 11];
-            plaintext[i + 12] = buffer[12] ^ ciphertext[i + 12];
-            plaintext[i + 13] = buffer[13] ^ ciphertext[i + 13];
-            plaintext[i + 14] = buffer[14] ^ ciphertext[i + 14];
-            plaintext[i + 15] = buffer[15] ^ ciphertext[i + 15];
+            for (j = 0; j < remaining; ++j) {
+                plaintext[i + j] = buffer[j] ^ ciphertext[i + j];
+                ascon_set_rate_byte(S, j, ciphertext[i + j]);
+            }
+            ascon_set_rate_byte(S, remaining,
+                                (uint8_t)(buffer[remaining] ^ 0x80U));
             break;
         }
     }
