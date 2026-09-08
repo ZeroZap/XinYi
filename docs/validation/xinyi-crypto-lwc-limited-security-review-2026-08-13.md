@@ -51,7 +51,7 @@
   - Local Ascon-128, Ascon-128a, Ascon-80pq, and TinyJambu-128 encrypt/decrypt now roundtrip tested rate-boundary message lengths with associated data and reject a tampered tag while wiping only the requested plaintext span; this remains self-consistency evidence, not authoritative KAT conformance.
   - Correct security-sensitive use would require caller-owned key storage, nonce uniqueness, associated-data policy, algorithm/version selection, error handling, and reviewed upstream provenance.
 - Test evidence:
-  - `crypto_lwc` covers Ascon/TinyJambu variant roundtrip/input guards plus Photon-Beetle one-shot/incremental equivalence across split updates, contiguous-output enforcement, auth-failure plaintext wipe, final context scrubbing on success/failure, incremental state ordering, empty-AD parity, rate-boundary roundtrip, 128/64-bit tag tamper, pointer/length guards, canary, and hash behavior.
+  - `crypto_lwc` covers Ascon/TinyJambu variant roundtrip/input guards, TinyJambu-128 incremental empty-AD and split-update equivalence, plus Photon-Beetle one-shot/incremental equivalence across split updates, contiguous-output enforcement, auth-failure and missing-tag plaintext wipe, final context scrubbing on success/failure, incremental state ordering, empty-AD parity, rate-boundary roundtrip, 128/64-bit tag tamper, pointer/length guards, canary, and hash behavior.
   - `crypto_photon_warning_clean` compiles the active Photon-Beetle source with C99 `-Wall -Wextra -Wpedantic -Werror`; this is code-quality evidence only, not authoritative KAT or security evidence.
   - `crypto_review_manifest` links this review record and keeps the LWC area out of provenance-approved or hardware-validated status.
 - Missing evidence:

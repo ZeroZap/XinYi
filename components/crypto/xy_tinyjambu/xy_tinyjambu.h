@@ -209,8 +209,9 @@ typedef struct {
     uint64_t K[2];            /* 128-bit key schedule */
     uint32_t rounds;          /* Number of rounds (535 for 128-bit key) */
     size_t ad_len;            /* Total AD length */
-    size_t plaintext_len;    /* Total plaintext length */
-    int mode;                /* 0=init, 1=AD, 2=data, 3=done */
+    size_t plaintext_len;     /* Total plaintext length */
+    size_t data_block_len;    /* Bytes used in current 16-byte data block */
+    int mode;                 /* 0=init, 1=AD, 2=data, 3=done */
 } xy_tinyjambu_128_ctx_t;
 
 /**

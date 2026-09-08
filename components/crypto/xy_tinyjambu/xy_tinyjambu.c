@@ -912,7 +912,7 @@ int xy_tinyjambu_128_encrypt_ad(xy_tinyjambu_128_ctx_t *ctx,
     uint8_t buffer[16];
     size_t i;
 
-    if (!ctx || !ad) {
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -940,28 +940,29 @@ int xy_tinyjambu_128_encrypt_update(xy_tinyjambu_128_ctx_t *ctx,
                                      const uint8_t *plaintext, size_t plaintext_len,
                                      uint8_t *ciphertext)
 {
-    uint8_t buffer[16];
-    size_t i, blocks;
+    size_t i;
 
-    if (!ctx || !plaintext || !ciphertext) {
+    if (!ctx || !plaintext || !ciphertext || (ctx->mode != 1 && ctx->mode != 2)) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
-    ctx->plaintext_len = plaintext_len;
-    blocks = plaintext_len / 16;
+    for (i = 0U; i < plaintext_len; ++i) {
+        size_t word = ctx->data_block_len / 8U;
+        unsigned int shift = (unsigned int)((ctx->data_block_len % 8U) * 8U);
+        uint8_t ciphertext_byte = (uint8_t)(ctx->R[word] >> shift) ^ plaintext[i];
 
-    for (i = 0; i < blocks; i++) {
-        tinyjambu_encrypt_block(ctx->R, plaintext + i * 16,
-                                ciphertext + i * 16, ctx->K, ctx->rounds);
+        ciphertext[i] = ciphertext_byte;
+        ctx->R[word] = (ctx->R[word] & ~((uint64_t)0xFFU << shift)) |
+                       ((uint64_t)ciphertext_byte << shift);
+        ctx->data_block_len++;
+        if (ctx->data_block_len == 16U) {
+            tinyjambu_permutation(ctx->R, ctx->rounds);
+            ctx->R[2] ^= ctx->K[0] ^ ctx->K[1];
+            ctx->data_block_len = 0U;
+        }
     }
 
-    if (plaintext_len % 16) {
-        memset(buffer, 0, 16);
-        memcpy(buffer, plaintext + blocks * 16, plaintext_len % 16);
-        tinyjambu_encrypt_block(ctx->R, buffer, buffer, ctx->K, ctx->rounds);
-        memcpy(ciphertext + blocks * 16, buffer, plaintext_len % 16);
-    }
-
+    ctx->plaintext_len += plaintext_len;
     ctx->mode = 2;
 
     return XY_TINYJAMBU_SUCCESS;
@@ -994,6 +995,10 @@ int xy_tinyjambu_128_encrypt_final(xy_tinyjambu_128_ctx_t *ctx,
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
+    if (ctx->data_block_len > 0U) {
+        tinyjambu_permutation(ctx->R, ctx->rounds);
+        ctx->R[2] ^= ctx->K[0] ^ ctx->K[1];
+    }
     tinyjambu_finalize(ctx->R, ctx->K, tag, 8, ctx->rounds);
     tinyjambu_128_context_clear(ctx);
 
@@ -1043,7 +1048,7 @@ int xy_tinyjambu_128_decrypt_ad(xy_tinyjambu_128_ctx_t *ctx,
     uint8_t buffer[16];
     size_t i;
 
-    if (!ctx || !ad) {
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -1071,28 +1076,29 @@ int xy_tinyjambu_128_decrypt_update(xy_tinyjambu_128_ctx_t *ctx,
                                      const uint8_t *ciphertext, size_t ciphertext_len,
                                      uint8_t *plaintext)
 {
-    uint8_t buffer[16];
-    size_t i, blocks;
+    size_t i;
 
-    if (!ctx || !ciphertext || !plaintext) {
+    if (!ctx || !ciphertext || !plaintext || (ctx->mode != 1 && ctx->mode != 2)) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
-    ctx->plaintext_len = ciphertext_len;
-    blocks = ciphertext_len / 16;
+    for (i = 0U; i < ciphertext_len; ++i) {
+        size_t word = ctx->data_block_len / 8U;
+        unsigned int shift = (unsigned int)((ctx->data_block_len % 8U) * 8U);
+        uint8_t ciphertext_byte = ciphertext[i];
 
-    for (i = 0; i < blocks; i++) {
-        tinyjambu_decrypt_block(ctx->R, ciphertext + i * 16,
-                                plaintext + i * 16, ctx->K, ctx->rounds);
+        plaintext[i] = (uint8_t)(ctx->R[word] >> shift) ^ ciphertext_byte;
+        ctx->R[word] = (ctx->R[word] & ~((uint64_t)0xFFU << shift)) |
+                       ((uint64_t)ciphertext_byte << shift);
+        ctx->data_block_len++;
+        if (ctx->data_block_len == 16U) {
+            tinyjambu_permutation(ctx->R, ctx->rounds);
+            ctx->R[2] ^= ctx->K[0] ^ ctx->K[1];
+            ctx->data_block_len = 0U;
+        }
     }
 
-    if (ciphertext_len % 16) {
-        memset(buffer, 0, 16);
-        memcpy(buffer, ciphertext + blocks * 16, ciphertext_len % 16);
-        tinyjambu_decrypt_block(ctx->R, buffer, buffer, ctx->K, ctx->rounds);
-        memcpy(plaintext + blocks * 16, buffer, ciphertext_len % 16);
-    }
-
+    ctx->plaintext_len += ciphertext_len;
     ctx->mode = 2;
 
     return XY_TINYJAMBU_SUCCESS;
@@ -1118,6 +1124,10 @@ int xy_tinyjambu_128_decrypt_final(xy_tinyjambu_128_ctx_t *ctx,
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
+    if (ctx->data_block_len > 0U) {
+        tinyjambu_permutation(ctx->R, ctx->rounds);
+        ctx->R[2] ^= ctx->K[0] ^ ctx->K[1];
+    }
     tinyjambu_finalize(ctx->R, ctx->K, expected_tag, 8, ctx->rounds);
 
     diff = 0;
