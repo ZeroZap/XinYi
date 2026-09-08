@@ -16,6 +16,9 @@ PM_MARKERS = (
     "OSAL_PM_WAKE_IRQ",
     "OSAL_PM_SLEEP_WAKE_OK",
 )
+PM_REPEAT_CYCLES = 32
+PM_CYCLE_PREFIX = "OSAL_PM_SLEEP_CYCLE "
+PM_REPEAT_MARKER = "OSAL_PM_SLEEP_REPEAT_OK"
 ERROR_MARKERS = (
     "OSAL_PM_SLEEP_ERROR",
     "OSAL_PM_WAKE_ERROR",
@@ -33,6 +36,7 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     identity = IDENTITY_PREFIX + firmware_commit
     marker_counts = {marker: lines.count(marker) for marker in PM_MARKERS + ERROR_MARKERS}
+    marker_counts[PM_REPEAT_MARKER] = lines.count(PM_REPEAT_MARKER)
     failures: list[str] = []
 
     if not payload:
@@ -42,12 +46,28 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     if lines.count(identity) != 1:
         failures.append(f"firmware identity count {lines.count(identity)} != 1")
     for marker in PM_MARKERS:
-        if marker_counts[marker] != 1:
-            failures.append(f"{marker} count {marker_counts[marker]} != 1")
+        if marker_counts[marker] != PM_REPEAT_CYCLES:
+            failures.append(
+                f"{marker} count {marker_counts[marker]} != {PM_REPEAT_CYCLES}"
+            )
+    if marker_counts[PM_REPEAT_MARKER] != 1:
+        failures.append(f"{PM_REPEAT_MARKER} count {marker_counts[PM_REPEAT_MARKER]} != 1")
 
-    ordered = [BANNER, identity, *PM_MARKERS]
-    positions = [lines.index(marker) if marker in lines else -1 for marker in ordered]
-    if -1 in positions or positions != sorted(positions) or len(set(positions)) != len(positions):
+    ordered = [BANNER, identity]
+    for cycle in range(1, PM_REPEAT_CYCLES + 1):
+        ordered.extend((*PM_MARKERS, f"{PM_CYCLE_PREFIX}{cycle}"))
+    ordered.append(PM_REPEAT_MARKER)
+    positions = []
+    search_start = 0
+    for marker in ordered:
+        try:
+            position = lines.index(marker, search_start)
+        except ValueError:
+            position = -1
+        positions.append(position)
+        if position >= 0:
+            search_start = position + 1
+    if -1 in positions:
         failures.append("PM markers are not strictly ordered")
 
     error_marker_count = sum(marker_counts[marker] for marker in ERROR_MARKERS)
@@ -56,14 +76,15 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
 
     return {
         "record_type": "xinyi-pandora-stm32l475-pm-sleep-wakeup",
-        "status": "REJECTED" if failures else "B1_PM_SLEEP_WAKE_PASS",
+        "status": "REJECTED" if failures else "B1_PM_SLEEP_REPEAT_PASS",
         "firmware_commit": firmware_commit,
         "captured_bytes": len(payload),
         "capture_sha256": hashlib.sha256(payload).hexdigest(),
         "marker_counts": marker_counts,
         "error_marker_count": error_marker_count,
         "failures": failures,
-        "scope": "Pandora shallow SLEEP/WFI entered through PM/HAL and resumed by configured IRQ",
+        "repeat_cycles": PM_REPEAT_CYCLES,
+        "scope": "Pandora shallow SLEEP/WFI repeated through PM/HAL and resumed by configured tick IRQ",
         "not_evidence_for": [
             "power current",
             "STOP/STANDBY/SHUTDOWN mode",
@@ -97,7 +118,7 @@ def main() -> int:
     )
     for failure in result["failures"]:
         print(f"- {failure}")
-    return 0 if result["status"] == "B1_PM_SLEEP_WAKE_PASS" else 1
+    return 0 if result["status"] == "B1_PM_SLEEP_REPEAT_PASS" else 1
 
 
 if __name__ == "__main__":

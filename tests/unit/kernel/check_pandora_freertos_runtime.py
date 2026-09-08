@@ -85,6 +85,8 @@ def main() -> int:
             "OSAL_PM_SLEEP_ENTER",
             "OSAL_PM_WAKE_IRQ",
             "OSAL_PM_SLEEP_WAKE_OK",
+            "OSAL_PM_SLEEP_CYCLE ",
+            "OSAL_PM_SLEEP_REPEAT_OK",
             "OSAL_PM_SLEEP_ERROR",
             "OSAL_PM_WAKE_ERROR",
             "OSAL_IPC_SEND",

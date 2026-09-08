@@ -344,6 +344,30 @@ static void uart_log_text(char *text)
     uart_text(text);
 }
 
+static void uart_u32(const char *prefix, uint32_t value)
+{
+    char line[48];
+    char digits[10];
+    uint32_t digit_count = 0U;
+    uint32_t line_length = 0U;
+
+    while (prefix[line_length] != '\0') {
+        line[line_length] = prefix[line_length];
+        ++line_length;
+    }
+    do {
+        digits[digit_count++] = (char)('0' + value % 10U);
+        value /= 10U;
+    } while (value != 0U);
+    while (digit_count != 0U) {
+        line[line_length++] = digits[--digit_count];
+    }
+    line[line_length++] = '\r';
+    line[line_length++] = '\n';
+    line[line_length] = '\0';
+    uart_text(line);
+}
+
 uint32_t xy_os_tick_get(void)
 {
     return xy_os_kernel_get_tick_count();
@@ -1205,6 +1229,7 @@ static void multi_consumer_task(void *argument)
 static void pm_sleep_task(void *argument)
 {
     xy_pm_system_state_info_t state;
+    uint32_t cycle;
 
     (void)argument;
     (void)xy_os_delay(2000U);
@@ -1212,19 +1237,24 @@ static void pm_sleep_task(void *argument)
         uart_text("OSAL_PM_SLEEP_ERROR\r\n");
         fail();
     }
-    uart_text("OSAL_PM_SLEEP_ENTER\r\n");
-    if (xy_pm_enter_sleep() != XY_PM_OK || xy_pm_get_state(&state) != XY_PM_OK ||
-        state.state != XY_PM_SYSTEM_STATE_SLEEP) {
-        uart_text("OSAL_PM_SLEEP_ERROR\r\n");
-        fail();
+    for (cycle = 1U; cycle <= 32U; ++cycle) {
+        uart_text("OSAL_PM_SLEEP_ENTER\r\n");
+        if (xy_pm_enter_sleep() != XY_PM_OK || xy_pm_get_state(&state) != XY_PM_OK ||
+            state.state != XY_PM_SYSTEM_STATE_SLEEP) {
+            uart_text("OSAL_PM_SLEEP_ERROR\r\n");
+            fail();
+        }
+        uart_text("OSAL_PM_WAKE_IRQ\r\n");
+        if (xy_pm_wakeup() != XY_PM_OK || xy_pm_get_state(&state) != XY_PM_OK ||
+            state.state != XY_PM_SYSTEM_STATE_IDLE) {
+            uart_text("OSAL_PM_WAKE_ERROR\r\n");
+            fail();
+        }
+        uart_text("OSAL_PM_SLEEP_WAKE_OK\r\n");
+        uart_u32("OSAL_PM_SLEEP_CYCLE ", cycle);
+        (void)xy_os_delay(10U);
     }
-    uart_text("OSAL_PM_WAKE_IRQ\r\n");
-    if (xy_pm_wakeup() != XY_PM_OK || xy_pm_get_state(&state) != XY_PM_OK ||
-        state.state != XY_PM_SYSTEM_STATE_IDLE) {
-        uart_text("OSAL_PM_WAKE_ERROR\r\n");
-        fail();
-    }
-    uart_text("OSAL_PM_SLEEP_WAKE_OK\r\n");
+    uart_text("OSAL_PM_SLEEP_REPEAT_OK\r\n");
     xy_os_thread_exit();
 }
 

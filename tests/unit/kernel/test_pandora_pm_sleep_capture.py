@@ -14,14 +14,18 @@ COMMIT = "0123456789abcdef0123456789abcdef01234567"
 
 
 def valid_payload() -> bytes:
-    return (
+    payload = (
         b"PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n"
         b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
-        b"OSAL_PM_SLEEP_ENTER\r\n"
-        b"OSAL_PM_WAKE_IRQ\r\n"
-        b"OSAL_PM_SLEEP_WAKE_OK\r\n"
-        b"OSAL_IPC_SEND\r\n"
     )
+    for cycle in range(1, 33):
+        payload += (
+            b"OSAL_PM_SLEEP_ENTER\r\n"
+            b"OSAL_PM_WAKE_IRQ\r\n"
+            b"OSAL_PM_SLEEP_WAKE_OK\r\n"
+            + f"OSAL_PM_SLEEP_CYCLE {cycle}\r\n".encode()
+        )
+    return payload + b"OSAL_PM_SLEEP_REPEAT_OK\r\nOSAL_IPC_SEND\r\n"
 
 
 class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
@@ -54,9 +58,10 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
     def test_accepts_ordered_identity_bound_sleep_wakeup_chain(self):
         result, record = self.run_validator(valid_payload())
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(record["status"], "B1_PM_SLEEP_WAKE_PASS")
+        self.assertEqual(record["status"], "B1_PM_SLEEP_REPEAT_PASS")
         self.assertEqual(record["captured_bytes"], len(valid_payload()))
-        self.assertEqual(record["marker_counts"]["OSAL_PM_SLEEP_WAKE_OK"], 1)
+        self.assertEqual(record["marker_counts"]["OSAL_PM_SLEEP_WAKE_OK"], 32)
+        self.assertEqual(record["repeat_cycles"], 32)
         self.assertEqual(record["error_marker_count"], 0)
 
     def test_rejects_empty_capture(self):
@@ -76,6 +81,12 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
             b"OSAL_PM_SLEEP_ENTER\r\nOSAL_PM_WAKE_IRQ\r\n",
             b"OSAL_PM_WAKE_IRQ\r\nOSAL_PM_SLEEP_ENTER\r\n",
         )
+        result, record = self.run_validator(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("PM markers are not strictly ordered", record["failures"])
+
+    def test_rejects_missing_repeat_cycle(self):
+        payload = valid_payload().replace(b"OSAL_PM_SLEEP_CYCLE 17\r\n", b"")
         result, record = self.run_validator(payload)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("PM markers are not strictly ordered", record["failures"])
