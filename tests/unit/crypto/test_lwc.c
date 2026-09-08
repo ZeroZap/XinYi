@@ -330,6 +330,66 @@ static void test_ascon_and_tinyjambu_reject_inconsistent_buffers(void)
                                                    output, tag));
 }
 
+static void test_photon_beetle_incremental_matches_one_shot(void)
+{
+    uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
+    uint8_t nonce[XY_PHOTON_BEETLE_NONCE_SIZE] = {0};
+    uint8_t plaintext[17];
+    uint8_t expected_ciphertext[sizeof(plaintext)];
+    uint8_t incremental_ciphertext[sizeof(plaintext)];
+    uint8_t expected_tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    uint8_t incremental_tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    xy_photon_beetle_ctx_t ctx;
+    size_t index;
+
+    for (index = 0U; index < sizeof(plaintext); ++index) {
+        plaintext[index] = (uint8_t)(index + 1U);
+    }
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt(key, nonce, NULL, 0U, plaintext,
+                                                    sizeof(plaintext), expected_ciphertext,
+                                                    expected_tag));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_update(&ctx, plaintext, sizeof(plaintext),
+                                                          incremental_ciphertext));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_final(&ctx, incremental_tag));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_ciphertext, incremental_ciphertext,
+                                  sizeof(expected_ciphertext));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected_tag, incremental_tag, sizeof(expected_tag));
+}
+
+static void test_photon_beetle_incremental_guards_state_and_inputs(void)
+{
+    uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
+    uint8_t nonce[XY_PHOTON_BEETLE_NONCE_SIZE] = {0};
+    uint8_t data[1] = {0};
+    uint8_t output[1] = {0};
+    uint8_t tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    xy_photon_beetle_ctx_t ctx;
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_encrypt_ad(&ctx, NULL, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_encrypt_update(&ctx, NULL, 1U, output));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_update(&ctx, data, sizeof(data), output));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_encrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_final(&ctx, tag));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_encrypt_final(&ctx, tag));
+}
+
 static void test_photon_beetle_roundtrip_boundaries(void)
 {
     static const size_t lengths[] = {1U, 15U, 16U, 17U, 32U};
@@ -460,6 +520,8 @@ int main(void)
     RUN_TEST(test_tinyjambu_128_roundtrips_and_rejects_bad_tag);
     RUN_TEST(test_tinyjambu_192_and_256_roundtrip_boundaries);
     RUN_TEST(test_ascon_and_tinyjambu_reject_inconsistent_buffers);
+    RUN_TEST(test_photon_beetle_incremental_matches_one_shot);
+    RUN_TEST(test_photon_beetle_incremental_guards_state_and_inputs);
     RUN_TEST(test_photon_beetle_roundtrip_boundaries);
     RUN_TEST(test_photon_beetle_roundtrips_tag_sizes_and_hashes);
     RUN_TEST(test_photon_beetle_rejects_wrong_tag);

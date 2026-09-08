@@ -607,7 +607,7 @@ int xy_photon_beetle_encrypt_ad(xy_photon_beetle_ctx_t *ctx,
     uint8_t buffer[16];
     size_t i;
 
-    if (!ctx) {
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -626,6 +626,11 @@ int xy_photon_beetle_encrypt_ad(xy_photon_beetle_ctx_t *ctx,
             break;
         }
     }
+    if (ad_len == 0U) {
+        memset(buffer, 0, sizeof(buffer));
+        buffer[0] = 0x80U;
+        photon_beetle_absorb(ctx->S, buffer, 16);
+    }
 
     ctx->mode = 1;
 
@@ -639,7 +644,7 @@ int xy_photon_beetle_encrypt_update(xy_photon_beetle_ctx_t *ctx,
     uint8_t buffer[16];
     size_t i, blocks;
 
-    if (!ctx || !plaintext || !ciphertext) {
+    if (!ctx || !plaintext || !ciphertext || ctx->mode > 1) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -675,7 +680,7 @@ int xy_photon_beetle_encrypt_update(xy_photon_beetle_ctx_t *ctx,
 int xy_photon_beetle_encrypt_final(xy_photon_beetle_ctx_t *ctx,
                                      uint8_t tag[XY_PHOTON_BEETLE_TAG_SIZE])
 {
-    if (!ctx || !tag) {
+    if (!ctx || !tag || ctx->mode != 2) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -714,7 +719,7 @@ int xy_photon_beetle_decrypt_ad(xy_photon_beetle_ctx_t *ctx,
     uint8_t buffer[16];
     size_t i;
 
-    if (!ctx) {
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -733,6 +738,11 @@ int xy_photon_beetle_decrypt_ad(xy_photon_beetle_ctx_t *ctx,
             break;
         }
     }
+    if (ad_len == 0U) {
+        memset(buffer, 0, sizeof(buffer));
+        buffer[0] = 0x80U;
+        photon_beetle_absorb(ctx->S, buffer, 16);
+    }
 
     ctx->mode = 1;
 
@@ -746,7 +756,7 @@ int xy_photon_beetle_decrypt_update(xy_photon_beetle_ctx_t *ctx,
     uint8_t buffer[16];
     size_t i, blocks;
 
-    if (!ctx || !ciphertext || !plaintext) {
+    if (!ctx || !ciphertext || !plaintext || ctx->mode > 1) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -786,7 +796,7 @@ int xy_photon_beetle_decrypt_final(xy_photon_beetle_ctx_t *ctx,
     size_t i;
     uint8_t diff;
 
-    if (!ctx || !tag) {
+    if (!ctx || !tag || ctx->mode != 2) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
