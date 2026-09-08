@@ -465,6 +465,38 @@ static void test_tinyjambu_incremental_matches_split_one_shot(void)
     TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
                           xy_tinyjambu_128_decrypt_final(&ctx, split_tag));
     TEST_ASSERT_EQUAL_UINT8_ARRAY(plaintext, decrypted, sizeof(plaintext));
+
+    split_tag[0] ^= 0x01U;
+    memset(decrypted, 0xA5, sizeof(decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_ad(&ctx, NULL, 0U));
+    offset = 0U;
+    for (chunk_index = 0U; chunk_index < sizeof(chunks) / sizeof(chunks[0]); ++chunk_index) {
+        TEST_ASSERT_EQUAL_INT(
+            XY_TINYJAMBU_SUCCESS,
+            xy_tinyjambu_128_decrypt_update(&ctx, split_ciphertext + offset,
+                                            chunks[chunk_index], decrypted + offset));
+        offset += chunks[chunk_index];
+    }
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_AUTH_FAILED,
+                          xy_tinyjambu_128_decrypt_final(&ctx, split_tag));
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, decrypted, sizeof(decrypted));
+
+    split_tag[0] ^= 0x01U;
+    memset(decrypted, 0xA5, sizeof(decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(
+        XY_TINYJAMBU_SUCCESS,
+        xy_tinyjambu_128_decrypt_update(&ctx, split_ciphertext, chunks[0], decrypted));
+    TEST_ASSERT_EQUAL_INT(
+        XY_TINYJAMBU_INVALID_PARAM,
+        xy_tinyjambu_128_decrypt_update(&ctx, split_ciphertext + chunks[0], chunks[1],
+                                        decrypted + chunks[0] + 1U));
 }
 
 static void test_photon_beetle_incremental_matches_one_shot(void)

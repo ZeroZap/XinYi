@@ -1081,6 +1081,11 @@ int xy_tinyjambu_128_decrypt_update(xy_tinyjambu_128_ctx_t *ctx,
     if (!ctx || !ciphertext || !plaintext || (ctx->mode != 1 && ctx->mode != 2)) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
+    if (ctx->decrypt_output_len == 0U) {
+        ctx->decrypt_output = plaintext;
+    } else if (plaintext != ctx->decrypt_output + ctx->decrypt_output_len) {
+        return XY_TINYJAMBU_INVALID_PARAM;
+    }
 
     for (i = 0U; i < ciphertext_len; ++i) {
         size_t word = ctx->data_block_len / 8U;
@@ -1099,6 +1104,7 @@ int xy_tinyjambu_128_decrypt_update(xy_tinyjambu_128_ctx_t *ctx,
     }
 
     ctx->plaintext_len += ciphertext_len;
+    ctx->decrypt_output_len += ciphertext_len;
     ctx->mode = 2;
 
     return XY_TINYJAMBU_SUCCESS;
@@ -1116,6 +1122,9 @@ int xy_tinyjambu_128_decrypt_final(xy_tinyjambu_128_ctx_t *ctx,
     }
     if (!tag) {
         if (ctx->mode == 2) {
+            if (ctx->decrypt_output) {
+                memset(ctx->decrypt_output, 0, ctx->decrypt_output_len);
+            }
             tinyjambu_128_context_clear(ctx);
         }
         return XY_TINYJAMBU_INVALID_PARAM;
@@ -1135,6 +1144,9 @@ int xy_tinyjambu_128_decrypt_final(xy_tinyjambu_128_ctx_t *ctx,
         diff |= tag[i] ^ expected_tag[i];
     }
 
+    if (diff && ctx->decrypt_output) {
+        memset(ctx->decrypt_output, 0, ctx->decrypt_output_len);
+    }
     tinyjambu_128_context_clear(ctx);
 
     if (diff) {

@@ -211,6 +211,8 @@ typedef struct {
     size_t ad_len;            /* Total AD length */
     size_t plaintext_len;     /* Total plaintext length */
     size_t data_block_len;    /* Bytes used in current 16-byte data block */
+    uint8_t *decrypt_output;  /* Contiguous unauthenticated plaintext span */
+    size_t decrypt_output_len;
     int mode;                 /* 0=init, 1=AD, 2=data, 3=done */
 } xy_tinyjambu_128_ctx_t;
 
