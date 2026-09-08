@@ -1015,6 +1015,205 @@ int xy_ascon_hash(const uint8_t *message, size_t message_len,
 
 /* ==================== Incremental API ==================== */
 
+static void ascon_128_context_clear(xy_ascon_128_ctx_t *ctx)
+{
+    volatile uint8_t *bytes = (volatile uint8_t *)ctx;
+    size_t i;
+
+    for (i = 0U; i < sizeof(*ctx); ++i) {
+        bytes[i] = 0U;
+    }
+    ctx->mode = 2;
+}
+
+static int ascon_128_process_ad(xy_ascon_128_ctx_t *ctx, const uint8_t *ad, size_t ad_len)
+{
+    uint8_t buffer[ASCON_RATE];
+    size_t i = 0U;
+
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0 || ctx->ad_processed) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    ctx->ad_processed = 1;
+    ctx->ad_len = ad_len;
+    while (i < ad_len) {
+        if (i + ASCON_RATE <= ad_len) {
+            ascon_absorb(ctx->S, ad + i, ASCON_RATE);
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+            i += ASCON_RATE;
+        } else {
+            memset(buffer, 0, sizeof(buffer));
+            memcpy(buffer, ad + i, ad_len - i);
+            ascon_pad(buffer, ad_len - i);
+            ascon_absorb(ctx->S, buffer, ASCON_RATE);
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+            break;
+        }
+    }
+    ctx->ad_pos = i;
+    return XY_ASCON_SUCCESS;
+}
+
+int xy_ascon_128_encrypt_init(xy_ascon_128_ctx_t *ctx, const uint8_t *key,
+                              const uint8_t *nonce)
+{
+    if (!ctx || !key || !nonce) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    memset(ctx, 0, sizeof(*ctx));
+    ascon_init(ctx->S, ASCON_128_IV, key, nonce);
+    return XY_ASCON_SUCCESS;
+}
+
+int xy_ascon_128_encrypt_ad(xy_ascon_128_ctx_t *ctx, const uint8_t *ad, size_t ad_len)
+{
+    return ascon_128_process_ad(ctx, ad, ad_len);
+}
+
+int xy_ascon_128_encrypt_update(xy_ascon_128_ctx_t *ctx, const uint8_t *plaintext,
+                                size_t plaintext_len, uint8_t *ciphertext)
+{
+    size_t i;
+
+    if (!ctx || (plaintext_len > 0U && (!plaintext || !ciphertext)) || ctx->mode == 2) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    if (ctx->mode == 0) {
+        if (ctx->ad_len == 0U) {
+            ctx->S[4] ^= 0x01U;
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+        }
+        ctx->mode = 1;
+    }
+    for (i = 0U; i < plaintext_len; ++i) {
+        size_t pos = ctx->data_pos;
+        uint8_t value = ascon_get_rate_byte(ctx->S, pos) ^ plaintext[i];
+
+        ciphertext[i] = value;
+        ascon_set_rate_byte(ctx->S, pos, value);
+        if (++ctx->data_pos == ASCON_RATE) {
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+            ctx->data_pos = 0U;
+        }
+    }
+    ctx->plaintext_len += plaintext_len;
+    return XY_ASCON_SUCCESS;
+}
+
+int xy_ascon_128_encrypt_final(xy_ascon_128_ctx_t *ctx,
+                               uint8_t tag[XY_ASCON_128_TAG_SIZE])
+{
+    size_t i;
+
+    if (!ctx || ctx->mode != 1) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    if (!tag) {
+        ascon_128_context_clear(ctx);
+        return XY_ASCON_INVALID_PARAM;
+    }
+    if (ctx->data_pos > 0U) {
+        ascon_set_rate_byte(ctx->S, ctx->data_pos,
+                            (uint8_t)(ascon_get_rate_byte(ctx->S, ctx->data_pos) ^ 0x80U));
+    }
+    ctx->S[4] ^= 0x01U;
+    ascon_p(ctx->S, ASCON_ROUNDS_F);
+    for (i = 0U; i < 8U; ++i) {
+        tag[i] = (uint8_t)(ctx->S[3] >> (i * 8U));
+        tag[i + 8U] = (uint8_t)(ctx->S[4] >> (i * 8U));
+    }
+    ascon_128_context_clear(ctx);
+    return XY_ASCON_SUCCESS;
+}
+
+int xy_ascon_128_decrypt_init(xy_ascon_128_ctx_t *ctx, const uint8_t *key,
+                              const uint8_t *nonce)
+{
+    return xy_ascon_128_encrypt_init(ctx, key, nonce);
+}
+
+int xy_ascon_128_decrypt_ad(xy_ascon_128_ctx_t *ctx, const uint8_t *ad, size_t ad_len)
+{
+    return ascon_128_process_ad(ctx, ad, ad_len);
+}
+
+int xy_ascon_128_decrypt_update(xy_ascon_128_ctx_t *ctx, const uint8_t *ciphertext,
+                                size_t ciphertext_len, uint8_t *plaintext)
+{
+    size_t i;
+
+    if (!ctx || (ciphertext_len > 0U && (!ciphertext || !plaintext)) || ctx->mode == 2) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    if (ciphertext_len > 0U) {
+        if (!ctx->plaintext_start) {
+            ctx->plaintext_start = plaintext;
+        } else if (plaintext != ctx->plaintext_start + ctx->plaintext_len) {
+            return XY_ASCON_INVALID_PARAM;
+        }
+    }
+    if (ctx->mode == 0) {
+        if (ctx->ad_len == 0U) {
+            ctx->S[4] ^= 0x01U;
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+        }
+        ctx->mode = 1;
+    }
+    for (i = 0U; i < ciphertext_len; ++i) {
+        size_t pos = ctx->data_pos;
+
+        plaintext[i] = ascon_get_rate_byte(ctx->S, pos) ^ ciphertext[i];
+        ascon_set_rate_byte(ctx->S, pos, ciphertext[i]);
+        if (++ctx->data_pos == ASCON_RATE) {
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+            ctx->data_pos = 0U;
+        }
+    }
+    ctx->plaintext_len += ciphertext_len;
+    return XY_ASCON_SUCCESS;
+}
+
+int xy_ascon_128_decrypt_final(xy_ascon_128_ctx_t *ctx,
+                               const uint8_t tag[XY_ASCON_128_TAG_SIZE])
+{
+    uint8_t expected_tag[XY_ASCON_128_TAG_SIZE];
+    uint8_t diff = 0U;
+    size_t i;
+
+    if (!ctx || ctx->mode != 1) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    if (!tag) {
+        if (ctx->plaintext_start) {
+            memset(ctx->plaintext_start, 0, ctx->plaintext_len);
+        }
+        ascon_128_context_clear(ctx);
+        return XY_ASCON_INVALID_PARAM;
+    }
+    if (ctx->data_pos > 0U) {
+        ascon_set_rate_byte(ctx->S, ctx->data_pos,
+                            (uint8_t)(ascon_get_rate_byte(ctx->S, ctx->data_pos) ^ 0x80U));
+    }
+    ctx->S[4] ^= 0x01U;
+    ascon_p(ctx->S, ASCON_ROUNDS_F);
+    for (i = 0U; i < 8U; ++i) {
+        expected_tag[i] = (uint8_t)(ctx->S[3] >> (i * 8U));
+        expected_tag[i + 8U] = (uint8_t)(ctx->S[4] >> (i * 8U));
+    }
+    for (i = 0U; i < sizeof(expected_tag); ++i) {
+        diff |= tag[i] ^ expected_tag[i];
+    }
+    if (diff) {
+        if (ctx->plaintext_start) {
+            memset(ctx->plaintext_start, 0, ctx->plaintext_len);
+        }
+        ascon_128_context_clear(ctx);
+        return XY_ASCON_AUTH_FAILED;
+    }
+    ascon_128_context_clear(ctx);
+    return XY_ASCON_SUCCESS;
+}
+
 static void ascon_128a_context_clear(xy_ascon_128a_ctx_t *ctx)
 {
     volatile uint8_t *bytes = (volatile uint8_t *)ctx;

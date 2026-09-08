@@ -208,6 +208,42 @@ int xy_ascon_hash(const uint8_t *message, size_t message_len,
 /* ==================== Incremental API ==================== */
 
 /**
+ * @brief Ascon-128 context for incremental operations
+ */
+typedef struct {
+    uint64_t S[5];
+    uint64_t hash[5];
+    size_t ad_len;
+    size_t plaintext_len;
+    size_t ad_pos;
+    size_t data_pos;
+    uint8_t *plaintext_start;
+    int ad_processed;
+    int mode;
+} xy_ascon_128_ctx_t;
+
+int xy_ascon_128_encrypt_init(xy_ascon_128_ctx_t *ctx,
+                              const uint8_t *key,
+                              const uint8_t *nonce);
+int xy_ascon_128_encrypt_ad(xy_ascon_128_ctx_t *ctx,
+                            const uint8_t *ad, size_t ad_len);
+int xy_ascon_128_encrypt_update(xy_ascon_128_ctx_t *ctx,
+                                const uint8_t *plaintext, size_t plaintext_len,
+                                uint8_t *ciphertext);
+int xy_ascon_128_encrypt_final(xy_ascon_128_ctx_t *ctx,
+                               uint8_t tag[XY_ASCON_128_TAG_SIZE]);
+int xy_ascon_128_decrypt_init(xy_ascon_128_ctx_t *ctx,
+                              const uint8_t *key,
+                              const uint8_t *nonce);
+int xy_ascon_128_decrypt_ad(xy_ascon_128_ctx_t *ctx,
+                            const uint8_t *ad, size_t ad_len);
+int xy_ascon_128_decrypt_update(xy_ascon_128_ctx_t *ctx,
+                                const uint8_t *ciphertext, size_t ciphertext_len,
+                                uint8_t *plaintext);
+int xy_ascon_128_decrypt_final(xy_ascon_128_ctx_t *ctx,
+                               const uint8_t tag[XY_ASCON_128_TAG_SIZE]);
+
+/**
  * @brief Ascon-128a context for incremental operations
  */
 typedef struct {
