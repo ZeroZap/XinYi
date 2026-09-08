@@ -293,6 +293,11 @@ static void ascon_set_rate_byte(uint64_t S[5], size_t index, uint8_t value)
     S[word] = (S[word] & ~mask) | ((uint64_t)value << shift);
 }
 
+static uint8_t ascon_get_rate_byte(const uint64_t S[5], size_t index)
+{
+    return (uint8_t)(S[index / 8U] >> ((index % 8U) * 8U));
+}
+
 static void ascon_set_rate_block(uint64_t S[5], const uint8_t *data, size_t rate)
 {
     S[0] = ascon_load64_le(data);
@@ -1030,7 +1035,7 @@ int xy_ascon_128a_encrypt_ad(xy_ascon_128a_ctx_t *ctx,
     uint8_t buffer[8];
     size_t i;
 
-    if (!ctx) {
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0 || ctx->ad_len != 0U) {
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -1062,83 +1067,47 @@ int xy_ascon_128a_encrypt_update(xy_ascon_128a_ctx_t *ctx,
                                   const uint8_t *plaintext, size_t plaintext_len,
                                   uint8_t *ciphertext)
 {
-    uint8_t buffer[16];
     size_t i;
 
-    if (!ctx || !plaintext || !ciphertext) {
+    if (!ctx || (plaintext_len > 0U && (!plaintext || !ciphertext)) || ctx->mode == 2) {
         return XY_ASCON_INVALID_PARAM;
     }
 
     if (ctx->mode == 0) {
-        /* Switching from AD to plaintext */
-        ctx->S[4] ^= 0x01;
-        ascon_p(ctx->S, ASCON_ROUNDS_A);
+        if (ctx->ad_len == 0U) {
+            ctx->S[4] ^= 0x01;
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+        }
         ctx->mode = 1;
     }
 
-    ctx->plaintext_len = plaintext_len;
-    i = 0;
+    for (i = 0U; i < plaintext_len; ++i) {
+        size_t pos = ctx->data_pos;
+        uint8_t value = ascon_get_rate_byte(ctx->S, pos) ^ plaintext[i];
 
-    while (i < plaintext_len) {
-        if (i + ASCON_RATE_128A <= plaintext_len) {
-            ascon_absorb(ctx->S, plaintext + i, ASCON_RATE_128A);
-            ascon_squeeze(ciphertext + i, ctx->S, ASCON_RATE_128A);
-            ciphertext[i + 0] ^= plaintext[i + 0];
-            ciphertext[i + 1] ^= plaintext[i + 1];
-            ciphertext[i + 2] ^= plaintext[i + 2];
-            ciphertext[i + 3] ^= plaintext[i + 3];
-            ciphertext[i + 4] ^= plaintext[i + 4];
-            ciphertext[i + 5] ^= plaintext[i + 5];
-            ciphertext[i + 6] ^= plaintext[i + 6];
-            ciphertext[i + 7] ^= plaintext[i + 7];
-            ciphertext[i + 8] ^= plaintext[i + 8];
-            ciphertext[i + 9] ^= plaintext[i + 9];
-            ciphertext[i + 10] ^= plaintext[i + 10];
-            ciphertext[i + 11] ^= plaintext[i + 11];
-            ciphertext[i + 12] ^= plaintext[i + 12];
-            ciphertext[i + 13] ^= plaintext[i + 13];
-            ciphertext[i + 14] ^= plaintext[i + 14];
-            ciphertext[i + 15] ^= plaintext[i + 15];
+        ciphertext[i] = value;
+        ascon_set_rate_byte(ctx->S, pos, value);
+        ctx->data_pos++;
+        if (ctx->data_pos == ASCON_RATE_128A) {
             ascon_p(ctx->S, ASCON_ROUNDS_A);
-            i += ASCON_RATE_128A;
-        } else {
-            memset(buffer, 0, ASCON_RATE_128A);
-            memcpy(buffer, plaintext + i, plaintext_len - i);
-            ascon_pad(buffer, plaintext_len - i);
-            ascon_absorb(ctx->S, buffer, ASCON_RATE_128A);
-            ascon_squeeze(buffer, ctx->S, ASCON_RATE_128A);
-            memcpy(ciphertext + i, buffer, plaintext_len - i);
-            ciphertext[i + 0] ^= plaintext[i + 0];
-            ciphertext[i + 1] ^= plaintext[i + 1];
-            ciphertext[i + 2] ^= plaintext[i + 2];
-            ciphertext[i + 3] ^= plaintext[i + 3];
-            ciphertext[i + 4] ^= plaintext[i + 4];
-            ciphertext[i + 5] ^= plaintext[i + 5];
-            ciphertext[i + 6] ^= plaintext[i + 6];
-            ciphertext[i + 7] ^= plaintext[i + 7];
-            ciphertext[i + 8] ^= plaintext[i + 8];
-            ciphertext[i + 9] ^= plaintext[i + 9];
-            ciphertext[i + 10] ^= plaintext[i + 10];
-            ciphertext[i + 11] ^= plaintext[i + 11];
-            ciphertext[i + 12] ^= plaintext[i + 12];
-            ciphertext[i + 13] ^= plaintext[i + 13];
-            ciphertext[i + 14] ^= plaintext[i + 14];
-            ciphertext[i + 15] ^= plaintext[i + 15];
-            break;
+            ctx->data_pos = 0U;
         }
     }
 
-    ctx->data_pos = i;
-    ctx->mode = 1;
-
+    ctx->plaintext_len += plaintext_len;
     return XY_ASCON_SUCCESS;
 }
 
 int xy_ascon_128a_encrypt_final(xy_ascon_128a_ctx_t *ctx,
                                  uint8_t tag[XY_ASCON_128A_TAG_SIZE])
 {
-    if (!ctx || !tag) {
+    if (!ctx || !tag || ctx->mode != 1) {
         return XY_ASCON_INVALID_PARAM;
+    }
+
+    if (ctx->data_pos > 0U) {
+        ascon_set_rate_byte(ctx->S, ctx->data_pos,
+                            (uint8_t)(ascon_get_rate_byte(ctx->S, ctx->data_pos) ^ 0x80U));
     }
 
     /* Domain separation */
@@ -1190,7 +1159,7 @@ int xy_ascon_128a_decrypt_ad(xy_ascon_128a_ctx_t *ctx,
     uint8_t buffer[8];
     size_t i;
 
-    if (!ctx) {
+    if (!ctx || (ad_len > 0U && !ad) || ctx->mode != 0 || ctx->ad_len != 0U) {
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -1222,73 +1191,40 @@ int xy_ascon_128a_decrypt_update(xy_ascon_128a_ctx_t *ctx,
                                   const uint8_t *ciphertext, size_t ciphertext_len,
                                   uint8_t *plaintext)
 {
-    uint8_t buffer[16];
     size_t i;
 
-    if (!ctx || !ciphertext || !plaintext) {
+    if (!ctx || (ciphertext_len > 0U && (!ciphertext || !plaintext)) || ctx->mode == 2) {
         return XY_ASCON_INVALID_PARAM;
     }
-
-    if (ctx->mode == 0) {
-        ctx->S[4] ^= 0x01;
-        ascon_p(ctx->S, ASCON_ROUNDS_A);
-        ctx->mode = 1;
-    }
-
-    ctx->plaintext_len = ciphertext_len;
-    i = 0;
-
-    while (i < ciphertext_len) {
-        if (i + ASCON_RATE_128A <= ciphertext_len) {
-            ascon_absorb(ctx->S, ciphertext + i, ASCON_RATE_128A);
-            ascon_squeeze(buffer, ctx->S, ASCON_RATE_128A);
-            plaintext[i + 0] = buffer[0] ^ ciphertext[i + 0];
-            plaintext[i + 1] = buffer[1] ^ ciphertext[i + 1];
-            plaintext[i + 2] = buffer[2] ^ ciphertext[i + 2];
-            plaintext[i + 3] = buffer[3] ^ ciphertext[i + 3];
-            plaintext[i + 4] = buffer[4] ^ ciphertext[i + 4];
-            plaintext[i + 5] = buffer[5] ^ ciphertext[i + 5];
-            plaintext[i + 6] = buffer[6] ^ ciphertext[i + 6];
-            plaintext[i + 7] = buffer[7] ^ ciphertext[i + 7];
-            plaintext[i + 8] = buffer[8] ^ ciphertext[i + 8];
-            plaintext[i + 9] = buffer[9] ^ ciphertext[i + 9];
-            plaintext[i + 10] = buffer[10] ^ ciphertext[i + 10];
-            plaintext[i + 11] = buffer[11] ^ ciphertext[i + 11];
-            plaintext[i + 12] = buffer[12] ^ ciphertext[i + 12];
-            plaintext[i + 13] = buffer[13] ^ ciphertext[i + 13];
-            plaintext[i + 14] = buffer[14] ^ ciphertext[i + 14];
-            plaintext[i + 15] = buffer[15] ^ ciphertext[i + 15];
-            ascon_p(ctx->S, ASCON_ROUNDS_A);
-            i += ASCON_RATE_128A;
-        } else {
-            memset(buffer, 0, ASCON_RATE_128A);
-            memcpy(buffer, ciphertext + i, ciphertext_len - i);
-            ascon_pad(buffer, ciphertext_len - i);
-            ascon_absorb(ctx->S, buffer, ASCON_RATE_128A);
-            ascon_squeeze(buffer, ctx->S, ASCON_RATE_128A);
-            plaintext[i + 0] = buffer[0] ^ ciphertext[i + 0];
-            plaintext[i + 1] = buffer[1] ^ ciphertext[i + 1];
-            plaintext[i + 2] = buffer[2] ^ ciphertext[i + 2];
-            plaintext[i + 3] = buffer[3] ^ ciphertext[i + 3];
-            plaintext[i + 4] = buffer[4] ^ ciphertext[i + 4];
-            plaintext[i + 5] = buffer[5] ^ ciphertext[i + 5];
-            plaintext[i + 6] = buffer[6] ^ ciphertext[i + 6];
-            plaintext[i + 7] = buffer[7] ^ ciphertext[i + 7];
-            plaintext[i + 8] = buffer[8] ^ ciphertext[i + 8];
-            plaintext[i + 9] = buffer[9] ^ ciphertext[i + 9];
-            plaintext[i + 10] = buffer[10] ^ ciphertext[i + 10];
-            plaintext[i + 11] = buffer[11] ^ ciphertext[i + 11];
-            plaintext[i + 12] = buffer[12] ^ ciphertext[i + 12];
-            plaintext[i + 13] = buffer[13] ^ ciphertext[i + 13];
-            plaintext[i + 14] = buffer[14] ^ ciphertext[i + 14];
-            plaintext[i + 15] = buffer[15] ^ ciphertext[i + 15];
-            break;
+    if (ciphertext_len > 0U) {
+        if (!ctx->plaintext_start) {
+            ctx->plaintext_start = plaintext;
+        } else if (plaintext != ctx->plaintext_start + ctx->plaintext_len) {
+            return XY_ASCON_INVALID_PARAM;
         }
     }
 
-    ctx->data_pos = i;
-    ctx->mode = 1;
+    if (ctx->mode == 0) {
+        if (ctx->ad_len == 0U) {
+            ctx->S[4] ^= 0x01;
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+        }
+        ctx->mode = 1;
+    }
 
+    for (i = 0U; i < ciphertext_len; ++i) {
+        size_t pos = ctx->data_pos;
+
+        plaintext[i] = ascon_get_rate_byte(ctx->S, pos) ^ ciphertext[i];
+        ascon_set_rate_byte(ctx->S, pos, ciphertext[i]);
+        ctx->data_pos++;
+        if (ctx->data_pos == ASCON_RATE_128A) {
+            ascon_p(ctx->S, ASCON_ROUNDS_A);
+            ctx->data_pos = 0U;
+        }
+    }
+
+    ctx->plaintext_len += ciphertext_len;
     return XY_ASCON_SUCCESS;
 }
 
@@ -1298,8 +1234,13 @@ int xy_ascon_128a_decrypt_final(xy_ascon_128a_ctx_t *ctx,
     uint8_t expected_tag[XY_ASCON_128A_TAG_SIZE];
     size_t i;
 
-    if (!ctx || !tag) {
+    if (!ctx || !tag || ctx->mode != 1) {
         return XY_ASCON_INVALID_PARAM;
+    }
+
+    if (ctx->data_pos > 0U) {
+        ascon_set_rate_byte(ctx->S, ctx->data_pos,
+                            (uint8_t)(ascon_get_rate_byte(ctx->S, ctx->data_pos) ^ 0x80U));
     }
 
     /* Domain separation */
@@ -1335,6 +1276,9 @@ int xy_ascon_128a_decrypt_final(xy_ascon_128a_ctx_t *ctx,
     ctx->mode = 2;
 
     if (diff) {
+        if (ctx->plaintext_start) {
+            memset(ctx->plaintext_start, 0, ctx->plaintext_len);
+        }
         return XY_ASCON_AUTH_FAILED;
     }
 

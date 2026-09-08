@@ -217,6 +217,7 @@ typedef struct {
     size_t plaintext_len;    /* Total plaintext length */
     size_t ad_pos;           /* Position in current AD block */
     size_t data_pos;         /* Position in current data block */
+    uint8_t *plaintext_start; /* Contiguous decrypt output for auth-failure wipe */
     int mode;                /* 0=AD, 1=plaintext, 2=done */
 } xy_ascon_128a_ctx_t;
 
