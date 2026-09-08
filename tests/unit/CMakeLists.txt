@@ -91,6 +91,10 @@ add_test(NAME pandora_uart_capture
     COMMAND python3 ${UNIT_HAL}/test_pandora_uart_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_crypto_capture_validator
+    COMMAND python3 ${UNIT_CRYPTO}/test_pandora_crypto_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_fota_boot_contract_validator
     COMMAND python3 ${UNIT_FOTA}/test_pandora_fota_boot_contract.py
     WORKING_DIRECTORY ${ROOT}

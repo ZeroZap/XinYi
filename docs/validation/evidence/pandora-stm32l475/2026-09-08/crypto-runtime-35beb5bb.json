@@ -1,0 +1,30 @@
+{
+  "board": "Pandora STM32L475VE",
+  "capture_sha256": "cbb005a3bc0c2ac83cbd9c12b0eb1ced71e227f0d3e97fae7c6e653e6c192988",
+  "captured_bytes": 232,
+  "core": "Cortex-M4F",
+  "error_marker_count": 0,
+  "failures": [],
+  "firmware_commit": "35beb5bb80f82546aaa2f9bbdf7d80d44288de1a",
+  "firmware_sha256": "3b54b73ea90d52d34bd2149858aaaa81706cb9fd305122b9561a78a1bc58ec7d",
+  "implementation": "software",
+  "limitations": [
+    "Bounded runtime KAT/self-test evidence only",
+    "No constant-time, side-channel, performance, entropy, hardware-acceleration, or compliance claim",
+    "LWC algorithms are not included in this runtime image"
+  ],
+  "marker_counts": {
+    "B1_CRYPTO_SOFTWARE_KAT_PASS": 1,
+    "CRYPTO_AES128_KAT_PASS": 1,
+    "CRYPTO_HMAC_SHA256_KAT_PASS": 1,
+    "CRYPTO_REPEAT_1000_PASS": 1,
+    "CRYPTO_SHA256_KAT_PASS": 1,
+    "PANDORA STM32L475VE CRYPTO SOFTWARE READY": 1
+  },
+  "probe": "ST-Link V2.1",
+  "probe_serial": "066AFF313933554D43244015",
+  "readback_byte_identical": true,
+  "readback_sha256": "3b54b73ea90d52d34bd2149858aaaa81706cb9fd305122b9561a78a1bc58ec7d",
+  "schema": "xinyi-pandora-crypto-runtime-v1",
+  "status": "B1_CRYPTO_SOFTWARE_KAT_PASS"
+}
