@@ -1,0 +1,35 @@
+{
+  "status": "B1_ST7789_VISUAL_PASS",
+  "firmware_commit": "7b07057d14e310bc89f7cb6fa1c9d723e427c1b6",
+  "toolchain": "arm-none-eabi-gcc 15.2.1 20251203",
+  "probe": "ST-LINK/V2.1 V2J24S11 serial 066AFF313933554D43244015",
+  "uart": "WCH-Link B49C8F0639CE 115200-8-N-1",
+  "binary_size_bytes": 13284,
+  "landers": "Pandora onboard 240x240 ST7789 over SPI3",
+  "binary_sha256": "83caa818e5cee4331cb737d1ed663bbe7a972b99864c302fdcd6a3535f78b6f8",
+  "readback_size_bytes": 13284,
+  "readback_sha256": "83caa818e5cee4331cb737d1ed663bbe7a972b99864c302fdcd6a3535f78b6f8",
+  "readback_byte_identical": true,
+  "uart_size_bytes": 304,
+  "uart_sha256": "e70b08f598d8641a36e6299d1cda353acdb53036ee51afb321b4a023752f9acd",
+  "uart_ordered_markers": [
+    "PANDORA ST7789 SPI3 READY",
+    "FIRMWARE_COMMIT 7b07057d14e310bc89f7cb6fa1c9d723e427c1b6",
+    "PANDORA_ST7789_COLOR RED",
+    "PANDORA_ST7789_COLOR GREEN",
+    "PANDORA_ST7789_COLOR BLUE",
+    "PANDORA_ST7789_COLOR WHITE",
+    "PANDORA_ST7789_COLOR BLACK",
+    "PANDORA_ST7789_PATTERN_DONE",
+    "PANDORA_ST7789_FINAL_SAFE backlight=ON pattern=HELD"
+  ],
+  "error_marker_count": 0,
+  "programming_result": "Flash written and verified; 13284-byte read-back matched the binary byte-for-byte",
+  "visual_confirmation": {
+    "observer": "Eugene",
+    "observed_color_order": ["red", "green", "blue", "white", "black"],
+    "final_quadrant_pattern_visible": true,
+    "reported_text": "人工验证：红 绿 蓝 白 黑，象限显示"
+  },
+  "claim_boundary": "B1 covers this fixed panel, orientation, full-screen color sequence and held quadrant pattern; it does not qualify colorimetry, brightness, frame rate, other rotations/panels, long-run reliability, or display performance"
+}
