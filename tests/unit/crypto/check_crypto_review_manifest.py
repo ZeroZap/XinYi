@@ -44,9 +44,6 @@ RECONCILED_MODULE_RUNTIME_SOURCES = {
     "hmac": "components/crypto/xy_hmac/xy_hmac.c",
     "sha256_hmac": "components/crypto/xy_hmac/xy_sha256.c",
     "aes": "components/crypto/xy_aes/xy_aes.c",
-    "lwc_ascon": "components/crypto/xy_ascon/xy_ascon.c",
-    "lwc_tinyjambu": "components/crypto/xy_tinyjambu/xy_tinyjambu.c",
-    "lwc_photon_beetle": "components/crypto/xy_photon_beetle/xy_photon_beetle.c",
 }
 
 ROOT_COMPATIBILITY_WRAPPER_SOURCES = {
@@ -80,9 +77,6 @@ RECONCILED_MODULE_CMAKE_SOURCES = {
     "hmac": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c",
     "sha256_hmac": "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_sha256.c",
     "aes": "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c",
-    "lwc_ascon": "${CMAKE_CURRENT_SOURCE_DIR}/xy_ascon/xy_ascon.c",
-    "lwc_tinyjambu": "${CMAKE_CURRENT_SOURCE_DIR}/xy_tinyjambu/xy_tinyjambu.c",
-    "lwc_photon_beetle": "${CMAKE_CURRENT_SOURCE_DIR}/xy_photon_beetle/xy_photon_beetle.c",
 }
 
 ALLOWED_TOP_STATUS = {"contract-guarded"}
@@ -518,6 +512,18 @@ def validate_manifest(data: dict[str, Any]) -> list[str]:
             _require(
                 algorithm.get("runtime_sources") == [],
                 f"{prefix}.security-rejected implementation must not be linked into the root runtime target",
+                errors,
+            )
+
+        if algorithm.get("id") == "lwc_ascon_tinyjambu_photon_beetle":
+            _require(
+                algorithm.get("product_classification") == "test-only",
+                f"{prefix}.LWC implementations must remain test-only until provenance and authoritative KAT review are complete",
+                errors,
+            )
+            _require(
+                algorithm.get("runtime_sources") == [],
+                f"{prefix}.test-only LWC implementations must not be linked into the root runtime target",
                 errors,
             )
 

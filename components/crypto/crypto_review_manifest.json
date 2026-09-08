@@ -154,13 +154,13 @@
       "source_origin": "repository-local imported-style implementations; exact upstream revisions not yet established",
       "license_status": "review-pending",
       "side_channel_target": "review-required-before-security-use",
-      "contract_tests": ["crypto_lwc", "crypto_root_target_smoke"],
-      "runtime_sources": ["components/crypto/xy_ascon/xy_ascon.c", "components/crypto/xy_tinyjambu/xy_tinyjambu.c", "components/crypto/xy_photon_beetle/xy_photon_beetle.c"],
+      "contract_tests": ["crypto_lwc", "crypto_photon_warning_clean"],
+      "runtime_sources": [],
       "focused_test_sources": ["components/crypto/xy_ascon/xy_ascon.c", "components/crypto/xy_tinyjambu/xy_tinyjambu.c", "components/crypto/xy_photon_beetle/xy_photon_beetle.c"],
-      "duplicate_source_policy": "root-runtime-module-source-limited",
+      "duplicate_source_policy": "focused-test-only-until-root-ownership-decided",
       "provenance_status": "review-pending",
       "security_status": "security-reviewed-limited",
-      "allowed_usage": "contract-guarded lightweight helper experimentation only where root runtime module-source ownership, missing upstream provenance, missing authoritative full KAT coverage, and missing side-channel evidence are explicitly accepted; no certification, hardware-validation, default enablement, or production security claim",
+      "allowed_usage": "focused-test-only lightweight helper experimentation where missing upstream provenance, missing authoritative full KAT coverage, known incomplete behavioral contracts, and missing side-channel evidence are explicitly accepted; prohibited from root runtime linkage, default enablement, production security use, certification, or hardware-validation claims",
       "review_record": "docs/validation/xinyi-crypto-lwc-limited-security-review-2026-08-13.md"
     },
     {

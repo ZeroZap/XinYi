@@ -1,7 +1,7 @@
 # XinYi Crypto LWC root ownership proposal
 
 **Date**: 2026-08-14  
-**Status**: proposal / no runtime enablement  
+**Status**: superseded / runtime linkage rejected pending provenance and authoritative KAT review
 **Scope**: `components/crypto/xy_ascon/`, `xy_tinyjambu/`, `xy_photon_beetle/`, `xy_tiny_crypto`, `tests/unit/crypto`, and `crypto_review_manifest` ownership wording.
 
 ## 1. Why this proposal exists
@@ -14,7 +14,9 @@ The Crypto source-ownership map now records Base64/Hex/CRC/BLAKE2/Random/CSPRNG/
 
 At the same time, the historical umbrella header `components/crypto/xy_tiny_crypto.h` includes the LWC public headers. That header inclusion makes APIs discoverable, but it does **not** mean the root `xy_tiny_crypto` runtime target currently links those implementations or that the algorithms are production/security approved.
 
-This proposal fixes the next-step decision boundary before any CMake/source change is made.
+This historical proposal fixed the next-step decision boundary before runtime linkage was tried. The
+current decision is stricter: LWC remains focused-test-only and is excluded from the root target until
+provenance and authoritative KAT conformance are established.
 
 ## 2. Current facts
 
@@ -30,9 +32,11 @@ Current runtime boundary:
 - Existing root/runtime smoke tests do not link LWC through the aggregate root library.
 - Header discoverability alone must not be treated as runtime ownership or product readiness.
 
-## 3. Recommended staged path
+## 3. Superseded staged path
 
-If a real consumer needs LWC through `xy_tiny_crypto`, use this path-limited sequence:
+Do not follow the old root-link-first sequence below while the current test-only policy applies. Any
+future consumer request must first close upstream provenance/license and authoritative KAT review, then
+propose a new ownership slice.
 
 1. **Root-link smoke first**
    - Add one small root-target smoke CTest that links against `xy_tiny_crypto` and calls a minimal LWC API flow.

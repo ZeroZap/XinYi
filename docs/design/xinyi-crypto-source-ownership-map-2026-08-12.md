@@ -40,12 +40,9 @@ list(APPEND CRYPTO_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_sha256.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/xy_ascon/xy_ascon.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/xy_tinyjambu/xy_tinyjambu.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/xy_photon_beetle/xy_photon_beetle.c"
 )
 add_library(xy_tiny_crypto STATIC ${CRYPTO_SOURCES})
-target_link_libraries(xy_tiny_crypto PRIVATE xy_sm3 xy_sm4 xy_sm2)
+target_link_libraries(xy_tiny_crypto PRIVATE xy_sm3 xy_sm4)
 ```
 
 Therefore the root `xy_tiny_crypto` runtime build uses:
@@ -62,9 +59,9 @@ Therefore the root `xy_tiny_crypto` runtime build uses:
 | HMAC | `components/crypto/xy_hmac/xy_hmac.c`, `components/crypto/xy_hmac/xy_sha256.c` | Reconciled MD5/HMAC/AES/SHA-256 slice: root `xy_tiny_crypto` now consumes the same HMAC and SHA-256 module sources as `crypto_cipher_hmac`; `crypto_root_target_smoke` must link the aggregate library so excluded stale root SHA-256 copies cannot silently re-enter. |
 | AES | `components/crypto/xy_aes/xy_aes.c` | Reconciled MD5/HMAC/AES slice: root `xy_tiny_crypto` now consumes the same module source as `crypto_cipher_hmac`; stale duplicate `src/xy_aes.c` was removed. |
 | ChaCha20/Poly1305 | `components/crypto/src/xy_chacha20poly1305.c` | Root compact compatibility wrapper over the module-owned RFC 8439 implementation in `xy_chacha/xy_chacha20_poly1305.c`; `crypto_root_target_smoke` covers root `ciphertext || tag` behavior and auth-failure output preservation. |
-| LWC / Ascon | `components/crypto/xy_ascon/xy_ascon.c` | Limited root runtime ownership: root `xy_tiny_crypto` now links the same module source as `crypto_lwc`, and `crypto_root_target_smoke` proves minimal aggregate-link availability. This is still not provenance approval, full KAT coverage, side-channel evidence, hardware validation, or production security approval. |
-| LWC / TinyJAMBU | `components/crypto/xy_tinyjambu/xy_tinyjambu.c` | Limited root runtime ownership: root `xy_tiny_crypto` now links the same module source as `crypto_lwc`, and `crypto_root_target_smoke` proves minimal aggregate-link availability. This is still not provenance approval, full KAT coverage, side-channel evidence, hardware validation, or production security approval. |
-| LWC / Photon-Beetle | `components/crypto/xy_photon_beetle/xy_photon_beetle.c` | Limited root runtime ownership: root `xy_tiny_crypto` now links the same module source as `crypto_lwc`, and `crypto_root_target_smoke` proves minimal aggregate-link availability. This is still not provenance approval, full KAT coverage, side-channel evidence, hardware validation, or production security approval. |
+| LWC / Ascon | none | Focused-test-only module source at `components/crypto/xy_ascon/xy_ascon.c`; excluded from root runtime pending upstream provenance and authoritative KAT review. |
+| LWC / TinyJAMBU | none | Focused-test-only module source at `components/crypto/xy_tinyjambu/xy_tinyjambu.c`; excluded from root runtime pending upstream provenance and authoritative KAT review. |
+| LWC / Photon-Beetle | none | Focused-test-only module source at `components/crypto/xy_photon_beetle/xy_photon_beetle.c`; excluded from root runtime pending upstream provenance and authoritative KAT review. |
 | BLAKE2 | `components/crypto/xy_blake/xy_blake2.c` | Reconciled checksum/hash utility slice: root `xy_tiny_crypto` now consumes the same module source as `crypto_blake2`; stale duplicate `src/xy_blake2.c` was removed. |
 | ECDSA | `components/crypto/src/xy_ecdsa.c` | Security-rejected focused-test-only source; excluded from `xy_tiny_crypto`. `crypto_ecdsa_root_contract` preserves the rejection/format-only contract without runtime linkage. |
 | SM3 | `components/crypto/xy_sm3/xy_sm3.c` | Linked via subdirectory target `xy_sm3`, not `src/*.c`. |
@@ -86,12 +83,12 @@ The canonical host contract suite links algorithm sources directly from `tests/u
 | `crypto_blake2` | `components/crypto/xy_blake/xy_blake2.c` | Focused BLAKE2s host vectors, incremental/keyed behavior, invalid-parameter output preservation, and the canonical source now shared by focused tests and the root runtime target; still not security/provenance review. |
 | `crypto_ecdsa_root_contract` | `components/crypto/src/xy_ecdsa.c` | Focused-test-only ECDSA format-guard placeholder contract: null/malformed/range guards plus explicit message-non-binding success behavior; security status remains `security-rejected`, and the source is excluded from `xy_tiny_crypto`. |
 | `crypto_sm2` | `xy_sm2/`, `xy_sm3/`, `xy_sm4/`, `xy_rng/` | Guards SM2 public placeholder-grade contract plus helper modules. |
-| `crypto_lwc` | `components/crypto/xy_ascon/xy_ascon.c`, `components/crypto/xy_tinyjambu/xy_tinyjambu.c`, `components/crypto/xy_photon_beetle/xy_photon_beetle.c` | Guards the LWC module sources that are now linked into the root runtime target under limited runtime ownership. This remains contract coverage only, not provenance/security/hardware approval. |
+| `crypto_lwc` | `components/crypto/xy_ascon/xy_ascon.c`, `components/crypto/xy_tinyjambu/xy_tinyjambu.c`, `components/crypto/xy_photon_beetle/xy_photon_beetle.c` | Guards focused-test-only LWC module behavior. The sources are excluded from the root runtime target; this remains experimental contract coverage only, not authoritative KAT/provenance/security/hardware approval. |
 | `crypto_25519` | `components/crypto/xy_25519/xy_25519.c` | Focused-test-only until root ownership is intentionally decided. |
 | `crypto_25519_m0` | `components/crypto/xy_25519/xy_25519_m0.c`, `components/crypto/xy_25519/fe25519_m0.c` | Focused-test-only/upstream-material boundary. |
 | `crypto_smoke_example` | module Base64/Hex/SHA-256/RNG sources | Host-safe API smoke only; not a root aggregate source proof. |
-| `crypto_root_target_smoke` | links `xy_tiny_crypto` root target, using the reconciled non-rejected runtime sources, SM3/SM4 module targets, the ChaCha20-Poly1305 compatibility wrapper, and limited LWC sources | Minimal root/runtime public consumer proof; security-rejected SM2/ECDSA placeholders are absent; not broad duplicate-source reconciliation or security validation. |
-| `crypto_review_manifest` | `components/crypto/crypto_review_manifest.json` plus root CMake ownership wiring | Policy guard only; it requires `runtime_sources=[]` for every `security-rejected` algorithm and verifies mapped non-rejected runtime sources. |
+| `crypto_root_target_smoke` | links `xy_tiny_crypto` root target, using the reconciled non-rejected runtime sources, SM3/SM4 module targets, and the ChaCha20-Poly1305 compatibility wrapper | Minimal root/runtime public consumer proof; security-rejected SM2/ECDSA and test-only LWC sources are absent; not broad duplicate-source reconciliation or security validation. |
+| `crypto_review_manifest` | `components/crypto/crypto_review_manifest.json` plus root CMake ownership wiring | Policy guard only; it requires `runtime_sources=[]` for every `security-rejected` algorithm and for the test-only LWC group, then verifies mapped runtime sources. |
 
 Additional root aggregate sources currently mapped but intentionally not represented as reviewed algorithm entries:
 

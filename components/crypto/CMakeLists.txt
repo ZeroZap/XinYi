@@ -59,9 +59,6 @@ list(APPEND CRYPTO_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_sha256.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_hmac/xy_hmac.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/xy_aes/xy_aes.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/xy_ascon/xy_ascon.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/xy_tinyjambu/xy_tinyjambu.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/xy_photon_beetle/xy_photon_beetle.c"
 )
 file(GLOB CRYPTO_HEADERS "inc/*.h")
 
