@@ -259,6 +259,7 @@ def main() -> None:
         ):
             assert forbidden not in entry, f"{primary_entry} bypasses canonical XinYi HAL: {forbidden}"
     rtos_entry = (BOARD / "rtos_main.c").read_text(encoding="utf-8")
+    assert "uart1.Instance = USART1;" in rtos_entry
     assert "xy_hal_sys_software_reset" in rtos_entry
     assert "NVIC_SystemReset" not in rtos_entry
     for backup_entry in ("rtos_main.c", "fota_bootloader_main.c"):
