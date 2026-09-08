@@ -162,6 +162,22 @@ static void photon_permutation(uint8_t state[PHOTON_STATE_SIZE])
     }
 }
 
+static void photon_secure_clear(void *data, size_t len)
+{
+    volatile uint8_t *bytes = (volatile uint8_t *)data;
+
+    while (len > 0U) {
+        *bytes++ = 0U;
+        --len;
+    }
+}
+
+static void photon_context_finish(xy_photon_beetle_ctx_t *ctx)
+{
+    photon_secure_clear(ctx, sizeof(*ctx));
+    ctx->mode = 3;
+}
+
 /* ==================== Photon Beetle Core Functions ==================== */
 
 /**
@@ -683,7 +699,7 @@ int xy_photon_beetle_encrypt_final(xy_photon_beetle_ctx_t *ctx,
     photon_permutation(ctx->S);
 
     memcpy(tag, ctx->S + 16, 16);
-    ctx->mode = 3;
+    photon_context_finish(ctx);
 
     return XY_PHOTON_BEETLE_SUCCESS;
 }
@@ -803,11 +819,16 @@ int xy_photon_beetle_decrypt_final(xy_photon_beetle_ctx_t *ctx,
     for (i = 0U; i < 16U; ++i) {
         diff |= tag[i] ^ expected_tag[i];
     }
-    ctx->mode = 3;
 
     if (diff != 0U) {
-        memset(ctx->plaintext, 0, ctx->plaintext_len);
+        if (ctx->plaintext != NULL) {
+            photon_secure_clear(ctx->plaintext, ctx->plaintext_len);
+        }
+        photon_context_finish(ctx);
+        photon_secure_clear(expected_tag, sizeof(expected_tag));
         return XY_PHOTON_BEETLE_AUTH_FAILED;
     }
+    photon_context_finish(ctx);
+    photon_secure_clear(expected_tag, sizeof(expected_tag));
     return XY_PHOTON_BEETLE_SUCCESS;
 }

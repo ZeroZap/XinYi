@@ -477,6 +477,72 @@ static void test_photon_beetle_incremental_guards_state_and_inputs(void)
                           xy_photon_beetle_decrypt_update(&ctx, data, sizeof(data), output));
 }
 
+static void assert_photon_context_scrubbed(const xy_photon_beetle_ctx_t *ctx)
+{
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, ctx->S, sizeof(ctx->S));
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, ctx->K, sizeof(ctx->K));
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, ctx->N, sizeof(ctx->N));
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, ctx->data_block, sizeof(ctx->data_block));
+    TEST_ASSERT_EQUAL_UINT(0U, ctx->ad_len);
+    TEST_ASSERT_EQUAL_UINT(0U, ctx->plaintext_len);
+    TEST_ASSERT_EQUAL_UINT(0U, ctx->data_block_len);
+    TEST_ASSERT_NULL(ctx->plaintext);
+    TEST_ASSERT_EQUAL_INT(3, ctx->mode);
+}
+
+static void test_photon_beetle_incremental_scrubs_context_after_final(void)
+{
+    uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE];
+    uint8_t nonce[XY_PHOTON_BEETLE_NONCE_SIZE];
+    uint8_t ad[3] = {0xA1U, 0xB2U, 0xC3U};
+    uint8_t plaintext[17];
+    uint8_t ciphertext[sizeof(plaintext)];
+    uint8_t decrypted[sizeof(plaintext)];
+    uint8_t tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    xy_photon_beetle_ctx_t ctx;
+
+    memset(key, 0x11, sizeof(key));
+    memset(nonce, 0x22, sizeof(nonce));
+    memset(plaintext, 0x33, sizeof(plaintext));
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_ad(&ctx, ad, sizeof(ad)));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_update(&ctx, plaintext, sizeof(plaintext),
+                                                          ciphertext));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_final(&ctx, tag));
+    assert_photon_context_scrubbed(&ctx);
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_ad(&ctx, ad, sizeof(ad)));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_update(&ctx, ciphertext, sizeof(ciphertext),
+                                                          decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_final(&ctx, tag));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(plaintext, decrypted, sizeof(plaintext));
+    assert_photon_context_scrubbed(&ctx);
+
+    tag[0] ^= 0x01U;
+    memset(decrypted, 0xA5, sizeof(decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_ad(&ctx, ad, sizeof(ad)));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_update(&ctx, ciphertext, sizeof(ciphertext),
+                                                          decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_AUTH_FAILED,
+                          xy_photon_beetle_decrypt_final(&ctx, tag));
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, decrypted, sizeof(decrypted));
+    assert_photon_context_scrubbed(&ctx);
+}
+
 static void test_photon_beetle_roundtrip_boundaries(void)
 {
     static const size_t lengths[] = {1U, 15U, 16U, 17U, 32U};
@@ -610,6 +676,7 @@ int main(void)
     RUN_TEST(test_photon_beetle_incremental_matches_one_shot);
     RUN_TEST(test_photon_beetle_incremental_accepts_chunked_data);
     RUN_TEST(test_photon_beetle_incremental_guards_state_and_inputs);
+    RUN_TEST(test_photon_beetle_incremental_scrubs_context_after_final);
     RUN_TEST(test_photon_beetle_roundtrip_boundaries);
     RUN_TEST(test_photon_beetle_roundtrips_tag_sizes_and_hashes);
     RUN_TEST(test_photon_beetle_rejects_wrong_tag);
