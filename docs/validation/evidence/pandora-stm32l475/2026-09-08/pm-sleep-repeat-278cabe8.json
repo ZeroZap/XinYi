@@ -1,0 +1,35 @@
+{
+  "boot_count": 2,
+  "capture_sha256": "0f5d00803d32c3ac1d17afbf5eac925db7b9e1934d41a010277ab1984a59d835",
+  "captured_bytes": 8845,
+  "error_marker_count": 0,
+  "failures": [],
+  "firmware_commit": "278cabe86e8d4a3f6dde24156e81971de20eda76",
+  "firmware_sha256": "1bb2afffc8adf135bfab11e14d409696c20c3b28169a1b1618e9b4f75d066293",
+  "flash_readback_sha256": "1bb2afffc8adf135bfab11e14d409696c20c3b28169a1b1618e9b4f75d066293",
+  "flash_readback_byte_identical": true,
+  "firmware_size_bytes": 38828,
+  "marker_counts": {
+    "OSAL_PM_SLEEP_ENTER": 32,
+    "OSAL_PM_SLEEP_ERROR": 0,
+    "OSAL_PM_SLEEP_REPEAT_OK": 1,
+    "OSAL_PM_SLEEP_WAKE_OK": 32,
+    "OSAL_PM_WAKE_ERROR": 0,
+    "OSAL_PM_WAKE_IRQ": 32
+  },
+  "not_evidence_for": [
+    "power current",
+    "STOP/STANDBY/SHUTDOWN mode",
+    "wake latency or performance",
+    "multi-hour endurance",
+    "STM32U5 runtime"
+  ],
+  "probe": "ST-Link V2.1 V2J24S11",
+  "probe_serial": "066AFF313933554D43244015",
+  "record_type": "xinyi-pandora-stm32l475-pm-sleep-wakeup",
+  "recorded_at_utc": "2026-09-08T15:08:06.439469+00:00",
+  "repeat_cycles": 32,
+  "scope": "Pandora shallow SLEEP/WFI repeated through PM/HAL and resumed by configured tick IRQ",
+  "source_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "status": "B1_PM_SLEEP_REPEAT_PASS"
+}
