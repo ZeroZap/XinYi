@@ -276,6 +276,22 @@ static void ascon_squeeze(uint8_t *data, uint64_t S[5], int rate)
     }
 }
 
+static uint64_t ascon_load64_le(const uint8_t data[8])
+{
+    return ((uint64_t)data[0] << 0) | ((uint64_t)data[1] << 8) |
+           ((uint64_t)data[2] << 16) | ((uint64_t)data[3] << 24) |
+           ((uint64_t)data[4] << 32) | ((uint64_t)data[5] << 40) |
+           ((uint64_t)data[6] << 48) | ((uint64_t)data[7] << 56);
+}
+
+static void ascon_set_rate_byte(uint64_t S[5], size_t index, uint8_t value)
+{
+    uint64_t shift = (uint64_t)(index * 8U);
+    uint64_t mask = (uint64_t)0xffU << shift;
+
+    S[0] = (S[0] & ~mask) | ((uint64_t)value << shift);
+}
+
 /**
  * @brief Pad data (Ascon padding rule: 10...0)
  */
@@ -332,34 +348,25 @@ int xy_ascon_128_encrypt(const uint8_t *key,
     i = 0;
     while (i < plaintext_len) {
         if (i + ASCON_RATE <= plaintext_len) {
-            ascon_absorb(S, plaintext + i, ASCON_RATE);
-            ascon_squeeze(ciphertext + i, S, ASCON_RATE);
-            ciphertext[i + 0] ^= plaintext[i + 0];
-            ciphertext[i + 1] ^= plaintext[i + 1];
-            ciphertext[i + 2] ^= plaintext[i + 2];
-            ciphertext[i + 3] ^= plaintext[i + 3];
-            ciphertext[i + 4] ^= plaintext[i + 4];
-            ciphertext[i + 5] ^= plaintext[i + 5];
-            ciphertext[i + 6] ^= plaintext[i + 6];
-            ciphertext[i + 7] ^= plaintext[i + 7];
+            size_t j;
+
+            ascon_squeeze(buffer, S, ASCON_RATE);
+            for (j = 0; j < ASCON_RATE; ++j) {
+                ciphertext[i + j] = buffer[j] ^ plaintext[i + j];
+            }
+            S[0] = ascon_load64_le(ciphertext + i);
             ascon_p(S, ASCON_ROUNDS_A);
             i += ASCON_RATE;
         } else {
-            /* Last block */
-            memset(buffer, 0, ASCON_RATE);
-            memcpy(buffer, plaintext + i, plaintext_len - i);
-            ascon_pad(buffer, plaintext_len - i);
-            ascon_absorb(S, buffer, ASCON_RATE);
+            size_t j;
+            size_t remaining = plaintext_len - i;
+
             ascon_squeeze(buffer, S, ASCON_RATE);
-            memcpy(ciphertext + i, buffer, plaintext_len - i);
-            ciphertext[i + 0] ^= plaintext[i + 0];
-            ciphertext[i + 1] ^= plaintext[i + 1];
-            ciphertext[i + 2] ^= plaintext[i + 2];
-            ciphertext[i + 3] ^= plaintext[i + 3];
-            ciphertext[i + 4] ^= plaintext[i + 4];
-            ciphertext[i + 5] ^= plaintext[i + 5];
-            ciphertext[i + 6] ^= plaintext[i + 6];
-            ciphertext[i + 7] ^= plaintext[i + 7];
+            for (j = 0; j < remaining; ++j) {
+                ciphertext[i + j] = buffer[j] ^ plaintext[i + j];
+                ascon_set_rate_byte(S, j, ciphertext[i + j]);
+            }
+            S[0] ^= (uint64_t)0x80U << (remaining * 8U);
             break;
         }
     }
@@ -436,32 +443,25 @@ int xy_ascon_128_decrypt(const uint8_t *key,
     i = 0;
     while (i < ciphertext_len) {
         if (i + ASCON_RATE <= ciphertext_len) {
-            ascon_absorb(S, ciphertext + i, ASCON_RATE);
+            size_t j;
+
             ascon_squeeze(buffer, S, ASCON_RATE);
-            plaintext[i + 0] = buffer[0] ^ ciphertext[i + 0];
-            plaintext[i + 1] = buffer[1] ^ ciphertext[i + 1];
-            plaintext[i + 2] = buffer[2] ^ ciphertext[i + 2];
-            plaintext[i + 3] = buffer[3] ^ ciphertext[i + 3];
-            plaintext[i + 4] = buffer[4] ^ ciphertext[i + 4];
-            plaintext[i + 5] = buffer[5] ^ ciphertext[i + 5];
-            plaintext[i + 6] = buffer[6] ^ ciphertext[i + 6];
-            plaintext[i + 7] = buffer[7] ^ ciphertext[i + 7];
+            for (j = 0; j < ASCON_RATE; ++j) {
+                plaintext[i + j] = buffer[j] ^ ciphertext[i + j];
+            }
+            S[0] = ascon_load64_le(ciphertext + i);
             ascon_p(S, ASCON_ROUNDS_A);
             i += ASCON_RATE;
         } else {
-            memset(buffer, 0, ASCON_RATE);
-            memcpy(buffer, ciphertext + i, ciphertext_len - i);
-            ascon_pad(buffer, ciphertext_len - i);
-            ascon_absorb(S, buffer, ASCON_RATE);
+            size_t j;
+            size_t remaining = ciphertext_len - i;
+
             ascon_squeeze(buffer, S, ASCON_RATE);
-            plaintext[i + 0] = buffer[0] ^ ciphertext[i + 0];
-            plaintext[i + 1] = buffer[1] ^ ciphertext[i + 1];
-            plaintext[i + 2] = buffer[2] ^ ciphertext[i + 2];
-            plaintext[i + 3] = buffer[3] ^ ciphertext[i + 3];
-            plaintext[i + 4] = buffer[4] ^ ciphertext[i + 4];
-            plaintext[i + 5] = buffer[5] ^ ciphertext[i + 5];
-            plaintext[i + 6] = buffer[6] ^ ciphertext[i + 6];
-            plaintext[i + 7] = buffer[7] ^ ciphertext[i + 7];
+            for (j = 0; j < remaining; ++j) {
+                plaintext[i + j] = buffer[j] ^ ciphertext[i + j];
+                ascon_set_rate_byte(S, j, ciphertext[i + j]);
+            }
+            S[0] ^= (uint64_t)0x80U << (remaining * 8U);
             break;
         }
     }

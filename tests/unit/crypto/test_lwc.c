@@ -36,26 +36,49 @@ static void test_ascon_encrypt_variants_and_hash(void)
     TEST_ASSERT_NOT_EQUAL_UINT8(0U, hash[0] | hash[1]);
 }
 
-static void test_ascon_decrypt_reports_authentication_failure_for_current_vectors(void)
+static void test_ascon_128_roundtrips_and_rejects_bad_tag(void)
 {
+    static const size_t lengths[] = {1U, 7U, 8U, 9U, 16U};
     uint8_t key[XY_ASCON_128_KEY_SIZE] = {0};
     uint8_t nonce[XY_ASCON_128_NONCE_SIZE] = {0};
-    uint8_t plaintext[16] = {0};
-    uint8_t ciphertext[sizeof(plaintext)];
-    uint8_t decrypted[sizeof(plaintext)];
+    uint8_t ad[5] = {1U, 2U, 3U, 4U, 5U};
+    uint8_t plaintext[16];
+    uint8_t ciphertext[17];
+    uint8_t decrypted[17];
     uint8_t tag[XY_ASCON_128_TAG_SIZE];
-    uint8_t bad_tag[XY_ASCON_128_TAG_SIZE] = {0xFF};
+    uint8_t bad_tag[XY_ASCON_128_TAG_SIZE];
+    size_t case_index;
+    size_t index;
 
-    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
-                          xy_ascon_128_encrypt(key, nonce, NULL, 0, plaintext,
-                                                sizeof(plaintext), ciphertext, tag));
+    for (index = 0; index < sizeof(plaintext); ++index) {
+        plaintext[index] = (uint8_t)(index + 1U);
+    }
 
-    TEST_ASSERT_EQUAL_INT(XY_ASCON_AUTH_FAILED,
-                          xy_ascon_128_decrypt(key, nonce, NULL, 0, ciphertext,
-                                                sizeof(ciphertext), decrypted, tag));
-    TEST_ASSERT_EQUAL_INT(XY_ASCON_AUTH_FAILED,
-                          xy_ascon_128_decrypt(key, nonce, NULL, 0, ciphertext,
-                                                sizeof(ciphertext), decrypted, bad_tag));
+    for (case_index = 0; case_index < sizeof(lengths) / sizeof(lengths[0]); ++case_index) {
+        size_t length = lengths[case_index];
+
+        memset(ciphertext, 0xA5, sizeof(ciphertext));
+        TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
+                              xy_ascon_128_encrypt(key, nonce, ad, sizeof(ad), plaintext, length,
+                                                   ciphertext, tag));
+        TEST_ASSERT_EQUAL_HEX8(0xA5U, ciphertext[length]);
+
+        memset(decrypted, 0xA5, sizeof(decrypted));
+        TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
+                              xy_ascon_128_decrypt(key, nonce, ad, sizeof(ad), ciphertext, length,
+                                                   decrypted, tag));
+        TEST_ASSERT_EQUAL_UINT8_ARRAY(plaintext, decrypted, length);
+        TEST_ASSERT_EQUAL_HEX8(0xA5U, decrypted[length]);
+
+        memcpy(bad_tag, tag, sizeof(bad_tag));
+        bad_tag[0] ^= 0x01U;
+        memset(decrypted, 0xA5, sizeof(decrypted));
+        TEST_ASSERT_EQUAL_INT(XY_ASCON_AUTH_FAILED,
+                              xy_ascon_128_decrypt(key, nonce, ad, sizeof(ad), ciphertext, length,
+                                                   decrypted, bad_tag));
+        TEST_ASSERT_EACH_EQUAL_UINT8(0U, decrypted, length);
+        TEST_ASSERT_EQUAL_HEX8(0xA5U, decrypted[length]);
+    }
 }
 
 static void test_tinyjambu_encrypt_variants(void)
@@ -158,7 +181,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_ascon_encrypt_variants_and_hash);
-    RUN_TEST(test_ascon_decrypt_reports_authentication_failure_for_current_vectors);
+    RUN_TEST(test_ascon_128_roundtrips_and_rejects_bad_tag);
     RUN_TEST(test_tinyjambu_encrypt_variants);
     RUN_TEST(test_tinyjambu_decrypt_roundtrips_and_rejects_bad_tag);
     RUN_TEST(test_photon_beetle_roundtrips_tag_sizes_and_hashes);
