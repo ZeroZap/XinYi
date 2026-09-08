@@ -967,16 +967,35 @@ int xy_tinyjambu_128_encrypt_update(xy_tinyjambu_128_ctx_t *ctx,
     return XY_TINYJAMBU_SUCCESS;
 }
 
+static void tinyjambu_128_context_clear(xy_tinyjambu_128_ctx_t *ctx)
+{
+    volatile uint8_t *bytes = (volatile uint8_t *)ctx;
+    size_t i;
+
+    for (i = 0U; i < sizeof(*ctx); ++i) {
+        bytes[i] = 0U;
+    }
+    ctx->mode = 3;
+}
+
 int xy_tinyjambu_128_encrypt_final(xy_tinyjambu_128_ctx_t *ctx,
                                      uint8_t tag[XY_TINYJAMBU_128_TAG_SIZE])
 {
-    if (!ctx || !tag) {
+    if (!ctx) {
+        return XY_TINYJAMBU_INVALID_PARAM;
+    }
+    if (!tag) {
+        if (ctx->mode == 2) {
+            tinyjambu_128_context_clear(ctx);
+        }
+        return XY_TINYJAMBU_INVALID_PARAM;
+    }
+    if (ctx->mode != 2) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
     tinyjambu_finalize(ctx->R, ctx->K, tag, 8, ctx->rounds);
-
-    ctx->mode = 3;
+    tinyjambu_128_context_clear(ctx);
 
     return XY_TINYJAMBU_SUCCESS;
 }
@@ -1086,7 +1105,16 @@ int xy_tinyjambu_128_decrypt_final(xy_tinyjambu_128_ctx_t *ctx,
     size_t i;
     uint8_t diff;
 
-    if (!ctx || !tag) {
+    if (!ctx) {
+        return XY_TINYJAMBU_INVALID_PARAM;
+    }
+    if (!tag) {
+        if (ctx->mode == 2) {
+            tinyjambu_128_context_clear(ctx);
+        }
+        return XY_TINYJAMBU_INVALID_PARAM;
+    }
+    if (ctx->mode != 2) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -1097,7 +1125,7 @@ int xy_tinyjambu_128_decrypt_final(xy_tinyjambu_128_ctx_t *ctx,
         diff |= tag[i] ^ expected_tag[i];
     }
 
-    ctx->mode = 3;
+    tinyjambu_128_context_clear(ctx);
 
     if (diff) {
         return XY_TINYJAMBU_AUTH_FAILED;

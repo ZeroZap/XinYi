@@ -330,6 +330,86 @@ static void test_ascon_and_tinyjambu_reject_inconsistent_buffers(void)
                                                    output, tag));
 }
 
+static void assert_tinyjambu_context_scrubbed(const xy_tinyjambu_128_ctx_t *ctx)
+{
+    xy_tinyjambu_128_ctx_t expected;
+
+    memset(&expected, 0, sizeof(expected));
+    expected.mode = 3;
+    TEST_ASSERT_EQUAL_MEMORY(&expected, ctx, sizeof(expected));
+}
+
+static void test_tinyjambu_incremental_scrubs_context_on_final_paths(void)
+{
+    uint8_t key[XY_TINYJAMBU_128_KEY_SIZE];
+    uint8_t nonce[XY_TINYJAMBU_128_NONCE_SIZE];
+    uint8_t plaintext[16];
+    uint8_t ciphertext[sizeof(plaintext)];
+    uint8_t decrypted[sizeof(plaintext)];
+    uint8_t tag[XY_TINYJAMBU_128_TAG_SIZE];
+    xy_tinyjambu_128_ctx_t ctx;
+
+    memset(key, 0x11, sizeof(key));
+    memset(nonce, 0x22, sizeof(nonce));
+    memset(plaintext, 0x33, sizeof(plaintext));
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_ad(&ctx, plaintext, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_update(&ctx, plaintext, sizeof(plaintext),
+                                                         ciphertext));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_final(&ctx, tag));
+    assert_tinyjambu_context_scrubbed(&ctx);
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_ad(&ctx, plaintext, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_update(&ctx, ciphertext, sizeof(ciphertext),
+                                                         decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_final(&ctx, tag));
+    assert_tinyjambu_context_scrubbed(&ctx);
+
+    tag[0] ^= 0x01U;
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_ad(&ctx, plaintext, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_update(&ctx, ciphertext, sizeof(ciphertext),
+                                                         decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_AUTH_FAILED,
+                          xy_tinyjambu_128_decrypt_final(&ctx, tag));
+    assert_tinyjambu_context_scrubbed(&ctx);
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_ad(&ctx, plaintext, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_update(&ctx, ciphertext, sizeof(ciphertext),
+                                                         decrypted));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_decrypt_final(&ctx, NULL));
+    assert_tinyjambu_context_scrubbed(&ctx);
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_ad(&ctx, plaintext, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_update(&ctx, plaintext, sizeof(plaintext),
+                                                         ciphertext));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_encrypt_final(&ctx, NULL));
+    assert_tinyjambu_context_scrubbed(&ctx);
+}
+
 static void test_photon_beetle_incremental_matches_one_shot(void)
 {
     uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
@@ -715,6 +795,7 @@ int main(void)
     RUN_TEST(test_tinyjambu_128_roundtrips_and_rejects_bad_tag);
     RUN_TEST(test_tinyjambu_192_and_256_roundtrip_boundaries);
     RUN_TEST(test_ascon_and_tinyjambu_reject_inconsistent_buffers);
+    RUN_TEST(test_tinyjambu_incremental_scrubs_context_on_final_paths);
     RUN_TEST(test_photon_beetle_incremental_matches_one_shot);
     RUN_TEST(test_photon_beetle_incremental_accepts_chunked_data);
     RUN_TEST(test_photon_beetle_incremental_guards_state_and_inputs);
