@@ -245,7 +245,8 @@ int xy_photon_beetle_encrypt(const uint8_t *key,
     size_t i;
     size_t blocks;
 
-    if (!key || !nonce || !ciphertext || !tag) {
+    if (!key || !nonce || !ciphertext || !tag ||
+        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -327,7 +328,8 @@ int xy_photon_beetle_decrypt(const uint8_t *key,
     size_t blocks;
     uint8_t diff;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag) {
+    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
+        (ad_len > 0U && !ad)) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -437,7 +439,8 @@ int xy_photon_beetle_decrypt_tag64(const uint8_t *key,
     size_t i;
     uint8_t diff = 0U;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag) {
+    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
+        (ad_len > 0U && !ad)) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
