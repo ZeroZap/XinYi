@@ -244,6 +244,32 @@ int xy_ascon_128_decrypt_final(xy_ascon_128_ctx_t *ctx,
                                const uint8_t tag[XY_ASCON_128_TAG_SIZE]);
 
 /**
+ * @brief Ascon-80pq context for incremental operations
+ */
+typedef xy_ascon_128_ctx_t xy_ascon_80pq_ctx_t;
+
+int xy_ascon_80pq_encrypt_init(xy_ascon_80pq_ctx_t *ctx,
+                               const uint8_t *key,
+                               const uint8_t *nonce);
+int xy_ascon_80pq_encrypt_ad(xy_ascon_80pq_ctx_t *ctx,
+                             const uint8_t *ad, size_t ad_len);
+int xy_ascon_80pq_encrypt_update(xy_ascon_80pq_ctx_t *ctx,
+                                 const uint8_t *plaintext, size_t plaintext_len,
+                                 uint8_t *ciphertext);
+int xy_ascon_80pq_encrypt_final(xy_ascon_80pq_ctx_t *ctx,
+                                uint8_t tag[XY_ASCON_80PQ_TAG_SIZE]);
+int xy_ascon_80pq_decrypt_init(xy_ascon_80pq_ctx_t *ctx,
+                               const uint8_t *key,
+                               const uint8_t *nonce);
+int xy_ascon_80pq_decrypt_ad(xy_ascon_80pq_ctx_t *ctx,
+                             const uint8_t *ad, size_t ad_len);
+int xy_ascon_80pq_decrypt_update(xy_ascon_80pq_ctx_t *ctx,
+                                 const uint8_t *ciphertext, size_t ciphertext_len,
+                                 uint8_t *plaintext);
+int xy_ascon_80pq_decrypt_final(xy_ascon_80pq_ctx_t *ctx,
+                                const uint8_t tag[XY_ASCON_80PQ_TAG_SIZE]);
+
+/**
  * @brief Ascon-128a context for incremental operations
  */
 typedef struct {

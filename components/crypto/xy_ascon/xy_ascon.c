@@ -1214,6 +1214,57 @@ int xy_ascon_128_decrypt_final(xy_ascon_128_ctx_t *ctx,
     return XY_ASCON_SUCCESS;
 }
 
+int xy_ascon_80pq_encrypt_init(xy_ascon_80pq_ctx_t *ctx, const uint8_t *key,
+                               const uint8_t *nonce)
+{
+    if (!ctx || !key || !nonce) {
+        return XY_ASCON_INVALID_PARAM;
+    }
+    memset(ctx, 0, sizeof(*ctx));
+    ascon_init_80pq(ctx->S, ASCON_80PQ_IV, key, nonce);
+    return XY_ASCON_SUCCESS;
+}
+
+int xy_ascon_80pq_encrypt_ad(xy_ascon_80pq_ctx_t *ctx, const uint8_t *ad, size_t ad_len)
+{
+    return ascon_128_process_ad(ctx, ad, ad_len);
+}
+
+int xy_ascon_80pq_encrypt_update(xy_ascon_80pq_ctx_t *ctx, const uint8_t *plaintext,
+                                 size_t plaintext_len, uint8_t *ciphertext)
+{
+    return xy_ascon_128_encrypt_update(ctx, plaintext, plaintext_len, ciphertext);
+}
+
+int xy_ascon_80pq_encrypt_final(xy_ascon_80pq_ctx_t *ctx,
+                                uint8_t tag[XY_ASCON_80PQ_TAG_SIZE])
+{
+    return xy_ascon_128_encrypt_final(ctx, tag);
+}
+
+int xy_ascon_80pq_decrypt_init(xy_ascon_80pq_ctx_t *ctx, const uint8_t *key,
+                               const uint8_t *nonce)
+{
+    return xy_ascon_80pq_encrypt_init(ctx, key, nonce);
+}
+
+int xy_ascon_80pq_decrypt_ad(xy_ascon_80pq_ctx_t *ctx, const uint8_t *ad, size_t ad_len)
+{
+    return ascon_128_process_ad(ctx, ad, ad_len);
+}
+
+int xy_ascon_80pq_decrypt_update(xy_ascon_80pq_ctx_t *ctx, const uint8_t *ciphertext,
+                                 size_t ciphertext_len, uint8_t *plaintext)
+{
+    return xy_ascon_128_decrypt_update(ctx, ciphertext, ciphertext_len, plaintext);
+}
+
+int xy_ascon_80pq_decrypt_final(xy_ascon_80pq_ctx_t *ctx,
+                                const uint8_t tag[XY_ASCON_80PQ_TAG_SIZE])
+{
+    return xy_ascon_128_decrypt_final(ctx, tag);
+}
+
 static void ascon_128a_context_clear(xy_ascon_128a_ctx_t *ctx)
 {
     volatile uint8_t *bytes = (volatile uint8_t *)ctx;
