@@ -259,6 +259,19 @@ static xy_ws2812_config_t make_ws_config(xy_ws2812_color_order_t order)
     return cfg;
 }
 
+static void test_ws2812_rejects_unimplemented_dma_mode(void)
+{
+    xy_ws2812_handle_t strip;
+    xy_ws2812_config_t cfg = make_ws_config(WS2812_COLOR_GRB);
+
+    memset(&strip, 0xA5, sizeof(strip));
+    cfg.use_dma = true;
+    TEST_ASSERT_EQUAL_INT(WS2812_ERROR_NOT_SUPPORTED, xy_ws2812_init(&strip, &cfg));
+    TEST_ASSERT_FALSE(strip.initialized);
+    TEST_ASSERT_NULL(strip.leds);
+    TEST_ASSERT_NULL(strip.tx_buffer);
+}
+
 static void test_ws2812_pixels_show_and_order(void)
 {
     xy_ws2812_handle_t strip;
@@ -367,6 +380,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_oled_init_pixel_line_refresh);
     RUN_TEST(test_oled_init_propagates_i2c_failures_without_false_ready_state);
+    RUN_TEST(test_ws2812_rejects_unimplemented_dma_mode);
     RUN_TEST(test_ws2812_pixels_show_and_order);
     RUN_TEST(test_ws2812_rgbw_and_color_math);
     return UNITY_END();

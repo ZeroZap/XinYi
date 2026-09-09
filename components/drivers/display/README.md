@@ -24,7 +24,7 @@
 | LCD I8080 | `lcd/xy_lcd_i8080.c`, `lcd/xy_lcd_i8080.h` | `display_lcd` | 并口写/read/strobe 顺序已由 host 测试守护 |
 | ST7789 | `lcd/xy_lcd_st7789.c`, `lcd/xy_lcd_st7789.h` | `display_lcd` | offset/window/draw-pixel/inversion 契约已由 host 测试守护 |
 | SSD1306 OLED | `oled/ssd1306/xy_oled_ssd1306.c`, `oled/ssd1306/xy_oled_ssd1306.h` | `display_oled_ws2812` | framebuffer、I2C init/write/refresh/clear 契约已由 host 测试守护 |
-| WS2812 | `led_drivers/serial_rgb/xy_ws2812.c`, `led_drivers/serial_rgb/xy_ws2812.h` | `display_oled_ws2812`, `display_rgb_matrix` | GPIO bitbang、brightness、RGB/GRB/RGBW byte-order 契约已由 host 测试守护 |
+| WS2812 | `led_drivers/serial_rgb/xy_ws2812.c`, `led_drivers/serial_rgb/xy_ws2812.h` | `display_oled_ws2812`, `display_rgb_matrix` | GPIO bitbang、brightness、RGB/GRB/RGBW byte-order 契约已由 host 测试守护；`use_dma=true` 在 DMA backend 尚未实现时显式返回 `WS2812_ERROR_NOT_SUPPORTED`，不静默降级并提交 ready 状态 |
 | RGB Matrix | `led_drivers/serial_rgb/xy_rgb_matrix.c`, `led_drivers/serial_rgb/xy_rgb_matrix.h` | `display_rgb_matrix` | 坐标映射、亮度缩放、基础效果更新契约已由 host 测试守护 |
 | Serial RGB helper headers | `led_drivers/serial_rgb/xy_rgb_*.h`, `xy_serial_rgb.h` | `display_serial_rgb_headers` | public header self-containment 已由 host 测试守护 |
 | LED GUI adapter | `led_drivers/xy_led_driver.c`, `led_drivers/xy_led_driver.h` | `display_led_driver` | adapter registry 与 `set_pixel/get_pixel/fill_rect/flush` forwarding 已由 host 测试守护 |

@@ -133,6 +133,10 @@ xy_ws2812_error_t xy_ws2812_init(xy_ws2812_handle_t *handle,
     if (config->num_leds == 0 || config->num_leds > 1024) {
         return WS2812_ERROR_INVALID_PARAM;
     }
+    if (config->use_dma) {
+        memset(handle, 0, sizeof(*handle));
+        return WS2812_ERROR_NOT_SUPPORTED;
+    }
 
     /* Calculate buffer size: 3 bytes per LED for RGB, 4 for RGBW */
     if (config->color_order == WS2812_COLOR_RGBW) {
@@ -330,13 +334,8 @@ void xy_ws2812_show(xy_ws2812_handle_t *handle)
         }
     }
 
-    /* Send data via bit-banging (or DMA if configured) */
-    if (handle->config.use_dma) {
-        /* TODO: Implement DMA transfer */
-        xy_ws2812_send_bitbang(handle);
-    } else {
-        xy_ws2812_send_bitbang(handle);
-    }
+    /* Send data via the currently supported bit-banging backend. */
+    xy_ws2812_send_bitbang(handle);
 
     handle->dirty = false;
 }
