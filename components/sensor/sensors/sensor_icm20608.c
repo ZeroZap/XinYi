@@ -263,7 +263,7 @@ static const sensor_ops_t icm20608_temp_ops = {
 sensor_device_t *icm20608_create_accel(const char *name, void *bus,
                                        bool use_spi)
 {
-    if (name == NULL) {
+    if (name == NULL || bus == NULL) {
         return NULL;
     }
 
@@ -313,7 +313,7 @@ sensor_device_t *icm20608_create_accel(const char *name, void *bus,
  */
 sensor_device_t *icm20608_create_gyro(const char *name, void *bus, bool use_spi)
 {
-    if (name == NULL) {
+    if (name == NULL || bus == NULL) {
         return NULL;
     }
 
@@ -363,7 +363,7 @@ sensor_device_t *icm20608_create_gyro(const char *name, void *bus, bool use_spi)
  */
 sensor_device_t *icm20608_create_temp(const char *name, void *bus, bool use_spi)
 {
-    if (name == NULL) {
+    if (name == NULL || bus == NULL) {
         return NULL;
     }
 

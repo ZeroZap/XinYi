@@ -195,6 +195,9 @@ static void test_icm20608_create_identity_and_bus_contracts(void)
     TEST_ASSERT_NULL(icm20608_create_accel(NULL, &fake_bus, false));
     TEST_ASSERT_NULL(icm20608_create_gyro(NULL, &fake_bus, false));
     TEST_ASSERT_NULL(icm20608_create_temp(NULL, &fake_bus, false));
+    TEST_ASSERT_NULL(icm20608_create_accel("icm-acc", NULL, false));
+    TEST_ASSERT_NULL(icm20608_create_gyro("icm-gyro", NULL, false));
+    TEST_ASSERT_NULL(icm20608_create_temp("icm-temp", NULL, true));
 
     TEST_ASSERT_NOT_NULL(accel);
     TEST_ASSERT_NOT_NULL(gyro);
