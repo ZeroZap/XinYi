@@ -23,6 +23,7 @@ static size_t g_write_index;
 static uint8_t g_last_addr;
 static uint32_t g_tick;
 static uint32_t g_delay_total;
+static int g_init_ret;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout)
 {
@@ -34,7 +35,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     dev->dev_addr = addr;
     dev->timeout = timeout;
     g_last_addr = (uint8_t)addr;
-    return XY_DEVICE_OK;
+    return g_init_ret;
 }
 
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
@@ -126,6 +127,7 @@ void setUp(void)
     g_last_addr = 0;
     g_tick = 5000;
     g_delay_total = 0;
+    g_init_ret = XY_DEVICE_OK;
 }
 
 void tearDown(void)
@@ -179,6 +181,22 @@ static void test_init_reports_not_found_on_bad_id_or_read_failure(void)
     setUp();
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_ID, 0x00U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_NOT_FOUND, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_LOW));
+}
+
+static void test_init_propagates_i2c_device_init_failure_without_bus_io(void)
+{
+    xy_tsl2561_t dev;
+    int fake_bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_ret = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_FLOAT));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_reg_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
 }
 
 static void test_read_updates_channels_lux_and_timestamp(void)
@@ -455,6 +473,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_default_config);
     RUN_TEST(test_init_reports_not_found_on_bad_id_or_read_failure);
+    RUN_TEST(test_init_propagates_i2c_device_init_failure_without_bus_io);
     RUN_TEST(test_read_updates_channels_lux_and_timestamp);
     RUN_TEST(test_read_errors_do_not_overwrite_data);
     RUN_TEST(test_getters_update_outputs_only_on_success);

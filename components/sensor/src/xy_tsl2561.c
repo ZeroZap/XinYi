@@ -112,7 +112,11 @@ int xy_tsl2561_init(xy_tsl2561_t *tsl2561, void *i2c_handle, uint8_t addr)
     }
     
     memset(tsl2561, 0, sizeof(*tsl2561));
-    xy_i2c_device_init(&tsl2561->i2c_dev, i2c_handle, addr, 400);
+    ret = xy_i2c_device_init(&tsl2561->i2c_dev, i2c_handle, addr, 400);
+    if (ret != XY_DEVICE_OK) {
+        memset(tsl2561, 0, sizeof(*tsl2561));
+        return ret;
+    }
     tsl2561->addr = addr;
     tsl2561->gain = XY_TSL2561_GAIN_1X;
     tsl2561->integration = XY_TSL2561_INTEGRATION_402MS;
