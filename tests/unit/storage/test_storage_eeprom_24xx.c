@@ -34,6 +34,18 @@ static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
                                               uint8_t *data, size_t len,
                                               uint32_t timeout);
 
+static xy_hal_error_t fake_i2c_transmit_accept(void *i2c, uint16_t dev_addr,
+                                               const uint8_t *data, size_t len,
+                                               uint32_t timeout)
+{
+    (void)i2c;
+    (void)dev_addr;
+    (void)data;
+    (void)len;
+    (void)timeout;
+    return XY_HAL_OK;
+}
+
 void setUp(void)
 {
     RESET_FAKE(xy_hal_delay_ms);
@@ -276,6 +288,26 @@ static void test_bounds_and_page_write_contracts(void)
     TEST_ASSERT_EQUAL_INT(2, xy_eeprom_24xx_write_page(&eeprom, 6, payload, sizeof(payload)));
 }
 
+static void test_page_write_clamps_to_capacity_without_16bit_boundary_wrap(void)
+{
+    fake_i2c_t fake;
+    xy_eeprom_24xx_t eeprom;
+    uint8_t payload[8] = {0};
+
+    memset(&fake, 0, sizeof(fake));
+    fake.address_bits = 8U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 30));
+    TEST_ASSERT_EQUAL_INT(2, xy_eeprom_24xx_write_page(&eeprom, 28, payload, sizeof(payload)));
+
+    memset(&fake, 0, sizeof(fake));
+    RESET_FAKE(xy_hal_i2c_master_transmit);
+    xy_hal_i2c_master_transmit_fake.custom_fake = fake_i2c_transmit_accept;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 126, UINT16_MAX));
+    TEST_ASSERT_EQUAL_INT(1, xy_eeprom_24xx_write_page(&eeprom, UINT16_MAX - 1U, payload, 1));
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_transmit_fake.arg3_val);
+}
+
 static void test_bus_errors_propagate_without_false_success(void)
 {
     fake_i2c_t fake;
@@ -327,6 +359,7 @@ int main(void)
     RUN_TEST(test_write_read_and_page_splitting);
     RUN_TEST(test_8bit_address_devices);
     RUN_TEST(test_bounds_and_page_write_contracts);
+    RUN_TEST(test_page_write_clamps_to_capacity_without_16bit_boundary_wrap);
     RUN_TEST(test_bus_errors_propagate_without_false_success);
     RUN_TEST(test_reinit_recovers_after_bus_error);
     return UNITY_END();

@@ -75,13 +75,15 @@ int xy_eeprom_24xx_write_page(xy_eeprom_24xx_t *eeprom, uint16_t addr,
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    /* Calculate page boundary */
-    uint16_t page_start = (uint16_t)((addr / eeprom->page_size) * eeprom->page_size);
-    uint16_t page_end = page_start + eeprom->page_size;
-    
-    /* Limit to page boundary */
-    if (addr + len > page_end) {
-        len = page_end - addr;
+    /* Limit the transaction to both the current page and configured capacity. */
+    size_t page_offset = (size_t)addr % eeprom->page_size;
+    size_t page_available = (size_t)eeprom->page_size - page_offset;
+    size_t capacity_available = (size_t)eeprom->total_size - addr;
+    if (len > page_available) {
+        len = page_available;
+    }
+    if (len > capacity_available) {
+        len = capacity_available;
     }
 
     /* Send address and page payload */
