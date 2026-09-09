@@ -19,6 +19,8 @@ static size_t g_write_index;
 static uint32_t g_tick;
 static uint32_t g_delay_total;
 static uint8_t g_last_addr;
+static xy_error_t g_init_ret;
+static size_t g_init_count;
 
 static uint8_t sht40_crc8(const uint8_t *data, size_t len)
 {
@@ -36,6 +38,10 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    g_init_count++;
+    if (g_init_ret != XY_DEVICE_OK) {
+        return g_init_ret;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -134,6 +140,8 @@ void setUp(void)
     g_tick = 2000;
     g_delay_total = 0;
     g_last_addr = 0;
+    g_init_ret = XY_DEVICE_OK;
+    g_init_count = 0;
 }
 
 void tearDown(void)
@@ -170,6 +178,24 @@ static void test_init_rejects_bad_serial_crc_without_initializing(void)
 
     TEST_ASSERT_EQUAL_INT(XY_SHT40_CRC_ERROR, xy_sht40_init(&dev, &fake_bus));
     TEST_ASSERT_FALSE(dev.initialized);
+}
+
+static void test_init_propagates_device_helper_failure_without_bus_io(void)
+{
+    xy_sht40_t dev;
+    int fake_bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_ret = XY_DEVICE_BUSY;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_sht40_init(&dev, &fake_bus));
+    TEST_ASSERT_EQUAL_UINT(1U, g_init_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.addr);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.precision);
 }
 
 static void test_read_uses_precision_command_and_converts_measurement(void)
@@ -423,6 +449,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_reads_serial);
     RUN_TEST(test_init_rejects_bad_serial_crc_without_initializing);
+    RUN_TEST(test_init_propagates_device_helper_failure_without_bus_io);
     RUN_TEST(test_init_reports_i2c_write_and_read_failures);
     RUN_TEST(test_read_uses_precision_command_and_converts_measurement);
     RUN_TEST(test_read_bad_crc_does_not_overwrite_cached_measurement);
