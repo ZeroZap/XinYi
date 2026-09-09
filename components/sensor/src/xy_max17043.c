@@ -51,7 +51,11 @@ int xy_max17043_init(xy_max17043_t *max17043, void *i2c_handle,
     memcpy(&max17043->config, config, sizeof(xy_max17043_config_t));
     
     /* 初始化 I2C */
-    xy_i2c_device_init(&max17043->i2c_dev, i2c_handle, MAX17043_ADDR, 400);
+    ret = xy_i2c_device_init(&max17043->i2c_dev, i2c_handle, MAX17043_ADDR, 400);
+    if (ret != XY_DEVICE_OK) {
+        memset(max17043, 0, sizeof(*max17043));
+        return ret;
+    }
     
     /* 读取版本寄存器验证设备 */
     ret = xy_max17043_read_reg(max17043, MAX17043_REG_VER, &version);

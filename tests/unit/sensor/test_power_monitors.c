@@ -241,6 +241,16 @@ static void test_max17043_not_found_and_getter_invalid_paths(void)
     float value;
     int bus;
 
+    memset(&gauge, 0xA5, sizeof(gauge));
+    g_i2c_init_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_max17043_init(&gauge, &bus, &cfg));
+    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_init_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_FALSE(gauge.initialized);
+    TEST_ASSERT_NULL(gauge.i2c_dev.i2c_handle);
+
+    g_i2c_init_result = XY_DEVICE_OK;
     queue_read16(MAX17043_REG_VER, 0x0000U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_NOT_FOUND, xy_max17043_init(&gauge, &bus, &cfg));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_read(NULL));
