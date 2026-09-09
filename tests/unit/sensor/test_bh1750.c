@@ -19,6 +19,7 @@ static size_t g_write_index;
 static uint32_t g_tick;
 static uint32_t g_delay_total;
 static uint8_t g_last_addr;
+static int g_init_ret;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout)
 {
@@ -30,7 +31,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     dev->dev_addr = addr;
     dev->timeout = timeout;
     g_last_addr = (uint8_t)addr;
-    return XY_DEVICE_OK;
+    return g_init_ret;
 }
 
 xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
@@ -104,6 +105,7 @@ void setUp(void)
     g_tick = 3000;
     g_delay_total = 0;
     g_last_addr = 0;
+    g_init_ret = XY_DEVICE_OK;
 }
 
 void tearDown(void)
@@ -144,6 +146,21 @@ static void test_init_reports_not_found_when_power_on_fails(void)
     TEST_ASSERT_EQUAL_INT(XY_BH1750_NOT_FOUND, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+}
+
+static void test_init_propagates_i2c_device_init_failure_without_bus_io(void)
+{
+    xy_bh1750_t dev;
+    int fake_bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_ret = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_bh1750_t){0}, &dev, sizeof(dev));
 }
 
 static void test_read_high_resolution_one_time_converts_raw_lux(void)
@@ -364,6 +381,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_sends_power_on_reset);
     RUN_TEST(test_init_reports_not_found_when_power_on_fails);
+    RUN_TEST(test_init_propagates_i2c_device_init_failure_without_bus_io);
     RUN_TEST(test_read_high_resolution_one_time_converts_raw_lux);
     RUN_TEST(test_read_resolution_and_mode_select_command_and_scale);
     RUN_TEST(test_read_failures_preserve_cached_data_and_stop_early);

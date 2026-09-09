@@ -66,7 +66,11 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
     }
     
     memset(bh1750, 0, sizeof(*bh1750));
-    xy_i2c_device_init(&bh1750->i2c_dev, i2c_handle, addr, 400);
+    ret = xy_i2c_device_init(&bh1750->i2c_dev, i2c_handle, addr, 400);
+    if (ret != XY_DEVICE_OK) {
+        memset(bh1750, 0, sizeof(*bh1750));
+        return ret;
+    }
     bh1750->addr = addr;
     bh1750->resolution = XY_BH1750_HIGH_RES;
     bh1750->mode = XY_BH1750_ONE_TIME;
