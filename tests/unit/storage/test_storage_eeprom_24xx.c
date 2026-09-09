@@ -25,6 +25,7 @@ typedef struct {
 
 static xy_hal_error_t g_transmit_result;
 static xy_hal_error_t g_receive_result;
+static xy_error_t g_device_init_result;
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
                                                const uint8_t *data, size_t len,
@@ -42,6 +43,7 @@ void setUp(void)
 
     g_transmit_result = XY_HAL_OK;
     g_receive_result = XY_HAL_OK;
+    g_device_init_result = XY_DEVICE_OK;
     xy_hal_i2c_master_transmit_fake.custom_fake = fake_i2c_master_transmit;
     xy_hal_i2c_master_receive_fake.custom_fake = fake_i2c_master_receive;
 }
@@ -55,6 +57,9 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle,
 {
     if (!dev || !i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
+    }
+    if (g_device_init_result != XY_DEVICE_OK) {
+        return g_device_init_result;
     }
 
     memset(dev, 0, sizeof(*dev));
@@ -183,6 +188,23 @@ static void test_init_and_argument_validation(void)
     TEST_ASSERT_EQUAL_UINT16(0x50U, eeprom.i2c_dev.dev_addr);
 }
 
+static void test_init_propagates_device_helper_failure_without_false_ready_state(void)
+{
+    fake_i2c_t fake;
+    xy_eeprom_24xx_t eeprom;
+
+    memset(&fake, 0, sizeof(fake));
+    memset(&eeprom, 0xA5, sizeof(eeprom));
+    g_device_init_result = XY_DEVICE_IO_ERROR;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, EEPROM_SIZE));
+    TEST_ASSERT_FALSE(eeprom.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT16(0U, eeprom.page_size);
+    TEST_ASSERT_EQUAL_UINT16(0U, eeprom.total_size);
+    TEST_ASSERT_EQUAL_UINT8(0U, eeprom.address_bits);
+}
+
 static void test_write_read_and_page_splitting(void)
 {
     fake_i2c_t fake;
@@ -297,6 +319,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_and_argument_validation);
+    RUN_TEST(test_init_propagates_device_helper_failure_without_false_ready_state);
     RUN_TEST(test_write_read_and_page_splitting);
     RUN_TEST(test_8bit_address_devices);
     RUN_TEST(test_bounds_and_page_write_contracts);

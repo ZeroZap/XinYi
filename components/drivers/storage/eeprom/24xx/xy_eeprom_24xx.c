@@ -13,13 +13,19 @@
 int xy_eeprom_24xx_init(xy_eeprom_24xx_t *eeprom, void *i2c_handle, 
                         uint16_t addr, uint16_t page_size, uint16_t total_size)
 {
+    int ret;
+
     if (!eeprom || !i2c_handle || page_size == 0 || total_size == 0) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
     memset(eeprom, 0, sizeof(*eeprom));
-    
-    xy_i2c_device_init(&eeprom->i2c_dev, i2c_handle, addr, 1000);
+
+    ret = xy_i2c_device_init(&eeprom->i2c_dev, i2c_handle, addr, 1000);
+    if (ret != XY_DEVICE_OK) {
+        memset(eeprom, 0, sizeof(*eeprom));
+        return ret;
+    }
     eeprom->page_size = page_size;
     eeprom->total_size = total_size;
     eeprom->address_bits = (total_size > 256) ? 16 : 8;
