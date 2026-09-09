@@ -33,6 +33,8 @@ static size_t g_seen_write_count;
 static uint16_t g_last_addr;
 static uint32_t g_last_timeout;
 static uint32_t g_delay_total;
+static xy_error_t g_i2c_init_result;
+static size_t g_i2c_init_count;
 
 static void queue_read16(uint8_t reg, uint16_t value, xy_error_t ret)
 {
@@ -59,6 +61,10 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    g_i2c_init_count++;
+    if (g_i2c_init_result != XY_DEVICE_OK) {
+        return g_i2c_init_result;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -133,6 +139,8 @@ void setUp(void)
     g_last_addr = 0;
     g_last_timeout = 0;
     g_delay_total = 0;
+    g_i2c_init_result = XY_DEVICE_OK;
+    g_i2c_init_count = 0;
 }
 
 void tearDown(void)
@@ -497,6 +505,22 @@ static void test_max17043_ignored_write_failure_contracts(void)
     TEST_ASSERT_EQUAL_UINT32(100U, g_delay_total);
 }
 
+static void test_ina226_i2c_init_failure_is_atomic(void)
+{
+    xy_ina_t ina;
+    xy_ina_config_t cfg = ina_config();
+    int bus;
+
+    memset(&ina, 0xA5, sizeof(ina));
+    g_i2c_init_result = XY_DEVICE_ERROR;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_init_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EACH_EQUAL_UINT8(0U, (const uint8_t *)&ina, sizeof(ina));
+}
+
 static void test_ina226_init_write_failures_deinit_and_getters_preserve_outputs(void)
 {
     xy_ina_t ina;
@@ -551,6 +575,7 @@ int main(void)
     RUN_TEST(test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
     RUN_TEST(test_ina226_detection_failures_return_without_config_writes);
+    RUN_TEST(test_ina226_i2c_init_failure_is_atomic);
     RUN_TEST(test_ina226_init_write_failures_deinit_and_getters_preserve_outputs);
     RUN_TEST(test_ina226_get_power_and_shunt_use_cached_values_after_read_failures);
     return UNITY_END();
