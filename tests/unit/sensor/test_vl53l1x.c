@@ -200,6 +200,26 @@ void test_init_rejects_wrong_model_id(void)
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(&dev, &i2c, NULL));
 }
 
+void test_init_configuration_failure_rolls_back_state(void)
+{
+    xy_vl53l1x_dev_t dev;
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    const uint8_t model = 0xEA;
+    const uint8_t module = 0xCC;
+    const uint8_t revision[2] = {0x01, 0x02};
+
+    expect_read(0x010F, &model, 1);
+    expect_read(0x0110, &module, 1);
+    expect_read(0x0112, revision, 2);
+    expect_write_u8(VL53L1X_SOFTWARE_RESET, 0x00);
+    expect_read(0x0000, &(const uint8_t){0x00}, 1);
+    expect_write_ret(0x0060, &(const uint8_t){0x0B}, 1, XY_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(&dev, &i2c, NULL));
+    TEST_ASSERT_FALSE(dev.is_initialized);
+    TEST_ASSERT_NULL(dev.i2c);
+}
+
 void test_start_stop_and_continuous_period_write_expected_commands(void)
 {
     xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
@@ -477,6 +497,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_applies_default_configuration_and_device_info);
     RUN_TEST(test_init_rejects_wrong_model_id);
+    RUN_TEST(test_init_configuration_failure_rolls_back_state);
     RUN_TEST(test_start_stop_and_continuous_period_write_expected_commands);
     RUN_TEST(test_start_commands_propagate_start_write_failures_after_stop);
     RUN_TEST(test_data_ready_and_result_parsing_with_offset);

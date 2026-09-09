@@ -261,15 +261,24 @@ xy_ret_t xy_vl53l1x_init(xy_vl53l1x_dev_t *dev, xy_i2c_dev_t *i2c, xy_vl53l1x_co
 
     /* 应用测距配置 */
     ret = vl53l1x_apply_range_config(dev);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return ret;
+    }
     
     /* 配置测量定时 */
     ret = xy_vl53l1x_set_timing(dev, dev->config.timing);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return ret;
+    }
     
     /* 配置 ROI */
     ret = xy_vl53l1x_set_roi(dev, &dev->config.roi);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return ret;
+    }
     
     /* 应用校准参数 */
     dev->offset = VL53L1X_DEFAULT_OFFSET;
