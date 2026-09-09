@@ -132,6 +132,7 @@ static void gpio_uart_init(void)
     __HAL_RCC_GPIOD_CLK_ENABLE();
 
     __HAL_RCC_USART1_CLK_ENABLE();
+    uart1.Instance = USART1;
 
     if (xy_hal_gpio_init(GPIOE, 7U, &led_gpio) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOD, 8U, &key_gpio) != XY_HAL_OK ||

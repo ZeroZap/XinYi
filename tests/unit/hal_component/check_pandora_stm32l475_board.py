@@ -355,6 +355,7 @@ def main() -> None:
         "humidity_milli_percent",
         "temperature_milli_c",
         "USART1",
+        "uart1.Instance = USART1;",
         "AHT10 0x38 ACK",
         "FIRMWARE_COMMIT",
         "XINYI_FIRMWARE_COMMIT",
