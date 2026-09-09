@@ -178,6 +178,8 @@ static void test_init_and_argument_validation(void)
                           xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 0, EEPROM_SIZE));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
                           xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, 0));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 257, EEPROM_SIZE));
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 16, EEPROM_SIZE));
@@ -269,6 +271,8 @@ static void test_bounds_and_page_write_contracts(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 32));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_eeprom_24xx_read(&eeprom, 31, payload, 2));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_eeprom_24xx_write(&eeprom, 31, payload, 2));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_eeprom_24xx_write_page(&eeprom, 32, payload, 1));
     TEST_ASSERT_EQUAL_INT(2, xy_eeprom_24xx_write_page(&eeprom, 6, payload, sizeof(payload)));
 }
 

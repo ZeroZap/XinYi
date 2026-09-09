@@ -10,12 +10,15 @@
 
 #include "xy_hal_delay.h"
 
+#define XY_EEPROM_24XX_MAX_PAGE_SIZE 126U
+
 int xy_eeprom_24xx_init(xy_eeprom_24xx_t *eeprom, void *i2c_handle, 
                         uint16_t addr, uint16_t page_size, uint16_t total_size)
 {
     int ret;
 
-    if (!eeprom || !i2c_handle || page_size == 0 || total_size == 0) {
+    if (!eeprom || !i2c_handle || page_size == 0 ||
+        page_size > XY_EEPROM_24XX_MAX_PAGE_SIZE || total_size == 0) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
@@ -66,7 +69,9 @@ int xy_eeprom_24xx_read(xy_eeprom_24xx_t *eeprom, uint16_t addr,
 int xy_eeprom_24xx_write_page(xy_eeprom_24xx_t *eeprom, uint16_t addr, 
                               const uint8_t *data, size_t len)
 {
-    if (!eeprom || !data) {
+    if (!eeprom || !data || !eeprom->i2c_dev.base.initialized ||
+        eeprom->page_size == 0U || eeprom->page_size > XY_EEPROM_24XX_MAX_PAGE_SIZE ||
+        addr >= eeprom->total_size) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
