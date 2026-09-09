@@ -1347,6 +1347,37 @@ static void test_photon_beetle_rejects_wrong_tag(void)
                                                     sizeof(ciphertext), decrypted, bad_tag));
 }
 
+static void test_photon_beetle_accepts_empty_null_payload(void)
+{
+    uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
+    uint8_t nonce[XY_PHOTON_BEETLE_NONCE_SIZE] = {0};
+    uint8_t tag[XY_PHOTON_BEETLE_TAG_SIZE];
+    xy_photon_beetle_ctx_t ctx;
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt(key, nonce, NULL, 0U, NULL, 0U, NULL, tag));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt(key, nonce, NULL, 0U, NULL, 0U, NULL, tag));
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_update(&ctx, NULL, 0U, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_final(&ctx, tag));
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_ad(&ctx, NULL, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_update(&ctx, NULL, 0U, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_final(&ctx, tag));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1378,5 +1409,6 @@ int main(void)
     RUN_TEST(test_photon_beetle_roundtrip_boundaries);
     RUN_TEST(test_photon_beetle_roundtrips_tag_sizes_and_hashes);
     RUN_TEST(test_photon_beetle_rejects_wrong_tag);
+    RUN_TEST(test_photon_beetle_accepts_empty_null_payload);
     return UNITY_END();
 }

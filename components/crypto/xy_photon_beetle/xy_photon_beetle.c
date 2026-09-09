@@ -261,8 +261,8 @@ int xy_photon_beetle_encrypt(const uint8_t *key,
     size_t i;
     size_t blocks;
 
-    if (!key || !nonce || !ciphertext || !tag ||
-        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (plaintext_len > 0U && (!plaintext || !ciphertext))) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -344,8 +344,8 @@ int xy_photon_beetle_decrypt(const uint8_t *key,
     size_t blocks;
     uint8_t diff;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
-        (ad_len > 0U && !ad)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (ciphertext_len > 0U && (!ciphertext || !plaintext))) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -455,8 +455,8 @@ int xy_photon_beetle_decrypt_tag64(const uint8_t *key,
     size_t i;
     uint8_t diff = 0U;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
-        (ad_len > 0U && !ad)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (ciphertext_len > 0U && (!ciphertext || !plaintext))) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -659,7 +659,8 @@ int xy_photon_beetle_encrypt_update(xy_photon_beetle_ctx_t *ctx,
 {
     size_t i;
 
-    if (!ctx || !plaintext || !ciphertext || (ctx->mode != 1 && ctx->mode != 2) ||
+    if (!ctx || (plaintext_len > 0U && (!plaintext || !ciphertext)) ||
+        (ctx->mode != 1 && ctx->mode != 2) ||
         plaintext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
@@ -770,7 +771,8 @@ int xy_photon_beetle_decrypt_update(xy_photon_beetle_ctx_t *ctx,
 {
     size_t i;
 
-    if (!ctx || !ciphertext || !plaintext || (ctx->mode != 1 && ctx->mode != 2) ||
+    if (!ctx || (ciphertext_len > 0U && (!ciphertext || !plaintext)) ||
+        (ctx->mode != 1 && ctx->mode != 2) ||
         ciphertext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
