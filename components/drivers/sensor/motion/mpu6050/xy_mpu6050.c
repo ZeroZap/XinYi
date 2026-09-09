@@ -79,12 +79,14 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
     ret = xy_mpu6050_read_reg(dev, MPU6050_REG_WHO_AM_I, &who_am_i);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("Failed to read WHO_AM_I\n");
+        memset(dev, 0, sizeof(*dev));
         return XY_MPU6050_NOT_FOUND;
     }
 
     if (who_am_i != MPU6050_WHO_AM_I_VALUE) {
         xy_log_e("WHO_AM_I mismatch: expected 0x%02X, got 0x%02X\n",
                  MPU6050_WHO_AM_I_VALUE, who_am_i);
+        memset(dev, 0, sizeof(*dev));
         return XY_MPU6050_ID_ERROR;
     }
 
@@ -93,6 +95,7 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
     /* 唤醒设备 */
     ret = xy_mpu6050_write_reg(dev, MPU6050_REG_PWR_MGMT_1, 0x00);
     if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
     xy_os_delay(100);
@@ -100,6 +103,7 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
     /* 设置采样率 (1kHz) */
     ret = xy_mpu6050_write_reg(dev, MPU6050_REG_SMPLRT_DIV, 0x00);
     if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
@@ -107,6 +111,7 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
     dev->dlpf = MPU6050_DLPF_44HZ;
     ret = xy_mpu6050_write_reg(dev, MPU6050_REG_CONFIG, dev->dlpf);
     if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
@@ -115,10 +120,12 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
     dev->gyro_range = MPU6050_GYRO_250DPS;
     ret = xy_mpu6050_set_accel_range(dev, dev->accel_range);
     if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
     ret = xy_mpu6050_set_gyro_range(dev, dev->gyro_range);
     if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 

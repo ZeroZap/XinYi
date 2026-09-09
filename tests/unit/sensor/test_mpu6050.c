@@ -217,6 +217,22 @@ static void test_mpu6050_device_helper_init_failure_is_propagated(void)
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 }
 
+static void test_mpu6050_post_helper_init_failure_clears_device_state(void)
+{
+    xy_mpu6050_t dev;
+    int bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    queue_read8(MPU6050_REG_WHO_AM_I, 0x00U, XY_DEVICE_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_NOT_FOUND,
+                          xy_mpu6050_init_addr(&dev, &bus, MPU6050_ADDR_AD0_LOW));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.addr);
+}
+
 static void test_mpu6050_not_found_id_error_and_wakeup_failure(void)
 {
     xy_mpu6050_t dev;
@@ -444,6 +460,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_mpu6050_init_defaults_and_invalid_paths);
     RUN_TEST(test_mpu6050_device_helper_init_failure_is_propagated);
+    RUN_TEST(test_mpu6050_post_helper_init_failure_clears_device_state);
     RUN_TEST(test_mpu6050_not_found_id_error_and_wakeup_failure);
     RUN_TEST(test_mpu6050_raw_read_converts_accel_gyro_temperature);
     RUN_TEST(test_mpu6050_read_helpers_validate_outputs_and_io_failure_paths);
