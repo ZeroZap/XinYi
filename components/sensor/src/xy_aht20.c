@@ -63,6 +63,7 @@ int xy_aht20_init(xy_aht20_t *aht20, void *i2c_handle)
     ret = xy_i2c_device_write(&aht20->i2c_dev, cmd, 3);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("AHT20 init failed\n");
+        memset(aht20, 0, sizeof(*aht20));
         return XY_AHT20_ERROR;
     }
     
@@ -71,6 +72,7 @@ int xy_aht20_init(xy_aht20_t *aht20, void *i2c_handle)
     /* 检查状态 */
     ret = xy_aht20_check_status(aht20);
     if (ret != XY_AHT20_OK) {
+        memset(aht20, 0, sizeof(*aht20));
         return ret;
     }
     

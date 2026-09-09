@@ -202,11 +202,17 @@ static void test_init_reports_write_and_status_read_failures_and_uncalibrated_st
     g_write_ret_queue[0] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_AHT20_ERROR, xy_aht20_init(&dev, &fake_bus));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.addr);
 
     setUp();
     queue_read(NULL, 1U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_aht20_init(&dev, &fake_bus));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.addr);
 
     setUp();
     queue_status(0x00); /* init busy check */
