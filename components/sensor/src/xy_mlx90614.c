@@ -78,6 +78,7 @@ int xy_mlx90614_init(xy_mlx90614_t *dev, void *i2c_handle, uint8_t addr)
     ret = xy_mlx90614_read16(dev, 0x0C, &id);  /* ID 寄存器 */
     if (ret != XY_DEVICE_OK) {
         xy_log_e("Failed to read MLX90614 ID\n");
+        memset(dev, 0, sizeof(*dev));
         return XY_MLX90614_NOT_FOUND;
     }
     

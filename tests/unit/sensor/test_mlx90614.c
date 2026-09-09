@@ -175,7 +175,7 @@ static void test_read_all_failures_preserve_cached_temperatures(void)
     TEST_ASSERT_EQUAL_INT16(3185, dev.tobj2);
 }
 
-static void test_init_reports_not_found_when_id_read_fails(void)
+static void test_init_reports_not_found_and_clears_device_when_id_read_fails(void)
 {
     xy_mlx90614_t dev;
     int fake_bus;
@@ -184,6 +184,9 @@ static void test_init_reports_not_found_when_id_read_fails(void)
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_NOT_FOUND,
                           xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.addr);
 }
 
 static void test_init_propagates_device_helper_failure_without_register_io(void)
@@ -406,7 +409,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_uses_default_address);
-    RUN_TEST(test_init_reports_not_found_when_id_read_fails);
+    RUN_TEST(test_init_reports_not_found_and_clears_device_when_id_read_fails);
     RUN_TEST(test_init_propagates_device_helper_failure_without_register_io);
     RUN_TEST(test_read_all_rejects_invalid_or_uninitialized_device);
     RUN_TEST(test_read_all_converts_temperature_registers_and_single_channel_fallback);
