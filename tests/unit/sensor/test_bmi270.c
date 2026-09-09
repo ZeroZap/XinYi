@@ -246,7 +246,9 @@ static void test_bmi270_init_propagates_each_default_configuration_failure(void)
     queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
     queue_i2c_write(0x68U, BMI270_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_init(&dev, &bus, 0x68U, false));
-    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_NULL(dev.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.bus_addr);
     TEST_ASSERT_EQUAL_UINT8(0U, dev.range.acc_range);
 
     queue_i2c_write(0x68U, 0xB6U, &reset, 1U, XY_DEVICE_OK);

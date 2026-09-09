@@ -130,6 +130,7 @@ int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     int ret = xy_bmi270_reset(dev);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Reset failed: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
@@ -142,11 +143,13 @@ int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = xy_bmi270_get_chip_id(dev, &chip_id);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to read chip ID: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
     if (chip_id != BMI270_CHIPID_VAL) {
         XY_LOG_ERROR("Invalid chip ID: 0x%02X (expected 0x27)", chip_id);
+        memset(dev, 0, sizeof(*dev));
         return XY_DEVICE_ENODEV;
     }
 
@@ -163,6 +166,7 @@ int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = xy_bmi270_set_range(dev, &default_range);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to set default range: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
@@ -170,12 +174,14 @@ int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = xy_bmi270_enable_acc(dev, true);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to enable accelerometer: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
     ret = xy_bmi270_enable_gyr(dev, true);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to enable gyroscope: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
