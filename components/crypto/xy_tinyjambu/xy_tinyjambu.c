@@ -294,8 +294,8 @@ int xy_tinyjambu_128_encrypt(const uint8_t *key,
     uint8_t buffer[16];
     size_t i, blocks;
 
-    if (!key || !nonce || !ciphertext || !tag ||
-        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (plaintext_len > 0U && (!plaintext || !ciphertext))) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -351,8 +351,8 @@ int xy_tinyjambu_128_decrypt(const uint8_t *key,
     size_t i, blocks;
     uint8_t diff;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
-        (ad_len > 0U && !ad)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (ciphertext_len > 0U && (!ciphertext || !plaintext))) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -417,8 +417,8 @@ int xy_tinyjambu_128_encrypt_tag128(const uint8_t *key,
     uint8_t buffer[16];
     size_t i, blocks;
 
-    if (!key || !nonce || !ciphertext || !tag ||
-        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (plaintext_len > 0U && (!plaintext || !ciphertext))) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -469,8 +469,8 @@ int xy_tinyjambu_128_decrypt_tag128(const uint8_t *key,
     size_t i, blocks;
     uint8_t diff;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
-        (ad_len > 0U && !ad)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (ciphertext_len > 0U && (!ciphertext || !plaintext))) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -567,8 +567,8 @@ int xy_tinyjambu_192_encrypt(const uint8_t *key,
     uint8_t buffer[16];
     size_t i, blocks;
 
-    if (!key || !nonce || !ciphertext || !tag ||
-        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (plaintext_len > 0U && (!plaintext || !ciphertext))) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -630,8 +630,8 @@ int xy_tinyjambu_192_decrypt(const uint8_t *key,
     size_t i, blocks;
     uint8_t diff;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
-        (ad_len > 0U && !ad)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (ciphertext_len > 0U && (!ciphertext || !plaintext))) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -743,8 +743,8 @@ int xy_tinyjambu_256_encrypt(const uint8_t *key,
     uint8_t buffer[16];
     size_t i, blocks;
 
-    if (!key || !nonce || !ciphertext || !tag ||
-        (ad_len > 0U && !ad) || (plaintext_len > 0U && !plaintext)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (plaintext_len > 0U && (!plaintext || !ciphertext))) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -806,8 +806,8 @@ int xy_tinyjambu_256_decrypt(const uint8_t *key,
     size_t i, blocks;
     uint8_t diff;
 
-    if (!key || !nonce || !ciphertext || !plaintext || !tag ||
-        (ad_len > 0U && !ad)) {
+    if (!key || !nonce || !tag || (ad_len > 0U && !ad) ||
+        (ciphertext_len > 0U && (!ciphertext || !plaintext))) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 

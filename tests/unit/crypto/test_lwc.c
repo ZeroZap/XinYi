@@ -918,6 +918,34 @@ static void test_tinyjambu_incremental_accepts_zero_length_null_update(void)
                           xy_tinyjambu_128_decrypt_final(&ctx, expected_tag));
 }
 
+static void test_tinyjambu_one_shot_accepts_empty_null_payload(void)
+{
+    uint8_t key128[XY_TINYJAMBU_128_KEY_SIZE] = {0};
+    uint8_t key192[XY_TINYJAMBU_192_KEY_SIZE] = {0};
+    uint8_t key256[XY_TINYJAMBU_256_KEY_SIZE] = {0};
+    uint8_t nonce[XY_TINYJAMBU_128_NONCE_SIZE] = {0};
+    uint8_t tag[XY_TINYJAMBU_128_TAG_SIZE];
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt(key128, nonce, NULL, 0U, NULL, 0U, NULL,
+                                                   tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt(key128, nonce, NULL, 0U, NULL, 0U, NULL,
+                                                   tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_192_encrypt(key192, nonce, NULL, 0U, NULL, 0U, NULL,
+                                                   tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_192_decrypt(key192, nonce, NULL, 0U, NULL, 0U, NULL,
+                                                   tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_256_encrypt(key256, nonce, NULL, 0U, NULL, 0U, NULL,
+                                                   tag));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_256_decrypt(key256, nonce, NULL, 0U, NULL, 0U, NULL,
+                                                   tag));
+}
+
 static void test_photon_beetle_incremental_matches_one_shot(void)
 {
     uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
@@ -1313,6 +1341,7 @@ int main(void)
     RUN_TEST(test_tinyjambu_incremental_scrubs_context_on_final_paths);
     RUN_TEST(test_tinyjambu_incremental_matches_split_one_shot);
     RUN_TEST(test_tinyjambu_incremental_accepts_zero_length_null_update);
+    RUN_TEST(test_tinyjambu_one_shot_accepts_empty_null_payload);
     RUN_TEST(test_photon_beetle_incremental_matches_one_shot);
     RUN_TEST(test_photon_beetle_incremental_accepts_chunked_data);
     RUN_TEST(test_photon_beetle_incremental_guards_state_and_inputs);
