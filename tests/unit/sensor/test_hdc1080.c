@@ -26,6 +26,8 @@ static size_t g_cmd_count;
 static size_t g_cmd_index;
 
 static uint8_t g_last_addr;
+static xy_error_t g_device_init_result;
+static size_t g_device_init_count;
 static uint32_t g_tick;
 static uint32_t g_delay_total;
 
@@ -33,6 +35,10 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    g_device_init_count++;
+    if (g_device_init_result != XY_DEVICE_OK) {
+        return g_device_init_result;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -136,6 +142,8 @@ void setUp(void)
     g_cmd_count = 0;
     g_cmd_index = 0;
     g_last_addr = 0;
+    g_device_init_result = XY_DEVICE_OK;
+    g_device_init_count = 0;
     g_tick = 1000;
     g_delay_total = 0;
 }
@@ -182,6 +190,22 @@ static void test_init_maps_write_failures_to_error(void)
     setUp();
     g_write_ret_queue[1] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_ERROR, xy_hdc1080_init(&dev, &fake_bus, HDC1080_ADDR));
+}
+
+static void test_init_propagates_device_helper_failure_without_bus_io(void)
+{
+    xy_hdc1080_t dev;
+    int fake_bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_device_init_result = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_hdc1080_init(&dev, &fake_bus, HDC1080_ADDR));
+    TEST_ASSERT_EQUAL_UINT(1U, g_device_init_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
 static void test_init_with_custom_address_and_config_failure_contract(void)
@@ -388,6 +412,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_reset_then_config);
     RUN_TEST(test_init_maps_write_failures_to_error);
+    RUN_TEST(test_init_propagates_device_helper_failure_without_bus_io);
     RUN_TEST(test_init_with_custom_address_and_config_failure_contract);
     RUN_TEST(test_read_converts_temperature_and_humidity);
     RUN_TEST(test_read_converts_raw_minimum_and_maximum_bounds);

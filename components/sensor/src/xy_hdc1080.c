@@ -22,7 +22,11 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
     }
     
     memset(dev, 0, sizeof(*dev));
-    xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000);
+    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000);
+    if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return ret;
+    }
     dev->addr = addr;
     
     /* 软件复位 */
