@@ -49,7 +49,11 @@ int xy_aht20_init(xy_aht20_t *aht20, void *i2c_handle)
     }
     
     memset(aht20, 0, sizeof(*aht20));
-    xy_i2c_device_init(&aht20->i2c_dev, i2c_handle, AHT20_ADDR, 400);
+    ret = xy_i2c_device_init(&aht20->i2c_dev, i2c_handle, AHT20_ADDR, 400);
+    if (ret != XY_DEVICE_OK) {
+        memset(aht20, 0, sizeof(*aht20));
+        return ret;
+    }
     aht20->addr = AHT20_ADDR;
     
     /* 发送初始化命令 */

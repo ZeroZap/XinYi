@@ -20,11 +20,17 @@ static size_t g_write_index;
 static uint32_t g_tick;
 static uint32_t g_delay_total;
 static uint8_t g_last_addr;
+static int g_device_init_result;
+static size_t g_device_init_count;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout)
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    g_device_init_count++;
+    if (g_device_init_result != XY_DEVICE_OK) {
+        return g_device_init_result;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -129,6 +135,8 @@ void setUp(void)
     g_tick = 1000;
     g_delay_total = 0;
     g_last_addr = 0;
+    g_device_init_result = XY_DEVICE_OK;
+    g_device_init_count = 0;
 }
 
 void tearDown(void)
@@ -153,6 +161,23 @@ static void test_init_rejects_invalid_inputs_and_records_calibration_status(void
     TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_INIT, g_write_queue[0][0]);
     TEST_ASSERT_EQUAL_UINT8(0x08, g_write_queue[0][1]);
     TEST_ASSERT_EQUAL_UINT8(0x00, g_write_queue[0][2]);
+}
+
+static void test_init_propagates_device_helper_failure_without_io(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_device_init_result = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_aht20_init(&dev, &fake_bus));
+    TEST_ASSERT_EQUAL_UINT(1U, g_device_init_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
 static void test_init_reports_busy_after_timeout(void)
@@ -417,6 +442,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_records_calibration_status);
+    RUN_TEST(test_init_propagates_device_helper_failure_without_io);
     RUN_TEST(test_init_reports_busy_after_timeout);
     RUN_TEST(test_init_reports_write_and_status_read_failures_and_uncalibrated_status);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
