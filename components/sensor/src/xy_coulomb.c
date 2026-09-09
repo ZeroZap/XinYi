@@ -54,7 +54,11 @@ int xy_coulomb_init(xy_coulomb_t *coulomb, void *i2c_handle, uint8_t addr,
     memcpy(&coulomb->config, config, sizeof(xy_coulomb_config_t));
     
     /* 初始化 I2C */
-    xy_i2c_device_init(&coulomb->i2c_dev, i2c_handle, addr, 1000);
+    ret = xy_i2c_device_init(&coulomb->i2c_dev, i2c_handle, addr, 1000);
+    if (ret != XY_DEVICE_OK) {
+        memset(coulomb, 0, sizeof(*coulomb));
+        return ret;
+    }
     coulomb->addr = addr;
     
     /* 读取 ID 验证设备 */

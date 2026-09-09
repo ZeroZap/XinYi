@@ -32,6 +32,8 @@ static size_t g_write_index;
 static size_t g_seen_write_count;
 static uint16_t g_last_addr;
 static uint32_t g_last_timeout;
+static xy_error_t g_init_ret;
+static size_t g_init_count;
 
 static void queue_read16(uint8_t reg, uint16_t value, xy_error_t ret)
 {
@@ -58,6 +60,10 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    g_init_count++;
+    if (g_init_ret != XY_DEVICE_OK) {
+        return g_init_ret;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -121,6 +127,8 @@ void setUp(void)
     g_seen_write_count = 0;
     g_last_addr = 0;
     g_last_timeout = 0;
+    g_init_ret = XY_DEVICE_OK;
+    g_init_count = 0;
 }
 
 void tearDown(void)
@@ -250,6 +258,25 @@ static void test_coulomb_init_tolerates_reset_charge_failure(void)
     TEST_ASSERT_EQUAL_UINT(3U, g_write_index);
 }
 
+static void test_coulomb_propagates_i2c_init_failure_without_register_io(void)
+{
+    xy_coulomb_t coulomb;
+    xy_coulomb_config_t cfg = coulomb_config();
+    int bus;
+
+    memset(&coulomb, 0xA5, sizeof(coulomb));
+    g_init_ret = XY_DEVICE_BUSY;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY,
+                          xy_coulomb_init(&coulomb, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_EQUAL_UINT(1U, g_init_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT8(0U, coulomb.initialized);
+    TEST_ASSERT_NULL(coulomb.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(0U, coulomb.addr);
+}
+
 static void test_coulomb_getters_reread_and_clamp_percentage(void)
 {
     xy_coulomb_t coulomb;
@@ -338,6 +365,7 @@ int main(void)
     RUN_TEST(test_coulomb_init_read_controls_and_invalid_paths);
     RUN_TEST(test_coulomb_not_found_and_write_failures);
     RUN_TEST(test_coulomb_init_tolerates_reset_charge_failure);
+    RUN_TEST(test_coulomb_propagates_i2c_init_failure_without_register_io);
     RUN_TEST(test_coulomb_getters_reread_and_clamp_percentage);
     RUN_TEST(test_coulomb_percentage_lower_clamp_and_getter_output);
     RUN_TEST(test_coulomb_control_failures_and_uninitialized_getters);
