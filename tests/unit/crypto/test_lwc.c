@@ -1057,6 +1057,33 @@ static void test_photon_beetle_incremental_accepts_chunked_data(void)
     TEST_ASSERT_EACH_EQUAL_UINT8(0U, decrypted, sizeof(plaintext));
 }
 
+static void test_photon_beetle_incremental_rejects_length_overflow(void)
+{
+    uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
+    uint8_t nonce[XY_PHOTON_BEETLE_NONCE_SIZE] = {0};
+    uint8_t input = 0x42U;
+    uint8_t output = 0xA5U;
+    xy_photon_beetle_ctx_t ctx;
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_encrypt_ad(&ctx, NULL, 0U));
+    ctx.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_encrypt_update(&ctx, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_SUCCESS,
+                          xy_photon_beetle_decrypt_ad(&ctx, NULL, 0U));
+    ctx.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_PHOTON_BEETLE_INVALID_PARAM,
+                          xy_photon_beetle_decrypt_update(&ctx, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+}
+
 static void test_photon_beetle_incremental_guards_state_and_inputs(void)
 {
     uint8_t key[XY_PHOTON_BEETLE_KEY_SIZE] = {0};
@@ -1344,6 +1371,7 @@ int main(void)
     RUN_TEST(test_tinyjambu_one_shot_accepts_empty_null_payload);
     RUN_TEST(test_photon_beetle_incremental_matches_one_shot);
     RUN_TEST(test_photon_beetle_incremental_accepts_chunked_data);
+    RUN_TEST(test_photon_beetle_incremental_rejects_length_overflow);
     RUN_TEST(test_photon_beetle_incremental_guards_state_and_inputs);
     RUN_TEST(test_photon_beetle_incremental_scrubs_context_after_final);
     RUN_TEST(test_photon_beetle_incremental_scrubs_context_when_tag_is_missing);

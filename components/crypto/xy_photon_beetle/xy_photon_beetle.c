@@ -659,7 +659,8 @@ int xy_photon_beetle_encrypt_update(xy_photon_beetle_ctx_t *ctx,
 {
     size_t i;
 
-    if (!ctx || !plaintext || !ciphertext || (ctx->mode != 1 && ctx->mode != 2)) {
+    if (!ctx || !plaintext || !ciphertext || (ctx->mode != 1 && ctx->mode != 2) ||
+        plaintext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
@@ -769,7 +770,8 @@ int xy_photon_beetle_decrypt_update(xy_photon_beetle_ctx_t *ctx,
 {
     size_t i;
 
-    if (!ctx || !ciphertext || !plaintext || (ctx->mode != 1 && ctx->mode != 2)) {
+    if (!ctx || !ciphertext || !plaintext || (ctx->mode != 1 && ctx->mode != 2) ||
+        ciphertext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_PHOTON_BEETLE_INVALID_PARAM;
     }
 
