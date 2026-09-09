@@ -31,6 +31,7 @@ static size_t g_seen_write_count;
 static uint16_t g_last_addr;
 static uint32_t g_last_timeout;
 static uint32_t g_delay_total;
+static xy_error_t g_device_init_result;
 
 static void queue_read(uint8_t reg, const uint8_t *data, size_t len, xy_error_t ret)
 {
@@ -88,6 +89,9 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    if (g_device_init_result != XY_DEVICE_OK) {
+        return g_device_init_result;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -151,6 +155,7 @@ void setUp(void)
     g_last_addr = 0;
     g_last_timeout = 0;
     g_delay_total = 0;
+    g_device_init_result = XY_DEVICE_OK;
 }
 
 void tearDown(void)
@@ -195,6 +200,21 @@ static void test_mpu6050_init_defaults_and_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_OK, xy_mpu6050_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_deinit(NULL));
+}
+
+static void test_mpu6050_device_helper_init_failure_is_propagated(void)
+{
+    xy_mpu6050_t dev;
+    int bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_device_init_result = XY_DEVICE_IO_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_mpu6050_init_addr(&dev, &bus, MPU6050_ADDR_AD0_LOW));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 }
 
 static void test_mpu6050_not_found_id_error_and_wakeup_failure(void)
@@ -423,6 +443,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_mpu6050_init_defaults_and_invalid_paths);
+    RUN_TEST(test_mpu6050_device_helper_init_failure_is_propagated);
     RUN_TEST(test_mpu6050_not_found_id_error_and_wakeup_failure);
     RUN_TEST(test_mpu6050_raw_read_converts_accel_gyro_temperature);
     RUN_TEST(test_mpu6050_read_helpers_validate_outputs_and_io_failure_paths);
