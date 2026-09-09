@@ -34,6 +34,7 @@ static size_t g_seen_write_count;
 static uint16_t g_last_addr;
 static uint32_t g_last_timeout;
 static uint32_t g_delay_total;
+static xy_error_t g_i2c_init_ret;
 
 static void queue_read(uint8_t reg, const uint8_t *data, size_t len, xy_error_t ret)
 {
@@ -100,6 +101,9 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    if (g_i2c_init_ret != XY_DEVICE_OK) {
+        return g_i2c_init_ret;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -179,6 +183,7 @@ void setUp(void)
     g_last_addr = 0;
     g_last_timeout = 0;
     g_delay_total = 0;
+    g_i2c_init_ret = XY_DEVICE_OK;
 }
 
 void tearDown(void)
@@ -261,6 +266,21 @@ static void test_ltc2945_not_found_and_uninitialized_read(void)
     TEST_ASSERT_EQUAL_INT(XY_LTC2945_NOT_FOUND, xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR1, &cfg));
     TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_read(NULL));
     TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_read(&ltc));
+}
+
+static void test_ltc2945_propagates_i2c_init_failure_without_bus_io(void)
+{
+    xy_ltc2945_t ltc;
+    xy_ltc2945_config_t cfg = ltc_config();
+    int bus;
+
+    memset(&ltc, 0xA5, sizeof(ltc));
+    g_i2c_init_ret = XY_DEVICE_ERROR;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR0, &cfg));
+    TEST_ASSERT_FALSE(ltc.initialized);
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
 }
 
 static void init_ads_ok(xy_ads1115_t *ads, int *bus)
@@ -478,6 +498,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_ltc2945_init_read_controls_and_invalid_paths);
     RUN_TEST(test_ltc2945_not_found_and_uninitialized_read);
+    RUN_TEST(test_ltc2945_propagates_i2c_init_failure_without_bus_io);
     RUN_TEST(test_ltc2945_partial_read_failures_preserve_cached_fields);
     RUN_TEST(test_ltc2945_reset_counters_ignores_write_failure_and_auto_convert_off);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
