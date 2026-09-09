@@ -352,6 +352,8 @@ static void test_ads1115_not_found_and_io_failure_paths(void)
 
     queue_read16(ADS1115_REG_CONFIG, 0x0000U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_ADS1115_NOT_FOUND, xy_ads1115_init(&ads, &bus, ADS1115_ADDR_VDD));
+    TEST_ASSERT_FALSE(ads.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_PTR(NULL, ads.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM, xy_ads1115_read_single(&ads, 0U, &raw));
 
     setUp();
@@ -372,6 +374,21 @@ static void test_ads1115_not_found_and_io_failure_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ads1115_read_single(&ads, 0U, &raw));
     TEST_ASSERT_EQUAL_INT16(0x5555, raw);
     TEST_ASSERT_EQUAL_INT16(0x1234, ads.last_value);
+}
+
+static void test_ads1115_propagates_i2c_init_failure_without_bus_io(void)
+{
+    xy_ads1115_t ads;
+    int bus;
+
+    memset(&ads, 0xA5, sizeof(ads));
+    g_i2c_init_ret = XY_DEVICE_ERROR;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ads1115_init(&ads, &bus, ADS1115_ADDR_GND));
+    TEST_ASSERT_FALSE(ads.initialized);
+    TEST_ASSERT_FALSE(ads.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_PTR(NULL, ads.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
 }
 
 
@@ -503,6 +520,7 @@ int main(void)
     RUN_TEST(test_ltc2945_reset_counters_ignores_write_failure_and_auto_convert_off);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
     RUN_TEST(test_ads1115_not_found_and_io_failure_paths);
+    RUN_TEST(test_ads1115_propagates_i2c_init_failure_without_bus_io);
     RUN_TEST(test_ads1115_read_voltage_failure_preserves_output);
     RUN_TEST(test_ads1115_diff_mux_variants_and_voltage_ranges);
     return UNITY_END();

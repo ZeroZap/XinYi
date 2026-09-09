@@ -85,6 +85,7 @@ int xy_ads1115_init(xy_ads1115_t *dev, void *i2c_handle, uint8_t addr)
 
     ret = ads1115_read_word(dev, ADS1115_REG_CONFIG, &config);
     if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
         return XY_ADS1115_NOT_FOUND;
     }
 
