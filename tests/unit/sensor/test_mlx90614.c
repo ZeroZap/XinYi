@@ -11,6 +11,8 @@
 static uint8_t g_read_regs[256][3];
 static uint8_t g_read_fail_reg[256];
 static uint8_t g_last_addr;
+static xy_error_t g_init_result;
+static size_t g_read_count;
 
 static uint8_t mlx_crc8(const uint8_t *data, size_t len)
 {
@@ -35,6 +37,9 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    if (g_init_result != XY_DEVICE_OK) {
+        return g_init_result;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -46,6 +51,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
+    ++g_read_count;
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_EQUAL(0, dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
@@ -70,6 +76,8 @@ void setUp(void)
     memset(g_read_regs, 0, sizeof(g_read_regs));
     memset(g_read_fail_reg, 0, sizeof(g_read_fail_reg));
     g_last_addr = 0;
+    g_init_result = XY_DEVICE_OK;
+    g_read_count = 0U;
 
     set_reg_word(0x0C, 0xBEEF);
     set_reg_word(MLX90614_RAM_TA, 15000U);    /* 300.00 K -> 26.85 C */
@@ -176,6 +184,22 @@ static void test_init_reports_not_found_when_id_read_fails(void)
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_NOT_FOUND,
                           xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+}
+
+static void test_init_propagates_device_helper_failure_without_register_io(void)
+{
+    xy_mlx90614_t dev;
+    int fake_bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_result = XY_DEVICE_BUSY;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY,
+                          xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.addr);
 }
 
 static void test_read_all_rejects_invalid_or_uninitialized_device(void)
@@ -383,6 +407,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_uses_default_address);
     RUN_TEST(test_init_reports_not_found_when_id_read_fails);
+    RUN_TEST(test_init_propagates_device_helper_failure_without_register_io);
     RUN_TEST(test_read_all_rejects_invalid_or_uninitialized_device);
     RUN_TEST(test_read_all_converts_temperature_registers_and_single_channel_fallback);
     RUN_TEST(test_bad_pec_rejects_temperature_read_without_updating_output);
