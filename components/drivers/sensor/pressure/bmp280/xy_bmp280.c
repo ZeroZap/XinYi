@@ -33,6 +33,12 @@ static void bmp280_parse_calibration(xy_bmp280_calibration_t *calibration,
     calibration->dig_p9 = read_i16_le(&data[22]);
 }
 
+static int bmp280_init_fail(xy_bmp280_t *bmp, int result)
+{
+    memset(bmp, 0, sizeof(*bmp));
+    return result;
+}
+
 static int32_t bmp280_compensate_temperature(const xy_bmp280_calibration_t *calibration,
                                              int32_t adc_temperature, int32_t *t_fine)
 {
@@ -93,41 +99,41 @@ int xy_bmp280_init_addr(xy_bmp280_t *bmp, void *i2c_handle, uint8_t addr)
 
     memset(bmp, 0, sizeof(*bmp));
     result = xy_i2c_device_init(&bmp->i2c_dev, i2c_handle, addr, 1000U);
-    if (result < 0) {
-        return result;
+    if (result != XY_DEVICE_OK) {
+        return bmp280_init_fail(bmp, result);
     }
     bmp->addr = addr;
 
     result = xy_i2c_device_read_reg(&bmp->i2c_dev, BMP280_REG_ID, &id, 1U);
-    if (result < 0) {
-        return result;
+    if (result != XY_DEVICE_OK) {
+        return bmp280_init_fail(bmp, result);
     }
     if (id != BMP280_ID_VALUE) {
-        return XY_DEVICE_NOT_FOUND;
+        return bmp280_init_fail(bmp, XY_DEVICE_NOT_FOUND);
     }
 
     value = 0xB6U;
     result = xy_i2c_device_write_reg(&bmp->i2c_dev, BMP280_REG_RESET, &value, 1U);
-    if (result < 0) {
-        return result;
+    if (result != XY_DEVICE_OK) {
+        return bmp280_init_fail(bmp, result);
     }
 
     result = xy_i2c_device_read_reg(&bmp->i2c_dev, BMP280_REG_CALIB, calibration_data,
                                     sizeof(calibration_data));
-    if (result < 0) {
-        return result;
+    if (result != XY_DEVICE_OK) {
+        return bmp280_init_fail(bmp, result);
     }
     bmp280_parse_calibration(&bmp->calibration, calibration_data);
 
     value = 0x00U;
     result = xy_i2c_device_write_reg(&bmp->i2c_dev, BMP280_REG_CONFIG, &value, 1U);
-    if (result < 0) {
-        return result;
+    if (result != XY_DEVICE_OK) {
+        return bmp280_init_fail(bmp, result);
     }
     value = 0x27U;
     result = xy_i2c_device_write_reg(&bmp->i2c_dev, BMP280_REG_CTRL_MEAS, &value, 1U);
-    if (result < 0) {
-        return result;
+    if (result != XY_DEVICE_OK) {
+        return bmp280_init_fail(bmp, result);
     }
 
     bmp->initialized = 1U;

@@ -68,10 +68,17 @@ static void test_four_drivers_coexist(void)
     memset(&bmp, 0, sizeof(bmp));
     memset(&ads, 0, sizeof(ads));
 
-    xy_sht30_init(&sht, &g_fake_bus);
-    xy_mpu6050_init(&mpu, &g_fake_bus);
-    xy_bmp280_init(&bmp, &g_fake_bus);
-    xy_ads1115_init(&ads, &g_fake_bus, ADS1115_ADDR_GND);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_init(&sht.i2c_dev, &g_fake_bus, 0x44U, 1000U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_init(&mpu.i2c_dev, &g_fake_bus,
+                                             MPU6050_ADDR_AD0_LOW, 1000U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_init(&bmp.i2c_dev, &g_fake_bus,
+                                             BMP280_ADDR_DEFAULT, 1000U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_init(&ads.i2c_dev, &g_fake_bus,
+                                             ADS1115_ADDR_GND, 1000U));
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_i2c_device_register(&sht.i2c_dev, "sht30", XY_DEV_TYPE_SENSOR));
