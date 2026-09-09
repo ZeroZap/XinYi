@@ -943,7 +943,8 @@ int xy_tinyjambu_128_encrypt_update(xy_tinyjambu_128_ctx_t *ctx,
     size_t i;
 
     if (!ctx || (plaintext_len > 0U && (!plaintext || !ciphertext)) ||
-        (ctx->mode != 1 && ctx->mode != 2)) {
+        (ctx->mode != 1 && ctx->mode != 2) ||
+        plaintext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
 
@@ -1080,7 +1081,9 @@ int xy_tinyjambu_128_decrypt_update(xy_tinyjambu_128_ctx_t *ctx,
     size_t i;
 
     if (!ctx || (ciphertext_len > 0U && (!ciphertext || !plaintext)) ||
-        (ctx->mode != 1 && ctx->mode != 2)) {
+        (ctx->mode != 1 && ctx->mode != 2) ||
+        ciphertext_len > SIZE_MAX - ctx->plaintext_len ||
+        ciphertext_len > SIZE_MAX - ctx->decrypt_output_len) {
         return XY_TINYJAMBU_INVALID_PARAM;
     }
     if (ciphertext_len == 0U) {

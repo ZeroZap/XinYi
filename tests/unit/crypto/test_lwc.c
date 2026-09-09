@@ -690,6 +690,34 @@ static void assert_tinyjambu_context_scrubbed(const xy_tinyjambu_128_ctx_t *ctx)
     TEST_ASSERT_EQUAL_MEMORY(&expected, ctx, sizeof(expected));
 }
 
+static void test_tinyjambu_incremental_rejects_length_overflow(void)
+{
+    uint8_t key[XY_TINYJAMBU_128_KEY_SIZE] = {0};
+    uint8_t nonce[XY_TINYJAMBU_128_NONCE_SIZE] = {0};
+    uint8_t input = 0x42U;
+    uint8_t output = 0xA5U;
+    xy_tinyjambu_128_ctx_t ctx;
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_encrypt_ad(&ctx, NULL, 0U));
+    ctx.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_encrypt_update(&ctx, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_init(&ctx, key, nonce));
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_SUCCESS,
+                          xy_tinyjambu_128_decrypt_ad(&ctx, NULL, 0U));
+    ctx.plaintext_len = SIZE_MAX;
+    ctx.decrypt_output_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_TINYJAMBU_INVALID_PARAM,
+                          xy_tinyjambu_128_decrypt_update(&ctx, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+}
+
 static void test_tinyjambu_incremental_scrubs_context_on_final_paths(void)
 {
     uint8_t key[XY_TINYJAMBU_128_KEY_SIZE];
@@ -1281,6 +1309,7 @@ int main(void)
     RUN_TEST(test_ascon_128a_incremental_matches_split_one_shot);
     RUN_TEST(test_ascon_128a_incremental_scrubs_context_on_final_paths);
     RUN_TEST(test_ascon_128a_incremental_rejects_repeated_ad_phase);
+    RUN_TEST(test_tinyjambu_incremental_rejects_length_overflow);
     RUN_TEST(test_tinyjambu_incremental_scrubs_context_on_final_paths);
     RUN_TEST(test_tinyjambu_incremental_matches_split_one_shot);
     RUN_TEST(test_tinyjambu_incremental_accepts_zero_length_null_update);
