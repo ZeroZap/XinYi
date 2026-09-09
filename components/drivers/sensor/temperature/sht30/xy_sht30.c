@@ -45,7 +45,7 @@ int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr)
     uint8_t reset_cmd[2] = {0x30, 0xA2};
     result = xy_i2c_device_write(&sht->i2c_dev, reset_cmd, 2);
     if (result < 0) {
-        sht->i2c_dev.base.initialized = false;
+        memset(sht, 0, sizeof(*sht));
         return result;
     }
 

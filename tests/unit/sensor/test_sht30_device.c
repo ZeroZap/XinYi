@@ -127,12 +127,14 @@ static void test_init_propagates_helper_and_reset_failures(void)
     g_init_ret = XY_DEVICE_INVALID_PARAM;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sht30_init(&sensor, &bus));
     TEST_ASSERT_FALSE(sensor.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_PTR(NULL, sensor.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
 
     g_init_ret = XY_DEVICE_OK;
     queue_write(reset, sizeof(reset), XY_DEVICE_IO_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_sht30_init(&sensor, &bus));
     TEST_ASSERT_FALSE(sensor.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_PTR(NULL, sensor.i2c_dev.i2c_handle);
 }
 
 static void test_read_checks_crc_and_preserves_cached_values(void)
