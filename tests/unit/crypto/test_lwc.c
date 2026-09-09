@@ -464,6 +464,60 @@ static void test_ascon_80pq_incremental_matches_split_one_shot(void)
     TEST_ASSERT_EQUAL_HEX8(0xA5U, decrypted[sizeof(plaintext)]);
 }
 
+static void test_ascon_incremental_rejects_length_overflow(void)
+{
+    uint8_t key128[XY_ASCON_128_KEY_SIZE] = {0};
+    uint8_t key80pq[XY_ASCON_80PQ_KEY_SIZE] = {0};
+    uint8_t nonce[XY_ASCON_128_NONCE_SIZE] = {0};
+    uint8_t input = 0x42U;
+    uint8_t output = 0xA5U;
+    xy_ascon_128_ctx_t ctx128;
+    xy_ascon_80pq_ctx_t ctx80pq;
+    xy_ascon_128a_ctx_t ctx128a;
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
+                          xy_ascon_128_encrypt_init(&ctx128, key128, nonce));
+    ctx128.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128_encrypt_update(&ctx128, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
+                          xy_ascon_128_decrypt_init(&ctx128, key128, nonce));
+    ctx128.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128_decrypt_update(&ctx128, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
+                          xy_ascon_80pq_encrypt_init(&ctx80pq, key80pq, nonce));
+    ctx80pq.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_80pq_encrypt_update(&ctx80pq, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
+                          xy_ascon_80pq_decrypt_init(&ctx80pq, key80pq, nonce));
+    ctx80pq.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_80pq_decrypt_update(&ctx80pq, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
+                          xy_ascon_128a_encrypt_init(&ctx128a, key128, nonce));
+    ctx128a.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128a_encrypt_update(&ctx128a, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_SUCCESS,
+                          xy_ascon_128a_decrypt_init(&ctx128a, key128, nonce));
+    ctx128a.plaintext_len = SIZE_MAX;
+    TEST_ASSERT_EQUAL_INT(XY_ASCON_INVALID_PARAM,
+                          xy_ascon_128a_decrypt_update(&ctx128a, &input, 1U, &output));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, output);
+}
+
 static void test_ascon_128a_incremental_matches_split_one_shot(void)
 {
     static const size_t chunks[] = {1U, 7U, 9U, 16U};
@@ -1223,6 +1277,7 @@ int main(void)
     RUN_TEST(test_ascon_and_tinyjambu_reject_inconsistent_buffers);
     RUN_TEST(test_ascon_128_incremental_matches_split_one_shot);
     RUN_TEST(test_ascon_80pq_incremental_matches_split_one_shot);
+    RUN_TEST(test_ascon_incremental_rejects_length_overflow);
     RUN_TEST(test_ascon_128a_incremental_matches_split_one_shot);
     RUN_TEST(test_ascon_128a_incremental_scrubs_context_on_final_paths);
     RUN_TEST(test_ascon_128a_incremental_rejects_repeated_ad_phase);

@@ -1075,7 +1075,8 @@ int xy_ascon_128_encrypt_update(xy_ascon_128_ctx_t *ctx, const uint8_t *plaintex
 {
     size_t i;
 
-    if (!ctx || (plaintext_len > 0U && (!plaintext || !ciphertext)) || ctx->mode == 2) {
+    if (!ctx || (plaintext_len > 0U && (!plaintext || !ciphertext)) || ctx->mode == 2 ||
+        plaintext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_ASCON_INVALID_PARAM;
     }
     if (ctx->mode == 0) {
@@ -1142,7 +1143,8 @@ int xy_ascon_128_decrypt_update(xy_ascon_128_ctx_t *ctx, const uint8_t *cipherte
 {
     size_t i;
 
-    if (!ctx || (ciphertext_len > 0U && (!ciphertext || !plaintext)) || ctx->mode == 2) {
+    if (!ctx || (ciphertext_len > 0U && (!ciphertext || !plaintext)) || ctx->mode == 2 ||
+        ciphertext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_ASCON_INVALID_PARAM;
     }
     if (ciphertext_len > 0U) {
@@ -1331,7 +1333,8 @@ int xy_ascon_128a_encrypt_update(xy_ascon_128a_ctx_t *ctx,
 {
     size_t i;
 
-    if (!ctx || (plaintext_len > 0U && (!plaintext || !ciphertext)) || ctx->mode == 2) {
+    if (!ctx || (plaintext_len > 0U && (!plaintext || !ciphertext)) || ctx->mode == 2 ||
+        plaintext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_ASCON_INVALID_PARAM;
     }
 
@@ -1460,7 +1463,8 @@ int xy_ascon_128a_decrypt_update(xy_ascon_128a_ctx_t *ctx,
 {
     size_t i;
 
-    if (!ctx || (ciphertext_len > 0U && (!ciphertext || !plaintext)) || ctx->mode == 2) {
+    if (!ctx || (ciphertext_len > 0U && (!ciphertext || !plaintext)) || ctx->mode == 2 ||
+        ciphertext_len > SIZE_MAX - ctx->plaintext_len) {
         return XY_ASCON_INVALID_PARAM;
     }
     if (ciphertext_len > 0U) {
