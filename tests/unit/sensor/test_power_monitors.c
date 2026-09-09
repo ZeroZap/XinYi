@@ -531,6 +531,23 @@ static void test_ina226_i2c_init_failure_is_atomic(void)
     TEST_ASSERT_EACH_EQUAL_UINT8(0U, (const uint8_t *)&ina, sizeof(ina));
 }
 
+static void test_ina226_post_helper_init_failure_clears_device_state(void)
+{
+    xy_ina_t ina;
+    xy_ina_config_t cfg = ina_config();
+    int bus;
+
+    memset(&ina, 0xA5, sizeof(ina));
+    queue_read16(INA226_REG_MFG_ID, 0U, XY_DEVICE_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_INA_NOT_FOUND,
+                          xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_FALSE(ina.initialized);
+    TEST_ASSERT_FALSE(ina.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(ina.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT8(0U, ina.addr);
+}
+
 static void test_ina226_init_write_failures_deinit_and_getters_preserve_outputs(void)
 {
     xy_ina_t ina;
@@ -586,6 +603,7 @@ int main(void)
     RUN_TEST(test_ina229_detection_and_invalid_paths);
     RUN_TEST(test_ina226_detection_failures_return_without_config_writes);
     RUN_TEST(test_ina226_i2c_init_failure_is_atomic);
+    RUN_TEST(test_ina226_post_helper_init_failure_clears_device_state);
     RUN_TEST(test_ina226_init_write_failures_deinit_and_getters_preserve_outputs);
     RUN_TEST(test_ina226_get_power_and_shunt_use_cached_values_after_read_failures);
     return UNITY_END();
