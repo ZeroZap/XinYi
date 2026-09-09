@@ -10,9 +10,15 @@ extern int hal_i2c_master_recv(void *bus, uint8_t addr, uint8_t *data, uint16_t 
 
 static sensor_err_t aht10_init(sensor_device_t *sensor)
 {
-    aht10_priv_t *priv = (aht10_priv_t *)sensor->priv_data;
-    SENSOR_LOG("Initializing AHT10");
     uint8_t cmd[3] = {0xE1, 0x08, 0x00};
+    aht10_priv_t *priv;
+
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    priv = (aht10_priv_t *)sensor->priv_data;
+    SENSOR_LOG("Initializing AHT10");
     if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
@@ -24,13 +30,23 @@ static sensor_err_t aht10_init(sensor_device_t *sensor)
 static sensor_err_t aht10_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
-    aht10_priv_t *priv = (aht10_priv_t *)sensor->priv_data;
     uint8_t cmd[3] = {0xAC, 0x33, 0x00};
+    aht10_priv_t *priv;
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    priv = (aht10_priv_t *)sensor->priv_data;
     if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
     SENSOR_DELAY_MS(80);
-    if (hal_i2c_master_recv(sensor->bus, priv->i2c_addr, buf, 6) != SENSOR_EOK) return SENSOR_EIO;
+    if (hal_i2c_master_recv(sensor->bus, priv->i2c_addr, buf, 6) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    if ((buf[0] & 0x80U) != 0U) {
+        return SENSOR_EBUSY;
+    }
 
     uint32_t hum = ((uint32_t)buf[1] << 12) | ((uint32_t)buf[2] << 4) | (buf[3] >> 4);
 
@@ -48,8 +64,14 @@ static const sensor_ops_t aht10_ops = {
 
 sensor_device_t *aht10_create(const char *name, void *i2c_bus, uint8_t addr)
 {
-    sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
-    aht10_priv_t *priv = (aht10_priv_t *)SENSOR_MALLOC(sizeof(aht10_priv_t));
+    sensor_device_t *sensor;
+    aht10_priv_t *priv;
+
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+    sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
+    priv = (aht10_priv_t *)SENSOR_MALLOC(sizeof(aht10_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
 
     memset(sensor, 0, sizeof(sensor_device_t));

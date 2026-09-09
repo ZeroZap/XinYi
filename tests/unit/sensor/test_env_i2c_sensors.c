@@ -227,6 +227,41 @@ static void test_aht10_create_defaults_and_reads_humidity(void)
     destroy_sensor(sensor);
 }
 
+static void test_aht10_rejects_invalid_factory_and_busy_sample(void)
+{
+    int fake_bus;
+    uint8_t measure_cmd[3] = {0xAC, 0x33, 0x00};
+    uint8_t busy_sample[6] = {0x80, 0x80, 0x00, 0x00, 0x12, 0x34};
+    sensor_data_t data = {
+        .type = SENSOR_TYPE_TEMPERATURE,
+        .unit = SENSOR_UNIT_CELSIUS,
+        .value.val_float = 12.5f,
+        .timestamp = 7U,
+        .accuracy = 1U,
+    };
+    sensor_device_t *sensor;
+
+    TEST_ASSERT_NULL(aht10_create(NULL, &fake_bus, 0U));
+    TEST_ASSERT_NULL(aht10_create("aht10", NULL, 0U));
+
+    sensor = aht10_create("aht10-busy", &fake_bus, 0U);
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+
+    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, measure_cmd, sizeof(measure_cmd), SENSOR_EOK);
+    queue_master_recv(&fake_bus, AHT10_ADDR_DEFAULT, busy_sample, sizeof(busy_sample), SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, data.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_CELSIUS, data.unit);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.5f, data.value.val_float);
+    TEST_ASSERT_EQUAL_UINT32(7U, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT8(1U, data.accuracy);
+
+    destroy_sensor(sensor);
+}
+
 static void test_aht10_read_maps_receive_failure(void)
 {
     int fake_bus;
@@ -369,6 +404,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_aht10_create_defaults_and_reads_humidity);
+    RUN_TEST(test_aht10_rejects_invalid_factory_and_busy_sample);
     RUN_TEST(test_aht10_read_maps_receive_failure);
     RUN_TEST(test_aht10_init_and_read_map_send_failures);
     RUN_TEST(test_bmp390_create_init_and_read_pressure);
