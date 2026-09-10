@@ -351,7 +351,7 @@ static void test_ads1115_not_found_and_io_failure_paths(void)
     int bus;
 
     queue_read16(ADS1115_REG_CONFIG, 0x0000U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_ADS1115_NOT_FOUND, xy_ads1115_init(&ads, &bus, ADS1115_ADDR_VDD));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ads1115_init(&ads, &bus, ADS1115_ADDR_VDD));
     TEST_ASSERT_FALSE(ads.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_PTR(NULL, ads.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM, xy_ads1115_read_single(&ads, 0U, &raw));
