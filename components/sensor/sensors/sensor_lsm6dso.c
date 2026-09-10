@@ -128,16 +128,18 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
     if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, data) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
-    ((lsm6dso_priv_t *)sensor->priv_data)->accel_range = 2;
-    ((lsm6dso_priv_t *)sensor->priv_data)->accel_rate  = 104;
 
     /* 配置陀螺仪: ±250°/s, 104Hz */
     data = (LSM6DSO_GYRO_RATE_104Hz << 4) | LSM6DSO_GYRO_RANGE_250DPS;
     if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, data) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
-    ((lsm6dso_priv_t *)sensor->priv_data)->gyro_range = LSM6DSO_GYRO_RANGE_250DPS;
-    ((lsm6dso_priv_t *)sensor->priv_data)->gyro_rate   = 104;
+
+    lsm6dso_priv_t *priv = (lsm6dso_priv_t *)sensor->priv_data;
+    priv->accel_range = 2;
+    priv->accel_rate = 104;
+    priv->gyro_range = LSM6DSO_GYRO_RANGE_250DPS;
+    priv->gyro_rate = 104;
 
     SENSOR_LOG("LSM6DSO initialized successfully");
 
