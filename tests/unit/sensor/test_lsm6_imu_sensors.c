@@ -316,6 +316,33 @@ static void test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers(void)
     destroy_sensor(gyro);
 }
 
+static void test_lsm6dsl_init_failure_does_not_commit_partial_config_cache(void)
+{
+    int bus;
+    const uint8_t cs = 3U;
+    sensor_device_t *sensor = lsm6dsl_create_spi_accel("dsl-fail", &bus, cs);
+    lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_spi_read8(&bus, cs, LSM6DSL_REG_WHOAMI, LSM6DSL_WHOAMI_VALUE, SENSOR_EOK);
+    queue_spi_send2(&bus, cs, LSM6DSL_REG_CTRL3_C & 0x7FU, 0x01U, SENSOR_EOK);
+    queue_spi_send2(&bus, cs, LSM6DSL_REG_CTRL4_C & 0x7FU, 0x00U, SENSOR_EOK);
+    queue_spi_send2(&bus, cs, LSM6DSL_REG_CTRL1_XL & 0x7FU,
+                    (uint8_t)((LSM6DSL_ACCEL_RATE_104Hz << 4) |
+                              LSM6DSL_ACCEL_RANGE_2G),
+                    SENSOR_EOK);
+    queue_spi_send2(&bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU,
+                    (uint8_t)((LSM6DSL_GYRO_RATE_104Hz << 4) |
+                              LSM6DSL_GYRO_RANGE_250DPS),
+                    SENSOR_EIO);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT8(0U, priv->accel_range);
+    TEST_ASSERT_EQUAL_UINT8(0U, priv->gyro_range);
+
+    destroy_sensor(sensor);
+}
+
 static void test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors(void)
 {
     int fake_bus;
@@ -458,6 +485,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers);
+    RUN_TEST(test_lsm6dsl_init_failure_does_not_commit_partial_config_cache);
     RUN_TEST(test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors);
     RUN_TEST(test_lsm6dsr_i2c_accel_gyro_init_read_helpers_and_errors);
     return UNITY_END();

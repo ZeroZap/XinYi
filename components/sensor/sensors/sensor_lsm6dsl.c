@@ -49,10 +49,11 @@ static sensor_err_t lsm6dsl_init(sensor_device_t *sensor)
 
     data = (LSM6DSL_ACCEL_RATE_104Hz << 4) | LSM6DSL_ACCEL_RANGE_2G;
     if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL1_XL, data) != SENSOR_EOK) return SENSOR_EIO;
-    priv->accel_range = 2;
 
     data = (LSM6DSL_GYRO_RATE_104Hz << 4) | LSM6DSL_GYRO_RANGE_250DPS;
     if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL2_G, data) != SENSOR_EOK) return SENSOR_EIO;
+
+    priv->accel_range = 2;
     priv->gyro_range = LSM6DSL_GYRO_RANGE_250DPS;
 
     SENSOR_LOG("LSM6DSL initialized");
