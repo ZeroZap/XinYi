@@ -161,18 +161,19 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     /* 读取 WHO_AM_I 验证连接 */
     xy_ret_t ret = xy_lps22hb_read_who_am_i(dev, &dev->who_am_i);
     if (ret != XY_OK) {
-        return ret;
+        goto init_failed;
     }
     
     /* 验证 WHO_AM_I (LPS22HB 应为 0xB1) */
     if (dev->who_am_i != LPS22HB_WHO_AM_I_VALUE) {
-        return XY_ERROR;
+        ret = XY_ERROR;
+        goto init_failed;
     }
     
     /* 软件复位 */
     ret = xy_lps22hb_soft_reset(dev);
     if (ret != XY_OK) {
-        return ret;
+        goto init_failed;
     }
     
     xy_delay_ms(LPS22HB_BOOT_TIME_MS);
@@ -182,7 +183,7 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     uint32_t timeout = 100;
     while (timeout > 0) {
         ret = lps22hb_read_reg8(dev, LPS22HB_CTRL_REG2, &ctrl2);
-        if (ret != XY_OK) return ret;
+        if (ret != XY_OK) goto init_failed;
         
         if (!(ctrl2 & LPS22HB_BOOT)) {
             break;
@@ -193,7 +194,8 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     }
     
     if (timeout == 0) {
-        return XY_TIMEOUT;
+        ret = XY_TIMEOUT;
+        goto init_failed;
     }
     
     /* 配置 CTRL_REG1 */
@@ -204,7 +206,7 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     }
     
     ret = lps22hb_write_reg8(dev, LPS22HB_CTRL_REG1, ctrl1);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     /* 配置 CTRL_REG2 */
     ctrl2 = 0;
@@ -214,19 +216,19 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     }
     
     ret = lps22hb_write_reg8(dev, LPS22HB_CTRL_REG2, ctrl2);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     /* 配置 CTRL_REG3 (中断) */
     if (dev->config.enable_interrupt) {
         ret = lps22hb_write_reg8(dev, LPS22HB_CTRL_REG3, LPS22HB_INT_DRDY);
-        if (ret != XY_OK) return ret;
+        if (ret != XY_OK) goto init_failed;
         
         /* 配置阈值 */
         ret = xy_lps22hb_configure_threshold(dev, dev->config.threshold.low, dev->config.threshold.high);
-        if (ret != XY_OK) return ret;
+        if (ret != XY_OK) goto init_failed;
     } else {
         ret = lps22hb_write_reg8(dev, LPS22HB_CTRL_REG3, 0x00);
-        if (ret != XY_OK) return ret;
+        if (ret != XY_OK) goto init_failed;
     }
     
     /* 设置默认校准参数 */
@@ -238,6 +240,10 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     dev->measurement_count = 0;
     
     return XY_OK;
+
+init_failed:
+    memset(dev, 0, sizeof(*dev));
+    return ret;
 }
 
 xy_ret_t xy_lps22hb_deinit(xy_lps22hb_dev_t *dev)

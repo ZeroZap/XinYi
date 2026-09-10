@@ -151,6 +151,13 @@ static void init_ok(xy_lps22hb_dev_t *dev, xy_interface_dev_t *iface)
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_lps22hb_init(dev, iface, NULL));
 }
 
+static void assert_lps22hb_cleared(const xy_lps22hb_dev_t *dev)
+{
+    xy_lps22hb_dev_t cleared;
+    memset(&cleared, 0, sizeof(cleared));
+    TEST_ASSERT_EQUAL_MEMORY(&cleared, dev, sizeof(cleared));
+}
+
 static void test_init_default_config_resets_and_programs_registers(void)
 {
     xy_lps22hb_dev_t dev;
@@ -177,6 +184,7 @@ static void test_init_rejects_bad_whoami_and_propagates_reset_timeout(void)
 
     queue_read8(LPS22HB_WHO_AM_I, 0x00U, XY_OK);
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_init(&dev, &iface, NULL));
+    assert_lps22hb_cleared(&dev);
 
     setUp();
     queue_read8(LPS22HB_WHO_AM_I, LPS22HB_WHO_AM_I_VALUE, XY_OK);
@@ -186,6 +194,25 @@ static void test_init_rejects_bad_whoami_and_propagates_reset_timeout(void)
         queue_read8(LPS22HB_CTRL_REG2, LPS22HB_BOOT, XY_OK);
     }
     TEST_ASSERT_EQUAL_INT(-2, xy_lps22hb_init(&dev, &iface, NULL));
+    assert_lps22hb_cleared(&dev);
+}
+
+static void test_init_configuration_failure_clears_device_state(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+
+    queue_read8(LPS22HB_WHO_AM_I, LPS22HB_WHO_AM_I_VALUE, XY_OK);
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, LPS22HB_SWRESET, XY_OK);
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG1,
+                 (uint8_t)(XY_LPS22HB_ODR_10HZ | LPS22HB_EN_LPFP |
+                           XY_LPS22HB_LPF_ODR_20),
+                 XY_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_init(&dev, &iface, NULL));
+    assert_lps22hb_cleared(&dev);
 }
 
 static void test_read_data_converts_pressure_temperature_and_offsets(void)
@@ -470,6 +497,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_default_config_resets_and_programs_registers);
     RUN_TEST(test_init_rejects_bad_whoami_and_propagates_reset_timeout);
+    RUN_TEST(test_init_configuration_failure_clears_device_state);
     RUN_TEST(test_read_data_converts_pressure_temperature_and_offsets);
     RUN_TEST(test_measure_waits_for_data_ready_and_handles_timeout);
     RUN_TEST(test_controls_fifo_lpf_threshold_interrupt_and_deinit);
