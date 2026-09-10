@@ -43,8 +43,6 @@ static sensor_err_t lis2dh12_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
-    priv->range   = LIS2DH12_RANGE_2G;
-    priv->range_g = 2;
 
     /* 使能温度传感器 */
     data = 0xC0;
@@ -53,6 +51,10 @@ static sensor_err_t lis2dh12_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
+
+    priv->odr = LIS2DH12_ODR_10HZ;
+    priv->range = LIS2DH12_RANGE_2G;
+    priv->range_g = 2;
 
     SENSOR_LOG("LIS2DH12 initialized (Low Power Mode, 10Hz, ±2g)");
 

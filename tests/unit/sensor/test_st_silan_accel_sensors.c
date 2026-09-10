@@ -209,14 +209,14 @@ static void test_lis2dh12_init_read_config_deinit_and_errors(void)
     queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL4, LIS2DH12_RANGE_2G | 0x08U, SENSOR_EOK);
     queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_TEMP_CFG, 0xC0U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(LIS2DH12_RANGE_2G, ((lis2dh12_priv_t *)sensor->priv_data)->range);
-    TEST_ASSERT_EQUAL_UINT8(2U, ((lis2dh12_priv_t *)sensor->priv_data)->range_g);
+    TEST_ASSERT_EQUAL_INT(LIS2DH12_RANGE_8G, ((lis2dh12_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(8U, ((lis2dh12_priv_t *)sensor->priv_data)->range_g);
 
     cfg = 16U;
     queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL4, LIS2DH12_RANGE_16G | 0x08U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->config(sensor, SENSOR_CFG_RANGE, &cfg));
-    TEST_ASSERT_EQUAL_INT(LIS2DH12_RANGE_2G, ((lis2dh12_priv_t *)sensor->priv_data)->range);
-    TEST_ASSERT_EQUAL_UINT8(2U, ((lis2dh12_priv_t *)sensor->priv_data)->range_g);
+    TEST_ASSERT_EQUAL_INT(LIS2DH12_RANGE_8G, ((lis2dh12_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(8U, ((lis2dh12_priv_t *)sensor->priv_data)->range_g);
 
     queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL1, LIS2DH12_ODR_POWER_DOWN, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
