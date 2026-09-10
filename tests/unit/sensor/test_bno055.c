@@ -122,6 +122,13 @@ static xy_bno055_t make_ready_dev(void *bus)
     return dev;
 }
 
+static void assert_dev_cleared(const xy_bno055_t *dev)
+{
+    xy_bno055_t cleared;
+    memset(&cleared, 0, sizeof(cleared));
+    TEST_ASSERT_EQUAL_MEMORY(&cleared, dev, sizeof(cleared));
+}
+
 static void expect_init_success_sequence(void)
 {
     const uint8_t chip = BNO055_CHIP_ID;
@@ -161,6 +168,7 @@ void test_init_rejects_wrong_chip_id(void)
     expect_read(BNO055_REG_CHIP_ID, &bad_chip, 1);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ENODEV, xy_bno055_init(&dev, &bus, 0x28, false));
+    assert_dev_cleared(&dev);
 }
 
 void test_init_propagates_reset_and_sw_version_failures(void)
@@ -171,12 +179,60 @@ void test_init_propagates_reset_and_sw_version_failures(void)
 
     expect_write_ret(BNO055_REG_SYS_TRIGGER, (const uint8_t[]){0x20}, 1, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x28, false));
+    assert_dev_cleared(&dev);
 
     expect_write_u8(BNO055_REG_SYS_TRIGGER, 0x20);
     expect_read(BNO055_REG_CHIP_ID, &chip, 1);
     expect_read_ret(BNO055_REG_SW_REV_ID_LSB, NULL, 2, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x28, false));
-    TEST_ASSERT_TRUE(dev.initialized);
+    assert_dev_cleared(&dev);
+}
+
+void test_init_clears_device_after_each_configuration_failure(void)
+{
+    xy_bno055_t dev;
+    int bus;
+    const uint8_t chip = BNO055_CHIP_ID;
+    const uint8_t sw[2] = {0x19, 0x03};
+    const uint8_t mode_config = BNO055_MODE_CONFIG;
+    const uint8_t sys_trigger = 0x00;
+    const uint8_t units = BNO055_UNIT_DEG | BNO055_UNIT_CELSIUS | BNO055_UNIT_EULER |
+                          BNO055_UNIT_MS2 | BNO055_UNIT_UT;
+
+    expect_write_u8(BNO055_REG_SYS_TRIGGER, 0x20);
+    expect_read(BNO055_REG_CHIP_ID, &chip, 1);
+    expect_read(BNO055_REG_SW_REV_ID_LSB, sw, 2);
+    expect_read_ret(BNO055_REG_OPR_MODE, NULL, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x28, false));
+    assert_dev_cleared(&dev);
+
+    expect_write_u8(BNO055_REG_SYS_TRIGGER, 0x20);
+    expect_read(BNO055_REG_CHIP_ID, &chip, 1);
+    expect_read(BNO055_REG_SW_REV_ID_LSB, sw, 2);
+    expect_read(BNO055_REG_OPR_MODE, &mode_config, 1);
+    expect_write_ret(BNO055_REG_SYS_TRIGGER, &sys_trigger, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x28, false));
+    assert_dev_cleared(&dev);
+
+    expect_write_u8(BNO055_REG_SYS_TRIGGER, 0x20);
+    expect_read(BNO055_REG_CHIP_ID, &chip, 1);
+    expect_read(BNO055_REG_SW_REV_ID_LSB, sw, 2);
+    expect_read(BNO055_REG_OPR_MODE, &mode_config, 1);
+    expect_write(BNO055_REG_SYS_TRIGGER, &sys_trigger, 1);
+    expect_write_ret(BNO055_REG_UNIT_SEL, &units, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x28, false));
+    assert_dev_cleared(&dev);
+
+    expect_write_u8(BNO055_REG_SYS_TRIGGER, 0x20);
+    expect_read(BNO055_REG_CHIP_ID, &chip, 1);
+    expect_read(BNO055_REG_SW_REV_ID_LSB, sw, 2);
+    expect_read(BNO055_REG_OPR_MODE, &mode_config, 1);
+    expect_write(BNO055_REG_SYS_TRIGGER, &sys_trigger, 1);
+    expect_write(BNO055_REG_UNIT_SEL, &units, 1);
+    expect_write_ret(BNO055_REG_OPR_MODE, (const uint8_t[]){BNO055_MODE_NDOF}, 1,
+                     XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x28, false));
+    assert_dev_cleared(&dev);
 }
 
 void test_register_access_guards_and_i2c_round_trip(void)
@@ -512,6 +568,7 @@ int main(void)
     RUN_TEST(test_init_configures_units_and_ndof_mode);
     RUN_TEST(test_init_rejects_wrong_chip_id);
     RUN_TEST(test_init_propagates_reset_and_sw_version_failures);
+    RUN_TEST(test_init_clears_device_after_each_configuration_failure);
     RUN_TEST(test_register_access_guards_and_i2c_round_trip);
     RUN_TEST(test_sw_version_and_get_mode_parse_little_endian_and_mask_mode_bits);
     RUN_TEST(test_set_mode_config_when_already_config_only_reads_mode);

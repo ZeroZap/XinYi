@@ -148,6 +148,7 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     int ret = xy_bno055_reset(dev);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Reset failed: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
     dev->initialized = true;
@@ -160,11 +161,13 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = xy_bno055_get_chip_id(dev, &chip_id);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to read chip ID: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
     if (chip_id != BNO055_CHIP_ID) {
         XY_LOG_ERROR("Invalid chip ID: 0x%02X (expected 0xA0)", chip_id);
+        memset(dev, 0, sizeof(*dev));
         return XY_DEVICE_ENODEV;
     }
 
@@ -174,6 +177,7 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = xy_bno055_get_sw_version(dev, &dev->sw_version);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to read firmware version: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
@@ -189,6 +193,7 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = switch_to_config_mode(dev);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to switch to config mode: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
@@ -197,6 +202,7 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = bus_write(dev, BNO055_REG_SYS_TRIGGER, &sys_trigger, 1);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to configure system trigger: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
@@ -206,6 +212,7 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = xy_bno055_set_units(dev, dev->unit_flags);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to set units: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
@@ -213,6 +220,7 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     ret = xy_bno055_set_mode(dev, BNO055_MODE_NDOF);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to set NDOF mode: %d", ret);
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
 
