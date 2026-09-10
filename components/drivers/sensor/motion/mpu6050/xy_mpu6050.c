@@ -141,7 +141,7 @@ int xy_mpu6050_init(xy_mpu6050_t *dev, void *i2c_handle)
 
 int xy_mpu6050_deinit(xy_mpu6050_t *dev)
 {
-    if (!dev) {
+    if (!dev || !dev->initialized) {
         return XY_MPU6050_INVALID_PARAM;
     }
 

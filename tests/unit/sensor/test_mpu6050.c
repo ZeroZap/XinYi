@@ -439,6 +439,14 @@ static void test_mpu6050_calibrate_averages_offsets(void)
     TEST_ASSERT_EQUAL_UINT32(120U, g_delay_total);
 }
 
+static void test_mpu6050_deinit_rejects_uninitialized_device_without_bus_io(void)
+{
+    xy_mpu6050_t dev = {0};
+
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
+}
+
 static void test_mpu6050_calibrate_failure_preserves_calibration(void)
 {
     xy_mpu6050_t dev;
@@ -467,6 +475,7 @@ int main(void)
     RUN_TEST(test_mpu6050_range_write_failures_preserve_configured_range);
     RUN_TEST(test_mpu6050_init_config_failure_does_not_mark_ready);
     RUN_TEST(test_mpu6050_deinit_write_failure_preserves_initialized);
+    RUN_TEST(test_mpu6050_deinit_rejects_uninitialized_device_without_bus_io);
     RUN_TEST(test_mpu6050_read_raw_failure_preserves_cached_samples);
     RUN_TEST(test_mpu6050_read_helpers_successfully_copy_converted_values);
     RUN_TEST(test_mpu6050_calibrate_averages_offsets);
