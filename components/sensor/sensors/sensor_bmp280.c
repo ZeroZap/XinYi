@@ -101,8 +101,11 @@ static sensor_err_t bmp280_deinit(sensor_device_t *sensor)
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     uint8_t data        = 0x00; /* sleep mode */
 
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1);
+    if (hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
 
     return SENSOR_EOK;
 }
