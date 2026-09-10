@@ -54,12 +54,13 @@ static sensor_err_t lsm6dsr_init(sensor_device_t *sensor)
     /* 配置: ±2g, 104Hz */
     data = (LSM6DSR_ACCEL_RATE_104Hz << 4) | LSM6DSR_ACCEL_RANGE_2G;
     if (lsm6dsr_reg_write(sensor, LSM6DSR_REG_CTRL1_XL, data) != SENSOR_EOK) return SENSOR_EIO;
-    priv->accel_range = 2;
-    priv->accel_rate = 104;
 
     /* 配置: ±250°/s, 104Hz */
     data = (LSM6DSR_GYRO_RATE_104Hz << 4) | LSM6DSR_GYRO_RANGE_250DPS;
     if (lsm6dsr_reg_write(sensor, LSM6DSR_REG_CTRL2_G, data) != SENSOR_EOK) return SENSOR_EIO;
+
+    priv->accel_range = 2;
+    priv->accel_rate = 104;
     priv->gyro_range = LSM6DSR_GYRO_RANGE_250DPS;
     priv->gyro_rate = 104;
 
