@@ -169,7 +169,10 @@ int xy_tsl2561_read(xy_tsl2561_t *tsl2561)
     }
     
     /* 确保传感器已使能 */
-    xy_tsl2561_enable(tsl2561);
+    ret = xy_tsl2561_enable(tsl2561);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
     
     /* 等待积分时间完成 */
     switch (tsl2561->integration) {

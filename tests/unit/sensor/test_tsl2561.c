@@ -425,7 +425,7 @@ static void test_tsl2561_init_config_write_failures_clear_device(void)
     TEST_ASSERT_EQUAL_UINT(3U, g_write_count);
 }
 
-static void test_tsl2561_read_ignores_enable_failure_and_still_updates_data(void)
+static void test_tsl2561_read_propagates_enable_failure_without_updating_data(void)
 {
     xy_tsl2561_t dev;
 
@@ -434,11 +434,8 @@ static void test_tsl2561_read_ignores_enable_failure_and_still_updates_data(void
     queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1200U, XY_DEVICE_OK);
     queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 120U, XY_DEVICE_OK);
 
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
-    TEST_ASSERT_EQUAL_UINT16(1200U, dev.data.broadband);
-    TEST_ASSERT_EQUAL_UINT16(120U, dev.data.ir);
-    TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, dev.data.lux);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, dev.data.timestamp);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_read(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_data_t){0}, &dev.data, sizeof(dev.data));
 }
 
 static void test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero(void)
@@ -497,7 +494,7 @@ int main(void)
     RUN_TEST(test_gain_integration_enable_disable_and_deinit_contracts);
     RUN_TEST(test_gain_integration_read_failures_use_cached_timing);
     RUN_TEST(test_tsl2561_init_config_write_failures_clear_device);
-    RUN_TEST(test_tsl2561_read_ignores_enable_failure_and_still_updates_data);
+    RUN_TEST(test_tsl2561_read_propagates_enable_failure_without_updating_data);
     RUN_TEST(test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero);
     RUN_TEST(test_tsl2561_lux_ratio_piecewise_boundaries);
     return UNITY_END();
