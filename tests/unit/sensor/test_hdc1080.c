@@ -186,10 +186,12 @@ static void test_init_maps_write_failures_to_error(void)
 
     g_write_ret_queue[0] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_ERROR, xy_hdc1080_init(&dev, &fake_bus, HDC1080_ADDR));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_hdc1080_t){0}, &dev, sizeof(dev));
 
     setUp();
     g_write_ret_queue[1] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_ERROR, xy_hdc1080_init(&dev, &fake_bus, HDC1080_ADDR));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_hdc1080_t){0}, &dev, sizeof(dev));
 }
 
 static void test_init_propagates_device_helper_failure_without_bus_io(void)
@@ -217,8 +219,7 @@ static void test_init_with_custom_address_and_config_failure_contract(void)
 
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_ERROR, xy_hdc1080_init(&dev, &fake_bus, 0x41U));
     TEST_ASSERT_EQUAL_UINT8(0x41U, g_last_addr);
-    TEST_ASSERT_EQUAL_UINT8(0x41U, dev.addr);
-    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_hdc1080_t){0}, &dev, sizeof(dev));
     TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
     TEST_ASSERT_EQUAL_UINT32(15U, g_delay_total);
 }
