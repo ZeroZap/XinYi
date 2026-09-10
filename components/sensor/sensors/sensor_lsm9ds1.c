@@ -52,7 +52,9 @@ static sensor_err_t lsm9ds1_init(sensor_device_t *sensor)
     }
 
     /* IMU软复位 */
-    lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL3_C, 0x01);
+    if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL3_C, 0x01) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(10);
 
     /* 配置加速度计: ±2g, 100Hz */
