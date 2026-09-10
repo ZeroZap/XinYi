@@ -249,9 +249,7 @@ int xy_ltc2945_reset_counters(xy_ltc2945_t *ltc2945)
     
     /* 通过配置寄存器复位计数器 */
     uint8_t ctrl = ltc2945->config.auto_convert ? 0x08 : 0x00;
-    xy_ltc2945_write_reg(ltc2945, LTC2945_REG_CONTROL, ctrl);
-    
-    return XY_LTC2945_OK;
+    return xy_ltc2945_write_reg(ltc2945, LTC2945_REG_CONTROL, ctrl);
 }
 
 int xy_ltc2945_enable_alert(xy_ltc2945_t *ltc2945, bool enable)

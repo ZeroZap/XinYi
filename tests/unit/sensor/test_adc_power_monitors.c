@@ -420,7 +420,7 @@ static void test_ltc2945_partial_read_failures_preserve_cached_fields(void)
     TEST_ASSERT_EQUAL_UINT32(222333U, ltc.data.timestamp);
 }
 
-static void test_ltc2945_reset_counters_ignores_write_failure_and_auto_convert_off(void)
+static void test_ltc2945_reset_counters_propagates_write_failure_and_auto_convert_off(void)
 {
     xy_ltc2945_t ltc;
     xy_ltc2945_config_t cfg = ltc_config();
@@ -435,7 +435,7 @@ static void test_ltc2945_reset_counters_ignores_write_failure_and_auto_convert_o
     TEST_ASSERT_FLOAT_WITHIN(0.000001f, 0.0000625f, ltc.power_lsb);
 
     queue_write(LTC2945_REG_CONTROL, 0x00U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_reset_counters(&ltc));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ltc2945_reset_counters(&ltc));
 }
 
 static void test_ads1115_read_voltage_failure_preserves_output(void)
@@ -517,7 +517,7 @@ int main(void)
     RUN_TEST(test_ltc2945_not_found_and_uninitialized_read);
     RUN_TEST(test_ltc2945_propagates_i2c_init_failure_without_bus_io);
     RUN_TEST(test_ltc2945_partial_read_failures_preserve_cached_fields);
-    RUN_TEST(test_ltc2945_reset_counters_ignores_write_failure_and_auto_convert_off);
+    RUN_TEST(test_ltc2945_reset_counters_propagates_write_failure_and_auto_convert_off);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
     RUN_TEST(test_ads1115_not_found_and_io_failure_paths);
     RUN_TEST(test_ads1115_propagates_i2c_init_failure_without_bus_io);
