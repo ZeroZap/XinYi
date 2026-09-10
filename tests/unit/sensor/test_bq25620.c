@@ -30,6 +30,8 @@ static size_t g_write_count;
 static size_t g_write_index;
 static uint16_t g_last_addr;
 static uint32_t g_last_timeout;
+static xy_error_t g_init_ret;
+static size_t g_init_count;
 
 static void queue_read8(uint8_t reg, uint8_t value, xy_error_t ret)
 {
@@ -53,6 +55,10 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
+    g_init_count++;
+    if (g_init_ret != XY_DEVICE_OK) {
+        return g_init_ret;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -60,7 +66,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     dev->timeout = timeout;
     g_last_addr = addr;
     g_last_timeout = timeout;
-    return XY_DEVICE_OK;
+    return g_init_ret;
 }
 
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
@@ -114,6 +120,8 @@ void setUp(void)
     g_write_index = 0;
     g_last_addr = 0;
     g_last_timeout = 0;
+    g_init_ret = XY_DEVICE_OK;
+    g_init_count = 0;
 }
 
 void tearDown(void)
@@ -192,17 +200,30 @@ static void test_init_reports_id_and_config_failures(void)
     xy_bq25620_config_t cfg = test_config();
     int bus;
 
+    memset(&bq, 0xA5, sizeof(bq));
+    g_init_ret = XY_DEVICE_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_init(&bq, &bus, &cfg));
+    TEST_ASSERT_EQUAL_UINT(1U, g_init_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    xy_bq25620_t cleared = {0};
+    TEST_ASSERT_EQUAL_MEMORY(&cleared, &bq, sizeof(bq));
+
+    setUp();
+
     queue_read8(BQ25620_REG_PART_ID, 0x00U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_BQ_NOT_FOUND, xy_bq25620_init(&bq, &bus, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&cleared, &bq, sizeof(bq));
 
     queue_read8(BQ25620_REG_PART_ID, BQ25620_PART_ID_VALUE, XY_DEVICE_OK);
     queue_read8(BQ25620_REG_DEV_ID, 0x00U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_BQ_NOT_FOUND, xy_bq25620_init(&bq, &bus, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&cleared, &bq, sizeof(bq));
 
     queue_read8(BQ25620_REG_PART_ID, BQ25620_PART_ID_VALUE, XY_DEVICE_OK);
     queue_read8(BQ25620_REG_DEV_ID, BQ25620_DEV_ID_VALUE, XY_DEVICE_OK);
     queue_read8(BQ25620_REG_CHG_CTRL0, 0x00U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_init(&bq, &bus, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&cleared, &bq, sizeof(bq));
 }
 
 static void test_read_parses_status_fault_and_timestamp(void)
@@ -381,7 +402,7 @@ static void test_bq25620_boundary_settings_and_unknown_fault_mapping(void)
     TEST_ASSERT_EQUAL_INT(XY_BQ_FAULT_NONE, bq.data.fault);
 }
 
-static void test_init_and_deinit_tolerate_enable_charge_write_failures(void)
+static void test_init_and_deinit_propagate_enable_charge_write_failures(void)
 {
     xy_bq25620_t bq;
     xy_bq25620_config_t cfg = test_config();
@@ -389,15 +410,15 @@ static void test_init_and_deinit_tolerate_enable_charge_write_failures(void)
 
     queue_init_ok(&cfg);
     g_writes[6].ret = XY_DEVICE_ERROR;
-    TEST_ASSERT_EQUAL_INT(XY_BQ_OK, xy_bq25620_init(&bq, &bus, &cfg));
-    TEST_ASSERT_TRUE_MESSAGE(bq.initialized,
-                             "init should remain successful when final enable-charge write fails");
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_init(&bq, &bus, &cfg));
+    TEST_ASSERT_FALSE(bq.initialized);
     TEST_ASSERT_EQUAL_UINT(7U, g_write_index);
 
+    init_ok(&bq, &bus, &cfg);
     queue_read8(BQ25620_REG_CHG_STAT, 0x84U, XY_DEVICE_OK);
     queue_write8(BQ25620_REG_CHG_STAT, 0x04U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_BQ_OK, xy_bq25620_deinit(&bq));
-    TEST_ASSERT_FALSE(bq.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_deinit(&bq));
+    TEST_ASSERT_TRUE(bq.initialized);
 }
 
 static void test_getters_and_control_helpers(void)
@@ -477,7 +498,7 @@ int main(void)
     RUN_TEST(test_control_helpers_propagate_update_bit_failures);
     RUN_TEST(test_enable_charge_direct_paths_update_status_enable_bit);
     RUN_TEST(test_bq25620_boundary_settings_and_unknown_fault_mapping);
-    RUN_TEST(test_init_and_deinit_tolerate_enable_charge_write_failures);
+    RUN_TEST(test_init_and_deinit_propagate_enable_charge_write_failures);
     RUN_TEST(test_getters_and_control_helpers);
     return UNITY_END();
 }

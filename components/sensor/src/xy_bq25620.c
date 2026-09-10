@@ -54,6 +54,12 @@ static int xy_bq25620_update_bits(xy_bq25620_t *bq, uint8_t reg, uint8_t mask, u
     return xy_bq25620_write_reg(bq, reg, reg_value);
 }
 
+static int xy_bq25620_init_fail(xy_bq25620_t *bq, int error)
+{
+    memset(bq, 0, sizeof(*bq));
+    return error;
+}
+
 int xy_bq25620_init(xy_bq25620_t *bq, void *i2c_handle, const xy_bq25620_config_t *config)
 {
     int ret;
@@ -67,19 +73,20 @@ int xy_bq25620_init(xy_bq25620_t *bq, void *i2c_handle, const xy_bq25620_config_
     memcpy(&bq->config, config, sizeof(xy_bq25620_config_t));
     
     /* 初始化 I2C */
-    xy_i2c_device_init(&bq->i2c_dev, i2c_handle, BQ25620_ADDR, 400);
+    ret = xy_i2c_device_init(&bq->i2c_dev, i2c_handle, BQ25620_ADDR, 400);
+    if (ret != XY_DEVICE_OK) {
+        return xy_bq25620_init_fail(bq, ret);
+    }
     
     /* 读取 ID 验证设备 */
     ret = xy_bq25620_read_reg(bq, BQ25620_REG_PART_ID, &part_id);
     if (ret != XY_BQ_OK || part_id != BQ25620_PART_ID_VALUE) {
-        xy_log_e("BQ25620 PART ID mismatch (0x%02X)\n", part_id);
-        return XY_BQ_NOT_FOUND;
+        return xy_bq25620_init_fail(bq, XY_BQ_NOT_FOUND);
     }
     
     ret = xy_bq25620_read_reg(bq, BQ25620_REG_DEV_ID, &dev_id);
     if (ret != XY_BQ_OK || dev_id != BQ25620_DEV_ID_VALUE) {
-        xy_log_e("BQ25620 DEV ID mismatch (0x%02X)\n", dev_id);
-        return XY_BQ_NOT_FOUND;
+        return xy_bq25620_init_fail(bq, XY_BQ_NOT_FOUND);
     }
     
     xy_log_i("BQ25620 found (PART=0x%02X, DEV=0x%02X)\n", part_id, dev_id);
@@ -91,7 +98,7 @@ int xy_bq25620_init(xy_bq25620_t *bq, void *i2c_handle, const xy_bq25620_config_
     uint8_t ichg_bits = ((config->ichg_ma - 100) / 100) & 0x1F;
     ret = xy_bq25620_update_bits(bq, BQ25620_REG_CHG_CTRL0, 0xF8, ichg_bits << 3);
     if (ret != XY_BQ_OK) {
-        return ret;
+        return xy_bq25620_init_fail(bq, ret);
     }
     
     /* REG03: 充电控制 1 */
@@ -101,7 +108,7 @@ int xy_bq25620_init(xy_bq25620_t *bq, void *i2c_handle, const xy_bq25620_config_
     uint8_t iterm_bits = ((config->iterm_ma - 50) / 50) & 0x0F;
     ret = xy_bq25620_write_reg(bq, BQ25620_REG_CHG_CTRL1, (ipre_bits << 4) | iterm_bits);
     if (ret != XY_BQ_OK) {
-        return ret;
+        return xy_bq25620_init_fail(bq, ret);
     }
     
     /* REG04: 充电控制 2 */
@@ -109,7 +116,7 @@ int xy_bq25620_init(xy_bq25620_t *bq, void *i2c_handle, const xy_bq25620_config_
     uint8_t vreg_bits = ((config->vbat_reg_mv - 3600) / 10) & 0x3F;
     ret = xy_bq25620_update_bits(bq, BQ25620_REG_CHG_CTRL2, 0xFC, vreg_bits << 2);
     if (ret != XY_BQ_OK) {
-        return ret;
+        return xy_bq25620_init_fail(bq, ret);
     }
     
     /* REG05: 充电控制 3 */
@@ -119,7 +126,7 @@ int xy_bq25620_init(xy_bq25620_t *bq, void *i2c_handle, const xy_bq25620_config_
     uint8_t ivlim_bits = ((config->ivlim_ma - 500) / 100) & 0x0F;
     ret = xy_bq25620_write_reg(bq, BQ25620_REG_CHG_CTRL3, (vindpm_bits << 4) | ivlim_bits);
     if (ret != XY_BQ_OK) {
-        return ret;
+        return xy_bq25620_init_fail(bq, ret);
     }
     
     /* REG06: 充电控制 4 */
@@ -130,7 +137,7 @@ int xy_bq25620_init(xy_bq25620_t *bq, void *i2c_handle, const xy_bq25620_config_
         ret = xy_bq25620_update_bits(bq, BQ25620_REG_CHG_CTRL4, 0x80, 0x00);
     }
     if (ret != XY_BQ_OK) {
-        return ret;
+        return xy_bq25620_init_fail(bq, ret);
     }
     
     /* REG07: 充电控制 5 */
@@ -138,11 +145,14 @@ int xy_bq25620_init(xy_bq25620_t *bq, void *i2c_handle, const xy_bq25620_config_
     uint8_t recharge_bits = (config->recharge_mv / 100) & 0x03;
     ret = xy_bq25620_update_bits(bq, BQ25620_REG_CHG_CTRL5, 0x03, recharge_bits);
     if (ret != XY_BQ_OK) {
-        return ret;
+        return xy_bq25620_init_fail(bq, ret);
     }
     
     /* 使能充电 */
-    xy_bq25620_enable_charge(bq, true);
+    ret = xy_bq25620_enable_charge(bq, true);
+    if (ret != XY_BQ_OK) {
+        return xy_bq25620_init_fail(bq, ret);
+    }
     
     bq->initialized = true;
     xy_log_i("BQ25620 initialized (Vbat=%dmV, Ichg=%dmA)\n",
@@ -158,7 +168,10 @@ int xy_bq25620_deinit(xy_bq25620_t *bq)
     }
     
     /* 禁用充电 */
-    xy_bq25620_enable_charge(bq, false);
+    int ret = xy_bq25620_enable_charge(bq, false);
+    if (ret != XY_BQ_OK) {
+        return ret;
+    }
     
     bq->initialized = false;
     return XY_BQ_OK;
