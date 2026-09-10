@@ -300,8 +300,12 @@ static void test_mpu6050_read_helpers_validate_outputs_and_io_failure_paths(void
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_temperature(NULL, &temp));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_temperature(&dev, NULL));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_set_accel_range(NULL, MPU6050_ACCEL_2G));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM,
+                          xy_mpu6050_set_accel_range(&dev, MPU6050_ACCEL_2G));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_set_accel_range(&dev, (xy_mpu6050_accel_range_t)4));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_set_gyro_range(NULL, MPU6050_GYRO_250DPS));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM,
+                          xy_mpu6050_set_gyro_range(&dev, MPU6050_GYRO_250DPS));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_set_gyro_range(&dev, (xy_mpu6050_gyro_range_t)4));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_calibrate(NULL, 1));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_calibrate(&dev, 0));

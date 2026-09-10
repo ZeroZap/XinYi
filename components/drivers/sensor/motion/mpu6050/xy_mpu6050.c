@@ -116,18 +116,18 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
     }
 
     /* 设置默认量程 */
+    ret = xy_mpu6050_write_reg(dev, MPU6050_REG_ACCEL_CONFIG, MPU6050_ACCEL_2G << 3);
+    if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return ret;
+    }
+    ret = xy_mpu6050_write_reg(dev, MPU6050_REG_GYRO_CONFIG, MPU6050_GYRO_250DPS << 3);
+    if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return ret;
+    }
     dev->accel_range = MPU6050_ACCEL_2G;
     dev->gyro_range = MPU6050_GYRO_250DPS;
-    ret = xy_mpu6050_set_accel_range(dev, dev->accel_range);
-    if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return ret;
-    }
-    ret = xy_mpu6050_set_gyro_range(dev, dev->gyro_range);
-    if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return ret;
-    }
 
     dev->initialized = 1;
     xy_log_i("MPU6050 initialized\n");
@@ -255,7 +255,7 @@ int xy_mpu6050_read_temperature(xy_mpu6050_t *dev, float *temp)
 
 int xy_mpu6050_set_accel_range(xy_mpu6050_t *dev, xy_mpu6050_accel_range_t range)
 {
-    if (!dev || range > MPU6050_ACCEL_16G) {
+    if (!dev || !dev->initialized || range > MPU6050_ACCEL_16G) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
@@ -268,7 +268,7 @@ int xy_mpu6050_set_accel_range(xy_mpu6050_t *dev, xy_mpu6050_accel_range_t range
 
 int xy_mpu6050_set_gyro_range(xy_mpu6050_t *dev, xy_mpu6050_gyro_range_t range)
 {
-    if (!dev || range > MPU6050_GYRO_2000DPS) {
+    if (!dev || !dev->initialized || range > MPU6050_GYRO_2000DPS) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
