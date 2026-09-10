@@ -349,9 +349,9 @@ static void test_adxl362_propagates_config_write_failures_without_cache_updates(
                      (uint8_t)((ADXL362_ODR_100HZ << 3) | ADXL362_RANGE_2G), SENSOR_EOK);
     queue_spi_write8(&fake_spi, ADXL362_REG_POWER_CTL, ADXL362_MODE_MEASUREMENT, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(ADXL362_ODR_100HZ, ((adxl362_priv_t *)sensor->priv_data)->odr);
-    TEST_ASSERT_EQUAL_INT(ADXL362_RANGE_2G, ((adxl362_priv_t *)sensor->priv_data)->range);
-    TEST_ASSERT_EQUAL_UINT8(2U, ((adxl362_priv_t *)sensor->priv_data)->range_g);
+    TEST_ASSERT_EQUAL_INT(0, ((adxl362_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_INT(0, ((adxl362_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(0U, ((adxl362_priv_t *)sensor->priv_data)->range_g);
     TEST_ASSERT_EQUAL_INT(0, ((adxl362_priv_t *)sensor->priv_data)->mode);
 
     setUp();

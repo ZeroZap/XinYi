@@ -55,15 +55,16 @@ static sensor_err_t adxl362_init(sensor_device_t *sensor)
     if (adxl362_write_reg(priv->spi_bus, ADXL362_REG_FILTER_CTL, &data, 1) != 0) {
         return SENSOR_EIO;
     }
-    priv->odr     = ADXL362_ODR_100HZ;
-    priv->range   = ADXL362_RANGE_2G;
-    priv->range_g = 2;
 
     /* 启动测量模式 */
     data = ADXL362_MODE_MEASUREMENT;
     if (adxl362_write_reg(priv->spi_bus, ADXL362_REG_POWER_CTL, &data, 1) != 0) {
         return SENSOR_EIO;
     }
+
+    priv->odr = ADXL362_ODR_100HZ;
+    priv->range = ADXL362_RANGE_2G;
+    priv->range_g = 2;
     priv->mode = ADXL362_MODE_MEASUREMENT;
 
     SENSOR_LOG("ADXL362 initialized (Ultra Low Power: 1.8μA @ 100Hz)");
