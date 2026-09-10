@@ -38,7 +38,6 @@ static sensor_err_t bma400_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
-    priv->power_mode = BMA400_POWER_MODE_LOW_POWER;
 
     /* 配置ACC_CONFIG1: ±2g, OSR=0 (低功耗) */
     data = (BMA400_RANGE_2G << 6) | 0x00;
@@ -47,8 +46,6 @@ static sensor_err_t bma400_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
-    priv->range   = BMA400_RANGE_2G;
-    priv->range_g = 2;
 
     /* 配置ACC_CONFIG2: 25Hz */
     data = BMA400_ODR_25HZ;
@@ -57,6 +54,10 @@ static sensor_err_t bma400_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
+
+    priv->power_mode = BMA400_POWER_MODE_LOW_POWER;
+    priv->range = BMA400_RANGE_2G;
+    priv->range_g = 2;
     priv->odr = BMA400_ODR_25HZ;
 
     SENSOR_LOG("BMA400 initialized (Low Power: 3.5μA, 25Hz, ±2g)");

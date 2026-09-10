@@ -448,8 +448,7 @@ static void test_bma400_init_propagates_each_config_write_failure(void)
     queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG1,
                      (uint8_t)(BMA400_RANGE_2G << 6), SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(BMA400_POWER_MODE_LOW_POWER,
-                          ((bma400_priv_t *)sensor->priv_data)->power_mode);
+    TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->power_mode);
     TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->range);
     TEST_ASSERT_EQUAL_UINT8(0U, ((bma400_priv_t *)sensor->priv_data)->range_g);
 
@@ -463,8 +462,9 @@ static void test_bma400_init_propagates_each_config_write_failure(void)
     queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG2,
                      BMA400_ODR_25HZ, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(BMA400_RANGE_2G, ((bma400_priv_t *)sensor->priv_data)->range);
-    TEST_ASSERT_EQUAL_UINT8(2U, ((bma400_priv_t *)sensor->priv_data)->range_g);
+    TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->power_mode);
+    TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT8(0U, ((bma400_priv_t *)sensor->priv_data)->range_g);
     TEST_ASSERT_EQUAL_INT(0, ((bma400_priv_t *)sensor->priv_data)->odr);
 
     destroy_sensor(sensor);
