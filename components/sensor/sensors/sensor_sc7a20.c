@@ -34,7 +34,6 @@ static sensor_err_t sc7a20_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
-    priv->odr_reg = data;
 
     /* 配置CTRL_REG4: ±2g, 高分辨率模式 */
     data = SC7A20_RANGE_2G | 0x08;
@@ -43,6 +42,8 @@ static sensor_err_t sc7a20_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
+
+    priv->odr_reg = SC7A20_ODR_100HZ | 0x07;
     priv->range = 2;
 
     SENSOR_LOG("SC7A20 initialized successfully");
