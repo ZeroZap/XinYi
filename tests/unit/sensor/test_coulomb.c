@@ -241,7 +241,7 @@ static void test_coulomb_not_found_and_write_failures(void)
     TEST_ASSERT_EQUAL_INT(XY_COULOMB_ERROR, xy_coulomb_init(&coulomb, &bus, INA226_ADDR_GND, &cfg));
 }
 
-static void test_coulomb_init_tolerates_reset_charge_failure(void)
+static void test_coulomb_init_fails_closed_when_reset_charge_write_fails(void)
 {
     xy_coulomb_t coulomb;
     xy_coulomb_config_t cfg = coulomb_config();
@@ -253,8 +253,8 @@ static void test_coulomb_init_tolerates_reset_charge_failure(void)
     queue_write16(INA226_REG_CONFIG, 0xF240U, XY_DEVICE_OK);
     queue_write16(INA226_REG_CURRENT, 0x0000U, XY_DEVICE_ERROR);
 
-    TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_init(&coulomb, &bus, INA226_ADDR_GND, &cfg));
-    TEST_ASSERT_TRUE(coulomb.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_COULOMB_ERROR, xy_coulomb_init(&coulomb, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_coulomb_t){0}, &coulomb, sizeof(coulomb));
     TEST_ASSERT_EQUAL_UINT(3U, g_write_index);
 }
 
@@ -364,7 +364,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_coulomb_init_read_controls_and_invalid_paths);
     RUN_TEST(test_coulomb_not_found_and_write_failures);
-    RUN_TEST(test_coulomb_init_tolerates_reset_charge_failure);
+    RUN_TEST(test_coulomb_init_fails_closed_when_reset_charge_write_fails);
     RUN_TEST(test_coulomb_propagates_i2c_init_failure_without_register_io);
     RUN_TEST(test_coulomb_getters_reread_and_clamp_percentage);
     RUN_TEST(test_coulomb_percentage_lower_clamp_and_getter_output);

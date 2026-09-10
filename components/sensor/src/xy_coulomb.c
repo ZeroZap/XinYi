@@ -106,7 +106,11 @@ int xy_coulomb_init(xy_coulomb_t *coulomb, void *i2c_handle, uint8_t addr,
     }
     
     /* 重置累计容量 */
-    xy_coulomb_reset_charge(coulomb);
+    ret = xy_coulomb_reset_charge(coulomb);
+    if (ret != XY_DEVICE_OK) {
+        memset(coulomb, 0, sizeof(*coulomb));
+        return XY_COULOMB_ERROR;
+    }
     
     coulomb->initialized = true;
     xy_log_i("INA226 initialized (Capacity=%.0f mAh, Rshunt=%.1f mΩ)\n",
