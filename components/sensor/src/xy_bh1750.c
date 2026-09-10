@@ -106,7 +106,10 @@ int xy_bh1750_deinit(xy_bh1750_t *bh1750)
         return XY_BH1750_INVALID_PARAM;
     }
     
-    xy_bh1750_power_down(bh1750);
+    int ret = xy_bh1750_power_down(bh1750);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
     bh1750->initialized = false;
     return XY_BH1750_OK;
 }
