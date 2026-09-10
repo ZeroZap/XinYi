@@ -61,6 +61,7 @@ int xy_max17043_init(xy_max17043_t *max17043, void *i2c_handle,
     ret = xy_max17043_read_reg(max17043, MAX17043_REG_VER, &version);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("MAX17043 not found\n");
+        memset(max17043, 0, sizeof(*max17043));
         return XY_MAX17043_NOT_FOUND;
     }
     
@@ -71,12 +72,20 @@ int xy_max17043_init(xy_max17043_t *max17043, void *i2c_handle,
     if (config->alert_voltage_mv > 0) {
         /* VCELL 每格 20mV */
         uint16_t valrt = (uint16_t)(config->alert_voltage_mv / 20.0f);
-        xy_max17043_write_reg(max17043, MAX17043_REG_VALRT, valrt);
+        ret = xy_max17043_write_reg(max17043, MAX17043_REG_VALRT, valrt);
+        if (ret != XY_DEVICE_OK) {
+            memset(max17043, 0, sizeof(*max17043));
+            return ret;
+        }
     }
     
     /* 配置休眠模式 */
     if (config->enable_hibernate) {
-        xy_max17043_enable_hibernate(max17043, true);
+        ret = xy_max17043_enable_hibernate(max17043, true);
+        if (ret != XY_DEVICE_OK) {
+            memset(max17043, 0, sizeof(*max17043));
+            return ret;
+        }
     }
     
     max17043->initialized = true;
@@ -210,15 +219,23 @@ int xy_max17043_enable_hibernate(xy_max17043_t *max17043, bool enable)
 
 int xy_max17043_reset(xy_max17043_t *max17043)
 {
+    int ret;
+
     if (!max17043) {
         return XY_MAX17043_INVALID_PARAM;
     }
-    
+
     /* 写入解锁序列 */
-    xy_max17043_write_reg(max17043, MAX17043_REG_UNLOCK, 0x0090);
-    
+    ret = xy_max17043_write_reg(max17043, MAX17043_REG_UNLOCK, 0x0090);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
     /* 写入复位命令 */
-    xy_max17043_write_reg(max17043, MAX17043_REG_COMMAND, 0x0002);
+    ret = xy_max17043_write_reg(max17043, MAX17043_REG_COMMAND, 0x0002);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
     
     xy_hal_delay_ms(100);
     

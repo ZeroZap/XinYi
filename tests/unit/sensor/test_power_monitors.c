@@ -496,23 +496,44 @@ static void test_max17043_boundary_conversions_and_config_toggles(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, value);
 }
 
-static void test_max17043_ignored_write_failure_contracts(void)
+static void test_max17043_init_and_reset_write_failures_fail_closed(void)
 {
     xy_max17043_t gauge;
     xy_max17043_config_t cfg = max_config();
     int bus;
 
+    memset(&gauge, 0xA5, sizeof(gauge));
     queue_read16(MAX17043_REG_VER, 0x0012U, XY_DEVICE_OK);
     queue_write16(MAX17043_REG_VALRT, 160U, XY_DEVICE_ERROR);
-    queue_write16(MAX17043_REG_HIBRT, 0x4000U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_init(&gauge, &bus, &cfg));
-    TEST_ASSERT_TRUE(gauge.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_max17043_init(&gauge, &bus, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_max17043_t){0}, &gauge, sizeof(gauge));
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_index);
 
+    setUp();
+    memset(&gauge, 0xA5, sizeof(gauge));
+    queue_read16(MAX17043_REG_VER, 0x0012U, XY_DEVICE_OK);
+    queue_write16(MAX17043_REG_VALRT, 160U, XY_DEVICE_OK);
+    queue_write16(MAX17043_REG_HIBRT, 0x4000U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_max17043_init(&gauge, &bus, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_max17043_t){0}, &gauge, sizeof(gauge));
+    TEST_ASSERT_EQUAL_UINT(2U, g_write_index);
+
+    setUp();
+    init_max_ok(&gauge, &bus);
     queue_write16(MAX17043_REG_UNLOCK, 0x0090U, XY_DEVICE_ERROR);
-    queue_write16(MAX17043_REG_COMMAND, 0x0002U, XY_DEVICE_ERROR);
     g_delay_total = 0;
-    TEST_ASSERT_EQUAL_INT(XY_MAX17043_OK, xy_max17043_reset(&gauge));
-    TEST_ASSERT_EQUAL_UINT32(100U, g_delay_total);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_max17043_reset(&gauge));
+    TEST_ASSERT_EQUAL_UINT(3U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+
+    setUp();
+    init_max_ok(&gauge, &bus);
+    queue_write16(MAX17043_REG_UNLOCK, 0x0090U, XY_DEVICE_OK);
+    queue_write16(MAX17043_REG_COMMAND, 0x0002U, XY_DEVICE_TIMEOUT);
+    g_delay_total = 0;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_max17043_reset(&gauge));
+    TEST_ASSERT_EQUAL_UINT(4U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 }
 
 static void test_ina226_i2c_init_failure_is_atomic(void)
@@ -595,7 +616,7 @@ int main(void)
     RUN_TEST(test_max17043_init_read_controls_and_reset);
     RUN_TEST(test_max17043_read_partial_failures_keep_ok_and_preserve_failed_fields);
     RUN_TEST(test_max17043_not_found_and_getter_invalid_paths);
-    RUN_TEST(test_max17043_ignored_write_failure_contracts);
+    RUN_TEST(test_max17043_init_and_reset_write_failures_fail_closed);
     RUN_TEST(test_max17043_getters_return_cached_values_after_read_failures);
     RUN_TEST(test_max17043_boundary_conversions_and_config_toggles);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
