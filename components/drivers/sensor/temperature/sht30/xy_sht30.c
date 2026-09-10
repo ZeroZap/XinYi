@@ -92,12 +92,16 @@ int xy_sht30_read(xy_sht30_t *sht)
 
 int16_t xy_sht30_read_temperature(xy_sht30_t *sht)
 {
-    xy_sht30_read(sht);
+    if (xy_sht30_read(sht) != XY_DEVICE_OK) {
+        return INT16_MIN;
+    }
     return sht->temperature;
 }
 
 uint16_t xy_sht30_read_humidity(xy_sht30_t *sht)
 {
-    xy_sht30_read(sht);
+    if (xy_sht30_read(sht) != XY_DEVICE_OK) {
+        return UINT16_MAX;
+    }
     return sht->humidity;
 }

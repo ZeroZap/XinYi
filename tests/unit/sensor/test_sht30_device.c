@@ -175,6 +175,27 @@ static void test_read_converts_valid_measurement(void)
     TEST_ASSERT_EQUAL_UINT32(15U, g_delay_ms);
 }
 
+static void test_scalar_read_helpers_signal_measurement_failure(void)
+{
+    xy_sht30_t sensor;
+    int bus;
+    const uint8_t reset[] = {0x30U, 0xA2U};
+    const uint8_t measure[] = {0x2CU, 0x06U};
+
+    queue_write(reset, sizeof(reset), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sht30_init(&sensor, &bus));
+    sensor.temperature = 1234;
+    sensor.humidity = 5678U;
+
+    queue_write(measure, sizeof(measure), XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT16(INT16_MIN, xy_sht30_read_temperature(&sensor));
+    TEST_ASSERT_EQUAL_INT16(1234, sensor.temperature);
+
+    queue_write(measure, sizeof(measure), XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_UINT16(UINT16_MAX, xy_sht30_read_humidity(&sensor));
+    TEST_ASSERT_EQUAL_UINT16(5678U, sensor.humidity);
+}
+
 static void test_read_rejects_uninitialized_device_without_io(void)
 {
     xy_sht30_t sensor;
@@ -191,6 +212,7 @@ int main(void)
     RUN_TEST(test_init_propagates_helper_and_reset_failures);
     RUN_TEST(test_read_checks_crc_and_preserves_cached_values);
     RUN_TEST(test_read_converts_valid_measurement);
+    RUN_TEST(test_scalar_read_helpers_signal_measurement_failure);
     RUN_TEST(test_read_rejects_uninitialized_device_without_io);
     return UNITY_END();
 }

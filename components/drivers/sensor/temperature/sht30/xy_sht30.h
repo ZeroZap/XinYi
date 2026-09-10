@@ -50,14 +50,14 @@ int xy_sht30_read(xy_sht30_t *sht);
 /**
  * @brief 读取温度
  * @param sht SHT30 设备
- * @return 温度 (0.01°C)
+ * @return 温度 (0.01°C)，读取失败返回 INT16_MIN
  */
 int16_t xy_sht30_read_temperature(xy_sht30_t *sht);
 
 /**
  * @brief 读取湿度
  * @param sht SHT30 设备
- * @return 湿度 (0.01%RH)
+ * @return 湿度 (0.01%RH)，读取失败返回 UINT16_MAX
  */
 uint16_t xy_sht30_read_humidity(xy_sht30_t *sht);
 
