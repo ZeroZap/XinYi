@@ -60,7 +60,11 @@ static sensor_err_t bmp280_init(sensor_device_t *sensor)
 
     /* 软复位 */
     data = 0xB6;
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMP280_REG_RESET, &data, 1);
+    if (hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, BMP280_REG_RESET, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
     SENSOR_DELAY_MS(10);
 
     /* 读取校准参数 */
@@ -70,12 +74,19 @@ static sensor_err_t bmp280_init(sensor_device_t *sensor)
 
     /* 配置: standby 0.5ms, filter off, SPI disable */
     data = 0x00;
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMP280_REG_CONFIG, &data, 1);
+    if (hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, BMP280_REG_CONFIG, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
 
     /* 配置测量: osrs_t=1, osrs_p=1, normal mode */
     data = 0x27;
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1);
+    if (hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1)
+        != 0) {
+        return SENSOR_EIO;
+    }
 
     SENSOR_LOG("BMP280 initialized successfully");
 

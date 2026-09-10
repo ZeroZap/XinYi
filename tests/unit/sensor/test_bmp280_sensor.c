@@ -234,6 +234,35 @@ static void test_bmp280_init_maps_chip_id_and_calibration_failures(void)
     destroy_sensor(sensor);
 }
 
+static void test_bmp280_init_maps_reset_and_configuration_write_failures(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = bmp280_create_pressure("bmp280-write-fail", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_mem_read8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CHIP_ID, BMP280_CHIP_ID, SENSOR_EOK);
+    queue_mem_write8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_RESET, 0xB6U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+
+    setUp();
+    queue_mem_read8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CHIP_ID, BMP280_CHIP_ID, SENSOR_EOK);
+    queue_mem_write8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_RESET, 0xB6U, SENSOR_EOK);
+    queue_standard_calibration(&fake_bus);
+    queue_mem_write8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CONFIG, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+
+    setUp();
+    queue_mem_read8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CHIP_ID, BMP280_CHIP_ID, SENSOR_EOK);
+    queue_mem_write8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_RESET, 0xB6U, SENSOR_EOK);
+    queue_standard_calibration(&fake_bus);
+    queue_mem_write8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CONFIG, 0x00U, SENSOR_EOK);
+    queue_mem_write8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CTRL_MEAS, 0x27U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+
+    destroy_sensor(sensor);
+}
+
 static void test_bmp280_read_failure_preserves_output(void)
 {
     int fake_bus;
@@ -263,6 +292,7 @@ int main(void)
     RUN_TEST(test_bmp280_create_defaults_and_init_reads_calibration);
     RUN_TEST(test_bmp280_read_pressure_and_temperature_use_calibration);
     RUN_TEST(test_bmp280_init_maps_chip_id_and_calibration_failures);
+    RUN_TEST(test_bmp280_init_maps_reset_and_configuration_write_failures);
     RUN_TEST(test_bmp280_read_failure_preserves_output);
     return UNITY_END();
 }
