@@ -555,7 +555,7 @@ static void test_kx023_propagates_config_write_failures(void)
     queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_CNTL1, KX023_MODE_LOW_POWER,
                      SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(KX023_ODR_12_5HZ, ((kx023_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_INT(0, ((kx023_priv_t *)sensor->priv_data)->odr);
     TEST_ASSERT_EQUAL_INT(0, ((kx023_priv_t *)sensor->priv_data)->mode);
 
     setUp();

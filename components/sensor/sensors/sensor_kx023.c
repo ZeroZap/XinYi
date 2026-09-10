@@ -46,7 +46,6 @@ static sensor_err_t kx023_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
-    priv->odr = KX023_ODR_12_5HZ;
 
     /* 启动低功耗模式 */
     data = KX023_MODE_LOW_POWER;
@@ -54,6 +53,8 @@ static sensor_err_t kx023_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
+
+    priv->odr = KX023_ODR_12_5HZ;
     priv->mode = KX023_MODE_LOW_POWER;
 
     SENSOR_LOG("KX023 initialized (Ultra Low Power: 0.9μA @ 0.781Hz)");
