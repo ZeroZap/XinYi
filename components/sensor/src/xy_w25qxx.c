@@ -202,10 +202,10 @@ int xy_w25qxx_write_enable(xy_w25qxx_t *dev)
     }
     
     xy_w25q_cs_low(dev);
-    xy_w25q_send_cmd(dev, W25Q_CMD_WRITE_ENABLE);
+    int ret = xy_w25q_send_cmd(dev, W25Q_CMD_WRITE_ENABLE);
     xy_w25q_cs_high(dev);
-    
-    return XY_W25Q_OK;
+
+    return ret;
 }
 
 int xy_w25qxx_sector_erase(xy_w25qxx_t *dev, uint32_t addr)

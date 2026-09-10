@@ -385,7 +385,7 @@ static void test_w25qxx_transfer_failures_preserve_existing_contracts(void)
     const uint8_t read_addr[4] = {W25Q_CMD_READ_DATA, 0x00U, 0x00U, 0x44U};
 
     queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_write_enable(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_w25qxx_write_enable(&dev));
 
     const uint8_t ignored_rx[3] = {0U, 0U, 0U};
     queue_tx(read_addr, sizeof(read_addr), XY_OK);
