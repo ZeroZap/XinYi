@@ -390,7 +390,8 @@ static void test_w25qxx_transfer_failures_preserve_existing_contracts(void)
     const uint8_t ignored_rx[3] = {0U, 0U, 0U};
     queue_tx(read_addr, sizeof(read_addr), XY_OK);
     queue_rx(ignored_rx, sizeof(read_buf), XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_W25Q_OK, xy_w25qxx_read_data(&dev, 0x44U, read_buf, sizeof(read_buf)));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_w25qxx_read_data(&dev, 0x44U, read_buf, sizeof(read_buf)));
     TEST_ASSERT_EQUAL_UINT8(1U, read_buf[0]);
     TEST_ASSERT_EQUAL_UINT8(2U, read_buf[1]);
     TEST_ASSERT_EQUAL_UINT8(3U, read_buf[2]);
