@@ -295,6 +295,23 @@ static void test_qma6100_create_init_and_read_contract(void)
     destroy_sensor(sensor);
 }
 
+static void test_qma6100_set_range_propagates_write_failure_without_cache_update(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = qma6100_create("qma6100-range", &fake_bus, 0U);
+    qma6100_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    priv = (qma6100_priv_t *)sensor->priv_data;
+    priv->range = QMA6100_RANGE_2G;
+    queue_i2c_read8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_CTRL, 0x60U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_CTRL, 0x61U, SENSOR_EIO);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, qma6100_set_range(sensor, QMA6100_RANGE_4G));
+    TEST_ASSERT_EQUAL_UINT8(QMA6100_RANGE_2G, priv->range);
+    destroy_sensor(sensor);
+}
+
 static void test_long_names_are_truncated_with_terminator(void)
 {
     int fake_bus;
@@ -490,6 +507,7 @@ int main(void)
     RUN_TEST(test_hs_ads1100_create_init_and_read_contract);
     RUN_TEST(test_gd30df_create_init_and_read_contract);
     RUN_TEST(test_qma6100_create_init_and_read_contract);
+    RUN_TEST(test_qma6100_set_range_propagates_write_failure_without_cache_update);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_init_propagates_i2c_write_failure);
     RUN_TEST(test_read_failure_preserves_output_and_stops_at_failed_register);

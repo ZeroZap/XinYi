@@ -140,9 +140,19 @@ sensor_device_t *qma6100_create(const char *name, void *i2c_bus, uint8_t addr)
 int qma6100_set_range(sensor_device_t *dev, uint8_t range)
 {
     uint8_t ctrl;
-    qma6100_reg_read(dev, QMA6100_REG_CTRL, &ctrl);
+    qma6100_priv_t *priv;
+
+    if (dev == NULL || dev->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    priv = (qma6100_priv_t *)dev->priv_data;
+    if (qma6100_reg_read(dev, QMA6100_REG_CTRL, &ctrl) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     ctrl = (ctrl & 0xFC) | (range & 0x03);
-    qma6100_reg_write(dev, QMA6100_REG_CTRL, ctrl);
-    ((qma6100_priv_t *)dev->priv_data)->range = range;
-    return 0;
+    if (qma6100_reg_write(dev, QMA6100_REG_CTRL, ctrl) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    priv->range = range;
+    return SENSOR_EOK;
 }
