@@ -105,12 +105,12 @@ static float xy_tsl2561_calculate_lux(xy_tsl2561_t *tsl2561,
 int xy_tsl2561_init(xy_tsl2561_t *tsl2561, void *i2c_handle, uint8_t addr)
 {
     int ret;
-    uint8_t id;
-    
+    uint8_t id = 0;
+
     if (!tsl2561 || !i2c_handle) {
         return XY_TSL2561_INVALID_PARAM;
     }
-    
+
     memset(tsl2561, 0, sizeof(*tsl2561));
     ret = xy_i2c_device_init(&tsl2561->i2c_dev, i2c_handle, addr, 400);
     if (ret != XY_DEVICE_OK) {
@@ -120,21 +120,30 @@ int xy_tsl2561_init(xy_tsl2561_t *tsl2561, void *i2c_handle, uint8_t addr)
     tsl2561->addr = addr;
     tsl2561->gain = XY_TSL2561_GAIN_1X;
     tsl2561->integration = XY_TSL2561_INTEGRATION_402MS;
-    
+
     /* 读取 ID 寄存器验证设备 */
     ret = xy_tsl2561_read_reg(tsl2561, TSL2561_REG_ID, &id);
     if (ret != XY_DEVICE_OK || (id & 0x0A) != 0x0A) {
         xy_log_e("TSL2561 not found (ID=0x%02X)\n", id);
+        memset(tsl2561, 0, sizeof(*tsl2561));
         return XY_TSL2561_NOT_FOUND;
     }
-    
+
     xy_log_i("TSL2561 found at 0x%02X (ID=0x%02X)\n", addr, id);
-    
-    /* 初始化配置 */
-    xy_tsl2561_enable(tsl2561);
-    xy_tsl2561_set_gain(tsl2561, tsl2561->gain);
-    xy_tsl2561_set_integration(tsl2561, tsl2561->integration);
-    
+
+    /* 初始化配置；仅在所有寄存器写入成功后提交 ready 状态。 */
+    ret = xy_tsl2561_enable(tsl2561);
+    if (ret == XY_DEVICE_OK) {
+        ret = xy_tsl2561_set_gain(tsl2561, tsl2561->gain);
+    }
+    if (ret == XY_DEVICE_OK) {
+        ret = xy_tsl2561_set_integration(tsl2561, tsl2561->integration);
+    }
+    if (ret != XY_DEVICE_OK) {
+        memset(tsl2561, 0, sizeof(*tsl2561));
+        return ret;
+    }
+
     tsl2561->initialized = true;
     return XY_TSL2561_OK;
 }

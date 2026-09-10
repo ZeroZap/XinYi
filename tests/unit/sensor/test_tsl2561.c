@@ -392,21 +392,36 @@ static void test_gain_integration_read_failures_use_cached_timing(void)
 }
 
 
-static void test_tsl2561_init_noncritical_config_write_failures_still_ready(void)
+static void test_tsl2561_init_config_write_failures_clear_device(void)
 {
     xy_tsl2561_t dev;
     int fake_bus;
 
+    memset(&dev, 0xA5, sizeof(dev));
     g_write_ret_queue[0] = XY_DEVICE_ERROR;
-    g_write_ret_queue[1] = XY_DEVICE_ERROR;
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_ID, 0x0AU, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
+
+    setUp();
+    memset(&dev, 0xA5, sizeof(dev));
+    g_write_ret_queue[1] = XY_DEVICE_TIMEOUT;
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_ID, 0x0AU, XY_DEVICE_OK);
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x12U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
+
+    setUp();
+    memset(&dev, 0xA5, sizeof(dev));
     g_write_ret_queue[2] = XY_DEVICE_ERROR;
     queue_init_success_reads();
-
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
-    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
-    TEST_ASSERT_EQUAL_UINT8(TSL2561_ADDR_HIGH, g_last_addr);
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_GAIN_1X, dev.gain);
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_402MS, dev.integration);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
     TEST_ASSERT_EQUAL_UINT(3U, g_write_count);
 }
 
@@ -481,7 +496,7 @@ int main(void)
     RUN_TEST(test_enable_disable_propagate_i2c_write_failures);
     RUN_TEST(test_gain_integration_enable_disable_and_deinit_contracts);
     RUN_TEST(test_gain_integration_read_failures_use_cached_timing);
-    RUN_TEST(test_tsl2561_init_noncritical_config_write_failures_still_ready);
+    RUN_TEST(test_tsl2561_init_config_write_failures_clear_device);
     RUN_TEST(test_tsl2561_read_ignores_enable_failure_and_still_updates_data);
     RUN_TEST(test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero);
     RUN_TEST(test_tsl2561_lux_ratio_piecewise_boundaries);
