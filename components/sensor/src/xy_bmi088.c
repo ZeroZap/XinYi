@@ -129,7 +129,7 @@ xy_ret_t xy_bmi088_init(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi, xy_bmi088_confi
     /* 软件复位 */
     xy_ret_t ret = xy_bmi088_soft_reset(dev);
     if (ret != XY_OK) {
-        return ret;
+        goto init_failed;
     }
     xy_delay_ms(10);
     
@@ -137,14 +137,12 @@ xy_ret_t xy_bmi088_init(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi, xy_bmi088_confi
     uint8_t acc_id = 0, gyro_id = 0;
     ret = xy_bmi088_read_chip_id(dev, &acc_id, &gyro_id);
     if (ret != XY_OK) {
-        return ret;
+        goto init_failed;
     }
     
-    if (acc_id != BMI088_ACC_CHIP_ID_VALUE) {
-        return XY_ERROR;  /* 加速度计 ID 错误 */
-    }
-    if (gyro_id != BMI088_GYRO_CHIP_ID_VALUE) {
-        return XY_ERROR;  /* 陀螺仪 ID 错误 */
+    if (acc_id != BMI088_ACC_CHIP_ID_VALUE || gyro_id != BMI088_GYRO_CHIP_ID_VALUE) {
+        ret = XY_ERROR;
+        goto init_failed;
     }
     
     /* 配置加速度计 */
@@ -153,24 +151,24 @@ xy_ret_t xy_bmi088_init(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi, xy_bmi088_confi
     /* 设置量程 */
     reg_data[0] = (uint8_t)dev->config.acc_range;
     ret = bmi088_acc_write_reg(dev, BMI088_ACC_RANGE_ADDR, reg_data, 1);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     /* 设置带宽和 ODR */
     reg_data[0] = (uint8_t)dev->config.acc_odr;
     ret = bmi088_acc_write_reg(dev, BMI088_ACC_BW_ADDR, reg_data, 1);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     /* 配置电源模式 */
     reg_data[0] = 0x00;  /* 正常模式 */
     ret = bmi088_acc_write_reg(dev, BMI088_ACC_PWR_CONF_ADDR, reg_data, 1);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     xy_delay_ms(5);
     
     /* 使能加速度计 */
     reg_data[0] = 0x04;  /* 使能 */
     ret = bmi088_acc_write_reg(dev, BMI088_ACC_PWR_CTRL_ADDR, reg_data, 1);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     xy_delay_ms(10);
     
@@ -179,17 +177,17 @@ xy_ret_t xy_bmi088_init(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi, xy_bmi088_confi
     /* 设置量程 */
     reg_data[0] = (uint8_t)dev->config.gyro_range;
     ret = bmi088_gyro_write_reg(dev, BMI088_GYRO_RANGE_ADDR, reg_data, 1);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     /* 设置带宽和 ODR */
     reg_data[0] = (uint8_t)dev->config.gyro_odr;
     ret = bmi088_gyro_write_reg(dev, BMI088_GYRO_BANDWIDTH_ADDR, reg_data, 1);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     /* 使能陀螺仪 */
     reg_data[0] = 0x80;  /* 正常模式 */
     ret = bmi088_gyro_write_reg(dev, BMI088_GYRO_LPM1_ADDR, reg_data, 1);
-    if (ret != XY_OK) return ret;
+    if (ret != XY_OK) goto init_failed;
     
     xy_delay_ms(30);  /* 等待陀螺仪启动 */
     
@@ -204,6 +202,10 @@ xy_ret_t xy_bmi088_init(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi, xy_bmi088_confi
     dev->is_initialized = true;
     
     return XY_OK;
+
+init_failed:
+    memset(dev, 0, sizeof(*dev));
+    return ret;
 }
 
 xy_ret_t xy_bmi088_deinit(xy_bmi088_dev_t *dev)

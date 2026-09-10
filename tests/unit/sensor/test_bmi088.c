@@ -165,6 +165,13 @@ static void init_bmi_ok(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi)
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_init(dev, spi, &cfg));
 }
 
+static void assert_bmi088_cleared(const xy_bmi088_dev_t *dev)
+{
+    xy_bmi088_dev_t cleared;
+    memset(&cleared, 0, sizeof(cleared));
+    TEST_ASSERT_EQUAL_MEMORY(&cleared, dev, sizeof(cleared));
+}
+
 static void test_bmi088_init_defaults_custom_and_invalid_paths(void)
 {
     xy_bmi088_dev_t dev;
@@ -213,18 +220,38 @@ static void test_bmi088_default_config_and_init_failures(void)
 
     queue_write(0U, BMI088_ACC_SOFTRESET_ADDR, 0xB6U, XY_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_init(&dev, &spi, NULL));
+    assert_bmi088_cleared(&dev);
 
     queue_write(0U, BMI088_ACC_SOFTRESET_ADDR, 0xB6U, XY_OK);
     queue_write(1U, BMI088_GYRO_SOFTRESET_ADDR, 0xB6U, XY_OK);
     queue_read8(0U, BMI088_ACC_CHIP_ID, 0x00U, XY_OK);
     queue_read8(1U, BMI088_GYRO_CHIP_ID, BMI088_GYRO_CHIP_ID_VALUE, XY_OK);
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_init(&dev, &spi, NULL));
+    assert_bmi088_cleared(&dev);
 
     queue_write(0U, BMI088_ACC_SOFTRESET_ADDR, 0xB6U, XY_OK);
     queue_write(1U, BMI088_GYRO_SOFTRESET_ADDR, 0xB6U, XY_OK);
     queue_read8(0U, BMI088_ACC_CHIP_ID, BMI088_ACC_CHIP_ID_VALUE, XY_OK);
     queue_read8(1U, BMI088_GYRO_CHIP_ID, 0x00U, XY_OK);
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_init(&dev, &spi, NULL));
+    assert_bmi088_cleared(&dev);
+}
+
+static void test_bmi088_configuration_failures_clear_device_state(void)
+{
+    xy_bmi088_dev_t dev;
+    xy_spi_dev_t spi = {0};
+    xy_bmi088_config_t cfg = custom_config();
+
+    for (size_t failed_op = 4U; failed_op < 11U; failed_op++) {
+        setUp();
+        queue_init_sequence(&cfg);
+        g_ops[failed_op].ret = XY_ERROR;
+
+        TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_init(&dev, &spi, &cfg));
+        assert_bmi088_cleared(&dev);
+        TEST_ASSERT_EQUAL_UINT(failed_op + 1U, g_op_index);
+    }
 }
 
 static void test_bmi088_read_raw_and_data_conversions(void)
@@ -472,6 +499,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_bmi088_init_defaults_custom_and_invalid_paths);
     RUN_TEST(test_bmi088_default_config_and_init_failures);
+    RUN_TEST(test_bmi088_configuration_failures_clear_device_state);
     RUN_TEST(test_bmi088_read_raw_and_data_conversions);
     RUN_TEST(test_bmi088_error_paths_setters_and_calibration);
     RUN_TEST(test_bmi088_calibrate_failure_preserves_offsets_and_delay);
