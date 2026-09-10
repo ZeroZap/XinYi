@@ -241,17 +241,20 @@ xy_ret_t xy_vl53l1x_init(xy_vl53l1x_dev_t *dev, xy_i2c_dev_t *i2c, xy_vl53l1x_co
     /* 读取设备信息验证连接 */
     xy_ret_t ret = xy_vl53l1x_read_device_info(dev, &dev->model_id, &dev->module_type, &dev->revision_id);
     if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
     
     /* 验证模型 ID (VL53L1X 应为 0xEA) */
     if (dev->model_id != 0xEA) {
+        memset(dev, 0, sizeof(*dev));
         return XY_ERROR;
     }
     
     /* 软件复位 */
     ret = xy_vl53l1x_soft_reset(dev);
     if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
     

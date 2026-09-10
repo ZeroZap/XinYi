@@ -198,6 +198,9 @@ void test_init_rejects_wrong_model_id(void)
     expect_read(0x0112, revision, 2);
 
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(&dev, &i2c, NULL));
+    TEST_ASSERT_FALSE(dev.is_initialized);
+    TEST_ASSERT_NULL(dev.i2c);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.model_id);
 }
 
 void test_init_configuration_failure_rolls_back_state(void)
