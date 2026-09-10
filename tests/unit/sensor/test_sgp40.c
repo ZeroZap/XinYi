@@ -202,12 +202,14 @@ static void test_init_uses_custom_config_and_propagates_identity_failures(void)
     setUp();
     queue_command_ret(-1);
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_init(&dev, &i2c, NULL));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_sgp40_dev_t){0}, &dev, sizeof(dev));
 
     setUp();
     queue_read_u16(0x1234U, 0);
     queue_read_serial(0x1111U, 0x2222U, 0x3333U, 0);
     queue_read_u16(0x0000U, 0);
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_init(&dev, &i2c, NULL));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_sgp40_dev_t){0}, &dev, sizeof(dev));
 }
 
 static void test_feature_serial_and_self_test_crc_paths(void)

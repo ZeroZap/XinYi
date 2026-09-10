@@ -205,12 +205,14 @@ xy_ret_t xy_sgp40_init(xy_sgp40_dev_t *dev, xy_i2c_dev_t *i2c, xy_sgp40_config_t
     /* 读取特征集 */
     xy_ret_t ret = xy_sgp40_read_feature_set(dev, &dev->feature_set);
     if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
     
     /* 读取序列号 */
     ret = xy_sgp40_read_serial_id(dev, dev->serial_id);
     if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
         return ret;
     }
     
@@ -218,6 +220,7 @@ xy_ret_t xy_sgp40_init(xy_sgp40_dev_t *dev, xy_i2c_dev_t *i2c, xy_sgp40_config_t
     bool self_test_passed = false;
     ret = xy_sgp40_self_test(dev, &self_test_passed);
     if (ret != XY_OK || !self_test_passed) {
+        memset(dev, 0, sizeof(*dev));
         return XY_ERROR;
     }
     
