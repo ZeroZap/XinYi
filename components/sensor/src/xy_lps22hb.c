@@ -408,8 +408,6 @@ xy_ret_t xy_lps22hb_set_odr(xy_lps22hb_dev_t *dev, xy_lps22hb_odr_t odr)
         return XY_ERROR;
     }
     
-    dev->config.odr = odr;
-    
     /* 保持低通滤波配置 */
     uint8_t ctrl1;
     xy_ret_t ret = lps22hb_read_reg8(dev, LPS22HB_CTRL_REG1, &ctrl1);
@@ -417,7 +415,11 @@ xy_ret_t xy_lps22hb_set_odr(xy_lps22hb_dev_t *dev, xy_lps22hb_odr_t odr)
     
     ctrl1 = (ctrl1 & ~LPS22HB_ODR_MASK) | odr;
     
-    return lps22hb_write_reg8(dev, LPS22HB_CTRL_REG1, ctrl1);
+    ret = lps22hb_write_reg8(dev, LPS22HB_CTRL_REG1, ctrl1);
+    if (ret == XY_OK) {
+        dev->config.odr = odr;
+    }
+    return ret;
 }
 
 xy_ret_t xy_lps22hb_configure_lpf(xy_lps22hb_dev_t *dev, bool enable, xy_lps22hb_lpf_t lpf)
@@ -425,9 +427,6 @@ xy_ret_t xy_lps22hb_configure_lpf(xy_lps22hb_dev_t *dev, bool enable, xy_lps22hb
     if (dev == XY_NULL || !dev->is_initialized) {
         return XY_ERROR;
     }
-    
-    dev->config.enable_lpf = enable;
-    dev->config.lpf = lpf;
     
     uint8_t ctrl1;
     xy_ret_t ret = lps22hb_read_reg8(dev, LPS22HB_CTRL_REG1, &ctrl1);
@@ -441,7 +440,12 @@ xy_ret_t xy_lps22hb_configure_lpf(xy_lps22hb_dev_t *dev, bool enable, xy_lps22hb
         ctrl1 |= lpf;
     }
     
-    return lps22hb_write_reg8(dev, LPS22HB_CTRL_REG1, ctrl1);
+    ret = lps22hb_write_reg8(dev, LPS22HB_CTRL_REG1, ctrl1);
+    if (ret == XY_OK) {
+        dev->config.enable_lpf = enable;
+        dev->config.lpf = lpf;
+    }
+    return ret;
 }
 
 void xy_lps22hb_set_pressure_offset(xy_lps22hb_dev_t *dev, float offset)
@@ -498,9 +502,6 @@ xy_ret_t xy_lps22hb_configure_fifo(xy_lps22hb_dev_t *dev, xy_lps22hb_fifo_mode_t
         return XY_ERROR;
     }
     
-    dev->config.fifo_mode = mode;
-    dev->config.fifo_wtm = wtm;
-    
     /* 配置 FIFO_CTRL */
     uint8_t fifo_ctrl = mode | (wtm & 0x1F);
     xy_ret_t ret = lps22hb_write_reg8(dev, LPS22HB_FIFO_CTRL, fifo_ctrl);
@@ -508,12 +509,16 @@ xy_ret_t xy_lps22hb_configure_fifo(xy_lps22hb_dev_t *dev, xy_lps22hb_fifo_mode_t
     
     /* 使能/禁用 FIFO */
     if (mode != XY_LPS22HB_FIFO_BYPASS) {
-        dev->config.enable_fifo = true;
-        return lps22hb_update_bits(dev, LPS22HB_CTRL_REG2, LPS22HB_FIFO_EN, LPS22HB_FIFO_EN);
+        ret = lps22hb_update_bits(dev, LPS22HB_CTRL_REG2, LPS22HB_FIFO_EN, LPS22HB_FIFO_EN);
     } else {
-        dev->config.enable_fifo = false;
-        return lps22hb_update_bits(dev, LPS22HB_CTRL_REG2, LPS22HB_FIFO_EN, 0x00);
+        ret = lps22hb_update_bits(dev, LPS22HB_CTRL_REG2, LPS22HB_FIFO_EN, 0x00);
     }
+    if (ret == XY_OK) {
+        dev->config.fifo_mode = mode;
+        dev->config.fifo_wtm = wtm;
+        dev->config.enable_fifo = (mode != XY_LPS22HB_FIFO_BYPASS);
+    }
+    return ret;
 }
 
 xy_ret_t xy_lps22hb_configure_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uint16_t high)
@@ -521,9 +526,6 @@ xy_ret_t xy_lps22hb_configure_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uin
     if (dev == XY_NULL || !dev->is_initialized) {
         return XY_ERROR;
     }
-    
-    dev->config.threshold.low = low;
-    dev->config.threshold.high = high;
     
     uint8_t buffer[2];
     
@@ -536,7 +538,12 @@ xy_ret_t xy_lps22hb_configure_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uin
     /* 配置高阈值 */
     buffer[0] = high & 0xFF;
     buffer[1] = (high >> 8) & 0xFF;
-    return lps22hb_write_reg(dev, LPS22HB_THS_P_H, buffer, 2);
+    ret = lps22hb_write_reg(dev, LPS22HB_THS_P_H, buffer, 2);
+    if (ret == XY_OK) {
+        dev->config.threshold.low = low;
+        dev->config.threshold.high = high;
+    }
+    return ret;
 }
 
 xy_ret_t xy_lps22hb_clear_interrupt(xy_lps22hb_dev_t *dev)
