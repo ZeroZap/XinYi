@@ -355,8 +355,8 @@ static void test_coulomb_control_failures_and_uninitialized_getters(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_coulomb_enable_alert(&coulomb, true));
 
     queue_write16(INA226_REG_CONFIG, 0x0000U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_deinit(&coulomb));
-    TEST_ASSERT_FALSE(coulomb.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_coulomb_deinit(&coulomb));
+    TEST_ASSERT_TRUE(coulomb.initialized);
 }
 
 int main(void)

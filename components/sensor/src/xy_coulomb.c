@@ -126,8 +126,11 @@ int xy_coulomb_deinit(xy_coulomb_t *coulomb)
     }
     
     /* 关闭测量 */
-    xy_coulomb_write_reg(coulomb, INA226_REG_CONFIG, 0x0000);
-    
+    int ret = xy_coulomb_write_reg(coulomb, INA226_REG_CONFIG, 0x0000);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
     coulomb->initialized = false;
     return XY_COULOMB_OK;
 }
