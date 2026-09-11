@@ -326,7 +326,7 @@ static void test_ina226_init_read_getters_alert_and_deinit(void)
     TEST_ASSERT_FALSE(ina.initialized);
 }
 
-static void test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields(void)
+static void test_ina226_read_failure_stops_and_preserves_snapshot(void)
 {
     xy_ina_t ina;
     int bus;
@@ -338,15 +338,15 @@ static void test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields
     ina.data.power_mw = 4.0f;
     ina.data.timestamp = 5U;
 
+    size_t read_index_before_failure = g_read_index;
     queue_read16(INA226_REG_BUS_VOLT, 0x2000U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_SHUNT_VOLT, 0x0100U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_POWER, 0x0064U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_read(&ina));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_read(&ina));
+    TEST_ASSERT_EQUAL_UINT(read_index_before_failure + 1U, g_read_index);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, ina.data.voltage_mv);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f, ina.data.shunt_voltage_uv);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.0f, ina.data.current_ma);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 4.0f, ina.data.power_mw);
-    TEST_ASSERT_EQUAL_UINT32(654321U, ina.data.timestamp);
+    TEST_ASSERT_EQUAL_UINT32(5U, ina.data.timestamp);
 }
 
 static void test_ina229_detection_and_invalid_paths(void)
@@ -426,7 +426,7 @@ static void test_ina226_detection_failures_return_without_config_writes(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
 }
 
-static void test_ina226_get_power_and_shunt_use_cached_values_after_read_failures(void)
+static void test_ina226_getters_propagate_read_failures_and_preserve_outputs(void)
 {
     xy_ina_t ina;
     float value;
@@ -437,18 +437,14 @@ static void test_ina226_get_power_and_shunt_use_cached_values_after_read_failure
     ina.data.power_mw = 34.5f;
 
     queue_read16(INA226_REG_BUS_VOLT, 0U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_POWER, 0U, XY_DEVICE_ERROR);
     value = -1.0f;
-    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_power(&ina, &value));
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 34.5f, value);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_get_power(&ina, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -1.0f, value);
 
     queue_read16(INA226_REG_BUS_VOLT, 0U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_POWER, 0U, XY_DEVICE_ERROR);
     value = -2.0f;
-    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_shunt_voltage(&ina, &value));
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.5f, value);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_get_shunt_voltage(&ina, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -2.0f, value);
 }
 
 static void test_max17043_boundary_conversions_and_config_toggles(void)
@@ -580,17 +576,13 @@ static void test_ina226_init_write_failures_deinit_and_getters_preserve_outputs(
     init_ina_ok(&ina, &bus);
     value = -1.0f;
     queue_read16(INA226_REG_BUS_VOLT, 0x2000U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_SHUNT_VOLT, 0x0100U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_POWER, 0x0064U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_voltage(&ina, &value));
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, value);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_get_voltage(&ina, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -1.0f, value);
 
     value = -2.0f;
     queue_read16(INA226_REG_BUS_VOLT, 0x2000U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_SHUNT_VOLT, 0x0100U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_POWER, 0x0064U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_current(&ina, &value));
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, value);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_get_current(&ina, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -2.0f, value);
 
     queue_write16(INA226_REG_MASK_EN, 0x0000U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_enable_alert(&ina, false));
@@ -610,12 +602,12 @@ int main(void)
     RUN_TEST(test_max17043_getters_propagate_read_failures_and_preserve_outputs);
     RUN_TEST(test_max17043_boundary_conversions_and_config_toggles);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
-    RUN_TEST(test_ina226_partial_read_failures_keep_ok_and_preserve_failed_fields);
+    RUN_TEST(test_ina226_read_failure_stops_and_preserves_snapshot);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
     RUN_TEST(test_ina226_detection_failures_return_without_config_writes);
     RUN_TEST(test_ina226_i2c_init_failure_is_atomic);
     RUN_TEST(test_ina226_post_helper_init_failure_clears_device_state);
     RUN_TEST(test_ina226_init_write_failures_deinit_and_getters_preserve_outputs);
-    RUN_TEST(test_ina226_get_power_and_shunt_use_cached_values_after_read_failures);
+    RUN_TEST(test_ina226_getters_propagate_read_failures_and_preserve_outputs);
     return UNITY_END();
 }

@@ -146,40 +146,46 @@ int xy_ina_read(xy_ina_t *ina)
     int ret;
     uint16_t raw_value;
     int16_t signed_value;
-    
+    xy_ina_data_t next;
+
     if (!ina || !ina->initialized) {
         return XY_INA_INVALID_PARAM;
     }
-    
+
+    next = ina->data;
+
     /* 读取母线电压 (1.25mV/LSB) */
     ret = xy_ina_read_reg(ina, INA226_REG_BUS_VOLT, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        ina->data.voltage_mv = raw_value * 1.25f;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
+    next.voltage_mv = raw_value * 1.25f;
+
     /* 读取分流电压 (2.5uV/LSB) */
-    ret = xy_ina_read_reg(ina, INA226_REG_SHUNT_VOLT, (uint16_t*)&signed_value);
-    if (ret == XY_DEVICE_OK) {
-        ina->data.shunt_voltage_uv = signed_value * 2.5f;
-        
-        /* 计算电流 */
-        float rshunt_ohm = ina->config.shunt_resistor_mohm / 1000.0f;
-        ina->data.current_ma = (ina->data.shunt_voltage_uv / 1e6f / rshunt_ohm) * 1000.0f;
+    ret = xy_ina_read_reg(ina, INA226_REG_SHUNT_VOLT, (uint16_t *)&signed_value);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
+    next.shunt_voltage_uv = signed_value * 2.5f;
+
+    /* 计算电流 */
+    float rshunt_ohm = ina->config.shunt_resistor_mohm / 1000.0f;
+    next.current_ma = (next.shunt_voltage_uv / 1e6f / rshunt_ohm) * 1000.0f;
+
     /* 读取功率 (25uW/LSB) */
     ret = xy_ina_read_reg(ina, INA226_REG_POWER, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        ina->data.power_mw = raw_value * 0.025f;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
-    ina->data.timestamp = xy_os_tick_get();
-    
+    next.power_mw = raw_value * 0.025f;
+    next.timestamp = xy_os_tick_get();
+    ina->data = next;
+
     xy_log_d("INA: V=%.2fV, I=%.2fmA, P=%.2fmW\n",
              ina->data.voltage_mv / 1000.0f,
              ina->data.current_ma,
              ina->data.power_mw);
-    
+
     return XY_INA_OK;
 }
 
