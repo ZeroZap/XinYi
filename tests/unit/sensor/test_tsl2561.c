@@ -438,7 +438,7 @@ static void test_tsl2561_read_propagates_enable_failure_without_updating_data(vo
     TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_data_t){0}, &dev.data, sizeof(dev.data));
 }
 
-static void test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero(void)
+static void test_tsl2561_deinit_propagates_disable_failure_and_preserves_ready(void)
 {
     xy_tsl2561_t dev;
 
@@ -449,8 +449,8 @@ static void test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero(
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, dev.data.lux);
 
     g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_deinit(&dev));
-    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
 }
 
 static void test_tsl2561_lux_ratio_piecewise_boundaries(void)
@@ -495,7 +495,7 @@ int main(void)
     RUN_TEST(test_gain_integration_read_failures_use_cached_timing);
     RUN_TEST(test_tsl2561_init_config_write_failures_clear_device);
     RUN_TEST(test_tsl2561_read_propagates_enable_failure_without_updating_data);
-    RUN_TEST(test_tsl2561_deinit_ignores_disable_failure_and_high_ratio_lux_zero);
+    RUN_TEST(test_tsl2561_deinit_propagates_disable_failure_and_preserves_ready);
     RUN_TEST(test_tsl2561_lux_ratio_piecewise_boundaries);
     return UNITY_END();
 }

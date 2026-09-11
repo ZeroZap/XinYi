@@ -154,7 +154,10 @@ int xy_tsl2561_deinit(xy_tsl2561_t *tsl2561)
         return XY_TSL2561_INVALID_PARAM;
     }
     
-    xy_tsl2561_disable(tsl2561);
+    int ret = xy_tsl2561_disable(tsl2561);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
     tsl2561->initialized = false;
     return XY_TSL2561_OK;
 }
