@@ -417,16 +417,17 @@ static void test_bmi088_chip_id_partial_reads_and_soft_reset_failure(void)
     TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
 }
 
-static void test_bmi088_deinit_write_failures_still_clear_ready(void)
+static void test_bmi088_deinit_write_failure_preserves_ready(void)
 {
     xy_bmi088_dev_t dev;
     xy_spi_dev_t spi = {0};
 
     init_bmi_ok(&dev, &spi);
+    size_t op_index_before_deinit = g_op_index;
     queue_write(0U, BMI088_ACC_PWR_CTRL_ADDR, 0x00U, XY_ERROR);
-    queue_write(1U, BMI088_GYRO_LPM1_ADDR, 0x03U, XY_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_deinit(&dev));
-    TEST_ASSERT_FALSE(xy_bmi088_is_ready(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_deinit(&dev));
+    TEST_ASSERT_TRUE(xy_bmi088_is_ready(&dev));
+    TEST_ASSERT_EQUAL_UINT(op_index_before_deinit + 1U, g_op_index);
 }
 
 static void test_bmi088_set_range_covers_all_sensitivity_branches(void)
@@ -504,7 +505,7 @@ int main(void)
     RUN_TEST(test_bmi088_error_paths_setters_and_calibration);
     RUN_TEST(test_bmi088_calibrate_failure_preserves_offsets_and_delay);
     RUN_TEST(test_bmi088_chip_id_partial_reads_and_soft_reset_failure);
-    RUN_TEST(test_bmi088_deinit_write_failures_still_clear_ready);
+    RUN_TEST(test_bmi088_deinit_write_failure_preserves_ready);
     RUN_TEST(test_bmi088_set_range_covers_all_sensitivity_branches);
     RUN_TEST(test_bmi088_set_range_invalid_enum_uses_default_sensitivity);
     RUN_TEST(test_bmi088_set_calibration_and_inline_helpers);

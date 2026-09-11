@@ -216,14 +216,20 @@ xy_ret_t xy_bmi088_deinit(xy_bmi088_dev_t *dev)
     
     /* 关闭加速度计 */
     uint8_t reg_data = 0x00;
-    bmi088_acc_write_reg(dev, BMI088_ACC_PWR_CTRL_ADDR, &reg_data, 1);
-    
+    xy_ret_t ret = bmi088_acc_write_reg(dev, BMI088_ACC_PWR_CTRL_ADDR, &reg_data, 1);
+    if (ret != XY_OK) {
+        return ret;
+    }
+
     /* 关闭陀螺仪 */
     reg_data = 0x03;  /* 深度睡眠 */
-    bmi088_gyro_write_reg(dev, BMI088_GYRO_LPM1_ADDR, &reg_data, 1);
-    
+    ret = bmi088_gyro_write_reg(dev, BMI088_GYRO_LPM1_ADDR, &reg_data, 1);
+    if (ret != XY_OK) {
+        return ret;
+    }
+
     dev->is_initialized = false;
-    
+
     return XY_OK;
 }
 
