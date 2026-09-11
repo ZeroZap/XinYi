@@ -209,7 +209,7 @@ int xy_bmp280_get_pressure(const xy_bmp280_t *bmp, uint32_t *pressure)
 int32_t xy_bmp280_read_temperature(xy_bmp280_t *bmp)
 {
     if (xy_bmp280_read(bmp) != XY_DEVICE_OK) {
-        return bmp != NULL ? bmp->temperature : 0;
+        return XY_BMP280_TEMPERATURE_READ_ERROR;
     }
     return bmp->temperature;
 }
@@ -217,7 +217,7 @@ int32_t xy_bmp280_read_temperature(xy_bmp280_t *bmp)
 uint32_t xy_bmp280_read_pressure(xy_bmp280_t *bmp)
 {
     if (xy_bmp280_read(bmp) != XY_DEVICE_OK) {
-        return bmp != NULL ? bmp->pressure : 0U;
+        return XY_BMP280_PRESSURE_READ_ERROR;
     }
     return bmp->pressure;
 }

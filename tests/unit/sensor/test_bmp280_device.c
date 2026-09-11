@@ -251,6 +251,29 @@ static void test_bmp280_compensates_bosch_sample_and_preserves_cache_on_failure(
     TEST_ASSERT_EQUAL_UINT32(100653U, bmp.pressure);
 }
 
+static void test_bmp280_scalar_reads_signal_transport_failure(void)
+{
+    const uint8_t raw[6] = {0x65, 0x5A, 0xC0, 0x7E, 0xED, 0x00};
+    xy_bmp280_t bmp;
+    int bus;
+
+    init_success(&bmp, &bus, BMP280_ADDR_DEFAULT);
+    queue_read(BMP280_REG_PRESS_DATA, raw, sizeof(raw), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmp280_read(&bmp));
+
+    queue_read(BMP280_REG_PRESS_DATA, NULL, sizeof(raw), XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT32(XY_BMP280_TEMPERATURE_READ_ERROR,
+                            xy_bmp280_read_temperature(&bmp));
+    TEST_ASSERT_EQUAL_INT32(2508, bmp.temperature);
+    TEST_ASSERT_EQUAL_UINT32(100653U, bmp.pressure);
+
+    queue_read(BMP280_REG_PRESS_DATA, NULL, sizeof(raw), XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_UINT32(XY_BMP280_PRESSURE_READ_ERROR,
+                             xy_bmp280_read_pressure(&bmp));
+    TEST_ASSERT_EQUAL_INT32(2508, bmp.temperature);
+    TEST_ASSERT_EQUAL_UINT32(100653U, bmp.pressure);
+}
+
 static void test_bmp280_deinit_failure_preserves_state(void)
 {
     xy_bmp280_t bmp;
@@ -273,6 +296,7 @@ int main(void)
     RUN_TEST(test_bmp280_init_supports_both_addresses_and_parses_calibration);
     RUN_TEST(test_bmp280_init_propagates_each_io_failure);
     RUN_TEST(test_bmp280_compensates_bosch_sample_and_preserves_cache_on_failure);
+    RUN_TEST(test_bmp280_scalar_reads_signal_transport_failure);
     RUN_TEST(test_bmp280_deinit_failure_preserves_state);
     return UNITY_END();
 }

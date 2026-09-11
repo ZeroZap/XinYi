@@ -61,6 +61,8 @@ int xy_bmp280_get_temperature(const xy_bmp280_t *bmp, int32_t *temperature);
 int xy_bmp280_get_pressure(const xy_bmp280_t *bmp, uint32_t *pressure);
 
 /* Compatibility value getters. Prefer the status-returning getters above. */
+#define XY_BMP280_TEMPERATURE_READ_ERROR INT32_MIN
+#define XY_BMP280_PRESSURE_READ_ERROR UINT32_MAX
 int32_t xy_bmp280_read_temperature(xy_bmp280_t *bmp);
 uint32_t xy_bmp280_read_pressure(xy_bmp280_t *bmp);
 
