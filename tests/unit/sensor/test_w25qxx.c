@@ -254,6 +254,19 @@ static void test_w25qxx_read_id_status_power_and_deinit(void)
     TEST_ASSERT_EQUAL_INT(XY_W25Q_INVALID_PARAM, xy_w25qxx_deinit(NULL));
 }
 
+static void test_w25qxx_read_id_failure_preserves_outputs(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    uint8_t manufacturer = 0xA5U;
+    uint8_t device = 0x5AU;
+
+    queue_tx1(W25Q_CMD_MANUFACTURER_ID, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_w25qxx_read_id(&dev, &manufacturer, &device));
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, manufacturer);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, device);
+}
+
 static void test_w25qxx_erase_program_and_read_data(void)
 {
     xy_w25qxx_t dev = make_ready_dev();
@@ -420,6 +433,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_w25qxx_init_identifies_known_and_unknown_models);
     RUN_TEST(test_w25qxx_read_id_status_power_and_deinit);
+    RUN_TEST(test_w25qxx_read_id_failure_preserves_outputs);
     RUN_TEST(test_w25qxx_erase_program_and_read_data);
     RUN_TEST(test_w25qxx_write_data_pages_and_timeout);
     RUN_TEST(test_w25qxx_chip_select_edges_for_id_and_power_commands);

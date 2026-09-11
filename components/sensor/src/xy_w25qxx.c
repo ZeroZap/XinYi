@@ -151,15 +151,24 @@ int xy_w25qxx_read_id(xy_w25qxx_t *dev, uint8_t *manufacturer_id, uint8_t *devic
         return XY_W25Q_INVALID_PARAM;
     }
     
+    int ret;
+
     xy_w25q_cs_low(dev);
-    xy_w25q_spi_write(dev, &cmd, 1);
-    xy_w25q_spi_write(dev, addr, 3);
-    xy_w25q_spi_read(dev, rx, 2);
+    ret = xy_w25q_spi_write(dev, &cmd, 1);
+    if (ret == XY_DEVICE_OK) {
+        ret = xy_w25q_spi_write(dev, addr, 3);
+    }
+    if (ret == XY_DEVICE_OK) {
+        ret = xy_w25q_spi_read(dev, rx, 2);
+    }
     xy_w25q_cs_high(dev);
-    
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
     *manufacturer_id = rx[0];
     *device_id = rx[1];
-    
+
     return XY_W25Q_OK;
 }
 
