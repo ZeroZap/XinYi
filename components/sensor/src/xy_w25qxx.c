@@ -175,16 +175,24 @@ int xy_w25qxx_read_id(xy_w25qxx_t *dev, uint8_t *manufacturer_id, uint8_t *devic
 int xy_w25qxx_read_status(xy_w25qxx_t *dev, uint8_t *status)
 {
     uint8_t cmd = W25Q_CMD_READ_STATUS_REG1;
+    uint8_t staged_status;
+    int ret;
     
     if (!dev || !status) {
         return XY_W25Q_INVALID_PARAM;
     }
     
     xy_w25q_cs_low(dev);
-    xy_w25q_spi_write(dev, &cmd, 1);
-    xy_w25q_spi_read(dev, status, 1);
+    ret = xy_w25q_spi_write(dev, &cmd, 1);
+    if (ret == XY_DEVICE_OK) {
+        ret = xy_w25q_spi_read(dev, &staged_status, 1);
+    }
     xy_w25q_cs_high(dev);
-    
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    *status = staged_status;
     return XY_W25Q_OK;
 }
 
@@ -194,7 +202,10 @@ int xy_w25qxx_wait_idle(xy_w25qxx_t *dev, uint32_t timeout)
     uint32_t start = xy_os_tick_get();
     
     do {
-        xy_w25qxx_read_status(dev, &status);
+        int ret = xy_w25qxx_read_status(dev, &status);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
         if (!(status & 0x01)) {  /* BUSY bit */
             return XY_W25Q_OK;
         }
