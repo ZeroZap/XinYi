@@ -125,13 +125,18 @@ int xy_ina_init(xy_ina_t *ina, void *i2c_handle, uint8_t addr, const xy_ina_conf
 
 int xy_ina_deinit(xy_ina_t *ina)
 {
+    int ret;
+
     if (!ina) {
         return XY_INA_INVALID_PARAM;
     }
-    
+
     /* 关闭测量 */
-    xy_ina_write_reg(ina, INA226_REG_CONFIG, 0x0000);
-    
+    ret = xy_ina_write_reg(ina, INA226_REG_CONFIG, 0x0000);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
     ina->initialized = false;
     return XY_INA_OK;
 }

@@ -606,8 +606,8 @@ static void test_ina226_init_write_failures_deinit_and_getters_preserve_outputs(
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_enable_alert(&ina, false));
 
     queue_write16(INA226_REG_CONFIG, 0x0000U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_deinit(&ina));
-    TEST_ASSERT_FALSE(ina.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_deinit(&ina));
+    TEST_ASSERT_TRUE(ina.initialized);
 }
 
 int main(void)
