@@ -392,7 +392,7 @@ static void test_ads1115_propagates_i2c_init_failure_without_bus_io(void)
 }
 
 
-static void test_ltc2945_partial_read_failures_preserve_cached_fields(void)
+static void test_ltc2945_read_failure_preserves_complete_sample(void)
 {
     xy_ltc2945_t ltc;
     int bus;
@@ -404,20 +404,12 @@ static void test_ltc2945_partial_read_failures_preserve_cached_fields(void)
     ltc.data.charge_c = 5.0f;
     ltc.data.energy_j = 6.0f;
     ltc.data.timestamp = 7U;
+    xy_ltc2945_data_t previous = ltc.data;
 
     queue_read16(LTC2945_REG_VIN_MSB, 0x0200U, XY_DEVICE_OK);
     queue_read16(LTC2945_REG_VSENSE_MSB, 0x0000U, XY_DEVICE_ERROR);
-    queue_read24(LTC2945_REG_POWER_MSB, 0x000000U, XY_DEVICE_ERROR);
-    queue_read24(LTC2945_REG_CHARGE_MSB, 0x000000U, XY_DEVICE_ERROR);
-    queue_read24(LTC2945_REG_ENERGY_MSB, 0x000000U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_read(&ltc));
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.8f, ltc.data.voltage_v);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.0f, ltc.data.current_a);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 3.0f, ltc.data.shunt_voltage_v);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 4.0f, ltc.data.power_w);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 5.0f, ltc.data.charge_c);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 6.0f, ltc.data.energy_j);
-    TEST_ASSERT_EQUAL_UINT32(222333U, ltc.data.timestamp);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ltc2945_read(&ltc));
+    TEST_ASSERT_EQUAL_MEMORY(&previous, &ltc.data, sizeof(previous));
 }
 
 static void test_ltc2945_reset_counters_propagates_write_failure_and_auto_convert_off(void)
@@ -515,7 +507,7 @@ int main(void)
     RUN_TEST(test_ltc2945_init_read_controls_and_invalid_paths);
     RUN_TEST(test_ltc2945_not_found_and_uninitialized_read);
     RUN_TEST(test_ltc2945_propagates_i2c_init_failure_without_bus_io);
-    RUN_TEST(test_ltc2945_partial_read_failures_preserve_cached_fields);
+    RUN_TEST(test_ltc2945_read_failure_preserves_complete_sample);
     RUN_TEST(test_ltc2945_reset_counters_propagates_write_failure_and_auto_convert_off);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
     RUN_TEST(test_ads1115_not_found_and_io_failure_paths);

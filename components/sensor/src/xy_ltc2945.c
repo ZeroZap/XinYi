@@ -129,59 +129,67 @@ int xy_ltc2945_read(xy_ltc2945_t *ltc2945)
     int ret;
     uint32_t raw_value;
     uint16_t raw16;
-    
+    xy_ltc2945_data_t next;
+
     if (!ltc2945 || !ltc2945->initialized) {
         return XY_LTC2945_INVALID_PARAM;
     }
-    
+
+    next = ltc2945->data;
+
     /* 读取输入电压 (25mV/LSB) */
-    ret = xy_i2c_device_read_reg(&ltc2945->i2c_dev, LTC2945_REG_VIN_MSB, 
-                                  (uint8_t*)&raw16, 2);
-    if (ret == XY_DEVICE_OK) {
-        raw16 = ((uint16_t)((uint8_t*)&raw16)[0] << 8) | ((uint8_t*)&raw16)[1];
-        ltc2945->data.voltage_v = (raw16 >> 4) * 0.025f;
+    ret = xy_i2c_device_read_reg(&ltc2945->i2c_dev, LTC2945_REG_VIN_MSB,
+                                 (uint8_t *)&raw16, 2);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
+    raw16 = ((uint16_t)((uint8_t *)&raw16)[0] << 8) | ((uint8_t *)&raw16)[1];
+    next.voltage_v = (raw16 >> 4) * 0.025f;
+
     /* 读取分流电压 (25uV/LSB) */
     ret = xy_i2c_device_read_reg(&ltc2945->i2c_dev, LTC2945_REG_VSENSE_MSB,
-                                  (uint8_t*)&raw16, 2);
-    if (ret == XY_DEVICE_OK) {
-        raw16 = ((uint16_t)((uint8_t*)&raw16)[0] << 8) | ((uint8_t*)&raw16)[1];
-        int16_t signed_value = (int16_t)raw16;
-        ltc2945->data.shunt_voltage_v = (signed_value >> 4) * 25e-6f;
-        
-        /* 计算电流 */
-        float rshunt_ohm = ltc2945->config.shunt_resistor_mohm / 1000.0f;
-        ltc2945->data.current_a = ltc2945->data.shunt_voltage_v / rshunt_ohm;
+                                 (uint8_t *)&raw16, 2);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
+    raw16 = ((uint16_t)((uint8_t *)&raw16)[0] << 8) | ((uint8_t *)&raw16)[1];
+    int16_t signed_value = (int16_t)raw16;
+    next.shunt_voltage_v = (signed_value >> 4) * 25e-6f;
+
+    /* 计算电流 */
+    float rshunt_ohm = ltc2945->config.shunt_resistor_mohm / 1000.0f;
+    next.current_a = next.shunt_voltage_v / rshunt_ohm;
+
     /* 读取功率 (24 位) */
     ret = xy_ltc2945_read24(ltc2945, LTC2945_REG_POWER_MSB, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        ltc2945->data.power_w = raw_value * ltc2945->power_lsb;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
+    next.power_w = raw_value * ltc2945->power_lsb;
+
     /* 读取电荷 (24 位) */
     ret = xy_ltc2945_read24(ltc2945, LTC2945_REG_CHARGE_MSB, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        ltc2945->data.charge_c = raw_value * ltc2945->charge_lsb;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
+    next.charge_c = raw_value * ltc2945->charge_lsb;
+
     /* 读取能量 (24 位) */
     ret = xy_ltc2945_read24(ltc2945, LTC2945_REG_ENERGY_MSB, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        ltc2945->data.energy_j = raw_value * ltc2945->energy_lsb;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    
-    ltc2945->data.timestamp = xy_hal_sys_get_tick_count();
-    
+    next.energy_j = raw_value * ltc2945->energy_lsb;
+    next.timestamp = xy_hal_sys_get_tick_count();
+    ltc2945->data = next;
+
     xy_log_d("LTC2945: V=%.2fV, I=%.2fA, P=%.2fW, Q=%.2fC, E=%.2fJ\n",
              ltc2945->data.voltage_v,
              ltc2945->data.current_a,
              ltc2945->data.power_w,
              ltc2945->data.charge_c,
              ltc2945->data.energy_j);
-    
+
     return XY_LTC2945_OK;
 }
 
