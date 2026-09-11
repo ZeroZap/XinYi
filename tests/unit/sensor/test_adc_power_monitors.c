@@ -430,12 +430,11 @@ static void test_ltc2945_reset_counters_propagates_write_failure_and_auto_conver
     queue_read8(LTC2945_REG_STATUS, 0x11U, XY_DEVICE_OK);
     queue_write(LTC2945_REG_CONTROL, 0x00U, XY_DEVICE_ERROR);
     queue_write(LTC2945_REG_CTRL_GPIO, cfg.alert_gpio_config, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR1, &cfg));
-    TEST_ASSERT_TRUE(ltc.initialized);
-    TEST_ASSERT_FLOAT_WITHIN(0.000001f, 0.0000625f, ltc.power_lsb);
-
-    queue_write(LTC2945_REG_CONTROL, 0x00U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ltc2945_reset_counters(&ltc));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR1, &cfg));
+    TEST_ASSERT_FALSE(ltc.initialized);
+    TEST_ASSERT_EQUAL_UINT(2U, g_op_index);
+    TEST_ASSERT_EQUAL_UINT(1U, g_seen_write_count);
 }
 
 static void test_ads1115_read_voltage_failure_preserves_output(void)

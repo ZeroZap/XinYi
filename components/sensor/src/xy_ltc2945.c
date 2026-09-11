@@ -69,6 +69,7 @@ int xy_ltc2945_init(xy_ltc2945_t *ltc2945, void *i2c_handle, uint8_t addr,
     ret = xy_ltc2945_read_reg(ltc2945, LTC2945_REG_STATUS, &status);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("LTC2945 not found\n");
+        memset(ltc2945, 0, sizeof(*ltc2945));
         return XY_LTC2945_NOT_FOUND;
     }
     
@@ -94,11 +95,19 @@ int xy_ltc2945_init(xy_ltc2945_t *ltc2945, void *i2c_handle, uint8_t addr,
     if (config->auto_convert) {
         ctrl |= 0x08;  /* 自动转换 */
     }
-    xy_ltc2945_write_reg(ltc2945, LTC2945_REG_CONTROL, ctrl);
-    
+    ret = xy_ltc2945_write_reg(ltc2945, LTC2945_REG_CONTROL, ctrl);
+    if (ret != XY_DEVICE_OK) {
+        memset(ltc2945, 0, sizeof(*ltc2945));
+        return ret;
+    }
+
     /* 配置 ALERT GPIO */
-    xy_ltc2945_write_reg(ltc2945, LTC2945_REG_CTRL_GPIO, config->alert_gpio_config);
-    
+    ret = xy_ltc2945_write_reg(ltc2945, LTC2945_REG_CTRL_GPIO, config->alert_gpio_config);
+    if (ret != XY_DEVICE_OK) {
+        memset(ltc2945, 0, sizeof(*ltc2945));
+        return ret;
+    }
+
     ltc2945->initialized = true;
     xy_log_i("LTC2945 initialized (Rshunt=%.1f mΩ)\n", config->shunt_resistor_mohm);
     
