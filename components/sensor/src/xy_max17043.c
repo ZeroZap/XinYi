@@ -108,39 +108,46 @@ int xy_max17043_read(xy_max17043_t *max17043)
 {
     int ret;
     uint16_t raw_value;
+    xy_max17043_data_t staged;
     
     if (!max17043 || !max17043->initialized) {
         return XY_MAX17043_INVALID_PARAM;
     }
+
+    staged = max17043->data;
     
     /* 读取电池电压 (78.125uV/LSB) */
     ret = xy_max17043_read_reg(max17043, MAX17043_REG_VCELL, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        max17043->data.voltage_mv = (raw_value >> 4) * 0.078125f;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
+    staged.voltage_mv = (raw_value >> 4) * 0.078125f;
     
     /* 读取电量百分比 (1/256 %/LSB) */
     ret = xy_max17043_read_reg(max17043, MAX17043_REG_SOC, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        max17043->data.percentage = (raw_value >> 8) + (raw_value & 0xFF) / 256.0f;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
+    staged.percentage = (raw_value >> 8) + (raw_value & 0xFF) / 256.0f;
     
     /* 读取充放电率 (0.208%/h /LSB) */
     ret = xy_max17043_read_reg(max17043, MAX17043_REG_CRATE, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        /* 有符号数 */
-        int16_t signed_value = (int16_t)raw_value;
-        max17043->data.crate = signed_value * 0.208f / 100.0f;  /* 转换为 C 率 */
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
+    /* 有符号数 */
+    staged.crate = (int16_t)raw_value * 0.208f / 100.0f;  /* 转换为 C 率 */
     
     /* 读取状态寄存器 */
     ret = xy_max17043_read_reg(max17043, MAX17043_REG_STATUS, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        max17043->data.low_battery = (raw_value & 0x02) ? true : false;
-        max17043->data.reset_triggered = (raw_value & 0x10) ? true : false;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
+    staged.low_battery = (raw_value & 0x02) ? true : false;
+    staged.reset_triggered = (raw_value & 0x10) ? true : false;
     
-    max17043->data.timestamp = xy_hal_sys_get_tick_count();
+    staged.timestamp = xy_hal_sys_get_tick_count();
+    max17043->data = staged;
     
     xy_log_d("MAX17043: V=%.2fV, SOC=%.1f%%, C-rate=%.3fC\n",
              max17043->data.voltage_mv / 1000.0f,
