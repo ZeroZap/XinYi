@@ -8,7 +8,7 @@ extern int hal_i2c_write(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
 
 static sensor_err_t ccs811_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -51,7 +51,7 @@ static sensor_err_t ccs811_init(sensor_device_t *sensor)
 
 static sensor_err_t ccs811_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -67,7 +67,7 @@ static sensor_err_t ccs811_deinit(sensor_device_t *sensor)
 
 static sensor_err_t ccs811_read_data(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 

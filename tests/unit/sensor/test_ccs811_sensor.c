@@ -391,7 +391,18 @@ static void test_public_ops_reject_null_inputs_and_missing_private_data(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
     assert_output_unchanged(&data, &snapshot);
 
-    SENSOR_FREE(sensor->priv_data);
+    void *saved_priv = sensor->priv_data;
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    assert_output_unchanged(&data, &snapshot);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_plain_write_index);
+    sensor->bus = &bus;
+
+    SENSOR_FREE(saved_priv);
     sensor->priv_data = NULL;
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
