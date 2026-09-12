@@ -307,7 +307,7 @@ int lsm6dsr_set_gyro_rate(sensor_device_t *dev, uint8_t rate)
     lsm6dsr_priv_t *priv = (lsm6dsr_priv_t *)dev->priv_data;
     uint8_t ctrl2;
     if (lsm6dsr_reg_read(dev, LSM6DSR_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) return SENSOR_EIO;
-    ctrl2 = (ctrl2 & 0xF0) | (rate & 0x0F);
+    ctrl2 = (uint8_t)((ctrl2 & 0x0F) | ((rate & 0x0F) << 4));
     if (lsm6dsr_reg_write(dev, LSM6DSR_REG_CTRL2_G, ctrl2) != SENSOR_EOK) return SENSOR_EIO;
     priv->gyro_rate = rate;
     return 0;
