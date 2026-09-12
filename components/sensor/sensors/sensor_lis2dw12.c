@@ -84,7 +84,16 @@ static sensor_err_t lis2dw12_init(sensor_device_t *sensor)
  */
 static sensor_err_t lis2dw12_deinit(sensor_device_t *sensor)
 {
-    return lis2dw12_reg_write(sensor, LIS2DW12_REG_CTRL1, LIS2DW12_RATE_POWER_DOWN << 2);
+    lis2dw12_priv_t *priv = (lis2dw12_priv_t *)sensor->priv_data;
+    sensor_err_t ret =
+        lis2dw12_reg_write(sensor, LIS2DW12_REG_CTRL1, LIS2DW12_RATE_POWER_DOWN << 2);
+    if (ret != SENSOR_EOK) {
+        return ret;
+    }
+
+    priv->rate = 0U;
+    sensor->odr = 0U;
+    return SENSOR_EOK;
 }
 
 /**
