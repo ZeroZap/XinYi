@@ -252,9 +252,12 @@ xy_ret_t xy_lps22hb_deinit(xy_lps22hb_dev_t *dev)
         return XY_ERROR;
     }
     
-    /* 停止测量 */
-    xy_lps22hb_stop(dev);
-    
+    /* 停止测量 before releasing the initialized state. */
+    xy_ret_t ret = xy_lps22hb_stop(dev);
+    if (ret != XY_OK) {
+        return ret;
+    }
+
     dev->is_initialized = false;
     
     return XY_OK;
