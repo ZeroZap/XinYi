@@ -55,6 +55,7 @@ static sensor_err_t lsm6dsl_init(sensor_device_t *sensor)
 
     priv->accel_range = LSM6DSL_ACCEL_RANGE_2G;
     priv->gyro_range = LSM6DSL_GYRO_RANGE_250DPS;
+    sensor->odr = 104U;
 
     SENSOR_LOG("LSM6DSL initialized");
     return SENSOR_EOK;

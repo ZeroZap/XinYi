@@ -345,6 +345,9 @@ static void test_lsm6dsl_init_failure_does_not_commit_partial_config_cache(void)
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
 
     TEST_ASSERT_NOT_NULL(sensor);
+    priv->accel_range = LSM6DSL_ACCEL_RANGE_8G;
+    priv->gyro_range = LSM6DSL_GYRO_RANGE_1000DPS;
+    sensor->odr = 208U;
     queue_spi_read8(&bus, cs, LSM6DSL_REG_WHOAMI, LSM6DSL_WHOAMI_VALUE, SENSOR_EOK);
     queue_spi_send2(&bus, cs, LSM6DSL_REG_CTRL3_C & 0x7FU, 0x01U, SENSOR_EOK);
     queue_spi_send2(&bus, cs, LSM6DSL_REG_CTRL4_C & 0x7FU, 0x00U, SENSOR_EOK);
@@ -358,9 +361,31 @@ static void test_lsm6dsl_init_failure_does_not_commit_partial_config_cache(void)
                     SENSOR_EIO);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT8(0U, priv->accel_range);
-    TEST_ASSERT_EQUAL_UINT8(0U, priv->gyro_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_ACCEL_RANGE_8G, priv->accel_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_1000DPS, priv->gyro_range);
+    TEST_ASSERT_EQUAL_UINT32(208U, sensor->odr);
 
+    destroy_sensor(sensor);
+}
+
+static void test_lsm6dsl_reinit_success_resynchronizes_public_odr(void)
+{
+    int bus;
+    const uint8_t cs = 3U;
+    sensor_device_t *sensor = lsm6dsl_create_spi_accel("dsl-reinit", &bus, cs);
+    lsm6dsl_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    priv = (lsm6dsl_priv_t *)sensor->priv_data;
+    priv->accel_range = LSM6DSL_ACCEL_RANGE_8G;
+    priv->gyro_range = LSM6DSL_GYRO_RANGE_1000DPS;
+    sensor->odr = 208U;
+
+    queue_lsm6dsl_spi_init(&bus, cs, LSM6DSL_WHOAMI_VALUE);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_ACCEL_RANGE_2G, priv->accel_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_250DPS, priv->gyro_range);
+    TEST_ASSERT_EQUAL_UINT32(104U, sensor->odr);
     destroy_sensor(sensor);
 }
 
@@ -729,6 +754,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers);
     RUN_TEST(test_lsm6dsl_init_failure_does_not_commit_partial_config_cache);
+    RUN_TEST(test_lsm6dsl_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dso_init_failure_does_not_commit_partial_config_cache);
     RUN_TEST(test_lsm6dso_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors);
