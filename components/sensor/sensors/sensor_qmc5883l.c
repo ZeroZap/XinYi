@@ -41,6 +41,7 @@ static sensor_err_t qmc5883l_init(sensor_device_t *sensor)
     }
 
     priv->range = 2;
+    sensor->odr = 200U;
 
     SENSOR_LOG("QMC5883L initialized successfully");
 

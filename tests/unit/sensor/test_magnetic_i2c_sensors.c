@@ -142,6 +142,7 @@ static void test_qmc5883l_create_init_read_and_deinit_contracts(void)
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_PERIOD, 0x01U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT32(13589U, g_tick);
+    TEST_ASSERT_EQUAL_UINT32(200U, sensor->odr);
 
     queue_read(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_STATUS, &ready, 1U, SENSOR_EOK);
     queue_read(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_DATA_X_LSB, raw, sizeof(raw),
@@ -171,17 +172,21 @@ static void test_qmc5883l_io_failures_stop_and_preserve_outputs(void)
 
     TEST_ASSERT_NOT_NULL(sensor);
 
+    sensor->odr = 77U;
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL2, 0x80U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(77U, sensor->odr);
 
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL2, 0x80U, SENSOR_EOK);
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL1, 0x0DU, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(77U, sensor->odr);
 
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL2, 0x80U, SENSOR_EOK);
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL1, 0x0DU, SENSOR_EOK);
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_PERIOD, 0x01U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(77U, sensor->odr);
 
     queue_read(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_STATUS, &not_ready, 1U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->read(sensor, &data));
