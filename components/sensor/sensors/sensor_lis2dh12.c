@@ -74,6 +74,8 @@ static sensor_err_t lis2dh12_deinit(sensor_device_t *sensor)
         return SENSOR_EIO;
     }
 
+    priv->odr = LIS2DH12_ODR_POWER_DOWN;
+    sensor->odr = 0U;
     return SENSOR_EOK;
 }
 

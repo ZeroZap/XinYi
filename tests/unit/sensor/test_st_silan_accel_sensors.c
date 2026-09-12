@@ -199,6 +199,9 @@ static void test_lis2dh12_init_read_config_deinit_and_errors(void)
 
     queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL1, LIS2DH12_ODR_POWER_DOWN, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(LIS2DH12_ODR_POWER_DOWN,
+                          ((lis2dh12_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_UINT32(0U, sensor->odr);
     queue_read8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_WHOAMI, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
     queue_read(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_OUT_X_L | 0x80U, NULL, 6U, SENSOR_EIO);
@@ -209,9 +212,9 @@ static void test_lis2dh12_init_read_config_deinit_and_errors(void)
     queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL4, LIS2DH12_RANGE_2G | 0x08U, SENSOR_EOK);
     queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_TEMP_CFG, 0xC0U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(LIS2DH12_ODR_100HZ,
+    TEST_ASSERT_EQUAL_INT(LIS2DH12_ODR_POWER_DOWN,
                           ((lis2dh12_priv_t *)sensor->priv_data)->odr);
-    TEST_ASSERT_EQUAL_UINT32(100U, sensor->odr);
+    TEST_ASSERT_EQUAL_UINT32(0U, sensor->odr);
     TEST_ASSERT_EQUAL_INT(LIS2DH12_RANGE_8G, ((lis2dh12_priv_t *)sensor->priv_data)->range);
     TEST_ASSERT_EQUAL_UINT8(8U, ((lis2dh12_priv_t *)sensor->priv_data)->range_g);
 
@@ -221,8 +224,13 @@ static void test_lis2dh12_init_read_config_deinit_and_errors(void)
     TEST_ASSERT_EQUAL_INT(LIS2DH12_RANGE_8G, ((lis2dh12_priv_t *)sensor->priv_data)->range);
     TEST_ASSERT_EQUAL_UINT8(8U, ((lis2dh12_priv_t *)sensor->priv_data)->range_g);
 
+    ((lis2dh12_priv_t *)sensor->priv_data)->odr = LIS2DH12_ODR_100HZ;
+    sensor->odr = 100U;
     queue_write8(&fake_bus, LIS2DH12_ADDR_DEFAULT, LIS2DH12_REG_CTRL1, LIS2DH12_ODR_POWER_DOWN, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(LIS2DH12_ODR_100HZ,
+                          ((lis2dh12_priv_t *)sensor->priv_data)->odr);
+    TEST_ASSERT_EQUAL_UINT32(100U, sensor->odr);
 
     destroy_sensor(sensor);
 }
