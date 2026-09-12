@@ -155,10 +155,13 @@ sensor_device_t *iis2iclp_create_spi(const char *name, void *spi_bus, uint8_t cs
 
 int iis2iclp_set_range(sensor_device_t *dev, uint8_t range)
 {
+    static const uint8_t physical_range_g[] = {2U, 4U, 8U, 16U};
     uint8_t ctrl1;
+
+    if (range > IIS2ICLP_RANGE_16G) return SENSOR_EINVAL;
     if (iis2iclp_reg_read(dev, IIS2ICLP_REG_CTRL1, &ctrl1) != SENSOR_EOK) return SENSOR_EIO;
     ctrl1 = (ctrl1 & 0xFC) | (range & 0x03);
     if (iis2iclp_reg_write(dev, IIS2ICLP_REG_CTRL1, ctrl1) != SENSOR_EOK) return SENSOR_EIO;
-    ((iis2iclp_priv_t *)dev->priv_data)->range = range;
+    ((iis2iclp_priv_t *)dev->priv_data)->range = physical_range_g[range];
     return 0;
 }
