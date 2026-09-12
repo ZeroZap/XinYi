@@ -453,15 +453,16 @@ int xy_bno055_get_data(xy_bno055_t *dev, bno055_data_t *data)
     }
 
     int ret;
+    bno055_data_t staged;
 
     /* 读取欧拉角 */
-    ret = xy_bno055_get_euler(dev, &data->euler);
+    ret = xy_bno055_get_euler(dev, &staged.euler);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
 
     /* 读取四元数 */
-    ret = xy_bno055_get_quaternion(dev, &data->quat);
+    ret = xy_bno055_get_quaternion(dev, &staged.quat);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
@@ -469,84 +470,87 @@ int xy_bno055_get_data(xy_bno055_t *dev, bno055_data_t *data)
     /* 读取加速度数据 (0x08-0x0D, 6 字节) */
     uint8_t acc_buf[6];
     ret = xy_bno055_read_regs(dev, BNO055_REG_ACC_DATA_X_LSB, acc_buf, 6);
-    if (ret == XY_DEVICE_OK) {
-        int16_t acc_x = (int16_t)((acc_buf[1] << 8) | acc_buf[0]);
-        int16_t acc_y = (int16_t)((acc_buf[3] << 8) | acc_buf[2]);
-        int16_t acc_z = (int16_t)((acc_buf[5] << 8) | acc_buf[4]);
-        
-        /* 转换为 m/s² (比例因子 1/100) */
-        data->acc_x = (float)acc_x / 100.0f;
-        data->acc_y = (float)acc_y / 100.0f;
-        data->acc_z = (float)acc_z / 100.0f;
-    }
+    if (ret != XY_DEVICE_OK) return ret;
+    int16_t acc_x = (int16_t)((acc_buf[1] << 8) | acc_buf[0]);
+    int16_t acc_y = (int16_t)((acc_buf[3] << 8) | acc_buf[2]);
+    int16_t acc_z = (int16_t)((acc_buf[5] << 8) | acc_buf[4]);
+
+    /* 转换为 m/s² (比例因子 1/100) */
+    staged.acc_x = (float)acc_x / 100.0f;
+    staged.acc_y = (float)acc_y / 100.0f;
+    staged.acc_z = (float)acc_z / 100.0f;
 
     /* 读取线性加速度 (0x28-0x2D, 6 字节) */
     uint8_t lia_buf[6];
     ret = xy_bno055_read_regs(dev, BNO055_REG_LIA_DATA_X_LSB, lia_buf, 6);
-    if (ret == XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK) return ret;
+    {
         int16_t lia_x = (int16_t)((lia_buf[1] << 8) | lia_buf[0]);
         int16_t lia_y = (int16_t)((lia_buf[3] << 8) | lia_buf[2]);
         int16_t lia_z = (int16_t)((lia_buf[5] << 8) | lia_buf[4]);
         
-        data->linear_acc_x = (float)lia_x / 100.0f;
-        data->linear_acc_y = (float)lia_y / 100.0f;
-        data->linear_acc_z = (float)lia_z / 100.0f;
+        staged.linear_acc_x = (float)lia_x / 100.0f;
+        staged.linear_acc_y = (float)lia_y / 100.0f;
+        staged.linear_acc_z = (float)lia_z / 100.0f;
     }
 
     /* 读取重力向量 (0x2E-0x33, 6 字节) */
     uint8_t grv_buf[6];
     ret = xy_bno055_read_regs(dev, BNO055_REG_GRV_DATA_X_LSB, grv_buf, 6);
-    if (ret == XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK) return ret;
+    {
         int16_t grv_x = (int16_t)((grv_buf[1] << 8) | grv_buf[0]);
         int16_t grv_y = (int16_t)((grv_buf[3] << 8) | grv_buf[2]);
         int16_t grv_z = (int16_t)((grv_buf[5] << 8) | grv_buf[4]);
         
-        data->gravity_x = (float)grv_x / 100.0f;
-        data->gravity_y = (float)grv_y / 100.0f;
-        data->gravity_z = (float)grv_z / 100.0f;
+        staged.gravity_x = (float)grv_x / 100.0f;
+        staged.gravity_y = (float)grv_y / 100.0f;
+        staged.gravity_z = (float)grv_z / 100.0f;
     }
 
     /* 读取磁场数据 (0x0E-0x13, 6 字节) */
     uint8_t mag_buf[6];
     ret = xy_bno055_read_regs(dev, BNO055_REG_MAG_DATA_X_LSB, mag_buf, 6);
-    if (ret == XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK) return ret;
+    {
         int16_t mag_x = (int16_t)((mag_buf[1] << 8) | mag_buf[0]);
         int16_t mag_y = (int16_t)((mag_buf[3] << 8) | mag_buf[2]);
         int16_t mag_z = (int16_t)((mag_buf[5] << 8) | mag_buf[4]);
         
         /* 转换为 μT (比例因子 1/16) */
-        data->mag_x = (float)mag_x / 16.0f;
-        data->mag_y = (float)mag_y / 16.0f;
-        data->mag_z = (float)mag_z / 16.0f;
+        staged.mag_x = (float)mag_x / 16.0f;
+        staged.mag_y = (float)mag_y / 16.0f;
+        staged.mag_z = (float)mag_z / 16.0f;
     }
 
     /* 读取陀螺仪数据 (0x14-0x19, 6 字节) */
     uint8_t gyr_buf[6];
     ret = xy_bno055_read_regs(dev, BNO055_REG_GYR_DATA_X_LSB, gyr_buf, 6);
-    if (ret == XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK) return ret;
+    {
         int16_t gyr_x = (int16_t)((gyr_buf[1] << 8) | gyr_buf[0]);
         int16_t gyr_y = (int16_t)((gyr_buf[3] << 8) | gyr_buf[2]);
         int16_t gyr_z = (int16_t)((gyr_buf[5] << 8) | gyr_buf[4]);
         
         /* 转换为 rad/s (比例因子 1/16 °/s) */
-        data->gyr_x = (float)gyr_x / 16.0f * DEG_TO_RAD;
-        data->gyr_y = (float)gyr_y / 16.0f * DEG_TO_RAD;
-        data->gyr_z = (float)gyr_z / 16.0f * DEG_TO_RAD;
+        staged.gyr_x = (float)gyr_x / 16.0f * DEG_TO_RAD;
+        staged.gyr_y = (float)gyr_y / 16.0f * DEG_TO_RAD;
+        staged.gyr_z = (float)gyr_z / 16.0f * DEG_TO_RAD;
     }
 
     /* 读取温度 */
     int8_t temp = 0;
     ret = xy_bno055_read_regs(dev, BNO055_REG_TEMP, (uint8_t*)&temp, 1);
-    if (ret == XY_DEVICE_OK) {
-        data->temperature = (float)temp;
-    }
+    if (ret != XY_DEVICE_OK) return ret;
+    staged.temperature = (float)temp;
 
     /* 读取校准状态 */
-    ret = xy_bno055_get_calib_status(dev, &data->calib);
+    ret = xy_bno055_get_calib_status(dev, &staged.calib);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
 
+    *data = staged;
     return XY_DEVICE_OK;
 }
 
