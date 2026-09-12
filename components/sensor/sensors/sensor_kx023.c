@@ -72,6 +72,7 @@ static sensor_err_t kx023_deinit(sensor_device_t *sensor)
         return SENSOR_EIO;
     }
 
+    priv->mode = KX023_MODE_STANDBY;
     return SENSOR_EOK;
 }
 
