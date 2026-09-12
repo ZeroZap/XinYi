@@ -294,17 +294,14 @@ static void test_coulomb_getters_reread_and_clamp_percentage(void)
     TEST_ASSERT_FLOAT_WITHIN(0.01f, -25.0f, coulomb.data.current_ma);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 100.0f, coulomb.data.percentage);
 
+    xy_coulomb_data_t snapshot = coulomb.data;
     queue_read16(INA226_REG_BUS_VOLT, 0U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_POWER, 0U, XY_DEVICE_ERROR);
-    queue_read16(INA226_REG_CURRENT, 0U, XY_DEVICE_ERROR);
     value = 1234.0f;
-    TEST_ASSERT_EQUAL_INT(XY_COULOMB_OK, xy_coulomb_get_current(&coulomb, &value));
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, -25.0f, value);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 5000.0f, coulomb.data.voltage_mv);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, coulomb.data.power_mw);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 100.0f, coulomb.data.percentage);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_coulomb_get_current(&coulomb, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1234.0f, value);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &coulomb.data, sizeof(snapshot));
 
+    setUp();
     queue_read16(INA226_REG_BUS_VOLT, 0U, XY_DEVICE_OK);
     queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_OK);
     queue_read16(INA226_REG_POWER, 200U, XY_DEVICE_OK);
@@ -359,6 +356,32 @@ static void test_coulomb_control_failures_and_uninitialized_getters(void)
     TEST_ASSERT_TRUE(coulomb.initialized);
 }
 
+static void test_coulomb_read_fails_atomically_on_mid_sequence_error(void)
+{
+    xy_coulomb_t coulomb;
+    xy_coulomb_data_t snapshot;
+    float value = 1234.0f;
+    int bus;
+
+    init_coulomb_ok(&coulomb, &bus);
+    coulomb.data = (xy_coulomb_data_t){.voltage_mv = 5000.0f,
+                                       .current_ma = -25.0f,
+                                       .power_mw = 50.0f,
+                                       .charge_mah = 100.0f,
+                                       .percentage = 75.0f,
+                                       .timestamp = 123U};
+    snapshot = coulomb.data;
+    queue_read16(INA226_REG_BUS_VOLT, 8000U, XY_DEVICE_OK);
+    queue_read16(INA226_REG_SHUNT_VOLT, 0U, XY_DEVICE_ERROR);
+    queue_read16(INA226_REG_POWER, 0U, XY_DEVICE_OK);
+    queue_read16(INA226_REG_CURRENT, 0U, XY_DEVICE_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_coulomb_get_current(&coulomb, &value));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1234.0f, value);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &coulomb.data, sizeof(snapshot));
+    TEST_ASSERT_EQUAL_UINT(4U, g_read_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -369,5 +392,6 @@ int main(void)
     RUN_TEST(test_coulomb_getters_reread_and_clamp_percentage);
     RUN_TEST(test_coulomb_percentage_lower_clamp_and_getter_output);
     RUN_TEST(test_coulomb_control_failures_and_uninitialized_getters);
+    RUN_TEST(test_coulomb_read_fails_atomically_on_mid_sequence_error);
     return UNITY_END();
 }

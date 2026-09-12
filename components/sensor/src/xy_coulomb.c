@@ -140,49 +140,49 @@ int xy_coulomb_read(xy_coulomb_t *coulomb)
     int ret;
     uint16_t raw_value;
     int16_t signed_value;
+    xy_coulomb_data_t next;
     
     if (!coulomb || !coulomb->initialized) {
         return XY_COULOMB_INVALID_PARAM;
     }
+
+    next = coulomb->data;
     
     /* 读取母线电压 (1.25mV/LSB) */
     ret = xy_coulomb_read_reg(coulomb, INA226_REG_BUS_VOLT, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        coulomb->data.voltage_mv = raw_value * 1.25f;
-    }
+    if (ret != XY_DEVICE_OK) return ret;
+    next.voltage_mv = raw_value * 1.25f;
     
     /* 读取分流电压 */
     ret = xy_coulomb_read_reg(coulomb, INA226_REG_SHUNT_VOLT, (uint16_t*)&signed_value);
-    if (ret == XY_DEVICE_OK) {
-        /* 2.5uV/LSB */
-        float shunt_voltage_v = signed_value * 2.5e-6f;
-        float rshunt_ohm = coulomb->config.shunt_resistor_mohm / 1000.0f;
-        coulomb->data.current_ma = (shunt_voltage_v / rshunt_ohm) * 1000.0f;
-    }
+    if (ret != XY_DEVICE_OK) return ret;
+    /* 2.5uV/LSB */
+    float shunt_voltage_v = signed_value * 2.5e-6f;
+    float rshunt_ohm = coulomb->config.shunt_resistor_mohm / 1000.0f;
+    next.current_ma = (shunt_voltage_v / rshunt_ohm) * 1000.0f;
     
     /* 读取功率 (25uW/LSB) */
     ret = xy_coulomb_read_reg(coulomb, INA226_REG_POWER, &raw_value);
-    if (ret == XY_DEVICE_OK) {
-        coulomb->data.power_mw = raw_value * 0.025f;
-    }
+    if (ret != XY_DEVICE_OK) return ret;
+    next.power_mw = raw_value * 0.025f;
     
     /* 读取累计容量 (Current_LSB/LSB) */
     ret = xy_coulomb_read_reg(coulomb, INA226_REG_CURRENT, (uint16_t*)&signed_value);
-    if (ret == XY_DEVICE_OK) {
-        coulomb->data.charge_mah = signed_value * coulomb->current_lsb * 1000.0f;
+    if (ret != XY_DEVICE_OK) return ret;
+    next.charge_mah = signed_value * coulomb->current_lsb * 1000.0f;
+
+    /* 计算电量百分比 */
+    if (coulomb->config.capacity_mah > 0) {
+        float used_percentage = (next.charge_mah / coulomb->config.capacity_mah) * 100.0f;
+        next.percentage = 100.0f - used_percentage;
         
-        /* 计算电量百分比 */
-        if (coulomb->config.capacity_mah > 0) {
-            float used_percentage = (coulomb->data.charge_mah / coulomb->config.capacity_mah) * 100.0f;
-            coulomb->data.percentage = 100.0f - used_percentage;
-            
-            /* 限制在 0-100% */
-            if (coulomb->data.percentage < 0) coulomb->data.percentage = 0;
-            if (coulomb->data.percentage > 100) coulomb->data.percentage = 100;
-        }
+        /* 限制在 0-100% */
+        if (next.percentage < 0) next.percentage = 0;
+        if (next.percentage > 100) next.percentage = 100;
     }
     
-    coulomb->data.timestamp = xy_hal_sys_get_tick_count();
+    next.timestamp = xy_hal_sys_get_tick_count();
+    coulomb->data = next;
     
     xy_log_d("INA226: V=%.2fV, I=%.2fmA, P=%.2fmW, SOC=%.1f%%\n",
              coulomb->data.voltage_mv / 1000.0f,
