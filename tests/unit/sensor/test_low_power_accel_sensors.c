@@ -319,6 +319,8 @@ static void test_adxl362_create_init_read_deinit_and_error_paths(void)
 
     queue_spi_write8(&fake_spi, ADXL362_REG_POWER_CTL, ADXL362_MODE_STANDBY, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(ADXL362_MODE_STANDBY,
+                          ((adxl362_priv_t *)sensor->priv_data)->mode);
 
     queue_spi_read8(&fake_spi, ADXL362_REG_DEVID_AD, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
@@ -355,8 +357,11 @@ static void test_adxl362_propagates_config_write_failures_without_cache_updates(
     TEST_ASSERT_EQUAL_INT(0, ((adxl362_priv_t *)sensor->priv_data)->mode);
 
     setUp();
+    ((adxl362_priv_t *)sensor->priv_data)->mode = ADXL362_MODE_MEASUREMENT;
     queue_spi_write8(&fake_spi, ADXL362_REG_POWER_CTL, ADXL362_MODE_STANDBY, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(ADXL362_MODE_MEASUREMENT,
+                          ((adxl362_priv_t *)sensor->priv_data)->mode);
 
     destroy_sensor(sensor);
 }
