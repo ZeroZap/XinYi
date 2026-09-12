@@ -283,6 +283,47 @@ static void test_ist8310_io_failures_stop_and_preserve_outputs(void)
     destroy_sensor(sensor);
 }
 
+static void test_ist8310_rejects_invalid_public_boundaries_without_side_effects(void)
+{
+    int fake_bus;
+    sensor_data_t data = {
+        .type = SENSOR_TYPE_GYROSCOPE,
+        .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
+        .value.val_3axis = {.x = 11, .y = -22, .z = 33},
+        .timestamp = 42U,
+        .accuracy = 7U,
+    };
+    const sensor_data_t snapshot = data;
+    sensor_device_t *sensor = ist8310_create("ist8310-guards", &fake_bus);
+
+    TEST_ASSERT_NULL(ist8310_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(ist8310_create("ist8310-null-bus", NULL));
+    TEST_ASSERT_NOT_NULL(sensor);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+
+    void *saved_priv = sensor->priv_data;
+    sensor->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    sensor->priv_data = saved_priv;
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT32(13579U, g_tick);
+    destroy_sensor(sensor);
+}
+
 static void test_ak09918_create_init_read_and_deinit_contracts(void)
 {
     int fake_bus;
@@ -460,6 +501,7 @@ int main(void)
     RUN_TEST(test_qmc5883l_io_failures_stop_and_preserve_outputs);
     RUN_TEST(test_ist8310_create_init_read_and_deinit_contracts);
     RUN_TEST(test_ist8310_io_failures_stop_and_preserve_outputs);
+    RUN_TEST(test_ist8310_rejects_invalid_public_boundaries_without_side_effects);
     RUN_TEST(test_ak09918_create_init_read_and_deinit_contracts);
     RUN_TEST(test_ak09918_io_failures_stop_and_preserve_outputs);
     RUN_TEST(test_cmm905_create_init_and_read_contracts);

@@ -6,6 +6,9 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 
 static sensor_err_t ist8310_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     uint8_t data;
     ist8310_priv_t *priv = (ist8310_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing IST8310");
@@ -30,6 +33,9 @@ static sensor_err_t ist8310_init(sensor_device_t *sensor)
 
 static sensor_err_t ist8310_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     ist8310_priv_t *priv = (ist8310_priv_t *)sensor->priv_data;
     if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1,
                           (uint8_t[]){0x00}, 1) != SENSOR_EOK) {
@@ -40,6 +46,9 @@ static sensor_err_t ist8310_deinit(sensor_device_t *sensor)
 
 static sensor_err_t ist8310_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     uint8_t buf[6];
     ist8310_priv_t *priv = (ist8310_priv_t *)sensor->priv_data;
     for (int i = 0; i < 6; i++) {
@@ -67,6 +76,9 @@ static const sensor_ops_t ist8310_ops = {
 
 sensor_device_t *ist8310_create(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     ist8310_priv_t *priv = (ist8310_priv_t *)SENSOR_MALLOC(sizeof(ist8310_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
