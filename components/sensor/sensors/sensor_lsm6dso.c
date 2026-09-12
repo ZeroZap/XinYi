@@ -545,8 +545,7 @@ int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
     if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
-    ctrl1 &= 0xF0;
-    ctrl1 |= (rate & 0x0F);
+    ctrl1 = (uint8_t)((ctrl1 & 0x0F) | ((rate & 0x0F) << 4));
     if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL1_XL, ctrl1) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
