@@ -136,7 +136,7 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
     }
 
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)sensor->priv_data;
-    priv->accel_range = 2;
+    priv->accel_range = LSM6DSO_ACCEL_RANGE_2G;
     priv->accel_rate = 104;
     priv->gyro_range = LSM6DSO_GYRO_RANGE_250DPS;
     priv->gyro_rate = 104;
@@ -190,16 +190,16 @@ static sensor_err_t lsm6dso_accel_read(sensor_device_t *sensor,
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)sensor->priv_data;
     int32_t scale        = 0;
     switch (priv->accel_range) {
-    case 2:
+    case LSM6DSO_ACCEL_RANGE_2G:
         scale = 61;   /* 2g: 61ug/LSB */
         break;
-    case 4:
+    case LSM6DSO_ACCEL_RANGE_4G:
         scale = 122;
         break;
-    case 8:
+    case LSM6DSO_ACCEL_RANGE_8G:
         scale = 244;
         break;
-    case 16:
+    case LSM6DSO_ACCEL_RANGE_16G:
         scale = 488;
         break;
     default:
