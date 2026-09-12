@@ -34,7 +34,6 @@ static sensor_err_t lis2dh12_init(sensor_device_t *sensor)
         != 0) {
         return SENSOR_EIO;
     }
-    priv->odr = LIS2DH12_ODR_10HZ;
 
     /* 配置CTRL4: ±2g, 高分辨率模式 */
     data = LIS2DH12_RANGE_2G | 0x08;
