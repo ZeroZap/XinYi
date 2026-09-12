@@ -461,7 +461,7 @@ static void test_bmi270_deinit_clears_ready_after_disable_success(void)
     TEST_ASSERT_FALSE(dev.initialized);
 }
 
-static void test_bmi270_read_raw_sensor_time_failure_zeroes_time_but_keeps_sample(void)
+static void test_bmi270_read_raw_sensor_time_failure_preserves_sample(void)
 {
     xy_bmi270_t dev = ready_i2c_dev();
     uint8_t status = (uint8_t)(BMI270_DRDY_ACC | BMI270_DRDY_GYR);
@@ -469,18 +469,24 @@ static void test_bmi270_read_raw_sensor_time_failure_zeroes_time_but_keeps_sampl
         0x34U, 0x12U, 0x78U, 0x56U, 0xBCU, 0x9AU,
         0x10U, 0x00U, 0x20U, 0x00U, 0x30U, 0x00U,
     };
-    bmi270_raw_data_t raw = {.sensor_time = 0xFFFFFFFFU};
+    bmi270_raw_data_t raw = {
+        .acc_x = 11, .acc_y = 22, .acc_z = 33,
+        .gyr_x = 44, .gyr_y = 55, .gyr_z = 66,
+        .sensor_time = 0xFFFFFFFFU,
+    };
 
     queue_i2c_read8(0x68U, BMI270_REG_STATUS, status, XY_DEVICE_OK);
     queue_i2c_read(0x68U, BMI270_REG_ACC_X_LSB, raw_bytes, sizeof(raw_bytes), XY_DEVICE_OK);
     queue_i2c_read(0x68U, BMI270_REG_SENSORTIME_0, NULL, 3U, XY_DEVICE_ERROR);
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmi270_read_raw(&dev, &raw));
-    TEST_ASSERT_EQUAL_INT16(0x1234, raw.acc_x);
-    TEST_ASSERT_EQUAL_INT16(0x5678, raw.acc_y);
-    TEST_ASSERT_EQUAL_INT16((int16_t)0x9ABC, raw.acc_z);
-    TEST_ASSERT_EQUAL_INT16(0x0010, raw.gyr_x);
-    TEST_ASSERT_EQUAL_UINT32(0U, raw.sensor_time);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_read_raw(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(11, raw.acc_x);
+    TEST_ASSERT_EQUAL_INT16(22, raw.acc_y);
+    TEST_ASSERT_EQUAL_INT16(33, raw.acc_z);
+    TEST_ASSERT_EQUAL_INT16(44, raw.gyr_x);
+    TEST_ASSERT_EQUAL_INT16(55, raw.gyr_y);
+    TEST_ASSERT_EQUAL_INT16(66, raw.gyr_z);
+    TEST_ASSERT_EQUAL_UINT32(0xFFFFFFFFU, raw.sensor_time);
 }
 
 static void test_bmi270_set_range_covers_extreme_scale_branches(void)
@@ -531,7 +537,7 @@ int main(void)
     RUN_TEST(test_bmi270_enable_wakeup_and_reset_failure_boundaries);
     RUN_TEST(test_bmi270_deinit_propagates_disable_failures_and_preserves_ready);
     RUN_TEST(test_bmi270_deinit_clears_ready_after_disable_success);
-    RUN_TEST(test_bmi270_read_raw_sensor_time_failure_zeroes_time_but_keeps_sample);
+    RUN_TEST(test_bmi270_read_raw_sensor_time_failure_preserves_sample);
     RUN_TEST(test_bmi270_set_range_covers_extreme_scale_branches);
     return UNITY_END();
 }

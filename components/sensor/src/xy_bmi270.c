@@ -396,24 +396,26 @@ int xy_bmi270_read_raw(xy_bmi270_t *dev, bmi270_raw_data_t *raw_data)
         return ret;
     }
 
+    bmi270_raw_data_t staged;
+
     /* 解析加速度数据 */
-    raw_data->acc_x = (int16_t)((buf[1] << 8) | buf[0]);
-    raw_data->acc_y = (int16_t)((buf[3] << 8) | buf[2]);
-    raw_data->acc_z = (int16_t)((buf[5] << 8) | buf[4]);
+    staged.acc_x = (int16_t)((buf[1] << 8) | buf[0]);
+    staged.acc_y = (int16_t)((buf[3] << 8) | buf[2]);
+    staged.acc_z = (int16_t)((buf[5] << 8) | buf[4]);
 
     /* 解析陀螺仪数据 */
-    raw_data->gyr_x = (int16_t)((buf[7] << 8) | buf[6]);
-    raw_data->gyr_y = (int16_t)((buf[9] << 8) | buf[8]);
-    raw_data->gyr_z = (int16_t)((buf[11] << 8) | buf[10]);
+    staged.gyr_x = (int16_t)((buf[7] << 8) | buf[6]);
+    staged.gyr_y = (int16_t)((buf[9] << 8) | buf[8]);
+    staged.gyr_z = (int16_t)((buf[11] << 8) | buf[10]);
 
     /* 读取传感器时间 */
     ret = xy_bmi270_read_regs(dev, BMI270_REG_SENSORTIME_0, buf, 3);
-    if (ret == XY_DEVICE_OK) {
-        raw_data->sensor_time = (uint32_t)((buf[2] << 16) | (buf[1] << 8) | buf[0]);
-    } else {
-        raw_data->sensor_time = 0;
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
+    staged.sensor_time = (uint32_t)((buf[2] << 16) | (buf[1] << 8) | buf[0]);
 
+    *raw_data = staged;
     return XY_DEVICE_OK;
 }
 
