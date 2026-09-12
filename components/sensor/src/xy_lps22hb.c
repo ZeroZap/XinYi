@@ -295,8 +295,11 @@ xy_ret_t xy_lps22hb_start_single(xy_lps22hb_dev_t *dev)
     }
     
     /* 停止当前测量 */
-    xy_lps22hb_stop(dev);
-    
+    xy_ret_t ret = xy_lps22hb_stop(dev);
+    if (ret != XY_OK) {
+        return ret;
+    }
+
     /* 配置为单次测量 (ODR = 0x00) */
     return lps22hb_update_bits(dev, LPS22HB_CTRL_REG1, LPS22HB_ODR_MASK, XY_LPS22HB_ODR_ONE_SHOT);
 }

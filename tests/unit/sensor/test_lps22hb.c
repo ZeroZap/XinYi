@@ -513,6 +513,19 @@ static void test_deinit_stop_failure_preserves_ready_state(void)
     TEST_ASSERT_TRUE(dev.is_initialized);
 }
 
+static void test_start_single_propagates_stop_failure(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+
+    init_ok(&dev, &iface);
+    queue_read8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_10HZ, XY_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_start_single(&dev));
+    TEST_ASSERT_TRUE(dev.is_initialized);
+    TEST_ASSERT_EQUAL_UINT(4U, g_read_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -529,5 +542,6 @@ int main(void)
     RUN_TEST(test_pressure_altitude_helpers_and_invalid_inputs);
     RUN_TEST(test_init_custom_fifo_config_programs_ctrl_registers);
     RUN_TEST(test_deinit_stop_failure_preserves_ready_state);
+    RUN_TEST(test_start_single_propagates_stop_failure);
     return UNITY_END();
 }
