@@ -37,6 +37,8 @@ static sensor_err_t lsm9ds1_mag_write(sensor_device_t *sensor, uint8_t reg, uint
 static sensor_err_t lsm9ds1_init(sensor_device_t *sensor)
 {
     uint8_t data;
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) return SENSOR_EINVAL;
     SENSOR_LOG("Initializing LSM9DS1");
 
     if (lsm9ds1_imu_read(sensor, LSM9DS1_REG_WHOAMI_IMU, &data) != SENSOR_EOK) return SENSOR_EIO;
@@ -78,6 +80,7 @@ static sensor_err_t lsm9ds1_init(sensor_device_t *sensor)
 
 static sensor_err_t lsm9ds1_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) return SENSOR_EINVAL;
     if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL1_XL, 0x00) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
@@ -93,6 +96,10 @@ static sensor_err_t lsm9ds1_deinit(sensor_device_t *sensor)
 static sensor_err_t lsm9ds1_accel_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     for (int i = 0; i < 6; i++) {
         if (lsm9ds1_imu_read(sensor, LSM9DS1_REG_OUTX_L_XL + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
     }
@@ -118,6 +125,10 @@ static sensor_err_t lsm9ds1_accel_read(sensor_device_t *sensor, sensor_data_t *d
 static sensor_err_t lsm9ds1_gyro_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     for (int i = 0; i < 6; i++) {
         if (lsm9ds1_imu_read(sensor, LSM9DS1_REG_OUTX_L_G + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
     }
@@ -143,6 +154,10 @@ static sensor_err_t lsm9ds1_gyro_read(sensor_device_t *sensor, sensor_data_t *da
 static sensor_err_t lsm9ds1_mag_read_data(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     for (int i = 0; i < 6; i++) {
         if (lsm9ds1_mag_read_reg(sensor, LSM9DS1_REG_OUTX_L_M + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
     }

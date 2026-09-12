@@ -294,6 +294,45 @@ static void test_lsm9ds1_deinit_stops_on_first_transport_error(void)
     destroy_sensor(accel);
 }
 
+static void test_lsm9ds1_public_ops_reject_invalid_arguments_without_io(void)
+{
+    int fake_bus;
+    sensor_device_t *accel = lsm9ds1_create_accel("lsm9-invalid", &fake_bus);
+    sensor_device_t *gyro = lsm9ds1_create_gyro("lsm9-invalid-g", &fake_bus);
+    sensor_device_t *mag = lsm9ds1_create_mag("lsm9-invalid-m", &fake_bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_TEMPERATURE, .timestamp = 0xA5A5A5A5U};
+    sensor_data_t before = data;
+    void *saved_priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    TEST_ASSERT_NOT_NULL(gyro);
+    TEST_ASSERT_NOT_NULL(mag);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(accel, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, gyro->ops->read(gyro, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mag->ops->read(mag, NULL));
+
+    saved_priv = accel->priv_data;
+    accel->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->init(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(accel, &data));
+    accel->priv_data = saved_priv;
+
+    accel->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->init(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+    destroy_sensor(accel);
+    destroy_sensor(gyro);
+    destroy_sensor(mag);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -302,5 +341,6 @@ int main(void)
     RUN_TEST(test_lsm9ds1_init_propagates_reset_failure_without_cache_updates);
     RUN_TEST(test_lsm9ds1_init_commits_ranges_only_after_all_configuration_succeeds);
     RUN_TEST(test_lsm9ds1_deinit_stops_on_first_transport_error);
+    RUN_TEST(test_lsm9ds1_public_ops_reject_invalid_arguments_without_io);
     return UNITY_END();
 }
