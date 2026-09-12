@@ -262,14 +262,10 @@ int xy_tsl2561_set_gain(xy_tsl2561_t *tsl2561, xy_tsl2561_gain_t gain)
         return XY_TSL2561_INVALID_PARAM;
     }
     
-    tsl2561->gain = gain;
-    
-    /* 读取当前 TIMING 寄存器值；读取失败时使用缓存配置构造安全回退值 */
-    if (xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg) != XY_DEVICE_OK) {
-        timing_reg = (uint8_t)tsl2561->integration;
-        if (tsl2561->gain == XY_TSL2561_GAIN_16X) {
-            timing_reg |= 0x10;
-        }
+    /* 读取失败时不猜测硬件配置，也不修改软件缓存。 */
+    int ret = xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
     
     /* 设置增益位 */
@@ -282,8 +278,12 @@ int xy_tsl2561_set_gain(xy_tsl2561_t *tsl2561, xy_tsl2561_gain_t gain)
     /* 保持积分时间设置 */
     timing_reg &= ~0x03;
     timing_reg |= tsl2561->integration;
-    
-    return xy_tsl2561_write_reg(tsl2561, TSL2561_REG_TIMING, timing_reg);
+
+    ret = xy_tsl2561_write_reg(tsl2561, TSL2561_REG_TIMING, timing_reg);
+    if (ret == XY_DEVICE_OK) {
+        tsl2561->gain = gain;
+    }
+    return ret;
 }
 
 int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
@@ -295,14 +295,9 @@ int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
         return XY_TSL2561_INVALID_PARAM;
     }
     
-    tsl2561->integration = integration;
-    
-    /* 读取当前 TIMING 寄存器值；读取失败时使用缓存配置构造安全回退值 */
-    if (xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg) != XY_DEVICE_OK) {
-        timing_reg = (uint8_t)tsl2561->integration;
-        if (tsl2561->gain == XY_TSL2561_GAIN_16X) {
-            timing_reg |= 0x10;
-        }
+    int ret = xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
     
     /* 设置积分时间位 */
@@ -316,7 +311,11 @@ int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
         timing_reg &= ~0x10;
     }
     
-    return xy_tsl2561_write_reg(tsl2561, TSL2561_REG_TIMING, timing_reg);
+    ret = xy_tsl2561_write_reg(tsl2561, TSL2561_REG_TIMING, timing_reg);
+    if (ret == XY_DEVICE_OK) {
+        tsl2561->integration = integration;
+    }
+    return ret;
 }
 
 int xy_tsl2561_enable(xy_tsl2561_t *tsl2561)
