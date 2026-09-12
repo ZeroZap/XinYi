@@ -296,7 +296,7 @@ int lsm6dsr_set_accel_rate(sensor_device_t *dev, uint8_t rate)
     lsm6dsr_priv_t *priv = (lsm6dsr_priv_t *)dev->priv_data;
     uint8_t ctrl1;
     if (lsm6dsr_reg_read(dev, LSM6DSR_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) return SENSOR_EIO;
-    ctrl1 = (ctrl1 & 0xF0) | (rate & 0x0F);
+    ctrl1 = (uint8_t)((ctrl1 & 0x0F) | ((rate & 0x0F) << 4));
     if (lsm6dsr_reg_write(dev, LSM6DSR_REG_CTRL1_XL, ctrl1) != SENSOR_EOK) return SENSOR_EIO;
     priv->accel_rate = rate;
     return 0;
