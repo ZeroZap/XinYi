@@ -11,7 +11,7 @@
 #define AK09918_REG_WHOAMI   0x00
 #define AK09918_REG_CTRL1    0x31
 #define AK09918_REG_CTRL2    0x32
-#define AK09918_REG_DATA     0x31
+#define AK09918_REG_DATA     0x11
 #define AK09918_WHOAMI_VALUE 0x09
 
 typedef struct { uint8_t i2c_addr; } ak09918_priv_t;

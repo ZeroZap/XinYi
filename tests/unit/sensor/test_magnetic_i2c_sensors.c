@@ -349,7 +349,7 @@ static void test_ak09918_create_init_read_and_deinit_contracts(void)
     TEST_ASSERT_EQUAL_UINT32(13629U, g_tick);
 
     for (uint8_t i = 0; i < sizeof(raw); ++i) {
-        queue_read(&fake_bus, AK09918_ADDR_DEFAULT, (uint8_t)(AK09918_REG_DATA + i), &raw[i], 1U,
+        queue_read(&fake_bus, AK09918_ADDR_DEFAULT, (uint8_t)(0x11U + i), &raw[i], 1U,
                    SENSOR_EOK);
     }
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
