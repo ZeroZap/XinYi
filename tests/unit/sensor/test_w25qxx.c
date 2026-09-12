@@ -454,6 +454,24 @@ static void test_w25qxx_block_erase_stops_on_transport_failures(void)
     TEST_ASSERT_EQUAL_UINT(op_before + 2U, g_op_index);
 }
 
+static void test_w25qxx_chip_erase_stops_on_transport_failures(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    const uint8_t chip_cmd = W25Q_CMD_CHIP_ERASE;
+    size_t op_before;
+
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_DEVICE_ERROR);
+    op_before = g_op_index;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_w25qxx_chip_erase(&dev));
+    TEST_ASSERT_EQUAL_UINT(op_before + 1U, g_op_index);
+
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_OK);
+    queue_tx(&chip_cmd, sizeof(chip_cmd), XY_DEVICE_ERROR);
+    op_before = g_op_index;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_w25qxx_chip_erase(&dev));
+    TEST_ASSERT_EQUAL_UINT(op_before + 2U, g_op_index);
+}
+
 static void test_w25qxx_write_data_at_sector_boundary_erases_then_programs(void)
 {
     xy_w25qxx_t dev = make_ready_dev();
@@ -486,6 +504,7 @@ int main(void)
     RUN_TEST(test_w25qxx_transfer_failures_preserve_existing_contracts);
     RUN_TEST(test_w25qxx_sector_erase_stops_on_transport_failures);
     RUN_TEST(test_w25qxx_block_erase_stops_on_transport_failures);
+    RUN_TEST(test_w25qxx_chip_erase_stops_on_transport_failures);
     RUN_TEST(test_w25qxx_write_data_at_sector_boundary_erases_then_programs);
     return UNITY_END();
 }
