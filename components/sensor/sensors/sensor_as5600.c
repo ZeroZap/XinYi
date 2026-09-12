@@ -28,7 +28,7 @@ static sensor_err_t as5600_read(sensor_device_t *sensor, sensor_data_t *data)
         return ret;
     }
 
-    uint16_t angle = ((uint16_t)buf[1] << 8) | buf[0];
+    uint16_t angle = (((uint16_t)buf[0] << 8) | buf[1]) & 0x0FFFU;
     data->type = SENSOR_TYPE_ANGLE;
     data->value.val_float = (float)angle / 4096.0f * 360.0f;
     data->timestamp = SENSOR_GET_TICK();

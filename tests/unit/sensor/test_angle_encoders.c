@@ -67,6 +67,13 @@ static void queue_raw_le(uint16_t raw)
     g_reads[g_read_count].data[1] = (uint8_t)(raw >> 8);
 }
 
+static void queue_as5600_raw(uint16_t raw)
+{
+    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_reads), g_read_count);
+    g_reads[g_read_count].data[0] = (uint8_t)(raw >> 8);
+    g_reads[g_read_count].data[1] = (uint8_t)raw;
+}
+
 static void assert_common_identity(sensor_device_t *sensor, const char *name, const char *model,
                                    uint8_t addr, void *bus)
 {
@@ -84,13 +91,13 @@ static void assert_common_identity(sensor_device_t *sensor, const char *name, co
     TEST_ASSERT_EQUAL_UINT8(addr, ((as5600_priv_t *)sensor->priv_data)->i2c_addr);
 }
 
-static void test_as5600_create_and_read_converts_12bit_little_endian_angle(void)
+static void test_as5600_create_and_read_decodes_datasheet_msb_first_angle(void)
 {
     int fake_bus;
     sensor_data_t data = {0};
     sensor_device_t *sensor = as5600_create("as5600-main", &fake_bus);
     assert_common_identity(sensor, "as5600-main", "AS5600", AS5600_ADDR, &fake_bus);
-    queue_raw_le(2048U); /* half scale => 180 deg */
+    queue_as5600_raw(0xF800U); /* upper nibble reserved; angle is 0x800 => 180 deg */
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
@@ -230,7 +237,7 @@ static void test_i2c_read_failures_preserve_output(void)
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_as5600_create_and_read_converts_12bit_little_endian_angle);
+    RUN_TEST(test_as5600_create_and_read_decodes_datasheet_msb_first_angle);
     RUN_TEST(test_as5048_create_and_read_converts_14bit_little_endian_angle);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_create_rejects_null_names_without_i2c_side_effects);
