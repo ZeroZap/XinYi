@@ -241,7 +241,10 @@ int xy_bno055_deinit(xy_bno055_t *dev)
 
     if (dev->initialized) {
         /* 进入挂起模式 */
-        xy_bno055_sleep(dev);
+        int ret = xy_bno055_sleep(dev);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
         dev->initialized = false;
         XY_LOG_INFO("BNO055 deinitialized");
     }

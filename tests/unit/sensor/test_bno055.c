@@ -555,6 +555,17 @@ void test_deinit_enters_sleep_when_initialized_and_accepts_cleared_device(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_deinit(NULL));
 }
 
+void test_deinit_preserves_ready_state_when_sleep_fails(void)
+{
+    int bus;
+    xy_bno055_t dev = make_ready_dev(&bus);
+    const uint8_t suspend = BNO055_PWR_SUSPEND;
+
+    expect_write_ret(BNO055_REG_PWR_MODE, &suspend, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 void test_uart_mode_reports_not_supported(void)
 {
     xy_bno055_t dev;
@@ -579,6 +590,7 @@ int main(void)
     RUN_TEST(test_axis_remap_and_status_helpers);
     RUN_TEST(test_axis_remap_propagates_each_i2c_failure);
     RUN_TEST(test_deinit_enters_sleep_when_initialized_and_accepts_cleared_device);
+    RUN_TEST(test_deinit_preserves_ready_state_when_sleep_fails);
     RUN_TEST(test_uart_mode_reports_not_supported);
     return UNITY_END();
 }
