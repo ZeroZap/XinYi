@@ -140,6 +140,7 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
     priv->accel_rate = 104;
     priv->gyro_range = LSM6DSO_GYRO_RANGE_250DPS;
     priv->gyro_rate = 104;
+    sensor->odr = 104U;
 
     SENSOR_LOG("LSM6DSO initialized successfully");
 
