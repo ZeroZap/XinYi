@@ -17,7 +17,7 @@ static sensor_err_t vcnl4040_init(sensor_device_t *s)
 
 static sensor_err_t vcnl4040_read(sensor_device_t *s, sensor_data_t *d)
 {
-    if (s == NULL || s->priv_data == NULL || d == NULL) {
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL || d == NULL) {
         return SENSOR_EINVAL;
     }
 
