@@ -235,13 +235,19 @@ int xy_w25qxx_sector_erase(xy_w25qxx_t *dev, uint32_t addr)
     }
     
     /* 写入使能 */
-    xy_w25qxx_write_enable(dev);
-    
+    int ret = xy_w25qxx_write_enable(dev);
+    if (ret != XY_W25Q_OK) {
+        return ret;
+    }
+
     /* 发送擦除命令 */
     xy_w25q_cs_low(dev);
-    xy_w25q_send_cmd_addr(dev, W25Q_CMD_SECTOR_ERASE, addr);
+    ret = xy_w25q_send_cmd_addr(dev, W25Q_CMD_SECTOR_ERASE, addr);
     xy_w25q_cs_high(dev);
-    
+    if (ret != XY_W25Q_OK) {
+        return ret;
+    }
+
     /* 等待完成 */
     return xy_w25qxx_wait_idle(dev, W25Q_ERASE_TIMEOUT);
 }
