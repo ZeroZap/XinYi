@@ -107,7 +107,8 @@ static sensor_err_t lsm6dsl_gyro_read(sensor_device_t *sensor, sensor_data_t *da
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
     int32_t scale = (priv->gyro_range == LSM6DSL_GYRO_RANGE_125DPS) ? 4 :
                     (priv->gyro_range == LSM6DSL_GYRO_RANGE_500DPS) ? 17 :
-                    (priv->gyro_range == LSM6DSL_GYRO_RANGE_1000DPS) ? 35 : 9;
+                    (priv->gyro_range == LSM6DSL_GYRO_RANGE_1000DPS) ? 35 :
+                    (priv->gyro_range == LSM6DSL_GYRO_RANGE_2000DPS) ? 70 : 9;
 
     data->type = SENSOR_TYPE_GYROSCOPE;
     data->unit = SENSOR_UNIT_DEGREE_PER_SECOND;
@@ -273,7 +274,12 @@ int lsm6dsl_set_gyro_range(sensor_device_t *dev, uint8_t range)
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)dev->priv_data;
     uint8_t ctrl2;
     if (lsm6dsl_reg_read(dev, LSM6DSL_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) return SENSOR_EIO;
-    ctrl2 = (ctrl2 & 0x0F) | (range << 4);
+    ctrl2 &= 0xF1U;
+    if (range == LSM6DSL_GYRO_RANGE_125DPS) {
+        ctrl2 |= 0x02U;
+    } else {
+        ctrl2 |= (uint8_t)((range & 0x03U) << 2);
+    }
     if (lsm6dsl_reg_write(dev, LSM6DSL_REG_CTRL2_G, ctrl2) != SENSOR_EOK) return SENSOR_EIO;
     priv->gyro_range = range;
     return 0;

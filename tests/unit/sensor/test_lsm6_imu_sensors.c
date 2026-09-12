@@ -289,19 +289,32 @@ static void test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers(void)
     TEST_ASSERT_EQUAL_INT(0, lsm6dsl_set_accel_range(accel, LSM6DSL_ACCEL_RANGE_4G));
     TEST_ASSERT_EQUAL_UINT8(LSM6DSL_ACCEL_RANGE_4G, ((lsm6dsl_priv_t *)accel->priv_data)->accel_range);
     queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL2_G, 0x40U, SENSOR_EOK);
-    queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x20U, SENSOR_EOK);
+    queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x44U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(0, lsm6dsl_set_gyro_range(accel, LSM6DSL_GYRO_RANGE_500DPS));
     TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_500DPS, ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
+
+    queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL2_G, 0x40U, SENSOR_EOK);
+    queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x42U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(0, lsm6dsl_set_gyro_range(accel, LSM6DSL_GYRO_RANGE_125DPS));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_125DPS,
+                            ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
+
+    queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL2_G, 0x40U, SENSOR_EOK);
+    queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x4CU, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(0, lsm6dsl_set_gyro_range(accel, LSM6DSL_GYRO_RANGE_2000DPS));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_2000DPS,
+                            ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
 
     queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL, 0x00U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
                           lsm6dsl_set_accel_range(accel, LSM6DSL_ACCEL_RANGE_8G));
     TEST_ASSERT_EQUAL_UINT8(LSM6DSL_ACCEL_RANGE_4G, ((lsm6dsl_priv_t *)accel->priv_data)->accel_range);
     queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_CTRL2_G, 0x40U, SENSOR_EOK);
-    queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x30U, SENSOR_EIO);
+    queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x48U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
                           lsm6dsl_set_gyro_range(accel, LSM6DSL_GYRO_RANGE_1000DPS));
-    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_500DPS, ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_2000DPS,
+                            ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
 
     queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL & 0x7FU, 0x00U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->deinit(accel));
