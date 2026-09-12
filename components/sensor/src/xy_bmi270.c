@@ -201,13 +201,10 @@ int xy_bmi270_deinit(xy_bmi270_t *dev)
     }
 
     if (dev->initialized) {
-        /* 禁用传感器 */
-        xy_bmi270_enable_acc(dev, false);
-        xy_bmi270_enable_gyr(dev, false);
-        
-        /* 进入睡眠模式 */
-        xy_bmi270_sleep(dev);
-        
+        int ret = xy_bmi270_sleep(dev);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
         dev->initialized = false;
         XY_LOG_INFO("BMI270 deinitialized");
     }
@@ -478,13 +475,22 @@ int xy_bmi270_reset(xy_bmi270_t *dev)
 
 int xy_bmi270_sleep(xy_bmi270_t *dev)
 {
+    int ret;
+
     if (!dev || !dev->initialized) {
         return XY_DEVICE_EINVAL;
     }
 
     /* 禁用加速度计和陀螺仪进入睡眠 */
-    xy_bmi270_enable_acc(dev, false);
-    xy_bmi270_enable_gyr(dev, false);
+    ret = xy_bmi270_enable_acc(dev, false);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    ret = xy_bmi270_enable_gyr(dev, false);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
 
     XY_LOG_INFO("BMI270 entered sleep mode");
     return XY_DEVICE_OK;

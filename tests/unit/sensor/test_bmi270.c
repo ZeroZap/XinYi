@@ -403,10 +403,6 @@ static void test_bmi270_not_ready_sleep_wakeup_and_deinit(void)
     { uint8_t expected = 0xA0U; queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &expected, 1U, XY_DEVICE_OK); }
     queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA1U, XY_DEVICE_OK);
     { uint8_t expected = 0xA0U; queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &expected, 1U, XY_DEVICE_OK); }
-    queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA0U, XY_DEVICE_OK);
-    { uint8_t expected = 0xA0U; queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &expected, 1U, XY_DEVICE_OK); }
-    queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA0U, XY_DEVICE_OK);
-    { uint8_t expected = 0xA0U; queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &expected, 1U, XY_DEVICE_OK); }
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmi270_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_deinit(NULL));
@@ -436,15 +432,31 @@ static void test_bmi270_enable_wakeup_and_reset_failure_boundaries(void)
     TEST_ASSERT_FALSE(dev.initialized);
 }
 
-static void test_bmi270_deinit_ignores_disable_failures_and_clears_ready(void)
+static void test_bmi270_deinit_propagates_disable_failures_and_preserves_ready(void)
 {
     xy_bmi270_t dev = ready_i2c_dev();
 
     queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA1U, XY_DEVICE_ERROR);
-    queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA1U, XY_DEVICE_ERROR);
-    queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA1U, XY_DEVICE_ERROR);
-    queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
 
+    setUp();
+    dev = ready_i2c_dev();
+    queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA1U, XY_DEVICE_OK);
+    { uint8_t expected = 0xA0U; queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &expected, 1U, XY_DEVICE_OK); }
+    queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA1U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bmi270_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
+static void test_bmi270_deinit_clears_ready_after_disable_success(void)
+{
+    xy_bmi270_t dev = ready_i2c_dev();
+
+    queue_i2c_read8(0x68U, BMI270_REG_ACC_CONF, 0xA1U, XY_DEVICE_OK);
+    { uint8_t expected = 0xA0U; queue_i2c_write(0x68U, BMI270_REG_ACC_CONF, &expected, 1U, XY_DEVICE_OK); }
+    queue_i2c_read8(0x68U, BMI270_REG_GYR_CONF, 0xA1U, XY_DEVICE_OK);
+    { uint8_t expected = 0xA0U; queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &expected, 1U, XY_DEVICE_OK); }
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmi270_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
 }
@@ -517,7 +529,8 @@ int main(void)
     RUN_TEST(test_bmi270_range_enable_and_raw_data);
     RUN_TEST(test_bmi270_not_ready_sleep_wakeup_and_deinit);
     RUN_TEST(test_bmi270_enable_wakeup_and_reset_failure_boundaries);
-    RUN_TEST(test_bmi270_deinit_ignores_disable_failures_and_clears_ready);
+    RUN_TEST(test_bmi270_deinit_propagates_disable_failures_and_preserves_ready);
+    RUN_TEST(test_bmi270_deinit_clears_ready_after_disable_success);
     RUN_TEST(test_bmi270_read_raw_sensor_time_failure_zeroes_time_but_keeps_sample);
     RUN_TEST(test_bmi270_set_range_covers_extreme_scale_branches);
     return UNITY_END();
