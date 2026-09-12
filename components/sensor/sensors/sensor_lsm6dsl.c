@@ -53,7 +53,7 @@ static sensor_err_t lsm6dsl_init(sensor_device_t *sensor)
     data = (LSM6DSL_GYRO_RATE_104Hz << 4) | LSM6DSL_GYRO_RANGE_250DPS;
     if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL2_G, data) != SENSOR_EOK) return SENSOR_EIO;
 
-    priv->accel_range = 2;
+    priv->accel_range = LSM6DSL_ACCEL_RANGE_2G;
     priv->gyro_range = LSM6DSL_GYRO_RANGE_250DPS;
 
     SENSOR_LOG("LSM6DSL initialized");
@@ -80,7 +80,9 @@ static sensor_err_t lsm6dsl_accel_read(sensor_device_t *sensor, sensor_data_t *d
     raw[2] = (int16_t)((buf[5] << 8) | buf[4]);
 
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
-    int32_t scale = (priv->accel_range == 2) ? 61 : (priv->accel_range == 4) ? 122 : (priv->accel_range == 8) ? 244 : 488;
+    int32_t scale = (priv->accel_range == LSM6DSL_ACCEL_RANGE_2G) ? 61 :
+                    (priv->accel_range == LSM6DSL_ACCEL_RANGE_4G) ? 122 :
+                    (priv->accel_range == LSM6DSL_ACCEL_RANGE_8G) ? 244 : 488;
 
     data->type = SENSOR_TYPE_ACCELEROMETER;
     data->unit = SENSOR_UNIT_MILLI_G;
