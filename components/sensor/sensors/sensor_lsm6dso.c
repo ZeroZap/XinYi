@@ -257,6 +257,9 @@ static sensor_err_t lsm6dso_gyro_read(sensor_device_t *sensor,
     case LSM6DSO_GYRO_RANGE_1000DPS:
         scale = 35;
         break;
+    case LSM6DSO_GYRO_RANGE_2000DPS:
+        scale = 70;
+        break;
     default:
         scale = 9;
     }
@@ -522,8 +525,7 @@ int lsm6dso_set_gyro_range(sensor_device_t *dev, uint8_t range)
     if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
-    ctrl2 &= 0x0F;
-    ctrl2 |= (range << 4);
+    ctrl2 = (uint8_t)((ctrl2 & 0xF1U) | ((range & 0x07U) << 1));
     if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL2_G, ctrl2) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
