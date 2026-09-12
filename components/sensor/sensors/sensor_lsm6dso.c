@@ -542,6 +542,22 @@ int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
 {
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)dev->priv_data;
     uint8_t ctrl1       = 0;
+    uint32_t rate_hz;
+
+    switch (rate) {
+    case LSM6DSO_ACCEL_RATE_OFF: rate_hz = 0U; break;
+    case LSM6DSO_ACCEL_RATE_12_5Hz: rate_hz = 12U; break;
+    case LSM6DSO_ACCEL_RATE_26Hz: rate_hz = 26U; break;
+    case LSM6DSO_ACCEL_RATE_52Hz: rate_hz = 52U; break;
+    case LSM6DSO_ACCEL_RATE_104Hz: rate_hz = 104U; break;
+    case LSM6DSO_ACCEL_RATE_208Hz: rate_hz = 208U; break;
+    case LSM6DSO_ACCEL_RATE_416Hz: rate_hz = 416U; break;
+    case LSM6DSO_ACCEL_RATE_833Hz: rate_hz = 833U; break;
+    case LSM6DSO_ACCEL_RATE_1_66KHz: rate_hz = 1660U; break;
+    case LSM6DSO_ACCEL_RATE_3_33KHz: rate_hz = 3330U; break;
+    case LSM6DSO_ACCEL_RATE_6_66KHz: rate_hz = 6660U; break;
+    default: return SENSOR_EINVAL;
+    }
 
     if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) {
         return SENSOR_EIO;
@@ -551,7 +567,8 @@ int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
         return SENSOR_EIO;
     }
 
-    priv->accel_rate = rate;
+    priv->accel_rate = rate_hz;
+    dev->odr = rate_hz;
 
     return 0;
 }

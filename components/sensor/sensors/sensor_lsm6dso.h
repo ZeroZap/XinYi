@@ -78,7 +78,7 @@ typedef struct {
     uint8_t spi_cs;
     uint8_t accel_range;
     uint8_t gyro_range;
-    uint8_t accel_rate;
+    uint32_t accel_rate;
     uint8_t gyro_rate;
     int16_t accel_offset[3];
     int16_t gyro_offset[3];
