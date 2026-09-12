@@ -78,11 +78,13 @@ int xy_aht20_init(xy_aht20_t *aht20, void *i2c_handle)
     
     /* 读取状态寄存器 */
     ret = xy_i2c_device_read(&aht20->i2c_dev, &status, 1);
-    if (ret == XY_DEVICE_OK) {
-        aht20->calibrated = (status & 0x08) ? true : false;
-        xy_log_i("AHT20 found, calibrated=%d\n", aht20->calibrated);
+    if (ret != XY_DEVICE_OK) {
+        memset(aht20, 0, sizeof(*aht20));
+        return ret;
     }
-    
+    aht20->calibrated = (status & 0x08) ? true : false;
+    xy_log_i("AHT20 found, calibrated=%d\n", aht20->calibrated);
+
     aht20->initialized = true;
     return XY_AHT20_OK;
 }
