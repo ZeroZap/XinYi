@@ -517,7 +517,8 @@ static void test_lsm6dsr_i2c_accel_gyro_init_read_helpers_and_errors(void)
 
     queue_lsm6dsr_i2c_init(&fake_bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_WHOAMI_VALUE);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
-    TEST_ASSERT_EQUAL_UINT8(2U, ((lsm6dsr_priv_t *)accel->priv_data)->accel_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_ACCEL_RANGE_2G,
+                            ((lsm6dsr_priv_t *)accel->priv_data)->accel_range);
     TEST_ASSERT_EQUAL_UINT8(104U, ((lsm6dsr_priv_t *)accel->priv_data)->gyro_rate);
 
     for (uint8_t i = 0; i < sizeof(raw); ++i) {
@@ -527,6 +528,16 @@ static void test_lsm6dsr_i2c_accel_gyro_init_read_helpers_and_errors(void)
     TEST_ASSERT_EQUAL_INT32(124, data.value.val_3axis.x);
     TEST_ASSERT_EQUAL_INT32(-124, data.value.val_3axis.y);
     TEST_ASSERT_EQUAL_INT32(62, data.value.val_3axis.z);
+
+    ((lsm6dsr_priv_t *)accel->priv_data)->accel_range = LSM6DSR_ACCEL_RANGE_4G;
+    for (uint8_t i = 0; i < sizeof(raw); ++i) {
+        queue_i2c_read8(&fake_bus, LSM6DSR_ADDR_DEFAULT,
+                        (uint8_t)(LSM6DSR_REG_OUTX_L_XL + i), raw[i], SENSOR_EOK);
+    }
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_INT32(249, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL_INT32(-249, data.value.val_3axis.y);
+    TEST_ASSERT_EQUAL_INT32(124, data.value.val_3axis.z);
 
     for (uint8_t i = 0; i < sizeof(raw); ++i) {
         queue_i2c_read8(&fake_bus, LSM6DSR_ADDR_DEFAULT, (uint8_t)(LSM6DSR_REG_OUTX_L_G + i), raw[i], SENSOR_EOK);
