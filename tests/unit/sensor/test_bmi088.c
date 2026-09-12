@@ -320,11 +320,18 @@ static void test_bmi088_error_paths_setters_and_calibration(void)
     TEST_ASSERT_EQUAL_INT16(77, raw.temperature);
 
     queue_read_xyz(0U, BMI088_ACC_X_LSB_ADDR, 100, 200, 300, XY_OK);
+    queue_read_xyz(1U, BMI088_GYRO_X_LSB_ADDR, 10, 20, 30, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_read_raw_data(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(11, raw.acc_x);
+    TEST_ASSERT_EQUAL_INT16(44, raw.gyro_x);
+    TEST_ASSERT_EQUAL_INT16(77, raw.temperature);
+
+    queue_read_xyz(0U, BMI088_ACC_X_LSB_ADDR, 100, 200, 300, XY_OK);
     queue_read_xyz(1U, BMI088_GYRO_X_LSB_ADDR, 10, 20, 30, XY_OK);
     { uint8_t temp[2] = {0U, 0U}; queue_read(0U, BMI088_ACC_TEMP_LSB_ADDR, temp, 2U, XY_ERROR); }
-    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_read_raw_data(&dev, &raw));
-    TEST_ASSERT_EQUAL_INT16(100, raw.acc_x);
-    TEST_ASSERT_EQUAL_INT16(10, raw.gyro_x);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_read_raw_data(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(11, raw.acc_x);
+    TEST_ASSERT_EQUAL_INT16(44, raw.gyro_x);
     TEST_ASSERT_EQUAL_INT16(77, raw.temperature);
 
     data.acc_x = 1.0f;

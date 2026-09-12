@@ -262,29 +262,30 @@ xy_ret_t xy_bmi088_read_raw_data(xy_bmi088_dev_t *dev, xy_bmi088_raw_data_t *raw
     
     uint8_t buffer[6];
     xy_ret_t ret;
-    
+    xy_bmi088_raw_data_t staged;
+
     /* 读取加速度计数据 */
     ret = bmi088_acc_read_reg(dev, BMI088_ACC_X_LSB_ADDR, buffer, 6);
     if (ret != XY_OK) return ret;
-    
-    raw_data->acc_x = (int16_t)((uint16_t)buffer[1] << 8 | buffer[0]);
-    raw_data->acc_y = (int16_t)((uint16_t)buffer[3] << 8 | buffer[2]);
-    raw_data->acc_z = (int16_t)((uint16_t)buffer[5] << 8 | buffer[4]);
-    
+
+    staged.acc_x = (int16_t)((uint16_t)buffer[1] << 8 | buffer[0]);
+    staged.acc_y = (int16_t)((uint16_t)buffer[3] << 8 | buffer[2]);
+    staged.acc_z = (int16_t)((uint16_t)buffer[5] << 8 | buffer[4]);
+
     /* 读取陀螺仪数据 */
     ret = bmi088_gyro_read_reg(dev, BMI088_GYRO_X_LSB_ADDR, buffer, 6);
     if (ret != XY_OK) return ret;
-    
-    raw_data->gyro_x = (int16_t)((uint16_t)buffer[1] << 8 | buffer[0]);
-    raw_data->gyro_y = (int16_t)((uint16_t)buffer[3] << 8 | buffer[2]);
-    raw_data->gyro_z = (int16_t)((uint16_t)buffer[5] << 8 | buffer[4]);
-    
-    /* 读取温度 (可选) */
+
+    staged.gyro_x = (int16_t)((uint16_t)buffer[1] << 8 | buffer[0]);
+    staged.gyro_y = (int16_t)((uint16_t)buffer[3] << 8 | buffer[2]);
+    staged.gyro_z = (int16_t)((uint16_t)buffer[5] << 8 | buffer[4]);
+
+    /* 读取温度 */
     ret = bmi088_acc_read_reg(dev, BMI088_ACC_TEMP_LSB_ADDR, buffer, 2);
-    if (ret == XY_OK) {
-        raw_data->temperature = (int16_t)((uint16_t)buffer[1] << 8 | buffer[0]);
-    }
-    
+    if (ret != XY_OK) return ret;
+    staged.temperature = (int16_t)((uint16_t)buffer[1] << 8 | buffer[0]);
+
+    *raw_data = staged;
     return XY_OK;
 }
 
