@@ -334,12 +334,16 @@ static void test_sc7a20_init_read_config_deinit_and_errors(void)
 
     queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG1, SC7A20_ODR_POWER_DOWN, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_UINT8(SC7A20_ODR_POWER_DOWN,
+                            ((sc7a20_priv_t *)sensor->priv_data)->odr_reg);
+    TEST_ASSERT_EQUAL_UINT32(0U, sensor->odr);
     queue_read8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_WHOAMI, SC7A20_WHOAMI_VALUE, SENSOR_EOK);
     queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG1, SC7A20_ODR_100HZ | 0x07U, SENSOR_EOK);
     queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG4, SC7A20_RANGE_2G | 0x08U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT8(SC7A20_ODR_25HZ | 0x07U,
+    TEST_ASSERT_EQUAL_UINT8(SC7A20_ODR_POWER_DOWN,
                             ((sc7a20_priv_t *)sensor->priv_data)->odr_reg);
+    TEST_ASSERT_EQUAL_UINT32(0U, sensor->odr);
     TEST_ASSERT_EQUAL_UINT8(16U, ((sc7a20_priv_t *)sensor->priv_data)->range);
 
     cfg = 4U;
@@ -347,8 +351,13 @@ static void test_sc7a20_init_read_config_deinit_and_errors(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->config(sensor, SENSOR_CFG_RANGE, &cfg));
     TEST_ASSERT_EQUAL_UINT8(16U, ((sc7a20_priv_t *)sensor->priv_data)->range);
 
+    ((sc7a20_priv_t *)sensor->priv_data)->odr_reg = SC7A20_ODR_25HZ | 0x07U;
+    sensor->odr = 25U;
     queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG1, SC7A20_ODR_POWER_DOWN, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_UINT8(SC7A20_ODR_25HZ | 0x07U,
+                            ((sc7a20_priv_t *)sensor->priv_data)->odr_reg);
+    TEST_ASSERT_EQUAL_UINT32(25U, sensor->odr);
 
     destroy_sensor(sensor);
 }

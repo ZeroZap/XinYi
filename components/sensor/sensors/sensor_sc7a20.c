@@ -66,6 +66,8 @@ static sensor_err_t sc7a20_deinit(sensor_device_t *sensor)
         return SENSOR_EIO;
     }
 
+    priv->odr_reg = SC7A20_ODR_POWER_DOWN;
+    sensor->odr = 0U;
     return SENSOR_EOK;
 }
 
