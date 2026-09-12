@@ -468,11 +468,19 @@ static void test_cmm905_guards_and_failed_reads_preserve_outputs(void)
     sensor_device_t *sensor = cmm905_create("cmm905-fail", &fake_bus);
 
     TEST_ASSERT_NULL(cmm905_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(cmm905_create("cmm905-null-bus", NULL));
     TEST_ASSERT_NOT_NULL(sensor);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    sensor->bus = &fake_bus;
 
     queue_read(&fake_bus, CMM905_ADDR_DEFAULT, CMM905_REG_DATA, &raw0, 1U, SENSOR_EOK);
     queue_read(&fake_bus, CMM905_ADDR_DEFAULT, (uint8_t)(CMM905_REG_DATA + 1U), NULL, 1U,
