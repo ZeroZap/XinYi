@@ -328,9 +328,28 @@ int lsm6dsr_set_gyro_rate(sensor_device_t *dev, uint8_t rate)
 {
     lsm6dsr_priv_t *priv = (lsm6dsr_priv_t *)dev->priv_data;
     uint8_t ctrl2;
+    uint32_t rate_hz;
+
+    switch (rate) {
+    case LSM6DSR_GYRO_RATE_OFF: rate_hz = 0U; break;
+    case LSM6DSR_GYRO_RATE_12_5Hz: rate_hz = 12U; break;
+    case LSM6DSR_GYRO_RATE_26Hz: rate_hz = 26U; break;
+    case LSM6DSR_GYRO_RATE_52Hz: rate_hz = 52U; break;
+    case LSM6DSR_GYRO_RATE_104Hz: rate_hz = 104U; break;
+    case LSM6DSR_GYRO_RATE_208Hz: rate_hz = 208U; break;
+    case LSM6DSR_GYRO_RATE_416Hz: rate_hz = 416U; break;
+    case LSM6DSR_GYRO_RATE_833Hz: rate_hz = 833U; break;
+    case LSM6DSR_GYRO_RATE_1_66KHz: rate_hz = 1660U; break;
+    case LSM6DSR_GYRO_RATE_3_33KHz: rate_hz = 3330U; break;
+    case LSM6DSR_GYRO_RATE_6_66KHz: rate_hz = 6660U; break;
+    case LSM6DSR_GYRO_RATE_8KHz: rate_hz = 8000U; break;
+    default: return SENSOR_EINVAL;
+    }
+
     if (lsm6dsr_reg_read(dev, LSM6DSR_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) return SENSOR_EIO;
     ctrl2 = (uint8_t)((ctrl2 & 0x0F) | ((rate & 0x0F) << 4));
     if (lsm6dsr_reg_write(dev, LSM6DSR_REG_CTRL2_G, ctrl2) != SENSOR_EOK) return SENSOR_EIO;
-    priv->gyro_rate = rate;
+    priv->gyro_rate = rate_hz;
+    dev->odr = rate_hz;
     return 0;
 }
