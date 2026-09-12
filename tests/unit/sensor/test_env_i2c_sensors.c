@@ -400,6 +400,34 @@ static void test_bmp390_read_pressure_full_scale_boundary(void)
     destroy_sensor(sensor);
 }
 
+static void test_bmp390_rejects_invalid_factory_and_public_ops_inputs(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = bmp390_create("bmp390-invalid", &fake_bus, 0U);
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM,
+                          .value.val_uint32 = 0xA5A5A5A5U,
+                          .timestamp = 123U,
+                          .accuracy = 12U};
+
+    TEST_ASSERT_NULL(bmp390_create(NULL, &fake_bus, 0U));
+    TEST_ASSERT_NULL(bmp390_create("bmp390", NULL, 0U));
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    void *saved_priv = sensor->priv_data;
+    sensor->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    sensor->priv_data = saved_priv;
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.value.val_uint32);
+    TEST_ASSERT_EQUAL_UINT32(123U, data.timestamp);
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -411,5 +439,6 @@ int main(void)
     RUN_TEST(test_bmp390_init_rejects_bad_chip_id_and_read_maps_i2c_error);
     RUN_TEST(test_bmp390_init_maps_write_failure);
     RUN_TEST(test_bmp390_read_pressure_full_scale_boundary);
+    RUN_TEST(test_bmp390_rejects_invalid_factory_and_public_ops_inputs);
     return UNITY_END();
 }

@@ -11,6 +11,7 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 static sensor_err_t bmp390_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) return SENSOR_EINVAL;
     bmp390_priv_t *priv = (bmp390_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing BMP390");
 
@@ -28,6 +29,9 @@ static sensor_err_t bmp390_init(sensor_device_t *sensor)
 static sensor_err_t bmp390_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     bmp390_priv_t *priv = (bmp390_priv_t *)sensor->priv_data;
     for (int i = 0; i < 6; i++) {
         if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, 0x1C + i, &buf[i], 1) != SENSOR_EOK) return SENSOR_EIO;
@@ -48,6 +52,7 @@ static const sensor_ops_t bmp390_ops = {
 
 sensor_device_t *bmp390_create(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL || i2c_bus == NULL) return NULL;
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     bmp390_priv_t *priv = (bmp390_priv_t *)SENSOR_MALLOC(sizeof(bmp390_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
