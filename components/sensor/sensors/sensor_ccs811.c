@@ -157,7 +157,7 @@ static const sensor_ops_t ccs811_tvoc_ops = {
 
 sensor_device_t *ccs811_create_co2(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 
@@ -199,7 +199,7 @@ sensor_device_t *ccs811_create_co2(const char *name, void *i2c_bus)
 
 sensor_device_t *ccs811_create_tvoc(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

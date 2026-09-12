@@ -210,6 +210,8 @@ static void test_create_variants_set_identity_and_reject_null_names(void)
 
     TEST_ASSERT_NULL(ccs811_create_co2(NULL, &bus));
     TEST_ASSERT_NULL(ccs811_create_tvoc(NULL, &bus));
+    TEST_ASSERT_NULL(ccs811_create_co2("ccs-no-bus", NULL));
+    TEST_ASSERT_NULL(ccs811_create_tvoc("ccs-no-bus", NULL));
     TEST_ASSERT_NOT_NULL(co2);
     TEST_ASSERT_NOT_NULL(tvoc);
 
