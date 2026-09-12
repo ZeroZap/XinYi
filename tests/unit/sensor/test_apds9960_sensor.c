@@ -275,6 +275,47 @@ static void test_missing_private_data_is_rejected_without_i2c_side_effects(void)
     destroy_sensor(sensor);
 }
 
+static void test_gesture_valid_status_propagates_fifo_level_read_failure(void)
+{
+    int bus;
+    sensor_device_t *sensor = apds9960_create_gesture("apds-gesture", &bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_TEMPERATURE,
+                          .value.val_uint32 = 0xA5A5A5A5U,
+                          .timestamp = 123U,
+                          .accuracy = 12U};
+    sensor_data_t snapshot = data;
+    uint8_t gstatus = 0x01U;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GSTATUS, &gstatus, 1U, 0);
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GFLVL, NULL, 1U, -8);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    assert_output_unchanged(&snapshot, &data);
+    assert_no_extra_i2c();
+    destroy_sensor(sensor);
+}
+
+static void test_gesture_reads_fifo_level_before_fifo_data(void)
+{
+    int bus;
+    sensor_device_t *sensor = apds9960_create_gesture("apds-gesture-ok", &bus);
+    sensor_data_t data = {0};
+    uint8_t gstatus = 0x01U;
+    uint8_t fifo_level = 1U;
+    uint8_t fifo[4] = {1U, 2U, 3U, 4U};
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GSTATUS, &gstatus, 1U, 0);
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GFLVL, &fifo_level, 1U, 0);
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GFIFO_U, fifo, sizeof(fifo), 0);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_CUSTOM, data.type);
+    TEST_ASSERT_EQUAL_UINT32(APDS9960_GESTURE_NONE, data.value.val_uint32);
+    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    assert_no_extra_i2c();
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -284,5 +325,7 @@ int main(void)
     RUN_TEST(test_read_failure_preserves_output);
     RUN_TEST(test_public_guards_reject_null_inputs_without_i2c_side_effects);
     RUN_TEST(test_missing_private_data_is_rejected_without_i2c_side_effects);
+    RUN_TEST(test_gesture_valid_status_propagates_fifo_level_read_failure);
+    RUN_TEST(test_gesture_reads_fifo_level_before_fifo_data);
     return UNITY_END();
 }

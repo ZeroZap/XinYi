@@ -139,7 +139,13 @@ static sensor_err_t apds9960_gesture_read(sensor_device_t *sensor,
     if (gstatus & 0x01) {
         /* 有手势数据 */
         uint8_t fifo_data[128];
-        uint8_t fifo_level = (gstatus >> 1) & 0x7F;
+        uint8_t fifo_level;
+
+        if (hal_i2c_mem_read(
+                sensor->bus, priv->i2c_addr, APDS9960_REG_GFLVL, &fifo_level, 1)
+            != 0) {
+            return SENSOR_EIO;
+        }
 
         if (fifo_level > 0) {
             /* 读取FIFO数据并解析手势 */
