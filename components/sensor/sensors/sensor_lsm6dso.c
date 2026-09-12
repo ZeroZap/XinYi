@@ -566,8 +566,7 @@ int lsm6dso_set_gyro_rate(sensor_device_t *dev, uint8_t rate)
     if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
-    ctrl2 &= 0xF0;
-    ctrl2 |= (rate & 0x0F);
+    ctrl2 = (uint8_t)((ctrl2 & 0x0F) | ((rate & 0x0F) << 4));
     if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL2_G, ctrl2) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
