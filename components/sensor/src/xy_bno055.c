@@ -355,7 +355,13 @@ int xy_bno055_set_units(xy_bno055_t *dev, uint8_t unit_flags)
         return XY_DEVICE_EINVAL;
     }
 
-    return bus_write(dev, BNO055_REG_UNIT_SEL, &unit_flags, 1);
+    int ret = bus_write(dev, BNO055_REG_UNIT_SEL, &unit_flags, 1);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    dev->unit_flags = unit_flags;
+    return XY_DEVICE_OK;
 }
 
 int xy_bno055_reset(xy_bno055_t *dev)

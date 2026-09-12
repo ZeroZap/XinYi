@@ -314,8 +314,16 @@ void test_mode_power_units_sleep_and_wakeup_write_expected_registers(void)
     expect_write_u8(BNO055_REG_PWR_MODE, BNO055_PWR_LOWPOWER);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_set_power_mode(&dev, BNO055_PWR_LOWPOWER));
 
-    expect_write_u8(BNO055_REG_UNIT_SEL, BNO055_UNIT_RAD | BNO055_UNIT_G | BNO055_UNIT_MG);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_set_units(&dev, BNO055_UNIT_RAD | BNO055_UNIT_G | BNO055_UNIT_MG));
+    const uint8_t unit_flags = BNO055_UNIT_RAD | BNO055_UNIT_G | BNO055_UNIT_MG;
+    dev.unit_flags = 0xA5U;
+    expect_write_u8(BNO055_REG_UNIT_SEL, unit_flags);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_set_units(&dev, unit_flags));
+    TEST_ASSERT_EQUAL_UINT8(unit_flags, dev.unit_flags);
+
+    const uint8_t failed_units = BNO055_UNIT_MS2;
+    expect_write_ret(BNO055_REG_UNIT_SEL, &failed_units, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_set_units(&dev, failed_units));
+    TEST_ASSERT_EQUAL_UINT8(unit_flags, dev.unit_flags);
 
     expect_write_u8(BNO055_REG_PWR_MODE, BNO055_PWR_SUSPEND);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_sleep(&dev));
