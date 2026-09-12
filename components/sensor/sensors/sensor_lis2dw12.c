@@ -257,7 +257,9 @@ int lis2dw12_set_rate(sensor_device_t *dev, uint8_t rate)
 
     /* 记录实际ODR */
     static const uint16_t odr_map[] = {0, 2, 12, 25, 50, 100, 200, 400, 800};
-    priv->rate = (rate < 9) ? odr_map[rate] : 100;
+    uint16_t actual_odr = (rate < 9) ? odr_map[rate] : 100;
+    priv->rate = actual_odr;
+    dev->odr = actual_odr;
 
     return SENSOR_EOK;
 }

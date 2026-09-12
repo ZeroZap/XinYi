@@ -616,6 +616,7 @@ static void test_lis2dw12_create_init_read_deinit_and_setters(void)
                      (uint8_t)((0xA2U & 0xC3U) | (LIS2DW12_RATE_400HZ << 2)), SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, lis2dw12_set_rate(sensor, LIS2DW12_RATE_400HZ));
     TEST_ASSERT_EQUAL_INT(400, ((lis2dw12_priv_t *)sensor->priv_data)->rate);
+    TEST_ASSERT_EQUAL_UINT32(400U, sensor->odr);
 
     queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_DEFAULT, LIS2DW12_REG_CTRL1, 0x1FU, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LIS2DW12_ADDR_DEFAULT, LIS2DW12_REG_CTRL1,
@@ -678,9 +679,11 @@ static void test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates(
 
     setUp();
     ((lis2dw12_priv_t *)sensor->priv_data)->rate = 25U;
+    sensor->odr = 25U;
     queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL1, 0x00U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, lis2dw12_set_rate(sensor, LIS2DW12_RATE_800HZ));
     TEST_ASSERT_EQUAL_INT(25, ((lis2dw12_priv_t *)sensor->priv_data)->rate);
+    TEST_ASSERT_EQUAL_UINT32(25U, sensor->odr);
 
     setUp();
     ((lis2dw12_priv_t *)sensor->priv_data)->mode = LIS2DW12_MODE_LOW_POWER;
