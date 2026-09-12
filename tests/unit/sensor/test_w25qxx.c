@@ -472,6 +472,35 @@ static void test_w25qxx_chip_erase_stops_on_transport_failures(void)
     TEST_ASSERT_EQUAL_UINT(op_before + 2U, g_op_index);
 }
 
+static void test_w25qxx_page_program_stops_on_transport_failures(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    const uint8_t page_addr[4] = {W25Q_CMD_PAGE_PROGRAM, 0x00U, 0x12U, 0x00U};
+    const uint8_t payload[2] = {0xA5U, 0x5AU};
+    size_t op_before;
+
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_DEVICE_ERROR);
+    op_before = g_op_index;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_w25qxx_page_program(&dev, 0x1200U, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_UINT(op_before + 1U, g_op_index);
+
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_OK);
+    queue_tx(page_addr, sizeof(page_addr), XY_DEVICE_ERROR);
+    op_before = g_op_index;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_w25qxx_page_program(&dev, 0x1200U, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_UINT(op_before + 2U, g_op_index);
+
+    queue_tx1(W25Q_CMD_WRITE_ENABLE, XY_OK);
+    queue_tx(page_addr, sizeof(page_addr), XY_OK);
+    queue_tx(payload, sizeof(payload), XY_DEVICE_ERROR);
+    op_before = g_op_index;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_w25qxx_page_program(&dev, 0x1200U, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_UINT(op_before + 3U, g_op_index);
+}
+
 static void test_w25qxx_write_data_at_sector_boundary_erases_then_programs(void)
 {
     xy_w25qxx_t dev = make_ready_dev();
@@ -505,6 +534,7 @@ int main(void)
     RUN_TEST(test_w25qxx_sector_erase_stops_on_transport_failures);
     RUN_TEST(test_w25qxx_block_erase_stops_on_transport_failures);
     RUN_TEST(test_w25qxx_chip_erase_stops_on_transport_failures);
+    RUN_TEST(test_w25qxx_page_program_stops_on_transport_failures);
     RUN_TEST(test_w25qxx_write_data_at_sector_boundary_erases_then_programs);
     return UNITY_END();
 }
