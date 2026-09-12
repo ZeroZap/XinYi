@@ -258,12 +258,18 @@ int xy_w25qxx_block_erase(xy_w25qxx_t *dev, uint32_t addr)
         return XY_W25Q_INVALID_PARAM;
     }
     
-    xy_w25qxx_write_enable(dev);
-    
+    int ret = xy_w25qxx_write_enable(dev);
+    if (ret != XY_W25Q_OK) {
+        return ret;
+    }
+
     xy_w25q_cs_low(dev);
-    xy_w25q_send_cmd_addr(dev, W25Q_CMD_BLOCK_ERASE_64K, addr);
+    ret = xy_w25q_send_cmd_addr(dev, W25Q_CMD_BLOCK_ERASE_64K, addr);
     xy_w25q_cs_high(dev);
-    
+    if (ret != XY_W25Q_OK) {
+        return ret;
+    }
+
     return xy_w25qxx_wait_idle(dev, W25Q_ERASE_TIMEOUT);
 }
 
