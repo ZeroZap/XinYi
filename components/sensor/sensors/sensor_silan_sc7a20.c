@@ -181,13 +181,26 @@ int silan_sc7a20_set_rate(sensor_device_t *dev, uint8_t rate)
     if (dev == NULL || dev->priv_data == NULL) {
         return SENSOR_EINVAL;
     }
+    uint16_t rate_hz;
+    switch (rate) {
+    case SILAN_SC7A20_RATE_POWER_DOWN: rate_hz = 0U; break;
+    case SILAN_SC7A20_RATE_1HZ: rate_hz = 1U; break;
+    case SILAN_SC7A20_RATE_10HZ: rate_hz = 10U; break;
+    case SILAN_SC7A20_RATE_25HZ: rate_hz = 25U; break;
+    case SILAN_SC7A20_RATE_50HZ: rate_hz = 50U; break;
+    case SILAN_SC7A20_RATE_100HZ: rate_hz = 100U; break;
+    case SILAN_SC7A20_RATE_200HZ: rate_hz = 200U; break;
+    case SILAN_SC7A20_RATE_400HZ: rate_hz = 400U; break;
+    default: return SENSOR_EINVAL;
+    }
     uint8_t ctrl1;
     if (silan_sc7a20_reg_read(dev, SILAN_SC7A20_REG_CTRL1, &ctrl1) != SENSOR_EOK)
         return SENSOR_EIO;
     ctrl1 = (ctrl1 & 0x0F) | (rate & 0xF0);  /* 保留量程位 */
     if (silan_sc7a20_reg_write(dev, SILAN_SC7A20_REG_CTRL1, ctrl1) != SENSOR_EOK)
         return SENSOR_EIO;
-    ((silan_sc7a20_priv_t *)dev->priv_data)->rate = rate;
+    ((silan_sc7a20_priv_t *)dev->priv_data)->rate = rate_hz;
+    dev->odr = rate_hz;
     return 0;
 }
 

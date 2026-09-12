@@ -66,7 +66,7 @@
 typedef struct {
     uint8_t i2c_addr;
     uint8_t range;
-    uint8_t rate;
+    uint16_t rate;
     int16_t offset[3];
 } silan_sc7a20_priv_t;
 
