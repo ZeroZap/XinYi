@@ -71,8 +71,14 @@ static sensor_err_t lsm6dsr_init(sensor_device_t *sensor)
 
 static sensor_err_t lsm6dsr_deinit(sensor_device_t *sensor)
 {
+    lsm6dsr_priv_t *priv = (lsm6dsr_priv_t *)sensor->priv_data;
+
     if (lsm6dsr_reg_write(sensor, LSM6DSR_REG_CTRL1_XL, 0x00) != SENSOR_EOK) return SENSOR_EIO;
     if (lsm6dsr_reg_write(sensor, LSM6DSR_REG_CTRL2_G, 0x00) != SENSOR_EOK) return SENSOR_EIO;
+
+    priv->accel_rate = 0U;
+    priv->gyro_rate = 0U;
+    sensor->odr = 0U;
     return SENSOR_EOK;
 }
 
