@@ -77,9 +77,15 @@ static sensor_err_t lsm9ds1_init(sensor_device_t *sensor)
 
 static sensor_err_t lsm9ds1_deinit(sensor_device_t *sensor)
 {
-    lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL1_XL, 0x00);
-    lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL2_G, 0x00);
-    lsm9ds1_mag_write(sensor, LSM9DS1_REG_CTRL_REG1_M, 0x00);
+    if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL1_XL, 0x00) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL2_G, 0x00) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    if (lsm9ds1_mag_write(sensor, LSM9DS1_REG_CTRL_REG1_M, 0x00) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
     return SENSOR_EOK;
 }
 

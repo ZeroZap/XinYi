@@ -247,11 +247,30 @@ static void test_lsm9ds1_init_propagates_reset_failure_without_cache_updates(voi
     destroy_sensor(accel);
 }
 
+static void test_lsm9ds1_deinit_stops_on_first_transport_error(void)
+{
+    int fake_bus;
+    sensor_device_t *accel = lsm9ds1_create_accel("lsm9-deinit-fail", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_write8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_CTRL1_XL,
+                     0x00U, SENSOR_EIO);
+    queue_i2c_write8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_CTRL2_G,
+                     0x00U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, LSM9DS1_MAG_ADDR_DEFAULT, LSM9DS1_REG_CTRL_REG1_M,
+                     0x00U, SENSOR_EOK);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_lsm9ds1_create_default_contracts_and_name_truncation);
     RUN_TEST(test_lsm9ds1_init_read_deinit_and_failure_contracts);
     RUN_TEST(test_lsm9ds1_init_propagates_reset_failure_without_cache_updates);
+    RUN_TEST(test_lsm9ds1_deinit_stops_on_first_transport_error);
     return UNITY_END();
 }
