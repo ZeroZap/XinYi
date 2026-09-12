@@ -294,6 +294,20 @@ static void test_lsm9ds1_deinit_stops_on_first_transport_error(void)
     destroy_sensor(accel);
 }
 
+static void test_lsm9ds1_factories_reject_missing_name_or_bus(void)
+{
+    int fake_bus;
+
+    TEST_ASSERT_NULL(lsm9ds1_create_accel(NULL, &fake_bus));
+    TEST_ASSERT_NULL(lsm9ds1_create_accel("lsm9-no-bus", NULL));
+    TEST_ASSERT_NULL(lsm9ds1_create_gyro(NULL, &fake_bus));
+    TEST_ASSERT_NULL(lsm9ds1_create_gyro("lsm9-no-bus-g", NULL));
+    TEST_ASSERT_NULL(lsm9ds1_create_mag(NULL, &fake_bus));
+    TEST_ASSERT_NULL(lsm9ds1_create_mag("lsm9-no-bus-m", NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+}
+
 static void test_lsm9ds1_public_ops_reject_invalid_arguments_without_io(void)
 {
     int fake_bus;
@@ -341,6 +355,7 @@ int main(void)
     RUN_TEST(test_lsm9ds1_init_propagates_reset_failure_without_cache_updates);
     RUN_TEST(test_lsm9ds1_init_commits_ranges_only_after_all_configuration_succeeds);
     RUN_TEST(test_lsm9ds1_deinit_stops_on_first_transport_error);
+    RUN_TEST(test_lsm9ds1_factories_reject_missing_name_or_bus);
     RUN_TEST(test_lsm9ds1_public_ops_reject_invalid_arguments_without_io);
     return UNITY_END();
 }

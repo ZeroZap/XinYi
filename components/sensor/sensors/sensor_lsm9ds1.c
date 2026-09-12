@@ -191,6 +191,7 @@ static const sensor_ops_t lsm9ds1_mag_ops = {
 
 sensor_device_t *lsm9ds1_create_accel(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL) return NULL;
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm9ds1_priv_t *priv = (lsm9ds1_priv_t *)SENSOR_MALLOC(sizeof(lsm9ds1_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -224,6 +225,7 @@ sensor_device_t *lsm9ds1_create_accel(const char *name, void *i2c_bus)
 
 sensor_device_t *lsm9ds1_create_gyro(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL) return NULL;
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm9ds1_priv_t *priv = (lsm9ds1_priv_t *)SENSOR_MALLOC(sizeof(lsm9ds1_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -257,6 +259,7 @@ sensor_device_t *lsm9ds1_create_gyro(const char *name, void *i2c_bus)
 
 sensor_device_t *lsm9ds1_create_mag(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL) return NULL;
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm9ds1_priv_t *priv = (lsm9ds1_priv_t *)SENSOR_MALLOC(sizeof(lsm9ds1_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
