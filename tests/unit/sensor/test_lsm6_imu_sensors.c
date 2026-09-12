@@ -546,6 +546,11 @@ static void test_lsm6dsr_init_failure_does_not_commit_partial_config_cache(void)
 
     TEST_ASSERT_NOT_NULL(sensor);
     priv = (lsm6dsr_priv_t *)sensor->priv_data;
+    priv->accel_range = LSM6DSR_ACCEL_RANGE_8G;
+    priv->accel_rate = 208U;
+    priv->gyro_range = LSM6DSR_GYRO_RANGE_1000DPS;
+    priv->gyro_rate = 416U;
+    sensor->odr = 208U;
     queue_i2c_read8(&bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_WHOAMI,
                     LSM6DSR_WHOAMI_VALUE, SENSOR_EOK);
     queue_i2c_write8(&bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL3_C, 0x01U, SENSOR_EOK);
@@ -558,10 +563,33 @@ static void test_lsm6dsr_init_failure_does_not_commit_partial_config_cache(void)
                                LSM6DSR_GYRO_RANGE_250DPS), SENSOR_EIO);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT8(0U, priv->accel_range);
-    TEST_ASSERT_EQUAL_UINT8(0U, priv->accel_rate);
-    TEST_ASSERT_EQUAL_UINT8(0U, priv->gyro_range);
-    TEST_ASSERT_EQUAL_UINT8(0U, priv->gyro_rate);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_ACCEL_RANGE_8G, priv->accel_range);
+    TEST_ASSERT_EQUAL_UINT32(208U, priv->accel_rate);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_GYRO_RANGE_1000DPS, priv->gyro_range);
+    TEST_ASSERT_EQUAL_UINT32(416U, priv->gyro_rate);
+    TEST_ASSERT_EQUAL_UINT32(208U, sensor->odr);
+    destroy_sensor(sensor);
+}
+
+static void test_lsm6dsr_reinit_success_resynchronizes_public_odr(void)
+{
+    int bus;
+    sensor_device_t *sensor = lsm6dsr_create_accel("dsr-reinit", &bus, 0U);
+    lsm6dsr_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    priv = (lsm6dsr_priv_t *)sensor->priv_data;
+    queue_i2c_read8(&bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL1_XL, 0x40U, SENSOR_EOK);
+    queue_i2c_write8(&bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL1_XL, 0x50U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
+                          lsm6dsr_set_accel_rate(sensor, LSM6DSR_ACCEL_RATE_208Hz));
+    TEST_ASSERT_EQUAL_UINT32(208U, sensor->odr);
+
+    queue_lsm6dsr_i2c_init(&bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_WHOAMI_VALUE);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(104U, priv->accel_rate);
+    TEST_ASSERT_EQUAL_UINT32(104U, priv->gyro_rate);
+    TEST_ASSERT_EQUAL_UINT32(104U, sensor->odr);
     destroy_sensor(sensor);
 }
 
@@ -705,6 +733,7 @@ int main(void)
     RUN_TEST(test_lsm6dso_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors);
     RUN_TEST(test_lsm6dsr_init_failure_does_not_commit_partial_config_cache);
+    RUN_TEST(test_lsm6dsr_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dsr_i2c_accel_gyro_init_read_helpers_and_errors);
     return UNITY_END();
 }
