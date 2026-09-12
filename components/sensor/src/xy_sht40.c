@@ -92,6 +92,7 @@ int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
     ret = xy_i2c_device_write(&sht40->i2c_dev, &cmd, 1);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("SHT40 not found\n");
+        memset(sht40, 0, sizeof(*sht40));
         return XY_SHT40_NOT_FOUND;
     }
     
@@ -99,17 +100,20 @@ int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
     
     ret = xy_i2c_device_read(&sht40->i2c_dev, buf, 6);
     if (ret != XY_DEVICE_OK) {
+        memset(sht40, 0, sizeof(*sht40));
         return ret;
     }
     
     /* 验证 CRC */
     crc = xy_sht40_crc8(buf, 2);
     if (crc != buf[2]) {
+        memset(sht40, 0, sizeof(*sht40));
         return XY_SHT40_CRC_ERROR;
     }
     
     crc = xy_sht40_crc8(&buf[3], 2);
     if (crc != buf[5]) {
+        memset(sht40, 0, sizeof(*sht40));
         return XY_SHT40_CRC_ERROR;
     }
     

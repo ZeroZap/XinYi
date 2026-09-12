@@ -177,7 +177,7 @@ static void test_init_rejects_bad_serial_crc_without_initializing(void)
     queue_read(serial, sizeof(serial), XY_DEVICE_OK);
 
     TEST_ASSERT_EQUAL_INT(XY_SHT40_CRC_ERROR, xy_sht40_init(&dev, &fake_bus));
-    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_sht40_t){0}, &dev, sizeof(dev));
 }
 
 static void test_init_propagates_device_helper_failure_without_bus_io(void)
@@ -271,12 +271,12 @@ static void test_init_reports_i2c_write_and_read_failures(void)
 
     g_write_ret_queue[0] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_SHT40_NOT_FOUND, xy_sht40_init(&dev, &fake_bus));
-    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_sht40_t){0}, &dev, sizeof(dev));
 
     setUp();
     queue_read(NULL, 6U, XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_sht40_init(&dev, &fake_bus));
-    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_sht40_t){0}, &dev, sizeof(dev));
 }
 
 static void test_deinit_rejects_null_and_clears_initialized_flag(void)
