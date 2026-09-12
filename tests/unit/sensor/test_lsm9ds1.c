@@ -247,6 +247,35 @@ static void test_lsm9ds1_init_propagates_reset_failure_without_cache_updates(voi
     destroy_sensor(accel);
 }
 
+static void test_lsm9ds1_init_commits_ranges_only_after_all_configuration_succeeds(void)
+{
+    int fake_bus;
+    sensor_device_t *accel = lsm9ds1_create_accel("lsm9-config-fail", &fake_bus);
+    lsm9ds1_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    priv = (lsm9ds1_priv_t *)accel->priv_data;
+    priv->accel_range = 8U;
+    priv->gyro_range = 500U;
+    queue_i2c_read8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_WHOAMI_IMU,
+                    LSM9DS1_IMU_WHOAMI_VALUE, SENSOR_EOK);
+    queue_i2c_read8(&fake_bus, LSM9DS1_MAG_ADDR_DEFAULT, LSM9DS1_REG_WHOAMI_MAG,
+                    LSM9DS1_MAG_WHOAMI_VALUE, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_CTRL3_C,
+                     0x01U, SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_CTRL1_XL,
+                     (uint8_t)((0x04U << 4) | LSM9DS1_ACCEL_RANGE_2G), SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_CTRL2_G,
+                     (uint8_t)((0x04U << 4) | LSM9DS1_GYRO_RANGE_250DPS), SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, LSM9DS1_MAG_ADDR_DEFAULT, LSM9DS1_REG_CTRL_REG1_M,
+                     0x70U, SENSOR_EIO);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->init(accel));
+    TEST_ASSERT_EQUAL_UINT8(8U, priv->accel_range);
+    TEST_ASSERT_EQUAL_UINT16(500U, priv->gyro_range);
+    destroy_sensor(accel);
+}
+
 static void test_lsm9ds1_deinit_stops_on_first_transport_error(void)
 {
     int fake_bus;
@@ -271,6 +300,7 @@ int main(void)
     RUN_TEST(test_lsm9ds1_create_default_contracts_and_name_truncation);
     RUN_TEST(test_lsm9ds1_init_read_deinit_and_failure_contracts);
     RUN_TEST(test_lsm9ds1_init_propagates_reset_failure_without_cache_updates);
+    RUN_TEST(test_lsm9ds1_init_commits_ranges_only_after_all_configuration_succeeds);
     RUN_TEST(test_lsm9ds1_deinit_stops_on_first_transport_error);
     return UNITY_END();
 }

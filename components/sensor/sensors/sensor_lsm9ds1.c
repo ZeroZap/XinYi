@@ -60,16 +60,17 @@ static sensor_err_t lsm9ds1_init(sensor_device_t *sensor)
     /* 配置加速度计: ±2g, 100Hz */
     data = (0x04 << 4) | LSM9DS1_ACCEL_RANGE_2G;
     if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL1_XL, data) != SENSOR_EOK) return SENSOR_EIO;
-    lsm9ds1_priv_t *priv = (lsm9ds1_priv_t *)sensor->priv_data;
-    priv->accel_range = 2;
 
     /* 配置陀螺仪: ±250°/s, 100Hz */
     data = (0x04 << 4) | LSM9DS1_GYRO_RANGE_250DPS;
     if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL2_G, data) != SENSOR_EOK) return SENSOR_EIO;
-    priv->gyro_range = 250;
 
     /* 配置磁力计: 100Hz, 高性能 */
     if (lsm9ds1_mag_write(sensor, LSM9DS1_REG_CTRL_REG1_M, 0x70) != SENSOR_EOK) return SENSOR_EIO;
+
+    lsm9ds1_priv_t *priv = (lsm9ds1_priv_t *)sensor->priv_data;
+    priv->accel_range = 2;
+    priv->gyro_range = 250;
 
     SENSOR_LOG("LSM9DS1 initialized");
     return SENSOR_EOK;
