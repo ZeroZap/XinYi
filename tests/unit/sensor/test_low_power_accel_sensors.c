@@ -400,6 +400,8 @@ static void test_bma400_create_init_read_and_deinit(void)
     queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG0,
                      BMA400_POWER_MODE_SLEEP, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(BMA400_POWER_MODE_SLEEP,
+                          ((bma400_priv_t *)sensor->priv_data)->power_mode);
 
     destroy_sensor(sensor);
 }
@@ -415,6 +417,13 @@ static void test_bma400_error_paths(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
     queue_i2c_read(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_X_LSB, NULL, 6U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+
+    ((bma400_priv_t *)sensor->priv_data)->power_mode = BMA400_POWER_MODE_LOW_POWER;
+    queue_i2c_write8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_CONFIG0,
+                     BMA400_POWER_MODE_SLEEP, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(BMA400_POWER_MODE_LOW_POWER,
+                          ((bma400_priv_t *)sensor->priv_data)->power_mode);
 
     destroy_sensor(sensor);
 }
