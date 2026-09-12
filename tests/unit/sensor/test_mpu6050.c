@@ -225,7 +225,7 @@ static void test_mpu6050_post_helper_init_failure_clears_device_state(void)
     memset(&dev, 0xA5, sizeof(dev));
     queue_read8(MPU6050_REG_WHO_AM_I, 0x00U, XY_DEVICE_ERROR);
 
-    TEST_ASSERT_EQUAL_INT(XY_MPU6050_NOT_FOUND,
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
                           xy_mpu6050_init_addr(&dev, &bus, MPU6050_ADDR_AD0_LOW));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
@@ -239,7 +239,7 @@ static void test_mpu6050_not_found_id_error_and_wakeup_failure(void)
     int bus;
 
     queue_read8(MPU6050_REG_WHO_AM_I, 0x00U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_MPU6050_NOT_FOUND, xy_mpu6050_init_addr(&dev, &bus, MPU6050_ADDR_AD0_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_init_addr(&dev, &bus, MPU6050_ADDR_AD0_LOW));
 
     queue_read8(MPU6050_REG_WHO_AM_I, 0x69U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_ID_ERROR, xy_mpu6050_init_addr(&dev, &bus, MPU6050_ADDR_AD0_LOW));

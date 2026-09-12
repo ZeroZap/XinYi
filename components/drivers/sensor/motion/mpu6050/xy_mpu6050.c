@@ -80,7 +80,7 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
     if (ret != XY_DEVICE_OK) {
         xy_log_e("Failed to read WHO_AM_I\n");
         memset(dev, 0, sizeof(*dev));
-        return XY_MPU6050_NOT_FOUND;
+        return ret;
     }
 
     if (who_am_i != MPU6050_WHO_AM_I_VALUE) {
