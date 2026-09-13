@@ -7,6 +7,10 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
 
 static sensor_err_t kx023_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     kx023_priv_t *priv = (kx023_priv_t *)sensor->priv_data;
     uint8_t data;
 

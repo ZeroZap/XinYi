@@ -606,6 +606,33 @@ static void test_kx023_propagates_config_write_failures(void)
     destroy_sensor(sensor);
 }
 
+static void test_kx023_init_rejects_invalid_context_without_io(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = kx023_create("kx023-invalid-context", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+
+    void *saved_priv_data = sensor->priv_data;
+    sensor->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+
+    sensor->priv_data = saved_priv_data;
+    void *saved_bus = sensor->bus;
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+
+    sensor->bus = saved_bus;
+    destroy_sensor(sensor);
+}
+
 static void test_lis2dw12_create_init_read_deinit_and_setters(void)
 {
     int fake_bus;
@@ -956,6 +983,7 @@ int main(void)
     RUN_TEST(test_bma400_init_propagates_each_config_write_failure);
     RUN_TEST(test_kx023_create_init_read_deinit_and_error_paths);
     RUN_TEST(test_kx023_propagates_config_write_failures);
+    RUN_TEST(test_kx023_init_rejects_invalid_context_without_io);
     RUN_TEST(test_lis2dw12_create_init_read_deinit_and_setters);
     RUN_TEST(test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates);
     RUN_TEST(test_lis2dw12_set_range_rejects_invalid_range_and_null_device_without_io);
