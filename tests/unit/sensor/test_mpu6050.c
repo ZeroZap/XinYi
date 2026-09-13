@@ -315,6 +315,8 @@ static void test_mpu6050_read_helpers_validate_outputs_and_io_failure_paths(void
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_set_gyro_range(&dev, (xy_mpu6050_gyro_range_t)4));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_calibrate(NULL, 1));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_calibrate(&dev, 0));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_calibrate(&dev, 1));
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
 
     init_mpu_ok(&dev, &bus);
     queue_read_raw(0, 0, 0, 0, 0, 0, 0, XY_DEVICE_ERROR);
@@ -460,17 +462,30 @@ static void test_mpu6050_deinit_rejects_uninitialized_device_without_bus_io(void
 static void test_mpu6050_calibrate_failure_preserves_calibration(void)
 {
     xy_mpu6050_t dev;
+    xy_mpu6050_raw_data_t before_raw;
+    float before_accel[3];
+    float before_gyro[3];
+    float before_temp;
     int bus;
 
     init_mpu_ok(&dev, &bus);
     queue_read_raw(100, 200, 16384, 0, 10, 20, 30, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_OK, xy_mpu6050_read_raw(&dev));
+    before_raw = dev.raw;
+    memcpy(before_accel, dev.accel_g, sizeof(before_accel));
+    memcpy(before_gyro, dev.gyro_dps, sizeof(before_gyro));
+    before_temp = dev.temperature_c;
+    queue_read_raw(300, 400, 16384, 0, 30, 40, 50, XY_DEVICE_OK);
     queue_read_raw(0, 0, 0, 0, 0, 0, 0, XY_DEVICE_ERROR);
 
     memset(&dev.calib, 0, sizeof(dev.calib));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_calibrate(&dev, 1));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mpu6050_calibrate(&dev, 2));
     TEST_ASSERT_EQUAL_MEMORY(&(xy_mpu6050_calib_t){0}, &dev.calib, sizeof(dev.calib));
-    TEST_ASSERT_EQUAL_UINT32(100U, g_delay_total);
+    TEST_ASSERT_EQUAL_MEMORY(&before_raw, &dev.raw, sizeof(before_raw));
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY(before_accel, dev.accel_g, 3);
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY(before_gyro, dev.gyro_dps, 3);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, before_temp, dev.temperature_c);
+    TEST_ASSERT_EQUAL_UINT32(110U, g_delay_total);
 }
 
 int main(void)

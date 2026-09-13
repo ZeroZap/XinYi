@@ -284,42 +284,51 @@ int xy_mpu6050_calibrate(xy_mpu6050_t *dev, uint16_t samples)
 {
     int32_t accel_sum[3] = {0, 0, 0};
     int32_t gyro_sum[3] = {0, 0, 0};
+    xy_mpu6050_t staged;
+    xy_mpu6050_calib_t calib;
     uint16_t i;
 
-    if (!dev || samples == 0) {
+    if (!dev || !dev->initialized || samples == 0) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
+    staged = *dev;
     xy_log_i("Calibrating MPU6050 (%d samples)...\n", samples);
 
     /* 采集样本 */
     for (i = 0; i < samples; i++) {
-        int ret = xy_mpu6050_read_raw(dev);
+        int ret = xy_mpu6050_read_raw(&staged);
         if (ret != XY_MPU6050_OK) {
             return ret;
         }
 
-        accel_sum[0] += dev->raw.accel_x;
-        accel_sum[1] += dev->raw.accel_y;
-        accel_sum[2] += dev->raw.accel_z;
+        accel_sum[0] += staged.raw.accel_x;
+        accel_sum[1] += staged.raw.accel_y;
+        accel_sum[2] += staged.raw.accel_z;
 
-        gyro_sum[0] += dev->raw.gyro_x;
-        gyro_sum[1] += dev->raw.gyro_y;
-        gyro_sum[2] += dev->raw.gyro_z;
+        gyro_sum[0] += staged.raw.gyro_x;
+        gyro_sum[1] += staged.raw.gyro_y;
+        gyro_sum[2] += staged.raw.gyro_z;
 
         xy_os_delay(10);
     }
 
     /* 计算偏移 (假设水平放置，Z 轴应为 1g) */
     float sensitivity = g_accel_sensitivity[dev->accel_range];
-    dev->calib.accel_offset_x = (float)accel_sum[0] / samples;
-    dev->calib.accel_offset_y = (float)accel_sum[1] / samples;
-    dev->calib.accel_offset_z = (float)accel_sum[2] / samples - sensitivity;
+    calib.accel_offset_x = (float)accel_sum[0] / samples;
+    calib.accel_offset_y = (float)accel_sum[1] / samples;
+    calib.accel_offset_z = (float)accel_sum[2] / samples - sensitivity;
 
     sensitivity = g_gyro_sensitivity[dev->gyro_range];
-    dev->calib.gyro_offset_x = (float)gyro_sum[0] / samples;
-    dev->calib.gyro_offset_y = (float)gyro_sum[1] / samples;
-    dev->calib.gyro_offset_z = (float)gyro_sum[2] / samples;
+    calib.gyro_offset_x = (float)gyro_sum[0] / samples;
+    calib.gyro_offset_y = (float)gyro_sum[1] / samples;
+    calib.gyro_offset_z = (float)gyro_sum[2] / samples;
+
+    dev->raw = staged.raw;
+    memcpy(dev->accel_g, staged.accel_g, sizeof(dev->accel_g));
+    memcpy(dev->gyro_dps, staged.gyro_dps, sizeof(dev->gyro_dps));
+    dev->temperature_c = staged.temperature_c;
+    dev->calib = calib;
 
     xy_log_i("Calibration complete\n");
     xy_log_d("Accel offset: %.2f, %.2f, %.2f\n",
