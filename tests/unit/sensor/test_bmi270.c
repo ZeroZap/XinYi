@@ -526,6 +526,22 @@ static void test_bmi270_set_range_covers_extreme_scale_branches(void)
     TEST_ASSERT_FLOAT_WITHIN(0.00001f, 125.0f * 0.017453292519943295f / 32768.0f, dev.gyr_scale);
 }
 
+static void test_bmi270_set_range_rejects_invalid_acc_range_without_io(void)
+{
+    xy_bmi270_t dev = ready_i2c_dev();
+    const bmi270_range_t previous_range = dev.range;
+    const float previous_acc_scale = dev.acc_scale;
+    const float previous_gyr_scale = dev.gyr_scale;
+    bmi270_range_t invalid_range = previous_range;
+
+    invalid_range.acc_range = 0x7FU;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_set_range(&dev, &invalid_range));
+    TEST_ASSERT_EQUAL_MEMORY(&previous_range, &dev.range, sizeof(previous_range));
+    TEST_ASSERT_EQUAL_FLOAT(previous_acc_scale, dev.acc_scale);
+    TEST_ASSERT_EQUAL_FLOAT(previous_gyr_scale, dev.gyr_scale);
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -539,5 +555,6 @@ int main(void)
     RUN_TEST(test_bmi270_deinit_clears_ready_after_disable_success);
     RUN_TEST(test_bmi270_read_raw_sensor_time_failure_preserves_sample);
     RUN_TEST(test_bmi270_set_range_covers_extreme_scale_branches);
+    RUN_TEST(test_bmi270_set_range_rejects_invalid_acc_range_without_io);
     return UNITY_END();
 }
