@@ -58,10 +58,15 @@ static sensor_err_t silan_sc7a20_deinit(sensor_device_t *sensor)
     if (sensor == NULL || sensor->priv_data == NULL) {
         return SENSOR_EINVAL;
     }
+    silan_sc7a20_priv_t *priv = (silan_sc7a20_priv_t *)sensor->priv_data;
+
     /* 进入掉电模式 */
     if (silan_sc7a20_reg_write(sensor, SILAN_SC7A20_REG_CTRL1, SILAN_SC7A20_RATE_POWER_DOWN) !=
         SENSOR_EOK)
         return SENSOR_EIO;
+
+    priv->rate = 0U;
+    sensor->odr = 0U;
     return SENSOR_EOK;
 }
 

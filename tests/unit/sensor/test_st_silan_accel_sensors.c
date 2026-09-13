@@ -422,6 +422,8 @@ static void test_silan_sc7a20_create_init_read_helpers_deinit_and_errors(void)
 
     queue_write8(&fake_bus, SILAN_SC7A20_ADDR_DEFAULT, SILAN_SC7A20_REG_CTRL1, SILAN_SC7A20_RATE_POWER_DOWN, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_UINT16(0U, ((silan_sc7a20_priv_t *)sensor->priv_data)->rate);
+    TEST_ASSERT_EQUAL_UINT32(0U, sensor->odr);
     queue_read8(&fake_bus, SILAN_SC7A20_ADDR_DEFAULT, SILAN_SC7A20_REG_WHOAMI, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
 
@@ -442,8 +444,12 @@ static void test_silan_sc7a20_create_init_read_helpers_deinit_and_errors(void)
     queue_write8(&fake_bus, SILAN_SC7A20_ADDR_DEFAULT, SILAN_SC7A20_REG_CTRL1, 0x40U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, silan_sc7a20_set_range(sensor, SILAN_SC7A20_RANGE_2G));
     TEST_ASSERT_EQUAL_UINT8(4U, ((silan_sc7a20_priv_t *)sensor->priv_data)->range);
+    ((silan_sc7a20_priv_t *)sensor->priv_data)->rate = 200U;
+    sensor->odr = 200U;
     queue_write8(&fake_bus, SILAN_SC7A20_ADDR_DEFAULT, SILAN_SC7A20_REG_CTRL1, SILAN_SC7A20_RATE_POWER_DOWN, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_UINT16(200U, ((silan_sc7a20_priv_t *)sensor->priv_data)->rate);
+    TEST_ASSERT_EQUAL_UINT32(200U, sensor->odr);
 
     destroy_sensor(sensor);
 }
