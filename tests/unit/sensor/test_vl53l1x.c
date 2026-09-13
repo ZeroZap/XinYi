@@ -355,7 +355,7 @@ void test_measure_read_or_clear_failures_preserve_public_contracts(void)
     expect_read(VL53L1X_RESULT_INTERRUPT_STATUS, &ready, 1);
     expect_read(VL53L1X_RESULT_RANGE_STATUS, result_bytes, sizeof(result_bytes));
     expect_write_ret(VL53L1X_SYSTEM_INTERRUPT_CLEAR, &(const uint8_t){0x01}, 1, XY_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_measure(&dev, &result, 20));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_measure(&dev, &result, 20));
     TEST_ASSERT_EQUAL_UINT16(250U, result.distance);
 }
 

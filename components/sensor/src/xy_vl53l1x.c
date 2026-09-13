@@ -506,7 +506,10 @@ xy_ret_t xy_vl53l1x_measure(xy_vl53l1x_dev_t *dev, xy_vl53l1x_result_t *result, 
     if (ret != XY_OK) return ret;
     
     /* 清除中断 */
-    xy_vl53l1x_clear_interrupt(dev);
+    ret = xy_vl53l1x_clear_interrupt(dev);
+    if (ret != XY_OK) {
+        return ret;
+    }
     
     return XY_OK;
 }
