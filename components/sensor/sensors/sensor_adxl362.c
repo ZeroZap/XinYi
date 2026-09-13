@@ -35,6 +35,10 @@ static int adxl362_write_reg(void *spi_bus, uint8_t reg, uint8_t *data,
 
 static sensor_err_t adxl362_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     adxl362_priv_t *priv = (adxl362_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -74,6 +78,10 @@ static sensor_err_t adxl362_init(sensor_device_t *sensor)
 
 static sensor_err_t adxl362_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     adxl362_priv_t *priv = (adxl362_priv_t *)sensor->priv_data;
     uint8_t data         = ADXL362_MODE_STANDBY;
 
@@ -87,6 +95,10 @@ static sensor_err_t adxl362_deinit(sensor_device_t *sensor)
 
 static sensor_err_t adxl362_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     adxl362_priv_t *priv = (adxl362_priv_t *)sensor->priv_data;
     uint8_t buf[6];
     int16_t raw[3];
@@ -129,6 +141,10 @@ static const sensor_ops_t adxl362_ops = {
 
 sensor_device_t *adxl362_create(const char *name, void *spi_bus)
 {
+    if (name == NULL || spi_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL)

@@ -366,6 +366,38 @@ static void test_adxl362_propagates_config_write_failures_without_cache_updates(
     destroy_sensor(sensor);
 }
 
+static void test_adxl362_public_ops_reject_invalid_context_without_io(void)
+{
+    int fake_spi;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = adxl362_create("adxl362-boundary", &fake_spi);
+    void *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_NULL(adxl362_create(NULL, &fake_spi));
+    TEST_ASSERT_NULL(adxl362_create("adxl362-null-bus", NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    sensor->bus = &fake_spi;
+
+    priv = sensor->priv_data;
+    sensor->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    sensor->priv_data = priv;
+
+    TEST_ASSERT_EQUAL_UINT(0U, g_spi_index);
+    destroy_sensor(sensor);
+}
+
 static void test_bma400_create_init_read_and_deinit(void)
 {
     int fake_bus;
@@ -1007,6 +1039,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_adxl362_create_init_read_deinit_and_error_paths);
     RUN_TEST(test_adxl362_propagates_config_write_failures_without_cache_updates);
+    RUN_TEST(test_adxl362_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_bma400_create_init_read_and_deinit);
     RUN_TEST(test_bma400_error_paths);
     RUN_TEST(test_bma400_init_rejects_invalid_context_without_io);
