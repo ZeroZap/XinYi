@@ -495,6 +495,18 @@ void test_public_guards_and_inline_helpers(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.234f, xy_vl53l1x_mm_to_m(1234));
 }
 
+void test_deinit_stop_failure_preserves_initialized_state(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+    const uint8_t stop = 0x00U;
+
+    expect_write_ret(VL53L1X_SYSTEM_START, &stop, 1U, -99);
+
+    TEST_ASSERT_EQUAL_INT(-99, xy_vl53l1x_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.is_initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -512,5 +524,6 @@ int main(void)
     RUN_TEST(test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements);
     RUN_TEST(test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_samples);
     RUN_TEST(test_public_guards_and_inline_helpers);
+    RUN_TEST(test_deinit_stop_failure_preserves_initialized_state);
     return UNITY_END();
 }

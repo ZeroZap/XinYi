@@ -300,7 +300,10 @@ xy_ret_t xy_vl53l1x_deinit(xy_vl53l1x_dev_t *dev)
     }
     
     /* 停止测量 */
-    xy_vl53l1x_stop(dev);
+    xy_ret_t ret = xy_vl53l1x_stop(dev);
+    if (ret != XY_OK) {
+        return ret;
+    }
     
     dev->is_initialized = false;
     
