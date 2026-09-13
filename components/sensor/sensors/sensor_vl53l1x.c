@@ -10,13 +10,23 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 
 static sensor_err_t vl53l1x_init(sensor_device_t *sensor)
 {
+    int ret;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     vl53l1x_priv_t *priv = (vl53l1x_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing VL53L1X");
     uint8_t data = 0x00;
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, 0x2D, &data, 1);
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, 0x2D, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
+    }
     SENSOR_DELAY_MS(100);
     data = 0x01;
-    hal_i2c_mem_write(sensor->bus, priv->i2c_addr, 0x2D, &data, 1);
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, 0x2D, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
+    }
     SENSOR_LOG("VL53L1X initialized");
     return SENSOR_EOK;
 }
@@ -24,8 +34,13 @@ static sensor_err_t vl53l1x_init(sensor_device_t *sensor)
 static sensor_err_t vl53l1x_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[2];
+    int ret;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     vl53l1x_priv_t *priv = (vl53l1x_priv_t *)sensor->priv_data;
-    if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, 0x6E, buf, 2) != SENSOR_EOK) return SENSOR_EIO;
+    ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, 0x6E, buf, 2);
+    if (ret != SENSOR_EOK) return (sensor_err_t)ret;
 
     uint16_t dist = (buf[0] << 8) | buf[1];
     data->type = SENSOR_TYPE_PROXIMITY;
@@ -36,12 +51,23 @@ static sensor_err_t vl53l1x_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
+static sensor_err_t vl53l1x_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
 static const sensor_ops_t vl53l1x_ops = {
-    .init = vl53l1x_init, .deinit = NULL, .read = vl53l1x_read,
+    .init = vl53l1x_init, .deinit = vl53l1x_deinit, .read = vl53l1x_read,
 };
 
 sensor_device_t *vl53l1x_create(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     vl53l1x_priv_t *priv = (vl53l1x_priv_t *)SENSOR_MALLOC(sizeof(vl53l1x_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }

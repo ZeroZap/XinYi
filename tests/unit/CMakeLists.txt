@@ -1028,6 +1028,15 @@ target_include_directories(test_vl53l0x_sensor BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_vl53l1x_legacy_sensor sensor_vl53l1x_legacy UNITY
+    ${UNIT_SENSOR}/test_vl53l1x_legacy_sensor.c
+    ${SENSOR}/sensors/sensor_vl53l1x.c
+)
+target_include_directories(test_vl53l1x_legacy_sensor BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+)
+
 xy_add_unit_test(test_ap3216c_sensor sensor_ap3216c_sensor UNITY
     ${UNIT_SENSOR}/test_ap3216c_sensor.c
     ${SENSOR}/sensors/sensor_ap3216c.c
