@@ -350,7 +350,7 @@ xy_ret_t xy_bmi088_soft_reset(xy_bmi088_dev_t *dev)
 
 xy_ret_t xy_bmi088_set_acc_range(xy_bmi088_dev_t *dev, xy_bmi088_acc_range_t range)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || range > XY_BMI088_ACC_RANGE_24G) {
         return XY_ERROR;
     }
     
@@ -366,7 +366,7 @@ xy_ret_t xy_bmi088_set_acc_range(xy_bmi088_dev_t *dev, xy_bmi088_acc_range_t ran
 
 xy_ret_t xy_bmi088_set_gyro_range(xy_bmi088_dev_t *dev, xy_bmi088_gyro_range_t range)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || range > XY_BMI088_GYRO_RANGE_2000) {
         return XY_ERROR;
     }
     

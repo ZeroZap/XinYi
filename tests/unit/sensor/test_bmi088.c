@@ -360,6 +360,19 @@ static void test_bmi088_error_paths_setters_and_calibration(void)
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_set_gyro_range(&dev, XY_BMI088_GYRO_RANGE_125));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 262.4f, dev.gyro_sensitivity);
 
+    size_t op_before_invalid = g_op_index;
+    xy_bmi088_config_t config_before_invalid = dev.config;
+    float acc_sensitivity_before_invalid = dev.acc_sensitivity;
+    float gyro_sensitivity_before_invalid = dev.gyro_sensitivity;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR,
+                          xy_bmi088_set_acc_range(&dev, (xy_bmi088_acc_range_t)99));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR,
+                          xy_bmi088_set_gyro_range(&dev, (xy_bmi088_gyro_range_t)99));
+    TEST_ASSERT_EQUAL_UINT(op_before_invalid, g_op_index);
+    TEST_ASSERT_EQUAL_MEMORY(&config_before_invalid, &dev.config, sizeof(dev.config));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, acc_sensitivity_before_invalid, dev.acc_sensitivity);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, gyro_sensitivity_before_invalid, dev.gyro_sensitivity);
+
     queue_read_xyz(0U, BMI088_ACC_X_LSB_ADDR, 100, 200, 1365, XY_OK);
     queue_read_xyz(1U, BMI088_GYRO_X_LSB_ADDR, 10, 20, 30, XY_OK);
     { uint8_t temp[2] = {0U, 0U}; queue_read(0U, BMI088_ACC_TEMP_LSB_ADDR, temp, 2U, XY_OK); }
@@ -465,7 +478,7 @@ static void test_bmi088_set_range_covers_all_sensitivity_branches(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 32.8f, dev.gyro_sensitivity);
 }
 
-static void test_bmi088_set_range_invalid_enum_uses_default_sensitivity(void)
+static void test_bmi088_set_range_rejects_invalid_enums_without_io(void)
 {
     xy_bmi088_dev_t dev;
     xy_spi_dev_t spi = {0};
@@ -473,16 +486,17 @@ static void test_bmi088_set_range_invalid_enum_uses_default_sensitivity(void)
     xy_bmi088_gyro_range_t invalid_gyro = (xy_bmi088_gyro_range_t)99;
 
     init_bmi_ok(&dev, &spi);
+    size_t op_before = g_op_index;
+    xy_bmi088_config_t config_before = dev.config;
+    float acc_sensitivity_before = dev.acc_sensitivity;
+    float gyro_sensitivity_before = dev.gyro_sensitivity;
 
-    queue_write(0U, BMI088_ACC_RANGE_ADDR, (uint8_t)invalid_acc, XY_OK);
-    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_set_acc_range(&dev, invalid_acc));
-    TEST_ASSERT_EQUAL_INT(invalid_acc, dev.config.acc_range);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5460.0f, dev.acc_sensitivity);
-
-    queue_write(1U, BMI088_GYRO_RANGE_ADDR, (uint8_t)invalid_gyro, XY_OK);
-    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_set_gyro_range(&dev, invalid_gyro));
-    TEST_ASSERT_EQUAL_INT(invalid_gyro, dev.config.gyro_range);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 131.2f, dev.gyro_sensitivity);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_set_acc_range(&dev, invalid_acc));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_set_gyro_range(&dev, invalid_gyro));
+    TEST_ASSERT_EQUAL_UINT(op_before, g_op_index);
+    TEST_ASSERT_EQUAL_MEMORY(&config_before, &dev.config, sizeof(dev.config));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, acc_sensitivity_before, dev.acc_sensitivity);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, gyro_sensitivity_before, dev.gyro_sensitivity);
 }
 
 static void test_bmi088_set_calibration_and_inline_helpers(void)
@@ -514,7 +528,7 @@ int main(void)
     RUN_TEST(test_bmi088_chip_id_partial_reads_and_soft_reset_failure);
     RUN_TEST(test_bmi088_deinit_write_failure_preserves_ready);
     RUN_TEST(test_bmi088_set_range_covers_all_sensitivity_branches);
-    RUN_TEST(test_bmi088_set_range_invalid_enum_uses_default_sensitivity);
+    RUN_TEST(test_bmi088_set_range_rejects_invalid_enums_without_io);
     RUN_TEST(test_bmi088_set_calibration_and_inline_helpers);
     return UNITY_END();
 }
