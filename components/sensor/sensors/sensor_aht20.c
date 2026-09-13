@@ -103,8 +103,9 @@ static sensor_err_t aht20_temperature_read(sensor_device_t *sensor,
 {
     uint8_t raw_data[7];
 
-    if (aht20_trigger_measurement(sensor, raw_data) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = aht20_trigger_measurement(sensor, raw_data);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     /* 计算温度 (20位数据) */
@@ -140,8 +141,9 @@ static sensor_err_t aht20_humidity_read(sensor_device_t *sensor,
 {
     uint8_t raw_data[7];
 
-    if (aht20_trigger_measurement(sensor, raw_data) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = aht20_trigger_measurement(sensor, raw_data);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     /* 计算湿度 (20位数据) */
