@@ -286,6 +286,10 @@ int lis2dw12_set_rate(sensor_device_t *dev, uint8_t rate)
  */
 int lis2dw12_set_mode(sensor_device_t *dev, uint8_t mode)
 {
+    if (dev == NULL || dev->priv_data == NULL || mode > LIS2DW12_MODE_HIGH_FREQ) {
+        return SENSOR_EINVAL;
+    }
+
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)dev->priv_data;
     uint8_t ctrl1;
 

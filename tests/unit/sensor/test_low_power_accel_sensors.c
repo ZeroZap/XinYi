@@ -825,6 +825,22 @@ static void test_lis2dw12_set_rate_rejects_invalid_rate_without_io_or_cache_chan
     destroy_sensor(sensor);
 }
 
+static void test_lis2dw12_set_mode_rejects_invalid_mode_without_io_or_cache_change(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = lis2dw12_create("lis2dw12-mode", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    ((lis2dw12_priv_t *)sensor->priv_data)->mode = LIS2DW12_MODE_NORMAL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lis2dw12_set_mode(sensor, 0xFFU));
+    TEST_ASSERT_EQUAL_UINT8(LIS2DW12_MODE_NORMAL,
+                            ((lis2dw12_priv_t *)sensor->priv_data)->mode);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+
+    destroy_sensor(sensor);
+}
+
 static void test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates(void)
 {
     int fake_bus;
@@ -906,6 +922,7 @@ int main(void)
     RUN_TEST(test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates);
     RUN_TEST(test_lis2dw12_set_range_rejects_invalid_range_and_null_device_without_io);
     RUN_TEST(test_lis2dw12_set_rate_rejects_invalid_rate_without_io_or_cache_change);
+    RUN_TEST(test_lis2dw12_set_mode_rejects_invalid_mode_without_io_or_cache_change);
     RUN_TEST(test_iis2iclp_i2c_create_init_read_deinit_and_set_range);
     RUN_TEST(test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates);
     return UNITY_END();
