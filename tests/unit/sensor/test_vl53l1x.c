@@ -405,6 +405,16 @@ void test_configuration_write_failures_stop_at_first_failed_register(void)
         xy_vl53l1x_configure_interrupt(&dev, XY_VL53L1X_INT_OUT_OF_WINDOW, 100, 900));
 }
 
+void test_set_range_failure_preserves_cached_range(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+
+    expect_write_ret(0x0060, &(const uint8_t){0x0F}, 1, -99);
+    TEST_ASSERT_EQUAL_INT(-99, xy_vl53l1x_set_range(&dev, XY_VL53L1X_RANGE_LONG));
+    TEST_ASSERT_EQUAL_INT(XY_VL53L1X_RANGE_MEDIUM, dev.config.range);
+}
+
 void test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements(void)
 {
     xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};

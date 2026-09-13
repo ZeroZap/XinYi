@@ -519,9 +519,14 @@ xy_ret_t xy_vl53l1x_set_range(xy_vl53l1x_dev_t *dev, xy_vl53l1x_range_t range)
     if (dev == XY_NULL || !dev->is_initialized) {
         return XY_ERROR;
     }
-    
+
+    xy_vl53l1x_range_t previous_range = dev->config.range;
     dev->config.range = range;
-    return vl53l1x_apply_range_config(dev);
+    xy_ret_t ret = vl53l1x_apply_range_config(dev);
+    if (ret != XY_OK) {
+        dev->config.range = previous_range;
+    }
+    return ret;
 }
 
 xy_ret_t xy_vl53l1x_set_timing(xy_vl53l1x_dev_t *dev, xy_vl53l1x_timing_t timing)
