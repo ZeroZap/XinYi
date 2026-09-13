@@ -448,6 +448,40 @@ void test_set_roi_commits_cache_only_after_all_writes_succeed(void)
     TEST_ASSERT_EQUAL_UINT8(6U, dev.config.roi.height);
 }
 
+void test_configure_interrupt_commits_cache_only_after_all_writes_succeed(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+
+    const uint8_t high_threshold[2] = {0x03, 0x84};
+
+    dev.config.int_mode = XY_VL53L1X_INT_LEVEL_LOW;
+    dev.config.threshold.low = 10U;
+    dev.config.threshold.high = 20U;
+
+    expect_write_u8(VL53L1X_SYSTEM_INTERRUPT_CONFIG_GPIO, XY_VL53L1X_INT_OUT_OF_WINDOW);
+    expect_write_u16(VL53L1X_SYSTEM_THRESH_RATE_LOW, 100U);
+    expect_write_ret(VL53L1X_SYSTEM_THRESH_RATE_HIGH, high_threshold, 2U, -99);
+
+    TEST_ASSERT_EQUAL_INT(
+        -99, xy_vl53l1x_configure_interrupt(
+                 &dev, XY_VL53L1X_INT_OUT_OF_WINDOW, 100U, 900U));
+    TEST_ASSERT_EQUAL_INT(XY_VL53L1X_INT_LEVEL_LOW, dev.config.int_mode);
+    TEST_ASSERT_EQUAL_UINT16(10U, dev.config.threshold.low);
+    TEST_ASSERT_EQUAL_UINT16(20U, dev.config.threshold.high);
+
+    setUp();
+    expect_write_u8(VL53L1X_SYSTEM_INTERRUPT_CONFIG_GPIO, XY_VL53L1X_INT_OUT_OF_WINDOW);
+    expect_write_u16(VL53L1X_SYSTEM_THRESH_RATE_LOW, 100U);
+    expect_write_u16(VL53L1X_SYSTEM_THRESH_RATE_HIGH, 900U);
+    TEST_ASSERT_EQUAL_INT(
+        XY_OK, xy_vl53l1x_configure_interrupt(
+                   &dev, XY_VL53L1X_INT_OUT_OF_WINDOW, 100U, 900U));
+    TEST_ASSERT_EQUAL_INT(XY_VL53L1X_INT_OUT_OF_WINDOW, dev.config.int_mode);
+    TEST_ASSERT_EQUAL_UINT16(100U, dev.config.threshold.low);
+    TEST_ASSERT_EQUAL_UINT16(900U, dev.config.threshold.high);
+}
+
 void test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements(void)
 {
     xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
@@ -567,6 +601,7 @@ int main(void)
     RUN_TEST(test_set_range_failure_preserves_cached_range);
     RUN_TEST(test_set_timing_failure_preserves_cached_timing);
     RUN_TEST(test_set_roi_commits_cache_only_after_all_writes_succeed);
+    RUN_TEST(test_configure_interrupt_commits_cache_only_after_all_writes_succeed);
     RUN_TEST(test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements);
     RUN_TEST(test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_samples);
     RUN_TEST(test_public_guards_and_inline_helpers);

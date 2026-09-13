@@ -636,20 +636,22 @@ xy_ret_t xy_vl53l1x_configure_interrupt(xy_vl53l1x_dev_t *dev, xy_vl53l1x_int_mo
     if (dev == XY_NULL || !dev->is_initialized) {
         return XY_ERROR;
     }
-    
-    dev->config.int_mode = mode;
-    dev->config.threshold.low = low;
-    dev->config.threshold.high = high;
-    
+
     /* 配置中断模式 */
     xy_ret_t ret = vl53l1x_write_reg8(dev, VL53L1X_SYSTEM_INTERRUPT_CONFIG_GPIO, mode);
     if (ret != XY_OK) return ret;
-    
+
     /* 配置阈值 */
     ret = vl53l1x_write_reg16(dev, VL53L1X_SYSTEM_THRESH_RATE_LOW, low);
     if (ret != XY_OK) return ret;
-    
-    return vl53l1x_write_reg16(dev, VL53L1X_SYSTEM_THRESH_RATE_HIGH, high);
+
+    ret = vl53l1x_write_reg16(dev, VL53L1X_SYSTEM_THRESH_RATE_HIGH, high);
+    if (ret != XY_OK) return ret;
+
+    dev->config.int_mode = mode;
+    dev->config.threshold.low = low;
+    dev->config.threshold.high = high;
+    return XY_OK;
 }
 
 xy_ret_t xy_vl53l1x_clear_interrupt(xy_vl53l1x_dev_t *dev)
