@@ -175,6 +175,13 @@ static void test_create_rejects_null_names_without_i2c_side_effects(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
 }
 
+static void test_create_rejects_missing_bus_without_i2c_side_effects(void)
+{
+    TEST_ASSERT_NULL(as5600_create("as5600", NULL));
+    TEST_ASSERT_NULL(as5048_create("as5048", NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+}
+
 static void test_public_guards_reject_null_inputs_and_missing_private_state(void)
 {
     int fake_bus;
@@ -191,6 +198,15 @@ static void test_public_guards_reject_null_inputs_and_missing_private_state(void
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5600->ops->read(as5600, NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->read(as5048, NULL));
+
+    as5600->bus = NULL;
+    as5048->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5600->ops->init(as5600));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->init(as5048));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5600->ops->read(as5600, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, as5048->ops->read(as5048, &data));
+    as5600->bus = &fake_bus;
+    as5048->bus = &fake_bus;
     TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
 
     SENSOR_FREE(as5600->priv_data);
@@ -241,6 +257,7 @@ int main(void)
     RUN_TEST(test_as5048_create_and_read_converts_14bit_little_endian_angle);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_create_rejects_null_names_without_i2c_side_effects);
+    RUN_TEST(test_create_rejects_missing_bus_without_i2c_side_effects);
     RUN_TEST(test_public_guards_reject_null_inputs_and_missing_private_state);
     RUN_TEST(test_i2c_read_failures_preserve_output);
     return UNITY_END();

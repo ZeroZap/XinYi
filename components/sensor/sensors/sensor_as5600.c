@@ -7,7 +7,7 @@ extern int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data,
 
 static sensor_err_t as5600_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -17,7 +17,7 @@ static sensor_err_t as5600_init(sensor_device_t *sensor)
 
 static sensor_err_t as5600_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    if (sensor == NULL || data == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || data == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -39,7 +39,7 @@ static const sensor_ops_t as5600_ops = {.init = as5600_init, .read = as5600_read
 
 sensor_device_t *as5600_create(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 
