@@ -24,7 +24,15 @@ static sensor_err_t max30102_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t max30102_ops = {.init = max30102_init, .read = max30102_read};
+static sensor_err_t max30102_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t max30102_ops = {.init = max30102_init, .deinit = max30102_deinit, .read = max30102_read};
 
 sensor_device_t *max30102_create(const char *name, void *i2c_bus)
 {

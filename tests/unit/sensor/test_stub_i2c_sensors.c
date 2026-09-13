@@ -46,6 +46,7 @@ static void assert_stub_identity(sensor_device_t *sensor, const char *name, cons
     TEST_ASSERT_EQUAL_PTR(bus, sensor->bus);
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
     TEST_ASSERT_NOT_NULL(sensor->priv_data);
 }
@@ -68,6 +69,7 @@ static void test_sgp30_create_sets_identity_and_default_read_contract(void)
     TEST_ASSERT_EQUAL_UINT8(SGP30_ADDR, ((sgp30_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_GAS, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.0001f, 100.0f, data.value.val_float);
@@ -87,6 +89,7 @@ static void test_sgp40_create_sets_identity_and_default_read_contract(void)
     TEST_ASSERT_EQUAL_UINT8(SGP40_ADDR, ((sgp40_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_GAS, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.0001f, 100.0f, data.value.val_float);
@@ -106,6 +109,7 @@ static void test_ens160_create_sets_identity_and_default_read_contract(void)
     TEST_ASSERT_EQUAL_UINT8(ENS160_ADDR, ((ens160_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_GAS, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.0001f, 100.0f, data.value.val_float);
@@ -125,6 +129,7 @@ static void test_im69d_create_sets_identity_and_default_read_contract(void)
     TEST_ASSERT_EQUAL_UINT8(IM69D_ADDR, ((im69d_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_SOUND, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, data.value.val_float);
@@ -144,6 +149,7 @@ static void test_max30102_create_sets_identity_and_default_read_contract(void)
     TEST_ASSERT_EQUAL_UINT8(MAX30102_ADDR, ((max30102_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_HEART_RATE, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.0001f, 72.0f, data.value.val_float);
@@ -223,6 +229,7 @@ static void test_i2c_factories_and_ops_reject_missing_bus(void)
         TEST_ASSERT_NOT_NULL(sensors[i]);
         sensors[i]->bus = NULL;
         TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensors[i]->ops->init(sensors[i]));
+        TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensors[i]->ops->deinit(sensors[i]));
         TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensors[i]->ops->read(sensors[i], &data));
         assert_output_unchanged(&data, &snapshot);
         destroy_sensor(sensors[i]);
@@ -247,10 +254,15 @@ static void test_public_ops_reject_null_inputs_and_preserve_output(void)
     TEST_ASSERT_NOT_NULL(max30102);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->deinit(NULL));
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(sgp30, NULL));
@@ -299,15 +311,26 @@ static void test_missing_private_data_is_rejected_and_preserves_output(void)
     SENSOR_FREE(max30102->priv_data);
     max30102->priv_data = NULL;
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->deinit(sgp30));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->deinit(sgp40));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->deinit(ens160));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->deinit(im69d));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->deinit(max30102));
+
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->init(sgp30));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->deinit(sgp30));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(sgp30, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->init(sgp40));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->deinit(sgp40));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->read(sgp40, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->init(ens160));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->deinit(ens160));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->read(ens160, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->init(im69d));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->deinit(im69d));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->read(im69d, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->init(max30102));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->deinit(max30102));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->read(max30102, &data));
     assert_output_unchanged(&data, &snapshot);
 

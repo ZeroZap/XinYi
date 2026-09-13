@@ -24,7 +24,15 @@ static sensor_err_t im69d_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t im69d_ops = {.init = im69d_init, .read = im69d_read};
+static sensor_err_t im69d_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t im69d_ops = {.init = im69d_init, .deinit = im69d_deinit, .read = im69d_read};
 
 sensor_device_t *im69d_create(const char *name, void *i2c_bus)
 {

@@ -24,7 +24,15 @@ static sensor_err_t sgp40_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t sgp40_ops = {.init = sgp40_init, .read = sgp40_read};
+static sensor_err_t sgp40_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t sgp40_ops = {.init = sgp40_init, .deinit = sgp40_deinit, .read = sgp40_read};
 
 sensor_device_t *sgp40_create(const char *name, void *i2c_bus)
 {
