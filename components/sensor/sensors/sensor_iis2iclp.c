@@ -60,6 +60,7 @@ static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
 static sensor_err_t iis2iclp_deinit(sensor_device_t *sensor)
 {
     if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, 0x00) != SENSOR_EOK) return SENSOR_EIO;
+    sensor->odr = 0U;
     return SENSOR_EOK;
 }
 

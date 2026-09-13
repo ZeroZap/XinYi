@@ -787,6 +787,7 @@ static void test_iis2iclp_i2c_create_init_read_deinit_and_set_range(void)
     queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1, 0x00U,
                      SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_UINT32(0U, sensor->odr);
 
     destroy_sensor(sensor);
 }
@@ -839,9 +840,11 @@ static void test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates(
     TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
 
     setUp();
+    sensor->odr = 100U;
     queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1, 0x00U,
                      SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_UINT32(100U, sensor->odr);
 
     destroy_sensor(sensor);
 
