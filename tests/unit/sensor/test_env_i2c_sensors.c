@@ -207,6 +207,7 @@ static void test_aht10_create_defaults_and_reads_humidity(void)
     TEST_ASSERT_EQUAL_UINT32(10U, sensor->info.max_odr);
     TEST_ASSERT_EQUAL_UINT32(10U, sensor->odr);
     TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(AHT10_ADDR_DEFAULT, ((aht10_priv_t *)sensor->priv_data)->i2c_addr);
 
     queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, init_cmd, sizeof(init_cmd), SENSOR_EOK);
@@ -223,6 +224,8 @@ static void test_aht10_create_defaults_and_reads_humidity(void)
     TEST_ASSERT_EQUAL_UINT8(90U, data.accuracy);
     TEST_ASSERT_EQUAL_UINT32(90U, g_delay_total);
     TEST_ASSERT_EQUAL_UINT(2U, g_delay_count);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
 
     destroy_sensor(sensor);
 }
@@ -247,8 +250,13 @@ static void test_aht10_rejects_invalid_factory_and_busy_sample(void)
     sensor = aht10_create("aht10-busy", &fake_bus, 0U);
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    sensor->bus = &fake_bus;
 
     queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, measure_cmd, sizeof(measure_cmd), SENSOR_EOK);
     queue_master_recv(&fake_bus, AHT10_ADDR_DEFAULT, busy_sample, sizeof(busy_sample), SENSOR_EOK);

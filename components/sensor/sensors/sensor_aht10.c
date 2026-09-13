@@ -58,8 +58,17 @@ static sensor_err_t aht10_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
+static sensor_err_t aht10_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
+    return SENSOR_EOK;
+}
+
 static const sensor_ops_t aht10_ops = {
-    .init = aht10_init, .deinit = NULL, .read = aht10_read,
+    .init = aht10_init, .deinit = aht10_deinit, .read = aht10_read,
 };
 
 sensor_device_t *aht10_create(const char *name, void *i2c_bus, uint8_t addr)
