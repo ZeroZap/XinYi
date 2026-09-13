@@ -4,7 +4,7 @@
 
 static sensor_err_t sgp40_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -14,7 +14,7 @@ static sensor_err_t sgp40_init(sensor_device_t *sensor)
 
 static sensor_err_t sgp40_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -28,7 +28,7 @@ static const sensor_ops_t sgp40_ops = {.init = sgp40_init, .read = sgp40_read};
 
 sensor_device_t *sgp40_create(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

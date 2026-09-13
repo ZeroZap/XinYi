@@ -4,7 +4,7 @@
 
 static sensor_err_t max30102_init(sensor_device_t *s)
 {
-    if (s == NULL || s->priv_data == NULL) {
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -14,7 +14,7 @@ static sensor_err_t max30102_init(sensor_device_t *s)
 
 static sensor_err_t max30102_read(sensor_device_t *s, sensor_data_t *d)
 {
-    if (s == NULL || s->priv_data == NULL || d == NULL) {
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL || d == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -28,7 +28,7 @@ static const sensor_ops_t max30102_ops = {.init = max30102_init, .read = max3010
 
 sensor_device_t *max30102_create(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

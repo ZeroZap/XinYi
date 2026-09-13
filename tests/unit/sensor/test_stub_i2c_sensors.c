@@ -199,6 +199,36 @@ static void test_create_rejects_null_names(void)
     TEST_ASSERT_NULL(max30102_create(NULL, &fake_bus));
 }
 
+static void test_i2c_factories_and_ops_reject_missing_bus(void)
+{
+    int fake_bus;
+    sensor_device_t *sensors[] = {
+        sgp30_create("sgp30-bus", &fake_bus),
+        sgp40_create("sgp40-bus", &fake_bus),
+        ens160_create("ens160-bus", &fake_bus),
+        im69d_create("im69d-bus", &fake_bus),
+        max30102_create("max30102-bus", &fake_bus),
+    };
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = -4.0f, .timestamp = 91U};
+    sensor_data_t snapshot = data;
+    size_t i;
+
+    TEST_ASSERT_NULL(sgp30_create("sgp30-null-bus", NULL));
+    TEST_ASSERT_NULL(sgp40_create("sgp40-null-bus", NULL));
+    TEST_ASSERT_NULL(ens160_create("ens160-null-bus", NULL));
+    TEST_ASSERT_NULL(im69d_create("im69d-null-bus", NULL));
+    TEST_ASSERT_NULL(max30102_create("max30102-null-bus", NULL));
+
+    for (i = 0U; i < sizeof(sensors) / sizeof(sensors[0]); ++i) {
+        TEST_ASSERT_NOT_NULL(sensors[i]);
+        sensors[i]->bus = NULL;
+        TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensors[i]->ops->init(sensors[i]));
+        TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensors[i]->ops->read(sensors[i], &data));
+        assert_output_unchanged(&data, &snapshot);
+        destroy_sensor(sensors[i]);
+    }
+}
+
 static void test_public_ops_reject_null_inputs_and_preserve_output(void)
 {
     int fake_bus;
@@ -298,6 +328,7 @@ int main(void)
     RUN_TEST(test_max30102_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_create_rejects_null_names);
+    RUN_TEST(test_i2c_factories_and_ops_reject_missing_bus);
     RUN_TEST(test_public_ops_reject_null_inputs_and_preserve_output);
     RUN_TEST(test_missing_private_data_is_rejected_and_preserves_output);
     return UNITY_END();
