@@ -45,8 +45,22 @@ static sensor_err_t cmm905_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
+static sensor_err_t cmm905_deinit(sensor_device_t *sensor)
+{
+    uint8_t standby = 0x00U;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
+    cmm905_priv_t *priv = (cmm905_priv_t *)sensor->priv_data;
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, CMM905_REG_STATUS, &standby, 1U) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    return SENSOR_EOK;
+}
+
 static const sensor_ops_t cmm905_ops = {
-    .init = cmm905_init, .deinit = NULL, .read = cmm905_read,
+    .init = cmm905_init, .deinit = cmm905_deinit, .read = cmm905_read,
 };
 
 sensor_device_t *cmm905_create(const char *name, void *i2c_bus)

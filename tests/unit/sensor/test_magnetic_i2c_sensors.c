@@ -433,7 +433,7 @@ static void test_cmm905_create_init_and_read_contracts(void)
     TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
-    TEST_ASSERT_NULL(sensor->ops->deinit);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
     TEST_ASSERT_EQUAL_UINT8(CMM905_ADDR_DEFAULT, ((cmm905_priv_t *)sensor->priv_data)->i2c_addr);
 
@@ -451,6 +451,9 @@ static void test_cmm905_create_init_and_read_contracts(void)
     TEST_ASSERT_EQUAL_INT32(160, data.value.val_3axis.z);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
     TEST_ASSERT_EQUAL_UINT8(80, data.accuracy);
+
+    queue_write(&fake_bus, CMM905_ADDR_DEFAULT, CMM905_REG_STATUS, 0x00U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
 
     assert_queues_drained();
     destroy_sensor(sensor);
@@ -472,11 +475,13 @@ static void test_cmm905_guards_and_failed_reads_preserve_outputs(void)
     TEST_ASSERT_NOT_NULL(sensor);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
 
     sensor->bus = NULL;
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
     TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
@@ -493,6 +498,10 @@ static void test_cmm905_guards_and_failed_reads_preserve_outputs(void)
     TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.z, data.value.val_3axis.z);
     TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);
     assert_queues_drained();
+
+    sensor->bus = &fake_bus;
+    queue_write(&fake_bus, CMM905_ADDR_DEFAULT, CMM905_REG_STATUS, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
 
     SENSOR_FREE(sensor->priv_data);
     sensor->priv_data = NULL;
