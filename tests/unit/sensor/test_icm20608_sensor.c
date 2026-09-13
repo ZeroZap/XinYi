@@ -327,6 +327,15 @@ static void test_icm20608_failure_contracts_preserve_output(void)
     TEST_ASSERT_EQUAL_UINT32(1234U, data.timestamp);
     TEST_ASSERT_EQUAL_UINT8(44U, data.accuracy);
 
+    accel->bus = NULL;
+    sensor_data_t snapshot = data;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->init(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+
     SENSOR_FREE(accel->priv_data);
     accel->priv_data = NULL;
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->init(accel));

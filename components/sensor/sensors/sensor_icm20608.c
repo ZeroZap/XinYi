@@ -46,7 +46,7 @@ static sensor_err_t icm20608_init(sensor_device_t *sensor)
 {
     uint8_t data;
 
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -116,7 +116,7 @@ static sensor_err_t icm20608_deinit(sensor_device_t *sensor)
 {
     uint8_t data = 0x40; /* 睡眠模式 */
 
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -136,7 +136,7 @@ static sensor_err_t icm20608_accel_read(sensor_device_t *sensor,
     uint8_t buf[6];
     int16_t raw[3];
 
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -171,7 +171,7 @@ static sensor_err_t icm20608_gyro_read(sensor_device_t *sensor,
     uint8_t buf[6];
     int16_t raw[3];
 
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -206,7 +206,7 @@ static sensor_err_t icm20608_temp_read(sensor_device_t *sensor,
     uint8_t buf[2];
     int16_t raw;
 
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
