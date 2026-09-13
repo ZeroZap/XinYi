@@ -310,6 +310,10 @@ int lis2dw12_set_mode(sensor_device_t *dev, uint8_t mode)
  */
 int lis2dw12_enable_high_pass(sensor_device_t *dev, uint8_t enable)
 {
+    if (dev == NULL || dev->priv_data == NULL || enable > 1U) {
+        return SENSOR_EINVAL;
+    }
+
     uint8_t ctrl5;
     if (lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL5, &ctrl5) != SENSOR_EOK) {
         return SENSOR_EIO;
