@@ -324,12 +324,15 @@ static void test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers(void)
     TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_2000DPS,
                             ((lsm6dsl_priv_t *)accel->priv_data)->gyro_range);
 
+    accel->odr = 104U;
     queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL & 0x7FU, 0x00U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_UINT32(104U, accel->odr);
 
     queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL1_XL & 0x7FU, 0x00U, SENSOR_EOK);
     queue_spi_send2(&fake_bus, cs, LSM6DSL_REG_CTRL2_G & 0x7FU, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_UINT32(0U, accel->odr);
     queue_spi_read8(&fake_bus, cs, LSM6DSL_REG_WHOAMI, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, accel->ops->init(accel));
 

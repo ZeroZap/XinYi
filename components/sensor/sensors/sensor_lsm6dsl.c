@@ -65,6 +65,7 @@ static sensor_err_t lsm6dsl_deinit(sensor_device_t *sensor)
 {
     if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL1_XL, 0x00) != SENSOR_EOK) return SENSOR_EIO;
     if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL2_G, 0x00) != SENSOR_EOK) return SENSOR_EIO;
+    sensor->odr = 0U;
     return SENSOR_EOK;
 }
 
