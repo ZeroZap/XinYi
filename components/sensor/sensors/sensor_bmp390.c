@@ -46,8 +46,22 @@ static sensor_err_t bmp390_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
+static sensor_err_t bmp390_deinit(sensor_device_t *sensor)
+{
+    uint8_t pwr_ctrl = 0x00U;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
+    bmp390_priv_t *priv = (bmp390_priv_t *)sensor->priv_data;
+    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMP390_REG_PWR_CTRL, &pwr_ctrl, 1) != SENSOR_EOK) {
+        return SENSOR_EIO;
+    }
+    return SENSOR_EOK;
+}
+
 static const sensor_ops_t bmp390_ops = {
-    .init = bmp390_init, .deinit = NULL, .read = bmp390_read,
+    .init = bmp390_init, .deinit = bmp390_deinit, .read = bmp390_read,
 };
 
 sensor_device_t *bmp390_create(const char *name, void *i2c_bus, uint8_t addr)

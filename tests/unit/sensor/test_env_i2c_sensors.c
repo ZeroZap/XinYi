@@ -333,6 +333,7 @@ static void test_bmp390_create_init_and_read_pressure(void)
     TEST_ASSERT_EQUAL_UINT32(200U, sensor->info.max_odr);
     TEST_ASSERT_EQUAL_UINT32(100U, sensor->odr);
     TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(BMP390_ADDR_DEFAULT, ((bmp390_priv_t *)sensor->priv_data)->i2c_addr);
 
     queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_CHIP_ID, BMP390_CHIP_ID, SENSOR_EOK);
@@ -348,9 +349,12 @@ static void test_bmp390_create_init_and_read_pressure(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_PRESSURE, data.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_HECTOPASCAL, data.unit);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 800.0f, data.value.val_float);
+    TEST_ASSERT_EQUAL_FLOAT(800.0f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
     TEST_ASSERT_EQUAL_UINT8(95U, data.accuracy);
+
+    queue_mem_write8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PWR_CTRL, 0x00U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
 
     destroy_sensor(sensor);
 }
@@ -421,6 +425,7 @@ static void test_bmp390_rejects_invalid_factory_and_public_ops_inputs(void)
     TEST_ASSERT_NULL(bmp390_create("bmp390", NULL, 0U));
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
     void *saved_priv = sensor->priv_data;
@@ -430,9 +435,12 @@ static void test_bmp390_rejects_invalid_factory_and_public_ops_inputs(void)
     sensor->priv_data = saved_priv;
     sensor->bus = NULL;
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.value.val_uint32);
-    TEST_ASSERT_EQUAL_UINT32(123U, data.timestamp);
+    sensor->bus = &fake_bus;
+    queue_mem_write8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PWR_CTRL, 0x00U, SENSOR_EIO);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 
