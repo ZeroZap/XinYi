@@ -152,6 +152,8 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
  */
 static sensor_err_t lsm6dso_deinit(sensor_device_t *sensor)
 {
+    lsm6dso_priv_t *priv = (lsm6dso_priv_t *)sensor->priv_data;
+
     /* 进入关闭模式 */
     if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, 0x00) != SENSOR_EOK) {
         return SENSOR_EIO;
@@ -160,6 +162,9 @@ static sensor_err_t lsm6dso_deinit(sensor_device_t *sensor)
         return SENSOR_EIO;
     }
 
+    priv->accel_rate = 0U;
+    priv->gyro_rate = 0U;
+    sensor->odr = 0U;
     return SENSOR_EOK;
 }
 
