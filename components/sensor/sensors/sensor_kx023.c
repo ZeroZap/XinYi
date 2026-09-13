@@ -68,6 +68,10 @@ static sensor_err_t kx023_init(sensor_device_t *sensor)
 
 static sensor_err_t kx023_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     kx023_priv_t *priv = (kx023_priv_t *)sensor->priv_data;
     uint8_t data       = KX023_MODE_STANDBY;
 
@@ -82,6 +86,10 @@ static sensor_err_t kx023_deinit(sensor_device_t *sensor)
 
 static sensor_err_t kx023_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     kx023_priv_t *priv = (kx023_priv_t *)sensor->priv_data;
     uint8_t buf[6];
     int16_t raw[3];

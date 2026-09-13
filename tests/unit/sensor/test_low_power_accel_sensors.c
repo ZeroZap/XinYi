@@ -633,6 +633,36 @@ static void test_kx023_init_rejects_invalid_context_without_io(void)
     destroy_sensor(sensor);
 }
 
+static void test_kx023_public_ops_reject_invalid_context_without_io(void)
+{
+    int fake_bus;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = kx023_create("kx023-invalid-ops", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+
+    void *saved_priv_data = sensor->priv_data;
+    sensor->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    sensor->priv_data = saved_priv_data;
+
+    void *saved_bus = sensor->bus;
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    sensor->bus = saved_bus;
+
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+    destroy_sensor(sensor);
+}
+
 static void test_lis2dw12_create_init_read_deinit_and_setters(void)
 {
     int fake_bus;
@@ -984,6 +1014,7 @@ int main(void)
     RUN_TEST(test_kx023_create_init_read_deinit_and_error_paths);
     RUN_TEST(test_kx023_propagates_config_write_failures);
     RUN_TEST(test_kx023_init_rejects_invalid_context_without_io);
+    RUN_TEST(test_kx023_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_lis2dw12_create_init_read_deinit_and_setters);
     RUN_TEST(test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates);
     RUN_TEST(test_lis2dw12_set_range_rejects_invalid_range_and_null_device_without_io);
