@@ -448,6 +448,29 @@ static void test_read_voc_crc_failure_preserves_output_and_last_data(void)
     TEST_ASSERT_EQUAL_UINT32(4U, dev.measurement_count);
 }
 
+static void test_read_serial_crc_failure_preserves_complete_output(void)
+{
+    xy_sgp40_dev_t dev = {
+        .i2c = &(xy_i2c_dev_t){.handle = (void *)0x1234, .address = SGP40_I2C_ADDR},
+    };
+    uint32_t serial[3] = {0xAAAA1111U, 0xBBBB2222U, 0xCCCC3333U};
+    uint8_t bytes[9] = {
+        0x12U, 0x34U, 0U,
+        0x56U, 0x78U, 0U,
+        0x9AU, 0xBCU, 0U,
+    };
+
+    bytes[2] = xy_sgp40_crc8(&bytes[0], 2U);
+    bytes[5] = (uint8_t)(xy_sgp40_crc8(&bytes[3], 2U) ^ 0xFFU);
+    bytes[8] = xy_sgp40_crc8(&bytes[6], 2U);
+    queue_read_bytes(bytes, sizeof(bytes), 0);
+
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_serial_id(&dev, serial));
+    TEST_ASSERT_EQUAL_UINT32(0xAAAA1111U, serial[0]);
+    TEST_ASSERT_EQUAL_UINT32(0xBBBB2222U, serial[1]);
+    TEST_ASSERT_EQUAL_UINT32(0xCCCC3333U, serial[2]);
+}
+
 static void test_voc_level_boundaries(void)
 {
     TEST_ASSERT_EQUAL_INT(XY_SGP40_VOC_EXCELLENT, xy_sgp40_get_voc_level(0U));
@@ -496,6 +519,7 @@ int main(void)
     RUN_TEST(test_init_serial_crc_failure_leaves_device_uninitialized);
     RUN_TEST(test_command_failures_return_before_delay_or_read);
     RUN_TEST(test_read_voc_crc_failure_preserves_output_and_last_data);
+    RUN_TEST(test_read_serial_crc_failure_preserves_complete_output);
     RUN_TEST(test_voc_level_boundaries);
     RUN_TEST(test_read_voc_success_populates_compensation_fields_and_count);
     return UNITY_END();

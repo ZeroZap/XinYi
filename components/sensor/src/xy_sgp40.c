@@ -283,7 +283,8 @@ xy_ret_t xy_sgp40_read_serial_id(xy_sgp40_dev_t *dev, uint32_t serial_id[3])
     ret = xy_i2c_read_data(dev->i2c, buffer, 9);
     if (ret != XY_OK) return ret;
     
-    /* 验证并解析序列号 */
+    /* 验证并暂存序列号 */
+    uint32_t staged[3];
     for (uint8_t i = 0; i < 3; i++) {
         uint8_t idx = i * 3;
         
@@ -291,7 +292,11 @@ xy_ret_t xy_sgp40_read_serial_id(xy_sgp40_dev_t *dev, uint32_t serial_id[3])
             return XY_ERROR;
         }
         
-        serial_id[i] = ((uint32_t)buffer[idx] << 8) | buffer[idx + 1];
+        staged[i] = ((uint32_t)buffer[idx] << 8) | buffer[idx + 1];
+    }
+
+    for (uint8_t i = 0; i < 3; i++) {
+        serial_id[i] = staged[i];
     }
     
     return XY_OK;
