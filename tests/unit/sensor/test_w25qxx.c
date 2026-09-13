@@ -418,6 +418,20 @@ static void test_w25qxx_transfer_failures_preserve_existing_contracts(void)
     TEST_ASSERT_EQUAL_UINT8(3U, read_buf[2]);
 }
 
+static void test_w25qxx_read_data_stops_when_command_fails(void)
+{
+    xy_w25qxx_t dev = make_ready_dev();
+    uint8_t read_buf[3] = {1U, 2U, 3U};
+    const uint8_t read_addr[4] = {W25Q_CMD_READ_DATA, 0x00U, 0x00U, 0x44U};
+    const uint8_t expected[3] = {1U, 2U, 3U};
+
+    queue_tx(read_addr, sizeof(read_addr), XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_w25qxx_read_data(&dev, 0x44U, read_buf, sizeof(read_buf)));
+    TEST_ASSERT_EQUAL_UINT(1U, g_op_index);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expected, read_buf, sizeof(read_buf));
+}
+
 static void test_w25qxx_sector_erase_stops_on_transport_failures(void)
 {
     xy_w25qxx_t dev = make_ready_dev();
@@ -531,6 +545,7 @@ int main(void)
     RUN_TEST(test_w25qxx_chip_erase_busy_then_ready);
     RUN_TEST(test_w25qxx_zero_length_write_is_noop);
     RUN_TEST(test_w25qxx_transfer_failures_preserve_existing_contracts);
+    RUN_TEST(test_w25qxx_read_data_stops_when_command_fails);
     RUN_TEST(test_w25qxx_sector_erase_stops_on_transport_failures);
     RUN_TEST(test_w25qxx_block_erase_stops_on_transport_failures);
     RUN_TEST(test_w25qxx_chip_erase_stops_on_transport_failures);

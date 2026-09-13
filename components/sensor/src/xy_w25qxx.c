@@ -320,13 +320,17 @@ int xy_w25qxx_page_program(xy_w25qxx_t *dev, uint32_t addr, const uint8_t *data,
 
 int xy_w25qxx_read_data(xy_w25qxx_t *dev, uint32_t addr, uint8_t *data, uint32_t len)
 {
+    int ret;
+
     if (!dev || !data) {
         return XY_W25Q_INVALID_PARAM;
     }
     
     xy_w25q_cs_low(dev);
-    xy_w25q_send_cmd_addr(dev, W25Q_CMD_READ_DATA, addr);
-    int ret = xy_w25q_spi_read(dev, data, len);
+    ret = xy_w25q_send_cmd_addr(dev, W25Q_CMD_READ_DATA, addr);
+    if (ret == XY_DEVICE_OK) {
+        ret = xy_w25q_spi_read(dev, data, len);
+    }
     xy_w25q_cs_high(dev);
 
     return ret;
