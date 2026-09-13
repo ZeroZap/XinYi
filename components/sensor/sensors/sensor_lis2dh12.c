@@ -10,6 +10,10 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
  */
 static sensor_err_t lis2dh12_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     lis2dh12_priv_t *priv = (lis2dh12_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -65,6 +69,10 @@ static sensor_err_t lis2dh12_init(sensor_device_t *sensor)
  */
 static sensor_err_t lis2dh12_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     lis2dh12_priv_t *priv = (lis2dh12_priv_t *)sensor->priv_data;
     uint8_t data          = LIS2DH12_ODR_POWER_DOWN;
 
@@ -84,6 +92,10 @@ static sensor_err_t lis2dh12_deinit(sensor_device_t *sensor)
  */
 static sensor_err_t lis2dh12_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     lis2dh12_priv_t *priv = (lis2dh12_priv_t *)sensor->priv_data;
     uint8_t buf[6];
     int16_t raw[3];
@@ -166,6 +178,10 @@ static sensor_err_t lis2dh12_set_power_mode(sensor_device_t *sensor,
 static sensor_err_t lis2dh12_config(sensor_device_t *sensor,
                                     sensor_config_type_t cfg, void *value)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || value == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     lis2dh12_priv_t *priv = (lis2dh12_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -250,6 +266,10 @@ static const sensor_ops_t lis2dh12_ops = {
 
 sensor_device_t *lis2dh12_create(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL)

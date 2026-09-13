@@ -454,10 +454,40 @@ static void test_silan_sc7a20_create_init_read_helpers_deinit_and_errors(void)
     destroy_sensor(sensor);
 }
 
+static void test_lis2dh12_invalid_contexts_fail_closed(void)
+{
+    int fake_bus;
+    uint32_t value = 4U;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_uint32 = 0xA5A5U,
+                          .timestamp = 77U, .accuracy = 9U};
+    sensor_data_t snapshot = data;
+    sensor_device_t *sensor = lis2dh12_create("lis2dh12-boundary", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_NULL(lis2dh12_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(lis2dh12_create("lis2dh12", NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->config(NULL, SENSOR_CFG_RANGE, &value));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->config(sensor, SENSOR_CFG_RANGE, NULL));
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->config(sensor, SENSOR_CFG_RANGE, &value));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_lis2dh12_init_read_config_deinit_and_errors);
+    RUN_TEST(test_lis2dh12_invalid_contexts_fail_closed);
     RUN_TEST(test_lis2dw12_i2c_init_read_helpers_deinit_and_errors);
     RUN_TEST(test_sc7a20_init_read_config_deinit_and_errors);
     RUN_TEST(test_silan_sc7a20_create_init_read_helpers_deinit_and_errors);
