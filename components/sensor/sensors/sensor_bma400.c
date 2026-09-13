@@ -71,6 +71,10 @@ static sensor_err_t bma400_init(sensor_device_t *sensor)
 
 static sensor_err_t bma400_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     bma400_priv_t *priv = (bma400_priv_t *)sensor->priv_data;
     uint8_t data        = BMA400_POWER_MODE_SLEEP;
 
@@ -86,6 +90,10 @@ static sensor_err_t bma400_deinit(sensor_device_t *sensor)
 
 static sensor_err_t bma400_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     bma400_priv_t *priv = (bma400_priv_t *)sensor->priv_data;
     uint8_t buf[6];
     int16_t raw[3];

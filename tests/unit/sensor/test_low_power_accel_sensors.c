@@ -488,6 +488,28 @@ static void test_bma400_init_rejects_invalid_context_without_io(void)
     destroy_sensor(sensor);
 }
 
+static void test_bma400_public_lifecycle_and_read_reject_invalid_context(void)
+{
+    int fake_bus;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_uint32 = 0xA5A5U,
+                          .timestamp = 77U, .accuracy = 9U};
+    sensor_data_t snapshot = data;
+    sensor_device_t *sensor = bma400_create("bma400-boundary", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+
+    destroy_sensor(sensor);
+}
+
 static void test_bma400_init_propagates_each_config_write_failure(void)
 {
     int fake_bus;
@@ -1084,6 +1106,7 @@ int main(void)
     RUN_TEST(test_bma400_create_init_read_and_deinit);
     RUN_TEST(test_bma400_error_paths);
     RUN_TEST(test_bma400_init_rejects_invalid_context_without_io);
+    RUN_TEST(test_bma400_public_lifecycle_and_read_reject_invalid_context);
     RUN_TEST(test_bma400_init_propagates_each_config_write_failure);
     RUN_TEST(test_kx023_create_init_read_deinit_and_error_paths);
     RUN_TEST(test_kx023_propagates_config_write_failures);
