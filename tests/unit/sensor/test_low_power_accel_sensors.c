@@ -1034,6 +1034,47 @@ static void test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates(
     destroy_sensor(sensor);
 }
 
+static void test_iis2iclp_public_ops_reject_invalid_context_without_io(void)
+{
+    int fake_bus;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = iis2iclp_create("iis2iclp-boundary", &fake_bus, 0U);
+    void *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_NULL(iis2iclp_create(NULL, &fake_bus, 0U));
+    TEST_ASSERT_NULL(iis2iclp_create("iis2iclp-null-bus", NULL, 0U));
+    TEST_ASSERT_NULL(iis2iclp_create_spi(NULL, &fake_bus, 3U));
+    TEST_ASSERT_NULL(iis2iclp_create_spi("iis2iclp-spi-null-bus", NULL, 3U));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, iis2iclp_set_range(NULL, IIS2ICLP_RANGE_2G));
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, iis2iclp_set_range(sensor, IIS2ICLP_RANGE_2G));
+    sensor->bus = &fake_bus;
+
+    priv = sensor->priv_data;
+    sensor->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, iis2iclp_set_range(sensor, IIS2ICLP_RANGE_2G));
+    sensor->priv_data = priv;
+
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_spi_send_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_spi_recv_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1056,5 +1097,6 @@ int main(void)
     RUN_TEST(test_lis2dw12_enable_high_pass_rejects_invalid_enable_without_io);
     RUN_TEST(test_iis2iclp_i2c_create_init_read_deinit_and_set_range);
     RUN_TEST(test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates);
+    RUN_TEST(test_iis2iclp_public_ops_reject_invalid_context_without_io);
     return UNITY_END();
 }

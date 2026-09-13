@@ -37,6 +37,11 @@ static sensor_err_t iis2iclp_reg_write(sensor_device_t *sensor, uint8_t reg, uin
 static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
 {
     uint8_t data;
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     SENSOR_LOG("Initializing IIS2ICLP");
 
     if (iis2iclp_reg_read(sensor, IIS2ICLP_REG_WHOAMI, &data) != SENSOR_EOK) return SENSOR_EIO;
@@ -59,6 +64,10 @@ static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
 
 static sensor_err_t iis2iclp_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, 0x00) != SENSOR_EOK) return SENSOR_EIO;
     sensor->odr = 0U;
     return SENSOR_EOK;
@@ -67,6 +76,11 @@ static sensor_err_t iis2iclp_deinit(sensor_device_t *sensor)
 static sensor_err_t iis2iclp_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     for (int i = 0; i < 6; i++) {
         if (iis2iclp_reg_read(sensor, IIS2ICLP_REG_OUT_X_L + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
     }
@@ -95,6 +109,10 @@ static const sensor_ops_t iis2iclp_ops = {
 
 sensor_device_t *iis2iclp_create(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     iis2iclp_priv_t *priv = (iis2iclp_priv_t *)SENSOR_MALLOC(sizeof(iis2iclp_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -126,6 +144,10 @@ sensor_device_t *iis2iclp_create(const char *name, void *i2c_bus, uint8_t addr)
 
 sensor_device_t *iis2iclp_create_spi(const char *name, void *spi_bus, uint8_t cs)
 {
+    if (name == NULL || spi_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     iis2iclp_priv_t *priv = (iis2iclp_priv_t *)SENSOR_MALLOC(sizeof(iis2iclp_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -159,7 +181,8 @@ int iis2iclp_set_range(sensor_device_t *dev, uint8_t range)
     static const uint8_t physical_range_g[] = {2U, 4U, 8U, 16U};
     uint8_t ctrl1;
 
-    if (range > IIS2ICLP_RANGE_16G) return SENSOR_EINVAL;
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL ||
+        range > IIS2ICLP_RANGE_16G) return SENSOR_EINVAL;
     if (iis2iclp_reg_read(dev, IIS2ICLP_REG_CTRL1, &ctrl1) != SENSOR_EOK) return SENSOR_EIO;
     ctrl1 = (ctrl1 & 0xFC) | (range & 0x03);
     if (iis2iclp_reg_write(dev, IIS2ICLP_REG_CTRL1, ctrl1) != SENSOR_EOK) return SENSOR_EIO;
