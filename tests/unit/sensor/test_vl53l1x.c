@@ -426,6 +426,28 @@ void test_set_timing_failure_preserves_cached_timing(void)
     TEST_ASSERT_EQUAL_INT(XY_VL53L1X_TIMING_33MS, dev.config.timing);
 }
 
+void test_set_roi_commits_cache_only_after_all_writes_succeed(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+    xy_vl53l1x_roi_t roi = {.centre_spad = 42, .width = 8, .height = 6};
+
+    expect_write_ret(0x0016, &(const uint8_t){42}, 1, XY_OK);
+    expect_write_ret(0x0017, &(const uint8_t){0x86}, 1, -99);
+    TEST_ASSERT_EQUAL_INT(-99, xy_vl53l1x_set_roi(&dev, &roi));
+    TEST_ASSERT_EQUAL_UINT8(199U, dev.config.roi.centre_spad);
+    TEST_ASSERT_EQUAL_UINT8(16U, dev.config.roi.width);
+    TEST_ASSERT_EQUAL_UINT8(16U, dev.config.roi.height);
+
+    setUp();
+    expect_write_u8(0x0016, 42);
+    expect_write_u8(0x0017, 0x86);
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_set_roi(&dev, &roi));
+    TEST_ASSERT_EQUAL_UINT8(42U, dev.config.roi.centre_spad);
+    TEST_ASSERT_EQUAL_UINT8(8U, dev.config.roi.width);
+    TEST_ASSERT_EQUAL_UINT8(6U, dev.config.roi.height);
+}
+
 void test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements(void)
 {
     xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
@@ -544,6 +566,7 @@ int main(void)
     RUN_TEST(test_configuration_write_failures_stop_at_first_failed_register);
     RUN_TEST(test_set_range_failure_preserves_cached_range);
     RUN_TEST(test_set_timing_failure_preserves_cached_timing);
+    RUN_TEST(test_set_roi_commits_cache_only_after_all_writes_succeed);
     RUN_TEST(test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements);
     RUN_TEST(test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_samples);
     RUN_TEST(test_public_guards_and_inline_helpers);

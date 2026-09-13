@@ -559,7 +559,11 @@ xy_ret_t xy_vl53l1x_set_roi(xy_vl53l1x_dev_t *dev, xy_vl53l1x_roi_t *roi)
     
     /* 配置 ROI 尺寸 */
     uint8_t roi_size = ((roi->width & 0x0F) << 4) | (roi->height & 0x0F);
-    return vl53l1x_write_reg8(dev, 0x0017, roi_size);
+    ret = vl53l1x_write_reg8(dev, 0x0017, roi_size);
+    if (ret != XY_OK) return ret;
+
+    dev->config.roi = *roi;
+    return XY_OK;
 }
 
 void xy_vl53l1x_set_offset(xy_vl53l1x_dev_t *dev, int16_t offset)
