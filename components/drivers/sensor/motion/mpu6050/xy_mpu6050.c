@@ -61,7 +61,8 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
     int ret;
     uint8_t who_am_i;
 
-    if (!dev || !i2c_handle) {
+    if (!dev || !i2c_handle ||
+        (addr != MPU6050_ADDR_AD0_LOW && addr != MPU6050_ADDR_AD0_HIGH)) {
         return XY_MPU6050_INVALID_PARAM;
     }
 

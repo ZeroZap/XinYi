@@ -185,6 +185,12 @@ static void test_mpu6050_init_defaults_and_invalid_paths(void)
 
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_init_addr(NULL, &bus, MPU6050_ADDR_AD0_LOW));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_init_addr(&dev, NULL, MPU6050_ADDR_AD0_LOW));
+    memset(&dev, 0xA5, sizeof(dev));
+    xy_mpu6050_t snapshot = dev;
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_init_addr(&dev, &bus, 0x67U));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 
     init_mpu_ok(&dev, &bus);
     TEST_ASSERT_TRUE_MESSAGE(dev.initialized, "MPU6050 init should mark the device initialized");
