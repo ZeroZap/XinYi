@@ -68,8 +68,9 @@ static sensor_err_t bmp280_init(sensor_device_t *sensor)
     SENSOR_DELAY_MS(10);
 
     /* 读取校准参数 */
-    if (bmp280_read_calibration(sensor) != SENSOR_EOK) {
-        return SENSOR_ERROR;
+    sensor_err_t ret = bmp280_read_calibration(sensor);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     /* 配置: standby 0.5ms, filter off, SPI disable */

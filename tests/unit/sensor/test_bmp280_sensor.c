@@ -227,7 +227,7 @@ static void test_bmp280_init_maps_chip_id_and_calibration_failures(void)
     queue_mem_read8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CHIP_ID, BMP280_CHIP_ID, SENSOR_EOK);
     queue_mem_write8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_RESET, 0xB6U, SENSOR_EOK);
     queue_mem_read(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CALIB00, NULL, 24U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT(1U, g_mem_write_index);
     TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
 
