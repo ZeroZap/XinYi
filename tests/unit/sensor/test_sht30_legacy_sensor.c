@@ -194,6 +194,7 @@ static void test_legacy_wrapper_maps_errors_and_preserves_output(void)
     sensor_device_t *sensor = sht30_create("sht30-alt", &fake_bus, SHT30_ADDR_ALT);
 
     TEST_ASSERT_NULL(sht30_create(NULL, &fake_bus, SHT30_ADDR_DEFAULT));
+    TEST_ASSERT_NULL(sht30_create("sht30-no-bus", NULL, SHT30_ADDR_DEFAULT));
     TEST_ASSERT_NOT_NULL(sensor);
 
     queue_write(reset_cmd, sizeof(reset_cmd), XY_DEVICE_IO_ERROR);
@@ -212,6 +213,11 @@ static void test_legacy_wrapper_maps_errors_and_preserves_output(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
     assert_queues_drained();
 
     destroy_sensor(sensor);
