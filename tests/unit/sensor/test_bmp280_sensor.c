@@ -263,6 +263,46 @@ static void test_bmp280_init_maps_reset_and_configuration_write_failures(void)
     destroy_sensor(sensor);
 }
 
+static void test_bmp280_public_ops_reject_invalid_context_without_bus_io(void)
+{
+    int fake_bus;
+    sensor_data_t data = {
+        .type = SENSOR_TYPE_LIGHT,
+        .unit = SENSOR_UNIT_LUX,
+        .value.val_uint32 = 0x12345678U,
+        .timestamp = 77U,
+        .accuracy = 9U,
+    };
+    TEST_ASSERT_NULL(bmp280_create_pressure(NULL, &fake_bus));
+    TEST_ASSERT_NULL(bmp280_create_pressure("bmp280-null-bus", NULL));
+    TEST_ASSERT_NULL(bmp280_create_temperature(NULL, &fake_bus));
+    TEST_ASSERT_NULL(bmp280_create_temperature("bmp280-temp-null-bus", NULL));
+
+    sensor_device_t *sensor = bmp280_create_pressure("bmp280-guards", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+
+    TEST_ASSERT_EQUAL_UINT(0U, g_mem_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_mem_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_delay_count);
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_LIGHT, data.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_LUX, data.unit);
+    TEST_ASSERT_EQUAL_UINT32(0x12345678U, data.value.val_uint32);
+    TEST_ASSERT_EQUAL_UINT32(77U, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT8(9U, data.accuracy);
+
+    destroy_sensor(sensor);
+}
+
 static void test_bmp280_deinit_propagates_write_failure(void)
 {
     int fake_bus;
@@ -306,6 +346,7 @@ int main(void)
     RUN_TEST(test_bmp280_read_pressure_and_temperature_use_calibration);
     RUN_TEST(test_bmp280_init_maps_chip_id_and_calibration_failures);
     RUN_TEST(test_bmp280_init_maps_reset_and_configuration_write_failures);
+    RUN_TEST(test_bmp280_public_ops_reject_invalid_context_without_bus_io);
     RUN_TEST(test_bmp280_deinit_propagates_write_failure);
     RUN_TEST(test_bmp280_read_failure_preserves_output);
     return UNITY_END();

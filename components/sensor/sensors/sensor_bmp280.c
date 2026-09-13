@@ -41,6 +41,10 @@ static sensor_err_t bmp280_read_calibration(sensor_device_t *sensor)
  */
 static sensor_err_t bmp280_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -99,6 +103,10 @@ static sensor_err_t bmp280_init(sensor_device_t *sensor)
  */
 static sensor_err_t bmp280_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     uint8_t data        = 0x00; /* sleep mode */
 
@@ -189,6 +197,10 @@ static sensor_err_t bmp280_read_raw(sensor_device_t *sensor, int32_t *adc_T,
 static sensor_err_t bmp280_pressure_read(sensor_device_t *sensor,
                                          sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     int32_t adc_T, adc_P;
 
@@ -217,6 +229,10 @@ static sensor_err_t bmp280_pressure_read(sensor_device_t *sensor,
 static sensor_err_t bmp280_temperature_read(sensor_device_t *sensor,
                                             sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     int32_t adc_T, adc_P;
 
@@ -259,6 +275,10 @@ static const sensor_ops_t bmp280_temperature_ops = {
  */
 sensor_device_t *bmp280_create_pressure(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {
@@ -302,6 +322,10 @@ sensor_device_t *bmp280_create_pressure(const char *name, void *i2c_bus)
  */
 sensor_device_t *bmp280_create_temperature(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {
