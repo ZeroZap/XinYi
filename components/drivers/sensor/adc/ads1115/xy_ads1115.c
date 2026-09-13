@@ -99,6 +99,7 @@ int xy_ads1115_deinit(xy_ads1115_t *dev)
         return XY_ADS1115_INVALID_PARAM;
     }
     dev->initialized = 0U;
+    dev->i2c_dev.base.initialized = 0U;
     return XY_ADS1115_OK;
 }
 
