@@ -792,6 +792,22 @@ static void test_iis2iclp_i2c_create_init_read_deinit_and_set_range(void)
     destroy_sensor(sensor);
 }
 
+static void test_lis2dw12_set_range_rejects_invalid_range_and_null_device_without_io(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = lis2dw12_create("lis2dw12-range", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    ((lis2dw12_priv_t *)sensor->priv_data)->range = 4U;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lis2dw12_set_range(NULL, LIS2DW12_RANGE_2G));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lis2dw12_set_range(sensor, 0xFFU));
+    TEST_ASSERT_EQUAL_UINT8(4U, ((lis2dw12_priv_t *)sensor->priv_data)->range);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+
+    destroy_sensor(sensor);
+}
+
 static void test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates(void)
 {
     int fake_bus;
@@ -871,6 +887,7 @@ int main(void)
     RUN_TEST(test_kx023_propagates_config_write_failures);
     RUN_TEST(test_lis2dw12_create_init_read_deinit_and_setters);
     RUN_TEST(test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates);
+    RUN_TEST(test_lis2dw12_set_range_rejects_invalid_range_and_null_device_without_io);
     RUN_TEST(test_iis2iclp_i2c_create_init_read_deinit_and_set_range);
     RUN_TEST(test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates);
     return UNITY_END();

@@ -231,6 +231,10 @@ sensor_device_t *lis2dw12_create_spi(const char *name, void *spi_bus, uint8_t cs
  */
 int lis2dw12_set_range(sensor_device_t *dev, uint8_t range)
 {
+    if (dev == NULL || dev->priv_data == NULL || range > LIS2DW12_RANGE_16G) {
+        return SENSOR_EINVAL;
+    }
+
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)dev->priv_data;
     uint8_t ctrl1;
 
