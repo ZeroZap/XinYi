@@ -342,6 +342,12 @@ static void test_ads1115_single_diff_voltage_config_and_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM, xy_ads1115_set_dr(NULL, ADS1115_DR_128SPS));
     TEST_ASSERT_EQUAL_INT(XY_ADS1115_OK, xy_ads1115_deinit(&ads));
     TEST_ASSERT_FALSE(ads.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM,
+                          xy_ads1115_set_pga(&ads, ADS1115_PGA_0_256V));
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM,
+                          xy_ads1115_set_dr(&ads, ADS1115_DR_860SPS));
+    TEST_ASSERT_EQUAL_INT(ADS1115_PGA_4_096V, ads.pga);
+    TEST_ASSERT_EQUAL_INT(ADS1115_DR_860SPS, ads.dr);
 }
 
 static void test_ads1115_not_found_and_io_failure_paths(void)
