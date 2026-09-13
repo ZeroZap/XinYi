@@ -90,6 +90,7 @@ static sensor_err_t lsm9ds1_deinit(sensor_device_t *sensor)
     if (lsm9ds1_mag_write(sensor, LSM9DS1_REG_CTRL_REG1_M, 0x00) != SENSOR_EOK) {
         return SENSOR_EIO;
     }
+    sensor->odr = 0U;
     return SENSOR_EOK;
 }
 
