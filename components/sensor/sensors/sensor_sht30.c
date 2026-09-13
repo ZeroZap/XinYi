@@ -28,6 +28,16 @@ static sensor_err_t sht30_init(sensor_device_t *sensor)
     return sht30_map_error(xy_sht30_init_addr(&priv->device, sensor->bus, priv->i2c_addr));
 }
 
+static sensor_err_t sht30_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
+    sht30_priv_t *priv = (sht30_priv_t *)sensor->priv_data;
+    return sht30_map_error(xy_sht30_deinit(&priv->device));
+}
+
 static sensor_err_t sht30_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
@@ -52,7 +62,7 @@ static sensor_err_t sht30_read(sensor_device_t *sensor, sensor_data_t *data)
 }
 
 static const sensor_ops_t sht30_ops = {
-    .init = sht30_init, .deinit = NULL, .read = sht30_read,
+    .init = sht30_init, .deinit = sht30_deinit, .read = sht30_read,
 };
 
 sensor_device_t *sht30_create(const char *name, void *i2c_bus, uint8_t addr)

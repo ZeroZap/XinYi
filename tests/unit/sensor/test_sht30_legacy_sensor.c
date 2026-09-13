@@ -162,6 +162,7 @@ static void test_legacy_wrapper_delegates_init_and_humidity_read(void)
     TEST_ASSERT_EQUAL_STRING("SHT30", sensor->info.model);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_RELATIVE_HUMIDITY, sensor->info.type);
     TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
 
     queue_write(reset_cmd, sizeof(reset_cmd), XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
@@ -175,6 +176,10 @@ static void test_legacy_wrapper_delegates_init_and_humidity_read(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 50.0f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(24695U, data.timestamp);
     TEST_ASSERT_EQUAL_UINT32(15U, g_delay_ms);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_FALSE(((sht30_priv_t *)sensor->priv_data)->device.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(((sht30_priv_t *)sensor->priv_data)->device.i2c_dev.i2c_handle);
 
     assert_queues_drained();
     destroy_sensor(sensor);
@@ -211,11 +216,13 @@ static void test_legacy_wrapper_maps_errors_and_preserves_output(void)
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
 
     sensor->bus = NULL;
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
     assert_queues_drained();

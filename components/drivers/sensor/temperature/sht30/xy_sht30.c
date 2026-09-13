@@ -52,6 +52,16 @@ int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr)
     return XY_DEVICE_OK;
 }
 
+int xy_sht30_deinit(xy_sht30_t *sht)
+{
+    if (!sht || !sht->i2c_dev.base.initialized) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    memset(sht, 0, sizeof(*sht));
+    return XY_DEVICE_OK;
+}
+
 int xy_sht30_read(xy_sht30_t *sht)
 {
     if (!sht || !sht->i2c_dev.base.initialized) {

@@ -33,6 +33,11 @@ typedef struct {
 int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr);
 
 /**
+ * @brief Release the SHT30 device state.
+ */
+int xy_sht30_deinit(xy_sht30_t *sht);
+
+/**
  * @brief Initialize an SHT30 at the default 0x44 address.
  */
 static inline int xy_sht30_init(xy_sht30_t *sht, void *i2c_handle)
