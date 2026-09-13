@@ -7,6 +7,10 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
 
 static sensor_err_t bma400_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     bma400_priv_t *priv = (bma400_priv_t *)sensor->priv_data;
     uint8_t data;
 
