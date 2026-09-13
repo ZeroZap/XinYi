@@ -535,11 +535,16 @@ xy_ret_t xy_vl53l1x_set_timing(xy_vl53l1x_dev_t *dev, xy_vl53l1x_timing_t timing
         return XY_ERROR;
     }
     
+    xy_vl53l1x_timing_t previous_timing = dev->config.timing;
     dev->config.timing = timing;
-    
+
     /* 配置测量时间预算 */
     uint16_t timing_budget = (uint16_t)timing * 1000;  /* 转换为微秒 */
-    return vl53l1x_write_reg16(dev, 0x0008, timing_budget);
+    xy_ret_t ret = vl53l1x_write_reg16(dev, 0x0008, timing_budget);
+    if (ret != XY_OK) {
+        dev->config.timing = previous_timing;
+    }
+    return ret;
 }
 
 xy_ret_t xy_vl53l1x_set_roi(xy_vl53l1x_dev_t *dev, xy_vl53l1x_roi_t *roi)
