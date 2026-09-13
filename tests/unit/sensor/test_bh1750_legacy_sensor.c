@@ -228,11 +228,13 @@ static void test_bh1750_read_write_failure_preserves_output_and_skips_delay(void
 static void test_bh1750_public_ops_reject_invalid_inputs_without_i2c_side_effects(void)
 {
     int fake_bus;
-    sensor_data_t data = {0};
+    sensor_data_t data;
+    memset(&data, 0x5A, sizeof(data));
     sensor_device_t *sensor = bh1750_create("bh-guards", &fake_bus);
 
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NULL(bh1750_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(bh1750_create("bh-null-bus", NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
@@ -243,10 +245,18 @@ static void test_bh1750_public_ops_reject_invalid_inputs_without_i2c_side_effect
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
     sensor->priv_data = saved_priv;
 
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+
     TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
     TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.type);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.unit);
+    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, data.timestamp);
 
+    sensor->bus = &fake_bus;
     destroy_sensor(sensor);
 }
 
