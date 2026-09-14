@@ -254,7 +254,7 @@ sensor_device_t *lis2dw12_create_spi(const char *name, void *spi_bus, uint8_t cs
  */
 int lis2dw12_set_range(sensor_device_t *dev, uint8_t range)
 {
-    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || range > LIS2DW12_RANGE_16G) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || dev->odr == 0U || range > LIS2DW12_RANGE_16G) {
         return SENSOR_EINVAL;
     }
 
@@ -280,7 +280,7 @@ int lis2dw12_set_range(sensor_device_t *dev, uint8_t range)
  */
 int lis2dw12_set_rate(sensor_device_t *dev, uint8_t rate)
 {
-    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || rate > LIS2DW12_RATE_800HZ) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || dev->odr == 0U || rate > LIS2DW12_RATE_800HZ) {
         return SENSOR_EINVAL;
     }
 
@@ -309,7 +309,7 @@ int lis2dw12_set_rate(sensor_device_t *dev, uint8_t rate)
  */
 int lis2dw12_set_mode(sensor_device_t *dev, uint8_t mode)
 {
-    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || mode > LIS2DW12_MODE_HIGH_FREQ) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || dev->odr == 0U || mode > LIS2DW12_MODE_HIGH_FREQ) {
         return SENSOR_EINVAL;
     }
 
@@ -333,7 +333,7 @@ int lis2dw12_set_mode(sensor_device_t *dev, uint8_t mode)
  */
 int lis2dw12_enable_high_pass(sensor_device_t *dev, uint8_t enable)
 {
-    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || enable > 1U) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || dev->odr == 0U || enable > 1U) {
         return SENSOR_EINVAL;
     }
 

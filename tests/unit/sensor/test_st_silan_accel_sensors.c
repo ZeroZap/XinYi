@@ -279,6 +279,10 @@ static void test_lis2dw12_i2c_init_read_helpers_deinit_and_errors(void)
 
     queue_write8(&fake_bus, LIS2DW12_ADDR_DEFAULT, LIS2DW12_REG_CTRL1, LIS2DW12_RATE_POWER_DOWN << 2, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lis2dw12_set_range(sensor, LIS2DW12_RANGE_8G));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lis2dw12_set_rate(sensor, LIS2DW12_RATE_100HZ));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lis2dw12_set_mode(sensor, LIS2DW12_MODE_NORMAL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lis2dw12_enable_high_pass(sensor, 1U));
     TEST_ASSERT_EQUAL_UINT8(0U, ((lis2dw12_priv_t *)sensor->priv_data)->rate);
     TEST_ASSERT_EQUAL_UINT32(0U, sensor->odr);
 
