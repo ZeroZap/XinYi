@@ -784,6 +784,28 @@ static void test_lsm6dsl_invalid_public_contexts_fail_closed(void)
     destroy_sensor(sensor);
 }
 
+static void test_lsm6dsl_range_boundaries_fail_closed(void)
+{
+    int bus;
+    sensor_device_t *sensor = lsm6dsl_create_accel("dsl-range", &bus, 0U);
+    lsm6dsl_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    priv = (lsm6dsl_priv_t *)sensor->priv_data;
+    priv->accel_range = LSM6DSL_ACCEL_RANGE_8G;
+    priv->gyro_range = LSM6DSL_GYRO_RANGE_2000DPS;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsl_set_accel_range(NULL, LSM6DSL_ACCEL_RANGE_2G));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsl_set_gyro_range(NULL, LSM6DSL_GYRO_RANGE_250DPS));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsl_set_accel_range(sensor, 0xFFU));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsl_set_gyro_range(sensor, 0xFFU));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_ACCEL_RANGE_8G, priv->accel_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_GYRO_RANGE_2000DPS, priv->gyro_range);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index + g_spi_send_index);
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -791,6 +813,7 @@ int main(void)
     RUN_TEST(test_lsm6dsl_init_failure_does_not_commit_partial_config_cache);
     RUN_TEST(test_lsm6dsl_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dsl_invalid_public_contexts_fail_closed);
+    RUN_TEST(test_lsm6dsl_range_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_init_failure_does_not_commit_partial_config_cache);
     RUN_TEST(test_lsm6dso_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors);
