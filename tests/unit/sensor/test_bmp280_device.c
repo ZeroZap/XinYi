@@ -283,10 +283,12 @@ static void test_bmp280_deinit_failure_preserves_state(void)
     queue_write8(BMP280_REG_CTRL_MEAS, 0x00U, XY_DEVICE_IO_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bmp280_deinit(&bmp));
     TEST_ASSERT_TRUE(bmp.initialized);
+    TEST_ASSERT_TRUE(bmp.i2c_dev.base.initialized);
 
     queue_write8(BMP280_REG_CTRL_MEAS, 0x00U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmp280_deinit(&bmp));
     TEST_ASSERT_FALSE(bmp.initialized);
+    TEST_ASSERT_FALSE(bmp.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_read(&bmp));
 }
 

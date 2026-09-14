@@ -153,6 +153,7 @@ int xy_bmp280_deinit(xy_bmp280_t *bmp)
         return result;
     }
     bmp->initialized = 0U;
+    bmp->i2c_dev.base.initialized = 0U;
     return XY_DEVICE_OK;
 }
 
