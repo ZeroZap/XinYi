@@ -497,6 +497,8 @@ static void test_bma400_public_lifecycle_and_read_reject_invalid_context(void)
 
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          sensor->ops->set_power_mode(NULL, SENSOR_POWER_MODE_SLEEP));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
     sensor->bus = NULL;

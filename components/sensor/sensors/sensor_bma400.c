@@ -136,6 +136,10 @@ static sensor_err_t bma400_read(sensor_device_t *sensor, sensor_data_t *data)
 static sensor_err_t bma400_set_power_mode(sensor_device_t *sensor,
                                           sensor_power_mode_t mode)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     bma400_priv_t *priv = (bma400_priv_t *)sensor->priv_data;
     uint8_t data;
 
