@@ -138,7 +138,8 @@ int xy_ads1115_read_voltage(xy_ads1115_t *dev, uint8_t channel, int32_t *voltage
     int16_t sample;
     int ret;
 
-    if (dev == NULL || voltage_mv == NULL || channel > 3U) {
+    if (dev == NULL || voltage_mv == NULL || dev->initialized == 0U
+        || dev->i2c_dev.base.initialized == 0U || channel > 3U) {
         return XY_ADS1115_INVALID_PARAM;
     }
     ret = xy_ads1115_read_single(dev, channel, &sample);
