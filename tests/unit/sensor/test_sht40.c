@@ -430,6 +430,21 @@ static void test_invalid_cached_precision_falls_back_to_high_precision_timing(vo
     TEST_ASSERT_EQUAL_UINT16(64936U, dev.data.humidity);
 }
 
+static void test_invalid_cached_precision_is_rejected_without_io(void)
+{
+    xy_sht40_t dev;
+    int fake_bus;
+
+    queue_pair_payload(0x1234U, 0xABCDU);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_init(&dev, &fake_bus));
+    dev.precision = (xy_sht40_precision_t)99;
+
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_read(&dev));
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
+}
+
 static void test_serial_getter_rejects_uninitialized_device_without_overwriting_output(void)
 {
     xy_sht40_t dev;
@@ -486,7 +501,7 @@ int main(void)
     RUN_TEST(test_temperature_getter_preserves_output_on_write_and_read_failures);
     RUN_TEST(test_default_high_precision_read_uses_hpm_command_and_delay);
     RUN_TEST(test_get_serial_copies_cached_serial_without_i2c_access);
-    RUN_TEST(test_invalid_cached_precision_falls_back_to_high_precision_timing);
+    RUN_TEST(test_invalid_cached_precision_is_rejected_without_io);
     RUN_TEST(test_serial_getter_rejects_uninitialized_device_without_overwriting_output);
     RUN_TEST(test_precision_setter_rejects_uninitialized_device_without_state_change);
     return UNITY_END();

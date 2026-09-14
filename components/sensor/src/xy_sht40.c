@@ -146,7 +146,7 @@ int xy_sht40_read(xy_sht40_t *sht40)
     uint8_t crc;
     uint16_t measure_time;
     
-    if (!sht40 || !sht40->initialized) {
+    if (!sht40 || !sht40->initialized || sht40->precision > XY_SHT40_LOW_PRECISION) {
         return XY_SHT40_INVALID_PARAM;
     }
     
