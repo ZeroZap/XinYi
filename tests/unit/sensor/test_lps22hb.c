@@ -526,6 +526,23 @@ static void test_start_single_propagates_stop_failure(void)
     TEST_ASSERT_EQUAL_UINT(4U, g_read_index);
 }
 
+static void test_set_odr_rejects_invalid_enum_without_io_or_cache_change(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    size_t reads_before;
+    size_t writes_before;
+
+    init_ok(&dev, &iface);
+    reads_before = g_read_index;
+    writes_before = g_write_index;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR,
+                          xy_lps22hb_set_odr(&dev, (xy_lps22hb_odr_t)0x80U));
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_index);
+    TEST_ASSERT_EQUAL_INT(XY_LPS22HB_ODR_10HZ, dev.config.odr);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -541,6 +558,7 @@ int main(void)
     RUN_TEST(test_auto_zero_read_failures_and_timeout_propagate);
     RUN_TEST(test_pressure_altitude_helpers_and_invalid_inputs);
     RUN_TEST(test_init_custom_fifo_config_programs_ctrl_registers);
+    RUN_TEST(test_set_odr_rejects_invalid_enum_without_io_or_cache_change);
     RUN_TEST(test_deinit_stop_failure_preserves_ready_state);
     RUN_TEST(test_start_single_propagates_stop_failure);
     return UNITY_END();

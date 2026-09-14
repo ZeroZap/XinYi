@@ -410,7 +410,8 @@ xy_ret_t xy_lps22hb_measure(xy_lps22hb_dev_t *dev, xy_lps22hb_data_t *data, uint
 
 xy_ret_t xy_lps22hb_set_odr(xy_lps22hb_dev_t *dev, xy_lps22hb_odr_t odr)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized ||
+        odr > XY_LPS22HB_ODR_200HZ || (odr & 0x0FU) != 0U) {
         return XY_ERROR;
     }
     
