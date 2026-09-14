@@ -12,6 +12,9 @@ extern int hal_spi_send(void *bus, uint8_t cs, uint8_t *data, uint16_t len);
 
 static sensor_err_t lsm6dsl_reg_read(sensor_device_t *sensor, uint8_t reg, uint8_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
     if (priv->spi_cs != LSM6DSL_SPI_CS_NONE) {
         uint8_t tx = reg | 0x80;
@@ -23,6 +26,9 @@ static sensor_err_t lsm6dsl_reg_read(sensor_device_t *sensor, uint8_t reg, uint8
 
 static sensor_err_t lsm6dsl_reg_write(sensor_device_t *sensor, uint8_t reg, uint8_t data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
     if (priv->spi_cs != LSM6DSL_SPI_CS_NONE) {
         uint8_t tx[2] = { reg & 0x7F, data };
@@ -34,6 +40,9 @@ static sensor_err_t lsm6dsl_reg_write(sensor_device_t *sensor, uint8_t reg, uint
 static sensor_err_t lsm6dsl_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing LSM6DSL");
 
@@ -63,6 +72,9 @@ static sensor_err_t lsm6dsl_init(sensor_device_t *sensor)
 
 static sensor_err_t lsm6dsl_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL1_XL, 0x00) != SENSOR_EOK) return SENSOR_EIO;
     if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL2_G, 0x00) != SENSOR_EOK) return SENSOR_EIO;
     sensor->odr = 0U;
@@ -72,6 +84,9 @@ static sensor_err_t lsm6dsl_deinit(sensor_device_t *sensor)
 static sensor_err_t lsm6dsl_accel_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     for (int i = 0; i < 6; i++) {
         if (lsm6dsl_reg_read(sensor, LSM6DSL_REG_OUTX_L_XL + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
     }
@@ -99,6 +114,9 @@ static sensor_err_t lsm6dsl_accel_read(sensor_device_t *sensor, sensor_data_t *d
 static sensor_err_t lsm6dsl_gyro_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     for (int i = 0; i < 6; i++) {
         if (lsm6dsl_reg_read(sensor, LSM6DSL_REG_OUTX_L_G + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
     }
@@ -134,6 +152,9 @@ static const sensor_ops_t lsm6dsl_gyro_ops = {
 
 sensor_device_t *lsm6dsl_create_accel(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)SENSOR_MALLOC(sizeof(lsm6dsl_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -164,6 +185,9 @@ sensor_device_t *lsm6dsl_create_accel(const char *name, void *i2c_bus, uint8_t a
 
 sensor_device_t *lsm6dsl_create_gyro(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)SENSOR_MALLOC(sizeof(lsm6dsl_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -199,6 +223,9 @@ sensor_device_t *lsm6dsl_create_imu(const char *name, void *i2c_bus, uint8_t add
 
 sensor_device_t *lsm6dsl_create_spi_accel(const char *name, void *spi_bus, uint8_t cs)
 {
+    if (name == NULL || spi_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)SENSOR_MALLOC(sizeof(lsm6dsl_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -229,6 +256,9 @@ sensor_device_t *lsm6dsl_create_spi_accel(const char *name, void *spi_bus, uint8
 
 sensor_device_t *lsm6dsl_create_spi_gyro(const char *name, void *spi_bus, uint8_t cs)
 {
+    if (name == NULL || spi_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)SENSOR_MALLOC(sizeof(lsm6dsl_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }

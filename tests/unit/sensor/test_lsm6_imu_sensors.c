@@ -770,12 +770,27 @@ static void test_lsm6dsr_i2c_accel_gyro_init_read_helpers_and_errors(void)
     destroy_sensor(gyro);
 }
 
+static void test_lsm6dsl_invalid_public_contexts_fail_closed(void)
+{
+    int bus;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .timestamp = 0x1234U};
+    sensor_device_t *sensor = lsm6dsl_create_accel("dsl-invalid", &bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_lsm6dsl_spi_accel_gyro_init_read_deinit_and_helpers);
     RUN_TEST(test_lsm6dsl_init_failure_does_not_commit_partial_config_cache);
     RUN_TEST(test_lsm6dsl_reinit_success_resynchronizes_public_odr);
+    RUN_TEST(test_lsm6dsl_invalid_public_contexts_fail_closed);
     RUN_TEST(test_lsm6dso_init_failure_does_not_commit_partial_config_cache);
     RUN_TEST(test_lsm6dso_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors);
