@@ -324,8 +324,7 @@ static void test_adxl362_create_init_read_deinit_and_error_paths(void)
 
     queue_spi_read8(&fake_spi, ADXL362_REG_DEVID_AD, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
-    queue_spi_read(&fake_spi, ADXL362_REG_XDATA, NULL, 6U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
 
     destroy_sensor(sensor);
 }

@@ -100,6 +100,9 @@ static sensor_err_t adxl362_read(sensor_device_t *sensor, sensor_data_t *data)
     }
 
     adxl362_priv_t *priv = (adxl362_priv_t *)sensor->priv_data;
+    if (priv->mode != ADXL362_MODE_MEASUREMENT) {
+        return SENSOR_EINVAL;
+    }
     uint8_t buf[6];
     int16_t raw[3];
 
