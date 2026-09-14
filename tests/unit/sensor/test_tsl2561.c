@@ -371,6 +371,12 @@ static void test_gain_integration_enable_disable_and_deinit_contracts(void)
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_UINT8(0x00U, g_write_data_queue[8][1]);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_set_gain(&dev, XY_TSL2561_GAIN_16X));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
+                          xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_enable(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_disable(&dev));
+    TEST_ASSERT_EQUAL_UINT(9U, g_write_count);
 }
 
 static void test_gain_integration_failures_preserve_cache(void)

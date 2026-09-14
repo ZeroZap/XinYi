@@ -120,6 +120,7 @@ int xy_tsl2561_init(xy_tsl2561_t *tsl2561, void *i2c_handle, uint8_t addr)
     tsl2561->addr = addr;
     tsl2561->gain = XY_TSL2561_GAIN_1X;
     tsl2561->integration = XY_TSL2561_INTEGRATION_402MS;
+    tsl2561->initialized = true;
 
     /* 读取 ID 寄存器验证设备 */
     ret = xy_tsl2561_read_reg(tsl2561, TSL2561_REG_ID, &id);
@@ -150,7 +151,7 @@ int xy_tsl2561_init(xy_tsl2561_t *tsl2561, void *i2c_handle, uint8_t addr)
 
 int xy_tsl2561_deinit(xy_tsl2561_t *tsl2561)
 {
-    if (!tsl2561) {
+    if (!tsl2561 || !tsl2561->initialized) {
         return XY_TSL2561_INVALID_PARAM;
     }
     
@@ -259,11 +260,10 @@ int xy_tsl2561_set_gain(xy_tsl2561_t *tsl2561, xy_tsl2561_gain_t gain)
 {
     uint8_t timing_reg;
     
-    if (!tsl2561 || gain > XY_TSL2561_GAIN_16X) {
+    if (!tsl2561 || !tsl2561->initialized || gain > XY_TSL2561_GAIN_16X) {
         return XY_TSL2561_INVALID_PARAM;
     }
-    
-    /* 读取失败时不猜测硬件配置，也不修改软件缓存。 */
+
     int ret = xy_tsl2561_read_reg(tsl2561, TSL2561_REG_TIMING, &timing_reg);
     if (ret != XY_DEVICE_OK) {
         return ret;
@@ -292,7 +292,8 @@ int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
 {
     uint8_t timing_reg;
     
-    if (!tsl2561 || integration > XY_TSL2561_INTEGRATION_402MS) {
+    if (!tsl2561 || !tsl2561->initialized ||
+        integration > XY_TSL2561_INTEGRATION_402MS) {
         return XY_TSL2561_INVALID_PARAM;
     }
     
@@ -321,7 +322,7 @@ int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
 
 int xy_tsl2561_enable(xy_tsl2561_t *tsl2561)
 {
-    if (!tsl2561) {
+    if (!tsl2561 || !tsl2561->initialized) {
         return XY_TSL2561_INVALID_PARAM;
     }
     
@@ -330,7 +331,7 @@ int xy_tsl2561_enable(xy_tsl2561_t *tsl2561)
 
 int xy_tsl2561_disable(xy_tsl2561_t *tsl2561)
 {
-    if (!tsl2561) {
+    if (!tsl2561 || !tsl2561->initialized) {
         return XY_TSL2561_INVALID_PARAM;
     }
     
