@@ -673,6 +673,23 @@ static void test_configure_threshold_rejects_inverted_range_without_io_or_cache_
     TEST_ASSERT_EQUAL_UINT16(UINT16_MAX, dev.config.threshold.high);
 }
 
+static void test_read_data_rejects_uninitialized_device_without_io_or_output_change(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_lps22hb_data_t data = {.pressure = -10.0f, .temperature = -20.0f, .altitude = -30.0f};
+    xy_interface_dev_t iface = fake_interface();
+
+    memset(&dev, 0, sizeof(dev));
+    dev.interface = &iface;
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_read_data(&dev, &data));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -10.0f, data.pressure);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -20.0f, data.temperature);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -30.0f, data.altitude);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -696,5 +713,6 @@ int main(void)
     RUN_TEST(test_configure_threshold_rejects_inverted_range_without_io_or_cache_change);
     RUN_TEST(test_deinit_stop_failure_preserves_ready_state);
     RUN_TEST(test_start_single_propagates_stop_failure);
+    RUN_TEST(test_read_data_rejects_uninitialized_device_without_io_or_output_change);
     return UNITY_END();
 }
