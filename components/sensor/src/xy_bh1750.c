@@ -211,10 +211,10 @@ int xy_bh1750_power_down(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_POWER_DOWN;
     
-    if (!bh1750) {
+    if (!bh1750 || !bh1750->initialized) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
+
     return xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
 }
 
@@ -222,10 +222,10 @@ int xy_bh1750_power_on(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_POWER_ON;
     
-    if (!bh1750) {
+    if (!bh1750 || !bh1750->initialized) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
+
     return xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
 }
 
@@ -233,9 +233,9 @@ int xy_bh1750_reset(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_RESET;
     
-    if (!bh1750) {
+    if (!bh1750 || !bh1750->initialized) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
+
     return xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
 }

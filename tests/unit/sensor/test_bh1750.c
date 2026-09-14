@@ -311,7 +311,10 @@ static void test_configuration_power_and_reset_validate_inputs(void)
     TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
-    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_DOWN, g_write_queue[5]);
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_power_down(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_power_on(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_reset(&dev));
+    TEST_ASSERT_EQUAL_UINT(6U, g_write_count);
 }
 
 static void test_deinit_preserves_initialized_when_power_down_fails(void)
