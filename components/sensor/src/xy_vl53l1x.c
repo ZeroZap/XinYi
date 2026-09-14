@@ -363,11 +363,13 @@ xy_ret_t xy_vl53l1x_start_single(xy_vl53l1x_dev_t *dev)
         return XY_ERROR;
     }
     
-    /* 停止之前的测量 */
-    xy_vl53l1x_stop(dev);
-    
+    xy_ret_t ret = xy_vl53l1x_stop(dev);
+    if (ret != XY_OK) {
+        return ret;
+    }
+
     /* 配置为单次模式 */
-    xy_ret_t ret = vl53l1x_write_reg8(dev, VL53L1X_SYSTEM_START, 0x10);
+    ret = vl53l1x_write_reg8(dev, VL53L1X_SYSTEM_START, 0x10);
     
     return ret;
 }

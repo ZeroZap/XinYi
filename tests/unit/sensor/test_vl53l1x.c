@@ -584,6 +584,15 @@ void test_deinit_stop_failure_preserves_initialized_state(void)
     TEST_ASSERT_TRUE(dev.is_initialized);
 }
 
+void test_start_single_propagates_stop_failure_and_skips_start(void)
+{
+    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+
+    expect_write_ret(VL53L1X_SYSTEM_START, &(const uint8_t){0x00}, 1, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_start_single(&dev));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -591,6 +600,7 @@ int main(void)
     RUN_TEST(test_init_rejects_wrong_model_id);
     RUN_TEST(test_init_configuration_failure_rolls_back_state);
     RUN_TEST(test_start_stop_and_continuous_period_write_expected_commands);
+    RUN_TEST(test_start_single_propagates_stop_failure_and_skips_start);
     RUN_TEST(test_start_commands_propagate_start_write_failures_after_stop);
     RUN_TEST(test_data_ready_and_result_parsing_with_offset);
     RUN_TEST(test_measure_timeout_stops_sensor);
