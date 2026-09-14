@@ -341,7 +341,7 @@ xy_ret_t xy_sgp40_start_measurement(xy_sgp40_dev_t *dev)
 
 xy_ret_t xy_sgp40_read_voc(xy_sgp40_dev_t *dev, xy_sgp40_data_t *data)
 {
-    if (dev == XY_NULL || data == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized || data == XY_NULL) {
         return XY_ERROR;
     }
     

@@ -293,6 +293,9 @@ static void test_measurement_error_paths_preserve_last_data_and_state(void)
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_start_continuous(&dev));
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_voc(NULL, &data));
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_voc(&dev, NULL));
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_read_voc(&dev, &data));
+    TEST_ASSERT_EQUAL_UINT16(0xEEEEU, data.voc_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_read_count);
 
     init_ok(&dev, &i2c);
     TEST_ASSERT_EQUAL_INT(0, xy_sgp40_start_continuous(&dev));
