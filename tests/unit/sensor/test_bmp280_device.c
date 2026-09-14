@@ -251,6 +251,15 @@ static void test_bmp280_compensates_bosch_sample_and_preserves_cache_on_failure(
     TEST_ASSERT_EQUAL_UINT32(100653U, bmp.pressure);
 }
 
+static void test_bmp280_read_rejects_uninitialized_nested_bus(void)
+{
+    xy_bmp280_t bmp;
+    int bus;
+
+    init_success(&bmp, &bus, BMP280_ADDR_DEFAULT);
+    bmp.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_read(&bmp));
+}
 static void test_bmp280_scalar_reads_signal_transport_failure(void)
 {
     const uint8_t raw[6] = {0x65, 0x5A, 0xC0, 0x7E, 0xED, 0x00};
@@ -298,6 +307,7 @@ int main(void)
     RUN_TEST(test_bmp280_init_supports_both_addresses_and_parses_calibration);
     RUN_TEST(test_bmp280_init_propagates_each_io_failure);
     RUN_TEST(test_bmp280_compensates_bosch_sample_and_preserves_cache_on_failure);
+    RUN_TEST(test_bmp280_read_rejects_uninitialized_nested_bus);
     RUN_TEST(test_bmp280_scalar_reads_signal_transport_failure);
     RUN_TEST(test_bmp280_deinit_failure_preserves_state);
     return UNITY_END();

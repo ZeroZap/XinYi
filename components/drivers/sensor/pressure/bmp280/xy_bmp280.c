@@ -167,7 +167,7 @@ int xy_bmp280_read(xy_bmp280_t *bmp)
     uint32_t pressure;
     int result;
 
-    if (bmp == NULL || bmp->initialized == 0U) {
+    if (bmp == NULL || bmp->initialized == 0U || bmp->i2c_dev.base.initialized == 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
