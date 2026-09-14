@@ -104,6 +104,35 @@ static xy_ret_t lps22hb_update_bits(xy_lps22hb_dev_t *dev, uint8_t reg_addr, uin
     return lps22hb_write_reg8(dev, reg_addr, reg_value);
 }
 
+static bool lps22hb_config_is_valid(const xy_lps22hb_config_t *config)
+{
+    return config != XY_NULL && config->odr <= XY_LPS22HB_ODR_200HZ &&
+           (config->odr & 0x0FU) == 0U && config->lpf <= XY_LPS22HB_LPF_ODR_5 &&
+           (config->lpf & 0x03U) == 0U &&
+           (config->enable_lpf == false || config->enable_lpf == true) &&
+           (config->enable_fifo == false || config->enable_fifo == true) &&
+           config->fifo_mode <= XY_LPS22HB_FIFO_TRIGGER &&
+           (config->fifo_mode & 0x1FU) == 0U && config->fifo_wtm <= 0x1FU &&
+           (config->enable_interrupt == false || config->enable_interrupt == true) &&
+           config->threshold.low <= config->threshold.high;
+}
+
+static xy_ret_t lps22hb_write_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uint16_t high)
+{
+    uint8_t buffer[2];
+
+    buffer[0] = low & 0xFFU;
+    buffer[1] = (low >> 8) & 0xFFU;
+    xy_ret_t ret = lps22hb_write_reg(dev, LPS22HB_THS_P_L, buffer, 2U);
+    if (ret != XY_OK) {
+        return ret;
+    }
+
+    buffer[0] = high & 0xFFU;
+    buffer[1] = (high >> 8) & 0xFFU;
+    return lps22hb_write_reg(dev, LPS22HB_THS_P_H, buffer, 2U);
+}
+
 /**
  * @brief 等待数据就绪
  */
@@ -153,6 +182,11 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     
     if (config != XY_NULL) {
         dev->config = *config;
+    }
+
+    if (!lps22hb_config_is_valid(&dev->config)) {
+        memset(dev, 0, sizeof(*dev));
+        return XY_ERROR;
     }
     
     /* 等待传感器上电稳定 */
@@ -211,8 +245,10 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     /* 配置 CTRL_REG2 */
     ctrl2 = 0;
     if (dev->config.enable_fifo) {
+        ret = lps22hb_write_reg8(dev, LPS22HB_FIFO_CTRL,
+                                 dev->config.fifo_mode | dev->config.fifo_wtm);
+        if (ret != XY_OK) goto init_failed;
         ctrl2 |= LPS22HB_FIFO_EN;
-        ctrl2 |= dev->config.fifo_mode;
     }
     
     ret = lps22hb_write_reg8(dev, LPS22HB_CTRL_REG2, ctrl2);
@@ -224,7 +260,7 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
         if (ret != XY_OK) goto init_failed;
         
         /* 配置阈值 */
-        ret = xy_lps22hb_configure_threshold(dev, dev->config.threshold.low, dev->config.threshold.high);
+        ret = lps22hb_write_threshold(dev, dev->config.threshold.low, dev->config.threshold.high);
         if (ret != XY_OK) goto init_failed;
     } else {
         ret = lps22hb_write_reg8(dev, LPS22HB_CTRL_REG3, 0x00);
@@ -536,18 +572,7 @@ xy_ret_t xy_lps22hb_configure_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uin
         return XY_ERROR;
     }
     
-    uint8_t buffer[2];
-    
-    /* 配置低阈值 */
-    buffer[0] = low & 0xFF;
-    buffer[1] = (low >> 8) & 0xFF;
-    xy_ret_t ret = lps22hb_write_reg(dev, LPS22HB_THS_P_L, buffer, 2);
-    if (ret != XY_OK) return ret;
-    
-    /* 配置高阈值 */
-    buffer[0] = high & 0xFF;
-    buffer[1] = (high >> 8) & 0xFF;
-    ret = lps22hb_write_reg(dev, LPS22HB_THS_P_H, buffer, 2);
+    xy_ret_t ret = lps22hb_write_threshold(dev, low, high);
     if (ret == XY_OK) {
         dev->config.threshold.low = low;
         dev->config.threshold.high = high;

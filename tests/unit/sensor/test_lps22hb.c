@@ -486,7 +486,8 @@ static void test_init_custom_fifo_config_programs_ctrl_registers(void)
     queue_write8(LPS22HB_CTRL_REG2, LPS22HB_SWRESET, XY_OK);
     queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
     queue_write8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_25HZ, XY_OK);
-    queue_write8(LPS22HB_CTRL_REG2, (uint8_t)(LPS22HB_FIFO_EN | XY_LPS22HB_FIFO_STREAM), XY_OK);
+    queue_write8(LPS22HB_FIFO_CTRL, (uint8_t)(XY_LPS22HB_FIFO_STREAM | 7U), XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, LPS22HB_FIFO_EN, XY_OK);
     queue_write8(LPS22HB_CTRL_REG3, 0x00U, XY_OK);
 
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_lps22hb_init(&dev, &iface, &cfg));
@@ -497,7 +498,78 @@ static void test_init_custom_fifo_config_programs_ctrl_registers(void)
     TEST_ASSERT_FALSE(dev.config.enable_interrupt);
     TEST_ASSERT_EQUAL_UINT16(0x1234U, dev.config.threshold.low);
     TEST_ASSERT_EQUAL_UINT16(0xABCDU, dev.config.threshold.high);
-    TEST_ASSERT_EQUAL_UINT(4U, g_seen_write_count);
+    TEST_ASSERT_EQUAL_UINT(5U, g_seen_write_count);
+}
+
+static void test_init_rejects_invalid_custom_config_before_io_or_delay(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    xy_lps22hb_config_t cfg = {
+        .odr = (xy_lps22hb_odr_t)0x80U,
+        .lpf = XY_LPS22HB_LPF_ODR_20,
+        .fifo_mode = XY_LPS22HB_FIFO_BYPASS,
+        .threshold = {.low = 0U, .high = UINT16_MAX},
+    };
+
+    memset(&dev, 0xA5, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_init(&dev, &iface, &cfg));
+    assert_lps22hb_cleared(&dev);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_delay_count);
+
+    cfg.odr = XY_LPS22HB_ODR_10HZ;
+    cfg.fifo_wtm = 32U;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_init(&dev, &iface, &cfg));
+    assert_lps22hb_cleared(&dev);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_delay_count);
+
+    cfg.fifo_wtm = 0U;
+    cfg.threshold.low = 2U;
+    cfg.threshold.high = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_init(&dev, &iface, &cfg));
+    assert_lps22hb_cleared(&dev);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_delay_count);
+}
+
+static void test_init_interrupt_config_programs_threshold_before_ready_commit(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    xy_lps22hb_config_t cfg = {
+        .odr = XY_LPS22HB_ODR_10HZ,
+        .lpf = XY_LPS22HB_LPF_ODR_20,
+        .enable_lpf = true,
+        .fifo_mode = XY_LPS22HB_FIFO_BYPASS,
+        .enable_interrupt = true,
+        .threshold = {.low = 0x1234U, .high = 0x5678U},
+    };
+    const uint8_t low[2] = {0x34U, 0x12U};
+    const uint8_t high[2] = {0x78U, 0x56U};
+
+    queue_read8(LPS22HB_WHO_AM_I, LPS22HB_WHO_AM_I_VALUE, XY_OK);
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, LPS22HB_SWRESET, XY_OK);
+    queue_read8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG1,
+                 (uint8_t)(XY_LPS22HB_ODR_10HZ | LPS22HB_EN_LPFP |
+                           XY_LPS22HB_LPF_ODR_20),
+                 XY_OK);
+    queue_write8(LPS22HB_CTRL_REG2, 0x00U, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG3, LPS22HB_INT_DRDY, XY_OK);
+    queue_write(LPS22HB_THS_P_L, low, sizeof(low), XY_OK);
+    queue_write(LPS22HB_THS_P_H, high, sizeof(high), XY_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_lps22hb_init(&dev, &iface, &cfg));
+    TEST_ASSERT_TRUE(dev.is_initialized);
+    TEST_ASSERT_TRUE(dev.config.enable_interrupt);
+    TEST_ASSERT_EQUAL_UINT16(0x1234U, dev.config.threshold.low);
+    TEST_ASSERT_EQUAL_UINT16(0x5678U, dev.config.threshold.high);
 }
 
 static void test_deinit_stop_failure_preserves_ready_state(void)
@@ -616,6 +688,8 @@ int main(void)
     RUN_TEST(test_auto_zero_read_failures_and_timeout_propagate);
     RUN_TEST(test_pressure_altitude_helpers_and_invalid_inputs);
     RUN_TEST(test_init_custom_fifo_config_programs_ctrl_registers);
+    RUN_TEST(test_init_rejects_invalid_custom_config_before_io_or_delay);
+    RUN_TEST(test_init_interrupt_config_programs_threshold_before_ready_commit);
     RUN_TEST(test_set_odr_rejects_invalid_enum_without_io_or_cache_change);
     RUN_TEST(test_configure_fifo_rejects_invalid_mode_and_watermark_without_io);
     RUN_TEST(test_configure_lpf_rejects_invalid_enum_without_io_or_cache_change);
