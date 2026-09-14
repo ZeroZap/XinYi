@@ -532,7 +532,7 @@ xy_ret_t xy_lps22hb_configure_fifo(xy_lps22hb_dev_t *dev, xy_lps22hb_fifo_mode_t
 
 xy_ret_t xy_lps22hb_configure_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uint16_t high)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || low > high) {
         return XY_ERROR;
     }
     

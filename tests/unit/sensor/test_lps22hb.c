@@ -583,6 +583,24 @@ static void test_configure_lpf_rejects_invalid_enum_without_io_or_cache_change(v
     TEST_ASSERT_EQUAL_INT(XY_LPS22HB_LPF_ODR_20, dev.config.lpf);
 }
 
+static void test_configure_threshold_rejects_inverted_range_without_io_or_cache_change(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    size_t reads_before;
+    size_t writes_before;
+
+    init_ok(&dev, &iface);
+    reads_before = g_read_index;
+    writes_before = g_write_index;
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_configure_threshold(&dev, 0x2000U, 0x1000U));
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_index);
+    TEST_ASSERT_EQUAL_UINT16(0U, dev.config.threshold.low);
+    TEST_ASSERT_EQUAL_UINT16(UINT16_MAX, dev.config.threshold.high);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -601,6 +619,7 @@ int main(void)
     RUN_TEST(test_set_odr_rejects_invalid_enum_without_io_or_cache_change);
     RUN_TEST(test_configure_fifo_rejects_invalid_mode_and_watermark_without_io);
     RUN_TEST(test_configure_lpf_rejects_invalid_enum_without_io_or_cache_change);
+    RUN_TEST(test_configure_threshold_rejects_inverted_range_without_io_or_cache_change);
     RUN_TEST(test_deinit_stop_failure_preserves_ready_state);
     RUN_TEST(test_start_single_propagates_stop_failure);
     return UNITY_END();
