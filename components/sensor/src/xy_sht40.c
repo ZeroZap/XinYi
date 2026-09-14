@@ -134,6 +134,7 @@ int xy_sht40_deinit(xy_sht40_t *sht40)
     }
     
     sht40->initialized = false;
+    sht40->i2c_dev.base.initialized = false;
     return XY_SHT40_OK;
 }
 

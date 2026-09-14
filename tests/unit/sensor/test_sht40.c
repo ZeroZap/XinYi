@@ -289,8 +289,10 @@ static void test_deinit_rejects_null_and_clears_initialized_flag(void)
     queue_pair_payload(0x1234U, 0xABCDU);
     TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_init(&dev, &fake_bus));
     TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
 }
 
 static void test_read_rejects_invalid_or_uninitialized_and_propagates_write_failure(void)
