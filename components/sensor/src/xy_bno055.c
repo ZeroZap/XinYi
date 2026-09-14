@@ -76,6 +76,10 @@ static void delay_ms(uint32_t ms)
  */
 static int bus_read(xy_bno055_t *dev, uint8_t reg, uint8_t *buf, uint16_t len)
 {
+    if (!dev || !dev->bus_handle || !buf || !len) {
+        return XY_DEVICE_EINVAL;
+    }
+
     if (dev->is_uart) {
         /* UART 模式：需要构造命令帧 */
         /* 简化实现，实际需要根据 UART 协议 */
@@ -92,6 +96,10 @@ static int bus_read(xy_bno055_t *dev, uint8_t reg, uint8_t *buf, uint16_t len)
  */
 static int bus_write(xy_bno055_t *dev, uint8_t reg, const uint8_t *buf, uint16_t len)
 {
+    if (!dev || !dev->bus_handle || !buf || !len) {
+        return XY_DEVICE_EINVAL;
+    }
+
     if (dev->is_uart) {
         /* UART 模式 */
         return XY_DEVICE_NOT_SUPPORT;
@@ -297,7 +305,7 @@ int xy_bno055_get_sw_version(xy_bno055_t *dev, uint16_t *version)
 
 int xy_bno055_set_mode(xy_bno055_t *dev, bno055_mode_t mode)
 {
-    if (!dev || !dev->initialized) {
+    if (!dev || !dev->initialized || mode > BNO055_MODE_NDOF) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -341,7 +349,7 @@ int xy_bno055_get_mode(xy_bno055_t *dev, bno055_mode_t *mode)
 
 int xy_bno055_set_power_mode(xy_bno055_t *dev, bno055_pwr_t pwr)
 {
-    if (!dev || !dev->initialized) {
+    if (!dev || !dev->initialized || pwr > BNO055_PWR_SUSPEND) {
         return XY_DEVICE_EINVAL;
     }
 

@@ -262,6 +262,23 @@ void test_register_access_guards_and_i2c_round_trip(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_write_regs(&dev, BNO055_REG_PAGE_ID, &byte, 1));
 }
 
+void test_bus_and_enum_boundaries_fail_closed_without_i2c(void)
+{
+    int bus;
+    xy_bno055_t dev = make_ready_dev(&bus);
+    xy_bno055_t missing_bus = make_ready_dev(NULL);
+    unsigned before = g_op_index;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_reset(&missing_bus));
+    TEST_ASSERT_EQUAL_UINT(before, g_op_index);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL,
+                          xy_bno055_set_mode(&dev, (bno055_mode_t)0x7FU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL,
+                          xy_bno055_set_power_mode(&dev, (bno055_pwr_t)0x7FU));
+    TEST_ASSERT_EQUAL_UINT(before, g_op_index);
+}
+
 void test_sw_version_and_get_mode_parse_little_endian_and_mask_mode_bits(void)
 {
     int bus;
@@ -559,6 +576,7 @@ int main(void)
     RUN_TEST(test_init_propagates_reset_and_sw_version_failures);
     RUN_TEST(test_init_clears_device_after_each_configuration_failure);
     RUN_TEST(test_register_access_guards_and_i2c_round_trip);
+    RUN_TEST(test_bus_and_enum_boundaries_fail_closed_without_i2c);
     RUN_TEST(test_sw_version_and_get_mode_parse_little_endian_and_mask_mode_bits);
     RUN_TEST(test_set_mode_config_when_already_config_only_reads_mode);
     RUN_TEST(test_mode_power_units_sleep_and_wakeup_write_expected_registers);
