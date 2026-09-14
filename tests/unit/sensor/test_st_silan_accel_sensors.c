@@ -512,6 +512,25 @@ static void test_lis2dh12_invalid_contexts_fail_closed(void)
     destroy_sensor(sensor);
 }
 
+static void test_sc7a20_public_contexts_fail_closed(void)
+{
+    int fake_bus;
+    sensor_data_t data = {0};
+    uint32_t value = 4U;
+    sensor_device_t *sensor = sc7a20_create("sc7a20-context", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->config(sensor, SENSOR_CFG_RANGE, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    (void)value;
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -520,6 +539,7 @@ int main(void)
     RUN_TEST(test_lis2dw12_i2c_init_read_helpers_deinit_and_errors);
     RUN_TEST(test_lis2dw12_invalid_contexts_fail_closed);
     RUN_TEST(test_sc7a20_init_read_config_deinit_and_errors);
+    RUN_TEST(test_sc7a20_public_contexts_fail_closed);
     RUN_TEST(test_silan_sc7a20_create_init_read_helpers_deinit_and_errors);
     return UNITY_END();
 }

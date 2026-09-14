@@ -10,6 +10,9 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
  */
 static sensor_err_t sc7a20_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     sc7a20_priv_t *priv = (sc7a20_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -56,6 +59,9 @@ static sensor_err_t sc7a20_init(sensor_device_t *sensor)
  */
 static sensor_err_t sc7a20_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     sc7a20_priv_t *priv = (sc7a20_priv_t *)sensor->priv_data;
     uint8_t data        = SC7A20_ODR_POWER_DOWN;
 
@@ -76,6 +82,9 @@ static sensor_err_t sc7a20_deinit(sensor_device_t *sensor)
  */
 static sensor_err_t sc7a20_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     sc7a20_priv_t *priv = (sc7a20_priv_t *)sensor->priv_data;
     uint8_t buf[6];
     int16_t raw[3];
@@ -113,6 +122,9 @@ static sensor_err_t sc7a20_read(sensor_device_t *sensor, sensor_data_t *data)
 static sensor_err_t sc7a20_set_power_mode(sensor_device_t *sensor,
                                           sensor_power_mode_t mode)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     sc7a20_priv_t *priv = (sc7a20_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -155,6 +167,9 @@ static sensor_err_t sc7a20_set_power_mode(sensor_device_t *sensor,
 static sensor_err_t sc7a20_config(sensor_device_t *sensor,
                                   sensor_config_type_t cfg, void *value)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || value == NULL) {
+        return SENSOR_EINVAL;
+    }
     sc7a20_priv_t *priv = (sc7a20_priv_t *)sensor->priv_data;
     uint8_t data;
 
