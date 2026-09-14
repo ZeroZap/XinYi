@@ -505,7 +505,8 @@ xy_ret_t xy_lps22hb_auto_zero(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_configure_fifo(xy_lps22hb_dev_t *dev, xy_lps22hb_fifo_mode_t mode, uint8_t wtm)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || mode > XY_LPS22HB_FIFO_TRIGGER ||
+        (mode & 0x1FU) != 0U || wtm > 0x1FU) {
         return XY_ERROR;
     }
     
