@@ -142,7 +142,7 @@ int qma6100_set_range(sensor_device_t *dev, uint8_t range)
     uint8_t ctrl;
     qma6100_priv_t *priv;
 
-    if (dev == NULL || dev->priv_data == NULL) {
+    if (dev == NULL || dev->priv_data == NULL || range > QMA6100_RANGE_16G) {
         return SENSOR_EINVAL;
     }
     priv = (qma6100_priv_t *)dev->priv_data;
