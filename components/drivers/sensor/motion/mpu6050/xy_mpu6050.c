@@ -153,6 +153,7 @@ int xy_mpu6050_deinit(xy_mpu6050_t *dev)
     }
 
     dev->initialized = 0;
+    dev->i2c_dev.base.initialized = 0;
     return XY_MPU6050_OK;
 }
 
