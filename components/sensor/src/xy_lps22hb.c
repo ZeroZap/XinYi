@@ -352,7 +352,7 @@ xy_ret_t xy_lps22hb_start_continuous(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_stop(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized) {
         return XY_ERROR;
     }
     
@@ -362,7 +362,10 @@ xy_ret_t xy_lps22hb_stop(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_check_data_ready(xy_lps22hb_dev_t *dev, bool *ready)
 {
-    if (dev == XY_NULL || ready == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized || ready == XY_NULL) {
+        if (ready != XY_NULL) {
+            *ready = false;
+        }
         return XY_ERROR;
     }
     

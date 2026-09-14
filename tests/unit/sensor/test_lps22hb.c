@@ -703,6 +703,22 @@ static void test_clear_interrupt_rejects_uninitialized_device_without_io(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
 }
 
+static void test_status_and_stop_reject_uninitialized_device_without_io(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    bool ready = true;
+
+    memset(&dev, 0, sizeof(dev));
+    dev.interface = &iface;
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_check_data_ready(&dev, &ready));
+    TEST_ASSERT_FALSE(ready);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_stop(&dev));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -728,5 +744,6 @@ int main(void)
     RUN_TEST(test_start_single_propagates_stop_failure);
     RUN_TEST(test_read_data_rejects_uninitialized_device_without_io_or_output_change);
     RUN_TEST(test_clear_interrupt_rejects_uninitialized_device_without_io);
+    RUN_TEST(test_status_and_stop_reject_uninitialized_device_without_io);
     return UNITY_END();
 }
