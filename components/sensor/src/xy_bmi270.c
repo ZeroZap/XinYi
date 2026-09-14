@@ -242,7 +242,8 @@ int xy_bmi270_get_chip_id(xy_bmi270_t *dev, uint8_t *chip_id)
 int xy_bmi270_set_range(xy_bmi270_t *dev, const bmi270_range_t *range)
 {
     if (!dev || !range || !dev->initialized || range->acc_range > BMI270_ACC_RANGE_16G
-        || range->gyr_range > BMI270_GYR_RANGE_125) {
+        || range->gyr_range > BMI270_GYR_RANGE_125 || range->acc_odr > 0x0FU
+        || range->gyr_odr > 0x0FU) {
         return XY_DEVICE_EINVAL;
     }
 

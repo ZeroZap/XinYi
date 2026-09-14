@@ -558,6 +558,18 @@ static void test_bmi270_set_range_rejects_invalid_gyr_range_without_io(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_op_count);
 }
 
+static void test_bmi270_set_range_rejects_invalid_odr_without_io(void)
+{
+    xy_bmi270_t dev = ready_i2c_dev();
+    const bmi270_range_t previous_range = dev.range;
+    bmi270_range_t invalid_range = previous_range;
+
+    invalid_range.acc_odr = 0x10U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_set_range(&dev, &invalid_range));
+    TEST_ASSERT_EQUAL_MEMORY(&previous_range, &dev.range, sizeof(previous_range));
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -573,5 +585,6 @@ int main(void)
     RUN_TEST(test_bmi270_set_range_covers_extreme_scale_branches);
     RUN_TEST(test_bmi270_set_range_rejects_invalid_acc_range_without_io);
     RUN_TEST(test_bmi270_set_range_rejects_invalid_gyr_range_without_io);
+    RUN_TEST(test_bmi270_set_range_rejects_invalid_odr_without_io);
     return UNITY_END();
 }
