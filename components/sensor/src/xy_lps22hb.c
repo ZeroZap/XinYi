@@ -104,6 +104,17 @@ static xy_ret_t lps22hb_update_bits(xy_lps22hb_dev_t *dev, uint8_t reg_addr, uin
     return lps22hb_write_reg8(dev, reg_addr, reg_value);
 }
 
+static xy_ret_t lps22hb_soft_reset_internal(xy_lps22hb_dev_t *dev)
+{
+    xy_ret_t ret = lps22hb_update_bits(dev, LPS22HB_CTRL_REG2, LPS22HB_SWRESET, LPS22HB_SWRESET);
+    if (ret != XY_OK) {
+        return ret;
+    }
+
+    xy_delay_ms(10);
+    return XY_OK;
+}
+
 static bool lps22hb_config_is_valid(const xy_lps22hb_config_t *config)
 {
     return config != XY_NULL && config->odr <= XY_LPS22HB_ODR_200HZ &&
@@ -193,7 +204,7 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     xy_delay_ms(20);
     
     /* 读取 WHO_AM_I 验证连接 */
-    xy_ret_t ret = xy_lps22hb_read_who_am_i(dev, &dev->who_am_i);
+    xy_ret_t ret = lps22hb_read_reg8(dev, LPS22HB_WHO_AM_I, &dev->who_am_i);
     if (ret != XY_OK) {
         goto init_failed;
     }
@@ -205,7 +216,7 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     }
     
     /* 软件复位 */
-    ret = xy_lps22hb_soft_reset(dev);
+    ret = lps22hb_soft_reset_internal(dev);
     if (ret != XY_OK) {
         goto init_failed;
     }
@@ -301,7 +312,7 @@ xy_ret_t xy_lps22hb_deinit(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_read_who_am_i(xy_lps22hb_dev_t *dev, uint8_t *who_am_i)
 {
-    if (dev == XY_NULL || who_am_i == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized || who_am_i == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -310,18 +321,12 @@ xy_ret_t xy_lps22hb_read_who_am_i(xy_lps22hb_dev_t *dev, uint8_t *who_am_i)
 
 xy_ret_t xy_lps22hb_soft_reset(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized) {
         return XY_ERROR;
     }
     
     /* 写入 SWRESET 位 */
-    xy_ret_t ret = lps22hb_update_bits(dev, LPS22HB_CTRL_REG2, LPS22HB_SWRESET, LPS22HB_SWRESET);
-    if (ret != XY_OK) return ret;
-    
-    /* 等待复位完成 */
-    xy_delay_ms(10);
-    
-    return XY_OK;
+    return lps22hb_soft_reset_internal(dev);
 }
 
 xy_ret_t xy_lps22hb_start_single(xy_lps22hb_dev_t *dev)
