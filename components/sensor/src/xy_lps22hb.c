@@ -431,7 +431,8 @@ xy_ret_t xy_lps22hb_set_odr(xy_lps22hb_dev_t *dev, xy_lps22hb_odr_t odr)
 
 xy_ret_t xy_lps22hb_configure_lpf(xy_lps22hb_dev_t *dev, bool enable, xy_lps22hb_lpf_t lpf)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || lpf > XY_LPS22HB_LPF_ODR_5 ||
+        (lpf & 0x03U) != 0U || (enable != false && enable != true)) {
         return XY_ERROR;
     }
     
