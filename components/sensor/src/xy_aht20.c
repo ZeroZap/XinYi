@@ -96,6 +96,7 @@ int xy_aht20_deinit(xy_aht20_t *aht20)
     }
     
     aht20->initialized = false;
+    aht20->i2c_dev.base.initialized = false;
     return XY_AHT20_OK;
 }
 

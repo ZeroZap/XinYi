@@ -233,8 +233,15 @@ static void test_deinit_rejects_null_and_clears_initialized_flag(void)
     queue_status(0x08);
     TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
     TEST_ASSERT_TRUE(dev.initialized);
+    size_t reads_before = g_read_index;
+    size_t writes_before = g_write_count;
+    uint32_t delay_before = g_delay_total;
     TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(delay_before, g_delay_total);
 }
 
 static void test_read_converts_humidity_temperature_and_timestamp(void)
