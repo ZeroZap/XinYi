@@ -189,7 +189,7 @@ static const sensor_ops_t apds9960_gesture_ops = {
 
 sensor_device_t *apds9960_create_rgb(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

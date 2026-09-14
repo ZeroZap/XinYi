@@ -243,6 +243,9 @@ static void test_public_guards_reject_null_inputs_without_i2c_side_effects(void)
     sensor_data_t snapshot = data;
 
     TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_NULL(apds9960_create_rgb("apds-rgb-null-bus", NULL));
+    TEST_ASSERT_NULL(apds9960_create_proximity("apds-prox-null-bus", NULL));
+    TEST_ASSERT_NULL(apds9960_create_gesture("apds-gesture-null-bus", NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
