@@ -193,7 +193,7 @@ static const sensor_ops_t ap3216c_ir_ops = {
  */
 sensor_device_t *ap3216c_create_light(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 
@@ -242,7 +242,7 @@ sensor_device_t *ap3216c_create_light(const char *name, void *i2c_bus)
  */
 sensor_device_t *ap3216c_create_proximity(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 
@@ -291,7 +291,7 @@ sensor_device_t *ap3216c_create_proximity(const char *name, void *i2c_bus)
  */
 sensor_device_t *ap3216c_create_ir(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

@@ -159,8 +159,11 @@ static void test_create_variants_set_identity_and_reject_null_names(void)
     sensor_device_t *ir = ap3216c_create_ir("ap-ir", &bus);
 
     TEST_ASSERT_NULL(ap3216c_create_light(NULL, &bus));
+    TEST_ASSERT_NULL(ap3216c_create_light("ap-light-null-bus", NULL));
     TEST_ASSERT_NULL(ap3216c_create_proximity(NULL, &bus));
+    TEST_ASSERT_NULL(ap3216c_create_proximity("ap-prox-null-bus", NULL));
     TEST_ASSERT_NULL(ap3216c_create_ir(NULL, &bus));
+    TEST_ASSERT_NULL(ap3216c_create_ir("ap-ir-null-bus", NULL));
     TEST_ASSERT_NOT_NULL(light);
     TEST_ASSERT_NOT_NULL(prox);
     TEST_ASSERT_NOT_NULL(ir);
