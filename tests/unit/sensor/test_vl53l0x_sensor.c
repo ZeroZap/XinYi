@@ -226,6 +226,17 @@ void test_vl53l0x_public_ops_reject_null_inputs_without_i2c_side_effects(void)
     SENSOR_FREE(sensor);
 }
 
+void test_vl53l0x_init_rejects_null_bus_without_i2c_side_effects(void)
+{
+    sensor_device_t *sensor = vl53l0x_create("tof", NULL);
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    SENSOR_FREE(sensor->priv_data);
+    SENSOR_FREE(sensor);
+}
+
 void test_vl53l0x_read_converts_distance_and_timestamp(void)
 {
     void *bus = (void *)0x5303;
@@ -302,6 +313,7 @@ int main(void)
     RUN_TEST(test_vl53l0x_init_checks_model_id);
     RUN_TEST(test_vl53l0x_init_propagates_model_read_and_identity_failures);
     RUN_TEST(test_vl53l0x_public_ops_reject_null_inputs_without_i2c_side_effects);
+    RUN_TEST(test_vl53l0x_init_rejects_null_bus_without_i2c_side_effects);
     RUN_TEST(test_vl53l0x_read_converts_distance_and_timestamp);
     RUN_TEST(test_vl53l0x_read_preserves_output_on_range_read_failure);
     RUN_TEST(test_vl53l0x_read_propagates_start_write_failure_without_delay);
