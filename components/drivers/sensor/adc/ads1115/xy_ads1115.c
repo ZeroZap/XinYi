@@ -95,7 +95,7 @@ int xy_ads1115_init(xy_ads1115_t *dev, void *i2c_handle, uint8_t addr)
 
 int xy_ads1115_deinit(xy_ads1115_t *dev)
 {
-    if (dev == NULL) {
+    if (dev == NULL || dev->initialized == 0U) {
         return XY_ADS1115_INVALID_PARAM;
     }
     dev->initialized = 0U;
