@@ -736,6 +736,35 @@ static void test_identity_and_reset_reject_uninitialized_device_without_io(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_delay_count);
 }
 
+static void test_calibration_setters_reject_uninitialized_device_without_state_change(void)
+{
+    xy_lps22hb_dev_t dev;
+
+    memset(&dev, 0, sizeof(dev));
+    xy_lps22hb_set_pressure_offset(&dev, 12.5f);
+    xy_lps22hb_set_temperature_offset(&dev, -4.0f);
+    xy_lps22hb_set_sea_level_pressure(&dev, 900.0f);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, dev.pressure_offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, dev.temperature_offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, dev.sea_level_pressure);
+
+    dev.is_initialized = true;
+    xy_lps22hb_set_pressure_offset(&dev, 12.5f);
+    xy_lps22hb_set_temperature_offset(&dev, -4.0f);
+    xy_lps22hb_set_sea_level_pressure(&dev, 900.0f);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.5f, dev.pressure_offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -4.0f, dev.temperature_offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 900.0f, dev.sea_level_pressure);
+
+    dev.is_initialized = false;
+    xy_lps22hb_set_pressure_offset(&dev, 1.0f);
+    xy_lps22hb_set_temperature_offset(&dev, 2.0f);
+    xy_lps22hb_set_sea_level_pressure(&dev, 1000.0f);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.5f, dev.pressure_offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -4.0f, dev.temperature_offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 900.0f, dev.sea_level_pressure);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -763,5 +792,6 @@ int main(void)
     RUN_TEST(test_clear_interrupt_rejects_uninitialized_device_without_io);
     RUN_TEST(test_status_and_stop_reject_uninitialized_device_without_io);
     RUN_TEST(test_identity_and_reset_reject_uninitialized_device_without_io);
+    RUN_TEST(test_calibration_setters_reject_uninitialized_device_without_state_change);
     return UNITY_END();
 }

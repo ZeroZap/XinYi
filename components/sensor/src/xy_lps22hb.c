@@ -502,19 +502,19 @@ xy_ret_t xy_lps22hb_configure_lpf(xy_lps22hb_dev_t *dev, bool enable, xy_lps22hb
 
 void xy_lps22hb_set_pressure_offset(xy_lps22hb_dev_t *dev, float offset)
 {
-    if (dev == XY_NULL) return;
+    if (dev == XY_NULL || !dev->is_initialized) return;
     dev->pressure_offset = offset;
 }
 
 void xy_lps22hb_set_temperature_offset(xy_lps22hb_dev_t *dev, float offset)
 {
-    if (dev == XY_NULL) return;
+    if (dev == XY_NULL || !dev->is_initialized) return;
     dev->temperature_offset = offset;
 }
 
 void xy_lps22hb_set_sea_level_pressure(xy_lps22hb_dev_t *dev, float pressure)
 {
-    if (dev == XY_NULL) return;
+    if (dev == XY_NULL || !dev->is_initialized) return;
     dev->sea_level_pressure = pressure;
 }
 
