@@ -198,7 +198,7 @@ int xy_bh1750_set_resolution(xy_bh1750_t *bh1750, xy_bh1750_res_t resolution)
 
 int xy_bh1750_set_mode(xy_bh1750_t *bh1750, xy_bh1750_mode_t mode)
 {
-    if (!bh1750 || mode > XY_BH1750_ONE_TIME) {
+    if (!bh1750 || !bh1750->initialized || mode > XY_BH1750_ONE_TIME) {
         return XY_BH1750_INVALID_PARAM;
     }
     

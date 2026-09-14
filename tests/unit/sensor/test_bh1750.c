@@ -356,6 +356,24 @@ static void test_set_resolution_rejects_post_deinit_and_preserves_cache_without_
     TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
 }
 
+static void test_set_mode_rejects_post_deinit_and_preserves_cache_without_bus_io(void)
+{
+    xy_bh1750_t dev;
+
+    init_ok(&dev);
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_set_mode(&dev, XY_BH1750_ONE_TIME));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+
+    size_t writes_before = g_write_count;
+    xy_bh1750_mode_t mode_before = dev.mode;
+
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
+                          xy_bh1750_set_mode(&dev, XY_BH1750_CONTINUOUS));
+    TEST_ASSERT_EQUAL_INT(mode_before, dev.mode);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
+}
+
 static void test_read_default_fallback_uses_continuous_high_command_and_delay(void)
 {
     xy_bh1750_t dev;
@@ -411,6 +429,7 @@ int main(void)
     RUN_TEST(test_deinit_preserves_initialized_when_power_down_fails);
     RUN_TEST(test_setters_update_cached_mode_and_resolution_without_bus_io);
     RUN_TEST(test_set_resolution_rejects_post_deinit_and_preserves_cache_without_bus_io);
+    RUN_TEST(test_set_mode_rejects_post_deinit_and_preserves_cache_without_bus_io);
     RUN_TEST(test_read_default_fallback_uses_continuous_high_command_and_delay);
     RUN_TEST(test_read_one_time_high2_and_low_resolution_boundaries);
     return UNITY_END();
