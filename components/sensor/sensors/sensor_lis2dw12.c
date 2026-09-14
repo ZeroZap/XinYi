@@ -18,6 +18,9 @@ extern int hal_spi_send(void *bus, uint8_t cs, uint8_t *data, uint16_t len);
  */
 static sensor_err_t lis2dw12_reg_read(sensor_device_t *sensor, uint8_t reg, uint8_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)sensor->priv_data;
     if (priv->spi_cs != LIS2DW12_SPI_CS_NONE) {
         uint8_t tx = reg | 0x80;
@@ -31,6 +34,9 @@ static sensor_err_t lis2dw12_reg_read(sensor_device_t *sensor, uint8_t reg, uint
 
 static sensor_err_t lis2dw12_reg_write(sensor_device_t *sensor, uint8_t reg, uint8_t data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)sensor->priv_data;
     if (priv->spi_cs != LIS2DW12_SPI_CS_NONE) {
         uint8_t tx[2] = { reg & 0x7F, data };
@@ -45,6 +51,9 @@ static sensor_err_t lis2dw12_reg_write(sensor_device_t *sensor, uint8_t reg, uin
 static sensor_err_t lis2dw12_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
 
     SENSOR_LOG("Initializing LIS2DW12");
 
@@ -84,6 +93,9 @@ static sensor_err_t lis2dw12_init(sensor_device_t *sensor)
  */
 static sensor_err_t lis2dw12_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)sensor->priv_data;
     sensor_err_t ret =
         lis2dw12_reg_write(sensor, LIS2DW12_REG_CTRL1, LIS2DW12_RATE_POWER_DOWN << 2);
@@ -103,6 +115,9 @@ static sensor_err_t lis2dw12_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
     int16_t raw[3];
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
 
     /* 读取6字节数据 */
     for (int i = 0; i < 6; i++) {
@@ -150,6 +165,10 @@ static const sensor_ops_t lis2dw12_ops = {
  */
 sensor_device_t *lis2dw12_create(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) return NULL;
 
@@ -191,6 +210,10 @@ sensor_device_t *lis2dw12_create(const char *name, void *i2c_bus, uint8_t addr)
  */
 sensor_device_t *lis2dw12_create_spi(const char *name, void *spi_bus, uint8_t cs)
 {
+    if (name == NULL || spi_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) return NULL;
 
@@ -231,7 +254,7 @@ sensor_device_t *lis2dw12_create_spi(const char *name, void *spi_bus, uint8_t cs
  */
 int lis2dw12_set_range(sensor_device_t *dev, uint8_t range)
 {
-    if (dev == NULL || dev->priv_data == NULL || range > LIS2DW12_RANGE_16G) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || range > LIS2DW12_RANGE_16G) {
         return SENSOR_EINVAL;
     }
 
@@ -257,7 +280,7 @@ int lis2dw12_set_range(sensor_device_t *dev, uint8_t range)
  */
 int lis2dw12_set_rate(sensor_device_t *dev, uint8_t rate)
 {
-    if (dev == NULL || dev->priv_data == NULL || rate > LIS2DW12_RATE_800HZ) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || rate > LIS2DW12_RATE_800HZ) {
         return SENSOR_EINVAL;
     }
 
@@ -286,7 +309,7 @@ int lis2dw12_set_rate(sensor_device_t *dev, uint8_t rate)
  */
 int lis2dw12_set_mode(sensor_device_t *dev, uint8_t mode)
 {
-    if (dev == NULL || dev->priv_data == NULL || mode > LIS2DW12_MODE_HIGH_FREQ) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || mode > LIS2DW12_MODE_HIGH_FREQ) {
         return SENSOR_EINVAL;
     }
 
@@ -310,7 +333,7 @@ int lis2dw12_set_mode(sensor_device_t *dev, uint8_t mode)
  */
 int lis2dw12_enable_high_pass(sensor_device_t *dev, uint8_t enable)
 {
-    if (dev == NULL || dev->priv_data == NULL || enable > 1U) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || enable > 1U) {
         return SENSOR_EINVAL;
     }
 

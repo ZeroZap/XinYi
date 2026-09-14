@@ -1097,6 +1097,22 @@ static void test_iis2iclp_public_ops_reject_invalid_context_without_io(void)
     destroy_sensor(sensor);
 }
 
+static void test_lis2dw12_public_ops_reject_invalid_context_without_io(void)
+{
+    int fake_bus;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = lis2dw12_create("lis2dw12-context", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1113,6 +1129,7 @@ int main(void)
     RUN_TEST(test_kx023_init_rejects_invalid_context_without_io);
     RUN_TEST(test_kx023_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_lis2dw12_create_init_read_deinit_and_setters);
+    RUN_TEST(test_lis2dw12_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates);
     RUN_TEST(test_lis2dw12_set_range_rejects_invalid_range_and_null_device_without_io);
     RUN_TEST(test_lis2dw12_set_rate_rejects_invalid_rate_without_io_or_cache_change);
