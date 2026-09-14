@@ -369,6 +369,7 @@ static void test_gain_integration_enable_disable_and_deinit_contracts(void)
     TEST_ASSERT_EQUAL_UINT8(0x00U, g_write_data_queue[7][1]);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_UINT8(0x00U, g_write_data_queue[8][1]);
 }
 
