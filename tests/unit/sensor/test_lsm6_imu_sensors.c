@@ -806,6 +806,37 @@ static void test_lsm6dsl_range_boundaries_fail_closed(void)
     destroy_sensor(sensor);
 }
 
+static void test_lsm6dso_dsr_range_boundaries_fail_closed(void)
+{
+    int bus;
+    sensor_device_t *dso = lsm6dso_create_accel("dso-range", &bus, 0U);
+    sensor_device_t *dsr = lsm6dsr_create_accel("dsr-range", &bus, 0U);
+    lsm6dso_priv_t *dso_priv;
+    lsm6dsr_priv_t *dsr_priv;
+
+    TEST_ASSERT_NOT_NULL(dso);
+    TEST_ASSERT_NOT_NULL(dsr);
+    dso_priv = (lsm6dso_priv_t *)dso->priv_data;
+    dsr_priv = (lsm6dsr_priv_t *)dsr->priv_data;
+    dso_priv->accel_range = LSM6DSO_ACCEL_RANGE_8G;
+    dso_priv->gyro_range = LSM6DSO_GYRO_RANGE_2000DPS;
+    dsr_priv->accel_range = LSM6DSR_ACCEL_RANGE_8G;
+    dsr_priv->gyro_range = LSM6DSR_GYRO_RANGE_2000DPS;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dso_set_accel_range(NULL, LSM6DSO_ACCEL_RANGE_2G));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dso_set_gyro_range(dso, 0xFFU));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsr_set_accel_range(dsr, 0xFFU));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsr_set_gyro_range(NULL, LSM6DSR_GYRO_RANGE_250DPS));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSO_ACCEL_RANGE_8G, dso_priv->accel_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSO_GYRO_RANGE_2000DPS, dso_priv->gyro_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_ACCEL_RANGE_8G, dsr_priv->accel_range);
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSR_GYRO_RANGE_2000DPS, dsr_priv->gyro_range);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index + g_spi_send_index);
+
+    destroy_sensor(dso);
+    destroy_sensor(dsr);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -814,6 +845,7 @@ int main(void)
     RUN_TEST(test_lsm6dsl_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dsl_invalid_public_contexts_fail_closed);
     RUN_TEST(test_lsm6dsl_range_boundaries_fail_closed);
+    RUN_TEST(test_lsm6dso_dsr_range_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_init_failure_does_not_commit_partial_config_cache);
     RUN_TEST(test_lsm6dso_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors);
