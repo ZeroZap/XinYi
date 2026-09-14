@@ -582,10 +582,10 @@ xy_ret_t xy_lps22hb_configure_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uin
 
 xy_ret_t xy_lps22hb_clear_interrupt(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized) {
         return XY_ERROR;
     }
-    
+
     /* 读取 INT_SOURCE 清除中断 */
     uint8_t int_source;
     return lps22hb_read_reg8(dev, LPS22HB_INT_SOURCE, &int_source);
