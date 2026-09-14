@@ -394,6 +394,7 @@ static void test_deinit_clears_initialized_state(void)
     init_ok(&dev);
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_OK, xy_hdc1080_deinit(&dev));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_read(&dev));
 }
 

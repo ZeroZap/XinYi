@@ -58,6 +58,7 @@ int xy_hdc1080_deinit(xy_hdc1080_t *dev)
 {
     if (!dev) return XY_HDC1080_INVALID_PARAM;
     dev->initialized = 0;
+    dev->i2c_dev.base.initialized = 0;
     return XY_HDC1080_OK;
 }
 
