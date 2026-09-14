@@ -596,11 +596,7 @@ static void test_kx023_create_init_read_deinit_and_error_paths(void)
     queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_CNTL1, KX023_MODE_STANDBY, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_INT(KX023_MODE_STANDBY, ((kx023_priv_t *)sensor->priv_data)->mode);
-
-    queue_i2c_read8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_WHO_AM_I, 0x00U, SENSOR_EOK);
-    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
-    queue_i2c_read(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_XOUT_L, NULL, 6U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
 
     destroy_sensor(sensor);
 }

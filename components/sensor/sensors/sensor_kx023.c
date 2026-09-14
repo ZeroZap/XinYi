@@ -60,6 +60,7 @@ static sensor_err_t kx023_init(sensor_device_t *sensor)
 
     priv->odr = KX023_ODR_12_5HZ;
     priv->mode = KX023_MODE_LOW_POWER;
+    priv->initialized = 1U;
 
     SENSOR_LOG("KX023 initialized (Ultra Low Power: 0.9μA @ 0.781Hz)");
 
@@ -81,6 +82,7 @@ static sensor_err_t kx023_deinit(sensor_device_t *sensor)
     }
 
     priv->mode = KX023_MODE_STANDBY;
+    priv->initialized = 0U;
     return SENSOR_EOK;
 }
 
@@ -91,6 +93,9 @@ static sensor_err_t kx023_read(sensor_device_t *sensor, sensor_data_t *data)
     }
 
     kx023_priv_t *priv = (kx023_priv_t *)sensor->priv_data;
+    if (priv->initialized == 0U) {
+        return SENSOR_EINVAL;
+    }
     uint8_t buf[6];
     int16_t raw[3];
 

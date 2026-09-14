@@ -42,6 +42,7 @@ typedef struct {
     uint8_t i2c_addr;
     kx023_mode_t mode;
     kx023_odr_t odr;
+    uint8_t initialized;
 } kx023_priv_t;
 
 sensor_device_t *kx023_create(const char *name, void *i2c_bus);
