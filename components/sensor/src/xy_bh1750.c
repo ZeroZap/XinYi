@@ -111,6 +111,7 @@ int xy_bh1750_deinit(xy_bh1750_t *bh1750)
         return ret;
     }
     bh1750->initialized = false;
+    bh1750->i2c_dev.base.initialized = false;
     return XY_BH1750_OK;
 }
 

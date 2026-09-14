@@ -310,6 +310,7 @@ static void test_configuration_power_and_reset_validate_inputs(void)
 
     TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_DOWN, g_write_queue[5]);
 }
 
@@ -321,6 +322,7 @@ static void test_deinit_preserves_initialized_when_power_down_fails(void)
     g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_deinit(&dev));
     TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_DOWN, g_write_queue[2]);
 }
 
