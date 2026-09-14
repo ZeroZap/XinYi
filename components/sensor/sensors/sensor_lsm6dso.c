@@ -561,7 +561,7 @@ int lsm6dso_set_gyro_range(sensor_device_t *dev, uint8_t range)
  */
 int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
 {
-    lsm6dso_priv_t *priv = (lsm6dso_priv_t *)dev->priv_data;
+    lsm6dso_priv_t *priv;
     uint8_t ctrl1       = 0;
     uint32_t rate_hz;
 
@@ -579,6 +579,9 @@ int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
     case LSM6DSO_ACCEL_RATE_6_66KHz: rate_hz = 6660U; break;
     default: return SENSOR_EINVAL;
     }
+
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) return SENSOR_EINVAL;
+    priv = (lsm6dso_priv_t *)dev->priv_data;
 
     if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) {
         return SENSOR_EIO;
@@ -599,7 +602,7 @@ int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
  */
 int lsm6dso_set_gyro_rate(sensor_device_t *dev, uint8_t rate)
 {
-    lsm6dso_priv_t *priv = (lsm6dso_priv_t *)dev->priv_data;
+    lsm6dso_priv_t *priv;
     uint8_t ctrl2       = 0;
     uint32_t rate_hz;
 
@@ -617,6 +620,9 @@ int lsm6dso_set_gyro_rate(sensor_device_t *dev, uint8_t rate)
     case LSM6DSO_GYRO_RATE_6_66KHz: rate_hz = 6660U; break;
     default: return SENSOR_EINVAL;
     }
+
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) return SENSOR_EINVAL;
+    priv = (lsm6dso_priv_t *)dev->priv_data;
 
     if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) {
         return SENSOR_EIO;
