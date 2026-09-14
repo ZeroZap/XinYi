@@ -238,7 +238,7 @@ int xy_sht40_get_serial(xy_sht40_t *sht40, uint32_t *serial)
 
 int xy_sht40_set_precision(xy_sht40_t *sht40, xy_sht40_precision_t precision)
 {
-    if (!sht40 || precision > XY_SHT40_LOW_PRECISION) {
+    if (!sht40 || !sht40->initialized || precision > XY_SHT40_LOW_PRECISION) {
         return XY_SHT40_INVALID_PARAM;
     }
     
