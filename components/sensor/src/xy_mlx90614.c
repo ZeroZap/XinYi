@@ -207,7 +207,7 @@ int xy_mlx90614_get_emissivity(xy_mlx90614_t *dev, uint16_t *emissivity)
  */
 int xy_mlx90614_set_emissivity(xy_mlx90614_t *dev, uint16_t emissivity)
 {
-    if (!dev) return XY_MLX90614_INVALID_PARAM;
+    if (!dev || !dev->initialized) return XY_MLX90614_INVALID_PARAM;
     
     /* 参数验证：发射率范围 0.10 - 1.00 */
     if (emissivity < 100 || emissivity > 1000) {

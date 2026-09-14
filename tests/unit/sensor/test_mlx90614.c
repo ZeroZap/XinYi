@@ -324,12 +324,12 @@ static void test_read_all_object2_i2c_failure_uses_object1_without_error(void)
     TEST_ASSERT_EQUAL_INT16(885, dev.tobj2);
 }
 
-static void test_set_emissivity_does_not_require_initialized_device(void)
+static void test_set_emissivity_rejects_uninitialized_device(void)
 {
     xy_mlx90614_t dev;
     memset(&dev, 0, sizeof(dev));
 
-    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_NOT_SUPPORTED, xy_mlx90614_set_emissivity(&dev, 950U));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_set_emissivity(&dev, 950U));
 }
 
 static void test_deinit_rejects_null_and_clears_initialized_flag(void)
@@ -427,7 +427,7 @@ int main(void)
     RUN_TEST(test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error);
     RUN_TEST(test_emissivity_get_falls_back_on_bad_pec);
     RUN_TEST(test_set_emissivity_validates_range_and_reports_unsupported_write);
-    RUN_TEST(test_set_emissivity_does_not_require_initialized_device);
+    RUN_TEST(test_set_emissivity_rejects_uninitialized_device);
     RUN_TEST(test_read_all_max_raw_conversion_wraps_to_signed_cached_values);
     return UNITY_END();
 }
