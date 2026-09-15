@@ -5,8 +5,20 @@ static sensor_err_t mlx90393_init(sensor_device_t *s){SENSOR_LOG("Initializing M
 static sensor_err_t mlx90393_read(sensor_device_t *s, sensor_data_t *d){
     d->type=SENSOR_TYPE_ANGLE;d->value.val_float=0.0f;d->timestamp=SENSOR_GET_TICK();return SENSOR_EOK;
 }
-static const sensor_ops_t mlx90393_ops = {.init=mlx90393_init,.read=mlx90393_read};
+static sensor_err_t mlx90393_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t mlx90393_ops = {
+    .init = mlx90393_init, .deinit = mlx90393_deinit, .read = mlx90393_read};
 sensor_device_t *mlx90393_create(const char *name, void *i2c_bus){
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *s=(sensor_device_t*)SENSOR_MALLOC(sizeof(sensor_device_t));mlx90393_priv_t *p=(mlx90393_priv_t*)SENSOR_MALLOC(sizeof(mlx90393_priv_t));
     if(!s||!p){SENSOR_FREE(s);SENSOR_FREE(p);return NULL;}
     memset(s,0,sizeof(sensor_device_t));p->i2c_addr=MLX90393_ADDR;

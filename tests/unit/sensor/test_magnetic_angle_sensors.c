@@ -47,6 +47,7 @@ static void test_mlx90393_create_sets_identity_and_default_read_contract(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_NOT_NULL(sensor->priv_data);
     TEST_ASSERT_EQUAL_UINT8(MLX90393_ADDR, ((mlx90393_priv_t *)sensor->priv_data)->i2c_addr);
 
@@ -56,6 +57,25 @@ static void test_mlx90393_create_sets_identity_and_default_read_contract(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ANGLE, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+
+    destroy_sensor(sensor);
+}
+
+static void test_mlx90393_rejects_invalid_deinit_and_factory_context(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = mlx90393_create("mlx90393-main", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    sensor_device_t saved = *sensor;
+    sensor->priv_data = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    *sensor = saved;
+    TEST_ASSERT_NULL(mlx90393_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(mlx90393_create("mlx90393-main", NULL));
 
     destroy_sensor(sensor);
 }
@@ -115,6 +135,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_mlx90393_create_sets_identity_and_default_read_contract);
+    RUN_TEST(test_mlx90393_rejects_invalid_deinit_and_factory_context);
     RUN_TEST(test_aeat8800_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     return UNITY_END();
