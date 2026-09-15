@@ -24,6 +24,10 @@ static sensor_err_t cms_init(sensor_device_t *sensor)
 
 static sensor_err_t cms_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     uint8_t buf[6];
     cms_priv_t *priv = (cms_priv_t *)sensor->priv_data;
 
