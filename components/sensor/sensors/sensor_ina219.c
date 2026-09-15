@@ -16,7 +16,7 @@ static sensor_err_t ina219_init(sensor_device_t *sensor)
 
 static sensor_err_t ina219_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 

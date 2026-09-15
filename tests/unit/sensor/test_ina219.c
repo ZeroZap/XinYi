@@ -208,6 +208,22 @@ static void test_init_rejects_missing_bus_without_i2c_side_effects(void)
     destroy_sensor(sensor);
 }
 
+static void test_read_rejects_missing_bus_without_i2c_side_effects(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = ina219_create("ina219-read-bus", &fake_bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_VOLTAGE, .value.val_float = 12.5f, .timestamp = 0xA5A5A5A5U};
+    sensor_data_t snapshot = data;
+    TEST_ASSERT_NOT_NULL(sensor);
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -219,5 +235,6 @@ int main(void)
     RUN_TEST(test_read_propagates_i2c_failure_and_preserves_output);
     RUN_TEST(test_init_returns_ok_without_touching_bus);
     RUN_TEST(test_init_rejects_missing_bus_without_i2c_side_effects);
+    RUN_TEST(test_read_rejects_missing_bus_without_i2c_side_effects);
     return UNITY_END();
 }
