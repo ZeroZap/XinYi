@@ -545,6 +545,19 @@ static void test_qma6100_rejects_invalid_range_without_bus_access(void)
     destroy_sensor(sensor);
 }
 
+static void test_cms_init_rejects_missing_bus_without_io(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = cms_create("cms-missing-bus", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    assert_i2c_drained();
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -560,5 +573,6 @@ int main(void)
     RUN_TEST(test_read_failure_preserves_output_and_stops_at_failed_register);
     RUN_TEST(test_gd30df_public_guards_and_failed_reads_preserve_output);
     RUN_TEST(test_qma6100_public_guards_and_failed_reads_preserve_output);
+    RUN_TEST(test_cms_init_rejects_missing_bus_without_io);
     return UNITY_END();
 }
