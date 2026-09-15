@@ -568,6 +568,14 @@ static void test_bmi270_set_range_rejects_invalid_odr_without_io(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_set_range(&dev, &invalid_range));
     TEST_ASSERT_EQUAL_MEMORY(&previous_range, &dev.range, sizeof(previous_range));
     TEST_ASSERT_EQUAL_UINT(0U, g_op_count);
+
+    invalid_range = previous_range;
+    invalid_range.gyr_odr = 0x10U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_set_range(&dev, &invalid_range));
+    TEST_ASSERT_EQUAL_MEMORY(&previous_range, &dev.range, sizeof(previous_range));
+    TEST_ASSERT_EQUAL_UINT8(previous_range.acc_range, dev.range.acc_range);
+    TEST_ASSERT_EQUAL_UINT8(previous_range.gyr_range, dev.range.gyr_range);
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_count);
 }
 
 int main(void)
