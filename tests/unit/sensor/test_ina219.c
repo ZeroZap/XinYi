@@ -73,9 +73,11 @@ static void test_create_populates_identity_ops_and_private_address(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_NOT_NULL(sensor->priv_data);
     TEST_ASSERT_EQUAL_UINT8(INA219_ADDR, ((ina219_priv_t *)sensor->priv_data)->i2c_addr);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 

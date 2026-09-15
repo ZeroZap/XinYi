@@ -34,7 +34,15 @@ static sensor_err_t ina219_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t ina219_ops = {.init = ina219_init, .read = ina219_read};
+static sensor_err_t ina219_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t ina219_ops = {.init = ina219_init, .deinit = ina219_deinit, .read = ina219_read};
 
 sensor_device_t *ina219_create(const char *name, void *i2c_bus)
 {
