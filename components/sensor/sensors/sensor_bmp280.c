@@ -179,10 +179,10 @@ static sensor_err_t bmp280_read_raw(sensor_device_t *sensor, int32_t *adc_T,
     uint8_t data[6];
 
     /* 读取温度和气压原始数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, BMP280_REG_PRESS_MSB, data, 6)
-        != 0) {
-        return SENSOR_EIO;
+    sensor_err_t ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, BMP280_REG_PRESS_MSB, data, 6);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     *adc_P = (int32_t)((data[0] << 12) | (data[1] << 4) | (data[2] >> 4));
@@ -204,8 +204,9 @@ static sensor_err_t bmp280_pressure_read(sensor_device_t *sensor,
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     int32_t adc_T, adc_P;
 
-    if (bmp280_read_raw(sensor, &adc_T, &adc_P) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = bmp280_read_raw(sensor, &adc_T, &adc_P);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     /* 计算温度(用于气压补偿) */
@@ -236,8 +237,9 @@ static sensor_err_t bmp280_temperature_read(sensor_device_t *sensor,
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     int32_t adc_T, adc_P;
 
-    if (bmp280_read_raw(sensor, &adc_T, &adc_P) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = bmp280_read_raw(sensor, &adc_T, &adc_P);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     /* 计算温度 */

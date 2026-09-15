@@ -339,6 +339,56 @@ static void test_bmp280_read_failure_preserves_output(void)
     destroy_sensor(sensor);
 }
 
+static sensor_data_t bmp280_sentinel_data(void)
+{
+    sensor_data_t data = {
+        .type = SENSOR_TYPE_LIGHT,
+        .unit = SENSOR_UNIT_LUX,
+        .value.val_uint32 = 0x12345678U,
+        .timestamp = 77U,
+        .accuracy = 9U,
+    };
+    return data;
+}
+
+static void test_bmp280_pressure_read_propagates_transport_first_error(void)
+{
+    int fake_bus;
+    sensor_data_t data = bmp280_sentinel_data();
+    const sensor_data_t expected = data;
+    sensor_device_t *sensor = create_initialized_pressure_sensor(&fake_bus);
+
+    queue_mem_read(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_PRESS_MSB, NULL, 6U,
+                   SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&expected, &data, sizeof(data));
+
+    destroy_sensor(sensor);
+}
+
+static void test_bmp280_temperature_read_propagates_transport_first_error(void)
+{
+    int fake_bus;
+    sensor_data_t data = bmp280_sentinel_data();
+    const sensor_data_t expected = data;
+    sensor_device_t *pressure_sensor = create_initialized_pressure_sensor(&fake_bus);
+    bmp280_priv_t *shared_priv = (bmp280_priv_t *)pressure_sensor->priv_data;
+    sensor_device_t *temperature_sensor = bmp280_create_temperature("bmp280-temp", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(temperature_sensor);
+    SENSOR_FREE(temperature_sensor->priv_data);
+    temperature_sensor->priv_data = shared_priv;
+
+    queue_mem_read(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_PRESS_MSB, NULL, 6U,
+                   SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, temperature_sensor->ops->read(temperature_sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&expected, &data, sizeof(data));
+
+    temperature_sensor->priv_data = NULL;
+    destroy_sensor(temperature_sensor);
+    destroy_sensor(pressure_sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -349,5 +399,7 @@ int main(void)
     RUN_TEST(test_bmp280_public_ops_reject_invalid_context_without_bus_io);
     RUN_TEST(test_bmp280_deinit_propagates_write_failure);
     RUN_TEST(test_bmp280_read_failure_preserves_output);
+    RUN_TEST(test_bmp280_pressure_read_propagates_transport_first_error);
+    RUN_TEST(test_bmp280_temperature_read_propagates_transport_first_error);
     return UNITY_END();
 }
