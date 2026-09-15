@@ -10,6 +10,10 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
  */
 static sensor_err_t qmc5883l_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     qmc5883l_priv_t *priv = (qmc5883l_priv_t *)sensor->priv_data;
     uint8_t data;
 
@@ -53,6 +57,10 @@ static sensor_err_t qmc5883l_init(sensor_device_t *sensor)
  */
 static sensor_err_t qmc5883l_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     qmc5883l_priv_t *priv = (qmc5883l_priv_t *)sensor->priv_data;
     uint8_t data          = 0x00; /* 待机模式 */
 
@@ -68,6 +76,10 @@ static sensor_err_t qmc5883l_deinit(sensor_device_t *sensor)
  */
 static sensor_err_t qmc5883l_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     qmc5883l_priv_t *priv = (qmc5883l_priv_t *)sensor->priv_data;
     uint8_t buf[6];
     int16_t raw[3];
@@ -120,6 +132,10 @@ static const sensor_ops_t qmc5883l_ops = {
  */
 sensor_device_t *qmc5883l_create(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL) {
