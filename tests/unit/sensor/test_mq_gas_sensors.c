@@ -157,11 +157,13 @@ static void test_mq135_create_and_read_converts_adc_divide_by_8(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(9U, ((mq135_priv_t *)sensor->priv_data)->adc_pin);
 
     assert_init_does_not_sample_adc(sensor);
     assert_adc_read(sensor, 9U, 400U, 50.0f);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 

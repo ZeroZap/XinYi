@@ -26,7 +26,15 @@ static sensor_err_t mq135_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t mq135_ops = {.init = mq135_init, .read = mq135_read};
+static sensor_err_t mq135_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t mq135_ops = {.init = mq135_init, .deinit = mq135_deinit, .read = mq135_read};
 
 sensor_device_t *mq135_create(const char *name, uint8_t adc_pin)
 {
