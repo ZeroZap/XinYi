@@ -27,7 +27,15 @@ static sensor_err_t mg811_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t mg811_ops = {.init = mg811_init, .read = mg811_read};
+static sensor_err_t mg811_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t mg811_ops = {.init = mg811_init, .deinit = mg811_deinit, .read = mg811_read};
 
 sensor_device_t *mg811_create(const char *name, uint8_t adc_pin)
 {
