@@ -206,6 +206,7 @@ static void test_mpu6050_init_defaults_and_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_OK, xy_mpu6050_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_raw(&dev));
     TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_deinit(NULL));
 }
 

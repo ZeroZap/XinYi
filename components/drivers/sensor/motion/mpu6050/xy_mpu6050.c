@@ -162,7 +162,7 @@ int xy_mpu6050_read_raw(xy_mpu6050_t *dev)
     uint8_t buf[14];
     int ret;
 
-    if (!dev || !dev->initialized) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
