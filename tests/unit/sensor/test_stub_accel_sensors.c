@@ -472,6 +472,7 @@ static void test_qma6100_public_guards_and_failed_reads_preserve_output(void)
 
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NULL(qma6100_create(NULL, &fake_bus, 0U));
+    TEST_ASSERT_NULL(qma6100_create("qma6100-null-bus", NULL, 0U));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));

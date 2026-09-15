@@ -105,7 +105,7 @@ static const sensor_ops_t qma6100_ops = {
 
 sensor_device_t *qma6100_create(const char *name, void *i2c_bus, uint8_t addr)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 
