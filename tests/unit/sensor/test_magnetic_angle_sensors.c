@@ -110,6 +110,27 @@ static void test_aeat8800_create_sets_identity_and_default_read_contract(void)
     destroy_sensor(sensor);
 }
 
+static void test_aeat8800_rejects_invalid_context_without_side_effects(void)
+{
+    int fake_bus;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = 12.5f, .timestamp = 91U};
+    sensor_data_t snapshot = data;
+    sensor_device_t *sensor = aeat8800_create("aeat8800-guards", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    destroy_sensor(sensor);
+
+    TEST_ASSERT_NULL(aeat8800_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(aeat8800_create("aeat8800-null-bus", NULL));
+}
+
 static void test_long_names_are_truncated_with_terminator(void)
 {
     int fake_bus;
@@ -137,6 +158,7 @@ int main(void)
     RUN_TEST(test_mlx90393_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_mlx90393_rejects_invalid_deinit_and_factory_context);
     RUN_TEST(test_aeat8800_create_sets_identity_and_default_read_contract);
+    RUN_TEST(test_aeat8800_rejects_invalid_context_without_side_effects);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     return UNITY_END();
 }
