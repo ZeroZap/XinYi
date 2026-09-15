@@ -9,6 +9,7 @@ static unsigned int g_write_count;
 static unsigned int g_read_count;
 static uint32_t g_delay_total_ms;
 static uint8_t g_status;
+static int g_init_write_result;
 
 uint32_t get_tick_ms(void)
 {
@@ -44,6 +45,10 @@ int hal_i2c_write(void *bus, uint8_t addr, uint8_t *data, uint16_t len)
 {
     (void)bus;
     TEST_ASSERT_EQUAL_UINT8(AHT20_ADDR_DEFAULT, addr);
+    if (len == 1U) {
+        TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_SOFT_RESET, data[0]);
+        return g_init_write_result;
+    }
     TEST_ASSERT_EQUAL_UINT16(3U, len);
     TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_TRIGGER, data[0]);
     TEST_ASSERT_EQUAL_UINT8(0x33U, data[1]);
@@ -69,6 +74,7 @@ void setUp(void)
     g_read_count = 0U;
     g_delay_total_ms = 0U;
     g_status = 0x80U;
+    g_init_write_result = SENSOR_EOK;
 }
 
 void tearDown(void)
@@ -108,6 +114,20 @@ static void test_aht20_deinit_rejects_null_context(void)
     destroy_sensor(sensor);
 }
 
+static void test_aht20_init_propagates_soft_reset_failure_without_delay(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = aht20_create_temperature("aht20-init", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    g_init_write_result = SENSOR_ETIMEOUT;
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
+    TEST_ASSERT_FALSE(((aht20_priv_t *)sensor->priv_data)->initialized);
+
+    destroy_sensor(sensor);
+}
+
 static void test_aht20_temperature_read_propagates_busy(void)
 {
     int fake_bus;
@@ -132,6 +152,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_aht20_deinit_rejects_null_context);
+    RUN_TEST(test_aht20_init_propagates_soft_reset_failure_without_delay);
     RUN_TEST(test_aht20_temperature_read_propagates_busy);
     RUN_TEST(test_aht20_humidity_read_propagates_busy);
     return UNITY_END();

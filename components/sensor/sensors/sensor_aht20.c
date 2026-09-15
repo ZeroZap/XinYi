@@ -12,6 +12,9 @@ extern int hal_i2c_read(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
  */
 static sensor_err_t aht20_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     aht20_priv_t *priv = (aht20_priv_t *)sensor->priv_data;
     uint8_t cmd[3];
 
@@ -19,7 +22,10 @@ static sensor_err_t aht20_init(sensor_device_t *sensor)
 
     /* 软复位 */
     cmd[0] = AHT20_CMD_SOFT_RESET;
-    hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 1);
+    int ret = hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
+    }
     SENSOR_DELAY_MS(20);
 
     /* 初始化命令 */
@@ -71,6 +77,9 @@ static sensor_err_t aht20_deinit(sensor_device_t *sensor)
 static sensor_err_t aht20_trigger_measurement(sensor_device_t *sensor,
                                               uint8_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
     aht20_priv_t *priv = (aht20_priv_t *)sensor->priv_data;
     uint8_t cmd[3];
 
