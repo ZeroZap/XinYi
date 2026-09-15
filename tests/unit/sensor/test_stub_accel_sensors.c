@@ -509,6 +509,8 @@ static void test_qma6100_public_guards_and_failed_reads_preserve_output(void)
 
     sensor->bus = NULL;
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
     assert_i2c_drained();
     sensor->bus = &fake_bus;
 

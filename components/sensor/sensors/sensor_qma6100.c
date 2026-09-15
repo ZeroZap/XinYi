@@ -72,7 +72,7 @@ static sensor_err_t qma6100_deinit(sensor_device_t *sensor)
 
 static sensor_err_t qma6100_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
