@@ -60,7 +60,10 @@ static sensor_err_t ak09918_read(sensor_device_t *sensor, sensor_data_t *data)
     uint8_t buf[6];
     ak09918_priv_t *priv = (ak09918_priv_t *)sensor->priv_data;
     for (int i = 0; i < 6; i++) {
-        if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, AK09918_REG_DATA + i, &buf[i], 1) != SENSOR_EOK) return SENSOR_EIO;
+        int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, AK09918_REG_DATA + i, &buf[i], 1);
+        if (ret != SENSOR_EOK) {
+            return (sensor_err_t)ret;
+        }
     }
 
     int16_t raw[3];
