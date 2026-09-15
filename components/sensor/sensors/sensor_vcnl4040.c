@@ -33,7 +33,15 @@ static sensor_err_t vcnl4040_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t vcnl4040_ops = {.init = vcnl4040_init, .read = vcnl4040_read};
+static sensor_err_t vcnl4040_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t vcnl4040_ops = {.init = vcnl4040_init, .deinit = vcnl4040_deinit, .read = vcnl4040_read};
 
 sensor_device_t *vcnl4040_create(const char *name, void *i2c_bus)
 {

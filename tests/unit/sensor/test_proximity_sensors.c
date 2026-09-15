@@ -162,6 +162,7 @@ static void test_vcnl4040_create_and_little_endian_proximity_read(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(VCNL4040_ADDR, ((vcnl4040_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
@@ -177,6 +178,7 @@ static void test_vcnl4040_create_and_little_endian_proximity_read(void)
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
     assert_no_extra_i2c();
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 
