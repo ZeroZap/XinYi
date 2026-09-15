@@ -806,6 +806,43 @@ static void test_lsm6dsl_range_boundaries_fail_closed(void)
     destroy_sensor(sensor);
 }
 
+static void test_lsm6dsl_preserves_transport_errors(void)
+{
+    int bus;
+    const uint8_t cs = 3U;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM,
+                          .value.val_3axis = {11, 22, 33},
+                          .timestamp = 0x1234U,
+                          .accuracy = 7U};
+    const sensor_data_t snapshot = data;
+    sensor_device_t *sensor = lsm6dsl_create_spi_accel("dsl-errors", &bus, cs);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_spi_send1(&bus, cs, (uint8_t)(LSM6DSL_REG_WHOAMI | 0x80U), SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(0U, g_spi_recv_index);
+
+    queue_spi_send1(&bus, cs, (uint8_t)(LSM6DSL_REG_OUTX_L_XL | 0x80U), SENSOR_EOK);
+    g_spi_recvs[g_spi_recv_count++] =
+        (spi_recv_op_t){&bus, cs, 0U, 1U, SENSOR_ETIMEOUT};
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+
+    sensor->odr = 208U;
+    queue_spi_send2(&bus, cs, LSM6DSL_REG_CTRL1_XL & 0x7FU, 0x00U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_UINT32(208U, sensor->odr);
+
+    ((lsm6dsl_priv_t *)sensor->priv_data)->accel_range = LSM6DSL_ACCEL_RANGE_8G;
+    queue_spi_send1(&bus, cs, (uint8_t)(LSM6DSL_REG_CTRL1_XL | 0x80U), SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          lsm6dsl_set_accel_range(sensor, LSM6DSL_ACCEL_RANGE_4G));
+    TEST_ASSERT_EQUAL_UINT8(LSM6DSL_ACCEL_RANGE_8G,
+                            ((lsm6dsl_priv_t *)sensor->priv_data)->accel_range);
+
+    destroy_sensor(sensor);
+}
+
 static void test_lsm6dso_dsr_range_boundaries_fail_closed(void)
 {
     int bus;
@@ -899,6 +936,7 @@ int main(void)
     RUN_TEST(test_lsm6dsl_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dsl_invalid_public_contexts_fail_closed);
     RUN_TEST(test_lsm6dsl_range_boundaries_fail_closed);
+    RUN_TEST(test_lsm6dsl_preserves_transport_errors);
     RUN_TEST(test_lsm6dso_dsr_public_contexts_fail_closed);
     RUN_TEST(test_lsm6dso_dsr_range_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_dsr_rate_boundaries_fail_closed);

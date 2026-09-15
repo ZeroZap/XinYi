@@ -18,7 +18,8 @@ static sensor_err_t lsm6dsl_reg_read(sensor_device_t *sensor, uint8_t reg, uint8
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
     if (priv->spi_cs != LSM6DSL_SPI_CS_NONE) {
         uint8_t tx = reg | 0x80;
-        if (hal_spi_send(sensor->bus, priv->spi_cs, &tx, 1) != SENSOR_EOK) return SENSOR_EIO;
+        sensor_err_t ret = hal_spi_send(sensor->bus, priv->spi_cs, &tx, 1);
+        if (ret != SENSOR_EOK) return ret;
         return hal_spi_recv(sensor->bus, priv->spi_cs, data, 1);
     }
     return hal_i2c_mem_read(sensor->bus, priv->i2c_addr, reg, data, 1);
@@ -40,27 +41,33 @@ static sensor_err_t lsm6dsl_reg_write(sensor_device_t *sensor, uint8_t reg, uint
 static sensor_err_t lsm6dsl_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    sensor_err_t ret;
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
     lsm6dsl_priv_t *priv = (lsm6dsl_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing LSM6DSL");
 
-    if (lsm6dsl_reg_read(sensor, LSM6DSL_REG_WHOAMI, &data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_read(sensor, LSM6DSL_REG_WHOAMI, &data);
+    if (ret != SENSOR_EOK) return ret;
     if (data != LSM6DSL_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong WHO_AM_I: 0x%02X (expected 0x%02X)", data, LSM6DSL_WHOAMI_VALUE);
         return SENSOR_ERROR;
     }
 
-    if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL3_C, 0x01) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL3_C, 0x01);
+    if (ret != SENSOR_EOK) return ret;
     SENSOR_DELAY_MS(10);
-    if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL4_C, 0x00) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL4_C, 0x00);
+    if (ret != SENSOR_EOK) return ret;
 
     data = (LSM6DSL_ACCEL_RATE_104Hz << 4) | LSM6DSL_ACCEL_RANGE_2G;
-    if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL1_XL, data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL1_XL, data);
+    if (ret != SENSOR_EOK) return ret;
 
     data = (LSM6DSL_GYRO_RATE_104Hz << 4) | LSM6DSL_GYRO_RANGE_250DPS;
-    if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL2_G, data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL2_G, data);
+    if (ret != SENSOR_EOK) return ret;
 
     priv->accel_range = LSM6DSL_ACCEL_RANGE_2G;
     priv->gyro_range = LSM6DSL_GYRO_RANGE_250DPS;
@@ -72,11 +79,14 @@ static sensor_err_t lsm6dsl_init(sensor_device_t *sensor)
 
 static sensor_err_t lsm6dsl_deinit(sensor_device_t *sensor)
 {
+    sensor_err_t ret;
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
-    if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL1_XL, 0x00) != SENSOR_EOK) return SENSOR_EIO;
-    if (lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL2_G, 0x00) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL1_XL, 0x00);
+    if (ret != SENSOR_EOK) return ret;
+    ret = lsm6dsl_reg_write(sensor, LSM6DSL_REG_CTRL2_G, 0x00);
+    if (ret != SENSOR_EOK) return ret;
     sensor->odr = 0U;
     return SENSOR_EOK;
 }
@@ -88,7 +98,8 @@ static sensor_err_t lsm6dsl_accel_read(sensor_device_t *sensor, sensor_data_t *d
         return SENSOR_EINVAL;
     }
     for (int i = 0; i < 6; i++) {
-        if (lsm6dsl_reg_read(sensor, LSM6DSL_REG_OUTX_L_XL + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
+        sensor_err_t ret = lsm6dsl_reg_read(sensor, LSM6DSL_REG_OUTX_L_XL + i, &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     int16_t raw[3];
@@ -118,7 +129,8 @@ static sensor_err_t lsm6dsl_gyro_read(sensor_device_t *sensor, sensor_data_t *da
         return SENSOR_EINVAL;
     }
     for (int i = 0; i < 6; i++) {
-        if (lsm6dsl_reg_read(sensor, LSM6DSL_REG_OUTX_L_G + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
+        sensor_err_t ret = lsm6dsl_reg_read(sensor, LSM6DSL_REG_OUTX_L_G + i, &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     int16_t raw[3];
@@ -296,15 +308,18 @@ int lsm6dsl_set_accel_range(sensor_device_t *dev, uint8_t range)
 {
     lsm6dsl_priv_t *priv;
     uint8_t ctrl1;
+    sensor_err_t ret;
     if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) return SENSOR_EINVAL;
     if (range != LSM6DSL_ACCEL_RANGE_2G && range != LSM6DSL_ACCEL_RANGE_4G &&
         range != LSM6DSL_ACCEL_RANGE_8G && range != LSM6DSL_ACCEL_RANGE_16G) {
         return SENSOR_EINVAL;
     }
     priv = (lsm6dsl_priv_t *)dev->priv_data;
-    if (lsm6dsl_reg_read(dev, LSM6DSL_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_read(dev, LSM6DSL_REG_CTRL1_XL, &ctrl1);
+    if (ret != SENSOR_EOK) return ret;
     ctrl1 = (uint8_t)((ctrl1 & 0xF3U) | ((range & 0x03U) << 2));
-    if (lsm6dsl_reg_write(dev, LSM6DSL_REG_CTRL1_XL, ctrl1) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_write(dev, LSM6DSL_REG_CTRL1_XL, ctrl1);
+    if (ret != SENSOR_EOK) return ret;
     priv->accel_range = range;
     return 0;
 }
@@ -313,6 +328,7 @@ int lsm6dsl_set_gyro_range(sensor_device_t *dev, uint8_t range)
 {
     lsm6dsl_priv_t *priv;
     uint8_t ctrl2;
+    sensor_err_t ret;
     if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) return SENSOR_EINVAL;
     if (range != LSM6DSL_GYRO_RANGE_250DPS && range != LSM6DSL_GYRO_RANGE_500DPS &&
         range != LSM6DSL_GYRO_RANGE_1000DPS && range != LSM6DSL_GYRO_RANGE_2000DPS &&
@@ -320,14 +336,16 @@ int lsm6dsl_set_gyro_range(sensor_device_t *dev, uint8_t range)
         return SENSOR_EINVAL;
     }
     priv = (lsm6dsl_priv_t *)dev->priv_data;
-    if (lsm6dsl_reg_read(dev, LSM6DSL_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_read(dev, LSM6DSL_REG_CTRL2_G, &ctrl2);
+    if (ret != SENSOR_EOK) return ret;
     ctrl2 &= 0xF1U;
     if (range == LSM6DSL_GYRO_RANGE_125DPS) {
         ctrl2 |= 0x02U;
     } else {
         ctrl2 |= (uint8_t)((range & 0x03U) << 2);
     }
-    if (lsm6dsl_reg_write(dev, LSM6DSL_REG_CTRL2_G, ctrl2) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsl_reg_write(dev, LSM6DSL_REG_CTRL2_G, ctrl2);
+    if (ret != SENSOR_EOK) return ret;
     priv->gyro_range = range;
     return 0;
 }
