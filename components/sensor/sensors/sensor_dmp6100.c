@@ -41,7 +41,16 @@ static sensor_err_t dmp6100_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t dmp6100_ops = {.init = dmp6100_init, .read = dmp6100_read};
+static sensor_err_t dmp6100_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t dmp6100_ops = {
+    .init = dmp6100_init, .deinit = dmp6100_deinit, .read = dmp6100_read};
 
 sensor_device_t *dmp6100_create(const char *name, void *i2c_bus, uint8_t addr)
 {

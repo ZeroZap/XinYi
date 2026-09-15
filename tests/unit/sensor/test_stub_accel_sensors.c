@@ -130,7 +130,7 @@ static void assert_common_stub_accel(sensor_device_t *sensor, const char *name,
     TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_IDLE, sensor->status);
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
-    TEST_ASSERT_NULL(sensor->ops->deinit);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
     TEST_ASSERT_NOT_NULL(sensor->priv_data);
     TEST_ASSERT_EQUAL_UINT8(expected_addr, *(uint8_t *)sensor->priv_data);
@@ -162,6 +162,7 @@ static void test_dmp6100_create_init_and_read_contract(void)
     TEST_ASSERT_EQUAL_INT32(-16, data.value.val_3axis.y);
     TEST_ASSERT_EQUAL_INT32(-524288, data.value.val_3axis.z);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     assert_i2c_drained();
 
     TEST_ASSERT_NULL(dmp6100_create(NULL, &fake_bus, 0U));
@@ -190,6 +191,7 @@ static void test_cms_create_init_and_read_contract(void)
     TEST_ASSERT_EQUAL_INT32(-32768, data.value.val_3axis.y);
     TEST_ASSERT_EQUAL_INT32(32767, data.value.val_3axis.z);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     assert_i2c_drained();
 
     destroy_sensor(sensor);
@@ -217,6 +219,7 @@ static void test_hs_ads1100_create_init_and_read_contract(void)
     TEST_ASSERT_EQUAL_INT32(-2, data.value.val_3axis.y);
     TEST_ASSERT_EQUAL_INT32(-32768, data.value.val_3axis.z);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     assert_i2c_drained();
 
     TEST_ASSERT_NULL(hs_ads1100_create("hsads-null-bus", NULL, 0U));
@@ -248,6 +251,7 @@ static void test_gd30df_create_init_and_read_contract(void)
     TEST_ASSERT_EQUAL_INT32(0x1234, data.value.val_3axis.z);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
     TEST_ASSERT_EQUAL_INT(90, data.accuracy);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     assert_i2c_drained();
 
     destroy_sensor(sensor);

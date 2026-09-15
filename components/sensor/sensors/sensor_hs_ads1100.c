@@ -42,7 +42,16 @@ static sensor_err_t hs_ads1100_read(sensor_device_t *sensor, sensor_data_t *data
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t hs_ads1100_ops = {.init = hs_ads1100_init, .read = hs_ads1100_read};
+static sensor_err_t hs_ads1100_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t hs_ads1100_ops = {
+    .init = hs_ads1100_init, .deinit = hs_ads1100_deinit, .read = hs_ads1100_read};
 
 sensor_device_t *hs_ads1100_create(const char *name, void *i2c_bus, uint8_t addr)
 {

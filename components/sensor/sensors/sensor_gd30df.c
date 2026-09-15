@@ -58,7 +58,16 @@ static sensor_err_t gd30df_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t gd30df_ops = { .init = gd30df_init, .read = gd30df_read, };
+static sensor_err_t gd30df_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t gd30df_ops = {
+    .init = gd30df_init, .deinit = gd30df_deinit, .read = gd30df_read};
 
 sensor_device_t *gd30df_create(const char *name, void *i2c_bus, uint8_t addr)
 {
