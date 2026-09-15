@@ -129,6 +129,7 @@ static void test_as5048_create_and_read_converts_14bit_little_endian_angle(void)
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
     TEST_ASSERT_EQUAL_UINT8(AS5048_ADDR, ((as5048_priv_t *)sensor->priv_data)->i2c_addr);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     queue_raw_le(4096U); /* quarter scale => 90 deg */
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
@@ -141,6 +142,7 @@ static void test_as5048_create_and_read_converts_14bit_little_endian_angle(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ANGLE, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 90.0f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
 
     destroy_sensor(sensor);
 }

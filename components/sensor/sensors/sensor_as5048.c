@@ -34,7 +34,16 @@ static sensor_err_t as5048_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t as5048_ops = {.init = as5048_init, .read = as5048_read};
+static sensor_err_t as5048_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t as5048_ops = {
+    .init = as5048_init, .deinit = as5048_deinit, .read = as5048_read};
 
 sensor_device_t *as5048_create(const char *name, void *i2c_bus)
 {
