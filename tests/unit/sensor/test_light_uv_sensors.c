@@ -247,6 +247,47 @@ static void test_guvas12sd_adc_boundaries_are_linear_uv_index(void)
     destroy_sensor(sensor);
 }
 
+static void test_guvas12sd_guards_reject_null_inputs_without_adc_side_effects(void)
+{
+    sensor_data_t data;
+    sensor_device_t *sensor = guvas12sd_create("uv-guards", 5U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    memset(&data, 0xA5, sizeof(data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
+static void test_guvas12sd_missing_private_data_is_rejected_without_adc_side_effects(void)
+{
+    sensor_data_t data;
+    sensor_device_t *sensor = guvas12sd_create("uv-no-priv", 6U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    memset(&data, 0x5A, sizeof(data));
+    SENSOR_FREE(sensor->priv_data);
+    sensor->priv_data = NULL;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
+static void test_guvas12sd_factory_rejects_null_name(void)
+{
+    TEST_ASSERT_NULL(guvas12sd_create(NULL, 1U));
+}
+
 static void test_long_names_are_truncated_with_terminator(void)
 {
     int fake_bus;
@@ -278,6 +319,9 @@ int main(void)
     RUN_TEST(test_max44009_factory_rejects_null_bus);
     RUN_TEST(test_guvas12sd_create_and_read_converts_adc_to_uv_index);
     RUN_TEST(test_guvas12sd_adc_boundaries_are_linear_uv_index);
+    RUN_TEST(test_guvas12sd_guards_reject_null_inputs_without_adc_side_effects);
+    RUN_TEST(test_guvas12sd_missing_private_data_is_rejected_without_adc_side_effects);
+    RUN_TEST(test_guvas12sd_factory_rejects_null_name);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     return UNITY_END();
 }
