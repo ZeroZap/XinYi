@@ -868,6 +868,29 @@ static void test_lsm6dso_dsr_rate_boundaries_fail_closed(void)
     destroy_sensor(dsr);
 }
 
+static void test_lsm6dso_dsr_public_contexts_fail_closed(void)
+{
+    int bus;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .timestamp = 0x5678U};
+    sensor_device_t *dso = lsm6dso_create_accel("dso-invalid", &bus, 0U);
+    sensor_device_t *dsr = lsm6dsr_create_accel("dsr-invalid", &bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(dso);
+    TEST_ASSERT_NOT_NULL(dsr);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, dso->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, dso->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, dso->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, dso->ops->read(dso, NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, dsr->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, dsr->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, dsr->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, dsr->ops->read(dsr, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index + g_spi_send_index);
+
+    destroy_sensor(dso);
+    destroy_sensor(dsr);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -876,6 +899,7 @@ int main(void)
     RUN_TEST(test_lsm6dsl_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dsl_invalid_public_contexts_fail_closed);
     RUN_TEST(test_lsm6dsl_range_boundaries_fail_closed);
+    RUN_TEST(test_lsm6dso_dsr_public_contexts_fail_closed);
     RUN_TEST(test_lsm6dso_dsr_range_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_dsr_rate_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_init_failure_does_not_commit_partial_config_cache);

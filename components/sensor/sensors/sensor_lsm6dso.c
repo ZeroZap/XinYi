@@ -98,6 +98,10 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
 {
     uint8_t data;
 
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     SENSOR_LOG("Initializing LSM6DSO");
 
     /* 检查WHO_AM_I */
@@ -152,6 +156,9 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
  */
 static sensor_err_t lsm6dso_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)sensor->priv_data;
 
     /* 进入关闭模式 */
@@ -176,6 +183,10 @@ static sensor_err_t lsm6dso_accel_read(sensor_device_t *sensor,
 {
     uint8_t buf[6];
     int16_t raw[3];
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
 
     /* 读取6字节加速度数据 */
     if (lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_XL, &buf[0]) != SENSOR_EOK ||
@@ -231,6 +242,10 @@ static sensor_err_t lsm6dso_gyro_read(sensor_device_t *sensor,
 {
     uint8_t buf[6];
     int16_t raw[3];
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
 
     /* 读取6字节陀螺仪数据 */
     if (lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_G, &buf[0]) != SENSOR_EOK ||
