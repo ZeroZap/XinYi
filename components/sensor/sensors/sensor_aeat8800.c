@@ -4,7 +4,15 @@ static sensor_err_t aeat8800_init(sensor_device_t *s){SENSOR_LOG("Initializing A
 static sensor_err_t aeat8800_read(sensor_device_t *s, sensor_data_t *d){
     d->type=SENSOR_TYPE_ANGLE;d->value.val_float=0.0f;d->timestamp=SENSOR_GET_TICK();return SENSOR_EOK;
 }
-static const sensor_ops_t aeat8800_ops = {.init=aeat8800_init,.read=aeat8800_read};
+static sensor_err_t aeat8800_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t aeat8800_ops = {.init = aeat8800_init, .deinit = aeat8800_deinit, .read = aeat8800_read};
 sensor_device_t *aeat8800_create(const char *name, void *spi_bus){
     sensor_device_t *s=(sensor_device_t*)SENSOR_MALLOC(sizeof(sensor_device_t));aeat8800_priv_t *p=(aeat8800_priv_t*)SENSOR_MALLOC(sizeof(aeat8800_priv_t));
     if(!s||!p){SENSOR_FREE(s);SENSOR_FREE(p);return NULL;}
