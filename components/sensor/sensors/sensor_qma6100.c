@@ -26,7 +26,7 @@ static sensor_err_t qma6100_reg_write(sensor_device_t *sensor, uint8_t reg, uint
 
 static sensor_err_t qma6100_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 

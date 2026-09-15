@@ -507,6 +507,11 @@ static void test_qma6100_public_guards_and_failed_reads_preserve_output(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
 
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    assert_i2c_drained();
+    sensor->bus = &fake_bus;
+
     queue_i2c_read8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_DATA, 0x10U, SENSOR_EOK);
     queue_i2c_read8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_DATA + 1U, 0x00U,
                     SENSOR_EIO);
