@@ -565,6 +565,15 @@ static void test_cms_init_rejects_missing_bus_without_io(void)
     destroy_sensor(sensor);
 }
 
+static void test_cms_factory_rejects_invalid_context_without_io(void)
+{
+    int fake_bus;
+
+    TEST_ASSERT_NULL(cms_create(NULL, &fake_bus, 0U));
+    TEST_ASSERT_NULL(cms_create("cms-null-bus", NULL, 0U));
+    assert_i2c_drained();
+}
+
 static void test_dmp6100_init_rejects_missing_bus_without_io(void)
 {
     int fake_bus;
@@ -717,6 +726,7 @@ int main(void)
     RUN_TEST(test_gd30df_public_guards_and_failed_reads_preserve_output);
     RUN_TEST(test_qma6100_public_guards_and_failed_reads_preserve_output);
     RUN_TEST(test_cms_init_rejects_missing_bus_without_io);
+    RUN_TEST(test_cms_factory_rejects_invalid_context_without_io);
     RUN_TEST(test_dmp6100_init_rejects_missing_bus_without_io);
     RUN_TEST(test_hs_ads1100_init_rejects_missing_bus_without_io);
     RUN_TEST(test_gd30df_init_rejects_missing_bus_without_io);
