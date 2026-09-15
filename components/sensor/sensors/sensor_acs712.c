@@ -28,7 +28,15 @@ static sensor_err_t acs712_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t acs712_ops = {.init = acs712_init, .read = acs712_read};
+static sensor_err_t acs712_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t acs712_ops = {.init = acs712_init, .deinit = acs712_deinit, .read = acs712_read};
 
 sensor_device_t *acs712_create(const char *name, uint8_t adc_pin)
 {

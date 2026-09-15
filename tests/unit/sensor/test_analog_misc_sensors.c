@@ -76,11 +76,13 @@ static void test_acs712_create_and_read_converts_adc_to_current(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(5U, ((acs712_priv_t *)sensor->priv_data)->adc_pin);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
 
     assert_adc_sample(sensor, 5U, 2048U, SENSOR_TYPE_CURRENT, 0.0f);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 
