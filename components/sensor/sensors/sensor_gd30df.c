@@ -10,7 +10,7 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 
 static sensor_err_t gd30df_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
