@@ -165,6 +165,10 @@ static void test_dmp6100_create_init_and_read_contract(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     assert_i2c_drained();
 
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    sensor->bus = &fake_bus;
+
     TEST_ASSERT_NULL(dmp6100_create(NULL, &fake_bus, 0U));
     TEST_ASSERT_NULL(dmp6100_create("dmp6100-null-bus", NULL, 0U));
 
