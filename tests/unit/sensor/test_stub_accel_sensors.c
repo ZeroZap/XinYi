@@ -216,6 +216,8 @@ static void test_hs_ads1100_create_init_and_read_contract(void)
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
     assert_i2c_drained();
 
+    TEST_ASSERT_NULL(hs_ads1100_create("hsads-null-bus", NULL, 0U));
+
     destroy_sensor(sensor);
 }
 
