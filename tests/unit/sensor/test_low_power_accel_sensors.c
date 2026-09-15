@@ -404,6 +404,8 @@ static void test_bma400_create_init_read_and_deinit(void)
     uint8_t raw[6] = {0x00, 0x01, 0x00, 0x08, 0xFF, 0x07};
     sensor_device_t *sensor = bma400_create("bma400-main", &fake_bus);
 
+    TEST_ASSERT_NULL(bma400_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(bma400_create("bma400-null-bus", NULL));
     assert_common_accel(sensor, "bma400-main", "Bosch", "BMA400", 800, 25);
     TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
     TEST_ASSERT_EQUAL_UINT8(BMA400_ADDR_DEFAULT, ((bma400_priv_t *)sensor->priv_data)->i2c_addr);
