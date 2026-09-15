@@ -119,6 +119,7 @@ static void test_pa122_create_init_and_near_far_threshold(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(PA122_ADDR, ((pa122_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
@@ -142,6 +143,7 @@ static void test_pa122_create_init_and_near_far_threshold(void)
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
     assert_no_extra_i2c();
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 

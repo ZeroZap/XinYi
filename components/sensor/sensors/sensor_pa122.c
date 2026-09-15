@@ -33,7 +33,15 @@ static sensor_err_t pa122_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t pa122_ops = {.init = pa122_init, .read = pa122_read};
+static sensor_err_t pa122_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t pa122_ops = {.init = pa122_init, .deinit = pa122_deinit, .read = pa122_read};
 
 sensor_device_t *pa122_create(const char *name, void *i2c_bus)
 {
