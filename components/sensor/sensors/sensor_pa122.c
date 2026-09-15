@@ -37,7 +37,7 @@ static const sensor_ops_t pa122_ops = {.init = pa122_init, .read = pa122_read};
 
 sensor_device_t *pa122_create(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 
