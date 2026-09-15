@@ -62,7 +62,7 @@ static const sensor_ops_t gd30df_ops = { .init = gd30df_init, .read = gd30df_rea
 
 sensor_device_t *gd30df_create(const char *name, void *i2c_bus, uint8_t addr)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

@@ -433,6 +433,7 @@ static void test_gd30df_public_guards_and_failed_reads_preserve_output(void)
 
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_NULL(gd30df_create(NULL, &fake_bus, 0U));
+    TEST_ASSERT_NULL(gd30df_create("gd30df-null-bus", NULL, 0U));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
