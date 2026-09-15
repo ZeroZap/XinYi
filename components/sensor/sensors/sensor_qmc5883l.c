@@ -74,10 +74,10 @@ static sensor_err_t qmc5883l_read(sensor_device_t *sensor, sensor_data_t *data)
     uint8_t status;
 
     /* 检查数据就绪 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, QMC5883L_REG_STATUS, &status, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, QMC5883L_REG_STATUS, &status, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (!(status & 0x01)) {
@@ -85,10 +85,10 @@ static sensor_err_t qmc5883l_read(sensor_device_t *sensor, sensor_data_t *data)
     }
 
     /* 读取6字节磁场数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, QMC5883L_REG_DATA_X_LSB, buf, 6)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, QMC5883L_REG_DATA_X_LSB, buf, 6);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 */

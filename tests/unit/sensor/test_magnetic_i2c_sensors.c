@@ -512,6 +512,27 @@ static void test_cmm905_guards_and_failed_reads_preserve_outputs(void)
     destroy_sensor(sensor);
 }
 
+static void test_qmc5883l_read_propagates_first_transport_error(void)
+{
+    int fake_bus;
+    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE,
+                          .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
+                          .value.val_3axis = {.x = 11, .y = 22, .z = 33},
+                          .timestamp = 42U};
+    sensor_data_t snapshot = data;
+    sensor_device_t *sensor = qmc5883l_create("qmc5883l-timeout", &fake_bus);
+    TEST_ASSERT_NOT_NULL(sensor);
+
+    queue_read(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_STATUS, NULL, 1U,
+               SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_index);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    assert_queues_drained();
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -524,5 +545,6 @@ int main(void)
     RUN_TEST(test_ak09918_io_failures_stop_and_preserve_outputs);
     RUN_TEST(test_cmm905_create_init_and_read_contracts);
     RUN_TEST(test_cmm905_guards_and_failed_reads_preserve_outputs);
+    RUN_TEST(test_qmc5883l_read_propagates_first_transport_error);
     return UNITY_END();
 }
