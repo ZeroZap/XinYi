@@ -208,6 +208,7 @@ static void test_guvas12sd_create_and_read_converts_adc_to_uv_index(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(7U, ((guvas12sd_priv_t *)sensor->priv_data)->adc_pin);
 
     g_adc_value = 123U;
@@ -220,6 +221,7 @@ static void test_guvas12sd_create_and_read_converts_adc_to_uv_index(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.3f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 

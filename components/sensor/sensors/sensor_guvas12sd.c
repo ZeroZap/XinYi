@@ -18,7 +18,16 @@ static sensor_err_t guvas12sd_read(sensor_device_t *sensor, sensor_data_t *data)
     data->type=SENSOR_TYPE_UV_INDEX;data->value.val_float=hal_adc_read(p->adc_pin)*0.1f;
     data->timestamp=SENSOR_GET_TICK();return SENSOR_EOK;
 }
-static const sensor_ops_t guvas12sd_ops = { .init=guvas12sd_init, .read=guvas12sd_read };
+static sensor_err_t guvas12sd_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t guvas12sd_ops = {
+    .init = guvas12sd_init, .deinit = guvas12sd_deinit, .read = guvas12sd_read};
 sensor_device_t *guvas12sd_create(const char *name, uint8_t adc_pin)
 {
     if (name == NULL) {
