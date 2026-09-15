@@ -37,38 +37,45 @@ static sensor_err_t lsm9ds1_mag_write(sensor_device_t *sensor, uint8_t reg, uint
 static sensor_err_t lsm9ds1_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    sensor_err_t ret;
 
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) return SENSOR_EINVAL;
     SENSOR_LOG("Initializing LSM9DS1");
 
-    if (lsm9ds1_imu_read(sensor, LSM9DS1_REG_WHOAMI_IMU, &data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm9ds1_imu_read(sensor, LSM9DS1_REG_WHOAMI_IMU, &data);
+    if (ret != SENSOR_EOK) return ret;
     if (data != LSM9DS1_IMU_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong IMU WHO_AM_I: 0x%02X", data);
         return SENSOR_ERROR;
     }
 
-    if (lsm9ds1_mag_read_reg(sensor, LSM9DS1_REG_WHOAMI_MAG, &data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm9ds1_mag_read_reg(sensor, LSM9DS1_REG_WHOAMI_MAG, &data);
+    if (ret != SENSOR_EOK) return ret;
     if (data != LSM9DS1_MAG_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong MAG WHO_AM_I: 0x%02X", data);
         return SENSOR_ERROR;
     }
 
     /* IMU软复位 */
-    if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL3_C, 0x01) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL3_C, 0x01);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     SENSOR_DELAY_MS(10);
 
     /* 配置加速度计: ±2g, 100Hz */
     data = (0x04 << 4) | LSM9DS1_ACCEL_RANGE_2G;
-    if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL1_XL, data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL1_XL, data);
+    if (ret != SENSOR_EOK) return ret;
 
     /* 配置陀螺仪: ±250°/s, 100Hz */
     data = (0x04 << 4) | LSM9DS1_GYRO_RANGE_250DPS;
-    if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL2_G, data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL2_G, data);
+    if (ret != SENSOR_EOK) return ret;
 
     /* 配置磁力计: 100Hz, 高性能 */
-    if (lsm9ds1_mag_write(sensor, LSM9DS1_REG_CTRL_REG1_M, 0x70) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm9ds1_mag_write(sensor, LSM9DS1_REG_CTRL_REG1_M, 0x70);
+    if (ret != SENSOR_EOK) return ret;
 
     lsm9ds1_priv_t *priv = (lsm9ds1_priv_t *)sensor->priv_data;
     priv->accel_range = 2;
@@ -80,15 +87,20 @@ static sensor_err_t lsm9ds1_init(sensor_device_t *sensor)
 
 static sensor_err_t lsm9ds1_deinit(sensor_device_t *sensor)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) return SENSOR_EINVAL;
-    if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL1_XL, 0x00) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL1_XL, 0x00);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
-    if (lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL2_G, 0x00) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lsm9ds1_imu_write(sensor, LSM9DS1_REG_CTRL2_G, 0x00);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
-    if (lsm9ds1_mag_write(sensor, LSM9DS1_REG_CTRL_REG1_M, 0x00) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lsm9ds1_mag_write(sensor, LSM9DS1_REG_CTRL_REG1_M, 0x00);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     sensor->odr = 0U;
     return SENSOR_EOK;
@@ -102,7 +114,8 @@ static sensor_err_t lsm9ds1_accel_read(sensor_device_t *sensor, sensor_data_t *d
         return SENSOR_EINVAL;
     }
     for (int i = 0; i < 6; i++) {
-        if (lsm9ds1_imu_read(sensor, LSM9DS1_REG_OUTX_L_XL + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
+        sensor_err_t ret = lsm9ds1_imu_read(sensor, LSM9DS1_REG_OUTX_L_XL + i, &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     int16_t raw[3];
@@ -131,7 +144,8 @@ static sensor_err_t lsm9ds1_gyro_read(sensor_device_t *sensor, sensor_data_t *da
         return SENSOR_EINVAL;
     }
     for (int i = 0; i < 6; i++) {
-        if (lsm9ds1_imu_read(sensor, LSM9DS1_REG_OUTX_L_G + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
+        sensor_err_t ret = lsm9ds1_imu_read(sensor, LSM9DS1_REG_OUTX_L_G + i, &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     int16_t raw[3];
@@ -160,7 +174,8 @@ static sensor_err_t lsm9ds1_mag_read_data(sensor_device_t *sensor, sensor_data_t
         return SENSOR_EINVAL;
     }
     for (int i = 0; i < 6; i++) {
-        if (lsm9ds1_mag_read_reg(sensor, LSM9DS1_REG_OUTX_L_M + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
+        sensor_err_t ret = lsm9ds1_mag_read_reg(sensor, LSM9DS1_REG_OUTX_L_M + i, &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     int16_t raw[3];

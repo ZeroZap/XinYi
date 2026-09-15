@@ -297,6 +297,35 @@ static void test_lsm9ds1_deinit_stops_on_first_transport_error(void)
     destroy_sensor(accel);
 }
 
+static void test_lsm9ds1_preserves_transport_errors_across_lifecycle_and_reads(void)
+{
+    int fake_bus;
+    sensor_data_t data = {.type = SENSOR_TYPE_TEMPERATURE,
+                          .value.val_float = 12.5f,
+                          .timestamp = 77U,
+                          .accuracy = 3U};
+    const sensor_data_t snapshot = data;
+    sensor_device_t *accel = lsm9ds1_create_accel("lsm9-error", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_read8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_WHOAMI_IMU,
+                    0U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->init(accel));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+
+    queue_i2c_read8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_OUTX_L_XL,
+                    0U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+
+    queue_i2c_write8(&fake_bus, LSM9DS1_IMU_ADDR_DEFAULT, LSM9DS1_REG_CTRL1_XL,
+                     0U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_write_index);
+    TEST_ASSERT_EQUAL_UINT32(100U, accel->odr);
+    destroy_sensor(accel);
+}
+
 static void test_lsm9ds1_factories_reject_missing_name_or_bus(void)
 {
     int fake_bus;
@@ -358,6 +387,7 @@ int main(void)
     RUN_TEST(test_lsm9ds1_init_propagates_reset_failure_without_cache_updates);
     RUN_TEST(test_lsm9ds1_init_commits_ranges_only_after_all_configuration_succeeds);
     RUN_TEST(test_lsm9ds1_deinit_stops_on_first_transport_error);
+    RUN_TEST(test_lsm9ds1_preserves_transport_errors_across_lifecycle_and_reads);
     RUN_TEST(test_lsm9ds1_factories_reject_missing_name_or_bus);
     RUN_TEST(test_lsm9ds1_public_ops_reject_invalid_arguments_without_io);
     return UNITY_END();
