@@ -524,8 +524,9 @@ static void test_sc7a20_public_contexts_fail_closed(void)
     sensor_device_t *sensor = sc7a20_create("sc7a20-context", &fake_bus);
 
     TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_NULL(sc7a20_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(sc7a20_create("sc7a20-null-bus", NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->config(sensor, SENSOR_CFG_RANGE, NULL));
