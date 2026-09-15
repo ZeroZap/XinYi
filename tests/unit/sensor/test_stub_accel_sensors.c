@@ -688,6 +688,19 @@ static void test_gd30df_read_rejects_missing_bus_without_io_or_output_change(voi
     destroy_sensor(sensor);
 }
 
+static void test_dmp6100_init_propagates_first_transport_error(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = dmp6100_create("dmp-init-error", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_write8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_CTRL, 0x56U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    assert_i2c_drained();
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -711,5 +724,6 @@ int main(void)
     RUN_TEST(test_dmp6100_read_rejects_missing_bus_without_io_or_output_change);
     RUN_TEST(test_hs_ads1100_read_rejects_missing_bus_without_io_or_output_change);
     RUN_TEST(test_gd30df_read_rejects_missing_bus_without_io_or_output_change);
+    RUN_TEST(test_dmp6100_init_propagates_first_transport_error);
     return UNITY_END();
 }

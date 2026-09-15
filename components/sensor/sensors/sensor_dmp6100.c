@@ -15,9 +15,9 @@ static sensor_err_t dmp6100_init(sensor_device_t *sensor)
     dmp6100_priv_t *priv = (dmp6100_priv_t *)sensor->priv_data;
 
     SENSOR_LOG("Initializing DMP6100");
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, DMP6100_REG_CTRL, &ctrl, 1U)
-        != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t err = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, DMP6100_REG_CTRL, &ctrl, 1U);
+    if (err != SENSOR_EOK) {
+        return err;
     }
 
     return SENSOR_EOK;
