@@ -7,7 +7,7 @@
 
 #include "sensor_core.h"
 
-#define SGP40_ADDR 0x44
+#define SGP40_ADDR 0x59
 
 typedef struct {
     uint8_t i2c_addr;

@@ -86,7 +86,7 @@ static void test_sgp40_create_sets_identity_and_default_read_contract(void)
 
     assert_stub_identity(sensor, "sgp40-main", "Sensirion", "SGP40", SENSOR_TYPE_GAS,
                          &fake_bus);
-    TEST_ASSERT_EQUAL_UINT8(SGP40_ADDR, ((sgp40_priv_t *)sensor->priv_data)->i2c_addr);
+    TEST_ASSERT_EQUAL_UINT8(0x59U, ((sgp40_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
