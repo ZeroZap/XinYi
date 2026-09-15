@@ -84,7 +84,7 @@ static const sensor_ops_t ak09918_ops = {
 
 sensor_device_t *ak09918_create(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

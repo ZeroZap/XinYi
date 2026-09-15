@@ -378,6 +378,7 @@ static void test_ak09918_io_failures_stop_and_preserve_outputs(void)
     sensor_device_t *sensor = ak09918_create("ak09918-fail", &fake_bus);
 
     TEST_ASSERT_NULL(ak09918_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(ak09918_create("ak09918-null-bus", NULL));
     TEST_ASSERT_NOT_NULL(sensor);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));

@@ -124,7 +124,7 @@ static const sensor_ops_t silan_sc7a20_ops = {
  */
 sensor_device_t *silan_sc7a20_create(const char *name, void *i2c_bus, uint8_t addr)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
