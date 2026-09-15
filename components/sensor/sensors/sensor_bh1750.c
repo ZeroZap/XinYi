@@ -51,7 +51,15 @@ static sensor_err_t bh1750_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t bh1750_ops = {.init = bh1750_init, .read = bh1750_read};
+static sensor_err_t bh1750_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t bh1750_ops = {.init = bh1750_init, .deinit = bh1750_deinit, .read = bh1750_read};
 
 sensor_device_t *bh1750_create(const char *name, void *i2c_bus)
 {

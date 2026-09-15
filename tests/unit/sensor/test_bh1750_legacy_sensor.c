@@ -101,7 +101,7 @@ static void test_bh1750_create_and_init_write_sequence(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
-    TEST_ASSERT_NULL(sensor->ops->deinit);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, ((bh1750_priv_t *)sensor->priv_data)->i2c_addr);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
