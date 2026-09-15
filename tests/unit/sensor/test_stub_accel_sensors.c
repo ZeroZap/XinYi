@@ -317,6 +317,10 @@ static void test_qma6100_create_init_and_read_contract(void)
     TEST_ASSERT_EQUAL_INT(95, data.accuracy);
     assert_i2c_drained();
 
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    sensor->bus = &fake_bus;
+
     destroy_sensor(sensor);
 }
 
