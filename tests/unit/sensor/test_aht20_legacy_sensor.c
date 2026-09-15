@@ -98,6 +98,16 @@ static void assert_busy_preserves_output(sensor_device_t *sensor)
     TEST_ASSERT_EQUAL_UINT32(80U, g_delay_total_ms);
 }
 
+static void test_aht20_deinit_rejects_null_context(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = aht20_create_temperature("aht20-temp", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    destroy_sensor(sensor);
+}
+
 static void test_aht20_temperature_read_propagates_busy(void)
 {
     int fake_bus;
@@ -121,6 +131,7 @@ static void test_aht20_humidity_read_propagates_busy(void)
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_aht20_deinit_rejects_null_context);
     RUN_TEST(test_aht20_temperature_read_propagates_busy);
     RUN_TEST(test_aht20_humidity_read_propagates_busy);
     return UNITY_END();

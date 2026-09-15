@@ -55,6 +55,10 @@ static sensor_err_t aht20_init(sensor_device_t *sensor)
  */
 static sensor_err_t aht20_deinit(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     aht20_priv_t *priv = (aht20_priv_t *)sensor->priv_data;
     priv->initialized  = false;
 
