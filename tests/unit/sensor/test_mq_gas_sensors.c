@@ -123,11 +123,13 @@ static void test_mq7_create_and_read_converts_adc_divide_by_10(void)
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(7U, ((mq7_priv_t *)sensor->priv_data)->adc_pin);
 
     assert_init_does_not_sample_adc(sensor);
     assert_adc_read(sensor, 7U, 456U, 45.6f);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 
@@ -222,6 +224,7 @@ static void assert_invalid_public_ops_do_not_sample_adc(sensor_device_t *sensor)
 
     memset(&data, 0x5A, sizeof(data));
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->read(sensor, NULL));
     TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
@@ -268,10 +271,13 @@ static void test_missing_private_data_is_rejected_without_adc_side_effects(void)
     mq135->priv_data = NULL;
 
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq3->ops->init(mq3));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mq3->ops->deinit(mq3));
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq3->ops->read(mq3, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq7->ops->init(mq7));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mq7->ops->deinit(mq7));
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq7->ops->read(mq7, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq135->ops->init(mq135));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, mq135->ops->deinit(mq135));
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, mq135->ops->read(mq135, &data));
     TEST_ASSERT_EQUAL_UINT(0U, g_adc_read_count);
     TEST_ASSERT_EQUAL_UINT8(0xA5U, data.type);
