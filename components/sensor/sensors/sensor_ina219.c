@@ -38,7 +38,7 @@ static const sensor_ops_t ina219_ops = {.init = ina219_init, .read = ina219_read
 
 sensor_device_t *ina219_create(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

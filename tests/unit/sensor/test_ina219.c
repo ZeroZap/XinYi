@@ -84,6 +84,7 @@ static void test_create_rejects_null_name_without_i2c_side_effects(void)
     int fake_bus;
 
     TEST_ASSERT_NULL(ina219_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(ina219_create("ina219-null-bus", NULL));
     TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
 }
 
