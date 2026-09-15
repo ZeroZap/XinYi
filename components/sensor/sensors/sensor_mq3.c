@@ -26,7 +26,15 @@ static sensor_err_t mq3_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t mq3_ops = {.init = mq3_init, .read = mq3_read};
+static sensor_err_t mq3_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t mq3_ops = {.init = mq3_init, .deinit = mq3_deinit, .read = mq3_read};
 
 sensor_device_t *mq3_create(const char *name, uint8_t adc_pin)
 {

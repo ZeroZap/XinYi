@@ -58,6 +58,7 @@ static void assert_common_gas_identity(sensor_device_t *sensor, const char *name
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_NOT_NULL(sensor->priv_data);
     TEST_ASSERT_EQUAL_UINT8(pin, ((mq3_priv_t *)sensor->priv_data)->adc_pin);
 }
@@ -90,6 +91,7 @@ static void test_mq3_create_and_read_converts_adc_divide_by_10(void)
     assert_init_does_not_sample_adc(sensor);
     assert_adc_read(sensor, 3U, 321U, 32.1f);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 
