@@ -43,7 +43,7 @@ static sensor_err_t cms_read(sensor_device_t *sensor, sensor_data_t *data)
 
 static sensor_err_t cms_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
     return SENSOR_EOK;
