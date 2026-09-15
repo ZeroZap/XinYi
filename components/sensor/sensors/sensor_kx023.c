@@ -130,6 +130,9 @@ static const sensor_ops_t kx023_ops = {
 
 sensor_device_t *kx023_create(const char *name, void *i2c_bus)
 {
+    if (name == NULL || i2c_bus == NULL)
+        return NULL;
+
     sensor_device_t *sensor =
         (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     if (sensor == NULL)

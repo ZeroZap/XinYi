@@ -1110,10 +1110,18 @@ static void test_lis2dw12_public_ops_reject_invalid_context_without_io(void)
     destroy_sensor(sensor);
 }
 
+static void test_kx023_create_rejects_null_name_or_bus(void)
+{
+    int fake_bus;
+
+    TEST_ASSERT_NULL(kx023_create(NULL, &fake_bus));
+    TEST_ASSERT_NULL(kx023_create("kx023", NULL));
+}
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_adxl362_create_init_read_deinit_and_error_paths);
+    RUN_TEST(test_kx023_create_rejects_null_name_or_bus);
     RUN_TEST(test_adxl362_propagates_config_write_failures_without_cache_updates);
     RUN_TEST(test_adxl362_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_bma400_create_init_read_and_deinit);
