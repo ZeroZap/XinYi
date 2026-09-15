@@ -35,6 +35,7 @@ typedef struct {
     uint8_t i2c_addr;
     uint8_t spi_cs;
     uint8_t range;
+    uint8_t initialized;
 } iis2iclp_priv_t;
 
 sensor_device_t *iis2iclp_create(const char *name, void *i2c_bus, uint8_t addr);

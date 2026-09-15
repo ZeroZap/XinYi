@@ -921,6 +921,9 @@ static void test_iis2iclp_i2c_create_init_read_deinit_and_set_range(void)
                      SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     TEST_ASSERT_EQUAL_UINT32(0U, sensor->odr);
+    unsigned int reads_before = g_i2c_read_index;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_i2c_read_index);
 
     destroy_sensor(sensor);
 }

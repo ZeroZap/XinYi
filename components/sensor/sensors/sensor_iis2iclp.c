@@ -59,6 +59,7 @@ static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
     ((iis2iclp_priv_t *)sensor->priv_data)->range = 2;
 
     SENSOR_LOG("IIS2ICLP initialized");
+    ((iis2iclp_priv_t *)sensor->priv_data)->initialized = 1U;
     return SENSOR_EOK;
 }
 
@@ -68,8 +69,10 @@ static sensor_err_t iis2iclp_deinit(sensor_device_t *sensor)
         return SENSOR_EINVAL;
     }
 
+    iis2iclp_priv_t *priv = (iis2iclp_priv_t *)sensor->priv_data;
     if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, 0x00) != SENSOR_EOK) return SENSOR_EIO;
     sensor->odr = 0U;
+    priv->initialized = 0U;
     return SENSOR_EOK;
 }
 
@@ -77,7 +80,8 @@ static sensor_err_t iis2iclp_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
 
-    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL
+        || ((iis2iclp_priv_t *)sensor->priv_data)->initialized == 0U) {
         return SENSOR_EINVAL;
     }
 
