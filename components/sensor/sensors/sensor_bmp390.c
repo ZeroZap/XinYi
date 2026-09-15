@@ -34,7 +34,8 @@ static sensor_err_t bmp390_read(sensor_device_t *sensor, sensor_data_t *data)
     }
     bmp390_priv_t *priv = (bmp390_priv_t *)sensor->priv_data;
     for (int i = 0; i < 6; i++) {
-        if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, 0x1C + i, &buf[i], 1) != SENSOR_EOK) return SENSOR_EIO;
+        int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, 0x1C + i, &buf[i], 1);
+        if (ret != SENSOR_EOK) return (sensor_err_t)ret;
     }
 
     uint32_t press = ((uint32_t)buf[2] << 16) | ((uint32_t)buf[1] << 8) | buf[0];

@@ -384,6 +384,29 @@ static void test_bmp390_init_rejects_bad_chip_id_and_read_maps_i2c_error(void)
     destroy_sensor(sensor);
 }
 
+static void test_bmp390_read_propagates_transport_error_and_preserves_output(void)
+{
+    int fake_bus;
+    sensor_data_t data = {.type = SENSOR_TYPE_TEMPERATURE,
+                          .unit = SENSOR_UNIT_CELSIUS,
+                          .value.val_float = 21.5f,
+                          .timestamp = 77U,
+                          .accuracy = 3U};
+    const sensor_data_t snapshot = data;
+    sensor_device_t *sensor = bmp390_create("bmp390-timeout", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PRESS_XLSB, 0x12U, SENSOR_EOK);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PRESS_LSB, 0x34U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(2U, g_mem_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_mem_read_count, g_mem_read_index);
+
+    destroy_sensor(sensor);
+}
+
 static void test_bmp390_init_maps_write_failure(void)
 {
     int fake_bus;
@@ -462,6 +485,7 @@ int main(void)
     RUN_TEST(test_bmp390_create_init_and_read_pressure);
     RUN_TEST(test_bmp390_init_rejects_bad_chip_id_and_read_maps_i2c_error);
     RUN_TEST(test_bmp390_init_maps_write_failure);
+    RUN_TEST(test_bmp390_read_propagates_transport_error_and_preserves_output);
     RUN_TEST(test_bmp390_read_pressure_full_scale_boundary);
     RUN_TEST(test_bmp390_rejects_invalid_factory_and_public_ops_inputs);
     return UNITY_END();
