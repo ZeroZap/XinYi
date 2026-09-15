@@ -37,7 +37,7 @@ static const sensor_ops_t vcnl4040_ops = {.init = vcnl4040_init, .read = vcnl404
 
 sensor_device_t *vcnl4040_create(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 

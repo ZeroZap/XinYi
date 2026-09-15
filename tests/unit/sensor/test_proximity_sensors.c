@@ -271,10 +271,9 @@ static void test_null_bus_read_is_rejected_without_i2c_side_effects(void)
     sensor_data_t snapshot = data;
 
     TEST_ASSERT_NULL(pa122);
-    TEST_ASSERT_NOT_NULL(vcnl4040);
-    TEST_ASSERT_NULL(vcnl4040->bus);
+    TEST_ASSERT_NULL(vcnl4040);
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, vcnl4040->ops->read(vcnl4040, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
     TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, snapshot.value.val_float, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);
