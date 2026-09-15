@@ -32,16 +32,18 @@ static sensor_err_t aht20_init(sensor_device_t *sensor)
     cmd[0] = AHT20_CMD_INIT;
     cmd[1] = 0x08;
     cmd[2] = 0x00;
-    if (hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 3) != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 3);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     SENSOR_DELAY_MS(10);
 
     /* 读取状态 */
     uint8_t status;
-    if (hal_i2c_read(sensor->bus, priv->i2c_addr, &status, 1) != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_read(sensor->bus, priv->i2c_addr, &status, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if ((status & 0x08) == 0) {
@@ -88,16 +90,18 @@ static sensor_err_t aht20_trigger_measurement(sensor_device_t *sensor,
     cmd[1] = 0x33;
     cmd[2] = 0x00;
 
-    if (hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 3) != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 3);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 等待测量完成 (最大80ms) */
     SENSOR_DELAY_MS(80);
 
     /* 读取数据 (7字节) */
-    if (hal_i2c_read(sensor->bus, priv->i2c_addr, data, 7) != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_read(sensor->bus, priv->i2c_addr, data, 7);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 检查忙状态 */
