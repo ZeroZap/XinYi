@@ -26,7 +26,15 @@ static sensor_err_t fsr_read(sensor_device_t *s, sensor_data_t *d)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t fsr_ops = {.init = fsr_init, .read = fsr_read};
+static sensor_err_t fsr_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t fsr_ops = {.init = fsr_init, .deinit = fsr_deinit, .read = fsr_read};
 
 sensor_device_t *fsr_create(const char *name, uint8_t adc_pin)
 {
