@@ -7,6 +7,10 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 
 static sensor_err_t hs_ads1100_init(sensor_device_t *sensor)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     uint8_t ctrl = 0x57U;
     hs_ads1100_priv_t *priv = (hs_ads1100_priv_t *)sensor->priv_data;
 
