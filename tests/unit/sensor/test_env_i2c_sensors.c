@@ -270,23 +270,31 @@ static void test_aht10_rejects_invalid_factory_and_busy_sample(void)
     destroy_sensor(sensor);
 }
 
-static void test_aht10_read_maps_receive_failure(void)
+static void test_aht10_read_propagates_receive_failure_and_preserves_output(void)
 {
     int fake_bus;
     uint8_t measure_cmd[3] = {0xAC, 0x33, 0x00};
-    sensor_data_t data = {0};
+    sensor_data_t data = {
+        .type = SENSOR_TYPE_TEMPERATURE,
+        .unit = SENSOR_UNIT_CELSIUS,
+        .value.val_float = 12.5f,
+        .timestamp = 7U,
+        .accuracy = 1U,
+    };
+    sensor_data_t before = data;
     sensor_device_t *sensor = aht10_create("aht10-alt", &fake_bus, 0x39U);
 
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_EQUAL_UINT8(0x39U, ((aht10_priv_t *)sensor->priv_data)->i2c_addr);
     queue_master_send(&fake_bus, 0x39U, measure_cmd, sizeof(measure_cmd), SENSOR_EOK);
-    queue_master_recv(&fake_bus, 0x39U, NULL, 6U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    queue_master_recv(&fake_bus, 0x39U, NULL, 6U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
 
     destroy_sensor(sensor);
 }
 
-static void test_aht10_init_and_read_map_send_failures(void)
+static void test_aht10_init_and_read_propagate_send_failures(void)
 {
     int fake_bus;
     uint8_t init_cmd[3] = {0xE1, 0x08, 0x00};
@@ -301,12 +309,12 @@ static void test_aht10_init_and_read_map_send_failures(void)
     sensor_device_t *sensor = aht10_create("aht10-trigger", &fake_bus, 0U);
 
     TEST_ASSERT_NOT_NULL(sensor);
-    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, init_cmd, sizeof(init_cmd), SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, init_cmd, sizeof(init_cmd), SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 
-    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, measure_cmd, sizeof(measure_cmd), SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, measure_cmd, sizeof(measure_cmd), SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, data.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_CELSIUS, data.unit);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.5f, data.value.val_float);
@@ -449,8 +457,8 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_aht10_create_defaults_and_reads_humidity);
     RUN_TEST(test_aht10_rejects_invalid_factory_and_busy_sample);
-    RUN_TEST(test_aht10_read_maps_receive_failure);
-    RUN_TEST(test_aht10_init_and_read_map_send_failures);
+    RUN_TEST(test_aht10_read_propagates_receive_failure_and_preserves_output);
+    RUN_TEST(test_aht10_init_and_read_propagate_send_failures);
     RUN_TEST(test_bmp390_create_init_and_read_pressure);
     RUN_TEST(test_bmp390_init_rejects_bad_chip_id_and_read_maps_i2c_error);
     RUN_TEST(test_bmp390_init_maps_write_failure);

@@ -12,15 +12,16 @@ static sensor_err_t aht10_init(sensor_device_t *sensor)
 {
     uint8_t cmd[3] = {0xE1, 0x08, 0x00};
     aht10_priv_t *priv;
-
+    int ret;
 
     if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL) {
         return SENSOR_EINVAL;
     }
     priv = (aht10_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing AHT10");
-    if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_DELAY_MS(10);
     SENSOR_LOG("AHT10 initialized");
@@ -32,17 +33,20 @@ static sensor_err_t aht10_read(sensor_device_t *sensor, sensor_data_t *data)
     uint8_t buf[6];
     uint8_t cmd[3] = {0xAC, 0x33, 0x00};
     aht10_priv_t *priv;
+    int ret;
 
     if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
     priv = (aht10_priv_t *)sensor->priv_data;
-    if (hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_master_send(sensor->bus, priv->i2c_addr, cmd, 3);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_DELAY_MS(80);
-    if (hal_i2c_master_recv(sensor->bus, priv->i2c_addr, buf, 6) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_master_recv(sensor->bus, priv->i2c_addr, buf, 6);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     if ((buf[0] & 0x80U) != 0U) {
         return SENSOR_EBUSY;
