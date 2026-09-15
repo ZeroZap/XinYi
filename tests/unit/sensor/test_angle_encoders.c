@@ -87,6 +87,7 @@ static void assert_common_identity(sensor_device_t *sensor, const char *name, co
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_NOT_NULL(sensor->priv_data);
     TEST_ASSERT_EQUAL_UINT8(addr, ((as5600_priv_t *)sensor->priv_data)->i2c_addr);
 }
@@ -110,6 +111,7 @@ static void test_as5600_create_and_read_decodes_datasheet_msb_first_angle(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 180.0f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 

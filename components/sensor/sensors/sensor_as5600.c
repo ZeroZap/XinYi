@@ -35,7 +35,15 @@ static sensor_err_t as5600_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
-static const sensor_ops_t as5600_ops = {.init = as5600_init, .read = as5600_read};
+static sensor_err_t as5600_deinit(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t as5600_ops = {.init = as5600_init, .deinit = as5600_deinit, .read = as5600_read};
 
 sensor_device_t *as5600_create(const char *name, void *i2c_bus)
 {
