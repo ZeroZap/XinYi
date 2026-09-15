@@ -188,6 +188,11 @@ static void test_max44009_second_lux_register_failure_preserves_output(void)
     destroy_sensor(sensor);
 }
 
+static void test_max44009_factory_rejects_null_bus(void)
+{
+    TEST_ASSERT_NULL(max44009_create("max44009-null-bus", NULL));
+}
+
 static void test_guvas12sd_create_and_read_converts_adc_to_uv_index(void)
 {
     sensor_data_t data = {0};
@@ -270,6 +275,7 @@ int main(void)
     RUN_TEST(test_max44009_full_scale_read_uses_20bit_lux_formula);
     RUN_TEST(test_max44009_first_lux_register_failure_preserves_output);
     RUN_TEST(test_max44009_second_lux_register_failure_preserves_output);
+    RUN_TEST(test_max44009_factory_rejects_null_bus);
     RUN_TEST(test_guvas12sd_create_and_read_converts_adc_to_uv_index);
     RUN_TEST(test_guvas12sd_adc_boundaries_are_linear_uv_index);
     RUN_TEST(test_long_names_are_truncated_with_terminator);

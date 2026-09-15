@@ -14,6 +14,9 @@ static sensor_err_t max44009_read(sensor_device_t *s, sensor_data_t *d){
 }
 static const sensor_ops_t max44009_ops = {.init=max44009_init,.read=max44009_read};
 sensor_device_t *max44009_create(const char *name, void *i2c_bus){
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *s=(sensor_device_t*)SENSOR_MALLOC(sizeof(sensor_device_t));
     max44009_priv_t *p=(max44009_priv_t*)SENSOR_MALLOC(sizeof(max44009_priv_t));
     if(!s||!p){SENSOR_FREE(s);SENSOR_FREE(p);return NULL;}
