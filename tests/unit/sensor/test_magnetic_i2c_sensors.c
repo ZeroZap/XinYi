@@ -490,8 +490,8 @@ static void test_cmm905_guards_and_failed_reads_preserve_outputs(void)
 
     queue_read(&fake_bus, CMM905_ADDR_DEFAULT, CMM905_REG_DATA, &raw0, 1U, SENSOR_EOK);
     queue_read(&fake_bus, CMM905_ADDR_DEFAULT, (uint8_t)(CMM905_REG_DATA + 1U), NULL, 1U,
-               SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+               SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
     TEST_ASSERT_EQUAL_INT(snapshot.unit, data.unit);
     TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.x, data.value.val_3axis.x);
