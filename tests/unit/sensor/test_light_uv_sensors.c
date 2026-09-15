@@ -102,6 +102,7 @@ static void test_max44009_create_and_read_converts_exponent_mantissa_to_lux(void
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
+    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(MAX44009_ADDR, ((max44009_priv_t *)sensor->priv_data)->i2c_addr);
 
     g_i2c_reads[0].value = 0x23U; /* exponent 2, mantissa high nibble 3 */
@@ -122,6 +123,7 @@ static void test_max44009_create_and_read_converts_exponent_mantissa_to_lux(void
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 9.54f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
 
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
     destroy_sensor(sensor);
 }
 

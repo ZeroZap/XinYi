@@ -12,7 +12,15 @@ static sensor_err_t max44009_read(sensor_device_t *s, sensor_data_t *d){
     d->type=SENSOR_TYPE_LIGHT;d->unit=SENSOR_UNIT_LUX;d->value.val_float=pow(2,e)*m*0.045f;
     d->timestamp=SENSOR_GET_TICK();return SENSOR_EOK;
 }
-static const sensor_ops_t max44009_ops = {.init=max44009_init,.read=max44009_read};
+static sensor_err_t max44009_deinit(sensor_device_t *s)
+{
+    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
+        return SENSOR_EINVAL;
+    }
+    return SENSOR_EOK;
+}
+
+static const sensor_ops_t max44009_ops = {.init = max44009_init, .deinit = max44009_deinit, .read = max44009_read};
 sensor_device_t *max44009_create(const char *name, void *i2c_bus){
     if (name == NULL || i2c_bus == NULL) {
         return NULL;
