@@ -25,6 +25,10 @@ static sensor_err_t hs_ads1100_init(sensor_device_t *sensor)
 
 static sensor_err_t hs_ads1100_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+
     uint8_t buf[6];
     hs_ads1100_priv_t *priv = (hs_ads1100_priv_t *)sensor->priv_data;
 
