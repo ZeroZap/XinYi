@@ -623,6 +623,27 @@ static void test_cms_read_rejects_missing_bus_without_io_or_output_change(void)
     destroy_sensor(sensor);
 }
 
+static void test_dmp6100_read_rejects_missing_bus_without_io_or_output_change(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = dmp6100_create("dmp-read-missing-bus", &fake_bus, 0U);
+    sensor_data_t data = {
+        .type = SENSOR_TYPE_GPS,
+        .unit = SENSOR_UNIT_MILLI_G,
+        .value.val_3axis = {111, 222, 333},
+        .timestamp = 0x12345678U,
+    };
+    sensor_data_t snapshot = data;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    assert_i2c_drained();
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -643,5 +664,6 @@ int main(void)
     RUN_TEST(test_hs_ads1100_init_rejects_missing_bus_without_io);
     RUN_TEST(test_gd30df_init_rejects_missing_bus_without_io);
     RUN_TEST(test_cms_read_rejects_missing_bus_without_io_or_output_change);
+    RUN_TEST(test_dmp6100_read_rejects_missing_bus_without_io_or_output_change);
     return UNITY_END();
 }
