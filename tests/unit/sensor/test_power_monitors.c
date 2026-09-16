@@ -250,8 +250,11 @@ static void test_max17043_not_found_and_getter_invalid_paths(void)
     TEST_ASSERT_NULL(gauge.i2c_dev.i2c_handle);
 
     g_i2c_init_result = XY_DEVICE_OK;
-    queue_read16(MAX17043_REG_VER, 0x0000U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_MAX17043_NOT_FOUND, xy_max17043_init(&gauge, &bus, &cfg));
+    queue_read16(MAX17043_REG_VER, 0x0000U, XY_DEVICE_BUSY);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_max17043_init(&gauge, &bus, &cfg));
+    TEST_ASSERT_FALSE(gauge.initialized);
+    TEST_ASSERT_NULL(gauge.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_read(NULL));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_read(&gauge));
     TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_get_voltage(NULL, &value));

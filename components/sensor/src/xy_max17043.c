@@ -62,7 +62,7 @@ int xy_max17043_init(xy_max17043_t *max17043, void *i2c_handle,
     if (ret != XY_DEVICE_OK) {
         xy_log_e("MAX17043 not found\n");
         memset(max17043, 0, sizeof(*max17043));
-        return XY_MAX17043_NOT_FOUND;
+        return ret;
     }
     
     xy_log_i("MAX17043 found (VER=0x%04X)\n", version);
