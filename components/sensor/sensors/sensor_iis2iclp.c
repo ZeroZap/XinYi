@@ -37,6 +37,7 @@ static sensor_err_t iis2iclp_reg_write(sensor_device_t *sensor, uint8_t reg, uin
 static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    sensor_err_t ret;
 
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
@@ -44,18 +45,21 @@ static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
 
     SENSOR_LOG("Initializing IIS2ICLP");
 
-    if (iis2iclp_reg_read(sensor, IIS2ICLP_REG_WHOAMI, &data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = iis2iclp_reg_read(sensor, IIS2ICLP_REG_WHOAMI, &data);
+    if (ret != SENSOR_EOK) return ret;
     if (data != IIS2ICLP_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong WHO_AM_I: 0x%02X (expected 0x%02X)", data, IIS2ICLP_WHOAMI_VALUE);
         return SENSOR_ERROR;
     }
 
-    if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL3, 0x01) != SENSOR_EOK) return SENSOR_EIO;  /* 软复位 */
+    ret = iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL3, 0x01);
+    if (ret != SENSOR_EOK) return ret;  /* 软复位 */
     SENSOR_DELAY_MS(10);
 
     /* 配置: 高性能模式, ±2g, 100Hz */
     data = (IIS2ICLP_RATE_100HZ << 4) | IIS2ICLP_RANGE_2G;
-    if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, data) != SENSOR_EOK) return SENSOR_EIO;
+    ret = iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, data);
+    if (ret != SENSOR_EOK) return ret;
     ((iis2iclp_priv_t *)sensor->priv_data)->range = 2;
 
     SENSOR_LOG("IIS2ICLP initialized");
@@ -65,12 +69,15 @@ static sensor_err_t iis2iclp_init(sensor_device_t *sensor)
 
 static sensor_err_t iis2iclp_deinit(sensor_device_t *sensor)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
     iis2iclp_priv_t *priv = (iis2iclp_priv_t *)sensor->priv_data;
-    if (iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, 0x00) != SENSOR_EOK) return SENSOR_EIO;
+    ret = iis2iclp_reg_write(sensor, IIS2ICLP_REG_CTRL1, 0x00);
+    if (ret != SENSOR_EOK) return ret;
     sensor->odr = 0U;
     priv->initialized = 0U;
     return SENSOR_EOK;
@@ -79,6 +86,7 @@ static sensor_err_t iis2iclp_deinit(sensor_device_t *sensor)
 static sensor_err_t iis2iclp_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     uint8_t buf[6];
+    sensor_err_t ret;
 
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL
         || ((iis2iclp_priv_t *)sensor->priv_data)->initialized == 0U) {
@@ -86,7 +94,8 @@ static sensor_err_t iis2iclp_read(sensor_device_t *sensor, sensor_data_t *data)
     }
 
     for (int i = 0; i < 6; i++) {
-        if (iis2iclp_reg_read(sensor, IIS2ICLP_REG_OUT_X_L + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
+        ret = iis2iclp_reg_read(sensor, IIS2ICLP_REG_OUT_X_L + i, &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     int16_t raw[3];
@@ -184,12 +193,15 @@ int iis2iclp_set_range(sensor_device_t *dev, uint8_t range)
 {
     static const uint8_t physical_range_g[] = {2U, 4U, 8U, 16U};
     uint8_t ctrl1;
+    sensor_err_t ret;
 
     if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL ||
         range > IIS2ICLP_RANGE_16G) return SENSOR_EINVAL;
-    if (iis2iclp_reg_read(dev, IIS2ICLP_REG_CTRL1, &ctrl1) != SENSOR_EOK) return SENSOR_EIO;
+    ret = iis2iclp_reg_read(dev, IIS2ICLP_REG_CTRL1, &ctrl1);
+    if (ret != SENSOR_EOK) return ret;
     ctrl1 = (ctrl1 & 0xFC) | (range & 0x03);
-    if (iis2iclp_reg_write(dev, IIS2ICLP_REG_CTRL1, ctrl1) != SENSOR_EOK) return SENSOR_EIO;
+    ret = iis2iclp_reg_write(dev, IIS2ICLP_REG_CTRL1, ctrl1);
+    if (ret != SENSOR_EOK) return ret;
     ((iis2iclp_priv_t *)dev->priv_data)->range = physical_range_g[range];
     return 0;
 }
