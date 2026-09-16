@@ -56,8 +56,10 @@ static sensor_err_t cmm905_deinit(sensor_device_t *sensor)
     }
 
     cmm905_priv_t *priv = (cmm905_priv_t *)sensor->priv_data;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, CMM905_REG_STATUS, &standby, 1U) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, CMM905_REG_STATUS,
+                                &standby, 1U);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     return SENSOR_EOK;
 }

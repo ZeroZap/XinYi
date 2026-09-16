@@ -664,6 +664,18 @@ static void test_ak09918_lifecycle_propagates_transport_errors(void)
     destroy_sensor(sensor);
 }
 
+static void test_cmm905_deinit_propagates_transport_error(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = cmm905_create("cmm905-deinit", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_write(&fake_bus, CMM905_ADDR_DEFAULT, CMM905_REG_STATUS, 0x00U,
+                SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
