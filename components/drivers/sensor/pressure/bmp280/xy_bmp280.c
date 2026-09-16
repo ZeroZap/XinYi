@@ -191,7 +191,8 @@ int xy_bmp280_read(xy_bmp280_t *bmp)
 
 int xy_bmp280_get_temperature(const xy_bmp280_t *bmp, int32_t *temperature)
 {
-    if (bmp == NULL || temperature == NULL || bmp->initialized == 0U) {
+    if (bmp == NULL || temperature == NULL || bmp->initialized == 0U
+        || bmp->i2c_dev.base.initialized == 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
     *temperature = bmp->temperature;
@@ -200,7 +201,8 @@ int xy_bmp280_get_temperature(const xy_bmp280_t *bmp, int32_t *temperature)
 
 int xy_bmp280_get_pressure(const xy_bmp280_t *bmp, uint32_t *pressure)
 {
-    if (bmp == NULL || pressure == NULL || bmp->initialized == 0U) {
+    if (bmp == NULL || pressure == NULL || bmp->initialized == 0U
+        || bmp->i2c_dev.base.initialized == 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
     *pressure = bmp->pressure;
