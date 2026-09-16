@@ -20,10 +20,10 @@ static sensor_err_t lis2dh12_init(sensor_device_t *sensor)
     SENSOR_LOG("Initializing LIS2DH12");
 
     /* 检查WHO_AM_I */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, LIS2DH12_REG_WHOAMI, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, LIS2DH12_REG_WHOAMI, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (data != LIS2DH12_WHOAMI_VALUE) {
@@ -33,26 +33,23 @@ static sensor_err_t lis2dh12_init(sensor_device_t *sensor)
 
     /* 配置CTRL1: 低功耗模式, 10Hz, 使能XYZ */
     data = LIS2DH12_ODR_10HZ | 0x07;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 配置CTRL4: ±2g, 高分辨率模式 */
     data = LIS2DH12_RANGE_2G | 0x08;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL4, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL4, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 使能温度传感器 */
     data = 0xC0;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, LIS2DH12_REG_TEMP_CFG, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, LIS2DH12_REG_TEMP_CFG, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->odr = LIS2DH12_ODR_10HZ;
@@ -76,10 +73,10 @@ static sensor_err_t lis2dh12_deinit(sensor_device_t *sensor)
     lis2dh12_priv_t *priv = (lis2dh12_priv_t *)sensor->priv_data;
     uint8_t data          = LIS2DH12_ODR_POWER_DOWN;
 
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->odr = LIS2DH12_ODR_POWER_DOWN;
@@ -101,10 +98,10 @@ static sensor_err_t lis2dh12_read(sensor_device_t *sensor, sensor_data_t *data)
     int16_t raw[3];
 
     /* 读取6字节加速度数据 (自动递增) */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, LIS2DH12_REG_OUT_X_L | 0x80, buf, 6)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, LIS2DH12_REG_OUT_X_L | 0x80, buf, 6);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 (12位有效，左对齐到16位) */
@@ -205,10 +202,10 @@ static sensor_err_t lis2dh12_config(sensor_device_t *sensor,
         }
 
         data = range_reg | 0x08;
-        if (hal_i2c_mem_write(
-                sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL4, &data, 1)
-            != 0) {
-            return SENSOR_EIO;
+        int ret = hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL4, &data, 1);
+        if (ret != SENSOR_EOK) {
+            return (sensor_err_t)ret;
         }
 
         priv->range   = range_reg;
@@ -236,10 +233,10 @@ static sensor_err_t lis2dh12_config(sensor_device_t *sensor,
             odr_reg = LIS2DH12_ODR_400HZ;
 
         data = odr_reg | 0x07;
-        if (hal_i2c_mem_write(
-                sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL1, &data, 1)
-            != 0) {
-            return SENSOR_EIO;
+        int ret = hal_i2c_mem_write(
+            sensor->bus, priv->i2c_addr, LIS2DH12_REG_CTRL1, &data, 1);
+        if (ret != SENSOR_EOK) {
+            return (sensor_err_t)ret;
         }
 
         priv->odr   = odr_reg;
