@@ -44,15 +44,14 @@ static sensor_err_t lsm6dso_spi_read(sensor_device_t *sensor, uint8_t reg,
 {
     uint8_t tx_data = reg | 0x80;  /* 读命令 */
     uint8_t rx_data;
+    sensor_err_t ret;
     
-    if (hal_spi_send(sensor->bus, ((lsm6dso_priv_t *)sensor->priv_data)->spi_cs,
-                     &tx_data, 1) != 0) {
-        return SENSOR_EIO;
-    }
-    if (hal_spi_recv(sensor->bus, ((lsm6dso_priv_t *)sensor->priv_data)->spi_cs,
-                     &rx_data, 1) != 0) {
-        return SENSOR_EIO;
-    }
+    ret = hal_spi_send(sensor->bus, ((lsm6dso_priv_t *)sensor->priv_data)->spi_cs,
+                       &tx_data, 1);
+    if (ret != SENSOR_EOK) return ret;
+    ret = hal_spi_recv(sensor->bus, ((lsm6dso_priv_t *)sensor->priv_data)->spi_cs,
+                       &rx_data, 1);
+    if (ret != SENSOR_EOK) return ret;
     *data = rx_data;
     return SENSOR_EOK;
 }
@@ -97,6 +96,7 @@ static inline sensor_err_t lsm6dso_reg_write(sensor_device_t *sensor,
 static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    sensor_err_t ret;
 
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
@@ -105,9 +105,8 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
     SENSOR_LOG("Initializing LSM6DSO");
 
     /* 检查WHO_AM_I */
-    if (lsm6dso_reg_read(sensor, LSM6DSO_REG_WHOAMI, &data) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_read(sensor, LSM6DSO_REG_WHOAMI, &data);
+    if (ret != SENSOR_EOK) return ret;
 
     if (data != LSM6DSO_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong WHO_AM_I: 0x%02X (expected 0x%02X)", data,
@@ -116,28 +115,24 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
     }
 
     /* 复位设备 */
-    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL3_C, 0x01) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL3_C, 0x01);
+    if (ret != SENSOR_EOK) return ret;
     SENSOR_DELAY_MS(10);
 
     /* 关闭I3C接口 */
     data = 0x00;
-    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL4_C, data) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL4_C, data);
+    if (ret != SENSOR_EOK) return ret;
 
     /* 配置加速度计: ±2g, 104Hz */
     data = (LSM6DSO_ACCEL_RATE_104Hz << 4) | LSM6DSO_ACCEL_RANGE_2G;
-    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, data) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, data);
+    if (ret != SENSOR_EOK) return ret;
 
     /* 配置陀螺仪: ±250°/s, 104Hz */
     data = (LSM6DSO_GYRO_RATE_104Hz << 4) | LSM6DSO_GYRO_RANGE_250DPS;
-    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, data) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, data);
+    if (ret != SENSOR_EOK) return ret;
 
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)sensor->priv_data;
     priv->accel_range = LSM6DSO_ACCEL_RANGE_2G;
@@ -156,18 +151,17 @@ static sensor_err_t lsm6dso_init(sensor_device_t *sensor)
  */
 static sensor_err_t lsm6dso_deinit(sensor_device_t *sensor)
 {
+    sensor_err_t ret;
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
     lsm6dso_priv_t *priv = (lsm6dso_priv_t *)sensor->priv_data;
 
     /* 进入关闭模式 */
-    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, 0x00) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
-    if (lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, 0x00) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL1_XL, 0x00);
+    if (ret != SENSOR_EOK) return ret;
+    ret = lsm6dso_reg_write(sensor, LSM6DSO_REG_CTRL2_G, 0x00);
+    if (ret != SENSOR_EOK) return ret;
 
     priv->accel_rate = 0U;
     priv->gyro_rate = 0U;
@@ -183,19 +177,16 @@ static sensor_err_t lsm6dso_accel_read(sensor_device_t *sensor,
 {
     uint8_t buf[6];
     int16_t raw[3];
+    sensor_err_t ret;
 
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
     /* 读取6字节加速度数据 */
-    if (lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_XL, &buf[0]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_XL + 1, &buf[1]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_XL + 2, &buf[2]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_XL + 3, &buf[3]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_XL + 4, &buf[4]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_XL + 5, &buf[5]) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    for (uint8_t i = 0U; i < sizeof(buf); ++i) {
+        ret = lsm6dso_reg_read(sensor, (uint8_t)(LSM6DSO_REG_OUTX_L_XL + i), &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     /* 组合数据 (小端模式) */
@@ -242,19 +233,16 @@ static sensor_err_t lsm6dso_gyro_read(sensor_device_t *sensor,
 {
     uint8_t buf[6];
     int16_t raw[3];
+    sensor_err_t ret;
 
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
     /* 读取6字节陀螺仪数据 */
-    if (lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_G, &buf[0]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_G + 1, &buf[1]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_G + 2, &buf[2]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_G + 3, &buf[3]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_G + 4, &buf[4]) != SENSOR_EOK ||
-        lsm6dso_reg_read(sensor, LSM6DSO_REG_OUTX_L_G + 5, &buf[5]) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    for (uint8_t i = 0U; i < sizeof(buf); ++i) {
+        ret = lsm6dso_reg_read(sensor, (uint8_t)(LSM6DSO_REG_OUTX_L_G + i), &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     /* 组合数据 */

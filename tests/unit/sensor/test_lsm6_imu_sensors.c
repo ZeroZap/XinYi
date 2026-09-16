@@ -958,6 +958,47 @@ static void test_lsm6dsr_preserves_transport_errors(void)
     destroy_sensor(sensor);
 }
 
+static void test_lsm6dso_preserves_transport_errors(void)
+{
+    int bus;
+    const uint8_t cs = 5U;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM,
+                          .value.val_3axis = {14, 25, 36},
+                          .timestamp = 0x1234U,
+                          .accuracy = 7U};
+    const sensor_data_t snapshot = data;
+    sensor_device_t *sensor = lsm6dso_create_spi_accel("dso-errors", &bus, cs);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_spi_send1(&bus, cs, (uint8_t)(LSM6DSO_REG_WHOAMI | 0x80U), SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(0U, g_spi_recv_index);
+
+    queue_spi_send1(&bus, cs, (uint8_t)(LSM6DSO_REG_OUTX_L_XL | 0x80U), SENSOR_EOK);
+    g_spi_recvs[g_spi_recv_count++] =
+        (spi_recv_op_t){&bus, cs, 0U, 1U, SENSOR_ETIMEOUT};
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+
+    sensor->odr = 208U;
+    queue_spi_send2(&bus, cs, LSM6DSO_REG_CTRL1_XL & 0x7FU, 0x00U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_UINT32(208U, sensor->odr);
+
+    destroy_sensor(sensor);
+}
+
+static void test_lsm6dsr_factories_reject_invalid_context(void)
+{
+    int bus;
+
+    TEST_ASSERT_NULL(lsm6dsr_create_accel(NULL, &bus, 0U));
+    TEST_ASSERT_NULL(lsm6dsr_create_accel("dsr", NULL, 0U));
+    TEST_ASSERT_NULL(lsm6dsr_create_gyro(NULL, &bus, 0U));
+    TEST_ASSERT_NULL(lsm6dsr_create_gyro("dsr", NULL, 0U));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index + g_i2c_write_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -969,6 +1010,8 @@ int main(void)
     RUN_TEST(test_lsm6dsl_preserves_transport_errors);
     RUN_TEST(test_lsm6dso_dsr_public_contexts_fail_closed);
     RUN_TEST(test_lsm6dsr_preserves_transport_errors);
+    RUN_TEST(test_lsm6dso_preserves_transport_errors);
+    RUN_TEST(test_lsm6dsr_factories_reject_invalid_context);
     RUN_TEST(test_lsm6dso_dsr_range_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_dsr_rate_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_init_failure_does_not_commit_partial_config_cache);

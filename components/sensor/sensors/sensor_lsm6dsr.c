@@ -177,6 +177,9 @@ static const sensor_ops_t lsm6dsr_gyro_ops = {
 
 sensor_device_t *lsm6dsr_create_accel(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm6dsr_priv_t *priv = (lsm6dsr_priv_t *)SENSOR_MALLOC(sizeof(lsm6dsr_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
@@ -209,6 +212,9 @@ sensor_device_t *lsm6dsr_create_accel(const char *name, void *i2c_bus, uint8_t a
 
 sensor_device_t *lsm6dsr_create_gyro(const char *name, void *i2c_bus, uint8_t addr)
 {
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
     sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
     lsm6dsr_priv_t *priv = (lsm6dsr_priv_t *)SENSOR_MALLOC(sizeof(lsm6dsr_priv_t));
     if (!sensor || !priv) { SENSOR_FREE(sensor); SENSOR_FREE(priv); return NULL; }
