@@ -988,6 +988,33 @@ static void test_lsm6dso_preserves_transport_errors(void)
     destroy_sensor(sensor);
 }
 
+static void test_lsm6_range_setters_reject_post_deinit_devices(void)
+{
+    int bus;
+    sensor_device_t *dsl = lsm6dsl_create_accel("dsl-lifecycle", &bus, 3U);
+    sensor_device_t *dso = lsm6dso_create_accel("dso-lifecycle", &bus, 5U);
+    sensor_device_t *dsr = lsm6dsr_create_accel("dsr-lifecycle", &bus, 7U);
+
+    TEST_ASSERT_NOT_NULL(dsl);
+    TEST_ASSERT_NOT_NULL(dso);
+    TEST_ASSERT_NOT_NULL(dsr);
+    dsl->odr = 0U;
+    dso->odr = 0U;
+    dsr->odr = 0U;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsl_set_accel_range(dsl, LSM6DSL_ACCEL_RANGE_4G));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsl_set_gyro_range(dsl, LSM6DSL_GYRO_RANGE_500DPS));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dso_set_accel_range(dso, LSM6DSO_ACCEL_RANGE_4G));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dso_set_gyro_range(dso, LSM6DSO_GYRO_RANGE_500DPS));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsr_set_accel_range(dsr, LSM6DSR_ACCEL_RANGE_4G));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, lsm6dsr_set_gyro_range(dsr, LSM6DSR_GYRO_RANGE_500DPS));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index + g_i2c_write_index + g_spi_send_index);
+
+    destroy_sensor(dsl);
+    destroy_sensor(dso);
+    destroy_sensor(dsr);
+}
+
 static void test_lsm6dsr_factories_reject_invalid_context(void)
 {
     int bus;
@@ -1011,6 +1038,7 @@ int main(void)
     RUN_TEST(test_lsm6dso_dsr_public_contexts_fail_closed);
     RUN_TEST(test_lsm6dsr_preserves_transport_errors);
     RUN_TEST(test_lsm6dso_preserves_transport_errors);
+    RUN_TEST(test_lsm6_range_setters_reject_post_deinit_devices);
     RUN_TEST(test_lsm6dsr_factories_reject_invalid_context);
     RUN_TEST(test_lsm6dso_dsr_range_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_dsr_rate_boundaries_fail_closed);

@@ -510,7 +510,7 @@ int lsm6dso_set_accel_range(sensor_device_t *dev, uint8_t range)
     lsm6dso_priv_t *priv;
     uint8_t ctrl1       = 0;
 
-    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL ||
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || dev->odr == 0U ||
         (range != LSM6DSO_ACCEL_RANGE_2G && range != LSM6DSO_ACCEL_RANGE_4G &&
          range != LSM6DSO_ACCEL_RANGE_8G && range != LSM6DSO_ACCEL_RANGE_16G)) {
         return SENSOR_EINVAL;
@@ -538,7 +538,7 @@ int lsm6dso_set_gyro_range(sensor_device_t *dev, uint8_t range)
     lsm6dso_priv_t *priv;
     uint8_t ctrl2       = 0;
 
-    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL ||
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || dev->odr == 0U ||
         (range != LSM6DSO_GYRO_RANGE_250DPS && range != LSM6DSO_GYRO_RANGE_125DPS &&
          range != LSM6DSO_GYRO_RANGE_500DPS && range != LSM6DSO_GYRO_RANGE_1000DPS &&
          range != LSM6DSO_GYRO_RANGE_2000DPS)) {
