@@ -110,7 +110,7 @@ int xy_max17043_read(xy_max17043_t *max17043)
     uint16_t raw_value;
     xy_max17043_data_t staged;
     
-    if (!max17043 || !max17043->initialized) {
+    if (!max17043 || !max17043->initialized || !max17043->i2c_dev.base.initialized) {
         return XY_MAX17043_INVALID_PARAM;
     }
 

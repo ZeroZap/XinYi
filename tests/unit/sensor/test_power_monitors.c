@@ -603,6 +603,22 @@ static void test_ina226_init_write_failures_deinit_and_getters_preserve_outputs(
     TEST_ASSERT_TRUE(ina.initialized);
 }
 
+static void test_max17043_read_rejects_missing_i2c_context_atomically(void)
+{
+    xy_max17043_t gauge;
+    int bus;
+
+    init_max_ok(&gauge, &bus);
+    gauge.data.voltage_mv = 3456.0f;
+    const xy_max17043_data_t snapshot = gauge.data;
+    gauge.i2c_dev.base.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_read(&gauge));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &gauge.data, sizeof(snapshot));
+    TEST_ASSERT_EQUAL_UINT(g_read_count, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_write_count, g_write_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -612,6 +628,7 @@ int main(void)
     RUN_TEST(test_max17043_init_and_reset_write_failures_fail_closed);
     RUN_TEST(test_max17043_getters_propagate_read_failures_and_preserve_outputs);
     RUN_TEST(test_max17043_boundary_conversions_and_config_toggles);
+    RUN_TEST(test_max17043_read_rejects_missing_i2c_context_atomically);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
     RUN_TEST(test_ina226_read_failure_stops_and_preserves_snapshot);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
