@@ -196,6 +196,7 @@ int iis2iclp_set_range(sensor_device_t *dev, uint8_t range)
     sensor_err_t ret;
 
     if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL ||
+        ((iis2iclp_priv_t *)dev->priv_data)->initialized == 0U ||
         range > IIS2ICLP_RANGE_16G) return SENSOR_EINVAL;
     ret = iis2iclp_reg_read(dev, IIS2ICLP_REG_CTRL1, &ctrl1);
     if (ret != SENSOR_EOK) return ret;

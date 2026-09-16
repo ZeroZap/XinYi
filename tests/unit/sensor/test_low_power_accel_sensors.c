@@ -1033,6 +1033,7 @@ static void test_iis2iclp_propagates_i2c_and_spi_failures_without_cache_updates(
 
     setUp();
     ((iis2iclp_priv_t *)sensor->priv_data)->range = 4U;
+    ((iis2iclp_priv_t *)sensor->priv_data)->initialized = 1U;
     queue_i2c_read8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1, 0x50U, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, IIS2ICLP_ADDR_DEFAULT, IIS2ICLP_REG_CTRL1,
                      (uint8_t)((0x50U & 0xFCU) | IIS2ICLP_RANGE_16G), SENSOR_ETIMEOUT);
@@ -1097,6 +1098,12 @@ static void test_iis2iclp_public_ops_reject_invalid_context_without_io(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, iis2iclp_set_range(sensor, IIS2ICLP_RANGE_2G));
     sensor->bus = &fake_bus;
+
+    ((iis2iclp_priv_t *)sensor->priv_data)->initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          iis2iclp_set_range(sensor, IIS2ICLP_RANGE_2G));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
 
     priv = sensor->priv_data;
     sensor->priv_data = NULL;
