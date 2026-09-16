@@ -571,6 +571,19 @@ static void test_ltc2945_read_rejects_missing_i2c_context_atomically(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static void test_ltc2945_controls_reject_missing_i2c_context_without_io(void)
+{
+    xy_ltc2945_t ltc;
+    int bus;
+
+    init_ltc_ok(&ltc, &bus);
+    ltc.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_reset_counters(&ltc));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_enable_alert(&ltc, true));
+    TEST_ASSERT_TRUE(ltc.config.auto_convert);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -587,5 +600,6 @@ int main(void)
     RUN_TEST(test_ads1115_read_paths_reject_missing_i2c_context);
     RUN_TEST(test_ads1115_setters_reject_missing_i2c_context_without_cache_change);
     RUN_TEST(test_ltc2945_read_rejects_missing_i2c_context_atomically);
+    RUN_TEST(test_ltc2945_controls_reject_missing_i2c_context_without_io);
     return UNITY_END();
 }

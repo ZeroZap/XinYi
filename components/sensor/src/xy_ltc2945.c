@@ -260,7 +260,7 @@ int xy_ltc2945_get_energy(xy_ltc2945_t *ltc2945, float *energy_j)
 
 int xy_ltc2945_reset_counters(xy_ltc2945_t *ltc2945)
 {
-    if (!ltc2945) {
+    if (!ltc2945 || !ltc2945->initialized || !ltc2945->i2c_dev.base.initialized) {
         return XY_LTC2945_INVALID_PARAM;
     }
     
@@ -271,7 +271,7 @@ int xy_ltc2945_reset_counters(xy_ltc2945_t *ltc2945)
 
 int xy_ltc2945_enable_alert(xy_ltc2945_t *ltc2945, bool enable)
 {
-    if (!ltc2945) {
+    if (!ltc2945 || !ltc2945->initialized || !ltc2945->i2c_dev.base.initialized) {
         return XY_LTC2945_INVALID_PARAM;
     }
     
