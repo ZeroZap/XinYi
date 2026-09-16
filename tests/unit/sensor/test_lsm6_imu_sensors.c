@@ -1026,6 +1026,39 @@ static void test_lsm6dsr_factories_reject_invalid_context(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_index + g_i2c_write_index);
 }
 
+static void test_lsm6dso_dsr_range_setters_preserve_transport_errors(void)
+{
+    int bus;
+    sensor_device_t *dso = lsm6dso_create_accel("dso-range-errors", &bus, 0U);
+    sensor_device_t *dsr = lsm6dsr_create_accel("dsr-range-errors", &bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(dso);
+    TEST_ASSERT_NOT_NULL(dsr);
+    dso->odr = 208U;
+    dsr->odr = 208U;
+
+    queue_i2c_read8(&bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          lsm6dso_set_accel_range(dso, LSM6DSO_ACCEL_RANGE_4G));
+    queue_i2c_read8(&bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0x40U,
+                    SENSOR_EOK);
+    queue_i2c_write8(&bus, LSM6DSO_ADDR_DEFAULT, LSM6DSO_REG_CTRL1_XL, 0x48U,
+                     SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          lsm6dso_set_accel_range(dso, LSM6DSO_ACCEL_RANGE_4G));
+
+    queue_i2c_read8(&bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0x40U,
+                    SENSOR_EOK);
+    queue_i2c_write8(&bus, LSM6DSR_ADDR_DEFAULT, LSM6DSR_REG_CTRL2_G, 0x44U,
+                     SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          lsm6dsr_set_gyro_range(dsr, LSM6DSR_GYRO_RANGE_500DPS));
+
+    destroy_sensor(dso);
+    destroy_sensor(dsr);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1042,6 +1075,7 @@ int main(void)
     RUN_TEST(test_lsm6dsr_factories_reject_invalid_context);
     RUN_TEST(test_lsm6dso_dsr_range_boundaries_fail_closed);
     RUN_TEST(test_lsm6dso_dsr_rate_boundaries_fail_closed);
+    RUN_TEST(test_lsm6dso_dsr_range_setters_preserve_transport_errors);
     RUN_TEST(test_lsm6dso_init_failure_does_not_commit_partial_config_cache);
     RUN_TEST(test_lsm6dso_reinit_success_resynchronizes_public_odr);
     RUN_TEST(test_lsm6dso_i2c_accel_gyro_init_read_helpers_and_errors);

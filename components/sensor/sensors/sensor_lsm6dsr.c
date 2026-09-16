@@ -319,15 +319,18 @@ int lsm6dsr_set_accel_range(sensor_device_t *dev, uint8_t range)
 {
     lsm6dsr_priv_t *priv;
     uint8_t ctrl1;
+    sensor_err_t ret;
     if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || dev->odr == 0U ||
         (range != LSM6DSR_ACCEL_RANGE_2G && range != LSM6DSR_ACCEL_RANGE_4G &&
          range != LSM6DSR_ACCEL_RANGE_8G && range != LSM6DSR_ACCEL_RANGE_16G)) {
         return SENSOR_EINVAL;
     }
     priv = (lsm6dsr_priv_t *)dev->priv_data;
-    if (lsm6dsr_reg_read(dev, LSM6DSR_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsr_reg_read(dev, LSM6DSR_REG_CTRL1_XL, &ctrl1);
+    if (ret != SENSOR_EOK) return ret;
     ctrl1 = (uint8_t)((ctrl1 & 0xF3U) | ((range & 0x03U) << 2));
-    if (lsm6dsr_reg_write(dev, LSM6DSR_REG_CTRL1_XL, ctrl1) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsr_reg_write(dev, LSM6DSR_REG_CTRL1_XL, ctrl1);
+    if (ret != SENSOR_EOK) return ret;
     priv->accel_range = range;
     return 0;
 }
@@ -336,6 +339,7 @@ int lsm6dsr_set_gyro_range(sensor_device_t *dev, uint8_t range)
 {
     lsm6dsr_priv_t *priv;
     uint8_t ctrl2;
+    sensor_err_t ret;
     if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL || dev->odr == 0U ||
         (range != LSM6DSR_GYRO_RANGE_250DPS && range != LSM6DSR_GYRO_RANGE_125DPS &&
          range != LSM6DSR_GYRO_RANGE_500DPS && range != LSM6DSR_GYRO_RANGE_1000DPS &&
@@ -343,9 +347,11 @@ int lsm6dsr_set_gyro_range(sensor_device_t *dev, uint8_t range)
         return SENSOR_EINVAL;
     }
     priv = (lsm6dsr_priv_t *)dev->priv_data;
-    if (lsm6dsr_reg_read(dev, LSM6DSR_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsr_reg_read(dev, LSM6DSR_REG_CTRL2_G, &ctrl2);
+    if (ret != SENSOR_EOK) return ret;
     ctrl2 = (uint8_t)((ctrl2 & 0xF1U) | ((range & 0x07U) << 1));
-    if (lsm6dsr_reg_write(dev, LSM6DSR_REG_CTRL2_G, ctrl2) != SENSOR_EOK) return SENSOR_EIO;
+    ret = lsm6dsr_reg_write(dev, LSM6DSR_REG_CTRL2_G, ctrl2);
+    if (ret != SENSOR_EOK) return ret;
     priv->gyro_range = range;
     return 0;
 }
