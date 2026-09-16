@@ -1133,6 +1133,28 @@ static void test_kx023_create_rejects_null_name_or_bus(void)
     TEST_ASSERT_NULL(kx023_create(NULL, &fake_bus));
     TEST_ASSERT_NULL(kx023_create("kx023", NULL));
 }
+static void test_kx023_read_propagates_transport_error_and_preserves_output(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = kx023_create("kx023-read-timeout", &fake_bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE,
+                          .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
+                          .value.val_3axis = {.x = 11, .y = 22, .z = 33},
+                          .timestamp = 42U,
+                          .accuracy = 7U};
+    const sensor_data_t snapshot = data;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    ((kx023_priv_t *)sensor->priv_data)->initialized = 1U;
+    queue_i2c_read(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_XOUT_L, NULL, 6U,
+                   SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1149,6 +1171,7 @@ int main(void)
     RUN_TEST(test_kx023_propagates_config_write_failures);
     RUN_TEST(test_kx023_init_rejects_invalid_context_without_io);
     RUN_TEST(test_kx023_public_ops_reject_invalid_context_without_io);
+    RUN_TEST(test_kx023_read_propagates_transport_error_and_preserves_output);
     RUN_TEST(test_lis2dw12_create_init_read_deinit_and_setters);
     RUN_TEST(test_lis2dw12_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates);

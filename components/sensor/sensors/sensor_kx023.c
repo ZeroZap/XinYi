@@ -100,9 +100,9 @@ static sensor_err_t kx023_read(sensor_device_t *sensor, sensor_data_t *data)
     int16_t raw[3];
 
     /* 读取6字节加速度数据 */
-    if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, KX023_REG_XOUT_L, buf, 6)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, KX023_REG_XOUT_L, buf, 6);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 */
