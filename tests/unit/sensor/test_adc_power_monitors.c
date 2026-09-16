@@ -546,6 +546,31 @@ static void test_ads1115_setters_reject_missing_i2c_context_without_cache_change
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static void test_ltc2945_read_rejects_missing_i2c_context_atomically(void)
+{
+    xy_ltc2945_t ltc;
+    int bus;
+    const xy_ltc2945_config_t config = {
+        .shunt_resistor_mohm = 10.0f,
+        .auto_convert = true,
+        .alert_gpio_config = 0U,
+    };
+
+    queue_read8(LTC2945_REG_STATUS, 0U, XY_DEVICE_OK);
+    queue_write(LTC2945_REG_CONTROL, 0x08U, XY_DEVICE_OK);
+    queue_write(LTC2945_REG_CTRL_GPIO, 0U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK,
+                          xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR0, &config));
+    ltc.data.voltage_v = 12.5f;
+    ltc.data.current_a = 3.5f;
+    const xy_ltc2945_data_t snapshot = ltc.data;
+    ltc.i2c_dev.base.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_read(&ltc));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &ltc.data, sizeof(snapshot));
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -561,5 +586,6 @@ int main(void)
     RUN_TEST(test_ads1115_diff_mux_variants_and_voltage_ranges);
     RUN_TEST(test_ads1115_read_paths_reject_missing_i2c_context);
     RUN_TEST(test_ads1115_setters_reject_missing_i2c_context_without_cache_change);
+    RUN_TEST(test_ltc2945_read_rejects_missing_i2c_context_atomically);
     return UNITY_END();
 }

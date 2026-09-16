@@ -131,7 +131,7 @@ int xy_ltc2945_read(xy_ltc2945_t *ltc2945)
     uint16_t raw16;
     xy_ltc2945_data_t next;
 
-    if (!ltc2945 || !ltc2945->initialized) {
+    if (!ltc2945 || !ltc2945->initialized || !ltc2945->i2c_dev.base.initialized) {
         return XY_LTC2945_INVALID_PARAM;
     }
 
