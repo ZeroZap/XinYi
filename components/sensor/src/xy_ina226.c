@@ -131,7 +131,7 @@ int xy_ina_deinit(xy_ina_t *ina)
 {
     int ret;
 
-    if (!ina) {
+    if (!ina || !ina->initialized || !ina->i2c_dev.base.initialized) {
         return XY_INA_INVALID_PARAM;
     }
 
@@ -249,7 +249,7 @@ int xy_ina_enable_alert(xy_ina_t *ina, bool enable)
 {
     uint16_t alert_reg;
     
-    if (!ina) {
+    if (!ina || !ina->initialized || !ina->i2c_dev.base.initialized) {
         return XY_INA_INVALID_PARAM;
     }
     
