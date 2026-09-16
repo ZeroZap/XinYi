@@ -60,7 +60,11 @@ int xy_ina_init(xy_ina_t *ina, void *i2c_handle, uint8_t addr, const xy_ina_conf
     
     /* 读取 ID */
     ret = xy_ina_read_reg(ina, INA226_REG_MFG_ID, &mfg_id);
-    if (ret != XY_DEVICE_OK || mfg_id != INA226_MFG_ID_VALUE) {
+    if (ret != XY_DEVICE_OK) {
+        memset(ina, 0, sizeof(*ina));
+        return ret;
+    }
+    if (mfg_id != INA226_MFG_ID_VALUE) {
         xy_log_e("INA MFG ID mismatch (0x%04X)\n", mfg_id);
         memset(ina, 0, sizeof(*ina));
         return XY_INA_NOT_FOUND;

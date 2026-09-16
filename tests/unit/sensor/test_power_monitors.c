@@ -379,6 +379,14 @@ static void test_ina229_detection_and_invalid_paths(void)
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_enable_alert(NULL, false));
 
     setUp();
+    memset(&ina, 0xA5, sizeof(ina));
+    queue_read16(INA226_REG_MFG_ID, 0x0000U, XY_DEVICE_BUSY);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_FALSE(ina.initialized);
+    TEST_ASSERT_NULL(ina.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+
+    setUp();
     queue_read16(INA226_REG_MFG_ID, 0x0000U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_INA_NOT_FOUND, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
 }
@@ -550,7 +558,7 @@ static void test_ina226_post_helper_init_failure_clears_device_state(void)
     memset(&ina, 0xA5, sizeof(ina));
     queue_read16(INA226_REG_MFG_ID, 0U, XY_DEVICE_ERROR);
 
-    TEST_ASSERT_EQUAL_INT(XY_INA_NOT_FOUND,
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
                           xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
     TEST_ASSERT_FALSE(ina.initialized);
     TEST_ASSERT_FALSE(ina.i2c_dev.base.initialized);
