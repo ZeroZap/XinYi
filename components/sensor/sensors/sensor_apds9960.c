@@ -7,7 +7,7 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
 
 static sensor_err_t apds9960_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -42,7 +42,7 @@ static sensor_err_t apds9960_init(sensor_device_t *sensor)
 
 static sensor_err_t apds9960_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -60,7 +60,7 @@ static sensor_err_t apds9960_deinit(sensor_device_t *sensor)
 static sensor_err_t apds9960_rgb_read(sensor_device_t *sensor,
                                       sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -96,7 +96,7 @@ static sensor_err_t apds9960_rgb_read(sensor_device_t *sensor,
 static sensor_err_t apds9960_proximity_read(sensor_device_t *sensor,
                                             sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -122,7 +122,7 @@ static sensor_err_t apds9960_proximity_read(sensor_device_t *sensor,
 static sensor_err_t apds9960_gesture_read(sensor_device_t *sensor,
                                           sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -147,6 +147,9 @@ static sensor_err_t apds9960_gesture_read(sensor_device_t *sensor,
             return SENSOR_EIO;
         }
 
+        if (fifo_level > 32U) {
+            return SENSOR_EINVAL;
+        }
         if (fifo_level > 0) {
             /* 读取FIFO数据并解析手势 */
             if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_GFIFO_U, fifo_data,

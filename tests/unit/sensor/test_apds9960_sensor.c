@@ -319,6 +319,27 @@ static void test_gesture_reads_fifo_level_before_fifo_data(void)
     destroy_sensor(sensor);
 }
 
+static void test_gesture_rejects_fifo_level_that_exceeds_local_buffer(void)
+{
+    int bus;
+    sensor_device_t *sensor = apds9960_create_gesture("apds-gesture-range", &bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_TEMPERATURE,
+                          .value.val_uint32 = 0xA5A5A5A5U,
+                          .timestamp = 123U,
+                          .accuracy = 12U};
+    sensor_data_t snapshot = data;
+    uint8_t gstatus = 0x01U;
+    uint8_t fifo_level = 33U;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GSTATUS, &gstatus, 1U, 0);
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GFLVL, &fifo_level, 1U, 0);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    assert_output_unchanged(&snapshot, &data);
+    assert_no_extra_i2c();
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -330,5 +351,6 @@ int main(void)
     RUN_TEST(test_missing_private_data_is_rejected_without_i2c_side_effects);
     RUN_TEST(test_gesture_valid_status_propagates_fifo_level_read_failure);
     RUN_TEST(test_gesture_reads_fifo_level_before_fifo_data);
+    RUN_TEST(test_gesture_rejects_fifo_level_that_exceeds_local_buffer);
     return UNITY_END();
 }
