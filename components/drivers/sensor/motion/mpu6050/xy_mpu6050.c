@@ -257,7 +257,8 @@ int xy_mpu6050_read_temperature(xy_mpu6050_t *dev, float *temp)
 
 int xy_mpu6050_set_accel_range(xy_mpu6050_t *dev, xy_mpu6050_accel_range_t range)
 {
-    if (!dev || !dev->initialized || range > MPU6050_ACCEL_16G) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized
+        || range > MPU6050_ACCEL_16G) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
@@ -270,7 +271,8 @@ int xy_mpu6050_set_accel_range(xy_mpu6050_t *dev, xy_mpu6050_accel_range_t range
 
 int xy_mpu6050_set_gyro_range(xy_mpu6050_t *dev, xy_mpu6050_gyro_range_t range)
 {
-    if (!dev || !dev->initialized || range > MPU6050_GYRO_2000DPS) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized
+        || range > MPU6050_GYRO_2000DPS) {
         return XY_MPU6050_INVALID_PARAM;
     }
 

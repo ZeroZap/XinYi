@@ -490,6 +490,25 @@ static void test_mpu6050_calibrate_failure_preserves_calibration(void)
     TEST_ASSERT_EQUAL_UINT32(110U, g_delay_total);
 }
 
+static void test_mpu6050_range_setters_reject_missing_helper_context(void)
+{
+    xy_mpu6050_t dev;
+    int bus;
+
+    init_mpu_ok(&dev, &bus);
+    dev.i2c_dev.base.initialized = 0;
+    dev.accel_range = MPU6050_ACCEL_2G;
+    dev.gyro_range = MPU6050_GYRO_250DPS;
+
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM,
+                          xy_mpu6050_set_accel_range(&dev, MPU6050_ACCEL_8G));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM,
+                          xy_mpu6050_set_gyro_range(&dev, MPU6050_GYRO_1000DPS));
+    TEST_ASSERT_EQUAL_INT(MPU6050_ACCEL_2G, dev.accel_range);
+    TEST_ASSERT_EQUAL_INT(MPU6050_GYRO_250DPS, dev.gyro_range);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -507,5 +526,6 @@ int main(void)
     RUN_TEST(test_mpu6050_read_helpers_successfully_copy_converted_values);
     RUN_TEST(test_mpu6050_calibrate_averages_offsets);
     RUN_TEST(test_mpu6050_calibrate_failure_preserves_calibration);
+    RUN_TEST(test_mpu6050_range_setters_reject_missing_helper_context);
     return UNITY_END();
 }
