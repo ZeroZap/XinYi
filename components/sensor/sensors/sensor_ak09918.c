@@ -10,7 +10,7 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 
 static sensor_err_t ak09918_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -18,20 +18,23 @@ static sensor_err_t ak09918_init(sensor_device_t *sensor)
     ak09918_priv_t *priv = (ak09918_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing AK09918");
 
-    if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, AK09918_REG_WHOAMI, &data, 1) != SENSOR_EOK) return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, AK09918_REG_WHOAMI, &data, 1);
+    if (ret != SENSOR_EOK) return (sensor_err_t)ret;
     if (data != AK09918_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong WHO_AM_I: 0x%02X", data);
         return SENSOR_ERROR;
     }
 
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL2,
-                          (uint8_t[]){0x08}, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL2,
+                            (uint8_t[]){0x08}, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_DELAY_MS(50);
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL1,
-                          (uint8_t[]){0x1F}, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL1,
+                            (uint8_t[]){0x1F}, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_LOG("AK09918 initialized");
     return SENSOR_EOK;
@@ -39,21 +42,22 @@ static sensor_err_t ak09918_init(sensor_device_t *sensor)
 
 static sensor_err_t ak09918_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
     ak09918_priv_t *priv = (ak09918_priv_t *)sensor->priv_data;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL1,
-                          (uint8_t[]){0x00}, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AK09918_REG_CTRL1,
+                                (uint8_t[]){0x00}, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     return SENSOR_EOK;
 }
 
 static sensor_err_t ak09918_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 

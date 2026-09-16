@@ -643,6 +643,27 @@ static void test_ist8310_preserves_transport_errors(void)
     destroy_sensor(sensor);
 }
 
+static void test_ak09918_lifecycle_propagates_transport_errors(void)
+{
+    int fake_bus;
+    const uint8_t whoami = AK09918_WHOAMI_VALUE;
+    sensor_device_t *sensor = ak09918_create("ak09918-errors", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_read(&fake_bus, AK09918_ADDR_DEFAULT, AK09918_REG_WHOAMI, &whoami, 1U,
+               SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+
+    queue_write(&fake_bus, AK09918_ADDR_DEFAULT, AK09918_REG_CTRL1, 0x00U,
+                SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
+
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -660,5 +681,6 @@ int main(void)
     RUN_TEST(test_qmc5883l_read_propagates_first_transport_error);
     RUN_TEST(test_ist8310_read_propagates_first_transport_error);
     RUN_TEST(test_ak09918_read_propagates_first_transport_error);
+    RUN_TEST(test_ak09918_lifecycle_propagates_transport_errors);
     return UNITY_END();
 }
