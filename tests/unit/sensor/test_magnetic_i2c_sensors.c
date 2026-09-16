@@ -177,6 +177,11 @@ static void test_qmc5883l_io_failures_stop_and_preserve_outputs(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT32(77U, sensor->odr);
 
+    queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL2, 0x80U,
+                SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(77U, sensor->odr);
+
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL2, 0x80U, SENSOR_EOK);
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL1, 0x0DU, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
@@ -195,6 +200,10 @@ static void test_qmc5883l_io_failures_stop_and_preserve_outputs(void)
 
     queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL1, 0x00U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+
+    queue_write(&fake_bus, QMC5883L_ADDR_DEFAULT, QMC5883L_REG_CONTROL1, 0x00U,
+                SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
 
     assert_queues_drained();
     destroy_sensor(sensor);
@@ -694,5 +703,6 @@ int main(void)
     RUN_TEST(test_ist8310_read_propagates_first_transport_error);
     RUN_TEST(test_ak09918_read_propagates_first_transport_error);
     RUN_TEST(test_ak09918_lifecycle_propagates_transport_errors);
+    RUN_TEST(test_cmm905_deinit_propagates_transport_error);
     return UNITY_END();
 }

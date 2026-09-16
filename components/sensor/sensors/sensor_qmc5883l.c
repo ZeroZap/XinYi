@@ -21,27 +21,27 @@ static sensor_err_t qmc5883l_init(sensor_device_t *sensor)
 
     /* 软复位 */
     data = 0x80;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, QMC5883L_REG_CONTROL2, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, QMC5883L_REG_CONTROL2, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_DELAY_MS(10);
 
     /* 配置CONTROL1: 连续模式, ODR=200Hz, RNG=±2G, OSR=512 */
     data = 0x0D;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, QMC5883L_REG_CONTROL1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, QMC5883L_REG_CONTROL1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 设置SET/RESET周期 */
     data = 0x01;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, QMC5883L_REG_PERIOD, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, QMC5883L_REG_PERIOD, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->range = 2;
@@ -64,11 +64,9 @@ static sensor_err_t qmc5883l_deinit(sensor_device_t *sensor)
     qmc5883l_priv_t *priv = (qmc5883l_priv_t *)sensor->priv_data;
     uint8_t data          = 0x00; /* 待机模式 */
 
-    return (hal_i2c_mem_write(
-                sensor->bus, priv->i2c_addr, QMC5883L_REG_CONTROL1, &data, 1)
-            == 0)
-               ? SENSOR_EOK
-               : SENSOR_EIO;
+    int ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, QMC5883L_REG_CONTROL1, &data, 1);
+    return ret == SENSOR_EOK ? SENSOR_EOK : (sensor_err_t)ret;
 }
 
 /**
