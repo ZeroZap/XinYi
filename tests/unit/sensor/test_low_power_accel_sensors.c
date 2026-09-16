@@ -1155,6 +1155,31 @@ static void test_kx023_read_propagates_transport_error_and_preserves_output(void
     destroy_sensor(sensor);
 }
 
+static void test_kx023_init_propagates_timeout_atomically(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = kx023_create("kx023-init-timeout", &fake_bus);
+    kx023_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    priv = (kx023_priv_t *)sensor->priv_data;
+    priv->odr = KX023_ODR_12_5HZ;
+    priv->mode = KX023_MODE_LOW_POWER;
+    priv->initialized = 1U;
+
+    queue_i2c_read8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_WHO_AM_I, 0U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_EQUAL_INT(KX023_ODR_12_5HZ, priv->odr);
+    TEST_ASSERT_EQUAL_INT(KX023_MODE_LOW_POWER, priv->mode);
+    TEST_ASSERT_EQUAL_UINT8(1U, priv->initialized);
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1172,6 +1197,7 @@ int main(void)
     RUN_TEST(test_kx023_init_rejects_invalid_context_without_io);
     RUN_TEST(test_kx023_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_kx023_read_propagates_transport_error_and_preserves_output);
+    RUN_TEST(test_kx023_init_propagates_timeout_atomically);
     RUN_TEST(test_lis2dw12_create_init_read_deinit_and_setters);
     RUN_TEST(test_lis2dw12_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates);

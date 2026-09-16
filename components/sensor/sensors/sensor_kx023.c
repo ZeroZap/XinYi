@@ -17,10 +17,10 @@ static sensor_err_t kx023_init(sensor_device_t *sensor)
     SENSOR_LOG("Initializing KX023");
 
     /* 检查WHO_AM_I */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, KX023_REG_WHO_AM_I, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, KX023_REG_WHO_AM_I, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (data != KX023_WHO_AM_I_VALUE) {
@@ -30,32 +30,32 @@ static sensor_err_t kx023_init(sensor_device_t *sensor)
 
     /* 软复位 */
     data = 0x80;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, KX023_REG_SOFT_REST, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, KX023_REG_SOFT_REST, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_DELAY_MS(10);
 
     /* 配置CNTL1: 待机模式, ±2g */
     data = 0x00;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, KX023_REG_CNTL1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, KX023_REG_CNTL1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 配置ODCNTL: 12.5Hz */
     data = KX023_ODR_12_5HZ;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, KX023_REG_ODCNTL, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, KX023_REG_ODCNTL, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 启动低功耗模式 */
     data = KX023_MODE_LOW_POWER;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, KX023_REG_CNTL1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, KX023_REG_CNTL1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->odr = KX023_ODR_12_5HZ;
