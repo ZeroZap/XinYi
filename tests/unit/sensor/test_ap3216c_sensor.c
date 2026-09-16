@@ -197,13 +197,13 @@ static void test_init_deinit_propagate_config_write_failures(void)
 
     TEST_ASSERT_NOT_NULL(sensor);
     queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &reset, 1U, -5);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(-5, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
     assert_no_extra_i2c();
 
     queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &reset, 1U, 0);
     queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &mode, 1U, -6);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(-6, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT32(50U, g_delay_total_ms);
     assert_no_extra_i2c();
 
@@ -214,7 +214,7 @@ static void test_init_deinit_propagate_config_write_failures(void)
     assert_no_extra_i2c();
 
     queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &off, 1U, -7);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(-7, sensor->ops->deinit(sensor));
     assert_no_extra_i2c();
 
     queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &off, 1U, 0);
@@ -287,7 +287,7 @@ static void test_read_failures_and_overflow_preserve_output(void)
     TEST_ASSERT_NOT_NULL(ir);
 
     queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_ALS_DATA_L, NULL, 2U, -1);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, light->ops->read(light, &data));
+    TEST_ASSERT_EQUAL_INT(-1, light->ops->read(light, &data));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
 
     queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_PS_DATA_L, overflow, sizeof(overflow), 0);
@@ -295,7 +295,7 @@ static void test_read_failures_and_overflow_preserve_output(void)
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
 
     queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_IR_DATA_L, NULL, 2U, -2);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, ir->ops->read(ir, &data));
+    TEST_ASSERT_EQUAL_INT(-2, ir->ops->read(ir, &data));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
     assert_no_extra_i2c();
 

@@ -16,23 +16,23 @@ static sensor_err_t ap3216c_init(sensor_device_t *sensor)
 
     ap3216c_priv_t *priv = (ap3216c_priv_t *)sensor->priv_data;
     uint8_t data;
+    int ret;
 
     SENSOR_LOG("Initializing AP3216C");
 
     /* 复位 */
     data = 0x04;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_DELAY_MS(50);
 
     /* 设置工作模式 */
     data = priv->mode;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     SENSOR_DELAY_MS(50);
@@ -54,9 +54,9 @@ static sensor_err_t ap3216c_deinit(sensor_device_t *sensor)
     ap3216c_priv_t *priv = (ap3216c_priv_t *)sensor->priv_data;
     uint8_t data         = AP3216C_MODE_POWER_DOWN;
 
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, AP3216C_REG_SYS_CONFIG, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     return SENSOR_EOK;
@@ -76,10 +76,9 @@ static sensor_err_t ap3216c_light_read(sensor_device_t *sensor,
     uint8_t buf[2];
 
     /* 读取ALS数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, AP3216C_REG_ALS_DATA_L, buf, 2)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, AP3216C_REG_ALS_DATA_L, buf, 2);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 (16位) */
@@ -111,10 +110,9 @@ static sensor_err_t ap3216c_proximity_read(sensor_device_t *sensor,
     uint8_t buf[2];
 
     /* 读取PS数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, AP3216C_REG_PS_DATA_L, buf, 2)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, AP3216C_REG_PS_DATA_L, buf, 2);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 检查数据有效性 */
@@ -149,10 +147,9 @@ static sensor_err_t ap3216c_ir_read(sensor_device_t *sensor,
     uint8_t buf[2];
 
     /* 读取IR数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, AP3216C_REG_IR_DATA_L, buf, 2)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, AP3216C_REG_IR_DATA_L, buf, 2);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 (10位) */
