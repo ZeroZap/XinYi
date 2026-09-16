@@ -510,6 +510,23 @@ static void test_ads1115_diff_mux_variants_and_voltage_ranges(void)
     TEST_ASSERT_EQUAL_INT32(31, mv);
 }
 
+static void test_ads1115_read_paths_reject_missing_i2c_context(void)
+{
+    xy_ads1115_t ads;
+    int16_t raw = 1234;
+    int bus;
+
+    init_ads_ok(&ads, &bus);
+    ads.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM,
+                          xy_ads1115_read_single(&ads, 0U, &raw));
+    TEST_ASSERT_EQUAL_INT16(1234, raw);
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM,
+                          xy_ads1115_read_diff(&ads, 0U, 1U, &raw));
+    TEST_ASSERT_EQUAL_INT16(1234, raw);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -523,5 +540,6 @@ int main(void)
     RUN_TEST(test_ads1115_propagates_i2c_init_failure_without_bus_io);
     RUN_TEST(test_ads1115_read_voltage_failure_preserves_output);
     RUN_TEST(test_ads1115_diff_mux_variants_and_voltage_ranges);
+    RUN_TEST(test_ads1115_read_paths_reject_missing_i2c_context);
     return UNITY_END();
 }

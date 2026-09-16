@@ -105,7 +105,8 @@ int xy_ads1115_deinit(xy_ads1115_t *dev)
 
 int xy_ads1115_read_single(xy_ads1115_t *dev, uint8_t channel, int16_t *value)
 {
-    if (dev == NULL || value == NULL || dev->initialized == 0U || channel > 3U) {
+    if (dev == NULL || value == NULL || dev->initialized == 0U
+        || dev->i2c_dev.base.initialized == 0U || channel > 3U) {
         return XY_ADS1115_INVALID_PARAM;
     }
     return ads1115_convert(dev, (uint16_t)(4U + channel) << 12, value);
@@ -115,7 +116,8 @@ int xy_ads1115_read_diff(xy_ads1115_t *dev, uint8_t channel_p, uint8_t channel_n
 {
     uint16_t mux;
 
-    if (dev == NULL || value == NULL || dev->initialized == 0U) {
+    if (dev == NULL || value == NULL || dev->initialized == 0U
+        || dev->i2c_dev.base.initialized == 0U) {
         return XY_ADS1115_INVALID_PARAM;
     }
     if (channel_p == 0U && channel_n == 1U) {
