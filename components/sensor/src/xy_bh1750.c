@@ -80,7 +80,8 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
     ret = xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("BH1750 not found\n");
-        return XY_BH1750_NOT_FOUND;
+        memset(bh1750, 0, sizeof(*bh1750));
+        return ret;
     }
     
     xy_os_delay(10);
@@ -89,11 +90,12 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
     cmd = BH1750_CMD_RESET;
     ret = xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
     if (ret != XY_DEVICE_OK) {
+        memset(bh1750, 0, sizeof(*bh1750));
         return ret;
     }
-    
+
     xy_os_delay(10);
-    
+
     bh1750->initialized = true;
     xy_log_i("BH1750 initialized at 0x%02X\n", addr);
     

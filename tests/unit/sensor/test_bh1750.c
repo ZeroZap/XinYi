@@ -137,15 +137,19 @@ static void test_init_rejects_invalid_inputs_and_sends_power_on_reset(void)
     TEST_ASSERT_EQUAL_UINT32(20U, g_delay_total);
 }
 
-static void test_init_reports_not_found_when_power_on_fails(void)
+static void test_init_propagates_power_on_transport_error_and_clears_device(void)
 {
     xy_bh1750_t dev;
     int fake_bus;
 
-    g_write_ret_queue[0] = XY_DEVICE_ERROR;
-    TEST_ASSERT_EQUAL_INT(XY_BH1750_NOT_FOUND, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
-    TEST_ASSERT_FALSE(dev.initialized);
+    memset(&dev, 0xA5, sizeof(dev));
+    g_write_ret_queue[0] = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_ON, g_write_queue[0]);
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_bh1750_t){0}, &dev, sizeof(dev));
 }
 
 static void test_init_propagates_i2c_device_init_failure_without_bus_io(void)
@@ -261,14 +265,15 @@ static void test_get_illuminance_validates_inputs_and_preserves_output_on_failur
     TEST_ASSERT_FLOAT_WITHIN(0.01f, -1.0f, lux);
 }
 
-static void test_init_reset_failure_leaves_device_uninitialized(void)
+static void test_init_reset_failure_clears_device(void)
 {
     xy_bh1750_t dev;
     int fake_bus;
 
-    g_write_ret_queue[1] = XY_DEVICE_ERROR;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
-    TEST_ASSERT_FALSE(dev.initialized);
+    memset(&dev, 0xA5, sizeof(dev));
+    g_write_ret_queue[1] = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_bh1750_t){0}, &dev, sizeof(dev));
     TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
     TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
 }
@@ -421,14 +426,14 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_sends_power_on_reset);
-    RUN_TEST(test_init_reports_not_found_when_power_on_fails);
+    RUN_TEST(test_init_propagates_power_on_transport_error_and_clears_device);
     RUN_TEST(test_init_propagates_i2c_device_init_failure_without_bus_io);
     RUN_TEST(test_read_high_resolution_one_time_converts_raw_lux);
     RUN_TEST(test_read_resolution_and_mode_select_command_and_scale);
     RUN_TEST(test_read_failures_preserve_cached_data_and_stop_early);
     RUN_TEST(test_read_data_failure_preserves_cache_after_measurement_wait);
     RUN_TEST(test_get_illuminance_validates_inputs_and_preserves_output_on_failure);
-    RUN_TEST(test_init_reset_failure_leaves_device_uninitialized);
+    RUN_TEST(test_init_reset_failure_clears_device);
     RUN_TEST(test_power_and_reset_propagate_write_failures);
     RUN_TEST(test_configuration_power_and_reset_validate_inputs);
     RUN_TEST(test_deinit_preserves_initialized_when_power_down_fails);
