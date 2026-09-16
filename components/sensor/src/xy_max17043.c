@@ -79,9 +79,9 @@ int xy_max17043_init(xy_max17043_t *max17043, void *i2c_handle,
         }
     }
     
-    /* 配置休眠模式 */
+    /* 配置休眠模式；初始化阶段尚未发布 driver lifecycle。 */
     if (config->enable_hibernate) {
-        ret = xy_max17043_enable_hibernate(max17043, true);
+        ret = xy_max17043_write_reg(max17043, MAX17043_REG_HIBRT, 0x4000U);
         if (ret != XY_DEVICE_OK) {
             memset(max17043, 0, sizeof(*max17043));
             return ret;
@@ -210,7 +210,7 @@ int xy_max17043_enable_hibernate(xy_max17043_t *max17043, bool enable)
 {
     uint16_t hibrt;
     
-    if (!max17043) {
+    if (!max17043 || !max17043->initialized || !max17043->i2c_dev.base.initialized) {
         return XY_MAX17043_INVALID_PARAM;
     }
     
@@ -228,7 +228,7 @@ int xy_max17043_reset(xy_max17043_t *max17043)
 {
     int ret;
 
-    if (!max17043) {
+    if (!max17043 || !max17043->initialized || !max17043->i2c_dev.base.initialized) {
         return XY_MAX17043_INVALID_PARAM;
     }
 

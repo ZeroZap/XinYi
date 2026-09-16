@@ -619,6 +619,22 @@ static void test_max17043_read_rejects_missing_i2c_context_atomically(void)
     TEST_ASSERT_EQUAL_UINT(g_write_count, g_write_index);
 }
 
+static void test_max17043_controls_reject_missing_i2c_context_without_io(void)
+{
+    xy_max17043_t gauge;
+    int bus;
+
+    init_max_ok(&gauge, &bus);
+    gauge.i2c_dev.base.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM,
+                          xy_max17043_enable_hibernate(&gauge, false));
+    TEST_ASSERT_EQUAL_INT(XY_MAX17043_INVALID_PARAM, xy_max17043_reset(&gauge));
+    TEST_ASSERT_EQUAL_UINT(g_read_count, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_write_count, g_write_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -629,6 +645,7 @@ int main(void)
     RUN_TEST(test_max17043_getters_propagate_read_failures_and_preserve_outputs);
     RUN_TEST(test_max17043_boundary_conversions_and_config_toggles);
     RUN_TEST(test_max17043_read_rejects_missing_i2c_context_atomically);
+    RUN_TEST(test_max17043_controls_reject_missing_i2c_context_without_io);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
     RUN_TEST(test_ina226_read_failure_stops_and_preserves_snapshot);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
