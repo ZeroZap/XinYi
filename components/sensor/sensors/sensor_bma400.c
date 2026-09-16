@@ -13,14 +13,14 @@ static sensor_err_t bma400_init(sensor_device_t *sensor)
 
     bma400_priv_t *priv = (bma400_priv_t *)sensor->priv_data;
     uint8_t data;
+    int ret;
 
     SENSOR_LOG("Initializing BMA400");
 
     /* 检查CHIP_ID */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, BMA400_REG_CHIPID, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, BMA400_REG_CHIPID, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (data != BMA400_CHIP_ID) {
@@ -30,33 +30,31 @@ static sensor_err_t bma400_init(sensor_device_t *sensor)
 
     /* 软复位 */
     data = 0xB6;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMA400_REG_CMD, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMA400_REG_CMD, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_DELAY_MS(10);
 
     /* 配置ACC_CONFIG0: 低功耗模式 */
     data = BMA400_POWER_MODE_LOW_POWER;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG0, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG0, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 配置ACC_CONFIG1: ±2g, OSR=0 (低功耗) */
     data = (BMA400_RANGE_2G << 6) | 0x00;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 配置ACC_CONFIG2: 25Hz */
     data = BMA400_ODR_25HZ;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG2, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG2, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->power_mode = BMA400_POWER_MODE_LOW_POWER;
@@ -78,10 +76,10 @@ static sensor_err_t bma400_deinit(sensor_device_t *sensor)
     bma400_priv_t *priv = (bma400_priv_t *)sensor->priv_data;
     uint8_t data        = BMA400_POWER_MODE_SLEEP;
 
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG0, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG0, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->power_mode = BMA400_POWER_MODE_SLEEP;
@@ -99,10 +97,10 @@ static sensor_err_t bma400_read(sensor_device_t *sensor, sensor_data_t *data)
     int16_t raw[3];
 
     /* 读取6字节加速度数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, BMA400_REG_ACC_X_LSB, buf, 6)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, BMA400_REG_ACC_X_LSB, buf, 6);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 (12位有效) */
@@ -163,10 +161,10 @@ static sensor_err_t bma400_set_power_mode(sensor_device_t *sensor,
         return SENSOR_EINVAL;
     }
 
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG0, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, BMA400_REG_ACC_CONFIG0, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->power_mode = data;

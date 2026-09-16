@@ -451,6 +451,11 @@ static void test_bma400_error_paths(void)
     sensor_device_t *sensor = bma400_create("bma400-err", &fake_bus);
 
     TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CHIPID, 0x00U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+
+    setUp();
     queue_i2c_read8(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_CHIPID, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
     queue_i2c_read(&fake_bus, BMA400_ADDR_DEFAULT, BMA400_REG_ACC_X_LSB, NULL, 6U, SENSOR_EIO);
