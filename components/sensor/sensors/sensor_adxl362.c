@@ -46,8 +46,9 @@ static sensor_err_t adxl362_init(sensor_device_t *sensor)
     SENSOR_LOG("Initializing ADXL362");
 
     /* 检查Device ID */
-    if (adxl362_read_reg(priv->spi_bus, ADXL362_REG_DEVID_AD, &data, 1) != 0) {
-        return SENSOR_EIO;
+    int ret = adxl362_read_reg(priv->spi_bus, ADXL362_REG_DEVID_AD, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (data != ADXL362_DEVID_AD) {
@@ -57,14 +58,16 @@ static sensor_err_t adxl362_init(sensor_device_t *sensor)
 
     /* 配置滤波器: ODR=100Hz, ±2g */
     data = (ADXL362_ODR_100HZ << 3) | ADXL362_RANGE_2G;
-    if (adxl362_write_reg(priv->spi_bus, ADXL362_REG_FILTER_CTL, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = adxl362_write_reg(priv->spi_bus, ADXL362_REG_FILTER_CTL, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 启动测量模式 */
     data = ADXL362_MODE_MEASUREMENT;
-    if (adxl362_write_reg(priv->spi_bus, ADXL362_REG_POWER_CTL, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = adxl362_write_reg(priv->spi_bus, ADXL362_REG_POWER_CTL, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->odr = ADXL362_ODR_100HZ;
@@ -86,8 +89,9 @@ static sensor_err_t adxl362_deinit(sensor_device_t *sensor)
     adxl362_priv_t *priv = (adxl362_priv_t *)sensor->priv_data;
     uint8_t data         = ADXL362_MODE_STANDBY;
 
-    if (adxl362_write_reg(priv->spi_bus, ADXL362_REG_POWER_CTL, &data, 1) != 0) {
-        return SENSOR_EIO;
+    int ret = adxl362_write_reg(priv->spi_bus, ADXL362_REG_POWER_CTL, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->mode = ADXL362_MODE_STANDBY;

@@ -390,6 +390,30 @@ static void test_adxl362_read_propagates_timeout_and_preserves_output(void)
     destroy_sensor(sensor);
 }
 
+static void test_adxl362_lifecycle_propagates_transport_errors(void)
+{
+    int fake_spi;
+    sensor_device_t *sensor = adxl362_create("adxl362-transport", &fake_spi);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_spi_read8(&fake_spi, ADXL362_REG_DEVID_AD, ADXL362_DEVID_AD, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(1U, g_spi_index);
+    TEST_ASSERT_EQUAL_UINT(1U, g_spi_count);
+
+    setUp();
+    ((adxl362_priv_t *)sensor->priv_data)->mode = ADXL362_MODE_MEASUREMENT;
+    queue_spi_write8(&fake_spi, ADXL362_REG_POWER_CTL, ADXL362_MODE_STANDBY,
+                     SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
+    TEST_ASSERT_EQUAL_INT(ADXL362_MODE_MEASUREMENT,
+                          ((adxl362_priv_t *)sensor->priv_data)->mode);
+    TEST_ASSERT_EQUAL_UINT(1U, g_spi_index);
+    TEST_ASSERT_EQUAL_UINT(1U, g_spi_count);
+
+    destroy_sensor(sensor);
+}
+
 static void test_adxl362_public_ops_reject_invalid_context_without_io(void)
 {
     int fake_spi;
@@ -1228,6 +1252,7 @@ int main(void)
     RUN_TEST(test_kx023_create_rejects_null_name_or_bus);
     RUN_TEST(test_adxl362_propagates_config_write_failures_without_cache_updates);
     RUN_TEST(test_adxl362_read_propagates_timeout_and_preserves_output);
+    RUN_TEST(test_adxl362_lifecycle_propagates_transport_errors);
     RUN_TEST(test_adxl362_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_bma400_create_init_read_and_deinit);
     RUN_TEST(test_bma400_error_paths);
