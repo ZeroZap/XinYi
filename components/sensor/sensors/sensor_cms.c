@@ -15,8 +15,9 @@ static sensor_err_t cms_init(sensor_device_t *sensor)
     cms_priv_t *priv = (cms_priv_t *)sensor->priv_data;
 
     SENSOR_LOG("Initializing CMS");
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, CMS_REG_CTRL1, &ctrl, 1U) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t err = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, CMS_REG_CTRL1, &ctrl, 1U);
+    if (err != SENSOR_EOK) {
+        return err;
     }
 
     return SENSOR_EOK;
@@ -32,10 +33,10 @@ static sensor_err_t cms_read(sensor_device_t *sensor, sensor_data_t *data)
     cms_priv_t *priv = (cms_priv_t *)sensor->priv_data;
 
     for (uint8_t i = 0U; i < 6U; ++i) {
-        if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, (uint8_t)(CMS_REG_OUT_X_L + i),
-                             &buf[i], 1U)
-            != SENSOR_EOK) {
-            return SENSOR_EIO;
+        sensor_err_t err = hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
+                                             (uint8_t)(CMS_REG_OUT_X_L + i), &buf[i], 1U);
+        if (err != SENSOR_EOK) {
+            return err;
         }
     }
 

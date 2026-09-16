@@ -15,9 +15,10 @@ static sensor_err_t hs_ads1100_init(sensor_device_t *sensor)
     hs_ads1100_priv_t *priv = (hs_ads1100_priv_t *)sensor->priv_data;
 
     SENSOR_LOG("Initializing HS-ADS1100");
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, HS_ADS1100_REG_CTRL1, &ctrl, 1U)
-        != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t err = hal_i2c_mem_write(sensor->bus, priv->i2c_addr,
+                                         HS_ADS1100_REG_CTRL1, &ctrl, 1U);
+    if (err != SENSOR_EOK) {
+        return err;
     }
 
     return SENSOR_EOK;
@@ -33,10 +34,10 @@ static sensor_err_t hs_ads1100_read(sensor_device_t *sensor, sensor_data_t *data
     hs_ads1100_priv_t *priv = (hs_ads1100_priv_t *)sensor->priv_data;
 
     for (uint8_t i = 0U; i < 6U; ++i) {
-        if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, (uint8_t)(HS_ADS1100_REG_OUT_X_L + i),
-                             &buf[i], 1U)
-            != SENSOR_EOK) {
-            return SENSOR_EIO;
+        sensor_err_t err = hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
+                                             (uint8_t)(HS_ADS1100_REG_OUT_X_L + i), &buf[i], 1U);
+        if (err != SENSOR_EOK) {
+            return err;
         }
     }
 

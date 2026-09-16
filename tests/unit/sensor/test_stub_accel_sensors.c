@@ -764,6 +764,39 @@ static void test_dmp6100_init_propagates_first_transport_error(void)
     destroy_sensor(sensor);
 }
 
+static void test_stub_accel_lifecycle_propagates_timeout_without_state_change(void)
+{
+    int fake_bus;
+    sensor_device_t *cms = cms_create("cms-timeout", &fake_bus, 0x1AU);
+    sensor_device_t *hs_ads1100 = hs_ads1100_create("hs-timeout", &fake_bus, 0U);
+    sensor_device_t *gd30df = gd30df_create("gd-timeout", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(cms);
+    TEST_ASSERT_NOT_NULL(hs_ads1100);
+    TEST_ASSERT_NOT_NULL(gd30df);
+
+    queue_i2c_write8(&fake_bus, 0x1AU, CMS_REG_CTRL1, 0x57U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, cms->ops->init(cms));
+
+    queue_i2c_write8(&fake_bus, HS_ADS1100_ADDR_DEFAULT, HS_ADS1100_REG_CTRL1, 0x57U,
+                     SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, hs_ads1100->ops->init(hs_ads1100));
+
+    queue_i2c_read8(&fake_bus, GD30DF_ADDR_DEFAULT, GD30DF_REG_OUT_X_L, 0x10U,
+                    SENSOR_ETIMEOUT);
+    sensor_data_t data = {.type = SENSOR_TYPE_GPS,
+                          .value.val_3axis = {.x = 1, .y = 2, .z = 3},
+                          .timestamp = 99U};
+    sensor_data_t snapshot = data;
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, gd30df->ops->read(gd30df, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    assert_i2c_drained();
+
+    destroy_sensor(cms);
+    destroy_sensor(hs_ads1100);
+    destroy_sensor(gd30df);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -790,5 +823,6 @@ int main(void)
     RUN_TEST(test_hs_ads1100_read_rejects_missing_bus_without_io_or_output_change);
     RUN_TEST(test_gd30df_read_rejects_missing_bus_without_io_or_output_change);
     RUN_TEST(test_dmp6100_init_propagates_first_transport_error);
+    RUN_TEST(test_stub_accel_lifecycle_propagates_timeout_without_state_change);
     return UNITY_END();
 }

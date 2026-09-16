@@ -17,14 +17,15 @@ static sensor_err_t gd30df_init(sensor_device_t *sensor)
     uint8_t data;
     gd30df_priv_t *priv = (gd30df_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing GD30DF");
-    if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, GD30DF_REG_WHOAMI, &data, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t err = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, GD30DF_REG_WHOAMI, &data, 1);
+    if (err != SENSOR_EOK) {
+        return err;
     }
 
     uint8_t ctrl1 = 0x57U;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, GD30DF_REG_CTRL1, &ctrl1, 1) !=
-        SENSOR_EOK) {
-        return SENSOR_EIO;
+    err = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, GD30DF_REG_CTRL1, &ctrl1, 1);
+    if (err != SENSOR_EOK) {
+        return err;
     }
 
     return SENSOR_EOK;
@@ -38,10 +39,12 @@ static sensor_err_t gd30df_read(sensor_device_t *sensor, sensor_data_t *data)
 
     uint8_t buf[6];
     gd30df_priv_t *priv = (gd30df_priv_t *)sensor->priv_data;
+    sensor_err_t err;
     for (uint8_t i = 0; i < sizeof(buf); i++) {
-        if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, (uint8_t)(GD30DF_REG_OUT_X_L + i),
-                             &buf[i], 1) != SENSOR_EOK) {
-            return SENSOR_EIO;
+        err = hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
+                               (uint8_t)(GD30DF_REG_OUT_X_L + i), &buf[i], 1);
+        if (err != SENSOR_EOK) {
+            return err;
         }
     }
 
