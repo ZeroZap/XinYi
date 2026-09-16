@@ -881,15 +881,15 @@ static void test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates(
     ((lis2dw12_priv_t *)sensor->priv_data)->range = 4U;
     queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL1, 0x00U, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL1, LIS2DW12_RANGE_16G,
-                     SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, lis2dw12_set_range(sensor, LIS2DW12_RANGE_16G));
+                     SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, lis2dw12_set_range(sensor, LIS2DW12_RANGE_16G));
     TEST_ASSERT_EQUAL_INT(4, ((lis2dw12_priv_t *)sensor->priv_data)->range);
 
     setUp();
     ((lis2dw12_priv_t *)sensor->priv_data)->rate = 25U;
     sensor->odr = 25U;
-    queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL1, 0x00U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, lis2dw12_set_rate(sensor, LIS2DW12_RATE_800HZ));
+    queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL1, 0x00U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, lis2dw12_set_rate(sensor, LIS2DW12_RATE_800HZ));
     TEST_ASSERT_EQUAL_INT(25, ((lis2dw12_priv_t *)sensor->priv_data)->rate);
     TEST_ASSERT_EQUAL_UINT32(25U, sensor->odr);
 
@@ -897,13 +897,13 @@ static void test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates(
     ((lis2dw12_priv_t *)sensor->priv_data)->mode = LIS2DW12_MODE_LOW_POWER;
     queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL1, 0x00U, SENSOR_EOK);
     queue_i2c_write8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL1,
-                     (uint8_t)(LIS2DW12_MODE_NORMAL << 5), SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, lis2dw12_set_mode(sensor, LIS2DW12_MODE_NORMAL));
+                     (uint8_t)(LIS2DW12_MODE_NORMAL << 5), SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, lis2dw12_set_mode(sensor, LIS2DW12_MODE_NORMAL));
     TEST_ASSERT_EQUAL_INT(LIS2DW12_MODE_LOW_POWER, ((lis2dw12_priv_t *)sensor->priv_data)->mode);
 
     setUp();
-    queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL5, 0x00U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, lis2dw12_enable_high_pass(sensor, 1U));
+    queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL5, 0x00U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, lis2dw12_enable_high_pass(sensor, 1U));
 
     setUp();
     queue_i2c_write8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_CTRL1,

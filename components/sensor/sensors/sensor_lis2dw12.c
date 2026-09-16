@@ -267,12 +267,14 @@ int lis2dw12_set_range(sensor_device_t *dev, uint8_t range)
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)dev->priv_data;
     uint8_t ctrl1;
 
-    if (lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL1, &ctrl1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL1, &ctrl1);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     ctrl1 = (ctrl1 & 0xFC) | (range & 0x03);
-    if (lis2dw12_reg_write(dev, LIS2DW12_REG_CTRL1, ctrl1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lis2dw12_reg_write(dev, LIS2DW12_REG_CTRL1, ctrl1);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     priv->range = (range == LIS2DW12_RANGE_2G)  ? 2 :
@@ -293,12 +295,14 @@ int lis2dw12_set_rate(sensor_device_t *dev, uint8_t rate)
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)dev->priv_data;
     uint8_t ctrl1;
 
-    if (lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL1, &ctrl1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL1, &ctrl1);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     ctrl1 = (ctrl1 & 0xC3) | ((rate & 0x0F) << 2);
-    if (lis2dw12_reg_write(dev, LIS2DW12_REG_CTRL1, ctrl1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lis2dw12_reg_write(dev, LIS2DW12_REG_CTRL1, ctrl1);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     /* 记录实际ODR */
@@ -322,12 +326,14 @@ int lis2dw12_set_mode(sensor_device_t *dev, uint8_t mode)
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)dev->priv_data;
     uint8_t ctrl1;
 
-    if (lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL1, &ctrl1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL1, &ctrl1);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     ctrl1 = (ctrl1 & 0x1F) | ((mode & 0x03) << 5);
-    if (lis2dw12_reg_write(dev, LIS2DW12_REG_CTRL1, ctrl1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lis2dw12_reg_write(dev, LIS2DW12_REG_CTRL1, ctrl1);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     priv->mode = mode;
@@ -344,12 +350,14 @@ int lis2dw12_enable_high_pass(sensor_device_t *dev, uint8_t enable)
     }
 
     uint8_t ctrl5;
-    if (lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL5, &ctrl5) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    sensor_err_t ret = lis2dw12_reg_read(dev, LIS2DW12_REG_CTRL5, &ctrl5);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     ctrl5 = enable ? (ctrl5 | 0x40) : (ctrl5 & 0xBF);
-    if (lis2dw12_reg_write(dev, LIS2DW12_REG_CTRL5, ctrl5) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lis2dw12_reg_write(dev, LIS2DW12_REG_CTRL5, ctrl5);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     return SENSOR_EOK;
 }
