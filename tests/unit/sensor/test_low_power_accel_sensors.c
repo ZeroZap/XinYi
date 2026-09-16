@@ -795,6 +795,10 @@ static void test_lis2dw12_propagates_i2c_and_spi_failures_without_cache_updates(
     queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_WHOAMI, 0x00U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
 
+    queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_WHOAMI, 0x00U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+
     setUp();
     queue_i2c_read8(&fake_bus, LIS2DW12_ADDR_ALT, LIS2DW12_REG_WHOAMI, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));

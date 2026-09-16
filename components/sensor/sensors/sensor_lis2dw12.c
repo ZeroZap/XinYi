@@ -24,8 +24,9 @@ static sensor_err_t lis2dw12_reg_read(sensor_device_t *sensor, uint8_t reg, uint
     lis2dw12_priv_t *priv = (lis2dw12_priv_t *)sensor->priv_data;
     if (priv->spi_cs != LIS2DW12_SPI_CS_NONE) {
         uint8_t tx = reg | 0x80;
-        if (hal_spi_send(sensor->bus, priv->spi_cs, &tx, 1) != SENSOR_EOK) {
-            return SENSOR_EIO;
+        int ret = hal_spi_send(sensor->bus, priv->spi_cs, &tx, 1);
+        if (ret != SENSOR_EOK) {
+            return (sensor_err_t)ret;
         }
         return hal_spi_recv(sensor->bus, priv->spi_cs, data, 1);
     }
@@ -51,6 +52,7 @@ static sensor_err_t lis2dw12_reg_write(sensor_device_t *sensor, uint8_t reg, uin
 static sensor_err_t lis2dw12_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    sensor_err_t ret;
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
@@ -58,8 +60,9 @@ static sensor_err_t lis2dw12_init(sensor_device_t *sensor)
     SENSOR_LOG("Initializing LIS2DW12");
 
     /* 检查WHO_AM_I */
-    if (lis2dw12_reg_read(sensor, LIS2DW12_REG_WHOAMI, &data) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lis2dw12_reg_read(sensor, LIS2DW12_REG_WHOAMI, &data);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     if (data != LIS2DW12_WHOAMI_VALUE) {
@@ -68,15 +71,17 @@ static sensor_err_t lis2dw12_init(sensor_device_t *sensor)
     }
 
     /* 软复位 */
-    if (lis2dw12_reg_write(sensor, LIS2DW12_REG_CTRL2, 0x04) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lis2dw12_reg_write(sensor, LIS2DW12_REG_CTRL2, 0x04);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     SENSOR_DELAY_MS(10);
 
     /* 配置: 低功耗模式, ±2g, 100Hz */
     data = (LIS2DW12_MODE_LOW_POWER << 5) | (LIS2DW12_RATE_100HZ << 2) | LIS2DW12_RANGE_2G;
-    if (lis2dw12_reg_write(sensor, LIS2DW12_REG_CTRL1, data) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = lis2dw12_reg_write(sensor, LIS2DW12_REG_CTRL1, data);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     ((lis2dw12_priv_t *)sensor->priv_data)->range = 2;
@@ -121,8 +126,9 @@ static sensor_err_t lis2dw12_read(sensor_device_t *sensor, sensor_data_t *data)
 
     /* 读取6字节数据 */
     for (int i = 0; i < 6; i++) {
-        if (lis2dw12_reg_read(sensor, LIS2DW12_REG_OUT_X_L + i, &buf[i]) != SENSOR_EOK) {
-            return SENSOR_EIO;
+        sensor_err_t ret = lis2dw12_reg_read(sensor, LIS2DW12_REG_OUT_X_L + i, &buf[i]);
+        if (ret != SENSOR_EOK) {
+            return ret;
         }
     }
 
