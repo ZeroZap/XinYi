@@ -552,6 +552,60 @@ static void test_qma6100_rejects_invalid_range_without_bus_access(void)
     destroy_sensor(sensor);
 }
 
+static void test_qma6100_propagates_transport_errors_without_state_updates(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = qma6100_create("qma6100-errors", &fake_bus, 0U);
+    qma6100_priv_t *priv;
+    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE,
+                          .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
+                          .value.val_3axis = {.x = 11, .y = 22, .z = 33},
+                          .timestamp = 44U};
+    sensor_data_t snapshot = data;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    priv = (qma6100_priv_t *)sensor->priv_data;
+
+    queue_i2c_read8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_WHOAMI, 0U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT8(0U, priv->range);
+    TEST_ASSERT_EQUAL_UINT8(0U, priv->rate);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_DATA, 0x10U,
+                    SENSOR_EOK);
+    queue_i2c_read8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_DATA + 1U, 0U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+
+    setUp();
+    queue_i2c_write8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_PWRCTL, 0x01U,
+                     SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
+
+    setUp();
+    priv->range = QMA6100_RANGE_4G;
+    queue_i2c_read8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_CTRL, 0U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          qma6100_set_range(sensor, QMA6100_RANGE_8G));
+    TEST_ASSERT_EQUAL_UINT8(QMA6100_RANGE_4G, priv->range);
+
+    setUp();
+    queue_i2c_read8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_CTRL, 0x60U,
+                    SENSOR_EOK);
+    queue_i2c_write8(&fake_bus, QMA6100_ADDR_DEFAULT, QMA6100_REG_CTRL, 0x62U,
+                     SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          qma6100_set_range(sensor, QMA6100_RANGE_8G));
+    TEST_ASSERT_EQUAL_UINT8(QMA6100_RANGE_4G, priv->range);
+    assert_i2c_drained();
+
+    destroy_sensor(sensor);
+}
+
 static void test_cms_init_rejects_missing_bus_without_io(void)
 {
     int fake_bus;
@@ -720,6 +774,7 @@ int main(void)
     RUN_TEST(test_qma6100_create_init_and_read_contract);
     RUN_TEST(test_qma6100_set_range_propagates_write_failure_without_cache_update);
     RUN_TEST(test_qma6100_rejects_invalid_range_without_bus_access);
+    RUN_TEST(test_qma6100_propagates_transport_errors_without_state_updates);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_init_propagates_i2c_write_failure);
     RUN_TEST(test_read_failure_preserves_output_and_stops_at_failed_register);

@@ -11,17 +11,13 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data
 static sensor_err_t qma6100_reg_read(sensor_device_t *sensor, uint8_t reg, uint8_t *data)
 {
     qma6100_priv_t *priv = (qma6100_priv_t *)sensor->priv_data;
-    return (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, reg, data, 1) == SENSOR_EOK) ?
-               SENSOR_EOK :
-               SENSOR_EIO;
+    return hal_i2c_mem_read(sensor->bus, priv->i2c_addr, reg, data, 1);
 }
 
 static sensor_err_t qma6100_reg_write(sensor_device_t *sensor, uint8_t reg, uint8_t data)
 {
     qma6100_priv_t *priv = (qma6100_priv_t *)sensor->priv_data;
-    return (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, reg, &data, 1) == SENSOR_EOK) ?
-               SENSOR_EOK :
-               SENSOR_EIO;
+    return hal_i2c_mem_write(sensor->bus, priv->i2c_addr, reg, &data, 1);
 }
 
 static sensor_err_t qma6100_init(sensor_device_t *sensor)
@@ -33,22 +29,25 @@ static sensor_err_t qma6100_init(sensor_device_t *sensor)
     uint8_t data;
     SENSOR_LOG("Initializing QMA6100");
 
-    if (qma6100_reg_read(sensor, QMA6100_REG_WHOAMI, &data) != SENSOR_EOK) return SENSOR_EIO;
+    sensor_err_t ret = qma6100_reg_read(sensor, QMA6100_REG_WHOAMI, &data);
+    if (ret != SENSOR_EOK) return ret;
     if (data != QMA6100_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong WHO_AM_I: 0x%02X (expected 0x%02X)", data, QMA6100_WHOAMI_VALUE);
         return SENSOR_ERROR;
     }
 
     /* 软件复位 */
-    if (qma6100_reg_write(sensor, QMA6100_REG_DSET, 0x20) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = qma6100_reg_write(sensor, QMA6100_REG_DSET, 0x20);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     SENSOR_DELAY_MS(10);
 
     /* 配置: ±2g, 100Hz */
     data = (QMA6100_RATE_100HZ << 4) | QMA6100_RANGE_2G;
-    if (qma6100_reg_write(sensor, QMA6100_REG_CTRL, data) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = qma6100_reg_write(sensor, QMA6100_REG_CTRL, data);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     ((qma6100_priv_t *)sensor->priv_data)->range = 2;
@@ -60,25 +59,31 @@ static sensor_err_t qma6100_init(sensor_device_t *sensor)
 
 static sensor_err_t qma6100_deinit(sensor_device_t *sensor)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
-    if (qma6100_reg_write(sensor, QMA6100_REG_PWRCTL, 0x01) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = qma6100_reg_write(sensor, QMA6100_REG_PWRCTL, 0x01);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     return SENSOR_EOK;
 }
 
 static sensor_err_t qma6100_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
     uint8_t buf[6];
     for (int i = 0; i < 6; i++) {
-        if (qma6100_reg_read(sensor, QMA6100_REG_DATA + i, &buf[i]) != SENSOR_EOK) return SENSOR_EIO;
+        ret = qma6100_reg_read(sensor, QMA6100_REG_DATA + i, &buf[i]);
+        if (ret != SENSOR_EOK) return ret;
     }
 
     int16_t raw[3];
@@ -141,17 +146,20 @@ int qma6100_set_range(sensor_device_t *dev, uint8_t range)
 {
     uint8_t ctrl;
     qma6100_priv_t *priv;
+    sensor_err_t ret;
 
     if (dev == NULL || dev->priv_data == NULL || range > QMA6100_RANGE_16G) {
         return SENSOR_EINVAL;
     }
     priv = (qma6100_priv_t *)dev->priv_data;
-    if (qma6100_reg_read(dev, QMA6100_REG_CTRL, &ctrl) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = qma6100_reg_read(dev, QMA6100_REG_CTRL, &ctrl);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     ctrl = (ctrl & 0xFC) | (range & 0x03);
-    if (qma6100_reg_write(dev, QMA6100_REG_CTRL, ctrl) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = qma6100_reg_write(dev, QMA6100_REG_CTRL, ctrl);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
     priv->range = range;
     return SENSOR_EOK;
