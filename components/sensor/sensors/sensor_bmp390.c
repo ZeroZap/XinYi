@@ -56,8 +56,10 @@ static sensor_err_t bmp390_deinit(sensor_device_t *sensor)
     }
 
     bmp390_priv_t *priv = (bmp390_priv_t *)sensor->priv_data;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMP390_REG_PWR_CTRL, &pwr_ctrl, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, BMP390_REG_PWR_CTRL,
+                                &pwr_ctrl, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     return SENSOR_EOK;
 }
