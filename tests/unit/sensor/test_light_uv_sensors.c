@@ -195,6 +195,61 @@ static void test_max44009_factory_rejects_null_bus(void)
     TEST_ASSERT_NULL(max44009_create("max44009-null-bus", NULL));
 }
 
+static void test_max44009_transport_timeout_is_preserved(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    sensor_device_t *sensor = max44009_create("max-timeout", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    memset(&data, 0xA5, sizeof(data));
+    g_i2c_reads[0].status = SENSOR_ETIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
+static void test_max44009_second_transport_timeout_is_preserved(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    sensor_device_t *sensor = max44009_create("max-timeout-2", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    memset(&data, 0x5A, sizeof(data));
+    g_i2c_reads[0].value = 0x12U;
+    g_i2c_reads[1].status = SENSOR_ETIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(2U, g_i2c_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
+static void test_max44009_public_guards_reject_invalid_context(void)
+{
+    int fake_bus;
+    sensor_data_t data;
+    sensor_device_t *sensor = max44009_create("max-guards", &fake_bus);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    memset(&data, 0xA5, sizeof(data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.type);
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.timestamp);
+
+    destroy_sensor(sensor);
+}
+
 static void test_guvas12sd_create_and_read_converts_adc_to_uv_index(void)
 {
     sensor_data_t data = {0};
@@ -320,6 +375,9 @@ int main(void)
     RUN_TEST(test_max44009_full_scale_read_uses_20bit_lux_formula);
     RUN_TEST(test_max44009_first_lux_register_failure_preserves_output);
     RUN_TEST(test_max44009_second_lux_register_failure_preserves_output);
+    RUN_TEST(test_max44009_transport_timeout_is_preserved);
+    RUN_TEST(test_max44009_second_transport_timeout_is_preserved);
+    RUN_TEST(test_max44009_public_guards_reject_invalid_context);
     RUN_TEST(test_max44009_factory_rejects_null_bus);
     RUN_TEST(test_guvas12sd_create_and_read_converts_adc_to_uv_index);
     RUN_TEST(test_guvas12sd_adc_boundaries_are_linear_uv_index);
