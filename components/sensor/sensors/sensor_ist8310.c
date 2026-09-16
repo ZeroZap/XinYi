@@ -13,19 +13,22 @@ static sensor_err_t ist8310_init(sensor_device_t *sensor)
     ist8310_priv_t *priv = (ist8310_priv_t *)sensor->priv_data;
     SENSOR_LOG("Initializing IST8310");
 
-    if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, IST8310_REG_WHOAMI, &data, 1) != SENSOR_EOK) return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, IST8310_REG_WHOAMI, &data, 1);
+    if (ret != SENSOR_EOK) return (sensor_err_t)ret;
     if (data != IST8310_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong WHO_AM_I: 0x%02X", data);
         return SENSOR_ERROR;
     }
 
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1,
-                          (uint8_t[]){0x1A}, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1,
+                            (uint8_t[]){0x1A}, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL2,
-                          (uint8_t[]){0x40}, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL2,
+                            (uint8_t[]){0x40}, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_LOG("IST8310 initialized");
     return SENSOR_EOK;
@@ -37,9 +40,10 @@ static sensor_err_t ist8310_deinit(sensor_device_t *sensor)
         return SENSOR_EINVAL;
     }
     ist8310_priv_t *priv = (ist8310_priv_t *)sensor->priv_data;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1,
-                          (uint8_t[]){0x00}, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, IST8310_REG_CTRL1,
+                                (uint8_t[]){0x00}, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     return SENSOR_EOK;
 }

@@ -619,6 +619,30 @@ static void test_ak09918_read_propagates_first_transport_error(void)
     destroy_sensor(sensor);
 }
 
+static void test_ist8310_preserves_transport_errors(void)
+{
+    int fake_bus;
+    const uint8_t whoami = IST8310_WHOAMI_VALUE;
+    sensor_device_t *sensor = ist8310_create("ist8310-errors", &fake_bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .timestamp = 77U};
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_WHOAMI, &whoami, 1U,
+                SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+
+    queue_read(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_DATA, NULL, 1U,
+                SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_CUSTOM, data.type);
+    TEST_ASSERT_EQUAL_UINT32(77U, data.timestamp);
+
+    queue_write(&fake_bus, IST8310_ADDR_DEFAULT, IST8310_REG_CTRL1, 0x00U,
+                SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -628,6 +652,7 @@ int main(void)
     RUN_TEST(test_ist8310_create_init_read_and_deinit_contracts);
     RUN_TEST(test_ist8310_io_failures_stop_and_preserve_outputs);
     RUN_TEST(test_ist8310_rejects_invalid_public_boundaries_without_side_effects);
+    RUN_TEST(test_ist8310_preserves_transport_errors);
     RUN_TEST(test_ak09918_create_init_read_and_deinit_contracts);
     RUN_TEST(test_ak09918_io_failures_stop_and_preserve_outputs);
     RUN_TEST(test_cmm905_create_init_and_read_contracts);
