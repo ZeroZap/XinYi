@@ -420,6 +420,22 @@ static void test_bmp390_init_maps_write_failure(void)
     destroy_sensor(sensor);
 }
 
+static void test_bmp390_init_propagates_write_transport_error(void)
+{
+    int fake_bus;
+    sensor_device_t *sensor = bmp390_create("bmp390-write-timeout", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_mem_read8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_CHIP_ID, BMP390_CHIP_ID, SENSOR_EOK);
+    queue_mem_write8(&fake_bus, BMP390_ADDR_DEFAULT, BMP390_REG_PWR_CTRL, 0x33U,
+                     SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT(g_mem_read_count, g_mem_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_mem_write_count, g_mem_write_index);
+
+    destroy_sensor(sensor);
+}
+
 static void test_bmp390_read_pressure_full_scale_boundary(void)
 {
     int fake_bus;
@@ -512,6 +528,7 @@ int main(void)
     RUN_TEST(test_bmp390_create_init_and_read_pressure);
     RUN_TEST(test_bmp390_init_rejects_bad_chip_id_and_read_maps_i2c_error);
     RUN_TEST(test_bmp390_init_maps_write_failure);
+    RUN_TEST(test_bmp390_init_propagates_write_transport_error);
     RUN_TEST(test_bmp390_read_propagates_transport_error_and_preserves_output);
     RUN_TEST(test_bmp390_read_pressure_full_scale_boundary);
     RUN_TEST(test_bmp390_rejects_invalid_factory_and_public_ops_inputs);
