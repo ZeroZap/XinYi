@@ -319,6 +319,18 @@ static void test_bmp280_getters_reject_uninitialized_nested_bus(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static void test_bmp280_deinit_rejects_uninitialized_nested_bus_without_io(void)
+{
+    xy_bmp280_t bmp;
+    int bus;
+
+    init_success(&bmp, &bus, BMP280_ADDR_DEFAULT);
+    bmp.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_deinit(&bmp));
+    TEST_ASSERT_TRUE(bmp.initialized);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -329,5 +341,6 @@ int main(void)
     RUN_TEST(test_bmp280_scalar_reads_signal_transport_failure);
     RUN_TEST(test_bmp280_deinit_failure_preserves_state);
     RUN_TEST(test_bmp280_getters_reject_uninitialized_nested_bus);
+    RUN_TEST(test_bmp280_deinit_rejects_uninitialized_nested_bus_without_io);
     return UNITY_END();
 }

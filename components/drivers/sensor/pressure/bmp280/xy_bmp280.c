@@ -145,7 +145,7 @@ int xy_bmp280_deinit(xy_bmp280_t *bmp)
     uint8_t value = 0x00U;
     int result;
 
-    if (bmp == NULL || bmp->initialized == 0U) {
+    if (bmp == NULL || bmp->initialized == 0U || bmp->i2c_dev.base.initialized == 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = xy_i2c_device_write_reg(&bmp->i2c_dev, BMP280_REG_CTRL_MEAS, &value, 1U);
