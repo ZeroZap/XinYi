@@ -10,6 +10,8 @@ extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
  */
 static sensor_err_t sc7a20_init(sensor_device_t *sensor)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
@@ -19,11 +21,8 @@ static sensor_err_t sc7a20_init(sensor_device_t *sensor)
     SENSOR_LOG("Initializing SC7A20");
 
     /* 检查WHO_AM_I */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, SC7A20_REG_WHOAMI, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
-    }
+    ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, SC7A20_REG_WHOAMI, &data, 1);
+    if (ret != SENSOR_EOK) return ret;
 
     if (data != SC7A20_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong WHO_AM_I: 0x%02X", data);
@@ -32,19 +31,13 @@ static sensor_err_t sc7a20_init(sensor_device_t *sensor)
 
     /* 配置CTRL_REG1: 100Hz, 正常模式, 使能XYZ */
     data = SC7A20_ODR_100HZ | 0x07;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
-    }
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1);
+    if (ret != SENSOR_EOK) return ret;
 
     /* 配置CTRL_REG4: ±2g, 高分辨率模式 */
     data = SC7A20_RANGE_2G | 0x08;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG4, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
-    }
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG4, &data, 1);
+    if (ret != SENSOR_EOK) return ret;
 
     priv->odr_reg = SC7A20_ODR_100HZ | 0x07;
     priv->range = 2;
@@ -59,6 +52,8 @@ static sensor_err_t sc7a20_init(sensor_device_t *sensor)
  */
 static sensor_err_t sc7a20_deinit(sensor_device_t *sensor)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
@@ -66,11 +61,8 @@ static sensor_err_t sc7a20_deinit(sensor_device_t *sensor)
     uint8_t data        = SC7A20_ODR_POWER_DOWN;
 
     /* 进入低功耗模式 */
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
-    }
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1);
+    if (ret != SENSOR_EOK) return ret;
 
     priv->odr_reg = SC7A20_ODR_POWER_DOWN;
     sensor->odr = 0U;
@@ -82,6 +74,8 @@ static sensor_err_t sc7a20_deinit(sensor_device_t *sensor)
  */
 static sensor_err_t sc7a20_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
@@ -90,11 +84,8 @@ static sensor_err_t sc7a20_read(sensor_device_t *sensor, sensor_data_t *data)
     int16_t raw[3];
 
     /* 读取6字节加速度数据 (从0x28开始，自动递增) */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, SC7A20_REG_OUT_X_L | 0x80, buf, 6)
-        != 0) {
-        return SENSOR_EIO;
-    }
+    ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, SC7A20_REG_OUT_X_L | 0x80, buf, 6);
+    if (ret != SENSOR_EOK) return ret;
 
     /* 组合数据 (12位有效，左对齐到16位) */
     raw[0] = (int16_t)((buf[1] << 8) | buf[0]) >> 4;
@@ -122,6 +113,8 @@ static sensor_err_t sc7a20_read(sensor_device_t *sensor, sensor_data_t *data)
 static sensor_err_t sc7a20_set_power_mode(sensor_device_t *sensor,
                                           sensor_power_mode_t mode)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
@@ -149,11 +142,8 @@ static sensor_err_t sc7a20_set_power_mode(sensor_device_t *sensor,
         return SENSOR_EINVAL;
     }
 
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
-    }
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1);
+    if (ret != SENSOR_EOK) return ret;
 
     priv->odr_reg = data;
 
@@ -167,6 +157,8 @@ static sensor_err_t sc7a20_set_power_mode(sensor_device_t *sensor,
 static sensor_err_t sc7a20_config(sensor_device_t *sensor,
                                   sensor_config_type_t cfg, void *value)
 {
+    sensor_err_t ret;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || value == NULL) {
         return SENSOR_EINVAL;
     }
@@ -193,11 +185,8 @@ static sensor_err_t sc7a20_config(sensor_device_t *sensor,
         }
 
         data = range_reg | 0x08;
-        if (hal_i2c_mem_write(
-                sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG4, &data, 1)
-            != 0) {
-            return SENSOR_EIO;
-        }
+        ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG4, &data, 1);
+        if (ret != SENSOR_EOK) return ret;
 
         priv->range = (uint8_t)range;
 
@@ -225,11 +214,8 @@ static sensor_err_t sc7a20_config(sensor_device_t *sensor,
             odr_reg = SC7A20_ODR_400HZ;
 
         data = odr_reg | 0x07;
-        if (hal_i2c_mem_write(
-                sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1)
-            != 0) {
-            return SENSOR_EIO;
-        }
+        ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, SC7A20_REG_CTRL_REG1, &data, 1);
+        if (ret != SENSOR_EOK) return ret;
 
         priv->odr_reg = data;
         sensor->odr   = odr;
