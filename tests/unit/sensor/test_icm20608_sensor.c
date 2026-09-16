@@ -391,6 +391,29 @@ static void test_icm20608_spi_bus_path_smoke(void)
     destroy_sensor(temp);
 }
 
+static void test_icm20608_propagates_first_transport_error(void)
+{
+    int fake_bus;
+    const uint8_t whoami = ICM20608_WHOAMI_VALUE;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .timestamp = 123U};
+    sensor_data_t snapshot = data;
+    sensor_device_t *accel = icm20608_create_accel("icm-error", &fake_bus, false);
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->init(accel));
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, NULL, 6U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x40U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -399,5 +422,6 @@ int main(void)
     RUN_TEST(test_icm20608_failure_contracts_preserve_output);
     RUN_TEST(test_icm20608_accepts_pandora_identity);
     RUN_TEST(test_icm20608_spi_bus_path_smoke);
+    RUN_TEST(test_icm20608_propagates_first_transport_error);
     return UNITY_END();
 }

@@ -45,6 +45,7 @@ static int icm20608_write_reg(sensor_device_t *sensor, uint8_t reg,
 static sensor_err_t icm20608_init(sensor_device_t *sensor)
 {
     uint8_t data;
+    int ret;
 
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
@@ -53,8 +54,9 @@ static sensor_err_t icm20608_init(sensor_device_t *sensor)
     SENSOR_LOG("Initializing ICM20608");
 
     /* 检查WHO_AM_I */
-    if (icm20608_read_reg(sensor, ICM20608_REG_WHOAMI, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = icm20608_read_reg(sensor, ICM20608_REG_WHOAMI, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (data != ICM20608_WHOAMI_VALUE) {
@@ -64,44 +66,51 @@ static sensor_err_t icm20608_init(sensor_device_t *sensor)
 
     /* 复位设备 */
     data = 0x80;
-    if (icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
     SENSOR_DELAY_MS(100);
 
     /* 唤醒设备，选择最佳时钟源 */
     data = 0x01;
-    if (icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 使能加速度计和陀螺仪 */
     data = 0x00;
-    if (icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_2, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_2, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 配置陀螺仪: ±500°/s */
     data = 0x08;
-    if (icm20608_write_reg(sensor, ICM20608_REG_GYRO_CONFIG, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = icm20608_write_reg(sensor, ICM20608_REG_GYRO_CONFIG, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 配置加速度计: ±4g */
     data = 0x08;
-    if (icm20608_write_reg(sensor, ICM20608_REG_ACCEL_CONFIG, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = icm20608_write_reg(sensor, ICM20608_REG_ACCEL_CONFIG, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 配置低通滤波器 */
     data = 0x04; /* 20Hz */
-    if (icm20608_write_reg(sensor, ICM20608_REG_CONFIG, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = icm20608_write_reg(sensor, ICM20608_REG_CONFIG, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     data = 0x04;
-    if (icm20608_write_reg(sensor, ICM20608_REG_ACCEL_CONFIG2, &data, 1) != 0) {
-        return SENSOR_EIO;
+    ret = icm20608_write_reg(sensor, ICM20608_REG_ACCEL_CONFIG2, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     SENSOR_LOG("ICM20608 initialized successfully");
@@ -120,8 +129,9 @@ static sensor_err_t icm20608_deinit(sensor_device_t *sensor)
         return SENSOR_EINVAL;
     }
 
-    if (icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1) != 0) {
-        return SENSOR_EIO;
+    int ret = icm20608_write_reg(sensor, ICM20608_REG_PWR_MGMT_1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     return SENSOR_EOK;
@@ -141,8 +151,9 @@ static sensor_err_t icm20608_accel_read(sensor_device_t *sensor,
     }
 
     /* 读取6字节加速度数据 */
-    if (icm20608_read_reg(sensor, ICM20608_REG_ACCEL_XOUT_H, buf, 6) != 0) {
-        return SENSOR_EIO;
+    int ret = icm20608_read_reg(sensor, ICM20608_REG_ACCEL_XOUT_H, buf, 6);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 */
@@ -176,8 +187,9 @@ static sensor_err_t icm20608_gyro_read(sensor_device_t *sensor,
     }
 
     /* 读取6字节陀螺仪数据 */
-    if (icm20608_read_reg(sensor, ICM20608_REG_GYRO_XOUT_H, buf, 6) != 0) {
-        return SENSOR_EIO;
+    int ret = icm20608_read_reg(sensor, ICM20608_REG_GYRO_XOUT_H, buf, 6);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 */
@@ -211,8 +223,9 @@ static sensor_err_t icm20608_temp_read(sensor_device_t *sensor,
     }
 
     /* 读取2字节温度数据 */
-    if (icm20608_read_reg(sensor, ICM20608_REG_TEMP_OUT_H, buf, 2) != 0) {
-        return SENSOR_EIO;
+    int ret = icm20608_read_reg(sensor, ICM20608_REG_TEMP_OUT_H, buf, 2);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     raw = (int16_t)((buf[0] << 8) | buf[1]);
