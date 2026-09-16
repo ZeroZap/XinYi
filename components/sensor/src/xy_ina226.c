@@ -152,7 +152,7 @@ int xy_ina_read(xy_ina_t *ina)
     int16_t signed_value;
     xy_ina_data_t next;
 
-    if (!ina || !ina->initialized) {
+    if (!ina || !ina->initialized || !ina->i2c_dev.base.initialized) {
         return XY_INA_INVALID_PARAM;
     }
 

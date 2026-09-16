@@ -635,6 +635,22 @@ static void test_max17043_controls_reject_missing_i2c_context_without_io(void)
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 }
 
+static void test_ina226_read_rejects_missing_i2c_context_atomically(void)
+{
+    xy_ina_t ina;
+    int bus;
+
+    init_ina_ok(&ina, &bus);
+    ina.data.voltage_mv = 1234.0f;
+    const xy_ina_data_t snapshot = ina.data;
+    ina.i2c_dev.base.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_read(&ina));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &ina.data, sizeof(snapshot));
+    TEST_ASSERT_EQUAL_UINT(g_read_count, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_write_count, g_write_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -646,6 +662,7 @@ int main(void)
     RUN_TEST(test_max17043_boundary_conversions_and_config_toggles);
     RUN_TEST(test_max17043_read_rejects_missing_i2c_context_atomically);
     RUN_TEST(test_max17043_controls_reject_missing_i2c_context_without_io);
+    RUN_TEST(test_ina226_read_rejects_missing_i2c_context_atomically);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
     RUN_TEST(test_ina226_read_failure_stops_and_preserves_snapshot);
     RUN_TEST(test_ina229_detection_and_invalid_paths);
