@@ -11,8 +11,9 @@ static int adxl362_read_reg(void *spi_bus, uint8_t reg, uint8_t *data,
     uint8_t tx[256] = { ADXL362_CMD_READ, reg };
     uint8_t rx[256];
 
-    if (hal_spi_transfer(spi_bus, tx, rx, len + 2) != 0) {
-        return -1;
+    int ret = hal_spi_transfer(spi_bus, tx, rx, len + 2);
+    if (ret != SENSOR_EOK) {
+        return ret;
     }
 
     memcpy(data, &rx[2], len);
@@ -107,8 +108,9 @@ static sensor_err_t adxl362_read(sensor_device_t *sensor, sensor_data_t *data)
     int16_t raw[3];
 
     /* 读取6字节加速度数据 */
-    if (adxl362_read_reg(priv->spi_bus, ADXL362_REG_XDATA, buf, 6) != 0) {
-        return SENSOR_EIO;
+    int ret = adxl362_read_reg(priv->spi_bus, ADXL362_REG_XDATA, buf, 6);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 组合数据 (12位有效) */

@@ -365,6 +365,31 @@ static void test_adxl362_propagates_config_write_failures_without_cache_updates(
     destroy_sensor(sensor);
 }
 
+static void test_adxl362_read_propagates_timeout_and_preserves_output(void)
+{
+    int fake_spi;
+    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE,
+                          .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
+                          .value.val_3axis = {.x = 101, .y = -202, .z = 303},
+                          .timestamp = 424242U,
+                          .accuracy = 17U};
+    const sensor_data_t snapshot = data;
+    sensor_device_t *sensor = adxl362_create("adxl362-read-timeout", &fake_spi);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    ((adxl362_priv_t *)sensor->priv_data)->mode = ADXL362_MODE_MEASUREMENT;
+    queue_spi_read(&fake_spi, ADXL362_REG_XDATA, NULL, 6U, SENSOR_ETIMEOUT);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, g_spi_index);
+    TEST_ASSERT_EQUAL_UINT(1U, g_spi_count);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_INT(ADXL362_MODE_MEASUREMENT,
+                          ((adxl362_priv_t *)sensor->priv_data)->mode);
+
+    destroy_sensor(sensor);
+}
+
 static void test_adxl362_public_ops_reject_invalid_context_without_io(void)
 {
     int fake_spi;
@@ -1202,6 +1227,7 @@ int main(void)
     RUN_TEST(test_adxl362_create_init_read_deinit_and_error_paths);
     RUN_TEST(test_kx023_create_rejects_null_name_or_bus);
     RUN_TEST(test_adxl362_propagates_config_write_failures_without_cache_updates);
+    RUN_TEST(test_adxl362_read_propagates_timeout_and_preserves_output);
     RUN_TEST(test_adxl362_public_ops_reject_invalid_context_without_io);
     RUN_TEST(test_bma400_create_init_read_and_deinit);
     RUN_TEST(test_bma400_error_paths);
