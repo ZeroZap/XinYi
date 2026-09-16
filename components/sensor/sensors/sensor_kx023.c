@@ -76,9 +76,9 @@ static sensor_err_t kx023_deinit(sensor_device_t *sensor)
     kx023_priv_t *priv = (kx023_priv_t *)sensor->priv_data;
     uint8_t data       = KX023_MODE_STANDBY;
 
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, KX023_REG_CNTL1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, KX023_REG_CNTL1, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->mode = KX023_MODE_STANDBY;

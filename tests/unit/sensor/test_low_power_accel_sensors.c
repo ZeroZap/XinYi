@@ -664,6 +664,11 @@ static void test_kx023_propagates_config_write_failures(void)
 
     TEST_ASSERT_NOT_NULL(sensor);
     queue_i2c_read8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_WHO_AM_I, KX023_WHO_AM_I_VALUE,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+
+    setUp();
+    queue_i2c_read8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_WHO_AM_I, KX023_WHO_AM_I_VALUE,
                     SENSOR_EOK);
     queue_i2c_write8(&fake_bus, KX023_ADDR_DEFAULT, KX023_REG_SOFT_REST, 0x80U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
