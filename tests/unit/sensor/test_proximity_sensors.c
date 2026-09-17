@@ -250,14 +250,14 @@ static void test_i2c_read_failures_preserve_output(void)
     TEST_ASSERT_NOT_NULL(pa122);
     TEST_ASSERT_NOT_NULL(vcnl4040);
 
-    queue_i2c_read(&bus, PA122_ADDR, 0x08U, NULL, 1U, -5);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, pa122->ops->read(pa122, &data));
+    queue_i2c_read(&bus, PA122_ADDR, 0x08U, NULL, 1U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, pa122->ops->read(pa122, &data));
     TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, snapshot.value.val_float, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);
 
-    queue_i2c_read(&bus, VCNL4040_ADDR, 0x08U, NULL, 2U, -6);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, vcnl4040->ops->read(vcnl4040, &data));
+    queue_i2c_read(&bus, VCNL4040_ADDR, 0x08U, NULL, 2U, SENSOR_EBUSY);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, vcnl4040->ops->read(vcnl4040, &data));
     TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, snapshot.value.val_float, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);

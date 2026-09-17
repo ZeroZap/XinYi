@@ -23,8 +23,9 @@ static sensor_err_t pa122_read(sensor_device_t *s, sensor_data_t *d)
 
     uint8_t st = 0;
     pa122_priv_t *p = (pa122_priv_t *)s->priv_data;
-    if (hal_i2c_mem_read(s->bus, p->i2c_addr, 0x08, &st, 1) != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(s->bus, p->i2c_addr, 0x08, &st, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     d->type = SENSOR_TYPE_PROXIMITY;

@@ -23,8 +23,9 @@ static sensor_err_t vcnl4040_read(sensor_device_t *s, sensor_data_t *d)
 
     uint8_t buf[2] = {0};
     vcnl4040_priv_t *p = (vcnl4040_priv_t *)s->priv_data;
-    if (hal_i2c_mem_read(s->bus, p->i2c_addr, 0x08, buf, 2) != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(s->bus, p->i2c_addr, 0x08, buf, 2);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     d->type = SENSOR_TYPE_PROXIMITY;
