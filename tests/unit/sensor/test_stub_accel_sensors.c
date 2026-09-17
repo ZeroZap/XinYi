@@ -175,6 +175,33 @@ static void test_dmp6100_create_init_and_read_contract(void)
     destroy_sensor(sensor);
 }
 
+static void test_dmp6100_read_preserves_transport_error_and_output(void)
+{
+    int fake_bus;
+    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE,
+                          .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
+                          .value.val_3axis = {.x = 11, .y = 22, .z = 33},
+                          .timestamp = 44U};
+    sensor_data_t snapshot = data;
+    sensor_device_t *sensor = dmp6100_create("dmp6100-timeout", &fake_bus, 0U);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_read8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_DATA, 0x01U,
+                    SENSOR_EOK);
+    queue_i2c_read8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_DATA + 1U, 0x00U,
+                    SENSOR_ETIMEOUT);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
+    TEST_ASSERT_EQUAL_INT(snapshot.unit, data.unit);
+    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.x, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.y, data.value.val_3axis.y);
+    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.z, data.value.val_3axis.z);
+    TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);
+    TEST_ASSERT_EQUAL_UINT(2U, g_i2c_read_index);
+    destroy_sensor(sensor);
+}
+
 static void test_cms_create_init_and_read_contract(void)
 {
     int fake_bus;
@@ -801,6 +828,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_dmp6100_create_init_and_read_contract);
+    RUN_TEST(test_dmp6100_read_preserves_transport_error_and_output);
     RUN_TEST(test_cms_create_init_and_read_contract);
     RUN_TEST(test_hs_ads1100_create_init_and_read_contract);
     RUN_TEST(test_gd30df_create_init_and_read_contract);

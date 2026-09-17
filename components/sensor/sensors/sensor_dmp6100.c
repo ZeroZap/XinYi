@@ -33,10 +33,10 @@ static sensor_err_t dmp6100_read(sensor_device_t *sensor, sensor_data_t *data)
     dmp6100_priv_t *priv = (dmp6100_priv_t *)sensor->priv_data;
 
     for (uint8_t i = 0U; i < 6U; ++i) {
-        if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, (uint8_t)(DMP6100_REG_DATA + i),
-                             &buf[i], 1U)
-            != SENSOR_EOK) {
-            return SENSOR_EIO;
+        int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
+                                   (uint8_t)(DMP6100_REG_DATA + i), &buf[i], 1U);
+        if (ret != SENSOR_EOK) {
+            return (sensor_err_t)ret;
         }
     }
 
