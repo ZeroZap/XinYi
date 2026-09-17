@@ -488,9 +488,9 @@ static void test_silan_sc7a20_create_init_read_helpers_deinit_and_errors(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT32(111, data.value.val_3axis.x);
 
-    queue_read8(&fake_bus, SILAN_SC7A20_ADDR_DEFAULT, SILAN_SC7A20_REG_WHOAMI, SILAN_SC7A20_WHOAMI_VALUE, SENSOR_EOK);
-    queue_write8(&fake_bus, SILAN_SC7A20_ADDR_DEFAULT, SILAN_SC7A20_REG_CTRL2, 0x80U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_read8(&fake_bus, SILAN_SC7A20_ADDR_DEFAULT, SILAN_SC7A20_REG_WHOAMI,
+                SILAN_SC7A20_WHOAMI_VALUE, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT8(4U, ((silan_sc7a20_priv_t *)sensor->priv_data)->range);
 
     queue_read8(&fake_bus, SILAN_SC7A20_ADDR_DEFAULT, SILAN_SC7A20_REG_CTRL1, 0x58U, SENSOR_EIO);

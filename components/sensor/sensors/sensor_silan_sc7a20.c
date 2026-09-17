@@ -22,29 +22,32 @@ static sensor_err_t silan_sc7a20_reg_write(sensor_device_t *sensor, uint8_t reg,
 
 static sensor_err_t silan_sc7a20_init(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
     uint8_t data;
     SENSOR_LOG("Initializing Silan SC7A20");
 
     /* 检查WHO_AM_I */
-    if (silan_sc7a20_reg_read(sensor, SILAN_SC7A20_REG_WHOAMI, &data) != SENSOR_EOK)
-        return SENSOR_EIO;
+    sensor_err_t ret = silan_sc7a20_reg_read(sensor, SILAN_SC7A20_REG_WHOAMI, &data);
+    if (ret != SENSOR_EOK)
+        return ret;
     if (data != SILAN_SC7A20_WHOAMI_VALUE) {
         SENSOR_LOG("Wrong WHO_AM_I: 0x%02X (expected 0x%02X)", data, SILAN_SC7A20_WHOAMI_VALUE);
         return SENSOR_ERROR;
     }
 
     /* 软复位 */
-    if (silan_sc7a20_reg_write(sensor, SILAN_SC7A20_REG_CTRL2, 0x80) != SENSOR_EOK)
-        return SENSOR_EIO;
+    ret = silan_sc7a20_reg_write(sensor, SILAN_SC7A20_REG_CTRL2, 0x80);
+    if (ret != SENSOR_EOK)
+        return ret;
     SENSOR_DELAY_MS(10);
 
     /* 配置: ±2g, 100Hz */
     data = SILAN_SC7A20_RATE_100HZ | SILAN_SC7A20_RANGE_2G | 0x07;  /* 使能 XYZ */
-    if (silan_sc7a20_reg_write(sensor, SILAN_SC7A20_REG_CTRL1, data) != SENSOR_EOK)
-        return SENSOR_EIO;
+    ret = silan_sc7a20_reg_write(sensor, SILAN_SC7A20_REG_CTRL1, data);
+    if (ret != SENSOR_EOK)
+        return ret;
 
     ((silan_sc7a20_priv_t *)sensor->priv_data)->range = 2;
     ((silan_sc7a20_priv_t *)sensor->priv_data)->rate  = 100;
@@ -55,15 +58,16 @@ static sensor_err_t silan_sc7a20_init(sensor_device_t *sensor)
 
 static sensor_err_t silan_sc7a20_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
     silan_sc7a20_priv_t *priv = (silan_sc7a20_priv_t *)sensor->priv_data;
 
     /* 进入掉电模式 */
-    if (silan_sc7a20_reg_write(sensor, SILAN_SC7A20_REG_CTRL1, SILAN_SC7A20_RATE_POWER_DOWN) !=
-        SENSOR_EOK)
-        return SENSOR_EIO;
+    sensor_err_t ret = silan_sc7a20_reg_write(
+        sensor, SILAN_SC7A20_REG_CTRL1, SILAN_SC7A20_RATE_POWER_DOWN);
+    if (ret != SENSOR_EOK)
+        return ret;
 
     priv->rate = 0U;
     sensor->odr = 0U;
@@ -72,15 +76,17 @@ static sensor_err_t silan_sc7a20_deinit(sensor_device_t *sensor)
 
 static sensor_err_t silan_sc7a20_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
     uint8_t buf[6];
     
     /* 读取6字节加速度数据 */
     for (int i = 0; i < 6; i++) {
-        if (silan_sc7a20_reg_read(sensor, SILAN_SC7A20_REG_OUT_X_L + i, &buf[i]) != SENSOR_EOK) {
-            return SENSOR_EIO;
+        sensor_err_t ret = silan_sc7a20_reg_read(
+            sensor, (uint8_t)(SILAN_SC7A20_REG_OUT_X_L + i), &buf[i]);
+        if (ret != SENSOR_EOK) {
+            return ret;
         }
     }
 
@@ -163,15 +169,17 @@ sensor_device_t *silan_sc7a20_create(const char *name, void *i2c_bus, uint8_t ad
  */
 int silan_sc7a20_set_range(sensor_device_t *dev, uint8_t range)
 {
-    if (dev == NULL || dev->priv_data == NULL) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) {
         return SENSOR_EINVAL;
     }
     uint8_t ctrl1;
-    if (silan_sc7a20_reg_read(dev, SILAN_SC7A20_REG_CTRL1, &ctrl1) != SENSOR_EOK)
-        return SENSOR_EIO;
+    sensor_err_t ret = silan_sc7a20_reg_read(dev, SILAN_SC7A20_REG_CTRL1, &ctrl1);
+    if (ret != SENSOR_EOK)
+        return ret;
     ctrl1 = (ctrl1 & 0xC7) | (range & 0x18);  /* 保留ODR位 */
-    if (silan_sc7a20_reg_write(dev, SILAN_SC7A20_REG_CTRL1, ctrl1) != SENSOR_EOK)
-        return SENSOR_EIO;
+    ret = silan_sc7a20_reg_write(dev, SILAN_SC7A20_REG_CTRL1, ctrl1);
+    if (ret != SENSOR_EOK)
+        return ret;
     ((silan_sc7a20_priv_t *)dev->priv_data)->range = (range == SILAN_SC7A20_RANGE_2G) ? 2 :
                                                        (range == SILAN_SC7A20_RANGE_4G) ? 4 :
                                                        (range == SILAN_SC7A20_RANGE_8G) ? 8 : 16;
@@ -183,7 +191,7 @@ int silan_sc7a20_set_range(sensor_device_t *dev, uint8_t range)
  */
 int silan_sc7a20_set_rate(sensor_device_t *dev, uint8_t rate)
 {
-    if (dev == NULL || dev->priv_data == NULL) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) {
         return SENSOR_EINVAL;
     }
     uint16_t rate_hz;
@@ -199,11 +207,13 @@ int silan_sc7a20_set_rate(sensor_device_t *dev, uint8_t rate)
     default: return SENSOR_EINVAL;
     }
     uint8_t ctrl1;
-    if (silan_sc7a20_reg_read(dev, SILAN_SC7A20_REG_CTRL1, &ctrl1) != SENSOR_EOK)
-        return SENSOR_EIO;
+    sensor_err_t ret = silan_sc7a20_reg_read(dev, SILAN_SC7A20_REG_CTRL1, &ctrl1);
+    if (ret != SENSOR_EOK)
+        return ret;
     ctrl1 = (ctrl1 & 0x0F) | (rate & 0xF0);  /* 保留量程位 */
-    if (silan_sc7a20_reg_write(dev, SILAN_SC7A20_REG_CTRL1, ctrl1) != SENSOR_EOK)
-        return SENSOR_EIO;
+    ret = silan_sc7a20_reg_write(dev, SILAN_SC7A20_REG_CTRL1, ctrl1);
+    if (ret != SENSOR_EOK)
+        return ret;
     ((silan_sc7a20_priv_t *)dev->priv_data)->rate = rate_hz;
     dev->odr = rate_hz;
     return 0;
@@ -214,14 +224,16 @@ int silan_sc7a20_set_rate(sensor_device_t *dev, uint8_t rate)
  */
 int silan_sc7a20_enable_high_pass(sensor_device_t *dev, uint8_t enable)
 {
-    if (dev == NULL || dev->priv_data == NULL) {
+    if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) {
         return SENSOR_EINVAL;
     }
     uint8_t ctrl2;
-    if (silan_sc7a20_reg_read(dev, SILAN_SC7A20_REG_CTRL2, &ctrl2) != SENSOR_EOK)
-        return SENSOR_EIO;
+    sensor_err_t ret = silan_sc7a20_reg_read(dev, SILAN_SC7A20_REG_CTRL2, &ctrl2);
+    if (ret != SENSOR_EOK)
+        return ret;
     ctrl2 = enable ? (ctrl2 | 0x01) : (ctrl2 & 0xFE);
-    if (silan_sc7a20_reg_write(dev, SILAN_SC7A20_REG_CTRL2, ctrl2) != SENSOR_EOK)
-        return SENSOR_EIO;
+    ret = silan_sc7a20_reg_write(dev, SILAN_SC7A20_REG_CTRL2, ctrl2);
+    if (ret != SENSOR_EOK)
+        return ret;
     return 0;
 }
