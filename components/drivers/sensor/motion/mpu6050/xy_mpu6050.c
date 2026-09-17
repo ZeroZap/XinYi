@@ -7,7 +7,7 @@
 
 #include "xy_mpu6050.h"
 #include "xy_log.h"
-#include "xy_hal_delay.h"
+#include "xy_device_timing.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -99,7 +99,7 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
         memset(dev, 0, sizeof(*dev));
         return ret;
     }
-    xy_hal_delay_ms(100);
+    (void)xy_device_delay_ms(100U);
 
     /* 设置采样率 (1kHz) */
     ret = xy_mpu6050_write_reg(dev, MPU6050_REG_SMPLRT_DIV, 0x00);
@@ -313,7 +313,7 @@ int xy_mpu6050_calibrate(xy_mpu6050_t *dev, uint16_t samples)
         gyro_sum[1] += staged.raw.gyro_y;
         gyro_sum[2] += staged.raw.gyro_z;
 
-        xy_hal_delay_ms(10);
+        (void)xy_device_delay_ms(10U);
     }
 
     /* 计算偏移 (假设水平放置，Z 轴应为 1g) */

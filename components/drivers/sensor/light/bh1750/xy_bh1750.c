@@ -7,7 +7,7 @@
 
 #include "xy_bh1750.h"
 #include "xy_log.h"
-#include "xy_hal_delay.h"
+#include "xy_device_timing.h"
 #include "xy_hal_sys.h"
 #include <string.h>
 
@@ -85,7 +85,7 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
         return ret;
     }
     
-    xy_hal_delay_ms(10);
+    xy_device_delay_ms(10U);
     
     /* 软件复位 */
     cmd = BH1750_CMD_RESET;
@@ -95,7 +95,7 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
         return ret;
     }
 
-    xy_hal_delay_ms(10);
+    xy_device_delay_ms(10U);
 
     bh1750->initialized = true;
     xy_log_i("BH1750 initialized at 0x%02X\n", addr);
@@ -137,7 +137,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
         return ret;
     }
     
-    xy_hal_delay_ms(10);
+    xy_device_delay_ms(10U);
     
     /* 发送测量命令 */
     cmd = xy_bh1750_get_measure_cmd(bh1750);
@@ -148,7 +148,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
     
     /* 等待测量完成 */
     measure_time = xy_bh1750_get_measure_time(bh1750->resolution);
-    xy_hal_delay_ms(measure_time);
+    xy_device_delay_ms(measure_time);
     
     /* 读取数据 */
     ret = xy_i2c_device_read(&bh1750->i2c_dev, buf, 2);

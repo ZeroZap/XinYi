@@ -36,6 +36,7 @@ set(DEVICE_HEADERS
     inc/xy_device_error.h
     inc/xy_device.h
     inc/xy_device_pm.h
+    inc/xy_device_timing.h
     inc/xy_dev_spi.h
     inc/xy_dev_uart.h
     inc/xy_gpio.h
