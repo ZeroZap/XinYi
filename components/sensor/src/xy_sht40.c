@@ -91,9 +91,9 @@ int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
     cmd = SHT40_CMD_READ_SERIAL;
     ret = xy_i2c_device_write(&sht40->i2c_dev, &cmd, 1);
     if (ret != XY_DEVICE_OK) {
-        xy_log_e("SHT40 not found\n");
+        xy_log_e("SHT40 serial command failed\n");
         memset(sht40, 0, sizeof(*sht40));
-        return XY_SHT40_NOT_FOUND;
+        return ret;
     }
     
     xy_os_delay(10);

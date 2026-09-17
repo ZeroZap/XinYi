@@ -270,7 +270,7 @@ static void test_init_reports_i2c_write_and_read_failures(void)
     int fake_bus;
 
     g_write_ret_queue[0] = XY_DEVICE_ERROR;
-    TEST_ASSERT_EQUAL_INT(XY_SHT40_NOT_FOUND, xy_sht40_init(&dev, &fake_bus));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_sht40_init(&dev, &fake_bus));
     TEST_ASSERT_EQUAL_MEMORY(&(xy_sht40_t){0}, &dev, sizeof(dev));
 
     setUp();
