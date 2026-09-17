@@ -539,6 +539,53 @@ static void test_lis2dh12_invalid_contexts_fail_closed(void)
     destroy_sensor(sensor);
 }
 
+static void test_sc7a20_config_boundaries_and_invalid_requests(void)
+{
+    int fake_bus;
+    uint32_t value;
+    sensor_device_t *sensor = sc7a20_create("sc7a20-config", &fake_bus);
+    sc7a20_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    priv = (sc7a20_priv_t *)sensor->priv_data;
+
+    value = 1U;
+    queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG4,
+                 SC7A20_RANGE_2G | 0x08U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->config(sensor, SENSOR_CFG_RANGE, &value));
+    TEST_ASSERT_EQUAL_UINT8(2U, priv->range);
+
+    value = 4U;
+    queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG4,
+                 SC7A20_RANGE_4G | 0x08U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->config(sensor, SENSOR_CFG_RANGE, &value));
+    TEST_ASSERT_EQUAL_UINT8(4U, priv->range);
+
+    value = 8U;
+    queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG4,
+                 SC7A20_RANGE_8G | 0x08U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->config(sensor, SENSOR_CFG_RANGE, &value));
+    TEST_ASSERT_EQUAL_UINT8(8U, priv->range);
+
+    value = 400U;
+    queue_write8(&fake_bus, SC7A20_ADDR_DEFAULT, SC7A20_REG_CTRL_REG1,
+                 SC7A20_ODR_400HZ | 0x07U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->config(sensor, SENSOR_CFG_ODR, &value));
+    TEST_ASSERT_EQUAL_UINT8(SC7A20_ODR_400HZ | 0x07U, priv->odr_reg);
+    TEST_ASSERT_EQUAL_UINT32(400U, sensor->odr);
+
+    value = 4U;
+    TEST_ASSERT_EQUAL_INT(SENSOR_ENOSYS,
+                          sensor->ops->config(sensor, (sensor_config_type_t)0xFFFF, &value));
+    TEST_ASSERT_EQUAL_UINT(4U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT8(8U, priv->range);
+    TEST_ASSERT_EQUAL_UINT8(SC7A20_ODR_400HZ | 0x07U, priv->odr_reg);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->config(sensor, SENSOR_CFG_RANGE, NULL));
+    TEST_ASSERT_EQUAL_UINT(4U, g_write_index);
+    destroy_sensor(sensor);
+}
+
 static void test_sc7a20_public_contexts_fail_closed(void)
 {
     int fake_bus;
@@ -567,6 +614,7 @@ int main(void)
     RUN_TEST(test_lis2dw12_i2c_init_read_helpers_deinit_and_errors);
     RUN_TEST(test_lis2dw12_invalid_contexts_fail_closed);
     RUN_TEST(test_sc7a20_init_read_config_deinit_and_errors);
+    RUN_TEST(test_sc7a20_config_boundaries_and_invalid_requests);
     RUN_TEST(test_sc7a20_public_contexts_fail_closed);
     RUN_TEST(test_silan_sc7a20_create_init_read_helpers_deinit_and_errors);
     return UNITY_END();
