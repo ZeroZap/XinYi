@@ -1255,6 +1255,15 @@ target_include_directories(test_w25q128 BEFORE PRIVATE
     ${HAL}/inc
 )
 
+xy_add_unit_test(test_sd_spi storage_sd_spi UNITY
+    ${UNIT_STORAGE}/test_sd_spi.c
+    ${DRV}/storage/sdcard/xy_sd_spi.c
+)
+target_include_directories(test_sd_spi BEFORE PRIVATE
+    ${DRV}/storage/sdcard
+    ${HAL}/inc
+)
+
 xy_add_unit_test(test_vl53l1x sensor_vl53l1x UNITY
     ${UNIT_SENSOR}/test_vl53l1x.c
     ${SENSOR}/src/xy_vl53l1x.c
