@@ -15,6 +15,15 @@ static sensor_err_t sht30_map_error(int result)
     if (result == XY_DEVICE_INVALID_PARAM) {
         return SENSOR_EINVAL;
     }
+    if (result == XY_DEVICE_BUSY) {
+        return SENSOR_EBUSY;
+    }
+    if (result == XY_DEVICE_TIMEOUT) {
+        return SENSOR_ETIMEOUT;
+    }
+    if (result == XY_DEVICE_NO_MEM) {
+        return SENSOR_ENOMEM;
+    }
     return SENSOR_EIO;
 }
 

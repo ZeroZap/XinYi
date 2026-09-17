@@ -202,8 +202,8 @@ static void test_legacy_wrapper_maps_errors_and_preserves_output(void)
     TEST_ASSERT_NULL(sht30_create("sht30-no-bus", NULL, SHT30_ADDR_DEFAULT));
     TEST_ASSERT_NOT_NULL(sensor);
 
-    queue_write(reset_cmd, sizeof(reset_cmd), XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_write(reset_cmd, sizeof(reset_cmd), XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
 
     queue_write(reset_cmd, sizeof(reset_cmd), XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
