@@ -219,6 +219,11 @@ static void test_bmp280_init_maps_chip_id_and_calibration_failures(void)
     sensor_device_t *sensor = bmp280_create_pressure("bmp280-fail", &fake_bus);
 
     TEST_ASSERT_NOT_NULL(sensor);
+    queue_mem_read8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CHIP_ID, 0x00U,
+                    SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+
+    setUp();
     queue_mem_read8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CHIP_ID, 0x00U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT(0U, g_mem_write_index);

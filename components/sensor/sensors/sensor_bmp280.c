@@ -13,10 +13,10 @@ static sensor_err_t bmp280_read_calibration(sensor_device_t *sensor)
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     uint8_t calib[24];
 
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, BMP280_REG_CALIB00, calib, 24)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, BMP280_REG_CALIB00, calib, 24);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     priv->dig_T1 = (uint16_t)(calib[1] << 8 | calib[0]);
@@ -47,14 +47,15 @@ static sensor_err_t bmp280_init(sensor_device_t *sensor)
 
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     uint8_t data;
+    int transport_ret;
 
     SENSOR_LOG("Initializing BMP280");
 
     /* 检查CHIP_ID */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, BMP280_REG_CHIP_ID, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    transport_ret = hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, BMP280_REG_CHIP_ID, &data, 1);
+    if (transport_ret != SENSOR_EOK) {
+        return (sensor_err_t)transport_ret;
     }
 
     if (data != BMP280_CHIP_ID) {
@@ -64,10 +65,10 @@ static sensor_err_t bmp280_init(sensor_device_t *sensor)
 
     /* 软复位 */
     data = 0xB6;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMP280_REG_RESET, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    transport_ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, BMP280_REG_RESET, &data, 1);
+    if (transport_ret != SENSOR_EOK) {
+        return (sensor_err_t)transport_ret;
     }
     SENSOR_DELAY_MS(10);
 
@@ -79,18 +80,18 @@ static sensor_err_t bmp280_init(sensor_device_t *sensor)
 
     /* 配置: standby 0.5ms, filter off, SPI disable */
     data = 0x00;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMP280_REG_CONFIG, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    transport_ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, BMP280_REG_CONFIG, &data, 1);
+    if (transport_ret != SENSOR_EOK) {
+        return (sensor_err_t)transport_ret;
     }
 
     /* 配置测量: osrs_t=1, osrs_p=1, normal mode */
     data = 0x27;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    transport_ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1);
+    if (transport_ret != SENSOR_EOK) {
+        return (sensor_err_t)transport_ret;
     }
 
     SENSOR_LOG("BMP280 initialized successfully");
@@ -110,10 +111,10 @@ static sensor_err_t bmp280_deinit(sensor_device_t *sensor)
     bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
     uint8_t data        = 0x00; /* sleep mode */
 
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(
+        sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     return SENSOR_EOK;
