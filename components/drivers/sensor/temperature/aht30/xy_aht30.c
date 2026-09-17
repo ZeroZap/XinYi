@@ -1,0 +1,7 @@
+#include "xy_aht30.h"
+#include "xy_hal_delay.h"
+#include <string.h>
+static uint8_t crc8(const uint8_t *p, size_t n){uint8_t c=0xFFU;while(n--){c^=*p++;for(uint8_t i=0;i<8U;++i)c=(c&0x80U)?(uint8_t)((c<<1)^0x31U):(uint8_t)(c<<1);}return c;}
+xy_error_t xy_aht30_init(xy_aht30_t *d,void *h){if(!d||!h)return XY_DEVICE_INVALID_PARAM;memset(d,0,sizeof(*d));xy_error_t r=xy_i2c_device_init(&d->i2c_dev,h,XY_AHT30_ADDR,100U);if(r==XY_DEVICE_OK){xy_hal_delay_ms(5U);d->initialized=1U;}return r;}
+xy_error_t xy_aht30_deinit(xy_aht30_t *d){if(!d||!d->initialized)return XY_DEVICE_INVALID_PARAM;d->initialized=0U;d->i2c_dev.base.initialized=0U;return XY_DEVICE_OK;}
+xy_error_t xy_aht30_read(xy_aht30_t *d,xy_aht30_data_t *out){static const uint8_t cmd[]={0xACU,0x33U,0x00U};uint8_t b[7];xy_aht30_data_t v;if(!d||!out||!d->initialized||!d->i2c_dev.base.initialized)return XY_DEVICE_INVALID_PARAM;xy_error_t r=xy_i2c_device_write(&d->i2c_dev,cmd,sizeof(cmd));if(r!=XY_DEVICE_OK)return r;xy_hal_delay_ms(80U);r=xy_i2c_device_read(&d->i2c_dev,b,sizeof(b));if(r!=XY_DEVICE_OK)return r;if(b[0]&0x80U)return XY_DEVICE_BUSY;if((b[0]&0x18U)!=0x18U||crc8(b,6U)!=b[6])return XY_HAL_ERROR_CRC;uint32_t rh=((uint32_t)b[1]<<12)|((uint32_t)b[2]<<4)|(b[3]>>4);uint32_t t=((uint32_t)(b[3]&0x0FU)<<16)|((uint32_t)b[4]<<8)|b[5];v.humidity_centi_pct=(uint32_t)(((uint64_t)rh*10000U)>>20);v.temperature_centi_c=(int32_t)(((uint64_t)t*20000U)>>20)-5000;d->data=v;*out=v;return XY_DEVICE_OK;}

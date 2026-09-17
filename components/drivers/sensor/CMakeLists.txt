@@ -15,6 +15,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/motion)
     add_subdirectory(motion)
 endif()
 
+# Environment Sensors
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/environment)
+    add_subdirectory(environment)
+endif()
+
 # ADC Sensors
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/adc)
     add_subdirectory(adc)

@@ -1,7 +1,7 @@
 # XinYi Sensor active-source ownership manifest
 
 **Date**: 2026-08-28  
-**Status**: Host-governed ownership baseline; hardware-pending  
+**Status**: Host-governed ownership baseline; mixed hardware evidence
 **Scope**: first-party Sensor implementations under `components/sensor` and
 `components/drivers/sensor`
 
@@ -27,7 +27,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 20 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 4 | `device-active-root`; canonical migration destination | SHT30 integration, transaction/CRC/error contract, and heterogeneous four-driver test | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 7 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680 basic-chain verified; others `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -35,6 +35,18 @@ The Device-model root set is currently exactly:
 - MPU6050: `components/drivers/sensor/motion/mpu6050/xy_mpu6050.c`
 - ADS1115: `components/drivers/sensor/adc/ads1115/xy_ads1115.c`
 - BMP280: `components/drivers/sensor/pressure/bmp280/xy_bmp280.c`
+- AHT30: `components/drivers/sensor/temperature/aht30/xy_aht30.c`
+- L3G4200D: `components/drivers/sensor/motion/l3g4200d/xy_l3g4200d.c`
+- BME680: `components/drivers/sensor/environment/bme680/xy_bme680.c`
+
+### Pandora I2C2 hardware status
+
+The Pandora STM32L475 I2C2 target (`PB10/PB11`, 100 kHz) identifies and samples the three new
+owners at `0x38`, `0x69`, and `0x77`. A reset-synchronized UART capture proved AHT30 CRC-valid
+temperature/humidity frames, L3G4200D identity `0xD3` and three-axis output, and BME680 identity
+`0x61` with Bosch-compensated temperature, pressure, humidity, and heater-stable gas resistance.
+This is basic-chain hardware evidence; it does not claim calibrated accuracy, environmental chamber
+qualification, long-run reliability, or general I2C fault recovery.
 
 ## Admission and migration contract
 

@@ -10,6 +10,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/aht20)
     add_subdirectory(aht20)
 endif()
 
+# AHT30
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/aht30)
+    add_subdirectory(aht30)
+endif()
+
 # DHT11
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/dht11)
     add_subdirectory(dht11)

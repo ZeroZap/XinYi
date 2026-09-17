@@ -673,3 +673,41 @@ add_custom_command(TARGET pandora_stm32l475_tf_card POST_BUILD
             ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_tf_card.bin
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_tf_card>
     COMMENT "Generating Pandora SPI1 TF-card probe BIN")
+add_executable(pandora_stm32l475_i2c2_sensors
+    i2c2_sensors_main.c
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/temperature/aht30/xy_aht30.c
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/motion/l3g4200d/xy_l3g4200d.c
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/environment/bme680/xy_bme680.c
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/environment/bme680/bosch/bme68x.c
+    ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_i2c.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
+    ${PANDORA_PLATFORM_STARTUP}
+    ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
+    ${_cmsis}/Source/Templates/system_stm32l4xx.c
+    ${_hal}/stm32l4xx_hal.c ${_hal}/stm32l4xx_hal_cortex.c ${_hal}/stm32l4xx_hal_gpio.c
+    ${_hal}/stm32l4xx_hal_i2c.c ${_hal}/stm32l4xx_hal_i2c_ex.c
+    ${_hal}/stm32l4xx_hal_pwr.c ${_hal}/stm32l4xx_hal_pwr_ex.c
+    ${_hal}/stm32l4xx_hal_rcc.c ${_hal}/stm32l4xx_hal_rcc_ex.c ${_hal}/stm32l4xx_hal_uart.c)
+target_include_directories(pandora_stm32l475_i2c2_sensors BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/components/device/inc
+    ${CMAKE_SOURCE_DIR}/components/device ${CMAKE_SOURCE_DIR}/components/hal/inc
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/temperature/aht30
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/motion/l3g4200d)
+target_include_directories(pandora_stm32l475_i2c2_sensors BEFORE PRIVATE
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/environment/bme680
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/environment/bme680/bosch)
+target_compile_definitions(pandora_stm32l475_i2c2_sensors PRIVATE
+    STM32L4 STM32L475xx USE_HAL_DRIVER XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+target_link_options(pandora_stm32l475_i2c2_sensors PRIVATE
+    -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld --specs=nano.specs --specs=nosys.specs
+    -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_i2c2_sensors.map)
+set_target_properties(pandora_stm32l475_i2c2_sensors PROPERTIES SUFFIX ".elf")
+add_custom_command(TARGET pandora_stm32l475_i2c2_sensors POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:pandora_stm32l475_i2c2_sensors>
+            ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_i2c2_sensors.bin
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_i2c2_sensors>
+    COMMENT "Generating Pandora I2C2 sensors probe BIN")

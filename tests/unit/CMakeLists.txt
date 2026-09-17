@@ -326,6 +326,17 @@ xy_add_unit_test(test_bmp280_device sensor_bmp280_device UNITY
     ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
 )
 
+# --- Pandora I2C2 sensor Device-driver contracts ---
+xy_add_unit_test(test_i2c2_sensor_devices sensor_i2c2_devices UNITY
+    ${UNIT_SENSOR}/test_i2c2_sensor_devices.c
+    ${DRV}/sensor/temperature/aht30/xy_aht30.c
+    ${DRV}/sensor/motion/l3g4200d/xy_l3g4200d.c
+)
+target_include_directories(test_i2c2_sensor_devices PRIVATE
+    ${DRV}/sensor/temperature/aht30
+    ${DRV}/sensor/motion/l3g4200d
+)
+
 # --- Test 3: heterogeneous sensor coexistence ---
 xy_add_unit_test(test_sensors_multi sensors_multi UNITY
     ${UNIT_SENSOR}/test_sensors_multi.c

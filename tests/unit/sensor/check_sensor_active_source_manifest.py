@@ -46,7 +46,7 @@ def main() -> int:
     require(len(legacy) == 55, f"expected 55 legacy active sources, found {len(legacy)}", errors)
     require(len(experimental) == 20,
             f"expected 20 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 4, f"expected 4 Device-model sources, found {len(device)}", errors)
+    require(len(device) == 7, f"expected 7 Device-model sources, found {len(device)}", errors)
 
     for token in (
         "legacy-active-root",
@@ -59,6 +59,9 @@ def main() -> int:
         "MPU6050",
         "ADS1115",
         "BMP280",
+        "AHT30",
+        "L3G4200D",
+        "BME680",
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
@@ -96,7 +99,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=20 "
-          "device_active=4 hardware=pending")
+          "device_active=7 hardware=mixed")
     return 0
 
 
