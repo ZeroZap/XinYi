@@ -186,8 +186,8 @@ static void test_rgb_init_propagates_id_and_enable_failures(void)
     TEST_ASSERT_NOT_NULL(sensor);
 
     uint8_t id = 0x00U;
-    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_ID, &id, 1U, -5);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_ID, &id, 1U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
 
     id = 0x42U;
     queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_ID, &id, 1U, 0);
@@ -195,8 +195,8 @@ static void test_rgb_init_propagates_id_and_enable_failures(void)
 
     id = 0x9CU;
     queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_ID, &id, 1U, 0);
-    queue_i2c_write(&bus, APDS9960_ADDR, APDS9960_REG_ENABLE, 0x4FU, -6);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_i2c_write(&bus, APDS9960_ADDR, APDS9960_REG_ENABLE, 0x4FU, SENSOR_EBUSY);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->init(sensor));
     assert_no_extra_i2c();
 
     destroy_sensor(sensor);
@@ -208,8 +208,8 @@ static void test_deinit_propagates_disable_write_failure(void)
     sensor_device_t *sensor = apds9960_create_rgb("apds-deinit", &bus);
     TEST_ASSERT_NOT_NULL(sensor);
 
-    queue_i2c_write(&bus, APDS9960_ADDR, APDS9960_REG_ENABLE, 0x00U, -7);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    queue_i2c_write(&bus, APDS9960_ADDR, APDS9960_REG_ENABLE, 0x00U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
     assert_no_extra_i2c();
 
     destroy_sensor(sensor);
@@ -227,8 +227,8 @@ static void test_read_failure_preserves_output(void)
     sensor_data_t snapshot = data;
 
     TEST_ASSERT_NOT_NULL(sensor);
-    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_CDATAL, NULL, 8U, -8);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_CDATAL, NULL, 8U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
     assert_output_unchanged(&snapshot, &data);
     assert_no_extra_i2c();
 
@@ -291,8 +291,8 @@ static void test_gesture_valid_status_propagates_fifo_level_read_failure(void)
 
     TEST_ASSERT_NOT_NULL(sensor);
     queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GSTATUS, &gstatus, 1U, 0);
-    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GFLVL, NULL, 1U, -8);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    queue_i2c_read(&bus, APDS9960_ADDR, APDS9960_REG_GFLVL, NULL, 1U, SENSOR_EBUSY);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->read(sensor, &data));
     assert_output_unchanged(&snapshot, &data);
     assert_no_extra_i2c();
     destroy_sensor(sensor);

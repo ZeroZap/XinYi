@@ -17,9 +17,9 @@ static sensor_err_t apds9960_init(sensor_device_t *sensor)
     SENSOR_LOG("Initializing APDS9960");
 
     /* 读取ID */
-    if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_ID, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_ID, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (data != 0xAB && data != 0x9C) {
@@ -29,10 +29,9 @@ static sensor_err_t apds9960_init(sensor_device_t *sensor)
 
     /* 使能功能: PON, AEN, PEN, GEN */
     data = 0x4F;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, APDS9960_REG_ENABLE, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, APDS9960_REG_ENABLE, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     SENSOR_LOG("APDS9960 initialized");
@@ -49,8 +48,9 @@ static sensor_err_t apds9960_deinit(sensor_device_t *sensor)
     apds9960_priv_t *priv = (apds9960_priv_t *)sensor->priv_data;
     uint8_t data          = 0x00;
 
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr, APDS9960_REG_ENABLE, &data, 1) != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr, APDS9960_REG_ENABLE, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     return SENSOR_EOK;
@@ -68,10 +68,9 @@ static sensor_err_t apds9960_rgb_read(sensor_device_t *sensor,
     uint8_t buf[8];
 
     /* 读取RGBC数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, APDS9960_REG_CDATAL, buf, 8)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_CDATAL, buf, 8);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     apds9960_rgb_t rgb;
@@ -103,10 +102,10 @@ static sensor_err_t apds9960_proximity_read(sensor_device_t *sensor,
     apds9960_priv_t *priv = (apds9960_priv_t *)sensor->priv_data;
     uint8_t proximity;
 
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, APDS9960_REG_PDATA, &proximity, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_PDATA,
+                               &proximity, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     data->type             = SENSOR_TYPE_PROXIMITY;
@@ -130,10 +129,10 @@ static sensor_err_t apds9960_gesture_read(sensor_device_t *sensor,
     uint8_t gstatus;
 
     /* 读取手势状态 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, APDS9960_REG_GSTATUS, &gstatus, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_GSTATUS,
+                               &gstatus, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (gstatus & 0x01) {
@@ -141,10 +140,10 @@ static sensor_err_t apds9960_gesture_read(sensor_device_t *sensor,
         uint8_t fifo_data[128];
         uint8_t fifo_level;
 
-        if (hal_i2c_mem_read(
-                sensor->bus, priv->i2c_addr, APDS9960_REG_GFLVL, &fifo_level, 1)
-            != 0) {
-            return SENSOR_EIO;
+        ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_GFLVL,
+                               &fifo_level, 1);
+        if (ret != SENSOR_EOK) {
+            return (sensor_err_t)ret;
         }
 
         if (fifo_level > 32U) {
@@ -152,9 +151,10 @@ static sensor_err_t apds9960_gesture_read(sensor_device_t *sensor,
         }
         if (fifo_level > 0) {
             /* 读取FIFO数据并解析手势 */
-            if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_GFIFO_U, fifo_data,
-                                 fifo_level * 4) != 0) {
-                return SENSOR_EIO;
+            ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr, APDS9960_REG_GFIFO_U,
+                                   fifo_data, fifo_level * 4);
+            if (ret != SENSOR_EOK) {
+                return (sensor_err_t)ret;
             }
 
             /* 简化的手势识别算法 */
