@@ -73,6 +73,16 @@ void xy_os_delay(uint32_t ms)
     g_tick += ms;
 }
 
+void xy_hal_delay_ms(uint32_t ms)
+{
+    xy_os_delay(ms);
+}
+
+uint32_t xy_hal_sys_get_tick_count(void)
+{
+    return g_tick;
+}
+
 int xy_printf(const char *fmt, ...)
 {
     (void)fmt;

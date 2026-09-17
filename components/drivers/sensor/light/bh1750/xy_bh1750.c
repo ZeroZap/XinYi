@@ -7,7 +7,8 @@
 
 #include "xy_bh1750.h"
 #include "xy_log.h"
-#include "xy_os.h"
+#include "xy_hal_delay.h"
+#include "xy_hal_sys.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -84,7 +85,7 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
         return ret;
     }
     
-    xy_os_delay(10);
+    xy_hal_delay_ms(10);
     
     /* 软件复位 */
     cmd = BH1750_CMD_RESET;
@@ -94,7 +95,7 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
         return ret;
     }
 
-    xy_os_delay(10);
+    xy_hal_delay_ms(10);
 
     bh1750->initialized = true;
     xy_log_i("BH1750 initialized at 0x%02X\n", addr);
@@ -136,7 +137,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
         return ret;
     }
     
-    xy_os_delay(10);
+    xy_hal_delay_ms(10);
     
     /* 发送测量命令 */
     cmd = xy_bh1750_get_measure_cmd(bh1750);
@@ -147,7 +148,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
     
     /* 等待测量完成 */
     measure_time = xy_bh1750_get_measure_time(bh1750->resolution);
-    xy_os_delay(measure_time);
+    xy_hal_delay_ms(measure_time);
     
     /* 读取数据 */
     ret = xy_i2c_device_read(&bh1750->i2c_dev, buf, 2);
@@ -169,7 +170,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
         bh1750->data.illuminance = (float)raw_value;
     }
     
-    bh1750->data.timestamp = xy_os_tick_get();
+    bh1750->data.timestamp = xy_hal_sys_get_tick_count();
     
     xy_log_d("BH1750: %.1f lux\n", bh1750->data.illuminance);
     

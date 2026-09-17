@@ -145,6 +145,11 @@ xy_os_status_t xy_os_delay(uint32_t ticks)
     return XY_OS_OK;
 }
 
+void xy_hal_delay_ms(uint32_t ms)
+{
+    g_delay_total += ms;
+}
+
 void setUp(void)
 {
     memset(g_ops, 0, sizeof(g_ops));
