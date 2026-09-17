@@ -14,11 +14,13 @@ static sensor_err_t bh1750_init(sensor_device_t *s)
     uint8_t power_on_cmd = 0x01U;
     uint8_t continuous_h_res_cmd = 0x10U;
 
-    if (hal_i2c_mem_write(s->bus, p->i2c_addr, &power_on_cmd, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(s->bus, p->i2c_addr, &power_on_cmd, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
-    if (hal_i2c_mem_write(s->bus, p->i2c_addr, &continuous_h_res_cmd, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_write(s->bus, p->i2c_addr, &continuous_h_res_cmd, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     return SENSOR_EOK;
@@ -34,14 +36,16 @@ static sensor_err_t bh1750_read(sensor_device_t *s, sensor_data_t *d)
     bh1750_priv_t *p = (bh1750_priv_t *)s->priv_data;
     uint8_t one_time_h_res_cmd = 0x20U;
 
-    if (hal_i2c_mem_write(s->bus, p->i2c_addr, &one_time_h_res_cmd, 1) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(s->bus, p->i2c_addr, &one_time_h_res_cmd, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     SENSOR_DELAY_MS(20);
 
-    if (hal_i2c_mem_read(s->bus, p->i2c_addr, buf, 2) != SENSOR_EOK) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_read(s->bus, p->i2c_addr, buf, 2);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     d->type = SENSOR_TYPE_LIGHT;

@@ -173,9 +173,9 @@ static void test_bh1750_init_propagates_power_on_write_failure(void)
     sensor_device_t *sensor = bh1750_create("bh-init-fail", &fake_bus);
 
     TEST_ASSERT_NOT_NULL(sensor);
-    g_i2c_writes[0].status = SENSOR_EIO;
+    g_i2c_writes[0].status = SENSOR_ETIMEOUT;
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
 
     TEST_ASSERT_EQUAL_UINT(1U, g_i2c_write_count);
     TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, g_i2c_writes[0].addr);
