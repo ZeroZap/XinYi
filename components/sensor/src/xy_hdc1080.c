@@ -35,7 +35,7 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
     ret = xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, buf, 2);
     if (ret != XY_DEVICE_OK) {
         memset(dev, 0, sizeof(*dev));
-        return XY_HDC1080_ERROR;
+        return ret;
     }
     xy_os_delay(15);
     
@@ -46,7 +46,7 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
     ret = xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, buf, 2);
     if (ret != XY_DEVICE_OK) {
         memset(dev, 0, sizeof(*dev));
-        return XY_HDC1080_ERROR;
+        return ret;
     }
     
     dev->initialized = 1;
