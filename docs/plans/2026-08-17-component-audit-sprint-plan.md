@@ -53,7 +53,7 @@ XinYi 已不是“缺少组件骨架”的早期仓库，而是一个具有强 H
 | `drivers/sensor`（新 Device 模型） | B | SHT30/MPU6050/BMP280/ADS1115 与 Device/PC HAL 集成测试 | 仅少量 active 驱动；与 legacy Sensor 双轨并存 | 定义新驱动准入与 legacy 迁移模板 |
 | `drivers/power/wireless/system` | D/C | 目录与部分配置入口 | active 源很少或为空，历史声明大于实现 | 不扩张宣称；按产品需求逐项 proposal |
 | `sensor` legacy `sensor_*` | B | 根 `sensor_component` 实际编译 framework 与约 55 个 `sensor_*.c`；大量 focused CTest 覆盖解析、边界和 I/O 失败 | 当前产品主路径，但部分 stub/简单驱动的测试不等于完整数据手册实现；fusion 部分路径仍返回 `SENSOR_ENOSYS`；多数无实板证据 | 冻结新增 legacy；逐批迁移到 Device 模型，保留兼容层 |
-| `sensor` 新 `xy_*` | B-/C | 约 20 个 `src/xy_*.c`，多个环境/光学/存储 Host 测试 | 当前根 `components/sensor/CMakeLists.txt` 未纳入这些实验实现，即“测试过但未进入根产品库”；MLX90614 EEPROM 写未实现 | 保持 `experimental-test-only`，按 manifest 迁移而不新增平行 owner |
+| `sensor` 新 `xy_*` | B-/C | 约 19 个 `src/xy_*.c`，多个环境/光学/存储 Host 测试 | 当前根 `components/sensor/CMakeLists.txt` 未纳入这些实验实现，即“测试过但未进入根产品库”；MLX90614 EEPROM 写未实现 | 保持 `experimental-test-only`，按 manifest 迁移而不新增平行 owner |
 | `drivers/sensor` Device 路径 | B | SHT30/MPU6050/BMP280/ADS1115 共 4 个 Device-model canonical owner，均进入 root Sensor target 并有 focused Host 契约 | legacy compatibility wrapper 与其余 experimental source 尚待逐步收敛；全部仍缺 B1/B2 | 维持 Device-model canonical owner 决策，禁止第四套生命周期；按芯片迁移兼容边界 |
 | `actuator` | A- | relay/servo/PWM/batch/callback 与示例 CTest | 自建 registry/lifecycle，尚未接入 Device；真实 PWM/timer/GPIO、故障态和安全默认值未证 | 增加 Device adapter；随 HAL 纵切补实板证据 |
 | `fuel_gauge` | A-/B | core + BQ27Z746/BQ40Z50/MAX17043/BQ27Z561 共 6 个 Host CTest | SMBus clock stretching、放电期 NACK/retry、告警写入、板级日志未证；security AES 当前存在明文透传风险 | 保持 standalone、不回并 PM；AES passthrough 改 fail-closed 或接可信 provider；安排硬件验证 |

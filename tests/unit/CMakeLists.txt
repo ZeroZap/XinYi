@@ -878,10 +878,10 @@ target_include_directories(test_bq25620 BEFORE PRIVATE
 
 xy_add_unit_test(test_bh1750 sensor_bh1750 UNITY
     ${UNIT_SENSOR}/test_bh1750.c
-    ${SENSOR}/src/xy_bh1750.c
+    ${ROOT}/components/drivers/sensor/light/bh1750/xy_bh1750.c
 )
 target_include_directories(test_bh1750 PRIVATE
-    ${SENSOR}/inc
+    ${ROOT}/components/drivers/sensor/light/bh1750
 )
 
 xy_add_unit_test(test_hdc1080 sensor_hdc1080 UNITY

@@ -44,9 +44,9 @@ def main() -> int:
     device = sorted((ROOT / "components" / "drivers" / "sensor").glob("**/xy_*.c"))
 
     require(len(legacy) == 55, f"expected 55 legacy active sources, found {len(legacy)}", errors)
-    require(len(experimental) == 20,
-            f"expected 20 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 7, f"expected 7 Device-model sources, found {len(device)}", errors)
+    require(len(experimental) == 19,
+            f"expected 19 experimental xy_* sources, found {len(experimental)}", errors)
+    require(len(device) == 8, f"expected 8 Device-model sources, found {len(device)}", errors)
 
     for token in (
         "legacy-active-root",
@@ -62,6 +62,7 @@ def main() -> int:
         "AHT30",
         "L3G4200D",
         "BME680",
+        "BH1750",
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
@@ -77,7 +78,7 @@ def main() -> int:
             "canonical API 已确定为 Device model" in tracker and
             "| CLOSED |" in tracker,
             "D-001 must be closed after the canonical Device-model decision", errors)
-    require("约 20 个 `src/xy_*.c`" in audit_plan,
+    require("约 19 个 `src/xy_*.c`" in audit_plan,
             "audit plan must use the current experimental source count", errors)
     require("Device-model canonical owner" in audit_plan,
             "audit plan must record the resolved Sensor ownership direction", errors)
@@ -98,8 +99,8 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=20 "
-          "device_active=7 hardware=mixed")
+    print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=19 "
+          "device_active=8 hardware=mixed")
     return 0
 
 

@@ -36,6 +36,7 @@ list(APPEND SENSOR_DRIVERS
     "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/adc/ads1115/xy_ads1115.c"
     "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/motion/mpu6050/xy_mpu6050.c"
     "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/pressure/bmp280/xy_bmp280.c"
+    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/bh1750/xy_bh1750.c"
 )
 list(APPEND SENSOR_SOURCES ${SENSOR_DRIVERS})
 

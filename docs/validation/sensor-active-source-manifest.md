@@ -26,8 +26,8 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 20 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 7 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680 basic-chain verified; others `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 19 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 8 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680 basic-chain verified; others `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -38,6 +38,7 @@ The Device-model root set is currently exactly:
 - AHT30: `components/drivers/sensor/temperature/aht30/xy_aht30.c`
 - L3G4200D: `components/drivers/sensor/motion/l3g4200d/xy_l3g4200d.c`
 - BME680: `components/drivers/sensor/environment/bme680/xy_bme680.c`
+- BH1750: `components/drivers/sensor/light/bh1750/xy_bh1750.c`
 
 ### Pandora I2C2 hardware status
 
