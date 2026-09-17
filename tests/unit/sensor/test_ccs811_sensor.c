@@ -275,8 +275,8 @@ static void test_init_success_and_failure_paths_are_observable(void)
     assert_no_extra_i2c();
 
     setUp();
-    queue_read(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_HW_ID, NULL, 1U, -5);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_read(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_HW_ID, NULL, 1U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
     assert_no_extra_i2c();
 
     setUp();
@@ -287,15 +287,16 @@ static void test_init_success_and_failure_paths_are_observable(void)
 
     setUp();
     queue_read(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_HW_ID, &hw_id, 1U, 0);
-    queue_plain_write(&bus, CCS811_ADDR_DEFAULT, &app_start, 1U, -7);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_plain_write(&bus, CCS811_ADDR_DEFAULT, &app_start, 1U, SENSOR_EBUSY);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
     assert_no_extra_i2c();
 
     setUp();
     queue_read(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_HW_ID, &hw_id, 1U, 0);
     queue_plain_write(&bus, CCS811_ADDR_DEFAULT, &app_start, 1U, 0);
-    queue_write_u8(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_MEAS_MODE, 0x10U, -8);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_write_u8(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_MEAS_MODE, 0x10U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
     assert_no_extra_i2c();
 
     destroy_sensor(sensor);
@@ -307,8 +308,8 @@ static void test_deinit_propagates_write_failure(void)
     sensor_device_t *sensor = ccs811_create_co2("ccs-deinit", &bus);
 
     TEST_ASSERT_NOT_NULL(sensor);
-    queue_write_u8(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_MEAS_MODE, 0x00U, -1);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->deinit(sensor));
+    queue_write_u8(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_MEAS_MODE, 0x00U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
     assert_no_extra_i2c();
 
     destroy_sensor(sensor);
@@ -369,8 +370,8 @@ static void test_read_failures_preserve_output_and_return_specific_status(void)
     setUp();
     data = snapshot;
     queue_read(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_STATUS, &ready, 1U, 0);
-    queue_read(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_ALG_RESULT, NULL, 8U, -1);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    queue_read(&bus, CCS811_ADDR_DEFAULT, CCS811_REG_ALG_RESULT, NULL, 8U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
     assert_output_unchanged(&data, &snapshot);
     assert_no_extra_i2c();
 
