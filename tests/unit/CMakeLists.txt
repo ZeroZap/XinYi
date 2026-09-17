@@ -876,6 +876,14 @@ target_include_directories(test_bq25620 BEFORE PRIVATE
     ${KERNEL}/osal/inc
 )
 
+xy_add_unit_test(test_hmc5883l sensor_hmc5883l UNITY
+    ${UNIT_SENSOR}/test_hmc5883l.c
+    ${DRV}/sensor/magnetic/hmc5883l/xy_hmc5883l.c
+)
+target_include_directories(test_hmc5883l PRIVATE
+    ${DRV}/sensor/magnetic/hmc5883l
+)
+
 xy_add_unit_test(test_bh1750 sensor_bh1750 UNITY
     ${UNIT_SENSOR}/test_bh1750.c
     ${ROOT}/components/drivers/sensor/light/bh1750/xy_bh1750.c

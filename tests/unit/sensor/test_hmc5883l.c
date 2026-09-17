@@ -1,0 +1,22 @@
+#include "unity.h"
+#include "xy_hmc5883l.h"
+#include <string.h>
+
+static uint8_t id[3], raw[6], status;
+static int read_result, write_result;
+static unsigned writes;
+
+int xy_i2c_device_init(xy_i2c_device_t *d, void *h, uint16_t a, uint32_t t)
+{ memset(d,0,sizeof(*d)); d->i2c_handle=h; d->dev_addr=a; d->timeout=t; d->base.initialized=true; return XY_DEVICE_OK; }
+int xy_i2c_device_read_reg(xy_i2c_device_t *d,uint8_t r,uint8_t *p,size_t n)
+{ (void)d; if(read_result)return read_result; if(r==0x0A)memcpy(p,id,n);else if(r==0x09)*p=status;else memcpy(p,raw,n);return XY_DEVICE_OK; }
+int xy_i2c_device_write_reg(xy_i2c_device_t*d,uint8_t r,const uint8_t*p,size_t n)
+{ (void)d;(void)r;(void)p;(void)n;writes++;return write_result; }
+void setUp(void){memset(id,0,sizeof(id));memset(raw,0,sizeof(raw));status=0;read_result=write_result=0;writes=0;}
+void tearDown(void){}
+static void init_ok(xy_hmc5883l_t*d){int bus;id[0]='H';id[1]='4';id[2]='3';TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,xy_hmc5883l_init(d,&bus));}
+static void test_identity_and_config(void){xy_hmc5883l_t d;init_ok(&d);TEST_ASSERT_TRUE(d.initialized);TEST_ASSERT_EQUAL_UINT8(0x1E,d.i2c_dev.dev_addr);TEST_ASSERT_EQUAL_UINT(3,writes);}
+static void test_wrong_identity_rejected(void){xy_hmc5883l_t d;int bus;id[0]='Q';TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND,xy_hmc5883l_init(&d,&bus));TEST_ASSERT_FALSE(d.initialized);}
+static void test_xyz_reorder_and_atomic_error(void){xy_hmc5883l_t d;xy_hmc5883l_data_t o={7,8,9};init_ok(&d);uint8_t v[]={0,1,0,3,0,2};memcpy(raw,v,6);TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,xy_hmc5883l_read(&d,&o));TEST_ASSERT_EQUAL_INT16(1,o.x);TEST_ASSERT_EQUAL_INT16(2,o.y);TEST_ASSERT_EQUAL_INT16(3,o.z);read_result=XY_DEVICE_TIMEOUT;o=(xy_hmc5883l_data_t){7,8,9};TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,xy_hmc5883l_read(&d,&o));TEST_ASSERT_EQUAL_INT16(7,o.x);}
+static void test_ready(void){xy_hmc5883l_t d;uint8_t r=0;init_ok(&d);status=1;TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,xy_hmc5883l_data_ready(&d,&r));TEST_ASSERT_EQUAL_UINT8(1,r);}
+int main(void){UNITY_BEGIN();RUN_TEST(test_identity_and_config);RUN_TEST(test_wrong_identity_rejected);RUN_TEST(test_xyz_reorder_and_atomic_error);RUN_TEST(test_ready);return UNITY_END();}

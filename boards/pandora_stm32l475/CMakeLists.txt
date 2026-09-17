@@ -680,6 +680,7 @@ add_executable(pandora_stm32l475_i2c2_sensors
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/environment/bme680/xy_bme680.c
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/light/bh1750/xy_bh1750.c
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/motion/mpu6050/xy_mpu6050.c
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/magnetic/hmc5883l/xy_hmc5883l.c
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/environment/bme680/bosch/bme68x.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
@@ -705,7 +706,7 @@ target_include_directories(pandora_stm32l475_i2c2_sensors BEFORE PRIVATE
 target_include_directories(pandora_stm32l475_i2c2_sensors BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/light/bh1750
     ${CMAKE_SOURCE_DIR}/components/drivers/sensor/motion/mpu6050
-    ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/magnetic/hmc5883l
     ${CMAKE_SOURCE_DIR}/components/trace/xy_log/inc)
 target_compile_definitions(pandora_stm32l475_i2c2_sensors PRIVATE
     STM32L4 STM32L475xx USE_HAL_DRIVER XINYI_FIRMWARE_COMMIT="${_firmware_commit}")

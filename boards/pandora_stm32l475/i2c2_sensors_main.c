@@ -3,6 +3,7 @@
 #include "xy_aht30.h"
 #include "xy_bh1750.h"
 #include "xy_bme680.h"
+#include "xy_hmc5883l.h"
 #include "xy_device.h"
 #include "xy_hal_delay.h"
 #include "xy_hal_gpio.h"
@@ -23,6 +24,7 @@ static xy_l3g4200d_t l3g;
 static xy_bme680_t bme680;
 static xy_bh1750_t bh1750;
 static xy_mpu6050_t mpu6050;
+static xy_hmc5883l_t hmc5883l;
 void _init(void) {}
 void _fini(void) {}
 void SysTick_Handler(void) { xy_hal_sys_tick_irq_handler(); }
@@ -57,6 +59,7 @@ int main(void){
  if(xy_bme680_init(&bme680,&i2c2,0x77U)!=XY_DEVICE_OK)fail("BME680_INIT_ERROR");
  if(xy_bh1750_init(&bh1750,&i2c2,BH1750_ADDR_LOW)!=XY_BH1750_OK)fail("BH1750_INIT_ERROR");
  if(xy_mpu6050_init(&mpu6050,&i2c2)!=XY_MPU6050_OK)fail("MPU6050_INIT_ERROR");
+ if(xy_hmc5883l_init(&hmc5883l,&i2c2)!=XY_DEVICE_OK)fail("HMC5883L_INIT_ERROR");
  text("I2C2_SENSOR_IDENTITIES_OK\r\n");
- for(uint32_t n=0;n<20U;n++){xy_aht30_data_t a;xy_l3g4200d_data_t g;xy_bme680_data_t b;xy_mpu6050_raw_data_t m;float lux;xy_error_t br=XY_DEVICE_BUSY;if(xy_aht30_read(&aht30,&a)!=XY_DEVICE_OK)fail("AHT30_READ_ERROR");if(xy_l3g4200d_read(&l3g,&g)!=XY_DEVICE_OK)fail("L3G4200D_READ_ERROR");for(uint32_t attempt=0U;attempt<5U&&br!=XY_DEVICE_OK;++attempt){br=xy_bme680_read(&bme680,&b);if(br!=XY_DEVICE_OK)xy_hal_delay_ms(20U);}if(br!=XY_DEVICE_OK){text("BME680_READ_ERROR result=");num(br);fail("");}if(xy_bh1750_read(&bh1750)!=XY_BH1750_OK||xy_bh1750_get_illuminance(&bh1750,&lux)!=XY_BH1750_OK)fail("BH1750_READ_ERROR");if(xy_mpu6050_read_raw(&mpu6050)!=XY_MPU6050_OK)fail("MPU6050_READ_ERROR");m=mpu6050.raw;text("SAMPLE aht_t_centi=");num(a.temperature_centi_c);text(" aht_rh_centi=");num((int32_t)a.humidity_centi_pct);text(" lux_x10=");num((int32_t)(lux*10.0F));text(" mpu_ax=");num(m.accel_x);text(" mpu_ay=");num(m.accel_y);text(" mpu_az=");num(m.accel_z);text(" gx_mdps=");num(g.x_mdps);text(" gy_mdps=");num(g.y_mdps);text(" gz_mdps=");num(g.z_mdps);text(" bme_pa=");num((int32_t)b.pressure_pa);text(" irq_pa4=");num(xy_hal_gpio_read(GPIOA,4U));text(" irq_pb8=");num(xy_hal_gpio_read(GPIOB,8U));text(" irq_pb9=");num(xy_hal_gpio_read(GPIOB,9U));text(" irq_pc4=");num(xy_hal_gpio_read(GPIOC,4U));text("\r\n");xy_hal_delay_ms(100U);}text("PANDORA_I2C2_SENSOR_PROBE_DONE\r\n");for(;;)xy_hal_delay_ms(1000U);
+ for(uint32_t n=0;n<20U;n++){xy_aht30_data_t a;xy_l3g4200d_data_t g;xy_bme680_data_t b;xy_mpu6050_raw_data_t m;xy_hmc5883l_data_t h;float lux;uint8_t hready;xy_error_t br=XY_DEVICE_BUSY;if(xy_aht30_read(&aht30,&a)!=XY_DEVICE_OK)fail("AHT30_READ_ERROR");if(xy_l3g4200d_read(&l3g,&g)!=XY_DEVICE_OK)fail("L3G4200D_READ_ERROR");for(uint32_t attempt=0U;attempt<5U&&br!=XY_DEVICE_OK;++attempt){br=xy_bme680_read(&bme680,&b);if(br!=XY_DEVICE_OK)xy_hal_delay_ms(20U);}if(br!=XY_DEVICE_OK){text("BME680_READ_ERROR result=");num(br);fail("");}if(xy_bh1750_read(&bh1750)!=XY_BH1750_OK||xy_bh1750_get_illuminance(&bh1750,&lux)!=XY_BH1750_OK)fail("BH1750_READ_ERROR");if(xy_mpu6050_read_raw(&mpu6050)!=XY_MPU6050_OK)fail("MPU6050_READ_ERROR");m=mpu6050.raw;if(xy_hmc5883l_data_ready(&hmc5883l,&hready)!=XY_DEVICE_OK)fail("HMC5883L_STATUS_ERROR");if(hready&&xy_hmc5883l_read(&hmc5883l,&h)!=XY_DEVICE_OK)fail("HMC5883L_READ_ERROR");text("SAMPLE aht_t_centi=");num(a.temperature_centi_c);text(" aht_rh_centi=");num((int32_t)a.humidity_centi_pct);text(" lux_x10=");num((int32_t)(lux*10.0F));text(" mpu_ax=");num(m.accel_x);text(" mpu_ay=");num(m.accel_y);text(" mpu_az=");num(m.accel_z);text(" mag_ready=");num(hready);text(" mag_x=");num(h.x);text(" mag_y=");num(h.y);text(" mag_z=");num(h.z);text(" gx_mdps=");num(g.x_mdps);text(" gy_mdps=");num(g.y_mdps);text(" gz_mdps=");num(g.z_mdps);text(" bme_pa=");num((int32_t)b.pressure_pa);text(" irq_pa4=");num(xy_hal_gpio_read(GPIOA,4U));text(" irq_pb8=");num(xy_hal_gpio_read(GPIOB,8U));text(" irq_pb9=");num(xy_hal_gpio_read(GPIOB,9U));text(" irq_pc4=");num(xy_hal_gpio_read(GPIOC,4U));text("\r\n");xy_hal_delay_ms(100U);}text("PANDORA_I2C2_SENSOR_PROBE_DONE\r\n");for(;;)xy_hal_delay_ms(1000U);
 }

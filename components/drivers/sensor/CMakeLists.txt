@@ -20,6 +20,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/motion)
     add_subdirectory(motion)
 endif()
 
+# Magnetic Sensors
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/magnetic)
+    add_subdirectory(magnetic)
+endif()
+
 # Environment Sensors
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/environment)
     add_subdirectory(environment)
