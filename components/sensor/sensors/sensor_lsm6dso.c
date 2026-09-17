@@ -563,8 +563,9 @@ int lsm6dso_set_gyro_range(sensor_device_t *dev, uint8_t range)
 int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
 {
     lsm6dso_priv_t *priv;
-    uint8_t ctrl1       = 0;
+    uint8_t ctrl1;
     uint32_t rate_hz;
+    sensor_err_t ret;
 
     switch (rate) {
     case LSM6DSO_ACCEL_RATE_OFF: rate_hz = 0U; break;
@@ -584,13 +585,11 @@ int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
     if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) return SENSOR_EINVAL;
     priv = (lsm6dso_priv_t *)dev->priv_data;
 
-    if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL1_XL, &ctrl1);
+    if (ret != SENSOR_EOK) return ret;
     ctrl1 = (uint8_t)((ctrl1 & 0x0F) | ((rate & 0x0F) << 4));
-    if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL1_XL, ctrl1) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL1_XL, ctrl1);
+    if (ret != SENSOR_EOK) return ret;
 
     priv->accel_rate = rate_hz;
     dev->odr = rate_hz;
@@ -604,8 +603,9 @@ int lsm6dso_set_accel_rate(sensor_device_t *dev, uint8_t rate)
 int lsm6dso_set_gyro_rate(sensor_device_t *dev, uint8_t rate)
 {
     lsm6dso_priv_t *priv;
-    uint8_t ctrl2       = 0;
+    uint8_t ctrl2;
     uint32_t rate_hz;
+    sensor_err_t ret;
 
     switch (rate) {
     case LSM6DSO_GYRO_RATE_OFF: rate_hz = 0U; break;
@@ -625,13 +625,11 @@ int lsm6dso_set_gyro_rate(sensor_device_t *dev, uint8_t rate)
     if (dev == NULL || dev->priv_data == NULL || dev->bus == NULL) return SENSOR_EINVAL;
     priv = (lsm6dso_priv_t *)dev->priv_data;
 
-    if (lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_read(dev, LSM6DSO_REG_CTRL2_G, &ctrl2);
+    if (ret != SENSOR_EOK) return ret;
     ctrl2 = (uint8_t)((ctrl2 & 0x0F) | ((rate & 0x0F) << 4));
-    if (lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL2_G, ctrl2) != SENSOR_EOK) {
-        return SENSOR_EIO;
-    }
+    ret = lsm6dso_reg_write(dev, LSM6DSO_REG_CTRL2_G, ctrl2);
+    if (ret != SENSOR_EOK) return ret;
 
     priv->gyro_rate = rate_hz;
     dev->odr = rate_hz;
