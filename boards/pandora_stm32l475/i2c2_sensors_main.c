@@ -40,12 +40,15 @@ static void platform_init(void){
 }
 static void scan(void){uint32_t count=0;for(uint16_t a=8;a<=0x77;a++)if(xy_hal_i2c_is_device_ready(&i2c2,a,2U,10U)==XY_HAL_OK){text("I2C2_ACK=0x");hex((uint8_t)a);text("\r\n");count++;}text("I2C2_COUNT=");num((int32_t)count);text("\r\n");}
 int main(void){
- if(xy_hal_sys_init()!=XY_HAL_OK||pandora_platform_startup()!=0)stop();platform_init();
+ if(xy_hal_sys_init()!=XY_HAL_OK||pandora_platform_startup()!=0) {
+     stop();
+ }
+ platform_init();
  text("PANDORA I2C2 SENSOR PROBE\r\nFIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");scan();
  uint8_t id=0;if(xy_hal_i2c_mem_read(&i2c2,0x77U,0xD0U,&id,1U,100U)!=XY_HAL_OK)fail("BME680_ID_IO_ERROR");text("BME680_CHIP_ID=0x");hex(id);text("\r\n");if(id!=0x61U)fail("BME680_ID_ERROR");
  if(xy_aht30_init(&aht30,&i2c2)!=XY_DEVICE_OK)fail("AHT30_INIT_ERROR");
  if(xy_l3g4200d_init(&l3g,&i2c2,0x69U)!=XY_DEVICE_OK)fail("L3G4200D_INIT_ERROR");
  if(xy_bme680_init(&bme680,&i2c2,0x77U)!=XY_DEVICE_OK)fail("BME680_INIT_ERROR");
  text("I2C2_SENSOR_IDENTITIES_OK\r\n");
- for(uint32_t n=0;n<20U;n++){xy_aht30_data_t a;xy_l3g4200d_data_t g;xy_bme680_data_t b;if(xy_aht30_read(&aht30,&a)!=XY_DEVICE_OK)fail("AHT30_READ_ERROR");if(xy_l3g4200d_read(&l3g,&g)!=XY_DEVICE_OK)fail("L3G4200D_READ_ERROR");if(xy_bme680_read(&bme680,&b)!=XY_DEVICE_OK)fail("BME680_READ_ERROR");text("SAMPLE aht_t_centi=");num(a.temperature_centi_c);text(" aht_rh_centi=");num((int32_t)a.humidity_centi_pct);text(" gx_mdps=");num(g.x_mdps);text(" gy_mdps=");num(g.y_mdps);text(" gz_mdps=");num(g.z_mdps);text(" bme_t_centi=");num(b.temperature_centi_c);text(" bme_pa=");num((int32_t)b.pressure_pa);text(" bme_rh_milli=");num((int32_t)b.humidity_milli_pct);text(" bme_gas_ohm=");num((int32_t)b.gas_ohms);text(" bme_status=0x");hex(b.status);text("\r\n");xy_hal_delay_ms(100U);}text("PANDORA_I2C2_SENSOR_PROBE_DONE\r\n");for(;;)xy_hal_delay_ms(1000U);
+ for(uint32_t n=0;n<20U;n++){xy_aht30_data_t a;xy_l3g4200d_data_t g;xy_bme680_data_t b;xy_error_t br=XY_DEVICE_BUSY;if(xy_aht30_read(&aht30,&a)!=XY_DEVICE_OK)fail("AHT30_READ_ERROR");if(xy_l3g4200d_read(&l3g,&g)!=XY_DEVICE_OK)fail("L3G4200D_READ_ERROR");for(uint32_t attempt=0U;attempt<5U&&br!=XY_DEVICE_OK;++attempt){br=xy_bme680_read(&bme680,&b);if(br!=XY_DEVICE_OK)xy_hal_delay_ms(20U);}if(br!=XY_DEVICE_OK){text("BME680_READ_ERROR result=");num(br);fail("");}text("SAMPLE aht_t_centi=");num(a.temperature_centi_c);text(" aht_rh_centi=");num((int32_t)a.humidity_centi_pct);text(" gx_mdps=");num(g.x_mdps);text(" gy_mdps=");num(g.y_mdps);text(" gz_mdps=");num(g.z_mdps);text(" bme_t_centi=");num(b.temperature_centi_c);text(" bme_pa=");num((int32_t)b.pressure_pa);text(" bme_rh_milli=");num((int32_t)b.humidity_milli_pct);text(" bme_gas_ohm=");num((int32_t)b.gas_ohms);text(" bme_status=0x");hex(b.status);text("\r\n");xy_hal_delay_ms(100U);}text("PANDORA_I2C2_SENSOR_PROBE_DONE\r\n");for(;;)xy_hal_delay_ms(1000U);
 }
