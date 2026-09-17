@@ -193,8 +193,9 @@ void test_vl53l0x_init_propagates_model_read_and_identity_failures(void)
     sensor_device_t *sensor = vl53l0x_create("tof", bus);
     TEST_ASSERT_NOT_NULL(sensor);
 
-    queue_read(bus, VL53L0X_ADDR_DEFAULT, VL53L0X_REG_IDENTIFICATION_MODEL_ID, NULL, 1U, -5);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
+    queue_read(bus, VL53L0X_ADDR_DEFAULT, VL53L0X_REG_IDENTIFICATION_MODEL_ID, NULL, 1U,
+               SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
 
     uint8_t wrong_model = 0xEA;
     queue_read(bus, VL53L0X_ADDR_DEFAULT, VL53L0X_REG_IDENTIFICATION_MODEL_ID, &wrong_model, 1U,
@@ -229,12 +230,9 @@ void test_vl53l0x_public_ops_reject_null_inputs_without_i2c_side_effects(void)
 void test_vl53l0x_init_rejects_null_bus_without_i2c_side_effects(void)
 {
     sensor_device_t *sensor = vl53l0x_create("tof", NULL);
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_NULL(sensor);
     TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
     TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
-    SENSOR_FREE(sensor->priv_data);
-    SENSOR_FREE(sensor);
 }
 
 void test_vl53l0x_read_converts_distance_and_timestamp(void)
@@ -274,9 +272,10 @@ void test_vl53l0x_read_preserves_output_on_range_read_failure(void)
     TEST_ASSERT_NOT_NULL(sensor);
 
     queue_write_u8(bus, VL53L0X_ADDR_DEFAULT, VL53L0X_REG_SYSRANGE_START, 0x01, 0);
-    queue_read(bus, VL53L0X_ADDR_DEFAULT, VL53L0X_REG_RESULT_RANGE_STATUS, NULL, 12U, -6);
+    queue_read(bus, VL53L0X_ADDR_DEFAULT, VL53L0X_REG_RESULT_RANGE_STATUS, NULL, 12U,
+               SENSOR_EBUSY);
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_CUSTOM, data.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_PPM, data.unit);
     TEST_ASSERT_EQUAL_UINT32(77U, data.value.val_uint32);
@@ -294,9 +293,10 @@ void test_vl53l0x_read_propagates_start_write_failure_without_delay(void)
     sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_uint32 = 22U};
     TEST_ASSERT_NOT_NULL(sensor);
 
-    queue_write_u8(bus, VL53L0X_ADDR_DEFAULT, VL53L0X_REG_SYSRANGE_START, 0x01, -7);
+    queue_write_u8(bus, VL53L0X_ADDR_DEFAULT, VL53L0X_REG_SYSRANGE_START, 0x01,
+                   SENSOR_ETIMEOUT);
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_CUSTOM, data.type);
     TEST_ASSERT_EQUAL_UINT32(22U, data.value.val_uint32);
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);

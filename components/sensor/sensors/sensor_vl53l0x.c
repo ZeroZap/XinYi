@@ -18,10 +18,10 @@ static sensor_err_t vl53l0x_init(sensor_device_t *sensor)
     vl53l0x_priv_t *priv = (vl53l0x_priv_t *)sensor->priv_data;
 
     /* 读取Model ID */
-    if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
-                         VL53L0X_REG_IDENTIFICATION_MODEL_ID, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
+                               VL53L0X_REG_IDENTIFICATION_MODEL_ID, &data, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     if (data != 0xEE) {
@@ -48,7 +48,7 @@ static sensor_err_t vl53l0x_deinit(sensor_device_t *sensor)
 
 static sensor_err_t vl53l0x_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    if (sensor == NULL || sensor->priv_data == NULL || data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
 
@@ -57,20 +57,20 @@ static sensor_err_t vl53l0x_read(sensor_device_t *sensor, sensor_data_t *data)
 
     /* 启动测距 */
     uint8_t start = 0x01;
-    if (hal_i2c_mem_write(sensor->bus, priv->i2c_addr,
-                          VL53L0X_REG_SYSRANGE_START, &start, 1)
-        != 0) {
-        return SENSOR_EIO;
+    int ret = hal_i2c_mem_write(sensor->bus, priv->i2c_addr,
+                                VL53L0X_REG_SYSRANGE_START, &start, 1);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     /* 等待测量完成 */
     SENSOR_DELAY_MS(50);
 
     /* 读取结果 */
-    if (hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
-                         VL53L0X_REG_RESULT_RANGE_STATUS, buf, 12)
-        != 0) {
-        return SENSOR_EIO;
+    ret = hal_i2c_mem_read(sensor->bus, priv->i2c_addr,
+                           VL53L0X_REG_RESULT_RANGE_STATUS, buf, 12);
+    if (ret != SENSOR_EOK) {
+        return (sensor_err_t)ret;
     }
 
     uint16_t distance = (buf[10] << 8) | buf[11];
@@ -92,7 +92,7 @@ static const sensor_ops_t vl53l0x_ops = {
 
 sensor_device_t *vl53l0x_create(const char *name, void *i2c_bus)
 {
-    if (name == NULL) {
+    if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
 
