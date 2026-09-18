@@ -18,11 +18,15 @@ xy_error_t xy_sc7a22h_init(xy_sc7a22h_t *d, void *h)
     r = wr(d, XY_SC7A22H_REG_PWR_CTRL, XY_SC7A22H_ACC_ENABLE);
     if (r != XY_DEVICE_OK) { memset(d, 0, sizeof(*d)); return r; }
     xy_device_delay_ms(10U);
-    r = wr(d, XY_SC7A22H_REG_COM_CFG, 0x10U);
+    r = wr(d, XY_SC7A22H_REG_ACC_CONF, XY_SC7A22H_DEMO_ACC_CONF);
     if (r != XY_DEVICE_OK) { memset(d, 0, sizeof(*d)); return r; }
-    r = wr(d, XY_SC7A22H_REG_ACC_CONF, 0xA8U);
+    r = wr(d, XY_SC7A22H_REG_ACC_RANGE, XY_SC7A22H_DEMO_ACC_RANGE);
     if (r != XY_DEVICE_OK) { memset(d, 0, sizeof(*d)); return r; }
-    r = wr(d, XY_SC7A22H_REG_ACC_RANGE, 0x02U);
+    r = wr(d, XY_SC7A22H_REG_COM_CFG, XY_SC7A22H_DEMO_COM_CFG);
+    if (r != XY_DEVICE_OK) { memset(d, 0, sizeof(*d)); return r; }
+    r = wr(d, XY_SC7A22H_REG_INT_CFG1, XY_SC7A22H_DEMO_INT_CFG1);
+    if (r != XY_DEVICE_OK) { memset(d, 0, sizeof(*d)); return r; }
+    r = wr(d, XY_SC7A22H_REG_HPF_LPF_CFG, XY_SC7A22H_DEMO_FILTER_CFG);
     if (r != XY_DEVICE_OK) { memset(d, 0, sizeof(*d)); return r; }
     xy_device_delay_ms(2U);
     r = rd(d, XY_SC7A22H_REG_COM_CFG, &value, 1U);

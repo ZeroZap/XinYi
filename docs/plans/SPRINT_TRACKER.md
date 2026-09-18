@@ -636,6 +636,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | 日期 | ID | 类型 | 内容 | 所需决策/解除条件 | 状态 |
 |---|---|---|---|---|---|
+| 2026-09-18 | S5-162 | 进展 | SC7A22H Device contract 与 Pandora I2C2 compile path 已完成 Host/compile 验证；硬件 identity/register/data behavior 仍未确认 | 如恢复硬件链路，再做 identity/register/data capture；否则保持 Host/compile 边界 | VERIFYING |
 | 2026-08-17 | D-001 | 决策 | Sensor 实际有 legacy/new/drivers 三条实现路径 | 2026-08-29 canonical API 已确定为 Device model；SHT30/ADS1115/MPU6050/BMP280 四个 owner 已进入 root target，legacy 仅保留明确 compatibility boundary，experimental 保持 test-only | CLOSED |
 | 2026-08-17 | D-002 | 安全阻塞 | Fuel Gauge security AES 曾存在明文透传风险 | 2026-08-29 已改为缺 provider 时 fail-closed；真实认证/加密仍须受审查 provider | CLOSED |
 | 2026-08-17 | D-003 | 安全阻塞 | Secure FOTA 依赖 security-rejected ECDSA placeholder | production signature provider 未落地前保持 feature-off | OPEN |

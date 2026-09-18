@@ -220,17 +220,21 @@ static void test_sc7a22h_init_config_and_accel_conversion(void)
     xy_sc7a22h_data_t raw;
     xy_sc7a22h_accel_t accel;
     const uint8_t id = XY_SC7A22H_WHO_AM_I_VALUE;
-    const uint8_t com_cfg = 0x10U;
-    const uint8_t acc_conf = 0xA8U;
-    const uint8_t acc_range = 0x02U;
+    const uint8_t com_cfg = XY_SC7A22H_DEMO_COM_CFG;
+    const uint8_t acc_conf = XY_SC7A22H_DEMO_ACC_CONF;
+    const uint8_t acc_range = XY_SC7A22H_DEMO_ACC_RANGE;
+    const uint8_t int_cfg1 = XY_SC7A22H_DEMO_INT_CFG1;
+    const uint8_t filter_cfg = XY_SC7A22H_DEMO_FILTER_CFG;
     const uint8_t raw_bytes[6] = {0x10U, 0x00U, 0xF0U, 0x00U, 0x08U, 0x00U};
 
     queue(OP_READ_REG, XY_SC7A22H_REG_WHO_AM_I, &id, 1U, XY_DEVICE_OK);
     queue(OP_WRITE_REG, XY_SC7A22H_REG_PWR_CTRL, (uint8_t[]){XY_SC7A22H_ACC_ENABLE}, 1U,
           XY_DEVICE_OK);
-    queue(OP_WRITE_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
     queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
     queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_INT_CFG1, &int_cfg1, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_HPF_LPF_CFG, &filter_cfg, 1U, XY_DEVICE_OK);
     queue(OP_READ_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
     queue(OP_READ_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
     queue(OP_READ_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
@@ -248,9 +252,9 @@ static void test_sc7a22h_init_config_and_accel_conversion(void)
 
     queue(OP_READ_REG, XY_SC7A22H_REG_OUT_X_H, raw_bytes, sizeof(raw_bytes), XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_read_accel(&dev, &accel));
-    TEST_ASSERT_EQUAL_INT32(62, accel.x_mg);
-    TEST_ASSERT_EQUAL_INT32(-62, accel.y_mg);
-    TEST_ASSERT_EQUAL_INT32(31, accel.z_mg);
+    TEST_ASSERT_EQUAL_INT32(31, accel.x_mg);
+    TEST_ASSERT_EQUAL_INT32(-31, accel.y_mg);
+    TEST_ASSERT_EQUAL_INT32(15, accel.z_mg);
 }
 
 static void test_sc7a22h_rejects_bad_identity_and_invalid_state(void)
