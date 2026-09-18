@@ -19,6 +19,7 @@ static op_t ops[16];
 static size_t op_count;
 static size_t op_index;
 static uint32_t delay_total;
+static xy_error_t i2c_init_result;
 
 static void queue(op_kind_t kind, uint8_t reg, const uint8_t *data, size_t length,
                   xy_error_t result)
@@ -50,7 +51,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
     dev->dev_addr = address;
     dev->timeout = timeout;
     dev->base.initialized = 1U;
-    return XY_DEVICE_OK;
+    return i2c_init_result;
 }
 
 xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t length)
@@ -114,6 +115,7 @@ void setUp(void)
     op_count = 0U;
     op_index = 0U;
     delay_total = 0U;
+    i2c_init_result = XY_DEVICE_OK;
 }
 void tearDown(void) {}
 
@@ -211,6 +213,20 @@ static void test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_UINT(2U, op_index);
+}
+
+static void test_bme680_init_clears_handle_when_i2c_helper_fails(void)
+{
+    int bus;
+    xy_bme680_t dev;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    i2c_init_result = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_bme680_init(&dev, &bus, 0x77U));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
 }
 
 static void test_bme680_deinit_rejects_invalid_nested_bus_lifecycle(void)
@@ -481,6 +497,7 @@ int main(void)
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
     RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
+    RUN_TEST(test_bme680_init_clears_handle_when_i2c_helper_fails);
     RUN_TEST(test_bme680_deinit_rejects_invalid_nested_bus_lifecycle);
     RUN_TEST(test_bme680_read_rejects_invalid_nested_bus_lifecycle);
     RUN_TEST(test_sc7a22h_init_config_and_accel_conversion);
