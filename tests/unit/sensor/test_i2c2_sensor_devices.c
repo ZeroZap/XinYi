@@ -2,6 +2,7 @@
 #include "xy_aht30.h"
 #include "xy_bme680.h"
 #include "xy_l3g4200d.h"
+#include "xy_sc7a22h.h"
 
 #include <string.h>
 
@@ -212,6 +213,61 @@ static void test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state
     TEST_ASSERT_EQUAL_UINT(2U, op_index);
 }
 
+static void test_sc7a22h_init_config_and_accel_conversion(void)
+{
+    int bus;
+    xy_sc7a22h_t dev;
+    xy_sc7a22h_data_t raw;
+    xy_sc7a22h_accel_t accel;
+    const uint8_t id = XY_SC7A22H_WHO_AM_I_VALUE;
+    const uint8_t com_cfg = 0x10U;
+    const uint8_t acc_conf = 0xA8U;
+    const uint8_t acc_range = 0x02U;
+    const uint8_t raw_bytes[6] = {0x10U, 0x00U, 0xF0U, 0x00U, 0x08U, 0x00U};
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_WHO_AM_I, &id, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_PWR_CTRL, (uint8_t[]){XY_SC7A22H_ACC_ENABLE}, 1U,
+          XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT32(12U, delay_total);
+    TEST_ASSERT_EQUAL_UINT8(acc_range, dev.acc_range);
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_OUT_X_H, raw_bytes, sizeof(raw_bytes), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_read(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(0x1000, raw.x);
+    TEST_ASSERT_EQUAL_INT16((int16_t)0xF000, raw.y);
+    TEST_ASSERT_EQUAL_INT16(0x0800, raw.z);
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_OUT_X_H, raw_bytes, sizeof(raw_bytes), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_read_accel(&dev, &accel));
+    TEST_ASSERT_EQUAL_INT32(62, accel.x_mg);
+    TEST_ASSERT_EQUAL_INT32(-62, accel.y_mg);
+    TEST_ASSERT_EQUAL_INT32(31, accel.z_mg);
+}
+
+static void test_sc7a22h_rejects_bad_identity_and_invalid_state(void)
+{
+    int bus;
+    xy_sc7a22h_t dev;
+    xy_sc7a22h_data_t data = {11, 22, 33};
+    const uint8_t bad_id = 0x00U;
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_WHO_AM_I, &bad_id, 1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND, xy_sc7a22h_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read(NULL, &data));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read(&dev, &data));
+    TEST_ASSERT_EQUAL_UINT(1U, op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -220,5 +276,7 @@ int main(void)
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
     RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
+    RUN_TEST(test_sc7a22h_init_config_and_accel_conversion);
+    RUN_TEST(test_sc7a22h_rejects_bad_identity_and_invalid_state);
     return UNITY_END();
 }

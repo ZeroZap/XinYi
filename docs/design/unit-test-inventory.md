@@ -209,6 +209,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12/SC7A20/Silan SC7A20 accel init/read/config failure contracts |
 | `tests/unit/sensor/test_lsm6_imu_sensors.c` | `unity` | 0 | LSM6DSL/LSM6DSO/LSM6DSR legacy IMU I2C/SPI config/read/failure contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |
+| `tests/unit/sensor/test_i2c2_sensor_devices.c` | `unity` | 0 | AHT30/L3G4200D/BME680/SC7A22H Device initialization and sample contracts |
 | `tests/unit/sensor/test_sht30_integration.c` | `unity` | 11 |
 | `tests/unit/sensor/test_stub_accel_sensors.c` | `unity` | 0 | DMP6100/CMS/GD30DF/HS-ADS1100/QMA6100 legacy accel contracts |
 | `tests/unit/storage/test_storage_eeprom_24xx.c` | `unity` | 67 |

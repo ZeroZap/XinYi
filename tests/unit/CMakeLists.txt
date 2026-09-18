@@ -331,12 +331,14 @@ xy_add_unit_test(test_i2c2_sensor_devices sensor_i2c2_devices UNITY
     ${UNIT_SENSOR}/test_i2c2_sensor_devices.c
     ${DRV}/sensor/temperature/aht30/xy_aht30.c
     ${DRV}/sensor/motion/l3g4200d/xy_l3g4200d.c
+    ${DRV}/sensor/motion/sc7a22h/xy_sc7a22h.c
     ${DRV}/sensor/environment/bme680/xy_bme680.c
     ${DRV}/sensor/environment/bme680/bosch/bme68x.c
 )
 target_include_directories(test_i2c2_sensor_devices PRIVATE
     ${DRV}/sensor/temperature/aht30
     ${DRV}/sensor/motion/l3g4200d
+    ${DRV}/sensor/motion/sc7a22h
     ${DRV}/sensor/environment/bme680
     ${DRV}/sensor/environment/bme680/bosch
 )
