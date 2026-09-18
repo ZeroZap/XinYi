@@ -46,7 +46,7 @@ def main() -> int:
     require(len(legacy) == 55, f"expected 55 legacy active sources, found {len(legacy)}", errors)
     require(len(experimental) == 19,
             f"expected 19 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 9, f"expected 9 Device-model sources, found {len(device)}", errors)
+    require(len(device) == 10, f"expected 10 Device-model sources, found {len(device)}", errors)
 
     for token in (
         "legacy-active-root",

@@ -1,7 +1,8 @@
 # I2C2 Sensor Validation Evidence
 
 Pandora STM32L475 I2C2 uses `PB10=SCL` and `PB11=SDA` at 100 kHz.
-SC7A22H at `0x18` is intentionally paused: ACK is observed, but identity/register layout is not confirmed.
+SC7A22H at `0x18` is compile-linked into the I2C2 probe, but remains hardware-pending: identity,
+register layout, and data format are not confirmed.
 
 ## Confirmed slave addresses
 
@@ -20,4 +21,5 @@ The Pandora probe configured HMC5883L gain to `8.10 Ga`, read back `CONFIG_B=0xE
 
 ## Evidence boundary
 
-No SC7A22H identity, register-layout, data-format, or PB8/PB9 interrupt claim is made. No manual hardware action was required for the latest capture.
+No SC7A22H identity, register-layout, data-format, or PB8/PB9 interrupt claim is made. The
+SC7A22H integration is source/compile evidence only; no hardware result is recorded.

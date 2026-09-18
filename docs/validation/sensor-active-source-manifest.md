@@ -27,7 +27,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 19 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 9 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680 basic-chain verified; others `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 10 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680 basic-chain verified; others `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -40,10 +40,11 @@ The Device-model root set is currently exactly:
 - BME680: `components/drivers/sensor/environment/bme680/xy_bme680.c`
 - BH1750: `components/drivers/sensor/light/bh1750/xy_bh1750.c`
 - HMC5883L: `components/drivers/sensor/magnetic/hmc5883l/xy_hmc5883l.c`
+- SC7A22H: `components/drivers/sensor/motion/sc7a22h/xy_sc7a22h.c`
 
 ### Pandora I2C2 hardware status
 
-The detailed current evidence is maintained in `docs/validation/i2c2-sensor-evidence.md`. SC7A22H at `0x18` is intentionally paused and is not included in the confirmed identity set. HMC5883L at `0x1E` now has bounded basic-chain evidence: `"H43"`, gain readback `0xE0`, `PA4` DRDY high, continuous XYZ, and converted field output. BH1750 `0x23`, AHT30 `0x38`, MPU6050 `0x68`, L3G4200D `0x69`, and BME680 `0x77` remain in the joint I2C2 sample path.
+The detailed current evidence is maintained in `docs/validation/i2c2-sensor-evidence.md`. SC7A22H is now a Device-model source and compile-linked probe participant at `0x18`, but remains hardware-pending until identity and register behavior are confirmed. HMC5883L at `0x1E` now has bounded basic-chain evidence: `"H43"`, gain readback `0xE0`, `PA4` DRDY high, continuous XYZ, and converted field output. BH1750 `0x23`, AHT30 `0x38`, MPU6050 `0x68`, L3G4200D `0x69`, and BME680 `0x77` remain in the joint I2C2 sample path.
 
 The Pandora STM32L475 I2C2 target (`PB10/PB11`, 100 kHz) identifies and samples the three new
 owners at `0x38`, `0x69`, and `0x77`. A reset-synchronized UART capture proved AHT30 CRC-valid
