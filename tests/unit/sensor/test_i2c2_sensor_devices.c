@@ -272,6 +272,41 @@ static void test_sc7a22h_rejects_bad_identity_and_invalid_state(void)
     TEST_ASSERT_EQUAL_UINT(1U, op_index);
 }
 
+static void test_sc7a22h_read_config_is_atomic_on_transport_failure(void)
+{
+    int bus;
+    xy_sc7a22h_t dev;
+    const uint8_t id = XY_SC7A22H_WHO_AM_I_VALUE;
+    const uint8_t com_cfg = XY_SC7A22H_DEMO_COM_CFG;
+    const uint8_t acc_conf = XY_SC7A22H_DEMO_ACC_CONF;
+    const uint8_t acc_range = XY_SC7A22H_DEMO_ACC_RANGE;
+    const uint8_t int_cfg1 = XY_SC7A22H_DEMO_INT_CFG1;
+    const uint8_t filter_cfg = XY_SC7A22H_DEMO_FILTER_CFG;
+    const uint8_t new_com_cfg = 0xA0U;
+    const uint8_t new_acc_conf = 0xB0U;
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_WHO_AM_I, &id, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_PWR_CTRL, (uint8_t[]){XY_SC7A22H_ACC_ENABLE}, 1U,
+          XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_INT_CFG1, &int_cfg1, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_HPF_LPF_CFG, &filter_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_init(&dev, &bus));
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_COM_CFG, &new_com_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_ACC_CONF, &new_acc_conf, 1U, XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_sc7a22h_read_config(&dev));
+    TEST_ASSERT_EQUAL_UINT8(com_cfg, dev.com_cfg);
+    TEST_ASSERT_EQUAL_UINT8(acc_conf, dev.acc_conf);
+    TEST_ASSERT_EQUAL_UINT8(acc_range, dev.acc_range);
+    TEST_ASSERT_EQUAL_UINT(12U, op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -282,5 +317,6 @@ int main(void)
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
     RUN_TEST(test_sc7a22h_init_config_and_accel_conversion);
     RUN_TEST(test_sc7a22h_rejects_bad_identity_and_invalid_state);
+    RUN_TEST(test_sc7a22h_read_config_is_atomic_on_transport_failure);
     return UNITY_END();
 }

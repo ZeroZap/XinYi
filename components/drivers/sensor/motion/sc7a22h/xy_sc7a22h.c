@@ -50,17 +50,24 @@ xy_error_t xy_sc7a22h_deinit(xy_sc7a22h_t *d)
 
 xy_error_t xy_sc7a22h_read_config(xy_sc7a22h_t *d)
 {
-    uint8_t value; xy_error_t r;
+    uint8_t value;
+    uint8_t next_com_cfg;
+    uint8_t next_acc_conf;
+    uint8_t next_acc_range;
+    xy_error_t r;
     if (!d || !d->initialized || !d->i2c_dev.base.initialized) return XY_DEVICE_INVALID_PARAM;
     r = rd(d, XY_SC7A22H_REG_COM_CFG, &value, 1U);
     if (r != XY_DEVICE_OK) return r;
-    d->com_cfg = value;
+    next_com_cfg = value;
     r = rd(d, XY_SC7A22H_REG_ACC_CONF, &value, 1U);
     if (r != XY_DEVICE_OK) return r;
-    d->acc_conf = value;
+    next_acc_conf = value;
     r = rd(d, XY_SC7A22H_REG_ACC_RANGE, &value, 1U);
     if (r != XY_DEVICE_OK) return r;
-    d->acc_range = value;
+    next_acc_range = value;
+    d->com_cfg = next_com_cfg;
+    d->acc_conf = next_acc_conf;
+    d->acc_range = next_acc_range;
     return XY_DEVICE_OK;
 }
 
