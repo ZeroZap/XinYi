@@ -109,6 +109,10 @@ xy_error_t xy_sc7a22h_set_acc_config(xy_sc7a22h_t *d, uint8_t config)
 
 xy_error_t xy_sc7a22h_set_acc_range(xy_sc7a22h_t *d, uint8_t range)
 {
-    xy_error_t r; if (!d || !d->initialized || !d->i2c_dev.base.initialized) return XY_DEVICE_INVALID_PARAM;
-    r=wr(d,XY_SC7A22H_REG_ACC_RANGE,range); if(r==XY_DEVICE_OK)d->acc_range=range; return r;
+    xy_error_t r;
+    if (!d || !d->initialized || !d->i2c_dev.base.initialized || range > 0x03U)
+        return XY_DEVICE_INVALID_PARAM;
+    r = wr(d, XY_SC7A22H_REG_ACC_RANGE, range);
+    if (r == XY_DEVICE_OK) d->acc_range = range;
+    return r;
 }
