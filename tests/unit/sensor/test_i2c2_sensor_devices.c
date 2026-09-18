@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "xy_aht30.h"
+#include "xy_bme680.h"
 #include "xy_l3g4200d.h"
 
 #include <string.h>
@@ -177,11 +178,47 @@ static void test_l3g4200d_rejects_wrong_identity(void)
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
 }
 
+static void test_bme680_rejects_invalid_public_inputs_without_bus_access(void)
+{
+    int bus;
+    xy_bme680_t dev;
+    xy_bme680_data_t data = {123, 456U, 789U, 321U, 0xA5U};
+    xy_bme680_data_t snapshot = data;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_init(NULL, &bus, 0x77U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_init(&dev, NULL, 0x77U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_init(&dev, &bus, 0x68U));
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_read(&dev, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_read(&dev, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+
+static void test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state(void)
+{
+    int bus;
+    xy_bme680_t dev;
+    const uint8_t reset = 0xB6U;
+    memset(&dev, 0xA5, sizeof(dev));
+
+    queue(OP_WRITE_REG, 0xE0U, &reset, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, 0xD0U, NULL, 1U, XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bme680_init(&dev, &bus, 0x77U));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(2U, op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_aht30_valid_frame_and_crc_atomicity);
     RUN_TEST(test_l3g4200d_identity_axis_order_and_range);
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
+    RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
+    RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
     return UNITY_END();
 }
