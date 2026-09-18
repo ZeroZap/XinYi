@@ -213,6 +213,20 @@ static void test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state
     TEST_ASSERT_EQUAL_UINT(2U, op_index);
 }
 
+static void test_bme680_deinit_rejects_invalid_nested_bus_lifecycle(void)
+{
+    int bus;
+    xy_bme680_t dev;
+
+    memset(&dev, 0, sizeof(dev));
+    dev.initialized = 1U;
+    dev.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+    (void)bus;
+}
+
 static void test_sc7a22h_init_config_and_accel_conversion(void)
 {
     int bus;
@@ -453,6 +467,7 @@ int main(void)
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
     RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
+    RUN_TEST(test_bme680_deinit_rejects_invalid_nested_bus_lifecycle);
     RUN_TEST(test_sc7a22h_init_config_and_accel_conversion);
     RUN_TEST(test_sc7a22h_rejects_bad_identity_and_invalid_state);
     RUN_TEST(test_sc7a22h_public_config_status_and_deinit_contracts);
