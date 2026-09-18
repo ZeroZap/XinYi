@@ -54,6 +54,15 @@ int main(void){
  platform_init();
  text("PANDORA I2C2 SENSOR PROBE\r\nFIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");scan();
  uint8_t id=0;if(xy_hal_i2c_mem_read(&i2c2,0x77U,0xD0U,&id,1U,100U)!=XY_HAL_OK)fail("BME680_ID_IO_ERROR");text("BME680_CHIP_ID=0x");hex(id);text("\r\n");if(id!=0x61U)fail("BME680_ID_ERROR");
+ uint8_t sc_id=0,sc_ctrl=0,sc_status=0,sc_data[6]={0};
+ if(xy_hal_i2c_mem_read(&i2c2,0x18U,0x0FU,&sc_id,1U,100U)!=XY_HAL_OK)fail("SC7A22H_ID_IO_ERROR");
+ if(xy_hal_i2c_mem_read(&i2c2,0x18U,0x20U,&sc_ctrl,1U,100U)!=XY_HAL_OK)fail("SC7A22H_CTRL_IO_ERROR");
+ if(xy_hal_i2c_mem_read(&i2c2,0x18U,0x27U,&sc_status,1U,100U)!=XY_HAL_OK)fail("SC7A22H_STATUS_IO_ERROR");
+ if(xy_hal_i2c_mem_read(&i2c2,0x18U,0x28U,sc_data,6U,100U)!=XY_HAL_OK)fail("SC7A22H_DATA_IO_ERROR");
+ text("SC7A22H_ADDR=0x18 WHO_AM_I=0x");hex(sc_id);text(" CTRL1=0x");hex(sc_ctrl);text(" STATUS=0x");hex(sc_status);text(" INT1_PB8=");num(xy_hal_gpio_read(GPIOB,8U));text(" INT2_PB9=");num(xy_hal_gpio_read(GPIOB,9U));text(" RAW=");for(uint32_t i=0U;i<6U;i++){hex(sc_data[i]);}text("\r\n");
+ text("SC7A22H_REG_DUMP_BEGIN\r\n");
+ for(uint32_t r=0U;r<0x40U;r++){uint8_t v=0U;if(xy_hal_i2c_mem_read(&i2c2,0x18U,(uint16_t)r,&v,1U,100U)!=XY_HAL_OK)fail("SC7A22H_REG_IO_ERROR");text("R");hex((uint8_t)r);text("=");hex(v);text("\r\n");}
+ text("SC7A22H_REG_DUMP_END\r\n");
  if(xy_aht30_init(&aht30,&i2c2)!=XY_DEVICE_OK)fail("AHT30_INIT_ERROR");
  if(xy_l3g4200d_init(&l3g,&i2c2,0x69U)!=XY_DEVICE_OK)fail("L3G4200D_INIT_ERROR");
  if(xy_bme680_init(&bme680,&i2c2,0x77U)!=XY_DEVICE_OK)fail("BME680_INIT_ERROR");
