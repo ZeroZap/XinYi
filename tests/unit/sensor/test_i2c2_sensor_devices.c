@@ -326,6 +326,61 @@ static void test_sc7a22h_public_config_status_and_deinit_contracts(void)
     TEST_ASSERT_EQUAL_UINT(14U, op_index);
 }
 
+static void test_sc7a22h_init_stops_on_configuration_failure(void)
+{
+    int bus;
+    xy_sc7a22h_t dev;
+    const uint8_t id = XY_SC7A22H_WHO_AM_I_VALUE;
+    const uint8_t acc_conf = XY_SC7A22H_DEMO_ACC_CONF;
+    const uint8_t acc_range = XY_SC7A22H_DEMO_ACC_RANGE;
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_WHO_AM_I, &id, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_PWR_CTRL, (uint8_t[]){XY_SC7A22H_ACC_ENABLE}, 1U,
+          XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_IO_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_sc7a22h_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(4U, op_index);
+    TEST_ASSERT_EQUAL_UINT32(10U, delay_total);
+}
+
+static void test_sc7a22h_read_preserves_output_on_transport_failure(void)
+{
+    int bus;
+    xy_sc7a22h_t dev;
+    xy_sc7a22h_data_t output = {101, 202, 303};
+    xy_sc7a22h_data_t snapshot = output;
+    const uint8_t id = XY_SC7A22H_WHO_AM_I_VALUE;
+    const uint8_t com_cfg = XY_SC7A22H_DEMO_COM_CFG;
+    const uint8_t acc_conf = XY_SC7A22H_DEMO_ACC_CONF;
+    const uint8_t acc_range = XY_SC7A22H_DEMO_ACC_RANGE;
+    const uint8_t int_cfg1 = XY_SC7A22H_DEMO_INT_CFG1;
+    const uint8_t filter_cfg = XY_SC7A22H_DEMO_FILTER_CFG;
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_WHO_AM_I, &id, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_PWR_CTRL, (uint8_t[]){XY_SC7A22H_ACC_ENABLE}, 1U,
+          XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_INT_CFG1, &int_cfg1, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_HPF_LPF_CFG, &filter_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_ACC_CONF, &acc_conf, 1U, XY_DEVICE_OK);
+    queue(OP_READ_REG, XY_SC7A22H_REG_ACC_RANGE, &acc_range, 1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_init(&dev, &bus));
+
+    queue(OP_READ_REG, XY_SC7A22H_REG_OUT_X_H, NULL, 6U, XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_sc7a22h_read(&dev, &output));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_INT16(0, dev.data.x);
+    TEST_ASSERT_EQUAL_INT16(0, dev.data.y);
+    TEST_ASSERT_EQUAL_INT16(0, dev.data.z);
+}
+
 static void test_sc7a22h_read_config_is_atomic_on_transport_failure(void)
 {
     int bus;
@@ -372,6 +427,8 @@ int main(void)
     RUN_TEST(test_sc7a22h_init_config_and_accel_conversion);
     RUN_TEST(test_sc7a22h_rejects_bad_identity_and_invalid_state);
     RUN_TEST(test_sc7a22h_public_config_status_and_deinit_contracts);
+    RUN_TEST(test_sc7a22h_init_stops_on_configuration_failure);
+    RUN_TEST(test_sc7a22h_read_preserves_output_on_transport_failure);
     RUN_TEST(test_sc7a22h_read_config_is_atomic_on_transport_failure);
     return UNITY_END();
 }
