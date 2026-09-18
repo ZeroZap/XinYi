@@ -64,6 +64,7 @@ xy_error_t xy_hmc5883l_init(xy_hmc5883l_t *dev, void *i2c_handle)
     memset(dev, 0, sizeof(*dev));
     result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_HMC5883L_ADDR, 100U);
     if (result != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
         return result;
     }
     result = read_reg(dev, HMC5883L_REG_ID_A, id, sizeof(id));

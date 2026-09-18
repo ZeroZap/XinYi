@@ -4,15 +4,16 @@
 
 static uint8_t id[3], raw[6], status, gain_reg;
 static int read_result, write_result;
+static int init_result;
 static unsigned writes;
 
 int xy_i2c_device_init(xy_i2c_device_t *d, void *h, uint16_t a, uint32_t t)
-{ memset(d,0,sizeof(*d)); d->i2c_handle=h; d->dev_addr=a; d->timeout=t; d->base.initialized=true; return XY_DEVICE_OK; }
+{ memset(d,0,sizeof(*d)); d->i2c_handle=h; d->dev_addr=a; d->timeout=t; d->base.initialized=true; return init_result; }
 int xy_i2c_device_read_reg(xy_i2c_device_t *d,uint8_t r,uint8_t *p,size_t n)
 { (void)d; if(read_result)return read_result; if(r==0x0A)memcpy(p,id,n);else if(r==0x09)*p=status;else if(r==0x01)*p=gain_reg;else memcpy(p,raw,n);return XY_DEVICE_OK; }
 int xy_i2c_device_write_reg(xy_i2c_device_t*d,uint8_t r,const uint8_t*p,size_t n)
 { (void)d;(void)r;(void)p;(void)n;writes++;return write_result; }
-void setUp(void){memset(id,0,sizeof(id));memset(raw,0,sizeof(raw));status=0;gain_reg=0x20U;read_result=write_result=0;writes=0;}
+void setUp(void){memset(id,0,sizeof(id));memset(raw,0,sizeof(raw));status=0;gain_reg=0x20U;read_result=write_result=init_result=0;writes=0;}
 void tearDown(void){}
 static void init_ok(xy_hmc5883l_t*d){int bus;id[0]='H';id[1]='4';id[2]='3';TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,xy_hmc5883l_init(d,&bus));}
 static void test_identity_and_config(void){xy_hmc5883l_t d;init_ok(&d);TEST_ASSERT_TRUE(d.initialized);TEST_ASSERT_EQUAL_UINT8(0x1E,d.i2c_dev.dev_addr);TEST_ASSERT_EQUAL_UINT(3,writes);}
@@ -24,4 +25,5 @@ static void test_field_conversion(void){xy_hmc5883l_t d;xy_hmc5883l_field_t f;in
 static void test_read_overflow_preserves_output(void){xy_hmc5883l_t d;xy_hmc5883l_data_t o={7,8,9};init_ok(&d);uint8_t v[]={0xF0,0x00,0x00,0x01,0x00,0x02};memcpy(raw,v,6);TEST_ASSERT_EQUAL_INT(XY_ERROR_OVERFLOW,xy_hmc5883l_read(&d,&o));TEST_ASSERT_EQUAL_INT16(7,o.x);TEST_ASSERT_EQUAL_INT16(8,o.y);TEST_ASSERT_EQUAL_INT16(9,o.z);TEST_ASSERT_EQUAL_INT16(0,d.data.x);}
 static void test_deinit_failure_preserves_lifecycle(void){xy_hmc5883l_t d;init_ok(&d);write_result=XY_DEVICE_TIMEOUT;TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,xy_hmc5883l_deinit(&d));TEST_ASSERT_TRUE(d.initialized);TEST_ASSERT_TRUE(d.i2c_dev.base.initialized);}
 static void test_init_config_failure_is_atomic(void){xy_hmc5883l_t d;int bus;id[0]='H';id[1]='4';id[2]='3';write_result=XY_DEVICE_TIMEOUT;TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,xy_hmc5883l_init(&d,&bus));TEST_ASSERT_FALSE(d.initialized);TEST_ASSERT_FALSE(d.i2c_dev.base.initialized);}
-int main(void){UNITY_BEGIN();RUN_TEST(test_identity_and_config);RUN_TEST(test_wrong_identity_rejected);RUN_TEST(test_xyz_reorder_and_atomic_error);RUN_TEST(test_ready);RUN_TEST(test_gain_validation_and_transport);RUN_TEST(test_field_conversion);RUN_TEST(test_read_overflow_preserves_output);RUN_TEST(test_deinit_failure_preserves_lifecycle);RUN_TEST(test_init_config_failure_is_atomic);return UNITY_END();}
+static void test_init_helper_failure_clears_nested_lifecycle(void){xy_hmc5883l_t d;int bus;memset(&d,0xA5,sizeof(d));init_result=XY_DEVICE_TIMEOUT;TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,xy_hmc5883l_init(&d,&bus));TEST_ASSERT_FALSE(d.initialized);TEST_ASSERT_FALSE(d.i2c_dev.base.initialized);TEST_ASSERT_NULL(d.i2c_dev.i2c_handle);TEST_ASSERT_EQUAL_UINT(0,writes);}
+int main(void){UNITY_BEGIN();RUN_TEST(test_identity_and_config);RUN_TEST(test_wrong_identity_rejected);RUN_TEST(test_xyz_reorder_and_atomic_error);RUN_TEST(test_ready);RUN_TEST(test_gain_validation_and_transport);RUN_TEST(test_field_conversion);RUN_TEST(test_read_overflow_preserves_output);RUN_TEST(test_deinit_failure_preserves_lifecycle);RUN_TEST(test_init_config_failure_is_atomic);RUN_TEST(test_init_helper_failure_clears_nested_lifecycle);return UNITY_END();}
