@@ -219,6 +219,14 @@ it was removed and guarded against return. The sensor-side source remains
 This cleanup does not promote MAX17043 hardware, accuracy, alert, battery-state, or recovery
 evidence.
 
+ADXL362 had an unreferenced `xy_sensor_*` singleton prototype beside the root-linked legacy owner
+`components/sensor/sensors/sensor_adxl362.c`. The prototype's SPI helpers were placeholders that
+never called the HAL, its sample path consumed an uninitialized stack buffer, and no checked CMake
+consumer referenced its registration entry point. It was removed and is guarded against return;
+the existing legacy owner and its focused low-power-accelerometer contract remain unchanged. This
+cleanup does not promote ADXL362 hardware, motion accuracy, SPI transport, interrupt, or recovery
+evidence.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
