@@ -181,6 +181,11 @@ documented above, not an implementation owner. The other seven canonical owners 
 `hmc5883l`, `l3g4200d`, `sc7a22h`, and `sht40`) have no legacy-root counterpart. No canonical name overlaps
 the 17 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
+HDC1080 was selected as the first non-canonical duplicate cleanup: the tested
+`components/sensor/src/xy_hdc1080.c` typed implementation remains `experimental-test-only`, while
+the unreferenced and unchecked `xy_sensor_hdc1080.c` prototype was removed and guarded against
+return. This does not promote HDC1080 into the canonical Device root or claim hardware status.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
