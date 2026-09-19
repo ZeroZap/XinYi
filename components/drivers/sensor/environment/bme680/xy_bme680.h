@@ -1,7 +1,7 @@
 #ifndef XY_BME680_H
 #define XY_BME680_H
 
-#include "bme68x.h"
+#include "bosch/bme68x.h"
 #include "xy_dev_i2c.h"
 #include <stdint.h>
 

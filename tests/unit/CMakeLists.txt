@@ -857,10 +857,10 @@ target_include_directories(test_aht20 PRIVATE
 
 xy_add_unit_test(test_sht40 sensor_sht40 UNITY
     ${UNIT_SENSOR}/test_sht40.c
-    ${SENSOR}/src/xy_sht40.c
+    ${DRV}/sensor/temperature/sht40/xy_sht40.c
 )
 target_include_directories(test_sht40 PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/temperature/sht40
 )
 
 xy_add_unit_test(test_oled_ssd1306 sensor_oled_ssd1306 UNITY

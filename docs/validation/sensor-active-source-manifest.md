@@ -29,8 +29,8 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 18 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 11 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
 The Device-model root set is currently exactly:
 
@@ -45,6 +45,7 @@ The Device-model root set is currently exactly:
 - HMC5883L: `components/drivers/sensor/magnetic/hmc5883l/xy_hmc5883l.c`
 - SC7A22H: `components/drivers/sensor/motion/sc7a22h/xy_sc7a22h.c`
 - AHT20: `components/drivers/sensor/temperature/aht20/xy_aht20.c`
+- SHT40: `components/drivers/sensor/temperature/sht40/xy_sht40.c`
 
 ### Pandora I2C2 hardware status
 
@@ -162,13 +163,23 @@ experimental source/header pair was moved rather than copied, and both focused t
 the canonical source. Host/source ownership only; no AHT20 board, accuracy, timing, or recovery
 status is upgraded.
 
+### SHT40 migration status
+
+The former experimental typed implementation is now the canonical Device-model owner under
+`components/drivers/sensor/temperature/sht40`. Its public API and focused lifecycle, CRC,
+precision, transport-error, cache/output-preservation contracts are unchanged; the source/header
+pair was moved rather than copied, and the focused target compiles the canonical source directly.
+The unreferenced `components/sensor/drivers/temperature/xy_sensor_sht40.c` prototype was removed;
+there is no root-linked legacy SHT40 factory to preserve. Host/source ownership only; no SHT40
+board, accuracy, timing, recovery, or durability status is upgraded.
+
 ## Guard and update rule
 
-The current 11 canonical names have exactly five approved legacy filename overlaps:
+The current 12 canonical names have exactly five approved legacy filename overlaps:
 `sht30`, `mpu6050`, `bmp280`, `bh1750`, and `aht20`. Each overlap is a compatibility wrapper
-documented above, not an implementation owner. The other six canonical owners (`ads1115`, `aht30`, `bme680`,
-`hmc5883l`, `l3g4200d`, and `sc7a22h`) have no legacy-root counterpart. No canonical name overlaps
-the 18 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+documented above, not an implementation owner. The other seven canonical owners (`ads1115`, `aht30`, `bme680`,
+`hmc5883l`, `l3g4200d`, `sc7a22h`, and `sht40`) have no legacy-root counterpart. No canonical name overlaps
+the 17 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
