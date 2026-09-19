@@ -237,8 +237,8 @@ static void test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state
     memset(&dev, 0xA5, sizeof(dev));
 
     queue(OP_WRITE_REG, 0xE0U, &reset, 1U, XY_DEVICE_OK);
-    queue(OP_READ_REG, 0xD0U, NULL, 1U, XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bme680_init(&dev, &bus, 0x77U));
+    queue(OP_READ_REG, 0xD0U, NULL, 1U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bme680_init(&dev, &bus, 0x77U));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_UINT(2U, op_index);

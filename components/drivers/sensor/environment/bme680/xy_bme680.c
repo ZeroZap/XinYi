@@ -1,16 +1,164 @@
 #include "xy_bme680.h"
 #include "xy_hal_delay.h"
 #include <string.h>
-static BME68X_INTF_RET_TYPE bus_read(uint8_t r,uint8_t*p,uint32_t n,void*x){return xy_i2c_device_read_reg(x,r,p,n)==XY_DEVICE_OK?BME68X_INTF_RET_SUCCESS:-1;}
-static BME68X_INTF_RET_TYPE bus_write(uint8_t r,const uint8_t*p,uint32_t n,void*x){return xy_i2c_device_write_reg(x,r,p,n)==XY_DEVICE_OK?BME68X_INTF_RET_SUCCESS:-1;}
-static void delay_us(uint32_t us,void*x){(void)x;xy_hal_delay_ms((us+999U)/1000U);}
-static xy_error_t map(int8_t r){return r==BME68X_OK?XY_DEVICE_OK:r==BME68X_E_DEV_NOT_FOUND?XY_DEVICE_NOT_FOUND:r==BME68X_E_NULL_PTR||r==BME68X_E_INVALID_LENGTH?XY_DEVICE_INVALID_PARAM:XY_DEVICE_IO_ERROR;}
-xy_error_t xy_bme680_init(xy_bme680_t*d,void*h,uint8_t a){if(!d||!h||(a!=0x76U&&a!=0x77U))return XY_DEVICE_INVALID_PARAM;memset(d,0,sizeof(*d));xy_error_t r=xy_i2c_device_init(&d->i2c_dev,h,a,100U);if(r!=XY_DEVICE_OK){memset(d,0,sizeof(*d));return r;}d->bosch.intf=BME68X_I2C_INTF;d->bosch.intf_ptr=&d->i2c_dev;d->bosch.read=bus_read;d->bosch.write=bus_write;d->bosch.delay_us=delay_us;d->bosch.amb_temp=25;r=map(bme68x_init(&d->bosch));if(r!=XY_DEVICE_OK){memset(d,0,sizeof(*d));return r;}d->config.os_hum=BME68X_OS_2X;d->config.os_pres=BME68X_OS_4X;d->config.os_temp=BME68X_OS_8X;d->config.filter=BME68X_FILTER_SIZE_3;d->config.odr=BME68X_ODR_NONE;r=map(bme68x_set_conf(&d->config,&d->bosch));if(r!=XY_DEVICE_OK){memset(d,0,sizeof(*d));return r;}d->heater.enable=BME68X_ENABLE;d->heater.heatr_temp=320U;d->heater.heatr_dur=150U;r=map(bme68x_set_heatr_conf(BME68X_FORCED_MODE,&d->heater,&d->bosch));if(r!=XY_DEVICE_OK){memset(d,0,sizeof(*d));return r;}d->initialized=1U;return XY_DEVICE_OK;}
-xy_error_t xy_bme680_deinit(xy_bme680_t*d){if(!d||!d->initialized||!d->i2c_dev.base.initialized)return XY_DEVICE_INVALID_PARAM;xy_error_t r=map(bme68x_set_op_mode(BME68X_SLEEP_MODE,&d->bosch));if(r==XY_DEVICE_OK){d->initialized=0;d->i2c_dev.base.initialized=0;}return r;}
-xy_error_t xy_bme680_read(xy_bme680_t*d,xy_bme680_data_t*out){struct bme68x_data b;xy_bme680_data_t v;uint8_t n=0;if(!d||!out||!d->initialized||!d->i2c_dev.base.initialized)return XY_DEVICE_INVALID_PARAM;xy_error_t r=map(bme68x_set_op_mode(BME68X_FORCED_MODE,&d->bosch));if(r!=XY_DEVICE_OK)return r;uint32_t us=bme68x_get_meas_dur(BME68X_FORCED_MODE,&d->config,&d->bosch)+(uint32_t)d->heater.heatr_dur*1000U;delay_us(us+5000U,&d->i2c_dev);r=map(bme68x_get_data(BME68X_FORCED_MODE,&b,&n,&d->bosch));if(r!=XY_DEVICE_OK)return r;if(n==0U)return XY_DEVICE_BUSY;if((b.status&(BME68X_GASM_VALID_MSK|BME68X_HEAT_STAB_MSK))!=(BME68X_GASM_VALID_MSK|BME68X_HEAT_STAB_MSK))return XY_DEVICE_BUSY;
+
+static BME68X_INTF_RET_TYPE bus_read(uint8_t reg, uint8_t *data, uint32_t length,
+                                     void *context)
+{
+    xy_bme680_t *dev = context;
+
+    dev->transport_error = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
+    return dev->transport_error == XY_DEVICE_OK ? BME68X_INTF_RET_SUCCESS : -1;
+}
+
+static BME68X_INTF_RET_TYPE bus_write(uint8_t reg, const uint8_t *data, uint32_t length,
+                                      void *context)
+{
+    xy_bme680_t *dev = context;
+
+    dev->transport_error = xy_i2c_device_write_reg(&dev->i2c_dev, reg, data, length);
+    return dev->transport_error == XY_DEVICE_OK ? BME68X_INTF_RET_SUCCESS : -1;
+}
+
+static void delay_us(uint32_t us, void *context)
+{
+    (void)context;
+    xy_hal_delay_ms((us + 999U) / 1000U);
+}
+
+static xy_error_t map_error(const xy_bme680_t *dev, int8_t result)
+{
+    if (result == BME68X_OK) {
+        return XY_DEVICE_OK;
+    }
+    if (result == BME68X_E_COM_FAIL && dev->transport_error != XY_DEVICE_OK) {
+        return dev->transport_error;
+    }
+    if (result == BME68X_E_DEV_NOT_FOUND) {
+        return XY_DEVICE_NOT_FOUND;
+    }
+    if (result == BME68X_E_NULL_PTR || result == BME68X_E_INVALID_LENGTH) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return XY_DEVICE_IO_ERROR;
+}
+
+static xy_error_t init_fail(xy_bme680_t *dev, xy_error_t result)
+{
+    memset(dev, 0, sizeof(*dev));
+    return result;
+}
+
+xy_error_t xy_bme680_init(xy_bme680_t *dev, void *i2c_handle, uint8_t addr)
+{
+    xy_error_t result;
+
+    if (!dev || !i2c_handle || (addr != 0x76U && addr != 0x77U)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    memset(dev, 0, sizeof(*dev));
+    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 100U);
+    if (result != XY_DEVICE_OK) {
+        return init_fail(dev, result);
+    }
+
+    dev->bosch.intf = BME68X_I2C_INTF;
+    dev->bosch.intf_ptr = dev;
+    dev->bosch.read = bus_read;
+    dev->bosch.write = bus_write;
+    dev->bosch.delay_us = delay_us;
+    dev->bosch.amb_temp = 25;
+
+    result = map_error(dev, bme68x_init(&dev->bosch));
+    if (result != XY_DEVICE_OK) {
+        return init_fail(dev, result);
+    }
+
+    dev->config.os_hum = BME68X_OS_2X;
+    dev->config.os_pres = BME68X_OS_4X;
+    dev->config.os_temp = BME68X_OS_8X;
+    dev->config.filter = BME68X_FILTER_SIZE_3;
+    dev->config.odr = BME68X_ODR_NONE;
+    result = map_error(dev, bme68x_set_conf(&dev->config, &dev->bosch));
+    if (result != XY_DEVICE_OK) {
+        return init_fail(dev, result);
+    }
+
+    dev->heater.enable = BME68X_ENABLE;
+    dev->heater.heatr_temp = 320U;
+    dev->heater.heatr_dur = 150U;
+    result = map_error(dev, bme68x_set_heatr_conf(BME68X_FORCED_MODE, &dev->heater, &dev->bosch));
+    if (result != XY_DEVICE_OK) {
+        return init_fail(dev, result);
+    }
+
+    dev->initialized = 1U;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_bme680_deinit(xy_bme680_t *dev)
+{
+    xy_error_t result;
+
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = map_error(dev, bme68x_set_op_mode(BME68X_SLEEP_MODE, &dev->bosch));
+    if (result == XY_DEVICE_OK) {
+        dev->initialized = 0U;
+        dev->i2c_dev.base.initialized = 0U;
+    }
+    return result;
+}
+
+xy_error_t xy_bme680_read(xy_bme680_t *dev, xy_bme680_data_t *output)
+{
+    struct bme68x_data bosch_data;
+    xy_bme680_data_t next;
+    uint8_t sample_count = 0U;
+    uint32_t measurement_us;
+    xy_error_t result;
+
+    if (!dev || !output || !dev->initialized || !dev->i2c_dev.base.initialized) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = map_error(dev, bme68x_set_op_mode(BME68X_FORCED_MODE, &dev->bosch));
+    if (result != XY_DEVICE_OK) {
+        return result;
+    }
+
+    measurement_us = bme68x_get_meas_dur(BME68X_FORCED_MODE, &dev->config, &dev->bosch) +
+                     (uint32_t)dev->heater.heatr_dur * 1000U;
+    delay_us(measurement_us + 5000U, dev);
+    result = map_error(dev, bme68x_get_data(BME68X_FORCED_MODE, &bosch_data, &sample_count,
+                                            &dev->bosch));
+    if (result != XY_DEVICE_OK) {
+        return result;
+    }
+    if (sample_count == 0U) {
+        return XY_DEVICE_BUSY;
+    }
+    if ((bosch_data.status & (BME68X_GASM_VALID_MSK | BME68X_HEAT_STAB_MSK)) !=
+        (BME68X_GASM_VALID_MSK | BME68X_HEAT_STAB_MSK)) {
+        return XY_DEVICE_BUSY;
+    }
+
 #ifdef BME68X_USE_FPU
-v.temperature_centi_c=(int32_t)(b.temperature*100.0f);v.pressure_pa=(uint32_t)b.pressure;v.humidity_milli_pct=(uint32_t)(b.humidity*1000.0f);v.gas_ohms=(uint32_t)b.gas_resistance;
+    next.temperature_centi_c = (int32_t)(bosch_data.temperature * 100.0f);
+    next.pressure_pa = (uint32_t)bosch_data.pressure;
+    next.humidity_milli_pct = (uint32_t)(bosch_data.humidity * 1000.0f);
+    next.gas_ohms = (uint32_t)bosch_data.gas_resistance;
 #else
-v.temperature_centi_c=b.temperature;v.pressure_pa=b.pressure;v.humidity_milli_pct=b.humidity;v.gas_ohms=b.gas_resistance;
+    next.temperature_centi_c = bosch_data.temperature;
+    next.pressure_pa = bosch_data.pressure;
+    next.humidity_milli_pct = bosch_data.humidity;
+    next.gas_ohms = bosch_data.gas_resistance;
 #endif
-v.status=b.status;d->data=v;*out=v;return XY_DEVICE_OK;}
+    next.status = bosch_data.status;
+    dev->data = next;
+    *output = next;
+    return XY_DEVICE_OK;
+}
