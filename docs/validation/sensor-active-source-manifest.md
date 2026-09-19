@@ -210,6 +210,15 @@ had no checked root consumer. The standalone canonical charger owner remains
 charger hardware, battery state, safety, or recovery evidence. The manifest guard prevents the
 prototype lifecycle from returning.
 
+MAX17043 also had an unreferenced `xy_sensor_*` singleton prototype beside two better-defined
+owners: the focused sensor-side `components/sensor/src/xy_max17043.c` contract and the standalone
+Fuel Gauge driver `components/fuel_gauge/drivers/xy_fg_max17043.c`. The prototype ignored its
+configuration-write result, had no checked CMake consumer, and duplicated fuel-gauge ownership, so
+it was removed and guarded against return. The sensor-side source remains
+`experimental-test-only`; the standalone Fuel Gauge component remains the product-facing owner.
+This cleanup does not promote MAX17043 hardware, accuracy, alert, battery-state, or recovery
+evidence.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
