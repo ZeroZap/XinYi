@@ -108,6 +108,11 @@ rate, voltage, I/O error, and output-preservation contracts. The duplicate test-
 focused ADC/power-monitor target now compiles the Device owner directly. This remains Host/PC source
 ownership evidence only; conversion accuracy, timing, recovery, and board support remain pending.
 
+There is no root-linked `sensor_device_t` ADS1115 factory to preserve: the compatibility boundary is
+the typed `xy_ads1115_*` API itself. Audit also confirmed no `components/sensor/drivers/**` ADS1115
+prototype remains. All public lifecycle/read/config operations now reject a missing nested I2C
+helper without I/O or public-state changes.
+
 ### BH1750 migration status
 
 The Device-model source under `components/drivers/sensor/light/bh1750` is now the single active

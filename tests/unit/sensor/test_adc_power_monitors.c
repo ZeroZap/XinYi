@@ -546,6 +546,20 @@ static void test_ads1115_setters_reject_missing_i2c_context_without_cache_change
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static void test_ads1115_deinit_rejects_missing_i2c_context_without_lifecycle_change(void)
+{
+    xy_ads1115_t ads;
+    int bus;
+
+    init_ads_ok(&ads, &bus);
+    ads.i2c_dev.base.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_ADS1115_INVALID_PARAM, xy_ads1115_deinit(&ads));
+    TEST_ASSERT_TRUE(ads.initialized);
+    TEST_ASSERT_FALSE(ads.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
 static void test_ltc2945_read_rejects_missing_i2c_context_atomically(void)
 {
     xy_ltc2945_t ltc;
@@ -599,6 +613,7 @@ int main(void)
     RUN_TEST(test_ads1115_diff_mux_variants_and_voltage_ranges);
     RUN_TEST(test_ads1115_read_paths_reject_missing_i2c_context);
     RUN_TEST(test_ads1115_setters_reject_missing_i2c_context_without_cache_change);
+    RUN_TEST(test_ads1115_deinit_rejects_missing_i2c_context_without_lifecycle_change);
     RUN_TEST(test_ltc2945_read_rejects_missing_i2c_context_atomically);
     RUN_TEST(test_ltc2945_controls_reject_missing_i2c_context_without_io);
     return UNITY_END();
