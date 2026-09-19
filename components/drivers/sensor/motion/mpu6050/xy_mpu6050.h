@@ -73,8 +73,8 @@ typedef enum {
 #define XY_MPU6050_OK           0
 #define XY_MPU6050_ERROR        (-1)
 #define XY_MPU6050_INVALID_PARAM (-2)
-#define XY_MPU6050_NOT_FOUND    (-3)
-#define XY_MPU6050_ID_ERROR     (-4)
+#define XY_MPU6050_NOT_FOUND    XY_DEVICE_NOT_FOUND
+#define XY_MPU6050_ID_ERROR     XY_DEVICE_NOT_FOUND
 
 /**
  * @brief MPU6050 原始数据

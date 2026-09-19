@@ -2,6 +2,7 @@
 #define __SENSOR_MPU6050_H__
 
 #include "sensor_core.h"
+#include "xy_mpu6050.h"
 
 /* MPU6050 I2C地址 */
 #define MPU6050_ADDR_DEFAULT 0x68
@@ -25,10 +26,7 @@
 /* 私有数据 */
 typedef struct {
     uint8_t i2c_addr;
-    uint8_t accel_range;
-    uint8_t gyro_range;
-    int16_t accel_offset[3];
-    int16_t gyro_offset[3];
+    xy_mpu6050_t device;
 } mpu6050_priv_t;
 
 /* 创建传感器设备 */

@@ -1,253 +1,166 @@
 #include "sensor_mpu6050.h"
 
-/* I2C读写接口 (需要用户实现) */
-extern int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data,
-                            uint16_t len);
-extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
-                             uint8_t *data, uint16_t len);
+#include <string.h>
 
-/**
- * @brief MPU6050初始化
- */
+static sensor_err_t mpu6050_map_error(int result)
+{
+    if (result == XY_DEVICE_OK) {
+        return SENSOR_EOK;
+    }
+    if (result == XY_DEVICE_INVALID_PARAM) {
+        return SENSOR_EINVAL;
+    }
+    if (result == XY_DEVICE_BUSY) {
+        return SENSOR_EBUSY;
+    }
+    if (result == XY_DEVICE_TIMEOUT) {
+        return SENSOR_ETIMEOUT;
+    }
+    if (result == XY_DEVICE_NO_MEM) {
+        return SENSOR_ENOMEM;
+    }
+    if (result == XY_DEVICE_NOT_FOUND) {
+        return SENSOR_ENODEV;
+    }
+    return SENSOR_EIO;
+}
+
 static sensor_err_t mpu6050_init(sensor_device_t *sensor)
 {
-    mpu6050_priv_t *priv = (mpu6050_priv_t *)sensor->priv_data;
-    uint8_t data;
+    mpu6050_priv_t *priv;
 
-    SENSOR_LOG("Initializing MPU6050");
-
-    /* 检查WHO_AM_I */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, MPU6050_REG_WHOAMI, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
     }
-
-    if (data != MPU6050_WHOAMI_VALUE) {
-        SENSOR_LOG("Wrong WHO_AM_I: 0x%02X", data);
-        return SENSOR_ERROR;
-    }
-
-    /* 复位设备 */
-    data = 0x80;
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, MPU6050_REG_PWR_MGMT_1, &data, 1);
-    SENSOR_DELAY_MS(100);
-
-    /* 唤醒设备 */
-    data = 0x00;
-    if (hal_i2c_mem_write(
-            sensor->bus, priv->i2c_addr, MPU6050_REG_PWR_MGMT_1, &data, 1)
-        != 0) {
-        return SENSOR_EIO;
-    }
-
-    /* 配置加速度计量程 ±2g */
-    data = 0x00;
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, MPU6050_REG_ACCEL_CONFIG, &data, 1);
-    priv->accel_range = 2;
-
-    /* 配置陀螺仪量程 ±250°/s */
-    data = 0x00;
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, MPU6050_REG_GYRO_CONFIG, &data, 1);
-    priv->gyro_range = 250;
-
-    /* 配置低通滤波器 */
-    data = 0x03; /* ~44Hz */
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, MPU6050_REG_CONFIG, &data, 1);
-
-    SENSOR_LOG("MPU6050 initialized successfully");
-
-    return SENSOR_EOK;
+    priv = (mpu6050_priv_t *)sensor->priv_data;
+    return mpu6050_map_error(
+        xy_mpu6050_init_addr(&priv->device, sensor->bus, priv->i2c_addr));
 }
 
-/**
- * @brief MPU6050反初始化
- */
 static sensor_err_t mpu6050_deinit(sensor_device_t *sensor)
 {
-    mpu6050_priv_t *priv = (mpu6050_priv_t *)sensor->priv_data;
-    uint8_t data         = 0x40; /* 进入睡眠模式 */
-
-    hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, MPU6050_REG_PWR_MGMT_1, &data, 1);
-
-    return SENSOR_EOK;
-}
-
-/**
- * @brief 读取加速度数据
- */
-static sensor_err_t mpu6050_accel_read(sensor_device_t *sensor,
-                                       sensor_data_t *data)
-{
-    mpu6050_priv_t *priv = (mpu6050_priv_t *)sensor->priv_data;
-    uint8_t buf[6];
-    int16_t raw[3];
-
-    /* 读取6字节加速度数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, MPU6050_REG_ACCEL_XOUT_H, buf, 6)
-        != 0) {
-        return SENSOR_EIO;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
+        return SENSOR_EINVAL;
     }
-
-    /* 组合数据 */
-    raw[0] = (int16_t)((buf[0] << 8) | buf[1]);
-    raw[1] = (int16_t)((buf[2] << 8) | buf[3]);
-    raw[2] = (int16_t)((buf[4] << 8) | buf[5]);
-
-    /* 转换为mg (±2g范围，16位ADC) */
-    data->type              = SENSOR_TYPE_ACCELEROMETER;
-    data->unit              = SENSOR_UNIT_MILLI_G;
-    data->value.val_3axis.x = (int32_t)raw[0] * 2000 / 32768;
-    data->value.val_3axis.y = (int32_t)raw[1] * 2000 / 32768;
-    data->value.val_3axis.z = (int32_t)raw[2] * 2000 / 32768;
-    data->timestamp         = SENSOR_GET_TICK();
-    data->accuracy          = 95;
-
-    return SENSOR_EOK;
+    return mpu6050_map_error(
+        xy_mpu6050_deinit(&((mpu6050_priv_t *)sensor->priv_data)->device));
 }
 
-/**
- * @brief 读取陀螺仪数据
- */
-static sensor_err_t mpu6050_gyro_read(sensor_device_t *sensor,
-                                      sensor_data_t *data)
+static sensor_err_t mpu6050_accel_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    mpu6050_priv_t *priv = (mpu6050_priv_t *)sensor->priv_data;
-    uint8_t buf[6];
-    int16_t raw[3];
+    sensor_data_t next;
+    float x;
+    float y;
+    float z;
+    int result;
 
-    /* 读取6字节陀螺仪数据 */
-    if (hal_i2c_mem_read(
-            sensor->bus, priv->i2c_addr, MPU6050_REG_GYRO_XOUT_H, buf, 6)
-        != 0) {
-        return SENSOR_EIO;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
     }
-
-    /* 组合数据 */
-    raw[0] = (int16_t)((buf[0] << 8) | buf[1]);
-    raw[1] = (int16_t)((buf[2] << 8) | buf[3]);
-    raw[2] = (int16_t)((buf[4] << 8) | buf[5]);
-
-    /* 转换为°/s (±250°/s范围) */
-    data->type              = SENSOR_TYPE_GYROSCOPE;
-    data->unit              = SENSOR_UNIT_DEGREE_PER_SECOND;
-    data->value.val_3axis.x = (int32_t)raw[0] * 250 / 32768;
-    data->value.val_3axis.y = (int32_t)raw[1] * 250 / 32768;
-    data->value.val_3axis.z = (int32_t)raw[2] * 250 / 32768;
-    data->timestamp         = SENSOR_GET_TICK();
-    data->accuracy          = 95;
-
+    result = xy_mpu6050_read_accel(&((mpu6050_priv_t *)sensor->priv_data)->device, &x, &y,
+                                   &z);
+    if (result != XY_MPU6050_OK) {
+        return mpu6050_map_error(result);
+    }
+    memset(&next, 0, sizeof(next));
+    next.type = SENSOR_TYPE_ACCELEROMETER;
+    next.unit = SENSOR_UNIT_MILLI_G;
+    next.value.val_3axis.x = (int32_t)(x * 1000.0F);
+    next.value.val_3axis.y = (int32_t)(y * 1000.0F);
+    next.value.val_3axis.z = (int32_t)(z * 1000.0F);
+    next.timestamp = SENSOR_GET_TICK();
+    next.accuracy = 95U;
+    *data = next;
     return SENSOR_EOK;
 }
 
-/* 加速度计操作接口 */
+static sensor_err_t mpu6050_gyro_read(sensor_device_t *sensor, sensor_data_t *data)
+{
+    sensor_data_t next;
+    float x;
+    float y;
+    float z;
+    int result;
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    result = xy_mpu6050_read_gyro(&((mpu6050_priv_t *)sensor->priv_data)->device, &x, &y, &z);
+    if (result != XY_MPU6050_OK) {
+        return mpu6050_map_error(result);
+    }
+    memset(&next, 0, sizeof(next));
+    next.type = SENSOR_TYPE_GYROSCOPE;
+    next.unit = SENSOR_UNIT_DEGREE_PER_SECOND;
+    next.value.val_3axis.x = (int32_t)x;
+    next.value.val_3axis.y = (int32_t)y;
+    next.value.val_3axis.z = (int32_t)z;
+    next.timestamp = SENSOR_GET_TICK();
+    next.accuracy = 95U;
+    *data = next;
+    return SENSOR_EOK;
+}
+
 static const sensor_ops_t mpu6050_accel_ops = {
-    .init   = mpu6050_init,
+    .init = mpu6050_init,
     .deinit = mpu6050_deinit,
-    .read   = mpu6050_accel_read,
+    .read = mpu6050_accel_read,
 };
 
-/* 陀螺仪操作接口 */
 static const sensor_ops_t mpu6050_gyro_ops = {
-    .init   = mpu6050_init,
+    .init = mpu6050_init,
     .deinit = mpu6050_deinit,
-    .read   = mpu6050_gyro_read,
+    .read = mpu6050_gyro_read,
 };
 
-/**
- * @brief 创建MPU6050加速度计设备
- */
+static sensor_device_t *mpu6050_create(const char *name, void *i2c_bus,
+                                       const sensor_ops_t *ops, sensor_type_t type,
+                                       sensor_unit_t unit, int32_t range_min,
+                                       int32_t range_max, uint32_t max_odr)
+{
+    sensor_device_t *sensor;
+    mpu6050_priv_t *priv;
+
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+    sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(*sensor));
+    priv = (mpu6050_priv_t *)SENSOR_MALLOC(sizeof(*priv));
+    if (sensor == NULL || priv == NULL) {
+        SENSOR_FREE(sensor);
+        SENSOR_FREE(priv);
+        return NULL;
+    }
+    memset(sensor, 0, sizeof(*sensor));
+    memset(priv, 0, sizeof(*priv));
+    priv->i2c_addr = MPU6050_ADDR_DEFAULT;
+    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1U);
+    sensor->info.vendor = "InvenSense";
+    sensor->info.model = "MPU6050";
+    sensor->info.version = 0x0100U;
+    sensor->info.type = type;
+    sensor->info.unit = unit;
+    sensor->info.range_max = range_max;
+    sensor->info.range_min = range_min;
+    sensor->info.resolution = 16U;
+    sensor->info.max_odr = max_odr;
+    sensor->info.flags = SENSOR_FLAG_INT_SUPPORT | SENSOR_FLAG_CALIBRATION;
+    sensor->ops = ops;
+    sensor->bus = i2c_bus;
+    sensor->priv_data = priv;
+    sensor->status = SENSOR_STATUS_IDLE;
+    sensor->odr = 100U;
+    return sensor;
+}
+
 sensor_device_t *mpu6050_create_accel(const char *name, void *i2c_bus)
 {
-    sensor_device_t *sensor =
-        (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
-    if (sensor == NULL) {
-        return NULL;
-    }
-
-    mpu6050_priv_t *priv =
-        (mpu6050_priv_t *)SENSOR_MALLOC(sizeof(mpu6050_priv_t));
-    if (priv == NULL) {
-        SENSOR_FREE(sensor);
-        return NULL;
-    }
-
-    memset(sensor, 0, sizeof(sensor_device_t));
-    memset(priv, 0, sizeof(mpu6050_priv_t));
-
-    /* 初始化私有数据 */
-    priv->i2c_addr = MPU6050_ADDR_DEFAULT;
-
-    /* 设置设备信息 */
-    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
-    sensor->info.vendor     = "InvenSense";
-    sensor->info.model      = "MPU6050";
-    sensor->info.version    = 0x0100;
-    sensor->info.type       = SENSOR_TYPE_ACCELEROMETER;
-    sensor->info.unit       = SENSOR_UNIT_MILLI_G;
-    sensor->info.range_max  = 2000;
-    sensor->info.range_min  = -2000;
-    sensor->info.resolution = 16;
-    sensor->info.max_odr    = 1000;
-    sensor->info.flags      = SENSOR_FLAG_INT_SUPPORT | SENSOR_FLAG_CALIBRATION;
-
-    sensor->ops       = &mpu6050_accel_ops;
-    sensor->bus       = i2c_bus;
-    sensor->priv_data = priv;
-    sensor->status    = SENSOR_STATUS_IDLE;
-    sensor->odr       = 100;
-
-    return sensor;
+    return mpu6050_create(name, i2c_bus, &mpu6050_accel_ops, SENSOR_TYPE_ACCELEROMETER,
+                          SENSOR_UNIT_MILLI_G, -2000, 2000, 1000U);
 }
 
-/**
- * @brief 创建MPU6050陀螺仪设备
- */
 sensor_device_t *mpu6050_create_gyro(const char *name, void *i2c_bus)
 {
-    sensor_device_t *sensor =
-        (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
-    if (sensor == NULL) {
-        return NULL;
-    }
-
-    mpu6050_priv_t *priv =
-        (mpu6050_priv_t *)SENSOR_MALLOC(sizeof(mpu6050_priv_t));
-    if (priv == NULL) {
-        SENSOR_FREE(sensor);
-        return NULL;
-    }
-
-    memset(sensor, 0, sizeof(sensor_device_t));
-    memset(priv, 0, sizeof(mpu6050_priv_t));
-
-    /* 初始化私有数据 */
-    priv->i2c_addr = MPU6050_ADDR_DEFAULT;
-
-    /* 设置设备信息 */
-    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
-    sensor->info.vendor     = "InvenSense";
-    sensor->info.model      = "MPU6050";
-    sensor->info.version    = 0x0100;
-    sensor->info.type       = SENSOR_TYPE_GYROSCOPE;
-    sensor->info.unit       = SENSOR_UNIT_DEGREE_PER_SECOND;
-    sensor->info.range_max  = 250;
-    sensor->info.range_min  = -250;
-    sensor->info.resolution = 16;
-    sensor->info.max_odr    = 8000;
-    sensor->info.flags      = SENSOR_FLAG_INT_SUPPORT | SENSOR_FLAG_CALIBRATION;
-
-    sensor->ops       = &mpu6050_gyro_ops;
-    sensor->bus       = i2c_bus;
-    sensor->priv_data = priv;
-    sensor->status    = SENSOR_STATUS_IDLE;
-    sensor->odr       = 100;
-
-    return sensor;
+    return mpu6050_create(name, i2c_bus, &mpu6050_gyro_ops, SENSOR_TYPE_GYROSCOPE,
+                          SENSOR_UNIT_DEGREE_PER_SECOND, -250, 250, 8000U);
 }

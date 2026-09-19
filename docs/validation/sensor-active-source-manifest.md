@@ -118,12 +118,17 @@ ownership only; existing Pandora B1 remains bounded and no B2 recovery claim is 
 ### MPU6050 migration status
 
 The Device-model source is the single canonical implementation and is explicitly linked into the
-root `sensor_component`. It absorbs the richer range, calibration, converted-output and I/O failure
-contracts from the former test-local implementation while preserving the existing default-address
-initializer for Device consumers. The focused MPU6050 target now compiles this owner directly, and
-the duplicate `components/sensor/src/xy_mpu6050.c` implementation and header were removed. This is
-Host/PC ownership evidence only; IMU accuracy, calibration quality, timing and board recovery remain
-pending.
+root `sensor_component`. Root-linked `sensor_mpu6050.c` is now a compatibility-only
+`sensor_device_t` wrapper: its accel/gyro factories preserve legacy metadata and units while
+init/read/deinit delegate to the typed Device owner with explicit error mapping and output
+preservation. The Device owner absorbs the richer range, calibration, converted-output and I/O
+failure contracts from the former test-local implementation while preserving the existing
+default-address initializer for Device consumers. The duplicate
+`components/sensor/src/xy_mpu6050.c` implementation/header and the unreferenced
+`components/sensor/drivers/motion/xy_sensor_mpu6050.c` fourth lifecycle have been removed. Focused
+wrapper and Device tests plus root builds prove one implementation owner with one compatibility
+boundary. This is Host/compile ownership evidence only; IMU accuracy, calibration quality, timing
+and board recovery remain pending.
 
 ### BMP280 migration status
 

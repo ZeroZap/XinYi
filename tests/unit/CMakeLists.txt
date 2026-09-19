@@ -991,6 +991,17 @@ target_include_directories(test_bh1750_legacy_sensor BEFORE PRIVATE
     ${DRV}/sensor/light/bh1750
 )
 
+xy_add_unit_test(test_mpu6050_legacy_sensor sensor_mpu6050_legacy UNITY
+    ${UNIT_SENSOR}/test_mpu6050_legacy_sensor.c
+    ${SENSOR}/sensors/sensor_mpu6050.c
+    ${DRV}/sensor/motion/mpu6050/xy_mpu6050.c
+)
+target_include_directories(test_mpu6050_legacy_sensor BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+    ${DRV}/sensor/motion/mpu6050
+)
+
 xy_add_unit_test(test_aht20_legacy_sensor sensor_aht20_legacy UNITY
     ${UNIT_SENSOR}/test_aht20_legacy_sensor.c
     ${SENSOR}/sensors/sensor_aht20.c
