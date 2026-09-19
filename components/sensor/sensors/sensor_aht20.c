@@ -1,290 +1,148 @@
 #include "sensor_aht20.h"
 
-extern int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data,
-                            uint16_t len);
-extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
-                             uint8_t *data, uint16_t len);
-extern int hal_i2c_write(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
-extern int hal_i2c_read(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
+#include <string.h>
 
-/**
- * @brief AHT20初始化
- */
+static sensor_err_t aht20_map_error(int result)
+{
+    if (result == XY_AHT20_OK) {
+        return SENSOR_EOK;
+    }
+    if (result == XY_AHT20_INVALID_PARAM || result == XY_DEVICE_INVALID_PARAM) {
+        return SENSOR_EINVAL;
+    }
+    if (result == XY_AHT20_BUSY || result == XY_DEVICE_BUSY) {
+        return SENSOR_EBUSY;
+    }
+    if (result == XY_DEVICE_TIMEOUT) {
+        return SENSOR_ETIMEOUT;
+    }
+    if (result == XY_DEVICE_NO_MEM) {
+        return SENSOR_ENOMEM;
+    }
+    return SENSOR_EIO;
+}
+
 static sensor_err_t aht20_init(sensor_device_t *sensor)
 {
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
+
     aht20_priv_t *priv = (aht20_priv_t *)sensor->priv_data;
-    uint8_t cmd[3];
-
-    SENSOR_LOG("Initializing AHT20");
-
-    /* 软复位 */
-    cmd[0] = AHT20_CMD_SOFT_RESET;
-    int ret = hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 1);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
-    }
-    SENSOR_DELAY_MS(20);
-
-    /* 初始化命令 */
-    cmd[0] = AHT20_CMD_INIT;
-    cmd[1] = 0x08;
-    cmd[2] = 0x00;
-    ret = hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 3);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
-    }
-
-    SENSOR_DELAY_MS(10);
-
-    /* 读取状态 */
-    uint8_t status;
-    ret = hal_i2c_read(sensor->bus, priv->i2c_addr, &status, 1);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
-    }
-
-    if ((status & 0x08) == 0) {
-        SENSOR_LOG("AHT20 calibration failed");
-        return SENSOR_ERROR;
-    }
-
-    priv->initialized = true;
-
-    SENSOR_LOG("AHT20 initialized successfully");
-
-    return SENSOR_EOK;
+    return aht20_map_error(xy_aht20_init(&priv->device, sensor->bus));
 }
 
-/**
- * @brief AHT20反初始化
- */
 static sensor_err_t aht20_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
     aht20_priv_t *priv = (aht20_priv_t *)sensor->priv_data;
-    priv->initialized  = false;
-
-    return SENSOR_EOK;
+    return aht20_map_error(xy_aht20_deinit(&priv->device));
 }
 
-/**
- * @brief 触发测量并读取数据
- */
-static sensor_err_t aht20_trigger_measurement(sensor_device_t *sensor,
-                                              uint8_t *data)
+static sensor_err_t aht20_temperature_read(sensor_device_t *sensor, sensor_data_t *data)
 {
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
+
     aht20_priv_t *priv = (aht20_priv_t *)sensor->priv_data;
-    uint8_t cmd[3];
-
-    /* 触发测量 */
-    cmd[0] = AHT20_CMD_TRIGGER;
-    cmd[1] = 0x33;
-    cmd[2] = 0x00;
-
-    int ret = hal_i2c_write(sensor->bus, priv->i2c_addr, cmd, 3);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
+    int result = xy_aht20_read(&priv->device);
+    if (result != XY_AHT20_OK) {
+        return aht20_map_error(result);
     }
 
-    /* 等待测量完成 (最大80ms) */
-    SENSOR_DELAY_MS(80);
-
-    /* 读取数据 (7字节) */
-    ret = hal_i2c_read(sensor->bus, priv->i2c_addr, data, 7);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
-    }
-
-    /* 检查忙状态 */
-    if (data[0] & 0x80) {
-        return SENSOR_EBUSY;
-    }
-
-    return SENSOR_EOK;
-}
-
-/**
- * @brief 读取温度数据
- */
-static sensor_err_t aht20_temperature_read(sensor_device_t *sensor,
-                                           sensor_data_t *data)
-{
-    uint8_t raw_data[7];
-
-    sensor_err_t ret = aht20_trigger_measurement(sensor, raw_data);
-    if (ret != SENSOR_EOK) {
-        return ret;
-    }
-
-    /* 计算温度 (20位数据) */
-    uint32_t temp_raw = ((uint32_t)(raw_data[3] & 0x0F) << 16)
-                        | ((uint32_t)raw_data[4] << 8) | raw_data[5];
-
+    sensor_data_t measurement = {.type = SENSOR_TYPE_TEMPERATURE,
+                                 .unit = SENSOR_UNIT_CELSIUS,
+                                 .timestamp = priv->device.data.timestamp,
+                                 .accuracy = 98U};
 #if SENSOR_USE_FLOAT
-    float temperature = ((float)temp_raw / 1048576.0f) * 200.0f - 50.0f;
-
-    data->type            = SENSOR_TYPE_TEMPERATURE;
-    data->unit            = SENSOR_UNIT_CELSIUS;
-    data->value.val_float = temperature;
+    measurement.value.val_float = (float)priv->device.data.temperature / 100.0f;
 #else
-    /* 使用整数运算 (单位: 0.01°C) */
-    int32_t temperature = ((int64_t)temp_raw * 20000 / 1048576) - 5000;
-
-    data->type            = SENSOR_TYPE_TEMPERATURE;
-    data->unit            = SENSOR_UNIT_CELSIUS;
-    data->value.val_int32 = temperature;
+    measurement.value.val_int32 = priv->device.data.temperature;
 #endif
-
-    data->timestamp = SENSOR_GET_TICK();
-    data->accuracy  = 98;
-
+    *data = measurement;
     return SENSOR_EOK;
 }
 
-/**
- * @brief 读取湿度数据
- */
-static sensor_err_t aht20_humidity_read(sensor_device_t *sensor,
-                                        sensor_data_t *data)
+static sensor_err_t aht20_humidity_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    uint8_t raw_data[7];
-
-    sensor_err_t ret = aht20_trigger_measurement(sensor, raw_data);
-    if (ret != SENSOR_EOK) {
-        return ret;
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
     }
 
-    /* 计算湿度 (20位数据) */
-    uint32_t humi_raw = ((uint32_t)raw_data[1] << 12)
-                        | ((uint32_t)raw_data[2] << 4)
-                        | ((uint32_t)raw_data[3] >> 4);
+    aht20_priv_t *priv = (aht20_priv_t *)sensor->priv_data;
+    int result = xy_aht20_read(&priv->device);
+    if (result != XY_AHT20_OK) {
+        return aht20_map_error(result);
+    }
 
+    sensor_data_t measurement = {.type = SENSOR_TYPE_HUMIDITY,
+                                 .unit = SENSOR_UNIT_PERCENT,
+                                 .timestamp = priv->device.data.timestamp,
+                                 .accuracy = 98U};
 #if SENSOR_USE_FLOAT
-    float humidity = ((float)humi_raw / 1048576.0f) * 100.0f;
-
-    data->type            = SENSOR_TYPE_HUMIDITY;
-    data->unit            = SENSOR_UNIT_PERCENT;
-    data->value.val_float = humidity;
+    measurement.value.val_float = (float)priv->device.data.humidity / 100.0f;
 #else
-    /* 使用整数运算 (单位: 0.01%) */
-    int32_t humidity = ((int64_t)humi_raw * 10000 / 1048576);
-
-    data->type            = SENSOR_TYPE_HUMIDITY;
-    data->unit            = SENSOR_UNIT_PERCENT;
-    data->value.val_int32 = humidity;
+    measurement.value.val_int32 = priv->device.data.humidity;
 #endif
-
-    data->timestamp = SENSOR_GET_TICK();
-    data->accuracy  = 98;
-
+    *data = measurement;
     return SENSOR_EOK;
 }
 
-/* 温度传感器操作接口 */
 static const sensor_ops_t aht20_temperature_ops = {
-    .init   = aht20_init,
-    .deinit = aht20_deinit,
-    .read   = aht20_temperature_read,
-};
-
-/* 湿度传感器操作接口 */
+    .init = aht20_init, .deinit = aht20_deinit, .read = aht20_temperature_read};
 static const sensor_ops_t aht20_humidity_ops = {
-    .init   = aht20_init,
-    .deinit = aht20_deinit,
-    .read   = aht20_humidity_read,
-};
+    .init = aht20_init, .deinit = aht20_deinit, .read = aht20_humidity_read};
 
-/**
- * @brief 创建AHT20温度传感器
- */
+static sensor_device_t *aht20_create(const char *name, void *i2c_bus,
+                                     const sensor_ops_t *ops, sensor_type_t type,
+                                     sensor_unit_t unit, int32_t range_min, int32_t range_max)
+{
+    if (name == NULL || i2c_bus == NULL) {
+        return NULL;
+    }
+
+    sensor_device_t *sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(*sensor));
+    aht20_priv_t *priv = (aht20_priv_t *)SENSOR_MALLOC(sizeof(*priv));
+    if (sensor == NULL || priv == NULL) {
+        SENSOR_FREE(sensor);
+        SENSOR_FREE(priv);
+        return NULL;
+    }
+
+    memset(sensor, 0, sizeof(*sensor));
+    memset(priv, 0, sizeof(*priv));
+    priv->i2c_addr = AHT20_ADDR_DEFAULT;
+
+    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1U);
+    sensor->info.vendor = "ASAIR";
+    sensor->info.model = "AHT20";
+    sensor->info.version = 0x0100;
+    sensor->info.type = type;
+    sensor->info.unit = unit;
+    sensor->info.range_min = range_min;
+    sensor->info.range_max = range_max;
+    sensor->info.resolution = 16U;
+    sensor->info.max_odr = 10U;
+    sensor->ops = ops;
+    sensor->bus = i2c_bus;
+    sensor->priv_data = priv;
+    sensor->status = SENSOR_STATUS_IDLE;
+    sensor->odr = 1U;
+    return sensor;
+}
+
 sensor_device_t *aht20_create_temperature(const char *name, void *i2c_bus)
 {
-    sensor_device_t *sensor =
-        (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
-    if (sensor == NULL) {
-        return NULL;
-    }
-
-    aht20_priv_t *priv = (aht20_priv_t *)SENSOR_MALLOC(sizeof(aht20_priv_t));
-    if (priv == NULL) {
-        SENSOR_FREE(sensor);
-        return NULL;
-    }
-
-    memset(sensor, 0, sizeof(sensor_device_t));
-    memset(priv, 0, sizeof(aht20_priv_t));
-
-    priv->i2c_addr = AHT20_ADDR_DEFAULT;
-
-    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
-    sensor->info.vendor     = "ASAIR";
-    sensor->info.model      = "AHT20";
-    sensor->info.version    = 0x0100;
-    sensor->info.type       = SENSOR_TYPE_TEMPERATURE;
-    sensor->info.unit       = SENSOR_UNIT_CELSIUS;
-    sensor->info.range_max  = 85;
-    sensor->info.range_min  = -40;
-    sensor->info.resolution = 16;
-    sensor->info.max_odr    = 10;
-    sensor->info.flags      = 0;
-
-    sensor->ops       = &aht20_temperature_ops;
-    sensor->bus       = i2c_bus;
-    sensor->priv_data = priv;
-    sensor->status    = SENSOR_STATUS_IDLE;
-    sensor->odr       = 1;
-
-    return sensor;
+    return aht20_create(name, i2c_bus, &aht20_temperature_ops, SENSOR_TYPE_TEMPERATURE,
+                        SENSOR_UNIT_CELSIUS, -40, 85);
 }
 
-/**
- * @brief 创建AHT20湿度传感器
- */
 sensor_device_t *aht20_create_humidity(const char *name, void *i2c_bus)
 {
-    sensor_device_t *sensor =
-        (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
-    if (sensor == NULL) {
-        return NULL;
-    }
-
-    aht20_priv_t *priv = (aht20_priv_t *)SENSOR_MALLOC(sizeof(aht20_priv_t));
-    if (priv == NULL) {
-        SENSOR_FREE(sensor);
-        return NULL;
-    }
-
-    memset(sensor, 0, sizeof(sensor_device_t));
-    memset(priv, 0, sizeof(aht20_priv_t));
-
-    priv->i2c_addr = AHT20_ADDR_DEFAULT;
-
-    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
-    sensor->info.vendor     = "ASAIR";
-    sensor->info.model      = "AHT20";
-    sensor->info.version    = 0x0100;
-    sensor->info.type       = SENSOR_TYPE_HUMIDITY;
-    sensor->info.unit       = SENSOR_UNIT_PERCENT;
-    sensor->info.range_max  = 100;
-    sensor->info.range_min  = 0;
-    sensor->info.resolution = 16;
-    sensor->info.max_odr    = 10;
-    sensor->info.flags      = 0;
-
-    sensor->ops       = &aht20_humidity_ops;
-    sensor->bus       = i2c_bus;
-    sensor->priv_data = priv;
-    sensor->status    = SENSOR_STATUS_IDLE;
-    sensor->odr       = 1;
-
-    return sensor;
+    return aht20_create(name, i2c_bus, &aht20_humidity_ops, SENSOR_TYPE_HUMIDITY,
+                        SENSOR_UNIT_PERCENT, 0, 100);
 }

@@ -2,6 +2,7 @@
 #define __SENSOR_AHT20_H__
 
 #include "sensor_core.h"
+#include "xy_aht20.h"
 
 /* AHT20 I2C地址 */
 #define AHT20_ADDR_DEFAULT 0x38
@@ -14,7 +15,7 @@
 /* 私有数据 */
 typedef struct {
     uint8_t i2c_addr;
-    bool initialized;
+    xy_aht20_t device;
 } aht20_priv_t;
 
 /* 创建传感器设备 */

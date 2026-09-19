@@ -849,10 +849,10 @@ target_include_directories(test_mlx90614 PRIVATE
 
 xy_add_unit_test(test_aht20 sensor_aht20 UNITY
     ${UNIT_SENSOR}/test_aht20.c
-    ${SENSOR}/src/xy_aht20.c
+    ${DRV}/sensor/temperature/aht20/xy_aht20.c
 )
 target_include_directories(test_aht20 PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/temperature/aht20
 )
 
 xy_add_unit_test(test_sht40 sensor_sht40 UNITY
@@ -1005,10 +1005,13 @@ target_include_directories(test_mpu6050_legacy_sensor BEFORE PRIVATE
 xy_add_unit_test(test_aht20_legacy_sensor sensor_aht20_legacy UNITY
     ${UNIT_SENSOR}/test_aht20_legacy_sensor.c
     ${SENSOR}/sensors/sensor_aht20.c
+    ${DRV}/sensor/temperature/aht20/xy_aht20.c
 )
 target_include_directories(test_aht20_legacy_sensor BEFORE PRIVATE
     ${SENSOR}
     ${SENSOR}/sensors
+    ${DRV}/sensor/temperature/aht20
+    ${DEVICE}/inc
 )
 
 xy_add_unit_test(test_sht30_legacy_sensor sensor_sht30_legacy UNITY

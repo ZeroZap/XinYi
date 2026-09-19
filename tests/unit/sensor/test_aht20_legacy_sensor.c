@@ -5,96 +5,108 @@
 
 #include "sensor_aht20.h"
 
-static unsigned int g_write_count;
-static unsigned int g_read_count;
-static uint32_t g_delay_total_ms;
-static uint8_t g_status;
-static int g_reset_write_result;
-static int g_init_write_result;
-static int g_status_read_result;
-static int g_trigger_write_result;
-static int g_measurement_read_result;
+#define READ_QUEUE_CAPACITY 64U
 
-uint32_t get_tick_ms(void)
+static uint8_t g_reads[READ_QUEUE_CAPACITY][7];
+static size_t g_read_lens[READ_QUEUE_CAPACITY];
+static int g_read_results[READ_QUEUE_CAPACITY];
+static size_t g_read_count;
+static size_t g_read_index;
+static uint8_t g_writes[4][3];
+static size_t g_write_lens[4];
+static size_t g_write_count;
+static uint32_t g_tick;
+
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr, uint32_t timeout)
 {
-    return 1234U;
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_NOT_NULL(handle);
+    memset(dev, 0, sizeof(*dev));
+    dev->base.initialized = true;
+    dev->i2c_handle = handle;
+    dev->dev_addr = addr;
+    dev->timeout = timeout;
+    return XY_DEVICE_OK;
 }
 
-void delay_ms(uint32_t ms)
+xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 {
-    g_delay_total_ms += ms;
-}
-
-int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)addr;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return SENSOR_EIO;
-}
-
-int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    (void)addr;
-    (void)reg;
-    (void)data;
-    (void)len;
-    return SENSOR_EIO;
-}
-
-int hal_i2c_write(void *bus, uint8_t addr, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    TEST_ASSERT_EQUAL_UINT8(AHT20_ADDR_DEFAULT, addr);
-    if (len == 1U) {
-        TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_SOFT_RESET, data[0]);
-        return g_reset_write_result;
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_LESS_THAN_UINT(g_read_count, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_read_lens[g_read_index], len);
+    int result = g_read_results[g_read_index];
+    if (result == XY_DEVICE_OK) {
+        memcpy(data, g_reads[g_read_index], len);
     }
-    TEST_ASSERT_EQUAL_UINT16(3U, len);
-    if (data[0] == AHT20_CMD_INIT) {
-        TEST_ASSERT_EQUAL_UINT8(0x08U, data[1]);
-        TEST_ASSERT_EQUAL_UINT8(0x00U, data[2]);
-        return g_init_write_result;
-    }
-    TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_TRIGGER, data[0]);
-    TEST_ASSERT_EQUAL_UINT8(0x33U, data[1]);
-    TEST_ASSERT_EQUAL_UINT8(0x00U, data[2]);
-    ++g_write_count;
-    return g_trigger_write_result;
+    g_read_index++;
+    return result;
 }
 
-int hal_i2c_read(void *bus, uint8_t addr, uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
-    (void)bus;
-    TEST_ASSERT_EQUAL_UINT8(AHT20_ADDR_DEFAULT, addr);
-    if (len == 1U) {
-        return g_status_read_result;
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_LESS_THAN_UINT(4U, g_write_count);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT(3U, len);
+    memcpy(g_writes[g_write_count], data, len);
+    g_write_lens[g_write_count++] = len;
+    return XY_DEVICE_OK;
+}
+
+uint32_t xy_os_tick_get(void)
+{
+    return g_tick;
+}
+
+void xy_os_delay(uint32_t ms)
+{
+    g_tick += ms;
+}
+
+int xy_printf(const char *fmt, ...)
+{
+    (void)fmt;
+    return 0;
+}
+
+static void queue_read(const uint8_t *data, size_t len, int result)
+{
+    TEST_ASSERT_LESS_THAN_UINT(READ_QUEUE_CAPACITY, g_read_count);
+    if (data != NULL) {
+        memcpy(g_reads[g_read_count], data, len);
     }
-    TEST_ASSERT_EQUAL_UINT16(7U, len);
-    if (g_measurement_read_result != SENSOR_EOK) {
-        ++g_read_count;
-        return g_measurement_read_result;
-    }
-    memset(data, 0, len);
-    data[0] = g_status;
-    ++g_read_count;
-    return SENSOR_EOK;
+    g_read_lens[g_read_count] = len;
+    g_read_results[g_read_count++] = result;
+}
+
+static void queue_status(uint8_t status)
+{
+    queue_read(&status, 1U, XY_DEVICE_OK);
+}
+
+static void queue_measurement(uint32_t humidity_raw, uint32_t temperature_raw)
+{
+    uint8_t data[7] = {0U,
+                       (uint8_t)(humidity_raw >> 12),
+                       (uint8_t)(humidity_raw >> 4),
+                       (uint8_t)(((humidity_raw & 0x0FU) << 4) |
+                                 ((temperature_raw >> 16) & 0x0FU)),
+                       (uint8_t)(temperature_raw >> 8),
+                       (uint8_t)temperature_raw,
+                       0U};
+    queue_read(data, sizeof(data), XY_DEVICE_OK);
 }
 
 void setUp(void)
 {
-    g_write_count = 0U;
+    memset(g_reads, 0, sizeof(g_reads));
+    memset(g_read_lens, 0, sizeof(g_read_lens));
+    memset(g_read_results, 0, sizeof(g_read_results));
+    memset(g_writes, 0, sizeof(g_writes));
+    memset(g_write_lens, 0, sizeof(g_write_lens));
     g_read_count = 0U;
-    g_delay_total_ms = 0U;
-    g_status = 0x80U;
-    g_reset_write_result = SENSOR_EOK;
-    g_init_write_result = SENSOR_EOK;
-    g_status_read_result = SENSOR_EOK;
-    g_trigger_write_result = SENSOR_EOK;
-    g_measurement_read_result = SENSOR_EOK;
+    g_read_index = 0U;
+    g_write_count = 0U;
+    g_tick = 1000U;
 }
 
 void tearDown(void)
@@ -109,120 +121,105 @@ static void destroy_sensor(sensor_device_t *sensor)
     }
 }
 
-static void assert_busy_preserves_output(sensor_device_t *sensor)
+static sensor_device_t *create_initialized(bool humidity)
 {
-    sensor_data_t data;
-    sensor_data_t before;
-
-    memset(&data, 0xA5, sizeof(data));
-    memcpy(&before, &data, sizeof(before));
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
-    TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
-    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
-    TEST_ASSERT_EQUAL_UINT32(80U, g_delay_total_ms);
+    static int fake_bus;
+    sensor_device_t *sensor = humidity ? aht20_create_humidity("aht20-humidity", &fake_bus)
+                                       : aht20_create_temperature("aht20-temp", &fake_bus);
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_status(0U);
+    queue_status(0x08U);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    return sensor;
 }
 
-static void test_aht20_deinit_rejects_null_context(void)
+static void test_factories_reject_invalid_inputs_and_preserve_metadata(void)
 {
     int fake_bus;
-    sensor_device_t *sensor = aht20_create_temperature("aht20-temp", &fake_bus);
+    TEST_ASSERT_NULL(aht20_create_temperature(NULL, &fake_bus));
+    TEST_ASSERT_NULL(aht20_create_temperature("temp", NULL));
+    TEST_ASSERT_NULL(aht20_create_humidity(NULL, &fake_bus));
+    TEST_ASSERT_NULL(aht20_create_humidity("humidity", NULL));
 
-    TEST_ASSERT_NOT_NULL(sensor);
+    sensor_device_t *temp = aht20_create_temperature("temp", &fake_bus);
+    sensor_device_t *humidity = aht20_create_humidity("humidity", &fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, temp->info.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_HUMIDITY, humidity->info.type);
+    TEST_ASSERT_EQUAL_STRING("AHT20", temp->info.model);
+    destroy_sensor(temp);
+    destroy_sensor(humidity);
+}
+
+static void test_wrapper_delegates_lifecycle_to_canonical_owner(void)
+{
+    sensor_device_t *sensor = create_initialized(false);
+    aht20_priv_t *priv = (aht20_priv_t *)sensor->priv_data;
+
+    TEST_ASSERT_TRUE(priv->device.initialized);
+    TEST_ASSERT_EQUAL_UINT8(AHT20_CMD_INIT, g_writes[0][0]);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_FALSE(priv->device.initialized);
+    TEST_ASSERT_FALSE(priv->device.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
     destroy_sensor(sensor);
 }
 
-static void test_aht20_init_propagates_soft_reset_failure_without_delay(void)
+static void test_temperature_wrapper_converts_and_preserves_output_on_failure(void)
 {
-    int fake_bus;
-    sensor_device_t *sensor = aht20_create_temperature("aht20-init", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    g_reset_write_result = SENSOR_ETIMEOUT;
-    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
-    TEST_ASSERT_FALSE(((aht20_priv_t *)sensor->priv_data)->initialized);
-
-    destroy_sensor(sensor);
-}
-
-static void test_aht20_init_propagates_command_and_status_transport_errors(void)
-{
-    int fake_bus;
-    sensor_device_t *sensor = aht20_create_temperature("aht20-init-transport", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    g_init_write_result = SENSOR_ETIMEOUT;
-    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT32(20U, g_delay_total_ms);
-    TEST_ASSERT_FALSE(((aht20_priv_t *)sensor->priv_data)->initialized);
-
-    setUp();
-    g_status_read_result = SENSOR_ETIMEOUT;
-    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT32(30U, g_delay_total_ms);
-    TEST_ASSERT_FALSE(((aht20_priv_t *)sensor->priv_data)->initialized);
-
-    destroy_sensor(sensor);
-}
-
-static void test_aht20_read_propagates_transport_errors_and_preserves_output(void)
-{
-    int fake_bus;
+    sensor_device_t *sensor = create_initialized(false);
     sensor_data_t data;
     sensor_data_t before;
-    sensor_device_t *sensor = aht20_create_temperature("aht20-read-transport", &fake_bus);
 
-    TEST_ASSERT_NOT_NULL(sensor);
-    memset(&data, 0xA5, sizeof(data));
-    memcpy(&before, &data, sizeof(before));
+    queue_status(0U);
+    queue_status(0U);
+    queue_measurement(0x80000U, 0x80000U);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, data.type);
+#if SENSOR_USE_FLOAT
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 50.0f, data.value.val_float);
+#else
+    TEST_ASSERT_EQUAL_INT32(5000, data.value.val_int32);
+#endif
 
-    g_trigger_write_result = SENSOR_ETIMEOUT;
+    memcpy(&before, &data, sizeof(data));
+    queue_read(NULL, 1U, XY_DEVICE_TIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
-    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
-    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
-
-    g_trigger_write_result = SENSOR_EOK;
-    g_measurement_read_result = SENSOR_ETIMEOUT;
-    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
-    TEST_ASSERT_EQUAL_UINT32(80U, g_delay_total_ms);
-    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
-
     destroy_sensor(sensor);
 }
 
-static void test_aht20_temperature_read_propagates_busy(void)
+static void test_humidity_wrapper_converts_and_preserves_output_on_failure(void)
 {
-    int fake_bus;
-    sensor_device_t *sensor = aht20_create_temperature("aht20-temp", &fake_bus);
+    sensor_device_t *sensor = create_initialized(true);
+    sensor_data_t data;
+    sensor_data_t before;
 
-    TEST_ASSERT_NOT_NULL(sensor);
-    assert_busy_preserves_output(sensor);
-    destroy_sensor(sensor);
-}
+    queue_status(0U);
+    queue_status(0U);
+    queue_measurement(0x40000U, 0x40000U);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_HUMIDITY, data.type);
+#if SENSOR_USE_FLOAT
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 25.0f, data.value.val_float);
+#else
+    TEST_ASSERT_EQUAL_INT32(2500, data.value.val_int32);
+#endif
 
-static void test_aht20_humidity_read_propagates_busy(void)
-{
-    int fake_bus;
-    sensor_device_t *sensor = aht20_create_humidity("aht20-humidity", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    assert_busy_preserves_output(sensor);
+    memcpy(&before, &data, sizeof(data));
+    for (unsigned int i = 0U; i < 51U; ++i) {
+        queue_status(0x80U);
+    }
+    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
     destroy_sensor(sensor);
 }
 
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_aht20_deinit_rejects_null_context);
-    RUN_TEST(test_aht20_init_propagates_soft_reset_failure_without_delay);
-    RUN_TEST(test_aht20_init_propagates_command_and_status_transport_errors);
-    RUN_TEST(test_aht20_read_propagates_transport_errors_and_preserves_output);
-    RUN_TEST(test_aht20_temperature_read_propagates_busy);
-    RUN_TEST(test_aht20_humidity_read_propagates_busy);
+    RUN_TEST(test_factories_reject_invalid_inputs_and_preserve_metadata);
+    RUN_TEST(test_wrapper_delegates_lifecycle_to_canonical_owner);
+    RUN_TEST(test_temperature_wrapper_converts_and_preserves_output_on_failure);
+    RUN_TEST(test_humidity_wrapper_converts_and_preserves_output_on_failure);
     return UNITY_END();
 }

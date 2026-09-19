@@ -15,6 +15,8 @@ STALE_BMP280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sen
 STALE_BH1750 = ROOT / "components" / "sensor" / "drivers" / "light" / "xy_sensor_bh1750.c"
 STALE_MPU6050 = ROOT / "components" / "sensor" / "drivers" / "motion" / "xy_sensor_mpu6050.c"
 STALE_SHT30 = ROOT / "components" / "sensor" / "drivers" / "temperature" / "xy_sensor_sht30.c"
+STALE_AHT20_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_aht20.c"
+STALE_AHT20_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_aht20.h"
 SMART_HYGROMETER_CMAKE = ROOT / "projects" / "examples" / "smart_hygrometer" / "CMakeLists.txt"
 SMART_HYGROMETER_MAIN = ROOT / "projects" / "examples" / "smart_hygrometer" / "main.c"
 
@@ -53,10 +55,10 @@ def main() -> int:
     prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
 
     require(len(legacy) == 55, f"expected 55 legacy active sources, found {len(legacy)}", errors)
-    require(len(experimental) == 19,
-            f"expected 19 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 10, f"expected 10 Device-model sources, found {len(device)}", errors)
-    require(canonical_names & legacy_names == {"sht30", "mpu6050", "bmp280", "bh1750"},
+    require(len(experimental) == 18,
+            f"expected 18 experimental xy_* sources, found {len(experimental)}", errors)
+    require(len(device) == 11, f"expected 11 Device-model sources, found {len(device)}", errors)
+    require(canonical_names & legacy_names == {"sht30", "mpu6050", "bmp280", "bh1750", "aht20"},
             "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
     require(not (canonical_names & experimental_names),
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
@@ -79,6 +81,7 @@ def main() -> int:
         "BME680",
         "BH1750",
         "HMC5883L",
+        "AHT20",
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
@@ -106,6 +109,8 @@ def main() -> int:
             "retired xy_sensor_mpu6050 lifecycle must not reappear", errors)
     require(not STALE_SHT30.exists(),
             "retired xy_sensor_sht30 lifecycle must not reappear", errors)
+    require(not STALE_AHT20_SOURCE.exists() and not STALE_AHT20_HEADER.exists(),
+            "retired experimental AHT20 lifecycle must not reappear", errors)
     require("components/drivers/sensor/pressure/bmp280" in smart_hygrometer_cmake,
             "smart_hygrometer must include the canonical BMP280 owner", errors)
     require("components/drivers/sensor/pressure/bmp280/xy_bmp280.c" in smart_hygrometer_cmake,
@@ -121,8 +126,8 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=19 "
-          "device_active=10 approved_wrappers=4 overlap_duplicates=0 hardware=mixed")
+    print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=18 "
+          "device_active=11 approved_wrappers=5 overlap_duplicates=0 hardware=mixed")
     return 0
 
 
