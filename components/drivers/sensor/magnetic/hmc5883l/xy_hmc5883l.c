@@ -137,21 +137,38 @@ xy_error_t xy_hmc5883l_read(xy_hmc5883l_t *dev, xy_hmc5883l_data_t *data)
 
 xy_error_t xy_hmc5883l_read_field(xy_hmc5883l_t *dev, xy_hmc5883l_field_t *field)
 {
+    uint8_t bytes[6];
+    uint8_t gain_value;
     xy_hmc5883l_data_t raw;
+    xy_hmc5883l_field_t next;
     xy_hmc5883l_gain_t gain;
     int32_t sensitivity;
     xy_error_t result;
-    if (!dev || !field) {
+
+    if (!dev || !field || !dev->initialized || !dev->i2c_dev.base.initialized) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    result = xy_hmc5883l_read(dev, &raw);
+    result = read_reg(dev, HMC5883L_REG_DATA, bytes, sizeof(bytes));
     if (result != XY_DEVICE_OK) {
         return result;
     }
-    result = xy_hmc5883l_get_gain(dev, &gain);
+    raw.x = (int16_t)(((uint16_t)bytes[0] << 8) | bytes[1]);
+    raw.z = (int16_t)(((uint16_t)bytes[2] << 8) | bytes[3]);
+    raw.y = (int16_t)(((uint16_t)bytes[4] << 8) | bytes[5]);
+    if (raw.x == -4096 || raw.y == -4096 || raw.z == -4096) {
+        return XY_ERROR_OVERFLOW;
+    }
+    result = read_reg(dev, HMC5883L_REG_CONFIG_B, &gain_value, 1U);
     if (result != XY_DEVICE_OK) {
         return result;
     }
+    gain_value &= 0xE0U;
+    if (gain_value != XY_HMC5883L_GAIN_0_88_GA &&
+        gain_value != XY_HMC5883L_GAIN_1_30_GA &&
+        gain_value != XY_HMC5883L_GAIN_8_10_GA) {
+        return XY_ERROR_FAIL;
+    }
+    gain = (xy_hmc5883l_gain_t)gain_value;
     switch (gain) {
     case XY_HMC5883L_GAIN_0_88_GA:
         sensitivity = 730;
@@ -165,8 +182,11 @@ xy_error_t xy_hmc5883l_read_field(xy_hmc5883l_t *dev, xy_hmc5883l_field_t *field
     default:
         return XY_ERROR_FAIL;
     }
-    field->x_mgauss = ((int32_t)raw.x * 1000) / sensitivity;
-    field->y_mgauss = ((int32_t)raw.y * 1000) / sensitivity;
-    field->z_mgauss = ((int32_t)raw.z * 1000) / sensitivity;
+    next.x_mgauss = ((int32_t)raw.x * 1000) / sensitivity;
+    next.y_mgauss = ((int32_t)raw.y * 1000) / sensitivity;
+    next.z_mgauss = ((int32_t)raw.z * 1000) / sensitivity;
+    dev->data = raw;
+    dev->gain = gain;
+    *field = next;
     return XY_DEVICE_OK;
 }
