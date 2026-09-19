@@ -406,11 +406,13 @@ static void test_sc7a22h_public_config_status_and_deinit_contracts(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_set_acc_range(&dev, new_acc_range));
     TEST_ASSERT_EQUAL_UINT8(new_acc_range, dev.acc_range);
 
+    queue(OP_WRITE_REG, XY_SC7A22H_REG_PWR_CTRL,
+          (uint8_t[]){XY_SC7A22H_ACC_DISABLE}, 1U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_deinit(&dev));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read_status(&dev, &status));
-    TEST_ASSERT_EQUAL_UINT(14U, op_index);
+    TEST_ASSERT_EQUAL_UINT(15U, op_index);
 }
 
 static void test_sc7a22h_init_stops_on_configuration_failure(void)

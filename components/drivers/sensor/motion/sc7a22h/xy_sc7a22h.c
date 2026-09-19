@@ -44,8 +44,19 @@ xy_error_t xy_sc7a22h_init(xy_sc7a22h_t *d, void *h)
 
 xy_error_t xy_sc7a22h_deinit(xy_sc7a22h_t *d)
 {
+    xy_error_t r;
     if (!d || !d->initialized || !d->i2c_dev.base.initialized) return XY_DEVICE_INVALID_PARAM;
-    d->initialized = 0U; d->i2c_dev.base.initialized = 0U; return XY_DEVICE_OK;
+    r = xy_sc7a22h_power_down(d);
+    if (r != XY_DEVICE_OK) return r;
+    d->initialized = 0U;
+    d->i2c_dev.base.initialized = 0U;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_sc7a22h_power_down(xy_sc7a22h_t *d)
+{
+    if (!d || !d->initialized || !d->i2c_dev.base.initialized) return XY_DEVICE_INVALID_PARAM;
+    return wr(d, XY_SC7A22H_REG_PWR_CTRL, XY_SC7A22H_ACC_DISABLE);
 }
 
 xy_error_t xy_sc7a22h_read_config(xy_sc7a22h_t *d)

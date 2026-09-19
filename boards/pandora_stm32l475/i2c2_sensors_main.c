@@ -28,11 +28,8 @@ static xy_mpu6050_t mpu6050;
 static xy_hmc5883l_t hmc5883l;
 static xy_sc7a22h_t sc7a22h;
 static volatile uint32_t sc7a22h_drdy_edges;
-void EXTI9_5_IRQHandler(void) { HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8); }
-void HAL_GPIO_EXTI_Callback(uint16_t pin)
-{
-    if (pin == GPIO_PIN_8) sc7a22h_drdy_edges++;
-}
+static void sc7a22h_drdy_irq(void *arg) { (*(volatile uint32_t *)arg)++; }
+void EXTI9_5_IRQHandler(void) { xy_hal_gpio_irq_handler(GPIOB, 8U); }
 static xy_error_t sc7a22h_sample(xy_sc7a22h_data_t *d, uint8_t *status)
 {
     xy_error_t r = xy_sc7a22h_read_status(&sc7a22h, status);
@@ -59,8 +56,7 @@ static void platform_init(void){
  i2c2.Instance=I2C2;i2c2.Init.Timing=0x10909CECU;if(xy_hal_i2c_init(&i2c2,&ic)!=XY_HAL_OK)stop();
  const xy_hal_gpio_config_t irq={XY_HAL_GPIO_MODE_INPUT,XY_HAL_GPIO_PULL_DOWN,XY_HAL_GPIO_OTYPE_PP,XY_HAL_GPIO_SPEED_LOW,0U};
  if(xy_hal_gpio_init(GPIOA,4U,&irq)!=XY_HAL_OK||xy_hal_gpio_init(GPIOB,9U,&irq)!=XY_HAL_OK||xy_hal_gpio_init(GPIOC,4U,&irq)!=XY_HAL_OK)stop();
- GPIO_InitTypeDef sc_irq={0};sc_irq.Pin=GPIO_PIN_8;sc_irq.Mode=GPIO_MODE_IT_RISING;sc_irq.Pull=GPIO_PULLDOWN;HAL_GPIO_Init(GPIOB,&sc_irq);
- __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_8);HAL_NVIC_SetPriority(EXTI9_5_IRQn,5U,0U);HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+ if(xy_hal_gpio_attach_irq(GPIOB,8U,XY_HAL_GPIO_IRQ_RISING,sc7a22h_drdy_irq,(void *)&sc7a22h_drdy_edges)!=XY_HAL_OK)stop();
 }
 static void scan(void){uint32_t count=0;for(uint16_t a=8;a<=0x77;a++)if(xy_hal_i2c_is_device_ready(&i2c2,a,2U,10U)==XY_HAL_OK){text("I2C2_ACK=0x");hex((uint8_t)a);text("\r\n");count++;}text("I2C2_COUNT=");num((int32_t)count);text("\r\n");}
 int main(void){

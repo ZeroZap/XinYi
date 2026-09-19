@@ -22,6 +22,7 @@
 #define XY_SC7A22H_REG_SELF_TEST 0x6DU
 #define XY_SC7A22H_REG_PWR_CTRL 0x7DU
 #define XY_SC7A22H_ACC_ENABLE 0x04U
+#define XY_SC7A22H_ACC_DISABLE 0x00U
 #define XY_SC7A22H_DEMO_ACC_CONF 0x07U
 #define XY_SC7A22H_DEMO_ACC_RANGE 0x01U
 #define XY_SC7A22H_DEMO_COM_CFG 0x50U
@@ -44,6 +45,7 @@ typedef struct {
 
 xy_error_t xy_sc7a22h_init(xy_sc7a22h_t *dev, void *i2c_handle);
 xy_error_t xy_sc7a22h_deinit(xy_sc7a22h_t *dev);
+xy_error_t xy_sc7a22h_power_down(xy_sc7a22h_t *dev);
 xy_error_t xy_sc7a22h_read_config(xy_sc7a22h_t *dev);
 xy_error_t xy_sc7a22h_read_status(xy_sc7a22h_t *dev, uint8_t *status);
 xy_error_t xy_sc7a22h_data_ready(xy_sc7a22h_t *dev, uint8_t *ready);

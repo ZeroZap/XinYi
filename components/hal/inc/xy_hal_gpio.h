@@ -302,6 +302,13 @@ int32_t xy_hal_gpio_get_irq_status(xy_hal_gpio_port_t port, uint8_t pin);
 xy_hal_error_t xy_hal_gpio_clear_irq_status(xy_hal_gpio_port_t port, uint8_t pin);
 
 /**
+ * @brief Dispatch one GPIO interrupt from a platform vector
+ * @param port GPIO port
+ * @param pin Pin number (0-15)
+ */
+void xy_hal_gpio_irq_handler(xy_hal_gpio_port_t port, uint8_t pin);
+
+/**
  * @brief GPIO 控制
  * @param port GPIO 端口
  * @param pin 引脚号

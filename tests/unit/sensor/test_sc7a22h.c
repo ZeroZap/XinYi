@@ -87,6 +87,21 @@ static void test_identity_and_write_failures_are_atomic(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_init(&d,&bus));
     TEST_ASSERT_FALSE(d.initialized); TEST_ASSERT_FALSE(d.i2c_dev.base.initialized);
 }
+static void test_power_down_and_deinit_are_fail_closed(void)
+{
+    xy_sc7a22h_t d; init_ok(&d);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_power_down(&d));
+    TEST_ASSERT_EQUAL_HEX8(0x00, regs[0x7D]);
+    TEST_ASSERT_TRUE(d.initialized);
+    regs[0x7D] = 0x04U; write_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_deinit(&d));
+    TEST_ASSERT_TRUE(d.initialized); TEST_ASSERT_TRUE(d.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_HEX8(0x04, regs[0x7D]);
+    write_result = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_deinit(&d));
+    TEST_ASSERT_FALSE(d.initialized); TEST_ASSERT_FALSE(d.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_HEX8(0x00, regs[0x7D]);
+}
 int main(void)
 {
     UNITY_BEGIN();
@@ -95,5 +110,6 @@ int main(void)
     RUN_TEST(test_xyz_and_mg_conversion);
     RUN_TEST(test_read_failure_preserves_output);
     RUN_TEST(test_identity_and_write_failures_are_atomic);
+    RUN_TEST(test_power_down_and_deinit_are_fail_closed);
     return UNITY_END();
 }
