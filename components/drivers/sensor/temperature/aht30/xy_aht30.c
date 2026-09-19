@@ -39,7 +39,7 @@ xy_error_t xy_aht30_init(xy_aht30_t *dev, void *i2c_handle)
 
 xy_error_t xy_aht30_deinit(xy_aht30_t *dev)
 {
-    if (dev == NULL || dev->initialized == 0U) {
+    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
 

@@ -160,6 +160,48 @@ static void test_aht30_init_clears_handle_when_i2c_helper_fails(void)
     TEST_ASSERT_EQUAL_UINT(0U, op_index);
 }
 
+static void test_aht30_public_ops_reject_invalid_nested_bus_lifecycle(void)
+{
+    xy_aht30_t dev;
+    xy_aht30_data_t output = {11, 22};
+    xy_aht30_data_t snapshot = output;
+
+    memset(&dev, 0, sizeof(dev));
+    dev.initialized = 1U;
+    dev.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_aht30_read(&dev, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_aht30_deinit(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+
+static void test_aht30_transport_failures_preserve_output_and_cache(void)
+{
+    int bus;
+    xy_aht30_t dev;
+    xy_aht30_data_t output = {11, 22};
+    xy_aht30_data_t output_snapshot = output;
+    xy_aht30_data_t cache_snapshot;
+    const uint8_t trigger[3] = {0xACU, 0x33U, 0x00U};
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_aht30_init(&dev, &bus));
+    dev.data = (xy_aht30_data_t){33, 44};
+    cache_snapshot = dev.data;
+    queue(OP_WRITE, 0U, trigger, sizeof(trigger), XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_aht30_read(&dev, &output));
+    TEST_ASSERT_EQUAL_MEMORY(&output_snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&cache_snapshot, &dev.data, sizeof(dev.data));
+    TEST_ASSERT_EQUAL_UINT32(5U, delay_total);
+
+    queue(OP_WRITE, 0U, trigger, sizeof(trigger), XY_DEVICE_OK);
+    queue(OP_READ, 0U, NULL, 7U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_aht30_read(&dev, &output));
+    TEST_ASSERT_EQUAL_MEMORY(&output_snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&cache_snapshot, &dev.data, sizeof(dev.data));
+    TEST_ASSERT_EQUAL_UINT32(85U, delay_total);
+}
+
 static void test_l3g4200d_identity_axis_order_and_range(void)
 {
     int bus;
@@ -673,6 +715,8 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_aht30_valid_frame_and_crc_atomicity);
     RUN_TEST(test_aht30_init_clears_handle_when_i2c_helper_fails);
+    RUN_TEST(test_aht30_public_ops_reject_invalid_nested_bus_lifecycle);
+    RUN_TEST(test_aht30_transport_failures_preserve_output_and_cache);
     RUN_TEST(test_l3g4200d_identity_axis_order_and_range);
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
     RUN_TEST(test_l3g4200d_init_clears_handle_when_i2c_helper_fails);
