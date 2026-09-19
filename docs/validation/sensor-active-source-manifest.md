@@ -11,7 +11,9 @@
 ## Policy
 
 - `legacy-active-root`: `components/sensor/sensors/sensor_*.c` is the current
-  `sensor_component` product source set. New chips must not be added to this lifecycle.
+  `sensor_component` compatibility source set. New chips must not be added to this lifecycle;
+  migration of these owners to the Device model is now the next major Sensor workstream after the
+  current Pandora I2C2 Device owners are completed and stabilized.
 - `experimental-test-only`: `components/sensor/src/xy_*.c` is compiled directly by focused
   Host tests where wired, but is not linked into the root `sensor_component`. **Host 测试不等于根产品链接**.
 - `device-active-root`: `components/drivers/sensor/**/xy_*.c` is collected by the root

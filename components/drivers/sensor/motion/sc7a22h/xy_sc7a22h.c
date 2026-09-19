@@ -59,6 +59,44 @@ xy_error_t xy_sc7a22h_power_down(xy_sc7a22h_t *d)
     return wr(d, XY_SC7A22H_REG_PWR_CTRL, XY_SC7A22H_ACC_DISABLE);
 }
 
+xy_error_t xy_sc7a22h_enable_fifo(xy_sc7a22h_t *d)
+{
+    uint8_t com_cfg;
+    xy_error_t r;
+
+    if (!d || !d->initialized || !d->i2c_dev.base.initialized) return XY_DEVICE_INVALID_PARAM;
+    r = rd(d, XY_SC7A22H_REG_COM_CFG, &com_cfg, 1U);
+    if (r != XY_DEVICE_OK) return r;
+    com_cfg &= (uint8_t)~XY_SC7A22H_COM_AUTO_INCREMENT;
+    r = wr(d, XY_SC7A22H_REG_COM_CFG, com_cfg);
+    if (r == XY_DEVICE_OK) r = wr(d, XY_SC7A22H_REG_FIFO_CFG1, XY_SC7A22H_FIFO_BYPASS);
+    if (r == XY_DEVICE_OK) r = wr(d, XY_SC7A22H_REG_FIFO_CFG2, XY_SC7A22H_FIFO_THRESHOLD_MAX);
+    if (r == XY_DEVICE_OK) r = wr(d, XY_SC7A22H_REG_FIFO_CFG1, XY_SC7A22H_FIFO_MODE);
+    if (r == XY_DEVICE_OK) r = wr(d, XY_SC7A22H_REG_FIFO_CFG0, XY_SC7A22H_FIFO_ENABLE);
+    if (r == XY_DEVICE_OK) d->com_cfg = com_cfg;
+    return r;
+}
+
+xy_error_t xy_sc7a22h_fifo_count(xy_sc7a22h_t *d, uint16_t *byte_count)
+{
+    uint8_t stat0;
+    uint8_t stat1;
+    uint16_t next;
+    xy_error_t r;
+
+    if (!d || !byte_count || !d->initialized || !d->i2c_dev.base.initialized)
+        return XY_DEVICE_INVALID_PARAM;
+    r = rd(d, XY_SC7A22H_REG_FIFO_STAT0, &stat0, 1U);
+    if (r != XY_DEVICE_OK) return r;
+    r = rd(d, XY_SC7A22H_REG_FIFO_STAT1, &stat1, 1U);
+    if (r != XY_DEVICE_OK) return r;
+    next = (stat0 & XY_SC7A22H_FIFO_FULL_MASK) != 0U
+               ? XY_SC7A22H_FIFO_MAX_BYTES
+               : (uint16_t)(((uint16_t)(stat0 & XY_SC7A22H_FIFO_COUNT_HIGH_MASK) << 8) | stat1);
+    *byte_count = next;
+    return XY_DEVICE_OK;
+}
+
 xy_error_t xy_sc7a22h_read_config(xy_sc7a22h_t *d)
 {
     uint8_t value;

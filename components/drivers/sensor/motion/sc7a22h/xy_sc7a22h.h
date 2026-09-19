@@ -15,6 +15,12 @@
 #define XY_SC7A22H_REG_OUT_X_H 0x0CU
 #define XY_SC7A22H_REG_OUT_Y_H 0x0EU
 #define XY_SC7A22H_REG_OUT_Z_H 0x10U
+#define XY_SC7A22H_REG_FIFO_CFG0 0x1CU
+#define XY_SC7A22H_REG_FIFO_CFG1 0x1DU
+#define XY_SC7A22H_REG_FIFO_CFG2 0x1EU
+#define XY_SC7A22H_REG_FIFO_STAT0 0x1FU
+#define XY_SC7A22H_REG_FIFO_STAT1 0x20U
+#define XY_SC7A22H_REG_FIFO_DATA 0x21U
 #define XY_SC7A22H_REG_ACC_CONF 0x40U
 #define XY_SC7A22H_REG_ACC_RANGE 0x41U
 #define XY_SC7A22H_REG_FIFO_DOWNS 0x45U
@@ -29,6 +35,14 @@
 #define XY_SC7A22H_DEMO_INT_CFG1 0x01U
 #define XY_SC7A22H_DEMO_FILTER_CFG 0x05U
 #define XY_SC7A22H_DATA_READY_MASK 0x03U
+#define XY_SC7A22H_COM_AUTO_INCREMENT 0x10U
+#define XY_SC7A22H_FIFO_BYPASS 0x00U
+#define XY_SC7A22H_FIFO_MODE 0x10U
+#define XY_SC7A22H_FIFO_ENABLE 0x04U
+#define XY_SC7A22H_FIFO_THRESHOLD_MAX 0xFFU
+#define XY_SC7A22H_FIFO_FULL_MASK 0x10U
+#define XY_SC7A22H_FIFO_COUNT_HIGH_MASK 0x01U
+#define XY_SC7A22H_FIFO_MAX_BYTES 256U
 #define XY_SC7A22H_WHO_AM_I_VALUE 0x18U
 
 typedef struct { int16_t x; int16_t y; int16_t z; } xy_sc7a22h_data_t;
@@ -46,6 +60,8 @@ typedef struct {
 xy_error_t xy_sc7a22h_init(xy_sc7a22h_t *dev, void *i2c_handle);
 xy_error_t xy_sc7a22h_deinit(xy_sc7a22h_t *dev);
 xy_error_t xy_sc7a22h_power_down(xy_sc7a22h_t *dev);
+xy_error_t xy_sc7a22h_enable_fifo(xy_sc7a22h_t *dev);
+xy_error_t xy_sc7a22h_fifo_count(xy_sc7a22h_t *dev, uint16_t *byte_count);
 xy_error_t xy_sc7a22h_read_config(xy_sc7a22h_t *dev);
 xy_error_t xy_sc7a22h_read_status(xy_sc7a22h_t *dev, uint8_t *status);
 xy_error_t xy_sc7a22h_data_ready(xy_sc7a22h_t *dev, uint8_t *ready);
