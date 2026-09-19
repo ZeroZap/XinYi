@@ -186,6 +186,13 @@ HDC1080 was selected as the first non-canonical duplicate cleanup: the tested
 the unreferenced and unchecked `xy_sensor_hdc1080.c` prototype was removed and guarded against
 return. This does not promote HDC1080 into the canonical Device root or claim hardware status.
 
+TSL2561 follows the same bounded cleanup: the focused-test-backed
+`components/sensor/src/xy_tsl2561.c` typed implementation remains `experimental-test-only`, while
+the unreferenced `xy_sensor_tsl2561.c` prototype was removed. That prototype ignored configuration
+write failures and divided by the broadband channel without a zero guard. The manifest guard now
+prevents it from returning. This does not promote TSL2561 into the canonical Device root or claim
+hardware, accuracy, or recovery evidence.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
