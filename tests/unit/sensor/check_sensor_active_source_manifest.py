@@ -46,10 +46,22 @@ def main() -> int:
     experimental = sorted((ROOT / "components" / "sensor" / "src").glob("xy_*.c"))
     device = sorted((ROOT / "components" / "drivers" / "sensor").glob("**/xy_*.c"))
 
+    canonical_names = {path.stem.removeprefix("xy_") for path in device}
+    legacy_names = {path.stem.removeprefix("sensor_") for path in legacy}
+    experimental_names = {path.stem.removeprefix("xy_") for path in experimental}
+    prototype = sorted((ROOT / "components" / "sensor" / "drivers").glob("**/xy_sensor_*.c"))
+    prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
+
     require(len(legacy) == 55, f"expected 55 legacy active sources, found {len(legacy)}", errors)
     require(len(experimental) == 19,
             f"expected 19 experimental xy_* sources, found {len(experimental)}", errors)
     require(len(device) == 10, f"expected 10 Device-model sources, found {len(device)}", errors)
+    require(canonical_names & legacy_names == {"sht30", "mpu6050", "bmp280", "bh1750"},
+            "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
+    require(not (canonical_names & experimental_names),
+            "canonical Device owners must not reappear in experimental src/xy_*", errors)
+    require(not (canonical_names & prototype_names),
+            "canonical Device owners must not reappear as xy_sensor_* prototypes", errors)
 
     for token in (
         "legacy-active-root",
@@ -110,7 +122,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=19 "
-          "device_active=10 hardware=mixed")
+          "device_active=10 approved_wrappers=4 overlap_duplicates=0 hardware=mixed")
     return 0
 
 

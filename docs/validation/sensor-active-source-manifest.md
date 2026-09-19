@@ -153,6 +153,12 @@ timing, recovery and board status remain pending.
 
 ## Guard and update rule
 
+The current 10 canonical names have exactly four approved legacy filename overlaps:
+`sht30`, `mpu6050`, `bmp280`, and `bh1750`. Each overlap is a compatibility wrapper documented
+above, not an implementation owner. The other six canonical owners (`ads1115`, `aht30`, `bme680`,
+`hmc5883l`, `l3g4200d`, and `sc7a22h`) have no legacy-root counterpart. No canonical name overlaps
+the 19 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
