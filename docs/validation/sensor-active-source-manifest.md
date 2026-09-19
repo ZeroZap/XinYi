@@ -201,6 +201,15 @@ without a guarded public lifecycle. The manifest guard prevents it from returnin
 promote INA226/INA229 into the canonical Device root or claim hardware, metrology, alert, or
 recovery evidence.
 
+BQ25620 follows the same retirement rule with an additional product boundary: the focused
+sensor-side `components/sensor/src/xy_bq25620.c` contract remains `experimental-test-only`, while
+the unreferenced `components/sensor/drivers/power/xy_sensor_bq25620.c` prototype was removed. That
+prototype published fixed example voltage/current/SOC values after reading only charge status and
+had no checked root consumer. The standalone canonical charger owner remains
+`components/charger/src/xy_bq25620.c`; Pandora has no charger IC, so this cleanup does not promote
+charger hardware, battery state, safety, or recovery evidence. The manifest guard prevents the
+prototype lifecycle from returning.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
