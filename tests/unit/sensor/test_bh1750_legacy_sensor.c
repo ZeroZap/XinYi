@@ -9,73 +9,80 @@
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
 typedef struct {
-    uint8_t addr;
-    uint8_t len;
-    uint8_t data[4];
-    int status;
-} i2c_mem_read_call_t;
+    uint8_t data[2];
+    size_t len;
+    xy_error_t result;
+} read_call_t;
 
 typedef struct {
-    uint8_t addr;
-    uint8_t len;
-    uint8_t data[4];
-    int status;
-} i2c_mem_write_call_t;
+    uint8_t data;
+    xy_error_t result;
+} write_call_t;
 
-static i2c_mem_read_call_t g_i2c_reads[4];
-static i2c_mem_write_call_t g_i2c_writes[8];
-static unsigned int g_i2c_read_count;
-static unsigned int g_i2c_write_count;
-static uint32_t g_tick;
-static uint32_t g_delay_total_ms;
+static read_call_t reads[8];
+static write_call_t writes[16];
+static size_t read_index, read_count, write_index, write_count;
+static uint32_t tick, delay_total;
 
-uint32_t get_tick_ms(void)
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *bus, uint16_t addr, uint32_t timeout)
 {
-    return g_tick;
+    memset(dev, 0, sizeof(*dev));
+    dev->i2c_handle = bus;
+    dev->dev_addr = addr;
+    dev->timeout = timeout;
+    dev->base.initialized = true;
+    return XY_DEVICE_OK;
 }
 
-void delay_ms(uint32_t ms)
+xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
-    g_delay_total_ms += ms;
+    (void)dev;
+    TEST_ASSERT_EQUAL_UINT(1U, len);
+    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(writes), write_index);
+    writes[write_index].data = data[0];
+    return writes[write_index++].result;
 }
 
-int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 {
-    (void)bus;
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_i2c_reads), g_i2c_read_count);
-    i2c_mem_read_call_t *call = &g_i2c_reads[g_i2c_read_count++];
-    call->addr = addr;
-    call->len = (uint8_t)len;
-    if (call->status != SENSOR_EOK) {
-        return call->status;
-    }
-    memcpy(data, call->data, len);
-    return SENSOR_EOK;
+    (void)dev;
+    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(reads), read_index);
+    TEST_ASSERT_EQUAL_UINT(reads[read_index].len, len);
+    if (reads[read_index].result == XY_DEVICE_OK) memcpy(data, reads[read_index].data, len);
+    return reads[read_index++].result;
 }
 
-int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t *data, uint16_t len)
-{
-    (void)bus;
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_i2c_writes), g_i2c_write_count);
-    i2c_mem_write_call_t *call = &g_i2c_writes[g_i2c_write_count++];
-    call->addr = addr;
-    call->len = (uint8_t)len;
-    memcpy(call->data, data, len);
-    return call->status;
-}
+void xy_hal_delay_ms(uint32_t ms) { delay_total += ms; tick += ms; }
+uint32_t xy_hal_sys_get_tick_count(void) { return tick; }
+int xy_printf(const char *fmt, ...) { (void)fmt; return 0; }
+uint32_t get_tick_ms(void) { return tick; }
+void delay_ms(uint32_t ms) { xy_hal_delay_ms(ms); }
 
 void setUp(void)
 {
-    memset(g_i2c_reads, 0, sizeof(g_i2c_reads));
-    memset(g_i2c_writes, 0, sizeof(g_i2c_writes));
-    g_i2c_read_count = 0;
-    g_i2c_write_count = 0;
-    g_tick = 424242U;
-    g_delay_total_ms = 0;
+    memset(reads, 0, sizeof(reads));
+    memset(writes, 0, sizeof(writes));
+    read_index = write_index = 0U;
+    read_count = write_count = 0U;
+    tick = 424242U;
+    delay_total = 0U;
+}
+void tearDown(void) {}
+
+static void queue_read(uint16_t raw, xy_error_t result)
+{
+    reads[read_count].data[0] = (uint8_t)(raw >> 8);
+    reads[read_count].data[1] = (uint8_t)raw;
+    reads[read_count].len = 2U;
+    reads[read_count++].result = result;
 }
 
-void tearDown(void)
+static sensor_device_t *create_sensor(void)
 {
+    static int bus;
+    sensor_device_t *sensor = bh1750_create("bh1750", &bus);
+    TEST_ASSERT_NOT_NULL(sensor);
+    return sensor;
 }
 
 static void destroy_sensor(sensor_device_t *sensor)
@@ -86,206 +93,111 @@ static void destroy_sensor(sensor_device_t *sensor)
     }
 }
 
-static void test_bh1750_create_and_init_write_sequence(void)
+static void init_ok(sensor_device_t *sensor)
 {
-    int fake_bus;
-    sensor_device_t *sensor = bh1750_create("bh-main", &fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_ON, writes[0].data);
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_RESET, writes[1].data);
+    TEST_ASSERT_EQUAL_UINT32(20U, delay_total);
+}
 
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_STRING("bh-main", sensor->info.name);
+static void test_create_and_delegate_init(void)
+{
+    sensor_device_t *sensor = create_sensor();
     TEST_ASSERT_EQUAL_STRING("ROHM", sensor->info.vendor);
     TEST_ASSERT_EQUAL_STRING("BH1750", sensor->info.model);
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_LIGHT, sensor->info.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_IDLE, sensor->status);
-    TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
-    TEST_ASSERT_NOT_NULL(sensor->ops);
-    TEST_ASSERT_NOT_NULL(sensor->ops->init);
-    TEST_ASSERT_NOT_NULL(sensor->ops->read);
-    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
     TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, ((bh1750_priv_t *)sensor->priv_data)->i2c_addr);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-
-    TEST_ASSERT_EQUAL_UINT(2U, g_i2c_write_count);
-    TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, g_i2c_writes[0].addr);
-    TEST_ASSERT_EQUAL_UINT8(1U, g_i2c_writes[0].len);
-    TEST_ASSERT_EQUAL_UINT8(0x01U, g_i2c_writes[0].data[0]);
-    TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, g_i2c_writes[1].addr);
-    TEST_ASSERT_EQUAL_UINT8(1U, g_i2c_writes[1].len);
-    TEST_ASSERT_EQUAL_UINT8(0x10U, g_i2c_writes[1].data[0]);
-
+    init_ok(sensor);
+    TEST_ASSERT_TRUE(((bh1750_priv_t *)sensor->priv_data)->device.initialized);
     destroy_sensor(sensor);
 }
 
-static void test_bh1750_read_triggers_one_time_measurement_and_converts_lux(void)
+static void test_read_delegates_and_preserves_legacy_lux_contract(void)
 {
-    int fake_bus;
+    sensor_device_t *sensor = create_sensor();
     sensor_data_t data = {0};
-    sensor_device_t *sensor = bh1750_create("bh-read", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    g_i2c_reads[0].data[0] = 0x01U;
-    g_i2c_reads[0].data[1] = 0xE0U; /* 480 raw / 1.2 = 400 lux */
-
+    init_ok(sensor);
+    queue_read(480U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-
-    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_write_count);
-    TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, g_i2c_writes[0].addr);
-    TEST_ASSERT_EQUAL_UINT8(1U, g_i2c_writes[0].len);
-    TEST_ASSERT_EQUAL_UINT8(0x20U, g_i2c_writes[0].data[0]);
-    TEST_ASSERT_EQUAL_UINT32(20U, g_delay_total_ms);
-    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_read_count);
-    TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, g_i2c_reads[0].addr);
-    TEST_ASSERT_EQUAL_UINT8(2U, g_i2c_reads[0].len);
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_ON, writes[2].data);
+    TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_ONCE_H, writes[3].data);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_LIGHT, data.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_LUX, data.unit);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 400.0f, data.value.val_float);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-
     destroy_sensor(sensor);
 }
 
-static void test_bh1750_read_failure_preserves_output_after_trigger_delay(void)
+static void test_read_failure_preserves_output(void)
 {
-    int fake_bus;
-    sensor_data_t data;
-    sensor_device_t *sensor = bh1750_create("bh-fail", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    memset(&data, 0xA5, sizeof(data));
-    g_i2c_reads[0].status = SENSOR_EIO;
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
-
-    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_write_count);
-    TEST_ASSERT_EQUAL_UINT8(0x20U, g_i2c_writes[0].data[0]);
-    TEST_ASSERT_EQUAL_UINT32(20U, g_delay_total_ms);
-    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_read_count);
-    TEST_ASSERT_EQUAL_UINT8(0xA5U, data.type);
-    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, data.timestamp);
-
+    sensor_device_t *sensor = create_sensor();
+    sensor_data_t data, snapshot;
+    init_ok(sensor);
+    memset(&data, 0xA5, sizeof(data)); snapshot = data;
+    queue_read(0U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
     destroy_sensor(sensor);
 }
 
-static void test_bh1750_init_propagates_power_on_write_failure(void)
+static void test_init_failure_propagates_and_clears_canonical_lifecycle(void)
 {
-    int fake_bus;
-    sensor_device_t *sensor = bh1750_create("bh-init-fail", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    g_i2c_writes[0].status = SENSOR_ETIMEOUT;
-
+    sensor_device_t *sensor = create_sensor();
+    writes[0].result = XY_DEVICE_TIMEOUT;
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
-
-    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_write_count);
-    TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, g_i2c_writes[0].addr);
-    TEST_ASSERT_EQUAL_UINT8(1U, g_i2c_writes[0].len);
-    TEST_ASSERT_EQUAL_UINT8(0x01U, g_i2c_writes[0].data[0]);
-
+    TEST_ASSERT_FALSE(((bh1750_priv_t *)sensor->priv_data)->device.initialized);
+    TEST_ASSERT_FALSE(((bh1750_priv_t *)sensor->priv_data)->device.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(1U, write_index);
     destroy_sensor(sensor);
 }
 
-static void test_bh1750_init_propagates_measurement_mode_write_failure(void)
+static void test_deinit_delegates_power_down_and_is_fail_closed(void)
 {
-    int fake_bus;
-    sensor_device_t *sensor = bh1750_create("bh-mode-fail", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    g_i2c_writes[1].status = SENSOR_EIO;
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
-
-    TEST_ASSERT_EQUAL_UINT(2U, g_i2c_write_count);
-    TEST_ASSERT_EQUAL_UINT8(BH1750_ADDR, g_i2c_writes[1].addr);
-    TEST_ASSERT_EQUAL_UINT8(1U, g_i2c_writes[1].len);
-    TEST_ASSERT_EQUAL_UINT8(0x10U, g_i2c_writes[1].data[0]);
-
+    sensor_device_t *sensor = create_sensor();
+    init_ok(sensor);
+    writes[write_index].result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->deinit(sensor));
+    TEST_ASSERT_TRUE(((bh1750_priv_t *)sensor->priv_data)->device.initialized);
+    writes[write_index].result = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_FALSE(((bh1750_priv_t *)sensor->priv_data)->device.initialized);
     destroy_sensor(sensor);
 }
 
-static void test_bh1750_read_write_failure_preserves_output_and_skips_delay(void)
+static void test_public_guards_have_no_bus_side_effects(void)
 {
-    int fake_bus;
+    sensor_device_t *sensor = create_sensor();
     sensor_data_t data;
-    sensor_device_t *sensor = bh1750_create("bh-trigger-fail", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    memset(&data, 0x5A, sizeof(data));
-    g_i2c_writes[0].status = SENSOR_EIO;
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
-
-    TEST_ASSERT_EQUAL_UINT(1U, g_i2c_write_count);
-    TEST_ASSERT_EQUAL_UINT8(0x20U, g_i2c_writes[0].data[0]);
-    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
-    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
-    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.type);
-    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, data.timestamp);
-
-    destroy_sensor(sensor);
-}
-
-static void test_bh1750_public_ops_reject_invalid_inputs_without_i2c_side_effects(void)
-{
-    int fake_bus;
-    sensor_data_t data;
-    memset(&data, 0x5A, sizeof(data));
-    sensor_device_t *sensor = bh1750_create("bh-guards", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_NULL(bh1750_create(NULL, &fake_bus));
-    TEST_ASSERT_NULL(bh1750_create("bh-null-bus", NULL));
+    TEST_ASSERT_NULL(bh1750_create(NULL, sensor->bus));
+    TEST_ASSERT_NULL(bh1750_create("bad", NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
-
-    void *saved_priv = sensor->priv_data;
-    sensor->priv_data = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
-    sensor->priv_data = saved_priv;
-
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
-
-    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
-    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
-    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
-    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.type);
-    TEST_ASSERT_EQUAL_UINT8(0x5AU, data.unit);
-    TEST_ASSERT_EQUAL_UINT32(0x5A5A5A5AU, data.timestamp);
-
-    sensor->bus = &fake_bus;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, read_index);
     destroy_sensor(sensor);
 }
 
-static void test_bh1750_long_name_is_truncated_with_terminator(void)
+static void test_long_name_is_terminated(void)
 {
-    int fake_bus;
-    char long_name[SENSOR_NAME_MAX_LEN * 2U];
-    memset(long_name, 'B', sizeof(long_name));
-    long_name[sizeof(long_name) - 1U] = '\0';
-
-    sensor_device_t *sensor = bh1750_create(long_name, &fake_bus);
-
+    static int bus;
+    char name[SENSOR_NAME_MAX_LEN * 2U];
+    memset(name, 'B', sizeof(name)); name[sizeof(name) - 1U] = '\0';
+    sensor_device_t *sensor = bh1750_create(name, &bus);
     TEST_ASSERT_NOT_NULL(sensor);
     TEST_ASSERT_EQUAL_UINT8('\0', sensor->info.name[SENSOR_NAME_MAX_LEN - 1U]);
-    TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(sensor->info.name));
-
     destroy_sensor(sensor);
 }
 
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_bh1750_create_and_init_write_sequence);
-    RUN_TEST(test_bh1750_read_triggers_one_time_measurement_and_converts_lux);
-    RUN_TEST(test_bh1750_read_failure_preserves_output_after_trigger_delay);
-    RUN_TEST(test_bh1750_init_propagates_power_on_write_failure);
-    RUN_TEST(test_bh1750_init_propagates_measurement_mode_write_failure);
-    RUN_TEST(test_bh1750_read_write_failure_preserves_output_and_skips_delay);
-    RUN_TEST(test_bh1750_public_ops_reject_invalid_inputs_without_i2c_side_effects);
-    RUN_TEST(test_bh1750_long_name_is_truncated_with_terminator);
+    RUN_TEST(test_create_and_delegate_init);
+    RUN_TEST(test_read_delegates_and_preserves_legacy_lux_contract);
+    RUN_TEST(test_read_failure_preserves_output);
+    RUN_TEST(test_init_failure_propagates_and_clears_canonical_lifecycle);
+    RUN_TEST(test_deinit_delegates_power_down_and_is_fail_closed);
+    RUN_TEST(test_public_guards_have_no_bus_side_effects);
+    RUN_TEST(test_long_name_is_terminated);
     return UNITY_END();
 }

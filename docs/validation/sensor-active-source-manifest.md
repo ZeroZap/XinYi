@@ -105,6 +105,16 @@ rate, voltage, I/O error, and output-preservation contracts. The duplicate test-
 focused ADC/power-monitor target now compiles the Device owner directly. This remains Host/PC source
 ownership evidence only; conversion accuracy, timing, recovery, and board support remain pending.
 
+### BH1750 migration status
+
+The Device-model source under `components/drivers/sensor/light/bh1750` is now the single active
+implementation owner. Root-linked `sensor_bh1750.c` is a compatibility-only `sensor_device_t`
+wrapper that delegates init/read/deinit to the typed Device owner and preserves the legacy lux
+conversion at the wrapper boundary. The unreferenced prototype
+`components/sensor/drivers/light/xy_sensor_bh1750.c` was removed, preventing a fourth BH1750
+lifecycle from returning. Focused wrapper and Device tests plus root builds prove source/lifecycle
+ownership only; existing Pandora B1 remains bounded and no B2 recovery claim is added.
+
 ### MPU6050 migration status
 
 The Device-model source is the single canonical implementation and is explicitly linked into the

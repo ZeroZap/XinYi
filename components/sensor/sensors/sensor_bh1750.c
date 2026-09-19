@@ -1,93 +1,105 @@
 #include "sensor_bh1750.h"
+#include "xy_bh1750.h"
+
 #include <string.h>
-extern int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
-extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t *data, uint16_t len);
-static sensor_err_t bh1750_init(sensor_device_t *s)
+
+static sensor_err_t bh1750_map_error(int result)
 {
-    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
+    if (result == XY_DEVICE_OK) return SENSOR_EOK;
+    if (result == XY_DEVICE_INVALID_PARAM) return SENSOR_EINVAL;
+    if (result == XY_DEVICE_BUSY) return SENSOR_EBUSY;
+    if (result == XY_DEVICE_TIMEOUT) return SENSOR_ETIMEOUT;
+    if (result == XY_DEVICE_NO_MEM) return SENSOR_ENOMEM;
+    return SENSOR_EIO;
+}
+
+static sensor_err_t bh1750_init(sensor_device_t *sensor)
+{
+    bh1750_priv_t *priv;
+    int result;
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
-
-    SENSOR_LOG("Initializing BH1750");
-
-    bh1750_priv_t *p = (bh1750_priv_t *)s->priv_data;
-    uint8_t power_on_cmd = 0x01U;
-    uint8_t continuous_h_res_cmd = 0x10U;
-
-    int ret = hal_i2c_mem_write(s->bus, p->i2c_addr, &power_on_cmd, 1);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
+    priv = (bh1750_priv_t *)sensor->priv_data;
+    result = xy_bh1750_init(&priv->device, sensor->bus, priv->i2c_addr);
+    if (result != XY_BH1750_OK) {
+        return bh1750_map_error(result);
     }
-    ret = hal_i2c_mem_write(s->bus, p->i2c_addr, &continuous_h_res_cmd, 1);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
+    result = xy_bh1750_set_resolution(&priv->device, XY_BH1750_HIGH_RES);
+    if (result == XY_BH1750_OK) {
+        result = xy_bh1750_set_mode(&priv->device, XY_BH1750_ONE_TIME);
     }
+    if (result != XY_BH1750_OK) {
+        (void)xy_bh1750_deinit(&priv->device);
+    }
+    return bh1750_map_error(result);
+}
 
+static sensor_err_t bh1750_read(sensor_device_t *sensor, sensor_data_t *data)
+{
+    bh1750_priv_t *priv;
+    sensor_data_t next;
+    float illuminance;
+    int result;
+
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    priv = (bh1750_priv_t *)sensor->priv_data;
+    result = xy_bh1750_get_illuminance(&priv->device, &illuminance);
+    if (result != XY_BH1750_OK) {
+        return bh1750_map_error(result);
+    }
+    memset(&next, 0, sizeof(next));
+    next.type = SENSOR_TYPE_LIGHT;
+    next.unit = SENSOR_UNIT_LUX;
+    /* Preserve the legacy public conversion while the canonical owner keeps its typed API. */
+    next.value.val_float = illuminance / 1.2f;
+    next.timestamp = SENSOR_GET_TICK();
+    *data = next;
     return SENSOR_EOK;
 }
 
-static sensor_err_t bh1750_read(sensor_device_t *s, sensor_data_t *d)
+static sensor_err_t bh1750_deinit(sensor_device_t *sensor)
 {
-    if (s == NULL || s->priv_data == NULL || s->bus == NULL || d == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
-
-    uint8_t buf[2];
-    bh1750_priv_t *p = (bh1750_priv_t *)s->priv_data;
-    uint8_t one_time_h_res_cmd = 0x20U;
-
-    int ret = hal_i2c_mem_write(s->bus, p->i2c_addr, &one_time_h_res_cmd, 1);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
-    }
-
-    SENSOR_DELAY_MS(20);
-
-    ret = hal_i2c_mem_read(s->bus, p->i2c_addr, buf, 2);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
-    }
-
-    d->type = SENSOR_TYPE_LIGHT;
-    d->unit = SENSOR_UNIT_LUX;
-    d->value.val_float = (((uint16_t)buf[0] << 8) | buf[1]) / 1.2f;
-    d->timestamp = SENSOR_GET_TICK();
-    return SENSOR_EOK;
+    return bh1750_map_error(xy_bh1750_deinit(&((bh1750_priv_t *)sensor->priv_data)->device));
 }
 
-static sensor_err_t bh1750_deinit(sensor_device_t *s)
-{
-    if (s == NULL || s->priv_data == NULL || s->bus == NULL) {
-        return SENSOR_EINVAL;
-    }
-    return SENSOR_EOK;
-}
-
-static const sensor_ops_t bh1750_ops = {.init = bh1750_init, .deinit = bh1750_deinit, .read = bh1750_read};
+static const sensor_ops_t bh1750_ops = {
+    .init = bh1750_init,
+    .deinit = bh1750_deinit,
+    .read = bh1750_read,
+};
 
 sensor_device_t *bh1750_create(const char *name, void *i2c_bus)
 {
+    sensor_device_t *sensor;
+    bh1750_priv_t *priv;
+
     if (name == NULL || i2c_bus == NULL) {
         return NULL;
     }
-
-    sensor_device_t *s = (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
-    bh1750_priv_t *p = (bh1750_priv_t *)SENSOR_MALLOC(sizeof(bh1750_priv_t));
-    if (s == NULL || p == NULL) {
-        SENSOR_FREE(s);
-        SENSOR_FREE(p);
+    sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(*sensor));
+    priv = (bh1750_priv_t *)SENSOR_MALLOC(sizeof(*priv));
+    if (sensor == NULL || priv == NULL) {
+        SENSOR_FREE(sensor);
+        SENSOR_FREE(priv);
         return NULL;
     }
-
-    memset(s, 0, sizeof(sensor_device_t));
-    p->i2c_addr = BH1750_ADDR;
-    strncpy(s->info.name, name, SENSOR_NAME_MAX_LEN - 1U);
-    s->info.vendor = "ROHM";
-    s->info.model = "BH1750";
-    s->info.type = SENSOR_TYPE_LIGHT;
-    s->ops = &bh1750_ops;
-    s->bus = i2c_bus;
-    s->priv_data = p;
-    s->status = SENSOR_STATUS_IDLE;
-    return s;
+    memset(sensor, 0, sizeof(*sensor));
+    memset(priv, 0, sizeof(*priv));
+    priv->i2c_addr = BH1750_ADDR;
+    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1U);
+    sensor->info.vendor = "ROHM";
+    sensor->info.model = "BH1750";
+    sensor->info.type = SENSOR_TYPE_LIGHT;
+    sensor->ops = &bh1750_ops;
+    sensor->bus = i2c_bus;
+    sensor->priv_data = priv;
+    sensor->status = SENSOR_STATUS_IDLE;
+    return sensor;
 }

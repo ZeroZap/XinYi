@@ -6,11 +6,13 @@
 #define __SENSOR_BH1750_H__
 
 #include "sensor_core.h"
+#include "xy_bh1750.h"
 
 #define BH1750_ADDR 0x23
 
 typedef struct {
     uint8_t i2c_addr;
+    xy_bh1750_t device;
 } bh1750_priv_t;
 
 /**

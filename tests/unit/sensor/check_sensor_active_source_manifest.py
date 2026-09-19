@@ -12,6 +12,7 @@ SENSOR_CMAKE = ROOT / "components" / "sensor" / "CMakeLists.txt"
 DRIVERS_CMAKE = ROOT / "components" / "drivers" / "CMakeLists.txt"
 UNIT_CMAKE = ROOT / "tests" / "unit" / "CMakeLists.txt"
 STALE_BMP280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sensor_bmp280.c"
+STALE_BH1750 = ROOT / "components" / "sensor" / "drivers" / "light" / "xy_sensor_bh1750.c"
 SMART_HYGROMETER_CMAKE = ROOT / "projects" / "examples" / "smart_hygrometer" / "CMakeLists.txt"
 SMART_HYGROMETER_MAIN = ROOT / "projects" / "examples" / "smart_hygrometer" / "main.c"
 
@@ -85,6 +86,8 @@ def main() -> int:
             "audit plan must record the resolved Sensor ownership direction", errors)
     require(not STALE_BMP280.exists(),
             "retired xy_sensor_bmp280 lifecycle must not reappear", errors)
+    require(not STALE_BH1750.exists(),
+            "retired xy_sensor_bh1750 lifecycle must not reappear", errors)
     require("components/drivers/sensor/pressure/bmp280" in smart_hygrometer_cmake,
             "smart_hygrometer must include the canonical BMP280 owner", errors)
     require("components/drivers/sensor/pressure/bmp280/xy_bmp280.c" in smart_hygrometer_cmake,

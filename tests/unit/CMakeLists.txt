@@ -983,10 +983,12 @@ target_link_libraries(test_light_uv_sensors PRIVATE m)
 xy_add_unit_test(test_bh1750_legacy_sensor sensor_bh1750_legacy UNITY
     ${UNIT_SENSOR}/test_bh1750_legacy_sensor.c
     ${SENSOR}/sensors/sensor_bh1750.c
+    ${DRV}/sensor/light/bh1750/xy_bh1750.c
 )
 target_include_directories(test_bh1750_legacy_sensor BEFORE PRIVATE
     ${SENSOR}
     ${SENSOR}/sensors
+    ${DRV}/sensor/light/bh1750
 )
 
 xy_add_unit_test(test_aht20_legacy_sensor sensor_aht20_legacy UNITY
