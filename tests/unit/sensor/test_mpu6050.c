@@ -514,6 +514,37 @@ static void test_mpu6050_range_setters_reject_missing_helper_context(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static void test_mpu6050_all_public_ops_reject_missing_helper_context(void)
+{
+    xy_mpu6050_t dev;
+    float x = 1.0f, y = 2.0f, z = 3.0f, temp = 4.0f;
+    int bus;
+
+    init_mpu_ok(&dev, &bus);
+    dev.i2c_dev.base.initialized = 0;
+    dev.accel_range = MPU6050_ACCEL_2G;
+    dev.gyro_range = MPU6050_GYRO_250DPS;
+
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_raw(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_accel(&dev, &x, &y, &z));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_gyro(&dev, &x, &y, &z));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_read_temperature(&dev, &temp));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM, xy_mpu6050_calibrate(&dev, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM,
+                          xy_mpu6050_set_accel_range(&dev, MPU6050_ACCEL_8G));
+    TEST_ASSERT_EQUAL_INT(XY_MPU6050_INVALID_PARAM,
+                          xy_mpu6050_set_gyro_range(&dev, MPU6050_GYRO_1000DPS));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.0f, x);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 2.0f, y);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 3.0f, z);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 4.0f, temp);
+    TEST_ASSERT_EQUAL_INT(MPU6050_ACCEL_2G, dev.accel_range);
+    TEST_ASSERT_EQUAL_INT(MPU6050_GYRO_250DPS, dev.gyro_range);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -532,5 +563,6 @@ int main(void)
     RUN_TEST(test_mpu6050_calibrate_averages_offsets);
     RUN_TEST(test_mpu6050_calibrate_failure_preserves_calibration);
     RUN_TEST(test_mpu6050_range_setters_reject_missing_helper_context);
+    RUN_TEST(test_mpu6050_all_public_ops_reject_missing_helper_context);
     return UNITY_END();
 }

@@ -142,7 +142,7 @@ int xy_mpu6050_init(xy_mpu6050_t *dev, void *i2c_handle)
 
 int xy_mpu6050_deinit(xy_mpu6050_t *dev)
 {
-    if (!dev || !dev->initialized) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
@@ -291,7 +291,7 @@ int xy_mpu6050_calibrate(xy_mpu6050_t *dev, uint16_t samples)
     xy_mpu6050_calib_t calib;
     uint16_t i;
 
-    if (!dev || !dev->initialized || samples == 0) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized || samples == 0) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
