@@ -132,11 +132,11 @@ and board recovery remain pending.
 
 ### BMP280 migration status
 
-The Device-model source is the canonical root-linked owner for new consumers and now carries the
+The Device-model source is now the single active implementation owner and carries the
 Bosch integer compensation, both documented I2C addresses, init/deinit I/O propagation, cached
-output preservation, and status-returning getter contracts. The root `sensor_component` explicitly
-links this owner while the existing `sensor_bmp280.c` remains a frozen legacy lifecycle for current
-compatibility consumers. The unreferenced fourth-lifecycle prototype
+output preservation, and status-returning getter contracts. The root-linked `sensor_bmp280.c` is a
+compatibility-only pressure/temperature wrapper that delegates lifecycle and sampling to this
+owner. The unreferenced fourth-lifecycle prototype
 `components/sensor/drivers/pressure/xy_sensor_bmp280.c` has been retired, and the tracked smart
 hygrometer example now compiles the canonical owner through its explicit-address API instead of a
 missing experimental source. The ownership policy guard prevents both stale paths from returning.

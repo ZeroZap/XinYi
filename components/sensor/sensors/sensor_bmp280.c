@@ -1,368 +1,148 @@
 #include "sensor_bmp280.h"
 
-extern int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data,
-                            uint16_t len);
-extern int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg,
-                             uint8_t *data, uint16_t len);
+#include <string.h>
 
-/**
- * @brief 读取校准参数
- */
-static sensor_err_t bmp280_read_calibration(sensor_device_t *sensor)
+static sensor_err_t bmp280_map_error(int result)
 {
-    bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
-    uint8_t calib[24];
-
-    int ret = hal_i2c_mem_read(
-        sensor->bus, priv->i2c_addr, BMP280_REG_CALIB00, calib, 24);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
-    }
-
-    priv->dig_T1 = (uint16_t)(calib[1] << 8 | calib[0]);
-    priv->dig_T2 = (int16_t)(calib[3] << 8 | calib[2]);
-    priv->dig_T3 = (int16_t)(calib[5] << 8 | calib[4]);
-
-    priv->dig_P1 = (uint16_t)(calib[7] << 8 | calib[6]);
-    priv->dig_P2 = (int16_t)(calib[9] << 8 | calib[8]);
-    priv->dig_P3 = (int16_t)(calib[11] << 8 | calib[10]);
-    priv->dig_P4 = (int16_t)(calib[13] << 8 | calib[12]);
-    priv->dig_P5 = (int16_t)(calib[15] << 8 | calib[14]);
-    priv->dig_P6 = (int16_t)(calib[17] << 8 | calib[16]);
-    priv->dig_P7 = (int16_t)(calib[19] << 8 | calib[18]);
-    priv->dig_P8 = (int16_t)(calib[21] << 8 | calib[20]);
-    priv->dig_P9 = (int16_t)(calib[23] << 8 | calib[22]);
-
-    return SENSOR_EOK;
+    if (result == XY_DEVICE_OK) return SENSOR_EOK;
+    if (result == XY_DEVICE_INVALID_PARAM) return SENSOR_EINVAL;
+    if (result == XY_DEVICE_BUSY) return SENSOR_EBUSY;
+    if (result == XY_DEVICE_TIMEOUT) return SENSOR_ETIMEOUT;
+    if (result == XY_DEVICE_NO_MEM) return SENSOR_ENOMEM;
+    if (result == XY_DEVICE_NOT_FOUND) return SENSOR_ENODEV;
+    return SENSOR_EIO;
 }
 
-/**
- * @brief BMP280初始化
- */
 static sensor_err_t bmp280_init(sensor_device_t *sensor)
 {
+    bmp280_priv_t *priv;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
-
-    bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
-    uint8_t data;
-    int transport_ret;
-
-    SENSOR_LOG("Initializing BMP280");
-
-    /* 检查CHIP_ID */
-    transport_ret = hal_i2c_mem_read(
-        sensor->bus, priv->i2c_addr, BMP280_REG_CHIP_ID, &data, 1);
-    if (transport_ret != SENSOR_EOK) {
-        return (sensor_err_t)transport_ret;
-    }
-
-    if (data != BMP280_CHIP_ID) {
-        SENSOR_LOG("Wrong CHIP_ID: 0x%02X", data);
-        return SENSOR_ERROR;
-    }
-
-    /* 软复位 */
-    data = 0xB6;
-    transport_ret = hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, BMP280_REG_RESET, &data, 1);
-    if (transport_ret != SENSOR_EOK) {
-        return (sensor_err_t)transport_ret;
-    }
-    SENSOR_DELAY_MS(10);
-
-    /* 读取校准参数 */
-    sensor_err_t ret = bmp280_read_calibration(sensor);
-    if (ret != SENSOR_EOK) {
-        return ret;
-    }
-
-    /* 配置: standby 0.5ms, filter off, SPI disable */
-    data = 0x00;
-    transport_ret = hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, BMP280_REG_CONFIG, &data, 1);
-    if (transport_ret != SENSOR_EOK) {
-        return (sensor_err_t)transport_ret;
-    }
-
-    /* 配置测量: osrs_t=1, osrs_p=1, normal mode */
-    data = 0x27;
-    transport_ret = hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1);
-    if (transport_ret != SENSOR_EOK) {
-        return (sensor_err_t)transport_ret;
-    }
-
-    SENSOR_LOG("BMP280 initialized successfully");
-
-    return SENSOR_EOK;
+    priv = (bmp280_priv_t *)sensor->priv_data;
+    int result = xy_bmp280_init_addr(&priv->device, sensor->bus, priv->i2c_addr);
+    if (result == XY_DEVICE_OK) SENSOR_DELAY_MS(10U);
+    return bmp280_map_error(result);
 }
 
-/**
- * @brief BMP280反初始化
- */
 static sensor_err_t bmp280_deinit(sensor_device_t *sensor)
 {
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
-
-    bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
-    uint8_t data        = 0x00; /* sleep mode */
-
-    int ret = hal_i2c_mem_write(
-        sensor->bus, priv->i2c_addr, BMP280_REG_CTRL_MEAS, &data, 1);
-    if (ret != SENSOR_EOK) {
-        return (sensor_err_t)ret;
-    }
-
-    return SENSOR_EOK;
+    return bmp280_map_error(xy_bmp280_deinit(&((bmp280_priv_t *)sensor->priv_data)->device));
 }
 
-/**
- * @brief 温度补偿计算
- */
-static int32_t bmp280_compensate_temperature(bmp280_priv_t *priv, int32_t adc_T)
+static sensor_err_t bmp280_pressure_read(sensor_device_t *sensor, sensor_data_t *data)
 {
-    int32_t var1, var2, T;
+    bmp280_priv_t *priv;
+    sensor_data_t next;
+    uint32_t pressure;
+    int result;
 
-    var1 = ((((adc_T >> 3) - ((int32_t)priv->dig_T1 << 1)))
-            * ((int32_t)priv->dig_T2))
-           >> 11;
-    var2 = (((((adc_T >> 4) - ((int32_t)priv->dig_T1))
-              * ((adc_T >> 4) - ((int32_t)priv->dig_T1)))
-             >> 12)
-            * ((int32_t)priv->dig_T3))
-           >> 14;
-
-    priv->t_fine = var1 + var2;
-    T            = (priv->t_fine * 5 + 128) >> 8;
-
-    return T;
-}
-
-/**
- * @brief 气压补偿计算
- */
-static uint32_t bmp280_compensate_pressure(bmp280_priv_t *priv, int32_t adc_P)
-{
-    int64_t var1, var2, p;
-
-    var1 = ((int64_t)priv->t_fine) - 128000;
-    var2 = var1 * var1 * (int64_t)priv->dig_P6;
-    var2 = var2 + ((var1 * (int64_t)priv->dig_P5) << 17);
-    var2 = var2 + (((int64_t)priv->dig_P4) << 35);
-    var1 = ((var1 * var1 * (int64_t)priv->dig_P3) >> 8)
-           + ((var1 * (int64_t)priv->dig_P2) << 12);
-    var1 = (((((int64_t)1) << 47) + var1)) * ((int64_t)priv->dig_P1) >> 33;
-
-    if (var1 == 0) {
-        return 0;
-    }
-
-    p    = 1048576 - adc_P;
-    p    = (((p << 31) - var2) * 3125) / var1;
-    var1 = (((int64_t)priv->dig_P9) * (p >> 13) * (p >> 13)) >> 25;
-    var2 = (((int64_t)priv->dig_P8) * p) >> 19;
-    p    = ((p + var1 + var2) >> 8) + (((int64_t)priv->dig_P7) << 4);
-
-    return (uint32_t)p;
-}
-
-/**
- * @brief 读取原始数据
- */
-static sensor_err_t bmp280_read_raw(sensor_device_t *sensor, int32_t *adc_T,
-                                    int32_t *adc_P)
-{
-    bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
-    uint8_t data[6];
-
-    /* 读取温度和气压原始数据 */
-    sensor_err_t ret = hal_i2c_mem_read(
-        sensor->bus, priv->i2c_addr, BMP280_REG_PRESS_MSB, data, 6);
-    if (ret != SENSOR_EOK) {
-        return ret;
-    }
-
-    *adc_P = (int32_t)((data[0] << 12) | (data[1] << 4) | (data[2] >> 4));
-    *adc_T = (int32_t)((data[3] << 12) | (data[4] << 4) | (data[5] >> 4));
-
-    return SENSOR_EOK;
-}
-
-/**
- * @brief 读取气压数据
- */
-static sensor_err_t bmp280_pressure_read(sensor_device_t *sensor,
-                                         sensor_data_t *data)
-{
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
-
-    bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
-    int32_t adc_T, adc_P;
-
-    sensor_err_t ret = bmp280_read_raw(sensor, &adc_T, &adc_P);
-    if (ret != SENSOR_EOK) {
-        return ret;
-    }
-
-    /* 计算温度(用于气压补偿) */
-    bmp280_compensate_temperature(priv, adc_T);
-
-    /* 计算气压 */
-    uint32_t pressure = bmp280_compensate_pressure(priv, adc_P);
-
-    data->type             = SENSOR_TYPE_PRESSURE;
-    data->unit             = SENSOR_UNIT_PASCAL;
-    data->value.val_uint32 = pressure / 256; /* Pa */
-    data->timestamp        = SENSOR_GET_TICK();
-    data->accuracy         = 98;
-
+    priv = (bmp280_priv_t *)sensor->priv_data;
+    result = xy_bmp280_read(&priv->device);
+    if (result == XY_DEVICE_OK) result = xy_bmp280_get_pressure(&priv->device, &pressure);
+    if (result != XY_DEVICE_OK) return bmp280_map_error(result);
+    memset(&next, 0, sizeof(next));
+    next.type = SENSOR_TYPE_PRESSURE;
+    next.unit = SENSOR_UNIT_PASCAL;
+    next.value.val_uint32 = pressure;
+    next.timestamp = SENSOR_GET_TICK();
+    next.accuracy = 98U;
+    *data = next;
     return SENSOR_EOK;
 }
 
-/**
- * @brief 读取温度数据
- */
-static sensor_err_t bmp280_temperature_read(sensor_device_t *sensor,
-                                            sensor_data_t *data)
+static sensor_err_t bmp280_temperature_read(sensor_device_t *sensor, sensor_data_t *data)
 {
+    bmp280_priv_t *priv;
+    sensor_data_t next;
+    int32_t temperature;
+    int result;
+
     if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL || data == NULL) {
         return SENSOR_EINVAL;
     }
-
-    bmp280_priv_t *priv = (bmp280_priv_t *)sensor->priv_data;
-    int32_t adc_T, adc_P;
-
-    sensor_err_t ret = bmp280_read_raw(sensor, &adc_T, &adc_P);
-    if (ret != SENSOR_EOK) {
-        return ret;
-    }
-
-    /* 计算温度 */
-    int32_t temperature = bmp280_compensate_temperature(priv, adc_T);
-
-    data->type = SENSOR_TYPE_TEMPERATURE;
-    data->unit = SENSOR_UNIT_CELSIUS;
+    priv = (bmp280_priv_t *)sensor->priv_data;
+    result = xy_bmp280_read(&priv->device);
+    if (result == XY_DEVICE_OK) result = xy_bmp280_get_temperature(&priv->device, &temperature);
+    if (result != XY_DEVICE_OK) return bmp280_map_error(result);
+    memset(&next, 0, sizeof(next));
+    next.type = SENSOR_TYPE_TEMPERATURE;
+    next.unit = SENSOR_UNIT_CELSIUS;
 #if SENSOR_USE_FLOAT
-    data->value.val_float = temperature / 100.0f;
+    next.value.val_float = (float)temperature / 100.0F;
 #else
-    data->value.val_int32 = temperature; /* 0.01°C */
+    next.value.val_int32 = temperature;
 #endif
-    data->timestamp = SENSOR_GET_TICK();
-    data->accuracy  = 98;
-
+    next.timestamp = SENSOR_GET_TICK();
+    next.accuracy = 98U;
+    *data = next;
     return SENSOR_EOK;
 }
 
-/* 气压传感器操作接口 */
 static const sensor_ops_t bmp280_pressure_ops = {
-    .init   = bmp280_init,
+    .init = bmp280_init,
     .deinit = bmp280_deinit,
-    .read   = bmp280_pressure_read,
+    .read = bmp280_pressure_read,
 };
-
-/* 温度传感器操作接口 */
 static const sensor_ops_t bmp280_temperature_ops = {
-    .init   = bmp280_init,
+    .init = bmp280_init,
     .deinit = bmp280_deinit,
-    .read   = bmp280_temperature_read,
+    .read = bmp280_temperature_read,
 };
 
-/**
- * @brief 创建BMP280气压传感器
- */
+static sensor_device_t *bmp280_create(const char *name, void *i2c_bus,
+                                      const sensor_ops_t *ops, sensor_type_t type,
+                                      sensor_unit_t unit, int32_t range_min,
+                                      int32_t range_max, uint8_t resolution)
+{
+    sensor_device_t *sensor;
+    bmp280_priv_t *priv;
+
+    if (name == NULL || i2c_bus == NULL) return NULL;
+    sensor = (sensor_device_t *)SENSOR_MALLOC(sizeof(*sensor));
+    priv = (bmp280_priv_t *)SENSOR_MALLOC(sizeof(*priv));
+    if (sensor == NULL || priv == NULL) {
+        SENSOR_FREE(sensor);
+        SENSOR_FREE(priv);
+        return NULL;
+    }
+    memset(sensor, 0, sizeof(*sensor));
+    memset(priv, 0, sizeof(*priv));
+    priv->i2c_addr = BMP280_ADDR_DEFAULT;
+    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1U);
+    sensor->info.vendor = "Bosch";
+    sensor->info.model = "BMP280";
+    sensor->info.version = 0x0100U;
+    sensor->info.type = type;
+    sensor->info.unit = unit;
+    sensor->info.range_min = range_min;
+    sensor->info.range_max = range_max;
+    sensor->info.resolution = resolution;
+    sensor->info.max_odr = 157U;
+    sensor->info.flags = SENSOR_FLAG_HIGH_PRECISION;
+    sensor->ops = ops;
+    sensor->bus = i2c_bus;
+    sensor->priv_data = priv;
+    sensor->status = SENSOR_STATUS_IDLE;
+    sensor->odr = 26U;
+    return sensor;
+}
+
 sensor_device_t *bmp280_create_pressure(const char *name, void *i2c_bus)
 {
-    if (name == NULL || i2c_bus == NULL) {
-        return NULL;
-    }
-
-    sensor_device_t *sensor =
-        (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
-    if (sensor == NULL) {
-        return NULL;
-    }
-
-    bmp280_priv_t *priv = (bmp280_priv_t *)SENSOR_MALLOC(sizeof(bmp280_priv_t));
-    if (priv == NULL) {
-        SENSOR_FREE(sensor);
-        return NULL;
-    }
-
-    memset(sensor, 0, sizeof(sensor_device_t));
-    memset(priv, 0, sizeof(bmp280_priv_t));
-
-    priv->i2c_addr = BMP280_ADDR_DEFAULT;
-
-    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
-    sensor->info.vendor     = "Bosch";
-    sensor->info.model      = "BMP280";
-    sensor->info.version    = 0x0100;
-    sensor->info.type       = SENSOR_TYPE_PRESSURE;
-    sensor->info.unit       = SENSOR_UNIT_PASCAL;
-    sensor->info.range_max  = 110000;
-    sensor->info.range_min  = 30000;
-    sensor->info.resolution = 18;
-    sensor->info.max_odr    = 157;
-    sensor->info.flags      = SENSOR_FLAG_HIGH_PRECISION;
-
-    sensor->ops       = &bmp280_pressure_ops;
-    sensor->bus       = i2c_bus;
-    sensor->priv_data = priv;
-    sensor->status    = SENSOR_STATUS_IDLE;
-    sensor->odr       = 26;
-
-    return sensor;
+    return bmp280_create(name, i2c_bus, &bmp280_pressure_ops, SENSOR_TYPE_PRESSURE,
+                         SENSOR_UNIT_PASCAL, 30000, 110000, 18U);
 }
 
-/**
- * @brief 创建BMP280温度传感器
- */
 sensor_device_t *bmp280_create_temperature(const char *name, void *i2c_bus)
 {
-    if (name == NULL || i2c_bus == NULL) {
-        return NULL;
-    }
-
-    sensor_device_t *sensor =
-        (sensor_device_t *)SENSOR_MALLOC(sizeof(sensor_device_t));
-    if (sensor == NULL) {
-        return NULL;
-    }
-
-    bmp280_priv_t *priv = (bmp280_priv_t *)SENSOR_MALLOC(sizeof(bmp280_priv_t));
-    if (priv == NULL) {
-        SENSOR_FREE(sensor);
-        return NULL;
-    }
-
-    memset(sensor, 0, sizeof(sensor_device_t));
-    memset(priv, 0, sizeof(bmp280_priv_t));
-
-    priv->i2c_addr = BMP280_ADDR_DEFAULT;
-
-    strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1);
-    sensor->info.vendor     = "Bosch";
-    sensor->info.model      = "BMP280";
-    sensor->info.version    = 0x0100;
-    sensor->info.type       = SENSOR_TYPE_TEMPERATURE;
-    sensor->info.unit       = SENSOR_UNIT_CELSIUS;
-    sensor->info.range_max  = 85;
-    sensor->info.range_min  = -40;
-    sensor->info.resolution = 16;
-    sensor->info.max_odr    = 157;
-    sensor->info.flags      = SENSOR_FLAG_HIGH_PRECISION;
-
-    sensor->ops       = &bmp280_temperature_ops;
-    sensor->bus       = i2c_bus;
-    sensor->priv_data = priv;
-    sensor->status    = SENSOR_STATUS_IDLE;
-    sensor->odr       = 26;
-
-    return sensor;
+    return bmp280_create(name, i2c_bus, &bmp280_temperature_ops, SENSOR_TYPE_TEMPERATURE,
+                         SENSOR_UNIT_CELSIUS, -40, 85, 16U);
 }

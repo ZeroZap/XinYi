@@ -6,6 +6,11 @@
 
 #include "sensor_bmp280.h"
 
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *bus, uint16_t addr, uint32_t timeout);
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len);
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg,
+                                   const uint8_t *data, size_t len);
+
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
 
 typedef struct {
@@ -63,6 +68,35 @@ int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint1
     TEST_ASSERT_EQUAL_UINT16(op->len, len);
     TEST_ASSERT_EQUAL_UINT8_ARRAY(op->data, data, len);
     return op->ret;
+}
+
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *bus, uint16_t addr, uint32_t timeout)
+{
+    memset(dev, 0, sizeof(*dev));
+    dev->i2c_handle = bus;
+    dev->dev_addr = addr;
+    dev->timeout = timeout;
+    dev->base.initialized = true;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
+{
+    int result = hal_i2c_mem_read(dev->i2c_handle, (uint8_t)dev->dev_addr, reg, data,
+                                  (uint16_t)len);
+    return result == SENSOR_EOK       ? XY_DEVICE_OK
+           : result == SENSOR_ETIMEOUT ? XY_DEVICE_TIMEOUT
+                                        : XY_DEVICE_IO_ERROR;
+}
+
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data,
+                                   size_t len)
+{
+    int result = hal_i2c_mem_write(dev->i2c_handle, (uint8_t)dev->dev_addr, reg,
+                                   (uint8_t *)data, (uint16_t)len);
+    return result == SENSOR_EOK       ? XY_DEVICE_OK
+           : result == SENSOR_ETIMEOUT ? XY_DEVICE_TIMEOUT
+                                        : XY_DEVICE_IO_ERROR;
 }
 
 static void queue_mem_read(void *bus, uint8_t addr, uint8_t reg, const uint8_t *data, uint16_t len,
@@ -161,12 +195,13 @@ static void test_bmp280_create_defaults_and_init_reads_calibration(void)
     TEST_ASSERT_EQUAL_UINT32(26U, sensor->odr);
     TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
     TEST_ASSERT_EQUAL_UINT8(BMP280_ADDR_DEFAULT, priv->i2c_addr);
-    TEST_ASSERT_EQUAL_UINT16(27504U, priv->dig_T1);
-    TEST_ASSERT_EQUAL_INT16(26435, priv->dig_T2);
-    TEST_ASSERT_EQUAL_INT16(-1000, priv->dig_T3);
-    TEST_ASSERT_EQUAL_UINT16(36477U, priv->dig_P1);
-    TEST_ASSERT_EQUAL_INT16(-10685, priv->dig_P2);
-    TEST_ASSERT_EQUAL_INT16(3024, priv->dig_P3);
+    TEST_ASSERT_TRUE(priv->device.initialized);
+    TEST_ASSERT_EQUAL_UINT16(27504U, priv->device.calibration.dig_t1);
+    TEST_ASSERT_EQUAL_INT16(26435, priv->device.calibration.dig_t2);
+    TEST_ASSERT_EQUAL_INT16(-1000, priv->device.calibration.dig_t3);
+    TEST_ASSERT_EQUAL_UINT16(36477U, priv->device.calibration.dig_p1);
+    TEST_ASSERT_EQUAL_INT16(-10685, priv->device.calibration.dig_p2);
+    TEST_ASSERT_EQUAL_INT16(3024, priv->device.calibration.dig_p3);
     TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
     TEST_ASSERT_EQUAL_UINT(1U, g_delay_count);
     TEST_ASSERT_EQUAL_UINT(3U, g_mem_write_index);
@@ -225,7 +260,7 @@ static void test_bmp280_init_maps_chip_id_and_calibration_failures(void)
 
     setUp();
     queue_mem_read8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CHIP_ID, 0x00U, SENSOR_EOK);
-    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_ENODEV, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT(0U, g_mem_write_index);
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 
@@ -234,7 +269,7 @@ static void test_bmp280_init_maps_chip_id_and_calibration_failures(void)
     queue_mem_read(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CALIB00, NULL, 24U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_UINT(1U, g_mem_write_index);
-    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 
     destroy_sensor(sensor);
 }
@@ -311,7 +346,7 @@ static void test_bmp280_public_ops_reject_invalid_context_without_bus_io(void)
 static void test_bmp280_deinit_propagates_write_failure(void)
 {
     int fake_bus;
-    sensor_device_t *sensor = bmp280_create_pressure("bmp280-deinit-fail", &fake_bus);
+    sensor_device_t *sensor = create_initialized_pressure_sensor(&fake_bus);
 
     TEST_ASSERT_NOT_NULL(sensor);
     queue_mem_write8(&fake_bus, BMP280_ADDR_DEFAULT, BMP280_REG_CTRL_MEAS,

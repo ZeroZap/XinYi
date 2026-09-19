@@ -1125,10 +1125,12 @@ target_include_directories(test_env_i2c_sensors BEFORE PRIVATE
 xy_add_unit_test(test_bmp280_sensor sensor_bmp280 UNITY
     ${UNIT_SENSOR}/test_bmp280_sensor.c
     ${SENSOR}/sensors/sensor_bmp280.c
+    ${DRV}/sensor/pressure/bmp280/xy_bmp280.c
 )
 target_include_directories(test_bmp280_sensor BEFORE PRIVATE
     ${SENSOR}
     ${SENSOR}/sensors
+    ${DRV}/sensor/pressure/bmp280
 )
 
 xy_add_unit_test(test_icm20608_sensor sensor_icm20608 UNITY
