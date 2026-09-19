@@ -70,6 +70,7 @@ xy_error_t xy_bme680_init(xy_bme680_t *dev, void *i2c_handle, uint8_t addr)
     dev->bosch.delay_us = delay_us;
     dev->bosch.amb_temp = 25;
 
+    dev->transport_error = XY_DEVICE_OK;
     result = map_error(dev, bme68x_init(&dev->bosch));
     if (result != XY_DEVICE_OK) {
         return init_fail(dev, result);
@@ -80,6 +81,7 @@ xy_error_t xy_bme680_init(xy_bme680_t *dev, void *i2c_handle, uint8_t addr)
     dev->config.os_temp = BME68X_OS_8X;
     dev->config.filter = BME68X_FILTER_SIZE_3;
     dev->config.odr = BME68X_ODR_NONE;
+    dev->transport_error = XY_DEVICE_OK;
     result = map_error(dev, bme68x_set_conf(&dev->config, &dev->bosch));
     if (result != XY_DEVICE_OK) {
         return init_fail(dev, result);
@@ -88,6 +90,7 @@ xy_error_t xy_bme680_init(xy_bme680_t *dev, void *i2c_handle, uint8_t addr)
     dev->heater.enable = BME68X_ENABLE;
     dev->heater.heatr_temp = 320U;
     dev->heater.heatr_dur = 150U;
+    dev->transport_error = XY_DEVICE_OK;
     result = map_error(dev, bme68x_set_heatr_conf(BME68X_FORCED_MODE, &dev->heater, &dev->bosch));
     if (result != XY_DEVICE_OK) {
         return init_fail(dev, result);
@@ -105,6 +108,7 @@ xy_error_t xy_bme680_deinit(xy_bme680_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
 
+    dev->transport_error = XY_DEVICE_OK;
     result = map_error(dev, bme68x_set_op_mode(BME68X_SLEEP_MODE, &dev->bosch));
     if (result == XY_DEVICE_OK) {
         dev->initialized = 0U;
@@ -125,6 +129,7 @@ xy_error_t xy_bme680_read(xy_bme680_t *dev, xy_bme680_data_t *output)
         return XY_DEVICE_INVALID_PARAM;
     }
 
+    dev->transport_error = XY_DEVICE_OK;
     result = map_error(dev, bme68x_set_op_mode(BME68X_FORCED_MODE, &dev->bosch));
     if (result != XY_DEVICE_OK) {
         return result;
@@ -133,6 +138,7 @@ xy_error_t xy_bme680_read(xy_bme680_t *dev, xy_bme680_data_t *output)
     measurement_us = bme68x_get_meas_dur(BME68X_FORCED_MODE, &dev->config, &dev->bosch) +
                      (uint32_t)dev->heater.heatr_dur * 1000U;
     delay_us(measurement_us + 5000U, dev);
+    dev->transport_error = XY_DEVICE_OK;
     result = map_error(dev, bme68x_get_data(BME68X_FORCED_MODE, &bosch_data, &sample_count,
                                             &dev->bosch));
     if (result != XY_DEVICE_OK) {

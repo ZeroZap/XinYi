@@ -462,6 +462,31 @@ static void test_bme680_forced_read_preserves_data_on_transport_failure(void)
     TEST_ASSERT_EQUAL_UINT(0U, op_index);
 }
 
+static BME68X_INTF_RET_TYPE bme680_generic_failure_read(uint8_t reg, uint8_t *data,
+                                                        uint32_t length, void *context)
+{
+    (void)reg;
+    (void)data;
+    (void)length;
+    (void)context;
+    return BME68X_E_COM_FAIL;
+}
+
+static void test_bme680_stale_transport_error_is_not_reused(void)
+{
+    xy_bme680_t dev;
+    xy_bme680_data_t output = {123, 456U, 789U, 321U, 0xA5U};
+    xy_bme680_data_t snapshot = output;
+
+    prepare_initialized_bme680(&dev);
+    dev.transport_error = XY_DEVICE_TIMEOUT;
+    dev.bosch.read = bme680_generic_failure_read;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bme680_read(&dev, &output));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, dev.transport_error);
+    TEST_ASSERT_EQUAL_UINT32(0U, delay_total);
+}
+
 static void test_sc7a22h_init_config_and_accel_conversion(void)
 {
     int bus;
@@ -729,6 +754,7 @@ int main(void)
     RUN_TEST(test_bme680_read_rejects_invalid_nested_bus_lifecycle);
     RUN_TEST(test_bme680_deinit_preserves_lifecycle_on_transport_failure);
     RUN_TEST(test_bme680_forced_read_preserves_data_on_transport_failure);
+    RUN_TEST(test_bme680_stale_transport_error_is_not_reused);
     RUN_TEST(test_sc7a22h_init_config_and_accel_conversion);
     RUN_TEST(test_sc7a22h_rejects_bad_identity_and_invalid_state);
     RUN_TEST(test_sc7a22h_init_clears_handle_when_i2c_helper_fails);
