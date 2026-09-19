@@ -344,6 +344,37 @@ static void test_deinit_preserves_initialized_when_power_down_fails(void)
     TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_DOWN, g_write_queue[2]);
 }
 
+static void test_public_ops_reject_invalid_nested_bus_lifecycle_without_io(void)
+{
+    xy_bh1750_t dev;
+    float illuminance = -1.0f;
+
+    init_ok(&dev);
+    dev.i2c_dev.base.initialized = false;
+    size_t writes_before = g_write_count;
+    size_t reads_before = g_read_index;
+    xy_bh1750_res_t resolution_before = dev.resolution;
+    xy_bh1750_mode_t mode_before = dev.mode;
+
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_read(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
+                          xy_bh1750_get_illuminance(&dev, &illuminance));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_power_down(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_power_on(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_reset(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
+                          xy_bh1750_set_resolution(&dev, XY_BH1750_LOW_RES));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
+                          xy_bh1750_set_mode(&dev, XY_BH1750_CONTINUOUS));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, -1.0f, illuminance);
+    TEST_ASSERT_EQUAL_INT(resolution_before, dev.resolution);
+    TEST_ASSERT_EQUAL_INT(mode_before, dev.mode);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+}
+
 static void test_setters_update_cached_mode_and_resolution_without_bus_io(void)
 {
     xy_bh1750_t dev;
@@ -447,6 +478,7 @@ int main(void)
     RUN_TEST(test_power_and_reset_propagate_write_failures);
     RUN_TEST(test_configuration_power_and_reset_validate_inputs);
     RUN_TEST(test_deinit_preserves_initialized_when_power_down_fails);
+    RUN_TEST(test_public_ops_reject_invalid_nested_bus_lifecycle_without_io);
     RUN_TEST(test_setters_update_cached_mode_and_resolution_without_bus_io);
     RUN_TEST(test_set_resolution_rejects_post_deinit_and_preserves_cache_without_bus_io);
     RUN_TEST(test_set_mode_rejects_post_deinit_and_preserves_cache_without_bus_io);
