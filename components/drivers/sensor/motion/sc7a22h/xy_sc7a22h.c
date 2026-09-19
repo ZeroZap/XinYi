@@ -80,6 +80,15 @@ xy_error_t xy_sc7a22h_read_status(xy_sc7a22h_t *d, uint8_t *status)
     return r;
 }
 
+xy_error_t xy_sc7a22h_data_ready(xy_sc7a22h_t *d, uint8_t *ready)
+{
+    uint8_t status; xy_error_t r;
+    if (!d || !ready || !d->initialized || !d->i2c_dev.base.initialized) return XY_DEVICE_INVALID_PARAM;
+    r = xy_sc7a22h_read_status(d, &status);
+    if (r == XY_DEVICE_OK) *ready = ((status & XY_SC7A22H_DATA_READY_MASK) == XY_SC7A22H_DATA_READY_MASK) ? 1U : 0U;
+    return r;
+}
+
 xy_error_t xy_sc7a22h_read(xy_sc7a22h_t *d, xy_sc7a22h_data_t *out)
 {
     uint8_t b[6]; xy_sc7a22h_data_t next; xy_error_t r;
@@ -95,9 +104,9 @@ xy_error_t xy_sc7a22h_read_accel(xy_sc7a22h_t *d, xy_sc7a22h_accel_t *out)
     if (!d || !out || !d->initialized || !d->i2c_dev.base.initialized) return XY_DEVICE_INVALID_PARAM;
     r = xy_sc7a22h_read(d, &raw); if (r != XY_DEVICE_OK) return r;
     switch (d->acc_range & 0x03U) { case 0U: sensitivity=61; break; case 1U: sensitivity=122; break; case 2U: sensitivity=244; break; default: sensitivity=488; break; }
-    out->x_mg=((int32_t)(raw.x >> 4) * sensitivity) / 1000;
-    out->y_mg=((int32_t)(raw.y >> 4) * sensitivity) / 1000;
-    out->z_mg=((int32_t)(raw.z >> 4) * sensitivity) / 1000;
+    out->x_mg=((int32_t)raw.x * sensitivity) / 1000;
+    out->y_mg=((int32_t)raw.y * sensitivity) / 1000;
+    out->z_mg=((int32_t)raw.z * sensitivity) / 1000;
     return XY_DEVICE_OK;
 }
 

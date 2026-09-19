@@ -310,9 +310,9 @@ static void test_sc7a22h_init_config_and_accel_conversion(void)
 
     queue(OP_READ_REG, XY_SC7A22H_REG_OUT_X_H, raw_bytes, sizeof(raw_bytes), XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_read_accel(&dev, &accel));
-    TEST_ASSERT_EQUAL_INT32(31, accel.x_mg);
-    TEST_ASSERT_EQUAL_INT32(-31, accel.y_mg);
-    TEST_ASSERT_EQUAL_INT32(15, accel.z_mg);
+    TEST_ASSERT_EQUAL_INT32(499, accel.x_mg);
+    TEST_ASSERT_EQUAL_INT32(-499, accel.y_mg);
+    TEST_ASSERT_EQUAL_INT32(249, accel.z_mg);
 }
 
 static void test_sc7a22h_rejects_bad_identity_and_invalid_state(void)

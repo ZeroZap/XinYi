@@ -27,6 +27,7 @@
 #define XY_SC7A22H_DEMO_COM_CFG 0x50U
 #define XY_SC7A22H_DEMO_INT_CFG1 0x01U
 #define XY_SC7A22H_DEMO_FILTER_CFG 0x05U
+#define XY_SC7A22H_DATA_READY_MASK 0x03U
 #define XY_SC7A22H_WHO_AM_I_VALUE 0x18U
 
 typedef struct { int16_t x; int16_t y; int16_t z; } xy_sc7a22h_data_t;
@@ -45,6 +46,7 @@ xy_error_t xy_sc7a22h_init(xy_sc7a22h_t *dev, void *i2c_handle);
 xy_error_t xy_sc7a22h_deinit(xy_sc7a22h_t *dev);
 xy_error_t xy_sc7a22h_read_config(xy_sc7a22h_t *dev);
 xy_error_t xy_sc7a22h_read_status(xy_sc7a22h_t *dev, uint8_t *status);
+xy_error_t xy_sc7a22h_data_ready(xy_sc7a22h_t *dev, uint8_t *ready);
 xy_error_t xy_sc7a22h_read(xy_sc7a22h_t *dev, xy_sc7a22h_data_t *data);
 xy_error_t xy_sc7a22h_read_accel(xy_sc7a22h_t *dev, xy_sc7a22h_accel_t *accel);
 xy_error_t xy_sc7a22h_set_acc_config(xy_sc7a22h_t *dev, uint8_t config);

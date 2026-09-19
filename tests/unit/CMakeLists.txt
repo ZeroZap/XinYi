@@ -890,6 +890,14 @@ target_include_directories(test_hmc5883l PRIVATE
     ${DRV}/sensor/magnetic/hmc5883l
 )
 
+xy_add_unit_test(test_sc7a22h sensor_sc7a22h UNITY
+    ${UNIT_SENSOR}/test_sc7a22h.c
+    ${DRV}/sensor/motion/sc7a22h/xy_sc7a22h.c
+)
+target_include_directories(test_sc7a22h PRIVATE
+    ${DRV}/sensor/motion/sc7a22h
+)
+
 xy_add_unit_test(test_bh1750 sensor_bh1750 UNITY
     ${UNIT_SENSOR}/test_bh1750.c
     ${ROOT}/components/drivers/sensor/light/bh1750/xy_bh1750.c
