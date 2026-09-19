@@ -20,8 +20,9 @@
   `xy_drivers` target and is the canonical destination for migrations using the Device model.
 - Existing public compatibility wrappers may remain during migration, but a chip must have one
   active implementation owner. **禁止第四套生命周期**.
-- All three tracks remain `hardware-pending`; source ownership and Host contracts do not prove
-  sensor accuracy, timing, bus recovery, calibration, or board support.
+- Hardware evidence is tracked per owner: the legacy and experimental inventories remain generally
+  `hardware-pending`, while the Pandora I2C2 Device owners below have bounded B1 evidence. Source
+  ownership and Host contracts alone never prove accuracy, timing, recovery, or calibration.
 
 ## Current inventory
 
@@ -54,6 +55,18 @@ temperature/humidity frames, L3G4200D identity `0xD3` and three-axis output, and
 `0x61` with Bosch-compensated temperature, pressure, humidity, and heater-stable gas resistance.
 This is basic-chain hardware evidence; it does not claim calibrated accuracy, environmental chamber
 qualification, long-run reliability, or general I2C fault recovery.
+
+### Pandora I2C2 Device-owner stabilization gate
+
+The current-device-first gate is complete for AHT30, L3G4200D, BME680, BH1750, MPU6050,
+HMC5883L, and SC7A22H. Each owner is root-linked through `xy_drivers`, uses the Device/I2C helper
+lifecycle, has focused normal and failure contracts, passes the Host suite and PC/L4/U5 compile
+gates, and remains represented by the Pandora I2C2 integration target. The latest hardening covers
+nested-helper rejection, first-error propagation, output/cache atomicity, and lifecycle cleanup.
+
+This gate authorizes the next Sensor workstream—incremental migration of legacy
+`sensor_device_t` owners. It does not authorize deleting compatibility wrappers in bulk, changing
+legacy public APIs without a migration contract, or claiming B2 recovery for the I2C2 devices.
 
 ## Admission and migration contract
 

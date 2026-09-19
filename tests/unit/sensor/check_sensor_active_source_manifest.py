@@ -101,7 +101,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=55 experimental_test_only=19 "
-          "device_active=9 hardware=mixed")
+          "device_active=10 hardware=mixed")
     return 0
 
 
