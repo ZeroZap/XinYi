@@ -96,6 +96,9 @@ header, and CTest were removed; tracked examples select the Device owner. Focuse
 and integration tests plus the root `sensor_component` build prove one implementation owner with
 one compatibility boundary. No hardware status is upgraded.
 
+The unreferenced `components/sensor/drivers/temperature/xy_sensor_sht30.c` prototype has also been
+removed and is covered by the manifest guard, preventing a fourth SHT30 lifecycle from returning.
+
 ### ADS1115 migration status
 
 The Device-model source is the single canonical implementation and is explicitly linked into the
