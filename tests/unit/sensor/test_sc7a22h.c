@@ -154,6 +154,69 @@ static void test_fifo_failures_preserve_public_state(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_fifo_count(&d, &count));
     TEST_ASSERT_EQUAL_UINT16(0xAAAAU, count);
 }
+static void test_status_ready_read_and_setters_are_atomic(void)
+{
+    xy_sc7a22h_t d;
+    xy_sc7a22h_data_t raw_out = {11,22,33};
+    xy_sc7a22h_data_t raw_snapshot = raw_out;
+    uint8_t status = 0xA5U;
+    uint8_t ready = 0x5AU;
+    uint8_t config_snapshot;
+    uint8_t range_snapshot;
+
+    init_ok(&d);
+    d.data_status = 0x33U;
+    d.data = (xy_sc7a22h_data_t){44,55,66};
+    config_snapshot = d.acc_conf;
+    range_snapshot = d.acc_range;
+
+    read_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_read_status(&d, &status));
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, status);
+    TEST_ASSERT_EQUAL_UINT8(0x33U, d.data_status);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_data_ready(&d, &ready));
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, ready);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_read(&d, &raw_out));
+    TEST_ASSERT_EQUAL_MEMORY(&raw_snapshot, &raw_out, sizeof(raw_out));
+    TEST_ASSERT_EQUAL_INT16(44, d.data.x);
+
+    read_result = XY_DEVICE_OK;
+    write_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_set_acc_config(&d, 0x55U));
+    TEST_ASSERT_EQUAL_UINT8(config_snapshot, d.acc_conf);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_set_acc_range(&d, 0x02U));
+    TEST_ASSERT_EQUAL_UINT8(range_snapshot, d.acc_range);
+}
+static void test_invalid_nested_lifecycle_rejects_public_ops_without_io(void)
+{
+    xy_sc7a22h_t d;
+    xy_sc7a22h_data_t raw = {1,2,3};
+    xy_sc7a22h_accel_t accel = {4,5,6};
+    uint8_t status = 7U, ready = 8U;
+    uint16_t count = 9U;
+    unsigned reads_before, writes_before;
+
+    init_ok(&d);
+    d.i2c_dev.base.initialized = 0U;
+    reads_before = reads;
+    writes_before = write_attempts;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read_config(&d));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read_status(&d, &status));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_data_ready(&d, &ready));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read(&d, &raw));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read_accel(&d, &accel));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_set_acc_config(&d, 0x55U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_set_acc_range(&d, 0x02U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_enable_fifo(&d));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_fifo_count(&d, &count));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_power_down(&d));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_deinit(&d));
+    TEST_ASSERT_EQUAL_UINT(reads_before, reads);
+    TEST_ASSERT_EQUAL_UINT(writes_before, write_attempts);
+    TEST_ASSERT_EQUAL_UINT8(7U, status);
+    TEST_ASSERT_EQUAL_UINT8(8U, ready);
+    TEST_ASSERT_EQUAL_UINT16(9U, count);
+}
 int main(void)
 {
     UNITY_BEGIN();
@@ -165,5 +228,7 @@ int main(void)
     RUN_TEST(test_power_down_and_deinit_are_fail_closed);
     RUN_TEST(test_fifo_vendor_sequence_and_count);
     RUN_TEST(test_fifo_failures_preserve_public_state);
+    RUN_TEST(test_status_ready_read_and_setters_are_atomic);
+    RUN_TEST(test_invalid_nested_lifecycle_rejects_public_ops_without_io);
     return UNITY_END();
 }

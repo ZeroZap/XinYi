@@ -122,10 +122,14 @@ xy_error_t xy_sc7a22h_read_config(xy_sc7a22h_t *d)
 
 xy_error_t xy_sc7a22h_read_status(xy_sc7a22h_t *d, uint8_t *status)
 {
+    uint8_t next;
     xy_error_t r;
     if (!d || !status || !d->initialized || !d->i2c_dev.base.initialized) return XY_DEVICE_INVALID_PARAM;
-    r = rd(d, XY_SC7A22H_REG_DATA_STAT, status, 1U);
-    if (r == XY_DEVICE_OK) d->data_status = *status;
+    r = rd(d, XY_SC7A22H_REG_DATA_STAT, &next, 1U);
+    if (r == XY_DEVICE_OK) {
+        d->data_status = next;
+        *status = next;
+    }
     return r;
 }
 
