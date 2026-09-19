@@ -27,7 +27,9 @@ The Pandora probe configured HMC5883L gain to `8.10 Ga`, read back `CONFIG_B=0xE
 
 With the board stationary, the vendor-demo `±4g` profile produced approximately
 `803, -125, -523 mg`, with a vector magnitude of `963–968 mg`. Manual rotation produced clear
-changes on all axes. `INT_CFG1=0x01` drove `PB8=1`; this proves the routed DRDY level, not yet an
-EXTI edge-count test. The vendor demo explicitly waits for `(DATA_STAT & 0x03) == 0x03`, so the
+changes on all axes. `INT_CFG1=0x01` drove `PB8=1`; EXTI8 counting increased strictly from 19 to
+153 across nine captured samples, with increments of 13–19 edges per sample interval. This proves
+the routed DRDY level and bounded EXTI edge delivery. The vendor demo explicitly waits for
+`(DATA_STAT & 0x03) == 0x03`, so the
 observed status is accepted as ready for this silicon/document set despite the PDF text labeling
 bit 1 as `CONF_ERR`.

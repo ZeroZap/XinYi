@@ -44,7 +44,7 @@ The Device-model root set is currently exactly:
 
 ### Pandora I2C2 hardware status
 
-The detailed current evidence is maintained in `docs/validation/i2c2-sensor-evidence.md`. SC7A22H at `0x18` is now hardware-confirmed with `WHO_AM_I=0x18`, vendor-demo configuration readback, continuous XYZ, corrected mg conversion, an approximately 1g stationary vector, manual-rotation response, and DRDY level on `PB8`. The vendor demo treats `(DATA_STAT & 0x03) == 0x03` as ready; the PDF bit-label conflict remains documented. HMC5883L at `0x1E` has bounded basic-chain evidence: `"H43"`, gain readback `0xE0`, `PA4` DRDY high, continuous XYZ, converted field output and manual magnetic stimulus response. BH1750 `0x23`, AHT30 `0x38`, MPU6050 `0x68`, L3G4200D `0x69`, and BME680 `0x77` remain in the joint I2C2 sample path.
+The detailed current evidence is maintained in `docs/validation/i2c2-sensor-evidence.md`. SC7A22H at `0x18` is now hardware-confirmed with `WHO_AM_I=0x18`, vendor-demo configuration readback, continuous XYZ, corrected mg conversion, an approximately 1g stationary vector, manual-rotation response, and monotonically increasing DRDY EXTI edge counts on `PB8`. The vendor demo treats `(DATA_STAT & 0x03) == 0x03` as ready; the PDF bit-label conflict remains documented. HMC5883L at `0x1E` has bounded basic-chain evidence: `"H43"`, gain readback `0xE0`, `PA4` DRDY high, continuous XYZ, converted field output and manual magnetic stimulus response. BH1750 `0x23`, AHT30 `0x38`, MPU6050 `0x68`, L3G4200D `0x69`, and BME680 `0x77` remain in the joint I2C2 sample path.
 
 The Pandora STM32L475 I2C2 target (`PB10/PB11`, 100 kHz) identifies and samples the three new
 owners at `0x38`, `0x69`, and `0x77`. A reset-synchronized UART capture proved AHT30 CRC-valid
