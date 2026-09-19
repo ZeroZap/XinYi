@@ -181,6 +181,20 @@ static void test_l3g4200d_rejects_wrong_identity(void)
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
 }
 
+static void test_l3g4200d_init_clears_handle_when_i2c_helper_fails(void)
+{
+    int bus;
+    xy_l3g4200d_t dev;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    i2c_init_result = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_l3g4200d_init(&dev, &bus, 0x69U));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+
 static void test_bme680_rejects_invalid_public_inputs_without_bus_access(void)
 {
     int bus;
@@ -495,6 +509,7 @@ int main(void)
     RUN_TEST(test_aht30_valid_frame_and_crc_atomicity);
     RUN_TEST(test_l3g4200d_identity_axis_order_and_range);
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
+    RUN_TEST(test_l3g4200d_init_clears_handle_when_i2c_helper_fails);
     RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
     RUN_TEST(test_bme680_init_clears_handle_when_i2c_helper_fails);
