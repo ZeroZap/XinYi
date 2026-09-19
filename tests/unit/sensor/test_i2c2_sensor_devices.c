@@ -330,6 +330,20 @@ static void test_sc7a22h_rejects_bad_identity_and_invalid_state(void)
     TEST_ASSERT_EQUAL_UINT(1U, op_index);
 }
 
+static void test_sc7a22h_init_clears_handle_when_i2c_helper_fails(void)
+{
+    int bus;
+    xy_sc7a22h_t dev;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    i2c_init_result = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_sc7a22h_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+
 static void test_sc7a22h_public_config_status_and_deinit_contracts(void)
 {
     int bus;
@@ -517,6 +531,7 @@ int main(void)
     RUN_TEST(test_bme680_read_rejects_invalid_nested_bus_lifecycle);
     RUN_TEST(test_sc7a22h_init_config_and_accel_conversion);
     RUN_TEST(test_sc7a22h_rejects_bad_identity_and_invalid_state);
+    RUN_TEST(test_sc7a22h_init_clears_handle_when_i2c_helper_fails);
     RUN_TEST(test_sc7a22h_public_config_status_and_deinit_contracts);
     RUN_TEST(test_sc7a22h_init_stops_on_configuration_failure);
     RUN_TEST(test_sc7a22h_read_preserves_output_on_transport_failure);

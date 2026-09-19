@@ -11,7 +11,7 @@ xy_error_t xy_sc7a22h_init(xy_sc7a22h_t *d, void *h)
     if (!d || !h) return XY_DEVICE_INVALID_PARAM;
     memset(d, 0, sizeof(*d));
     r = xy_i2c_device_init(&d->i2c_dev, h, XY_SC7A22H_ADDR, 100U);
-    if (r != XY_DEVICE_OK) return r;
+    if (r != XY_DEVICE_OK) { memset(d, 0, sizeof(*d)); return r; }
     r = rd(d, XY_SC7A22H_REG_WHO_AM_I, &id, 1U);
     if (r != XY_DEVICE_OK) { memset(d, 0, sizeof(*d)); return r; }
     if (id != XY_SC7A22H_WHO_AM_I_VALUE) { memset(d, 0, sizeof(*d)); return XY_DEVICE_NOT_FOUND; }
