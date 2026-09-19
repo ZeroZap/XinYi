@@ -210,6 +210,68 @@ static void test_l3g4200d_init_clears_handle_when_i2c_helper_fails(void)
     TEST_ASSERT_EQUAL_UINT(0U, op_index);
 }
 
+static void prepare_initialized_l3g4200d(xy_l3g4200d_t *dev)
+{
+    memset(dev, 0, sizeof(*dev));
+    dev->initialized = 1U;
+    dev->i2c_dev.base.initialized = 1U;
+    dev->range_dps = 500U;
+    dev->data = (xy_l3g4200d_data_t){111, 222, 333};
+}
+
+static void test_l3g4200d_public_ops_reject_invalid_nested_bus_lifecycle(void)
+{
+    xy_l3g4200d_t dev;
+    xy_l3g4200d_data_t output = {11, 22, 33};
+    xy_l3g4200d_data_t output_snapshot = output;
+    uint8_t ready = 0xA5U;
+
+    prepare_initialized_l3g4200d(&dev);
+    dev.i2c_dev.base.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_l3g4200d_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_l3g4200d_data_ready(&dev, &ready));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_l3g4200d_set_range(&dev, 2000U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_l3g4200d_read(&dev, &output));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT16(500U, dev.range_dps);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, ready);
+    TEST_ASSERT_EQUAL_MEMORY(&output_snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+
+static void test_l3g4200d_transport_failures_preserve_state_and_outputs(void)
+{
+    xy_l3g4200d_t dev;
+    xy_l3g4200d_data_t output = {11, 22, 33};
+    xy_l3g4200d_data_t output_snapshot = output;
+    xy_l3g4200d_data_t cache_snapshot;
+    uint8_t ready = 0xA5U;
+    const uint8_t power_down = 0x07U;
+    const uint8_t range = 0xA0U;
+
+    prepare_initialized_l3g4200d(&dev);
+    cache_snapshot = dev.data;
+    queue(OP_READ_REG, 0x27U, NULL, 1U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_l3g4200d_data_ready(&dev, &ready));
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, ready);
+
+    queue(OP_READ_REG, 0xA8U, NULL, 6U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_l3g4200d_read(&dev, &output));
+    TEST_ASSERT_EQUAL_MEMORY(&output_snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&cache_snapshot, &dev.data, sizeof(dev.data));
+
+    queue(OP_WRITE_REG, 0x23U, &range, 1U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_l3g4200d_set_range(&dev, 2000U));
+    TEST_ASSERT_EQUAL_UINT16(500U, dev.range_dps);
+
+    queue(OP_WRITE_REG, 0x20U, &power_down, 1U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_l3g4200d_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(4U, op_index);
+}
+
 static void test_bme680_rejects_invalid_public_inputs_without_bus_access(void)
 {
     int bus;
@@ -614,6 +676,8 @@ int main(void)
     RUN_TEST(test_l3g4200d_identity_axis_order_and_range);
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
     RUN_TEST(test_l3g4200d_init_clears_handle_when_i2c_helper_fails);
+    RUN_TEST(test_l3g4200d_public_ops_reject_invalid_nested_bus_lifecycle);
+    RUN_TEST(test_l3g4200d_transport_failures_preserve_state_and_outputs);
     RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
     RUN_TEST(test_bme680_init_clears_handle_when_i2c_helper_fails);

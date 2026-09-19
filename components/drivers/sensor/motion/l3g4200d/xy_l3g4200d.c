@@ -1,13 +1,154 @@
 #include "xy_l3g4200d.h"
+
 #include <string.h>
-#define WHO 0x0FU
-#define CTRL1 0x20U
-#define CTRL4 0x23U
-#define STATUS 0x27U
-#define OUT 0xA8U
-static xy_error_t rr(xy_l3g4200d_t*d,uint8_t r,uint8_t*p,size_t n){return xy_i2c_device_read_reg(&d->i2c_dev,r,p,n);}static xy_error_t wr(xy_l3g4200d_t*d,uint8_t r,uint8_t v){return xy_i2c_device_write_reg(&d->i2c_dev,r,&v,1U);}
-xy_error_t xy_l3g4200d_init(xy_l3g4200d_t*d,void*h,uint8_t a){uint8_t id;xy_error_t r;if(!d||!h||(a!=0x68U&&a!=0x69U))return XY_DEVICE_INVALID_PARAM;memset(d,0,sizeof(*d));r=xy_i2c_device_init(&d->i2c_dev,h,a,100U);if(r!=XY_DEVICE_OK){memset(d,0,sizeof(*d));return r;}r=rr(d,WHO,&id,1U);if(r!=XY_DEVICE_OK||id!=0xD3U){memset(d,0,sizeof(*d));return r==XY_DEVICE_OK?XY_DEVICE_NOT_FOUND:r;}if((r=wr(d,CTRL4,0x80U))==XY_DEVICE_OK)r=wr(d,CTRL1,0x1FU);if(r!=XY_DEVICE_OK){memset(d,0,sizeof(*d));return r;}d->range_dps=250U;d->initialized=1U;return XY_DEVICE_OK;}
-xy_error_t xy_l3g4200d_deinit(xy_l3g4200d_t*d){if(!d||!d->initialized)return XY_DEVICE_INVALID_PARAM;xy_error_t r=wr(d,CTRL1,0x07U);if(r==XY_DEVICE_OK){d->initialized=0;d->i2c_dev.base.initialized=0;}return r;}
-xy_error_t xy_l3g4200d_data_ready(xy_l3g4200d_t*d,uint8_t*o){uint8_t s;if(!d||!o||!d->initialized)return XY_DEVICE_INVALID_PARAM;xy_error_t r=rr(d,STATUS,&s,1);if(r==XY_DEVICE_OK)*o=(s>>3)&1U;return r;}
-xy_error_t xy_l3g4200d_set_range(xy_l3g4200d_t*d,uint16_t q){uint8_t v=q==250?0x80U:q==500?0x90U:q==2000?0xA0U:0xFFU;if(!d||!d->initialized||v==0xFFU)return XY_DEVICE_INVALID_PARAM;xy_error_t r=wr(d,CTRL4,v);if(r==XY_DEVICE_OK)d->range_dps=q;return r;}
-xy_error_t xy_l3g4200d_read(xy_l3g4200d_t*d,xy_l3g4200d_data_t*o){uint8_t b[6];xy_l3g4200d_data_t v;if(!d||!o||!d->initialized||!d->i2c_dev.base.initialized)return XY_DEVICE_INVALID_PARAM;xy_error_t r=rr(d,OUT,b,6);if(r!=XY_DEVICE_OK)return r;int16_t x=(int16_t)((uint16_t)b[1]<<8|b[0]),y=(int16_t)((uint16_t)b[3]<<8|b[2]),z=(int16_t)((uint16_t)b[5]<<8|b[4]);int32_t n=d->range_dps==250?875:d->range_dps==500?1750:7000;v.x_mdps=(int32_t)x*n/100;v.y_mdps=(int32_t)y*n/100;v.z_mdps=(int32_t)z*n/100;d->data=v;*o=v;return XY_DEVICE_OK;}
+
+#define L3G4200D_REG_WHO_AM_I 0x0FU
+#define L3G4200D_REG_CTRL1 0x20U
+#define L3G4200D_REG_CTRL4 0x23U
+#define L3G4200D_REG_STATUS 0x27U
+#define L3G4200D_REG_OUT_X_L_AUTO 0xA8U
+
+static xy_error_t l3g4200d_read_reg(xy_l3g4200d_t *dev, uint8_t reg, uint8_t *data,
+                                    size_t length)
+{
+    return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
+}
+
+static xy_error_t l3g4200d_write_reg(xy_l3g4200d_t *dev, uint8_t reg, uint8_t value)
+{
+    return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
+}
+
+static bool l3g4200d_ready(const xy_l3g4200d_t *dev)
+{
+    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U;
+}
+
+xy_error_t xy_l3g4200d_init(xy_l3g4200d_t *dev, void *i2c, uint8_t address)
+{
+    uint8_t id;
+    xy_error_t result;
+
+    if (dev == NULL || i2c == NULL || (address != 0x68U && address != 0x69U)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    memset(dev, 0, sizeof(*dev));
+    result = xy_i2c_device_init(&dev->i2c_dev, i2c, address, 100U);
+    if (result != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return result;
+    }
+
+    result = l3g4200d_read_reg(dev, L3G4200D_REG_WHO_AM_I, &id, 1U);
+    if (result != XY_DEVICE_OK || id != 0xD3U) {
+        memset(dev, 0, sizeof(*dev));
+        return result == XY_DEVICE_OK ? XY_DEVICE_NOT_FOUND : result;
+    }
+
+    result = l3g4200d_write_reg(dev, L3G4200D_REG_CTRL4, 0x80U);
+    if (result == XY_DEVICE_OK) {
+        result = l3g4200d_write_reg(dev, L3G4200D_REG_CTRL1, 0x1FU);
+    }
+    if (result != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return result;
+    }
+
+    dev->range_dps = 250U;
+    dev->initialized = 1U;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_l3g4200d_deinit(xy_l3g4200d_t *dev)
+{
+    xy_error_t result;
+
+    if (!l3g4200d_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = l3g4200d_write_reg(dev, L3G4200D_REG_CTRL1, 0x07U);
+    if (result == XY_DEVICE_OK) {
+        dev->initialized = 0U;
+        dev->i2c_dev.base.initialized = 0U;
+    }
+    return result;
+}
+
+xy_error_t xy_l3g4200d_data_ready(xy_l3g4200d_t *dev, uint8_t *ready)
+{
+    uint8_t status;
+    xy_error_t result;
+
+    if (!l3g4200d_ready(dev) || ready == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = l3g4200d_read_reg(dev, L3G4200D_REG_STATUS, &status, 1U);
+    if (result == XY_DEVICE_OK) {
+        *ready = (status >> 3) & 1U;
+    }
+    return result;
+}
+
+xy_error_t xy_l3g4200d_set_range(xy_l3g4200d_t *dev, uint16_t range_dps)
+{
+    uint8_t value;
+    xy_error_t result;
+
+    if (!l3g4200d_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    switch (range_dps) {
+    case 250U:
+        value = 0x80U;
+        break;
+    case 500U:
+        value = 0x90U;
+        break;
+    case 2000U:
+        value = 0xA0U;
+        break;
+    default:
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = l3g4200d_write_reg(dev, L3G4200D_REG_CTRL4, value);
+    if (result == XY_DEVICE_OK) {
+        dev->range_dps = range_dps;
+    }
+    return result;
+}
+
+xy_error_t xy_l3g4200d_read(xy_l3g4200d_t *dev, xy_l3g4200d_data_t *data)
+{
+    uint8_t raw[6];
+    int16_t raw_x;
+    int16_t raw_y;
+    int16_t raw_z;
+    int32_t sensitivity;
+    xy_l3g4200d_data_t sample;
+    xy_error_t result;
+
+    if (!l3g4200d_ready(dev) || data == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = l3g4200d_read_reg(dev, L3G4200D_REG_OUT_X_L_AUTO, raw, sizeof(raw));
+    if (result != XY_DEVICE_OK) {
+        return result;
+    }
+
+    raw_x = (int16_t)(((uint16_t)raw[1] << 8) | raw[0]);
+    raw_y = (int16_t)(((uint16_t)raw[3] << 8) | raw[2]);
+    raw_z = (int16_t)(((uint16_t)raw[5] << 8) | raw[4]);
+    sensitivity = dev->range_dps == 250U ? 875 : dev->range_dps == 500U ? 1750 : 7000;
+    sample.x_mdps = (int32_t)raw_x * sensitivity / 100;
+    sample.y_mdps = (int32_t)raw_y * sensitivity / 100;
+    sample.z_mdps = (int32_t)raw_z * sensitivity / 100;
+    dev->data = sample;
+    *data = sample;
+    return XY_DEVICE_OK;
+}
