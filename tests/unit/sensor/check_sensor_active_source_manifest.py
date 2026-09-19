@@ -21,6 +21,7 @@ STALE_INA226 = ROOT / "components" / "sensor" / "drivers" / "power" / "xy_sensor
 STALE_BQ25620 = ROOT / "components" / "sensor" / "drivers" / "power" / "xy_sensor_bq25620.c"
 STALE_MAX17043 = ROOT / "components" / "sensor" / "drivers" / "power" / "xy_sensor_max17043.c"
 STALE_ADXL362 = ROOT / "components" / "sensor" / "drivers" / "motion" / "xy_sensor_adxl362.c"
+STALE_BME280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sensor_bme280.c"
 STALE_AHT20_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_aht20.c"
 STALE_AHT20_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_aht20.h"
 STALE_SHT40_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_sht40.c"
@@ -132,6 +133,8 @@ def main() -> int:
             "retired xy_sensor_max17043 lifecycle must not reappear", errors)
     require(not STALE_ADXL362.exists(),
             "retired xy_sensor_adxl362 lifecycle must not reappear", errors)
+    require(not STALE_BME280.exists(),
+            "retired xy_sensor_bme280 lifecycle must not reappear", errors)
     require(not STALE_AHT20_SOURCE.exists() and not STALE_AHT20_HEADER.exists(),
             "retired experimental AHT20 lifecycle must not reappear", errors)
     require(not STALE_SHT40_SOURCE.exists() and not STALE_SHT40_HEADER.exists(),

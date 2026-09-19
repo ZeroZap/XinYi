@@ -227,6 +227,13 @@ the existing legacy owner and its focused low-power-accelerometer contract remai
 cleanup does not promote ADXL362 hardware, motion accuracy, SPI transport, interrupt, or recovery
 evidence.
 
+BME280 had an unreferenced `xy_sensor_*` singleton prototype without a matching public header or
+checked CMake consumer. Its calibration reader ignored six I2C failures and reused bytes across
+different humidity coefficients, while initialization ignored reset/configuration write failures.
+It was removed and is guarded against return. The root-linked legacy `sensor_bme280.c` owner and its
+existing Sensor contracts remain unchanged. This cleanup does not promote BME280 hardware,
+environmental accuracy, calibration, transport, or recovery evidence.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
