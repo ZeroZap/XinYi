@@ -193,6 +193,14 @@ write failures and divided by the broadband channel without a zero guard. The ma
 prevents it from returning. This does not promote TSL2561 into the canonical Device root or claim
 hardware, accuracy, or recovery evidence.
 
+INA226 follows the same duplicate-owner retirement rule: the focused-test-backed
+`components/sensor/src/xy_ina226.c` typed implementation remains `experimental-test-only`, while
+the unreferenced `components/sensor/drivers/power/xy_sensor_ina226.c` prototype was removed. The
+prototype ignored calibration/configuration write failures and published an initialized singleton
+without a guarded public lifecycle. The manifest guard prevents it from returning. This does not
+promote INA226/INA229 into the canonical Device root or claim hardware, metrology, alert, or
+recovery evidence.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
