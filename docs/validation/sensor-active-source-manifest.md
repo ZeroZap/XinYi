@@ -234,6 +234,14 @@ It was removed and is guarded against return. The root-linked legacy `sensor_bme
 existing Sensor contracts remain unchanged. This cleanup does not promote BME280 hardware,
 environmental accuracy, calibration, transport, or recovery evidence.
 
+ICM20608 also had an unreferenced `xy_sensor_*` singleton prototype beside the root-linked legacy
+owner used by the focused Host target and Pandora board image. The prototype had no public header or
+checked CMake consumer, expected the wrong `WHO_AM_I` value (`0xAF` instead of the observed `0xAE`),
+ignored every configuration-write failure, and exposed no deinit path. It was removed and is guarded
+against return. The existing `sensor_icm20608.c` owner and its bounded Pandora evidence remain
+unchanged; this cleanup does not promote dynamic response, calibration, transport recovery, or
+long-run hardware evidence.
+
 `tests/unit/sensor/check_sensor_active_source_manifest.py` fails when source counts or root ownership
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
