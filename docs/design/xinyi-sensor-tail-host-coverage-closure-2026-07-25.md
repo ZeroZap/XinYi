@@ -26,7 +26,7 @@ Representative tail groups:
 | `sensor_magnetic_i2c_sensors` | `tests/unit/sensor/test_magnetic_i2c_sensors.c` | QMC5883L, IST8310, AK09918, CMM905 |
 | `sensor_low_power_accel_sensors` | `tests/unit/sensor/test_low_power_accel_sensors.c` | BMA400, KX023, ADXL362, LIS2DW12, IIS2ICLP |
 | `sensor_stub_accel_sensors` | `tests/unit/sensor/test_stub_accel_sensors.c` | DMP6100, CMS, GD30DF, HS-ADS1100, QMA6100 |
-| `sensor_stub_i2c_sensors` | `tests/unit/sensor/test_stub_i2c_sensors.c` | IM69D, MAX30102 (SGP30/SGP40/ENS160 placeholders later retired) |
+| `sensor_stub_i2c_sensors` | `tests/unit/sensor/test_stub_i2c_sensors.c` | MAX30102 (SGP30/SGP40/ENS160/IM69D placeholders later retired) |
 | `sensor_st_silan_accel_sensors` | `tests/unit/sensor/test_st_silan_accel_sensors.c` | LIS2DH12, LIS2DW12, SC7A20, Silan SC7A20 |
 | `sensor_lsm6_imu_sensors` | `tests/unit/sensor/test_lsm6_imu_sensors.c` | LSM6DSL, LSM6DSO, LSM6DSR |
 | `sensor_light_uv_sensors` | `tests/unit/sensor/test_light_uv_sensors.c` | MAX44009, GUVA-S12SD |

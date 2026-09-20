@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 51 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 50 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -211,6 +211,11 @@ ENS160 had the same false-owner shape: init/deinit performed no device operation
 published `100.0` without checking part ID, validity status, AQI, TVOC, or eCO2 registers. With no
 second implementation or consumer outside the grouped stub test, its source/header and fake
 measurement assertions were removed. ENS160 is unsupported until a real Device-model owner exists.
+
+IM69D was also a false I2C owner: it assigned a fabricated `0x30` address to a digital microphone,
+performed no transport or sample acquisition, and always published `0.0`. Its source/header and
+grouped stub assertions were removed. IM69D is unsupported until a correctly modelled audio/PDM or
+I2S component exists; this cleanup establishes no acoustic or hardware evidence.
 
 VL53L1X follows the same bounded retirement rule. The removed legacy owner only reset register
 `0x2D` through an 8-bit register helper and read two bytes from `0x6E`; it had no checked consumer

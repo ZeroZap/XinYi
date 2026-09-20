@@ -1038,7 +1038,6 @@ target_include_directories(test_mq_gas_sensors BEFORE PRIVATE
 
 xy_add_unit_test(test_stub_i2c_sensors sensor_stub_i2c_sensors UNITY
     ${UNIT_SENSOR}/test_stub_i2c_sensors.c
-    ${SENSOR}/sensors/sensor_im69d.c
     ${SENSOR}/sensors/sensor_max30102.c
 )
 target_include_directories(test_stub_i2c_sensors BEFORE PRIVATE

@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sensor_im69d.h"
 #include "sensor_max30102.h"
 
 static uint32_t g_tick;
@@ -58,25 +57,6 @@ static void assert_output_unchanged(const sensor_data_t *actual, const sensor_da
 
 
 
-static void test_im69d_create_sets_identity_and_default_read_contract(void)
-{
-    int fake_bus;
-    sensor_data_t data = {0};
-    sensor_device_t *sensor = im69d_create("im69d-main", &fake_bus);
-
-    assert_stub_identity(sensor, "im69d-main", "Infineon", "IM69D", SENSOR_TYPE_SOUND,
-                         &fake_bus);
-    TEST_ASSERT_EQUAL_UINT8(IM69D_ADDR, ((im69d_priv_t *)sensor->priv_data)->i2c_addr);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_SOUND, data.type);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, data.value.val_float);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-
-    destroy_sensor(sensor);
-}
 
 static void test_max30102_create_sets_identity_and_default_read_contract(void)
 {
@@ -105,17 +85,12 @@ static void test_long_names_are_truncated_with_terminator(void)
     memset(long_name, 'I', sizeof(long_name));
     long_name[sizeof(long_name) - 1U] = '\0';
 
-    sensor_device_t *im69d = im69d_create(long_name, &fake_bus);
     sensor_device_t *max30102 = max30102_create(long_name, &fake_bus);
 
-    TEST_ASSERT_NOT_NULL(im69d);
     TEST_ASSERT_NOT_NULL(max30102);
-    TEST_ASSERT_EQUAL_UINT8('\0', im69d->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', max30102->info.name[SENSOR_NAME_MAX_LEN - 1U]);
-    TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(im69d->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(max30102->info.name));
 
-    destroy_sensor(im69d);
     destroy_sensor(max30102);
 }
 
@@ -123,7 +98,6 @@ static void test_create_rejects_null_names(void)
 {
     int fake_bus;
 
-    TEST_ASSERT_NULL(im69d_create(NULL, &fake_bus));
     TEST_ASSERT_NULL(max30102_create(NULL, &fake_bus));
 }
 
@@ -131,14 +105,12 @@ static void test_i2c_factories_and_ops_reject_missing_bus(void)
 {
     int fake_bus;
     sensor_device_t *sensors[] = {
-        im69d_create("im69d-bus", &fake_bus),
         max30102_create("max30102-bus", &fake_bus),
     };
     sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = -4.0f, .timestamp = 91U};
     sensor_data_t snapshot = data;
     size_t i;
 
-    TEST_ASSERT_NULL(im69d_create("im69d-null-bus", NULL));
     TEST_ASSERT_NULL(max30102_create("max30102-null-bus", NULL));
 
     for (i = 0U; i < sizeof(sensors) / sizeof(sensors[0]); ++i) {
@@ -155,64 +127,47 @@ static void test_i2c_factories_and_ops_reject_missing_bus(void)
 static void test_public_ops_reject_null_inputs_and_preserve_output(void)
 {
     int fake_bus;
-    sensor_device_t *im69d = im69d_create("im69d-guard", &fake_bus);
     sensor_device_t *max30102 = max30102_create("max30102-guard", &fake_bus);
     sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = -12.5f, .timestamp = 777U};
     sensor_data_t snapshot = data;
 
-    TEST_ASSERT_NOT_NULL(im69d);
     TEST_ASSERT_NOT_NULL(max30102);
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->init(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->deinit(NULL));
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->read(im69d, NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->read(max30102, NULL));
     assert_output_unchanged(&data, &snapshot);
 
-    destroy_sensor(im69d);
     destroy_sensor(max30102);
 }
 
 static void test_missing_private_data_is_rejected_and_preserves_output(void)
 {
     int fake_bus;
-    sensor_device_t *im69d = im69d_create("im69d-no-priv", &fake_bus);
     sensor_device_t *max30102 = max30102_create("max30102-no-priv", &fake_bus);
     sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = 41.0f, .timestamp = 55U};
     sensor_data_t snapshot = data;
 
-    TEST_ASSERT_NOT_NULL(im69d);
     TEST_ASSERT_NOT_NULL(max30102);
 
-    SENSOR_FREE(im69d->priv_data);
-    im69d->priv_data = NULL;
     SENSOR_FREE(max30102->priv_data);
     max30102->priv_data = NULL;
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->deinit(im69d));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->deinit(max30102));
 
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->init(im69d));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->deinit(im69d));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->read(im69d, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->init(max30102));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->deinit(max30102));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->read(max30102, &data));
     assert_output_unchanged(&data, &snapshot);
 
-    destroy_sensor(im69d);
     destroy_sensor(max30102);
 }
 
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_im69d_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_max30102_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_create_rejects_null_names);
