@@ -177,6 +177,20 @@ static void test_init_default_config_resets_and_programs_registers(void)
     TEST_ASSERT_EQUAL_UINT(4U, g_seen_write_count);
 }
 
+static void test_init_rejects_missing_interface_handle_without_io_or_delay(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+
+    memset(&dev, 0, sizeof(dev));
+    iface.handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_init(&dev, &iface, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_delay_count);
+    assert_lps22hb_cleared(&dev);
+}
+
 static void test_init_rejects_bad_whoami_and_propagates_reset_timeout(void)
 {
     xy_lps22hb_dev_t dev;
@@ -769,6 +783,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_default_config_resets_and_programs_registers);
+    RUN_TEST(test_init_rejects_missing_interface_handle_without_io_or_delay);
     RUN_TEST(test_init_rejects_bad_whoami_and_propagates_reset_timeout);
     RUN_TEST(test_init_configuration_failure_clears_device_state);
     RUN_TEST(test_read_data_converts_pressure_temperature_and_offsets);

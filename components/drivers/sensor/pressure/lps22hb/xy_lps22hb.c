@@ -173,7 +173,7 @@ static xy_ret_t lps22hb_wait_data(xy_lps22hb_dev_t *dev, uint8_t mask, uint32_t 
 
 xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, xy_lps22hb_config_t *config)
 {
-    if (dev == XY_NULL || interface == XY_NULL) {
+    if (dev == XY_NULL || interface == XY_NULL || interface->handle == XY_NULL) {
         return XY_ERROR;
     }
     
