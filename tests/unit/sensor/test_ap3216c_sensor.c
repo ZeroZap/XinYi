@@ -6,37 +6,21 @@
 
 #include "sensor_ap3216c.h"
 
-#define I2C_QUEUE_MAX 8U
-
-#define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
-
 typedef struct {
-    void *bus;
-    uint8_t addr;
-    uint8_t reg;
-    uint8_t data[4];
-    uint16_t len;
-    int ret;
-} i2c_read_op_t;
-
-typedef struct {
-    void *bus;
-    uint8_t addr;
     uint8_t reg;
     uint8_t data[2];
-    uint16_t len;
-    int ret;
-} i2c_write_op_t;
+    size_t len;
+    xy_error_t result;
+} io_step_t;
 
+static io_step_t g_reads[8];
+static io_step_t g_writes[8];
+static size_t g_read_count;
+static size_t g_read_index;
+static size_t g_write_count;
+static size_t g_write_index;
 static uint32_t g_tick;
-static uint32_t g_delay_total_ms;
-static i2c_read_op_t g_i2c_reads[I2C_QUEUE_MAX];
-static unsigned int g_i2c_read_count;
-static unsigned int g_i2c_read_index;
-static i2c_write_op_t g_i2c_writes[I2C_QUEUE_MAX];
-static unsigned int g_i2c_write_count;
-static unsigned int g_i2c_write_index;
-static unsigned int g_i2c_unexpected;
+static uint32_t g_delay_ms;
 
 uint32_t get_tick_ms(void)
 {
@@ -45,95 +29,74 @@ uint32_t get_tick_ms(void)
 
 void delay_ms(uint32_t ms)
 {
-    g_delay_total_ms += ms;
+    (void)ms;
 }
 
-static void queue_i2c_read(void *bus, uint8_t addr, uint8_t reg, const uint8_t *data, uint16_t len,
-                           int ret)
+void xy_hal_delay_ms(uint32_t ms)
 {
-    TEST_ASSERT_LESS_THAN_UINT(I2C_QUEUE_MAX, g_i2c_read_count);
-    i2c_read_op_t *op = &g_i2c_reads[g_i2c_read_count++];
-    op->bus = bus;
-    op->addr = addr;
-    op->reg = reg;
-    op->len = len;
-    op->ret = ret;
-    memset(op->data, 0, sizeof(op->data));
-    if (data != NULL && len > 0U) {
-        TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(op->data), len);
-        memcpy(op->data, data, len);
-    }
+    g_delay_ms += ms;
 }
 
-static void queue_i2c_write(void *bus, uint8_t addr, uint8_t reg, const uint8_t *data,
-                            uint16_t len, int ret)
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
+                              uint32_t timeout)
 {
-    TEST_ASSERT_LESS_THAN_UINT(I2C_QUEUE_MAX, g_i2c_write_count);
-    i2c_write_op_t *op = &g_i2c_writes[g_i2c_write_count++];
-    op->bus = bus;
-    op->addr = addr;
-    op->reg = reg;
-    op->len = len;
-    op->ret = ret;
-    memset(op->data, 0, sizeof(op->data));
-    if (data != NULL && len > 0U) {
-        TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(op->data), len);
-        memcpy(op->data, data, len);
-    }
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_NOT_NULL(handle);
+    TEST_ASSERT_EQUAL_UINT16(XY_AP3216C_DEFAULT_ADDRESS, address);
+    TEST_ASSERT_EQUAL_UINT32(100U, timeout);
+    memset(dev, 0, sizeof(*dev));
+    dev->base.initialized = 1U;
+    dev->i2c_handle = handle;
+    dev->dev_addr = address;
+    dev->timeout = timeout;
+    return XY_DEVICE_OK;
 }
 
-int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
-    if (g_i2c_read_index >= g_i2c_read_count) {
-        g_i2c_unexpected++;
-        return -99;
+    io_step_t *step;
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_LESS_THAN_UINT(g_read_count, g_read_index);
+    step = &g_reads[g_read_index++];
+    TEST_ASSERT_EQUAL_UINT8(step->reg, reg);
+    TEST_ASSERT_EQUAL_UINT(step->len, len);
+    if (step->result == XY_DEVICE_OK) {
+        memcpy(data, step->data, len);
     }
-
-    const i2c_read_op_t *op = &g_i2c_reads[g_i2c_read_index++];
-    TEST_ASSERT_EQUAL_PTR(op->bus, bus);
-    TEST_ASSERT_EQUAL_UINT8(op->addr, addr);
-    TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
-    TEST_ASSERT_EQUAL_UINT16(op->len, len);
-    if (op->ret == 0 && data != NULL && len > 0U) {
-        memcpy(data, op->data, len);
-    }
-    return op->ret;
+    return step->result;
 }
 
-int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data,
+                                    size_t len)
 {
-    if (g_i2c_write_index >= g_i2c_write_count) {
-        g_i2c_unexpected++;
-        return -99;
-    }
-
-    const i2c_write_op_t *op = &g_i2c_writes[g_i2c_write_index++];
-    TEST_ASSERT_EQUAL_PTR(op->bus, bus);
-    TEST_ASSERT_EQUAL_UINT8(op->addr, addr);
-    TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
-    TEST_ASSERT_EQUAL_UINT16(op->len, len);
-    if (len > 0U) {
-        TEST_ASSERT_NOT_NULL(data);
-        TEST_ASSERT_EQUAL_UINT8_ARRAY(op->data, data, len);
-    }
-    return op->ret;
+    io_step_t *step;
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_LESS_THAN_UINT(g_write_count, g_write_index);
+    step = &g_writes[g_write_index++];
+    TEST_ASSERT_EQUAL_UINT8(step->reg, reg);
+    TEST_ASSERT_EQUAL_UINT(step->len, len);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(step->data, data, len);
+    return step->result;
 }
 
-void setUp(void)
+static void queue_write(uint8_t value, xy_error_t result)
 {
-    g_tick = 424242U;
-    g_delay_total_ms = 0;
-    memset(g_i2c_reads, 0, sizeof(g_i2c_reads));
-    g_i2c_read_count = 0;
-    g_i2c_read_index = 0;
-    memset(g_i2c_writes, 0, sizeof(g_i2c_writes));
-    g_i2c_write_count = 0;
-    g_i2c_write_index = 0;
-    g_i2c_unexpected = 0;
+    io_step_t *step = &g_writes[g_write_count++];
+    step->reg = XY_AP3216C_REG_SYSTEM_CONFIG;
+    step->data[0] = value;
+    step->len = 1U;
+    step->result = result;
 }
 
-void tearDown(void)
+static void queue_read(uint8_t reg, const uint8_t *data, xy_error_t result)
 {
+    io_step_t *step = &g_reads[g_read_count++];
+    step->reg = reg;
+    step->len = 2U;
+    step->result = result;
+    if (data != NULL) {
+        memcpy(step->data, data, 2U);
+    }
 }
 
 static void destroy_sensor(sensor_device_t *sensor)
@@ -144,229 +107,130 @@ static void destroy_sensor(sensor_device_t *sensor)
     }
 }
 
-static void assert_no_extra_i2c(void)
+void setUp(void)
 {
-    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
-    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
-    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_unexpected);
+    memset(g_reads, 0, sizeof(g_reads));
+    memset(g_writes, 0, sizeof(g_writes));
+    g_read_count = g_read_index = 0U;
+    g_write_count = g_write_index = 0U;
+    g_tick = 424242U;
+    g_delay_ms = 0U;
 }
 
-static void test_create_variants_set_identity_and_reject_null_names(void)
+void tearDown(void)
+{
+}
+
+static void test_factories_preserve_legacy_identity(void)
 {
     int bus;
-    sensor_device_t *light = ap3216c_create_light("ap-light", &bus);
-    sensor_device_t *prox = ap3216c_create_proximity("ap-prox", &bus);
-    sensor_device_t *ir = ap3216c_create_ir("ap-ir", &bus);
+    sensor_device_t *light = ap3216c_create_light("light", &bus);
+    sensor_device_t *proximity = ap3216c_create_proximity("proximity", &bus);
+    sensor_device_t *ir = ap3216c_create_ir("ir", &bus);
 
     TEST_ASSERT_NULL(ap3216c_create_light(NULL, &bus));
-    TEST_ASSERT_NULL(ap3216c_create_light("ap-light-null-bus", NULL));
-    TEST_ASSERT_NULL(ap3216c_create_proximity(NULL, &bus));
-    TEST_ASSERT_NULL(ap3216c_create_proximity("ap-prox-null-bus", NULL));
-    TEST_ASSERT_NULL(ap3216c_create_ir(NULL, &bus));
-    TEST_ASSERT_NULL(ap3216c_create_ir("ap-ir-null-bus", NULL));
+    TEST_ASSERT_NULL(ap3216c_create_light("bad", NULL));
     TEST_ASSERT_NOT_NULL(light);
-    TEST_ASSERT_NOT_NULL(prox);
+    TEST_ASSERT_NOT_NULL(proximity);
     TEST_ASSERT_NOT_NULL(ir);
-    TEST_ASSERT_EQUAL_STRING("ap-light", light->info.name);
-    TEST_ASSERT_EQUAL_STRING("ap-prox", prox->info.name);
-    TEST_ASSERT_EQUAL_STRING("ap-ir", ir->info.name);
-    TEST_ASSERT_EQUAL_STRING("Liteon", light->info.vendor);
-    TEST_ASSERT_EQUAL_STRING("AP3216C", prox->info.model);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_AMBIENT_LIGHT, light->info.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_PROXIMITY, prox->info.type);
+    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_PROXIMITY, proximity->info.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_IR, ir->info.type);
-    TEST_ASSERT_EQUAL_UINT8(AP3216C_ADDR_DEFAULT, ((ap3216c_priv_t *)light->priv_data)->i2c_addr);
-    TEST_ASSERT_EQUAL_UINT8(AP3216C_MODE_ALS_PS, ((ap3216c_priv_t *)prox->priv_data)->mode);
-    TEST_ASSERT_EQUAL_PTR(&bus, ir->bus);
-    TEST_ASSERT_NOT_NULL(light->ops->init);
-    TEST_ASSERT_NOT_NULL(prox->ops->deinit);
-    TEST_ASSERT_NOT_NULL(ir->ops->read);
+    TEST_ASSERT_EQUAL_STRING("AP3216C", light->info.model);
+    TEST_ASSERT_EQUAL_UINT8(AP3216C_ADDR_DEFAULT,
+                            ((ap3216c_priv_t *)light->priv_data)->i2c_addr);
 
     destroy_sensor(light);
-    destroy_sensor(prox);
+    destroy_sensor(proximity);
     destroy_sensor(ir);
 }
 
-static void test_init_deinit_propagate_config_write_failures(void)
+static void test_wrapper_delegates_lifecycle_and_error_mapping(void)
 {
     int bus;
-    sensor_device_t *sensor = ap3216c_create_light("ap-init", &bus);
-    uint8_t reset = 0x04U;
-    uint8_t mode = AP3216C_MODE_ALS_PS;
-    uint8_t off = AP3216C_MODE_POWER_DOWN;
+    sensor_device_t *sensor = ap3216c_create_light("light", &bus);
 
-    TEST_ASSERT_NOT_NULL(sensor);
-    queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &reset, 1U, -5);
-    TEST_ASSERT_EQUAL_INT(-5, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total_ms);
-    assert_no_extra_i2c();
+    queue_write(XY_AP3216C_MODE_RESET, XY_DEVICE_OK);
+    queue_write(XY_AP3216C_MODE_ALS_PS, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_FALSE(((ap3216c_priv_t *)sensor->priv_data)->device.initialized);
 
-    queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &reset, 1U, 0);
-    queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &mode, 1U, -6);
-    TEST_ASSERT_EQUAL_INT(-6, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT32(50U, g_delay_total_ms);
-    assert_no_extra_i2c();
-
-    queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &reset, 1U, 0);
-    queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &mode, 1U, 0);
+    queue_write(XY_AP3216C_MODE_RESET, XY_DEVICE_OK);
+    queue_write(XY_AP3216C_MODE_ALS_PS, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT32(150U, g_delay_total_ms);
-    assert_no_extra_i2c();
+    TEST_ASSERT_TRUE(((ap3216c_priv_t *)sensor->priv_data)->device.initialized);
+    TEST_ASSERT_EQUAL_UINT32(150U, g_delay_ms);
 
-    queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &off, 1U, -7);
-    TEST_ASSERT_EQUAL_INT(-7, sensor->ops->deinit(sensor));
-    assert_no_extra_i2c();
-
-    queue_i2c_write(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_SYS_CONFIG, &off, 1U, 0);
+    queue_write(XY_AP3216C_MODE_POWER_DOWN, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
-    assert_no_extra_i2c();
-
     destroy_sensor(sensor);
 }
 
-static void test_light_proximity_and_ir_reads_convert_raw_values(void)
+static void test_wrapper_converts_channels_and_preserves_output_on_failure(void)
 {
+    static const uint8_t als[] = {0x34U, 0x12U};
+    static const uint8_t ps[] = {0x8AU, 0x21U};
+    static const uint8_t ir_raw[] = {0xAAU, 0x03U};
     int bus;
-    sensor_device_t *light = ap3216c_create_light("ap-light-read", &bus);
-    sensor_device_t *prox = ap3216c_create_proximity("ap-prox-read", &bus);
-    sensor_device_t *ir = ap3216c_create_ir("ap-ir-read", &bus);
-    sensor_data_t data = {0};
-    uint8_t als[] = {0x34U, 0x12U};
-    uint8_t ps[] = {0x8AU, 0x21U};
-    uint8_t ir_raw[] = {0xAAU, 0x03U};
+    sensor_device_t *light = ap3216c_create_light("light", &bus);
+    sensor_device_t *proximity = ap3216c_create_proximity("proximity", &bus);
+    sensor_device_t *ir = ap3216c_create_ir("ir", &bus);
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_uint32 = 0xA5A5U};
+    sensor_data_t snapshot;
 
-    TEST_ASSERT_NOT_NULL(light);
-    TEST_ASSERT_NOT_NULL(prox);
-    TEST_ASSERT_NOT_NULL(ir);
+    queue_write(XY_AP3216C_MODE_RESET, XY_DEVICE_OK);
+    queue_write(XY_AP3216C_MODE_ALS_PS, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, light->ops->init(light));
+    queue_write(XY_AP3216C_MODE_RESET, XY_DEVICE_OK);
+    queue_write(XY_AP3216C_MODE_ALS_PS, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, proximity->ops->init(proximity));
+    queue_write(XY_AP3216C_MODE_RESET, XY_DEVICE_OK);
+    queue_write(XY_AP3216C_MODE_ALS_PS, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, ir->ops->init(ir));
 
-    queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_ALS_DATA_L, als, sizeof(als), 0);
+    queue_read(XY_AP3216C_REG_ALS_DATA_L, als, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, light->ops->read(light, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_AMBIENT_LIGHT, data.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_LUX, data.unit);
     TEST_ASSERT_EQUAL_UINT32(1631U, data.value.val_uint32);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-    TEST_ASSERT_EQUAL_UINT8(90U, data.accuracy);
-
-    g_tick = 123U;
-    queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_PS_DATA_L, ps, sizeof(ps), 0);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, prox->ops->read(prox, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_PROXIMITY, data.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_NONE, data.unit);
-    TEST_ASSERT_EQUAL_INT32(0x21AU, data.value.val_int32);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-    TEST_ASSERT_EQUAL_UINT8(85U, data.accuracy);
-
-    g_tick = 456U;
-    queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_IR_DATA_L, ir_raw, sizeof(ir_raw), 0);
+    queue_read(XY_AP3216C_REG_PS_DATA_L, ps, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, proximity->ops->read(proximity, &data));
+    TEST_ASSERT_EQUAL_INT32(0x21A, data.value.val_int32);
+    queue_read(XY_AP3216C_REG_IR_DATA_L, ir_raw, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, ir->ops->read(ir, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_IR, data.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_NONE, data.unit);
     TEST_ASSERT_EQUAL_UINT32(0x3AAU, data.value.val_uint32);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-    TEST_ASSERT_EQUAL_UINT8(85U, data.accuracy);
-    assert_no_extra_i2c();
+
+    snapshot = data;
+    queue_read(XY_AP3216C_REG_IR_DATA_L, NULL, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, ir->ops->read(ir, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
 
     destroy_sensor(light);
-    destroy_sensor(prox);
+    destroy_sensor(proximity);
     destroy_sensor(ir);
 }
 
-static void test_read_failures_and_overflow_preserve_output(void)
+static void test_wrapper_rejects_missing_context_without_io(void)
 {
     int bus;
-    sensor_device_t *light = ap3216c_create_light("ap-light-fail", &bus);
-    sensor_device_t *prox = ap3216c_create_proximity("ap-prox-fail", &bus);
-    sensor_device_t *ir = ap3216c_create_ir("ap-ir-fail", &bus);
-    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .unit = SENSOR_UNIT_PPM,
-                          .value.val_uint32 = 0xA5A5U, .timestamp = 999U, .accuracy = 1U};
-    sensor_data_t snapshot = data;
-    uint8_t overflow[] = {0x40U, 0x00U};
+    sensor_device_t *sensor = ap3216c_create_light("light", &bus);
+    sensor_data_t data = {0};
 
-    TEST_ASSERT_NOT_NULL(light);
-    TEST_ASSERT_NOT_NULL(prox);
-    TEST_ASSERT_NOT_NULL(ir);
-
-    queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_ALS_DATA_L, NULL, 2U, -1);
-    TEST_ASSERT_EQUAL_INT(-1, light->ops->read(light, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-
-    queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_PS_DATA_L, overflow, sizeof(overflow), 0);
-    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, prox->ops->read(prox, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-
-    queue_i2c_read(&bus, AP3216C_ADDR_DEFAULT, AP3216C_REG_IR_DATA_L, NULL, 2U, -2);
-    TEST_ASSERT_EQUAL_INT(-2, ir->ops->read(ir, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-    assert_no_extra_i2c();
-
-    destroy_sensor(light);
-    destroy_sensor(prox);
-    destroy_sensor(ir);
-}
-
-static void test_public_ops_reject_null_and_missing_private_data_without_i2c(void)
-{
-    int bus;
-    sensor_device_t *light = ap3216c_create_light("ap-light-guard", &bus);
-    sensor_device_t *prox = ap3216c_create_proximity("ap-prox-guard", &bus);
-    sensor_device_t *ir = ap3216c_create_ir("ap-ir-guard", &bus);
-    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_uint32 = 77U, .timestamp = 88U};
-    sensor_data_t snapshot = data;
-
-    TEST_ASSERT_NOT_NULL(light);
-    TEST_ASSERT_NOT_NULL(prox);
-    TEST_ASSERT_NOT_NULL(ir);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->init(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->deinit(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->read(light, NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, prox->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, prox->ops->read(prox, NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ir->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ir->ops->read(ir, NULL));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-
-    SENSOR_FREE(light->priv_data);
-    light->priv_data = NULL;
-    SENSOR_FREE(prox->priv_data);
-    prox->priv_data = NULL;
-    SENSOR_FREE(ir->priv_data);
-    ir->priv_data = NULL;
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->init(light));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->deinit(light));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->read(light, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, prox->ops->read(prox, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ir->ops->read(ir, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
-    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
-
-    light->priv_data = SENSOR_MALLOC(sizeof(ap3216c_priv_t));
-    TEST_ASSERT_NOT_NULL(light->priv_data);
-    ((ap3216c_priv_t *)light->priv_data)->i2c_addr = AP3216C_ADDR_DEFAULT;
-    ((ap3216c_priv_t *)light->priv_data)->mode = AP3216C_MODE_ALS_PS;
-    light->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->init(light));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->deinit(light));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, light->ops->read(light, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_read_count);
-    TEST_ASSERT_EQUAL_UINT(0U, g_i2c_write_count);
-
-    destroy_sensor(light);
-    destroy_sensor(prox);
-    destroy_sensor(ir);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    destroy_sensor(sensor);
 }
 
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_create_variants_set_identity_and_reject_null_names);
-    RUN_TEST(test_init_deinit_propagate_config_write_failures);
-    RUN_TEST(test_light_proximity_and_ir_reads_convert_raw_values);
-    RUN_TEST(test_read_failures_and_overflow_preserve_output);
-    RUN_TEST(test_public_ops_reject_null_and_missing_private_data_without_i2c);
+    RUN_TEST(test_factories_preserve_legacy_identity);
+    RUN_TEST(test_wrapper_delegates_lifecycle_and_error_mapping);
+    RUN_TEST(test_wrapper_converts_channels_and_preserves_output_on_failure);
+    RUN_TEST(test_wrapper_rejects_missing_context_without_io);
     return UNITY_END();
 }

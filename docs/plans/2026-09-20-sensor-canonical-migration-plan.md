@@ -88,6 +88,10 @@ AHT10 is complete: the canonical Device owner now owns `0x38` initialization, me
 transactions and both converted channels; the legacy root source is a humidity-only compatibility
 wrapper. Focused Device/wrapper contracts preserve existing Pandora evidence without upgrading it.
 
+AP3216C is complete: the canonical Device owner now owns `0x1E` reset/mode lifecycle and ALS,
+proximity and IR register decoding; the legacy three-factory API delegates all transport and
+conversion work. Existing Pandora B1 evidence remains bounded and is not upgraded by this migration.
+
 QMA6100P remains blocked on exact part identity/documentation. IIS2ICLX reconstruction was deferred
 in this run because the primary ST datasheet fetch failed; no register constants were guessed.
 

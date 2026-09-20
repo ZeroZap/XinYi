@@ -38,6 +38,7 @@ list(APPEND SENSOR_DRIVERS
     "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/bh1750/xy_bh1750.c"
     "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/aht20/xy_aht20.c"
     "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/aht10/xy_aht10.c"
+    "${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/ap3216c/xy_ap3216c.c"
 )
 list(APPEND SENSOR_SOURCES ${SENSOR_DRIVERS})
 
@@ -53,6 +54,7 @@ target_include_directories(sensor_component PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/bh1750
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/aht20
     ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/temperature/aht10
+    ${CMAKE_CURRENT_LIST_DIR}/../drivers/sensor/light/ap3216c
     ${CMAKE_CURRENT_LIST_DIR}/../hal/inc
     ${CMAKE_CURRENT_LIST_DIR}/../kernel/osal
     ${CMAKE_CURRENT_LIST_DIR}/../trace/xy_log/inc

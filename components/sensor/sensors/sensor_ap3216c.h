@@ -2,6 +2,7 @@
 #define __SENSOR_AP3216C_H__
 
 #include "sensor_core.h"
+#include "xy_ap3216c.h"
 
 /* AP3216C I2C地址 */
 #define AP3216C_ADDR_DEFAULT 0x1E
@@ -29,6 +30,7 @@
 
 /* 私有数据 */
 typedef struct {
+    xy_ap3216c_t device;
     uint8_t i2c_addr;
     uint8_t mode;
 } ap3216c_priv_t;

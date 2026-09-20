@@ -31,7 +31,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 15 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219, BMP390 and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 16 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219, BMP390 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -50,6 +50,7 @@ The Device-model root set is currently exactly:
 - INA219: `components/drivers/sensor/adc/ina219/xy_ina219.c`
 - BMP390: `components/drivers/sensor/pressure/bmp390/xy_bmp390.c`
 - AHT10: `components/drivers/sensor/temperature/aht10/xy_aht10.c`
+- AP3216C: `components/drivers/sensor/light/ap3216c/xy_ap3216c.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -185,6 +186,14 @@ compatibility-only humidity wrapper and delegates all transport, conversion and 
 the canonical owner. Existing Pandora AHT10 B1 evidence remains bounded to the previously observed
 board path; this migration adds no new accuracy, timing, NACK-recovery or long-run claim.
 
+### AP3216C migration status
+
+The Device-model source under `components/drivers/sensor/light/ap3216c` now owns reset/mode
+configuration and ALS, proximity and IR register decoding. Root-linked `sensor_ap3216c.c` remains
+only as a compatibility wrapper for the three legacy factories and contains no direct I2C protocol.
+Existing Pandora AP3216C B1 evidence remains bounded; this migration adds no accuracy, threshold,
+NACK-recovery or long-run claim.
+
 ### SHT40 migration status
 
 The former experimental typed implementation is now the canonical Device-model owner under
@@ -203,8 +212,8 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 15 canonical names have exactly six approved legacy filename overlaps:
-`sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, and `aht10`. Each overlap is a compatibility wrapper
+The current 16 canonical names have exactly seven approved legacy filename overlaps:
+`sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, and `ap3216c`. Each overlap is a compatibility wrapper
 documented above, not an implementation owner. The other nine canonical owners (`ads1115`, `aht30`,
 `bme680`, `hmc5883l`, `l3g4200d`, `sc7a22h`, `sht40`, `ina219`, and `bmp390`) have no legacy-root counterpart. No canonical name overlaps
 the 17 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.

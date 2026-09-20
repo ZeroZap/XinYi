@@ -1068,10 +1068,20 @@ target_include_directories(test_vl53l0x_sensor BEFORE PRIVATE
 xy_add_unit_test(test_ap3216c_sensor sensor_ap3216c_sensor UNITY
     ${UNIT_SENSOR}/test_ap3216c_sensor.c
     ${SENSOR}/sensors/sensor_ap3216c.c
+    ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
 )
 target_include_directories(test_ap3216c_sensor BEFORE PRIVATE
     ${SENSOR}
     ${SENSOR}/sensors
+    ${DRV}/sensor/light/ap3216c
+)
+
+xy_add_unit_test(test_ap3216c_device sensor_ap3216c_device UNITY
+    ${UNIT_SENSOR}/test_ap3216c_device.c
+    ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
+)
+target_include_directories(test_ap3216c_device BEFORE PRIVATE
+    ${DRV}/sensor/light/ap3216c
 )
 
 xy_add_unit_test(test_apds9960_sensor sensor_apds9960_sensor UNITY
