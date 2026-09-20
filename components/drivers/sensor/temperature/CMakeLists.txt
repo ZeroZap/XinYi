@@ -30,6 +30,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hdc1080)
     add_subdirectory(hdc1080)
 endif()
 
+# MLX90614
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/mlx90614)
+    add_subdirectory(mlx90614)
+endif()
+
 # DHT11
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/dht11)
     add_subdirectory(dht11)

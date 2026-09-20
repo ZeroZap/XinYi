@@ -841,10 +841,10 @@ xy_add_unit_test(test_sensor_framework sensor_framework UNITY
 
 xy_add_unit_test(test_mlx90614 sensor_mlx90614 UNITY
     ${UNIT_SENSOR}/test_mlx90614.c
-    ${SENSOR}/src/xy_mlx90614.c
+    ${DRV}/sensor/temperature/mlx90614/xy_mlx90614.c
 )
 target_include_directories(test_mlx90614 PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/temperature/mlx90614
 )
 
 xy_add_unit_test(test_aht20 sensor_aht20 UNITY

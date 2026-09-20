@@ -57,12 +57,18 @@ static int xy_mlx90614_read16(xy_mlx90614_t *dev, uint8_t reg, uint16_t *value)
     return XY_DEVICE_OK;
 }
 
+static int xy_mlx90614_ready(const xy_mlx90614_t *dev)
+{
+    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 int xy_mlx90614_init(xy_mlx90614_t *dev, void *i2c_handle, uint8_t addr)
 {
     int ret;
     uint16_t id;
     
-    if (!dev || !i2c_handle) {
+    if (!dev || !i2c_handle || addr != MLX90614_ADDR_DEFAULT) {
         return XY_MLX90614_INVALID_PARAM;
     }
     
@@ -90,8 +96,9 @@ int xy_mlx90614_init(xy_mlx90614_t *dev, void *i2c_handle, uint8_t addr)
 
 int xy_mlx90614_deinit(xy_mlx90614_t *dev)
 {
-    if (!dev) return XY_MLX90614_INVALID_PARAM;
+    if (!xy_mlx90614_ready(dev)) return XY_MLX90614_INVALID_PARAM;
     dev->initialized = 0;
+    dev->i2c_dev.base.initialized = 0;
     return XY_MLX90614_OK;
 }
 
@@ -100,7 +107,7 @@ int xy_mlx90614_read_all(xy_mlx90614_t *dev)
     uint16_t ta_raw, tobj1_raw, tobj2_raw;
     int ret;
     
-    if (!dev || !dev->initialized) {
+    if (!xy_mlx90614_ready(dev)) {
         return XY_MLX90614_INVALID_PARAM;
     }
     
@@ -179,7 +186,7 @@ int xy_mlx90614_get_emissivity(xy_mlx90614_t *dev, uint16_t *emissivity)
     int ret;
     uint16_t ce_raw;
     
-    if (!dev || !emissivity) return XY_MLX90614_INVALID_PARAM;
+    if (!xy_mlx90614_ready(dev) || !emissivity) return XY_MLX90614_INVALID_PARAM;
     
     /* 从 EEPROM 读取发射率校准值 (地址 0x24) */
     ret = xy_mlx90614_read16(dev, 0x24, &ce_raw);
@@ -207,7 +214,7 @@ int xy_mlx90614_get_emissivity(xy_mlx90614_t *dev, uint16_t *emissivity)
  */
 int xy_mlx90614_set_emissivity(xy_mlx90614_t *dev, uint16_t emissivity)
 {
-    if (!dev || !dev->initialized) return XY_MLX90614_INVALID_PARAM;
+    if (!xy_mlx90614_ready(dev)) return XY_MLX90614_INVALID_PARAM;
     
     /* 参数验证：发射率范围 0.10 - 1.00 */
     if (emissivity < 100 || emissivity > 1000) {

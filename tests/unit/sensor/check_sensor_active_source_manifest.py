@@ -46,6 +46,8 @@ STALE_AHT20_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_aht20.c"
 STALE_AHT20_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_aht20.h"
 STALE_SHT40_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_sht40.c"
 STALE_SHT40_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_sht40.h"
+STALE_MLX90614_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_mlx90614.c"
+STALE_MLX90614_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_mlx90614.h"
 STALE_SHT40_PROTOTYPE = (ROOT / "components" / "sensor" / "drivers" / "temperature" /
                          "xy_sensor_sht40.c")
 SMART_HYGROMETER_CMAKE = ROOT / "projects" / "examples" / "smart_hygrometer" / "CMakeLists.txt"
@@ -120,9 +122,9 @@ def main() -> int:
     require(len(legacy) == 39, f"expected 39 legacy active sources, found {len(legacy)}", errors)
     require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
-    require(len(experimental) == 14,
-            f"expected 14 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 20, f"expected 20 Device-model sources, found {len(device)}", errors)
+    require(len(experimental) == 13,
+            f"expected 13 experimental xy_* sources, found {len(experimental)}", errors)
+    require(len(device) == 21, f"expected 21 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
@@ -163,6 +165,7 @@ def main() -> int:
         "HDC1080",
         "TSL2561",
         "INA226",
+        "MLX90614",
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
@@ -178,7 +181,7 @@ def main() -> int:
             "canonical API 已确定为 Device model" in tracker and
             "| CLOSED |" in tracker,
             "D-001 must be closed after the canonical Device-model decision", errors)
-    require("14 个 `src/xy_*.c`" in audit_plan,
+    require("13 个 `src/xy_*.c`" in audit_plan,
             "audit plan must use the current experimental source count", errors)
     require("Device-model canonical owner" in audit_plan,
             "audit plan must record the resolved Sensor ownership direction", errors)
@@ -240,6 +243,8 @@ def main() -> int:
             "retired experimental AHT20 lifecycle must not reappear", errors)
     require(not STALE_SHT40_SOURCE.exists() and not STALE_SHT40_HEADER.exists(),
             "retired experimental SHT40 lifecycle must not reappear", errors)
+    require(not STALE_MLX90614_SOURCE.exists() and not STALE_MLX90614_HEADER.exists(),
+            "retired experimental MLX90614 lifecycle must not reappear", errors)
     require(not STALE_SHT40_PROTOTYPE.exists(),
             "retired xy_sensor_sht40 lifecycle must not reappear", errors)
     require(not STALE_TOP_LEVEL_APDS9960_SOURCE.exists() and
@@ -261,7 +266,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=40 legacy_subdir=39 "
-          "legacy_top_level=1 experimental_test_only=14 device_active=20 "
+          "legacy_top_level=1 experimental_test_only=13 device_active=21 "
           "approved_wrappers=8 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0

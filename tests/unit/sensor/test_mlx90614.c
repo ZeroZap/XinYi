@@ -97,6 +97,9 @@ static void test_init_rejects_invalid_inputs_and_uses_default_address(void)
 
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_init(NULL, &fake_bus, MLX90614_ADDR_DEFAULT));
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_init(&dev, NULL, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM,
+                          xy_mlx90614_init(&dev, &fake_bus, (uint8_t)(MLX90614_ADDR_DEFAULT + 1U)));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
 
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
     TEST_ASSERT_EQUAL_UINT8(MLX90614_ADDR_DEFAULT, g_last_addr);
@@ -342,6 +345,34 @@ static void test_deinit_rejects_null_and_clears_initialized_flag(void)
     TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_deinit(&dev));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
+}
+
+static void test_public_apis_reject_broken_nested_i2c_lifecycle_without_io(void)
+{
+    xy_mlx90614_t dev;
+    int16_t temperature = 1234;
+    uint16_t emissivity = 950U;
+    int fake_bus;
+    size_t reads_before;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK,
+                          xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
+    dev.i2c_dev.base.initialized = 0U;
+    reads_before = g_read_count;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_read_all(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM,
+                          xy_mlx90614_read_ambient(&dev, &temperature));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM,
+                          xy_mlx90614_get_emissivity(&dev, &emissivity));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM,
+                          xy_mlx90614_set_emissivity(&dev, 950U));
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_INVALID_PARAM, xy_mlx90614_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_count);
+    TEST_ASSERT_EQUAL_INT16(1234, temperature);
+    TEST_ASSERT_EQUAL_UINT16(950U, emissivity);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
 }
 
 static void test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error(void)
@@ -424,6 +455,7 @@ int main(void)
     RUN_TEST(test_read_object2_i2c_failure_preserves_output);
     RUN_TEST(test_read_all_negative_temperature_conversion_bounds);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
+    RUN_TEST(test_public_apis_reject_broken_nested_i2c_lifecycle_without_io);
     RUN_TEST(test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error);
     RUN_TEST(test_emissivity_get_falls_back_on_bad_pec);
     RUN_TEST(test_set_emissivity_validates_range_and_reports_unsupported_write);
