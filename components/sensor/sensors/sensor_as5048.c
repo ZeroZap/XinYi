@@ -23,13 +23,15 @@ static sensor_err_t as5048_read(sensor_device_t *sensor, sensor_data_t *data)
 
     uint8_t buf[2];
     as5048_priv_t *priv = (as5048_priv_t *)sensor->priv_data;
-    sensor_err_t ret = (sensor_err_t)hal_i2c_mem_read(sensor->bus, priv->i2c_addr, 0xFE, buf, 2);
+    sensor_err_t ret = (sensor_err_t)hal_i2c_mem_read(
+        sensor->bus, priv->i2c_addr, AS5048B_REG_ANGLE_MSB, buf, sizeof(buf));
     if (ret != SENSOR_EOK) {
         return ret;
     }
 
+    uint16_t angle = ((uint16_t)buf[0] << 6) | ((uint16_t)buf[1] & 0x3FU);
     data->type = SENSOR_TYPE_ANGLE;
-    data->value.val_float = (((uint16_t)buf[1] << 8) | buf[0]) / 16384.0f * 360.0f;
+    data->value.val_float = (float)angle / 16384.0f * 360.0f;
     data->timestamp = SENSOR_GET_TICK();
     return SENSOR_EOK;
 }
@@ -60,10 +62,10 @@ sensor_device_t *as5048_create(const char *name, void *i2c_bus)
     }
 
     memset(sensor, 0, sizeof(sensor_device_t));
-    priv->i2c_addr = AS5048_ADDR;
+    priv->i2c_addr = AS5048B_ADDR;
     strncpy(sensor->info.name, name, SENSOR_NAME_MAX_LEN - 1U);
     sensor->info.vendor = "AMS";
-    sensor->info.model = "AS5048";
+    sensor->info.model = "AS5048B";
     sensor->info.type = SENSOR_TYPE_ANGLE;
     sensor->ops = &as5048_ops;
     sensor->bus = i2c_bus;

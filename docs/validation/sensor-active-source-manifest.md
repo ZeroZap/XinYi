@@ -272,6 +272,14 @@ the LIS2DH-family register shape, while the declared `0x1E` identity was read bu
 the raw words were published directly as milli-g. The fake-I2C test only repeated those constants.
 GD30DF remains unsupported pending traceable documentation and a Device-model owner.
 
+The AS5048 angle owner is explicitly bounded to the I2C AS5048B variant. Its former Host contract
+and implementation decoded angle registers `0xFE/0xFF` as a little-endian word, but the AS5048B
+serial contract places angle bits `[13:6]` in `0xFE` and `[5:0]` in `0xFF`. The AS5048A is SPI-only
+and is not represented by this owner. Public address/register constants and model identity now say
+AS5048B, and the decoder follows that byte layout while preserving caller output on read failure.
+This is protocol/Host evidence only; diagnostics, magnetic accuracy, timing, and hardware remain
+pending.
+
 VL53L1X follows the same bounded retirement rule. The removed legacy owner only reset register
 `0x2D` through an 8-bit register helper and read two bytes from `0x6E`; it had no checked consumer
 outside its dedicated test. The retained `components/sensor/src/xy_vl53l1x.c` implementation has

@@ -60,11 +60,11 @@ static void destroy_sensor(sensor_device_t *sensor)
     }
 }
 
-static void queue_raw_le(uint16_t raw)
+static void queue_as5048b_raw(uint16_t raw)
 {
     TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_reads), g_read_count);
-    g_reads[g_read_count].data[0] = (uint8_t)raw;
-    g_reads[g_read_count].data[1] = (uint8_t)(raw >> 8);
+    g_reads[g_read_count].data[0] = (uint8_t)(raw >> 6);
+    g_reads[g_read_count].data[1] = (uint8_t)(raw & 0x3FU);
 }
 
 static void queue_as5600_raw(uint16_t raw)
@@ -115,31 +115,31 @@ static void test_as5600_create_and_read_decodes_datasheet_msb_first_angle(void)
     destroy_sensor(sensor);
 }
 
-static void test_as5048_create_and_read_converts_14bit_little_endian_angle(void)
+static void test_as5048b_create_and_read_decodes_datasheet_msb_first_angle(void)
 {
     int fake_bus;
     sensor_data_t data = {0};
-    sensor_device_t *sensor = as5048_create("as5048-main", &fake_bus);
+    sensor_device_t *sensor = as5048_create("as5048b-main", &fake_bus);
     TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_STRING("as5048-main", sensor->info.name);
+    TEST_ASSERT_EQUAL_STRING("as5048b-main", sensor->info.name);
     TEST_ASSERT_EQUAL_STRING("AMS", sensor->info.vendor);
-    TEST_ASSERT_EQUAL_STRING("AS5048", sensor->info.model);
+    TEST_ASSERT_EQUAL_STRING("AS5048B", sensor->info.model);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ANGLE, sensor->info.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_IDLE, sensor->status);
     TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
     TEST_ASSERT_NOT_NULL(sensor->ops);
     TEST_ASSERT_NOT_NULL(sensor->ops->init);
     TEST_ASSERT_NOT_NULL(sensor->ops->read);
-    TEST_ASSERT_EQUAL_UINT8(AS5048_ADDR, ((as5048_priv_t *)sensor->priv_data)->i2c_addr);
+    TEST_ASSERT_EQUAL_UINT8(AS5048B_ADDR, ((as5048_priv_t *)sensor->priv_data)->i2c_addr);
     TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
-    queue_raw_le(4096U); /* quarter scale => 90 deg */
+    queue_as5048b_raw(4096U); /* quarter scale => 90 deg */
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
 
     TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
-    TEST_ASSERT_EQUAL_UINT8(AS5048_ADDR, g_reads[0].addr);
-    TEST_ASSERT_EQUAL_UINT8(0xFEU, g_reads[0].reg);
+    TEST_ASSERT_EQUAL_UINT8(AS5048B_ADDR, g_reads[0].addr);
+    TEST_ASSERT_EQUAL_UINT8(AS5048B_REG_ANGLE_MSB, g_reads[0].reg);
     TEST_ASSERT_EQUAL_UINT16(2U, g_reads[0].len);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ANGLE, data.type);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 90.0f, data.value.val_float);
@@ -258,7 +258,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_as5600_create_and_read_decodes_datasheet_msb_first_angle);
-    RUN_TEST(test_as5048_create_and_read_converts_14bit_little_endian_angle);
+    RUN_TEST(test_as5048b_create_and_read_decodes_datasheet_msb_first_angle);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     RUN_TEST(test_create_rejects_null_names_without_i2c_side_effects);
     RUN_TEST(test_create_rejects_missing_bus_without_i2c_side_effects);
