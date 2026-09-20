@@ -92,6 +92,10 @@ AP3216C is complete: the canonical Device owner now owns `0x1E` reset/mode lifec
 proximity and IR register decoding; the legacy three-factory API delegates all transport and
 conversion work. Existing Pandora B1 evidence remains bounded and is not upgraded by this migration.
 
+ICM20608 is complete: the canonical Device owner now owns identity, default configuration,
+I2C/SPI transport dispatch and accel/gyro/temperature conversion; the legacy three-factory API is a
+compatibility wrapper. Existing static/basic-chain Pandora evidence remains bounded.
+
 QMA6100P remains blocked on exact part identity/documentation. IIS2ICLX reconstruction was deferred
 in this run because the primary ST datasheet fetch failed; no register constants were guessed.
 

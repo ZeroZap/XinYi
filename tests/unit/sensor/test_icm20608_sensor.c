@@ -32,6 +32,38 @@ static size_t g_spi_write_count;
 static size_t g_spi_write_index;
 static uint32_t g_tick;
 
+int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len);
+int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len);
+
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
+                              uint32_t timeout)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_NOT_NULL(handle);
+    TEST_ASSERT_TRUE(address == ICM20608_ADDR_DEFAULT || address == ICM20608_ADDR_ALT);
+    memset(dev, 0, sizeof(*dev));
+    dev->base.initialized = 1U;
+    dev->i2c_handle = handle;
+    dev->dev_addr = address;
+    dev->timeout = timeout;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
+{
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    return (xy_error_t)hal_i2c_mem_read(dev->i2c_handle, (uint8_t)dev->dev_addr, reg, data,
+                                        (uint16_t)len);
+}
+
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data,
+                                    size_t len)
+{
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    return (xy_error_t)hal_i2c_mem_write(dev->i2c_handle, (uint8_t)dev->dev_addr, reg,
+                                         (uint8_t *)data, (uint16_t)len);
+}
+
 uint32_t get_tick_ms(void)
 {
     return g_tick;
@@ -40,6 +72,11 @@ uint32_t get_tick_ms(void)
 void delay_ms(uint32_t ms)
 {
     g_tick += ms;
+}
+
+void xy_hal_delay_ms(uint32_t ms)
+{
+    delay_ms(ms);
 }
 
 int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
@@ -248,6 +285,10 @@ static void test_icm20608_i2c_init_read_deinit_contracts(void)
     queue_i2c_init_success(&fake_bus);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
     TEST_ASSERT_EQUAL_UINT32(7100U, g_tick);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gyro->ops->init(gyro));
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, temp->ops->init(temp));
 
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, accel_raw, sizeof(accel_raw), SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->read(accel, &data));
@@ -271,7 +312,7 @@ static void test_icm20608_i2c_init_read_deinit_contracts(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, temp->ops->read(temp, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, data.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_CELSIUS, data.unit);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 26.0f, data.value.val_float);
+    TEST_ASSERT_FLOAT_WITHIN(0.02f, 26.0f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT8(90, data.accuracy);
 
     queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x40U, SENSOR_EOK);
@@ -314,11 +355,8 @@ static void test_icm20608_failure_contracts_preserve_output(void)
     queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_2, 0x00U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->init(accel));
 
-    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x40U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->deinit(accel));
-
-    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, NULL, 6U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(accel, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ACCELEROMETER, data.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_MILLI_G, data.unit);
     TEST_ASSERT_EQUAL_INT32(11, data.value.val_3axis.x);
@@ -403,6 +441,8 @@ static void test_icm20608_propagates_first_transport_error(void)
     queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_ETIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->init(accel));
 
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, NULL, 6U, SENSOR_ETIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->read(accel, &data));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));

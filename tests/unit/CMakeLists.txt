@@ -1129,10 +1129,12 @@ target_include_directories(test_bmp280_sensor BEFORE PRIVATE
 xy_add_unit_test(test_icm20608_sensor sensor_icm20608 UNITY
     ${UNIT_SENSOR}/test_icm20608_sensor.c
     ${SENSOR}/sensors/sensor_icm20608.c
+    ${DRV}/sensor/motion/icm20608/xy_icm20608.c
 )
 target_include_directories(test_icm20608_sensor BEFORE PRIVATE
     ${SENSOR}
     ${SENSOR}/sensors
+    ${DRV}/sensor/motion/icm20608
 )
 
 xy_add_unit_test(test_low_power_accel_sensors sensor_low_power_accel_sensors UNITY

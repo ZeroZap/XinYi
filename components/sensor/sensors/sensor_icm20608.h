@@ -2,6 +2,7 @@
 #define __SENSOR_ICM20608_H__
 
 #include "sensor_core.h"
+#include "xy_icm20608.h"
 
 /* ICM20608 SPI/I2C地址 */
 #define ICM20608_ADDR_DEFAULT 0x68
@@ -25,6 +26,7 @@
 
 /* 私有数据 */
 typedef struct {
+    xy_icm20608_t device;
     uint8_t addr;        /* I2C地址或SPI片选 */
     uint8_t accel_range; /* 加速度量程 */
     uint16_t gyro_range; /* 陀螺仪量程 */
