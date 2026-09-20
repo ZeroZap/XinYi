@@ -30,7 +30,7 @@ Representative tail groups:
 | `sensor_st_silan_accel_sensors` | `tests/unit/sensor/test_st_silan_accel_sensors.c` | LIS2DH12, LIS2DW12, SC7A20, Silan SC7A20 |
 | `sensor_lsm6_imu_sensors` | `tests/unit/sensor/test_lsm6_imu_sensors.c` | LSM6DSL, LSM6DSO, LSM6DSR |
 | `sensor_light_uv_sensors` | `tests/unit/sensor/test_light_uv_sensors.c` | MAX44009, GUVA-S12SD |
-| `sensor_env_i2c_sensors` | `tests/unit/sensor/test_env_i2c_sensors.c` | AHT10, BMP390 |
+| `sensor_env_i2c_sensors` | `tests/unit/sensor/test_env_i2c_sensors.c` | AHT10; former uncompensated BMP390 owner retired |
 | `sensor_analog_misc_sensors` | `tests/unit/sensor/test_analog_misc_sensors.c` | ACS712, FSR, MG811 |
 | `sensor_mq_gas_sensors` | `tests/unit/sensor/test_mq_gas_sensors.c` | MQ3, MQ7, MQ135 |
 | `sensor_angle_encoders` | `tests/unit/sensor/test_angle_encoders.c` | AS5600, AS5048 |
