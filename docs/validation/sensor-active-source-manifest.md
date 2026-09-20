@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 47 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 46 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -237,6 +237,14 @@ MLX90393 was the remaining false angle owner. It declared an unused raw HAL read
 read, and deinit performed no transport; read always published `0.0` and did not model the chip's
 magnetic field outputs or an angle derivation contract. Its source/header and now-empty focused
 target were removed. MLX90393 is unsupported until a real Device owner and explicit angle model exist.
+
+The legacy `IIS2ICLP` owner was also retired after protocol audit. The source modeled an I2C/SPI
+accelerometer with register map `0x0F/0x20/0x22/0x28`, identity `0x6D`, and address `0x23`, but ST's
+IIS2ICLX/IIS2ICL family is an SPI-only inclinometer whose identity and control/output register map do
+not match that contract. The existing fake-register test therefore characterized repository fiction,
+not a supported chip protocol. The source/header and its focused assertions were removed instead of
+preserving a misidentified active driver. IIS2ICLX remains unsupported until a datasheet-grounded
+Device owner is implemented; no board, accuracy, transport, or product capability is claimed.
 
 VL53L1X follows the same bounded retirement rule. The removed legacy owner only reset register
 `0x2D` through an 8-bit register helper and read two bytes from `0x6E`; it had no checked consumer

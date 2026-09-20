@@ -204,7 +204,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |
 | `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |
 | `tests/unit/sensor/test_gps.c` | `unity` | 0 | GPS legacy parser GGA/RMC/GSV/checksum/registry contracts |
-| `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12/IIS2ICLP legacy low-power accel init/read/config failure contracts |
+| `tests/unit/sensor/test_low_power_accel_sensors.c` | `unity` | 0 | BMA400/KX023/ADXL362/LIS2DW12 legacy low-power accel init/read/config failure contracts |
 | `tests/unit/sensor/test_st_silan_accel_sensors.c` | `unity` | 0 | LIS2DH12/LIS2DW12/SC7A20/Silan SC7A20 accel init/read/config failure contracts |
 | `tests/unit/sensor/test_lsm6_imu_sensors.c` | `unity` | 0 | LSM6DSL/LSM6DSO/LSM6DSR legacy IMU I2C/SPI config/read/failure contracts |
 | `tests/unit/sensor/test_sensors_multi.c` | `unity` | 12 |

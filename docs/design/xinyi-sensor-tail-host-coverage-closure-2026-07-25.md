@@ -24,7 +24,7 @@ Representative tail groups:
 | CTest name | Unit file | Legacy drivers guarded |
 | --- | --- | --- |
 | `sensor_magnetic_i2c_sensors` | `tests/unit/sensor/test_magnetic_i2c_sensors.c` | QMC5883L, IST8310, AK09918, CMM905 |
-| `sensor_low_power_accel_sensors` | `tests/unit/sensor/test_low_power_accel_sensors.c` | BMA400, KX023, ADXL362, LIS2DW12, IIS2ICLP |
+| `sensor_low_power_accel_sensors` | `tests/unit/sensor/test_low_power_accel_sensors.c` | BMA400, KX023, ADXL362, LIS2DW12; former IIS2ICLP entry retired after protocol identity audit |
 | `sensor_stub_accel_sensors` | `tests/unit/sensor/test_stub_accel_sensors.c` | DMP6100, CMS, GD30DF, HS-ADS1100, QMA6100 |
 
 | `sensor_st_silan_accel_sensors` | `tests/unit/sensor/test_st_silan_accel_sensors.c` | LIS2DH12, LIS2DW12, SC7A20, Silan SC7A20 |
