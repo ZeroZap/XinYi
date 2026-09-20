@@ -134,6 +134,10 @@ temperature/FIFO/interrupt/error-preservation Host contracts remain unchanged. H
 pending; the legacy callback-shaped transport is retained inside this bounded API migration and is
 the next transport-boundary hardening target.
 
+SGP40 is complete: the typed owner moved into the Device root and its private command/read callback
+lifecycle was replaced by nested `xy_i2c_device_t` transactions. Feature-set, serial-ID, self-test,
+CRC and measurement contracts remain focused-test backed; VOC accuracy and hardware remain pending.
+
 Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
 
 Domain-owner corrections:

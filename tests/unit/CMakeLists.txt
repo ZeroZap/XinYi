@@ -932,10 +932,10 @@ target_include_directories(test_tsl2561 PRIVATE
 
 xy_add_unit_test(test_sgp40 sensor_sgp40 UNITY
     ${UNIT_SENSOR}/test_sgp40.c
-    ${SENSOR}/src/xy_sgp40.c
+    ${DRV}/sensor/environment/sgp40/xy_sgp40.c
 )
 target_include_directories(test_sgp40 PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/environment/sgp40
 )
 
 xy_add_unit_test(test_lps22hb sensor_lps22hb UNITY

@@ -43,6 +43,17 @@
 /* 数据就绪轮询间隔 */
 #define SGP40_POLL_INTERVAL_MS      10
 
+static bool sgp40_transport_ready(const xy_sgp40_dev_t *dev)
+{
+    return dev != XY_NULL && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != XY_NULL;
+}
+
+static bool sgp40_ready(const xy_sgp40_dev_t *dev)
+{
+    return sgp40_transport_ready(dev) && dev->is_initialized;
+}
+
 /*============================================================================
  * 内部辅助函数
  *===========================================================================*/
@@ -82,10 +93,14 @@ static bool sgp40_verify_crc(const uint8_t *data, uint16_t len, uint8_t expected
  */
 static xy_ret_t sgp40_write_command(xy_sgp40_dev_t *dev, uint16_t command)
 {
-    if (dev == XY_NULL || dev->i2c == XY_NULL) {
+    uint8_t data[2];
+
+    if (!sgp40_transport_ready(dev)) {
         return XY_ERROR;
     }
-    return xy_i2c_write_command(dev->i2c, command);
+    data[0] = (uint8_t)(command >> 8);
+    data[1] = (uint8_t)command;
+    return xy_i2c_device_write(&dev->i2c_dev, data, sizeof(data));
 }
 
 /**
@@ -93,10 +108,10 @@ static xy_ret_t sgp40_write_command(xy_sgp40_dev_t *dev, uint16_t command)
  */
 static xy_ret_t sgp40_write_data(xy_sgp40_dev_t *dev, const uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->i2c == XY_NULL || data == XY_NULL) {
+    if (!sgp40_transport_ready(dev) || data == XY_NULL) {
         return XY_ERROR;
     }
-    return xy_i2c_write_data(dev->i2c, data, len);
+    return xy_i2c_device_write(&dev->i2c_dev, data, len);
 }
 
 /**
@@ -104,7 +119,7 @@ static xy_ret_t sgp40_write_data(xy_sgp40_dev_t *dev, const uint8_t *data, uint1
  */
 static xy_ret_t sgp40_read_data(xy_sgp40_dev_t *dev, uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->i2c == XY_NULL || data == XY_NULL) {
+    if (!sgp40_transport_ready(dev) || data == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -112,7 +127,7 @@ static xy_ret_t sgp40_read_data(xy_sgp40_dev_t *dev, uint8_t *data, uint16_t len
     uint16_t expected_len = (len / 2) * 3;  /* 2 字节数据 + 1 字节 CRC */
     uint8_t *buffer = data;
     
-    xy_ret_t ret = xy_i2c_read_data(dev->i2c, buffer, expected_len);
+    xy_ret_t ret = xy_i2c_device_read(&dev->i2c_dev, buffer, expected_len);
     if (ret != XY_OK) return ret;
     
     /* 验证 CRC 并解包数据 */
@@ -142,8 +157,11 @@ static xy_ret_t sgp40_read_data(xy_sgp40_dev_t *dev, uint8_t *data, uint16_t len
 static xy_ret_t sgp40_read_u16(xy_sgp40_dev_t *dev, uint16_t *value)
 {
     uint8_t buffer[3];  /* 2 字节数据 + 1 字节 CRC */
-    
-    xy_ret_t ret = xy_i2c_read_data(dev->i2c, buffer, 3);
+
+    if (!sgp40_transport_ready(dev)) {
+        return XY_ERROR;
+    }
+    xy_ret_t ret = xy_i2c_device_read(&dev->i2c_dev, buffer, 3);
     if (ret != XY_OK) return ret;
     
     /* 验证 CRC */
@@ -182,12 +200,17 @@ static xy_ret_t sgp40_wait_measurement(xy_sgp40_dev_t *dev, uint32_t timeout_ms)
 
 xy_ret_t xy_sgp40_init(xy_sgp40_dev_t *dev, xy_i2c_dev_t *i2c, xy_sgp40_config_t *config)
 {
-    if (dev == XY_NULL || i2c == XY_NULL) {
+    if (dev == XY_NULL || i2c == XY_NULL || i2c->handle == XY_NULL ||
+        i2c->address != SGP40_I2C_ADDR) {
         return XY_ERROR;
     }
     
     memset(dev, 0, sizeof(xy_sgp40_dev_t));
-    dev->i2c = i2c;
+    xy_ret_t ret = xy_i2c_device_init(&dev->i2c_dev, i2c->handle, i2c->address, 1000U);
+    if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return ret;
+    }
     
     /* 设置默认配置 */
     dev->config.enable_compensation = SGP40_DEFAULT_ENABLE_COMP;
@@ -203,7 +226,7 @@ xy_ret_t xy_sgp40_init(xy_sgp40_dev_t *dev, xy_i2c_dev_t *i2c, xy_sgp40_config_t
     xy_delay_ms(20);
     
     /* 读取特征集 */
-    xy_ret_t ret = xy_sgp40_read_feature_set(dev, &dev->feature_set);
+    ret = xy_sgp40_read_feature_set(dev, &dev->feature_set);
     if (ret != XY_OK) {
         memset(dev, 0, sizeof(*dev));
         return ret;
@@ -236,7 +259,7 @@ xy_ret_t xy_sgp40_init(xy_sgp40_dev_t *dev, xy_i2c_dev_t *i2c, xy_sgp40_config_t
 
 xy_ret_t xy_sgp40_deinit(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!sgp40_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -244,6 +267,7 @@ xy_ret_t xy_sgp40_deinit(xy_sgp40_dev_t *dev)
     xy_sgp40_stop(dev);
     
     dev->is_initialized = false;
+    dev->i2c_dev.base.initialized = false;
     
     return XY_OK;
 }
@@ -280,7 +304,7 @@ xy_ret_t xy_sgp40_read_serial_id(xy_sgp40_dev_t *dev, uint32_t serial_id[3])
     
     /* 读取 6 字节序列号 (3 个 uint16_t) */
     uint8_t buffer[9];  /* 6 字节数据 + 3 字节 CRC */
-    ret = xy_i2c_read_data(dev->i2c, buffer, 9);
+    ret = xy_i2c_device_read(&dev->i2c_dev, buffer, 9);
     if (ret != XY_OK) return ret;
     
     /* 验证并暂存序列号 */
@@ -331,7 +355,7 @@ xy_ret_t xy_sgp40_self_test(xy_sgp40_dev_t *dev, bool *passed)
 
 xy_ret_t xy_sgp40_start_measurement(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!sgp40_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -341,7 +365,7 @@ xy_ret_t xy_sgp40_start_measurement(xy_sgp40_dev_t *dev)
 
 xy_ret_t xy_sgp40_read_voc(xy_sgp40_dev_t *dev, xy_sgp40_data_t *data)
 {
-    if (dev == XY_NULL || !dev->is_initialized || data == XY_NULL) {
+    if (!sgp40_ready(dev) || data == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -385,7 +409,7 @@ xy_ret_t xy_sgp40_measure_voc(xy_sgp40_dev_t *dev, xy_sgp40_data_t *data, uint32
 
 xy_ret_t xy_sgp40_start_continuous(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!sgp40_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -396,7 +420,7 @@ xy_ret_t xy_sgp40_start_continuous(xy_sgp40_dev_t *dev)
 
 xy_ret_t xy_sgp40_stop(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL) {
+    if (!sgp40_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -407,7 +431,7 @@ xy_ret_t xy_sgp40_stop(xy_sgp40_dev_t *dev)
 
 xy_ret_t xy_sgp40_set_compensation(xy_sgp40_dev_t *dev, float temperature, float humidity)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!sgp40_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -423,7 +447,7 @@ xy_ret_t xy_sgp40_set_compensation(xy_sgp40_dev_t *dev, float temperature, float
 
 xy_ret_t xy_sgp40_enable_burn_in(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!sgp40_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -467,8 +491,7 @@ void xy_sgp40_set_offset(xy_sgp40_dev_t *dev, int16_t offset)
 
 bool xy_sgp40_is_ready(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL) return false;
-    return dev->is_initialized;
+    return sgp40_ready(dev);
 }
 
 xy_sgp40_data_t *xy_sgp40_get_last_data(xy_sgp40_dev_t *dev)

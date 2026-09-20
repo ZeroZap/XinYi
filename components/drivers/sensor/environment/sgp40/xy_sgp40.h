@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "xy_typedef.h"
+#include "xy_dev_i2c.h"
 
 #ifndef XY_RET_T_DEFINED
 #define XY_RET_T_DEFINED
@@ -36,28 +36,10 @@ extern "C" {
  * 硬件抽象层接口
  *===========================================================================*/
 
-/**
- * I2C 设备结构体
- */
 typedef struct {
     void *handle;
     uint8_t address;
 } xy_i2c_dev_t;
-
-/**
- * @brief I2C 写命令 (需要用户实现)
- */
-xy_ret_t xy_i2c_write_command(xy_i2c_dev_t *dev, uint16_t command);
-
-/**
- * @brief I2C 写数据 (需要用户实现)
- */
-xy_ret_t xy_i2c_write_data(xy_i2c_dev_t *dev, const uint8_t *data, uint16_t len);
-
-/**
- * @brief I2C 读数据 (需要用户实现)
- */
-xy_ret_t xy_i2c_read_data(xy_i2c_dev_t *dev, uint8_t *data, uint16_t len);
 
 /**
  * @brief 延时函数 (需要用户实现)
@@ -137,7 +119,7 @@ typedef struct {
  * SGP40 设备结构体
  */
 typedef struct {
-    xy_i2c_dev_t *i2c;             /*!< I2C 设备 */
+    xy_i2c_device_t i2c_dev;       /*!< canonical Device I2C helper */
     xy_sgp40_config_t config;      /*!< 配置 */
     bool is_initialized;           /*!< 是否已初始化 */
     

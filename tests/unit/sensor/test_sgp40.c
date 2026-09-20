@@ -25,19 +25,34 @@ static size_t g_write_data_index;
 
 static uint32_t g_delay_total;
 static size_t g_delay_count;
+static int g_init_result;
 
-xy_ret_t xy_i2c_write_command(xy_i2c_dev_t *dev, uint16_t command)
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
+                              uint32_t timeout)
 {
-    TEST_ASSERT_NOT_NULL(dev);
-    TEST_ASSERT_LESS_THAN_UINT(sizeof(g_command_queue) / sizeof(g_command_queue[0]), g_command_index);
-    g_command_queue[g_command_count++] = command;
-    return g_command_ret_queue[g_command_index++];
+    if (g_init_result != XY_DEVICE_OK) {
+        return g_init_result;
+    }
+    memset(dev, 0, sizeof(*dev));
+    dev->base.initialized = 1U;
+    dev->i2c_handle = handle;
+    dev->dev_addr = address;
+    dev->timeout = timeout;
+    return XY_DEVICE_OK;
 }
 
-xy_ret_t xy_i2c_write_data(xy_i2c_dev_t *dev, const uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
+    if (len == 2U) {
+        uint16_t command = ((uint16_t)data[0] << 8) | data[1];
+        TEST_ASSERT_LESS_THAN_UINT(sizeof(g_command_queue) / sizeof(g_command_queue[0]),
+                                   g_command_index);
+        g_command_queue[g_command_count++] = command;
+        return g_command_ret_queue[g_command_index++];
+    }
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_write_data_queue) / sizeof(g_write_data_queue[0]), g_write_data_index);
     TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_write_data_queue[0]), len);
     memcpy(g_write_data_queue[g_write_data_count], data, len);
@@ -46,9 +61,10 @@ xy_ret_t xy_i2c_write_data(xy_i2c_dev_t *dev, const uint8_t *data, uint16_t len)
     return g_write_data_ret_queue[g_write_data_index++];
 }
 
-xy_ret_t xy_i2c_read_data(xy_i2c_dev_t *dev, uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_read_queue) / sizeof(g_read_queue[0]), g_read_index);
     TEST_ASSERT_EQUAL_UINT16(g_read_len_queue[g_read_index], len);
@@ -123,6 +139,7 @@ void setUp(void)
     g_write_data_index = 0;
     g_delay_total = 0;
     g_delay_count = 0;
+    g_init_result = XY_DEVICE_OK;
 }
 
 void tearDown(void)
@@ -214,7 +231,9 @@ static void test_init_uses_custom_config_and_propagates_identity_failures(void)
 
 static void test_feature_serial_and_self_test_crc_paths(void)
 {
-    xy_sgp40_dev_t dev = {.i2c = &(xy_i2c_dev_t){.handle = (void *)0x1234, .address = SGP40_I2C_ADDR}};
+    xy_sgp40_dev_t dev = {.i2c_dev = {.base = {.initialized = 1U},
+                                            .i2c_handle = (void *)0x1234,
+                                            .dev_addr = SGP40_I2C_ADDR}};
     uint16_t feature = 0U;
     uint32_t serial[3] = {0};
     bool passed = true;
@@ -404,7 +423,9 @@ static void test_init_serial_crc_failure_leaves_device_uninitialized(void)
 
 static void test_command_failures_return_before_delay_or_read(void)
 {
-    xy_sgp40_dev_t dev = {.i2c = &(xy_i2c_dev_t){.handle = (void *)0x1234, .address = SGP40_I2C_ADDR}};
+    xy_sgp40_dev_t dev = {.i2c_dev = {.base = {.initialized = 1U},
+                                            .i2c_handle = (void *)0x1234,
+                                            .dev_addr = SGP40_I2C_ADDR}};
     uint16_t feature = 0xAAAAU;
     uint32_t serial[3] = {1U, 2U, 3U};
     bool passed = true;
@@ -454,7 +475,9 @@ static void test_read_voc_crc_failure_preserves_output_and_last_data(void)
 static void test_read_serial_crc_failure_preserves_complete_output(void)
 {
     xy_sgp40_dev_t dev = {
-        .i2c = &(xy_i2c_dev_t){.handle = (void *)0x1234, .address = SGP40_I2C_ADDR},
+        .i2c_dev = {.base = {.initialized = 1U},
+                    .i2c_handle = (void *)0x1234,
+                    .dev_addr = SGP40_I2C_ADDR},
     };
     uint32_t serial[3] = {0xAAAA1111U, 0xBBBB2222U, 0xCCCC3333U};
     uint8_t bytes[9] = {
@@ -508,6 +531,33 @@ static void test_read_voc_success_populates_compensation_fields_and_count(void)
     TEST_ASSERT_EQUAL_UINT16(432U, dev.last_data.voc_index);
 }
 
+static void test_nested_device_lifecycle_rejects_public_io_atomically(void)
+{
+    xy_sgp40_dev_t dev;
+    xy_sgp40_data_t data = {.voc_index = 0xAAAAU};
+    xy_i2c_dev_t i2c = fake_i2c();
+    size_t commands_before;
+    size_t reads_before;
+
+    init_ok(&dev, &i2c);
+    dev.last_data.voc_index = 77U;
+    dev.measurement_count = 5U;
+    commands_before = g_command_count;
+    reads_before = g_read_index;
+    dev.i2c_dev.base.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_sgp40_start_measurement(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_sgp40_read_voc(&dev, &data));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_sgp40_enable_burn_in(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_sgp40_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(commands_before, g_command_count);
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+    TEST_ASSERT_EQUAL_UINT16(0xAAAAU, data.voc_index);
+    TEST_ASSERT_EQUAL_UINT16(77U, dev.last_data.voc_index);
+    TEST_ASSERT_EQUAL_UINT32(5U, dev.measurement_count);
+    TEST_ASSERT_TRUE(dev.is_initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -525,5 +575,6 @@ int main(void)
     RUN_TEST(test_read_serial_crc_failure_preserves_complete_output);
     RUN_TEST(test_voc_level_boundaries);
     RUN_TEST(test_read_voc_success_populates_compensation_fields_and_count);
+    RUN_TEST(test_nested_device_lifecycle_rejects_public_io_atomically);
     return UNITY_END();
 }
