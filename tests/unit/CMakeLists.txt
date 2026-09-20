@@ -950,9 +950,10 @@ target_link_libraries(test_lps22hb PRIVATE m)
 xy_add_unit_test(test_power_monitors sensor_power_monitors UNITY
     ${UNIT_SENSOR}/test_power_monitors.c
     ${SENSOR}/src/xy_max17043.c
-    ${SENSOR}/src/xy_ina226.c
+    ${DRV}/sensor/adc/ina226/xy_ina226.c
 )
 target_include_directories(test_power_monitors PRIVATE
+    ${DRV}/sensor/adc/ina226
     ${SENSOR}/inc
     ${HAL}/inc
     ${KERNEL}/osal

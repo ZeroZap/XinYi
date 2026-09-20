@@ -105,6 +105,17 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
     return g_writes[g_write_index++].ret;
 }
 
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data,
+                                    size_t len)
+{
+    uint8_t frame[3];
+
+    TEST_ASSERT_EQUAL_UINT(2U, len);
+    frame[0] = reg;
+    memcpy(&frame[1], data, len);
+    return xy_i2c_device_write(dev, frame, sizeof(frame));
+}
+
 int xy_printf(const char *fmt, ...)
 {
     (void)fmt;
@@ -271,7 +282,8 @@ static void test_max17043_not_found_and_getter_invalid_paths(void)
 static xy_ina_config_t ina_config(void)
 {
     xy_ina_config_t cfg = {
-        .shunt_resistor_mohm = 10.0f,
+        .shunt_resistor_uohm = 10000U,
+        .current_lsb_ua = 2500U,
         .avg_samples = XY_INA_AVG_16,
         .alert_current_ma = 5000U,
     };
@@ -284,7 +296,7 @@ static void init_ina_ok(xy_ina_t *ina, int *bus)
     queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
     queue_read16(INA226_REG_DIE_ID, INA226_DIE_ID_VALUE, XY_DEVICE_OK);
     queue_write16(INA226_REG_CALIB, 204U, XY_DEVICE_OK);
-    queue_write16(INA226_REG_CONFIG, 0xF220U, XY_DEVICE_OK);
+    queue_write16(INA226_REG_CONFIG, 0x0527U | (XY_INA_AVG_16 << 9), XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_init(ina, bus, INA226_ADDR_GND, &cfg));
 }
 
@@ -301,28 +313,30 @@ static void test_ina226_init_read_getters_alert_and_deinit(void)
 
     init_ina_ok(&ina, &bus);
     TEST_ASSERT_TRUE(ina.initialized);
-    TEST_ASSERT_EQUAL_INT(XY_INA_DEVICE_INA226, ina.device);
+
     TEST_ASSERT_EQUAL_UINT16(INA226_ADDR_GND, g_last_addr);
     TEST_ASSERT_EQUAL_UINT32(1000U, g_last_timeout);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0025f, ina.current_lsb);
+
     TEST_ASSERT_EQUAL_UINT16(204U, ina.calib_value);
 
     queue_read16(INA226_REG_BUS_VOLT, 0x2000U, XY_DEVICE_OK);
     queue_read16(INA226_REG_SHUNT_VOLT, 0x0100U, XY_DEVICE_OK);
+    queue_read16(INA226_REG_CURRENT, 0x0010U, XY_DEVICE_OK);
     queue_read16(INA226_REG_POWER, 0x0064U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_read(&ina));
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 10240.0f, ina.data.voltage_mv);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 64.0f, ina.data.current_ma);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 2.5f, ina.data.power_mw);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 40.0f, ina.data.current_ma);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 6250.0f, ina.data.power_mw);
     TEST_ASSERT_EQUAL_UINT32(654321U, ina.data.timestamp);
 
     queue_read16(INA226_REG_BUS_VOLT, 0x1000U, XY_DEVICE_OK);
     queue_read16(INA226_REG_SHUNT_VOLT, 0x0000U, XY_DEVICE_OK);
+    queue_read16(INA226_REG_CURRENT, 0x0000U, XY_DEVICE_OK);
     queue_read16(INA226_REG_POWER, 0x0000U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_get_voltage(&ina, &value));
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 5120.0f, value);
 
-    queue_write16(INA226_REG_MASK_EN, 0x0010U, XY_DEVICE_OK);
+    queue_write16(INA226_REG_MASK_EN, 0x8000U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ina_enable_alert(&ina, true));
     queue_write16(INA226_REG_CONFIG, 0x0000U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_deinit(&ina));
@@ -352,7 +366,7 @@ static void test_ina226_read_failure_stops_and_preserves_snapshot(void)
     TEST_ASSERT_EQUAL_UINT32(5U, ina.data.timestamp);
 }
 
-static void test_ina229_detection_and_invalid_paths(void)
+static void test_ina226_revision_and_invalid_paths(void)
 {
     xy_ina_t ina = {0};
     xy_ina_config_t cfg = ina_config();
@@ -360,11 +374,11 @@ static void test_ina229_detection_and_invalid_paths(void)
     int bus;
 
     queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
-    queue_read16(INA226_REG_DIE_ID, INA229_DIE_ID_VALUE, XY_DEVICE_OK);
+    queue_read16(INA226_REG_DIE_ID, INA226_DIE_ID_VALUE | 0x0001U, XY_DEVICE_OK);
     queue_write16(INA226_REG_CALIB, 204U, XY_DEVICE_OK);
-    queue_write16(INA226_REG_CONFIG, 0xF220U, XY_DEVICE_OK);
+    queue_write16(INA226_REG_CONFIG, 0x0527U | (XY_INA_AVG_16 << 9), XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_init(&ina, &bus, INA226_ADDR_VREF, &cfg));
-    TEST_ASSERT_EQUAL_INT(XY_INA_DEVICE_INA229, ina.device);
+
 
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_read(NULL));
     TEST_ASSERT_EQUAL_INT(XY_INA_INVALID_PARAM, xy_ina_read(&(xy_ina_t){0}));
@@ -581,7 +595,7 @@ static void test_ina226_init_write_failures_deinit_and_getters_preserve_outputs(
     queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
     queue_read16(INA226_REG_DIE_ID, INA226_DIE_ID_VALUE, XY_DEVICE_OK);
     queue_write16(INA226_REG_CALIB, 204U, XY_DEVICE_OK);
-    queue_write16(INA226_REG_CONFIG, 0xF220U, XY_DEVICE_ERROR);
+    queue_write16(INA226_REG_CONFIG, 0x0527U | (XY_INA_AVG_16 << 9), XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
 
     init_ina_ok(&ina, &bus);
@@ -681,7 +695,7 @@ int main(void)
     RUN_TEST(test_ina226_controls_reject_missing_i2c_context_atomically);
     RUN_TEST(test_ina226_init_read_getters_alert_and_deinit);
     RUN_TEST(test_ina226_read_failure_stops_and_preserves_snapshot);
-    RUN_TEST(test_ina229_detection_and_invalid_paths);
+    RUN_TEST(test_ina226_revision_and_invalid_paths);
     RUN_TEST(test_ina226_detection_failures_return_without_config_writes);
     RUN_TEST(test_ina226_i2c_init_failure_is_atomic);
     RUN_TEST(test_ina226_post_helper_init_failure_clears_device_state);
