@@ -67,17 +67,6 @@ static void queue_read24(uint8_t reg, uint32_t value, xy_error_t ret)
     queue_read(reg, data, 3U, ret);
 }
 
-static void queue_write(uint8_t reg, uint8_t value, xy_error_t ret)
-{
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_ops), g_op_count);
-    g_ops[g_op_count].kind = OP_WRITE;
-    g_ops[g_op_count].data[0] = reg;
-    g_ops[g_op_count].data[1] = value;
-    g_ops[g_op_count].len = 2U;
-    g_ops[g_op_count].ret = ret;
-    g_op_count++;
-}
-
 static void queue_write_reg_config(uint16_t config, xy_error_t ret)
 {
     TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_ops), g_op_count);
@@ -87,6 +76,17 @@ static void queue_write_reg_config(uint16_t config, xy_error_t ret)
     g_ops[g_op_count].data[1] = (uint8_t)(config >> 8);
     g_ops[g_op_count].data[2] = (uint8_t)config;
     g_ops[g_op_count].len = 3U;
+    g_ops[g_op_count].ret = ret;
+    g_op_count++;
+}
+
+static void queue_write_u8(uint8_t reg, uint8_t value, xy_error_t ret)
+{
+    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_ops), g_op_count);
+    g_ops[g_op_count].kind = OP_WRITE_REG;
+    g_ops[g_op_count].reg = reg;
+    g_ops[g_op_count].data[0] = value;
+    g_ops[g_op_count].len = 1U;
     g_ops[g_op_count].ret = ret;
     g_op_count++;
 }
@@ -206,9 +206,9 @@ void tearDown(void)
 static xy_ltc2945_config_t ltc_config(void)
 {
     xy_ltc2945_config_t cfg = {
-        .shunt_resistor_mohm = 10.0f,
-        .auto_convert = true,
-        .alert_gpio_config = 0xA5U,
+        .shunt_resistance_uohm = 10000U,
+        .control_register = XY_LTC2945_CONTROL_CONTINUOUS_SENSE_PLUS,
+        .alert_register = 0xA5U,
     };
     return cfg;
 }
@@ -216,72 +216,90 @@ static xy_ltc2945_config_t ltc_config(void)
 static void init_ltc_ok(xy_ltc2945_t *ltc, int *bus)
 {
     xy_ltc2945_config_t cfg = ltc_config();
-    queue_read8(LTC2945_REG_STATUS, 0x55U, XY_DEVICE_OK);
-    queue_write(LTC2945_REG_CONTROL, 0x08U, XY_DEVICE_OK);
-    queue_write(LTC2945_REG_CTRL_GPIO, 0xA5U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_init(ltc, bus, LTC2945_ADDR_ADDR0, &cfg));
+    queue_read8(XY_LTC2945_REG_STATUS, 0x55U, XY_DEVICE_OK);
+    queue_write_u8(XY_LTC2945_REG_CONTROL, cfg.control_register, XY_DEVICE_OK);
+    queue_write_u8(XY_LTC2945_REG_ALERT, cfg.alert_register, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK,
+                          xy_ltc2945_init(ltc, bus, XY_LTC2945_ADDR_DEFAULT, &cfg));
 }
 
-static void test_ltc2945_init_read_controls_and_invalid_paths(void)
+static void test_ltc2945_datasheet_registers_scaling_and_lifecycle(void)
 {
     xy_ltc2945_t ltc;
+    xy_ltc2945_sample_t sample = {0};
     xy_ltc2945_config_t cfg = ltc_config();
-    float value;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_init(NULL, &bus, LTC2945_ADDR_ADDR0, &cfg));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_init(&ltc, NULL, LTC2945_ADDR_ADDR0, &cfg));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR0, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM,
+                          xy_ltc2945_init(NULL, &bus, XY_LTC2945_ADDR_DEFAULT, &cfg));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM,
+                          xy_ltc2945_init(&ltc, NULL, XY_LTC2945_ADDR_DEFAULT, &cfg));
+    cfg.shunt_resistance_uohm = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM,
+                          xy_ltc2945_init(&ltc, &bus, XY_LTC2945_ADDR_DEFAULT, &cfg));
+    cfg = ltc_config();
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM,
+                          xy_ltc2945_init(&ltc, &bus, 0x66U, &cfg));
 
     init_ltc_ok(&ltc, &bus);
     TEST_ASSERT_TRUE(ltc.initialized);
-    TEST_ASSERT_EQUAL_UINT16(LTC2945_ADDR_ADDR0, g_last_addr);
-    TEST_ASSERT_EQUAL_UINT32(400U, g_last_timeout);
-    TEST_ASSERT_FLOAT_WITHIN(0.000001f, 0.0000625f, ltc.power_lsb);
-    TEST_ASSERT_FLOAT_WITHIN(0.000001f, 0.0025f, ltc.charge_lsb);
+    TEST_ASSERT_EQUAL_UINT16(XY_LTC2945_ADDR_DEFAULT, g_last_addr);
+    TEST_ASSERT_EQUAL_UINT32(1000U, g_last_timeout);
 
-    queue_read16(LTC2945_REG_VIN_MSB, 0x1000U, XY_DEVICE_OK);
-    queue_read16(LTC2945_REG_VSENSE_MSB, 0x0100U, XY_DEVICE_OK);
-    queue_read24(LTC2945_REG_POWER_MSB, 0x000064U, XY_DEVICE_OK);
-    queue_read24(LTC2945_REG_CHARGE_MSB, 0x00000AU, XY_DEVICE_OK);
-    queue_read24(LTC2945_REG_ENERGY_MSB, 0x000014U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_read(&ltc));
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 6.4f, ltc.data.voltage_v);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.04f, ltc.data.current_a);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.00625f, ltc.data.power_w);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.025f, ltc.data.charge_c);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.00125f, ltc.data.energy_j);
-    TEST_ASSERT_EQUAL_UINT32(222333U, ltc.data.timestamp);
+    queue_read16(XY_LTC2945_REG_VIN_MSB, 0x1000U, XY_DEVICE_OK);
+    queue_read16(XY_LTC2945_REG_SENSE_MSB, 0x0100U, XY_DEVICE_OK);
+    queue_read24(XY_LTC2945_REG_POWER_MSB, 0x000064U, XY_DEVICE_OK);
+    queue_read8(XY_LTC2945_REG_STATUS, 0x12U, XY_DEVICE_OK);
+    queue_read8(XY_LTC2945_REG_FAULT, 0x34U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_read_sample(&ltc, &sample));
+    TEST_ASSERT_EQUAL_UINT32(6400U, sample.bus_voltage_mv);
+    TEST_ASSERT_EQUAL_UINT32(400U, sample.shunt_voltage_uv);
+    TEST_ASSERT_EQUAL_UINT32(40000U, sample.current_ua);
+    TEST_ASSERT_EQUAL_UINT32(6250U, sample.power_uw);
+    TEST_ASSERT_EQUAL_UINT8(0x12U, sample.status);
+    TEST_ASSERT_EQUAL_UINT8(0x34U, sample.fault);
+    TEST_ASSERT_EQUAL_UINT32(222333U, sample.timestamp);
 
-    queue_write(LTC2945_REG_CONTROL, 0x08U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_reset_counters(&ltc));
-    queue_write(LTC2945_REG_ALERT, 0x01U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ltc2945_enable_alert(&ltc, true));
+    queue_write_u8(XY_LTC2945_REG_ALERT, 0x5AU, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ltc2945_set_alert_mask(&ltc, 0x5AU));
+    TEST_ASSERT_EQUAL_UINT8(0x5AU, ltc.config.alert_register);
+    queue_write_u8(XY_LTC2945_REG_FAULT, 0x34U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ltc2945_clear_faults(&ltc, 0x34U));
 
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_get_voltage(NULL, &value));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_get_current(&ltc, NULL));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_get_power(NULL, &value));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_get_charge(&ltc, NULL));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_get_energy(NULL, &value));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_reset_counters(NULL));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_enable_alert(NULL, false));
     TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_deinit(&ltc));
     TEST_ASSERT_FALSE(ltc.initialized);
+    TEST_ASSERT_FALSE(ltc.i2c_dev.base.initialized);
 }
 
-static void test_ltc2945_not_found_and_uninitialized_read(void)
+static void test_ltc2945_failures_are_atomic_and_stop_at_first_error(void)
 {
-    xy_ltc2945_t ltc = {0};
-    xy_ltc2945_config_t cfg = ltc_config();
+    xy_ltc2945_t ltc;
+    xy_ltc2945_sample_t output = {.bus_voltage_mv = 1U, .current_ua = 2U};
+    const xy_ltc2945_sample_t output_before = output;
     int bus;
 
-    queue_read8(LTC2945_REG_STATUS, 0x00U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_NOT_FOUND, xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR1, &cfg));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_read(NULL));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_read(&ltc));
+    init_ltc_ok(&ltc, &bus);
+    ltc.sample.bus_voltage_mv = 11U;
+    ltc.sample.current_ua = 22U;
+    const xy_ltc2945_sample_t cache_before = ltc.sample;
+
+    queue_read16(XY_LTC2945_REG_VIN_MSB, 0x1000U, XY_DEVICE_OK);
+    queue_read16(XY_LTC2945_REG_SENSE_MSB, 0U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ltc2945_read_sample(&ltc, &output));
+    TEST_ASSERT_EQUAL_MEMORY(&output_before, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&cache_before, &ltc.sample, sizeof(ltc.sample));
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+
+    ltc.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_read_sample(&ltc, &output));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_set_alert_mask(&ltc, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_clear_faults(&ltc, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_deinit(&ltc));
+    TEST_ASSERT_TRUE(ltc.initialized);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
-static void test_ltc2945_propagates_i2c_init_failure_without_bus_io(void)
+static void test_ltc2945_init_failures_clear_complete_lifecycle(void)
 {
     xy_ltc2945_t ltc;
     xy_ltc2945_config_t cfg = ltc_config();
@@ -289,11 +307,18 @@ static void test_ltc2945_propagates_i2c_init_failure_without_bus_io(void)
 
     memset(&ltc, 0xA5, sizeof(ltc));
     g_i2c_init_ret = XY_DEVICE_ERROR;
-
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
-                          xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR0, &cfg));
-    TEST_ASSERT_FALSE(ltc.initialized);
+                          xy_ltc2945_init(&ltc, &bus, XY_LTC2945_ADDR_DEFAULT, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ltc2945_t){0}, &ltc, sizeof(ltc));
     TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
+
+    setUp();
+    queue_read8(XY_LTC2945_REG_STATUS, 0U, XY_DEVICE_OK);
+    queue_write_u8(XY_LTC2945_REG_CONTROL, cfg.control_register, XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_ltc2945_init(&ltc, &bus, XY_LTC2945_ADDR_DEFAULT, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ltc2945_t){0}, &ltc, sizeof(ltc));
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
 static void init_ads_ok(xy_ads1115_t *ads, int *bus)
@@ -414,42 +439,6 @@ static void test_ads1115_propagates_i2c_init_failure_without_bus_io(void)
 }
 
 
-static void test_ltc2945_read_failure_preserves_complete_sample(void)
-{
-    xy_ltc2945_t ltc;
-    int bus;
-    init_ltc_ok(&ltc, &bus);
-    ltc.data.voltage_v = 1.0f;
-    ltc.data.current_a = 2.0f;
-    ltc.data.shunt_voltage_v = 3.0f;
-    ltc.data.power_w = 4.0f;
-    ltc.data.charge_c = 5.0f;
-    ltc.data.energy_j = 6.0f;
-    ltc.data.timestamp = 7U;
-    xy_ltc2945_data_t previous = ltc.data;
-
-    queue_read16(LTC2945_REG_VIN_MSB, 0x0200U, XY_DEVICE_OK);
-    queue_read16(LTC2945_REG_VSENSE_MSB, 0x0000U, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_ltc2945_read(&ltc));
-    TEST_ASSERT_EQUAL_MEMORY(&previous, &ltc.data, sizeof(previous));
-}
-
-static void test_ltc2945_reset_counters_propagates_write_failure_and_auto_convert_off(void)
-{
-    xy_ltc2945_t ltc;
-    xy_ltc2945_config_t cfg = ltc_config();
-    int bus;
-
-    cfg.auto_convert = false;
-    queue_read8(LTC2945_REG_STATUS, 0x11U, XY_DEVICE_OK);
-    queue_write(LTC2945_REG_CONTROL, 0x00U, XY_DEVICE_ERROR);
-    queue_write(LTC2945_REG_CTRL_GPIO, cfg.alert_gpio_config, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
-                          xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR1, &cfg));
-    TEST_ASSERT_FALSE(ltc.initialized);
-    TEST_ASSERT_EQUAL_UINT(2U, g_op_index);
-    TEST_ASSERT_EQUAL_UINT(1U, g_seen_write_count);
-}
 
 static void test_ads1115_read_voltage_failure_preserves_output(void)
 {
@@ -573,43 +562,6 @@ static void test_ads1115_deinit_rejects_missing_i2c_context_without_lifecycle_ch
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
-static void test_ltc2945_read_rejects_missing_i2c_context_atomically(void)
-{
-    xy_ltc2945_t ltc;
-    int bus;
-    const xy_ltc2945_config_t config = {
-        .shunt_resistor_mohm = 10.0f,
-        .auto_convert = true,
-        .alert_gpio_config = 0U,
-    };
-
-    queue_read8(LTC2945_REG_STATUS, 0U, XY_DEVICE_OK);
-    queue_write(LTC2945_REG_CONTROL, 0x08U, XY_DEVICE_OK);
-    queue_write(LTC2945_REG_CTRL_GPIO, 0U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK,
-                          xy_ltc2945_init(&ltc, &bus, LTC2945_ADDR_ADDR0, &config));
-    ltc.data.voltage_v = 12.5f;
-    ltc.data.current_a = 3.5f;
-    const xy_ltc2945_data_t snapshot = ltc.data;
-    ltc.i2c_dev.base.initialized = 0U;
-
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_read(&ltc));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &ltc.data, sizeof(snapshot));
-    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
-}
-
-static void test_ltc2945_controls_reject_missing_i2c_context_without_io(void)
-{
-    xy_ltc2945_t ltc;
-    int bus;
-
-    init_ltc_ok(&ltc, &bus);
-    ltc.i2c_dev.base.initialized = 0U;
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_reset_counters(&ltc));
-    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_enable_alert(&ltc, true));
-    TEST_ASSERT_TRUE(ltc.config.auto_convert);
-    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
-}
 
 static xy_ina219_config_t ina219_config(void)
 {
@@ -718,11 +670,9 @@ static void test_ina219_init_failure_clears_lifecycle(void)
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_ltc2945_init_read_controls_and_invalid_paths);
-    RUN_TEST(test_ltc2945_not_found_and_uninitialized_read);
-    RUN_TEST(test_ltc2945_propagates_i2c_init_failure_without_bus_io);
-    RUN_TEST(test_ltc2945_read_failure_preserves_complete_sample);
-    RUN_TEST(test_ltc2945_reset_counters_propagates_write_failure_and_auto_convert_off);
+    RUN_TEST(test_ltc2945_datasheet_registers_scaling_and_lifecycle);
+    RUN_TEST(test_ltc2945_failures_are_atomic_and_stop_at_first_error);
+    RUN_TEST(test_ltc2945_init_failures_clear_complete_lifecycle);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
     RUN_TEST(test_ads1115_not_found_and_io_failure_paths);
     RUN_TEST(test_ads1115_propagates_i2c_init_failure_without_bus_io);
@@ -731,8 +681,6 @@ int main(void)
     RUN_TEST(test_ads1115_read_paths_reject_missing_i2c_context);
     RUN_TEST(test_ads1115_setters_reject_missing_i2c_context_without_cache_change);
     RUN_TEST(test_ads1115_deinit_rejects_missing_i2c_context_without_lifecycle_change);
-    RUN_TEST(test_ltc2945_read_rejects_missing_i2c_context_atomically);
-    RUN_TEST(test_ltc2945_controls_reject_missing_i2c_context_without_io);
     RUN_TEST(test_ina219_init_and_measurement_contract);
     RUN_TEST(test_ina219_failures_preserve_state_and_stop_io);
     RUN_TEST(test_ina219_init_failure_clears_lifecycle);

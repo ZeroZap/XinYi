@@ -30,8 +30,8 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 10 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 24 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; MLX90614 and other non-board owners remain `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 9 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 25 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; MLX90614 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -59,6 +59,7 @@ The Device-model root set is currently exactly:
 - VL53L1X: `components/drivers/sensor/distance/vl53l1x/xy_vl53l1x.c`
 - LPS22HB: `components/drivers/sensor/pressure/lps22hb/xy_lps22hb.c`
 - SGP40: `components/drivers/sensor/environment/sgp40/xy_sgp40.c`
+- LTC2945: `components/drivers/sensor/adc/ltc2945/xy_ltc2945.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -286,11 +287,11 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 24 canonical names have exactly eight approved legacy filename overlaps:
+The current 25 canonical names have exactly eight approved legacy filename overlaps:
 `sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, `ap3216c`, and `icm20608`. Each overlap is a compatibility wrapper
-documented above, not an implementation owner. The other sixteen canonical owners (`ads1115`, `aht30`,
-`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22h`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, and `sgp40`) have no legacy-root counterpart. No canonical name overlaps
-the 10 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+documented above, not an implementation owner. The other seventeen canonical owners (`ads1115`, `aht30`,
+`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22h`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, and `ltc2945`) have no legacy-root counterpart. No canonical name overlaps
+the 9 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
 removed. It has now been promoted to the canonical Device root as documented above; the stale
@@ -304,6 +305,12 @@ SGP40 first replaced a constant-output legacy stub with a substantive test-only 
 owner is now promoted to `components/drivers/sensor/environment/sgp40`, uses nested Device I2C
 transactions, and keeps feature-set/serial/self-test/CRC/measurement contracts. This establishes no
 VOC algorithm accuracy, compensation behavior, burn-in, timing, recovery or hardware evidence.
+
+LTC2945 is rebuilt in `components/drivers/sensor/adc/ltc2945` from the Analog Devices register and
+scaling contract. The previous experimental source incorrectly assigned STATUS/POWER/VIN/SENSE
+registers and exposed nonexistent charge/energy accumulators. The canonical owner now publishes
+VIN, SENSE, current, power, status and fault only after all transactions succeed. Address strapping,
+metrology, alert thresholds and hardware recovery remain `hardware-pending`.
 
 SGP30 had only a legacy-root placeholder that returned a fixed `100.0` gas value without issuing an
 I2C command or implementing the documented eCO2/TVOC measurement protocol. It had no second

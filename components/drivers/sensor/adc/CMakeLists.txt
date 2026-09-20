@@ -13,3 +13,7 @@ endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ina226)
     add_subdirectory(ina226)
 endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ltc2945)
+    add_subdirectory(ltc2945)
+endif()

@@ -138,6 +138,11 @@ SGP40 is complete: the typed owner moved into the Device root and its private co
 lifecycle was replaced by nested `xy_i2c_device_t` transactions. Feature-set, serial-ID, self-test,
 CRC and measurement contracts remain focused-test backed; VOC accuracy and hardware remain pending.
 
+LTC2945 is complete as a datasheet rebuild rather than a source move. The experimental owner used
+incorrect register addresses and modeled nonexistent charge/energy accumulators. The Device-root
+owner now uses the documented CONTROL/ALERT/STATUS/FAULT, POWER, SENSE and VIN register map with
+explicit shunt resistance and staged sample publication. Hardware and metrology remain pending.
+
 Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
 
 Domain-owner corrections:
