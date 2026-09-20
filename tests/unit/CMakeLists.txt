@@ -1265,9 +1265,10 @@ target_include_directories(test_bmi088 BEFORE PRIVATE
 
 xy_add_unit_test(test_bmi270 sensor_bmi270 UNITY
     ${UNIT_SENSOR}/test_bmi270.c
-    ${SENSOR}/src/xy_bmi270.c
+    ${DRV}/sensor/motion/bmi270/xy_bmi270.c
 )
 target_include_directories(test_bmi270 BEFORE PRIVATE
+    ${DRV}/sensor/motion/bmi270
     ${SENSOR}/inc
 )
 target_link_libraries(test_bmi270 PRIVATE m)

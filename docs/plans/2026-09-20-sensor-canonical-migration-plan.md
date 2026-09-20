@@ -152,8 +152,14 @@ interrupt, FIFO, calibration quality and motion accuracy remain pending.
 BNO055 is complete as a root-ownership promotion: the focused-test-backed source/header pair moved
 into `components/drivers/sensor/motion/bno055`, `xy_drivers` now owns it, and the focused target
 compiles that canonical path. Existing initialization, I2C, fused/raw output, mode/power/unit,
-axis-remap, unsupported-UART, failure-preservation and lifecycle contracts remain unchanged. Fusion
-quality, calibration, timing, interrupts, motion accuracy, UART transport and hardware remain pending.
+axis-remap, unsupported-UART, failure-preservation and lifecycle contracts remain unchanged.
+Fusion quality, calibration, timing, interrupts, motion accuracy, UART transport and hardware remain pending.
+
+BMI270 is complete as a root-ownership promotion: the focused-test-backed source/header pair moved
+into `components/drivers/sensor/motion/bmi270`, `xy_drivers` now owns it, and the focused target
+compiles that canonical path. Existing initialization, I2C/SPI, range, raw/sensor-time atomicity,
+failure-preservation and lifecycle contracts remain unchanged. Motion accuracy, timing, interrupts,
+calibration and hardware remain pending.
 
 Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
 

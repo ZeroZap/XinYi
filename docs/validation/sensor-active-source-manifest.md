@@ -30,8 +30,8 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 7 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 27 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; BMI088/BNO055 and other non-board owners remain `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 28 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; BMI088/BMI270/BNO055 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -61,6 +61,7 @@ The Device-model root set is currently exactly:
 - SGP40: `components/drivers/sensor/environment/sgp40/xy_sgp40.c`
 - LTC2945: `components/drivers/sensor/adc/ltc2945/xy_ltc2945.c`
 - BMI088: `components/drivers/sensor/motion/bmi088/xy_bmi088.c`
+- BMI270: `components/drivers/sensor/motion/bmi270/xy_bmi270.c`
 - BNO055: `components/drivers/sensor/motion/bno055/xy_bno055.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
