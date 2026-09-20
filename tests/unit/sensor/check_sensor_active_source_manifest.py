@@ -2,6 +2,7 @@
 """Guard the canonical Sensor active-source ownership manifest."""
 
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -46,6 +47,24 @@ def require(condition: bool, message: str, errors: list[str]) -> None:
         errors.append(message)
 
 
+def false_owner_candidates(paths: list[Path]) -> list[str]:
+    """Find tiny legacy owners that publish a literal scalar without transport."""
+    literal_output = re.compile(
+        r"value\.val_(?:float|int32|uint32)\s*=\s*[-+]?(?:\d+(?:\.\d*)?|\.\d+)[fFuUlL]*\s*;"
+    )
+    transport_call = re.compile(
+        r"\b(?:sensor_(?:i2c|spi)_[a-z_]+|hal_(?:i2c|spi|adc)_[a-z_]+|xy_hal_[a-z_]+|"
+        r"xy_[a-z0-9]+_(?:read|write|init|deinit)|[a-z0-9_]+_reg_(?:read|write))\s*\("
+    )
+    candidates: list[str] = []
+    for path in paths:
+        source = path.read_text(encoding="utf-8")
+        executable = re.sub(r"^\s*extern\b[^;]*;", "", source, flags=re.MULTILINE)
+        if literal_output.search(executable) and not transport_call.search(executable):
+            candidates.append(path.name)
+    return candidates
+
+
 def main() -> int:
     errors: list[str] = []
     require(MANIFEST.is_file(), "sensor active-source manifest is missing", errors)
@@ -78,6 +97,9 @@ def main() -> int:
     require(len(experimental) == 17,
             f"expected 17 experimental xy_* sources, found {len(experimental)}", errors)
     require(len(device) == 12, f"expected 12 Device-model sources, found {len(device)}", errors)
+    false_owners = false_owner_candidates(legacy)
+    require(not false_owners,
+            f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
     require(canonical_names & legacy_names == {"sht30", "mpu6050", "bmp280", "bh1750", "aht20"},
             "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
     require(not (canonical_names & experimental_names),
@@ -184,7 +206,8 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=47 experimental_test_only=17 "
-          "device_active=12 approved_wrappers=5 overlap_duplicates=0 hardware=mixed")
+          "device_active=12 approved_wrappers=5 overlap_duplicates=0 false_owners=0 "
+          "hardware=mixed")
     return 0
 
 

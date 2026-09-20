@@ -175,6 +175,12 @@ board, accuracy, timing, recovery, or durability status is upgraded.
 
 ## Guard and update rule
 
+The manifest checker also scans the legacy root for small owners that publish a literal scalar
+value while issuing no recognized I2C, SPI, ADC, HAL, typed-owner, or register-helper call. This
+fails the Host gate instead of allowing another constant-output/zero-transport placeholder to be
+counted as an active driver. The check is intentionally narrow: derived constants inside real
+transport drivers remain valid and substantive protocol review is still required.
+
 The current 12 canonical names have exactly five approved legacy filename overlaps:
 `sht30`, `mpu6050`, `bmp280`, `bh1750`, and `aht20`. Each overlap is a compatibility wrapper
 documented above, not an implementation owner. The other seven canonical owners (`ads1115`, `aht30`, `bme680`,
