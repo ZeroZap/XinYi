@@ -30,8 +30,8 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 16 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 18 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219, BMP390 and other non-board owners remain `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 15 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 19 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219, BMP390 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -53,6 +53,7 @@ The Device-model root set is currently exactly:
 - AP3216C: `components/drivers/sensor/light/ap3216c/xy_ap3216c.c`
 - ICM20608: `components/drivers/sensor/motion/icm20608/xy_icm20608.c`
 - HDC1080: `components/drivers/sensor/temperature/hdc1080/xy_hdc1080.c`
+- TSL2561: `components/drivers/sensor/light/tsl2561/xy_tsl2561.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -213,6 +214,15 @@ and humidity publication, and fail-closed heater controls. There is no legacy `s
 factory to preserve. Host/source ownership only; accuracy, timing, heater behavior and hardware
 recovery remain `hardware-pending`.
 
+### TSL2561 migration status
+
+The former focused-test-backed typed source/header pair was moved from the experimental Sensor tree
+to `components/drivers/sensor/light/tsl2561` and is now root-linked by `xy_drivers`. The canonical
+owner accepts only the three documented addresses, rejects an invalid nested Device/I2C lifecycle
+without I/O, and publishes channel/lux/timestamp cache only after both channel reads succeed. There
+is no legacy `sensor_device_t` factory to preserve. Host/source ownership only; optical accuracy,
+integration timing, saturation behavior and hardware recovery remain `hardware-pending`.
+
 ### SHT40 migration status
 
 The former experimental typed implementation is now the canonical Device-model owner under
@@ -231,22 +241,19 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 18 canonical names have exactly eight approved legacy filename overlaps:
+The current 19 canonical names have exactly eight approved legacy filename overlaps:
 `sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, `ap3216c`, and `icm20608`. Each overlap is a compatibility wrapper
-documented above, not an implementation owner. The other ten canonical owners (`ads1115`, `aht30`,
-`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22h`, `sht40`, `ina219`, `bmp390`, and `hdc1080`) have no legacy-root counterpart. No canonical name overlaps
-the 16 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+documented above, not an implementation owner. The other eleven canonical owners (`ads1115`, `aht30`,
+`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22h`, `sht40`, `ina219`, `bmp390`, `hdc1080`, and `tsl2561`) have no legacy-root counterpart. No canonical name overlaps
+the 15 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
 removed. It has now been promoted to the canonical Device root as documented above; the stale
 experimental and prototype paths remain forbidden.
 
-TSL2561 follows the same bounded cleanup: the focused-test-backed
-`components/sensor/src/xy_tsl2561.c` typed implementation remains `experimental-test-only`, while
-the unreferenced `xy_sensor_tsl2561.c` prototype was removed. That prototype ignored configuration
-write failures and divided by the broadband channel without a zero guard. The manifest guard now
-prevents it from returning. This does not promote TSL2561 into the canonical Device root or claim
-hardware, accuracy, or recovery evidence.
+TSL2561 was first retained as the stronger test-only owner while an unchecked prototype was removed.
+It has now been promoted to the canonical Device root as documented above; both stale paths remain
+forbidden. This source migration does not claim hardware, accuracy, timing, or recovery evidence.
 
 SGP40 is the first legacy-root stub removed in favor of its substantive test-only implementation.
 The deleted `sensor_sgp40.c` returned a constant `100.0` gas value without bus traffic or lifecycle;

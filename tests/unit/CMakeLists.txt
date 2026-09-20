@@ -924,10 +924,10 @@ target_include_directories(test_hdc1080 PRIVATE
 
 xy_add_unit_test(test_tsl2561 sensor_tsl2561 UNITY
     ${UNIT_SENSOR}/test_tsl2561.c
-    ${SENSOR}/src/xy_tsl2561.c
+    ${DRV}/sensor/light/tsl2561/xy_tsl2561.c
 )
 target_include_directories(test_tsl2561 PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/light/tsl2561
 )
 
 xy_add_unit_test(test_sgp40 sensor_sgp40 UNITY

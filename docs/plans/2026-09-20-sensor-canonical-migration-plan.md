@@ -116,6 +116,10 @@ Preferred order:
 HDC1080 is complete: the tested typed source/header were moved into the Device root, the fixed
 address/lifecycle boundary was tightened, and the focused target now compiles the canonical owner.
 
+TSL2561 is complete: the tested typed source/header were moved into the Device root, all three
+documented addresses are validated before Device initialization, nested-helper lifecycle rejection
+performs zero I/O, and channel/lux/timestamp cache publication is staged until both reads succeed.
+
 Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
 
 Domain-owner corrections:

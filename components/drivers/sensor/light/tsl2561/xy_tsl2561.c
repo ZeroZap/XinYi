@@ -12,6 +12,18 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+static bool xy_tsl2561_ready(const xy_tsl2561_t *tsl2561)
+{
+    return tsl2561 != NULL && tsl2561->initialized &&
+           tsl2561->i2c_dev.base.initialized && tsl2561->i2c_dev.i2c_handle != NULL;
+}
+
+static bool xy_tsl2561_address_valid(uint8_t addr)
+{
+    return addr == TSL2561_ADDR_FLOAT || addr == TSL2561_ADDR_LOW ||
+           addr == TSL2561_ADDR_HIGH;
+}
+
 /**
  * @brief 写入寄存器
  */
@@ -107,7 +119,7 @@ int xy_tsl2561_init(xy_tsl2561_t *tsl2561, void *i2c_handle, uint8_t addr)
     int ret;
     uint8_t id = 0;
 
-    if (!tsl2561 || !i2c_handle) {
+    if (!tsl2561 || !i2c_handle || !xy_tsl2561_address_valid(addr)) {
         return XY_TSL2561_INVALID_PARAM;
     }
 
@@ -151,7 +163,7 @@ int xy_tsl2561_init(xy_tsl2561_t *tsl2561, void *i2c_handle, uint8_t addr)
 
 int xy_tsl2561_deinit(xy_tsl2561_t *tsl2561)
 {
-    if (!tsl2561 || !tsl2561->initialized) {
+    if (!xy_tsl2561_ready(tsl2561)) {
         return XY_TSL2561_INVALID_PARAM;
     }
     
@@ -168,8 +180,9 @@ int xy_tsl2561_read(xy_tsl2561_t *tsl2561)
 {
     int ret;
     uint16_t broadband, ir;
+    xy_tsl2561_data_t next_data;
     
-    if (!tsl2561 || !tsl2561->initialized) {
+    if (!xy_tsl2561_ready(tsl2561)) {
         return XY_TSL2561_INVALID_PARAM;
     }
     
@@ -204,12 +217,11 @@ int xy_tsl2561_read(xy_tsl2561_t *tsl2561)
         return ret;
     }
     
-    tsl2561->data.broadband = broadband;
-    tsl2561->data.ir = ir;
-    
-    /* 计算照度 */
-    tsl2561->data.lux = xy_tsl2561_calculate_lux(tsl2561, broadband, ir);
-    tsl2561->data.timestamp = xy_os_tick_get();
+    next_data.broadband = broadband;
+    next_data.ir = ir;
+    next_data.lux = xy_tsl2561_calculate_lux(tsl2561, broadband, ir);
+    next_data.timestamp = xy_os_tick_get();
+    tsl2561->data = next_data;
     
     xy_log_d("TSL2561: broadband=%d, ir=%d, lux=%.2f\n",
              broadband, ir, tsl2561->data.lux);
@@ -260,7 +272,7 @@ int xy_tsl2561_set_gain(xy_tsl2561_t *tsl2561, xy_tsl2561_gain_t gain)
 {
     uint8_t timing_reg;
     
-    if (!tsl2561 || !tsl2561->initialized || gain > XY_TSL2561_GAIN_16X) {
+    if (!xy_tsl2561_ready(tsl2561) || gain > XY_TSL2561_GAIN_16X) {
         return XY_TSL2561_INVALID_PARAM;
     }
 
@@ -292,7 +304,7 @@ int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
 {
     uint8_t timing_reg;
     
-    if (!tsl2561 || !tsl2561->initialized ||
+    if (!xy_tsl2561_ready(tsl2561) ||
         integration > XY_TSL2561_INTEGRATION_402MS) {
         return XY_TSL2561_INVALID_PARAM;
     }
@@ -322,7 +334,7 @@ int xy_tsl2561_set_integration(xy_tsl2561_t *tsl2561,
 
 int xy_tsl2561_enable(xy_tsl2561_t *tsl2561)
 {
-    if (!tsl2561 || !tsl2561->initialized) {
+    if (!xy_tsl2561_ready(tsl2561)) {
         return XY_TSL2561_INVALID_PARAM;
     }
     
@@ -331,7 +343,7 @@ int xy_tsl2561_enable(xy_tsl2561_t *tsl2561)
 
 int xy_tsl2561_disable(xy_tsl2561_t *tsl2561)
 {
-    if (!tsl2561 || !tsl2561->initialized) {
+    if (!xy_tsl2561_ready(tsl2561)) {
         return XY_TSL2561_INVALID_PARAM;
     }
     

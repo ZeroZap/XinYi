@@ -155,6 +155,10 @@ static void test_init_rejects_invalid_inputs_and_writes_default_config(void)
 
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_init(NULL, &fake_bus, TSL2561_ADDR_FLOAT));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_init(&dev, NULL, TSL2561_ADDR_FLOAT));
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_init(&dev, &fake_bus, 0x28U));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_reg_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
 
     init_ok(&dev);
     TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
@@ -168,6 +172,39 @@ static void test_init_rejects_invalid_inputs_and_writes_default_config(void)
     TEST_ASSERT_EQUAL_UINT8(0x02U, g_write_data_queue[1][1]);
     TEST_ASSERT_EQUAL_UINT8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, g_write_data_queue[2][0]);
     TEST_ASSERT_EQUAL_UINT8(0x02U, g_write_data_queue[2][1]);
+}
+
+static void test_public_ops_reject_invalid_nested_i2c_lifecycle_without_io(void)
+{
+    xy_tsl2561_t dev;
+    uint16_t channel = 0xAAAAU;
+    float lux = -1.0f;
+    size_t reads_before;
+    size_t writes_before;
+
+    init_ok(&dev);
+    reads_before = g_read_reg_index;
+    writes_before = g_write_count;
+    dev.i2c_dev.base.initialized = false;
+
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_read(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
+                          xy_tsl2561_get_broadband(&dev, &channel));
+    TEST_ASSERT_EQUAL_UINT16(0xAAAAU, channel);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_get_ir(&dev, &channel));
+    TEST_ASSERT_EQUAL_UINT16(0xAAAAU, channel);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_get_lux(&dev, &lux));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -1.0f, lux);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
+                          xy_tsl2561_set_gain(&dev, XY_TSL2561_GAIN_16X));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
+                          xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_enable(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_disable(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_reg_index);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
+    TEST_ASSERT_TRUE(dev.initialized);
 }
 
 static void test_init_reports_not_found_on_bad_id_or_read_failure(void)
@@ -489,6 +526,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_default_config);
+    RUN_TEST(test_public_ops_reject_invalid_nested_i2c_lifecycle_without_io);
     RUN_TEST(test_init_reports_not_found_on_bad_id_or_read_failure);
     RUN_TEST(test_init_propagates_i2c_device_init_failure_without_bus_io);
     RUN_TEST(test_read_updates_channels_lux_and_timestamp);
