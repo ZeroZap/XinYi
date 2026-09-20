@@ -31,7 +31,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 14 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219, BMP390 and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 15 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219, BMP390 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -49,6 +49,7 @@ The Device-model root set is currently exactly:
 - SHT40: `components/drivers/sensor/temperature/sht40/xy_sht40.c`
 - INA219: `components/drivers/sensor/adc/ina219/xy_ina219.c`
 - BMP390: `components/drivers/sensor/pressure/bmp390/xy_bmp390.c`
+- AHT10: `components/drivers/sensor/temperature/aht10/xy_aht10.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -174,6 +175,16 @@ experimental source/header pair was moved rather than copied, and both focused t
 the canonical source. Host/source ownership only; no AHT20 board, accuracy, timing, or recovery
 status is upgraded.
 
+### AHT10 migration status
+
+The Device-model source under `components/drivers/sensor/temperature/aht10` is now the single
+protocol implementation owner. It uses the Device I2C helper for the fixed `0x38` address, stages
+both temperature and humidity before committing output/cache, preserves state on trigger/read/busy
+failures, and requires both outer and nested lifecycle state. Root-linked `sensor_aht10.c` remains a
+compatibility-only humidity wrapper and delegates all transport, conversion and lifecycle work to
+the canonical owner. Existing Pandora AHT10 B1 evidence remains bounded to the previously observed
+board path; this migration adds no new accuracy, timing, NACK-recovery or long-run claim.
+
 ### SHT40 migration status
 
 The former experimental typed implementation is now the canonical Device-model owner under
@@ -192,10 +203,10 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 12 canonical names have exactly five approved legacy filename overlaps:
-`sht30`, `mpu6050`, `bmp280`, `bh1750`, and `aht20`. Each overlap is a compatibility wrapper
-documented above, not an implementation owner. The other seven canonical owners (`ads1115`, `aht30`, `bme680`,
-`hmc5883l`, `l3g4200d`, `sc7a22h`, and `sht40`) have no legacy-root counterpart. No canonical name overlaps
+The current 15 canonical names have exactly six approved legacy filename overlaps:
+`sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, and `aht10`. Each overlap is a compatibility wrapper
+documented above, not an implementation owner. The other nine canonical owners (`ads1115`, `aht30`,
+`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22h`, `sht40`, `ina219`, and `bmp390`) have no legacy-root counterpart. No canonical name overlaps
 the 17 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was selected as the first non-canonical duplicate cleanup: the tested

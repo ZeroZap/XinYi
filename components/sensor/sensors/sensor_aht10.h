@@ -6,6 +6,7 @@
 #define __SENSOR_AHT10_H__
 
 #include "sensor_core.h"
+#include "xy_aht10.h"
 
 #define AHT10_ADDR_DEFAULT 0x38
 #define AHT10_REG_STATUS   0x00
@@ -13,6 +14,7 @@
 
 typedef struct {
     uint8_t i2c_addr;
+    xy_aht10_t device;
 } aht10_priv_t;
 
 /**

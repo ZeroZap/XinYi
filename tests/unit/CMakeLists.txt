@@ -855,6 +855,14 @@ target_include_directories(test_aht20 PRIVATE
     ${DRV}/sensor/temperature/aht20
 )
 
+xy_add_unit_test(test_aht10_device sensor_aht10_device UNITY
+    ${UNIT_SENSOR}/test_aht10_device.c
+    ${DRV}/sensor/temperature/aht10/xy_aht10.c
+)
+target_include_directories(test_aht10_device PRIVATE
+    ${DRV}/sensor/temperature/aht10
+)
+
 xy_add_unit_test(test_sht40 sensor_sht40 UNITY
     ${UNIT_SENSOR}/test_sht40.c
     ${DRV}/sensor/temperature/sht40/xy_sht40.c
@@ -1089,10 +1097,12 @@ target_include_directories(test_analog_misc_sensors BEFORE PRIVATE
 xy_add_unit_test(test_env_i2c_sensors sensor_env_i2c_sensors UNITY
     ${UNIT_SENSOR}/test_env_i2c_sensors.c
     ${SENSOR}/sensors/sensor_aht10.c
+    ${DRV}/sensor/temperature/aht10/xy_aht10.c
 )
 target_include_directories(test_env_i2c_sensors BEFORE PRIVATE
     ${SENSOR}
     ${SENSOR}/sensors
+    ${DRV}/sensor/temperature/aht10
 )
 
 xy_add_unit_test(test_bmp280_sensor sensor_bmp280 UNITY

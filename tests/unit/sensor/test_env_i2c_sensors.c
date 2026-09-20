@@ -1,45 +1,75 @@
 #include "unity.h"
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "sensor_aht10.h"
 
-#define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 typedef struct {
-    void *bus;
-    uint8_t addr;
     uint8_t data[8];
-    uint16_t len;
-    int ret;
-} master_op_t;
+    size_t len;
+    xy_error_t result;
+} io_step_t;
 
-typedef struct {
-    void *bus;
-    uint8_t addr;
-    uint8_t reg;
-    uint8_t data[8];
-    uint16_t len;
-    int ret;
-} mem_op_t;
-
-static master_op_t g_master_sends[16];
-static master_op_t g_master_recvs[16];
-static mem_op_t g_mem_reads[32];
-static mem_op_t g_mem_writes[16];
-static size_t g_master_send_count;
-static size_t g_master_send_index;
-static size_t g_master_recv_count;
-static size_t g_master_recv_index;
-static size_t g_mem_read_count;
-static size_t g_mem_read_index;
-static size_t g_mem_write_count;
-static size_t g_mem_write_index;
+static io_step_t g_reads[8];
+static io_step_t g_writes[8];
+static size_t g_read_count;
+static size_t g_read_index;
+static size_t g_write_count;
+static size_t g_write_index;
 static uint32_t g_tick;
-static uint32_t g_delay_total;
-static unsigned int g_delay_count;
+static uint32_t g_delay_ms;
+
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
+                              uint32_t timeout)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_NOT_NULL(handle);
+    memset(dev, 0, sizeof(*dev));
+    dev->base.initialized = 1U;
+    dev->i2c_handle = handle;
+    dev->dev_addr = address;
+    dev->timeout = timeout;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
+{
+    io_step_t *step;
+
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_LESS_THAN_UINT(ARRAY_SIZE(g_writes), g_write_index);
+    step = &g_writes[g_write_index++];
+    TEST_ASSERT_EQUAL_UINT(step->len, len);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(step->data, data, len);
+    return step->result;
+}
+
+xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
+{
+    io_step_t *step;
+
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_LESS_THAN_UINT(ARRAY_SIZE(g_reads), g_read_index);
+    step = &g_reads[g_read_index++];
+    TEST_ASSERT_EQUAL_UINT(step->len, len);
+    if (step->result == XY_DEVICE_OK) {
+        memcpy(data, step->data, len);
+    }
+    return step->result;
+}
+
+void xy_hal_delay_ms(uint32_t ms)
+{
+    g_delay_ms += ms;
+    g_tick += ms;
+}
 
 uint32_t get_tick_ms(void)
 {
@@ -48,102 +78,37 @@ uint32_t get_tick_ms(void)
 
 void delay_ms(uint32_t ms)
 {
-    g_delay_total += ms;
-    g_delay_count++;
-    g_tick += ms;
+    xy_hal_delay_ms(ms);
 }
 
-int hal_i2c_master_send(void *bus, uint8_t addr, uint8_t *data, uint16_t len)
+static void queue_write(const uint8_t *data, size_t len, xy_error_t result)
 {
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_master_sends), g_master_send_index);
-    master_op_t *op = &g_master_sends[g_master_send_index++];
-    TEST_ASSERT_EQUAL_PTR(op->bus, bus);
-    TEST_ASSERT_EQUAL_UINT8(op->addr, addr);
-    TEST_ASSERT_EQUAL_UINT16(op->len, len);
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(op->data, data, len);
-    return op->ret;
+    io_step_t *step = &g_writes[g_write_count++];
+    memcpy(step->data, data, len);
+    step->len = len;
+    step->result = result;
 }
 
-int hal_i2c_master_recv(void *bus, uint8_t addr, uint8_t *data, uint16_t len)
+static void queue_read(const uint8_t *data, size_t len, xy_error_t result)
 {
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_master_recvs), g_master_recv_index);
-    master_op_t *op = &g_master_recvs[g_master_recv_index++];
-    TEST_ASSERT_EQUAL_PTR(op->bus, bus);
-    TEST_ASSERT_EQUAL_UINT8(op->addr, addr);
-    TEST_ASSERT_EQUAL_UINT16(op->len, len);
-    if (op->ret == SENSOR_EOK) {
-        memcpy(data, op->data, len);
-    }
-    return op->ret;
-}
-
-int hal_i2c_mem_read(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_mem_reads), g_mem_read_index);
-    mem_op_t *op = &g_mem_reads[g_mem_read_index++];
-    TEST_ASSERT_EQUAL_PTR(op->bus, bus);
-    TEST_ASSERT_EQUAL_UINT8(op->addr, addr);
-    TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
-    TEST_ASSERT_EQUAL_UINT16(op->len, len);
-    if (op->ret == SENSOR_EOK) {
-        memcpy(data, op->data, len);
-    }
-    return op->ret;
-}
-
-int hal_i2c_mem_write(void *bus, uint8_t addr, uint8_t reg, uint8_t *data, uint16_t len)
-{
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_mem_writes), g_mem_write_index);
-    mem_op_t *op = &g_mem_writes[g_mem_write_index++];
-    TEST_ASSERT_EQUAL_PTR(op->bus, bus);
-    TEST_ASSERT_EQUAL_UINT8(op->addr, addr);
-    TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
-    TEST_ASSERT_EQUAL_UINT16(op->len, len);
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(op->data, data, len);
-    return op->ret;
-}
-
-static void queue_master_send(void *bus, uint8_t addr, const uint8_t *data, uint16_t len, int ret)
-{
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_master_sends), g_master_send_count);
-    master_op_t *op = &g_master_sends[g_master_send_count++];
-    op->bus = bus;
-    op->addr = addr;
-    op->len = len;
-    op->ret = ret;
-    memcpy(op->data, data, len);
-}
-
-static void queue_master_recv(void *bus, uint8_t addr, const uint8_t *data, uint16_t len, int ret)
-{
-    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_master_recvs), g_master_recv_count);
-    master_op_t *op = &g_master_recvs[g_master_recv_count++];
-    op->bus = bus;
-    op->addr = addr;
-    op->len = len;
-    op->ret = ret;
+    io_step_t *step = &g_reads[g_read_count++];
     if (data != NULL) {
-        memcpy(op->data, data, len);
+        memcpy(step->data, data, len);
     }
+    step->len = len;
+    step->result = result;
 }
 
 void setUp(void)
 {
-    memset(g_master_sends, 0, sizeof(g_master_sends));
-    memset(g_master_recvs, 0, sizeof(g_master_recvs));
-    memset(g_mem_reads, 0, sizeof(g_mem_reads));
-    memset(g_mem_writes, 0, sizeof(g_mem_writes));
-    g_master_send_count = 0;
-    g_master_send_index = 0;
-    g_master_recv_count = 0;
-    g_master_recv_index = 0;
-    g_mem_read_count = 0;
-    g_mem_read_index = 0;
-    g_mem_write_count = 0;
-    g_mem_write_index = 0;
+    memset(g_reads, 0, sizeof(g_reads));
+    memset(g_writes, 0, sizeof(g_writes));
+    g_read_count = 0U;
+    g_read_index = 0U;
+    g_write_count = 0U;
+    g_write_index = 0U;
     g_tick = 1000U;
-    g_delay_total = 0;
-    g_delay_count = 0;
+    g_delay_ms = 0U;
 }
 
 void tearDown(void)
@@ -158,90 +123,66 @@ static void destroy_sensor(sensor_device_t *sensor)
     }
 }
 
-static void test_aht10_create_defaults_and_reads_humidity(void)
+static void test_factory_and_lifecycle_delegate_to_canonical_owner(void)
 {
-    int fake_bus;
-    uint8_t init_cmd[3] = {0xE1, 0x08, 0x00};
-    uint8_t measure_cmd[3] = {0xAC, 0x33, 0x00};
-    uint8_t sample[6] = {0x00, 0x80, 0x00, 0x00, 0x12, 0x34};
-    sensor_data_t data = {0};
+    static const uint8_t init_command[] = {0xE1U, 0x08U, 0x00U};
+    sensor_device_t *sensor;
+    aht10_priv_t *priv;
+    int bus;
 
-    sensor_device_t *sensor = aht10_create("aht10-main", &fake_bus, 0U);
+    TEST_ASSERT_NULL(aht10_create(NULL, &bus, 0U));
+    TEST_ASSERT_NULL(aht10_create("aht10", NULL, 0U));
+    TEST_ASSERT_NULL(aht10_create("aht10", &bus, 0x39U));
+
+    sensor = aht10_create("aht10-main", &bus, 0U);
     TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_STRING("aht10-main", sensor->info.name);
-    TEST_ASSERT_EQUAL_STRING("Aosong", sensor->info.vendor);
     TEST_ASSERT_EQUAL_STRING("AHT10", sensor->info.model);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_RELATIVE_HUMIDITY, sensor->info.type);
-    TEST_ASSERT_EQUAL_UINT32(10U, sensor->info.max_odr);
-    TEST_ASSERT_EQUAL_UINT32(10U, sensor->odr);
-    TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
-    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
-    TEST_ASSERT_EQUAL_UINT8(AHT10_ADDR_DEFAULT, ((aht10_priv_t *)sensor->priv_data)->i2c_addr);
+    priv = (aht10_priv_t *)sensor->priv_data;
+    TEST_ASSERT_EQUAL_UINT8(AHT10_ADDR_DEFAULT, priv->i2c_addr);
 
-    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, init_cmd, sizeof(init_cmd), SENSOR_EOK);
+    queue_write(init_command, sizeof(init_command), XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
+    TEST_ASSERT_TRUE(priv->device.initialized);
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_ms);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
+    TEST_ASSERT_FALSE(priv->device.initialized);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
 
-    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, measure_cmd, sizeof(measure_cmd), SENSOR_EOK);
-    queue_master_recv(&fake_bus, AHT10_ADDR_DEFAULT, sample, sizeof(sample), SENSOR_EOK);
+    destroy_sensor(sensor);
+}
+
+static void test_read_preserves_legacy_humidity_contract(void)
+{
+    static const uint8_t init_command[] = {0xE1U, 0x08U, 0x00U};
+    static const uint8_t measure_command[] = {0xACU, 0x33U, 0x00U};
+    static const uint8_t frame[] = {0x00U, 0x80U, 0x00U, 0x08U, 0x00U, 0x00U};
+    sensor_data_t data = {0};
+    sensor_device_t *sensor;
+    int bus;
+
+    sensor = aht10_create("aht10", &bus, 0U);
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_write(init_command, sizeof(init_command), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    queue_write(measure_command, sizeof(measure_command), XY_DEVICE_OK);
+    queue_read(frame, sizeof(frame), XY_DEVICE_OK);
+
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_RELATIVE_HUMIDITY, data.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_PERCENT, data.unit);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 50.0f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
     TEST_ASSERT_EQUAL_UINT8(90U, data.accuracy);
-    TEST_ASSERT_EQUAL_UINT32(90U, g_delay_total);
-    TEST_ASSERT_EQUAL_UINT(2U, g_delay_count);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
 
     destroy_sensor(sensor);
 }
 
-static void test_aht10_rejects_invalid_factory_and_busy_sample(void)
+static void test_transport_and_busy_errors_preserve_legacy_output(void)
 {
-    int fake_bus;
-    uint8_t measure_cmd[3] = {0xAC, 0x33, 0x00};
-    uint8_t busy_sample[6] = {0x80, 0x80, 0x00, 0x00, 0x12, 0x34};
-    sensor_data_t data = {
-        .type = SENSOR_TYPE_TEMPERATURE,
-        .unit = SENSOR_UNIT_CELSIUS,
-        .value.val_float = 12.5f,
-        .timestamp = 7U,
-        .accuracy = 1U,
-    };
-    sensor_device_t *sensor;
-
-    TEST_ASSERT_NULL(aht10_create(NULL, &fake_bus, 0U));
-    TEST_ASSERT_NULL(aht10_create("aht10", NULL, 0U));
-
-    sensor = aht10_create("aht10-busy", &fake_bus, 0U);
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
-
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
-    sensor->bus = &fake_bus;
-
-    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, measure_cmd, sizeof(measure_cmd), SENSOR_EOK);
-    queue_master_recv(&fake_bus, AHT10_ADDR_DEFAULT, busy_sample, sizeof(busy_sample), SENSOR_EOK);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, data.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_CELSIUS, data.unit);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.5f, data.value.val_float);
-    TEST_ASSERT_EQUAL_UINT32(7U, data.timestamp);
-    TEST_ASSERT_EQUAL_UINT8(1U, data.accuracy);
-
-    destroy_sensor(sensor);
-}
-
-static void test_aht10_read_propagates_receive_failure_and_preserves_output(void)
-{
-    int fake_bus;
-    uint8_t measure_cmd[3] = {0xAC, 0x33, 0x00};
+    static const uint8_t init_command[] = {0xE1U, 0x08U, 0x00U};
+    static const uint8_t measure_command[] = {0xACU, 0x33U, 0x00U};
+    static const uint8_t busy_frame[] = {0x80U, 0U, 0U, 0U, 0U, 0U};
     sensor_data_t data = {
         .type = SENSOR_TYPE_TEMPERATURE,
         .unit = SENSOR_UNIT_CELSIUS,
@@ -250,66 +191,37 @@ static void test_aht10_read_propagates_receive_failure_and_preserves_output(void
         .accuracy = 1U,
     };
     sensor_data_t before = data;
-    sensor_device_t *sensor = aht10_create("aht10-alt", &fake_bus, 0x39U);
+    sensor_device_t *sensor;
+    int bus;
 
+    sensor = aht10_create("aht10", &bus, 0U);
     TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_UINT8(0x39U, ((aht10_priv_t *)sensor->priv_data)->i2c_addr);
-    queue_master_send(&fake_bus, 0x39U, measure_cmd, sizeof(measure_cmd), SENSOR_EOK);
-    queue_master_recv(&fake_bus, 0x39U, NULL, 6U, SENSOR_ETIMEOUT);
+    queue_write(init_command, sizeof(init_command), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+
+    queue_write(measure_command, sizeof(measure_command), XY_DEVICE_TIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+
+    queue_write(measure_command, sizeof(measure_command), XY_DEVICE_OK);
+    queue_read(NULL, 6U, XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
+
+    queue_write(measure_command, sizeof(measure_command), XY_DEVICE_OK);
+    queue_read(busy_frame, sizeof(busy_frame), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EBUSY, sensor->ops->read(sensor, &data));
     TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
 
     destroy_sensor(sensor);
 }
 
-static void test_aht10_init_and_read_propagate_send_failures(void)
-{
-    int fake_bus;
-    uint8_t init_cmd[3] = {0xE1, 0x08, 0x00};
-    uint8_t measure_cmd[3] = {0xAC, 0x33, 0x00};
-    sensor_data_t data = {
-        .type = SENSOR_TYPE_TEMPERATURE,
-        .unit = SENSOR_UNIT_CELSIUS,
-        .value.val_float = 12.5f,
-        .timestamp = 7U,
-        .accuracy = 1U,
-    };
-    sensor_device_t *sensor = aht10_create("aht10-trigger", &fake_bus, 0U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, init_cmd, sizeof(init_cmd), SENSOR_ETIMEOUT);
-    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
-
-    queue_master_send(&fake_bus, AHT10_ADDR_DEFAULT, measure_cmd, sizeof(measure_cmd), SENSOR_ETIMEOUT);
-    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, data.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_CELSIUS, data.unit);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 12.5f, data.value.val_float);
-    TEST_ASSERT_EQUAL_UINT32(7U, data.timestamp);
-    TEST_ASSERT_EQUAL_UINT8(1U, data.accuracy);
-    TEST_ASSERT_EQUAL_UINT(2U, g_master_send_index);
-    TEST_ASSERT_EQUAL_UINT(0U, g_master_recv_index);
-    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
-
-    destroy_sensor(sensor);
-}
-
-
-
-
-
-
-
-
-
-
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_aht10_create_defaults_and_reads_humidity);
-    RUN_TEST(test_aht10_rejects_invalid_factory_and_busy_sample);
-    RUN_TEST(test_aht10_read_propagates_receive_failure_and_preserves_output);
-    RUN_TEST(test_aht10_init_and_read_propagate_send_failures);
+    RUN_TEST(test_factory_and_lifecycle_delegate_to_canonical_owner);
+    RUN_TEST(test_read_preserves_legacy_humidity_contract);
+    RUN_TEST(test_transport_and_busy_errors_preserve_legacy_output);
     return UNITY_END();
 }

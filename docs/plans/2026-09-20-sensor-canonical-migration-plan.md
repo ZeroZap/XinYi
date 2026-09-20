@@ -84,6 +84,13 @@ Order is fixed:
 
 Create canonical owners first, then replace each legacy implementation with a thin wrapper. Existing B1 evidence remains bounded to the already observed board path; migration itself does not upgrade it.
 
+AHT10 is complete: the canonical Device owner now owns `0x38` initialization, measurement
+transactions and both converted channels; the legacy root source is a humidity-only compatibility
+wrapper. Focused Device/wrapper contracts preserve existing Pandora evidence without upgrading it.
+
+QMA6100P remains blocked on exact part identity/documentation. IIS2ICLX reconstruction was deferred
+in this run because the primary ST datasheet fetch failed; no register constants were guessed.
+
 ### M3 — promote substantive experimental typed owners
 
 Preferred order:
