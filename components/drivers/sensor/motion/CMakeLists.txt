@@ -16,3 +16,7 @@ endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/icm20608)
     add_subdirectory(icm20608)
 endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bmi088)
+    add_subdirectory(bmi088)
+endif()

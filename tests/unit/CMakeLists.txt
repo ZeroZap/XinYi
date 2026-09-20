@@ -1256,9 +1256,10 @@ target_include_directories(test_mpu6050 BEFORE PRIVATE
 
 xy_add_unit_test(test_bmi088 sensor_bmi088 UNITY
     ${UNIT_SENSOR}/test_bmi088.c
-    ${SENSOR}/src/xy_bmi088.c
+    ${DRV}/sensor/motion/bmi088/xy_bmi088.c
 )
 target_include_directories(test_bmi088 BEFORE PRIVATE
+    ${DRV}/sensor/motion/bmi088
     ${SENSOR}/inc
 )
 

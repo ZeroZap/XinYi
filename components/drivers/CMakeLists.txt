@@ -20,6 +20,9 @@ include_directories(
     ../hal/inc
     ../kernel/osal
     ../kernel/osal/inc
+    ../clib/xy_clib
+    ../clib/xy_clib/inc
+    ../sensor/inc
     ../trace/xy_log/inc
     ../pm/fuel-gauge
     ../pm/charger

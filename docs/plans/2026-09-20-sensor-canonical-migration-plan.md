@@ -143,6 +143,12 @@ incorrect register addresses and modeled nonexistent charge/energy accumulators.
 owner now uses the documented CONTROL/ALERT/STATUS/FAULT, POWER, SENSE and VIN register map with
 explicit shunt resistance and staged sample publication. Hardware and metrology remain pending.
 
+BMI088 is complete as a root-ownership promotion: the focused-test-backed dual-chip-select SPI
+source/header pair moved into `components/drivers/sensor/motion/bmi088`, `xy_drivers` now owns it,
+and the focused target compiles that canonical path. Existing identity, configuration, conversion,
+calibration, failure-preservation and lifecycle contracts remain unchanged. Hardware, timing,
+interrupt, FIFO, calibration quality and motion accuracy remain pending.
+
 Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
 
 Domain-owner corrections:
