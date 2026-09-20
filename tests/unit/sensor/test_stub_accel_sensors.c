@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "sensor_cms.h"
-#include "sensor_dmp6100.h"
 #include "sensor_gd30df.h"
 #include "sensor_hs_ads1100.h"
 #include "sensor_qma6100.h"
@@ -143,64 +142,7 @@ static void queue_xyz_bytes(void *bus, uint8_t addr, uint8_t start_reg, const ui
     }
 }
 
-static void test_dmp6100_create_init_and_read_contract(void)
-{
-    int fake_bus;
-    sensor_data_t data = {0};
-    const uint8_t raw[6] = {0x01, 0x00, 0xFF, 0xFF, 0x00, 0x80};
-    sensor_device_t *sensor = dmp6100_create("dmp6100-main", &fake_bus, 0U);
 
-    assert_common_stub_accel(sensor, "dmp6100-main", "国产", "DMP6100", DMP6100_ADDR_DEFAULT);
-
-    queue_i2c_write8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_CTRL, 0x56U, SENSOR_EOK);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-
-    queue_xyz_bytes(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_DATA, raw);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ACCELEROMETER, data.type);
-    TEST_ASSERT_EQUAL_INT32(16, data.value.val_3axis.x);
-    TEST_ASSERT_EQUAL_INT32(-16, data.value.val_3axis.y);
-    TEST_ASSERT_EQUAL_INT32(-524288, data.value.val_3axis.z);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
-    assert_i2c_drained();
-
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
-    sensor->bus = &fake_bus;
-
-    TEST_ASSERT_NULL(dmp6100_create(NULL, &fake_bus, 0U));
-    TEST_ASSERT_NULL(dmp6100_create("dmp6100-null-bus", NULL, 0U));
-
-    destroy_sensor(sensor);
-}
-
-static void test_dmp6100_read_preserves_transport_error_and_output(void)
-{
-    int fake_bus;
-    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE,
-                          .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
-                          .value.val_3axis = {.x = 11, .y = 22, .z = 33},
-                          .timestamp = 44U};
-    sensor_data_t snapshot = data;
-    sensor_device_t *sensor = dmp6100_create("dmp6100-timeout", &fake_bus, 0U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    queue_i2c_read8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_DATA, 0x01U,
-                    SENSOR_EOK);
-    queue_i2c_read8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_DATA + 1U, 0x00U,
-                    SENSOR_ETIMEOUT);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
-    TEST_ASSERT_EQUAL_INT(snapshot.unit, data.unit);
-    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.x, data.value.val_3axis.x);
-    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.y, data.value.val_3axis.y);
-    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.z, data.value.val_3axis.z);
-    TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);
-    TEST_ASSERT_EQUAL_UINT(2U, g_i2c_read_index);
-    destroy_sensor(sensor);
-}
 
 static void test_cms_create_init_and_read_contract(void)
 {
@@ -375,29 +317,24 @@ static void test_long_names_are_truncated_with_terminator(void)
     memset(long_name, 'A', sizeof(long_name));
     long_name[sizeof(long_name) - 1U] = '\0';
 
-    sensor_device_t *dmp6100 = dmp6100_create(long_name, &fake_bus, 0U);
     sensor_device_t *cms = cms_create(long_name, &fake_bus, 0U);
     sensor_device_t *gd30df = gd30df_create(long_name, &fake_bus, 0U);
     sensor_device_t *hs_ads1100 = hs_ads1100_create(long_name, &fake_bus, 0U);
     sensor_device_t *qma6100 = qma6100_create(long_name, &fake_bus, 0U);
 
-    TEST_ASSERT_NOT_NULL(dmp6100);
     TEST_ASSERT_NOT_NULL(cms);
     TEST_ASSERT_NOT_NULL(gd30df);
     TEST_ASSERT_NOT_NULL(hs_ads1100);
     TEST_ASSERT_NOT_NULL(qma6100);
-    TEST_ASSERT_EQUAL_UINT8('\0', dmp6100->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', cms->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', gd30df->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', hs_ads1100->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', qma6100->info.name[SENSOR_NAME_MAX_LEN - 1U]);
-    TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(dmp6100->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(cms->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(gd30df->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(hs_ads1100->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(qma6100->info.name));
 
-    destroy_sensor(dmp6100);
     destroy_sensor(cms);
     destroy_sensor(gd30df);
     destroy_sensor(hs_ads1100);
@@ -407,20 +344,16 @@ static void test_long_names_are_truncated_with_terminator(void)
 static void test_init_propagates_i2c_write_failure(void)
 {
     int fake_bus;
-    sensor_device_t *dmp6100 = dmp6100_create("dmp6100", &fake_bus, 0U);
     sensor_device_t *cms = cms_create("cms", &fake_bus, 0U);
     sensor_device_t *gd30df = gd30df_create("gd30df", &fake_bus, 0U);
     sensor_device_t *hs_ads1100 = hs_ads1100_create("hsads", &fake_bus, 0U);
     sensor_device_t *qma6100 = qma6100_create("qma6100", &fake_bus, 0U);
 
-    TEST_ASSERT_NOT_NULL(dmp6100);
     TEST_ASSERT_NOT_NULL(cms);
     TEST_ASSERT_NOT_NULL(gd30df);
     TEST_ASSERT_NOT_NULL(hs_ads1100);
     TEST_ASSERT_NOT_NULL(qma6100);
 
-    queue_i2c_write8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_CTRL, 0x56U, SENSOR_EIO);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, dmp6100->ops->init(dmp6100));
 
     queue_i2c_write8(&fake_bus, CMS_ADDR_DEFAULT, CMS_REG_CTRL1, 0x57U, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, cms->ops->init(cms));
@@ -440,7 +373,6 @@ static void test_init_propagates_i2c_write_failure(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, qma6100->ops->init(qma6100));
     assert_i2c_drained();
 
-    destroy_sensor(dmp6100);
     destroy_sensor(cms);
     destroy_sensor(gd30df);
     destroy_sensor(hs_ads1100);
@@ -655,18 +587,6 @@ static void test_cms_factory_rejects_invalid_context_without_io(void)
     assert_i2c_drained();
 }
 
-static void test_dmp6100_init_rejects_missing_bus_without_io(void)
-{
-    int fake_bus;
-    sensor_device_t *sensor = dmp6100_create("dmp6100-missing-bus", &fake_bus, 0U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
-    assert_i2c_drained();
-
-    destroy_sensor(sensor);
-}
 
 static void test_hs_ads1100_init_rejects_missing_bus_without_io(void)
 {
@@ -715,26 +635,6 @@ static void test_cms_read_rejects_missing_bus_without_io_or_output_change(void)
     destroy_sensor(sensor);
 }
 
-static void test_dmp6100_read_rejects_missing_bus_without_io_or_output_change(void)
-{
-    int fake_bus;
-    sensor_device_t *sensor = dmp6100_create("dmp-read-missing-bus", &fake_bus, 0U);
-    sensor_data_t data = {
-        .type = SENSOR_TYPE_GPS,
-        .unit = SENSOR_UNIT_MILLI_G,
-        .value.val_3axis = {111, 222, 333},
-        .timestamp = 0x12345678U,
-    };
-    sensor_data_t snapshot = data;
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-    assert_i2c_drained();
-
-    destroy_sensor(sensor);
-}
 
 static void test_hs_ads1100_read_rejects_missing_bus_without_io_or_output_change(void)
 {
@@ -778,18 +678,6 @@ static void test_gd30df_read_rejects_missing_bus_without_io_or_output_change(voi
     destroy_sensor(sensor);
 }
 
-static void test_dmp6100_init_propagates_first_transport_error(void)
-{
-    int fake_bus;
-    sensor_device_t *sensor = dmp6100_create("dmp-init-error", &fake_bus, 0U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    queue_i2c_write8(&fake_bus, DMP6100_ADDR_DEFAULT, DMP6100_REG_CTRL, 0x56U, SENSOR_ETIMEOUT);
-    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
-    assert_i2c_drained();
-
-    destroy_sensor(sensor);
-}
 
 static void test_stub_accel_lifecycle_propagates_timeout_without_state_change(void)
 {
@@ -827,8 +715,6 @@ static void test_stub_accel_lifecycle_propagates_timeout_without_state_change(vo
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_dmp6100_create_init_and_read_contract);
-    RUN_TEST(test_dmp6100_read_preserves_transport_error_and_output);
     RUN_TEST(test_cms_create_init_and_read_contract);
     RUN_TEST(test_hs_ads1100_create_init_and_read_contract);
     RUN_TEST(test_gd30df_create_init_and_read_contract);
@@ -843,14 +729,11 @@ int main(void)
     RUN_TEST(test_qma6100_public_guards_and_failed_reads_preserve_output);
     RUN_TEST(test_cms_init_rejects_missing_bus_without_io);
     RUN_TEST(test_cms_factory_rejects_invalid_context_without_io);
-    RUN_TEST(test_dmp6100_init_rejects_missing_bus_without_io);
     RUN_TEST(test_hs_ads1100_init_rejects_missing_bus_without_io);
     RUN_TEST(test_gd30df_init_rejects_missing_bus_without_io);
     RUN_TEST(test_cms_read_rejects_missing_bus_without_io_or_output_change);
-    RUN_TEST(test_dmp6100_read_rejects_missing_bus_without_io_or_output_change);
     RUN_TEST(test_hs_ads1100_read_rejects_missing_bus_without_io_or_output_change);
     RUN_TEST(test_gd30df_read_rejects_missing_bus_without_io_or_output_change);
-    RUN_TEST(test_dmp6100_init_propagates_first_transport_error);
     RUN_TEST(test_stub_accel_lifecycle_propagates_timeout_without_state_change);
     return UNITY_END();
 }

@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 46 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 45 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -245,6 +245,12 @@ not match that contract. The existing fake-register test therefore characterized
 not a supported chip protocol. The source/header and its focused assertions were removed instead of
 preserving a misidentified active driver. IIS2ICLX remains unsupported until a datasheet-grounded
 Device owner is implemented; no board, accuracy, transport, or product capability is claimed.
+
+DMP6100 was retired after provenance audit found no repository datasheet, vendor source, board
+consumer, or independent implementation supporting its declared `0x12` address, `0x0C` control,
+`0x18` data base, fixed `0x56` configuration, or unconditional raw×16 conversion. Although its fake
+I2C tests exercised error propagation, they only mirrored those ungrounded constants. DMP6100 is
+unsupported until a traceable datasheet and Device-model contract are available.
 
 VL53L1X follows the same bounded retirement rule. The removed legacy owner only reset register
 `0x2D` through an 8-bit register helper and read two bytes from `0x6E`; it had no checked consumer
