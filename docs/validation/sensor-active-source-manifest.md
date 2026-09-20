@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 54 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 53 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -198,6 +198,14 @@ The deleted `sensor_sgp40.c` returned a constant `100.0` gas value without bus t
 `components/sensor/src/xy_sgp40.c` retains feature-set/serial/self-test/CRC/measurement contracts and
 focused tests. It remains `experimental-test-only`: removal of the misleading stub is not promotion
 to the canonical Device root and does not establish VOC accuracy or hardware evidence.
+
+VL53L1X follows the same bounded retirement rule. The removed legacy owner only reset register
+`0x2D` through an 8-bit register helper and read two bytes from `0x6E`; it had no checked consumer
+outside its dedicated test. The retained `components/sensor/src/xy_vl53l1x.c` implementation has
+the substantive device identity, 16-bit register addressing, configuration, measurement, cache,
+calibration, interrupt and failure contracts. It remains `experimental-test-only`: this cleanup
+does not promote it into the canonical Device root or establish ranging accuracy or hardware
+evidence.
 
 INA226 follows the same duplicate-owner retirement rule: the focused-test-backed
 `components/sensor/src/xy_ina226.c` typed implementation remains `experimental-test-only`, while
