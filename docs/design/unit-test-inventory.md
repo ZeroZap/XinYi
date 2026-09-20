@@ -187,7 +187,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_bno055.c` | `unity` | 0 |
 | `tests/unit/sensor/test_dmp.c` | `unity` | 0 |
 | `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
-| `tests/unit/sensor/test_ina219.c` | `unity` | 0 | INA219 legacy current/power monitor create/read/failure contracts |
+
 | `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 + CMM905 legacy magnetic I2C contracts |
 
 | `tests/unit/sensor/test_angle_encoders.c` | `unity` | 0 | AS5600/AS5048 legacy angle encoder create/read/guard/failure contracts |

@@ -950,14 +950,6 @@ target_include_directories(test_power_monitors PRIVATE
     ${KERNEL}/osal
 )
 
-xy_add_unit_test(test_ina219 sensor_ina219 UNITY
-    ${UNIT_SENSOR}/test_ina219.c
-    ${SENSOR}/sensors/sensor_ina219.c
-)
-target_include_directories(test_ina219 BEFORE PRIVATE
-    ${SENSOR}
-    ${SENSOR}/sensors
-)
 
 xy_add_unit_test(test_angle_encoders sensor_angle_encoders UNITY
     ${UNIT_SENSOR}/test_angle_encoders.c

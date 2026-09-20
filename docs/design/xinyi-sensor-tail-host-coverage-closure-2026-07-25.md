@@ -37,7 +37,7 @@ Representative tail groups:
 
 | `sensor_proximity_sensors` | `tests/unit/sensor/test_proximity_sensors.c` | PA122, VCNL4040 |
 
-Dedicated legacy tail targets include INA219, GPS, LSM9DS1, APDS9960,
+Dedicated legacy tail targets include GPS, LSM9DS1, APDS9960,
 AP3216C, CCS811, VL53L0X, BMP280, ICM20608, BH1750 legacy, and SHT30 legacy.
 
 ## Design conclusion

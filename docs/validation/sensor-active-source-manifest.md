@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 39 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -271,6 +271,13 @@ NVM plus Bosch compensation; the legacy owner read no calibration registers, dis
 temperature bytes it fetched, and even aliased OSR/ODR constants onto pressure-data addresses
 `0x1C/0x1D`. Its fake-I2C tests therefore validated fabricated engineering units rather than a
 pressure contract. Restoration requires a datasheet-grounded Device owner with compensation tests.
+
+INA219 was retired because its init performed no configuration or calibration transaction, while
+read treated the signed shunt-voltage register (`0x01`) as current and multiplied it by a fixed
+`0.1`. INA219 current register scaling depends on the programmed calibration/current-LSB and board
+shunt resistance; none existed in private state or the factory contract. The focused test merely
+repeated the fabricated conversion. Restoration requires explicit shunt/calibration ownership and
+separate shunt-voltage, bus-voltage, current and power transaction contracts.
 
 GD30DF was retired after the same protocol-provenance audit. It appeared only in the original bulk
 sensor import, with no datasheet, vendor source, board consumer, or independent implementation in
