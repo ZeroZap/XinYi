@@ -128,6 +128,12 @@ VL53L1X is complete: the typed owner moved into the Device root, its private 16-
 lifecycle was replaced by nested `xy_i2c_device_t` transactions, and existing identity/result/
 timeout/configuration/calibration Host contracts were retained. Hardware remains pending.
 
+LPS22HB is complete: the focused typed source/header moved into the Device root and the root
+`xy_drivers` target now owns the implementation. Existing identity/configuration/pressure/
+temperature/FIFO/interrupt/error-preservation Host contracts remain unchanged. Hardware remains
+pending; the legacy callback-shaped transport is retained inside this bounded API migration and is
+the next transport-boundary hardening target.
+
 Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
 
 Domain-owner corrections:

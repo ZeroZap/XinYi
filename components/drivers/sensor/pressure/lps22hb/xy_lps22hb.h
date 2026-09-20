@@ -18,10 +18,20 @@
 #ifndef XY_LPS22HB_H
 #define XY_LPS22HB_H
 
-#include <stdint.h>
 #include <stdbool.h>
-#include "xy_typedef.h"
-#include "xy_ret.h"
+#include <stdint.h>
+
+typedef int xy_ret_t;
+
+#ifndef XY_OK
+#define XY_OK 0
+#endif
+#ifndef XY_ERROR
+#define XY_ERROR (-99)
+#endif
+#ifndef XY_TIMEOUT
+#define XY_TIMEOUT (-2)
+#endif
 
 #ifdef __cplusplus
 extern "C" {

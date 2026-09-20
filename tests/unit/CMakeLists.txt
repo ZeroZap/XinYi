@@ -940,9 +940,10 @@ target_include_directories(test_sgp40 PRIVATE
 
 xy_add_unit_test(test_lps22hb sensor_lps22hb UNITY
     ${UNIT_SENSOR}/test_lps22hb.c
-    ${SENSOR}/src/xy_lps22hb.c
+    ${DRV}/sensor/pressure/lps22hb/xy_lps22hb.c
 )
-target_include_directories(test_lps22hb PRIVATE
+target_include_directories(test_lps22hb BEFORE PRIVATE
+    ${DRV}/sensor/pressure/lps22hb
     ${SENSOR}/inc
 )
 target_link_libraries(test_lps22hb PRIVATE m)
