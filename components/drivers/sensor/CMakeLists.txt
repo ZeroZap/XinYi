@@ -11,6 +11,10 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/pressure)
 endif()
 
 # Light Sensors
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/angle)
+    add_subdirectory(angle)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/light)
     add_subdirectory(light)
 endif()

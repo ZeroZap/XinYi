@@ -31,7 +31,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 28 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; BMI088/BMI270/BNO055 and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 29 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; BMI088/BMI270/BNO055/AS5048B and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -63,6 +63,7 @@ The Device-model root set is currently exactly:
 - BMI088: `components/drivers/sensor/motion/bmi088/xy_bmi088.c`
 - BMI270: `components/drivers/sensor/motion/bmi270/xy_bmi270.c`
 - BNO055: `components/drivers/sensor/motion/bno055/xy_bno055.c`
+- AS5048B: `components/drivers/sensor/angle/as5048b/xy_as5048b.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -291,6 +292,14 @@ publication, physical conversion, calibration, range-cache atomicity, and lifecy
 Host/source ownership only; SPI electrical behavior, timing, interrupts, FIFO, calibration quality,
 motion accuracy and hardware recovery remain `hardware-pending`.
 
+### AS5048B migration status
+
+The legacy AS5048B I2C owner is now represented by the canonical Device owner at
+`components/drivers/sensor/angle/as5048b`. The owner uses the documented `0xFE/0xFF` 14-bit
+angle transaction, staged output/timestamp publication, fixed 7-bit address `0x40`, and nested
+I2C lifecycle checks. Angle accuracy, magnet installation and hardware endurance remain
+`hardware-pending`.
+
 ### BNO055 migration status
 
 The focused-test-backed BNO055 source/header pair moved from the experimental Sensor tree to
@@ -308,11 +317,11 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 27 canonical names have exactly eight approved legacy filename overlaps:
+The current 29 canonical names have exactly eight approved legacy filename overlaps:
 `sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, `ap3216c`, and `icm20608`. Each overlap is a compatibility wrapper
-documented above, not an implementation owner. The other seventeen canonical owners (`ads1115`, `aht30`,
-`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, `ltc2945`, `bmi088`, and `bno055`) have no legacy-root counterpart. No canonical name overlaps
-the 7 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+documented above, not an implementation owner. The other twenty-one canonical owners (`ads1115`, `aht30`,
+`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, `ltc2945`, `bmi088`, `bmi270`, `bno055`, and `as5048b`) have no legacy-root counterpart. No canonical name overlaps
+the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
 removed. It has now been promoted to the canonical Device root as documented above; the stale

@@ -971,6 +971,14 @@ target_include_directories(test_angle_encoders BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_as5048b_device sensor_as5048b_device UNITY
+    ${UNIT_SENSOR}/test_as5048b_device.c
+    ${DRV}/sensor/angle/as5048b/xy_as5048b.c
+)
+target_include_directories(test_as5048b_device BEFORE PRIVATE
+    ${DRV}/sensor/angle/as5048b
+)
+
 xy_add_unit_test(test_light_uv_sensors sensor_light_uv_sensors UNITY
     ${UNIT_SENSOR}/test_light_uv_sensors.c
     ${SENSOR}/sensors/sensor_max44009.c

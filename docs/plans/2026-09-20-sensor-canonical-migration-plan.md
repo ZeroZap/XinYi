@@ -143,6 +143,10 @@ incorrect register addresses and modeled nonexistent charge/energy accumulators.
 owner now uses the documented CONTROL/ALERT/STATUS/FAULT, POWER, SENSE and VIN register map with
 explicit shunt resistance and staged sample publication. Hardware and metrology remain pending.
 
+AS5048B is complete as a canonical angle Device owner. The owner models the I2C `0x40` address,
+datasheet `0xFE/0xFF` 14-bit angle read, staged sample publication and nested lifecycle boundary;
+angle accuracy and hardware remain pending.
+
 BMI088 is complete as a root-ownership promotion: the focused-test-backed dual-chip-select SPI
 source/header pair moved into `components/drivers/sensor/motion/bmi088`, `xy_drivers` now owns it,
 and the focused target compiles that canonical path. Existing identity, configuration, conversion,
