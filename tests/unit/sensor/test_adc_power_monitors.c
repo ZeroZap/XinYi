@@ -8,6 +8,7 @@
 #include "xy_hal_sys.h"
 #include "xy_ltc2945.h"
 #include "xy_ads1115.h"
+#include "xy_ina219.h"
 #include "xy_os.h"
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
@@ -86,6 +87,18 @@ static void queue_write_reg_config(uint16_t config, xy_error_t ret)
     g_ops[g_op_count].data[1] = (uint8_t)(config >> 8);
     g_ops[g_op_count].data[2] = (uint8_t)config;
     g_ops[g_op_count].len = 3U;
+    g_ops[g_op_count].ret = ret;
+    g_op_count++;
+}
+
+static void queue_write_reg16(uint8_t reg, uint16_t value, xy_error_t ret)
+{
+    TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_ops), g_op_count);
+    g_ops[g_op_count].kind = OP_WRITE_REG;
+    g_ops[g_op_count].reg = reg;
+    g_ops[g_op_count].data[0] = (uint8_t)(value >> 8);
+    g_ops[g_op_count].data[1] = (uint8_t)value;
+    g_ops[g_op_count].len = 2U;
     g_ops[g_op_count].ret = ret;
     g_op_count++;
 }
@@ -598,6 +611,110 @@ static void test_ltc2945_controls_reject_missing_i2c_context_without_io(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static xy_ina219_config_t ina219_config(void)
+{
+    xy_ina219_config_t config = {
+        .shunt_resistance_uohm = 100000U,
+        .current_lsb_ua = 100U,
+        .config_register = XY_INA219_CONFIG_DEFAULT,
+    };
+    return config;
+}
+
+static void init_ina219_ok(xy_ina219_t *ina, int *bus)
+{
+    xy_ina219_config_t config = ina219_config();
+    queue_write_reg16(XY_INA219_REG_CONFIG, XY_INA219_CONFIG_RESET, XY_DEVICE_OK);
+    queue_write_reg16(XY_INA219_REG_CONFIG, XY_INA219_CONFIG_DEFAULT, XY_DEVICE_OK);
+    queue_write_reg16(XY_INA219_REG_CALIBRATION, 4096U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_ina219_init(ina, bus, XY_INA219_ADDR_DEFAULT, &config));
+}
+
+static void test_ina219_init_and_measurement_contract(void)
+{
+    xy_ina219_t ina;
+    xy_ina219_sample_t sample = {0};
+    xy_ina219_config_t config = ina219_config();
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina219_init(NULL, &bus, XY_INA219_ADDR_DEFAULT, &config));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina219_init(&ina, NULL, XY_INA219_ADDR_DEFAULT, &config));
+    config.shunt_resistance_uohm = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina219_init(&ina, &bus, XY_INA219_ADDR_DEFAULT, &config));
+
+    init_ina219_ok(&ina, &bus);
+    TEST_ASSERT_TRUE(ina.initialized);
+    TEST_ASSERT_EQUAL_UINT16(4096U, ina.calibration_register);
+    TEST_ASSERT_EQUAL_UINT16(XY_INA219_ADDR_DEFAULT, g_last_addr);
+
+    queue_read16(XY_INA219_REG_SHUNT_VOLTAGE, 0xFFF6U, XY_DEVICE_OK);
+    queue_read16(XY_INA219_REG_BUS_VOLTAGE, 0x5DC0U, XY_DEVICE_OK);
+    queue_read16(XY_INA219_REG_CURRENT, 0xFF9CU, XY_DEVICE_OK);
+    queue_read16(XY_INA219_REG_POWER, 50U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ina219_read_sample(&ina, &sample));
+    TEST_ASSERT_EQUAL_INT32(-100, sample.shunt_voltage_uv);
+    TEST_ASSERT_EQUAL_UINT32(12000U, sample.bus_voltage_mv);
+    TEST_ASSERT_EQUAL_INT32(-10000, sample.current_ua);
+    TEST_ASSERT_EQUAL_UINT32(100000U, sample.power_uw);
+    TEST_ASSERT_EQUAL_MEMORY(&sample, &ina.sample, sizeof(sample));
+
+    queue_write_reg16(XY_INA219_REG_CONFIG, 0U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ina219_deinit(&ina));
+    TEST_ASSERT_FALSE(ina.initialized);
+}
+
+static void test_ina219_failures_preserve_state_and_stop_io(void)
+{
+    xy_ina219_t ina;
+    xy_ina219_sample_t output = {.shunt_voltage_uv = 1,
+                                 .bus_voltage_mv = 2U,
+                                 .current_ua = 3,
+                                 .power_uw = 4U};
+    xy_ina219_sample_t output_snapshot = output;
+    int bus;
+
+    init_ina219_ok(&ina, &bus);
+    ina.sample.shunt_voltage_uv = 11;
+    ina.sample.bus_voltage_mv = 22U;
+    ina.sample.current_ua = 33;
+    ina.sample.power_uw = 44U;
+    const xy_ina219_sample_t cache_snapshot = ina.sample;
+
+    queue_read16(XY_INA219_REG_SHUNT_VOLTAGE, 10U, XY_DEVICE_OK);
+    queue_read16(XY_INA219_REG_BUS_VOLTAGE, 0U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ina219_read_sample(&ina, &output));
+    TEST_ASSERT_EQUAL_MEMORY(&output_snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&cache_snapshot, &ina.sample, sizeof(ina.sample));
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+
+    ina.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina219_read_sample(&ina, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ina219_deinit(&ina));
+    TEST_ASSERT_TRUE(ina.initialized);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
+static void test_ina219_init_failure_clears_lifecycle(void)
+{
+    xy_ina219_t ina;
+    xy_ina219_config_t config = ina219_config();
+    int bus;
+
+    queue_write_reg16(XY_INA219_REG_CONFIG, XY_INA219_CONFIG_RESET, XY_DEVICE_OK);
+    queue_write_reg16(XY_INA219_REG_CONFIG, XY_INA219_CONFIG_DEFAULT, XY_DEVICE_OK);
+    queue_write_reg16(XY_INA219_REG_CALIBRATION, 4096U, XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_ina219_init(&ina, &bus, XY_INA219_ADDR_DEFAULT, &config));
+    TEST_ASSERT_FALSE(ina.initialized);
+    TEST_ASSERT_FALSE(ina.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -616,5 +733,8 @@ int main(void)
     RUN_TEST(test_ads1115_deinit_rejects_missing_i2c_context_without_lifecycle_change);
     RUN_TEST(test_ltc2945_read_rejects_missing_i2c_context_atomically);
     RUN_TEST(test_ltc2945_controls_reject_missing_i2c_context_without_io);
+    RUN_TEST(test_ina219_init_and_measurement_contract);
+    RUN_TEST(test_ina219_failures_preserve_state_and_stop_io);
+    RUN_TEST(test_ina219_init_failure_clears_lifecycle);
     return UNITY_END();
 }

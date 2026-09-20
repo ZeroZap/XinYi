@@ -31,7 +31,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 13 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -47,6 +47,7 @@ The Device-model root set is currently exactly:
 - SC7A22H: `components/drivers/sensor/motion/sc7a22h/xy_sc7a22h.c`
 - AHT20: `components/drivers/sensor/temperature/aht20/xy_aht20.c`
 - SHT40: `components/drivers/sensor/temperature/sht40/xy_sht40.c`
+- INA219: `components/drivers/sensor/adc/ina219/xy_ina219.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the

@@ -1187,9 +1187,11 @@ xy_add_unit_test(test_adc_power_monitors sensor_adc_power_monitors UNITY
     ${UNIT_SENSOR}/test_adc_power_monitors.c
     ${SENSOR}/src/xy_ltc2945.c
     ${DRV}/sensor/adc/ads1115/xy_ads1115.c
+    ${DRV}/sensor/adc/ina219/xy_ina219.c
 )
 target_include_directories(test_adc_power_monitors BEFORE PRIVATE
     ${DRV}/sensor/adc/ads1115
+    ${DRV}/sensor/adc/ina219
     ${SENSOR}/inc
     ${HAL}/inc
     ${KERNEL}/osal
