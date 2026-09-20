@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 42 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 41 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -257,6 +257,13 @@ and used the same `0x18` address, `0x20=0x57` initialization, `0x28..0x2D` raw l
 to-mg publication despite different vendor/model labels; neither init read the WHO_AM_I constants
 declared in its header. No datasheet, vendor source, board consumer or independent implementation
 grounded either contract. Both remain unsupported pending traceable documentation and Device owners.
+
+QMA6100 closed the legacy stub-accelerometer target. Repository-only review found contradictory
+state semantics: init cached physical range `2`, `set_range()` cached register enums `0..3`, and
+read interpreted both domains as physical g before multiplying raw values by `16/31/63/127` mg.
+Thus the same 4G enum (`1`) fell into the 16G/default scale path, while tests only repeated the
+implementation's constants. With no local datasheet/vendor source/board consumer, the owner and
+now-empty grouped target were retired pending a traceable Device-model implementation.
 
 GD30DF was retired after the same protocol-provenance audit. It appeared only in the original bulk
 sensor import, with no datasheet, vendor source, board consumer, or independent implementation in
