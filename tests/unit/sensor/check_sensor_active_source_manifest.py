@@ -12,6 +12,8 @@ AUDIT_PLAN = ROOT / "docs" / "plans" / "2026-08-17-component-audit-sprint-plan.m
 SENSOR_CMAKE = ROOT / "components" / "sensor" / "CMakeLists.txt"
 DRIVERS_CMAKE = ROOT / "components" / "drivers" / "CMakeLists.txt"
 UNIT_CMAKE = ROOT / "tests" / "unit" / "CMakeLists.txt"
+STALE_TOP_LEVEL_APDS9960_SOURCE = ROOT / "components" / "sensor" / "sensor_apds9960.c"
+STALE_TOP_LEVEL_APDS9960_HEADER = ROOT / "components" / "sensor" / "sensor_apds9960.h"
 STALE_BMP280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sensor_bmp280.c"
 STALE_BH1750 = ROOT / "components" / "sensor" / "drivers" / "light" / "xy_sensor_bh1750.c"
 STALE_MPU6050 = ROOT / "components" / "sensor" / "drivers" / "motion" / "xy_sensor_mpu6050.c"
@@ -92,6 +94,19 @@ def main() -> int:
     smart_hygrometer_main = SMART_HYGROMETER_MAIN.read_text(encoding="utf-8")
 
     legacy = sorted((ROOT / "components" / "sensor" / "sensors").glob("sensor_*.c"))
+    framework_sources = {
+        "sensor_calibration.c", "sensor_core.c", "sensor_dma.c", "sensor_fifo.c",
+        "sensor_filter.c", "sensor_fusion.c", "sensor_interrupt.c", "sensor_mem_pool.c",
+        "sensor_moton.c", "sensor_power.c", "sensor_self_test.c", "sensor_threshold.c",
+    }
+    explicit_top_level_sources = {
+        match.group(1)
+        for match in re.finditer(r"^\s*(sensor_[a-z0-9_]+\.c)\s*$", sensor_cmake, re.MULTILINE)
+    }
+    top_level_owners = sorted(
+        ROOT / "components" / "sensor" / name
+        for name in explicit_top_level_sources - framework_sources
+    )
     experimental = sorted((ROOT / "components" / "sensor" / "src").glob("xy_*.c"))
     device = sorted((ROOT / "components" / "drivers" / "sensor").glob("**/xy_*.c"))
 
@@ -100,8 +115,11 @@ def main() -> int:
     experimental_names = {path.stem.removeprefix("xy_") for path in experimental}
     prototype = sorted((ROOT / "components" / "sensor" / "drivers").glob("**/xy_sensor_*.c"))
     prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
+    top_level_names = {path.stem.removeprefix("sensor_") for path in top_level_owners}
 
     require(len(legacy) == 39, f"expected 39 legacy active sources, found {len(legacy)}", errors)
+    require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
+            "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 17,
             f"expected 17 experimental xy_* sources, found {len(experimental)}", errors)
     require(len(device) == 12, f"expected 12 Device-model sources, found {len(device)}", errors)
@@ -114,6 +132,8 @@ def main() -> int:
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
     require(not (canonical_names & prototype_names),
             "canonical Device owners must not reappear as xy_sensor_* prototypes", errors)
+    require(not (top_level_names & legacy_names),
+            "top-level and sensors/ legacy implementation owners must not overlap", errors)
 
     for token in (
         "legacy-active-root",
@@ -212,6 +232,9 @@ def main() -> int:
             "retired experimental SHT40 lifecycle must not reappear", errors)
     require(not STALE_SHT40_PROTOTYPE.exists(),
             "retired xy_sensor_sht40 lifecycle must not reappear", errors)
+    require(not STALE_TOP_LEVEL_APDS9960_SOURCE.exists() and
+            not STALE_TOP_LEVEL_APDS9960_HEADER.exists(),
+            "retired duplicate top-level APDS9960 owner must not reappear", errors)
     require("components/drivers/sensor/pressure/bmp280" in smart_hygrometer_cmake,
             "smart_hygrometer must include the canonical BMP280 owner", errors)
     require("components/drivers/sensor/pressure/bmp280/xy_bmp280.c" in smart_hygrometer_cmake,
@@ -227,8 +250,9 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=39 experimental_test_only=17 "
-          "device_active=12 approved_wrappers=5 overlap_duplicates=0 false_owners=0 "
+    print("sensor_active_source_manifest_ok legacy_active=40 legacy_subdir=39 "
+          "legacy_top_level=1 experimental_test_only=17 device_active=12 "
+          "approved_wrappers=5 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
 

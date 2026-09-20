@@ -24,7 +24,6 @@ set(SENSOR_SOURCES
     sensor_threshold.c
     sensor_mem_pool.c
     sensor_adt7420.c
-    sensor_apds9960.c
 )
 
 # Add driver sources from sensors/ directory

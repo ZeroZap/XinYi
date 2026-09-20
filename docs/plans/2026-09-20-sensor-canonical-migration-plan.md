@@ -41,13 +41,17 @@ Each migrated chip must provide:
 
 ## Execution order
 
-### M0 — ownership gate correction
+### M0 — ownership gate correction (`DONE`)
 
 1. Resolve APDS9960 duplicate root ownership:
    - `components/sensor/sensor_apds9960.c`
    - `components/sensor/sensors/sensor_apds9960.c`
 2. Expand the ownership manifest to scan explicit top-level `components/sensor/sensor_*.c` sources as well as the `sensors/` glob.
 3. Preserve the stronger checked implementation while preparing APDS9960 for canonical migration; do not treat duplicate cleanup as product validation.
+
+Closed by retaining the focused-test-backed `sensors/sensor_apds9960.c`, removing the weaker
+top-level source and duplicate header, and adding a manifest guard for explicit top-level owners and
+top-level/subdirectory name overlap. APDS9960 remains a legacy owner pending its M4 Device migration.
 
 ### M1 — restore recently retired, mature digital protocols
 
