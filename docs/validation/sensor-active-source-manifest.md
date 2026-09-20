@@ -30,8 +30,8 @@
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
-| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 8 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 26 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; BMI088 and other non-board owners remain `hardware-pending` |
+| new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 7 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 27 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; BMI088/BNO055 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -61,6 +61,7 @@ The Device-model root set is currently exactly:
 - SGP40: `components/drivers/sensor/environment/sgp40/xy_sgp40.c`
 - LTC2945: `components/drivers/sensor/adc/ltc2945/xy_ltc2945.c`
 - BMI088: `components/drivers/sensor/motion/bmi088/xy_bmi088.c`
+- BNO055: `components/drivers/sensor/motion/bno055/xy_bno055.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -289,6 +290,15 @@ publication, physical conversion, calibration, range-cache atomicity, and lifecy
 Host/source ownership only; SPI electrical behavior, timing, interrupts, FIFO, calibration quality,
 motion accuracy and hardware recovery remain `hardware-pending`.
 
+### BNO055 migration status
+
+The focused-test-backed BNO055 source/header pair moved from the experimental Sensor tree to
+`components/drivers/sensor/motion/bno055` and is now root-linked by `xy_drivers`. The canonical
+owner retains its explicit I2C transport and unsupported-UART boundary, plus initialization,
+mode/power/unit configuration, raw/fused output, axis-remap, failure-preservation, and lifecycle
+contracts. Host/source ownership only; fusion quality, calibration, timing, interrupt behavior,
+motion accuracy, UART transport, and hardware recovery remain `hardware-pending`.
+
 ## Guard and update rule
 
 The manifest checker also scans the legacy root for small owners that publish a literal scalar
@@ -297,11 +307,11 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 26 canonical names have exactly eight approved legacy filename overlaps:
+The current 27 canonical names have exactly eight approved legacy filename overlaps:
 `sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, `ap3216c`, and `icm20608`. Each overlap is a compatibility wrapper
 documented above, not an implementation owner. The other seventeen canonical owners (`ads1115`, `aht30`,
-`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22h`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, `ltc2945`, and `bmi088`) have no legacy-root counterpart. No canonical name overlaps
-the 8 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+`bme680`, `hmc5883l`, `l3g4200d`, `sc7a22`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, `ltc2945`, `bmi088`, and `bno055`) have no legacy-root counterpart. No canonical name overlaps
+the 7 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
 removed. It has now been promoted to the canonical Device root as documented above; the stale

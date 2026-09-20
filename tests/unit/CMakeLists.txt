@@ -1313,9 +1313,10 @@ target_link_libraries(test_vl53l1x PRIVATE m)
 
 xy_add_unit_test(test_bno055 sensor_bno055 UNITY
     ${UNIT_SENSOR}/test_bno055.c
-    ${SENSOR}/src/xy_bno055.c
+    ${DRV}/sensor/motion/bno055/xy_bno055.c
 )
 target_include_directories(test_bno055 BEFORE PRIVATE
+    ${DRV}/sensor/motion/bno055
     ${SENSOR}/inc
 )
 target_link_libraries(test_bno055 PRIVATE m)

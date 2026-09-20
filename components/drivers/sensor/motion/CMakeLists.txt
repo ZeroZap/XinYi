@@ -20,3 +20,7 @@ endif()
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bmi088)
     add_subdirectory(bmi088)
 endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bno055)
+    add_subdirectory(bno055)
+endif()
