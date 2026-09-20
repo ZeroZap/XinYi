@@ -1,0 +1,139 @@
+# Sensor canonical Device migration execution plan
+
+**Date:** 2026-09-20
+**Status:** Active
+**Scope:** Migrate legacy/test-only Sensor implementations to one canonical Device owner without requiring immediate board validation.
+
+## Policy correction
+
+- Missing hardware evidence is **not** a deletion criterion. It limits the evidence state to `hardware-pending`.
+- Chips with a traceable public datasheet or vendor implementation are rebuilt or promoted directly under `components/drivers/sensor/**`.
+- An incorrect legacy implementation is used only as an API/consumer inventory; register protocol and engineering-unit conversion are rebuilt from primary documentation.
+- A legacy `sensor_device_t` API remains only when a checked consumer exists. It becomes a thin compatibility wrapper and delegates all transport, protocol, conversion, configuration and lifecycle work to the canonical owner.
+- A chip remains `unsupported` only when its exact identity or protocol cannot be established. Required evidence is full part number, vendor, datasheet revision, bus/ID/address and preferably board BOM/schematic provenance.
+- Each chip is one bounded slice and one path-limited commit. Bulk migration and a fourth lifecycle are prohibited.
+
+## Canonical slice template
+
+Each migrated chip must provide:
+
+1. `components/drivers/sensor/<class>/<chip>/xy_<chip>.{h,c}` with an embedded `xy_i2c_device_t` or the appropriate Device transport helper.
+2. A chip-local `CMakeLists.txt` and category inclusion so `xy_drivers` owns the source in a root build.
+3. A typed API covering explicit-address initialization, deinit, identity/configuration and meaningful measurements/configuration.
+4. Strict lifecycle checks on both outer state and nested helper state; invalid state performs zero I/O.
+5. First-error stop and staged commit for caller output, sample/config cache and lifecycle state.
+6. A focused canonical test that links the real owner and mocks only Device/HAL seams.
+7. A compatibility-wrapper test when a legacy consumer remains. The wrapper may retain metadata/unit/API shape but no register protocol.
+8. Manifest and ownership guards preventing legacy/experimental/prototype implementation duplication.
+9. Evidence recorded as `hardware-pending`, B1 or B2 independently of source migration.
+
+## Acceptance gate per chip
+
+- focused identity/init/config/sample/deinit/re-init tests;
+- every transport failure point and nested-helper invalidation covered;
+- output/cache/lifecycle atomicity verified;
+- canonical source linked by root `xy_drivers` and, when required, by `sensor_component` through the wrapper path;
+- manifest checker passes with one implementation owner;
+- full Host suite passes;
+- PC, STM32L4 and STM32U5 Release builds pass;
+- `git diff --check` and `git diff --cached --check` pass;
+- hardware claim remains `hardware-pending` unless separately observed.
+
+## Execution order
+
+### M0 — ownership gate correction
+
+1. Resolve APDS9960 duplicate root ownership:
+   - `components/sensor/sensor_apds9960.c`
+   - `components/sensor/sensors/sensor_apds9960.c`
+2. Expand the ownership manifest to scan explicit top-level `components/sensor/sensor_*.c` sources as well as the `sensors/` glob.
+3. Preserve the stronger checked implementation while preparing APDS9960 for canonical migration; do not treat duplicate cleanup as product validation.
+
+### M1 — restore recently retired, mature digital protocols
+
+Order is fixed:
+
+1. **INA219** (`P0`, rebuild)
+   - Explicit shunt resistance, current-LSB and calibration ownership.
+   - Separate shunt voltage, bus voltage, current and power APIs.
+   - Restore legacy factory only as a wrapper if a consumer requires it.
+   - State: `hardware-pending`.
+2. **BMP390** (`P0`, rebuild)
+   - Use Bosch BMP3 SensorAPI or a pinned datasheet implementation.
+   - Read NVM calibration and perform temperature-first pressure compensation.
+   - State: `hardware-pending`.
+3. **QMA6100P** (`P1`, rebuild)
+   - Confirm exact public part identity before coding.
+   - Rebuild chip ID, output width, ODR/range and sensitivity contracts; do not reuse the old mixed enum/physical cache.
+4. **IIS2ICLX** (`P1`, rebuild)
+   - Correct formal model and SPI-only transport.
+   - Do not restore the invalid `IIS2ICLP` I2C owner.
+
+### M2 — migrate owners with existing Pandora evidence
+
+1. AHT10
+2. AP3216C
+3. ICM20608
+
+Create canonical owners first, then replace each legacy implementation with a thin wrapper. Existing B1 evidence remains bounded to the already observed board path; migration itself does not upgrade it.
+
+### M3 — promote substantive experimental typed owners
+
+Preferred order:
+
+1. HDC1080
+2. TSL2561
+3. INA226
+4. VL53L1X
+5. SGP40
+6. LPS22HB
+7. LTC2945
+8. MLX90614
+9. BMI088 / BMI270 / BNO055
+
+Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
+
+Domain-owner corrections:
+
+- Sensor BQ25620 becomes an adapter to `components/charger`, not another register owner.
+- Sensor MAX17043 becomes an adapter to `components/fuel_gauge`, not another register owner.
+
+### M4 — remaining mature digital protocols
+
+Short protocols first:
+
+- AS5048B, AS5600, MAX44009, PA122, VCNL4040;
+- QMC5883L, AK09918, IST8310;
+- ADXL362, BMA400, KX023, LIS2DH12, LIS2DW12;
+- LSM6DSL, LSM6DSO, LSM6DSR, LSM9DS1;
+- APDS9960, CCS811, VL53L0X.
+
+Optional FIFO, gesture, interrupt and algorithm features may follow in later slices; they do not block ownership migration when identity, default configuration and basic sampling contracts are complete.
+
+### M5 — identity/board-data dependent
+
+Keep pending until exact documentation exists:
+
+- CMM905/MM905;
+- SC7A20 versus Silan SC7A20 identity/owner relationship;
+- GPS module/transport ownership;
+- ACS712, FSR, GUVA-S12SD, MG811, MQ135, MQ3 and MQ7 board analog front ends.
+
+Analog migrations require board reference voltage, divider/load/sense resistance, zero point, temperature behavior and calibration curve. Do not promote empirical formulas without that context.
+
+Remain `unsupported` with no-return guards until identity is established:
+
+- GD30DF;
+- CMS;
+- HS-ADS1100;
+- DMP6100.
+
+## Progress accounting
+
+Track three independent numbers after every slice:
+
+- canonical Device active-root owners;
+- legacy compatibility/active-root files;
+- experimental test-only owners.
+
+A migration is complete only when the canonical count/root ownership changes as intended and duplicate implementation count remains zero. Deleting an owner without creating/promoting the planned canonical owner does not count as migration progress.
