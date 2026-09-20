@@ -8,7 +8,6 @@
 #include "sensor_im69d.h"
 #include "sensor_max30102.h"
 #include "sensor_sgp30.h"
-#include "sensor_sgp40.h"
 
 static uint32_t g_tick;
 
@@ -78,25 +77,6 @@ static void test_sgp30_create_sets_identity_and_default_read_contract(void)
     destroy_sensor(sensor);
 }
 
-static void test_sgp40_create_sets_identity_and_default_read_contract(void)
-{
-    int fake_bus;
-    sensor_data_t data = {0};
-    sensor_device_t *sensor = sgp40_create("sgp40-main", &fake_bus);
-
-    assert_stub_identity(sensor, "sgp40-main", "Sensirion", "SGP40", SENSOR_TYPE_GAS,
-                         &fake_bus);
-    TEST_ASSERT_EQUAL_UINT8(0x59U, ((sgp40_priv_t *)sensor->priv_data)->i2c_addr);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_GAS, data.type);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 100.0f, data.value.val_float);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-
-    destroy_sensor(sensor);
-}
 
 static void test_ens160_create_sets_identity_and_default_read_contract(void)
 {
@@ -166,29 +146,24 @@ static void test_long_names_are_truncated_with_terminator(void)
     long_name[sizeof(long_name) - 1U] = '\0';
 
     sensor_device_t *sgp30 = sgp30_create(long_name, &fake_bus);
-    sensor_device_t *sgp40 = sgp40_create(long_name, &fake_bus);
     sensor_device_t *ens160 = ens160_create(long_name, &fake_bus);
     sensor_device_t *im69d = im69d_create(long_name, &fake_bus);
     sensor_device_t *max30102 = max30102_create(long_name, &fake_bus);
 
     TEST_ASSERT_NOT_NULL(sgp30);
-    TEST_ASSERT_NOT_NULL(sgp40);
     TEST_ASSERT_NOT_NULL(ens160);
     TEST_ASSERT_NOT_NULL(im69d);
     TEST_ASSERT_NOT_NULL(max30102);
     TEST_ASSERT_EQUAL_UINT8('\0', sgp30->info.name[SENSOR_NAME_MAX_LEN - 1U]);
-    TEST_ASSERT_EQUAL_UINT8('\0', sgp40->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', ens160->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', im69d->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', max30102->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(sgp30->info.name));
-    TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(sgp40->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(ens160->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(im69d->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(max30102->info.name));
 
     destroy_sensor(sgp30);
-    destroy_sensor(sgp40);
     destroy_sensor(ens160);
     destroy_sensor(im69d);
     destroy_sensor(max30102);
@@ -199,7 +174,6 @@ static void test_create_rejects_null_names(void)
     int fake_bus;
 
     TEST_ASSERT_NULL(sgp30_create(NULL, &fake_bus));
-    TEST_ASSERT_NULL(sgp40_create(NULL, &fake_bus));
     TEST_ASSERT_NULL(ens160_create(NULL, &fake_bus));
     TEST_ASSERT_NULL(im69d_create(NULL, &fake_bus));
     TEST_ASSERT_NULL(max30102_create(NULL, &fake_bus));
@@ -210,7 +184,6 @@ static void test_i2c_factories_and_ops_reject_missing_bus(void)
     int fake_bus;
     sensor_device_t *sensors[] = {
         sgp30_create("sgp30-bus", &fake_bus),
-        sgp40_create("sgp40-bus", &fake_bus),
         ens160_create("ens160-bus", &fake_bus),
         im69d_create("im69d-bus", &fake_bus),
         max30102_create("max30102-bus", &fake_bus),
@@ -220,7 +193,6 @@ static void test_i2c_factories_and_ops_reject_missing_bus(void)
     size_t i;
 
     TEST_ASSERT_NULL(sgp30_create("sgp30-null-bus", NULL));
-    TEST_ASSERT_NULL(sgp40_create("sgp40-null-bus", NULL));
     TEST_ASSERT_NULL(ens160_create("ens160-null-bus", NULL));
     TEST_ASSERT_NULL(im69d_create("im69d-null-bus", NULL));
     TEST_ASSERT_NULL(max30102_create("max30102-null-bus", NULL));
@@ -240,7 +212,6 @@ static void test_public_ops_reject_null_inputs_and_preserve_output(void)
 {
     int fake_bus;
     sensor_device_t *sgp30 = sgp30_create("sgp30-guard", &fake_bus);
-    sensor_device_t *sgp40 = sgp40_create("sgp40-guard", &fake_bus);
     sensor_device_t *ens160 = ens160_create("ens160-guard", &fake_bus);
     sensor_device_t *im69d = im69d_create("im69d-guard", &fake_bus);
     sensor_device_t *max30102 = max30102_create("max30102-guard", &fake_bus);
@@ -248,15 +219,12 @@ static void test_public_ops_reject_null_inputs_and_preserve_output(void)
     sensor_data_t snapshot = data;
 
     TEST_ASSERT_NOT_NULL(sgp30);
-    TEST_ASSERT_NOT_NULL(sgp40);
     TEST_ASSERT_NOT_NULL(ens160);
     TEST_ASSERT_NOT_NULL(im69d);
     TEST_ASSERT_NOT_NULL(max30102);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->deinit(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->init(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->init(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->deinit(NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->init(NULL));
@@ -266,8 +234,6 @@ static void test_public_ops_reject_null_inputs_and_preserve_output(void)
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(sgp30, NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->read(sgp40, NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->read(NULL, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->read(ens160, NULL));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->read(NULL, &data));
@@ -277,7 +243,6 @@ static void test_public_ops_reject_null_inputs_and_preserve_output(void)
     assert_output_unchanged(&data, &snapshot);
 
     destroy_sensor(sgp30);
-    destroy_sensor(sgp40);
     destroy_sensor(ens160);
     destroy_sensor(im69d);
     destroy_sensor(max30102);
@@ -287,7 +252,6 @@ static void test_missing_private_data_is_rejected_and_preserves_output(void)
 {
     int fake_bus;
     sensor_device_t *sgp30 = sgp30_create("sgp30-no-priv", &fake_bus);
-    sensor_device_t *sgp40 = sgp40_create("sgp40-no-priv", &fake_bus);
     sensor_device_t *ens160 = ens160_create("ens160-no-priv", &fake_bus);
     sensor_device_t *im69d = im69d_create("im69d-no-priv", &fake_bus);
     sensor_device_t *max30102 = max30102_create("max30102-no-priv", &fake_bus);
@@ -295,15 +259,12 @@ static void test_missing_private_data_is_rejected_and_preserves_output(void)
     sensor_data_t snapshot = data;
 
     TEST_ASSERT_NOT_NULL(sgp30);
-    TEST_ASSERT_NOT_NULL(sgp40);
     TEST_ASSERT_NOT_NULL(ens160);
     TEST_ASSERT_NOT_NULL(im69d);
     TEST_ASSERT_NOT_NULL(max30102);
 
     SENSOR_FREE(sgp30->priv_data);
     sgp30->priv_data = NULL;
-    SENSOR_FREE(sgp40->priv_data);
-    sgp40->priv_data = NULL;
     SENSOR_FREE(ens160->priv_data);
     ens160->priv_data = NULL;
     SENSOR_FREE(im69d->priv_data);
@@ -312,7 +273,6 @@ static void test_missing_private_data_is_rejected_and_preserves_output(void)
     max30102->priv_data = NULL;
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->deinit(sgp30));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->deinit(sgp40));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->deinit(ens160));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, im69d->ops->deinit(im69d));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, max30102->ops->deinit(max30102));
@@ -320,9 +280,6 @@ static void test_missing_private_data_is_rejected_and_preserves_output(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->init(sgp30));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->deinit(sgp30));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp30->ops->read(sgp30, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->init(sgp40));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->deinit(sgp40));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sgp40->ops->read(sgp40, &data));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->init(ens160));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->deinit(ens160));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, ens160->ops->read(ens160, &data));
@@ -335,7 +292,6 @@ static void test_missing_private_data_is_rejected_and_preserves_output(void)
     assert_output_unchanged(&data, &snapshot);
 
     destroy_sensor(sgp30);
-    destroy_sensor(sgp40);
     destroy_sensor(ens160);
     destroy_sensor(im69d);
     destroy_sensor(max30102);
@@ -345,7 +301,6 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_sgp30_create_sets_identity_and_default_read_contract);
-    RUN_TEST(test_sgp40_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_ens160_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_im69d_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_max30102_create_sets_identity_and_default_read_contract);

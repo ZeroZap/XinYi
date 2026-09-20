@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 55 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 54 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -192,6 +192,12 @@ the unreferenced `xy_sensor_tsl2561.c` prototype was removed. That prototype ign
 write failures and divided by the broadband channel without a zero guard. The manifest guard now
 prevents it from returning. This does not promote TSL2561 into the canonical Device root or claim
 hardware, accuracy, or recovery evidence.
+
+SGP40 is the first legacy-root stub removed in favor of its substantive test-only implementation.
+The deleted `sensor_sgp40.c` returned a constant `100.0` gas value without bus traffic or lifecycle;
+`components/sensor/src/xy_sgp40.c` retains feature-set/serial/self-test/CRC/measurement contracts and
+focused tests. It remains `experimental-test-only`: removal of the misleading stub is not promotion
+to the canonical Device root and does not establish VOC accuracy or hardware evidence.
 
 INA226 follows the same duplicate-owner retirement rule: the focused-test-backed
 `components/sensor/src/xy_ina226.c` typed implementation remains `experimental-test-only`, while
