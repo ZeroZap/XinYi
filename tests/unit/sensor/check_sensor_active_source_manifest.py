@@ -122,7 +122,7 @@ def main() -> int:
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 17,
             f"expected 17 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 13, f"expected 13 Device-model sources, found {len(device)}", errors)
+    require(len(device) == 14, f"expected 14 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
@@ -154,6 +154,7 @@ def main() -> int:
         "AHT20",
         "SHT40",
         "INA219",
+        "BMP390",
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
@@ -252,7 +253,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=40 legacy_subdir=39 "
-          "legacy_top_level=1 experimental_test_only=17 device_active=13 "
+          "legacy_top_level=1 experimental_test_only=17 device_active=14 "
           "approved_wrappers=5 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0

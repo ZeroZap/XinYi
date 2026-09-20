@@ -31,7 +31,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 13 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219 and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 14 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; INA219, BMP390 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -48,6 +48,7 @@ The Device-model root set is currently exactly:
 - AHT20: `components/drivers/sensor/temperature/aht20/xy_aht20.c`
 - SHT40: `components/drivers/sensor/temperature/sht40/xy_sht40.c`
 - INA219: `components/drivers/sensor/adc/ina219/xy_ina219.c`
+- BMP390: `components/drivers/sensor/pressure/bmp390/xy_bmp390.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -275,12 +276,19 @@ Thus the same 4G enum (`1`) fell into the 16G/default scale path, while tests on
 implementation's constants. With no local datasheet/vendor source/board consumer, the owner and
 now-empty grouped target were retired pending a traceable Device-model implementation.
 
-BMP390 was retired because it published uncompensated pressure ADC counts as hectopascals using
+The former BMP390 owner was retired because it published uncompensated pressure ADC counts as hectopascals using
 `raw / 256`. A BMP390 measurement requires temperature and pressure calibration coefficients from
 NVM plus Bosch compensation; the legacy owner read no calibration registers, discarded the three
 temperature bytes it fetched, and even aliased OSR/ODR constants onto pressure-data addresses
 `0x1C/0x1D`. Its fake-I2C tests therefore validated fabricated engineering units rather than a
-pressure contract. Restoration requires a datasheet-grounded Device owner with compensation tests.
+pressure contract. BMP390 has now been rebuilt as a canonical Device owner using Bosch BMP3
+SensorAPI `bmp3_v2.0.6` at commit `db4cf8e4140c593b8c3d85f8c6c07335c7ffa9dc` (BSD-3-Clause),
+with pinned file hashes and an unmodified imported source copy. The XinYi adapter owns I2C lifecycle,
+strict BMP390 identity, default pressure/temperature configuration, transport-error mapping, and
+atomic compensated temperature/pressure publication. Focused Host tests exercise identity,
+calibration/configuration, a pinned compensated sample, failure preservation and deinit recovery.
+This restores root source ownership only; board accuracy, timing, interrupt/FIFO behavior and B1/B2
+remain `hardware-pending`.
 
 INA219 was retired because its init performed no configuration or calibration transaction, while
 read treated the signed shunt-voltage register (`0x01`) as current and multiplied it by a fixed

@@ -66,6 +66,9 @@ Order is fixed:
    - Use Bosch BMP3 SensorAPI or a pinned datasheet implementation.
    - Read NVM calibration and perform temperature-first pressure compensation.
    - State: `hardware-pending`.
+   - Implementation: canonical owner uses pinned Bosch BMP3 SensorAPI `bmp3_v2.0.6` with
+     repository-recorded commit/license/file hashes; focused compensation and failure contracts are
+     complete, while board evidence remains pending.
 3. **QMA6100P** (`P1`, rebuild)
    - Confirm exact public part identity before coding.
    - Rebuild chip ID, output width, ODR/range and sensitivity contracts; do not reuse the old mixed enum/physical cache.

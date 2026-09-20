@@ -1197,6 +1197,17 @@ target_include_directories(test_adc_power_monitors BEFORE PRIVATE
     ${KERNEL}/osal
 )
 
+xy_add_unit_test(test_bmp390_device sensor_bmp390_device UNITY
+    ${UNIT_SENSOR}/test_bmp390_device.c
+    ${DRV}/sensor/pressure/bmp390/xy_bmp390.c
+    ${DRV}/sensor/pressure/bmp390/bosch/bmp3.c
+)
+target_include_directories(test_bmp390_device BEFORE PRIVATE
+    ${DRV}/sensor/pressure/bmp390
+    ${DRV}/sensor/pressure/bmp390/bosch
+    ${HAL}/inc
+)
+
 xy_add_unit_test(test_coulomb sensor_coulomb UNITY
     ${UNIT_SENSOR}/test_coulomb.c
     ${SENSOR}/src/xy_coulomb.c

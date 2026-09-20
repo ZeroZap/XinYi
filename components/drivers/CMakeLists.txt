@@ -25,6 +25,7 @@ include_directories(
     ../pm/charger
     ../pm/inc
     ../gui/inc
+    sensor/pressure/bmp390/bosch
 )
 
 # Add subdirectories for organized drivers
