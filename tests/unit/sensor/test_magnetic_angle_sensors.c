@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sensor_aeat8800.h"
 #include "sensor_mlx90393.h"
 
 static uint32_t g_tick;
@@ -80,56 +79,7 @@ static void test_mlx90393_rejects_invalid_deinit_and_factory_context(void)
     destroy_sensor(sensor);
 }
 
-static void test_aeat8800_create_sets_identity_and_default_read_contract(void)
-{
-    int fake_bus;
-    sensor_data_t data = {0};
-    sensor_device_t *sensor = aeat8800_create("aeat8800-main", &fake_bus);
 
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_STRING("aeat8800-main", sensor->info.name);
-    TEST_ASSERT_EQUAL_STRING("Bourns", sensor->info.vendor);
-    TEST_ASSERT_EQUAL_STRING("AEAT-8800", sensor->info.model);
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ANGLE, sensor->info.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_IDLE, sensor->status);
-    TEST_ASSERT_EQUAL_PTR(&fake_bus, sensor->bus);
-    TEST_ASSERT_NOT_NULL(sensor->ops);
-    TEST_ASSERT_NOT_NULL(sensor->ops->init);
-    TEST_ASSERT_NOT_NULL(sensor->ops->read);
-    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
-    TEST_ASSERT_NOT_NULL(sensor->priv_data);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ANGLE, data.type);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, data.value.val_float);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
-    destroy_sensor(sensor);
-}
-
-static void test_aeat8800_rejects_invalid_context_without_side_effects(void)
-{
-    int fake_bus;
-    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM, .value.val_float = 12.5f, .timestamp = 91U};
-    sensor_data_t snapshot = data;
-    sensor_device_t *sensor = aeat8800_create("aeat8800-guards", &fake_bus);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-    destroy_sensor(sensor);
-
-    TEST_ASSERT_NULL(aeat8800_create(NULL, &fake_bus));
-    TEST_ASSERT_NULL(aeat8800_create("aeat8800-null-bus", NULL));
-}
 
 static void test_long_names_are_truncated_with_terminator(void)
 {
@@ -139,17 +89,12 @@ static void test_long_names_are_truncated_with_terminator(void)
     long_name[sizeof(long_name) - 1U] = '\0';
 
     sensor_device_t *mlx90393 = mlx90393_create(long_name, &fake_bus);
-    sensor_device_t *aeat8800 = aeat8800_create(long_name, &fake_bus);
 
     TEST_ASSERT_NOT_NULL(mlx90393);
-    TEST_ASSERT_NOT_NULL(aeat8800);
     TEST_ASSERT_EQUAL_UINT8('\0', mlx90393->info.name[SENSOR_NAME_MAX_LEN - 1U]);
-    TEST_ASSERT_EQUAL_UINT8('\0', aeat8800->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(mlx90393->info.name));
-    TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(aeat8800->info.name));
 
     destroy_sensor(mlx90393);
-    destroy_sensor(aeat8800);
 }
 
 int main(void)
@@ -157,8 +102,6 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_mlx90393_create_sets_identity_and_default_read_contract);
     RUN_TEST(test_mlx90393_rejects_invalid_deinit_and_factory_context);
-    RUN_TEST(test_aeat8800_create_sets_identity_and_default_read_contract);
-    RUN_TEST(test_aeat8800_rejects_invalid_context_without_side_effects);
     RUN_TEST(test_long_names_are_truncated_with_terminator);
     return UNITY_END();
 }

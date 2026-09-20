@@ -34,7 +34,7 @@ Representative tail groups:
 | `sensor_analog_misc_sensors` | `tests/unit/sensor/test_analog_misc_sensors.c` | ACS712, FSR, MG811 |
 | `sensor_mq_gas_sensors` | `tests/unit/sensor/test_mq_gas_sensors.c` | MQ3, MQ7, MQ135 |
 | `sensor_angle_encoders` | `tests/unit/sensor/test_angle_encoders.c` | AS5600, AS5048 |
-| `sensor_magnetic_angle_sensors` | `tests/unit/sensor/test_magnetic_angle_sensors.c` | MLX90393, AEAT-8800 |
+| `sensor_magnetic_angle_sensors` | `tests/unit/sensor/test_magnetic_angle_sensors.c` | MLX90393 (AEAT-8800 placeholder later retired) |
 | `sensor_proximity_sensors` | `tests/unit/sensor/test_proximity_sensors.c` | PA122, VCNL4040 |
 
 Dedicated legacy tail targets include INA219, GPS, LSM9DS1, APDS9960,

@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 49 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 48 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -221,6 +221,11 @@ MAX30102 completed the grouped-stub retirement. Its init/deinit performed no reg
 read always published a fabricated `72.0` heart rate without part-ID, FIFO, LED, sampling, signal
 quality, or algorithm contracts. The source/header and now-empty grouped stub test were removed.
 MAX30102 is unsupported until a real Device owner and explicitly bounded biosignal algorithm exist.
+
+AEAT-8800 was a false SPI owner: its private state contained no chip-select or transport contract,
+init/deinit performed no operation, and read always published `0.0` degrees. The source/header and
+its fake focused assertions were removed while the independent MLX90393 test target remains. AEAT-
+8800 is unsupported until a real SPI/SSI Device owner is implemented.
 
 VL53L1X follows the same bounded retirement rule. The removed legacy owner only reset register
 `0x2D` through an 8-bit register helper and read two bytes from `0x6E`; it had no checked consumer
