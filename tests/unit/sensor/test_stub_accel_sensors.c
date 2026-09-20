@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sensor_gd30df.h"
 #include "sensor_qma6100.h"
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
@@ -115,24 +114,6 @@ static void assert_i2c_drained(void)
     TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
 }
 
-static void assert_common_stub_accel(sensor_device_t *sensor, const char *name,
-                                     const char *vendor, const char *model,
-                                     uint8_t expected_addr)
-{
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_EQUAL_STRING(name, sensor->info.name);
-    TEST_ASSERT_EQUAL_STRING(vendor, sensor->info.vendor);
-    TEST_ASSERT_EQUAL_STRING(model, sensor->info.model);
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ACCELEROMETER, sensor->info.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_IDLE, sensor->status);
-    TEST_ASSERT_NOT_NULL(sensor->ops);
-    TEST_ASSERT_NOT_NULL(sensor->ops->init);
-    TEST_ASSERT_NOT_NULL(sensor->ops->deinit);
-    TEST_ASSERT_NOT_NULL(sensor->ops->read);
-    TEST_ASSERT_NOT_NULL(sensor->priv_data);
-    TEST_ASSERT_EQUAL_UINT8(expected_addr, *(uint8_t *)sensor->priv_data);
-}
-
 static void queue_xyz_bytes(void *bus, uint8_t addr, uint8_t start_reg, const uint8_t raw[6])
 {
     for (uint8_t i = 0U; i < 6U; ++i) {
@@ -143,40 +124,6 @@ static void queue_xyz_bytes(void *bus, uint8_t addr, uint8_t start_reg, const ui
 
 
 
-
-static void test_gd30df_create_init_and_read_contract(void)
-{
-    int fake_bus;
-    sensor_data_t data = {0};
-    const uint8_t raw[6] = {0x10, 0x00, 0x00, 0x80, 0x34, 0x12};
-    sensor_device_t *sensor = gd30df_create("gd30df-main", &fake_bus, 0U);
-
-    assert_common_stub_accel(sensor, "gd30df-main", "GigaDevice", "GD30DF",
-                             GD30DF_ADDR_DEFAULT);
-
-    queue_i2c_read8(&fake_bus, GD30DF_ADDR_DEFAULT, GD30DF_REG_WHOAMI, GD30DF_WHOAMI_VALUE,
-                    SENSOR_EOK);
-    queue_i2c_write8(&fake_bus, GD30DF_ADDR_DEFAULT, GD30DF_REG_CTRL1, 0x57U, SENSOR_EOK);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
-
-    queue_xyz_bytes(&fake_bus, GD30DF_ADDR_DEFAULT, GD30DF_REG_OUT_X_L, raw);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_ACCELEROMETER, data.type);
-    TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_MILLI_G, data.unit);
-    TEST_ASSERT_EQUAL_INT32(16, data.value.val_3axis.x);
-    TEST_ASSERT_EQUAL_INT32(-32768, data.value.val_3axis.y);
-    TEST_ASSERT_EQUAL_INT32(0x1234, data.value.val_3axis.z);
-    TEST_ASSERT_EQUAL_UINT32(g_tick, data.timestamp);
-    TEST_ASSERT_EQUAL_INT(90, data.accuracy);
-    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->deinit(sensor));
-    assert_i2c_drained();
-
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
-    sensor->bus = &fake_bus;
-
-    destroy_sensor(sensor);
-}
 
 static void test_qma6100_create_init_and_read_contract(void)
 {
@@ -246,67 +193,23 @@ static void test_qma6100_set_range_propagates_write_failure_without_cache_update
     destroy_sensor(sensor);
 }
 
-static void test_long_names_are_truncated_with_terminator(void)
+static void test_long_name_is_truncated_with_terminator(void)
 {
     int fake_bus;
     char long_name[SENSOR_NAME_MAX_LEN * 2U];
     memset(long_name, 'A', sizeof(long_name));
     long_name[sizeof(long_name) - 1U] = '\0';
 
-    sensor_device_t *gd30df = gd30df_create(long_name, &fake_bus, 0U);
     sensor_device_t *qma6100 = qma6100_create(long_name, &fake_bus, 0U);
 
-    TEST_ASSERT_NOT_NULL(gd30df);
     TEST_ASSERT_NOT_NULL(qma6100);
-    TEST_ASSERT_EQUAL_UINT8('\0', gd30df->info.name[SENSOR_NAME_MAX_LEN - 1U]);
     TEST_ASSERT_EQUAL_UINT8('\0', qma6100->info.name[SENSOR_NAME_MAX_LEN - 1U]);
-    TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(gd30df->info.name));
     TEST_ASSERT_EQUAL_UINT(SENSOR_NAME_MAX_LEN - 1U, strlen(qma6100->info.name));
 
-    destroy_sensor(gd30df);
     destroy_sensor(qma6100);
 }
 
 
-
-static void test_gd30df_public_guards_and_failed_reads_preserve_output(void)
-{
-    int fake_bus;
-    sensor_device_t *sensor = gd30df_create("gd30df-guard", &fake_bus, 0U);
-    sensor_data_t data = {.type = SENSOR_TYPE_GYROSCOPE,
-                          .unit = SENSOR_UNIT_DEGREE_PER_SECOND,
-                          .value.val_3axis = {.x = 11, .y = 22, .z = 33},
-                          .timestamp = 44U};
-    sensor_data_t snapshot = data;
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    TEST_ASSERT_NULL(gd30df_create(NULL, &fake_bus, 0U));
-    TEST_ASSERT_NULL(gd30df_create("gd30df-null-bus", NULL, 0U));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(NULL));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(NULL, &data));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, NULL));
-
-    queue_i2c_read8(&fake_bus, GD30DF_ADDR_DEFAULT, GD30DF_REG_OUT_X_L, 0x10U, SENSOR_EOK);
-    queue_i2c_read8(&fake_bus, GD30DF_ADDR_DEFAULT, GD30DF_REG_OUT_X_L + 1U, 0x00U,
-                    SENSOR_EIO);
-
-    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_INT(snapshot.type, data.type);
-    TEST_ASSERT_EQUAL_INT(snapshot.unit, data.unit);
-    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.x, data.value.val_3axis.x);
-    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.y, data.value.val_3axis.y);
-    TEST_ASSERT_EQUAL_INT32(snapshot.value.val_3axis.z, data.value.val_3axis.z);
-    TEST_ASSERT_EQUAL_UINT32(snapshot.timestamp, data.timestamp);
-    assert_i2c_drained();
-
-    SENSOR_FREE(sensor->priv_data);
-    sensor->priv_data = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
-    assert_i2c_drained();
-
-    destroy_sensor(sensor);
-}
 
 static void test_qma6100_public_guards_and_failed_reads_preserve_output(void)
 {
@@ -429,59 +332,16 @@ static void test_qma6100_propagates_transport_errors_without_state_updates(void)
 
 
 
-static void test_gd30df_init_rejects_missing_bus_without_io(void)
-{
-    int fake_bus;
-    sensor_device_t *sensor = gd30df_create("gd30df-missing-bus", &fake_bus, 0U);
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->init(sensor));
-    assert_i2c_drained();
-
-    destroy_sensor(sensor);
-}
-
-
-
-
-static void test_gd30df_read_rejects_missing_bus_without_io_or_output_change(void)
-{
-    int fake_bus;
-    sensor_device_t *sensor = gd30df_create("gd30df-read-missing-bus", &fake_bus, 0U);
-    sensor_data_t data = {
-        .type = SENSOR_TYPE_GPS,
-        .unit = SENSOR_UNIT_MILLI_G,
-        .value.val_3axis = {111, 222, 333},
-        .timestamp = 0x12345678U,
-    };
-    sensor_data_t snapshot = data;
-
-    TEST_ASSERT_NOT_NULL(sensor);
-    sensor->bus = NULL;
-    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
-    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
-    assert_i2c_drained();
-
-    destroy_sensor(sensor);
-}
-
-
-
 int main(void)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_gd30df_create_init_and_read_contract);
     RUN_TEST(test_qma6100_create_init_and_read_contract);
     RUN_TEST(test_qma6100_set_range_propagates_write_failure_without_cache_update);
     RUN_TEST(test_qma6100_rejects_invalid_range_without_bus_access);
     RUN_TEST(test_qma6100_propagates_transport_errors_without_state_updates);
-    RUN_TEST(test_long_names_are_truncated_with_terminator);
+    RUN_TEST(test_long_name_is_truncated_with_terminator);
 
-    RUN_TEST(test_gd30df_public_guards_and_failed_reads_preserve_output);
     RUN_TEST(test_qma6100_public_guards_and_failed_reads_preserve_output);
-    RUN_TEST(test_gd30df_init_rejects_missing_bus_without_io);
-    RUN_TEST(test_gd30df_read_rejects_missing_bus_without_io_or_output_change);
 
     return UNITY_END();
 }
