@@ -35,6 +35,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/adc)
     add_subdirectory(adc)
 endif()
 
+# Distance Sensors
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/distance)
+    add_subdirectory(distance)
+endif()
+
 # Additional sensor files in this directory
 file(GLOB SENSOR_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
 if(SENSOR_SOURCES)

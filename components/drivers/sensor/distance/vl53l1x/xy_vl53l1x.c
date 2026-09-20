@@ -49,6 +49,12 @@
 #define VL53L1X_CALIBRATION_MIN_SAMPLES 10
 #define VL53L1X_CALIBRATION_MAX_SAMPLES 100
 
+static bool vl53l1x_ready(const xy_vl53l1x_dev_t *dev)
+{
+    return dev != XY_NULL && dev->is_initialized && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != XY_NULL;
+}
+
 /*============================================================================
  * 内部辅助函数
  *===========================================================================*/
@@ -58,10 +64,16 @@
  */
 static xy_ret_t vl53l1x_write_reg(xy_vl53l1x_dev_t *dev, uint16_t reg_addr, const uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->i2c == XY_NULL || data == XY_NULL) {
+    uint8_t frame[14];
+
+    if (dev == XY_NULL || data == XY_NULL || len > sizeof(frame) - 2U ||
+        !dev->i2c_dev.base.initialized || dev->i2c_dev.i2c_handle == XY_NULL) {
         return XY_ERROR;
     }
-    return xy_i2c_write_reg16(dev->i2c, reg_addr, data, len);
+    frame[0] = (uint8_t)(reg_addr >> 8);
+    frame[1] = (uint8_t)reg_addr;
+    memcpy(&frame[2], data, len);
+    return xy_i2c_device_write(&dev->i2c_dev, frame, (size_t)len + 2U);
 }
 
 /**
@@ -69,10 +81,20 @@ static xy_ret_t vl53l1x_write_reg(xy_vl53l1x_dev_t *dev, uint16_t reg_addr, cons
  */
 static xy_ret_t vl53l1x_read_reg(xy_vl53l1x_dev_t *dev, uint16_t reg_addr, uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->i2c == XY_NULL || data == XY_NULL) {
+    uint8_t address[2];
+    xy_ret_t ret;
+
+    if (dev == XY_NULL || data == XY_NULL || !dev->i2c_dev.base.initialized ||
+        dev->i2c_dev.i2c_handle == XY_NULL) {
         return XY_ERROR;
     }
-    return xy_i2c_read_reg16(dev->i2c, reg_addr, data, len);
+    address[0] = (uint8_t)(reg_addr >> 8);
+    address[1] = (uint8_t)reg_addr;
+    ret = xy_i2c_device_write(&dev->i2c_dev, address, sizeof(address));
+    if (ret != XY_OK) {
+        return ret;
+    }
+    return xy_i2c_device_read(&dev->i2c_dev, data, len);
 }
 
 /**
@@ -212,12 +234,17 @@ static xy_ret_t vl53l1x_apply_range_config(xy_vl53l1x_dev_t *dev)
 
 xy_ret_t xy_vl53l1x_init(xy_vl53l1x_dev_t *dev, xy_i2c_dev_t *i2c, xy_vl53l1x_config_t *config)
 {
-    if (dev == XY_NULL || i2c == XY_NULL) {
+    if (dev == XY_NULL || i2c == XY_NULL || i2c->handle == XY_NULL ||
+        i2c->address != VL53L1X_I2C_ADDR) {
         return XY_ERROR;
     }
     
     memset(dev, 0, sizeof(xy_vl53l1x_dev_t));
-    dev->i2c = i2c;
+    xy_ret_t ret = xy_i2c_device_init(&dev->i2c_dev, i2c->handle, i2c->address, 1000U);
+    if (ret != XY_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return ret;
+    }
     
     /* 设置默认配置 */
     dev->config.mode = VL53L1X_DEFAULT_MODE;
@@ -239,7 +266,7 @@ xy_ret_t xy_vl53l1x_init(xy_vl53l1x_dev_t *dev, xy_i2c_dev_t *i2c, xy_vl53l1x_co
     xy_delay_ms(50);
     
     /* 读取设备信息验证连接 */
-    xy_ret_t ret = xy_vl53l1x_read_device_info(dev, &dev->model_id, &dev->module_type, &dev->revision_id);
+    ret = xy_vl53l1x_read_device_info(dev, &dev->model_id, &dev->module_type, &dev->revision_id);
     if (ret != XY_OK) {
         memset(dev, 0, sizeof(*dev));
         return ret;
@@ -295,7 +322,7 @@ xy_ret_t xy_vl53l1x_init(xy_vl53l1x_dev_t *dev, xy_i2c_dev_t *i2c, xy_vl53l1x_co
 
 xy_ret_t xy_vl53l1x_deinit(xy_vl53l1x_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -306,6 +333,7 @@ xy_ret_t xy_vl53l1x_deinit(xy_vl53l1x_dev_t *dev)
     }
     
     dev->is_initialized = false;
+    dev->i2c_dev.base.initialized = false;
     
     return XY_OK;
 }
@@ -359,7 +387,7 @@ xy_ret_t xy_vl53l1x_soft_reset(xy_vl53l1x_dev_t *dev)
 
 xy_ret_t xy_vl53l1x_start_single(xy_vl53l1x_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -376,7 +404,7 @@ xy_ret_t xy_vl53l1x_start_single(xy_vl53l1x_dev_t *dev)
 
 xy_ret_t xy_vl53l1x_start_continuous(xy_vl53l1x_dev_t *dev, uint32_t period_ms)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -518,7 +546,7 @@ xy_ret_t xy_vl53l1x_measure(xy_vl53l1x_dev_t *dev, xy_vl53l1x_result_t *result, 
 
 xy_ret_t xy_vl53l1x_set_range(xy_vl53l1x_dev_t *dev, xy_vl53l1x_range_t range)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
 
@@ -533,7 +561,7 @@ xy_ret_t xy_vl53l1x_set_range(xy_vl53l1x_dev_t *dev, xy_vl53l1x_range_t range)
 
 xy_ret_t xy_vl53l1x_set_timing(xy_vl53l1x_dev_t *dev, xy_vl53l1x_timing_t timing)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -551,7 +579,7 @@ xy_ret_t xy_vl53l1x_set_timing(xy_vl53l1x_dev_t *dev, xy_vl53l1x_timing_t timing
 
 xy_ret_t xy_vl53l1x_set_roi(xy_vl53l1x_dev_t *dev, xy_vl53l1x_roi_t *roi)
 {
-    if (dev == XY_NULL || !dev->is_initialized || roi == XY_NULL) {
+    if (!vl53l1x_ready(dev) || roi == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -582,7 +610,7 @@ void xy_vl53l1x_set_xtalk(xy_vl53l1x_dev_t *dev, float xtalk)
 
 xy_ret_t xy_vl53l1x_calibrate_offset(xy_vl53l1x_dev_t *dev, uint16_t target_distance, uint8_t samples)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -623,7 +651,7 @@ xy_ret_t xy_vl53l1x_calibrate_offset(xy_vl53l1x_dev_t *dev, uint16_t target_dist
 xy_ret_t xy_vl53l1x_calibrate_xtalk(xy_vl53l1x_dev_t *dev, uint16_t target_distance, uint8_t target_reflectance, uint8_t samples)
 {
     /* 简化实现 - 完整实现需要更复杂的计算 */
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -635,7 +663,7 @@ xy_ret_t xy_vl53l1x_calibrate_xtalk(xy_vl53l1x_dev_t *dev, uint16_t target_dista
 
 xy_ret_t xy_vl53l1x_configure_interrupt(xy_vl53l1x_dev_t *dev, xy_vl53l1x_int_mode_t mode, uint16_t low, uint16_t high)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
 
@@ -667,7 +695,7 @@ xy_ret_t xy_vl53l1x_clear_interrupt(xy_vl53l1x_dev_t *dev)
 
 xy_ret_t xy_vl53l1x_change_i2c_address(xy_vl53l1x_dev_t *dev, uint8_t new_address)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!vl53l1x_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -678,7 +706,7 @@ xy_ret_t xy_vl53l1x_change_i2c_address(xy_vl53l1x_dev_t *dev, uint8_t new_addres
     if (ret != XY_OK) return ret;
     
     /* 更新设备地址 */
-    dev->i2c->address = new_address;
+    dev->i2c_dev.dev_addr = new_address;
     dev->config.i2c_address = new_address;
     
     xy_delay_ms(10);
@@ -688,8 +716,7 @@ xy_ret_t xy_vl53l1x_change_i2c_address(xy_vl53l1x_dev_t *dev, uint8_t new_addres
 
 bool xy_vl53l1x_is_ready(xy_vl53l1x_dev_t *dev)
 {
-    if (dev == XY_NULL) return false;
-    return dev->is_initialized;
+    return vl53l1x_ready(dev);
 }
 
 xy_vl53l1x_result_t *xy_vl53l1x_get_last_result(xy_vl53l1x_dev_t *dev)

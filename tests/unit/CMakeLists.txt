@@ -1301,10 +1301,10 @@ target_include_directories(test_sd_spi BEFORE PRIVATE
 
 xy_add_unit_test(test_vl53l1x sensor_vl53l1x UNITY
     ${UNIT_SENSOR}/test_vl53l1x.c
-    ${SENSOR}/src/xy_vl53l1x.c
+    ${DRV}/sensor/distance/vl53l1x/xy_vl53l1x.c
 )
 target_include_directories(test_vl53l1x BEFORE PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/distance/vl53l1x
 )
 target_link_libraries(test_vl53l1x PRIVATE m)
 

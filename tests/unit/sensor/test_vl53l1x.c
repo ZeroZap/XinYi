@@ -32,6 +32,7 @@ static unsigned g_op_count;
 static unsigned g_op_index;
 static uint32_t g_delay_total_ms;
 static unsigned g_delay_calls;
+static xy_ret_t g_device_init_result;
 
 static void expect_read_ret(uint16_t reg, const uint8_t *data, uint16_t len, xy_ret_t ret)
 {
@@ -98,6 +99,7 @@ void setUp(void)
     g_op_index = 0;
     g_delay_total_ms = 0;
     g_delay_calls = 0;
+    g_device_init_result = XY_OK;
 }
 
 void tearDown(void)
@@ -105,29 +107,55 @@ void tearDown(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
-xy_ret_t xy_i2c_write_reg16(xy_i2c_dev_t *dev, uint16_t reg_addr, const uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
+                              uint32_t timeout)
 {
-    (void)dev;
+    if (g_device_init_result != XY_OK) {
+        return g_device_init_result;
+    }
+    memset(dev, 0, sizeof(*dev));
+    dev->base.initialized = 1U;
+    dev->i2c_handle = handle;
+    dev->dev_addr = address;
+    dev->timeout = timeout;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
+{
+    uint16_t reg_addr;
+
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
+    TEST_ASSERT_GREATER_OR_EQUAL_UINT(2U, len);
+    reg_addr = ((uint16_t)data[0] << 8) | data[1];
     TEST_ASSERT_LESS_THAN_UINT(g_op_count, g_op_index);
-    i2c_op_t *op = &g_ops[g_op_index++];
+    i2c_op_t *op = &g_ops[g_op_index];
+    if (op->kind == OP_READ) {
+        TEST_ASSERT_EQUAL_UINT(2U, len);
+        TEST_ASSERT_EQUAL_HEX16(op->reg, reg_addr);
+        return XY_OK;
+    }
+    g_op_index++;
     TEST_ASSERT_EQUAL_INT(OP_WRITE, op->kind);
     TEST_ASSERT_EQUAL_HEX16(op->reg, reg_addr);
-    TEST_ASSERT_EQUAL_UINT16(op->len, len);
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(op->data, data, len);
+    TEST_ASSERT_EQUAL_UINT16(op->len, len - 2U);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(op->data, &data[2], len - 2U);
     return op->ret;
 }
 
-xy_ret_t xy_i2c_read_reg16(xy_i2c_dev_t *dev, uint16_t reg_addr, uint8_t *data, uint16_t len)
+xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 {
-    (void)dev;
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_LESS_THAN_UINT(g_op_count, g_op_index);
-    i2c_op_t *op = &g_ops[g_op_index++];
+    i2c_op_t *op = &g_ops[g_op_index];
     TEST_ASSERT_EQUAL_INT(OP_READ, op->kind);
-    TEST_ASSERT_EQUAL_HEX16(op->reg, reg_addr);
     TEST_ASSERT_EQUAL_UINT16(op->len, len);
     if (op->ret == XY_OK) {
         memcpy(data, op->data, len);
     }
+    g_op_index++;
     return op->ret;
 }
 
@@ -141,7 +169,9 @@ static xy_vl53l1x_dev_t make_ready_dev(xy_i2c_dev_t *i2c)
 {
     xy_vl53l1x_dev_t dev;
     memset(&dev, 0, sizeof(dev));
-    dev.i2c = i2c;
+    dev.i2c_dev.base.initialized = 1U;
+    dev.i2c_dev.i2c_handle = i2c->handle;
+    dev.i2c_dev.dev_addr = i2c->address;
     dev.is_initialized = true;
     dev.config.range = XY_VL53L1X_RANGE_MEDIUM;
     dev.config.timing = XY_VL53L1X_TIMING_33MS;
@@ -173,7 +203,7 @@ static void expect_default_init_sequence(void)
 void test_init_applies_default_configuration_and_device_info(void)
 {
     xy_vl53l1x_dev_t dev;
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     expect_default_init_sequence();
 
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_init(&dev, &i2c, NULL));
@@ -189,7 +219,7 @@ void test_init_applies_default_configuration_and_device_info(void)
 void test_init_rejects_wrong_model_id(void)
 {
     xy_vl53l1x_dev_t dev;
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     const uint8_t model = 0xAB;
     const uint8_t module = 0xCC;
     const uint8_t revision[2] = {0x01, 0x02};
@@ -199,14 +229,13 @@ void test_init_rejects_wrong_model_id(void)
 
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(&dev, &i2c, NULL));
     TEST_ASSERT_FALSE(dev.is_initialized);
-    TEST_ASSERT_NULL(dev.i2c);
     TEST_ASSERT_EQUAL_UINT8(0U, dev.model_id);
 }
 
 void test_init_configuration_failure_rolls_back_state(void)
 {
     xy_vl53l1x_dev_t dev;
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     const uint8_t model = 0xEA;
     const uint8_t module = 0xCC;
     const uint8_t revision[2] = {0x01, 0x02};
@@ -220,12 +249,12 @@ void test_init_configuration_failure_rolls_back_state(void)
 
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(&dev, &i2c, NULL));
     TEST_ASSERT_FALSE(dev.is_initialized);
-    TEST_ASSERT_NULL(dev.i2c);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
 }
 
 void test_start_stop_and_continuous_period_write_expected_commands(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
 
     expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
@@ -241,7 +270,7 @@ void test_start_stop_and_continuous_period_write_expected_commands(void)
 
 void test_start_commands_propagate_start_write_failures_after_stop(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
 
     expect_write_u8(VL53L1X_SYSTEM_START, 0x00);
@@ -256,7 +285,7 @@ void test_start_commands_propagate_start_write_failures_after_stop(void)
 
 void test_data_ready_and_result_parsing_with_offset(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     bool ready = false;
     uint8_t ready_status = 0x04;
@@ -297,7 +326,7 @@ void test_data_ready_and_result_parsing_with_offset(void)
 
 void test_measure_timeout_stops_sensor(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     xy_vl53l1x_result_t result;
     const uint8_t not_ready = 0x00;
@@ -313,7 +342,7 @@ void test_measure_timeout_stops_sensor(void)
 
 void test_measure_success_reads_result_and_clears_interrupt(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     xy_vl53l1x_result_t result;
     const uint8_t ready = 0x04;
@@ -331,7 +360,7 @@ void test_measure_success_reads_result_and_clears_interrupt(void)
 
 void test_measure_read_or_clear_failures_preserve_public_contracts(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     xy_vl53l1x_result_t result = {.distance = 0xEEEEU};
     const uint8_t ready = 0x04;
@@ -361,7 +390,7 @@ void test_measure_read_or_clear_failures_preserve_public_contracts(void)
 
 void test_range_roi_interrupt_and_address_configuration(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     xy_vl53l1x_roi_t roi = {.centre_spad = 42, .width = 8, .height = 6};
 
@@ -382,13 +411,13 @@ void test_range_roi_interrupt_and_address_configuration(void)
 
     expect_write_u8(0x0001, 0x60);
     TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_change_i2c_address(&dev, 0x30));
-    TEST_ASSERT_EQUAL_UINT8(0x30, i2c.address);
+    TEST_ASSERT_EQUAL_UINT16(0x30, dev.i2c_dev.dev_addr);
 }
 
 
 void test_configuration_write_failures_stop_at_first_failed_register(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     xy_vl53l1x_roi_t roi = {.centre_spad = 42, .width = 8, .height = 6};
 
@@ -407,7 +436,7 @@ void test_configuration_write_failures_stop_at_first_failed_register(void)
 
 void test_set_range_failure_preserves_cached_range(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
 
     expect_write_ret(0x0060, &(const uint8_t){0x0F}, 1, -99);
@@ -417,7 +446,7 @@ void test_set_range_failure_preserves_cached_range(void)
 
 void test_set_timing_failure_preserves_cached_timing(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
 
     const uint8_t timing_budget[2] = {0x86, 0xA0};
@@ -428,7 +457,7 @@ void test_set_timing_failure_preserves_cached_timing(void)
 
 void test_set_roi_commits_cache_only_after_all_writes_succeed(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     xy_vl53l1x_roi_t roi = {.centre_spad = 42, .width = 8, .height = 6};
 
@@ -450,7 +479,7 @@ void test_set_roi_commits_cache_only_after_all_writes_succeed(void)
 
 void test_configure_interrupt_commits_cache_only_after_all_writes_succeed(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
 
     const uint8_t high_threshold[2] = {0x03, 0x84};
@@ -484,7 +513,7 @@ void test_configure_interrupt_commits_cache_only_after_all_writes_succeed(void)
 
 void test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     const uint8_t ready = 0x04;
     uint8_t result_bytes[10] = {XY_VL53L1X_STATUS_VALID, 1, 0, 1, 0, 0, 0, 0, 0x00, 0x78};
@@ -503,7 +532,7 @@ void test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements(v
 
 void test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_samples(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     const uint8_t ready = 0x04;
     uint8_t invalid_result[10] = {XY_VL53L1X_STATUS_RANGE_FAIL,
@@ -550,7 +579,7 @@ void test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_sam
 
 void test_public_guards_and_inline_helpers(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
 
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(NULL, &i2c, NULL));
@@ -574,7 +603,7 @@ void test_public_guards_and_inline_helpers(void)
 
 void test_deinit_stop_failure_preserves_initialized_state(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
     const uint8_t stop = 0x00U;
 
@@ -586,7 +615,7 @@ void test_deinit_stop_failure_preserves_initialized_state(void)
 
 void test_start_single_propagates_stop_failure_and_skips_start(void)
 {
-    xy_i2c_dev_t i2c = {.address = VL53L1X_I2C_ADDR};
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
     xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
 
     expect_write_ret(VL53L1X_SYSTEM_START, &(const uint8_t){0x00}, 1, XY_ERROR);

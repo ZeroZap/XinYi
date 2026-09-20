@@ -20,8 +20,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "xy_typedef.h"
-#include "xy_ret.h"
+#include "xy_dev_i2c.h"
+
+typedef int xy_ret_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,26 +39,6 @@ typedef struct {
     void *handle;         /*!< I2C 设备句柄 */
     uint8_t address;      /*!< VL53L1X I2C 地址 (默认 0x29) */
 } xy_i2c_dev_t;
-
-/**
- * @brief I2C 写寄存器 (需要用户实现)
- * @param dev I2C 设备句柄
- * @param reg_addr 寄存器地址 (16-bit)
- * @param data 数据指针
- * @param len 数据长度
- * @return XY_OK 成功，其他失败
- */
-xy_ret_t xy_i2c_write_reg16(xy_i2c_dev_t *dev, uint16_t reg_addr, const uint8_t *data, uint16_t len);
-
-/**
- * @brief I2C 读寄存器 (需要用户实现)
- * @param dev I2C 设备句柄
- * @param reg_addr 寄存器地址 (16-bit)
- * @param data 数据指针
- * @param len 数据长度
- * @return XY_OK 成功，其他失败
- */
-xy_ret_t xy_i2c_read_reg16(xy_i2c_dev_t *dev, uint16_t reg_addr, uint8_t *data, uint16_t len);
 
 /**
  * @brief 延时函数 (需要用户实现)
@@ -245,7 +226,7 @@ typedef struct {
  * VL53L1X 设备结构体
  */
 typedef struct {
-    xy_i2c_dev_t *i2c;             /*!< I2C 设备 */
+    xy_i2c_device_t i2c_dev;       /*!< canonical Device I2C helper */
     xy_vl53l1x_config_t config;    /*!< 配置 */
     bool is_initialized;           /*!< 是否已初始化 */
     

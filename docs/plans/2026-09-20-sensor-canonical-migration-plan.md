@@ -124,6 +124,10 @@ INA226 is complete: the Device-root owner explicitly models shunt resistance/cur
 datasheet calibration/current/power scaling. The old INA229 alias was removed because INA229 does
 not share INA226's register protocol. Hardware and metrology remain pending.
 
+VL53L1X is complete: the typed owner moved into the Device root, its private 16-bit I2C callback
+lifecycle was replaced by nested `xy_i2c_device_t` transactions, and existing identity/result/
+timeout/configuration/calibration Host contracts were retained. Hardware remains pending.
+
 Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
 
 Domain-owner corrections:

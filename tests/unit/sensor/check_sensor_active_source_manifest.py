@@ -122,9 +122,9 @@ def main() -> int:
     require(len(legacy) == 39, f"expected 39 legacy active sources, found {len(legacy)}", errors)
     require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
-    require(len(experimental) == 13,
-            f"expected 13 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 21, f"expected 21 Device-model sources, found {len(device)}", errors)
+    require(len(experimental) == 12,
+            f"expected 12 experimental xy_* sources, found {len(experimental)}", errors)
+    require(len(device) == 22, f"expected 22 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
@@ -166,6 +166,7 @@ def main() -> int:
         "TSL2561",
         "INA226",
         "MLX90614",
+        "VL53L1X",
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
@@ -181,7 +182,7 @@ def main() -> int:
             "canonical API 已确定为 Device model" in tracker and
             "| CLOSED |" in tracker,
             "D-001 must be closed after the canonical Device-model decision", errors)
-    require("13 个 `src/xy_*.c`" in audit_plan,
+    require("12 个 `src/xy_*.c`" in audit_plan,
             "audit plan must use the current experimental source count", errors)
     require("Device-model canonical owner" in audit_plan,
             "audit plan must record the resolved Sensor ownership direction", errors)
@@ -266,7 +267,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=40 legacy_subdir=39 "
-          "legacy_top_level=1 experimental_test_only=13 device_active=21 "
+          "legacy_top_level=1 experimental_test_only=12 device_active=22 "
           "approved_wrappers=8 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
