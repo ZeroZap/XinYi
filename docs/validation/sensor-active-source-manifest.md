@@ -64,6 +64,7 @@ The Device-model root set is currently exactly:
 - BMI270: `components/drivers/sensor/motion/bmi270/xy_bmi270.c`
 - BNO055: `components/drivers/sensor/motion/bno055/xy_bno055.c`
 - AS5048B: `components/drivers/sensor/angle/as5048b/xy_as5048b.c`
+- AS5600: `components/drivers/sensor/angle/as5600/xy_as5600.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -281,7 +282,15 @@ identity, reset, pressure/temperature conversion, FIFO, interrupt, timeout, cach
 configuration-failure contracts remain covered. This ownership move intentionally retains the
 callback-shaped I2C/SPI transport API; replacing it with a nested Device helper is a separate
 hardening slice. Host/source ownership only; accuracy, waterproofing, timing, interrupt behavior and
-hardware recovery remain `hardware-pending`.
+hardware endurance remain `hardware-pending`.
+
+### AS5600 migration status
+
+The legacy AS5600 owner is now represented by `components/drivers/sensor/angle/as5600`. The
+canonical owner uses fixed 7-bit address `0x36`, reads the documented `0x0E/0x0F` raw angle,
+masks the reserved upper bits, and stages output/timestamp publication behind nested I2C
+lifecycle checks. Magnet installation, angle accuracy and hardware endurance remain
+`hardware-pending`.
 
 ### BMI088 migration status
 

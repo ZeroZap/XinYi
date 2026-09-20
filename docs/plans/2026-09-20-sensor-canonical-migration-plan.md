@@ -147,6 +147,10 @@ AS5048B is complete as a canonical angle Device owner. The owner models the I2C 
 datasheet `0xFE/0xFF` 14-bit angle read, staged sample publication and nested lifecycle boundary;
 angle accuracy and hardware remain pending.
 
+AS5600 is complete as a canonical angle Device owner. The owner models the I2C `0x36` address,
+datasheet `0x0E/0x0F` 12-bit angle read, reserved-bit masking, staged sample publication and
+nested lifecycle boundary; angle accuracy and hardware remain pending.
+
 BMI088 is complete as a root-ownership promotion: the focused-test-backed dual-chip-select SPI
 source/header pair moved into `components/drivers/sensor/motion/bmi088`, `xy_drivers` now owns it,
 and the focused target compiles that canonical path. Existing identity, configuration, conversion,

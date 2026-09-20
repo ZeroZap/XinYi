@@ -979,6 +979,14 @@ target_include_directories(test_as5048b_device BEFORE PRIVATE
     ${DRV}/sensor/angle/as5048b
 )
 
+xy_add_unit_test(test_as5600_device sensor_as5600_device UNITY
+    ${UNIT_SENSOR}/test_as5600_device.c
+    ${DRV}/sensor/angle/as5600/xy_as5600.c
+)
+target_include_directories(test_as5600_device BEFORE PRIVATE
+    ${DRV}/sensor/angle/as5600
+)
+
 xy_add_unit_test(test_light_uv_sensors sensor_light_uv_sensors UNITY
     ${UNIT_SENSOR}/test_light_uv_sensors.c
     ${SENSOR}/sensors/sensor_max44009.c

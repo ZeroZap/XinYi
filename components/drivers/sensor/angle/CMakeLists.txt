@@ -1,3 +1,6 @@
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/as5048b)
     add_subdirectory(as5048b)
 endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/as5600)
+    add_subdirectory(as5600)
+endif()
