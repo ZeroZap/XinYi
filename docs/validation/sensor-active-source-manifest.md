@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 50 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 49 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -216,6 +216,11 @@ IM69D was also a false I2C owner: it assigned a fabricated `0x30` address to a d
 performed no transport or sample acquisition, and always published `0.0`. Its source/header and
 grouped stub assertions were removed. IM69D is unsupported until a correctly modelled audio/PDM or
 I2S component exists; this cleanup establishes no acoustic or hardware evidence.
+
+MAX30102 completed the grouped-stub retirement. Its init/deinit performed no register operation and
+read always published a fabricated `72.0` heart rate without part-ID, FIFO, LED, sampling, signal
+quality, or algorithm contracts. The source/header and now-empty grouped stub test were removed.
+MAX30102 is unsupported until a real Device owner and explicitly bounded biosignal algorithm exist.
 
 VL53L1X follows the same bounded retirement rule. The removed legacy owner only reset register
 `0x2D` through an 8-bit register helper and read two bytes from `0x6E`; it had no checked consumer
