@@ -17,7 +17,7 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
     int ret;
     uint16_t config;
     
-    if (!dev || !i2c_handle) {
+    if (!dev || !i2c_handle || addr != HDC1080_ADDR) {
         return XY_HDC1080_INVALID_PARAM;
     }
     
@@ -56,7 +56,9 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
 
 int xy_hdc1080_deinit(xy_hdc1080_t *dev)
 {
-    if (!dev) return XY_HDC1080_INVALID_PARAM;
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+        return XY_HDC1080_INVALID_PARAM;
+    }
     dev->initialized = 0;
     dev->i2c_dev.base.initialized = 0;
     return XY_HDC1080_OK;
@@ -87,15 +89,19 @@ int xy_hdc1080_read(xy_hdc1080_t *dev)
         return ret;
     }
     
-    /* 转换数据 */
+    /* 转换数据，全部成功后再提交 cache。 */
     uint16_t temp_raw = ((uint16_t)buf[0] << 8) | buf[1];
     uint16_t humi_raw = ((uint16_t)buf[2] << 8) | buf[3];
+    int16_t next_temperature;
+    uint16_t next_humidity;
     
     /* 温度：-40 to 125°C */
-    dev->temperature = (int16_t)((int32_t)((int32_t)temp_raw * 16500 / 65535 - 4000));
+    next_temperature = (int16_t)((int32_t)((int32_t)temp_raw * 16500 / 65535 - 4000));
     
     /* 湿度：0 to 100%RH */
-    dev->humidity = (uint16_t)((uint32_t)humi_raw * 10000 / 65535);
+    next_humidity = (uint16_t)((uint32_t)humi_raw * 10000 / 65535);
+    dev->temperature = next_temperature;
+    dev->humidity = next_humidity;
     
     xy_log_d("HDC1080: T=%d.%02d°C, H=%d.%02d%%RH\n",
              dev->temperature / 100, dev->temperature % 100,

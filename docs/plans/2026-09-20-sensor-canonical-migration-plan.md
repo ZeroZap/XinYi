@@ -113,6 +113,9 @@ Preferred order:
 8. MLX90614
 9. BMI088 / BMI270 / BNO055
 
+HDC1080 is complete: the tested typed source/header were moved into the Device root, the fixed
+address/lifecycle boundary was tightened, and the focused target now compiles the canonical owner.
+
 Move rather than copy the implementation. Delete the experimental path only after the Device-root target and focused test use the canonical source.
 
 Domain-owner corrections:

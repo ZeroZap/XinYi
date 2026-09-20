@@ -916,10 +916,10 @@ target_include_directories(test_bh1750 PRIVATE
 
 xy_add_unit_test(test_hdc1080 sensor_hdc1080 UNITY
     ${UNIT_SENSOR}/test_hdc1080.c
-    ${SENSOR}/src/xy_hdc1080.c
+    ${DRV}/sensor/temperature/hdc1080/xy_hdc1080.c
 )
 target_include_directories(test_hdc1080 PRIVATE
-    ${SENSOR}/inc
+    ${DRV}/sensor/temperature/hdc1080
 )
 
 xy_add_unit_test(test_tsl2561 sensor_tsl2561 UNITY

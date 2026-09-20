@@ -214,18 +214,16 @@ static void test_init_propagates_device_helper_failure_without_bus_io(void)
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
-static void test_init_with_custom_address_and_config_failure_contract(void)
+static void test_init_rejects_noncanonical_address_without_io(void)
 {
     xy_hdc1080_t dev;
     int fake_bus;
 
-    g_write_ret_queue[1] = XY_DEVICE_ERROR;
-
-    TEST_ASSERT_EQUAL_INT(XY_HDC1080_ERROR, xy_hdc1080_init(&dev, &fake_bus, 0x41U));
-    TEST_ASSERT_EQUAL_UINT8(0x41U, g_last_addr);
-    TEST_ASSERT_EQUAL_MEMORY(&(xy_hdc1080_t){0}, &dev, sizeof(dev));
-    TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
-    TEST_ASSERT_EQUAL_UINT32(15U, g_delay_total);
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM,
+                          xy_hdc1080_init(&dev, &fake_bus, 0x41U));
+    TEST_ASSERT_EQUAL_UINT(0U, g_device_init_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 }
 
 static void test_read_converts_temperature_and_humidity(void)
@@ -402,15 +400,17 @@ static void test_deinit_clears_initialized_state(void)
     TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_read(&dev));
 }
 
-static void test_deinit_is_safe_for_uninitialized_object(void)
+static void test_deinit_rejects_invalid_lifecycle(void)
 {
     xy_hdc1080_t dev;
 
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_deinit(&dev));
     memset(&dev, 0xA5, sizeof(dev));
-    dev.initialized = 0U;
-
-    TEST_ASSERT_EQUAL_INT(XY_HDC1080_OK, xy_hdc1080_deinit(&dev));
-    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    dev.initialized = 1U;
+    dev.i2c_dev.base.initialized = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
 }
 
 static void test_read_and_heater_reject_missing_i2c_context_without_io(void)
@@ -445,7 +445,7 @@ int main(void)
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_reset_then_config);
     RUN_TEST(test_init_propagates_config_write_failures);
     RUN_TEST(test_init_propagates_device_helper_failure_without_bus_io);
-    RUN_TEST(test_init_with_custom_address_and_config_failure_contract);
+    RUN_TEST(test_init_rejects_noncanonical_address_without_io);
     RUN_TEST(test_read_converts_temperature_and_humidity);
     RUN_TEST(test_read_converts_raw_minimum_and_maximum_bounds);
     RUN_TEST(test_read_returns_errors_without_overwriting_existing_values);
@@ -455,7 +455,7 @@ int main(void)
     RUN_TEST(test_heater_off_propagates_write_error_without_clearing_state);
     RUN_TEST(test_heater_on_success_preserves_measurement_cache);
     RUN_TEST(test_deinit_clears_initialized_state);
-    RUN_TEST(test_deinit_is_safe_for_uninitialized_object);
+    RUN_TEST(test_deinit_rejects_invalid_lifecycle);
     RUN_TEST(test_read_and_heater_reject_missing_i2c_context_without_io);
     return UNITY_END();
 }
