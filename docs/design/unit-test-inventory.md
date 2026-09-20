@@ -198,9 +198,8 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
 | `tests/unit/sensor/test_ccs811_sensor.c` | `unity` | 0 | CCS811 eCO2/TVOC init/read/failure guard contracts |
 | `tests/unit/sensor/test_vl53l0x_sensor.c` | `unity` | 0 | VL53L0X legacy ToF identity/init/read/failure contracts |
-| `tests/unit/sensor/test_vl53l1x_legacy_sensor.c` | `unity` | 0 | VL53L1X legacy ToF public guards, callable deinit, init transport failure, and read output-preservation contracts |
 | `tests/unit/sensor/test_analog_misc_sensors.c` | `unity` | 0 | ACS712/FSR/MG811 legacy ADC analog conversion and guard contracts |
-| `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 | SGP30/SGP40/ENS160/IM69D/MAX30102 legacy simple I2C stub identity and guard contracts |
+| `tests/unit/sensor/test_stub_i2c_sensors.c` | `unity` | 0 | ENS160/IM69D/MAX30102 legacy simple I2C stub identity and guard contracts |
 | `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10/BMP390 legacy env I2C init/read/failure contracts |
 | `tests/unit/sensor/test_bmp280_sensor.c` | `unity` | 0 | BMP280 legacy `sensor_bmp280.c` pressure/temperature calibration/read/failure contracts |
 | `tests/unit/sensor/test_icm20608_sensor.c` | `unity` | 0 | ICM20608 legacy IMU I2C/SPI identity/init/read/failure contracts |

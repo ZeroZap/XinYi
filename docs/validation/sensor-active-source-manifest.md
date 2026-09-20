@@ -28,7 +28,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 53 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs `sensors/sensor_*.c` | 52 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 17 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 12 | `device-active-root`; canonical migration destination | focused contracts plus Pandora I2C2 integration | AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; SC7A22H vendor-demo profile, ~1g static vector and manual rotation response |
 
@@ -198,6 +198,14 @@ The deleted `sensor_sgp40.c` returned a constant `100.0` gas value without bus t
 `components/sensor/src/xy_sgp40.c` retains feature-set/serial/self-test/CRC/measurement contracts and
 focused tests. It remains `experimental-test-only`: removal of the misleading stub is not promotion
 to the canonical Device root and does not establish VOC accuracy or hardware evidence.
+
+SGP30 had only a legacy-root placeholder that returned a fixed `100.0` gas value without issuing an
+I2C command or implementing the documented eCO2/TVOC measurement protocol. It had no second
+substantive owner or checked consumer outside the grouped stub test, so the source/header and their
+placeholder assertions were removed instead of preserving a false product capability. The manifest
+guard prevents this lifecycle from returning. SGP30 now has no active implementation and remains a
+future Device-model driver candidate; this cleanup establishes no gas measurement or hardware
+evidence.
 
 VL53L1X follows the same bounded retirement rule. The removed legacy owner only reset register
 `0x2D` through an 8-bit register helper and read two bytes from `0x6E`; it had no checked consumer

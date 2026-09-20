@@ -24,6 +24,7 @@ STALE_ADXL362 = ROOT / "components" / "sensor" / "drivers" / "motion" / "xy_sens
 STALE_BME280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sensor_bme280.c"
 STALE_ICM20608 = ROOT / "components" / "sensor" / "drivers" / "motion" / "xy_sensor_icm20608.c"
 STALE_SGP40_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_sgp40.c"
+STALE_SGP30_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_sgp30.c"
 STALE_VL53L1X_LEGACY = ROOT / "components" / "sensor" / "sensors" / "sensor_vl53l1x.c"
 STALE_AHT20_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_aht20.c"
 STALE_AHT20_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_aht20.h"
@@ -68,7 +69,7 @@ def main() -> int:
     prototype = sorted((ROOT / "components" / "sensor" / "drivers").glob("**/xy_sensor_*.c"))
     prototype_names = {path.stem.removeprefix("xy_sensor_") for path in prototype}
 
-    require(len(legacy) == 53, f"expected 53 legacy active sources, found {len(legacy)}", errors)
+    require(len(legacy) == 52, f"expected 52 legacy active sources, found {len(legacy)}", errors)
     require(len(experimental) == 17,
             f"expected 17 experimental xy_* sources, found {len(experimental)}", errors)
     require(len(device) == 12, f"expected 12 Device-model sources, found {len(device)}", errors)
@@ -142,6 +143,8 @@ def main() -> int:
             "retired xy_sensor_icm20608 lifecycle must not reappear", errors)
     require(not STALE_SGP40_LEGACY.exists(),
             "retired stub sensor_sgp40 lifecycle must not reappear", errors)
+    require(not STALE_SGP30_LEGACY.exists(),
+            "retired stub sensor_sgp30 lifecycle must not reappear", errors)
     require(not STALE_VL53L1X_LEGACY.exists(),
             "retired legacy sensor_vl53l1x lifecycle must not reappear", errors)
     require(not STALE_AHT20_SOURCE.exists() and not STALE_AHT20_HEADER.exists(),
@@ -165,7 +168,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("sensor_active_source_manifest_ok legacy_active=53 experimental_test_only=17 "
+    print("sensor_active_source_manifest_ok legacy_active=52 experimental_test_only=17 "
           "device_active=12 approved_wrappers=5 overlap_duplicates=0 hardware=mixed")
     return 0
 
