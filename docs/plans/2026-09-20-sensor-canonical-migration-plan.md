@@ -185,6 +185,11 @@ ADXL362 is complete as a canonical SPI motion Device owner. The owner models dev
 100 Hz/±2g measurement configuration, signed 12-bit XYZ decode and staged sample publication behind
 the nested SPI lifecycle; motion accuracy, SPI timing and hardware remain pending.
 
+LSM6DSO is complete as a canonical I2C motion Device owner. The owner models fixed 7-bit address
+`0x6A`, WHO_AM_I `0x6C`, reset/I3C-disable/104 Hz/±2g/±250 dps configuration, staged accelerometer
+and gyroscope XYZ publication and nested lifecycle failure boundaries; motion accuracy, timing and
+hardware remain pending.
+
 - AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
 `0x0C`, AKM WIA identity, reset/continuous-100Hz configuration, data-ready gating, little-endian
 XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain pending.

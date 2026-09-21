@@ -73,6 +73,7 @@ The Device-model root set is currently exactly:
 - BMA400: `components/drivers/sensor/motion/bma400/xy_bma400.c`
 - KX023: `components/drivers/sensor/motion/kx023/xy_kx023.c`
 - ADXL362: `components/drivers/sensor/motion/adxl362/xy_adxl362.c`
+- LSM6DSO: `components/drivers/sensor/motion/lsm6dso/xy_lsm6dso.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -359,6 +360,15 @@ The legacy ADXL362 API is now backed by the canonical Device owner at
 ID `0xAD`, configures 100 Hz/±2g measurement mode, decodes signed 12-bit XYZ data, and stages
 sample/timestamp publication behind nested SPI lifecycle checks. Motion accuracy, SPI timing,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
+
+### LSM6DSO migration status
+
+The legacy LSM6DSO API is now backed by the canonical Device owner at
+`components/drivers/sensor/motion/lsm6dso`. The owner verifies WHO_AM_I `0x6C`, performs the
+documented reset/I3C-disable/104 Hz/±2g/±250 dps configuration, reads staged accelerometer and
+gyroscope XYZ data through the nested I2C lifecycle, and preserves output/cache on transport
+failure. Motion accuracy, ODR timing, interrupt/FIFO behavior and hardware endurance remain
+`hardware-pending`.
 
 ### AS5600 migration status
 
