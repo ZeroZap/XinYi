@@ -232,13 +232,14 @@ board path; this migration adds no new accuracy, timing, NACK-recovery or long-r
 
 The Device-model source under `components/drivers/sensor/light/ap3216c` now owns reset/mode
 configuration and ALS, proximity and IR register decoding. Root-linked `sensor_ap3216c.c` remains
-only as a compatibility wrapper for the three legacy factories and contains no direct I2C protocol.
-Existing Pandora AP3216C B1 evidence remains bounded; this migration adds no accuracy, threshold,
-NACK-recovery or long-run claim.
+only as a compatibility wrapper for the legacy factories and contains no direct I2C protocol.
+The owner also requires both nested `base.initialized` and `i2c_handle` before any public operation;
+stale lifecycle state cannot authorize bus access. Existing Pandora AP3216C B1 evidence remains
+bounded; this migration adds no accuracy, threshold, NACK-recovery or long-run claim.
 
 ### ICM20608 migration status
 
-The Device-model source under `components/drivers/sensor/motion/icm20608` now owns identity, reset,
+`components/drivers/sensor/motion/icm20608` now owns identity, reset,
 default range/filter configuration, I2C/SPI transport dispatch and converted acceleration,
 gyroscope and temperature outputs. Root-linked `sensor_icm20608.c` retains the three legacy
 factories as compatibility wrappers only. Existing Pandora ICM20608 static/basic-chain evidence

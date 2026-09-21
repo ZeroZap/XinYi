@@ -11,7 +11,8 @@ static int xy_ap3216c_mode_valid(uint8_t mode)
 
 static int xy_ap3216c_ready(const xy_ap3216c_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U;
+    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
 }
 
 xy_error_t xy_ap3216c_init(xy_ap3216c_t *dev, void *i2c_handle, uint8_t address,
