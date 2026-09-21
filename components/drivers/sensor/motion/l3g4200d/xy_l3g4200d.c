@@ -72,6 +72,7 @@ xy_error_t xy_l3g4200d_deinit(xy_l3g4200d_t *dev)
     result = l3g4200d_write_reg(dev, L3G4200D_REG_CTRL1, 0x07U);
     if (result == XY_DEVICE_OK) {
         dev->initialized = 0U;
+        dev->i2c_dev.i2c_handle = NULL;
         dev->i2c_dev.base.initialized = 0U;
     }
     return result;

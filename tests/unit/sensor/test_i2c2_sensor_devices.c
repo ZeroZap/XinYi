@@ -283,6 +283,27 @@ static void test_l3g4200d_public_ops_reject_invalid_nested_bus_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT(0U, op_index);
 }
 
+static void test_l3g4200d_public_ops_reject_missing_nested_transport(void)
+{
+    xy_l3g4200d_t dev;
+    xy_l3g4200d_data_t output = {11, 22, 33};
+    xy_l3g4200d_data_t output_snapshot = output;
+    uint8_t ready = 0xA5U;
+
+    prepare_initialized_l3g4200d(&dev);
+    dev.i2c_dev.i2c_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_l3g4200d_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_l3g4200d_data_ready(&dev, &ready));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_l3g4200d_set_range(&dev, 2000U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_l3g4200d_read(&dev, &output));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT16(500U, dev.range_dps);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, ready);
+    TEST_ASSERT_EQUAL_MEMORY(&output_snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+
 static void test_l3g4200d_transport_failures_preserve_state_and_outputs(void)
 {
     xy_l3g4200d_t dev;
@@ -748,6 +769,7 @@ int main(void)
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
     RUN_TEST(test_l3g4200d_init_clears_handle_when_i2c_helper_fails);
     RUN_TEST(test_l3g4200d_public_ops_reject_invalid_nested_bus_lifecycle);
+    RUN_TEST(test_l3g4200d_public_ops_reject_missing_nested_transport);
     RUN_TEST(test_l3g4200d_transport_failures_preserve_state_and_outputs);
     RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
