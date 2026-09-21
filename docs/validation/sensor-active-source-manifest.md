@@ -74,6 +74,7 @@ The Device-model root set is currently exactly:
 - KX023: `components/drivers/sensor/motion/kx023/xy_kx023.c`
 - ADXL362: `components/drivers/sensor/motion/adxl362/xy_adxl362.c`
 - LSM6DSO: `components/drivers/sensor/motion/lsm6dso/xy_lsm6dso.c`
+- LSM6DSL: `components/drivers/sensor/motion/lsm6dsl/xy_lsm6dsl.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -365,6 +366,15 @@ interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 
 The legacy LSM6DSO API is now backed by the canonical Device owner at
 `components/drivers/sensor/motion/lsm6dso`. The owner verifies WHO_AM_I `0x6C`, performs the
+documented reset/I3C-disable/104 Hz/±2g/±250 dps configuration, reads staged accelerometer and
+gyroscope XYZ data through the nested I2C lifecycle, and preserves output/cache on transport
+failure. Motion accuracy, ODR timing, interrupt/FIFO behavior and hardware endurance remain
+`hardware-pending`.
+
+### LSM6DSL migration status
+
+The legacy LSM6DSL API is now backed by the canonical Device owner at
+`components/drivers/sensor/motion/lsm6dsl`. The owner verifies WHO_AM_I `0x6A`, performs the
 documented reset/I3C-disable/104 Hz/±2g/±250 dps configuration, reads staged accelerometer and
 gyroscope XYZ data through the nested I2C lifecycle, and preserves output/cache on transport
 failure. Motion accuracy, ODR timing, interrupt/FIFO behavior and hardware endurance remain
