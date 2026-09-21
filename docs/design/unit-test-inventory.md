@@ -202,6 +202,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_ap3216c_sensor.c` | `unity` | 0 | AP3216C light/proximity/IR init/read/failure guard contracts |
 | `tests/unit/sensor/test_ccs811_sensor.c` | `unity` | 0 | CCS811 eCO2/TVOC init/read/failure guard contracts |
 | `tests/unit/sensor/test_vl53l0x_sensor.c` | `unity` | 0 | VL53L0X legacy ToF identity/init/read/failure contracts |
+| `tests/unit/sensor/test_vl53l0x_device.c` | `unity` | 0 | VL53L0X canonical Device identity/read/lifecycle/failure contracts |
 | `tests/unit/sensor/test_analog_misc_sensors.c` | `unity` | 0 | ACS712/FSR/MG811 legacy ADC analog conversion and guard contracts |
 
 | `tests/unit/sensor/test_env_i2c_sensors.c` | `unity` | 0 | AHT10 legacy env I2C init/read/failure contracts |

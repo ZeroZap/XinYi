@@ -257,7 +257,7 @@ Short protocols first:
 - QMC5883L, AK09918, IST8310;
 - ADXL362, BMA400, KX023, LIS2DH12, LIS2DW12;
 - LSM6DSL, LSM6DSO, LSM6DSR, LSM9DS1;
-- APDS9960, CCS811, VL53L0X.
+- APDS9960, CCS811, VL53L0X. VL53L0X is now complete as a canonical Device owner: fixed `0x29` address, Model ID `0xEE`, staged range sample, nested lifecycle guards, and a focused Host contract are in place; distance accuracy and hardware remain pending.
 
 Optional FIFO, gesture, interrupt and algorithm features may follow in later slices; they do not block ownership migration when identity, default configuration and basic sampling contracts are complete.
 
