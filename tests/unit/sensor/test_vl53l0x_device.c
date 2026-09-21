@@ -115,11 +115,28 @@ static void test_vl53l0x_init_rejects_identity_and_transport_failures(void)
     TEST_ASSERT_FALSE(dev.initialized);
 }
 
+static void test_vl53l0x_rejects_missing_nested_transport_without_side_effects(void)
+{
+    xy_vl53l0x_t dev;
+    xy_vl53l0x_sample_t sample = {.distance_mm = 0x1357U, .timestamp = 0x2468U};
+    xy_vl53l0x_sample_t snapshot = sample;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_vl53l0x_init(&dev, &bus));
+    dev.i2c_dev.i2c_handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_vl53l0x_read(&dev, &sample));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_vl53l0x_deinit(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &sample, sizeof(sample));
+    TEST_ASSERT_EQUAL_UINT(1U, g_reads);
+    TEST_ASSERT_EQUAL_UINT(0U, g_writes);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_vl53l0x_identity_read_and_lifecycle);
     RUN_TEST(test_vl53l0x_failures_preserve_state_and_reject_invalid_context);
     RUN_TEST(test_vl53l0x_init_rejects_identity_and_transport_failures);
+    RUN_TEST(test_vl53l0x_rejects_missing_nested_transport_without_side_effects);
     return UNITY_END();
 }
