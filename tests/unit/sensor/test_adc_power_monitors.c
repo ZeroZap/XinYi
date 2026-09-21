@@ -114,9 +114,6 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
-    if (g_i2c_init_ret != XY_DEVICE_OK) {
-        return g_i2c_init_ret;
-    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = i2c_handle;
@@ -124,6 +121,9 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     dev->timeout = timeout;
     g_last_addr = addr;
     g_last_timeout = timeout;
+    if (g_i2c_init_ret != XY_DEVICE_OK) {
+        return g_i2c_init_ret;
+    }
     return XY_DEVICE_OK;
 }
 
