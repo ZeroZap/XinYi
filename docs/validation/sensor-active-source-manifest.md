@@ -177,6 +177,8 @@ implementation owner. Root-linked `sensor_bh1750.c` is a compatibility-only `sen
 wrapper that delegates init/read/deinit to the typed Device owner and preserves the legacy lux
 conversion at the wrapper boundary. The unreferenced prototype
 `components/sensor/drivers/light/xy_sensor_bh1750.c` was removed, preventing a fourth BH1750
+protocol owner. All public operations now require both nested `base.initialized` and `i2c_handle`;
+a stale lifecycle bit cannot authorize bus access.
 lifecycle from returning. Focused wrapper and Device tests plus root builds prove source/lifecycle
 ownership only; existing Pandora B1 remains bounded and no B2 recovery claim is added.
 

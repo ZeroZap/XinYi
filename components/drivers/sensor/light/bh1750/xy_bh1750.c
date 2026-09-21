@@ -105,7 +105,8 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
 
 int xy_bh1750_deinit(xy_bh1750_t *bh1750)
 {
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized) {
+    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
+        !bh1750->i2c_dev.i2c_handle) {
         return XY_BH1750_INVALID_PARAM;
     }
     
@@ -126,7 +127,8 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
     uint16_t raw_value;
     uint16_t measure_time;
     
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized) {
+    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
+        !bh1750->i2c_dev.i2c_handle) {
         return XY_BH1750_INVALID_PARAM;
     }
     
@@ -180,7 +182,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
 int xy_bh1750_get_illuminance(xy_bh1750_t *bh1750, float *illuminance)
 {
     if (!bh1750 || !illuminance || !bh1750->initialized ||
-        !bh1750->i2c_dev.base.initialized) {
+        !bh1750->i2c_dev.base.initialized || !bh1750->i2c_dev.i2c_handle) {
         return XY_BH1750_INVALID_PARAM;
     }
     
@@ -194,6 +196,7 @@ int xy_bh1750_get_illuminance(xy_bh1750_t *bh1750, float *illuminance)
 int xy_bh1750_set_resolution(xy_bh1750_t *bh1750, xy_bh1750_res_t resolution)
 {
     if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
+        !bh1750->i2c_dev.i2c_handle ||
         resolution > XY_BH1750_LOW_RES) {
         return XY_BH1750_INVALID_PARAM;
     }
@@ -205,6 +208,7 @@ int xy_bh1750_set_resolution(xy_bh1750_t *bh1750, xy_bh1750_res_t resolution)
 int xy_bh1750_set_mode(xy_bh1750_t *bh1750, xy_bh1750_mode_t mode)
 {
     if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
+        !bh1750->i2c_dev.i2c_handle ||
         mode > XY_BH1750_ONE_TIME) {
         return XY_BH1750_INVALID_PARAM;
     }
@@ -217,7 +221,8 @@ int xy_bh1750_power_down(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_POWER_DOWN;
     
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized) {
+    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
+        !bh1750->i2c_dev.i2c_handle) {
         return XY_BH1750_INVALID_PARAM;
     }
 
@@ -228,7 +233,8 @@ int xy_bh1750_power_on(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_POWER_ON;
     
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized) {
+    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
+        !bh1750->i2c_dev.i2c_handle) {
         return XY_BH1750_INVALID_PARAM;
     }
 
@@ -239,7 +245,8 @@ int xy_bh1750_reset(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_RESET;
     
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized) {
+    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
+        !bh1750->i2c_dev.i2c_handle) {
         return XY_BH1750_INVALID_PARAM;
     }
 
