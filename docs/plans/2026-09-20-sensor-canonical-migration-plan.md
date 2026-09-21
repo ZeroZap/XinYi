@@ -215,6 +215,11 @@ APDS9960 is complete as a canonical I2C optical/proximity Device owner. The owne
 FIFO reads behind the nested I2C lifecycle; optical response, gesture classification, timing and
 hardware remain pending.
 
+CCS811 is complete as a canonical I2C gas Device owner. The owner models address `0x5A`, HW_ID
+`0x81`, application start, one-second measurement mode, DATA_READY gating and staged eCO2/TVOC
+publication behind the nested I2C lifecycle; gas response, baseline, accuracy and hardware remain
+pending.
+
 - AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
 `0x0C`, AKM WIA identity, reset/continuous-100Hz configuration, data-ready gating, little-endian
 XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain pending.

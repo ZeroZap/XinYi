@@ -1326,6 +1326,14 @@ target_include_directories(test_apds9960_device BEFORE PRIVATE
     ${DRV}/sensor/proximity/apds9960
 )
 
+xy_add_unit_test(test_ccs811_device sensor_ccs811_device UNITY
+    ${UNIT_SENSOR}/test_ccs811_device.c
+    ${DRV}/sensor/environment/ccs811/xy_ccs811.c
+)
+target_include_directories(test_ccs811_device BEFORE PRIVATE
+    ${DRV}/sensor/environment/ccs811
+)
+
 xy_add_unit_test(test_ak09918_device sensor_ak09918_device UNITY
     ${UNIT_SENSOR}/test_ak09918_device.c
     ${DRV}/sensor/magnetic/ak09918/xy_ak09918.c

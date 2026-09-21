@@ -79,6 +79,7 @@ The Device-model root set is currently exactly:
 - LSM9DS1: `components/drivers/sensor/motion/lsm9ds1/xy_lsm9ds1.c`
 - LIS2DH12: `components/drivers/sensor/motion/lis2dh12/xy_lis2dh12.c`
 - APDS9960: `components/drivers/sensor/proximity/apds9960/xy_apds9960.c`
+- CCS811: `components/drivers/sensor/environment/ccs811/xy_ccs811.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -418,6 +419,14 @@ The legacy APDS9960 API is now backed by the canonical Device owner at
 proximity samples, and bounds gesture FIFO reads to the documented 32-entry limit behind the nested
 I2C lifecycle. Optical response, gesture classification, timing and hardware endurance remain
 `hardware-pending`.
+
+### CCS811 migration status
+
+The legacy CCS811 API is now backed by the canonical Device owner at
+`components/drivers/sensor/environment/ccs811`. The owner verifies HW_ID `0x81` at 7-bit address
+`0x5A`, starts the application, configures one-second measurement mode, gates reads on DATA_READY,
+and stages eCO2/TVOC results behind the nested I2C lifecycle. Gas response, baseline behavior,
+accuracy, warm-up and hardware endurance remain `hardware-pending`.
 
 ### AS5600 migration status
 
