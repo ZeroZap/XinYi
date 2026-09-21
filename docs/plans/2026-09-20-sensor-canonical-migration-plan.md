@@ -151,6 +151,11 @@ AS5600 is complete as a canonical angle Device owner. The owner models the I2C `
 datasheet `0x0E/0x0F` 12-bit angle read, reserved-bit masking, staged sample publication and
 nested lifecycle boundary; angle accuracy and hardware remain pending.
 
+MAX44009 is complete as a canonical light Device owner. The owner models the `0x4A`/`0x4B`
+addresses, datasheet `0x03`/`0x04` exponent-mantissa registers, integer milli-lux conversion,
+staged sample publication and nested lifecycle boundary; optical accuracy and hardware remain
+pending.
+
 BMI088 is complete as a root-ownership promotion: the focused-test-backed dual-chip-select SPI
 source/header pair moved into `components/drivers/sensor/motion/bmi088`, `xy_drivers` now owns it,
 and the focused target compiles that canonical path. Existing identity, configuration, conversion,

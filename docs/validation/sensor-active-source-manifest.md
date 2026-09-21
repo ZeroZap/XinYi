@@ -65,6 +65,7 @@ The Device-model root set is currently exactly:
 - BNO055: `components/drivers/sensor/motion/bno055/xy_bno055.c`
 - AS5048B: `components/drivers/sensor/angle/as5048b/xy_as5048b.c`
 - AS5600: `components/drivers/sensor/angle/as5600/xy_as5600.c`
+- MAX44009: `components/drivers/sensor/light/max44009/xy_max44009.c`
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
@@ -283,6 +284,14 @@ configuration-failure contracts remain covered. This ownership move intentionall
 callback-shaped I2C/SPI transport API; replacing it with a nested Device helper is a separate
 hardening slice. Host/source ownership only; accuracy, waterproofing, timing, interrupt behavior and
 hardware endurance remain `hardware-pending`.
+
+### MAX44009 migration status
+
+The legacy MAX44009 owner is now represented by `components/drivers/sensor/light/max44009`.
+The canonical owner validates the two documented 7-bit addresses (`0x4A`/`0x4B`), reads the
+`0x03`/`0x04` exponent-mantissa registers, converts lux to integer milli-lux, and stages the
+sample/timestamp behind nested I2C lifecycle checks. Optical accuracy and hardware endurance
+remain `hardware-pending`.
 
 ### AS5600 migration status
 

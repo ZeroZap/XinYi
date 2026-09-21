@@ -998,6 +998,14 @@ target_include_directories(test_light_uv_sensors BEFORE PRIVATE
 )
 target_link_libraries(test_light_uv_sensors PRIVATE m)
 
+xy_add_unit_test(test_max44009_device sensor_max44009_device UNITY
+    ${UNIT_SENSOR}/test_max44009_device.c
+    ${DRV}/sensor/light/max44009/xy_max44009.c
+)
+target_include_directories(test_max44009_device BEFORE PRIVATE
+    ${DRV}/sensor/light/max44009
+)
+
 xy_add_unit_test(test_bh1750_legacy_sensor sensor_bh1750_legacy UNITY
     ${UNIT_SENSOR}/test_bh1750_legacy_sensor.c
     ${SENSOR}/sensors/sensor_bh1750.c
