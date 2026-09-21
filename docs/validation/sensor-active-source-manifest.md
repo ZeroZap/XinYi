@@ -76,6 +76,7 @@ The Device-model root set is currently exactly:
 - LSM6DSO: `components/drivers/sensor/motion/lsm6dso/xy_lsm6dso.c`
 - LSM6DSL: `components/drivers/sensor/motion/lsm6dsl/xy_lsm6dsl.c`
 - LSM6DSR: `components/drivers/sensor/motion/lsm6dsr/xy_lsm6dsr.c`
+- LSM9DS1: `components/drivers/sensor/motion/lsm9ds1/xy_lsm9ds1.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -389,6 +390,15 @@ documented reset/I3C-disable/104 Hz/±2g/±250 dps configuration, reads staged a
 gyroscope XYZ data through the nested I2C lifecycle, and preserves output/cache on transport
 failure. Motion accuracy, ODR timing, interrupt/FIFO behavior and hardware endurance remain
 `hardware-pending`.
+
+### LSM9DS1 migration status
+
+The legacy LSM9DS1 API is now backed by the canonical Device owner at
+`components/drivers/sensor/motion/lsm9ds1`. The owner verifies IMU WHO_AM_I `0x68` and magnetometer
+WHO_AM_I `0x3D` at the documented 7-bit addresses `0x6A` and `0x1C`, performs reset and 104 Hz
+configuration, reads staged accelerometer, gyroscope and magnetometer XYZ data through two nested
+I2C lifecycles, and preserves output/cache on transport failure. Motion and magnetic accuracy,
+timing, interrupt behavior and hardware endurance remain `hardware-pending`.
 
 ### AS5600 migration status
 

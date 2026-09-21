@@ -1302,6 +1302,14 @@ target_include_directories(test_lsm6dsr_device BEFORE PRIVATE
     ${DRV}/sensor/motion/lsm6dsr
 )
 
+xy_add_unit_test(test_lsm9ds1_device sensor_lsm9ds1_device UNITY
+    ${UNIT_SENSOR}/test_lsm9ds1_device.c
+    ${DRV}/sensor/motion/lsm9ds1/xy_lsm9ds1.c
+)
+target_include_directories(test_lsm9ds1_device BEFORE PRIVATE
+    ${DRV}/sensor/motion/lsm9ds1
+)
+
 xy_add_unit_test(test_ak09918_device sensor_ak09918_device UNITY
     ${UNIT_SENSOR}/test_ak09918_device.c
     ${DRV}/sensor/magnetic/ak09918/xy_ak09918.c

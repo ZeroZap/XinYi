@@ -200,6 +200,11 @@ LSM6DSR is complete as a canonical I2C motion Device owner. The owner models fix
 and gyroscope XYZ publication and nested lifecycle failure boundaries; motion accuracy, timing and
 hardware remain pending.
 
+LSM9DS1 is complete as a canonical dual-I2C motion/magnetic Device owner. The owner models IMU
+address `0x6A`, magnetometer address `0x1C`, WHO_AM_I values `0x68`/`0x3D`, reset and 104 Hz
+configuration, staged accelerometer/gyroscope/magnetometer XYZ publication and independent nested
+I2C lifecycle failure boundaries; accuracy, timing and hardware remain pending.
+
 - AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
 `0x0C`, AKM WIA identity, reset/continuous-100Hz configuration, data-ready gating, little-endian
 XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain pending.
