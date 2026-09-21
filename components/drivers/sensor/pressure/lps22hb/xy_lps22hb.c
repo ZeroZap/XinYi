@@ -58,7 +58,8 @@
  */
 static xy_ret_t lps22hb_write_reg(xy_lps22hb_dev_t *dev, uint8_t reg_addr, const uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->interface == XY_NULL || data == XY_NULL) {
+    if (dev == XY_NULL || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL || data == XY_NULL) {
         return XY_ERROR;
     }
     return xy_write_reg(dev->interface, reg_addr, data, len);
@@ -69,7 +70,8 @@ static xy_ret_t lps22hb_write_reg(xy_lps22hb_dev_t *dev, uint8_t reg_addr, const
  */
 static xy_ret_t lps22hb_read_reg(xy_lps22hb_dev_t *dev, uint8_t reg_addr, uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->interface == XY_NULL || data == XY_NULL) {
+    if (dev == XY_NULL || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL || data == XY_NULL) {
         return XY_ERROR;
     }
     return xy_read_reg(dev->interface, reg_addr, data, len);
@@ -295,7 +297,8 @@ init_failed:
 
 xy_ret_t xy_lps22hb_deinit(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -312,7 +315,8 @@ xy_ret_t xy_lps22hb_deinit(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_read_who_am_i(xy_lps22hb_dev_t *dev, uint8_t *who_am_i)
 {
-    if (dev == XY_NULL || !dev->is_initialized || who_am_i == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL || who_am_i == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -321,7 +325,8 @@ xy_ret_t xy_lps22hb_read_who_am_i(xy_lps22hb_dev_t *dev, uint8_t *who_am_i)
 
 xy_ret_t xy_lps22hb_soft_reset(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -331,7 +336,8 @@ xy_ret_t xy_lps22hb_soft_reset(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_start_single(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -347,7 +353,8 @@ xy_ret_t xy_lps22hb_start_single(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_start_continuous(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -357,7 +364,8 @@ xy_ret_t xy_lps22hb_start_continuous(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_stop(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -367,7 +375,8 @@ xy_ret_t xy_lps22hb_stop(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_check_data_ready(xy_lps22hb_dev_t *dev, bool *ready)
 {
-    if (dev == XY_NULL || !dev->is_initialized || ready == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL || ready == XY_NULL) {
         if (ready != XY_NULL) {
             *ready = false;
         }
@@ -389,7 +398,8 @@ xy_ret_t xy_lps22hb_check_data_ready(xy_lps22hb_dev_t *dev, bool *ready)
 
 xy_ret_t xy_lps22hb_read_data(xy_lps22hb_dev_t *dev, xy_lps22hb_data_t *data)
 {
-    if (dev == XY_NULL || !dev->is_initialized || data == XY_NULL) {
+    if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
+        dev->interface->handle == XY_NULL || data == XY_NULL) {
         return XY_ERROR;
     }
     

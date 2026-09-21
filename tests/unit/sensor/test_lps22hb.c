@@ -191,6 +191,27 @@ static void test_init_rejects_missing_interface_handle_without_io_or_delay(void)
     assert_lps22hb_cleared(&dev);
 }
 
+static void test_public_operations_reject_lost_interface_handle(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    xy_lps22hb_data_t data = {.pressure = 17.0f, .temperature = 18.0f};
+    bool ready = true;
+    uint8_t who = 0xA5U;
+
+    init_ok(&dev, &iface);
+    iface.handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_read_who_am_i(&dev, &who));
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, who);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_read_data(&dev, &data));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 17.0f, data.pressure);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_check_data_ready(&dev, &ready));
+    TEST_ASSERT_FALSE(ready);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.is_initialized);
+}
+
 static void test_init_rejects_bad_whoami_and_propagates_reset_timeout(void)
 {
     xy_lps22hb_dev_t dev;
@@ -784,6 +805,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_default_config_resets_and_programs_registers);
     RUN_TEST(test_init_rejects_missing_interface_handle_without_io_or_delay);
+    RUN_TEST(test_public_operations_reject_lost_interface_handle);
     RUN_TEST(test_init_rejects_bad_whoami_and_propagates_reset_timeout);
     RUN_TEST(test_init_configuration_failure_clears_device_state);
     RUN_TEST(test_read_data_converts_pressure_temperature_and_offsets);
