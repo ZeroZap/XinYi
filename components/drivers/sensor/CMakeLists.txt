@@ -19,6 +19,10 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/light)
     add_subdirectory(light)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/proximity)
+    add_subdirectory(proximity)
+endif()
+
 # Motion Sensors
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/motion)
     add_subdirectory(motion)

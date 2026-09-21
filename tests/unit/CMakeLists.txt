@@ -1073,6 +1073,14 @@ target_include_directories(test_proximity_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_vcnl4040_device sensor_vcnl4040_device UNITY
+    ${UNIT_SENSOR}/test_vcnl4040_device.c
+    ${DRV}/sensor/proximity/vcnl4040/xy_vcnl4040.c
+)
+target_include_directories(test_vcnl4040_device BEFORE PRIVATE
+    ${DRV}/sensor/proximity/vcnl4040
+)
+
 xy_add_unit_test(test_ccs811_sensor sensor_ccs811_sensor UNITY
     ${UNIT_SENSOR}/test_ccs811_sensor.c
     ${SENSOR}/sensors/sensor_ccs811.c

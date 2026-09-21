@@ -156,6 +156,10 @@ addresses, datasheet `0x03`/`0x04` exponent-mantissa registers, integer milli-lu
 staged sample publication and nested lifecycle boundary; optical accuracy and hardware remain
 pending.
 
+VCNL4040 is complete as a canonical proximity Device owner. The owner models fixed 7-bit address
+`0x60`, the datasheet little-endian proximity registers `0x08/0x09`, staged raw sample publication
+and nested lifecycle boundary; optical response, distance calibration and hardware remain pending.
+
 BMI088 is complete as a root-ownership promotion: the focused-test-backed dual-chip-select SPI
 source/header pair moved into `components/drivers/sensor/motion/bmi088`, `xy_drivers` now owns it,
 and the focused target compiles that canonical path. Existing identity, configuration, conversion,
