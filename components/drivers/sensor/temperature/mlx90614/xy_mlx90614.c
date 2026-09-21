@@ -99,6 +99,7 @@ int xy_mlx90614_deinit(xy_mlx90614_t *dev)
     if (!xy_mlx90614_ready(dev)) return XY_MLX90614_INVALID_PARAM;
     dev->initialized = 0;
     dev->i2c_dev.base.initialized = 0;
+    dev->i2c_dev.i2c_handle = NULL;
     return XY_MLX90614_OK;
 }
 

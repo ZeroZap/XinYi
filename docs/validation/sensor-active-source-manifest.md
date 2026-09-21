@@ -663,3 +663,6 @@ evidence matrix in the same path-limited slice.
 The canonical BME680 owner now requires both nested `base.initialized` and `i2c_handle` for
 deinit/read, and clears the nested handle on successful deinit. A stale lifecycle bit cannot
 authorize bus access; existing environmental accuracy and endurance evidence remains bounded.
+The MLX90614 owner clears the nested I2C handle together with lifecycle state on successful
+deinit, preventing stale transport reuse. Existing temperature accuracy, PEC robustness and
+long-run evidence remain bounded.
