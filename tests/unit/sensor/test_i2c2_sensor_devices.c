@@ -257,6 +257,7 @@ static void prepare_initialized_l3g4200d(xy_l3g4200d_t *dev)
     memset(dev, 0, sizeof(*dev));
     dev->initialized = 1U;
     dev->i2c_dev.base.initialized = 1U;
+    dev->i2c_dev.i2c_handle = (void *)0x1;
     dev->range_dps = 500U;
     dev->data = (xy_l3g4200d_data_t){111, 222, 333};
 }

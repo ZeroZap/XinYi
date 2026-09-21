@@ -21,7 +21,8 @@ static xy_error_t l3g4200d_write_reg(xy_l3g4200d_t *dev, uint8_t reg, uint8_t va
 
 static bool l3g4200d_ready(const xy_l3g4200d_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U;
+    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
 }
 
 xy_error_t xy_l3g4200d_init(xy_l3g4200d_t *dev, void *i2c, uint8_t address)
