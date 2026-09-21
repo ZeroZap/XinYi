@@ -189,7 +189,7 @@ Domain-owner corrections:
 
 Short protocols first:
 
-- AS5048B, AS5600, MAX44009, PA122, VCNL4040;
+- AS5048B, AS5600, MAX44009, VCNL4040;
 - QMC5883L, AK09918, IST8310;
 - ADXL362, BMA400, KX023, LIS2DH12, LIS2DW12;
 - LSM6DSL, LSM6DSO, LSM6DSR, LSM9DS1;
@@ -202,6 +202,7 @@ Optional FIFO, gesture, interrupt and algorithm features may follow in later sli
 Keep pending until exact documentation exists:
 
 - CMM905/MM905;
+- PA122 (identity/register protocol unresolved; remain unsupported);
 - SC7A20 versus Silan SC7A20 identity/owner relationship;
 - GPS module/transport ownership;
 - ACS712, FSR, GUVA-S12SD, MG811, MQ135, MQ3 and MQ7 board analog front ends.

@@ -35,7 +35,7 @@ Representative tail groups:
 | `sensor_mq_gas_sensors` | `tests/unit/sensor/test_mq_gas_sensors.c` | MQ3, MQ7, MQ135 |
 | `sensor_angle_encoders` | `tests/unit/sensor/test_angle_encoders.c` | AS5600, AS5048 |
 
-| `sensor_proximity_sensors` | `tests/unit/sensor/test_proximity_sensors.c` | PA122, VCNL4040 |
+| `sensor_proximity_sensors` | `tests/unit/sensor/test_proximity_sensors.c` | VCNL4040 |
 
 Dedicated legacy tail targets include GPS, LSM9DS1, APDS9960,
 AP3216C, CCS811, VL53L0X, BMP280, ICM20608, BH1750 legacy, and SHT30 legacy.

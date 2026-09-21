@@ -29,7 +29,7 @@
 
 | Track | Build ownership | Sources | Public/lifecycle status | Focused evidence | Hardware |
 |---|---|---:|---|---|---|
-| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 39 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 40 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
+| legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 38 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 39 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
 | Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 32 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; BMI088/BMI270/BNO055/AS5048B and other non-board owners remain `hardware-pending` |
 
@@ -67,6 +67,10 @@ The Device-model root set is currently exactly:
 - AS5600: `components/drivers/sensor/angle/as5600/xy_as5600.c`
 - MAX44009: `components/drivers/sensor/light/max44009/xy_max44009.c`
 - VCNL4040: `components/drivers/sensor/proximity/vcnl4040/xy_vcnl4040.c`
+
+PA122 is intentionally unsupported and retired from the active source set. The repository has no
+authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
+keeping that implementation would manufacture a Device owner from an unverified protocol.
 
 The top-level APDS9960 implementation was a weaker duplicate of
 `components/sensor/sensors/sensor_apds9960.c`: both exported the same legacy factories, while the
