@@ -300,7 +300,7 @@ def main() -> int:
 
     print("sensor_active_source_manifest_ok legacy_active=39 legacy_subdir=38 "
           "legacy_top_level=1 experimental_test_only=6 device_active=47 "
-          "approved_wrappers=24 overlap_duplicates=0 false_owners=0 "
+          "approved_wrappers=25 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
 
