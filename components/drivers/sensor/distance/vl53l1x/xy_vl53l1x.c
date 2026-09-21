@@ -334,7 +334,8 @@ xy_ret_t xy_vl53l1x_deinit(xy_vl53l1x_dev_t *dev)
     
     dev->is_initialized = false;
     dev->i2c_dev.base.initialized = false;
-    
+    dev->i2c_dev.i2c_handle = XY_NULL;
+
     return XY_OK;
 }
 

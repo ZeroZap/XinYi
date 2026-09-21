@@ -613,6 +613,20 @@ void test_deinit_stop_failure_preserves_initialized_state(void)
     TEST_ASSERT_TRUE(dev.is_initialized);
 }
 
+void test_deinit_success_clears_nested_transport(void)
+{
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+    const uint8_t stop = 0x00U;
+
+    expect_write_ret(VL53L1X_SYSTEM_START, &stop, 1U, XY_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_vl53l1x_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.is_initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+}
+
 void test_start_single_propagates_stop_failure_and_skips_start(void)
 {
     xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
@@ -645,5 +659,6 @@ int main(void)
     RUN_TEST(test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_samples);
     RUN_TEST(test_public_guards_and_inline_helpers);
     RUN_TEST(test_deinit_stop_failure_preserves_initialized_state);
+    RUN_TEST(test_deinit_success_clears_nested_transport);
     return UNITY_END();
 }
