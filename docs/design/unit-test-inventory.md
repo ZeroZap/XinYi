@@ -187,6 +187,8 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_bno055.c` | `unity` | 0 |
 | `tests/unit/sensor/test_dmp.c` | `unity` | 0 |
 | `tests/unit/sensor/test_lsm9ds1.c` | `unity` | 0 |
+| `tests/unit/sensor/test_proximity_sensors.c` | `unity` | 0 |
+| `tests/unit/sensor/test_vcnl4040_device.c` | `unity` | 0 | VCNL4040 Device-model fixed-address, nested lifecycle, little-endian sample and failure-preservation contracts |
 
 | `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 + CMM905 legacy magnetic I2C contracts |
 
