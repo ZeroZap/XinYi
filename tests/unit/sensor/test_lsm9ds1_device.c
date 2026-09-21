@@ -44,7 +44,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
     return g_error;
 }
 
-void xy_device_delay_ms(uint32_t delay_ms)
+void xy_hal_delay_ms(uint32_t delay_ms)
 {
     (void)delay_ms;
 }
