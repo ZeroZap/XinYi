@@ -205,6 +205,11 @@ address `0x6A`, magnetometer address `0x1C`, WHO_AM_I values `0x68`/`0x3D`, rese
 configuration, staged accelerometer/gyroscope/magnetometer XYZ publication and independent nested
 I2C lifecycle failure boundaries; accuracy, timing and hardware remain pending.
 
+LIS2DH12 is complete as a canonical I2C motion Device owner. The owner models address `0x18`,
+WHO_AM_I `0x33`, 10 Hz/XYZ/±2g high-resolution configuration, temperature enable, left-aligned
+12-bit XYZ decode and staged sample publication behind the nested I2C lifecycle; acceleration
+accuracy, timing and hardware remain pending.
+
 - AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
 `0x0C`, AKM WIA identity, reset/continuous-100Hz configuration, data-ready gating, little-endian
 XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain pending.
