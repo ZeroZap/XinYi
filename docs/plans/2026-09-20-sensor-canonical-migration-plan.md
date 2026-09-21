@@ -210,6 +210,11 @@ WHO_AM_I `0x33`, 10 Hz/XYZ/±2g high-resolution configuration, temperature enabl
 12-bit XYZ decode and staged sample publication behind the nested I2C lifecycle; acceleration
 accuracy, timing and hardware remain pending.
 
+LIS2DW12 is complete as a canonical I2C motion Device owner. The owner models address `0x18`,
+WHO_AM_I `0x44`, soft-reset/address-increment/low-power-100Hz configuration and staged left-aligned
+14-bit XYZ publication behind the nested I2C lifecycle; acceleration accuracy, low-power current,
+timing and hardware remain pending.
+
 APDS9960 is complete as a canonical I2C optical/proximity Device owner. The owner models address
 `0x39`, ID values `0xAB`/`0x9C`, function enable, staged RGBC/proximity samples and bounded gesture
 FIFO reads behind the nested I2C lifecycle; optical response, gesture classification, timing and

@@ -1326,6 +1326,14 @@ target_include_directories(test_lis2dh12_device BEFORE PRIVATE
     ${DRV}/sensor/motion/lis2dh12
 )
 
+xy_add_unit_test(test_lis2dw12_device sensor_lis2dw12_device UNITY
+    ${UNIT_SENSOR}/test_lis2dw12_device.c
+    ${DRV}/sensor/motion/lis2dw12/xy_lis2dw12.c
+)
+target_include_directories(test_lis2dw12_device BEFORE PRIVATE
+    ${DRV}/sensor/motion/lis2dw12
+)
+
 xy_add_unit_test(test_apds9960_device sensor_apds9960_device UNITY
     ${UNIT_SENSOR}/test_apds9960_device.c
     ${DRV}/sensor/proximity/apds9960/xy_apds9960.c

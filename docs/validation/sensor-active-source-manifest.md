@@ -31,7 +31,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 38 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 39 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 46 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 47 | `device-active-root`; canonical migration destination | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L basic-chain verified; AK09918/LSM9DS1/VL53L0X/LIS2DW12 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -80,6 +80,15 @@ The Device-model root set is currently exactly:
 - LIS2DH12: `components/drivers/sensor/motion/lis2dh12/xy_lis2dh12.c`
 - APDS9960: `components/drivers/sensor/proximity/apds9960/xy_apds9960.c`
 - CCS811: `components/drivers/sensor/environment/ccs811/xy_ccs811.c`
+- LIS2DW12: `components/drivers/sensor/motion/lis2dw12/xy_lis2dw12.c`
+
+### LIS2DW12 migration status
+
+The legacy LIS2DW12 API is now backed by the canonical Device owner at
+`components/drivers/sensor/motion/lis2dw12`. The owner verifies WHO_AM_I `0x44` at 7-bit address
+`0x18`, applies the documented soft-reset, address-increment and low-power 100 Hz configuration,
+and stages left-aligned 14-bit XYZ samples behind the nested I2C lifecycle. Acceleration accuracy,
+low-power current, timing and hardware endurance remain `hardware-pending`.
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;

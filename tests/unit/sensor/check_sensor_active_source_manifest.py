@@ -128,13 +128,13 @@ def main() -> int:
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 6,
             f"expected 6 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 46, f"expected 46 Device-model sources, found {len(device)}", errors)
+    require(len(device) == 47, f"expected 47 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
     require(canonical_names & legacy_names ==
             {"sht30", "mpu6050", "bmp280", "bh1750", "aht20", "aht10", "ap3216c",
-             "icm20608", "as5600", "max44009", "vcnl4040", "qmc5883l", "ak09918", "ist8310", "bma400", "kx023", "adxl362", "lsm6dso", "lsm6dsl", "lsm6dsr", "lsm9ds1", "lis2dh12", "apds9960", "ccs811", "vl53l0x"},
+             "icm20608", "as5600", "max44009", "vcnl4040", "qmc5883l", "ak09918", "ist8310", "bma400", "kx023", "adxl362", "lsm6dso", "lsm6dsl", "lsm6dsr", "lsm9ds1", "lis2dh12", "apds9960", "ccs811", "vl53l0x", "lis2dw12"},
             "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
     require(not (canonical_names & experimental_names),
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
@@ -194,6 +194,7 @@ def main() -> int:
         "APDS9960",
         "CCS811",
         "VL53L0X",
+        "LIS2DW12",
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
@@ -298,7 +299,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=39 legacy_subdir=38 "
-          "legacy_top_level=1 experimental_test_only=6 device_active=46 "
+          "legacy_top_level=1 experimental_test_only=6 device_active=47 "
           "approved_wrappers=24 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
