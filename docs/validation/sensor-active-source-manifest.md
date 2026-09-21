@@ -70,6 +70,7 @@ The Device-model root set is currently exactly:
 - QMC5883L: `components/drivers/sensor/magnetic/qmc5883l/xy_qmc5883l.c`
 - AK09918: `components/drivers/sensor/magnetic/ak09918/xy_ak09918.c`
 - IST8310: `components/drivers/sensor/magnetic/ist8310/xy_ist8310.c`
+- BMA400: `components/drivers/sensor/motion/bma400/xy_bma400.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -332,6 +333,14 @@ The legacy IST8310 API is now backed by the canonical Device owner at
 continuous 100 Hz operation, reads little-endian XYZ data, and stages sample/timestamp publication
 behind nested I2C lifecycle checks. Magnetic calibration, accuracy and hardware endurance remain
 `hardware-pending`.
+
+### BMA400 migration status
+
+The legacy BMA400 API is now backed by the canonical Device owner at
+`components/drivers/sensor/motion/bma400`. The owner verifies CHIP_ID `0x90`, performs the
+documented soft reset and low-power/±2g/25 Hz configuration, and stages little-endian XYZ raw
+samples and timestamps behind nested I2C lifecycle checks. Motion accuracy, power characterization,
+interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 
 ### AS5600 migration status
 

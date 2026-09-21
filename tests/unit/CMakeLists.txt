@@ -1254,6 +1254,14 @@ target_include_directories(test_ist8310_device BEFORE PRIVATE
     ${DRV}/sensor/magnetic/ist8310
 )
 
+xy_add_unit_test(test_bma400_device sensor_bma400_device UNITY
+    ${UNIT_SENSOR}/test_bma400_device.c
+    ${DRV}/sensor/motion/bma400/xy_bma400.c
+)
+target_include_directories(test_bma400_device BEFORE PRIVATE
+    ${DRV}/sensor/motion/bma400
+)
+
 xy_add_unit_test(test_ak09918_device sensor_ak09918_device UNITY
     ${UNIT_SENSOR}/test_ak09918_device.c
     ${DRV}/sensor/magnetic/ak09918/xy_ak09918.c

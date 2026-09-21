@@ -173,6 +173,10 @@ IST8310 is complete as a canonical magnetic Device owner. The owner models fixed
 `0x0C`, WHO_AM_I `0x10`, continuous 100 Hz configuration, little-endian XYZ and staged sample
 publication; magnetic calibration, accuracy and hardware remain pending.
 
+BMA400 is complete as a canonical motion Device owner. The owner models fixed 7-bit address
+`0x14`, CHIP_ID `0x90`, soft reset, low-power/±2g/25 Hz configuration, little-endian XYZ and
+staged sample publication; motion accuracy, power and hardware remain pending.
+
 - AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
 `0x0C`, AKM WIA identity, reset/continuous-100Hz configuration, data-ready gating, little-endian
 XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain pending.

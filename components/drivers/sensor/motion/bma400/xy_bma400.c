@@ -1,0 +1,9 @@
+#include "xy_bma400.h"
+#include "xy_device_timing.h"
+#include "xy_hal_sys.h"
+#include <string.h>
+static int ready(const xy_bma400_t*d){return d&&d->initialized&&d->i2c_dev.base.initialized&&d->i2c_dev.i2c_handle;}
+static xy_error_t wr(xy_bma400_t*d,uint8_t r,uint8_t v){return xy_i2c_device_write_reg(&d->i2c_dev,r,&v,1);}
+xy_error_t xy_bma400_init(xy_bma400_t*d,void*h){uint8_t id;xy_error_t r;if(!d||!h)return XY_DEVICE_INVALID_PARAM;memset(d,0,sizeof(*d));r=xy_i2c_device_init(&d->i2c_dev,h,XY_BMA400_ADDR,1000);if(r!=XY_DEVICE_OK)return r;r=xy_i2c_device_read_reg(&d->i2c_dev,XY_BMA400_REG_CHIP_ID,&id,1);if(r==XY_DEVICE_OK&&id!=XY_BMA400_CHIP_ID)r=XY_DEVICE_NOT_FOUND;if(r==XY_DEVICE_OK)r=wr(d,XY_BMA400_REG_CMD,0xB6);if(r==XY_DEVICE_OK){xy_device_delay_ms(10);r=wr(d,XY_BMA400_REG_ACC_CONFIG0,XY_BMA400_CONFIG0_LOW_POWER);}if(r==XY_DEVICE_OK)r=wr(d,XY_BMA400_REG_ACC_CONFIG1,XY_BMA400_CONFIG1_2G);if(r==XY_DEVICE_OK)r=wr(d,XY_BMA400_REG_ACC_CONFIG2,XY_BMA400_CONFIG2_25HZ);if(r!=XY_DEVICE_OK){memset(d,0,sizeof(*d));return r;}d->initialized=1;return XY_DEVICE_OK;}
+xy_error_t xy_bma400_deinit(xy_bma400_t*d){xy_error_t r;if(!ready(d))return XY_DEVICE_INVALID_PARAM;r=wr(d,XY_BMA400_REG_ACC_CONFIG0,0);if(r!=XY_DEVICE_OK)return r;d->initialized=0;d->i2c_dev.base.initialized=0;d->i2c_dev.i2c_handle=NULL;return XY_DEVICE_OK;}
+xy_error_t xy_bma400_read(xy_bma400_t*d,xy_bma400_sample_t*s){uint8_t b[6];xy_bma400_sample_t n;xy_error_t r;if(!ready(d)||!s)return XY_DEVICE_INVALID_PARAM;r=xy_i2c_device_read_reg(&d->i2c_dev,XY_BMA400_REG_ACC_X_LSB,b,6);if(r!=XY_DEVICE_OK)return r;n.raw_x=(int16_t)((uint16_t)b[0]|((uint16_t)b[1]<<8));n.raw_y=(int16_t)((uint16_t)b[2]|((uint16_t)b[3]<<8));n.raw_z=(int16_t)((uint16_t)b[4]|((uint16_t)b[5]<<8));n.timestamp=xy_hal_sys_get_tick_count();*s=n;d->sample=n;return XY_DEVICE_OK;}
