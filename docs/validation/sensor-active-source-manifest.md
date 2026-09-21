@@ -69,6 +69,7 @@ The Device-model root set is currently exactly:
 - VCNL4040: `components/drivers/sensor/proximity/vcnl4040/xy_vcnl4040.c`
 - QMC5883L: `components/drivers/sensor/magnetic/qmc5883l/xy_qmc5883l.c`
 - AK09918: `components/drivers/sensor/magnetic/ak09918/xy_ak09918.c`
+- IST8310: `components/drivers/sensor/magnetic/ist8310/xy_ist8310.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -323,6 +324,14 @@ The legacy AK09918 API is now backed by the canonical Device owner at
 resets through CNTL3, enters continuous 100 Hz mode through CNTL2, gates reads on ST1 DRDY and
 stages little-endian XYZ/timestamp output behind nested I2C lifecycle checks. Magnetic calibration,
 accuracy and hardware endurance remain `hardware-pending`.
+
+### IST8310 migration status
+
+The legacy IST8310 API is now backed by the canonical Device owner at
+`components/drivers/sensor/magnetic/ist8310`. The owner verifies WHO_AM_I `0x10`, configures
+continuous 100 Hz operation, reads little-endian XYZ data, and stages sample/timestamp publication
+behind nested I2C lifecycle checks. Magnetic calibration, accuracy and hardware endurance remain
+`hardware-pending`.
 
 ### AS5600 migration status
 
