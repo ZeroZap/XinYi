@@ -660,3 +660,6 @@ long-run hardware evidence.
 shape change without this manifest and its CTest being updated. Any addition, deletion, root-source
 selection change, or lifecycle decision must update this file, the Sprint tracker, and the component
 evidence matrix in the same path-limited slice.
+The canonical BME680 owner now requires both nested `base.initialized` and `i2c_handle` for
+deinit/read, and clears the nested handle on successful deinit. A stale lifecycle bit cannot
+authorize bus access; existing environmental accuracy and endurance evidence remains bounded.

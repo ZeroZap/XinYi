@@ -425,6 +425,7 @@ static void prepare_initialized_bme680(xy_bme680_t *dev)
     memset(dev, 0, sizeof(*dev));
     dev->initialized = 1U;
     dev->i2c_dev.base.initialized = 1U;
+    dev->i2c_dev.i2c_handle = (void *)0x1;
     dev->bosch.intf = BME68X_I2C_INTF;
     dev->bosch.intf_ptr = dev;
     dev->bosch.read = bme680_transport_failure_read;

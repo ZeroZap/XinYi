@@ -104,7 +104,8 @@ xy_error_t xy_bme680_deinit(xy_bme680_t *dev)
 {
     xy_error_t result;
 
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
@@ -112,6 +113,7 @@ xy_error_t xy_bme680_deinit(xy_bme680_t *dev)
     result = map_error(dev, bme68x_set_op_mode(BME68X_SLEEP_MODE, &dev->bosch));
     if (result == XY_DEVICE_OK) {
         dev->initialized = 0U;
+        dev->i2c_dev.i2c_handle = NULL;
         dev->i2c_dev.base.initialized = 0U;
     }
     return result;
@@ -125,7 +127,8 @@ xy_error_t xy_bme680_read(xy_bme680_t *dev, xy_bme680_data_t *output)
     uint32_t measurement_us;
     xy_error_t result;
 
-    if (!dev || !output || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !output || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
