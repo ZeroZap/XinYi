@@ -72,6 +72,7 @@ The Device-model root set is currently exactly:
 - IST8310: `components/drivers/sensor/magnetic/ist8310/xy_ist8310.c`
 - BMA400: `components/drivers/sensor/motion/bma400/xy_bma400.c`
 - KX023: `components/drivers/sensor/motion/kx023/xy_kx023.c`
+- ADXL362: `components/drivers/sensor/motion/adxl362/xy_adxl362.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -350,6 +351,14 @@ The legacy KX023 API is now backed by the canonical Device owner at
 documented soft reset and standby/12.5 Hz/low-power configuration, and stages little-endian XYZ
 raw samples and timestamps behind nested I2C lifecycle checks. Motion accuracy, power, interrupt
 behavior and hardware endurance remain `hardware-pending`.
+
+### ADXL362 migration status
+
+The legacy ADXL362 API is now backed by the canonical Device owner at
+`components/drivers/sensor/motion/adxl362`. The owner uses the SPI Device helper, verifies device
+ID `0xAD`, configures 100 Hz/±2g measurement mode, decodes signed 12-bit XYZ data, and stages
+sample/timestamp publication behind nested SPI lifecycle checks. Motion accuracy, SPI timing,
+interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 
 ### AS5600 migration status
 

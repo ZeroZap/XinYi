@@ -1270,6 +1270,14 @@ target_include_directories(test_kx023_device BEFORE PRIVATE
     ${DRV}/sensor/motion/kx023
 )
 
+xy_add_unit_test(test_adxl362_device sensor_adxl362_device UNITY
+    ${UNIT_SENSOR}/test_adxl362_device.c
+    ${DRV}/sensor/motion/adxl362/xy_adxl362.c
+)
+target_include_directories(test_adxl362_device BEFORE PRIVATE
+    ${DRV}/sensor/motion/adxl362
+)
+
 xy_add_unit_test(test_ak09918_device sensor_ak09918_device UNITY
     ${UNIT_SENSOR}/test_ak09918_device.c
     ${DRV}/sensor/magnetic/ak09918/xy_ak09918.c

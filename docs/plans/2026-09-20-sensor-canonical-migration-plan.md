@@ -181,6 +181,10 @@ KX023 is complete as a canonical motion Device owner. The owner models fixed 7-b
 WHO_AM_I `0x15`, soft reset, standby/12.5 Hz/low-power configuration, little-endian XYZ and staged
 sample publication; motion accuracy, power and hardware remain pending.
 
+ADXL362 is complete as a canonical SPI motion Device owner. The owner models device ID `0xAD`,
+100 Hz/±2g measurement configuration, signed 12-bit XYZ decode and staged sample publication behind
+the nested SPI lifecycle; motion accuracy, SPI timing and hardware remain pending.
+
 - AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
 `0x0C`, AKM WIA identity, reset/continuous-100Hz configuration, data-ready gating, little-endian
 XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain pending.
