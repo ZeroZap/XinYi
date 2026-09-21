@@ -128,13 +128,13 @@ def main() -> int:
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 6,
             f"expected 6 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 33, f"expected 33 Device-model sources, found {len(device)}", errors)
+    require(len(device) == 34, f"expected 34 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
     require(canonical_names & legacy_names ==
             {"sht30", "mpu6050", "bmp280", "bh1750", "aht20", "aht10", "ap3216c",
-             "icm20608", "as5600", "max44009", "vcnl4040", "qmc5883l"},
+             "icm20608", "as5600", "max44009", "vcnl4040", "qmc5883l", "ak09918"},
             "canonical/legacy overlap must contain only approved compatibility wrappers", errors)
     require(not (canonical_names & experimental_names),
             "canonical Device owners must not reappear in experimental src/xy_*", errors)
@@ -181,6 +181,7 @@ def main() -> int:
         "MAX44009",
         "VCNL4040",
         "QMC5883L",
+        "AK09918",
     ):
         require(token in manifest, f"manifest must preserve policy token: {token}", errors)
 
@@ -285,8 +286,8 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=39 legacy_subdir=38 "
-          "legacy_top_level=1 experimental_test_only=6 device_active=33 "
-          "approved_wrappers=12 overlap_duplicates=0 false_owners=0 "
+          "legacy_top_level=1 experimental_test_only=6 device_active=34 "
+          "approved_wrappers=13 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
 

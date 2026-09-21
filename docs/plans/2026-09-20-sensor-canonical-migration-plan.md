@@ -160,9 +160,18 @@ VCNL4040 is complete as a canonical proximity Device owner. The owner models fix
 `0x60`, the datasheet little-endian proximity registers `0x08/0x09`, staged raw sample publication
 and nested lifecycle boundary; optical response, distance calibration and hardware remain pending.
 
-QMC5883L is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
+- QMC5883L is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
 `0x0D`, chip ID `0xFF`, reset/period/continuous configuration, DRDY gating, little-endian XYZ and
 staged sample publication; magnetic calibration, accuracy and hardware remain pending.
+
+AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
+`0x0C`, AKM WIA identity, CNTL3 reset, continuous 100 Hz CNTL2 configuration, ST1 DRDY gating,
+little-endian XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain
+pending.
+
+- AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
+`0x0C`, AKM WIA identity, reset/continuous-100Hz configuration, data-ready gating, little-endian
+XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain pending.
 
 BMI088 is complete as a root-ownership promotion: the focused-test-backed dual-chip-select SPI
 source/header pair moved into `components/drivers/sensor/motion/bmi088`, `xy_drivers` now owns it,

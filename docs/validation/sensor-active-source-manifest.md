@@ -31,7 +31,7 @@
 |---|---|---:|---|---|---|
 | legacy `sensor_*` | `sensor_component`; `components/sensor/CMakeLists.txt` globs 38 `sensors/sensor_*.c` files and explicitly lists top-level `sensor_adt7420.c` | 39 | `legacy-active-root`; frozen for new drivers | broad legacy Sensor Unity CTests | `hardware-pending` |
 | new `components/sensor/src/xy_*` | excluded from root `sensor_component`; tests link selected source files directly | 6 | `experimental-test-only`; no product-root claim | selected driver contracts | `hardware-pending` |
-| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 32 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; BMI088/BMI270/BNO055/AS5048B and other non-board owners remain `hardware-pending` |
+| Device-model drivers | `xy_drivers`; recursive source collection under `components/drivers` | 34 | `device-active-root`; canonical migration destination | focused contracts plus Pandora integration | AHT10/AP3216C/ICM20608/AHT30/L3G4200D/BME680/HMC5883L/SC7A22H basic-chain verified; AK09918 and other non-board owners remain `hardware-pending` |
 
 The Device-model root set is currently exactly:
 
@@ -68,6 +68,7 @@ The Device-model root set is currently exactly:
 - MAX44009: `components/drivers/sensor/light/max44009/xy_max44009.c`
 - VCNL4040: `components/drivers/sensor/proximity/vcnl4040/xy_vcnl4040.c`
 - QMC5883L: `components/drivers/sensor/magnetic/qmc5883l/xy_qmc5883l.c`
+- AK09918: `components/drivers/sensor/magnetic/ak09918/xy_ak09918.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -315,6 +316,14 @@ documented reset/period/continuous-mode sequence, checks DRDY before reading lit
 and stages raw axes/timestamp behind nested I2C lifecycle checks. Magnetic calibration, accuracy,
 interrupt behavior and hardware endurance remain `hardware-pending`.
 
+### AK09918 migration status
+
+The legacy AK09918 API is now backed by the canonical Device owner at
+`components/drivers/sensor/magnetic/ak09918`. The owner verifies AKM WIA1/WIA2 (`0x48/0x09`),
+resets through CNTL3, enters continuous 100 Hz mode through CNTL2, gates reads on ST1 DRDY and
+stages little-endian XYZ/timestamp output behind nested I2C lifecycle checks. Magnetic calibration,
+accuracy and hardware endurance remain `hardware-pending`.
+
 ### AS5600 migration status
 
 The legacy AS5600 owner is now represented by `components/drivers/sensor/angle/as5600`. The
@@ -357,11 +366,11 @@ fails the Host gate instead of allowing another constant-output/zero-transport p
 counted as an active driver. The check is intentionally narrow: derived constants inside real
 transport drivers remain valid and substantive protocol review is still required.
 
-The current 32 canonical names have exactly eleven approved legacy filename overlaps:
-`sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, `ap3216c`, `icm20608`, `as5600`, `max44009`, and `vcnl4040`. Each overlap is a compatibility wrapper
+The current 34 canonical names have exactly thirteen approved legacy filename overlaps:
+`sht30`, `mpu6050`, `bmp280`, `bh1750`, `aht20`, `aht10`, `ap3216c`, `icm20608`, `as5600`, `max44009`, `vcnl4040`, `qmc5883l`, and `ak09918`. Each overlap is a compatibility wrapper
 documented above, not an implementation owner. The other twenty-one canonical owners (`ads1115`, `aht30`,
 `bme680`, `hmc5883l`, `l3g4200d`, `sc7a22`, `sht40`, `ina219`, `bmp390`, `hdc1080`, `tsl2561`, `ina226`, `mlx90614`, `vl53l1x`, `lps22hb`, `sgp40`, `ltc2945`, `bmi088`, `bmi270`, `bno055`, and `as5048b`) have no legacy-root counterpart. No canonical name overlaps
-the 5 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
+the 6 experimental `src/xy_*` files or the remaining `xy_sensor_*` prototypes.
 
 HDC1080 was first retained as the stronger test-only owner while an unchecked prototype was
 removed. It has now been promoted to the canonical Device root as documented above; the stale

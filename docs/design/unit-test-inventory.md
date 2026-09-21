@@ -191,6 +191,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_vcnl4040_device.c` | `unity` | 0 | VCNL4040 Device-model fixed-address, nested lifecycle, little-endian sample and failure-preservation contracts |
 
 | `tests/unit/sensor/test_magnetic_i2c_sensors.c` | `unity` | 0 | QMC5883L + IST8310 + AK09918 + CMM905 legacy magnetic I2C contracts |
+| `tests/unit/sensor/test_ak09918_device.c` | `unity` | 0 | AK09918 canonical Device identity, reset/config, sample, failure-preservation and lifecycle contracts |
 
 | `tests/unit/sensor/test_angle_encoders.c` | `unity` | 0 | AS5600/AS5048 legacy angle encoder create/read/guard/failure contracts |
 | `tests/unit/sensor/test_light_uv_sensors.c` | `unity` | 0 | MAX44009/GUVA-S12SD legacy light/UV read/failure/boundary contracts |
