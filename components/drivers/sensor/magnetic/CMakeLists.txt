@@ -1,3 +1,6 @@
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hmc5883l)
     add_subdirectory(hmc5883l)
 endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/qmc5883l)
+    add_subdirectory(qmc5883l)
+endif()

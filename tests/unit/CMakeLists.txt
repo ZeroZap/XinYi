@@ -1238,6 +1238,14 @@ target_include_directories(test_magnetic_i2c_sensors BEFORE PRIVATE
     ${SENSOR}/sensors
 )
 
+xy_add_unit_test(test_qmc5883l_device sensor_qmc5883l_device UNITY
+    ${UNIT_SENSOR}/test_qmc5883l_device.c
+    ${DRV}/sensor/magnetic/qmc5883l/xy_qmc5883l.c
+)
+target_include_directories(test_qmc5883l_device BEFORE PRIVATE
+    ${DRV}/sensor/magnetic/qmc5883l
+)
+
 xy_add_unit_test(test_adc_power_monitors sensor_adc_power_monitors UNITY
     ${UNIT_SENSOR}/test_adc_power_monitors.c
     ${DRV}/sensor/adc/ltc2945/xy_ltc2945.c

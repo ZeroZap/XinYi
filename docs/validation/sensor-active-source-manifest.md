@@ -67,6 +67,7 @@ The Device-model root set is currently exactly:
 - AS5600: `components/drivers/sensor/angle/as5600/xy_as5600.c`
 - MAX44009: `components/drivers/sensor/light/max44009/xy_max44009.c`
 - VCNL4040: `components/drivers/sensor/proximity/vcnl4040/xy_vcnl4040.c`
+- QMC5883L: `components/drivers/sensor/magnetic/qmc5883l/xy_qmc5883l.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -305,6 +306,14 @@ The canonical owner uses the fixed 7-bit address `0x60`, reads the documented li
 proximity output at `0x08/0x09`, and stages raw proximity/timestamp publication behind nested I2C
 lifecycle checks. Optical response, distance calibration and hardware endurance remain
 `hardware-pending`.
+
+### QMC5883L migration status
+
+The legacy QMC5883L API is now backed by the canonical Device owner at
+`components/drivers/sensor/magnetic/qmc5883l`. The owner verifies chip ID `0xFF`, performs the
+documented reset/period/continuous-mode sequence, checks DRDY before reading little-endian XYZ,
+and stages raw axes/timestamp behind nested I2C lifecycle checks. Magnetic calibration, accuracy,
+interrupt behavior and hardware endurance remain `hardware-pending`.
 
 ### AS5600 migration status
 
