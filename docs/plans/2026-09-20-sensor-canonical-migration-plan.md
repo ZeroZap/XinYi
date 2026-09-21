@@ -129,10 +129,10 @@ lifecycle was replaced by nested `xy_i2c_device_t` transactions, and existing id
 timeout/configuration/calibration Host contracts were retained. Hardware remains pending.
 
 LPS22HB is complete: the focused typed source/header moved into the Device root and the root
-`xy_drivers` target now owns the implementation. Existing identity/configuration/pressure/
-temperature/FIFO/interrupt/error-preservation Host contracts remain unchanged. Hardware remains
-pending; the legacy callback-shaped transport is retained inside this bounded API migration and is
-the next transport-boundary hardening target.
+`xy_drivers` target now owns the implementation. The owner now uses a nested `xy_i2c_device_t`
+for register transport and guards both outer and nested lifecycle state; existing identity/configuration/
+pressure/temperature/FIFO/interrupt/error-preservation Host contracts remain unchanged. Hardware remains
+pending.
 
 SGP40 is complete: the typed owner moved into the Device root and its private command/read callback
 lifecycle was replaced by nested `xy_i2c_device_t` transactions. Feature-set, serial-ID, self-test,

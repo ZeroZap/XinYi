@@ -73,6 +73,33 @@ void xy_delay_ms(uint32_t ms)
     g_delay_count++;
 }
 
+xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_NOT_NULL(i2c_handle);
+    memset(dev, 0, sizeof(*dev));
+    dev->base.initialized = 1U;
+    dev->i2c_handle = i2c_handle;
+    dev->dev_addr = addr;
+    dev->timeout = timeout;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    return xy_read_reg((xy_interface_dev_t *)dev, reg, data, (uint16_t)len);
+}
+
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data,
+                                   size_t len)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_TRUE(dev->base.initialized);
+    return xy_write_reg((xy_interface_dev_t *)dev, reg, data, (uint16_t)len);
+}
+
 static void queue_read(uint8_t reg, const uint8_t *data, uint16_t len, xy_ret_t ret)
 {
     TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_reads), g_read_count);

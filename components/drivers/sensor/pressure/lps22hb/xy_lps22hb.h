@@ -20,6 +20,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "xy_device.h"
 
 typedef int xy_ret_t;
 
@@ -45,6 +46,7 @@ extern "C" {
  * I2C/SPI设备结构体
  */
 typedef struct {
+    xy_i2c_device_t i2c_dev;
     void *handle;
     uint8_t address;
     bool is_spi;
