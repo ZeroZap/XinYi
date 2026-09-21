@@ -210,6 +210,11 @@ WHO_AM_I `0x33`, 10 Hz/XYZ/±2g high-resolution configuration, temperature enabl
 12-bit XYZ decode and staged sample publication behind the nested I2C lifecycle; acceleration
 accuracy, timing and hardware remain pending.
 
+APDS9960 is complete as a canonical I2C optical/proximity Device owner. The owner models address
+`0x39`, ID values `0xAB`/`0x9C`, function enable, staged RGBC/proximity samples and bounded gesture
+FIFO reads behind the nested I2C lifecycle; optical response, gesture classification, timing and
+hardware remain pending.
+
 - AK09918 is complete as a canonical magnetic Device owner. The owner models fixed 7-bit address
 `0x0C`, AKM WIA identity, reset/continuous-100Hz configuration, data-ready gating, little-endian
 XYZ and staged sample publication; magnetic calibration, accuracy and hardware remain pending.

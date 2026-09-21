@@ -78,6 +78,7 @@ The Device-model root set is currently exactly:
 - LSM6DSR: `components/drivers/sensor/motion/lsm6dsr/xy_lsm6dsr.c`
 - LSM9DS1: `components/drivers/sensor/motion/lsm9ds1/xy_lsm9ds1.c`
 - LIS2DH12: `components/drivers/sensor/motion/lis2dh12/xy_lis2dh12.c`
+- APDS9960: `components/drivers/sensor/proximity/apds9960/xy_apds9960.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -408,6 +409,15 @@ The legacy LIS2DH12 API is now backed by the canonical Device owner at
 7-bit address `0x18`, configures 10 Hz/XYZ/±2g high-resolution mode and temperature enable, and
 publishes staged left-aligned 12-bit XYZ samples through the nested I2C lifecycle. Acceleration
 accuracy, low-power behavior, timing and hardware endurance remain `hardware-pending`.
+
+### APDS9960 migration status
+
+The legacy APDS9960 API is now backed by the canonical Device owner at
+`components/drivers/sensor/proximity/apds9960`. The owner verifies the documented ID values
+`0xAB`/`0x9C` at 7-bit address `0x39`, enables the requested sensor functions, stages RGBC and
+proximity samples, and bounds gesture FIFO reads to the documented 32-entry limit behind the nested
+I2C lifecycle. Optical response, gesture classification, timing and hardware endurance remain
+`hardware-pending`.
 
 ### AS5600 migration status
 
