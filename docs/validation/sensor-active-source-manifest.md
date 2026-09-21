@@ -71,6 +71,7 @@ The Device-model root set is currently exactly:
 - AK09918: `components/drivers/sensor/magnetic/ak09918/xy_ak09918.c`
 - IST8310: `components/drivers/sensor/magnetic/ist8310/xy_ist8310.c`
 - BMA400: `components/drivers/sensor/motion/bma400/xy_bma400.c`
+- KX023: `components/drivers/sensor/motion/kx023/xy_kx023.c`
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
@@ -341,6 +342,14 @@ The legacy BMA400 API is now backed by the canonical Device owner at
 documented soft reset and low-power/±2g/25 Hz configuration, and stages little-endian XYZ raw
 samples and timestamps behind nested I2C lifecycle checks. Motion accuracy, power characterization,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
+
+### KX023 migration status
+
+The legacy KX023 API is now backed by the canonical Device owner at
+`components/drivers/sensor/motion/kx023`. The owner verifies WHO_AM_I `0x15`, performs the
+documented soft reset and standby/12.5 Hz/low-power configuration, and stages little-endian XYZ
+raw samples and timestamps behind nested I2C lifecycle checks. Motion accuracy, power, interrupt
+behavior and hardware endurance remain `hardware-pending`.
 
 ### AS5600 migration status
 
