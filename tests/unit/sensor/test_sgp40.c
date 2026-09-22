@@ -379,6 +379,8 @@ static void test_state_helpers_compensation_burn_in_and_deinit(void)
     TEST_ASSERT_EQUAL_INT(0, xy_sgp40_stop(&dev));
     TEST_ASSERT_EQUAL_INT(0, xy_sgp40_deinit(&dev));
     TEST_ASSERT_FALSE(dev.is_initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
 static void test_compensation_and_stop_error_paths_preserve_state(void)
