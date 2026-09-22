@@ -155,6 +155,9 @@ one compatibility boundary. No hardware status is upgraded.
 
 The unreferenced `components/sensor/drivers/temperature/xy_sensor_sht30.c` prototype has also been
 removed and is covered by the manifest guard, preventing a fourth SHT30 lifecycle from returning.
+The canonical owner requires both nested `base.initialized` and `i2c_handle` for deinit/read;
+successful deinit clears the complete device state. Existing temperature/humidity accuracy and
+long-run evidence remains bounded.
 
 ### ADS1115 migration status
 
