@@ -52,7 +52,8 @@ static xy_error_t bmp390_fail(xy_bmp390_t *dev, xy_error_t result)
 
 static int bmp390_ready(const xy_bmp390_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U;
+    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
 }
 
 xy_error_t xy_bmp390_init(xy_bmp390_t *dev, void *i2c_handle, uint8_t addr)
@@ -129,6 +130,7 @@ xy_error_t xy_bmp390_deinit(xy_bmp390_t *dev)
         dev->settings = next_settings;
         dev->initialized = 0U;
         dev->i2c_dev.base.initialized = 0U;
+        dev->i2c_dev.i2c_handle = NULL;
     }
     return result;
 }

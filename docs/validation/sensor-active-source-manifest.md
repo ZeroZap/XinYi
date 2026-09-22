@@ -82,6 +82,11 @@ The Device-model root set is currently exactly:
 - CCS811: `components/drivers/sensor/environment/ccs811/xy_ccs811.c`
 - LIS2DW12: `components/drivers/sensor/motion/lis2dw12/xy_lis2dw12.c`
 
+BMP390 public read/deinit operations require both the nested Device lifecycle and a live I2C
+handle. Successful deinit clears that handle, so a stale outer lifecycle bit cannot authorize
+Bosch SensorAPI transport callbacks. This hardening adds no pressure/temperature accuracy,
+timing, recovery, or hardware claim.
+
 ### LIS2DW12 migration status
 
 The legacy LIS2DW12 API is now backed by the canonical Device owner at

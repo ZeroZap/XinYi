@@ -181,11 +181,39 @@ static void test_failures_clear_or_preserve_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT8(mode_before, dev.settings.op_mode);
 }
 
+static void test_public_operations_require_live_nested_handle_and_deinit_clears_it(void)
+{
+    xy_bmp390_t dev;
+    xy_bmp390_data_t output = {.temperature_centi_c = 12, .pressure_centi_pa = 34U};
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bmp390_init(&dev, &bus, XY_BMP390_ADDR_PRIMARY));
+    dev.i2c_dev.i2c_handle = NULL;
+    const uint32_t reads_before = g_read_count;
+    const uint32_t writes_before = g_write_count;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp390_read(&dev, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp390_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT32(12, output.temperature_centi_c);
+    TEST_ASSERT_EQUAL_UINT64(34U, output.pressure_centi_pa);
+    TEST_ASSERT_EQUAL_UINT32(reads_before, g_read_count);
+    TEST_ASSERT_EQUAL_UINT32(writes_before, g_write_count);
+    TEST_ASSERT_TRUE(dev.initialized);
+
+    dev.i2c_dev.i2c_handle = &bus;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmp390_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_reads_identity_calibration_and_configures_normal_mode);
     RUN_TEST(test_read_uses_bosch_compensation_and_commits_atomically);
     RUN_TEST(test_failures_clear_or_preserve_lifecycle);
+    RUN_TEST(test_public_operations_require_live_nested_handle_and_deinit_clears_it);
     return UNITY_END();
 }
