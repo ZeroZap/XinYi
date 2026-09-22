@@ -439,6 +439,40 @@ static void test_read_and_heater_reject_missing_i2c_context_without_io(void)
     TEST_ASSERT_EQUAL_UINT(g_write_count, g_write_index);
 }
 
+static void test_public_operations_require_live_i2c_handle_and_deinit_clears_it(void)
+{
+    xy_hdc1080_t dev;
+    int16_t temperature = 123;
+    uint16_t humidity = 456U;
+
+    init_ok(&dev);
+    dev.temperature = -321;
+    dev.humidity = 654U;
+    dev.i2c_dev.i2c_handle = NULL;
+    const size_t commands_before = g_cmd_count;
+    const size_t writes_before = g_write_count;
+
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_read(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM,
+                          xy_hdc1080_read_temperature(&dev, &temperature));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM,
+                          xy_hdc1080_read_humidity(&dev, &humidity));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_heater_on(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_heater_off(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM, xy_hdc1080_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT16(-321, dev.temperature);
+    TEST_ASSERT_EQUAL_UINT16(654U, dev.humidity);
+    TEST_ASSERT_EQUAL_INT16(123, temperature);
+    TEST_ASSERT_EQUAL_UINT16(456U, humidity);
+    TEST_ASSERT_EQUAL_UINT(commands_before, g_cmd_count);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
+    TEST_ASSERT_TRUE(dev.initialized);
+
+    dev.i2c_dev.i2c_handle = (void *)&dev;
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_OK, xy_hdc1080_deinit(&dev));
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -457,5 +491,6 @@ int main(void)
     RUN_TEST(test_deinit_clears_initialized_state);
     RUN_TEST(test_deinit_rejects_invalid_lifecycle);
     RUN_TEST(test_read_and_heater_reject_missing_i2c_context_without_io);
+    RUN_TEST(test_public_operations_require_live_i2c_handle_and_deinit_clears_it);
     return UNITY_END();
 }

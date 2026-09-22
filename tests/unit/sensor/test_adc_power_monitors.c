@@ -667,6 +667,32 @@ static void test_ina219_init_failure_clears_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static void test_ina219_public_operations_require_live_i2c_handle_and_deinit_clears_it(void)
+{
+    xy_ina219_t ina;
+    xy_ina219_sample_t output = {.shunt_voltage_uv = 1,
+                                 .bus_voltage_mv = 2U,
+                                 .current_ua = 3,
+                                 .power_uw = 4U};
+    const xy_ina219_sample_t output_snapshot = output;
+    int bus;
+
+    init_ina219_ok(&ina, &bus);
+    ina.i2c_dev.i2c_handle = NULL;
+    const size_t operations_before = g_op_count;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ina219_read_sample(&ina, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ina219_deinit(&ina));
+    TEST_ASSERT_EQUAL_MEMORY(&output_snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_UINT(operations_before, g_op_count);
+    TEST_ASSERT_TRUE(ina.initialized);
+
+    ina.i2c_dev.i2c_handle = &bus;
+    queue_write_reg16(XY_INA219_REG_CONFIG, 0U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ina219_deinit(&ina));
+    TEST_ASSERT_NULL(ina.i2c_dev.i2c_handle);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -684,5 +710,6 @@ int main(void)
     RUN_TEST(test_ina219_init_and_measurement_contract);
     RUN_TEST(test_ina219_failures_preserve_state_and_stop_io);
     RUN_TEST(test_ina219_init_failure_clears_lifecycle);
+    RUN_TEST(test_ina219_public_operations_require_live_i2c_handle_and_deinit_clears_it);
     return UNITY_END();
 }

@@ -12,6 +12,12 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+static int hdc1080_ready(const xy_hdc1080_t *dev)
+{
+    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
 {
     int ret;
@@ -56,11 +62,12 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
 
 int xy_hdc1080_deinit(xy_hdc1080_t *dev)
 {
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!hdc1080_ready(dev)) {
         return XY_HDC1080_INVALID_PARAM;
     }
     dev->initialized = 0;
     dev->i2c_dev.base.initialized = 0;
+    dev->i2c_dev.i2c_handle = NULL;
     return XY_HDC1080_OK;
 }
 
@@ -69,7 +76,7 @@ int xy_hdc1080_read(xy_hdc1080_t *dev)
     uint8_t buf[4];
     int ret;
     
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!hdc1080_ready(dev)) {
         return XY_HDC1080_INVALID_PARAM;
     }
     
@@ -134,7 +141,7 @@ int xy_hdc1080_read_humidity(xy_hdc1080_t *dev, uint16_t *humi)
 
 int xy_hdc1080_heater_on(xy_hdc1080_t *dev)
 {
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!hdc1080_ready(dev)) {
         return XY_HDC1080_INVALID_PARAM;
     }
 
@@ -145,7 +152,7 @@ int xy_hdc1080_heater_on(xy_hdc1080_t *dev)
 
 int xy_hdc1080_heater_off(xy_hdc1080_t *dev)
 {
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!hdc1080_ready(dev)) {
         return XY_HDC1080_INVALID_PARAM;
     }
 

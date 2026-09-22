@@ -87,6 +87,11 @@ handle. Successful deinit clears that handle, so a stale outer lifecycle bit can
 Bosch SensorAPI transport callbacks. This hardening adds no pressure/temperature accuracy,
 timing, recovery, or hardware claim.
 
+HDC1080 and INA219 public transport operations likewise require both lifecycle layers and a live
+I2C handle. Successful deinit clears the handle; missing-handle rejection performs no bus I/O and
+preserves cached/caller output. This adds no measurement accuracy, timing, recovery, or hardware
+claim.
+
 ### LIS2DW12 migration status
 
 The legacy LIS2DW12 API is now backed by the canonical Device owner at

@@ -9,7 +9,8 @@
 
 static int ina219_ready(const xy_ina219_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U;
+    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
 }
 
 static xy_error_t ina219_read_word(xy_ina219_t *dev, uint8_t reg, uint16_t *value)
@@ -143,6 +144,7 @@ xy_error_t xy_ina219_deinit(xy_ina219_t *dev)
     if (result == XY_DEVICE_OK) {
         dev->initialized = 0U;
         dev->i2c_dev.base.initialized = 0U;
+        dev->i2c_dev.i2c_handle = NULL;
     }
     return result;
 }
