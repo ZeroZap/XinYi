@@ -36,12 +36,14 @@ xy_error_t xy_aht10_init(xy_aht10_t *dev, void *i2c_handle, uint8_t address)
 
 xy_error_t xy_aht10_deinit(xy_aht10_t *dev)
 {
-    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U) {
+    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
     dev->initialized = 0U;
     dev->i2c_dev.base.initialized = 0U;
+    dev->i2c_dev.i2c_handle = NULL;
     return XY_DEVICE_OK;
 }
 
@@ -54,7 +56,7 @@ xy_error_t xy_aht10_read(xy_aht10_t *dev, xy_aht10_data_t *out)
     xy_error_t result;
 
     if (dev == NULL || out == NULL || dev->initialized == 0U ||
-        dev->i2c_dev.base.initialized == 0U) {
+        dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 

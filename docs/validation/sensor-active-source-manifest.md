@@ -233,7 +233,10 @@ handle after successful teardown; no hardware accuracy or recovery claim is adde
 ### AHT10 migration status
 
 The Device-model source under `components/drivers/sensor/temperature/aht10` is now the single
-protocol implementation owner. It uses the Device I2C helper for the fixed `0x38` address, stages
+protocol implementation owner.
+
+AHT10 public read and deinit paths also require a live nested `i2c_handle`; successful teardown
+clears the handle so stale transport state cannot authorize bus access. It uses the Device I2C helper for the fixed `0x38` address, stages
 both temperature and humidity before committing output/cache, preserves state on trigger/read/busy
 failures, and requires both outer and nested lifecycle state. Root-linked `sensor_aht10.c` remains a
 compatibility-only humidity wrapper and delegates all transport, conversion and lifecycle work to

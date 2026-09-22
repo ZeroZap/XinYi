@@ -222,6 +222,7 @@ static void test_public_ops_require_both_lifecycle_layers(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_aht10_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_aht10_deinit(&dev));
 }
 
