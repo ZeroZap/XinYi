@@ -327,10 +327,11 @@ optical calibration and hardware recovery remain `hardware-pending`.
 The focused typed source/header pair was moved from the experimental Sensor tree to
 `components/drivers/sensor/pressure/lps22hb` and is now root-linked by `xy_drivers`. Existing
 identity, reset, pressure/temperature conversion, FIFO, interrupt, timeout, cache-preservation and
-configuration-failure contracts remain covered. This ownership move intentionally retains the
-callback-shaped I2C/SPI transport API; replacing it with a nested Device helper is a separate
-hardening slice. Host/source ownership only; accuracy, waterproofing, timing, interrupt behavior and
-hardware endurance remain `hardware-pending`.
+configuration-failure contracts remain covered. Every operational and configuration API now requires
+the outer interface plus initialized nested I2C Device state and live bus handle; transport loss
+therefore fails before I/O, delay, or configuration-cache mutation. Host/source ownership only;
+accuracy, waterproofing, timing, interrupt behavior and hardware endurance remain
+`hardware-pending`.
 
 ### MAX44009 migration status
 

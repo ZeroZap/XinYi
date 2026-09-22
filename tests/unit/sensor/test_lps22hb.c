@@ -239,6 +239,37 @@ static void test_public_operations_reject_lost_interface_handle(void)
     TEST_ASSERT_TRUE(dev.is_initialized);
 }
 
+static void test_configuration_operations_reject_lost_transport_without_state_change(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    xy_lps22hb_config_t original_config;
+    size_t original_read_index;
+    size_t original_write_index;
+    size_t original_delay_count;
+
+    init_ok(&dev, &iface);
+    original_config = dev.config;
+    original_read_index = g_read_index;
+    original_write_index = g_write_index;
+    original_delay_count = g_delay_count;
+    iface.i2c_dev.i2c_handle = NULL;
+
+    TEST_ASSERT_FALSE(xy_lps22hb_is_ready(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_set_odr(&dev, XY_LPS22HB_ODR_25HZ));
+    TEST_ASSERT_EQUAL_INT(
+        XY_ERROR, xy_lps22hb_configure_lpf(&dev, false, XY_LPS22HB_LPF_ODR_5));
+    TEST_ASSERT_EQUAL_INT(
+        XY_ERROR, xy_lps22hb_configure_fifo(&dev, XY_LPS22HB_FIFO_STREAM, 4U));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_configure_threshold(&dev, 1U, 2U));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_auto_zero(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_clear_interrupt(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&original_config, &dev.config, sizeof(original_config));
+    TEST_ASSERT_EQUAL_UINT(original_read_index, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(original_write_index, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(original_delay_count, g_delay_count);
+}
+
 static void test_init_rejects_bad_whoami_and_propagates_reset_timeout(void)
 {
     xy_lps22hb_dev_t dev;
@@ -868,6 +899,7 @@ int main(void)
     RUN_TEST(test_init_default_config_resets_and_programs_registers);
     RUN_TEST(test_init_rejects_missing_interface_handle_without_io_or_delay);
     RUN_TEST(test_public_operations_reject_lost_interface_handle);
+    RUN_TEST(test_configuration_operations_reject_lost_transport_without_state_change);
     RUN_TEST(test_init_rejects_bad_whoami_and_propagates_reset_timeout);
     RUN_TEST(test_init_configuration_failure_clears_device_state);
     RUN_TEST(test_read_data_converts_pressure_temperature_and_offsets);

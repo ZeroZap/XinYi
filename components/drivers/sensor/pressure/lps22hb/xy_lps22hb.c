@@ -474,7 +474,7 @@ xy_ret_t xy_lps22hb_measure(xy_lps22hb_dev_t *dev, xy_lps22hb_data_t *data, uint
 
 xy_ret_t xy_lps22hb_set_odr(xy_lps22hb_dev_t *dev, xy_lps22hb_odr_t odr)
 {
-    if (dev == XY_NULL || !dev->is_initialized ||
+    if (!lps22hb_ready(dev) ||
         odr > XY_LPS22HB_ODR_200HZ || (odr & 0x0FU) != 0U) {
         return XY_ERROR;
     }
@@ -495,7 +495,7 @@ xy_ret_t xy_lps22hb_set_odr(xy_lps22hb_dev_t *dev, xy_lps22hb_odr_t odr)
 
 xy_ret_t xy_lps22hb_configure_lpf(xy_lps22hb_dev_t *dev, bool enable, xy_lps22hb_lpf_t lpf)
 {
-    if (dev == XY_NULL || !dev->is_initialized || lpf > XY_LPS22HB_LPF_ODR_5 ||
+    if (!lps22hb_ready(dev) || lpf > XY_LPS22HB_LPF_ODR_5 ||
         (lpf & 0x03U) != 0U || (enable != false && enable != true)) {
         return XY_ERROR;
     }
@@ -540,7 +540,7 @@ void xy_lps22hb_set_sea_level_pressure(xy_lps22hb_dev_t *dev, float pressure)
 
 xy_ret_t xy_lps22hb_auto_zero(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!lps22hb_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -570,7 +570,7 @@ xy_ret_t xy_lps22hb_auto_zero(xy_lps22hb_dev_t *dev)
 
 xy_ret_t xy_lps22hb_configure_fifo(xy_lps22hb_dev_t *dev, xy_lps22hb_fifo_mode_t mode, uint8_t wtm)
 {
-    if (dev == XY_NULL || !dev->is_initialized || mode > XY_LPS22HB_FIFO_TRIGGER ||
+    if (!lps22hb_ready(dev) || mode > XY_LPS22HB_FIFO_TRIGGER ||
         (mode & 0x1FU) != 0U || wtm > 0x1FU) {
         return XY_ERROR;
     }
@@ -596,7 +596,7 @@ xy_ret_t xy_lps22hb_configure_fifo(xy_lps22hb_dev_t *dev, xy_lps22hb_fifo_mode_t
 
 xy_ret_t xy_lps22hb_configure_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uint16_t high)
 {
-    if (dev == XY_NULL || !dev->is_initialized || low > high) {
+    if (!lps22hb_ready(dev) || low > high) {
         return XY_ERROR;
     }
     
@@ -610,7 +610,7 @@ xy_ret_t xy_lps22hb_configure_threshold(xy_lps22hb_dev_t *dev, uint16_t low, uin
 
 xy_ret_t xy_lps22hb_clear_interrupt(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (!lps22hb_ready(dev)) {
         return XY_ERROR;
     }
 
@@ -621,8 +621,7 @@ xy_ret_t xy_lps22hb_clear_interrupt(xy_lps22hb_dev_t *dev)
 
 bool xy_lps22hb_is_ready(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL) return false;
-    return dev->is_initialized;
+    return lps22hb_ready(dev);
 }
 
 xy_lps22hb_data_t *xy_lps22hb_get_last_data(xy_lps22hb_dev_t *dev)
