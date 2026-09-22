@@ -758,6 +758,51 @@ static void test_sc7a22h_read_config_is_atomic_on_transport_failure(void)
     TEST_ASSERT_EQUAL_UINT(12U, op_index);
 }
 
+static void test_sc7a22h_public_ops_reject_missing_nested_transport_without_io(void)
+{
+    xy_sc7a22h_t dev;
+    xy_sc7a22h_data_t raw = {101, 202, 303};
+    xy_sc7a22h_data_t raw_snapshot = raw;
+    xy_sc7a22h_accel_t accel = {11, 22, 33};
+    xy_sc7a22h_accel_t accel_snapshot = accel;
+    uint8_t status = 0xA5U;
+    uint8_t ready = 0x5AU;
+    uint16_t fifo_count = 0xA55AU;
+
+    memset(&dev, 0, sizeof(dev));
+    dev.initialized = 1U;
+    dev.i2c_dev.base.initialized = 1U;
+    dev.i2c_dev.i2c_handle = NULL;
+    dev.com_cfg = XY_SC7A22H_DEMO_COM_CFG;
+    dev.acc_conf = XY_SC7A22H_DEMO_ACC_CONF;
+    dev.acc_range = XY_SC7A22H_DEMO_ACC_RANGE;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_deinit(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_power_down(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_enable_fifo(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_fifo_count(&dev, &fifo_count));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read_config(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read_status(&dev, &status));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_data_ready(&dev, &ready));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_read_accel(&dev, &accel));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_sc7a22h_set_acc_config(&dev, 0xB0U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_sc7a22h_set_acc_range(&dev, 0x02U));
+
+    TEST_ASSERT_EQUAL_MEMORY(&raw_snapshot, &raw, sizeof(raw));
+    TEST_ASSERT_EQUAL_MEMORY(&accel_snapshot, &accel, sizeof(accel));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, status);
+    TEST_ASSERT_EQUAL_HEX8(0x5AU, ready);
+    TEST_ASSERT_EQUAL_HEX16(0xA55AU, fifo_count);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(XY_SC7A22H_DEMO_COM_CFG, dev.com_cfg);
+    TEST_ASSERT_EQUAL_UINT8(XY_SC7A22H_DEMO_ACC_CONF, dev.acc_conf);
+    TEST_ASSERT_EQUAL_UINT8(XY_SC7A22H_DEMO_ACC_RANGE, dev.acc_range);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -787,5 +832,6 @@ int main(void)
     RUN_TEST(test_sc7a22h_read_preserves_output_on_transport_failure);
     RUN_TEST(test_sc7a22h_rejects_invalid_range_without_bus_access);
     RUN_TEST(test_sc7a22h_read_config_is_atomic_on_transport_failure);
+    RUN_TEST(test_sc7a22h_public_ops_reject_missing_nested_transport_without_io);
     return UNITY_END();
 }
