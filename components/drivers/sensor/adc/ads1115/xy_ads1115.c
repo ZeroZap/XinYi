@@ -96,18 +96,20 @@ int xy_ads1115_init(xy_ads1115_t *dev, void *i2c_handle, uint8_t addr)
 
 int xy_ads1115_deinit(xy_ads1115_t *dev)
 {
-    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U) {
+    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL) {
         return XY_ADS1115_INVALID_PARAM;
     }
     dev->initialized = 0U;
     dev->i2c_dev.base.initialized = 0U;
+    dev->i2c_dev.i2c_handle = NULL;
     return XY_ADS1115_OK;
 }
 
 int xy_ads1115_read_single(xy_ads1115_t *dev, uint8_t channel, int16_t *value)
 {
     if (dev == NULL || value == NULL || dev->initialized == 0U
-        || dev->i2c_dev.base.initialized == 0U || channel > 3U) {
+        || dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL || channel > 3U) {
         return XY_ADS1115_INVALID_PARAM;
     }
     return ads1115_convert(dev, (uint16_t)(4U + channel) << 12, value);
@@ -118,7 +120,7 @@ int xy_ads1115_read_diff(xy_ads1115_t *dev, uint8_t channel_p, uint8_t channel_n
     uint16_t mux;
 
     if (dev == NULL || value == NULL || dev->initialized == 0U
-        || dev->i2c_dev.base.initialized == 0U) {
+        || dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL) {
         return XY_ADS1115_INVALID_PARAM;
     }
     if (channel_p == 0U && channel_n == 1U) {
@@ -142,7 +144,7 @@ int xy_ads1115_read_voltage(xy_ads1115_t *dev, uint8_t channel, int32_t *voltage
     int ret;
 
     if (dev == NULL || voltage_mv == NULL || dev->initialized == 0U
-        || dev->i2c_dev.base.initialized == 0U || channel > 3U) {
+        || dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL || channel > 3U) {
         return XY_ADS1115_INVALID_PARAM;
     }
     ret = xy_ads1115_read_single(dev, channel, &sample);
@@ -155,8 +157,8 @@ int xy_ads1115_read_voltage(xy_ads1115_t *dev, uint8_t channel, int32_t *voltage
 
 int xy_ads1115_set_pga(xy_ads1115_t *dev, xy_ads1115_pga_t pga)
 {
-    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U
-        || pga > ADS1115_PGA_0_256V) {
+    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL || pga > ADS1115_PGA_0_256V) {
         return XY_ADS1115_INVALID_PARAM;
     }
     dev->pga = pga;
@@ -165,8 +167,8 @@ int xy_ads1115_set_pga(xy_ads1115_t *dev, xy_ads1115_pga_t pga)
 
 int xy_ads1115_set_dr(xy_ads1115_t *dev, xy_ads1115_dr_t dr)
 {
-    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U
-        || dr > ADS1115_DR_860SPS) {
+    if (dev == NULL || dev->initialized == 0U || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL || dr > ADS1115_DR_860SPS) {
         return XY_ADS1115_INVALID_PARAM;
     }
     dev->dr = dr;

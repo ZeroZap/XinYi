@@ -172,6 +172,7 @@ There is no root-linked `sensor_device_t` ADS1115 factory to preserve: the compa
 the typed `xy_ads1115_*` API itself. Audit also confirmed no `components/sensor/drivers/**` ADS1115
 prototype remains. All public lifecycle/read/config operations now reject a missing nested I2C
 helper without I/O or public-state changes.
+Successful deinit also clears the nested I2C handle, preventing stale transport reuse.
 
 ### BH1750 migration status
 
