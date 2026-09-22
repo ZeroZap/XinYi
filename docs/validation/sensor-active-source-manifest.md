@@ -671,5 +671,7 @@ deinit, preventing stale transport reuse. Existing temperature accuracy, PEC rob
 long-run evidence remain bounded.
 The HMC5883L owner now requires a valid nested I2C handle for every public operation and clears
 that handle on successful deinit; stale outer lifecycle state cannot authorize bus access.
+The TSL2561 owner also clears its nested I2C handle on successful deinit, preserving the
+fail-closed ready contract for subsequent operations.
 The MPU6050 owner applies the same nested-handle guard to public operations and clears the handle
 on successful deinit; existing motion accuracy and calibration evidence remains bounded.

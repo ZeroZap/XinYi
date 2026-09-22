@@ -173,6 +173,7 @@ int xy_tsl2561_deinit(xy_tsl2561_t *tsl2561)
     }
     tsl2561->initialized = false;
     tsl2561->i2c_dev.base.initialized = false;
+    tsl2561->i2c_dev.i2c_handle = NULL;
     return XY_TSL2561_OK;
 }
 
