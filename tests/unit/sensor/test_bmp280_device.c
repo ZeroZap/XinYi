@@ -298,6 +298,7 @@ static void test_bmp280_deinit_failure_preserves_state(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmp280_deinit(&bmp));
     TEST_ASSERT_FALSE(bmp.initialized);
     TEST_ASSERT_FALSE(bmp.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(bmp.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_read(&bmp));
 }
 
@@ -316,6 +317,15 @@ static void test_bmp280_getters_reject_uninitialized_nested_bus(void)
                           xy_bmp280_get_pressure(&bmp, &pressure));
     TEST_ASSERT_EQUAL_INT32(111, temperature);
     TEST_ASSERT_EQUAL_UINT32(222U, pressure);
+    TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+
+    bmp.i2c_dev.base.initialized = 1U;
+    bmp.i2c_dev.i2c_handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_bmp280_get_temperature(&bmp, &temperature));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_bmp280_get_pressure(&bmp, &pressure));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_read(&bmp));
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 

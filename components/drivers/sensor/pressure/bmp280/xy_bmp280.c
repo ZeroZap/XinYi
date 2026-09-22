@@ -145,7 +145,8 @@ int xy_bmp280_deinit(xy_bmp280_t *bmp)
     uint8_t value = 0x00U;
     int result;
 
-    if (bmp == NULL || bmp->initialized == 0U || bmp->i2c_dev.base.initialized == 0U) {
+    if (bmp == NULL || bmp->initialized == 0U || bmp->i2c_dev.base.initialized == 0U ||
+        bmp->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = xy_i2c_device_write_reg(&bmp->i2c_dev, BMP280_REG_CTRL_MEAS, &value, 1U);
@@ -154,6 +155,7 @@ int xy_bmp280_deinit(xy_bmp280_t *bmp)
     }
     bmp->initialized = 0U;
     bmp->i2c_dev.base.initialized = 0U;
+    bmp->i2c_dev.i2c_handle = NULL;
     return XY_DEVICE_OK;
 }
 
@@ -167,7 +169,8 @@ int xy_bmp280_read(xy_bmp280_t *bmp)
     uint32_t pressure;
     int result;
 
-    if (bmp == NULL || bmp->initialized == 0U || bmp->i2c_dev.base.initialized == 0U) {
+    if (bmp == NULL || bmp->initialized == 0U || bmp->i2c_dev.base.initialized == 0U ||
+        bmp->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
@@ -191,8 +194,8 @@ int xy_bmp280_read(xy_bmp280_t *bmp)
 
 int xy_bmp280_get_temperature(const xy_bmp280_t *bmp, int32_t *temperature)
 {
-    if (bmp == NULL || temperature == NULL || bmp->initialized == 0U
-        || bmp->i2c_dev.base.initialized == 0U) {
+    if (bmp == NULL || temperature == NULL || bmp->initialized == 0U ||
+        bmp->i2c_dev.base.initialized == 0U || bmp->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
     *temperature = bmp->temperature;
@@ -201,8 +204,8 @@ int xy_bmp280_get_temperature(const xy_bmp280_t *bmp, int32_t *temperature)
 
 int xy_bmp280_get_pressure(const xy_bmp280_t *bmp, uint32_t *pressure)
 {
-    if (bmp == NULL || pressure == NULL || bmp->initialized == 0U
-        || bmp->i2c_dev.base.initialized == 0U) {
+    if (bmp == NULL || pressure == NULL || bmp->initialized == 0U ||
+        bmp->i2c_dev.base.initialized == 0U || bmp->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
     *pressure = bmp->pressure;

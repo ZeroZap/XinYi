@@ -223,7 +223,8 @@ owner. The unreferenced fourth-lifecycle prototype
 `components/sensor/drivers/pressure/xy_sensor_bmp280.c` has been retired, and the tracked smart
 hygrometer example now compiles the canonical owner through its explicit-address API instead of a
 missing experimental source. The ownership policy guard prevents both stale paths from returning.
-Focused Device, legacy and heterogeneous registry tests prove Host/source ownership only; accuracy,
+Public read/getter/deinit paths now require a live nested I2C handle, and successful deinit clears
+that handle so stale lifecycle state cannot authorize access. Focused Device, legacy and heterogeneous registry tests prove Host/source ownership only; accuracy,
 timing, recovery and board status remain pending.
 
 ### AHT20 migration status
