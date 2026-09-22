@@ -485,6 +485,35 @@ static void test_precision_setter_rejects_uninitialized_device_without_state_cha
     TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
 }
 
+static void test_cached_public_ops_require_live_nested_transport(void)
+{
+    xy_sht40_t dev;
+    uint32_t serial[2] = {0xDEADU, 0xBEEFU};
+    int fake_bus;
+
+    queue_pair_payload(0x1234U, 0xABCDU);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_init(&dev, &fake_bus));
+
+    dev.i2c_dev.base.initialized = false;
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_serial(&dev, serial));
+    TEST_ASSERT_EQUAL_UINT32(0xDEADU, serial[0]);
+    TEST_ASSERT_EQUAL_UINT32(0xBEEFU, serial[1]);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM,
+                          xy_sht40_set_precision(&dev, XY_SHT40_LOW_PRECISION));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_HIGH_PRECISION, dev.precision);
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
+
+    dev.i2c_dev.base.initialized = true;
+    dev.i2c_dev.i2c_handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_get_serial(&dev, serial));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM,
+                          xy_sht40_set_precision(&dev, XY_SHT40_MEDIUM_PRECISION));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_HIGH_PRECISION, dev.precision);
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -505,5 +534,6 @@ int main(void)
     RUN_TEST(test_invalid_cached_precision_is_rejected_without_io);
     RUN_TEST(test_serial_getter_rejects_uninitialized_device_without_overwriting_output);
     RUN_TEST(test_precision_setter_rejects_uninitialized_device_without_state_change);
+    RUN_TEST(test_cached_public_ops_require_live_nested_transport);
     return UNITY_END();
 }

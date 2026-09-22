@@ -92,6 +92,11 @@ I2C handle. Successful deinit clears the handle; missing-handle rejection perfor
 preserves cached/caller output. This adds no measurement accuracy, timing, recovery, or hardware
 claim.
 
+SHT40 cached serial and precision operations now require the same live nested Device transport as
+measurement and teardown operations. Losing either nested lifecycle state or the I2C handle rejects
+the operation without exposing cached identity or changing precision state. This adds no sensor
+accuracy, timing, recovery, or hardware claim.
+
 ### LIS2DW12 migration status
 
 The legacy LIS2DW12 API is now backed by the canonical Device owner at

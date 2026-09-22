@@ -234,7 +234,7 @@ int xy_sht40_get_humidity(xy_sht40_t *sht40, uint16_t *humidity)
 
 int xy_sht40_get_serial(xy_sht40_t *sht40, uint32_t *serial)
 {
-    if (!sht40 || !serial || !sht40->initialized) {
+    if (!serial || !xy_sht40_ready(sht40)) {
         return XY_SHT40_INVALID_PARAM;
     }
     
@@ -245,7 +245,7 @@ int xy_sht40_get_serial(xy_sht40_t *sht40, uint32_t *serial)
 
 int xy_sht40_set_precision(xy_sht40_t *sht40, xy_sht40_precision_t precision)
 {
-    if (!sht40 || !sht40->initialized || precision > XY_SHT40_LOW_PRECISION) {
+    if (!xy_sht40_ready(sht40) || precision > XY_SHT40_LOW_PRECISION) {
         return XY_SHT40_INVALID_PARAM;
     }
     
