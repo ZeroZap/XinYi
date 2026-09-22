@@ -59,7 +59,8 @@
 static xy_ret_t lps22hb_write_reg(xy_lps22hb_dev_t *dev, uint8_t reg_addr, const uint8_t *data, uint16_t len)
 {
     if (dev == XY_NULL || dev->interface == XY_NULL ||
-        dev->interface->handle == XY_NULL || !dev->interface->i2c_dev.base.initialized || data == XY_NULL) {
+        dev->interface->handle == XY_NULL || !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL || data == XY_NULL) {
         return XY_ERROR;
     }
     return xy_i2c_device_write_reg(&dev->interface->i2c_dev, reg_addr, data, len);
@@ -71,7 +72,8 @@ static xy_ret_t lps22hb_write_reg(xy_lps22hb_dev_t *dev, uint8_t reg_addr, const
 static xy_ret_t lps22hb_read_reg(xy_lps22hb_dev_t *dev, uint8_t reg_addr, uint8_t *data, uint16_t len)
 {
     if (dev == XY_NULL || dev->interface == XY_NULL ||
-        dev->interface->handle == XY_NULL || !dev->interface->i2c_dev.base.initialized || data == XY_NULL) {
+        dev->interface->handle == XY_NULL || !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL || data == XY_NULL) {
         return XY_ERROR;
     }
     return xy_i2c_device_read_reg(&dev->interface->i2c_dev, reg_addr, data, len);
@@ -307,7 +309,8 @@ init_failed:
 xy_ret_t xy_lps22hb_deinit(xy_lps22hb_dev_t *dev)
 {
     if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
-        !dev->interface->i2c_dev.base.initialized) {
+        !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -319,7 +322,6 @@ xy_ret_t xy_lps22hb_deinit(xy_lps22hb_dev_t *dev)
 
     dev->is_initialized = false;
     memset(&dev->interface->i2c_dev, 0, sizeof(dev->interface->i2c_dev));
-    
     return XY_OK;
 }
 
@@ -336,7 +338,8 @@ xy_ret_t xy_lps22hb_read_who_am_i(xy_lps22hb_dev_t *dev, uint8_t *who_am_i)
 xy_ret_t xy_lps22hb_soft_reset(xy_lps22hb_dev_t *dev)
 {
     if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
-        !dev->interface->i2c_dev.base.initialized) {
+        !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -347,7 +350,8 @@ xy_ret_t xy_lps22hb_soft_reset(xy_lps22hb_dev_t *dev)
 xy_ret_t xy_lps22hb_start_single(xy_lps22hb_dev_t *dev)
 {
     if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
-        !dev->interface->i2c_dev.base.initialized) {
+        !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -364,7 +368,8 @@ xy_ret_t xy_lps22hb_start_single(xy_lps22hb_dev_t *dev)
 xy_ret_t xy_lps22hb_start_continuous(xy_lps22hb_dev_t *dev)
 {
     if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
-        !dev->interface->i2c_dev.base.initialized) {
+        !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -375,7 +380,8 @@ xy_ret_t xy_lps22hb_start_continuous(xy_lps22hb_dev_t *dev)
 xy_ret_t xy_lps22hb_stop(xy_lps22hb_dev_t *dev)
 {
     if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
-        !dev->interface->i2c_dev.base.initialized) {
+        !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -386,7 +392,8 @@ xy_ret_t xy_lps22hb_stop(xy_lps22hb_dev_t *dev)
 xy_ret_t xy_lps22hb_check_data_ready(xy_lps22hb_dev_t *dev, bool *ready)
 {
     if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
-        !dev->interface->i2c_dev.base.initialized || ready == XY_NULL) {
+        !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL || ready == XY_NULL) {
         if (ready != XY_NULL) {
             *ready = false;
         }
@@ -409,7 +416,8 @@ xy_ret_t xy_lps22hb_check_data_ready(xy_lps22hb_dev_t *dev, bool *ready)
 xy_ret_t xy_lps22hb_read_data(xy_lps22hb_dev_t *dev, xy_lps22hb_data_t *data)
 {
     if (dev == XY_NULL || !dev->is_initialized || dev->interface == XY_NULL ||
-        dev->interface->handle == XY_NULL || !dev->interface->i2c_dev.base.initialized || data == XY_NULL) {
+        dev->interface->handle == XY_NULL || !dev->interface->i2c_dev.base.initialized ||
+        dev->interface->i2c_dev.i2c_handle == XY_NULL || data == XY_NULL) {
         return XY_ERROR;
     }
     

@@ -678,3 +678,6 @@ The MPU6050 owner applies the same nested-handle guard to public operations and 
 on successful deinit; existing motion accuracy and calibration evidence remains bounded.
 Successful deinit clears the nested I2C handle as well as lifecycle state, preventing stale
 transport reuse; existing board evidence remains bounded.
+The canonical owner now requires both nested `base.initialized` and `i2c_handle` throughout its
+public and internal bus paths. Invalid nested transport fails closed without bus access; successful
+deinit still clears the complete nested helper. Hardware accuracy and recovery remain pending.
