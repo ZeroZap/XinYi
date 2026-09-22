@@ -39,7 +39,7 @@ static sensor_err_t vl53l0x_init(sensor_device_t *sensor)
 
 static sensor_err_t vl53l0x_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) {
+    if (sensor == NULL || sensor->priv_data == NULL || sensor->bus == NULL) {
         return SENSOR_EINVAL;
     }
 
