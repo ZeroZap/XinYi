@@ -124,6 +124,7 @@ int xy_ina_deinit(xy_ina_t *ina)
     }
     ina->initialized = 0U;
     ina->i2c_dev.base.initialized = 0U;
+    ina->i2c_dev.i2c_handle = NULL;
     return XY_INA_OK;
 }
 

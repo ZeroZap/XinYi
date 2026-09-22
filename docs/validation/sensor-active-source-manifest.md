@@ -287,7 +287,9 @@ The experimental source/header pair was replaced by a canonical INA226-only Devi
 current LSB, calibration is derived with integer units, current is read from the calibrated current
 register, and power uses the documented `25 * current-LSB` scale. The previous unsupported INA229
 alias was removed rather than sharing INA226's incompatible register model. Measurement publication
-is staged across bus, shunt, current and power reads. Host/source ownership only; metrology, alert
+is staged across bus, shunt, current and power reads. Public read, alert and deinit paths require
+both outer and nested transport lifecycle; successful deinit clears the nested I2C handle. Host/source
+ownership only; metrology, alert
 thresholds and hardware recovery remain `hardware-pending`.
 
 ### SHT40 migration status

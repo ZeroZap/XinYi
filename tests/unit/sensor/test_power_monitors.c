@@ -341,6 +341,8 @@ static void test_ina226_init_read_getters_alert_and_deinit(void)
     queue_write16(INA226_REG_CONFIG, 0x0000U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_INA_OK, xy_ina_deinit(&ina));
     TEST_ASSERT_FALSE(ina.initialized);
+    TEST_ASSERT_FALSE(ina.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(ina.i2c_dev.i2c_handle);
 }
 
 static void test_ina226_read_failure_stops_and_preserves_snapshot(void)
