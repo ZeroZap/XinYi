@@ -148,7 +148,8 @@ xy_error_t xy_hmc5883l_read_field(xy_hmc5883l_t *dev, xy_hmc5883l_field_t *field
     xy_hmc5883l_data_t raw;
     xy_hmc5883l_field_t next;
     xy_hmc5883l_gain_t gain;
-    int32_t sensitivity;
+    int32_t xy_sensitivity;
+    int32_t z_sensitivity;
     xy_error_t result;
 
     if (!dev || !field || !dev->initialized || !dev->i2c_dev.base.initialized ||
@@ -178,20 +179,23 @@ xy_error_t xy_hmc5883l_read_field(xy_hmc5883l_t *dev, xy_hmc5883l_field_t *field
     gain = (xy_hmc5883l_gain_t)gain_value;
     switch (gain) {
     case XY_HMC5883L_GAIN_0_88_GA:
-        sensitivity = 730;
+        xy_sensitivity = 730;
+        z_sensitivity = 980;
         break;
     case XY_HMC5883L_GAIN_1_30_GA:
-        sensitivity = 1090;
+        xy_sensitivity = 1090;
+        z_sensitivity = 980;
         break;
     case XY_HMC5883L_GAIN_8_10_GA:
-        sensitivity = 2560;
+        xy_sensitivity = 2560;
+        z_sensitivity = 2250;
         break;
     default:
         return XY_ERROR_FAIL;
     }
-    next.x_mgauss = ((int32_t)raw.x * 1000) / sensitivity;
-    next.y_mgauss = ((int32_t)raw.y * 1000) / sensitivity;
-    next.z_mgauss = ((int32_t)raw.z * 1000) / sensitivity;
+    next.x_mgauss = ((int32_t)raw.x * 1000) / xy_sensitivity;
+    next.y_mgauss = ((int32_t)raw.y * 1000) / xy_sensitivity;
+    next.z_mgauss = ((int32_t)raw.z * 1000) / z_sensitivity;
     dev->data = raw;
     dev->gain = gain;
     *field = next;
