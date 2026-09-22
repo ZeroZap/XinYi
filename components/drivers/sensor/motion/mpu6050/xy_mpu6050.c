@@ -142,7 +142,8 @@ int xy_mpu6050_init(xy_mpu6050_t *dev, void *i2c_handle)
 
 int xy_mpu6050_deinit(xy_mpu6050_t *dev)
 {
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
@@ -154,6 +155,7 @@ int xy_mpu6050_deinit(xy_mpu6050_t *dev)
 
     dev->initialized = 0;
     dev->i2c_dev.base.initialized = 0;
+    dev->i2c_dev.i2c_handle = NULL;
     return XY_MPU6050_OK;
 }
 
@@ -162,7 +164,8 @@ int xy_mpu6050_read_raw(xy_mpu6050_t *dev)
     uint8_t buf[14];
     int ret;
 
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
@@ -257,8 +260,8 @@ int xy_mpu6050_read_temperature(xy_mpu6050_t *dev, float *temp)
 
 int xy_mpu6050_set_accel_range(xy_mpu6050_t *dev, xy_mpu6050_accel_range_t range)
 {
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized
-        || range > MPU6050_ACCEL_16G) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle || range > MPU6050_ACCEL_16G) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
@@ -271,8 +274,8 @@ int xy_mpu6050_set_accel_range(xy_mpu6050_t *dev, xy_mpu6050_accel_range_t range
 
 int xy_mpu6050_set_gyro_range(xy_mpu6050_t *dev, xy_mpu6050_gyro_range_t range)
 {
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized
-        || range > MPU6050_GYRO_2000DPS) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle || range > MPU6050_GYRO_2000DPS) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
@@ -291,7 +294,8 @@ int xy_mpu6050_calibrate(xy_mpu6050_t *dev, uint16_t samples)
     xy_mpu6050_calib_t calib;
     uint16_t i;
 
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized || samples == 0) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle || samples == 0) {
         return XY_MPU6050_INVALID_PARAM;
     }
 
