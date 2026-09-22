@@ -676,3 +676,5 @@ The TSL2561 owner also clears its nested I2C handle on successful deinit, preser
 fail-closed ready contract for subsequent operations.
 The MPU6050 owner applies the same nested-handle guard to public operations and clears the handle
 on successful deinit; existing motion accuracy and calibration evidence remains bounded.
+Successful deinit clears the nested I2C handle as well as lifecycle state, preventing stale
+transport reuse; existing board evidence remains bounded.

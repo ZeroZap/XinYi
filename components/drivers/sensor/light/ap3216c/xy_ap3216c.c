@@ -69,6 +69,7 @@ xy_error_t xy_ap3216c_deinit(xy_ap3216c_t *dev)
     }
     dev->initialized = 0U;
     dev->i2c_dev.base.initialized = 0U;
+    dev->i2c_dev.i2c_handle = NULL;
     return XY_DEVICE_OK;
 }
 

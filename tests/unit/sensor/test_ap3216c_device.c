@@ -166,6 +166,7 @@ static void test_init_and_deinit_are_atomic(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ap3216c_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
 static void test_channel_reads_decode_and_commit_cache(void)

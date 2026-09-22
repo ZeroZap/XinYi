@@ -326,6 +326,7 @@ static void test_configuration_power_and_reset_validate_inputs(void)
     TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_power_down(&dev));
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_power_on(&dev));
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_reset(&dev));
