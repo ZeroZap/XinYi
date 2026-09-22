@@ -867,6 +867,7 @@ static void test_identity_and_reset_reject_uninitialized_device_without_io(void)
 static void test_calibration_setters_reject_uninitialized_device_without_state_change(void)
 {
     xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
 
     memset(&dev, 0, sizeof(dev));
     xy_lps22hb_set_pressure_offset(&dev, 12.5f);
@@ -876,7 +877,7 @@ static void test_calibration_setters_reject_uninitialized_device_without_state_c
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, dev.temperature_offset);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, dev.sea_level_pressure);
 
-    dev.is_initialized = true;
+    init_ok(&dev, &iface);
     xy_lps22hb_set_pressure_offset(&dev, 12.5f);
     xy_lps22hb_set_temperature_offset(&dev, -4.0f);
     xy_lps22hb_set_sea_level_pressure(&dev, 900.0f);
@@ -891,6 +892,27 @@ static void test_calibration_setters_reject_uninitialized_device_without_state_c
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 12.5f, dev.pressure_offset);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, -4.0f, dev.temperature_offset);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 900.0f, dev.sea_level_pressure);
+}
+
+static void test_cached_public_ops_reject_lost_nested_transport(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+
+    init_ok(&dev, &iface);
+    dev.last_data.pressure = 1001.5f;
+    iface.i2c_dev.base.initialized = false;
+
+    xy_lps22hb_set_pressure_offset(&dev, 12.5f);
+    xy_lps22hb_set_temperature_offset(&dev, -4.0f);
+    xy_lps22hb_set_sea_level_pressure(&dev, 900.0f);
+
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, dev.pressure_offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, dev.temperature_offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1013.25f, dev.sea_level_pressure);
+    TEST_ASSERT_NULL(xy_lps22hb_get_last_data(&dev));
+    TEST_ASSERT_EQUAL_UINT(3U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(4U, g_write_index);
 }
 
 int main(void)
@@ -926,5 +948,6 @@ int main(void)
     RUN_TEST(test_status_and_stop_reject_uninitialized_device_without_io);
     RUN_TEST(test_identity_and_reset_reject_uninitialized_device_without_io);
     RUN_TEST(test_calibration_setters_reject_uninitialized_device_without_state_change);
+    RUN_TEST(test_cached_public_ops_reject_lost_nested_transport);
     return UNITY_END();
 }

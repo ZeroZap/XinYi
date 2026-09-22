@@ -522,19 +522,19 @@ xy_ret_t xy_lps22hb_configure_lpf(xy_lps22hb_dev_t *dev, bool enable, xy_lps22hb
 
 void xy_lps22hb_set_pressure_offset(xy_lps22hb_dev_t *dev, float offset)
 {
-    if (dev == XY_NULL || !dev->is_initialized) return;
+    if (!lps22hb_ready(dev)) return;
     dev->pressure_offset = offset;
 }
 
 void xy_lps22hb_set_temperature_offset(xy_lps22hb_dev_t *dev, float offset)
 {
-    if (dev == XY_NULL || !dev->is_initialized) return;
+    if (!lps22hb_ready(dev)) return;
     dev->temperature_offset = offset;
 }
 
 void xy_lps22hb_set_sea_level_pressure(xy_lps22hb_dev_t *dev, float pressure)
 {
-    if (dev == XY_NULL || !dev->is_initialized) return;
+    if (!lps22hb_ready(dev)) return;
     dev->sea_level_pressure = pressure;
 }
 
@@ -626,7 +626,7 @@ bool xy_lps22hb_is_ready(xy_lps22hb_dev_t *dev)
 
 xy_lps22hb_data_t *xy_lps22hb_get_last_data(xy_lps22hb_dev_t *dev)
 {
-    if (dev == XY_NULL) return XY_NULL;
+    if (!lps22hb_ready(dev)) return XY_NULL;
     return &dev->last_data;
 }
 
