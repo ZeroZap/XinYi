@@ -227,6 +227,9 @@ status is upgraded.
 All AHT20 public bus operations now require the outer lifecycle plus nested `base.initialized` and
 `i2c_handle`; successful deinit clears the nested handle, so stale transport state fails closed.
 
+SHT40 now applies the same nested transport contract to public reads and deinit, clearing its I2C
+handle after successful teardown; no hardware accuracy or recovery claim is added.
+
 ### AHT10 migration status
 
 The Device-model source under `components/drivers/sensor/temperature/aht10` is now the single

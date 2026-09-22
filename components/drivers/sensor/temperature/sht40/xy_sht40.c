@@ -12,6 +12,12 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+static bool xy_sht40_ready(const xy_sht40_t *sht40)
+{
+    return sht40 != NULL && sht40->initialized && sht40->i2c_dev.base.initialized &&
+           sht40->i2c_dev.i2c_handle != NULL;
+}
+
 /**
  * @brief CRC8 计算
  */
@@ -129,12 +135,13 @@ int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
 
 int xy_sht40_deinit(xy_sht40_t *sht40)
 {
-    if (!sht40) {
+    if (!xy_sht40_ready(sht40)) {
         return XY_SHT40_INVALID_PARAM;
     }
     
     sht40->initialized = false;
     sht40->i2c_dev.base.initialized = false;
+    sht40->i2c_dev.i2c_handle = NULL;
     return XY_SHT40_OK;
 }
 
@@ -146,7 +153,7 @@ int xy_sht40_read(xy_sht40_t *sht40)
     uint8_t crc;
     uint16_t measure_time;
     
-    if (!sht40 || !sht40->initialized || sht40->precision > XY_SHT40_LOW_PRECISION) {
+    if (!xy_sht40_ready(sht40) || sht40->precision > XY_SHT40_LOW_PRECISION) {
         return XY_SHT40_INVALID_PARAM;
     }
     
