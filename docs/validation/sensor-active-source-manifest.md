@@ -666,3 +666,5 @@ authorize bus access; existing environmental accuracy and endurance evidence rem
 The MLX90614 owner clears the nested I2C handle together with lifecycle state on successful
 deinit, preventing stale transport reuse. Existing temperature accuracy, PEC robustness and
 long-run evidence remain bounded.
+The HMC5883L owner now requires a valid nested I2C handle for every public operation and clears
+that handle on successful deinit; stale outer lifecycle state cannot authorize bus access.

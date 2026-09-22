@@ -21,6 +21,7 @@ static xy_error_t write_reg(xy_hmc5883l_t *dev, uint8_t reg, uint8_t value)
 xy_error_t xy_hmc5883l_set_gain(xy_hmc5883l_t *dev, xy_hmc5883l_gain_t gain)
 {
     if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle ||
         (gain != XY_HMC5883L_GAIN_0_88_GA && gain != XY_HMC5883L_GAIN_1_30_GA &&
          gain != XY_HMC5883L_GAIN_8_10_GA)) {
         return XY_DEVICE_INVALID_PARAM;
@@ -37,7 +38,8 @@ xy_error_t xy_hmc5883l_get_gain(xy_hmc5883l_t *dev, xy_hmc5883l_gain_t *gain)
 {
     uint8_t value;
     xy_error_t result;
-    if (!dev || !gain || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !gain || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = read_reg(dev, HMC5883L_REG_CONFIG_B, &value, 1U);
@@ -87,13 +89,15 @@ xy_error_t xy_hmc5883l_init(xy_hmc5883l_t *dev, void *i2c_handle)
 xy_error_t xy_hmc5883l_deinit(xy_hmc5883l_t *dev)
 {
     xy_error_t result;
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = write_reg(dev, HMC5883L_REG_MODE, 0x03U);
     if (result == XY_DEVICE_OK) {
         dev->initialized = 0U;
         dev->i2c_dev.base.initialized = false;
+        dev->i2c_dev.i2c_handle = NULL;
     }
     return result;
 }
@@ -102,7 +106,8 @@ xy_error_t xy_hmc5883l_data_ready(xy_hmc5883l_t *dev, uint8_t *ready)
 {
     uint8_t status;
     xy_error_t result;
-    if (!dev || !ready || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !ready || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = read_reg(dev, HMC5883L_REG_STATUS, &status, 1U);
@@ -117,7 +122,8 @@ xy_error_t xy_hmc5883l_read(xy_hmc5883l_t *dev, xy_hmc5883l_data_t *data)
     uint8_t raw[6];
     xy_hmc5883l_data_t next;
     xy_error_t result;
-    if (!dev || !data || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !data || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = read_reg(dev, HMC5883L_REG_DATA, raw, sizeof(raw));
@@ -145,7 +151,8 @@ xy_error_t xy_hmc5883l_read_field(xy_hmc5883l_t *dev, xy_hmc5883l_field_t *field
     int32_t sensitivity;
     xy_error_t result;
 
-    if (!dev || !field || !dev->initialized || !dev->i2c_dev.base.initialized) {
+    if (!dev || !field || !dev->initialized || !dev->i2c_dev.base.initialized ||
+        !dev->i2c_dev.i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = read_reg(dev, HMC5883L_REG_DATA, bytes, sizeof(bytes));
