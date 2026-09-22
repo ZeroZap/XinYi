@@ -224,6 +224,9 @@ experimental source/header pair was moved rather than copied, and both focused t
 the canonical source. Host/source ownership only; no AHT20 board, accuracy, timing, or recovery
 status is upgraded.
 
+All AHT20 public bus operations now require the outer lifecycle plus nested `base.initialized` and
+`i2c_handle`; successful deinit clears the nested handle, so stale transport state fails closed.
+
 ### AHT10 migration status
 
 The Device-model source under `components/drivers/sensor/temperature/aht10` is now the single

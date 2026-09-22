@@ -647,6 +647,41 @@ static void test_deinit_stop_failure_preserves_ready_state(void)
     TEST_ASSERT_TRUE(dev.is_initialized);
 }
 
+static void test_deinit_success_clears_nested_transport(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+
+    init_ok(&dev, &iface);
+    queue_read8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_10HZ, XY_OK);
+    queue_write8(LPS22HB_CTRL_REG1, XY_LPS22HB_ODR_ONE_SHOT, XY_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_lps22hb_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.is_initialized);
+    TEST_ASSERT_FALSE(iface.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(iface.i2c_dev.i2c_handle);
+}
+
+static void test_deinit_rejects_lost_nested_transport_without_io(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+
+    size_t reads_before;
+    size_t writes_before;
+
+    init_ok(&dev, &iface);
+    reads_before = g_read_index;
+    writes_before = g_write_index;
+    iface.i2c_dev.base.initialized = false;
+    iface.i2c_dev.i2c_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_lps22hb_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.is_initialized);
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_index);
+}
+
 static void test_start_single_propagates_stop_failure(void)
 {
     xy_lps22hb_dev_t dev;
@@ -851,6 +886,8 @@ int main(void)
     RUN_TEST(test_configure_lpf_rejects_invalid_enum_without_io_or_cache_change);
     RUN_TEST(test_configure_threshold_rejects_inverted_range_without_io_or_cache_change);
     RUN_TEST(test_deinit_stop_failure_preserves_ready_state);
+    RUN_TEST(test_deinit_success_clears_nested_transport);
+    RUN_TEST(test_deinit_rejects_lost_nested_transport_without_io);
     RUN_TEST(test_start_single_propagates_stop_failure);
     RUN_TEST(test_read_data_rejects_uninitialized_device_without_io_or_output_change);
     RUN_TEST(test_clear_interrupt_rejects_uninitialized_device_without_io);

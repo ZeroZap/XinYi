@@ -12,6 +12,12 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+static bool xy_aht20_ready(const xy_aht20_t *aht20)
+{
+    return aht20 != NULL && aht20->initialized && aht20->i2c_dev.base.initialized &&
+           aht20->i2c_dev.i2c_handle != NULL;
+}
+
 /**
  * @brief 检查传感器状态
  */
@@ -91,12 +97,13 @@ int xy_aht20_init(xy_aht20_t *aht20, void *i2c_handle)
 
 int xy_aht20_deinit(xy_aht20_t *aht20)
 {
-    if (!aht20) {
+    if (!xy_aht20_ready(aht20)) {
         return XY_AHT20_INVALID_PARAM;
     }
     
     aht20->initialized = false;
     aht20->i2c_dev.base.initialized = false;
+    aht20->i2c_dev.i2c_handle = NULL;
     return XY_AHT20_OK;
 }
 
@@ -107,7 +114,7 @@ int xy_aht20_read(xy_aht20_t *aht20)
     uint8_t buf[7];
     uint32_t raw_value;
     
-    if (!aht20 || !aht20->initialized) {
+    if (!xy_aht20_ready(aht20)) {
         return XY_AHT20_INVALID_PARAM;
     }
     
@@ -190,7 +197,7 @@ int xy_aht20_reset(xy_aht20_t *aht20)
 {
     uint8_t cmd = AHT20_CMD_RESET;
     
-    if (!aht20) {
+    if (!xy_aht20_ready(aht20)) {
         return XY_AHT20_INVALID_PARAM;
     }
     

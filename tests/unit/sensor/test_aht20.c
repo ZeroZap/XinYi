@@ -239,6 +239,42 @@ static void test_deinit_rejects_null_and_clears_initialized_flag(void)
     TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(delay_before, g_delay_total);
+}
+
+static void test_public_operations_reject_lost_nested_transport_without_io(void)
+{
+    xy_aht20_t dev;
+    int fake_bus;
+    size_t reads_before;
+    size_t writes_before;
+    uint32_t delay_before;
+
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    reads_before = g_read_index;
+    writes_before = g_write_count;
+    delay_before = g_delay_total;
+    dev.i2c_dev.base.initialized = false;
+
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_read(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_reset(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(delay_before, g_delay_total);
+
+    dev.i2c_dev.base.initialized = true;
+    dev.i2c_dev.i2c_handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_read(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_reset(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_INVALID_PARAM, xy_aht20_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
     TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
     TEST_ASSERT_EQUAL_UINT32(delay_before, g_delay_total);
@@ -458,6 +494,7 @@ int main(void)
     RUN_TEST(test_init_reports_busy_after_timeout);
     RUN_TEST(test_init_reports_write_and_status_read_failures_and_uncalibrated_status);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
+    RUN_TEST(test_public_operations_reject_lost_nested_transport_without_io);
     RUN_TEST(test_read_converts_humidity_temperature_and_timestamp);
     RUN_TEST(test_read_converts_raw_minimum_and_maximum_bounds);
     RUN_TEST(test_read_rejects_invalid_uninitialized_and_propagates_failures_without_overwrite);
