@@ -110,6 +110,8 @@ The Pandora STM32L475 I2C2 target (`PB10/PB11`, 100 kHz) identifies and samples 
 owners at `0x38`, `0x69`, and `0x77`. A reset-synchronized UART capture proved AHT30 CRC-valid
 temperature/humidity frames, L3G4200D identity `0xD3` and three-axis output, and BME680 identity
 `0x61` with Bosch-compensated temperature, pressure, humidity, and heater-stable gas resistance.
+The AHT30 owner now additionally requires a live nested I2C handle for public read/deinit and clears
+that handle after successful teardown; this lifecycle hardening does not expand hardware evidence.
 This is basic-chain hardware evidence; it does not claim calibrated accuracy, environmental chamber
 qualification, long-run reliability, or general I2C fault recovery.
 

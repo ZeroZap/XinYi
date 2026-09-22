@@ -174,6 +174,14 @@ static void test_aht30_public_ops_reject_invalid_nested_bus_lifecycle(void)
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
     TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
     TEST_ASSERT_EQUAL_UINT(0U, op_index);
+
+    dev.i2c_dev.base.initialized = 1U;
+    dev.i2c_dev.i2c_handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_aht30_read(&dev, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_aht30_deinit(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
 }
 
 static void test_aht30_transport_failures_preserve_output_and_cache(void)
