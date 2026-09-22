@@ -97,6 +97,11 @@ measurement and teardown operations. Losing either nested lifecycle state or the
 the operation without exposing cached identity or changing precision state. This adds no sensor
 accuracy, timing, recovery, or hardware claim.
 
+VL53L1X cached offset/xtalk setters and last-result access now require the same live nested Device
+transport as measurement operations. Losing either nested lifecycle state or the I2C handle rejects
+cache mutation and stale result exposure. This adds no ranging accuracy, timing, recovery, or
+hardware claim.
+
 ### LIS2DW12 migration status
 
 The legacy LIS2DW12 API is now backed by the canonical Device owner at

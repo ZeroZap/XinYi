@@ -599,13 +599,13 @@ xy_ret_t xy_vl53l1x_set_roi(xy_vl53l1x_dev_t *dev, xy_vl53l1x_roi_t *roi)
 
 void xy_vl53l1x_set_offset(xy_vl53l1x_dev_t *dev, int16_t offset)
 {
-    if (dev == XY_NULL) return;
+    if (!vl53l1x_ready(dev)) return;
     dev->offset = offset;
 }
 
 void xy_vl53l1x_set_xtalk(xy_vl53l1x_dev_t *dev, float xtalk)
 {
-    if (dev == XY_NULL) return;
+    if (!vl53l1x_ready(dev)) return;
     dev->xtalk = xtalk;
 }
 
@@ -722,6 +722,6 @@ bool xy_vl53l1x_is_ready(xy_vl53l1x_dev_t *dev)
 
 xy_vl53l1x_result_t *xy_vl53l1x_get_last_result(xy_vl53l1x_dev_t *dev)
 {
-    if (dev == XY_NULL) return XY_NULL;
+    if (!vl53l1x_ready(dev)) return XY_NULL;
     return &dev->last_result;
 }

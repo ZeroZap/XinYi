@@ -601,6 +601,31 @@ void test_public_guards_and_inline_helpers(void)
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.234f, xy_vl53l1x_mm_to_m(1234));
 }
 
+void test_cached_operations_require_live_nested_transport(void)
+{
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+
+    dev.offset = 12U;
+    dev.xtalk = 3.5f;
+    dev.last_result.distance = 456U;
+    dev.i2c_dev.base.initialized = false;
+
+    xy_vl53l1x_set_offset(&dev, 99);
+    xy_vl53l1x_set_xtalk(&dev, 8.0f);
+    TEST_ASSERT_EQUAL_UINT16(12U, dev.offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.5f, dev.xtalk);
+    TEST_ASSERT_NULL(xy_vl53l1x_get_last_result(&dev));
+
+    dev.i2c_dev.base.initialized = true;
+    dev.i2c_dev.i2c_handle = NULL;
+    xy_vl53l1x_set_offset(&dev, 99);
+    xy_vl53l1x_set_xtalk(&dev, 8.0f);
+    TEST_ASSERT_EQUAL_UINT16(12U, dev.offset);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.5f, dev.xtalk);
+    TEST_ASSERT_NULL(xy_vl53l1x_get_last_result(&dev));
+}
+
 void test_deinit_stop_failure_preserves_initialized_state(void)
 {
     xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
@@ -658,6 +683,7 @@ int main(void)
     RUN_TEST(test_calibrate_offset_clamps_sample_count_and_averages_valid_measurements);
     RUN_TEST(test_calibrate_offset_ignores_invalid_measurements_and_reports_no_valid_samples);
     RUN_TEST(test_public_guards_and_inline_helpers);
+    RUN_TEST(test_cached_operations_require_live_nested_transport);
     RUN_TEST(test_deinit_stop_failure_preserves_initialized_state);
     RUN_TEST(test_deinit_success_clears_nested_transport);
     return UNITY_END();
