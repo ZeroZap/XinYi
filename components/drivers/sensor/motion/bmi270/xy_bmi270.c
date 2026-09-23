@@ -109,6 +109,11 @@ static void delay_ms(uint32_t ms)
     }
 }
 
+static bool bmi270_ready(const xy_bmi270_t *dev)
+{
+    return dev != NULL && dev->initialized && dev->bus_handle != NULL;
+}
+
 /* ==================== 公共 API 实现 ==================== */
 
 int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is_spi)
@@ -196,25 +201,24 @@ int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is
 
 int xy_bmi270_deinit(xy_bmi270_t *dev)
 {
-    if (!dev) {
+    if (!bmi270_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
-    if (dev->initialized) {
-        int ret = xy_bmi270_sleep(dev);
-        if (ret != XY_DEVICE_OK) {
-            return ret;
-        }
-        dev->initialized = false;
-        XY_LOG_INFO("BMI270 deinitialized");
+    int ret = xy_bmi270_sleep(dev);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
+    dev->initialized = false;
+    dev->bus_handle = NULL;
+    XY_LOG_INFO("BMI270 deinitialized");
 
     return XY_DEVICE_OK;
 }
 
 int xy_bmi270_read_regs(xy_bmi270_t *dev, uint8_t reg, uint8_t *buf, uint16_t len)
 {
-    if (!dev || !buf || !len || !dev->initialized) {
+    if (!bmi270_ready(dev) || !buf || !len) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -223,7 +227,7 @@ int xy_bmi270_read_regs(xy_bmi270_t *dev, uint8_t reg, uint8_t *buf, uint16_t le
 
 int xy_bmi270_write_regs(xy_bmi270_t *dev, uint8_t reg, const uint8_t *buf, uint16_t len)
 {
-    if (!dev || !buf || !len || !dev->initialized) {
+    if (!bmi270_ready(dev) || !buf || !len) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -241,7 +245,7 @@ int xy_bmi270_get_chip_id(xy_bmi270_t *dev, uint8_t *chip_id)
 
 int xy_bmi270_set_range(xy_bmi270_t *dev, const bmi270_range_t *range)
 {
-    if (!dev || !range || !dev->initialized || range->acc_range > BMI270_ACC_RANGE_16G
+    if (!bmi270_ready(dev) || !range || range->acc_range > BMI270_ACC_RANGE_16G
         || range->gyr_range > BMI270_GYR_RANGE_125 || range->acc_odr > 0x0FU
         || range->gyr_odr > 0x0FU) {
         return XY_DEVICE_EINVAL;
@@ -333,7 +337,7 @@ int xy_bmi270_set_range(xy_bmi270_t *dev, const bmi270_range_t *range)
 
 int xy_bmi270_enable_acc(xy_bmi270_t *dev, bool enable)
 {
-    if (!dev || !dev->initialized) {
+    if (!bmi270_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -354,7 +358,7 @@ int xy_bmi270_enable_acc(xy_bmi270_t *dev, bool enable)
 
 int xy_bmi270_enable_gyr(xy_bmi270_t *dev, bool enable)
 {
-    if (!dev || !dev->initialized) {
+    if (!bmi270_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -375,7 +379,7 @@ int xy_bmi270_enable_gyr(xy_bmi270_t *dev, bool enable)
 
 int xy_bmi270_read_raw(xy_bmi270_t *dev, bmi270_raw_data_t *raw_data)
 {
-    if (!dev || !raw_data || !dev->initialized) {
+    if (!bmi270_ready(dev) || !raw_data) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -423,7 +427,7 @@ int xy_bmi270_read_raw(xy_bmi270_t *dev, bmi270_raw_data_t *raw_data)
 
 int xy_bmi270_read_data(xy_bmi270_t *dev, bmi270_data_t *data)
 {
-    if (!dev || !data || !dev->initialized) {
+    if (!bmi270_ready(dev) || !data) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -450,7 +454,7 @@ int xy_bmi270_read_data(xy_bmi270_t *dev, bmi270_data_t *data)
 
 int xy_bmi270_get_status(xy_bmi270_t *dev, uint8_t *status)
 {
-    if (!dev || !status || !dev->initialized) {
+    if (!bmi270_ready(dev) || !status) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -459,7 +463,7 @@ int xy_bmi270_get_status(xy_bmi270_t *dev, uint8_t *status)
 
 int xy_bmi270_reset(xy_bmi270_t *dev)
 {
-    if (!dev) {
+    if (!dev || !dev->bus_handle) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -481,7 +485,7 @@ int xy_bmi270_sleep(xy_bmi270_t *dev)
 {
     int ret;
 
-    if (!dev || !dev->initialized) {
+    if (!bmi270_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -502,7 +506,7 @@ int xy_bmi270_sleep(xy_bmi270_t *dev)
 
 int xy_bmi270_wakeup(xy_bmi270_t *dev)
 {
-    if (!dev || !dev->initialized) {
+    if (!bmi270_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 

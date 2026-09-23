@@ -108,6 +108,11 @@ Device transport as measurement operations. Losing either nested lifecycle state
 rejects cache mutation and stale state exposure. This adds no VOC accuracy, warm-up timing,
 recovery, or hardware claim.
 
+BMI270 public register/configuration/sample/power/lifecycle operations now require a live bus
+handle in addition to the driver lifecycle flag. Successful deinit clears the handle; losing it
+rejects operations before I2C/SPI access and preserves caller output and cached configuration. This
+adds no IMU accuracy, timing, recovery, or hardware claim.
+
 ### LIS2DW12 migration status
 
 The legacy LIS2DW12 API is now backed by the canonical Device owner at

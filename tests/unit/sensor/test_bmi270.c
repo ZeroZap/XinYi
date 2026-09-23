@@ -459,6 +459,42 @@ static void test_bmi270_deinit_clears_ready_after_disable_success(void)
     { uint8_t expected = 0xA0U; queue_i2c_write(0x68U, BMI270_REG_GYR_CONF, &expected, 1U, XY_DEVICE_OK); }
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmi270_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_NULL(dev.bus_handle);
+}
+
+static void test_bmi270_public_operations_reject_missing_bus_handle_without_io(void)
+{
+    xy_bmi270_t dev = ready_i2c_dev();
+    bmi270_range_t range = dev.range;
+    bmi270_raw_data_t raw = {.acc_x = 11, .sensor_time = 22U};
+    bmi270_data_t data = {.acc_x = 3.0f, .temperature = 4.0f};
+    uint8_t value = 0xA5U;
+
+    dev.bus_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL,
+                          xy_bmi270_read_regs(&dev, BMI270_REG_STATUS, &value, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL,
+                          xy_bmi270_write_regs(&dev, BMI270_REG_STATUS, &value, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_get_chip_id(&dev, &value));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_set_range(&dev, &range));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_enable_acc(&dev, true));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_enable_gyr(&dev, true));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_read_raw(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_read_data(&dev, &data));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_get_status(&dev, &value));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_reset(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_sleep(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_wakeup(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bmi270_deinit(&dev));
+
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_INT16(11, raw.acc_x);
+    TEST_ASSERT_EQUAL_UINT32(22U, raw.sensor_time);
+    TEST_ASSERT_EQUAL_FLOAT(3.0f, data.acc_x);
+    TEST_ASSERT_EQUAL_FLOAT(4.0f, data.temperature);
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, value);
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_count);
 }
 
 static void test_bmi270_read_raw_sensor_time_failure_preserves_sample(void)
@@ -589,6 +625,7 @@ int main(void)
     RUN_TEST(test_bmi270_enable_wakeup_and_reset_failure_boundaries);
     RUN_TEST(test_bmi270_deinit_propagates_disable_failures_and_preserves_ready);
     RUN_TEST(test_bmi270_deinit_clears_ready_after_disable_success);
+    RUN_TEST(test_bmi270_public_operations_reject_missing_bus_handle_without_io);
     RUN_TEST(test_bmi270_read_raw_sensor_time_failure_preserves_sample);
     RUN_TEST(test_bmi270_set_range_covers_extreme_scale_branches);
     RUN_TEST(test_bmi270_set_range_rejects_invalid_acc_range_without_io);
