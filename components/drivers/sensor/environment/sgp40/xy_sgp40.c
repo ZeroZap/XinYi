@@ -463,7 +463,7 @@ xy_ret_t xy_sgp40_enable_burn_in(xy_sgp40_dev_t *dev)
 
 bool xy_sgp40_is_warmed_up(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL) return false;
+    if (!sgp40_ready(dev)) return false;
     
     /* 检查上电时间是否超过预热时间 */
     return dev->uptime_ms >= SGP40_WARMUP_MS;
@@ -486,7 +486,7 @@ xy_sgp40_voc_level_t xy_sgp40_get_voc_level(uint16_t voc_index)
 
 void xy_sgp40_set_offset(xy_sgp40_dev_t *dev, int16_t offset)
 {
-    if (dev == XY_NULL) return;
+    if (!sgp40_ready(dev)) return;
     dev->offset = offset;
 }
 
@@ -497,12 +497,12 @@ bool xy_sgp40_is_ready(xy_sgp40_dev_t *dev)
 
 xy_sgp40_data_t *xy_sgp40_get_last_data(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL) return XY_NULL;
+    if (!sgp40_ready(dev)) return XY_NULL;
     return &dev->last_data;
 }
 
 uint32_t xy_sgp40_get_uptime(xy_sgp40_dev_t *dev)
 {
-    if (dev == XY_NULL) return 0;
+    if (!sgp40_ready(dev)) return 0;
     return dev->uptime_ms;
 }

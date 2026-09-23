@@ -560,6 +560,38 @@ static void test_nested_device_lifecycle_rejects_public_io_atomically(void)
     TEST_ASSERT_TRUE(dev.is_initialized);
 }
 
+static void test_cached_public_ops_require_live_nested_transport(void)
+{
+    xy_sgp40_dev_t dev;
+    xy_i2c_dev_t i2c = fake_i2c();
+    size_t commands_before;
+    size_t reads_before;
+
+    init_ok(&dev, &i2c);
+    dev.offset = 12;
+    dev.uptime_ms = 10000U;
+    dev.last_data.voc_index = 77U;
+    commands_before = g_command_count;
+    reads_before = g_read_index;
+    dev.i2c_dev.base.initialized = false;
+
+    xy_sgp40_set_offset(&dev, 99);
+    TEST_ASSERT_EQUAL_INT16(12, dev.offset);
+    TEST_ASSERT_FALSE(xy_sgp40_is_warmed_up(&dev));
+    TEST_ASSERT_NULL(xy_sgp40_get_last_data(&dev));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_sgp40_get_uptime(&dev));
+
+    dev.i2c_dev.base.initialized = true;
+    dev.i2c_dev.i2c_handle = NULL;
+    xy_sgp40_set_offset(&dev, 99);
+    TEST_ASSERT_EQUAL_INT16(12, dev.offset);
+    TEST_ASSERT_FALSE(xy_sgp40_is_warmed_up(&dev));
+    TEST_ASSERT_NULL(xy_sgp40_get_last_data(&dev));
+    TEST_ASSERT_EQUAL_UINT32(0U, xy_sgp40_get_uptime(&dev));
+    TEST_ASSERT_EQUAL_UINT(commands_before, g_command_count);
+    TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -578,5 +610,6 @@ int main(void)
     RUN_TEST(test_voc_level_boundaries);
     RUN_TEST(test_read_voc_success_populates_compensation_fields_and_count);
     RUN_TEST(test_nested_device_lifecycle_rejects_public_io_atomically);
+    RUN_TEST(test_cached_public_ops_require_live_nested_transport);
     return UNITY_END();
 }
