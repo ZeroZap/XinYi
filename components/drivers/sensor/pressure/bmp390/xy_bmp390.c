@@ -3,10 +3,20 @@
 #include "xy_hal_delay.h"
 #include <string.h>
 
+static int bmp390_transport_ready(const xy_bmp390_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static BMP3_INTF_RET_TYPE bmp390_bus_read(uint8_t reg, uint8_t *data, uint32_t length,
                                           void *context)
 {
     xy_bmp390_t *dev = context;
+
+    if (!bmp390_transport_ready(dev)) {
+        return -1;
+    }
 
     dev->transport_error = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
     return dev->transport_error == XY_DEVICE_OK ? BMP3_INTF_RET_SUCCESS : -1;
@@ -16,6 +26,10 @@ static BMP3_INTF_RET_TYPE bmp390_bus_write(uint8_t reg, const uint8_t *data, uin
                                            void *context)
 {
     xy_bmp390_t *dev = context;
+
+    if (!bmp390_transport_ready(dev)) {
+        return -1;
+    }
 
     dev->transport_error = xy_i2c_device_write_reg(&dev->i2c_dev, reg, data, length);
     return dev->transport_error == XY_DEVICE_OK ? BMP3_INTF_RET_SUCCESS : -1;

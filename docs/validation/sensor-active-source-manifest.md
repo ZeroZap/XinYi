@@ -84,7 +84,8 @@ The Device-model root set is currently exactly:
 
 BMP390 public read/deinit operations require both the nested Device lifecycle and a live I2C
 handle. Successful deinit clears that handle, so a stale outer lifecycle bit cannot authorize
-Bosch SensorAPI transport callbacks. This hardening adds no pressure/temperature accuracy,
+Bosch SensorAPI transport callbacks. The adapter callbacks now fail closed before touching the bus
+when nested transport is invalid. This hardening adds no pressure/temperature accuracy,
 timing, recovery, or hardware claim.
 
 HDC1080 and INA219 public transport operations likewise require both lifecycle layers and a live
