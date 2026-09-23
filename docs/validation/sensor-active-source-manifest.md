@@ -439,7 +439,9 @@ interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 The legacy KX023 API is now backed by the canonical Device owner at
 `components/drivers/sensor/motion/kx023`. The owner verifies WHO_AM_I `0x15`, performs the
 documented soft reset and standby/12.5 Hz/low-power configuration, and stages little-endian XYZ
-raw samples and timestamps behind nested I2C lifecycle checks. Motion accuracy, power, interrupt
+raw samples and timestamps through register helpers that independently validate nested I2C
+lifecycle and handle state. Invalid transport fails closed without bus access or state mutation;
+successful teardown clears the nested handle. Motion accuracy, power, interrupt
 behavior and hardware endurance remain `hardware-pending`.
 
 ### ADXL362 migration status
