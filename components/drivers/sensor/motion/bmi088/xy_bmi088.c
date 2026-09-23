@@ -430,7 +430,7 @@ xy_ret_t xy_bmi088_calibrate(xy_bmi088_dev_t *dev, uint16_t samples)
 
 void xy_bmi088_set_calibration(xy_bmi088_dev_t *dev, float acc_offset[3], float gyro_offset[3])
 {
-    if (dev == XY_NULL) return;
+    if (!bmi088_transport_ready(dev) || !dev->is_initialized) return;
     
     if (acc_offset != XY_NULL) {
         memcpy(dev->acc_offset, acc_offset, sizeof(dev->acc_offset));

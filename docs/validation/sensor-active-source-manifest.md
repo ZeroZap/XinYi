@@ -513,10 +513,11 @@ The focused-test-backed BMI088 source/header pair moved from the experimental Se
 `components/drivers/sensor/motion/bmi088` and is now root-linked by `xy_drivers`. The canonical
 owner retains the explicit dual-chip-select SPI seam and its identity, configuration, staged raw
 publication, physical conversion, calibration, range-cache atomicity, and lifecycle contracts.
-Public operations now require a live SPI handle, reject detached transports without I/O or state
-publication, and clear the transport pointer only after successful deinitialization. Host/source
-ownership only; SPI electrical behavior, timing, interrupts, FIFO, calibration quality, motion
-accuracy and hardware recovery remain `hardware-pending`.
+Public operations, including the cached calibration setter, now require initialized state and a live
+SPI handle, reject detached transports without I/O or state publication, and clear the transport
+pointer only after successful deinitialization. Host/source ownership only; SPI electrical behavior,
+timing, interrupts, FIFO, calibration quality, motion accuracy and hardware recovery remain
+`hardware-pending`.
 
 ### AS5048B migration status
 

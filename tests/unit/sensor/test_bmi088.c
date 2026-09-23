@@ -502,10 +502,24 @@ static void test_bmi088_set_range_rejects_invalid_enums_without_io(void)
 static void test_bmi088_set_calibration_and_inline_helpers(void)
 {
     xy_bmi088_dev_t dev = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
     float acc[3] = {1.0f, 2.0f, 3.0f};
     float gyro[3] = {4.0f, 5.0f, 6.0f};
 
     xy_bmi088_set_calibration(NULL, acc, gyro);
+    xy_bmi088_set_calibration(&dev, acc, gyro);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, dev.acc_offset[0]);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, dev.gyro_offset[2]);
+
+    dev.spi = &spi;
+    dev.is_initialized = true;
+    xy_bmi088_set_calibration(&dev, acc, gyro);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, dev.acc_offset[0]);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 6.0f, dev.gyro_offset[2]);
+
+    spi.handle = NULL;
+    acc[0] = 9.0f;
+    gyro[2] = 9.0f;
     xy_bmi088_set_calibration(&dev, acc, gyro);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, dev.acc_offset[0]);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 6.0f, dev.gyro_offset[2]);
