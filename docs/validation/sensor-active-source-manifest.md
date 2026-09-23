@@ -431,7 +431,10 @@ behind nested I2C lifecycle checks. Magnetic calibration, accuracy and hardware 
 The legacy BMA400 API is now backed by the canonical Device owner at
 `components/drivers/sensor/motion/bma400`. The owner verifies CHIP_ID `0x90`, performs the
 documented soft reset and low-power/±2g/25 Hz configuration, and stages little-endian XYZ raw
-samples and timestamps behind nested I2C lifecycle checks. Motion accuracy, power characterization,
+samples and timestamps through register helpers that independently validate nested I2C lifecycle
+and handle state. Initialization failure clears partial transport ownership; invalid transport fails
+closed without bus access or state mutation, and successful teardown clears the nested handle.
+Motion accuracy, power characterization,
 interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 
 ### KX023 migration status
