@@ -447,9 +447,10 @@ interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 The legacy LSM6DSO API is now backed by the canonical Device owner at
 `components/drivers/sensor/motion/lsm6dso`. The owner verifies WHO_AM_I `0x6C`, performs the
 documented reset/I3C-disable/104 Hz/±2g/±250 dps configuration, reads staged accelerometer and
-gyroscope XYZ data through the nested I2C lifecycle, and preserves output/cache on transport
-failure. Motion accuracy, ODR timing, interrupt/FIFO behavior and hardware endurance remain
-`hardware-pending`.
+gyroscope XYZ data through register helpers that independently validate the nested I2C lifecycle,
+preserves output/cache on transport failure, and clears the nested handle after successful teardown.
+Invalid transport fails closed without bus access or lifecycle mutation. Motion accuracy, ODR timing,
+interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 
 ### LSM6DSL migration status
 
