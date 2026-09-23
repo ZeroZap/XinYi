@@ -2,10 +2,19 @@
 #include "xy_hal_delay.h"
 #include <string.h>
 
+static bool transport_ready(const xy_bme680_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized && dev->i2c_dev.i2c_handle != NULL;
+}
+
 static BME68X_INTF_RET_TYPE bus_read(uint8_t reg, uint8_t *data, uint32_t length,
                                      void *context)
 {
     xy_bme680_t *dev = context;
+
+    if (!transport_ready(dev)) {
+        return -1;
+    }
 
     dev->transport_error = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
     return dev->transport_error == XY_DEVICE_OK ? BME68X_INTF_RET_SUCCESS : -1;
@@ -15,6 +24,10 @@ static BME68X_INTF_RET_TYPE bus_write(uint8_t reg, const uint8_t *data, uint32_t
                                       void *context)
 {
     xy_bme680_t *dev = context;
+
+    if (!transport_ready(dev)) {
+        return -1;
+    }
 
     dev->transport_error = xy_i2c_device_write_reg(&dev->i2c_dev, reg, data, length);
     return dev->transport_error == XY_DEVICE_OK ? BME68X_INTF_RET_SUCCESS : -1;
