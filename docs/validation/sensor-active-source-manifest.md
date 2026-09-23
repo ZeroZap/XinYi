@@ -148,6 +148,8 @@ temperature/humidity frames, L3G4200D identity `0xD3` and three-axis output, and
 `0x61` with Bosch-compensated temperature, pressure, humidity, and heater-stable gas resistance.
 The BME680 Bosch SensorAPI adapter callbacks now independently validate nested Device lifecycle and
 the live I2C handle before bus access, so invalid callback context fails closed.
+L3G4200D internal register helpers now independently enforce the same nested lifecycle and live
+handle contract, including during initialization before the outer lifecycle is published.
 The AHT30 owner now additionally requires a live nested I2C handle for public read/deinit and clears
 that handle after successful teardown; this lifecycle hardening does not expand hardware evidence.
 This is basic-chain hardware evidence; it does not claim calibrated accuracy, environmental chamber

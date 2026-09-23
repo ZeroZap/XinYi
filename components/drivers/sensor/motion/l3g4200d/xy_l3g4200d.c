@@ -8,14 +8,24 @@
 #define L3G4200D_REG_STATUS 0x27U
 #define L3G4200D_REG_OUT_X_L_AUTO 0xA8U
 
+static bool l3g4200d_ready(const xy_l3g4200d_t *dev);
+
 static xy_error_t l3g4200d_read_reg(xy_l3g4200d_t *dev, uint8_t reg, uint8_t *data,
                                     size_t length)
 {
+    if (dev == NULL || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
 }
 
 static xy_error_t l3g4200d_write_reg(xy_l3g4200d_t *dev, uint8_t reg, uint8_t value)
 {
+    if (dev == NULL || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
