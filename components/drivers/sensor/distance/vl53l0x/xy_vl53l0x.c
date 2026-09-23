@@ -24,6 +24,10 @@ xy_error_t xy_vl53l0x_init(xy_vl53l0x_t *dev, void *i2c_handle)
         memset(dev, 0, sizeof(*dev));
         return ret;
     }
+    if (dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL) {
+        memset(dev, 0, sizeof(*dev));
+        return XY_DEVICE_INVALID_PARAM;
+    }
     ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_VL53L0X_REG_MODEL_ID, &model, 1U);
     if (ret == XY_DEVICE_OK && model != XY_VL53L0X_MODEL_ID) {
         ret = XY_DEVICE_NOT_FOUND;

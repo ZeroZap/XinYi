@@ -6,6 +6,7 @@
 static uint8_t g_model;
 static uint8_t g_range[12];
 static xy_error_t g_init_ret;
+static int g_init_establish_transport;
 static xy_error_t g_read_ret;
 static xy_error_t g_write_ret;
 static unsigned g_reads;
@@ -14,8 +15,8 @@ static unsigned g_writes;
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr, uint32_t timeout)
 {
     memset(dev, 0, sizeof(*dev));
-    dev->base.initialized = 1U;
-    dev->i2c_handle = handle;
+    dev->base.initialized = g_init_establish_transport;
+    dev->i2c_handle = g_init_establish_transport ? handle : NULL;
     dev->dev_addr = addr;
     dev->timeout = timeout;
     return g_init_ret;
@@ -57,6 +58,7 @@ void setUp(void)
     memset(g_range, 0, sizeof(g_range));
     g_model = XY_VL53L0X_MODEL_ID;
     g_init_ret = XY_DEVICE_OK;
+    g_init_establish_transport = 1;
     g_read_ret = XY_DEVICE_OK;
     g_write_ret = XY_DEVICE_OK;
     g_reads = 0U;
@@ -115,6 +117,21 @@ static void test_vl53l0x_init_rejects_identity_and_transport_failures(void)
     TEST_ASSERT_FALSE(dev.initialized);
 }
 
+static void test_vl53l0x_init_rejects_incomplete_nested_transport(void)
+{
+    xy_vl53l0x_t dev;
+    int bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_establish_transport = 0;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_vl53l0x_init(&dev, &bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, g_reads);
+    TEST_ASSERT_EQUAL_UINT(0U, g_writes);
+}
+
 static void test_vl53l0x_rejects_missing_nested_transport_without_side_effects(void)
 {
     xy_vl53l0x_t dev;
@@ -137,6 +154,7 @@ int main(void)
     RUN_TEST(test_vl53l0x_identity_read_and_lifecycle);
     RUN_TEST(test_vl53l0x_failures_preserve_state_and_reject_invalid_context);
     RUN_TEST(test_vl53l0x_init_rejects_identity_and_transport_failures);
+    RUN_TEST(test_vl53l0x_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_vl53l0x_rejects_missing_nested_transport_without_side_effects);
     return UNITY_END();
 }
