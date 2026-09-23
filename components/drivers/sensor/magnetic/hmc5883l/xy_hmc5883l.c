@@ -10,11 +10,19 @@
 
 static xy_error_t read_reg(xy_hmc5883l_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
+    if (dev == NULL || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, len);
 }
 
 static xy_error_t write_reg(xy_hmc5883l_t *dev, uint8_t reg, uint8_t value)
 {
+    if (dev == NULL || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 

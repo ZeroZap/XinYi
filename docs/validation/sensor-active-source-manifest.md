@@ -150,6 +150,8 @@ The BME680 Bosch SensorAPI adapter callbacks now independently validate nested D
 the live I2C handle before bus access, so invalid callback context fails closed.
 L3G4200D internal register helpers now independently enforce the same nested lifecycle and live
 handle contract, including during initialization before the outer lifecycle is published.
+HMC5883L internal register helpers now also reject missing nested lifecycle or transport context
+before Device I2C access, including the pre-publication initialization phase.
 The AHT30 owner now additionally requires a live nested I2C handle for public read/deinit and clears
 that handle after successful teardown; this lifecycle hardening does not expand hardware evidence.
 This is basic-chain hardware evidence; it does not claim calibrated accuracy, environmental chamber
