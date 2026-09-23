@@ -1,10 +1,157 @@
 #include "xy_apds9960.h"
+
 #include "xy_hal_sys.h"
+
 #include <string.h>
-static int ready(const xy_apds9960_t*d){return d&&d->initialized&&d->i2c_dev.base.initialized&&d->i2c_dev.i2c_handle;}
-static uint16_t le16(const uint8_t*b){return(uint16_t)b[0]|((uint16_t)b[1]<<8);}
-xy_error_t xy_apds9960_init(xy_apds9960_t*d,void*h){uint8_t id,en=XY_APDS9960_ENABLE_PON_AEN_PEN_GEN;xy_error_t e;if(!d||!h)return XY_DEVICE_INVALID_PARAM;memset(d,0,sizeof(*d));e=xy_i2c_device_init(&d->i2c_dev,h,XY_APDS9960_ADDR,1000);if(e!=0)return e;e=xy_i2c_device_read_reg(&d->i2c_dev,XY_APDS9960_REG_ID,&id,1);if(e==0&&id!=0xABU&&id!=0x9CU)e=XY_DEVICE_NOT_FOUND;if(e==0)e=xy_i2c_device_write_reg(&d->i2c_dev,XY_APDS9960_REG_ENABLE,&en,1);if(e!=0){memset(d,0,sizeof(*d));return e;}d->initialized=1;return 0;}
-xy_error_t xy_apds9960_deinit(xy_apds9960_t*d){uint8_t en=0;xy_error_t e;if(!ready(d))return XY_DEVICE_INVALID_PARAM;e=xy_i2c_device_write_reg(&d->i2c_dev,XY_APDS9960_REG_ENABLE,&en,1);if(e!=0)return e;d->initialized=0;d->i2c_dev.base.initialized=0;d->i2c_dev.i2c_handle=NULL;return 0;}
-xy_error_t xy_apds9960_read_rgb(xy_apds9960_t*d,xy_apds9960_rgb_t*s){uint8_t b[8];xy_apds9960_rgb_t n;xy_error_t e;if(!ready(d)||!s)return XY_DEVICE_INVALID_PARAM;e=xy_i2c_device_read_reg(&d->i2c_dev,XY_APDS9960_REG_CDATAL,b,8);if(e!=0)return e;n.clear=le16(b);n.red=le16(b+2);n.green=le16(b+4);n.blue=le16(b+6);n.timestamp=xy_hal_sys_get_tick_count();*s=n;d->rgb=n;return 0;}
-xy_error_t xy_apds9960_read_proximity(xy_apds9960_t*d,xy_apds9960_proximity_t*s){xy_apds9960_proximity_t n;xy_error_t e;if(!ready(d)||!s)return XY_DEVICE_INVALID_PARAM;e=xy_i2c_device_read_reg(&d->i2c_dev,XY_APDS9960_REG_PDATA,&n.proximity,1);if(e!=0)return e;n.timestamp=xy_hal_sys_get_tick_count();*s=n;d->proximity=n;return 0;}
-xy_error_t xy_apds9960_read_gesture_fifo(xy_apds9960_t*d,xy_apds9960_gesture_fifo_t*s){uint8_t st,lvl;xy_apds9960_gesture_fifo_t n;xy_error_t e;if(!ready(d)||!s)return XY_DEVICE_INVALID_PARAM;memset(&n,0,sizeof(n));e=xy_i2c_device_read_reg(&d->i2c_dev,XY_APDS9960_REG_GSTATUS,&st,1);if(e!=0)return e;if(st&XY_APDS9960_GVALID){e=xy_i2c_device_read_reg(&d->i2c_dev,XY_APDS9960_REG_GFLVL,&lvl,1);if(e!=0)return e;if(lvl>32U)return XY_DEVICE_INVALID_PARAM;n.level=lvl;if(lvl){e=xy_i2c_device_read_reg(&d->i2c_dev,XY_APDS9960_REG_GFIFO_U,n.data,(size_t)lvl*4U);if(e!=0)return e;}}n.timestamp=xy_hal_sys_get_tick_count();*s=n;d->gesture=n;return 0;}
+
+static int apds9960_ready(const xy_apds9960_t *dev)
+{
+    return dev != NULL && dev->initialized && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
+static uint16_t apds9960_decode_le16(const uint8_t *data)
+{
+    return (uint16_t)data[0] | ((uint16_t)data[1] << 8);
+}
+
+xy_error_t xy_apds9960_init(xy_apds9960_t *dev, void *i2c_handle)
+{
+    uint8_t id;
+    uint8_t enable = XY_APDS9960_ENABLE_PON_AEN_PEN_GEN;
+    xy_error_t error;
+
+    if (dev == NULL || i2c_handle == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    memset(dev, 0, sizeof(*dev));
+    error = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_APDS9960_ADDR, 1000U);
+    if (error != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return error;
+    }
+
+    error = xy_i2c_device_read_reg(&dev->i2c_dev, XY_APDS9960_REG_ID, &id, 1U);
+    if (error == XY_DEVICE_OK && id != 0xABU && id != 0x9CU) {
+        error = XY_DEVICE_NOT_FOUND;
+    }
+    if (error == XY_DEVICE_OK) {
+        error = xy_i2c_device_write_reg(&dev->i2c_dev, XY_APDS9960_REG_ENABLE, &enable, 1U);
+    }
+    if (error != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return error;
+    }
+
+    dev->initialized = 1U;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_apds9960_deinit(xy_apds9960_t *dev)
+{
+    uint8_t enable = 0U;
+    xy_error_t error;
+
+    if (!apds9960_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    error = xy_i2c_device_write_reg(&dev->i2c_dev, XY_APDS9960_REG_ENABLE, &enable, 1U);
+    if (error != XY_DEVICE_OK) {
+        return error;
+    }
+
+    dev->initialized = 0U;
+    dev->i2c_dev.base.initialized = 0U;
+    dev->i2c_dev.i2c_handle = NULL;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_apds9960_read_rgb(xy_apds9960_t *dev, xy_apds9960_rgb_t *sample)
+{
+    uint8_t data[8];
+    xy_apds9960_rgb_t next;
+    xy_error_t error;
+
+    if (!apds9960_ready(dev) || sample == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    error = xy_i2c_device_read_reg(&dev->i2c_dev, XY_APDS9960_REG_CDATAL, data, sizeof(data));
+    if (error != XY_DEVICE_OK) {
+        return error;
+    }
+
+    next.clear = apds9960_decode_le16(data);
+    next.red = apds9960_decode_le16(data + 2);
+    next.green = apds9960_decode_le16(data + 4);
+    next.blue = apds9960_decode_le16(data + 6);
+    next.timestamp = xy_hal_sys_get_tick_count();
+    *sample = next;
+    dev->rgb = next;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_apds9960_read_proximity(xy_apds9960_t *dev,
+                                      xy_apds9960_proximity_t *sample)
+{
+    xy_apds9960_proximity_t next;
+    xy_error_t error;
+
+    if (!apds9960_ready(dev) || sample == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    error = xy_i2c_device_read_reg(&dev->i2c_dev, XY_APDS9960_REG_PDATA, &next.proximity, 1U);
+    if (error != XY_DEVICE_OK) {
+        return error;
+    }
+
+    next.timestamp = xy_hal_sys_get_tick_count();
+    *sample = next;
+    dev->proximity = next;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_apds9960_read_gesture_fifo(xy_apds9960_t *dev,
+                                         xy_apds9960_gesture_fifo_t *sample)
+{
+    uint8_t status;
+    uint8_t level;
+    xy_apds9960_gesture_fifo_t next;
+    xy_error_t error;
+
+    if (!apds9960_ready(dev) || sample == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    memset(&next, 0, sizeof(next));
+    error = xy_i2c_device_read_reg(&dev->i2c_dev, XY_APDS9960_REG_GSTATUS, &status, 1U);
+    if (error != XY_DEVICE_OK) {
+        return error;
+    }
+
+    if ((status & XY_APDS9960_GVALID) != 0U) {
+        error = xy_i2c_device_read_reg(&dev->i2c_dev, XY_APDS9960_REG_GFLVL, &level, 1U);
+        if (error != XY_DEVICE_OK) {
+            return error;
+        }
+        if (level > 32U) {
+            return XY_DEVICE_INVALID_PARAM;
+        }
+        next.level = level;
+        if (level != 0U) {
+            error = xy_i2c_device_read_reg(&dev->i2c_dev, XY_APDS9960_REG_GFIFO_U, next.data,
+                                           (size_t)level * 4U);
+            if (error != XY_DEVICE_OK) {
+                return error;
+            }
+        }
+    }
+
+    next.timestamp = xy_hal_sys_get_tick_count();
+    *sample = next;
+    dev->gesture = next;
+    return XY_DEVICE_OK;
+}
