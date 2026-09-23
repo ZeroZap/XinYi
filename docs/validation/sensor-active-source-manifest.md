@@ -298,6 +298,8 @@ default range/filter configuration, I2C/SPI transport dispatch and converted acc
 gyroscope and temperature outputs. Root-linked `sensor_icm20608.c` retains the three legacy
 factories as compatibility wrappers only. Existing Pandora ICM20608 static/basic-chain evidence
 remains bounded; migration does not establish dynamic response, accuracy, calibration or recovery.
+Internal writes now enforce the same I2C/SPI transport validity as reads. Successful deinit clears
+the active I2C handle or SPI callback/context set, preventing stale transport reuse.
 
 ### HDC1080 migration status
 

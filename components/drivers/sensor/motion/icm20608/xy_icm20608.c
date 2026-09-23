@@ -30,6 +30,12 @@ static xy_error_t icm20608_read(xy_icm20608_t *dev, uint8_t reg, uint8_t *data, 
 
 static xy_error_t icm20608_write(xy_icm20608_t *dev, uint8_t reg, uint8_t value)
 {
+    if (dev == NULL ||
+        (dev->transport == XY_ICM20608_TRANSPORT_I2C
+             ? (dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL)
+             : (dev->spi_context == NULL || dev->spi_read == NULL || dev->spi_write == NULL))) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     if (dev->transport == XY_ICM20608_TRANSPORT_I2C) {
         return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
     }
@@ -133,6 +139,11 @@ xy_error_t xy_icm20608_deinit(xy_icm20608_t *dev)
         dev->initialized = 0U;
         if (dev->transport == XY_ICM20608_TRANSPORT_I2C) {
             dev->i2c_dev.base.initialized = 0U;
+            dev->i2c_dev.i2c_handle = NULL;
+        } else {
+            dev->spi_context = NULL;
+            dev->spi_read = NULL;
+            dev->spi_write = NULL;
         }
     }
     return result;
