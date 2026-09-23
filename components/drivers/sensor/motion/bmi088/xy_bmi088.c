@@ -24,6 +24,11 @@
 #define XY_ERROR -1
 #endif
 
+static bool bmi088_transport_ready(const xy_bmi088_dev_t *dev)
+{
+    return dev != XY_NULL && dev->spi != XY_NULL && dev->spi->handle != XY_NULL;
+}
+
 /*============================================================================
  * 内部辅助函数
  *===========================================================================*/
@@ -33,7 +38,7 @@
  */
 static xy_ret_t bmi088_acc_write_reg(xy_bmi088_dev_t *dev, uint8_t reg_addr, const uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->spi == XY_NULL || data == XY_NULL) {
+    if (!bmi088_transport_ready(dev) || data == XY_NULL) {
         return XY_ERROR;
     }
     return xy_spi_write_reg(dev->spi, 0, reg_addr, data, len);
@@ -44,7 +49,7 @@ static xy_ret_t bmi088_acc_write_reg(xy_bmi088_dev_t *dev, uint8_t reg_addr, con
  */
 static xy_ret_t bmi088_acc_read_reg(xy_bmi088_dev_t *dev, uint8_t reg_addr, uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->spi == XY_NULL || data == XY_NULL) {
+    if (!bmi088_transport_ready(dev) || data == XY_NULL) {
         return XY_ERROR;
     }
     return xy_spi_read_reg(dev->spi, 0, reg_addr, data, len);
@@ -55,7 +60,7 @@ static xy_ret_t bmi088_acc_read_reg(xy_bmi088_dev_t *dev, uint8_t reg_addr, uint
  */
 static xy_ret_t bmi088_gyro_write_reg(xy_bmi088_dev_t *dev, uint8_t reg_addr, const uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->spi == XY_NULL || data == XY_NULL) {
+    if (!bmi088_transport_ready(dev) || data == XY_NULL) {
         return XY_ERROR;
     }
     return xy_spi_write_reg(dev->spi, 1, reg_addr, data, len);
@@ -66,7 +71,7 @@ static xy_ret_t bmi088_gyro_write_reg(xy_bmi088_dev_t *dev, uint8_t reg_addr, co
  */
 static xy_ret_t bmi088_gyro_read_reg(xy_bmi088_dev_t *dev, uint8_t reg_addr, uint8_t *data, uint16_t len)
 {
-    if (dev == XY_NULL || dev->spi == XY_NULL || data == XY_NULL) {
+    if (!bmi088_transport_ready(dev) || data == XY_NULL) {
         return XY_ERROR;
     }
     return xy_spi_read_reg(dev->spi, 1, reg_addr, data, len);
@@ -107,7 +112,7 @@ static float bmi088_get_gyro_sensitivity(xy_bmi088_gyro_range_t range)
 
 xy_ret_t xy_bmi088_init(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi, xy_bmi088_config_t *config)
 {
-    if (dev == XY_NULL || spi == XY_NULL) {
+    if (dev == XY_NULL || spi == XY_NULL || spi->handle == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -210,7 +215,7 @@ init_failed:
 
 xy_ret_t xy_bmi088_deinit(xy_bmi088_dev_t *dev)
 {
-    if (dev == XY_NULL || !dev->is_initialized) {
+    if (dev == XY_NULL || !dev->is_initialized || !bmi088_transport_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -229,13 +234,14 @@ xy_ret_t xy_bmi088_deinit(xy_bmi088_dev_t *dev)
     }
 
     dev->is_initialized = false;
+    dev->spi = XY_NULL;
 
     return XY_OK;
 }
 
 xy_ret_t xy_bmi088_read_chip_id(xy_bmi088_dev_t *dev, uint8_t *acc_id, uint8_t *gyro_id)
 {
-    if (dev == XY_NULL || dev->spi == XY_NULL) {
+    if (!bmi088_transport_ready(dev)) {
         return XY_ERROR;
     }
     
@@ -256,7 +262,7 @@ xy_ret_t xy_bmi088_read_chip_id(xy_bmi088_dev_t *dev, uint8_t *acc_id, uint8_t *
 
 xy_ret_t xy_bmi088_read_raw_data(xy_bmi088_dev_t *dev, xy_bmi088_raw_data_t *raw_data)
 {
-    if (dev == XY_NULL || !dev->is_initialized || raw_data == XY_NULL) {
+    if (!bmi088_transport_ready(dev) || !dev->is_initialized || raw_data == XY_NULL) {
         return XY_ERROR;
     }
     
@@ -350,7 +356,8 @@ xy_ret_t xy_bmi088_soft_reset(xy_bmi088_dev_t *dev)
 
 xy_ret_t xy_bmi088_set_acc_range(xy_bmi088_dev_t *dev, xy_bmi088_acc_range_t range)
 {
-    if (dev == XY_NULL || !dev->is_initialized || range > XY_BMI088_ACC_RANGE_24G) {
+    if (!bmi088_transport_ready(dev) || !dev->is_initialized ||
+        range > XY_BMI088_ACC_RANGE_24G) {
         return XY_ERROR;
     }
     
@@ -366,7 +373,8 @@ xy_ret_t xy_bmi088_set_acc_range(xy_bmi088_dev_t *dev, xy_bmi088_acc_range_t ran
 
 xy_ret_t xy_bmi088_set_gyro_range(xy_bmi088_dev_t *dev, xy_bmi088_gyro_range_t range)
 {
-    if (dev == XY_NULL || !dev->is_initialized || range > XY_BMI088_GYRO_RANGE_2000) {
+    if (!bmi088_transport_ready(dev) || !dev->is_initialized ||
+        range > XY_BMI088_GYRO_RANGE_2000) {
         return XY_ERROR;
     }
     
@@ -435,6 +443,5 @@ void xy_bmi088_set_calibration(xy_bmi088_dev_t *dev, float acc_offset[3], float 
 
 bool xy_bmi088_is_ready(xy_bmi088_dev_t *dev)
 {
-    if (dev == XY_NULL) return false;
-    return dev->is_initialized;
+    return bmi088_transport_ready(dev) && dev->is_initialized;
 }

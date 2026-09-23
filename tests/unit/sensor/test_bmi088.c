@@ -175,7 +175,7 @@ static void assert_bmi088_cleared(const xy_bmi088_dev_t *dev)
 static void test_bmi088_init_defaults_custom_and_invalid_paths(void)
 {
     xy_bmi088_dev_t dev;
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
     xy_bmi088_config_t cfg = custom_config();
 
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_init(NULL, &spi, &cfg));
@@ -203,7 +203,7 @@ static void test_bmi088_init_defaults_custom_and_invalid_paths(void)
 static void test_bmi088_default_config_and_init_failures(void)
 {
     xy_bmi088_dev_t dev;
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
     xy_bmi088_config_t defaults = {
         .acc_range = XY_BMI088_ACC_RANGE_6G,
         .gyro_range = XY_BMI088_GYRO_RANGE_2000,
@@ -240,7 +240,7 @@ static void test_bmi088_default_config_and_init_failures(void)
 static void test_bmi088_configuration_failures_clear_device_state(void)
 {
     xy_bmi088_dev_t dev;
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
     xy_bmi088_config_t cfg = custom_config();
 
     for (size_t failed_op = 4U; failed_op < 11U; failed_op++) {
@@ -257,7 +257,7 @@ static void test_bmi088_configuration_failures_clear_device_state(void)
 static void test_bmi088_read_raw_and_data_conversions(void)
 {
     xy_bmi088_dev_t dev;
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
     xy_bmi088_raw_data_t raw;
     xy_bmi088_data_t data;
 
@@ -292,7 +292,7 @@ static void test_bmi088_read_raw_and_data_conversions(void)
 static void test_bmi088_error_paths_setters_and_calibration(void)
 {
     xy_bmi088_dev_t dev = {0};
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
     xy_bmi088_raw_data_t raw;
     xy_bmi088_data_t data;
 
@@ -392,7 +392,7 @@ static void test_bmi088_error_paths_setters_and_calibration(void)
 static void test_bmi088_calibrate_failure_preserves_offsets_and_delay(void)
 {
     xy_bmi088_dev_t dev;
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
 
     init_bmi_ok(&dev, &spi);
     dev.acc_offset[0] = 1.0f;
@@ -417,7 +417,7 @@ static void test_bmi088_calibrate_failure_preserves_offsets_and_delay(void)
 static void test_bmi088_chip_id_partial_reads_and_soft_reset_failure(void)
 {
     xy_bmi088_dev_t dev = {0};
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
     uint8_t acc_id = 0;
     uint8_t gyro_id = 0;
 
@@ -440,7 +440,7 @@ static void test_bmi088_chip_id_partial_reads_and_soft_reset_failure(void)
 static void test_bmi088_deinit_write_failure_preserves_ready(void)
 {
     xy_bmi088_dev_t dev;
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
 
     init_bmi_ok(&dev, &spi);
     size_t op_index_before_deinit = g_op_index;
@@ -453,7 +453,7 @@ static void test_bmi088_deinit_write_failure_preserves_ready(void)
 static void test_bmi088_set_range_covers_all_sensitivity_branches(void)
 {
     xy_bmi088_dev_t dev;
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
 
     init_bmi_ok(&dev, &spi);
 
@@ -481,7 +481,7 @@ static void test_bmi088_set_range_covers_all_sensitivity_branches(void)
 static void test_bmi088_set_range_rejects_invalid_enums_without_io(void)
 {
     xy_bmi088_dev_t dev;
-    xy_spi_dev_t spi = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
     xy_bmi088_acc_range_t invalid_acc = (xy_bmi088_acc_range_t)99;
     xy_bmi088_gyro_range_t invalid_gyro = (xy_bmi088_gyro_range_t)99;
 
@@ -516,6 +516,39 @@ static void test_bmi088_set_calibration_and_inline_helpers(void)
     TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0174533f, xy_bmi088_gyro_raw_to_rads(100, 100.0f));
 }
 
+static void test_bmi088_public_ops_reject_missing_transport_and_clear_on_deinit(void)
+{
+    xy_bmi088_dev_t dev = {0};
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
+    xy_bmi088_raw_data_t raw = {1, 2, 3, 4, 5, 6, 7};
+    xy_bmi088_raw_data_t snapshot = raw;
+
+    dev.spi = &spi;
+    dev.is_initialized = true;
+    dev.config.acc_range = XY_BMI088_ACC_RANGE_6G;
+    dev.config.gyro_range = XY_BMI088_GYRO_RANGE_500;
+    spi.handle = NULL;
+
+    TEST_ASSERT_FALSE(xy_bmi088_is_ready(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_read_chip_id(&dev, NULL, NULL));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_read_raw_data(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_set_acc_range(&dev, XY_BMI088_ACC_RANGE_3G));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR,
+                          xy_bmi088_set_gyro_range(&dev, XY_BMI088_GYRO_RANGE_250));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_deinit(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &raw, sizeof(raw));
+    TEST_ASSERT_EQUAL_INT(XY_BMI088_ACC_RANGE_6G, dev.config.acc_range);
+    TEST_ASSERT_EQUAL_INT(XY_BMI088_GYRO_RANGE_500, dev.config.gyro_range);
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
+
+    spi.handle = (void *)0x1;
+    queue_write(0U, BMI088_ACC_PWR_CTRL_ADDR, 0x00U, XY_OK);
+    queue_write(1U, BMI088_GYRO_LPM1_ADDR, 0x03U, XY_OK);
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_bmi088_deinit(&dev));
+    TEST_ASSERT_NULL(dev.spi);
+    TEST_ASSERT_FALSE(xy_bmi088_is_ready(&dev));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -530,5 +563,6 @@ int main(void)
     RUN_TEST(test_bmi088_set_range_covers_all_sensitivity_branches);
     RUN_TEST(test_bmi088_set_range_rejects_invalid_enums_without_io);
     RUN_TEST(test_bmi088_set_calibration_and_inline_helpers);
+    RUN_TEST(test_bmi088_public_ops_reject_missing_transport_and_clear_on_deinit);
     return UNITY_END();
 }
