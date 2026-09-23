@@ -270,6 +270,12 @@ void test_bus_and_enum_boundaries_fail_closed_without_i2c(void)
     unsigned before = g_op_index;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_reset(&missing_bus));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL,
+                          xy_bno055_read_regs(&missing_bus, BNO055_REG_CHIP_ID,
+                                              (uint8_t *)&before, 1));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL,
+                          xy_bno055_set_units(&missing_bus, BNO055_UNIT_MS2));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_sleep(&missing_bus));
     TEST_ASSERT_EQUAL_UINT(before, g_op_index);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL,
@@ -545,6 +551,7 @@ void test_deinit_enters_sleep_when_initialized_and_accepts_cleared_device(void)
     expect_write_u8(BNO055_REG_PWR_MODE, BNO055_PWR_SUSPEND);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_NULL(dev.bus_handle);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_deinit(&dev));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_EINVAL, xy_bno055_deinit(NULL));

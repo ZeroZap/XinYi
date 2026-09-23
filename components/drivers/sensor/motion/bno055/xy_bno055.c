@@ -60,6 +60,11 @@
 
 /* ==================== 内部辅助函数 ==================== */
 
+static bool transport_ready(const xy_bno055_t *dev)
+{
+    return dev != NULL && dev->initialized && dev->bus_handle != NULL;
+}
+
 /**
  * @brief 延迟函数
  */
@@ -254,6 +259,7 @@ int xy_bno055_deinit(xy_bno055_t *dev)
             return ret;
         }
         dev->initialized = false;
+        dev->bus_handle = NULL;
         XY_LOG_INFO("BNO055 deinitialized");
     }
 
@@ -262,7 +268,7 @@ int xy_bno055_deinit(xy_bno055_t *dev)
 
 int xy_bno055_read_regs(xy_bno055_t *dev, uint8_t reg, uint8_t *buf, uint16_t len)
 {
-    if (!dev || !buf || !len || !dev->initialized) {
+    if (!buf || !len || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -271,7 +277,7 @@ int xy_bno055_read_regs(xy_bno055_t *dev, uint8_t reg, uint8_t *buf, uint16_t le
 
 int xy_bno055_write_regs(xy_bno055_t *dev, uint8_t reg, const uint8_t *buf, uint16_t len)
 {
-    if (!dev || !buf || !len || !dev->initialized) {
+    if (!buf || !len || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -305,7 +311,7 @@ int xy_bno055_get_sw_version(xy_bno055_t *dev, uint16_t *version)
 
 int xy_bno055_set_mode(xy_bno055_t *dev, bno055_mode_t mode)
 {
-    if (!dev || !dev->initialized || mode > BNO055_MODE_NDOF) {
+    if (!transport_ready(dev) || mode > BNO055_MODE_NDOF) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -349,7 +355,7 @@ int xy_bno055_get_mode(xy_bno055_t *dev, bno055_mode_t *mode)
 
 int xy_bno055_set_power_mode(xy_bno055_t *dev, bno055_pwr_t pwr)
 {
-    if (!dev || !dev->initialized || pwr > BNO055_PWR_SUSPEND) {
+    if (!transport_ready(dev) || pwr > BNO055_PWR_SUSPEND) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -359,7 +365,7 @@ int xy_bno055_set_power_mode(xy_bno055_t *dev, bno055_pwr_t pwr)
 
 int xy_bno055_set_units(xy_bno055_t *dev, uint8_t unit_flags)
 {
-    if (!dev || !dev->initialized) {
+    if (!transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -391,7 +397,7 @@ int xy_bno055_reset(xy_bno055_t *dev)
 
 int xy_bno055_get_calib_status(xy_bno055_t *dev, bno055_calib_t *calib)
 {
-    if (!dev || !calib || !dev->initialized) {
+    if (!calib || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -412,7 +418,7 @@ int xy_bno055_get_calib_status(xy_bno055_t *dev, bno055_calib_t *calib)
 
 int xy_bno055_get_quaternion(xy_bno055_t *dev, bno055_quaternion_t *quat)
 {
-    if (!dev || !quat || !dev->initialized) {
+    if (!quat || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -438,7 +444,7 @@ int xy_bno055_get_quaternion(xy_bno055_t *dev, bno055_quaternion_t *quat)
 
 int xy_bno055_get_euler(xy_bno055_t *dev, bno055_euler_t *euler)
 {
-    if (!dev || !euler || !dev->initialized) {
+    if (!euler || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -462,7 +468,7 @@ int xy_bno055_get_euler(xy_bno055_t *dev, bno055_euler_t *euler)
 
 int xy_bno055_get_data(xy_bno055_t *dev, bno055_data_t *data)
 {
-    if (!dev || !data || !dev->initialized) {
+    if (!data || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -570,7 +576,7 @@ int xy_bno055_get_data(xy_bno055_t *dev, bno055_data_t *data)
 
 int xy_bno055_get_raw_data(xy_bno055_t *dev, bno055_raw_data_t *raw)
 {
-    if (!dev || !raw || !dev->initialized) {
+    if (!raw || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -603,7 +609,7 @@ int xy_bno055_get_raw_data(xy_bno055_t *dev, bno055_raw_data_t *raw)
 
 int xy_bno055_get_sys_status(xy_bno055_t *dev, uint8_t *status)
 {
-    if (!dev || !status || !dev->initialized) {
+    if (!status || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -612,7 +618,7 @@ int xy_bno055_get_sys_status(xy_bno055_t *dev, uint8_t *status)
 
 int xy_bno055_get_self_test(xy_bno055_t *dev, uint8_t *result)
 {
-    if (!dev || !result || !dev->initialized) {
+    if (!result || !transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -621,7 +627,7 @@ int xy_bno055_get_self_test(xy_bno055_t *dev, uint8_t *result)
 
 int xy_bno055_set_axis_remap(xy_bno055_t *dev, uint8_t config, uint8_t sign)
 {
-    if (!dev || !dev->initialized) {
+    if (!transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -649,7 +655,7 @@ int xy_bno055_set_axis_remap(xy_bno055_t *dev, uint8_t config, uint8_t sign)
 
 int xy_bno055_sleep(xy_bno055_t *dev)
 {
-    if (!dev || !dev->initialized) {
+    if (!transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 
@@ -658,7 +664,7 @@ int xy_bno055_sleep(xy_bno055_t *dev)
 
 int xy_bno055_wakeup(xy_bno055_t *dev)
 {
-    if (!dev || !dev->initialized) {
+    if (!transport_ready(dev)) {
         return XY_DEVICE_EINVAL;
     }
 

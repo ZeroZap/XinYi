@@ -113,6 +113,11 @@ handle in addition to the driver lifecycle flag. Successful deinit clears the ha
 rejects operations before I2C/SPI access and preserves caller output and cached configuration. This
 adds no IMU accuracy, timing, recovery, or hardware claim.
 
+BNO055 public register/configuration/fused/raw/status/power/lifecycle operations now require a live
+bus handle in addition to the driver lifecycle flag. Successful deinit clears the handle; losing it
+rejects operations before I2C access and preserves caller outputs and cached configuration. This
+adds no fusion quality, IMU accuracy, timing, recovery, or hardware claim.
+
 ### LIS2DW12 migration status
 
 The legacy LIS2DW12 API is now backed by the canonical Device owner at
