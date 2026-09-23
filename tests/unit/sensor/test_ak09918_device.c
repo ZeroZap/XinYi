@@ -15,6 +15,8 @@ static op_t g_ops[8];
 static unsigned g_count;
 static unsigned g_index;
 static uint32_t g_tick;
+static xy_error_t g_init_ret;
+static int g_init_establish_transport;
 
 static void queue_read(uint8_t reg, const uint8_t *data, size_t len, xy_error_t ret)
 {
@@ -41,11 +43,11 @@ static void queue_write(uint8_t reg, uint8_t value, xy_error_t ret)
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr, uint32_t timeout)
 {
     memset(dev, 0, sizeof(*dev));
-    dev->base.initialized = 1U;
-    dev->i2c_handle = handle;
+    dev->base.initialized = g_init_establish_transport;
+    dev->i2c_handle = g_init_establish_transport ? handle : NULL;
     dev->dev_addr = addr;
     dev->timeout = timeout;
-    return XY_DEVICE_OK;
+    return g_init_ret;
 }
 
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
@@ -81,6 +83,8 @@ void setUp(void)
     g_count = 0U;
     g_index = 0U;
     g_tick = 100U;
+    g_init_ret = XY_DEVICE_OK;
+    g_init_establish_transport = 1;
 }
 void tearDown(void) {}
 
@@ -144,10 +148,25 @@ static void test_ak09918_failures_preserve_state_and_stop(void)
     TEST_ASSERT_EQUAL_UINT(g_count, g_index);
 }
 
+static void test_ak09918_init_rejects_incomplete_nested_transport(void)
+{
+    xy_ak09918_t dev;
+    int bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_establish_transport = 0;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ak09918_init(&dev, &bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, g_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_ak09918_identity_init_read_and_deinit);
     RUN_TEST(test_ak09918_failures_preserve_state_and_stop);
+    RUN_TEST(test_ak09918_init_rejects_incomplete_nested_transport);
     return UNITY_END();
 }

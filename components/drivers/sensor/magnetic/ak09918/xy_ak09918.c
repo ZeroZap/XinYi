@@ -30,9 +30,10 @@ xy_error_t xy_ak09918_init(xy_ak09918_t *dev, void *i2c_handle)
     }
     memset(dev, 0, sizeof(*dev));
     ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AK09918_ADDR, 1000U);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
+        dev->i2c_dev.i2c_handle == NULL) {
         memset(dev, 0, sizeof(*dev));
-        return ret;
+        return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
     ret = ak09918_read_reg(dev, XY_AK09918_REG_WIA1, id, sizeof(id));
     if (ret != XY_DEVICE_OK) {
