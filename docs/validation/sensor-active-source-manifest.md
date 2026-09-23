@@ -218,6 +218,11 @@ prototype remains. All public lifecycle/read/config operations now reject a miss
 helper without I/O or public-state changes.
 Successful deinit also clears the nested I2C handle, preventing stale transport reuse.
 
+LIS2DH12 initialization now clears the complete owner when Device-helper setup or any identity/config
+transaction fails. Public read/deinit operations require the outer driver lifecycle, nested Device
+lifecycle, and live I2C handle; rejected or failed operations perform no unauthorized I/O and preserve
+caller/cache state. This adds no acceleration accuracy, power, timing, recovery, or hardware claim.
+
 ### BH1750 migration status
 
 The Device-model source under `components/drivers/sensor/light/bh1750` is now the single active
