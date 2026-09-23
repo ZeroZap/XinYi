@@ -3,7 +3,7 @@
 #include <string.h>
 
 static uint8_t regs[256];
-static int init_result, read_result, write_result;
+static int init_result, read_result, write_result, init_establish_transport;
 static unsigned delay_ms, reads, writes, write_attempts;
 static unsigned read_fail_on_call, write_fail_on_call;
 
@@ -11,7 +11,10 @@ int xy_i2c_device_init(xy_i2c_device_t *d, void *h, uint16_t a, uint32_t t)
 {
     memset(d, 0, sizeof(*d));
     if (init_result != XY_DEVICE_OK) return init_result;
-    d->i2c_handle = h; d->dev_addr = a; d->timeout = t; d->base.initialized = true;
+    d->i2c_handle = init_establish_transport ? h : NULL;
+    d->dev_addr = a;
+    d->timeout = t;
+    d->base.initialized = init_establish_transport;
     return XY_DEVICE_OK;
 }
 int xy_i2c_device_read_reg(xy_i2c_device_t *d, uint8_t r, uint8_t *p, size_t n)
@@ -34,6 +37,7 @@ void setUp(void)
 {
     memset(regs, 0, sizeof(regs)); regs[0x01] = 0x18U;
     init_result = read_result = write_result = XY_DEVICE_OK;
+    init_establish_transport = 1;
     delay_ms = reads = writes = write_attempts = 0U;
     read_fail_on_call = write_fail_on_call = 0U;
 }
@@ -93,6 +97,20 @@ static void test_identity_and_write_failures_are_atomic(void)
     setUp(); write_result=XY_DEVICE_TIMEOUT;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_init(&d,&bus));
     TEST_ASSERT_FALSE(d.initialized); TEST_ASSERT_FALSE(d.i2c_dev.base.initialized);
+}
+static void test_init_rejects_incomplete_nested_transport_without_io(void)
+{
+    xy_sc7a22h_t d;
+    int bus;
+
+    memset(&d, 0xA5, sizeof(d));
+    init_establish_transport = 0;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sc7a22h_init(&d, &bus));
+    TEST_ASSERT_FALSE(d.initialized);
+    TEST_ASSERT_FALSE(d.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(d.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, reads);
+    TEST_ASSERT_EQUAL_UINT(0U, write_attempts);
 }
 static void test_power_down_and_deinit_are_fail_closed(void)
 {
@@ -225,6 +243,7 @@ int main(void)
     RUN_TEST(test_xyz_and_mg_conversion);
     RUN_TEST(test_read_failure_preserves_output);
     RUN_TEST(test_identity_and_write_failures_are_atomic);
+    RUN_TEST(test_init_rejects_incomplete_nested_transport_without_io);
     RUN_TEST(test_power_down_and_deinit_are_fail_closed);
     RUN_TEST(test_fifo_vendor_sequence_and_count);
     RUN_TEST(test_fifo_failures_preserve_public_state);
