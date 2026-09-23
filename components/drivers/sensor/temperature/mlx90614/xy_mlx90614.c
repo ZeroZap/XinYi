@@ -192,9 +192,8 @@ int xy_mlx90614_get_emissivity(xy_mlx90614_t *dev, uint16_t *emissivity)
     /* 从 EEPROM 读取发射率校准值 (地址 0x24) */
     ret = xy_mlx90614_read16(dev, 0x24, &ce_raw);
     if (ret != XY_DEVICE_OK) {
-        xy_log_w("MLX90614 read emissivity failed, using default 0.95\n");
-        *emissivity = 950;  /* 默认 0.95 */
-        return XY_MLX90614_OK;
+        xy_log_w("MLX90614 read emissivity failed\n");
+        return ret;
     }
     
     /* 转换：emissivity = CE / 65535 * 1000 (保留 3 位小数) */

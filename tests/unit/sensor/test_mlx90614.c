@@ -375,7 +375,7 @@ static void test_public_apis_reject_broken_nested_i2c_lifecycle_without_io(void)
     TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
 }
 
-static void test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error(void)
+static void test_emissivity_get_converts_calibration_and_preserves_output_on_i2c_error(void)
 {
     xy_mlx90614_t dev;
     uint16_t emissivity = 0;
@@ -388,13 +388,13 @@ static void test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_get_emissivity(&dev, &emissivity));
     TEST_ASSERT_EQUAL_UINT16(949U, emissivity);
 
-    emissivity = 0;
+    emissivity = 123U;
     g_read_fail_reg[MLX90614_EMISSIVITY] = 1U;
-    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_get_emissivity(&dev, &emissivity));
-    TEST_ASSERT_EQUAL_UINT16(950U, emissivity);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_mlx90614_get_emissivity(&dev, &emissivity));
+    TEST_ASSERT_EQUAL_UINT16(123U, emissivity);
 }
 
-static void test_emissivity_get_falls_back_on_bad_pec(void)
+static void test_emissivity_get_propagates_bad_pec_and_preserves_output(void)
 {
     xy_mlx90614_t dev;
     uint16_t emissivity = 123U;
@@ -403,8 +403,8 @@ static void test_emissivity_get_falls_back_on_bad_pec(void)
     TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &fake_bus, MLX90614_ADDR_DEFAULT));
     g_read_regs[MLX90614_EMISSIVITY][2] ^= 0x80U;
 
-    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_get_emissivity(&dev, &emissivity));
-    TEST_ASSERT_EQUAL_UINT16(950U, emissivity);
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_ERROR, xy_mlx90614_get_emissivity(&dev, &emissivity));
+    TEST_ASSERT_EQUAL_UINT16(123U, emissivity);
 }
 
 static void test_set_emissivity_validates_range_and_reports_unsupported_write(void)
@@ -456,8 +456,8 @@ int main(void)
     RUN_TEST(test_read_all_negative_temperature_conversion_bounds);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
     RUN_TEST(test_public_apis_reject_broken_nested_i2c_lifecycle_without_io);
-    RUN_TEST(test_emissivity_get_converts_calibration_and_falls_back_on_i2c_error);
-    RUN_TEST(test_emissivity_get_falls_back_on_bad_pec);
+    RUN_TEST(test_emissivity_get_converts_calibration_and_preserves_output_on_i2c_error);
+    RUN_TEST(test_emissivity_get_propagates_bad_pec_and_preserves_output);
     RUN_TEST(test_set_emissivity_validates_range_and_reports_unsupported_write);
     RUN_TEST(test_set_emissivity_rejects_uninitialized_device);
     RUN_TEST(test_read_all_max_raw_conversion_wraps_to_signed_cached_values);
