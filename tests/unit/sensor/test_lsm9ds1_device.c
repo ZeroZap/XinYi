@@ -3,17 +3,23 @@
 #include <string.h>
 
 static xy_error_t g_error;
+static unsigned g_init_calls;
+static unsigned g_init_fail_call;
 static uint8_t g_accel[6] = {1, 0, 2, 0, 3, 0};
 static uint8_t g_gyro[6] = {4, 0, 5, 0, 6, 0};
 static uint8_t g_mag[6] = {7, 0, 8, 0, 9, 0};
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr, uint32_t timeout)
 {
+    g_init_calls++;
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1;
     dev->i2c_handle = handle;
     dev->dev_addr = addr;
     dev->timeout = timeout;
+    if (g_init_calls == g_init_fail_call) {
+        return XY_DEVICE_TIMEOUT;
+    }
     return XY_DEVICE_OK;
 }
 
@@ -57,6 +63,8 @@ uint32_t xy_hal_sys_get_tick_count(void)
 void setUp(void)
 {
     g_error = XY_DEVICE_OK;
+    g_init_calls = 0U;
+    g_init_fail_call = 0U;
 }
 
 void tearDown(void) {}
@@ -101,11 +109,37 @@ static void test_invalid_arguments_are_rejected(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_lsm9ds1_read(NULL, NULL));
 }
 
+static void test_device_helper_init_failures_clear_both_transports(void)
+{
+    xy_lsm9ds1_t dev;
+    int bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_fail_call = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_lsm9ds1_init(&dev, &bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.imu.base.initialized);
+    TEST_ASSERT_NULL(dev.imu.i2c_handle);
+    TEST_ASSERT_FALSE(dev.mag.base.initialized);
+    TEST_ASSERT_NULL(dev.mag.i2c_handle);
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_fail_call = 2U;
+    g_init_calls = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_lsm9ds1_init(&dev, &bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.imu.base.initialized);
+    TEST_ASSERT_NULL(dev.imu.i2c_handle);
+    TEST_ASSERT_FALSE(dev.mag.base.initialized);
+    TEST_ASSERT_NULL(dev.mag.i2c_handle);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_read_deinit);
     RUN_TEST(test_read_failure_preserves_output_and_rejects_unready_device);
     RUN_TEST(test_invalid_arguments_are_rejected);
+    RUN_TEST(test_device_helper_init_failures_clear_both_transports);
     return UNITY_END();
 }
