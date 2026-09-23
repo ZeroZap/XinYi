@@ -123,8 +123,11 @@ adds no fusion quality, IMU accuracy, timing, recovery, or hardware claim.
 The legacy LIS2DW12 API is now backed by the canonical Device owner at
 `components/drivers/sensor/motion/lis2dw12`. The owner verifies WHO_AM_I `0x44` at 7-bit address
 `0x18`, applies the documented soft-reset, address-increment and low-power 100 Hz configuration,
-and stages left-aligned 14-bit XYZ samples behind the nested I2C lifecycle. Acceleration accuracy,
-low-power current, timing and hardware endurance remain `hardware-pending`.
+and stages left-aligned 14-bit XYZ samples behind the nested I2C lifecycle. Initialization clears
+the complete owner when Device-helper setup or any identity/config transaction fails. Public
+read/deinit operations require the outer lifecycle, nested lifecycle and live I2C handle; rejected
+or failed operations preserve caller/cache state, and successful teardown clears the transport.
+Acceleration accuracy, low-power current, timing and hardware endurance remain `hardware-pending`.
 
 PA122 is intentionally unsupported and retired from the active source set. The repository has no
 authoritative identity/register documentation beyond a legacy fixed address and threshold heuristic;
