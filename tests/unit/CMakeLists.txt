@@ -2195,9 +2195,9 @@ target_link_libraries(test_actuator_example_relay_servo_pwm m)
 # --- Test 42: BQ25620 charger I2C register and status contracts ---
 xy_add_unit_test(test_charger_bq25620 charger_bq25620 UNITY
     ${UNIT_PM}/test_charger_bq25620.c
-    ${ROOT}/components/charger/src/xy_bq25620.c
+    ${DRV}/power/charger/xy_bq25620.c
 )
-target_include_directories(test_charger_bq25620 PRIVATE ${ROOT}/components/charger/inc)
+target_include_directories(test_charger_bq25620 PRIVATE ${DRV}/power/charger)
 
 # --- Test 43: Standalone fuel gauge core API contracts ---
 xy_add_unit_test(test_fuel_gauge_core fuel_gauge_core UNITY

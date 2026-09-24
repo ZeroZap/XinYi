@@ -93,26 +93,13 @@ def validate() -> list[str]:
         (ARCHITECTURE_ANALYSIS, architecture_analysis),
         (REFACTORING_STATUS, refactoring_status),
     ):
-        require("drivers/power/charger/           # 驱动层（已迁移）" not in text,
-                f"{path.name} claims the nonexistent charger migration is complete", errors)
-        require("`driver/charger/` | `drivers/power/charger/` | 充电器驱动" not in text,
-                f"{path.name} lists the nonexistent charger owner as migrated", errors)
-        require("components/charger/src/xy_bq25620.c" in text,
-                f"{path.name} must identify the canonical BQ25620 owner", errors)
-        require("components/drivers/power/charger/` 当前不存在" in text,
-                f"{path.name} must retain the nonexistent-target boundary", errors)
+        require("components/drivers/power/charger/xy_bq25620.c" in text,
+                f"{path.name} must identify the migrated canonical BQ25620 owner", errors)
+        require("components/charger/src/xy_bq25620.c" not in text,
+                f"{path.name} retains the retired BQ25620 owner", errors)
 
-    for stale_plan_token in (
-        "方案 A: 完全重构（推荐）",
-        "mv components/driver/charger/* components/drivers/power/charger/",
-        "mkdir -p components/drivers/power/{charger,fuel_gauge}",
-    ):
-        require(stale_plan_token not in refactoring_plan,
-                f"{REFACTORING_PLAN.name} retains an executable stale power migration: "
-                f"{stale_plan_token}", errors)
     for required in (
-        "未执行历史提案",
-        "components/charger/src/xy_bq25620.c",
+        "components/drivers/power/charger/xy_bq25620.c",
         "Fuel Gauge 保持 standalone",
         "不得执行本文旧命令",
     ):

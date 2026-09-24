@@ -7,8 +7,8 @@
  * @note BQ25620 驱动实现 - 基于 I2C 接口
  */
 
-#include "../inc/xy_bq25620.h"
-#include "../inc/xy_charger.h"
+#include "xy_bq25620.h"
+#include "xy_charger.h"
 #include "xy_hal_i2c.h"
 #include <string.h>
 

@@ -731,10 +731,12 @@ BQ25620 follows the same retirement rule with an additional product boundary: th
 sensor-side `components/sensor/src/xy_bq25620.c` contract remains `experimental-test-only`, while
 the unreferenced `components/sensor/drivers/power/xy_sensor_bq25620.c` prototype was removed. That
 prototype published fixed example voltage/current/SOC values after reading only charge status and
-had no checked root consumer. The standalone canonical charger owner remains
-`components/charger/src/xy_bq25620.c`; Pandora has no charger IC, so this cleanup does not promote
-charger hardware, battery state, safety, or recovery evidence. The manifest guard prevents the
-prototype lifecycle from returning.
+had no checked root consumer. The standalone canonical charger owner is now
+`components/drivers/power/charger/xy_bq25620.c`; its existing public headers and focused contract
+moved with the implementation before the old `components/charger/` compatibility component was
+removed. Pandora has no charger IC, so this migration does not promote charger hardware, battery
+state, safety, or recovery evidence. The manifest guard prevents the prototype lifecycle from
+returning.
 
 MAX17043 also had an unreferenced `xy_sensor_*` singleton prototype beside two better-defined
 owners: the focused sensor-side `components/sensor/src/xy_max17043.c` contract and the standalone

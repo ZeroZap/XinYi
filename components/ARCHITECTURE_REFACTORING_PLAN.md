@@ -2,7 +2,7 @@
 
 **原始日期**：2024-12-19
 **校准日期**：2026-08-30
-**状态**：未执行历史提案（superseded；不得作为迁移指南）
+**状态**：Charger 子项已执行；其余内容仍为 superseded 历史提案
 
 > 本文原先提出一次性重排 `components/driver/`、`components/device/` 与
 > `components/drivers/`，其中包含创建 `components/drivers/power/charger/`、迁移 Charger/Fuel
@@ -25,9 +25,9 @@
 
 ### Charger
 
-- BQ25620 canonical owner：`components/charger/src/xy_bq25620.c`。
-- 当前状态为 `legacy-maintained`，由 root Kconfig/CMake 显式选择。
-- `components/drivers/power/charger/` 当前不存在，不是迁移目标。
+- BQ25620 canonical owner：`components/drivers/power/charger/xy_bq25620.c`。
+- Charger 公开 API 与 focused contract 已随 owner 迁移，旧 compatibility component 已移除。
+- Fuel Gauge 保持 standalone；不得执行本文旧命令扩展迁移范围。
 - 在产品需求、替代 owner 与迁移验证闭环前，不新增平行 Charger 实现。
 
 ### Fuel Gauge

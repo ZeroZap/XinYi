@@ -27,6 +27,7 @@ include_directories(
     ../pm/fuel-gauge
     ../pm/charger
     ../pm/inc
+    power/charger
     ../gui/inc
     sensor/pressure/bmp390/bosch
 )

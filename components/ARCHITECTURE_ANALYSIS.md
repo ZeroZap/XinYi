@@ -74,7 +74,7 @@ git commit -m "cleanup: Remove old driver backup directory"
 
 **位置** (4 个位置):
 ```
-components/charger/              # BQ25620 canonical owner（legacy-maintained）
+components/drivers/power/charger/ # BQ25620 canonical owner
 components/fuel_gauge/           # standalone canonical component
 components/pm/charger/           # PM-local compatibility/module path
 components/pm/fuel-gauge/        # PM-local legacy path
@@ -82,8 +82,8 @@ components/drivers/power/        # category scaffold only
 ```
 
 **2026-08-30 事实校准**:
-- `components/charger/src/xy_bq25620.c` 是当前 BQ25620 canonical implementation owner。
-- `components/drivers/power/charger/` 当前不存在，不能作为已完成迁移或可用替代 owner。
+- `components/drivers/power/charger/xy_bq25620.c` 是当前 BQ25620 canonical implementation owner。
+- 旧 `components/charger/` compatibility component 已在 API/focused contract 切换后移除。
 - `components/fuel_gauge/` 继续保持 standalone；不回并 PM，也不迁往空的 power-driver 路径。
 - 本文后续方案仅保留为历史提案，不能覆盖 root Kconfig/CMake、组件证据台账与 focused test 的当前事实。
 

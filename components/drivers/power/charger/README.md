@@ -12,9 +12,9 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
 
 ### 当前状态与 ownership
 
-- `components/charger/src/xy_bq25620.c` 是 BQ25620 的 **canonical implementation owner**；
-  `components/drivers/power/charger/` 当前不存在，不能作为迁移目标。
-- 组件状态为 `legacy-maintained`：保留现有 API 与错误修复，不在 ownership 决策前扩张新芯片。
+- `components/drivers/power/charger/xy_bq25620.c` 是 BQ25620 的 **canonical implementation owner**。
+- 旧 `components/charger/` compatibility component 已在 focused migration contract 切换后移除；
+  `xy_bq25620.h` 与 `xy_charger.h` 公开 API 保持兼容。
 - 当前证据仅为 `Host-guarded` 的 fake-I2C transaction/status contract 与 PC build；
   真实充电、热保护、故障恢复和电池安全仍为 `hardware-pending`。
 - Host 测试或 PC 编译不构成硬件验证、充电安全批准或 production-ready 声明。

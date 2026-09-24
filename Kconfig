@@ -101,11 +101,12 @@ config COMPONENT_DEVICE
       Unified device management framework.
 
 config COMPONENT_CHARGER
-    bool "Charger Management"
+    bool "Charger compatibility API (deprecated)"
     default n
-    select COMPONENT_DEVICE
+    select DRIVER_POWER
     help
-      Battery charger management (BQ25620, etc).
+      Deprecated compatibility selection. BQ25620 hardware ownership moved to
+      DRIVER_POWER under components/drivers/power/charger.
 
 config COMPONENT_CRYPTO
     bool "Crypto Library"
