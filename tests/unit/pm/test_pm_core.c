@@ -362,12 +362,21 @@ static void test_fuel_gauge_uses_platform_tick(void)
     TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_init(&cfg));
     TEST_ASSERT_EQUAL_UINT(500U, xy_fuel_gauge_get_remaining_mAh());
 
+    xy_pm_platform_set_fallback_tick(1500U);
     TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_update(3700, 3600, 25));
     TEST_ASSERT_EQUAL_UINT(500U, xy_fuel_gauge_get_remaining_mAh());
 
     xy_pm_platform_set_fallback_tick(2000U);
     TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_update(3700, 3600, 25));
     TEST_ASSERT_EQUAL_UINT(501U, xy_fuel_gauge_get_remaining_mAh());
+
+    xy_pm_platform_set_fallback_tick(2500U);
+    TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_update(3700, 3600, 25));
+    TEST_ASSERT_EQUAL_UINT(501U, xy_fuel_gauge_get_remaining_mAh());
+
+    xy_pm_platform_set_fallback_tick(3000U);
+    TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_update(3700, 3600, 25));
+    TEST_ASSERT_EQUAL_UINT(502U, xy_fuel_gauge_get_remaining_mAh());
     TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_deinit());
 }
 

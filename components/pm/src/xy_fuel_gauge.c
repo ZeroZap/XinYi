@@ -24,7 +24,7 @@
 typedef struct {
     xy_fuel_gauge_config_t config;
     xy_battery_state_t state;
-    int64_t accumulated_charge_mAs; /* 累积电荷量 (mA·s) */
+    int64_t accumulated_charge_uAms; /* 累积电荷量 (mA·ms = uA·s) */
     uint32_t last_update_time;
     bool initialized;
 } xy_fuel_gauge_ctrl_t;
@@ -60,7 +60,7 @@ int xy_fuel_gauge_init(const xy_fuel_gauge_config_t *config)
     s_fg.state.remaining_mAh = s_fg.config.design_capacity_mAh / 2;
     s_fg.state.full_charge_mAh = s_fg.config.full_capacity_mAh;
     s_fg.state.charging = false;
-    s_fg.accumulated_charge_mAs = (int64_t)s_fg.state.remaining_mAh * 3600;
+    s_fg.accumulated_charge_uAms = (int64_t)s_fg.state.remaining_mAh * 3600000;
     
     s_fg.last_update_time = xy_os_tick_get();
     s_fg.initialized = true;
@@ -105,7 +105,7 @@ int xy_fuel_gauge_update(uint32_t voltage_mV, int32_t current_mA, int32_t temper
     if (!s_fg.initialized) return XY_FUEL_GAUGE_ERROR;
     
     uint32_t now = xy_os_tick_get();
-    uint32_t delta_t = (now - s_fg.last_update_time) / 1000; /* 转换为秒 */
+    uint32_t delta_ms = now - s_fg.last_update_time;
     s_fg.last_update_time = now;
     
     /* 更新测量值 */
@@ -115,19 +115,19 @@ int xy_fuel_gauge_update(uint32_t voltage_mV, int32_t current_mA, int32_t temper
     s_fg.state.charging = (current_mA > 0);
     
     /* 库仑计积分 */
-    if (delta_t > 0 && delta_t < 60) { /* 防止异常时间间隔 */
-        s_fg.accumulated_charge_mAs += (int64_t)current_mA * delta_t;
+    if (delta_ms > 0U && delta_ms < 60000U) { /* 防止异常时间间隔 */
+        s_fg.accumulated_charge_uAms += (int64_t)current_mA * delta_ms;
     }
 
     /* 计算剩余容量 */
-    int64_t remaining_mAs = s_fg.accumulated_charge_mAs;
-    if (remaining_mAs < 0) remaining_mAs = 0;
-    if (remaining_mAs > (int64_t)s_fg.config.full_capacity_mAh * 3600) {
-        remaining_mAs = (int64_t)s_fg.config.full_capacity_mAh * 3600;
+    int64_t remaining_uAms = s_fg.accumulated_charge_uAms;
+    if (remaining_uAms < 0) remaining_uAms = 0;
+    if (remaining_uAms > (int64_t)s_fg.config.full_capacity_mAh * 3600000) {
+        remaining_uAms = (int64_t)s_fg.config.full_capacity_mAh * 3600000;
     }
 
-    s_fg.accumulated_charge_mAs = remaining_mAs;
-    s_fg.state.remaining_mAh = remaining_mAs / 3600;
+    s_fg.accumulated_charge_uAms = remaining_uAms;
+    s_fg.state.remaining_mAh = remaining_uAms / 3600000;
     
     /* 计算 SOC (库仑计 + 电压校正) */
     uint8_t soc_coulomb = (s_fg.state.remaining_mAh * 100) / s_fg.config.design_capacity_mAh;
@@ -216,7 +216,7 @@ int xy_fuel_gauge_reset(void)
 {
     if (!s_fg.initialized) return XY_FUEL_GAUGE_ERROR;
     
-    s_fg.accumulated_charge_mAs = (int64_t)s_fg.config.full_capacity_mAh * 3600;
+    s_fg.accumulated_charge_uAms = (int64_t)s_fg.config.full_capacity_mAh * 3600000;
     s_fg.last_update_time = xy_os_tick_get();
     s_fg.state.soc_percent = 100;
     s_fg.state.remaining_mAh = s_fg.config.full_capacity_mAh;
