@@ -168,7 +168,6 @@ guard API drift in those examples/skeletons.
 | `tests/unit/sensor/test_aht20.c` | `unity` | 0 |
 | `tests/unit/sensor/test_sht40.c` | `unity` | 0 |
 | `tests/unit/sensor/test_oled_ssd1306.c` | `unity` | 0 |
-| `tests/unit/sensor/test_bq25620.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bh1750.c` | `unity` | 0 |
 | `tests/unit/sensor/test_bh1750_legacy_sensor.c` | `unity` | 0 | BH1750 legacy light sensor init/read/failure contracts |
 | `tests/unit/sensor/test_sht30_legacy_sensor.c` | `unity` | 0 | SHT30 legacy compatibility wrapper delegates to canonical Device owner; dual-address/error/output-preservation contracts |
