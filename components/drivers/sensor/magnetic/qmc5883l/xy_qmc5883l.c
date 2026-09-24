@@ -4,14 +4,31 @@
 
 #include <string.h>
 
+static int qmc5883l_transport_ready(const xy_qmc5883l_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static int qmc5883l_ready(const xy_qmc5883l_t *dev)
 {
-    return dev != NULL && dev->initialized && dev->i2c_dev.base.initialized &&
-           dev->i2c_dev.i2c_handle != NULL;
+    return qmc5883l_transport_ready(dev) && dev->initialized;
+}
+
+static xy_error_t qmc5883l_read_reg(xy_qmc5883l_t *dev, uint8_t reg, uint8_t *data,
+                                    size_t length)
+{
+    if (!qmc5883l_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
 }
 
 static xy_error_t qmc5883l_write_u8(xy_qmc5883l_t *dev, uint8_t reg, uint8_t value)
 {
+    if (!qmc5883l_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
@@ -25,12 +42,11 @@ xy_error_t xy_qmc5883l_init(xy_qmc5883l_t *dev, void *i2c_handle)
     }
     memset(dev, 0, sizeof(*dev));
     ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_QMC5883L_ADDR, 1000U);
-    if (ret != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
-        dev->i2c_dev.i2c_handle == NULL) {
+    if (ret != XY_DEVICE_OK || !qmc5883l_transport_ready(dev)) {
         memset(dev, 0, sizeof(*dev));
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
-    ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_QMC5883L_REG_CHIP_ID, &id, 1U);
+    ret = qmc5883l_read_reg(dev, XY_QMC5883L_REG_CHIP_ID, &id, 1U);
     if (ret != XY_DEVICE_OK || id != XY_QMC5883L_CHIP_ID) {
         memset(dev, 0, sizeof(*dev));
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_NOT_FOUND;
@@ -78,14 +94,14 @@ xy_error_t xy_qmc5883l_read(xy_qmc5883l_t *dev, xy_qmc5883l_sample_t *sample)
     if (!qmc5883l_ready(dev) || sample == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_QMC5883L_REG_STATUS, &status, 1U);
+    ret = qmc5883l_read_reg(dev, XY_QMC5883L_REG_STATUS, &status, 1U);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
     if ((status & 0x01U) == 0U) {
         return XY_DEVICE_BUSY;
     }
-    ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_QMC5883L_REG_DATA_X_LSB, bytes, 6U);
+    ret = qmc5883l_read_reg(dev, XY_QMC5883L_REG_DATA_X_LSB, bytes, 6U);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }

@@ -407,7 +407,9 @@ lifecycle checks. Optical response, distance calibration and hardware endurance 
 The legacy QMC5883L API is now backed by the canonical Device owner at
 `components/drivers/sensor/magnetic/qmc5883l`. The owner verifies chip ID `0xFF`, performs the
 documented reset/period/continuous-mode sequence, checks DRDY before reading little-endian XYZ,
-and stages raw axes/timestamp behind nested I2C lifecycle checks. Magnetic calibration, accuracy,
+and stages raw axes/timestamp through register helpers that independently validate nested I2C
+lifecycle and handle state. Missing transport fails closed without bus access or state mutation,
+and successful teardown clears the nested handle. Magnetic calibration, accuracy,
 interrupt behavior and hardware endurance remain `hardware-pending`.
 
 ### AK09918 migration status

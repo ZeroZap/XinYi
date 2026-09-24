@@ -52,6 +52,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 {
     op_t *op = &g_ops[g_index++];
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_FALSE(op->write);
     TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
     TEST_ASSERT_EQUAL_UINT(op->len, len);
@@ -63,6 +64,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
 {
     op_t *op = &g_ops[g_index++];
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_TRUE(op->write);
     TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
     TEST_ASSERT_EQUAL_UINT(op->len, len);
@@ -113,6 +115,9 @@ static void test_qmc5883l_identity_init_read_and_deinit(void)
     TEST_ASSERT_EQUAL_UINT32(110U, sample.timestamp);
     queue_write(XY_QMC5883L_REG_CONTROL1, 0U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qmc5883l_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_UINT(g_count, g_index);
 }
 
@@ -150,11 +155,34 @@ static void test_qmc5883l_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_index);
 }
 
+static void test_qmc5883l_missing_handle_fails_closed(void)
+{
+    xy_qmc5883l_t dev;
+    xy_qmc5883l_sample_t output = {.raw_x = 11, .raw_y = 22, .raw_z = 33, .timestamp = 44U};
+    xy_qmc5883l_sample_t snapshot = output;
+    unsigned before;
+    int bus;
+
+    queue_valid_init();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qmc5883l_init(&dev, &bus));
+    dev.sample = snapshot;
+    before = g_index;
+    dev.i2c_dev.i2c_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qmc5883l_read(&dev, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qmc5883l_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(before, g_index);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev.sample, sizeof(dev.sample));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_qmc5883l_identity_init_read_and_deinit);
     RUN_TEST(test_qmc5883l_failures_preserve_state_and_stop);
     RUN_TEST(test_qmc5883l_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_qmc5883l_missing_handle_fails_closed);
     return UNITY_END();
 }
