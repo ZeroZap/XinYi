@@ -74,6 +74,10 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
         memset(dev, 0, sizeof(*dev));
         return ret;
     }
+    if (!dev->i2c_dev.base.initialized || !dev->i2c_dev.i2c_handle) {
+        memset(dev, 0, sizeof(*dev));
+        return XY_MPU6050_INVALID_PARAM;
+    }
     dev->addr = addr;
 
     /* 检查 WHO_AM_I */
