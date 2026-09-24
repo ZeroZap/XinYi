@@ -546,9 +546,10 @@ accuracy, warm-up and hardware endurance remain `hardware-pending`.
 
 The legacy AS5600 owner is now represented by `components/drivers/sensor/angle/as5600`. The
 canonical owner uses fixed 7-bit address `0x36`, reads the documented `0x0E/0x0F` raw angle,
-masks the reserved upper bits, and stages output/timestamp publication behind nested I2C
-lifecycle checks. Magnet installation, angle accuracy and hardware endurance remain
-`hardware-pending`.
+masks the reserved upper bits, and stages output/timestamp publication through a helper that
+independently validates nested I2C lifecycle and handle state. Missing transport fails closed without
+bus access or output/cache mutation, and successful teardown clears the nested handle. Magnet
+installation, angle accuracy and hardware endurance remain `hardware-pending`.
 
 ### BMI088 migration status
 

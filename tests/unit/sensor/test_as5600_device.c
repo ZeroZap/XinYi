@@ -21,6 +21,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr,
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_EQUAL_UINT8(XY_AS5600_REG_ANGLE_H, reg);
     TEST_ASSERT_EQUAL_UINT(2U, len);
     g_reads++;
@@ -61,6 +62,8 @@ static void test_as5600_read_masks_reserved_bits_and_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT(1U, g_reads);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_as5600_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
 static void test_as5600_failure_and_nested_lifecycle_are_atomic(void)
@@ -94,11 +97,32 @@ static void test_as5600_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_reads);
 }
 
+static void test_as5600_missing_handle_fails_closed(void)
+{
+    xy_as5600_t dev;
+    xy_as5600_sample_t output = {.angle_raw = 0xAAAAU, .timestamp = 7U};
+    xy_as5600_sample_t snapshot = output;
+    unsigned before;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_as5600_init(&dev, &bus));
+    dev.sample = snapshot;
+    before = g_reads;
+    dev.i2c_dev.i2c_handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_as5600_read(&dev, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_as5600_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(before, g_reads);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev.sample, sizeof(dev.sample));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_as5600_read_masks_reserved_bits_and_lifecycle);
     RUN_TEST(test_as5600_failure_and_nested_lifecycle_are_atomic);
     RUN_TEST(test_as5600_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_as5600_missing_handle_fails_closed);
     return UNITY_END();
 }
