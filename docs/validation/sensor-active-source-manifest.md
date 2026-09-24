@@ -336,9 +336,9 @@ The former focused-test-backed typed source/header pair was moved from the exper
 to `components/drivers/sensor/light/tsl2561` and is now root-linked by `xy_drivers`. Initialization
 now rejects a Device helper that reports success without publishing a live nested I2C lifecycle and
 handle, clears the partial owner, and performs no register I/O. Public operations retain the same
-outer+nested transport requirement. The canonical
-owner accepts only the three documented addresses, rejects an invalid nested Device/I2C lifecycle
-without I/O, and publishes channel/lux/timestamp cache only after both channel reads succeed. There
+outer+nested transport requirement. The canonical owner accepts only the three documented
+addresses, rejects an invalid nested Device/I2C lifecycle without I/O, and publishes
+channel/lux/timestamp cache only after both channel reads succeed. There
 is no legacy `sensor_device_t` factory to preserve. Host/source ownership only; optical accuracy,
 integration timing, saturation behavior and hardware recovery remain `hardware-pending`.
 
