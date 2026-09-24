@@ -3,10 +3,15 @@
 
 #include <string.h>
 
+static bool ltc2945_transport_ready(const xy_ltc2945_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static bool ltc2945_ready(const xy_ltc2945_t *dev)
 {
-    return dev != NULL && dev->initialized && dev->i2c_dev.base.initialized &&
-           dev->i2c_dev.i2c_handle != NULL;
+    return ltc2945_transport_ready(dev) && dev->initialized;
 }
 
 static bool ltc2945_config_valid(uint8_t address, const xy_ltc2945_config_t *config)
@@ -17,13 +22,21 @@ static bool ltc2945_config_valid(uint8_t address, const xy_ltc2945_config_t *con
 
 static int ltc2945_read_u8(xy_ltc2945_t *dev, uint8_t reg, uint8_t *value)
 {
+    if (!ltc2945_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_read_reg(&dev->i2c_dev, reg, value, 1U);
 }
 
 static int ltc2945_read_u12(xy_ltc2945_t *dev, uint8_t reg, uint16_t *value)
 {
     uint8_t data[2];
-    int ret = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, sizeof(data));
+    int ret;
+
+    if (!ltc2945_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    ret = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, sizeof(data));
 
     if (ret == XY_DEVICE_OK) {
         *value = ((uint16_t)data[0] << 4) | ((uint16_t)data[1] >> 4);
@@ -34,7 +47,12 @@ static int ltc2945_read_u12(xy_ltc2945_t *dev, uint8_t reg, uint16_t *value)
 static int ltc2945_read_u24(xy_ltc2945_t *dev, uint8_t reg, uint32_t *value)
 {
     uint8_t data[3];
-    int ret = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, sizeof(data));
+    int ret;
+
+    if (!ltc2945_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    ret = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, sizeof(data));
 
     if (ret == XY_DEVICE_OK) {
         *value = ((uint32_t)data[0] << 16) | ((uint32_t)data[1] << 8) | data[2];
@@ -44,6 +62,9 @@ static int ltc2945_read_u24(xy_ltc2945_t *dev, uint8_t reg, uint32_t *value)
 
 static int ltc2945_write_u8(xy_ltc2945_t *dev, uint8_t reg, uint8_t value)
 {
+    if (!ltc2945_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
@@ -59,9 +80,9 @@ int xy_ltc2945_init(xy_ltc2945_t *dev, void *i2c_handle, uint8_t address,
 
     memset(dev, 0, sizeof(*dev));
     ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, address, 1000U);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK || !ltc2945_transport_ready(dev)) {
         memset(dev, 0, sizeof(*dev));
-        return ret;
+        return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
 
     ret = ltc2945_read_u8(dev, XY_LTC2945_REG_STATUS, &status);

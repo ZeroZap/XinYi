@@ -594,8 +594,10 @@ VOC algorithm accuracy, compensation behavior, burn-in, timing, recovery or hard
 LTC2945 is rebuilt in `components/drivers/sensor/adc/ltc2945` from the Analog Devices register and
 scaling contract. The previous experimental source incorrectly assigned STATUS/POWER/VIN/SENSE
 registers and exposed nonexistent charge/energy accumulators. The canonical owner now publishes
-VIN, SENSE, current, power, status and fault only after all transactions succeed. Address strapping,
-metrology, alert thresholds and hardware recovery remain `hardware-pending`.
+VIN, SENSE, current, power, status and fault only after all transactions succeed; every internal
+register helper independently validates nested I2C lifecycle and handle state. Missing transport
+fails closed without bus access or state mutation, and successful teardown clears the nested handle.
+Address strapping, metrology, alert thresholds and hardware recovery remain `hardware-pending`.
 
 SGP30 had only a legacy-root placeholder that returned a fixed `100.0` gas value without issuing an
 I2C command or implementing the documented eCO2/TVOC measurement protocol. It had no second

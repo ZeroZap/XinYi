@@ -269,6 +269,7 @@ static void test_ltc2945_datasheet_registers_scaling_and_lifecycle(void)
     TEST_ASSERT_EQUAL_INT(XY_LTC2945_OK, xy_ltc2945_deinit(&ltc));
     TEST_ASSERT_FALSE(ltc.initialized);
     TEST_ASSERT_FALSE(ltc.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(ltc.i2c_dev.i2c_handle);
 }
 
 static void test_ltc2945_failures_are_atomic_and_stop_at_first_error(void)
@@ -319,6 +320,29 @@ static void test_ltc2945_init_failures_clear_complete_lifecycle(void)
                           xy_ltc2945_init(&ltc, &bus, XY_LTC2945_ADDR_DEFAULT, &cfg));
     TEST_ASSERT_EQUAL_MEMORY(&(xy_ltc2945_t){0}, &ltc, sizeof(ltc));
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
+}
+
+static void test_ltc2945_missing_handle_fails_closed(void)
+{
+    xy_ltc2945_t ltc;
+    xy_ltc2945_sample_t output = {.bus_voltage_mv = 1U, .current_ua = 2U};
+    const xy_ltc2945_sample_t snapshot = output;
+    size_t before;
+    int bus;
+
+    init_ltc_ok(&ltc, &bus);
+    ltc.sample = snapshot;
+    before = g_op_index;
+    ltc.i2c_dev.i2c_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_read_sample(&ltc, &output));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_set_alert_mask(&ltc, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_clear_faults(&ltc, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_LTC2945_INVALID_PARAM, xy_ltc2945_deinit(&ltc));
+    TEST_ASSERT_EQUAL_UINT(before, g_op_index);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &ltc.sample, sizeof(ltc.sample));
+    TEST_ASSERT_TRUE(ltc.initialized);
 }
 
 static void init_ads_ok(xy_ads1115_t *ads, int *bus)
@@ -699,6 +723,7 @@ int main(void)
     RUN_TEST(test_ltc2945_datasheet_registers_scaling_and_lifecycle);
     RUN_TEST(test_ltc2945_failures_are_atomic_and_stop_at_first_error);
     RUN_TEST(test_ltc2945_init_failures_clear_complete_lifecycle);
+    RUN_TEST(test_ltc2945_missing_handle_fails_closed);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
     RUN_TEST(test_ads1115_not_found_and_io_failure_paths);
     RUN_TEST(test_ads1115_propagates_i2c_init_failure_without_bus_io);
