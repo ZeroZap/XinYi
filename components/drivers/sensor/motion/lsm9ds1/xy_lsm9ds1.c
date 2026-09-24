@@ -1,9 +1,149 @@
 #include "xy_lsm9ds1.h"
 #include "xy_device_timing.h"
 #include "xy_hal_sys.h"
+
 #include <string.h>
-static int ready(const xy_lsm9ds1_t*d){return d&&d->initialized&&d->imu.base.initialized&&d->imu.i2c_handle&&d->mag.base.initialized&&d->mag.i2c_handle;}
-static xy_error_t w(xy_i2c_device_t*d,uint8_t r,uint8_t v){return xy_i2c_device_write_reg(d,r,&v,1);}
-xy_error_t xy_lsm9ds1_init(xy_lsm9ds1_t*d,void*h){uint8_t i,m;xy_error_t e;if(!d||!h)return XY_DEVICE_INVALID_PARAM;memset(d,0,sizeof(*d));e=xy_i2c_device_init(&d->imu,h,XY_LSM9DS1_IMU_ADDR,1000);if(e!=0){memset(d,0,sizeof(*d));return e;}e=xy_i2c_device_init(&d->mag,h,XY_LSM9DS1_MAG_ADDR,1000);if(e!=0){memset(d,0,sizeof(*d));return e;}e=xy_i2c_device_read_reg(&d->imu,15,&i,1);if(e==0&&i!=XY_LSM9DS1_IMU_WHOAMI)e=XY_DEVICE_NOT_FOUND;if(e==0)e=xy_i2c_device_read_reg(&d->mag,15,&m,1);if(e==0&&m!=XY_LSM9DS1_MAG_WHOAMI)e=XY_DEVICE_NOT_FOUND;if(e==0)e=w(&d->imu,XY_LSM9DS1_REG_CTRL3_C,1);if(e==0){xy_device_delay_ms(10);e=w(&d->imu,XY_LSM9DS1_REG_CTRL1_XL,XY_LSM9DS1_CTRL1_XL_104HZ_2G);}if(e==0)e=w(&d->imu,XY_LSM9DS1_REG_CTRL2_G,XY_LSM9DS1_CTRL2_G_104HZ_250DPS);if(e==0)e=w(&d->mag,XY_LSM9DS1_REG_CTRL_REG1_M,XY_LSM9DS1_CTRL1_M_10HZ_HIGH_POWER);if(e!=0){memset(d,0,sizeof(*d));return e;}d->initialized=1;return 0;}
-xy_error_t xy_lsm9ds1_deinit(xy_lsm9ds1_t*d){xy_error_t e;if(!ready(d))return XY_DEVICE_INVALID_PARAM;e=w(&d->imu,XY_LSM9DS1_REG_CTRL1_XL,0);if(e==0)e=w(&d->imu,XY_LSM9DS1_REG_CTRL2_G,0);if(e==0)e=w(&d->mag,XY_LSM9DS1_REG_CTRL_REG1_M,0);if(e!=0)return e;d->initialized=0;d->imu.base.initialized=0;d->mag.base.initialized=0;d->imu.i2c_handle=NULL;d->mag.i2c_handle=NULL;return 0;}
-xy_error_t xy_lsm9ds1_read(xy_lsm9ds1_t*d,xy_lsm9ds1_sample_t*s){uint8_t a[6],g[6],m[6];xy_lsm9ds1_sample_t n;xy_error_t e;if(!ready(d)||!s)return XY_DEVICE_INVALID_PARAM;e=xy_i2c_device_read_reg(&d->imu,40,a,6);if(e!=0)return e;e=xy_i2c_device_read_reg(&d->imu,34,g,6);if(e!=0)return e;e=xy_i2c_device_read_reg(&d->mag,40,m,6);if(e!=0)return e;n.accel_x=(int16_t)(a[0]|a[1]<<8);n.accel_y=(int16_t)(a[2]|a[3]<<8);n.accel_z=(int16_t)(a[4]|a[5]<<8);n.gyro_x=(int16_t)(g[0]|g[1]<<8);n.gyro_y=(int16_t)(g[2]|g[3]<<8);n.gyro_z=(int16_t)(g[4]|g[5]<<8);n.mag_x=(int16_t)(m[0]|m[1]<<8);n.mag_y=(int16_t)(m[2]|m[3]<<8);n.mag_z=(int16_t)(m[4]|m[5]<<8);n.timestamp=xy_hal_sys_get_tick_count();*s=n;d->sample=n;return 0;}
+
+static int transport_ready(const xy_i2c_device_t *transport)
+{
+    return transport != NULL && transport->base.initialized && transport->i2c_handle != NULL;
+}
+
+static int ready(const xy_lsm9ds1_t *dev)
+{
+    return dev != NULL && dev->initialized && transport_ready(&dev->imu) &&
+           transport_ready(&dev->mag);
+}
+
+static xy_error_t read_reg(xy_i2c_device_t *transport, uint8_t reg, uint8_t *data, size_t length)
+{
+    if (!transport_ready(transport)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return xy_i2c_device_read_reg(transport, reg, data, length);
+}
+
+static xy_error_t write_reg(xy_i2c_device_t *transport, uint8_t reg, uint8_t value)
+{
+    if (!transport_ready(transport)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return xy_i2c_device_write_reg(transport, reg, &value, 1U);
+}
+
+xy_error_t xy_lsm9ds1_init(xy_lsm9ds1_t *dev, void *i2c_handle)
+{
+    uint8_t imu_id;
+    uint8_t mag_id;
+    xy_error_t result;
+
+    if (dev == NULL || i2c_handle == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    memset(dev, 0, sizeof(*dev));
+    result = xy_i2c_device_init(&dev->imu, i2c_handle, XY_LSM9DS1_IMU_ADDR, 1000U);
+    if (result == XY_DEVICE_OK) {
+        result = xy_i2c_device_init(&dev->mag, i2c_handle, XY_LSM9DS1_MAG_ADDR, 1000U);
+    }
+    if (result == XY_DEVICE_OK) {
+        result = read_reg(&dev->imu, XY_LSM9DS1_REG_WHOAMI_IMU, &imu_id, 1U);
+    }
+    if (result == XY_DEVICE_OK && imu_id != XY_LSM9DS1_IMU_WHOAMI) {
+        result = XY_DEVICE_NOT_FOUND;
+    }
+    if (result == XY_DEVICE_OK) {
+        result = read_reg(&dev->mag, XY_LSM9DS1_REG_WHOAMI_IMU, &mag_id, 1U);
+    }
+    if (result == XY_DEVICE_OK && mag_id != XY_LSM9DS1_MAG_WHOAMI) {
+        result = XY_DEVICE_NOT_FOUND;
+    }
+    if (result == XY_DEVICE_OK) {
+        result = write_reg(&dev->imu, XY_LSM9DS1_REG_CTRL3_C, 1U);
+    }
+    if (result == XY_DEVICE_OK) {
+        xy_device_delay_ms(10U);
+        result = write_reg(&dev->imu, XY_LSM9DS1_REG_CTRL1_XL,
+                           XY_LSM9DS1_CTRL1_XL_104HZ_2G);
+    }
+    if (result == XY_DEVICE_OK) {
+        result = write_reg(&dev->imu, XY_LSM9DS1_REG_CTRL2_G,
+                           XY_LSM9DS1_CTRL2_G_104HZ_250DPS);
+    }
+    if (result == XY_DEVICE_OK) {
+        result = write_reg(&dev->mag, XY_LSM9DS1_REG_CTRL_REG1_M,
+                           XY_LSM9DS1_CTRL1_M_10HZ_HIGH_POWER);
+    }
+    if (result != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+        return result;
+    }
+
+    dev->initialized = 1U;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_lsm9ds1_deinit(xy_lsm9ds1_t *dev)
+{
+    xy_error_t result;
+
+    if (!ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = write_reg(&dev->imu, XY_LSM9DS1_REG_CTRL1_XL, 0U);
+    if (result == XY_DEVICE_OK) {
+        result = write_reg(&dev->imu, XY_LSM9DS1_REG_CTRL2_G, 0U);
+    }
+    if (result == XY_DEVICE_OK) {
+        result = write_reg(&dev->mag, XY_LSM9DS1_REG_CTRL_REG1_M, 0U);
+    }
+    if (result != XY_DEVICE_OK) {
+        return result;
+    }
+
+    dev->initialized = 0U;
+    dev->imu.base.initialized = 0U;
+    dev->mag.base.initialized = 0U;
+    dev->imu.i2c_handle = NULL;
+    dev->mag.i2c_handle = NULL;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_lsm9ds1_read(xy_lsm9ds1_t *dev, xy_lsm9ds1_sample_t *sample)
+{
+    uint8_t accel[6];
+    uint8_t gyro[6];
+    uint8_t mag[6];
+    xy_lsm9ds1_sample_t next;
+    xy_error_t result;
+
+    if (!ready(dev) || sample == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    result = read_reg(&dev->imu, XY_LSM9DS1_REG_OUTX_L_XL, accel, sizeof(accel));
+    if (result == XY_DEVICE_OK) {
+        result = read_reg(&dev->imu, XY_LSM9DS1_REG_OUTX_L_G, gyro, sizeof(gyro));
+    }
+    if (result == XY_DEVICE_OK) {
+        result = read_reg(&dev->mag, XY_LSM9DS1_REG_OUTX_L_XL, mag, sizeof(mag));
+    }
+    if (result != XY_DEVICE_OK) {
+        return result;
+    }
+
+    next.accel_x = (int16_t)((uint16_t)accel[0] | ((uint16_t)accel[1] << 8));
+    next.accel_y = (int16_t)((uint16_t)accel[2] | ((uint16_t)accel[3] << 8));
+    next.accel_z = (int16_t)((uint16_t)accel[4] | ((uint16_t)accel[5] << 8));
+    next.gyro_x = (int16_t)((uint16_t)gyro[0] | ((uint16_t)gyro[1] << 8));
+    next.gyro_y = (int16_t)((uint16_t)gyro[2] | ((uint16_t)gyro[3] << 8));
+    next.gyro_z = (int16_t)((uint16_t)gyro[4] | ((uint16_t)gyro[5] << 8));
+    next.mag_x = (int16_t)((uint16_t)mag[0] | ((uint16_t)mag[1] << 8));
+    next.mag_y = (int16_t)((uint16_t)mag[2] | ((uint16_t)mag[3] << 8));
+    next.mag_z = (int16_t)((uint16_t)mag[4] | ((uint16_t)mag[5] << 8));
+    next.timestamp = xy_hal_sys_get_tick_count();
+    *sample = next;
+    dev->sample = next;
+    return XY_DEVICE_OK;
+}

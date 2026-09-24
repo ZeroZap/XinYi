@@ -491,8 +491,10 @@ interrupt/FIFO behavior and hardware endurance remain `hardware-pending`.
 The legacy LSM9DS1 API is now backed by the canonical Device owner at
 `components/drivers/sensor/motion/lsm9ds1`. The owner verifies IMU WHO_AM_I `0x68` and magnetometer
 WHO_AM_I `0x3D` at the documented 7-bit addresses `0x6A` and `0x1C`, performs reset and 104 Hz
-configuration, reads staged accelerometer, gyroscope and magnetometer XYZ data through two nested
-I2C lifecycles, and preserves output/cache on transport failure. Motion and magnetic accuracy,
+configuration, reads staged accelerometer, gyroscope and magnetometer XYZ data through helpers
+that independently validate both nested I2C lifecycles, and preserves output/cache on transport
+failure. Invalid IMU or magnetometer transport fails closed without bus access or lifecycle mutation;
+successful teardown clears both handles. Motion and magnetic accuracy,
 timing, interrupt behavior and hardware endurance remain `hardware-pending`.
 
 ### LIS2DH12 migration status
