@@ -727,11 +727,11 @@ INA226 first retained the stronger test-only owner after its unchecked prototype
 now been rebuilt and promoted to the canonical Device root as documented above; stale experimental
 and prototype paths remain forbidden.
 
-BQ25620 follows the same retirement rule with an additional product boundary: the focused
-sensor-side `components/sensor/src/xy_bq25620.c` contract remains `experimental-test-only`, while
-the unreferenced `components/sensor/drivers/power/xy_sensor_bq25620.c` prototype was removed. That
-prototype published fixed example voltage/current/SOC values after reading only charge status and
-had no checked root consumer. The standalone canonical charger owner is now
+BQ25620 follows the same retirement rule with an additional product boundary: the former
+sensor-side `components/sensor/src/xy_bq25620.c` experimental owner and the unreferenced
+`components/sensor/drivers/power/xy_sensor_bq25620.c` prototype are both retired. The latter
+published fixed example voltage/current/SOC values after reading only charge status; neither path
+had a root product consumer. The standalone canonical charger owner is now
 `components/drivers/power/charger/xy_bq25620.c`; its existing public headers and focused contract
 moved with the implementation before the old `components/charger/` compatibility component was
 removed. Pandora has no charger IC, so this migration does not promote charger hardware, battery

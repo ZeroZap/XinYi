@@ -22,6 +22,8 @@ STALE_HDC1080 = ROOT / "components" / "sensor" / "drivers" / "temperature" / "xy
 STALE_TSL2561 = ROOT / "components" / "sensor" / "drivers" / "light" / "xy_sensor_tsl2561.c"
 STALE_INA226 = ROOT / "components" / "sensor" / "drivers" / "power" / "xy_sensor_ina226.c"
 STALE_BQ25620 = ROOT / "components" / "sensor" / "drivers" / "power" / "xy_sensor_bq25620.c"
+STALE_BQ25620_SOURCE = ROOT / "components" / "sensor" / "src" / "xy_bq25620.c"
+STALE_BQ25620_HEADER = ROOT / "components" / "sensor" / "inc" / "xy_bq25620.h"
 STALE_MAX17043 = ROOT / "components" / "sensor" / "drivers" / "power" / "xy_sensor_max17043.c"
 STALE_ADXL362 = ROOT / "components" / "sensor" / "drivers" / "motion" / "xy_sensor_adxl362.c"
 STALE_BME280 = ROOT / "components" / "sensor" / "drivers" / "pressure" / "xy_sensor_bme280.c"
@@ -126,8 +128,8 @@ def main() -> int:
     require(len(legacy) == 38, f"expected 38 legacy active sources, found {len(legacy)}", errors)
     require([path.name for path in top_level_owners] == ["sensor_adt7420.c"],
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
-    require(len(experimental) == 6,
-            f"expected 6 experimental xy_* sources, found {len(experimental)}", errors)
+    require(len(experimental) == 5,
+            f"expected 5 experimental xy_* sources, found {len(experimental)}", errors)
     require(len(device) == 47, f"expected 47 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
@@ -210,7 +212,7 @@ def main() -> int:
             "canonical API 已确定为 Device model" in tracker and
             "| CLOSED |" in tracker,
             "D-001 must be closed after the canonical Device-model decision", errors)
-    require("6 个 `src/xy_*.c`" in audit_plan,
+    require("5 个 `src/xy_*.c`" in audit_plan,
             "audit plan must use the current experimental source count", errors)
     require("Device-model canonical owner" in audit_plan,
             "audit plan must record the resolved Sensor ownership direction", errors)
@@ -230,6 +232,8 @@ def main() -> int:
             "retired xy_sensor_ina226 lifecycle must not reappear", errors)
     require(not STALE_BQ25620.exists(),
             "retired xy_sensor_bq25620 lifecycle must not reappear", errors)
+    require(not STALE_BQ25620_SOURCE.exists() and not STALE_BQ25620_HEADER.exists(),
+            "retired experimental BQ25620 owner must not reappear", errors)
     require(not STALE_MAX17043.exists(),
             "retired xy_sensor_max17043 lifecycle must not reappear", errors)
     require(not STALE_ADXL362.exists(),
@@ -299,7 +303,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=39 legacy_subdir=38 "
-          "legacy_top_level=1 experimental_test_only=6 device_active=47 "
+          "legacy_top_level=1 experimental_test_only=5 device_active=47 "
           "approved_wrappers=25 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0
