@@ -7,16 +7,26 @@
 #define INA219_SHUNT_LSB_UV 10
 #define INA219_BUS_LSB_MV 4U
 
+static int ina219_transport_ready(const xy_ina219_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static int ina219_ready(const xy_ina219_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
-           dev->i2c_dev.i2c_handle != NULL;
+    return ina219_transport_ready(dev) && dev->initialized != 0U;
 }
 
 static xy_error_t ina219_read_word(xy_ina219_t *dev, uint8_t reg, uint16_t *value)
 {
     uint8_t data[2];
-    xy_error_t result = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, sizeof(data));
+    xy_error_t result;
+
+    if (!ina219_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, sizeof(data));
 
     if (result != XY_DEVICE_OK) {
         return result;
@@ -28,6 +38,10 @@ static xy_error_t ina219_read_word(xy_ina219_t *dev, uint8_t reg, uint16_t *valu
 static xy_error_t ina219_write_word(xy_ina219_t *dev, uint8_t reg, uint16_t value)
 {
     uint8_t data[2] = {(uint8_t)(value >> 8), (uint8_t)value};
+
+    if (!ina219_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, data, sizeof(data));
 }
 
@@ -110,9 +124,9 @@ xy_error_t xy_ina219_init(xy_ina219_t *dev, void *i2c_handle, uint8_t addr,
 
     memset(dev, 0, sizeof(*dev));
     result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000U);
-    if (result != XY_DEVICE_OK) {
+    if (result != XY_DEVICE_OK || !ina219_transport_ready(dev)) {
         memset(dev, 0, sizeof(*dev));
-        return result;
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
 
     result = ina219_write_word(dev, XY_INA219_REG_CONFIG, XY_INA219_CONFIG_RESET);

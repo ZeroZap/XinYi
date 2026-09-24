@@ -131,6 +131,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_EQUAL(0, dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_NOT_NULL(data);
 
     i2c_op_t *op = next_op(OP_READ_REG);
@@ -146,6 +147,7 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_EQUAL(0, dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_NOT_NULL(data);
 
     i2c_op_t *op = next_op(OP_WRITE);
@@ -159,6 +161,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_EQUAL(0, dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_NOT_NULL(data);
 
     i2c_op_t *op = next_op(OP_WRITE_REG);
@@ -641,6 +644,8 @@ static void test_ina219_init_and_measurement_contract(void)
     queue_write_reg16(XY_INA219_REG_CONFIG, 0U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ina219_deinit(&ina));
     TEST_ASSERT_FALSE(ina.initialized);
+    TEST_ASSERT_FALSE(ina.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(ina.i2c_dev.i2c_handle);
 }
 
 static void test_ina219_failures_preserve_state_and_stop_io(void)
