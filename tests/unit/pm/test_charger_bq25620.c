@@ -209,6 +209,51 @@ static void test_start_stop_and_deinit(void)
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_NULL(dev.i2c_handle);
+    TEST_ASSERT_NULL(dev.base.hw_data);
+}
+
+static void test_lost_transport_and_failed_deinit_are_fail_closed(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_status_t status;
+    xy_charger_status_t snapshot;
+    unsigned tx_before;
+    unsigned rx_before;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
+    memset(&status, 0xA5, sizeof(status));
+    snapshot = status;
+    tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+    rx_before = xy_hal_i2c_master_receive_fake.call_count;
+    dev.i2c_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_get_status(&dev, &status));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_start_charge(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_deinit(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
+    TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
+static void test_init_rejects_noncanonical_address_and_clears_failed_probe(void)
+{
+    xy_bq25620_t dev;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_hal_i2c_master_transmit_fake.call_count);
+
+    memset(&dev, 0xA5, sizeof(dev));
+    reset_fake_i2c();
+    g_regs[BQ25620_REG_DEVICE_ID] = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_SUPPORT,
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_bq25620_t){0}, &dev, sizeof(dev));
 }
 
 int main(void)
@@ -219,5 +264,7 @@ int main(void)
     RUN_TEST(test_status_decoding);
     RUN_TEST(test_config_and_clamping);
     RUN_TEST(test_start_stop_and_deinit);
+    RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
+    RUN_TEST(test_init_rejects_noncanonical_address_and_clears_failed_probe);
     return UNITY_END();
 }

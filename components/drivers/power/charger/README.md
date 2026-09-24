@@ -16,6 +16,9 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
 - 旧 `components/charger/` compatibility component 已在 focused migration contract 切换后移除；
   `xy_bq25620.h` 与 `xy_charger.h` 公开 API 保持兼容。
 - 当前证据仅为 `Host-guarded` 的 fake-I2C transaction/status contract 与 PC build；
+  register/status/config/control operations require a live owner transport, failed probe clears the
+  full object, status publication is staged until all required reads succeed, and successful teardown
+  clears the handle/callback context. The fixed 7-bit address contract is `0x6A`.
   真实充电、热保护、故障恢复和电池安全仍为 `hardware-pending`。
 - Host 测试或 PC 编译不构成硬件验证、充电安全批准或 production-ready 声明。
 

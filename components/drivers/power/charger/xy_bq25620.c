@@ -14,12 +14,22 @@
 
 /* ==================== Private Functions ==================== */
 
+static bool bq25620_transport_ready(const xy_bq25620_t *dev)
+{
+    return dev != NULL && dev->i2c_handle != NULL;
+}
+
+static bool bq25620_ready(const xy_bq25620_t *dev)
+{
+    return bq25620_transport_ready(dev) && dev->initialized;
+}
+
 /**
  * @brief I2C 读取寄存器
  */
 static int bq25620_i2c_read(xy_bq25620_t *dev, uint8_t reg, uint8_t *data, uint8_t len)
 {
-    if (!dev || !dev->i2c_handle || !data) {
+    if (!bq25620_transport_ready(dev) || !data || len == 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -45,7 +55,7 @@ static int bq25620_i2c_read(xy_bq25620_t *dev, uint8_t reg, uint8_t *data, uint8
  */
 static int bq25620_i2c_write(xy_bq25620_t *dev, uint8_t reg, uint8_t data)
 {
-    if (!dev || !dev->i2c_handle) {
+    if (!bq25620_transport_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -129,7 +139,7 @@ static int bq25620_hw_init(void *hw_data)
     
     /* 读取设备 ID 验证 */
     uint8_t dev_id;
-    int ret = xy_bq25620_read_reg(dev, BQ25620_REG_DEVICE_ID, &dev_id);
+    int ret = bq25620_i2c_read(dev, BQ25620_REG_DEVICE_ID, &dev_id, 1U);
     if (ret != XY_DEVICE_OK) {
         return XY_DEVICE_ERROR;
     }
@@ -146,93 +156,56 @@ static int bq25620_hw_init(void *hw_data)
 static int bq25620_hw_read_status(void *hw_data, xy_charger_status_t *status)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!dev || !status) {
+    xy_charger_status_t next = {0};
+    uint8_t stat0;
+    uint8_t stat1;
+    uint8_t reg_value;
+
+    if (!bq25620_ready(dev) || !status) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    
-    memset(status, 0, sizeof(*status));
-    
-    /* 读取状态寄存器 */
-    uint8_t stat0, stat1;
-    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_0, &stat0, 1) != XY_DEVICE_OK) {
+
+    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_0, &stat0, 1U) != XY_DEVICE_OK ||
+        bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_1, &stat1, 1U) != XY_DEVICE_OK ||
+        bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_1, &reg_value, 1U) != XY_DEVICE_OK) {
         return XY_DEVICE_ERROR;
     }
-    
-    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_1, &stat1, 1) != XY_DEVICE_OK) {
+    next.charge_current = reg_to_current(reg_value & BQ25620_ICHG_MASK,
+                                         BQ25620_ICHG_STEP_mA, BQ25620_ICHG_MIN_mA);
+    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_3, &reg_value, 1U) != XY_DEVICE_OK) {
         return XY_DEVICE_ERROR;
+    }
+    next.bat_voltage = reg_to_voltage(reg_value & BQ25620_VREG_MASK,
+                                      BQ25620_VREG_STEP_mV, BQ25620_VREG_MIN_mV);
+    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_4, &reg_value, 1U) != XY_DEVICE_OK) {
+        return XY_DEVICE_ERROR;
+    }
+    next.input_current = reg_to_current(reg_value & BQ25620_ILIM_MASK,
+                                        BQ25620_ILIM_STEP_mA, BQ25620_ILIM_MIN_mA);
+
+    switch (stat0 & BQ25620_STAT_CHG_MASK) {
+        case BQ25620_STAT_CHG_IDLE: next.state = XY_CHARGER_STATE_IDLE; break;
+        case BQ25620_STAT_CHG_PRECHG: next.state = XY_CHARGER_STATE_PRE_CHARGE; break;
+        case BQ25620_STAT_CHG_FAST: next.state = XY_CHARGER_STATE_FAST_CHARGE; break;
+        case BQ25620_STAT_CHG_DONE: next.state = XY_CHARGER_STATE_CHARGE_DONE; break;
+        default: next.state = XY_CHARGER_STATE_FAULT; break;
     }
 
-    uint8_t reg_value;
-    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_1, &reg_value, 1) == XY_DEVICE_OK) {
-        status->charge_current = reg_to_current(reg_value & BQ25620_ICHG_MASK,
-                                                BQ25620_ICHG_STEP_mA,
-                                                BQ25620_ICHG_MIN_mA);
+    switch (stat1 & BQ25620_FAULT_MASK) {
+        case BQ25620_FAULT_NORMAL: next.fault = XY_CHARGER_FAULT_NONE; break;
+        case BQ25620_FAULT_INPUT_OVP: next.fault = XY_CHARGER_FAULT_INPUT_OVP; break;
+        case BQ25620_FAULT_THERMAL: next.fault = XY_CHARGER_FAULT_THERMAL; break;
+        case BQ25620_FAULT_CHG_TIMEOUT: next.fault = XY_CHARGER_FAULT_CHARGE_TIMEOUT; break;
+        case BQ25620_FAULT_BAT_OVP: next.fault = XY_CHARGER_FAULT_BAT_OVP; break;
+        default: next.fault = XY_CHARGER_FAULT_NONE; break;
     }
-    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_3, &reg_value, 1) == XY_DEVICE_OK) {
-        status->bat_voltage = reg_to_voltage(reg_value & BQ25620_VREG_MASK,
-                                             BQ25620_VREG_STEP_mV,
-                                             BQ25620_VREG_MIN_mV);
-    }
-    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_4, &reg_value, 1) == XY_DEVICE_OK) {
-        status->input_current = reg_to_current(reg_value & BQ25620_ILIM_MASK,
-                                               BQ25620_ILIM_STEP_mA,
-                                               BQ25620_ILIM_MIN_mA);
-    }
-    
-    /* 解析充电状态 */
-    uint8_t chg_stat = stat0 & BQ25620_STAT_CHG_MASK;
-    switch (chg_stat) {
-        case BQ25620_STAT_CHG_IDLE:
-            status->state = XY_CHARGER_STATE_IDLE;
-            break;
-        case BQ25620_STAT_CHG_PRECHG:
-            status->state = XY_CHARGER_STATE_PRE_CHARGE;
-            break;
-        case BQ25620_STAT_CHG_FAST:
-            status->state = XY_CHARGER_STATE_FAST_CHARGE;
-            break;
-        case BQ25620_STAT_CHG_DONE:
-            status->state = XY_CHARGER_STATE_CHARGE_DONE;
-            break;
-        default:
-            status->state = XY_CHARGER_STATE_FAULT;
-            break;
-    }
-    
-    /* 解析故障状态 */
-    uint8_t fault = stat1 & BQ25620_FAULT_MASK;
-    switch (fault) {
-        case BQ25620_FAULT_NORMAL:
-            status->fault = XY_CHARGER_FAULT_NONE;
-            break;
-        case BQ25620_FAULT_INPUT_OVP:
-            status->fault = XY_CHARGER_FAULT_INPUT_OVP;
-            break;
-        case BQ25620_FAULT_THERMAL:
-            status->fault = XY_CHARGER_FAULT_THERMAL;
-            break;
-        case BQ25620_FAULT_CHG_TIMEOUT:
-            status->fault = XY_CHARGER_FAULT_CHARGE_TIMEOUT;
-            break;
-        case BQ25620_FAULT_BAT_OVP:
-            status->fault = XY_CHARGER_FAULT_BAT_OVP;
-            break;
-        default:
-            status->fault = XY_CHARGER_FAULT_NONE;
-            break;
-    }
-    
-    /* Power Good 状态 */
-    status->power_good = (stat0 & BQ25620_STAT_PG) ? true : false;
-    
-    /* 充电中标志 */
-    status->charging = (status->state == XY_CHARGER_STATE_PRE_CHARGE ||
-                        status->state == XY_CHARGER_STATE_FAST_CHARGE ||
-                        status->state == XY_CHARGER_STATE_CONSTANT_VOLT);
-    
-    /* 充电完成标志 */
-    status->done = (status->state == XY_CHARGER_STATE_CHARGE_DONE);
-    
+
+    next.power_good = (stat0 & BQ25620_STAT_PG) != 0U;
+    next.charging = next.state == XY_CHARGER_STATE_PRE_CHARGE ||
+                    next.state == XY_CHARGER_STATE_FAST_CHARGE ||
+                    next.state == XY_CHARGER_STATE_CONSTANT_VOLT;
+    next.done = next.state == XY_CHARGER_STATE_CHARGE_DONE;
+    *status = next;
     return XY_DEVICE_OK;
 }
 
@@ -320,7 +293,7 @@ static int bq25620_hw_write_reg(void *hw_data, uint8_t reg, uint8_t value)
 
 int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
 {
-    if (!dev || !i2c_handle) {
+    if (!dev || !i2c_handle || i2c_addr != 0x6AU) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -339,25 +312,30 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     dev->base.hw_data = dev;
     
     /* 初始化硬件 */
-    return bq25620_hw_init(dev);
+    int ret = bq25620_hw_init(dev);
+    if (ret != XY_DEVICE_OK) {
+        memset(dev, 0, sizeof(*dev));
+    }
+    return ret;
 }
 
 int xy_bq25620_deinit(xy_bq25620_t *dev)
 {
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    
-    /* 停止充电 */
-    xy_bq25620_stop_charge(dev);
-    
-    dev->initialized = false;
+
+    int ret = xy_bq25620_stop_charge(dev);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+    memset(dev, 0, sizeof(*dev));
     return XY_DEVICE_OK;
 }
 
 int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value)
 {
-    if (!dev || !value) {
+    if (!bq25620_ready(dev) || !value) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -366,7 +344,7 @@ int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value)
 
 int xy_bq25620_write_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t value)
 {
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -375,7 +353,7 @@ int xy_bq25620_write_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t value)
 
 int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id)
 {
-    if (!dev || !id) {
+    if (!bq25620_ready(dev) || !id) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -384,7 +362,7 @@ int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id)
 
 int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_status_t *status)
 {
-    if (!dev || !status) {
+    if (!bq25620_ready(dev) || !status) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -393,7 +371,7 @@ int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_status_t *status)
 
 int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
 {
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -410,7 +388,7 @@ int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
 
 int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
 {
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -427,7 +405,7 @@ int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
 
 int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
 {
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -445,7 +423,7 @@ int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
 
 int xy_bq25620_start_charge(xy_bq25620_t *dev)
 {
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -454,7 +432,7 @@ int xy_bq25620_start_charge(xy_bq25620_t *dev)
 
 int xy_bq25620_stop_charge(xy_bq25620_t *dev)
 {
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
