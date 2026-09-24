@@ -129,12 +129,15 @@ int xy_fuel_gauge_update(uint32_t voltage_mV, int32_t current_mA, int32_t temper
     s_fg.accumulated_charge_uAms = remaining_uAms;
     s_fg.state.remaining_mAh = remaining_uAms / 3600000;
     
-    /* 计算 SOC (库仑计 + 电压校正) */
-    uint8_t soc_coulomb = (s_fg.state.remaining_mAh * 100) / s_fg.config.design_capacity_mAh;
+    /* Calculate coulomb SOC before narrowing to the public uint8_t field. */
+    uint32_t soc_coulomb =
+        ((uint32_t)s_fg.state.remaining_mAh * 100U) / s_fg.config.design_capacity_mAh;
     uint8_t soc_voltage = voltage_to_soc(voltage_mV);
-    
-    /* 加权平均：库仑计 70% + 电压 30% */
-    s_fg.state.soc_percent = (soc_coulomb * 70 + soc_voltage * 30) / 100;
+
+    if (soc_coulomb > 100U) soc_coulomb = 100U;
+
+    /* Weighted average: coulomb counter 70% + voltage 30%. */
+    s_fg.state.soc_percent = (uint8_t)((soc_coulomb * 70U + (uint32_t)soc_voltage * 30U) / 100U);
     
     /* 边界检查 */
     if (s_fg.state.soc_percent > 100) s_fg.state.soc_percent = 100;

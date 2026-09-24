@@ -380,6 +380,26 @@ static void test_fuel_gauge_uses_platform_tick(void)
     TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_deinit());
 }
 
+static void test_fuel_gauge_clamps_coulomb_soc_before_narrowing(void)
+{
+    xy_fuel_gauge_config_t cfg = {
+        .design_capacity_mAh = 100,
+        .full_capacity_mAh = 300,
+        .nominal_voltage_mV = 3700,
+        .cells = 1,
+    };
+
+    TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_deinit());
+    xy_pm_platform_set_fallback_tick(1000U);
+    TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_init(&cfg));
+    TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_reset());
+    TEST_ASSERT_EQUAL_UINT(300U, xy_fuel_gauge_get_remaining_mAh());
+
+    TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_update(4200U, 0, 25));
+    TEST_ASSERT_EQUAL_UINT8(100U, xy_fuel_gauge_get_soc());
+    TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_deinit());
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -395,5 +415,6 @@ int main(void)
     RUN_TEST(test_pm_deinit_preserves_state_when_charger_disable_fails);
     RUN_TEST(test_fuel_gauge_and_adc_contracts);
     RUN_TEST(test_fuel_gauge_uses_platform_tick);
+    RUN_TEST(test_fuel_gauge_clamps_coulomb_soc_before_narrowing);
     return UNITY_END();
 }
