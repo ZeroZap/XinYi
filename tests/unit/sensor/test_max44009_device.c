@@ -21,6 +21,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr,
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_EQUAL_UINT(1U, len);
     TEST_ASSERT_TRUE(reg == XY_MAX44009_REG_LUX_HIGH || reg == XY_MAX44009_REG_LUX_LOW);
     if (reg == XY_MAX44009_REG_LUX_HIGH) {
@@ -63,6 +64,9 @@ static void test_max44009_read_decodes_lux_and_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT32(222333U, sample.timestamp);
     TEST_ASSERT_EQUAL_UINT(2U, g_reads);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_max44009_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
 static void test_max44009_failure_and_nested_lifecycle_are_atomic(void)
@@ -97,11 +101,32 @@ static void test_max44009_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_reads);
 }
 
+static void test_max44009_missing_handle_fails_closed(void)
+{
+    xy_max44009_t dev;
+    xy_max44009_sample_t output = {.illuminance_mlux = 0xAAAAU, .timestamp = 7U};
+    xy_max44009_sample_t snapshot = output;
+    unsigned before;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_max44009_init(&dev, &bus, XY_MAX44009_ADDR_LOW));
+    dev.sample = snapshot;
+    before = g_reads;
+    dev.i2c_dev.i2c_handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_max44009_read(&dev, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_max44009_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(before, g_reads);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev.sample, sizeof(dev.sample));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_max44009_read_decodes_lux_and_lifecycle);
     RUN_TEST(test_max44009_failure_and_nested_lifecycle_are_atomic);
     RUN_TEST(test_max44009_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_max44009_missing_handle_fails_closed);
     return UNITY_END();
 }

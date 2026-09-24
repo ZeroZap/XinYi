@@ -333,7 +333,10 @@ recovery remain `hardware-pending`.
 ### TSL2561 migration status
 
 The former focused-test-backed typed source/header pair was moved from the experimental Sensor tree
-to `components/drivers/sensor/light/tsl2561` and is now root-linked by `xy_drivers`. The canonical
+to `components/drivers/sensor/light/tsl2561` and is now root-linked by `xy_drivers`. Initialization
+now rejects a Device helper that reports success without publishing a live nested I2C lifecycle and
+handle, clears the partial owner, and performs no register I/O. Public operations retain the same
+outer+nested transport requirement. The canonical
 owner accepts only the three documented addresses, rejects an invalid nested Device/I2C lifecycle
 without I/O, and publishes channel/lux/timestamp cache only after both channel reads succeed. There
 is no legacy `sensor_device_t` factory to preserve. Host/source ownership only; optical accuracy,
@@ -397,8 +400,10 @@ accuracy, waterproofing, timing, interrupt behavior and hardware endurance remai
 The legacy MAX44009 owner is now represented by `components/drivers/sensor/light/max44009`.
 The canonical owner validates the two documented 7-bit addresses (`0x4A`/`0x4B`), reads the
 `0x03`/`0x04` exponent-mantissa registers, converts lux to integer milli-lux, and stages the
-sample/timestamp behind nested I2C lifecycle checks. Optical accuracy and hardware endurance
-remain `hardware-pending`.
+sample/timestamp through a register helper that independently validates nested I2C lifecycle and
+handle state. Missing transport fails closed before either half of the two-register transaction,
+without changing caller output or cache; successful teardown clears the nested handle. Optical
+accuracy and hardware endurance remain `hardware-pending`.
 
 ### VCNL4040 migration status
 

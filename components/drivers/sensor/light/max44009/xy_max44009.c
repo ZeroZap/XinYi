@@ -3,10 +3,23 @@
 
 #include <string.h>
 
+static int max44009_transport_ready(const xy_max44009_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static int max44009_ready(const xy_max44009_t *dev)
 {
-    return dev != NULL && dev->initialized && dev->i2c_dev.base.initialized &&
-           dev->i2c_dev.i2c_handle != NULL;
+    return max44009_transport_ready(dev) && dev->initialized;
+}
+
+static xy_error_t max44009_read_reg(xy_max44009_t *dev, uint8_t reg, uint8_t *data)
+{
+    if (!max44009_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, 1U);
 }
 
 static int max44009_valid_addr(uint8_t addr)
@@ -22,8 +35,7 @@ xy_error_t xy_max44009_init(xy_max44009_t *dev, void *i2c_handle, uint8_t addr)
     }
     memset(dev, 0, sizeof(*dev));
     ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000U);
-    if (ret != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
-        dev->i2c_dev.i2c_handle == NULL) {
+    if (ret != XY_DEVICE_OK || !max44009_transport_ready(dev)) {
         memset(dev, 0, sizeof(*dev));
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
@@ -54,11 +66,11 @@ xy_error_t xy_max44009_read(xy_max44009_t *dev, xy_max44009_sample_t *sample)
     if (!max44009_ready(dev) || sample == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_MAX44009_REG_LUX_HIGH, bytes, 1U);
+    ret = max44009_read_reg(dev, XY_MAX44009_REG_LUX_HIGH, bytes);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_MAX44009_REG_LUX_LOW, &bytes[1], 1U);
+    ret = max44009_read_reg(dev, XY_MAX44009_REG_LUX_LOW, &bytes[1]);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
