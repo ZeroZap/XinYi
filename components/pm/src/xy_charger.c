@@ -35,26 +35,6 @@ extern uint32_t xy_pm_tick_get(void);
 #define xy_os_tick_get()  xy_pm_tick_get()
 #endif
 
-/* Charger GPIO control */
-#if XY_PLATFORM_STM32
-#include "xy_hal_gpio.h"
-/* Device header for GPIO peripheral base addresses (GPIOA etc.) */
-#if defined(STM32U5) || defined(STM32U5xx)
-#  include "stm32u5xx.h"
-#elif defined(STM32F4) || defined(STM32F4xx)
-#  include "stm32f4xx.h"
-#elif defined(STM32F1) || defined(STM32F1xx)
-#  include "stm32f1xx.h"
-#elif defined(STM32L4) || defined(STM32L4xx)
-#  include "stm32l4xx.h"
-#endif
-#ifndef CHARGER_EN_PORT
-#define CHARGER_EN_PORT   GPIOA
-#endif
-#ifndef CHARGER_EN_PIN
-#define CHARGER_EN_PIN    0
-#endif
-#endif
 
 /* 充电状态机 */
 typedef struct {
@@ -231,24 +211,3 @@ bool xy_charger_is_charging(void)
 {
     return s_charger.initialized && s_charger.enabled && s_charger.state.charging;
 }
-
-#if !defined(XY_PM_PLATFORM_OWNS_CHARGER_HW)
-int xy_charger_hw_enable(int enable)
-{
-#if XY_PLATFORM_STM32
-    xy_hal_gpio_write((void*)CHARGER_EN_PORT, CHARGER_EN_PIN, enable ? 1 : 0);
-    xy_log_d("STM32 Charger HW enable: %d\n", enable);
-#elif XY_PLATFORM_WCH
-    xy_log_d("CH32 Charger HW enable: %d\n", enable);
-#else
-    (void)enable;
-    xy_log_d("Charger HW enable (simulated): %d\n", enable);
-#endif
-    return XY_CHARGER_OK;
-}
-
-int xy_charger_hw_disable(void)
-{
-    return xy_charger_hw_enable(false);
-}
-#endif

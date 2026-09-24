@@ -126,6 +126,10 @@ add_test(NAME charger_ownership
     COMMAND python3 ${UNIT_PM}/check_charger_ownership.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pm_charger_ownership
+    COMMAND python3 ${UNIT_PM}/check_pm_charger_ownership.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME reference_rtos_decision
     COMMAND python3 ${UNIT_KERNEL}/check_reference_rtos_decision.py
     WORKING_DIRECTORY ${ROOT}
@@ -1503,7 +1507,7 @@ xy_add_unit_test(test_pm pm_component UNITY
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
-target_compile_definitions(test_pm PRIVATE PLATFORM_PC XY_PM_PLATFORM_OWNS_CHARGER_HW XY_PM_ENABLE_TEST_HOOKS)
+target_compile_definitions(test_pm PRIVATE PLATFORM_PC XY_PM_ENABLE_TEST_HOOKS)
 
 xy_add_unit_test(test_pm_platform_fallback pm_platform_fallback UNITY
     ${UNIT_PM}/test_pm_platform_fallback.c
