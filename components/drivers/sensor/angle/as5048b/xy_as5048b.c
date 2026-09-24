@@ -3,10 +3,23 @@
 
 #include <string.h>
 
+static int as5048b_transport_ready(const xy_as5048b_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static int as5048b_ready(const xy_as5048b_t *dev)
 {
-    return dev != NULL && dev->initialized && dev->i2c_dev.base.initialized &&
-           dev->i2c_dev.i2c_handle != NULL;
+    return as5048b_transport_ready(dev) && dev->initialized;
+}
+
+static xy_error_t as5048b_read_angle(xy_as5048b_t *dev, uint8_t data[2])
+{
+    if (!as5048b_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return xy_i2c_device_read_reg(&dev->i2c_dev, XY_AS5048B_REG_ANGLE_MSB, data, 2U);
 }
 
 xy_error_t xy_as5048b_init(xy_as5048b_t *dev, void *i2c_handle)
@@ -18,8 +31,7 @@ xy_error_t xy_as5048b_init(xy_as5048b_t *dev, void *i2c_handle)
     }
     memset(dev, 0, sizeof(*dev));
     ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AS5048B_ADDR, 1000U);
-    if (ret != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
-        dev->i2c_dev.i2c_handle == NULL) {
+    if (ret != XY_DEVICE_OK || !as5048b_transport_ready(dev)) {
         memset(dev, 0, sizeof(*dev));
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
@@ -47,7 +59,7 @@ xy_error_t xy_as5048b_read(xy_as5048b_t *dev, xy_as5048b_sample_t *sample)
     if (!as5048b_ready(dev) || sample == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_AS5048B_REG_ANGLE_MSB, bytes, 2U);
+    ret = as5048b_read_angle(dev, bytes);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
