@@ -17,6 +17,7 @@ FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_receive, void *, uint16_t,
 static uint8_t g_regs[0x20];
 static uint8_t g_selected_reg;
 static void *g_expected_i2c = (void *)0x1234;
+static unsigned g_fail_tx_call;
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
                                                const uint8_t *data, size_t len,
@@ -44,6 +45,7 @@ static void reset_fake_i2c(void)
     memset(g_regs, 0, sizeof(g_regs));
     g_regs[BQ25620_REG_DEVICE_ID] = BQ25620_PART_NUMBER;
     g_selected_reg = 0;
+    g_fail_tx_call = 0U;
 }
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
@@ -57,6 +59,11 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(1U, len);
     TEST_ASSERT_LESS_OR_EQUAL_UINT(2U, len);
+
+    if (g_fail_tx_call != 0U &&
+        xy_hal_i2c_master_transmit_fake.call_count == g_fail_tx_call) {
+        return XY_HAL_ERROR;
+    }
 
     g_selected_reg = data[0];
     if (len == 2) {
@@ -256,6 +263,61 @@ static void test_init_rejects_noncanonical_address_and_clears_failed_probe(void)
     TEST_ASSERT_EQUAL_MEMORY(&(xy_bq25620_t){0}, &dev, sizeof(dev));
 }
 
+static void test_full_config_stops_at_first_write_error(void)
+{
+    static const uint8_t registers[] = {
+        BQ25620_REG_CHG_CTRL_1,
+        BQ25620_REG_CHG_CTRL_3,
+        BQ25620_REG_CHG_CTRL_4,
+        BQ25620_REG_CHG_CTRL_2,
+        BQ25620_REG_CHG_CTRL_5,
+    };
+    const xy_charger_config_t config = {
+        .input_current_limit = 500U,
+        .charge_current = 128U,
+        .charge_voltage = 4200U,
+        .precharge_current = 128U,
+        .termination_current = 192U,
+        .recharge_threshold = 200U,
+        .auto_recharge = true,
+    };
+
+    for (unsigned failed_write = 0U; failed_write < sizeof(registers); ++failed_write) {
+        xy_bq25620_t dev;
+        unsigned tx_before;
+
+        reset_fake_i2c();
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                              xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+        tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+        g_fail_tx_call = tx_before + failed_write + 1U;
+
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                              dev.base.hw_set_config(dev.base.hw_data, &config));
+        TEST_ASSERT_EQUAL_UINT(g_fail_tx_call,
+                               xy_hal_i2c_master_transmit_fake.call_count);
+        for (unsigned later = failed_write; later < sizeof(registers); ++later) {
+            TEST_ASSERT_EQUAL_HEX8(0U, g_regs[registers[later]]);
+        }
+        TEST_ASSERT_TRUE(dev.initialized);
+    }
+}
+
+static void test_full_config_requires_live_owner(void)
+{
+    xy_bq25620_t dev;
+    const xy_charger_config_t config = {0};
+    unsigned tx_before;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+    dev.i2c_handle = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          dev.base.hw_set_config(dev.base.hw_data, &config));
+    TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -266,5 +328,7 @@ int main(void)
     RUN_TEST(test_start_stop_and_deinit);
     RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
     RUN_TEST(test_init_rejects_noncanonical_address_and_clears_failed_probe);
+    RUN_TEST(test_full_config_stops_at_first_write_error);
+    RUN_TEST(test_full_config_requires_live_owner);
     return UNITY_END();
 }

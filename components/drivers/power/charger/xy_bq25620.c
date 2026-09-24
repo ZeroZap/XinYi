@@ -212,45 +212,45 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_status_t *status)
 static int bq25620_hw_set_config(void *hw_data, const xy_charger_config_t *config)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!dev || !config) {
+    uint8_t reg_value;
+    int ret;
+
+    if (!bq25620_ready(dev) || !config) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    
-    /* 设置充电电流 */
-    uint8_t ichg_reg = current_to_reg(config->charge_current, 
-                                       BQ25620_ICHG_STEP_mA, 
-                                       BQ25620_ICHG_MIN_mA);
-    bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_1, ichg_reg & BQ25620_ICHG_MASK);
-    
-    /* 设置充电电压 */
-    uint8_t vreg_reg = voltage_to_reg(config->charge_voltage,
-                                       BQ25620_VREG_STEP_mV,
-                                       BQ25620_VREG_MIN_mV);
-    bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_3, vreg_reg & BQ25620_VREG_MASK);
-    
-    /* 设置输入电流限制 */
-    uint8_t ilim_reg = current_to_reg(config->input_current_limit,
-                                       BQ25620_ILIM_STEP_mA,
-                                       BQ25620_ILIM_MIN_mA);
-    uint8_t ilim_value = (ilim_reg & BQ25620_ILIM_MASK) | BQ25620_EN_ILIM;
-    bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_4, ilim_value);
-    
-    /* 设置预充电电流和终止电流 */
-    uint8_t prechg_reg = current_to_reg(config->precharge_current, 64, 64);
-    uint8_t iterm_reg = current_to_reg(config->termination_current, 64, 64);
-    uint8_t prechg_iterm = ((iterm_reg & 0x0F) << 4) | (prechg_reg & 0x0F);
-    bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_2, prechg_iterm);
-    
-    /* 设置再充电阈值和自动再充电 */
-    uint8_t ctrl5 = 0;
-    if (config->auto_recharge) {
-        ctrl5 |= BQ25620_AUTO_RECHG;
+
+    reg_value = current_to_reg(config->charge_current, BQ25620_ICHG_STEP_mA,
+                               BQ25620_ICHG_MIN_mA) & BQ25620_ICHG_MASK;
+    ret = bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_1, reg_value);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
-    uint8_t vrechg_reg = config->recharge_threshold / 100; /* 100mV 步进 */
-    ctrl5 |= (vrechg_reg & 0x03) << 6;
-    bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_5, ctrl5);
-    
-    return XY_DEVICE_OK;
+
+    reg_value = voltage_to_reg(config->charge_voltage, BQ25620_VREG_STEP_mV,
+                               BQ25620_VREG_MIN_mV) & BQ25620_VREG_MASK;
+    ret = bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_3, reg_value);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    reg_value = (current_to_reg(config->input_current_limit, BQ25620_ILIM_STEP_mA,
+                                BQ25620_ILIM_MIN_mA) & BQ25620_ILIM_MASK) |
+                BQ25620_EN_ILIM;
+    ret = bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_4, reg_value);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    reg_value = ((current_to_reg(config->termination_current, 64, 64) & 0x0FU) << 4) |
+                (current_to_reg(config->precharge_current, 64, 64) & 0x0FU);
+    ret = bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_2, reg_value);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    reg_value = config->auto_recharge ? BQ25620_AUTO_RECHG : 0U;
+    reg_value |= ((config->recharge_threshold / 100U) & 0x03U) << 6;
+    return bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_5, reg_value);
 }
 
 static int bq25620_hw_enable(void *hw_data, bool enable)
