@@ -78,11 +78,15 @@ int xy_pm_init(void)
 
 int xy_pm_deinit(void)
 {
+    int result;
+
     if (!s_pm.initialized) return XY_PM_OK;
 
-    xy_charger_stop();
-    xy_charger_deinit();
-    xy_fuel_gauge_deinit();
+    result = xy_charger_deinit();
+    if (result != XY_CHARGER_OK) return result;
+
+    result = xy_fuel_gauge_deinit();
+    if (result != XY_FUEL_GAUGE_OK) return result;
 
     memset(&s_pm, 0, sizeof(s_pm));
     xy_log_i("PM System deinitialized\n");

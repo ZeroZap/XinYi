@@ -217,6 +217,48 @@ static void test_charger_contracts(void)
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_deinit());
 }
 
+static void test_charger_deinit_preserves_live_state_when_disable_fails(void)
+{
+    xy_charger_config_t cfg = {
+        .cell_count = 1,
+        .charge_current_mA = 500,
+        .charge_voltage_mV = 4200,
+    };
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_deinit());
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_init(&cfg));
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_start());
+    TEST_ASSERT_TRUE(xy_charger_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_ERROR, xy_charger_deinit());
+    TEST_ASSERT_TRUE(xy_charger_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_deinit());
+    TEST_ASSERT_FALSE(xy_charger_is_charging());
+}
+
+static void test_pm_deinit_preserves_state_when_charger_disable_fails(void)
+{
+    xy_pm_system_state_info_t state;
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_init());
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_pm_start_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_ERROR, xy_pm_deinit());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_get_state(&state));
+    TEST_ASSERT_TRUE(state.enabled);
+    TEST_ASSERT_TRUE(xy_pm_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
+}
+
 static void test_fuel_gauge_and_adc_contracts(void)
 {
     xy_fuel_gauge_config_t cfg = {
@@ -288,6 +330,8 @@ int main(void)
     RUN_TEST(test_pm_public_mode_dispatch_is_fail_closed);
     RUN_TEST(test_pm_charging_intent_commits_only_after_hardware_success);
     RUN_TEST(test_charger_contracts);
+    RUN_TEST(test_charger_deinit_preserves_live_state_when_disable_fails);
+    RUN_TEST(test_pm_deinit_preserves_state_when_charger_disable_fails);
     RUN_TEST(test_fuel_gauge_and_adc_contracts);
     RUN_TEST(test_fuel_gauge_uses_platform_tick);
     return UNITY_END();

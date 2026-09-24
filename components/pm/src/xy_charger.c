@@ -85,6 +85,15 @@ int xy_charger_init(const xy_charger_config_t *config)
 
 int xy_charger_deinit(void)
 {
+    int result;
+
+    if (!s_charger.initialized) return XY_CHARGER_OK;
+
+    if (s_charger.enabled) {
+        result = xy_charger_hw_disable();
+        if (result != XY_PM_OK) return XY_CHARGER_ERROR;
+    }
+
     memset(&s_charger, 0, sizeof(s_charger));
     xy_log_i("Charger deinitialized\n");
     return XY_CHARGER_OK;
