@@ -404,9 +404,11 @@ remain `hardware-pending`.
 
 The legacy VCNL4040 owner is now represented by `components/drivers/sensor/proximity/vcnl4040`.
 The canonical owner uses the fixed 7-bit address `0x60`, reads the documented little-endian
-proximity output at `0x08/0x09`, and stages raw proximity/timestamp publication behind nested I2C
-lifecycle checks. Optical response, distance calibration and hardware endurance remain
-`hardware-pending`.
+proximity output at `0x08/0x09`, and stages raw proximity/timestamp publication through a register
+helper that independently validates nested I2C lifecycle and handle state. Initialization rejects an
+incomplete helper transport; lost transport fails closed without bus access or state mutation, and
+successful teardown clears the nested handle. Optical response, distance calibration and hardware
+endurance remain `hardware-pending`.
 
 ### QMC5883L migration status
 
