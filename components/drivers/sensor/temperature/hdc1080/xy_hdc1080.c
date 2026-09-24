@@ -12,10 +12,39 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+static int hdc1080_transport_ready(const xy_hdc1080_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static int hdc1080_ready(const xy_hdc1080_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
-           dev->i2c_dev.i2c_handle != NULL;
+    return hdc1080_transport_ready(dev) && dev->initialized != 0U;
+}
+
+static int hdc1080_write_config(xy_hdc1080_t *dev, const uint8_t data[2])
+{
+    if (!hdc1080_transport_ready(dev)) {
+        return XY_HDC1080_INVALID_PARAM;
+    }
+    return xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, data, 2U);
+}
+
+static int hdc1080_write_command(xy_hdc1080_t *dev, uint8_t command)
+{
+    if (!hdc1080_transport_ready(dev)) {
+        return XY_HDC1080_INVALID_PARAM;
+    }
+    return xy_i2c_device_write(&dev->i2c_dev, &command, 1U);
+}
+
+static int hdc1080_read_result(xy_hdc1080_t *dev, uint8_t data[4])
+{
+    if (!hdc1080_transport_ready(dev)) {
+        return XY_HDC1080_INVALID_PARAM;
+    }
+    return xy_i2c_device_read(&dev->i2c_dev, data, 4U);
 }
 
 int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
@@ -29,16 +58,16 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
     
     memset(dev, 0, sizeof(*dev));
     ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK || !hdc1080_transport_ready(dev)) {
         memset(dev, 0, sizeof(*dev));
-        return ret;
+        return ret != XY_DEVICE_OK ? ret : XY_HDC1080_INVALID_PARAM;
     }
     dev->addr = addr;
     
     /* 软件复位 */
     config = HDC1080_CONFIG_RST;
     uint8_t buf[2] = {(config >> 8) & 0xFF, config & 0xFF};
-    ret = xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, buf, 2);
+    ret = hdc1080_write_config(dev, buf);
     if (ret != XY_DEVICE_OK) {
         memset(dev, 0, sizeof(*dev));
         return ret;
@@ -49,7 +78,7 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
     config = HDC1080_CONFIG_MODE;
     buf[0] = (config >> 8) & 0xFF;
     buf[1] = config & 0xFF;
-    ret = xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, buf, 2);
+    ret = hdc1080_write_config(dev, buf);
     if (ret != XY_DEVICE_OK) {
         memset(dev, 0, sizeof(*dev));
         return ret;
@@ -82,7 +111,7 @@ int xy_hdc1080_read(xy_hdc1080_t *dev)
     
     /* 触发温湿度测量 */
     buf[0] = HDC1080_REG_TEMP;
-    ret = xy_i2c_device_write(&dev->i2c_dev, buf, 1);
+    ret = hdc1080_write_command(dev, HDC1080_REG_TEMP);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
@@ -91,7 +120,7 @@ int xy_hdc1080_read(xy_hdc1080_t *dev)
     xy_os_delay(10);
     
     /* 读取数据 (4 字节：温度 2 字节 + 湿度 2 字节) */
-    ret = xy_i2c_device_read(&dev->i2c_dev, buf, 4);
+    ret = hdc1080_read_result(dev, buf);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
@@ -147,7 +176,7 @@ int xy_hdc1080_heater_on(xy_hdc1080_t *dev)
 
     uint16_t config = HDC1080_CONFIG_HEATER;
     uint8_t buf[2] = {(config >> 8) & 0xFF, config & 0xFF};
-    return xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, buf, 2);
+    return hdc1080_write_config(dev, buf);
 }
 
 int xy_hdc1080_heater_off(xy_hdc1080_t *dev)
@@ -157,5 +186,5 @@ int xy_hdc1080_heater_off(xy_hdc1080_t *dev)
     }
 
     uint8_t buf[2] = {0, 0};
-    return xy_i2c_device_write_reg(&dev->i2c_dev, HDC1080_REG_CONFIG, buf, 2);
+    return hdc1080_write_config(dev, buf);
 }

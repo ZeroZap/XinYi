@@ -89,10 +89,11 @@ when nested transport is invalid. This hardening adds no pressure/temperature ac
 timing, recovery, or hardware claim.
 
 HDC1080 and INA219 public transport operations likewise require both lifecycle layers and a live
-I2C handle. INA219 internal word read/write helpers independently validate the nested transport,
-including during initialization before the outer lifecycle is published. Successful deinit clears
-the handle; missing-handle rejection performs no bus I/O and preserves cached/caller output. This
-adds no measurement accuracy, timing, recovery, or hardware claim.
+I2C handle. Their internal transaction helpers independently validate nested transport, including
+during initialization before outer lifecycle publication. HDC1080 rejects incomplete helper state
+before reset/configuration I/O. Successful deinit clears the handle; missing-handle rejection performs
+no bus I/O and preserves cached/caller output. This adds no measurement accuracy, timing, recovery,
+or hardware claim.
 
 SHT40 cached serial and precision operations now require the same live nested Device transport as
 measurement and teardown operations. Losing either nested lifecycle state or the I2C handle rejects

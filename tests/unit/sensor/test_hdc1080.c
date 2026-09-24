@@ -28,6 +28,7 @@ static size_t g_cmd_index;
 static uint8_t g_last_addr;
 static xy_error_t g_device_init_result;
 static size_t g_device_init_count;
+static int g_init_establish_transport;
 static uint32_t g_tick;
 static uint32_t g_delay_total;
 
@@ -40,8 +41,8 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
         return g_device_init_result;
     }
     memset(dev, 0, sizeof(*dev));
-    dev->base.initialized = 1;
-    dev->i2c_handle = i2c_handle;
+    dev->base.initialized = g_init_establish_transport;
+    dev->i2c_handle = g_init_establish_transport ? i2c_handle : NULL;
     dev->dev_addr = addr;
     dev->timeout = timeout;
     g_last_addr = (uint8_t)addr;
@@ -52,6 +53,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C fixture expects initialized device");
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT(2U, len);
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_write_reg_queue), g_write_index);
@@ -67,6 +69,7 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C fixture expects initialized device");
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT(1U, len);
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_cmd_queue), g_cmd_index);
@@ -79,6 +82,7 @@ xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C fixture expects initialized device");
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_read_queue) / sizeof(g_read_queue[0]), g_read_index);
     TEST_ASSERT_EQUAL_UINT(g_read_len_queue[g_read_index], len);
@@ -144,6 +148,7 @@ void setUp(void)
     g_last_addr = 0;
     g_device_init_result = XY_DEVICE_OK;
     g_device_init_count = 0;
+    g_init_establish_transport = 1;
     g_tick = 1000;
     g_delay_total = 0;
 }
@@ -473,12 +478,29 @@ static void test_public_operations_require_live_i2c_handle_and_deinit_clears_it(
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
+static void test_init_rejects_incomplete_nested_transport_without_io(void)
+{
+    xy_hdc1080_t dev;
+    int fake_bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_establish_transport = 0;
+    TEST_ASSERT_EQUAL_INT(XY_HDC1080_INVALID_PARAM,
+                          xy_hdc1080_init(&dev, &fake_bus, HDC1080_ADDR));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_hdc1080_t){0}, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_cmd_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_reset_then_config);
     RUN_TEST(test_init_propagates_config_write_failures);
     RUN_TEST(test_init_propagates_device_helper_failure_without_bus_io);
+    RUN_TEST(test_init_rejects_incomplete_nested_transport_without_io);
     RUN_TEST(test_init_rejects_noncanonical_address_without_io);
     RUN_TEST(test_read_converts_temperature_and_humidity);
     RUN_TEST(test_read_converts_raw_minimum_and_maximum_bounds);
