@@ -110,6 +110,9 @@ int xy_pm_deinit(void)
 
 int xy_pm_update(void)
 {
+    int result;
+    xy_pm_system_state_info_t next_state;
+
     if (!s_pm.initialized) return XY_PM_NOT_INITIALIZED;
 
     uint32_t now = xy_os_tick_get();
@@ -119,32 +122,39 @@ int xy_pm_update(void)
         return XY_PM_OK;
     }
 
-    s_pm.last_update_time = now;
-
     /* 读取电池电压 */
     uint32_t voltage = xy_pm_get_battery_voltage_mV();
     uint8_t soc = xy_pm_get_battery_percent();
 
     /* 更新电量计 */
-    xy_fuel_gauge_update(voltage, 0, 25);
+    result = xy_fuel_gauge_update(voltage, 0, 25);
+    if (result != XY_FUEL_GAUGE_OK) return result;
 
     /* 更新充电器状态 */
     xy_charger_state_t chg_state;
-    xy_charger_get_state(&chg_state);
+    result = xy_charger_get_state(&chg_state);
+    if (result != XY_CHARGER_OK) return result;
 
-    /* 更新系统状态 */
-    s_pm.state.system_voltage_mV = voltage;
-    s_pm.state.battery_state.soc_percent = soc;
-    s_pm.state.battery_state.voltage_mV = voltage;
-    s_pm.state.charger_state = chg_state;
-    s_pm.state.power_good = (voltage > 3000);
+    next_state = s_pm.state;
+    next_state.system_voltage_mV = voltage;
+    next_state.battery_state.soc_percent = soc;
+    next_state.battery_state.voltage_mV = voltage;
+    next_state.charger_state = chg_state;
+    next_state.power_good = (voltage > 3000);
 
     /* 自动充电控制 */
-    if (s_pm.state.enabled && soc < 95 && !chg_state.charging) {
-        xy_charger_start();
+    if (next_state.enabled && soc < 95 && !chg_state.charging) {
+        result = xy_charger_start();
+        if (result != XY_CHARGER_OK) return result;
+        next_state.charger_state.charging = true;
     } else if (soc >= 100 && chg_state.charging) {
-        xy_charger_stop();
+        result = xy_charger_stop();
+        if (result != XY_CHARGER_OK) return result;
+        next_state.charger_state.charging = false;
     }
+
+    s_pm.state = next_state;
+    s_pm.last_update_time = now;
 
     xy_log_d("PM Update: V=%dmV SOC=%d%% CHG=%d\n",
              voltage, soc, chg_state.charging);
@@ -154,6 +164,8 @@ int xy_pm_update(void)
 
 int xy_pm_get_state(xy_pm_system_state_info_t *state)
 {
+    int result;
+
     if (!state) return XY_PM_INVALID_PARAM;
 
     if (!s_pm.initialized) {
@@ -162,7 +174,8 @@ int xy_pm_get_state(xy_pm_system_state_info_t *state)
     }
 
     /* 先更新状态 */
-    xy_pm_update();
+    result = xy_pm_update();
+    if (result != XY_PM_OK) return result;
 
     memcpy(state, &s_pm.state, sizeof(xy_pm_system_state_info_t));
     return XY_PM_OK;
