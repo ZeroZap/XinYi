@@ -567,9 +567,10 @@ timing, interrupts, FIFO, calibration quality, motion accuracy and hardware reco
 
 The legacy AS5048B I2C owner is now represented by the canonical Device owner at
 `components/drivers/sensor/angle/as5048b`. The owner uses the documented `0xFE/0xFF` 14-bit
-angle transaction, staged output/timestamp publication, fixed 7-bit address `0x40`, and nested
-I2C lifecycle checks. Angle accuracy, magnet installation and hardware endurance remain
-`hardware-pending`.
+angle transaction, staged output/timestamp publication, fixed 7-bit address `0x40`, and a read
+helper that independently validates nested I2C lifecycle and handle state. Missing transport fails
+closed without bus access or output/cache mutation, and successful teardown clears the nested
+handle. Angle accuracy, magnet installation and hardware endurance remain `hardware-pending`.
 
 ### BNO055 migration status
 
