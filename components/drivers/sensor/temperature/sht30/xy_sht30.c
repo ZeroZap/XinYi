@@ -13,6 +13,12 @@
 #define SHT30_CMD_MEASURE       0x2C06
 #define SHT30_CMD_SOFT_RESET    0x30A2
 
+static int sht30_transport_ready(const xy_sht30_t *sht)
+{
+    return sht != NULL && sht->i2c_dev.base.initialized &&
+           sht->i2c_dev.i2c_handle != NULL;
+}
+
 static uint8_t sht30_crc8(const uint8_t *data, size_t len)
 {
     uint8_t crc = 0xFFU;
@@ -37,8 +43,9 @@ int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr)
 
     memset(sht, 0, sizeof(*sht));
     result = xy_i2c_device_init(&sht->i2c_dev, i2c_handle, i2c_addr, 1000);
-    if (result != XY_DEVICE_OK) {
-        return result;
+    if (result != XY_DEVICE_OK || !sht30_transport_ready(sht)) {
+        memset(sht, 0, sizeof(*sht));
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
 
     /* Soft reset */
@@ -54,7 +61,7 @@ int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr)
 
 int xy_sht30_deinit(xy_sht30_t *sht)
 {
-    if (!sht || !sht->i2c_dev.base.initialized || !sht->i2c_dev.i2c_handle) {
+    if (!sht30_transport_ready(sht)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
@@ -64,7 +71,7 @@ int xy_sht30_deinit(xy_sht30_t *sht)
 
 int xy_sht30_read(xy_sht30_t *sht)
 {
-    if (!sht || !sht->i2c_dev.base.initialized || !sht->i2c_dev.i2c_handle) {
+    if (!sht30_transport_ready(sht)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     

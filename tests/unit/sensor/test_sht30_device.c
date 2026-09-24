@@ -21,6 +21,7 @@ static size_t g_write_index;
 static size_t g_read_count;
 static size_t g_read_index;
 static int g_init_ret;
+static int g_init_without_handle;
 static uint32_t g_delay_ms;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr,
@@ -31,7 +32,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = true;
-    dev->i2c_handle = i2c_handle;
+    dev->i2c_handle = g_init_without_handle ? NULL : i2c_handle;
     dev->dev_addr = addr;
     dev->timeout = timeout;
     return XY_DEVICE_OK;
@@ -110,6 +111,7 @@ void setUp(void)
     g_read_count = 0U;
     g_read_index = 0U;
     g_init_ret = XY_DEVICE_OK;
+    g_init_without_handle = 0;
     g_delay_ms = 0U;
 }
 
@@ -206,6 +208,21 @@ static void test_read_rejects_uninitialized_device_without_io(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
 }
 
+static void test_init_rejects_incomplete_transport_without_io(void)
+{
+    xy_sht30_t sensor;
+    int bus;
+
+    memset(&sensor, 0xA5, sizeof(sensor));
+    g_init_without_handle = 1;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_sht30_init(&sensor, &bus));
+    TEST_ASSERT_FALSE(sensor.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(sensor.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -214,5 +231,6 @@ int main(void)
     RUN_TEST(test_read_converts_valid_measurement);
     RUN_TEST(test_scalar_read_helpers_signal_measurement_failure);
     RUN_TEST(test_read_rejects_uninitialized_device_without_io);
+    RUN_TEST(test_init_rejects_incomplete_transport_without_io);
     return UNITY_END();
 }
