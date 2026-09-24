@@ -101,8 +101,10 @@ accuracy, timing, recovery, or hardware claim.
 
 VL53L1X cached offset/xtalk setters and last-result access now require the same live nested Device
 transport as measurement operations. Losing either nested lifecycle state or the I2C handle rejects
-cache mutation and stale result exposure. This adds no ranging accuracy, timing, recovery, or
-hardware claim.
+cache mutation and stale result exposure. VL53L0X identity/start/range transactions now likewise go
+through register helpers that independently validate nested lifecycle and handle state; invalid
+transport fails closed without delay, bus access, or output/cache mutation, and successful teardown
+clears the nested handle. This adds no ranging accuracy, timing, recovery, or hardware claim.
 
 SGP40 cached offset, warm-up/uptime status and last-data access now require the same live nested
 Device transport as measurement operations. Losing either nested lifecycle state or the I2C handle

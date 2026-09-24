@@ -25,6 +25,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr,
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_TRUE(reg == XY_VL53L0X_REG_MODEL_ID || reg == XY_VL53L0X_REG_RANGE_STATUS);
     g_reads++;
     if (g_read_ret != XY_DEVICE_OK) {
@@ -43,6 +44,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data, size_t len)
 {
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_EQUAL_UINT8(XY_VL53L0X_REG_SYSRANGE_START, reg);
     TEST_ASSERT_EQUAL_UINT(1U, len);
     TEST_ASSERT_EQUAL_UINT8(1U, data[0]);
@@ -81,6 +83,8 @@ static void test_vl53l0x_identity_read_and_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT32(98765U, sample.timestamp);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_vl53l0x_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_UINT(2U, g_reads);
     TEST_ASSERT_EQUAL_UINT(1U, g_writes);
 }
@@ -140,10 +144,13 @@ static void test_vl53l0x_rejects_missing_nested_transport_without_side_effects(v
     int bus;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_vl53l0x_init(&dev, &bus));
+    dev.sample = snapshot;
     dev.i2c_dev.i2c_handle = NULL;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_vl53l0x_read(&dev, &sample));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_vl53l0x_deinit(&dev));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &sample, sizeof(sample));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev.sample, sizeof(dev.sample));
+    TEST_ASSERT_TRUE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT(1U, g_reads);
     TEST_ASSERT_EQUAL_UINT(0U, g_writes);
 }

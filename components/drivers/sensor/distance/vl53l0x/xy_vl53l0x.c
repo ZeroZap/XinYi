@@ -4,10 +4,31 @@
 
 #include <string.h>
 
+static int vl53l0x_transport_ready(const xy_vl53l0x_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized != 0U &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static int vl53l0x_ready(const xy_vl53l0x_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
-           dev->i2c_dev.i2c_handle != NULL;
+    return vl53l0x_transport_ready(dev) && dev->initialized != 0U;
+}
+
+static xy_error_t vl53l0x_read_reg(xy_vl53l0x_t *dev, uint8_t reg, uint8_t *data, size_t length)
+{
+    if (!vl53l0x_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
+}
+
+static xy_error_t vl53l0x_write_reg(xy_vl53l0x_t *dev, uint8_t reg, uint8_t value)
+{
+    if (!vl53l0x_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
 xy_error_t xy_vl53l0x_init(xy_vl53l0x_t *dev, void *i2c_handle)
@@ -24,11 +45,11 @@ xy_error_t xy_vl53l0x_init(xy_vl53l0x_t *dev, void *i2c_handle)
         memset(dev, 0, sizeof(*dev));
         return ret;
     }
-    if (dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL) {
+    if (!vl53l0x_transport_ready(dev)) {
         memset(dev, 0, sizeof(*dev));
         return XY_DEVICE_INVALID_PARAM;
     }
-    ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_VL53L0X_REG_MODEL_ID, &model, 1U);
+    ret = vl53l0x_read_reg(dev, XY_VL53L0X_REG_MODEL_ID, &model, 1U);
     if (ret == XY_DEVICE_OK && model != XY_VL53L0X_MODEL_ID) {
         ret = XY_DEVICE_NOT_FOUND;
     }
@@ -61,13 +82,12 @@ xy_error_t xy_vl53l0x_read(xy_vl53l0x_t *dev, xy_vl53l0x_sample_t *sample)
     if (!vl53l0x_ready(dev) || sample == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    ret = xy_i2c_device_write_reg(&dev->i2c_dev, XY_VL53L0X_REG_SYSRANGE_START, &start, 1U);
+    ret = vl53l0x_write_reg(dev, XY_VL53L0X_REG_SYSRANGE_START, start);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
     xy_device_delay_ms(50U);
-    ret = xy_i2c_device_read_reg(&dev->i2c_dev, XY_VL53L0X_REG_RANGE_STATUS, range,
-                                 sizeof(range));
+    ret = vl53l0x_read_reg(dev, XY_VL53L0X_REG_RANGE_STATUS, range, sizeof(range));
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
