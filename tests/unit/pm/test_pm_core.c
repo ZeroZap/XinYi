@@ -341,6 +341,10 @@ static void test_fuel_gauge_and_adc_contracts(void)
     TEST_ASSERT_EQUAL_UINT(3700U, state.voltage_mV);
     TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_reset());
     TEST_ASSERT_EQUAL_UINT(100U, xy_fuel_gauge_get_soc());
+    TEST_ASSERT_EQUAL_UINT(2000U, xy_fuel_gauge_get_remaining_mAh());
+    TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_update(4200, 0, 25));
+    TEST_ASSERT_EQUAL_UINT(100U, xy_fuel_gauge_get_soc());
+    TEST_ASSERT_EQUAL_UINT(2000U, xy_fuel_gauge_get_remaining_mAh());
     TEST_ASSERT_EQUAL_INT(XY_FUEL_GAUGE_OK, xy_fuel_gauge_deinit());
 }
 

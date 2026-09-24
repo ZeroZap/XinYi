@@ -24,7 +24,7 @@
 typedef struct {
     xy_fuel_gauge_config_t config;
     xy_battery_state_t state;
-    int32_t accumulated_charge_mAs; /* 累积电荷量 (mA·s) */
+    int64_t accumulated_charge_mAs; /* 累积电荷量 (mA·s) */
     uint32_t last_update_time;
     bool initialized;
 } xy_fuel_gauge_ctrl_t;
@@ -60,7 +60,7 @@ int xy_fuel_gauge_init(const xy_fuel_gauge_config_t *config)
     s_fg.state.remaining_mAh = s_fg.config.design_capacity_mAh / 2;
     s_fg.state.full_charge_mAh = s_fg.config.full_capacity_mAh;
     s_fg.state.charging = false;
-    s_fg.accumulated_charge_mAs = (int32_t)s_fg.state.remaining_mAh * 3600;
+    s_fg.accumulated_charge_mAs = (int64_t)s_fg.state.remaining_mAh * 3600;
     
     s_fg.last_update_time = xy_os_tick_get();
     s_fg.initialized = true;
@@ -116,14 +116,14 @@ int xy_fuel_gauge_update(uint32_t voltage_mV, int32_t current_mA, int32_t temper
     
     /* 库仑计积分 */
     if (delta_t > 0 && delta_t < 60) { /* 防止异常时间间隔 */
-        s_fg.accumulated_charge_mAs += current_mA * delta_t;
+        s_fg.accumulated_charge_mAs += (int64_t)current_mA * delta_t;
     }
 
     /* 计算剩余容量 */
-    int32_t remaining_mAs = s_fg.accumulated_charge_mAs;
+    int64_t remaining_mAs = s_fg.accumulated_charge_mAs;
     if (remaining_mAs < 0) remaining_mAs = 0;
-    if (remaining_mAs > s_fg.config.full_capacity_mAh * 3600) {
-        remaining_mAs = s_fg.config.full_capacity_mAh * 3600;
+    if (remaining_mAs > (int64_t)s_fg.config.full_capacity_mAh * 3600) {
+        remaining_mAs = (int64_t)s_fg.config.full_capacity_mAh * 3600;
     }
 
     s_fg.accumulated_charge_mAs = remaining_mAs;
@@ -216,7 +216,8 @@ int xy_fuel_gauge_reset(void)
 {
     if (!s_fg.initialized) return XY_FUEL_GAUGE_ERROR;
     
-    s_fg.accumulated_charge_mAs = 0;
+    s_fg.accumulated_charge_mAs = (int64_t)s_fg.config.full_capacity_mAh * 3600;
+    s_fg.last_update_time = xy_os_tick_get();
     s_fg.state.soc_percent = 100;
     s_fg.state.remaining_mAh = s_fg.config.full_capacity_mAh;
     s_fg.state.full = true;
