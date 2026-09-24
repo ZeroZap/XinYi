@@ -10,30 +10,8 @@
 #include "xy_log.h"
 #include <string.h>
 
-/* Platform detection — must precede any use of platform-specific macros */
-#if defined(STM32U5) || defined(STM32F4) || defined(STM32F1) || defined(STM32L4)
-#define XY_PLATFORM_STM32     1
-#else
-#define XY_PLATFORM_STM32     0
-#endif
-
-#if defined(MCU_CH32) || defined(CH32V103) || defined(CH32V20X)
-#define XY_PLATFORM_WCH       1
-#else
-#define XY_PLATFORM_WCH       0
-#endif
-
-/* Platform tick source */
-#if XY_PLATFORM_STM32
-extern uint32_t HAL_GetTick(void);
-#define xy_os_tick_get()  HAL_GetTick()
-#elif XY_PLATFORM_WCH
-static volatile uint32_t g_chg_tick = 0;
-#define xy_os_tick_get()  (g_chg_tick += 1000)
-#else
-extern uint32_t xy_pm_tick_get(void);
-#define xy_os_tick_get()  xy_pm_tick_get()
-#endif
+/* Platform time is owned by xy_pm_platform.c. */
+#define xy_os_tick_get() xy_pm_tick_get()
 
 
 /* 充电状态机 */
@@ -75,10 +53,10 @@ int xy_charger_init(const xy_charger_config_t *config)
     s_charger.initialized = true;
     s_charger.enabled = false;
 
-    xy_log_i("Charger initialized: cells=%d, current=%dmA, voltage=%dmV\n",
-             s_charger.config.cell_count,
-             s_charger.config.charge_current_mA,
-             s_charger.config.charge_voltage_mV);
+    xy_log_i("Charger initialized: cells=%u, current=%lumA, voltage=%lumV\n",
+             (unsigned int)s_charger.config.cell_count,
+             (unsigned long)s_charger.config.charge_current_mA,
+             (unsigned long)s_charger.config.charge_voltage_mV);
 
     return XY_CHARGER_OK;
 }

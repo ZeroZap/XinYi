@@ -24,6 +24,7 @@
 - ✅ PM 周期更新传播 Fuel Gauge/charger/自动充电动作失败，并保持上一稳定状态供重试
 - ✅ PM-local Fuel Gauge reset 同步恢复满容量积分基线，后续 update 不会把 100% 状态回退到旧累计值
 - ✅ PM-local Fuel Gauge 以毫秒精度累计电荷，亚秒更新不会因逐次截断而丢失积分
+- ✅ PM charger 统一使用 platform-owned PM tick，不再绕过 OSAL/HAL platform adapter
 - ✅ Charger/PM teardown 在硬件 disable 失败时 fail-closed，并保留 live 状态供重试
 - ✅ Host 可验证的 PM-local fuel-gauge wrapper 基础契约
 - ⚠️ 真实低功耗/睡眠/关机效果仍待 board/project 功耗实测

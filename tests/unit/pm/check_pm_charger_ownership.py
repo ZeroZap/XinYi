@@ -31,6 +31,11 @@ def main() -> int:
 
     if definitions(platform, "xy_charger_hw_init") != 1:
         errors.append("xy_charger_hw_init must have exactly one platform owner")
+    if "xy_pm_tick_get()" not in charger:
+        errors.append("PM charger must consume the canonical PM platform tick")
+    for bypass in ("HAL_GetTick", "g_chg_tick"):
+        if bypass in charger:
+            errors.append(f"PM charger must not bypass the canonical PM tick via {bypass}")
     if "XY_PM_PLATFORM_OWNS_CHARGER_HW" in unit_cmake or \
        "XY_PM_PLATFORM_OWNS_CHARGER_HW" in pandora_cmake:
         errors.append("obsolete charger ownership bypass macro must not return")
