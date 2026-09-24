@@ -36,6 +36,10 @@ xy_error_t xy_lis2dh12_init(xy_lis2dh12_t *dev, void *i2c_handle)
         memset(dev, 0, sizeof(*dev));
         return result;
     }
+    if (!transport_ready(dev)) {
+        memset(dev, 0, sizeof(*dev));
+        return XY_DEVICE_INVALID_PARAM;
+    }
 
     result = xy_i2c_device_read_reg(&dev->i2c_dev, XY_LIS2DH12_REG_WHO_AM_I, &id, 1U);
     if (result == XY_DEVICE_OK && id != XY_LIS2DH12_WHO_AM_I) {
