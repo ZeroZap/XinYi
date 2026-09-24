@@ -240,9 +240,11 @@ wrapper that delegates init/read/deinit to the typed Device owner and preserves 
 conversion at the wrapper boundary. The unreferenced prototype
 `components/sensor/drivers/light/xy_sensor_bh1750.c` was removed, preventing a fourth BH1750
 protocol owner. All public operations now require both nested `base.initialized` and `i2c_handle`;
-a stale lifecycle bit cannot authorize bus access.
-lifecycle from returning. Focused wrapper and Device tests plus root builds prove source/lifecycle
-ownership only; existing Pandora B1 remains bounded and no B2 recovery claim is added.
+a stale lifecycle bit cannot authorize bus access. Internal transport helpers independently enforce
+the same nested contract during initialization and measurement, initialization rejects invalid 7-bit
+addresses or incomplete helper state, and successful teardown clears the nested handle. Focused
+wrapper and Device tests plus root builds prove source/lifecycle ownership only; existing Pandora B1
+remains bounded and no B2 recovery claim is added.
 
 ### MPU6050 migration status
 

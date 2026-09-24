@@ -13,6 +13,32 @@
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
+static int bh1750_transport_ready(const xy_bh1750_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized && dev->i2c_dev.i2c_handle != NULL;
+}
+
+static int bh1750_ready(const xy_bh1750_t *dev)
+{
+    return bh1750_transport_ready(dev) && dev->initialized;
+}
+
+static int bh1750_write_cmd(xy_bh1750_t *dev, uint8_t command)
+{
+    if (!bh1750_transport_ready(dev)) {
+        return XY_BH1750_INVALID_PARAM;
+    }
+    return xy_i2c_device_write(&dev->i2c_dev, &command, 1U);
+}
+
+static int bh1750_read_raw(xy_bh1750_t *dev, uint8_t data[2])
+{
+    if (!bh1750_transport_ready(dev)) {
+        return XY_BH1750_INVALID_PARAM;
+    }
+    return xy_i2c_device_read(&dev->i2c_dev, data, 2U);
+}
+
 /**
  * @brief 获取测量命令
  */
@@ -62,15 +88,15 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
     int ret;
     uint8_t cmd;
     
-    if (!bh1750 || !i2c_handle) {
+    if (!bh1750 || !i2c_handle || (addr != BH1750_ADDR_LOW && addr != BH1750_ADDR_HIGH)) {
         return XY_BH1750_INVALID_PARAM;
     }
     
     memset(bh1750, 0, sizeof(*bh1750));
     ret = xy_i2c_device_init(&bh1750->i2c_dev, i2c_handle, addr, 400);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK || !bh1750_transport_ready(bh1750)) {
         memset(bh1750, 0, sizeof(*bh1750));
-        return ret;
+        return ret != XY_DEVICE_OK ? ret : XY_BH1750_INVALID_PARAM;
     }
     bh1750->addr = addr;
     bh1750->resolution = XY_BH1750_HIGH_RES;
@@ -78,7 +104,7 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
     
     /* 开机 */
     cmd = BH1750_CMD_POWER_ON;
-    ret = xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
+    ret = bh1750_write_cmd(bh1750, cmd);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("BH1750 not found\n");
         memset(bh1750, 0, sizeof(*bh1750));
@@ -89,7 +115,7 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
     
     /* 软件复位 */
     cmd = BH1750_CMD_RESET;
-    ret = xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
+    ret = bh1750_write_cmd(bh1750, cmd);
     if (ret != XY_DEVICE_OK) {
         memset(bh1750, 0, sizeof(*bh1750));
         return ret;
@@ -105,8 +131,7 @@ int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
 
 int xy_bh1750_deinit(xy_bh1750_t *bh1750)
 {
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
-        !bh1750->i2c_dev.i2c_handle) {
+    if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
     
@@ -128,14 +153,13 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
     uint16_t raw_value;
     uint16_t measure_time;
     
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
-        !bh1750->i2c_dev.i2c_handle) {
+    if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
     
     /* 开机 */
     cmd = BH1750_CMD_POWER_ON;
-    ret = xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
+    ret = bh1750_write_cmd(bh1750, cmd);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
@@ -144,7 +168,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
     
     /* 发送测量命令 */
     cmd = xy_bh1750_get_measure_cmd(bh1750);
-    ret = xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
+    ret = bh1750_write_cmd(bh1750, cmd);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
@@ -154,7 +178,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
     xy_device_delay_ms(measure_time);
     
     /* 读取数据 */
-    ret = xy_i2c_device_read(&bh1750->i2c_dev, buf, 2);
+    ret = bh1750_read_raw(bh1750, buf);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
@@ -182,8 +206,7 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
 
 int xy_bh1750_get_illuminance(xy_bh1750_t *bh1750, float *illuminance)
 {
-    if (!bh1750 || !illuminance || !bh1750->initialized ||
-        !bh1750->i2c_dev.base.initialized || !bh1750->i2c_dev.i2c_handle) {
+    if (!illuminance || !bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
     
@@ -196,9 +219,7 @@ int xy_bh1750_get_illuminance(xy_bh1750_t *bh1750, float *illuminance)
 
 int xy_bh1750_set_resolution(xy_bh1750_t *bh1750, xy_bh1750_res_t resolution)
 {
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
-        !bh1750->i2c_dev.i2c_handle ||
-        resolution > XY_BH1750_LOW_RES) {
+    if (!bh1750_ready(bh1750) || resolution > XY_BH1750_LOW_RES) {
         return XY_BH1750_INVALID_PARAM;
     }
     
@@ -208,9 +229,7 @@ int xy_bh1750_set_resolution(xy_bh1750_t *bh1750, xy_bh1750_res_t resolution)
 
 int xy_bh1750_set_mode(xy_bh1750_t *bh1750, xy_bh1750_mode_t mode)
 {
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
-        !bh1750->i2c_dev.i2c_handle ||
-        mode > XY_BH1750_ONE_TIME) {
+    if (!bh1750_ready(bh1750) || mode > XY_BH1750_ONE_TIME) {
         return XY_BH1750_INVALID_PARAM;
     }
     
@@ -222,34 +241,31 @@ int xy_bh1750_power_down(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_POWER_DOWN;
     
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
-        !bh1750->i2c_dev.i2c_handle) {
+    if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
 
-    return xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
+    return bh1750_write_cmd(bh1750, cmd);
 }
 
 int xy_bh1750_power_on(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_POWER_ON;
     
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
-        !bh1750->i2c_dev.i2c_handle) {
+    if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
 
-    return xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
+    return bh1750_write_cmd(bh1750, cmd);
 }
 
 int xy_bh1750_reset(xy_bh1750_t *bh1750)
 {
     uint8_t cmd = BH1750_CMD_RESET;
     
-    if (!bh1750 || !bh1750->initialized || !bh1750->i2c_dev.base.initialized ||
-        !bh1750->i2c_dev.i2c_handle) {
+    if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
 
-    return xy_i2c_device_write(&bh1750->i2c_dev, &cmd, 1);
+    return bh1750_write_cmd(bh1750, cmd);
 }
