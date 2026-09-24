@@ -54,6 +54,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 {
     op_t *op = &g_ops[g_index++];
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_FALSE(op->write);
     TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
     TEST_ASSERT_EQUAL_UINT(op->len, len);
@@ -67,6 +68,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
 {
     op_t *op = &g_ops[g_index++];
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_TRUE(op->write);
     TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
     TEST_ASSERT_EQUAL_UINT(op->len, len);
@@ -118,6 +120,8 @@ static void test_ak09918_identity_init_read_and_deinit(void)
     queue_write(XY_AK09918_REG_CNTL2, XY_AK09918_MODE_POWER_DOWN, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ak09918_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
     TEST_ASSERT_EQUAL_UINT(g_count, g_index);
 }
 
@@ -162,11 +166,34 @@ static void test_ak09918_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_index);
 }
 
+static void test_ak09918_missing_handle_fails_closed(void)
+{
+    xy_ak09918_t dev;
+    xy_ak09918_sample_t output = {.raw_x = 11, .raw_y = 22, .raw_z = 33, .timestamp = 44U};
+    xy_ak09918_sample_t snapshot = output;
+    unsigned before;
+    int bus;
+
+    queue_valid_init();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ak09918_init(&dev, &bus));
+    dev.sample = snapshot;
+    before = g_index;
+    dev.i2c_dev.i2c_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ak09918_read(&dev, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ak09918_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(before, g_index);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev.sample, sizeof(dev.sample));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_ak09918_identity_init_read_and_deinit);
     RUN_TEST(test_ak09918_failures_preserve_state_and_stop);
     RUN_TEST(test_ak09918_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_ak09918_missing_handle_fails_closed);
     return UNITY_END();
 }

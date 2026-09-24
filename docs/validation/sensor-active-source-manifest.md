@@ -415,7 +415,9 @@ interrupt behavior and hardware endurance remain `hardware-pending`.
 The legacy AK09918 API is now backed by the canonical Device owner at
 `components/drivers/sensor/magnetic/ak09918`. The owner verifies AKM WIA1/WIA2 (`0x48/0x09`),
 resets through CNTL3, enters continuous 100 Hz mode through CNTL2, gates reads on ST1 DRDY and
-stages little-endian XYZ/timestamp output behind nested I2C lifecycle checks. Magnetic calibration,
+stages little-endian XYZ/timestamp output through register helpers that independently validate
+nested I2C lifecycle and handle state. Missing transport fails closed without bus access or state
+mutation, and successful teardown clears the nested handle. Magnetic calibration,
 accuracy and hardware endurance remain `hardware-pending`.
 
 ### IST8310 migration status
@@ -763,3 +765,8 @@ transport reuse; existing board evidence remains bounded.
 The canonical owner now requires both nested `base.initialized` and `i2c_handle` throughout its
 public and internal bus paths. Invalid nested transport fails closed without bus access; successful
 deinit still clears the complete nested helper. Hardware accuracy and recovery remain pending.
+
+The AK09918 owner now applies that live nested-transport contract during initialization and all
+subsequent register access. Losing the I2C handle rejects read and deinit before bus I/O while
+preserving caller output, cached sample state and the outer lifecycle flag. This adds no magnetic
+accuracy, calibration, timing, recovery or hardware claim.

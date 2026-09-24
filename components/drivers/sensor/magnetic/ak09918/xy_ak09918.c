@@ -4,19 +4,30 @@
 
 #include <string.h>
 
+static int ak09918_transport_ready(const xy_ak09918_t *dev)
+{
+    return dev != NULL && dev->i2c_dev.base.initialized &&
+           dev->i2c_dev.i2c_handle != NULL;
+}
+
 static int ak09918_ready(const xy_ak09918_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized &&
-           dev->i2c_dev.i2c_handle != NULL;
+    return ak09918_transport_ready(dev) && dev->initialized != 0U;
 }
 
 static xy_error_t ak09918_read_reg(xy_ak09918_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
+    if (!ak09918_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, len);
 }
 
 static xy_error_t ak09918_write_reg(xy_ak09918_t *dev, uint8_t reg, uint8_t value)
 {
+    if (!ak09918_transport_ready(dev)) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
@@ -30,8 +41,7 @@ xy_error_t xy_ak09918_init(xy_ak09918_t *dev, void *i2c_handle)
     }
     memset(dev, 0, sizeof(*dev));
     ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AK09918_ADDR, 1000U);
-    if (ret != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
-        dev->i2c_dev.i2c_handle == NULL) {
+    if (ret != XY_DEVICE_OK || !ak09918_transport_ready(dev)) {
         memset(dev, 0, sizeof(*dev));
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
