@@ -6,6 +6,7 @@
 static xy_error_t g_init_error;
 static xy_error_t g_read_error;
 static xy_error_t g_write_error;
+static int g_init_establish_transport;
 static uint32_t g_read_count;
 static uint32_t g_write_count;
 static uint8_t g_rgb[8] = {0x78, 0x56, 0x34, 0x12, 0xcd, 0xab, 0xef, 0xbe};
@@ -14,8 +15,8 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
                               uint32_t timeout)
 {
     memset(dev, 0, sizeof(*dev));
-    dev->base.initialized = 1U;
-    dev->i2c_handle = handle;
+    dev->base.initialized = g_init_establish_transport;
+    dev->i2c_handle = g_init_establish_transport ? handle : NULL;
     dev->dev_addr = address;
     dev->timeout = timeout;
     return g_init_error;
@@ -64,6 +65,7 @@ void setUp(void)
     g_init_error = XY_DEVICE_OK;
     g_read_error = XY_DEVICE_OK;
     g_write_error = XY_DEVICE_OK;
+    g_init_establish_transport = 1;
     g_read_count = 0U;
     g_write_count = 0U;
 }
@@ -103,6 +105,22 @@ static void test_apds9960_init_failure_clears_partial_transport(void)
     g_init_error = XY_DEVICE_TIMEOUT;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_apds9960_init(&dev, &bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_read_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_write_count);
+}
+
+static void test_apds9960_init_rejects_incomplete_nested_transport(void)
+{
+    xy_apds9960_t dev;
+    int bus;
+
+    memset(&dev, 0xa5, sizeof(dev));
+    g_init_establish_transport = 0;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_apds9960_init(&dev, &bus));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
@@ -175,6 +193,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_apds9960_init_read_and_deinit);
     RUN_TEST(test_apds9960_init_failure_clears_partial_transport);
+    RUN_TEST(test_apds9960_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_apds9960_rejects_lost_nested_transport_without_io);
     RUN_TEST(test_apds9960_transport_failures_preserve_state);
     return UNITY_END();

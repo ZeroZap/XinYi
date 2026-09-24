@@ -139,8 +139,13 @@ The top-level APDS9960 implementation was a weaker duplicate of
 top-level copy lacked public guards, proximity/gesture factories, FIFO-level bounds and transport
 error propagation already covered by the focused Host contract. It and its byte-identical duplicate
 header were removed. The manifest checker now inventories explicit top-level implementation owners
-and rejects any chip name that also exists under `sensors/`; this ownership correction does not
-promote APDS9960 to the canonical Device model or establish hardware evidence.
+and rejects any chip name that also exists under `sensors/`. APDS9960 has since been promoted to the
+canonical Device owner at `components/drivers/sensor/proximity/apds9960`; its RGB, proximity and
+bounded gesture-FIFO paths use register helpers that independently validate nested I2C lifecycle and
+handle state, including initialization before outer lifecycle publication. Invalid transport fails
+closed without bus access or state mutation, and successful teardown clears the nested handle. This
+ownership and lifecycle correction does not establish optical calibration, gesture classification,
+timing, recovery, or hardware evidence.
 
 ### Pandora I2C2 hardware status
 
