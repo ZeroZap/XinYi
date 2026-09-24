@@ -37,6 +37,8 @@ static xy_pm_ctrl_t s_pm;
 
 int xy_pm_init(void)
 {
+    int result;
+
     if (s_pm.initialized) {
         xy_log_w("PM already initialized\n");
         return XY_PM_OK;
@@ -58,13 +60,26 @@ int xy_pm_init(void)
     s_pm.fg_config.cells = 1;
 
     /* 初始化 ADC */
-    xy_pm_adc_init();
+    result = xy_pm_adc_init();
+    if (result != XY_PM_OK) {
+        memset(&s_pm, 0, sizeof(s_pm));
+        return result;
+    }
 
     /* 初始化充电器 */
-    xy_charger_init(&s_pm.charger_config);
+    result = xy_charger_init(&s_pm.charger_config);
+    if (result != XY_CHARGER_OK) {
+        memset(&s_pm, 0, sizeof(s_pm));
+        return result;
+    }
 
     /* 初始化电量计 */
-    xy_fuel_gauge_init(&s_pm.fg_config);
+    result = xy_fuel_gauge_init(&s_pm.fg_config);
+    if (result != XY_FUEL_GAUGE_OK) {
+        (void)xy_charger_deinit();
+        memset(&s_pm, 0, sizeof(s_pm));
+        return result;
+    }
 
     s_pm.update_interval_ms = PM_UPDATE_INTERVAL_MS;
     s_pm.last_update_time = xy_os_tick_get();

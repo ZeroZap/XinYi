@@ -125,6 +125,25 @@ static void test_pm_public_mode_dispatch_is_fail_closed(void)
     TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
 }
 
+static void test_pm_init_fails_atomically_when_charger_init_fails(void)
+{
+    xy_pm_system_state_info_t state;
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
+
+    xy_pm_platform_set_charger_result(XY_PM_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_ERROR, xy_pm_init());
+    memset(&state, 0xA5, sizeof(state));
+    TEST_ASSERT_EQUAL_INT(XY_PM_NOT_INITIALIZED, xy_pm_get_state(&state));
+    TEST_ASSERT_EQUAL_INT(XY_PM_SYSTEM_STATE_INIT, state.state);
+    TEST_ASSERT_FALSE(xy_pm_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_init());
+    TEST_ASSERT_EQUAL_INT(XY_PM_OK, xy_pm_deinit());
+}
+
 static void test_pm_charging_intent_commits_only_after_hardware_success(void)
 {
     xy_pm_system_state_info_t state;
@@ -328,6 +347,7 @@ int main(void)
     RUN_TEST(test_pm_lifecycle_and_charging);
     RUN_TEST(test_pm_sleep_lifecycle_guards);
     RUN_TEST(test_pm_public_mode_dispatch_is_fail_closed);
+    RUN_TEST(test_pm_init_fails_atomically_when_charger_init_fails);
     RUN_TEST(test_pm_charging_intent_commits_only_after_hardware_success);
     RUN_TEST(test_charger_contracts);
     RUN_TEST(test_charger_deinit_preserves_live_state_when_disable_fails);

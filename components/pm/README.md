@@ -20,6 +20,7 @@
 - ✅ Host 可验证的 PM lifecycle、状态查询、模拟 ADC 电压/SOC 估算
 - ✅ Public `xy_pm_adc_read()` 提供受检的 NULL guard 与毫伏输出契约
 - ✅ Host 可验证的 charger state machine wrapper 与平台 charger hook 记录
+- ✅ PM 初始化传播 ADC/charger/Fuel Gauge 子系统失败，仅在全部成功后提交 initialized 状态
 - ✅ Charger/PM teardown 在硬件 disable 失败时 fail-closed，并保留 live 状态供重试
 - ✅ Host 可验证的 PM-local fuel-gauge wrapper 基础契约
 - ⚠️ 真实低功耗/睡眠/关机效果仍待 board/project 功耗实测
