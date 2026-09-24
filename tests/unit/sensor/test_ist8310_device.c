@@ -24,6 +24,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
 {
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     g_io_count++;
     if (g_io_error != XY_DEVICE_OK) {
         return g_io_error;
@@ -43,6 +44,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
     (void)data;
     (void)len;
     TEST_ASSERT_TRUE(dev->base.initialized);
+    TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     g_io_count++;
     return g_io_error;
 }
@@ -115,11 +117,33 @@ static void test_ist8310_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_io_count);
 }
 
+static void test_ist8310_missing_handle_fails_closed(void)
+{
+    xy_ist8310_t dev;
+    xy_ist8310_sample_t output = {11, 22, 33, 44};
+    xy_ist8310_sample_t snapshot = output;
+    unsigned before;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ist8310_init(&dev, &bus));
+    dev.sample = snapshot;
+    before = g_io_count;
+    dev.i2c_dev.i2c_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ist8310_read(&dev, &output));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ist8310_deinit(&dev));
+    TEST_ASSERT_EQUAL_UINT(before, g_io_count);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &output, sizeof(output));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev.sample, sizeof(dev.sample));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_ist8310_init_read_and_deinit);
     RUN_TEST(test_ist8310_read_failure_preserves_output);
     RUN_TEST(test_ist8310_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_ist8310_missing_handle_fails_closed);
     return UNITY_END();
 }

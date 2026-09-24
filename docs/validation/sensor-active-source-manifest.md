@@ -423,8 +423,9 @@ accuracy and hardware endurance remain `hardware-pending`.
 The legacy IST8310 API is now backed by the canonical Device owner at
 `components/drivers/sensor/magnetic/ist8310`. The owner verifies WHO_AM_I `0x10`, configures
 continuous 100 Hz operation, reads little-endian XYZ data, and stages sample/timestamp publication
-behind nested I2C lifecycle checks. Magnetic calibration, accuracy and hardware endurance remain
-`hardware-pending`.
+through register helpers that independently validate nested I2C lifecycle and handle state. Missing
+transport fails closed without bus access or state mutation, and successful teardown clears the
+nested handle. Magnetic calibration, accuracy and hardware endurance remain `hardware-pending`.
 
 ### BMA400 migration status
 
