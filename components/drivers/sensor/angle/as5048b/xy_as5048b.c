@@ -18,9 +18,10 @@ xy_error_t xy_as5048b_init(xy_as5048b_t *dev, void *i2c_handle)
     }
     memset(dev, 0, sizeof(*dev));
     ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AS5048B_ADDR, 1000U);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
+        dev->i2c_dev.i2c_handle == NULL) {
         memset(dev, 0, sizeof(*dev));
-        return ret;
+        return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
     dev->initialized = 1U;
     return XY_DEVICE_OK;
