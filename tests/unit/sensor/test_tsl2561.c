@@ -24,14 +24,15 @@ static uint8_t g_last_addr;
 static uint32_t g_tick;
 static uint32_t g_delay_total;
 static int g_init_ret;
+static int g_init_establish_transport;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout)
 {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
     memset(dev, 0, sizeof(*dev));
-    dev->base.initialized = 1;
-    dev->i2c_handle = i2c_handle;
+    dev->base.initialized = g_init_establish_transport;
+    dev->i2c_handle = g_init_establish_transport ? i2c_handle : NULL;
     dev->dev_addr = addr;
     dev->timeout = timeout;
     g_last_addr = (uint8_t)addr;
@@ -128,6 +129,7 @@ void setUp(void)
     g_tick = 5000;
     g_delay_total = 0;
     g_init_ret = XY_DEVICE_OK;
+    g_init_establish_transport = 1;
 }
 
 void tearDown(void)
@@ -229,6 +231,22 @@ static void test_init_propagates_i2c_device_init_failure_without_bus_io(void)
     g_init_ret = XY_DEVICE_TIMEOUT;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_FLOAT));
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_reg_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
+}
+
+static void test_init_rejects_incomplete_nested_transport_without_bus_io(void)
+{
+    xy_tsl2561_t dev;
+    int fake_bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_establish_transport = 0;
+
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
                           xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_FLOAT));
     TEST_ASSERT_EQUAL_UINT(0U, g_read_reg_index);
     TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
@@ -529,6 +547,7 @@ int main(void)
     RUN_TEST(test_public_ops_reject_invalid_nested_i2c_lifecycle_without_io);
     RUN_TEST(test_init_reports_not_found_on_bad_id_or_read_failure);
     RUN_TEST(test_init_propagates_i2c_device_init_failure_without_bus_io);
+    RUN_TEST(test_init_rejects_incomplete_nested_transport_without_bus_io);
     RUN_TEST(test_read_updates_channels_lux_and_timestamp);
     RUN_TEST(test_read_errors_do_not_overwrite_data);
     RUN_TEST(test_getters_update_outputs_only_on_success);

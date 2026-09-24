@@ -18,6 +18,12 @@ static bool xy_tsl2561_ready(const xy_tsl2561_t *tsl2561)
            tsl2561->i2c_dev.base.initialized && tsl2561->i2c_dev.i2c_handle != NULL;
 }
 
+static bool xy_tsl2561_transport_ready(const xy_tsl2561_t *tsl2561)
+{
+    return tsl2561 != NULL && tsl2561->i2c_dev.base.initialized &&
+           tsl2561->i2c_dev.i2c_handle != NULL;
+}
+
 static bool xy_tsl2561_address_valid(uint8_t addr)
 {
     return addr == TSL2561_ADDR_FLOAT || addr == TSL2561_ADDR_LOW ||
@@ -30,6 +36,9 @@ static bool xy_tsl2561_address_valid(uint8_t addr)
 static int xy_tsl2561_write_reg(xy_tsl2561_t *tsl2561, uint8_t reg, uint8_t value)
 {
     uint8_t buf[2] = {TSL2561_CMD_BIT | reg, value};
+    if (!xy_tsl2561_transport_ready(tsl2561)) {
+        return XY_TSL2561_INVALID_PARAM;
+    }
     return xy_i2c_device_write(&tsl2561->i2c_dev, buf, 2);
 }
 
@@ -39,6 +48,9 @@ static int xy_tsl2561_write_reg(xy_tsl2561_t *tsl2561, uint8_t reg, uint8_t valu
 static int xy_tsl2561_read_reg(xy_tsl2561_t *tsl2561, uint8_t reg, uint8_t *value)
 {
     uint8_t cmd = TSL2561_CMD_BIT | reg;
+    if (!xy_tsl2561_transport_ready(tsl2561) || value == NULL) {
+        return XY_TSL2561_INVALID_PARAM;
+    }
     return xy_i2c_device_read_reg(&tsl2561->i2c_dev, cmd, value, 1);
 }
 
@@ -125,9 +137,9 @@ int xy_tsl2561_init(xy_tsl2561_t *tsl2561, void *i2c_handle, uint8_t addr)
 
     memset(tsl2561, 0, sizeof(*tsl2561));
     ret = xy_i2c_device_init(&tsl2561->i2c_dev, i2c_handle, addr, 400);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK || !xy_tsl2561_transport_ready(tsl2561)) {
         memset(tsl2561, 0, sizeof(*tsl2561));
-        return ret;
+        return ret != XY_DEVICE_OK ? ret : XY_TSL2561_INVALID_PARAM;
     }
     tsl2561->addr = addr;
     tsl2561->gain = XY_TSL2561_GAIN_1X;
