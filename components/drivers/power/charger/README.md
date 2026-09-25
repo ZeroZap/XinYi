@@ -21,11 +21,12 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   register/status/config/control operations require a live owner transport and both BQ25620 plus
   outer Device lifecycle flags, preserves mapped HAL timeout/busy/I/O errors, stages every register
   receive before publishing caller output, clears failed probes, rejects register addresses beyond the
-  documented `0x00..0x15` map without I2C side effects, rejects out-of-range individual current/
+  datasheet register address range (`0x02..0x38`, including 16-bit little-endian setpoints) without I2C
+  side effects, rejects out-of-range individual current/
   voltage setters instead of silently clamping safety parameters, maps unknown hardware status/fault
   encodings to explicit fault states instead of reporting no fault, makes any reported fault override
   charge/done state, reports control-register values as configured setpoints rather than unverified ADC
-  measurements, rejects reserved setpoint encodings instead of publishing out-of-contract values, keeps
+  measurements, validates decoded setpoints against datasheet limits before publication, keeps
   no stale borrowed-config pointer, implicit status cache, duplicate lifecycle flag or unconsumed generic
   callback/self-context fields in the shared Device contract,
   keeps caller-owned storage unchanged when first initialization fails, while failed re-initialization
@@ -36,7 +37,9 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   instead of silently truncating them, stages initialization so a failed re-probe preserves the live owner,
   failed teardown propagates the stop-charge transport error while preserving the complete live owner
   for retry, and successful teardown clears the handle/callback context. The
-  fixed 7-bit address contract is `0x6B`; probe reads the datasheet-defined Part Information register
+  fixed 7-bit address contract is `0x6B`; setpoints use the ZHCSMZ9C Rev. C register map and scaling
+  (ICHG 80 mA/bit, VREG 10 mV/bit, IINDPM 20 mA/bit, IPRECHG 20 mA/bit,
+  ITERM 10 mA/bit, VRECHG 100/200 mV); probe reads the datasheet-defined Part Information register
   at `0x38` and accepts only PN=`0` (BQ25620), not the adjacent BQ25622 identity.
   真实充电、热保护、故障恢复和电池安全仍为 `hardware-pending`。
 - Host 测试或 PC 编译不构成硬件验证、充电安全批准或 production-ready 声明。
@@ -126,10 +129,10 @@ printf("BQ25620 Device ID: 0x%02X\n", dev_id);
 /* 充电配置 */
 xy_charger_device_config_t config = {
     .input_current_limit = 2000,    /* 输入电流限制 2A */
-    .charge_current = 1000,         /* 充电电流 1A */
+    .charge_current = 960,          /* 充电电流 960mA */
     .charge_voltage = 4200,         /* 充电电压 4.2V */
-    .precharge_current = 128,       /* 预充电电流 128mA */
-    .termination_current = 128,     /* 终止电流 128mA */
+    .precharge_current = 100,       /* 预充电电流 100mA */
+    .termination_current = 60,      /* 终止电流 60mA */
     .recharge_threshold = 100,      /* 再充电阈值 100mV */
     .auto_recharge = true,          /* 自动再充电使能 */
 };
@@ -231,12 +234,12 @@ int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value);
 
 | 参数             | 最小值 | 最大值 | 步长  | 默认值 |
 | ---------------- | ------ | ------ | ----- | ------ |
-| **充电电流**     | 64mA   | 5056mA | 64mA  | 512mA  |
-| **充电电压**     | 3500mV | 4470mV | 10mV  | 4200mV |
-| **输入电流限制** | 100mA  | 6300mA | 100mA | 500mA  |
-| **预充电电流**   | 64mA   | 960mA  | 64mA  | 128mA  |
-| **终止电流**     | 64mA   | 960mA  | 64mA  | 128mA  |
-| **再充电阈值**   | 100mV  | 300mV  | 100mV | 100mV  |
+| **充电电流**     | 80mA   | 3520mA | 80mA  | 1040mA |
+| **充电电压**     | 3500mV | 4800mV | 10mV  | 4200mV |
+| **输入电流限制** | 100mA  | 3200mA | 20mA  | 3200mA |
+| **预充电电流**   | 20mA   | 620mA  | 20mA  | 100mA  |
+| **终止电流**     | 10mA   | 620mA  | 10mA  | 60mA   |
+| **再充电阈值**   | 100mV  | 200mV  | 100mV | 100mV  |
 
 ---
 

@@ -31,85 +31,64 @@ extern "C" {
  * @brief BQ25620 寄存器地址
  */
 typedef enum {
-    BQ25620_REG_CHG_STAT_0    = 0x00,  /**< 充电状态寄存器 0 */
-    BQ25620_REG_CHG_STAT_1    = 0x01,  /**< 充电状态寄存器 1 */
-    BQ25620_REG_CHG_CTRL_0    = 0x02,  /**< 充电控制寄存器 0 */
-    BQ25620_REG_CHG_CTRL_1    = 0x03,  /**< 充电控制寄存器 1 */
-    BQ25620_REG_CHG_CTRL_2    = 0x04,  /**< 充电控制寄存器 2 */
-    BQ25620_REG_CHG_CTRL_3    = 0x05,  /**< 充电控制寄存器 3 */
-    BQ25620_REG_CHG_CTRL_4    = 0x06,  /**< 充电控制寄存器 4 */
-    BQ25620_REG_CHG_CTRL_5    = 0x07,  /**< 充电控制寄存器 5 */
-    BQ25620_REG_CHG_CTRL_6    = 0x08,  /**< 充电控制寄存器 6 */
-    BQ25620_REG_CHG_CTRL_7    = 0x09,  /**< 充电控制寄存器 7 */
-    BQ25620_REG_ADC_CTRL      = 0x0A,  /**< ADC 控制寄存器 */
-    BQ25620_REG_ADC_STAT_0    = 0x0B,  /**< ADC 状态寄存器 0 */
-    BQ25620_REG_ADC_STAT_1    = 0x0C,  /**< ADC 状态寄存器 1 */
-    BQ25620_REG_ADC_STAT_2    = 0x0D,  /**< ADC 状态寄存器 2 */
-    BQ25620_REG_ADC_STAT_3    = 0x0E,  /**< ADC 状态寄存器 3 */
-    BQ25620_REG_ADC_STAT_4    = 0x0F,  /**< ADC 状态寄存器 4 */
-    BQ25620_REG_MANUAL_MODE_0 = 0x10,  /**< 手动模式寄存器 0 */
-    BQ25620_REG_MANUAL_MODE_1 = 0x11,  /**< 手动模式寄存器 1 */
-    BQ25620_REG_PULSE_CHG_0   = 0x12,  /**< 脉冲充电寄存器 0 */
-    BQ25620_REG_PULSE_CHG_1   = 0x13,  /**< 脉冲充电寄存器 1 */
-    BQ25620_REG_SHIPMENT_MODE = 0x14,  /**< 运输模式寄存器 */
+    BQ25620_REG_CHG_CTRL_1    = 0x02,  /**< 16-bit charge-current limit */
+    BQ25620_REG_CHG_CTRL_3    = 0x04,  /**< 16-bit charge-voltage limit */
+    BQ25620_REG_CHG_CTRL_4    = 0x06,  /**< 16-bit input-current limit */
+    BQ25620_REG_CHG_CTRL_2    = 0x10,  /**< 16-bit pre-charge current */
+    BQ25620_REG_CHG_CTRL_5    = 0x12,  /**< 16-bit termination current */
+    BQ25620_REG_CHG_CTRL_0    = 0x14,  /**< Charge Control 0 */
+    BQ25620_REG_CHG_CTRL_6    = 0x16,  /**< Charger Control 1 */
+    BQ25620_REG_ADC_STAT_0    = 0x1D,  /**< Charger Status 0 */
+    BQ25620_REG_CHG_STAT_0    = 0x1E,  /**< Charger Status 1 */
+    BQ25620_REG_CHG_STAT_1    = 0x1F,  /**< Fault Status 0 */
     BQ25620_REG_DEVICE_ID     = 0x38,  /**< Part Information 寄存器 */
 } bq25620_reg_t;
 
 /* ==================== Register Bit Definitions ==================== */
 
-/* CHG_STAT_0 (0x00) */
-#define BQ25620_STAT_CHG_MASK       (0x07 << 4)  /**< 充电状态掩码 */
-#define BQ25620_STAT_CHG_IDLE       (0x00 << 4)  /**< 空闲 */
-#define BQ25620_STAT_CHG_PRECHG     (0x01 << 4)  /**< 预充电 */
-#define BQ25620_STAT_CHG_FAST       (0x02 << 4)  /**< 快充 */
-#define BQ25620_STAT_CHG_DONE       (0x03 << 4)  /**< 充电完成 */
-#define BQ25620_STAT_PG_MASK        (0x01 << 2)  /**< Power Good 状态 */
-#define BQ25620_STAT_PG             (0x01 << 2)  /**< Power Good */
-#define BQ25620_STAT_THERM_MASK     (0x03 << 0)  /**< 温度状态掩码 */
+/* Charger Status 1 (0x1E) */
+#define BQ25620_STAT_CHG_MASK       (0x03U << 3) /**< CHG_STAT[4:3] */
+#define BQ25620_STAT_CHG_IDLE       (0x00U << 3) /**< 未充电或已终止 */
+#define BQ25620_STAT_CHG_FAST       (0x01U << 3) /**< 涓流/预充/恒流 */
+#define BQ25620_STAT_CHG_CV         (0x02U << 3) /**< 恒压 */
+#define BQ25620_STAT_CHG_TOPOFF     (0x03U << 3) /**< Top-off timer active */
+#define BQ25620_STAT_VBUS_MASK      0x07U        /**< VBUS_STAT[2:0] */
 
-/* CHG_STAT_1 (0x01) */
-#define BQ25620_FAULT_MASK          (0x07 << 4)  /**< 故障掩码 */
-#define BQ25620_FAULT_NORMAL        (0x00 << 4)  /**< 正常 */
-#define BQ25620_FAULT_INPUT_OVP     (0x01 << 4)  /**< 输入过压 */
-#define BQ25620_FAULT_THERMAL       (0x02 << 4)  /**< 过热 */
-#define BQ25620_FAULT_CHG_TIMEOUT   (0x03 << 4)  /**< 充电超时 */
-#define BQ25620_FAULT_BAT_OVP       (0x04 << 4)  /**< 电池过压 */
+/* Fault Status 0 (0x1F) */
+#define BQ25620_FAULT_INPUT_OVP     (0x01U << 7) /**< VBUS fault */
+#define BQ25620_FAULT_BAT_OVP       (0x01U << 6) /**< BAT OCP/OVP */
+#define BQ25620_FAULT_SYS           (0x01U << 5) /**< SYS UVP/OVP */
+#define BQ25620_FAULT_OTG           (0x01U << 4) /**< OTG fault */
+#define BQ25620_FAULT_THERMAL       (0x01U << 3) /**< Thermal shutdown */
+#define BQ25620_FAULT_TS_MASK       0x07U        /**< TS_STAT[2:0] */
 
-/* CHG_CTRL_0 (0x02) */
-#define BQ25620_EN_CHG              (0x01 << 7)  /**< 充电使能 */
-#define BQ25620_EN_TERM             (0x01 << 6)  /**< 终止检测使能 */
-#define BQ25620_AUTO_RECHG          (0x01 << 5)  /**< 自动再充电使能 */
-#define BQ25620_WD_RST_MASK         (0x03 << 3)  /**< 看门狗复位掩码 */
-#define BQ25620_ICHG_SCALE          (0x01 << 2)  /**< 充电电流比例 */
+/* Charge Control 0 (0x14) */
+#define BQ25620_VRECHG              (0x01U << 0) /**< 0=100mV, 1=200mV */
 
-/* CHG_CTRL_1 (0x03) - 充电电流设置 */
-#define BQ25620_ICHG_MASK           (0x7F << 0)  /**< 充电电流掩码 */
-#define BQ25620_ICHG_STEP_mA        64           /**< 充电电流步长 (mA) */
-#define BQ25620_ICHG_MIN_mA         64           /**< 最小充电电流 (mA) */
-#define BQ25620_ICHG_MAX_mA         5056         /**< 最大充电电流 (mA) */
+/* Charge Current Limit (0x02, 16-bit little-endian) */
+#define BQ25620_ICHG_MASK           (0x3FU << 6) /**< ICHG[5:0] in bits 11:6 */
+#define BQ25620_ICHG_STEP_mA        80U
+#define BQ25620_ICHG_MIN_mA         80U
+#define BQ25620_ICHG_MAX_mA         3520U
 
-/* CHG_CTRL_2 (0x04) - 预充电和终止电流 */
-#define BQ25620_ITERM_MASK          (0x0F << 4)  /**< 终止电流掩码 */
-#define BQ25620_IPRECHG_MASK        (0x0F << 0)  /**< 预充电电流掩码 */
+/* Pre-charge (0x10) and termination (0x12), both 16-bit little-endian */
+#define BQ25620_ITERM_MASK          (0x3FU << 3) /**< ITERM[5:0] in bits 8:3 */
+#define BQ25620_IPRECHG_MASK        (0x1FU << 4) /**< IPRECHG[4:0] in bits 8:4 */
 
-/* CHG_CTRL_3 (0x05) - 充电电压设置 */
-#define BQ25620_VREG_MASK           (0x7F << 0)  /**< 充电电压掩码 */
+/* Charge Voltage Limit (0x04, 16-bit little-endian) */
+#define BQ25620_VREG_MASK           (0x1FFU << 3) /**< VREG[8:0] in bits 11:3 */
 #define BQ25620_VREG_STEP_mV        10           /**< 充电电压步长 (mV) */
 #define BQ25620_VREG_MIN_mV         3500         /**< 最小充电电压 (mV) */
-#define BQ25620_VREG_MAX_mV         4470         /**< 最大充电电压 (mV) */
+#define BQ25620_VREG_MAX_mV         4800U        /**< 最大充电电压 (mV) */
 
-/* CHG_CTRL_4 (0x06) - 输入限制 */
-#define BQ25620_EN_ILIM             (0x01 << 7)  /**< 输入电流限制使能 */
-#define BQ25620_ILIM_MASK           (0x3F << 0)  /**< 输入电流限制掩码 */
-#define BQ25620_ILIM_STEP_mA        100          /**< 输入电流步长 (mA) */
+/* Input Current Limit (0x06, 16-bit little-endian) */
+#define BQ25620_ILIM_MASK           (0xFFU << 4) /**< IINDPM[7:0] in bits 11:4 */
+#define BQ25620_ILIM_STEP_mA        20U          /**< 输入电流步长 (mA) */
 #define BQ25620_ILIM_MIN_mA         100          /**< 最小输入电流 (mA) */
-#define BQ25620_ILIM_MAX_mA         6300         /**< 最大输入电流 (mA) */
+#define BQ25620_ILIM_MAX_mA         3200U        /**< 最大输入电流 (mA) */
 
-/* CHG_CTRL_5 (0x07) - 充电终止和再充电 */
-#define BQ25620_VRECHG_MASK         (0x03 << 6)  /**< 再充电阈值掩码 */
-#define BQ25620_TMR_MASK            (0x03 << 4)  /**< 充电超时掩码 */
-#define BQ25620_EN_HOT              (0x01 << 2)  /**< 热充电使能 */
-#define BQ25620_EN_COLD             (0x01 << 1)  /**< 冷充电使能 */
+/* Charger Control 1 (0x16) */
+#define BQ25620_EN_CHG              (0x01U << 5) /**< Charger enable in REG0x16 */
 
 /* CHG_CTRL_7 (0x09) -  Miscellaneous */
 #define BQ25620_FORCE_DPDM          (0x01 << 7)  /**< 强制 DPDM 检测 */
@@ -192,7 +171,7 @@ int xy_bq25620_configure(xy_bq25620_t *dev,
  * @brief 设置充电电流
  * @param dev BQ25620 设备句柄
  * @param current_mA 充电电流 (mA)
- * @return XY_DEVICE_OK 成功；超出 64..5056 mA 或不对齐 64 mA 步长时返回
+ * @return XY_DEVICE_OK 成功；超出 80..3520 mA 或不对齐 80 mA 步长时返回
  * XY_DEVICE_INVALID_PARAM 且不访问总线
  */
 int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA);
@@ -201,7 +180,7 @@ int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA);
  * @brief 设置充电电压
  * @param dev BQ25620 设备句柄
  * @param voltage_mV 充电电压 (mV)
- * @return XY_DEVICE_OK 成功；超出 3500..4470 mV 或不对齐 10 mV 步长时返回
+ * @return XY_DEVICE_OK 成功；超出 3500..4800 mV 或不对齐 10 mV 步长时返回
  * XY_DEVICE_INVALID_PARAM 且不访问总线
  */
 int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV);
@@ -210,7 +189,7 @@ int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV);
  * @brief 设置输入电流限制
  * @param dev BQ25620 设备句柄
  * @param current_mA 输入电流限制 (mA)
- * @return XY_DEVICE_OK 成功；超出 100..6300 mA 或不对齐 100 mA 步长时返回
+ * @return XY_DEVICE_OK 成功；超出 100..3200 mA 或不对齐 20 mA 步长时返回
  * XY_DEVICE_INVALID_PARAM 且不访问总线
  */
 int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA);

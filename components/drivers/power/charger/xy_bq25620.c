@@ -29,7 +29,7 @@ static bool bq25620_ready(const xy_bq25620_t *dev)
 
 static bool bq25620_register_valid(uint8_t reg)
 {
-    return reg <= BQ25620_REG_SHIPMENT_MODE || reg == BQ25620_REG_DEVICE_ID;
+    return reg >= BQ25620_REG_CHG_CTRL_1 && reg <= BQ25620_REG_DEVICE_ID;
 }
 
 static int bq25620_from_hal(xy_hal_error_t error)
@@ -55,9 +55,9 @@ static int bq25620_from_hal(xy_hal_error_t error)
  */
 static int bq25620_i2c_read(xy_bq25620_t *dev, uint8_t reg, uint8_t *data, uint8_t len)
 {
-    uint8_t next;
+    uint8_t next[2];
 
-    if (!bq25620_transport_ready(dev) || !data || len != 1U) {
+    if (!bq25620_transport_ready(dev) || !data || len == 0U || len > sizeof(next)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
@@ -70,87 +70,102 @@ static int bq25620_i2c_read(xy_bq25620_t *dev, uint8_t reg, uint8_t *data, uint8
     }
 
     /* 先读入局部变量；失败时不发布部分或污染数据。 */
-    ret = xy_hal_i2c_master_receive(i2c, dev->i2c_addr, &next, 1U, 100);
+    ret = xy_hal_i2c_master_receive(i2c, dev->i2c_addr, next, len, 100);
     if (ret != XY_HAL_OK) {
         return bq25620_from_hal(ret);
     }
 
-    *data = next;
+    memcpy(data, next, len);
     return XY_DEVICE_OK;
 }
 
 /**
  * @brief I2C 写入寄存器
  */
-static int bq25620_i2c_write(xy_bq25620_t *dev, uint8_t reg, uint8_t data)
+static int bq25620_i2c_write(xy_bq25620_t *dev, uint8_t reg,
+                             const uint8_t *data, uint8_t len)
 {
-    if (!bq25620_transport_ready(dev)) {
+    uint8_t tx_buf[3];
+
+    if (!bq25620_transport_ready(dev) || data == NULL || len == 0U || len > 2U) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    
-    void *i2c = dev->i2c_handle;
-    uint8_t tx_buf[2] = {reg, data};
-    
+
+    tx_buf[0] = reg;
+    memcpy(&tx_buf[1], data, len);
     return bq25620_from_hal(
-        xy_hal_i2c_master_transmit(i2c, dev->i2c_addr, tx_buf, 2, 100));
+        xy_hal_i2c_master_transmit(dev->i2c_handle, dev->i2c_addr, tx_buf, len + 1U, 100));
 }
 
-/**
- * @brief 更新寄存器位
- */
-static int bq25620_i2c_update_bits(xy_bq25620_t *dev, uint8_t reg, uint8_t mask, uint8_t value)
+static int bq25620_read_u16(xy_bq25620_t *dev, uint8_t reg, uint16_t *value)
 {
-    uint8_t reg_value;
-    int ret = bq25620_i2c_read(dev, reg, &reg_value, 1);
+    uint8_t data[2];
+    int ret = bq25620_i2c_read(dev, reg, data, sizeof(data));
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    
-    reg_value = (reg_value & ~mask) | (value & mask);
-    
-    return bq25620_i2c_write(dev, reg, reg_value);
+    *value = (uint16_t)data[0] | ((uint16_t)data[1] << 8);
+    return XY_DEVICE_OK;
+}
+
+static int bq25620_write_u16(xy_bq25620_t *dev, uint8_t reg, uint16_t value)
+{
+    const uint8_t data[2] = {(uint8_t)value, (uint8_t)(value >> 8)};
+    return bq25620_i2c_write(dev, reg, data, sizeof(data));
+}
+
+static int bq25620_update_u8(xy_bq25620_t *dev, uint8_t reg, uint8_t mask, uint8_t value)
+{
+    uint8_t reg_value;
+    int ret = bq25620_i2c_read(dev, reg, &reg_value, 1U);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+    reg_value = (uint8_t)((reg_value & (uint8_t)~mask) | (value & mask));
+    return bq25620_i2c_write(dev, reg, &reg_value, 1U);
+}
+
+static int bq25620_update_u16(xy_bq25620_t *dev, uint8_t reg, uint16_t mask, uint16_t value)
+{
+    uint16_t reg_value;
+    int ret = bq25620_read_u16(dev, reg, &reg_value);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+    reg_value = (uint16_t)((reg_value & (uint16_t)~mask) | (value & mask));
+    return bq25620_write_u16(dev, reg, reg_value);
 }
 
 /**
  * @brief 电流转寄存器值
  */
-static uint8_t current_to_reg(uint32_t current_mA, uint8_t step, uint8_t min_mA)
+static uint16_t current_to_reg(uint32_t current_mA, uint16_t step)
 {
-    if (current_mA < min_mA) {
-        return 0;
-    }
-    
-    uint8_t reg_value = (current_mA - min_mA) / step;
-    return reg_value;
+    return (uint16_t)(current_mA / step);
 }
 
 /**
  * @brief 寄存器值转电流
  */
-static uint32_t reg_to_current(uint8_t reg_value, uint8_t step, uint8_t min_mA)
+static uint32_t reg_to_current(uint16_t reg_value, uint16_t step)
 {
-    return min_mA + ((uint32_t)reg_value * step);
+    return (uint32_t)reg_value * step;
 }
 
 /**
  * @brief 电压转寄存器值
  */
-static uint8_t voltage_to_reg(uint32_t voltage_mV, uint8_t step, uint16_t min_mV)
+static uint16_t voltage_to_reg(uint32_t voltage_mV, uint16_t step)
 {
-    if (voltage_mV < min_mV) {
-        return 0;
-    }
-    
-    uint8_t reg_value = (voltage_mV - min_mV) / step;
-    return reg_value;
+    return (uint16_t)(voltage_mV / step);
 }
 
 /**
  * @brief 寄存器值转电压
  */
-static uint32_t reg_to_voltage(uint8_t reg_value, uint8_t step, uint16_t min_mV)
+static uint32_t reg_to_voltage(uint16_t reg_value, uint16_t step)
 {
-    return min_mV + ((uint32_t)reg_value * step);
+    return (uint32_t)reg_value * step;
 }
 
 static bool bq25620_config_valid(const xy_charger_device_config_t *config)
@@ -165,12 +180,12 @@ static bool bq25620_config_valid(const xy_charger_device_config_t *config)
            config->charge_voltage >= BQ25620_VREG_MIN_mV &&
            config->charge_voltage <= BQ25620_VREG_MAX_mV &&
            (config->charge_voltage - BQ25620_VREG_MIN_mV) % BQ25620_VREG_STEP_mV == 0U &&
-           config->precharge_current >= 64U && config->precharge_current <= 960U &&
-           (config->precharge_current - 64U) % 64U == 0U &&
-           config->termination_current >= 64U && config->termination_current <= 960U &&
-           (config->termination_current - 64U) % 64U == 0U &&
-           config->recharge_threshold >= 100U && config->recharge_threshold <= 300U &&
-           config->recharge_threshold % 100U == 0U;
+           config->precharge_current >= 20U && config->precharge_current <= 620U &&
+           config->precharge_current % 20U == 0U &&
+           config->termination_current >= 10U && config->termination_current <= 620U &&
+           config->termination_current % 10U == 0U &&
+           (config->recharge_threshold == 100U || config->recharge_threshold == 200U) &&
+           config->auto_recharge;
 }
 
 /* ==================== Hardware Operations ==================== */
@@ -203,8 +218,7 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
     xy_charger_device_status_t next = {0};
     uint8_t stat0;
     uint8_t stat1;
-    uint8_t reg_value;
-    bool charge_state_known = true;
+    uint16_t reg_value;
     int ret;
 
     if (!bq25620_ready(dev) || !status) {
@@ -219,69 +233,67 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_1, &reg_value, 1U);
+    ret = bq25620_read_u16(dev, BQ25620_REG_CHG_CTRL_1, &reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    if ((reg_value & BQ25620_ICHG_MASK) >
-        (BQ25620_ICHG_MAX_mA - BQ25620_ICHG_MIN_mA) / BQ25620_ICHG_STEP_mA) {
+    if ((reg_value & BQ25620_ICHG_MASK) >> 6U >
+        BQ25620_ICHG_MAX_mA / BQ25620_ICHG_STEP_mA) {
         return XY_DEVICE_ERROR;
     }
-    next.configured_charge_current = reg_to_current(reg_value & BQ25620_ICHG_MASK,
-                                                    BQ25620_ICHG_STEP_mA,
-                                                    BQ25620_ICHG_MIN_mA);
-    ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_3, &reg_value, 1U);
+    next.configured_charge_current =
+        reg_to_current((reg_value & BQ25620_ICHG_MASK) >> 6U, BQ25620_ICHG_STEP_mA);
+    ret = bq25620_read_u16(dev, BQ25620_REG_CHG_CTRL_3, &reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    if ((reg_value & BQ25620_VREG_MASK) >
-        (BQ25620_VREG_MAX_mV - BQ25620_VREG_MIN_mV) / BQ25620_VREG_STEP_mV) {
+    if ((reg_value & BQ25620_VREG_MASK) >> 3U >
+        BQ25620_VREG_MAX_mV / BQ25620_VREG_STEP_mV) {
         return XY_DEVICE_ERROR;
     }
-    next.configured_charge_voltage = reg_to_voltage(reg_value & BQ25620_VREG_MASK,
-                                                    BQ25620_VREG_STEP_mV,
-                                                    BQ25620_VREG_MIN_mV);
-    ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_4, &reg_value, 1U);
+    next.configured_charge_voltage =
+        reg_to_voltage((reg_value & BQ25620_VREG_MASK) >> 3U, BQ25620_VREG_STEP_mV);
+    ret = bq25620_read_u16(dev, BQ25620_REG_CHG_CTRL_4, &reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    if ((reg_value & BQ25620_ILIM_MASK) >
-        (BQ25620_ILIM_MAX_mA - BQ25620_ILIM_MIN_mA) / BQ25620_ILIM_STEP_mA) {
+    if ((reg_value & BQ25620_ILIM_MASK) >> 4U >
+        BQ25620_ILIM_MAX_mA / BQ25620_ILIM_STEP_mA) {
         return XY_DEVICE_ERROR;
     }
     next.configured_input_current_limit =
-        reg_to_current(reg_value & BQ25620_ILIM_MASK,
-                       BQ25620_ILIM_STEP_mA, BQ25620_ILIM_MIN_mA);
+        reg_to_current((reg_value & BQ25620_ILIM_MASK) >> 4U, BQ25620_ILIM_STEP_mA);
 
     switch (stat0 & BQ25620_STAT_CHG_MASK) {
         case BQ25620_STAT_CHG_IDLE: next.state = XY_CHARGER_DEVICE_STATE_IDLE; break;
-        case BQ25620_STAT_CHG_PRECHG: next.state = XY_CHARGER_DEVICE_STATE_PRE_CHARGE; break;
         case BQ25620_STAT_CHG_FAST: next.state = XY_CHARGER_DEVICE_STATE_FAST_CHARGE; break;
-        case BQ25620_STAT_CHG_DONE: next.state = XY_CHARGER_DEVICE_STATE_CHARGE_DONE; break;
-        default:
-            next.state = XY_CHARGER_DEVICE_STATE_FAULT;
-            charge_state_known = false;
-            break;
+        case BQ25620_STAT_CHG_CV: next.state = XY_CHARGER_DEVICE_STATE_CONSTANT_VOLT; break;
+        case BQ25620_STAT_CHG_TOPOFF: next.state = XY_CHARGER_DEVICE_STATE_CHARGE_DONE; break;
     }
 
-    switch (stat1 & BQ25620_FAULT_MASK) {
-        case BQ25620_FAULT_NORMAL: next.fault = XY_CHARGER_DEVICE_FAULT_NONE; break;
-        case BQ25620_FAULT_INPUT_OVP: next.fault = XY_CHARGER_DEVICE_FAULT_INPUT_OVP; break;
-        case BQ25620_FAULT_THERMAL: next.fault = XY_CHARGER_DEVICE_FAULT_THERMAL; break;
-        case BQ25620_FAULT_CHG_TIMEOUT: next.fault = XY_CHARGER_DEVICE_FAULT_CHARGE_TIMEOUT; break;
-        case BQ25620_FAULT_BAT_OVP: next.fault = XY_CHARGER_DEVICE_FAULT_BAT_OVP; break;
-        default: next.fault = XY_CHARGER_DEVICE_FAULT_UNKNOWN; break;
-    }
-
-    if (!charge_state_known && next.fault == XY_CHARGER_DEVICE_FAULT_NONE) {
+    if ((stat1 & BQ25620_FAULT_INPUT_OVP) != 0U) {
+        next.fault = XY_CHARGER_DEVICE_FAULT_INPUT_OVP;
+    } else if ((stat1 & BQ25620_FAULT_BAT_OVP) != 0U) {
+        next.fault = XY_CHARGER_DEVICE_FAULT_BAT_OVP;
+    } else if ((stat1 & BQ25620_FAULT_THERMAL) != 0U) {
+        next.fault = XY_CHARGER_DEVICE_FAULT_THERMAL;
+    } else if ((stat1 & BQ25620_FAULT_TS_MASK) == 1U) {
+        next.fault = XY_CHARGER_DEVICE_FAULT_COLD;
+    } else if ((stat1 & BQ25620_FAULT_TS_MASK) == 2U) {
+        next.fault = XY_CHARGER_DEVICE_FAULT_HOT;
+    } else if ((stat1 & (BQ25620_FAULT_SYS | BQ25620_FAULT_OTG)) != 0U ||
+               (stat1 & BQ25620_FAULT_TS_MASK) == 7U) {
         next.fault = XY_CHARGER_DEVICE_FAULT_UNKNOWN;
+    } else {
+        next.fault = XY_CHARGER_DEVICE_FAULT_NONE;
     }
 
     if (next.fault != XY_CHARGER_DEVICE_FAULT_NONE) {
         next.state = XY_CHARGER_DEVICE_STATE_FAULT;
     }
 
-    next.power_good = (stat0 & BQ25620_STAT_PG) != 0U;
+    next.power_good = (stat0 & BQ25620_STAT_VBUS_MASK) != 0U &&
+                      (stat1 & BQ25620_FAULT_INPUT_OVP) == 0U;
     next.charging = next.state == XY_CHARGER_DEVICE_STATE_PRE_CHARGE ||
                     next.state == XY_CHARGER_DEVICE_STATE_FAST_CHARGE ||
                     next.state == XY_CHARGER_DEVICE_STATE_CONSTANT_VOLT;
@@ -293,49 +305,50 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
 static int bq25620_set_config(xy_bq25620_t *dev,
                               const xy_charger_device_config_t *config)
 {
-    uint8_t reg_value;
+    uint16_t reg_value;
     int ret;
 
     if (!bq25620_ready(dev) || !bq25620_config_valid(config)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    reg_value = current_to_reg(config->charge_current, BQ25620_ICHG_STEP_mA,
-                               BQ25620_ICHG_MIN_mA) & BQ25620_ICHG_MASK;
-    ret = bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_1,
-                                  BQ25620_ICHG_MASK, reg_value);
+    reg_value = current_to_reg(config->charge_current, BQ25620_ICHG_STEP_mA) << 6U;
+    ret = bq25620_update_u16(dev, BQ25620_REG_CHG_CTRL_1,
+                             BQ25620_ICHG_MASK, reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
 
-    reg_value = voltage_to_reg(config->charge_voltage, BQ25620_VREG_STEP_mV,
-                               BQ25620_VREG_MIN_mV) & BQ25620_VREG_MASK;
-    ret = bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_3,
-                                  BQ25620_VREG_MASK, reg_value);
+    reg_value = voltage_to_reg(config->charge_voltage, BQ25620_VREG_STEP_mV) << 3U;
+    ret = bq25620_update_u16(dev, BQ25620_REG_CHG_CTRL_3,
+                             BQ25620_VREG_MASK, reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
 
-    reg_value = (current_to_reg(config->input_current_limit, BQ25620_ILIM_STEP_mA,
-                                BQ25620_ILIM_MIN_mA) & BQ25620_ILIM_MASK) |
-                BQ25620_EN_ILIM;
-    ret = bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_4,
-                                  BQ25620_ILIM_MASK | BQ25620_EN_ILIM, reg_value);
+    reg_value = current_to_reg(config->input_current_limit, BQ25620_ILIM_STEP_mA) << 4U;
+    ret = bq25620_update_u16(dev, BQ25620_REG_CHG_CTRL_4,
+                             BQ25620_ILIM_MASK, reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
 
-    reg_value = ((current_to_reg(config->termination_current, 64, 64) & 0x0FU) << 4) |
-                (current_to_reg(config->precharge_current, 64, 64) & 0x0FU);
-    ret = bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_2, reg_value);
+    reg_value = current_to_reg(config->precharge_current, 20U) << 4U;
+    ret = bq25620_update_u16(dev, BQ25620_REG_CHG_CTRL_2,
+                             BQ25620_IPRECHG_MASK, reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
 
-    reg_value = config->auto_recharge ? BQ25620_AUTO_RECHG : 0U;
-    reg_value |= ((config->recharge_threshold / 100U) & 0x03U) << 6;
-    return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_5,
-                                   BQ25620_VRECHG_MASK | BQ25620_AUTO_RECHG, reg_value);
+    reg_value = current_to_reg(config->termination_current, 10U) << 3U;
+    ret = bq25620_update_u16(dev, BQ25620_REG_CHG_CTRL_5,
+                             BQ25620_ITERM_MASK, reg_value);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    return bq25620_update_u8(dev, BQ25620_REG_CHG_CTRL_0, BQ25620_VRECHG,
+                             config->recharge_threshold == 200U ? BQ25620_VRECHG : 0U);
 }
 
 static int bq25620_enable(xy_bq25620_t *dev, bool enable)
@@ -345,11 +358,10 @@ static int bq25620_enable(xy_bq25620_t *dev, bool enable)
     }
     
     if (enable) {
-        return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_0,
-                                        BQ25620_EN_CHG, BQ25620_EN_CHG);
+        return bq25620_update_u8(dev, BQ25620_REG_CHG_CTRL_6,
+                                 BQ25620_EN_CHG, BQ25620_EN_CHG);
     } else {
-        return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_0,
-                                        BQ25620_EN_CHG, 0);
+        return bq25620_update_u8(dev, BQ25620_REG_CHG_CTRL_6, BQ25620_EN_CHG, 0U);
     }
 }
 
@@ -433,9 +445,9 @@ int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    uint8_t ichg_reg = current_to_reg(current_mA, BQ25620_ICHG_STEP_mA, BQ25620_ICHG_MIN_mA);
-    return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_1, BQ25620_ICHG_MASK,
-                                   ichg_reg);
+    uint16_t ichg_reg = current_to_reg(current_mA, BQ25620_ICHG_STEP_mA) << 6U;
+    return bq25620_update_u16(dev, BQ25620_REG_CHG_CTRL_1, BQ25620_ICHG_MASK,
+                              ichg_reg);
 }
 
 int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
@@ -446,9 +458,9 @@ int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    uint8_t vreg_reg = voltage_to_reg(voltage_mV, BQ25620_VREG_STEP_mV, BQ25620_VREG_MIN_mV);
-    return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_3, BQ25620_VREG_MASK,
-                                   vreg_reg);
+    uint16_t vreg_reg = voltage_to_reg(voltage_mV, BQ25620_VREG_STEP_mV) << 3U;
+    return bq25620_update_u16(dev, BQ25620_REG_CHG_CTRL_3, BQ25620_VREG_MASK,
+                              vreg_reg);
 }
 
 int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
@@ -459,10 +471,9 @@ int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    uint8_t ilim_reg = current_to_reg(current_mA, BQ25620_ILIM_STEP_mA, BQ25620_ILIM_MIN_mA);
-    uint8_t ilim_value = (ilim_reg & BQ25620_ILIM_MASK) | BQ25620_EN_ILIM;
-    return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_4,
-                                   BQ25620_ILIM_MASK | BQ25620_EN_ILIM, ilim_value);
+    uint16_t ilim_reg = current_to_reg(current_mA, BQ25620_ILIM_STEP_mA) << 4U;
+    return bq25620_update_u16(dev, BQ25620_REG_CHG_CTRL_4, BQ25620_ILIM_MASK,
+                              ilim_reg);
 }
 
 int xy_bq25620_start_charge(xy_bq25620_t *dev)

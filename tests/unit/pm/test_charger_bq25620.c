@@ -63,7 +63,7 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_EQUAL_HEX16(g_expected_i2c_addr, dev_addr);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(1U, len);
-    TEST_ASSERT_LESS_OR_EQUAL_UINT(2U, len);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT(3U, len);
 
     if (g_fail_tx_call != 0U &&
         xy_hal_i2c_master_transmit_fake.call_count == g_fail_tx_call) {
@@ -71,9 +71,10 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
     }
 
     g_selected_reg = data[0];
-    if (len == 2) {
+    if (len > 1U) {
         TEST_ASSERT_LESS_THAN(sizeof(g_regs), g_selected_reg);
-        g_regs[g_selected_reg] = data[1];
+        TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_regs), g_selected_reg + len - 1U);
+        memcpy(&g_regs[g_selected_reg], &data[1], len - 1U);
     }
 
     return XY_HAL_OK;
@@ -96,6 +97,36 @@ static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
     }
     memcpy(data, &g_regs[g_selected_reg], len);
     return XY_HAL_OK;
+}
+
+static void set_reg_u16(uint8_t reg, uint16_t value)
+{
+    g_regs[reg] = (uint8_t)value;
+    g_regs[reg + 1U] = (uint8_t)(value >> 8);
+}
+
+static uint16_t get_reg_u16(uint8_t reg)
+{
+    return (uint16_t)g_regs[reg] | ((uint16_t)g_regs[reg + 1U] << 8);
+}
+
+static void test_datasheet_register_map_contract(void)
+{
+    TEST_ASSERT_EQUAL_HEX8(0x02U, BQ25620_REG_CHG_CTRL_1);
+    TEST_ASSERT_EQUAL_HEX8(0x04U, BQ25620_REG_CHG_CTRL_3);
+    TEST_ASSERT_EQUAL_HEX8(0x06U, BQ25620_REG_CHG_CTRL_4);
+    TEST_ASSERT_EQUAL_HEX8(0x10U, BQ25620_REG_CHG_CTRL_2);
+    TEST_ASSERT_EQUAL_HEX8(0x12U, BQ25620_REG_CHG_CTRL_5);
+    TEST_ASSERT_EQUAL_HEX8(0x14U, BQ25620_REG_CHG_CTRL_0);
+    TEST_ASSERT_EQUAL_HEX8(0x16U, BQ25620_REG_CHG_CTRL_6);
+    TEST_ASSERT_EQUAL_HEX8(0x1DU, BQ25620_REG_ADC_STAT_0);
+    TEST_ASSERT_EQUAL_HEX8(0x1EU, BQ25620_REG_CHG_STAT_0);
+    TEST_ASSERT_EQUAL_HEX8(0x1FU, BQ25620_REG_CHG_STAT_1);
+    TEST_ASSERT_EQUAL_UINT(80U, BQ25620_ICHG_STEP_mA);
+    TEST_ASSERT_EQUAL_UINT(3520U, BQ25620_ICHG_MAX_mA);
+    TEST_ASSERT_EQUAL_UINT(4800U, BQ25620_VREG_MAX_mV);
+    TEST_ASSERT_EQUAL_UINT(20U, BQ25620_ILIM_STEP_mA);
+    TEST_ASSERT_EQUAL_UINT(3200U, BQ25620_ILIM_MAX_mA);
 }
 
 static void test_null_param_validation(void)
@@ -156,23 +187,23 @@ static void test_status_decoding(void)
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6B));
 
-    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | BQ25620_STAT_PG;
+    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | 0x03U;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_THERMAL;
-    g_regs[BQ25620_REG_CHG_CTRL_1] = 1U;
-    g_regs[BQ25620_REG_CHG_CTRL_3] = 70U;
-    g_regs[BQ25620_REG_CHG_CTRL_4] = BQ25620_EN_ILIM | 4U;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, (160U / BQ25620_ICHG_STEP_mA) << 6U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_3, (4200U / BQ25620_VREG_STEP_mV) << 3U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_4, (500U / BQ25620_ILIM_STEP_mA) << 4U);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_THERMAL, status.fault);
     TEST_ASSERT_TRUE(status.power_good);
     TEST_ASSERT_FALSE(status.charging);
     TEST_ASSERT_FALSE(status.done);
-    TEST_ASSERT_EQUAL_UINT32(128U, status.configured_charge_current);
+    TEST_ASSERT_EQUAL_UINT32(160U, status.configured_charge_current);
     TEST_ASSERT_EQUAL_UINT32(4200U, status.configured_charge_voltage);
     TEST_ASSERT_EQUAL_UINT32(500U, status.configured_input_current_limit);
 
-    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_DONE;
-    g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_NORMAL;
+    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_TOPOFF;
+    g_regs[BQ25620_REG_CHG_STAT_1] = 0U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_CHARGE_DONE, status.state);
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_NONE, status.fault);
@@ -187,8 +218,8 @@ static void test_unknown_status_codes_fail_closed(void)
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
-    g_regs[BQ25620_REG_CHG_STAT_0] = (0x07U << 4) | BQ25620_STAT_PG;
-    g_regs[BQ25620_REG_CHG_STAT_1] = (0x07U << 4);
+    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_TOPOFF | 0x03U;
+    g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_SYS;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
@@ -205,7 +236,7 @@ static void test_known_fault_overrides_done_state(void)
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
-    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_DONE | BQ25620_STAT_PG;
+    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_TOPOFF | 0x03U;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_BAT_OVP;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
@@ -216,15 +247,15 @@ static void test_known_fault_overrides_done_state(void)
     TEST_ASSERT_FALSE(status.done);
 }
 
-static void test_unknown_charge_state_reports_unknown_fault(void)
+static void test_unknown_ts_state_reports_unknown_fault(void)
 {
     xy_bq25620_t dev;
     xy_charger_device_status_t status;
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
-    g_regs[BQ25620_REG_CHG_STAT_0] = (0x07U << 4) | BQ25620_STAT_PG;
-    g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_NORMAL;
+    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | 0x03U;
+    g_regs[BQ25620_REG_CHG_STAT_1] = 0x07U;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
@@ -234,36 +265,44 @@ static void test_unknown_charge_state_reports_unknown_fault(void)
     TEST_ASSERT_FALSE(status.done);
 }
 
-static void test_status_rejects_reserved_setpoint_encodings(void)
+static void test_status_accepts_datasheet_maximum_setpoint_encodings(void)
 {
     static const struct {
         uint8_t reg;
-        uint8_t value;
+        uint16_t value;
     } cases[] = {
-        {BQ25620_REG_CHG_CTRL_1, 0x7FU},
-        {BQ25620_REG_CHG_CTRL_3, 0x7FU},
-        {BQ25620_REG_CHG_CTRL_4, 0x3FU},
+        {BQ25620_REG_CHG_CTRL_1, 44U},
+        {BQ25620_REG_CHG_CTRL_3, 480U},
+        {BQ25620_REG_CHG_CTRL_4, 160U},
     };
 
     for (size_t index = 0U; index < sizeof(cases) / sizeof(cases[0]); ++index) {
         xy_bq25620_t dev;
         xy_charger_device_status_t status;
-        xy_charger_device_status_t snapshot;
 
         reset_fake_i2c();
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                               xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
-        g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | BQ25620_STAT_PG;
-        g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_NORMAL;
-        g_regs[BQ25620_REG_CHG_CTRL_1] = 1U;
-        g_regs[BQ25620_REG_CHG_CTRL_3] = 70U;
-        g_regs[BQ25620_REG_CHG_CTRL_4] = BQ25620_EN_ILIM | 4U;
-        g_regs[cases[index].reg] = cases[index].value;
+        g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | 0x03U;
+        set_reg_u16(BQ25620_REG_CHG_CTRL_1, (160U / BQ25620_ICHG_STEP_mA) << 6U);
+        set_reg_u16(BQ25620_REG_CHG_CTRL_3, (4200U / BQ25620_VREG_STEP_mV) << 3U);
+        set_reg_u16(BQ25620_REG_CHG_CTRL_4, (500U / BQ25620_ILIM_STEP_mA) << 4U);
+        if (cases[index].reg == BQ25620_REG_CHG_CTRL_1) {
+            set_reg_u16(cases[index].reg, (uint16_t)cases[index].value << 6U);
+        } else if (cases[index].reg == BQ25620_REG_CHG_CTRL_3) {
+            set_reg_u16(cases[index].reg, (uint16_t)cases[index].value << 3U);
+        } else {
+            set_reg_u16(cases[index].reg, (uint16_t)cases[index].value << 4U);
+        }
         memset(&status, 0xA5, sizeof(status));
-        snapshot = status;
 
-        TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_get_status(&dev, &status));
-        TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
+        TEST_ASSERT_EQUAL_UINT32(index == 0U ? BQ25620_ICHG_MAX_mA : 160U,
+                                 status.configured_charge_current);
+        TEST_ASSERT_EQUAL_UINT32(index == 1U ? BQ25620_VREG_MAX_mV : 4200U,
+                                 status.configured_charge_voltage);
+        TEST_ASSERT_EQUAL_UINT32(index == 2U ? BQ25620_ILIM_MAX_mA : 500U,
+                                 status.configured_input_current_limit);
     }
 }
 
@@ -277,31 +316,35 @@ static void test_config_and_range_validation(void)
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_bq25620_set_charge_current(&dev, BQ25620_ICHG_MIN_mA));
-    TEST_ASSERT_EQUAL_HEX8(0U, g_regs[BQ25620_REG_CHG_CTRL_1]);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 128U));
-    TEST_ASSERT_EQUAL_HEX8(1U, g_regs[BQ25620_REG_CHG_CTRL_1]);
+    TEST_ASSERT_EQUAL_HEX16((BQ25620_ICHG_MIN_mA / BQ25620_ICHG_STEP_mA) << 6U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_1));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 160U));
+    TEST_ASSERT_EQUAL_HEX16((160U / BQ25620_ICHG_STEP_mA) << 6U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_1));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_bq25620_set_charge_current(&dev, BQ25620_ICHG_MAX_mA));
-    TEST_ASSERT_EQUAL_HEX8((BQ25620_ICHG_MAX_mA - BQ25620_ICHG_MIN_mA) /
-                               BQ25620_ICHG_STEP_mA,
-                           g_regs[BQ25620_REG_CHG_CTRL_1]);
+    TEST_ASSERT_EQUAL_HEX16((BQ25620_ICHG_MAX_mA / BQ25620_ICHG_STEP_mA) << 6U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_1));
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_bq25620_set_charge_voltage(&dev, BQ25620_VREG_MIN_mV));
-    TEST_ASSERT_EQUAL_HEX8(0U, g_regs[BQ25620_REG_CHG_CTRL_3]);
+    TEST_ASSERT_EQUAL_HEX16((BQ25620_VREG_MIN_mV / BQ25620_VREG_STEP_mV) << 3U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_3));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_voltage(&dev, 4200U));
-    TEST_ASSERT_EQUAL_HEX8(70U, g_regs[BQ25620_REG_CHG_CTRL_3]);
+    TEST_ASSERT_EQUAL_HEX16((4200U / BQ25620_VREG_STEP_mV) << 3U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_3));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_bq25620_set_charge_voltage(&dev, BQ25620_VREG_MAX_mV));
-    TEST_ASSERT_EQUAL_HEX8((BQ25620_VREG_MAX_mV - BQ25620_VREG_MIN_mV) /
-                               BQ25620_VREG_STEP_mV,
-                           g_regs[BQ25620_REG_CHG_CTRL_3]);
+    TEST_ASSERT_EQUAL_HEX16((BQ25620_VREG_MAX_mV / BQ25620_VREG_STEP_mV) << 3U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_3));
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_bq25620_set_input_limit(&dev, BQ25620_ILIM_MIN_mA));
-    TEST_ASSERT_EQUAL_HEX8(BQ25620_EN_ILIM, g_regs[BQ25620_REG_CHG_CTRL_4]);
+    TEST_ASSERT_EQUAL_HEX16((BQ25620_ILIM_MIN_mA / BQ25620_ILIM_STEP_mA) << 4U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_4));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_input_limit(&dev, 500U));
-    TEST_ASSERT_EQUAL_HEX8(BQ25620_EN_ILIM | 4U, g_regs[BQ25620_REG_CHG_CTRL_4]);
+    TEST_ASSERT_EQUAL_HEX16((500U / BQ25620_ILIM_STEP_mA) << 4U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_4));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_bq25620_set_input_limit(&dev, BQ25620_ILIM_MAX_mA));
 
@@ -332,14 +375,14 @@ static void test_start_stop_and_deinit(void)
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6B));
 
-    g_regs[BQ25620_REG_CHG_CTRL_0] = 0x01;
+    g_regs[BQ25620_REG_CHG_CTRL_6] = 0x01;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_start_charge(&dev));
-    TEST_ASSERT_BITS_HIGH(BQ25620_EN_CHG, g_regs[BQ25620_REG_CHG_CTRL_0]);
-    TEST_ASSERT_BITS_HIGH(0x01, g_regs[BQ25620_REG_CHG_CTRL_0]);
+    TEST_ASSERT_BITS_HIGH(BQ25620_EN_CHG, g_regs[BQ25620_REG_CHG_CTRL_6]);
+    TEST_ASSERT_BITS_HIGH(0x01, g_regs[BQ25620_REG_CHG_CTRL_6]);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_stop_charge(&dev));
-    TEST_ASSERT_BITS_LOW(BQ25620_EN_CHG, g_regs[BQ25620_REG_CHG_CTRL_0]);
-    TEST_ASSERT_BITS_HIGH(0x01, g_regs[BQ25620_REG_CHG_CTRL_0]);
+    TEST_ASSERT_BITS_LOW(BQ25620_EN_CHG, g_regs[BQ25620_REG_CHG_CTRL_6]);
+    TEST_ASSERT_BITS_HIGH(0x01, g_regs[BQ25620_REG_CHG_CTRL_6]);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_deinit(&dev));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.base.base.initialized);
@@ -390,7 +433,7 @@ static void test_deinit_transport_failures_preserve_live_owner_for_retry(void)
         reset_fake_i2c();
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                               xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
-        g_regs[BQ25620_REG_CHG_CTRL_0] = BQ25620_EN_CHG | 0x01U;
+        g_regs[BQ25620_REG_CHG_CTRL_6] = BQ25620_EN_CHG | 0x01U;
         snapshot = dev;
         tx_before = xy_hal_i2c_master_transmit_fake.call_count;
         rx_before = xy_hal_i2c_master_receive_fake.call_count;
@@ -404,7 +447,7 @@ static void test_deinit_transport_failures_preserve_live_owner_for_retry(void)
         TEST_ASSERT_EQUAL_INT(cases[index].expected, xy_bq25620_deinit(&dev));
         TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(snapshot));
         TEST_ASSERT_EQUAL_HEX8(BQ25620_EN_CHG | 0x01U,
-                               g_regs[BQ25620_REG_CHG_CTRL_0]);
+                               g_regs[BQ25620_REG_CHG_CTRL_6]);
         TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
         TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
 
@@ -412,8 +455,8 @@ static void test_deinit_transport_failures_preserve_live_owner_for_retry(void)
         g_fail_tx_call = 0U;
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_deinit(&dev));
         TEST_ASSERT_EQUAL_MEMORY(&(xy_bq25620_t){0}, &dev, sizeof(dev));
-        TEST_ASSERT_BITS_LOW(BQ25620_EN_CHG, g_regs[BQ25620_REG_CHG_CTRL_0]);
-        TEST_ASSERT_BITS_HIGH(0x01U, g_regs[BQ25620_REG_CHG_CTRL_0]);
+        TEST_ASSERT_BITS_LOW(BQ25620_EN_CHG, g_regs[BQ25620_REG_CHG_CTRL_6]);
+        TEST_ASSERT_BITS_HIGH(0x01U, g_regs[BQ25620_REG_CHG_CTRL_6]);
     }
 }
 
@@ -474,14 +517,15 @@ static void test_full_config_stops_at_first_write_error(void)
         BQ25620_REG_CHG_CTRL_4,
         BQ25620_REG_CHG_CTRL_2,
         BQ25620_REG_CHG_CTRL_5,
+        BQ25620_REG_CHG_CTRL_0,
     };
-    static const unsigned reads_before_write[] = {1U, 2U, 3U, 3U, 4U};
+    static const unsigned reads_before_write[] = {1U, 2U, 3U, 4U, 5U, 6U};
     const xy_charger_device_config_t config = {
         .input_current_limit = 500U,
-        .charge_current = 128U,
+        .charge_current = 160U,
         .charge_voltage = 4200U,
-        .precharge_current = 128U,
-        .termination_current = 192U,
+        .precharge_current = 100U,
+        .termination_current = 60U,
         .recharge_threshold = 200U,
         .auto_recharge = true,
     };
@@ -542,10 +586,10 @@ static void test_full_config_rejects_out_of_range_values_without_io(void)
     xy_bq25620_t dev;
     xy_charger_device_config_t config = {
         .input_current_limit = 500U,
-        .charge_current = 512U,
+        .charge_current = 800U,
         .charge_voltage = 4200U,
-        .precharge_current = 128U,
-        .termination_current = 128U,
+        .precharge_current = 100U,
+        .termination_current = 60U,
         .recharge_threshold = 100U,
         .auto_recharge = true,
     };
@@ -565,22 +609,22 @@ static void test_full_config_rejects_out_of_range_values_without_io(void)
     } while (0)
 
     ASSERT_CONFIG_REJECTED(input_current_limit, 99U);
-    ASSERT_CONFIG_REJECTED(input_current_limit, 6301U);
-    ASSERT_CONFIG_REJECTED(charge_current, 63U);
-    ASSERT_CONFIG_REJECTED(charge_current, 5057U);
+    ASSERT_CONFIG_REJECTED(input_current_limit, 3201U);
+    ASSERT_CONFIG_REJECTED(charge_current, 79U);
+    ASSERT_CONFIG_REJECTED(charge_current, 3521U);
     ASSERT_CONFIG_REJECTED(charge_voltage, 3499U);
-    ASSERT_CONFIG_REJECTED(charge_voltage, 4471U);
-    ASSERT_CONFIG_REJECTED(precharge_current, 63U);
-    ASSERT_CONFIG_REJECTED(precharge_current, 961U);
-    ASSERT_CONFIG_REJECTED(termination_current, 63U);
-    ASSERT_CONFIG_REJECTED(termination_current, 961U);
+    ASSERT_CONFIG_REJECTED(charge_voltage, 4801U);
+    ASSERT_CONFIG_REJECTED(precharge_current, 19U);
+    ASSERT_CONFIG_REJECTED(precharge_current, 621U);
+    ASSERT_CONFIG_REJECTED(termination_current, 9U);
+    ASSERT_CONFIG_REJECTED(termination_current, 621U);
     ASSERT_CONFIG_REJECTED(recharge_threshold, 99U);
-    ASSERT_CONFIG_REJECTED(recharge_threshold, 301U);
-    ASSERT_CONFIG_REJECTED(input_current_limit, 150U);
-    ASSERT_CONFIG_REJECTED(charge_current, 65U);
+    ASSERT_CONFIG_REJECTED(recharge_threshold, 300U);
+    ASSERT_CONFIG_REJECTED(input_current_limit, 110U);
+    ASSERT_CONFIG_REJECTED(charge_current, 81U);
     ASSERT_CONFIG_REJECTED(charge_voltage, 3501U);
-    ASSERT_CONFIG_REJECTED(precharge_current, 65U);
-    ASSERT_CONFIG_REJECTED(termination_current, 65U);
+    ASSERT_CONFIG_REJECTED(precharge_current, 21U);
+    ASSERT_CONFIG_REJECTED(termination_current, 11U);
     ASSERT_CONFIG_REJECTED(recharge_threshold, 150U);
 
 #undef ASSERT_CONFIG_REJECTED
@@ -655,8 +699,8 @@ static void test_transport_errors_propagate_and_preserve_outputs(void)
 static void test_register_access_rejects_undocumented_addresses_without_io(void)
 {
     static const uint8_t invalid_registers[] = {
-        BQ25620_REG_SHIPMENT_MODE + 1U,
-        BQ25620_REG_DEVICE_ID - 1U,
+        0x00U,
+        0x01U,
         BQ25620_REG_DEVICE_ID + 1U,
     };
     xy_bq25620_t dev;
@@ -703,17 +747,19 @@ static void test_setters_preserve_unrelated_register_bits(void)
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
 
-    g_regs[BQ25620_REG_CHG_CTRL_1] = 0x80U;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 128U));
-    TEST_ASSERT_EQUAL_HEX8(0x81U, g_regs[BQ25620_REG_CHG_CTRL_1]);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, 0x003FU);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 160U));
+    TEST_ASSERT_EQUAL_HEX16(0x00BFU, get_reg_u16(BQ25620_REG_CHG_CTRL_1));
 
-    g_regs[BQ25620_REG_CHG_CTRL_3] = 0x80U;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_3, 0x0007U);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_voltage(&dev, 4200U));
-    TEST_ASSERT_EQUAL_HEX8(0xC6U, g_regs[BQ25620_REG_CHG_CTRL_3]);
+    TEST_ASSERT_EQUAL_HEX16(((4200U / 10U) << 3U) | 0x0007U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_3));
 
-    g_regs[BQ25620_REG_CHG_CTRL_4] = 0x40U;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_4, 0x000FU);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_input_limit(&dev, 500U));
-    TEST_ASSERT_EQUAL_HEX8(0xC4U, g_regs[BQ25620_REG_CHG_CTRL_4]);
+    TEST_ASSERT_EQUAL_HEX16(((500U / 20U) << 4U) | 0x000FU,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_4));
 }
 
 static void test_setter_read_failure_stops_before_write(void)
@@ -723,14 +769,14 @@ static void test_setter_read_failure_stops_before_write(void)
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
-    g_regs[BQ25620_REG_CHG_CTRL_1] = 0xA5U;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, 0xA5A5U);
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
     g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
     g_injected_error = XY_HAL_ERROR_TIMEOUT;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bq25620_set_charge_current(&dev, 128U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bq25620_set_charge_current(&dev, 160U));
     TEST_ASSERT_EQUAL_UINT(tx_before + 1U, xy_hal_i2c_master_transmit_fake.call_count);
-    TEST_ASSERT_EQUAL_HEX8(0xA5U, g_regs[BQ25620_REG_CHG_CTRL_1]);
+    TEST_ASSERT_EQUAL_HEX16(0xA5A5U, get_reg_u16(BQ25620_REG_CHG_CTRL_1));
 }
 
 static void test_full_config_preserves_unrelated_register_bits(void)
@@ -738,38 +784,48 @@ static void test_full_config_preserves_unrelated_register_bits(void)
     xy_bq25620_t dev;
     const xy_charger_device_config_t config = {
         .input_current_limit = 500U,
-        .charge_current = 128U,
+        .charge_current = 160U,
         .charge_voltage = 4200U,
-        .precharge_current = 128U,
-        .termination_current = 192U,
+        .precharge_current = 100U,
+        .termination_current = 60U,
         .recharge_threshold = 200U,
         .auto_recharge = true,
     };
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
-    g_regs[BQ25620_REG_CHG_CTRL_1] = 0x80U;
-    g_regs[BQ25620_REG_CHG_CTRL_3] = 0x80U;
-    g_regs[BQ25620_REG_CHG_CTRL_4] = 0x40U;
-    g_regs[BQ25620_REG_CHG_CTRL_5] = 0x1FU;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, 0x003FU);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_3, 0x0007U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_4, 0x000FU);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_2, 0x000FU);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_5, 0x0007U);
+    g_regs[BQ25620_REG_CHG_CTRL_0] = 0xFEU;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_configure(&dev, &config));
-    TEST_ASSERT_EQUAL_HEX8(0x81U, g_regs[BQ25620_REG_CHG_CTRL_1]);
-    TEST_ASSERT_EQUAL_HEX8(0xC6U, g_regs[BQ25620_REG_CHG_CTRL_3]);
-    TEST_ASSERT_EQUAL_HEX8(0xC4U, g_regs[BQ25620_REG_CHG_CTRL_4]);
-    TEST_ASSERT_EQUAL_HEX8(0xA0U | 0x1FU, g_regs[BQ25620_REG_CHG_CTRL_5]);
+    TEST_ASSERT_EQUAL_HEX16(((160U / 80U) << 6U) | 0x003FU,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_1));
+    TEST_ASSERT_EQUAL_HEX16(((4200U / 10U) << 3U) | 0x0007U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_3));
+    TEST_ASSERT_EQUAL_HEX16(((500U / 20U) << 4U) | 0x000FU,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_4));
+    TEST_ASSERT_EQUAL_HEX16(((100U / 20U) << 4U) | 0x000FU,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_2));
+    TEST_ASSERT_EQUAL_HEX16(((60U / 10U) << 3U) | 0x0007U,
+                            get_reg_u16(BQ25620_REG_CHG_CTRL_5));
+    TEST_ASSERT_EQUAL_HEX8(0xFFU, g_regs[BQ25620_REG_CHG_CTRL_0]);
 }
 
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_datasheet_register_map_contract);
     RUN_TEST(test_null_param_validation);
     RUN_TEST(test_init_and_register_io);
     RUN_TEST(test_status_decoding);
     RUN_TEST(test_unknown_status_codes_fail_closed);
-    RUN_TEST(test_unknown_charge_state_reports_unknown_fault);
+    RUN_TEST(test_unknown_ts_state_reports_unknown_fault);
     RUN_TEST(test_known_fault_overrides_done_state);
-    RUN_TEST(test_status_rejects_reserved_setpoint_encodings);
+    RUN_TEST(test_status_accepts_datasheet_maximum_setpoint_encodings);
     RUN_TEST(test_config_and_range_validation);
     RUN_TEST(test_start_stop_and_deinit);
     RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
