@@ -26,8 +26,8 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   encodings to explicit fault states instead of reporting no fault, makes any reported fault override
   charge/done state, reports control-register values as configured setpoints rather than unverified ADC
   measurements, rejects reserved setpoint encodings instead of publishing out-of-contract values, keeps
-  no stale borrowed-config pointer, implicit status cache or unconsumed generic callback/self-context
-  fields in the shared Device contract,
+  no stale borrowed-config pointer, implicit status cache, duplicate lifecycle flag or unconsumed generic
+  callback/self-context fields in the shared Device contract,
   publication is staged until all required reads succeed, complete configuration
   rejects out-of-range full configurations before the first register write, stops at the first failed
   register write, rejects values that are not exactly representable by the documented register steps

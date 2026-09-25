@@ -54,6 +54,8 @@ def main() -> int:
             "raw register writes must not bypass the validated Charger control API", errors)
     require("(*hw_" not in framework and "hw_data" not in framework,
             "Device charger contract must not retain unconsumed callback/context fields", errors)
+    require("bool initialized;" not in HEADER.read_text(encoding="utf-8"),
+            "BQ25620 owner must not duplicate the canonical Device lifecycle flag", errors)
     require("xy_bq25620_configure" in HEADER.read_text(encoding="utf-8"),
             "BQ25620 full configuration must have a chip-owner public API", errors)
     require("charger_header_coexistence" in unit_cmake,

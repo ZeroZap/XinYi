@@ -23,8 +23,8 @@ static bool bq25620_transport_ready(const xy_bq25620_t *dev)
 
 static bool bq25620_ready(const xy_bq25620_t *dev)
 {
-    return bq25620_transport_ready(dev) && dev->initialized &&
-           dev->base.base.initialized != 0U && dev->owner_cookie == BQ25620_OWNER_COOKIE;
+    return bq25620_transport_ready(dev) && dev->base.base.initialized != 0U &&
+           dev->owner_cookie == BQ25620_OWNER_COOKIE;
 }
 
 static bool bq25620_register_valid(uint8_t reg)
@@ -193,7 +193,6 @@ static int bq25620_probe(xy_bq25620_t *dev)
         return XY_DEVICE_NOT_SUPPORT;
     }
     
-    dev->initialized = true;
     dev->base.base.initialized = 1U;
     dev->owner_cookie = BQ25620_OWNER_COOKIE;
     return XY_DEVICE_OK;

@@ -126,7 +126,6 @@ static void test_init_and_register_io(void)
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
-    TEST_ASSERT_TRUE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
     TEST_ASSERT_EQUAL_HEX16(0x6A, dev.i2c_addr);
@@ -342,7 +341,6 @@ static void test_start_stop_and_deinit(void)
     TEST_ASSERT_BITS_HIGH(0x01, g_regs[BQ25620_REG_CHG_CTRL_0]);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_deinit(&dev));
-    TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(0U, dev.base.base.initialized);
     TEST_ASSERT_NULL(dev.i2c_handle);
 }
@@ -369,7 +367,6 @@ static void test_lost_transport_and_failed_deinit_are_fail_closed(void)
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
     TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);
-    TEST_ASSERT_TRUE(dev.initialized);
 }
 
 static void test_deinit_transport_failures_preserve_live_owner_for_retry(void)
@@ -407,7 +404,6 @@ static void test_deinit_transport_failures_preserve_live_owner_for_retry(void)
         TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(snapshot));
         TEST_ASSERT_EQUAL_HEX8(BQ25620_EN_CHG | 0x01U,
                                g_regs[BQ25620_REG_CHG_CTRL_0]);
-        TEST_ASSERT_TRUE(dev.initialized);
         TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
         TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
 
@@ -454,7 +450,6 @@ static void test_failed_reinit_preserves_live_owner(void)
                           xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(snapshot));
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
-    TEST_ASSERT_TRUE(dev.initialized);
 }
 
 static void test_full_config_stops_at_first_write_error(void)
@@ -494,7 +489,7 @@ static void test_full_config_stops_at_first_write_error(void)
         for (unsigned later = failed_write; later < sizeof(registers); ++later) {
             TEST_ASSERT_EQUAL_HEX8(0U, g_regs[registers[later]]);
         }
-        TEST_ASSERT_TRUE(dev.initialized);
+        TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
     }
 }
 
@@ -604,7 +599,6 @@ static void test_lost_outer_lifecycle_blocks_public_and_callback_paths(void)
     TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
     TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);
-    TEST_ASSERT_TRUE(dev.initialized);
 }
 
 static void test_transport_errors_propagate_and_preserve_outputs(void)
@@ -641,7 +635,6 @@ static void test_transport_errors_propagate_and_preserve_outputs(void)
     g_fail_tx_call = xy_hal_i2c_master_transmit_fake.call_count + 1U;
     g_injected_error = XY_HAL_ERROR_TIMEOUT;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bq25620_start_charge(&dev));
-    TEST_ASSERT_TRUE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
 }
 
@@ -677,7 +670,6 @@ static void test_failed_receive_does_not_publish_hal_written_bytes(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
                           xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID, &value));
     TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
-    TEST_ASSERT_TRUE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
 }
 
