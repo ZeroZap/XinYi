@@ -216,8 +216,10 @@ int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id);
 
 ```c
 int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value);
-int xy_bq25620_write_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t value);
 ```
+
+公开 API 仅保留诊断读取；寄存器写入必须经过参数化配置/控制入口，避免绕过范围、
+步长、保留位和生命周期检查。
 
 ---
 

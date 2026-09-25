@@ -160,15 +160,6 @@ int xy_bq25620_deinit(xy_bq25620_t *dev);
 int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value);
 
 /**
- * @brief 写入 BQ25620 寄存器
- * @param dev BQ25620 设备句柄
- * @param reg 寄存器地址
- * @param value 寄存器值
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_bq25620_write_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t value);
-
-/**
  * @brief 读取 BQ25620 设备 ID
  * @param dev BQ25620 设备句柄
  * @param id 设备 ID 输出

@@ -367,16 +367,6 @@ static int bq25620_hw_read_reg(void *hw_data, uint8_t reg, uint8_t *value)
     return bq25620_i2c_read(dev, reg, value, 1);
 }
 
-static int bq25620_hw_write_reg(void *hw_data, uint8_t reg, uint8_t value)
-{
-    xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!bq25620_ready(dev) || !bq25620_register_valid(reg)) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    return bq25620_i2c_write(dev, reg, value);
-}
-
 /* ==================== Public API Implementation ==================== */
 
 int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
@@ -397,7 +387,6 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     next.base.hw_set_config = bq25620_hw_set_config;
     next.base.hw_enable = bq25620_hw_enable;
     next.base.hw_read_reg = bq25620_hw_read_reg;
-    next.base.hw_write_reg = bq25620_hw_write_reg;
     next.base.hw_data = &next;
     
     /* 初始化硬件 */
@@ -432,15 +421,6 @@ int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value)
     }
     
     return bq25620_i2c_read(dev, reg, value, 1);
-}
-
-int xy_bq25620_write_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t value)
-{
-    if (!bq25620_ready(dev) || !bq25620_register_valid(reg)) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    return bq25620_i2c_write(dev, reg, value);
 }
 
 int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id)

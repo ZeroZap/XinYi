@@ -85,8 +85,7 @@ typedef struct {
     int (*hw_set_config)(void *hw_data, const xy_charger_device_config_t *config);
     int (*hw_enable)(void *hw_data, bool enable);
     int (*hw_read_reg)(void *hw_data, uint8_t reg, uint8_t *value);
-    int (*hw_write_reg)(void *hw_data, uint8_t reg, uint8_t value);
-    
+
     void *hw_data;                  /**< 硬件数据 */
 } xy_charger_device_t;
 

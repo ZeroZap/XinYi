@@ -107,7 +107,6 @@ static void test_null_param_validation(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_init(&dev, NULL, 0x6A));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_read_reg(NULL, BQ25620_REG_DEVICE_ID, &id));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID, NULL));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_write_reg(NULL, BQ25620_REG_DEVICE_ID, 0));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_get_device_id(NULL, &id));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_get_device_id(&dev, NULL));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_get_status(NULL, &status));
@@ -144,11 +143,9 @@ static void test_init_and_register_io(void)
     TEST_ASSERT_EQUAL_UINT(2U, xy_hal_i2c_master_receive_fake.call_count);
     TEST_ASSERT_EQUAL_HEX8(BQ25620_PART_NUMBER, value);
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_write_reg(&dev, BQ25620_REG_CHG_CTRL_6, 0x55));
-    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_transmit_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT(2U, xy_hal_i2c_master_transmit_fake.arg3_val);
+    g_regs[BQ25620_REG_CHG_CTRL_6] = 0x55U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_read_reg(&dev, BQ25620_REG_CHG_CTRL_6, &value));
-    TEST_ASSERT_EQUAL_UINT(4U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_receive_fake.call_count);
     TEST_ASSERT_EQUAL_HEX8(0x55, value);
 }
@@ -672,13 +669,8 @@ static void test_register_access_rejects_out_of_range_address_without_io(void)
                           xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID + 1U, &value));
     TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          xy_bq25620_write_reg(&dev, BQ25620_REG_DEVICE_ID + 1U, 0x5AU));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
                           dev.base.hw_read_reg(dev.base.hw_data,
                                                BQ25620_REG_DEVICE_ID + 1U, &value));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          dev.base.hw_write_reg(dev.base.hw_data,
-                                                BQ25620_REG_DEVICE_ID + 1U, 0x5AU));
     TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
     TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);

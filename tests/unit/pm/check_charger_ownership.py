@@ -49,6 +49,9 @@ def main() -> int:
             errors)
     require("*config;" not in framework and "xy_charger_device_status_t status;" not in framework,
             "Device charger contract must not retain ownerless config/status cache fields", errors)
+    require("xy_bq25620_write_reg" not in HEADER.read_text(encoding="utf-8") and
+            "hw_write_reg" not in framework,
+            "raw register writes must not bypass the validated Charger control API", errors)
     require("xy_bq25620_configure" in HEADER.read_text(encoding="utf-8"),
             "BQ25620 full configuration must have a chip-owner public API", errors)
     require("charger_header_coexistence" in unit_cmake,
