@@ -78,9 +78,7 @@ typedef struct {
  */
 typedef struct {
     xy_device_t base;               /**< 设备基类 */
-    const xy_charger_device_config_t *config; /**< 配置 */
-    xy_charger_device_status_t status;     /**< 状态 */
-    
+
     /* 硬件操作接口 */
     int (*hw_init)(void *hw_data);
     int (*hw_read_status)(void *hw_data, xy_charger_device_status_t *status);
