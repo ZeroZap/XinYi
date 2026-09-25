@@ -360,7 +360,7 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     xy_bq25620_t next = {0};
     int ret;
 
-    if (!dev || !i2c_handle || i2c_addr != 0x6AU) {
+    if (!dev || !i2c_handle || i2c_addr != BQ25620_I2C_ADDR) {
         return XY_DEVICE_INVALID_PARAM;
     }
 

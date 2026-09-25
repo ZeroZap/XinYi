@@ -17,6 +17,7 @@ FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_receive, void *, uint16_t,
 static uint8_t g_regs[0x40];
 static uint8_t g_selected_reg;
 static void *g_expected_i2c = (void *)0x1234;
+static const uint16_t g_expected_i2c_addr = 0x6BU;
 static unsigned g_fail_tx_call;
 static unsigned g_fail_rx_call;
 static xy_hal_error_t g_injected_error;
@@ -56,10 +57,10 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
                                                const uint8_t *data, size_t len,
                                                uint32_t timeout)
 {
-    (void)dev_addr;
     (void)timeout;
 
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, i2c);
+    TEST_ASSERT_EQUAL_HEX16(g_expected_i2c_addr, dev_addr);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_GREATER_OR_EQUAL_UINT(1U, len);
     TEST_ASSERT_LESS_OR_EQUAL_UINT(2U, len);
@@ -82,10 +83,10 @@ static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
                                               uint8_t *data, size_t len,
                                               uint32_t timeout)
 {
-    (void)dev_addr;
     (void)timeout;
 
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, i2c);
+    TEST_ASSERT_EQUAL_HEX16(g_expected_i2c_addr, dev_addr);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_regs), g_selected_reg + len);
     if (g_fail_rx_call != 0U &&
@@ -103,8 +104,8 @@ static void test_null_param_validation(void)
     uint8_t id;
     xy_charger_device_status_t status;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_init(NULL, g_expected_i2c, 0x6A));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_init(&dev, NULL, 0x6A));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_init(NULL, g_expected_i2c, 0x6B));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_init(&dev, NULL, 0x6B));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_read_reg(NULL, BQ25620_REG_DEVICE_ID, &id));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID, NULL));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_get_device_id(NULL, &id));
@@ -125,14 +126,14 @@ static void test_init_and_register_io(void)
     uint8_t value = 0;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6B));
     TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
-    TEST_ASSERT_EQUAL_HEX16(0x6A, dev.i2c_addr);
+    TEST_ASSERT_EQUAL_HEX16(0x6B, dev.i2c_addr);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_receive_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, xy_hal_i2c_master_transmit_fake.arg0_val);
-    TEST_ASSERT_EQUAL_HEX16(0x6A, xy_hal_i2c_master_transmit_fake.arg1_val);
+    TEST_ASSERT_EQUAL_HEX16(0x6B, xy_hal_i2c_master_transmit_fake.arg1_val);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_transmit_fake.arg3_val);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_device_id(&dev, &value));
@@ -153,7 +154,7 @@ static void test_status_decoding(void)
     xy_charger_device_status_t status;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6B));
 
     g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | BQ25620_STAT_PG;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_THERMAL;
@@ -185,7 +186,7 @@ static void test_unknown_status_codes_fail_closed(void)
     xy_charger_device_status_t status;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_regs[BQ25620_REG_CHG_STAT_0] = (0x07U << 4) | BQ25620_STAT_PG;
     g_regs[BQ25620_REG_CHG_STAT_1] = (0x07U << 4);
 
@@ -203,7 +204,7 @@ static void test_known_fault_overrides_done_state(void)
     xy_charger_device_status_t status;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_DONE | BQ25620_STAT_PG;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_BAT_OVP;
 
@@ -221,7 +222,7 @@ static void test_unknown_charge_state_reports_unknown_fault(void)
     xy_charger_device_status_t status;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_regs[BQ25620_REG_CHG_STAT_0] = (0x07U << 4) | BQ25620_STAT_PG;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_NORMAL;
 
@@ -251,7 +252,7 @@ static void test_status_rejects_reserved_setpoint_encodings(void)
 
         reset_fake_i2c();
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                              xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+                              xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
         g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | BQ25620_STAT_PG;
         g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_NORMAL;
         g_regs[BQ25620_REG_CHG_CTRL_1] = 1U;
@@ -272,7 +273,7 @@ static void test_config_and_range_validation(void)
     unsigned tx_before;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6B));
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_bq25620_set_charge_current(&dev, BQ25620_ICHG_MIN_mA));
@@ -329,7 +330,7 @@ static void test_start_stop_and_deinit(void)
     xy_bq25620_t dev;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6B));
 
     g_regs[BQ25620_REG_CHG_CTRL_0] = 0x01;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_start_charge(&dev));
@@ -354,7 +355,7 @@ static void test_lost_transport_and_failed_deinit_are_fail_closed(void)
     unsigned rx_before;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6B));
     memset(&status, 0xA5, sizeof(status));
     snapshot = status;
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
@@ -388,7 +389,7 @@ static void test_deinit_transport_failures_preserve_live_owner_for_retry(void)
 
         reset_fake_i2c();
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                              xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+                              xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
         g_regs[BQ25620_REG_CHG_CTRL_0] = BQ25620_EN_CHG | 0x01U;
         snapshot = dev;
         tx_before = xy_hal_i2c_master_transmit_fake.call_count;
@@ -425,7 +426,7 @@ static void test_init_failure_preserves_caller_storage(void)
     snapshot = dev;
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
     TEST_ASSERT_EQUAL_UINT(0U, xy_hal_i2c_master_transmit_fake.call_count);
 
@@ -434,7 +435,7 @@ static void test_init_failure_preserves_caller_storage(void)
     reset_fake_i2c();
     g_regs[BQ25620_REG_DEVICE_ID] = BQ25622_PART_NUMBER | 0x02U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_SUPPORT,
-                          xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
 
     memset(&dev, 0x5A, sizeof(dev));
@@ -443,7 +444,7 @@ static void test_init_failure_preserves_caller_storage(void)
     g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
     g_injected_error = XY_HAL_ERROR_TIMEOUT;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
-                          xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
 }
 
@@ -454,13 +455,13 @@ static void test_failed_reinit_preserves_live_owner(void)
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     snapshot = dev;
     g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
     g_injected_error = XY_HAL_ERROR_TIMEOUT;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
-                          xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(snapshot));
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
 }
@@ -491,7 +492,7 @@ static void test_full_config_stops_at_first_write_error(void)
 
         reset_fake_i2c();
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                              xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+                              xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
         tx_before = xy_hal_i2c_master_transmit_fake.call_count;
         g_fail_tx_call = tx_before + failed_write + reads_before_write[failed_write] + 1U;
 
@@ -513,7 +514,7 @@ static void test_full_config_requires_live_owner(void)
     unsigned tx_before;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
     dev.i2c_handle = NULL;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
@@ -528,7 +529,7 @@ static void test_full_config_public_api_rejects_null_without_io(void)
     unsigned tx_before;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_configure(NULL, &config));
@@ -551,7 +552,7 @@ static void test_full_config_rejects_out_of_range_values_without_io(void)
     unsigned tx_before;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
 
 #define ASSERT_CONFIG_REJECTED(field, value)                                                \
     do {                                                                                     \
@@ -595,7 +596,7 @@ static void test_lost_outer_lifecycle_blocks_public_and_callback_paths(void)
     unsigned rx_before;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     memset(&status, 0xA5, sizeof(status));
     snapshot = status;
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
@@ -622,7 +623,7 @@ static void test_transport_errors_propagate_and_preserve_outputs(void)
     uint8_t value = 0xA5U;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
 
     g_injected_error = XY_HAL_ERROR_TIMEOUT;
     g_fail_tx_call = xy_hal_i2c_master_transmit_fake.call_count + 1U;
@@ -664,7 +665,7 @@ static void test_register_access_rejects_undocumented_addresses_without_io(void)
     unsigned rx_before;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
     rx_before = xy_hal_i2c_master_receive_fake.call_count;
 
@@ -685,7 +686,7 @@ static void test_failed_receive_does_not_publish_hal_written_bytes(void)
     uint8_t value = 0xA5U;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
     g_injected_error = XY_HAL_ERROR_IO;
 
@@ -700,7 +701,7 @@ static void test_setters_preserve_unrelated_register_bits(void)
     xy_bq25620_t dev;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
 
     g_regs[BQ25620_REG_CHG_CTRL_1] = 0x80U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 128U));
@@ -721,7 +722,7 @@ static void test_setter_read_failure_stops_before_write(void)
     unsigned tx_before;
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_regs[BQ25620_REG_CHG_CTRL_1] = 0xA5U;
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
     g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
@@ -746,7 +747,7 @@ static void test_full_config_preserves_unrelated_register_bits(void)
     };
 
     reset_fake_i2c();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_regs[BQ25620_REG_CHG_CTRL_1] = 0x80U;
     g_regs[BQ25620_REG_CHG_CTRL_3] = 0x80U;
     g_regs[BQ25620_REG_CHG_CTRL_4] = 0x40U;

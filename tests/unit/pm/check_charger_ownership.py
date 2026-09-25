@@ -62,6 +62,8 @@ def main() -> int:
     require("BQ25620_REG_DEVICE_ID     = 0x38" in header and
             "BQ25620_PART_NUMBER         (0x00U << 3)" in header,
             "BQ25620 probe identity must match datasheet Part Information register 0x38", errors)
+    require("#define BQ25620_I2C_ADDR            0x6BU" in header,
+            "BQ25620 fixed 7-bit I2C address must match datasheet address 0x6B", errors)
     require("charger_header_coexistence" in unit_cmake,
             "PM/Device charger public-header coexistence gate must remain registered", errors)
     for token in ("canonical implementation owner", "Host-guarded", "hardware-pending",

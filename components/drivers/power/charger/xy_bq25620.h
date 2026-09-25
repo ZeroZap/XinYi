@@ -121,6 +121,9 @@ typedef enum {
 #define BQ25622_PART_NUMBER         (0x01U << 3) /**< BQ25622 */
 #define BQ25620_DEVICE_REV_MASK     0x07U        /**< DEV_REV[2:0] */
 
+/* BQ25620 uses fixed 7-bit I2C address 0x6B. */
+#define BQ25620_I2C_ADDR            0x6BU
+
 /* ==================== BQ25620 Device Structure ==================== */
 
 /**
@@ -129,7 +132,7 @@ typedef enum {
 typedef struct {
     xy_charger_device_t base;              /**< 充电器基类 */
     void *i2c_handle;               /**< I2C 句柄 */
-    uint8_t i2c_addr;               /**< I2C 地址 (默认 0x6A) */
+    uint8_t i2c_addr;               /**< 7-bit I2C 地址 (固定 0x6B) */
     uint32_t owner_cookie;           /**< 已提交 owner 身份，用于原子 re-init */
 } xy_bq25620_t;
 
@@ -139,7 +142,7 @@ typedef struct {
  * @brief 初始化 BQ25620
  * @param dev BQ25620 设备句柄
  * @param i2c_handle I2C 句柄
- * @param i2c_addr I2C 地址 (0x6A)
+ * @param i2c_addr 7-bit I2C 地址 (0x6B)
  * @return XY_DEVICE_OK 成功，其他值失败
  */
 int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr);
