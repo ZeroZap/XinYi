@@ -129,6 +129,7 @@ typedef struct {
     void *i2c_handle;               /**< I2C 句柄 */
     uint8_t i2c_addr;               /**< I2C 地址 (默认 0x6A) */
     bool initialized;               /**< 初始化标志 */
+    uint32_t owner_cookie;           /**< 已提交 owner 身份，用于原子 re-init */
 } xy_bq25620_t;
 
 /* ==================== BQ25620 API ==================== */

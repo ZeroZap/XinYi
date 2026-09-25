@@ -12,6 +12,8 @@
 #include "xy_hal_i2c.h"
 #include <string.h>
 
+#define BQ25620_OWNER_COOKIE 0x42513230UL
+
 /* ==================== Private Functions ==================== */
 
 static bool bq25620_transport_ready(const xy_bq25620_t *dev)
@@ -22,7 +24,7 @@ static bool bq25620_transport_ready(const xy_bq25620_t *dev)
 static bool bq25620_ready(const xy_bq25620_t *dev)
 {
     return bq25620_transport_ready(dev) && dev->initialized &&
-           dev->base.base.initialized != 0U;
+           dev->base.base.initialized != 0U && dev->owner_cookie == BQ25620_OWNER_COOKIE;
 }
 
 static bool bq25620_register_valid(uint8_t reg)
@@ -194,6 +196,7 @@ static int bq25620_hw_init(void *hw_data)
     
     dev->initialized = true;
     dev->base.base.initialized = 1U;
+    dev->owner_cookie = BQ25620_OWNER_COOKIE;
     return XY_DEVICE_OK;
 }
 
@@ -358,27 +361,31 @@ static int bq25620_hw_write_reg(void *hw_data, uint8_t reg, uint8_t value)
 
 int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
 {
+    xy_bq25620_t next = {0};
+    int ret;
+
     if (!dev || !i2c_handle || i2c_addr != 0x6AU) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    
-    memset(dev, 0, sizeof(*dev));
-    
-    dev->i2c_handle = i2c_handle;
-    dev->i2c_addr = i2c_addr;
+
+    next.i2c_handle = i2c_handle;
+    next.i2c_addr = i2c_addr;
     
     /* 设置硬件操作接口 */
-    dev->base.hw_init = bq25620_hw_init;
-    dev->base.hw_read_status = bq25620_hw_read_status;
-    dev->base.hw_set_config = bq25620_hw_set_config;
-    dev->base.hw_enable = bq25620_hw_enable;
-    dev->base.hw_read_reg = bq25620_hw_read_reg;
-    dev->base.hw_write_reg = bq25620_hw_write_reg;
-    dev->base.hw_data = dev;
+    next.base.hw_init = bq25620_hw_init;
+    next.base.hw_read_status = bq25620_hw_read_status;
+    next.base.hw_set_config = bq25620_hw_set_config;
+    next.base.hw_enable = bq25620_hw_enable;
+    next.base.hw_read_reg = bq25620_hw_read_reg;
+    next.base.hw_write_reg = bq25620_hw_write_reg;
+    next.base.hw_data = &next;
     
     /* 初始化硬件 */
-    int ret = bq25620_hw_init(dev);
-    if (ret != XY_DEVICE_OK) {
+    ret = bq25620_hw_init(&next);
+    if (ret == XY_DEVICE_OK) {
+        *dev = next;
+        dev->base.hw_data = dev;
+    } else if (dev->owner_cookie != BQ25620_OWNER_COOKIE) {
         memset(dev, 0, sizeof(*dev));
     }
     return ret;

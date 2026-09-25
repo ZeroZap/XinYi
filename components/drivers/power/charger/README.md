@@ -28,7 +28,8 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   measurements, status publication is staged until all required reads succeed, complete configuration
   rejects out-of-range full configurations before the first register write, stops at the first failed
   register write, rejects values that are not exactly representable by the documented register steps
-  instead of silently truncating them, and successful teardown clears the handle/callback context. The
+  instead of silently truncating them, stages initialization so a failed re-probe preserves the live owner,
+  and successful teardown clears the handle/callback context. The
   fixed 7-bit address contract is `0x6A`.
   真实充电、热保护、故障恢复和电池安全仍为 `hardware-pending`。
 - Host 测试或 PC 编译不构成硬件验证、充电安全批准或 production-ready 声明。

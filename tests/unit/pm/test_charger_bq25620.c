@@ -345,6 +345,26 @@ static void test_init_rejects_noncanonical_address_and_clears_failed_probe(void)
     TEST_ASSERT_EQUAL_MEMORY(&(xy_bq25620_t){0}, &dev, sizeof(dev));
 }
 
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_bq25620_t dev;
+    xy_bq25620_t snapshot;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    snapshot = dev;
+    g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
+    g_injected_error = XY_HAL_ERROR_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(snapshot));
+    TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
+    TEST_ASSERT_EQUAL_PTR(&dev, dev.base.hw_data);
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 static void test_full_config_stops_at_first_write_error(void)
 {
     static const uint8_t registers[] = {
@@ -658,6 +678,7 @@ int main(void)
     RUN_TEST(test_start_stop_and_deinit);
     RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
     RUN_TEST(test_init_rejects_noncanonical_address_and_clears_failed_probe);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_full_config_stops_at_first_write_error);
     RUN_TEST(test_full_config_requires_live_owner);
     RUN_TEST(test_full_config_public_api_rejects_null_without_io);
