@@ -28,6 +28,8 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   measurements, rejects reserved setpoint encodings instead of publishing out-of-contract values, keeps
   no stale borrowed-config pointer, implicit status cache, duplicate lifecycle flag or unconsumed generic
   callback/self-context fields in the shared Device contract,
+  keeps caller-owned storage unchanged when first initialization fails, while failed re-initialization
+  preserves the previously committed live owner,
   publication is staged until all required reads succeed, complete configuration
   rejects out-of-range full configurations before the first register write, stops at the first failed
   register write, rejects values that are not exactly representable by the documented register steps

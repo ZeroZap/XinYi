@@ -371,8 +371,6 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     ret = bq25620_probe(&next);
     if (ret == XY_DEVICE_OK) {
         *dev = next;
-    } else if (dev->owner_cookie != BQ25620_OWNER_COOKIE) {
-        memset(dev, 0, sizeof(*dev));
     }
     return ret;
 }
