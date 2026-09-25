@@ -286,6 +286,29 @@ static void test_charger_deinit_preserves_live_state_when_disable_fails(void)
     TEST_ASSERT_FALSE(xy_charger_is_charging());
 }
 
+static void test_charger_reinit_is_idempotent_and_preserves_live_state(void)
+{
+    xy_charger_config_t cfg = {
+        .cell_count = 1,
+        .charge_current_mA = 500,
+        .charge_voltage_mV = 4200,
+    };
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_deinit());
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_init(&cfg));
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_start());
+    TEST_ASSERT_TRUE(xy_charger_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_init(&cfg));
+    TEST_ASSERT_TRUE(xy_charger_is_charging());
+
+    xy_pm_platform_set_charger_result(XY_PM_OK);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_stop());
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_OK, xy_charger_deinit());
+}
+
 static void test_pm_deinit_preserves_state_when_charger_disable_fails(void)
 {
     xy_pm_system_state_info_t state;
@@ -412,6 +435,7 @@ int main(void)
     RUN_TEST(test_pm_update_propagates_subsystem_failures);
     RUN_TEST(test_charger_contracts);
     RUN_TEST(test_charger_deinit_preserves_live_state_when_disable_fails);
+    RUN_TEST(test_charger_reinit_is_idempotent_and_preserves_live_state);
     RUN_TEST(test_pm_deinit_preserves_state_when_charger_disable_fails);
     RUN_TEST(test_fuel_gauge_and_adc_contracts);
     RUN_TEST(test_fuel_gauge_uses_platform_tick);

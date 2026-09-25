@@ -34,6 +34,7 @@ static xy_charger_ctrl_t s_charger;
 int xy_charger_init(const xy_charger_config_t *config)
 {
     if (!config) return XY_CHARGER_INVALID_PARAM;
+    if (s_charger.initialized) return XY_CHARGER_OK;
 
     memset(&s_charger, 0, sizeof(s_charger));
     if (xy_charger_hw_init() != XY_PM_OK) return XY_CHARGER_ERROR;
