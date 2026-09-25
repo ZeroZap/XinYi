@@ -21,7 +21,8 @@ static bool bq25620_transport_ready(const xy_bq25620_t *dev)
 
 static bool bq25620_ready(const xy_bq25620_t *dev)
 {
-    return bq25620_transport_ready(dev) && dev->initialized;
+    return bq25620_transport_ready(dev) && dev->initialized &&
+           dev->base.base.initialized != 0U;
 }
 
 /**
@@ -150,6 +151,7 @@ static int bq25620_hw_init(void *hw_data)
     }
     
     dev->initialized = true;
+    dev->base.base.initialized = 1U;
     return XY_DEVICE_OK;
 }
 
@@ -256,7 +258,7 @@ static int bq25620_hw_set_config(void *hw_data, const xy_charger_device_config_t
 static int bq25620_hw_enable(void *hw_data, bool enable)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -272,7 +274,7 @@ static int bq25620_hw_enable(void *hw_data, bool enable)
 static int bq25620_hw_read_reg(void *hw_data, uint8_t reg, uint8_t *value)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!dev || !value) {
+    if (!bq25620_ready(dev) || !value) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -282,7 +284,7 @@ static int bq25620_hw_read_reg(void *hw_data, uint8_t reg, uint8_t *value)
 static int bq25620_hw_write_reg(void *hw_data, uint8_t reg, uint8_t value)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!dev) {
+    if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     

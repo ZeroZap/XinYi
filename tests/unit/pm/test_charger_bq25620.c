@@ -119,6 +119,7 @@ static void test_init_and_register_io(void)
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
     TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
     TEST_ASSERT_EQUAL_HEX16(0x6A, dev.i2c_addr);
     TEST_ASSERT_EQUAL_PTR(&dev, dev.base.hw_data);
@@ -216,6 +217,7 @@ static void test_start_stop_and_deinit(void)
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_deinit(&dev));
     TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.base.base.initialized);
     TEST_ASSERT_NULL(dev.i2c_handle);
     TEST_ASSERT_NULL(dev.base.hw_data);
 }
@@ -318,6 +320,40 @@ static void test_full_config_requires_live_owner(void)
     TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
 }
 
+static void test_lost_outer_lifecycle_blocks_public_and_callback_paths(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_device_status_t status;
+    xy_charger_device_status_t snapshot;
+    uint8_t value = 0xA5U;
+    unsigned tx_before;
+    unsigned rx_before;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    memset(&status, 0xA5, sizeof(status));
+    snapshot = status;
+    tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+    rx_before = xy_hal_i2c_master_receive_fake.call_count;
+    dev.base.base.initialized = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_bq25620_get_status(&dev, &status));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID, &value));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          dev.base.hw_read_reg(dev.base.hw_data,
+                                               BQ25620_REG_DEVICE_ID, &value));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          dev.base.hw_enable(dev.base.hw_data, true));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_deinit(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
+    TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -330,5 +366,6 @@ int main(void)
     RUN_TEST(test_init_rejects_noncanonical_address_and_clears_failed_probe);
     RUN_TEST(test_full_config_stops_at_first_write_error);
     RUN_TEST(test_full_config_requires_live_owner);
+    RUN_TEST(test_lost_outer_lifecycle_blocks_public_and_callback_paths);
     return UNITY_END();
 }
