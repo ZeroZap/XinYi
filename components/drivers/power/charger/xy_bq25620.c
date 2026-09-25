@@ -257,6 +257,10 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
         default: next.fault = XY_CHARGER_DEVICE_FAULT_UNKNOWN; break;
     }
 
+    if (next.fault != XY_CHARGER_DEVICE_FAULT_NONE) {
+        next.state = XY_CHARGER_DEVICE_STATE_FAULT;
+    }
+
     next.power_good = (stat0 & BQ25620_STAT_PG) != 0U;
     next.charging = next.state == XY_CHARGER_DEVICE_STATE_PRE_CHARGE ||
                     next.state == XY_CHARGER_DEVICE_STATE_FAST_CHARGE ||
