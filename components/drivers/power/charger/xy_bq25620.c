@@ -251,7 +251,7 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
         case BQ25620_FAULT_THERMAL: next.fault = XY_CHARGER_DEVICE_FAULT_THERMAL; break;
         case BQ25620_FAULT_CHG_TIMEOUT: next.fault = XY_CHARGER_DEVICE_FAULT_CHARGE_TIMEOUT; break;
         case BQ25620_FAULT_BAT_OVP: next.fault = XY_CHARGER_DEVICE_FAULT_BAT_OVP; break;
-        default: next.fault = XY_CHARGER_DEVICE_FAULT_NONE; break;
+        default: next.fault = XY_CHARGER_DEVICE_FAULT_UNKNOWN; break;
     }
 
     next.power_good = (stat0 & BQ25620_STAT_PG) != 0U;
@@ -275,14 +275,16 @@ static int bq25620_hw_set_config(void *hw_data, const xy_charger_device_config_t
 
     reg_value = current_to_reg(config->charge_current, BQ25620_ICHG_STEP_mA,
                                BQ25620_ICHG_MIN_mA) & BQ25620_ICHG_MASK;
-    ret = bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_1, reg_value);
+    ret = bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_1,
+                                  BQ25620_ICHG_MASK, reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
 
     reg_value = voltage_to_reg(config->charge_voltage, BQ25620_VREG_STEP_mV,
                                BQ25620_VREG_MIN_mV) & BQ25620_VREG_MASK;
-    ret = bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_3, reg_value);
+    ret = bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_3,
+                                  BQ25620_VREG_MASK, reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
@@ -290,7 +292,8 @@ static int bq25620_hw_set_config(void *hw_data, const xy_charger_device_config_t
     reg_value = (current_to_reg(config->input_current_limit, BQ25620_ILIM_STEP_mA,
                                 BQ25620_ILIM_MIN_mA) & BQ25620_ILIM_MASK) |
                 BQ25620_EN_ILIM;
-    ret = bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_4, reg_value);
+    ret = bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_4,
+                                  BQ25620_ILIM_MASK | BQ25620_EN_ILIM, reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
@@ -304,7 +307,8 @@ static int bq25620_hw_set_config(void *hw_data, const xy_charger_device_config_t
 
     reg_value = config->auto_recharge ? BQ25620_AUTO_RECHG : 0U;
     reg_value |= ((config->recharge_threshold / 100U) & 0x03U) << 6;
-    return bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_5, reg_value);
+    return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_5,
+                                   BQ25620_VRECHG_MASK | BQ25620_AUTO_RECHG, reg_value);
 }
 
 static int bq25620_hw_enable(void *hw_data, bool enable)

@@ -179,6 +179,24 @@ static void test_status_decoding(void)
     TEST_ASSERT_TRUE(status.done);
 }
 
+static void test_unknown_status_codes_fail_closed(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_device_status_t status;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    g_regs[BQ25620_REG_CHG_STAT_0] = (0x07U << 4) | BQ25620_STAT_PG;
+    g_regs[BQ25620_REG_CHG_STAT_1] = (0x07U << 4);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_UNKNOWN, status.fault);
+    TEST_ASSERT_TRUE(status.power_good);
+    TEST_ASSERT_FALSE(status.charging);
+    TEST_ASSERT_FALSE(status.done);
+}
+
 static void test_config_and_range_validation(void)
 {
     xy_bq25620_t dev;
@@ -312,6 +330,7 @@ static void test_full_config_stops_at_first_write_error(void)
         BQ25620_REG_CHG_CTRL_2,
         BQ25620_REG_CHG_CTRL_5,
     };
+    static const unsigned reads_before_write[] = {1U, 2U, 3U, 3U, 4U};
     const xy_charger_device_config_t config = {
         .input_current_limit = 500U,
         .charge_current = 128U,
@@ -330,7 +349,7 @@ static void test_full_config_stops_at_first_write_error(void)
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                               xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
         tx_before = xy_hal_i2c_master_transmit_fake.call_count;
-        g_fail_tx_call = tx_before + failed_write + 1U;
+        g_fail_tx_call = tx_before + failed_write + reads_before_write[failed_write] + 1U;
 
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
                               xy_bq25620_configure(&dev, &config));
@@ -576,12 +595,40 @@ static void test_setter_read_failure_stops_before_write(void)
     TEST_ASSERT_EQUAL_HEX8(0xA5U, g_regs[BQ25620_REG_CHG_CTRL_1]);
 }
 
+static void test_full_config_preserves_unrelated_register_bits(void)
+{
+    xy_bq25620_t dev;
+    const xy_charger_device_config_t config = {
+        .input_current_limit = 500U,
+        .charge_current = 128U,
+        .charge_voltage = 4200U,
+        .precharge_current = 128U,
+        .termination_current = 192U,
+        .recharge_threshold = 200U,
+        .auto_recharge = true,
+    };
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    g_regs[BQ25620_REG_CHG_CTRL_1] = 0x80U;
+    g_regs[BQ25620_REG_CHG_CTRL_3] = 0x80U;
+    g_regs[BQ25620_REG_CHG_CTRL_4] = 0x40U;
+    g_regs[BQ25620_REG_CHG_CTRL_5] = 0x1FU;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_configure(&dev, &config));
+    TEST_ASSERT_EQUAL_HEX8(0x81U, g_regs[BQ25620_REG_CHG_CTRL_1]);
+    TEST_ASSERT_EQUAL_HEX8(0xC6U, g_regs[BQ25620_REG_CHG_CTRL_3]);
+    TEST_ASSERT_EQUAL_HEX8(0xC4U, g_regs[BQ25620_REG_CHG_CTRL_4]);
+    TEST_ASSERT_EQUAL_HEX8(0xA0U | 0x1FU, g_regs[BQ25620_REG_CHG_CTRL_5]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_null_param_validation);
     RUN_TEST(test_init_and_register_io);
     RUN_TEST(test_status_decoding);
+    RUN_TEST(test_unknown_status_codes_fail_closed);
     RUN_TEST(test_config_and_range_validation);
     RUN_TEST(test_start_stop_and_deinit);
     RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
@@ -596,5 +643,6 @@ int main(void)
     RUN_TEST(test_failed_receive_does_not_publish_hal_written_bytes);
     RUN_TEST(test_setters_preserve_unrelated_register_bits);
     RUN_TEST(test_setter_read_failure_stops_before_write);
+    RUN_TEST(test_full_config_preserves_unrelated_register_bits);
     return UNITY_END();
 }

@@ -43,6 +43,7 @@ typedef enum {
     XY_CHARGER_DEVICE_FAULT_BAT_OVP,       /**< 电池过压 */
     XY_CHARGER_DEVICE_FAULT_COLD,          /**< 电池过冷 */
     XY_CHARGER_DEVICE_FAULT_HOT,           /**< 电池过热 */
+    XY_CHARGER_DEVICE_FAULT_UNKNOWN,       /**< 未识别的硬件故障编码 */
 } xy_charger_device_fault_t;
 
 /**

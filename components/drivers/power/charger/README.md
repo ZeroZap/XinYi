@@ -22,7 +22,8 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   outer Device lifecycle flags, preserves mapped HAL timeout/busy/I/O errors, stages every register
   receive before publishing caller output, clears failed probes, rejects register addresses beyond the
   documented `0x00..0x15` map without I2C side effects, rejects out-of-range individual current/
-  voltage setters instead of silently clamping safety parameters, status publication is staged until all required reads succeed, complete configuration
+  voltage setters instead of silently clamping safety parameters, maps unknown hardware status/fault
+  encodings to explicit fault states instead of reporting no fault, status publication is staged until all required reads succeed, complete configuration
   rejects out-of-range full configurations before the first register write, stops at the first failed
   register write, rejects values that are not exactly representable by the documented register steps
   instead of silently truncating them, and successful teardown clears the handle/callback context. The
