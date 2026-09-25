@@ -179,33 +179,62 @@ static void test_status_decoding(void)
     TEST_ASSERT_TRUE(status.done);
 }
 
-static void test_config_and_clamping(void)
+static void test_config_and_range_validation(void)
 {
     xy_bq25620_t dev;
+    unsigned tx_before;
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 32));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bq25620_set_charge_current(&dev, BQ25620_ICHG_MIN_mA));
     TEST_ASSERT_EQUAL_HEX8(0U, g_regs[BQ25620_REG_CHG_CTRL_1]);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 128));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 128U));
     TEST_ASSERT_EQUAL_HEX8(1U, g_regs[BQ25620_REG_CHG_CTRL_1]);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 6000));
-    TEST_ASSERT_EQUAL_HEX8((BQ25620_ICHG_MAX_mA - BQ25620_ICHG_MIN_mA) / BQ25620_ICHG_STEP_mA,
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bq25620_set_charge_current(&dev, BQ25620_ICHG_MAX_mA));
+    TEST_ASSERT_EQUAL_HEX8((BQ25620_ICHG_MAX_mA - BQ25620_ICHG_MIN_mA) /
+                               BQ25620_ICHG_STEP_mA,
                            g_regs[BQ25620_REG_CHG_CTRL_1]);
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_voltage(&dev, 3400));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bq25620_set_charge_voltage(&dev, BQ25620_VREG_MIN_mV));
     TEST_ASSERT_EQUAL_HEX8(0U, g_regs[BQ25620_REG_CHG_CTRL_3]);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_voltage(&dev, 4200));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_voltage(&dev, 4200U));
     TEST_ASSERT_EQUAL_HEX8(70U, g_regs[BQ25620_REG_CHG_CTRL_3]);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_voltage(&dev, 5000));
-    TEST_ASSERT_EQUAL_HEX8((BQ25620_VREG_MAX_mV - BQ25620_VREG_MIN_mV) / BQ25620_VREG_STEP_mV,
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bq25620_set_charge_voltage(&dev, BQ25620_VREG_MAX_mV));
+    TEST_ASSERT_EQUAL_HEX8((BQ25620_VREG_MAX_mV - BQ25620_VREG_MIN_mV) /
+                               BQ25620_VREG_STEP_mV,
                            g_regs[BQ25620_REG_CHG_CTRL_3]);
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_input_limit(&dev, 50));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bq25620_set_input_limit(&dev, BQ25620_ILIM_MIN_mA));
     TEST_ASSERT_EQUAL_HEX8(BQ25620_EN_ILIM, g_regs[BQ25620_REG_CHG_CTRL_4]);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_input_limit(&dev, 500));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_input_limit(&dev, 500U));
     TEST_ASSERT_EQUAL_HEX8(BQ25620_EN_ILIM | 4U, g_regs[BQ25620_REG_CHG_CTRL_4]);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bq25620_set_input_limit(&dev, BQ25620_ILIM_MAX_mA));
+
+#define ASSERT_SETTER_REJECTED(call)                                                        \
+    do {                                                                                     \
+        tx_before = xy_hal_i2c_master_transmit_fake.call_count;                              \
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, (call));                              \
+        TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);        \
+    } while (0)
+
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_charge_current(&dev, BQ25620_ICHG_MIN_mA - 1U));
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_charge_current(&dev, BQ25620_ICHG_MAX_mA + 1U));
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_charge_voltage(&dev, BQ25620_VREG_MIN_mV - 1U));
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_charge_voltage(&dev, BQ25620_VREG_MAX_mV + 1U));
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_input_limit(&dev, BQ25620_ILIM_MIN_mA - 1U));
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_input_limit(&dev, BQ25620_ILIM_MAX_mA + 1U));
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_charge_current(&dev, BQ25620_ICHG_MIN_mA + 1U));
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_charge_voltage(&dev, BQ25620_VREG_MIN_mV + 1U));
+    ASSERT_SETTER_REJECTED(xy_bq25620_set_input_limit(&dev, BQ25620_ILIM_MIN_mA + 1U));
+
+#undef ASSERT_SETTER_REJECTED
 }
 
 static void test_start_stop_and_deinit(void)
@@ -368,6 +397,12 @@ static void test_full_config_rejects_out_of_range_values_without_io(void)
     ASSERT_CONFIG_REJECTED(termination_current, 961U);
     ASSERT_CONFIG_REJECTED(recharge_threshold, 99U);
     ASSERT_CONFIG_REJECTED(recharge_threshold, 301U);
+    ASSERT_CONFIG_REJECTED(input_current_limit, 150U);
+    ASSERT_CONFIG_REJECTED(charge_current, 65U);
+    ASSERT_CONFIG_REJECTED(charge_voltage, 3501U);
+    ASSERT_CONFIG_REJECTED(precharge_current, 65U);
+    ASSERT_CONFIG_REJECTED(termination_current, 65U);
+    ASSERT_CONFIG_REJECTED(recharge_threshold, 150U);
 
 #undef ASSERT_CONFIG_REJECTED
 }
@@ -495,7 +530,7 @@ int main(void)
     RUN_TEST(test_null_param_validation);
     RUN_TEST(test_init_and_register_io);
     RUN_TEST(test_status_decoding);
-    RUN_TEST(test_config_and_clamping);
+    RUN_TEST(test_config_and_range_validation);
     RUN_TEST(test_start_stop_and_deinit);
     RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
     RUN_TEST(test_init_rejects_noncanonical_address_and_clears_failed_probe);

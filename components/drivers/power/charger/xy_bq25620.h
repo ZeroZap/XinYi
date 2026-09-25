@@ -187,7 +187,8 @@ int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_device_status_t *status)
  * @brief 设置充电电流
  * @param dev BQ25620 设备句柄
  * @param current_mA 充电电流 (mA)
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @return XY_DEVICE_OK 成功；超出 64..5056 mA 或不对齐 64 mA 步长时返回
+ * XY_DEVICE_INVALID_PARAM 且不访问总线
  */
 int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA);
 
@@ -195,7 +196,8 @@ int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA);
  * @brief 设置充电电压
  * @param dev BQ25620 设备句柄
  * @param voltage_mV 充电电压 (mV)
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @return XY_DEVICE_OK 成功；超出 3500..4470 mV 或不对齐 10 mV 步长时返回
+ * XY_DEVICE_INVALID_PARAM 且不访问总线
  */
 int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV);
 
@@ -203,7 +205,8 @@ int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV);
  * @brief 设置输入电流限制
  * @param dev BQ25620 设备句柄
  * @param current_mA 输入电流限制 (mA)
- * @return XY_DEVICE_OK 成功，其他值失败
+ * @return XY_DEVICE_OK 成功；超出 100..6300 mA 或不对齐 100 mA 步长时返回
+ * XY_DEVICE_INVALID_PARAM 且不访问总线
  */
 int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA);
 

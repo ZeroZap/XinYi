@@ -156,13 +156,19 @@ static bool bq25620_config_valid(const xy_charger_device_config_t *config)
     return config != NULL &&
            config->input_current_limit >= BQ25620_ILIM_MIN_mA &&
            config->input_current_limit <= BQ25620_ILIM_MAX_mA &&
+           (config->input_current_limit - BQ25620_ILIM_MIN_mA) % BQ25620_ILIM_STEP_mA == 0U &&
            config->charge_current >= BQ25620_ICHG_MIN_mA &&
            config->charge_current <= BQ25620_ICHG_MAX_mA &&
+           (config->charge_current - BQ25620_ICHG_MIN_mA) % BQ25620_ICHG_STEP_mA == 0U &&
            config->charge_voltage >= BQ25620_VREG_MIN_mV &&
            config->charge_voltage <= BQ25620_VREG_MAX_mV &&
+           (config->charge_voltage - BQ25620_VREG_MIN_mV) % BQ25620_VREG_STEP_mV == 0U &&
            config->precharge_current >= 64U && config->precharge_current <= 960U &&
+           (config->precharge_current - 64U) % 64U == 0U &&
            config->termination_current >= 64U && config->termination_current <= 960U &&
-           config->recharge_threshold >= 100U && config->recharge_threshold <= 300U;
+           (config->termination_current - 64U) % 64U == 0U &&
+           config->recharge_threshold >= 100U && config->recharge_threshold <= 300U &&
+           config->recharge_threshold % 100U == 0U;
 }
 
 /* ==================== Hardware Operations ==================== */
@@ -419,15 +425,10 @@ int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_device_status_t *status)
 
 int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
 {
-    if (!bq25620_ready(dev)) {
+    if (!bq25620_ready(dev) || current_mA < BQ25620_ICHG_MIN_mA ||
+        current_mA > BQ25620_ICHG_MAX_mA ||
+        (current_mA - BQ25620_ICHG_MIN_mA) % BQ25620_ICHG_STEP_mA != 0U) {
         return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    /* 限制电流范围 */
-    if (current_mA < BQ25620_ICHG_MIN_mA) {
-        current_mA = BQ25620_ICHG_MIN_mA;
-    } else if (current_mA > BQ25620_ICHG_MAX_mA) {
-        current_mA = BQ25620_ICHG_MAX_mA;
     }
     
     uint8_t ichg_reg = current_to_reg(current_mA, BQ25620_ICHG_STEP_mA, BQ25620_ICHG_MIN_mA);
@@ -436,15 +437,10 @@ int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
 
 int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
 {
-    if (!bq25620_ready(dev)) {
+    if (!bq25620_ready(dev) || voltage_mV < BQ25620_VREG_MIN_mV ||
+        voltage_mV > BQ25620_VREG_MAX_mV ||
+        (voltage_mV - BQ25620_VREG_MIN_mV) % BQ25620_VREG_STEP_mV != 0U) {
         return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    /* 限制电压范围 */
-    if (voltage_mV < BQ25620_VREG_MIN_mV) {
-        voltage_mV = BQ25620_VREG_MIN_mV;
-    } else if (voltage_mV > BQ25620_VREG_MAX_mV) {
-        voltage_mV = BQ25620_VREG_MAX_mV;
     }
     
     uint8_t vreg_reg = voltage_to_reg(voltage_mV, BQ25620_VREG_STEP_mV, BQ25620_VREG_MIN_mV);
@@ -453,15 +449,10 @@ int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
 
 int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
 {
-    if (!bq25620_ready(dev)) {
+    if (!bq25620_ready(dev) || current_mA < BQ25620_ILIM_MIN_mA ||
+        current_mA > BQ25620_ILIM_MAX_mA ||
+        (current_mA - BQ25620_ILIM_MIN_mA) % BQ25620_ILIM_STEP_mA != 0U) {
         return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    /* 限制电流范围 */
-    if (current_mA < BQ25620_ILIM_MIN_mA) {
-        current_mA = BQ25620_ILIM_MIN_mA;
-    } else if (current_mA > BQ25620_ILIM_MAX_mA) {
-        current_mA = BQ25620_ILIM_MAX_mA;
     }
     
     uint8_t ilim_reg = current_to_reg(current_mA, BQ25620_ILIM_STEP_mA, BQ25620_ILIM_MIN_mA);
