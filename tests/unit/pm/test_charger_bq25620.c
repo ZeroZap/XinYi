@@ -524,6 +524,43 @@ static void test_failed_receive_does_not_publish_hal_written_bytes(void)
     TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
 }
 
+static void test_setters_preserve_unrelated_register_bits(void)
+{
+    xy_bq25620_t dev;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+
+    g_regs[BQ25620_REG_CHG_CTRL_1] = 0x80U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_current(&dev, 128U));
+    TEST_ASSERT_EQUAL_HEX8(0x81U, g_regs[BQ25620_REG_CHG_CTRL_1]);
+
+    g_regs[BQ25620_REG_CHG_CTRL_3] = 0x80U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_charge_voltage(&dev, 4200U));
+    TEST_ASSERT_EQUAL_HEX8(0xC6U, g_regs[BQ25620_REG_CHG_CTRL_3]);
+
+    g_regs[BQ25620_REG_CHG_CTRL_4] = 0x40U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_set_input_limit(&dev, 500U));
+    TEST_ASSERT_EQUAL_HEX8(0xC4U, g_regs[BQ25620_REG_CHG_CTRL_4]);
+}
+
+static void test_setter_read_failure_stops_before_write(void)
+{
+    xy_bq25620_t dev;
+    unsigned tx_before;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    g_regs[BQ25620_REG_CHG_CTRL_1] = 0xA5U;
+    tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+    g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
+    g_injected_error = XY_HAL_ERROR_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bq25620_set_charge_current(&dev, 128U));
+    TEST_ASSERT_EQUAL_UINT(tx_before + 1U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, g_regs[BQ25620_REG_CHG_CTRL_1]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -541,5 +578,7 @@ int main(void)
     RUN_TEST(test_transport_errors_propagate_and_preserve_outputs);
     RUN_TEST(test_register_access_rejects_out_of_range_address_without_io);
     RUN_TEST(test_failed_receive_does_not_publish_hal_written_bytes);
+    RUN_TEST(test_setters_preserve_unrelated_register_bits);
+    RUN_TEST(test_setter_read_failure_stops_before_write);
     return UNITY_END();
 }

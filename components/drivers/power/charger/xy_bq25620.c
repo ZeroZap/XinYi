@@ -432,7 +432,8 @@ int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
     }
     
     uint8_t ichg_reg = current_to_reg(current_mA, BQ25620_ICHG_STEP_mA, BQ25620_ICHG_MIN_mA);
-    return bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_1, ichg_reg & BQ25620_ICHG_MASK);
+    return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_1, BQ25620_ICHG_MASK,
+                                   ichg_reg);
 }
 
 int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
@@ -444,7 +445,8 @@ int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV)
     }
     
     uint8_t vreg_reg = voltage_to_reg(voltage_mV, BQ25620_VREG_STEP_mV, BQ25620_VREG_MIN_mV);
-    return bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_3, vreg_reg & BQ25620_VREG_MASK);
+    return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_3, BQ25620_VREG_MASK,
+                                   vreg_reg);
 }
 
 int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
@@ -457,7 +459,8 @@ int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA)
     
     uint8_t ilim_reg = current_to_reg(current_mA, BQ25620_ILIM_STEP_mA, BQ25620_ILIM_MIN_mA);
     uint8_t ilim_value = (ilim_reg & BQ25620_ILIM_MASK) | BQ25620_EN_ILIM;
-    return bq25620_i2c_write(dev, BQ25620_REG_CHG_CTRL_4, ilim_value);
+    return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_4,
+                                   BQ25620_ILIM_MASK | BQ25620_EN_ILIM, ilim_value);
 }
 
 int xy_bq25620_start_charge(xy_bq25620_t *dev)
