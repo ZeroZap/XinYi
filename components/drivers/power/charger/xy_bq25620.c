@@ -25,6 +25,11 @@ static bool bq25620_ready(const xy_bq25620_t *dev)
            dev->base.base.initialized != 0U;
 }
 
+static bool bq25620_register_valid(uint8_t reg)
+{
+    return reg <= BQ25620_REG_DEVICE_ID;
+}
+
 static int bq25620_from_hal(xy_hal_error_t error)
 {
     switch (error) {
@@ -312,7 +317,7 @@ static int bq25620_hw_enable(void *hw_data, bool enable)
 static int bq25620_hw_read_reg(void *hw_data, uint8_t reg, uint8_t *value)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!bq25620_ready(dev) || !value) {
+    if (!bq25620_ready(dev) || !value || !bq25620_register_valid(reg)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -322,7 +327,7 @@ static int bq25620_hw_read_reg(void *hw_data, uint8_t reg, uint8_t *value)
 static int bq25620_hw_write_reg(void *hw_data, uint8_t reg, uint8_t value)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!bq25620_ready(dev)) {
+    if (!bq25620_ready(dev) || !bq25620_register_valid(reg)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -375,7 +380,7 @@ int xy_bq25620_deinit(xy_bq25620_t *dev)
 
 int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value)
 {
-    if (!bq25620_ready(dev) || !value) {
+    if (!bq25620_ready(dev) || !value || !bq25620_register_valid(reg)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -384,7 +389,7 @@ int xy_bq25620_read_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t *value)
 
 int xy_bq25620_write_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t value)
 {
-    if (!bq25620_ready(dev)) {
+    if (!bq25620_ready(dev) || !bq25620_register_valid(reg)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     

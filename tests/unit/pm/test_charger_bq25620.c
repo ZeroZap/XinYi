@@ -443,6 +443,34 @@ static void test_transport_errors_propagate_and_preserve_outputs(void)
     TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
 }
 
+static void test_register_access_rejects_out_of_range_address_without_io(void)
+{
+    xy_bq25620_t dev;
+    uint8_t value = 0xA5U;
+    unsigned tx_before;
+    unsigned rx_before;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+    rx_before = xy_hal_i2c_master_receive_fake.call_count;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID + 1U, &value));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_bq25620_write_reg(&dev, BQ25620_REG_DEVICE_ID + 1U, 0x5AU));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          dev.base.hw_read_reg(dev.base.hw_data,
+                                               BQ25620_REG_DEVICE_ID + 1U, &value));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          dev.base.hw_write_reg(dev.base.hw_data,
+                                                BQ25620_REG_DEVICE_ID + 1U, 0x5AU));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
+    TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -458,5 +486,6 @@ int main(void)
     RUN_TEST(test_full_config_rejects_out_of_range_values_without_io);
     RUN_TEST(test_lost_outer_lifecycle_blocks_public_and_callback_paths);
     RUN_TEST(test_transport_errors_propagate_and_preserve_outputs);
+    RUN_TEST(test_register_access_rejects_out_of_range_address_without_io);
     return UNITY_END();
 }
