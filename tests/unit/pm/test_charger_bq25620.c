@@ -90,6 +90,7 @@ static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_regs), g_selected_reg + len);
     if (g_fail_rx_call != 0U &&
         xy_hal_i2c_master_receive_fake.call_count == g_fail_rx_call) {
+        memset(data, 0x5A, len);
         return g_injected_error;
     }
     memcpy(data, &g_regs[g_selected_reg], len);
@@ -471,6 +472,23 @@ static void test_register_access_rejects_out_of_range_address_without_io(void)
     TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);
 }
 
+static void test_failed_receive_does_not_publish_hal_written_bytes(void)
+{
+    xy_bq25620_t dev;
+    uint8_t value = 0xA5U;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
+    g_injected_error = XY_HAL_ERROR_IO;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID, &value));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -487,5 +505,6 @@ int main(void)
     RUN_TEST(test_lost_outer_lifecycle_blocks_public_and_callback_paths);
     RUN_TEST(test_transport_errors_propagate_and_preserve_outputs);
     RUN_TEST(test_register_access_rejects_out_of_range_address_without_io);
+    RUN_TEST(test_failed_receive_does_not_publish_hal_written_bytes);
     return UNITY_END();
 }

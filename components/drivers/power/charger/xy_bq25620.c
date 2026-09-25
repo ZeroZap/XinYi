@@ -53,24 +53,27 @@ static int bq25620_from_hal(xy_hal_error_t error)
  */
 static int bq25620_i2c_read(xy_bq25620_t *dev, uint8_t reg, uint8_t *data, uint8_t len)
 {
-    if (!bq25620_transport_ready(dev) || !data || len == 0U) {
+    uint8_t next;
+
+    if (!bq25620_transport_ready(dev) || !data || len != 1U) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    
+
     void *i2c = dev->i2c_handle;
-    
+
     /* 写入寄存器地址 */
     xy_hal_error_t ret = xy_hal_i2c_master_transmit(i2c, dev->i2c_addr, &reg, 1, 100);
     if (ret != XY_HAL_OK) {
         return bq25620_from_hal(ret);
     }
-    
-    /* 读取数据 */
-    ret = xy_hal_i2c_master_receive(i2c, dev->i2c_addr, data, len, 100);
+
+    /* 先读入局部变量；失败时不发布部分或污染数据。 */
+    ret = xy_hal_i2c_master_receive(i2c, dev->i2c_addr, &next, 1U, 100);
     if (ret != XY_HAL_OK) {
         return bq25620_from_hal(ret);
     }
-    
+
+    *data = next;
     return XY_DEVICE_OK;
 }
 
