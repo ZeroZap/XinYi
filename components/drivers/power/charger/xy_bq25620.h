@@ -184,6 +184,15 @@ int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id);
 int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_device_status_t *status);
 
 /**
+ * @brief 原子入口校验并应用完整充电配置
+ * @param dev BQ25620 设备句柄
+ * @param config 完整配置；所有值必须在范围内且可由寄存器步长精确表示
+ * @return XY_DEVICE_OK 成功；参数无效时零总线访问；传输失败时返回首个错误
+ */
+int xy_bq25620_configure(xy_bq25620_t *dev,
+                         const xy_charger_device_config_t *config);
+
+/**
  * @brief 设置充电电流
  * @param dev BQ25620 设备句柄
  * @param current_mA 充电电流 (mA)

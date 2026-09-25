@@ -123,8 +123,8 @@ xy_charger_device_config_t config = {
     .auto_recharge = true,          /* 自动再充电使能 */
 };
 
-/* 由芯片 owner 的 callback 应用完整配置 */
-bq25620.base.hw_set_config(bq25620.base.hw_data, &config);
+/* 通过芯片 owner 的公开入口应用完整配置 */
+xy_bq25620_configure(&bq25620, &config);
 ```
 
 ### 3. 启动充电
@@ -191,6 +191,8 @@ int xy_bq25620_stop_charge(xy_bq25620_t *dev);
 ### 参数配置
 
 ```c
+int xy_bq25620_configure(xy_bq25620_t *dev,
+                         const xy_charger_device_config_t *config);
 int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA);
 int xy_bq25620_set_charge_voltage(xy_bq25620_t *dev, uint32_t voltage_mV);
 int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA);

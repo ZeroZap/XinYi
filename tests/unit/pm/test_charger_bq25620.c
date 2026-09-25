@@ -333,7 +333,7 @@ static void test_full_config_stops_at_first_write_error(void)
         g_fail_tx_call = tx_before + failed_write + 1U;
 
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
-                              dev.base.hw_set_config(dev.base.hw_data, &config));
+                              xy_bq25620_configure(&dev, &config));
         TEST_ASSERT_EQUAL_UINT(g_fail_tx_call,
                                xy_hal_i2c_master_transmit_fake.call_count);
         for (unsigned later = failed_write; later < sizeof(registers); ++later) {
@@ -354,7 +354,22 @@ static void test_full_config_requires_live_owner(void)
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
     dev.i2c_handle = NULL;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          dev.base.hw_set_config(dev.base.hw_data, &config));
+                          xy_bq25620_configure(&dev, &config));
+    TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
+}
+
+static void test_full_config_public_api_rejects_null_without_io(void)
+{
+    xy_bq25620_t dev;
+    const xy_charger_device_config_t config = {0};
+    unsigned tx_before;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_configure(NULL, &config));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_configure(&dev, NULL));
     TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
 }
 
@@ -381,7 +396,7 @@ static void test_full_config_rejects_out_of_range_values_without_io(void)
         invalid.field = (value);                                                             \
         tx_before = xy_hal_i2c_master_transmit_fake.call_count;                              \
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,                                       \
-                              dev.base.hw_set_config(dev.base.hw_data, &invalid));           \
+                              xy_bq25620_configure(&dev, &invalid));                         \
         TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);        \
     } while (0)
 
@@ -573,6 +588,7 @@ int main(void)
     RUN_TEST(test_init_rejects_noncanonical_address_and_clears_failed_probe);
     RUN_TEST(test_full_config_stops_at_first_write_error);
     RUN_TEST(test_full_config_requires_live_owner);
+    RUN_TEST(test_full_config_public_api_rejects_null_without_io);
     RUN_TEST(test_full_config_rejects_out_of_range_values_without_io);
     RUN_TEST(test_lost_outer_lifecycle_blocks_public_and_callback_paths);
     RUN_TEST(test_transport_errors_propagate_and_preserve_outputs);

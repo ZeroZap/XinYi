@@ -423,6 +423,15 @@ int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_device_status_t *status)
     return bq25620_hw_read_status(dev, status);
 }
 
+int xy_bq25620_configure(xy_bq25620_t *dev, const xy_charger_device_config_t *config)
+{
+    if (!bq25620_ready(dev) || !config) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    return bq25620_hw_set_config(dev, config);
+}
+
 int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
 {
     if (!bq25620_ready(dev) || current_mA < BQ25620_ICHG_MIN_mA ||
