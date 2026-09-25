@@ -19,7 +19,8 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   include-order、类型或链接符号冲突。
 - 当前证据仅为 `Host-guarded` 的 fake-I2C transaction/status contract 与 PC build；
   register/status/config/control operations require a live owner transport and both BQ25620 plus
-  outer Device lifecycle flags, failed probe clears the full object, status publication is staged until all required reads succeed, complete configuration
+  outer Device lifecycle flags, preserves mapped HAL timeout/busy/I/O errors, failed probe clears the
+  full object, status publication is staged until all required reads succeed, complete configuration
   rejects out-of-range full configurations before the first register write, stops at the first failed
   register write, and successful teardown clears the handle/callback context. The fixed 7-bit address
   contract is `0x6A`.

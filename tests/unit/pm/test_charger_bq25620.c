@@ -18,6 +18,8 @@ static uint8_t g_regs[0x20];
 static uint8_t g_selected_reg;
 static void *g_expected_i2c = (void *)0x1234;
 static unsigned g_fail_tx_call;
+static unsigned g_fail_rx_call;
+static xy_hal_error_t g_injected_error;
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
                                                const uint8_t *data, size_t len,
@@ -46,6 +48,8 @@ static void reset_fake_i2c(void)
     g_regs[BQ25620_REG_DEVICE_ID] = BQ25620_PART_NUMBER;
     g_selected_reg = 0;
     g_fail_tx_call = 0U;
+    g_fail_rx_call = 0U;
+    g_injected_error = XY_HAL_ERROR;
 }
 
 static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
@@ -62,7 +66,7 @@ static xy_hal_error_t fake_i2c_master_transmit(void *i2c, uint16_t dev_addr,
 
     if (g_fail_tx_call != 0U &&
         xy_hal_i2c_master_transmit_fake.call_count == g_fail_tx_call) {
-        return XY_HAL_ERROR;
+        return g_injected_error;
     }
 
     g_selected_reg = data[0];
@@ -84,6 +88,10 @@ static xy_hal_error_t fake_i2c_master_receive(void *i2c, uint16_t dev_addr,
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, i2c);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_LESS_OR_EQUAL_UINT(sizeof(g_regs), g_selected_reg + len);
+    if (g_fail_rx_call != 0U &&
+        xy_hal_i2c_master_receive_fake.call_count == g_fail_rx_call) {
+        return g_injected_error;
+    }
     memcpy(data, &g_regs[g_selected_reg], len);
     return XY_HAL_OK;
 }
@@ -397,6 +405,44 @@ static void test_lost_outer_lifecycle_blocks_public_and_callback_paths(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
+static void test_transport_errors_propagate_and_preserve_outputs(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_device_status_t status;
+    xy_charger_device_status_t snapshot;
+    uint8_t value = 0xA5U;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+
+    g_injected_error = XY_HAL_ERROR_TIMEOUT;
+    g_fail_tx_call = xy_hal_i2c_master_transmit_fake.call_count + 1U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID, &value));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
+
+    g_fail_tx_call = 0U;
+    g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 1U;
+    g_injected_error = XY_HAL_ERROR_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY,
+                          xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID, &value));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
+
+    memset(&status, 0xA5, sizeof(status));
+    snapshot = status;
+    g_fail_rx_call = xy_hal_i2c_master_receive_fake.call_count + 3U;
+    g_injected_error = XY_HAL_ERROR_IO;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bq25620_get_status(&dev, &status));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
+
+    g_fail_rx_call = 0U;
+    g_fail_tx_call = xy_hal_i2c_master_transmit_fake.call_count + 1U;
+    g_injected_error = XY_HAL_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bq25620_start_charge(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -411,5 +457,6 @@ int main(void)
     RUN_TEST(test_full_config_requires_live_owner);
     RUN_TEST(test_full_config_rejects_out_of_range_values_without_io);
     RUN_TEST(test_lost_outer_lifecycle_blocks_public_and_callback_paths);
+    RUN_TEST(test_transport_errors_propagate_and_preserve_outputs);
     return UNITY_END();
 }

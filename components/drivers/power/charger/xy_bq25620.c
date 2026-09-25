@@ -25,6 +25,24 @@ static bool bq25620_ready(const xy_bq25620_t *dev)
            dev->base.base.initialized != 0U;
 }
 
+static int bq25620_from_hal(xy_hal_error_t error)
+{
+    switch (error) {
+        case XY_HAL_OK: return XY_DEVICE_OK;
+        case XY_HAL_ERROR_INVALID_PARAM: return XY_DEVICE_INVALID_PARAM;
+        case XY_HAL_ERROR_TIMEOUT: return XY_DEVICE_TIMEOUT;
+        case XY_HAL_ERROR_BUSY: return XY_DEVICE_BUSY;
+        case XY_HAL_ERROR_NOT_SUPPORTED: return XY_DEVICE_NOT_SUPPORT;
+        case XY_HAL_ERROR_NOT_FOUND: return XY_DEVICE_NOT_FOUND;
+        case XY_HAL_ERROR_NO_MEMORY: return XY_DEVICE_NO_MEM;
+        case XY_HAL_ERROR_NO_RESOURCE: return XY_DEVICE_NO_RESOURCE;
+        case XY_HAL_ERROR_IO: return XY_DEVICE_IO_ERROR;
+        case XY_HAL_ERROR_NOT_INIT: return XY_DEVICE_NOT_INIT;
+        case XY_HAL_ERROR_ALREADY_INIT: return XY_DEVICE_ALREADY_INIT;
+        default: return XY_DEVICE_ERROR;
+    }
+}
+
 /**
  * @brief I2C 读取寄存器
  */
@@ -37,15 +55,15 @@ static int bq25620_i2c_read(xy_bq25620_t *dev, uint8_t reg, uint8_t *data, uint8
     void *i2c = dev->i2c_handle;
     
     /* 写入寄存器地址 */
-    int32_t ret = xy_hal_i2c_master_transmit(i2c, dev->i2c_addr, &reg, 1, 100);
-    if (ret < 0) {
-        return XY_DEVICE_ERROR;
+    xy_hal_error_t ret = xy_hal_i2c_master_transmit(i2c, dev->i2c_addr, &reg, 1, 100);
+    if (ret != XY_HAL_OK) {
+        return bq25620_from_hal(ret);
     }
     
     /* 读取数据 */
     ret = xy_hal_i2c_master_receive(i2c, dev->i2c_addr, data, len, 100);
-    if (ret < 0) {
-        return XY_DEVICE_ERROR;
+    if (ret != XY_HAL_OK) {
+        return bq25620_from_hal(ret);
     }
     
     return XY_DEVICE_OK;
@@ -63,12 +81,8 @@ static int bq25620_i2c_write(xy_bq25620_t *dev, uint8_t reg, uint8_t data)
     void *i2c = dev->i2c_handle;
     uint8_t tx_buf[2] = {reg, data};
     
-    int32_t ret = xy_hal_i2c_master_transmit(i2c, dev->i2c_addr, tx_buf, 2, 100);
-    if (ret < 0) {
-        return XY_DEVICE_ERROR;
-    }
-    
-    return XY_DEVICE_OK;
+    return bq25620_from_hal(
+        xy_hal_i2c_master_transmit(i2c, dev->i2c_addr, tx_buf, 2, 100));
 }
 
 /**
@@ -156,7 +170,7 @@ static int bq25620_hw_init(void *hw_data)
     uint8_t dev_id;
     int ret = bq25620_i2c_read(dev, BQ25620_REG_DEVICE_ID, &dev_id, 1U);
     if (ret != XY_DEVICE_OK) {
-        return XY_DEVICE_ERROR;
+        return ret;
     }
     
     /* 验证型号 */
@@ -176,25 +190,35 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
     uint8_t stat0;
     uint8_t stat1;
     uint8_t reg_value;
+    int ret;
 
     if (!bq25620_ready(dev) || !status) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_0, &stat0, 1U) != XY_DEVICE_OK ||
-        bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_1, &stat1, 1U) != XY_DEVICE_OK ||
-        bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_1, &reg_value, 1U) != XY_DEVICE_OK) {
-        return XY_DEVICE_ERROR;
+    ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_0, &stat0, 1U);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+    ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_1, &stat1, 1U);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+    ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_1, &reg_value, 1U);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
     next.charge_current = reg_to_current(reg_value & BQ25620_ICHG_MASK,
                                          BQ25620_ICHG_STEP_mA, BQ25620_ICHG_MIN_mA);
-    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_3, &reg_value, 1U) != XY_DEVICE_OK) {
-        return XY_DEVICE_ERROR;
+    ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_3, &reg_value, 1U);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
     next.bat_voltage = reg_to_voltage(reg_value & BQ25620_VREG_MASK,
                                       BQ25620_VREG_STEP_mV, BQ25620_VREG_MIN_mV);
-    if (bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_4, &reg_value, 1U) != XY_DEVICE_OK) {
-        return XY_DEVICE_ERROR;
+    ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_4, &reg_value, 1U);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
     next.input_current = reg_to_current(reg_value & BQ25620_ILIM_MASK,
                                         BQ25620_ILIM_STEP_mA, BQ25620_ILIM_MIN_mA);
