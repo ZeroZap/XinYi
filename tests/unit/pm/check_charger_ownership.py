@@ -58,6 +58,10 @@ def main() -> int:
             "BQ25620 owner must not duplicate the canonical Device lifecycle flag", errors)
     require("xy_bq25620_configure" in HEADER.read_text(encoding="utf-8"),
             "BQ25620 full configuration must have a chip-owner public API", errors)
+    header = HEADER.read_text(encoding="utf-8")
+    require("BQ25620_REG_DEVICE_ID     = 0x38" in header and
+            "BQ25620_PART_NUMBER         (0x00U << 3)" in header,
+            "BQ25620 probe identity must match datasheet Part Information register 0x38", errors)
     require("charger_header_coexistence" in unit_cmake,
             "PM/Device charger public-header coexistence gate must remain registered", errors)
     for token in ("canonical implementation owner", "Host-guarded", "hardware-pending",

@@ -36,7 +36,8 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   instead of silently truncating them, stages initialization so a failed re-probe preserves the live owner,
   failed teardown propagates the stop-charge transport error while preserving the complete live owner
   for retry, and successful teardown clears the handle/callback context. The
-  fixed 7-bit address contract is `0x6A`.
+  fixed 7-bit address contract is `0x6A`; probe reads the datasheet-defined Part Information register
+  at `0x38` and accepts only PN=`0` (BQ25620), not the adjacent BQ25622 identity.
   真实充电、热保护、故障恢复和电池安全仍为 `hardware-pending`。
 - Host 测试或 PC 编译不构成硬件验证、充电安全批准或 production-ready 声明。
 

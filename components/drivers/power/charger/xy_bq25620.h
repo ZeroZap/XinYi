@@ -7,8 +7,8 @@
  * @note BQ25620 是一款独立的 I2C 控制的 1 节锂离子电池充电器
  * 
  * 主要特性:
- * - 输入电压范围：3.5V - 13.5V
- * - 充电电流：最高 2A
+ * - 输入工作电压范围：3.9V - 18V
+ * - 充电电流：最高 3.5A
  * - 充电电压：4.2V (默认)
  * - I2C 接口配置
  * - 热调节和过温保护
@@ -52,7 +52,7 @@ typedef enum {
     BQ25620_REG_PULSE_CHG_0   = 0x12,  /**< 脉冲充电寄存器 0 */
     BQ25620_REG_PULSE_CHG_1   = 0x13,  /**< 脉冲充电寄存器 1 */
     BQ25620_REG_SHIPMENT_MODE = 0x14,  /**< 运输模式寄存器 */
-    BQ25620_REG_DEVICE_ID     = 0x15,  /**< 设备 ID 寄存器 */
+    BQ25620_REG_DEVICE_ID     = 0x38,  /**< Part Information 寄存器 */
 } bq25620_reg_t;
 
 /* ==================== Register Bit Definitions ==================== */
@@ -115,9 +115,11 @@ typedef enum {
 #define BQ25620_FORCE_DPDM          (0x01 << 7)  /**< 强制 DPDM 检测 */
 #define BQ25620_EN_OC               (0x01 << 4)  /**< 过流保护使能 */
 
-/* DEVICE_ID (0x15) */
-#define BQ25620_PART_NUMBER_MASK    (0x3F << 2)  /**< 型号掩码 */
-#define BQ25620_PART_NUMBER         (0x0A << 2)  /**< BQ25620 型号值 */
+/* Part Information (0x38) */
+#define BQ25620_PART_NUMBER_MASK    (0x07U << 3) /**< PN[5:3] */
+#define BQ25620_PART_NUMBER         (0x00U << 3) /**< BQ25620 */
+#define BQ25622_PART_NUMBER         (0x01U << 3) /**< BQ25622 */
+#define BQ25620_DEVICE_REV_MASK     0x07U        /**< DEV_REV[2:0] */
 
 /* ==================== BQ25620 Device Structure ==================== */
 

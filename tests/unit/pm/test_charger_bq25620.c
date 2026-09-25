@@ -14,7 +14,7 @@ FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_transmit, void *, uint16_t,
 FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_receive, void *, uint16_t,
                 uint8_t *, size_t, uint32_t)
 
-static uint8_t g_regs[0x20];
+static uint8_t g_regs[0x40];
 static uint8_t g_selected_reg;
 static void *g_expected_i2c = (void *)0x1234;
 static unsigned g_fail_tx_call;
@@ -45,7 +45,7 @@ void tearDown(void)
 static void reset_fake_i2c(void)
 {
     memset(g_regs, 0, sizeof(g_regs));
-    g_regs[BQ25620_REG_DEVICE_ID] = BQ25620_PART_NUMBER;
+    g_regs[BQ25620_REG_DEVICE_ID] = BQ25620_PART_NUMBER | 0x02U;
     g_selected_reg = 0;
     g_fail_tx_call = 0U;
     g_fail_rx_call = 0U;
@@ -138,7 +138,7 @@ static void test_init_and_register_io(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_device_id(&dev, &value));
     TEST_ASSERT_EQUAL_UINT(2U, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(2U, xy_hal_i2c_master_receive_fake.call_count);
-    TEST_ASSERT_EQUAL_HEX8(BQ25620_PART_NUMBER, value);
+    TEST_ASSERT_EQUAL_HEX8(BQ25620_PART_NUMBER | 0x02U, value);
 
     g_regs[BQ25620_REG_CHG_CTRL_6] = 0x55U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_read_reg(&dev, BQ25620_REG_CHG_CTRL_6, &value));
@@ -432,7 +432,7 @@ static void test_init_failure_preserves_caller_storage(void)
     memset(&dev, 0xA5, sizeof(dev));
     snapshot = dev;
     reset_fake_i2c();
-    g_regs[BQ25620_REG_DEVICE_ID] = 0U;
+    g_regs[BQ25620_REG_DEVICE_ID] = BQ25622_PART_NUMBER | 0x02U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_SUPPORT,
                           xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
