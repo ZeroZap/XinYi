@@ -237,32 +237,32 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    if ((reg_value & BQ25620_ICHG_MASK) >> 6U >
-        BQ25620_ICHG_MAX_mA / BQ25620_ICHG_STEP_mA) {
+    uint16_t setpoint = (reg_value & BQ25620_ICHG_MASK) >> 6U;
+    if (setpoint < BQ25620_ICHG_MIN_mA / BQ25620_ICHG_STEP_mA ||
+        setpoint > BQ25620_ICHG_MAX_mA / BQ25620_ICHG_STEP_mA) {
         return XY_DEVICE_ERROR;
     }
-    next.configured_charge_current =
-        reg_to_current((reg_value & BQ25620_ICHG_MASK) >> 6U, BQ25620_ICHG_STEP_mA);
+    next.configured_charge_current = reg_to_current(setpoint, BQ25620_ICHG_STEP_mA);
     ret = bq25620_read_u16(dev, BQ25620_REG_CHG_CTRL_3, &reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    if ((reg_value & BQ25620_VREG_MASK) >> 3U >
-        BQ25620_VREG_MAX_mV / BQ25620_VREG_STEP_mV) {
+    setpoint = (reg_value & BQ25620_VREG_MASK) >> 3U;
+    if (setpoint < BQ25620_VREG_MIN_mV / BQ25620_VREG_STEP_mV ||
+        setpoint > BQ25620_VREG_MAX_mV / BQ25620_VREG_STEP_mV) {
         return XY_DEVICE_ERROR;
     }
-    next.configured_charge_voltage =
-        reg_to_voltage((reg_value & BQ25620_VREG_MASK) >> 3U, BQ25620_VREG_STEP_mV);
+    next.configured_charge_voltage = reg_to_voltage(setpoint, BQ25620_VREG_STEP_mV);
     ret = bq25620_read_u16(dev, BQ25620_REG_CHG_CTRL_4, &reg_value);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    if ((reg_value & BQ25620_ILIM_MASK) >> 4U >
-        BQ25620_ILIM_MAX_mA / BQ25620_ILIM_STEP_mA) {
+    setpoint = (reg_value & BQ25620_ILIM_MASK) >> 4U;
+    if (setpoint < BQ25620_ILIM_MIN_mA / BQ25620_ILIM_STEP_mA ||
+        setpoint > BQ25620_ILIM_MAX_mA / BQ25620_ILIM_STEP_mA) {
         return XY_DEVICE_ERROR;
     }
-    next.configured_input_current_limit =
-        reg_to_current((reg_value & BQ25620_ILIM_MASK) >> 4U, BQ25620_ILIM_STEP_mA);
+    next.configured_input_current_limit = reg_to_current(setpoint, BQ25620_ILIM_STEP_mA);
 
     switch (stat0 & BQ25620_STAT_CHG_MASK) {
         case BQ25620_STAT_CHG_IDLE: next.state = XY_CHARGER_DEVICE_STATE_IDLE; break;

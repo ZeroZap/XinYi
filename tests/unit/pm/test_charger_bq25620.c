@@ -220,6 +220,9 @@ static void test_unknown_status_codes_fail_closed(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_TOPOFF | 0x03U;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_SYS;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, (160U / BQ25620_ICHG_STEP_mA) << 6U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_3, (4200U / BQ25620_VREG_STEP_mV) << 3U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_4, (500U / BQ25620_ILIM_STEP_mA) << 4U);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
@@ -238,6 +241,9 @@ static void test_known_fault_overrides_done_state(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_TOPOFF | 0x03U;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_BAT_OVP;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, (160U / BQ25620_ICHG_STEP_mA) << 6U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_3, (4200U / BQ25620_VREG_STEP_mV) << 3U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_4, (500U / BQ25620_ILIM_STEP_mA) << 4U);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
@@ -256,6 +262,9 @@ static void test_unknown_ts_state_reports_unknown_fault(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
     g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | 0x03U;
     g_regs[BQ25620_REG_CHG_STAT_1] = 0x07U;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, (160U / BQ25620_ICHG_STEP_mA) << 6U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_3, (4200U / BQ25620_VREG_STEP_mV) << 3U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_4, (500U / BQ25620_ILIM_STEP_mA) << 4U);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
@@ -303,6 +312,39 @@ static void test_status_accepts_datasheet_maximum_setpoint_encodings(void)
                                  status.configured_charge_voltage);
         TEST_ASSERT_EQUAL_UINT32(index == 2U ? BQ25620_ILIM_MAX_mA : 500U,
                                  status.configured_input_current_limit);
+    }
+}
+
+static void test_status_rejects_below_minimum_setpoint_encodings(void)
+{
+    static const struct {
+        uint8_t reg;
+        uint8_t shift;
+        uint16_t value;
+    } cases[] = {
+        {BQ25620_REG_CHG_CTRL_1, 6U, 0U},
+        {BQ25620_REG_CHG_CTRL_3, 3U, 349U},
+        {BQ25620_REG_CHG_CTRL_4, 4U, 4U},
+    };
+
+    for (size_t index = 0U; index < sizeof(cases) / sizeof(cases[0]); ++index) {
+        xy_bq25620_t dev;
+        xy_charger_device_status_t status;
+        xy_charger_device_status_t snapshot;
+
+        reset_fake_i2c();
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                              xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
+        g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | 0x03U;
+        set_reg_u16(BQ25620_REG_CHG_CTRL_1, (160U / BQ25620_ICHG_STEP_mA) << 6U);
+        set_reg_u16(BQ25620_REG_CHG_CTRL_3, (4200U / BQ25620_VREG_STEP_mV) << 3U);
+        set_reg_u16(BQ25620_REG_CHG_CTRL_4, (500U / BQ25620_ILIM_STEP_mA) << 4U);
+        set_reg_u16(cases[index].reg, (uint16_t)(cases[index].value << cases[index].shift));
+        memset(&status, 0xA5, sizeof(status));
+        snapshot = status;
+
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_get_status(&dev, &status));
+        TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
     }
 }
 
@@ -826,6 +868,7 @@ int main(void)
     RUN_TEST(test_unknown_ts_state_reports_unknown_fault);
     RUN_TEST(test_known_fault_overrides_done_state);
     RUN_TEST(test_status_accepts_datasheet_maximum_setpoint_encodings);
+    RUN_TEST(test_status_rejects_below_minimum_setpoint_encodings);
     RUN_TEST(test_config_and_range_validation);
     RUN_TEST(test_start_stop_and_deinit);
     RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
