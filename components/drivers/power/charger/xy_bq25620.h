@@ -19,7 +19,7 @@
 #ifndef XY_BQ25620_H
 #define XY_BQ25620_H
 
-#include "xy_charger.h"
+#include "xy_charger_device.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -125,7 +125,7 @@ typedef enum {
  * @brief BQ25620 设备结构
  */
 typedef struct {
-    xy_charger_t base;              /**< 充电器基类 */
+    xy_charger_device_t base;              /**< 充电器基类 */
     void *i2c_handle;               /**< I2C 句柄 */
     uint8_t i2c_addr;               /**< I2C 地址 (默认 0x6A) */
     bool initialized;               /**< 初始化标志 */
@@ -181,7 +181,7 @@ int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id);
  * @param status 状态输出
  * @return XY_DEVICE_OK 成功，其他值失败
  */
-int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_status_t *status);
+int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_device_status_t *status);
 
 /**
  * @brief 设置充电电流

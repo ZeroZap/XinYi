@@ -92,7 +92,7 @@ static void test_null_param_validation(void)
 {
     xy_bq25620_t dev;
     uint8_t id;
-    xy_charger_status_t status;
+    xy_charger_device_status_t status;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_init(NULL, g_expected_i2c, 0x6A));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_init(&dev, NULL, 0x6A));
@@ -146,7 +146,7 @@ static void test_init_and_register_io(void)
 static void test_status_decoding(void)
 {
     xy_bq25620_t dev;
-    xy_charger_status_t status;
+    xy_charger_device_status_t status;
 
     reset_fake_i2c();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6A));
@@ -154,8 +154,8 @@ static void test_status_decoding(void)
     g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | BQ25620_STAT_PG;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_THERMAL;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
-    TEST_ASSERT_EQUAL_INT(XY_CHARGER_STATE_FAST_CHARGE, status.state);
-    TEST_ASSERT_EQUAL_INT(XY_CHARGER_FAULT_THERMAL, status.fault);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAST_CHARGE, status.state);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_THERMAL, status.fault);
     TEST_ASSERT_TRUE(status.power_good);
     TEST_ASSERT_TRUE(status.charging);
     TEST_ASSERT_FALSE(status.done);
@@ -163,8 +163,8 @@ static void test_status_decoding(void)
     g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_DONE;
     g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_NORMAL;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
-    TEST_ASSERT_EQUAL_INT(XY_CHARGER_STATE_CHARGE_DONE, status.state);
-    TEST_ASSERT_EQUAL_INT(XY_CHARGER_FAULT_NONE, status.fault);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_CHARGE_DONE, status.state);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_NONE, status.fault);
     TEST_ASSERT_FALSE(status.charging);
     TEST_ASSERT_TRUE(status.done);
 }
@@ -223,8 +223,8 @@ static void test_start_stop_and_deinit(void)
 static void test_lost_transport_and_failed_deinit_are_fail_closed(void)
 {
     xy_bq25620_t dev;
-    xy_charger_status_t status;
-    xy_charger_status_t snapshot;
+    xy_charger_device_status_t status;
+    xy_charger_device_status_t snapshot;
     unsigned tx_before;
     unsigned rx_before;
 
@@ -272,7 +272,7 @@ static void test_full_config_stops_at_first_write_error(void)
         BQ25620_REG_CHG_CTRL_2,
         BQ25620_REG_CHG_CTRL_5,
     };
-    const xy_charger_config_t config = {
+    const xy_charger_device_config_t config = {
         .input_current_limit = 500U,
         .charge_current = 128U,
         .charge_voltage = 4200U,
@@ -306,7 +306,7 @@ static void test_full_config_stops_at_first_write_error(void)
 static void test_full_config_requires_live_owner(void)
 {
     xy_bq25620_t dev;
-    const xy_charger_config_t config = {0};
+    const xy_charger_device_config_t config = {0};
     unsigned tx_before;
 
     reset_fake_i2c();

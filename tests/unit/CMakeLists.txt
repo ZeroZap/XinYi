@@ -130,6 +130,14 @@ add_test(NAME pm_charger_ownership
     COMMAND python3 ${UNIT_PM}/check_pm_charger_ownership.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME charger_header_coexistence
+    COMMAND ${CMAKE_C_COMPILER} -std=c99 -Wall -Wextra -Wpedantic -Werror
+            -I${PM}/inc -I${PM}/charger -I${DRV}/power/charger
+            -I${DEV}/inc -I${HAL}/inc -I${HAL}/PC
+            -DHAL_PLATFORM_PC -fsyntax-only
+            ${UNIT_PM}/charger_header_coexistence.c
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME reference_rtos_decision
     COMMAND python3 ${UNIT_KERNEL}/check_reference_rtos_decision.py
     WORKING_DIRECTORY ${ROOT}

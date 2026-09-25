@@ -8,7 +8,7 @@
  */
 
 #include "xy_bq25620.h"
-#include "xy_charger.h"
+#include "xy_charger_device.h"
 #include "xy_hal_i2c.h"
 #include <string.h>
 
@@ -153,10 +153,10 @@ static int bq25620_hw_init(void *hw_data)
     return XY_DEVICE_OK;
 }
 
-static int bq25620_hw_read_status(void *hw_data, xy_charger_status_t *status)
+static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *status)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    xy_charger_status_t next = {0};
+    xy_charger_device_status_t next = {0};
     uint8_t stat0;
     uint8_t stat1;
     uint8_t reg_value;
@@ -184,32 +184,32 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_status_t *status)
                                         BQ25620_ILIM_STEP_mA, BQ25620_ILIM_MIN_mA);
 
     switch (stat0 & BQ25620_STAT_CHG_MASK) {
-        case BQ25620_STAT_CHG_IDLE: next.state = XY_CHARGER_STATE_IDLE; break;
-        case BQ25620_STAT_CHG_PRECHG: next.state = XY_CHARGER_STATE_PRE_CHARGE; break;
-        case BQ25620_STAT_CHG_FAST: next.state = XY_CHARGER_STATE_FAST_CHARGE; break;
-        case BQ25620_STAT_CHG_DONE: next.state = XY_CHARGER_STATE_CHARGE_DONE; break;
-        default: next.state = XY_CHARGER_STATE_FAULT; break;
+        case BQ25620_STAT_CHG_IDLE: next.state = XY_CHARGER_DEVICE_STATE_IDLE; break;
+        case BQ25620_STAT_CHG_PRECHG: next.state = XY_CHARGER_DEVICE_STATE_PRE_CHARGE; break;
+        case BQ25620_STAT_CHG_FAST: next.state = XY_CHARGER_DEVICE_STATE_FAST_CHARGE; break;
+        case BQ25620_STAT_CHG_DONE: next.state = XY_CHARGER_DEVICE_STATE_CHARGE_DONE; break;
+        default: next.state = XY_CHARGER_DEVICE_STATE_FAULT; break;
     }
 
     switch (stat1 & BQ25620_FAULT_MASK) {
-        case BQ25620_FAULT_NORMAL: next.fault = XY_CHARGER_FAULT_NONE; break;
-        case BQ25620_FAULT_INPUT_OVP: next.fault = XY_CHARGER_FAULT_INPUT_OVP; break;
-        case BQ25620_FAULT_THERMAL: next.fault = XY_CHARGER_FAULT_THERMAL; break;
-        case BQ25620_FAULT_CHG_TIMEOUT: next.fault = XY_CHARGER_FAULT_CHARGE_TIMEOUT; break;
-        case BQ25620_FAULT_BAT_OVP: next.fault = XY_CHARGER_FAULT_BAT_OVP; break;
-        default: next.fault = XY_CHARGER_FAULT_NONE; break;
+        case BQ25620_FAULT_NORMAL: next.fault = XY_CHARGER_DEVICE_FAULT_NONE; break;
+        case BQ25620_FAULT_INPUT_OVP: next.fault = XY_CHARGER_DEVICE_FAULT_INPUT_OVP; break;
+        case BQ25620_FAULT_THERMAL: next.fault = XY_CHARGER_DEVICE_FAULT_THERMAL; break;
+        case BQ25620_FAULT_CHG_TIMEOUT: next.fault = XY_CHARGER_DEVICE_FAULT_CHARGE_TIMEOUT; break;
+        case BQ25620_FAULT_BAT_OVP: next.fault = XY_CHARGER_DEVICE_FAULT_BAT_OVP; break;
+        default: next.fault = XY_CHARGER_DEVICE_FAULT_NONE; break;
     }
 
     next.power_good = (stat0 & BQ25620_STAT_PG) != 0U;
-    next.charging = next.state == XY_CHARGER_STATE_PRE_CHARGE ||
-                    next.state == XY_CHARGER_STATE_FAST_CHARGE ||
-                    next.state == XY_CHARGER_STATE_CONSTANT_VOLT;
-    next.done = next.state == XY_CHARGER_STATE_CHARGE_DONE;
+    next.charging = next.state == XY_CHARGER_DEVICE_STATE_PRE_CHARGE ||
+                    next.state == XY_CHARGER_DEVICE_STATE_FAST_CHARGE ||
+                    next.state == XY_CHARGER_DEVICE_STATE_CONSTANT_VOLT;
+    next.done = next.state == XY_CHARGER_DEVICE_STATE_CHARGE_DONE;
     *status = next;
     return XY_DEVICE_OK;
 }
 
-static int bq25620_hw_set_config(void *hw_data, const xy_charger_config_t *config)
+static int bq25620_hw_set_config(void *hw_data, const xy_charger_device_config_t *config)
 {
     xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     uint8_t reg_value;
@@ -360,7 +360,7 @@ int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id)
     return bq25620_i2c_read(dev, BQ25620_REG_DEVICE_ID, id, 1);
 }
 
-int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_status_t *status)
+int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_device_status_t *status)
 {
     if (!bq25620_ready(dev) || !status) {
         return XY_DEVICE_INVALID_PARAM;
