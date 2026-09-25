@@ -130,8 +130,6 @@ static void test_init_and_register_io(void)
     TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
     TEST_ASSERT_EQUAL_HEX16(0x6A, dev.i2c_addr);
-    TEST_ASSERT_EQUAL_PTR(&dev, dev.base.hw_data);
-    TEST_ASSERT_NOT_NULL(dev.base.hw_read_reg);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_receive_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, xy_hal_i2c_master_transmit_fake.arg0_val);
@@ -347,7 +345,6 @@ static void test_start_stop_and_deinit(void)
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT8(0U, dev.base.base.initialized);
     TEST_ASSERT_NULL(dev.i2c_handle);
-    TEST_ASSERT_NULL(dev.base.hw_data);
 }
 
 static void test_lost_transport_and_failed_deinit_are_fail_closed(void)
@@ -457,7 +454,6 @@ static void test_failed_reinit_preserves_live_owner(void)
                           xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(snapshot));
     TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
-    TEST_ASSERT_EQUAL_PTR(&dev, dev.base.hw_data);
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
@@ -602,11 +598,7 @@ static void test_lost_outer_lifecycle_blocks_public_and_callback_paths(void)
                           xy_bq25620_get_status(&dev, &status));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
                           xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID, &value));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          dev.base.hw_read_reg(dev.base.hw_data,
-                                               BQ25620_REG_DEVICE_ID, &value));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          dev.base.hw_enable(dev.base.hw_data, true));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_start_charge(&dev));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bq25620_deinit(&dev));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
     TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
@@ -667,10 +659,6 @@ static void test_register_access_rejects_out_of_range_address_without_io(void)
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
                           xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID + 1U, &value));
-    TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          dev.base.hw_read_reg(dev.base.hw_data,
-                                               BQ25620_REG_DEVICE_ID + 1U, &value));
     TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
     TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);

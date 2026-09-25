@@ -78,22 +78,12 @@ typedef struct {
  */
 typedef struct {
     xy_device_t base;               /**< 设备基类 */
-
-    /* 硬件操作接口 */
-    int (*hw_init)(void *hw_data);
-    int (*hw_read_status)(void *hw_data, xy_charger_device_status_t *status);
-    int (*hw_set_config)(void *hw_data, const xy_charger_device_config_t *config);
-    int (*hw_enable)(void *hw_data, bool enable);
-    int (*hw_read_reg)(void *hw_data, uint8_t reg, uint8_t *value);
-
-    void *hw_data;                  /**< 硬件数据 */
 } xy_charger_device_t;
 
 /*
- * This header defines the shared Device-model types and hardware-operation
- * contract only. Chip-specific drivers own their public lifecycle and control
- * APIs; do not declare generic functions here without a canonical
- * implementation owner.
+ * This header defines shared Device-model data types only. Chip-specific
+ * drivers own lifecycle, control operations and transport context; do not
+ * declare generic functions or callbacks here without a canonical consumer.
  */
 
 #ifdef __cplusplus

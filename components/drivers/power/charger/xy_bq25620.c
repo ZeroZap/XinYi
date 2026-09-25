@@ -175,9 +175,8 @@ static bool bq25620_config_valid(const xy_charger_device_config_t *config)
 
 /* ==================== Hardware Operations ==================== */
 
-static int bq25620_hw_init(void *hw_data)
+static int bq25620_probe(xy_bq25620_t *dev)
 {
-    xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     if (!dev) {
         return XY_DEVICE_INVALID_PARAM;
     }
@@ -200,9 +199,8 @@ static int bq25620_hw_init(void *hw_data)
     return XY_DEVICE_OK;
 }
 
-static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *status)
+static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *status)
 {
-    xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     xy_charger_device_status_t next = {0};
     uint8_t stat0;
     uint8_t stat1;
@@ -293,9 +291,9 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
     return XY_DEVICE_OK;
 }
 
-static int bq25620_hw_set_config(void *hw_data, const xy_charger_device_config_t *config)
+static int bq25620_set_config(xy_bq25620_t *dev,
+                              const xy_charger_device_config_t *config)
 {
-    xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     uint8_t reg_value;
     int ret;
 
@@ -341,9 +339,8 @@ static int bq25620_hw_set_config(void *hw_data, const xy_charger_device_config_t
                                    BQ25620_VRECHG_MASK | BQ25620_AUTO_RECHG, reg_value);
 }
 
-static int bq25620_hw_enable(void *hw_data, bool enable)
+static int bq25620_enable(xy_bq25620_t *dev, bool enable)
 {
-    xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
     if (!bq25620_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
@@ -355,16 +352,6 @@ static int bq25620_hw_enable(void *hw_data, bool enable)
         return bq25620_i2c_update_bits(dev, BQ25620_REG_CHG_CTRL_0,
                                         BQ25620_EN_CHG, 0);
     }
-}
-
-static int bq25620_hw_read_reg(void *hw_data, uint8_t reg, uint8_t *value)
-{
-    xy_bq25620_t *dev = (xy_bq25620_t *)hw_data;
-    if (!bq25620_ready(dev) || !value || !bq25620_register_valid(reg)) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
-    
-    return bq25620_i2c_read(dev, reg, value, 1);
 }
 
 /* ==================== Public API Implementation ==================== */
@@ -381,19 +368,10 @@ int xy_bq25620_init(xy_bq25620_t *dev, void *i2c_handle, uint8_t i2c_addr)
     next.i2c_handle = i2c_handle;
     next.i2c_addr = i2c_addr;
     
-    /* 设置硬件操作接口 */
-    next.base.hw_init = bq25620_hw_init;
-    next.base.hw_read_status = bq25620_hw_read_status;
-    next.base.hw_set_config = bq25620_hw_set_config;
-    next.base.hw_enable = bq25620_hw_enable;
-    next.base.hw_read_reg = bq25620_hw_read_reg;
-    next.base.hw_data = &next;
-    
     /* 初始化硬件 */
-    ret = bq25620_hw_init(&next);
+    ret = bq25620_probe(&next);
     if (ret == XY_DEVICE_OK) {
         *dev = next;
-        dev->base.hw_data = dev;
     } else if (dev->owner_cookie != BQ25620_OWNER_COOKIE) {
         memset(dev, 0, sizeof(*dev));
     }
@@ -438,7 +416,7 @@ int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_device_status_t *status)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    return bq25620_hw_read_status(dev, status);
+    return bq25620_read_status(dev, status);
 }
 
 int xy_bq25620_configure(xy_bq25620_t *dev, const xy_charger_device_config_t *config)
@@ -447,7 +425,7 @@ int xy_bq25620_configure(xy_bq25620_t *dev, const xy_charger_device_config_t *co
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    return bq25620_hw_set_config(dev, config);
+    return bq25620_set_config(dev, config);
 }
 
 int xy_bq25620_set_charge_current(xy_bq25620_t *dev, uint32_t current_mA)
@@ -496,7 +474,7 @@ int xy_bq25620_start_charge(xy_bq25620_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    return bq25620_hw_enable(dev, true);
+    return bq25620_enable(dev, true);
 }
 
 int xy_bq25620_stop_charge(xy_bq25620_t *dev)
@@ -505,7 +483,7 @@ int xy_bq25620_stop_charge(xy_bq25620_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    return bq25620_hw_enable(dev, false);
+    return bq25620_enable(dev, false);
 }
 
 /* ==================== End of File ==================== */
