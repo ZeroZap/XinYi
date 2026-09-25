@@ -225,6 +225,10 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
+    if ((reg_value & BQ25620_ICHG_MASK) >
+        (BQ25620_ICHG_MAX_mA - BQ25620_ICHG_MIN_mA) / BQ25620_ICHG_STEP_mA) {
+        return XY_DEVICE_ERROR;
+    }
     next.configured_charge_current = reg_to_current(reg_value & BQ25620_ICHG_MASK,
                                                     BQ25620_ICHG_STEP_mA,
                                                     BQ25620_ICHG_MIN_mA);
@@ -232,12 +236,20 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
+    if ((reg_value & BQ25620_VREG_MASK) >
+        (BQ25620_VREG_MAX_mV - BQ25620_VREG_MIN_mV) / BQ25620_VREG_STEP_mV) {
+        return XY_DEVICE_ERROR;
+    }
     next.configured_charge_voltage = reg_to_voltage(reg_value & BQ25620_VREG_MASK,
                                                     BQ25620_VREG_STEP_mV,
                                                     BQ25620_VREG_MIN_mV);
     ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_CTRL_4, &reg_value, 1U);
     if (ret != XY_DEVICE_OK) {
         return ret;
+    }
+    if ((reg_value & BQ25620_ILIM_MASK) >
+        (BQ25620_ILIM_MAX_mA - BQ25620_ILIM_MIN_mA) / BQ25620_ILIM_STEP_mA) {
+        return XY_DEVICE_ERROR;
     }
     next.configured_input_current_limit =
         reg_to_current(reg_value & BQ25620_ILIM_MASK,

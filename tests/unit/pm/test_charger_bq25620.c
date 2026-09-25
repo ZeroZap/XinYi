@@ -221,6 +221,39 @@ static void test_known_fault_overrides_done_state(void)
     TEST_ASSERT_FALSE(status.done);
 }
 
+static void test_status_rejects_reserved_setpoint_encodings(void)
+{
+    static const struct {
+        uint8_t reg;
+        uint8_t value;
+    } cases[] = {
+        {BQ25620_REG_CHG_CTRL_1, 0x7FU},
+        {BQ25620_REG_CHG_CTRL_3, 0x7FU},
+        {BQ25620_REG_CHG_CTRL_4, 0x3FU},
+    };
+
+    for (size_t index = 0U; index < sizeof(cases) / sizeof(cases[0]); ++index) {
+        xy_bq25620_t dev;
+        xy_charger_device_status_t status;
+        xy_charger_device_status_t snapshot;
+
+        reset_fake_i2c();
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                              xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+        g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | BQ25620_STAT_PG;
+        g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_NORMAL;
+        g_regs[BQ25620_REG_CHG_CTRL_1] = 1U;
+        g_regs[BQ25620_REG_CHG_CTRL_3] = 70U;
+        g_regs[BQ25620_REG_CHG_CTRL_4] = BQ25620_EN_ILIM | 4U;
+        g_regs[cases[index].reg] = cases[index].value;
+        memset(&status, 0xA5, sizeof(status));
+        snapshot = status;
+
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bq25620_get_status(&dev, &status));
+        TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
+    }
+}
+
 static void test_config_and_range_validation(void)
 {
     xy_bq25620_t dev;
@@ -674,6 +707,7 @@ int main(void)
     RUN_TEST(test_status_decoding);
     RUN_TEST(test_unknown_status_codes_fail_closed);
     RUN_TEST(test_known_fault_overrides_done_state);
+    RUN_TEST(test_status_rejects_reserved_setpoint_encodings);
     RUN_TEST(test_config_and_range_validation);
     RUN_TEST(test_start_stop_and_deinit);
     RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
