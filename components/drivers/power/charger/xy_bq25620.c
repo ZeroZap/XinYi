@@ -29,7 +29,7 @@ static bool bq25620_ready(const xy_bq25620_t *dev)
 
 static bool bq25620_register_valid(uint8_t reg)
 {
-    return reg <= BQ25620_REG_DEVICE_ID;
+    return reg <= BQ25620_REG_SHIPMENT_MODE || reg == BQ25620_REG_DEVICE_ID;
 }
 
 static int bq25620_from_hal(xy_hal_error_t error)

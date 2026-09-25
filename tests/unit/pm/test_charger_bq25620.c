@@ -651,8 +651,13 @@ static void test_transport_errors_propagate_and_preserve_outputs(void)
     TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
 }
 
-static void test_register_access_rejects_out_of_range_address_without_io(void)
+static void test_register_access_rejects_undocumented_addresses_without_io(void)
 {
+    static const uint8_t invalid_registers[] = {
+        BQ25620_REG_SHIPMENT_MODE + 1U,
+        BQ25620_REG_DEVICE_ID - 1U,
+        BQ25620_REG_DEVICE_ID + 1U,
+    };
     xy_bq25620_t dev;
     uint8_t value = 0xA5U;
     unsigned tx_before;
@@ -663,11 +668,15 @@ static void test_register_access_rejects_out_of_range_address_without_io(void)
     tx_before = xy_hal_i2c_master_transmit_fake.call_count;
     rx_before = xy_hal_i2c_master_receive_fake.call_count;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          xy_bq25620_read_reg(&dev, BQ25620_REG_DEVICE_ID + 1U, &value));
-    TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
-    TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
-    TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);
+    for (size_t index = 0U;
+         index < sizeof(invalid_registers) / sizeof(invalid_registers[0]); ++index) {
+        TEST_ASSERT_EQUAL_INT(
+            XY_DEVICE_INVALID_PARAM,
+            xy_bq25620_read_reg(&dev, invalid_registers[index], &value));
+        TEST_ASSERT_EQUAL_HEX8(0xA5U, value);
+        TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
+        TEST_ASSERT_EQUAL_UINT(rx_before, xy_hal_i2c_master_receive_fake.call_count);
+    }
 }
 
 static void test_failed_receive_does_not_publish_hal_written_bytes(void)
@@ -772,7 +781,7 @@ int main(void)
     RUN_TEST(test_full_config_rejects_out_of_range_values_without_io);
     RUN_TEST(test_lost_outer_lifecycle_blocks_public_and_callback_paths);
     RUN_TEST(test_transport_errors_propagate_and_preserve_outputs);
-    RUN_TEST(test_register_access_rejects_out_of_range_address_without_io);
+    RUN_TEST(test_register_access_rejects_undocumented_addresses_without_io);
     RUN_TEST(test_failed_receive_does_not_publish_hal_written_bytes);
     RUN_TEST(test_setters_preserve_unrelated_register_bits);
     RUN_TEST(test_setter_read_failure_stops_before_write);
