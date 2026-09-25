@@ -360,6 +360,54 @@ static void test_lost_transport_and_failed_deinit_are_fail_closed(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
+static void test_deinit_transport_failures_preserve_live_owner_for_retry(void)
+{
+    static const struct {
+        bool fail_receive;
+        xy_hal_error_t error;
+        int expected;
+    } cases[] = {
+        {true, XY_HAL_ERROR_TIMEOUT, XY_DEVICE_TIMEOUT},
+        {false, XY_HAL_ERROR_IO, XY_DEVICE_IO_ERROR},
+    };
+
+    for (size_t index = 0U; index < sizeof(cases) / sizeof(cases[0]); ++index) {
+        xy_bq25620_t dev;
+        xy_bq25620_t snapshot;
+        unsigned tx_before;
+        unsigned rx_before;
+
+        reset_fake_i2c();
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                              xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+        g_regs[BQ25620_REG_CHG_CTRL_0] = BQ25620_EN_CHG | 0x01U;
+        snapshot = dev;
+        tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+        rx_before = xy_hal_i2c_master_receive_fake.call_count;
+        g_injected_error = cases[index].error;
+        if (cases[index].fail_receive) {
+            g_fail_rx_call = rx_before + 1U;
+        } else {
+            g_fail_tx_call = tx_before + 2U;
+        }
+
+        TEST_ASSERT_EQUAL_INT(cases[index].expected, xy_bq25620_deinit(&dev));
+        TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(snapshot));
+        TEST_ASSERT_EQUAL_HEX8(BQ25620_EN_CHG | 0x01U,
+                               g_regs[BQ25620_REG_CHG_CTRL_0]);
+        TEST_ASSERT_TRUE(dev.initialized);
+        TEST_ASSERT_EQUAL_UINT8(1U, dev.base.base.initialized);
+        TEST_ASSERT_EQUAL_PTR(g_expected_i2c, dev.i2c_handle);
+
+        g_fail_rx_call = 0U;
+        g_fail_tx_call = 0U;
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_deinit(&dev));
+        TEST_ASSERT_EQUAL_MEMORY(&(xy_bq25620_t){0}, &dev, sizeof(dev));
+        TEST_ASSERT_BITS_LOW(BQ25620_EN_CHG, g_regs[BQ25620_REG_CHG_CTRL_0]);
+        TEST_ASSERT_BITS_HIGH(0x01U, g_regs[BQ25620_REG_CHG_CTRL_0]);
+    }
+}
+
 static void test_init_rejects_noncanonical_address_and_clears_failed_probe(void)
 {
     xy_bq25620_t dev;
@@ -711,6 +759,7 @@ int main(void)
     RUN_TEST(test_config_and_range_validation);
     RUN_TEST(test_start_stop_and_deinit);
     RUN_TEST(test_lost_transport_and_failed_deinit_are_fail_closed);
+    RUN_TEST(test_deinit_transport_failures_preserve_live_owner_for_retry);
     RUN_TEST(test_init_rejects_noncanonical_address_and_clears_failed_probe);
     RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_full_config_stops_at_first_write_error);
