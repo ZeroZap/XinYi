@@ -65,11 +65,9 @@ typedef struct {
 typedef struct {
     xy_charger_device_state_t state;       /**< 充电状态 */
     xy_charger_device_fault_t fault;       /**< 故障类型 */
-    uint32_t input_voltage;         /**< 输入电压 (mV) */
-    uint32_t bat_voltage;           /**< 电池电压 (mV) */
-    uint32_t charge_current;        /**< 充电电流 (mA) */
-    uint32_t input_current;         /**< 输入电流 (mA) */
-    uint8_t temperature;            /**< 温度 (%) */
+    uint32_t configured_charge_voltage;    /**< 充电电压设定值 (mV)，非 ADC 测量值 */
+    uint32_t configured_charge_current;    /**< 充电电流设定值 (mA)，非 ADC 测量值 */
+    uint32_t configured_input_current_limit; /**< 输入限流设定值 (mA)，非 ADC 测量值 */
     bool power_good;                /**< 电源良好 */
     bool charging;                  /**< 充电中 */
     bool done;                      /**< 充电完成 */
