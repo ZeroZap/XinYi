@@ -129,6 +129,20 @@ static uint32_t reg_to_voltage(uint8_t reg_value, uint8_t step, uint16_t min_mV)
     return min_mV + ((uint32_t)reg_value * step);
 }
 
+static bool bq25620_config_valid(const xy_charger_device_config_t *config)
+{
+    return config != NULL &&
+           config->input_current_limit >= BQ25620_ILIM_MIN_mA &&
+           config->input_current_limit <= BQ25620_ILIM_MAX_mA &&
+           config->charge_current >= BQ25620_ICHG_MIN_mA &&
+           config->charge_current <= BQ25620_ICHG_MAX_mA &&
+           config->charge_voltage >= BQ25620_VREG_MIN_mV &&
+           config->charge_voltage <= BQ25620_VREG_MAX_mV &&
+           config->precharge_current >= 64U && config->precharge_current <= 960U &&
+           config->termination_current >= 64U && config->termination_current <= 960U &&
+           config->recharge_threshold >= 100U && config->recharge_threshold <= 300U;
+}
+
 /* ==================== Hardware Operations ==================== */
 
 static int bq25620_hw_init(void *hw_data)
@@ -217,7 +231,7 @@ static int bq25620_hw_set_config(void *hw_data, const xy_charger_device_config_t
     uint8_t reg_value;
     int ret;
 
-    if (!bq25620_ready(dev) || !config) {
+    if (!bq25620_ready(dev) || !bq25620_config_valid(config)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 

@@ -54,7 +54,7 @@ typedef struct {
     uint32_t charge_voltage;        /**< 充电电压 (mV) */
     uint32_t precharge_current;     /**< 预充电电流 (mA) */
     uint32_t termination_current;   /**< 终止电流 (mA) */
-    uint8_t recharge_threshold;     /**< 再充电阈值 (mV 低于 VREG) */
+    uint16_t recharge_threshold;    /**< 再充电阈值 (mV 低于 VREG) */
     bool auto_recharge;             /**< 自动再充电使能 */
 } xy_charger_device_config_t;
 

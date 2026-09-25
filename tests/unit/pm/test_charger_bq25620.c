@@ -320,6 +320,49 @@ static void test_full_config_requires_live_owner(void)
     TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);
 }
 
+static void test_full_config_rejects_out_of_range_values_without_io(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_device_config_t config = {
+        .input_current_limit = 500U,
+        .charge_current = 512U,
+        .charge_voltage = 4200U,
+        .precharge_current = 128U,
+        .termination_current = 128U,
+        .recharge_threshold = 100U,
+        .auto_recharge = true,
+    };
+    unsigned tx_before;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+
+#define ASSERT_CONFIG_REJECTED(field, value)                                                \
+    do {                                                                                     \
+        xy_charger_device_config_t invalid = config;                                         \
+        invalid.field = (value);                                                             \
+        tx_before = xy_hal_i2c_master_transmit_fake.call_count;                              \
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,                                       \
+                              dev.base.hw_set_config(dev.base.hw_data, &invalid));           \
+        TEST_ASSERT_EQUAL_UINT(tx_before, xy_hal_i2c_master_transmit_fake.call_count);        \
+    } while (0)
+
+    ASSERT_CONFIG_REJECTED(input_current_limit, 99U);
+    ASSERT_CONFIG_REJECTED(input_current_limit, 6301U);
+    ASSERT_CONFIG_REJECTED(charge_current, 63U);
+    ASSERT_CONFIG_REJECTED(charge_current, 5057U);
+    ASSERT_CONFIG_REJECTED(charge_voltage, 3499U);
+    ASSERT_CONFIG_REJECTED(charge_voltage, 4471U);
+    ASSERT_CONFIG_REJECTED(precharge_current, 63U);
+    ASSERT_CONFIG_REJECTED(precharge_current, 961U);
+    ASSERT_CONFIG_REJECTED(termination_current, 63U);
+    ASSERT_CONFIG_REJECTED(termination_current, 961U);
+    ASSERT_CONFIG_REJECTED(recharge_threshold, 99U);
+    ASSERT_CONFIG_REJECTED(recharge_threshold, 301U);
+
+#undef ASSERT_CONFIG_REJECTED
+}
+
 static void test_lost_outer_lifecycle_blocks_public_and_callback_paths(void)
 {
     xy_bq25620_t dev;
@@ -366,6 +409,7 @@ int main(void)
     RUN_TEST(test_init_rejects_noncanonical_address_and_clears_failed_probe);
     RUN_TEST(test_full_config_stops_at_first_write_error);
     RUN_TEST(test_full_config_requires_live_owner);
+    RUN_TEST(test_full_config_rejects_out_of_range_values_without_io);
     RUN_TEST(test_lost_outer_lifecycle_blocks_public_and_callback_paths);
     return UNITY_END();
 }
