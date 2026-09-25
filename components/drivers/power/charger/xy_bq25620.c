@@ -207,6 +207,7 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
     uint8_t stat0;
     uint8_t stat1;
     uint8_t reg_value;
+    bool charge_state_known = true;
     int ret;
 
     if (!bq25620_ready(dev) || !status) {
@@ -260,7 +261,10 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
         case BQ25620_STAT_CHG_PRECHG: next.state = XY_CHARGER_DEVICE_STATE_PRE_CHARGE; break;
         case BQ25620_STAT_CHG_FAST: next.state = XY_CHARGER_DEVICE_STATE_FAST_CHARGE; break;
         case BQ25620_STAT_CHG_DONE: next.state = XY_CHARGER_DEVICE_STATE_CHARGE_DONE; break;
-        default: next.state = XY_CHARGER_DEVICE_STATE_FAULT; break;
+        default:
+            next.state = XY_CHARGER_DEVICE_STATE_FAULT;
+            charge_state_known = false;
+            break;
     }
 
     switch (stat1 & BQ25620_FAULT_MASK) {
@@ -270,6 +274,10 @@ static int bq25620_hw_read_status(void *hw_data, xy_charger_device_status_t *sta
         case BQ25620_FAULT_CHG_TIMEOUT: next.fault = XY_CHARGER_DEVICE_FAULT_CHARGE_TIMEOUT; break;
         case BQ25620_FAULT_BAT_OVP: next.fault = XY_CHARGER_DEVICE_FAULT_BAT_OVP; break;
         default: next.fault = XY_CHARGER_DEVICE_FAULT_UNKNOWN; break;
+    }
+
+    if (!charge_state_known && next.fault == XY_CHARGER_DEVICE_FAULT_NONE) {
+        next.fault = XY_CHARGER_DEVICE_FAULT_UNKNOWN;
     }
 
     if (next.fault != XY_CHARGER_DEVICE_FAULT_NONE) {

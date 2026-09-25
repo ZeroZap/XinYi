@@ -221,6 +221,24 @@ static void test_known_fault_overrides_done_state(void)
     TEST_ASSERT_FALSE(status.done);
 }
 
+static void test_unknown_charge_state_reports_unknown_fault(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_device_status_t status;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6AU));
+    g_regs[BQ25620_REG_CHG_STAT_0] = (0x07U << 4) | BQ25620_STAT_PG;
+    g_regs[BQ25620_REG_CHG_STAT_1] = BQ25620_FAULT_NORMAL;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_UNKNOWN, status.fault);
+    TEST_ASSERT_TRUE(status.power_good);
+    TEST_ASSERT_FALSE(status.charging);
+    TEST_ASSERT_FALSE(status.done);
+}
+
 static void test_status_rejects_reserved_setpoint_encodings(void)
 {
     static const struct {
@@ -754,6 +772,7 @@ int main(void)
     RUN_TEST(test_init_and_register_io);
     RUN_TEST(test_status_decoding);
     RUN_TEST(test_unknown_status_codes_fail_closed);
+    RUN_TEST(test_unknown_charge_state_reports_unknown_fault);
     RUN_TEST(test_known_fault_overrides_done_state);
     RUN_TEST(test_status_rejects_reserved_setpoint_encodings);
     RUN_TEST(test_config_and_range_validation);
