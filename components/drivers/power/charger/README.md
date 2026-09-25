@@ -55,16 +55,14 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
 ```
 ┌─────────────────────────────────┐
 │      应用层 (Application)        │
-│  xy_charger_start/stop/get_status│
+│  xy_bq25620_* public API         │
 └───────────────┬─────────────────┘
                 │ 调用
 ┌───────────────▼─────────────────┐
-│    Charger 组件 (统一 API)        │
-│  xy_charger_t                   │
-│  - xy_charger_init()            │
-│  - xy_charger_start()           │
-│  - xy_charger_stop()            │
-│  - xy_charger_get_status()      │
+│  Device charger shared contract │
+│  xy_charger_device_t            │
+│  - shared status/config types   │
+│  - hardware operation callbacks│
 └───────────────┬─────────────────┘
                 │ 使用
 ┌───────────────▼─────────────────┐
@@ -115,7 +113,7 @@ printf("BQ25620 Device ID: 0x%02X\n", dev_id);
 
 ```c
 /* 充电配置 */
-xy_charger_config_t config = {
+xy_charger_device_config_t config = {
     .input_current_limit = 2000,    /* 输入电流限制 2A */
     .charge_current = 1000,         /* 充电电流 1A */
     .charge_voltage = 4200,         /* 充电电压 4.2V */
@@ -125,8 +123,8 @@ xy_charger_config_t config = {
     .auto_recharge = true,          /* 自动再充电使能 */
 };
 
-/* 应用配置 */
-xy_charger_init(&bq25620.base, &config);
+/* 由芯片 owner 的 callback 应用完整配置 */
+bq25620.base.hw_set_config(bq25620.base.hw_data, &config);
 ```
 
 ### 3. 启动充电
@@ -134,15 +132,12 @@ xy_charger_init(&bq25620.base, &config);
 ```c
 /* 启动充电 */
 xy_bq25620_start_charge(&bq25620);
-
-/* 或者使用统一 API */
-xy_charger_start(&bq25620.base);
 ```
 
 ### 4. 监控充电状态
 
 ```c
-xy_charger_status_t status;
+xy_charger_device_status_t status;
 
 /* 定期读取状态 */
 while (1) {
@@ -159,7 +154,7 @@ while (1) {
         break;
     }
 
-    if (status.fault != XY_CHARGER_FAULT_NONE) {
+    if (status.fault != XY_CHARGER_DEVICE_FAULT_NONE) {
         printf("充电故障!\n");
         break;
     }
@@ -173,9 +168,6 @@ while (1) {
 ```c
 /* 停止充电 */
 xy_bq25620_stop_charge(&bq25620);
-
-/* 或者使用统一 API */
-xy_charger_stop(&bq25620.base);
 ```
 
 ---
@@ -194,8 +186,6 @@ int xy_bq25620_deinit(xy_bq25620_t *dev);
 ```c
 int xy_bq25620_start_charge(xy_bq25620_t *dev);
 int xy_bq25620_stop_charge(xy_bq25620_t *dev);
-int xy_charger_start(xy_charger_t *charger);
-int xy_charger_stop(xy_charger_t *charger);
 ```
 
 ### 参数配置
@@ -209,7 +199,7 @@ int xy_bq25620_set_input_limit(xy_bq25620_t *dev, uint32_t current_mA);
 ### 状态读取
 
 ```c
-int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_status_t *status);
+int xy_bq25620_get_status(xy_bq25620_t *dev, xy_charger_device_status_t *status);
 int xy_bq25620_get_device_id(xy_bq25620_t *dev, uint8_t *id);
 ```
 
@@ -265,9 +255,9 @@ int xy_bq25620_write_reg(xy_bq25620_t *dev, uint8_t reg, uint8_t value);
 
 ## 🔗 相关文档
 
-- [充电器框架 API](inc/xy_charger.h)
+- [Device charger shared contract](xy_charger_device.h)
 - [BQ25620 数据手册](https://www.ti.com/product/BQ25620)
-- [HAL I2C 使用指南](../hal/README.md)
+- HAL I2C interface: `components/hal/inc/xy_hal_i2c.h`
 
 ---
 

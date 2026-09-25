@@ -42,8 +42,11 @@ def main() -> int:
             "charger_bq25620 CTest must exercise the canonical power-driver owner", errors)
     require("charger_ownership" in unit_cmake,
             "charger_ownership policy CTest must remain registered", errors)
-    require("xy_charger_device_" in framework and "xy_charger_init(" not in framework,
-            "Device charger API must stay namespaced away from PM charger symbols", errors)
+    require("xy_charger_device_t" in framework and "xy_charger_init(" not in framework,
+            "Device charger contract must stay namespaced away from PM charger symbols", errors)
+    require("int xy_charger_device_" not in framework,
+            "Device charger header must not advertise generic APIs without an implementation owner",
+            errors)
     require("charger_header_coexistence" in unit_cmake,
             "PM/Device charger public-header coexistence gate must remain registered", errors)
     for token in ("canonical implementation owner", "Host-guarded", "hardware-pending",

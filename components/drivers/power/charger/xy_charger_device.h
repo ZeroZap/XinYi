@@ -93,86 +93,12 @@ typedef struct {
     void *hw_data;                  /**< 硬件数据 */
 } xy_charger_device_t;
 
-/* ==================== Charger API ==================== */
-
-/**
- * @brief 初始化充电器
- * @param charger 充电器设备句柄
- * @param config 配置参数
- * @return XY_DEVICE_OK 成功，其他值失败
+/*
+ * This header defines the shared Device-model types and hardware-operation
+ * contract only. Chip-specific drivers own their public lifecycle and control
+ * APIs; do not declare generic functions here without a canonical
+ * implementation owner.
  */
-int xy_charger_device_init(xy_charger_device_t *charger, const xy_charger_device_config_t *config);
-
-/**
- * @brief 反初始化充电器
- * @param charger 充电器设备句柄
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_deinit(xy_charger_device_t *charger);
-
-/**
- * @brief 启动充电
- * @param charger 充电器设备句柄
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_start(xy_charger_device_t *charger);
-
-/**
- * @brief 停止充电
- * @param charger 充电器设备句柄
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_stop(xy_charger_device_t *charger);
-
-/**
- * @brief 获取充电状态
- * @param charger 充电器设备句柄
- * @param status 状态输出
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_get_status(xy_charger_device_t *charger, xy_charger_device_status_t *status);
-
-/**
- * @brief 设置充电电流
- * @param charger 充电器设备句柄
- * @param current_mA 充电电流 (mA)
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_set_charge_current(xy_charger_device_t *charger, uint32_t current_mA);
-
-/**
- * @brief 设置充电电压
- * @param charger 充电器设备句柄
- * @param voltage_mV 充电电压 (mV)
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_set_charge_voltage(xy_charger_device_t *charger, uint32_t voltage_mV);
-
-/**
- * @brief 设置输入电流限制
- * @param charger 充电器设备句柄
- * @param current_mA 输入电流限制 (mA)
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_set_input_limit(xy_charger_device_t *charger, uint32_t current_mA);
-
-/**
- * @brief 读取充电器寄存器
- * @param charger 充电器设备句柄
- * @param reg 寄存器地址
- * @param value 寄存器值输出
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_read_reg(xy_charger_device_t *charger, uint8_t reg, uint8_t *value);
-
-/**
- * @brief 写入充电器寄存器
- * @param charger 充电器设备句柄
- * @param reg 寄存器地址
- * @param value 寄存器值
- * @return XY_DEVICE_OK 成功，其他值失败
- */
-int xy_charger_device_write_reg(xy_charger_device_t *charger, uint8_t reg, uint8_t value);
 
 #ifdef __cplusplus
 }
