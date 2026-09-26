@@ -171,6 +171,9 @@ static void test_alert_limit_and_diagnostic_contract(void)
     qwrite(XY_INA22X_REG_BUS_OV_LIMIT, 0x1234U, 0);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_ina228_set_alert_limit(&dev, XY_INA22X_ALERT_BUS_OVER, 0x1234U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina228_set_alert_limit(&dev, XY_INA22X_ALERT_BUS_OVER, 0x8000U));
+    TEST_ASSERT_EQUAL_UINT(5U, nw);
     qread(XY_INA22X_REG_DIAG_ALRT, XY_INA22X_DIAG_MEMSTAT | XY_INA22X_DIAG_BUSOL, 2, 0);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ina228_get_diagnostic(&dev, &diagnostic));
     TEST_ASSERT_EQUAL_HEX16(XY_INA22X_DIAG_MEMSTAT | XY_INA22X_DIAG_BUSOL, diagnostic);

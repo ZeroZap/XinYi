@@ -373,8 +373,9 @@ sample before publication. DIAG_ALRT is read before ENERGY/CHARGE because readin
 its matching overflow flag; memory-checksum failure, math overflow, and ENERGY/CHARGE overflow stop the
 transaction before those destructive reads and without publishing caller output or cache. INA229 additionally
 rejects short SPI frames. Typed public APIs configure the six raw TI alert-limit registers and expose staged
-DIAG_ALRT reads with transport errors preserving caller output; physical-unit threshold policy remains outside
-the protocol owner. Host fake-transport evidence covers
+DIAG_ALRT reads with transport errors preserving caller output; raw bus thresholds reject reserved bit 15,
+while shunt/temperature thresholds retain signed two's-complement encodings and power remains unsigned.
+Host fake-transport evidence covers
 identity, configuration, signed conversion, staged output and teardown retry. Because the public sample always
 includes accumulated ENERGY and CHARGE, initialization accepts only MODE=`0xF` continuous bus + shunt +
 temperature conversion; TI documents accumulator values as invalid in triggered modes. Electrical timing,

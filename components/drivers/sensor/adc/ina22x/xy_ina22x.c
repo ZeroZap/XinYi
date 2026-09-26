@@ -178,7 +178,9 @@ int xy_ina22x_core_set_alert_limit(xy_ina22x_core_t *core, xy_ina22x_alert_limit
     uint8_t reg;
 
     if (core == NULL || core->initialized == 0U || core->transport.write16 == NULL ||
-        core->transport.context == NULL || xy_ina22x_core_alert_register(limit, &reg) != XY_DEVICE_OK) {
+        core->transport.context == NULL || xy_ina22x_core_alert_register(limit, &reg) != XY_DEVICE_OK ||
+        ((limit == XY_INA22X_ALERT_BUS_OVER || limit == XY_INA22X_ALERT_BUS_UNDER) &&
+         (raw_value & 0x8000U) != 0U)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return core->transport.write16(core->transport.context, reg, raw_value);
