@@ -214,7 +214,8 @@ xy_hal_error_t xy_nrf24l01_send(xy_nrf24l01_t *radio, const uint8_t *payload,
                                   status & (NRF24_STATUS_TX_DS | NRF24_STATUS_MAX_RT), NULL);
     if (result != XY_HAL_OK) return result;
     if ((status & NRF24_STATUS_MAX_RT) != 0U) {
-        (void)nrf24_command(radio, NRF24_CMD_FLUSH_TX, NRF24_DUMMY, NULL, NULL);
+        result = nrf24_command(radio, NRF24_CMD_FLUSH_TX, NRF24_DUMMY, NULL, NULL);
+        if (result != XY_HAL_OK) return result;
         return XY_HAL_ERROR_NOT_FOUND;
     }
     return (status & NRF24_STATUS_TX_DS) != 0U ? XY_HAL_OK : XY_HAL_ERROR_IO;

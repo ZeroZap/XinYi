@@ -212,6 +212,30 @@ static void test_send_max_retry_flushes_and_reports_failure(void)
     TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
 }
 
+static void test_send_propagates_max_retry_flush_failure(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t retries = 0U;
+    const uint8_t payload = 0x55U;
+    const uint8_t payload_frame[2] = {0xA0U, 0x55U};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_buffer(payload_frame, sizeof(payload_frame), 0x0EU, XY_HAL_OK);
+    queue_frame(0xFFU, 0xFFU, 0x1EU, 0U, XY_HAL_OK);
+    queue_frame(0x08U, 0xFFU, 0x1EU, 0x0FU, XY_HAL_OK);
+    queue_frame(0x27U, 0x10U, 0x1EU, 0U, XY_HAL_OK);
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_ERROR_IO);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO,
+                          xy_nrf24l01_send(&radio, &payload, 1U, &retries));
+    TEST_ASSERT_EQUAL_UINT8(15U, retries);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -221,5 +245,6 @@ int main(void)
     RUN_TEST(test_probe_rejects_floating_bus);
     RUN_TEST(test_send_reports_ack_and_retry_count);
     RUN_TEST(test_send_max_retry_flushes_and_reports_failure);
+    RUN_TEST(test_send_propagates_max_retry_flush_failure);
     return UNITY_END();
 }
