@@ -6,8 +6,9 @@
 #define MAX_FRAMES 24U
 
 typedef struct {
-    uint8_t tx[2];
-    uint8_t rx[2];
+    uint8_t tx[33];
+    uint8_t rx[33];
+    size_t length;
     xy_hal_error_t result;
 } frame_t;
 
@@ -27,6 +28,7 @@ static void queue_frame(uint8_t command, uint8_t value, uint8_t status,
     frame->tx[1] = value;
     frame->rx[0] = status;
     frame->rx[1] = response;
+    frame->length = 2U;
     frame->result = result;
 }
 
@@ -36,11 +38,11 @@ static xy_hal_error_t transfer(void *spi, const uint8_t *tx, uint8_t *rx,
     frame_t *frame;
     TEST_ASSERT_NOT_NULL(spi);
     TEST_ASSERT_EQUAL_UINT32(10U, timeout);
-    TEST_ASSERT_EQUAL_UINT(2U, length);
     TEST_ASSERT_LESS_THAN(frame_count, frame_index);
     frame = &frames[frame_index++];
-    TEST_ASSERT_EQUAL_UINT8_ARRAY(frame->tx, tx, 2U);
-    if (frame->result == XY_HAL_OK) memcpy(rx, frame->rx, 2U);
+    TEST_ASSERT_EQUAL_UINT(frame->length, length);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(frame->tx, tx, length);
+    if (frame->result == XY_HAL_OK) memcpy(rx, frame->rx, length);
     return frame->result;
 }
 
@@ -58,12 +60,26 @@ static xy_hal_error_t set_ce(void *arg, uint8_t level)
     return XY_HAL_OK;
 }
 
+static uint32_t delay_total;
+
+static void delay_us(uint32_t us) { delay_total += us; }
+
+static void queue_buffer(const uint8_t *tx, size_t length, uint8_t status,
+                         xy_hal_error_t result)
+{
+    frame_t *frame = &frames[frame_count++];
+    memcpy(frame->tx, tx, length);
+    frame->rx[0] = status;
+    frame->length = length;
+    frame->result = result;
+}
+
 static xy_nrf24l01_config_t config(void)
 {
     static int spi;
     static int csn;
     static int ce;
-    xy_nrf24l01_config_t result = {&spi, &csn, &ce, transfer, set_csn, set_ce, NULL, 10U};
+    xy_nrf24l01_config_t result = {&spi, &csn, &ce, transfer, set_csn, set_ce, delay_us, 10U};
     return result;
 }
 
@@ -87,6 +103,7 @@ void setUp(void)
     memset(csn_log, 0, sizeof(csn_log));
     memset(ce_log, 0, sizeof(ce_log));
     frame_count = frame_index = csn_count = ce_count = 0U;
+    delay_total = 0U;
 }
 void tearDown(void) {}
 
@@ -145,6 +162,56 @@ static void test_probe_rejects_floating_bus(void)
     TEST_ASSERT_EQUAL_UINT(1U, frame_index);
 }
 
+static void test_send_reports_ack_and_retry_count(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t retries = 0xA5U;
+    static const uint8_t payload[3] = {'O', 'K', '\n'};
+    const uint8_t payload_frame[4] = {0xA0U, 'O', 'K', '\n'};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_buffer(payload_frame, sizeof(payload_frame), 0x0EU, XY_HAL_OK);
+    queue_frame(0xFFU, 0xFFU, 0x2EU, 0U, XY_HAL_OK);
+    queue_frame(0x08U, 0xFFU, 0x2EU, 0x02U, XY_HAL_OK);
+    queue_frame(0x27U, 0x20U, 0x2EU, 0U, XY_HAL_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK,
+                          xy_nrf24l01_send(&radio, payload, sizeof(payload), &retries));
+    TEST_ASSERT_EQUAL_UINT8(2U, retries);
+    TEST_ASSERT_EQUAL_UINT8(1U, ce_log[0]);
+    TEST_ASSERT_EQUAL_UINT8(0U, ce_log[1]);
+    TEST_ASSERT_EQUAL_UINT32(20U, delay_total);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
+static void test_send_max_retry_flushes_and_reports_failure(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t retries = 0U;
+    const uint8_t payload = 0x55U;
+    const uint8_t payload_frame[2] = {0xA0U, 0x55U};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_buffer(payload_frame, sizeof(payload_frame), 0x0EU, XY_HAL_OK);
+    queue_frame(0xFFU, 0xFFU, 0x1EU, 0U, XY_HAL_OK);
+    queue_frame(0x08U, 0xFFU, 0x1EU, 0x0FU, XY_HAL_OK);
+    queue_frame(0x27U, 0x10U, 0x1EU, 0U, XY_HAL_OK);
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_NOT_FOUND,
+                          xy_nrf24l01_send(&radio, &payload, 1U, &retries));
+    TEST_ASSERT_EQUAL_UINT8(15U, retries);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -152,5 +219,7 @@ int main(void)
     RUN_TEST(test_probe_mismatch_still_restores);
     RUN_TEST(test_probe_read_failure_after_write_restores);
     RUN_TEST(test_probe_rejects_floating_bus);
+    RUN_TEST(test_send_reports_ack_and_retry_count);
+    RUN_TEST(test_send_max_retry_flushes_and_reports_failure);
     return UNITY_END();
 }
