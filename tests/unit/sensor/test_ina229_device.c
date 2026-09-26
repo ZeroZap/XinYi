@@ -19,4 +19,28 @@ static void test_init_spi_frames(void){xy_ina229_t d;init_ok(&d);TEST_ASSERT_TRU
 static void test_read_converts_signed_values(void){xy_ina229_t d;xy_ina22x_sample_t s;init_ok(&d);qr(4,0xFFF000,3,0);qr(5,0x010000,3,0);qr(6,0xFF80,2,0);qr(7,0xFFE000,3,0);qr(8,10,3,0);qr(9,20,5,0);qr(10,0xFFFFFFFFFEULL,5,0);TEST_ASSERT_EQUAL_INT(0,xy_ina229_read(&d,&s));TEST_ASSERT_FLOAT_WITHIN(.001,-80,s.shunt_voltage_uv);TEST_ASSERT_FLOAT_WITHIN(.001,-51.2,s.current_ma);TEST_ASSERT_FLOAT_WITHIN(.001,-3.2,s.charge_mc);TEST_ASSERT_FLOAT_WITHIN(.001,-1,s.die_temperature_c);TEST_ASSERT_EQUAL_UINT32(77,s.timestamp);}
 static void test_short_transfer_and_error_preserve_output(void){xy_ina229_t d;xy_ina22x_sample_t s;init_ok(&d);memset(&s,0xA5,sizeof(s));xy_ina22x_sample_t old=s;qr(4,0,3,0);frames[nf-1U].ret=2;TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,xy_ina229_read(&d,&s));TEST_ASSERT_EQUAL_MEMORY(&old,&s,sizeof(s));qr(4,0,3,0);frames[nf-1U].ret=99;TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,xy_ina229_read(&d,&s));TEST_ASSERT_EQUAL_MEMORY(&old,&s,sizeof(s));qr(4,0,3,XY_DEVICE_TIMEOUT);TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,xy_ina229_read(&d,&s));TEST_ASSERT_EQUAL_MEMORY(&old,&s,sizeof(s));}
 static void test_identity_deinit_and_invalid_cs(void){xy_ina229_t d;int bus,cs;xy_ina22x_config_t c=cfg();TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,xy_ina229_init(&d,&bus,NULL,&c));qr(0x3E,0x5449,2,0);qr(0x3F,0x2281,2,0);TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND,xy_ina229_init(&d,&bus,&cs,&c));init_ok(&d);qw(1,0,XY_DEVICE_TIMEOUT);TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,xy_ina229_deinit(&d));TEST_ASSERT_TRUE(d.initialized);qw(1,0,0);TEST_ASSERT_EQUAL_INT(0,xy_ina229_deinit(&d));TEST_ASSERT_FALSE(d.initialized);}
-int main(void){UNITY_BEGIN();RUN_TEST(test_init_spi_frames);RUN_TEST(test_read_converts_signed_values);RUN_TEST(test_short_transfer_and_error_preserve_output);RUN_TEST(test_identity_deinit_and_invalid_cs);return UNITY_END();}
+static void test_init_failure_clears_owner(void)
+{
+    xy_ina229_t d;
+    int bus;
+    int cs;
+    xy_ina22x_config_t c = cfg();
+
+    memset(&d, 0xA5, sizeof(d));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ina229_init(&d, NULL, &cs, &c));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ina229_t){0}, &d, sizeof(d));
+
+    memset(&d, 0xA5, sizeof(d));
+    init_ret = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_ina229_init(&d, &bus, &cs, &c));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ina229_t){0}, &d, sizeof(d));
+
+    memset(&d, 0xA5, sizeof(d));
+    init_ret = XY_DEVICE_OK;
+    qr(0x3E, 0x5449, 2, 0);
+    qr(0x3F, 0x2281, 2, 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND, xy_ina229_init(&d, &bus, &cs, &c));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ina229_t){0}, &d, sizeof(d));
+}
+
+int main(void){UNITY_BEGIN();RUN_TEST(test_init_spi_frames);RUN_TEST(test_read_converts_signed_values);RUN_TEST(test_short_transfer_and_error_preserve_output);RUN_TEST(test_identity_deinit_and_invalid_cs);RUN_TEST(test_init_failure_clears_owner);return UNITY_END();}

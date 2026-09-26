@@ -45,7 +45,11 @@ int xy_ina228_init(xy_ina228_t *dev, void *i2c_handle, uint8_t address,
     uint16_t device_id;
     int result;
 
-    if (dev == NULL || i2c_handle == NULL || address < XY_INA228_ADDR_MIN ||
+    if (dev == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    memset(dev, 0, sizeof(*dev));
+    if (i2c_handle == NULL || address < XY_INA228_ADDR_MIN ||
         address > XY_INA228_ADDR_MAX ||
         xy_ina22x_core_config_valid(config, &next.core.shunt_cal) != XY_DEVICE_OK) {
         return XY_DEVICE_INVALID_PARAM;

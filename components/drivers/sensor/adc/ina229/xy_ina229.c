@@ -65,7 +65,11 @@ int xy_ina229_init(xy_ina229_t *dev, void *spi_handle, void *cs_pin,
     uint16_t device_id;
     int result;
 
-    if (dev == NULL || spi_handle == NULL || cs_pin == NULL ||
+    if (dev == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    memset(dev, 0, sizeof(*dev));
+    if (spi_handle == NULL || cs_pin == NULL ||
         xy_ina22x_core_config_valid(config, &next.core.shunt_cal) != XY_DEVICE_OK) {
         return XY_DEVICE_INVALID_PARAM;
     }

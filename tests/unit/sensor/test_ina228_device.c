@@ -42,4 +42,27 @@ static void test_read_failure_preserves_output(void)
 { xy_ina228_t d;xy_ina22x_sample_t s;init_ok(&d);memset(&s,0xA5,sizeof(s));xy_ina22x_sample_t old=s;qread(4,0,3,XY_DEVICE_TIMEOUT);TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,xy_ina228_read(&d,&s));TEST_ASSERT_EQUAL_MEMORY(&old,&s,sizeof(s));TEST_ASSERT_EQUAL_UINT(1,ir-2); }
 static void test_invalid_identity_and_deinit_retry(void)
 { xy_ina228_t d;int bus;xy_ina22x_config_t c=cfg();qread(0x3E,0x5449,2,0);qread(0x3F,0x2291,2,0);TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND,xy_ina228_init(&d,&bus,0x40,&c));init_ok(&d);qwrite(1,0,XY_DEVICE_BUSY);TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY,xy_ina228_deinit(&d));TEST_ASSERT_TRUE(d.initialized);qwrite(1,0,0);TEST_ASSERT_EQUAL_INT(0,xy_ina228_deinit(&d));TEST_ASSERT_FALSE(d.initialized); }
-int main(void){UNITY_BEGIN();RUN_TEST(test_init_identity_and_config);RUN_TEST(test_read_converts_and_stages);RUN_TEST(test_config_rejects_calibration_overflow);RUN_TEST(test_read_failure_preserves_output);RUN_TEST(test_invalid_identity_and_deinit_retry);return UNITY_END();}
+static void test_init_failure_clears_owner(void)
+{
+    xy_ina228_t d;
+    int bus;
+    xy_ina22x_config_t c = cfg();
+
+    memset(&d, 0xA5, sizeof(d));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ina228_init(&d, NULL, 0x40, &c));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ina228_t){0}, &d, sizeof(d));
+
+    memset(&d, 0xA5, sizeof(d));
+    init_ret = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_ina228_init(&d, &bus, 0x40, &c));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ina228_t){0}, &d, sizeof(d));
+
+    memset(&d, 0xA5, sizeof(d));
+    init_ret = XY_DEVICE_OK;
+    qread(0x3E, 0x5449, 2, 0);
+    qread(0x3F, 0x2291, 2, 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND, xy_ina228_init(&d, &bus, 0x40, &c));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ina228_t){0}, &d, sizeof(d));
+}
+
+int main(void){UNITY_BEGIN();RUN_TEST(test_init_identity_and_config);RUN_TEST(test_read_converts_and_stages);RUN_TEST(test_config_rejects_calibration_overflow);RUN_TEST(test_read_failure_preserves_output);RUN_TEST(test_invalid_identity_and_deinit_retry);RUN_TEST(test_init_failure_clears_owner);return UNITY_END();}
