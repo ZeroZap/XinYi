@@ -280,8 +280,8 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
 
     if ((safety_status & BQ25620_STAT_SAFETY_TIMER_EXPIRED) != 0U) {
         next.fault = XY_CHARGER_DEVICE_FAULT_CHARGE_TIMEOUT;
-    } else if ((stat1 & BQ25620_FAULT_INPUT_OVP) != 0U) {
-        next.fault = XY_CHARGER_DEVICE_FAULT_INPUT_OVP;
+    } else if ((stat1 & BQ25620_FAULT_INPUT) != 0U) {
+        next.fault = XY_CHARGER_DEVICE_FAULT_INPUT;
     } else if ((stat1 & BQ25620_FAULT_BAT_OVP) != 0U) {
         next.fault = XY_CHARGER_DEVICE_FAULT_BAT_OVP;
     } else if ((stat1 & BQ25620_FAULT_THERMAL) != 0U) {
@@ -301,8 +301,10 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
         next.state = XY_CHARGER_DEVICE_STATE_FAULT;
     }
 
-    next.power_good = (stat0 & BQ25620_STAT_VBUS_MASK) != 0U &&
-                      (stat1 & BQ25620_FAULT_INPUT_OVP) == 0U;
+    uint8_t vbus_status = stat0 & BQ25620_STAT_VBUS_MASK;
+    next.power_good = vbus_status != BQ25620_STAT_VBUS_NONE &&
+                      vbus_status != BQ25620_STAT_VBUS_OTG &&
+                      (stat1 & BQ25620_FAULT_INPUT) == 0U;
     next.charging = next.state == XY_CHARGER_DEVICE_STATE_PRE_CHARGE ||
                     next.state == XY_CHARGER_DEVICE_STATE_FAST_CHARGE ||
                     next.state == XY_CHARGER_DEVICE_STATE_CONSTANT_VOLT;

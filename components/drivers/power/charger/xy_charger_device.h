@@ -37,7 +37,7 @@ typedef enum {
  */
 typedef enum {
     XY_CHARGER_DEVICE_FAULT_NONE = 0,      /**< 无故障 */
-    XY_CHARGER_DEVICE_FAULT_INPUT_OVP,     /**< 输入过压 */
+    XY_CHARGER_DEVICE_FAULT_INPUT,         /**< 输入路径故障（原因可能含 OVP 或 sleep） */
     XY_CHARGER_DEVICE_FAULT_THERMAL,       /**< 过热 */
     XY_CHARGER_DEVICE_FAULT_CHARGE_TIMEOUT,/**< 充电超时 */
     XY_CHARGER_DEVICE_FAULT_BAT_OVP,       /**< 电池过压 */

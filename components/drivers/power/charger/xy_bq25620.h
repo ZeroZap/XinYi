@@ -51,14 +51,16 @@ typedef enum {
 #define BQ25620_STAT_CHG_IDLE       (0x00U << 3) /**< 未充电或已终止 */
 #define BQ25620_STAT_CHG_FAST       (0x01U << 3) /**< 涓流/预充/恒流 */
 #define BQ25620_STAT_CHG_CV         (0x02U << 3) /**< 恒压 */
-#define BQ25620_STAT_CHG_TOPOFF     (0x03U << 3) /**< Top-off timer active charging */
+#define BQ25620_STAT_CHG_TOPOFF     (0x03U << 3) /**< Top-off timer active */
 #define BQ25620_STAT_VBUS_MASK      0x07U        /**< VBUS_STAT[2:0] */
+#define BQ25620_STAT_VBUS_NONE      0x00U        /**< 无合格适配器 */
+#define BQ25620_STAT_VBUS_OTG       0x07U        /**< Boost OTG 模式，不是输入电源 */
 
 /* Charger Status 0 (0x1D) */
 #define BQ25620_STAT_SAFETY_TIMER_EXPIRED (0x01U << 1) /**< SAFETY_TMR_STAT */
 
 /* Fault Status 0 (0x1F) */
-#define BQ25620_FAULT_INPUT_OVP     (0x01U << 7) /**< VBUS fault */
+#define BQ25620_FAULT_INPUT         (0x01U << 7) /**< VBUS OVP 或 sleep comparator */
 #define BQ25620_FAULT_BAT_OVP       (0x01U << 6) /**< BAT OCP/OVP */
 #define BQ25620_FAULT_SYS           (0x01U << 5) /**< SYS UVP/OVP */
 #define BQ25620_FAULT_OTG           (0x01U << 4) /**< OTG fault */
