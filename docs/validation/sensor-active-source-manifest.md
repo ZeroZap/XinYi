@@ -55,6 +55,9 @@ The Device-model root set is currently exactly:
 - HDC1080: `components/drivers/sensor/temperature/hdc1080/xy_hdc1080.c`
 - TSL2561: `components/drivers/sensor/light/tsl2561/xy_tsl2561.c`
 - INA226: `components/drivers/sensor/adc/ina226/xy_ina226.c`
+- INA22x shared core: `components/drivers/sensor/adc/ina22x/xy_ina22x.c`
+- INA228: `components/drivers/sensor/adc/ina228/xy_ina228.c`
+- INA229: `components/drivers/sensor/adc/ina229/xy_ina229.c`
 - MLX90614: `components/drivers/sensor/temperature/mlx90614/xy_mlx90614.c`
 - VL53L1X: `components/drivers/sensor/distance/vl53l1x/xy_vl53l1x.c`
 - LPS22HB: `components/drivers/sensor/pressure/lps22hb/xy_lps22hb.c`
@@ -358,6 +361,16 @@ is staged across bus, shunt, current and power reads. Public read, alert and dei
 both outer and nested transport lifecycle; successful deinit clears the nested I2C handle. Host/source
 ownership only; metrology, alert
 thresholds and hardware recovery remain `hardware-pending`.
+
+### INA228 / INA229 implementation status
+
+INA228 (I2C) and INA229 (SPI) are independent canonical owners and do not alias the incompatible INA226
+register protocol. They share only a transport-neutral INA22x conversion/configuration core for 16/20/40-bit
+registers, SHUNT_CAL, current, power, energy and charge scaling. Each owner validates TI manufacturer/die
+identity, owns its nested Device transport lifecycle, propagates the first transport error and stages a complete
+sample before publication. INA229 additionally rejects short SPI frames. Host fake-transport evidence covers
+identity, configuration, signed conversion, staged output and teardown retry; electrical timing, metrology,
+alert behavior and real hardware remain `hardware-pending`.
 
 ### SHT40 migration status
 

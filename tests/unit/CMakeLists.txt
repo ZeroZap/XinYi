@@ -962,6 +962,28 @@ target_include_directories(test_power_monitors PRIVATE
     ${KERNEL}/osal
 )
 
+xy_add_unit_test(test_ina228_device sensor_ina228_device UNITY
+    ${UNIT_SENSOR}/test_ina228_device.c
+    ${DRV}/sensor/adc/ina228/xy_ina228.c
+    ${DRV}/sensor/adc/ina22x/xy_ina22x.c
+)
+target_include_directories(test_ina228_device PRIVATE
+    ${DRV}/sensor/adc/ina228
+    ${DRV}/sensor/adc/ina22x
+    ${KERNEL}/osal
+)
+
+xy_add_unit_test(test_ina229_device sensor_ina229_device UNITY
+    ${UNIT_SENSOR}/test_ina229_device.c
+    ${DRV}/sensor/adc/ina229/xy_ina229.c
+    ${DRV}/sensor/adc/ina22x/xy_ina22x.c
+)
+target_include_directories(test_ina229_device PRIVATE
+    ${DRV}/sensor/adc/ina229
+    ${DRV}/sensor/adc/ina22x
+    ${KERNEL}/osal
+)
+
 
 xy_add_unit_test(test_angle_encoders sensor_angle_encoders UNITY
     ${UNIT_SENSOR}/test_angle_encoders.c

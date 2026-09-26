@@ -30,6 +30,9 @@ include_directories(
     power/charger
     ../gui/inc
     sensor/pressure/bmp390/bosch
+    sensor/adc/ina22x
+    sensor/adc/ina228
+    sensor/adc/ina229
 )
 
 # Add subdirectories for organized drivers
