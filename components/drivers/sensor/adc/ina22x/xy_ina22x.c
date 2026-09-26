@@ -115,15 +115,16 @@ int xy_ina22x_core_read(xy_ina22x_core_t *core)
     READ_OR_RETURN(XY_INA22X_REG_DIETEMP, temperature);
     READ_OR_RETURN(XY_INA22X_REG_CURRENT, current);
     READ_OR_RETURN(XY_INA22X_REG_POWER, power);
-    READ_OR_RETURN(XY_INA22X_REG_ENERGY, energy);
-    READ_OR_RETURN(XY_INA22X_REG_CHARGE, charge);
     READ_OR_RETURN(XY_INA22X_REG_DIAG_ALRT, diagnostic);
-#undef READ_OR_RETURN
 
     if ((be16(diagnostic) & XY_INA22X_DIAG_MEMSTAT) == 0U ||
         (be16(diagnostic) & XY_INA22X_DIAG_INVALID_SAMPLE_MASK) != 0U) {
         return XY_DEVICE_IO_ERROR;
     }
+
+    READ_OR_RETURN(XY_INA22X_REG_ENERGY, energy);
+    READ_OR_RETURN(XY_INA22X_REG_CHARGE, charge);
+#undef READ_OR_RETURN
 
     shunt_raw = sign_extend20(be24(vshunt) >> 4U);
     bus_raw = be24(vbus) >> 4U;

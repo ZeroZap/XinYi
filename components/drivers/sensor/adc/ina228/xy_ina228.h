@@ -13,6 +13,7 @@ extern "C" {
 typedef struct {
     xy_i2c_device_t i2c_dev;
     xy_ina22x_core_t core;
+    uint32_t owner_cookie;
     uint8_t address;
     uint8_t initialized;
 } xy_ina228_t;

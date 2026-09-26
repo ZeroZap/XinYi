@@ -10,6 +10,7 @@ extern "C" {
 typedef struct {
     xy_spi_device_t spi_dev;
     xy_ina22x_core_t core;
+    uint32_t owner_cookie;
     uint8_t initialized;
 } xy_ina229_t;
 

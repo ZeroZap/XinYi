@@ -4,6 +4,19 @@
 
 #define INA229_SPI_SPEED_HZ 10000000U
 #define INA229_SPI_MODE 1U
+#define INA229_OWNER_COOKIE 0x494E3239UL
+
+static int ina229_read(void *context, uint8_t reg, uint8_t *data, uint8_t len);
+static int ina229_write16(void *context, uint8_t reg, uint16_t value);
+
+static int ina229_has_owner_cookie(const xy_ina229_t *dev)
+{
+    uint32_t cookie;
+
+    if (dev == NULL) return 0;
+    memcpy(&cookie, &dev->owner_cookie, sizeof(cookie));
+    return cookie == INA229_OWNER_COOKIE;
+}
 
 static int ina229_transport_ready(const xy_ina229_t *dev)
 {
@@ -13,7 +26,11 @@ static int ina229_transport_ready(const xy_ina229_t *dev)
 
 static int ina229_ready(const xy_ina229_t *dev)
 {
-    return ina229_transport_ready(dev) && dev->initialized != 0U && dev->core.initialized != 0U;
+    return ina229_has_owner_cookie(dev) && ina229_transport_ready(dev) && dev->initialized == 1U &&
+           dev->core.initialized == 1U &&
+           dev->core.transport.read == ina229_read &&
+           dev->core.transport.write16 == ina229_write16 &&
+           dev->core.transport.context == dev;
 }
 
 static int ina229_transfer(xy_ina229_t *dev, const uint8_t *tx, uint8_t *rx, uint8_t len)
@@ -63,33 +80,49 @@ int xy_ina229_init(xy_ina229_t *dev, void *spi_handle, void *cs_pin,
     xy_ina229_t next = {0};
     uint16_t manufacturer;
     uint16_t device_id;
+    int was_ready;
     int result;
 
     if (dev == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
+    was_ready = ina229_ready(dev);
     if (spi_handle == NULL || cs_pin == NULL ||
         xy_ina22x_core_config_valid(config, &next.core.shunt_cal) != XY_DEVICE_OK) {
+        if (!was_ready) memset(dev, 0, sizeof(*dev));
         return XY_DEVICE_INVALID_PARAM;
     }
     result = xy_spi_device_init(&next.spi_dev, spi_handle, cs_pin,
                                 INA229_SPI_SPEED_HZ, INA229_SPI_MODE);
-    if (result != XY_DEVICE_OK || !ina229_transport_ready(&next)) return result != XY_DEVICE_OK ? result : XY_DEVICE_NOT_INIT;
+    if (result != XY_DEVICE_OK || !ina229_transport_ready(&next)) {
+        if (!was_ready) memset(dev, 0, sizeof(*dev));
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_NOT_INIT;
+    }
     next.core.config = *config;
     next.core.transport.read = ina229_read;
     next.core.transport.write16 = ina229_write16;
     next.core.transport.context = &next;
     result = ina229_read16(&next, XY_INA22X_REG_MANUFACTURER, &manufacturer);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) {
+        if (!was_ready) memset(dev, 0, sizeof(*dev));
+        return result;
+    }
     result = ina229_read16(&next, XY_INA22X_REG_DEVICE_ID, &device_id);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) {
+        if (!was_ready) memset(dev, 0, sizeof(*dev));
+        return result;
+    }
     if (manufacturer != XY_INA22X_MANUFACTURER_ID || (device_id >> 4U) != XY_INA229_DIE_ID) {
+        if (!was_ready) memset(dev, 0, sizeof(*dev));
         return XY_DEVICE_NOT_FOUND;
     }
     result = xy_ina22x_core_configure(&next.core);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) {
+        if (!was_ready) memset(dev, 0, sizeof(*dev));
+        return result;
+    }
     next.core.initialized = 1U;
+    next.owner_cookie = INA229_OWNER_COOKIE;
     next.initialized = 1U;
     *dev = next;
     dev->core.transport.context = dev;
