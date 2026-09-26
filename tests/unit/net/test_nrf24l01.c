@@ -63,7 +63,7 @@ static xy_nrf24l01_config_t config(void)
     static int spi;
     static int csn;
     static int ce;
-    xy_nrf24l01_config_t result = {&spi, &csn, &ce, transfer, set_csn, set_ce, 10U};
+    xy_nrf24l01_config_t result = {&spi, &csn, &ce, transfer, set_csn, set_ce, NULL, 10U};
     return result;
 }
 

@@ -21,6 +21,7 @@ typedef xy_hal_error_t (*xy_nrf24l01_transfer_fn)(void *spi, const uint8_t *tx,
                                                   uint8_t *rx, size_t length,
                                                   uint32_t timeout_ms);
 typedef xy_hal_error_t (*xy_nrf24l01_gpio_fn)(void *arg, uint8_t level);
+typedef void (*xy_nrf24l01_delay_fn)(uint32_t us);
 
 typedef struct {
     void *spi;
@@ -29,6 +30,7 @@ typedef struct {
     xy_nrf24l01_transfer_fn transfer;
     xy_nrf24l01_gpio_fn set_csn;
     xy_nrf24l01_gpio_fn set_ce;
+    xy_nrf24l01_delay_fn delay_us;
     uint32_t timeout_ms;
 } xy_nrf24l01_config_t;
 
@@ -46,6 +48,11 @@ typedef struct {
 
 xy_hal_error_t xy_nrf24l01_probe(xy_nrf24l01_t *radio,
                                   const xy_nrf24l01_config_t *config);
+xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
+                                          const uint8_t address[5], uint8_t data_rate_2mbps,
+                                          uint8_t crc16);
+xy_hal_error_t xy_nrf24l01_send(xy_nrf24l01_t *radio, const uint8_t *payload,
+                                size_t length, uint8_t *retransmit_count);
 
 #ifdef __cplusplus
 }

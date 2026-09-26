@@ -6,6 +6,31 @@
 #define NRF24_CMD_W_REGISTER 0x20U
 #define NRF24_CMD_REGISTER_MASK 0x1FU
 #define NRF24_DUMMY 0xFFU
+#define NRF24_CMD_FLUSH_TX 0xE1U
+#define NRF24_CMD_W_TX_PAYLOAD 0xA0U
+#define NRF24_CMD_NOP 0xFFU
+#define NRF24_REG_SETUP_RETR 0x04U
+#define NRF24_REG_OBSERVE_TX 0x08U
+#define NRF24_REG_RX_ADDR_P0 0x0AU
+#define NRF24_REG_TX_ADDR 0x10U
+#define NRF24_STATUS_RX_DR 0x40U
+#define NRF24_STATUS_TX_DS 0x20U
+#define NRF24_STATUS_MAX_RT 0x10U
+
+static xy_hal_error_t nrf24_frame(xy_nrf24l01_t *radio, const uint8_t *tx, uint8_t *rx,
+                                  size_t length)
+{
+    xy_hal_error_t result;
+    xy_hal_error_t release_result;
+
+    result = radio->config.set_csn(radio->config.csn_arg, 0U);
+    if (result != XY_HAL_OK) return result;
+    result = radio->config.transfer(radio->config.spi, tx, rx, length,
+                                    radio->config.timeout_ms);
+    release_result = radio->config.set_csn(radio->config.csn_arg, 1U);
+    if (result != XY_HAL_OK) return result;
+    return release_result;
+}
 
 static xy_hal_error_t nrf24_command(xy_nrf24l01_t *radio, uint8_t command,
                                     uint8_t tx_value, uint8_t *status,
@@ -14,15 +39,9 @@ static xy_hal_error_t nrf24_command(xy_nrf24l01_t *radio, uint8_t command,
     uint8_t tx[2] = {command, tx_value};
     uint8_t rx[2] = {0U, 0U};
     xy_hal_error_t result;
-    xy_hal_error_t release_result;
 
-    result = radio->config.set_csn(radio->config.csn_arg, 0U);
+    result = nrf24_frame(radio, tx, rx, sizeof(tx));
     if (result != XY_HAL_OK) return result;
-    result = radio->config.transfer(radio->config.spi, tx, rx, sizeof(tx),
-                                    radio->config.timeout_ms);
-    release_result = radio->config.set_csn(radio->config.csn_arg, 1U);
-    if (result != XY_HAL_OK) return result;
-    if (release_result != XY_HAL_OK) return release_result;
     if (status != NULL) *status = rx[0];
     if (rx_value != NULL) *rx_value = rx[1];
     return XY_HAL_OK;
@@ -40,6 +59,18 @@ static xy_hal_error_t nrf24_write_register(xy_nrf24l01_t *radio, uint8_t reg,
 {
     if (reg > NRF24_CMD_REGISTER_MASK) return XY_HAL_ERROR_INVALID_PARAM;
     return nrf24_command(radio, NRF24_CMD_W_REGISTER | reg, value, status, NULL);
+}
+
+static xy_hal_error_t nrf24_write_buffer(xy_nrf24l01_t *radio, uint8_t command,
+                                          const uint8_t *data, size_t length)
+{
+    uint8_t tx[33];
+    uint8_t rx[33];
+
+    if (data == NULL || length == 0U || length > 32U) return XY_HAL_ERROR_INVALID_PARAM;
+    tx[0] = command;
+    memcpy(&tx[1], data, length);
+    return nrf24_frame(radio, tx, rx, length + 1U);
 }
 
 static xy_hal_error_t nrf24_restore_channel(xy_nrf24l01_t *radio, uint8_t original)
@@ -110,4 +141,81 @@ xy_hal_error_t xy_nrf24l01_probe(xy_nrf24l01_t *radio,
     next.initialized = 1U;
     *radio = next;
     return XY_HAL_OK;
+}
+
+xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
+                                          const uint8_t address[5], uint8_t data_rate_2mbps,
+                                          uint8_t crc16)
+{
+    xy_hal_error_t result;
+    uint8_t value;
+
+    if (radio == NULL || radio->initialized == 0U || address == NULL || channel > 125U ||
+        data_rate_2mbps > 1U || crc16 > 1U) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+#define WRITE_OR_RETURN(reg, data)                                                      \
+    do {                                                                                \
+        result = nrf24_write_register(radio, (reg), (data), NULL);                     \
+        if (result != XY_HAL_OK) return result;                                         \
+    } while (0)
+    result = radio->config.set_ce(radio->config.ce_arg, 0U);
+    if (result != XY_HAL_OK) return result;
+    value = (uint8_t)(0x0AU | (crc16 != 0U ? 0x04U : 0U));
+    WRITE_OR_RETURN(XY_NRF24L01_REG_CONFIG, value);
+    WRITE_OR_RETURN(XY_NRF24L01_REG_EN_AA, 0x01U);
+    WRITE_OR_RETURN(XY_NRF24L01_REG_SETUP_AW, 0x03U);
+    WRITE_OR_RETURN(NRF24_REG_SETUP_RETR, 0x5FU);
+    WRITE_OR_RETURN(XY_NRF24L01_REG_RF_CH, channel);
+    WRITE_OR_RETURN(XY_NRF24L01_REG_RF_SETUP, data_rate_2mbps != 0U ? 0x0FU : 0x07U);
+    WRITE_OR_RETURN(XY_NRF24L01_REG_STATUS,
+                    NRF24_STATUS_RX_DR | NRF24_STATUS_TX_DS | NRF24_STATUS_MAX_RT);
+#undef WRITE_OR_RETURN
+    result = nrf24_write_buffer(radio, NRF24_CMD_W_REGISTER | NRF24_REG_RX_ADDR_P0,
+                                address, 5U);
+    if (result != XY_HAL_OK) return result;
+    return nrf24_write_buffer(radio, NRF24_CMD_W_REGISTER | NRF24_REG_TX_ADDR,
+                              address, 5U);
+}
+
+xy_hal_error_t xy_nrf24l01_send(xy_nrf24l01_t *radio, const uint8_t *payload,
+                                size_t length, uint8_t *retransmit_count)
+{
+    uint8_t status = 0U;
+    uint8_t observe = 0U;
+    uint32_t poll;
+    xy_hal_error_t result;
+
+    if (radio == NULL || radio->initialized == 0U || payload == NULL || length == 0U ||
+        length > 32U || radio->config.delay_us == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    result = nrf24_command(radio, NRF24_CMD_FLUSH_TX, NRF24_DUMMY, NULL, NULL);
+    if (result != XY_HAL_OK) return result;
+    result = nrf24_write_buffer(radio, NRF24_CMD_W_TX_PAYLOAD, payload, length);
+    if (result != XY_HAL_OK) return result;
+    result = radio->config.set_ce(radio->config.ce_arg, 1U);
+    if (result != XY_HAL_OK) return result;
+    radio->config.delay_us(20U);
+    result = radio->config.set_ce(radio->config.ce_arg, 0U);
+    if (result != XY_HAL_OK) return result;
+
+    for (poll = 0U; poll < 200U; ++poll) {
+        result = nrf24_command(radio, NRF24_CMD_NOP, NRF24_DUMMY, &status, NULL);
+        if (result != XY_HAL_OK) return result;
+        if ((status & (NRF24_STATUS_TX_DS | NRF24_STATUS_MAX_RT)) != 0U) break;
+        radio->config.delay_us(100U);
+    }
+    if (poll == 200U) return XY_HAL_ERROR_TIMEOUT;
+    result = nrf24_read_register(radio, NRF24_REG_OBSERVE_TX, NULL, &observe);
+    if (result != XY_HAL_OK) return result;
+    if (retransmit_count != NULL) *retransmit_count = observe & 0x0FU;
+    result = nrf24_write_register(radio, XY_NRF24L01_REG_STATUS,
+                                  status & (NRF24_STATUS_TX_DS | NRF24_STATUS_MAX_RT), NULL);
+    if (result != XY_HAL_OK) return result;
+    if ((status & NRF24_STATUS_MAX_RT) != 0U) {
+        (void)nrf24_command(radio, NRF24_CMD_FLUSH_TX, NRF24_DUMMY, NULL, NULL);
+        return XY_HAL_ERROR_NOT_FOUND;
+    }
+    return (status & NRF24_STATUS_TX_DS) != 0U ? XY_HAL_OK : XY_HAL_ERROR_IO;
 }

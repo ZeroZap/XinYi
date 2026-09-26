@@ -122,11 +122,15 @@ int main(void)
 {
     xy_nrf24l01_t radio;
     xy_hal_error_t result;
+    uint8_t retransmits = 0U;
+    static const uint8_t peer_address[5] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
+    static const uint8_t message[] = "PANDORA NRF24 TEST";
     const xy_nrf24l01_config_t config = {
         .spi = &spi2,
         .transfer = nrf_transfer,
         .set_csn = nrf_csn,
         .set_ce = nrf_ce,
+        .delay_us = xy_hal_delay_us,
         .timeout_ms = 100U,
     };
     if (xy_hal_sys_init() != XY_HAL_OK || pandora_platform_startup() != 0) stop();
@@ -150,6 +154,20 @@ int main(void)
     uart_text(" rf_setup=0x"); uart_hex8(radio.rf_setup);
     uart_text(" fifo=0x"); uart_hex8(radio.fifo_status);
     uart_text(" irq="); uart_text(xy_hal_gpio_read(GPIOD, 3U) == 0 ? "LOW" : "HIGH");
-    uart_text("\r\nNRF24_PROBE_DONE\r\n");
+    uart_text("\r\n");
+    result = xy_nrf24l01_configure_ptx(&radio, 0U, peer_address, 1U, 1U);
+    if (result == XY_HAL_OK) {
+        xy_hal_delay_ms(5U);
+        result = xy_nrf24l01_send(&radio, message, sizeof(message) - 1U, &retransmits);
+    }
+    if (result == XY_HAL_OK) {
+        uart_text("NRF24_TX_ACK_OK retries="); uart_hex8(retransmits);
+        uart_text(" payload=PANDORA_NRF24_TEST\r\n");
+    } else {
+        uart_text("NRF24_TX_NO_ACK error="); uart_error(result);
+        uart_text(" retries="); uart_hex8(retransmits);
+        uart_text("\r\n");
+    }
+    uart_text("NRF24_PROBE_DONE\r\n");
     for (;;) xy_hal_delay_ms(1000U);
 }
