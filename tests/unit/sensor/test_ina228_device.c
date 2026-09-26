@@ -38,6 +38,24 @@ static void test_read_converts_and_stages(void)
 { xy_ina228_t d;xy_ina22x_sample_t s;init_ok(&d);qread(4,0x001000,3,0);qread(5,0x010000,3,0);qread(6,0x0100,2,0);qread(7,0x002000,3,0);qread(8,10,3,0);qread(9,20,5,0);qread(10,30,5,0);TEST_ASSERT_EQUAL_INT(0,xy_ina228_read(&d,&s));TEST_ASSERT_FLOAT_WITHIN(0.001,80.0,s.shunt_voltage_uv);TEST_ASSERT_FLOAT_WITHIN(0.001,800.0,s.bus_voltage_mv);TEST_ASSERT_FLOAT_WITHIN(0.001,51.2,s.current_ma);TEST_ASSERT_FLOAT_WITHIN(0.001,3.2,s.power_mw);TEST_ASSERT_FLOAT_WITHIN(0.001,102.4,s.energy_mj);TEST_ASSERT_FLOAT_WITHIN(0.001,48.0,s.charge_mc);TEST_ASSERT_EQUAL_UINT32(42,s.timestamp); }
 static void test_config_rejects_calibration_overflow(void)
 { xy_ina22x_config_t c={UINT32_MAX,UINT32_MAX,XY_INA22X_ADC_CONFIG_DEFAULT,XY_INA22X_SHUNT_RANGE_163_84_MV};uint16_t cal=0xA5A5U;TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,xy_ina22x_core_config_valid(&c,&cal));TEST_ASSERT_EQUAL_HEX16(0xA5A5U,cal); }
+static void test_config_rejects_noncontinuous_accumulator_mode(void)
+{
+    xy_ina22x_config_t c = cfg();
+    uint16_t cal = 0xA5A5U;
+    int bus;
+    xy_ina228_t dev;
+    size_t reads_before = nr;
+    size_t writes_before = nw;
+
+    c.adc_config = 0x7B68U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ina22x_core_config_valid(&c, &cal));
+    TEST_ASSERT_EQUAL_HEX16(0xA5A5U, cal);
+    memset(&dev, 0xA5, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ina228_init(&dev, &bus, 0x40, &c));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ina228_t){0}, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(reads_before, nr);
+    TEST_ASSERT_EQUAL_UINT(writes_before, nw);
+}
 static void test_read_failure_preserves_output(void)
 { xy_ina228_t d;xy_ina22x_sample_t s;init_ok(&d);memset(&s,0xA5,sizeof(s));xy_ina22x_sample_t old=s;qread(4,0,3,XY_DEVICE_TIMEOUT);TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,xy_ina228_read(&d,&s));TEST_ASSERT_EQUAL_MEMORY(&old,&s,sizeof(s));TEST_ASSERT_EQUAL_UINT(1,ir-2); }
 static void test_invalid_identity_and_deinit_retry(void)
@@ -65,4 +83,4 @@ static void test_init_failure_clears_owner(void)
     TEST_ASSERT_EQUAL_MEMORY(&(xy_ina228_t){0}, &d, sizeof(d));
 }
 
-int main(void){UNITY_BEGIN();RUN_TEST(test_init_identity_and_config);RUN_TEST(test_read_converts_and_stages);RUN_TEST(test_config_rejects_calibration_overflow);RUN_TEST(test_read_failure_preserves_output);RUN_TEST(test_invalid_identity_and_deinit_retry);RUN_TEST(test_init_failure_clears_owner);return UNITY_END();}
+int main(void){UNITY_BEGIN();RUN_TEST(test_init_identity_and_config);RUN_TEST(test_read_converts_and_stages);RUN_TEST(test_config_rejects_calibration_overflow);RUN_TEST(test_config_rejects_noncontinuous_accumulator_mode);RUN_TEST(test_read_failure_preserves_output);RUN_TEST(test_invalid_identity_and_deinit_retry);RUN_TEST(test_init_failure_clears_owner);return UNITY_END();}

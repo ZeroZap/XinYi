@@ -369,8 +369,10 @@ register protocol. They share only a transport-neutral INA22x conversion/configu
 registers, SHUNT_CAL, current, power, energy and charge scaling. Each owner validates TI manufacturer/die
 identity, owns its nested Device transport lifecycle, propagates the first transport error and stages a complete
 sample before publication. INA229 additionally rejects short SPI frames. Host fake-transport evidence covers
-identity, configuration, signed conversion, staged output and teardown retry; electrical timing, metrology,
-alert behavior and real hardware remain `hardware-pending`.
+identity, configuration, signed conversion, staged output and teardown retry. Because the public sample always
+includes accumulated ENERGY and CHARGE, initialization accepts only MODE=`0xF` continuous bus + shunt +
+temperature conversion; TI documents accumulator values as invalid in triggered modes. Electrical timing,
+metrology, alert behavior and real hardware remain `hardware-pending`.
 
 ### SHT40 migration status
 

@@ -26,6 +26,8 @@ extern "C" {
 #define XY_INA228_DIE_ID           0x228U
 #define XY_INA229_DIE_ID           0x229U
 #define XY_INA22X_ADC_CONFIG_DEFAULT 0xFB68U
+#define XY_INA22X_ADC_MODE_MASK      0xF000U
+#define XY_INA22X_ADC_MODE_CONT_ALL  0xF000U
 
 typedef enum {
     XY_INA22X_SHUNT_RANGE_163_84_MV = 0,

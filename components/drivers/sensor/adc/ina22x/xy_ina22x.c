@@ -45,7 +45,8 @@ int xy_ina22x_core_config_valid(const xy_ina22x_config_t *config, uint16_t *shun
     uint64_t calibration;
 
     if (config == NULL || shunt_cal == NULL || config->shunt_resistor_uohm == 0U ||
-        config->current_lsb_ua == 0U || config->shunt_range > XY_INA22X_SHUNT_RANGE_40_96_MV) {
+        config->current_lsb_ua == 0U || config->shunt_range > XY_INA22X_SHUNT_RANGE_40_96_MV ||
+        (config->adc_config & XY_INA22X_ADC_MODE_MASK) != XY_INA22X_ADC_MODE_CONT_ALL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 

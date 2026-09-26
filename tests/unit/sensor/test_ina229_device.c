@@ -43,4 +43,24 @@ static void test_init_failure_clears_owner(void)
     TEST_ASSERT_EQUAL_MEMORY(&(xy_ina229_t){0}, &d, sizeof(d));
 }
 
-int main(void){UNITY_BEGIN();RUN_TEST(test_init_spi_frames);RUN_TEST(test_read_converts_signed_values);RUN_TEST(test_short_transfer_and_error_preserve_output);RUN_TEST(test_identity_deinit_and_invalid_cs);RUN_TEST(test_init_failure_clears_owner);return UNITY_END();}
+static void test_config_rejects_noncontinuous_accumulator_mode(void)
+{
+    xy_ina229_t dev;
+    xy_ina22x_config_t config = cfg();
+    uint16_t calibration = 0xA5A5U;
+    int bus;
+    int cs;
+    size_t frames_before = nf;
+
+    config.adc_config = 0x7B68U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina22x_core_config_valid(&config, &calibration));
+    TEST_ASSERT_EQUAL_HEX16(0xA5A5U, calibration);
+    memset(&dev, 0xA5, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina229_init(&dev, &bus, &cs, &config));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ina229_t){0}, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(frames_before, nf);
+}
+
+int main(void){UNITY_BEGIN();RUN_TEST(test_init_spi_frames);RUN_TEST(test_read_converts_signed_values);RUN_TEST(test_short_transfer_and_error_preserve_output);RUN_TEST(test_identity_deinit_and_invalid_cs);RUN_TEST(test_init_failure_clears_owner);RUN_TEST(test_config_rejects_noncontinuous_accumulator_mode);return UNITY_END();}
