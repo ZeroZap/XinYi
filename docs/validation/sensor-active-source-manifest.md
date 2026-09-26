@@ -372,7 +372,9 @@ identity, owns its nested Device transport lifecycle, propagates the first trans
 sample before publication. DIAG_ALRT is read before ENERGY/CHARGE because reading either accumulator clears
 its matching overflow flag; memory-checksum failure, math overflow, and ENERGY/CHARGE overflow stop the
 transaction before those destructive reads and without publishing caller output or cache. INA229 additionally
-rejects short SPI frames. Host fake-transport evidence covers
+rejects short SPI frames. Typed public APIs configure the six raw TI alert-limit registers and expose staged
+DIAG_ALRT reads with transport errors preserving caller output; physical-unit threshold policy remains outside
+the protocol owner. Host fake-transport evidence covers
 identity, configuration, signed conversion, staged output and teardown retry. Because the public sample always
 includes accumulated ENERGY and CHARGE, initialization accepts only MODE=`0xF` continuous bus + shunt +
 temperature conversion; TI documents accumulator values as invalid in triggered modes. Electrical timing,
