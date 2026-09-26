@@ -95,8 +95,7 @@ int xy_ina22x_core_alert_register(xy_ina22x_alert_limit_t limit, uint8_t *reg)
         XY_INA22X_REG_TEMP_LIMIT, XY_INA22X_REG_POWER_LIMIT,
     };
 
-    if (reg == NULL || limit < XY_INA22X_ALERT_SHUNT_OVER ||
-        limit >= XY_INA22X_ALERT_LIMIT_COUNT) {
+    if (reg == NULL || limit >= XY_INA22X_ALERT_LIMIT_COUNT) {
         return XY_DEVICE_INVALID_PARAM;
     }
     *reg = registers[limit];
