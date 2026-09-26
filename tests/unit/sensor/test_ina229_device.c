@@ -87,6 +87,10 @@ static void test_alert_limit_and_diagnostic_spi_frames(void)
 
     init_ok(&dev);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina229_set_alert_limit(
+                              &dev, (xy_ina22x_alert_limit_t)-1, 1U));
+    TEST_ASSERT_EQUAL_UINT(6U, idx);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
                           xy_ina229_set_alert_limit(&dev, XY_INA22X_ALERT_LIMIT_COUNT, 1U));
     qw(XY_INA22X_REG_SHUNT_UV_LIMIT, 0x4321U, 0);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
