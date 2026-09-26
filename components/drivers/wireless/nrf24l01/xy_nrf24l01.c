@@ -19,6 +19,7 @@
 #define NRF24_STATUS_RX_DR 0x40U
 #define NRF24_STATUS_TX_DS 0x20U
 #define NRF24_STATUS_MAX_RT 0x10U
+#define NRF24_FIFO_RX_EMPTY 0x01U
 
 static xy_hal_error_t nrf24_frame(xy_nrf24l01_t *radio, const uint8_t *tx, uint8_t *rx,
                                   size_t length)
@@ -286,6 +287,7 @@ xy_hal_error_t xy_nrf24l01_receive(xy_nrf24l01_t *radio, uint8_t *payload,
                                    size_t capacity, size_t *received_length)
 {
     uint8_t status;
+    uint8_t fifo_status;
     xy_hal_error_t result;
 
     if (radio == NULL || radio->initialized == 0U || payload == NULL ||
@@ -294,9 +296,9 @@ xy_hal_error_t xy_nrf24l01_receive(xy_nrf24l01_t *radio, uint8_t *payload,
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     *received_length = 0U;
-    result = nrf24_command(radio, NRF24_CMD_NOP, NRF24_DUMMY, &status, NULL);
+    result = nrf24_read_register(radio, XY_NRF24L01_REG_FIFO_STATUS, &status, &fifo_status);
     if (result != XY_HAL_OK) return result;
-    if ((status & NRF24_STATUS_RX_DR) == 0U) return XY_HAL_ERROR_NOT_FOUND;
+    if ((fifo_status & NRF24_FIFO_RX_EMPTY) != 0U) return XY_HAL_ERROR_NOT_FOUND;
     result = nrf24_read_buffer(radio, NRF24_CMD_R_RX_PAYLOAD, payload,
                                radio->rx_payload_width);
     if (result != XY_HAL_OK) return result;

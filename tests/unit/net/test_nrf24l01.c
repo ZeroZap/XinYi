@@ -248,7 +248,7 @@ static void test_receive_fixed_payload_and_clears_irq(void)
     radio.config = cfg;
     radio.initialized = 1U;
     radio.rx_payload_width = 4U;
-    queue_frame(0xFFU, 0xFFU, 0x4EU, 0U, XY_HAL_OK);
+    queue_frame(0x17U, 0xFFU, 0x4EU, 0x00U, XY_HAL_OK);
     queue_buffer(read_tx, sizeof(read_tx), 0x4EU, XY_HAL_OK);
     frames[1].rx[1] = 'P'; frames[1].rx[2] = 'I';
     frames[1].rx[3] = 'N'; frames[1].rx[4] = 'G';
@@ -273,12 +273,36 @@ static void test_receive_without_irq_preserves_payload(void)
     radio.config = cfg;
     radio.initialized = 1U;
     radio.rx_payload_width = 4U;
-    queue_frame(0xFFU, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x17U, 0xFFU, 0x0EU, 0x01U, XY_HAL_OK);
     TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_NOT_FOUND,
                           xy_nrf24l01_receive(&radio, payload, sizeof(payload), &received));
     TEST_ASSERT_EQUAL_UINT(0U, received);
     TEST_ASSERT_EQUAL_UINT8_ARRAY(old, payload, 4U);
     TEST_ASSERT_EQUAL_UINT(1U, frame_index);
+}
+
+static void test_receive_reads_fifo_even_when_rx_irq_is_clear(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t payload[2] = {0U};
+    size_t received = 0U;
+    const uint8_t read_tx[3] = {0x61U, 0xFFU, 0xFFU};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 2U;
+    queue_frame(0x17U, 0xFFU, 0x0EU, 0x00U, XY_HAL_OK);
+    queue_buffer(read_tx, sizeof(read_tx), 0x0EU, XY_HAL_OK);
+    frames[1].rx[1] = 0x12U; frames[1].rx[2] = 0x34U;
+    queue_frame(0x27U, 0x40U, 0x0EU, 0U, XY_HAL_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK,
+                          xy_nrf24l01_receive(&radio, payload, sizeof(payload), &received));
+    TEST_ASSERT_EQUAL_UINT(2U, received);
+    TEST_ASSERT_EQUAL_HEX8(0x12U, payload[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x34U, payload[1]);
 }
 
 int main(void)
@@ -293,5 +317,6 @@ int main(void)
     RUN_TEST(test_send_propagates_max_retry_flush_failure);
     RUN_TEST(test_receive_fixed_payload_and_clears_irq);
     RUN_TEST(test_receive_without_irq_preserves_payload);
+    RUN_TEST(test_receive_reads_fifo_even_when_rx_irq_is_clear);
     return UNITY_END();
 }
