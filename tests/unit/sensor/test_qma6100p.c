@@ -176,6 +176,19 @@ static void test_interrupt_reconfigure_failure_leaves_source_disabled(void)
     TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_ENABLE1]);
 }
 
+static void test_interrupt_profile_supports_active_low(void)
+{
+    xy_qma6100p_t dev;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_configure_data_ready_interrupts_ex(&dev, 1U, 1U, 0U));
+    TEST_ASSERT_EQUAL_HEX8(0x00U, regs[XY_QMA6100P_REG_INT_PIN_CONFIG]);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_ENABLE1]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -186,5 +199,6 @@ int main(void)
     RUN_TEST(test_interrupt_profile_maps_both_pins);
     RUN_TEST(test_interrupt_config_readback_is_staged);
     RUN_TEST(test_interrupt_reconfigure_failure_leaves_source_disabled);
+    RUN_TEST(test_interrupt_profile_supports_active_low);
     return UNITY_END();
 }

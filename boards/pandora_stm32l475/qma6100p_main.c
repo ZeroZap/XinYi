@@ -42,8 +42,8 @@ static void platform_init(void)
     uart1.Instance=USART1;if(xy_hal_uart_init(&uart1,&uart_cfg)!=XY_HAL_OK)stop();
     if(xy_hal_gpio_init(GPIOB,10U,&i2c_pins)!=XY_HAL_OK||xy_hal_gpio_init(GPIOB,11U,&i2c_pins)!=XY_HAL_OK)stop();
     i2c2.Instance=I2C2;i2c2.Init.Timing=0x10909CECU;if(xy_hal_i2c_init(&i2c2,&i2c_cfg)!=XY_HAL_OK)stop();
-    if(xy_hal_gpio_attach_irq(GPIOC,6U,XY_HAL_GPIO_IRQ_RISING,edge,(void*)&int1_edges)!=XY_HAL_OK)stop();
-    if(xy_hal_gpio_attach_irq(GPIOD,15U,XY_HAL_GPIO_IRQ_RISING,edge,(void*)&int2_edges)!=XY_HAL_OK)stop();
+    if(xy_hal_gpio_attach_irq(GPIOC,6U,XY_HAL_GPIO_IRQ_FALLING,edge,(void*)&int1_edges)!=XY_HAL_OK)stop();
+    if(xy_hal_gpio_attach_irq(GPIOD,15U,XY_HAL_GPIO_IRQ_FALLING,edge,(void*)&int2_edges)!=XY_HAL_OK)stop();
 }
 
 int main(void)
@@ -61,12 +61,12 @@ int main(void)
     if(xy_hal_i2c_mem_read(&i2c2,address,XY_QMA6100P_REG_CHIP_ID,&id,1U,100U)!=XY_HAL_OK)fail("QMA6100P_ID_IO_ERROR",XY_DEVICE_IO_ERROR);
     text("QMA6100P_ADDR=0x");hex(address);text(" CHIP_ID=0x");hex(id);text("\r\n");
     result=xy_qma6100p_init(&qma,&i2c2,address);if(result!=XY_DEVICE_OK)fail("QMA6100P_INIT_ERROR",result);
-    result=xy_qma6100p_configure_data_ready_interrupts(&qma,1U,1U);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_CONFIG_ERROR",result);
+    result=xy_qma6100p_configure_data_ready_interrupts_ex(&qma,1U,1U,0U);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_CONFIG_ERROR",result);
     result=xy_qma6100p_read_interrupt_config(&qma,&irq_config);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_READBACK_ERROR",result);
     text("QMA6100P_IRQ_CONFIG en=0x");hex(irq_config.enable1);text(" int1_map=0x");hex(irq_config.map_int1);
     text(" int2_map=0x");hex(irq_config.map_int2);text(" pin=0x");hex(irq_config.pin_config);
     text(" cfg=0x");hex(irq_config.interrupt_config);text("\r\n");
-    text("QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=HIGH\r\n");
+    text("QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=LOW\r\n");
     for(uint32_t n=0;n<40U;n++){
         xy_qma6100p_raw_t raw;xy_qma6100p_accel_t a;uint8_t status=0U;
         result=xy_qma6100p_read_interrupt_status(&qma,&status);if(result!=XY_DEVICE_OK)fail("QMA6100P_STATUS_ERROR",result);

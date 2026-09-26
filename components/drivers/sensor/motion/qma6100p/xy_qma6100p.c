@@ -72,19 +72,22 @@ xy_error_t xy_qma6100p_deinit(xy_qma6100p_t *dev)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_qma6100p_configure_data_ready_interrupts(xy_qma6100p_t *dev,
-                                                       uint8_t int1_enable,
-                                                       uint8_t int2_enable)
+xy_error_t xy_qma6100p_configure_data_ready_interrupts_ex(xy_qma6100p_t *dev,
+                                                          uint8_t int1_enable,
+                                                          uint8_t int2_enable,
+                                                          uint8_t active_high)
 {
     xy_error_t result;
+    uint8_t pin_config;
 
-    if (!qma_ready(dev) || int1_enable > 1U || int2_enable > 1U ||
+    if (!qma_ready(dev) || int1_enable > 1U || int2_enable > 1U || active_high > 1U ||
         (int1_enable | int2_enable) == 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
+    pin_config = active_high != 0U ? 0x05U : 0x00U;
     result = qma_write(dev, XY_QMA6100P_REG_INT_ENABLE1, 0U);
     if (result == XY_DEVICE_OK)
-        result = qma_write(dev, XY_QMA6100P_REG_INT_PIN_CONFIG, 0x05U);
+        result = qma_write(dev, XY_QMA6100P_REG_INT_PIN_CONFIG, pin_config);
     if (result == XY_DEVICE_OK) result = qma_write(dev, XY_QMA6100P_REG_INT_CONFIG, 0x0CU);
     if (result == XY_DEVICE_OK)
         result = qma_write(dev, XY_QMA6100P_REG_INT_MAP1,
@@ -95,6 +98,13 @@ xy_error_t xy_qma6100p_configure_data_ready_interrupts(xy_qma6100p_t *dev,
     if (result == XY_DEVICE_OK)
         result = qma_write(dev, XY_QMA6100P_REG_INT_ENABLE1, XY_QMA6100P_DATA_READY_BIT);
     return result;
+}
+
+xy_error_t xy_qma6100p_configure_data_ready_interrupts(xy_qma6100p_t *dev,
+                                                       uint8_t int1_enable,
+                                                       uint8_t int2_enable)
+{
+    return xy_qma6100p_configure_data_ready_interrupts_ex(dev, int1_enable, int2_enable, 1U);
 }
 
 xy_error_t xy_qma6100p_read_interrupt_status(xy_qma6100p_t *dev, uint8_t *status)
