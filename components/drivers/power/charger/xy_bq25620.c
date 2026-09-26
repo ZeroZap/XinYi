@@ -273,7 +273,9 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
         case BQ25620_STAT_CHG_IDLE: next.state = XY_CHARGER_DEVICE_STATE_IDLE; break;
         case BQ25620_STAT_CHG_FAST: next.state = XY_CHARGER_DEVICE_STATE_FAST_CHARGE; break;
         case BQ25620_STAT_CHG_CV: next.state = XY_CHARGER_DEVICE_STATE_CONSTANT_VOLT; break;
-        case BQ25620_STAT_CHG_TOPOFF: next.state = XY_CHARGER_DEVICE_STATE_CHARGE_DONE; break;
+        case BQ25620_STAT_CHG_TOPOFF:
+            next.state = XY_CHARGER_DEVICE_STATE_CONSTANT_VOLT;
+            break;
     }
 
     if ((safety_status & BQ25620_STAT_SAFETY_TIMER_EXPIRED) != 0U) {

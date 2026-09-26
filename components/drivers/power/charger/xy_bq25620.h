@@ -51,7 +51,7 @@ typedef enum {
 #define BQ25620_STAT_CHG_IDLE       (0x00U << 3) /**< 未充电或已终止 */
 #define BQ25620_STAT_CHG_FAST       (0x01U << 3) /**< 涓流/预充/恒流 */
 #define BQ25620_STAT_CHG_CV         (0x02U << 3) /**< 恒压 */
-#define BQ25620_STAT_CHG_TOPOFF     (0x03U << 3) /**< Top-off timer active */
+#define BQ25620_STAT_CHG_TOPOFF     (0x03U << 3) /**< Top-off timer active charging */
 #define BQ25620_STAT_VBUS_MASK      0x07U        /**< VBUS_STAT[2:0] */
 
 /* Charger Status 0 (0x1D) */

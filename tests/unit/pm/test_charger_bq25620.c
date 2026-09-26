@@ -205,10 +205,10 @@ static void test_status_decoding(void)
     g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_TOPOFF;
     g_regs[BQ25620_REG_CHG_STAT_1] = 0U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
-    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_CHARGE_DONE, status.state);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_CONSTANT_VOLT, status.state);
     TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_NONE, status.fault);
-    TEST_ASSERT_FALSE(status.charging);
-    TEST_ASSERT_TRUE(status.done);
+    TEST_ASSERT_TRUE(status.charging);
+    TEST_ASSERT_FALSE(status.done);
 }
 
 static void test_unknown_status_codes_fail_closed(void)
