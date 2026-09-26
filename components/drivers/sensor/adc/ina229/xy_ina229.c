@@ -23,7 +23,7 @@ static int ina229_transfer(xy_ina229_t *dev, const uint8_t *tx, uint8_t *rx, uin
         return XY_DEVICE_INVALID_PARAM;
     }
     result = xy_spi_device_transfer(&dev->spi_dev, tx, rx, len);
-    if (result == len || result == XY_DEVICE_OK) return XY_DEVICE_OK;
+    if (result == (int)len) return XY_DEVICE_OK;
     if (result < 0) return result;
     return XY_DEVICE_IO_ERROR;
 }
