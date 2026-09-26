@@ -3,11 +3,12 @@
 
 #include <string.h>
 
-static xy_i2c_device_t *active;
 static uint8_t regs[256];
 static size_t reads;
 static size_t writes;
 static uint32_t delayed;
+static xy_error_t read_result;
+static uint8_t fail_read_reg;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
                               uint32_t timeout_ms)
@@ -17,14 +18,17 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
     dev->i2c_handle = handle;
     dev->dev_addr = address;
     dev->timeout = timeout_ms;
-    active = dev;
     return XY_DEVICE_OK;
 }
 
 xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data,
                                   size_t length)
 {
-    TEST_ASSERT_EQUAL_PTR(active, dev);
+    TEST_ASSERT_NOT_NULL(dev);
+    if (read_result != XY_DEVICE_OK && reg == fail_read_reg) {
+        reads++;
+        return read_result;
+    }
     memcpy(data, &regs[reg], length);
     reads++;
     return XY_DEVICE_OK;
@@ -33,7 +37,7 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
 xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg,
                                    const uint8_t *data, size_t length)
 {
-    TEST_ASSERT_EQUAL_PTR(active, dev);
+    TEST_ASSERT_NOT_NULL(dev);
     memcpy(&regs[reg], data, length);
     writes++;
     return XY_DEVICE_OK;
@@ -45,8 +49,9 @@ void setUp(void)
 {
     memset(regs, 0, sizeof(regs));
     regs[XY_QMA6100P_REG_CHIP_ID] = XY_QMA6100P_CHIP_ID;
-    active = NULL;
     reads = writes = delayed = 0U;
+    read_result = XY_DEVICE_OK;
+    fail_read_reg = 0U;
 }
 void tearDown(void) {}
 
@@ -65,13 +70,31 @@ static void test_init_configures_documented_profile(void)
 
 static void test_init_rejects_wrong_identity(void)
 {
-    xy_qma6100p_t dev;
+    xy_qma6100p_t dev = {0};
     int bus;
     regs[XY_QMA6100P_REG_CHIP_ID] = 0xFFU;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND,
                           xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_HIGH));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT(0U, writes);
+}
+
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_qma6100p_t dev;
+    xy_qma6100p_t before;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    before = dev;
+    read_result = XY_DEVICE_TIMEOUT;
+    fail_read_reg = XY_QMA6100P_REG_CHIP_ID;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(2U, reads);
 }
 
 static void test_read_decodes_signed_14_bit_data(void)
@@ -133,6 +156,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_configures_documented_profile);
     RUN_TEST(test_init_rejects_wrong_identity);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_read_decodes_signed_14_bit_data);
     RUN_TEST(test_interrupt_profile_maps_both_pins);
     RUN_TEST(test_interrupt_config_readback_is_staged);

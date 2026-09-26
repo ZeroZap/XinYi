@@ -26,6 +26,7 @@ static int16_t decode_axis(uint8_t lsb, uint8_t msb)
 
 xy_error_t xy_qma6100p_init(xy_qma6100p_t *dev, void *i2c_handle, uint8_t address)
 {
+    xy_qma6100p_t candidate;
     uint8_t id;
     xy_error_t result;
 
@@ -33,32 +34,28 @@ xy_error_t xy_qma6100p_init(xy_qma6100p_t *dev, void *i2c_handle, uint8_t addres
         (address != XY_QMA6100P_ADDR_LOW && address != XY_QMA6100P_ADDR_HIGH)) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, address, 100U);
-    if (result != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
-        dev->i2c_dev.i2c_handle == NULL) {
-        memset(dev, 0, sizeof(*dev));
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, address, 100U);
+    if (result != XY_DEVICE_OK || !candidate.i2c_dev.base.initialized ||
+        candidate.i2c_dev.i2c_handle == NULL) {
         return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
-    result = qma_read(dev, XY_QMA6100P_REG_CHIP_ID, &id, 1U);
+    result = qma_read(&candidate, XY_QMA6100P_REG_CHIP_ID, &id, 1U);
     if (result != XY_DEVICE_OK || id != XY_QMA6100P_CHIP_ID) {
-        memset(dev, 0, sizeof(*dev));
         return result != XY_DEVICE_OK ? result : XY_DEVICE_NOT_FOUND;
     }
-    result = qma_write(dev, XY_QMA6100P_REG_RANGE, XY_QMA6100P_RANGE_2G);
+    result = qma_write(&candidate, XY_QMA6100P_REG_RANGE, XY_QMA6100P_RANGE_2G);
     if (result == XY_DEVICE_OK)
-        result = qma_write(dev, XY_QMA6100P_REG_BW, XY_QMA6100P_BW_100HZ);
+        result = qma_write(&candidate, XY_QMA6100P_REG_BW, XY_QMA6100P_BW_100HZ);
     if (result == XY_DEVICE_OK)
-        result = qma_write(dev, XY_QMA6100P_REG_POWER, XY_QMA6100P_POWER_ACTIVE);
-    if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return result;
-    }
+        result = qma_write(&candidate, XY_QMA6100P_REG_POWER, XY_QMA6100P_POWER_ACTIVE);
+    if (result != XY_DEVICE_OK) return result;
     xy_device_delay_ms(2U);
-    dev->address = address;
-    dev->range = XY_QMA6100P_RANGE_2G;
-    dev->bandwidth = XY_QMA6100P_BW_100HZ;
-    dev->initialized = 1U;
+    candidate.address = address;
+    candidate.range = XY_QMA6100P_RANGE_2G;
+    candidate.bandwidth = XY_QMA6100P_BW_100HZ;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
