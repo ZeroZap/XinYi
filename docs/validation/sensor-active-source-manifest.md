@@ -366,7 +366,8 @@ thresholds and hardware recovery remain `hardware-pending`.
 
 INA228 (I2C) and INA229 (SPI) are independent canonical owners and do not alias the incompatible INA226
 register protocol. They share only a transport-neutral INA22x conversion/configuration core for 16/20/40-bit
-registers, SHUNT_CAL, current, power, energy and charge scaling. Each owner validates TI manufacturer/die
+registers, SHUNT_CAL, SHUNT_TEMPCO (`0..16383 ppm/°C`), current, power, energy and charge
+scaling. Each owner validates TI manufacturer/die
 identity, owns its nested Device transport lifecycle, propagates the first transport error and stages a complete
 sample before publication. DIAG_ALRT is read before ENERGY/CHARGE because reading either accumulator clears
 its matching overflow flag; memory-checksum failure, math overflow, and ENERGY/CHARGE overflow stop the

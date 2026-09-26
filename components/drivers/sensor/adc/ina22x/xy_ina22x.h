@@ -12,6 +12,7 @@ extern "C" {
 #define XY_INA22X_REG_CONFIG       0x00U
 #define XY_INA22X_REG_ADC_CONFIG   0x01U
 #define XY_INA22X_REG_SHUNT_CAL    0x02U
+#define XY_INA22X_REG_SHUNT_TEMPCO 0x03U
 #define XY_INA22X_REG_VSHUNT       0x04U
 #define XY_INA22X_REG_VBUS         0x05U
 #define XY_INA22X_REG_DIETEMP      0x06U
@@ -46,6 +47,7 @@ typedef struct {
     uint32_t shunt_resistor_uohm;
     uint32_t current_lsb_ua;
     uint16_t adc_config;
+    uint16_t shunt_tempco_ppm_per_c;
     xy_ina22x_shunt_range_t shunt_range;
 } xy_ina22x_config_t;
 

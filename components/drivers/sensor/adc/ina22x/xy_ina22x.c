@@ -45,7 +45,8 @@ int xy_ina22x_core_config_valid(const xy_ina22x_config_t *config, uint16_t *shun
     uint64_t calibration;
 
     if (config == NULL || shunt_cal == NULL || config->shunt_resistor_uohm == 0U ||
-        config->current_lsb_ua == 0U || config->shunt_range > XY_INA22X_SHUNT_RANGE_40_96_MV ||
+        config->current_lsb_ua == 0U || config->shunt_tempco_ppm_per_c > 0x3FFFU ||
+        config->shunt_range > XY_INA22X_SHUNT_RANGE_40_96_MV ||
         (config->adc_config & XY_INA22X_ADC_MODE_MASK) != XY_INA22X_ADC_MODE_CONT_ALL) {
         return XY_DEVICE_INVALID_PARAM;
     }
@@ -79,8 +80,11 @@ int xy_ina22x_core_configure(xy_ina22x_core_t *core)
     result = core->transport.write16(core->transport.context, XY_INA22X_REG_ADC_CONFIG,
                                      core->config.adc_config);
     if (result != XY_DEVICE_OK) return result;
-    return core->transport.write16(core->transport.context, XY_INA22X_REG_SHUNT_CAL,
-                                   core->shunt_cal);
+    result = core->transport.write16(core->transport.context, XY_INA22X_REG_SHUNT_CAL,
+                                     core->shunt_cal);
+    if (result != XY_DEVICE_OK) return result;
+    return core->transport.write16(core->transport.context, XY_INA22X_REG_SHUNT_TEMPCO,
+                                   core->config.shunt_tempco_ppm_per_c);
 }
 
 int xy_ina22x_core_read(xy_ina22x_core_t *core)
