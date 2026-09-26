@@ -82,7 +82,9 @@ xy_error_t xy_qma6100p_configure_data_ready_interrupts(xy_qma6100p_t *dev,
         (int1_enable | int2_enable) == 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    result = qma_write(dev, XY_QMA6100P_REG_INT_PIN_CONFIG, 0x05U);
+    result = qma_write(dev, XY_QMA6100P_REG_INT_ENABLE1, 0U);
+    if (result == XY_DEVICE_OK)
+        result = qma_write(dev, XY_QMA6100P_REG_INT_PIN_CONFIG, 0x05U);
     if (result == XY_DEVICE_OK) result = qma_write(dev, XY_QMA6100P_REG_INT_CONFIG, 0x0CU);
     if (result == XY_DEVICE_OK)
         result = qma_write(dev, XY_QMA6100P_REG_INT_MAP1,

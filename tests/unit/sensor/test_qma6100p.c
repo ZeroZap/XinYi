@@ -9,6 +9,8 @@ static size_t writes;
 static uint32_t delayed;
 static xy_error_t read_result;
 static uint8_t fail_read_reg;
+static xy_error_t write_result;
+static uint8_t fail_write_reg;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
                               uint32_t timeout_ms)
@@ -38,6 +40,10 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg,
                                    const uint8_t *data, size_t length)
 {
     TEST_ASSERT_NOT_NULL(dev);
+    if (write_result != XY_DEVICE_OK && reg == fail_write_reg) {
+        writes++;
+        return write_result;
+    }
     memcpy(&regs[reg], data, length);
     writes++;
     return XY_DEVICE_OK;
@@ -52,6 +58,8 @@ void setUp(void)
     reads = writes = delayed = 0U;
     read_result = XY_DEVICE_OK;
     fail_read_reg = 0U;
+    write_result = XY_DEVICE_OK;
+    fail_write_reg = 0U;
 }
 void tearDown(void) {}
 
@@ -151,6 +159,23 @@ static void test_interrupt_config_readback_is_staged(void)
     TEST_ASSERT_EQUAL_HEX8(0x0CU, config.interrupt_config);
 }
 
+static void test_interrupt_reconfigure_failure_leaves_source_disabled(void)
+{
+    xy_qma6100p_t dev;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
+    write_result = XY_DEVICE_TIMEOUT;
+    fail_write_reg = XY_QMA6100P_REG_INT_MAP3;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 0U));
+    TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_ENABLE1]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -160,5 +185,6 @@ int main(void)
     RUN_TEST(test_read_decodes_signed_14_bit_data);
     RUN_TEST(test_interrupt_profile_maps_both_pins);
     RUN_TEST(test_interrupt_config_readback_is_staged);
+    RUN_TEST(test_interrupt_reconfigure_failure_leaves_source_disabled);
     return UNITY_END();
 }
