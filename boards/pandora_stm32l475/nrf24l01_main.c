@@ -76,13 +76,13 @@ static xy_hal_error_t nrf_transfer(void *spi, const uint8_t *tx, uint8_t *rx,
 static xy_hal_error_t nrf_csn(void *arg, uint8_t level)
 {
     (void)arg;
-    return xy_hal_gpio_write(GPIOE, 12U, level);
+    return xy_hal_gpio_write(GPIOD, 6U, level);
 }
 
 static xy_hal_error_t nrf_ce(void *arg, uint8_t level)
 {
     (void)arg;
-    return xy_hal_gpio_write(GPIOE, 11U, level);
+    return xy_hal_gpio_write(GPIOD, 5U, level);
 }
 
 static void nrf_bus_init(void)
@@ -104,13 +104,13 @@ static void nrf_bus_init(void)
         .is_master = 1U,
     };
     __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
     __HAL_RCC_SPI2_CLK_ENABLE();
-    if (xy_hal_gpio_init(GPIOE, 11U, &output) != XY_HAL_OK ||
-        xy_hal_gpio_init(GPIOE, 12U, &output) != XY_HAL_OK ||
-        xy_hal_gpio_write(GPIOE, 11U, 0U) != XY_HAL_OK ||
-        xy_hal_gpio_write(GPIOE, 12U, 1U) != XY_HAL_OK ||
-        xy_hal_gpio_init(GPIOE, 10U, &input) != XY_HAL_OK ||
+    if (xy_hal_gpio_init(GPIOD, 5U, &output) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOD, 6U, &output) != XY_HAL_OK ||
+        xy_hal_gpio_write(GPIOD, 5U, 0U) != XY_HAL_OK ||
+        xy_hal_gpio_write(GPIOD, 6U, 1U) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOD, 4U, &input) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOB, 13U, &alternate) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOB, 14U, &alternate) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOB, 15U, &alternate) != XY_HAL_OK) stop();
@@ -138,7 +138,7 @@ int main(void)
         uart_text("NRF24_NOT_DETECTED error=");
         uart_error(result);
         uart_text(" irq=");
-        uart_text(xy_hal_gpio_read(GPIOE, 10U) == 0 ? "LOW" : "HIGH");
+        uart_text(xy_hal_gpio_read(GPIOD, 4U) == 0 ? "LOW" : "HIGH");
         uart_text("\r\n");
         stop();
     }
@@ -149,7 +149,7 @@ int main(void)
     uart_text(" rf_ch=0x"); uart_hex8(radio.rf_ch);
     uart_text(" rf_setup=0x"); uart_hex8(radio.rf_setup);
     uart_text(" fifo=0x"); uart_hex8(radio.fifo_status);
-    uart_text(" irq="); uart_text(xy_hal_gpio_read(GPIOE, 10U) == 0 ? "LOW" : "HIGH");
+    uart_text(" irq="); uart_text(xy_hal_gpio_read(GPIOD, 4U) == 0 ? "LOW" : "HIGH");
     uart_text("\r\nNRF24_PROBE_DONE\r\n");
     for (;;) xy_hal_delay_ms(1000U);
 }
