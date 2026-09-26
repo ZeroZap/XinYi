@@ -87,6 +87,22 @@ int xy_ina22x_core_configure(xy_ina22x_core_t *core)
                                    core->config.shunt_tempco_ppm_per_c);
 }
 
+int xy_ina22x_core_alert_register(xy_ina22x_alert_limit_t limit, uint8_t *reg)
+{
+    static const uint8_t registers[XY_INA22X_ALERT_LIMIT_COUNT] = {
+        XY_INA22X_REG_SHUNT_OV_LIMIT, XY_INA22X_REG_SHUNT_UV_LIMIT,
+        XY_INA22X_REG_BUS_OV_LIMIT, XY_INA22X_REG_BUS_UV_LIMIT,
+        XY_INA22X_REG_TEMP_LIMIT, XY_INA22X_REG_POWER_LIMIT,
+    };
+
+    if (reg == NULL || limit < XY_INA22X_ALERT_SHUNT_OVER ||
+        limit >= XY_INA22X_ALERT_LIMIT_COUNT) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    *reg = registers[limit];
+    return XY_DEVICE_OK;
+}
+
 int xy_ina22x_core_read(xy_ina22x_core_t *core)
 {
     uint8_t vshunt[3];
@@ -155,4 +171,31 @@ int xy_ina22x_core_shutdown(xy_ina22x_core_t *core)
         return XY_DEVICE_INVALID_PARAM;
     }
     return core->transport.write16(core->transport.context, XY_INA22X_REG_ADC_CONFIG, 0U);
+}
+
+int xy_ina22x_core_set_alert_limit(xy_ina22x_core_t *core, xy_ina22x_alert_limit_t limit,
+                                   uint16_t raw_value)
+{
+    uint8_t reg;
+
+    if (core == NULL || core->initialized == 0U || core->transport.write16 == NULL ||
+        core->transport.context == NULL || xy_ina22x_core_alert_register(limit, &reg) != XY_DEVICE_OK) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    return core->transport.write16(core->transport.context, reg, raw_value);
+}
+
+int xy_ina22x_core_get_diagnostic(xy_ina22x_core_t *core, uint16_t *diagnostic)
+{
+    uint8_t data[2];
+    int result;
+
+    if (core == NULL || core->initialized == 0U || core->transport.read == NULL ||
+        core->transport.context == NULL || diagnostic == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = core->transport.read(core->transport.context, XY_INA22X_REG_DIAG_ALRT, data,
+                                  sizeof(data));
+    if (result == XY_DEVICE_OK) *diagnostic = be16(data);
+    return result;
 }

@@ -22,6 +22,9 @@ int xy_ina228_init(xy_ina228_t *dev, void *i2c_handle, uint8_t address,
                    const xy_ina22x_config_t *config);
 int xy_ina228_deinit(xy_ina228_t *dev);
 int xy_ina228_read(xy_ina228_t *dev, xy_ina22x_sample_t *sample);
+int xy_ina228_set_alert_limit(xy_ina228_t *dev, xy_ina22x_alert_limit_t limit,
+                              uint16_t raw_value);
+int xy_ina228_get_diagnostic(xy_ina228_t *dev, uint16_t *diagnostic);
 
 #ifdef __cplusplus
 }

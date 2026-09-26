@@ -129,3 +129,16 @@ int xy_ina228_read(xy_ina228_t *dev, xy_ina22x_sample_t *sample)
     if (result == XY_DEVICE_OK) *sample = dev->core.sample;
     return result;
 }
+
+int xy_ina228_set_alert_limit(xy_ina228_t *dev, xy_ina22x_alert_limit_t limit,
+                              uint16_t raw_value)
+{
+    if (!ina228_ready(dev)) return XY_DEVICE_INVALID_PARAM;
+    return xy_ina22x_core_set_alert_limit(&dev->core, limit, raw_value);
+}
+
+int xy_ina228_get_diagnostic(xy_ina228_t *dev, uint16_t *diagnostic)
+{
+    if (!ina228_ready(dev)) return XY_DEVICE_INVALID_PARAM;
+    return xy_ina22x_core_get_diagnostic(&dev->core, diagnostic);
+}

@@ -80,4 +80,20 @@ static void test_failed_reinit_preserves_live_owner(void)
     TEST_ASSERT_EQUAL_MEMORY(&old, &d, sizeof(d));
 }
 
-int main(void){UNITY_BEGIN();RUN_TEST(test_init_spi_frames);RUN_TEST(test_read_converts_signed_values);RUN_TEST(test_short_transfer_and_error_preserve_output);RUN_TEST(test_identity_deinit_and_invalid_cs);RUN_TEST(test_init_failure_clears_owner);RUN_TEST(test_config_rejects_noncontinuous_accumulator_mode);RUN_TEST(test_failed_reinit_preserves_live_owner);return UNITY_END();}
+static void test_alert_limit_and_diagnostic_spi_frames(void)
+{
+    xy_ina229_t dev;
+    uint16_t diagnostic = 0xA5A5U;
+
+    init_ok(&dev);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina229_set_alert_limit(&dev, XY_INA22X_ALERT_LIMIT_COUNT, 1U));
+    qw(XY_INA22X_REG_SHUNT_UV_LIMIT, 0x4321U, 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_ina229_set_alert_limit(&dev, XY_INA22X_ALERT_SHUNT_UNDER, 0x4321U));
+    qr(XY_INA22X_REG_DIAG_ALRT, XY_INA22X_DIAG_MEMSTAT | XY_INA22X_DIAG_SHNTUL, 2, 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ina229_get_diagnostic(&dev, &diagnostic));
+    TEST_ASSERT_EQUAL_HEX16(XY_INA22X_DIAG_MEMSTAT | XY_INA22X_DIAG_SHNTUL, diagnostic);
+}
+
+int main(void){UNITY_BEGIN();RUN_TEST(test_init_spi_frames);RUN_TEST(test_read_converts_signed_values);RUN_TEST(test_short_transfer_and_error_preserve_output);RUN_TEST(test_identity_deinit_and_invalid_cs);RUN_TEST(test_init_failure_clears_owner);RUN_TEST(test_config_rejects_noncontinuous_accumulator_mode);RUN_TEST(test_failed_reinit_preserves_live_owner);RUN_TEST(test_alert_limit_and_diagnostic_spi_frames);return UNITY_END();}

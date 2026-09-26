@@ -18,6 +18,9 @@ int xy_ina229_init(xy_ina229_t *dev, void *spi_handle, void *cs_pin,
                    const xy_ina22x_config_t *config);
 int xy_ina229_deinit(xy_ina229_t *dev);
 int xy_ina229_read(xy_ina229_t *dev, xy_ina22x_sample_t *sample);
+int xy_ina229_set_alert_limit(xy_ina229_t *dev, xy_ina22x_alert_limit_t limit,
+                              uint16_t raw_value);
+int xy_ina229_get_diagnostic(xy_ina229_t *dev, uint16_t *diagnostic);
 
 #ifdef __cplusplus
 }

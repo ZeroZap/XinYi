@@ -158,4 +158,26 @@ static void test_tempco_write_failure_stops_init(void)
     TEST_ASSERT_EQUAL_UINT(4U, iw);
 }
 
-int main(void){UNITY_BEGIN();RUN_TEST(test_init_identity_and_config);RUN_TEST(test_read_converts_and_stages);RUN_TEST(test_config_rejects_calibration_overflow);RUN_TEST(test_config_rejects_noncontinuous_accumulator_mode);RUN_TEST(test_config_rejects_invalid_tempco_without_io);RUN_TEST(test_tempco_write_failure_stops_init);RUN_TEST(test_read_failure_preserves_output);RUN_TEST(test_invalid_identity_and_deinit_retry);RUN_TEST(test_init_failure_clears_owner);RUN_TEST(test_failed_reinit_preserves_live_owner);RUN_TEST(test_diagnostic_faults_reject_complete_sample);return UNITY_END();}
+static void test_alert_limit_and_diagnostic_contract(void)
+{
+    xy_ina228_t dev;
+    uint16_t diagnostic = 0xA5A5U;
+
+    init_ok(&dev);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ina228_set_alert_limit(&dev, XY_INA22X_ALERT_LIMIT_COUNT, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_ina228_get_diagnostic(&dev, NULL));
+
+    qwrite(XY_INA22X_REG_BUS_OV_LIMIT, 0x1234U, 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_ina228_set_alert_limit(&dev, XY_INA22X_ALERT_BUS_OVER, 0x1234U));
+    qread(XY_INA22X_REG_DIAG_ALRT, XY_INA22X_DIAG_MEMSTAT | XY_INA22X_DIAG_BUSOL, 2, 0);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ina228_get_diagnostic(&dev, &diagnostic));
+    TEST_ASSERT_EQUAL_HEX16(XY_INA22X_DIAG_MEMSTAT | XY_INA22X_DIAG_BUSOL, diagnostic);
+
+    qread(XY_INA22X_REG_DIAG_ALRT, 0U, 2, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ina228_get_diagnostic(&dev, &diagnostic));
+    TEST_ASSERT_EQUAL_HEX16(XY_INA22X_DIAG_MEMSTAT | XY_INA22X_DIAG_BUSOL, diagnostic);
+}
+
+int main(void){UNITY_BEGIN();RUN_TEST(test_init_identity_and_config);RUN_TEST(test_read_converts_and_stages);RUN_TEST(test_config_rejects_calibration_overflow);RUN_TEST(test_config_rejects_noncontinuous_accumulator_mode);RUN_TEST(test_config_rejects_invalid_tempco_without_io);RUN_TEST(test_tempco_write_failure_stops_init);RUN_TEST(test_alert_limit_and_diagnostic_contract);RUN_TEST(test_read_failure_preserves_output);RUN_TEST(test_invalid_identity_and_deinit_retry);RUN_TEST(test_init_failure_clears_owner);RUN_TEST(test_failed_reinit_preserves_live_owner);RUN_TEST(test_diagnostic_faults_reject_complete_sample);return UNITY_END();}
