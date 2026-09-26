@@ -286,12 +286,11 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
         next.fault = XY_CHARGER_DEVICE_FAULT_BAT_OVP;
     } else if ((stat1 & BQ25620_FAULT_THERMAL) != 0U) {
         next.fault = XY_CHARGER_DEVICE_FAULT_THERMAL;
-    } else if ((stat1 & BQ25620_FAULT_TS_MASK) == 1U) {
-        next.fault = XY_CHARGER_DEVICE_FAULT_COLD;
-    } else if ((stat1 & BQ25620_FAULT_TS_MASK) == 2U) {
+    } else if ((stat1 & BQ25620_FAULT_TS_MASK) == BQ25620_FAULT_TS_HOT) {
         next.fault = XY_CHARGER_DEVICE_FAULT_HOT;
     } else if ((stat1 & (BQ25620_FAULT_SYS | BQ25620_FAULT_OTG)) != 0U ||
-               (stat1 & BQ25620_FAULT_TS_MASK) == 7U) {
+               (stat1 & BQ25620_FAULT_TS_MASK) == BQ25620_FAULT_TS_COLD_AMBIGUOUS ||
+               (stat1 & BQ25620_FAULT_TS_MASK) == BQ25620_FAULT_TS_BIAS) {
         next.fault = XY_CHARGER_DEVICE_FAULT_UNKNOWN;
     } else {
         next.fault = XY_CHARGER_DEVICE_FAULT_NONE;

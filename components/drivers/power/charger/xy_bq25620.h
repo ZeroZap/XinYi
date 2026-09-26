@@ -66,6 +66,10 @@ typedef enum {
 #define BQ25620_FAULT_OTG           (0x01U << 4) /**< OTG fault */
 #define BQ25620_FAULT_THERMAL       (0x01U << 3) /**< Thermal shutdown */
 #define BQ25620_FAULT_TS_MASK       0x07U        /**< TS_STAT[2:0] */
+#define BQ25620_FAULT_TS_NORMAL     0x00U        /**< TS normal */
+#define BQ25620_FAULT_TS_COLD_AMBIGUOUS 0x01U   /**< Cold/OTG cold/TS rail unavailable */
+#define BQ25620_FAULT_TS_HOT        0x02U        /**< Hot/OTG hot */
+#define BQ25620_FAULT_TS_BIAS       0x07U        /**< TS bias reference fault */
 
 /* Charge Control 0 (0x14) */
 #define BQ25620_VRECHG              (0x01U << 0) /**< 0=100mV, 1=200mV */

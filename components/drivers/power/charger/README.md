@@ -43,7 +43,8 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   ITERM 10 mA/bit, VRECHG 100/200 mV); probe reads the datasheet-defined Part Information register
   at `0x38` and accepts only PN=`0` (BQ25620), not the adjacent BQ25622 identity. VBUS fault
   is reported without claiming OVP specifically because the bit also covers the sleep comparator;
-  boost OTG status is not reported as input `power_good`.
+  boost OTG status is not reported as input `power_good`. Likewise, `TS_STAT=001` is reported as
+  unknown rather than cold because the same code also means OTG cold or unavailable TS resistor-rail power.
   真实充电、热保护、故障恢复和电池安全仍为 `hardware-pending`。
 - Host 测试或 PC 编译不构成硬件验证、充电安全批准或 production-ready 声明。
 

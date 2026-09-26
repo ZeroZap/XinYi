@@ -349,6 +349,26 @@ static void test_unknown_ts_state_reports_unknown_fault(void)
     TEST_ASSERT_FALSE(status.done);
 }
 
+static void test_ambiguous_ts_cold_state_fails_closed(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_device_status_t status;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
+    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | 0x03U;
+    g_regs[BQ25620_REG_CHG_STAT_1] = 0x01U;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, (160U / BQ25620_ICHG_STEP_mA) << 6U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_3, (4200U / BQ25620_VREG_STEP_mV) << 3U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_4, (500U / BQ25620_ILIM_STEP_mA) << 4U);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_UNKNOWN, status.fault);
+    TEST_ASSERT_FALSE(status.charging);
+    TEST_ASSERT_FALSE(status.done);
+}
+
 static void test_status_accepts_datasheet_maximum_setpoint_encodings(void)
 {
     static const struct {
@@ -942,6 +962,7 @@ int main(void)
     RUN_TEST(test_unknown_status_codes_fail_closed);
     RUN_TEST(test_vbus_status_distinguishes_input_from_otg);
     RUN_TEST(test_unknown_ts_state_reports_unknown_fault);
+    RUN_TEST(test_ambiguous_ts_cold_state_fails_closed);
     RUN_TEST(test_known_fault_overrides_done_state);
     RUN_TEST(test_safety_timer_status_reports_charge_timeout);
     RUN_TEST(test_safety_status_read_failure_preserves_caller_status);
