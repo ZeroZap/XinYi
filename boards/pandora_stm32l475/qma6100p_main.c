@@ -51,6 +51,7 @@ int main(void)
     uint8_t address=0U;
     uint8_t id=0U;
     xy_error_t result;
+    xy_qma6100p_interrupt_config_t irq_config;
     if(xy_hal_sys_init()!=XY_HAL_OK||pandora_platform_startup()!=0)stop();
     platform_init();
     text("PANDORA QMA6100P I2C2 PROBE\r\nFIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
@@ -61,6 +62,10 @@ int main(void)
     text("QMA6100P_ADDR=0x");hex(address);text(" CHIP_ID=0x");hex(id);text("\r\n");
     result=xy_qma6100p_init(&qma,&i2c2,address);if(result!=XY_DEVICE_OK)fail("QMA6100P_INIT_ERROR",result);
     result=xy_qma6100p_configure_data_ready_interrupts(&qma,1U,1U);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_CONFIG_ERROR",result);
+    result=xy_qma6100p_read_interrupt_config(&qma,&irq_config);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_READBACK_ERROR",result);
+    text("QMA6100P_IRQ_CONFIG en=0x");hex(irq_config.enable1);text(" int1_map=0x");hex(irq_config.map_int1);
+    text(" int2_map=0x");hex(irq_config.map_int2);text(" pin=0x");hex(irq_config.pin_config);
+    text(" cfg=0x");hex(irq_config.interrupt_config);text("\r\n");
     text("QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=HIGH\r\n");
     for(uint32_t n=0;n<40U;n++){
         xy_qma6100p_raw_t raw;xy_qma6100p_accel_t a;uint8_t status=0U;

@@ -42,6 +42,14 @@ typedef struct {
 } xy_qma6100p_accel_t;
 
 typedef struct {
+    uint8_t enable1;
+    uint8_t map_int1;
+    uint8_t map_int2;
+    uint8_t pin_config;
+    uint8_t interrupt_config;
+} xy_qma6100p_interrupt_config_t;
+
+typedef struct {
     xy_i2c_device_t i2c_dev;
     xy_qma6100p_raw_t raw;
     uint8_t address;
@@ -56,6 +64,8 @@ xy_error_t xy_qma6100p_configure_data_ready_interrupts(xy_qma6100p_t *dev,
                                                        uint8_t int1_enable,
                                                        uint8_t int2_enable);
 xy_error_t xy_qma6100p_read_interrupt_status(xy_qma6100p_t *dev, uint8_t *status);
+xy_error_t xy_qma6100p_read_interrupt_config(xy_qma6100p_t *dev,
+                                             xy_qma6100p_interrupt_config_t *config);
 xy_error_t xy_qma6100p_read_raw(xy_qma6100p_t *dev, xy_qma6100p_raw_t *raw);
 xy_error_t xy_qma6100p_read_accel(xy_qma6100p_t *dev, xy_qma6100p_accel_t *accel);
 

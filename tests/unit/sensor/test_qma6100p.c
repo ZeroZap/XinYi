@@ -109,6 +109,25 @@ static void test_interrupt_profile_maps_both_pins(void)
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_ENABLE1]);
 }
 
+static void test_interrupt_config_readback_is_staged(void)
+{
+    xy_qma6100p_t dev;
+    xy_qma6100p_interrupt_config_t config;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
+    memset(&config, 0xA5, sizeof(config));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_read_interrupt_config(&dev, &config));
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, config.enable1);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, config.map_int1);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, config.map_int2);
+    TEST_ASSERT_EQUAL_HEX8(0x05U, config.pin_config);
+    TEST_ASSERT_EQUAL_HEX8(0x0CU, config.interrupt_config);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -116,5 +135,6 @@ int main(void)
     RUN_TEST(test_init_rejects_wrong_identity);
     RUN_TEST(test_read_decodes_signed_14_bit_data);
     RUN_TEST(test_interrupt_profile_maps_both_pins);
+    RUN_TEST(test_interrupt_config_readback_is_staged);
     return UNITY_END();
 }

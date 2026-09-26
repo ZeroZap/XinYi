@@ -109,6 +109,26 @@ xy_error_t xy_qma6100p_read_interrupt_status(xy_qma6100p_t *dev, uint8_t *status
     return result;
 }
 
+xy_error_t xy_qma6100p_read_interrupt_config(xy_qma6100p_t *dev,
+                                             xy_qma6100p_interrupt_config_t *config)
+{
+    xy_qma6100p_interrupt_config_t next;
+    xy_error_t result;
+
+    if (!qma_ready(dev) || config == NULL) return XY_DEVICE_INVALID_PARAM;
+    result = qma_read(dev, XY_QMA6100P_REG_INT_ENABLE1, &next.enable1, 1U);
+    if (result == XY_DEVICE_OK)
+        result = qma_read(dev, XY_QMA6100P_REG_INT_MAP1, &next.map_int1, 1U);
+    if (result == XY_DEVICE_OK)
+        result = qma_read(dev, XY_QMA6100P_REG_INT_MAP3, &next.map_int2, 1U);
+    if (result == XY_DEVICE_OK)
+        result = qma_read(dev, XY_QMA6100P_REG_INT_PIN_CONFIG, &next.pin_config, 1U);
+    if (result == XY_DEVICE_OK)
+        result = qma_read(dev, XY_QMA6100P_REG_INT_CONFIG, &next.interrupt_config, 1U);
+    if (result == XY_DEVICE_OK) *config = next;
+    return result;
+}
+
 xy_error_t xy_qma6100p_read_raw(xy_qma6100p_t *dev, xy_qma6100p_raw_t *raw)
 {
     uint8_t data[6];
