@@ -124,7 +124,10 @@ int main(void)
     xy_hal_error_t result;
     uint8_t retransmits = 0U;
     static const uint8_t peer_address[5] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
-    static const uint8_t message[] = "PANDORA NRF24 TEST";
+    static const uint8_t message[32] = {
+        'P', 'A', 'N', 'D', 'O', 'R', 'A', ' ', 'N', 'R', 'F', '2', '4', ' ', 'T', 'E',
+        'S', 'T', '\r', '\n', 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+    };
     const xy_nrf24l01_config_t config = {
         .spi = &spi2,
         .transfer = nrf_transfer,
@@ -158,7 +161,7 @@ int main(void)
     result = xy_nrf24l01_configure_ptx(&radio, 0U, peer_address, 1U, 1U);
     if (result == XY_HAL_OK) {
         xy_hal_delay_ms(5U);
-        result = xy_nrf24l01_send(&radio, message, sizeof(message) - 1U, &retransmits);
+        result = xy_nrf24l01_send(&radio, message, sizeof(message), &retransmits);
     }
     if (result == XY_HAL_OK) {
         uart_text("NRF24_TX_ACK_OK retries="); uart_hex8(retransmits);
