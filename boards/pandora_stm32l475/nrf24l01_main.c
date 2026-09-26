@@ -123,6 +123,8 @@ int main(void)
     xy_nrf24l01_t radio;
     xy_hal_error_t result;
     uint8_t retransmits = 0U;
+    uint8_t rx_payload[32];
+    size_t rx_length = 0U;
     static const uint8_t peer_address[5] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
     static const uint8_t message[32] = {
         'P', 'A', 'N', 'D', 'O', 'R', 'A', ' ', 'N', 'R', 'F', '2', '4', ' ', 'T', 'E',
@@ -172,5 +174,27 @@ int main(void)
         uart_text("\r\n");
     }
     uart_text("NRF24_PROBE_DONE\r\n");
+    result = xy_nrf24l01_configure_prx(&radio, 0U, peer_address, sizeof(rx_payload), 1U, 1U);
+    if (result != XY_HAL_OK) {
+        uart_text("NRF24_RX_CONFIG_ERROR error="); uart_error(result); uart_text("\r\n");
+        stop();
+    }
+    uart_text("NRF24_RX_READY payload_width=32 timeout_ms=30000\r\n");
+    for (uint32_t elapsed = 0U; elapsed < 30000U; elapsed += 10U) {
+        result = xy_nrf24l01_receive(&radio, rx_payload, sizeof(rx_payload), &rx_length);
+        if (result == XY_HAL_OK) {
+            uart_text("NRF24_RX_OK length="); uart_hex8((uint8_t)rx_length);
+            uart_text(" payload_hex=");
+            for (size_t i = 0U; i < rx_length; ++i) uart_hex8(rx_payload[i]);
+            uart_text("\r\n");
+            for (;;) xy_hal_delay_ms(1000U);
+        }
+        if (result != XY_HAL_ERROR_NOT_FOUND) {
+            uart_text("NRF24_RX_ERROR error="); uart_error(result); uart_text("\r\n");
+            stop();
+        }
+        xy_hal_delay_ms(10U);
+    }
+    uart_text("NRF24_RX_TIMEOUT\r\n");
     for (;;) xy_hal_delay_ms(1000U);
 }
