@@ -35,7 +35,7 @@ static void init_ok(xy_ina228_t*d){int bus;qread(0x3E,0x5449,2,0);qread(0x3F,0x2
 static void test_init_identity_and_config(void)
 { xy_ina228_t d;int bus;xy_ina22x_config_t c=cfg();qread(0x3E,0x5449,2,0);qread(0x3F,0x2282,2,0);qwrite(0,0,0);qwrite(1,0xFB68,0);qwrite(2,1310,0);TEST_ASSERT_EQUAL_INT(0,xy_ina228_init(&d,&bus,0x4F,&c));TEST_ASSERT_TRUE(d.initialized);TEST_ASSERT_EQUAL_UINT(3,iw); }
 static void test_read_converts_and_stages(void)
-{ xy_ina228_t d;xy_ina22x_sample_t s;init_ok(&d);qread(4,0x001000,3,0);qread(5,0x010000,3,0);qread(6,0x0100,2,0);qread(7,0x002000,3,0);qread(8,10,3,0);qread(9,20,5,0);qread(10,30,5,0);TEST_ASSERT_EQUAL_INT(0,xy_ina228_read(&d,&s));TEST_ASSERT_FLOAT_WITHIN(0.001,80.0,s.shunt_voltage_uv);TEST_ASSERT_FLOAT_WITHIN(0.001,800.0,s.bus_voltage_mv);TEST_ASSERT_FLOAT_WITHIN(0.001,51.2,s.current_ma);TEST_ASSERT_FLOAT_WITHIN(0.001,3.2,s.power_mw);TEST_ASSERT_FLOAT_WITHIN(0.001,102.4,s.energy_mj);TEST_ASSERT_FLOAT_WITHIN(0.001,48.0,s.charge_mc);TEST_ASSERT_EQUAL_UINT32(42,s.timestamp); }
+{ xy_ina228_t d;xy_ina22x_sample_t s;init_ok(&d);qread(4,0x001000,3,0);qread(5,0x010000,3,0);qread(6,0x0100,2,0);qread(7,0x002000,3,0);qread(8,10,3,0);qread(9,20,5,0);qread(10,30,5,0);qread(11,1,2,0);TEST_ASSERT_EQUAL_INT(0,xy_ina228_read(&d,&s));TEST_ASSERT_FLOAT_WITHIN(0.001,80.0,s.shunt_voltage_uv);TEST_ASSERT_FLOAT_WITHIN(0.001,800.0,s.bus_voltage_mv);TEST_ASSERT_FLOAT_WITHIN(0.001,51.2,s.current_ma);TEST_ASSERT_FLOAT_WITHIN(0.001,3.2,s.power_mw);TEST_ASSERT_FLOAT_WITHIN(0.001,102.4,s.energy_mj);TEST_ASSERT_FLOAT_WITHIN(0.001,48.0,s.charge_mc);TEST_ASSERT_EQUAL_UINT32(42,s.timestamp); }
 static void test_config_rejects_calibration_overflow(void)
 { xy_ina22x_config_t c={UINT32_MAX,UINT32_MAX,XY_INA22X_ADC_CONFIG_DEFAULT,XY_INA22X_SHUNT_RANGE_163_84_MV};uint16_t cal=0xA5A5U;TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,xy_ina22x_core_config_valid(&c,&cal));TEST_ASSERT_EQUAL_HEX16(0xA5A5U,cal); }
 static void test_config_rejects_noncontinuous_accumulator_mode(void)
@@ -83,4 +83,26 @@ static void test_init_failure_clears_owner(void)
     TEST_ASSERT_EQUAL_MEMORY(&(xy_ina228_t){0}, &d, sizeof(d));
 }
 
-int main(void){UNITY_BEGIN();RUN_TEST(test_init_identity_and_config);RUN_TEST(test_read_converts_and_stages);RUN_TEST(test_config_rejects_calibration_overflow);RUN_TEST(test_config_rejects_noncontinuous_accumulator_mode);RUN_TEST(test_read_failure_preserves_output);RUN_TEST(test_invalid_identity_and_deinit_retry);RUN_TEST(test_init_failure_clears_owner);return UNITY_END();}
+static void test_diagnostic_faults_reject_complete_sample(void)
+{
+    xy_ina228_t d;
+    xy_ina22x_sample_t output;
+    xy_ina22x_sample_t cache;
+    const uint16_t diagnostics[] = {0U, XY_INA22X_DIAG_MATHOF | XY_INA22X_DIAG_MEMSTAT,
+                                    XY_INA22X_DIAG_ENERGYOF | XY_INA22X_DIAG_MEMSTAT,
+                                    XY_INA22X_DIAG_CHARGEOF | XY_INA22X_DIAG_MEMSTAT};
+
+    init_ok(&d);
+    memset(&output, 0xA5, sizeof(output));
+    cache = d.core.sample;
+    for (size_t i = 0U; i < sizeof(diagnostics) / sizeof(diagnostics[0]); ++i) {
+        qread(4, 0, 3, 0); qread(5, 0, 3, 0); qread(6, 0, 2, 0);
+        qread(7, 0, 3, 0); qread(8, 0, 3, 0); qread(9, 0, 5, 0);
+        qread(10, 0, 5, 0); qread(11, diagnostics[i], 2, 0);
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_ina228_read(&d, &output));
+        TEST_ASSERT_EQUAL_MEMORY(&cache, &d.core.sample, sizeof(cache));
+        TEST_ASSERT_EQUAL_UINT8(0xA5U, ((uint8_t *)&output)[0]);
+    }
+}
+
+int main(void){UNITY_BEGIN();RUN_TEST(test_init_identity_and_config);RUN_TEST(test_read_converts_and_stages);RUN_TEST(test_config_rejects_calibration_overflow);RUN_TEST(test_config_rejects_noncontinuous_accumulator_mode);RUN_TEST(test_read_failure_preserves_output);RUN_TEST(test_invalid_identity_and_deinit_retry);RUN_TEST(test_init_failure_clears_owner);RUN_TEST(test_diagnostic_faults_reject_complete_sample);return UNITY_END();}

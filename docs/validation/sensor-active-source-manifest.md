@@ -368,7 +368,9 @@ INA228 (I2C) and INA229 (SPI) are independent canonical owners and do not alias 
 register protocol. They share only a transport-neutral INA22x conversion/configuration core for 16/20/40-bit
 registers, SHUNT_CAL, current, power, energy and charge scaling. Each owner validates TI manufacturer/die
 identity, owns its nested Device transport lifecycle, propagates the first transport error and stages a complete
-sample before publication. INA229 additionally rejects short SPI frames. Host fake-transport evidence covers
+sample before publication. A final DIAG_ALRT read rejects memory-checksum failure, math overflow, and
+ENERGY/CHARGE overflow without publishing either caller output or cache. INA229 additionally rejects short
+SPI frames. Host fake-transport evidence covers
 identity, configuration, signed conversion, staged output and teardown retry. Because the public sample always
 includes accumulated ENERGY and CHARGE, initialization accepts only MODE=`0xF` continuous bus + shunt +
 temperature conversion; TI documents accumulator values as invalid in triggered modes. Electrical timing,
