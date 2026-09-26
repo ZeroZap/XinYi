@@ -11,11 +11,13 @@ sys.path.insert(0, str(ROOT / "boards" / "pandora_stm32l475"))
 from validate_qma6100p_capture import analyze_capture  # noqa: E402
 
 COMMIT = "1" * 40
+IRQ_CONFIG = "QMA6100P_IRQ_CONFIG en=0x10 int1_map=0x10 int2_map=0x10 pin=0x05 cfg=0x0C"
 HEADER = "\n".join(
     (
         "PANDORA QMA6100P I2C2 PROBE",
         f"FIRMWARE_COMMIT {COMMIT}",
         "QMA6100P_ADDR=0x12 CHIP_ID=0x90",
+        IRQ_CONFIG,
         "QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=HIGH",
     )
 )
@@ -62,6 +64,16 @@ class PandoraQma6100pCaptureContract(unittest.TestCase):
             result = analyze_capture(payload, COMMIT)
             self.assertEqual(result["status"], "QMA6100P_VALIDATION_FAILED")
             self.assertTrue(result["failures"])
+
+    def test_rejects_missing_or_wrong_interrupt_config_readback(self) -> None:
+        for payload in (
+            valid_capture().replace(IRQ_CONFIG.encode(), b""),
+            valid_capture().replace(b"int2_map=0x10", b"int2_map=0x00"),
+            valid_capture().replace(b"pin=0x05", b"pin=0x04"),
+        ):
+            result = analyze_capture(payload, COMMIT)
+            self.assertEqual(result["status"], "QMA6100P_VALIDATION_FAILED")
+            self.assertTrue(any("interrupt configuration" in failure for failure in result["failures"]))
 
     def test_rejects_missing_malformed_duplicate_or_out_of_order_samples(self) -> None:
         payload = valid_capture().replace(sample(20).encode(), sample(19).encode())

@@ -10,6 +10,10 @@ import re
 BANNER = "PANDORA QMA6100P I2C2 PROBE"
 IDENTITY_PREFIX = "FIRMWARE_COMMIT "
 DEVICE = re.compile(r"^QMA6100P_ADDR=(0x1[23]) CHIP_ID=(0x90)$")
+IRQ_CONFIG = re.compile(
+    r"^QMA6100P_IRQ_CONFIG en=0x([0-9A-F]{2}) int1_map=0x([0-9A-F]{2}) "
+    r"int2_map=0x([0-9A-F]{2}) pin=0x([0-9A-F]{2}) cfg=0x([0-9A-F]{2})$"
+)
 SAMPLE = re.compile(
     r"^QMA6100P_SAMPLE n=([0-9]+) raw=(-?[0-9]+),(-?[0-9]+),(-?[0-9]+) "
     r"mg=(-?[0-9]+),(-?[0-9]+),(-?[0-9]+) status=0x([0-9A-F]{2}) "
@@ -59,7 +63,19 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         else:
             address, chip_id = device.groups()
 
-    if len(cycle) < 4 or cycle[3] != IRQ_MAP:
+    interrupt_config = None
+    if len(cycle) < 4:
+        failures.append("missing interrupt configuration readback")
+    else:
+        match = IRQ_CONFIG.fullmatch(cycle[3])
+        if match is None:
+            failures.append("invalid interrupt configuration readback")
+        else:
+            interrupt_config = tuple(match.groups())
+            if interrupt_config != ("10", "10", "10", "05", "0C"):
+                failures.append("interrupt configuration readback mismatch")
+
+    if len(cycle) < 5 or cycle[4] != IRQ_MAP:
         failures.append("missing or out-of-order IRQ mapping marker")
 
     for marker in ERROR_MARKERS:
@@ -117,6 +133,7 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "capture_sha256": hashlib.sha256(payload).hexdigest(),
         "address": address,
         "chip_id": chip_id,
+        "interrupt_config": interrupt_config,
         "sample_count": len(samples),
         "unique_raw_samples": unique_raw,
         "raw_min": [min(axis) for axis in zip(*raw_axes)] if raw_axes else [],
