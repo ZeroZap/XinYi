@@ -19,13 +19,14 @@ SAMPLE = re.compile(
     r"mg=(-?[0-9]+),(-?[0-9]+),(-?[0-9]+) status=0x([0-9A-F]{2}) "
     r"int1_level=([01]) int2_level=([01]) int1_edges=([0-9]+) int2_edges=([0-9]+)$"
 )
-IRQ_MAP = "QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=HIGH"
+IRQ_MAP = "QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=LOW"
 DONE = "QMA6100P_PROBE_DONE"
 ERROR_MARKERS = (
     "QMA6100P_NOT_FOUND",
     "QMA6100P_ID_IO_ERROR",
     "QMA6100P_INIT_ERROR",
     "QMA6100P_IRQ_CONFIG_ERROR",
+    "QMA6100P_IRQ_READBACK_ERROR",
     "QMA6100P_STATUS_ERROR",
     "QMA6100P_RAW_ERROR",
     "QMA6100P_ACCEL_ERROR",
@@ -72,7 +73,7 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
             failures.append("invalid interrupt configuration readback")
         else:
             interrupt_config = tuple(match.groups())
-            if interrupt_config != ("10", "10", "10", "05", "0C"):
+            if interrupt_config != ("10", "10", "10", "00", "0C"):
                 failures.append("interrupt configuration readback mismatch")
 
     if len(cycle) < 5 or cycle[4] != IRQ_MAP:
