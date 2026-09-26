@@ -1,0 +1,45 @@
+PANDORA QMA6100P I2C2 PROBE
+FIRMWARE_COMMIT 3d3bd0ddb78617a0ed6fe235566c779a2f6d6ced
+QMA6100P_ADDR=0x12 CHIP_ID=0x90
+QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=HIGH
+QMA6100P_SAMPLE n=0 raw=1107,1450,-1666 mg=270,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=1 raw=1107,1453,-1665 mg=270,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=2 raw=1105,1459,-1660 mg=269,356,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=3 raw=1094,1452,-1659 mg=267,354,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=4 raw=1093,1458,-1666 mg=266,355,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=5 raw=1110,1450,-1663 mg=270,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=6 raw=1104,1448,-1671 mg=269,353,-408 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=7 raw=1104,1452,-1665 mg=269,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=8 raw=1098,1450,-1651 mg=268,353,-402 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=9 raw=1092,1458,-1664 mg=266,355,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=10 raw=1094,1454,-1666 mg=267,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=11 raw=1094,1461,-1659 mg=267,356,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=12 raw=1106,1454,-1665 mg=270,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=13 raw=1104,1451,-1665 mg=269,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=14 raw=1100,1450,-1655 mg=268,354,-404 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=15 raw=1099,1453,-1670 mg=268,354,-407 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=16 raw=1083,1464,-1659 mg=264,357,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=17 raw=1090,1453,-1667 mg=265,354,-407 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=18 raw=1096,1457,-1667 mg=267,355,-407 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=19 raw=1107,1461,-1655 mg=270,356,-404 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=20 raw=1110,1452,-1668 mg=270,354,-407 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=21 raw=1093,1452,-1657 mg=266,354,-404 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=22 raw=1096,1458,-1666 mg=267,355,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=23 raw=1094,1458,-1664 mg=267,355,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=24 raw=1094,1456,-1662 mg=267,355,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=25 raw=1096,1457,-1668 mg=267,355,-407 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=26 raw=1107,1454,-1658 mg=269,354,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=27 raw=1100,1449,-1659 mg=268,353,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=28 raw=1099,1456,-1660 mg=268,355,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=29 raw=1086,1455,-1669 mg=265,355,-407 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=30 raw=1095,1459,-1662 mg=267,356,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=31 raw=1090,1455,-1661 mg=266,355,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=32 raw=1103,1456,-1663 mg=269,355,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=33 raw=1100,1452,-1662 mg=268,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=34 raw=1107,1452,-1666 mg=270,354,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=35 raw=1093,1451,-1660 mg=266,354,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=36 raw=1091,1458,-1663 mg=266,355,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=37 raw=1083,1456,-1662 mg=264,355,-406 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=38 raw=1092,1455,-1661 mg=266,355,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_SAMPLE n=39 raw=1102,1448,-1658 mg=269,353,-405 status=0x00 int1_level=0 int2_level=0 int1_edges=0 int2_edges=0
+QMA6100P_PROBE_DONE

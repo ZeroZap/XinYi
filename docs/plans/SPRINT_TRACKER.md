@@ -1512,3 +1512,16 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 验证：`git fetch origin main` 后 `git rev-list --left-right --count HEAD...origin/main` 返回 `0 0`；`git rev-parse HEAD origin/main` 与 `git ls-remote origin refs/heads/main` 均返回 `a000ca66cc141ef8d47836769cde356b03a712ef`。
 - 仓库：复核开始时 `main` 工作树干净；本次仅校准 Sprint 看板，不新增 Host、target、硬件、安全或 Release 证据。
 - 下一步：继续 S5-01 的 IPC/Trace/Device/PM 跨组件并发最小纵切；多小时耐久与 STM32U5 runtime 仍保持 pending。
+
+### 2026-09-27 Pandora QMA6100P I2C2 basic-chain B1
+
+- 实现：新增 canonical QMA6100P Device owner、focused Host contract 与 Pandora I2C2 probe；固定
+  `0x12/0x13` 地址、chip ID `0x90`、14-bit XYZ 解码及 PC6/PD15 interrupt diagnostics。
+- 实板：从 clean committed `3d3bd0dd` 构建 12,288-byte image，ELF 含 exact firmware identity、
+  Reset/SysTick/EXTI handlers；ST-Link write/verify 后同长度 read-back 与 BIN byte-identical，SHA-256
+  均为 `43808771...e24f`。reset-synchronized WCH-Link UART 原始捕获 5,060 bytes，识别地址 `0x12`、
+  chip ID `0x90`，40/40 static samples（40 unique）且 error marker 为 0。
+- 证据：`docs/validation/evidence/pandora-stm32l475/2026-09-27/qma6100p-3d3bd0dd.json` 与
+  `qma6100p-3d3bd0dd-uart.txt`。
+- 边界：只升级静态 I2C basic-chain B1；本轮 interrupt status/PC6/PD15 edge 均为 0，因此 IRQ、动态
+  响应、精度、校准、recovery 与 endurance 保持 pending，不虚报 B2。

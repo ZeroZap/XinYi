@@ -1,0 +1,32 @@
+{
+  "status": "B1_QMA6100P_BASIC_CHAIN_PASS",
+  "schema": "xinyi-pandora-qma6100p-runtime-v1",
+  "firmware_commit": "3d3bd0ddb78617a0ed6fe235566c779a2f6d6ced",
+  "board": "Pandora STM32L475VE",
+  "probe": "ST-Link V2.1",
+  "probe_serial": "066AFF313933554D43244015",
+  "transport": "I2C2 PB10/PB11",
+  "address": "0x12",
+  "chip_id": "0x90",
+  "samples": 40,
+  "unique_raw_samples": 40,
+  "raw_min": [1083, 1448, -1671],
+  "raw_max": [1110, 1464, -1651],
+  "interrupt_status_values": ["00"],
+  "int1_edges_max": 0,
+  "int2_edges_max": 0,
+  "error_marker_count": 0,
+  "raw_capture_bytes": 5060,
+  "raw_capture_sha256": "64a9b7ad186697e1fce682a9d5f982b6323d4fead13aaa940c4216e7cc11cef2",
+  "normalized_uart_bytes": 5015,
+  "normalized_uart_sha256": "44eb9a799a3ba73a38f465978269821e87113151df4a051ee5e604fbaf3bbd35",
+  "bin_bytes": 12288,
+  "bin_sha256": "4380877151ff2bbcabf5e6e73fc7a07151c76d531829fcb010ba3a5cfa52e24f",
+  "readback_byte_identical": true,
+  "readback_sha256": "4380877151ff2bbcabf5e6e73fc7a07151c76d531829fcb010ba3a5cfa52e24f",
+  "limitations": [
+    "Static unattended sample only",
+    "No interrupt edge observed; IRQ qualification remains pending",
+    "No accuracy, dynamic response, calibration, recovery, or endurance claim"
+  ]
+}
