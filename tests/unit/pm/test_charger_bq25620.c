@@ -253,6 +253,50 @@ static void test_known_fault_overrides_done_state(void)
     TEST_ASSERT_FALSE(status.done);
 }
 
+static void test_safety_timer_status_reports_charge_timeout(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_device_status_t status;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
+    g_regs[BQ25620_REG_ADC_STAT_0] = BQ25620_STAT_SAFETY_TIMER_EXPIRED;
+    g_regs[BQ25620_REG_CHG_STAT_0] = BQ25620_STAT_CHG_FAST | 0x03U;
+    set_reg_u16(BQ25620_REG_CHG_CTRL_1, (160U / BQ25620_ICHG_STEP_mA) << 6U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_3, (4200U / BQ25620_VREG_STEP_mV) << 3U);
+    set_reg_u16(BQ25620_REG_CHG_CTRL_4, (500U / BQ25620_ILIM_STEP_mA) << 4U);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_get_status(&dev, &status));
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_STATE_FAULT, status.state);
+    TEST_ASSERT_EQUAL_INT(XY_CHARGER_DEVICE_FAULT_CHARGE_TIMEOUT, status.fault);
+    TEST_ASSERT_TRUE(status.power_good);
+    TEST_ASSERT_FALSE(status.charging);
+    TEST_ASSERT_FALSE(status.done);
+}
+
+static void test_safety_status_read_failure_preserves_caller_status(void)
+{
+    xy_bq25620_t dev;
+    xy_charger_device_status_t status;
+    xy_charger_device_status_t snapshot;
+    unsigned tx_before;
+    unsigned rx_before;
+
+    reset_fake_i2c();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bq25620_init(&dev, g_expected_i2c, 0x6BU));
+    memset(&status, 0xA5, sizeof(status));
+    snapshot = status;
+    tx_before = xy_hal_i2c_master_transmit_fake.call_count;
+    rx_before = xy_hal_i2c_master_receive_fake.call_count;
+    g_fail_rx_call = rx_before + 1U;
+    g_injected_error = XY_HAL_ERROR_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bq25620_get_status(&dev, &status));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &status, sizeof(status));
+    TEST_ASSERT_EQUAL_UINT(tx_before + 1U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(rx_before + 1U, xy_hal_i2c_master_receive_fake.call_count);
+}
+
 static void test_unknown_ts_state_reports_unknown_fault(void)
 {
     xy_bq25620_t dev;
@@ -867,6 +911,8 @@ int main(void)
     RUN_TEST(test_unknown_status_codes_fail_closed);
     RUN_TEST(test_unknown_ts_state_reports_unknown_fault);
     RUN_TEST(test_known_fault_overrides_done_state);
+    RUN_TEST(test_safety_timer_status_reports_charge_timeout);
+    RUN_TEST(test_safety_status_read_failure_preserves_caller_status);
     RUN_TEST(test_status_accepts_datasheet_maximum_setpoint_encodings);
     RUN_TEST(test_status_rejects_below_minimum_setpoint_encodings);
     RUN_TEST(test_config_and_range_validation);

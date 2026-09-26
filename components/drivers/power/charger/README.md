@@ -23,7 +23,8 @@ XinYi Charger 组件提供统一的充电器管理框架，支持多种充电管
   receive before publishing caller output, clears failed probes, rejects register addresses beyond the
   datasheet register address range (`0x02..0x38`, including 16-bit little-endian setpoints) without I2C
   side effects, rejects out-of-range individual current/
-  voltage setters instead of silently clamping safety parameters, maps unknown hardware status/fault
+  voltage setters instead of silently clamping safety parameters, maps the datasheet safety-timer-expired
+  status to the public charge-timeout fault, maps unknown hardware status/fault
   encodings to explicit fault states instead of reporting no fault, makes any reported fault override
   charge/done state, reports control-register values as configured setpoints rather than unverified ADC
   measurements, validates decoded setpoints against datasheet limits before publication, keeps

@@ -54,6 +54,9 @@ typedef enum {
 #define BQ25620_STAT_CHG_TOPOFF     (0x03U << 3) /**< Top-off timer active */
 #define BQ25620_STAT_VBUS_MASK      0x07U        /**< VBUS_STAT[2:0] */
 
+/* Charger Status 0 (0x1D) */
+#define BQ25620_STAT_SAFETY_TIMER_EXPIRED (0x01U << 1) /**< SAFETY_TMR_STAT */
+
 /* Fault Status 0 (0x1F) */
 #define BQ25620_FAULT_INPUT_OVP     (0x01U << 7) /**< VBUS fault */
 #define BQ25620_FAULT_BAT_OVP       (0x01U << 6) /**< BAT OCP/OVP */

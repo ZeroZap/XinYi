@@ -218,6 +218,7 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
     xy_charger_device_status_t next = {0};
     uint8_t stat0;
     uint8_t stat1;
+    uint8_t safety_status;
     uint16_t reg_value;
     int ret;
 
@@ -225,6 +226,10 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
         return XY_DEVICE_INVALID_PARAM;
     }
 
+    ret = bq25620_i2c_read(dev, BQ25620_REG_ADC_STAT_0, &safety_status, 1U);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
     ret = bq25620_i2c_read(dev, BQ25620_REG_CHG_STAT_0, &stat0, 1U);
     if (ret != XY_DEVICE_OK) {
         return ret;
@@ -271,7 +276,9 @@ static int bq25620_read_status(xy_bq25620_t *dev, xy_charger_device_status_t *st
         case BQ25620_STAT_CHG_TOPOFF: next.state = XY_CHARGER_DEVICE_STATE_CHARGE_DONE; break;
     }
 
-    if ((stat1 & BQ25620_FAULT_INPUT_OVP) != 0U) {
+    if ((safety_status & BQ25620_STAT_SAFETY_TIMER_EXPIRED) != 0U) {
+        next.fault = XY_CHARGER_DEVICE_FAULT_CHARGE_TIMEOUT;
+    } else if ((stat1 & BQ25620_FAULT_INPUT_OVP) != 0U) {
         next.fault = XY_CHARGER_DEVICE_FAULT_INPUT_OVP;
     } else if ((stat1 & BQ25620_FAULT_BAT_OVP) != 0U) {
         next.fault = XY_CHARGER_DEVICE_FAULT_BAT_OVP;
