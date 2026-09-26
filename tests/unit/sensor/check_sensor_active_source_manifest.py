@@ -130,7 +130,7 @@ def main() -> int:
             "top-level Sensor implementation inventory must contain only sensor_adt7420.c", errors)
     require(len(experimental) == 5,
             f"expected 5 experimental xy_* sources, found {len(experimental)}", errors)
-    require(len(device) == 50, f"expected 50 Device-model sources, found {len(device)}", errors)
+    require(len(device) == 51, f"expected 51 Device-model sources, found {len(device)}", errors)
     false_owners = false_owner_candidates(legacy)
     require(not false_owners,
             f"legacy constant-output/zero-transport false owners found: {false_owners}", errors)
@@ -305,7 +305,7 @@ def main() -> int:
         return 1
 
     print("sensor_active_source_manifest_ok legacy_active=39 legacy_subdir=38 "
-          "legacy_top_level=1 experimental_test_only=5 device_active=50 "
+          "legacy_top_level=1 experimental_test_only=5 device_active=51 "
           "approved_wrappers=25 overlap_duplicates=0 false_owners=0 "
           "hardware=mixed")
     return 0

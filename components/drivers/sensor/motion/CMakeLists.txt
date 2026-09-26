@@ -13,6 +13,10 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sc7a22h)
     add_subdirectory(sc7a22h)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/qma6100p)
+    add_subdirectory(qma6100p)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/icm20608)
     add_subdirectory(icm20608)
 endif()

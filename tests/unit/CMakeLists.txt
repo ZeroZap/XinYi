@@ -904,6 +904,16 @@ target_include_directories(test_hmc5883l PRIVATE
     ${DRV}/sensor/magnetic/hmc5883l
 )
 
+xy_add_unit_test(test_qma6100p sensor_qma6100p UNITY
+    ${UNIT_SENSOR}/test_qma6100p.c
+    ${DRV}/sensor/motion/qma6100p/xy_qma6100p.c
+)
+target_include_directories(test_qma6100p PRIVATE
+    ${DRV}/sensor/motion/qma6100p
+    ${DEVICE}/inc
+    ${DEVICE}
+)
+
 xy_add_unit_test(test_sc7a22h sensor_sc7a22h UNITY
     ${UNIT_SENSOR}/test_sc7a22h.c
     ${DRV}/sensor/motion/sc7a22h/xy_sc7a22h.c
