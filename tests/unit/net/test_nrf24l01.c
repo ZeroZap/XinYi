@@ -236,6 +236,51 @@ static void test_send_propagates_max_retry_flush_failure(void)
     TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
 }
 
+static void test_receive_fixed_payload_and_clears_irq(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t payload[4] = {0U};
+    size_t received = 99U;
+    const uint8_t read_tx[5] = {0x61U, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 4U;
+    queue_frame(0xFFU, 0xFFU, 0x4EU, 0U, XY_HAL_OK);
+    queue_buffer(read_tx, sizeof(read_tx), 0x4EU, XY_HAL_OK);
+    frames[1].rx[1] = 'P'; frames[1].rx[2] = 'I';
+    frames[1].rx[3] = 'N'; frames[1].rx[4] = 'G';
+    queue_frame(0x27U, 0x40U, 0x0EU, 0U, XY_HAL_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK,
+                          xy_nrf24l01_receive(&radio, payload, sizeof(payload), &received));
+    TEST_ASSERT_EQUAL_UINT(4U, received);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY("PING", payload, 4U);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
+static void test_receive_without_irq_preserves_payload(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t payload[4] = {1U, 2U, 3U, 4U};
+    const uint8_t old[4] = {1U, 2U, 3U, 4U};
+    size_t received = 99U;
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 4U;
+    queue_frame(0xFFU, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_NOT_FOUND,
+                          xy_nrf24l01_receive(&radio, payload, sizeof(payload), &received));
+    TEST_ASSERT_EQUAL_UINT(0U, received);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(old, payload, 4U);
+    TEST_ASSERT_EQUAL_UINT(1U, frame_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -246,5 +291,7 @@ int main(void)
     RUN_TEST(test_send_reports_ack_and_retry_count);
     RUN_TEST(test_send_max_retry_flushes_and_reports_failure);
     RUN_TEST(test_send_propagates_max_retry_flush_failure);
+    RUN_TEST(test_receive_fixed_payload_and_clears_irq);
+    RUN_TEST(test_receive_without_irq_preserves_payload);
     return UNITY_END();
 }

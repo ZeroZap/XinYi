@@ -43,6 +43,7 @@ typedef struct {
     uint8_t rf_ch;
     uint8_t rf_setup;
     uint8_t fifo_status;
+    uint8_t rx_payload_width;
     uint8_t initialized;
 } xy_nrf24l01_t;
 
@@ -53,6 +54,11 @@ xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
                                           uint8_t crc16);
 xy_hal_error_t xy_nrf24l01_send(xy_nrf24l01_t *radio, const uint8_t *payload,
                                 size_t length, uint8_t *retransmit_count);
+xy_hal_error_t xy_nrf24l01_configure_prx(xy_nrf24l01_t *radio, uint8_t channel,
+                                          const uint8_t address[5], uint8_t payload_width,
+                                          uint8_t data_rate_2mbps, uint8_t crc16);
+xy_hal_error_t xy_nrf24l01_receive(xy_nrf24l01_t *radio, uint8_t *payload,
+                                   size_t capacity, size_t *received_length);
 
 #ifdef __cplusplus
 }
