@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #define INA22X_SHUNT_CAL_NUMERATOR 13107200ULL
+#define INA22X_CHARGE_LSB_MULTIPLIER 16.0
 
 static int32_t sign_extend20(uint32_t value)
 {
@@ -49,6 +50,9 @@ int xy_ina22x_core_config_valid(const xy_ina22x_config_t *config, uint16_t *shun
     }
 
     calibration = INA22X_SHUNT_CAL_NUMERATOR * config->current_lsb_ua;
+    if (config->shunt_resistor_uohm > UINT64_MAX / calibration) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     calibration = calibration * config->shunt_resistor_uohm / 1000000000ULL;
     if (config->shunt_range == XY_INA22X_SHUNT_RANGE_40_96_MV) {
         calibration *= 4ULL;
@@ -124,7 +128,8 @@ int xy_ina22x_core_read(xy_ina22x_core_t *core)
     next.current_ma = current_raw * (core->config.current_lsb_ua / 1000.0);
     next.power_mw = be24(power) * (3.2 * core->config.current_lsb_ua / 1000.0);
     next.energy_mj = be40(energy) * (51.2 * core->config.current_lsb_ua / 1000.0);
-    next.charge_mc = charge_raw * (core->config.current_lsb_ua / 1000.0);
+    next.charge_mc = charge_raw *
+                     (INA22X_CHARGE_LSB_MULTIPLIER * core->config.current_lsb_ua / 1000.0);
     next.timestamp = xy_os_tick_get();
     core->sample = next;
     return XY_DEVICE_OK;
