@@ -14,6 +14,8 @@ DETECTED_RE = re.compile(
     r"rf_setup=0x([0-9A-F]{2}) fifo=0x([0-9A-F]{2}) irq=(LOW|HIGH)"
 )
 TX_ACK_RE = re.compile(r"NRF24_TX_ACK_OK retries=([0-9A-F]{2}) payload=PANDORA_NRF24_TEST")
+RX_READY = "NRF24_RX_READY payload_width=32 timeout_ms=30000"
+RX_OK_RE = re.compile(r"NRF24_RX_OK length=([0-9A-F]{2}) payload_hex=([0-9A-F]+)")
 
 
 def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
@@ -60,18 +62,71 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         if tx_retransmits > 15:
             errors.append("invalid retransmit count")
 
+    rx_outcome = "NOT_ATTEMPTED"
+    rx_payload_hex = None
+    rx_ready_position = text.find(RX_READY)
+    rx_ok = RX_OK_RE.search(text)
+    rx_timeout_position = text.find("NRF24_RX_TIMEOUT")
+    if "NRF24_RX_CONFIG_ERROR" in text:
+        errors.append("receive configuration error marker")
+        rx_outcome = "CONFIGURATION_ERROR"
+    elif "NRF24_RX_ERROR" in text:
+        errors.append("receive transport error marker")
+        rx_outcome = "TRANSPORT_ERROR"
+    elif rx_ok is not None:
+        rx_outcome = "PAYLOAD_RECEIVED"
+        rx_payload_length = int(rx_ok.group(1), 16)
+        rx_payload_hex = rx_ok.group(2)
+        if rx_ready_position < 0 or rx_ready_position > rx_ok.start():
+            errors.append("receive marker ordering")
+        if rx_payload_length == 0 or rx_payload_length > 32:
+            errors.append("invalid receive payload length")
+        if len(rx_payload_hex) != rx_payload_length * 2:
+            errors.append("receive payload length mismatch")
+    elif rx_timeout_position >= 0:
+        rx_outcome = "TIMEOUT_NO_PAYLOAD"
+        if rx_ready_position < 0 or rx_ready_position > rx_timeout_position:
+            errors.append("receive timeout marker ordering")
+    elif rx_ready_position >= 0:
+        errors.append("receive outcome missing")
+        rx_outcome = "INCOMPLETE"
+
+    if errors:
+        status = "FAILED"
+    elif rx_outcome == "PAYLOAD_RECEIVED":
+        status = "B1_NRF24_RX_PAYLOAD_PASS"
+    else:
+        status = "B1_NRF24_ACKNOWLEDGED_TX_PASS"
+
+    claim_boundary = (
+        "SPI register access plus one acknowledged fixed-payload PTX transaction; "
+        "peer identity and payload receipt are not independently observed, with no IRQ "
+        "transition, range, throughput, recovery, or endurance claim"
+    )
+    if rx_outcome == "TIMEOUT_NO_PAYLOAD":
+        claim_boundary = (
+            "SPI register access plus one acknowledged fixed-payload PTX transaction and a "
+            "bounded PRX window with no receive payload observed; peer identity remains "
+            "unbound, with no RX success, IRQ transition, range, throughput, recovery, or "
+            "endurance claim"
+        )
+    elif rx_outcome == "PAYLOAD_RECEIVED":
+        claim_boundary = (
+            "SPI register access, one acknowledged fixed-payload PTX transaction, and one "
+            "received fixed payload on the Pandora radio; sender identity is not independently "
+            "bound, with no IRQ transition, range, throughput, recovery, or endurance claim"
+        )
+
     return {
-        "status": "B1_NRF24_ACKNOWLEDGED_TX_PASS" if not errors else "FAILED",
+        "status": status,
         "firmware_commit": firmware_commit,
         "captured_bytes": len(payload),
         "registers": registers,
         "tx_retransmits": tx_retransmits,
+        "rx_outcome": rx_outcome,
+        "rx_payload_hex": rx_payload_hex,
         "errors": errors,
-        "claim_boundary": (
-            "SPI register access plus one acknowledged fixed-payload PTX transaction; "
-            "peer identity and payload receipt are not independently observed, with no RX, "
-            "IRQ transition, range, throughput, recovery, or endurance claim"
-        ),
+        "claim_boundary": claim_boundary,
     }
 
 
@@ -90,7 +145,7 @@ def main() -> int:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         args.json.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(result, sort_keys=True))
-    return 0 if result["status"] == "B1_NRF24_ACKNOWLEDGED_TX_PASS" else 1
+    return 0 if result["status"].startswith("B1_NRF24_") else 1
 
 
 if __name__ == "__main__":
