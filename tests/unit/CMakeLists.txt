@@ -962,6 +962,15 @@ target_include_directories(test_power_monitors PRIVATE
     ${KERNEL}/osal
 )
 
+xy_add_unit_test(test_nrf24l01 wireless_nrf24l01 UNITY
+    ${UNIT_NET}/test_nrf24l01.c
+    ${DRV}/wireless/nrf24l01/xy_nrf24l01.c
+)
+target_include_directories(test_nrf24l01 PRIVATE
+    ${DRV}/wireless/nrf24l01
+    ${HAL}/inc
+)
+
 xy_add_unit_test(test_ina228_device sensor_ina228_device UNITY
     ${UNIT_SENSOR}/test_ina228_device.c
     ${DRV}/sensor/adc/ina228/xy_ina228.c

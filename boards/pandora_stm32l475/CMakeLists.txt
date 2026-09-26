@@ -719,3 +719,34 @@ add_custom_command(TARGET pandora_stm32l475_i2c2_sensors POST_BUILD
             ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_i2c2_sensors.bin
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_i2c2_sensors>
     COMMENT "Generating Pandora I2C2 sensors probe BIN")
+
+add_executable(pandora_stm32l475_nrf24
+    nrf24l01_main.c
+    ${CMAKE_SOURCE_DIR}/components/drivers/wireless/nrf24l01/xy_nrf24l01.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_delay.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_spi.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_sys.c
+    ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
+    ${PANDORA_PLATFORM_STARTUP}
+    ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
+    ${_cmsis}/Source/Templates/system_stm32l4xx.c
+    ${_hal}/stm32l4xx_hal.c ${_hal}/stm32l4xx_hal_cortex.c ${_hal}/stm32l4xx_hal_gpio.c
+    ${_hal}/stm32l4xx_hal_pwr.c ${_hal}/stm32l4xx_hal_pwr_ex.c
+    ${_hal}/stm32l4xx_hal_rcc.c ${_hal}/stm32l4xx_hal_rcc_ex.c
+    ${_hal}/stm32l4xx_hal_spi.c ${_hal}/stm32l4xx_hal_uart.c)
+target_include_directories(pandora_stm32l475_nrf24 BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/components/hal/inc
+    ${CMAKE_SOURCE_DIR}/components/drivers/wireless/nrf24l01)
+target_compile_definitions(pandora_stm32l475_nrf24 PRIVATE
+    STM32L4 STM32L475xx USE_HAL_DRIVER XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+target_link_options(pandora_stm32l475_nrf24 PRIVATE
+    -T${CMAKE_CURRENT_SOURCE_DIR}/STM32L475VETX_FLASH.ld --specs=nano.specs --specs=nosys.specs
+    -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_nrf24.map)
+set_target_properties(pandora_stm32l475_nrf24 PROPERTIES SUFFIX ".elf")
+add_custom_command(TARGET pandora_stm32l475_nrf24 POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:pandora_stm32l475_nrf24>
+            ${CMAKE_CURRENT_BINARY_DIR}/pandora_stm32l475_nrf24.bin
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:pandora_stm32l475_nrf24>
+    COMMENT "Generating Pandora SPI2 NRF24L01 probe BIN")
