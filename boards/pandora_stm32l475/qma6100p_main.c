@@ -60,6 +60,8 @@ int main(void)
 {
     uint8_t address=0U;
     uint8_t id=0U;
+    uint32_t int1_before;
+    uint32_t int2_before;
     xy_error_t result;
     xy_qma6100p_interrupt_config_t irq_config;
     if(xy_hal_sys_init()!=XY_HAL_OK||pandora_platform_startup()!=0)stop();
@@ -73,10 +75,11 @@ int main(void)
     result=xy_qma6100p_init(&qma,&i2c2,address);if(result!=XY_DEVICE_OK)fail("QMA6100P_INIT_ERROR",result);
     result=xy_qma6100p_configure_data_ready_interrupts_ex(&qma,1U,1U,0U);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_CONFIG_ERROR",result);
     result=xy_qma6100p_read_interrupt_config(&qma,&irq_config);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_READBACK_ERROR",result);
+    int1_before=int1_edges;int2_before=int2_edges;
     EXTI->SWIER1 = (1UL << 6U) | (1UL << 15U);
     xy_hal_delay_ms(1U);
-    text("QMA6100P_EXTI_SELFTEST int1_edges=");num((int32_t)int1_edges);text(" int2_edges=");num((int32_t)int2_edges);text("\r\n");
-    if(int1_edges!=1U||int2_edges!=1U)fail("QMA6100P_EXTI_SELFTEST_ERROR",XY_DEVICE_IO_ERROR);
+    text("QMA6100P_EXTI_SELFTEST int1_delta=");num((int32_t)(int1_edges-int1_before));text(" int2_delta=");num((int32_t)(int2_edges-int2_before));text("\r\n");
+    if(int1_edges==int1_before||int2_edges==int2_before)fail("QMA6100P_EXTI_SELFTEST_ERROR",XY_DEVICE_IO_ERROR);
     int1_edges=0U;int2_edges=0U;int1_first_tick=0U;int2_first_tick=0U;
     text("QMA6100P_IRQ_CONFIG en=0x");hex(irq_config.enable1);text(" int1_map=0x");hex(irq_config.map_int1);
     text(" int2_map=0x");hex(irq_config.map_int2);text(" pin=0x");hex(irq_config.pin_config);

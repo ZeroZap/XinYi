@@ -17,7 +17,7 @@ HEADER = "\n".join(
         "PANDORA QMA6100P I2C2 PROBE",
         f"FIRMWARE_COMMIT {COMMIT}",
         "QMA6100P_ADDR=0x12 CHIP_ID=0x90",
-        "QMA6100P_EXTI_SELFTEST int1_edges=1 int2_edges=1",
+        "QMA6100P_EXTI_SELFTEST int1_delta=1 int2_delta=1",
         IRQ_CONFIG,
         "QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=LOW",
         "QMA6100P_IRQ_CAPTURE window_ms=1000",
@@ -93,10 +93,10 @@ class PandoraQma6100pCaptureContract(unittest.TestCase):
 
     def test_rejects_missing_or_failed_exti_selftest_and_irq_result(self) -> None:
         for payload in (
-            valid_capture().replace(b"QMA6100P_EXTI_SELFTEST int1_edges=1 int2_edges=1\n", b""),
+            valid_capture().replace(b"QMA6100P_EXTI_SELFTEST int1_delta=1 int2_delta=1\n", b""),
             valid_capture().replace(
-                b"QMA6100P_EXTI_SELFTEST int1_edges=1 int2_edges=1",
-                b"QMA6100P_EXTI_SELFTEST int1_edges=0 int2_edges=1",
+                b"QMA6100P_EXTI_SELFTEST int1_delta=1 int2_delta=1",
+                b"QMA6100P_EXTI_SELFTEST int1_delta=0 int2_delta=1",
             ),
             valid_capture().replace(b"QMA6100P_IRQ_RESULT", b"QMA6100P_IRQ_RESULT_BAD"),
         ):
@@ -111,6 +111,16 @@ class PandoraQma6100pCaptureContract(unittest.TestCase):
         self.assertEqual(result["status"], "B1_QMA6100P_BASIC_CHAIN_PASS")
         self.assertEqual(result["interrupt_status_evidence"], "OBSERVED")
         self.assertEqual(result["gpio_edge_evidence"], "NOT_OBSERVED")
+
+    def test_accepts_positive_exti_selftest_deltas_when_physical_edges_overlap(self) -> None:
+        payload = valid_capture().replace(
+            b"QMA6100P_EXTI_SELFTEST int1_delta=1 int2_delta=1",
+            b"QMA6100P_EXTI_SELFTEST int1_delta=2 int2_delta=3",
+        )
+        result = analyze_capture(payload, COMMIT)
+
+        self.assertEqual(result["status"], "B1_QMA6100P_BASIC_CHAIN_PASS")
+        self.assertEqual(result["exti_selftest"], (2, 3))
 
     def test_rejects_error_marker_and_out_of_range_acceleration(self) -> None:
         payload = valid_capture().replace(b"QMA6100P_PROBE_DONE", b"QMA6100P_RAW_ERROR\r\nQMA6100P_PROBE_DONE")

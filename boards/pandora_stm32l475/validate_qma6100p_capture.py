@@ -15,7 +15,7 @@ IRQ_CONFIG = re.compile(
     r"int2_map=0x([0-9A-F]{2}) pin=0x([0-9A-F]{2}) cfg=0x([0-9A-F]{2})$"
 )
 EXTI_SELFTEST = re.compile(
-    r"^QMA6100P_EXTI_SELFTEST int1_edges=([0-9]+) int2_edges=([0-9]+)$"
+    r"^QMA6100P_EXTI_SELFTEST int1_delta=([0-9]+) int2_delta=([0-9]+)$"
 )
 IRQ_RESULT = re.compile(
     r"^QMA6100P_IRQ_RESULT int1_edges=([0-9]+) int2_edges=([0-9]+) "
@@ -82,7 +82,7 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
             failures.append("invalid EXTI dispatch self-test")
         else:
             exti_selftest = tuple(int(value) for value in match.groups())
-            if exti_selftest != (1, 1):
+            if exti_selftest[0] < 1 or exti_selftest[1] < 1:
                 failures.append("EXTI dispatch self-test mismatch")
 
     interrupt_config = None
