@@ -12,6 +12,7 @@ extern "C" {
 #define XY_ICM20608_ADDR_ALT 0x69U
 #define XY_ICM20608_WHO_AM_I 0xAEU
 
+#define XY_ICM20608_REG_SMPLRT_DIV 0x19U
 #define XY_ICM20608_REG_CONFIG 0x1AU
 #define XY_ICM20608_REG_GYRO_CONFIG 0x1BU
 #define XY_ICM20608_REG_ACCEL_CONFIG 0x1CU
@@ -70,6 +71,7 @@ typedef struct {
     xy_icm20608_transport_t transport;
     xy_icm20608_accel_range_t accel_range;
     xy_icm20608_gyro_range_t gyro_range;
+    uint16_t odr_hz;
     uint8_t address;
     uint8_t initialized;
 } xy_icm20608_t;
@@ -83,6 +85,7 @@ xy_error_t xy_icm20608_set_accel_range(xy_icm20608_t *dev,
                                        xy_icm20608_accel_range_t range);
 xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
                                       xy_icm20608_gyro_range_t range);
+xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz);
 xy_error_t xy_icm20608_read_accel(xy_icm20608_t *dev, xy_icm20608_accel_t *accel);
 xy_error_t xy_icm20608_read_gyro(xy_icm20608_t *dev, xy_icm20608_gyro_t *gyro);
 xy_error_t xy_icm20608_read_temperature(xy_icm20608_t *dev, int32_t *temperature_centi_c);

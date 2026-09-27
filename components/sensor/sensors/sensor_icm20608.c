@@ -235,6 +235,23 @@ sensor_err_t icm20608_set_gyro_range(sensor_device_t *sensor,
     return SENSOR_EOK;
 }
 
+sensor_err_t icm20608_set_odr(sensor_device_t *sensor, uint16_t odr_hz)
+{
+    icm20608_priv_t *priv;
+    xy_error_t result;
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL ||
+        (sensor->info.type != SENSOR_TYPE_ACCELEROMETER &&
+         sensor->info.type != SENSOR_TYPE_GYROSCOPE)) {
+        return SENSOR_EINVAL;
+    }
+    priv = (icm20608_priv_t *)sensor->priv_data;
+    result = xy_icm20608_set_odr(&priv->device, odr_hz);
+    if (result != XY_DEVICE_OK) return icm20608_map_error(result);
+    sensor->odr = odr_hz;
+    return SENSOR_EOK;
+}
+
 sensor_device_t *icm20608_create_accel(const char *name, void *bus, bool use_spi)
 {
     return icm20608_create(name, bus, use_spi, SENSOR_TYPE_ACCELEROMETER,

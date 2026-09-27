@@ -123,6 +123,7 @@ xy_error_t xy_icm20608_init_i2c(xy_icm20608_t *dev, void *i2c_handle, uint8_t ad
     }
     dev->accel_range = XY_ICM20608_ACCEL_RANGE_4G;
     dev->gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
+    dev->odr_hz = 1000U;
     dev->initialized = 1U;
     return XY_DEVICE_OK;
 }
@@ -148,6 +149,7 @@ xy_error_t xy_icm20608_init_spi(xy_icm20608_t *dev, void *context,
     }
     dev->accel_range = XY_ICM20608_ACCEL_RANGE_4G;
     dev->gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
+    dev->odr_hz = 1000U;
     dev->initialized = 1U;
     return XY_DEVICE_OK;
 }
@@ -177,6 +179,24 @@ xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
     result = icm20608_update_bits(dev, XY_ICM20608_REG_GYRO_CONFIG, 0x18U,
                                   (uint8_t)range << 3U);
     if (result == XY_DEVICE_OK) dev->gyro_range = range;
+    return result;
+}
+
+xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz)
+{
+    uint16_t divider;
+    xy_error_t result;
+
+    if (!icm20608_ready(dev) || odr_hz == 0U || odr_hz > 1000U ||
+        (1000U % odr_hz) != 0U) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    divider = (uint16_t)(1000U / odr_hz) - 1U;
+    if (divider > UINT8_MAX) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = icm20608_write(dev, XY_ICM20608_REG_SMPLRT_DIV, (uint8_t)divider);
+    if (result == XY_DEVICE_OK) dev->odr_hz = odr_hz;
     return result;
 }
 
