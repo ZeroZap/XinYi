@@ -79,6 +79,16 @@ typedef struct {
 } xy_icm20608_sample_t;
 
 typedef struct {
+    xy_icm20608_accel_range_t accel_range;
+    xy_icm20608_gyro_range_t gyro_range;
+    xy_icm20608_dlpf_t gyro_dlpf;
+    xy_icm20608_dlpf_t accel_dlpf;
+    uint16_t odr_hz;
+    uint8_t sleeping;
+    uint8_t data_ready_interrupt_enabled;
+} xy_icm20608_configuration_t;
+
+typedef struct {
     xy_i2c_device_t i2c_dev;
     void *spi_context;
     xy_icm20608_spi_read_t spi_read;
@@ -119,6 +129,8 @@ xy_error_t xy_icm20608_set_bias(xy_icm20608_t *dev,
 xy_error_t xy_icm20608_get_bias(const xy_icm20608_t *dev,
                                 xy_icm20608_accel_t *accel_bias,
                                 xy_icm20608_gyro_t *gyro_bias);
+xy_error_t xy_icm20608_get_configuration(const xy_icm20608_t *dev,
+                                         xy_icm20608_configuration_t *configuration);
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep);
 xy_error_t xy_icm20608_set_data_ready_interrupt(xy_icm20608_t *dev, uint8_t enable);
 xy_error_t xy_icm20608_read_interrupt_status(xy_icm20608_t *dev, uint8_t *status);

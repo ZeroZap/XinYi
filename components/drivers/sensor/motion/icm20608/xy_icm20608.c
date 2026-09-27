@@ -280,6 +280,25 @@ xy_error_t xy_icm20608_get_bias(const xy_icm20608_t *dev,
     return XY_DEVICE_OK;
 }
 
+xy_error_t xy_icm20608_get_configuration(const xy_icm20608_t *dev,
+                                         xy_icm20608_configuration_t *configuration)
+{
+    xy_icm20608_configuration_t next;
+
+    if (!icm20608_ready(dev) || configuration == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    next.accel_range = dev->accel_range;
+    next.gyro_range = dev->gyro_range;
+    next.gyro_dlpf = dev->gyro_dlpf;
+    next.accel_dlpf = dev->accel_dlpf;
+    next.odr_hz = dev->odr_hz;
+    next.sleeping = dev->sleeping;
+    next.data_ready_interrupt_enabled = dev->data_ready_interrupt_enabled;
+    *configuration = next;
+    return XY_DEVICE_OK;
+}
+
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep)
 {
     xy_error_t result;

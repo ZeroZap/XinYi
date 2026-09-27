@@ -1040,6 +1040,60 @@ static void test_icm20608_bias_getters_preserve_outputs_on_rejection(void)
     destroy_sensor(temp);
 }
 
+static void test_icm20608_configuration_readback_is_staged_and_guarded(void)
+{
+    int fake_bus;
+    xy_icm20608_configuration_t configuration = {
+        .accel_range = XY_ICM20608_ACCEL_RANGE_16G,
+        .gyro_range = XY_ICM20608_GYRO_RANGE_2000DPS,
+        .gyro_dlpf = XY_ICM20608_DLPF_5HZ,
+        .accel_dlpf = XY_ICM20608_DLPF_5HZ,
+        .odr_hz = 999U,
+        .sleeping = 1U,
+        .data_ready_interrupt_enabled = 1U,
+    };
+    const xy_icm20608_configuration_t sentinel = configuration;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    sensor_device_t *temp = icm20608_create_temp("icm-temp", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    TEST_ASSERT_NOT_NULL(temp);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_icm20608_get_configuration(&priv->device, &configuration));
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_RANGE_4G, configuration.accel_range);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_GYRO_RANGE_500DPS, configuration.gyro_range);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, configuration.gyro_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, configuration.accel_dlpf);
+    TEST_ASSERT_EQUAL_UINT16(100U, configuration.odr_hz);
+    TEST_ASSERT_FALSE(configuration.sleeping);
+    TEST_ASSERT_FALSE(configuration.data_ready_interrupt_enabled);
+
+    configuration = sentinel;
+    priv->device.configuration_synchronized = 0U;
+    TEST_ASSERT_EQUAL_INT(
+        XY_DEVICE_INVALID_PARAM,
+        xy_icm20608_get_configuration(&priv->device, &configuration));
+    TEST_ASSERT_EQUAL_MEMORY(&sentinel, &configuration, sizeof(configuration));
+    priv->device.configuration_synchronized = 1U;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, icm20608_get_configuration(accel, &configuration));
+    TEST_ASSERT_EQUAL_UINT16(100U, configuration.odr_hz);
+    configuration = sentinel;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_get_configuration(temp, &configuration));
+    TEST_ASSERT_EQUAL_MEMORY(&sentinel, &configuration, sizeof(configuration));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_get_configuration(NULL, &configuration));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_get_configuration(accel, NULL));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+    destroy_sensor(temp);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1063,5 +1117,6 @@ int main(void)
     RUN_TEST(test_icm20608_bias_is_applied_to_all_sample_paths);
     RUN_TEST(test_icm20608_wrapper_bias_validates_type_and_preserves_state);
     RUN_TEST(test_icm20608_bias_getters_preserve_outputs_on_rejection);
+    RUN_TEST(test_icm20608_configuration_readback_is_staged_and_guarded);
     return UNITY_END();
 }
