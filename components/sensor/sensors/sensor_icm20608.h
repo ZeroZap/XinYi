@@ -49,6 +49,8 @@ sensor_err_t icm20608_set_accel_range(sensor_device_t *sensor,
 sensor_err_t icm20608_set_gyro_range(sensor_device_t *sensor,
                                      xy_icm20608_gyro_range_t range);
 sensor_err_t icm20608_set_odr(sensor_device_t *sensor, uint16_t odr_hz);
+sensor_err_t icm20608_set_dlpf(sensor_device_t *sensor, xy_icm20608_dlpf_t gyro_dlpf,
+                               xy_icm20608_dlpf_t accel_dlpf);
 sensor_err_t icm20608_read_interrupt_status(sensor_device_t *sensor, uint8_t *status);
 
 #endif /* __SENSOR_ICM20608_H__ */

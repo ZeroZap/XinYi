@@ -307,6 +307,18 @@ sensor_err_t icm20608_set_odr(sensor_device_t *sensor, uint16_t odr_hz)
     return SENSOR_EOK;
 }
 
+sensor_err_t icm20608_set_dlpf(sensor_device_t *sensor, xy_icm20608_dlpf_t gyro_dlpf,
+                               xy_icm20608_dlpf_t accel_dlpf)
+{
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL ||
+        (sensor->info.type != SENSOR_TYPE_ACCELEROMETER &&
+         sensor->info.type != SENSOR_TYPE_GYROSCOPE)) {
+        return SENSOR_EINVAL;
+    }
+    return icm20608_map_error(xy_icm20608_set_dlpf(
+        &((icm20608_priv_t *)sensor->priv_data)->device, gyro_dlpf, accel_dlpf));
+}
+
 sensor_err_t icm20608_read_interrupt_status(sensor_device_t *sensor, uint8_t *status)
 {
     if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL || status == NULL ||
