@@ -63,6 +63,12 @@ typedef struct {
 } xy_icm20608_gyro_t;
 
 typedef struct {
+    xy_icm20608_accel_t accel;
+    xy_icm20608_gyro_t gyro;
+    int32_t temperature_centi_c;
+} xy_icm20608_sample_t;
+
+typedef struct {
     xy_i2c_device_t i2c_dev;
     void *spi_context;
     xy_icm20608_spi_read_t spi_read;
@@ -93,6 +99,7 @@ xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz);
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep);
 xy_error_t xy_icm20608_set_data_ready_interrupt(xy_icm20608_t *dev, uint8_t enable);
 xy_error_t xy_icm20608_read_interrupt_status(xy_icm20608_t *dev, uint8_t *status);
+xy_error_t xy_icm20608_read_sample(xy_icm20608_t *dev, xy_icm20608_sample_t *sample);
 xy_error_t xy_icm20608_read_accel(xy_icm20608_t *dev, xy_icm20608_accel_t *accel);
 xy_error_t xy_icm20608_read_gyro(xy_icm20608_t *dev, xy_icm20608_gyro_t *gyro);
 xy_error_t xy_icm20608_read_temperature(xy_icm20608_t *dev, int32_t *temperature_centi_c);

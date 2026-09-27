@@ -260,6 +260,47 @@ xy_error_t xy_icm20608_deinit(xy_icm20608_t *dev)
     return result;
 }
 
+xy_error_t xy_icm20608_read_sample(xy_icm20608_t *dev, xy_icm20608_sample_t *sample)
+{
+    uint8_t data[14];
+    int16_t accel_raw[3];
+    int16_t gyro_raw[3];
+    int16_t temperature_raw;
+    xy_icm20608_sample_t next;
+    xy_error_t result;
+
+    if (!icm20608_ready(dev) || sample == NULL || dev->sleeping != 0U) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_XOUT_H, data, sizeof(data));
+    if (result != XY_DEVICE_OK) return result;
+
+    accel_raw[0] = (int16_t)(((uint16_t)data[0] << 8) | data[1]);
+    accel_raw[1] = (int16_t)(((uint16_t)data[2] << 8) | data[3]);
+    accel_raw[2] = (int16_t)(((uint16_t)data[4] << 8) | data[5]);
+    temperature_raw = (int16_t)(((uint16_t)data[6] << 8) | data[7]);
+    gyro_raw[0] = (int16_t)(((uint16_t)data[8] << 8) | data[9]);
+    gyro_raw[1] = (int16_t)(((uint16_t)data[10] << 8) | data[11]);
+    gyro_raw[2] = (int16_t)(((uint16_t)data[12] << 8) | data[13]);
+
+    next.accel.x_mg = (int32_t)accel_raw[0] * accel_full_scale_mg(dev->accel_range) / 32768;
+    next.accel.y_mg = (int32_t)accel_raw[1] * accel_full_scale_mg(dev->accel_range) / 32768;
+    next.accel.z_mg = (int32_t)accel_raw[2] * accel_full_scale_mg(dev->accel_range) / 32768;
+    next.temperature_centi_c = ((int32_t)temperature_raw * 1000 / 3268) + 2500;
+    next.gyro.x_mdps =
+        (int32_t)((int64_t)gyro_raw[0] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
+    next.gyro.y_mdps =
+        (int32_t)((int64_t)gyro_raw[1] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
+    next.gyro.z_mdps =
+        (int32_t)((int64_t)gyro_raw[2] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
+
+    dev->accel = next.accel;
+    dev->gyro = next.gyro;
+    dev->temperature_centi_c = next.temperature_centi_c;
+    *sample = next;
+    return XY_DEVICE_OK;
+}
+
 xy_error_t xy_icm20608_read_accel(xy_icm20608_t *dev, xy_icm20608_accel_t *accel)
 {
     uint8_t data[6];

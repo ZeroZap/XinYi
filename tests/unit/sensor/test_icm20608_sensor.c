@@ -13,7 +13,7 @@ typedef struct {
     void *bus;
     uint8_t addr;
     uint8_t reg;
-    uint8_t data[6];
+    uint8_t data[14];
     uint16_t len;
     int ret;
 } bus_op_t;
@@ -619,6 +619,50 @@ static void test_icm20608_data_ready_interrupt_preserves_register_and_reports_st
     destroy_sensor(accel);
 }
 
+static void test_icm20608_coherent_sample_is_single_burst_and_failure_atomic(void)
+{
+    int fake_bus;
+    const uint8_t raw[14] = {
+        0x20, 0x00, 0xE0, 0x00, 0x40, 0x00, 0x01,
+        0x46, 0x10, 0x00, 0xF0, 0x00, 0x08, 0x00,
+    };
+    xy_icm20608_sample_t sample = {0};
+    xy_icm20608_sample_t snapshot;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, raw, sizeof(raw), SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_icm20608_read_sample(&priv->device, &sample));
+    TEST_ASSERT_EQUAL_INT32(1000, sample.accel.x_mg);
+    TEST_ASSERT_EQUAL_INT32(-1000, sample.accel.y_mg);
+    TEST_ASSERT_EQUAL_INT32(2000, sample.accel.z_mg);
+    TEST_ASSERT_EQUAL_INT32(2599, sample.temperature_centi_c);
+    TEST_ASSERT_EQUAL_INT32(62500, sample.gyro.x_mdps);
+    TEST_ASSERT_EQUAL_INT32(-62500, sample.gyro.y_mdps);
+    TEST_ASSERT_EQUAL_INT32(31250, sample.gyro.z_mdps);
+    TEST_ASSERT_EQUAL_MEMORY(&sample.accel, &priv->device.accel, sizeof(sample.accel));
+    TEST_ASSERT_EQUAL_MEMORY(&sample.gyro, &priv->device.gyro, sizeof(sample.gyro));
+    snapshot = sample;
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, NULL, sizeof(raw), SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          xy_icm20608_read_sample(&priv->device, &sample));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &sample, sizeof(sample));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot.accel, &priv->device.accel, sizeof(snapshot.accel));
+
+    priv->device.sleeping = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_icm20608_read_sample(&priv->device, &sample));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &sample, sizeof(sample));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -632,5 +676,6 @@ int main(void)
     RUN_TEST(test_icm20608_runtime_odr_is_exact_and_failure_atomic);
     RUN_TEST(test_icm20608_power_mode_preserves_register_and_cache_on_failure);
     RUN_TEST(test_icm20608_data_ready_interrupt_preserves_register_and_reports_status);
+    RUN_TEST(test_icm20608_coherent_sample_is_single_burst_and_failure_atomic);
     return UNITY_END();
 }

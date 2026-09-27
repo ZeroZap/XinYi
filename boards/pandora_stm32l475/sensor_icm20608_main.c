@@ -171,8 +171,7 @@ int hal_spi_write_reg(void *bus, uint8_t reg, uint8_t *data, uint16_t len)
 int main(void)
 {
     sensor_device_t *accel;
-    sensor_data_t accel_data;
-    xy_icm20608_gyro_t gyro_sample;
+    xy_icm20608_sample_t sample;
     uint8_t whoami = 0U;
     void *i2c3;
 
@@ -239,33 +238,32 @@ int main(void)
     for (;;) {
         log_raw_burst();
         log_register_snapshot();
-        if (accel->ops->read(accel, &accel_data) != SENSOR_EOK ||
-            xy_icm20608_read_gyro(&((icm20608_priv_t *)accel->priv_data)->device,
-                                  &gyro_sample) != XY_DEVICE_OK) {
+        if (xy_icm20608_read_sample(&((icm20608_priv_t *)accel->priv_data)->device,
+                                     &sample) != XY_DEVICE_OK) {
             uart_text("PANDORA_ICM20608_READ_ERROR\r\n");
             fail();
         }
-        if (accel_data.value.val_3axis.x < -4000 || accel_data.value.val_3axis.x > 4000 ||
-            accel_data.value.val_3axis.y < -4000 || accel_data.value.val_3axis.y > 4000 ||
-            accel_data.value.val_3axis.z < -4000 || accel_data.value.val_3axis.z > 4000 ||
-            gyro_sample.x_mdps < -500000 || gyro_sample.x_mdps > 500000 ||
-            gyro_sample.y_mdps < -500000 || gyro_sample.y_mdps > 500000 ||
-            gyro_sample.z_mdps < -500000 || gyro_sample.z_mdps > 500000) {
+        if (sample.accel.x_mg < -4000 || sample.accel.x_mg > 4000 ||
+            sample.accel.y_mg < -4000 || sample.accel.y_mg > 4000 ||
+            sample.accel.z_mg < -4000 || sample.accel.z_mg > 4000 ||
+            sample.gyro.x_mdps < -500000 || sample.gyro.x_mdps > 500000 ||
+            sample.gyro.y_mdps < -500000 || sample.gyro.y_mdps > 500000 ||
+            sample.gyro.z_mdps < -500000 || sample.gyro.z_mdps > 500000) {
             uart_text("PANDORA_ICM20608_RANGE_ERROR\r\n");
             fail();
         }
         uart_text("ICM20608 ACCEL_mg=");
-        uart_i32(accel_data.value.val_3axis.x);
+        uart_i32(sample.accel.x_mg);
         uart_text(",");
-        uart_i32(accel_data.value.val_3axis.y);
+        uart_i32(sample.accel.y_mg);
         uart_text(",");
-        uart_i32(accel_data.value.val_3axis.z);
+        uart_i32(sample.accel.z_mg);
         uart_text(" GYRO_dps=");
-        uart_i32(gyro_sample.x_mdps / 1000);
+        uart_i32(sample.gyro.x_mdps / 1000);
         uart_text(",");
-        uart_i32(gyro_sample.y_mdps / 1000);
+        uart_i32(sample.gyro.y_mdps / 1000);
         uart_text(",");
-        uart_i32(gyro_sample.z_mdps / 1000);
+        uart_i32(sample.gyro.z_mdps / 1000);
         uart_text("\r\n");
         xy_hal_delay_ms(100U);
     }
