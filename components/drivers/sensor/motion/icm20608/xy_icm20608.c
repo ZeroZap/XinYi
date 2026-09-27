@@ -200,6 +200,19 @@ xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz)
     return result;
 }
 
+xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep)
+{
+    xy_error_t result;
+
+    if (!icm20608_ready(dev) || sleep > 1U) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = icm20608_update_bits(dev, XY_ICM20608_REG_PWR_MGMT_1, 0x40U,
+                                  sleep != 0U ? 0x40U : 0x00U);
+    if (result == XY_DEVICE_OK) dev->sleeping = sleep;
+    return result;
+}
+
 xy_error_t xy_icm20608_deinit(xy_icm20608_t *dev)
 {
     xy_error_t result;

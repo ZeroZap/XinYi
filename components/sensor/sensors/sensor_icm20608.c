@@ -129,14 +129,50 @@ static sensor_err_t icm20608_temp_read(sensor_device_t *sensor, sensor_data_t *d
     return SENSOR_EOK;
 }
 
+#if SENSOR_ENABLE_POWER_MGMT
+static sensor_err_t icm20608_set_power_mode(sensor_device_t *sensor, sensor_power_mode_t mode)
+{
+    uint8_t sleep;
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    switch (mode) {
+    case SENSOR_POWER_MODE_SHUTDOWN:
+    case SENSOR_POWER_MODE_SLEEP:
+    case SENSOR_POWER_MODE_STANDBY:
+        sleep = 1U;
+        break;
+    case SENSOR_POWER_MODE_LOW_POWER:
+    case SENSOR_POWER_MODE_NORMAL:
+    case SENSOR_POWER_MODE_HIGH_PERFORMANCE:
+        sleep = 0U;
+        break;
+    default:
+        return SENSOR_EINVAL;
+    }
+    return icm20608_map_error(
+        xy_icm20608_set_sleep(&((icm20608_priv_t *)sensor->priv_data)->device, sleep));
+}
+#endif
+
 static const sensor_ops_t icm20608_accel_ops = {
     .init = icm20608_init, .deinit = icm20608_deinit, .read = icm20608_accel_read,
+#if SENSOR_ENABLE_POWER_MGMT
+    .set_power_mode = icm20608_set_power_mode,
+#endif
 };
 static const sensor_ops_t icm20608_gyro_ops = {
     .init = icm20608_init, .deinit = icm20608_deinit, .read = icm20608_gyro_read,
+#if SENSOR_ENABLE_POWER_MGMT
+    .set_power_mode = icm20608_set_power_mode,
+#endif
 };
 static const sensor_ops_t icm20608_temp_ops = {
     .init = icm20608_init, .deinit = icm20608_deinit, .read = icm20608_temp_read,
+#if SENSOR_ENABLE_POWER_MGMT
+    .set_power_mode = icm20608_set_power_mode,
+#endif
 };
 
 static sensor_device_t *icm20608_create(const char *name, void *bus, bool use_spi,

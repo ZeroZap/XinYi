@@ -74,6 +74,7 @@ typedef struct {
     uint16_t odr_hz;
     uint8_t address;
     uint8_t initialized;
+    uint8_t sleeping;
 } xy_icm20608_t;
 
 xy_error_t xy_icm20608_init_i2c(xy_icm20608_t *dev, void *i2c_handle, uint8_t address);
@@ -86,6 +87,7 @@ xy_error_t xy_icm20608_set_accel_range(xy_icm20608_t *dev,
 xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
                                       xy_icm20608_gyro_range_t range);
 xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz);
+xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep);
 xy_error_t xy_icm20608_read_accel(xy_icm20608_t *dev, xy_icm20608_accel_t *accel);
 xy_error_t xy_icm20608_read_gyro(xy_icm20608_t *dev, xy_icm20608_gyro_t *gyro);
 xy_error_t xy_icm20608_read_temperature(xy_icm20608_t *dev, int32_t *temperature_centi_c);

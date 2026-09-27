@@ -527,6 +527,45 @@ static void test_icm20608_runtime_odr_is_exact_and_failure_atomic(void)
     destroy_sensor(accel);
 }
 
+static void test_icm20608_power_mode_preserves_register_and_cache_on_failure(void)
+{
+    int fake_bus;
+    const uint8_t active_power = 0x21U;
+    const uint8_t sleeping_power = 0x61U;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    TEST_ASSERT_FALSE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, sleeping_power, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
+                          accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_SLEEP));
+    TEST_ASSERT_TRUE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &sleeping_power, 1U,
+                   SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_NORMAL));
+    TEST_ASSERT_TRUE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &sleeping_power, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, active_power, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
+                          accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_NORMAL));
+    TEST_ASSERT_FALSE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          accel->ops->set_power_mode(accel, (sensor_power_mode_t)99));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          accel->ops->set_power_mode(NULL, SENSOR_POWER_MODE_SLEEP));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -538,5 +577,6 @@ int main(void)
     RUN_TEST(test_icm20608_propagates_first_transport_error);
     RUN_TEST(test_icm20608_runtime_ranges_update_scaling_and_metadata);
     RUN_TEST(test_icm20608_runtime_odr_is_exact_and_failure_atomic);
+    RUN_TEST(test_icm20608_power_mode_preserves_register_and_cache_on_failure);
     return UNITY_END();
 }
