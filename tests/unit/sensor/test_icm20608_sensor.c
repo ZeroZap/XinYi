@@ -663,6 +663,45 @@ static void test_icm20608_coherent_sample_is_single_burst_and_failure_atomic(voi
     destroy_sensor(accel);
 }
 
+static void test_icm20608_sleep_blocks_all_sample_reads_without_bus_access(void)
+{
+    int fake_bus;
+    const uint8_t active_power = 0x21U;
+    const uint8_t sleeping_power = 0x61U;
+    sensor_data_t data = {.type = SENSOR_TYPE_CUSTOM,
+                          .unit = SENSOR_UNIT_NONE,
+                          .value.val_3axis = {11, 22, 33},
+                          .timestamp = 44U,
+                          .accuracy = 55U};
+    sensor_data_t snapshot = data;
+    xy_icm20608_gyro_t gyro = {101, 202, 303};
+    xy_icm20608_gyro_t gyro_snapshot = gyro;
+    int32_t temperature = 1234;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, sleeping_power, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
+                          accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_SLEEP));
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_icm20608_read_gyro(&priv->device, &gyro));
+    TEST_ASSERT_EQUAL_MEMORY(&gyro_snapshot, &gyro, sizeof(gyro));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_icm20608_read_temperature(&priv->device, &temperature));
+    TEST_ASSERT_EQUAL_INT32(1234, temperature);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -677,5 +716,6 @@ int main(void)
     RUN_TEST(test_icm20608_power_mode_preserves_register_and_cache_on_failure);
     RUN_TEST(test_icm20608_data_ready_interrupt_preserves_register_and_reports_status);
     RUN_TEST(test_icm20608_coherent_sample_is_single_burst_and_failure_atomic);
+    RUN_TEST(test_icm20608_sleep_blocks_all_sample_reads_without_bus_access);
     return UNITY_END();
 }

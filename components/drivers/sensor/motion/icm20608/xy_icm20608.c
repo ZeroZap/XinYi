@@ -308,7 +308,7 @@ xy_error_t xy_icm20608_read_accel(xy_icm20608_t *dev, xy_icm20608_accel_t *accel
     xy_icm20608_accel_t next;
     xy_error_t result;
 
-    if (!icm20608_ready(dev) || accel == NULL) {
+    if (!icm20608_ready(dev) || accel == NULL || dev->sleeping != 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_XOUT_H, data, sizeof(data));
@@ -333,7 +333,7 @@ xy_error_t xy_icm20608_read_gyro(xy_icm20608_t *dev, xy_icm20608_gyro_t *gyro)
     xy_icm20608_gyro_t next;
     xy_error_t result;
 
-    if (!icm20608_ready(dev) || gyro == NULL) {
+    if (!icm20608_ready(dev) || gyro == NULL || dev->sleeping != 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = icm20608_read(dev, XY_ICM20608_REG_GYRO_XOUT_H, data, sizeof(data));
@@ -358,7 +358,7 @@ xy_error_t xy_icm20608_read_temperature(xy_icm20608_t *dev, int32_t *temperature
     int32_t next;
     xy_error_t result;
 
-    if (!icm20608_ready(dev) || temperature_centi_c == NULL) {
+    if (!icm20608_ready(dev) || temperature_centi_c == NULL || dev->sleeping != 0U) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = icm20608_read(dev, XY_ICM20608_REG_TEMP_OUT_H, data, sizeof(data));
