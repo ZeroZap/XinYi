@@ -229,13 +229,13 @@ static sensor_device_t *icm20608_create(const char *name, void *bus, bool use_sp
         sensor->info.unit = SENSOR_UNIT_MILLI_G;
         sensor->info.range_max = 4000;
         sensor->info.range_min = -4000;
-        sensor->info.flags = SENSOR_FLAG_INT_SUPPORT | SENSOR_FLAG_FIFO_SUPPORT;
+        sensor->info.flags = SENSOR_FLAG_INT_SUPPORT;
         sensor->odr = 100U;
     } else if (type == SENSOR_TYPE_GYROSCOPE) {
         sensor->info.unit = SENSOR_UNIT_DEGREE_PER_SECOND;
         sensor->info.range_max = 500;
         sensor->info.range_min = -500;
-        sensor->info.flags = SENSOR_FLAG_INT_SUPPORT | SENSOR_FLAG_FIFO_SUPPORT;
+        sensor->info.flags = SENSOR_FLAG_INT_SUPPORT;
         sensor->odr = 100U;
     } else {
         sensor->info.unit = SENSOR_UNIT_CELSIUS;

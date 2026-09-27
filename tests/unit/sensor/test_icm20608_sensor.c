@@ -246,6 +246,7 @@ static void test_icm20608_create_identity_and_bus_contracts(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_MILLI_G, accel->info.unit);
     TEST_ASSERT_EQUAL_INT32(4000, accel->info.range_max);
     TEST_ASSERT_EQUAL_INT32(-4000, accel->info.range_min);
+    TEST_ASSERT_EQUAL_UINT32(SENSOR_FLAG_INT_SUPPORT, accel->info.flags);
     TEST_ASSERT_EQUAL_PTR(&fake_bus, accel->bus);
     TEST_ASSERT_FALSE(((icm20608_priv_t *)accel->priv_data)->use_spi);
     TEST_ASSERT_EQUAL_UINT8(4U, ((icm20608_priv_t *)accel->priv_data)->accel_range);
@@ -255,11 +256,13 @@ static void test_icm20608_create_identity_and_bus_contracts(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_DEGREE_PER_SECOND, gyro->info.unit);
     TEST_ASSERT_EQUAL_INT32(500, gyro->info.range_max);
     TEST_ASSERT_EQUAL_INT32(-500, gyro->info.range_min);
+    TEST_ASSERT_EQUAL_UINT32(SENSOR_FLAG_INT_SUPPORT, gyro->info.flags);
     TEST_ASSERT_EQUAL_UINT16(500U, ((icm20608_priv_t *)gyro->priv_data)->gyro_range);
 
     TEST_ASSERT_EQUAL_STRING("icm-temp", temp->info.name);
     TEST_ASSERT_EQUAL_INT(SENSOR_TYPE_TEMPERATURE, temp->info.type);
     TEST_ASSERT_EQUAL_INT(SENSOR_UNIT_CELSIUS, temp->info.unit);
+    TEST_ASSERT_EQUAL_UINT32(0U, temp->info.flags);
     TEST_ASSERT_TRUE(((icm20608_priv_t *)temp->priv_data)->use_spi);
 
     destroy_sensor(accel);
@@ -552,18 +555,27 @@ static void test_icm20608_power_mode_preserves_register_and_cache_on_failure(voi
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
                           accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_SLEEP));
     TEST_ASSERT_TRUE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
+    TEST_ASSERT_EQUAL_UINT32(7100U, g_tick);
 
     queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &sleeping_power, 1U,
                    SENSOR_ETIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
                           accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_NORMAL));
     TEST_ASSERT_TRUE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
+    TEST_ASSERT_EQUAL_UINT32(7100U, g_tick);
 
     queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &sleeping_power, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, active_power, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
                           accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_NORMAL));
     TEST_ASSERT_FALSE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
+    TEST_ASSERT_EQUAL_UINT32(7135U, g_tick);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, active_power, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
+                          accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_NORMAL));
+    TEST_ASSERT_EQUAL_UINT32(7135U, g_tick);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
                           accel->ops->set_power_mode(accel, (sensor_power_mode_t)99));

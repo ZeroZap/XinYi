@@ -210,7 +210,12 @@ xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep)
     }
     result = icm20608_update_bits(dev, XY_ICM20608_REG_PWR_MGMT_1, 0x40U,
                                   sleep != 0U ? 0x40U : 0x00U);
-    if (result == XY_DEVICE_OK) dev->sleeping = sleep;
+    if (result == XY_DEVICE_OK) {
+        if (sleep == 0U && dev->sleeping != 0U) {
+            (void)xy_device_delay_ms(35U);
+        }
+        dev->sleeping = sleep;
+    }
     return result;
 }
 
