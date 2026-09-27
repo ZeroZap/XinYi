@@ -7,6 +7,8 @@
 static uint8_t regs[256];
 static uint32_t tick;
 static xy_error_t read_result;
+static xy_error_t write_result;
+static uint8_t fail_write_reg;
 static size_t read_count;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
@@ -34,6 +36,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg,
                                    const uint8_t *data, size_t length)
 {
     TEST_ASSERT_NOT_NULL(dev);
+    if (write_result != XY_DEVICE_OK && reg == fail_write_reg) return write_result;
     memcpy(&regs[reg], data, length);
     return XY_DEVICE_OK;
 }
@@ -47,6 +50,8 @@ void setUp(void)
     regs[XY_QMA6100P_REG_CHIP_ID] = XY_QMA6100P_CHIP_ID;
     tick = 500U;
     read_result = XY_DEVICE_OK;
+    write_result = XY_DEVICE_OK;
+    fail_write_reg = 0U;
     read_count = 0U;
 }
 void tearDown(void) {}
@@ -134,6 +139,47 @@ static void test_wrapper_rejects_missing_bus_before_deinit(void)
     destroy(sensor);
 }
 
+static void test_wrapper_range_updates_metadata_and_sample_scaling(void)
+{
+    int bus;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = qma6100p_create_accel("qma", &bus, XY_QMA6100P_ADDR_LOW);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    regs[1] = 0x00U;
+    regs[2] = 0x10U;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
+                          qma6100p_set_range(sensor, XY_QMA6100P_RANGE_8G));
+    TEST_ASSERT_EQUAL_INT32(-8000, sensor->info.range_min);
+    TEST_ASSERT_EQUAL_INT32(8000, sensor->info.range_max);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT32(1000, data.value.val_3axis.x);
+    destroy(sensor);
+}
+
+static void test_wrapper_range_rejection_preserves_metadata(void)
+{
+    int bus;
+    sensor_device_t *sensor = qma6100p_create_accel("qma", &bus, XY_QMA6100P_ADDR_LOW);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, qma6100p_set_range(sensor, 0x03U));
+    TEST_ASSERT_EQUAL_INT32(-2000, sensor->info.range_min);
+    TEST_ASSERT_EQUAL_INT32(2000, sensor->info.range_max);
+    write_result = XY_DEVICE_TIMEOUT;
+    fail_write_reg = XY_QMA6100P_REG_RANGE;
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          qma6100p_set_range(sensor, XY_QMA6100P_RANGE_8G));
+    TEST_ASSERT_EQUAL_INT32(-2000, sensor->info.range_min);
+    TEST_ASSERT_EQUAL_INT32(2000, sensor->info.range_max);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_RANGE_2G,
+                           ((qma6100p_priv_t *)sensor->priv_data)->device.range);
+    destroy(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -141,5 +187,7 @@ int main(void)
     RUN_TEST(test_wrapper_delegates_lifecycle_and_sample);
     RUN_TEST(test_wrapper_preserves_output_on_read_timeout);
     RUN_TEST(test_wrapper_rejects_missing_bus_before_deinit);
+    RUN_TEST(test_wrapper_range_updates_metadata_and_sample_scaling);
+    RUN_TEST(test_wrapper_range_rejection_preserves_metadata);
     return UNITY_END();
 }

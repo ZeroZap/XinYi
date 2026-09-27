@@ -10,5 +10,6 @@ typedef struct {
 } qma6100p_priv_t;
 
 sensor_device_t *qma6100p_create_accel(const char *name, void *bus, uint8_t address);
+sensor_err_t qma6100p_set_range(sensor_device_t *sensor, uint8_t range);
 
 #endif

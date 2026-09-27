@@ -56,6 +56,42 @@ static const sensor_ops_t qma6100p_ops = {
     .read = qma6100p_read,
 };
 
+sensor_err_t qma6100p_set_range(sensor_device_t *sensor, uint8_t range)
+{
+    qma6100p_priv_t *priv;
+    int32_t range_mg;
+    xy_error_t result;
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    switch (range) {
+    case XY_QMA6100P_RANGE_2G:
+        range_mg = 2000;
+        break;
+    case XY_QMA6100P_RANGE_4G:
+        range_mg = 4000;
+        break;
+    case XY_QMA6100P_RANGE_8G:
+        range_mg = 8000;
+        break;
+    case XY_QMA6100P_RANGE_16G:
+        range_mg = 16000;
+        break;
+    case XY_QMA6100P_RANGE_32G:
+        range_mg = 32000;
+        break;
+    default:
+        return SENSOR_EINVAL;
+    }
+    priv = (qma6100p_priv_t *)sensor->priv_data;
+    result = xy_qma6100p_set_range(&priv->device, range);
+    if (result != XY_DEVICE_OK) return map_error(result);
+    sensor->info.range_min = -range_mg;
+    sensor->info.range_max = range_mg;
+    return SENSOR_EOK;
+}
+
 sensor_device_t *qma6100p_create_accel(const char *name, void *bus, uint8_t address)
 {
     sensor_device_t *sensor;
