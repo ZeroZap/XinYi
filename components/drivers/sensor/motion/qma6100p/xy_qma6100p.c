@@ -146,6 +146,10 @@ xy_error_t xy_qma6100p_read_raw(xy_qma6100p_t *dev, xy_qma6100p_raw_t *raw)
 
     if (!qma_ready(dev) || raw == NULL) return XY_DEVICE_INVALID_PARAM;
     result = qma_read(dev, XY_QMA6100P_REG_X_LSB, data, sizeof(data));
+    if (result != XY_DEVICE_OK) {
+        xy_device_delay_ms(1U);
+        result = qma_read(dev, XY_QMA6100P_REG_X_LSB, data, sizeof(data));
+    }
     if (result != XY_DEVICE_OK) return result;
     next.x = decode_axis(data[0], data[1]);
     next.y = decode_axis(data[2], data[3]);

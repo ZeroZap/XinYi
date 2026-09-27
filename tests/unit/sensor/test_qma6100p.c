@@ -7,6 +7,7 @@ static uint8_t regs[256];
 static size_t reads;
 static size_t writes;
 static uint32_t delayed;
+static size_t transient_read_failures;
 static xy_error_t read_result;
 static uint8_t fail_read_reg;
 static xy_error_t write_result;
@@ -27,6 +28,13 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
                                   size_t length)
 {
     TEST_ASSERT_NOT_NULL(dev);
+    if (transient_read_failures != 0U && reg == fail_read_reg) {
+        xy_error_t result = read_result;
+        transient_read_failures--;
+        if (transient_read_failures == 0U) read_result = XY_DEVICE_OK;
+        reads++;
+        return result;
+    }
     if (read_result != XY_DEVICE_OK && reg == fail_read_reg) {
         reads++;
         return read_result;
@@ -56,6 +64,7 @@ void setUp(void)
     memset(regs, 0, sizeof(regs));
     regs[XY_QMA6100P_REG_CHIP_ID] = XY_QMA6100P_CHIP_ID;
     reads = writes = delayed = 0U;
+    transient_read_failures = 0U;
     read_result = XY_DEVICE_OK;
     fail_read_reg = 0U;
     write_result = XY_DEVICE_OK;
@@ -189,6 +198,47 @@ static void test_interrupt_profile_supports_active_low(void)
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_ENABLE1]);
 }
 
+static void test_raw_read_retries_one_transient_failure(void)
+{
+    xy_qma6100p_t dev;
+    xy_qma6100p_raw_t raw;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    regs[1] = 0x00U; regs[2] = 0x10U;
+    read_result = XY_DEVICE_TIMEOUT;
+    fail_read_reg = XY_QMA6100P_REG_X_LSB;
+    transient_read_failures = 1U;
+    reads = 0U;
+    delayed = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_read_raw(&dev, &raw));
+    TEST_ASSERT_EQUAL_INT16(1024, raw.x);
+    TEST_ASSERT_EQUAL_UINT(2U, reads);
+    TEST_ASSERT_EQUAL_UINT32(1U, delayed);
+}
+
+static void test_raw_read_reports_persistent_failure_without_publishing(void)
+{
+    xy_qma6100p_t dev;
+    xy_qma6100p_raw_t raw = {123, 456, 789};
+    xy_qma6100p_raw_t before = raw;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    read_result = XY_DEVICE_TIMEOUT;
+    fail_read_reg = XY_QMA6100P_REG_X_LSB;
+    reads = 0U;
+    delayed = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qma6100p_read_raw(&dev, &raw));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &raw, sizeof(raw));
+    TEST_ASSERT_EQUAL_UINT(2U, reads);
+    TEST_ASSERT_EQUAL_UINT32(1U, delayed);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -200,5 +250,7 @@ int main(void)
     RUN_TEST(test_interrupt_config_readback_is_staged);
     RUN_TEST(test_interrupt_reconfigure_failure_leaves_source_disabled);
     RUN_TEST(test_interrupt_profile_supports_active_low);
+    RUN_TEST(test_raw_read_retries_one_transient_failure);
+    RUN_TEST(test_raw_read_reports_persistent_failure_without_publishing);
     return UNITY_END();
 }
