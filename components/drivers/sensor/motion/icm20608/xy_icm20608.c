@@ -92,6 +92,9 @@ static xy_error_t icm20608_configure(xy_icm20608_t *dev)
         result = icm20608_write(dev, XY_ICM20608_REG_ACCEL_CONFIG, 0x08U);
     }
     if (result == XY_DEVICE_OK) {
+        result = icm20608_write(dev, XY_ICM20608_REG_SMPLRT_DIV, 0x09U);
+    }
+    if (result == XY_DEVICE_OK) {
         result = icm20608_write(dev, XY_ICM20608_REG_CONFIG, 0x04U);
     }
     if (result == XY_DEVICE_OK) {
@@ -122,7 +125,7 @@ xy_error_t xy_icm20608_init_i2c(xy_icm20608_t *dev, void *i2c_handle, uint8_t ad
     }
     candidate.accel_range = XY_ICM20608_ACCEL_RANGE_4G;
     candidate.gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
-    candidate.odr_hz = 1000U;
+    candidate.odr_hz = 100U;
     candidate.initialized = 1U;
     *dev = candidate;
     return XY_DEVICE_OK;
@@ -149,7 +152,7 @@ xy_error_t xy_icm20608_init_spi(xy_icm20608_t *dev, void *context,
     }
     candidate.accel_range = XY_ICM20608_ACCEL_RANGE_4G;
     candidate.gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
-    candidate.odr_hz = 1000U;
+    candidate.odr_hz = 100U;
     candidate.initialized = 1U;
     *dev = candidate;
     return XY_DEVICE_OK;

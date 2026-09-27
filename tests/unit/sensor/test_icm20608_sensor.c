@@ -188,6 +188,7 @@ static void queue_i2c_init_success(void *bus)
     queue_i2c_write(bus, ICM20608_REG_PWR_MGMT_2, 0x00U, SENSOR_EOK);
     queue_i2c_write(bus, ICM20608_REG_GYRO_CONFIG, 0x08U, SENSOR_EOK);
     queue_i2c_write(bus, ICM20608_REG_ACCEL_CONFIG, 0x08U, SENSOR_EOK);
+    queue_i2c_write(bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
     queue_i2c_write(bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_i2c_write(bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
 }
@@ -288,6 +289,8 @@ static void test_icm20608_i2c_init_read_deinit_contracts(void)
     queue_i2c_init_success(&fake_bus);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
     TEST_ASSERT_EQUAL_UINT32(7100U, g_tick);
+    TEST_ASSERT_EQUAL_UINT16(100U,
+                             ((icm20608_priv_t *)accel->priv_data)->device.odr_hz);
     queue_i2c_init_success(&fake_bus);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gyro->ops->init(gyro));
     queue_i2c_init_success(&fake_bus);
@@ -403,6 +406,7 @@ static void test_icm20608_accepts_pandora_identity(void)
     queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_2, 0x00U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_GYRO_CONFIG, 0x08U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG, 0x08U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
@@ -425,6 +429,7 @@ static void test_icm20608_spi_bus_path_smoke(void)
     queue_spi_write(&fake_bus, ICM20608_REG_PWR_MGMT_2, 0x00U, SENSOR_EOK);
     queue_spi_write(&fake_bus, ICM20608_REG_GYRO_CONFIG, 0x08U, SENSOR_EOK);
     queue_spi_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG, 0x08U, SENSOR_EOK);
+    queue_spi_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
     queue_spi_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_spi_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, temp->ops->init(temp));
