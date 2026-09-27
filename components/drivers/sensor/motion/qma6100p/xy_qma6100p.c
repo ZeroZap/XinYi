@@ -66,6 +66,7 @@ xy_error_t xy_qma6100p_init(xy_qma6100p_t *dev, void *i2c_handle, uint8_t addres
     candidate.address = address;
     candidate.range = XY_QMA6100P_RANGE_2G;
     candidate.bandwidth = XY_QMA6100P_BW_100HZ;
+    candidate.active = 1U;
     candidate.initialized = 1U;
     *dev = candidate;
     return XY_DEVICE_OK;
@@ -78,6 +79,7 @@ xy_error_t xy_qma6100p_deinit(xy_qma6100p_t *dev)
     if (!qma_ready(dev)) return XY_DEVICE_INVALID_PARAM;
     result = qma_write(dev, XY_QMA6100P_REG_POWER, 0U);
     if (result != XY_DEVICE_OK) return result;
+    dev->active = 0U;
     dev->initialized = 0U;
     dev->i2c_dev.base.initialized = 0U;
     dev->i2c_dev.i2c_handle = NULL;
@@ -92,6 +94,19 @@ xy_error_t xy_qma6100p_set_range(xy_qma6100p_t *dev, uint8_t range)
     result = qma_write(dev, XY_QMA6100P_REG_RANGE, range);
     if (result == XY_DEVICE_OK) dev->range = range;
     return result;
+}
+
+xy_error_t xy_qma6100p_set_active(xy_qma6100p_t *dev, uint8_t active)
+{
+    xy_error_t result;
+
+    if (!qma_ready(dev) || active > 1U) return XY_DEVICE_INVALID_PARAM;
+    result = qma_write(dev, XY_QMA6100P_REG_POWER,
+                       active != 0U ? XY_QMA6100P_POWER_ACTIVE : 0U);
+    if (result != XY_DEVICE_OK) return result;
+    if (active != 0U && dev->active == 0U) xy_device_delay_ms(1U);
+    dev->active = active;
+    return XY_DEVICE_OK;
 }
 
 xy_error_t xy_qma6100p_configure_data_ready_interrupts_ex(xy_qma6100p_t *dev,
@@ -166,7 +181,7 @@ xy_error_t xy_qma6100p_read_raw(xy_qma6100p_t *dev, xy_qma6100p_raw_t *raw)
     xy_qma6100p_raw_t next;
     xy_error_t result;
 
-    if (!qma_ready(dev) || raw == NULL) return XY_DEVICE_INVALID_PARAM;
+    if (!qma_ready(dev) || raw == NULL || dev->active == 0U) return XY_DEVICE_INVALID_PARAM;
     result = qma_read(dev, XY_QMA6100P_REG_X_LSB, data, sizeof(data));
     if (result != XY_DEVICE_OK) {
         xy_device_delay_ms(1U);

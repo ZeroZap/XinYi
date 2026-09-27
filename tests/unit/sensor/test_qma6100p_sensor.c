@@ -180,6 +180,30 @@ static void test_wrapper_range_rejection_preserves_metadata(void)
     destroy(sensor);
 }
 
+static void test_wrapper_enable_controls_power_and_status(void)
+{
+    int bus;
+    sensor_data_t data = {0};
+    sensor_device_t *sensor = qma6100p_create_accel("qma", &bus, XY_QMA6100P_ADDR_LOW);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_NOT_NULL(sensor->ops->enable);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->enable(sensor, false));
+    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_IDLE, sensor->status);
+    TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_POWER]);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->enable(sensor, true));
+    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_READY, sensor->status);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_POWER_ACTIVE, regs[XY_QMA6100P_REG_POWER]);
+
+    write_result = XY_DEVICE_TIMEOUT;
+    fail_write_reg = XY_QMA6100P_REG_POWER;
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->enable(sensor, false));
+    TEST_ASSERT_EQUAL_INT(SENSOR_STATUS_READY, sensor->status);
+    destroy(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -189,5 +213,6 @@ int main(void)
     RUN_TEST(test_wrapper_rejects_missing_bus_before_deinit);
     RUN_TEST(test_wrapper_range_updates_metadata_and_sample_scaling);
     RUN_TEST(test_wrapper_range_rejection_preserves_metadata);
+    RUN_TEST(test_wrapper_enable_controls_power_and_status);
     return UNITY_END();
 }

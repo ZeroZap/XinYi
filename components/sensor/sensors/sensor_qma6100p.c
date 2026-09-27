@@ -50,10 +50,26 @@ static sensor_err_t qma6100p_read(sensor_device_t *sensor, sensor_data_t *data)
     return SENSOR_EOK;
 }
 
+static sensor_err_t qma6100p_enable(sensor_device_t *sensor, bool enable)
+{
+    qma6100p_priv_t *priv;
+    xy_error_t result;
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
+    priv = (qma6100p_priv_t *)sensor->priv_data;
+    result = xy_qma6100p_set_active(&priv->device, enable ? 1U : 0U);
+    if (result != XY_DEVICE_OK) return map_error(result);
+    sensor->status = enable ? SENSOR_STATUS_READY : SENSOR_STATUS_IDLE;
+    return SENSOR_EOK;
+}
+
 static const sensor_ops_t qma6100p_ops = {
     .init = qma6100p_init,
     .deinit = qma6100p_deinit,
     .read = qma6100p_read,
+    .enable = qma6100p_enable,
 };
 
 sensor_err_t qma6100p_set_range(sensor_device_t *sensor, uint8_t range)
