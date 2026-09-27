@@ -18,6 +18,18 @@ static xy_error_t qma_write(xy_qma6100p_t *dev, uint8_t reg, uint8_t value)
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
+static xy_error_t qma_update_bits(xy_qma6100p_t *dev, uint8_t reg, uint8_t mask,
+                                  uint8_t value)
+{
+    uint8_t current;
+    xy_error_t result;
+
+    result = qma_read(dev, reg, &current, 1U);
+    if (result != XY_DEVICE_OK) return result;
+    current = (uint8_t)((current & (uint8_t)~mask) | (value & mask));
+    return qma_write(dev, reg, current);
+}
+
 static int16_t decode_axis(uint8_t lsb, uint8_t msb)
 {
     uint16_t packed = (uint16_t)(((uint16_t)msb << 8) | lsb);
@@ -56,7 +68,8 @@ xy_error_t xy_qma6100p_init(xy_qma6100p_t *dev, void *i2c_handle, uint8_t addres
     if (result != XY_DEVICE_OK || id != XY_QMA6100P_CHIP_ID) {
         return result != XY_DEVICE_OK ? result : XY_DEVICE_NOT_FOUND;
     }
-    result = qma_write(&candidate, XY_QMA6100P_REG_RANGE, XY_QMA6100P_RANGE_2G);
+    result = qma_update_bits(&candidate, XY_QMA6100P_REG_RANGE, 0x0FU,
+                             XY_QMA6100P_RANGE_2G);
     if (result == XY_DEVICE_OK)
         result = qma_write(&candidate, XY_QMA6100P_REG_BW, XY_QMA6100P_BW_100HZ);
     if (result == XY_DEVICE_OK)
@@ -91,7 +104,7 @@ xy_error_t xy_qma6100p_set_range(xy_qma6100p_t *dev, uint8_t range)
     xy_error_t result;
 
     if (!qma_ready(dev) || range_lsb_per_g(range) == 0U) return XY_DEVICE_INVALID_PARAM;
-    result = qma_write(dev, XY_QMA6100P_REG_RANGE, range);
+    result = qma_update_bits(dev, XY_QMA6100P_REG_RANGE, 0x0FU, range);
     if (result == XY_DEVICE_OK) dev->range = range;
     return result;
 }
