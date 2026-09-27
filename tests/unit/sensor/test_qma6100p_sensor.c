@@ -204,6 +204,29 @@ static void test_wrapper_enable_controls_power_and_status(void)
     destroy(sensor);
 }
 
+static void test_wrapper_interrupt_enable_controls_both_active_low_pins(void)
+{
+#if SENSOR_ENABLE_INTERRUPT
+    int bus;
+    sensor_device_t *sensor = qma6100p_create_accel("qma", &bus, XY_QMA6100P_ADDR_LOW);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    TEST_ASSERT_NOT_NULL(sensor->ops->interrupt_enable);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->interrupt_enable(sensor, 1U, true));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->interrupt_enable(sensor, 0U, true));
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_ENABLE1]);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_MAP1]);
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_MAP3]);
+    TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_PIN_CONFIG]);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->interrupt_enable(sensor, 0U, false));
+    TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_ENABLE1]);
+    TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_MAP1]);
+    TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_MAP3]);
+    destroy(sensor);
+#endif
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -214,5 +237,6 @@ int main(void)
     RUN_TEST(test_wrapper_range_updates_metadata_and_sample_scaling);
     RUN_TEST(test_wrapper_range_rejection_preserves_metadata);
     RUN_TEST(test_wrapper_enable_controls_power_and_status);
+    RUN_TEST(test_wrapper_interrupt_enable_controls_both_active_low_pins);
     return UNITY_END();
 }

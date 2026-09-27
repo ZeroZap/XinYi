@@ -65,11 +65,29 @@ static sensor_err_t qma6100p_enable(sensor_device_t *sensor, bool enable)
     return SENSOR_EOK;
 }
 
+#if SENSOR_ENABLE_INTERRUPT
+static sensor_err_t qma6100p_interrupt_enable(sensor_device_t *sensor, uint32_t int_type,
+                                               bool enable)
+{
+    qma6100p_priv_t *priv;
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL || int_type != 0U) {
+        return SENSOR_EINVAL;
+    }
+    priv = (qma6100p_priv_t *)sensor->priv_data;
+    return map_error(xy_qma6100p_configure_data_ready_interrupts_ex(
+        &priv->device, enable ? 1U : 0U, enable ? 1U : 0U, 0U));
+}
+#endif
+
 static const sensor_ops_t qma6100p_ops = {
     .init = qma6100p_init,
     .deinit = qma6100p_deinit,
     .read = qma6100p_read,
     .enable = qma6100p_enable,
+#if SENSOR_ENABLE_INTERRUPT
+    .interrupt_enable = qma6100p_interrupt_enable,
+#endif
 };
 
 sensor_err_t qma6100p_set_range(sensor_device_t *sensor, uint8_t range)
