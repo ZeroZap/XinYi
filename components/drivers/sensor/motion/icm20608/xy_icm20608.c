@@ -243,6 +243,31 @@ xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf
     return XY_DEVICE_OK;
 }
 
+xy_error_t xy_icm20608_set_bias(xy_icm20608_t *dev,
+                                const xy_icm20608_accel_t *accel_bias,
+                                const xy_icm20608_gyro_t *gyro_bias)
+{
+    int32_t accel_limit;
+    int32_t gyro_limit;
+
+    if (!icm20608_ready(dev) || accel_bias == NULL || gyro_bias == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    accel_limit = accel_full_scale_mg(dev->accel_range);
+    gyro_limit = gyro_full_scale_mdps(dev->gyro_range);
+    if (accel_bias->x_mg < -accel_limit || accel_bias->x_mg > accel_limit ||
+        accel_bias->y_mg < -accel_limit || accel_bias->y_mg > accel_limit ||
+        accel_bias->z_mg < -accel_limit || accel_bias->z_mg > accel_limit ||
+        gyro_bias->x_mdps < -gyro_limit || gyro_bias->x_mdps > gyro_limit ||
+        gyro_bias->y_mdps < -gyro_limit || gyro_bias->y_mdps > gyro_limit ||
+        gyro_bias->z_mdps < -gyro_limit || gyro_bias->z_mdps > gyro_limit) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    dev->accel_bias = *accel_bias;
+    dev->gyro_bias = *gyro_bias;
+    return XY_DEVICE_OK;
+}
+
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep)
 {
     xy_error_t result;
@@ -342,6 +367,13 @@ xy_error_t xy_icm20608_read_sample(xy_icm20608_t *dev, xy_icm20608_sample_t *sam
     next.gyro.z_mdps =
         (int32_t)((int64_t)gyro_raw[2] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
 
+    next.accel.x_mg -= dev->accel_bias.x_mg;
+    next.accel.y_mg -= dev->accel_bias.y_mg;
+    next.accel.z_mg -= dev->accel_bias.z_mg;
+    next.gyro.x_mdps -= dev->gyro_bias.x_mdps;
+    next.gyro.y_mdps -= dev->gyro_bias.y_mdps;
+    next.gyro.z_mdps -= dev->gyro_bias.z_mdps;
+
     dev->accel = next.accel;
     dev->gyro = next.gyro;
     dev->temperature_centi_c = next.temperature_centi_c;
@@ -369,6 +401,9 @@ xy_error_t xy_icm20608_read_accel(xy_icm20608_t *dev, xy_icm20608_accel_t *accel
     next.x_mg = (int32_t)raw[0] * accel_full_scale_mg(dev->accel_range) / 32768;
     next.y_mg = (int32_t)raw[1] * accel_full_scale_mg(dev->accel_range) / 32768;
     next.z_mg = (int32_t)raw[2] * accel_full_scale_mg(dev->accel_range) / 32768;
+    next.x_mg -= dev->accel_bias.x_mg;
+    next.y_mg -= dev->accel_bias.y_mg;
+    next.z_mg -= dev->accel_bias.z_mg;
     dev->accel = next;
     *accel = next;
     return XY_DEVICE_OK;
@@ -394,6 +429,9 @@ xy_error_t xy_icm20608_read_gyro(xy_icm20608_t *dev, xy_icm20608_gyro_t *gyro)
     next.x_mdps = (int32_t)((int64_t)raw[0] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
     next.y_mdps = (int32_t)((int64_t)raw[1] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
     next.z_mdps = (int32_t)((int64_t)raw[2] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
+    next.x_mdps -= dev->gyro_bias.x_mdps;
+    next.y_mdps -= dev->gyro_bias.y_mdps;
+    next.z_mdps -= dev->gyro_bias.z_mdps;
     dev->gyro = next;
     *gyro = next;
     return XY_DEVICE_OK;

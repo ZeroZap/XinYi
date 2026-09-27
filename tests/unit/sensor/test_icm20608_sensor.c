@@ -908,6 +908,58 @@ static void test_icm20608_wrapper_dlpf_control_maps_errors_and_validates_type(vo
     destroy_sensor(temp);
 }
 
+static void test_icm20608_bias_is_applied_to_all_sample_paths(void)
+{
+    int fake_bus;
+    const uint8_t sample_raw[14] = {
+        0x08, 0x00, 0xF8, 0x00, 0x20, 0x00, 0x00,
+        0x00, 0x04, 0x00, 0xFC, 0x00, 0x10, 0x00,
+    };
+    const uint8_t accel_raw[6] = {0x08, 0x00, 0xF8, 0x00, 0x20, 0x00};
+    const uint8_t gyro_raw[6] = {0x04, 0x00, 0xFC, 0x00, 0x10, 0x00};
+    const xy_icm20608_accel_t accel_bias = {50, -25, 100};
+    const xy_icm20608_gyro_t gyro_bias = {10000, -5000, 20000};
+    xy_icm20608_sample_t sample;
+    xy_icm20608_accel_t accel;
+    xy_icm20608_gyro_t gyro;
+    sensor_device_t *sensor = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    priv = (icm20608_priv_t *)sensor->priv_data;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_icm20608_set_bias(&priv->device, &accel_bias, &gyro_bias));
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, sample_raw, sizeof(sample_raw),
+                   SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_icm20608_read_sample(&priv->device, &sample));
+    TEST_ASSERT_EQUAL_INT32(200, sample.accel.x_mg);
+    TEST_ASSERT_EQUAL_INT32(-225, sample.accel.y_mg);
+    TEST_ASSERT_EQUAL_INT32(900, sample.accel.z_mg);
+    TEST_ASSERT_EQUAL_INT32(5625, sample.gyro.x_mdps);
+    TEST_ASSERT_EQUAL_INT32(-10625, sample.gyro.y_mdps);
+    TEST_ASSERT_EQUAL_INT32(42500, sample.gyro.z_mdps);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, accel_raw, sizeof(accel_raw), SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_icm20608_read_accel(&priv->device, &accel));
+    TEST_ASSERT_EQUAL_MEMORY(&sample.accel, &accel, sizeof(accel));
+    queue_i2c_read(&fake_bus, ICM20608_REG_GYRO_XOUT_H, gyro_raw, sizeof(gyro_raw), SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_icm20608_read_gyro(&priv->device, &gyro));
+    TEST_ASSERT_EQUAL_MEMORY(&sample.gyro, &gyro, sizeof(gyro));
+
+    accel = accel_bias;
+    accel.x_mg = 4001;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_icm20608_set_bias(&priv->device, &accel, &gyro_bias));
+    TEST_ASSERT_EQUAL_MEMORY(&accel_bias, &priv->device.accel_bias, sizeof(accel_bias));
+    TEST_ASSERT_EQUAL_MEMORY(&gyro_bias, &priv->device.gyro_bias, sizeof(gyro_bias));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -928,5 +980,6 @@ int main(void)
     RUN_TEST(test_icm20608_dlpf_control_preserves_bits_and_rolls_back);
     RUN_TEST(test_icm20608_failed_dlpf_rollback_fail_closes_until_reinit);
     RUN_TEST(test_icm20608_wrapper_dlpf_control_maps_errors_and_validates_type);
+    RUN_TEST(test_icm20608_bias_is_applied_to_all_sample_paths);
     return UNITY_END();
 }

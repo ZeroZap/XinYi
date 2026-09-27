@@ -85,6 +85,8 @@ typedef struct {
     xy_icm20608_spi_write_t spi_write;
     xy_icm20608_accel_t accel;
     xy_icm20608_gyro_t gyro;
+    xy_icm20608_accel_t accel_bias;
+    xy_icm20608_gyro_t gyro_bias;
     int32_t temperature_centi_c;
     xy_icm20608_transport_t transport;
     xy_icm20608_accel_range_t accel_range;
@@ -111,6 +113,9 @@ xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
 xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz);
 xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf,
                                 xy_icm20608_dlpf_t accel_dlpf);
+xy_error_t xy_icm20608_set_bias(xy_icm20608_t *dev,
+                                const xy_icm20608_accel_t *accel_bias,
+                                const xy_icm20608_gyro_t *gyro_bias);
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep);
 xy_error_t xy_icm20608_set_data_ready_interrupt(xy_icm20608_t *dev, uint8_t enable);
 xy_error_t xy_icm20608_read_interrupt_status(xy_icm20608_t *dev, uint8_t *status);
