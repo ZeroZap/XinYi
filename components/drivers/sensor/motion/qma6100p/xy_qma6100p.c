@@ -24,6 +24,18 @@ static int16_t decode_axis(uint8_t lsb, uint8_t msb)
     return (int16_t)packed / 4;
 }
 
+static uint16_t range_lsb_per_g(uint8_t range)
+{
+    switch (range) {
+    case XY_QMA6100P_RANGE_2G: return 4096U;
+    case XY_QMA6100P_RANGE_4G: return 2048U;
+    case XY_QMA6100P_RANGE_8G: return 1024U;
+    case XY_QMA6100P_RANGE_16G: return 512U;
+    case XY_QMA6100P_RANGE_32G: return 256U;
+    default: return 0U;
+    }
+}
+
 xy_error_t xy_qma6100p_init(xy_qma6100p_t *dev, void *i2c_handle, uint8_t address)
 {
     xy_qma6100p_t candidate;
@@ -70,6 +82,16 @@ xy_error_t xy_qma6100p_deinit(xy_qma6100p_t *dev)
     dev->i2c_dev.base.initialized = 0U;
     dev->i2c_dev.i2c_handle = NULL;
     return XY_DEVICE_OK;
+}
+
+xy_error_t xy_qma6100p_set_range(xy_qma6100p_t *dev, uint8_t range)
+{
+    xy_error_t result;
+
+    if (!qma_ready(dev) || range_lsb_per_g(range) == 0U) return XY_DEVICE_INVALID_PARAM;
+    result = qma_write(dev, XY_QMA6100P_REG_RANGE, range);
+    if (result == XY_DEVICE_OK) dev->range = range;
+    return result;
 }
 
 xy_error_t xy_qma6100p_configure_data_ready_interrupts_ex(xy_qma6100p_t *dev,
@@ -164,13 +186,16 @@ xy_error_t xy_qma6100p_read_accel(xy_qma6100p_t *dev, xy_qma6100p_accel_t *accel
     xy_qma6100p_raw_t raw;
     xy_qma6100p_accel_t next;
     xy_error_t result;
+    uint16_t lsb_per_g;
 
     if (!qma_ready(dev) || accel == NULL) return XY_DEVICE_INVALID_PARAM;
+    lsb_per_g = range_lsb_per_g(dev->range);
+    if (lsb_per_g == 0U) return XY_DEVICE_INVALID_PARAM;
     result = xy_qma6100p_read_raw(dev, &raw);
     if (result != XY_DEVICE_OK) return result;
-    next.x_mg = ((int32_t)raw.x * 1000) / 4096;
-    next.y_mg = ((int32_t)raw.y * 1000) / 4096;
-    next.z_mg = ((int32_t)raw.z * 1000) / 4096;
+    next.x_mg = ((int32_t)raw.x * 1000) / lsb_per_g;
+    next.y_mg = ((int32_t)raw.y * 1000) / lsb_per_g;
+    next.z_mg = ((int32_t)raw.z * 1000) / lsb_per_g;
     *accel = next;
     return XY_DEVICE_OK;
 }

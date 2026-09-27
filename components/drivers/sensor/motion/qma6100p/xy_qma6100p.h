@@ -60,6 +60,7 @@ typedef struct {
 
 xy_error_t xy_qma6100p_init(xy_qma6100p_t *dev, void *i2c_handle, uint8_t address);
 xy_error_t xy_qma6100p_deinit(xy_qma6100p_t *dev);
+xy_error_t xy_qma6100p_set_range(xy_qma6100p_t *dev, uint8_t range);
 xy_error_t xy_qma6100p_configure_data_ready_interrupts_ex(xy_qma6100p_t *dev,
                                                           uint8_t int1_enable,
                                                           uint8_t int2_enable,

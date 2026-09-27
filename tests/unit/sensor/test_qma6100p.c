@@ -239,6 +239,48 @@ static void test_raw_read_reports_persistent_failure_without_publishing(void)
     TEST_ASSERT_EQUAL_UINT32(1U, delayed);
 }
 
+static void test_range_changes_scaling_and_commits_after_write(void)
+{
+    static const struct {
+        uint8_t range;
+        int32_t expected_mg;
+    } cases[] = {
+        {XY_QMA6100P_RANGE_2G, 250}, {XY_QMA6100P_RANGE_4G, 500},
+        {XY_QMA6100P_RANGE_8G, 1000}, {XY_QMA6100P_RANGE_16G, 2000},
+        {XY_QMA6100P_RANGE_32G, 4000},
+    };
+    xy_qma6100p_t dev;
+    xy_qma6100p_accel_t accel;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    regs[1] = 0x00U; regs[2] = 0x10U;
+    for (size_t index = 0U; index < sizeof(cases) / sizeof(cases[0]); index++) {
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_set_range(&dev, cases[index].range));
+        TEST_ASSERT_EQUAL_HEX8(cases[index].range, dev.range);
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_read_accel(&dev, &accel));
+        TEST_ASSERT_EQUAL_INT32(cases[index].expected_mg, accel.x_mg);
+    }
+}
+
+static void test_range_rejects_invalid_and_preserves_on_write_failure(void)
+{
+    xy_qma6100p_t dev;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    writes = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qma6100p_set_range(&dev, 0x03U));
+    TEST_ASSERT_EQUAL_UINT(0U, writes);
+    write_result = XY_DEVICE_TIMEOUT;
+    fail_write_reg = XY_QMA6100P_REG_RANGE;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_qma6100p_set_range(&dev, XY_QMA6100P_RANGE_8G));
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_RANGE_2G, dev.range);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -252,5 +294,7 @@ int main(void)
     RUN_TEST(test_interrupt_profile_supports_active_low);
     RUN_TEST(test_raw_read_retries_one_transient_failure);
     RUN_TEST(test_raw_read_reports_persistent_failure_without_publishing);
+    RUN_TEST(test_range_changes_scaling_and_commits_after_write);
+    RUN_TEST(test_range_rejects_invalid_and_preserves_on_write_failure);
     return UNITY_END();
 }
