@@ -17,6 +17,8 @@ extern "C" {
 #define XY_ICM20608_REG_GYRO_CONFIG 0x1BU
 #define XY_ICM20608_REG_ACCEL_CONFIG 0x1CU
 #define XY_ICM20608_REG_ACCEL_CONFIG2 0x1DU
+#define XY_ICM20608_REG_INT_ENABLE 0x38U
+#define XY_ICM20608_REG_INT_STATUS 0x3AU
 #define XY_ICM20608_REG_ACCEL_XOUT_H 0x3BU
 #define XY_ICM20608_REG_TEMP_OUT_H 0x41U
 #define XY_ICM20608_REG_GYRO_XOUT_H 0x43U
@@ -75,6 +77,7 @@ typedef struct {
     uint8_t address;
     uint8_t initialized;
     uint8_t sleeping;
+    uint8_t data_ready_interrupt_enabled;
 } xy_icm20608_t;
 
 xy_error_t xy_icm20608_init_i2c(xy_icm20608_t *dev, void *i2c_handle, uint8_t address);
@@ -88,6 +91,8 @@ xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
                                       xy_icm20608_gyro_range_t range);
 xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz);
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep);
+xy_error_t xy_icm20608_set_data_ready_interrupt(xy_icm20608_t *dev, uint8_t enable);
+xy_error_t xy_icm20608_read_interrupt_status(xy_icm20608_t *dev, uint8_t *status);
 xy_error_t xy_icm20608_read_accel(xy_icm20608_t *dev, xy_icm20608_accel_t *accel);
 xy_error_t xy_icm20608_read_gyro(xy_icm20608_t *dev, xy_icm20608_gyro_t *gyro);
 xy_error_t xy_icm20608_read_temperature(xy_icm20608_t *dev, int32_t *temperature_centi_c);

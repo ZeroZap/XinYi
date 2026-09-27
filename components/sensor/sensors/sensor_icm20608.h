@@ -17,6 +17,7 @@
 #define ICM20608_REG_GYRO_CONFIG   0x1B
 #define ICM20608_REG_ACCEL_CONFIG  0x1C
 #define ICM20608_REG_ACCEL_CONFIG2 0x1D
+#define ICM20608_REG_INT_ENABLE    0x38
 #define ICM20608_REG_INT_STATUS    0x3A
 #define ICM20608_REG_ACCEL_XOUT_H  0x3B
 #define ICM20608_REG_GYRO_XOUT_H   0x43
@@ -48,5 +49,6 @@ sensor_err_t icm20608_set_accel_range(sensor_device_t *sensor,
 sensor_err_t icm20608_set_gyro_range(sensor_device_t *sensor,
                                      xy_icm20608_gyro_range_t range);
 sensor_err_t icm20608_set_odr(sensor_device_t *sensor, uint16_t odr_hz);
+sensor_err_t icm20608_read_interrupt_status(sensor_device_t *sensor, uint8_t *status);
 
 #endif /* __SENSOR_ICM20608_H__ */

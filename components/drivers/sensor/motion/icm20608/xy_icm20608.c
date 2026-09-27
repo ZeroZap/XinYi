@@ -213,6 +213,31 @@ xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep)
     return result;
 }
 
+xy_error_t xy_icm20608_set_data_ready_interrupt(xy_icm20608_t *dev, uint8_t enable)
+{
+    xy_error_t result;
+
+    if (!icm20608_ready(dev) || enable > 1U) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = icm20608_update_bits(dev, XY_ICM20608_REG_INT_ENABLE, 0x01U, enable);
+    if (result == XY_DEVICE_OK) dev->data_ready_interrupt_enabled = enable;
+    return result;
+}
+
+xy_error_t xy_icm20608_read_interrupt_status(xy_icm20608_t *dev, uint8_t *status)
+{
+    uint8_t next;
+    xy_error_t result;
+
+    if (!icm20608_ready(dev) || status == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = icm20608_read(dev, XY_ICM20608_REG_INT_STATUS, &next, 1U);
+    if (result == XY_DEVICE_OK) *status = next;
+    return result;
+}
+
 xy_error_t xy_icm20608_deinit(xy_icm20608_t *dev)
 {
     xy_error_t result;

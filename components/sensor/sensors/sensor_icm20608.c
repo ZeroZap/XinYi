@@ -156,16 +156,35 @@ static sensor_err_t icm20608_set_power_mode(sensor_device_t *sensor, sensor_powe
 }
 #endif
 
+#if SENSOR_ENABLE_INTERRUPT
+static sensor_err_t icm20608_interrupt_enable(sensor_device_t *sensor, uint32_t int_type,
+                                               bool enable)
+{
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL ||
+        int_type != SENSOR_INT_DATA_READY) {
+        return SENSOR_EINVAL;
+    }
+    return icm20608_map_error(xy_icm20608_set_data_ready_interrupt(
+        &((icm20608_priv_t *)sensor->priv_data)->device, enable ? 1U : 0U));
+}
+#endif
+
 static const sensor_ops_t icm20608_accel_ops = {
     .init = icm20608_init, .deinit = icm20608_deinit, .read = icm20608_accel_read,
 #if SENSOR_ENABLE_POWER_MGMT
     .set_power_mode = icm20608_set_power_mode,
+#endif
+#if SENSOR_ENABLE_INTERRUPT
+    .interrupt_enable = icm20608_interrupt_enable,
 #endif
 };
 static const sensor_ops_t icm20608_gyro_ops = {
     .init = icm20608_init, .deinit = icm20608_deinit, .read = icm20608_gyro_read,
 #if SENSOR_ENABLE_POWER_MGMT
     .set_power_mode = icm20608_set_power_mode,
+#endif
+#if SENSOR_ENABLE_INTERRUPT
+    .interrupt_enable = icm20608_interrupt_enable,
 #endif
 };
 static const sensor_ops_t icm20608_temp_ops = {
@@ -286,6 +305,17 @@ sensor_err_t icm20608_set_odr(sensor_device_t *sensor, uint16_t odr_hz)
     if (result != XY_DEVICE_OK) return icm20608_map_error(result);
     sensor->odr = odr_hz;
     return SENSOR_EOK;
+}
+
+sensor_err_t icm20608_read_interrupt_status(sensor_device_t *sensor, uint8_t *status)
+{
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL || status == NULL ||
+        (sensor->info.type != SENSOR_TYPE_ACCELEROMETER &&
+         sensor->info.type != SENSOR_TYPE_GYROSCOPE)) {
+        return SENSOR_EINVAL;
+    }
+    return icm20608_map_error(xy_icm20608_read_interrupt_status(
+        &((icm20608_priv_t *)sensor->priv_data)->device, status));
 }
 
 sensor_device_t *icm20608_create_accel(const char *name, void *bus, bool use_spi)
