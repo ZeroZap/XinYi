@@ -131,6 +131,7 @@ xy_error_t xy_icm20608_get_bias(const xy_icm20608_t *dev,
                                 xy_icm20608_gyro_t *gyro_bias);
 xy_error_t xy_icm20608_get_configuration(const xy_icm20608_t *dev,
                                          xy_icm20608_configuration_t *configuration);
+xy_error_t xy_icm20608_verify_configuration(xy_icm20608_t *dev);
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep);
 xy_error_t xy_icm20608_set_data_ready_interrupt(xy_icm20608_t *dev, uint8_t enable);
 xy_error_t xy_icm20608_read_interrupt_status(xy_icm20608_t *dev, uint8_t *status);

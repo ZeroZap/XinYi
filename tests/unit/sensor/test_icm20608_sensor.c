@@ -1094,6 +1094,85 @@ static void test_icm20608_configuration_readback_is_staged_and_guarded(void)
     destroy_sensor(temp);
 }
 
+static void queue_i2c_configuration_readback(void *bus, uint8_t accel_config,
+                                             uint8_t gyro_config, uint8_t gyro_dlpf,
+                                             uint8_t accel_dlpf, uint8_t divider,
+                                             uint8_t power, uint8_t int_enable)
+{
+    queue_i2c_read(bus, ICM20608_REG_ACCEL_CONFIG, &accel_config, 1U, SENSOR_EOK);
+    queue_i2c_read(bus, ICM20608_REG_GYRO_CONFIG, &gyro_config, 1U, SENSOR_EOK);
+    queue_i2c_read(bus, ICM20608_REG_CONFIG, &gyro_dlpf, 1U, SENSOR_EOK);
+    queue_i2c_read(bus, ICM20608_REG_ACCEL_CONFIG2, &accel_dlpf, 1U, SENSOR_EOK);
+    queue_i2c_read(bus, ICM20608_REG_SMPLRT_DIV, &divider, 1U, SENSOR_EOK);
+    queue_i2c_read(bus, ICM20608_REG_PWR_MGMT_1, &power, 1U, SENSOR_EOK);
+    queue_i2c_read(bus, ICM20608_REG_INT_ENABLE, &int_enable, 1U, SENSOR_EOK);
+}
+
+static void test_icm20608_configuration_verification_detects_hardware_drift(void)
+{
+    int fake_bus;
+    const uint8_t accel_config = 0xA8U;
+    const uint8_t gyro_config = 0xC8U;
+    const uint8_t gyro_dlpf = 0xE4U;
+    const uint8_t accel_dlpf = 0xB4U;
+    const uint8_t divider = 0x09U;
+    const uint8_t power = 0x21U;
+    const uint8_t int_enable = 0xA0U;
+    const uint8_t drifted_accel_config = 0xB0U;
+    xy_icm20608_accel_t sample = {11, 22, 33};
+    const xy_icm20608_accel_t sample_snapshot = sample;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    sensor_device_t *temp = icm20608_create_temp("icm-temp", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    TEST_ASSERT_NOT_NULL(temp);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+
+    queue_i2c_configuration_readback(&fake_bus, accel_config, gyro_config, gyro_dlpf,
+                                     accel_dlpf, divider, power, int_enable);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, icm20608_verify_configuration(accel));
+    TEST_ASSERT_TRUE(priv->device.configuration_synchronized);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &drifted_accel_config, 1U,
+                   SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, icm20608_verify_configuration(accel));
+    TEST_ASSERT_FALSE(priv->device.configuration_synchronized);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_icm20608_read_accel(&priv->device, &sample));
+    TEST_ASSERT_EQUAL_MEMORY(&sample_snapshot, &sample, sizeof(sample));
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_verify_configuration(temp));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_verify_configuration(NULL));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+    destroy_sensor(temp);
+}
+
+static void test_icm20608_configuration_verification_propagates_transport_error(void)
+{
+    int fake_bus;
+    const uint8_t accel_config = 0xA8U;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &accel_config, 1U,
+                   SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, icm20608_verify_configuration(accel));
+    TEST_ASSERT_TRUE(priv->device.configuration_synchronized);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1118,5 +1197,7 @@ int main(void)
     RUN_TEST(test_icm20608_wrapper_bias_validates_type_and_preserves_state);
     RUN_TEST(test_icm20608_bias_getters_preserve_outputs_on_rejection);
     RUN_TEST(test_icm20608_configuration_readback_is_staged_and_guarded);
+    RUN_TEST(test_icm20608_configuration_verification_detects_hardware_drift);
+    RUN_TEST(test_icm20608_configuration_verification_propagates_transport_error);
     return UNITY_END();
 }

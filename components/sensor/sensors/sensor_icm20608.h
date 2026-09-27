@@ -59,6 +59,7 @@ sensor_err_t icm20608_get_bias(const sensor_device_t *sensor,
                                xy_icm20608_gyro_t *gyro_bias);
 sensor_err_t icm20608_get_configuration(const sensor_device_t *sensor,
                                         xy_icm20608_configuration_t *configuration);
+sensor_err_t icm20608_verify_configuration(sensor_device_t *sensor);
 sensor_err_t icm20608_read_interrupt_status(sensor_device_t *sensor, uint8_t *status);
 
 #endif /* __SENSOR_ICM20608_H__ */

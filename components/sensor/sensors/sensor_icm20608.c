@@ -360,6 +360,17 @@ sensor_err_t icm20608_get_configuration(const sensor_device_t *sensor,
         &((const icm20608_priv_t *)sensor->priv_data)->device, configuration));
 }
 
+sensor_err_t icm20608_verify_configuration(sensor_device_t *sensor)
+{
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL ||
+        (sensor->info.type != SENSOR_TYPE_ACCELEROMETER &&
+         sensor->info.type != SENSOR_TYPE_GYROSCOPE)) {
+        return SENSOR_EINVAL;
+    }
+    return icm20608_map_error(xy_icm20608_verify_configuration(
+        &((icm20608_priv_t *)sensor->priv_data)->device));
+}
+
 sensor_err_t icm20608_read_interrupt_status(sensor_device_t *sensor, uint8_t *status)
 {
     if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL || status == NULL ||
