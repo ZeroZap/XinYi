@@ -24,7 +24,9 @@ static sensor_err_t qma6100p_init(sensor_device_t *sensor)
 
 static sensor_err_t qma6100p_deinit(sensor_device_t *sensor)
 {
-    if (sensor == NULL || sensor->priv_data == NULL) return SENSOR_EINVAL;
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL) {
+        return SENSOR_EINVAL;
+    }
     return map_error(xy_qma6100p_deinit(&((qma6100p_priv_t *)sensor->priv_data)->device));
 }
 

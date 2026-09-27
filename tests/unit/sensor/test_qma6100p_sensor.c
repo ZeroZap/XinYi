@@ -6,6 +6,8 @@
 
 static uint8_t regs[256];
 static uint32_t tick;
+static xy_error_t read_result;
+static size_t read_count;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
                               uint32_t timeout)
@@ -22,6 +24,8 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
                                   size_t length)
 {
     TEST_ASSERT_NOT_NULL(dev);
+    read_count++;
+    if (read_result != XY_DEVICE_OK) return read_result;
     memcpy(data, &regs[reg], length);
     return XY_DEVICE_OK;
 }
@@ -42,6 +46,8 @@ void setUp(void)
     memset(regs, 0, sizeof(regs));
     regs[XY_QMA6100P_REG_CHIP_ID] = XY_QMA6100P_CHIP_ID;
     tick = 500U;
+    read_result = XY_DEVICE_OK;
+    read_count = 0U;
 }
 void tearDown(void) {}
 
@@ -95,10 +101,45 @@ static void test_wrapper_delegates_lifecycle_and_sample(void)
     destroy(sensor);
 }
 
+static void test_wrapper_preserves_output_on_read_timeout(void)
+{
+    int bus;
+    sensor_data_t data;
+    sensor_data_t before;
+    sensor_device_t *sensor = qma6100p_create_accel("qma", &bus, XY_QMA6100P_ADDR_LOW);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    memset(&data, 0xA5, sizeof(data));
+    before = data;
+    read_result = XY_DEVICE_TIMEOUT;
+    read_count = 0U;
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->read(sensor, &data));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT(2U, read_count);
+    destroy(sensor);
+}
+
+static void test_wrapper_rejects_missing_bus_before_deinit(void)
+{
+    int bus;
+    sensor_device_t *sensor = qma6100p_create_accel("qma", &bus, XY_QMA6100P_ADDR_LOW);
+
+    TEST_ASSERT_NOT_NULL(sensor);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    sensor->bus = NULL;
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, sensor->ops->deinit(sensor));
+    TEST_ASSERT_TRUE(((qma6100p_priv_t *)sensor->priv_data)->device.initialized);
+    destroy(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_factory_exposes_accelerometer_contract);
     RUN_TEST(test_wrapper_delegates_lifecycle_and_sample);
+    RUN_TEST(test_wrapper_preserves_output_on_read_timeout);
+    RUN_TEST(test_wrapper_rejects_missing_bus_before_deinit);
     return UNITY_END();
 }
