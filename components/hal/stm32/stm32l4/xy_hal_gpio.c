@@ -132,7 +132,9 @@ xy_hal_error_t xy_hal_gpio_attach_irq(xy_hal_gpio_port_t port, uint8_t pin,
     config.mode = mode == XY_HAL_GPIO_IRQ_RISING    ? XY_HAL_GPIO_MODE_IT_RISING
                   : mode == XY_HAL_GPIO_IRQ_FALLING ? XY_HAL_GPIO_MODE_IT_FALLING
                                                     : XY_HAL_GPIO_MODE_IT_BOTH;
-    config.pull = XY_HAL_GPIO_PULL_DOWN;
+    config.pull = mode == XY_HAL_GPIO_IRQ_FALLING ? XY_HAL_GPIO_PULL_UP
+                  : mode == XY_HAL_GPIO_IRQ_RISING ? XY_HAL_GPIO_PULL_DOWN
+                                                   : XY_HAL_GPIO_PULL_NONE;
     config.otype = XY_HAL_GPIO_OTYPE_PP;
     config.speed = XY_HAL_GPIO_SPEED_LOW;
     result = xy_hal_gpio_init(port, pin, &config);
