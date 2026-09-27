@@ -315,7 +315,11 @@ static void test_icm20608_i2c_init_read_deinit_contracts(void)
     TEST_ASSERT_FLOAT_WITHIN(0.02f, 26.0f, data.value.val_float);
     TEST_ASSERT_EQUAL_UINT8(90, data.accuracy);
 
-    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x40U, SENSOR_EOK);
+    {
+        const uint8_t active_power = 0x01U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
+    }
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x41U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->deinit(accel));
 
     destroy_sensor(accel);
@@ -447,7 +451,11 @@ static void test_icm20608_propagates_first_transport_error(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->read(accel, &data));
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
 
-    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x40U, SENSOR_ETIMEOUT);
+    {
+        const uint8_t active_power = 0x01U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
+    }
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x41U, SENSOR_ETIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->deinit(accel));
     TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
     TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
@@ -730,6 +738,35 @@ static void test_icm20608_failed_reinit_preserves_live_owner(void)
     destroy_sensor(accel);
 }
 
+static void test_icm20608_deinit_preserves_power_bits_and_owner_on_failure(void)
+{
+    int fake_bus;
+    const uint8_t active_power = 0x25U;
+    const uint8_t sleeping_power = 0x65U;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+    xy_icm20608_t snapshot;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+    snapshot = priv->device;
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_ETIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, accel->ops->deinit(accel));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &priv->device, sizeof(snapshot));
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, sleeping_power, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->deinit(accel));
+    TEST_ASSERT_FALSE(priv->device.initialized);
+    TEST_ASSERT_NULL(priv->device.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -746,5 +783,6 @@ int main(void)
     RUN_TEST(test_icm20608_coherent_sample_is_single_burst_and_failure_atomic);
     RUN_TEST(test_icm20608_sleep_blocks_all_sample_reads_without_bus_access);
     RUN_TEST(test_icm20608_failed_reinit_preserves_live_owner);
+    RUN_TEST(test_icm20608_deinit_preserves_power_bits_and_owner_on_failure);
     return UNITY_END();
 }

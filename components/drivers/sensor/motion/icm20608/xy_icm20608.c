@@ -246,7 +246,7 @@ xy_error_t xy_icm20608_deinit(xy_icm20608_t *dev)
     if (!icm20608_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    result = icm20608_write(dev, XY_ICM20608_REG_PWR_MGMT_1, 0x40U);
+    result = icm20608_update_bits(dev, XY_ICM20608_REG_PWR_MGMT_1, 0x40U, 0x40U);
     if (result == XY_DEVICE_OK) {
         dev->initialized = 0U;
         if (dev->transport == XY_ICM20608_TRANSPORT_I2C) {
