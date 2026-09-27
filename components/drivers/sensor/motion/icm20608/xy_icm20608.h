@@ -94,6 +94,7 @@ typedef struct {
     uint16_t odr_hz;
     uint8_t address;
     uint8_t initialized;
+    uint8_t configuration_synchronized;
     uint8_t sleeping;
     uint8_t data_ready_interrupt_enabled;
 } xy_icm20608_t;

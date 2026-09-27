@@ -5,7 +5,7 @@
 
 static int icm20608_ready(const xy_icm20608_t *dev)
 {
-    if (dev == NULL || dev->initialized == 0U) {
+    if (dev == NULL || dev->initialized == 0U || dev->configuration_synchronized == 0U) {
         return 0;
     }
     if (dev->transport == XY_ICM20608_TRANSPORT_I2C) {
@@ -128,6 +128,7 @@ xy_error_t xy_icm20608_init_i2c(xy_icm20608_t *dev, void *i2c_handle, uint8_t ad
     candidate.gyro_dlpf = XY_ICM20608_DLPF_20HZ;
     candidate.accel_dlpf = XY_ICM20608_DLPF_20HZ;
     candidate.odr_hz = 100U;
+    candidate.configuration_synchronized = 1U;
     candidate.initialized = 1U;
     *dev = candidate;
     return XY_DEVICE_OK;
@@ -157,6 +158,7 @@ xy_error_t xy_icm20608_init_spi(xy_icm20608_t *dev, void *context,
     candidate.gyro_dlpf = XY_ICM20608_DLPF_20HZ;
     candidate.accel_dlpf = XY_ICM20608_DLPF_20HZ;
     candidate.odr_hz = 100U;
+    candidate.configuration_synchronized = 1U;
     candidate.initialized = 1U;
     *dev = candidate;
     return XY_DEVICE_OK;
@@ -230,7 +232,9 @@ xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf
     result = icm20608_write(dev, XY_ICM20608_REG_ACCEL_CONFIG2,
                             (uint8_t)((accel_current & 0xF8U) | (uint8_t)accel_dlpf));
     if (result != XY_DEVICE_OK) {
-        (void)icm20608_write(dev, XY_ICM20608_REG_CONFIG, gyro_current);
+        if (icm20608_write(dev, XY_ICM20608_REG_CONFIG, gyro_current) != XY_DEVICE_OK) {
+            dev->configuration_synchronized = 0U;
+        }
         return result;
     }
 
