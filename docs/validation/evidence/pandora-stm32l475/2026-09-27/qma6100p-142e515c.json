@@ -1,0 +1,48 @@
+{
+  "address": "0x12",
+  "capture_bytes": 5449,
+  "capture_sha256": "ea254141603f2dffabe85a513a1e7c1a248871a442c700c0010989dabfcfccc0",
+  "chip_id": "0x90",
+  "exti_selftest": [
+    2,
+    2
+  ],
+  "failures": [],
+  "firmware_commit": "142e515c4a8651549b0f1d467b6b24214fe2b973",
+  "gpio_edge_evidence": "OBSERVED",
+  "int1_edges_max": 676,
+  "int2_edges_max": 695,
+  "interrupt_config": [
+    "10",
+    "10",
+    "10",
+    "00",
+    "0C"
+  ],
+  "interrupt_status_evidence": "OBSERVED",
+  "interrupt_status_values": [
+    "00",
+    "10"
+  ],
+  "irq_result": [
+    262,
+    263,
+    25,
+    25,
+    1,
+    1
+  ],
+  "raw_max": [
+    1194,
+    425,
+    -2189
+  ],
+  "raw_min": [
+    1173,
+    407,
+    -2211
+  ],
+  "sample_count": 40,
+  "status": "B1_QMA6100P_BASIC_CHAIN_PASS",
+  "unique_raw_samples": 40
+}

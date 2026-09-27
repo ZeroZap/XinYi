@@ -1556,3 +1556,19 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `qma6100p-e8717be4-uart.txt`。
 - 边界：只升级 EXTI software dispatch 与 sensor internal status B1；未证明 QMA6100P 到 MCU 的 GPIO
   电气路由/edge，动态响应、精度、恢复与 endurance 继续 pending。
+
+### 2026-09-27 Pandora QMA6100P physical IRQ edge B1
+
+- 修正：真实 data-ready edge 可能在 EXTI software-trigger 前后与 self-test 重叠，probe 改为记录
+  software trigger 前计数并验证正增量；validator 接受每路大于零的 delta，仍拒绝任一路零增量。
+- 实板：clean committed `142e515c` image 为 13,096 bytes，ELF 内嵌 exact SHA 且包含
+  Reset/SysTick/EXTI handlers；ST-Link write/verify 后同长度 read-back 与 BIN byte-identical，SHA-256
+  均为 `b5155ffc4150ca748aaf0928e0c18e0b938bdcb498a02627ae9ffd11f1b72f55`。
+- UART：WCH-Link reset-synchronized capture 5,449 bytes，SHA-256
+  `ea254141603f2dffabe85a513a1e7c1a248871a442c700c0010989dabfcfccc0`；software-trigger delta
+  为 2/2，1 秒真实窗口 PC6/PD15 edge 为 262/263，40/40 samples unique、sensor status 含 `0x10`、
+  error marker 为 0，machine validator 返回 `B1_QMA6100P_BASIC_CHAIN_PASS`。
+- 证据：`docs/validation/evidence/pandora-stm32l475/2026-09-27/qma6100p-142e515c.json` 与
+  `qma6100p-142e515c-uart.txt`。
+- 边界：升级固定 Pandora/QMA6100P 配置下 PC6/PD15 data-ready GPIO edge→EXTI callback B1；动态
+  响应、精度、校准、断线/故障恢复与 endurance 继续 pending，不升级 B2/P1。
