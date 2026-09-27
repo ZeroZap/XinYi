@@ -333,6 +333,20 @@ sensor_err_t icm20608_set_bias(sensor_device_t *sensor,
         &((icm20608_priv_t *)sensor->priv_data)->device, accel_bias, gyro_bias));
 }
 
+sensor_err_t icm20608_get_bias(const sensor_device_t *sensor,
+                               xy_icm20608_accel_t *accel_bias,
+                               xy_icm20608_gyro_t *gyro_bias)
+{
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL ||
+        accel_bias == NULL || gyro_bias == NULL ||
+        (sensor->info.type != SENSOR_TYPE_ACCELEROMETER &&
+         sensor->info.type != SENSOR_TYPE_GYROSCOPE)) {
+        return SENSOR_EINVAL;
+    }
+    return icm20608_map_error(xy_icm20608_get_bias(
+        &((const icm20608_priv_t *)sensor->priv_data)->device, accel_bias, gyro_bias));
+}
+
 sensor_err_t icm20608_read_interrupt_status(sensor_device_t *sensor, uint8_t *status)
 {
     if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL || status == NULL ||

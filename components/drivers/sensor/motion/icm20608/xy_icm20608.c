@@ -268,6 +268,18 @@ xy_error_t xy_icm20608_set_bias(xy_icm20608_t *dev,
     return XY_DEVICE_OK;
 }
 
+xy_error_t xy_icm20608_get_bias(const xy_icm20608_t *dev,
+                                xy_icm20608_accel_t *accel_bias,
+                                xy_icm20608_gyro_t *gyro_bias)
+{
+    if (!icm20608_ready(dev) || accel_bias == NULL || gyro_bias == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    *accel_bias = dev->accel_bias;
+    *gyro_bias = dev->gyro_bias;
+    return XY_DEVICE_OK;
+}
+
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep)
 {
     xy_error_t result;
