@@ -135,19 +135,23 @@ xy_error_t xy_qma6100p_configure_data_ready_interrupts_ex(xy_qma6100p_t *dev,
         return XY_DEVICE_INVALID_PARAM;
     }
     pin_config = active_high != 0U ? 0x05U : 0x00U;
-    result = qma_write(dev, XY_QMA6100P_REG_INT_ENABLE1, 0U);
+    result = qma_update_bits(dev, XY_QMA6100P_REG_INT_ENABLE1,
+                             XY_QMA6100P_DATA_READY_BIT, 0U);
     if (result == XY_DEVICE_OK)
         result = qma_write(dev, XY_QMA6100P_REG_INT_PIN_CONFIG, pin_config);
     if (result == XY_DEVICE_OK) result = qma_write(dev, XY_QMA6100P_REG_INT_CONFIG, 0x0CU);
     if (result == XY_DEVICE_OK)
-        result = qma_write(dev, XY_QMA6100P_REG_INT_MAP1,
-                           int1_enable != 0U ? XY_QMA6100P_DATA_READY_BIT : 0U);
+        result = qma_update_bits(dev, XY_QMA6100P_REG_INT_MAP1,
+                                 XY_QMA6100P_DATA_READY_BIT,
+                                 int1_enable != 0U ? XY_QMA6100P_DATA_READY_BIT : 0U);
     if (result == XY_DEVICE_OK)
-        result = qma_write(dev, XY_QMA6100P_REG_INT_MAP3,
-                           int2_enable != 0U ? XY_QMA6100P_DATA_READY_BIT : 0U);
+        result = qma_update_bits(dev, XY_QMA6100P_REG_INT_MAP3,
+                                 XY_QMA6100P_DATA_READY_BIT,
+                                 int2_enable != 0U ? XY_QMA6100P_DATA_READY_BIT : 0U);
     if (result == XY_DEVICE_OK)
-        result = qma_write(dev, XY_QMA6100P_REG_INT_ENABLE1,
-                           (int1_enable | int2_enable) != 0U ? XY_QMA6100P_DATA_READY_BIT : 0U);
+        result = qma_update_bits(
+            dev, XY_QMA6100P_REG_INT_ENABLE1, XY_QMA6100P_DATA_READY_BIT,
+            (int1_enable | int2_enable) != 0U ? XY_QMA6100P_DATA_READY_BIT : 0U);
     return result;
 }
 

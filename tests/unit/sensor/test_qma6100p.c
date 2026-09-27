@@ -185,6 +185,32 @@ static void test_interrupt_reconfigure_failure_leaves_source_disabled(void)
     TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_ENABLE1]);
 }
 
+static void test_interrupt_config_preserves_unrelated_register_bits(void)
+{
+    xy_qma6100p_t dev;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    regs[XY_QMA6100P_REG_INT_ENABLE1] = 0x81U;
+    regs[XY_QMA6100P_REG_INT_MAP1] = 0x42U;
+    regs[XY_QMA6100P_REG_INT_MAP3] = 0x24U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_configure_data_ready_interrupts_ex(&dev, 1U, 0U, 0U));
+    TEST_ASSERT_EQUAL_HEX8(0x91U, regs[XY_QMA6100P_REG_INT_ENABLE1]);
+    TEST_ASSERT_EQUAL_HEX8(0x52U, regs[XY_QMA6100P_REG_INT_MAP1]);
+    TEST_ASSERT_EQUAL_HEX8(0x24U, regs[XY_QMA6100P_REG_INT_MAP3]);
+
+    write_result = XY_DEVICE_TIMEOUT;
+    fail_write_reg = XY_QMA6100P_REG_INT_MAP3;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_qma6100p_configure_data_ready_interrupts_ex(&dev, 0U, 1U, 0U));
+    TEST_ASSERT_EQUAL_HEX8(0x81U, regs[XY_QMA6100P_REG_INT_ENABLE1]);
+    TEST_ASSERT_EQUAL_HEX8(0x42U, regs[XY_QMA6100P_REG_INT_MAP1]);
+    TEST_ASSERT_EQUAL_HEX8(0x24U, regs[XY_QMA6100P_REG_INT_MAP3]);
+}
+
 static void test_interrupt_profile_supports_active_low(void)
 {
     xy_qma6100p_t dev;
@@ -381,6 +407,7 @@ int main(void)
     RUN_TEST(test_interrupt_profile_maps_both_pins);
     RUN_TEST(test_interrupt_config_readback_is_staged);
     RUN_TEST(test_interrupt_reconfigure_failure_leaves_source_disabled);
+    RUN_TEST(test_interrupt_config_preserves_unrelated_register_bits);
     RUN_TEST(test_interrupt_profile_supports_active_low);
     RUN_TEST(test_interrupt_profile_can_be_disabled_and_reenabled);
     RUN_TEST(test_raw_read_retries_one_transient_failure);
