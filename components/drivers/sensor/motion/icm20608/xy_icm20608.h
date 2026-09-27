@@ -45,6 +45,16 @@ typedef enum {
     XY_ICM20608_GYRO_RANGE_2000DPS = 3,
 } xy_icm20608_gyro_range_t;
 
+typedef enum {
+    XY_ICM20608_DLPF_250HZ = 0,
+    XY_ICM20608_DLPF_176HZ = 1,
+    XY_ICM20608_DLPF_92HZ = 2,
+    XY_ICM20608_DLPF_41HZ = 3,
+    XY_ICM20608_DLPF_20HZ = 4,
+    XY_ICM20608_DLPF_10HZ = 5,
+    XY_ICM20608_DLPF_5HZ = 6,
+} xy_icm20608_dlpf_t;
+
 typedef xy_error_t (*xy_icm20608_spi_read_t)(void *context, uint8_t reg, uint8_t *data,
                                              uint16_t len);
 typedef xy_error_t (*xy_icm20608_spi_write_t)(void *context, uint8_t reg, const uint8_t *data,
@@ -79,6 +89,8 @@ typedef struct {
     xy_icm20608_transport_t transport;
     xy_icm20608_accel_range_t accel_range;
     xy_icm20608_gyro_range_t gyro_range;
+    xy_icm20608_dlpf_t gyro_dlpf;
+    xy_icm20608_dlpf_t accel_dlpf;
     uint16_t odr_hz;
     uint8_t address;
     uint8_t initialized;
@@ -96,6 +108,8 @@ xy_error_t xy_icm20608_set_accel_range(xy_icm20608_t *dev,
 xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
                                       xy_icm20608_gyro_range_t range);
 xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz);
+xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf,
+                                xy_icm20608_dlpf_t accel_dlpf);
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep);
 xy_error_t xy_icm20608_set_data_ready_interrupt(xy_icm20608_t *dev, uint8_t enable);
 xy_error_t xy_icm20608_read_interrupt_status(xy_icm20608_t *dev, uint8_t *status);

@@ -125,6 +125,8 @@ xy_error_t xy_icm20608_init_i2c(xy_icm20608_t *dev, void *i2c_handle, uint8_t ad
     }
     candidate.accel_range = XY_ICM20608_ACCEL_RANGE_4G;
     candidate.gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
+    candidate.gyro_dlpf = XY_ICM20608_DLPF_20HZ;
+    candidate.accel_dlpf = XY_ICM20608_DLPF_20HZ;
     candidate.odr_hz = 100U;
     candidate.initialized = 1U;
     *dev = candidate;
@@ -152,6 +154,8 @@ xy_error_t xy_icm20608_init_spi(xy_icm20608_t *dev, void *context,
     }
     candidate.accel_range = XY_ICM20608_ACCEL_RANGE_4G;
     candidate.gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
+    candidate.gyro_dlpf = XY_ICM20608_DLPF_20HZ;
+    candidate.accel_dlpf = XY_ICM20608_DLPF_20HZ;
     candidate.odr_hz = 100U;
     candidate.initialized = 1U;
     *dev = candidate;
@@ -202,6 +206,37 @@ xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz)
     result = icm20608_write(dev, XY_ICM20608_REG_SMPLRT_DIV, (uint8_t)divider);
     if (result == XY_DEVICE_OK) dev->odr_hz = odr_hz;
     return result;
+}
+
+xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf,
+                                xy_icm20608_dlpf_t accel_dlpf)
+{
+    uint8_t gyro_current;
+    uint8_t accel_current;
+    xy_error_t result;
+
+    if (!icm20608_ready(dev) || gyro_dlpf > XY_ICM20608_DLPF_5HZ ||
+        accel_dlpf > XY_ICM20608_DLPF_5HZ) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = icm20608_read(dev, XY_ICM20608_REG_CONFIG, &gyro_current, 1U);
+    if (result != XY_DEVICE_OK) return result;
+    result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_CONFIG2, &accel_current, 1U);
+    if (result != XY_DEVICE_OK) return result;
+
+    result = icm20608_write(dev, XY_ICM20608_REG_CONFIG,
+                            (uint8_t)((gyro_current & 0xF8U) | (uint8_t)gyro_dlpf));
+    if (result != XY_DEVICE_OK) return result;
+    result = icm20608_write(dev, XY_ICM20608_REG_ACCEL_CONFIG2,
+                            (uint8_t)((accel_current & 0xF8U) | (uint8_t)accel_dlpf));
+    if (result != XY_DEVICE_OK) {
+        (void)icm20608_write(dev, XY_ICM20608_REG_CONFIG, gyro_current);
+        return result;
+    }
+
+    dev->gyro_dlpf = gyro_dlpf;
+    dev->accel_dlpf = accel_dlpf;
+    return XY_DEVICE_OK;
 }
 
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep)

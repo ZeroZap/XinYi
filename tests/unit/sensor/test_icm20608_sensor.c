@@ -784,6 +784,50 @@ static void test_icm20608_deinit_preserves_power_bits_and_owner_on_failure(void)
     destroy_sensor(accel);
 }
 
+static void test_icm20608_dlpf_control_preserves_bits_and_rolls_back(void)
+{
+    int fake_bus;
+    const uint8_t gyro_config = 0xACU;
+    const uint8_t accel_config = 0xBCU;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, priv->device.gyro_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, priv->device.accel_dlpf);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_config, 1U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_config, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0xAAU, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0xB9U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_icm20608_set_dlpf(&priv->device, XY_ICM20608_DLPF_92HZ,
+                                              XY_ICM20608_DLPF_176HZ));
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_92HZ, priv->device.gyro_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_176HZ, priv->device.accel_dlpf);
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_config, 1U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_config, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0xADU, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0xBDU, SENSOR_ETIMEOUT);
+    queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, gyro_config, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
+                          xy_icm20608_set_dlpf(&priv->device, XY_ICM20608_DLPF_10HZ,
+                                              XY_ICM20608_DLPF_10HZ));
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_92HZ, priv->device.gyro_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_176HZ, priv->device.accel_dlpf);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_icm20608_set_dlpf(&priv->device, (xy_icm20608_dlpf_t)7,
+                                              XY_ICM20608_DLPF_20HZ));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -801,5 +845,6 @@ int main(void)
     RUN_TEST(test_icm20608_sleep_blocks_all_sample_reads_without_bus_access);
     RUN_TEST(test_icm20608_failed_reinit_preserves_live_owner);
     RUN_TEST(test_icm20608_deinit_preserves_power_bits_and_owner_on_failure);
+    RUN_TEST(test_icm20608_dlpf_control_preserves_bits_and_rolls_back);
     return UNITY_END();
 }
