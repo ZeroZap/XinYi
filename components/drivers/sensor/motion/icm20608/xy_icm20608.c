@@ -63,6 +63,26 @@ static int32_t gyro_full_scale_mdps(xy_icm20608_gyro_range_t range)
     return 250000 << (uint8_t)range;
 }
 
+static int icm20608_accel_bias_fits(const xy_icm20608_t *dev,
+                                    xy_icm20608_accel_range_t range)
+{
+    int32_t limit = accel_full_scale_mg(range);
+
+    return dev->accel_bias.x_mg >= -limit && dev->accel_bias.x_mg <= limit &&
+           dev->accel_bias.y_mg >= -limit && dev->accel_bias.y_mg <= limit &&
+           dev->accel_bias.z_mg >= -limit && dev->accel_bias.z_mg <= limit;
+}
+
+static int icm20608_gyro_bias_fits(const xy_icm20608_t *dev,
+                                   xy_icm20608_gyro_range_t range)
+{
+    int32_t limit = gyro_full_scale_mdps(range);
+
+    return dev->gyro_bias.x_mdps >= -limit && dev->gyro_bias.x_mdps <= limit &&
+           dev->gyro_bias.y_mdps >= -limit && dev->gyro_bias.y_mdps <= limit &&
+           dev->gyro_bias.z_mdps >= -limit && dev->gyro_bias.z_mdps <= limit;
+}
+
 static xy_error_t icm20608_configure(xy_icm20608_t *dev)
 {
     uint8_t identity;
@@ -169,7 +189,8 @@ xy_error_t xy_icm20608_set_accel_range(xy_icm20608_t *dev,
 {
     xy_error_t result;
 
-    if (!icm20608_ready(dev) || range > XY_ICM20608_ACCEL_RANGE_16G) {
+    if (!icm20608_ready(dev) || range > XY_ICM20608_ACCEL_RANGE_16G ||
+        !icm20608_accel_bias_fits(dev, range)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = icm20608_update_bits(dev, XY_ICM20608_REG_ACCEL_CONFIG, 0x18U,
@@ -183,7 +204,8 @@ xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
 {
     xy_error_t result;
 
-    if (!icm20608_ready(dev) || range > XY_ICM20608_GYRO_RANGE_2000DPS) {
+    if (!icm20608_ready(dev) || range > XY_ICM20608_GYRO_RANGE_2000DPS ||
+        !icm20608_gyro_bias_fits(dev, range)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = icm20608_update_bits(dev, XY_ICM20608_REG_GYRO_CONFIG, 0x18U,

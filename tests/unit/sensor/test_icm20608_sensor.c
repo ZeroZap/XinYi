@@ -1221,6 +1221,49 @@ static void test_icm20608_configuration_verification_rejects_identity_and_power_
     destroy_sensor(power_state);
 }
 
+static void test_icm20608_range_change_rejects_incompatible_bias_without_bus_access(void)
+{
+    int fake_bus;
+    const xy_icm20608_accel_t accel_bias = {3000, 0, 0};
+    const xy_icm20608_gyro_t gyro_bias = {400000, 0, 0};
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    sensor_device_t *gyro = icm20608_create_gyro("icm-gyro", &fake_bus, false);
+    icm20608_priv_t *accel_priv;
+    icm20608_priv_t *gyro_priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    TEST_ASSERT_NOT_NULL(gyro);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    accel_priv = (icm20608_priv_t *)accel->priv_data;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_icm20608_set_bias(&accel_priv->device, &accel_bias,
+                                              &(xy_icm20608_gyro_t){0, 0, 0}));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          icm20608_set_accel_range(accel, XY_ICM20608_ACCEL_RANGE_2G));
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_RANGE_4G, accel_priv->device.accel_range);
+    TEST_ASSERT_EQUAL_INT32(-4000, accel->info.range_min);
+    TEST_ASSERT_EQUAL_INT32(4000, accel->info.range_max);
+
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gyro->ops->init(gyro));
+    gyro_priv = (icm20608_priv_t *)gyro->priv_data;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_icm20608_set_bias(&gyro_priv->device,
+                                              &(xy_icm20608_accel_t){0, 0, 0},
+                                              &gyro_bias));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          icm20608_set_gyro_range(gyro, XY_ICM20608_GYRO_RANGE_250DPS));
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_GYRO_RANGE_500DPS, gyro_priv->device.gyro_range);
+    TEST_ASSERT_EQUAL_INT32(-500, gyro->info.range_min);
+    TEST_ASSERT_EQUAL_INT32(500, gyro->info.range_max);
+
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+    destroy_sensor(gyro);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1248,5 +1291,6 @@ int main(void)
     RUN_TEST(test_icm20608_configuration_verification_detects_hardware_drift);
     RUN_TEST(test_icm20608_configuration_verification_propagates_transport_error);
     RUN_TEST(test_icm20608_configuration_verification_rejects_identity_and_power_drift);
+    RUN_TEST(test_icm20608_range_change_rejects_incompatible_bias_without_bus_access);
     return UNITY_END();
 }
