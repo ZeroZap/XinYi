@@ -195,6 +195,46 @@ static sensor_device_t *icm20608_create(const char *name, void *bus, bool use_sp
     return sensor;
 }
 
+sensor_err_t icm20608_set_accel_range(sensor_device_t *sensor,
+                                      xy_icm20608_accel_range_t range)
+{
+    static const int32_t range_mg[] = {2000, 4000, 8000, 16000};
+    icm20608_priv_t *priv;
+    xy_error_t result;
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL ||
+        sensor->info.type != SENSOR_TYPE_ACCELEROMETER || range > XY_ICM20608_ACCEL_RANGE_16G) {
+        return SENSOR_EINVAL;
+    }
+    priv = (icm20608_priv_t *)sensor->priv_data;
+    result = xy_icm20608_set_accel_range(&priv->device, range);
+    if (result != XY_DEVICE_OK) return icm20608_map_error(result);
+    priv->accel_range = (uint8_t)(range_mg[range] / 1000);
+    sensor->info.range_min = -range_mg[range];
+    sensor->info.range_max = range_mg[range];
+    return SENSOR_EOK;
+}
+
+sensor_err_t icm20608_set_gyro_range(sensor_device_t *sensor,
+                                     xy_icm20608_gyro_range_t range)
+{
+    static const int32_t range_dps[] = {250, 500, 1000, 2000};
+    icm20608_priv_t *priv;
+    xy_error_t result;
+
+    if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL ||
+        sensor->info.type != SENSOR_TYPE_GYROSCOPE || range > XY_ICM20608_GYRO_RANGE_2000DPS) {
+        return SENSOR_EINVAL;
+    }
+    priv = (icm20608_priv_t *)sensor->priv_data;
+    result = xy_icm20608_set_gyro_range(&priv->device, range);
+    if (result != XY_DEVICE_OK) return icm20608_map_error(result);
+    priv->gyro_range = (uint16_t)range_dps[range];
+    sensor->info.range_min = -range_dps[range];
+    sensor->info.range_max = range_dps[range];
+    return SENSOR_EOK;
+}
+
 sensor_device_t *icm20608_create_accel(const char *name, void *bus, bool use_spi)
 {
     return icm20608_create(name, bus, use_spi, SENSOR_TYPE_ACCELEROMETER,

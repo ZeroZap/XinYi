@@ -42,5 +42,9 @@ sensor_device_t *icm20608_create_gyro(const char *name, void *bus,
                                       bool use_spi);
 sensor_device_t *icm20608_create_temp(const char *name, void *bus,
                                       bool use_spi);
+sensor_err_t icm20608_set_accel_range(sensor_device_t *sensor,
+                                      xy_icm20608_accel_range_t range);
+sensor_err_t icm20608_set_gyro_range(sensor_device_t *sensor,
+                                     xy_icm20608_gyro_range_t range);
 
 #endif /* __SENSOR_ICM20608_H__ */

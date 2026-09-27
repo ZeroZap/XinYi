@@ -454,6 +454,49 @@ static void test_icm20608_propagates_first_transport_error(void)
     destroy_sensor(accel);
 }
 
+static void test_icm20608_runtime_ranges_update_scaling_and_metadata(void)
+{
+    int fake_bus;
+    const uint8_t config = 0xA5U;
+    const uint8_t half_scale[6] = {0x40, 0x00, 0, 0, 0, 0};
+    sensor_data_t data = {0};
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    sensor_device_t *gyro = icm20608_create_gyro("icm-gyro", &fake_bus, false);
+
+    TEST_ASSERT_NOT_NULL(accel);
+    TEST_ASSERT_NOT_NULL(gyro);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &config, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG, 0xBDU, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
+                          icm20608_set_accel_range(accel, XY_ICM20608_ACCEL_RANGE_16G));
+    TEST_ASSERT_EQUAL_INT32(-16000, accel->info.range_min);
+    TEST_ASSERT_EQUAL_INT32(16000, accel->info.range_max);
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, half_scale, 6U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_INT32(8000, data.value.val_3axis.x);
+
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gyro->ops->init(gyro));
+    queue_i2c_read(&fake_bus, ICM20608_REG_GYRO_CONFIG, &config, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_GYRO_CONFIG, 0xBDU, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
+                          icm20608_set_gyro_range(gyro, XY_ICM20608_GYRO_RANGE_2000DPS));
+    TEST_ASSERT_EQUAL_INT32(-2000, gyro->info.range_min);
+    TEST_ASSERT_EQUAL_INT32(2000, gyro->info.range_max);
+    queue_i2c_read(&fake_bus, ICM20608_REG_GYRO_XOUT_H, half_scale, 6U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gyro->ops->read(gyro, &data));
+    TEST_ASSERT_EQUAL_INT32(1000, data.value.val_3axis.x);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          icm20608_set_accel_range(gyro, XY_ICM20608_ACCEL_RANGE_2G));
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          icm20608_set_gyro_range(accel, XY_ICM20608_GYRO_RANGE_250DPS));
+    destroy_sensor(accel);
+    destroy_sensor(gyro);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -463,5 +506,6 @@ int main(void)
     RUN_TEST(test_icm20608_accepts_pandora_identity);
     RUN_TEST(test_icm20608_spi_bus_path_smoke);
     RUN_TEST(test_icm20608_propagates_first_transport_error);
+    RUN_TEST(test_icm20608_runtime_ranges_update_scaling_and_metadata);
     return UNITY_END();
 }

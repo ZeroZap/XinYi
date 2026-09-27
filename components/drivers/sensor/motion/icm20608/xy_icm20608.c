@@ -42,6 +42,27 @@ static xy_error_t icm20608_write(xy_icm20608_t *dev, uint8_t reg, uint8_t value)
     return dev->spi_write(dev->spi_context, reg, &value, 1U);
 }
 
+static xy_error_t icm20608_update_bits(xy_icm20608_t *dev, uint8_t reg, uint8_t mask,
+                                       uint8_t value)
+{
+    uint8_t current;
+    xy_error_t result = icm20608_read(dev, reg, &current, 1U);
+
+    if (result != XY_DEVICE_OK) return result;
+    current = (uint8_t)((current & (uint8_t)~mask) | (value & mask));
+    return icm20608_write(dev, reg, current);
+}
+
+static int32_t accel_full_scale_mg(xy_icm20608_accel_range_t range)
+{
+    return 2000 << (uint8_t)range;
+}
+
+static int32_t gyro_full_scale_mdps(xy_icm20608_gyro_range_t range)
+{
+    return 250000 << (uint8_t)range;
+}
+
 static xy_error_t icm20608_configure(xy_icm20608_t *dev)
 {
     uint8_t identity;
@@ -100,6 +121,8 @@ xy_error_t xy_icm20608_init_i2c(xy_icm20608_t *dev, void *i2c_handle, uint8_t ad
         memset(dev, 0, sizeof(*dev));
         return result;
     }
+    dev->accel_range = XY_ICM20608_ACCEL_RANGE_4G;
+    dev->gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
     dev->initialized = 1U;
     return XY_DEVICE_OK;
 }
@@ -123,8 +146,38 @@ xy_error_t xy_icm20608_init_spi(xy_icm20608_t *dev, void *context,
         memset(dev, 0, sizeof(*dev));
         return result;
     }
+    dev->accel_range = XY_ICM20608_ACCEL_RANGE_4G;
+    dev->gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
     dev->initialized = 1U;
     return XY_DEVICE_OK;
+}
+
+xy_error_t xy_icm20608_set_accel_range(xy_icm20608_t *dev,
+                                       xy_icm20608_accel_range_t range)
+{
+    xy_error_t result;
+
+    if (!icm20608_ready(dev) || range > XY_ICM20608_ACCEL_RANGE_16G) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = icm20608_update_bits(dev, XY_ICM20608_REG_ACCEL_CONFIG, 0x18U,
+                                  (uint8_t)range << 3U);
+    if (result == XY_DEVICE_OK) dev->accel_range = range;
+    return result;
+}
+
+xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
+                                      xy_icm20608_gyro_range_t range)
+{
+    xy_error_t result;
+
+    if (!icm20608_ready(dev) || range > XY_ICM20608_GYRO_RANGE_2000DPS) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = icm20608_update_bits(dev, XY_ICM20608_REG_GYRO_CONFIG, 0x18U,
+                                  (uint8_t)range << 3U);
+    if (result == XY_DEVICE_OK) dev->gyro_range = range;
+    return result;
 }
 
 xy_error_t xy_icm20608_deinit(xy_icm20608_t *dev)
@@ -166,9 +219,9 @@ xy_error_t xy_icm20608_read_accel(xy_icm20608_t *dev, xy_icm20608_accel_t *accel
     raw[0] = (int16_t)(((uint16_t)data[0] << 8) | data[1]);
     raw[1] = (int16_t)(((uint16_t)data[2] << 8) | data[3]);
     raw[2] = (int16_t)(((uint16_t)data[4] << 8) | data[5]);
-    next.x_mg = (int32_t)raw[0] * 4000 / 32768;
-    next.y_mg = (int32_t)raw[1] * 4000 / 32768;
-    next.z_mg = (int32_t)raw[2] * 4000 / 32768;
+    next.x_mg = (int32_t)raw[0] * accel_full_scale_mg(dev->accel_range) / 32768;
+    next.y_mg = (int32_t)raw[1] * accel_full_scale_mg(dev->accel_range) / 32768;
+    next.z_mg = (int32_t)raw[2] * accel_full_scale_mg(dev->accel_range) / 32768;
     dev->accel = next;
     *accel = next;
     return XY_DEVICE_OK;
@@ -191,9 +244,9 @@ xy_error_t xy_icm20608_read_gyro(xy_icm20608_t *dev, xy_icm20608_gyro_t *gyro)
     raw[0] = (int16_t)(((uint16_t)data[0] << 8) | data[1]);
     raw[1] = (int16_t)(((uint16_t)data[2] << 8) | data[3]);
     raw[2] = (int16_t)(((uint16_t)data[4] << 8) | data[5]);
-    next.x_mdps = (int32_t)raw[0] * 500000 / 32768;
-    next.y_mdps = (int32_t)raw[1] * 500000 / 32768;
-    next.z_mdps = (int32_t)raw[2] * 500000 / 32768;
+    next.x_mdps = (int32_t)((int64_t)raw[0] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
+    next.y_mdps = (int32_t)((int64_t)raw[1] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
+    next.z_mdps = (int32_t)((int64_t)raw[2] * gyro_full_scale_mdps(dev->gyro_range) / 32768);
     dev->gyro = next;
     *gyro = next;
     return XY_DEVICE_OK;

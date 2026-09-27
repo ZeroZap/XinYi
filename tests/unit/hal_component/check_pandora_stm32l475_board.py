@@ -331,7 +331,7 @@ def main() -> None:
         "xy_i2c_device_init",
         "xy_i2c_device_read_reg",
         "icm20608_create_accel",
-        "icm20608_create_gyro",
+        "xy_icm20608_read_gyro",
         "ICM20608_ADDR=0x68 WHO_AM_I=0xAE",
         "ICM20608 ACCEL_mg=",
         "GYRO_dps=",
