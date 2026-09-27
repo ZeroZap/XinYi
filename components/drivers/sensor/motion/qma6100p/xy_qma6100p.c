@@ -73,7 +73,8 @@ xy_error_t xy_qma6100p_init(xy_qma6100p_t *dev, void *i2c_handle, uint8_t addres
     if (result == XY_DEVICE_OK)
         result = qma_write(&candidate, XY_QMA6100P_REG_BW, XY_QMA6100P_BW_100HZ);
     if (result == XY_DEVICE_OK)
-        result = qma_write(&candidate, XY_QMA6100P_REG_POWER, XY_QMA6100P_POWER_ACTIVE);
+        result = qma_update_bits(&candidate, XY_QMA6100P_REG_POWER,
+                                 XY_QMA6100P_POWER_ACTIVE, XY_QMA6100P_POWER_ACTIVE);
     if (result != XY_DEVICE_OK) return result;
     xy_device_delay_ms(2U);
     candidate.address = address;
@@ -90,7 +91,7 @@ xy_error_t xy_qma6100p_deinit(xy_qma6100p_t *dev)
     xy_error_t result;
 
     if (!qma_ready(dev)) return XY_DEVICE_INVALID_PARAM;
-    result = qma_write(dev, XY_QMA6100P_REG_POWER, 0U);
+    result = qma_update_bits(dev, XY_QMA6100P_REG_POWER, XY_QMA6100P_POWER_ACTIVE, 0U);
     if (result != XY_DEVICE_OK) return result;
     dev->active = 0U;
     dev->initialized = 0U;
@@ -114,8 +115,8 @@ xy_error_t xy_qma6100p_set_active(xy_qma6100p_t *dev, uint8_t active)
     xy_error_t result;
 
     if (!qma_ready(dev) || active > 1U) return XY_DEVICE_INVALID_PARAM;
-    result = qma_write(dev, XY_QMA6100P_REG_POWER,
-                       active != 0U ? XY_QMA6100P_POWER_ACTIVE : 0U);
+    result = qma_update_bits(dev, XY_QMA6100P_REG_POWER, XY_QMA6100P_POWER_ACTIVE,
+                             active != 0U ? XY_QMA6100P_POWER_ACTIVE : 0U);
     if (result != XY_DEVICE_OK) return result;
     if (active != 0U && dev->active == 0U) xy_device_delay_ms(1U);
     dev->active = active;

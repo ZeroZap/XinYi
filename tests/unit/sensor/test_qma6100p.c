@@ -111,7 +111,7 @@ static void test_failed_reinit_preserves_live_owner(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
                           xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_HIGH));
     TEST_ASSERT_EQUAL_MEMORY(&before, &dev, sizeof(dev));
-    TEST_ASSERT_EQUAL_UINT(3U, reads);
+    TEST_ASSERT_EQUAL_UINT(4U, reads);
 }
 
 static void test_read_decodes_signed_14_bit_data(void)
@@ -350,6 +350,27 @@ static void test_range_update_preserves_non_range_bits_and_read_failure(void)
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_RANGE_8G, dev.range);
 }
 
+static void test_power_update_preserves_non_power_bits_and_read_failure(void)
+{
+    xy_qma6100p_t dev;
+    int bus;
+
+    regs[XY_QMA6100P_REG_POWER] = 0x2AU;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_HEX8(0xAAU, regs[XY_QMA6100P_REG_POWER]);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_set_active(&dev, 0U));
+    TEST_ASSERT_EQUAL_HEX8(0x2AU, regs[XY_QMA6100P_REG_POWER]);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.active);
+
+    read_result = XY_DEVICE_TIMEOUT;
+    fail_read_reg = XY_QMA6100P_REG_POWER;
+    writes = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qma6100p_set_active(&dev, 1U));
+    TEST_ASSERT_EQUAL_UINT(0U, writes);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.active);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -368,5 +389,6 @@ int main(void)
     RUN_TEST(test_range_rejects_invalid_and_preserves_on_write_failure);
     RUN_TEST(test_active_mode_transitions_are_staged);
     RUN_TEST(test_range_update_preserves_non_range_bits_and_read_failure);
+    RUN_TEST(test_power_update_preserves_non_power_bits_and_read_failure);
     return UNITY_END();
 }
