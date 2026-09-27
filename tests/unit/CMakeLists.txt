@@ -1229,6 +1229,17 @@ target_include_directories(test_icm20608_sensor BEFORE PRIVATE
     ${DRV}/sensor/motion/icm20608
 )
 
+xy_add_unit_test(test_qma6100p_sensor sensor_qma6100p_wrapper UNITY
+    ${UNIT_SENSOR}/test_qma6100p_sensor.c
+    ${SENSOR}/sensors/sensor_qma6100p.c
+    ${DRV}/sensor/motion/qma6100p/xy_qma6100p.c
+)
+target_include_directories(test_qma6100p_sensor BEFORE PRIVATE
+    ${SENSOR}
+    ${SENSOR}/sensors
+    ${DRV}/sensor/motion/qma6100p
+)
+
 xy_add_unit_test(test_low_power_accel_sensors sensor_low_power_accel_sensors UNITY
     ${UNIT_SENSOR}/test_low_power_accel_sensors.c
     ${SENSOR}/sensors/sensor_adxl362.c

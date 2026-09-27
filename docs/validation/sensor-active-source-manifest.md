@@ -52,6 +52,7 @@ The Device-model root set is currently exactly:
 - AHT10: `components/drivers/sensor/temperature/aht10/xy_aht10.c`
 - AP3216C: `components/drivers/sensor/light/ap3216c/xy_ap3216c.c`
 - ICM20608: `components/drivers/sensor/motion/icm20608/xy_icm20608.c`
+- QMA6100P: `components/drivers/sensor/motion/qma6100p/xy_qma6100p.c`
 - HDC1080: `components/drivers/sensor/temperature/hdc1080/xy_hdc1080.c`
 - TSL2561: `components/drivers/sensor/light/tsl2561/xy_tsl2561.c`
 - INA226: `components/drivers/sensor/adc/ina226/xy_ina226.c`
