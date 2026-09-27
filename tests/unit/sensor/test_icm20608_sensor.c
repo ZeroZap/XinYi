@@ -1097,14 +1097,19 @@ static void test_icm20608_configuration_readback_is_staged_and_guarded(void)
 static void queue_i2c_configuration_readback(void *bus, uint8_t accel_config,
                                              uint8_t gyro_config, uint8_t gyro_dlpf,
                                              uint8_t accel_dlpf, uint8_t divider,
-                                             uint8_t power, uint8_t int_enable)
+                                             uint8_t power, uint8_t power2,
+                                             uint8_t int_enable)
 {
+    const uint8_t whoami = ICM20608_WHOAMI_VALUE;
+
+    queue_i2c_read(bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
     queue_i2c_read(bus, ICM20608_REG_ACCEL_CONFIG, &accel_config, 1U, SENSOR_EOK);
     queue_i2c_read(bus, ICM20608_REG_GYRO_CONFIG, &gyro_config, 1U, SENSOR_EOK);
     queue_i2c_read(bus, ICM20608_REG_CONFIG, &gyro_dlpf, 1U, SENSOR_EOK);
     queue_i2c_read(bus, ICM20608_REG_ACCEL_CONFIG2, &accel_dlpf, 1U, SENSOR_EOK);
     queue_i2c_read(bus, ICM20608_REG_SMPLRT_DIV, &divider, 1U, SENSOR_EOK);
     queue_i2c_read(bus, ICM20608_REG_PWR_MGMT_1, &power, 1U, SENSOR_EOK);
+    queue_i2c_read(bus, ICM20608_REG_PWR_MGMT_2, &power2, 1U, SENSOR_EOK);
     queue_i2c_read(bus, ICM20608_REG_INT_ENABLE, &int_enable, 1U, SENSOR_EOK);
 }
 
@@ -1116,7 +1121,8 @@ static void test_icm20608_configuration_verification_detects_hardware_drift(void
     const uint8_t gyro_dlpf = 0xE4U;
     const uint8_t accel_dlpf = 0xB4U;
     const uint8_t divider = 0x09U;
-    const uint8_t power = 0x21U;
+    const uint8_t power = 0x01U;
+    const uint8_t power2 = 0x00U;
     const uint8_t int_enable = 0xA0U;
     const uint8_t drifted_accel_config = 0xB0U;
     xy_icm20608_accel_t sample = {11, 22, 33};
@@ -1132,10 +1138,14 @@ static void test_icm20608_configuration_verification_detects_hardware_drift(void
     priv = (icm20608_priv_t *)accel->priv_data;
 
     queue_i2c_configuration_readback(&fake_bus, accel_config, gyro_config, gyro_dlpf,
-                                     accel_dlpf, divider, power, int_enable);
+                                     accel_dlpf, divider, power, power2, int_enable);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, icm20608_verify_configuration(accel));
     TEST_ASSERT_TRUE(priv->device.configuration_synchronized);
 
+    {
+        const uint8_t whoami = ICM20608_WHOAMI_VALUE;
+        queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    }
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &drifted_accel_config, 1U,
                    SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, icm20608_verify_configuration(accel));
@@ -1155,7 +1165,7 @@ static void test_icm20608_configuration_verification_detects_hardware_drift(void
 static void test_icm20608_configuration_verification_propagates_transport_error(void)
 {
     int fake_bus;
-    const uint8_t accel_config = 0xA8U;
+    const uint8_t whoami = ICM20608_WHOAMI_VALUE;
     sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
     icm20608_priv_t *priv;
 
@@ -1164,13 +1174,51 @@ static void test_icm20608_configuration_verification_propagates_transport_error(
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
     priv = (icm20608_priv_t *)accel->priv_data;
 
-    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &accel_config, 1U,
-                   SENSOR_ETIMEOUT);
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_ETIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, icm20608_verify_configuration(accel));
     TEST_ASSERT_TRUE(priv->device.configuration_synchronized);
     TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
     TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
     destroy_sensor(accel);
+}
+
+static void test_icm20608_configuration_verification_rejects_identity_and_power_drift(void)
+{
+    int fake_bus;
+    const uint8_t wrong_whoami = 0xAFU;
+    const uint8_t accel_config = 0x08U;
+    const uint8_t gyro_config = 0x08U;
+    const uint8_t gyro_dlpf = 0x04U;
+    const uint8_t accel_dlpf = 0x04U;
+    const uint8_t divider = 0x09U;
+    const uint8_t power = 0x01U;
+    const uint8_t disabled_axis = 0x01U;
+    const uint8_t int_enable = 0x00U;
+    sensor_device_t *identity = icm20608_create_accel("icm-id", &fake_bus, false);
+    sensor_device_t *power_state = icm20608_create_accel("icm-power", &fake_bus, false);
+    icm20608_priv_t *identity_priv;
+    icm20608_priv_t *power_priv;
+
+    TEST_ASSERT_NOT_NULL(identity);
+    TEST_ASSERT_NOT_NULL(power_state);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, identity->ops->init(identity));
+    identity_priv = (icm20608_priv_t *)identity->priv_data;
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &wrong_whoami, 1U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, icm20608_verify_configuration(identity));
+    TEST_ASSERT_FALSE(identity_priv->device.configuration_synchronized);
+
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, power_state->ops->init(power_state));
+    power_priv = (icm20608_priv_t *)power_state->priv_data;
+    queue_i2c_configuration_readback(&fake_bus, accel_config, gyro_config, gyro_dlpf,
+                                     accel_dlpf, divider, power, disabled_axis, int_enable);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, icm20608_verify_configuration(power_state));
+    TEST_ASSERT_FALSE(power_priv->device.configuration_synchronized);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count - 1U, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(identity);
+    destroy_sensor(power_state);
 }
 
 int main(void)
@@ -1199,5 +1247,6 @@ int main(void)
     RUN_TEST(test_icm20608_configuration_readback_is_staged_and_guarded);
     RUN_TEST(test_icm20608_configuration_verification_detects_hardware_drift);
     RUN_TEST(test_icm20608_configuration_verification_propagates_transport_error);
+    RUN_TEST(test_icm20608_configuration_verification_rejects_identity_and_power_drift);
     return UNITY_END();
 }

@@ -308,6 +308,10 @@ xy_error_t xy_icm20608_verify_configuration(xy_icm20608_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
 
+    result = icm20608_read(dev, XY_ICM20608_REG_WHO_AM_I, &value, 1U);
+    if (result != XY_DEVICE_OK) return result;
+    if (value != XY_ICM20608_WHO_AM_I) goto mismatch;
+
     result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_CONFIG, &value, 1U);
     if (result != XY_DEVICE_OK) return result;
     if ((uint8_t)(value & 0x18U) != (uint8_t)((uint8_t)dev->accel_range << 3U)) goto mismatch;
@@ -333,7 +337,14 @@ xy_error_t xy_icm20608_verify_configuration(xy_icm20608_t *dev)
 
     result = icm20608_read(dev, XY_ICM20608_REG_PWR_MGMT_1, &value, 1U);
     if (result != XY_DEVICE_OK) return result;
-    if ((value & 0x40U) != (dev->sleeping != 0U ? 0x40U : 0x00U)) goto mismatch;
+    if ((value & 0x40U) != (dev->sleeping != 0U ? 0x40U : 0x00U) ||
+        (value & 0x20U) != 0U || (value & 0x07U) != 0x01U) {
+        goto mismatch;
+    }
+
+    result = icm20608_read(dev, XY_ICM20608_REG_PWR_MGMT_2, &value, 1U);
+    if (result != XY_DEVICE_OK) return result;
+    if ((value & 0x3FU) != 0U) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_INT_ENABLE, &value, 1U);
     if (result != XY_DEVICE_OK) return result;
