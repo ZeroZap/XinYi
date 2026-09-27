@@ -702,6 +702,34 @@ static void test_icm20608_sleep_blocks_all_sample_reads_without_bus_access(void)
     destroy_sensor(accel);
 }
 
+static void test_icm20608_failed_reinit_preserves_live_owner(void)
+{
+    int fake_bus;
+    const uint8_t wrong_whoami = 0x00U;
+    const uint8_t accel_raw[6] = {0x20, 0x00, 0, 0, 0, 0};
+    sensor_data_t data = {0};
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+    xy_icm20608_t snapshot;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+    snapshot = priv->device;
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &wrong_whoami, 1U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ERROR, accel->ops->init(accel));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &priv->device, sizeof(snapshot));
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_XOUT_H, accel_raw, sizeof(accel_raw), SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->read(accel, &data));
+    TEST_ASSERT_EQUAL_INT32(1000, data.value.val_3axis.x);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -717,5 +745,6 @@ int main(void)
     RUN_TEST(test_icm20608_data_ready_interrupt_preserves_register_and_reports_status);
     RUN_TEST(test_icm20608_coherent_sample_is_single_burst_and_failure_atomic);
     RUN_TEST(test_icm20608_sleep_blocks_all_sample_reads_without_bus_access);
+    RUN_TEST(test_icm20608_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }

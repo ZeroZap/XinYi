@@ -102,29 +102,29 @@ static xy_error_t icm20608_configure(xy_icm20608_t *dev)
 
 xy_error_t xy_icm20608_init_i2c(xy_icm20608_t *dev, void *i2c_handle, uint8_t address)
 {
+    xy_icm20608_t candidate;
     xy_error_t result;
 
     if (dev == NULL || i2c_handle == NULL ||
         (address != XY_ICM20608_ADDR_DEFAULT && address != XY_ICM20608_ADDR_ALT)) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, address, 100U);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, address, 100U);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
         return result;
     }
-    dev->transport = XY_ICM20608_TRANSPORT_I2C;
-    dev->address = address;
-    result = icm20608_configure(dev);
+    candidate.transport = XY_ICM20608_TRANSPORT_I2C;
+    candidate.address = address;
+    result = icm20608_configure(&candidate);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
         return result;
     }
-    dev->accel_range = XY_ICM20608_ACCEL_RANGE_4G;
-    dev->gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
-    dev->odr_hz = 1000U;
-    dev->initialized = 1U;
+    candidate.accel_range = XY_ICM20608_ACCEL_RANGE_4G;
+    candidate.gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
+    candidate.odr_hz = 1000U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
@@ -132,25 +132,26 @@ xy_error_t xy_icm20608_init_spi(xy_icm20608_t *dev, void *context,
                                 xy_icm20608_spi_read_t read_fn,
                                 xy_icm20608_spi_write_t write_fn)
 {
+    xy_icm20608_t candidate;
     xy_error_t result;
 
     if (dev == NULL || context == NULL || read_fn == NULL || write_fn == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
-    dev->transport = XY_ICM20608_TRANSPORT_SPI;
-    dev->spi_context = context;
-    dev->spi_read = read_fn;
-    dev->spi_write = write_fn;
-    result = icm20608_configure(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    candidate.transport = XY_ICM20608_TRANSPORT_SPI;
+    candidate.spi_context = context;
+    candidate.spi_read = read_fn;
+    candidate.spi_write = write_fn;
+    result = icm20608_configure(&candidate);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
         return result;
     }
-    dev->accel_range = XY_ICM20608_ACCEL_RANGE_4G;
-    dev->gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
-    dev->odr_hz = 1000U;
-    dev->initialized = 1U;
+    candidate.accel_range = XY_ICM20608_ACCEL_RANGE_4G;
+    candidate.gyro_range = XY_ICM20608_GYRO_RANGE_500DPS;
+    candidate.odr_hz = 1000U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
