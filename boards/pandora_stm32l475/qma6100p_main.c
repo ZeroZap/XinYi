@@ -17,13 +17,23 @@ static I2C_HandleTypeDef i2c2;
 static xy_qma6100p_t qma;
 static volatile uint32_t int1_edges;
 static volatile uint32_t int2_edges;
+static volatile uint32_t int1_first_tick;
+static volatile uint32_t int2_first_tick;
 
 void _init(void) {}
 void _fini(void) {}
 void SysTick_Handler(void) { xy_hal_sys_tick_irq_handler(); }
 void EXTI9_5_IRQHandler(void) { xy_hal_gpio_irq_handler(GPIOC, 6U); }
 void EXTI15_10_IRQHandler(void) { xy_hal_gpio_irq_handler(GPIOD, 15U); }
-static void edge(void *arg) { (*(volatile uint32_t *)arg)++; }
+static void edge(void *arg)
+{
+    volatile uint32_t *count = (volatile uint32_t *)arg;
+    (*count)++;
+    if (*count == 1U) {
+        if (count == &int1_edges) int1_first_tick = xy_hal_sys_get_tick_count();
+        else int2_first_tick = xy_hal_sys_get_tick_count();
+    }
+}
 static void stop(void) { __disable_irq(); for (;;) {} }
 static void text(const char *s){size_t n=0;while(s[n])++n;(void)xy_hal_uart_send(&uart1,(const uint8_t*)s,n,100U);}
 static void num(int32_t v){char b[16];size_t p=sizeof(b);uint32_t x=v<0?(uint32_t)(-v):(uint32_t)v;b[--p]=0;do{b[--p]=(char)('0'+x%10U);x/=10U;}while(x);if(v<0)b[--p]='-';text(&b[p]);}
@@ -63,10 +73,21 @@ int main(void)
     result=xy_qma6100p_init(&qma,&i2c2,address);if(result!=XY_DEVICE_OK)fail("QMA6100P_INIT_ERROR",result);
     result=xy_qma6100p_configure_data_ready_interrupts_ex(&qma,1U,1U,0U);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_CONFIG_ERROR",result);
     result=xy_qma6100p_read_interrupt_config(&qma,&irq_config);if(result!=XY_DEVICE_OK)fail("QMA6100P_IRQ_READBACK_ERROR",result);
+    EXTI->SWIER1 = (1UL << 6U) | (1UL << 15U);
+    xy_hal_delay_ms(1U);
+    text("QMA6100P_EXTI_SELFTEST int1_edges=");num((int32_t)int1_edges);text(" int2_edges=");num((int32_t)int2_edges);text("\r\n");
+    if(int1_edges!=1U||int2_edges!=1U)fail("QMA6100P_EXTI_SELFTEST_ERROR",XY_DEVICE_IO_ERROR);
+    int1_edges=0U;int2_edges=0U;int1_first_tick=0U;int2_first_tick=0U;
     text("QMA6100P_IRQ_CONFIG en=0x");hex(irq_config.enable1);text(" int1_map=0x");hex(irq_config.map_int1);
     text(" int2_map=0x");hex(irq_config.map_int2);text(" pin=0x");hex(irq_config.pin_config);
     text(" cfg=0x");hex(irq_config.interrupt_config);text("\r\n");
     text("QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=LOW\r\n");
+    text("QMA6100P_IRQ_CAPTURE window_ms=1000\r\n");
+    xy_hal_delay_ms(1000U);
+    text("QMA6100P_IRQ_RESULT int1_edges=");num((int32_t)int1_edges);
+    text(" int2_edges=");num((int32_t)int2_edges);text(" int1_first_ms=");num((int32_t)int1_first_tick);
+    text(" int2_first_ms=");num((int32_t)int2_first_tick);text(" int1_level=");num(xy_hal_gpio_read(GPIOC,6U));
+    text(" int2_level=");num(xy_hal_gpio_read(GPIOD,15U));text("\r\n");
     for(uint32_t n=0;n<40U;n++){
         xy_qma6100p_raw_t raw;xy_qma6100p_accel_t a;uint8_t status=0U;
         result=xy_qma6100p_read_interrupt_status(&qma,&status);if(result!=XY_DEVICE_OK)fail("QMA6100P_STATUS_ERROR",result);
