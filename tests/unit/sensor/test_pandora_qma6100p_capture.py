@@ -17,8 +17,11 @@ HEADER = "\n".join(
         "PANDORA QMA6100P I2C2 PROBE",
         f"FIRMWARE_COMMIT {COMMIT}",
         "QMA6100P_ADDR=0x12 CHIP_ID=0x90",
+        "QMA6100P_EXTI_SELFTEST int1_edges=1 int2_edges=1",
         IRQ_CONFIG,
         "QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=LOW",
+        "QMA6100P_IRQ_CAPTURE window_ms=1000",
+        "QMA6100P_IRQ_RESULT int1_edges=0 int2_edges=0 int1_first_ms=0 int2_first_ms=0 int1_level=1 int2_level=1",
     )
 )
 
@@ -52,7 +55,9 @@ class PandoraQma6100pCaptureContract(unittest.TestCase):
         self.assertEqual(result["unique_raw_samples"], 40)
         self.assertEqual(result["address"], "0x12")
         self.assertEqual(result["chip_id"], "0x90")
-        self.assertEqual(result["interrupt_evidence"], "NOT_OBSERVED")
+        self.assertEqual(result["exti_selftest"], (1, 1))
+        self.assertEqual(result["interrupt_status_evidence"], "NOT_OBSERVED")
+        self.assertEqual(result["gpio_edge_evidence"], "NOT_OBSERVED")
         self.assertEqual(result["failures"], [])
 
     def test_rejects_wrong_identity_or_device(self) -> None:
@@ -85,6 +90,27 @@ class PandoraQma6100pCaptureContract(unittest.TestCase):
         result = analyze_capture(malformed, COMMIT)
         self.assertEqual(result["status"], "QMA6100P_VALIDATION_FAILED")
         self.assertTrue(any("malformed" in failure for failure in result["failures"]))
+
+    def test_rejects_missing_or_failed_exti_selftest_and_irq_result(self) -> None:
+        for payload in (
+            valid_capture().replace(b"QMA6100P_EXTI_SELFTEST int1_edges=1 int2_edges=1\n", b""),
+            valid_capture().replace(
+                b"QMA6100P_EXTI_SELFTEST int1_edges=1 int2_edges=1",
+                b"QMA6100P_EXTI_SELFTEST int1_edges=0 int2_edges=1",
+            ),
+            valid_capture().replace(b"QMA6100P_IRQ_RESULT", b"QMA6100P_IRQ_RESULT_BAD"),
+        ):
+            result = analyze_capture(payload, COMMIT)
+            self.assertEqual(result["status"], "QMA6100P_VALIDATION_FAILED")
+            self.assertTrue(result["failures"])
+
+    def test_classifies_sensor_status_separately_from_gpio_edges(self) -> None:
+        payload = valid_capture().replace(sample(13).encode(), sample(13, status="10").encode())
+        result = analyze_capture(payload, COMMIT)
+
+        self.assertEqual(result["status"], "B1_QMA6100P_BASIC_CHAIN_PASS")
+        self.assertEqual(result["interrupt_status_evidence"], "OBSERVED")
+        self.assertEqual(result["gpio_edge_evidence"], "NOT_OBSERVED")
 
     def test_rejects_error_marker_and_out_of_range_acceleration(self) -> None:
         payload = valid_capture().replace(b"QMA6100P_PROBE_DONE", b"QMA6100P_RAW_ERROR\r\nQMA6100P_PROBE_DONE")

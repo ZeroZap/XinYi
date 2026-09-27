@@ -1,0 +1,41 @@
+{
+  "status": "B1_QMA6100P_EXTI_DISPATCH_AND_SENSOR_STATUS_PASS",
+  "schema": "xinyi-pandora-qma6100p-runtime-v2",
+  "firmware_commit": "e8717be4273481787fd44d41be4b08a65094bed2",
+  "board": "Pandora STM32L475VE",
+  "probe": "ST-Link V2.1",
+  "probe_serial": "066AFF313933554D43244015",
+  "transport": "I2C2 PB10/PB11; IRQ diagnostic PC6/PD15",
+  "address": "0x12",
+  "chip_id": "0x90",
+  "exti_software_dispatch_counts": [1, 1],
+  "interrupt_config": ["10", "10", "10", "00", "0C"],
+  "gpio_irq_window": {
+    "duration_ms": 1000,
+    "int1_edges": 0,
+    "int2_edges": 0,
+    "int1_level": 1,
+    "int2_level": 1,
+    "evidence": "NOT_OBSERVED"
+  },
+  "samples": 40,
+  "unique_raw_samples": 40,
+  "raw_min": [1192, 1255, -1693],
+  "raw_max": [1219, 1275, -1674],
+  "interrupt_status_values": ["00", "10"],
+  "interrupt_status_evidence": "OBSERVED",
+  "error_marker_count": 0,
+  "uart_endpoint": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "raw_capture_bytes": 5326,
+  "raw_capture_sha256": "2b930eb2ecaaec858f9efe45271b583703e119b6d662eaeccf5a64af37e0b21c",
+  "bin_bytes": 13040,
+  "bin_sha256": "39591e6835e4260912619609c4596b34e628c83ad61cd657dcfcb1c5f4099542",
+  "readback_byte_identical": true,
+  "readback_sha256": "39591e6835e4260912619609c4596b34e628c83ad61cd657dcfcb1c5f4099542",
+  "limitations": [
+    "EXTI dispatch evidence uses MCU software-triggered EXTI pending bits",
+    "Sensor internal interrupt status 0x10 was observed independently of GPIO edge evidence",
+    "No physical QMA6100P-to-MCU GPIO edge was observed on PC6 or PD15",
+    "No dynamic response, accuracy, calibration, recovery, or endurance claim"
+  ]
+}

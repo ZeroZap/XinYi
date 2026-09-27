@@ -14,12 +14,20 @@ IRQ_CONFIG = re.compile(
     r"^QMA6100P_IRQ_CONFIG en=0x([0-9A-F]{2}) int1_map=0x([0-9A-F]{2}) "
     r"int2_map=0x([0-9A-F]{2}) pin=0x([0-9A-F]{2}) cfg=0x([0-9A-F]{2})$"
 )
+EXTI_SELFTEST = re.compile(
+    r"^QMA6100P_EXTI_SELFTEST int1_edges=([0-9]+) int2_edges=([0-9]+)$"
+)
+IRQ_RESULT = re.compile(
+    r"^QMA6100P_IRQ_RESULT int1_edges=([0-9]+) int2_edges=([0-9]+) "
+    r"int1_first_ms=([0-9]+) int2_first_ms=([0-9]+) int1_level=([01]) int2_level=([01])$"
+)
 SAMPLE = re.compile(
     r"^QMA6100P_SAMPLE n=([0-9]+) raw=(-?[0-9]+),(-?[0-9]+),(-?[0-9]+) "
     r"mg=(-?[0-9]+),(-?[0-9]+),(-?[0-9]+) status=0x([0-9A-F]{2}) "
     r"int1_level=([01]) int2_level=([01]) int1_edges=([0-9]+) int2_edges=([0-9]+)$"
 )
 IRQ_MAP = "QMA6100P_IRQ_MAP INT1=PC6 INT2=PD15 ACTIVE=LOW"
+IRQ_CAPTURE = "QMA6100P_IRQ_CAPTURE window_ms=1000"
 DONE = "QMA6100P_PROBE_DONE"
 ERROR_MARKERS = (
     "QMA6100P_NOT_FOUND",
@@ -27,6 +35,7 @@ ERROR_MARKERS = (
     "QMA6100P_INIT_ERROR",
     "QMA6100P_IRQ_CONFIG_ERROR",
     "QMA6100P_IRQ_READBACK_ERROR",
+    "QMA6100P_EXTI_SELFTEST_ERROR",
     "QMA6100P_STATUS_ERROR",
     "QMA6100P_RAW_ERROR",
     "QMA6100P_ACCEL_ERROR",
@@ -64,11 +73,23 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         else:
             address, chip_id = device.groups()
 
-    interrupt_config = None
+    exti_selftest = None
     if len(cycle) < 4:
+        failures.append("missing EXTI dispatch self-test")
+    else:
+        match = EXTI_SELFTEST.fullmatch(cycle[3])
+        if match is None:
+            failures.append("invalid EXTI dispatch self-test")
+        else:
+            exti_selftest = tuple(int(value) for value in match.groups())
+            if exti_selftest != (1, 1):
+                failures.append("EXTI dispatch self-test mismatch")
+
+    interrupt_config = None
+    if len(cycle) < 5:
         failures.append("missing interrupt configuration readback")
     else:
-        match = IRQ_CONFIG.fullmatch(cycle[3])
+        match = IRQ_CONFIG.fullmatch(cycle[4])
         if match is None:
             failures.append("invalid interrupt configuration readback")
         else:
@@ -76,8 +97,20 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
             if interrupt_config != ("10", "10", "10", "00", "0C"):
                 failures.append("interrupt configuration readback mismatch")
 
-    if len(cycle) < 5 or cycle[4] != IRQ_MAP:
+    if len(cycle) < 6 or cycle[5] != IRQ_MAP:
         failures.append("missing or out-of-order IRQ mapping marker")
+    if len(cycle) < 7 or cycle[6] != IRQ_CAPTURE:
+        failures.append("missing or out-of-order IRQ capture marker")
+
+    irq_result = None
+    if len(cycle) < 8:
+        failures.append("missing IRQ result")
+    else:
+        match = IRQ_RESULT.fullmatch(cycle[7])
+        if match is None:
+            failures.append("invalid IRQ result")
+        else:
+            irq_result = tuple(int(value) for value in match.groups())
 
     for marker in ERROR_MARKERS:
         if any(marker in line for line in cycle):
@@ -122,9 +155,12 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         failures.append("raw samples are frozen")
 
     statuses = sorted({entry[3] for entry in samples})
-    int1_edges_max = max((entry[5][0] for entry in samples), default=0)
-    int2_edges_max = max((entry[5][1] for entry in samples), default=0)
-    interrupt_observed = any(status != "00" for status in statuses) or int1_edges_max > 0 or int2_edges_max > 0
+    result_int1_edges = irq_result[0] if irq_result is not None else 0
+    result_int2_edges = irq_result[1] if irq_result is not None else 0
+    int1_edges_max = max([result_int1_edges] + [entry[5][0] for entry in samples])
+    int2_edges_max = max([result_int2_edges] + [entry[5][1] for entry in samples])
+    status_observed = any(status != "00" for status in statuses)
+    gpio_edge_observed = int1_edges_max > 0 or int2_edges_max > 0
 
     raw_axes = [entry[1] for entry in samples]
     return {
@@ -134,7 +170,9 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "capture_sha256": hashlib.sha256(payload).hexdigest(),
         "address": address,
         "chip_id": chip_id,
+        "exti_selftest": exti_selftest,
         "interrupt_config": interrupt_config,
+        "irq_result": irq_result,
         "sample_count": len(samples),
         "unique_raw_samples": unique_raw,
         "raw_min": [min(axis) for axis in zip(*raw_axes)] if raw_axes else [],
@@ -142,7 +180,8 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "interrupt_status_values": statuses,
         "int1_edges_max": int1_edges_max,
         "int2_edges_max": int2_edges_max,
-        "interrupt_evidence": "OBSERVED" if interrupt_observed else "NOT_OBSERVED",
+        "interrupt_status_evidence": "OBSERVED" if status_observed else "NOT_OBSERVED",
+        "gpio_edge_evidence": "OBSERVED" if gpio_edge_observed else "NOT_OBSERVED",
         "failures": failures,
     }
 
