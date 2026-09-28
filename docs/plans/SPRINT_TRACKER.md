@@ -226,6 +226,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-107 | P1 | ICM20608 filter write read-back 验证 | DONE | Zero | S4-106（DONE）；硬件测试按用户要求暂停 | TDD 覆盖 gyro/accel DLPF 写后回读；任一寄存器回读失败或值不匹配均使 configuration fail-closed，且不提交 cached filter state。focused `sensor_icm20608`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 仅为 Host/compile 配置一致性 contract；不升级动态响应、精度、校准、恢复或实板证据 | `39e3d093` |
 | S4-108 | P1 | ICM20608 deinit sleep-write read-back 验证 | DONE | Zero | S4-107（DONE）；硬件测试按用户要求暂停 | TDD RED 证明 deinit 在 sleep bit 写入未生效时仍清空 live owner；现 teardown 对 PWR_MGMT_1 写后回读，不匹配时 fail-closed、保留 initialized/transport 供诊断并标记 configuration unsynchronized。focused `sensor_icm20608`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 仅为 Host/compile teardown consistency contract；不升级动态响应、精度、恢复或实板证据 | `1d1b1761` |
 | S4-109 | P1 | ICM20608 初始化最终配置写回校验 | DONE | Zero | S4-108（DONE）；硬件测试按用户要求暂停 | TDD 覆盖初始化最后一项 ACCEL_CONFIG2 写后回读；transport read failure 或值不匹配均拒绝提交 candidate owner，保持 caller storage 未初始化。focused `sensor_icm20608`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 仅为 Host/compile init consistency contract；不升级动态响应、精度、恢复或实板证据 | 本记录提交 |
+| S4-110 | P1 | ICM20608 配置核验 transport failure fail-closed | DONE | Zero | S4-109（DONE）；硬件测试按用户要求暂停 | TDD 证明配置核验 transport read failure 曾保留 synchronized 状态并允许后续 sample read；现任一核验读取失败均传播原始错误、撤销 configuration synchronization，后续 public sample path fail-closed 且保持 caller output。focused `sensor_icm20608`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 仅为 Host/compile verification failure contract；不升级动态响应、精度、恢复或实板证据 | 本记录提交 |
 
 ### Sprint 5 前置看板
 

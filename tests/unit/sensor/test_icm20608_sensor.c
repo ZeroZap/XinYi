@@ -1361,6 +1361,8 @@ static void test_icm20608_configuration_verification_propagates_transport_error(
 {
     int fake_bus;
     const uint8_t whoami = ICM20608_WHOAMI_VALUE;
+    xy_icm20608_accel_t sample = {11, 22, 33};
+    const xy_icm20608_accel_t sample_snapshot = sample;
     sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
     icm20608_priv_t *priv;
 
@@ -1371,7 +1373,10 @@ static void test_icm20608_configuration_verification_propagates_transport_error(
 
     queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_ETIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, icm20608_verify_configuration(accel));
-    TEST_ASSERT_TRUE(priv->device.configuration_synchronized);
+    TEST_ASSERT_FALSE(priv->device.configuration_synchronized);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_icm20608_read_accel(&priv->device, &sample));
+    TEST_ASSERT_EQUAL_MEMORY(&sample_snapshot, &sample, sizeof(sample));
     TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
     TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
     destroy_sensor(accel);

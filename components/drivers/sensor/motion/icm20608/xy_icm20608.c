@@ -383,45 +383,45 @@ xy_error_t xy_icm20608_verify_configuration(xy_icm20608_t *dev)
     }
 
     result = icm20608_read(dev, XY_ICM20608_REG_WHO_AM_I, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if (value != XY_ICM20608_WHO_AM_I) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_CONFIG, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if ((uint8_t)(value & 0xF8U) != (uint8_t)((uint8_t)dev->accel_range << 3U)) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_GYRO_CONFIG, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if ((uint8_t)(value & 0xFBU) != (uint8_t)((uint8_t)dev->gyro_range << 3U)) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_CONFIG, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if ((value & 0x07U) != (uint8_t)dev->gyro_dlpf) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_CONFIG2, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if ((value & 0x0FU) != (uint8_t)dev->accel_dlpf) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_SMPLRT_DIV, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if (dev->odr_hz == 0U || (1000U % dev->odr_hz) != 0U ||
         value != (uint8_t)((1000U / dev->odr_hz) - 1U)) {
         goto mismatch;
     }
 
     result = icm20608_read(dev, XY_ICM20608_REG_PWR_MGMT_1, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if ((value & 0x40U) != (dev->sleeping != 0U ? 0x40U : 0x00U) ||
         (value & 0x20U) != 0U || (value & 0x07U) != 0x01U) {
         goto mismatch;
     }
 
     result = icm20608_read(dev, XY_ICM20608_REG_PWR_MGMT_2, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if ((value & 0x3FU) != 0U) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_INT_ENABLE, &value, 1U);
-    if (result != XY_DEVICE_OK) return result;
+    if (result != XY_DEVICE_OK) goto transport_failure;
     if ((value & 0x01U) != dev->data_ready_interrupt_enabled) goto mismatch;
 
     return XY_DEVICE_OK;
@@ -429,6 +429,10 @@ xy_error_t xy_icm20608_verify_configuration(xy_icm20608_t *dev)
 mismatch:
     dev->configuration_synchronized = 0U;
     return XY_DEVICE_FAIL;
+
+transport_failure:
+    dev->configuration_synchronized = 0U;
+    return result;
 }
 
 xy_error_t xy_icm20608_set_sleep(xy_icm20608_t *dev, uint8_t sleep)
