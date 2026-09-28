@@ -42,17 +42,6 @@ static xy_error_t icm20608_write(xy_icm20608_t *dev, uint8_t reg, uint8_t value)
     return dev->spi_write(dev->spi_context, reg, &value, 1U);
 }
 
-static xy_error_t icm20608_update_bits(xy_icm20608_t *dev, uint8_t reg, uint8_t mask,
-                                       uint8_t value)
-{
-    uint8_t current;
-    xy_error_t result = icm20608_read(dev, reg, &current, 1U);
-
-    if (result != XY_DEVICE_OK) return result;
-    current = (uint8_t)((current & (uint8_t)~mask) | (value & mask));
-    return icm20608_write(dev, reg, current);
-}
-
 static xy_error_t icm20608_update_bits_verified(xy_icm20608_t *dev, uint8_t reg, uint8_t mask,
                                                 uint8_t value)
 {
@@ -477,7 +466,7 @@ xy_error_t xy_icm20608_deinit(xy_icm20608_t *dev)
     if (!icm20608_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    result = icm20608_update_bits(dev, XY_ICM20608_REG_PWR_MGMT_1, 0x40U, 0x40U);
+    result = icm20608_update_bits_verified(dev, XY_ICM20608_REG_PWR_MGMT_1, 0x40U, 0x40U);
     if (result == XY_DEVICE_OK) {
         dev->initialized = 0U;
         if (dev->transport == XY_ICM20608_TRANSPORT_I2C) {
