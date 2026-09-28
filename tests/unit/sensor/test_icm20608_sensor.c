@@ -192,8 +192,20 @@ static void queue_i2c_init_success(void *bus)
     queue_i2c_write(bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_i2c_write(bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
     {
-        const uint8_t programmed = 0x04U;
-        queue_i2c_read(bus, ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U, SENSOR_EOK);
+        const uint8_t power1 = 0x01U;
+        const uint8_t power2 = 0x00U;
+        const uint8_t gyro_config = 0x08U;
+        const uint8_t accel_config = 0x08U;
+        const uint8_t divider = 0x09U;
+        const uint8_t gyro_dlpf = 0x04U;
+        const uint8_t accel_dlpf = 0x04U;
+        queue_i2c_read(bus, ICM20608_REG_PWR_MGMT_1, &power1, 1U, SENSOR_EOK);
+        queue_i2c_read(bus, ICM20608_REG_PWR_MGMT_2, &power2, 1U, SENSOR_EOK);
+        queue_i2c_read(bus, ICM20608_REG_GYRO_CONFIG, &gyro_config, 1U, SENSOR_EOK);
+        queue_i2c_read(bus, ICM20608_REG_ACCEL_CONFIG, &accel_config, 1U, SENSOR_EOK);
+        queue_i2c_read(bus, ICM20608_REG_SMPLRT_DIV, &divider, 1U, SENSOR_EOK);
+        queue_i2c_read(bus, ICM20608_REG_CONFIG, &gyro_dlpf, 1U, SENSOR_EOK);
+        queue_i2c_read(bus, ICM20608_REG_ACCEL_CONFIG2, &accel_dlpf, 1U, SENSOR_EOK);
     }
 }
 
@@ -418,8 +430,20 @@ static void test_icm20608_accepts_pandora_identity(void)
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
     {
-        const uint8_t programmed = 0x04U;
-        queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U, SENSOR_EOK);
+        const uint8_t power1 = 0x01U;
+        const uint8_t power2 = 0x00U;
+        const uint8_t gyro_config = 0x08U;
+        const uint8_t accel_config = 0x08U;
+        const uint8_t divider = 0x09U;
+        const uint8_t gyro_dlpf = 0x04U;
+        const uint8_t accel_dlpf = 0x04U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &power1, 1U, SENSOR_EOK);
+        queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_2, &power2, 1U, SENSOR_EOK);
+        queue_i2c_read(&fake_bus, ICM20608_REG_GYRO_CONFIG, &gyro_config, 1U, SENSOR_EOK);
+        queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &accel_config, 1U, SENSOR_EOK);
+        queue_i2c_read(&fake_bus, ICM20608_REG_SMPLRT_DIV, &divider, 1U, SENSOR_EOK);
+        queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_dlpf, 1U, SENSOR_EOK);
+        queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_dlpf, 1U, SENSOR_EOK);
     }
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
 
@@ -445,8 +469,20 @@ static void test_icm20608_spi_bus_path_smoke(void)
     queue_spi_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_spi_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
     {
-        const uint8_t programmed = 0x04U;
-        queue_spi_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U, SENSOR_EOK);
+        const uint8_t power1 = 0x01U;
+        const uint8_t power2 = 0x00U;
+        const uint8_t gyro_config = 0x08U;
+        const uint8_t accel_config = 0x08U;
+        const uint8_t divider = 0x09U;
+        const uint8_t gyro_dlpf = 0x04U;
+        const uint8_t accel_dlpf = 0x04U;
+        queue_spi_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &power1, 1U, SENSOR_EOK);
+        queue_spi_read(&fake_bus, ICM20608_REG_PWR_MGMT_2, &power2, 1U, SENSOR_EOK);
+        queue_spi_read(&fake_bus, ICM20608_REG_GYRO_CONFIG, &gyro_config, 1U, SENSOR_EOK);
+        queue_spi_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &accel_config, 1U, SENSOR_EOK);
+        queue_spi_read(&fake_bus, ICM20608_REG_SMPLRT_DIV, &divider, 1U, SENSOR_EOK);
+        queue_spi_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_dlpf, 1U, SENSOR_EOK);
+        queue_spi_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_dlpf, 1U, SENSOR_EOK);
     }
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, temp->ops->init(temp));
 
@@ -475,7 +511,7 @@ static void test_icm20608_init_rejects_final_config_readback_mismatch(void)
     queue_i2c_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
-    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &stale_config, 1U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &stale_config, 1U, SENSOR_EOK);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->init(accel));
     priv = (icm20608_priv_t *)accel->priv_data;
