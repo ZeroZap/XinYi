@@ -94,6 +94,7 @@ static int icm20608_gyro_bias_fits(const xy_icm20608_t *dev,
 static xy_error_t icm20608_configure(xy_icm20608_t *dev)
 {
     uint8_t identity;
+    uint8_t programmed;
     xy_error_t result;
 
     result = icm20608_read(dev, XY_ICM20608_REG_WHO_AM_I, &identity, 1U);
@@ -127,6 +128,12 @@ static xy_error_t icm20608_configure(xy_icm20608_t *dev)
     }
     if (result == XY_DEVICE_OK) {
         result = icm20608_write(dev, XY_ICM20608_REG_ACCEL_CONFIG2, 0x04U);
+    }
+    if (result == XY_DEVICE_OK) {
+        result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U);
+    }
+    if (result == XY_DEVICE_OK && programmed != 0x04U) {
+        result = XY_DEVICE_FAIL;
     }
     return result;
 }

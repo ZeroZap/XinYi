@@ -191,6 +191,10 @@ static void queue_i2c_init_success(void *bus)
     queue_i2c_write(bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
     queue_i2c_write(bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_i2c_write(bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0x04U;
+        queue_i2c_read(bus, ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U, SENSOR_EOK);
+    }
 }
 
 void setUp(void)
@@ -413,6 +417,10 @@ static void test_icm20608_accepts_pandora_identity(void)
     queue_i2c_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0x04U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U, SENSOR_EOK);
+    }
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
 
     destroy_sensor(accel);
@@ -436,6 +444,10 @@ static void test_icm20608_spi_bus_path_smoke(void)
     queue_spi_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
     queue_spi_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
     queue_spi_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0x04U;
+        queue_spi_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U, SENSOR_EOK);
+    }
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, temp->ops->init(temp));
 
     queue_spi_read(&fake_bus, ICM20608_REG_TEMP_OUT_H, temp_raw, sizeof(temp_raw), SENSOR_EOK);
@@ -443,6 +455,36 @@ static void test_icm20608_spi_bus_path_smoke(void)
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 25.0f, data.value.val_float);
 
     destroy_sensor(temp);
+}
+
+static void test_icm20608_init_rejects_final_config_readback_mismatch(void)
+{
+    int fake_bus;
+    const uint8_t whoami = ICM20608_WHOAMI_VALUE;
+    const uint8_t stale_config = 0x00U;
+    sensor_device_t *accel = icm20608_create_accel("icm-init-mismatch", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x80U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, 0x01U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_2, 0x00U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_GYRO_CONFIG, 0x08U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG, 0x08U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x04U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x04U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &stale_config, 1U, SENSOR_EOK);
+
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+    TEST_ASSERT_FALSE(priv->device.initialized);
+    TEST_ASSERT_NULL(priv->device.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+
+    destroy_sensor(accel);
 }
 
 static void test_icm20608_propagates_first_transport_error(void)
@@ -1575,6 +1617,7 @@ int main(void)
     RUN_TEST(test_icm20608_failure_contracts_preserve_output);
     RUN_TEST(test_icm20608_accepts_pandora_identity);
     RUN_TEST(test_icm20608_spi_bus_path_smoke);
+    RUN_TEST(test_icm20608_init_rejects_final_config_readback_mismatch);
     RUN_TEST(test_icm20608_propagates_first_transport_error);
     RUN_TEST(test_icm20608_runtime_ranges_update_scaling_and_metadata);
     RUN_TEST(test_icm20608_runtime_odr_is_exact_and_failure_atomic);
