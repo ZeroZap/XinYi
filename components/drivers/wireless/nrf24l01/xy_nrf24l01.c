@@ -194,8 +194,11 @@ xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
     result = nrf24_write_buffer(radio, NRF24_CMD_W_REGISTER | NRF24_REG_RX_ADDR_P0,
                                 address, 5U);
     if (result != XY_HAL_OK) return result;
-    return nrf24_write_buffer(radio, NRF24_CMD_W_REGISTER | NRF24_REG_TX_ADDR,
-                              address, 5U);
+    result = nrf24_write_buffer(radio, NRF24_CMD_W_REGISTER | NRF24_REG_TX_ADDR,
+                                address, 5U);
+    if (result != XY_HAL_OK) return result;
+    radio->rx_payload_width = 0U;
+    return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_nrf24l01_send(xy_nrf24l01_t *radio, const uint8_t *payload,

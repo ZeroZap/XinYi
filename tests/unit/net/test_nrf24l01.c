@@ -236,6 +236,34 @@ static void test_send_propagates_max_retry_flush_failure(void)
     TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
 }
 
+static void test_configure_ptx_clears_stale_prx_width_after_success(void)
+{
+    xy_nrf24l01_t radio;
+    static const uint8_t address[5] = {1U, 2U, 3U, 4U, 5U};
+    const uint8_t rx_address_frame[6] = {0x2AU, 1U, 2U, 3U, 4U, 5U};
+    const uint8_t tx_address_frame[6] = {0x30U, 1U, 2U, 3U, 4U, 5U};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 32U;
+    queue_frame(0x20U, 0x0EU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x21U, 0x01U, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x23U, 0x03U, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x24U, 0x5FU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x25U, 7U, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x26U, 0x0FU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x27U, 0x70U, 0x0EU, 0U, XY_HAL_OK);
+    queue_buffer(rx_address_frame, sizeof(rx_address_frame), 0x0EU, XY_HAL_OK);
+    queue_buffer(tx_address_frame, sizeof(tx_address_frame), 0x0EU, XY_HAL_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK,
+                          xy_nrf24l01_configure_ptx(&radio, 7U, address, 1U, 1U));
+    TEST_ASSERT_EQUAL_UINT8(0U, radio.rx_payload_width);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 static void test_receive_fixed_payload_and_clears_irq(void)
 {
     xy_nrf24l01_t radio;
@@ -367,6 +395,7 @@ int main(void)
     RUN_TEST(test_send_reports_ack_and_retry_count);
     RUN_TEST(test_send_max_retry_flushes_and_reports_failure);
     RUN_TEST(test_send_propagates_max_retry_flush_failure);
+    RUN_TEST(test_configure_ptx_clears_stale_prx_width_after_success);
     RUN_TEST(test_receive_fixed_payload_and_clears_irq);
     RUN_TEST(test_receive_without_irq_preserves_payload);
     RUN_TEST(test_receive_reads_fifo_even_when_rx_irq_is_clear);
