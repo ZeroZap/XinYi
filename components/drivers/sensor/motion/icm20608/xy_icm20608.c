@@ -256,6 +256,13 @@ xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf
     if (result != XY_DEVICE_OK) {
         if (icm20608_write(dev, XY_ICM20608_REG_CONFIG, gyro_current) != XY_DEVICE_OK) {
             dev->configuration_synchronized = 0U;
+        } else {
+            uint8_t gyro_restored;
+
+            if (icm20608_read(dev, XY_ICM20608_REG_CONFIG, &gyro_restored, 1U) != XY_DEVICE_OK ||
+                gyro_restored != gyro_current) {
+                dev->configuration_synchronized = 0U;
+            }
         }
         return result;
     }
