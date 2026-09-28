@@ -117,7 +117,8 @@ xy_hal_error_t xy_nrf24l01_probe(xy_nrf24l01_t *radio,
     xy_hal_error_t restore_result;
 
     if (radio == NULL || config == NULL || config->spi == NULL || config->transfer == NULL ||
-        config->set_csn == NULL || config->set_ce == NULL || config->timeout_ms == 0U) {
+        config->set_csn == NULL || config->set_ce == NULL || config->delay_us == NULL ||
+        config->timeout_ms == 0U) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     memset(&next, 0, sizeof(next));

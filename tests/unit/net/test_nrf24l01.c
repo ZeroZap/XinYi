@@ -162,6 +162,22 @@ static void test_probe_rejects_floating_bus(void)
     TEST_ASSERT_EQUAL_UINT(1U, frame_index);
 }
 
+static void test_probe_rejects_missing_delay_callback_without_io(void)
+{
+    xy_nrf24l01_t radio;
+    xy_nrf24l01_t old;
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0xA5, sizeof(radio));
+    old = radio;
+    cfg.delay_us = NULL;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_INVALID_PARAM, xy_nrf24l01_probe(&radio, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&old, &radio, sizeof(radio));
+    TEST_ASSERT_EQUAL_UINT(0U, frame_index);
+    TEST_ASSERT_EQUAL_UINT(0U, csn_count);
+    TEST_ASSERT_EQUAL_UINT(0U, ce_count);
+}
+
 static void test_send_reports_ack_and_retry_count(void)
 {
     xy_nrf24l01_t radio;
@@ -430,6 +446,7 @@ int main(void)
     RUN_TEST(test_probe_mismatch_still_restores);
     RUN_TEST(test_probe_read_failure_after_write_restores);
     RUN_TEST(test_probe_rejects_floating_bus);
+    RUN_TEST(test_probe_rejects_missing_delay_callback_without_io);
     RUN_TEST(test_send_reports_ack_and_retry_count);
     RUN_TEST(test_send_max_retry_flushes_and_reports_failure);
     RUN_TEST(test_send_propagates_max_retry_flush_failure);
