@@ -797,7 +797,7 @@ static void test_icm20608_dlpf_control_preserves_bits_and_rolls_back(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
     priv = (icm20608_priv_t *)accel->priv_data;
     TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, priv->device.gyro_dlpf);
-    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, priv->device.accel_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_DLPF_21HZ, priv->device.accel_dlpf);
 
     queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_config, 1U, SENSOR_EOK);
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_config, 1U, SENSOR_EOK);
@@ -805,9 +805,9 @@ static void test_icm20608_dlpf_control_preserves_bits_and_rolls_back(void)
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0xB9U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_icm20608_set_dlpf(&priv->device, XY_ICM20608_DLPF_92HZ,
-                                              XY_ICM20608_DLPF_176HZ));
+                                              XY_ICM20608_ACCEL_DLPF_218HZ_ALT));
     TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_92HZ, priv->device.gyro_dlpf);
-    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_176HZ, priv->device.accel_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_DLPF_218HZ_ALT, priv->device.accel_dlpf);
 
     queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_config, 1U, SENSOR_EOK);
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_config, 1U, SENSOR_EOK);
@@ -816,13 +816,13 @@ static void test_icm20608_dlpf_control_preserves_bits_and_rolls_back(void)
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, gyro_config, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
                           xy_icm20608_set_dlpf(&priv->device, XY_ICM20608_DLPF_10HZ,
-                                              XY_ICM20608_DLPF_10HZ));
+                                              XY_ICM20608_ACCEL_DLPF_10HZ));
     TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_92HZ, priv->device.gyro_dlpf);
-    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_176HZ, priv->device.accel_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_DLPF_218HZ_ALT, priv->device.accel_dlpf);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
                           xy_icm20608_set_dlpf(&priv->device, (xy_icm20608_dlpf_t)7,
-                                              XY_ICM20608_DLPF_20HZ));
+                                              XY_ICM20608_ACCEL_DLPF_21HZ));
     TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
     TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
     destroy_sensor(accel);
@@ -850,7 +850,7 @@ static void test_icm20608_failed_dlpf_rollback_fail_closes_until_reinit(void)
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, gyro_config, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
                           xy_icm20608_set_dlpf(&priv->device, XY_ICM20608_DLPF_10HZ,
-                                              XY_ICM20608_DLPF_10HZ));
+                                              XY_ICM20608_ACCEL_DLPF_10HZ));
     TEST_ASSERT_FALSE(priv->device.configuration_synchronized);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
                           xy_icm20608_read_accel(&priv->device, &accel_sample));
@@ -885,23 +885,23 @@ static void test_icm20608_wrapper_dlpf_control_maps_errors_and_validates_type(vo
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x91U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
                           icm20608_set_dlpf(accel, XY_ICM20608_DLPF_92HZ,
-                                           XY_ICM20608_DLPF_176HZ));
+                                           XY_ICM20608_ACCEL_DLPF_218HZ_ALT));
     TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_92HZ, priv->device.gyro_dlpf);
-    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_176HZ, priv->device.accel_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_DLPF_218HZ_ALT, priv->device.accel_dlpf);
 
     queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, NULL, 1U, SENSOR_ETIMEOUT);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
                           icm20608_set_dlpf(accel, XY_ICM20608_DLPF_20HZ,
-                                           XY_ICM20608_DLPF_20HZ));
+                                           XY_ICM20608_ACCEL_DLPF_21HZ));
     TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_92HZ, priv->device.gyro_dlpf);
-    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_176HZ, priv->device.accel_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_DLPF_218HZ_ALT, priv->device.accel_dlpf);
 
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
                           icm20608_set_dlpf(temp, XY_ICM20608_DLPF_20HZ,
-                                           XY_ICM20608_DLPF_20HZ));
+                                           XY_ICM20608_ACCEL_DLPF_21HZ));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
                           icm20608_set_dlpf(NULL, XY_ICM20608_DLPF_20HZ,
-                                           XY_ICM20608_DLPF_20HZ));
+                                           XY_ICM20608_ACCEL_DLPF_21HZ));
     TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
     TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
     destroy_sensor(accel);
@@ -1047,7 +1047,7 @@ static void test_icm20608_configuration_readback_is_staged_and_guarded(void)
         .accel_range = XY_ICM20608_ACCEL_RANGE_16G,
         .gyro_range = XY_ICM20608_GYRO_RANGE_2000DPS,
         .gyro_dlpf = XY_ICM20608_DLPF_5HZ,
-        .accel_dlpf = XY_ICM20608_DLPF_5HZ,
+        .accel_dlpf = XY_ICM20608_ACCEL_DLPF_5HZ,
         .odr_hz = 999U,
         .sleeping = 1U,
         .data_ready_interrupt_enabled = 1U,
@@ -1068,7 +1068,7 @@ static void test_icm20608_configuration_readback_is_staged_and_guarded(void)
     TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_RANGE_4G, configuration.accel_range);
     TEST_ASSERT_EQUAL_INT(XY_ICM20608_GYRO_RANGE_500DPS, configuration.gyro_range);
     TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, configuration.gyro_dlpf);
-    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, configuration.accel_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_DLPF_21HZ, configuration.accel_dlpf);
     TEST_ASSERT_EQUAL_UINT16(100U, configuration.odr_hz);
     TEST_ASSERT_FALSE(configuration.sleeping);
     TEST_ASSERT_FALSE(configuration.data_ready_interrupt_enabled);

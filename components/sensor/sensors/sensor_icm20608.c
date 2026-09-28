@@ -308,7 +308,7 @@ sensor_err_t icm20608_set_odr(sensor_device_t *sensor, uint16_t odr_hz)
 }
 
 sensor_err_t icm20608_set_dlpf(sensor_device_t *sensor, xy_icm20608_dlpf_t gyro_dlpf,
-                               xy_icm20608_dlpf_t accel_dlpf)
+                               xy_icm20608_accel_dlpf_t accel_dlpf)
 {
     if (sensor == NULL || sensor->bus == NULL || sensor->priv_data == NULL ||
         (sensor->info.type != SENSOR_TYPE_ACCELEROMETER &&

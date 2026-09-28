@@ -55,6 +55,16 @@ typedef enum {
     XY_ICM20608_DLPF_5HZ = 6,
 } xy_icm20608_dlpf_t;
 
+typedef enum {
+    XY_ICM20608_ACCEL_DLPF_218HZ = 0,
+    XY_ICM20608_ACCEL_DLPF_218HZ_ALT = 1,
+    XY_ICM20608_ACCEL_DLPF_99HZ = 2,
+    XY_ICM20608_ACCEL_DLPF_45HZ = 3,
+    XY_ICM20608_ACCEL_DLPF_21HZ = 4,
+    XY_ICM20608_ACCEL_DLPF_10HZ = 5,
+    XY_ICM20608_ACCEL_DLPF_5HZ = 6,
+} xy_icm20608_accel_dlpf_t;
+
 typedef xy_error_t (*xy_icm20608_spi_read_t)(void *context, uint8_t reg, uint8_t *data,
                                              uint16_t len);
 typedef xy_error_t (*xy_icm20608_spi_write_t)(void *context, uint8_t reg, const uint8_t *data,
@@ -82,7 +92,7 @@ typedef struct {
     xy_icm20608_accel_range_t accel_range;
     xy_icm20608_gyro_range_t gyro_range;
     xy_icm20608_dlpf_t gyro_dlpf;
-    xy_icm20608_dlpf_t accel_dlpf;
+    xy_icm20608_accel_dlpf_t accel_dlpf;
     uint16_t odr_hz;
     uint8_t sleeping;
     uint8_t data_ready_interrupt_enabled;
@@ -102,7 +112,7 @@ typedef struct {
     xy_icm20608_accel_range_t accel_range;
     xy_icm20608_gyro_range_t gyro_range;
     xy_icm20608_dlpf_t gyro_dlpf;
-    xy_icm20608_dlpf_t accel_dlpf;
+    xy_icm20608_accel_dlpf_t accel_dlpf;
     uint16_t odr_hz;
     uint8_t address;
     uint8_t initialized;
@@ -122,7 +132,7 @@ xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
                                       xy_icm20608_gyro_range_t range);
 xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz);
 xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf,
-                                xy_icm20608_dlpf_t accel_dlpf);
+                                xy_icm20608_accel_dlpf_t accel_dlpf);
 xy_error_t xy_icm20608_set_bias(xy_icm20608_t *dev,
                                 const xy_icm20608_accel_t *accel_bias,
                                 const xy_icm20608_gyro_t *gyro_bias);

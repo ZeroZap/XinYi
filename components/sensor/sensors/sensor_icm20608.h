@@ -50,7 +50,7 @@ sensor_err_t icm20608_set_gyro_range(sensor_device_t *sensor,
                                      xy_icm20608_gyro_range_t range);
 sensor_err_t icm20608_set_odr(sensor_device_t *sensor, uint16_t odr_hz);
 sensor_err_t icm20608_set_dlpf(sensor_device_t *sensor, xy_icm20608_dlpf_t gyro_dlpf,
-                               xy_icm20608_dlpf_t accel_dlpf);
+                               xy_icm20608_accel_dlpf_t accel_dlpf);
 sensor_err_t icm20608_set_bias(sensor_device_t *sensor,
                                const xy_icm20608_accel_t *accel_bias,
                                const xy_icm20608_gyro_t *gyro_bias);
