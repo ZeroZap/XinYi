@@ -250,7 +250,11 @@ xy_hal_error_t xy_nrf24l01_send(xy_nrf24l01_t *radio, const uint8_t *payload,
 
     for (poll = 0U; poll < 200U; ++poll) {
         result = nrf24_command(radio, NRF24_CMD_NOP, NRF24_DUMMY, &status, NULL);
-        if (result != XY_HAL_OK) return result;
+        if (result != XY_HAL_OK) {
+            xy_hal_error_t flush_result = nrf24_command(
+                radio, NRF24_CMD_FLUSH_TX, NRF24_DUMMY, NULL, NULL);
+            return flush_result != XY_HAL_OK ? flush_result : result;
+        }
         if ((status & (NRF24_STATUS_TX_DS | NRF24_STATUS_MAX_RT)) != 0U) break;
         radio->config.delay_us(100U);
     }
