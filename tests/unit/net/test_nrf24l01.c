@@ -534,6 +534,47 @@ static void test_irq_status_is_staged_and_reports_rx_source(void)
     TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
 }
 
+static void test_deinit_quiesces_radio_before_clearing_owner(void)
+{
+    xy_nrf24l01_t radio;
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 32U;
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0xE2U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x27U, 0x70U, 0x0EU, 0U, XY_HAL_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK, xy_nrf24l01_deinit(&radio));
+    TEST_ASSERT_EQUAL_UINT8(0U, ce_log[0]);
+    TEST_ASSERT_EQUAL_UINT8(0U, radio.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, radio.rx_payload_width);
+    TEST_ASSERT_NULL(radio.config.spi);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
+static void test_deinit_cleanup_failure_preserves_owner_for_retry(void)
+{
+    xy_nrf24l01_t radio;
+    xy_nrf24l01_t old;
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 32U;
+    old = radio;
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0xE2U, 0xFFU, 0x0EU, 0U, XY_HAL_ERROR_TIMEOUT);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT, xy_nrf24l01_deinit(&radio));
+    TEST_ASSERT_EQUAL_MEMORY(&old, &radio, sizeof(radio));
+    TEST_ASSERT_EQUAL_UINT8(0U, ce_log[0]);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -557,5 +598,7 @@ int main(void)
     RUN_TEST(test_receive_reads_fifo_even_when_rx_irq_is_clear);
     RUN_TEST(test_receive_irq_clear_failure_preserves_payload);
     RUN_TEST(test_irq_status_is_staged_and_reports_rx_source);
+    RUN_TEST(test_deinit_quiesces_radio_before_clearing_owner);
+    RUN_TEST(test_deinit_cleanup_failure_preserves_owner_for_retry);
     return UNITY_END();
 }

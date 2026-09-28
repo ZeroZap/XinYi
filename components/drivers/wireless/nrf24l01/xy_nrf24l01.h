@@ -56,6 +56,7 @@ typedef struct {
 
 xy_hal_error_t xy_nrf24l01_probe(xy_nrf24l01_t *radio,
                                   const xy_nrf24l01_config_t *config);
+xy_hal_error_t xy_nrf24l01_deinit(xy_nrf24l01_t *radio);
 xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
                                           const uint8_t address[5], uint8_t data_rate_2mbps,
                                           uint8_t crc16);

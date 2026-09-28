@@ -164,6 +164,30 @@ xy_hal_error_t xy_nrf24l01_probe(xy_nrf24l01_t *radio,
     return XY_HAL_OK;
 }
 
+xy_hal_error_t xy_nrf24l01_deinit(xy_nrf24l01_t *radio)
+{
+    xy_hal_error_t result;
+
+    if (radio == NULL || radio->initialized == 0U || radio->config.spi == NULL ||
+        radio->config.transfer == NULL || radio->config.set_csn == NULL ||
+        radio->config.set_ce == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    result = radio->config.set_ce(radio->config.ce_arg, 0U);
+    if (result != XY_HAL_OK) return result;
+    result = nrf24_command(radio, NRF24_CMD_FLUSH_TX, NRF24_DUMMY, NULL, NULL);
+    if (result != XY_HAL_OK) return result;
+    result = nrf24_command(radio, NRF24_CMD_FLUSH_RX, NRF24_DUMMY, NULL, NULL);
+    if (result != XY_HAL_OK) return result;
+    result = nrf24_write_register(radio, XY_NRF24L01_REG_STATUS,
+                                  NRF24_STATUS_RX_DR | NRF24_STATUS_TX_DS |
+                                      NRF24_STATUS_MAX_RT,
+                                  NULL);
+    if (result != XY_HAL_OK) return result;
+    memset(radio, 0, sizeof(*radio));
+    return XY_HAL_OK;
+}
+
 xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
                                           const uint8_t address[5], uint8_t data_rate_2mbps,
                                           uint8_t crc16)
