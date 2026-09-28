@@ -217,6 +217,7 @@ xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
 xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz)
 {
     uint16_t divider;
+    uint8_t programmed;
     xy_error_t result;
 
     if (!icm20608_ready(dev) || odr_hz == 0U || odr_hz > 1000U ||
@@ -228,8 +229,16 @@ xy_error_t xy_icm20608_set_odr(xy_icm20608_t *dev, uint16_t odr_hz)
         return XY_DEVICE_INVALID_PARAM;
     }
     result = icm20608_write(dev, XY_ICM20608_REG_SMPLRT_DIV, (uint8_t)divider);
-    if (result == XY_DEVICE_OK) dev->odr_hz = odr_hz;
-    return result;
+    if (result != XY_DEVICE_OK) {
+        return result;
+    }
+    result = icm20608_read(dev, XY_ICM20608_REG_SMPLRT_DIV, &programmed, 1U);
+    if (result != XY_DEVICE_OK || programmed != (uint8_t)divider) {
+        dev->configuration_synchronized = 0U;
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_FAIL;
+    }
+    dev->odr_hz = odr_hz;
+    return XY_DEVICE_OK;
 }
 
 xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf,

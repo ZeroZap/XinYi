@@ -522,7 +522,11 @@ static void test_icm20608_runtime_odr_is_exact_and_failure_atomic(void)
     queue_i2c_init_success(&fake_bus);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
 
-    queue_i2c_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, 0x09U, SENSOR_EOK);
+    {
+        const uint8_t divider = 0x09U;
+        queue_i2c_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, divider, SENSOR_EOK);
+        queue_i2c_read(&fake_bus, ICM20608_REG_SMPLRT_DIV, &divider, 1U, SENSOR_EOK);
+    }
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK, icm20608_set_odr(accel, 100U));
     TEST_ASSERT_EQUAL_UINT16(100U, accel->odr);
     TEST_ASSERT_EQUAL_UINT16(100U,
@@ -538,6 +542,19 @@ static void test_icm20608_runtime_odr_is_exact_and_failure_atomic(void)
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_set_odr(accel, 3U));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_set_odr(accel, 1001U));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_set_odr(NULL, 100U));
+
+    {
+        const uint8_t stale_divider = 0x09U;
+        queue_i2c_write(&fake_bus, ICM20608_REG_SMPLRT_DIV, 0x04U, SENSOR_EOK);
+        queue_i2c_read(&fake_bus, ICM20608_REG_SMPLRT_DIV, &stale_divider, 1U, SENSOR_EOK);
+    }
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, icm20608_set_odr(accel, 200U));
+    TEST_ASSERT_EQUAL_UINT16(100U, accel->odr);
+    TEST_ASSERT_EQUAL_UINT16(
+        100U, ((icm20608_priv_t *)accel->priv_data)->device.odr_hz);
+    TEST_ASSERT_FALSE(
+        ((icm20608_priv_t *)accel->priv_data)->device.configuration_synchronized);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
     TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
 
     destroy_sensor(accel);
