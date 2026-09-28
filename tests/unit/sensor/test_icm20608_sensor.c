@@ -582,6 +582,7 @@ static void test_icm20608_power_mode_preserves_register_and_cache_on_failure(voi
 
     queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, sleeping_power, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &sleeping_power, 1U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
                           accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_SLEEP));
     TEST_ASSERT_TRUE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
@@ -596,6 +597,7 @@ static void test_icm20608_power_mode_preserves_register_and_cache_on_failure(voi
 
     queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &sleeping_power, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, active_power, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
                           accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_NORMAL));
     TEST_ASSERT_FALSE(((icm20608_priv_t *)accel->priv_data)->device.sleeping);
@@ -603,6 +605,7 @@ static void test_icm20608_power_mode_preserves_register_and_cache_on_failure(voi
 
     queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, active_power, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
                           accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_NORMAL));
     TEST_ASSERT_EQUAL_UINT32(7135U, g_tick);
@@ -766,6 +769,7 @@ static void test_icm20608_sleep_blocks_all_sample_reads_without_bus_access(void)
     priv = (icm20608_priv_t *)accel->priv_data;
     queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, sleeping_power, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &sleeping_power, 1U, SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
                           accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_SLEEP));
 
@@ -1445,6 +1449,34 @@ static void test_icm20608_range_write_mismatch_fail_closes_without_metadata_comm
     destroy_sensor(gyro);
 }
 
+static void test_icm20608_power_write_mismatch_fail_closes_without_wake_delay(void)
+{
+    int fake_bus;
+    const uint8_t active_power = 0x21U;
+    const uint8_t sleeping_power = 0x61U;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_PWR_MGMT_1, sleeping_power, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_PWR_MGMT_1, &active_power, 1U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO,
+                          accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_SLEEP));
+    TEST_ASSERT_FALSE(priv->device.sleeping);
+    TEST_ASSERT_FALSE(priv->device.configuration_synchronized);
+    TEST_ASSERT_EQUAL_UINT32(7100U, g_tick);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL,
+                          accel->ops->set_power_mode(accel, SENSOR_POWER_MODE_NORMAL));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1477,5 +1509,6 @@ int main(void)
     RUN_TEST(test_icm20608_configuration_verification_rejects_self_test_drift);
     RUN_TEST(test_icm20608_range_change_rejects_incompatible_bias_without_bus_access);
     RUN_TEST(test_icm20608_range_write_mismatch_fail_closes_without_metadata_commit);
+    RUN_TEST(test_icm20608_power_write_mismatch_fail_closes_without_wake_delay);
     return UNITY_END();
 }
