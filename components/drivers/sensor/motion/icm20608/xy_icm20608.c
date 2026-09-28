@@ -53,6 +53,25 @@ static xy_error_t icm20608_update_bits(xy_icm20608_t *dev, uint8_t reg, uint8_t 
     return icm20608_write(dev, reg, current);
 }
 
+static xy_error_t icm20608_update_bits_verified(xy_icm20608_t *dev, uint8_t reg, uint8_t mask,
+                                                uint8_t value)
+{
+    uint8_t current;
+    uint8_t programmed;
+    xy_error_t result = icm20608_read(dev, reg, &current, 1U);
+
+    if (result != XY_DEVICE_OK) return result;
+    current = (uint8_t)((current & (uint8_t)~mask) | (value & mask));
+    result = icm20608_write(dev, reg, current);
+    if (result != XY_DEVICE_OK) return result;
+    result = icm20608_read(dev, reg, &programmed, 1U);
+    if (result != XY_DEVICE_OK || programmed != current) {
+        dev->configuration_synchronized = 0U;
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_FAIL;
+    }
+    return XY_DEVICE_OK;
+}
+
 static int32_t accel_full_scale_mg(xy_icm20608_accel_range_t range)
 {
     return 2000 << (uint8_t)range;
@@ -193,8 +212,8 @@ xy_error_t xy_icm20608_set_accel_range(xy_icm20608_t *dev,
         !icm20608_accel_bias_fits(dev, range)) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    result = icm20608_update_bits(dev, XY_ICM20608_REG_ACCEL_CONFIG, 0x18U,
-                                  (uint8_t)range << 3U);
+    result = icm20608_update_bits_verified(dev, XY_ICM20608_REG_ACCEL_CONFIG, 0x18U,
+                                           (uint8_t)range << 3U);
     if (result == XY_DEVICE_OK) dev->accel_range = range;
     return result;
 }
@@ -208,8 +227,8 @@ xy_error_t xy_icm20608_set_gyro_range(xy_icm20608_t *dev,
         !icm20608_gyro_bias_fits(dev, range)) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    result = icm20608_update_bits(dev, XY_ICM20608_REG_GYRO_CONFIG, 0x18U,
-                                  (uint8_t)range << 3U);
+    result = icm20608_update_bits_verified(dev, XY_ICM20608_REG_GYRO_CONFIG, 0x18U,
+                                           (uint8_t)range << 3U);
     if (result == XY_DEVICE_OK) dev->gyro_range = range;
     return result;
 }
