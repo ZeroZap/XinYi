@@ -861,7 +861,15 @@ static void test_icm20608_dlpf_control_preserves_bits_and_rolls_back(void)
     queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_config, 1U, SENSOR_EOK);
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_config, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0xAAU, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0xAAU;
+        queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &programmed, 1U, SENSOR_EOK);
+    }
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0xB9U, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0xB9U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U, SENSOR_EOK);
+    }
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_icm20608_set_dlpf(&priv->device, XY_ICM20608_DLPF_92HZ,
                                               XY_ICM20608_ACCEL_DLPF_218HZ_ALT));
@@ -871,6 +879,10 @@ static void test_icm20608_dlpf_control_preserves_bits_and_rolls_back(void)
     queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_config, 1U, SENSOR_EOK);
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_config, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0xADU, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0xADU;
+        queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &programmed, 1U, SENSOR_EOK);
+    }
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0xBDU, SENSOR_ETIMEOUT);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, gyro_config, SENSOR_EOK);
     queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, NULL, 1U, SENSOR_ETIMEOUT);
@@ -907,6 +919,10 @@ static void test_icm20608_failed_dlpf_rollback_fail_closes_until_reinit(void)
     queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_config, 1U, SENSOR_EOK);
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_config, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x85U, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0x85U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &programmed, 1U, SENSOR_EOK);
+    }
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x95U, SENSOR_ETIMEOUT);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, gyro_config, SENSOR_EIO);
     TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT,
@@ -943,7 +959,15 @@ static void test_icm20608_wrapper_dlpf_control_maps_errors_and_validates_type(vo
     queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_config, 1U, SENSOR_EOK);
     queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_config, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x82U, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0x82U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &programmed, 1U, SENSOR_EOK);
+    }
     queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x91U, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0x91U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U, SENSOR_EOK);
+    }
     TEST_ASSERT_EQUAL_INT(SENSOR_EOK,
                           icm20608_set_dlpf(accel, XY_ICM20608_DLPF_92HZ,
                                            XY_ICM20608_ACCEL_DLPF_218HZ_ALT));
@@ -1477,6 +1501,40 @@ static void test_icm20608_power_write_mismatch_fail_closes_without_wake_delay(vo
     destroy_sensor(accel);
 }
 
+static void test_icm20608_filter_write_mismatch_fail_closes_without_cache_commit(void)
+{
+    int fake_bus;
+    const uint8_t gyro_current = 0x84U;
+    const uint8_t accel_current = 0x94U;
+    sensor_device_t *accel = icm20608_create_accel("icm-filter-mismatch", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &gyro_current, 1U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_current, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_CONFIG, 0x82U, SENSOR_EOK);
+    {
+        const uint8_t programmed = 0x82U;
+        queue_i2c_read(&fake_bus, ICM20608_REG_CONFIG, &programmed, 1U, SENSOR_EOK);
+    }
+    queue_i2c_write(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, 0x91U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG2, &accel_current, 1U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(
+        SENSOR_EIO,
+        icm20608_set_dlpf(accel, XY_ICM20608_DLPF_92HZ,
+                          XY_ICM20608_ACCEL_DLPF_218HZ_ALT));
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_DLPF_20HZ, priv->device.gyro_dlpf);
+    TEST_ASSERT_EQUAL_INT(XY_ICM20608_ACCEL_DLPF_21HZ, priv->device.accel_dlpf);
+    TEST_ASSERT_FALSE(priv->device.configuration_synchronized);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -1510,5 +1568,6 @@ int main(void)
     RUN_TEST(test_icm20608_range_change_rejects_incompatible_bias_without_bus_access);
     RUN_TEST(test_icm20608_range_write_mismatch_fail_closes_without_metadata_commit);
     RUN_TEST(test_icm20608_power_write_mismatch_fail_closes_without_wake_delay);
+    RUN_TEST(test_icm20608_filter_write_mismatch_fail_closes_without_cache_commit);
     return UNITY_END();
 }

@@ -265,6 +265,7 @@ xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf
 {
     uint8_t gyro_current;
     uint8_t accel_current;
+    uint8_t programmed;
     xy_error_t result;
 
     if (!icm20608_ready(dev) || gyro_dlpf > XY_ICM20608_DLPF_5HZ ||
@@ -279,6 +280,12 @@ xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf
     result = icm20608_write(dev, XY_ICM20608_REG_CONFIG,
                             (uint8_t)((gyro_current & 0xF8U) | (uint8_t)gyro_dlpf));
     if (result != XY_DEVICE_OK) return result;
+    result = icm20608_read(dev, XY_ICM20608_REG_CONFIG, &programmed, 1U);
+    if (result != XY_DEVICE_OK ||
+        programmed != (uint8_t)((gyro_current & 0xF8U) | (uint8_t)gyro_dlpf)) {
+        dev->configuration_synchronized = 0U;
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_FAIL;
+    }
     result = icm20608_write(dev, XY_ICM20608_REG_ACCEL_CONFIG2,
                             (uint8_t)((accel_current & 0xF8U) | (uint8_t)accel_dlpf));
     if (result != XY_DEVICE_OK) {
@@ -293,6 +300,12 @@ xy_error_t xy_icm20608_set_dlpf(xy_icm20608_t *dev, xy_icm20608_dlpf_t gyro_dlpf
             }
         }
         return result;
+    }
+    result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_CONFIG2, &programmed, 1U);
+    if (result != XY_DEVICE_OK ||
+        programmed != (uint8_t)((accel_current & 0xF8U) | (uint8_t)accel_dlpf)) {
+        dev->configuration_synchronized = 0U;
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_FAIL;
     }
 
     dev->gyro_dlpf = gyro_dlpf;
