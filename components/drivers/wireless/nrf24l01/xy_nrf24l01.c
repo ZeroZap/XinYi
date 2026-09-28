@@ -181,6 +181,7 @@ xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
     } while (0)
     result = radio->config.set_ce(radio->config.ce_arg, 0U);
     if (result != XY_HAL_OK) return result;
+    radio->rx_payload_width = 0U;
     value = (uint8_t)(0x0AU | (crc16 != 0U ? 0x04U : 0U));
     WRITE_OR_RETURN(XY_NRF24L01_REG_CONFIG, value);
     WRITE_OR_RETURN(XY_NRF24L01_REG_EN_AA, 0x01U);
@@ -197,7 +198,6 @@ xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
     result = nrf24_write_buffer(radio, NRF24_CMD_W_REGISTER | NRF24_REG_TX_ADDR,
                                 address, 5U);
     if (result != XY_HAL_OK) return result;
-    radio->rx_payload_width = 0U;
     return XY_HAL_OK;
 }
 
@@ -257,6 +257,7 @@ xy_hal_error_t xy_nrf24l01_configure_prx(xy_nrf24l01_t *radio, uint8_t channel,
     }
     result = radio->config.set_ce(radio->config.ce_arg, 0U);
     if (result != XY_HAL_OK) return result;
+    radio->rx_payload_width = 0U;
 #define WRITE_RX_OR_RETURN(reg, data)                                                   \
     do {                                                                                \
         result = nrf24_write_register(radio, (reg), (data), NULL);                     \

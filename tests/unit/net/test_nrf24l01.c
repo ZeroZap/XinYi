@@ -264,6 +264,44 @@ static void test_configure_ptx_clears_stale_prx_width_after_success(void)
     TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
 }
 
+static void test_configure_ptx_failure_invalidates_stale_prx_mode(void)
+{
+    xy_nrf24l01_t radio;
+    static const uint8_t address[5] = {1U, 2U, 3U, 4U, 5U};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 32U;
+    queue_frame(0x20U, 0x0EU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x21U, 0x01U, 0x0EU, 0U, XY_HAL_ERROR_TIMEOUT);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT,
+                          xy_nrf24l01_configure_ptx(&radio, 7U, address, 1U, 1U));
+    TEST_ASSERT_EQUAL_UINT8(0U, radio.rx_payload_width);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
+static void test_configure_prx_failure_invalidates_stale_prx_mode(void)
+{
+    xy_nrf24l01_t radio;
+    static const uint8_t address[5] = {1U, 2U, 3U, 4U, 5U};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 32U;
+    queue_frame(0x20U, 0x0FU, 0x0EU, 0U, XY_HAL_OK);
+    queue_frame(0x21U, 0x01U, 0x0EU, 0U, XY_HAL_ERROR_IO);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO,
+                          xy_nrf24l01_configure_prx(&radio, 7U, address, 32U, 1U, 1U));
+    TEST_ASSERT_EQUAL_UINT8(0U, radio.rx_payload_width);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 static void test_receive_fixed_payload_and_clears_irq(void)
 {
     xy_nrf24l01_t radio;
@@ -396,6 +434,8 @@ int main(void)
     RUN_TEST(test_send_max_retry_flushes_and_reports_failure);
     RUN_TEST(test_send_propagates_max_retry_flush_failure);
     RUN_TEST(test_configure_ptx_clears_stale_prx_width_after_success);
+    RUN_TEST(test_configure_ptx_failure_invalidates_stale_prx_mode);
+    RUN_TEST(test_configure_prx_failure_invalidates_stale_prx_mode);
     RUN_TEST(test_receive_fixed_payload_and_clears_irq);
     RUN_TEST(test_receive_without_irq_preserves_payload);
     RUN_TEST(test_receive_reads_fifo_even_when_rx_irq_is_clear);
