@@ -16,6 +16,10 @@ DETECTED_RE = re.compile(
 TX_ACK_RE = re.compile(r"NRF24_TX_ACK_OK retries=([0-9A-F]{2}) payload=PANDORA_NRF24_TEST")
 RX_READY = "NRF24_RX_READY payload_width=32 timeout_ms=30000"
 RX_OK_RE = re.compile(r"NRF24_RX_OK length=([0-9A-F]{2}) payload_hex=([0-9A-F]+)")
+IRQ_EVENT_RE = re.compile(
+    r"NRF24_IRQ_EVENT edges=([0-9A-F]{2}) rx_dr=([01]) tx_ds=([01]) "
+    r"max_rt=([01]) rx_empty=([01])"
+)
 
 
 def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
@@ -67,6 +71,11 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     rx_ready_position = text.find(RX_READY)
     rx_ok = RX_OK_RE.search(text)
     rx_timeout_position = text.find("NRF24_RX_TIMEOUT")
+    irq_events = IRQ_EVENT_RE.findall(text)
+    rx_irq_observed = any(rx_dr == "1" and rx_empty == "0"
+                          for _, rx_dr, _, _, rx_empty in irq_events)
+    if "NRF24_IRQ_STATUS_ERROR" in text:
+        errors.append("IRQ status transport error marker")
     if "NRF24_RX_CONFIG_ERROR" in text:
         errors.append("receive configuration error marker")
         rx_outcome = "CONFIGURATION_ERROR"
@@ -83,6 +92,8 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
             errors.append("invalid receive payload length")
         if len(rx_payload_hex) != rx_payload_length * 2:
             errors.append("receive payload length mismatch")
+        if not rx_irq_observed:
+            errors.append("received payload without matching RX IRQ source")
     elif rx_timeout_position >= 0:
         rx_outcome = "TIMEOUT_NO_PAYLOAD"
         if rx_ready_position < 0 or rx_ready_position > rx_timeout_position:
@@ -100,21 +111,22 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
 
     claim_boundary = (
         "SPI register access plus one acknowledged fixed-payload PTX transaction; "
-        "peer identity and payload receipt are not independently observed, with no IRQ "
-        "transition, range, throughput, recovery, or endurance claim"
+        "peer identity and payload receipt are not independently observed, with no PRX IRQ "
+        "success, range, throughput, recovery, or endurance claim"
     )
     if rx_outcome == "TIMEOUT_NO_PAYLOAD":
         claim_boundary = (
             "SPI register access plus one acknowledged fixed-payload PTX transaction and a "
             "bounded PRX window with no receive payload observed; peer identity remains "
-            "unbound, with no RX success, IRQ transition, range, throughput, recovery, or "
+            "unbound, with no RX success, PRX IRQ success, range, throughput, recovery, or "
             "endurance claim"
         )
     elif rx_outcome == "PAYLOAD_RECEIVED":
         claim_boundary = (
             "SPI register access, one acknowledged fixed-payload PTX transaction, and one "
-            "received fixed payload on the Pandora radio; sender identity is not independently "
-            "bound, with no IRQ transition, range, throughput, recovery, or endurance claim"
+            "received fixed payload with a matching falling-edge IRQ and RX_DR source on the "
+            "Pandora radio; sender identity is not independently bound, with no range, "
+            "throughput, recovery, or endurance claim"
         )
 
     return {
@@ -125,6 +137,8 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "tx_retransmits": tx_retransmits,
         "rx_outcome": rx_outcome,
         "rx_payload_hex": rx_payload_hex,
+        "irq_event_count": len(irq_events),
+        "rx_irq_observed": rx_irq_observed,
         "errors": errors,
         "claim_boundary": claim_boundary,
     }

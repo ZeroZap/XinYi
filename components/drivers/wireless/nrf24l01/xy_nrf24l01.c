@@ -286,6 +286,7 @@ xy_hal_error_t xy_nrf24l01_configure_prx(xy_nrf24l01_t *radio, uint8_t channel,
 xy_hal_error_t xy_nrf24l01_receive(xy_nrf24l01_t *radio, uint8_t *payload,
                                    size_t capacity, size_t *received_length)
 {
+    uint8_t next_payload[32];
     uint8_t status;
     uint8_t fifo_status;
     xy_hal_error_t result;
@@ -299,11 +300,35 @@ xy_hal_error_t xy_nrf24l01_receive(xy_nrf24l01_t *radio, uint8_t *payload,
     result = nrf24_read_register(radio, XY_NRF24L01_REG_FIFO_STATUS, &status, &fifo_status);
     if (result != XY_HAL_OK) return result;
     if ((fifo_status & NRF24_FIFO_RX_EMPTY) != 0U) return XY_HAL_ERROR_NOT_FOUND;
-    result = nrf24_read_buffer(radio, NRF24_CMD_R_RX_PAYLOAD, payload,
+    result = nrf24_read_buffer(radio, NRF24_CMD_R_RX_PAYLOAD, next_payload,
                                radio->rx_payload_width);
     if (result != XY_HAL_OK) return result;
     result = nrf24_write_register(radio, XY_NRF24L01_REG_STATUS, NRF24_STATUS_RX_DR, NULL);
     if (result != XY_HAL_OK) return result;
+    memcpy(payload, next_payload, radio->rx_payload_width);
     *received_length = radio->rx_payload_width;
+    return XY_HAL_OK;
+}
+
+xy_hal_error_t xy_nrf24l01_read_irq_status(xy_nrf24l01_t *radio,
+                                           xy_nrf24l01_irq_status_t *irq_status)
+{
+    xy_nrf24l01_irq_status_t next;
+    uint8_t status;
+    uint8_t fifo_status;
+    xy_hal_error_t result;
+
+    if (radio == NULL || radio->initialized == 0U || irq_status == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    result = nrf24_command(radio, NRF24_CMD_NOP, NRF24_DUMMY, &status, NULL);
+    if (result != XY_HAL_OK) return result;
+    result = nrf24_read_register(radio, XY_NRF24L01_REG_FIFO_STATUS, NULL, &fifo_status);
+    if (result != XY_HAL_OK) return result;
+    next.rx_data_ready = (status & NRF24_STATUS_RX_DR) != 0U;
+    next.tx_data_sent = (status & NRF24_STATUS_TX_DS) != 0U;
+    next.max_retransmit = (status & NRF24_STATUS_MAX_RT) != 0U;
+    next.rx_fifo_empty = (fifo_status & NRF24_FIFO_RX_EMPTY) != 0U;
+    *irq_status = next;
     return XY_HAL_OK;
 }

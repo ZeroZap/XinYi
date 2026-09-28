@@ -57,6 +57,7 @@ rx_payload = analyze_capture(
         "NRF24_DETECTED status=0x0E config=0x08 en_aa=0x3F setup_aw=0x03 "
         "rf_ch=0x02 rf_setup=0x0E fifo=0x11 irq=HIGH",
         rx="NRF24_RX_READY payload_width=32 timeout_ms=30000\r\n"
+        "NRF24_IRQ_EVENT edges=01 rx_dr=1 tx_ds=0 max_rt=0 rx_empty=0\r\n"
         "NRF24_RX_OK length=04 payload_hex=50494E47\r\n",
     ),
     COMMIT,
@@ -64,6 +65,18 @@ rx_payload = analyze_capture(
 assert rx_payload["status"] == "B1_NRF24_RX_PAYLOAD_PASS"
 assert rx_payload["rx_outcome"] == "PAYLOAD_RECEIVED"
 assert rx_payload["rx_payload_hex"] == "50494E47"
+assert rx_payload["rx_irq_observed"] is True
+assert rx_payload["irq_event_count"] == 1
+
+assert analyze_capture(
+    capture(
+        "NRF24_DETECTED status=0x0E config=0x08 en_aa=0x3F setup_aw=0x03 "
+        "rf_ch=0x02 rf_setup=0x0E fifo=0x11 irq=HIGH",
+        rx="NRF24_RX_READY payload_width=32 timeout_ms=30000\r\n"
+        "NRF24_RX_OK length=04 payload_hex=50494E47\r\n",
+    ),
+    COMMIT,
+)["status"] == "FAILED"
 
 assert analyze_capture(
     capture(

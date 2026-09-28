@@ -13,10 +13,18 @@
 
 static UART_HandleTypeDef uart1;
 static SPI_HandleTypeDef spi2;
+static volatile uint32_t nrf_irq_edges;
 
 void _init(void) {}
 void _fini(void) {}
 void SysTick_Handler(void) { xy_hal_sys_tick_irq_handler(); }
+void EXTI3_IRQHandler(void) { xy_hal_gpio_irq_handler(GPIOD, 3U); }
+
+static void nrf_irq_edge(void *arg)
+{
+    volatile uint32_t *edges = (volatile uint32_t *)arg;
+    (*edges)++;
+}
 
 static void stop(void)
 {
@@ -92,8 +100,7 @@ static void nrf_bus_init(void)
                                              GPIO_AF5_SPI2};
     const xy_hal_gpio_config_t output = {XY_HAL_GPIO_MODE_OUTPUT, XY_HAL_GPIO_PULL_NONE,
                                          XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_HIGH, 0U};
-    const xy_hal_gpio_config_t input = {XY_HAL_GPIO_MODE_INPUT, XY_HAL_GPIO_PULL_UP,
-                                        XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_LOW, 0U};
+
     const xy_hal_spi_config_t config = {
         .mode = XY_HAL_SPI_MODE_0,
         .direction = XY_HAL_SPI_DIR_2LINES,
@@ -110,7 +117,8 @@ static void nrf_bus_init(void)
         xy_hal_gpio_init(GPIOD, 5U, &output) != XY_HAL_OK ||
         xy_hal_gpio_write(GPIOD, 4U, 0U) != XY_HAL_OK ||
         xy_hal_gpio_write(GPIOD, 5U, 1U) != XY_HAL_OK ||
-        xy_hal_gpio_init(GPIOD, 3U, &input) != XY_HAL_OK ||
+        xy_hal_gpio_attach_irq(GPIOD, 3U, XY_HAL_GPIO_IRQ_FALLING, nrf_irq_edge,
+                               (void *)&nrf_irq_edges) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOB, 13U, &alternate) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOB, 14U, &alternate) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOB, 15U, &alternate) != XY_HAL_OK) stop();
@@ -125,6 +133,7 @@ int main(void)
     uint8_t retransmits = 0U;
     uint8_t rx_payload[32];
     size_t rx_length = 0U;
+    uint32_t handled_irq_edges = 0U;
     static const uint8_t peer_address[5] = {0xFFU, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
     static const uint8_t message[32] = {
         'P', 'A', 'N', 'D', 'O', 'R', 'A', ' ', 'N', 'R', 'F', '2', '4', ' ', 'T', 'E',
@@ -181,6 +190,21 @@ int main(void)
     }
     uart_text("NRF24_RX_READY payload_width=32 timeout_ms=30000\r\n");
     for (uint32_t elapsed = 0U; elapsed < 30000U; elapsed += 10U) {
+        if (nrf_irq_edges != handled_irq_edges) {
+            xy_nrf24l01_irq_status_t irq_status;
+            handled_irq_edges = nrf_irq_edges;
+            result = xy_nrf24l01_read_irq_status(&radio, &irq_status);
+            if (result != XY_HAL_OK) {
+                uart_text("NRF24_IRQ_STATUS_ERROR error="); uart_error(result); uart_text("\r\n");
+                stop();
+            }
+            uart_text("NRF24_IRQ_EVENT edges="); uart_hex8((uint8_t)handled_irq_edges);
+            uart_text(" rx_dr="); uart_text(irq_status.rx_data_ready != 0U ? "1" : "0");
+            uart_text(" tx_ds="); uart_text(irq_status.tx_data_sent != 0U ? "1" : "0");
+            uart_text(" max_rt="); uart_text(irq_status.max_retransmit != 0U ? "1" : "0");
+            uart_text(" rx_empty="); uart_text(irq_status.rx_fifo_empty != 0U ? "1" : "0");
+            uart_text("\r\n");
+        }
         result = xy_nrf24l01_receive(&radio, rx_payload, sizeof(rx_payload), &rx_length);
         if (result == XY_HAL_OK) {
             uart_text("NRF24_RX_OK length="); uart_hex8((uint8_t)rx_length);

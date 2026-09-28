@@ -47,6 +47,13 @@ typedef struct {
     uint8_t initialized;
 } xy_nrf24l01_t;
 
+typedef struct {
+    uint8_t rx_data_ready;
+    uint8_t tx_data_sent;
+    uint8_t max_retransmit;
+    uint8_t rx_fifo_empty;
+} xy_nrf24l01_irq_status_t;
+
 xy_hal_error_t xy_nrf24l01_probe(xy_nrf24l01_t *radio,
                                   const xy_nrf24l01_config_t *config);
 xy_hal_error_t xy_nrf24l01_configure_ptx(xy_nrf24l01_t *radio, uint8_t channel,
@@ -59,6 +66,8 @@ xy_hal_error_t xy_nrf24l01_configure_prx(xy_nrf24l01_t *radio, uint8_t channel,
                                           uint8_t data_rate_2mbps, uint8_t crc16);
 xy_hal_error_t xy_nrf24l01_receive(xy_nrf24l01_t *radio, uint8_t *payload,
                                    size_t capacity, size_t *received_length);
+xy_hal_error_t xy_nrf24l01_read_irq_status(xy_nrf24l01_t *radio,
+                                           xy_nrf24l01_irq_status_t *irq_status);
 
 #ifdef __cplusplus
 }

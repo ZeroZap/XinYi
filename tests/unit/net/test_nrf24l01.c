@@ -305,6 +305,58 @@ static void test_receive_reads_fifo_even_when_rx_irq_is_clear(void)
     TEST_ASSERT_EQUAL_HEX8(0x34U, payload[1]);
 }
 
+static void test_receive_irq_clear_failure_preserves_payload(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t payload[4] = {1U, 2U, 3U, 4U};
+    const uint8_t old[4] = {1U, 2U, 3U, 4U};
+    size_t received = 99U;
+    const uint8_t read_tx[5] = {0x61U, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 4U;
+    queue_frame(0x17U, 0xFFU, 0x4EU, 0x00U, XY_HAL_OK);
+    queue_buffer(read_tx, sizeof(read_tx), 0x4EU, XY_HAL_OK);
+    frames[1].rx[1] = 'P'; frames[1].rx[2] = 'I';
+    frames[1].rx[3] = 'N'; frames[1].rx[4] = 'G';
+    queue_frame(0x27U, 0x40U, 0x4EU, 0U, XY_HAL_ERROR_TIMEOUT);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT,
+                          xy_nrf24l01_receive(&radio, payload, sizeof(payload), &received));
+    TEST_ASSERT_EQUAL_UINT(0U, received);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(old, payload, sizeof(payload));
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
+static void test_irq_status_is_staged_and_reports_rx_source(void)
+{
+    xy_nrf24l01_t radio;
+    xy_nrf24l01_irq_status_t irq = {9U, 9U, 9U, 9U};
+    const xy_nrf24l01_irq_status_t old = irq;
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    queue_frame(0xFFU, 0xFFU, 0x40U, 0U, XY_HAL_OK);
+    queue_frame(0x17U, 0xFFU, 0x40U, 0x00U, XY_HAL_ERROR_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT,
+                          xy_nrf24l01_read_irq_status(&radio, &irq));
+    TEST_ASSERT_EQUAL_MEMORY(&old, &irq, sizeof(irq));
+
+    queue_frame(0xFFU, 0xFFU, 0x40U, 0U, XY_HAL_OK);
+    queue_frame(0x17U, 0xFFU, 0x40U, 0x00U, XY_HAL_OK);
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK, xy_nrf24l01_read_irq_status(&radio, &irq));
+    TEST_ASSERT_TRUE(irq.rx_data_ready);
+    TEST_ASSERT_FALSE(irq.tx_data_sent);
+    TEST_ASSERT_FALSE(irq.max_retransmit);
+    TEST_ASSERT_FALSE(irq.rx_fifo_empty);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -318,5 +370,7 @@ int main(void)
     RUN_TEST(test_receive_fixed_payload_and_clears_irq);
     RUN_TEST(test_receive_without_irq_preserves_payload);
     RUN_TEST(test_receive_reads_fifo_even_when_rx_irq_is_clear);
+    RUN_TEST(test_receive_irq_clear_failure_preserves_payload);
+    RUN_TEST(test_irq_status_is_staged_and_reports_rx_source);
     return UNITY_END();
 }
