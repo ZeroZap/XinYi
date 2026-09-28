@@ -1116,8 +1116,8 @@ static void queue_i2c_configuration_readback(void *bus, uint8_t accel_config,
 static void test_icm20608_configuration_verification_detects_hardware_drift(void)
 {
     int fake_bus;
-    const uint8_t accel_config = 0xA8U;
-    const uint8_t gyro_config = 0xC8U;
+    const uint8_t accel_config = 0x08U;
+    const uint8_t gyro_config = 0x08U;
     const uint8_t gyro_dlpf = 0xE4U;
     const uint8_t accel_dlpf = 0xB4U;
     const uint8_t divider = 0x09U;
@@ -1264,6 +1264,43 @@ static void test_icm20608_configuration_verification_rejects_filter_bypass_drift
     destroy_sensor(accel_drift);
 }
 
+static void test_icm20608_configuration_verification_rejects_self_test_drift(void)
+{
+    int fake_bus;
+    const uint8_t whoami = ICM20608_WHOAMI_VALUE;
+    const uint8_t accel_self_test = 0x28U;
+    const uint8_t accel_config = 0x08U;
+    const uint8_t gyro_self_test = 0x28U;
+    sensor_device_t *accel_drift = icm20608_create_accel("icm-accel-self-test", &fake_bus, false);
+    sensor_device_t *gyro_drift = icm20608_create_accel("icm-gyro-self-test", &fake_bus, false);
+    icm20608_priv_t *accel_priv;
+    icm20608_priv_t *gyro_priv;
+
+    TEST_ASSERT_NOT_NULL(accel_drift);
+    TEST_ASSERT_NOT_NULL(gyro_drift);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel_drift->ops->init(accel_drift));
+    accel_priv = (icm20608_priv_t *)accel_drift->priv_data;
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &accel_self_test, 1U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, icm20608_verify_configuration(accel_drift));
+    TEST_ASSERT_FALSE(accel_priv->device.configuration_synchronized);
+
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, gyro_drift->ops->init(gyro_drift));
+    gyro_priv = (icm20608_priv_t *)gyro_drift->priv_data;
+    queue_i2c_read(&fake_bus, ICM20608_REG_WHOAMI, &whoami, 1U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_ACCEL_CONFIG, &accel_config, 1U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_GYRO_CONFIG, &gyro_self_test, 1U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EIO, icm20608_verify_configuration(gyro_drift));
+    TEST_ASSERT_FALSE(gyro_priv->device.configuration_synchronized);
+
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel_drift);
+    destroy_sensor(gyro_drift);
+}
+
 static void test_icm20608_range_change_rejects_incompatible_bias_without_bus_access(void)
 {
     int fake_bus;
@@ -1335,6 +1372,7 @@ int main(void)
     RUN_TEST(test_icm20608_configuration_verification_propagates_transport_error);
     RUN_TEST(test_icm20608_configuration_verification_rejects_identity_and_power_drift);
     RUN_TEST(test_icm20608_configuration_verification_rejects_filter_bypass_drift);
+    RUN_TEST(test_icm20608_configuration_verification_rejects_self_test_drift);
     RUN_TEST(test_icm20608_range_change_rejects_incompatible_bias_without_bus_access);
     return UNITY_END();
 }

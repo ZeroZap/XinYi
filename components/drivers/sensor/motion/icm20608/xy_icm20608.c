@@ -336,11 +336,11 @@ xy_error_t xy_icm20608_verify_configuration(xy_icm20608_t *dev)
 
     result = icm20608_read(dev, XY_ICM20608_REG_ACCEL_CONFIG, &value, 1U);
     if (result != XY_DEVICE_OK) return result;
-    if ((uint8_t)(value & 0x18U) != (uint8_t)((uint8_t)dev->accel_range << 3U)) goto mismatch;
+    if ((uint8_t)(value & 0xF8U) != (uint8_t)((uint8_t)dev->accel_range << 3U)) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_GYRO_CONFIG, &value, 1U);
     if (result != XY_DEVICE_OK) return result;
-    if ((uint8_t)(value & 0x1BU) != (uint8_t)((uint8_t)dev->gyro_range << 3U)) goto mismatch;
+    if ((uint8_t)(value & 0xFBU) != (uint8_t)((uint8_t)dev->gyro_range << 3U)) goto mismatch;
 
     result = icm20608_read(dev, XY_ICM20608_REG_CONFIG, &value, 1U);
     if (result != XY_DEVICE_OK) return result;
