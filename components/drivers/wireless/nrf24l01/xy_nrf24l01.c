@@ -233,16 +233,18 @@ xy_hal_error_t xy_nrf24l01_send(xy_nrf24l01_t *radio, const uint8_t *payload,
     if (poll == 200U) return XY_HAL_ERROR_TIMEOUT;
     result = nrf24_read_register(radio, NRF24_REG_OBSERVE_TX, NULL, &observe);
     if (result != XY_HAL_OK) return result;
-    if (retransmit_count != NULL) *retransmit_count = observe & 0x0FU;
     result = nrf24_write_register(radio, XY_NRF24L01_REG_STATUS,
                                   status & (NRF24_STATUS_TX_DS | NRF24_STATUS_MAX_RT), NULL);
     if (result != XY_HAL_OK) return result;
     if ((status & NRF24_STATUS_MAX_RT) != 0U) {
         result = nrf24_command(radio, NRF24_CMD_FLUSH_TX, NRF24_DUMMY, NULL, NULL);
         if (result != XY_HAL_OK) return result;
+        if (retransmit_count != NULL) *retransmit_count = observe & 0x0FU;
         return XY_HAL_ERROR_NOT_FOUND;
     }
-    return (status & NRF24_STATUS_TX_DS) != 0U ? XY_HAL_OK : XY_HAL_ERROR_IO;
+    if ((status & NRF24_STATUS_TX_DS) == 0U) return XY_HAL_ERROR_IO;
+    if (retransmit_count != NULL) *retransmit_count = observe & 0x0FU;
+    return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_nrf24l01_configure_prx(xy_nrf24l01_t *radio, uint8_t channel,
