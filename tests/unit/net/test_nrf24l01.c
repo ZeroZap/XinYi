@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-#define MAX_FRAMES 24U
+#define MAX_FRAMES 256U
 
 typedef struct {
     uint8_t tx[33];
@@ -298,6 +298,55 @@ static void test_send_observe_failure_clears_latched_status_for_retry(void)
     TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
 }
 
+static void test_send_timeout_flushes_pending_payload_for_retry(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t retries = 0xA5U;
+    const uint8_t payload = 0x55U;
+    const uint8_t payload_frame[2] = {0xA0U, 0x55U};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_buffer(payload_frame, sizeof(payload_frame), 0x0EU, XY_HAL_OK);
+    for (size_t poll = 0U; poll < 200U; ++poll) {
+        queue_frame(0xFFU, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    }
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT,
+                          xy_nrf24l01_send(&radio, &payload, 1U, &retries));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, retries);
+    TEST_ASSERT_EQUAL_UINT32(20020U, delay_total);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
+static void test_send_timeout_propagates_flush_failure(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t retries = 0xA5U;
+    const uint8_t payload = 0x55U;
+    const uint8_t payload_frame[2] = {0xA0U, 0x55U};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    queue_buffer(payload_frame, sizeof(payload_frame), 0x0EU, XY_HAL_OK);
+    for (size_t poll = 0U; poll < 200U; ++poll) {
+        queue_frame(0xFFU, 0xFFU, 0x0EU, 0U, XY_HAL_OK);
+    }
+    queue_frame(0xE1U, 0xFFU, 0x0EU, 0U, XY_HAL_ERROR_IO);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO,
+                          xy_nrf24l01_send(&radio, &payload, 1U, &retries));
+    TEST_ASSERT_EQUAL_HEX8(0xA5U, retries);
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 static void test_configure_ptx_clears_stale_prx_width_after_success(void)
 {
     xy_nrf24l01_t radio;
@@ -498,6 +547,8 @@ int main(void)
     RUN_TEST(test_send_propagates_max_retry_flush_failure);
     RUN_TEST(test_send_status_clear_failure_preserves_retry_output);
     RUN_TEST(test_send_observe_failure_clears_latched_status_for_retry);
+    RUN_TEST(test_send_timeout_flushes_pending_payload_for_retry);
+    RUN_TEST(test_send_timeout_propagates_flush_failure);
     RUN_TEST(test_configure_ptx_clears_stale_prx_width_after_success);
     RUN_TEST(test_configure_ptx_failure_invalidates_stale_prx_mode);
     RUN_TEST(test_configure_prx_failure_invalidates_stale_prx_mode);
