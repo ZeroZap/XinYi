@@ -631,6 +631,8 @@ static void test_icm20608_data_ready_interrupt_preserves_register_and_reports_st
 
     queue_i2c_read(&fake_bus, ICM20608_REG_INT_ENABLE, &int_enable_other, 1U, SENSOR_EOK);
     queue_i2c_write(&fake_bus, ICM20608_REG_INT_ENABLE, int_enable_data_ready, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_INT_ENABLE, &int_enable_data_ready, 1U,
+                   SENSOR_EOK);
     TEST_ASSERT_EQUAL_INT(
         SENSOR_EOK,
         accel->ops->interrupt_enable(accel, SENSOR_INT_DATA_READY, true));
@@ -664,6 +666,34 @@ static void test_icm20608_data_ready_interrupt_preserves_register_and_reports_st
         SENSOR_EINVAL,
         accel->ops->interrupt_enable(accel, 0x80000000U, true));
     TEST_ASSERT_EQUAL_INT(SENSOR_EINVAL, icm20608_read_interrupt_status(accel, NULL));
+    TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
+    TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
+    destroy_sensor(accel);
+}
+
+static void test_icm20608_data_ready_interrupt_write_mismatch_fail_closes(void)
+{
+    int fake_bus;
+    const uint8_t int_enable_other = 0xA0U;
+    sensor_device_t *accel = icm20608_create_accel("icm-acc", &fake_bus, false);
+    icm20608_priv_t *priv;
+
+    TEST_ASSERT_NOT_NULL(accel);
+    queue_i2c_init_success(&fake_bus);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, accel->ops->init(accel));
+    priv = (icm20608_priv_t *)accel->priv_data;
+
+    queue_i2c_read(&fake_bus, ICM20608_REG_INT_ENABLE, &int_enable_other, 1U, SENSOR_EOK);
+    queue_i2c_write(&fake_bus, ICM20608_REG_INT_ENABLE, 0xA1U, SENSOR_EOK);
+    queue_i2c_read(&fake_bus, ICM20608_REG_INT_ENABLE, &int_enable_other, 1U, SENSOR_EOK);
+    TEST_ASSERT_EQUAL_INT(
+        SENSOR_EIO,
+        accel->ops->interrupt_enable(accel, SENSOR_INT_DATA_READY, true));
+    TEST_ASSERT_FALSE(priv->device.data_ready_interrupt_enabled);
+    TEST_ASSERT_FALSE(priv->device.configuration_synchronized);
+    TEST_ASSERT_EQUAL_INT(
+        SENSOR_EINVAL,
+        accel->ops->interrupt_enable(accel, SENSOR_INT_DATA_READY, true));
     TEST_ASSERT_EQUAL_UINT(g_i2c_read_count, g_i2c_read_index);
     TEST_ASSERT_EQUAL_UINT(g_i2c_write_count, g_i2c_write_index);
     destroy_sensor(accel);
@@ -1428,6 +1458,7 @@ int main(void)
     RUN_TEST(test_icm20608_runtime_odr_is_exact_and_failure_atomic);
     RUN_TEST(test_icm20608_power_mode_preserves_register_and_cache_on_failure);
     RUN_TEST(test_icm20608_data_ready_interrupt_preserves_register_and_reports_status);
+    RUN_TEST(test_icm20608_data_ready_interrupt_write_mismatch_fail_closes);
     RUN_TEST(test_icm20608_coherent_sample_is_single_burst_and_failure_atomic);
     RUN_TEST(test_icm20608_sleep_blocks_all_sample_reads_without_bus_access);
     RUN_TEST(test_icm20608_failed_reinit_preserves_live_owner);

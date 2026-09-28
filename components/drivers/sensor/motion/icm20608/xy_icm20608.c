@@ -439,7 +439,7 @@ xy_error_t xy_icm20608_set_data_ready_interrupt(xy_icm20608_t *dev, uint8_t enab
     if (!icm20608_ready(dev) || enable > 1U) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    result = icm20608_update_bits(dev, XY_ICM20608_REG_INT_ENABLE, 0x01U, enable);
+    result = icm20608_update_bits_verified(dev, XY_ICM20608_REG_INT_ENABLE, 0x01U, enable);
     if (result == XY_DEVICE_OK) dev->data_ready_interrupt_enabled = enable;
     return result;
 }
