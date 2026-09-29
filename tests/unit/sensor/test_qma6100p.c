@@ -397,6 +397,46 @@ static void test_power_update_preserves_non_power_bits_and_read_failure(void)
     TEST_ASSERT_EQUAL_UINT8(0U, dev.active);
 }
 
+static void test_interrupt_status_read_preserves_output_on_failure(void)
+{
+    xy_qma6100p_t dev;
+    uint8_t status = 0xA5U;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    regs[XY_QMA6100P_REG_INT_STATUS2] = XY_QMA6100P_DATA_READY_BIT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_read_interrupt_status(&dev, &status));
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, status);
+
+    read_result = XY_DEVICE_TIMEOUT;
+    fail_read_reg = XY_QMA6100P_REG_INT_STATUS2;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qma6100p_read_interrupt_status(&dev, &status));
+    TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, status);
+}
+
+static void test_deinit_failure_preserves_live_owner_for_retry(void)
+{
+    xy_qma6100p_t dev;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    write_result = XY_DEVICE_TIMEOUT;
+    fail_write_reg = XY_QMA6100P_REG_POWER;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qma6100p_deinit(&dev));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+
+    write_result = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_deinit(&dev));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -417,5 +457,7 @@ int main(void)
     RUN_TEST(test_active_mode_transitions_are_staged);
     RUN_TEST(test_range_update_preserves_non_range_bits_and_read_failure);
     RUN_TEST(test_power_update_preserves_non_power_bits_and_read_failure);
+    RUN_TEST(test_interrupt_status_read_preserves_output_on_failure);
+    RUN_TEST(test_deinit_failure_preserves_live_owner_for_retry);
     return UNITY_END();
 }
