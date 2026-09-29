@@ -113,6 +113,10 @@ static uint32_t csd_block_count(const uint8_t csd[16]) {
     return 0U;
 }
 
+static uint8_t csd_structure(const uint8_t csd[16]) {
+    return (uint8_t)((csd[0] >> 6) & 0x03U);
+}
+
 static xy_hal_error_t read_csd(xy_sd_spi_t* card, uint8_t csd[16]) {
     uint8_t response;
     uint8_t ignored[16];
@@ -217,7 +221,7 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t* card, const xy_sd_spi_config_t* confi
     if (result == XY_HAL_OK) {
         result = release_result;
     }
-    if (result != XY_HAL_OK || response != 0U) {
+    if (result != XY_HAL_OK || response != 0U || (ocr[0] & 0x80U) == 0U) {
         return result != XY_HAL_OK ? result : XY_HAL_ERROR_IO;
     }
     candidate.type = (ocr[0] & 0x40U) != 0U ? XY_SD_SPI_CARD_SDHC : XY_SD_SPI_CARD_SDSC;
@@ -232,6 +236,10 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t* card, const xy_sd_spi_config_t* confi
     result = read_csd(&candidate, csd);
     if (result != XY_HAL_OK) {
         return result;
+    }
+    if ((candidate.type == XY_SD_SPI_CARD_SDHC && csd_structure(csd) != 1U) ||
+        (candidate.type == XY_SD_SPI_CARD_SDSC && csd_structure(csd) != 0U)) {
+        return XY_HAL_ERROR_IO;
     }
     candidate.block_count = csd_block_count(csd);
     if (candidate.block_count == 0U) {

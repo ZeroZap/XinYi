@@ -17,6 +17,8 @@ static xy_hal_error_t g_forced_cs_error;
 static uint8_t g_fail_after_read_data;
 static uint8_t g_corrupt_read_data;
 static uint8_t g_high_capacity;
+static uint8_t g_ocr_power_up;
+static uint8_t g_csd_structure_override;
 static uint8_t g_cmd16_response;
 static uint32_t g_cmd16_count;
 static uint32_t g_cmd16_argument;
@@ -76,8 +78,8 @@ static xy_hal_error_t fake_transfer(void* spi, const uint8_t* tx, uint8_t* rx, s
             response[0] = g_acmd41_count++ < 2U ? 0x01U : 0x00U;
             queue_bytes(response, 1U);
         } else if (command == 58U) {
-            const uint8_t ocr[] = {0x00U, g_high_capacity != 0U ? 0xC0U : 0x80U, 0xFFU, 0x80U,
-                                   0x00U};
+            uint8_t ocr_msb = g_high_capacity != 0U ? 0x40U : 0x00U;
+            const uint8_t ocr[] = {0x00U, (uint8_t)(ocr_msb | g_ocr_power_up), 0xFFU, 0x80U, 0x00U};
             queue_bytes(ocr, sizeof(ocr));
         } else if (command == 16U) {
             response[0] = g_cmd16_response;
@@ -113,6 +115,9 @@ static xy_hal_error_t fake_transfer(void* spi, const uint8_t* tx, uint8_t* rx, s
             rx[5] = 9U;
             rx[7] = 0xFFU;
             rx[8] = 0xC0U;
+        }
+        if (g_csd_structure_override != 0xFFU) {
+            rx[0] = (uint8_t)(g_csd_structure_override << 6U);
         }
         g_data_stage = 0U;
         return XY_HAL_OK;
@@ -162,6 +167,8 @@ void setUp(void) {
     g_fail_after_read_data = 0U;
     g_corrupt_read_data = 0U;
     g_high_capacity = 1U;
+    g_ocr_power_up = 0x80U;
+    g_csd_structure_override = 0xFFU;
     g_cmd16_response = 0U;
     g_cmd16_count = 0U;
     g_cmd16_argument = 0U;
@@ -238,6 +245,30 @@ static void test_sdsc_rejects_failed_block_length_without_committing_owner(void)
     TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO, xy_sd_spi_init(&card, &config));
     TEST_ASSERT_EQUAL_UINT32(1U, g_cmd16_count);
     TEST_ASSERT_EQUAL_UINT8(0U, card.initialized);
+}
+
+static void test_init_rejects_unready_or_incoherent_card_identity(void) {
+    int spi;
+    xy_sd_spi_t card;
+    xy_sd_spi_t snapshot;
+    const xy_sd_spi_config_t config = {
+        .spi = &spi,
+        .transfer = fake_transfer,
+        .set_cs = fake_cs,
+        .delay_ms = fake_delay,
+        .timeout_ms = 100U,
+    };
+
+    memset(&card, 0xA5, sizeof(card));
+    snapshot = card;
+    g_ocr_power_up = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO, xy_sd_spi_init(&card, &config));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &card, sizeof(card));
+
+    setUp();
+    g_csd_structure_override = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO, xy_sd_spi_init(&card, &config));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &card, sizeof(card));
 }
 
 static void test_transport_error_is_preserved_and_state_is_not_committed(void) {
@@ -318,6 +349,7 @@ int main(void) {
     RUN_TEST(test_read_and_write_use_block_addressing);
     RUN_TEST(test_sdsc_sets_512_byte_blocks_and_uses_byte_addressing);
     RUN_TEST(test_sdsc_rejects_failed_block_length_without_committing_owner);
+    RUN_TEST(test_init_rejects_unready_or_incoherent_card_identity);
     RUN_TEST(test_transport_error_is_preserved_and_state_is_not_committed);
     RUN_TEST(test_failed_reinit_preserves_live_card);
     RUN_TEST(test_read_failure_after_data_preserves_caller_buffer);
