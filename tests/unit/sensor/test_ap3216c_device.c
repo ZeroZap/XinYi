@@ -23,6 +23,7 @@ static size_t g_write_count;
 static size_t g_write_index;
 static xy_error_t g_init_result;
 static size_t g_init_count;
+static int g_init_establish_transport;
 static uint32_t g_delay_ms;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
@@ -37,8 +38,8 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
         return g_init_result;
     }
     memset(dev, 0, sizeof(*dev));
-    dev->base.initialized = 1U;
-    dev->i2c_handle = handle;
+    dev->base.initialized = g_init_establish_transport != 0;
+    dev->i2c_handle = g_init_establish_transport != 0 ? handle : NULL;
     dev->dev_addr = address;
     dev->timeout = timeout;
     return XY_DEVICE_OK;
@@ -112,6 +113,7 @@ void setUp(void)
     g_write_index = 0U;
     g_init_result = XY_DEVICE_OK;
     g_init_count = 0U;
+    g_init_establish_transport = 1;
     g_delay_ms = 0U;
 }
 
@@ -167,6 +169,32 @@ static void test_init_and_deinit_are_atomic(void)
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+}
+
+static void test_init_requires_complete_transport_and_failed_reinit_preserves_live_owner(void)
+{
+    xy_ap3216c_t dev;
+    xy_ap3216c_t snapshot;
+    int bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    g_init_establish_transport = 0;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_ap3216c_init(&dev, &bus, 0U, XY_AP3216C_MODE_ALS_PS));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_ap3216c_t){0}, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+
+    setUp();
+    init_device(&dev, &bus);
+    dev.data.illuminance_millilux = 1234U;
+    dev.data.proximity_raw = 56U;
+    dev.data.infrared_raw = 78U;
+    snapshot = dev;
+
+    g_init_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_ap3216c_init(&dev, &bus, 0U, XY_AP3216C_MODE_ALS));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
 }
 
 static void test_channel_reads_decode_and_commit_cache(void)
@@ -247,6 +275,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_init_and_deinit_are_atomic);
+    RUN_TEST(test_init_requires_complete_transport_and_failed_reinit_preserves_live_owner);
     RUN_TEST(test_channel_reads_decode_and_commit_cache);
     RUN_TEST(test_failures_preserve_outputs_cache_and_stop_io);
     RUN_TEST(test_public_reads_require_outer_and_nested_lifecycle);

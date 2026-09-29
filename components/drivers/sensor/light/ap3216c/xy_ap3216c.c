@@ -15,11 +15,19 @@ static int xy_ap3216c_ready(const xy_ap3216c_t *dev)
            dev->i2c_dev.i2c_handle != NULL;
 }
 
+static int xy_ap3216c_live_owner(const xy_ap3216c_t *dev)
+{
+    return xy_ap3216c_ready(dev) && dev->i2c_dev.dev_addr == XY_AP3216C_DEFAULT_ADDRESS &&
+           xy_ap3216c_mode_valid(dev->mode);
+}
+
 xy_error_t xy_ap3216c_init(xy_ap3216c_t *dev, void *i2c_handle, uint8_t address,
                            uint8_t mode)
 {
+    xy_ap3216c_t candidate;
     uint8_t value;
     xy_error_t result;
+    int preserve_live_owner;
 
     if (dev == NULL || i2c_handle == NULL ||
         (address != 0U && address != XY_AP3216C_DEFAULT_ADDRESS) ||
@@ -27,31 +35,42 @@ xy_error_t xy_ap3216c_init(xy_ap3216c_t *dev, void *i2c_handle, uint8_t address,
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AP3216C_DEFAULT_ADDRESS, 100U);
-    if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return result;
+    preserve_live_owner = xy_ap3216c_live_owner(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_AP3216C_DEFAULT_ADDRESS, 100U);
+    if (result != XY_DEVICE_OK || candidate.i2c_dev.base.initialized == 0U ||
+        candidate.i2c_dev.i2c_handle == NULL) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
 
     value = XY_AP3216C_MODE_RESET;
-    result = xy_i2c_device_write_reg(&dev->i2c_dev, XY_AP3216C_REG_SYSTEM_CONFIG, &value, 1U);
+    result =
+        xy_i2c_device_write_reg(&candidate.i2c_dev, XY_AP3216C_REG_SYSTEM_CONFIG, &value, 1U);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
     xy_hal_delay_ms(50U);
 
     value = mode;
-    result = xy_i2c_device_write_reg(&dev->i2c_dev, XY_AP3216C_REG_SYSTEM_CONFIG, &value, 1U);
+    result =
+        xy_i2c_device_write_reg(&candidate.i2c_dev, XY_AP3216C_REG_SYSTEM_CONFIG, &value, 1U);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
     xy_hal_delay_ms(50U);
 
-    dev->mode = mode;
-    dev->initialized = 1U;
+    candidate.mode = mode;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
