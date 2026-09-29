@@ -1,9 +1,9 @@
-#include "xy_lcd_spi.h"
-#include "xy_lcd_i8080.h"
-#include "xy_lcd_st7789.h"
-#include "xy_hal_error.h"
 #include "fff.h"
 #include "unity.h"
+#include "xy_hal_error.h"
+#include "xy_lcd_i8080.h"
+#include "xy_lcd_spi.h"
+#include "xy_lcd_st7789.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -13,22 +13,21 @@
 
 DEFINE_FFF_GLOBALS;
 
-FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit, void *, const uint8_t *, size_t,
-                uint32_t)
-FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_receive, void *, uint8_t *, size_t, uint32_t)
-FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_receive, void *, const uint8_t *,
-                uint8_t *, size_t, uint32_t)
-FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_dma, void *, const uint8_t *, size_t)
-FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_receive_dma, void *, uint8_t *, size_t)
-FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_receive_dma, void *, const uint8_t *,
-                uint8_t *, size_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit, void*, const uint8_t*, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_receive, void*, uint8_t*, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_receive, void*, const uint8_t*, uint8_t*,
+                size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_dma, void*, const uint8_t*, size_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_receive_dma, void*, uint8_t*, size_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_spi_transmit_receive_dma, void*, const uint8_t*, uint8_t*,
+                size_t)
 FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_gpio_write, xy_hal_gpio_port_t, uint8_t, uint8_t)
 FAKE_VALUE_FUNC(int32_t, xy_hal_gpio_read, xy_hal_gpio_port_t, uint8_t)
 FAKE_VOID_FUNC(xy_hal_delay_ms, uint32_t)
 FAKE_VOID_FUNC(xy_hal_delay_us, uint32_t)
 
 typedef struct {
-    const uint8_t *data;
+    const uint8_t* data;
     uint8_t bytes[8];
     size_t len;
     int dma;
@@ -50,33 +49,27 @@ static uint32_t spi_fail_on_call;
 static void reset_logs(void);
 static size_t logged_spi_op_count(void);
 static size_t logged_gpio_op_count(void);
-static xy_hal_error_t fake_spi_transmit(void *spi, const uint8_t *data, size_t len,
+static xy_hal_error_t fake_spi_transmit(void* spi, const uint8_t* data, size_t len,
                                         uint32_t timeout);
-static xy_hal_error_t fake_spi_receive(void *spi, uint8_t *data, size_t len,
-                                       uint32_t timeout);
-static xy_hal_error_t fake_spi_transmit_receive(void *spi, const uint8_t *tx_data,
-                                                uint8_t *rx_data, size_t len,
-                                                uint32_t timeout);
-static xy_hal_error_t fake_spi_transmit_dma(void *spi, const uint8_t *data, size_t len);
-static xy_hal_error_t fake_spi_receive_dma(void *spi, uint8_t *data, size_t len);
-static xy_hal_error_t fake_spi_transmit_receive_dma(void *spi, const uint8_t *tx_data,
-                                                    uint8_t *rx_data, size_t len);
+static xy_hal_error_t fake_spi_receive(void* spi, uint8_t* data, size_t len, uint32_t timeout);
+static xy_hal_error_t fake_spi_transmit_receive(void* spi, const uint8_t* tx_data, uint8_t* rx_data,
+                                                size_t len, uint32_t timeout);
+static xy_hal_error_t fake_spi_transmit_dma(void* spi, const uint8_t* data, size_t len);
+static xy_hal_error_t fake_spi_receive_dma(void* spi, uint8_t* data, size_t len);
+static xy_hal_error_t fake_spi_transmit_receive_dma(void* spi, const uint8_t* tx_data,
+                                                    uint8_t* rx_data, size_t len);
 static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value);
 static int32_t fake_gpio_read(xy_hal_gpio_port_t port, uint8_t pin);
 static void fake_delay_ms(uint32_t ms);
 static void fake_delay_us(uint32_t us);
 
-void setUp(void)
-{
+void setUp(void) {
     reset_logs();
 }
 
-void tearDown(void)
-{
-}
+void tearDown(void) {}
 
-static void reset_logs(void)
-{
+static void reset_logs(void) {
     RESET_FAKE(xy_hal_spi_transmit);
     RESET_FAKE(xy_hal_spi_receive);
     RESET_FAKE(xy_hal_spi_transmit_receive);
@@ -108,19 +101,16 @@ static void reset_logs(void)
     spi_fail_on_call = 0;
 }
 
-static size_t logged_spi_op_count(void)
-{
+static size_t logged_spi_op_count(void) {
     return xy_hal_spi_transmit_fake.call_count + xy_hal_spi_transmit_dma_fake.call_count;
 }
 
-static size_t logged_gpio_op_count(void)
-{
+static size_t logged_gpio_op_count(void) {
     return xy_hal_gpio_write_fake.call_count;
 }
 
-static xy_hal_error_t fake_spi_transmit(void *spi, const uint8_t *data, size_t len,
-                                        uint32_t timeout)
-{
+static xy_hal_error_t fake_spi_transmit(void* spi, const uint8_t* data, size_t len,
+                                        uint32_t timeout) {
     (void)spi;
     (void)timeout;
     size_t index = logged_spi_op_count() - 1U;
@@ -136,27 +126,22 @@ static xy_hal_error_t fake_spi_transmit(void *spi, const uint8_t *data, size_t l
     return XY_HAL_OK;
 }
 
-static xy_hal_error_t fake_spi_receive(void *spi, uint8_t *data, size_t len,
-                                       uint32_t timeout)
-{
+static xy_hal_error_t fake_spi_receive(void* spi, uint8_t* data, size_t len, uint32_t timeout) {
     (void)spi;
     (void)timeout;
     memset(data, 0x5A, len);
     return XY_HAL_OK;
 }
 
-static xy_hal_error_t fake_spi_transmit_receive(void *spi, const uint8_t *tx_data,
-                                                uint8_t *rx_data, size_t len,
-                                                uint32_t timeout)
-{
+static xy_hal_error_t fake_spi_transmit_receive(void* spi, const uint8_t* tx_data, uint8_t* rx_data,
+                                                size_t len, uint32_t timeout) {
     (void)spi;
     (void)timeout;
     memcpy(rx_data, tx_data, len);
     return XY_HAL_OK;
 }
 
-static xy_hal_error_t fake_spi_transmit_dma(void *spi, const uint8_t *data, size_t len)
-{
+static xy_hal_error_t fake_spi_transmit_dma(void* spi, const uint8_t* data, size_t len) {
     (void)spi;
     size_t index = logged_spi_op_count() - 1U;
     TEST_ASSERT_LESS_THAN_UINT32(MAX_SPI_OPS, index);
@@ -168,24 +153,20 @@ static xy_hal_error_t fake_spi_transmit_dma(void *spi, const uint8_t *data, size
     return XY_HAL_OK;
 }
 
-static xy_hal_error_t fake_spi_receive_dma(void *spi, uint8_t *data, size_t len)
-{
+static xy_hal_error_t fake_spi_receive_dma(void* spi, uint8_t* data, size_t len) {
     (void)spi;
     memset(data, 0xA5, len);
     return XY_HAL_OK;
 }
 
-static xy_hal_error_t fake_spi_transmit_receive_dma(void *spi,
-                                                    const uint8_t *tx_data,
-                                                    uint8_t *rx_data, size_t len)
-{
+static xy_hal_error_t fake_spi_transmit_receive_dma(void* spi, const uint8_t* tx_data,
+                                                    uint8_t* rx_data, size_t len) {
     (void)spi;
     memcpy(rx_data, tx_data, len);
     return XY_HAL_OK;
 }
 
-static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value)
-{
+static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value) {
     size_t index = logged_gpio_op_count() - 1U;
     TEST_ASSERT_LESS_THAN_UINT32(MAX_GPIO_OPS, index);
     gpio_ops[index].port = port;
@@ -194,31 +175,27 @@ static xy_hal_error_t fake_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint
     return XY_HAL_OK;
 }
 
-static int32_t fake_gpio_read(xy_hal_gpio_port_t port, uint8_t pin)
-{
+static int32_t fake_gpio_read(xy_hal_gpio_port_t port, uint8_t pin) {
     (void)port;
     return (read_pattern >> pin) & 1U;
 }
 
-static void fake_delay_ms(uint32_t ms)
-{
+static void fake_delay_ms(uint32_t ms) {
     delay_ms_total += ms;
 }
 
-static void fake_delay_us(uint32_t us)
-{
+static void fake_delay_us(uint32_t us) {
     delay_us_total += us;
 }
 
-static xy_lcd_spi_config_t make_spi_config(void)
-{
+static xy_lcd_spi_config_t make_spi_config(void) {
     xy_lcd_spi_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.base.width = 4;
     cfg.base.height = 3;
     cfg.base.color_fmt = XY_LCD_COLOR_FORMAT_RGB565;
     cfg.base.rotation = XY_LCD_ROTATION_0;
-    cfg.spi_handle = (void *)0x1234;
+    cfg.spi_handle = (void*)0x1234;
     cfg.dc_port = (xy_hal_gpio_port_t)0x10;
     cfg.cs_port = (xy_hal_gpio_port_t)0x20;
     cfg.rst_port = (xy_hal_gpio_port_t)0x30;
@@ -230,8 +207,7 @@ static xy_lcd_spi_config_t make_spi_config(void)
     return cfg;
 }
 
-static void test_spi_init_window_and_pixel_endian(void)
-{
+static void test_spi_init_window_and_pixel_endian(void) {
     xy_lcd_spi_device_t lcd;
     xy_lcd_spi_config_t cfg = make_spi_config();
     uint16_t pixels[] = {0x1234, 0xABCD};
@@ -274,8 +250,7 @@ static void test_spi_init_window_and_pixel_endian(void)
     TEST_ASSERT_FALSE(lcd.initialized);
 }
 
-static void test_spi_reset_backlight_and_dma(void)
-{
+static void test_spi_reset_backlight_and_dma(void) {
     xy_lcd_spi_device_t lcd;
     xy_lcd_spi_config_t cfg = make_spi_config();
     uint8_t payload[] = {1, 2, 3};
@@ -317,8 +292,7 @@ static void test_spi_reset_backlight_and_dma(void)
     xy_lcd_spi_deinit(&lcd);
 }
 
-static void test_spi_stream_only_init_skips_framebuffer(void)
-{
+static void test_spi_stream_only_init_skips_framebuffer(void) {
     xy_lcd_spi_device_t lcd;
     xy_lcd_spi_config_t cfg = make_spi_config();
 
@@ -330,8 +304,7 @@ static void test_spi_stream_only_init_skips_framebuffer(void)
     TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_spi_deinit(&lcd));
 }
 
-static xy_lcd_i8080_config_t make_i8080_config(void)
-{
+static xy_lcd_i8080_config_t make_i8080_config(void) {
     xy_lcd_i8080_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.base.width = 5;
@@ -370,8 +343,7 @@ static xy_lcd_i8080_config_t make_i8080_config(void)
     return cfg;
 }
 
-static void test_i8080_bus_write_read_and_window(void)
-{
+static void test_i8080_bus_write_read_and_window(void) {
     xy_lcd_i8080_device_t lcd;
     xy_lcd_i8080_config_t cfg = make_i8080_config();
 
@@ -413,8 +385,7 @@ static void test_i8080_bus_write_read_and_window(void)
     TEST_ASSERT_FALSE(lcd.initialized);
 }
 
-static xy_lcd_st7789_config_t make_st7789_config(void)
-{
+static xy_lcd_st7789_config_t make_st7789_config(void) {
     xy_lcd_st7789_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.spi = make_spi_config();
@@ -426,8 +397,7 @@ static xy_lcd_st7789_config_t make_st7789_config(void)
     return cfg;
 }
 
-static void test_st7789_offsets_rotation_and_ops(void)
-{
+static void test_st7789_offsets_rotation_and_ops(void) {
     xy_lcd_st7789_device_t lcd;
     xy_lcd_st7789_config_t cfg = make_st7789_config();
 
@@ -480,8 +450,7 @@ static void test_st7789_offsets_rotation_and_ops(void)
     TEST_ASSERT_FALSE(lcd.initialized);
 }
 
-static void test_st7789_rgb565_color_order_controls_madctl_bgr(void)
-{
+static void test_st7789_rgb565_color_order_controls_madctl_bgr(void) {
     xy_lcd_st7789_device_t lcd;
     xy_lcd_st7789_config_t cfg = make_st7789_config();
     size_t madctl_index = MAX_SPI_OPS;
@@ -511,8 +480,7 @@ static void test_st7789_rgb565_color_order_controls_madctl_bgr(void)
     xy_lcd_st7789_deinit(&lcd);
 }
 
-static void test_st7789_checked_fill_is_bounded_and_propagates_spi_error(void)
-{
+static void test_st7789_checked_fill_is_bounded_and_propagates_spi_error(void) {
     xy_lcd_st7789_device_t lcd;
     xy_lcd_st7789_config_t cfg = make_st7789_config();
 
@@ -526,19 +494,31 @@ static void test_st7789_checked_fill_is_bounded_and_propagates_spi_error(void)
 
     reset_logs();
     spi_fail_on_call = 1U;
-    TEST_ASSERT_EQUAL_INT(XY_ERR_IO,
-                          xy_lcd_st7789_fill_checked(&lcd, 0, 0, 8, 6, 0x1234));
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_fill_checked(&lcd, 0, 0, 8, 6, 0x1234));
 
     reset_logs();
     spi_fail_on_call = 12U;
-    TEST_ASSERT_EQUAL_INT(XY_ERR_IO,
-                          xy_lcd_st7789_fill_checked(&lcd, 0, 0, 8, 6, 0x1234));
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_fill_checked(&lcd, 0, 0, 8, 6, 0x1234));
 
     xy_lcd_st7789_deinit(&lcd);
 }
 
-static void test_st7789_init_propagates_spi_error_and_releases_framebuffer(void)
-{
+static void test_st7789_checked_pixel_validates_bounds_and_spi_errors(void) {
+    xy_lcd_st7789_device_t lcd;
+    xy_lcd_st7789_config_t cfg = make_st7789_config();
+
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_init(&lcd, &cfg));
+    TEST_ASSERT_EQUAL_INT(XY_ERR_INVALID_PARAM,
+                          xy_lcd_st7789_draw_pixel_checked(&lcd, 8U, 0U, 0x1234U));
+    TEST_ASSERT_EQUAL_INT(XY_ERR_INVALID_PARAM,
+                          xy_lcd_st7789_draw_pixel_checked(&lcd, 0U, 6U, 0x1234U));
+    reset_logs();
+    spi_fail_on_call = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_draw_pixel_checked(&lcd, 0U, 0U, 0x1234U));
+    xy_lcd_st7789_deinit(&lcd);
+}
+
+static void test_st7789_init_propagates_spi_error_and_releases_framebuffer(void) {
     xy_lcd_st7789_device_t lcd;
     xy_lcd_st7789_config_t cfg = make_st7789_config();
 
@@ -548,8 +528,7 @@ static void test_st7789_init_propagates_spi_error_and_releases_framebuffer(void)
     TEST_ASSERT_NULL(lcd.spi_dev.base.framebuffer);
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_spi_init_window_and_pixel_endian);
     RUN_TEST(test_spi_reset_backlight_and_dma);
@@ -558,6 +537,7 @@ int main(void)
     RUN_TEST(test_st7789_offsets_rotation_and_ops);
     RUN_TEST(test_st7789_rgb565_color_order_controls_madctl_bgr);
     RUN_TEST(test_st7789_checked_fill_is_bounded_and_propagates_spi_error);
+    RUN_TEST(test_st7789_checked_pixel_validates_bounds_and_spi_errors);
     RUN_TEST(test_st7789_init_propagates_spi_error_and_releases_framebuffer);
     return UNITY_END();
 }
