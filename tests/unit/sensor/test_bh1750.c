@@ -22,8 +22,8 @@ static uint8_t g_last_addr;
 static int g_init_ret;
 static int g_init_establish_transport;
 
-xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout)
-{
+xy_error_t xy_i2c_device_init(xy_i2c_device_t* dev, void* i2c_handle, uint16_t addr,
+                              uint32_t timeout) {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
     memset(dev, 0, sizeof(*dev));
@@ -35,8 +35,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     return g_init_ret;
 }
 
-xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
-{
+xy_error_t xy_i2c_device_read(xy_i2c_device_t* dev, uint8_t* data, size_t len) {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C device should be initialized");
     TEST_ASSERT_NOT_NULL(dev->i2c_handle);
@@ -52,8 +51,7 @@ xy_error_t xy_i2c_device_read(xy_i2c_device_t *dev, uint8_t *data, size_t len)
     return ret;
 }
 
-xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
-{
+xy_error_t xy_i2c_device_write(xy_i2c_device_t* dev, const uint8_t* data, size_t len) {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_TRUE_MESSAGE(dev->base.initialized, "I2C device should be initialized");
     TEST_ASSERT_NOT_NULL(dev->i2c_handle);
@@ -65,35 +63,29 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
     return g_write_ret_queue[g_write_index++];
 }
 
-uint32_t xy_os_tick_get(void)
-{
+uint32_t xy_os_tick_get(void) {
     return g_tick;
 }
 
-void xy_os_delay(uint32_t ms)
-{
+void xy_os_delay(uint32_t ms) {
     g_delay_total += ms;
     g_tick += ms;
 }
 
-void xy_hal_delay_ms(uint32_t ms)
-{
+void xy_hal_delay_ms(uint32_t ms) {
     xy_os_delay(ms);
 }
 
-uint32_t xy_hal_sys_get_tick_count(void)
-{
+uint32_t xy_hal_sys_get_tick_count(void) {
     return g_tick;
 }
 
-int xy_printf(const char *fmt, ...)
-{
+int xy_printf(const char* fmt, ...) {
     (void)fmt;
     return 0;
 }
 
-static void queue_read_raw(uint16_t raw, int ret)
-{
+static void queue_read_raw(uint16_t raw, int ret) {
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_read_queue) / sizeof(g_read_queue[0]), g_read_count);
     g_read_queue[g_read_count][0] = (uint8_t)(raw >> 8);
     g_read_queue[g_read_count][1] = (uint8_t)raw;
@@ -102,8 +94,7 @@ static void queue_read_raw(uint16_t raw, int ret)
     g_read_count++;
 }
 
-void setUp(void)
-{
+void setUp(void) {
     memset(g_read_queue, 0, sizeof(g_read_queue));
     memset(g_read_len_queue, 0, sizeof(g_read_len_queue));
     memset(g_read_ret_queue, 0, sizeof(g_read_ret_queue));
@@ -122,22 +113,19 @@ void setUp(void)
     g_init_establish_transport = 1;
 }
 
-void tearDown(void)
-{
-}
+void tearDown(void) {}
 
-static void init_ok(xy_bh1750_t *dev)
-{
+static void init_ok(xy_bh1750_t* dev) {
     int fake_bus;
     TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_init(dev, &fake_bus, BH1750_ADDR_LOW));
 }
 
-static void test_init_rejects_invalid_inputs_and_sends_power_on_reset(void)
-{
+static void test_init_rejects_invalid_inputs_and_sends_power_on_reset(void) {
     xy_bh1750_t dev;
     int fake_bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_init(NULL, &fake_bus, BH1750_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
+                          xy_bh1750_init(NULL, &fake_bus, BH1750_ADDR_LOW));
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_init(&dev, NULL, BH1750_ADDR_LOW));
 
     TEST_ASSERT_EQUAL_INT(XY_BH1750_OK, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_HIGH));
@@ -151,8 +139,7 @@ static void test_init_rejects_invalid_inputs_and_sends_power_on_reset(void)
     TEST_ASSERT_EQUAL_UINT32(20U, g_delay_total);
 }
 
-static void test_init_propagates_power_on_transport_error_and_clears_device(void)
-{
+static void test_init_propagates_power_on_transport_error_and_clears_device(void) {
     xy_bh1750_t dev;
     int fake_bus;
 
@@ -166,23 +153,20 @@ static void test_init_propagates_power_on_transport_error_and_clears_device(void
     TEST_ASSERT_EQUAL_MEMORY(&(xy_bh1750_t){0}, &dev, sizeof(dev));
 }
 
-static void test_init_propagates_i2c_device_init_failure_without_bus_io(void)
-{
+static void test_init_propagates_i2c_device_init_failure_without_bus_io(void) {
     xy_bh1750_t dev;
     int fake_bus;
 
     memset(&dev, 0xA5, sizeof(dev));
     g_init_ret = XY_DEVICE_TIMEOUT;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
-                          xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_LOW));
     TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
     TEST_ASSERT_EQUAL_MEMORY(&(xy_bh1750_t){0}, &dev, sizeof(dev));
 }
 
-static void test_init_rejects_incomplete_nested_transport_without_io(void)
-{
+static void test_init_rejects_incomplete_nested_transport_without_io(void) {
     xy_bh1750_t dev;
     int fake_bus;
 
@@ -196,8 +180,48 @@ static void test_init_rejects_incomplete_nested_transport_without_io(void)
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 }
 
-static void test_missing_handle_fails_closed_without_state_change(void)
-{
+static void test_failed_reinit_preserves_live_owner(void) {
+    xy_bh1750_t dev;
+    xy_bh1750_t snapshot;
+    int fake_bus;
+
+    init_ok(&dev);
+    dev.resolution = XY_BH1750_LOW_RES;
+    dev.mode = XY_BH1750_CONTINUOUS;
+    dev.data.illuminance = 123.5f;
+    dev.data.timestamp = 456U;
+    snapshot = dev;
+
+    g_init_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
+static void test_failed_reinit_setup_io_preserves_live_owner(void) {
+    xy_bh1750_t dev;
+    xy_bh1750_t snapshot;
+    int fake_bus;
+
+    init_ok(&dev);
+    dev.data.illuminance = 123.5f;
+    dev.data.timestamp = 456U;
+    snapshot = dev;
+
+    g_write_ret_queue[g_write_index] = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+
+    setUp();
+    init_ok(&dev);
+    dev.data.illuminance = 789.5f;
+    dev.data.timestamp = 1011U;
+    snapshot = dev;
+    g_write_ret_queue[g_write_index + 1U] = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_bh1750_init(&dev, &fake_bus, BH1750_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
+static void test_missing_handle_fails_closed_without_state_change(void) {
     xy_bh1750_t dev;
     xy_bh1750_data_t snapshot;
     float output = -1.0f;
@@ -225,8 +249,7 @@ static void test_missing_handle_fails_closed_without_state_change(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
-static void test_read_high_resolution_one_time_converts_raw_lux(void)
-{
+static void test_read_high_resolution_one_time_converts_raw_lux(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -241,8 +264,7 @@ static void test_read_high_resolution_one_time_converts_raw_lux(void)
     TEST_ASSERT_EQUAL_UINT32(210U, g_delay_total);
 }
 
-static void test_read_resolution_and_mode_select_command_and_scale(void)
-{
+static void test_read_resolution_and_mode_select_command_and_scale(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -261,8 +283,7 @@ static void test_read_resolution_and_mode_select_command_and_scale(void)
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 10.0f, dev.data.illuminance);
 }
 
-static void test_read_failures_preserve_cached_data_and_stop_early(void)
-{
+static void test_read_failures_preserve_cached_data_and_stop_early(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -287,8 +308,7 @@ static void test_read_failures_preserve_cached_data_and_stop_early(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
 }
 
-static void test_read_data_failure_preserves_cache_after_measurement_wait(void)
-{
+static void test_read_data_failure_preserves_cache_after_measurement_wait(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -304,8 +324,7 @@ static void test_read_data_failure_preserves_cache_after_measurement_wait(void)
     TEST_ASSERT_EQUAL_UINT32(46U, g_delay_total);
 }
 
-static void test_get_illuminance_validates_inputs_and_preserves_output_on_failure(void)
-{
+static void test_get_illuminance_validates_inputs_and_preserves_output_on_failure(void) {
     xy_bh1750_t dev;
     float lux = -1.0f;
 
@@ -323,8 +342,7 @@ static void test_get_illuminance_validates_inputs_and_preserves_output_on_failur
     TEST_ASSERT_FLOAT_WITHIN(0.01f, -1.0f, lux);
 }
 
-static void test_init_reset_failure_clears_device(void)
-{
+static void test_init_reset_failure_clears_device(void) {
     xy_bh1750_t dev;
     int fake_bus;
 
@@ -336,8 +354,7 @@ static void test_init_reset_failure_clears_device(void)
     TEST_ASSERT_EQUAL_UINT32(10U, g_delay_total);
 }
 
-static void test_power_and_reset_propagate_write_failures(void)
-{
+static void test_power_and_reset_propagate_write_failures(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -351,8 +368,7 @@ static void test_power_and_reset_propagate_write_failures(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bh1750_reset(&dev));
 }
 
-static void test_configuration_power_and_reset_validate_inputs(void)
-{
+static void test_configuration_power_and_reset_validate_inputs(void) {
     xy_bh1750_t dev;
 
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_deinit(NULL));
@@ -381,8 +397,7 @@ static void test_configuration_power_and_reset_validate_inputs(void)
     TEST_ASSERT_EQUAL_UINT(6U, g_write_count);
 }
 
-static void test_deinit_preserves_initialized_when_power_down_fails(void)
-{
+static void test_deinit_preserves_initialized_when_power_down_fails(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -393,8 +408,7 @@ static void test_deinit_preserves_initialized_when_power_down_fails(void)
     TEST_ASSERT_EQUAL_UINT8(BH1750_CMD_POWER_DOWN, g_write_queue[2]);
 }
 
-static void test_public_ops_reject_invalid_nested_bus_lifecycle_without_io(void)
-{
+static void test_public_ops_reject_invalid_nested_bus_lifecycle_without_io(void) {
     xy_bh1750_t dev;
     float illuminance = -1.0f;
 
@@ -406,16 +420,14 @@ static void test_public_ops_reject_invalid_nested_bus_lifecycle_without_io(void)
     xy_bh1750_mode_t mode_before = dev.mode;
 
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_read(&dev));
-    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
-                          xy_bh1750_get_illuminance(&dev, &illuminance));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_get_illuminance(&dev, &illuminance));
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_deinit(&dev));
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_power_down(&dev));
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_power_on(&dev));
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_reset(&dev));
     TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
                           xy_bh1750_set_resolution(&dev, XY_BH1750_LOW_RES));
-    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
-                          xy_bh1750_set_mode(&dev, XY_BH1750_CONTINUOUS));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_set_mode(&dev, XY_BH1750_CONTINUOUS));
     TEST_ASSERT_TRUE(dev.initialized);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, -1.0f, illuminance);
     TEST_ASSERT_EQUAL_INT(resolution_before, dev.resolution);
@@ -424,8 +436,7 @@ static void test_public_ops_reject_invalid_nested_bus_lifecycle_without_io(void)
     TEST_ASSERT_EQUAL_UINT(reads_before, g_read_index);
 }
 
-static void test_setters_update_cached_mode_and_resolution_without_bus_io(void)
-{
+static void test_setters_update_cached_mode_and_resolution_without_bus_io(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -438,8 +449,7 @@ static void test_setters_update_cached_mode_and_resolution_without_bus_io(void)
     TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
 }
 
-static void test_set_resolution_rejects_post_deinit_and_preserves_cache_without_bus_io(void)
-{
+static void test_set_resolution_rejects_post_deinit_and_preserves_cache_without_bus_io(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -456,8 +466,7 @@ static void test_set_resolution_rejects_post_deinit_and_preserves_cache_without_
     TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
 }
 
-static void test_set_mode_rejects_post_deinit_and_preserves_cache_without_bus_io(void)
-{
+static void test_set_mode_rejects_post_deinit_and_preserves_cache_without_bus_io(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -468,14 +477,12 @@ static void test_set_mode_rejects_post_deinit_and_preserves_cache_without_bus_io
     size_t writes_before = g_write_count;
     xy_bh1750_mode_t mode_before = dev.mode;
 
-    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM,
-                          xy_bh1750_set_mode(&dev, XY_BH1750_CONTINUOUS));
+    TEST_ASSERT_EQUAL_INT(XY_BH1750_INVALID_PARAM, xy_bh1750_set_mode(&dev, XY_BH1750_CONTINUOUS));
     TEST_ASSERT_EQUAL_INT(mode_before, dev.mode);
     TEST_ASSERT_EQUAL_UINT(writes_before, g_write_count);
 }
 
-static void test_read_default_fallback_uses_continuous_high_command_and_delay(void)
-{
+static void test_read_default_fallback_uses_continuous_high_command_and_delay(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -489,8 +496,7 @@ static void test_read_default_fallback_uses_continuous_high_command_and_delay(vo
     TEST_ASSERT_EQUAL_UINT32(210U, g_delay_total);
 }
 
-static void test_read_one_time_high2_and_low_resolution_boundaries(void)
-{
+static void test_read_one_time_high2_and_low_resolution_boundaries(void) {
     xy_bh1750_t dev;
 
     init_ok(&dev);
@@ -512,13 +518,14 @@ static void test_read_one_time_high2_and_low_resolution_boundaries(void)
     TEST_ASSERT_EQUAL_UINT32(236U, g_delay_total);
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_sends_power_on_reset);
     RUN_TEST(test_init_propagates_power_on_transport_error_and_clears_device);
     RUN_TEST(test_init_propagates_i2c_device_init_failure_without_bus_io);
     RUN_TEST(test_init_rejects_incomplete_nested_transport_without_io);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
+    RUN_TEST(test_failed_reinit_setup_io_preserves_live_owner);
     RUN_TEST(test_missing_handle_fails_closed_without_state_change);
     RUN_TEST(test_read_high_resolution_one_time_converts_raw_lux);
     RUN_TEST(test_read_resolution_and_mode_select_command_and_scale);

@@ -6,33 +6,29 @@
  */
 
 #include "xy_bh1750.h"
-#include "xy_log.h"
 #include "xy_device_timing.h"
 #include "xy_hal_sys.h"
+#include "xy_log.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
-static int bh1750_transport_ready(const xy_bh1750_t *dev)
-{
+static int bh1750_transport_ready(const xy_bh1750_t* dev) {
     return dev != NULL && dev->i2c_dev.base.initialized && dev->i2c_dev.i2c_handle != NULL;
 }
 
-static int bh1750_ready(const xy_bh1750_t *dev)
-{
+static int bh1750_ready(const xy_bh1750_t* dev) {
     return bh1750_transport_ready(dev) && dev->initialized;
 }
 
-static int bh1750_write_cmd(xy_bh1750_t *dev, uint8_t command)
-{
+static int bh1750_write_cmd(xy_bh1750_t* dev, uint8_t command) {
     if (!bh1750_transport_ready(dev)) {
         return XY_BH1750_INVALID_PARAM;
     }
     return xy_i2c_device_write(&dev->i2c_dev, &command, 1U);
 }
 
-static int bh1750_read_raw(xy_bh1750_t *dev, uint8_t data[2])
-{
+static int bh1750_read_raw(xy_bh1750_t* dev, uint8_t data[2]) {
     if (!bh1750_transport_ready(dev)) {
         return XY_BH1750_INVALID_PARAM;
     }
@@ -42,36 +38,31 @@ static int bh1750_read_raw(xy_bh1750_t *dev, uint8_t data[2])
 /**
  * @brief 获取测量命令
  */
-static uint8_t xy_bh1750_get_measure_cmd(xy_bh1750_t *bh1750)
-{
+static uint8_t xy_bh1750_get_measure_cmd(xy_bh1750_t* bh1750) {
     uint8_t cmd;
-    
+
     switch (bh1750->resolution) {
         case XY_BH1750_HIGH_RES:
-            cmd = bh1750->mode == XY_BH1750_CONTINUOUS ? 
-                  BH1750_CMD_CONT_H : BH1750_CMD_ONCE_H;
+            cmd = bh1750->mode == XY_BH1750_CONTINUOUS ? BH1750_CMD_CONT_H : BH1750_CMD_ONCE_H;
             break;
         case XY_BH1750_HIGH_RES2:
-            cmd = bh1750->mode == XY_BH1750_CONTINUOUS ? 
-                  BH1750_CMD_CONT_H2 : BH1750_CMD_ONCE_H2;
+            cmd = bh1750->mode == XY_BH1750_CONTINUOUS ? BH1750_CMD_CONT_H2 : BH1750_CMD_ONCE_H2;
             break;
         case XY_BH1750_LOW_RES:
-            cmd = bh1750->mode == XY_BH1750_CONTINUOUS ? 
-                  BH1750_CMD_CONT_L : BH1750_CMD_ONCE_L;
+            cmd = bh1750->mode == XY_BH1750_CONTINUOUS ? BH1750_CMD_CONT_L : BH1750_CMD_ONCE_L;
             break;
         default:
             cmd = BH1750_CMD_CONT_H;
             break;
     }
-    
+
     return cmd;
 }
 
 /**
  * @brief 获取测量时间
  */
-static uint16_t xy_bh1750_get_measure_time(xy_bh1750_res_t resolution)
-{
+static uint16_t xy_bh1750_get_measure_time(xy_bh1750_res_t resolution) {
     switch (resolution) {
         case XY_BH1750_HIGH_RES:
         case XY_BH1750_HIGH_RES2:
@@ -83,58 +74,67 @@ static uint16_t xy_bh1750_get_measure_time(xy_bh1750_res_t resolution)
     }
 }
 
-int xy_bh1750_init(xy_bh1750_t *bh1750, void *i2c_handle, uint8_t addr)
-{
+int xy_bh1750_init(xy_bh1750_t* bh1750, void* i2c_handle, uint8_t addr) {
+    xy_bh1750_t candidate;
+    int preserve_live_owner;
     int ret;
     uint8_t cmd;
-    
+
     if (!bh1750 || !i2c_handle || (addr != BH1750_ADDR_LOW && addr != BH1750_ADDR_HIGH)) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
-    memset(bh1750, 0, sizeof(*bh1750));
-    ret = xy_i2c_device_init(&bh1750->i2c_dev, i2c_handle, addr, 400);
-    if (ret != XY_DEVICE_OK || !bh1750_transport_ready(bh1750)) {
-        memset(bh1750, 0, sizeof(*bh1750));
+
+    preserve_live_owner = bh1750_ready(bh1750) &&
+                          (bh1750->addr == BH1750_ADDR_LOW || bh1750->addr == BH1750_ADDR_HIGH);
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 400);
+    if (ret != XY_DEVICE_OK || !bh1750_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(bh1750, 0, sizeof(*bh1750));
+        }
         return ret != XY_DEVICE_OK ? ret : XY_BH1750_INVALID_PARAM;
     }
-    bh1750->addr = addr;
-    bh1750->resolution = XY_BH1750_HIGH_RES;
-    bh1750->mode = XY_BH1750_ONE_TIME;
-    
+    candidate.addr = addr;
+    candidate.resolution = XY_BH1750_HIGH_RES;
+    candidate.mode = XY_BH1750_ONE_TIME;
+
     /* 开机 */
     cmd = BH1750_CMD_POWER_ON;
-    ret = bh1750_write_cmd(bh1750, cmd);
+    ret = bh1750_write_cmd(&candidate, cmd);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("BH1750 not found\n");
-        memset(bh1750, 0, sizeof(*bh1750));
+        if (!preserve_live_owner) {
+            memset(bh1750, 0, sizeof(*bh1750));
+        }
         return ret;
     }
-    
+
     xy_device_delay_ms(10U);
-    
+
     /* 软件复位 */
     cmd = BH1750_CMD_RESET;
-    ret = bh1750_write_cmd(bh1750, cmd);
+    ret = bh1750_write_cmd(&candidate, cmd);
     if (ret != XY_DEVICE_OK) {
-        memset(bh1750, 0, sizeof(*bh1750));
+        if (!preserve_live_owner) {
+            memset(bh1750, 0, sizeof(*bh1750));
+        }
         return ret;
     }
 
     xy_device_delay_ms(10U);
 
-    bh1750->initialized = true;
+    candidate.initialized = true;
+    *bh1750 = candidate;
     xy_log_i("BH1750 initialized at 0x%02X\n", addr);
-    
+
     return XY_BH1750_OK;
 }
 
-int xy_bh1750_deinit(xy_bh1750_t *bh1750)
-{
+int xy_bh1750_deinit(xy_bh1750_t* bh1750) {
     if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
+
     int ret = xy_bh1750_power_down(bh1750);
     if (ret != XY_DEVICE_OK) {
         return ret;
@@ -145,47 +145,46 @@ int xy_bh1750_deinit(xy_bh1750_t *bh1750)
     return XY_BH1750_OK;
 }
 
-int xy_bh1750_read(xy_bh1750_t *bh1750)
-{
+int xy_bh1750_read(xy_bh1750_t* bh1750) {
     int ret;
     uint8_t cmd;
     uint8_t buf[2];
     uint16_t raw_value;
     uint16_t measure_time;
-    
+
     if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
+
     /* 开机 */
     cmd = BH1750_CMD_POWER_ON;
     ret = bh1750_write_cmd(bh1750, cmd);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    
+
     xy_device_delay_ms(10U);
-    
+
     /* 发送测量命令 */
     cmd = xy_bh1750_get_measure_cmd(bh1750);
     ret = bh1750_write_cmd(bh1750, cmd);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    
+
     /* 等待测量完成 */
     measure_time = xy_bh1750_get_measure_time(bh1750->resolution);
     xy_device_delay_ms(measure_time);
-    
+
     /* 读取数据 */
     ret = bh1750_read_raw(bh1750, buf);
     if (ret != XY_DEVICE_OK) {
         return ret;
     }
-    
+
     /* 解析数据 */
     raw_value = ((uint16_t)buf[0] << 8) | buf[1];
-    
+
     /* 转换为照度 (lux) */
     /* 高分辨率模式：1 lux = 2 LSB */
     /* 低分辨率模式：1 lux = 8 LSB */
@@ -196,20 +195,19 @@ int xy_bh1750_read(xy_bh1750_t *bh1750)
     } else {
         bh1750->data.illuminance = (float)raw_value;
     }
-    
+
     bh1750->data.timestamp = xy_hal_sys_get_tick_count();
-    
+
     xy_log_d("BH1750: %.1f lux\n", bh1750->data.illuminance);
-    
+
     return XY_BH1750_OK;
 }
 
-int xy_bh1750_get_illuminance(xy_bh1750_t *bh1750, float *illuminance)
-{
+int xy_bh1750_get_illuminance(xy_bh1750_t* bh1750, float* illuminance) {
     if (!illuminance || !bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
+
     int ret = xy_bh1750_read(bh1750);
     if (ret == XY_BH1750_OK) {
         *illuminance = bh1750->data.illuminance;
@@ -217,30 +215,27 @@ int xy_bh1750_get_illuminance(xy_bh1750_t *bh1750, float *illuminance)
     return ret;
 }
 
-int xy_bh1750_set_resolution(xy_bh1750_t *bh1750, xy_bh1750_res_t resolution)
-{
+int xy_bh1750_set_resolution(xy_bh1750_t* bh1750, xy_bh1750_res_t resolution) {
     if (!bh1750_ready(bh1750) || resolution > XY_BH1750_LOW_RES) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
+
     bh1750->resolution = resolution;
     return XY_BH1750_OK;
 }
 
-int xy_bh1750_set_mode(xy_bh1750_t *bh1750, xy_bh1750_mode_t mode)
-{
+int xy_bh1750_set_mode(xy_bh1750_t* bh1750, xy_bh1750_mode_t mode) {
     if (!bh1750_ready(bh1750) || mode > XY_BH1750_ONE_TIME) {
         return XY_BH1750_INVALID_PARAM;
     }
-    
+
     bh1750->mode = mode;
     return XY_BH1750_OK;
 }
 
-int xy_bh1750_power_down(xy_bh1750_t *bh1750)
-{
+int xy_bh1750_power_down(xy_bh1750_t* bh1750) {
     uint8_t cmd = BH1750_CMD_POWER_DOWN;
-    
+
     if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
@@ -248,10 +243,9 @@ int xy_bh1750_power_down(xy_bh1750_t *bh1750)
     return bh1750_write_cmd(bh1750, cmd);
 }
 
-int xy_bh1750_power_on(xy_bh1750_t *bh1750)
-{
+int xy_bh1750_power_on(xy_bh1750_t* bh1750) {
     uint8_t cmd = BH1750_CMD_POWER_ON;
-    
+
     if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
@@ -259,10 +253,9 @@ int xy_bh1750_power_on(xy_bh1750_t *bh1750)
     return bh1750_write_cmd(bh1750, cmd);
 }
 
-int xy_bh1750_reset(xy_bh1750_t *bh1750)
-{
+int xy_bh1750_reset(xy_bh1750_t* bh1750) {
     uint8_t cmd = BH1750_CMD_RESET;
-    
+
     if (!bh1750_ready(bh1750)) {
         return XY_BH1750_INVALID_PARAM;
     }
