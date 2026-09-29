@@ -205,6 +205,34 @@ static void test_status_ready_read_and_setters_are_atomic(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_set_acc_range(&d, 0x02U));
     TEST_ASSERT_EQUAL_UINT8(range_snapshot, d.acc_range);
 }
+
+static void test_status_read_and_deinit_preserve_live_owner_on_failure(void)
+{
+    xy_sc7a22h_t d;
+    uint8_t status = 0xA5U;
+    int bus;
+
+    init_ok(&d);
+    d.data_status = 0x33U;
+    read_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_read_status(&d, &status));
+    TEST_ASSERT_EQUAL_UINT8(0xA5U, status);
+    TEST_ASSERT_EQUAL_UINT8(0x33U, d.data_status);
+
+    write_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sc7a22h_deinit(&d));
+    TEST_ASSERT_TRUE(d.initialized);
+    TEST_ASSERT_TRUE(d.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(d.i2c_dev.i2c_handle);
+
+    write_result = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sc7a22h_deinit(&d));
+    TEST_ASSERT_FALSE(d.initialized);
+    TEST_ASSERT_FALSE(d.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(d.i2c_dev.i2c_handle);
+
+    (void)bus;
+}
 static void test_invalid_nested_lifecycle_rejects_public_ops_without_io(void)
 {
     xy_sc7a22h_t d;
@@ -248,6 +276,7 @@ int main(void)
     RUN_TEST(test_fifo_vendor_sequence_and_count);
     RUN_TEST(test_fifo_failures_preserve_public_state);
     RUN_TEST(test_status_ready_read_and_setters_are_atomic);
+    RUN_TEST(test_status_read_and_deinit_preserve_live_owner_on_failure);
     RUN_TEST(test_invalid_nested_lifecycle_rejects_public_ops_without_io);
     return UNITY_END();
 }
