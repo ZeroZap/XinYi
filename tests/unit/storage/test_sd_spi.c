@@ -13,6 +13,7 @@ static uint32_t g_acmd41_count;
 static uint32_t g_data_stage;
 static uint8_t g_write_crc_count;
 static xy_hal_error_t g_forced_error;
+static xy_hal_error_t g_forced_cs_error;
 static uint8_t g_fail_after_read_data;
 static uint8_t g_corrupt_read_data;
 static uint8_t g_block[XY_SD_SPI_BLOCK_SIZE];
@@ -27,6 +28,11 @@ static void queue_bytes(const uint8_t *data, size_t length)
 static xy_hal_error_t fake_cs(void *arg, uint8_t level)
 {
     (void)arg;
+    if (g_forced_cs_error != XY_HAL_OK) {
+        xy_hal_error_t result = g_forced_cs_error;
+        g_forced_cs_error = XY_HAL_OK;
+        return result;
+    }
     g_cs = level;
     return XY_HAL_OK;
 }
@@ -138,6 +144,7 @@ void setUp(void)
     g_data_stage = 0U;
     g_write_crc_count = 0U;
     g_forced_error = XY_HAL_OK;
+    g_forced_cs_error = XY_HAL_OK;
     g_fail_after_read_data = 0U;
     g_corrupt_read_data = 0U;
     for (size_t i = 0U; i < sizeof(g_block); ++i) g_block[i] = (uint8_t)i;
@@ -238,6 +245,25 @@ static void test_verified_write_requires_exact_readback_before_publish(void)
     TEST_ASSERT_EQUAL_MEMORY(g_block, readback, sizeof(readback));
 }
 
+static void test_deinit_clears_owner_only_after_bus_quiesces(void)
+{
+    xy_sd_spi_t card = make_card();
+    xy_sd_spi_t snapshot = card;
+
+    g_forced_cs_error = XY_HAL_ERROR_IO;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO, xy_sd_spi_deinit(&card));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &card, sizeof(card));
+
+    g_forced_error = XY_HAL_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT, xy_sd_spi_deinit(&card));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &card, sizeof(card));
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK, xy_sd_spi_deinit(&card));
+    TEST_ASSERT_EQUAL_UINT8(0U, card.initialized);
+    TEST_ASSERT_NULL(card.config.spi);
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_INVALID_PARAM, xy_sd_spi_deinit(&card));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -247,5 +273,6 @@ int main(void)
     RUN_TEST(test_failed_reinit_preserves_live_card);
     RUN_TEST(test_read_failure_after_data_preserves_caller_buffer);
     RUN_TEST(test_verified_write_requires_exact_readback_before_publish);
+    RUN_TEST(test_deinit_clears_owner_only_after_bus_quiesces);
     return UNITY_END();
 }

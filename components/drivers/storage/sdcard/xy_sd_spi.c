@@ -247,6 +247,27 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t *card, const xy_sd_spi_config_t *confi
     return XY_HAL_OK;
 }
 
+xy_hal_error_t xy_sd_spi_deinit(xy_sd_spi_t *card)
+{
+    uint8_t ignored;
+    xy_hal_error_t result;
+
+    if (card == NULL || card->initialized == 0U || card->config.spi == NULL ||
+        card->config.transfer == NULL || card->config.set_cs == NULL) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    result = card->config.set_cs(card->config.cs_arg, 1U);
+    if (result != XY_HAL_OK) {
+        return result;
+    }
+    result = exchange_byte(card, 0xFFU, &ignored);
+    if (result != XY_HAL_OK) {
+        return result;
+    }
+    memset(card, 0, sizeof(*card));
+    return XY_HAL_OK;
+}
+
 xy_hal_error_t xy_sd_spi_read_block(xy_sd_spi_t *card, uint32_t block, uint8_t *data)
 {
     uint8_t next[XY_SD_SPI_BLOCK_SIZE];
