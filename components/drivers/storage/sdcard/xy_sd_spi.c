@@ -153,6 +153,7 @@ static xy_hal_error_t read_csd(xy_sd_spi_t *card, uint8_t csd[16])
 
 xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t *card, const xy_sd_spi_config_t *config)
 {
+    xy_sd_spi_t candidate;
     uint8_t response;
     uint8_t r7[4];
     uint8_t ocr[4];
@@ -165,8 +166,8 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t *card, const xy_sd_spi_config_t *confi
         config->set_cs == NULL || config->timeout_ms == 0U) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
-    memset(card, 0, sizeof(*card));
-    card->config = *config;
+    memset(&candidate, 0, sizeof(candidate));
+    candidate.config = *config;
     memset(clocks_tx, 0xFF, sizeof(clocks_tx));
     result = config->set_cs(config->cs_arg, 1U);
     if (result == XY_HAL_OK) {
@@ -176,19 +177,19 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t *card, const xy_sd_spi_config_t *confi
     if (result != XY_HAL_OK) {
         return result;
     }
-    result = run_command(card, SD_CMD0, 0U, 0x95U, &response);
+    result = run_command(&candidate, SD_CMD0, 0U, 0x95U, &response);
     if (result != XY_HAL_OK || response != SD_R1_IDLE) {
         return result != XY_HAL_OK ? result : XY_HAL_ERROR_NOT_FOUND;
     }
 
-    result = select_card(card);
+    result = select_card(&candidate);
     if (result == XY_HAL_OK) {
-        result = command_selected(card, SD_CMD8, 0x1AAU, 0x87U, &response);
+        result = command_selected(&candidate, SD_CMD8, 0x1AAU, 0x87U, &response);
     }
     for (size_t index = 0U; result == XY_HAL_OK && index < sizeof(r7); ++index) {
-        result = exchange_byte(card, 0xFFU, &r7[index]);
+        result = exchange_byte(&candidate, 0xFFU, &r7[index]);
     }
-    xy_hal_error_t release_result = deselect_card(card);
+    xy_hal_error_t release_result = deselect_card(&candidate);
     if (result == XY_HAL_OK) {
         result = release_result;
     }
@@ -197,11 +198,11 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t *card, const xy_sd_spi_config_t *confi
     }
 
     for (uint32_t attempt = 0U; attempt < 1000U; ++attempt) {
-        result = run_command(card, SD_CMD55, 0U, 0x01U, &response);
+        result = run_command(&candidate, SD_CMD55, 0U, 0x01U, &response);
         if (result != XY_HAL_OK) {
             return result;
         }
-        result = run_command(card, SD_ACMD41, 0x40000000U, 0x01U, &response);
+        result = run_command(&candidate, SD_ACMD41, 0x40000000U, 0x01U, &response);
         if (result != XY_HAL_OK) {
             return result;
         }
@@ -216,37 +217,39 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t *card, const xy_sd_spi_config_t *confi
         }
     }
 
-    result = select_card(card);
+    result = select_card(&candidate);
     if (result == XY_HAL_OK) {
-        result = command_selected(card, SD_CMD58, 0U, 0x01U, &response);
+        result = command_selected(&candidate, SD_CMD58, 0U, 0x01U, &response);
     }
     for (size_t index = 0U; result == XY_HAL_OK && index < sizeof(ocr); ++index) {
-        result = exchange_byte(card, 0xFFU, &ocr[index]);
+        result = exchange_byte(&candidate, 0xFFU, &ocr[index]);
     }
-    release_result = deselect_card(card);
+    release_result = deselect_card(&candidate);
     if (result == XY_HAL_OK) {
         result = release_result;
     }
     if (result != XY_HAL_OK || response != 0U) {
         return result != XY_HAL_OK ? result : XY_HAL_ERROR_IO;
     }
-    card->type = (ocr[0] & 0x40U) != 0U ? XY_SD_SPI_CARD_SDHC : XY_SD_SPI_CARD_SDSC;
+    candidate.type = (ocr[0] & 0x40U) != 0U ? XY_SD_SPI_CARD_SDHC : XY_SD_SPI_CARD_SDSC;
 
-    result = read_csd(card, csd);
+    result = read_csd(&candidate, csd);
     if (result != XY_HAL_OK) {
         return result;
     }
-    card->block_count = csd_block_count(csd);
-    if (card->block_count == 0U) {
+    candidate.block_count = csd_block_count(csd);
+    if (candidate.block_count == 0U) {
         return XY_HAL_ERROR_IO;
     }
-    card->capacity_bytes = (uint64_t)card->block_count * XY_SD_SPI_BLOCK_SIZE;
-    card->initialized = 1U;
+    candidate.capacity_bytes = (uint64_t)candidate.block_count * XY_SD_SPI_BLOCK_SIZE;
+    candidate.initialized = 1U;
+    *card = candidate;
     return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_sd_spi_read_block(xy_sd_spi_t *card, uint32_t block, uint8_t *data)
 {
+    uint8_t next[XY_SD_SPI_BLOCK_SIZE];
     uint8_t response;
     uint8_t tx[XY_SD_SPI_BLOCK_SIZE];
     uint8_t crc;
@@ -267,12 +270,15 @@ xy_hal_error_t xy_sd_spi_read_block(xy_sd_spi_t *card, uint32_t block, uint8_t *
     }
     if (result == XY_HAL_OK) {
         memset(tx, 0xFF, sizeof(tx));
-        result = transfer(card, tx, data, sizeof(tx));
+        result = transfer(card, tx, next, sizeof(tx));
     }
     if (result == XY_HAL_OK) result = exchange_byte(card, 0xFFU, &crc);
     if (result == XY_HAL_OK) result = exchange_byte(card, 0xFFU, &crc);
     xy_hal_error_t release_result = deselect_card(card);
-    return result != XY_HAL_OK ? result : release_result;
+    if (result != XY_HAL_OK) return result;
+    if (release_result != XY_HAL_OK) return release_result;
+    memcpy(data, next, sizeof(next));
+    return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_sd_spi_write_block(xy_sd_spi_t *card, uint32_t block, const uint8_t *data)

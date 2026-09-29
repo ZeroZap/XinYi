@@ -13,6 +13,7 @@ static uint32_t g_acmd41_count;
 static uint32_t g_data_stage;
 static uint8_t g_write_crc_count;
 static xy_hal_error_t g_forced_error;
+static uint8_t g_fail_after_read_data;
 static uint8_t g_block[XY_SD_SPI_BLOCK_SIZE];
 
 static void queue_bytes(const uint8_t *data, size_t length)
@@ -40,6 +41,10 @@ static xy_hal_error_t fake_transfer(void *spi, const uint8_t *tx, uint8_t *rx, s
         xy_hal_error_t result = g_forced_error;
         g_forced_error = XY_HAL_OK;
         return result;
+    }
+    if (g_fail_after_read_data != 0U && length == 1U && g_data_stage == 0U) {
+        g_fail_after_read_data = 0U;
+        return XY_HAL_ERROR_TIMEOUT;
     }
     memset(rx, 0xFF, length);
     if (length == 6U && (tx[0] & 0xC0U) == 0x40U) {
@@ -128,6 +133,7 @@ void setUp(void)
     g_data_stage = 0U;
     g_write_crc_count = 0U;
     g_forced_error = XY_HAL_OK;
+    g_fail_after_read_data = 0U;
     for (size_t i = 0U; i < sizeof(g_block); ++i) g_block[i] = (uint8_t)i;
 }
 void tearDown(void) {}
@@ -178,9 +184,34 @@ static void test_transport_error_is_preserved_and_state_is_not_committed(void)
         .spi = &spi, .transfer = fake_transfer, .set_cs = fake_cs,
         .delay_ms = fake_delay, .timeout_ms = 100U,
     };
+    memset(&card, 0, sizeof(card));
     g_forced_error = XY_HAL_ERROR_TIMEOUT;
     TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT, xy_sd_spi_init(&card, &config));
     TEST_ASSERT_EQUAL_UINT8(0U, card.initialized);
+}
+
+static void test_failed_reinit_preserves_live_card(void)
+{
+    xy_sd_spi_t card = make_card();
+    xy_sd_spi_t snapshot = card;
+    xy_sd_spi_config_t replacement = card.config;
+
+    g_forced_error = XY_HAL_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT, xy_sd_spi_init(&card, &replacement));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &card, sizeof(card));
+}
+
+static void test_read_failure_after_data_preserves_caller_buffer(void)
+{
+    uint8_t data[XY_SD_SPI_BLOCK_SIZE];
+    uint8_t old[XY_SD_SPI_BLOCK_SIZE];
+    xy_sd_spi_t card = make_card();
+
+    memset(data, 0xA5, sizeof(data));
+    memcpy(old, data, sizeof(old));
+    g_fail_after_read_data = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT, xy_sd_spi_read_block(&card, 7U, data));
+    TEST_ASSERT_EQUAL_MEMORY(old, data, sizeof(data));
 }
 
 int main(void)
@@ -189,5 +220,7 @@ int main(void)
     RUN_TEST(test_init_identifies_32_gib_sdhc);
     RUN_TEST(test_read_and_write_use_block_addressing);
     RUN_TEST(test_transport_error_is_preserved_and_state_is_not_committed);
+    RUN_TEST(test_failed_reinit_preserves_live_card);
+    RUN_TEST(test_read_failure_after_data_preserves_caller_buffer);
     return UNITY_END();
 }
