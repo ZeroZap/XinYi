@@ -1,127 +1,37 @@
-# .clang-format for ZeroZap C projects
-# Based on Linux kernel style with modern C conventions
-
+# ZeroZap C formatting policy
 ---
-# Language
-Language: C
-
-# Formatting style
+Language: Cpp
 BasedOnStyle: LLVM
-
-# Indentation
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
 ContinuationIndentWidth: 4
-
-# Column limits
 ColumnLimit: 100
-
-# Function formatting
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
-
-# Pointer alignment
 PointerAlignment: Left
 ReferenceAlignment: Left
-
-# Brace wrapping
-BreakBeforeBraces: KNR
-BraceWrapping:
-  AfterClass: false
-  AfterControlStatement: Never
-  AfterEnum: false
-  AfterFunction: true
-  AfterNamespace: false
-  AfterStruct: true
-  AfterUnion: false
-  AfterExternBlock: false
-  BeforeCatch: false
-  BeforeElse: false
-  BeforeLambdaBody: false
-  BeforeWhile: false
-  IndentBraces: false
-
-# Spaces
-SpaceAfterCStyleCast: false
-SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: true
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCpp11BracedList: false
-SpaceBeforeCtorInitializerColon: true
-SpaceBeforeInheritanceColon: true
-SpaceBeforeParens: ControlStatements
-SpaceBeforeRangeBasedForLoopColon: true
-SpaceInEmptyParentheses: false
-SpacesBeforeTrailingComments: 1
-SpacesInAngles: false
-SpacesInCStyleCastParentheses: false
-SpacesInContainerLiterals: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-
-# Alignment
-AlignConsecutiveAssignments: false
-AlignConsecutiveBitFields: false
-AlignConsecutiveDeclarations: false
-AlignConsecutiveMacros: false
-AlignAfterOpenBracket: Align
-AlignOperands: Align
-AlignTrailingComments: true
-
-# Other
-AllowAllArgumentsOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: true
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
 AllowShortBlocksOnASingleLine: Never
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortEnumsOnASingleLine: false
-AllowShortRequiresOnASingleLine: true
-AllowShortStatementsOnASingleLine: false
-AllowShortSwitchLabelsOnASingleLine: false
-AllowShortSwitchCaseLabelsOnASingleLine: false
 BinPackArguments: true
 BinPackParameters: true
-CaseInsensitiveHeaders: false
-CompactNamespaces: false
-FixNamespaceComments: true
-ForEachMacros:
-  - foreach
-  - Q_FOREACH
-  - BOOST_FOREACH
-IncludeCategories:
-  - Regex: '^<.*\.h>'
-    Priority: 2
-  - Regex: '^<.*>'
-    Priority: 3
-  - Regex: '.*'
-    Priority: 1
-IncludeIsMainRegex: '([-_](test|unittest))?$'
+AlignAfterOpenBracket: Align
+AlignOperands: Align
 IndentCaseLabels: true
 IndentPPDirectives: None
-IndentWrappedFunctionNames: false
-JavaScriptQuotes: Leave
-JavaScriptWrapImports: true
-KeepEmptyLinesAtTheStartOfBlocks: false
-MacroBlockBegin: ''
-MacroBlockEnd: ''
 MaxEmptyLinesToKeep: 1
-NamespaceIndentation: None
-ObjCBlockIndentWidth: 2
-ObjCSpaceAfterProperty: false
-ObjCSpaceBeforeProtocolList: true
-PenaltyBreakBeforeFirstCallParameter: 1
-PenaltyBreakComment: 300
-PenaltyBreakFirstLessLess: 120
-PenaltyBreakString: 1000
-PenaltyBreakTemplateDeclaration: 10
-PenaltyExcessCharacter: 1000000
-PenaltyReturnTypeOnItsOwnLine: 60
-PPIndentWidth: -1
-ReflowComments: true
 SortIncludes: CaseInsensitive
-SortUsingDeclarations: true
-SpaceBeforeAfterColon: true
-SpaceBeforeInheritanceColon: true
-Standard: c11
+SortUsingDeclarations: LexicographicNumeric
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeParens: ControlStatements
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: Never
+SpacesInParens: Never
+SpacesInSquareBrackets: false
+ReflowComments: Always
 ...

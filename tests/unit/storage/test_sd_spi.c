@@ -18,15 +18,13 @@ static uint8_t g_fail_after_read_data;
 static uint8_t g_corrupt_read_data;
 static uint8_t g_block[XY_SD_SPI_BLOCK_SIZE];
 
-static void queue_bytes(const uint8_t *data, size_t length)
-{
+static void queue_bytes(const uint8_t* data, size_t length) {
     memcpy(g_queue, data, length);
     g_queue_count = length;
     g_queue_index = 0U;
 }
 
-static xy_hal_error_t fake_cs(void *arg, uint8_t level)
-{
+static xy_hal_error_t fake_cs(void* arg, uint8_t level) {
     (void)arg;
     if (g_forced_cs_error != XY_HAL_OK) {
         xy_hal_error_t result = g_forced_cs_error;
@@ -37,11 +35,12 @@ static xy_hal_error_t fake_cs(void *arg, uint8_t level)
     return XY_HAL_OK;
 }
 
-static void fake_delay(uint32_t ms) { (void)ms; }
+static void fake_delay(uint32_t ms) {
+    (void)ms;
+}
 
-static xy_hal_error_t fake_transfer(void *spi, const uint8_t *tx, uint8_t *rx, size_t length,
-                                    uint32_t timeout_ms)
-{
+static xy_hal_error_t fake_transfer(void* spi, const uint8_t* tx, uint8_t* rx, size_t length,
+                                    uint32_t timeout_ms) {
     (void)spi;
     (void)timeout_ms;
     if (g_forced_error != XY_HAL_OK) {
@@ -58,8 +57,8 @@ static xy_hal_error_t fake_transfer(void *spi, const uint8_t *tx, uint8_t *rx, s
         uint8_t command = tx[0] & 0x3FU;
         uint8_t response[6] = {0};
         g_last_command = command;
-        g_last_argument = ((uint32_t)tx[1] << 24) | ((uint32_t)tx[2] << 16) |
-                          ((uint32_t)tx[3] << 8) | tx[4];
+        g_last_argument =
+            ((uint32_t)tx[1] << 24) | ((uint32_t)tx[2] << 16) | ((uint32_t)tx[3] << 8) | tx[4];
         if (command == 0U) {
             response[0] = 0x01U;
             queue_bytes(response, 1U);
@@ -133,8 +132,7 @@ static xy_hal_error_t fake_transfer(void *spi, const uint8_t *tx, uint8_t *rx, s
     return XY_HAL_OK;
 }
 
-void setUp(void)
-{
+void setUp(void) {
     g_cs = 1U;
     g_queue_count = 0U;
     g_queue_index = 0U;
@@ -147,12 +145,12 @@ void setUp(void)
     g_forced_cs_error = XY_HAL_OK;
     g_fail_after_read_data = 0U;
     g_corrupt_read_data = 0U;
-    for (size_t i = 0U; i < sizeof(g_block); ++i) g_block[i] = (uint8_t)i;
+    for (size_t i = 0U; i < sizeof(g_block); ++i)
+        g_block[i] = (uint8_t)i;
 }
 void tearDown(void) {}
 
-static xy_sd_spi_t make_card(void)
-{
+static xy_sd_spi_t make_card(void) {
     static int spi;
     xy_sd_spi_t card;
     const xy_sd_spi_config_t config = {
@@ -166,8 +164,7 @@ static xy_sd_spi_t make_card(void)
     return card;
 }
 
-static void test_init_identifies_32_gib_sdhc(void)
-{
+static void test_init_identifies_32_gib_sdhc(void) {
     xy_sd_spi_t card = make_card();
     TEST_ASSERT_EQUAL_INT(XY_SD_SPI_CARD_SDHC, card.type);
     TEST_ASSERT_EQUAL_UINT32(67108864U, card.block_count);
@@ -176,8 +173,7 @@ static void test_init_identifies_32_gib_sdhc(void)
     TEST_ASSERT_EQUAL_UINT8(1U, g_cs);
 }
 
-static void test_read_and_write_use_block_addressing(void)
-{
+static void test_read_and_write_use_block_addressing(void) {
     uint8_t data[XY_SD_SPI_BLOCK_SIZE];
     xy_sd_spi_t card = make_card();
     TEST_ASSERT_EQUAL_INT(XY_HAL_OK, xy_sd_spi_read_block(&card, 7U, data));
@@ -189,13 +185,15 @@ static void test_read_and_write_use_block_addressing(void)
     TEST_ASSERT_EQUAL_UINT32(9U, g_last_argument);
 }
 
-static void test_transport_error_is_preserved_and_state_is_not_committed(void)
-{
+static void test_transport_error_is_preserved_and_state_is_not_committed(void) {
     int spi;
     xy_sd_spi_t card;
     const xy_sd_spi_config_t config = {
-        .spi = &spi, .transfer = fake_transfer, .set_cs = fake_cs,
-        .delay_ms = fake_delay, .timeout_ms = 100U,
+        .spi = &spi,
+        .transfer = fake_transfer,
+        .set_cs = fake_cs,
+        .delay_ms = fake_delay,
+        .timeout_ms = 100U,
     };
     memset(&card, 0, sizeof(card));
     g_forced_error = XY_HAL_ERROR_TIMEOUT;
@@ -203,8 +201,7 @@ static void test_transport_error_is_preserved_and_state_is_not_committed(void)
     TEST_ASSERT_EQUAL_UINT8(0U, card.initialized);
 }
 
-static void test_failed_reinit_preserves_live_card(void)
-{
+static void test_failed_reinit_preserves_live_card(void) {
     xy_sd_spi_t card = make_card();
     xy_sd_spi_t snapshot = card;
     xy_sd_spi_config_t replacement = card.config;
@@ -214,8 +211,7 @@ static void test_failed_reinit_preserves_live_card(void)
     TEST_ASSERT_EQUAL_MEMORY(&snapshot, &card, sizeof(card));
 }
 
-static void test_read_failure_after_data_preserves_caller_buffer(void)
-{
+static void test_read_failure_after_data_preserves_caller_buffer(void) {
     uint8_t data[XY_SD_SPI_BLOCK_SIZE];
     uint8_t old[XY_SD_SPI_BLOCK_SIZE];
     xy_sd_spi_t card = make_card();
@@ -227,8 +223,7 @@ static void test_read_failure_after_data_preserves_caller_buffer(void)
     TEST_ASSERT_EQUAL_MEMORY(old, data, sizeof(data));
 }
 
-static void test_verified_write_requires_exact_readback_before_publish(void)
-{
+static void test_verified_write_requires_exact_readback_before_publish(void) {
     uint8_t readback[XY_SD_SPI_BLOCK_SIZE];
     uint8_t old[XY_SD_SPI_BLOCK_SIZE];
     xy_sd_spi_t card = make_card();
@@ -240,13 +235,11 @@ static void test_verified_write_requires_exact_readback_before_publish(void)
                           xy_sd_spi_write_block_verified(&card, 11U, g_block, readback));
     TEST_ASSERT_EQUAL_MEMORY(old, readback, sizeof(readback));
 
-    TEST_ASSERT_EQUAL_INT(XY_HAL_OK,
-                          xy_sd_spi_write_block_verified(&card, 11U, g_block, readback));
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK, xy_sd_spi_write_block_verified(&card, 11U, g_block, readback));
     TEST_ASSERT_EQUAL_MEMORY(g_block, readback, sizeof(readback));
 }
 
-static void test_deinit_clears_owner_only_after_bus_quiesces(void)
-{
+static void test_deinit_clears_owner_only_after_bus_quiesces(void) {
     xy_sd_spi_t card = make_card();
     xy_sd_spi_t snapshot = card;
 
@@ -264,8 +257,7 @@ static void test_deinit_clears_owner_only_after_bus_quiesces(void)
     TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_INVALID_PARAM, xy_sd_spi_deinit(&card));
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_identifies_32_gib_sdhc);
     RUN_TEST(test_read_and_write_use_block_addressing);
