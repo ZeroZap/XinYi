@@ -14,6 +14,7 @@ static uint32_t g_data_stage;
 static uint8_t g_write_crc_count;
 static xy_hal_error_t g_forced_error;
 static uint8_t g_fail_after_read_data;
+static uint8_t g_corrupt_read_data;
 static uint8_t g_block[XY_SD_SPI_BLOCK_SIZE];
 
 static void queue_bytes(const uint8_t *data, size_t length)
@@ -97,6 +98,10 @@ static xy_hal_error_t fake_transfer(void *spi, const uint8_t *tx, uint8_t *rx, s
     }
     if (length == XY_SD_SPI_BLOCK_SIZE && g_data_stage == 2U) {
         memcpy(rx, g_block, length);
+        if (g_corrupt_read_data != 0U) {
+            rx[0] ^= 0xFFU;
+            g_corrupt_read_data = 0U;
+        }
         g_data_stage = 0U;
         return XY_HAL_OK;
     }
@@ -134,6 +139,7 @@ void setUp(void)
     g_write_crc_count = 0U;
     g_forced_error = XY_HAL_OK;
     g_fail_after_read_data = 0U;
+    g_corrupt_read_data = 0U;
     for (size_t i = 0U; i < sizeof(g_block); ++i) g_block[i] = (uint8_t)i;
 }
 void tearDown(void) {}
@@ -214,6 +220,24 @@ static void test_read_failure_after_data_preserves_caller_buffer(void)
     TEST_ASSERT_EQUAL_MEMORY(old, data, sizeof(data));
 }
 
+static void test_verified_write_requires_exact_readback_before_publish(void)
+{
+    uint8_t readback[XY_SD_SPI_BLOCK_SIZE];
+    uint8_t old[XY_SD_SPI_BLOCK_SIZE];
+    xy_sd_spi_t card = make_card();
+
+    memset(readback, 0xA5, sizeof(readback));
+    memcpy(old, readback, sizeof(old));
+    g_corrupt_read_data = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO,
+                          xy_sd_spi_write_block_verified(&card, 11U, g_block, readback));
+    TEST_ASSERT_EQUAL_MEMORY(old, readback, sizeof(readback));
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK,
+                          xy_sd_spi_write_block_verified(&card, 11U, g_block, readback));
+    TEST_ASSERT_EQUAL_MEMORY(g_block, readback, sizeof(readback));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -222,5 +246,6 @@ int main(void)
     RUN_TEST(test_transport_error_is_preserved_and_state_is_not_committed);
     RUN_TEST(test_failed_reinit_preserves_live_card);
     RUN_TEST(test_read_failure_after_data_preserves_caller_buffer);
+    RUN_TEST(test_verified_write_requires_exact_readback_before_publish);
     return UNITY_END();
 }

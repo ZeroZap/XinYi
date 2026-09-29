@@ -324,3 +324,22 @@ xy_hal_error_t xy_sd_spi_write_block(xy_sd_spi_t *card, uint32_t block, const ui
     xy_hal_error_t release_result = deselect_card(card);
     return result != XY_HAL_OK ? result : release_result;
 }
+
+xy_hal_error_t xy_sd_spi_write_block_verified(xy_sd_spi_t *card, uint32_t block,
+                                              const uint8_t *data, uint8_t *readback)
+{
+    uint8_t next[XY_SD_SPI_BLOCK_SIZE];
+    xy_hal_error_t result;
+
+    if (card == NULL || data == NULL || readback == NULL || card->initialized == 0U ||
+        block >= card->block_count) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    result = xy_sd_spi_write_block(card, block, data);
+    if (result != XY_HAL_OK) return result;
+    result = xy_sd_spi_read_block(card, block, next);
+    if (result != XY_HAL_OK) return result;
+    if (memcmp(data, next, sizeof(next)) != 0) return XY_HAL_ERROR_IO;
+    memcpy(readback, next, sizeof(next));
+    return XY_HAL_OK;
+}

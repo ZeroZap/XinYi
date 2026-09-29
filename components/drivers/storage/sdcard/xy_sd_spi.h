@@ -42,6 +42,8 @@ typedef struct {
 xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t *card, const xy_sd_spi_config_t *config);
 xy_hal_error_t xy_sd_spi_read_block(xy_sd_spi_t *card, uint32_t block, uint8_t *data);
 xy_hal_error_t xy_sd_spi_write_block(xy_sd_spi_t *card, uint32_t block, const uint8_t *data);
+xy_hal_error_t xy_sd_spi_write_block_verified(xy_sd_spi_t *card, uint32_t block,
+                                              const uint8_t *data, uint8_t *readback);
 
 #ifdef __cplusplus
 }
