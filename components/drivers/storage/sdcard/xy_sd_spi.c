@@ -5,6 +5,7 @@
 #define SD_CMD0 0U
 #define SD_CMD8 8U
 #define SD_CMD9 9U
+#define SD_CMD16 16U
 #define SD_CMD17 17U
 #define SD_CMD24 24U
 #define SD_CMD55 55U
@@ -220,6 +221,13 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t* card, const xy_sd_spi_config_t* confi
         return result != XY_HAL_OK ? result : XY_HAL_ERROR_IO;
     }
     candidate.type = (ocr[0] & 0x40U) != 0U ? XY_SD_SPI_CARD_SDHC : XY_SD_SPI_CARD_SDSC;
+
+    if (candidate.type == XY_SD_SPI_CARD_SDSC) {
+        result = run_command(&candidate, SD_CMD16, XY_SD_SPI_BLOCK_SIZE, 0x01U, &response);
+        if (result != XY_HAL_OK || response != 0U) {
+            return result != XY_HAL_OK ? result : XY_HAL_ERROR_IO;
+        }
+    }
 
     result = read_csd(&candidate, csd);
     if (result != XY_HAL_OK) {

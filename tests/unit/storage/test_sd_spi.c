@@ -16,6 +16,10 @@ static xy_hal_error_t g_forced_error;
 static xy_hal_error_t g_forced_cs_error;
 static uint8_t g_fail_after_read_data;
 static uint8_t g_corrupt_read_data;
+static uint8_t g_high_capacity;
+static uint8_t g_cmd16_response;
+static uint32_t g_cmd16_count;
+static uint32_t g_cmd16_argument;
 static uint8_t g_block[XY_SD_SPI_BLOCK_SIZE];
 
 static void queue_bytes(const uint8_t* data, size_t length) {
@@ -72,8 +76,14 @@ static xy_hal_error_t fake_transfer(void* spi, const uint8_t* tx, uint8_t* rx, s
             response[0] = g_acmd41_count++ < 2U ? 0x01U : 0x00U;
             queue_bytes(response, 1U);
         } else if (command == 58U) {
-            const uint8_t ocr[] = {0x00U, 0xC0U, 0xFFU, 0x80U, 0x00U};
+            const uint8_t ocr[] = {0x00U, g_high_capacity != 0U ? 0xC0U : 0x80U, 0xFFU, 0x80U,
+                                   0x00U};
             queue_bytes(ocr, sizeof(ocr));
+        } else if (command == 16U) {
+            response[0] = g_cmd16_response;
+            ++g_cmd16_count;
+            g_cmd16_argument = g_last_argument;
+            queue_bytes(response, 1U);
         } else if (command == 9U) {
             const uint8_t csd_response[] = {0x00U, 0xFEU};
             queue_bytes(csd_response, sizeof(csd_response));
@@ -95,9 +105,15 @@ static xy_hal_error_t fake_transfer(void* spi, const uint8_t* tx, uint8_t* rx, s
     }
     if (length == 16U && g_data_stage == 1U) {
         memset(rx, 0, length);
-        rx[0] = 0x40U;
-        rx[8] = 0xFFU;
-        rx[9] = 0xFFU;
+        if (g_high_capacity != 0U) {
+            rx[0] = 0x40U;
+            rx[8] = 0xFFU;
+            rx[9] = 0xFFU;
+        } else {
+            rx[5] = 9U;
+            rx[7] = 0xFFU;
+            rx[8] = 0xC0U;
+        }
         g_data_stage = 0U;
         return XY_HAL_OK;
     }
@@ -145,6 +161,10 @@ void setUp(void) {
     g_forced_cs_error = XY_HAL_OK;
     g_fail_after_read_data = 0U;
     g_corrupt_read_data = 0U;
+    g_high_capacity = 1U;
+    g_cmd16_response = 0U;
+    g_cmd16_count = 0U;
+    g_cmd16_argument = 0U;
     for (size_t i = 0U; i < sizeof(g_block); ++i)
         g_block[i] = (uint8_t)i;
 }
@@ -170,6 +190,7 @@ static void test_init_identifies_32_gib_sdhc(void) {
     TEST_ASSERT_EQUAL_UINT32(67108864U, card.block_count);
     TEST_ASSERT_EQUAL_UINT64(34359738368ULL, card.capacity_bytes);
     TEST_ASSERT_EQUAL_UINT8(1U, card.initialized);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_cmd16_count);
     TEST_ASSERT_EQUAL_UINT8(1U, g_cs);
 }
 
@@ -183,6 +204,40 @@ static void test_read_and_write_use_block_addressing(void) {
     TEST_ASSERT_EQUAL_INT(XY_HAL_OK, xy_sd_spi_write_block(&card, 9U, g_block));
     TEST_ASSERT_EQUAL_UINT8(24U, g_last_command);
     TEST_ASSERT_EQUAL_UINT32(9U, g_last_argument);
+}
+
+static void test_sdsc_sets_512_byte_blocks_and_uses_byte_addressing(void) {
+    uint8_t data[XY_SD_SPI_BLOCK_SIZE];
+
+    g_high_capacity = 0U;
+    xy_sd_spi_t card = make_card();
+    TEST_ASSERT_EQUAL_INT(XY_SD_SPI_CARD_SDSC, card.type);
+    TEST_ASSERT_EQUAL_UINT32(1U, g_cmd16_count);
+    TEST_ASSERT_EQUAL_UINT32(XY_SD_SPI_BLOCK_SIZE, g_cmd16_argument);
+    TEST_ASSERT_EQUAL_UINT32(4096U, card.block_count);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK, xy_sd_spi_read_block(&card, 7U, data));
+    TEST_ASSERT_EQUAL_UINT8(17U, g_last_command);
+    TEST_ASSERT_EQUAL_UINT32(7U * XY_SD_SPI_BLOCK_SIZE, g_last_argument);
+}
+
+static void test_sdsc_rejects_failed_block_length_without_committing_owner(void) {
+    int spi;
+    xy_sd_spi_t card;
+    const xy_sd_spi_config_t config = {
+        .spi = &spi,
+        .transfer = fake_transfer,
+        .set_cs = fake_cs,
+        .delay_ms = fake_delay,
+        .timeout_ms = 100U,
+    };
+
+    memset(&card, 0, sizeof(card));
+    g_high_capacity = 0U;
+    g_cmd16_response = 0x04U;
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_IO, xy_sd_spi_init(&card, &config));
+    TEST_ASSERT_EQUAL_UINT32(1U, g_cmd16_count);
+    TEST_ASSERT_EQUAL_UINT8(0U, card.initialized);
 }
 
 static void test_transport_error_is_preserved_and_state_is_not_committed(void) {
@@ -261,6 +316,8 @@ int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_identifies_32_gib_sdhc);
     RUN_TEST(test_read_and_write_use_block_addressing);
+    RUN_TEST(test_sdsc_sets_512_byte_blocks_and_uses_byte_addressing);
+    RUN_TEST(test_sdsc_rejects_failed_block_length_without_committing_owner);
     RUN_TEST(test_transport_error_is_preserved_and_state_is_not_committed);
     RUN_TEST(test_failed_reinit_preserves_live_card);
     RUN_TEST(test_read_failure_after_data_preserves_caller_buffer);
