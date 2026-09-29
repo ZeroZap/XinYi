@@ -14,36 +14,35 @@
 /* 默认安全阈值 */
 static const xy_fg_safety_thresholds_t default_thresholds = {
     /* 电压阈值 (mV) */
-    .cell_ovp_threshold = 4250,         /* 单体过压 4.25V */
-    .cell_uvp_threshold = 2800,         /* 单体欠压 2.8V */
-    .pack_ovp_threshold = 17000,        /* 电池组过压 17V (4 节) */
-    .pack_uvp_threshold = 11200,        /* 电池组欠压 11.2V (4 节) */
-    
+    .cell_ovp_threshold = 4250,  /* 单体过压 4.25V */
+    .cell_uvp_threshold = 2800,  /* 单体欠压 2.8V */
+    .pack_ovp_threshold = 17000, /* 电池组过压 17V (4 节) */
+    .pack_uvp_threshold = 11200, /* 电池组欠压 11.2V (4 节) */
+
     /* 电流阈值 (mA) */
-    .chg_ocp_threshold = 5000,          /* 充电过流 5A */
-    .dischg_ocp_threshold = 10000,      /* 放电过流 10A */
-    .chg_ocd_threshold = 15000,         /* 充电短路 15A */
-    .dischg_ocd_threshold = 20000,      /* 放电短路 20A */
-    
+    .chg_ocp_threshold = 5000,     /* 充电过流 5A */
+    .dischg_ocp_threshold = 10000, /* 放电过流 10A */
+    .chg_ocd_threshold = 15000,    /* 充电短路 15A */
+    .dischg_ocd_threshold = 20000, /* 放电短路 20A */
+
     /* 温度阈值 (0.1°C) */
-    .cell_otp_threshold = 600,          /* 单体过温 60°C */
-    .cell_utp_threshold = 0,            /* 单体低温 0°C */
-    .pack_otc_threshold = 550,          /* 充电过温 55°C */
-    .pack_otd_threshold = 600,          /* 放电过温 60°C */
-    .pack_utp_threshold = -100,         /* 电池组低温 -10°C */
+    .cell_otp_threshold = 600,  /* 单体过温 60°C */
+    .cell_utp_threshold = 0,    /* 单体低温 0°C */
+    .pack_otc_threshold = 550,  /* 充电过温 55°C */
+    .pack_otd_threshold = 600,  /* 放电过温 60°C */
+    .pack_utp_threshold = -100, /* 电池组低温 -10°C */
 };
 
 #define XY_FG_SAFETY_CACHE_SLOTS 8U
 
 typedef struct {
-    xy_fuel_gauge_t *fg;
+    xy_fuel_gauge_t* fg;
     xy_fg_safety_thresholds_t thresholds;
 } fg_safety_threshold_cache_t;
 
 static fg_safety_threshold_cache_t safety_threshold_cache[XY_FG_SAFETY_CACHE_SLOTS];
 
-static fg_safety_threshold_cache_t *find_threshold_cache(xy_fuel_gauge_t *fg)
-{
+static fg_safety_threshold_cache_t* find_threshold_cache(xy_fuel_gauge_t* fg) {
     for (uint8_t i = 0; i < XY_FG_SAFETY_CACHE_SLOTS; i++) {
         if (safety_threshold_cache[i].fg == fg) {
             return &safety_threshold_cache[i];
@@ -53,9 +52,8 @@ static fg_safety_threshold_cache_t *find_threshold_cache(xy_fuel_gauge_t *fg)
     return NULL;
 }
 
-static fg_safety_threshold_cache_t *alloc_threshold_cache(xy_fuel_gauge_t *fg)
-{
-    fg_safety_threshold_cache_t *slot = find_threshold_cache(fg);
+static fg_safety_threshold_cache_t* alloc_threshold_cache(xy_fuel_gauge_t* fg) {
+    fg_safety_threshold_cache_t* slot = find_threshold_cache(fg);
     if (slot) {
         return slot;
     }
@@ -71,40 +69,25 @@ static fg_safety_threshold_cache_t *alloc_threshold_cache(xy_fuel_gauge_t *fg)
 }
 
 /* 状态字符串映射 */
-static const char *const safety_strings[] = {
-    "OK",
-    "Cell OVP",
-    "Cell UVP",
-    "Pack OVP",
-    "Pack UVP",
-    "Chg OCP",
-    "Dischg OCP",
-    "Chg OCD",
-    "Dischg OCD",
-    "Cell OTP",
-    "Cell UTP",
-    "Pack OTC",
-    "Pack OTD",
-    "Pack UTP",
-    "AFE Fault",
-    "Fuse Fault"
-};
+static const char* const safety_strings[] = {"OK",         "Cell OVP", "Cell UVP",   "Pack OVP",
+                                             "Pack UVP",   "Chg OCP",  "Dischg OCP", "Chg OCD",
+                                             "Dischg OCD", "Cell OTP", "Cell UTP",   "Pack OTC",
+                                             "Pack OTD",   "Pack UTP", "AFE Fault",  "Fuse Fault"};
 
 /**
  * @brief 获取安全状态
  */
-xy_fg_safety_status_t xy_fuel_gauge_get_safety_status(xy_fuel_gauge_t *fg)
-{
+xy_fg_safety_status_t xy_fuel_gauge_get_safety_status(xy_fuel_gauge_t* fg) {
     if (!fg) {
         return XY_FG_SAFETY_OK;
     }
-    
+
     xy_fg_safety_status_t status = XY_FG_SAFETY_OK;
     int32_t voltage_mv = 0;
     int32_t current_ma = 0;
     int32_t temperature_c = 0;
     xy_fg_safety_thresholds_t thresholds;
-    
+
     /* 获取当前数据 */
     int ret = xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &voltage_mv);
     ret |= xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &current_ma);
@@ -112,64 +95,63 @@ xy_fg_safety_status_t xy_fuel_gauge_get_safety_status(xy_fuel_gauge_t *fg)
     if (ret != XY_FG_OK) {
         return XY_FG_SAFETY_OK;
     }
-    
+
     /* 获取阈值配置 */
     ret = xy_fuel_gauge_get_safety_thresholds(fg, &thresholds);
     if (ret != XY_FG_OK) {
         return XY_FG_SAFETY_OK;
     }
-    
+
     /* 检查电压安全 */
     if (voltage_mv > thresholds.pack_ovp_threshold) {
         status |= XY_FG_SAFETY_PACK_OVP;
-        xy_log_e("Safety: Pack OVP (%dmV)\n", voltage_mv);
+        xy_log_e("Safety: Pack OVP (%ldmV)\n", (long)voltage_mv);
     }
     if (voltage_mv < thresholds.pack_uvp_threshold) {
         status |= XY_FG_SAFETY_PACK_UVP;
-        xy_log_e("Safety: Pack UVP (%dmV)\n", voltage_mv);
+        xy_log_e("Safety: Pack UVP (%ldmV)\n", (long)voltage_mv);
     }
-    
+
     /* 检查电流安全 */
     if (current_ma > thresholds.chg_ocp_threshold) {
         status |= XY_FG_SAFETY_CHG_OCP;
-        xy_log_e("Safety: Chg OCP (%dmA)\n", current_ma);
+        xy_log_e("Safety: Chg OCP (%ldmA)\n", (long)current_ma);
     }
     if (current_ma < -thresholds.dischg_ocp_threshold) {
         status |= XY_FG_SAFETY_DISCHG_OCP;
-        xy_log_e("Safety: Dischg OCP (%dmA)\n", current_ma);
+        xy_log_e("Safety: Dischg OCP (%ldmA)\n", (long)current_ma);
     }
-    
+
     /* 检查温度安全 */
     if (temperature_c > thresholds.pack_otc_threshold) {
         status |= XY_FG_SAFETY_PACK_OTC;
-        xy_log_e("Safety: Pack OTC (%d.%d°C)\n", 
-                 temperature_c / 10, temperature_c % 10);
+        xy_log_e("Safety: Pack OTC (%ld.%ld°C)\n", (long)(temperature_c / 10),
+                 (long)(temperature_c % 10));
     }
     if (temperature_c < thresholds.pack_utp_threshold) {
         status |= XY_FG_SAFETY_PACK_UTP;
-        xy_log_e("Safety: Pack UTP (%d.%d°C)\n", 
-                 temperature_c / 10, temperature_c % 10);
+        xy_log_e("Safety: Pack UTP (%ld.%ld°C)\n", (long)(temperature_c / 10),
+                 (long)(temperature_c % 10));
     }
-    
+
     return status;
 }
 
 /**
  * @brief 获取警告状态
  */
-xy_fg_warning_status_t xy_fuel_gauge_get_warning_status(xy_fuel_gauge_t *fg)
-{
+xy_fg_warning_status_t xy_fuel_gauge_get_warning_status(xy_fuel_gauge_t* fg) {
     if (!fg) {
         return XY_FG_WARNING_NONE;
     }
-    
+
     xy_fg_warning_status_t warning = XY_FG_WARNING_NONE;
     int32_t voltage_mv = 0;
     int32_t current_ma = 0;
     int32_t temperature_c = 0;
     int32_t soc = 0;
     int32_t soh = 0;
-    
+
     /* 获取当前数据 */
     int ret = xy_fuel_gauge_get(fg, XY_FG_DATA_VOLTAGE, &voltage_mv);
     ret |= xy_fuel_gauge_get(fg, XY_FG_DATA_CURRENT, &current_ma);
@@ -179,7 +161,7 @@ xy_fg_warning_status_t xy_fuel_gauge_get_warning_status(xy_fuel_gauge_t *fg)
     if (ret != XY_FG_OK) {
         return XY_FG_WARNING_NONE;
     }
-    
+
     /* 电压警告 */
     if (voltage_mv > default_thresholds.pack_ovp_threshold * 0.95) {
         warning |= XY_FG_WARNING_PACK_HIGH;
@@ -187,7 +169,7 @@ xy_fg_warning_status_t xy_fuel_gauge_get_warning_status(xy_fuel_gauge_t *fg)
     if (voltage_mv < default_thresholds.pack_uvp_threshold * 1.05) {
         warning |= XY_FG_WARNING_PACK_LOW;
     }
-    
+
     /* 电流警告 */
     if (current_ma > default_thresholds.chg_ocp_threshold * 0.8) {
         warning |= XY_FG_WARNING_CHG_HIGH;
@@ -195,7 +177,7 @@ xy_fg_warning_status_t xy_fuel_gauge_get_warning_status(xy_fuel_gauge_t *fg)
     if (current_ma < -default_thresholds.dischg_ocp_threshold * 0.8) {
         warning |= XY_FG_WARNING_DISCHG_HIGH;
     }
-    
+
     /* 温度警告 */
     if (temperature_c > default_thresholds.pack_otc_threshold * 0.9) {
         warning |= XY_FG_WARNING_TEMP_HIGH;
@@ -203,7 +185,7 @@ xy_fg_warning_status_t xy_fuel_gauge_get_warning_status(xy_fuel_gauge_t *fg)
     if (temperature_c < default_thresholds.pack_utp_threshold * 1.1) {
         warning |= XY_FG_WARNING_TEMP_LOW;
     }
-    
+
     /* SOC/SOH 警告 */
     if (soc < 20) {
         warning |= XY_FG_WARNING_SOC_LOW;
@@ -214,15 +196,14 @@ xy_fg_warning_status_t xy_fuel_gauge_get_warning_status(xy_fuel_gauge_t *fg)
     if (soh < 80) {
         warning |= XY_FG_WARNING_SOH_LOW;
     }
-    
+
     return warning;
 }
 
 /**
  * @brief 获取故障状态
  */
-xy_fg_fault_status_t xy_fuel_gauge_get_fault_status(xy_fuel_gauge_t *fg)
-{
+xy_fg_fault_status_t xy_fuel_gauge_get_fault_status(xy_fuel_gauge_t* fg) {
     /* 简化实现：返回无故障 */
     (void)fg;
     return XY_FG_FAULT_NONE;
@@ -231,14 +212,13 @@ xy_fg_fault_status_t xy_fuel_gauge_get_fault_status(xy_fuel_gauge_t *fg)
 /**
  * @brief 配置安全阈值
  */
-int xy_fuel_gauge_config_safety_thresholds(xy_fuel_gauge_t *fg,
-                                           const xy_fg_safety_thresholds_t *thresholds)
-{
+int xy_fuel_gauge_config_safety_thresholds(xy_fuel_gauge_t* fg,
+                                           const xy_fg_safety_thresholds_t* thresholds) {
     if (!fg || !thresholds) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    fg_safety_threshold_cache_t *slot = alloc_threshold_cache(fg);
+    fg_safety_threshold_cache_t* slot = alloc_threshold_cache(fg);
     if (!slot) {
         return XY_FG_ERROR_BUSY;
     }
@@ -246,27 +226,26 @@ int xy_fuel_gauge_config_safety_thresholds(xy_fuel_gauge_t *fg,
     slot->thresholds = *thresholds;
 
     xy_log_i("Safety thresholds configured\n");
-    xy_log_i("  Cell OVP/UVP: %d/%d mV\n", 
-             thresholds->cell_ovp_threshold, thresholds->cell_uvp_threshold);
-    xy_log_i("  Pack OVP/UVP: %d/%d mV\n", 
-             thresholds->pack_ovp_threshold, thresholds->pack_uvp_threshold);
+    xy_log_i("  Cell OVP/UVP: %d/%d mV\n", thresholds->cell_ovp_threshold,
+             thresholds->cell_uvp_threshold);
+    xy_log_i("  Pack OVP/UVP: %d/%d mV\n", thresholds->pack_ovp_threshold,
+             thresholds->pack_uvp_threshold);
     xy_log_i("  Chg OCP: %d mA\n", thresholds->chg_ocp_threshold);
     xy_log_i("  Dischg OCP: %d mA\n", thresholds->dischg_ocp_threshold);
-    
+
     return 0;
 }
 
 /**
  * @brief 获取安全阈值
  */
-int xy_fuel_gauge_get_safety_thresholds(xy_fuel_gauge_t *fg,
-                                        xy_fg_safety_thresholds_t *thresholds)
-{
+int xy_fuel_gauge_get_safety_thresholds(xy_fuel_gauge_t* fg,
+                                        xy_fg_safety_thresholds_t* thresholds) {
     if (!fg || !thresholds) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    fg_safety_threshold_cache_t *slot = find_threshold_cache(fg);
+    fg_safety_threshold_cache_t* slot = find_threshold_cache(fg);
     if (slot) {
         *thresholds = slot->thresholds;
         return XY_FG_OK;
@@ -280,13 +259,11 @@ int xy_fuel_gauge_get_safety_thresholds(xy_fuel_gauge_t *fg,
 /**
  * @brief 获取最新安全事件
  */
-int xy_fuel_gauge_get_safety_event(xy_fuel_gauge_t *fg,
-                                   xy_fg_safety_event_t *event)
-{
+int xy_fuel_gauge_get_safety_event(xy_fuel_gauge_t* fg, xy_fg_safety_event_t* event) {
     if (!fg || !event) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
-    
+
     /* 简化实现：返回空事件 */
     memset(event, 0, sizeof(*event));
     event->type = XY_FG_SAFETY_EVENT_NONE;
@@ -296,14 +273,12 @@ int xy_fuel_gauge_get_safety_event(xy_fuel_gauge_t *fg,
 /**
  * @brief 获取安全事件历史
  */
-int xy_fuel_gauge_get_safety_event_history(xy_fuel_gauge_t *fg,
-                                           xy_fg_safety_event_t *events,
-                                           uint8_t max_events)
-{
+int xy_fuel_gauge_get_safety_event_history(xy_fuel_gauge_t* fg, xy_fg_safety_event_t* events,
+                                           uint8_t max_events) {
     if (!fg || !events || max_events == 0) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
-    
+
     /* 简化实现：返回空历史 */
     memset(events, 0, sizeof(xy_fg_safety_event_t) * max_events);
     return 0;
@@ -312,8 +287,7 @@ int xy_fuel_gauge_get_safety_event_history(xy_fuel_gauge_t *fg,
 /**
  * @brief 清除安全事件历史
  */
-int xy_fuel_gauge_clear_safety_events(xy_fuel_gauge_t *fg)
-{
+int xy_fuel_gauge_clear_safety_events(xy_fuel_gauge_t* fg) {
     if (!fg) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
@@ -325,8 +299,7 @@ int xy_fuel_gauge_clear_safety_events(xy_fuel_gauge_t *fg)
 /**
  * @brief 检查是否安全
  */
-bool xy_fuel_gauge_is_safe(xy_fuel_gauge_t *fg)
-{
+bool xy_fuel_gauge_is_safe(xy_fuel_gauge_t* fg) {
     xy_fg_safety_status_t status = xy_fuel_gauge_get_safety_status(fg);
     return (status == XY_FG_SAFETY_OK);
 }
@@ -334,8 +307,7 @@ bool xy_fuel_gauge_is_safe(xy_fuel_gauge_t *fg)
 /**
  * @brief 检查是否有警告
  */
-bool xy_fuel_gauge_has_warning(xy_fuel_gauge_t *fg)
-{
+bool xy_fuel_gauge_has_warning(xy_fuel_gauge_t* fg) {
     xy_fg_warning_status_t warning = xy_fuel_gauge_get_warning_status(fg);
     return (warning != XY_FG_WARNING_NONE);
 }
@@ -343,8 +315,7 @@ bool xy_fuel_gauge_has_warning(xy_fuel_gauge_t *fg)
 /**
  * @brief 检查是否有故障
  */
-bool xy_fuel_gauge_has_fault(xy_fuel_gauge_t *fg)
-{
+bool xy_fuel_gauge_has_fault(xy_fuel_gauge_t* fg) {
     xy_fg_fault_status_t fault = xy_fuel_gauge_get_fault_status(fg);
     return (fault != XY_FG_FAULT_NONE);
 }
@@ -352,27 +323,25 @@ bool xy_fuel_gauge_has_fault(xy_fuel_gauge_t *fg)
 /**
  * @brief 获取安全状态字符串
  */
-const char* xy_fuel_gauge_safety_status_to_string(xy_fg_safety_status_t status)
-{
+const char* xy_fuel_gauge_safety_status_to_string(xy_fg_safety_status_t status) {
     if (status == XY_FG_SAFETY_OK) {
         return "OK";
     }
-    
+
     /* 简化实现：返回第一个匹配的状态 */
     for (int i = 0; i < 15; i++) {
         if (status & (1 << i)) {
             return safety_strings[i + 1];
         }
     }
-    
+
     return "Unknown";
 }
 
 /**
  * @brief 获取警告状态字符串
  */
-const char* xy_fuel_gauge_warning_status_to_string(xy_fg_warning_status_t status)
-{
+const char* xy_fuel_gauge_warning_status_to_string(xy_fg_warning_status_t status) {
     if (status == XY_FG_WARNING_NONE) {
         return "None";
     }
@@ -382,8 +351,7 @@ const char* xy_fuel_gauge_warning_status_to_string(xy_fg_warning_status_t status
 /**
  * @brief 获取故障状态字符串
  */
-const char* xy_fuel_gauge_fault_status_to_string(xy_fg_fault_status_t status)
-{
+const char* xy_fuel_gauge_fault_status_to_string(xy_fg_fault_status_t status) {
     if (status == XY_FG_FAULT_NONE) {
         return "None";
     }

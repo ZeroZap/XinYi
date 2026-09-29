@@ -6,31 +6,28 @@
  */
 
 #include "xy_pid_auto.h"
-#include "xy_os_tick.h"
 #include "xy_log.h"
-#include <string.h>
-#include <stdlib.h>
+#include "xy_os_tick.h"
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
-#define DEFAULT_STEP_AMPLITUDE    50.0F
-#define DEFAULT_SAMPLE_INTERVAL   100     /* ms */
-#define DEFAULT_NUM_SAMPLES       100
-#define DEFAULT_TOLERANCE         0.01F
+#define DEFAULT_STEP_AMPLITUDE 50.0F
+#define DEFAULT_SAMPLE_INTERVAL 100 /* ms */
+#define DEFAULT_NUM_SAMPLES 100
+#define DEFAULT_TOLERANCE 0.01F
 
-int xy_pid_auto_init(xy_pid_auto_tuner_t *tuner, xy_pid_t *pid,
-                     const xy_pid_auto_config_t *config)
-{
+int xy_pid_auto_init(xy_pid_auto_tuner_t* tuner, xy_pid_t* pid,
+                     const xy_pid_auto_config_t* config) {
     if (!tuner || !pid) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
-    if (config && (config->method < XY_PID_AUTO_METHOD_ZN ||
-                   config->method > XY_PID_AUTO_METHOD_IMC ||
-                   !isfinite(config->step_amplitude) || config->step_amplitude < 0.0F ||
-                   config->num_samples == 1U || !isfinite(config->tolerance) ||
-                   config->tolerance < 0.0F)) {
+    if (config && (config->method > XY_PID_AUTO_METHOD_IMC || !isfinite(config->step_amplitude) ||
+                   config->step_amplitude < 0.0F || config->num_samples == 1U ||
+                   !isfinite(config->tolerance) || config->tolerance < 0.0F)) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
 
@@ -70,13 +67,12 @@ int xy_pid_auto_init(xy_pid_auto_tuner_t *tuner, xy_pid_t *pid,
     tuner->state = XY_PID_AUTO_STATE_IDLE;
     tuner->initialized = true;
 
-    xy_log_i("PID Auto-Tuner initialized (method=%d, samples=%d)\n",
-             tuner->config.method, tuner->config.num_samples);
+    xy_log_i("PID Auto-Tuner initialized (method=%d, samples=%d)\n", tuner->config.method,
+             tuner->config.num_samples);
     return XY_PID_AUTO_OK;
 }
 
-int xy_pid_auto_deinit(xy_pid_auto_tuner_t *tuner)
-{
+int xy_pid_auto_deinit(xy_pid_auto_tuner_t* tuner) {
     if (!tuner) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
@@ -90,8 +86,7 @@ int xy_pid_auto_deinit(xy_pid_auto_tuner_t *tuner)
     return XY_PID_AUTO_OK;
 }
 
-int xy_pid_auto_start(xy_pid_auto_tuner_t *tuner)
-{
+int xy_pid_auto_start(xy_pid_auto_tuner_t* tuner) {
     if (!tuner || !tuner->initialized || !tuner->pid || !tuner->samples) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
@@ -117,8 +112,7 @@ int xy_pid_auto_start(xy_pid_auto_tuner_t *tuner)
     return XY_PID_AUTO_OK;
 }
 
-int xy_pid_auto_stop(xy_pid_auto_tuner_t *tuner)
-{
+int xy_pid_auto_stop(xy_pid_auto_tuner_t* tuner) {
     if (!tuner || !tuner->initialized) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
@@ -131,9 +125,8 @@ int xy_pid_auto_stop(xy_pid_auto_tuner_t *tuner)
 /**
  * @brief Ziegler-Nichols 整定法计算
  */
-static int xy_pid_auto_calc_zn(xy_pid_auto_tuner_t *tuner)
-{
-    float *samples = tuner->samples;
+static int xy_pid_auto_calc_zn(xy_pid_auto_tuner_t* tuner) {
+    float* samples = tuner->samples;
     uint16_t n = tuner->sample_count;
 
     if (!tuner || !samples || n == 0U || fabsf(tuner->output_step) <= 0.000001F) {
@@ -169,8 +162,8 @@ static int xy_pid_auto_calc_zn(xy_pid_auto_tuner_t *tuner)
     }
 
     /* Z-N 参数计算 (阶跃响应法) */
-    float L = t10;  /* 滞后时间 */
-    float T = rise_time * 1.3F;  /* 时间常数 */
+    float L = t10;              /* 滞后时间 */
+    float T = rise_time * 1.3F; /* 时间常数 */
     float K = gain;
 
     /* PID 参数 (Z-N 推荐) */
@@ -180,13 +173,12 @@ static int xy_pid_auto_calc_zn(xy_pid_auto_tuner_t *tuner)
 
     tuner->result.rise_time = rise_time;
 
-    xy_log_i("Z-N Calculation: Kp=%.3f, Ki=%.3f, Kd=%.3f\n",
-             tuner->result.kp, tuner->result.ki, tuner->result.kd);
+    xy_log_i("Z-N Calculation: Kp=%.3f, Ki=%.3f, Kd=%.3f\n", tuner->result.kp, tuner->result.ki,
+             tuner->result.kd);
     return XY_PID_AUTO_OK;
 }
 
-int xy_pid_auto_loop(xy_pid_auto_tuner_t *tuner, float process_var)
-{
+int xy_pid_auto_loop(xy_pid_auto_tuner_t* tuner, float process_var) {
     if (!tuner || !tuner->initialized || !tuner->samples) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
@@ -210,7 +202,7 @@ int xy_pid_auto_loop(xy_pid_auto_tuner_t *tuner, float process_var)
     /* 存储采样 */
     if (tuner->sample_count < tuner->config.num_samples) {
         tuner->samples[tuner->sample_count++] = process_var;
-        tuner->start_time = xy_os_tick_get();  /* 重置计时 */
+        tuner->start_time = xy_os_tick_get(); /* 重置计时 */
 
         xy_log_d("Sample %d: PV=%.2f\n", tuner->sample_count, process_var);
     }
@@ -245,17 +237,14 @@ int xy_pid_auto_loop(xy_pid_auto_tuner_t *tuner, float process_var)
     return XY_PID_AUTO_OK;
 }
 
-xy_pid_auto_state_t xy_pid_auto_get_state(const xy_pid_auto_tuner_t *tuner)
-{
+xy_pid_auto_state_t xy_pid_auto_get_state(const xy_pid_auto_tuner_t* tuner) {
     if (!tuner) {
         return XY_PID_AUTO_STATE_ERROR;
     }
     return tuner->state;
 }
 
-int xy_pid_auto_get_result(const xy_pid_auto_tuner_t *tuner,
-                           xy_pid_auto_result_t *result)
-{
+int xy_pid_auto_get_result(const xy_pid_auto_tuner_t* tuner, xy_pid_auto_result_t* result) {
     if (!tuner || !tuner->initialized || !result) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
@@ -268,8 +257,7 @@ int xy_pid_auto_get_result(const xy_pid_auto_tuner_t *tuner,
     return XY_PID_AUTO_OK;
 }
 
-int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
-{
+int xy_pid_auto_apply(xy_pid_auto_tuner_t* tuner) {
     if (!tuner || !tuner->initialized) {
         return XY_PID_AUTO_INVALID_PARAM;
     }
@@ -283,8 +271,7 @@ int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
     }
 
     /* 应用整定结果到 PID */
-    int ret = xy_pid_set_tuning(tuner->pid, tuner->result.kp,
-                                tuner->result.kp / tuner->result.ki,
+    int ret = xy_pid_set_tuning(tuner->pid, tuner->result.kp, tuner->result.kp / tuner->result.ki,
                                 tuner->result.kp * tuner->result.kd);
     if (ret != XY_PID_OK) {
         return XY_PID_AUTO_INVALID_PARAM;
@@ -300,8 +287,7 @@ int xy_pid_auto_apply(xy_pid_auto_tuner_t *tuner)
     return XY_PID_AUTO_OK;
 }
 
-float xy_pid_auto_get_progress(const xy_pid_auto_tuner_t *tuner)
-{
+float xy_pid_auto_get_progress(const xy_pid_auto_tuner_t* tuner) {
     if (!tuner || !tuner->initialized || tuner->sample_count == 0 ||
         tuner->config.num_samples == 0) {
         return 0.0F;
