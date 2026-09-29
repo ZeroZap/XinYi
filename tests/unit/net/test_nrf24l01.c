@@ -530,6 +530,29 @@ static void test_receive_irq_clear_failure_preserves_payload(void)
     TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
 }
 
+static void test_receive_payload_read_failure_preserves_payload(void)
+{
+    xy_nrf24l01_t radio;
+    uint8_t payload[4] = {1U, 2U, 3U, 4U};
+    const uint8_t old[4] = {1U, 2U, 3U, 4U};
+    size_t received = 99U;
+    const uint8_t read_tx[5] = {0x61U, 0xFFU, 0xFFU, 0xFFU, 0xFFU};
+    xy_nrf24l01_config_t cfg = config();
+
+    memset(&radio, 0, sizeof(radio));
+    radio.config = cfg;
+    radio.initialized = 1U;
+    radio.rx_payload_width = 4U;
+    queue_frame(0x17U, 0xFFU, 0x4EU, 0x00U, XY_HAL_OK);
+    queue_buffer(read_tx, sizeof(read_tx), 0x4EU, XY_HAL_ERROR_TIMEOUT);
+
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT,
+                          xy_nrf24l01_receive(&radio, payload, sizeof(payload), &received));
+    TEST_ASSERT_EQUAL_UINT(0U, received);
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(old, payload, sizeof(payload));
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 static void test_irq_status_is_staged_and_reports_rx_source(void)
 {
     xy_nrf24l01_t radio;
@@ -620,6 +643,7 @@ int main(void)
     RUN_TEST(test_receive_without_irq_preserves_payload);
     RUN_TEST(test_receive_reads_fifo_even_when_rx_irq_is_clear);
     RUN_TEST(test_receive_irq_clear_failure_preserves_payload);
+    RUN_TEST(test_receive_payload_read_failure_preserves_payload);
     RUN_TEST(test_irq_status_is_staged_and_reports_rx_source);
     RUN_TEST(test_deinit_quiesces_radio_before_clearing_owner);
     RUN_TEST(test_deinit_cleanup_failure_preserves_owner_for_retry);
