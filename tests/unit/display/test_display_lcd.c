@@ -518,6 +518,40 @@ static void test_st7789_checked_pixel_validates_bounds_and_spi_errors(void) {
     xy_lcd_st7789_deinit(&lcd);
 }
 
+static void test_st7789_checked_pixel_stream_and_refresh_propagate_errors(void) {
+    xy_lcd_st7789_device_t lcd;
+    xy_lcd_st7789_config_t cfg = make_st7789_config();
+    const uint16_t pixels[] = {0x1234U, 0xABCDU};
+
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_init(&lcd, &cfg));
+    reset_logs();
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_write_pixel_checked(&lcd, pixels, 2U));
+    TEST_ASSERT_EQUAL_UINT32(1U, logged_spi_op_count());
+    TEST_ASSERT_EQUAL_HEX8(0x12U, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x34U, spi_ops[0].bytes[1]);
+    TEST_ASSERT_EQUAL_HEX8(0xABU, spi_ops[0].bytes[2]);
+    TEST_ASSERT_EQUAL_HEX8(0xCDU, spi_ops[0].bytes[3]);
+
+    reset_logs();
+    spi_fail_on_call = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_write_pixel_checked(&lcd, pixels, 2U));
+
+    lcd.spi_dev.base.framebuffer[0] = 0x5678U;
+    reset_logs();
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_refresh_checked(&lcd));
+    TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_CASET, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x56U, spi_ops[11].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x78U, spi_ops[11].bytes[1]);
+
+    reset_logs();
+    spi_fail_on_call = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_refresh_checked(&lcd));
+    xy_lcd_st7789_deinit(&lcd);
+
+    memset(&lcd, 0, sizeof(lcd));
+    TEST_ASSERT_EQUAL_INT(XY_ERR_INVALID_PARAM, xy_lcd_st7789_refresh_checked(&lcd));
+}
+
 static void test_st7789_init_propagates_spi_error_and_releases_framebuffer(void) {
     xy_lcd_st7789_device_t lcd;
     xy_lcd_st7789_config_t cfg = make_st7789_config();
@@ -538,6 +572,7 @@ int main(void) {
     RUN_TEST(test_st7789_rgb565_color_order_controls_madctl_bgr);
     RUN_TEST(test_st7789_checked_fill_is_bounded_and_propagates_spi_error);
     RUN_TEST(test_st7789_checked_pixel_validates_bounds_and_spi_errors);
+    RUN_TEST(test_st7789_checked_pixel_stream_and_refresh_propagate_errors);
     RUN_TEST(test_st7789_init_propagates_spi_error_and_releases_framebuffer);
     return UNITY_END();
 }

@@ -213,6 +213,10 @@ void xy_lcd_st7789_set_window(xy_lcd_st7789_device_t* lcd, uint16_t x, uint16_t 
  */
 void xy_lcd_st7789_write_pixel(xy_lcd_st7789_device_t* lcd, const uint16_t* data, uint32_t len);
 
+/** Stream RGB565 pixels in wire byte order and report transport failures. */
+xy_error_t xy_lcd_st7789_write_pixel_checked(xy_lcd_st7789_device_t* lcd, const uint16_t* data,
+                                             uint32_t len);
+
 /**
  * @brief Clear screen with color
  * @param lcd LCD device
@@ -254,6 +258,9 @@ xy_error_t xy_lcd_st7789_fill_checked(xy_lcd_st7789_device_t* lcd, uint16_t x, u
  * @param lcd LCD device
  */
 void xy_lcd_st7789_refresh(xy_lcd_st7789_device_t* lcd);
+
+/** Refresh the complete framebuffer and report transport failures. */
+xy_error_t xy_lcd_st7789_refresh_checked(xy_lcd_st7789_device_t* lcd);
 
 /**
  * @brief Set backlight

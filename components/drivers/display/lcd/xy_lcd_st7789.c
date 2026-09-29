@@ -245,23 +245,32 @@ static xy_error_t xy_lcd_st7789_set_window_checked(xy_lcd_st7789_device_t* lcd, 
  * @brief Write pixels to window
  */
 void xy_lcd_st7789_write_pixel(xy_lcd_st7789_device_t* lcd, const uint16_t* data, uint32_t len) {
-    xy_lcd_spi_device_t* spi = &lcd->spi_dev;
+    (void)xy_lcd_st7789_write_pixel_checked(lcd, data, len);
+}
 
-    /* Set DC high for data */
-    xy_hal_gpio_write(spi->dc_port, spi->dc_pin, 1);
-    xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 0);
+xy_error_t xy_lcd_st7789_write_pixel_checked(xy_lcd_st7789_device_t* lcd, const uint16_t* data,
+                                             uint32_t len) {
+    uint8_t buffer[256];
+    uint32_t offset = 0U;
 
-    /* Convert RGB565 to bytes and send */
-    uint8_t* buf = (uint8_t*)data;
-    uint32_t byte_len = len * 2;
-
-    if (spi->use_dma) {
-        xy_hal_spi_transmit_dma(spi->spi_handle, buf, byte_len);
-    } else {
-        xy_hal_spi_transmit(spi->spi_handle, buf, byte_len, ST7789_TRANSFER_TIMEOUT_MS);
+    if (lcd == NULL || !lcd->initialized || data == NULL || len == 0U) {
+        return XY_ERR_INVALID_PARAM;
     }
-
-    xy_hal_gpio_write(spi->cs_port, spi->cs_pin, 1);
+    while (offset < len) {
+        uint32_t count = len - offset;
+        if (count > sizeof(buffer) / 2U) {
+            count = sizeof(buffer) / 2U;
+        }
+        for (uint32_t i = 0U; i < count; ++i) {
+            buffer[i * 2U] = (uint8_t)(data[offset + i] >> 8);
+            buffer[i * 2U + 1U] = (uint8_t)data[offset + i];
+        }
+        if (xy_lcd_st7789_write_data_checked(lcd, buffer, count * 2U) != XY_ERR_OK) {
+            return XY_ERR_IO;
+        }
+        offset += count;
+    }
+    return XY_ERR_OK;
 }
 
 /* ==================== Control Operations ==================== */
@@ -336,17 +345,25 @@ xy_error_t xy_lcd_st7789_fill_checked(xy_lcd_st7789_device_t* lcd, uint16_t x, u
  * @brief Refresh display from framebuffer
  */
 void xy_lcd_st7789_refresh(xy_lcd_st7789_device_t* lcd) {
+    (void)xy_lcd_st7789_refresh_checked(lcd);
+}
+
+xy_error_t xy_lcd_st7789_refresh_checked(xy_lcd_st7789_device_t* lcd) {
+    if (lcd == NULL || !lcd->initialized) {
+        return XY_ERR_INVALID_PARAM;
+    }
     xy_lcd_spi_device_t* spi = &lcd->spi_dev;
     uint16_t* fb = spi->base.framebuffer;
     uint16_t width = spi->base.fb_width;
     uint16_t height = spi->base.fb_height;
 
-    if (!fb) {
-        return;
+    if (fb == NULL || width == 0U || height == 0U) {
+        return XY_ERR_INVALID_PARAM;
     }
-
-    xy_lcd_st7789_set_window(lcd, 0, 0, width, height);
-    xy_lcd_st7789_write_pixel(lcd, fb, (uint32_t)width * height);
+    if (xy_lcd_st7789_set_window_checked(lcd, 0U, 0U, width, height) != XY_ERR_OK) {
+        return XY_ERR_IO;
+    }
+    return xy_lcd_st7789_write_pixel_checked(lcd, fb, (uint32_t)width * height);
 }
 
 /**
