@@ -26,8 +26,8 @@ static uint32_t g_delay_total;
 static int g_init_ret;
 static int g_init_establish_transport;
 
-xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr, uint32_t timeout)
-{
+xy_error_t xy_i2c_device_init(xy_i2c_device_t* dev, void* i2c_handle, uint16_t addr,
+                              uint32_t timeout) {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
     memset(dev, 0, sizeof(*dev));
@@ -39,8 +39,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     return g_init_ret;
 }
 
-xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
-{
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t* dev, uint8_t reg, uint8_t* data, size_t len) {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_EQUAL_UINT8(1U, dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
@@ -56,13 +55,13 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
     return ret;
 }
 
-xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t len)
-{
+xy_error_t xy_i2c_device_write(xy_i2c_device_t* dev, const uint8_t* data, size_t len) {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_EQUAL_UINT8(1U, dev->base.initialized);
     TEST_ASSERT_NOT_NULL(data);
     TEST_ASSERT_EQUAL_UINT(2U, len);
-    TEST_ASSERT_LESS_THAN_UINT(sizeof(g_write_data_queue) / sizeof(g_write_data_queue[0]), g_write_index);
+    TEST_ASSERT_LESS_THAN_UINT(sizeof(g_write_data_queue) / sizeof(g_write_data_queue[0]),
+                               g_write_index);
 
     memcpy(g_write_data_queue[g_write_count], data, len);
     g_write_len_queue[g_write_count] = len;
@@ -70,25 +69,21 @@ xy_error_t xy_i2c_device_write(xy_i2c_device_t *dev, const uint8_t *data, size_t
     return g_write_ret_queue[g_write_index++];
 }
 
-uint32_t xy_os_tick_get(void)
-{
+uint32_t xy_os_tick_get(void) {
     return g_tick;
 }
 
-void xy_os_delay(uint32_t ms)
-{
+void xy_os_delay(uint32_t ms) {
     g_delay_total += ms;
     g_tick += ms;
 }
 
-int xy_printf(const char *fmt, ...)
-{
+int xy_printf(const char* fmt, ...) {
     (void)fmt;
     return 0;
 }
 
-static void queue_read_reg(uint8_t cmd, const uint8_t *data, size_t len, int ret)
-{
+static void queue_read_reg(uint8_t cmd, const uint8_t* data, size_t len, int ret) {
     TEST_ASSERT_LESS_THAN_UINT(sizeof(g_read_reg_cmd_queue), g_read_reg_count);
     g_read_reg_cmd_queue[g_read_reg_count] = cmd;
     g_read_reg_len_queue[g_read_reg_count] = len;
@@ -99,19 +94,16 @@ static void queue_read_reg(uint8_t cmd, const uint8_t *data, size_t len, int ret
     g_read_reg_count++;
 }
 
-static void queue_read_reg_u8(uint8_t cmd, uint8_t value, int ret)
-{
+static void queue_read_reg_u8(uint8_t cmd, uint8_t value, int ret) {
     queue_read_reg(cmd, &value, 1U, ret);
 }
 
-static void queue_read_reg_u16(uint8_t cmd, uint16_t value, int ret)
-{
+static void queue_read_reg_u16(uint8_t cmd, uint16_t value, int ret) {
     uint8_t data[2] = {(uint8_t)value, (uint8_t)(value >> 8)};
     queue_read_reg(cmd, data, 2U, ret);
 }
 
-void setUp(void)
-{
+void setUp(void) {
     memset(g_read_reg_cmd_queue, 0, sizeof(g_read_reg_cmd_queue));
     memset(g_read_reg_data_queue, 0, sizeof(g_read_reg_data_queue));
     memset(g_read_reg_len_queue, 0, sizeof(g_read_reg_len_queue));
@@ -132,31 +124,28 @@ void setUp(void)
     g_init_establish_transport = 1;
 }
 
-void tearDown(void)
-{
-}
+void tearDown(void) {}
 
-static void queue_init_success_reads(void)
-{
+static void queue_init_success_reads(void) {
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_ID, 0x0AU, XY_DEVICE_OK);
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x12U, XY_DEVICE_OK);
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x10U, XY_DEVICE_OK);
 }
 
-static void init_ok(xy_tsl2561_t *dev)
-{
+static void init_ok(xy_tsl2561_t* dev) {
     int fake_bus;
     queue_init_success_reads();
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_init(dev, &fake_bus, TSL2561_ADDR_FLOAT));
 }
 
-static void test_init_rejects_invalid_inputs_and_writes_default_config(void)
-{
+static void test_init_rejects_invalid_inputs_and_writes_default_config(void) {
     xy_tsl2561_t dev;
     int fake_bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_init(NULL, &fake_bus, TSL2561_ADDR_FLOAT));
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_init(&dev, NULL, TSL2561_ADDR_FLOAT));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
+                          xy_tsl2561_init(NULL, &fake_bus, TSL2561_ADDR_FLOAT));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
+                          xy_tsl2561_init(&dev, NULL, TSL2561_ADDR_FLOAT));
     memset(&dev, 0, sizeof(dev));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_init(&dev, &fake_bus, 0x28U));
     TEST_ASSERT_EQUAL_UINT(0U, g_read_reg_index);
@@ -176,8 +165,7 @@ static void test_init_rejects_invalid_inputs_and_writes_default_config(void)
     TEST_ASSERT_EQUAL_UINT8(0x02U, g_write_data_queue[2][1]);
 }
 
-static void test_public_ops_reject_invalid_nested_i2c_lifecycle_without_io(void)
-{
+static void test_public_ops_reject_invalid_nested_i2c_lifecycle_without_io(void) {
     xy_tsl2561_t dev;
     uint16_t channel = 0xAAAAU;
     float lux = -1.0f;
@@ -190,15 +178,13 @@ static void test_public_ops_reject_invalid_nested_i2c_lifecycle_without_io(void)
     dev.i2c_dev.base.initialized = false;
 
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_read(&dev));
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
-                          xy_tsl2561_get_broadband(&dev, &channel));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_get_broadband(&dev, &channel));
     TEST_ASSERT_EQUAL_UINT16(0xAAAAU, channel);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_get_ir(&dev, &channel));
     TEST_ASSERT_EQUAL_UINT16(0xAAAAU, channel);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_get_lux(&dev, &lux));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, -1.0f, lux);
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
-                          xy_tsl2561_set_gain(&dev, XY_TSL2561_GAIN_16X));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_set_gain(&dev, XY_TSL2561_GAIN_16X));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
                           xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_enable(&dev));
@@ -209,8 +195,7 @@ static void test_public_ops_reject_invalid_nested_i2c_lifecycle_without_io(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
-static void test_init_reports_not_found_on_bad_id_or_read_failure(void)
-{
+static void test_init_reports_not_found_on_bad_id_or_read_failure(void) {
     xy_tsl2561_t dev;
     int fake_bus;
 
@@ -222,24 +207,21 @@ static void test_init_reports_not_found_on_bad_id_or_read_failure(void)
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_NOT_FOUND, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_LOW));
 }
 
-static void test_init_propagates_i2c_device_init_failure_without_bus_io(void)
-{
+static void test_init_propagates_i2c_device_init_failure_without_bus_io(void) {
     xy_tsl2561_t dev;
     int fake_bus;
 
     memset(&dev, 0xA5, sizeof(dev));
     g_init_ret = XY_DEVICE_TIMEOUT;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
-                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_FLOAT));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_FLOAT));
     TEST_ASSERT_EQUAL_UINT(0U, g_read_reg_index);
     TEST_ASSERT_EQUAL_UINT(0U, g_write_count);
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
     TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
 }
 
-static void test_init_rejects_incomplete_nested_transport_without_bus_io(void)
-{
+static void test_init_rejects_incomplete_nested_transport_without_bus_io(void) {
     xy_tsl2561_t dev;
     int fake_bus;
 
@@ -254,13 +236,63 @@ static void test_init_rejects_incomplete_nested_transport_without_bus_io(void)
     TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
 }
 
-static void test_read_updates_channels_lux_and_timestamp(void)
-{
+static void test_failed_reinit_preserves_live_owner(void) {
+    xy_tsl2561_t dev;
+    xy_tsl2561_t snapshot;
+    int fake_bus;
+
+    init_ok(&dev);
+    dev.gain = XY_TSL2561_GAIN_16X;
+    dev.integration = XY_TSL2561_INTEGRATION_101MS;
+    dev.data.broadband = 1234U;
+    dev.data.ir = 234U;
+    dev.data.lux = 12.5f;
+    dev.data.timestamp = 5678U;
+    snapshot = dev;
+
+    g_init_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
+static void test_failed_reinit_probe_and_config_preserve_live_owner(void) {
+    xy_tsl2561_t dev;
+    xy_tsl2561_t snapshot;
+    int fake_bus;
+
+    init_ok(&dev);
+    dev.data.broadband = 1234U;
+    dev.data.ir = 234U;
+    dev.data.lux = 12.5f;
+    dev.data.timestamp = 5678U;
+    snapshot = dev;
+
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_ID, 0x00U, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_NOT_FOUND,
+                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+
+    setUp();
+    init_ok(&dev);
+    dev.data.broadband = 4321U;
+    dev.data.ir = 432U;
+    dev.data.lux = 21.5f;
+    dev.data.timestamp = 8765U;
+    snapshot = dev;
+    queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_ID, 0x0AU, XY_DEVICE_OK);
+    g_write_ret_queue[g_write_index] = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
+static void test_read_updates_channels_lux_and_timestamp(void) {
     xy_tsl2561_t dev;
 
     init_ok(&dev);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 2000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 500U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 2000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 500U,
+                       XY_DEVICE_OK);
 
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
     TEST_ASSERT_EQUAL_UINT8(TSL2561_CMD_BIT | TSL2561_REG_CONTROL, g_write_data_queue[3][0]);
@@ -272,8 +304,7 @@ static void test_read_updates_channels_lux_and_timestamp(void)
     TEST_ASSERT_EQUAL_UINT32(420U, g_delay_total);
 }
 
-static void test_read_errors_do_not_overwrite_data(void)
-{
+static void test_read_errors_do_not_overwrite_data(void) {
     xy_tsl2561_t dev;
 
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_read(NULL));
@@ -284,7 +315,8 @@ static void test_read_errors_do_not_overwrite_data(void)
     dev.data.broadband = 11U;
     dev.data.ir = 22U;
     dev.data.lux = 3.0f;
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U, XY_DEVICE_ERROR);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U,
+                       XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_read(&dev));
     TEST_ASSERT_EQUAL_UINT16(11U, dev.data.broadband);
     TEST_ASSERT_EQUAL_UINT16(22U, dev.data.ir);
@@ -294,15 +326,16 @@ static void test_read_errors_do_not_overwrite_data(void)
     init_ok(&dev);
     dev.data.broadband = 11U;
     dev.data.ir = 22U;
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 2000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 0U, XY_DEVICE_ERROR);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 2000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 0U,
+                       XY_DEVICE_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_read(&dev));
     TEST_ASSERT_EQUAL_UINT16(11U, dev.data.broadband);
     TEST_ASSERT_EQUAL_UINT16(22U, dev.data.ir);
 }
 
-static void test_getters_update_outputs_only_on_success(void)
-{
+static void test_getters_update_outputs_only_on_success(void) {
     xy_tsl2561_t dev;
     uint16_t broadband = 0xFFFFU;
     uint16_t ir = 0xFFFFU;
@@ -316,44 +349,53 @@ static void test_getters_update_outputs_only_on_success(void)
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_get_lux(&dev, NULL));
 
     init_ok(&dev);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 100U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 100U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_get_broadband(&dev, &broadband));
     TEST_ASSERT_EQUAL_UINT16(1000U, broadband);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 100U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 100U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_get_ir(&dev, &ir));
     TEST_ASSERT_EQUAL_UINT16(100U, ir);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 100U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 100U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_get_lux(&dev, &lux));
     TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, lux);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U, XY_DEVICE_ERROR);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U,
+                       XY_DEVICE_ERROR);
     broadband = 0xFFFFU;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_get_broadband(&dev, &broadband));
     TEST_ASSERT_EQUAL_UINT16(0xFFFFU, broadband);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U, XY_DEVICE_ERROR);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U,
+                       XY_DEVICE_ERROR);
     ir = 0xEEEEU;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_get_ir(&dev, &ir));
     TEST_ASSERT_EQUAL_UINT16(0xEEEEU, ir);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U, XY_DEVICE_ERROR);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U,
+                       XY_DEVICE_ERROR);
     lux = -5.0f;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_get_lux(&dev, &lux));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, -5.0f, lux);
 }
 
-static void test_read_integration_delay_and_zero_broadband_lux_branches(void)
-{
+static void test_read_integration_delay_and_zero_broadband_lux_branches(void) {
     xy_tsl2561_t dev;
 
     init_ok(&dev);
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x02U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
     g_delay_total = 0;
     queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 0U, XY_DEVICE_OK);
     queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 0U, XY_DEVICE_OK);
@@ -364,16 +406,18 @@ static void test_read_integration_delay_and_zero_broadband_lux_branches(void)
     setUp();
     init_ok(&dev);
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x02U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_101MS));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_101MS));
     g_delay_total = 0;
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1500U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 1000U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1500U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 1000U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
     TEST_ASSERT_EQUAL_UINT32(120U, g_delay_total);
 }
 
-static void test_enable_disable_propagate_i2c_write_failures(void)
-{
+static void test_enable_disable_propagate_i2c_write_failures(void) {
     xy_tsl2561_t dev;
 
     init_ok(&dev);
@@ -384,18 +428,19 @@ static void test_enable_disable_propagate_i2c_write_failures(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_disable(&dev));
 }
 
-static void test_gain_integration_enable_disable_and_deinit_contracts(void)
-{
+static void test_gain_integration_enable_disable_and_deinit_contracts(void) {
     xy_tsl2561_t dev;
 
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_set_gain(NULL, XY_TSL2561_GAIN_1X));
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_set_integration(NULL, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
+                          xy_tsl2561_set_integration(NULL, XY_TSL2561_INTEGRATION_13MS));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_enable(NULL));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_disable(NULL));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_deinit(NULL));
 
     init_ok(&dev);
-    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM, xy_tsl2561_set_gain(&dev, (xy_tsl2561_gain_t)99));
+    TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
+                          xy_tsl2561_set_gain(&dev, (xy_tsl2561_gain_t)99));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INVALID_PARAM,
                           xy_tsl2561_set_integration(&dev, (xy_tsl2561_integration_t)99));
 
@@ -406,7 +451,8 @@ static void test_gain_integration_enable_disable_and_deinit_contracts(void)
 
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x12U, XY_DEVICE_OK);
     g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_402MS, dev.integration);
 
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x02U, XY_DEVICE_OK);
@@ -416,7 +462,8 @@ static void test_gain_integration_enable_disable_and_deinit_contracts(void)
     TEST_ASSERT_EQUAL_UINT8(0x12U, g_write_data_queue[5][1]);
 
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x12U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_13MS, dev.integration);
     TEST_ASSERT_EQUAL_UINT8(0x10U, g_write_data_queue[6][1]);
 
@@ -434,8 +481,7 @@ static void test_gain_integration_enable_disable_and_deinit_contracts(void)
     TEST_ASSERT_EQUAL_UINT(9U, g_write_count);
 }
 
-static void test_gain_integration_failures_preserve_cache(void)
-{
+static void test_gain_integration_failures_preserve_cache(void) {
     xy_tsl2561_t dev;
 
     init_ok(&dev);
@@ -446,22 +492,20 @@ static void test_gain_integration_failures_preserve_cache(void)
     TEST_ASSERT_EQUAL_UINT(3U, g_write_count);
 
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0xFFU, XY_DEVICE_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_tsl2561_set_integration(&dev, XY_TSL2561_INTEGRATION_13MS));
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_INTEGRATION_101MS, dev.integration);
     TEST_ASSERT_EQUAL_UINT(3U, g_write_count);
 }
 
-
-static void test_tsl2561_init_config_write_failures_clear_device(void)
-{
+static void test_tsl2561_init_config_write_failures_clear_device(void) {
     xy_tsl2561_t dev;
     int fake_bus;
 
     memset(&dev, 0xA5, sizeof(dev));
     g_write_ret_queue[0] = XY_DEVICE_ERROR;
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_ID, 0x0AU, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
-                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
     TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
     TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
 
@@ -470,8 +514,7 @@ static void test_tsl2561_init_config_write_failures_clear_device(void)
     g_write_ret_queue[1] = XY_DEVICE_TIMEOUT;
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_ID, 0x0AU, XY_DEVICE_OK);
     queue_read_reg_u8(TSL2561_CMD_BIT | TSL2561_REG_TIMING, 0x12U, XY_DEVICE_OK);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
-                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
     TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
     TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
 
@@ -479,32 +522,33 @@ static void test_tsl2561_init_config_write_failures_clear_device(void)
     memset(&dev, 0xA5, sizeof(dev));
     g_write_ret_queue[2] = XY_DEVICE_ERROR;
     queue_init_success_reads();
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
-                          xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_init(&dev, &fake_bus, TSL2561_ADDR_HIGH));
     TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_t){0}, &dev, sizeof(dev));
     TEST_ASSERT_EQUAL_UINT(3U, g_write_count);
 }
 
-static void test_tsl2561_read_propagates_enable_failure_without_updating_data(void)
-{
+static void test_tsl2561_read_propagates_enable_failure_without_updating_data(void) {
     xy_tsl2561_t dev;
 
     init_ok(&dev);
     g_write_ret_queue[g_write_index] = XY_DEVICE_ERROR;
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1200U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 120U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1200U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 120U,
+                       XY_DEVICE_OK);
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_tsl2561_read(&dev));
     TEST_ASSERT_EQUAL_MEMORY(&(xy_tsl2561_data_t){0}, &dev.data, sizeof(dev.data));
 }
 
-static void test_tsl2561_deinit_propagates_disable_failure_and_preserves_ready(void)
-{
+static void test_tsl2561_deinit_propagates_disable_failure_and_preserves_ready(void) {
     xy_tsl2561_t dev;
 
     init_ok(&dev);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 100U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 300U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 100U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 300U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, dev.data.lux);
 
@@ -513,41 +557,49 @@ static void test_tsl2561_deinit_propagates_disable_failure_and_preserves_ready(v
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
-static void test_tsl2561_lux_ratio_piecewise_boundaries(void)
-{
+static void test_tsl2561_lux_ratio_piecewise_boundaries(void) {
     xy_tsl2561_t dev;
 
     init_ok(&dev);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 500U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 500U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
     TEST_ASSERT_GREATER_THAN_FLOAT(0.0f, dev.data.lux);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 800U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 800U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, -0.7474f, dev.data.lux);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 1300U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 1300U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, -2.4142f, dev.data.lux);
 
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U, XY_DEVICE_OK);
-    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 2550U, XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA0_L, 1000U,
+                       XY_DEVICE_OK);
+    queue_read_reg_u16(TSL2561_CMD_BIT | TSL2561_WORD_BIT | TSL2561_REG_DATA1_L, 2550U,
+                       XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_TSL2561_OK, xy_tsl2561_read(&dev));
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, dev.data.lux);
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_default_config);
     RUN_TEST(test_public_ops_reject_invalid_nested_i2c_lifecycle_without_io);
     RUN_TEST(test_init_reports_not_found_on_bad_id_or_read_failure);
     RUN_TEST(test_init_propagates_i2c_device_init_failure_without_bus_io);
     RUN_TEST(test_init_rejects_incomplete_nested_transport_without_bus_io);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
+    RUN_TEST(test_failed_reinit_probe_and_config_preserve_live_owner);
     RUN_TEST(test_read_updates_channels_lux_and_timestamp);
     RUN_TEST(test_read_errors_do_not_overwrite_data);
     RUN_TEST(test_getters_update_outputs_only_on_success);
