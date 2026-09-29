@@ -14,6 +14,9 @@
 
 #define SD_R1_IDLE 0x01U
 #define SD_TOKEN_START_BLOCK 0xFEU
+#define SD_OCR_POWER_UP_STATUS (1UL << 31)
+#define SD_OCR_CARD_CAPACITY_STATUS (1UL << 30)
+#define SD_OCR_27_TO_36_VOLTAGE_WINDOW 0x00FF8000UL
 
 static xy_hal_error_t transfer(xy_sd_spi_t* card, const uint8_t* tx, uint8_t* rx, size_t length) {
     return card->config.transfer(card->config.spi, tx, rx, length, card->config.timeout_ms);
@@ -153,6 +156,7 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t* card, const xy_sd_spi_config_t* confi
     uint8_t csd[16];
     uint8_t clocks_tx[10];
     uint8_t clocks_rx[10];
+    uint32_t ocr_value;
     xy_hal_error_t result;
 
     if (card == NULL || config == NULL || config->spi == NULL || config->transfer == NULL ||
@@ -221,10 +225,19 @@ xy_hal_error_t xy_sd_spi_init(xy_sd_spi_t* card, const xy_sd_spi_config_t* confi
     if (result == XY_HAL_OK) {
         result = release_result;
     }
-    if (result != XY_HAL_OK || response != 0U || (ocr[0] & 0x80U) == 0U) {
+    if (result != XY_HAL_OK || response != 0U) {
         return result != XY_HAL_OK ? result : XY_HAL_ERROR_IO;
     }
-    candidate.type = (ocr[0] & 0x40U) != 0U ? XY_SD_SPI_CARD_SDHC : XY_SD_SPI_CARD_SDSC;
+    ocr_value =
+        ((uint32_t)ocr[0] << 24) | ((uint32_t)ocr[1] << 16) | ((uint32_t)ocr[2] << 8) | ocr[3];
+    if ((ocr_value & SD_OCR_POWER_UP_STATUS) == 0U) {
+        return XY_HAL_ERROR_IO;
+    }
+    if ((ocr_value & SD_OCR_27_TO_36_VOLTAGE_WINDOW) == 0U) {
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    }
+    candidate.type =
+        (ocr_value & SD_OCR_CARD_CAPACITY_STATUS) != 0U ? XY_SD_SPI_CARD_SDHC : XY_SD_SPI_CARD_SDSC;
 
     if (candidate.type == XY_SD_SPI_CARD_SDSC) {
         result = run_command(&candidate, SD_CMD16, XY_SD_SPI_BLOCK_SIZE, 0x01U, &response);
