@@ -1,0 +1,26 @@
+{
+  "block0_signature": "55AA",
+  "block_count": 62521344,
+  "board": "Pandora STM32L475VE",
+  "capacity_bytes": 32010928128,
+  "capture_sha256": "ba7a3f75ed51451034799d43acc7f8970ea53bb2b04be28fc36cb8b42caa23b6",
+  "captured_bytes": 203,
+  "card_type": "SDHC",
+  "error_marker_count": 0,
+  "failures": [],
+  "firmware_commit": "1aa7e3e2615f0f8f1ba6b721cbe84ce68648092c",
+  "firmware_sha256": "dc7f7d7bc7de5a1c77e93ff9840fa2168f8761787a0dcfda6781dfd130e7dc12",
+  "interface": "SPI1 PA5/PA6/PA7, CS PC3",
+  "limitations": [
+    "Read-only block-0 runtime evidence for the inserted TF card",
+    "No write, write-readback, filesystem, hot-plug, endurance, performance, or power-loss claim",
+    "A 55AA signature is reported only as observed bytes and does not prove a valid partition table"
+  ],
+  "operation": "read-only block 0",
+  "probe": "ST-Link V2.1",
+  "probe_serial": "066AFF313933554D43244015",
+  "readback_byte_identical": true,
+  "readback_sha256": "dc7f7d7bc7de5a1c77e93ff9840fa2168f8761787a0dcfda6781dfd130e7dc12",
+  "schema": "xinyi-pandora-tf-read-runtime-v1",
+  "status": "B1_PANDORA_TF_READ_PASS"
+}
