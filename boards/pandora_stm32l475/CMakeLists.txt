@@ -132,6 +132,7 @@ add_executable(pandora_stm32l475_ap3216c
     ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/device/src/xy_device_bus_helpers.c
     ${CMAKE_SOURCE_DIR}/components/sensor/sensors/sensor_ap3216c.c
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/light/ap3216c/xy_ap3216c.c
     ${_cmsis}/Source/Templates/gcc/startup_stm32l475xx.s
     ${_cmsis}/Source/Templates/system_stm32l4xx.c
     ${_hal}/stm32l4xx_hal.c
@@ -150,7 +151,8 @@ target_include_directories(pandora_stm32l475_ap3216c BEFORE PRIVATE
     ${CMAKE_SOURCE_DIR}/components/device
     ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_SOURCE_DIR}/components/sensor
-    ${CMAKE_SOURCE_DIR}/components/sensor/sensors)
+    ${CMAKE_SOURCE_DIR}/components/sensor/sensors
+    ${CMAKE_SOURCE_DIR}/components/drivers/sensor/light/ap3216c)
 target_compile_definitions(pandora_stm32l475_ap3216c PRIVATE
     STM32L475xx USE_HAL_DRIVER SENSOR_USE_FLOAT=0
     XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
