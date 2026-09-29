@@ -15,6 +15,8 @@ FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_transmit, void *, uint16_t,
                 const uint8_t *, size_t, uint32_t)
 FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_master_receive, void *, uint16_t,
                 uint8_t *, size_t, uint32_t)
+FAKE_VALUE_FUNC(xy_hal_error_t, xy_hal_i2c_is_device_ready, void *, uint16_t,
+                uint32_t, uint32_t)
 
 typedef struct {
     uint8_t storage[EEPROM_SIZE];
@@ -51,6 +53,7 @@ void setUp(void)
     RESET_FAKE(xy_hal_delay_ms);
     RESET_FAKE(xy_hal_i2c_master_transmit);
     RESET_FAKE(xy_hal_i2c_master_receive);
+    RESET_FAKE(xy_hal_i2c_is_device_ready);
     FFF_RESET_HISTORY();
 
     g_transmit_result = XY_HAL_OK;
@@ -58,6 +61,7 @@ void setUp(void)
     g_device_init_result = XY_DEVICE_OK;
     xy_hal_i2c_master_transmit_fake.custom_fake = fake_i2c_master_transmit;
     xy_hal_i2c_master_receive_fake.custom_fake = fake_i2c_master_receive;
+    xy_hal_i2c_is_device_ready_fake.return_val = XY_HAL_OK;
 }
 
 void tearDown(void)
@@ -240,7 +244,8 @@ static void test_write_read_and_page_splitting(void)
     TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_master_transmit_fake.call_count);
     TEST_ASSERT_EQUAL_PTR(&fake, xy_hal_i2c_master_transmit_fake.arg0_val);
     TEST_ASSERT_EQUAL_UINT16(0x50U, xy_hal_i2c_master_transmit_fake.arg1_val);
-    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_delay_ms_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_hal_i2c_is_device_ready_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_hal_delay_ms_fake.call_count);
     TEST_ASSERT_EQUAL_MEMORY(payload, &fake.storage[14], sizeof(payload));
 
     TEST_ASSERT_EQUAL_INT((int)sizeof(out), xy_eeprom_24xx_read(&eeprom, 14, out, sizeof(out)));
@@ -329,6 +334,28 @@ static void test_bus_errors_propagate_without_false_success(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_eeprom_24xx_read(&eeprom, 0, data, sizeof(data)));
 }
 
+static void test_write_ready_poll_failure_stops_multi_page_write(void)
+{
+    fake_i2c_t fake;
+    xy_eeprom_24xx_t eeprom;
+    uint8_t payload[10] = {0};
+
+    memset(&fake, 0, sizeof(fake));
+    fake.address_bits = 8U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_eeprom_24xx_init(&eeprom, &fake, 0x50, 8, 32));
+
+    xy_hal_i2c_is_device_ready_fake.return_val = XY_HAL_ERROR_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_eeprom_24xx_write(&eeprom, 6, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_master_transmit_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(1U, xy_hal_i2c_is_device_ready_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(&fake, xy_hal_i2c_is_device_ready_fake.arg0_val);
+    TEST_ASSERT_EQUAL_UINT16(0x50U, xy_hal_i2c_is_device_ready_fake.arg1_val);
+    TEST_ASSERT_EQUAL_UINT32(5U, xy_hal_i2c_is_device_ready_fake.arg2_val);
+    TEST_ASSERT_EQUAL_UINT32(1U, xy_hal_i2c_is_device_ready_fake.arg3_val);
+    TEST_ASSERT_EQUAL_UINT(0U, xy_hal_delay_ms_fake.call_count);
+}
+
 static void test_reinit_recovers_after_bus_error(void)
 {
     fake_i2c_t fake;
@@ -361,6 +388,7 @@ int main(void)
     RUN_TEST(test_bounds_and_page_write_contracts);
     RUN_TEST(test_page_write_clamps_to_capacity_without_16bit_boundary_wrap);
     RUN_TEST(test_bus_errors_propagate_without_false_success);
+    RUN_TEST(test_write_ready_poll_failure_stops_multi_page_write);
     RUN_TEST(test_reinit_recovers_after_bus_error);
     return UNITY_END();
 }

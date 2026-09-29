@@ -8,9 +8,11 @@
 #include "xy_eeprom_24xx.h"
 #include <string.h>
 
-#include "xy_hal_delay.h"
+#include "xy_hal_i2c.h"
 
 #define XY_EEPROM_24XX_MAX_PAGE_SIZE 126U
+#define XY_EEPROM_24XX_READY_TRIALS 5U
+#define XY_EEPROM_24XX_READY_TIMEOUT_MS 1U
 
 int xy_eeprom_24xx_init(xy_eeprom_24xx_t *eeprom, void *i2c_handle, 
                         uint16_t addr, uint16_t page_size, uint16_t total_size)
@@ -103,8 +105,12 @@ int xy_eeprom_24xx_write_page(xy_eeprom_24xx_t *eeprom, uint16_t addr,
         return ret;
     }
 
-    /* Wait for write complete (max 5ms) */
-    xy_hal_delay_ms(5);
+    ret = xy_hal_i2c_is_device_ready(eeprom->i2c_dev.i2c_handle, eeprom->i2c_dev.dev_addr,
+                                     XY_EEPROM_24XX_READY_TRIALS,
+                                     XY_EEPROM_24XX_READY_TIMEOUT_MS);
+    if (ret != XY_HAL_OK) {
+        return XY_DEVICE_IO_ERROR;
+    }
 
     return (int)len;
 }
