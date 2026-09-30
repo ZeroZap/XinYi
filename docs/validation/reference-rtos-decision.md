@@ -2,7 +2,7 @@
 
 **Date**: 2026-08-29
 **Owner**: Zero
-**Status**: `BOARD_RUNTIME_PARTIAL`
+**Status**: `BOARD_RUNTIME_BOUNDED_COMPLETE` (previously `BOARD_RUNTIME_PARTIAL`)
 **Reference backend**: **FreeRTOS**
 **Integration**: `root-selected-pandora-task-sync-isr-smoke-verified`
 **Hardware**: `pandora-thread-sync-systick-isr-b1`; `pandora-resource-lifecycle-timeout-b1`
@@ -79,10 +79,19 @@ single-backend Sprint scope.
 - RT-Thread has a larger source tree, but current CMake paths and the STM32U5 adapter/port
   assumptions are also stale or incomplete; source volume is not evidence of readiness.
 
+## Completed bounded integration scope
+
+The bounded reference-RTOS scope is closed by the Sprint 5 records: IPC broker delivery,
+Device lookup, Trace sink delivery, PM tick integration, queue saturation/recovery, handler
+rejection/recovery, single-TIM6 ISR ingress stress, 2-producer/2-consumer distribution,
+DMA callback/recovery, and the declared 120-second stress interval are all covered by
+identity-bound Pandora evidence. These records do not claim multi-hour endurance,
+throughput, fairness, power characterization, or complete RTOS product qualification.
+
 ## Next bounded integration slice
 
-1. Extend the runtime to IPC MQ/broker, Trace multi-task behavior, and Device registry/PM
-   concurrency before S5-01 can become `DONE`.
+Sprint 6 is release-scope and artifact closure. Do not reopen the completed RTOS slice unless
+a regression is found; future runtime work belongs to the product-validation backlog.
 
 ## Evidence boundary
 
@@ -91,8 +100,8 @@ scheduler/thread, task-context semaphore/message-queue/event-flags/mutex, one Sy
 ISR-to-semaphore-to-task normal path, and bounded no-wait resource exhaustion/recovery plus
 delete/recreate, one bounded blocking queue timeout, and one declared 120-second stress interval.
 **These captures do not establish multi-hour endurance, performance, STM32U5 runtime, or complete
-RTOS product qualification.**
-S5-01 remains in progress until the required runtime/stress matrix exists.
+RTOS product qualification.** Sprint 5 records close only the declared bounded scope; the
+remaining limitations stay pending in the evidence matrix.
 
 Retained UART evidence: [Pandora OSAL/FreeRTOS capture](evidence/pandora-stm32l475/2026-09-03/uart-wchlink-osal-freertos.txt),
 SHA-256 `6bde99f52beda6b5b30b3bd7bc655dc8eda116662eae0a96502a36b06264d627`.

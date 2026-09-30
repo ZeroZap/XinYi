@@ -143,8 +143,10 @@ Host metadata journal、callback 和错误边界不能升级为可烧录镜像�
 
 - [x] 冻结 Pandora pre-RC 组件/输入/制品集合：唯一 MCU build-gate artifact 为
   `pandora_stm32l475_rtos.bin`，examples/projects 全部排除；不授权发布。
-- [ ] 同步 tracker、evidence matrix、Known Limitations 与 release checklist，消除 stale 状态。
-- [ ] 运行 committed clean-export、Host、PC、STM32L4、STM32U5 compile 和 artifact reproducibility 最终门。
+- [x] 同步 tracker、evidence matrix、Known Limitations 与 release checklist，消除 stale 状态；
+  当前 release 仍为 `BLOCKED/NO-GO`。
+- [x] 运行 committed clean-export、Host、PC、STM32L4、STM32U5 compile 和 artifact
+  reproducibility 最终门；具体结果以 tracker 与 release checklist 为准。
 - [ ] Crypto/FOTA provenance/security 未批准时保持 fail-closed，不进入 release claim。
 - [ ] signing identity/key custody、完整 SBOM/license/legal review 未完成前不得发布 RC/tag。
 
