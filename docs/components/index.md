@@ -1,6 +1,6 @@
 # 组件状态总览
 
-**最后更新**: 2026-09-08
+**最后更新**: 2026-09-30
 
 > 平台事实：Pandora STM32L475VE 是正式 reference board；STM32U5/M33/TrustZone 仅保留
 > enhancement compile compatibility。SSD1306 deferred，不选择、不推进，也不阻塞 Sprint 1–4。
@@ -131,24 +131,27 @@ Host metadata journal、callback 和错误边界不能升级为可烧录镜像�
 
 ## 🎯 下一步计划
 
-### 短期 (1-2 周)
+### Sprint 5 已收口（2026-09-30）
 
-- [x] 完善 FOTA host-safe 主线实现、README、focused CTest 与 public smoke example
-- [x] 将 GUI core/widgets/effects/fonts/display-backend adapter 推进到 host-guarded 状态
-- [x] 将 Device 组件状态同步为 host-guarded，并补统一 README/current CTest 事实源
-- [ ] 补真实硬件或人工证据：GUI 字体来源/host snapshot review/真实屏幕记录、FOTA bootloader/board NOR、Fuel Gauge SMBus/I2C
+- Pandora STM32L475VE 作为唯一正式 reference board；STM32U5 仅作为 enhancement compile gate。
+- FreeRTOS 已取得 bounded task/ISR/同步/资源恢复/2P2C/120 秒 stress 证据；多小时耐久和功耗不在本次完成声明内。
+- ST7789 已取得固定面板 visual B1，并完成 checked pixel/framebuffer/rotation 软件契约；GUI 字体、输入、帧率与 RAM 产品证据仍 pending。
+- Sensor/Driver micro-hardening 已冻结；除 P0 回归外不再继续扩张 Sprint 5。
+- ICM20608 dynamic、TF destructive/endurance、nRF peer、Fuel Gauge SMBus 与其余人工硬件项转显式 deferred/blocked backlog。
 
-### 中期 (1 个月)
+### Sprint 6 前置（当前 `BLOCKED/NO-GO`）
 
-- [ ] 硬件在环测试
-- [ ] 性能基准测试
-- [ ] 覆盖率目标 >80%
+- [ ] 冻结 Pandora release 组件、示例和制品集合；其他入口全部排除。
+- [ ] 同步 tracker、evidence matrix、Known Limitations 与 release checklist，消除 stale 状态。
+- [ ] 运行 committed clean-export、Host、PC、STM32L4、STM32U5 compile 和 artifact reproducibility 最终门。
+- [ ] Crypto/FOTA provenance/security 未批准时保持 fail-closed，不进入 release claim。
+- [ ] signing identity/key custody、完整 SBOM/license/legal review 未完成前不得发布 RC/tag。
 
-### 长期 (3 个月)
+### 后续产品验证 backlog
 
-- [ ] 更多 RTOS 支持
-- [ ] 完整的应用示例
-- [ ] 性能优化
+- [ ] 恢复硬件测试后处理 ICM20608 dynamic、TF endurance、nRF peer、Fuel Gauge SMBus。
+- [ ] GUI→ST7789 字体/输入/帧时间/RAM 的单一产品纵切。
+- [ ] FreeRTOS/PM 多小时耐久、真实功耗与恢复测试。
 
 ---
 
