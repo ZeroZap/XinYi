@@ -3,12 +3,19 @@ set(_hal ${_cube}/Drivers/STM32L4xx_HAL_Driver/Src)
 set(_cmsis ${_cube}/Drivers/CMSIS/Device/ST/STM32L4xx)
 set(PANDORA_PLATFORM_STARTUP ${CMAKE_CURRENT_SOURCE_DIR}/pandora_platform_startup.c)
 
-execute_process(
-    COMMAND git rev-parse HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE _firmware_commit
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE _firmware_commit_result)
+set(XINYI_SOURCE_COMMIT "" CACHE STRING
+    "Exact source commit identity for exported/clean Pandora builds")
+if(XINYI_SOURCE_COMMIT)
+    set(_firmware_commit "${XINYI_SOURCE_COMMIT}")
+    set(_firmware_commit_result 0)
+else()
+    execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE _firmware_commit
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE _firmware_commit_result)
+endif()
 string(LENGTH "${_firmware_commit}" _firmware_commit_length)
 if(NOT _firmware_commit_result EQUAL 0 OR
    NOT _firmware_commit_length EQUAL 40 OR

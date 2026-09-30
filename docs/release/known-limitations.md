@@ -20,9 +20,10 @@ production-ready framework.
   no release identity or publication authority, and no complete PC/MCU SBOM or release-candidate
   HIL gate exists.
 - The Pandora pre-RC scope selects `pandora_stm32l475_rtos.bin` as the sole MCU build-gate artifact
-  and excludes every inventoried example/project from release support. This selection does not provide
-  a reproducible MCU artifact archive, SBOM, signature, install qualification, publication authority,
-  RC approval, or R1 qualification.
+  and excludes every inventoried example/project from release support. A default-off gate rebuilds that
+  BIN twice from `git archive HEAD` plus the pinned STM32CubeL4 gitlink checkout and compares SHA-256 and
+  size. This compile-reproducibility result is not an archived MCU artifact, SBOM, signature, install or
+  runtime qualification, publication authority, RC approval, or R1 qualification.
 
 The component evidence matrix is the authority for current evidence levels. A release tag must not be
 interpreted as upgrading any component beyond that matrix.

@@ -232,6 +232,16 @@ add_test(NAME pc_artifact_reproducibility
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_pc_artifact_reproducibility.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_artifact_reproducibility_plan
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_pandora_artifact_reproducibility.py
+    WORKING_DIRECTORY ${ROOT}
+)
+add_test(NAME pandora_artifact_reproducibility_refuses_without_ack
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_pandora_artifact_reproducibility.py
+            --run-build
+    WORKING_DIRECTORY ${ROOT}
+)
+set_tests_properties(pandora_artifact_reproducibility_refuses_without_ack PROPERTIES WILL_FAIL TRUE)
 add_test(NAME net_product_selection
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/check_net_product_selection.py
     WORKING_DIRECTORY ${ROOT}

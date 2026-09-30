@@ -139,6 +139,9 @@ def validate() -> list[str]:
                             "flash_address": "0x08000000",
                         },
                         "Pandora pre-RC MCU artifact selection mismatch", errors)
+            require("tests/unit/check_pandora_artifact_reproducibility.py" in
+                    scope.get("authorities", []),
+                    "Pandora scope must bind the MCU artifact reproducibility gate", errors)
             claims = scope.get("excluded_release_claims")
             for claim in (
                 "production-ready framework",

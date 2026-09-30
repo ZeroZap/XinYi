@@ -90,6 +90,7 @@
     "docs/plans/SPRINT_TRACKER.md",
     "docs/validation/component-evidence-matrix.md",
     "docs/release/known-limitations.md",
-    "docs/release/release-checklist.md"
+    "docs/release/release-checklist.md",
+    "tests/unit/check_pandora_artifact_reproducibility.py"
   ]
 }
