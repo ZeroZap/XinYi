@@ -35,9 +35,15 @@ def main() -> None:
         "PANDORA_ST7789_COLOR BLUE",
         "PANDORA_ST7789_COLOR WHITE",
         "PANDORA_ST7789_COLOR BLACK",
+        "PANDORA_ST7789_ROTATION 90",
+        "PANDORA_ST7789_ROTATION 180",
+        "PANDORA_ST7789_ROTATION 270",
+        "PANDORA_ST7789_ROTATION 0",
+        "PANDORA_ST7789_ROTATION_ERROR",
         "PANDORA_ST7789_PATTERN_DONE",
         "PANDORA_ST7789_FINAL_SAFE",
         "xy_lcd_st7789_fill_checked",
+        "xy_lcd_st7789_set_rotation_checked",
         "config.rgb_order = true;",
     )
     print("pandora_st7789_board_contract=passed")
