@@ -1,7 +1,9 @@
 # XinYi 组件状态汇总
 
-**最后更新**: 2026-08-11
+**最后更新**: 2026-09-30
 **版本**: 2.1.1
+
+> 当前状态以 `docs/plans/SPRINT_TRACKER.md` 与 `docs/validation/component-evidence-matrix.md` 为准；下表是分层证据摘要，不是产品成熟度或发布资格。Pandora STM32L475VE 是唯一正式 reference board，STM32U5 仅为 enhancement compile gate，SSD1306 deferred。
 
 ---
 
@@ -32,7 +34,7 @@
 | **PM** | `components/pm/` | 🟢 稳定 | ✅ | 电源管理 |
 | **Fuel Gauge** | `components/fuel_gauge/` | 🟡 host-guarded | ✅ | standalone 电量计；SMBus/I2C 硬件验证 pending |
 | **GUI** | `components/gui/` | 🟡 host-guarded | ✅ | core/widgets/effects/fonts/display-backend/SSD1306 adapter 已有 CTest；字体 license/provenance、host snapshot 人审与真实屏幕记录 pending |
-| **FOTA** | `components/fota/` | 🟢 主线可用 | ✅ | host CTest + smoke example 已闭环；bootloader/board NOR 硬件记录 pending |
+| **FOTA** | `components/fota/` | 🟡 host-guarded | ✅ | host state-machine/candidate/boot-confirm contract 与 Pandora engineering-path 记录；approved production signature provider、provenance/security review、真实掉电/半写恢复与 release authorization pending |
 
 **图例**: 🟢 稳定/主线可用 | 🟡 host-guarded 但仍待硬件或人工证据 | ⚠️ 需要工作
 
