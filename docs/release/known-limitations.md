@@ -19,6 +19,10 @@ production-ready framework.
   complete release artifact set: legal review remains `LEGAL_REVIEW_PENDING`, the signing key has
   no release identity or publication authority, and no complete PC/MCU SBOM or release-candidate
   HIL gate exists.
+- The Pandora pre-RC scope selects `pandora_stm32l475_rtos.bin` as the sole MCU build-gate artifact
+  and excludes every inventoried example/project from release support. This selection does not provide
+  a reproducible MCU artifact archive, SBOM, signature, install qualification, publication authority,
+  RC approval, or R1 qualification.
 
 The component evidence matrix is the authority for current evidence levels. A release tag must not be
 interpreted as upgrading any component beyond that matrix.

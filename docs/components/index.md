@@ -141,7 +141,8 @@ Host metadata journal、callback 和错误边界不能升级为可烧录镜像�
 
 ### Sprint 6 前置（当前 `BLOCKED/NO-GO`）
 
-- [ ] 冻结 Pandora release 组件、示例和制品集合；其他入口全部排除。
+- [x] 冻结 Pandora pre-RC 组件/输入/制品集合：唯一 MCU build-gate artifact 为
+  `pandora_stm32l475_rtos.bin`，examples/projects 全部排除；不授权发布。
 - [ ] 同步 tracker、evidence matrix、Known Limitations 与 release checklist，消除 stale 状态。
 - [ ] 运行 committed clean-export、Host、PC、STM32L4、STM32U5 compile 和 artifact reproducibility 最终门。
 - [ ] Crypto/FOTA provenance/security 未批准时保持 fail-closed，不进入 release claim。

@@ -118,10 +118,27 @@ def validate() -> list[str]:
                     "STM32U5 must remain enhancement compile-only", errors)
             inputs = scope.get("release_inputs")
             require(isinstance(inputs, dict) and
-                    inputs.get("examples_and_projects") == "all excluded-pending-review" and
-                    inputs.get("mcu_release_artifacts") == "not selected" and
+                    inputs.get("supported_examples_and_projects") == [] and
+                    inputs.get("excluded_examples_and_projects") == "all inventory entries" and
                     inputs.get("tag_publication") == "blocked",
-                    "Pandora pre-RC inputs/artifacts/publication must remain fail-closed", errors)
+                    "Pandora pre-RC example/project inputs and publication must remain fail-closed",
+                    errors)
+            artifacts = inputs.get("mcu_release_artifacts") if isinstance(inputs, dict) else None
+            require(isinstance(artifacts, list) and len(artifacts) == 1,
+                    "Pandora pre-RC scope must select exactly one MCU artifact", errors)
+            if isinstance(artifacts, list) and len(artifacts) == 1:
+                artifact = artifacts[0]
+                require(artifact == {
+                            "target": "pandora_stm32l475_rtos",
+                            "path": "boards/pandora_stm32l475/pandora_stm32l475_rtos.bin",
+                            "platform": "STM32L4",
+                            "chip": "STM32L475xx",
+                            "board": "pandora_stm32l475",
+                            "build_type": "Release",
+                            "selection": "pre-rc-build-gate-only",
+                            "flash_address": "0x08000000",
+                        },
+                        "Pandora pre-RC MCU artifact selection mismatch", errors)
             claims = scope.get("excluded_release_claims")
             for claim in (
                 "production-ready framework",

@@ -54,9 +54,21 @@
     "onboard EEPROM support"
   ],
   "release_inputs": {
-    "examples_and_projects": "all excluded-pending-review",
+    "supported_examples_and_projects": [],
+    "excluded_examples_and_projects": "all inventory entries",
     "pc_artifact": "libxy_device.a reproducibility-gate-only",
-    "mcu_release_artifacts": "not selected",
+    "mcu_release_artifacts": [
+      {
+        "target": "pandora_stm32l475_rtos",
+        "path": "boards/pandora_stm32l475/pandora_stm32l475_rtos.bin",
+        "platform": "STM32L4",
+        "chip": "STM32L475xx",
+        "board": "pandora_stm32l475",
+        "build_type": "Release",
+        "selection": "pre-rc-build-gate-only",
+        "flash_address": "0x08000000"
+      }
+    ],
     "tag_publication": "blocked"
   },
   "deferred_hardware_backlog": [
@@ -68,7 +80,6 @@
     "FreeRTOS/PM multi-hour endurance and power measurement"
   ],
   "unblock_requirements": [
-    "select exact MCU artifact set and supported example/project inputs",
     "pass final clean-export, Host, PC, STM32L4, and STM32U5 enhancement compile gates",
     "synchronize evidence matrix, Known Limitations, and release checklist",
     "complete full-scope SBOM and license/legal review",

@@ -53,7 +53,7 @@ A release tag does not upgrade any evidence level.
 
 ## Current blocking facts (2026-09-30)
 
-- The [frozen Pandora pre-RC scope](../validation/pandora-release-scope.json) selects Pandora STM32L475VE as the sole reference board and STM32U5 as enhancement compile-only, but explicitly selects no MCU release artifact, example, project, or tag publication. It remains `FROZEN_PRE_RC_NO_GO`.
+- The [frozen Pandora pre-RC scope](../validation/pandora-release-scope.json) selects Pandora STM32L475VE as the sole reference board, STM32U5 as enhancement compile-only, and exactly one MCU build-gate artifact: `pandora_stm32l475_rtos.bin` at `0x08000000`. It selects no supported example/project and does not authorize artifact publication or a tag. It remains `FROZEN_PRE_RC_NO_GO`.
 - Pandora now has multiple bounded B1/B2 records, including HAL/Device/FreeRTOS/storage/display paths; this does not constitute complete reference-board HIL qualification. ICM20608 dynamic response and the deferred hardware/endurance backlog remain outside the completed scope.
 - Secure FOTA has Pandora engineering-path evidence but no approved production signature provider, provenance/security approval, or release authorization.
 - The machine-guarded [source dependency inventory](../validation/source-dependency-inventory.json)
