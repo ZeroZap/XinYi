@@ -6,10 +6,11 @@ production-ready framework.
 - Host CTests and PC builds validate software contracts only; they are not real-board evidence.
 - Cross-compilation proves source/toolchain reachability only; it is not runtime or hardware evidence.
 - QEMU results include simulated behavior and are not interchangeable with board validation.
-- STM32U5 GPIO/UART/I2C/SPI/IRQ/DMA still lack a unified B1/B2 hardware record.
+- STM32U5 remains enhancement compile-only and has no unified B1/B2 hardware qualification.
+- Pandora STM32L475VE has multiple bounded B1/B2 records, but this is not complete board qualification; ICM20608 dynamic response and the deferred hardware/endurance backlog remain pending.
 - Crypto correctness tests do not establish provenance, side-channel resistance, or security approval;
   SM2/ECDSA product use remains rejected and Secure FOTA remains blocked without an approved provider.
-- GUI rendering is Host-guarded; real-display quality, frame time, RAM peak, and recovery are pending.
+- GUI core/rendering remains Host-guarded; Pandora ST7789 fixed-panel color/pattern/rotation has bounded visual evidence, while font approval, input, frame time, RAM peak, recovery, and product visual quality remain pending.
 - Sensor, Fuel Gauge, DM, PM, Net, and storage have unresolved ownership, durability, concurrency, or
   real-hardware evidence gaps described in `docs/validation/component-evidence-matrix.md`.
 - One bounded PC static-library artifact (`libxy_device.a`) is rebuilt reproducibly from

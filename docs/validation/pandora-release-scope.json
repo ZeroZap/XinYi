@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_PRE_RC_NO_GO",
+  "scope_date": "2026-09-30",
+  "release_decision": "NO-GO",
+  "release_name": "XinYi Pandora STM32L475VE development baseline",
+  "reference_platform": {
+    "board": "Pandora STM32L475VE",
+    "role": "sole reference board",
+    "qualification": "bounded B1/B2 evidence only; not R1 release-qualified"
+  },
+  "enhancement_compile_platforms": [
+    "STM32U5"
+  ],
+  "included_component_scopes": [
+    {
+      "component": "HAL/Device/OSAL/SYS",
+      "claim": "Pandora bounded reference paths plus Host and target compile contracts"
+    },
+    {
+      "component": "Storage",
+      "claim": "W25Q128 and SD SPI bounded software/board evidence; no endurance or filesystem claim"
+    },
+    {
+      "component": "Display",
+      "claim": "Pandora onboard ST7789 fixed-panel visual B1 and checked software contracts"
+    },
+    {
+      "component": "Sensor/Actuator",
+      "claim": "only per-device evidence recorded in the component evidence matrix"
+    },
+    {
+      "component": "IPC/Trace/DM/PM",
+      "claim": "Host contracts and explicitly recorded bounded Pandora paths only"
+    },
+    {
+      "component": "Crypto/FOTA",
+      "claim": "fail-closed engineering contracts and recorded Pandora paths only; no security approval"
+    }
+  ],
+  "excluded_release_claims": [
+    "production-ready framework",
+    "all-platform support",
+    "STM32U5 board qualification",
+    "Secure FOTA security approval",
+    "crypto provenance or side-channel approval",
+    "ICM20608 dynamic-response qualification",
+    "SD/TF destructive, endurance, power-loss, or filesystem qualification",
+    "nRF24L01 peer interoperability, throughput, or endurance qualification",
+    "Fuel Gauge SMBus hardware qualification",
+    "GUI font, input, frame-time, RAM-peak, or product visual approval",
+    "FreeRTOS/PM multi-hour endurance or power qualification",
+    "charger hardware support on Pandora",
+    "onboard EEPROM support"
+  ],
+  "release_inputs": {
+    "examples_and_projects": "all excluded-pending-review",
+    "pc_artifact": "libxy_device.a reproducibility-gate-only",
+    "mcu_release_artifacts": "not selected",
+    "tag_publication": "blocked"
+  },
+  "deferred_hardware_backlog": [
+    "ICM20608 dynamic response",
+    "SD/TF destructive and endurance testing",
+    "nRF24L01 real peer testing",
+    "Fuel Gauge SMBus testing",
+    "GUI-to-ST7789 product performance validation",
+    "FreeRTOS/PM multi-hour endurance and power measurement"
+  ],
+  "unblock_requirements": [
+    "select exact MCU artifact set and supported example/project inputs",
+    "pass final clean-export, Host, PC, STM32L4, and STM32U5 enhancement compile gates",
+    "synchronize evidence matrix, Known Limitations, and release checklist",
+    "complete full-scope SBOM and license/legal review",
+    "assign release signing identity and establish key custody",
+    "obtain named release-owner approval"
+  ],
+  "authorities": [
+    "docs/plans/SPRINT_TRACKER.md",
+    "docs/validation/component-evidence-matrix.md",
+    "docs/release/known-limitations.md",
+    "docs/release/release-checklist.md"
+  ]
+}

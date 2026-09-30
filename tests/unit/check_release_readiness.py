@@ -19,6 +19,7 @@ SIGNING_POLICY = ROOT / "docs" / "validation" / "release-signing-policy.json"
 SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
 LICENSE_REVIEW = ROOT / "docs" / "validation" / "pc-release-license-review.json"
 NOTICE_REVIEW = ROOT / "docs" / "validation" / "pc-release-notice-review.json"
+PANDORA_SCOPE = ROOT / "docs" / "validation" / "pandora-release-scope.json"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 UNIT_WORKFLOW = ROOT / ".github" / "workflows" / "unit-tests.yml"
 RELEASE_CHECKOUT_ACTION = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
@@ -98,6 +99,38 @@ def validate() -> list[str]:
                 f"Known Limitations is missing bounded release evidence boundary: {token}", errors)
     require("docs/release/release-checklist.md" in evidence,
             "component evidence matrix must index the release checklist", errors)
+    require(PANDORA_SCOPE.is_file(), "Pandora release scope is missing", errors)
+    if PANDORA_SCOPE.is_file():
+        try:
+            scope = json.loads(PANDORA_SCOPE.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"Pandora release scope is invalid JSON: {exc}")
+        else:
+            require(scope.get("status") == "FROZEN_PRE_RC_NO_GO",
+                    "Pandora release scope must remain frozen/no-go before RC", errors)
+            require(scope.get("release_decision") == "NO-GO",
+                    "Pandora release scope must not authorize publication", errors)
+            platform = scope.get("reference_platform")
+            require(isinstance(platform, dict) and platform.get("board") == "Pandora STM32L475VE" and
+                    platform.get("role") == "sole reference board",
+                    "Pandora must be the sole frozen reference board", errors)
+            require(scope.get("enhancement_compile_platforms") == ["STM32U5"],
+                    "STM32U5 must remain enhancement compile-only", errors)
+            inputs = scope.get("release_inputs")
+            require(isinstance(inputs, dict) and
+                    inputs.get("examples_and_projects") == "all excluded-pending-review" and
+                    inputs.get("mcu_release_artifacts") == "not selected" and
+                    inputs.get("tag_publication") == "blocked",
+                    "Pandora pre-RC inputs/artifacts/publication must remain fail-closed", errors)
+            claims = scope.get("excluded_release_claims")
+            for claim in (
+                "production-ready framework",
+                "Secure FOTA security approval",
+                "ICM20608 dynamic-response qualification",
+                "onboard EEPROM support",
+            ):
+                require(isinstance(claims, list) and claim in claims,
+                        f"Pandora release scope is missing excluded claim: {claim}", errors)
     require(RELEASE_WORKFLOW.is_file(), "release workflow is missing", errors)
     if RELEASE_WORKFLOW.is_file():
         workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
