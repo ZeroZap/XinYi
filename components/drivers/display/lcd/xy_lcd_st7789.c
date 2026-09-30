@@ -57,6 +57,7 @@ static xy_error_t xy_lcd_st7789_write_data_checked(xy_lcd_st7789_device_t* lcd, 
                                                    uint32_t len);
 static xy_error_t xy_lcd_st7789_set_window_checked(xy_lcd_st7789_device_t* lcd, uint16_t x,
                                                    uint16_t y, uint16_t w, uint16_t h);
+static xy_error_t xy_lcd_st7789_set_madctl_checked(xy_lcd_st7789_device_t* lcd, uint8_t madctl);
 
 static xy_error_t xy_lcd_st7789_send_init_sequence(xy_lcd_st7789_device_t* lcd) {
     const uint8_t* ptr = st7789_init_sequence;
@@ -147,13 +148,19 @@ void xy_lcd_st7789_set_pixel_format(xy_lcd_st7789_device_t* lcd, uint8_t format)
  * @brief Set memory access control
  */
 void xy_lcd_st7789_set_madctl(xy_lcd_st7789_device_t* lcd, uint8_t madctl) {
+    (void)xy_lcd_st7789_set_madctl_checked(lcd, madctl);
+}
+
+static xy_error_t xy_lcd_st7789_set_madctl_checked(xy_lcd_st7789_device_t* lcd, uint8_t madctl) {
     /* Set BGR bit if not RGB order */
     if (!lcd->rgb_order) {
         madctl |= ST7789_MADCTL_BGR;
     }
 
-    xy_lcd_st7789_write_cmd(lcd, ST7789_CMD_MADCTL);
-    xy_lcd_st7789_write_data8(lcd, madctl);
+    if (xy_lcd_st7789_write_cmd_checked(lcd, ST7789_CMD_MADCTL) != XY_ERR_OK) {
+        return XY_ERR_IO;
+    }
+    return xy_lcd_st7789_write_data_checked(lcd, &madctl, 1U);
 }
 
 /**
@@ -508,9 +515,6 @@ xy_error_t xy_lcd_st7789_init(xy_lcd_st7789_device_t* lcd, const xy_lcd_st7789_c
         return XY_ERR_IO;
     }
 
-    /* Additional configuration */
-    xy_lcd_st7789_set_pixel_format(lcd, 0x55); /* 16-bit RGB565 */
-
     /* Set MADCTL with rotation from config */
     uint8_t madctl = 0;
     if (config->spi.base.rotation == XY_LCD_ROTATION_90) {
@@ -520,11 +524,16 @@ xy_error_t xy_lcd_st7789_init(xy_lcd_st7789_device_t* lcd, const xy_lcd_st7789_c
     } else if (config->spi.base.rotation == XY_LCD_ROTATION_270) {
         madctl = ST7789_MADCTL_MY | ST7789_MADCTL_MV;
     }
-    xy_lcd_st7789_set_madctl(lcd, madctl);
+    if (xy_lcd_st7789_set_madctl_checked(lcd, madctl) != XY_ERR_OK) {
+        (void)xy_lcd_spi_deinit(&lcd->spi_dev);
+        return XY_ERR_IO;
+    }
 
     /* Set inversion if requested */
-    if (config->invert_on_init) {
-        xy_lcd_st7789_set_inversion(lcd, true);
+    if (config->invert_on_init &&
+        xy_lcd_st7789_write_cmd_checked(lcd, ST7789_CMD_INVON) != XY_ERR_OK) {
+        (void)xy_lcd_spi_deinit(&lcd->spi_dev);
+        return XY_ERR_IO;
     }
 
     /* Set operations */

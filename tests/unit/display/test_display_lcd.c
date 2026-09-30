@@ -562,6 +562,30 @@ static void test_st7789_init_propagates_spi_error_and_releases_framebuffer(void)
     TEST_ASSERT_NULL(lcd.spi_dev.base.framebuffer);
 }
 
+static void test_st7789_init_propagates_final_configuration_errors(void) {
+    xy_lcd_st7789_device_t lcd;
+    xy_lcd_st7789_config_t cfg = make_st7789_config();
+    uint32_t init_spi_calls;
+
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_init(&lcd, &cfg));
+    init_spi_calls = xy_hal_spi_transmit_fake.call_count;
+    TEST_ASSERT_GREATER_THAN_UINT32(2U, init_spi_calls);
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_deinit(&lcd));
+
+    reset_logs();
+    spi_fail_on_call = init_spi_calls;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_init(&lcd, &cfg));
+    TEST_ASSERT_FALSE(lcd.initialized);
+    TEST_ASSERT_NULL(lcd.spi_dev.base.framebuffer);
+
+    reset_logs();
+    cfg.invert_on_init = true;
+    spi_fail_on_call = init_spi_calls + 1U;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_init(&lcd, &cfg));
+    TEST_ASSERT_FALSE(lcd.initialized);
+    TEST_ASSERT_NULL(lcd.spi_dev.base.framebuffer);
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_spi_init_window_and_pixel_endian);
@@ -574,5 +598,6 @@ int main(void) {
     RUN_TEST(test_st7789_checked_pixel_validates_bounds_and_spi_errors);
     RUN_TEST(test_st7789_checked_pixel_stream_and_refresh_propagate_errors);
     RUN_TEST(test_st7789_init_propagates_spi_error_and_releases_framebuffer);
+    RUN_TEST(test_st7789_init_propagates_final_configuration_errors);
     return UNITY_END();
 }
