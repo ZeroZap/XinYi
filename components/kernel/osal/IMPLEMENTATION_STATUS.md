@@ -2,10 +2,12 @@
 
 ## Evidence-bounded implementation inventory
 
-Overall status: `runtime-pending`. This file inventories adapter source coverage, not completed
-runtime qualification. The default bare-metal backend is Host-guarded; FreeRTOS has a bounded
-STM32U5 Cortex-M33 source/static-library compile gate; RT-Thread has no current XinYi target or
-runtime gate.
+Overall status: `runtime-pending` for complete product qualification. The default bare-metal backend
+is Host-guarded. FreeRTOS has bounded Pandora STM32L475VE/CM4F board runtime evidence for scheduler,
+task synchronization, SysTick/TIM6 ISR→task, resource recovery, 2P/2C, 120-second stress, PM shallow
+sleep and IPC/Device/Trace integration. STM32U5/M33 remains enhancement compile compatibility only;
+RT-Thread has no current XinYi target or runtime gate. No result implies multi-hour endurance,
+performance, power, safety or another board.
 
 ### 1. Bare-metal Backend
 **File**: `baremetal/xy_os_baremetal.c` (149 lines)
@@ -22,7 +24,7 @@ runtime gate.
 
 ### 2. FreeRTOS Backend
 **File**: `freertos/xy_os_freertos.c` (383 lines)
-**Status**: source/static-library compile-guarded; runtime/ISR/concurrency/hardware pending
+**Status**: Pandora bounded board runtime; complete runtime qualification pending
 **Features**:
 - Full task management
 - Mutex (standard + recursive)
@@ -74,7 +76,7 @@ runtime gate.
 | Event flags | ❌ | ✅ | ✅ |
 | **Communication** | | | |
 | Message queue | ❌ | ✅ | ✅ |
-| Memory pool | ❌ | ⚠️ (stub) | ✅ |
+| Memory pool | ❌ | ✅ (adapter-owned pool; bounded Pandora exhaustion/recovery) | ✅ |
 | **Timers** | ❌ | ✅ | ✅ |
 | **Delay** | ✅ (busy) | ✅ (sleep) | ✅ (sleep) |
 
@@ -126,7 +128,8 @@ endif()
 
 ### Current Status
 - ✅ **Bare-metal**: Compiles successfully (no external dependencies)
-- ⚠️ **FreeRTOS**: STM32U5 source/static-library compile gate passes; runtime remains pending
+- ⚠️ **FreeRTOS**: Pandora STM32L475VE bounded runtime passes; STM32U5 compile compatibility passes;
+  complete runtime qualification remains pending
 - ⚠️ **RT-Thread**: Source candidate; no current XinYi STM32U5 target/runtime gate
 
 ### Header Issues (xy_os.h)

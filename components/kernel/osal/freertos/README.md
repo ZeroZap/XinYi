@@ -1,14 +1,16 @@
 # XY OSAL FreeRTOS Backend
 
 ## Overview
-FreeRTOS adapter source for the XinYi OSAL. The STM32U5 reference configuration currently has
-Arm Cortex-M33 source/static-library compile evidence only; scheduler, ISR, concurrency and board
-runtime validation remain pending.
+FreeRTOS adapter for the XinYi OSAL. Pandora STM32L475VE/CM4F has bounded board runtime evidence for
+scheduler/delay, task synchronization, SysTick/TIM6 ISR→task, resource recovery, 2P/2C,
+120-second stress, PM shallow sleep and IPC/Device/Trace integration. STM32U5/M33 remains
+enhancement compile compatibility only.
 
 ## Features
 - Source mappings: kernel/tasks, mutex, semaphore, event groups, message queue and software timers
 - Known limitations: thread join/enumeration and queue message-size reporting are unsupported;
-  runtime semantics and resource exhaustion are not yet validated
+  multi-hour endurance, performance, power, shutdown and complete product qualification remain
+  pending
 
 ## Priority Mapping
 Direct mapping: XY 0 (lowest) → FreeRTOS 0, capped at `configMAX_PRIORITIES - 1`
@@ -34,7 +36,8 @@ xy_os_thread_id_t task = xy_os_thread_new(my_task_func, NULL, &attr);
 ```
 
 ## Status
-Version 1.0.0 | `compile-guarded-runtime-pending` | Written for pinned FreeRTOS 10.4.6
+Version 1.0.0 | `compile-guarded-runtime-pending` | Pandora bounded board runtime | Written for
+pinned FreeRTOS 10.4.6
 
 See `docs/validation/reference-rtos-decision.md` and `BACKEND_COMPARISON.md` for the authoritative
 evidence boundary. This README does not claim runtime, performance, safety or hardware approval.

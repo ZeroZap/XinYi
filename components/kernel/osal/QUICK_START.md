@@ -1,16 +1,17 @@
 # XY OSAL Quick Start Guide
 
-> Evidence boundary: `runtime-pending`. The default bare-metal backend is Host-guarded. The
-> FreeRTOS reference backend currently has only a source/static-library STM32U5 compile gate;
-> RT-Thread has no XinYi STM32U5 compile/runtime gate. The RTOS snippets below are integration
-> examples, not proof that the scheduler, ISR paths, concurrency, or hardware have run.
+> Evidence boundary: product qualification remains `runtime-pending`. The default bare-metal
+> backend is Host-guarded. FreeRTOS has bounded board runtime evidence on Pandora STM32L475VE/CM4F
+> for scheduling, synchronization, ISR→task, recovery and cross-component concurrency; STM32U5/M33
+> remains enhancement compile compatibility only. The examples do not extend those results to
+> multi-hour endurance, performance, power, safety, other boards or other RTOS backends.
 
 ## 1. Choose Your Backend
 
 | Backend | When to Use |
 |---------|-------------|
 | **Bare-metal** | No RTOS needed, simple app, minimal code |
-| **FreeRTOS** | Sprint 5 reference backend; compile-guarded, runtime pending |
+| **FreeRTOS** | Reference backend; Pandora bounded runtime, product qualification pending |
 | **RT-Thread** | Source candidate; not selected for the current Sprint |
 
 ## 2. Add to Build

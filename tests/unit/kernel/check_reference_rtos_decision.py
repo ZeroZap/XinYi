@@ -339,16 +339,35 @@ def main() -> int:
         ("OSAL quick start", osal_quick_start),
         ("OSAL implementation status", osal_implementation_status),
     ):
-        require("runtime-pending" in document,
-                f"{document_name} must preserve the RTOS runtime-pending boundary", errors)
+        for token in (
+            "runtime-pending",
+            "Pandora STM32L475VE",
+            "bounded",
+            "STM32U5",
+            "compile compatibility",
+        ):
+            require(token in document,
+                    f"{document_name} must preserve current evidence token: {token}", errors)
     for forbidden in (
         "Same code runs on bare-metal, FreeRTOS, or RT-Thread. Just switch the backend .c file",
         "✅ Complete implementation",
         "No application code changes required",
+        "FreeRTOS reference backend currently has only a source/static-library STM32U5 compile gate",
+        "all RTOS backend 尚无本 Sprint",
+        "所有 RTOS backend 均为 `runtime-pending`",
+        "runtime/ISR/concurrency/hardware pending",
     ):
-        require(forbidden not in osal_quick_start + osal_implementation_status,
-                f"OSAL docs must not preserve unverified portability/completion claim: {forbidden}",
-                errors)
+        require(forbidden not in osal_readme + osal_quick_start + osal_implementation_status,
+                f"OSAL docs must not preserve stale/unverified claim: {forbidden}", errors)
+    for token in (
+        "Pandora STM32L475VE",
+        "bounded board runtime",
+        "STM32U5",
+        "compile compatibility",
+        "multi-hour endurance",
+    ):
+        require(token in freertos_readme,
+                f"FreeRTOS README must preserve current evidence token: {token}", errors)
     for document_name, document in (
         ("components README", components_readme),
         ("development priority", development_priority),
