@@ -1,0 +1,31 @@
+{
+  "status": "B1_ST7789_ROTATION_MACHINE_CHAIN_PASS",
+  "firmware_commit": "8716d2642df5907014caff4c8b1f317bdb3a6a90",
+  "probe": "ST-LINK/V2.1 V2J24S11 serial 066AFF313933554D43244015",
+  "uart": "WCH-Link B49C8F0639CE 115200-8-N-1",
+  "binary_size_bytes": 13508,
+  "binary_sha256": "36b0dc65f6106765b930257ddde06034015263dbb9bb4f9abc48a45338a618e5",
+  "readback_size_bytes": 13508,
+  "readback_sha256": "36b0dc65f6106765b930257ddde06034015263dbb9bb4f9abc48a45338a618e5",
+  "readback_byte_identical": true,
+  "uart_size_bytes": 417,
+  "uart_sha256": "bf0fb5c7ed8360585837d48da97ec4402301d688379373fecc5ded3186c2618d",
+  "uart_ordered_markers": [
+    "PANDORA ST7789 SPI3 READY",
+    "FIRMWARE_COMMIT 8716d2642df5907014caff4c8b1f317bdb3a6a90",
+    "PANDORA_ST7789_COLOR RED",
+    "PANDORA_ST7789_COLOR GREEN",
+    "PANDORA_ST7789_COLOR BLUE",
+    "PANDORA_ST7789_COLOR WHITE",
+    "PANDORA_ST7789_COLOR BLACK",
+    "PANDORA_ST7789_ROTATION 90",
+    "PANDORA_ST7789_ROTATION 180",
+    "PANDORA_ST7789_ROTATION 270",
+    "PANDORA_ST7789_ROTATION 0",
+    "PANDORA_ST7789_PATTERN_DONE",
+    "PANDORA_ST7789_FINAL_SAFE backlight=ON pattern=HELD"
+  ],
+  "error_marker_count": 0,
+  "programming_result": "Flash written and verified; 13508-byte read-back matched the binary byte-for-byte",
+  "claim_boundary": "B1 proves the fixed Pandora panel accepted runtime MADCTL writes for 90/180/270/0 and continued to the final checked pattern with no firmware error marker. It does not prove the visible orientation, coordinate mapping, colorimetry, tearing, frame rate, other panels, or endurance because no operator visual observation was collected."
+}
