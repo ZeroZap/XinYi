@@ -69,6 +69,15 @@
 
 ---
 
+### Sprint 6 pre-RC artifact evidence (2026-09-30)
+
+- Pandora STM32L475VE is the sole reference board; STM32U5 remains enhancement compile-only.
+- The frozen pre-RC MCU build-gate input is `pandora_stm32l475_rtos.bin` at `0x08000000`; no examples/projects are selected for support.
+- Two independent clean-export STM32L4 Release builds from `git archive HEAD` plus pinned STM32CubeL4 commit `9203b3843e219d2025a7f868d7656b5a5d208885` produced identical 39260-byte BINs with SHA-256 `fbf6e1d7a5b1c34b4f898844cc148ff6511bf1e43f98cf9e9dba8172b6d82e73`.
+- The BIN and `.sha256` pair were independently re-read and verified. This is compile-reproducibility and checksum evidence only; it does not establish MCU SBOM, signature, CI publication, flash/install, runtime, RC, or R1 qualification.
+
+---
+
 ## 3. 证据记录索引
 
 ### 已存在模板/记录
