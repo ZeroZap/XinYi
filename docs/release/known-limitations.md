@@ -21,9 +21,9 @@ production-ready framework.
   HIL gate exists.
 - The Pandora pre-RC scope selects `pandora_stm32l475_rtos.bin` as the sole MCU build-gate artifact
   and excludes every inventoried example/project from release support. A default-off gate rebuilds that
-  BIN twice from `git archive HEAD` plus the pinned STM32CubeL4 gitlink checkout and compares SHA-256 and
-  size. This compile-reproducibility result is not an archived MCU artifact, SBOM, signature, install or
-  runtime qualification, publication authority, RC approval, or R1 qualification.
+  BIN twice from `git archive HEAD` plus the pinned STM32CubeL4 gitlink checkout, compares SHA-256/size,
+  archives the BIN/checksum pair, and independently verifies it. This is not an MCU SBOM, signature,
+  CI publication, install/runtime qualification, publication authority, RC approval, or R1 qualification.
 
 The component evidence matrix is the authority for current evidence levels. A release tag must not be
 interpreted as upgrading any component beyond that matrix.

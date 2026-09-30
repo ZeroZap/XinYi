@@ -137,6 +137,14 @@ def validate() -> list[str]:
                             "build_type": "Release",
                             "selection": "pre-rc-build-gate-only",
                             "flash_address": "0x08000000",
+                            "archive": {
+                                "files": [
+                                    "pandora_stm32l475_rtos.bin",
+                                    "pandora_stm32l475_rtos.bin.sha256",
+                                ],
+                                "checksum_verification": "independent-local-gate",
+                                "publication": "blocked",
+                            },
                         },
                         "Pandora pre-RC MCU artifact selection mismatch", errors)
             require("tests/unit/check_pandora_artifact_reproducibility.py" in

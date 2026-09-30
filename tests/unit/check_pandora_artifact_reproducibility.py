@@ -36,6 +36,9 @@ def parse_args() -> argparse.Namespace:
         help="acknowledge that this is compile/reproducibility evidence, not runtime or R1",
     )
     parser.add_argument("--record", type=Path, help="write machine-readable evidence JSON")
+    parser.add_argument("--artifact-dir", type=Path, help="archive the verified BIN and checksum")
+    parser.add_argument("--verify-artifact-dir", type=Path,
+                        help="independently verify an archived BIN and checksum")
     return parser.parse_args()
 
 
@@ -45,6 +48,21 @@ def run(command: list[str], cwd: Path) -> None:
 
 def output(command: list[str], cwd: Path) -> str:
     return subprocess.run(command, cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def verify_artifact_dir(directory: Path) -> None:
+    artifact = directory / ARTIFACT_NAME
+    checksum = directory / f"{ARTIFACT_NAME}.sha256"
+    if not artifact.is_file() or not checksum.is_file():
+        raise SystemExit("Pandora artifact archive must contain the BIN and checksum")
+    fields = checksum.read_text(encoding="utf-8").strip().split()
+    if len(fields) != 2 or fields[1] != ARTIFACT_NAME or len(fields[0]) != 64:
+        raise SystemExit("Pandora artifact checksum format is invalid")
+    actual = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    if actual != fields[0]:
+        raise SystemExit("Pandora artifact checksum mismatch")
+    print(f"pandora_artifact_checksum_ok artifact={ARTIFACT_NAME} sha256={actual} "
+          "release_scope=blocked")
 
 
 def validate_scope() -> dict[str, object]:
@@ -65,6 +83,11 @@ def validate_scope() -> dict[str, object]:
         "build_type": "Release",
         "selection": "pre-rc-build-gate-only",
         "flash_address": "0x08000000",
+        "archive": {
+            "files": [ARTIFACT_NAME, f"{ARTIFACT_NAME}.sha256"],
+            "checksum_verification": "independent-local-gate",
+            "publication": "blocked",
+        },
     }
     if selected != expected:
         raise SystemExit("Pandora scope artifact selection does not match the reproducibility gate")
@@ -100,7 +123,8 @@ def extract_source(archive: bytes, destination: Path) -> None:
     shutil.copytree(ROOT / CUBE_RELATIVE, cube_destination, ignore=shutil.ignore_patterns(".git"))
 
 
-def build_once(archive: bytes, temporary_root: Path, name: str, source_commit: str) -> tuple[str, int]:
+def build_once(archive: bytes, temporary_root: Path, name: str,
+               source_commit: str) -> tuple[str, int, bytes]:
     source = temporary_root / f"source-{name}"
     build = temporary_root / f"build-{name}"
     extract_source(archive, source)
@@ -124,14 +148,19 @@ def build_once(archive: bytes, temporary_root: Path, name: str, source_commit: s
     if len(matches) != 1:
         raise SystemExit(f"expected exactly one {ARTIFACT_NAME}, found {len(matches)}")
     payload = matches[0].read_bytes()
-    return hashlib.sha256(payload).hexdigest(), len(payload)
+    return hashlib.sha256(payload).hexdigest(), len(payload), payload
 
 
 def main() -> int:
     args = parse_args()
     validate_scope()
+    if args.verify_artifact_dir is not None:
+        if args.run_build or args.record is not None or args.artifact_dir is not None:
+            raise SystemExit("--verify-artifact-dir cannot be combined with build options")
+        verify_artifact_dir(args.verify_artifact_dir)
+        return 0
     if not args.run_build:
-        if args.i_understand_target_compile_only or args.record is not None:
+        if args.i_understand_target_compile_only or args.record is not None or args.artifact_dir is not None:
             raise SystemExit("build-only options require --run-build")
         print(
             "pandora_artifact_reproducibility_plan_ok target=pandora_stm32l475_rtos "
@@ -153,8 +182,10 @@ def main() -> int:
     archive_sha256 = hashlib.sha256(archive).hexdigest()
     with tempfile.TemporaryDirectory(prefix="xinyi-pandora-artifact-") as temporary:
         temporary_root = Path(temporary)
-        first_hash, first_size = build_once(archive, temporary_root, "first", source_commit)
-        second_hash, second_size = build_once(archive, temporary_root, "second", source_commit)
+        first_hash, first_size, first_payload = build_once(
+            archive, temporary_root, "first", source_commit)
+        second_hash, second_size, _ = build_once(
+            archive, temporary_root, "second", source_commit)
     if (first_hash, first_size) != (second_hash, second_size):
         raise SystemExit(
             "Pandora artifact is not reproducible: "
@@ -177,10 +208,18 @@ def main() -> int:
         "evidence": "target compile artifact reproducibility only",
         "hardware_runtime": "not exercised",
         "release_scope": "blocked",
+        "archived_files": [ARTIFACT_NAME, f"{ARTIFACT_NAME}.sha256"]
+        if args.artifact_dir is not None
+        else [],
     }
     if args.record is not None:
         args.record.parent.mkdir(parents=True, exist_ok=True)
         args.record.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if args.artifact_dir is not None:
+        args.artifact_dir.mkdir(parents=True, exist_ok=True)
+        (args.artifact_dir / ARTIFACT_NAME).write_bytes(first_payload)
+        (args.artifact_dir / f"{ARTIFACT_NAME}.sha256").write_text(
+            f"{first_hash}  {ARTIFACT_NAME}\n", encoding="utf-8")
     print(
         "pandora_artifact_reproducibility_ok source=git-archive-head "
         f"source_commit={source_commit} cube_commit={cube_commit} target={TARGET} "
