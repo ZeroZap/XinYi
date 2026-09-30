@@ -24,9 +24,10 @@ production-ready framework.
   BIN twice from `git archive HEAD` plus the pinned STM32CubeL4 gitlink checkout, compares SHA-256/size,
   archives the BIN/checksum pair, and independently verifies it. This is not an MCU SBOM, signature,
   CI publication, install/runtime qualification, publication authority, RC approval, or R1 qualification.
-- The [Pandora MCU SBOM policy](../validation/pandora-release-sbom-policy.json) defines the next
-  CycloneDX 1.6 generation inputs and exact artifact scope, but remains `GENERATION_PENDING`; no MCU
-  SBOM, complete dependency provenance, or legal/license approval is claimed.
+- The [Pandora MCU SBOM policy](../validation/pandora-release-sbom-policy.json) now has an explicit
+  opt-in CycloneDX 1.6 generator and independent verifier. The generated record remains
+  `REVIEW_PENDING` and bounded to the existing link map/archives; complete dependency provenance
+  and legal/license approval are not claimed.
 
 The component evidence matrix is the authority for current evidence levels. A release tag must not be
 interpreted as upgrading any component beyond that matrix.

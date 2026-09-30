@@ -373,8 +373,8 @@ def validate() -> list[str]:
         except (OSError, json.JSONDecodeError) as exc:
             errors.append(f"Pandora release SBOM policy is invalid JSON: {exc}")
         else:
-            require(policy.get("status") == "PLAN_RECORDED_GENERATION_PENDING",
-                    "Pandora release SBOM policy must remain generation-pending", errors)
+            require(policy.get("status") == "GENERATOR_IMPLEMENTED_REVIEW_PENDING",
+                    "Pandora release SBOM policy must record the implemented generator boundary", errors)
             require(policy.get("format") == "CycloneDX JSON 1.6",
                     "Pandora release SBOM format mismatch", errors)
             require(policy.get("artifact_scope") == {
@@ -400,10 +400,10 @@ def validate() -> list[str]:
             require(policy.get("generated_output") ==
                     "pandora_stm32l475_rtos.bin.cdx.json",
                     "Pandora release SBOM output mismatch", errors)
-            require(policy.get("approval") == "GENERATION_PENDING",
-                    "Pandora release SBOM approval must remain generation-pending", errors)
+            require(policy.get("approval") == "REVIEW_PENDING",
+                    "Pandora release SBOM approval must remain review-pending", errors)
             boundary = str(policy.get("evidence_boundary", ""))
-            for phrase in ("policy only", "does not generate an SBOM", "legal approval",
+            for phrase in ("opt-in generator", "legal approval",
                            "R1 remains blocked"):
                 require(phrase in boundary,
                         f"Pandora release SBOM policy evidence boundary missing phrase: {phrase}",

@@ -242,6 +242,17 @@ add_test(NAME pandora_artifact_reproducibility_refuses_without_ack
     WORKING_DIRECTORY ${ROOT}
 )
 set_tests_properties(pandora_artifact_reproducibility_refuses_without_ack PROPERTIES WILL_FAIL TRUE)
+add_test(NAME pandora_release_sbom_plan
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_pandora_release_sbom.py
+    WORKING_DIRECTORY ${ROOT}
+)
+add_test(NAME pandora_release_sbom_refuses_without_ack
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_pandora_release_sbom.py
+            --generate --build-dir ${ROOT}/build/stm32l4
+            --output ${ROOT}/build/pandora-release-sbom.json
+    WORKING_DIRECTORY ${ROOT}
+)
+set_tests_properties(pandora_release_sbom_refuses_without_ack PROPERTIES WILL_FAIL TRUE)
 add_test(NAME net_product_selection
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/net/check_net_product_selection.py
     WORKING_DIRECTORY ${ROOT}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "PLAN_RECORDED_GENERATION_PENDING",
+  "status": "GENERATOR_IMPLEMENTED_REVIEW_PENDING",
   "format": "CycloneDX JSON 1.6",
   "artifact_scope": {
     "platform": "STM32L4",
@@ -21,7 +21,9 @@
     "license identifiers, evidence references and redistribution review"
   ],
   "generated_output": "pandora_stm32l475_rtos.bin.cdx.json",
-  "approval": "GENERATION_PENDING",
-  "next_gate": "Implement a default-off, committed-source Pandora artifact SBOM generator and independent validator before any release qualification decision.",
-  "evidence_boundary": "This is a policy only record. It does not generate an SBOM, does not establish complete MCU dependency or legal approval, and R1 remains blocked."
+  "approval": "REVIEW_PENDING",
+  "generator": "tests/unit/check_pandora_release_sbom.py",
+  "generation_mode": "explicit opt-in against an existing Pandora RTOS build directory",
+  "next_gate": "Review generated source/vendor inventories and complete full-scope license/legal inputs before any release qualification decision.",
+  "evidence_boundary": "This policy and its opt-in generator establish a bounded CycloneDX record from the current build map and linked archives. They do not establish complete MCU dependency coverage, legal approval, security approval, runtime qualification, or R1 remains blocked."
 }

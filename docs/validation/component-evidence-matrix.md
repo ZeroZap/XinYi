@@ -75,6 +75,11 @@
 - The frozen pre-RC MCU build-gate input is `pandora_stm32l475_rtos.bin` at `0x08000000`; no examples/projects are selected for support.
 - Two independent clean-export STM32L4 Release builds from current `git archive HEAD` (`212df50192baa787aea9d6e0e0eadd1a8e4e6f57`) plus pinned STM32CubeL4 commit `9203b3843e219d2025a7f868d7656b5a5d208885` produced identical 39260-byte BINs with SHA-256 `052b81842e506457ad2531589cd73fa6910eaacd70c5e13abe635ae6a8b09d9b`.
 - The BIN and `.sha256` pair were independently re-read and verified. This is compile-reproducibility and checksum evidence only; it does not establish MCU SBOM, signature, CI publication, flash/install, runtime, RC, or R1 qualification.
+- The explicit opt-in `tests/unit/check_pandora_release_sbom.py` generator and verifier produced
+  `build/pandora-release-sbom.json` with 39 linked source components from the RTOS link map and
+  linked FreeRTOS/CLIB archive hashes. Status remains `REVIEW_PENDING`; this is bounded input
+  inventory evidence only and does not establish complete MCU dependency coverage, legal approval,
+  security approval, runtime qualification, RC, or R1.
 
 ---
 
