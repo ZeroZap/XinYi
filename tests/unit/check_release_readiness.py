@@ -17,6 +17,7 @@ EVIDENCE = ROOT / "docs" / "validation" / "component-evidence-matrix.md"
 ARTIFACT_MANIFEST = ROOT / "docs" / "validation" / "pc-release-artifact-manifest.json"
 SIGNING_POLICY = ROOT / "docs" / "validation" / "release-signing-policy.json"
 SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
+PANDORA_SBOM_POLICY = ROOT / "docs" / "validation" / "pandora-release-sbom-policy.json"
 LICENSE_REVIEW = ROOT / "docs" / "validation" / "pc-release-license-review.json"
 NOTICE_REVIEW = ROOT / "docs" / "validation" / "pc-release-notice-review.json"
 PANDORA_SCOPE = ROOT / "docs" / "validation" / "pandora-release-scope.json"
@@ -364,6 +365,49 @@ def validate() -> list[str]:
             for phrase in ("independently validates", "not license approval", "R1 remains blocked"):
                 require(phrase in boundary,
                         f"PC release SBOM policy evidence boundary missing phrase: {phrase}", errors)
+
+    require(PANDORA_SBOM_POLICY.is_file(), "Pandora release SBOM policy is missing", errors)
+    if PANDORA_SBOM_POLICY.is_file():
+        try:
+            policy = json.loads(PANDORA_SBOM_POLICY.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"Pandora release SBOM policy is invalid JSON: {exc}")
+        else:
+            require(policy.get("status") == "PLAN_RECORDED_GENERATION_PENDING",
+                    "Pandora release SBOM policy must remain generation-pending", errors)
+            require(policy.get("format") == "CycloneDX JSON 1.6",
+                    "Pandora release SBOM format mismatch", errors)
+            require(policy.get("artifact_scope") == {
+                        "platform": "STM32L4",
+                        "chip": "STM32L475xx",
+                        "board": "pandora_stm32l475",
+                        "target": "pandora_stm32l475_rtos",
+                        "artifact": "pandora_stm32l475_rtos.bin",
+                        "selection": "pre-rc-build-gate-only",
+                    },
+                    "Pandora release SBOM artifact scope mismatch", errors)
+            require(policy.get("required_inputs") == [
+                        "committed source SHA and source-archive SHA-256",
+                        "exact BIN SHA-256 and byte size",
+                        "Arm compiler, linker, objcopy and CMake identity",
+                        "link map and exact first-party compiled source inventory",
+                        "pinned STM32CubeL4 gitlink revision and consumed vendor source inventory",
+                        "FreeRTOS kernel and CM4F port provenance and consumed source inventory",
+                        "generated configuration and linker-script SHA-256",
+                        "license identifiers, evidence references and redistribution review",
+                    ],
+                    "Pandora release SBOM required inputs mismatch", errors)
+            require(policy.get("generated_output") ==
+                    "pandora_stm32l475_rtos.bin.cdx.json",
+                    "Pandora release SBOM output mismatch", errors)
+            require(policy.get("approval") == "GENERATION_PENDING",
+                    "Pandora release SBOM approval must remain generation-pending", errors)
+            boundary = str(policy.get("evidence_boundary", ""))
+            for phrase in ("policy only", "does not generate an SBOM", "legal approval",
+                           "R1 remains blocked"):
+                require(phrase in boundary,
+                        f"Pandora release SBOM policy evidence boundary missing phrase: {phrase}",
+                        errors)
 
     require(LICENSE_REVIEW.is_file(), "PC bounded artifact license review is missing", errors)
     if LICENSE_REVIEW.is_file():

@@ -96,6 +96,11 @@ current `BLOCKED` / `NO-GO` boundary and must remain synchronized with this chec
   proves signature plumbing and tamper detection but provides no stable release identity or publication
   authority. No release-owned key, published signed checksum, or
   immutable container digest or complete dependency lock exists.
+- The [Pandora MCU SBOM policy](../validation/pandora-release-sbom-policy.json) now records the exact
+  CycloneDX 1.6 input contract for the frozen STM32L4 artifact, including linker/source inventories,
+  pinned CubeL4 and FreeRTOS provenance, generated-config hashes, and legal-review inputs. It is a
+  policy-only `GENERATION_PENDING` record: no MCU SBOM has been generated or approved, and this does
+  not satisfy the complete SBOM/legal gate.
 - The [release signing policy](../validation/release-signing-policy.json) records Ed25519 as the intended
   release-signature algorithm, but release identity is `UNASSIGNED`, key custody is
   `NOT_ESTABLISHED`, and signed publication remains `BLOCKED`. A named release owner, protected

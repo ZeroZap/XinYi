@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "PLAN_RECORDED_GENERATION_PENDING",
+  "format": "CycloneDX JSON 1.6",
+  "artifact_scope": {
+    "platform": "STM32L4",
+    "chip": "STM32L475xx",
+    "board": "pandora_stm32l475",
+    "target": "pandora_stm32l475_rtos",
+    "artifact": "pandora_stm32l475_rtos.bin",
+    "selection": "pre-rc-build-gate-only"
+  },
+  "required_inputs": [
+    "committed source SHA and source-archive SHA-256",
+    "exact BIN SHA-256 and byte size",
+    "Arm compiler, linker, objcopy and CMake identity",
+    "link map and exact first-party compiled source inventory",
+    "pinned STM32CubeL4 gitlink revision and consumed vendor source inventory",
+    "FreeRTOS kernel and CM4F port provenance and consumed source inventory",
+    "generated configuration and linker-script SHA-256",
+    "license identifiers, evidence references and redistribution review"
+  ],
+  "generated_output": "pandora_stm32l475_rtos.bin.cdx.json",
+  "approval": "GENERATION_PENDING",
+  "next_gate": "Implement a default-off, committed-source Pandora artifact SBOM generator and independent validator before any release qualification decision.",
+  "evidence_boundary": "This is a policy only record. It does not generate an SBOM, does not establish complete MCU dependency or legal approval, and R1 remains blocked."
+}
