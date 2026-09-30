@@ -407,6 +407,35 @@ void xy_lcd_st7789_set_inversion(xy_lcd_st7789_device_t* lcd, bool invert) {
     }
 }
 
+xy_error_t xy_lcd_st7789_set_rotation_checked(xy_lcd_st7789_device_t* lcd,
+                                              xy_lcd_rotation_t rotation) {
+    uint8_t madctl;
+
+    if (lcd == NULL || !lcd->initialized || rotation > XY_LCD_ROTATION_270) {
+        return XY_ERR_INVALID_PARAM;
+    }
+    switch (rotation) {
+        case XY_LCD_ROTATION_90:
+            madctl = ST7789_MADCTL_MX | ST7789_MADCTL_MV;
+            break;
+        case XY_LCD_ROTATION_180:
+            madctl = ST7789_MADCTL_MY;
+            break;
+        case XY_LCD_ROTATION_270:
+            madctl = ST7789_MADCTL_MY | ST7789_MADCTL_MV;
+            break;
+        case XY_LCD_ROTATION_0:
+        default:
+            madctl = 0U;
+            break;
+    }
+    if (xy_lcd_st7789_set_madctl_checked(lcd, madctl) != XY_ERR_OK) {
+        return XY_ERR_IO;
+    }
+    lcd->spi_dev.base.rotation = rotation;
+    return XY_ERR_OK;
+}
+
 /* ==================== Driver Operations ==================== */
 
 static xy_error_t xy_lcd_st7789_driver_init(xy_lcd_device_t* dev) {

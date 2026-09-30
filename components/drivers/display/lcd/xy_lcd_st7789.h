@@ -288,6 +288,10 @@ void xy_lcd_st7789_sleep_out(xy_lcd_st7789_device_t* lcd);
  */
 void xy_lcd_st7789_set_inversion(xy_lcd_st7789_device_t* lcd, bool invert);
 
+/** Set panel rotation and commit cached state only after the MADCTL write succeeds. */
+xy_error_t xy_lcd_st7789_set_rotation_checked(xy_lcd_st7789_device_t* lcd,
+                                              xy_lcd_rotation_t rotation);
+
 /* ==================== Driver-Level Operations ==================== */
 
 /**

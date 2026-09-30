@@ -552,6 +552,27 @@ static void test_st7789_checked_pixel_stream_and_refresh_propagate_errors(void) 
     TEST_ASSERT_EQUAL_INT(XY_ERR_INVALID_PARAM, xy_lcd_st7789_refresh_checked(&lcd));
 }
 
+static void test_st7789_runtime_rotation_is_verified_before_cache_commit(void) {
+    xy_lcd_st7789_device_t lcd;
+    xy_lcd_st7789_config_t cfg = make_st7789_config();
+
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_init(&lcd, &cfg));
+    reset_logs();
+    TEST_ASSERT_EQUAL_INT(XY_ERR_OK, xy_lcd_st7789_set_rotation_checked(&lcd, XY_LCD_ROTATION_90));
+    TEST_ASSERT_EQUAL_HEX8(ST7789_CMD_MADCTL, spi_ops[0].bytes[0]);
+    TEST_ASSERT_EQUAL_HEX8(0x60U, spi_ops[1].bytes[0]);
+    TEST_ASSERT_EQUAL_INT(XY_LCD_ROTATION_90, lcd.spi_dev.base.rotation);
+
+    reset_logs();
+    spi_fail_on_call = 2U;
+    TEST_ASSERT_EQUAL_INT(XY_ERR_IO, xy_lcd_st7789_set_rotation_checked(&lcd, XY_LCD_ROTATION_180));
+    TEST_ASSERT_EQUAL_INT(XY_LCD_ROTATION_90, lcd.spi_dev.base.rotation);
+    TEST_ASSERT_EQUAL_INT(XY_ERR_INVALID_PARAM,
+                          xy_lcd_st7789_set_rotation_checked(&lcd, (xy_lcd_rotation_t)4));
+    TEST_ASSERT_EQUAL_INT(XY_LCD_ROTATION_90, lcd.spi_dev.base.rotation);
+    xy_lcd_st7789_deinit(&lcd);
+}
+
 static void test_st7789_init_propagates_spi_error_and_releases_framebuffer(void) {
     xy_lcd_st7789_device_t lcd;
     xy_lcd_st7789_config_t cfg = make_st7789_config();
@@ -597,6 +618,7 @@ int main(void) {
     RUN_TEST(test_st7789_checked_fill_is_bounded_and_propagates_spi_error);
     RUN_TEST(test_st7789_checked_pixel_validates_bounds_and_spi_errors);
     RUN_TEST(test_st7789_checked_pixel_stream_and_refresh_propagate_errors);
+    RUN_TEST(test_st7789_runtime_rotation_is_verified_before_cache_commit);
     RUN_TEST(test_st7789_init_propagates_spi_error_and_releases_framebuffer);
     RUN_TEST(test_st7789_init_propagates_final_configuration_errors);
     return UNITY_END();
