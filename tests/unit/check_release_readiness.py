@@ -20,6 +20,7 @@ SBOM_POLICY = ROOT / "docs" / "validation" / "pc-release-sbom-policy.json"
 LICENSE_REVIEW = ROOT / "docs" / "validation" / "pc-release-license-review.json"
 NOTICE_REVIEW = ROOT / "docs" / "validation" / "pc-release-notice-review.json"
 PANDORA_SCOPE = ROOT / "docs" / "validation" / "pandora-release-scope.json"
+RELEASE_BLOCKERS = ROOT / "docs" / "validation" / "release-blockers.json"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 UNIT_WORKFLOW = ROOT / ".github" / "workflows" / "unit-tests.yml"
 RELEASE_CHECKOUT_ACTION = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
@@ -99,6 +100,29 @@ def validate() -> list[str]:
                 f"Known Limitations is missing bounded release evidence boundary: {token}", errors)
     require("docs/release/release-checklist.md" in evidence,
             "component evidence matrix must index the release checklist", errors)
+    require(RELEASE_BLOCKERS.is_file(), "release blocker register is missing", errors)
+    if RELEASE_BLOCKERS.is_file():
+        try:
+            blockers = json.loads(RELEASE_BLOCKERS.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            errors.append(f"release blocker register is invalid JSON: {exc}")
+        else:
+            require(blockers.get("status") == "BLOCKED_NO_GO",
+                    "release blocker register must remain BLOCKED_NO_GO", errors)
+            require(blockers.get("publication") == "BLOCKED" and
+                    blockers.get("release_decision") == "NO-GO" and
+                    blockers.get("r1") == "PENDING",
+                    "release blocker register decision boundary mismatch", errors)
+            entries = blockers.get("blockers")
+            require(isinstance(entries, list) and len(entries) == 5,
+                    "release blocker register must contain exactly five open blockers", errors)
+            if isinstance(entries, list):
+                ids = [entry.get("id") for entry in entries if isinstance(entry, dict)]
+                require(ids == ["B-HIL", "B-SEC", "B-SBOM", "B-SIGN", "B-OWNER"],
+                        "release blocker register IDs/order mismatch", errors)
+                require(all(entry.get("state") == "OPEN" for entry in entries
+                            if isinstance(entry, dict)),
+                        "release blocker register must keep every blocker open", errors)
     require(PANDORA_SCOPE.is_file(), "Pandora release scope is missing", errors)
     if PANDORA_SCOPE.is_file():
         try:

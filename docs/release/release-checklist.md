@@ -51,6 +51,12 @@ A release tag does not upgrade any evidence level.
 - [ ] Final release record links CI, target build, HIL, security, SBOM/license, artifact, checksum/signature, and approval evidence.
 - [ ] R1 release qualified is recorded in the component evidence matrix only after every applicable item above passes.
 
+## Machine-readable blocker register
+
+The current release blockers are recorded in
+[`release-blockers.json`](../validation/release-blockers.json). It is authoritative for the
+current `BLOCKED` / `NO-GO` boundary and must remain synchronized with this checklist.
+
 ## Current blocking facts (2026-09-30)
 
 - The [frozen Pandora pre-RC scope](../validation/pandora-release-scope.json) selects Pandora STM32L475VE as the sole reference board, STM32U5 as enhancement compile-only, and exactly one MCU build-gate artifact: `pandora_stm32l475_rtos.bin` at `0x08000000`. It selects no supported example/project and does not authorize artifact publication or a tag. It remains `FROZEN_PRE_RC_NO_GO`.

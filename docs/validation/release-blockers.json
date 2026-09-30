@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_NO_GO",
+  "as_of": "2026-09-30",
+  "release_scope": "Pandora STM32L475VE pre-RC development baseline",
+  "blockers": [
+    {
+      "id": "B-HIL",
+      "category": "hardware",
+      "title": "Reference-board HIL and install/rollback qualification",
+      "state": "OPEN",
+      "evidence_gap": "Bounded Pandora B1/B2 records exist, but complete supported-scope HIL, install, interrupted-update, rollback and known-good return evidence is not complete.",
+      "owner": "Eugene",
+      "unblock_evidence": "Board, wiring, firmware SHA, UART/capture, flash/install and rollback records for the frozen scope"
+    },
+    {
+      "id": "B-SEC",
+      "category": "security",
+      "title": "Secure FOTA provider and security approval",
+      "state": "OPEN",
+      "evidence_gap": "No approved production signature provider, provenance review, side-channel review or release security approval.",
+      "owner": "Eugene",
+      "unblock_evidence": "Reviewed provider, provenance, threat-model/security record, target verification and explicit approval"
+    },
+    {
+      "id": "B-SBOM",
+      "category": "supply-chain",
+      "title": "Complete release-scope SBOM and legal/license review",
+      "state": "OPEN",
+      "evidence_gap": "Only bounded PC artifact SBOM and technical license/NOTICE records exist; complete MCU, submodule, generated-asset and redistribution review is pending.",
+      "owner": "Eugene",
+      "unblock_evidence": "Full-scope CycloneDX/SBOM, pinned dependency provenance and completed legal/license/NOTICE approval"
+    },
+    {
+      "id": "B-SIGN",
+      "category": "publication",
+      "title": "Release signing identity and key custody",
+      "state": "OPEN",
+      "evidence_gap": "Release identity is UNASSIGNED; key custody, recovery/revocation and trusted public-key publication are not established.",
+      "owner": "Eugene",
+      "unblock_evidence": "Named owner, protected custodian, recovery/revocation procedure, independent verification and published fingerprint"
+    },
+    {
+      "id": "B-OWNER",
+      "category": "governance",
+      "title": "Release-owner approval",
+      "state": "OPEN",
+      "evidence_gap": "No named release-owner approval for an exact immutable commit and release scope.",
+      "owner": "Eugene",
+      "unblock_evidence": "Recorded approval with owner, date, exact commit SHA and scope"
+    }
+  ],
+  "publication": "BLOCKED",
+  "release_decision": "NO-GO",
+  "r1": "PENDING",
+  "authority": [
+    "docs/release/release-checklist.md",
+    "docs/validation/pandora-release-scope.json",
+    "docs/validation/component-evidence-matrix.md"
+  ]
+}

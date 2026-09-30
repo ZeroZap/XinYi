@@ -147,6 +147,8 @@ Host metadata journal、callback 和错误边界不能升级为可烧录镜像�
   当前 release 仍为 `BLOCKED/NO-GO`。
 - [x] 运行 committed clean-export、Host、PC、STM32L4、STM32U5 compile 和 artifact
   reproducibility 最终门；具体结果以 tracker 与 release checklist 为准。
+- [x] 建立机器可读 release blocker register：B-HIL、B-SEC、B-SBOM、B-SIGN、B-OWNER 五项
+  保持 OPEN；在证据完成前禁止 RC/R1/tag。
 - [ ] Crypto/FOTA provenance/security 未批准时保持 fail-closed，不进入 release claim。
 - [ ] signing identity/key custody、完整 SBOM/license/legal review 未完成前不得发布 RC/tag。
 
