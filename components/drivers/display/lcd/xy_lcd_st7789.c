@@ -59,6 +59,22 @@ static xy_error_t xy_lcd_st7789_set_window_checked(xy_lcd_st7789_device_t* lcd, 
                                                    uint16_t y, uint16_t w, uint16_t h);
 static xy_error_t xy_lcd_st7789_set_madctl_checked(xy_lcd_st7789_device_t* lcd, uint8_t madctl);
 
+static uint16_t xy_lcd_st7789_logical_width(const xy_lcd_st7789_device_t* lcd) {
+    if (lcd->spi_dev.base.rotation == XY_LCD_ROTATION_90 ||
+        lcd->spi_dev.base.rotation == XY_LCD_ROTATION_270) {
+        return lcd->spi_dev.base.height;
+    }
+    return lcd->spi_dev.base.width;
+}
+
+static uint16_t xy_lcd_st7789_logical_height(const xy_lcd_st7789_device_t* lcd) {
+    if (lcd->spi_dev.base.rotation == XY_LCD_ROTATION_90 ||
+        lcd->spi_dev.base.rotation == XY_LCD_ROTATION_270) {
+        return lcd->spi_dev.base.width;
+    }
+    return lcd->spi_dev.base.height;
+}
+
 static xy_error_t xy_lcd_st7789_send_init_sequence(xy_lcd_st7789_device_t* lcd) {
     const uint8_t* ptr = st7789_init_sequence;
 
@@ -301,8 +317,8 @@ xy_error_t xy_lcd_st7789_draw_pixel_checked(xy_lcd_st7789_device_t* lcd, uint16_
                                             uint16_t color) {
     uint8_t data[2] = {(uint8_t)(color >> 8), (uint8_t)color};
 
-    if (lcd == NULL || !lcd->initialized || x >= lcd->spi_dev.base.width ||
-        y >= lcd->spi_dev.base.height) {
+    if (lcd == NULL || !lcd->initialized || x >= xy_lcd_st7789_logical_width(lcd) ||
+        y >= xy_lcd_st7789_logical_height(lcd)) {
         return XY_ERR_INVALID_PARAM;
     }
     if (xy_lcd_st7789_set_window_checked(lcd, x, y, 1U, 1U) != XY_ERR_OK ||
@@ -324,10 +340,16 @@ xy_error_t xy_lcd_st7789_fill_checked(xy_lcd_st7789_device_t* lcd, uint16_t x, u
                                       uint16_t w, uint16_t h, uint16_t color) {
     uint8_t fill_buf[256];
     uint32_t remaining;
+    uint16_t logical_width;
+    uint16_t logical_height;
 
-    if (lcd == NULL || !lcd->initialized || w == 0U || h == 0U || x >= lcd->spi_dev.base.width ||
-        y >= lcd->spi_dev.base.height || w > lcd->spi_dev.base.width - x ||
-        h > lcd->spi_dev.base.height - y) {
+    if (lcd == NULL || !lcd->initialized) {
+        return XY_ERR_INVALID_PARAM;
+    }
+    logical_width = xy_lcd_st7789_logical_width(lcd);
+    logical_height = xy_lcd_st7789_logical_height(lcd);
+    if (w == 0U || h == 0U || x >= logical_width || y >= logical_height || w > logical_width - x ||
+        h > logical_height - y) {
         return XY_ERR_INVALID_PARAM;
     }
     if (xy_lcd_st7789_set_window_checked(lcd, x, y, w, h) != XY_ERR_OK) {
