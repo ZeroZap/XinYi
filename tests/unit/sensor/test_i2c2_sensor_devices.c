@@ -20,6 +20,7 @@ static size_t op_count;
 static size_t op_index;
 static uint32_t delay_total;
 static xy_error_t i2c_init_result;
+static bool i2c_init_without_handle;
 
 static void queue(op_kind_t kind, uint8_t reg, const uint8_t *data, size_t length,
                   xy_error_t result)
@@ -47,7 +48,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
                               uint32_t timeout)
 {
     memset(dev, 0, sizeof(*dev));
-    dev->i2c_handle = handle;
+    dev->i2c_handle = i2c_init_without_handle ? NULL : handle;
     dev->dev_addr = address;
     dev->timeout = timeout;
     dev->base.initialized = 1U;
@@ -116,6 +117,7 @@ void setUp(void)
     op_index = 0U;
     delay_total = 0U;
     i2c_init_result = XY_DEVICE_OK;
+    i2c_init_without_handle = false;
 }
 void tearDown(void) {}
 
@@ -415,9 +417,21 @@ static void test_bme680_init_clears_handle_when_i2c_helper_fails(void)
     TEST_ASSERT_EQUAL_UINT(0U, op_index);
 }
 
-static void test_bme680_deinit_rejects_invalid_nested_bus_lifecycle(void)
+static void test_bme680_init_rejects_incomplete_i2c_helper_success(void)
 {
     int bus;
+    xy_bme680_t dev;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    i2c_init_without_handle = true;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_init(&dev, &bus, 0x77U));
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(0U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+static void test_bme680_deinit_rejects_invalid_nested_bus_lifecycle(void)
+{
     xy_bme680_t dev;
 
     memset(&dev, 0, sizeof(dev));
@@ -426,7 +440,6 @@ static void test_bme680_deinit_rejects_invalid_nested_bus_lifecycle(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_deinit(&dev));
     TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
     TEST_ASSERT_EQUAL_UINT(0U, op_index);
-    (void)bus;
 }
 
 static void test_bme680_read_rejects_invalid_nested_bus_lifecycle(void)
@@ -870,6 +883,7 @@ int main(void)
     RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
     RUN_TEST(test_bme680_init_clears_handle_when_i2c_helper_fails);
+    RUN_TEST(test_bme680_init_rejects_incomplete_i2c_helper_success);
     RUN_TEST(test_bme680_deinit_rejects_invalid_nested_bus_lifecycle);
     RUN_TEST(test_bme680_read_rejects_invalid_nested_bus_lifecycle);
     RUN_TEST(test_bme680_public_ops_reject_missing_nested_transport_without_io);

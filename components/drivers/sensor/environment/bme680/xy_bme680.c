@@ -72,7 +72,11 @@ xy_error_t xy_bme680_init(xy_bme680_t *dev, void *i2c_handle, uint8_t addr)
 
     memset(dev, 0, sizeof(*dev));
     result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 100U);
-    if (result != XY_DEVICE_OK) {
+    if (result != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
+        dev->i2c_dev.i2c_handle == NULL) {
+        if (result == XY_DEVICE_OK) {
+            result = XY_DEVICE_INVALID_PARAM;
+        }
         return init_fail(dev, result);
     }
 
