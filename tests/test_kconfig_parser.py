@@ -154,6 +154,92 @@ config DRIVER_DISPLAY_LCD_SPI
         self.assertNotIn("DRIVER_DISPLAY_RGB", parser.config)
         self.assertIn("DRIVER_DISPLAY_LED_SERIAL_RGB", parser.config)
 
+    def test_duplicate_blocks_merge_defaults_dependencies_selects_and_help(self):
+        parser = self.parse_text(
+            """
+config BASE
+    bool
+    default y
+
+config EXTRA
+    bool
+    default y
+
+config DUP
+    bool "first"
+    depends on BASE
+    select SELECT_A
+    default n
+    help
+      first help
+
+config DUP
+    bool "second"
+    depends on EXTRA
+    select SELECT_B
+    default y if EXTRA
+    help
+      second help
+
+config SELECT_A
+    bool
+
+config SELECT_B
+    bool
+"""
+        )
+
+        self.assertEqual(parser.config["DUP"]["type"], "bool")
+        self.assertEqual(len(parser.config["DUP"]["defaults"]), 2)
+        self.assertEqual(parser.config["DUP"]["depends_on"], ["BASE", "EXTRA"])
+        self.assertEqual(parser.config["DUP"]["selects"], ["SELECT_A", "SELECT_B"])
+        self.assertIn("first help", parser.config["DUP"]["help"])
+        self.assertIn("second help", parser.config["DUP"]["help"])
+        self.assertEqual(parser.resolve_values(platform="PC")["DUP"], "n")
+
+    def test_duplicate_block_type_conflict_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Conflicting Kconfig types for DUP"):
+            self.parse_text(
+                """
+config DUP
+    bool
+    default y
+
+config DUP
+    string
+    default "later"
+"""
+            )
+
+    def test_merged_conditional_defaults_generate_for_pc_and_stm32u5(self):
+        parser = self.parse_text(
+            """
+config PLATFORM_PC
+    bool
+    default n
+
+config PLATFORM_STM32
+    bool
+    default n
+
+config PLATFORM_STM32U5
+    bool
+    depends on PLATFORM_STM32
+    default n
+
+config TARGET
+    bool
+    default y if PLATFORM_PC
+
+config TARGET
+    bool
+    default y if PLATFORM_STM32U5
+"""
+        )
+
+        self.assertEqual(parser.resolve_values(platform="PC")["TARGET"], "y")
+        self.assertEqual(parser.resolve_values(platform="STM32U5")["TARGET"], "y")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -42,16 +42,18 @@ class KconfigParser:
             type_match = re.search(r'\b(bool|string|int|hex)\b', block)
             config_type = type_match.group(1) if type_match else 'bool'
             
-            # Parse default
-            default_match = re.search(r'default\s+(.+?)(?:\n|$)', block)
-            default_value = default_match.group(1).strip() if default_match else None
-            default_if = None
-            if default_value is not None:
-                default_value, default_if = self._split_default(default_value)
+            # Parse all defaults in declaration order.  Kconfig evaluates the
+            # first applicable default, so retaining the list is important
+            # when blocks are merged or a symbol has conditional defaults.
+            defaults = []
+            for default_match in re.finditer(r'^\s*default\s+(.+?)\s*$', block, re.MULTILINE):
+                default_value, default_if = self._split_default(default_match.group(1))
+                defaults.append({'value': default_value, 'if': default_if})
             
             # Parse depends on
-            depends_match = re.search(r'depends on\s+(.+?)(?:\n|$)', block)
-            depends_on = depends_match.group(1).strip() if depends_match else None
+            depends_on = [match.group(1).strip() for match in re.finditer(
+                r'^\s*depends on\s+(.+?)\s*$', block, re.MULTILINE
+            )]
             
             # Parse select
             selects = re.findall(r'select\s+(\w+)', block)
@@ -60,14 +62,35 @@ class KconfigParser:
             help_match = re.search(r'help\s*\n((?:\s+.+\n)+)', block)
             help_text = help_match.group(1) if help_match else ""
             
-            self.config[config_name] = {
+            parsed = {
                 'type': config_type,
-                'default': default_value,
-                'default_if': default_if,
+                'defaults': defaults,
+                'default': defaults[0]['value'] if defaults else None,
+                'default_if': defaults[0]['if'] if defaults else None,
                 'depends_on': depends_on,
                 'selects': selects,
                 'help': help_text.strip()
             }
+            existing = self.config.get(config_name)
+            if existing is None:
+                self.config[config_name] = parsed
+                continue
+            if existing['type'] != parsed['type']:
+                raise ValueError(
+                    f"Conflicting Kconfig types for {config_name}: "
+                    f"{existing['type']} vs {parsed['type']}"
+                )
+            existing['defaults'].extend(parsed['defaults'])
+            existing['default'] = (existing['defaults'][0]['value']
+                                   if existing['defaults'] else None)
+            existing['default_if'] = (existing['defaults'][0]['if']
+                                      if existing['defaults'] else None)
+            existing['depends_on'].extend(parsed['depends_on'])
+            existing['selects'].extend(
+                item for item in parsed['selects'] if item not in existing['selects']
+            )
+            if parsed['help']:
+                existing['help'] = (existing['help'] + '\n' + parsed['help']).strip()
     
     def _find_block_end(self, content: str, start: int) -> int:
         """Find end of config block"""
@@ -198,8 +221,8 @@ class KconfigParser:
                     selected_cfg = self.config.get(selected)
                     if not selected_cfg or selected_cfg['type'] != 'bool' or values.get(selected) == 'y':
                         continue
-                    depends_on = selected_cfg.get('depends_on')
-                    if depends_on and not self._eval_expr(depends_on, context):
+                    depends_on = selected_cfg.get('depends_on', [])
+                    if depends_on and not all(self._eval_expr(item, context) for item in depends_on):
                         continue
                     values[selected] = 'y'
                     changed = True
@@ -211,9 +234,9 @@ class KconfigParser:
             changed = False
             context = {name: value == 'y' for name, value in values.items()}
             for name, cfg in self.config.items():
-                depends_on = cfg.get('depends_on')
+                depends_on = cfg.get('depends_on', [])
                 if (cfg['type'] == 'bool' and values.get(name) == 'y' and depends_on
-                        and not self._eval_expr(depends_on, context)):
+                        and not all(self._eval_expr(item, context) for item in depends_on)):
                     values[name] = 'n'
                     changed = True
     
@@ -254,15 +277,17 @@ class KconfigParser:
             if forced_platform_value is not None:
                 value = 'y' if forced_platform_value else 'n'
             else:
-                depends_on = cfg.get('depends_on')
+                depends_on = cfg.get('depends_on', [])
                 default = cfg['default']
-                condition = cfg.get('default_if')
-                if depends_on and not self._eval_expr(depends_on, context):
-                    value = 'n' if cfg['type'] == 'bool' else (default if default is not None else "")
-                elif default is None or not self._default_matches_context(condition, context):
+                defaults = cfg.get('defaults', [])
+                if depends_on and not all(self._eval_expr(item, context) for item in depends_on):
                     value = 'n'
                 else:
-                    value = default
+                    value = 'n'
+                    for candidate in defaults:
+                        if self._default_matches_context(candidate['if'], context):
+                            value = candidate['value']
+                            break
 
             if cfg['type'] == 'bool':
                 values[name] = 'y' if value and value != 'n' else 'n'
