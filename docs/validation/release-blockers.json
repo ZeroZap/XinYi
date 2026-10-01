@@ -27,7 +27,7 @@
       "category": "supply-chain",
       "title": "Complete release-scope SBOM and legal/license review",
       "state": "OPEN",
-      "evidence_gap": "Only bounded PC artifact SBOM and technical license/NOTICE records exist; complete MCU, submodule, generated-asset and redistribution review is pending.",
+      "evidence_gap": "Machine-generated 39-component bounded MCU CycloneDX and six license-evidence hashes now exist; complete dependency closure, GCC/newlib/ST/FreeRTOS redistribution review, NOTICE package and legal approval remain pending.",
       "owner": "Eugene",
       "unblock_evidence": "Full-scope CycloneDX/SBOM, pinned dependency provenance and completed legal/license/NOTICE approval"
     },

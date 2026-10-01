@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "LEGAL_REVIEW_PENDING",
+  "scope": "Pandora STM32L475VE pre-RC MCU artifact",
+  "artifact": {
+    "name": "pandora_stm32l475_rtos.bin",
+    "sha256": "3527c332508c288d5adfa1f034a9b8619f74ced0b6f7686087da4b1458664dde",
+    "sbom": "build/pandora-release-sbom.json",
+    "sbom_components": 39,
+    "sbom_approval": "REVIEW_PENDING"
+  },
+  "source_provenance": {
+    "repository_commit": "2b8ff7b3",
+    "stm32cubel4_gitlink": "9203b3843e219d2025a7f868d7656b5a5d208885"
+  },
+  "license_evidence": [
+    {"path": "LICENSE", "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"},
+    {"path": "MCU/ST/STM32L4/STM32CubeL4/LICENSE.md", "sha256": "f2e9ae84708af37b4a30f672e8d14f60800fbf5b6cb7a5af86431b461757c894"},
+    {"path": "MCU/ST/STM32L4/STM32CubeL4/Drivers/CMSIS/LICENSE.txt", "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"},
+    {"path": "MCU/ST/STM32L4/STM32CubeL4/Drivers/CMSIS/Device/ST/STM32L4xx/LICENSE.md", "sha256": "dadb755f51d36614173b28c5790cb4a991e8f4cc822e5b634fd66a4f4145824d"},
+    {"path": "MCU/ST/STM32L4/STM32CubeL4/Drivers/STM32L4xx_HAL_Driver/LICENSE.md", "sha256": "376c82bcef0be563bf59b93d05cfdd4b6295e4660b55b31dd8a883bf1d6637f7"},
+    {"path": "MCU/ST/STM32L4/STM32CubeL4/Middlewares/Third_Party/FreeRTOS/Source/LICENSE", "sha256": "a74efb143c66527cdb7a96461fc4e9652cbd33700bd2a129a0407e31ae03084a"}
+  ],
+  "open_review_questions": [
+    "confirm exact FreeRTOS kernel/CM4F port provenance used by the linked archive",
+    "review ST license/SLA0044 obligations for redistributed firmware",
+    "review GCC/newlib/libgcc/libm/libnosys redistribution notices",
+    "review static-linking and generated-asset obligations",
+    "approve complete NOTICE and redistribution package"
+  ],
+  "evidence_boundary": "Machine-generated bounded CycloneDX/input and license-hash inventory only; no legal approval, complete dependency coverage, publication authorization, or R1 claim."
+}
