@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "DESIGN_RECORDED_NO_RELEASE_KEY",
+  "algorithm": "Ed25519",
+  "release_identity": "UNASSIGNED",
+  "key_custody": "NOT_ESTABLISHED",
+  "publication": "BLOCKED",
+  "engineering_gate": {
+    "artifact": "build/pc/components/device/libxy_device.a",
+    "artifact_sha256": "7b5d55027c2f49867570cc0633e72a56990b640c2fc4b4fd3558da610b82c631",
+    "artifact_size": 50506,
+    "source_commit": "21a09f3df23d625bb0f9304d1116789e6a56fbf3",
+    "algorithm_tool": "OpenSSL 3.0.13",
+    "ephemeral_ci_signature": "permitted only for gate plumbing; not generated here and not a release signature"
+  },
+  "required_external_decisions": [
+    "name the release signing identity",
+    "name the key custodian or protected signing service",
+    "approve hardware-backed/external custody",
+    "define recovery, rotation and revocation",
+    "publish trusted public-key fingerprint through an independent channel",
+    "record independent signature verification"
+  ],
+  "prohibited_actions_taken": [
+    "no release private key generated",
+    "no private key stored in repository or workspace",
+    "no release artifact signed",
+    "no release identity guessed",
+    "no CI ephemeral key promoted to release key"
+  ],
+  "evidence_boundary": "This slice records the exact decision inputs and confirms that release signing remains fail-closed. It does not establish a release identity, key custody, signature, publication authorization, or R1."
+}
