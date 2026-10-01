@@ -42,6 +42,7 @@ static const xy_hal_qspi_config_t qspi_config = {
     .chip_select_high_cycles = 2U,
 };
 
+#ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
 static int parse_hex_word(const char* text, uint32_t* value) {
     uint32_t result = 0U;
 
@@ -60,6 +61,7 @@ static int parse_hex_word(const char* text, uint32_t* value) {
     *value = result;
     return 1;
 }
+#endif
 
 void _init(void) {}
 void _fini(void) {}
