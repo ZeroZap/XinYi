@@ -1,8 +1,8 @@
-#include "pandora_fota_install_flash.h"
 #include "pandora_fota_flash.h"
+#include "pandora_fota_install_flash.h"
 
-#include "stm32l4xx_hal.h"
 #include "pandora_platform_startup.h"
+#include "stm32l4xx_hal.h"
 #include "xy_device.h"
 #include "xy_fota_boot.h"
 #include "xy_fota_w25q128.h"
@@ -33,7 +33,7 @@
 static UART_HandleTypeDef uart1;
 static QSPI_HandleTypeDef qspi;
 static xy_w25q128_t w25q128;
-static const uint32_t *const app_vectors = (const uint32_t *)PANDORA_FOTA_APP_BASE;
+static const uint32_t* const app_vectors = (const uint32_t*)PANDORA_FOTA_APP_BASE;
 
 static const xy_hal_qspi_config_t qspi_config = {
     .clock_prescaler = 3U,
@@ -42,8 +42,7 @@ static const xy_hal_qspi_config_t qspi_config = {
     .chip_select_high_cycles = 2U,
 };
 
-static int parse_hex_word(const char *text, uint32_t *value)
-{
+static int parse_hex_word(const char* text, uint32_t* value) {
     uint32_t result = 0U;
 
     for (uint32_t index = 0U; index < 8U; ++index) {
@@ -65,41 +64,40 @@ static int parse_hex_word(const char *text, uint32_t *value)
 void _init(void) {}
 void _fini(void) {}
 
-void SysTick_Handler(void)
-{
+void SysTick_Handler(void) {
     xy_hal_sys_tick_irq_handler();
 }
 
-static void stop(void)
-{
+static void stop(void) {
     __disable_irq();
     for (;;) {
     }
 }
 
-static void uart_text(const char *text)
-{
+static void uart_text(const char* text) {
     size_t length = 0U;
     while (text[length] != '\0') {
         ++length;
     }
-    (void)xy_hal_uart_send(&uart1, (const uint8_t *)text, length, 200U);
+    (void)xy_hal_uart_send(&uart1, (const uint8_t*)text, length, 200U);
 }
 
-
-static void peripherals_init(void)
-{
+static void peripherals_init(void) {
     const xy_hal_gpio_config_t uart_gpio = {
-        XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_UP, XY_HAL_GPIO_OTYPE_PP,
+        XY_HAL_GPIO_MODE_AF,         XY_HAL_GPIO_PULL_UP, XY_HAL_GPIO_OTYPE_PP,
         XY_HAL_GPIO_SPEED_VERY_HIGH, GPIO_AF7_USART1,
     };
     const xy_hal_gpio_config_t qspi_gpio = {
-        XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_UP, XY_HAL_GPIO_OTYPE_PP,
+        XY_HAL_GPIO_MODE_AF,         XY_HAL_GPIO_PULL_UP, XY_HAL_GPIO_OTYPE_PP,
         XY_HAL_GPIO_SPEED_VERY_HIGH, GPIO_AF10_QUADSPI,
     };
     const xy_hal_uart_config_t uart_config = {
-        115200U, XY_HAL_UART_WORDLEN_8B, XY_HAL_UART_STOPBITS_1, XY_HAL_UART_PARITY_NONE,
-        XY_HAL_UART_FLOWCTRL_NONE, XY_HAL_UART_MODE_TX_RX,
+        115200U,
+        XY_HAL_UART_WORDLEN_8B,
+        XY_HAL_UART_STOPBITS_1,
+        XY_HAL_UART_PARITY_NONE,
+        XY_HAL_UART_FLOWCTRL_NONE,
+        XY_HAL_UART_MODE_TX_RX,
     };
 
     __HAL_RCC_GPIOA_CLK_ENABLE();
@@ -120,8 +118,7 @@ static void peripherals_init(void)
     qspi.Instance = QUADSPI;
 }
 
-static void jump_to_application(void)
-{
+static void jump_to_application(void) {
     void (*reset_handler)(void) = (void (*)(void))(uintptr_t)app_vectors[1];
 
     uart_text("PANDORA_BOOT_JUMP_APP\r\n");
@@ -146,9 +143,8 @@ static void jump_to_application(void)
     stop();
 }
 
-int main(void)
-{
-    const xy_fota_flash_ops_t *candidate_ops;
+int main(void) {
+    const xy_fota_flash_ops_t* candidate_ops;
     xy_fota_boot_candidate_header_t header;
     xy_fota_boot_journal_config_t journal = pandora_fota_boot_journal_config();
     int installed = 0;
@@ -184,20 +180,21 @@ int main(void)
     candidate.read = candidate_ops->read;
     if (xy_fota_boot_candidate_validate(&candidate, &header) == XY_FOTA_OK) {
 #ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
-        uint32_t backup_value = 0U;
-        if (xy_hal_rtc_backup_read(2U, &backup_value) != XY_HAL_OK) {
+        uint32_t restage_backup_value = 0U;
+        if (xy_hal_rtc_backup_read(2U, &restage_backup_value) != XY_HAL_OK) {
             stop();
         }
-        if (backup_value != PANDORA_FOTA_RESTAGE_DONE_MAGIC) {
+        if (restage_backup_value != PANDORA_FOTA_RESTAGE_DONE_MAGIC) {
             xy_fota_boot_reviewed_restage_authorization_t authorization = {
-                .candidate = {
-                    .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
-                    .format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION,
-                    .size = sizeof(xy_fota_boot_restage_authorization_t),
-                    .image_version = header.image_version,
-                    .image_size = header.image_size,
-                    .image_crc32 = header.image_crc32,
-                },
+                .candidate =
+                    {
+                        .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
+                        .format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION,
+                        .size = sizeof(xy_fota_boot_restage_authorization_t),
+                        .image_version = header.image_version,
+                        .image_size = header.image_size,
+                        .image_crc32 = header.image_crc32,
+                    },
             };
             uint32_t expected_source_commit[5];
 
