@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "ENGINEERING_PROVIDER_CONTRACT_VERIFIED_SECURITY_APPROVAL_PENDING",
+  "scope": "Pandora STM32L475VE Secure FOTA engineering path",
+  "provider_contract": {
+    "provider_type": "caller-supplied production signature provider interface",
+    "algorithm_contract": "ECDSA P-256 signature bytes are passed to the provider",
+    "key_binding": "key_id is passed explicitly to every verification call",
+    "fail_closed": true,
+    "missing_provider_result": "XY_FOTA_AUTH_ERROR",
+    "provider_rejection_result": "XY_FOTA_AUTH_ERROR",
+    "anti_rollback": "header.version must be >= configured min_version"
+  },
+  "verified_tests": [
+    "fota_secure_provider",
+    "crypto_review_manifest",
+    "release_readiness"
+  ],
+  "security_boundary": {
+    "provider_implementation": "NOT_PROVIDED",
+    "production_key_identity": "UNASSIGNED",
+    "threat_model": "NOT_APPROVED",
+    "side_channel_review": "NOT_APPROVED",
+    "provenance_attestation": "NOT_APPROVED",
+    "target_signature_verification": "ENGINEERING_CONTRACT_ONLY",
+    "release_security_approval": "PENDING"
+  },
+  "evidence_boundary": "This record proves the fail-closed provider contract and anti-rollback gate only. It does not prove authentic cryptographic verification, production key custody, Secure FOTA approval, target security qualification, or R1."
+}

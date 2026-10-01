@@ -18,7 +18,7 @@
       "category": "security",
       "title": "Secure FOTA provider and security approval",
       "state": "OPEN",
-      "evidence_gap": "No approved production signature provider, provenance review, side-channel review or release security approval.",
+      "evidence_gap": "Fail-closed provider contract, explicit key_id binding, rejection behavior and anti-rollback floor are now contract-tested; production provider/key identity, provenance/threat-model/side-channel review, target cryptographic verification and security approval remain pending.",
       "owner": "Eugene",
       "unblock_evidence": "Reviewed provider, provenance, threat-model/security record, target verification and explicit approval"
     },
