@@ -1,0 +1,25 @@
+{
+  "record_type": "xinyi-pandora-stm32l475-interrupted-install-attempt",
+  "recorded_at": "2026-10-01",
+  "status": "REJECTED_NOT_INTERRUPTED",
+  "board": "Pandora STM32L475VE",
+  "uart_device": "/dev/ttyACM0",
+  "method": "NRST/ST-Link reset during bounded bootloader start window",
+  "observed": [
+    "PANDORA_BOOT_CANDIDATE_INSTALLED",
+    "PANDORA_BOOT_ATTEMPT_COMMITTED",
+    "PANDORA_BOOT_JUMP_APP"
+  ],
+  "not_observed": [
+    "physical erase/program interruption marker",
+    "power-loss event",
+    "known-good recovery after interrupted physical write"
+  ],
+  "flash_restore": {
+    "before_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+    "after_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+    "bytes": 524288,
+    "byte_compare": "passed"
+  },
+  "evidence_boundary": "Reset during the bootloader start window did not interrupt an observed physical erase/program operation. This record is retained as a rejected attempt and does not close the interrupted-write or power-loss blocker."
+}
