@@ -46,7 +46,11 @@ xy_error_t xy_l3g4200d_init(xy_l3g4200d_t *dev, void *i2c, uint8_t address)
 
     memset(dev, 0, sizeof(*dev));
     result = xy_i2c_device_init(&dev->i2c_dev, i2c, address, 100U);
-    if (result != XY_DEVICE_OK) {
+    if (result != XY_DEVICE_OK || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL) {
+        if (result == XY_DEVICE_OK) {
+            result = XY_DEVICE_INVALID_PARAM;
+        }
         memset(dev, 0, sizeof(*dev));
         return result;
     }
