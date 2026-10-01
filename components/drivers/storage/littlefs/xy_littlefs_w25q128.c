@@ -15,7 +15,12 @@ static int map_status(xy_w25q128_status_t status) {
 
 static int lfs_read(const struct lfs_config* config, lfs_block_t block, lfs_off_t off, void* buffer,
                     lfs_size_t size) {
-    xy_littlefs_w25q128_t* volume = (xy_littlefs_w25q128_t*)config->context;
+    xy_littlefs_w25q128_t* volume;
+
+    if (config == NULL) {
+        return LFS_ERR_INVAL;
+    }
+    volume = (xy_littlefs_w25q128_t*)config->context;
     uint32_t address;
 
     if (volume == NULL || volume->flash == NULL || buffer == NULL || off > XY_LFS_BLOCK_SIZE ||
@@ -28,9 +33,15 @@ static int lfs_read(const struct lfs_config* config, lfs_block_t block, lfs_off_
 
 static int lfs_prog(const struct lfs_config* config, lfs_block_t block, lfs_off_t off,
                     const void* buffer, lfs_size_t size) {
-    xy_littlefs_w25q128_t* volume = (xy_littlefs_w25q128_t*)config->context;
-    const uint8_t* data = (const uint8_t*)buffer;
+    xy_littlefs_w25q128_t* volume;
+    const uint8_t* data;
     uint32_t address;
+
+    if (config == NULL) {
+        return LFS_ERR_INVAL;
+    }
+    volume = (xy_littlefs_w25q128_t*)config->context;
+    data = (const uint8_t*)buffer;
 
     if (volume == NULL || volume->flash == NULL || buffer == NULL || size == 0U ||
         off > XY_LFS_BLOCK_SIZE || size > XY_LFS_BLOCK_SIZE - off || block >= XY_LFS_BLOCK_COUNT ||
@@ -52,7 +63,12 @@ static int lfs_prog(const struct lfs_config* config, lfs_block_t block, lfs_off_
 }
 
 static int lfs_erase(const struct lfs_config* config, lfs_block_t block) {
-    xy_littlefs_w25q128_t* volume = (xy_littlefs_w25q128_t*)config->context;
+    xy_littlefs_w25q128_t* volume;
+
+    if (config == NULL) {
+        return LFS_ERR_INVAL;
+    }
+    volume = (xy_littlefs_w25q128_t*)config->context;
     if (volume == NULL || volume->flash == NULL || block >= XY_LFS_BLOCK_COUNT) {
         return LFS_ERR_INVAL;
     }

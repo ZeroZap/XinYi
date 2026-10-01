@@ -1534,6 +1534,7 @@ target_include_directories(test_w25q128 BEFORE PRIVATE
 
 add_executable(test_littlefs_w25q128
     ${UNIT_STORAGE}/test_littlefs_w25q128.c
+    ${DRV}/storage/littlefs/xy_littlefs_w25q128.c
     ${ROOT}/third_party/littlefs/lfs.c
     ${ROOT}/third_party/littlefs/lfs_util.c
     ${ROOT}/tests/unity/unity.c
