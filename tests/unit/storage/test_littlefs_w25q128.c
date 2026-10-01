@@ -115,7 +115,7 @@ void test_littlefs_callbacks_round_trip(void) {
 }
 
 void test_littlefs_w25q128_format_file_round_trip(void) {
-    xy_littlefs_w25q128_t volume;
+    xy_littlefs_w25q128_t volume = {0};
     xy_w25q128_t flash = {.qspi = w25_storage, .capacity = sizeof(w25_storage), .initialized = 1U};
     lfs_file_t file;
     char actual[12] = {0};
@@ -140,14 +140,13 @@ void test_littlefs_w25q128_rejects_incomplete_flash_and_double_mount(void) {
     xy_w25q128_t incomplete = flash;
 
     incomplete.qspi = NULL;
-    TEST_ASSERT_EQUAL_INT(LFS_ERR_INVAL,
-                          xy_littlefs_w25q128_format_mount(&volume, &incomplete));
+    TEST_ASSERT_EQUAL_INT(LFS_ERR_INVAL, xy_littlefs_w25q128_format_mount(&volume, &incomplete));
     incomplete.qspi = w25_storage;
     incomplete.capacity = 4096U;
-    TEST_ASSERT_EQUAL_INT(LFS_ERR_INVAL,
-                          xy_littlefs_w25q128_format_mount(&volume, &incomplete));
+    TEST_ASSERT_EQUAL_INT(LFS_ERR_INVAL, xy_littlefs_w25q128_format_mount(&volume, &incomplete));
 
     TEST_ASSERT_EQUAL_INT(0, xy_littlefs_w25q128_format_mount(&volume, &flash));
+    volume.config.context = NULL;
     TEST_ASSERT_EQUAL_INT(LFS_ERR_INVAL, xy_littlefs_w25q128_mount(&volume, &flash));
     TEST_ASSERT_EQUAL_INT(LFS_ERR_INVAL, xy_littlefs_w25q128_format_mount(&volume, &flash));
     TEST_ASSERT_EQUAL_INT(0, xy_littlefs_w25q128_unmount(&volume));
