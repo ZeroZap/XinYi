@@ -1,0 +1,55 @@
+{
+  "record_type": "xinyi-pandora-stm32l475-fota-install-confirm-restore",
+  "recorded_at": "2026-10-01",
+  "status": "B2_REVIEW_CANDIDATE",
+  "board": "Pandora STM32L475VE",
+  "target": "STM32L47x/L48x",
+  "chip_id": "0x415",
+  "stlink_serial": "066AFF313933554D43244015",
+  "stlink_firmware": "V2J24S11",
+  "uart_device": "/dev/ttyACM0",
+  "bootloader": {
+    "path": "build/stm32l4/boards/pandora_stm32l475/pandora_stm32l475_fota_bootloader.bin",
+    "size": 15060,
+    "sha256": "1e46cd9bb73f503abaf8fda1a2dd45dcff21ebd575cb8b1dcd0745ad741b6dab",
+    "load_address": "0x08000000",
+    "firmware_commit_marker": "cf452bdc6d627f0afa7a8a6eed072202c9847b1d"
+  },
+  "application": {
+    "path": "build/stm32l4/boards/pandora_stm32l475/pandora_stm32l475_fota_app.bin",
+    "size": 39424,
+    "sha256": "5353ecb436dcd8ffafaae4c35851177c533a58a73ba9411cba6c5052cee8bc0a",
+    "load_address": "0x08008000"
+  },
+  "observed_uart_markers": [
+    "PANDORA FOTA BOOTLOADER READY",
+    "PANDORA_BOOT_NO_VALID_IMAGE",
+    "PANDORA_BOOT_CANDIDATE_INSTALLED",
+    "PANDORA_BOOT_ATTEMPT_COMMITTED",
+    "PANDORA_BOOT_JUMP_APP",
+    "PANDORA_FOTA_CONFIRM_REQUESTED",
+    "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED",
+    "PANDORA_BOOT_CANDIDATE_CONFIRMED",
+    "PANDORA_FOTA_CONFIRM_ACKNOWLEDGED"
+  ],
+  "flash_restore": {
+    "before_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+    "after_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+    "bytes": 524288,
+    "byte_compare": "passed"
+  },
+  "proven": [
+    "ST-Link writes bootloader and application at the production test layout",
+    "bootloader reaches application vector handoff marker",
+    "candidate install/attempt/confirm/acknowledge sequence is observed over independent WCH UART",
+    "full pre-test Flash image is restored byte-identically"
+  ],
+  "not_proven": [
+    "signature verification or Secure FOTA",
+    "controlled boot-failure rollback through a failing candidate",
+    "interrupted physical write recovery",
+    "power-loss or brownout recovery",
+    "R1 release qualification"
+  ],
+  "evidence_boundary": "This is bounded B2 engineering-path install/confirm evidence. It does not close B-HIL by itself."
+}

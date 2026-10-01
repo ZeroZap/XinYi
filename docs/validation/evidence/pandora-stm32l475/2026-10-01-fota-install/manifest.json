@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "record_type": "xinyi-pandora-stm32l475-fota-install-confirm-restore",
+  "artifact": "docs/validation/evidence/pandora-stm32l475/2026-10-01-fota-install/fota-install-record.json",
+  "uart_markers": "docs/validation/evidence/pandora-stm32l475/2026-10-01-fota-install/fota-install-uart-markers.txt",
+  "status": "B2_REVIEW_CANDIDATE",
+  "scope": "real ST-Link programming of bootloader/application test layout, WCH UART observed install/attempt/vector-jump/confirm/acknowledge flow, and byte-identical full Flash restoration",
+  "source_commit": "2fbb1075ea76c9b78e37b0f9b319c83b396f6650",
+  "bootloader_sha256": "1e46cd9bb73f503abaf8fda1a2dd45dcff21ebd575cb8b1dcd0745ad741b6dab",
+  "application_sha256": "5353ecb436dcd8ffafaae4c35851177c533a58a73ba9411cba6c5052cee8bc0a",
+  "flash_before_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+  "flash_after_restore_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+  "not_evidence_for": [
+    "Secure FOTA or signature verification",
+    "boot-failure rollback",
+    "interrupted physical write recovery",
+    "power-loss/brownout recovery",
+    "R1 release qualification"
+  ]
+}

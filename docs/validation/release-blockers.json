@@ -9,7 +9,7 @@
       "category": "hardware",
       "title": "Reference-board HIL and install/rollback qualification",
       "state": "OPEN",
-      "evidence_gap": "Bounded Pandora B1/B2 records exist, but complete supported-scope HIL, install, interrupted-update, rollback and known-good return evidence is not complete.",
+      "evidence_gap": "Real bootloader install/vector handoff/confirm is now covered by a bounded B2 review candidate. Interrupted physical write, power-loss/brownout recovery, and controlled boot-failure rollback remain incomplete.",
       "owner": "Eugene",
       "unblock_evidence": "Board, wiring, firmware SHA, UART/capture, flash/install and rollback records for the frozen scope"
     },
