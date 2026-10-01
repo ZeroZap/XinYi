@@ -1,0 +1,36 @@
+{
+  "record_type": "xinyi-pandora-stm32l475-fota-controlled-boot-attempt-rollback",
+  "recorded_at": "2026-10-01",
+  "status": "B2_REVIEW_CANDIDATE",
+  "board": "Pandora STM32L475VE",
+  "stlink_serial": "066AFF313933554D43244015",
+  "uart_device": "/dev/ttyACM0",
+  "candidate": {
+    "image_version": 3,
+    "size": 39456,
+    "sha256": "f51e12539288e2784480d22cc6ba66f707678f49eda88d941ae20e563a3e4feb",
+    "reset_handler": "0x08008001",
+    "description": "Envelope-valid candidate with a reset vector at the application slot base; used to exercise bounded boot-attempt accounting."
+  },
+  "bootloader": {
+    "path": "build/bhil-rollback-normal/boards/pandora_stm32l475/pandora_stm32l475_fota_bootloader.bin",
+    "size": 15060,
+    "sha256": "7a1c85e557d968f696361734435219df5b87725760853f02a520cb15c580a9e6",
+    "source_commit": "2fbb1075ea76c9b78e37b0f9b319c83b396f6650"
+  },
+  "observed_markers": [
+    "PANDORA_BOOT_CANDIDATE_INSTALLED",
+    "PANDORA_BOOT_ATTEMPT_COMMITTED",
+    "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED",
+    "PANDORA_BOOT_ROLLBACK_REQUIRED",
+    "PANDORA_BOOT_INSTALL_ERROR"
+  ],
+  "attempts": 3,
+  "flash_restore": {
+    "before_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+    "after_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+    "bytes": 524288,
+    "byte_compare": "passed"
+  },
+  "evidence_boundary": "This is controlled boot-attempt threshold and rollback-required marker evidence. It is not independent bootloader recovery after a real candidate execution failure, interrupted physical write recovery, power-loss recovery, Secure FOTA, or R1."
+}

@@ -9,7 +9,7 @@
       "category": "hardware",
       "title": "Reference-board HIL and install/rollback qualification",
       "state": "OPEN",
-      "evidence_gap": "Real bootloader install/vector handoff/confirm is now covered by a bounded B2 review candidate. Interrupted physical write, power-loss/brownout recovery, and controlled boot-failure rollback remain incomplete.",
+      "evidence_gap": "Real bootloader install/vector handoff/confirm and controlled attempt-threshold rollback-required branch are now covered by bounded B2 review candidates. Remaining gaps are interrupted physical write, power-loss/brownout recovery, and automatic known-good boot after a genuinely failing candidate.",
       "owner": "Eugene",
       "unblock_evidence": "Board, wiring, firmware SHA, UART/capture, flash/install and rollback records for the frozen scope"
     },

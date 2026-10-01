@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "record_type": "xinyi-pandora-stm32l475-fota-controlled-boot-attempt-rollback",
+  "record": "docs/validation/evidence/pandora-stm32l475/2026-10-01-fota-rollback/rollback-record.json",
+  "uart": "docs/validation/evidence/pandora-stm32l475/2026-10-01-fota-rollback/rollback-uart-markers.txt",
+  "source_commit": "2fbb1075ea76c9b78e37b0f9b319c83b396f6650",
+  "candidate_sha256": "f51e12539288e2784480d22cc6ba66f707678f49eda88d941ae20e563a3e4feb",
+  "flash_before_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+  "flash_after_restore_sha256": "ccecfcd5f239940ba0c059574ed85caa706b0ffc2c3734d737742a6ef9b1d661",
+  "status": "B2_REVIEW_CANDIDATE",
+  "not_evidence_for": [
+    "real candidate execution failure and automatic known-good boot",
+    "interrupted physical write recovery",
+    "power-loss/brownout recovery",
+    "Secure FOTA or signature verification",
+    "R1 release qualification"
+  ]
+}
