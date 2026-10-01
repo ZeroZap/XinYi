@@ -420,6 +420,25 @@ static void test_bme680_read_rejects_invalid_nested_bus_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT(0U, op_index);
 }
 
+static void test_bme680_public_ops_reject_missing_nested_transport_without_io(void)
+{
+    xy_bme680_t dev;
+    xy_bme680_data_t data = {123, 456U, 789U, 321U, 0xA5U};
+    xy_bme680_data_t snapshot = data;
+
+    memset(&dev, 0, sizeof(dev));
+    dev.initialized = 1U;
+    dev.i2c_dev.base.initialized = 1U;
+    dev.i2c_dev.i2c_handle = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_read(&dev, &data));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bme680_deinit(&dev));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &data, sizeof(data));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_EQUAL_UINT(0U, op_index);
+}
+
 static BME68X_INTF_RET_TYPE bme680_transport_failure_read(uint8_t reg, uint8_t *data,
                                                           uint32_t length, void *context)
 {
@@ -829,6 +848,7 @@ int main(void)
     RUN_TEST(test_bme680_init_clears_handle_when_i2c_helper_fails);
     RUN_TEST(test_bme680_deinit_rejects_invalid_nested_bus_lifecycle);
     RUN_TEST(test_bme680_read_rejects_invalid_nested_bus_lifecycle);
+    RUN_TEST(test_bme680_public_ops_reject_missing_nested_transport_without_io);
     RUN_TEST(test_bme680_deinit_preserves_lifecycle_on_transport_failure);
     RUN_TEST(test_bme680_forced_read_preserves_data_on_transport_failure);
     RUN_TEST(test_bme680_stale_transport_error_is_not_reused);
