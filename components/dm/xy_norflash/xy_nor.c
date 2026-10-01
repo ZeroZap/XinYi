@@ -1,5 +1,6 @@
 #include "xy_nor.h"
 #include <string.h>
+#include <stdio.h>
 
 /* 内部辅助函数 */
 static xy_nor_status_t xy_nor_send_command(xy_nor_handle_t *handle, uint8_t cmd,

@@ -6,6 +6,9 @@
 
 #include "xy_nor.h"
 
+#include <stddef.h>
+#include <stdlib.h>
+
 /*
  * 这里需要包含您的硬件平台相关的头文件
  * 例如：SPI驱动、GPIO驱动等

@@ -374,8 +374,10 @@ config FS_FATFS
 config FS_LITTLEFS
     bool "LittleFS"
     depends on FS_ENABLED
+    depends on NOR_FLASH_ENABLED
+    default n
     help
-      LittleFS for internal flash.
+      LittleFS block device integration for external NOR Flash.
 
 config FS_FLASHDB
     bool "FlashDB (NOR Flash)"

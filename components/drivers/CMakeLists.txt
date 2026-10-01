@@ -66,6 +66,13 @@ list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "test/.*")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "samples/.*")
 list(FILTER COMPONENT_SOURCES EXCLUDE REGEX "examples/.*")
 
+if(CONFIG_FS_LITTLEFS)
+    list(APPEND COMPONENT_SOURCES
+        ${CMAKE_SOURCE_DIR}/third_party/littlefs/lfs.c
+        ${CMAKE_SOURCE_DIR}/third_party/littlefs/lfs_util.c
+    )
+endif()
+
 if(NOT XY_DRIVER_DISPLAY)
     list(FILTER COMPONENT_SOURCES EXCLUDE REGEX ".*/display/.*")
 else()
@@ -106,6 +113,13 @@ file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 
 # Create static library
 add_library(xy_drivers STATIC ${COMPONENT_SOURCES})
+
+if(CONFIG_FS_LITTLEFS)
+    target_include_directories(xy_drivers PUBLIC
+        ${CMAKE_SOURCE_DIR}/third_party/littlefs
+    )
+    target_compile_definitions(xy_drivers PUBLIC XY_LITTLEFS_W25Q128=1)
+endif()
 
 # Set library properties
 set_target_properties(xy_drivers PROPERTIES

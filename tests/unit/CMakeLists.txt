@@ -1532,6 +1532,21 @@ target_include_directories(test_w25q128 BEFORE PRIVATE
     ${HAL}/inc
 )
 
+add_executable(test_littlefs_w25q128
+    ${UNIT_STORAGE}/test_littlefs_w25q128.c
+    ${ROOT}/third_party/littlefs/lfs.c
+    ${ROOT}/third_party/littlefs/lfs_util.c
+    ${ROOT}/tests/unity/unity.c
+)
+target_include_directories(test_littlefs_w25q128 PRIVATE
+    ${ROOT}/third_party/littlefs
+    ${DRV}/storage/littlefs
+    ${DRV}/storage/flash/w25q128
+    ${DEVICE}/inc
+    ${HAL}/inc
+)
+add_test(NAME littlefs_w25q128 COMMAND test_littlefs_w25q128)
+
 xy_add_unit_test(test_sd_spi storage_sd_spi UNITY
     ${UNIT_STORAGE}/test_sd_spi.c
     ${DRV}/storage/sdcard/xy_sd_spi.c

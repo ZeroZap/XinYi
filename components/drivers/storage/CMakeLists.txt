@@ -10,6 +10,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/flash)
     add_subdirectory(flash)
 endif()
 
+# LittleFS on external NOR flash
+if(CONFIG_FS_LITTLEFS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/littlefs)
+    add_subdirectory(littlefs)
+endif()
+
 # SD Card
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/sdcard)
     add_subdirectory(sdcard)
