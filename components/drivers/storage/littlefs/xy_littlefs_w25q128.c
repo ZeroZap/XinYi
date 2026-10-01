@@ -99,7 +99,9 @@ static void configure(xy_littlefs_w25q128_t* volume, xy_w25q128_t* flash) {
 
 int xy_littlefs_w25q128_mount(xy_littlefs_w25q128_t* volume, xy_w25q128_t* flash) {
     int result;
-    if (volume == NULL || flash == NULL || flash->initialized == 0U) {
+    if (volume == NULL || flash == NULL || flash->initialized == 0U || flash->qspi == NULL ||
+        flash->capacity < XY_LFS_BLOCK_SIZE * XY_LFS_BLOCK_COUNT ||
+        (volume->mounted != 0U && volume->config.context == volume)) {
         return LFS_ERR_INVAL;
     }
     configure(volume, flash);
@@ -112,7 +114,9 @@ int xy_littlefs_w25q128_mount(xy_littlefs_w25q128_t* volume, xy_w25q128_t* flash
 
 int xy_littlefs_w25q128_format_mount(xy_littlefs_w25q128_t* volume, xy_w25q128_t* flash) {
     int result;
-    if (volume == NULL || flash == NULL || flash->initialized == 0U) {
+    if (volume == NULL || flash == NULL || flash->initialized == 0U || flash->qspi == NULL ||
+        flash->capacity < XY_LFS_BLOCK_SIZE * XY_LFS_BLOCK_COUNT ||
+        (volume->mounted != 0U && volume->config.context == volume)) {
         return LFS_ERR_INVAL;
     }
     configure(volume, flash);
