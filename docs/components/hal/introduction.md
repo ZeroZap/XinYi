@@ -181,10 +181,10 @@ int main(void) {
 
 | 系列 | 状态 | 备注 |
 |------|------|------|
-| STM32U5 | ✅ 完整 | 参考实现 |
-| STM32F4 | ✅ 完整 | - |
-| STM32F1 | ✅ 完整 | - |
-| STM32L4 | ✅ 完整 | - |
+| STM32U5 | 🟡 编译兼容 | enhancement compile-only；Board pending |
+| STM32F4 | 🟡 部分实现 | 部分外设为显式 unsupported；QEMU partial |
+| STM32F1 | 📋 未纳入当前支持矩阵 | 不作为当前 Sprint release scope |
+| STM32L4 | 🟡 Pandora 分层证据 | 正式 reference board；framework 与 board-local 证据分开 |
 | STM32H7 | 🔄 进行中 | - |
 
 ### 其他平台
@@ -193,7 +193,7 @@ int main(void) {
 |------|------|------|
 | HC32 | 📋 占位符 | 可实现 |
 | WCH | 📋 占位符 | 可实现 |
-| PC 仿真 | ✅ 完整 | 开发测试 |
+| PC 仿真 | ✅ Host contract | 开发测试；不构成目标平台证据 |
 
 ---
 

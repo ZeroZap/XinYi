@@ -105,8 +105,8 @@
 
 | 文档 | 完整度 | 更新日期 | 状态 |
 |------|--------|----------|------|
-| HAL 组件文档 | 90% | 2026-02-28 | ✅ 完善 |
-| OSAL 组件文档 | 95% | 2026-02-28 | ✅ 完善 |
+| HAL 组件文档 | 分层证据 | 2026-10-01 | ✅ 事实源已同步 |
+| OSAL 组件文档 | 分层证据 | 2026-10-01 | ✅ Pandora bounded runtime |
 | Device 组件文档 | host-guarded | 2026-08-11 | ✅ README/xy_device root build/registry+buses+async CTest 已护栏 |
 | CLIB 组件文档 | 85% | 2026-02-28 | ✅ 完善 |
 | Crypto 组件文档 | 90% | 2026-08-11 | ✅ host-guarded |
@@ -116,7 +116,7 @@
 | Sensor 组件文档 | 95% | 2026-08-11 | ✅ tail host coverage 已收口 |
 | IPC 组件文档 | host-guarded | 2026-08-11 | ✅ pipe/broker/message queue/observer/event group 已护栏 |
 | PM 组件文档 | host-guarded / 功耗待实证 | 2026-08-11 | ✅ README/Kconfig/CMake/CTest 已闭环 |
-| FOTA 组件文档 | 主线可用 / 硬件待证据 | 2026-08-11 | ✅ host CTest + smoke example 已闭环 |
+| FOTA 组件文档 | host-guarded / 硬件待证据 | 2026-10-01 | ✅ host CTest；board/security pending |
 | GUI 组件文档 | host-guarded core / 硬件待验证 | 2026-08-11 | ✅ core/widgets/effects/fonts/display-backend adapter 已有护栏 |
 
 > 说明：该表只记录软件文档与 host-side 契约状态；LTE modem、Fuel Gauge SMBus、FOTA bootloader/board NOR、GUI/Display 真实屏幕等硬件结论仍必须来自 `docs/validation/` 下的真实板级记录，不能由 host fake 或 compile-only 结果替代。

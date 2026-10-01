@@ -1,7 +1,7 @@
 # 硬件支持
 
-**版本**: 1.1.0  
-**最后更新**: 2026-03-16  
+**版本**: 1.2.0
+**最后更新**: 2026-10-01
 **维护者**: XinYi Team
 
 XinYi 支持的硬件平台和开发板。
@@ -14,10 +14,10 @@ XinYi 支持的硬件平台和开发板。
 
 | 系列 | 状态 | 备注 |
 |------|------|------|
-| STM32U5 | ✅ 完整 | 参考实现 |
-| STM32F4 | ✅ 完整 | - |
-| STM32F1 | ✅ 完整 | - |
-| STM32L4 | ✅ 完整 | - |
+| STM32U5 | 🟡 编译兼容 | enhancement compile-only；Board pending |
+| STM32F4 | 🟡 部分实现 | 部分外设 unsupported；QEMU partial |
+| STM32F1 | 📋 未纳入当前支持矩阵 | 不作为当前 Sprint release scope |
+| STM32L4 | 🟡 Pandora reference board | 受限 B1/B2；不得外推为完整 HAL |
 | STM32H7 | 🔄 进行中 | - |
 
 ### 其他 MCU
@@ -35,17 +35,17 @@ XinYi 支持的硬件平台和开发板。
 
 | 开发板 | MCU | 状态 |
 |--------|-----|------|
-| NUCLEO-U575ZI | STM32U575 | ✅ |
-| NUCLEO-F429ZI | STM32F429 | ✅ |
-| NUCLEO-F103RB | STM32F103 | ✅ |
-| NUCLEO-L476RG | STM32L476 | ✅ |
+| NUCLEO-U575ZI | STM32U575 | compile-only / Board pending |
+| NUCLEO-F429ZI | STM32F429 | QEMU partial / Board pending |
+| NUCLEO-F103RB | STM32F103 | 不在当前 release scope |
+| NUCLEO-L476RG | STM32L476 | Board pending；Pandora L475 是正式 reference |
 
 ### 自定义开发板
 
 | 开发板 | 说明 | 状态 |
 |--------|------|------|
-| XinYi Bridge | USB 桥接器 | ✅ |
-| XinYi Meter | LCR 表 | ✅ |
+| XinYi Bridge | USB 桥接器 | 未纳入当前 release scope |
+| XinYi Meter | LCR 表 | 未纳入当前 release scope |
 
 ---
 
