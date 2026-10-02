@@ -5,6 +5,7 @@
 
 static xy_error_t io_error;
 static xy_error_t init_error;
+static bool init_without_handle;
 static unsigned operation_count;
 static uint8_t raw[6] = {1, 0, 2, 0, 3, 0};
 
@@ -13,7 +14,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
 {
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1U;
-    dev->i2c_handle = handle;
+    dev->i2c_handle = init_without_handle ? NULL : handle;
     dev->dev_addr = address;
     dev->timeout = timeout;
     return init_error;
@@ -62,6 +63,7 @@ void setUp(void)
 {
     io_error = XY_DEVICE_OK;
     init_error = XY_DEVICE_OK;
+    init_without_handle = false;
     operation_count = 0U;
 }
 
@@ -98,6 +100,21 @@ static void test_bma400_init_failure_clears_partial_transport(void)
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+}
+
+static void test_bma400_init_rejects_incomplete_transport_success(void)
+{
+    xy_bma400_t dev;
+    int bus;
+
+    memset(&dev, 0xA5, sizeof(dev));
+    init_without_handle = true;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bma400_init(&dev, &bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, operation_count);
 }
 
 static void test_bma400_fail_closed_on_invalid_nested_transport(void)
@@ -146,6 +163,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_bma400_init_read_and_deinit);
     RUN_TEST(test_bma400_init_failure_clears_partial_transport);
+    RUN_TEST(test_bma400_init_rejects_incomplete_transport_success);
     RUN_TEST(test_bma400_fail_closed_on_invalid_nested_transport);
     RUN_TEST(test_bma400_transport_failure_preserves_state);
     return UNITY_END();
