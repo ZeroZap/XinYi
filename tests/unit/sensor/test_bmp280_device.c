@@ -33,8 +33,7 @@ static const uint8_t g_calibration[24] = {
     0x27, 0x0B, 0x8C, 0x00, 0xF9, 0xFF, 0x8C, 0x3C, 0xF8, 0xC6, 0x70, 0x17,
 };
 
-static void queue_read(uint8_t reg, const uint8_t *data, size_t len, xy_error_t ret)
-{
+static void queue_read(uint8_t reg, const uint8_t* data, size_t len, xy_error_t ret) {
     TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_ops), g_op_count);
     g_ops[g_op_count].kind = OP_READ_REG;
     g_ops[g_op_count].reg = reg;
@@ -46,13 +45,11 @@ static void queue_read(uint8_t reg, const uint8_t *data, size_t len, xy_error_t 
     g_op_count++;
 }
 
-static void queue_read8(uint8_t reg, uint8_t value, xy_error_t ret)
-{
+static void queue_read8(uint8_t reg, uint8_t value, xy_error_t ret) {
     queue_read(reg, &value, 1U, ret);
 }
 
-static void queue_write8(uint8_t reg, uint8_t value, xy_error_t ret)
-{
+static void queue_write8(uint8_t reg, uint8_t value, xy_error_t ret) {
     TEST_ASSERT_LESS_THAN_UINT(ARRAY_LEN(g_ops), g_op_count);
     g_ops[g_op_count].kind = OP_WRITE_REG;
     g_ops[g_op_count].reg = reg;
@@ -62,16 +59,14 @@ static void queue_write8(uint8_t reg, uint8_t value, xy_error_t ret)
     g_op_count++;
 }
 
-static i2c_op_t *next_op(op_kind_t kind)
-{
+static i2c_op_t* next_op(op_kind_t kind) {
     TEST_ASSERT_LESS_THAN_UINT(g_op_count, g_op_index);
     TEST_ASSERT_EQUAL_INT(kind, g_ops[g_op_index].kind);
     return &g_ops[g_op_index++];
 }
 
-xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t addr,
-                              uint32_t timeout)
-{
+xy_error_t xy_i2c_device_init(xy_i2c_device_t* dev, void* i2c_handle, uint16_t addr,
+                              uint32_t timeout) {
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_NOT_NULL(i2c_handle);
     if (g_init_result != XY_DEVICE_OK) {
@@ -87,9 +82,8 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
-{
-    i2c_op_t *op;
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t* dev, uint8_t reg, uint8_t* data, size_t len) {
+    i2c_op_t* op;
 
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_TRUE(dev->base.initialized);
@@ -103,10 +97,9 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
     return op->ret;
 }
 
-xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data,
-                                   size_t len)
-{
-    i2c_op_t *op;
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t* dev, uint8_t reg, const uint8_t* data,
+                                   size_t len) {
+    i2c_op_t* op;
 
     TEST_ASSERT_NOT_NULL(dev);
     TEST_ASSERT_TRUE(dev->base.initialized);
@@ -118,8 +111,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
     return op->ret;
 }
 
-void setUp(void)
-{
+void setUp(void) {
     memset(g_ops, 0, sizeof(g_ops));
     g_op_count = 0U;
     g_op_index = 0U;
@@ -128,12 +120,9 @@ void setUp(void)
     g_init_result = XY_DEVICE_OK;
 }
 
-void tearDown(void)
-{
-}
+void tearDown(void) {}
 
-static void queue_init_success(void)
-{
+static void queue_init_success(void) {
     queue_read8(BMP280_REG_ID, BMP280_ID_VALUE, XY_DEVICE_OK);
     queue_write8(BMP280_REG_RESET, 0xB6U, XY_DEVICE_OK);
     queue_read(BMP280_REG_CALIB, g_calibration, sizeof(g_calibration), XY_DEVICE_OK);
@@ -141,15 +130,13 @@ static void queue_init_success(void)
     queue_write8(BMP280_REG_CTRL_MEAS, 0x27U, XY_DEVICE_OK);
 }
 
-static void init_success(xy_bmp280_t *bmp, int *bus, uint8_t addr)
-{
+static void init_success(xy_bmp280_t* bmp, int* bus, uint8_t addr) {
     queue_init_success();
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmp280_init_addr(bmp, bus, addr));
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
-static void test_bmp280_init_supports_both_addresses_and_parses_calibration(void)
-{
+static void test_bmp280_init_supports_both_addresses_and_parses_calibration(void) {
     xy_bmp280_t bmp;
     int bus;
 
@@ -170,23 +157,20 @@ static void test_bmp280_init_supports_both_addresses_and_parses_calibration(void
     TEST_ASSERT_EQUAL_UINT16(36477U, bmp.calibration.dig_p1);
 }
 
-static void test_bmp280_init_propagates_each_io_failure(void)
-{
+static void test_bmp280_init_propagates_each_io_failure(void) {
     xy_bmp280_t bmp;
     int bus;
 
     memset(&bmp, 0xA5, sizeof(bmp));
     g_init_result = XY_DEVICE_IO_ERROR;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
-                          xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
     TEST_ASSERT_FALSE(bmp.initialized);
     TEST_ASSERT_FALSE(bmp.i2c_dev.base.initialized);
     TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
 
     g_init_result = XY_DEVICE_OK;
     queue_read8(BMP280_REG_ID, BMP280_ID_VALUE, XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
-                          xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
     TEST_ASSERT_FALSE(bmp.initialized);
     TEST_ASSERT_FALSE(bmp.i2c_dev.base.initialized);
 
@@ -197,23 +181,20 @@ static void test_bmp280_init_propagates_each_io_failure(void)
 
     queue_read8(BMP280_REG_ID, BMP280_ID_VALUE, XY_DEVICE_OK);
     queue_write8(BMP280_REG_RESET, 0xB6U, XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
-                          xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
     TEST_ASSERT_FALSE(bmp.i2c_dev.base.initialized);
 
     queue_read8(BMP280_REG_ID, BMP280_ID_VALUE, XY_DEVICE_OK);
     queue_write8(BMP280_REG_RESET, 0xB6U, XY_DEVICE_OK);
     queue_read(BMP280_REG_CALIB, NULL, sizeof(g_calibration), XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
-                          xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
     TEST_ASSERT_FALSE(bmp.i2c_dev.base.initialized);
 
     queue_read8(BMP280_REG_ID, BMP280_ID_VALUE, XY_DEVICE_OK);
     queue_write8(BMP280_REG_RESET, 0xB6U, XY_DEVICE_OK);
     queue_read(BMP280_REG_CALIB, g_calibration, sizeof(g_calibration), XY_DEVICE_OK);
     queue_write8(BMP280_REG_CONFIG, 0x00U, XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
-                          xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
     TEST_ASSERT_FALSE(bmp.i2c_dev.base.initialized);
 
     queue_read8(BMP280_REG_ID, BMP280_ID_VALUE, XY_DEVICE_OK);
@@ -221,14 +202,12 @@ static void test_bmp280_init_propagates_each_io_failure(void)
     queue_read(BMP280_REG_CALIB, g_calibration, sizeof(g_calibration), XY_DEVICE_OK);
     queue_write8(BMP280_REG_CONFIG, 0x00U, XY_DEVICE_OK);
     queue_write8(BMP280_REG_CTRL_MEAS, 0x27U, XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
-                          xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_DEFAULT));
     TEST_ASSERT_FALSE(bmp.initialized);
     TEST_ASSERT_FALSE(bmp.i2c_dev.base.initialized);
 }
 
-static void test_bmp280_compensates_bosch_sample_and_preserves_cache_on_failure(void)
-{
+static void test_bmp280_compensates_bosch_sample_and_preserves_cache_on_failure(void) {
     const uint8_t raw[6] = {0x65, 0x5A, 0xC0, 0x7E, 0xED, 0x00};
     xy_bmp280_t bmp;
     int32_t temperature = -1;
@@ -251,8 +230,32 @@ static void test_bmp280_compensates_bosch_sample_and_preserves_cache_on_failure(
     TEST_ASSERT_EQUAL_UINT32(100653U, bmp.pressure);
 }
 
-static void test_bmp280_read_rejects_uninitialized_nested_bus(void)
-{
+static void test_bmp280_failed_reinit_preserves_live_owner(void) {
+    xy_bmp280_t bmp;
+    xy_bmp280_t before;
+    int bus;
+
+    init_success(&bmp, &bus, BMP280_ADDR_DEFAULT);
+    bmp.temperature = 2508;
+    bmp.pressure = 100653U;
+    before = bmp;
+
+    queue_read8(BMP280_REG_ID, BMP280_ID_VALUE, XY_DEVICE_OK);
+    queue_write8(BMP280_REG_RESET, 0xB6U, XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_ALT));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &bmp, sizeof(bmp));
+
+    queue_read8(BMP280_REG_ID, BMP280_ID_VALUE, XY_DEVICE_OK);
+    queue_write8(BMP280_REG_RESET, 0xB6U, XY_DEVICE_OK);
+    queue_read(BMP280_REG_CALIB, g_calibration, sizeof(g_calibration), XY_DEVICE_OK);
+    queue_write8(BMP280_REG_CONFIG, 0x00U, XY_DEVICE_OK);
+    queue_write8(BMP280_REG_CTRL_MEAS, 0x27U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmp280_init_addr(&bmp, &bus, BMP280_ADDR_ALT));
+    TEST_ASSERT_EQUAL_UINT8(BMP280_ADDR_ALT, bmp.addr);
+    TEST_ASSERT_TRUE(bmp.initialized);
+}
+
+static void test_bmp280_read_rejects_uninitialized_nested_bus(void) {
     xy_bmp280_t bmp;
     int bus;
 
@@ -260,8 +263,7 @@ static void test_bmp280_read_rejects_uninitialized_nested_bus(void)
     bmp.i2c_dev.base.initialized = 0U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_read(&bmp));
 }
-static void test_bmp280_scalar_reads_signal_transport_failure(void)
-{
+static void test_bmp280_scalar_reads_signal_transport_failure(void) {
     const uint8_t raw[6] = {0x65, 0x5A, 0xC0, 0x7E, 0xED, 0x00};
     xy_bmp280_t bmp;
     int bus;
@@ -271,20 +273,17 @@ static void test_bmp280_scalar_reads_signal_transport_failure(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bmp280_read(&bmp));
 
     queue_read(BMP280_REG_PRESS_DATA, NULL, sizeof(raw), XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_INT32(XY_BMP280_TEMPERATURE_READ_ERROR,
-                            xy_bmp280_read_temperature(&bmp));
+    TEST_ASSERT_EQUAL_INT32(XY_BMP280_TEMPERATURE_READ_ERROR, xy_bmp280_read_temperature(&bmp));
     TEST_ASSERT_EQUAL_INT32(2508, bmp.temperature);
     TEST_ASSERT_EQUAL_UINT32(100653U, bmp.pressure);
 
     queue_read(BMP280_REG_PRESS_DATA, NULL, sizeof(raw), XY_DEVICE_IO_ERROR);
-    TEST_ASSERT_EQUAL_UINT32(XY_BMP280_PRESSURE_READ_ERROR,
-                             xy_bmp280_read_pressure(&bmp));
+    TEST_ASSERT_EQUAL_UINT32(XY_BMP280_PRESSURE_READ_ERROR, xy_bmp280_read_pressure(&bmp));
     TEST_ASSERT_EQUAL_INT32(2508, bmp.temperature);
     TEST_ASSERT_EQUAL_UINT32(100653U, bmp.pressure);
 }
 
-static void test_bmp280_deinit_failure_preserves_state(void)
-{
+static void test_bmp280_deinit_failure_preserves_state(void) {
     xy_bmp280_t bmp;
     int bus;
 
@@ -302,8 +301,7 @@ static void test_bmp280_deinit_failure_preserves_state(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_read(&bmp));
 }
 
-static void test_bmp280_getters_reject_uninitialized_nested_bus(void)
-{
+static void test_bmp280_getters_reject_uninitialized_nested_bus(void) {
     xy_bmp280_t bmp;
     int32_t temperature = 111;
     uint32_t pressure = 222U;
@@ -311,26 +309,21 @@ static void test_bmp280_getters_reject_uninitialized_nested_bus(void)
 
     init_success(&bmp, &bus, BMP280_ADDR_DEFAULT);
     bmp.i2c_dev.base.initialized = 0U;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          xy_bmp280_get_temperature(&bmp, &temperature));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          xy_bmp280_get_pressure(&bmp, &pressure));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_get_temperature(&bmp, &temperature));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_get_pressure(&bmp, &pressure));
     TEST_ASSERT_EQUAL_INT32(111, temperature);
     TEST_ASSERT_EQUAL_UINT32(222U, pressure);
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 
     bmp.i2c_dev.base.initialized = 1U;
     bmp.i2c_dev.i2c_handle = NULL;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          xy_bmp280_get_temperature(&bmp, &temperature));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
-                          xy_bmp280_get_pressure(&bmp, &pressure));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_get_temperature(&bmp, &temperature));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_get_pressure(&bmp, &pressure));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_bmp280_read(&bmp));
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
-static void test_bmp280_deinit_rejects_uninitialized_nested_bus_without_io(void)
-{
+static void test_bmp280_deinit_rejects_uninitialized_nested_bus_without_io(void) {
     xy_bmp280_t bmp;
     int bus;
 
@@ -341,12 +334,12 @@ static void test_bmp280_deinit_rejects_uninitialized_nested_bus_without_io(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_bmp280_init_supports_both_addresses_and_parses_calibration);
     RUN_TEST(test_bmp280_init_propagates_each_io_failure);
     RUN_TEST(test_bmp280_compensates_bosch_sample_and_preserves_cache_on_failure);
+    RUN_TEST(test_bmp280_failed_reinit_preserves_live_owner);
     RUN_TEST(test_bmp280_read_rejects_uninitialized_nested_bus);
     RUN_TEST(test_bmp280_scalar_reads_signal_transport_failure);
     RUN_TEST(test_bmp280_deinit_failure_preserves_state);

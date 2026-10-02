@@ -6,19 +6,15 @@
 #include "xy_bmp280.h"
 #include <string.h>
 
-static uint16_t read_u16_le(const uint8_t *data)
-{
+static uint16_t read_u16_le(const uint8_t* data) {
     return (uint16_t)(((uint16_t)data[1] << 8) | data[0]);
 }
 
-static int16_t read_i16_le(const uint8_t *data)
-{
+static int16_t read_i16_le(const uint8_t* data) {
     return (int16_t)read_u16_le(data);
 }
 
-static void bmp280_parse_calibration(xy_bmp280_calibration_t *calibration,
-                                     const uint8_t data[24])
-{
+static void bmp280_parse_calibration(xy_bmp280_calibration_t* calibration, const uint8_t data[24]) {
     calibration->dig_t1 = read_u16_le(&data[0]);
     calibration->dig_t2 = read_i16_le(&data[2]);
     calibration->dig_t3 = read_i16_le(&data[4]);
@@ -33,15 +29,13 @@ static void bmp280_parse_calibration(xy_bmp280_calibration_t *calibration,
     calibration->dig_p9 = read_i16_le(&data[22]);
 }
 
-static int bmp280_init_fail(xy_bmp280_t *bmp, int result)
-{
+static int bmp280_init_fail(xy_bmp280_t* bmp, int result) {
     memset(bmp, 0, sizeof(*bmp));
     return result;
 }
 
-static int32_t bmp280_compensate_temperature(const xy_bmp280_calibration_t *calibration,
-                                             int32_t adc_temperature, int32_t *t_fine)
-{
+static int32_t bmp280_compensate_temperature(const xy_bmp280_calibration_t* calibration,
+                                             int32_t adc_temperature, int32_t* t_fine) {
     int32_t var1;
     int32_t var2;
 
@@ -57,10 +51,8 @@ static int32_t bmp280_compensate_temperature(const xy_bmp280_calibration_t *cali
     return (*t_fine * 5 + 128) >> 8;
 }
 
-static int bmp280_compensate_pressure(const xy_bmp280_calibration_t *calibration,
-                                      int32_t adc_pressure, int32_t t_fine,
-                                      uint32_t *pressure)
-{
+static int bmp280_compensate_pressure(const xy_bmp280_calibration_t* calibration,
+                                      int32_t adc_pressure, int32_t t_fine, uint32_t* pressure) {
     int64_t var1;
     int64_t var2;
     int64_t value;
@@ -69,8 +61,7 @@ static int bmp280_compensate_pressure(const xy_bmp280_calibration_t *calibration
     var2 = var1 * var1 * calibration->dig_p6;
     var2 += (var1 * calibration->dig_p5) << 17;
     var2 += (int64_t)calibration->dig_p4 << 35;
-    var1 = ((var1 * var1 * calibration->dig_p3) >> 8) +
-           ((var1 * calibration->dig_p2) << 12);
+    var1 = ((var1 * var1 * calibration->dig_p3) >> 8) + ((var1 * calibration->dig_p2) << 12);
     var1 = (((((int64_t)1) << 47) + var1) * calibration->dig_p1) >> 33;
     if (var1 == 0) {
         return XY_DEVICE_IO_ERROR;
@@ -85,63 +76,68 @@ static int bmp280_compensate_pressure(const xy_bmp280_calibration_t *calibration
     return XY_DEVICE_OK;
 }
 
-int xy_bmp280_init_addr(xy_bmp280_t *bmp, void *i2c_handle, uint8_t addr)
-{
+int xy_bmp280_init_addr(xy_bmp280_t* bmp, void* i2c_handle, uint8_t addr) {
+    xy_bmp280_t candidate;
     uint8_t id;
     uint8_t calibration_data[24];
     uint8_t value;
     int result;
+    int preserve_live_owner;
 
     if (bmp == NULL || i2c_handle == NULL ||
         (addr != BMP280_ADDR_DEFAULT && addr != BMP280_ADDR_ALT)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(bmp, 0, sizeof(*bmp));
-    result = xy_i2c_device_init(&bmp->i2c_dev, i2c_handle, addr, 1000U);
+    preserve_live_owner = bmp->initialized == 1U && bmp->i2c_dev.base.initialized == 1U &&
+                          bmp->i2c_dev.i2c_handle != NULL &&
+                          (bmp->addr == BMP280_ADDR_DEFAULT || bmp->addr == BMP280_ADDR_ALT);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 1000U);
     if (result != XY_DEVICE_OK) {
-        return bmp280_init_fail(bmp, result);
+        return preserve_live_owner ? result : bmp280_init_fail(bmp, result);
     }
-    bmp->addr = addr;
+    candidate.addr = addr;
 
-    result = xy_i2c_device_read_reg(&bmp->i2c_dev, BMP280_REG_ID, &id, 1U);
+    result = xy_i2c_device_read_reg(&candidate.i2c_dev, BMP280_REG_ID, &id, 1U);
     if (result != XY_DEVICE_OK) {
-        return bmp280_init_fail(bmp, result);
+        return preserve_live_owner ? result : bmp280_init_fail(bmp, result);
     }
     if (id != BMP280_ID_VALUE) {
-        return bmp280_init_fail(bmp, XY_DEVICE_NOT_FOUND);
+        return preserve_live_owner ? XY_DEVICE_NOT_FOUND
+                                   : bmp280_init_fail(bmp, XY_DEVICE_NOT_FOUND);
     }
 
     value = 0xB6U;
-    result = xy_i2c_device_write_reg(&bmp->i2c_dev, BMP280_REG_RESET, &value, 1U);
+    result = xy_i2c_device_write_reg(&candidate.i2c_dev, BMP280_REG_RESET, &value, 1U);
     if (result != XY_DEVICE_OK) {
-        return bmp280_init_fail(bmp, result);
+        return preserve_live_owner ? result : bmp280_init_fail(bmp, result);
     }
 
-    result = xy_i2c_device_read_reg(&bmp->i2c_dev, BMP280_REG_CALIB, calibration_data,
+    result = xy_i2c_device_read_reg(&candidate.i2c_dev, BMP280_REG_CALIB, calibration_data,
                                     sizeof(calibration_data));
     if (result != XY_DEVICE_OK) {
-        return bmp280_init_fail(bmp, result);
+        return preserve_live_owner ? result : bmp280_init_fail(bmp, result);
     }
-    bmp280_parse_calibration(&bmp->calibration, calibration_data);
+    bmp280_parse_calibration(&candidate.calibration, calibration_data);
 
     value = 0x00U;
-    result = xy_i2c_device_write_reg(&bmp->i2c_dev, BMP280_REG_CONFIG, &value, 1U);
+    result = xy_i2c_device_write_reg(&candidate.i2c_dev, BMP280_REG_CONFIG, &value, 1U);
     if (result != XY_DEVICE_OK) {
-        return bmp280_init_fail(bmp, result);
+        return preserve_live_owner ? result : bmp280_init_fail(bmp, result);
     }
     value = 0x27U;
-    result = xy_i2c_device_write_reg(&bmp->i2c_dev, BMP280_REG_CTRL_MEAS, &value, 1U);
+    result = xy_i2c_device_write_reg(&candidate.i2c_dev, BMP280_REG_CTRL_MEAS, &value, 1U);
     if (result != XY_DEVICE_OK) {
-        return bmp280_init_fail(bmp, result);
+        return preserve_live_owner ? result : bmp280_init_fail(bmp, result);
     }
 
-    bmp->initialized = 1U;
+    candidate.initialized = 1U;
+    *bmp = candidate;
     return XY_DEVICE_OK;
 }
 
-int xy_bmp280_deinit(xy_bmp280_t *bmp)
-{
+int xy_bmp280_deinit(xy_bmp280_t* bmp) {
     uint8_t value = 0x00U;
     int result;
 
@@ -159,8 +155,7 @@ int xy_bmp280_deinit(xy_bmp280_t *bmp)
     return XY_DEVICE_OK;
 }
 
-int xy_bmp280_read(xy_bmp280_t *bmp)
-{
+int xy_bmp280_read(xy_bmp280_t* bmp) {
     uint8_t data[6];
     int32_t adc_pressure;
     int32_t adc_temperature;
@@ -192,8 +187,7 @@ int xy_bmp280_read(xy_bmp280_t *bmp)
     return XY_DEVICE_OK;
 }
 
-int xy_bmp280_get_temperature(const xy_bmp280_t *bmp, int32_t *temperature)
-{
+int xy_bmp280_get_temperature(const xy_bmp280_t* bmp, int32_t* temperature) {
     if (bmp == NULL || temperature == NULL || bmp->initialized == 0U ||
         bmp->i2c_dev.base.initialized == 0U || bmp->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
@@ -202,8 +196,7 @@ int xy_bmp280_get_temperature(const xy_bmp280_t *bmp, int32_t *temperature)
     return XY_DEVICE_OK;
 }
 
-int xy_bmp280_get_pressure(const xy_bmp280_t *bmp, uint32_t *pressure)
-{
+int xy_bmp280_get_pressure(const xy_bmp280_t* bmp, uint32_t* pressure) {
     if (bmp == NULL || pressure == NULL || bmp->initialized == 0U ||
         bmp->i2c_dev.base.initialized == 0U || bmp->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
@@ -212,16 +205,14 @@ int xy_bmp280_get_pressure(const xy_bmp280_t *bmp, uint32_t *pressure)
     return XY_DEVICE_OK;
 }
 
-int32_t xy_bmp280_read_temperature(xy_bmp280_t *bmp)
-{
+int32_t xy_bmp280_read_temperature(xy_bmp280_t* bmp) {
     if (xy_bmp280_read(bmp) != XY_DEVICE_OK) {
         return XY_BMP280_TEMPERATURE_READ_ERROR;
     }
     return bmp->temperature;
 }
 
-uint32_t xy_bmp280_read_pressure(xy_bmp280_t *bmp)
-{
+uint32_t xy_bmp280_read_pressure(xy_bmp280_t* bmp) {
     if (xy_bmp280_read(bmp) != XY_DEVICE_OK) {
         return XY_BMP280_PRESSURE_READ_ERROR;
     }
