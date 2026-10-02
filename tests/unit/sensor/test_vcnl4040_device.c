@@ -96,6 +96,28 @@ static void test_vcnl4040_failure_and_nested_lifecycle_are_atomic(void)
     TEST_ASSERT_EQUAL_UINT(1U, g_reads);
 }
 
+static void test_vcnl4040_reinit_failure_preserves_live_owner(void)
+{
+    xy_vcnl4040_t dev;
+    xy_vcnl4040_sample_t snapshot = {.proximity_raw = 0x1234U, .timestamp = 55U};
+    xy_i2c_device_t old_i2c;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_vcnl4040_init(&dev, &bus));
+    dev.sample = snapshot;
+    old_i2c = dev.i2c_dev;
+    g_init_ret = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_vcnl4040_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_MEMORY(&old_i2c, &dev.i2c_dev, sizeof(old_i2c));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev.sample, sizeof(snapshot));
+
+    g_init_ret = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_vcnl4040_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+}
+
 static void test_vcnl4040_missing_handle_fails_closed(void)
 {
     xy_vcnl4040_t dev;
@@ -122,6 +144,7 @@ int main(void)
     RUN_TEST(test_vcnl4040_reads_little_endian_proximity_and_lifecycle);
     RUN_TEST(test_vcnl4040_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_vcnl4040_failure_and_nested_lifecycle_are_atomic);
+    RUN_TEST(test_vcnl4040_reinit_failure_preserves_live_owner);
     RUN_TEST(test_vcnl4040_missing_handle_fails_closed);
     return UNITY_END();
 }

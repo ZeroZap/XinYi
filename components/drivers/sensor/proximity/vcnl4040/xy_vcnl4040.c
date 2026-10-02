@@ -5,13 +5,13 @@
 
 static int vcnl4040_transport_ready(const xy_vcnl4040_t *dev)
 {
-    return dev != NULL && dev->i2c_dev.base.initialized &&
+    return dev != NULL && dev->i2c_dev.base.initialized == 1U &&
            dev->i2c_dev.i2c_handle != NULL;
 }
 
 static int vcnl4040_ready(const xy_vcnl4040_t *dev)
 {
-    return vcnl4040_transport_ready(dev) && dev->initialized;
+    return vcnl4040_transport_ready(dev) && dev->initialized == 1U;
 }
 
 static xy_error_t vcnl4040_read_reg(xy_vcnl4040_t *dev, uint8_t reg, uint8_t *data,
@@ -25,17 +25,24 @@ static xy_error_t vcnl4040_read_reg(xy_vcnl4040_t *dev, uint8_t reg, uint8_t *da
 
 xy_error_t xy_vcnl4040_init(xy_vcnl4040_t *dev, void *i2c_handle)
 {
+    xy_vcnl4040_t candidate;
     xy_error_t ret;
+    int preserve_live_owner;
+
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_VCNL4040_ADDR, 1000U);
-    if (ret != XY_DEVICE_OK || !vcnl4040_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    preserve_live_owner = vcnl4040_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_VCNL4040_ADDR, 1000U);
+    if (ret != XY_DEVICE_OK || !vcnl4040_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
