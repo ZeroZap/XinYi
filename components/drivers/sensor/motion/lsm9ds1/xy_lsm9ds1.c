@@ -46,6 +46,10 @@ xy_error_t xy_lsm9ds1_init(xy_lsm9ds1_t *dev, void *i2c_handle)
     if (result == XY_DEVICE_OK) {
         result = xy_i2c_device_init(&dev->mag, i2c_handle, XY_LSM9DS1_MAG_ADDR, 1000U);
     }
+    if (result == XY_DEVICE_OK &&
+        (!transport_ready(&dev->imu) || !transport_ready(&dev->mag))) {
+        result = XY_DEVICE_INVALID_PARAM;
+    }
     if (result == XY_DEVICE_OK) {
         result = read_reg(&dev->imu, XY_LSM9DS1_REG_WHOAMI_IMU, &imu_id, 1U);
     }
