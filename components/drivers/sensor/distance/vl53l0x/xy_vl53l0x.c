@@ -33,31 +33,41 @@ static xy_error_t vl53l0x_write_reg(xy_vl53l0x_t *dev, uint8_t reg, uint8_t valu
 
 xy_error_t xy_vl53l0x_init(xy_vl53l0x_t *dev, void *i2c_handle)
 {
+    xy_vl53l0x_t candidate;
+    int preserve_live_owner;
     uint8_t model;
     xy_error_t ret;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_VL53L0X_ADDR, 1000U);
+    preserve_live_owner = dev->initialized == 1U && vl53l0x_transport_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_VL53L0X_ADDR, 1000U);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    if (!vl53l0x_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    if (!vl53l0x_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_DEVICE_INVALID_PARAM;
     }
-    ret = vl53l0x_read_reg(dev, XY_VL53L0X_REG_MODEL_ID, &model, 1U);
+    ret = vl53l0x_read_reg(&candidate, XY_VL53L0X_REG_MODEL_ID, &model, 1U);
     if (ret == XY_DEVICE_OK && model != XY_VL53L0X_MODEL_ID) {
         ret = XY_DEVICE_NOT_FOUND;
     }
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

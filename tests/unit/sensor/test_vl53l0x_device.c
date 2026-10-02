@@ -155,6 +155,30 @@ static void test_vl53l0x_rejects_missing_nested_transport_without_side_effects(v
     TEST_ASSERT_EQUAL_UINT(0U, g_writes);
 }
 
+static void test_vl53l0x_failed_reinit_preserves_live_owner(void)
+{
+    xy_vl53l0x_t dev;
+    xy_vl53l0x_sample_t sample = {.distance_mm = 0x2468U, .timestamp = 0x1357U};
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_vl53l0x_init(&dev, &bus));
+    dev.sample = sample;
+    g_read_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_vl53l0x_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_MEMORY(&sample, &dev.sample, sizeof(sample));
+
+    g_read_ret = XY_DEVICE_OK;
+    g_model = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND, xy_vl53l0x_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_MEMORY(&sample, &dev.sample, sizeof(sample));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -163,5 +187,6 @@ int main(void)
     RUN_TEST(test_vl53l0x_init_rejects_identity_and_transport_failures);
     RUN_TEST(test_vl53l0x_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_vl53l0x_rejects_missing_nested_transport_without_side_effects);
+    RUN_TEST(test_vl53l0x_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }

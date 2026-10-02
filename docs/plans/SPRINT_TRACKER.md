@@ -1654,6 +1654,13 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 边界：只升级 EXTI software dispatch 与 sensor internal status B1；未证明 QMA6100P 到 MCU 的 GPIO
   电气路由/edge，动态响应、精度、恢复与 endurance 继续 pending。
 
+### 2026-10-02 VL53L0X Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_vl53l0x_init()` 在 identity/read 失败时会先清空旧 transport、lifecycle 与 cached sample。
+- 收口：初始化改用 staged candidate；首次失败仍清零未初始化 owner，live owner 的 helper/transport/identity 失败保持原 owner，完整成功后才原子替换。
+- 验证：focused `sensor_vl53l0x_device` 1/1；Host `make test-unit` 264/264；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
+- 边界：仅为 Host/compile lifecycle contract，不升级 VL53L0X 实板身份、测距精度、时序、恢复或 endurance 证据。
+
 ### 2026-09-27 Pandora QMA6100P physical IRQ edge B1
 
 - 修正：真实 data-ready edge 可能在 EXTI software-trigger 前后与 self-test 重叠，probe 改为记录
