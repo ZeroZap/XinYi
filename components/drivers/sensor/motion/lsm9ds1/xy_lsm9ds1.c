@@ -4,91 +4,89 @@
 
 #include <string.h>
 
-static int transport_ready(const xy_i2c_device_t *transport)
-{
+static int transport_ready(const xy_i2c_device_t* transport) {
     return transport != NULL && transport->base.initialized && transport->i2c_handle != NULL;
 }
 
-static int ready(const xy_lsm9ds1_t *dev)
-{
+static int ready(const xy_lsm9ds1_t* dev) {
     return dev != NULL && dev->initialized && transport_ready(&dev->imu) &&
            transport_ready(&dev->mag);
 }
 
-static xy_error_t read_reg(xy_i2c_device_t *transport, uint8_t reg, uint8_t *data, size_t length)
-{
+static xy_error_t read_reg(xy_i2c_device_t* transport, uint8_t reg, uint8_t* data, size_t length) {
     if (!transport_ready(transport)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_read_reg(transport, reg, data, length);
 }
 
-static xy_error_t write_reg(xy_i2c_device_t *transport, uint8_t reg, uint8_t value)
-{
+static xy_error_t write_reg(xy_i2c_device_t* transport, uint8_t reg, uint8_t value) {
     if (!transport_ready(transport)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_write_reg(transport, reg, &value, 1U);
 }
 
-xy_error_t xy_lsm9ds1_init(xy_lsm9ds1_t *dev, void *i2c_handle)
-{
+xy_error_t xy_lsm9ds1_init(xy_lsm9ds1_t* dev, void* i2c_handle) {
+    xy_lsm9ds1_t candidate;
     uint8_t imu_id;
     uint8_t mag_id;
+    uint8_t preserve_live_owner;
     xy_error_t result;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->imu, i2c_handle, XY_LSM9DS1_IMU_ADDR, 1000U);
+    preserve_live_owner = (uint8_t)(dev->initialized == 1U && ready(dev));
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.imu, i2c_handle, XY_LSM9DS1_IMU_ADDR, 1000U);
     if (result == XY_DEVICE_OK) {
-        result = xy_i2c_device_init(&dev->mag, i2c_handle, XY_LSM9DS1_MAG_ADDR, 1000U);
+        result = xy_i2c_device_init(&candidate.mag, i2c_handle, XY_LSM9DS1_MAG_ADDR, 1000U);
     }
     if (result == XY_DEVICE_OK &&
-        (!transport_ready(&dev->imu) || !transport_ready(&dev->mag))) {
+        (!transport_ready(&candidate.imu) || !transport_ready(&candidate.mag))) {
         result = XY_DEVICE_INVALID_PARAM;
     }
     if (result == XY_DEVICE_OK) {
-        result = read_reg(&dev->imu, XY_LSM9DS1_REG_WHOAMI_IMU, &imu_id, 1U);
+        result = read_reg(&candidate.imu, XY_LSM9DS1_REG_WHOAMI_IMU, &imu_id, 1U);
     }
     if (result == XY_DEVICE_OK && imu_id != XY_LSM9DS1_IMU_WHOAMI) {
         result = XY_DEVICE_NOT_FOUND;
     }
     if (result == XY_DEVICE_OK) {
-        result = read_reg(&dev->mag, XY_LSM9DS1_REG_WHOAMI_IMU, &mag_id, 1U);
+        result = read_reg(&candidate.mag, XY_LSM9DS1_REG_WHOAMI_MAG, &mag_id, 1U);
     }
     if (result == XY_DEVICE_OK && mag_id != XY_LSM9DS1_MAG_WHOAMI) {
         result = XY_DEVICE_NOT_FOUND;
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(&dev->imu, XY_LSM9DS1_REG_CTRL3_C, 1U);
+        result = write_reg(&candidate.imu, XY_LSM9DS1_REG_CTRL3_C, 1U);
     }
     if (result == XY_DEVICE_OK) {
         xy_device_delay_ms(10U);
-        result = write_reg(&dev->imu, XY_LSM9DS1_REG_CTRL1_XL,
-                           XY_LSM9DS1_CTRL1_XL_104HZ_2G);
+        result = write_reg(&candidate.imu, XY_LSM9DS1_REG_CTRL1_XL, XY_LSM9DS1_CTRL1_XL_104HZ_2G);
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(&dev->imu, XY_LSM9DS1_REG_CTRL2_G,
-                           XY_LSM9DS1_CTRL2_G_104HZ_250DPS);
+        result = write_reg(&candidate.imu, XY_LSM9DS1_REG_CTRL2_G, XY_LSM9DS1_CTRL2_G_104HZ_250DPS);
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(&dev->mag, XY_LSM9DS1_REG_CTRL_REG1_M,
+        result = write_reg(&candidate.mag, XY_LSM9DS1_REG_CTRL_REG1_M,
                            XY_LSM9DS1_CTRL1_M_10HZ_HIGH_POWER);
     }
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (preserve_live_owner == 0U) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_lsm9ds1_deinit(xy_lsm9ds1_t *dev)
-{
+xy_error_t xy_lsm9ds1_deinit(xy_lsm9ds1_t* dev) {
     xy_error_t result;
 
     if (!ready(dev)) {
@@ -114,8 +112,7 @@ xy_error_t xy_lsm9ds1_deinit(xy_lsm9ds1_t *dev)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_lsm9ds1_read(xy_lsm9ds1_t *dev, xy_lsm9ds1_sample_t *sample)
-{
+xy_error_t xy_lsm9ds1_read(xy_lsm9ds1_t* dev, xy_lsm9ds1_sample_t* sample) {
     uint8_t accel[6];
     uint8_t gyro[6];
     uint8_t mag[6];
