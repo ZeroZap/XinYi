@@ -19,21 +19,35 @@ static uint8_t crc8(const uint8_t *data, size_t length)
 
 xy_error_t xy_aht30_init(xy_aht30_t *dev, void *i2c_handle)
 {
+    xy_aht30_t candidate;
     xy_error_t result;
+    bool had_live_owner;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AHT30_ADDR, 100U);
+    had_live_owner = dev->initialized == 1U && dev->i2c_dev.base.initialized == 1U &&
+                     dev->i2c_dev.i2c_handle != NULL;
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_AHT30_ADDR, 100U);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!had_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
+    if (candidate.i2c_dev.base.initialized == 0U || candidate.i2c_dev.i2c_handle == NULL) {
+        if (!had_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
     xy_hal_delay_ms(5U);
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

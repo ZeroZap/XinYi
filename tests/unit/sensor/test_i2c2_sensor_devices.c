@@ -212,6 +212,26 @@ static void test_aht30_transport_failures_preserve_output_and_cache(void)
     TEST_ASSERT_EQUAL_UINT32(85U, delay_total);
 }
 
+static void test_aht30_failed_reinit_preserves_live_owner(void)
+{
+    int bus;
+    xy_aht30_t dev;
+    xy_aht30_data_t sample = {333, 444};
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_aht30_init(&dev, &bus));
+    dev.data = sample;
+
+    i2c_init_result = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_aht30_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_HEX8(XY_AHT30_ADDR, dev.i2c_dev.dev_addr);
+    TEST_ASSERT_EQUAL_MEMORY(&sample, &dev.data, sizeof(sample));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_aht30_deinit(&dev));
+}
+
 static void test_l3g4200d_identity_axis_order_and_range(void)
 {
     int bus;
@@ -917,6 +937,7 @@ int main(void)
     RUN_TEST(test_aht30_init_clears_handle_when_i2c_helper_fails);
     RUN_TEST(test_aht30_public_ops_reject_invalid_nested_bus_lifecycle);
     RUN_TEST(test_aht30_transport_failures_preserve_output_and_cache);
+    RUN_TEST(test_aht30_failed_reinit_preserves_live_owner);
     RUN_TEST(test_l3g4200d_identity_axis_order_and_range);
     RUN_TEST(test_l3g4200d_rejects_wrong_identity);
     RUN_TEST(test_l3g4200d_init_clears_handle_when_i2c_helper_fails);
