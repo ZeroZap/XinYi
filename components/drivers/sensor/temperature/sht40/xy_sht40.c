@@ -86,9 +86,10 @@ int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
     
     memset(sht40, 0, sizeof(*sht40));
     ret = xy_i2c_device_init(&sht40->i2c_dev, i2c_handle, SHT40_ADDR, 400);
-    if (ret != XY_DEVICE_OK) {
+    if (ret != XY_DEVICE_OK || sht40->i2c_dev.base.initialized == 0U ||
+        sht40->i2c_dev.i2c_handle == NULL) {
         memset(sht40, 0, sizeof(*sht40));
-        return ret;
+        return ret != XY_DEVICE_OK ? ret : XY_SHT40_INVALID_PARAM;
     }
     sht40->addr = SHT40_ADDR;
     sht40->precision = XY_SHT40_HIGH_PRECISION;

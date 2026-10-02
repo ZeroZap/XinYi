@@ -20,6 +20,7 @@ static uint32_t g_tick;
 static uint32_t g_delay_total;
 static uint8_t g_last_addr;
 static xy_error_t g_init_ret;
+static int g_init_incomplete;
 static size_t g_init_count;
 
 static uint8_t sht40_crc8(const uint8_t *data, size_t len)
@@ -48,6 +49,9 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *i2c_handle, uint16_t a
     dev->dev_addr = addr;
     dev->timeout = timeout;
     g_last_addr = (uint8_t)addr;
+    if (g_init_incomplete) {
+        dev->i2c_handle = NULL;
+    }
     return XY_DEVICE_OK;
 }
 
@@ -141,6 +145,7 @@ void setUp(void)
     g_delay_total = 0;
     g_last_addr = 0;
     g_init_ret = XY_DEVICE_OK;
+    g_init_incomplete = 0;
     g_init_count = 0;
 }
 
@@ -497,6 +502,20 @@ static void test_cached_public_ops_require_live_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(1U, g_read_count);
 }
 
+static void test_init_rejects_incomplete_transport(void)
+{
+    xy_sht40_t dev;
+    int bus;
+
+    g_init_incomplete = 1;
+    memset(&dev, 0xA5, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_INVALID_PARAM, xy_sht40_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_sht40_t){0}, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(0U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -518,5 +537,6 @@ int main(void)
     RUN_TEST(test_serial_getter_rejects_uninitialized_device_without_overwriting_output);
     RUN_TEST(test_precision_setter_rejects_uninitialized_device_without_state_change);
     RUN_TEST(test_cached_public_ops_require_live_nested_transport);
+    RUN_TEST(test_init_rejects_incomplete_transport);
     return UNITY_END();
 }

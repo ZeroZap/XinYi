@@ -17,9 +17,10 @@ xy_error_t xy_aht10_init(xy_aht10_t *dev, void *i2c_handle, uint8_t address)
 
     memset(dev, 0, sizeof(*dev));
     result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AHT10_DEFAULT_ADDRESS, 100U);
-    if (result != XY_DEVICE_OK) {
+    if (result != XY_DEVICE_OK || dev->i2c_dev.base.initialized == 0U ||
+        dev->i2c_dev.i2c_handle == NULL) {
         memset(dev, 0, sizeof(*dev));
-        return result;
+        return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
 
     result = xy_i2c_device_write(&dev->i2c_dev, g_aht10_init_command,
