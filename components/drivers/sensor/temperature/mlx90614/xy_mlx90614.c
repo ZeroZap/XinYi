@@ -65,32 +65,40 @@ static int xy_mlx90614_ready(const xy_mlx90614_t *dev)
 
 int xy_mlx90614_init(xy_mlx90614_t *dev, void *i2c_handle, uint8_t addr)
 {
+    xy_mlx90614_t candidate;
     int ret;
     uint16_t id;
+    int preserve_live_owner;
     
     if (!dev || !i2c_handle || addr != MLX90614_ADDR_DEFAULT) {
         return XY_MLX90614_INVALID_PARAM;
     }
     
-    memset(dev, 0, sizeof(*dev));
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000);
+    preserve_live_owner = xy_mlx90614_ready(dev) && dev->addr == MLX90614_ADDR_DEFAULT;
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 1000);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    dev->addr = addr;
+    candidate.addr = addr;
     
     /* 读取 ID 验证设备 */
-    ret = xy_mlx90614_read16(dev, 0x0C, &id);  /* ID 寄存器 */
+    ret = xy_mlx90614_read16(&candidate, 0x0C, &id);  /* ID 寄存器 */
     if (ret != XY_DEVICE_OK) {
         xy_log_e("Failed to read MLX90614 ID\n");
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_MLX90614_NOT_FOUND;
     }
     
     xy_log_i("MLX90614 found at 0x%02X (ID=0x%04X)\n", addr, id);
     
-    dev->initialized = 1;
+    candidate.initialized = 1;
+    *dev = candidate;
     return XY_MLX90614_OK;
 }
 

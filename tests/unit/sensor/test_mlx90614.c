@@ -436,6 +436,37 @@ static void test_read_all_max_raw_conversion_wraps_to_signed_cached_values(void)
     TEST_ASSERT_EQUAL_INT16(-27315, dev.tobj2);
 }
 
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_mlx90614_t dev;
+    int old_bus;
+    int new_bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_OK, xy_mlx90614_init(&dev, &old_bus, MLX90614_ADDR_DEFAULT));
+    dev.ta = 111;
+    dev.tobj1 = 222;
+    dev.tobj2 = 333;
+
+    g_init_result = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY,
+                          xy_mlx90614_init(&dev, &new_bus, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_PTR(&old_bus, dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_INT16(111, dev.ta);
+    TEST_ASSERT_EQUAL_INT16(222, dev.tobj1);
+    TEST_ASSERT_EQUAL_INT16(333, dev.tobj2);
+
+    g_init_result = XY_DEVICE_OK;
+    g_read_fail_reg[0x0C] = 1U;
+    TEST_ASSERT_EQUAL_INT(XY_MLX90614_NOT_FOUND,
+                          xy_mlx90614_init(&dev, &new_bus, MLX90614_ADDR_DEFAULT));
+    TEST_ASSERT_EQUAL_UINT8(1U, dev.initialized);
+    TEST_ASSERT_EQUAL_PTR(&old_bus, dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_INT16(111, dev.ta);
+    TEST_ASSERT_EQUAL_INT16(222, dev.tobj1);
+    TEST_ASSERT_EQUAL_INT16(333, dev.tobj2);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -461,5 +492,6 @@ int main(void)
     RUN_TEST(test_set_emissivity_validates_range_and_reports_unsupported_write);
     RUN_TEST(test_set_emissivity_rejects_uninitialized_device);
     RUN_TEST(test_read_all_max_raw_conversion_wraps_to_signed_cached_values);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }
