@@ -72,6 +72,8 @@ static int bmp390_ready(const xy_bmp390_t *dev)
 
 xy_error_t xy_bmp390_init(xy_bmp390_t *dev, void *i2c_handle, uint8_t addr)
 {
+    xy_bmp390_t candidate;
+    xy_bmp390_t *target;
     uint32_t settings_select;
     xy_error_t result;
 
@@ -80,50 +82,54 @@ xy_error_t xy_bmp390_init(xy_bmp390_t *dev, void *i2c_handle, uint8_t addr)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000U);
+    target = (dev->initialized == 1U && bmp390_transport_ready(dev)) ? &candidate : dev;
+    memset(target, 0, sizeof(*target));
+    result = xy_i2c_device_init(&target->i2c_dev, i2c_handle, addr, 1000U);
     if (result != XY_DEVICE_OK) {
-        return bmp390_fail(dev, result);
+        return bmp390_fail(target, result);
     }
 
-    dev->bosch.intf = BMP3_I2C_INTF;
-    dev->bosch.intf_ptr = dev;
-    dev->bosch.read = bmp390_bus_read;
-    dev->bosch.write = bmp390_bus_write;
-    dev->bosch.delay_us = bmp390_delay_us;
+    target->bosch.intf = BMP3_I2C_INTF;
+    target->bosch.intf_ptr = target;
+    target->bosch.read = bmp390_bus_read;
+    target->bosch.write = bmp390_bus_write;
+    target->bosch.delay_us = bmp390_delay_us;
 
-    dev->transport_error = XY_DEVICE_OK;
-    result = bmp390_map_error(dev, bmp3_init(&dev->bosch));
+    target->transport_error = XY_DEVICE_OK;
+    result = bmp390_map_error(target, bmp3_init(&target->bosch));
     if (result != XY_DEVICE_OK) {
-        return bmp390_fail(dev, result);
+        return bmp390_fail(target, result);
     }
-    if (dev->bosch.chip_id != BMP390_CHIP_ID) {
-        return bmp390_fail(dev, XY_DEVICE_NOT_FOUND);
+    if (target->bosch.chip_id != BMP390_CHIP_ID) {
+        return bmp390_fail(target, XY_DEVICE_NOT_FOUND);
     }
 
-    dev->settings.press_en = BMP3_ENABLE;
-    dev->settings.temp_en = BMP3_ENABLE;
-    dev->settings.odr_filter.press_os = BMP3_OVERSAMPLING_4X;
-    dev->settings.odr_filter.temp_os = BMP3_OVERSAMPLING_2X;
-    dev->settings.odr_filter.odr = BMP3_ODR_25_HZ;
-    dev->settings.odr_filter.iir_filter = BMP3_IIR_FILTER_COEFF_3;
+    target->settings.press_en = BMP3_ENABLE;
+    target->settings.temp_en = BMP3_ENABLE;
+    target->settings.odr_filter.press_os = BMP3_OVERSAMPLING_4X;
+    target->settings.odr_filter.temp_os = BMP3_OVERSAMPLING_2X;
+    target->settings.odr_filter.odr = BMP3_ODR_25_HZ;
+    target->settings.odr_filter.iir_filter = BMP3_IIR_FILTER_COEFF_3;
     settings_select = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
                       BMP3_SEL_TEMP_OS | BMP3_SEL_ODR | BMP3_SEL_IIR_FILTER;
-    dev->transport_error = XY_DEVICE_OK;
+    target->transport_error = XY_DEVICE_OK;
     result = bmp390_map_error(
-        dev, bmp3_set_sensor_settings(settings_select, &dev->settings, &dev->bosch));
+        target, bmp3_set_sensor_settings(settings_select, &target->settings, &target->bosch));
     if (result != XY_DEVICE_OK) {
-        return bmp390_fail(dev, result);
+        return bmp390_fail(target, result);
     }
 
-    dev->settings.op_mode = BMP3_MODE_NORMAL;
-    dev->transport_error = XY_DEVICE_OK;
-    result = bmp390_map_error(dev, bmp3_set_op_mode(&dev->settings, &dev->bosch));
+    target->settings.op_mode = BMP3_MODE_NORMAL;
+    target->transport_error = XY_DEVICE_OK;
+    result = bmp390_map_error(target, bmp3_set_op_mode(&target->settings, &target->bosch));
     if (result != XY_DEVICE_OK) {
-        return bmp390_fail(dev, result);
+        return bmp390_fail(target, result);
     }
 
-    dev->initialized = 1U;
+    target->initialized = 1U;
+    if (target == &candidate) {
+        *dev = candidate;
+    }
     return XY_DEVICE_OK;
 }
 

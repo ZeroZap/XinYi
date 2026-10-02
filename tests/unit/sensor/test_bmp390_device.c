@@ -118,7 +118,7 @@ static void test_init_reads_identity_calibration_and_configures_normal_mode(void
 
 static void test_read_uses_bosch_compensation_and_commits_atomically(void)
 {
-    xy_bmp390_t dev;
+    xy_bmp390_t dev = {0};
     xy_bmp390_data_t output = {0};
     int bus;
 
@@ -181,6 +181,24 @@ static void test_failures_clear_or_preserve_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT8(mode_before, dev.settings.op_mode);
 }
 
+static void test_reinit_failure_preserves_live_owner(void)
+{
+    xy_bmp390_t dev;
+    xy_bmp390_t before;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_bmp390_init(&dev, &bus, XY_BMP390_ADDR_PRIMARY));
+    before = dev;
+    g_fail_read_at = g_read_count + 1U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_bmp390_init(&dev, &bus, XY_BMP390_ADDR_SECONDARY));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &dev, sizeof(dev));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_UINT16(XY_BMP390_ADDR_PRIMARY, dev.i2c_dev.dev_addr);
+}
+
 static void test_public_operations_require_live_nested_handle_and_deinit_clears_it(void)
 {
     xy_bmp390_t dev;
@@ -215,5 +233,6 @@ int main(void)
     RUN_TEST(test_read_uses_bosch_compensation_and_commits_atomically);
     RUN_TEST(test_failures_clear_or_preserve_lifecycle);
     RUN_TEST(test_public_operations_require_live_nested_handle_and_deinit_clears_it);
+    RUN_TEST(test_reinit_failure_preserves_live_owner);
     return UNITY_END();
 }
