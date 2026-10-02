@@ -223,6 +223,29 @@ static void test_init_rejects_incomplete_transport_without_io(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
 }
 
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_sht30_t sensor;
+    xy_sht30_t snapshot;
+    int bus;
+    const uint8_t reset[] = {0x30U, 0xA2U};
+
+    queue_write(reset, sizeof(reset), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_sht30_init(&sensor, &bus));
+    sensor.temperature = 1234;
+    sensor.humidity = 5678U;
+    snapshot = sensor;
+
+    g_init_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_sht30_init(&sensor, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &sensor, sizeof(sensor));
+
+    g_init_ret = XY_DEVICE_OK;
+    queue_write(reset, sizeof(reset), XY_DEVICE_IO_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_sht30_init(&sensor, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &sensor, sizeof(sensor));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -232,5 +255,6 @@ int main(void)
     RUN_TEST(test_scalar_read_helpers_signal_measurement_failure);
     RUN_TEST(test_read_rejects_uninitialized_device_without_io);
     RUN_TEST(test_init_rejects_incomplete_transport_without_io);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }

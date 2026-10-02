@@ -35,27 +35,36 @@ static uint8_t sht30_crc8(const uint8_t *data, size_t len)
 
 int xy_sht30_init_addr(xy_sht30_t *sht, void *i2c_handle, uint16_t i2c_addr)
 {
+    xy_sht30_t candidate;
+    int had_live_owner;
     int result;
 
     if (!sht || !i2c_handle || (i2c_addr != 0x44U && i2c_addr != 0x45U)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(sht, 0, sizeof(*sht));
-    result = xy_i2c_device_init(&sht->i2c_dev, i2c_handle, i2c_addr, 1000);
-    if (result != XY_DEVICE_OK || !sht30_transport_ready(sht)) {
-        memset(sht, 0, sizeof(*sht));
+    had_live_owner = sht30_transport_ready(sht) &&
+                     (sht->i2c_dev.dev_addr == 0x44U || sht->i2c_dev.dev_addr == 0x45U);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, i2c_addr, 1000);
+    if (result != XY_DEVICE_OK || !sht30_transport_ready(&candidate)) {
+        if (!had_live_owner) {
+            memset(sht, 0, sizeof(*sht));
+        }
         return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
 
     /* Soft reset */
     uint8_t reset_cmd[2] = {0x30, 0xA2};
-    result = xy_i2c_device_write(&sht->i2c_dev, reset_cmd, 2);
+    result = xy_i2c_device_write(&candidate.i2c_dev, reset_cmd, 2);
     if (result < 0) {
-        memset(sht, 0, sizeof(*sht));
+        if (!had_live_owner) {
+            memset(sht, 0, sizeof(*sht));
+        }
         return result;
     }
 
+    *sht = candidate;
     return XY_DEVICE_OK;
 }
 

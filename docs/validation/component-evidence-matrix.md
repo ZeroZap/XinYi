@@ -133,6 +133,14 @@
 - 适用范围：staged candidate initialization preserves a live owner across helper failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：angle encoder board identity, angle accuracy, magnetic installation, recovery, or endurance.
 
+### 2026-10-02 SHT30 Device re-init atomicity
+
+- 组件：Drivers Sensor / SHT30
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_sht30_device.c`; focused `sensor_sht30_device`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged candidate initialization preserves a live owner across helper, transport, and reset-command failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：SHT30 board identity, temperature/humidity accuracy, CRC robustness, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
