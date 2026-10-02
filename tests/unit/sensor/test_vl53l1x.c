@@ -33,6 +33,7 @@ static unsigned g_op_index;
 static uint32_t g_delay_total_ms;
 static unsigned g_delay_calls;
 static xy_ret_t g_device_init_result;
+static bool g_establish_transport;
 
 static void expect_read_ret(uint16_t reg, const uint8_t *data, uint16_t len, xy_ret_t ret)
 {
@@ -100,6 +101,7 @@ void setUp(void)
     g_delay_total_ms = 0;
     g_delay_calls = 0;
     g_device_init_result = XY_OK;
+    g_establish_transport = true;
 }
 
 void tearDown(void)
@@ -114,8 +116,8 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
         return g_device_init_result;
     }
     memset(dev, 0, sizeof(*dev));
-    dev->base.initialized = 1U;
-    dev->i2c_handle = handle;
+    dev->base.initialized = g_establish_transport;
+    dev->i2c_handle = g_establish_transport ? handle : NULL;
     dev->dev_addr = address;
     dev->timeout = timeout;
     return XY_DEVICE_OK;
@@ -223,6 +225,7 @@ void test_init_rejects_wrong_model_id(void)
     const uint8_t model = 0xAB;
     const uint8_t module = 0xCC;
     const uint8_t revision[2] = {0x01, 0x02};
+    memset(&dev, 0, sizeof(dev));
     expect_read(0x010F, &model, 1);
     expect_read(0x0110, &module, 1);
     expect_read(0x0112, revision, 2);
@@ -239,6 +242,7 @@ void test_init_configuration_failure_rolls_back_state(void)
     const uint8_t model = 0xEA;
     const uint8_t module = 0xCC;
     const uint8_t revision[2] = {0x01, 0x02};
+    memset(&dev, 0, sizeof(dev));
 
     expect_read(0x010F, &model, 1);
     expect_read(0x0110, &module, 1);
@@ -250,6 +254,49 @@ void test_init_configuration_failure_rolls_back_state(void)
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(&dev, &i2c, NULL));
     TEST_ASSERT_FALSE(dev.is_initialized);
     TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+}
+
+void test_init_rejects_incomplete_nested_transport(void)
+{
+    xy_vl53l1x_dev_t dev;
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
+
+    memset(&dev, 0, sizeof(dev));
+    g_establish_transport = false;
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(&dev, &i2c, NULL));
+    TEST_ASSERT_FALSE(dev.is_initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, g_op_index);
+}
+
+void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_i2c_dev_t i2c = {.handle = &i2c, .address = VL53L1X_I2C_ADDR};
+    xy_vl53l1x_dev_t dev = make_ready_dev(&i2c);
+    xy_vl53l1x_result_t snapshot = {.distance = 0x2468U, .signal_rate = 0x1357U};
+    const uint8_t model = 0xAB;
+    const uint8_t module = 0xCD;
+    const uint8_t revision[2] = {0x01, 0x02};
+
+    dev.last_result = snapshot;
+    dev.measurement_count = 17U;
+    dev.model_id = 0xEAU;
+    dev.module_type = 0xCCU;
+    dev.revision_id = 0x0102U;
+    expect_read(0x010F, &model, 1U);
+    expect_read(0x0110, &module, 1U);
+    expect_read(0x0112, revision, 2U);
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_vl53l1x_init(&dev, &i2c, NULL));
+    TEST_ASSERT_TRUE(dev.is_initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev.last_result, sizeof(snapshot));
+    TEST_ASSERT_EQUAL_UINT32(17U, dev.measurement_count);
+    TEST_ASSERT_EQUAL_UINT8(0xEAU, dev.model_id);
+    TEST_ASSERT_EQUAL_UINT16(0x0102U, dev.revision_id);
 }
 
 void test_start_stop_and_continuous_period_write_expected_commands(void)
@@ -667,6 +714,8 @@ int main(void)
     RUN_TEST(test_init_applies_default_configuration_and_device_info);
     RUN_TEST(test_init_rejects_wrong_model_id);
     RUN_TEST(test_init_configuration_failure_rolls_back_state);
+    RUN_TEST(test_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_start_stop_and_continuous_period_write_expected_commands);
     RUN_TEST(test_start_single_propagates_stop_failure_and_skips_start);
     RUN_TEST(test_start_commands_propagate_start_write_failures_after_stop);

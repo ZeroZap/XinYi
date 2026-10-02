@@ -234,89 +234,115 @@ static xy_ret_t vl53l1x_apply_range_config(xy_vl53l1x_dev_t *dev)
 
 xy_ret_t xy_vl53l1x_init(xy_vl53l1x_dev_t *dev, xy_i2c_dev_t *i2c, xy_vl53l1x_config_t *config)
 {
+    xy_vl53l1x_dev_t candidate;
+    bool preserve_live_owner;
+
     if (dev == XY_NULL || i2c == XY_NULL || i2c->handle == XY_NULL ||
         i2c->address != VL53L1X_I2C_ADDR) {
         return XY_ERROR;
     }
-    
-    memset(dev, 0, sizeof(xy_vl53l1x_dev_t));
-    xy_ret_t ret = xy_i2c_device_init(&dev->i2c_dev, i2c->handle, i2c->address, 1000U);
+
+    preserve_live_owner = vl53l1x_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    xy_ret_t ret = xy_i2c_device_init(&candidate.i2c_dev, i2c->handle, i2c->address, 1000U);
     if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    
-    /* 设置默认配置 */
-    dev->config.mode = VL53L1X_DEFAULT_MODE;
-    dev->config.range = VL53L1X_DEFAULT_RANGE;
-    dev->config.timing = VL53L1X_DEFAULT_TIMING;
-    dev->config.int_mode = XY_VL53L1X_INT_DISABLED;
-    dev->config.i2c_address = VL53L1X_DEFAULT_I2C_ADDR;
-    dev->config.roi.centre_spad = 199;  /* 默认中心 SPAD */
-    dev->config.roi.width = 16;
-    dev->config.roi.height = 16;
-    dev->config.threshold.low = 0;
-    dev->config.threshold.high = 4000;
-    
-    if (config != XY_NULL) {
-        dev->config = *config;
-    }
-    
-    /* 等待传感器上电稳定 */
-    xy_delay_ms(50);
-    
-    /* 读取设备信息验证连接 */
-    ret = xy_vl53l1x_read_device_info(dev, &dev->model_id, &dev->module_type, &dev->revision_id);
-    if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return ret;
-    }
-    
-    /* 验证模型 ID (VL53L1X 应为 0xEA) */
-    if (dev->model_id != 0xEA) {
-        memset(dev, 0, sizeof(*dev));
+
+    if (!candidate.i2c_dev.base.initialized || candidate.i2c_dev.i2c_handle == XY_NULL) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_ERROR;
     }
-    
-    /* 软件复位 */
-    ret = xy_vl53l1x_soft_reset(dev);
+
+    /* 设置默认配置 */
+    candidate.config.mode = VL53L1X_DEFAULT_MODE;
+    candidate.config.range = VL53L1X_DEFAULT_RANGE;
+    candidate.config.timing = VL53L1X_DEFAULT_TIMING;
+    candidate.config.int_mode = XY_VL53L1X_INT_DISABLED;
+    candidate.config.i2c_address = VL53L1X_DEFAULT_I2C_ADDR;
+    candidate.config.roi.centre_spad = 199;  /* 默认中心 SPAD */
+    candidate.config.roi.width = 16;
+    candidate.config.roi.height = 16;
+    candidate.config.threshold.low = 0;
+    candidate.config.threshold.high = 4000;
+
+    if (config != XY_NULL) {
+        candidate.config = *config;
+    }
+
+    /* 等待传感器上电稳定 */
+    xy_delay_ms(50);
+
+    /* 读取设备信息验证连接 */
+    ret = xy_vl53l1x_read_device_info(&candidate, &candidate.model_id, &candidate.module_type,
+                                       &candidate.revision_id);
     if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    
+
+    /* 验证模型 ID (VL53L1X 应为 0xEA) */
+    if (candidate.model_id != 0xEA) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return XY_ERROR;
+    }
+
+    /* 软件复位 */
+    ret = xy_vl53l1x_soft_reset(&candidate);
+    if (ret != XY_OK) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return ret;
+    }
+
     xy_delay_ms(10);
 
-    dev->is_initialized = true;
+    candidate.is_initialized = true;
 
     /* 应用测距配置 */
-    ret = vl53l1x_apply_range_config(dev);
+    ret = vl53l1x_apply_range_config(&candidate);
     if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    
+
     /* 配置测量定时 */
-    ret = xy_vl53l1x_set_timing(dev, dev->config.timing);
+    ret = xy_vl53l1x_set_timing(&candidate, candidate.config.timing);
     if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    
+
     /* 配置 ROI */
-    ret = xy_vl53l1x_set_roi(dev, &dev->config.roi);
+    ret = xy_vl53l1x_set_roi(&candidate, &candidate.config.roi);
     if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    
+
     /* 应用校准参数 */
-    dev->offset = VL53L1X_DEFAULT_OFFSET;
-    dev->xtalk = VL53L1X_DEFAULT_XTALK;
-    
-    dev->is_initialized = true;
-    dev->measurement_count = 0;
-    
+    candidate.offset = VL53L1X_DEFAULT_OFFSET;
+    candidate.xtalk = VL53L1X_DEFAULT_XTALK;
+    candidate.is_initialized = true;
+    candidate.measurement_count = 0;
+
+    *dev = candidate;
     return XY_OK;
 }
 

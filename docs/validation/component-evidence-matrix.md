@@ -93,6 +93,14 @@
 - 适用范围：staged candidate initialization preserves a live owner across helper, transport, and identity failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：VL53L0X board identity, range accuracy, timing, recovery, or endurance.
 
+### 2026-10-02 VL53L1X Device re-init atomicity
+
+- 组件：Drivers Sensor / VL53L1X
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_vl53l1x.c`; focused `sensor_vl53l1x`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged candidate initialization validates live nested transport and preserves a live owner across identity/configuration failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：VL53L1X board identity, range accuracy, timing, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
