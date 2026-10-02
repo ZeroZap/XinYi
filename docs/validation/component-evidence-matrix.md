@@ -117,6 +117,14 @@
 - 适用范围：staged candidate initialization preserves a live owner across helper, identity, and configuration failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：HMC5883L board identity, magnetic accuracy, calibration, dynamic response, recovery, or endurance.
 
+### 2026-10-02 AS5600/AS5048B Device re-init atomicity
+
+- 组件：Drivers Sensor / AS5600 + AS5048B
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_as5600_device.c`, `tests/unit/sensor/test_as5048b_device.c`; focused `sensor_as5600_device`, `sensor_as5048b_device`; full Host/PC/STM32L4/STM32U5 gate pending for this slice
+- 适用范围：staged candidate initialization preserves a live owner across helper failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：angle encoder board identity, angle accuracy, magnetic installation, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`

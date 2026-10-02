@@ -5,11 +5,15 @@
 
 static uint8_t g_bytes[2];
 static xy_error_t g_read_ret;
+static xy_error_t g_init_ret;
 static int g_init_establish_transport;
 static unsigned g_reads;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr, uint32_t timeout)
 {
+    if (g_init_ret != XY_DEVICE_OK) {
+        return g_init_ret;
+    }
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = g_init_establish_transport;
     dev->i2c_handle = g_init_establish_transport ? handle : NULL;
@@ -41,6 +45,7 @@ void setUp(void)
     g_bytes[0] = 0U;
     g_bytes[1] = 0U;
     g_read_ret = XY_DEVICE_OK;
+    g_init_ret = XY_DEVICE_OK;
     g_init_establish_transport = 1;
     g_reads = 0U;
 }
@@ -100,6 +105,21 @@ static void test_as5048b_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_reads);
 }
 
+static void test_as5048b_failed_reinit_preserves_live_owner(void)
+{
+    xy_as5048b_t dev;
+    xy_as5048b_t snapshot;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_as5048b_init(&dev, &bus));
+    dev.sample.angle_raw = 0x1234U;
+    dev.sample.timestamp = 678U;
+    snapshot = dev;
+    g_init_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_as5048b_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
 static void test_as5048b_missing_handle_fails_closed(void)
 {
     xy_as5048b_t dev;
@@ -126,6 +146,7 @@ int main(void)
     RUN_TEST(test_as5048b_read_and_lifecycle);
     RUN_TEST(test_as5048b_read_failure_is_atomic_and_nested_lifecycle_fails_closed);
     RUN_TEST(test_as5048b_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_as5048b_failed_reinit_preserves_live_owner);
     RUN_TEST(test_as5048b_missing_handle_fails_closed);
     return UNITY_END();
 }
