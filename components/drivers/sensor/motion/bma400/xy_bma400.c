@@ -4,79 +4,81 @@
 
 #include <string.h>
 
-static int transport_ready(const xy_bma400_t *dev)
-{
+static int transport_ready(const xy_bma400_t* dev) {
     return dev != NULL && dev->i2c_dev.base.initialized && dev->i2c_dev.i2c_handle != NULL;
 }
 
-static int ready(const xy_bma400_t *dev)
-{
+static int ready(const xy_bma400_t* dev) {
     return transport_ready(dev) && dev->initialized;
 }
 
-static xy_error_t read_reg(xy_bma400_t *dev, uint8_t reg, uint8_t *data, size_t length)
-{
+static xy_error_t read_reg(xy_bma400_t* dev, uint8_t reg, uint8_t* data, size_t length) {
     if (!transport_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
 }
 
-static xy_error_t write_reg(xy_bma400_t *dev, uint8_t reg, uint8_t value)
-{
+static xy_error_t write_reg(xy_bma400_t* dev, uint8_t reg, uint8_t value) {
     if (!transport_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
-xy_error_t xy_bma400_init(xy_bma400_t *dev, void *i2c_handle)
-{
+xy_error_t xy_bma400_init(xy_bma400_t* dev, void* i2c_handle) {
+    xy_bma400_t candidate;
     uint8_t id;
     xy_error_t result;
+    uint8_t had_live_owner;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_BMA400_ADDR, 1000U);
-    if (result != XY_DEVICE_OK || !transport_ready(dev)) {
+    had_live_owner = (uint8_t)(dev->initialized == 1U && transport_ready(dev));
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_BMA400_ADDR, 1000U);
+    if (result != XY_DEVICE_OK || !transport_ready(&candidate)) {
         if (result == XY_DEVICE_OK) {
             result = XY_DEVICE_INVALID_PARAM;
         }
-        memset(dev, 0, sizeof(*dev));
+        if (had_live_owner == 0U) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
-    result = read_reg(dev, XY_BMA400_REG_CHIP_ID, &id, 1U);
+    result = read_reg(&candidate, XY_BMA400_REG_CHIP_ID, &id, 1U);
     if (result == XY_DEVICE_OK && id != XY_BMA400_CHIP_ID) {
         result = XY_DEVICE_NOT_FOUND;
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(dev, XY_BMA400_REG_CMD, 0xB6U);
+        result = write_reg(&candidate, XY_BMA400_REG_CMD, 0xB6U);
     }
     if (result == XY_DEVICE_OK) {
         xy_device_delay_ms(10U);
-        result = write_reg(dev, XY_BMA400_REG_ACC_CONFIG0, XY_BMA400_CONFIG0_LOW_POWER);
+        result = write_reg(&candidate, XY_BMA400_REG_ACC_CONFIG0, XY_BMA400_CONFIG0_LOW_POWER);
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(dev, XY_BMA400_REG_ACC_CONFIG1, XY_BMA400_CONFIG1_2G);
+        result = write_reg(&candidate, XY_BMA400_REG_ACC_CONFIG1, XY_BMA400_CONFIG1_2G);
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(dev, XY_BMA400_REG_ACC_CONFIG2, XY_BMA400_CONFIG2_25HZ);
+        result = write_reg(&candidate, XY_BMA400_REG_ACC_CONFIG2, XY_BMA400_CONFIG2_25HZ);
     }
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (had_live_owner == 0U) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_bma400_deinit(xy_bma400_t *dev)
-{
+xy_error_t xy_bma400_deinit(xy_bma400_t* dev) {
     xy_error_t result;
 
     if (!ready(dev)) {
@@ -94,8 +96,7 @@ xy_error_t xy_bma400_deinit(xy_bma400_t *dev)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_bma400_read(xy_bma400_t *dev, xy_bma400_sample_t *sample)
-{
+xy_error_t xy_bma400_read(xy_bma400_t* dev, xy_bma400_sample_t* sample) {
     uint8_t data[6];
     xy_bma400_sample_t next;
     xy_error_t result;

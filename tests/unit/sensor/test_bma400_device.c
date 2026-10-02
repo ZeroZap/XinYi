@@ -9,9 +9,8 @@ static bool init_without_handle;
 static unsigned operation_count;
 static uint8_t raw[6] = {1, 0, 2, 0, 3, 0};
 
-xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
-                              uint32_t timeout)
-{
+xy_error_t xy_i2c_device_init(xy_i2c_device_t* dev, void* handle, uint16_t address,
+                              uint32_t timeout) {
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1U;
     dev->i2c_handle = init_without_handle ? NULL : handle;
@@ -20,9 +19,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
     return init_error;
 }
 
-xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data,
-                                  size_t length)
-{
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t* dev, uint8_t reg, uint8_t* data, size_t length) {
     TEST_ASSERT_TRUE(dev->base.initialized);
     TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     operation_count++;
@@ -37,9 +34,8 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data,
-                                   size_t length)
-{
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t* dev, uint8_t reg, const uint8_t* data,
+                                   size_t length) {
     (void)reg;
     (void)data;
     (void)length;
@@ -49,30 +45,24 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
     return io_error;
 }
 
-void xy_hal_delay_ms(uint32_t delay_ms)
-{
+void xy_hal_delay_ms(uint32_t delay_ms) {
     (void)delay_ms;
 }
 
-uint32_t xy_hal_sys_get_tick_count(void)
-{
+uint32_t xy_hal_sys_get_tick_count(void) {
     return 77U;
 }
 
-void setUp(void)
-{
+void setUp(void) {
     io_error = XY_DEVICE_OK;
     init_error = XY_DEVICE_OK;
     init_without_handle = false;
     operation_count = 0U;
 }
 
-void tearDown(void)
-{
-}
+void tearDown(void) {}
 
-static void test_bma400_init_read_and_deinit(void)
-{
+static void test_bma400_init_read_and_deinit(void) {
     xy_bma400_t dev;
     xy_bma400_sample_t sample;
     int bus;
@@ -88,8 +78,7 @@ static void test_bma400_init_read_and_deinit(void)
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
-static void test_bma400_init_failure_clears_partial_transport(void)
-{
+static void test_bma400_init_failure_clears_partial_transport(void) {
     xy_bma400_t dev;
     int bus;
 
@@ -102,8 +91,26 @@ static void test_bma400_init_failure_clears_partial_transport(void)
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
-static void test_bma400_init_rejects_incomplete_transport_success(void)
-{
+static void test_bma400_failed_reinit_preserves_live_owner(void) {
+    xy_bma400_t dev;
+    xy_bma400_sample_t sample = {333, 444, 555, 666};
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bma400_init(&dev, &bus));
+    dev.sample = sample;
+
+    init_error = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_bma400_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_HEX8(XY_BMA400_ADDR, dev.i2c_dev.dev_addr);
+    TEST_ASSERT_EQUAL_MEMORY(&sample, &dev.sample, sizeof(sample));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bma400_deinit(&dev));
+}
+
+static void test_bma400_init_rejects_incomplete_transport_success(void) {
     xy_bma400_t dev;
     int bus;
 
@@ -117,8 +124,7 @@ static void test_bma400_init_rejects_incomplete_transport_success(void)
     TEST_ASSERT_EQUAL_UINT(0U, operation_count);
 }
 
-static void test_bma400_fail_closed_on_invalid_nested_transport(void)
-{
+static void test_bma400_fail_closed_on_invalid_nested_transport(void) {
     xy_bma400_t dev;
     xy_bma400_sample_t output = {11, 22, 33, 44};
     xy_bma400_sample_t snapshot = output;
@@ -138,8 +144,7 @@ static void test_bma400_fail_closed_on_invalid_nested_transport(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
-static void test_bma400_transport_failure_preserves_state(void)
-{
+static void test_bma400_transport_failure_preserves_state(void) {
     xy_bma400_t dev;
     xy_bma400_sample_t output = {11, 22, 33, 44};
     xy_bma400_sample_t snapshot = output;
@@ -158,11 +163,11 @@ static void test_bma400_transport_failure_preserves_state(void)
     TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_bma400_init_read_and_deinit);
     RUN_TEST(test_bma400_init_failure_clears_partial_transport);
+    RUN_TEST(test_bma400_failed_reinit_preserves_live_owner);
     RUN_TEST(test_bma400_init_rejects_incomplete_transport_success);
     RUN_TEST(test_bma400_fail_closed_on_invalid_nested_transport);
     RUN_TEST(test_bma400_transport_failure_preserves_state);
