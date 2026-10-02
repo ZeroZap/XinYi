@@ -31,47 +31,54 @@ static xy_error_t l3g4200d_write_reg(xy_l3g4200d_t *dev, uint8_t reg, uint8_t va
 
 static bool l3g4200d_ready(const xy_l3g4200d_t *dev)
 {
-    return dev != NULL && dev->initialized != 0U && dev->i2c_dev.base.initialized != 0U &&
+    return dev != NULL && dev->initialized == 1U && dev->i2c_dev.base.initialized == 1U &&
            dev->i2c_dev.i2c_handle != NULL;
 }
 
 xy_error_t xy_l3g4200d_init(xy_l3g4200d_t *dev, void *i2c, uint8_t address)
 {
+    xy_l3g4200d_t candidate;
     uint8_t id;
     xy_error_t result;
+    bool had_live_owner;
 
     if (dev == NULL || i2c == NULL || (address != 0x68U && address != 0x69U)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c, address, 100U);
-    if (result != XY_DEVICE_OK || dev->i2c_dev.base.initialized == 0U ||
-        dev->i2c_dev.i2c_handle == NULL) {
-        if (result == XY_DEVICE_OK) {
-            result = XY_DEVICE_INVALID_PARAM;
+    had_live_owner = l3g4200d_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c, address, 100U);
+    if (result != XY_DEVICE_OK || candidate.i2c_dev.base.initialized == 0U ||
+        candidate.i2c_dev.i2c_handle == NULL) {
+        if (!had_live_owner) {
+            memset(dev, 0, sizeof(*dev));
         }
-        memset(dev, 0, sizeof(*dev));
-        return result;
+        return result == XY_DEVICE_OK ? XY_DEVICE_INVALID_PARAM : result;
     }
 
-    result = l3g4200d_read_reg(dev, L3G4200D_REG_WHO_AM_I, &id, 1U);
+    result = l3g4200d_read_reg(&candidate, L3G4200D_REG_WHO_AM_I, &id, 1U);
     if (result != XY_DEVICE_OK || id != 0xD3U) {
-        memset(dev, 0, sizeof(*dev));
+        if (!had_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result == XY_DEVICE_OK ? XY_DEVICE_NOT_FOUND : result;
     }
 
-    result = l3g4200d_write_reg(dev, L3G4200D_REG_CTRL4, 0x80U);
+    result = l3g4200d_write_reg(&candidate, L3G4200D_REG_CTRL4, 0x80U);
     if (result == XY_DEVICE_OK) {
-        result = l3g4200d_write_reg(dev, L3G4200D_REG_CTRL1, 0x1FU);
+        result = l3g4200d_write_reg(&candidate, L3G4200D_REG_CTRL1, 0x1FU);
     }
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!had_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
-    dev->range_dps = 250U;
-    dev->initialized = 1U;
+    candidate.range_dps = 250U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

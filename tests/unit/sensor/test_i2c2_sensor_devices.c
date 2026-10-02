@@ -360,6 +360,36 @@ static void test_l3g4200d_transport_failures_preserve_state_and_outputs(void)
     TEST_ASSERT_EQUAL_UINT(4U, op_index);
 }
 
+static void test_l3g4200d_failed_reinit_preserves_live_owner(void)
+{
+    int bus;
+    xy_l3g4200d_t dev;
+    xy_l3g4200d_data_t sample = {444, 555, 666};
+    const uint8_t id = 0xD3U;
+    const uint8_t ctrl4 = 0x80U;
+    const uint8_t ctrl1 = 0x1FU;
+    const uint8_t raw[6] = {0x64U, 0x00U, 0x9CU, 0xFFU, 0xC8U, 0x00U};
+
+    queue(OP_READ_REG, 0x0FU, &id, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, 0x23U, &ctrl4, 1U, XY_DEVICE_OK);
+    queue(OP_WRITE_REG, 0x20U, &ctrl1, 1U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_l3g4200d_init(&dev, &bus, 0x69U));
+    dev.data = sample;
+    dev.range_dps = 500U;
+
+    queue(OP_READ_REG, 0x0FU, NULL, 1U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_l3g4200d_init(&dev, &bus, 0x69U));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(500U, dev.range_dps);
+    TEST_ASSERT_EQUAL_MEMORY(&sample, &dev.data, sizeof(sample));
+
+    queue(OP_READ_REG, 0xA8U, raw, sizeof(raw), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_l3g4200d_read(&dev, &sample));
+    TEST_ASSERT_EQUAL_INT32(1750, sample.x_mdps);
+}
+
 static void test_l3g4200d_rejects_null_public_inputs_without_bus_access(void)
 {
     xy_l3g4200d_t dev;
@@ -894,6 +924,7 @@ int main(void)
     RUN_TEST(test_l3g4200d_public_ops_reject_invalid_nested_bus_lifecycle);
     RUN_TEST(test_l3g4200d_public_ops_reject_missing_nested_transport);
     RUN_TEST(test_l3g4200d_transport_failures_preserve_state_and_outputs);
+    RUN_TEST(test_l3g4200d_failed_reinit_preserves_live_owner);
     RUN_TEST(test_l3g4200d_rejects_null_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_rejects_invalid_public_inputs_without_bus_access);
     RUN_TEST(test_bme680_init_propagates_bus_failure_and_preserves_no_ready_state);
