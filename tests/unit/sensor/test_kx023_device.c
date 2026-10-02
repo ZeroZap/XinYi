@@ -4,6 +4,7 @@
 #include <string.h>
 
 static xy_error_t io_error;
+static int init_without_handle;
 static unsigned operation_count;
 static uint8_t raw[6] = {1, 0, 2, 0, 3, 0};
 
@@ -12,7 +13,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
 {
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1U;
-    dev->i2c_handle = handle;
+    dev->i2c_handle = init_without_handle ? NULL : handle;
     dev->dev_addr = address;
     dev->timeout = timeout;
     return XY_DEVICE_OK;
@@ -60,6 +61,7 @@ uint32_t xy_hal_sys_get_tick_count(void)
 void setUp(void)
 {
     io_error = XY_DEVICE_OK;
+    init_without_handle = 0;
     operation_count = 0U;
 }
 
@@ -105,6 +107,19 @@ static void test_kx023_fail_closed_on_invalid_nested_transport(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
+static void test_kx023_init_rejects_incomplete_nested_transport(void)
+{
+    xy_kx023_t dev;
+    int bus;
+
+    init_without_handle = 1;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_kx023_init(&dev, &bus));
+    TEST_ASSERT_FALSE(dev.initialized);
+    TEST_ASSERT_FALSE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(0U, operation_count);
+}
+
 static void test_kx023_transport_failure_preserves_state(void)
 {
     xy_kx023_t dev;
@@ -129,6 +144,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_kx023_init_read_and_deinit);
+    RUN_TEST(test_kx023_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_kx023_fail_closed_on_invalid_nested_transport);
     RUN_TEST(test_kx023_transport_failure_preserves_state);
     return UNITY_END();

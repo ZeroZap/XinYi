@@ -33,7 +33,10 @@ xy_error_t xy_lis2dw12_init(xy_lis2dw12_t *dev, void *i2c_handle)
 
     memset(dev, 0, sizeof(*dev));
     result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_LIS2DW12_ADDR, 1000U);
-    if (result != XY_DEVICE_OK) {
+    if (result != XY_DEVICE_OK || !transport_ready(dev)) {
+        if (result == XY_DEVICE_OK) {
+            result = XY_DEVICE_INVALID_PARAM;
+        }
         memset(dev, 0, sizeof(*dev));
         return result;
     }
