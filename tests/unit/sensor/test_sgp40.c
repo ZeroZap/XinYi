@@ -26,6 +26,7 @@ static size_t g_write_data_index;
 static uint32_t g_delay_total;
 static size_t g_delay_count;
 static int g_init_result;
+static int g_init_incomplete;
 
 xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
                               uint32_t timeout)
@@ -34,8 +35,8 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
         return g_init_result;
     }
     memset(dev, 0, sizeof(*dev));
-    dev->base.initialized = 1U;
-    dev->i2c_handle = handle;
+    dev->base.initialized = g_init_incomplete ? 0U : 1U;
+    dev->i2c_handle = g_init_incomplete ? NULL : handle;
     dev->dev_addr = address;
     dev->timeout = timeout;
     return XY_DEVICE_OK;
@@ -140,6 +141,7 @@ void setUp(void)
     g_delay_total = 0;
     g_delay_count = 0;
     g_init_result = XY_DEVICE_OK;
+    g_init_incomplete = 0;
 }
 
 void tearDown(void)
@@ -227,6 +229,21 @@ static void test_init_uses_custom_config_and_propagates_identity_failures(void)
     queue_read_u16(0x0000U, 0);
     TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_init(&dev, &i2c, NULL));
     TEST_ASSERT_EQUAL_MEMORY(&(xy_sgp40_dev_t){0}, &dev, sizeof(dev));
+}
+
+static void test_init_rejects_incomplete_transport_without_io(void)
+{
+    xy_sgp40_dev_t dev;
+    xy_i2c_dev_t i2c = fake_i2c();
+
+    g_init_incomplete = 1;
+    memset(&dev, 0xA5, sizeof(dev));
+
+    TEST_ASSERT_EQUAL_INT(-1, xy_sgp40_init(&dev, &i2c, NULL));
+    TEST_ASSERT_EQUAL_MEMORY(&(xy_sgp40_dev_t){0}, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(0U, g_command_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_index);
+    TEST_ASSERT_EQUAL_UINT(0U, g_delay_count);
 }
 
 static void test_feature_serial_and_self_test_crc_paths(void)
@@ -598,6 +615,7 @@ int main(void)
     RUN_TEST(test_crc8_matches_sensirion_examples);
     RUN_TEST(test_init_default_config_reads_identity_and_self_test);
     RUN_TEST(test_init_uses_custom_config_and_propagates_identity_failures);
+    RUN_TEST(test_init_rejects_incomplete_transport_without_io);
     RUN_TEST(test_feature_serial_and_self_test_crc_paths);
     RUN_TEST(test_measurement_flow_waits_reads_and_updates_last_data);
     RUN_TEST(test_measurement_error_paths_preserve_last_data_and_state);

@@ -211,6 +211,10 @@ xy_ret_t xy_sgp40_init(xy_sgp40_dev_t *dev, xy_i2c_dev_t *i2c, xy_sgp40_config_t
         memset(dev, 0, sizeof(*dev));
         return ret;
     }
+    if (!sgp40_transport_ready(dev)) {
+        memset(dev, 0, sizeof(*dev));
+        return XY_ERROR;
+    }
     
     /* 设置默认配置 */
     dev->config.enable_compensation = SGP40_DEFAULT_ENABLE_COMP;
