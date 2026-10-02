@@ -8,28 +8,22 @@
 #define HMC5883L_REG_STATUS 0x09U
 #define HMC5883L_REG_ID_A 0x0AU
 
-static xy_error_t read_reg(xy_hmc5883l_t *dev, uint8_t reg, uint8_t *data, size_t len)
-{
-    if (dev == NULL || dev->i2c_dev.base.initialized == 0U ||
-        dev->i2c_dev.i2c_handle == NULL) {
+static xy_error_t read_reg(xy_hmc5883l_t* dev, uint8_t reg, uint8_t* data, size_t len) {
+    if (dev == NULL || dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, len);
 }
 
-static xy_error_t write_reg(xy_hmc5883l_t *dev, uint8_t reg, uint8_t value)
-{
-    if (dev == NULL || dev->i2c_dev.base.initialized == 0U ||
-        dev->i2c_dev.i2c_handle == NULL) {
+static xy_error_t write_reg(xy_hmc5883l_t* dev, uint8_t reg, uint8_t value) {
+    if (dev == NULL || dev->i2c_dev.base.initialized == 0U || dev->i2c_dev.i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
-xy_error_t xy_hmc5883l_set_gain(xy_hmc5883l_t *dev, xy_hmc5883l_gain_t gain)
-{
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
-        !dev->i2c_dev.i2c_handle ||
+xy_error_t xy_hmc5883l_set_gain(xy_hmc5883l_t* dev, xy_hmc5883l_gain_t gain) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized || !dev->i2c_dev.i2c_handle ||
         (gain != XY_HMC5883L_GAIN_0_88_GA && gain != XY_HMC5883L_GAIN_1_30_GA &&
          gain != XY_HMC5883L_GAIN_8_10_GA)) {
         return XY_DEVICE_INVALID_PARAM;
@@ -42,8 +36,7 @@ xy_error_t xy_hmc5883l_set_gain(xy_hmc5883l_t *dev, xy_hmc5883l_gain_t gain)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_hmc5883l_get_gain(xy_hmc5883l_t *dev, xy_hmc5883l_gain_t *gain)
-{
+xy_error_t xy_hmc5883l_get_gain(xy_hmc5883l_t* dev, xy_hmc5883l_gain_t* gain) {
     uint8_t value;
     xy_error_t result;
     if (!dev || !gain || !dev->initialized || !dev->i2c_dev.base.initialized ||
@@ -64,41 +57,60 @@ xy_error_t xy_hmc5883l_get_gain(xy_hmc5883l_t *dev, xy_hmc5883l_gain_t *gain)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_hmc5883l_init(xy_hmc5883l_t *dev, void *i2c_handle)
-{
+xy_error_t xy_hmc5883l_init(xy_hmc5883l_t* dev, void* i2c_handle) {
+    xy_hmc5883l_t candidate;
     uint8_t id[3];
     xy_error_t result;
+    uint8_t preserve_live_owner;
+
     if (!dev || !i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_HMC5883L_ADDR, 100U);
+
+    preserve_live_owner = dev->initialized && dev->i2c_dev.base.initialized &&
+                          dev->i2c_dev.i2c_handle != NULL &&
+                          dev->i2c_dev.dev_addr == XY_HMC5883L_ADDR;
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_HMC5883L_ADDR, 100U);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
-    result = read_reg(dev, HMC5883L_REG_ID_A, id, sizeof(id));
+    if (candidate.i2c_dev.base.initialized == 0U || candidate.i2c_dev.i2c_handle == NULL) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return XY_DEVICE_INVALID_PARAM;
+    }
+    result = read_reg(&candidate, HMC5883L_REG_ID_A, id, sizeof(id));
     if (result != XY_DEVICE_OK || id[0] != 'H' || id[1] != '4' || id[2] != '3') {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result == XY_DEVICE_OK ? XY_DEVICE_NOT_FOUND : result;
     }
-    result = write_reg(dev, HMC5883L_REG_CONFIG_A, 0x70U);
-    if (result == XY_DEVICE_OK) result = write_reg(dev, HMC5883L_REG_CONFIG_B, 0x20U);
-    if (result == XY_DEVICE_OK) result = write_reg(dev, HMC5883L_REG_MODE, 0x00U);
+    result = write_reg(&candidate, HMC5883L_REG_CONFIG_A, 0x70U);
+    if (result == XY_DEVICE_OK)
+        result = write_reg(&candidate, HMC5883L_REG_CONFIG_B, 0x20U);
+    if (result == XY_DEVICE_OK)
+        result = write_reg(&candidate, HMC5883L_REG_MODE, 0x00U);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
-    dev->gain = XY_HMC5883L_GAIN_1_30_GA;
-    dev->initialized = 1U;
+    candidate.gain = XY_HMC5883L_GAIN_1_30_GA;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_hmc5883l_deinit(xy_hmc5883l_t *dev)
-{
+xy_error_t xy_hmc5883l_deinit(xy_hmc5883l_t* dev) {
     xy_error_t result;
-    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized ||
-        !dev->i2c_dev.i2c_handle) {
+    if (!dev || !dev->initialized || !dev->i2c_dev.base.initialized || !dev->i2c_dev.i2c_handle) {
         return XY_DEVICE_INVALID_PARAM;
     }
     result = write_reg(dev, HMC5883L_REG_MODE, 0x03U);
@@ -110,8 +122,7 @@ xy_error_t xy_hmc5883l_deinit(xy_hmc5883l_t *dev)
     return result;
 }
 
-xy_error_t xy_hmc5883l_data_ready(xy_hmc5883l_t *dev, uint8_t *ready)
-{
+xy_error_t xy_hmc5883l_data_ready(xy_hmc5883l_t* dev, uint8_t* ready) {
     uint8_t status;
     xy_error_t result;
     if (!dev || !ready || !dev->initialized || !dev->i2c_dev.base.initialized ||
@@ -125,8 +136,7 @@ xy_error_t xy_hmc5883l_data_ready(xy_hmc5883l_t *dev, uint8_t *ready)
     return result;
 }
 
-xy_error_t xy_hmc5883l_read(xy_hmc5883l_t *dev, xy_hmc5883l_data_t *data)
-{
+xy_error_t xy_hmc5883l_read(xy_hmc5883l_t* dev, xy_hmc5883l_data_t* data) {
     uint8_t raw[6];
     xy_hmc5883l_data_t next;
     xy_error_t result;
@@ -149,8 +159,7 @@ xy_error_t xy_hmc5883l_read(xy_hmc5883l_t *dev, xy_hmc5883l_data_t *data)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_hmc5883l_read_field(xy_hmc5883l_t *dev, xy_hmc5883l_field_t *field)
-{
+xy_error_t xy_hmc5883l_read_field(xy_hmc5883l_t* dev, xy_hmc5883l_field_t* field) {
     uint8_t bytes[6];
     uint8_t gain_value;
     xy_hmc5883l_data_t raw;
@@ -179,27 +188,26 @@ xy_error_t xy_hmc5883l_read_field(xy_hmc5883l_t *dev, xy_hmc5883l_field_t *field
         return result;
     }
     gain_value &= 0xE0U;
-    if (gain_value != XY_HMC5883L_GAIN_0_88_GA &&
-        gain_value != XY_HMC5883L_GAIN_1_30_GA &&
+    if (gain_value != XY_HMC5883L_GAIN_0_88_GA && gain_value != XY_HMC5883L_GAIN_1_30_GA &&
         gain_value != XY_HMC5883L_GAIN_8_10_GA) {
         return XY_ERROR_FAIL;
     }
     gain = (xy_hmc5883l_gain_t)gain_value;
     switch (gain) {
-    case XY_HMC5883L_GAIN_0_88_GA:
-        xy_sensitivity = 730;
-        z_sensitivity = 980;
-        break;
-    case XY_HMC5883L_GAIN_1_30_GA:
-        xy_sensitivity = 1090;
-        z_sensitivity = 980;
-        break;
-    case XY_HMC5883L_GAIN_8_10_GA:
-        xy_sensitivity = 2560;
-        z_sensitivity = 2250;
-        break;
-    default:
-        return XY_ERROR_FAIL;
+        case XY_HMC5883L_GAIN_0_88_GA:
+            xy_sensitivity = 730;
+            z_sensitivity = 980;
+            break;
+        case XY_HMC5883L_GAIN_1_30_GA:
+            xy_sensitivity = 1090;
+            z_sensitivity = 980;
+            break;
+        case XY_HMC5883L_GAIN_8_10_GA:
+            xy_sensitivity = 2560;
+            z_sensitivity = 2250;
+            break;
+        default:
+            return XY_ERROR_FAIL;
     }
     next.x_mgauss = ((int32_t)raw.x * 1000) / xy_sensitivity;
     next.y_mgauss = ((int32_t)raw.y * 1000) / xy_sensitivity;

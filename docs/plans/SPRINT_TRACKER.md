@@ -1669,6 +1669,13 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 验证：focused `sensor_vl53l1x` 1/1；Host `make test-unit` 265/265；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
 - 边界：仅为 Host/compile lifecycle contract，不升级 VL53L1X 实板身份、测距精度、时序、恢复或 endurance 证据。
 
+### 2026-10-02 HMC5883L Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_hmc5883l_init()` 在 helper、identity 或配置失败时会先清空旧 transport、lifecycle、gain 与 sample cache。
+- 收口：初始化改用 staged candidate，并验证 nested lifecycle/handle；首次失败清零未初始化 owner，live owner 失败保持原 owner，完整成功后才原子替换。
+- 验证：focused `sensor_hmc5883l` 1/1；Host `make test-unit` 264/264；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
+- 边界：仅为 Host/compile lifecycle contract，不升级 HMC5883L 磁场精度、校准、动态响应、恢复或实板证据。
+
 ### 2026-09-27 Pandora QMA6100P physical IRQ edge B1
 
 - 修正：真实 data-ready edge 可能在 EXTI software-trigger 前后与 self-test 重叠，probe 改为记录
