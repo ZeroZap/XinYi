@@ -67,6 +67,8 @@ static int ads1115_convert(xy_ads1115_t *dev, uint16_t mux, int16_t *value)
 
 int xy_ads1115_init(xy_ads1115_t *dev, void *i2c_handle, uint8_t addr)
 {
+    xy_ads1115_t candidate;
+    bool preserve_live_owner;
     int16_t config;
     int ret;
 
@@ -74,23 +76,30 @@ int xy_ads1115_init(xy_ads1115_t *dev, void *i2c_handle, uint8_t addr)
         return XY_ADS1115_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000U);
+    preserve_live_owner = dev->initialized == 1U && dev->i2c_dev.base.initialized == 1U &&
+                          dev->i2c_dev.i2c_handle != NULL;
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 1000U);
+    if (ret != XY_DEVICE_OK || candidate.i2c_dev.base.initialized == 0U ||
+        candidate.i2c_dev.i2c_handle == NULL) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return ret != XY_DEVICE_OK ? ret : XY_ADS1115_INVALID_PARAM;
+    }
+    candidate.addr = addr;
+    candidate.pga = ADS1115_PGA_2_048V;
+    candidate.dr = ADS1115_DR_128SPS;
+
+    ret = ads1115_read_word(&candidate, ADS1115_REG_CONFIG, &config);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    dev->addr = addr;
-    dev->pga = ADS1115_PGA_2_048V;
-    dev->dr = ADS1115_DR_128SPS;
-
-    ret = ads1115_read_word(dev, ADS1115_REG_CONFIG, &config);
-    if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return ret;
-    }
-
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_ADS1115_OK;
 }
 

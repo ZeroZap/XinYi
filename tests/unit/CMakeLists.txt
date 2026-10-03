@@ -398,6 +398,14 @@ xy_add_unit_test(test_sensors_multi sensors_multi UNITY
     ${FRAMEWORK_SOURCES}
 )
 
+xy_add_unit_test(test_ads1115 sensor_ads1115 UNITY
+    ${UNIT_SENSOR}/test_ads1115.c
+    ${DRV}/sensor/adc/ads1115/xy_ads1115.c
+)
+target_include_directories(test_ads1115 PRIVATE
+    ${DRV}/sensor/adc/ads1115
+)
+
 # --- Test 4: SPI device helper + mixed-bus registry ---
 xy_add_unit_test(test_spi_device spi_device UNITY
     ${UNIT_DEVICE}/test_spi_device.c
