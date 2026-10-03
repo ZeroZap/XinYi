@@ -101,7 +101,7 @@
     {
       "path": "MCU/wch",
       "url": "git@github.com:ZeroZap/wch.git",
-      "gitlink": "ca8baafcd2e405737222204ba590e8860e91310f",
+      "gitlink": "08a0ecb80d11429764d0b050c5de9930beb701f0",
       "license_status": "review-pending"
     },
     {

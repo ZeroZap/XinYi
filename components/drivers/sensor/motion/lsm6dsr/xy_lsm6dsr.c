@@ -32,43 +32,51 @@ static xy_error_t write_reg(xy_lsm6dsr_t *dev, uint8_t reg, uint8_t value)
 
 xy_error_t xy_lsm6dsr_init(xy_lsm6dsr_t *dev, void *i2c_handle)
 {
+    xy_lsm6dsr_t candidate;
     uint8_t id;
     xy_error_t result;
+    uint8_t had_live_owner;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_LSM6DSR_ADDR, 1000U);
+    had_live_owner = (uint8_t)(ready(dev) != 0);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_LSM6DSR_ADDR, 1000U);
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (had_live_owner == 0U) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
-    result = read_reg(dev, XY_LSM6DSR_REG_WHOAMI, &id, 1U);
+    result = read_reg(&candidate, XY_LSM6DSR_REG_WHOAMI, &id, 1U);
     if (result == XY_DEVICE_OK && id != XY_LSM6DSR_WHOAMI) {
         result = XY_DEVICE_NOT_FOUND;
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(dev, XY_LSM6DSR_REG_CTRL3_C, 1U);
+        result = write_reg(&candidate, XY_LSM6DSR_REG_CTRL3_C, 1U);
     }
     if (result == XY_DEVICE_OK) {
         xy_device_delay_ms(10U);
-        result = write_reg(dev, XY_LSM6DSR_REG_CTRL4_C, 0U);
+        result = write_reg(&candidate, XY_LSM6DSR_REG_CTRL4_C, 0U);
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(dev, XY_LSM6DSR_REG_CTRL1_XL, XY_LSM6DSR_CTRL1_XL_104HZ_2G);
+        result = write_reg(&candidate, XY_LSM6DSR_REG_CTRL1_XL, XY_LSM6DSR_CTRL1_XL_104HZ_2G);
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(dev, XY_LSM6DSR_REG_CTRL2_G, XY_LSM6DSR_CTRL2_G_104HZ_250DPS);
+        result = write_reg(&candidate, XY_LSM6DSR_REG_CTRL2_G, XY_LSM6DSR_CTRL2_G_104HZ_250DPS);
     }
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (had_live_owner == 0U) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

@@ -237,6 +237,14 @@
 - 适用范围：staged candidate initialization preserves a live owner across nested helper and configuration failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：HDC1080 board identity, temperature/humidity accuracy, recovery, or endurance.
 
+### 2026-10-03 LSM6DSL/LSM6DSR Device re-init atomicity
+
+- 组件：Drivers Sensor / LSM6DSL + LSM6DSR
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_lsm6dsl_device.c`, `tests/unit/sensor/test_lsm6dsr_device.c`; focused `sensor_lsm6dsl_device`, `sensor_lsm6dsr_device`; full Host/PC/STM32L4/STM32U5 gate pending
+- 适用范围：staged candidate initialization preserves a live owner across nested transport, identity, and configuration failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：LSM6DSL/LSM6DSR board identity, motion accuracy, calibration, dynamic response, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
