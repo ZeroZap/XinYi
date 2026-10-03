@@ -14,13 +14,13 @@
 
 static int hdc1080_transport_ready(const xy_hdc1080_t *dev)
 {
-    return dev != NULL && dev->i2c_dev.base.initialized != 0U &&
+    return dev != NULL && dev->i2c_dev.base.initialized == 1U &&
            dev->i2c_dev.i2c_handle != NULL;
 }
 
 static int hdc1080_ready(const xy_hdc1080_t *dev)
 {
-    return hdc1080_transport_ready(dev) && dev->initialized != 0U;
+    return hdc1080_transport_ready(dev) && dev->initialized == 1U;
 }
 
 static int hdc1080_write_config(xy_hdc1080_t *dev, const uint8_t data[2])
@@ -49,27 +49,36 @@ static int hdc1080_read_result(xy_hdc1080_t *dev, uint8_t data[4])
 
 int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
 {
+    xy_hdc1080_t candidate;
+    int had_live_owner;
     int ret;
     uint16_t config;
+    uint8_t buf[2];
     
     if (!dev || !i2c_handle || addr != HDC1080_ADDR) {
         return XY_HDC1080_INVALID_PARAM;
     }
     
-    memset(dev, 0, sizeof(*dev));
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000);
-    if (ret != XY_DEVICE_OK || !hdc1080_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    had_live_owner = hdc1080_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 1000);
+    if (ret != XY_DEVICE_OK || !hdc1080_transport_ready(&candidate)) {
+        if (!had_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret != XY_DEVICE_OK ? ret : XY_HDC1080_INVALID_PARAM;
     }
-    dev->addr = addr;
+    candidate.addr = addr;
     
     /* 软件复位 */
     config = HDC1080_CONFIG_RST;
-    uint8_t buf[2] = {(config >> 8) & 0xFF, config & 0xFF};
-    ret = hdc1080_write_config(dev, buf);
+    buf[0] = (config >> 8) & 0xFF;
+    buf[1] = config & 0xFF;
+    ret = hdc1080_write_config(&candidate, buf);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!had_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
     xy_os_delay(15);
@@ -78,13 +87,16 @@ int xy_hdc1080_init(xy_hdc1080_t *dev, void *i2c_handle, uint8_t addr)
     config = HDC1080_CONFIG_MODE;
     buf[0] = (config >> 8) & 0xFF;
     buf[1] = config & 0xFF;
-    ret = hdc1080_write_config(dev, buf);
+    ret = hdc1080_write_config(&candidate, buf);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!had_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
     
-    dev->initialized = 1;
+    candidate.initialized = 1;
+    *dev = candidate;
     xy_log_i("HDC1080 initialized at 0x%02X\n", addr);
     return XY_HDC1080_OK;
 }

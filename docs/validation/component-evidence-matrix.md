@@ -229,6 +229,14 @@
 - 适用范围：staged candidate initialization preserves a live owner when the nested I2C helper fails; first initialization failures remain fail-closed and preserve the existing public contract.
 - 仍不允许宣称：SC7A22H board identity, motion accuracy, FIFO, interrupt, recovery, or endurance.
 
+### 2026-10-03 HDC1080 Device re-init atomicity
+
+- 组件：Drivers Sensor / HDC1080
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_hdc1080.c`; focused `sensor_hdc1080`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged candidate initialization preserves a live owner across nested helper and configuration failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：HDC1080 board identity, temperature/humidity accuracy, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`

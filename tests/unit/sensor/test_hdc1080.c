@@ -219,6 +219,24 @@ static void test_init_propagates_device_helper_failure_without_bus_io(void)
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_hdc1080_t dev;
+    xy_hdc1080_t snapshot;
+    int fake_bus;
+
+    init_ok(&dev);
+    dev.temperature = -321;
+    dev.humidity = 654U;
+    snapshot = dev;
+
+    g_device_init_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_hdc1080_init(&dev, &fake_bus, HDC1080_ADDR));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(2U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT32(15U, g_delay_total);
+}
+
 static void test_init_rejects_noncanonical_address_without_io(void)
 {
     xy_hdc1080_t dev;
@@ -500,6 +518,7 @@ int main(void)
     RUN_TEST(test_init_rejects_invalid_inputs_and_writes_reset_then_config);
     RUN_TEST(test_init_propagates_config_write_failures);
     RUN_TEST(test_init_propagates_device_helper_failure_without_bus_io);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_init_rejects_incomplete_nested_transport_without_io);
     RUN_TEST(test_init_rejects_noncanonical_address_without_io);
     RUN_TEST(test_read_converts_temperature_and_humidity);
