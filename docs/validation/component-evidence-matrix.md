@@ -259,6 +259,13 @@
 - 仍不允许宣称：board identity, motion accuracy, calibration, dynamic response, recovery,
   or endurance for these sensors.
 
+### 2026-10-04 ADXL362 Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_adxl362_init()` 在 SPI transport、identity 或 configuration 失败时会先清空原 transport、lifecycle 与 sample cache。
+- 收口：初始化改用 staged candidate；首次失败仍清零未初始化 owner，live owner 失败保持原 owner，完整 identity/filter/power 配置成功后才原子替换。
+- 验证：focused `sensor_adxl362_device` 1/1；Host `make test-unit` 264/264；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
+- 边界：仅为 Host/compile lifecycle contract，不升级 ADXL362 实板身份、运动精度、动态响应、恢复或 endurance 证据。
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
