@@ -8,30 +8,40 @@ static const uint8_t g_aht10_measure_command[] = {0xACU, 0x33U, 0x00U};
 
 xy_error_t xy_aht10_init(xy_aht10_t *dev, void *i2c_handle, uint8_t address)
 {
+    xy_aht10_t candidate;
     xy_error_t result;
+    int preserve_live_owner;
 
     if (dev == NULL || i2c_handle == NULL ||
         (address != 0U && address != XY_AHT10_DEFAULT_ADDRESS)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AHT10_DEFAULT_ADDRESS, 100U);
-    if (result != XY_DEVICE_OK || dev->i2c_dev.base.initialized == 0U ||
-        dev->i2c_dev.i2c_handle == NULL) {
-        memset(dev, 0, sizeof(*dev));
+    preserve_live_owner = dev->initialized == 1U && dev->i2c_dev.base.initialized == 1U &&
+                          dev->i2c_dev.i2c_handle != NULL;
+    memset(&candidate, 0, sizeof(candidate));
+    result =
+        xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_AHT10_DEFAULT_ADDRESS, 100U);
+    if (result != XY_DEVICE_OK || candidate.i2c_dev.base.initialized == 0U ||
+        candidate.i2c_dev.i2c_handle == NULL) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
 
-    result = xy_i2c_device_write(&dev->i2c_dev, g_aht10_init_command,
+    result = xy_i2c_device_write(&candidate.i2c_dev, g_aht10_init_command,
                                  sizeof(g_aht10_init_command));
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
     xy_hal_delay_ms(10U);
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

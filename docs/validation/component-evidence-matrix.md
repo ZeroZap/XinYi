@@ -197,6 +197,14 @@
 - 适用范围：staged candidate initialization preserves a live owner when the nested I2C helper fails during re-init; first initialization failures remain fail-closed and transport readiness rejects non-binary initialized state.
 - 仍不允许宣称：CCS811 board identity, eCO2/TVOC accuracy, warm-up quality, recovery, or endurance.
 
+### 2026-10-03 AHT10 Device re-init atomicity
+
+- 组件：Drivers Sensor / AHT10
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_env_i2c_sensors.c`; focused `sensor_env_i2c_sensors`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged candidate initialization preserves a live owner across nested I2C helper and init-command failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：AHT10 board identity, temperature/humidity accuracy, CRC robustness, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`

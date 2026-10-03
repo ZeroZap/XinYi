@@ -217,11 +217,36 @@ static void test_transport_and_busy_errors_preserve_legacy_output(void)
     destroy_sensor(sensor);
 }
 
+static void test_failed_reinit_preserves_aht10_owner(void)
+{
+    static const uint8_t init_command[] = {0xE1U, 0x08U, 0x00U};
+    sensor_device_t *sensor;
+    aht10_priv_t *priv;
+    aht10_priv_t before;
+    int bus;
+
+    sensor = aht10_create("aht10", &bus, 0U);
+    TEST_ASSERT_NOT_NULL(sensor);
+    priv = (aht10_priv_t *)sensor->priv_data;
+    queue_write(init_command, sizeof(init_command), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(SENSOR_EOK, sensor->ops->init(sensor));
+    priv->device.data.temperature_centi_c = 1250;
+    priv->device.data.humidity_centi_pct = 5432U;
+    before = *priv;
+
+    queue_write(init_command, sizeof(init_command), XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(SENSOR_ETIMEOUT, sensor->ops->init(sensor));
+    TEST_ASSERT_EQUAL_MEMORY(&before, priv, sizeof(before));
+
+    destroy_sensor(sensor);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_factory_and_lifecycle_delegate_to_canonical_owner);
     RUN_TEST(test_read_preserves_legacy_humidity_contract);
     RUN_TEST(test_transport_and_busy_errors_preserve_legacy_output);
+    RUN_TEST(test_failed_reinit_preserves_aht10_owner);
     return UNITY_END();
 }
