@@ -8,8 +8,7 @@
 
 static int ina226_ready(const xy_ina_t *ina)
 {
-    return ina != NULL && ina->initialized != 0U && ina->i2c_dev.base.initialized &&
-           ina->i2c_dev.i2c_handle != NULL;
+    return ina != NULL && ina->i2c_dev.base.initialized == 1U && ina->i2c_dev.i2c_handle != NULL;
 }
 
 static int ina226_address_valid(uint8_t addr)
@@ -52,62 +51,68 @@ static int ina226_read_reg(xy_ina_t *ina, uint8_t reg, uint16_t *value)
 int xy_ina_init(xy_ina_t *ina, void *i2c_handle, uint8_t addr,
                 const xy_ina_config_t *config)
 {
+    xy_ina_t next = {0};
     uint16_t mfg_id;
     uint16_t die_id;
     uint16_t config_reg;
     uint64_t denominator;
+    int was_ready;
     int result;
 
-    if (ina == NULL || i2c_handle == NULL || !ina226_address_valid(addr) ||
-        !ina226_config_valid(config)) {
+    if (ina == NULL) {
+        return XY_INA_INVALID_PARAM;
+    }
+    was_ready = ina226_ready(ina);
+    if (i2c_handle == NULL || !ina226_address_valid(addr) || !ina226_config_valid(config)) {
+        if (!was_ready) memset(ina, 0, sizeof(*ina));
         return XY_INA_INVALID_PARAM;
     }
 
-    memset(ina, 0, sizeof(*ina));
-    result = xy_i2c_device_init(&ina->i2c_dev, i2c_handle, addr, 1000U);
-    if (result != XY_DEVICE_OK) {
-        memset(ina, 0, sizeof(*ina));
-        return result;
+    result = xy_i2c_device_init(&next.i2c_dev, i2c_handle, addr, 1000U);
+    if (result != XY_DEVICE_OK || !ina226_ready(&next)) {
+        if (!was_ready) memset(ina, 0, sizeof(*ina));
+        return result != XY_DEVICE_OK ? result : XY_INA_INVALID_PARAM;
     }
-    ina->addr = addr;
-    ina->config = *config;
+    next.addr = addr;
+    next.config = *config;
 
-    result = ina226_read_reg(ina, INA226_REG_MFG_ID, &mfg_id);
+    result = ina226_read_reg(&next, INA226_REG_MFG_ID, &mfg_id);
     if (result != XY_DEVICE_OK) {
-        memset(ina, 0, sizeof(*ina));
+        if (!was_ready) memset(ina, 0, sizeof(*ina));
         return result;
     }
     if (mfg_id != INA226_MFG_ID_VALUE) {
-        memset(ina, 0, sizeof(*ina));
+        if (!was_ready) memset(ina, 0, sizeof(*ina));
         return XY_INA_NOT_FOUND;
     }
 
-    result = ina226_read_reg(ina, INA226_REG_DIE_ID, &die_id);
+    result = ina226_read_reg(&next, INA226_REG_DIE_ID, &die_id);
     if (result != XY_DEVICE_OK) {
-        memset(ina, 0, sizeof(*ina));
+        if (!was_ready) memset(ina, 0, sizeof(*ina));
         return result;
     }
     if ((die_id & 0xFFF0U) != INA226_DIE_ID_VALUE) {
-        memset(ina, 0, sizeof(*ina));
+        if (!was_ready) memset(ina, 0, sizeof(*ina));
         return XY_INA_NOT_FOUND;
     }
 
-    denominator = (uint64_t)config->current_lsb_ua * config->shunt_resistor_uohm;
-    ina->calib_value = (uint16_t)(INA226_CALIBRATION_NUMERATOR / denominator);
-    result = ina226_write_reg(ina, INA226_REG_CALIB, ina->calib_value);
+    denominator = (uint64_t)next.config.current_lsb_ua * next.config.shunt_resistor_uohm;
+    next.calib_value = (uint16_t)(INA226_CALIBRATION_NUMERATOR / denominator);
+    result = ina226_write_reg(&next, INA226_REG_CALIB, next.calib_value);
     if (result != XY_DEVICE_OK) {
-        memset(ina, 0, sizeof(*ina));
+        if (!was_ready) memset(ina, 0, sizeof(*ina));
         return result;
     }
 
-    config_reg = (uint16_t)(INA226_CONFIG_DEFAULT_BASE | ((uint16_t)config->avg_samples << 9));
-    result = ina226_write_reg(ina, INA226_REG_CONFIG, config_reg);
+    config_reg = (uint16_t)(INA226_CONFIG_DEFAULT_BASE | ((uint16_t)next.config.avg_samples << 9));
+    result = ina226_write_reg(&next, INA226_REG_CONFIG, config_reg);
     if (result != XY_DEVICE_OK) {
-        memset(ina, 0, sizeof(*ina));
+        if (!was_ready) memset(ina, 0, sizeof(*ina));
         return result;
     }
 
-    ina->initialized = 1U;
+    next.initialized = 1U;
+    *ina = next;
     return XY_INA_OK;
 }
 

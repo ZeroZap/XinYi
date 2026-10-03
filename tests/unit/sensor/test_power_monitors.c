@@ -619,6 +619,23 @@ static void test_ina226_init_write_failures_deinit_and_getters_preserve_outputs(
     TEST_ASSERT_TRUE(ina.initialized);
 }
 
+static void test_ina226_failed_reinit_preserves_live_owner(void)
+{
+    xy_ina_t ina;
+    xy_ina_t old;
+    xy_ina_config_t cfg = ina_config();
+    int bus;
+
+    init_ina_ok(&ina, &bus);
+    old = ina;
+    queue_read16(INA226_REG_MFG_ID, INA226_MFG_ID_VALUE, XY_DEVICE_OK);
+    queue_read16(INA226_REG_DIE_ID, 0U, XY_DEVICE_OK);
+
+    TEST_ASSERT_EQUAL_INT(XY_INA_NOT_FOUND,
+                          xy_ina_init(&ina, &bus, INA226_ADDR_GND, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&old, &ina, sizeof(ina));
+}
+
 static void test_max17043_read_rejects_missing_i2c_context_atomically(void)
 {
     xy_max17043_t gauge;
@@ -702,6 +719,7 @@ int main(void)
     RUN_TEST(test_ina226_i2c_init_failure_is_atomic);
     RUN_TEST(test_ina226_post_helper_init_failure_clears_device_state);
     RUN_TEST(test_ina226_init_write_failures_deinit_and_getters_preserve_outputs);
+    RUN_TEST(test_ina226_failed_reinit_preserves_live_owner);
     RUN_TEST(test_ina226_getters_propagate_read_failures_and_preserve_outputs);
     return UNITY_END();
 }
