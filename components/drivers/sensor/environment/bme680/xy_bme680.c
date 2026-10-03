@@ -56,64 +56,78 @@ static xy_error_t map_error(const xy_bme680_t *dev, int8_t result)
     return XY_DEVICE_IO_ERROR;
 }
 
-static xy_error_t init_fail(xy_bme680_t *dev, xy_error_t result)
+static bool live_owner(const xy_bme680_t *dev)
 {
-    memset(dev, 0, sizeof(*dev));
+    return dev != NULL && dev->initialized == 1U && transport_ready(dev);
+}
+
+static xy_error_t init_fail(xy_bme680_t *dev, xy_error_t result, bool preserve_live_owner)
+{
+    if (!preserve_live_owner) {
+        memset(dev, 0, sizeof(*dev));
+    }
     return result;
 }
 
 xy_error_t xy_bme680_init(xy_bme680_t *dev, void *i2c_handle, uint8_t addr)
 {
+    xy_bme680_t candidate;
     xy_error_t result;
+    bool preserve_live_owner;
 
     if (!dev || !i2c_handle || (addr != 0x76U && addr != 0x77U)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 100U);
-    if (result != XY_DEVICE_OK || !dev->i2c_dev.base.initialized ||
-        dev->i2c_dev.i2c_handle == NULL) {
+    preserve_live_owner = live_owner(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 100U);
+    if (result != XY_DEVICE_OK || !candidate.i2c_dev.base.initialized ||
+        candidate.i2c_dev.i2c_handle == NULL) {
         if (result == XY_DEVICE_OK) {
             result = XY_DEVICE_INVALID_PARAM;
         }
-        return init_fail(dev, result);
+        return init_fail(dev, result, preserve_live_owner);
     }
 
-    dev->bosch.intf = BME68X_I2C_INTF;
+    candidate.bosch.intf = BME68X_I2C_INTF;
+    candidate.bosch.intf_ptr = &candidate;
+    candidate.bosch.read = bus_read;
+    candidate.bosch.write = bus_write;
+    candidate.bosch.delay_us = delay_us;
+    candidate.bosch.amb_temp = 25;
+
+    candidate.transport_error = XY_DEVICE_OK;
+    result = map_error(&candidate, bme68x_init(&candidate.bosch));
+    if (result != XY_DEVICE_OK) {
+        return init_fail(dev, result, preserve_live_owner);
+    }
+
+    candidate.config.os_hum = BME68X_OS_2X;
+    candidate.config.os_pres = BME68X_OS_4X;
+    candidate.config.os_temp = BME68X_OS_8X;
+    candidate.config.filter = BME68X_FILTER_SIZE_3;
+    candidate.config.odr = BME68X_ODR_NONE;
+    candidate.transport_error = XY_DEVICE_OK;
+    result = map_error(&candidate, bme68x_set_conf(&candidate.config, &candidate.bosch));
+    if (result != XY_DEVICE_OK) {
+        return init_fail(dev, result, preserve_live_owner);
+    }
+
+    candidate.heater.enable = BME68X_ENABLE;
+    candidate.heater.heatr_temp = 320U;
+    candidate.heater.heatr_dur = 150U;
+    candidate.transport_error = XY_DEVICE_OK;
+    result = map_error(&candidate,
+                       bme68x_set_heatr_conf(BME68X_FORCED_MODE, &candidate.heater,
+                                             &candidate.bosch));
+    if (result != XY_DEVICE_OK) {
+        return init_fail(dev, result, preserve_live_owner);
+    }
+
+    candidate.initialized = 1U;
+    *dev = candidate;
     dev->bosch.intf_ptr = dev;
-    dev->bosch.read = bus_read;
-    dev->bosch.write = bus_write;
-    dev->bosch.delay_us = delay_us;
-    dev->bosch.amb_temp = 25;
-
-    dev->transport_error = XY_DEVICE_OK;
-    result = map_error(dev, bme68x_init(&dev->bosch));
-    if (result != XY_DEVICE_OK) {
-        return init_fail(dev, result);
-    }
-
-    dev->config.os_hum = BME68X_OS_2X;
-    dev->config.os_pres = BME68X_OS_4X;
-    dev->config.os_temp = BME68X_OS_8X;
-    dev->config.filter = BME68X_FILTER_SIZE_3;
-    dev->config.odr = BME68X_ODR_NONE;
-    dev->transport_error = XY_DEVICE_OK;
-    result = map_error(dev, bme68x_set_conf(&dev->config, &dev->bosch));
-    if (result != XY_DEVICE_OK) {
-        return init_fail(dev, result);
-    }
-
-    dev->heater.enable = BME68X_ENABLE;
-    dev->heater.heatr_temp = 320U;
-    dev->heater.heatr_dur = 150U;
-    dev->transport_error = XY_DEVICE_OK;
-    result = map_error(dev, bme68x_set_heatr_conf(BME68X_FORCED_MODE, &dev->heater, &dev->bosch));
-    if (result != XY_DEVICE_OK) {
-        return init_fail(dev, result);
-    }
-
-    dev->initialized = 1U;
     return XY_DEVICE_OK;
 }
 
