@@ -67,7 +67,8 @@ xy_hal_error_t xy_hal_uart_deinit(void *instance)
     return XY_HAL_OK;
 }
 
-xy_hal_error_t xy_hal_uart_send(void *instance, const uint8_t *data, uint16_t len, uint32_t timeout)
+xy_hal_error_t xy_hal_uart_send(void *instance, const uint8_t *data, size_t len,
+                                 uint32_t timeout)
 {
     uint16_t i;
     uint32_t start;

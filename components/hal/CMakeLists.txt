@@ -82,9 +82,15 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
     if(NOT DEFINED WCH_CHIP)
         set(WCH_CHIP CH32V30x)
     endif()
-    file(GLOB HAL_SOURCES
-        "wch/ch32x/src/*.c"
-        "${CMAKE_SOURCE_DIR}/MCU/wch/${WCH_CHIP}/SRC/Peripheral/src/*.c"
+    # Keep the first CH32V307 board slice limited to the UART path.  The older
+    # generic WCH wrappers for ADC/CAN/I2C/PWM/SPI do not match the current HAL
+    # contracts and must not block the board bring-up build.
+    set(HAL_SOURCES
+        "wch/ch32x/src/xy_hal_uart.c"
+        "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_rcc.c"
+        "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_usart.c"
+        "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_gpio.c"
+        "${WCH_SYSTEM_DIR}/system_ch32v30x.c"
     )
     set(HAL_DEFINES
         HAL_PLATFORM_WCH

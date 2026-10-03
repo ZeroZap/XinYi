@@ -7,6 +7,11 @@ if(NOT DEFINED WCH_CHIP)
     set(WCH_CHIP CH32V30x)
 endif()
 
+if(NOT DEFINED WCH_SDK_DIR)
+    set(WCH_SDK_DIR "${CMAKE_SOURCE_DIR}/MCU/wch/CH32V307EVT/EXAM/SRC")
+endif()
+set(WCH_SYSTEM_DIR "${CMAKE_SOURCE_DIR}/MCU/wch/CH32V307EVT/EXAM/RCC/HSE_CLK/User")
+
 set(CPU_FLAGS
     -march=rv32imafc_zicsr
     -mabi=ilp32f
@@ -26,10 +31,13 @@ set(PLATFORM_DEFINES
 set(PLATFORM_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src
     ${CMAKE_SOURCE_DIR}/components/hal/inc
-    ${CMAKE_SOURCE_DIR}/MCU/wch/${WCH_CHIP}/SRC/Peripheral/inc
-    ${CMAKE_SOURCE_DIR}/MCU/wch/${WCH_CHIP}/SRC/Core
+    ${CMAKE_SOURCE_DIR}/components/trace/xy_log/inc
+    ${WCH_SDK_DIR}/Peripheral/inc
+    ${WCH_SDK_DIR}/Core
+    ${WCH_SYSTEM_DIR}
+    ${WCH_SDK_DIR}/Debug
 )
 
 set(PLATFORM_LINKER_FLAGS "-Wl,--gc-sections -Wl,--print-memory-usage -nostartfiles")
 
-message(STATUS "Platform: WCH (RISC-V Qingke V4F, chip=${WCH_CHIP})")
+message(STATUS "Platform: WCH (RISC-V Qingke V4F, chip=${WCH_CHIP}, sdk=${WCH_SDK_DIR})")
