@@ -117,6 +117,14 @@
 - 适用范围：staged candidate initialization preserves a live owner across helper, identity, and configuration failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：HMC5883L board identity, magnetic accuracy, calibration, dynamic response, recovery, or endurance.
 
+### 2026-10-03 AHT20 Device re-init atomicity
+
+- 组件：Drivers Sensor / AHT20
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_aht20.c`; focused `sensor_aht20`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged candidate initialization preserves a live owner across helper, transport, busy-status, and final-status failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：AHT20 board identity, temperature/humidity accuracy, CRC robustness, recovery, or endurance.
+
 ### 2026-10-02 MLX90614 Device re-init atomicity
 
 - 组件：Drivers Sensor / MLX90614

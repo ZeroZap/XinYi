@@ -46,6 +46,8 @@ static int xy_aht20_check_status(xy_aht20_t *aht20)
 
 int xy_aht20_init(xy_aht20_t *aht20, void *i2c_handle)
 {
+    xy_aht20_t candidate;
+    bool had_live_owner;
     int ret;
     uint8_t cmd[3];
     uint8_t status;
@@ -54,44 +56,60 @@ int xy_aht20_init(xy_aht20_t *aht20, void *i2c_handle)
         return XY_AHT20_INVALID_PARAM;
     }
     
-    memset(aht20, 0, sizeof(*aht20));
-    ret = xy_i2c_device_init(&aht20->i2c_dev, i2c_handle, AHT20_ADDR, 400);
+    had_live_owner = xy_aht20_ready(aht20);
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, AHT20_ADDR, 400);
     if (ret != XY_DEVICE_OK) {
-        memset(aht20, 0, sizeof(*aht20));
+        if (!had_live_owner) {
+            memset(aht20, 0, sizeof(*aht20));
+        }
         return ret;
     }
-    aht20->addr = AHT20_ADDR;
+    if (!candidate.i2c_dev.base.initialized || candidate.i2c_dev.i2c_handle == NULL) {
+        if (!had_live_owner) {
+            memset(aht20, 0, sizeof(*aht20));
+        }
+        return XY_AHT20_INVALID_PARAM;
+    }
+    candidate.addr = AHT20_ADDR;
     
     /* 发送初始化命令 */
     cmd[0] = AHT20_CMD_INIT;
     cmd[1] = 0x08;
     cmd[2] = 0x00;
-    ret = xy_i2c_device_write(&aht20->i2c_dev, cmd, 3);
+    ret = xy_i2c_device_write(&candidate.i2c_dev, cmd, 3);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("AHT20 init failed\n");
-        memset(aht20, 0, sizeof(*aht20));
+        if (!had_live_owner) {
+            memset(aht20, 0, sizeof(*aht20));
+        }
         return XY_AHT20_ERROR;
     }
     
     xy_os_delay(10);
     
     /* 检查状态 */
-    ret = xy_aht20_check_status(aht20);
+    ret = xy_aht20_check_status(&candidate);
     if (ret != XY_AHT20_OK) {
-        memset(aht20, 0, sizeof(*aht20));
+        if (!had_live_owner) {
+            memset(aht20, 0, sizeof(*aht20));
+        }
         return ret;
     }
     
     /* 读取状态寄存器 */
-    ret = xy_i2c_device_read(&aht20->i2c_dev, &status, 1);
+    ret = xy_i2c_device_read(&candidate.i2c_dev, &status, 1);
     if (ret != XY_DEVICE_OK) {
-        memset(aht20, 0, sizeof(*aht20));
+        if (!had_live_owner) {
+            memset(aht20, 0, sizeof(*aht20));
+        }
         return ret;
     }
-    aht20->calibrated = (status & 0x08) ? true : false;
-    xy_log_i("AHT20 found, calibrated=%d\n", aht20->calibrated);
+    candidate.calibrated = (status & 0x08) ? true : false;
+    xy_log_i("AHT20 found, calibrated=%d\n", candidate.calibrated);
 
-    aht20->initialized = true;
+    candidate.initialized = true;
+    *aht20 = candidate;
     return XY_AHT20_OK;
 }
 

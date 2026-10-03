@@ -168,7 +168,7 @@ static void test_init_propagates_device_helper_failure_without_io(void)
     xy_aht20_t dev;
     int fake_bus;
 
-    memset(&dev, 0xA5, sizeof(dev));
+    memset(&dev, 0, sizeof(dev));
     g_device_init_result = XY_DEVICE_TIMEOUT;
 
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_aht20_init(&dev, &fake_bus));
@@ -178,6 +178,28 @@ static void test_init_propagates_device_helper_failure_without_io(void)
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
+}
+
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_aht20_t dev;
+    xy_aht20_t before;
+    int fake_bus;
+
+    queue_status(0x08);
+    queue_status(0x08);
+    TEST_ASSERT_EQUAL_INT(XY_AHT20_OK, xy_aht20_init(&dev, &fake_bus));
+    dev.data.temperature = -1234;
+    dev.data.humidity = 5678U;
+    dev.data.timestamp = 0x12345678U;
+    before = dev;
+
+    g_device_init_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_aht20_init(&dev, &fake_bus));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(2U, g_device_init_count);
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_count);
+    TEST_ASSERT_EQUAL_UINT(2U, g_read_index);
 }
 
 static void test_init_reports_busy_after_timeout(void)
@@ -199,6 +221,7 @@ static void test_init_reports_write_and_status_read_failures_and_uncalibrated_st
     xy_aht20_t dev;
     int fake_bus;
 
+    memset(&dev, 0, sizeof(dev));
     g_write_ret_queue[0] = XY_DEVICE_ERROR;
     TEST_ASSERT_EQUAL_INT(XY_AHT20_ERROR, xy_aht20_init(&dev, &fake_bus));
     TEST_ASSERT_FALSE(dev.initialized);
@@ -491,6 +514,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_rejects_invalid_inputs_and_records_calibration_status);
     RUN_TEST(test_init_propagates_device_helper_failure_without_io);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_init_reports_busy_after_timeout);
     RUN_TEST(test_init_reports_write_and_status_read_failures_and_uncalibrated_status);
     RUN_TEST(test_deinit_rejects_null_and_clears_initialized_flag);
