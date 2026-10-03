@@ -117,6 +117,26 @@ static void test_ccs811_init_failure_clears_partial_transport(void)
     TEST_ASSERT_EQUAL_UINT32(0U, g_write_count);
 }
 
+static void test_ccs811_failed_reinit_preserves_live_owner(void)
+{
+    xy_ccs811_t dev;
+    xy_ccs811_sample_t sample = {321U, 654U, 77U};
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ccs811_init(&dev, &bus));
+    dev.sample = sample;
+    g_init_error = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ccs811_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_HEX8(XY_CCS811_ADDR, dev.i2c_dev.dev_addr);
+    TEST_ASSERT_EQUAL_MEMORY(&sample, &dev.sample, sizeof(sample));
+    TEST_ASSERT_EQUAL_UINT32(1U, g_read_count);
+    TEST_ASSERT_EQUAL_UINT32(2U, g_write_count);
+}
+
 static void test_ccs811_rejects_incomplete_successful_helper_init(void)
 {
     xy_ccs811_t dev;
@@ -188,6 +208,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_ccs811_init_read_and_deinit);
     RUN_TEST(test_ccs811_init_failure_clears_partial_transport);
+    RUN_TEST(test_ccs811_failed_reinit_preserves_live_owner);
     RUN_TEST(test_ccs811_rejects_incomplete_successful_helper_init);
     RUN_TEST(test_ccs811_rejects_lost_nested_transport_without_io);
     RUN_TEST(test_ccs811_transport_failures_preserve_state);

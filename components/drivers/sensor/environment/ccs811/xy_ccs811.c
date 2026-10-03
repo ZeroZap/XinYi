@@ -6,7 +6,7 @@
 
 static int ccs811_transport_ready(const xy_ccs811_t *dev)
 {
-    return dev != NULL && dev->i2c_dev.base.initialized && dev->i2c_dev.i2c_handle != NULL;
+    return dev != NULL && dev->i2c_dev.base.initialized == 1U && dev->i2c_dev.i2c_handle != NULL;
 }
 
 static int ccs811_ready(const xy_ccs811_t *dev)
@@ -16,6 +16,7 @@ static int ccs811_ready(const xy_ccs811_t *dev)
 
 xy_error_t xy_ccs811_init(xy_ccs811_t *dev, void *i2c_handle)
 {
+    xy_ccs811_t candidate;
     uint8_t id;
     uint8_t command = XY_CCS811_APP_START;
     uint8_t mode = 0x10U;
@@ -25,33 +26,42 @@ xy_error_t xy_ccs811_init(xy_ccs811_t *dev, void *i2c_handle)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    error = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_CCS811_ADDR, 1000U);
+    bool preserve_live_owner = ccs811_ready(dev);
+
+    memset(&candidate, 0, sizeof(candidate));
+    error = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_CCS811_ADDR, 1000U);
     if (error != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return error;
     }
-    if (!ccs811_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    if (!ccs811_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    error = xy_i2c_device_read_reg(&dev->i2c_dev, XY_CCS811_REG_HW_ID, &id, 1U);
+    error = xy_i2c_device_read_reg(&candidate.i2c_dev, XY_CCS811_REG_HW_ID, &id, 1U);
     if (error == XY_DEVICE_OK && id != XY_CCS811_HW_ID_VALUE) {
         error = XY_DEVICE_NOT_FOUND;
     }
     if (error == XY_DEVICE_OK) {
-        error = xy_i2c_device_write(&dev->i2c_dev, &command, 1U);
+        error = xy_i2c_device_write(&candidate.i2c_dev, &command, 1U);
     }
     if (error == XY_DEVICE_OK) {
-        error = xy_i2c_device_write_reg(&dev->i2c_dev, XY_CCS811_REG_MEAS_MODE, &mode, 1U);
+        error = xy_i2c_device_write_reg(&candidate.i2c_dev, XY_CCS811_REG_MEAS_MODE, &mode, 1U);
     }
     if (error != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return error;
     }
 
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
