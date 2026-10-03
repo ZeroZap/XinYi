@@ -213,6 +213,14 @@
 - 适用范围：staged candidate initialization preserves a live owner across nested transport, identity, and enable-write failures; first initialization failures remain fail-closed and require an exact live nested transport.
 - 仍不允许宣称：APDS9960 board identity, optical response, gesture classification, timing, recovery, or endurance.
 
+### 2026-10-03 LSM6DSO Device re-init atomicity
+
+- 组件：Drivers Sensor / LSM6DSO
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_lsm6dso_device.c`; focused `sensor_lsm6dso_device`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged initialization preserves a live owner when nested transport or identity/configuration fails; first initialization failures remain fail-closed.
+- 仍不允许宣称：LSM6DSO board identity, motion accuracy, calibration, dynamic response, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
