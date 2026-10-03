@@ -245,6 +245,20 @@
 - 适用范围：staged candidate initialization preserves a live owner across nested transport, identity, and configuration failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：LSM6DSL/LSM6DSR board identity, motion accuracy, calibration, dynamic response, recovery, or endurance.
 
+### 2026-10-04 BMA400/KX023/LSM6 Device re-init atomicity
+
+- 组件：Drivers Sensor / BMA400 + KX023 + LSM6 family
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_bma400_device.c`, `test_kx023_device.c`,
+  `test_lsm6dso_device.c`, `test_lsm6dsl_device.c`, `test_lsm6dsr_device.c`;
+  focused CTests `sensor_bma400_device`, `sensor_kx023_device`,
+  `sensor_lsm6dso_device`, `sensor_lsm6dsl_device`, `sensor_lsm6dsr_device`;
+  `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`.
+- 适用范围：staged candidate initialization preserves a live owner across nested transport,
+  identity, and configuration failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：board identity, motion accuracy, calibration, dynamic response, recovery,
+  or endurance for these sensors.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`

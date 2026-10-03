@@ -1765,6 +1765,17 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 验证：focused `sensor_lsm6dsl_device`、`sensor_lsm6dsr_device` 2/2；Host 264/264；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
 - 边界：仅为 Host/compile lifecycle contract，不升级 LSM6DSL/LSM6DSR 实板身份、运动精度、校准、动态响应、恢复或 endurance 证据。
 
+### 2026-10-04 BMA400/KX023/LSM6 Device re-init atomicity
+
+- 收口：BMA400、KX023、LSM6DSO、LSM6DSL 与 LSM6DSR 的初始化均使用 staged candidate；
+  首次失败清零未初始化 owner，live owner 在 nested transport、identity 或 configuration
+  失败时保持原 transport/lifecycle/cache，完整成功后才原子替换。
+- 验证：focused `sensor_bma400_device`、`sensor_kx023_device`、
+  `sensor_lsm6dso_device`、`sensor_lsm6dsl_device`、`sensor_lsm6dsr_device`；Host 264/264；
+  PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
+- 边界：仅为 Host/compile lifecycle contract，不升级这些传感器的实板身份、运动精度、
+  校准、动态响应、恢复或 endurance 证据。
+
 
 - TDD RED：live owner 重复 `xy_sc7a22h_init()` 在 nested I2C helper 失败时会先清空原 transport、lifecycle 与 sample cache。
 - 收口：初始化改用 staged candidate；首次失败仍清零未初始化 owner，live owner 失败保持原 owner，完整 identity/configuration/read-back 成功后才原子替换。
