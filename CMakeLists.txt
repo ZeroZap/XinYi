@@ -233,6 +233,9 @@ endforeach()
 if(HAL_PLATFORM STREQUAL "STM32L4" AND STM32L4_BOARD STREQUAL "pandora_stm32l475")
     add_subdirectory(boards/pandora_stm32l475)
 endif()
+if(HAL_PLATFORM STREQUAL "WCH" AND WCH_BOARD STREQUAL "opench_ch32v307")
+    add_subdirectory(boards/opench_ch32v307)
+endif()
 
 # clib sub-component
 set(_dir "${CMAKE_SOURCE_DIR}/components/clib/xy_clib")

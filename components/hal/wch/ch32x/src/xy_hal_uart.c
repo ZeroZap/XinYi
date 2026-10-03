@@ -6,13 +6,11 @@
  */
 
 #include "xy_hal_uart.h"
-#include "xy_log.h"
-
-#define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
-
 #ifdef MCU_CH32
 
 #include "ch32v30x.h"
+
+extern uint32_t xy_os_tick_get(void);
 
 /**
  * @brief USART 时钟使能
@@ -50,8 +48,6 @@ xy_hal_error_t xy_hal_uart_init(void *instance, const xy_hal_uart_config_t *conf
     USART_Init(instance, &USART_InitStructure);
     USART_Cmd(instance, ENABLE);
     
-    xy_log_d("WCH UART init: instance=%p, baud=%d\n", instance, config->baudrate);
-    
     return XY_HAL_OK;
 }
 
@@ -70,7 +66,7 @@ xy_hal_error_t xy_hal_uart_deinit(void *instance)
 xy_hal_error_t xy_hal_uart_send(void *instance, const uint8_t *data, size_t len,
                                  uint32_t timeout)
 {
-    uint16_t i;
+    size_t i;
     uint32_t start;
     
     if (!instance || !data) {
@@ -102,7 +98,7 @@ xy_hal_error_t xy_hal_uart_send(void *instance, const uint8_t *data, size_t len,
 
 xy_hal_error_t xy_hal_uart_receive(void *instance, uint8_t *data, uint16_t len, uint32_t timeout)
 {
-    uint16_t i;
+    size_t i;
     uint32_t start;
     
     if (!instance || !data) {
