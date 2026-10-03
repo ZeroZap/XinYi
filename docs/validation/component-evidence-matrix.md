@@ -189,6 +189,14 @@
 - 适用范围：staged candidate initialization preserves a live owner when the nested I2C helper fails during re-init; first initialization failures remain fail-closed.
 - 仍不允许宣称：BME680 board identity, environmental accuracy, gas-response quality, recovery, or endurance.
 
+### 2026-10-03 CCS811 Device re-init atomicity
+
+- 组件：Drivers Sensor / CCS811
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_ccs811_device.c`; focused `sensor_ccs811_device`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged candidate initialization preserves a live owner when the nested I2C helper fails during re-init; first initialization failures remain fail-closed and transport readiness rejects non-binary initialized state.
+- 仍不允许宣称：CCS811 board identity, eCO2/TVOC accuracy, warm-up quality, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
