@@ -221,6 +221,14 @@
 - 适用范围：staged initialization preserves a live owner when nested transport or identity/configuration fails; first initialization failures remain fail-closed.
 - 仍不允许宣称：LSM6DSO board identity, motion accuracy, calibration, dynamic response, recovery, or endurance.
 
+### 2026-10-03 SC7A22H Device re-init atomicity
+
+- 组件：Drivers Sensor / SC7A22H
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_sc7a22h.c`, `tests/unit/sensor/test_i2c2_sensor_devices.c`; focused `sensor_sc7a22h`, `sensor_i2c2_devices`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged candidate initialization preserves a live owner when the nested I2C helper fails; first initialization failures remain fail-closed and preserve the existing public contract.
+- 仍不允许宣称：SC7A22H board identity, motion accuracy, FIFO, interrupt, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
