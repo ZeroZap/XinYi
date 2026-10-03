@@ -18,19 +18,18 @@ static uint32_t g_tick;
 static xy_error_t g_init_ret;
 static int g_init_establish_transport;
 
-static void queue_read(uint8_t reg, const uint8_t *data, size_t len, xy_error_t ret)
-{
-    op_t *op = &g_ops[g_count++];
+static void queue_read(uint8_t reg, const uint8_t* data, size_t len, xy_error_t ret) {
+    op_t* op = &g_ops[g_count++];
     op->reg = reg;
     op->len = len;
     op->ret = ret;
     op->write = 0U;
-    if (data != NULL) memcpy(op->data, data, len);
+    if (data != NULL)
+        memcpy(op->data, data, len);
 }
 
-static void queue_write(uint8_t reg, uint8_t value, xy_error_t ret)
-{
-    op_t *op = &g_ops[g_count++];
+static void queue_write(uint8_t reg, uint8_t value, xy_error_t ret) {
+    op_t* op = &g_ops[g_count++];
     op->reg = reg;
     op->data[0] = value;
     op->len = 1U;
@@ -38,8 +37,7 @@ static void queue_write(uint8_t reg, uint8_t value, xy_error_t ret)
     op->write = 1U;
 }
 
-xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr, uint32_t timeout)
-{
+xy_error_t xy_i2c_device_init(xy_i2c_device_t* dev, void* handle, uint16_t addr, uint32_t timeout) {
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = g_init_establish_transport;
     dev->i2c_handle = g_init_establish_transport ? handle : NULL;
@@ -48,21 +46,21 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addr,
     return g_init_ret;
 }
 
-xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data, size_t len)
-{
-    op_t *op = &g_ops[g_index++];
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t* dev, uint8_t reg, uint8_t* data, size_t len) {
+    op_t* op = &g_ops[g_index++];
     TEST_ASSERT_TRUE(dev->base.initialized);
     TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_FALSE(op->write);
     TEST_ASSERT_EQUAL_UINT8(op->reg, reg);
     TEST_ASSERT_EQUAL_UINT(op->len, len);
-    if (op->ret == XY_DEVICE_OK) memcpy(data, op->data, len);
+    if (op->ret == XY_DEVICE_OK)
+        memcpy(data, op->data, len);
     return op->ret;
 }
 
-xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data, size_t len)
-{
-    op_t *op = &g_ops[g_index++];
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t* dev, uint8_t reg, const uint8_t* data,
+                                   size_t len) {
+    op_t* op = &g_ops[g_index++];
     TEST_ASSERT_TRUE(dev->base.initialized);
     TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     TEST_ASSERT_TRUE(op->write);
@@ -72,11 +70,14 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
     return op->ret;
 }
 
-void xy_hal_delay_ms(uint32_t ms) { g_tick += ms; }
-uint32_t xy_hal_sys_get_tick_count(void) { return g_tick; }
+void xy_hal_delay_ms(uint32_t ms) {
+    g_tick += ms;
+}
+uint32_t xy_hal_sys_get_tick_count(void) {
+    return g_tick;
+}
 
-void setUp(void)
-{
+void setUp(void) {
     memset(g_ops, 0, sizeof(g_ops));
     g_count = 0U;
     g_index = 0U;
@@ -86,8 +87,7 @@ void setUp(void)
 }
 void tearDown(void) {}
 
-static void queue_valid_init(void)
-{
+static void queue_valid_init(void) {
     const uint8_t id = XY_QMC5883L_CHIP_ID;
     queue_read(XY_QMC5883L_REG_CHIP_ID, &id, 1U, XY_DEVICE_OK);
     queue_write(XY_QMC5883L_REG_CONTROL2, 0x80U, XY_DEVICE_OK);
@@ -95,8 +95,7 @@ static void queue_valid_init(void)
     queue_write(XY_QMC5883L_REG_CONTROL1, XY_QMC5883L_CONTROL1_2G_200HZ, XY_DEVICE_OK);
 }
 
-static void test_qmc5883l_identity_init_read_and_deinit(void)
-{
+static void test_qmc5883l_identity_init_read_and_deinit(void) {
     xy_qmc5883l_t dev;
     xy_qmc5883l_sample_t sample;
     const uint8_t ready = 1U;
@@ -121,8 +120,7 @@ static void test_qmc5883l_identity_init_read_and_deinit(void)
     TEST_ASSERT_EQUAL_UINT(g_count, g_index);
 }
 
-static void test_qmc5883l_failures_preserve_state_and_stop(void)
-{
+static void test_qmc5883l_failures_preserve_state_and_stop(void) {
     xy_qmc5883l_t dev;
     xy_qmc5883l_sample_t sample = {.raw_x = 11, .raw_y = 22, .raw_z = 33, .timestamp = 44U};
     const uint8_t ready = 1U;
@@ -141,8 +139,7 @@ static void test_qmc5883l_failures_preserve_state_and_stop(void)
     TEST_ASSERT_EQUAL_UINT(g_count, g_index);
 }
 
-static void test_qmc5883l_init_rejects_incomplete_nested_transport(void)
-{
+static void test_qmc5883l_init_rejects_incomplete_nested_transport(void) {
     xy_qmc5883l_t dev;
     int bus;
 
@@ -155,8 +152,43 @@ static void test_qmc5883l_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_index);
 }
 
-static void test_qmc5883l_missing_handle_fails_closed(void)
-{
+static void test_qmc5883l_failed_reinit_preserves_live_owner(void) {
+    xy_qmc5883l_t dev;
+    xy_qmc5883l_t snapshot;
+    int bus;
+
+    queue_valid_init();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qmc5883l_init(&dev, &bus));
+    dev.sample = (xy_qmc5883l_sample_t){11, 22, 33, 44U};
+    snapshot = dev;
+
+    setUp();
+    g_init_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qmc5883l_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
+static void test_qmc5883l_failed_reinit_preserves_owner_after_config_error(void) {
+    xy_qmc5883l_t dev;
+    xy_qmc5883l_t snapshot;
+    int bus;
+
+    queue_valid_init();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qmc5883l_init(&dev, &bus));
+    dev.sample = (xy_qmc5883l_sample_t){-11, -22, -33, 55U};
+    snapshot = dev;
+
+    setUp();
+    {
+        const uint8_t id = XY_QMC5883L_CHIP_ID;
+        queue_read(XY_QMC5883L_REG_CHIP_ID, &id, 1U, XY_DEVICE_OK);
+        queue_write(XY_QMC5883L_REG_CONTROL2, 0x80U, XY_DEVICE_TIMEOUT);
+    }
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qmc5883l_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
+static void test_qmc5883l_missing_handle_fails_closed(void) {
     xy_qmc5883l_t dev;
     xy_qmc5883l_sample_t output = {.raw_x = 11, .raw_y = 22, .raw_z = 33, .timestamp = 44U};
     xy_qmc5883l_sample_t snapshot = output;
@@ -177,12 +209,13 @@ static void test_qmc5883l_missing_handle_fails_closed(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_qmc5883l_identity_init_read_and_deinit);
     RUN_TEST(test_qmc5883l_failures_preserve_state_and_stop);
     RUN_TEST(test_qmc5883l_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_qmc5883l_failed_reinit_preserves_live_owner);
+    RUN_TEST(test_qmc5883l_failed_reinit_preserves_owner_after_config_error);
     RUN_TEST(test_qmc5883l_missing_handle_fails_closed);
     return UNITY_END();
 }

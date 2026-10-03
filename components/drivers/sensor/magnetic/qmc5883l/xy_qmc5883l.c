@@ -4,72 +4,74 @@
 
 #include <string.h>
 
-static int qmc5883l_transport_ready(const xy_qmc5883l_t *dev)
-{
-    return dev != NULL && dev->i2c_dev.base.initialized &&
-           dev->i2c_dev.i2c_handle != NULL;
+static int qmc5883l_transport_ready(const xy_qmc5883l_t* dev) {
+    return dev != NULL && dev->i2c_dev.base.initialized && dev->i2c_dev.i2c_handle != NULL;
 }
 
-static int qmc5883l_ready(const xy_qmc5883l_t *dev)
-{
+static int qmc5883l_ready(const xy_qmc5883l_t* dev) {
     return qmc5883l_transport_ready(dev) && dev->initialized;
 }
 
-static xy_error_t qmc5883l_read_reg(xy_qmc5883l_t *dev, uint8_t reg, uint8_t *data,
-                                    size_t length)
-{
+static xy_error_t qmc5883l_read_reg(xy_qmc5883l_t* dev, uint8_t reg, uint8_t* data, size_t length) {
     if (!qmc5883l_transport_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_read_reg(&dev->i2c_dev, reg, data, length);
 }
 
-static xy_error_t qmc5883l_write_u8(xy_qmc5883l_t *dev, uint8_t reg, uint8_t value)
-{
+static xy_error_t qmc5883l_write_u8(xy_qmc5883l_t* dev, uint8_t reg, uint8_t value) {
     if (!qmc5883l_transport_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
-xy_error_t xy_qmc5883l_init(xy_qmc5883l_t *dev, void *i2c_handle)
-{
+xy_error_t xy_qmc5883l_init(xy_qmc5883l_t* dev, void* i2c_handle) {
+    xy_qmc5883l_t candidate;
+    const int preserve_live_owner =
+        qmc5883l_ready(dev) && dev->i2c_dev.dev_addr == XY_QMC5883L_ADDR;
     uint8_t id;
     xy_error_t ret;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_QMC5883L_ADDR, 1000U);
-    if (ret != XY_DEVICE_OK || !qmc5883l_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_QMC5883L_ADDR, 1000U);
+    if (ret != XY_DEVICE_OK || !qmc5883l_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
-    ret = qmc5883l_read_reg(dev, XY_QMC5883L_REG_CHIP_ID, &id, 1U);
+    ret = qmc5883l_read_reg(&candidate, XY_QMC5883L_REG_CHIP_ID, &id, 1U);
     if (ret != XY_DEVICE_OK || id != XY_QMC5883L_CHIP_ID) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_NOT_FOUND;
     }
-    ret = qmc5883l_write_u8(dev, XY_QMC5883L_REG_CONTROL2, 0x80U);
+    ret = qmc5883l_write_u8(&candidate, XY_QMC5883L_REG_CONTROL2, 0x80U);
     if (ret == XY_DEVICE_OK) {
         xy_device_delay_ms(10U);
-        ret = qmc5883l_write_u8(dev, XY_QMC5883L_REG_PERIOD, 0x01U);
+        ret = qmc5883l_write_u8(&candidate, XY_QMC5883L_REG_PERIOD, 0x01U);
     }
     if (ret == XY_DEVICE_OK) {
-        ret = qmc5883l_write_u8(dev, XY_QMC5883L_REG_CONTROL1,
-                                XY_QMC5883L_CONTROL1_2G_200HZ);
+        ret =
+            qmc5883l_write_u8(&candidate, XY_QMC5883L_REG_CONTROL1, XY_QMC5883L_CONTROL1_2G_200HZ);
     }
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_qmc5883l_deinit(xy_qmc5883l_t *dev)
-{
+xy_error_t xy_qmc5883l_deinit(xy_qmc5883l_t* dev) {
     xy_error_t ret;
     if (!qmc5883l_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
@@ -84,8 +86,7 @@ xy_error_t xy_qmc5883l_deinit(xy_qmc5883l_t *dev)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_qmc5883l_read(xy_qmc5883l_t *dev, xy_qmc5883l_sample_t *sample)
-{
+xy_error_t xy_qmc5883l_read(xy_qmc5883l_t* dev, xy_qmc5883l_sample_t* sample) {
     uint8_t status;
     uint8_t bytes[6];
     xy_qmc5883l_sample_t next;
