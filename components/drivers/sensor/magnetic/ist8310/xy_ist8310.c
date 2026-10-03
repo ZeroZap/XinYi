@@ -31,36 +31,44 @@ static xy_error_t write_reg(xy_ist8310_t *dev, uint8_t reg, uint8_t value)
 
 xy_error_t xy_ist8310_init(xy_ist8310_t *dev, void *i2c_handle)
 {
+    xy_ist8310_t candidate;
     uint8_t id;
     xy_error_t result;
+    int live;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_IST8310_ADDR, 1000U);
-    if (result != XY_DEVICE_OK || !transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    live = dev->initialized == 1U && transport_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_IST8310_ADDR, 1000U);
+    if (result != XY_DEVICE_OK || !transport_ready(&candidate)) {
+        if (!live) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
 
-    result = read_reg(dev, XY_IST8310_REG_WHOAMI, &id, 1U);
+    result = read_reg(&candidate, XY_IST8310_REG_WHOAMI, &id, 1U);
     if (result == XY_DEVICE_OK && id != XY_IST8310_WHOAMI) {
         result = XY_DEVICE_NOT_FOUND;
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(dev, XY_IST8310_REG_CTRL1, XY_IST8310_CTRL1_CONTINUOUS_100HZ);
+        result = write_reg(&candidate, XY_IST8310_REG_CTRL1, XY_IST8310_CTRL1_CONTINUOUS_100HZ);
     }
     if (result == XY_DEVICE_OK) {
-        result = write_reg(dev, XY_IST8310_REG_CTRL2, XY_IST8310_CTRL2_ENABLE);
+        result = write_reg(&candidate, XY_IST8310_REG_CTRL2, XY_IST8310_CTRL2_ENABLE);
     }
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!live) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

@@ -7,6 +7,7 @@ static unsigned g_io_count;
 static uint8_t g_id;
 static uint8_t g_raw[6];
 static xy_error_t g_io_error;
+static xy_error_t g_write_error;
 static xy_error_t g_init_error;
 static int g_init_establish_transport;
 
@@ -46,7 +47,7 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
     TEST_ASSERT_TRUE(dev->base.initialized);
     TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     g_io_count++;
-    return g_io_error;
+    return g_write_error;
 }
 
 uint32_t xy_hal_sys_get_tick_count(void)
@@ -65,6 +66,7 @@ void setUp(void)
     g_raw[4] = 0x10U;
     g_raw[5] = 0U;
     g_io_error = XY_DEVICE_OK;
+    g_write_error = XY_DEVICE_OK;
     g_init_error = XY_DEVICE_OK;
     g_init_establish_transport = 1;
 }
@@ -138,6 +140,27 @@ static void test_ist8310_missing_handle_fails_closed(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
+static void test_ist8310_failed_reinit_preserves_live_owner(void)
+{
+    xy_ist8310_t dev;
+    xy_ist8310_t snapshot;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ist8310_init(&dev, &bus));
+    dev.sample = (xy_ist8310_sample_t){11, 22, 33, 44U};
+    snapshot = dev;
+
+    setUp();
+    g_io_error = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ist8310_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+
+    setUp();
+    g_write_error = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ist8310_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -145,5 +168,6 @@ int main(void)
     RUN_TEST(test_ist8310_read_failure_preserves_output);
     RUN_TEST(test_ist8310_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_ist8310_missing_handle_fails_closed);
+    RUN_TEST(test_ist8310_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }

@@ -173,6 +173,14 @@
 - 适用范围：staged candidate initialization preserves a live owner across helper, identity, and configuration failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：QMC5883L board identity, magnetic accuracy, calibration, dynamic response, recovery, or endurance.
 
+### 2026-10-03 IST8310 Device re-init atomicity
+
+- 组件：Drivers Sensor / IST8310
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_ist8310_device.c`; focused `sensor_ist8310_device`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged candidate initialization preserves a live owner across transport, identity, and configuration failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：IST8310 board identity, magnetic accuracy, calibration, dynamic response, recovery, or endurance.
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
