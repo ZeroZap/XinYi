@@ -113,7 +113,7 @@
 
 - 组件：Drivers Sensor / HMC5883L
 - 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
-- 证据路径/命令：`tests/unit/sensor/test_hmc5883l.c`; focused `sensor_hmc5883l`; full Host/PC/STM32L4/STM32U5 gate pending for this slice
+- 证据路径/命令：`tests/unit/sensor/test_hmc5883l.c`; focused `sensor_hmc5883l`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
 - 适用范围：staged candidate initialization preserves a live owner across helper, identity, and configuration failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：HMC5883L board identity, magnetic accuracy, calibration, dynamic response, recovery, or endurance.
 
@@ -137,7 +137,7 @@
 
 - 组件：Drivers Sensor / AS5600 + AS5048B
 - 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
-- 证据路径/命令：`tests/unit/sensor/test_as5600_device.c`, `tests/unit/sensor/test_as5048b_device.c`; focused `sensor_as5600_device`, `sensor_as5048b_device`; full Host/PC/STM32L4/STM32U5 gate pending for this slice
+- 证据路径/命令：`tests/unit/sensor/test_as5600_device.c`, `tests/unit/sensor/test_as5048b_device.c`; focused `sensor_as5600_device`, `sensor_as5048b_device`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
 - 适用范围：staged candidate initialization preserves a live owner across helper failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：angle encoder board identity, angle accuracy, magnetic installation, recovery, or endurance.
 
@@ -265,6 +265,13 @@
 - 收口：初始化改用 staged candidate；首次失败仍清零未初始化 owner，live owner 失败保持原 owner，完整 identity/filter/power 配置成功后才原子替换。
 - 验证：focused `sensor_adxl362_device` 1/1；Host `make test-unit` 264/264；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
 - 边界：仅为 Host/compile lifecycle contract，不升级 ADXL362 实板身份、运动精度、动态响应、恢复或 endurance 证据。
+
+### 2026-10-04 ADS1115 Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_ads1115_init()` 在 nested I2C helper 或 configuration read failure 时会先清空原 transport、lifecycle 与 cached conversion state。
+- 收口：初始化改用 staged candidate；首次失败清零未初始化 owner，live owner 失败保持原 owner，完整 configuration read 成功后才原子替换。
+- 验证：focused `sensor_ads1115`; Host 265/265; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`。
+- 边界：仅为 Host/compile lifecycle contract，不升级 ADS1115 实板身份、转换精度、校准、恢复或 endurance 证据。
 
 ### 已存在模板/记录
 
