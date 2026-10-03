@@ -1706,3 +1706,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `qma6100p-142e515c-uart.txt`。
 - 边界：升级固定 Pandora/QMA6100P 配置下 PC6/PD15 data-ready GPIO edge→EXTI callback B1；动态
   响应、精度、校准、断线/故障恢复与 endurance 继续 pending，不升级 B2/P1。
+
+### 2026-10-03 KX023 Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_kx023_init()` 在 identity/transport/configuration 失败时会先清空原 transport、lifecycle 与 sample cache。
+- 收口：初始化改用 staged candidate；首次失败仍清零未初始化 owner，live owner 失败保持原 owner，完整 identity/reset/configuration 成功后才原子替换。
+- 验证：focused `sensor_kx023_device` 1/1；Host `make test-unit`、PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
+- 边界：仅为 Host/compile lifecycle contract，不升级 KX023 实板身份、运动精度、动态响应、恢复或 endurance 证据。

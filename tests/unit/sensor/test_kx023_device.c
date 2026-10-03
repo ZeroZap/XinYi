@@ -86,6 +86,27 @@ static void test_kx023_init_read_and_deinit(void)
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
+static void test_kx023_failed_reinit_preserves_live_owner(void)
+{
+    xy_kx023_t dev;
+    xy_kx023_sample_t sample = {333, 444, 555, 666};
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_kx023_init(&dev, &bus));
+    dev.sample = sample;
+
+    io_error = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_kx023_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_TRUE(dev.i2c_dev.base.initialized);
+    TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_HEX8(XY_KX023_ADDR, dev.i2c_dev.dev_addr);
+    TEST_ASSERT_EQUAL_MEMORY(&sample, &dev.sample, sizeof(sample));
+
+    io_error = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_kx023_deinit(&dev));
+}
+
 static void test_kx023_fail_closed_on_invalid_nested_transport(void)
 {
     xy_kx023_t dev;
@@ -112,6 +133,7 @@ static void test_kx023_init_rejects_incomplete_nested_transport(void)
     xy_kx023_t dev;
     int bus;
 
+    memset(&dev, 0xA5, sizeof(dev));
     init_without_handle = 1;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_kx023_init(&dev, &bus));
     TEST_ASSERT_FALSE(dev.initialized);
@@ -144,6 +166,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_kx023_init_read_and_deinit);
+    RUN_TEST(test_kx023_failed_reinit_preserves_live_owner);
     RUN_TEST(test_kx023_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_kx023_fail_closed_on_invalid_nested_transport);
     RUN_TEST(test_kx023_transport_failure_preserves_state);
