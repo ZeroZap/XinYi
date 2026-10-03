@@ -10,9 +10,8 @@ static unsigned operation_count;
 static unsigned delay_count;
 static uint8_t raw[6] = {0x00, 0x10, 0x00, 0xF0, 0x00, 0x08};
 
-xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
-                              uint32_t timeout)
-{
+xy_error_t xy_i2c_device_init(xy_i2c_device_t* dev, void* handle, uint16_t address,
+                              uint32_t timeout) {
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1U;
     dev->i2c_handle = init_without_handle ? NULL : handle;
@@ -21,9 +20,7 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
     return init_error;
 }
 
-xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data,
-                                  size_t length)
-{
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t* dev, uint8_t reg, uint8_t* data, size_t length) {
     TEST_ASSERT_TRUE(dev->base.initialized);
     TEST_ASSERT_NOT_NULL(dev->i2c_handle);
     operation_count++;
@@ -38,9 +35,8 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint8_t *data,
-                                   size_t length)
-{
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t* dev, uint8_t reg, const uint8_t* data,
+                                   size_t length) {
     (void)reg;
     (void)data;
     (void)length;
@@ -50,19 +46,16 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg, const uint
     return io_error;
 }
 
-void xy_hal_delay_ms(uint32_t milliseconds)
-{
+void xy_hal_delay_ms(uint32_t milliseconds) {
     TEST_ASSERT_EQUAL_UINT32(10U, milliseconds);
     delay_count++;
 }
 
-uint32_t xy_hal_sys_get_tick_count(void)
-{
+uint32_t xy_hal_sys_get_tick_count(void) {
     return 77U;
 }
 
-void setUp(void)
-{
+void setUp(void) {
     init_error = XY_DEVICE_OK;
     init_without_handle = 0;
     io_error = XY_DEVICE_OK;
@@ -70,12 +63,9 @@ void setUp(void)
     delay_count = 0U;
 }
 
-void tearDown(void)
-{
-}
+void tearDown(void) {}
 
-static void test_lis2dw12_init_read_and_deinit(void)
-{
+static void test_lis2dw12_init_read_and_deinit(void) {
     xy_lis2dw12_t dev;
     xy_lis2dw12_sample_t sample;
     int bus;
@@ -95,8 +85,7 @@ static void test_lis2dw12_init_read_and_deinit(void)
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
-static void test_lis2dw12_init_failure_clears_partial_transport(void)
-{
+static void test_lis2dw12_init_failure_clears_partial_transport(void) {
     xy_lis2dw12_t dev;
     int bus;
 
@@ -111,8 +100,7 @@ static void test_lis2dw12_init_failure_clears_partial_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, delay_count);
 }
 
-static void test_lis2dw12_fail_closed_on_invalid_nested_transport(void)
-{
+static void test_lis2dw12_fail_closed_on_invalid_nested_transport(void) {
     xy_lis2dw12_t dev;
     xy_lis2dw12_sample_t output = {1, 2, 3, 4, 5, 6, 7};
     xy_lis2dw12_sample_t snapshot = output;
@@ -132,8 +120,7 @@ static void test_lis2dw12_fail_closed_on_invalid_nested_transport(void)
     TEST_ASSERT_TRUE(dev.initialized);
 }
 
-static void test_lis2dw12_init_rejects_incomplete_nested_transport(void)
-{
+static void test_lis2dw12_init_rejects_incomplete_nested_transport(void) {
     xy_lis2dw12_t dev;
     int bus;
 
@@ -146,8 +133,7 @@ static void test_lis2dw12_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, delay_count);
 }
 
-static void test_lis2dw12_transport_failures_preserve_state(void)
-{
+static void test_lis2dw12_transport_failures_preserve_state(void) {
     xy_lis2dw12_t dev;
     xy_lis2dw12_sample_t output = {1, 2, 3, 4, 5, 6, 7};
     xy_lis2dw12_sample_t snapshot = output;
@@ -166,13 +152,28 @@ static void test_lis2dw12_transport_failures_preserve_state(void)
     TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
 }
 
-int main(void)
-{
+static void test_lis2dw12_failed_reinit_preserves_live_owner(void) {
+    xy_lis2dw12_t dev;
+    xy_lis2dw12_t snapshot;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_lis2dw12_init(&dev, &bus));
+    dev.sample.raw_x = 123;
+    dev.sample.timestamp = 456U;
+    snapshot = dev;
+    init_error = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_lis2dw12_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_lis2dw12_init_read_and_deinit);
     RUN_TEST(test_lis2dw12_init_failure_clears_partial_transport);
     RUN_TEST(test_lis2dw12_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_lis2dw12_fail_closed_on_invalid_nested_transport);
     RUN_TEST(test_lis2dw12_transport_failures_preserve_state);
+    RUN_TEST(test_lis2dw12_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }

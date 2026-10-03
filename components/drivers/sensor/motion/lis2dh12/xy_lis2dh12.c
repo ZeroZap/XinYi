@@ -3,32 +3,24 @@
 
 #include <string.h>
 
-static int transport_ready(const xy_lis2dh12_t *dev)
-{
-    return dev != NULL && dev->i2c_dev.base.initialized && dev->i2c_dev.i2c_handle != NULL;
+static int transport_ready(const xy_lis2dh12_t* dev) {
+    return dev != NULL && dev->i2c_dev.base.initialized == 1U && dev->i2c_dev.i2c_handle != NULL;
 }
 
-static int ready(const xy_lis2dh12_t *dev)
-{
-    return transport_ready(dev) && dev->initialized;
+static int ready(const xy_lis2dh12_t* dev) {
+    return transport_ready(dev) && dev->initialized == 1U;
 }
 
-static xy_error_t write_reg(xy_lis2dh12_t *dev, uint8_t reg, uint8_t value)
-{
+static xy_error_t write_reg(xy_lis2dh12_t* dev, uint8_t reg, uint8_t value) {
     if (!transport_ready(dev)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     return xy_i2c_device_write_reg(&dev->i2c_dev, reg, &value, 1U);
 }
 
-xy_error_t xy_lis2dh12_init(xy_lis2dh12_t *dev, void *i2c_handle)
-{
+static xy_error_t init_candidate(xy_lis2dh12_t* dev, void* i2c_handle) {
     uint8_t id;
     xy_error_t result;
-
-    if (dev == NULL || i2c_handle == NULL) {
-        return XY_DEVICE_INVALID_PARAM;
-    }
 
     memset(dev, 0, sizeof(*dev));
     result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_LIS2DH12_ADDR, 1000U);
@@ -63,8 +55,29 @@ xy_error_t xy_lis2dh12_init(xy_lis2dh12_t *dev, void *i2c_handle)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_lis2dh12_deinit(xy_lis2dh12_t *dev)
-{
+xy_error_t xy_lis2dh12_init(xy_lis2dh12_t* dev, void* i2c_handle) {
+    xy_lis2dh12_t candidate;
+    xy_error_t result;
+    int was_initialized;
+
+    if (dev == NULL || i2c_handle == NULL) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    was_initialized = ready(dev);
+    result = init_candidate(&candidate, i2c_handle);
+    if (result != XY_DEVICE_OK) {
+        if (!was_initialized) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return result;
+    }
+
+    *dev = candidate;
+    return XY_DEVICE_OK;
+}
+
+xy_error_t xy_lis2dh12_deinit(xy_lis2dh12_t* dev) {
     xy_error_t result;
 
     if (!ready(dev)) {
@@ -82,8 +95,7 @@ xy_error_t xy_lis2dh12_deinit(xy_lis2dh12_t *dev)
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_lis2dh12_read(xy_lis2dh12_t *dev, xy_lis2dh12_sample_t *sample)
-{
+xy_error_t xy_lis2dh12_read(xy_lis2dh12_t* dev, xy_lis2dh12_sample_t* sample) {
     uint8_t data[6];
     xy_lis2dh12_sample_t next;
     xy_error_t result;
@@ -92,9 +104,8 @@ xy_error_t xy_lis2dh12_read(xy_lis2dh12_t *dev, xy_lis2dh12_sample_t *sample)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    result = xy_i2c_device_read_reg(&dev->i2c_dev,
-                                    XY_LIS2DH12_REG_OUT_X_L | XY_LIS2DH12_AUTO_INCREMENT, data,
-                                    sizeof(data));
+    result = xy_i2c_device_read_reg(
+        &dev->i2c_dev, XY_LIS2DH12_REG_OUT_X_L | XY_LIS2DH12_AUTO_INCREMENT, data, sizeof(data));
     if (result != XY_DEVICE_OK) {
         return result;
     }
