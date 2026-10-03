@@ -54,6 +54,11 @@ static bool sgp40_ready(const xy_sgp40_dev_t *dev)
     return sgp40_transport_ready(dev) && dev->is_initialized;
 }
 
+static bool sgp40_live_owner(const xy_sgp40_dev_t *dev)
+{
+    return sgp40_ready(dev) && dev->i2c_dev.dev_addr == SGP40_I2C_ADDR;
+}
+
 /*============================================================================
  * 内部辅助函数
  *===========================================================================*/
@@ -200,64 +205,76 @@ static xy_ret_t sgp40_wait_measurement(xy_sgp40_dev_t *dev, uint32_t timeout_ms)
 
 xy_ret_t xy_sgp40_init(xy_sgp40_dev_t *dev, xy_i2c_dev_t *i2c, xy_sgp40_config_t *config)
 {
+    xy_sgp40_dev_t candidate;
+    bool preserve_live_owner;
+    xy_ret_t result;
+
     if (dev == XY_NULL || i2c == XY_NULL || i2c->handle == XY_NULL ||
         i2c->address != SGP40_I2C_ADDR) {
         return XY_ERROR;
     }
-    
-    memset(dev, 0, sizeof(xy_sgp40_dev_t));
-    xy_ret_t ret = xy_i2c_device_init(&dev->i2c_dev, i2c->handle, i2c->address, 1000U);
-    if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return ret;
+
+    preserve_live_owner = sgp40_live_owner(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c->handle, i2c->address, 1000U);
+    if (result != XY_OK) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return result;
     }
-    if (!sgp40_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    if (!sgp40_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_ERROR;
     }
-    
+
     /* 设置默认配置 */
-    dev->config.enable_compensation = SGP40_DEFAULT_ENABLE_COMP;
-    dev->config.default_temperature = SGP40_DEFAULT_TEMPERATURE;
-    dev->config.default_humidity = SGP40_DEFAULT_HUMIDITY;
-    dev->config.i2c_address = SGP40_DEFAULT_I2C_ADDR;
+    candidate.config.enable_compensation = SGP40_DEFAULT_ENABLE_COMP;
+    candidate.config.default_temperature = SGP40_DEFAULT_TEMPERATURE;
+    candidate.config.default_humidity = SGP40_DEFAULT_HUMIDITY;
+    candidate.config.i2c_address = SGP40_DEFAULT_I2C_ADDR;
     
     if (config != XY_NULL) {
-        dev->config = *config;
+        candidate.config = *config;
     }
     
     /* 等待传感器上电稳定 */
     xy_delay_ms(20);
     
     /* 读取特征集 */
-    ret = xy_sgp40_read_feature_set(dev, &dev->feature_set);
-    if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return ret;
+    result = xy_sgp40_read_feature_set(&candidate, &candidate.feature_set);
+    if (result != XY_OK) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return result;
     }
     
     /* 读取序列号 */
-    ret = xy_sgp40_read_serial_id(dev, dev->serial_id);
-    if (ret != XY_OK) {
-        memset(dev, 0, sizeof(*dev));
-        return ret;
+    result = xy_sgp40_read_serial_id(&candidate, candidate.serial_id);
+    if (result != XY_OK) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return result;
     }
     
     /* 执行自测试 */
     bool self_test_passed = false;
-    ret = xy_sgp40_self_test(dev, &self_test_passed);
-    if (ret != XY_OK || !self_test_passed) {
-        memset(dev, 0, sizeof(*dev));
-        return XY_ERROR;
+    result = xy_sgp40_self_test(&candidate, &self_test_passed);
+    if (result != XY_OK || !self_test_passed) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return result != XY_OK ? result : XY_ERROR;
     }
-    
-    /* 开始预热 */
-    dev->is_warmed_up = false;
-    dev->uptime_ms = 0;
-    
-    /* 预热期间可以开始测量，但数据可能不准确 */
-    dev->is_initialized = true;
-    
+
+    candidate.is_warmed_up = false;
+    candidate.uptime_ms = 0;
+    candidate.is_initialized = true;
+    *dev = candidate;
     return XY_OK;
 }
 
