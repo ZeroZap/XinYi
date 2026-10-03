@@ -1742,3 +1742,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 收口：初始化改用 staged candidate；首次失败仍清零未初始化 owner，live owner 失败保持原 owner，完整 identity/APP_START/measurement-mode 配置成功后才原子替换；transport readiness 同时要求 `base.initialized == 1` 与 live handle。
 - 验证：focused `sensor_ccs811_device` 1/1；Host `make test-unit` 264/264；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过；提交 `c7a30a85`，已推送且本地/远端 `0/0`。
 - 边界：仅为 Host/compile lifecycle contract，不升级 CCS811 实板身份、eCO2/TVOC 精度、warm-up、恢复或 endurance 证据。
+
+### 2026-10-03 APDS9960 Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_apds9960_init()` 在 nested transport、identity 或 enable 写失败时会先清空原 transport、lifecycle 与 RGB/proximity/gesture cache。
+- 收口：初始化改用 staged candidate；首次失败仍清零未初始化 owner，live owner 失败保持原 owner，完整 nested transport、identity 与 enable 配置成功后才原子替换；transport readiness 严格要求 initialized 值为 `1` 且 handle 非 NULL。
+- 验证：focused `sensor_apds9960_device` 1/1；Host 264/264；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
+- 边界：仅为 Host/compile lifecycle contract，不升级 APDS9960 实板身份、光学响应、手势分类、时序、恢复或 endurance 证据。

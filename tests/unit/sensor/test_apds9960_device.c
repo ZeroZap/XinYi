@@ -188,6 +188,45 @@ static void test_apds9960_transport_failures_preserve_state(void)
     TEST_ASSERT_NOT_NULL(dev.i2c_dev.i2c_handle);
 }
 
+static void test_apds9960_reinit_failure_preserves_live_owner(void)
+{
+    xy_apds9960_t dev;
+    xy_apds9960_rgb_t rgb = {11U, 22U, 33U, 44U, 55U};
+    xy_apds9960_proximity_t proximity = {66U, 77U};
+    xy_apds9960_gesture_fifo_t gesture;
+    xy_i2c_device_t old_i2c;
+    int bus;
+
+    memset(&gesture, 0x3c, sizeof(gesture));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_apds9960_init(&dev, &bus));
+    dev.rgb = rgb;
+    dev.proximity = proximity;
+    dev.gesture = gesture;
+    old_i2c = dev.i2c_dev;
+    g_init_error = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_apds9960_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_MEMORY(&old_i2c, &dev.i2c_dev, sizeof(old_i2c));
+    TEST_ASSERT_EQUAL_MEMORY(&rgb, &dev.rgb, sizeof(rgb));
+    TEST_ASSERT_EQUAL_MEMORY(&proximity, &dev.proximity, sizeof(proximity));
+    TEST_ASSERT_EQUAL_MEMORY(&gesture, &dev.gesture, sizeof(gesture));
+
+    g_init_error = XY_DEVICE_OK;
+    g_read_error = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_apds9960_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_MEMORY(&old_i2c, &dev.i2c_dev, sizeof(old_i2c));
+    TEST_ASSERT_EQUAL_MEMORY(&rgb, &dev.rgb, sizeof(rgb));
+
+    g_read_error = XY_DEVICE_OK;
+    g_write_error = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_apds9960_init(&dev, &bus));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_MEMORY(&old_i2c, &dev.i2c_dev, sizeof(old_i2c));
+    TEST_ASSERT_EQUAL_MEMORY(&rgb, &dev.rgb, sizeof(rgb));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -196,5 +235,6 @@ int main(void)
     RUN_TEST(test_apds9960_init_rejects_incomplete_nested_transport);
     RUN_TEST(test_apds9960_rejects_lost_nested_transport_without_io);
     RUN_TEST(test_apds9960_transport_failures_preserve_state);
+    RUN_TEST(test_apds9960_reinit_failure_preserves_live_owner);
     return UNITY_END();
 }

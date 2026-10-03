@@ -6,7 +6,7 @@
 
 static int apds9960_transport_ready(const xy_apds9960_t *dev)
 {
-    return dev != NULL && dev->i2c_dev.base.initialized &&
+    return dev != NULL && dev->i2c_dev.base.initialized == 1U &&
            dev->i2c_dev.i2c_handle != NULL;
 }
 
@@ -39,34 +39,42 @@ static uint16_t apds9960_decode_le16(const uint8_t *data)
 
 xy_error_t xy_apds9960_init(xy_apds9960_t *dev, void *i2c_handle)
 {
+    xy_apds9960_t candidate;
     uint8_t id;
     uint8_t enable = XY_APDS9960_ENABLE_PON_AEN_PEN_GEN;
     xy_error_t error;
+    int preserve_live_owner;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    error = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_APDS9960_ADDR, 1000U);
-    if (error != XY_DEVICE_OK || !apds9960_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    preserve_live_owner = apds9960_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    error = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_APDS9960_ADDR, 1000U);
+    if (error != XY_DEVICE_OK || !apds9960_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return error != XY_DEVICE_OK ? error : XY_DEVICE_INVALID_PARAM;
     }
 
-    error = apds9960_read_reg(dev, XY_APDS9960_REG_ID, &id, 1U);
+    error = apds9960_read_reg(&candidate, XY_APDS9960_REG_ID, &id, 1U);
     if (error == XY_DEVICE_OK && id != 0xABU && id != 0x9CU) {
         error = XY_DEVICE_NOT_FOUND;
     }
     if (error == XY_DEVICE_OK) {
-        error = apds9960_write_reg(dev, XY_APDS9960_REG_ENABLE, enable);
+        error = apds9960_write_reg(&candidate, XY_APDS9960_REG_ENABLE, enable);
     }
     if (error != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return error;
     }
 
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
