@@ -1802,3 +1802,9 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 收口：LTC2945 初始化改用 staged candidate；首次失败清零未初始化 owner，live owner 在 helper、STATUS 或配置写失败时保持原 transport/lifecycle/config/sample，完整成功后才原子替换。
 - 验证：focused `sensor_adc_power_monitors`；Host 265/265；PC、STM32L4、STM32U5 build 与 `git diff --check`。
 - 边界：仅为 Host/compile lifecycle contract，不升级 LTC2945 实板身份、计量精度、校准、告警、电气、恢复或 endurance 证据。
+
+### 2026-10-04 BNO055 Device re-init atomicity
+
+- 收口：BNO055 初始化使用 staged candidate；首次失败清零未初始化 owner，live owner 在 reset、身份或配置失败时保持原 transport/lifecycle/mode/unit state，完整成功后才原子替换。
+- 验证：focused `sensor_bno055`；Host、PC、STM32L4、STM32U5 build 与 `git diff --check`。
+- 边界：仅为 Host/compile lifecycle contract，不升级 BNO055 实板身份、融合精度、动态响应、恢复或 endurance 证据。

@@ -113,7 +113,7 @@ int xy_i2c_master_transmit(xy_i2c_t *i2c, uint8_t addr, const uint8_t *tx, uint1
 
 static xy_bno055_t make_ready_dev(void *bus)
 {
-    xy_bno055_t dev;
+    xy_bno055_t dev = {0};
     memset(&dev, 0, sizeof(dev));
     dev.bus_handle = bus;
     dev.bus_addr = 0x28;
@@ -148,7 +148,7 @@ static void expect_init_success_sequence(void)
 
 void test_init_configures_units_and_ndof_mode(void)
 {
-    xy_bno055_t dev;
+    xy_bno055_t dev = {0};
     int bus;
     expect_init_success_sequence();
 
@@ -161,7 +161,7 @@ void test_init_configures_units_and_ndof_mode(void)
 
 void test_init_rejects_wrong_chip_id(void)
 {
-    xy_bno055_t dev;
+    xy_bno055_t dev = {0};
     int bus;
     const uint8_t bad_chip = 0x00;
     expect_write_u8(BNO055_REG_SYS_TRIGGER, 0x20);
@@ -173,7 +173,7 @@ void test_init_rejects_wrong_chip_id(void)
 
 void test_init_propagates_reset_and_sw_version_failures(void)
 {
-    xy_bno055_t dev;
+    xy_bno055_t dev = {0};
     int bus;
     const uint8_t chip = BNO055_CHIP_ID;
 
@@ -188,9 +188,27 @@ void test_init_propagates_reset_and_sw_version_failures(void)
     assert_dev_cleared(&dev);
 }
 
+void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_bno055_t dev = {0};
+    xy_bno055_t before;
+    int bus;
+
+    expect_init_success_sequence();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_bno055_init(&dev, &bus, 0x28, false));
+    before = dev;
+
+    expect_write_ret(BNO055_REG_SYS_TRIGGER, (const uint8_t[]){0x20}, 1, XY_DEVICE_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR, xy_bno055_init(&dev, &bus, 0x29, false));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &dev, sizeof(dev));
+    TEST_ASSERT_TRUE(dev.initialized);
+    TEST_ASSERT_EQUAL_PTR(&bus, dev.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0x28, dev.bus_addr);
+}
+
 void test_init_clears_device_after_each_configuration_failure(void)
 {
-    xy_bno055_t dev;
+    xy_bno055_t dev = {0};
     int bus;
     const uint8_t chip = BNO055_CHIP_ID;
     const uint8_t sw[2] = {0x19, 0x03};
@@ -570,7 +588,7 @@ void test_deinit_preserves_ready_state_when_sleep_fails(void)
 
 void test_uart_mode_reports_not_supported(void)
 {
-    xy_bno055_t dev;
+    xy_bno055_t dev = {0};
     int bus;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_SUPPORT, xy_bno055_init(&dev, &bus, 0x28, true));
 }
@@ -581,6 +599,7 @@ int main(void)
     RUN_TEST(test_init_configures_units_and_ndof_mode);
     RUN_TEST(test_init_rejects_wrong_chip_id);
     RUN_TEST(test_init_propagates_reset_and_sw_version_failures);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_init_clears_device_after_each_configuration_failure);
     RUN_TEST(test_register_access_guards_and_i2c_round_trip);
     RUN_TEST(test_bus_and_enum_boundaries_fail_closed_without_i2c);

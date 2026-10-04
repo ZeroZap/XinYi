@@ -310,6 +310,13 @@
 - 验证：focused `sensor_adc_power_monitors`；Host 265/265；PC、STM32L4、STM32U5 build 与 `git diff --check`。
 - 边界：仅为 Host/compile lifecycle contract，不升级 LTC2945 实板身份、计量精度、校准、告警、电气、恢复或 endurance 证据。
 
+### 2026-10-04 BNO055 Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_bno055_init()` 在 reset、身份或配置失败时会先清空原 transport、lifecycle 与模式/单位状态。
+- 收口：初始化改用 staged candidate；首次失败清零未初始化 owner，live owner 失败保持原 owner，完整 identity、firmware、mode 与 unit 配置成功后才原子替换。
+- 验证：focused `sensor_bno055`；Host/PC/STM32L4/STM32U5 gate 与 `git diff --check`。
+- 边界：仅为 Host/compile lifecycle contract，不升级 BNO055 实板身份、融合精度、动态响应、恢复或 endurance 证据。
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`

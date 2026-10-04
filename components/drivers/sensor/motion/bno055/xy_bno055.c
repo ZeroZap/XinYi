@@ -140,7 +140,7 @@ static int switch_to_config_mode(xy_bno055_t *dev)
 
 /* ==================== 公共 API 实现 ==================== */
 
-int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is_uart)
+static int bno055_init_candidate(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is_uart)
 {
     if (!dev || !bus_handle) {
         XY_LOG_ERROR("Invalid parameters");
@@ -243,6 +243,28 @@ int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is
     dev->initialized = true;
     XY_LOG_INFO("BNO055 initialized successfully (NDOF mode)");
 
+    return XY_DEVICE_OK;
+}
+
+int xy_bno055_init(xy_bno055_t *dev, void *bus_handle, uint8_t bus_addr, bool is_uart)
+{
+    if (!dev) {
+        return XY_DEVICE_EINVAL;
+    }
+
+    const bool live = dev->initialized && dev->bus_handle != NULL;
+    xy_bno055_t candidate;
+    memset(&candidate, 0, sizeof(candidate));
+
+    int ret = bno055_init_candidate(&candidate, bus_handle, bus_addr, is_uart);
+    if (ret != XY_DEVICE_OK) {
+        if (!live) {
+            memset(dev, 0, sizeof(*dev));
+        }
+        return ret;
+    }
+
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 
