@@ -317,6 +317,13 @@
 - 验证：focused `sensor_bno055`；Host/PC/STM32L4/STM32U5 gate 与 `git diff --check`。
 - 边界：仅为 Host/compile lifecycle contract，不升级 BNO055 实板身份、融合精度、动态响应、恢复或 endurance 证据。
 
+### 2026-10-04 INA228/INA229 Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_ina228_init()` / `xy_ina229_init()` 在身份失败时会先清空原 transport、lifecycle、配置与 sample 状态。
+- 收口：初始化改用 staged candidate；首次失败仍清零未初始化 owner，live owner 失败保持原 owner，完整 identity/configuration 成功后才原子替换。
+- 验证：focused `sensor_ina228_device`、`sensor_ina229_device`；Host 265/265；PC、STM32L4、STM32U5 build 与 `git diff --check`。
+- 边界：仅为 Host/compile lifecycle contract，不升级 INA228/INA229 实板身份、计量精度、校准、告警、电气、恢复或 endurance 证据。
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
