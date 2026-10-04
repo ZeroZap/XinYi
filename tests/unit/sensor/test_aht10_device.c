@@ -244,6 +244,28 @@ static void test_init_rejects_incomplete_transport(void)
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_ms);
 }
 
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    static const uint8_t init_command[] = {0xE1U, 0x08U, 0x00U};
+    xy_aht10_t dev;
+    xy_aht10_t before;
+    int first_bus;
+    int second_bus;
+
+    queue_write(init_command, sizeof(init_command), XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_aht10_init(&dev, &first_bus, 0U));
+    dev.data.temperature_centi_c = 1234;
+    dev.data.humidity_centi_pct = 5678U;
+    before = dev;
+
+    g_init_result = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_aht10_init(&dev, &second_bus, 0U));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(2U, g_init_count);
+    TEST_ASSERT_EQUAL_UINT(1U, g_write_index);
+    TEST_ASSERT_EQUAL_UINT32(10U, g_delay_ms);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -252,5 +274,6 @@ int main(void)
     RUN_TEST(test_read_failures_preserve_output_cache_and_stop_io);
     RUN_TEST(test_public_ops_require_both_lifecycle_layers);
     RUN_TEST(test_init_rejects_incomplete_transport);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }
