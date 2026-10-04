@@ -71,39 +71,53 @@ static int ltc2945_write_u8(xy_ltc2945_t *dev, uint8_t reg, uint8_t value)
 int xy_ltc2945_init(xy_ltc2945_t *dev, void *i2c_handle, uint8_t address,
                     const xy_ltc2945_config_t *config)
 {
+    xy_ltc2945_t candidate;
     int ret;
+    bool preserve_live_owner;
     uint8_t status;
 
     if (dev == NULL || i2c_handle == NULL || !ltc2945_config_valid(address, config)) {
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, address, 1000U);
-    if (ret != XY_DEVICE_OK || !ltc2945_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    preserve_live_owner = dev->initialized == true && ltc2945_transport_ready(dev) &&
+                          dev->i2c_dev.dev_addr == address &&
+                          dev->config.shunt_resistance_uohm != 0U;
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, address, 1000U);
+    if (ret != XY_DEVICE_OK || !ltc2945_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
 
-    ret = ltc2945_read_u8(dev, XY_LTC2945_REG_STATUS, &status);
+    ret = ltc2945_read_u8(&candidate, XY_LTC2945_REG_STATUS, &status);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    ret = ltc2945_write_u8(dev, XY_LTC2945_REG_CONTROL, config->control_register);
+    ret = ltc2945_write_u8(&candidate, XY_LTC2945_REG_CONTROL, config->control_register);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    ret = ltc2945_write_u8(dev, XY_LTC2945_REG_ALERT, config->alert_register);
+    ret = ltc2945_write_u8(&candidate, XY_LTC2945_REG_ALERT, config->alert_register);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
 
-    dev->config = *config;
-    dev->sample.status = status;
-    dev->initialized = true;
+    candidate.config = *config;
+    candidate.sample.status = status;
+    candidate.initialized = true;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

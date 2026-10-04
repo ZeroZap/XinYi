@@ -325,6 +325,23 @@ static void test_ltc2945_init_failures_clear_complete_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static void test_ltc2945_failed_reinit_preserves_live_owner(void)
+{
+    xy_ltc2945_t ltc;
+    xy_ltc2945_t snapshot;
+    int bus;
+
+    init_ltc_ok(&ltc, &bus);
+    ltc.sample.bus_voltage_mv = 1234U;
+    ltc.sample.current_ua = 5678U;
+    snapshot = ltc;
+
+    g_i2c_init_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_ltc2945_init(&ltc, &bus, XY_LTC2945_ADDR_DEFAULT, &ltc.config));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &ltc, sizeof(ltc));
+}
+
 static void test_ltc2945_missing_handle_fails_closed(void)
 {
     xy_ltc2945_t ltc;
@@ -728,6 +745,7 @@ int main(void)
     RUN_TEST(test_ltc2945_datasheet_registers_scaling_and_lifecycle);
     RUN_TEST(test_ltc2945_failures_are_atomic_and_stop_at_first_error);
     RUN_TEST(test_ltc2945_init_failures_clear_complete_lifecycle);
+    RUN_TEST(test_ltc2945_failed_reinit_preserves_live_owner);
     RUN_TEST(test_ltc2945_missing_handle_fails_closed);
     RUN_TEST(test_ads1115_single_diff_voltage_config_and_invalid_paths);
     RUN_TEST(test_ads1115_not_found_and_io_failure_paths);
