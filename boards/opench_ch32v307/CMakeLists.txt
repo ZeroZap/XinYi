@@ -45,5 +45,8 @@ add_custom_command(TARGET opench_ch32v307_uart_smoke POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O binary
             $<TARGET_FILE:opench_ch32v307_uart_smoke>
             ${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_uart_smoke.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex
+            $<TARGET_FILE:opench_ch32v307_uart_smoke>
+            ${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_uart_smoke.hex
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:opench_ch32v307_uart_smoke>
     COMMENT "Generating openCH CH32V307 UART smoke BIN")
