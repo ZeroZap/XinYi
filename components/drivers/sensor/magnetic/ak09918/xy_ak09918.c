@@ -33,37 +33,51 @@ static xy_error_t ak09918_write_reg(xy_ak09918_t *dev, uint8_t reg, uint8_t valu
 
 xy_error_t xy_ak09918_init(xy_ak09918_t *dev, void *i2c_handle)
 {
+    xy_ak09918_t candidate;
     uint8_t id[2];
     xy_error_t ret;
+    int preserve_live_owner;
 
     if (dev == NULL || i2c_handle == NULL) {
         return XY_DEVICE_INVALID_PARAM;
     }
-    memset(dev, 0, sizeof(*dev));
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, XY_AK09918_ADDR, 1000U);
-    if (ret != XY_DEVICE_OK || !ak09918_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    preserve_live_owner = dev->initialized == 1U &&
+                          dev->i2c_dev.base.initialized == 1U &&
+                          dev->i2c_dev.i2c_handle != NULL;
+    memset(&candidate, 0, sizeof(candidate));
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, XY_AK09918_ADDR, 1000U);
+    if (ret != XY_DEVICE_OK || !ak09918_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret != XY_DEVICE_OK ? ret : XY_DEVICE_INVALID_PARAM;
     }
-    ret = ak09918_read_reg(dev, XY_AK09918_REG_WIA1, id, sizeof(id));
+    ret = ak09918_read_reg(&candidate, XY_AK09918_REG_WIA1, id, sizeof(id));
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
     if (id[0] != XY_AK09918_WIA1 || id[1] != XY_AK09918_WIA2) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_DEVICE_NOT_FOUND;
     }
-    ret = ak09918_write_reg(dev, XY_AK09918_REG_CNTL3, XY_AK09918_RESET);
+    ret = ak09918_write_reg(&candidate, XY_AK09918_REG_CNTL3, XY_AK09918_RESET);
     if (ret == XY_DEVICE_OK) {
         xy_device_delay_ms(1U);
-        ret = ak09918_write_reg(dev, XY_AK09918_REG_CNTL2, XY_AK09918_MODE_CONTINUOUS_100HZ);
+        ret = ak09918_write_reg(&candidate, XY_AK09918_REG_CNTL2, XY_AK09918_MODE_CONTINUOUS_100HZ);
     }
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    dev->initialized = 1U;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

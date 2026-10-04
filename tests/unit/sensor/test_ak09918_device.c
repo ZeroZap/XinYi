@@ -166,6 +166,37 @@ static void test_ak09918_init_rejects_incomplete_nested_transport(void)
     TEST_ASSERT_EQUAL_UINT(0U, g_index);
 }
 
+static void test_ak09918_failed_reinit_preserves_live_owner(void)
+{
+    xy_ak09918_t dev;
+    xy_ak09918_t snapshot;
+    int bus;
+
+    queue_valid_init();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_ak09918_init(&dev, &bus));
+    dev.sample.raw_x = 111;
+    dev.sample.raw_y = -222;
+    dev.sample.raw_z = 333;
+    dev.sample.timestamp = 444U;
+    snapshot = dev;
+
+    setUp();
+    g_init_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ak09918_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+
+    setUp();
+    queue_read(XY_AK09918_REG_WIA1, NULL, 2U, XY_DEVICE_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ak09918_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+
+    setUp();
+    queue_valid_init();
+    g_ops[1].ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_ak09918_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
 static void test_ak09918_missing_handle_fails_closed(void)
 {
     xy_ak09918_t dev;
@@ -194,6 +225,7 @@ int main(void)
     RUN_TEST(test_ak09918_identity_init_read_and_deinit);
     RUN_TEST(test_ak09918_failures_preserve_state_and_stop);
     RUN_TEST(test_ak09918_init_rejects_incomplete_nested_transport);
+    RUN_TEST(test_ak09918_failed_reinit_preserves_live_owner);
     RUN_TEST(test_ak09918_missing_handle_fails_closed);
     return UNITY_END();
 }
