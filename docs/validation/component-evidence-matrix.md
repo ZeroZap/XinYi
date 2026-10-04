@@ -237,6 +237,14 @@
 - 适用范围：staged candidate initialization preserves a live owner across nested helper and configuration failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：HDC1080 board identity, temperature/humidity accuracy, recovery, or endurance.
 
+### 2026-10-04 SHT40 Device re-init atomicity
+
+- 组件：Drivers Sensor / SHT40
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_sht40.c`; focused `sensor_sht40`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`
+- 适用范围：staged live-owner preservation covers helper, incomplete transport, serial-command/read, and CRC failures; first initialization failures remain fail-closed.
+- 仍不允许宣称：SHT40 board identity, temperature/humidity accuracy, CRC robustness, recovery, or endurance.
+
 ### 2026-10-03 LSM6DSL/LSM6DSR Device re-init atomicity
 
 - 组件：Drivers Sensor / LSM6DSL + LSM6DSR

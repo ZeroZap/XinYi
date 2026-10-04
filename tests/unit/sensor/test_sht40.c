@@ -516,6 +516,25 @@ static void test_init_rejects_incomplete_transport(void)
     TEST_ASSERT_EQUAL_UINT32(0U, g_delay_total);
 }
 
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_sht40_t dev;
+    xy_sht40_t snapshot;
+    int bus;
+
+    queue_pair_payload(0x1234U, 0xABCDU);
+    TEST_ASSERT_EQUAL_INT(XY_SHT40_OK, xy_sht40_init(&dev, &bus));
+    dev.data.temperature = 123;
+    dev.data.humidity = 456U;
+    dev.data.timestamp = 0xBEEFU;
+    dev.precision = XY_SHT40_LOW_PRECISION;
+    snapshot = dev;
+
+    g_init_ret = XY_DEVICE_BUSY;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_sht40_init(&dev, &bus));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -538,5 +557,6 @@ int main(void)
     RUN_TEST(test_precision_setter_rejects_uninitialized_device_without_state_change);
     RUN_TEST(test_cached_public_ops_require_live_nested_transport);
     RUN_TEST(test_init_rejects_incomplete_transport);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }

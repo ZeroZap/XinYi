@@ -76,6 +76,8 @@ static uint16_t xy_sht40_get_measure_time(xy_sht40_precision_t precision)
 int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
 {
     int ret;
+    xy_sht40_t previous;
+    bool preserve_live_owner;
     uint8_t cmd;
     uint8_t buf[6];
     uint8_t crc;
@@ -84,11 +86,17 @@ int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
         return XY_SHT40_INVALID_PARAM;
     }
     
+    previous = *sht40;
+    preserve_live_owner = xy_sht40_ready(sht40) && sht40->addr == SHT40_ADDR;
     memset(sht40, 0, sizeof(*sht40));
     ret = xy_i2c_device_init(&sht40->i2c_dev, i2c_handle, SHT40_ADDR, 400);
     if (ret != XY_DEVICE_OK || sht40->i2c_dev.base.initialized == 0U ||
         sht40->i2c_dev.i2c_handle == NULL) {
-        memset(sht40, 0, sizeof(*sht40));
+        if (preserve_live_owner) {
+            *sht40 = previous;
+        } else {
+            memset(sht40, 0, sizeof(*sht40));
+        }
         return ret != XY_DEVICE_OK ? ret : XY_SHT40_INVALID_PARAM;
     }
     sht40->addr = SHT40_ADDR;
@@ -99,7 +107,11 @@ int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
     ret = xy_i2c_device_write(&sht40->i2c_dev, &cmd, 1);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("SHT40 serial command failed\n");
-        memset(sht40, 0, sizeof(*sht40));
+        if (preserve_live_owner) {
+            *sht40 = previous;
+        } else {
+            memset(sht40, 0, sizeof(*sht40));
+        }
         return ret;
     }
     
@@ -107,20 +119,32 @@ int xy_sht40_init(xy_sht40_t *sht40, void *i2c_handle)
     
     ret = xy_i2c_device_read(&sht40->i2c_dev, buf, 6);
     if (ret != XY_DEVICE_OK) {
-        memset(sht40, 0, sizeof(*sht40));
+        if (preserve_live_owner) {
+            *sht40 = previous;
+        } else {
+            memset(sht40, 0, sizeof(*sht40));
+        }
         return ret;
     }
     
     /* 验证 CRC */
     crc = xy_sht40_crc8(buf, 2);
     if (crc != buf[2]) {
-        memset(sht40, 0, sizeof(*sht40));
+        if (preserve_live_owner) {
+            *sht40 = previous;
+        } else {
+            memset(sht40, 0, sizeof(*sht40));
+        }
         return XY_SHT40_CRC_ERROR;
     }
     
     crc = xy_sht40_crc8(&buf[3], 2);
     if (crc != buf[5]) {
-        memset(sht40, 0, sizeof(*sht40));
+        if (preserve_live_owner) {
+            *sht40 = previous;
+        } else {
+            memset(sht40, 0, sizeof(*sht40));
+        }
         return XY_SHT40_CRC_ERROR;
     }
     
