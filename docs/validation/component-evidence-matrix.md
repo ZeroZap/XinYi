@@ -245,6 +245,14 @@
 - 适用范围：staged live-owner preservation covers helper, incomplete transport, serial-command/read, and CRC failures; first initialization failures remain fail-closed.
 - 仍不允许宣称：SHT40 board identity, temperature/humidity accuracy, CRC robustness, recovery, or endurance.
 
+### 2026-10-04 BMI270 Device re-init atomicity
+
+- 组件：Drivers Sensor / BMI270
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_bmi270.c`; focused `sensor_bmi270`; full Host/PC/STM32L4/STM32U5 gate pending
+- 适用范围：staged candidate initialization preserves a live owner when reset, identity, or configuration fails; first initialization failures remain fail-closed.
+- 仍不允许宣称：BMI270 board identity, motion accuracy, calibration, dynamic response, recovery, or endurance.
+
 ### 2026-10-03 LSM6DSL/LSM6DSR Device re-init atomicity
 
 - 组件：Drivers Sensor / LSM6DSL + LSM6DSR

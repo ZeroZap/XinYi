@@ -118,43 +118,53 @@ static bool bmi270_ready(const xy_bmi270_t *dev)
 
 int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is_spi)
 {
+    xy_bmi270_t candidate;
+    bool preserve_live_owner;
+
     if (!dev || !bus_handle) {
         XY_LOG_ERROR("Invalid parameters");
         return XY_DEVICE_EINVAL;
     }
 
-    memset(dev, 0, sizeof(xy_bmi270_t));
-    dev->bus_handle = bus_handle;
-    dev->bus_addr = bus_addr;
-    dev->is_spi = is_spi;
-    dev->initialized = false;
+    preserve_live_owner = bmi270_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    candidate.bus_handle = bus_handle;
+    candidate.bus_addr = bus_addr;
+    candidate.is_spi = is_spi;
+    candidate.initialized = false;
 
     XY_LOG_INFO("Initializing BMI270 on %s...", is_spi ? "SPI" : "I2C");
 
     /* 软复位 */
-    int ret = xy_bmi270_reset(dev);
+    int ret = xy_bmi270_reset(&candidate);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Reset failed: %d", ret);
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
 
     /* 等待复位完成 */
     delay_ms(10);
-    dev->initialized = true;
+    candidate.initialized = true;
 
     /* 读取芯片 ID */
     uint8_t chip_id = 0;
-    ret = xy_bmi270_get_chip_id(dev, &chip_id);
+    ret = xy_bmi270_get_chip_id(&candidate, &chip_id);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to read chip ID: %d", ret);
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
 
     if (chip_id != BMI270_CHIPID_VAL) {
         XY_LOG_ERROR("Invalid chip ID: 0x%02X (expected 0x27)", chip_id);
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_DEVICE_ENODEV;
     }
 
@@ -168,32 +178,39 @@ int xy_bmi270_init(xy_bmi270_t *dev, void *bus_handle, uint8_t bus_addr, bool is
         .gyr_odr = 0x0A   /* 100Hz */
     };
 
-    ret = xy_bmi270_set_range(dev, &default_range);
+    ret = xy_bmi270_set_range(&candidate, &default_range);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to set default range: %d", ret);
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
 
     /* 使能加速度计和陀螺仪 */
-    ret = xy_bmi270_enable_acc(dev, true);
+    ret = xy_bmi270_enable_acc(&candidate, true);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to enable accelerometer: %d", ret);
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
 
-    ret = xy_bmi270_enable_gyr(dev, true);
+    ret = xy_bmi270_enable_gyr(&candidate, true);
     if (ret != XY_DEVICE_OK) {
         XY_LOG_ERROR("Failed to enable gyroscope: %d", ret);
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
 
     /* 等待传感器启动 */
     delay_ms(50);
 
-    dev->initialized = true;
+    candidate.initialized = true;
+    *dev = candidate;
     XY_LOG_INFO("BMI270 initialized successfully");
 
     return XY_DEVICE_OK;
