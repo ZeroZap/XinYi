@@ -106,6 +106,8 @@ static xy_error_t ina219_read_power_staged(xy_ina219_t *dev, uint32_t *power_uw)
 xy_error_t xy_ina219_init(xy_ina219_t *dev, void *i2c_handle, uint8_t addr,
                           const xy_ina219_config_t *config)
 {
+    xy_ina219_t candidate;
+    int preserve_live_owner;
     uint64_t denominator;
     uint64_t calibration;
     xy_error_t result;
@@ -122,28 +124,34 @@ xy_error_t xy_ina219_init(xy_ina219_t *dev, void *i2c_handle, uint8_t addr,
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
-    result = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000U);
-    if (result != XY_DEVICE_OK || !ina219_transport_ready(dev)) {
-        memset(dev, 0, sizeof(*dev));
+    preserve_live_owner = ina219_ready(dev);
+    memset(&candidate, 0, sizeof(candidate));
+    result = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 1000U);
+    if (result != XY_DEVICE_OK || !ina219_transport_ready(&candidate)) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result != XY_DEVICE_OK ? result : XY_DEVICE_INVALID_PARAM;
     }
 
-    result = ina219_write_word(dev, XY_INA219_REG_CONFIG, XY_INA219_CONFIG_RESET);
+    result = ina219_write_word(&candidate, XY_INA219_REG_CONFIG, XY_INA219_CONFIG_RESET);
     if (result == XY_DEVICE_OK) {
-        result = ina219_write_word(dev, XY_INA219_REG_CONFIG, config->config_register);
+        result = ina219_write_word(&candidate, XY_INA219_REG_CONFIG, config->config_register);
     }
     if (result == XY_DEVICE_OK) {
-        result = ina219_write_word(dev, XY_INA219_REG_CALIBRATION, (uint16_t)calibration);
+        result = ina219_write_word(&candidate, XY_INA219_REG_CALIBRATION, (uint16_t)calibration);
     }
     if (result != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return result;
     }
 
-    dev->config = *config;
-    dev->calibration_register = (uint16_t)calibration;
-    dev->initialized = 1U;
+    candidate.config = *config;
+    candidate.calibration_register = (uint16_t)calibration;
+    candidate.initialized = 1U;
+    *dev = candidate;
     return XY_DEVICE_OK;
 }
 

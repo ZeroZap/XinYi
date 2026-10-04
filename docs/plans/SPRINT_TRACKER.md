@@ -1789,3 +1789,9 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 验证：focused `sensor_ak09918_device` 1/1；Host 265/265；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
 - 边界：仅为 Host/compile lifecycle contract，不升级 AK09918 实板身份、磁场精度、校准、动态响应、恢复或 endurance 证据。
 - 边界：仅为 Host/compile lifecycle contract，不升级 SC7A22H 实板身份、运动精度、FIFO、中断、恢复或 endurance 证据。
+
+### 2026-10-04 INA219 Device re-init atomicity
+
+- 收口：INA219 初始化改用 staged candidate；首次失败清零未初始化 owner，live owner 在 helper/configuration 写失败时保持原 transport/lifecycle/sample，完整成功后才原子替换。
+- 验证：focused `sensor_power_monitors`；Host 265/265；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
+- 边界：仅为 Host/compile lifecycle contract，不升级 INA219 实板身份、计量精度、校准、恢复或 endurance 证据。

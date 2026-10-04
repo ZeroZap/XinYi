@@ -6,6 +6,7 @@
 
 #include "xy_device.h"
 #include "xy_ina226.h"
+#include "xy_ina219.h"
 #include "xy_max17043.h"
 
 #define ARRAY_LEN(a) (sizeof(a) / sizeof((a)[0]))
@@ -636,6 +637,44 @@ static void test_ina226_failed_reinit_preserves_live_owner(void)
     TEST_ASSERT_EQUAL_MEMORY(&old, &ina, sizeof(ina));
 }
 
+static xy_ina219_config_t ina219_config(void)
+{
+    xy_ina219_config_t cfg = {
+        .shunt_resistance_uohm = 100000U,
+        .current_lsb_ua = 100U,
+        .config_register = XY_INA219_CONFIG_DEFAULT,
+    };
+    return cfg;
+}
+
+static void init_ina219_ok(xy_ina219_t *ina, int *bus)
+{
+    xy_ina219_config_t cfg = ina219_config();
+    queue_write16(XY_INA219_REG_CONFIG, XY_INA219_CONFIG_RESET, XY_DEVICE_OK);
+    queue_write16(XY_INA219_REG_CONFIG, cfg.config_register, XY_DEVICE_OK);
+    queue_write16(XY_INA219_REG_CALIBRATION, 4096U, XY_DEVICE_OK);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_ina219_init(ina, bus, XY_INA219_ADDR_DEFAULT, &cfg));
+}
+
+static void test_ina219_failed_reinit_preserves_live_owner(void)
+{
+    xy_ina219_t ina;
+    xy_ina219_t old;
+    xy_ina219_config_t cfg = ina219_config();
+    int bus;
+
+    init_ina219_ok(&ina, &bus);
+    ina.sample.bus_voltage_mv = 3300U;
+    old = ina;
+    queue_write16(XY_INA219_REG_CONFIG, XY_INA219_CONFIG_RESET, XY_DEVICE_OK);
+    queue_write16(XY_INA219_REG_CONFIG, cfg.config_register, XY_DEVICE_ERROR);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_ERROR,
+                          xy_ina219_init(&ina, &bus, XY_INA219_ADDR_DEFAULT, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&old, &ina, sizeof(ina));
+}
+
 static void test_max17043_read_rejects_missing_i2c_context_atomically(void)
 {
     xy_max17043_t gauge;
@@ -721,5 +760,6 @@ int main(void)
     RUN_TEST(test_ina226_init_write_failures_deinit_and_getters_preserve_outputs);
     RUN_TEST(test_ina226_failed_reinit_preserves_live_owner);
     RUN_TEST(test_ina226_getters_propagate_read_failures_and_preserve_outputs);
+    RUN_TEST(test_ina219_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }

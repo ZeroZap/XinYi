@@ -288,6 +288,13 @@
 - 验证：focused `sensor_ak09918_device` 1/1；Host `make test-unit` 265/265；PC、STM32L4、STM32U5 build 与 `git diff --check` 通过。
 - 边界：仅为 Host/compile lifecycle contract，不升级 AK09918 实板身份、磁场精度、校准、动态响应、恢复或 endurance 证据。
 
+### 2026-10-04 INA219 Device re-init atomicity
+
+- TDD RED：live owner 重复 `xy_ina219_init()` 在 helper/configuration 写失败时会先清空原 transport、lifecycle 与 sample。
+- 收口：初始化改用 staged candidate；首次失败清零未初始化 owner，live owner 失败保持原 owner，完整配置成功后才原子替换。
+- 验证：focused `sensor_power_monitors`；Host 265/265；PC、STM32L4、STM32U5 build 与 `git diff --check`。
+- 边界：仅为 Host/compile lifecycle contract，不升级 INA219 实板身份、计量精度、校准、恢复或 endurance 证据。
+
 ### 已存在模板/记录
 
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
