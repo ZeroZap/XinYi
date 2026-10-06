@@ -17,6 +17,8 @@
 int xy_eeprom_24xx_init(xy_eeprom_24xx_t *eeprom, void *i2c_handle, 
                         uint16_t addr, uint16_t page_size, uint16_t total_size)
 {
+    xy_eeprom_24xx_t candidate;
+    bool preserve_live_owner;
     int ret;
 
     if (!eeprom || !i2c_handle || page_size == 0 ||
@@ -24,16 +26,24 @@ int xy_eeprom_24xx_init(xy_eeprom_24xx_t *eeprom, void *i2c_handle,
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    memset(eeprom, 0, sizeof(*eeprom));
+    preserve_live_owner = eeprom->i2c_dev.base.initialized == 1U &&
+                          eeprom->i2c_dev.i2c_handle != NULL && eeprom->page_size != 0U &&
+                          eeprom->total_size != 0U &&
+                          (eeprom->address_bits == 8U || eeprom->address_bits == 16U);
+    memset(&candidate, 0, sizeof(candidate));
 
-    ret = xy_i2c_device_init(&eeprom->i2c_dev, i2c_handle, addr, 1000);
-    if (ret != XY_DEVICE_OK) {
-        memset(eeprom, 0, sizeof(*eeprom));
-        return ret;
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 1000U);
+    if (ret != XY_DEVICE_OK || candidate.i2c_dev.base.initialized != 1U ||
+        candidate.i2c_dev.i2c_handle == NULL) {
+        if (!preserve_live_owner) {
+            memset(eeprom, 0, sizeof(*eeprom));
+        }
+        return ret == XY_DEVICE_OK ? XY_DEVICE_INVALID_PARAM : ret;
     }
-    eeprom->page_size = page_size;
-    eeprom->total_size = total_size;
-    eeprom->address_bits = (total_size > 256) ? 16 : 8;
+    candidate.page_size = page_size;
+    candidate.total_size = total_size;
+    candidate.address_bits = (total_size > 256U) ? 16U : 8U;
+    *eeprom = candidate;
 
     return XY_DEVICE_OK;
 }

@@ -378,6 +378,29 @@ static void test_reinit_recovers_after_bus_error(void)
     TEST_ASSERT_EQUAL_MEMORY(payload, out, sizeof(payload));
 }
 
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    fake_i2c_t original_bus;
+    fake_i2c_t replacement_bus;
+    xy_eeprom_24xx_t eeprom;
+    xy_eeprom_24xx_t snapshot;
+
+    memset(&original_bus, 0, sizeof(original_bus));
+    memset(&replacement_bus, 0, sizeof(replacement_bus));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_eeprom_24xx_init(&eeprom, &original_bus, 0x50, 16, EEPROM_SIZE));
+    snapshot = eeprom;
+    g_device_init_result = XY_DEVICE_TIMEOUT;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_eeprom_24xx_init(&eeprom, &replacement_bus, 0x51, 8, 128));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &eeprom, sizeof(eeprom));
+    TEST_ASSERT_EQUAL_PTR(&original_bus, eeprom.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT16(0x50U, eeprom.i2c_dev.dev_addr);
+    TEST_ASSERT_EQUAL_UINT16(16U, eeprom.page_size);
+    TEST_ASSERT_EQUAL_UINT16(EEPROM_SIZE, eeprom.total_size);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -390,5 +413,6 @@ int main(void)
     RUN_TEST(test_bus_errors_propagate_without_false_success);
     RUN_TEST(test_write_ready_poll_failure_stops_multi_page_write);
     RUN_TEST(test_reinit_recovers_after_bus_error);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     return UNITY_END();
 }
