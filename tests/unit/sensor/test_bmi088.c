@@ -218,6 +218,7 @@ static void test_bmi088_default_config_and_init_failures(void)
     TEST_ASSERT_EQUAL_INT(XY_BMI088_ACC_RANGE_6G, dev.config.acc_range);
     TEST_ASSERT_EQUAL_INT(XY_BMI088_GYRO_RANGE_2000, dev.config.gyro_range);
 
+    memset(&dev, 0, sizeof(dev));
     queue_write(0U, BMI088_ACC_SOFTRESET_ADDR, 0xB6U, XY_ERROR);
     TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_init(&dev, &spi, NULL));
     assert_bmi088_cleared(&dev);
@@ -239,7 +240,7 @@ static void test_bmi088_default_config_and_init_failures(void)
 
 static void test_bmi088_configuration_failures_clear_device_state(void)
 {
-    xy_bmi088_dev_t dev;
+    xy_bmi088_dev_t dev = {0};
     xy_spi_dev_t spi = {.handle = (void *)0x1};
     xy_bmi088_config_t cfg = custom_config();
 
@@ -252,6 +253,20 @@ static void test_bmi088_configuration_failures_clear_device_state(void)
         assert_bmi088_cleared(&dev);
         TEST_ASSERT_EQUAL_UINT(failed_op + 1U, g_op_index);
     }
+}
+
+static void test_bmi088_failed_reinit_preserves_live_owner(void)
+{
+    xy_bmi088_dev_t dev;
+    xy_bmi088_dev_t snapshot;
+    xy_spi_dev_t spi = {.handle = (void *)0x1};
+    xy_bmi088_config_t cfg = custom_config();
+
+    init_bmi_ok(&dev, &spi);
+    snapshot = dev;
+    queue_write(0U, BMI088_ACC_SOFTRESET_ADDR, 0xB6U, XY_ERROR);
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_bmi088_init(&dev, &spi, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &dev, sizeof(dev));
 }
 
 static void test_bmi088_read_raw_and_data_conversions(void)
@@ -569,6 +584,7 @@ int main(void)
     RUN_TEST(test_bmi088_init_defaults_custom_and_invalid_paths);
     RUN_TEST(test_bmi088_default_config_and_init_failures);
     RUN_TEST(test_bmi088_configuration_failures_clear_device_state);
+    RUN_TEST(test_bmi088_failed_reinit_preserves_live_owner);
     RUN_TEST(test_bmi088_read_raw_and_data_conversions);
     RUN_TEST(test_bmi088_error_paths_setters_and_calibration);
     RUN_TEST(test_bmi088_calibrate_failure_preserves_offsets_and_delay);

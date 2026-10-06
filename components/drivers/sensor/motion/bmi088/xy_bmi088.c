@@ -112,10 +112,15 @@ static float bmi088_get_gyro_sensitivity(xy_bmi088_gyro_range_t range)
 
 xy_ret_t xy_bmi088_init(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi, xy_bmi088_config_t *config)
 {
+    xy_bmi088_dev_t previous;
+    bool preserve_live_owner;
+
     if (dev == XY_NULL || spi == XY_NULL || spi->handle == XY_NULL) {
         return XY_ERROR;
     }
-    
+
+    previous = *dev;
+    preserve_live_owner = dev->is_initialized && bmi088_transport_ready(dev);
     memset(dev, 0, sizeof(xy_bmi088_dev_t));
     dev->spi = spi;
     
@@ -209,7 +214,11 @@ xy_ret_t xy_bmi088_init(xy_bmi088_dev_t *dev, xy_spi_dev_t *spi, xy_bmi088_confi
     return XY_OK;
 
 init_failed:
-    memset(dev, 0, sizeof(*dev));
+    if (preserve_live_owner) {
+        *dev = previous;
+    } else {
+        memset(dev, 0, sizeof(*dev));
+    }
     return ret;
 }
 
