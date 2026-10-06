@@ -13,9 +13,8 @@ static uint8_t fail_read_reg;
 static xy_error_t write_result;
 static uint8_t fail_write_reg;
 
-xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t address,
-                              uint32_t timeout_ms)
-{
+xy_error_t xy_i2c_device_init(xy_i2c_device_t* dev, void* handle, uint16_t address,
+                              uint32_t timeout_ms) {
     memset(dev, 0, sizeof(*dev));
     dev->base.initialized = 1U;
     dev->i2c_handle = handle;
@@ -24,14 +23,13 @@ xy_error_t xy_i2c_device_init(xy_i2c_device_t *dev, void *handle, uint16_t addre
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *data,
-                                  size_t length)
-{
+xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t* dev, uint8_t reg, uint8_t* data, size_t length) {
     TEST_ASSERT_NOT_NULL(dev);
     if (transient_read_failures != 0U && reg == fail_read_reg) {
         xy_error_t result = read_result;
         transient_read_failures--;
-        if (transient_read_failures == 0U) read_result = XY_DEVICE_OK;
+        if (transient_read_failures == 0U)
+            read_result = XY_DEVICE_OK;
         reads++;
         return result;
     }
@@ -44,9 +42,8 @@ xy_error_t xy_i2c_device_read_reg(xy_i2c_device_t *dev, uint8_t reg, uint8_t *da
     return XY_DEVICE_OK;
 }
 
-xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg,
-                                   const uint8_t *data, size_t length)
-{
+xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t* dev, uint8_t reg, const uint8_t* data,
+                                   size_t length) {
     TEST_ASSERT_NOT_NULL(dev);
     if (write_result != XY_DEVICE_OK && reg == fail_write_reg) {
         writes++;
@@ -57,10 +54,11 @@ xy_error_t xy_i2c_device_write_reg(xy_i2c_device_t *dev, uint8_t reg,
     return XY_DEVICE_OK;
 }
 
-void xy_hal_delay_ms(uint32_t ms) { delayed += ms; }
+void xy_hal_delay_ms(uint32_t ms) {
+    delayed += ms;
+}
 
-void setUp(void)
-{
+void setUp(void) {
     memset(regs, 0, sizeof(regs));
     regs[XY_QMA6100P_REG_CHIP_ID] = XY_QMA6100P_CHIP_ID;
     reads = writes = delayed = 0U;
@@ -72,12 +70,10 @@ void setUp(void)
 }
 void tearDown(void) {}
 
-static void test_init_configures_documented_profile(void)
-{
+static void test_init_configures_documented_profile(void) {
     xy_qma6100p_t dev;
     int bus;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     TEST_ASSERT_TRUE(dev.initialized);
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_RANGE_2G, regs[XY_QMA6100P_REG_RANGE]);
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_BW_100HZ, regs[XY_QMA6100P_REG_BW]);
@@ -85,46 +81,58 @@ static void test_init_configures_documented_profile(void)
     TEST_ASSERT_EQUAL_UINT32(2U, delayed);
 }
 
-static void test_init_rejects_wrong_identity(void)
-{
+static void test_init_rejects_wrong_identity(void) {
     xy_qma6100p_t dev = {0};
     int bus;
     regs[XY_QMA6100P_REG_CHIP_ID] = 0xFFU;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_HIGH));
     TEST_ASSERT_FALSE(dev.initialized);
     TEST_ASSERT_EQUAL_UINT(0U, writes);
 }
 
-static void test_failed_reinit_preserves_live_owner(void)
-{
+static void test_failed_reinit_preserves_live_owner(void) {
     xy_qma6100p_t dev;
     xy_qma6100p_t before;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     before = dev;
     read_result = XY_DEVICE_TIMEOUT;
     fail_read_reg = XY_QMA6100P_REG_CHIP_ID;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_HIGH));
     TEST_ASSERT_EQUAL_MEMORY(&before, &dev, sizeof(dev));
     TEST_ASSERT_EQUAL_UINT(4U, reads);
 }
 
-static void test_read_decodes_signed_14_bit_data(void)
-{
+static void test_failed_reinit_preserves_live_owner_after_configuration_failure(void) {
+    xy_qma6100p_t dev;
+    xy_qma6100p_t before;
+    int bus;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    before = dev;
+    write_result = XY_DEVICE_TIMEOUT;
+    fail_write_reg = XY_QMA6100P_REG_RANGE;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_HIGH));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_UINT(5U, reads);
+    TEST_ASSERT_EQUAL_UINT(4U, writes);
+}
+
+static void test_read_decodes_signed_14_bit_data(void) {
     xy_qma6100p_t dev;
     xy_qma6100p_raw_t raw;
     xy_qma6100p_accel_t accel;
     int bus;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
-    regs[1] = 0x00U; regs[2] = 0x10U;
-    regs[3] = 0x00U; regs[4] = 0xF0U;
-    regs[5] = 0x00U; regs[6] = 0x40U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    regs[1] = 0x00U;
+    regs[2] = 0x10U;
+    regs[3] = 0x00U;
+    regs[4] = 0xF0U;
+    regs[5] = 0x00U;
+    regs[6] = 0x40U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_read_raw(&dev, &raw));
     TEST_ASSERT_EQUAL_INT16(1024, raw.x);
     TEST_ASSERT_EQUAL_INT16(-1024, raw.y);
@@ -135,30 +143,24 @@ static void test_read_decodes_signed_14_bit_data(void)
     TEST_ASSERT_EQUAL_INT32(1000, accel.z_mg);
 }
 
-static void test_interrupt_profile_maps_both_pins(void)
-{
+static void test_interrupt_profile_maps_both_pins(void) {
     xy_qma6100p_t dev;
     int bus;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
     TEST_ASSERT_EQUAL_HEX8(0x05U, regs[XY_QMA6100P_REG_INT_PIN_CONFIG]);
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_MAP1]);
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_MAP3]);
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_ENABLE1]);
 }
 
-static void test_interrupt_config_readback_is_staged(void)
-{
+static void test_interrupt_config_readback_is_staged(void) {
     xy_qma6100p_t dev;
     xy_qma6100p_interrupt_config_t config;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
     memset(&config, 0xA5, sizeof(config));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_read_interrupt_config(&dev, &config));
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, config.enable1);
@@ -168,15 +170,12 @@ static void test_interrupt_config_readback_is_staged(void)
     TEST_ASSERT_EQUAL_HEX8(0x0CU, config.interrupt_config);
 }
 
-static void test_interrupt_reconfigure_failure_leaves_source_disabled(void)
-{
+static void test_interrupt_reconfigure_failure_leaves_source_disabled(void) {
     xy_qma6100p_t dev;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
     write_result = XY_DEVICE_TIMEOUT;
     fail_write_reg = XY_QMA6100P_REG_INT_MAP3;
 
@@ -185,13 +184,11 @@ static void test_interrupt_reconfigure_failure_leaves_source_disabled(void)
     TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_ENABLE1]);
 }
 
-static void test_interrupt_config_preserves_unrelated_register_bits(void)
-{
+static void test_interrupt_config_preserves_unrelated_register_bits(void) {
     xy_qma6100p_t dev;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     regs[XY_QMA6100P_REG_INT_ENABLE1] = 0x81U;
     regs[XY_QMA6100P_REG_INT_MAP1] = 0x42U;
     regs[XY_QMA6100P_REG_INT_MAP3] = 0x24U;
@@ -211,30 +208,24 @@ static void test_interrupt_config_preserves_unrelated_register_bits(void)
     TEST_ASSERT_EQUAL_HEX8(0x24U, regs[XY_QMA6100P_REG_INT_MAP3]);
 }
 
-static void test_interrupt_profile_supports_active_low(void)
-{
+static void test_interrupt_profile_supports_active_low(void) {
     xy_qma6100p_t dev;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
                           xy_qma6100p_configure_data_ready_interrupts_ex(&dev, 1U, 1U, 0U));
     TEST_ASSERT_EQUAL_HEX8(0x00U, regs[XY_QMA6100P_REG_INT_PIN_CONFIG]);
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, regs[XY_QMA6100P_REG_INT_ENABLE1]);
 }
 
-static void test_interrupt_profile_can_be_disabled_and_reenabled(void)
-{
+static void test_interrupt_profile_can_be_disabled_and_reenabled(void) {
     xy_qma6100p_t dev;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_configure_data_ready_interrupts(&dev, 0U, 0U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_configure_data_ready_interrupts(&dev, 1U, 1U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_configure_data_ready_interrupts(&dev, 0U, 0U));
     TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_ENABLE1]);
     TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_MAP1]);
     TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_MAP3]);
@@ -246,15 +237,14 @@ static void test_interrupt_profile_can_be_disabled_and_reenabled(void)
     TEST_ASSERT_EQUAL_HEX8(0U, regs[XY_QMA6100P_REG_INT_MAP3]);
 }
 
-static void test_raw_read_retries_one_transient_failure(void)
-{
+static void test_raw_read_retries_one_transient_failure(void) {
     xy_qma6100p_t dev;
     xy_qma6100p_raw_t raw;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
-    regs[1] = 0x00U; regs[2] = 0x10U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    regs[1] = 0x00U;
+    regs[2] = 0x10U;
     read_result = XY_DEVICE_TIMEOUT;
     fail_read_reg = XY_QMA6100P_REG_X_LSB;
     transient_read_failures = 1U;
@@ -267,15 +257,13 @@ static void test_raw_read_retries_one_transient_failure(void)
     TEST_ASSERT_EQUAL_UINT32(1U, delayed);
 }
 
-static void test_raw_read_reports_persistent_failure_without_publishing(void)
-{
+static void test_raw_read_reports_persistent_failure_without_publishing(void) {
     xy_qma6100p_t dev;
     xy_qma6100p_raw_t raw = {123, 456, 789};
     xy_qma6100p_raw_t before = raw;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     read_result = XY_DEVICE_TIMEOUT;
     fail_read_reg = XY_QMA6100P_REG_X_LSB;
     reads = 0U;
@@ -287,23 +275,21 @@ static void test_raw_read_reports_persistent_failure_without_publishing(void)
     TEST_ASSERT_EQUAL_UINT32(1U, delayed);
 }
 
-static void test_range_changes_scaling_and_commits_after_write(void)
-{
+static void test_range_changes_scaling_and_commits_after_write(void) {
     static const struct {
         uint8_t range;
         int32_t expected_mg;
     } cases[] = {
-        {XY_QMA6100P_RANGE_2G, 250}, {XY_QMA6100P_RANGE_4G, 500},
-        {XY_QMA6100P_RANGE_8G, 1000}, {XY_QMA6100P_RANGE_16G, 2000},
-        {XY_QMA6100P_RANGE_32G, 4000},
+        {XY_QMA6100P_RANGE_2G, 250},   {XY_QMA6100P_RANGE_4G, 500},   {XY_QMA6100P_RANGE_8G, 1000},
+        {XY_QMA6100P_RANGE_16G, 2000}, {XY_QMA6100P_RANGE_32G, 4000},
     };
     xy_qma6100p_t dev;
     xy_qma6100p_accel_t accel;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
-    regs[1] = 0x00U; regs[2] = 0x10U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    regs[1] = 0x00U;
+    regs[2] = 0x10U;
     for (size_t index = 0U; index < sizeof(cases) / sizeof(cases[0]); index++) {
         TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_set_range(&dev, cases[index].range));
         TEST_ASSERT_EQUAL_HEX8(cases[index].range, dev.range);
@@ -312,31 +298,26 @@ static void test_range_changes_scaling_and_commits_after_write(void)
     }
 }
 
-static void test_range_rejects_invalid_and_preserves_on_write_failure(void)
-{
+static void test_range_rejects_invalid_and_preserves_on_write_failure(void) {
     xy_qma6100p_t dev;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     writes = 0U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qma6100p_set_range(&dev, 0x03U));
     TEST_ASSERT_EQUAL_UINT(0U, writes);
     write_result = XY_DEVICE_TIMEOUT;
     fail_write_reg = XY_QMA6100P_REG_RANGE;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
-                          xy_qma6100p_set_range(&dev, XY_QMA6100P_RANGE_8G));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qma6100p_set_range(&dev, XY_QMA6100P_RANGE_8G));
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_RANGE_2G, dev.range);
 }
 
-static void test_active_mode_transitions_are_staged(void)
-{
+static void test_active_mode_transitions_are_staged(void) {
     xy_qma6100p_t dev;
     xy_qma6100p_raw_t raw = {1, 2, 3};
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     delayed = 0U;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_set_active(&dev, 0U));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.active);
@@ -355,14 +336,12 @@ static void test_active_mode_transitions_are_staged(void)
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_qma6100p_set_active(&dev, 2U));
 }
 
-static void test_range_update_preserves_non_range_bits_and_read_failure(void)
-{
+static void test_range_update_preserves_non_range_bits_and_read_failure(void) {
     xy_qma6100p_t dev;
     int bus;
 
     regs[XY_QMA6100P_REG_RANGE] = 0xA0U;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     TEST_ASSERT_EQUAL_HEX8(0xA1U, regs[XY_QMA6100P_REG_RANGE]);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_set_range(&dev, XY_QMA6100P_RANGE_8G));
     TEST_ASSERT_EQUAL_HEX8(0xA4U, regs[XY_QMA6100P_REG_RANGE]);
@@ -370,20 +349,17 @@ static void test_range_update_preserves_non_range_bits_and_read_failure(void)
     read_result = XY_DEVICE_TIMEOUT;
     fail_read_reg = XY_QMA6100P_REG_RANGE;
     writes = 0U;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
-                          xy_qma6100p_set_range(&dev, XY_QMA6100P_RANGE_16G));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT, xy_qma6100p_set_range(&dev, XY_QMA6100P_RANGE_16G));
     TEST_ASSERT_EQUAL_UINT(0U, writes);
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_RANGE_8G, dev.range);
 }
 
-static void test_power_update_preserves_non_power_bits_and_read_failure(void)
-{
+static void test_power_update_preserves_non_power_bits_and_read_failure(void) {
     xy_qma6100p_t dev;
     int bus;
 
     regs[XY_QMA6100P_REG_POWER] = 0x2AU;
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     TEST_ASSERT_EQUAL_HEX8(0xAAU, regs[XY_QMA6100P_REG_POWER]);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_set_active(&dev, 0U));
     TEST_ASSERT_EQUAL_HEX8(0x2AU, regs[XY_QMA6100P_REG_POWER]);
@@ -397,14 +373,12 @@ static void test_power_update_preserves_non_power_bits_and_read_failure(void)
     TEST_ASSERT_EQUAL_UINT8(0U, dev.active);
 }
 
-static void test_interrupt_status_read_preserves_output_on_failure(void)
-{
+static void test_interrupt_status_read_preserves_output_on_failure(void) {
     xy_qma6100p_t dev;
     uint8_t status = 0xA5U;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     regs[XY_QMA6100P_REG_INT_STATUS2] = XY_QMA6100P_DATA_READY_BIT;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_read_interrupt_status(&dev, &status));
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, status);
@@ -415,13 +389,11 @@ static void test_interrupt_status_read_preserves_output_on_failure(void)
     TEST_ASSERT_EQUAL_HEX8(XY_QMA6100P_DATA_READY_BIT, status);
 }
 
-static void test_deinit_failure_preserves_live_owner_for_retry(void)
-{
+static void test_deinit_failure_preserves_live_owner_for_retry(void) {
     xy_qma6100p_t dev;
     int bus;
 
-    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
-                          xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_qma6100p_init(&dev, &bus, XY_QMA6100P_ADDR_LOW));
     write_result = XY_DEVICE_TIMEOUT;
     fail_write_reg = XY_QMA6100P_REG_POWER;
 
@@ -437,12 +409,12 @@ static void test_deinit_failure_preserves_live_owner_for_retry(void)
     TEST_ASSERT_NULL(dev.i2c_dev.i2c_handle);
 }
 
-int main(void)
-{
+int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_configures_documented_profile);
     RUN_TEST(test_init_rejects_wrong_identity);
     RUN_TEST(test_failed_reinit_preserves_live_owner);
+    RUN_TEST(test_failed_reinit_preserves_live_owner_after_configuration_failure);
     RUN_TEST(test_read_decodes_signed_14_bit_data);
     RUN_TEST(test_interrupt_profile_maps_both_pins);
     RUN_TEST(test_interrupt_config_readback_is_staged);
