@@ -317,6 +317,22 @@
 - 验证：focused `sensor_bno055`；Host/PC/STM32L4/STM32U5 gate 与 `git diff --check`。
 - 边界：仅为 Host/compile lifecycle contract，不升级 BNO055 实板身份、融合精度、动态响应、恢复或 endurance 证据。
 
+### 2026-10-06 Device owner re-init atomicity continuation
+
+- 组件：Drivers Sensor / LPS22HB、MPU6050、BMI088、INA219、QMA6100P
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_lps22hb.c`, `test_mpu6050.c`,
+  `test_bmi088.c`, `test_adc_power_monitors.c`, `test_qma6100p.c`; focused CTests
+  `sensor_lps22hb`, `sensor_mpu6050`, `sensor_bmi088`, `sensor_adc_power_monitors`,
+  `sensor_qma6100p`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`.
+- 适用范围：live owners preserve transport/lifecycle/cache across nested-helper,
+  identity, status/configuration, and re-init failures; successful candidates commit
+  atomically and first initialization failures remain fail-closed.
+- 验证结果：Host 265/265、PC/STM32L4/STM32U5 builds and `git diff --check` passed.
+- 仍不允许宣称：board identity, measurement/motion accuracy, calibration,
+  interrupt/electrical behavior, recovery, endurance, or security approval.
+
 ### 2026-10-04 INA228/INA229 Device re-init atomicity
 
 - TDD RED：live owner 重复 `xy_ina228_init()` / `xy_ina229_init()` 在身份失败时会先清空原 transport、lifecycle、配置与 sample 状态。
