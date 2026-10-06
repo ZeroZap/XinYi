@@ -58,6 +58,8 @@ static int xy_mpu6050_read_regs(xy_mpu6050_t *dev, uint8_t reg, uint8_t *data, u
 
 int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
 {
+    xy_mpu6050_t candidate;
+    int preserve_live_owner;
     int ret;
     uint8_t who_am_i;
 
@@ -66,75 +68,84 @@ int xy_mpu6050_init_addr(xy_mpu6050_t *dev, void *i2c_handle, uint8_t addr)
         return XY_MPU6050_INVALID_PARAM;
     }
 
-    memset(dev, 0, sizeof(*dev));
+    preserve_live_owner = dev->initialized == 1U && dev->i2c_dev.base.initialized &&
+                          dev->i2c_dev.i2c_handle != NULL;
+    memset(&candidate, 0, sizeof(candidate));
 
-    /* 初始化 I2C */
-    ret = xy_i2c_device_init(&dev->i2c_dev, i2c_handle, addr, 1000);
+    ret = xy_i2c_device_init(&candidate.i2c_dev, i2c_handle, addr, 1000);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    if (!dev->i2c_dev.base.initialized || !dev->i2c_dev.i2c_handle) {
-        memset(dev, 0, sizeof(*dev));
+    if (!candidate.i2c_dev.base.initialized || !candidate.i2c_dev.i2c_handle) {
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_MPU6050_INVALID_PARAM;
     }
-    dev->addr = addr;
+    candidate.addr = addr;
 
-    /* 检查 WHO_AM_I */
-    ret = xy_mpu6050_read_reg(dev, MPU6050_REG_WHO_AM_I, &who_am_i);
+    ret = xy_mpu6050_read_reg(&candidate, MPU6050_REG_WHO_AM_I, &who_am_i);
     if (ret != XY_DEVICE_OK) {
         xy_log_e("Failed to read WHO_AM_I\n");
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-
     if (who_am_i != MPU6050_WHO_AM_I_VALUE) {
         xy_log_e("WHO_AM_I mismatch: expected 0x%02X, got 0x%02X\n",
                  MPU6050_WHO_AM_I_VALUE, who_am_i);
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return XY_MPU6050_ID_ERROR;
     }
 
-    xy_log_i("MPU6050 found at 0x%02X\n", addr);
-
-    /* 唤醒设备 */
-    ret = xy_mpu6050_write_reg(dev, MPU6050_REG_PWR_MGMT_1, 0x00);
+    ret = xy_mpu6050_write_reg(&candidate, MPU6050_REG_PWR_MGMT_1, 0x00);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
     (void)xy_device_delay_ms(100U);
 
-    /* 设置采样率 (1kHz) */
-    ret = xy_mpu6050_write_reg(dev, MPU6050_REG_SMPLRT_DIV, 0x00);
+    ret = xy_mpu6050_write_reg(&candidate, MPU6050_REG_SMPLRT_DIV, 0x00);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-
-    /* 配置 DLPF */
-    dev->dlpf = MPU6050_DLPF_44HZ;
-    ret = xy_mpu6050_write_reg(dev, MPU6050_REG_CONFIG, dev->dlpf);
+    candidate.dlpf = MPU6050_DLPF_44HZ;
+    ret = xy_mpu6050_write_reg(&candidate, MPU6050_REG_CONFIG, candidate.dlpf);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-
-    /* 设置默认量程 */
-    ret = xy_mpu6050_write_reg(dev, MPU6050_REG_ACCEL_CONFIG, MPU6050_ACCEL_2G << 3);
+    ret = xy_mpu6050_write_reg(&candidate, MPU6050_REG_ACCEL_CONFIG, MPU6050_ACCEL_2G << 3);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    ret = xy_mpu6050_write_reg(dev, MPU6050_REG_GYRO_CONFIG, MPU6050_GYRO_250DPS << 3);
+    ret = xy_mpu6050_write_reg(&candidate, MPU6050_REG_GYRO_CONFIG, MPU6050_GYRO_250DPS << 3);
     if (ret != XY_DEVICE_OK) {
-        memset(dev, 0, sizeof(*dev));
+        if (!preserve_live_owner) {
+            memset(dev, 0, sizeof(*dev));
+        }
         return ret;
     }
-    dev->accel_range = MPU6050_ACCEL_2G;
-    dev->gyro_range = MPU6050_GYRO_250DPS;
-
-    dev->initialized = 1;
+    candidate.accel_range = MPU6050_ACCEL_2G;
+    candidate.gyro_range = MPU6050_GYRO_250DPS;
+    candidate.initialized = 1;
+    *dev = candidate;
     xy_log_i("MPU6050 initialized\n");
     return XY_MPU6050_OK;
 }
