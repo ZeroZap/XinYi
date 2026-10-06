@@ -713,6 +713,30 @@ static void test_ina219_init_failure_clears_lifecycle(void)
     TEST_ASSERT_EQUAL_UINT(g_op_count, g_op_index);
 }
 
+static void test_ina219_failed_reinit_preserves_live_owner(void)
+{
+    xy_ina219_t ina;
+    xy_ina219_t snapshot;
+    xy_ina219_config_t config = ina219_config();
+    int bus;
+
+    init_ina219_ok(&ina, &bus);
+    ina.sample.shunt_voltage_uv = -11;
+    ina.sample.bus_voltage_mv = 22000U;
+    ina.sample.current_ua = 3300;
+    ina.sample.power_uw = 44000U;
+    snapshot = ina;
+
+    g_i2c_init_ret = XY_DEVICE_TIMEOUT;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_TIMEOUT,
+                          xy_ina219_init(&ina, &bus, XY_INA219_ADDR_DEFAULT, &config));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &ina, sizeof(ina));
+    TEST_ASSERT_TRUE(ina.initialized);
+    TEST_ASSERT_NOT_NULL(ina.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(3U, g_op_count);
+    TEST_ASSERT_EQUAL_UINT(3U, g_op_index);
+}
+
 static void test_ina219_public_operations_require_live_i2c_handle_and_deinit_clears_it(void)
 {
     xy_ina219_t ina;
@@ -758,6 +782,7 @@ int main(void)
     RUN_TEST(test_ina219_init_and_measurement_contract);
     RUN_TEST(test_ina219_failures_preserve_state_and_stop_io);
     RUN_TEST(test_ina219_init_failure_clears_lifecycle);
+    RUN_TEST(test_ina219_failed_reinit_preserves_live_owner);
     RUN_TEST(test_ina219_public_operations_require_live_i2c_handle_and_deinit_clears_it);
     return UNITY_END();
 }
