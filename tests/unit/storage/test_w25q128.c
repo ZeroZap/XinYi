@@ -22,6 +22,7 @@ static size_t operation_count;
 static size_t operation_index;
 static uint32_t tick;
 static xy_device_t *registered_device;
+static xy_error_t register_result;
 
 static void queue_operation(uint8_t instruction, uint32_t address, uint8_t has_address,
                             xy_hal_qspi_lines_t data_lines, const uint8_t *data, size_t data_len,
@@ -68,6 +69,9 @@ uint32_t xy_hal_qspi_tick_ms(void)
 
 xy_error_t xy_device_register(xy_device_t *device)
 {
+    if (register_result != XY_OK) {
+        return register_result;
+    }
     registered_device = device;
     return XY_OK;
 }
@@ -79,6 +83,7 @@ void setUp(void)
     operation_index = 0U;
     tick = 0U;
     registered_device = NULL;
+    register_result = XY_OK;
 }
 
 void tearDown(void)
@@ -109,6 +114,47 @@ static void test_probe_rejects_wrong_identity(void)
     queue_operation(0x9FU, 0U, 0U, XY_HAL_QSPI_LINES_1, id, sizeof(id), XY_HAL_OK);
     TEST_ASSERT_EQUAL_INT(XY_W25Q128_NOT_FOUND, xy_w25q128_init(&flash, &qspi, "flash"));
     TEST_ASSERT_NULL(registered_device);
+}
+
+static void test_failed_reinit_preserves_live_flash_owner(void)
+{
+    xy_w25q128_t flash = {0};
+    xy_w25q128_t snapshot;
+    uint8_t original_qspi;
+    uint8_t replacement_qspi;
+    const uint8_t valid_id[] = {0xEFU, 0x40U, 0x18U};
+    const uint8_t wrong_id[] = {0xEFU, 0x40U, 0x17U};
+
+    queue_operation(0x9FU, 0U, 0U, XY_HAL_QSPI_LINES_1, valid_id, sizeof(valid_id), XY_HAL_OK);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q128_OK,
+                          xy_w25q128_init(&flash, &original_qspi, "w25q128"));
+    snapshot = flash;
+
+    queue_operation(0x9FU, 0U, 0U, XY_HAL_QSPI_LINES_1, wrong_id, sizeof(wrong_id), XY_HAL_OK);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q128_NOT_FOUND,
+                          xy_w25q128_init(&flash, &replacement_qspi, "replacement"));
+    TEST_ASSERT_EQUAL_MEMORY(&snapshot, &flash, sizeof(flash));
+    TEST_ASSERT_EQUAL_PTR(&flash.device, registered_device);
+}
+
+static void test_successful_reinit_replaces_live_transport_without_reregistering(void)
+{
+    xy_w25q128_t flash = {0};
+    uint8_t original_qspi;
+    uint8_t replacement_qspi;
+    const uint8_t valid_id[] = {0xEFU, 0x40U, 0x18U};
+
+    queue_operation(0x9FU, 0U, 0U, XY_HAL_QSPI_LINES_1, valid_id, sizeof(valid_id), XY_HAL_OK);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q128_OK,
+                          xy_w25q128_init(&flash, &original_qspi, "w25q128"));
+
+    register_result = XY_ERROR_BUSY;
+    queue_operation(0x9FU, 0U, 0U, XY_HAL_QSPI_LINES_1, valid_id, sizeof(valid_id), XY_HAL_OK);
+    TEST_ASSERT_EQUAL_INT(XY_W25Q128_OK,
+                          xy_w25q128_init(&flash, &replacement_qspi, "replacement"));
+    TEST_ASSERT_EQUAL_PTR(&replacement_qspi, flash.qspi);
+    TEST_ASSERT_EQUAL_STRING("replacement", flash.device.name);
+    TEST_ASSERT_EQUAL_PTR(&flash.device, registered_device);
 }
 
 static void test_erase_program_read_uses_qspi_bus_and_propagates_errors(void)
@@ -170,6 +216,8 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_probe_identifies_w25q128_and_registers_flash_device);
     RUN_TEST(test_probe_rejects_wrong_identity);
+    RUN_TEST(test_failed_reinit_preserves_live_flash_owner);
+    RUN_TEST(test_successful_reinit_replaces_live_transport_without_reregistering);
     RUN_TEST(test_erase_program_read_uses_qspi_bus_and_propagates_errors);
     RUN_TEST(test_quad_program_uses_four_data_lines_and_checks_page_bounds);
     return UNITY_END();

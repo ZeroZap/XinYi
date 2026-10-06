@@ -353,6 +353,19 @@
 - 仍不允许宣称：24xx board presence, write-protect behavior, real write-cycle timing,
   power-loss recovery, endurance, or EEPROM hardware qualification.
 
+### 2026-10-07 W25Q128 Device re-init atomicity
+
+- 组件：HAL / Storage / W25Q128
+- 旧等级 -> 新等级：H1/Host lifecycle contract strengthened; no Board claim change
+- 证据路径/命令：`components/drivers/storage/flash/w25q128/xy_w25q128.c`,
+  `tests/unit/storage/test_w25q128.c`; focused `storage_w25q128`; `make test-unit`;
+  `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`.
+- 适用范围：staged JEDEC probing preserves a live QSPI/Device owner on failed re-init;
+  successful re-init atomically replaces transport and name without attempting duplicate
+  registration of the same embedded Device object; initial registration failure restores caller state.
+- 仍不允许宣称：W25Q128 board identity, erase/program recovery, power-loss safety,
+  performance, endurance, or Flash hardware qualification.
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

@@ -62,27 +62,37 @@ static xy_w25q128_status_t write_enable(xy_w25q128_t *flash, uint32_t timeout_ms
 
 xy_w25q128_status_t xy_w25q128_init(xy_w25q128_t *flash, void *qspi, const char *name)
 {
+    xy_w25q128_t candidate = {0};
+    xy_w25q128_t previous;
     uint8_t id[3];
+    bool preserve_live_owner;
 
     if (flash == NULL || qspi == NULL || name == NULL) {
         return XY_W25Q128_INVALID_PARAM;
     }
-    memset(flash, 0, sizeof(*flash));
-    flash->qspi = qspi;
-    if (command(flash, 0x9FU, 0U, 0U, XY_HAL_QSPI_LINES_1, id, sizeof(id), false, 100U) !=
+    previous = *flash;
+    preserve_live_owner = flash->initialized == 1U && flash->qspi != NULL &&
+                          flash->device.initialized;
+    candidate.qspi = qspi;
+    if (command(&candidate, 0x9FU, 0U, 0U, XY_HAL_QSPI_LINES_1, id, sizeof(id), false, 100U) !=
         XY_W25Q128_OK) {
         return XY_W25Q128_ERROR;
     }
-    flash->jedec_id = ((uint32_t)id[0] << 16) | ((uint32_t)id[1] << 8) | id[2];
-    if (flash->jedec_id != W25Q128_JEDEC_ID) {
+    candidate.jedec_id = ((uint32_t)id[0] << 16) | ((uint32_t)id[1] << 8) | id[2];
+    if (candidate.jedec_id != W25Q128_JEDEC_ID) {
         return XY_W25Q128_NOT_FOUND;
     }
-    flash->capacity = W25Q128_CAPACITY;
-    flash->device.name = name;
-    flash->device.type = XY_DEV_TYPE_FLASH;
-    flash->device.initialized = true;
-    flash->initialized = 1U;
-    return xy_device_register(&flash->device) == XY_OK ? XY_W25Q128_OK : XY_W25Q128_ERROR;
+    candidate.capacity = W25Q128_CAPACITY;
+    candidate.device.name = name;
+    candidate.device.type = XY_DEV_TYPE_FLASH;
+    candidate.device.initialized = true;
+    candidate.initialized = 1U;
+    *flash = candidate;
+    if (!preserve_live_owner && xy_device_register(&flash->device) != XY_OK) {
+        *flash = previous;
+        return XY_W25Q128_ERROR;
+    }
+    return XY_W25Q128_OK;
 }
 
 xy_w25q128_status_t xy_w25q128_read(xy_w25q128_t *flash, uint32_t address, uint8_t *data,
