@@ -326,6 +326,21 @@
 
 ### 已存在模板/记录
 
+### 2026-10-04 Device owner re-init atomicity continuation
+
+- 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/sensor/test_power_monitors.c`, `test_adc_power_monitors.c`,
+  `test_bno055.c`, `test_ina228_device.c`, `test_ina229_device.c`; focused CTests
+  `sensor_power_monitors`, `sensor_adc_power_monitors`, `sensor_bno055`,
+  `sensor_ina228_device`, `sensor_ina229_device`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`.
+- 适用范围：staged candidate initialization preserves a live owner across helper,
+  identity, status-read, and configuration failures; first initialization failures remain
+  fail-closed and successful re-initialization commits the complete candidate atomically.
+- 仍不允许宣称：board identity, measurement/fusion accuracy, calibration, alert/electrical
+  behavior, recovery, endurance, or security approval for these sensors.
+
 - LTE：`docs/validation/xinyi-net-lte-hardware-validation-record-template-2026-08-06.md`
 - Fuel Gauge：`docs/validation/xinyi-fuel-gauge-smbus-hardware-validation-record-template-2026-08-06.md`
 - GUI 字体硬件：`docs/validation/xinyi-gui-font-rendering-hardware-validation-record-template-2026-08-11.md`
