@@ -218,6 +218,25 @@ static void test_init_rejects_missing_interface_handle_without_io_or_delay(void)
     assert_lps22hb_cleared(&dev);
 }
 
+static void test_failed_reinit_preserves_live_owner(void)
+{
+    xy_lps22hb_dev_t dev;
+    xy_interface_dev_t iface = fake_interface();
+    xy_lps22hb_dev_t dev_snapshot;
+    xy_interface_dev_t iface_snapshot;
+
+    init_ok(&dev, &iface);
+    dev.pressure_offset = 12.5f;
+    dev.measurement_count = 7U;
+    dev_snapshot = dev;
+    iface_snapshot = iface;
+
+    queue_read8(LPS22HB_WHO_AM_I, LPS22HB_WHO_AM_I_VALUE, XY_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_TIMEOUT, xy_lps22hb_init(&dev, &iface, NULL));
+    TEST_ASSERT_EQUAL_MEMORY(&dev_snapshot, &dev, sizeof(dev));
+    TEST_ASSERT_EQUAL_MEMORY(&iface_snapshot, &iface, sizeof(iface));
+}
+
 static void test_public_operations_reject_lost_interface_handle(void)
 {
     xy_lps22hb_dev_t dev;
@@ -920,6 +939,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_init_default_config_resets_and_programs_registers);
     RUN_TEST(test_init_rejects_missing_interface_handle_without_io_or_delay);
+    RUN_TEST(test_failed_reinit_preserves_live_owner);
     RUN_TEST(test_public_operations_reject_lost_interface_handle);
     RUN_TEST(test_configuration_operations_reject_lost_transport_without_state_change);
     RUN_TEST(test_init_rejects_bad_whoami_and_propagates_reset_timeout);

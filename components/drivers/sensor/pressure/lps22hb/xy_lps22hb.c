@@ -89,6 +89,21 @@ static bool lps22hb_ready(const xy_lps22hb_dev_t *dev)
            dev->interface->i2c_dev.i2c_handle != XY_NULL;
 }
 
+static void lps22hb_restore_failed_init(xy_lps22hb_dev_t *dev,
+                                         xy_interface_dev_t *interface,
+                                         const xy_lps22hb_dev_t *previous_dev,
+                                         const xy_interface_dev_t *previous_interface,
+                                         bool preserve_live_owner)
+{
+    if (preserve_live_owner) {
+        *interface = *previous_interface;
+        *dev = *previous_dev;
+    } else {
+        memset(&interface->i2c_dev, 0, sizeof(interface->i2c_dev));
+        memset(dev, 0, sizeof(*dev));
+    }
+}
+
 static xy_ret_t lps22hb_write_reg8(xy_lps22hb_dev_t *dev, uint8_t reg_addr, uint8_t value)
 {
     return lps22hb_write_reg(dev, reg_addr, &value, 1);
@@ -184,18 +199,25 @@ static xy_ret_t lps22hb_wait_data(xy_lps22hb_dev_t *dev, uint8_t mask, uint32_t 
 
 xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, xy_lps22hb_config_t *config)
 {
+    xy_lps22hb_dev_t previous_dev;
+    xy_interface_dev_t previous_interface;
+    bool preserve_live_owner;
+
     if (dev == XY_NULL || interface == XY_NULL || interface->handle == XY_NULL) {
         return XY_ERROR;
     }
-    
+
+    previous_dev = *dev;
+    previous_interface = *interface;
+    preserve_live_owner = dev->is_initialized && dev->interface == interface && lps22hb_ready(dev);
     memset(dev, 0, sizeof(xy_lps22hb_dev_t));
     dev->interface = interface;
 
     xy_error_t device_ret = xy_i2c_device_init(&interface->i2c_dev, interface->handle,
                                                interface->address, 1000U);
     if (device_ret != XY_DEVICE_OK) {
-        memset(&interface->i2c_dev, 0, sizeof(interface->i2c_dev));
-        memset(dev, 0, sizeof(*dev));
+        lps22hb_restore_failed_init(dev, interface, &previous_dev, &previous_interface,
+                                    preserve_live_owner);
         return device_ret;
     }
     
@@ -215,7 +237,8 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     }
 
     if (!lps22hb_config_is_valid(&dev->config)) {
-        memset(dev, 0, sizeof(*dev));
+        lps22hb_restore_failed_init(dev, interface, &previous_dev, &previous_interface,
+                                    preserve_live_owner);
         return XY_ERROR;
     }
     
@@ -308,8 +331,8 @@ xy_ret_t xy_lps22hb_init(xy_lps22hb_dev_t *dev, xy_interface_dev_t *interface, x
     return XY_OK;
 
 init_failed:
-    memset(&dev->interface->i2c_dev, 0, sizeof(dev->interface->i2c_dev));
-    memset(dev, 0, sizeof(*dev));
+    lps22hb_restore_failed_init(dev, interface, &previous_dev, &previous_interface,
+                                preserve_live_owner);
     return ret;
 }
 
