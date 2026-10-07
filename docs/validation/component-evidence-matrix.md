@@ -475,6 +475,18 @@
 - 仍不允许宣称：openCH Flash erase/program/read-back runtime、掉电恢复、保护位、bootloader/FOTA、
   performance、endurance 或 hardware qualification。
 
+### 2026-10-08 Device PM owner isolation
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host ownership contract strengthened; no Board claim change
+- 证据路径/命令：`components/device/src/xy_device_pm.c`,
+  `tests/unit/device/test_device_pm.c`; focused `device_pm`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：PM side-table 以 Device identity 独立索引，不再覆盖 canonical
+  `xy_device_t.data` driver-private storage；两个 Device 的 PM state 保持隔离。
+- 仍不允许宣称：Pandora Device PM runtime、功耗、wake latency、deep-power modes、
+  concurrency safety、recovery、endurance 或 hardware qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

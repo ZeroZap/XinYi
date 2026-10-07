@@ -1837,3 +1837,14 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 收口：per-device PM 复用 canonical `xy_device_get_tick()`；公开既有 idle-timeout/check/activity API，并新增 focused `device_pm` contract 覆盖边界前不休眠、边界时休眠。
 - 验证：focused `device_pm`；Host、PC、STM32L4、STM32U5 build 与 `git diff --check`。
 - 边界：仅为 Host/compile Device PM 时间 ownership contract，不升级 Pandora sleep、功耗、wake latency、深度模式或 endurance 证据。
+
+### 2026-10-08 Device PM owner isolation
+
+- TDD RED：PM init 将 side-state 指针写入 `xy_device_t.data`，覆盖 driver-private storage；
+  第二个带 driver data 的 Device 随后在 PM lookup 中触发 Host 崩溃。
+- 收口：PM side-table 改为按 Device identity 查找并持有 owner，不再复用或改写
+  canonical driver data；两个 Device 的 PM state 独立。
+- 验证：focused `device_pm` 1/1；Host、PC、STM32L4、STM32U5 build 与
+  `git diff --check`。
+- 边界：仅为 Host/compile ownership contract，不升级 Pandora Device PM runtime、功耗、
+  wake latency、deep-power modes、concurrency、recovery 或 endurance 证据。

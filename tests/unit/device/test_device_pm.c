@@ -45,8 +45,34 @@ static void test_device_pm_idle_timeout_uses_device_tick(void) {
     TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_SLEEP, last_requested_state);
 }
 
+static void test_device_pm_keeps_driver_data_and_isolates_devices(void) {
+    xy_device_t first;
+    xy_device_t second;
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+    uint32_t first_driver_data = 0x11223344U;
+    uint32_t second_driver_data = 0x55667788U;
+    xy_device_pm_state_t state = XY_DEVICE_PM_STATE_OFF;
+
+    memset(&first, 0, sizeof(first));
+    memset(&second, 0, sizeof(second));
+    first.data = &first_driver_data;
+    second.data = &second_driver_data;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&first, &ops));
+    TEST_ASSERT_EQUAL_PTR(&first_driver_data, first.data);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&second, &ops));
+    TEST_ASSERT_EQUAL_PTR(&second_driver_data, second.data);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_sleep(&first));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&first, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_SLEEP, state);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&second, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_device_pm_idle_timeout_uses_device_tick);
+    RUN_TEST(test_device_pm_keeps_driver_data_and_isolates_devices);
     return UNITY_END();
 }

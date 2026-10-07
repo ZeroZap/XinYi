@@ -17,6 +17,7 @@
  * @brief 设备电源管理私有数据
  */
 typedef struct {
+    xy_device_t *owner;                      /**< Owning device; keep dev->data for the driver */
     xy_device_pm_state_t current_state;    /**< 当前电源状态 */
     xy_device_pm_state_t last_state;       /**< 上一个状态 (用于唤醒) */
     xy_device_pm_policy_t policy;          /**< 电源管理策略 */
@@ -39,11 +40,17 @@ static bool pm_initialized = false;
  */
 static xy_device_pm_data_t *pm_find_data(xy_device_t *dev)
 {
-    if (!pm_initialized) {
+    if (!pm_initialized || !dev) {
         return NULL;
     }
-    
-    return (xy_device_pm_data_t *)dev->data;
+
+    for (size_t i = 0; i < sizeof(pm_data) / sizeof(pm_data[0]); ++i) {
+        if (pm_data[i].owner == dev && pm_data[i].ops != NULL) {
+            return &pm_data[i];
+        }
+    }
+
+    return NULL;
 }
 
 /**
@@ -67,11 +74,11 @@ int xy_device_pm_init(xy_device_t *dev, const xy_device_pm_ops_t *pm_ops)
     
     if (!data) {
         /* 简单实现：分配第一个可用槽位 */
-        for (int i = 0; i < 16; i++) {
+        for (size_t i = 0; i < sizeof(pm_data) / sizeof(pm_data[0]); ++i) {
             if (pm_data[i].ops == NULL) {
                 data = &pm_data[i];
                 memset(data, 0, sizeof(*data));
-                dev->data = data;
+                data->owner = dev;
                 break;
             }
         }
