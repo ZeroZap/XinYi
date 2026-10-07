@@ -86,6 +86,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
     # generic WCH wrappers for ADC/CAN/I2C/PWM/SPI do not match the current HAL
     # contracts and must not block the board bring-up build.
     set(HAL_SOURCES
+        "wch/ch32x/src/xy_hal_gpio.c"
         "wch/ch32x/src/xy_hal_uart.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_rcc.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_usart.c"

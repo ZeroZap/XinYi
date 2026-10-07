@@ -12,6 +12,7 @@ add_executable(opench_ch32v307_uart_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/kernel/misc/xy_tick.c
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/src/xy_os_tick.c
 )
