@@ -7,6 +7,9 @@
 static uint32_t fake_tick;
 static unsigned int set_state_calls;
 static xy_device_pm_state_t last_requested_state;
+static unsigned int set_wakeup_calls;
+static bool last_requested_wakeup;
+static int set_wakeup_result;
 
 uint32_t xy_device_get_tick(void) {
     return fake_tick;
@@ -19,10 +22,20 @@ static int capture_set_state(xy_device_t* dev, xy_device_pm_state_t state) {
     return XY_DEVICE_OK;
 }
 
+static int capture_set_wakeup(xy_device_t* dev, bool enable) {
+    TEST_ASSERT_NOT_NULL(dev);
+    set_wakeup_calls++;
+    last_requested_wakeup = enable;
+    return set_wakeup_result;
+}
+
 void setUp(void) {
     fake_tick = 100U;
     set_state_calls = 0U;
     last_requested_state = XY_DEVICE_PM_STATE_ACTIVE;
+    set_wakeup_calls = 0U;
+    last_requested_wakeup = false;
+    set_wakeup_result = XY_DEVICE_OK;
 }
 
 void tearDown(void) {}
@@ -100,10 +113,57 @@ static void test_device_pm_deinit_reclaims_capacity(void) {
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_device_pm_deinit(NULL));
 }
 
+static void test_device_pm_rejects_invalid_enum_values_without_callbacks(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {
+        .set_state = capture_set_state,
+        .set_wakeup = capture_set_wakeup,
+    };
+    xy_device_pm_state_t state = XY_DEVICE_PM_STATE_OFF;
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_device_pm_set_state(&dev, (xy_device_pm_state_t)99));
+    TEST_ASSERT_EQUAL_UINT(0U, set_state_calls);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&dev, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM,
+                          xy_device_pm_set_policy(&dev, (xy_device_pm_policy_t)99));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_POLICY_AUTO, xy_device_pm_get_policy(&dev));
+    TEST_ASSERT_EQUAL_UINT(0U, set_wakeup_calls);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
+static void test_device_pm_wakeup_callback_failure_is_retryable(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.set_wakeup = capture_set_wakeup};
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+
+    set_wakeup_result = XY_DEVICE_IO_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_device_pm_set_wakeup(&dev, true));
+    TEST_ASSERT_EQUAL_UINT(1U, set_wakeup_calls);
+    TEST_ASSERT_TRUE(last_requested_wakeup);
+
+    set_wakeup_result = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_set_wakeup(&dev, true));
+    TEST_ASSERT_EQUAL_UINT(2U, set_wakeup_calls);
+    TEST_ASSERT_TRUE(last_requested_wakeup);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_device_pm_idle_timeout_uses_device_tick);
     RUN_TEST(test_device_pm_keeps_driver_data_and_isolates_devices);
     RUN_TEST(test_device_pm_deinit_reclaims_capacity);
+    RUN_TEST(test_device_pm_rejects_invalid_enum_values_without_callbacks);
+    RUN_TEST(test_device_pm_wakeup_callback_failure_is_retryable);
     return UNITY_END();
 }

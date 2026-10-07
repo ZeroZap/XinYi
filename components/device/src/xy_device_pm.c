@@ -61,6 +61,16 @@ static uint32_t pm_get_tick_ms(void)
     return xy_device_get_tick();
 }
 
+static bool pm_state_is_valid(xy_device_pm_state_t state)
+{
+    return state >= XY_DEVICE_PM_STATE_ACTIVE && state <= XY_DEVICE_PM_STATE_OFF;
+}
+
+static bool pm_policy_is_valid(xy_device_pm_policy_t policy)
+{
+    return policy >= XY_DEVICE_PM_POLICY_ALWAYS_ON && policy <= XY_DEVICE_PM_POLICY_MANUAL;
+}
+
 /* ==================== Public Implementation ==================== */
 
 int xy_device_pm_init(xy_device_t *dev, const xy_device_pm_ops_t *pm_ops)
@@ -119,7 +129,7 @@ int xy_device_pm_deinit(xy_device_t *dev)
 
 int xy_device_pm_set_state(xy_device_t *dev, xy_device_pm_state_t state)
 {
-    if (!dev) {
+    if (!dev || !pm_state_is_valid(state)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     
@@ -178,13 +188,15 @@ int xy_device_pm_set_wakeup(xy_device_t *dev, bool enable)
         return XY_DEVICE_NOT_INIT;
     }
     
-    data->wakeup_enabled = enable;
-    
     /* 调用底层操作 */
     if (data->ops->set_wakeup) {
-        return data->ops->set_wakeup(dev, enable);
+        int ret = data->ops->set_wakeup(dev, enable);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
     }
-    
+
+    data->wakeup_enabled = enable;
     return XY_DEVICE_OK;
 }
 
@@ -228,7 +240,7 @@ int xy_device_pm_get_consumption(xy_device_t *dev, uint32_t *uw)
 
 int xy_device_pm_set_policy(xy_device_t *dev, xy_device_pm_policy_t policy)
 {
-    if (!dev) {
+    if (!dev || !pm_policy_is_valid(policy)) {
         return XY_DEVICE_INVALID_PARAM;
     }
     

@@ -500,6 +500,18 @@
 - 仍不允许宣称：Pandora Device PM runtime、并发访问安全、功耗、wake latency、
   deep-power modes、recovery、endurance 或 hardware qualification。
 
+### 2026-10-08 Device PM public setter fail-closed contract
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host input and callback-failure contract strengthened; no Board claim change
+- 证据路径/命令：`components/device/src/xy_device_pm.c`,
+  `tests/unit/device/test_device_pm.c`; focused `device_pm`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：state/policy setters reject out-of-range enums before callbacks or state mutation;
+  wakeup intent is committed only after the optional driver callback succeeds, so failure is retryable.
+- 仍不允许宣称：Pandora Device PM runtime、concurrency safety、功耗、wake latency、
+  deep-power modes、recovery、endurance 或 hardware qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation
