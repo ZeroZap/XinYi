@@ -1654,7 +1654,7 @@ xy_add_unit_test(test_trace trace_component UNITY
     ${CLIB}/xy_ctype.c
     ${UNIT_SUPPORT}/test_clib_alloc_shim.c
 )
-target_compile_definitions(test_trace PRIVATE XY_LOG_LEVEL=XY_LOG_LEVEL_DEBUG)
+target_compile_definitions(test_trace PRIVATE XY_LOG_LEVEL=XY_LOG_LEVEL_DEBUG XY_LOG_DYNAMIC_FILTER=1)
 
 # --- Test 25: CLIB common/string/stdio/ring-buffer contracts ---
 xy_add_unit_test(test_clib clib_component UNITY

@@ -429,6 +429,21 @@
 - 仍不允许宣称：Pandora request/response runtime、并发 correlation token、throughput、
   multi-request safety、recovery、endurance 或 product qualification。
 
+### 2026-10-07 Trace runtime dynamic-level filtering
+
+- 组件：Trace
+- 旧等级 -> 新等级：H1/Host runtime-filter contract strengthened; no Board claim change
+- 证据路径/命令：`components/trace/xy_log/inc/xy_log.h`,
+  `components/trace/xy_log/src/xy_log.c`, `tests/unit/trace/test_trace_core.c`;
+  focused `trace_component`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：linked `xy_trace` consumers enable runtime filtering so public ERROR/WARN/INFO/DEBUG
+  macros emit only when the current dynamic threshold allows them; invalid threshold updates preserve
+  the previous level. Source-only focused targets that include `xy_log.h` without linking `xy_trace`
+  retain compile-time-only behavior and do not gain an unresolved runtime symbol.
+- 仍不允许宣称：Pandora Trace runtime filtering、throughput、concurrent loss behavior、ISR safety、
+  performance、recovery、endurance 或 product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

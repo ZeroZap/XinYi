@@ -30,6 +30,7 @@ file(GLOB_RECURSE COMPONENT_HEADERS "inc/*.h")
 add_library(xy_trace STATIC ${COMPONENT_SOURCES})
 target_link_libraries(xy_trace PUBLIC xy_xy_clib)
 target_include_directories(xy_trace PUBLIC ../clib/xy_clib)
+target_compile_definitions(xy_trace PUBLIC XY_LOG_DYNAMIC_FILTER=1)
 
 # Set library properties
 set_target_properties(xy_trace PROPERTIES
