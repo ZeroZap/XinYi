@@ -29,7 +29,7 @@ class OpenChUartCaptureTest(unittest.TestCase):
             output = Path(temporary) / "uart.log"
             metadata = Path(temporary) / "capture.json"
             process = self.run_capture(os.ttyname(slave), output, metadata)
-            time.sleep(0.05)
+            time.sleep(0.2)
             if payload:
                 os.write(master, payload)
             stdout, stderr = process.communicate(timeout=2)
@@ -72,6 +72,18 @@ class OpenChUartCaptureTest(unittest.TestCase):
         code, _, _, record, _ = self.exercise(payload)
         self.assertEqual(code, 1)
         self.assertEqual(record["status"], "CONTENT_MISMATCH")
+
+    def test_skips_truncated_cycle_and_accepts_next_complete_cycle(self):
+        payload = (
+            b"XINYI OPENCH CH32V307 UART1 READY\r\nFIRMWARE_COMMIT truncated\r\n"
+            b"PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F\r\nOPENCH_UART1_ALIVE\r\n"
+            b"XINYI OPENCH CH32V307 UART1 READY\r\n"
+            b"FIRMWARE_COMMIT " + COMMIT.encode() + b"\r\n"
+            b"PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F\r\nOPENCH_UART1_ALIVE\r\n"
+        )
+        code, _, stderr, record, _ = self.exercise(payload)
+        self.assertEqual(code, 0, stderr)
+        self.assertEqual(record["status"], "B1_REVIEW_CANDIDATE")
 
 
 if __name__ == "__main__":

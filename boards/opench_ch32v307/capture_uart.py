@@ -18,12 +18,21 @@ def classify_capture(data: bytes, firmware_commit: str) -> tuple[str, list[str]]
         "PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F",
         "OPENCH_UART1_ALIVE",
     ]
-    positions = [text.find(marker) for marker in markers]
     if not data:
         return "NO_DATA", markers
-    if any(position < 0 for position in positions) or positions != sorted(positions):
-        return "CONTENT_MISMATCH", markers
-    return "B1_REVIEW_CANDIDATE", markers
+    search_from = 0
+    while True:
+        cycle_start = text.find(markers[0], search_from)
+        if cycle_start < 0:
+            return "CONTENT_MISMATCH", markers
+        position = cycle_start
+        for marker in markers[1:]:
+            position = text.find(marker, position + 1)
+            if position < 0:
+                break
+        else:
+            return "B1_REVIEW_CANDIDATE", markers
+        search_from = cycle_start + 1
 
 
 def main() -> int:

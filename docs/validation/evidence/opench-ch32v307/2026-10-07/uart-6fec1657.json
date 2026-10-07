@@ -1,0 +1,13 @@
+{
+  "status": "B1_REVIEW_CANDIDATE",
+  "device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "firmware_commit": "6fec165745f025077f9704f0add7a9925b82c052",
+  "bytes_captured": 2440,
+  "capture_sha256": "5400ff3bb76bf05838f5b478d6a4569f3ad771430c1c85c1483fc9a763efedf3",
+  "required_markers": [
+    "XINYI OPENCH CH32V307 UART1 READY",
+    "FIRMWARE_COMMIT 6fec165745f025077f9704f0add7a9925b82c052",
+    "PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F",
+    "OPENCH_UART1_ALIVE"
+  ]
+}
