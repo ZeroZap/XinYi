@@ -1,0 +1,11 @@
+{
+  "source_commit": "47952e8d1aa7eb64ddf838ebaa9ebda7c42aba56",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "b04f7f586a10a85de1367cfb326c01e743dc67a52a201d6fbdb05f934d433d82",
+  "programmed_verified_reset": true,
+  "bytes_captured": 266,
+  "uart_sha256": "cb29228f5077d36b2f35e4ad5474687c732f0ac3fa33e5c6f6f3613ca572c280",
+  "ok_marker_count": 13,
+  "error_marker_count": 0,
+  "runtime_passed": true
+}

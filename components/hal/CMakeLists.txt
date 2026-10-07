@@ -88,6 +88,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
     set(HAL_SOURCES
         "wch/ch32x/src/xy_hal_adc.c"
         "wch/ch32x/src/xy_hal_can.c"
+        "wch/ch32x/src/xy_hal_dac.c"
         "wch/ch32x/src/xy_hal_delay.c"
         "wch/ch32x/src/xy_hal_dma.c"
         "wch/ch32x/src/xy_hal_flash.c"
