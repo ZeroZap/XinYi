@@ -178,6 +178,24 @@ static void test_probe_rejects_missing_delay_callback_without_io(void)
     TEST_ASSERT_EQUAL_UINT(0U, ce_count);
 }
 
+static void test_failed_reprobe_preserves_live_radio(void)
+{
+    xy_nrf24l01_t radio;
+    xy_nrf24l01_t old;
+    xy_nrf24l01_config_t cfg = config();
+
+    queue_success();
+    memset(&radio, 0, sizeof(radio));
+    TEST_ASSERT_EQUAL_INT(XY_HAL_OK, xy_nrf24l01_probe(&radio, &cfg));
+    radio.rx_payload_width = 32U;
+    old = radio;
+
+    queue_frame(0x05U, 0xFFU, 0x0EU, 40U, XY_HAL_ERROR_TIMEOUT);
+    TEST_ASSERT_EQUAL_INT(XY_HAL_ERROR_TIMEOUT, xy_nrf24l01_probe(&radio, &cfg));
+    TEST_ASSERT_EQUAL_MEMORY(&old, &radio, sizeof(radio));
+    TEST_ASSERT_EQUAL_UINT(frame_count, frame_index);
+}
+
 static void test_send_reports_ack_and_retry_count(void)
 {
     xy_nrf24l01_t radio;
@@ -628,6 +646,7 @@ int main(void)
     RUN_TEST(test_probe_read_failure_after_write_restores);
     RUN_TEST(test_probe_rejects_floating_bus);
     RUN_TEST(test_probe_rejects_missing_delay_callback_without_io);
+    RUN_TEST(test_failed_reprobe_preserves_live_radio);
     RUN_TEST(test_send_reports_ack_and_retry_count);
     RUN_TEST(test_send_max_retry_flushes_and_reports_failure);
     RUN_TEST(test_send_propagates_max_retry_flush_failure);

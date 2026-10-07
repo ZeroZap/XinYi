@@ -366,6 +366,19 @@
 - 仍不允许宣称：W25Q128 board identity, erase/program recovery, power-loss safety,
   performance, endurance, or Flash hardware qualification.
 
+### 2026-10-07 nRF24L01 failed re-probe owner atomicity
+
+- 组件：Wireless / NRF24L01
+- 旧等级 -> 新等级：H1/Host lifecycle contract strengthened; no Board claim change
+- 证据路径/命令：`components/drivers/wireless/nrf24l01/xy_nrf24l01.c`,
+  `tests/unit/net/test_nrf24l01.c`; focused `wireless_nrf24l01`; `make test-unit`;
+  `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`.
+- 适用范围：a failed replacement probe preserves the complete live radio owner, including
+  transport callbacks, probed register snapshot, PRX payload width, and lifecycle state; the
+  staged candidate is published only after the complete probe succeeds.
+- 仍不允许宣称：real peer RX, IRQ edge behavior, RF recovery, range, throughput, endurance,
+  or radio hardware qualification.
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation
