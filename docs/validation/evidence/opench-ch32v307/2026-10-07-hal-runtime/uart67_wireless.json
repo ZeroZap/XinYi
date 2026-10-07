@@ -1,0 +1,15 @@
+{
+  "name": "uart67_wireless",
+  "target": "opench_ch32v307_uart67_wireless_smoke",
+  "elf_sha256": "87741d9f51306afef00c0f15d391103e2bc8f892257d5c4ba309000d3ba537ee",
+  "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 1292,
+  "uart_sha256": "7f25c304aa0f6f88fb1868f9834d279de512151eb9dc725f0eb9aac0db2f1030",
+  "required_marker_counts": {
+    "OPENCH_UART6_ESP_READY PC0_TX PC1_RX": 16,
+    "OPENCH_UART7_BLE_READY PC2_TX PC3_RX": 15
+  },
+  "runtime_passed": true
+}

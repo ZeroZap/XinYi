@@ -1,0 +1,15 @@
+{
+  "name": "uart67_dma",
+  "target": "opench_ch32v307_uart67_dma_smoke",
+  "elf_sha256": "2a12014931b39c8f96ad8de2f77483789778ae1a1c5e6fa4873f1e5d23a55ef9",
+  "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 928,
+  "uart_sha256": "130445d4c05cb0cbb1ee5c0571b7a046450cb27dd13c479ad4f997901456311c",
+  "required_marker_counts": {
+    "OPENCH_UART6_DMA2_CH6_TX_OK": 14,
+    "OPENCH_UART7_DMA2_CH8_TX_OK": 14
+  },
+  "runtime_passed": true
+}

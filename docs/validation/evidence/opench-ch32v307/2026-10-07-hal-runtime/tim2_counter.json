@@ -1,0 +1,14 @@
+{
+  "name": "tim2_counter",
+  "target": "opench_ch32v307_tim2_counter_smoke",
+  "elf_sha256": "7790d40fa73b967e32b83598bb1a229ba50fcc58b6d982b5e03813fe9d940890",
+  "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 512,
+  "uart_sha256": "014bba28513c37eece4451da63639e930c071629e4002f73d4955bbae43a6efb",
+  "required_marker_counts": {
+    "OPENCH_TIM2_COUNTER_RUNNING_OK": 13
+  },
+  "runtime_passed": true
+}

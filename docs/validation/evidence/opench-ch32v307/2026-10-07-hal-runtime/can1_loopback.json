@@ -1,0 +1,15 @@
+{
+  "name": "can1_loopback",
+  "target": "opench_ch32v307_can1_loopback_smoke",
+  "elf_sha256": "580a0e9df5f4521f6e4382b3fceaca59f7fdc7c83ecd009d5dec4f4f38822a81",
+  "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 662,
+  "uart_sha256": "5b309fede0b3f237d52e2c97c7f761e52dcf5353a92064055fbde272c64624e2",
+  "required_marker_counts": {
+    "OPENCH_CAN1_STARTED": 1,
+    "OPENCH_CAN1_PB8_PB9_LOOPBACK_OK": 14
+  },
+  "runtime_passed": true
+}

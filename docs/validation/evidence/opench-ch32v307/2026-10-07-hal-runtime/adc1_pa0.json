@@ -1,0 +1,14 @@
+{
+  "name": "adc1_pa0",
+  "target": "opench_ch32v307_adc1_pa0_smoke",
+  "elf_sha256": "4a3ba7b6b4d6fdd44514d7b9b7a72331300564757e45afbfdc67416954d11281",
+  "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 493,
+  "uart_sha256": "622699060b58d6033ba02633b6098f7bd89a9b4fcf80d2ea1bd36b17e611a0fd",
+  "required_marker_counts": {
+    "OPENCH_ADC1_CH0_PA0_READ_OK": 13
+  },
+  "runtime_passed": true
+}

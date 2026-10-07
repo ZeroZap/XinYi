@@ -1,0 +1,14 @@
+{
+  "name": "iwdg",
+  "target": "opench_ch32v307_iwdg_smoke",
+  "elf_sha256": "35bb852e70c15b13d439e37be87eff2c23cc84609dd0f51e2dac01ebe901c9ea",
+  "program_log_sha256": "fe4670af7c1c4e77ed8de69bab64c4338a4d904d145b19fb5678b379b315780c",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 357,
+  "uart_sha256": "cf216ef2e38709823f1730522d2b5e8984431514b29952f0cabb3f794312146a",
+  "required_marker_counts": {
+    "OPENCH_IWDG_FEED_OK": 12
+  },
+  "runtime_passed": true
+}

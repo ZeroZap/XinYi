@@ -32,7 +32,8 @@ static uint8_t mode_hw(xy_hal_can_mode_t m) {
 static xy_hal_error_t apply_config(void* can, const xy_hal_can_config_t* cfg) {
     CAN_InitTypeDef init = {0};
     uint32_t tq;
-    uint32_t pclk = SystemCoreClock / 2U;
+    uint32_t pclk = SystemCoreClock;
+    RCC_ClocksTypeDef clocks;
     if (cfg->baudrate != XY_HAL_CAN_BAUD_125K && cfg->baudrate != XY_HAL_CAN_BAUD_250K &&
         cfg->baudrate != XY_HAL_CAN_BAUD_500K && cfg->baudrate != XY_HAL_CAN_BAUD_1M)
         return XY_HAL_ERROR_NOT_SUPPORTED;
@@ -42,6 +43,8 @@ static xy_hal_error_t apply_config(void* can, const xy_hal_can_config_t* cfg) {
         cfg->rx_fifo_locked > 1U || cfg->tx_fifo_priority > 1U)
         return XY_HAL_ERROR_INVALID_PARAM;
     tq = 1U + cfg->bs1 + cfg->bs2;
+    RCC_GetClocksFreq(&clocks);
+    pclk = clocks.PCLK1_Frequency;
     if ((pclk % ((uint32_t)cfg->baudrate * tq)) != 0U)
         return XY_HAL_ERROR_INVALID_PARAM;
     init.CAN_Prescaler = (uint16_t)(pclk / ((uint32_t)cfg->baudrate * tq));

@@ -1,0 +1,136 @@
+{
+  "source_commit": "777dac93b2a8ea074de51716763fee0f106d0df0",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "results": [
+    {
+      "name": "spi3_w25q128",
+      "target": "opench_ch32v307_spi3_w25q128_smoke",
+      "elf_sha256": "d1cbb4bc8f497612162138e5c7b5bca9bbaa185a0d7b01183a883bb9fdc99986",
+      "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 629,
+      "uart_sha256": "80959b83cab5cd5024b0070b8a73bc898e3d3117c85e0857a8a7840daa488e3c",
+      "required_marker_counts": {
+        "OPENCH_SPI3_W25Q128_JEDEC_OK EF4018": 14
+      },
+      "runtime_passed": true
+    },
+    {
+      "name": "i2c2_scan",
+      "target": "opench_ch32v307_i2c2_scan_smoke",
+      "elf_sha256": "dd1242afd1ee8f55f634bf42fe6fec4cbffa4d93c7fa71ef31e88997d2892e3b",
+      "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 229,
+      "uart_sha256": "bb5a5c58726bbed5f56b9eb98c57d57af05ea1fd0c5c3fcb2640034f2ec5e471",
+      "required_marker_counts": {
+        "OPENCH_I2C2_PERIPHERAL_READY": 1,
+        "OPENCH_I2C2_SCAN_OK": 2
+      },
+      "runtime_passed": true
+    },
+    {
+      "name": "uart67_wireless",
+      "target": "opench_ch32v307_uart67_wireless_smoke",
+      "elf_sha256": "87741d9f51306afef00c0f15d391103e2bc8f892257d5c4ba309000d3ba537ee",
+      "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 1292,
+      "uart_sha256": "7f25c304aa0f6f88fb1868f9834d279de512151eb9dc725f0eb9aac0db2f1030",
+      "required_marker_counts": {
+        "OPENCH_UART6_ESP_READY PC0_TX PC1_RX": 16,
+        "OPENCH_UART7_BLE_READY PC2_TX PC3_RX": 15
+      },
+      "runtime_passed": true
+    },
+    {
+      "name": "uart67_dma",
+      "target": "opench_ch32v307_uart67_dma_smoke",
+      "elf_sha256": "2a12014931b39c8f96ad8de2f77483789778ae1a1c5e6fa4873f1e5d23a55ef9",
+      "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 928,
+      "uart_sha256": "130445d4c05cb0cbb1ee5c0571b7a046450cb27dd13c479ad4f997901456311c",
+      "required_marker_counts": {
+        "OPENCH_UART6_DMA2_CH6_TX_OK": 14,
+        "OPENCH_UART7_DMA2_CH8_TX_OK": 14
+      },
+      "runtime_passed": true
+    },
+    {
+      "name": "adc1_pa0",
+      "target": "opench_ch32v307_adc1_pa0_smoke",
+      "elf_sha256": "4a3ba7b6b4d6fdd44514d7b9b7a72331300564757e45afbfdc67416954d11281",
+      "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 493,
+      "uart_sha256": "622699060b58d6033ba02633b6098f7bd89a9b4fcf80d2ea1bd36b17e611a0fd",
+      "required_marker_counts": {
+        "OPENCH_ADC1_CH0_PA0_READ_OK": 13
+      },
+      "runtime_passed": true
+    },
+    {
+      "name": "pwm_tim3_pa6",
+      "target": "opench_ch32v307_pwm_tim3_pa6_smoke",
+      "elf_sha256": "8259fda87850381b9403606b0209aec0c97899d9887406b007e781734b569ad6",
+      "program_log_sha256": "fe4670af7c1c4e77ed8de69bab64c4338a4d904d145b19fb5678b379b315780c",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 476,
+      "uart_sha256": "91cab67853b3d1970ec00daf50c80f30e4d8333c8fa39ebbfc9dedf87e31a43c",
+      "required_marker_counts": {
+        "OPENCH_TIM3_CH1_PA6_PWM_OK": 13
+      },
+      "runtime_passed": true
+    },
+    {
+      "name": "iwdg",
+      "target": "opench_ch32v307_iwdg_smoke",
+      "elf_sha256": "35bb852e70c15b13d439e37be87eff2c23cc84609dd0f51e2dac01ebe901c9ea",
+      "program_log_sha256": "fe4670af7c1c4e77ed8de69bab64c4338a4d904d145b19fb5678b379b315780c",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 357,
+      "uart_sha256": "cf216ef2e38709823f1730522d2b5e8984431514b29952f0cabb3f794312146a",
+      "required_marker_counts": {
+        "OPENCH_IWDG_FEED_OK": 12
+      },
+      "runtime_passed": true
+    },
+    {
+      "name": "can1_loopback",
+      "target": "opench_ch32v307_can1_loopback_smoke",
+      "elf_sha256": "580a0e9df5f4521f6e4382b3fceaca59f7fdc7c83ecd009d5dec4f4f38822a81",
+      "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 662,
+      "uart_sha256": "5b309fede0b3f237d52e2c97c7f761e52dcf5353a92064055fbde272c64624e2",
+      "required_marker_counts": {
+        "OPENCH_CAN1_STARTED": 1,
+        "OPENCH_CAN1_PB8_PB9_LOOPBACK_OK": 14
+      },
+      "runtime_passed": true
+    },
+    {
+      "name": "tim2_counter",
+      "target": "opench_ch32v307_tim2_counter_smoke",
+      "elf_sha256": "7790d40fa73b967e32b83598bb1a229ba50fcc58b6d982b5e03813fe9d940890",
+      "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+      "programmed_verified_reset": true,
+      "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+      "bytes_captured": 512,
+      "uart_sha256": "014bba28513c37eece4451da63639e930c071629e4002f73d4955bbae43a6efb",
+      "required_marker_counts": {
+        "OPENCH_TIM2_COUNTER_RUNNING_OK": 13
+      },
+      "runtime_passed": true
+    }
+  ]
+}

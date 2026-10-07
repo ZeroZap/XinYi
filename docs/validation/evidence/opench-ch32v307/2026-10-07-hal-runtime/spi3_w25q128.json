@@ -1,0 +1,14 @@
+{
+  "name": "spi3_w25q128",
+  "target": "opench_ch32v307_spi3_w25q128_smoke",
+  "elf_sha256": "d1cbb4bc8f497612162138e5c7b5bca9bbaa185a0d7b01183a883bb9fdc99986",
+  "program_log_sha256": "f07cf7953d4dca5944cdc66f43e197d67204ac26601e1c9f638ac51dfbb9e325",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 629,
+  "uart_sha256": "80959b83cab5cd5024b0070b8a73bc898e3d3117c85e0857a8a7840daa488e3c",
+  "required_marker_counts": {
+    "OPENCH_SPI3_W25Q128_JEDEC_OK EF4018": 14
+  },
+  "runtime_passed": true
+}

@@ -38,12 +38,18 @@ int main(void) {
         }
     }
     if (xy_hal_gpio_init(GPIOB, 10U, &i2c_pin) != XY_HAL_OK ||
-        xy_hal_gpio_init(GPIOB, 11U, &i2c_pin) != XY_HAL_OK ||
-        xy_hal_i2c_init(I2C2, &i2c) != XY_HAL_OK) {
+        xy_hal_gpio_init(GPIOB, 11U, &i2c_pin) != XY_HAL_OK) {
         uart_write("OPENCH_I2C2_INIT_ERROR\r\n");
         for (;;) {
         }
     }
+    uart_write("OPENCH_I2C2_GPIO_READY\r\n");
+    if (xy_hal_i2c_init(I2C2, &i2c) != XY_HAL_OK) {
+        uart_write("OPENCH_I2C2_INIT_ERROR\r\n");
+        for (;;) {
+        }
+    }
+    uart_write("OPENCH_I2C2_PERIPHERAL_READY\r\n");
 
     for (;;) {
         found = 0U;
