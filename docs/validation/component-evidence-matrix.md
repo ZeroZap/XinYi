@@ -444,6 +444,21 @@
 - 仍不允许宣称：Pandora Trace runtime filtering、throughput、concurrent loss behavior、ISR safety、
   performance、recovery、endurance 或 product qualification。
 
+### 2026-10-08 openCH CH32V307 SYS HAL compile baseline
+
+- 组件：HAL / SYS / WCH compile compatibility
+- 旧等级 -> 新等级：source-only -> C1 compile baseline; no Board claim
+- 证据路径/命令：`components/hal/wch/ch32x/src/xy_hal_sys.c`,
+  `boards/opench_ch32v307/sys_identity_main.c`; focused targets
+  `opench_ch32v307_sys_identity_smoke` and `xy_hal`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 制品：ELF SHA-256 `af7cdada7959ce64dfaf1bd19484636e0f263c958726c4b97f3477c91c576625`；
+  BIN SHA-256 `d2d2b5bb52e354e88aeee493f1a76abdceb650ebab49f9822f2a4619e108776f`。
+- 适用范围：CH32V307 system identity、clock/memory query、reset/IRQ/critical-section 与
+  bounded unsupported API compile/link reachability；Pandora 仍是唯一 reference-board runtime 基线。
+- 仍不允许宣称：openCH flash/read-back、UART runtime、真实 clock/memory identity、reset reason、
+  low-power behavior、IRQ runtime、performance、recovery、endurance 或 hardware qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

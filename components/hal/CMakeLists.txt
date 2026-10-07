@@ -96,6 +96,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
         "wch/ch32x/src/xy_hal_rng.c"
         "wch/ch32x/src/xy_hal_rtc.c"
         "wch/ch32x/src/xy_hal_spi.c"
+        "wch/ch32x/src/xy_hal_sys.c"
         "wch/ch32x/src/xy_hal_timer.c"
         "wch/ch32x/src/xy_hal_uart.c"
         "wch/ch32x/src/xy_hal_wdg.c"
