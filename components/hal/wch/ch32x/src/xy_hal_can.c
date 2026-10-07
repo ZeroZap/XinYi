@@ -37,7 +37,9 @@ static xy_hal_error_t apply_config(void* can, const xy_hal_can_config_t* cfg) {
         cfg->baudrate != XY_HAL_CAN_BAUD_500K && cfg->baudrate != XY_HAL_CAN_BAUD_1M)
         return XY_HAL_ERROR_NOT_SUPPORTED;
     if (cfg->mode > XY_HAL_CAN_MODE_SILENT_LOOPBACK || cfg->sjw < 1U || cfg->sjw > 4U ||
-        cfg->bs1 < 1U || cfg->bs1 > 16U || cfg->bs2 < 1U || cfg->bs2 > 8U)
+        cfg->bs1 < 1U || cfg->bs1 > 16U || cfg->bs2 < 1U || cfg->bs2 > 8U ||
+        cfg->auto_bus_off > 1U || cfg->auto_wake_up > 1U || cfg->auto_retrans > 1U ||
+        cfg->rx_fifo_locked > 1U || cfg->tx_fifo_priority > 1U)
         return XY_HAL_ERROR_INVALID_PARAM;
     tq = 1U + cfg->bs1 + cfg->bs2;
     if ((pclk % ((uint32_t)cfg->baudrate * tq)) != 0U)
@@ -109,12 +111,15 @@ xy_hal_error_t xy_hal_can_send(void* can, const xy_hal_can_msg_t* msg, uint32_t 
     uint8_t mb, status;
     uint32_t start;
     int i = can_index(can);
-    if (i < 0 || !msg || msg->dlc > 8U ||
+    if (i < 0 || !msg || msg->dlc > 8U || msg->frame_type > XY_HAL_CAN_FRAME_EXT ||
+        msg->data_type > XY_HAL_CAN_REMOTE_FRAME ||
         (msg->frame_type == XY_HAL_CAN_FRAME_STD && msg->id > XY_HAL_CAN_STD_ID_MAX) ||
         (msg->frame_type == XY_HAL_CAN_FRAME_EXT && msg->id > XY_HAL_CAN_EXT_ID_MAX))
         return XY_HAL_ERROR_INVALID_PARAM;
     if (!contexts[i].initialized)
         return XY_HAL_ERROR_NOT_INIT;
+    if (!contexts[i].started)
+        return XY_HAL_ERROR_BUSY;
     tx.IDE = msg->frame_type == XY_HAL_CAN_FRAME_STD ? CAN_ID_STD : CAN_ID_EXT;
     tx.RTR = msg->data_type == XY_HAL_CAN_DATA_FRAME ? CAN_RTR_DATA : CAN_RTR_REMOTE;
     tx.StdId = msg->id;
@@ -163,8 +168,13 @@ xy_hal_error_t xy_hal_can_receive(void* can, xy_hal_can_msg_t* msg, xy_hal_can_f
 }
 xy_hal_error_t xy_hal_can_config_filter(void* can, const xy_hal_can_filter_config_t* cfg) {
     CAN_FilterInitTypeDef f = {0};
-    if (can_index(can) < 0 || !cfg || cfg->bank_number > 27U || cfg->fifo_assignment > 1U)
+    int i = can_index(can);
+    if (i < 0 || !cfg || cfg->bank_number > 27U || cfg->fifo_assignment > 1U ||
+        cfg->filter_mode > XY_HAL_CAN_FILTERMODE_IDLIST ||
+        cfg->filter_scale > XY_HAL_CAN_FILTERSCALE_32BIT || cfg->activation > 1U)
         return XY_HAL_ERROR_INVALID_PARAM;
+    if (!contexts[i].initialized)
+        return XY_HAL_ERROR_NOT_INIT;
     f.CAN_FilterNumber = (uint8_t)cfg->bank_number;
     f.CAN_FilterMode = cfg->filter_mode == XY_HAL_CAN_FILTERMODE_IDMASK ? CAN_FilterMode_IdMask
                                                                         : CAN_FilterMode_IdList;
@@ -253,12 +263,18 @@ int32_t xy_hal_can_is_error_warning(void* can) {
 }
 xy_hal_error_t xy_hal_can_set_mode(void* can, xy_hal_can_mode_t m) {
     int i = can_index(can);
+    xy_hal_can_config_t candidate;
+    xy_hal_error_t error;
     if (i < 0 || m > XY_HAL_CAN_MODE_SILENT_LOOPBACK)
         return XY_HAL_ERROR_INVALID_PARAM;
     if (!contexts[i].initialized)
         return XY_HAL_ERROR_NOT_INIT;
-    contexts[i].config.mode = m;
-    return apply_config(can, &contexts[i].config);
+    candidate = contexts[i].config;
+    candidate.mode = m;
+    error = apply_config(can, &candidate);
+    if (error == XY_HAL_OK)
+        contexts[i].config = candidate;
+    return error;
 }
 int32_t xy_hal_can_get_mode(void* can) {
     int i = can_index(can);
@@ -268,12 +284,18 @@ int32_t xy_hal_can_get_mode(void* can) {
 }
 xy_hal_error_t xy_hal_can_set_baudrate(void* can, xy_hal_can_baud_t b) {
     int i = can_index(can);
+    xy_hal_can_config_t candidate;
+    xy_hal_error_t error;
     if (i < 0)
         return XY_HAL_ERROR_INVALID_PARAM;
     if (!contexts[i].initialized)
         return XY_HAL_ERROR_NOT_INIT;
-    contexts[i].config.baudrate = b;
-    return apply_config(can, &contexts[i].config);
+    candidate = contexts[i].config;
+    candidate.baudrate = b;
+    error = apply_config(can, &candidate);
+    if (error == XY_HAL_OK)
+        contexts[i].config = candidate;
+    return error;
 }
 int32_t xy_hal_can_get_baudrate(void* can) {
     int i = can_index(can);
@@ -351,24 +373,48 @@ xy_hal_error_t xy_hal_can_clear_error_flags(void* can) {
 }
 xy_hal_error_t xy_hal_can_enable_autoretrans(void* can, uint8_t e) {
     int i = can_index(can);
+    xy_hal_can_config_t candidate;
+    xy_hal_error_t error;
     if (i < 0 || e > 1)
         return XY_HAL_ERROR_INVALID_PARAM;
-    contexts[i].config.auto_retrans = e;
-    return apply_config(can, &contexts[i].config);
+    if (!contexts[i].initialized)
+        return XY_HAL_ERROR_NOT_INIT;
+    candidate = contexts[i].config;
+    candidate.auto_retrans = e;
+    error = apply_config(can, &candidate);
+    if (error == XY_HAL_OK)
+        contexts[i].config = candidate;
+    return error;
 }
 xy_hal_error_t xy_hal_can_enable_autowakeup(void* can, uint8_t e) {
     int i = can_index(can);
+    xy_hal_can_config_t candidate;
+    xy_hal_error_t error;
     if (i < 0 || e > 1)
         return XY_HAL_ERROR_INVALID_PARAM;
-    contexts[i].config.auto_wake_up = e;
-    return apply_config(can, &contexts[i].config);
+    if (!contexts[i].initialized)
+        return XY_HAL_ERROR_NOT_INIT;
+    candidate = contexts[i].config;
+    candidate.auto_wake_up = e;
+    error = apply_config(can, &candidate);
+    if (error == XY_HAL_OK)
+        contexts[i].config = candidate;
+    return error;
 }
 xy_hal_error_t xy_hal_can_enable_autobusoff(void* can, uint8_t e) {
     int i = can_index(can);
+    xy_hal_can_config_t candidate;
+    xy_hal_error_t error;
     if (i < 0 || e > 1)
         return XY_HAL_ERROR_INVALID_PARAM;
-    contexts[i].config.auto_bus_off = e;
-    return apply_config(can, &contexts[i].config);
+    if (!contexts[i].initialized)
+        return XY_HAL_ERROR_NOT_INIT;
+    candidate = contexts[i].config;
+    candidate.auto_bus_off = e;
+    error = apply_config(can, &candidate);
+    if (error == XY_HAL_OK)
+        contexts[i].config = candidate;
+    return error;
 }
 void xy_hal_can_event_handler(void* can, xy_hal_can_evt_t event, void* arg) {
     int i = can_index(can);
