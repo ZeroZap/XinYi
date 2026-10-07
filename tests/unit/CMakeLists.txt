@@ -91,6 +91,10 @@ add_test(NAME pandora_uart_capture
     COMMAND python3 ${UNIT_HAL}/test_pandora_uart_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME opench_uart_capture
+    COMMAND python3 ${UNIT_HAL}/test_opench_uart_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_nrf24_capture_validator
     COMMAND python3 ${UNIT_NET}/test_pandora_nrf24_capture.py
     WORKING_DIRECTORY ${ROOT}

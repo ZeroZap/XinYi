@@ -2,18 +2,40 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import select
 import termios
 import time
+from pathlib import Path
+
+
+def classify_capture(data: bytes, firmware_commit: str) -> tuple[str, list[str]]:
+    text = data.decode("ascii", errors="replace")
+    markers = [
+        "XINYI OPENCH CH32V307 UART1 READY",
+        f"FIRMWARE_COMMIT {firmware_commit}",
+        "PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F",
+        "OPENCH_UART1_ALIVE",
+    ]
+    positions = [text.find(marker) for marker in markers]
+    if not data:
+        return "NO_DATA", markers
+    if any(position < 0 for position in positions) or positions != sorted(positions):
+        return "CONTENT_MISMATCH", markers
+    return "B1_REVIEW_CANDIDATE", markers
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("port")
-    parser.add_argument("--samples", type=int, default=10)
-    parser.add_argument("--interval-ms", type=int, default=100)
+    parser.add_argument("--firmware-commit", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--metadata", type=Path, required=True)
     parser.add_argument("--duration-ms", type=int, default=3000)
     args = parser.parse_args()
+    if len(args.firmware_commit) != 40 or any(c not in "0123456789abcdef" for c in args.firmware_commit):
+        parser.error("--firmware-commit must be exactly 40 lowercase hexadecimal characters")
     with open(args.port, "rb", buffering=0) as stream:
         fd = stream.fileno()
         attrs = termios.tcgetattr(fd)
@@ -32,14 +54,22 @@ def main() -> int:
             ready, _, _ = select.select([stream], [], [], end - time.monotonic())
             if ready:
                 data.extend(stream.read(4096))
-        text = data.decode("ascii", errors="replace")
-        print(f"bytes={len(data)}")
-        print(text, end="")
-        if "OPENCH_UART1_ALIVE" not in text:
-            print("OPENCH_UART1_RUNTIME_NOT_OBSERVED")
-            return 1
-        print("OPENCH_UART1_RUNTIME_OK")
-        return 0
+    payload = bytes(data)
+    status, markers = classify_capture(payload, args.firmware_commit)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.metadata.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_bytes(payload)
+    record = {
+        "status": status,
+        "device": args.port,
+        "firmware_commit": args.firmware_commit,
+        "bytes_captured": len(payload),
+        "capture_sha256": hashlib.sha256(payload).hexdigest(),
+        "required_markers": markers,
+    }
+    args.metadata.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    print(f"bytes={len(payload)} status={status}")
+    return 0 if status == "B1_REVIEW_CANDIDATE" else 1
 
 
 if __name__ == "__main__":

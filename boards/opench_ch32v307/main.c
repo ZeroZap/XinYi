@@ -6,6 +6,10 @@
 
 #include "ch32v30x.h"
 
+#ifndef XINYI_FIRMWARE_COMMIT
+#error "XINYI_FIRMWARE_COMMIT must identify the exact source commit"
+#endif
+
 static void uart_write(const char* text) {
     size_t len = 0U;
     while (text[len] != '\0') {
@@ -52,6 +56,7 @@ int main(void) {
 
     for (;;) {
         uart_write("XINYI OPENCH CH32V307 UART1 READY\r\n");
+        uart_write("FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
         uart_write("PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F\r\n");
         uart_write("OPENCH_UART1_ALIVE\r\n");
         for (volatile uint32_t delay = 0; delay < 300000U; ++delay) {

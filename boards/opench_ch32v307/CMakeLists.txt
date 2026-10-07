@@ -3,6 +3,26 @@ set(_wch_system ${CMAKE_SOURCE_DIR}/MCU/wch/CH32V307EVT/EXAM/RCC/HSE_CLK/User)
 set(_wch_startup ${_wch_sdk}/Startup/startup_ch32v30x_D8C.S)
 set(_wch_ld ${_wch_sdk}/Ld/Link.ld)
 
+set(XINYI_SOURCE_COMMIT "" CACHE STRING
+    "Exact source commit identity for exported/clean openCH builds")
+if(XINYI_SOURCE_COMMIT)
+    set(_firmware_commit "${XINYI_SOURCE_COMMIT}")
+    set(_firmware_commit_result 0)
+else()
+    execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE _firmware_commit
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE _firmware_commit_result)
+endif()
+string(LENGTH "${_firmware_commit}" _firmware_commit_length)
+if(NOT _firmware_commit_result EQUAL 0 OR
+   NOT _firmware_commit_length EQUAL 40 OR
+   NOT _firmware_commit MATCHES "^[0-9a-f]+$")
+    message(FATAL_ERROR "openCH firmware requires an exact Git source commit identity")
+endif()
+
 add_executable(opench_ch32v307_uart_smoke
     main.c
     ${_wch_startup}
@@ -31,6 +51,7 @@ target_include_directories(opench_ch32v307_uart_smoke PRIVATE
 
 target_compile_definitions(opench_ch32v307_uart_smoke PRIVATE
     MCU_CH32 CH32V30x CH32V30x_D8C
+    XINYI_FIRMWARE_COMMIT="${_firmware_commit}"
 )
 target_link_options(opench_ch32v307_uart_smoke PRIVATE
     -T${_wch_ld}
