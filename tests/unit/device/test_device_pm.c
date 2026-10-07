@@ -10,6 +10,9 @@ static xy_device_pm_state_t last_requested_state;
 static unsigned int set_wakeup_calls;
 static bool last_requested_wakeup;
 static int set_wakeup_result;
+static unsigned int get_consumption_calls;
+static uint32_t reported_consumption;
+static int get_consumption_result;
 
 uint32_t xy_device_get_tick(void) {
     return fake_tick;
@@ -29,6 +32,14 @@ static int capture_set_wakeup(xy_device_t* dev, bool enable) {
     return set_wakeup_result;
 }
 
+static int capture_get_consumption(xy_device_t* dev, uint32_t* uw) {
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_NOT_NULL(uw);
+    get_consumption_calls++;
+    *uw = reported_consumption;
+    return get_consumption_result;
+}
+
 void setUp(void) {
     fake_tick = 100U;
     set_state_calls = 0U;
@@ -36,6 +47,9 @@ void setUp(void) {
     set_wakeup_calls = 0U;
     last_requested_wakeup = false;
     set_wakeup_result = XY_DEVICE_OK;
+    get_consumption_calls = 0U;
+    reported_consumption = 1234U;
+    get_consumption_result = XY_DEVICE_OK;
 }
 
 void tearDown(void) {}
@@ -158,6 +172,27 @@ static void test_device_pm_wakeup_callback_failure_is_retryable(void) {
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
 }
 
+static void test_device_pm_consumption_callback_failure_preserves_output(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.get_power_consumption = capture_get_consumption};
+    uint32_t consumption = 0xA5A5A5A5U;
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+
+    get_consumption_result = XY_DEVICE_IO_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_device_pm_get_consumption(&dev, &consumption));
+    TEST_ASSERT_EQUAL_UINT(1U, get_consumption_calls);
+    TEST_ASSERT_EQUAL_HEX32(0xA5A5A5A5U, consumption);
+
+    get_consumption_result = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_consumption(&dev, &consumption));
+    TEST_ASSERT_EQUAL_UINT(2U, get_consumption_calls);
+    TEST_ASSERT_EQUAL_UINT32(reported_consumption, consumption);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_device_pm_idle_timeout_uses_device_tick);
@@ -165,5 +200,6 @@ int main(void) {
     RUN_TEST(test_device_pm_deinit_reclaims_capacity);
     RUN_TEST(test_device_pm_rejects_invalid_enum_values_without_callbacks);
     RUN_TEST(test_device_pm_wakeup_callback_failure_is_retryable);
+    RUN_TEST(test_device_pm_consumption_callback_failure_preserves_output);
     return UNITY_END();
 }

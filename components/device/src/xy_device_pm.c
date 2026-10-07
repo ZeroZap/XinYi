@@ -212,9 +212,16 @@ int xy_device_pm_get_consumption(xy_device_t *dev, uint32_t *uw)
         return XY_DEVICE_NOT_INIT;
     }
     
-    /* 调用底层操作 */
+    /* Commit callback output only after the driver reports success. */
     if (data->ops->get_power_consumption) {
-        return data->ops->get_power_consumption(dev, uw);
+        uint32_t measured_uw;
+        int ret = data->ops->get_power_consumption(dev, &measured_uw);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
+
+        *uw = measured_uw;
+        return XY_DEVICE_OK;
     }
     
     /* 默认实现：根据状态估算 */

@@ -512,6 +512,18 @@
 - 仍不允许宣称：Pandora Device PM runtime、concurrency safety、功耗、wake latency、
   deep-power modes、recovery、endurance 或 hardware qualification。
 
+### 2026-10-08 Device PM consumption output atomicity
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host callback-failure contract strengthened; no Board claim change
+- 证据路径/命令：`components/device/src/xy_device_pm.c`,
+  `tests/unit/device/test_device_pm.c`; focused `device_pm`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：driver power-consumption callbacks write into staged storage; public caller output is
+  committed only after callback success and remains unchanged on callback failure.
+- 仍不允许宣称：Pandora power measurement、Device PM runtime、功耗精度、wake latency、
+  recovery、endurance 或 hardware qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation
