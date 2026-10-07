@@ -43,6 +43,7 @@ static void test_device_pm_idle_timeout_uses_device_tick(void) {
     xy_device_pm_check_idle(&dev);
     TEST_ASSERT_EQUAL_UINT(1U, set_state_calls);
     TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_SLEEP, last_requested_state);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
 }
 
 static void test_device_pm_keeps_driver_data_and_isolates_devices(void) {
@@ -68,11 +69,41 @@ static void test_device_pm_keeps_driver_data_and_isolates_devices(void) {
     TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_SLEEP, state);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&second, &state));
     TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&first));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&second));
+}
+
+static void test_device_pm_deinit_reclaims_capacity(void) {
+    xy_device_t devices[17];
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+    xy_device_pm_state_t state = XY_DEVICE_PM_STATE_OFF;
+
+    memset(devices, 0, sizeof(devices));
+    for (size_t i = 0; i < 16U; ++i) {
+        TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&devices[i], &ops));
+    }
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NO_MEM, xy_device_pm_init(&devices[16], &ops));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&devices[7]));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_INIT, xy_device_pm_get_state(&devices[7], &state));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&devices[16], &ops));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&devices[16], &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+
+    for (size_t i = 0; i < 17U; ++i) {
+        if (i != 7U) {
+            TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&devices[i]));
+        }
+    }
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_INIT, xy_device_pm_deinit(&devices[7]));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_device_pm_deinit(NULL));
 }
 
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_device_pm_idle_timeout_uses_device_tick);
     RUN_TEST(test_device_pm_keeps_driver_data_and_isolates_devices);
+    RUN_TEST(test_device_pm_deinit_reclaims_capacity);
     return UNITY_END();
 }

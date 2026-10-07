@@ -60,6 +60,13 @@ typedef struct {
 int xy_device_pm_init(xy_device_t *dev, const xy_device_pm_ops_t *pm_ops);
 
 /**
+ * @brief Release the per-device power-management slot.
+ * @param dev Device handle
+ * @return XY_DEVICE_OK on success, otherwise an error code
+ */
+int xy_device_pm_deinit(xy_device_t *dev);
+
+/**
  * @brief 设置设备电源状态
  * @param dev 设备句柄
  * @param state 目标电源状态

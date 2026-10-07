@@ -102,6 +102,21 @@ int xy_device_pm_init(xy_device_t *dev, const xy_device_pm_ops_t *pm_ops)
     return XY_DEVICE_OK;
 }
 
+int xy_device_pm_deinit(xy_device_t *dev)
+{
+    if (!dev) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
+
+    xy_device_pm_data_t *data = pm_find_data(dev);
+    if (!data) {
+        return XY_DEVICE_NOT_INIT;
+    }
+
+    memset(data, 0, sizeof(*data));
+    return XY_DEVICE_OK;
+}
+
 int xy_device_pm_set_state(xy_device_t *dev, xy_device_pm_state_t state)
 {
     if (!dev) {
