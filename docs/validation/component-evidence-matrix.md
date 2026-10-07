@@ -524,6 +524,19 @@
 - 仍不允许宣称：Pandora power measurement、Device PM runtime、功耗精度、wake latency、
   recovery、endurance 或 hardware qualification。
 
+### 2026-10-08 Device PM state callback atomicity
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host callback contract strengthened; no Board claim change
+- 证据路径/命令：`components/device/src/xy_device_pm.c`,
+  `tests/unit/device/test_device_pm.c`; focused `device_pm`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：public state reads dispatch the optional driver `get_state` callback; callback failure
+  and invalid reported enums preserve caller output and cached state, while a valid result commits
+  atomically to both.
+- 仍不允许宣称：Pandora Device PM runtime、concurrency safety、功耗、wake latency、
+  deep-power modes、recovery、endurance 或 hardware qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

@@ -172,6 +172,20 @@ int xy_device_pm_get_state(xy_device_t *dev, xy_device_pm_state_t *state)
         return XY_DEVICE_NOT_INIT;
     }
     
+    /* Commit driver-reported state only after a successful callback. */
+    if (data->ops && data->ops->get_state) {
+        xy_device_pm_state_t reported_state;
+        int ret = data->ops->get_state(dev, &reported_state);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
+        if (!pm_state_is_valid(reported_state)) {
+            return XY_DEVICE_INVALID_PARAM;
+        }
+
+        data->current_state = reported_state;
+    }
+
     *state = data->current_state;
     return XY_DEVICE_OK;
 }
