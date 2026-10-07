@@ -194,3 +194,32 @@ add_custom_command(TARGET opench_ch32v307_uart67_dma_smoke POST_BUILD
             ${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_uart67_dma_smoke.hex
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:opench_ch32v307_uart67_dma_smoke>
     COMMENT "Generating openCH UART6/UART7 DMA smoke images")
+
+add_executable(opench_ch32v307_adc1_pa0_smoke
+    adc1_pa0_main.c
+    ${_wch_startup}
+    ${_wch_system}/system_ch32v30x.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_adc.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_adc.c)
+target_include_directories(opench_ch32v307_adc1_pa0_smoke PRIVATE
+    ${CMAKE_SOURCE_DIR}/components/hal/inc
+    ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
+target_compile_definitions(opench_ch32v307_adc1_pa0_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
+target_link_options(opench_ch32v307_adc1_pa0_smoke PRIVATE
+    -T${_wch_ld} -Wl,--gc-sections -Wl,--print-memory-usage -nostartfiles
+    --specs=nano.specs --specs=nosys.specs
+    -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_adc1_pa0_smoke.map)
+set_target_properties(opench_ch32v307_adc1_pa0_smoke PROPERTIES SUFFIX ".elf")
+add_custom_command(TARGET opench_ch32v307_adc1_pa0_smoke POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:opench_ch32v307_adc1_pa0_smoke>
+            ${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_adc1_pa0_smoke.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:opench_ch32v307_adc1_pa0_smoke>
+            ${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_adc1_pa0_smoke.hex
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:opench_ch32v307_adc1_pa0_smoke>
+    COMMENT "Generating openCH ADC1 PA0 smoke images")
