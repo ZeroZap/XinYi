@@ -1,0 +1,13 @@
+{
+  "source_commit": "6f377eab732281176b075d95232e3885233a830b",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "692ecebae3d57a7ebb6cef07a0f66dfa6df8b5ad7bbd048b0fb725e9f7a31365",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 592,
+  "uart_sha256": "81ee81025f95142a86027eb26115210caa45019bb8e84a6d07093b6195ae6db4",
+  "marker": "OPENCH_RNG_VARIATION_OK",
+  "marker_count": 21,
+  "error_marker_count": 0,
+  "runtime_passed": true
+}

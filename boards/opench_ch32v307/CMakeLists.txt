@@ -306,6 +306,33 @@ add_custom_command(TARGET opench_ch32v307_tim2_counter_smoke POST_BUILD
     COMMAND ${CMAKE_SIZE} $<TARGET_FILE:opench_ch32v307_tim2_counter_smoke>
     COMMENT "Generating openCH TIM2 counter smoke images")
 
+add_executable(opench_ch32v307_rng_smoke
+    rng_main.c ${_wch_startup} ${_wch_system}/system_ch32v30x.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_rng.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_rng.c)
+target_include_directories(opench_ch32v307_rng_smoke PRIVATE
+    ${CMAKE_SOURCE_DIR}/components/hal/inc
+    ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
+target_compile_definitions(opench_ch32v307_rng_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
+target_link_options(opench_ch32v307_rng_smoke PRIVATE
+    -T${_wch_ld} -Wl,--gc-sections -Wl,--print-memory-usage -nostartfiles
+    --specs=nano.specs --specs=nosys.specs
+    -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_rng_smoke.map)
+set_target_properties(opench_ch32v307_rng_smoke PROPERTIES SUFFIX ".elf")
+add_custom_command(TARGET opench_ch32v307_rng_smoke POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:opench_ch32v307_rng_smoke>
+            ${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_rng_smoke.bin
+    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:opench_ch32v307_rng_smoke>
+            ${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_rng_smoke.hex
+    COMMAND ${CMAKE_SIZE} $<TARGET_FILE:opench_ch32v307_rng_smoke>
+    COMMENT "Generating openCH hardware RNG smoke images")
+
 add_executable(opench_ch32v307_iwdg_smoke
     iwdg_main.c ${_wch_startup} ${_wch_system}/system_ch32v30x.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
