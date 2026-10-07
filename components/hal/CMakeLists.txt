@@ -87,6 +87,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
     # contracts and must not block the board bring-up build.
     set(HAL_SOURCES
         "wch/ch32x/src/xy_hal_adc.c"
+        "wch/ch32x/src/xy_hal_can.c"
         "wch/ch32x/src/xy_hal_dma.c"
         "wch/ch32x/src/xy_hal_gpio.c"
         "wch/ch32x/src/xy_hal_i2c.c"
@@ -98,6 +99,8 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_usart.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_gpio.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_adc.c"
+        "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_can.c"
+        "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_dbgmcu.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_dma.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_i2c.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_spi.c"
