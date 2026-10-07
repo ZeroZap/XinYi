@@ -459,6 +459,22 @@
 - 仍不允许宣称：openCH flash/read-back、UART runtime、真实 clock/memory identity、reset reason、
   low-power behavior、IRQ runtime、performance、recovery、endurance 或 hardware qualification。
 
+### 2026-10-08 openCH CH32V307 internal Flash HAL compile baseline
+
+- 组件：HAL / Storage / WCH compile compatibility
+- 旧等级 -> 新等级：source-only -> C1 compile baseline; no Board claim
+- 证据路径/命令：`components/hal/wch/ch32x/src/xy_hal_flash.c`,
+  `boards/opench_ch32v307/flash_info_main.c`; focused targets
+  `opench_ch32v307_flash_info_smoke` and `xy_hal`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 制品：ELF SHA-256 `a875228b0d89771f1016a297567d5790c356a1a961c28de859152d2001e5af6f`；
+  BIN SHA-256 `36808560f087daa744f738e1e6f8942d7a2f84de997d4e0c601a7b796f495cdb`。
+- 适用范围：288 KiB address range、72 个 4 KiB page、4-byte program alignment、
+  lifecycle/lock/range validation 与 SDK erase/program link reachability；board smoke 只读取
+  immutable geometry/boundary metadata，不执行 Flash erase/program。
+- 仍不允许宣称：openCH Flash erase/program/read-back runtime、掉电恢复、保护位、bootloader/FOTA、
+  performance、endurance 或 hardware qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation
