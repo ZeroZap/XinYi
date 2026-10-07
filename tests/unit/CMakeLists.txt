@@ -356,6 +356,12 @@ xy_add_unit_test(test_device device_framework UNITY
     ${FRAMEWORK_SOURCES}
 )
 
+# --- Test 1b: per-device PM idle timeout uses the canonical Device tick ---
+xy_add_unit_test(test_device_pm device_pm UNITY
+    ${UNIT_DEVICE}/test_device_pm.c
+    ${DEV}/src/xy_device_pm.c
+)
+
 # --- Test 2: SHT30 driver integration ---
 xy_add_unit_test(test_sht30_integration sht30_integration UNITY
     ${UNIT_SENSOR}/test_sht30_integration.c

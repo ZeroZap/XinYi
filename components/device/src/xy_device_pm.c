@@ -8,6 +8,7 @@
  */
 
 #include "xy_device_pm.h"
+#include "xy_device_core.h"
 #include <string.h>
 
 /* ==================== Private Types ==================== */
@@ -50,7 +51,7 @@ static xy_device_pm_data_t *pm_find_data(xy_device_t *dev)
  */
 static uint32_t pm_get_tick_ms(void)
 {
-    return 0;
+    return xy_device_get_tick();
 }
 
 /* ==================== Public Implementation ==================== */

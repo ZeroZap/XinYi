@@ -391,6 +391,19 @@
 - 仍不允许宣称：WS2812 electrical timing, animation frame-rate accuracy, visual quality,
   performance, endurance, or display hardware qualification.
 
+### 2026-10-07 Device PM idle-time ownership
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host timing contract strengthened; no Board claim change
+- 证据路径/命令：`components/device/src/xy_device_pm.c`,
+  `components/device/inc/xy_device_pm.h`, `tests/unit/device/test_device_pm.c`; focused
+  `device_pm`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`.
+- 适用范围：idle timeout 与 activity timestamps 消费 canonical `xy_device_get_tick()`；
+  timeout 边界前保持 ACTIVE，达到边界时经 driver PM callback 进入 SLEEP。
+- 仍不允许宣称：Pandora sleep/wakeup, power consumption, wake latency, deep-power modes,
+  recovery, endurance, or Device PM hardware qualification.
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

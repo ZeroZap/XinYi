@@ -1824,3 +1824,10 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 收口：BNO055 初始化使用 staged candidate；首次失败清零未初始化 owner，live owner 在 reset、身份或配置失败时保持原 transport/lifecycle/mode/unit state，完整成功后才原子替换。
 - 验证：focused `sensor_bno055`；Host、PC、STM32L4、STM32U5 build 与 `git diff --check`。
 - 边界：仅为 Host/compile lifecycle contract，不升级 BNO055 实板身份、融合精度、动态响应、恢复或 endurance 证据。
+
+### 2026-10-07 Device PM idle-time ownership
+
+- TDD RED：per-device PM 的 tick helper 固定返回 0，配置非零 idle timeout 后即使时间到达边界也不会进入 sleep。
+- 收口：per-device PM 复用 canonical `xy_device_get_tick()`；公开既有 idle-timeout/check/activity API，并新增 focused `device_pm` contract 覆盖边界前不休眠、边界时休眠。
+- 验证：focused `device_pm`；Host、PC、STM32L4、STM32U5 build 与 `git diff --check`。
+- 边界：仅为 Host/compile Device PM 时间 ownership contract，不升级 Pandora sleep、功耗、wake latency、深度模式或 endurance 证据。

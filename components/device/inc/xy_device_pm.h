@@ -134,6 +134,26 @@ int xy_device_pm_off(xy_device_t *dev);
  */
 int xy_device_pm_on(xy_device_t *dev);
 
+/**
+ * @brief Check whether an automatically managed device has exceeded its idle timeout.
+ * @param dev Device handle
+ */
+void xy_device_pm_check_idle(xy_device_t *dev);
+
+/**
+ * @brief Configure the automatic idle timeout.
+ * @param dev Device handle
+ * @param timeout_ms Timeout in milliseconds; zero disables idle detection
+ * @return XY_DEVICE_OK on success, otherwise an error code
+ */
+int xy_device_pm_set_idle_timeout(xy_device_t *dev, uint32_t timeout_ms);
+
+/**
+ * @brief Record activity and wake an automatically managed sleeping device.
+ * @param dev Device handle
+ */
+void xy_device_pm_record_activity(xy_device_t *dev);
+
 #ifdef __cplusplus
 }
 #endif
