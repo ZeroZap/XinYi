@@ -129,6 +129,39 @@ static int broker_dequeue_msg(xy_broker_server_t *server, xy_broker_msg_t *msg)
     return XY_BROKER_OK;
 }
 
+static int broker_dequeue_response(xy_broker_server_t *server, uint16_t expected_src,
+                                   uint16_t expected_msg_id, xy_broker_msg_t *msg)
+{
+    uint16_t offset;
+
+    if (!server || !msg)
+        return XY_BROKER_INVALID_PARAM;
+
+    for (offset = 0; offset < server->queue_count; offset++) {
+        uint16_t index = (server->queue_head + offset) % XY_BROKER_MSG_QUEUE_SIZE;
+        xy_broker_msg_t *candidate = &server->msg_queue[index];
+
+        if (candidate->src_server == expected_src
+            && candidate->dst_server == server->server_id
+            && candidate->msg_id == expected_msg_id) {
+            uint16_t shift;
+
+            memcpy(msg, candidate, sizeof(*msg));
+            for (shift = offset; shift + 1U < server->queue_count; shift++) {
+                uint16_t current = (server->queue_head + shift) % XY_BROKER_MSG_QUEUE_SIZE;
+                uint16_t next = (current + 1U) % XY_BROKER_MSG_QUEUE_SIZE;
+                memcpy(&server->msg_queue[current], &server->msg_queue[next], sizeof(*msg));
+            }
+            server->queue_tail =
+                (server->queue_tail + XY_BROKER_MSG_QUEUE_SIZE - 1U) % XY_BROKER_MSG_QUEUE_SIZE;
+            server->queue_count--;
+            return XY_BROKER_OK;
+        }
+    }
+
+    return XY_BROKER_NOT_FOUND;
+}
+
 /* ==================== Core API Implementation ==================== */
 
 int xy_broker_init(void)
@@ -442,7 +475,8 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     /* 轮询检查响应队列 */
     while ((broker_get_timestamp() - start_time) < timeout_ms) {
         if (src && src->queue_count > 0) {
-            if (broker_dequeue_msg(src, response_msg) == XY_BROKER_OK) {
+            if (broker_dequeue_response(src, dst_server, msg_id, response_msg)
+                == XY_BROKER_OK) {
                 return XY_BROKER_OK;
             }
         }

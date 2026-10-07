@@ -417,6 +417,18 @@
 - 仍不允许宣称：Pandora IPC runtime timing, wake latency, throughput, multi-producer safety,
   ISR safety, recovery, endurance, or product qualification.
 
+### 2026-10-07 IPC Broker request response correlation
+
+- 组件：IPC / Broker
+- 旧等级 -> 新等级：H1/Host request-response contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：`xy_broker_request()` 仅提取 source queue 中匹配目标 server/message ID 的
+  response；不相关消息保持原 FIFO 顺序等待正常 dispatch，不再被误当 response 消耗。
+- 仍不允许宣称：Pandora request/response runtime、并发 correlation token、throughput、
+  multi-request safety、recovery、endurance 或 product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

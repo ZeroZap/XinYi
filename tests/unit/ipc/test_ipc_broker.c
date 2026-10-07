@@ -285,6 +285,47 @@ static void test_request_response_and_timeout(void)
     TEST_ASSERT_EQUAL_UINT32(1U, xy_os_delay_fake.arg0_val);
 }
 
+static void test_request_skips_unrelated_source_queue_messages(void)
+{
+    const uint32_t unrelated_payload = 0xA5A55A5AU;
+    const uint32_t response_payload = 0x12345678U;
+    const uint32_t request_payload = 0xCAFEBABEU;
+    xy_broker_msg_t response;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SYSTEM_STATUS, &unrelated_payload,
+                                         sizeof(unrelated_payload), XY_BROKER_PRIORITY_LOW));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_COMM, XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_COMM_SEND, &response_payload,
+                                         sizeof(response_payload), XY_BROKER_PRIORITY_NORMAL));
+
+    memset(&response, 0, sizeof(response));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                        XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                        sizeof(request_payload), &response, 1U));
+    TEST_ASSERT_EQUAL(XY_BROKER_SERVER_COMM, response.src_server);
+    TEST_ASSERT_EQUAL(XY_BROKER_SERVER_SYSTEM, response.dst_server);
+    TEST_ASSERT_EQUAL(XY_BROKER_MSG_COMM_SEND, response.msg_id);
+    TEST_ASSERT_EQUAL_UINT16(sizeof(response_payload), response.payload_len);
+    TEST_ASSERT_EQUAL_MEMORY(&response_payload, response.payload, sizeof(response_payload));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U));
+    TEST_ASSERT_EQUAL(XY_BROKER_SERVER_SENSOR, last_msg.src_server);
+    TEST_ASSERT_EQUAL(XY_BROKER_MSG_SYSTEM_STATUS, last_msg.msg_id);
+    TEST_ASSERT_EQUAL_MEMORY(&unrelated_payload, last_msg.payload, sizeof(unrelated_payload));
+}
+
 static void test_handler_failure_is_propagated_and_queue_recovers(void)
 {
     const uint32_t payload = 0xA5A55A5AU;
@@ -383,6 +424,7 @@ int main(void)
     RUN_TEST(test_direct_message_queue_and_limits);
     RUN_TEST(test_pubsub_create_publish_and_unsubscribe);
     RUN_TEST(test_request_response_and_timeout);
+    RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
     RUN_TEST(test_debug_name_helpers);
