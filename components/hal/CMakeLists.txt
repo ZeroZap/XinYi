@@ -93,6 +93,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
         "wch/ch32x/src/xy_hal_i2c.c"
         "wch/ch32x/src/xy_hal_pwm.c"
         "wch/ch32x/src/xy_hal_spi.c"
+        "wch/ch32x/src/xy_hal_timer.c"
         "wch/ch32x/src/xy_hal_uart.c"
         "wch/ch32x/src/xy_hal_wdg.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_rcc.c"
