@@ -1,0 +1,13 @@
+{
+  "source_commit": "65a8aac8c7ee21ed7604dd93643cde0614d3253f",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "3e0dad87b8c791edf34fe6a08f870c33594b452db40f8c8aa4c6377045b1c2bb",
+  "programmed_verified_reset": true,
+  "uart_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_BC5C0A1DC679-if01",
+  "bytes_captured": 203,
+  "uart_sha256": "c8919f1c4385bb1384875081cfa000a524a1eca2506c1137329bc54527714cfb",
+  "marker": "OPENCH_RTC_LSI_COUNTER_BACKUP_OK",
+  "marker_count": 2,
+  "error_marker_count": 0,
+  "runtime_passed": true
+}
