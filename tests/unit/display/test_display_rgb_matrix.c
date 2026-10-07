@@ -10,9 +10,16 @@
 static unsigned s_gpio_transitions;
 static uint8_t s_last_pin;
 static uint8_t s_last_value;
+static uint32_t s_tick;
+
+uint32_t xy_os_tick_get(void)
+{
+    return s_tick;
+}
 
 void setUp(void)
 {
+    s_tick = 0U;
 }
 
 void tearDown(void)
@@ -173,8 +180,17 @@ static void test_show_and_effect_contracts(void)
     TEST_ASSERT_EQUAL_UINT8(0, s_last_value);
 
     xy_rgb_matrix_set_effect(&matrix, XY_RGB_MATRIX_EFFECT_SOLID, 255, effect);
+    TEST_ASSERT_FALSE(xy_rgb_matrix_update_effect(&matrix));
+    s_tick = 9U;
+    TEST_ASSERT_FALSE(xy_rgb_matrix_update_effect(&matrix));
+    s_tick = 10U;
     TEST_ASSERT_TRUE(xy_rgb_matrix_update_effect(&matrix));
     assert_same_color(color(31, 63, 127, 0), xy_rgb_matrix_get_pixel(&matrix, 0, 0));
+
+    s_tick = 15U;
+    TEST_ASSERT_FALSE(xy_rgb_matrix_update_effect(&matrix));
+    s_tick = 20U;
+    TEST_ASSERT_TRUE(xy_rgb_matrix_update_effect(&matrix));
 
     xy_rgb_matrix_set_effect(&matrix, XY_RGB_MATRIX_EFFECT_BREATHING, 255, effect);
     xy_rgb_matrix_effect_breathing(&matrix, 64);

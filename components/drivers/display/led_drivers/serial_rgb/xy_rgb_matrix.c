@@ -6,6 +6,7 @@
  */
 
 #include "xy_rgb_matrix.h"
+#include "xy_os_tick.h"
 #include <string.h>
 
 /* ==================== Internal State ==================== */
@@ -348,8 +349,7 @@ bool xy_rgb_matrix_update_effect(xy_rgb_matrix_handle_t *handle)
         return false;
     }
 
-    static uint32_t s_effect_tick;
-    uint32_t now = ++s_effect_tick * 10U;  /* TODO: Replace with system tick source */
+    uint32_t now = xy_os_tick_get();
     uint32_t elapsed = now - s_effect_state.last_update;
 
     /* Calculate step based on speed (lower speed = faster) */
