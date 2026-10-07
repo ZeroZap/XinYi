@@ -97,7 +97,7 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
             /* 等待空间 */
             start = xy_os_tick_get();
             while (mq->count >= mq->config.max_msgs) {
-                if ((xy_os_tick_get() - start) > timeout) {
+                if ((xy_os_tick_get() - start) >= timeout) {
                     return XY_MQ_TIMEOUT;
                 }
                 xy_os_delay(1);
@@ -144,7 +144,7 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
 
     start = xy_os_tick_get();
     while (mq->count == 0) {
-        if ((xy_os_tick_get() - start) > timeout) {
+        if ((xy_os_tick_get() - start) >= timeout) {
             return XY_MQ_TIMEOUT;
         }
         xy_os_delay(1);

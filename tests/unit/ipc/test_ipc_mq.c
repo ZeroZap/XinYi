@@ -264,8 +264,8 @@ static void test_mq_empty_timeout_and_clear_stats(void)
 
     TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
     TEST_ASSERT_EQUAL(XY_MQ_TIMEOUT, xy_mq_recv(&mq, &recv, 3U));
-    TEST_ASSERT_EQUAL_UINT32(4U, fake_tick);
-    TEST_ASSERT_EQUAL_UINT32(4U, delay_call_count);
+    TEST_ASSERT_EQUAL_UINT32(3U, fake_tick);
+    TEST_ASSERT_EQUAL_UINT32(3U, delay_call_count);
 
     TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0));
     TEST_ASSERT_EQUAL_UINT16(1U, xy_mq_get_count(&mq));
@@ -303,8 +303,8 @@ static void test_mq_full_timeout_preserves_queue_and_stats(void)
 
     msg = make_msg(2U, XY_MQ_PRIORITY_HIGH, second, sizeof(second));
     TEST_ASSERT_EQUAL(XY_MQ_TIMEOUT, xy_mq_send(&mq, &msg, 2U));
-    TEST_ASSERT_EQUAL_UINT32(3U, fake_tick);
-    TEST_ASSERT_EQUAL_UINT32(3U, delay_call_count);
+    TEST_ASSERT_EQUAL_UINT32(2U, fake_tick);
+    TEST_ASSERT_EQUAL_UINT32(2U, delay_call_count);
     TEST_ASSERT_EQUAL_UINT16(1U, xy_mq_get_count(&mq));
     TEST_ASSERT_EQUAL_UINT32(1U, mq.send_count);
     TEST_ASSERT_EQUAL_UINT32(0U, mq.drop_count);
