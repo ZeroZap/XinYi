@@ -90,6 +90,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
         "wch/ch32x/src/xy_hal_dma.c"
         "wch/ch32x/src/xy_hal_gpio.c"
         "wch/ch32x/src/xy_hal_i2c.c"
+        "wch/ch32x/src/xy_hal_pwm.c"
         "wch/ch32x/src/xy_hal_spi.c"
         "wch/ch32x/src/xy_hal_uart.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_rcc.c"
@@ -99,6 +100,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_dma.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_i2c.c"
         "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_spi.c"
+        "${WCH_SDK_DIR}/Peripheral/src/ch32v30x_tim.c"
         "${WCH_SYSTEM_DIR}/system_ch32v30x.c"
     )
     set(HAL_DEFINES
