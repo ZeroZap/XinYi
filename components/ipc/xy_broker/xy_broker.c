@@ -131,7 +131,8 @@ static int broker_dequeue_msg(xy_broker_server_t *server, xy_broker_msg_t *msg)
 }
 
 static int broker_dequeue_response(xy_broker_server_t *server, uint16_t expected_src,
-                                   uint16_t expected_msg_id, xy_broker_msg_t *msg)
+                                   uint16_t expected_msg_id, uint16_t expected_seq,
+                                   xy_broker_msg_t *msg)
 {
     uint16_t offset;
 
@@ -144,7 +145,8 @@ static int broker_dequeue_response(xy_broker_server_t *server, uint16_t expected
 
         if (candidate->src_server == expected_src
             && candidate->dst_server == server->server_id
-            && candidate->msg_id == expected_msg_id) {
+            && candidate->msg_id == expected_msg_id
+            && candidate->seq_num == expected_seq) {
             uint16_t shift;
 
             memcpy(msg, candidate, sizeof(*msg));
@@ -471,6 +473,7 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
                       xy_broker_msg_t *response_msg, uint32_t timeout_ms)
 {
     xy_broker_server_t *src;
+    uint16_t request_seq;
 
     if (!g_broker.initialized || !response_msg)
         return XY_BROKER_ERROR;
@@ -478,6 +481,8 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     src = broker_find_server(src_server);
     if (!src)
         return XY_BROKER_NOT_FOUND;
+
+    request_seq = g_broker.seq_counter;
 
     // Send request
     int ret =
@@ -490,7 +495,7 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     uint32_t start_time = broker_get_timestamp();
 
     /* Poll once before waiting so timeout_ms == 0 is a true nonblocking request. */
-    if (src && broker_dequeue_response(src, dst_server, msg_id, response_msg) == XY_BROKER_OK) {
+    if (src && broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg) == XY_BROKER_OK) {
         return XY_BROKER_OK;
     }
 
@@ -498,7 +503,7 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
         if (xy_os_delay(1) != XY_OS_OK) {
             return XY_BROKER_ERROR;
         }
-        if (src && broker_dequeue_response(src, dst_server, msg_id, response_msg) == XY_BROKER_OK) {
+        if (src && broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg) == XY_BROKER_OK) {
             return XY_BROKER_OK;
         }
     }
@@ -509,13 +514,43 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
 int xy_broker_respond(const xy_broker_msg_t *request_msg,
                       const void *response_payload, uint16_t response_len)
 {
+    xy_broker_msg_t response;
+    xy_broker_server_t *dst;
+    xy_broker_server_t *src;
+    int ret;
+
     if (!g_broker.initialized || !request_msg)
         return XY_BROKER_ERROR;
+    if (response_len > XY_BROKER_MAX_MSG_SIZE ||
+        (response_len > 0U && !response_payload))
+        return XY_BROKER_INVALID_PARAM;
 
-    // Send response back to source
-    return xy_broker_send_msg(request_msg->dst_server, request_msg->src_server,
-                              request_msg->msg_id, response_payload,
-                              response_len, request_msg->priority);
+    dst = broker_find_server(request_msg->src_server);
+    if (!dst)
+        return XY_BROKER_NOT_FOUND;
+
+    memset(&response, 0, sizeof(response));
+    response.msg_id = request_msg->msg_id;
+    response.src_server = request_msg->dst_server;
+    response.dst_server = request_msg->src_server;
+    response.priority = request_msg->priority;
+    response.seq_num = request_msg->seq_num;
+    response.timestamp = broker_get_timestamp();
+    response.payload_len = response_len;
+    if (response_len > 0U) {
+        memcpy(response.payload, response_payload, response_len);
+    }
+
+    ret = broker_enqueue_msg(dst, &response);
+    if (ret == XY_BROKER_OK) {
+        g_broker.stats.total_msg_sent++;
+        src = broker_find_server(request_msg->dst_server);
+        if (src) {
+            src->msg_sent++;
+        }
+    }
+
+    return ret;
 }
 
 /* ==================== Utility API Implementation ==================== */
