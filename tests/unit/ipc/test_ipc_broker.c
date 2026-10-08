@@ -245,6 +245,30 @@ static void test_pubsub_create_publish_and_unsubscribe(void)
                                             XY_BROKER_SERVER_SENSOR));
 }
 
+static void test_pubsub_handler_failure_is_propagated_and_counted(void)
+{
+    const uint32_t payload = 0xA5A55A5AU;
+    xy_broker_stats_t stats;
+
+    reset_broker();
+    rejecting_handler_fake.return_val = XY_BROKER_ERROR;
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_ALARM_EVENT,
+                                          XY_BROKER_SERVER_SYSTEM,
+                                          rejecting_handler, NULL));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR,
+                      xy_broker_publish(XY_BROKER_SERVER_SENSOR,
+                                        XY_BROKER_TOPIC_ALARM_EVENT,
+                                        XY_BROKER_MSG_SENSOR_ALARM, &payload,
+                                        sizeof(payload), XY_BROKER_PRIORITY_CRITICAL));
+    TEST_ASSERT_EQUAL_UINT(1U, rejecting_handler_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_sent);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_delivered);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_dropped);
+}
+
 static void test_request_response_and_timeout(void)
 {
     const char request[] = "ping";
@@ -423,6 +447,7 @@ int main(void)
     RUN_TEST(test_lifecycle_and_server_registration);
     RUN_TEST(test_direct_message_queue_and_limits);
     RUN_TEST(test_pubsub_create_publish_and_unsubscribe);
+    RUN_TEST(test_pubsub_handler_failure_is_propagated_and_counted);
     RUN_TEST(test_request_response_and_timeout);
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);

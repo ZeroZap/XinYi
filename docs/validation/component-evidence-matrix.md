@@ -537,6 +537,18 @@
 - 仍不允许宣称：Pandora Device PM runtime、concurrency safety、功耗、wake latency、
   deep-power modes、recovery、endurance 或 hardware qualification。
 
+### 2026-10-08 IPC Broker pub/sub callback failure propagation
+
+- 组件：IPC / Broker pub/sub
+- 旧等级 -> 新等级：H1/Host callback-failure contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：publish continues notifying active subscribers but returns the first callback error;
+  delivered/dropped counters reflect actual callback outcomes and the publish attempt is counted once.
+- 仍不允许宣称：Pandora pub/sub runtime、concurrency safety、throughput、ISR safety、recovery、
+  endurance 或 IPC product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

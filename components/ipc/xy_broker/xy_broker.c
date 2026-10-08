@@ -429,26 +429,36 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
         memcpy(msg.payload, payload, payload_len);
     }
 
-    // Deliver to all subscribers
+    // Deliver to all subscribers. A callback rejection is a publish failure,
+    // not a successful delivery; retain the first error while notifying the
+    // remaining subscribers.
     int delivered = 0;
+    int dropped = 0;
+    int first_error = XY_BROKER_OK;
     for (int i = 0; i < XY_BROKER_MAX_SUBSCRIBERS; i++) {
         if (topic->subscribers[i].active) {
             if (topic->subscribers[i].handler) {
                 // Direct callback
-                topic->subscribers[i].handler(
+                int handler_result = topic->subscribers[i].handler(
                     &msg, topic->subscribers[i].user_data);
-                delivered++;
+                if (handler_result == XY_BROKER_OK) {
+                    delivered++;
+                } else {
+                    dropped++;
+                    if (first_error == XY_BROKER_OK) {
+                        first_error = handler_result;
+                    }
+                }
             }
         }
     }
 
-    if (delivered > 0) {
-        topic->msg_count++;
-        g_broker.stats.total_msg_sent++;
-        g_broker.stats.total_msg_delivered += delivered;
-    }
+    topic->msg_count++;
+    g_broker.stats.total_msg_sent++;
+    g_broker.stats.total_msg_delivered += delivered;
+    g_broker.stats.total_msg_dropped += dropped;
 
-    return XY_BROKER_OK;
+    return first_error;
 }
 
 /* ==================== Request/Response API Implementation ====================
