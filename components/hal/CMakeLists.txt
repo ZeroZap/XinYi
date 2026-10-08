@@ -94,6 +94,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
         "wch/ch32x/src/xy_hal_flash.c"
         "wch/ch32x/src/xy_hal_gpio.c"
         "wch/ch32x/src/xy_hal_i2c.c"
+        "wch/ch32x/src/xy_hal_i2s.c"
         "wch/ch32x/src/xy_hal_pwm.c"
         "wch/ch32x/src/xy_hal_rng.c"
         "wch/ch32x/src/xy_hal_rtc.c"
