@@ -381,6 +381,7 @@ int xy_device_pm_set_idle_timeout(xy_device_t *dev, uint32_t timeout_ms)
     }
     
     data->idle_timeout_ms = timeout_ms;
+    data->last_activity_time = pm_get_tick_ms();
     return XY_DEVICE_OK;
 }
 

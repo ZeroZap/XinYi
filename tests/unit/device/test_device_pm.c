@@ -87,6 +87,27 @@ static void test_device_pm_idle_timeout_uses_device_tick(void) {
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
 }
 
+static void test_device_pm_enabling_idle_timeout_starts_a_fresh_window(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+
+    fake_tick = 1000U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_set_idle_timeout(&dev, 50U));
+
+    fake_tick = 1049U;
+    xy_device_pm_check_idle(&dev);
+    TEST_ASSERT_EQUAL_UINT(0U, set_state_calls);
+
+    fake_tick = 1050U;
+    xy_device_pm_check_idle(&dev);
+    TEST_ASSERT_EQUAL_UINT(1U, set_state_calls);
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_SLEEP, last_requested_state);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
 static void test_device_pm_keeps_driver_data_and_isolates_devices(void) {
     xy_device_t first;
     xy_device_t second;
@@ -283,6 +304,7 @@ static void test_device_pm_reinit_preserves_live_state(void) {
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_device_pm_idle_timeout_uses_device_tick);
+    RUN_TEST(test_device_pm_enabling_idle_timeout_starts_a_fresh_window);
     RUN_TEST(test_device_pm_keeps_driver_data_and_isolates_devices);
     RUN_TEST(test_device_pm_deinit_reclaims_capacity);
     RUN_TEST(test_device_pm_rejects_invalid_enum_values_without_callbacks);

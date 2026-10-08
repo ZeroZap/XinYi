@@ -549,6 +549,18 @@
 - 仍不允许宣称：Pandora Device PM runtime、concurrency safety、功耗、wake latency、
   deep-power modes、recovery、endurance 或 hardware qualification。
 
+### 2026-10-08 Device PM idle-timeout fresh window
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host timeout contract strengthened; no Board claim change
+- 证据路径/命令：`components/device/src/xy_device_pm.c`,
+  `tests/unit/device/test_device_pm.c`; focused `device_pm`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：runtime 设置或更新 idle timeout 时以 canonical `xy_device_get_tick()` 重启
+  activity window，避免沿用 init 时的旧 timestamp 造成即时休眠；达到新 timeout 边界才进入 SLEEP。
+- 仍不允许宣称：Pandora Device PM runtime、concurrency safety、实际功耗、wake latency、
+  deep-power modes、recovery、endurance 或 hardware qualification。
+
 ### 2026-10-08 IPC Broker pub/sub callback failure propagation
 
 - 组件：IPC / Broker pub/sub

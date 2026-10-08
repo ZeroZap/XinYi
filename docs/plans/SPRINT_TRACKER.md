@@ -234,6 +234,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-115 | P1 | Device PM public setter fail-closed contract | DONE | Zero | S4-114（DONE）；Pandora 硬件测试暂停 | TDD RED 证明非法 power-state 枚举会进入 driver callback 并提交未知状态；现 state/policy setter 在 callback/state mutation 前拒绝越界枚举，wakeup callback 失败时不提交 cached intent 且可重试。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 | S4-116 | P1 | Device PM state callback atomicity | DONE | Zero | S4-115（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 public state getter 忽略 driver `get_state` callback；现 callback failure/非法 state 均保持 caller output 与 cached state，合法结果才原子提交。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 | S4-117 | P1 | Device PM live re-init 与 driver-reported state history | DONE | Zero | S4-116（DONE）；Pandora 硬件测试暂停 | TDD RED 证明重复 init 会把 live SLEEP owner 静默重置为 ACTIVE，且 driver-reported SLEEP 不更新 wake history；现相同 ops 的重复 init 幂等保留完整 live state，替换 ops fail-closed，合法 driver state transition 原子更新 current/last/activity，wakeup 恢复前一稳定状态。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
+| S4-118 | P1 | Device PM idle-timeout fresh-window contract | DONE | Zero | S4-117（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 runtime 启用 idle timeout 会沿用 init 时的旧 activity timestamp 并立即误判超时；现每次设置 timeout 均以 canonical Device tick 重启 idle window，边界前保持 ACTIVE、达到边界才进入 SLEEP。focused `device_pm`、Host 267/267、PC/L4/U5 root、clang-format 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 
 ### Sprint 5 前置看板
 
