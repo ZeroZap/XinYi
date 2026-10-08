@@ -484,16 +484,18 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     uint32_t start_time = broker_get_timestamp();
     xy_broker_server_t *src = broker_find_server(src_server);
 
-    /* 轮询检查响应队列 */
+    /* Poll once before waiting so timeout_ms == 0 is a true nonblocking request. */
+    if (src && broker_dequeue_response(src, dst_server, msg_id, response_msg) == XY_BROKER_OK) {
+        return XY_BROKER_OK;
+    }
+
     while ((broker_get_timestamp() - start_time) < timeout_ms) {
-        if (src && src->queue_count > 0) {
-            if (broker_dequeue_response(src, dst_server, msg_id, response_msg)
-                == XY_BROKER_OK) {
-                return XY_BROKER_OK;
-            }
+        if (xy_os_delay(1) != XY_OS_OK) {
+            return XY_BROKER_ERROR;
         }
-        /* 短暂延时，避免忙等 */
-        xy_os_delay(1);
+        if (src && broker_dequeue_response(src, dst_server, msg_id, response_msg) == XY_BROKER_OK) {
+            return XY_BROKER_OK;
+        }
     }
 
     return XY_BROKER_TIMEOUT;

@@ -12,6 +12,7 @@ static uint32_t fake_tick;
 static xy_broker_msg_t last_msg;
 static unsigned int isr_wake_count;
 static int isr_wake_result;
+static xy_os_status_t delay_result;
 
 typedef struct {
     int response_sent;
@@ -32,6 +33,9 @@ static uint32_t xy_os_tick_get_impl(void)
 
 static xy_os_status_t xy_os_delay_impl(uint32_t ticks)
 {
+    if (delay_result != XY_OS_OK) {
+        return delay_result;
+    }
     fake_tick += ticks;
     return XY_OS_OK;
 }
@@ -83,6 +87,7 @@ static void reset_fakes(void)
     topic_capture_handler_fake.custom_fake = capture_msg_impl;
 
     fake_tick = 0;
+    delay_result = XY_OS_OK;
     isr_wake_count = 0U;
     isr_wake_result = XY_BROKER_OK;
     memset(&last_msg, 0, sizeof(last_msg));
@@ -368,6 +373,56 @@ static void test_request_skips_unrelated_source_queue_messages(void)
     TEST_ASSERT_EQUAL_MEMORY(&unrelated_payload, last_msg.payload, sizeof(unrelated_payload));
 }
 
+static void test_request_zero_timeout_performs_nonblocking_response_poll(void)
+{
+    const uint32_t response_payload = 0x12345678U;
+    const uint32_t request_payload = 0xCAFEBABEU;
+    xy_broker_msg_t response;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_COMM, XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_COMM_SEND, &response_payload,
+                                         sizeof(response_payload), XY_BROKER_PRIORITY_NORMAL));
+
+    memset(&response, 0, sizeof(response));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                        XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                        sizeof(request_payload), &response, 0U));
+    TEST_ASSERT_EQUAL_MEMORY(&response_payload, response.payload, sizeof(response_payload));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_os_delay_fake.call_count);
+}
+
+static void test_request_stops_when_delay_backend_fails(void)
+{
+    const uint32_t request_payload = 0xCAFEBABEU;
+    xy_broker_msg_t response;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    delay_result = XY_OS_ERROR;
+    memset(&response, 0xA5, sizeof(response));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR,
+                      xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                        XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                        sizeof(request_payload), &response, 3U));
+    TEST_ASSERT_EQUAL_UINT(1U, xy_os_delay_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, fake_tick);
+}
+
 static void test_handler_failure_is_propagated_and_queue_recovers(void)
 {
     const uint32_t payload = 0xA5A55A5AU;
@@ -502,6 +557,8 @@ int main(void)
     RUN_TEST(test_pubsub_handler_failure_is_propagated_and_counted);
     RUN_TEST(test_request_response_and_timeout);
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
+    RUN_TEST(test_request_zero_timeout_performs_nonblocking_response_poll);
+    RUN_TEST(test_request_stops_when_delay_backend_fails);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
     RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);

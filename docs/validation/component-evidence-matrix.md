@@ -661,6 +661,19 @@
 - 仍不允许宣称：Pandora multi-ISR runtime、concurrency safety、throughput、arbitrary interrupt
   sources、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-09 IPC Broker request bounded-wait contract
+
+- 组件：IPC / Broker request-response
+- 旧等级 -> 新等级：H1/Host bounded-wait contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：zero-timeout requests perform one nonblocking response poll; bounded waits stop and
+  return an error when the canonical OSAL delay backend fails instead of spinning forever on a
+  non-advancing tick; successful waits poll again after each completed delay.
+- 仍不允许宣称：Pandora request/response runtime、concurrent correlation、多请求安全、throughput、
+  recovery、endurance 或 IPC product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation
