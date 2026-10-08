@@ -8,24 +8,28 @@
 extern "C" {
 #endif
 
+#define XY_LITTLEFS_W25Q128_DEFAULT_BASE 0U
+#define XY_LITTLEFS_W25Q128_DEFAULT_SIZE 0x00F00000U
+
 typedef struct {
     lfs_t fs;
     struct lfs_config config;
     xy_w25q128_t* flash;
     uint8_t mounted;
+    uint32_t base;
+    uint32_t size;
 } xy_littlefs_w25q128_t;
 
-/** Mount a LittleFS volume on the complete W25Q128 device. */
+/** Mount the default filesystem partition below the reserved FOTA region. */
 int xy_littlefs_w25q128_mount(xy_littlefs_w25q128_t* volume, xy_w25q128_t* flash);
-
-/** Format and mount a LittleFS volume. This destroys the selected volume. */
+/** Format and mount the default filesystem partition. */
 int xy_littlefs_w25q128_format_mount(xy_littlefs_w25q128_t* volume, xy_w25q128_t* flash);
-
-/** Unmount a mounted LittleFS volume. */
+/** Mount an explicitly bounded, block-aligned partition. */
+int xy_littlefs_w25q128_mount_partition(xy_littlefs_w25q128_t* volume, xy_w25q128_t* flash,
+                                        uint32_t base, uint32_t size, int format);
 int xy_littlefs_w25q128_unmount(xy_littlefs_w25q128_t* volume);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

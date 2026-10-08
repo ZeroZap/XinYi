@@ -6,6 +6,7 @@
 
 static uint8_t storage[4U * 4096U];
 static uint8_t w25_storage[16U * 1024U * 1024U];
+static uint32_t highest_touched;
 
 xy_w25q128_status_t xy_w25q128_read(xy_w25q128_t* flash, uint32_t address, uint8_t* data,
                                     size_t length) {
@@ -26,6 +27,8 @@ xy_w25q128_status_t xy_w25q128_page_program(xy_w25q128_t* flash, uint32_t addres
         return XY_W25Q128_INVALID_PARAM;
     }
     memcpy((uint8_t*)flash->qspi + address, data, length);
+    if (address + length > highest_touched)
+        highest_touched = address + length;
     return XY_W25Q128_OK;
 }
 
@@ -37,6 +40,8 @@ xy_w25q128_status_t xy_w25q128_sector_erase(xy_w25q128_t* flash, uint32_t addres
         return XY_W25Q128_INVALID_PARAM;
     }
     memset((uint8_t*)flash->qspi + address, 0xff, 4096U);
+    if (address + 4096U > highest_touched)
+        highest_touched = address + 4096U;
     return XY_W25Q128_OK;
 }
 
@@ -67,6 +72,7 @@ static int sync_cb(const struct lfs_config* c) {
 void setUp(void) {
     memset(storage, 0xff, sizeof(storage));
     memset(w25_storage, 0xff, sizeof(w25_storage));
+    highest_touched = 0U;
 }
 
 void tearDown(void) {}
@@ -152,11 +158,38 @@ void test_littlefs_w25q128_rejects_incomplete_flash_and_double_mount(void) {
     TEST_ASSERT_EQUAL_INT(0, xy_littlefs_w25q128_unmount(&volume));
 }
 
+void test_littlefs_default_partition_never_touches_reserved_fota_region(void) {
+    xy_littlefs_w25q128_t volume = {0};
+    xy_w25q128_t flash = {.qspi = w25_storage, .capacity = sizeof(w25_storage), .initialized = 1U};
+    TEST_ASSERT_EQUAL_INT(0, xy_littlefs_w25q128_format_mount(&volume, &flash));
+    TEST_ASSERT_EQUAL_UINT32(XY_LITTLEFS_W25Q128_DEFAULT_SIZE, volume.size);
+    TEST_ASSERT_EQUAL_UINT32(XY_LITTLEFS_W25Q128_DEFAULT_SIZE / 4096U, volume.config.block_count);
+    TEST_ASSERT_TRUE(highest_touched <= XY_LITTLEFS_W25Q128_DEFAULT_SIZE);
+    TEST_ASSERT_EQUAL_INT(0, xy_littlefs_w25q128_unmount(&volume));
+}
+
+void test_littlefs_partition_translation_and_bounds(void) {
+    xy_littlefs_w25q128_t volume = {0};
+    xy_w25q128_t flash = {.qspi = w25_storage, .capacity = sizeof(w25_storage), .initialized = 1U};
+    TEST_ASSERT_EQUAL_INT(
+        0, xy_littlefs_w25q128_mount_partition(&volume, &flash, 0x10000U, 4U * 4096U, 1));
+    TEST_ASSERT_EQUAL_UINT32(0x10000U, volume.base);
+    TEST_ASSERT_TRUE(highest_touched >= 0x10000U);
+    TEST_ASSERT_TRUE(highest_touched <= 0x14000U);
+    TEST_ASSERT_EQUAL_INT(0, xy_littlefs_w25q128_unmount(&volume));
+    TEST_ASSERT_EQUAL_INT(LFS_ERR_INVAL,
+                          xy_littlefs_w25q128_mount_partition(&volume, &flash, 1U, 4096U, 0));
+    TEST_ASSERT_EQUAL_INT(LFS_ERR_INVAL, xy_littlefs_w25q128_mount_partition(
+                                             &volume, &flash, 0x00F00000U, 0x00200000U, 0));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_littlefs_config_has_w25q_geometry);
     RUN_TEST(test_littlefs_callbacks_round_trip);
     RUN_TEST(test_littlefs_w25q128_format_file_round_trip);
     RUN_TEST(test_littlefs_w25q128_rejects_incomplete_flash_and_double_mount);
+    RUN_TEST(test_littlefs_default_partition_never_touches_reserved_fota_region);
+    RUN_TEST(test_littlefs_partition_translation_and_bounds);
     return UNITY_END();
 }
