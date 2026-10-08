@@ -12,6 +12,7 @@
 static struct {
     xy_broker_server_t servers[XY_BROKER_MAX_SERVERS];
     xy_broker_topic_t topics[XY_BROKER_MAX_TOPICS];
+    uint8_t topic_active[XY_BROKER_MAX_TOPICS];
     xy_broker_stats_t stats;
     uint16_t seq_counter;
     uint8_t initialized;
@@ -66,7 +67,7 @@ static xy_broker_server_t *broker_alloc_server(void)
 static xy_broker_topic_t *broker_find_topic(uint16_t topic_id)
 {
     for (int i = 0; i < XY_BROKER_MAX_TOPICS; i++) {
-        if (g_broker.topics[i].topic_id == topic_id) {
+        if (g_broker.topic_active[i] && g_broker.topics[i].topic_id == topic_id) {
             return &g_broker.topics[i];
         }
     }
@@ -79,7 +80,7 @@ static xy_broker_topic_t *broker_find_topic(uint16_t topic_id)
 static xy_broker_topic_t *broker_alloc_topic(void)
 {
     for (int i = 0; i < XY_BROKER_MAX_TOPICS; i++) {
-        if (g_broker.topics[i].subscriber_count == 0) {
+        if (!g_broker.topic_active[i]) {
             return &g_broker.topics[i];
         }
     }
@@ -324,6 +325,7 @@ int xy_broker_create_topic(uint16_t topic_id)
 
     memset(topic, 0, sizeof(xy_broker_topic_t));
     topic->topic_id = topic_id;
+    g_broker.topic_active[topic - g_broker.topics] = 1U;
 
     return XY_BROKER_OK;
 }

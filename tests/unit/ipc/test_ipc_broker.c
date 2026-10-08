@@ -245,6 +245,22 @@ static void test_pubsub_create_publish_and_unsubscribe(void)
                                             XY_BROKER_SERVER_SENSOR));
 }
 
+static void test_empty_topics_have_distinct_bounded_ownership(void)
+{
+    reset_broker();
+
+    for (uint16_t i = 0; i < XY_BROKER_MAX_TOPICS; ++i) {
+        TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                          xy_broker_create_topic((uint16_t)(XY_BROKER_TOPIC_USER_BASE + i)));
+    }
+
+    TEST_ASSERT_EQUAL(XY_BROKER_ALREADY_EXISTS,
+                      xy_broker_create_topic(XY_BROKER_TOPIC_USER_BASE));
+    TEST_ASSERT_EQUAL(XY_BROKER_NO_MEMORY,
+                      xy_broker_create_topic(
+                          (uint16_t)(XY_BROKER_TOPIC_USER_BASE + XY_BROKER_MAX_TOPICS)));
+}
+
 static void test_pubsub_handler_failure_is_propagated_and_counted(void)
 {
     const uint32_t payload = 0xA5A55A5AU;
@@ -447,6 +463,7 @@ int main(void)
     RUN_TEST(test_lifecycle_and_server_registration);
     RUN_TEST(test_direct_message_queue_and_limits);
     RUN_TEST(test_pubsub_create_publish_and_unsubscribe);
+    RUN_TEST(test_empty_topics_have_distinct_bounded_ownership);
     RUN_TEST(test_pubsub_handler_failure_is_propagated_and_counted);
     RUN_TEST(test_request_response_and_timeout);
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);

@@ -549,6 +549,18 @@
 - 仍不允许宣称：Pandora pub/sub runtime、concurrency safety、throughput、ISR safety、recovery、
   endurance 或 IPC product qualification。
 
+### 2026-10-08 IPC Broker empty-topic ownership
+
+- 组件：IPC / Broker pub/sub
+- 旧等级 -> 新等级：H1/Host bounded-resource contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：created topics retain distinct ownership before their first subscriber and after their
+  last unsubscribe; duplicate IDs are rejected and the fixed topic table fails closed when full.
+- 仍不允许宣称：Pandora pub/sub runtime、concurrency safety、throughput、ISR safety、recovery、
+  endurance 或 IPC product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation
