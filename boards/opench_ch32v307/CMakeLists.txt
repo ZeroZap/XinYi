@@ -432,7 +432,7 @@ target_include_directories(opench_ch32v307_flash_info_smoke PRIVATE
 target_compile_definitions(opench_ch32v307_flash_info_smoke PRIVATE
     MCU_CH32 CH32V30x CH32V30x_D8C)
 target_link_options(opench_ch32v307_flash_info_smoke PRIVATE
-    -T${_wch_ld} -Wl,--gc-sections -Wl,--print-memory-usage -nostartfiles
+    -T${CMAKE_CURRENT_SOURCE_DIR}/flash_test.ld -Wl,--gc-sections -Wl,--print-memory-usage -nostartfiles
     --specs=nano.specs --specs=nosys.specs
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_flash_info_smoke.map)
 set_target_properties(opench_ch32v307_flash_info_smoke PROPERTIES SUFFIX ".elf")

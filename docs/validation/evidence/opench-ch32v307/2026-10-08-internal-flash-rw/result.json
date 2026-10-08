@@ -1,0 +1,14 @@
+{
+  "source_commit": "823cae7e389ae357ce44d89266e1ffaba0ad797b",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "reserved_test_page_start": "0x08047000",
+  "reserved_test_page_size": 4096,
+  "application_link_limit": 290816,
+  "elf_sha256": "59e5fe1bc5df0e761c1f8a5684333d6472f8a988cef3a47feee7409e63dc7dd8",
+  "programmed_verified_reset": true,
+  "bytes_captured": 342,
+  "uart_sha256": "8c432f424848f1f15850c14b0dae00ce74788d0e0d79611c545336fdf4e949f3",
+  "ok_marker_count": 11,
+  "error_marker_count": 0,
+  "runtime_passed": true
+}
