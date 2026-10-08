@@ -503,7 +503,12 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
         if (xy_os_delay(1) != XY_OS_OK) {
             return XY_BROKER_ERROR;
         }
-        if (src && broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg) == XY_BROKER_OK) {
+        src = broker_find_server(src_server);
+        if (!src) {
+            return XY_BROKER_NOT_FOUND;
+        }
+        if (broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg) ==
+            XY_BROKER_OK) {
             return XY_BROKER_OK;
         }
     }
