@@ -699,6 +699,18 @@
 - 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
   sequence-wrap disambiguation、throughput、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-09 IPC Broker response owner validation
+
+- 组件：IPC / Broker request-response
+- 旧等级 -> 新等级：H1/Host response ownership contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：`xy_broker_respond()` 要求原 request 指定的 responder 仍为 registered server；
+  responder 注销后拒绝入队，避免伪造或 stale request metadata 向 requester 注入 response。
+- 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
+  sequence-wrap disambiguation、throughput、recovery、endurance 或 IPC product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

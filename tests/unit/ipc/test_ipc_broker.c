@@ -479,6 +479,33 @@ static void test_request_rejects_unregistered_source_without_enqueue(void)
     TEST_ASSERT_EQUAL_UINT(0U, xy_os_delay_fake.call_count);
 }
 
+static void test_response_rejects_unregistered_responder_without_enqueue(void)
+{
+    const uint32_t response_payload = 0x12345678U;
+    xy_broker_msg_t request;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    memset(&request, 0, sizeof(request));
+    request.src_server = XY_BROKER_SERVER_SYSTEM;
+    request.dst_server = XY_BROKER_SERVER_COMM;
+    request.msg_id = XY_BROKER_MSG_COMM_SEND;
+    request.seq_num = 7U;
+    request.priority = XY_BROKER_PRIORITY_NORMAL;
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_unregister_server(XY_BROKER_SERVER_COMM));
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_respond(&request, &response_payload,
+                                        sizeof(response_payload)));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+}
+
 static void test_handler_failure_is_propagated_and_queue_recovers(void)
 {
     const uint32_t payload = 0xA5A55A5AU;
@@ -617,6 +644,7 @@ int main(void)
     RUN_TEST(test_request_rejects_stale_response_with_same_server_and_message_id);
     RUN_TEST(test_request_stops_when_delay_backend_fails);
     RUN_TEST(test_request_rejects_unregistered_source_without_enqueue);
+    RUN_TEST(test_response_rejects_unregistered_responder_without_enqueue);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
     RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);

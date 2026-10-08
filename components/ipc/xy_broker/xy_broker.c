@@ -529,6 +529,10 @@ int xy_broker_respond(const xy_broker_msg_t *request_msg,
     if (!dst)
         return XY_BROKER_NOT_FOUND;
 
+    src = broker_find_server(request_msg->dst_server);
+    if (!src)
+        return XY_BROKER_NOT_FOUND;
+
     memset(&response, 0, sizeof(response));
     response.msg_id = request_msg->msg_id;
     response.src_server = request_msg->dst_server;
@@ -544,10 +548,7 @@ int xy_broker_respond(const xy_broker_msg_t *request_msg,
     ret = broker_enqueue_msg(dst, &response);
     if (ret == XY_BROKER_OK) {
         g_broker.stats.total_msg_sent++;
-        src = broker_find_server(request_msg->dst_server);
-        if (src) {
-            src->msg_sent++;
-        }
+        src->msg_sent++;
     }
 
     return ret;
