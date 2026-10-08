@@ -22,6 +22,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
                           uint16_t payload_len, uint8_t priority)
 {
     uint16_t next;
+    uint16_t previous_tail;
     xy_broker_isr_msg_t *message;
 
     if (ingress == NULL || ingress->storage == NULL || ingress->capacity < 2U ||
@@ -29,12 +30,13 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
         (payload_len > 0U && payload == NULL)) {
         return XY_BROKER_INVALID_PARAM;
     }
-    next = (uint16_t)((ingress->tail + 1U) % ingress->capacity);
+    previous_tail = ingress->tail;
+    next = (uint16_t)((previous_tail + 1U) % ingress->capacity);
     if (next == ingress->head) {
         return XY_BROKER_QUEUE_FULL;
     }
 
-    message = &ingress->storage[ingress->tail];
+    message = &ingress->storage[previous_tail];
     message->src_server = src_server;
     message->dst_server = dst_server;
     message->msg_id = msg_id;
@@ -46,6 +48,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     __asm volatile("" ::: "memory");
     ingress->tail = next;
     if (ingress->wake_from_isr(ingress->wake_context) != XY_BROKER_OK) {
+        ingress->tail = previous_tail;
         return XY_BROKER_ERROR;
     }
     return XY_BROKER_OK;

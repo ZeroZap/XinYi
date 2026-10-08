@@ -561,6 +561,19 @@
 - 仍不允许宣称：Pandora pub/sub runtime、concurrency safety、throughput、ISR safety、recovery、
   endurance 或 IPC product qualification。
 
+### 2026-10-08 IPC Broker ISR ingress wake-failure rollback
+
+- 组件：IPC / Broker ISR ingress
+- 旧等级 -> 新等级：H1/Host ISR handoff failure contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker_isr_ingress.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：ISR ingress publishes its ring tail before requesting the wake, then rolls the tail
+  back to the exact previous slot when the ISR-safe wake callback fails; rejected payloads cannot
+  be drained later, and the same slot remains reusable by a subsequent successful publish.
+- 仍不允许宣称：Pandora multi-ISR runtime、concurrency safety、throughput、arbitrary interrupt
+  sources、recovery、endurance 或 IPC product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

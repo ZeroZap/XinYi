@@ -11,6 +11,7 @@
 static uint32_t fake_tick;
 static xy_broker_msg_t last_msg;
 static unsigned int isr_wake_count;
+static int isr_wake_result;
 
 typedef struct {
     int response_sent;
@@ -64,7 +65,7 @@ static int wake_from_isr(void *context)
 {
     TEST_ASSERT_EQUAL_PTR(&isr_wake_count, context);
     ++isr_wake_count;
-    return XY_BROKER_OK;
+    return isr_wake_result;
 }
 
 static void reset_fakes(void)
@@ -83,6 +84,7 @@ static void reset_fakes(void)
 
     fake_tick = 0;
     isr_wake_count = 0U;
+    isr_wake_result = XY_BROKER_OK;
     memset(&last_msg, 0, sizeof(last_msg));
 }
 
@@ -438,6 +440,39 @@ static void test_isr_ingress_queue_full_and_broker_recovery(void)
     TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND, xy_broker_isr_drain_one(&ingress));
 }
 
+static void test_isr_ingress_wake_failure_does_not_publish_message(void)
+{
+    const uint32_t rejected = 0xA5A55A5AU;
+    const uint32_t accepted = 0x12345678U;
+    xy_broker_isr_msg_t storage[2];
+    xy_broker_isr_ingress_t ingress;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_ingress_init(&ingress, storage, 2U, wake_from_isr,
+                                                 &isr_wake_count));
+
+    isr_wake_result = XY_BROKER_ERROR;
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM, XY_BROKER_MSG_SYSTEM_STATUS,
+                                            &rejected, sizeof(rejected), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL_UINT(1U, isr_wake_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND, xy_broker_isr_drain_one(&ingress));
+
+    isr_wake_result = XY_BROKER_OK;
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM, XY_BROKER_MSG_SYSTEM_STATUS,
+                                            &accepted, sizeof(accepted), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_isr_drain_one(&ingress));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U));
+    TEST_ASSERT_EQUAL_MEMORY(&accepted, last_msg.payload, sizeof(accepted));
+}
+
 static void test_debug_name_helpers(void)
 {
     TEST_ASSERT_EQUAL_STRING("SYSTEM", xy_broker_get_server_name(XY_BROKER_SERVER_SYSTEM));
@@ -469,6 +504,7 @@ int main(void)
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
+    RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);
     RUN_TEST(test_debug_name_helpers);
     TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_deinit());
     return UNITY_END();
