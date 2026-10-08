@@ -718,8 +718,9 @@
 - 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
   `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
   `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
-- 适用范围：bounded request wait 在每次 OSAL delay 后重新验证 requester owner；requester
-  注销时立即返回 `XY_BROKER_NOT_FOUND`，不继续使用 stale server slot，也不修改 caller response。
+- 适用范围：bounded request wait 绑定 requester 注册代际，并在每次 OSAL delay 后重新验证；
+  requester 注销或注销后同 ID 重新注册时立即返回 `XY_BROKER_NOT_FOUND`，不继续使用 stale
+  server slot，也不修改 caller response。
 - 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
   sequence-wrap disambiguation、throughput、recovery、endurance 或 IPC product qualification。
 

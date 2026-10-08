@@ -11,6 +11,7 @@
 
 static struct {
     xy_broker_server_t servers[XY_BROKER_MAX_SERVERS];
+    uint32_t server_generation[XY_BROKER_MAX_SERVERS];
     xy_broker_topic_t topics[XY_BROKER_MAX_TOPICS];
     uint8_t topic_active[XY_BROKER_MAX_TOPICS];
     xy_broker_stats_t stats;
@@ -59,6 +60,15 @@ static xy_broker_server_t *broker_alloc_server(void)
         }
     }
     return NULL;
+}
+
+static uint32_t broker_server_generation(const xy_broker_server_t *server)
+{
+    if (!server || server < g_broker.servers
+        || server >= g_broker.servers + XY_BROKER_MAX_SERVERS) {
+        return 0U;
+    }
+    return g_broker.server_generation[server - g_broker.servers];
 }
 
 /**
@@ -212,6 +222,10 @@ int xy_broker_register_server(uint16_t server_id,
     server->handler   = handler;
     server->user_data = user_data;
     server->active    = 1;
+    g_broker.server_generation[server - g_broker.servers]++;
+    if (g_broker.server_generation[server - g_broker.servers] == 0U) {
+        g_broker.server_generation[server - g_broker.servers] = 1U;
+    }
 
     g_broker.stats.active_servers++;
 
@@ -473,6 +487,7 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
                       xy_broker_msg_t *response_msg, uint32_t timeout_ms)
 {
     xy_broker_server_t *src;
+    uint32_t src_generation;
     uint16_t request_seq;
 
     if (!g_broker.initialized || !response_msg)
@@ -481,6 +496,7 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     src = broker_find_server(src_server);
     if (!src)
         return XY_BROKER_NOT_FOUND;
+    src_generation = broker_server_generation(src);
 
     request_seq = g_broker.seq_counter;
 
@@ -495,7 +511,10 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     uint32_t start_time = broker_get_timestamp();
 
     /* Poll once before waiting so timeout_ms == 0 is a true nonblocking request. */
-    if (src && broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg) == XY_BROKER_OK) {
+    if (broker_find_server(src_server) == src
+        && broker_server_generation(src) == src_generation
+        && broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg)
+               == XY_BROKER_OK) {
         return XY_BROKER_OK;
     }
 
@@ -504,7 +523,7 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
             return XY_BROKER_ERROR;
         }
         src = broker_find_server(src_server);
-        if (!src) {
+        if (!src || broker_server_generation(src) != src_generation) {
             return XY_BROKER_NOT_FOUND;
         }
         if (broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg) ==
