@@ -189,6 +189,10 @@ int xy_device_pm_get_state(xy_device_t *dev, xy_device_pm_state_t *state)
         if (!pm_state_is_valid(reported_state)) {
             return XY_DEVICE_INVALID_PARAM;
         }
+        if (data->policy == XY_DEVICE_PM_POLICY_ALWAYS_ON &&
+            reported_state != XY_DEVICE_PM_STATE_ACTIVE) {
+            return XY_DEVICE_BUSY;
+        }
 
         if (reported_state != previous_state) {
             data->last_state = previous_state;
