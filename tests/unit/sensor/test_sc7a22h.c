@@ -107,6 +107,7 @@ static void test_read_failure_preserves_output(void) {
 static void test_identity_and_write_failures_are_atomic(void) {
     xy_sc7a22h_t d;
     int bus;
+    memset(&d, 0, sizeof(d));
     regs[0x01] = 0;
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND, xy_sc7a22h_init(&d, &bus));
     TEST_ASSERT_FALSE(d.initialized);

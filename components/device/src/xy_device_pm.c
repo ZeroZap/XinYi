@@ -79,23 +79,24 @@ int xy_device_pm_init(xy_device_t *dev, const xy_device_pm_ops_t *pm_ops)
         return XY_DEVICE_INVALID_PARAM;
     }
     
-    /* 查找或分配电源管理数据 */
+    /* Repeated initialization of the same live owner is idempotent. */
     xy_device_pm_data_t *data = pm_find_data(dev);
-    
+    if (data) {
+        return data->ops == pm_ops ? XY_DEVICE_OK : XY_DEVICE_ALREADY_INIT;
+    }
+
+    /* Allocate the first free power-management slot. */
+    for (size_t i = 0; i < sizeof(pm_data) / sizeof(pm_data[0]); ++i) {
+        if (pm_data[i].ops == NULL) {
+            data = &pm_data[i];
+            memset(data, 0, sizeof(*data));
+            data->owner = dev;
+            break;
+        }
+    }
+
     if (!data) {
-        /* 简单实现：分配第一个可用槽位 */
-        for (size_t i = 0; i < sizeof(pm_data) / sizeof(pm_data[0]); ++i) {
-            if (pm_data[i].ops == NULL) {
-                data = &pm_data[i];
-                memset(data, 0, sizeof(*data));
-                data->owner = dev;
-                break;
-            }
-        }
-        
-        if (!data) {
-            return XY_DEVICE_NO_MEM;
-        }
+        return XY_DEVICE_NO_MEM;
     }
     
     /* 初始化电源管理数据 */
@@ -175,6 +176,7 @@ int xy_device_pm_get_state(xy_device_t *dev, xy_device_pm_state_t *state)
     /* Commit driver-reported state only after a successful callback. */
     if (data->ops && data->ops->get_state) {
         xy_device_pm_state_t reported_state;
+        xy_device_pm_state_t previous_state = data->current_state;
         int ret = data->ops->get_state(dev, &reported_state);
         if (ret != XY_DEVICE_OK) {
             return ret;
@@ -183,7 +185,11 @@ int xy_device_pm_get_state(xy_device_t *dev, xy_device_pm_state_t *state)
             return XY_DEVICE_INVALID_PARAM;
         }
 
-        data->current_state = reported_state;
+        if (reported_state != previous_state) {
+            data->last_state = previous_state;
+            data->current_state = reported_state;
+            data->last_activity_time = pm_get_tick_ms();
+        }
     }
 
     *state = data->current_state;
