@@ -406,25 +406,29 @@ int xy_device_pm_set_idle_timeout(xy_device_t *dev, uint32_t timeout_ms)
 /**
  * @brief 记录设备活动
  */
-void xy_device_pm_record_activity(xy_device_t *dev)
+int xy_device_pm_record_activity(xy_device_t *dev)
 {
     if (!dev) {
-        return;
+        return XY_DEVICE_INVALID_PARAM;
     }
     
     xy_device_pm_data_t *data = pm_find_data(dev);
     
     if (!data) {
-        return;
+        return XY_DEVICE_NOT_INIT;
     }
-    
-    data->last_activity_time = pm_get_tick_ms();
     
     /* 如果是自动策略且当前在睡眠，唤醒设备 */
     if (data->policy == XY_DEVICE_PM_POLICY_AUTO &&
         data->current_state != XY_DEVICE_PM_STATE_ACTIVE) {
-        xy_device_pm_wakeup(dev);
+        int ret = xy_device_pm_wakeup(dev);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
     }
+
+    data->last_activity_time = pm_get_tick_ms();
+    return XY_DEVICE_OK;
 }
 
 /* ==================== End of File ==================== */

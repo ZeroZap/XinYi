@@ -609,6 +609,20 @@
 - 仍不允许宣称：Pandora Device PM runtime、concurrency safety、实际功耗、wake latency、
   deep-power modes、recovery、endurance 或 hardware qualification。
 
+### 2026-10-08 Device PM activity wake failure propagation
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host activity-wake contract strengthened; no Board claim change
+- 证据路径/命令：`components/device/inc/xy_device_pm.h`,
+  `components/device/src/xy_device_pm.c`, `tests/unit/device/test_device_pm.c`; focused
+  `device_pm`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：public activity recording reports invalid/uninitialized owners and propagates an
+  automatic wake callback failure without committing a fresh activity window; a successful retry
+  returns the owner to ACTIVE before committing the new activity timestamp.
+- 仍不允许宣称：Pandora Device PM runtime、concurrency safety、实际功耗、wake latency、
+  deep-power modes、recovery、endurance 或 hardware qualification。
+
 ### 2026-10-08 IPC Broker pub/sub callback failure propagation
 
 - 组件：IPC / Broker pub/sub

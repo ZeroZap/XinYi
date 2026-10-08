@@ -239,6 +239,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-120 | P1 | Device PM ALWAYS_ON state invariant | DONE | Zero | S4-119（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 `ALWAYS_ON` policy 下 public state setter 仍允许 SLEEP/DEEP_SLEEP/OFF；现三类低功耗请求在 driver callback 前返回 `XY_DEVICE_BUSY`，保持 ACTIVE 与零 side effect。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 | S4-121 | P1 | Device PM driver-reported ALWAYS_ON invariant | DONE | Zero | S4-120（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 `get_state` callback 可在 `ALWAYS_ON` policy 下把 cached ACTIVE 静默改为 SLEEP；现合法 non-ACTIVE report 返回 `XY_DEVICE_BUSY`，保持 caller output/cache，并允许后续 ACTIVE report。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 | S4-122 | P1 | Device PM nested low-power wake invariant | DONE | Zero | S4-121（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 SLEEP→DEEP_SLEEP 后 wakeup 会恢复到旧 SLEEP 而非 ACTIVE；现 public wakeup 对任意低功耗 state 均经 driver callback 回到 ACTIVE，保持 callback failure 原子性。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
+| S4-123 | P1 | Device PM activity wake failure propagation | DONE | Zero | S4-122（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 `xy_device_pm_record_activity()` 无返回值且吞掉 wake callback failure；现 API 返回精确错误，失败保持低功耗 state 与旧 activity window，成功唤醒后才提交新 activity timestamp。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 
 ### Sprint 5 前置看板
 

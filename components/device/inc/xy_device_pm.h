@@ -158,8 +158,9 @@ int xy_device_pm_set_idle_timeout(xy_device_t *dev, uint32_t timeout_ms);
 /**
  * @brief Record activity and wake an automatically managed sleeping device.
  * @param dev Device handle
+ * @return XY_DEVICE_OK on success, otherwise an error code
  */
-void xy_device_pm_record_activity(xy_device_t *dev);
+int xy_device_pm_record_activity(xy_device_t *dev);
 
 #ifdef __cplusplus
 }
