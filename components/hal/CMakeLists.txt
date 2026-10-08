@@ -91,6 +91,7 @@ elseif(HAL_PLATFORM STREQUAL "WCH")
         "wch/ch32x/src/xy_hal_dac.c"
         "wch/ch32x/src/xy_hal_delay.c"
         "wch/ch32x/src/xy_hal_dma.c"
+        "wch/ch32x/src/xy_hal_exti.c"
         "wch/ch32x/src/xy_hal_flash.c"
         "wch/ch32x/src/xy_hal_gpio.c"
         "wch/ch32x/src/xy_hal_i2c.c"
