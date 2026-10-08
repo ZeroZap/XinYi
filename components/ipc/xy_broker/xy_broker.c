@@ -29,7 +29,8 @@ static struct {
  * - 如需毫秒精度，可在 xy_os_cfg.h 配置 XY_OS_TICK_RATE
  * - 替代方案：使用硬件定时器/RTC
  */
-static uint32_t broker_get_timestamp(void) {
+static uint32_t broker_get_timestamp(void)
+{
     /* 使用 OS tick 作为时间戳 */
     return xy_os_tick_get();
 }
@@ -37,9 +38,11 @@ static uint32_t broker_get_timestamp(void) {
 /**
  * @brief Find server by ID
  */
-static xy_broker_server_t* broker_find_server(uint16_t server_id) {
+static xy_broker_server_t *broker_find_server(uint16_t server_id)
+{
     for (int i = 0; i < XY_BROKER_MAX_SERVERS; i++) {
-        if (g_broker.servers[i].active && g_broker.servers[i].server_id == server_id) {
+        if (g_broker.servers[i].active
+            && g_broker.servers[i].server_id == server_id) {
             return &g_broker.servers[i];
         }
     }
@@ -49,7 +52,8 @@ static xy_broker_server_t* broker_find_server(uint16_t server_id) {
 /**
  * @brief Find free server slot
  */
-static xy_broker_server_t* broker_alloc_server(void) {
+static xy_broker_server_t *broker_alloc_server(void)
+{
     for (int i = 0; i < XY_BROKER_MAX_SERVERS; i++) {
         if (!g_broker.servers[i].active) {
             return &g_broker.servers[i];
@@ -58,9 +62,10 @@ static xy_broker_server_t* broker_alloc_server(void) {
     return NULL;
 }
 
-static uint32_t broker_server_generation(const xy_broker_server_t* server) {
-    if (!server || server < g_broker.servers ||
-        server >= g_broker.servers + XY_BROKER_MAX_SERVERS) {
+static uint32_t broker_server_generation(const xy_broker_server_t *server)
+{
+    if (!server || server < g_broker.servers
+        || server >= g_broker.servers + XY_BROKER_MAX_SERVERS) {
         return 0U;
     }
     return g_broker.server_generation[server - g_broker.servers];
@@ -69,7 +74,8 @@ static uint32_t broker_server_generation(const xy_broker_server_t* server) {
 /**
  * @brief Find topic by ID
  */
-static xy_broker_topic_t* broker_find_topic(uint16_t topic_id) {
+static xy_broker_topic_t *broker_find_topic(uint16_t topic_id)
+{
     for (int i = 0; i < XY_BROKER_MAX_TOPICS; i++) {
         if (g_broker.topic_active[i] && g_broker.topics[i].topic_id == topic_id) {
             return &g_broker.topics[i];
@@ -81,7 +87,8 @@ static xy_broker_topic_t* broker_find_topic(uint16_t topic_id) {
 /**
  * @brief Find free topic slot
  */
-static xy_broker_topic_t* broker_alloc_topic(void) {
+static xy_broker_topic_t *broker_alloc_topic(void)
+{
     for (int i = 0; i < XY_BROKER_MAX_TOPICS; i++) {
         if (!g_broker.topic_active[i]) {
             return &g_broker.topics[i];
@@ -93,7 +100,9 @@ static xy_broker_topic_t* broker_alloc_topic(void) {
 /**
  * @brief Enqueue message to server
  */
-static int broker_enqueue_msg(xy_broker_server_t* server, const xy_broker_msg_t* msg) {
+static int broker_enqueue_msg(xy_broker_server_t *server,
+                              const xy_broker_msg_t *msg)
+{
     if (!server || !msg)
         return XY_BROKER_INVALID_PARAM;
 
@@ -103,7 +112,8 @@ static int broker_enqueue_msg(xy_broker_server_t* server, const xy_broker_msg_t*
         return XY_BROKER_QUEUE_FULL;
     }
 
-    memcpy(&server->msg_queue[server->queue_tail], msg, sizeof(xy_broker_msg_t));
+    memcpy(
+        &server->msg_queue[server->queue_tail], msg, sizeof(xy_broker_msg_t));
     server->queue_tail = (server->queue_tail + 1) % XY_BROKER_MSG_QUEUE_SIZE;
     server->queue_count++;
     server->msg_received++;
@@ -114,23 +124,26 @@ static int broker_enqueue_msg(xy_broker_server_t* server, const xy_broker_msg_t*
 /**
  * @brief Dequeue message from server
  */
-static int broker_dequeue_msg(xy_broker_server_t* server, xy_broker_msg_t* msg) {
+static int broker_dequeue_msg(xy_broker_server_t *server, xy_broker_msg_t *msg)
+{
     if (!server || !msg)
         return XY_BROKER_INVALID_PARAM;
 
     if (server->queue_count == 0)
         return XY_BROKER_NOT_FOUND;
 
-    memcpy(msg, &server->msg_queue[server->queue_head], sizeof(xy_broker_msg_t));
+    memcpy(
+        msg, &server->msg_queue[server->queue_head], sizeof(xy_broker_msg_t));
     server->queue_head = (server->queue_head + 1) % XY_BROKER_MSG_QUEUE_SIZE;
     server->queue_count--;
 
     return XY_BROKER_OK;
 }
 
-static int broker_dequeue_response(xy_broker_server_t* server, uint16_t expected_src,
+static int broker_dequeue_response(xy_broker_server_t *server, uint16_t expected_src,
                                    uint16_t expected_msg_id, uint16_t expected_seq,
-                                   xy_broker_msg_t* msg) {
+                                   xy_broker_msg_t *msg)
+{
     uint16_t offset;
 
     if (!server || !msg)
@@ -138,10 +151,12 @@ static int broker_dequeue_response(xy_broker_server_t* server, uint16_t expected
 
     for (offset = 0; offset < server->queue_count; offset++) {
         uint16_t index = (server->queue_head + offset) % XY_BROKER_MSG_QUEUE_SIZE;
-        xy_broker_msg_t* candidate = &server->msg_queue[index];
+        xy_broker_msg_t *candidate = &server->msg_queue[index];
 
-        if (candidate->src_server == expected_src && candidate->dst_server == server->server_id &&
-            candidate->msg_id == expected_msg_id && candidate->seq_num == expected_seq) {
+        if (candidate->src_server == expected_src
+            && candidate->dst_server == server->server_id
+            && candidate->msg_id == expected_msg_id
+            && candidate->seq_num == expected_seq) {
             uint16_t shift;
 
             memcpy(msg, candidate, sizeof(*msg));
@@ -162,7 +177,8 @@ static int broker_dequeue_response(xy_broker_server_t* server, uint16_t expected
 
 /* ==================== Core API Implementation ==================== */
 
-int xy_broker_init(void) {
+int xy_broker_init(void)
+{
     if (g_broker.initialized)
         return XY_BROKER_OK;
 
@@ -172,7 +188,8 @@ int xy_broker_init(void) {
     return XY_BROKER_OK;
 }
 
-int xy_broker_deinit(void) {
+int xy_broker_deinit(void)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
@@ -181,8 +198,9 @@ int xy_broker_deinit(void) {
     return XY_BROKER_OK;
 }
 
-int xy_broker_register_server(uint16_t server_id, xy_broker_msg_handler_t handler,
-                              void* user_data) {
+int xy_broker_register_server(uint16_t server_id,
+                              xy_broker_msg_handler_t handler, void *user_data)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
@@ -194,16 +212,16 @@ int xy_broker_register_server(uint16_t server_id, xy_broker_msg_handler_t handle
         return XY_BROKER_ALREADY_EXISTS;
 
     // Allocate server slot
-    xy_broker_server_t* server = broker_alloc_server();
+    xy_broker_server_t *server = broker_alloc_server();
     if (!server)
         return XY_BROKER_NO_MEMORY;
 
     // Initialize server
     memset(server, 0, sizeof(xy_broker_server_t));
     server->server_id = server_id;
-    server->handler = handler;
+    server->handler   = handler;
     server->user_data = user_data;
-    server->active = 1;
+    server->active    = 1;
     g_broker.server_generation[server - g_broker.servers]++;
     if (g_broker.server_generation[server - g_broker.servers] == 0U) {
         g_broker.server_generation[server - g_broker.servers] = 1U;
@@ -214,11 +232,12 @@ int xy_broker_register_server(uint16_t server_id, xy_broker_msg_handler_t handle
     return XY_BROKER_OK;
 }
 
-int xy_broker_unregister_server(uint16_t server_id) {
+int xy_broker_unregister_server(uint16_t server_id)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
-    xy_broker_server_t* server = broker_find_server(server_id);
+    xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
         return XY_BROKER_NOT_FOUND;
 
@@ -228,27 +247,29 @@ int xy_broker_unregister_server(uint16_t server_id) {
     return XY_BROKER_OK;
 }
 
-int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
-                       const void* payload, uint16_t payload_len, uint8_t priority) {
+int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server,
+                       uint16_t msg_id, const void *payload,
+                       uint16_t payload_len, uint8_t priority)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
     if (payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0 && !payload))
         return XY_BROKER_INVALID_PARAM;
 
-    xy_broker_server_t* dst = broker_find_server(dst_server);
+    xy_broker_server_t *dst = broker_find_server(dst_server);
     if (!dst)
         return XY_BROKER_NOT_FOUND;
 
     // Create message
     xy_broker_msg_t msg;
     memset(&msg, 0, sizeof(msg));
-    msg.msg_id = msg_id;
-    msg.src_server = src_server;
-    msg.dst_server = dst_server;
-    msg.priority = priority;
-    msg.seq_num = g_broker.seq_counter++;
-    msg.timestamp = broker_get_timestamp();
+    msg.msg_id      = msg_id;
+    msg.src_server  = src_server;
+    msg.dst_server  = dst_server;
+    msg.priority    = priority;
+    msg.seq_num     = g_broker.seq_counter++;
+    msg.timestamp   = broker_get_timestamp();
     msg.payload_len = payload_len;
 
     if (payload && payload_len > 0) {
@@ -261,7 +282,7 @@ int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server, uint16_t msg_id
         g_broker.stats.total_msg_sent++;
 
         // Update source server stats if registered
-        xy_broker_server_t* src = broker_find_server(src_server);
+        xy_broker_server_t *src = broker_find_server(src_server);
         if (src) {
             src->msg_sent++;
         }
@@ -270,11 +291,12 @@ int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server, uint16_t msg_id
     return ret;
 }
 
-int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs) {
+int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
-    xy_broker_server_t* server = broker_find_server(server_id);
+    xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
         return XY_BROKER_NOT_FOUND;
 
@@ -305,14 +327,15 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs) {
 
 /* ==================== Pub/Sub API Implementation ==================== */
 
-int xy_broker_create_topic(uint16_t topic_id) {
+int xy_broker_create_topic(uint16_t topic_id)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
     if (broker_find_topic(topic_id))
         return XY_BROKER_ALREADY_EXISTS;
 
-    xy_broker_topic_t* topic = broker_alloc_topic();
+    xy_broker_topic_t *topic = broker_alloc_topic();
     if (!topic)
         return XY_BROKER_NO_MEMORY;
 
@@ -323,15 +346,16 @@ int xy_broker_create_topic(uint16_t topic_id) {
     return XY_BROKER_OK;
 }
 
-int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id, xy_broker_msg_handler_t handler,
-                        void* user_data) {
+int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id,
+                        xy_broker_msg_handler_t handler, void *user_data)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
     if (!handler)
         return XY_BROKER_INVALID_PARAM;
 
-    xy_broker_topic_t* topic = broker_find_topic(topic_id);
+    xy_broker_topic_t *topic = broker_find_topic(topic_id);
     if (!topic) {
         // Auto-create topic
         if (xy_broker_create_topic(topic_id) != XY_BROKER_OK)
@@ -341,7 +365,8 @@ int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id, xy_broker_msg_han
 
     // Check if already subscribed
     for (int i = 0; i < XY_BROKER_MAX_SUBSCRIBERS; i++) {
-        if (topic->subscribers[i].active && topic->subscribers[i].server_id == server_id) {
+        if (topic->subscribers[i].active
+            && topic->subscribers[i].server_id == server_id) {
             return XY_BROKER_ALREADY_EXISTS;
         }
     }
@@ -350,9 +375,9 @@ int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id, xy_broker_msg_han
     for (int i = 0; i < XY_BROKER_MAX_SUBSCRIBERS; i++) {
         if (!topic->subscribers[i].active) {
             topic->subscribers[i].server_id = server_id;
-            topic->subscribers[i].handler = handler;
+            topic->subscribers[i].handler   = handler;
             topic->subscribers[i].user_data = user_data;
-            topic->subscribers[i].active = 1;
+            topic->subscribers[i].active    = 1;
             topic->subscriber_count++;
 
             if (topic->subscriber_count == 1) {
@@ -366,16 +391,18 @@ int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id, xy_broker_msg_han
     return XY_BROKER_NO_MEMORY;
 }
 
-int xy_broker_unsubscribe(uint16_t topic_id, uint16_t server_id) {
+int xy_broker_unsubscribe(uint16_t topic_id, uint16_t server_id)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
-    xy_broker_topic_t* topic = broker_find_topic(topic_id);
+    xy_broker_topic_t *topic = broker_find_topic(topic_id);
     if (!topic)
         return XY_BROKER_NOT_FOUND;
 
     for (int i = 0; i < XY_BROKER_MAX_SUBSCRIBERS; i++) {
-        if (topic->subscribers[i].active && topic->subscribers[i].server_id == server_id) {
+        if (topic->subscribers[i].active
+            && topic->subscribers[i].server_id == server_id) {
             topic->subscribers[i].active = 0;
             topic->subscriber_count--;
 
@@ -390,29 +417,31 @@ int xy_broker_unsubscribe(uint16_t topic_id, uint16_t server_id) {
     return XY_BROKER_NOT_FOUND;
 }
 
-int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id, const void* payload,
-                      uint16_t payload_len, uint8_t priority) {
+int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
+                      const void *payload, uint16_t payload_len,
+                      uint8_t priority)
+{
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
     if (payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0 && !payload))
         return XY_BROKER_INVALID_PARAM;
 
-    xy_broker_topic_t* topic = broker_find_topic(topic_id);
+    xy_broker_topic_t *topic = broker_find_topic(topic_id);
     if (!topic || topic->subscriber_count == 0)
         return XY_BROKER_NOT_FOUND;
 
     // Create message
     xy_broker_msg_t msg;
     memset(&msg, 0, sizeof(msg));
-    msg.msg_id = msg_id;
-    msg.src_server = src_server;
-    msg.topic_id = topic_id;
-    msg.priority = priority;
-    msg.seq_num = g_broker.seq_counter++;
-    msg.timestamp = broker_get_timestamp();
+    msg.msg_id      = msg_id;
+    msg.src_server  = src_server;
+    msg.topic_id    = topic_id;
+    msg.priority    = priority;
+    msg.seq_num     = g_broker.seq_counter++;
+    msg.timestamp   = broker_get_timestamp();
     msg.payload_len = payload_len;
-    msg.flags = XY_BROKER_FLAG_BROADCAST;
+    msg.flags       = XY_BROKER_FLAG_BROADCAST;
 
     if (payload && payload_len > 0) {
         memcpy(msg.payload, payload, payload_len);
@@ -428,8 +457,8 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id, c
         if (topic->subscribers[i].active) {
             if (topic->subscribers[i].handler) {
                 // Direct callback
-                int handler_result =
-                    topic->subscribers[i].handler(&msg, topic->subscribers[i].user_data);
+                int handler_result = topic->subscribers[i].handler(
+                    &msg, topic->subscribers[i].user_data);
                 if (handler_result == XY_BROKER_OK) {
                     delivered++;
                 } else {
@@ -454,10 +483,11 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id, c
  */
 
 int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
-                      const void* request_payload, uint16_t request_len,
-                      xy_broker_msg_t* response_msg, uint32_t timeout_ms) {
-    xy_broker_server_t* src;
-    xy_broker_server_t* dst;
+                      const void *request_payload, uint16_t request_len,
+                      xy_broker_msg_t *response_msg, uint32_t timeout_ms)
+{
+    xy_broker_server_t *src;
+    xy_broker_server_t *dst;
     uint32_t src_generation;
     uint32_t dst_generation;
     uint16_t request_seq;
@@ -477,8 +507,9 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     request_seq = g_broker.seq_counter;
 
     // Send request
-    int ret = xy_broker_send_msg(src_server, dst_server, msg_id, request_payload, request_len,
-                                 XY_BROKER_PRIORITY_NORMAL);
+    int ret =
+        xy_broker_send_msg(src_server, dst_server, msg_id, request_payload,
+                           request_len, XY_BROKER_PRIORITY_NORMAL);
     if (ret != XY_BROKER_OK)
         return ret;
 
@@ -486,10 +517,12 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     uint32_t start_time = broker_get_timestamp();
 
     /* Poll once before waiting so timeout_ms == 0 is a true nonblocking request. */
-    if (broker_find_server(src_server) == src && broker_server_generation(src) == src_generation &&
-        broker_find_server(dst_server) == dst && broker_server_generation(dst) == dst_generation &&
-        broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg) ==
-            XY_BROKER_OK) {
+    if (broker_find_server(src_server) == src
+        && broker_server_generation(src) == src_generation
+        && broker_find_server(dst_server) == dst
+        && broker_server_generation(dst) == dst_generation
+        && broker_dequeue_response(src, dst_server, msg_id, request_seq, response_msg)
+               == XY_BROKER_OK) {
         return XY_BROKER_OK;
     }
 
@@ -514,16 +547,18 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     return XY_BROKER_TIMEOUT;
 }
 
-int xy_broker_respond(const xy_broker_msg_t* request_msg, const void* response_payload,
-                      uint16_t response_len) {
+int xy_broker_respond(const xy_broker_msg_t *request_msg,
+                      const void *response_payload, uint16_t response_len)
+{
     xy_broker_msg_t response;
-    xy_broker_server_t* dst;
-    xy_broker_server_t* src;
+    xy_broker_server_t *dst;
+    xy_broker_server_t *src;
     int ret;
 
     if (!g_broker.initialized || !request_msg)
         return XY_BROKER_ERROR;
-    if (response_len > XY_BROKER_MAX_MSG_SIZE || (response_len > 0U && !response_payload))
+    if (response_len > XY_BROKER_MAX_MSG_SIZE ||
+        (response_len > 0U && !response_payload))
         return XY_BROKER_INVALID_PARAM;
 
     dst = broker_find_server(request_msg->src_server);
@@ -557,7 +592,8 @@ int xy_broker_respond(const xy_broker_msg_t* request_msg, const void* response_p
 
 /* ==================== Utility API Implementation ==================== */
 
-int xy_broker_get_stats(xy_broker_stats_t* stats) {
+int xy_broker_get_stats(xy_broker_stats_t *stats)
+{
     if (!g_broker.initialized || !stats)
         return XY_BROKER_ERROR;
 
@@ -565,25 +601,28 @@ int xy_broker_get_stats(xy_broker_stats_t* stats) {
     return XY_BROKER_OK;
 }
 
-int xy_broker_is_server_registered(uint16_t server_id) {
+int xy_broker_is_server_registered(uint16_t server_id)
+{
     return broker_find_server(server_id) != NULL ? 1 : 0;
 }
 
-int xy_broker_get_pending_count(uint16_t server_id) {
-    xy_broker_server_t* server = broker_find_server(server_id);
+int xy_broker_get_pending_count(uint16_t server_id)
+{
+    xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
         return XY_BROKER_NOT_FOUND;
 
     return server->queue_count;
 }
 
-int xy_broker_clear_queue(uint16_t server_id) {
-    xy_broker_server_t* server = broker_find_server(server_id);
+int xy_broker_clear_queue(uint16_t server_id)
+{
+    xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
         return XY_BROKER_NOT_FOUND;
 
-    server->queue_head = 0;
-    server->queue_tail = 0;
+    server->queue_head  = 0;
+    server->queue_tail  = 0;
     server->queue_count = 0;
 
     return XY_BROKER_OK;
@@ -591,71 +630,74 @@ int xy_broker_clear_queue(uint16_t server_id) {
 
 /* ==================== Debug Helper Functions ==================== */
 
-const char* xy_broker_get_server_name(uint16_t server_id) {
+const char *xy_broker_get_server_name(uint16_t server_id)
+{
     switch (server_id) {
-        case XY_BROKER_SERVER_SYSTEM:
-            return "SYSTEM";
-        case XY_BROKER_SERVER_POWER:
-            return "POWER";
-        case XY_BROKER_SERVER_COMM:
-            return "COMM";
-        case XY_BROKER_SERVER_SENSOR:
-            return "SENSOR";
-        case XY_BROKER_SERVER_STORAGE:
-            return "STORAGE";
-        case XY_BROKER_SERVER_DISPLAY:
-            return "DISPLAY";
-        case XY_BROKER_SERVER_NETWORK:
-            return "NETWORK";
-        case XY_BROKER_SERVER_SECURITY:
-            return "SECURITY";
-        case XY_BROKER_SERVER_TIMER:
-            return "TIMER";
-        case XY_BROKER_SERVER_LOG:
-            return "LOG";
-        case XY_BROKER_SERVER_DEBUG:
-            return "DEBUG";
-        default:
-            return "UNKNOWN";
+    case XY_BROKER_SERVER_SYSTEM:
+        return "SYSTEM";
+    case XY_BROKER_SERVER_POWER:
+        return "POWER";
+    case XY_BROKER_SERVER_COMM:
+        return "COMM";
+    case XY_BROKER_SERVER_SENSOR:
+        return "SENSOR";
+    case XY_BROKER_SERVER_STORAGE:
+        return "STORAGE";
+    case XY_BROKER_SERVER_DISPLAY:
+        return "DISPLAY";
+    case XY_BROKER_SERVER_NETWORK:
+        return "NETWORK";
+    case XY_BROKER_SERVER_SECURITY:
+        return "SECURITY";
+    case XY_BROKER_SERVER_TIMER:
+        return "TIMER";
+    case XY_BROKER_SERVER_LOG:
+        return "LOG";
+    case XY_BROKER_SERVER_DEBUG:
+        return "DEBUG";
+    default:
+        return "UNKNOWN";
     }
 }
 
-const char* xy_broker_get_msg_name(uint16_t msg_id) {
+const char *xy_broker_get_msg_name(uint16_t msg_id)
+{
     switch (msg_id) {
-        case XY_BROKER_MSG_SYSTEM_INIT:
-            return "SYSTEM_INIT";
-        case XY_BROKER_MSG_SYSTEM_SHUTDOWN:
-            return "SYSTEM_SHUTDOWN";
-        case XY_BROKER_MSG_POWER_ON:
-            return "POWER_ON";
-        case XY_BROKER_MSG_POWER_OFF:
-            return "POWER_OFF";
-        case XY_BROKER_MSG_SENSOR_DATA:
-            return "SENSOR_DATA";
-        case XY_BROKER_MSG_COMM_SEND:
-            return "COMM_SEND";
-        case XY_BROKER_MSG_COMM_RECEIVE:
-            return "COMM_RECEIVE";
-        default:
-            return "UNKNOWN";
+    case XY_BROKER_MSG_SYSTEM_INIT:
+        return "SYSTEM_INIT";
+    case XY_BROKER_MSG_SYSTEM_SHUTDOWN:
+        return "SYSTEM_SHUTDOWN";
+    case XY_BROKER_MSG_POWER_ON:
+        return "POWER_ON";
+    case XY_BROKER_MSG_POWER_OFF:
+        return "POWER_OFF";
+    case XY_BROKER_MSG_SENSOR_DATA:
+        return "SENSOR_DATA";
+    case XY_BROKER_MSG_COMM_SEND:
+        return "COMM_SEND";
+    case XY_BROKER_MSG_COMM_RECEIVE:
+        return "COMM_RECEIVE";
+    default:
+        return "UNKNOWN";
     }
 }
 
-const char* xy_broker_get_topic_name(uint16_t topic_id) {
+const char *xy_broker_get_topic_name(uint16_t topic_id)
+{
     switch (topic_id) {
-        case XY_BROKER_TOPIC_SYSTEM_EVENT:
-            return "SYSTEM_EVENT";
-        case XY_BROKER_TOPIC_POWER_EVENT:
-            return "POWER_EVENT";
-        case XY_BROKER_TOPIC_SENSOR_DATA:
-            return "SENSOR_DATA";
-        case XY_BROKER_TOPIC_NETWORK_EVENT:
-            return "NETWORK_EVENT";
-        case XY_BROKER_TOPIC_ALARM_EVENT:
-            return "ALARM_EVENT";
-        case XY_BROKER_TOPIC_LOG_EVENT:
-            return "LOG_EVENT";
-        default:
-            return "UNKNOWN";
+    case XY_BROKER_TOPIC_SYSTEM_EVENT:
+        return "SYSTEM_EVENT";
+    case XY_BROKER_TOPIC_POWER_EVENT:
+        return "POWER_EVENT";
+    case XY_BROKER_TOPIC_SENSOR_DATA:
+        return "SENSOR_DATA";
+    case XY_BROKER_TOPIC_NETWORK_EVENT:
+        return "NETWORK_EVENT";
+    case XY_BROKER_TOPIC_ALARM_EVENT:
+        return "ALARM_EVENT";
+    case XY_BROKER_TOPIC_LOG_EVENT:
+        return "LOG_EVENT";
+    default:
+        return "UNKNOWN";
     }
 }
