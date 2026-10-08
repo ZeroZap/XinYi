@@ -470,8 +470,14 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
                       const void *request_payload, uint16_t request_len,
                       xy_broker_msg_t *response_msg, uint32_t timeout_ms)
 {
+    xy_broker_server_t *src;
+
     if (!g_broker.initialized || !response_msg)
         return XY_BROKER_ERROR;
+
+    src = broker_find_server(src_server);
+    if (!src)
+        return XY_BROKER_NOT_FOUND;
 
     // Send request
     int ret =
@@ -482,7 +488,6 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
 
     /* 等待响应 (轮询实现 + 超时机制) */
     uint32_t start_time = broker_get_timestamp();
-    xy_broker_server_t *src = broker_find_server(src_server);
 
     /* Poll once before waiting so timeout_ms == 0 is a true nonblocking request. */
     if (src && broker_dequeue_response(src, dst_server, msg_id, response_msg) == XY_BROKER_OK) {

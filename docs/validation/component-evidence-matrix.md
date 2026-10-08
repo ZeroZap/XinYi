@@ -674,6 +674,18 @@
 - 仍不允许宣称：Pandora request/response runtime、concurrent correlation、多请求安全、throughput、
   recovery、endurance 或 IPC product qualification。
 
+### 2026-10-09 IPC Broker request source-owner guard
+
+- 组件：IPC / Broker request-response
+- 旧等级 -> 新等级：H1/Host request ownership contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：`xy_broker_request()` 在发送前要求 source server 已注册；无 response queue owner
+  时返回 `XY_BROKER_NOT_FOUND`，不再向 destination 留下必然超时且无法关联的 orphan request。
+- 仍不允许宣称：Pandora request/response runtime、concurrent correlation、多请求安全、throughput、
+  recovery、endurance 或 IPC product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

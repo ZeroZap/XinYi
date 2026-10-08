@@ -423,6 +423,25 @@ static void test_request_stops_when_delay_backend_fails(void)
     TEST_ASSERT_EQUAL_UINT32(0U, fake_tick);
 }
 
+static void test_request_rejects_unregistered_source_without_enqueue(void)
+{
+    const uint32_t request_payload = 0xCAFEBABEU;
+    xy_broker_msg_t response;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    memset(&response, 0xA5, sizeof(response));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                        XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                        sizeof(request_payload), &response, 3U));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_COMM));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_os_delay_fake.call_count);
+}
+
 static void test_handler_failure_is_propagated_and_queue_recovers(void)
 {
     const uint32_t payload = 0xA5A55A5AU;
@@ -559,6 +578,7 @@ int main(void)
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_request_zero_timeout_performs_nonblocking_response_poll);
     RUN_TEST(test_request_stops_when_delay_backend_fails);
+    RUN_TEST(test_request_rejects_unregistered_source_without_enqueue);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
     RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);
