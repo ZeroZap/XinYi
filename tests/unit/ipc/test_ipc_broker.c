@@ -455,8 +455,8 @@ static void test_isr_ingress_wake_failure_does_not_publish_message(void)
                       xy_broker_isr_ingress_init(&ingress, storage, 2U, wake_from_isr,
                                                  &isr_wake_count));
 
-    isr_wake_result = XY_BROKER_ERROR;
-    TEST_ASSERT_EQUAL(XY_BROKER_ERROR,
+    isr_wake_result = XY_BROKER_TIMEOUT;
+    TEST_ASSERT_EQUAL(XY_BROKER_TIMEOUT,
                       xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
                                             XY_BROKER_SERVER_SYSTEM, XY_BROKER_MSG_SYSTEM_STATUS,
                                             &rejected, sizeof(rejected), XY_BROKER_PRIORITY_HIGH));

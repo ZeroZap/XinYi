@@ -47,9 +47,10 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     }
     __asm volatile("" ::: "memory");
     ingress->tail = next;
-    if (ingress->wake_from_isr(ingress->wake_context) != XY_BROKER_OK) {
+    int wake_result = ingress->wake_from_isr(ingress->wake_context);
+    if (wake_result != XY_BROKER_OK) {
         ingress->tail = previous_tail;
-        return XY_BROKER_ERROR;
+        return wake_result;
     }
     return XY_BROKER_OK;
 }

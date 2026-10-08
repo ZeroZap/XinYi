@@ -570,7 +570,8 @@
   `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
 - 适用范围：ISR ingress publishes its ring tail before requesting the wake, then rolls the tail
   back to the exact previous slot when the ISR-safe wake callback fails; rejected payloads cannot
-  be drained later, and the same slot remains reusable by a subsequent successful publish.
+  be drained later, the same slot remains reusable by a subsequent successful publish, and the
+  callback's exact failure code is preserved for caller recovery policy.
 - 仍不允许宣称：Pandora multi-ISR runtime、concurrency safety、throughput、arbitrary interrupt
   sources、recovery、endurance 或 IPC product qualification。
 
