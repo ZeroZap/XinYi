@@ -279,6 +279,26 @@ static void test_device_pm_driver_reported_sleep_wakes_to_previous_active_state(
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
 }
 
+static void test_device_pm_wakeup_from_nested_low_power_state_returns_active(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+    xy_device_pm_state_t state = XY_DEVICE_PM_STATE_OFF;
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_sleep(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_device_pm_set_state(&dev, XY_DEVICE_PM_STATE_DEEP_SLEEP));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_wakeup(&dev));
+    TEST_ASSERT_EQUAL_UINT(3U, set_state_calls);
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, last_requested_state);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&dev, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
 static void test_device_pm_reinit_preserves_live_state(void) {
     xy_device_t dev;
     const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
@@ -404,6 +424,7 @@ int main(void) {
     RUN_TEST(test_device_pm_consumption_callback_failure_preserves_output);
     RUN_TEST(test_device_pm_state_callback_failure_preserves_output);
     RUN_TEST(test_device_pm_driver_reported_sleep_wakes_to_previous_active_state);
+    RUN_TEST(test_device_pm_wakeup_from_nested_low_power_state_returns_active);
     RUN_TEST(test_device_pm_reinit_preserves_live_state);
     RUN_TEST(test_device_pm_always_on_policy_wakes_atomically);
     RUN_TEST(test_device_pm_auto_policy_starts_a_fresh_idle_window);

@@ -337,14 +337,8 @@ int xy_device_pm_wakeup(xy_device_t *dev)
         return XY_DEVICE_NOT_INIT;
     }
     
-    /* 恢复到上一个状态或 ACTIVE */
-    xy_device_pm_state_t target_state = data->last_state;
-    if (target_state == XY_DEVICE_PM_STATE_OFF || 
-        target_state == XY_DEVICE_PM_STATE_DEEP_SLEEP) {
-        target_state = XY_DEVICE_PM_STATE_ACTIVE;
-    }
-    
-    return xy_device_pm_set_state(dev, target_state);
+    /* A wake request always returns a low-power owner to ACTIVE. */
+    return xy_device_pm_set_state(dev, XY_DEVICE_PM_STATE_ACTIVE);
 }
 
 int xy_device_pm_off(xy_device_t *dev)
