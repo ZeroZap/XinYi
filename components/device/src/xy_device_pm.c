@@ -276,8 +276,23 @@ int xy_device_pm_set_policy(xy_device_t *dev, xy_device_pm_policy_t policy)
     if (!data) {
         return XY_DEVICE_NOT_INIT;
     }
+
+    if (data->policy == policy) {
+        return XY_DEVICE_OK;
+    }
+
+    if (policy == XY_DEVICE_PM_POLICY_ALWAYS_ON &&
+        data->current_state != XY_DEVICE_PM_STATE_ACTIVE) {
+        int ret = xy_device_pm_on(dev);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
+    }
     
     data->policy = policy;
+    if (policy == XY_DEVICE_PM_POLICY_AUTO) {
+        data->last_activity_time = pm_get_tick_ms();
+    }
     return XY_DEVICE_OK;
 }
 

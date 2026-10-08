@@ -7,6 +7,7 @@
 static uint32_t fake_tick;
 static unsigned int set_state_calls;
 static xy_device_pm_state_t last_requested_state;
+static int set_state_result;
 static unsigned int set_wakeup_calls;
 static bool last_requested_wakeup;
 static int set_wakeup_result;
@@ -25,7 +26,7 @@ static int capture_set_state(xy_device_t* dev, xy_device_pm_state_t state) {
     TEST_ASSERT_NOT_NULL(dev);
     set_state_calls++;
     last_requested_state = state;
-    return XY_DEVICE_OK;
+    return set_state_result;
 }
 
 static int capture_set_wakeup(xy_device_t* dev, bool enable) {
@@ -55,6 +56,7 @@ void setUp(void) {
     fake_tick = 100U;
     set_state_calls = 0U;
     last_requested_state = XY_DEVICE_PM_STATE_ACTIVE;
+    set_state_result = XY_DEVICE_OK;
     set_wakeup_calls = 0U;
     last_requested_wakeup = false;
     set_wakeup_result = XY_DEVICE_OK;
@@ -301,6 +303,52 @@ static void test_device_pm_reinit_preserves_live_state(void) {
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
 }
 
+static void test_device_pm_always_on_policy_wakes_atomically(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+    xy_device_pm_state_t state = XY_DEVICE_PM_STATE_OFF;
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_sleep(&dev));
+
+    set_state_result = XY_DEVICE_IO_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR,
+                          xy_device_pm_set_policy(&dev, XY_DEVICE_PM_POLICY_ALWAYS_ON));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_POLICY_AUTO, xy_device_pm_get_policy(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&dev, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_SLEEP, state);
+
+    set_state_result = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_device_pm_set_policy(&dev, XY_DEVICE_PM_POLICY_ALWAYS_ON));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_POLICY_ALWAYS_ON, xy_device_pm_get_policy(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&dev, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
+static void test_device_pm_auto_policy_starts_a_fresh_idle_window(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_set_idle_timeout(&dev, 50U));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_set_policy(&dev, XY_DEVICE_PM_POLICY_MANUAL));
+
+    fake_tick = 1000U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_set_policy(&dev, XY_DEVICE_PM_POLICY_AUTO));
+    fake_tick = 1049U;
+    xy_device_pm_check_idle(&dev);
+    TEST_ASSERT_EQUAL_UINT(0U, set_state_calls);
+    fake_tick = 1050U;
+    xy_device_pm_check_idle(&dev);
+    TEST_ASSERT_EQUAL_UINT(1U, set_state_calls);
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_SLEEP, last_requested_state);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_device_pm_idle_timeout_uses_device_tick);
@@ -313,5 +361,7 @@ int main(void) {
     RUN_TEST(test_device_pm_state_callback_failure_preserves_output);
     RUN_TEST(test_device_pm_driver_reported_sleep_wakes_to_previous_active_state);
     RUN_TEST(test_device_pm_reinit_preserves_live_state);
+    RUN_TEST(test_device_pm_always_on_policy_wakes_atomically);
+    RUN_TEST(test_device_pm_auto_policy_starts_a_fresh_idle_window);
     return UNITY_END();
 }
