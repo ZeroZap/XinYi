@@ -236,6 +236,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-117 | P1 | Device PM live re-init 与 driver-reported state history | DONE | Zero | S4-116（DONE）；Pandora 硬件测试暂停 | TDD RED 证明重复 init 会把 live SLEEP owner 静默重置为 ACTIVE，且 driver-reported SLEEP 不更新 wake history；现相同 ops 的重复 init 幂等保留完整 live state，替换 ops fail-closed，合法 driver state transition 原子更新 current/last/activity，wakeup 恢复前一稳定状态。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 | S4-118 | P1 | Device PM idle-timeout fresh-window contract | DONE | Zero | S4-117（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 runtime 启用 idle timeout 会沿用 init 时的旧 activity timestamp 并立即误判超时；现每次设置 timeout 均以 canonical Device tick 重启 idle window，边界前保持 ACTIVE、达到边界才进入 SLEEP。focused `device_pm`、Host 267/267、PC/L4/U5 root、clang-format 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 | S4-119 | P1 | Device PM policy transition contract | DONE | Zero | S4-118（DONE）；Pandora 硬件测试暂停 | TDD RED 证明切换 `ALWAYS_ON` 不唤醒 sleeping owner，切回 `AUTO` 会沿用 stale idle timestamp；现 ALWAYS_ON 先经 driver state callback 原子唤醒、失败保持旧 policy/state，AUTO 重新开始 idle window。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
+| S4-120 | P1 | Device PM ALWAYS_ON state invariant | DONE | Zero | S4-119（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 `ALWAYS_ON` policy 下 public state setter 仍允许 SLEEP/DEEP_SLEEP/OFF；现三类低功耗请求在 driver callback 前返回 `XY_DEVICE_BUSY`，保持 ACTIVE 与零 side effect。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 
 ### Sprint 5 前置看板
 

@@ -573,6 +573,18 @@
 - 仍不允许宣称：Pandora Device PM runtime、concurrency safety、实际功耗、wake latency、
   deep-power modes、recovery、endurance 或 hardware qualification。
 
+### 2026-10-08 Device PM ALWAYS_ON state invariant
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host policy-state invariant strengthened; no Board claim change
+- 证据路径/命令：`components/device/src/xy_device_pm.c`,
+  `tests/unit/device/test_device_pm.c`; focused `device_pm`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：`ALWAYS_ON` owners reject SLEEP、DEEP_SLEEP 与 OFF requests before the driver
+  callback, preserving ACTIVE state and avoiding backend side effects.
+- 仍不允许宣称：Pandora Device PM runtime、concurrency safety、实际功耗、wake latency、
+  deep-power modes、recovery、endurance 或 hardware qualification。
+
 ### 2026-10-08 IPC Broker pub/sub callback failure propagation
 
 - 组件：IPC / Broker pub/sub

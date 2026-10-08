@@ -349,6 +349,27 @@ static void test_device_pm_auto_policy_starts_a_fresh_idle_window(void) {
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
 }
 
+static void test_device_pm_always_on_policy_rejects_low_power_states(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+    xy_device_pm_state_t state = XY_DEVICE_PM_STATE_OFF;
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_device_pm_set_policy(&dev, XY_DEVICE_PM_POLICY_ALWAYS_ON));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_device_pm_set_state(&dev, XY_DEVICE_PM_STATE_SLEEP));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY,
+                          xy_device_pm_set_state(&dev, XY_DEVICE_PM_STATE_DEEP_SLEEP));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_device_pm_set_state(&dev, XY_DEVICE_PM_STATE_OFF));
+    TEST_ASSERT_EQUAL_UINT(0U, set_state_calls);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&dev, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_device_pm_idle_timeout_uses_device_tick);
@@ -363,5 +384,6 @@ int main(void) {
     RUN_TEST(test_device_pm_reinit_preserves_live_state);
     RUN_TEST(test_device_pm_always_on_policy_wakes_atomically);
     RUN_TEST(test_device_pm_auto_policy_starts_a_fresh_idle_window);
+    RUN_TEST(test_device_pm_always_on_policy_rejects_low_power_states);
     return UNITY_END();
 }

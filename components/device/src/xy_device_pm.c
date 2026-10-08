@@ -139,6 +139,11 @@ int xy_device_pm_set_state(xy_device_t *dev, xy_device_pm_state_t state)
     if (!data || !data->ops) {
         return XY_DEVICE_NOT_INIT;
     }
+
+    if (data->policy == XY_DEVICE_PM_POLICY_ALWAYS_ON &&
+        state != XY_DEVICE_PM_STATE_ACTIVE) {
+        return XY_DEVICE_BUSY;
+    }
     
     /* 状态未改变 */
     if (data->current_state == state) {
