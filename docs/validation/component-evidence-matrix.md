@@ -781,6 +781,18 @@
 
 ### 已存在模板/记录
 
+### 2026-10-09 IPC Broker generation across deinit/reinit
+
+- 组件：IPC / Broker request-response
+- 旧等级 -> 新等级：H1/Host response provenance contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`;
+  `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：server generations now outlive broker deinit/init, so a retained request from a
+  previous broker lifecycle cannot be accepted after the same server IDs are registered again.
+- 仍不允许宣称：Pandora request/response runtime、多线程并发安全、32-bit sequence-wrap
+  disambiguation、trusted callers、throughput、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229

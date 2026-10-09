@@ -11,13 +11,15 @@
 
 static struct {
     xy_broker_server_t servers[XY_BROKER_MAX_SERVERS];
-    uint32_t server_generation[XY_BROKER_MAX_SERVERS];
     xy_broker_topic_t topics[XY_BROKER_MAX_TOPICS];
     uint8_t topic_active[XY_BROKER_MAX_TOPICS];
     xy_broker_stats_t stats;
     uint32_t seq_counter;
     uint8_t initialized;
 } g_broker;
+
+/* Generations survive broker reset so retained requests cannot be reused. */
+static uint32_t g_server_generation[XY_BROKER_MAX_SERVERS];
 
 /* ==================== Internal Functions ==================== */
 
@@ -68,7 +70,7 @@ static uint32_t broker_server_generation(const xy_broker_server_t *server)
         || server >= g_broker.servers + XY_BROKER_MAX_SERVERS) {
         return 0U;
     }
-    return g_broker.server_generation[server - g_broker.servers];
+    return g_server_generation[server - g_broker.servers];
 }
 
 /**
@@ -225,9 +227,9 @@ int xy_broker_register_server(uint16_t server_id,
     server->handler   = handler;
     server->user_data = user_data;
     server->active    = 1;
-    g_broker.server_generation[server - g_broker.servers]++;
-    if (g_broker.server_generation[server - g_broker.servers] == 0U) {
-        g_broker.server_generation[server - g_broker.servers] = 1U;
+    g_server_generation[server - g_broker.servers]++;
+    if (g_server_generation[server - g_broker.servers] == 0U) {
+        g_server_generation[server - g_broker.servers] = 1U;
     }
 
     g_broker.stats.active_servers++;
