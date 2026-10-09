@@ -234,11 +234,14 @@ int xy_device_acquire(xy_device_t *dev)
 
     for (size_t i = 0; i < g_device_count; i++) {
         if (g_device_registry[i].device == dev) {
-            g_device_registry[i].ref_count++;
-            /* 唤醒设备 */
+            /* 唤醒设备 before publishing the new reference. */
             if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP_STATE) {
-                xy_device_wake(dev);
+                int ret = xy_device_wake(dev);
+                if (ret != XY_DEVICE_OK) {
+                    return ret;
+                }
             }
+            g_device_registry[i].ref_count++;
             g_pm_info[i].last_active_time = xy_device_get_tick();
             return XY_DEVICE_OK;
         }

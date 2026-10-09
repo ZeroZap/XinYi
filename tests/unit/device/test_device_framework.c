@@ -22,6 +22,15 @@ void tearDown(void)
 
 /* A non-NULL placeholder bus handle for the PC-stub I2C HAL. */
 static int g_fake_i2c_bus = 1;
+static int g_pm_callback_result;
+
+static int capture_pm_event(xy_device_t *dev, xy_device_pm_event_t event, void *user_data)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_NOT_NULL(user_data);
+    TEST_ASSERT_TRUE(event == XY_DEVICE_PM_SLEEP_EVENT || event == XY_DEVICE_PM_WAKE);
+    return g_pm_callback_result;
+}
 
 static void test_i2c_helpers_return_status_not_transfer_length(void)
 {
@@ -94,6 +103,29 @@ static void test_device_power_management(void)
     TEST_ASSERT_EQUAL(XY_DEVICE_PM_ACTIVE, xy_device_get_pm_state(dev));
 }
 
+static void test_acquire_propagates_wake_failure_without_leaking_reference(void)
+{
+    xy_device_t *dev = xy_device_find_by_name("sensor_a");
+    int callback_marker = 1;
+
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_device_set_pm_callback(dev, capture_pm_event, &callback_marker));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_sleep(dev));
+
+    g_pm_callback_result = XY_DEVICE_IO_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, xy_device_acquire(dev));
+    TEST_ASSERT_EQUAL_INT(0, xy_device_registry_ref_count(dev));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_SLEEP_STATE, xy_device_get_pm_state(dev));
+
+    g_pm_callback_result = XY_DEVICE_OK;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_acquire(dev));
+    TEST_ASSERT_EQUAL_INT(1, xy_device_registry_ref_count(dev));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_ACTIVE, xy_device_get_pm_state(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_release(dev));
+    TEST_ASSERT_EQUAL_INT(0, xy_device_registry_ref_count(dev));
+}
+
 static void test_device_stats(void)
 {
     xy_device_stats_t stats;
@@ -135,6 +167,7 @@ int main(void)
     RUN_TEST(test_find_by_type);
     RUN_TEST(test_public_find_forwards);
     RUN_TEST(test_device_power_management);
+    RUN_TEST(test_acquire_propagates_wake_failure_without_leaking_reference);
     RUN_TEST(test_device_stats);
     RUN_TEST(test_duplicate_register_rejected);
     RUN_TEST(test_unregister_frees_slot);
