@@ -553,6 +553,30 @@ static void test_request_stops_when_delay_backend_fails(void)
     TEST_ASSERT_EQUAL_UINT32(0U, fake_tick);
 }
 
+static void test_request_maps_delay_timeout_to_broker_timeout(void)
+{
+    const uint32_t request_payload = 0xCAFEBABEU;
+    xy_broker_msg_t response;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    delay_result = XY_OS_ERROR_TIMEOUT;
+    memset(&response, 0xA5, sizeof(response));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_TIMEOUT,
+                      xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                        XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                        sizeof(request_payload), &response, 3U));
+    TEST_ASSERT_EQUAL_UINT(1U, xy_os_delay_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, fake_tick);
+    TEST_ASSERT_EQUAL_HEX8(0xA5, response.payload[0]);
+}
+
 static void test_request_rejects_unregistered_source_without_enqueue(void)
 {
     const uint32_t request_payload = 0xCAFEBABEU;
@@ -887,6 +911,7 @@ int main(void)
     RUN_TEST(test_request_rejects_stale_response_with_same_server_and_message_id);
     RUN_TEST(test_request_rejects_stale_response_after_16bit_sequence_wrap);
     RUN_TEST(test_request_stops_when_delay_backend_fails);
+    RUN_TEST(test_request_maps_delay_timeout_to_broker_timeout);
     RUN_TEST(test_request_rejects_unregistered_source_without_enqueue);
     RUN_TEST(test_request_stops_when_source_owner_is_unregistered_while_waiting);
     RUN_TEST(test_request_rejects_replacement_source_owner_while_waiting);

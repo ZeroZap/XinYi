@@ -534,8 +534,9 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     }
 
     while ((broker_get_timestamp() - start_time) < timeout_ms) {
-        if (xy_os_delay(1) != XY_OS_OK) {
-            return XY_BROKER_ERROR;
+        xy_os_status_t delay_status = xy_os_delay(1);
+        if (delay_status != XY_OS_OK) {
+            return delay_status == XY_OS_ERROR_TIMEOUT ? XY_BROKER_TIMEOUT : XY_BROKER_ERROR;
         }
         src = broker_find_server(src_server);
         if (!src || broker_server_generation(src) != src_generation) {
