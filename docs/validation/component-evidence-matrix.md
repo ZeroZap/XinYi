@@ -765,6 +765,20 @@
 - 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
   32-bit sequence-wrap disambiguation、throughput、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-09 IPC Broker stamped response boundary
+
+- 组件：IPC / Broker request-response
+- 旧等级 -> 新等级：H1/Host response provenance contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：`xy_broker_respond()` now rejects manually fabricated request records without both
+  requester and responder generation stamps. Successful immediate/nonblocking response fixtures use
+  Broker-generated request identity, and response dequeue also requires live generation matches.
+- 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
+  32-bit sequence-wrap disambiguation、trusted callers、throughput、recovery、endurance 或 IPC product
+  qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation

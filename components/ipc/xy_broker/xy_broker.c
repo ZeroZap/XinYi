@@ -156,7 +156,10 @@ static int broker_dequeue_response(xy_broker_server_t *server, uint16_t expected
         if (candidate->src_server == expected_src
             && candidate->dst_server == server->server_id
             && candidate->msg_id == expected_msg_id
-            && candidate->seq_num == expected_seq) {
+            && candidate->seq_num == expected_seq
+            && candidate->src_generation
+                   == broker_server_generation(broker_find_server(candidate->src_server))
+            && candidate->dst_generation == broker_server_generation(server)) {
             uint16_t shift;
 
             memcpy(msg, candidate, sizeof(*msg));
@@ -570,6 +573,8 @@ int xy_broker_respond(const xy_broker_msg_t *request_msg,
     src = broker_find_server(request_msg->dst_server);
     if (!src)
         return XY_BROKER_NOT_FOUND;
+    if (request_msg->src_generation == 0U || request_msg->dst_generation == 0U)
+        return XY_BROKER_INVALID_PARAM;
     if ((request_msg->src_generation != 0U
          && broker_server_generation(dst) != request_msg->src_generation)
         || (request_msg->dst_generation != 0U

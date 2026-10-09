@@ -365,11 +365,14 @@ static void test_request_skips_unrelated_source_queue_messages(void)
                       xy_broker_send_msg(XY_BROKER_SERVER_SENSOR, XY_BROKER_SERVER_SYSTEM,
                                          XY_BROKER_MSG_SYSTEM_STATUS, &unrelated_payload,
                                          sizeof(unrelated_payload), XY_BROKER_PRIORITY_LOW));
-    memset(&pending_request, 0, sizeof(pending_request));
-    pending_request.src_server = XY_BROKER_SERVER_SYSTEM;
-    pending_request.dst_server = XY_BROKER_SERVER_COMM;
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_SYSTEM_STATUS, NULL, 0U,
+                                         XY_BROKER_PRIORITY_LOW));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 1U));
+    memcpy(&pending_request, &last_msg, sizeof(pending_request));
     pending_request.msg_id = XY_BROKER_MSG_COMM_SEND;
-    pending_request.seq_num = 1U;
+    pending_request.seq_num++;
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_respond(&pending_request, &response_payload,
                                         sizeof(response_payload)));
@@ -406,11 +409,14 @@ static void test_request_zero_timeout_performs_nonblocking_response_poll(void)
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_register_server(XY_BROKER_SERVER_COMM,
                                                 direct_capture_handler, NULL));
-    memset(&pending_request, 0, sizeof(pending_request));
-    pending_request.src_server = XY_BROKER_SERVER_SYSTEM;
-    pending_request.dst_server = XY_BROKER_SERVER_COMM;
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_SYSTEM_STATUS, NULL, 0U,
+                                         XY_BROKER_PRIORITY_LOW));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 1U));
+    memcpy(&pending_request, &last_msg, sizeof(pending_request));
     pending_request.msg_id = XY_BROKER_MSG_COMM_SEND;
-    pending_request.seq_num = 0U;
+    pending_request.seq_num++;
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_respond(&pending_request, &response_payload,
                                         sizeof(response_payload)));
@@ -422,6 +428,37 @@ static void test_request_zero_timeout_performs_nonblocking_response_poll(void)
                                         sizeof(request_payload), &response, 0U));
     TEST_ASSERT_EQUAL_MEMORY(&response_payload, response.payload, sizeof(response_payload));
     TEST_ASSERT_EQUAL_UINT(0U, xy_os_delay_fake.call_count);
+}
+
+static void test_response_rejects_unstamped_request_without_enqueue(void)
+{
+    const uint32_t response_payload = 0x12345678U;
+    const uint32_t request_payload = 0xCAFEBABEU;
+    xy_broker_msg_t unstamped_request;
+    xy_broker_msg_t response;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    memset(&unstamped_request, 0, sizeof(unstamped_request));
+    unstamped_request.src_server = XY_BROKER_SERVER_SYSTEM;
+    unstamped_request.dst_server = XY_BROKER_SERVER_COMM;
+    unstamped_request.msg_id = XY_BROKER_MSG_COMM_SEND;
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_respond(&unstamped_request, &response_payload,
+                                        sizeof(response_payload)));
+    memset(&response, 0xA5, sizeof(response));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_TIMEOUT,
+                      xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                        XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                        sizeof(request_payload), &response, 0U));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_HEX8(0xA5, response.payload[0]);
 }
 
 static void test_request_rejects_stale_response_with_same_server_and_message_id(void)
@@ -465,11 +502,12 @@ static void test_request_rejects_stale_response_after_16bit_sequence_wrap(void)
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_register_server(XY_BROKER_SERVER_COMM,
                                                 direct_capture_handler, NULL));
-    memset(&pending_request, 0, sizeof(pending_request));
-    pending_request.src_server = XY_BROKER_SERVER_SYSTEM;
-    pending_request.dst_server = XY_BROKER_SERVER_COMM;
-    pending_request.msg_id = XY_BROKER_MSG_COMM_SEND;
-    pending_request.seq_num = 0U;
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_COMM_SEND, NULL, 0U,
+                                         XY_BROKER_PRIORITY_LOW));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 1U));
+    memcpy(&pending_request, &last_msg, sizeof(pending_request));
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_respond(&pending_request, &stale_payload,
                                         sizeof(stale_payload)));
@@ -811,6 +849,7 @@ int main(void)
     RUN_TEST(test_request_response_and_timeout);
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_request_zero_timeout_performs_nonblocking_response_poll);
+    RUN_TEST(test_response_rejects_unstamped_request_without_enqueue);
     RUN_TEST(test_request_rejects_stale_response_with_same_server_and_message_id);
     RUN_TEST(test_request_rejects_stale_response_after_16bit_sequence_wrap);
     RUN_TEST(test_request_stops_when_delay_backend_fails);
