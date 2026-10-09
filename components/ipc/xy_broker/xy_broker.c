@@ -15,7 +15,7 @@ static struct {
     xy_broker_topic_t topics[XY_BROKER_MAX_TOPICS];
     uint8_t topic_active[XY_BROKER_MAX_TOPICS];
     xy_broker_stats_t stats;
-    uint16_t seq_counter;
+    uint32_t seq_counter;
     uint8_t initialized;
 } g_broker;
 
@@ -141,7 +141,7 @@ static int broker_dequeue_msg(xy_broker_server_t *server, xy_broker_msg_t *msg)
 }
 
 static int broker_dequeue_response(xy_broker_server_t *server, uint16_t expected_src,
-                                   uint16_t expected_msg_id, uint16_t expected_seq,
+                                   uint16_t expected_msg_id, uint32_t expected_seq,
                                    xy_broker_msg_t *msg)
 {
     uint16_t offset;
@@ -492,7 +492,7 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
     xy_broker_server_t *dst;
     uint32_t src_generation;
     uint32_t dst_generation;
-    uint16_t request_seq;
+    uint32_t request_seq;
 
     if (!g_broker.initialized || !response_msg)
         return XY_BROKER_ERROR;

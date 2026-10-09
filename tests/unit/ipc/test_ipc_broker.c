@@ -451,6 +451,47 @@ static void test_request_rejects_stale_response_with_same_server_and_message_id(
     TEST_ASSERT_EQUAL_HEX8(0xA5, response.payload[0]);
 }
 
+static void test_request_rejects_stale_response_after_16bit_sequence_wrap(void)
+{
+    const uint32_t stale_payload = 0xDEADBEEFU;
+    const uint32_t request_payload = 0xCAFEBABEU;
+    xy_broker_msg_t pending_request;
+    xy_broker_msg_t response;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    memset(&pending_request, 0, sizeof(pending_request));
+    pending_request.src_server = XY_BROKER_SERVER_SYSTEM;
+    pending_request.dst_server = XY_BROKER_SERVER_COMM;
+    pending_request.msg_id = XY_BROKER_MSG_COMM_SEND;
+    pending_request.seq_num = 0U;
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_respond(&pending_request, &stale_payload,
+                                        sizeof(stale_payload)));
+
+    for (uint32_t i = 0U; i <= UINT16_MAX; ++i) {
+        TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                          xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM,
+                                             XY_BROKER_SERVER_COMM,
+                                             XY_BROKER_MSG_SYSTEM_STATUS, NULL, 0U,
+                                             XY_BROKER_PRIORITY_LOW));
+        TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 1U));
+    }
+    memset(&response, 0xA5, sizeof(response));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_TIMEOUT,
+                      xy_broker_request(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                        XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                        sizeof(request_payload), &response, 0U));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_HEX8(0xA5, response.payload[0]);
+}
+
 static void test_request_stops_when_delay_backend_fails(void)
 {
     const uint32_t request_payload = 0xCAFEBABEU;
@@ -771,6 +812,7 @@ int main(void)
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_request_zero_timeout_performs_nonblocking_response_poll);
     RUN_TEST(test_request_rejects_stale_response_with_same_server_and_message_id);
+    RUN_TEST(test_request_rejects_stale_response_after_16bit_sequence_wrap);
     RUN_TEST(test_request_stops_when_delay_backend_fails);
     RUN_TEST(test_request_rejects_unregistered_source_without_enqueue);
     RUN_TEST(test_request_stops_when_source_owner_is_unregistered_while_waiting);

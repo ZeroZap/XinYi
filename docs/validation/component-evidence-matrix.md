@@ -751,6 +751,20 @@
 - 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
   sequence-wrap disambiguation、throughput、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-09 IPC Broker sequence-wrap disambiguation
+
+- 组件：IPC / Broker request-response
+- 旧等级 -> 新等级：H1/Host response correlation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.h`,
+  `components/ipc/xy_broker/xy_broker.c`, `tests/unit/ipc/test_ipc_broker.c`; focused
+  `ipc_broker`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：Broker request/response sequence identity is widened from 16 to 32 bits; a queued stale
+  response cannot alias a fresh request after 65,536 intervening messages with the same route/message
+  identity. Existing owner-generation validation remains in force.
+- 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
+  32-bit sequence-wrap disambiguation、throughput、recovery、endurance 或 IPC product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation
