@@ -269,6 +269,9 @@ int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server,
     msg.dst_server  = dst_server;
     msg.priority    = priority;
     msg.seq_num     = g_broker.seq_counter++;
+    xy_broker_server_t *src = broker_find_server(src_server);
+    msg.src_generation = broker_server_generation(src);
+    msg.dst_generation = broker_server_generation(dst);
     msg.timestamp   = broker_get_timestamp();
     msg.payload_len = payload_len;
 
@@ -282,7 +285,6 @@ int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server,
         g_broker.stats.total_msg_sent++;
 
         // Update source server stats if registered
-        xy_broker_server_t *src = broker_find_server(src_server);
         if (src) {
             src->msg_sent++;
         }
@@ -568,6 +570,12 @@ int xy_broker_respond(const xy_broker_msg_t *request_msg,
     src = broker_find_server(request_msg->dst_server);
     if (!src)
         return XY_BROKER_NOT_FOUND;
+    if ((request_msg->src_generation != 0U
+         && broker_server_generation(dst) != request_msg->src_generation)
+        || (request_msg->dst_generation != 0U
+            && broker_server_generation(src) != request_msg->dst_generation)) {
+        return XY_BROKER_NOT_FOUND;
+    }
 
     memset(&response, 0, sizeof(response));
     response.msg_id = request_msg->msg_id;
@@ -575,6 +583,8 @@ int xy_broker_respond(const xy_broker_msg_t *request_msg,
     response.dst_server = request_msg->src_server;
     response.priority = request_msg->priority;
     response.seq_num = request_msg->seq_num;
+    response.src_generation = broker_server_generation(src);
+    response.dst_generation = broker_server_generation(dst);
     response.timestamp = broker_get_timestamp();
     response.payload_len = response_len;
     if (response_len > 0U) {

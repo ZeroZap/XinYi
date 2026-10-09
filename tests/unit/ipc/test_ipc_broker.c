@@ -520,6 +520,47 @@ static void test_response_rejects_unregistered_responder_without_enqueue(void)
     TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
 }
 
+static void test_response_rejects_replacement_request_owners(void)
+{
+    const uint32_t request_payload = 0xCAFEBABEU;
+    const uint32_t response_payload = 0x12345678U;
+    xy_broker_msg_t stale_request;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                         sizeof(request_payload), XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 1U));
+    memcpy(&stale_request, &last_msg, sizeof(stale_request));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_respond(&stale_request, &response_payload,
+                                        sizeof(response_payload)));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_unregister_server(XY_BROKER_SERVER_COMM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_respond(&stale_request, &response_payload,
+                                        sizeof(response_payload)));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+}
+
 static void test_request_stops_when_source_owner_is_unregistered_while_waiting(void)
 {
     const uint32_t request_payload = 0xCAFEBABEU;
@@ -736,6 +777,7 @@ int main(void)
     RUN_TEST(test_request_rejects_replacement_source_owner_while_waiting);
     RUN_TEST(test_request_rejects_replacement_destination_owner_while_waiting);
     RUN_TEST(test_response_rejects_unregistered_responder_without_enqueue);
+    RUN_TEST(test_response_rejects_replacement_request_owners);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
     RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);

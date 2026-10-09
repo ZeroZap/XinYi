@@ -182,6 +182,8 @@ typedef struct {
     uint8_t priority;                        /**< Message priority */
     uint8_t flags;                           /**< Message flags */
     uint16_t seq_num;                        /**< Sequence number */
+    uint32_t src_generation;                 /**< Source owner generation, 0 if unstamped */
+    uint32_t dst_generation;                 /**< Destination owner generation, 0 if unstamped */
     uint32_t timestamp;                      /**< Timestamp (ms) */
     uint16_t payload_len;                    /**< Payload length */
     uint8_t payload[XY_BROKER_MAX_MSG_SIZE]; /**< Message payload */

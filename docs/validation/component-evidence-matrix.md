@@ -736,6 +736,21 @@
 - 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
   sequence-wrap disambiguation、throughput、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-09 IPC Broker stale request response rejection
+
+- 组件：IPC / Broker request-response
+- 旧等级 -> 新等级：H1/Host response ownership contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.h`,
+  `components/ipc/xy_broker/xy_broker.c`, `tests/unit/ipc/test_ipc_broker.c`; focused
+  `ipc_broker`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：Broker-generated requests carry requester/responder registration generations;
+  `xy_broker_respond()` rejects a captured request after either owner is unregistered and replaced,
+  preventing stale request metadata from injecting a response into a replacement requester's queue.
+  Manually constructed unstamped request records retain the existing compatibility behavior.
+- 仍不允许宣称：Pandora request/response runtime、multi-thread concurrent request safety、
+  sequence-wrap disambiguation、throughput、recovery、endurance 或 IPC product qualification。
+
 ### 已存在模板/记录
 
 ### 2026-10-04 Device owner re-init atomicity continuation
