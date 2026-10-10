@@ -128,15 +128,34 @@ static int broker_enqueue_msg(xy_broker_server_t *server,
  */
 static int broker_dequeue_msg(xy_broker_server_t *server, xy_broker_msg_t *msg)
 {
+    uint16_t selected_offset = 0U;
+    uint16_t offset;
+
     if (!server || !msg)
         return XY_BROKER_INVALID_PARAM;
 
     if (server->queue_count == 0)
         return XY_BROKER_NOT_FOUND;
 
-    memcpy(
-        msg, &server->msg_queue[server->queue_head], sizeof(xy_broker_msg_t));
-    server->queue_head = (server->queue_head + 1) % XY_BROKER_MSG_QUEUE_SIZE;
+    for (offset = 1U; offset < server->queue_count; offset++) {
+        uint16_t selected = (server->queue_head + selected_offset) % XY_BROKER_MSG_QUEUE_SIZE;
+        uint16_t candidate = (server->queue_head + offset) % XY_BROKER_MSG_QUEUE_SIZE;
+
+        if (server->msg_queue[candidate].priority > server->msg_queue[selected].priority) {
+            selected_offset = offset;
+        }
+    }
+
+    memcpy(msg,
+           &server->msg_queue[(server->queue_head + selected_offset) % XY_BROKER_MSG_QUEUE_SIZE],
+           sizeof(xy_broker_msg_t));
+    for (offset = selected_offset; offset + 1U < server->queue_count; offset++) {
+        uint16_t current = (server->queue_head + offset) % XY_BROKER_MSG_QUEUE_SIZE;
+        uint16_t next = (current + 1U) % XY_BROKER_MSG_QUEUE_SIZE;
+        memcpy(&server->msg_queue[current], &server->msg_queue[next], sizeof(*msg));
+    }
+    server->queue_tail =
+        (server->queue_tail + XY_BROKER_MSG_QUEUE_SIZE - 1U) % XY_BROKER_MSG_QUEUE_SIZE;
     server->queue_count--;
 
     return XY_BROKER_OK;
