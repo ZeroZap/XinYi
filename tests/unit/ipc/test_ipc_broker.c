@@ -667,6 +667,7 @@ static void test_response_rejects_replacement_request_owners(void)
 static void test_unregister_discards_queued_messages_before_server_id_reuse(void)
 {
     const uint32_t stale_payload = 0xDEADBEEFU;
+    xy_broker_stats_t stats;
 
     reset_broker();
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
@@ -685,6 +686,10 @@ static void test_unregister_discards_queued_messages_before_server_id_reuse(void
 
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_sent);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_delivered);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_dropped);
     TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
                       xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
