@@ -206,6 +206,9 @@ static void test_direct_message_queue_and_limits(void)
 
     TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_clear_queue(XY_BROKER_SERVER_COMM));
     TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_COMM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(XY_BROKER_MSG_QUEUE_SIZE + 1U,
+                             stats.total_msg_dropped);
 }
 
 static void test_pubsub_create_publish_and_unsubscribe(void)

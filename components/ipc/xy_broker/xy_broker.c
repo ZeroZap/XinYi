@@ -644,6 +644,7 @@ int xy_broker_clear_queue(uint16_t server_id)
     if (!server)
         return XY_BROKER_NOT_FOUND;
 
+    g_broker.stats.total_msg_dropped += server->queue_count;
     server->queue_head  = 0;
     server->queue_tail  = 0;
     server->queue_count = 0;
