@@ -712,6 +712,7 @@ static void test_sc7a22h_rejects_bad_identity_and_invalid_state(void)
     xy_sc7a22h_data_t data = {11, 22, 33};
     const uint8_t bad_id = 0x00U;
 
+    memset(&dev, 0, sizeof(dev));
     queue(OP_READ_REG, XY_SC7A22H_REG_WHO_AM_I, &bad_id, 1U, XY_DEVICE_OK);
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_FOUND, xy_sc7a22h_init(&dev, &bus));
     TEST_ASSERT_EQUAL_UINT8(0U, dev.initialized);

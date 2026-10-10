@@ -389,6 +389,7 @@ static void test_mpu6050_init_config_failure_does_not_mark_ready(void)
     xy_mpu6050_t dev;
     int bus;
 
+    memset(&dev, 0, sizeof(dev));
     queue_read8(MPU6050_REG_WHO_AM_I, MPU6050_WHO_AM_I_VALUE, XY_DEVICE_OK);
     queue_write8(MPU6050_REG_PWR_MGMT_1, 0x00U, XY_DEVICE_OK);
     queue_write8(MPU6050_REG_SMPLRT_DIV, 0x00U, XY_DEVICE_ERROR);
