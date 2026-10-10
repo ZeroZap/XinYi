@@ -77,6 +77,26 @@ static int responder_handler(const xy_broker_msg_t *msg, void *user_data)
     return XY_BROKER_OK;
 }
 
+static int replacing_server_handler(const xy_broker_msg_t *msg, void *user_data)
+{
+    const uint32_t replacement_payload = 0xBEEFBEEFU;
+
+    (void)user_data;
+    TEST_ASSERT_NOT_NULL(msg);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR,
+                                         XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SYSTEM_STATUS,
+                                         &replacement_payload, sizeof(replacement_payload),
+                                         XY_BROKER_PRIORITY_NORMAL));
+    return XY_BROKER_OK;
+}
+
 static int wake_from_isr(void *context)
 {
     TEST_ASSERT_EQUAL_PTR(&isr_wake_count, context);
@@ -923,6 +943,33 @@ static void test_handler_failure_is_propagated_and_queue_recovers(void)
     TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_dropped);
 }
 
+static void test_processing_stops_when_handler_replaces_server_owner(void)
+{
+    const uint32_t original_payload = 0xA5A55A5AU;
+    xy_broker_stats_t stats;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                replacing_server_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR,
+                                         XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SYSTEM_STATUS,
+                                         &original_payload, sizeof(original_payload),
+                                         XY_BROKER_PRIORITY_NORMAL));
+
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 0U));
+    TEST_ASSERT_EQUAL_UINT(0U, direct_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_delivered);
+
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 0U));
+    TEST_ASSERT_EQUAL_UINT(1U, direct_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+}
+
 static void test_isr_ingress_queue_full_and_broker_recovery(void)
 {
     const uint32_t first = 0x12345678U;
@@ -1039,6 +1086,7 @@ int main(void)
     RUN_TEST(test_unregister_discards_queued_messages_before_server_id_reuse);
     RUN_TEST(test_response_rejects_request_from_previous_broker_lifecycle);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
+    RUN_TEST(test_processing_stops_when_handler_replaces_server_owner);
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
     RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);
     RUN_TEST(test_debug_name_helpers);

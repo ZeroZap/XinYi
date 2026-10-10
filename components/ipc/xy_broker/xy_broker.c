@@ -324,12 +324,15 @@ int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server,
 
 int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
 {
+    uint32_t server_generation;
+
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
     xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
         return XY_BROKER_NOT_FOUND;
+    server_generation = broker_server_generation(server);
 
     if (!server->handler)
         return XY_BROKER_ERROR;
@@ -350,6 +353,10 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
             }
             g_broker.stats.total_msg_delivered++;
             processed++;
+            if (broker_find_server(server_id) != server
+                || broker_server_generation(server) != server_generation) {
+                break;
+            }
         }
     }
 
