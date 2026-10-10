@@ -251,6 +251,43 @@ static void test_direct_queue_delivers_highest_priority_first(void)
     TEST_ASSERT_EQUAL_MEMORY(&low_payload, last_msg.payload, sizeof(low_payload));
 }
 
+static void test_direct_queue_preserves_fifo_within_same_priority(void)
+{
+    const uint32_t first_payload = 0x11111111U;
+    const uint32_t second_payload = 0x22222222U;
+    const uint32_t third_payload = 0x33333333U;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR,
+                                         XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SENSOR_DATA, &first_payload,
+                                         sizeof(first_payload), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR,
+                                         XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SENSOR_CONFIG, &second_payload,
+                                         sizeof(second_payload), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR,
+                                         XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SENSOR_ALARM, &third_payload,
+                                         sizeof(third_payload), XY_BROKER_PRIORITY_HIGH));
+
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U));
+    TEST_ASSERT_EQUAL(XY_BROKER_MSG_SENSOR_DATA, last_msg.msg_id);
+    TEST_ASSERT_EQUAL_MEMORY(&first_payload, last_msg.payload, sizeof(first_payload));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U));
+    TEST_ASSERT_EQUAL(XY_BROKER_MSG_SENSOR_CONFIG, last_msg.msg_id);
+    TEST_ASSERT_EQUAL_MEMORY(&second_payload, last_msg.payload, sizeof(second_payload));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U));
+    TEST_ASSERT_EQUAL(XY_BROKER_MSG_SENSOR_ALARM, last_msg.msg_id);
+    TEST_ASSERT_EQUAL_MEMORY(&third_payload, last_msg.payload, sizeof(third_payload));
+}
+
 static void test_pubsub_create_publish_and_unsubscribe(void)
 {
     const uint8_t payload[] = {0xAA, 0x55, 0x12};
@@ -981,6 +1018,7 @@ int main(void)
     RUN_TEST(test_lifecycle_and_server_registration);
     RUN_TEST(test_direct_message_queue_and_limits);
     RUN_TEST(test_direct_queue_delivers_highest_priority_first);
+    RUN_TEST(test_direct_queue_preserves_fifo_within_same_priority);
     RUN_TEST(test_pubsub_create_publish_and_unsubscribe);
     RUN_TEST(test_empty_topics_have_distinct_bounded_ownership);
     RUN_TEST(test_pubsub_handler_failure_is_propagated_and_counted);
