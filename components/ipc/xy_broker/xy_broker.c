@@ -246,6 +246,10 @@ int xy_broker_unregister_server(uint16_t server_id)
     if (!server)
         return XY_BROKER_NOT_FOUND;
 
+    /* Messages queued for the old owner must not be delivered after ID reuse. */
+    server->queue_head = 0;
+    server->queue_tail = 0;
+    server->queue_count = 0;
     server->active = 0;
     g_broker.stats.active_servers--;
 
