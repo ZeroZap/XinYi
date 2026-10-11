@@ -420,6 +420,8 @@ int xy_broker_create_topic(uint16_t topic_id)
 {
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
+    if (topic_id == 0U)
+        return XY_BROKER_INVALID_PARAM;
 
     if (broker_find_topic(topic_id))
         return XY_BROKER_ALREADY_EXISTS;
@@ -441,7 +443,7 @@ int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id,
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
-    if (!handler)
+    if (topic_id == 0U || !handler)
         return XY_BROKER_INVALID_PARAM;
     if (!broker_find_server(server_id))
         return XY_BROKER_NOT_FOUND;
@@ -490,6 +492,8 @@ int xy_broker_unsubscribe(uint16_t topic_id, uint16_t server_id)
 {
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
+    if (topic_id == 0U)
+        return XY_BROKER_INVALID_PARAM;
 
     xy_broker_topic_t *topic = broker_find_topic(topic_id);
     if (!topic)
@@ -521,7 +525,8 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
-    if (payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0 && !payload))
+    if (topic_id == 0U || payload_len > XY_BROKER_MAX_MSG_SIZE
+        || (payload_len > 0 && !payload))
         return XY_BROKER_INVALID_PARAM;
     xy_broker_server_t *src = broker_find_server(src_server);
     uint32_t src_generation;

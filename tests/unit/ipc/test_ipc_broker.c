@@ -417,6 +417,17 @@ static void test_empty_topics_have_distinct_bounded_ownership(void)
 {
     reset_broker();
 
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM, xy_broker_create_topic(0U));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_subscribe(0U, XY_BROKER_SERVER_SYSTEM,
+                                          topic_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_unsubscribe(0U, XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM, 0U,
+                                        XY_BROKER_MSG_SYSTEM_STATUS, NULL, 0U,
+                                        XY_BROKER_PRIORITY_NORMAL));
+
     for (uint16_t i = 0; i < XY_BROKER_MAX_TOPICS; ++i) {
         TEST_ASSERT_EQUAL(XY_BROKER_OK,
                           xy_broker_create_topic((uint16_t)(XY_BROKER_TOPIC_USER_BASE + i)));

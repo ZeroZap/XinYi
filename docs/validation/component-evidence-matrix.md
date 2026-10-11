@@ -964,6 +964,18 @@
 - 仍不允许宣称：Pandora pub/sub runtime、多线程并发安全、trusted subscribers、throughput、
   ISR safety、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC Broker zero topic-ID boundary
+
+- 组件：IPC / Broker pub/sub
+- 旧等级 -> 新等级：H1/Host input-validation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：topic ID `0` 是无效 sentinel；create/subscribe/unsubscribe/publish 在分配 topic、
+  查询 server 或调用 callback 前统一返回 `XY_BROKER_INVALID_PARAM`，不会产生 topic/statistics 副作用。
+- 仍不允许宣称：Pandora pub/sub runtime、多线程并发安全、trusted topic namespace、throughput、
+  ISR safety、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229
