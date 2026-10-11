@@ -530,6 +530,9 @@ static void test_publish_stamps_current_publisher_generation(void)
                                         sizeof(first_payload), XY_BROKER_PRIORITY_NORMAL));
     first_generation = last_msg.src_generation;
     TEST_ASSERT_NOT_EQUAL(0U, first_generation);
+    TEST_ASSERT_EQUAL_UINT16(XY_BROKER_SERVER_SENSOR, last_msg.dst_server);
+    TEST_ASSERT_EQUAL_UINT32(xy_broker_get_server_generation(XY_BROKER_SERVER_SENSOR),
+                             last_msg.dst_generation);
 
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
@@ -542,6 +545,9 @@ static void test_publish_stamps_current_publisher_generation(void)
                                         XY_BROKER_MSG_SENSOR_DATA, &second_payload,
                                         sizeof(second_payload), XY_BROKER_PRIORITY_NORMAL));
     TEST_ASSERT_NOT_EQUAL(first_generation, last_msg.src_generation);
+    TEST_ASSERT_EQUAL_UINT16(XY_BROKER_SERVER_SENSOR, last_msg.dst_server);
+    TEST_ASSERT_EQUAL_UINT32(xy_broker_get_server_generation(XY_BROKER_SERVER_SENSOR),
+                             last_msg.dst_generation);
 }
 
 static void test_publish_does_not_deliver_to_replacement_subscription(void) {

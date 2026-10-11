@@ -568,6 +568,17 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
 
         if (snapshot->active && current->active && current->generation == snapshot->generation) {
             if (snapshot->handler) {
+                xy_broker_server_t *subscriber = broker_find_server(snapshot->server_id);
+
+                if (!subscriber) {
+                    dropped++;
+                    if (first_error == XY_BROKER_OK) {
+                        first_error = XY_BROKER_NOT_FOUND;
+                    }
+                    continue;
+                }
+                msg.dst_server = snapshot->server_id;
+                msg.dst_generation = broker_server_generation(subscriber);
                 // Direct callback
                 int handler_result = snapshot->handler(&msg, snapshot->user_data);
                 if (!g_broker.initialized || g_broker_generation != broker_generation) {

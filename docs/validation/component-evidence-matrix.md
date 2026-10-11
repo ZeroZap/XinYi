@@ -951,6 +951,19 @@
 - 仍不允许宣称：Pandora owner migration runtime、多线程并发安全、32-bit generation wrap、
   throughput、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC Broker broadcast destination-owner stamping
+
+- 组件：IPC / Broker pub/sub
+- 旧等级 -> 新等级：H1/Host subscriber-provenance contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：每个 broadcast callback 收到的 message 现在携带该 subscriber server 的 ID 与当前
+  owner generation；不再以零 destination identity 交付。回调前若 subscriber owner 已失效则该次
+  delivery fail-closed 并计入 dropped，避免 callback 将 broadcast 错归属到 replacement owner。
+- 仍不允许宣称：Pandora pub/sub runtime、多线程并发安全、trusted subscribers、throughput、
+  ISR safety、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229
