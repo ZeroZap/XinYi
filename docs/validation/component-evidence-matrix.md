@@ -988,6 +988,18 @@
 - 仍不允许宣称：Pandora IPC runtime、多线程并发安全、trusted message namespace、throughput、
   ISR safety、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC Broker ISR zero route-ID boundary
+
+- 组件：IPC / Broker ISR ingress
+- 旧等级 -> 新等级：H1/Host input-validation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker_isr_ingress.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：ISR ingress 在写 ring slot 或触发 wake callback 前拒绝 destination server ID `0`
+  和 message ID `0`；失败不推进 tail，后续合法 payload 仍可使用同一 bounded queue。
+- 仍不允许宣称：Pandora multi-ISR runtime、多线程并发安全、trusted route namespace、throughput、
+  任意 interrupt source、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229
