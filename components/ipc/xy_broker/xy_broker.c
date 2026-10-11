@@ -21,6 +21,8 @@ static struct {
 
 /* Generations survive broker reset so retained requests cannot be reused. */
 static uint32_t g_server_generation[XY_BROKER_MAX_SERVERS];
+/* Lifecycle generation detects callback-driven deinit/init during dispatch. */
+static uint32_t g_broker_generation;
 
 /* ==================== Internal Functions ==================== */
 
@@ -209,6 +211,10 @@ int xy_broker_init(void)
 
     memset(&g_broker, 0, sizeof(g_broker));
     g_broker.initialized = 1;
+    g_broker_generation++;
+    if (g_broker_generation == 0U) {
+        g_broker_generation = 1U;
+    }
 
     return XY_BROKER_OK;
 }
@@ -495,6 +501,8 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
                       const void *payload, uint16_t payload_len,
                       uint8_t priority)
 {
+    uint32_t broker_generation;
+
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
@@ -503,6 +511,7 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
     xy_broker_server_t *src = broker_find_server(src_server);
     if (!src)
         return XY_BROKER_NOT_FOUND;
+    broker_generation = g_broker_generation;
 
     xy_broker_topic_t *topic = broker_find_topic(topic_id);
     if (!topic || topic->subscriber_count == 0)
@@ -544,6 +553,9 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
             if (snapshot->handler) {
                 // Direct callback
                 int handler_result = snapshot->handler(&msg, snapshot->user_data);
+                if (!g_broker.initialized || g_broker_generation != broker_generation) {
+                    return XY_BROKER_ERROR;
+                }
                 if (handler_result == XY_BROKER_OK) {
                     delivered++;
                 } else {
