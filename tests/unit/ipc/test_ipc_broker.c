@@ -1447,6 +1447,50 @@ static void test_isr_ingress_rejects_payload_from_previous_broker_lifecycle(void
     TEST_ASSERT_EQUAL_UINT(0U, direct_capture_handler_fake.call_count);
 }
 
+static void test_isr_ingress_rejects_payload_after_server_owner_replacement(void)
+{
+    const uint32_t stale_source = 0xA5A55A5AU;
+    const uint32_t stale_destination = 0x12345678U;
+    xy_broker_isr_msg_t storage[3];
+    xy_broker_isr_ingress_t ingress;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_TIMER,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_ingress_init(&ingress, storage, 3U, wake_from_isr,
+                                                 &isr_wake_count));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM,
+                                            XY_BROKER_MSG_SYSTEM_STATUS, &stale_source,
+                                            sizeof(stale_source), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_unregister_server(XY_BROKER_SERVER_TIMER));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_TIMER,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND, xy_broker_isr_drain_one(&ingress));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM,
+                                            XY_BROKER_MSG_SYSTEM_STATUS, &stale_destination,
+                                            sizeof(stale_destination), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND, xy_broker_isr_drain_one(&ingress));
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND, xy_broker_isr_drain_one(&ingress));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_UINT(0U, direct_capture_handler_fake.call_count);
+}
+
 static void test_debug_name_helpers(void)
 {
     TEST_ASSERT_EQUAL_STRING("SYSTEM", xy_broker_get_server_name(XY_BROKER_SERVER_SYSTEM));
@@ -1506,6 +1550,7 @@ int main(void)
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
     RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);
     RUN_TEST(test_isr_ingress_rejects_payload_from_previous_broker_lifecycle);
+    RUN_TEST(test_isr_ingress_rejects_payload_after_server_owner_replacement);
     RUN_TEST(test_debug_name_helpers);
     TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_deinit());
     return UNITY_END();

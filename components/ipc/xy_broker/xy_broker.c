@@ -234,6 +234,11 @@ uint32_t xy_broker_get_lifecycle_generation(void)
     return g_broker.initialized ? g_broker_generation : 0U;
 }
 
+uint32_t xy_broker_get_server_generation(uint16_t server_id)
+{
+    return broker_server_generation(broker_find_server(server_id));
+}
+
 int xy_broker_register_server(uint16_t server_id,
                               xy_broker_msg_handler_t handler, void *user_data)
 {

@@ -270,6 +270,14 @@ int xy_broker_deinit(void);
 uint32_t xy_broker_get_lifecycle_generation(void);
 
 /**
+ * @brief Get the active registration generation for a server
+ *
+ * @param server_id Server ID
+ * @return Non-zero generation while registered, otherwise 0
+ */
+uint32_t xy_broker_get_server_generation(uint16_t server_id);
+
+/**
  * @brief Register a broker server
  *
  * @param server_id Fixed server ID
