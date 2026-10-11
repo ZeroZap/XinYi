@@ -265,11 +265,32 @@ int xy_broker_unregister_server(uint16_t server_id)
     if (!server)
         return XY_BROKER_NOT_FOUND;
 
-    /* Messages queued for the old owner must not be delivered after ID reuse. */
+    /* Messages and subscriptions owned by the old registration must not survive ID reuse. */
     g_broker.stats.total_msg_dropped += server->queue_count;
     server->queue_head = 0;
     server->queue_tail = 0;
     server->queue_count = 0;
+    for (int topic_index = 0; topic_index < XY_BROKER_MAX_TOPICS; topic_index++) {
+        xy_broker_topic_t *topic = &g_broker.topics[topic_index];
+        uint16_t previous_subscriber_count;
+
+        if (!g_broker.topic_active[topic_index]) {
+            continue;
+        }
+        previous_subscriber_count = topic->subscriber_count;
+        for (int subscriber_index = 0; subscriber_index < XY_BROKER_MAX_SUBSCRIBERS;
+             subscriber_index++) {
+            xy_broker_subscriber_t *subscriber = &topic->subscribers[subscriber_index];
+
+            if (subscriber->active && subscriber->server_id == server_id) {
+                memset(subscriber, 0, sizeof(*subscriber));
+                topic->subscriber_count--;
+            }
+        }
+        if (previous_subscriber_count > 0U && topic->subscriber_count == 0U) {
+            g_broker.stats.active_topics--;
+        }
+    }
     server->active = 0;
     g_broker.stats.active_servers--;
 

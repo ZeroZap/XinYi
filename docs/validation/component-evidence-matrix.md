@@ -819,6 +819,19 @@
 - 仍不允许宣称：Pandora source replacement runtime、多线程并发安全、trusted source、throughput、
   ISR safety、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-11 IPC Broker subscription owner lifecycle
+
+- 组件：IPC / Broker pub/sub
+- 旧等级 -> 新等级：H1/Host subscriber-owner lifecycle contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：server 注销会移除该 owner 的全部 topic subscriptions，并在 topic 失去最后一个
+  subscriber 时同步维护 active-topic 统计；同 ID replacement server 不会继承旧 callback/user-data，
+  必须显式重新 subscribe 后才能收到 publish。
+- 仍不允许宣称：Pandora pub/sub owner replacement runtime、多线程并发安全、throughput、ISR safety、
+  recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229

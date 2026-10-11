@@ -843,6 +843,51 @@ static void test_direct_queue_rejects_message_from_replaced_source_owner(void)
     TEST_ASSERT_EQUAL_MEMORY(&fresh_payload, last_msg.payload, sizeof(fresh_payload));
 }
 
+static void test_unregister_removes_pubsub_owner_before_server_id_reuse(void)
+{
+    const uint32_t stale_payload = 0xDEADBEEFU;
+    const uint32_t fresh_payload = 0x12345678U;
+    xy_broker_stats_t stats;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SENSOR,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA,
+                                          XY_BROKER_SERVER_SENSOR,
+                                          topic_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_unregister_server(XY_BROKER_SERVER_SENSOR));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SENSOR,
+                                                direct_capture_handler, NULL));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM,
+                                        XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA,
+                                        &stale_payload, sizeof(stale_payload),
+                                        XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_UINT(0U, topic_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.active_topics);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_sent);
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA,
+                                          XY_BROKER_SERVER_SENSOR,
+                                          topic_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM,
+                                        XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA,
+                                        &fresh_payload, sizeof(fresh_payload),
+                                        XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_UINT(1U, topic_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL_MEMORY(&fresh_payload, last_msg.payload, sizeof(fresh_payload));
+}
+
 static void test_request_stops_when_source_owner_is_unregistered_while_waiting(void)
 {
     const uint32_t request_payload = 0xCAFEBABEU;
@@ -1128,6 +1173,7 @@ int main(void)
     RUN_TEST(test_response_rejects_replacement_request_owners);
     RUN_TEST(test_unregister_discards_queued_messages_before_server_id_reuse);
     RUN_TEST(test_direct_queue_rejects_message_from_replaced_source_owner);
+    RUN_TEST(test_unregister_removes_pubsub_owner_before_server_id_reuse);
     RUN_TEST(test_response_rejects_request_from_previous_broker_lifecycle);
     RUN_TEST(test_handler_failure_is_propagated_and_queue_recovers);
     RUN_TEST(test_processing_stops_when_handler_replaces_server_owner);
