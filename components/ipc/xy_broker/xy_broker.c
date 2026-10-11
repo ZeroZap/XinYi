@@ -421,6 +421,8 @@ int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id,
 
     if (!handler)
         return XY_BROKER_INVALID_PARAM;
+    if (!broker_find_server(server_id))
+        return XY_BROKER_NOT_FOUND;
 
     xy_broker_topic_t *topic = broker_find_topic(topic_id);
     if (!topic) {

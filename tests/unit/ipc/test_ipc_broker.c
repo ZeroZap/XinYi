@@ -314,6 +314,9 @@ static void test_pubsub_create_publish_and_unsubscribe(void)
     xy_broker_stats_t stats;
 
     reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SENSOR,
+                                                direct_capture_handler, NULL));
     TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
                       xy_broker_publish(XY_BROKER_SERVER_SYSTEM, XY_BROKER_TOPIC_SENSOR_DATA,
                                         XY_BROKER_MSG_SENSOR_DATA, payload, sizeof(payload),
@@ -388,6 +391,9 @@ static void test_pubsub_handler_failure_is_propagated_and_counted(void)
     xy_broker_stats_t stats;
 
     reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
     rejecting_handler_fake.return_val = XY_BROKER_ERROR;
     TEST_ASSERT_EQUAL(XY_BROKER_OK,
                       xy_broker_subscribe(XY_BROKER_TOPIC_ALARM_EVENT,
@@ -404,6 +410,27 @@ static void test_pubsub_handler_failure_is_propagated_and_counted(void)
     TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_sent);
     TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_delivered);
     TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_dropped);
+}
+
+static void test_pubsub_rejects_unregistered_subscriber_without_topic_side_effect(void)
+{
+    const uint32_t payload = 0xA5A55A5AU;
+    xy_broker_stats_t stats;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA,
+                                          XY_BROKER_SERVER_SENSOR,
+                                          topic_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.active_topics);
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM,
+                                        XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA,
+                                        &payload, sizeof(payload),
+                                        XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_UINT(0U, topic_capture_handler_fake.call_count);
 }
 
 static void test_request_response_and_timeout(void)
@@ -1157,6 +1184,7 @@ int main(void)
     RUN_TEST(test_pubsub_create_publish_and_unsubscribe);
     RUN_TEST(test_empty_topics_have_distinct_bounded_ownership);
     RUN_TEST(test_pubsub_handler_failure_is_propagated_and_counted);
+    RUN_TEST(test_pubsub_rejects_unregistered_subscriber_without_topic_side_effect);
     RUN_TEST(test_request_response_and_timeout);
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_request_zero_timeout_performs_nonblocking_response_poll);
