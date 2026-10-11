@@ -19,8 +19,8 @@ static struct {
     uint8_t initialized;
 } g_broker;
 
-/* Generations survive broker reset so retained requests cannot be reused. */
-static uint32_t g_server_generation[XY_BROKER_MAX_SERVERS];
+/* Generations survive broker reset and are unique across server-slot migration. */
+static uint32_t g_server_generation_counter;
 /* Lifecycle generation detects callback-driven deinit/init during dispatch. */
 static uint32_t g_broker_generation;
 
@@ -73,7 +73,7 @@ static uint32_t broker_server_generation(const xy_broker_server_t *server)
         || server >= g_broker.servers + XY_BROKER_MAX_SERVERS) {
         return 0U;
     }
-    return g_server_generation[server - g_broker.servers];
+    return server->generation;
 }
 
 /**
@@ -263,9 +263,9 @@ int xy_broker_register_server(uint16_t server_id,
     server->handler   = handler;
     server->user_data = user_data;
     server->active    = 1;
-    g_server_generation[server - g_broker.servers]++;
-    if (g_server_generation[server - g_broker.servers] == 0U) {
-        g_server_generation[server - g_broker.servers] = 1U;
+    server->generation = ++g_server_generation_counter;
+    if (server->generation == 0U) {
+        server->generation = ++g_server_generation_counter;
     }
 
     g_broker.stats.active_servers++;

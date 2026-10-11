@@ -938,6 +938,19 @@
 - 仍不允许宣称：Pandora server replacement 与 ISR race runtime、多 ISR producer、多线程并发安全、
   throughput、任意 interrupt source、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-11 IPC Broker generation server-slot migration isolation
+
+- 组件：IPC / Broker owner provenance
+- 旧等级 -> 新等级：H1/Host owner-generation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.{h,c}`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：server registration generation 不再由数组 slot 分别计数，而是跨 slot 与 Broker
+  lifecycle 单调分配并存入 owner。旧 requester 注销、其他 ID 占用旧 slot、同 ID 在新 slot
+  注册后，retained request 不会因 generation 数值碰撞而被 replacement owner 接受。
+- 仍不允许宣称：Pandora owner migration runtime、多线程并发安全、32-bit generation wrap、
+  throughput、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229

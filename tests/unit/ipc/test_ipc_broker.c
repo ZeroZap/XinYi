@@ -1046,6 +1046,41 @@ static void test_response_rejects_replacement_request_owners(void)
     TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
 }
 
+static void test_response_rejects_replacement_requester_after_server_slot_migration(void)
+{
+    const uint32_t request_payload = 0xCAFEBABEU;
+    const uint32_t response_payload = 0x12345678U;
+    xy_broker_msg_t stale_request;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_COMM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SYSTEM, XY_BROKER_SERVER_COMM,
+                                         XY_BROKER_MSG_COMM_SEND, &request_payload,
+                                         sizeof(request_payload), XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_COMM, 1U));
+    memcpy(&stale_request, &last_msg, sizeof(stale_request));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SENSOR,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_respond(&stale_request, &response_payload,
+                                        sizeof(response_payload)));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+}
+
 static void test_unregister_discards_queued_messages_before_server_id_reuse(void)
 {
     const uint32_t stale_payload = 0xDEADBEEFU;
@@ -1541,6 +1576,7 @@ int main(void)
     RUN_TEST(test_request_rejects_replacement_destination_owner_while_waiting);
     RUN_TEST(test_response_rejects_unregistered_responder_without_enqueue);
     RUN_TEST(test_response_rejects_replacement_request_owners);
+    RUN_TEST(test_response_rejects_replacement_requester_after_server_slot_migration);
     RUN_TEST(test_unregister_discards_queued_messages_before_server_id_reuse);
     RUN_TEST(test_direct_queue_rejects_message_from_replaced_source_owner);
     RUN_TEST(test_unregister_removes_pubsub_owner_before_server_id_reuse);

@@ -232,6 +232,7 @@ typedef struct {
     uint16_t queue_tail;   /**< Queue tail index */
     uint16_t queue_count;  /**< Messages in queue */
     uint8_t active;        /**< Server active flag */
+    uint32_t generation;   /**< Registration generation, unique across slots/lifecycles */
     uint32_t msg_received; /**< Total messages received */
     uint32_t msg_sent;     /**< Total messages sent */
 } xy_broker_server_t;
