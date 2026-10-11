@@ -857,6 +857,18 @@
 - 仍不允许宣称：Pandora pub/sub replacement runtime、多线程并发安全、callback mutation 的完整
   线性化、throughput、ISR safety、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-11 IPC Broker publisher-generation stamping
+
+- 组件：IPC / Broker pub/sub
+- 旧等级 -> 新等级：H1/Host publisher-provenance contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：publish 生成的 broadcast message 绑定当前 registered publisher generation；同一
+  server ID 注销并重新注册后，新 publish 携带新的 owner identity，subscriber 可区分 replacement。
+- 仍不允许宣称：Pandora pub/sub runtime、多线程并发安全、trusted publishers、throughput、
+  ISR safety、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229
