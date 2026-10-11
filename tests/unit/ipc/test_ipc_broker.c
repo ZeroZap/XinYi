@@ -15,6 +15,7 @@ static int isr_wake_result;
 static xy_os_status_t delay_result;
 static uint16_t unregister_server_on_delay;
 static uint16_t reregister_server_on_delay;
+static unsigned int subscription_replacement_count;
 
 typedef struct {
     int response_sent;
@@ -97,8 +98,21 @@ static int replacing_server_handler(const xy_broker_msg_t *msg, void *user_data)
     return XY_BROKER_OK;
 }
 
-static int wake_from_isr(void *context)
-{
+static int replacing_subscription_handler(const xy_broker_msg_t* msg, void* user_data) {
+    (void)user_data;
+    TEST_ASSERT_NOT_NULL(msg);
+    subscription_replacement_count++;
+    if (subscription_replacement_count == 1U) {
+        TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_unsubscribe(XY_BROKER_TOPIC_SENSOR_DATA,
+                                                              XY_BROKER_SERVER_DISPLAY));
+        TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                          xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, XY_BROKER_SERVER_DISPLAY,
+                                              direct_capture_handler, NULL));
+    }
+    return XY_BROKER_OK;
+}
+
+static int wake_from_isr(void* context) {
     TEST_ASSERT_EQUAL_PTR(&isr_wake_count, context);
     ++isr_wake_count;
     return isr_wake_result;
@@ -124,6 +138,7 @@ static void reset_fakes(void)
     reregister_server_on_delay = 0U;
     isr_wake_count = 0U;
     isr_wake_result = XY_BROKER_OK;
+    subscription_replacement_count = 0U;
     memset(&last_msg, 0, sizeof(last_msg));
 }
 
@@ -465,8 +480,42 @@ static void test_pubsub_rejects_unregistered_publisher_without_delivery(void)
     TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_dropped);
 }
 
-static void test_request_response_and_timeout(void)
-{
+static void test_publish_does_not_deliver_to_replacement_subscription(void) {
+    const uint32_t first_payload = 0xA5A55A5AU;
+    const uint32_t second_payload = 0x12345678U;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                              direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_register_server(XY_BROKER_SERVER_SENSOR,
+                                                              direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_register_server(XY_BROKER_SERVER_DISPLAY,
+                                                              direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, XY_BROKER_SERVER_SENSOR,
+                                          replacing_subscription_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, XY_BROKER_SERVER_DISPLAY,
+                                          topic_capture_handler, NULL));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM, XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA, &first_payload,
+                                        sizeof(first_payload), XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_UINT(1U, subscription_replacement_count);
+    TEST_ASSERT_EQUAL_UINT(0U, topic_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT(0U, direct_capture_handler_fake.call_count);
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM, XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA, &second_payload,
+                                        sizeof(second_payload), XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_UINT(2U, subscription_replacement_count);
+    TEST_ASSERT_EQUAL_UINT(1U, direct_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL_MEMORY(&second_payload, last_msg.payload, sizeof(second_payload));
+}
+
+static void test_request_response_and_timeout(void) {
     const char request[] = "ping";
     xy_broker_msg_t response;
     test_context_t ctx = {0};
@@ -1221,6 +1270,7 @@ int main(void)
     RUN_TEST(test_pubsub_handler_failure_is_propagated_and_counted);
     RUN_TEST(test_pubsub_rejects_unregistered_subscriber_without_topic_side_effect);
     RUN_TEST(test_pubsub_rejects_unregistered_publisher_without_delivery);
+    RUN_TEST(test_publish_does_not_deliver_to_replacement_subscription);
     RUN_TEST(test_request_response_and_timeout);
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_request_zero_timeout_performs_nonblocking_response_poll);

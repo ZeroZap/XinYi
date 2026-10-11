@@ -205,7 +205,8 @@ typedef int (*xy_broker_msg_handler_t)(const xy_broker_msg_t *msg,
 typedef struct {
     uint16_t server_id;              /**< Subscriber server ID */
     xy_broker_msg_handler_t handler; /**< Message handler callback */
-    void *user_data;                 /**< User context data */
+    void* user_data;                 /**< User context data */
+    uint32_t generation;             /**< Subscription registration generation */
     uint8_t active;                  /**< Subscription active flag */
 } xy_broker_subscriber_t;
 

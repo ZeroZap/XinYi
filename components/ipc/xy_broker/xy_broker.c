@@ -15,6 +15,7 @@ static struct {
     uint8_t topic_active[XY_BROKER_MAX_TOPICS];
     xy_broker_stats_t stats;
     uint32_t seq_counter;
+    uint32_t subscription_generation;
     uint8_t initialized;
 } g_broker;
 
@@ -444,9 +445,13 @@ int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id,
     for (int i = 0; i < XY_BROKER_MAX_SUBSCRIBERS; i++) {
         if (!topic->subscribers[i].active) {
             topic->subscribers[i].server_id = server_id;
-            topic->subscribers[i].handler   = handler;
+            topic->subscribers[i].handler = handler;
             topic->subscribers[i].user_data = user_data;
-            topic->subscribers[i].active    = 1;
+            topic->subscribers[i].generation = ++g_broker.subscription_generation;
+            if (topic->subscribers[i].generation == 0U) {
+                topic->subscribers[i].generation = ++g_broker.subscription_generation;
+            }
+            topic->subscribers[i].active = 1;
             topic->subscriber_count++;
 
             if (topic->subscriber_count == 1) {
@@ -521,15 +526,22 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
     // Deliver to all subscribers. A callback rejection is a publish failure,
     // not a successful delivery; retain the first error while notifying the
     // remaining subscribers.
+    // Snapshot membership before invoking callbacks. A callback may replace a
+    // later subscription, which must not receive the publication that created it.
+    xy_broker_subscriber_t subscribers[XY_BROKER_MAX_SUBSCRIBERS];
+    memcpy(subscribers, topic->subscribers, sizeof(subscribers));
+
     int delivered = 0;
     int dropped = 0;
     int first_error = XY_BROKER_OK;
     for (int i = 0; i < XY_BROKER_MAX_SUBSCRIBERS; i++) {
-        if (topic->subscribers[i].active) {
-            if (topic->subscribers[i].handler) {
+        xy_broker_subscriber_t* current = &topic->subscribers[i];
+        xy_broker_subscriber_t* snapshot = &subscribers[i];
+
+        if (snapshot->active && current->active && current->generation == snapshot->generation) {
+            if (snapshot->handler) {
                 // Direct callback
-                int handler_result = topic->subscribers[i].handler(
-                    &msg, topic->subscribers[i].user_data);
+                int handler_result = snapshot->handler(&msg, snapshot->user_data);
                 if (handler_result == XY_BROKER_OK) {
                     delivered++;
                 } else {
