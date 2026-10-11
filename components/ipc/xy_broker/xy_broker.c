@@ -345,6 +345,14 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
             break;
 
         if (broker_dequeue_msg(server, &msg) == XY_BROKER_OK) {
+            xy_broker_server_t *source = broker_find_server(msg.src_server);
+
+            if (msg.src_generation != 0U
+                && (!source
+                    || broker_server_generation(source) != msg.src_generation)) {
+                g_broker.stats.total_msg_dropped++;
+                continue;
+            }
             int handler_result = server->handler(&msg, server->user_data);
 
             if (handler_result != XY_BROKER_OK) {

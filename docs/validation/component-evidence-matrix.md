@@ -806,6 +806,19 @@
 - 仍不允许宣称：Pandora owner replacement runtime、多线程并发安全、throughput、ISR safety、
   recovery、endurance 或 IPC product qualification。
 
+### 2026-10-11 IPC Broker direct-message source-generation boundary
+
+- 组件：IPC / Broker direct queue
+- 旧等级 -> 新等级：H1/Host source-owner contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：registered source 发出的 direct message 绑定 source generation；消息排队后 source
+  被注销或同 ID replacement owner 接管时，processing 丢弃 stale message、计入 dropped 且不调用
+  destination handler；replacement owner 的新消息仍可正常交付。未注册 source 的兼容消息保持既有行为。
+- 仍不允许宣称：Pandora source replacement runtime、多线程并发安全、trusted source、throughput、
+  ISR safety、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229
