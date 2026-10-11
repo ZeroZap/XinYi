@@ -321,7 +321,8 @@ int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server,
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
-    if (payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0 && !payload))
+    if (msg_id == 0U || payload_len > XY_BROKER_MAX_MSG_SIZE
+        || (payload_len > 0 && !payload))
         return XY_BROKER_INVALID_PARAM;
 
     xy_broker_server_t *dst = broker_find_server(dst_server);
@@ -525,7 +526,7 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
-    if (topic_id == 0U || payload_len > XY_BROKER_MAX_MSG_SIZE
+    if (topic_id == 0U || msg_id == 0U || payload_len > XY_BROKER_MAX_MSG_SIZE
         || (payload_len > 0 && !payload))
         return XY_BROKER_INVALID_PARAM;
     xy_broker_server_t *src = broker_find_server(src_server);
@@ -632,6 +633,9 @@ int xy_broker_request(uint16_t src_server, uint16_t dst_server, uint16_t msg_id,
 
     if (!g_broker.initialized || !response_msg)
         return XY_BROKER_ERROR;
+    if (msg_id == 0U || request_len > XY_BROKER_MAX_MSG_SIZE
+        || (request_len > 0U && !request_payload))
+        return XY_BROKER_INVALID_PARAM;
 
     src = broker_find_server(src_server);
     if (!src)
@@ -696,7 +700,7 @@ int xy_broker_respond(const xy_broker_msg_t *request_msg,
 
     if (!g_broker.initialized || !request_msg)
         return XY_BROKER_ERROR;
-    if (response_len > XY_BROKER_MAX_MSG_SIZE ||
+    if (request_msg->msg_id == 0U || response_len > XY_BROKER_MAX_MSG_SIZE ||
         (response_len > 0U && !response_payload))
         return XY_BROKER_INVALID_PARAM;
 
