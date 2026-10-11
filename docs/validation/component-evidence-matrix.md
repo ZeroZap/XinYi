@@ -909,6 +909,20 @@
 - 仍不允许宣称：Pandora callback mutation runtime、多线程并发安全、完整线性化、throughput、
   ISR safety、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-11 IPC Broker ISR ingress lifecycle binding
+
+- 组件：IPC / Broker ISR ingress
+- 旧等级 -> 新等级：H1/Host lifecycle-bound handoff contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.{h,c}`,
+  `components/ipc/xy_broker/xy_broker_isr_ingress.{h,c}`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：ISR ingress 初始化绑定当前 active Broker lifecycle generation；Broker 未初始化时拒绝
+  建立 ingress，deinit/init 后旧 ring 的 publish/drain 均 fail-closed，drain 丢弃旧 lifecycle payload，
+  不会把 reset 前 ISR 数据注入 replacement Broker owner。
+- 仍不允许宣称：Pandora Broker reset 与 ISR race runtime、多 ISR producer、多线程并发安全、
+  throughput、任意 interrupt source、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229

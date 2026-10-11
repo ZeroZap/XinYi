@@ -229,6 +229,11 @@ int xy_broker_deinit(void)
     return XY_BROKER_OK;
 }
 
+uint32_t xy_broker_get_lifecycle_generation(void)
+{
+    return g_broker.initialized ? g_broker_generation : 0U;
+}
+
 int xy_broker_register_server(uint16_t server_id,
                               xy_broker_msg_handler_t handler, void *user_data)
 {

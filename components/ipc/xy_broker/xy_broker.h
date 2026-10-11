@@ -263,6 +263,13 @@ int xy_broker_init(void);
 int xy_broker_deinit(void);
 
 /**
+ * @brief Get the active broker lifecycle generation
+ *
+ * @return Non-zero generation while initialized, otherwise 0
+ */
+uint32_t xy_broker_get_lifecycle_generation(void);
+
+/**
  * @brief Register a broker server
  *
  * @param server_id Fixed server ID

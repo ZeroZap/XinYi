@@ -27,6 +27,7 @@ typedef struct {
     volatile uint16_t tail;
     xy_broker_isr_wake_t wake_from_isr;
     void *wake_context;
+    uint32_t broker_generation;
 } xy_broker_isr_ingress_t;
 
 int xy_broker_isr_ingress_init(xy_broker_isr_ingress_t *ingress,

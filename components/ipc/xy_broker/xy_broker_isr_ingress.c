@@ -6,14 +6,21 @@ int xy_broker_isr_ingress_init(xy_broker_isr_ingress_t *ingress,
                                xy_broker_isr_msg_t *storage, uint16_t capacity,
                                xy_broker_isr_wake_t wake_from_isr, void *wake_context)
 {
+    uint32_t broker_generation;
+
     if (ingress == NULL || storage == NULL || capacity < 2U || wake_from_isr == NULL) {
         return XY_BROKER_INVALID_PARAM;
+    }
+    broker_generation = xy_broker_get_lifecycle_generation();
+    if (broker_generation == 0U) {
+        return XY_BROKER_ERROR;
     }
     memset(ingress, 0, sizeof(*ingress));
     ingress->storage = storage;
     ingress->capacity = capacity;
     ingress->wake_from_isr = wake_from_isr;
     ingress->wake_context = wake_context;
+    ingress->broker_generation = broker_generation;
     return XY_BROKER_OK;
 }
 
@@ -29,6 +36,9 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
         ingress->wake_from_isr == NULL || payload_len > XY_BROKER_MAX_MSG_SIZE ||
         (payload_len > 0U && payload == NULL)) {
         return XY_BROKER_INVALID_PARAM;
+    }
+    if (ingress->broker_generation != xy_broker_get_lifecycle_generation()) {
+        return XY_BROKER_ERROR;
     }
     previous_tail = ingress->tail;
     next = (uint16_t)((previous_tail + 1U) % ingress->capacity);
@@ -65,6 +75,10 @@ int xy_broker_isr_drain_one(xy_broker_isr_ingress_t *ingress)
     }
     if (ingress->head == ingress->tail) {
         return XY_BROKER_NOT_FOUND;
+    }
+    if (ingress->broker_generation != xy_broker_get_lifecycle_generation()) {
+        ingress->head = ingress->tail;
+        return XY_BROKER_ERROR;
     }
     message = &ingress->storage[ingress->head];
     result = xy_broker_send_msg(message->src_server, message->dst_server, message->msg_id,
