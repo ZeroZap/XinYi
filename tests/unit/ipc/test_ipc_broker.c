@@ -615,6 +615,33 @@ static void test_publish_stops_when_callback_reinitializes_broker(void)
     TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_dropped);
 }
 
+static void test_direct_processing_stops_when_handler_reinitializes_broker(void)
+{
+    const uint32_t payload = 0xA5A55A5AU;
+    xy_broker_stats_t stats;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                reinitializing_broker_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SENSOR,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_send_msg(XY_BROKER_SERVER_SENSOR,
+                                         XY_BROKER_SERVER_SYSTEM,
+                                         XY_BROKER_MSG_SENSOR_DATA, &payload,
+                                         sizeof(payload), XY_BROKER_PRIORITY_NORMAL));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR,
+                      xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 0U));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_sent);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_delivered);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_dropped);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.active_servers);
+}
+
 static void test_publish_stops_when_callback_replaces_publisher_owner(void)
 {
     const uint32_t first_payload = 0xA5A55A5AU;
@@ -1420,6 +1447,7 @@ int main(void)
     RUN_TEST(test_publish_stamps_current_publisher_generation);
     RUN_TEST(test_publish_does_not_deliver_to_replacement_subscription);
     RUN_TEST(test_publish_stops_when_callback_reinitializes_broker);
+    RUN_TEST(test_direct_processing_stops_when_handler_reinitializes_broker);
     RUN_TEST(test_publish_stops_when_callback_replaces_publisher_owner);
     RUN_TEST(test_request_response_and_timeout);
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);

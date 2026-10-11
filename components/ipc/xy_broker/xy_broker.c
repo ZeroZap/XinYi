@@ -352,6 +352,7 @@ int xy_broker_send_msg(uint16_t src_server, uint16_t dst_server,
 
 int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
 {
+    uint32_t broker_generation;
     uint32_t server_generation;
 
     if (!g_broker.initialized)
@@ -360,6 +361,7 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
     xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
         return XY_BROKER_NOT_FOUND;
+    broker_generation = g_broker_generation;
     server_generation = broker_server_generation(server);
 
     if (!server->handler)
@@ -383,6 +385,9 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
             }
             int handler_result = server->handler(&msg, server->user_data);
 
+            if (!g_broker.initialized || g_broker_generation != broker_generation) {
+                return XY_BROKER_ERROR;
+            }
             if (handler_result != XY_BROKER_OK) {
                 g_broker.stats.total_msg_dropped++;
                 return handler_result;

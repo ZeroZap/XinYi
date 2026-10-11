@@ -896,6 +896,19 @@
 - 仍不允许宣称：Pandora publisher replacement runtime、多线程并发安全、完整线性化、throughput、
   ISR safety、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-11 IPC Broker direct-processing lifecycle reset boundary
+
+- 组件：IPC / Broker direct queue
+- 旧等级 -> 新等级：H1/Host lifecycle-mutation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：direct-message handler 若在 processing callback 内 deinit/init Broker，当前 processing
+  通过 lifecycle generation 检测 reset 并立即返回错误；不会把旧 handler 结果或 delivered/dropped
+  统计写入新的 Broker lifecycle，也不会继续使用已失效的 server pointer。
+- 仍不允许宣称：Pandora callback mutation runtime、多线程并发安全、完整线性化、throughput、
+  ISR safety、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229
