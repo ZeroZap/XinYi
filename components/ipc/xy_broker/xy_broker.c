@@ -495,6 +495,8 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
 
     if (payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0 && !payload))
         return XY_BROKER_INVALID_PARAM;
+    if (!broker_find_server(src_server))
+        return XY_BROKER_NOT_FOUND;
 
     xy_broker_topic_t *topic = broker_find_topic(topic_id);
     if (!topic || topic->subscriber_count == 0)
