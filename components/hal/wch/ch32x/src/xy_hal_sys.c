@@ -16,6 +16,11 @@ static uint8_t s_initialized;
 
 xy_hal_error_t xy_hal_sys_init(void) {
     SystemCoreClockUpdate();
+    SysTick->CTLR = 0U;
+    SysTick->SR = 0U;
+    SysTick->CNT = 0U;
+    SysTick->CMP = UINT64_MAX;
+    SysTick->CTLR = (1U << 5U) | 1U;
     s_initialized = 1U;
     return XY_HAL_OK;
 }
@@ -24,7 +29,8 @@ xy_hal_error_t xy_hal_sys_deinit(void) {
     return XY_HAL_OK;
 }
 uint32_t xy_hal_sys_get_tick_count(void) {
-    return (uint32_t)(SysTick->CNT / (SystemCoreClock / 8U / 1000U));
+    uint32_t ticks_per_ms = SystemCoreClock / 8000U;
+    return ticks_per_ms == 0U ? 0U : (uint32_t)(SysTick->CNT / ticks_per_ms);
 }
 uint32_t xy_hal_sys_get_tick_freq(void) {
     return XY_HAL_SYS_TICK_FREQ;
@@ -166,7 +172,16 @@ xy_hal_error_t xy_hal_sys_set_clk_source(xy_hal_sys_clkdomain_t domain,
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 int32_t xy_hal_sys_get_clk_source(xy_hal_sys_clkdomain_t domain) {
-    return domain == XY_HAL_SYS_CLKDOMAIN_SYS ? XY_HAL_SYS_CLKSRC_HSI : XY_HAL_ERROR_NOT_SUPPORTED;
+    if (domain != XY_HAL_SYS_CLKDOMAIN_SYS)
+        return XY_HAL_ERROR_NOT_SUPPORTED;
+    switch (RCC->CFGR0 & RCC_SWS) {
+        case 0x00000004U:
+            return XY_HAL_SYS_CLKSRC_HSE;
+        case 0x00000008U:
+            return XY_HAL_SYS_CLKSRC_PLL;
+        default:
+            return XY_HAL_SYS_CLKSRC_HSI;
+    }
 }
 void xy_hal_sys_enable_irq(void) {
     __enable_irq();
@@ -243,7 +258,8 @@ void xy_hal_sys_delay_us(uint32_t us) {
         }
 }
 uint64_t xy_hal_sys_get_timestamp_us(void) {
-    return (uint64_t)SysTick->CNT * 8000000ULL / SystemCoreClock;
+    uint32_t ticks_per_us = SystemCoreClock / 8000000U;
+    return ticks_per_us == 0U ? 0U : SysTick->CNT / ticks_per_us;
 }
 uint64_t xy_hal_sys_get_timestamp_ms(void) {
     return xy_hal_sys_get_timestamp_us() / 1000U;

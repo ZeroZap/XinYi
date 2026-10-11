@@ -1,0 +1,16 @@
+{
+  "target": "opench_ch32v307_sys_identity_smoke",
+  "elf_sha256": "cd0a536076962060c1ad8aa1f44299f1107189e7204c64c4201bc3103910bafb",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "runtime_ok_count": 35,
+  "runtime_error_count": 0,
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  }
+}
