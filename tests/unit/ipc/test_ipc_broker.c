@@ -16,6 +16,7 @@ static xy_os_status_t delay_result;
 static uint16_t unregister_server_on_delay;
 static uint16_t reregister_server_on_delay;
 static unsigned int subscription_replacement_count;
+static unsigned int publisher_replacement_count;
 
 typedef struct {
     int response_sent;
@@ -121,6 +122,21 @@ static int reinitializing_broker_handler(const xy_broker_msg_t *msg, void *user_
     return XY_BROKER_OK;
 }
 
+static int replacing_publisher_handler(const xy_broker_msg_t *msg, void *user_data)
+{
+    (void)user_data;
+    TEST_ASSERT_NOT_NULL(msg);
+    publisher_replacement_count++;
+    if (publisher_replacement_count == 1U) {
+        TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                          xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
+        TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                          xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                    direct_capture_handler, NULL));
+    }
+    return XY_BROKER_OK;
+}
+
 static int wake_from_isr(void* context) {
     TEST_ASSERT_EQUAL_PTR(&isr_wake_count, context);
     ++isr_wake_count;
@@ -148,6 +164,7 @@ static void reset_fakes(void)
     isr_wake_count = 0U;
     isr_wake_result = XY_BROKER_OK;
     subscription_replacement_count = 0U;
+    publisher_replacement_count = 0U;
     memset(&last_msg, 0, sizeof(last_msg));
 }
 
@@ -596,6 +613,53 @@ static void test_publish_stops_when_callback_reinitializes_broker(void)
     TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_sent);
     TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_delivered);
     TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_dropped);
+}
+
+static void test_publish_stops_when_callback_replaces_publisher_owner(void)
+{
+    const uint32_t first_payload = 0xA5A55A5AU;
+    const uint32_t second_payload = 0x12345678U;
+    xy_broker_stats_t stats;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SENSOR,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_DISPLAY,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA,
+                                          XY_BROKER_SERVER_SENSOR,
+                                          replacing_publisher_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA,
+                                          XY_BROKER_SERVER_DISPLAY,
+                                          topic_capture_handler, NULL));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM,
+                                        XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA, &first_payload,
+                                        sizeof(first_payload), XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_UINT(1U, publisher_replacement_count);
+    TEST_ASSERT_EQUAL_UINT(0U, topic_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_sent);
+    TEST_ASSERT_EQUAL_UINT32(1U, stats.total_msg_delivered);
+    TEST_ASSERT_EQUAL_UINT32(0U, stats.total_msg_dropped);
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_publish(XY_BROKER_SERVER_SYSTEM,
+                                        XY_BROKER_TOPIC_SENSOR_DATA,
+                                        XY_BROKER_MSG_SENSOR_DATA, &second_payload,
+                                        sizeof(second_payload), XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL_UINT(2U, publisher_replacement_count);
+    TEST_ASSERT_EQUAL_UINT(1U, topic_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL_MEMORY(&second_payload, last_msg.payload, sizeof(second_payload));
 }
 
 static void test_request_response_and_timeout(void) {
@@ -1356,6 +1420,7 @@ int main(void)
     RUN_TEST(test_publish_stamps_current_publisher_generation);
     RUN_TEST(test_publish_does_not_deliver_to_replacement_subscription);
     RUN_TEST(test_publish_stops_when_callback_reinitializes_broker);
+    RUN_TEST(test_publish_stops_when_callback_replaces_publisher_owner);
     RUN_TEST(test_request_response_and_timeout);
     RUN_TEST(test_request_skips_unrelated_source_queue_messages);
     RUN_TEST(test_request_zero_timeout_performs_nonblocking_response_poll);

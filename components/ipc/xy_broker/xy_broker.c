@@ -509,8 +509,10 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
     if (payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0 && !payload))
         return XY_BROKER_INVALID_PARAM;
     xy_broker_server_t *src = broker_find_server(src_server);
+    uint32_t src_generation;
     if (!src)
         return XY_BROKER_NOT_FOUND;
+    src_generation = broker_server_generation(src);
     broker_generation = g_broker_generation;
 
     xy_broker_topic_t *topic = broker_find_topic(topic_id);
@@ -563,6 +565,14 @@ int xy_broker_publish(uint16_t src_server, uint16_t topic_id, uint16_t msg_id,
                     if (first_error == XY_BROKER_OK) {
                         first_error = handler_result;
                     }
+                }
+                src = broker_find_server(src_server);
+                if (!src || broker_server_generation(src) != src_generation) {
+                    topic->msg_count++;
+                    g_broker.stats.total_msg_sent++;
+                    g_broker.stats.total_msg_delivered += delivered;
+                    g_broker.stats.total_msg_dropped += dropped;
+                    return XY_BROKER_NOT_FOUND;
                 }
             }
         }
