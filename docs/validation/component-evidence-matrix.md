@@ -1015,6 +1015,19 @@
 - 仍不允许宣称：Pandora IPC runtime、多线程并发安全、trusted route namespace、throughput、
   任意 interrupt source、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC Broker zero server-ID utility boundary
+
+- 组件：IPC / Broker server lifecycle and queue utilities
+- 旧等级 -> 新等级：H1/Host input-validation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：server ID `0` 是无效 sentinel；unregister、process、pending-count 与 clear-queue
+  utility 在 owner lookup、queue mutation 或 statistics 变化前返回 `XY_BROKER_INVALID_PARAM`。
+  Registration query 对零 ID 保持 false，合法 server owner 不受拒绝调用影响。
+- 仍不允许宣称：Pandora IPC runtime、多线程并发安全、trusted server namespace、throughput、
+  ISR safety、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229

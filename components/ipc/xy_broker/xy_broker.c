@@ -277,6 +277,8 @@ int xy_broker_unregister_server(uint16_t server_id)
 {
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
+    if (server_id == 0U)
+        return XY_BROKER_INVALID_PARAM;
 
     xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
@@ -369,6 +371,8 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
 
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
+    if (server_id == 0U)
+        return XY_BROKER_INVALID_PARAM;
 
     xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
@@ -764,6 +768,9 @@ int xy_broker_is_server_registered(uint16_t server_id)
 
 int xy_broker_get_pending_count(uint16_t server_id)
 {
+    if (server_id == 0U)
+        return XY_BROKER_INVALID_PARAM;
+
     xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
         return XY_BROKER_NOT_FOUND;
@@ -773,6 +780,9 @@ int xy_broker_get_pending_count(uint16_t server_id)
 
 int xy_broker_clear_queue(uint16_t server_id)
 {
+    if (server_id == 0U)
+        return XY_BROKER_INVALID_PARAM;
+
     xy_broker_server_t *server = broker_find_server(server_id);
     if (!server)
         return XY_BROKER_NOT_FOUND;

@@ -201,6 +201,28 @@ static void test_lifecycle_and_server_registration(void)
                       xy_broker_unregister_server(XY_BROKER_SERVER_SYSTEM));
 }
 
+static void test_zero_server_id_utilities_fail_closed(void)
+{
+    xy_broker_stats_t before;
+    xy_broker_stats_t after;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&before));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM, xy_broker_unregister_server(0U));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM, xy_broker_process_msgs(0U, 1U));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM, xy_broker_get_pending_count(0U));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM, xy_broker_clear_queue(0U));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_is_server_registered(0U));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_get_stats(&after));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &after, sizeof(before));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_is_server_registered(XY_BROKER_SERVER_SYSTEM));
+}
+
 static void test_direct_message_queue_and_limits(void)
 {
     const char payload[] = "hello";
@@ -1711,6 +1733,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_lifecycle_and_server_registration);
+    RUN_TEST(test_zero_server_id_utilities_fail_closed);
     RUN_TEST(test_direct_message_queue_and_limits);
     RUN_TEST(test_zero_message_id_is_rejected_without_side_effects);
     RUN_TEST(test_zero_source_server_id_is_rejected_without_side_effects);
