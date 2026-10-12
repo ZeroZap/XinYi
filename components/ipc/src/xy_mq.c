@@ -17,7 +17,8 @@
 
 static bool mq_is_active(const xy_mq_t *mq)
 {
-    return mq && mq->lifecycle_cookie == XY_MQ_LIFECYCLE_COOKIE && mq->initialized && mq->buffer;
+    return mq && mq->lifecycle_cookie == XY_MQ_LIFECYCLE_COOKIE && mq->owner == mq &&
+           mq->initialized && mq->buffer;
 }
 
 static uint32_t mq_slot_size(const xy_mq_t *mq)
@@ -43,7 +44,7 @@ int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
     if ((size_t)config->max_msgs > UINT32_MAX / slot_size) {
         return XY_MQ_INVALID_PARAM;
     }
-    if (mq->lifecycle_cookie == XY_MQ_LIFECYCLE_COOKIE && mq->initialized) {
+    if (mq->lifecycle_cookie == XY_MQ_LIFECYCLE_COOKIE && mq->owner == mq && mq->initialized) {
         return XY_MQ_ERROR;
     }
     size = slot_size * (size_t)config->max_msgs;
@@ -62,6 +63,7 @@ int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
     mq->tail = 0;
     mq->count = 0;
     mq->lifecycle_cookie = XY_MQ_LIFECYCLE_COOKIE;
+    mq->owner = mq;
     mq->initialized = true;
     
     xy_log_i("MQ initialized: size=%d, max_msgs=%d, priority=%d\n",
@@ -74,7 +76,7 @@ int xy_mq_deinit(xy_mq_t *mq)
     if (!mq) {
         return XY_MQ_INVALID_PARAM;
     }
-    if (mq->lifecycle_cookie != XY_MQ_LIFECYCLE_COOKIE || !mq->initialized) {
+    if (!mq_is_active(mq)) {
         return XY_MQ_ERROR;
     }
     
@@ -84,6 +86,7 @@ int xy_mq_deinit(xy_mq_t *mq)
     }
     
     mq->lifecycle_cookie = 0U;
+    mq->owner = NULL;
     mq->initialized = false;
     return XY_MQ_OK;
 }

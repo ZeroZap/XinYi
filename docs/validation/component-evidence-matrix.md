@@ -85,6 +85,19 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-13 IPC MQ copied-owner isolation
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host ownership contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/{inc/xy_mq.h,src/xy_mq.c}`、
+  `tests/unit/ipc/test_ipc_mq.c`；focused `ipc_mq`; `make test-unit`; PC/L4/U5 Release builds；
+  `git diff --check`。
+- 适用范围：live queue 绑定其原始 `xy_mq_t` owner 地址；结构体浅拷贝不能复用同一 heap
+  buffer 执行 send/receive/query/clear/stats/deinit，拒绝路径保持 alias、原 owner、payload 与
+  caller output 不变，避免 double-free 和共享索引破坏。
+- 仍不允许宣称：跨线程并发安全、owner 移动、ISR safety、Pandora runtime、throughput、fairness
+  或 endurance。
+
 ### 2026-10-12 IPC MQ priority-domain validation
 
 - 组件：IPC / message queue

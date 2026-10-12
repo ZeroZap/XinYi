@@ -70,6 +70,7 @@ typedef struct {
     uint32_t recv_count;
     uint32_t drop_count;
     uint32_t lifecycle_cookie;
+    const void *owner;
     bool initialized;
 } xy_mq_t;
 
