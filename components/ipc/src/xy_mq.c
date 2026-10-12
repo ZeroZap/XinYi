@@ -53,6 +53,24 @@ static uint16_t mq_receive_offset(const xy_mq_t *mq)
     return selected;
 }
 
+static uint16_t mq_lowest_priority_offset(const xy_mq_t *mq)
+{
+    uint16_t selected = 0U;
+    xy_mq_priority_t selected_priority = XY_MQ_PRIORITY_URGENT;
+
+    for (uint16_t offset = 0U; offset < mq->count; offset++) {
+        uint16_t index = (uint16_t)((mq->tail + offset) % mq->config.max_msgs);
+        const xy_mq_msg_t *stored = (const xy_mq_msg_t *)mq_slot_at(mq, index);
+
+        if (offset == 0U || stored->priority < selected_priority) {
+            selected = offset;
+            selected_priority = stored->priority;
+        }
+    }
+
+    return selected;
+}
+
 static void mq_remove_offset(xy_mq_t *mq, uint16_t selected)
 {
     uint32_t slot_size = mq_slot_size(mq);
@@ -145,9 +163,8 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
     /* 检查队列是否满 */
     if (mq->count >= mq->config.max_msgs) {
         if (mq->config.priority_enabled && msg->priority == XY_MQ_PRIORITY_URGENT) {
-            /* 紧急消息：丢弃最低优先级消息 */
-            mq->tail = (mq->tail + 1) % mq->config.max_msgs;
-            mq->count--;
+            /* 紧急消息：丢弃最早入队的最低优先级消息 */
+            mq_remove_offset(mq, mq_lowest_priority_offset(mq));
             mq->drop_count++;
         } else if (mq->config.overwrite_old) {
             /* 覆盖旧消息 */

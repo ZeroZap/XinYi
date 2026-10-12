@@ -85,6 +85,18 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-13 IPC MQ urgent eviction ordering
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host priority overflow contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/src/xy_mq.c`、`tests/unit/ipc/test_ipc_mq.c`；
+  focused `ipc_mq`; `make test-unit`; PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：启用 priority 的满队列接收 urgent message 时，淘汰当前队列中最早入队的最低
+  priority message，而不是无条件淘汰 FIFO oldest；剩余同 priority 顺序、urgent 插入与
+  send/drop statistics 保持一致。
+- 仍不允许宣称：跨线程并发安全、ISR safety、Pandora runtime、priority fairness、throughput
+  或 endurance。
+
 ### 2026-10-13 IPC MQ priority receive ordering
 
 - 组件：IPC / Message Queue

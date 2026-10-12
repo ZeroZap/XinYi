@@ -650,6 +650,46 @@ static void test_mq_urgent_send_drops_oldest_even_without_overwrite(void)
     TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
 }
 
+static void test_mq_urgent_send_evicts_oldest_lowest_priority_message(void)
+{
+    xy_mq_t mq;
+    xy_mq_config_t config = {
+        .msg_size = 1,
+        .max_msgs = 4,
+        .priority_enabled = true,
+        .overwrite_old = false,
+    };
+    uint8_t payloads[] = {0x31U, 0x10U, 0x32U, 0x11U, 0x40U};
+    uint8_t out = 0U;
+    xy_mq_msg_t msg = make_msg(1U, XY_MQ_PRIORITY_HIGH, &payloads[0], 1U);
+    xy_mq_msg_t recv = make_msg(0U, XY_MQ_PRIORITY_LOW, &out, 1U);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+    msg = make_msg(2U, XY_MQ_PRIORITY_LOW, &payloads[1], 1U);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+    msg = make_msg(3U, XY_MQ_PRIORITY_HIGH, &payloads[2], 1U);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+    msg = make_msg(4U, XY_MQ_PRIORITY_LOW, &payloads[3], 1U);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+
+    msg = make_msg(5U, XY_MQ_PRIORITY_URGENT, &payloads[4], 1U);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+    TEST_ASSERT_EQUAL_UINT16(4U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT32(1U, mq.drop_count);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(5U, recv.id);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(1U, recv.id);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(3U, recv.id);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(4U, recv.id);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -671,5 +711,6 @@ int main(void)
     RUN_TEST(test_mq_recv_delay_failure_stops_wait_and_preserves_output);
     RUN_TEST(test_mq_send_delay_failure_stops_wait_and_preserves_queue);
     RUN_TEST(test_mq_urgent_send_drops_oldest_even_without_overwrite);
+    RUN_TEST(test_mq_urgent_send_evicts_oldest_lowest_priority_message);
     return UNITY_END();
 }
