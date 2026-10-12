@@ -1,0 +1,19 @@
+{
+  "target": "opench_ch32v307_w25q128_rw_restore_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "7dcbbcdbc6891d0ed0d1a1d6145a2ba6a809e5f1ef7176cc1edc1f1d029a4514",
+  "test_sector": "0x00EFF000..0x00EFFFFF",
+  "fota_candidate_start": "0x00F00000",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "rw_restore_ok_count": 1,
+  "error_count": 0,
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  }
+}
