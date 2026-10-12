@@ -87,6 +87,39 @@ static void test_mq_init_deinit_and_invalid_params(void)
     TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_deinit(NULL));
 }
 
+static void test_mq_inactive_lifecycle_utilities_fail_closed(void)
+{
+    xy_mq_t mq;
+    xy_mq_config_t config = {
+        .msg_size = 4,
+        .max_msgs = 2,
+        .priority_enabled = false,
+        .overwrite_old = false,
+    };
+    uint32_t send = 0x11111111U;
+    uint32_t received = 0x22222222U;
+    uint32_t dropped = 0x33333333U;
+
+    memset(&mq, 0, sizeof(mq));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_free(&mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_clear(&mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_get_stats(&mq, &send, &received, &dropped));
+    TEST_ASSERT_EQUAL_UINT32(0x11111111U, send);
+    TEST_ASSERT_EQUAL_UINT32(0x22222222U, received);
+    TEST_ASSERT_EQUAL_UINT32(0x33333333U, dropped);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_free(&mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_clear(&mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_get_stats(&mq, &send, &received, &dropped));
+    TEST_ASSERT_EQUAL_UINT32(0x11111111U, send);
+    TEST_ASSERT_EQUAL_UINT32(0x22222222U, received);
+    TEST_ASSERT_EQUAL_UINT32(0x33333333U, dropped);
+}
+
 static void test_mq_rejects_storage_size_overflow_without_mutating_owner(void)
 {
     xy_mq_t mq;
@@ -438,6 +471,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_mq_init_deinit_and_invalid_params);
+    RUN_TEST(test_mq_inactive_lifecycle_utilities_fail_closed);
     RUN_TEST(test_mq_rejects_storage_size_overflow_without_mutating_owner);
     RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);
     RUN_TEST(test_mq_send_receive_fifo_payloads);

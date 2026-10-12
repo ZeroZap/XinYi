@@ -197,7 +197,7 @@ int xy_mq_try_recv(xy_mq_t *mq, xy_mq_msg_t *msg)
 
 uint16_t xy_mq_get_count(const xy_mq_t *mq)
 {
-    if (!mq) {
+    if (!mq || !mq->initialized) {
         return 0;
     }
     return mq->count;
@@ -205,7 +205,7 @@ uint16_t xy_mq_get_count(const xy_mq_t *mq)
 
 uint16_t xy_mq_get_free(const xy_mq_t *mq)
 {
-    if (!mq) {
+    if (!mq || !mq->initialized) {
         return 0;
     }
     return mq->config.max_msgs - mq->count;
@@ -215,6 +215,9 @@ int xy_mq_clear(xy_mq_t *mq)
 {
     if (!mq) {
         return XY_MQ_INVALID_PARAM;
+    }
+    if (!mq->initialized) {
+        return XY_MQ_ERROR;
     }
     
     mq->head = 0;
@@ -228,6 +231,9 @@ int xy_mq_get_stats(const xy_mq_t *mq, uint32_t *send, uint32_t *recv, uint32_t 
 {
     if (!mq) {
         return XY_MQ_INVALID_PARAM;
+    }
+    if (!mq->initialized) {
+        return XY_MQ_ERROR;
     }
     
     if (send) *send = mq->send_count;
