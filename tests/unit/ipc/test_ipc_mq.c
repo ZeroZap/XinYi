@@ -2,6 +2,7 @@
 #include "xy_os.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "unity.h"
@@ -9,6 +10,24 @@
 static uint32_t fake_tick;
 static uint32_t delay_call_count;
 static xy_os_status_t delay_result;
+static bool fail_next_malloc;
+
+void *__real_malloc(size_t size);
+void __real_free(void *ptr);
+
+void *__wrap_malloc(size_t size)
+{
+    if (fail_next_malloc) {
+        fail_next_malloc = false;
+        return NULL;
+    }
+    return __real_malloc(size);
+}
+
+void __wrap_free(void *ptr)
+{
+    __real_free(ptr);
+}
 
 uint32_t xy_os_tick_get(void)
 {
@@ -36,6 +55,7 @@ void setUp(void)
     fake_tick = 0;
     delay_call_count = 0;
     delay_result = XY_OS_OK;
+    fail_next_malloc = false;
 }
 
 void tearDown(void)
@@ -248,6 +268,25 @@ static void test_mq_rejects_storage_size_overflow_without_mutating_owner(void)
     before = mq;
 
     TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &mq, sizeof(mq));
+}
+
+static void test_mq_allocation_failure_preserves_caller_owner(void)
+{
+    xy_mq_t mq;
+    xy_mq_t before;
+    xy_mq_config_t config = {
+        .msg_size = 4,
+        .max_msgs = 2,
+        .priority_enabled = true,
+        .overwrite_old = true,
+    };
+
+    memset(&mq, 0xA5, sizeof(mq));
+    before = mq;
+    fail_next_malloc = true;
+
+    TEST_ASSERT_EQUAL(XY_MQ_NO_MEM, xy_mq_init(&mq, &config));
     TEST_ASSERT_EQUAL_MEMORY(&before, &mq, sizeof(mq));
 }
 
@@ -707,6 +746,7 @@ int main(void)
     RUN_TEST(test_mq_forged_initialized_state_fails_closed);
     RUN_TEST(test_mq_copied_live_owner_fails_closed);
     RUN_TEST(test_mq_rejects_storage_size_overflow_without_mutating_owner);
+    RUN_TEST(test_mq_allocation_failure_preserves_caller_owner);
     RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);
     RUN_TEST(test_mq_rejects_invalid_priority_without_side_effects);
     RUN_TEST(test_mq_send_receive_fifo_payloads);

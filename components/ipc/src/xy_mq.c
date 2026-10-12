@@ -104,17 +104,18 @@ int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
         return XY_MQ_ERROR;
     }
     size = slot_size * (size_t)config->max_msgs;
-    
-    memset(mq, 0, sizeof(*mq));
-    memcpy(&mq->config, config, sizeof(xy_mq_config_t));
-    
-    /* 分配缓冲区 */
-    mq->buffer = malloc(size);
-    if (!mq->buffer) {
+
+    /* Allocate before publishing the candidate so failure preserves caller-owned state. */
+    uint8_t *buffer = malloc(size);
+    if (!buffer) {
         return XY_MQ_NO_MEM;
     }
-    memset(mq->buffer, 0, size);
-    
+    memset(buffer, 0, size);
+
+    memset(mq, 0, sizeof(*mq));
+    memcpy(&mq->config, config, sizeof(xy_mq_config_t));
+    mq->buffer = buffer;
+
     mq->head = 0;
     mq->tail = 0;
     mq->count = 0;

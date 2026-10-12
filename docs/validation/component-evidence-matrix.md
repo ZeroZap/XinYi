@@ -85,6 +85,18 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-13 IPC MQ allocation-failure atomicity
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host initialization-failure contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/src/xy_mq.c`、`tests/unit/ipc/test_ipc_mq.c`、
+  `tests/unit/CMakeLists.txt`；focused `ipc_mq`；`make test-unit`；PC/L4/U5 Release builds；
+  `git diff --check`。
+- 适用范围：首次初始化先完成内部 storage allocation，再发布 config/buffer/lifecycle owner；
+  allocation failure 返回 `XY_MQ_NO_MEM` 并保持完整 caller-owned queue storage 不变。
+- 仍不允许宣称：跨线程并发安全、heap exhaustion recovery policy、Pandora runtime、ISR safety、
+  throughput、fairness 或 endurance。
+
 ### 2026-10-13 IPC MQ negative-priority validation
 
 - 组件：IPC / Message Queue

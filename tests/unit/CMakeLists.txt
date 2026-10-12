@@ -1906,6 +1906,7 @@ xy_add_unit_test(test_ipc_mq ipc_mq UNITY
     ${CLIB}/xy_stdio.c
 )
 target_include_directories(test_ipc_mq PRIVATE ${IPC}/inc ${TRACE}/xy_log/inc)
+target_link_options(test_ipc_mq PRIVATE -Wl,--wrap=malloc -Wl,--wrap=free)
 
 # --- Test 31c: IPC observer/subject public contracts ---
 xy_add_unit_test(test_ipc_observer ipc_observer UNITY
