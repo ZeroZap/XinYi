@@ -69,6 +69,7 @@ typedef struct {
     uint32_t send_count;
     uint32_t recv_count;
     uint32_t drop_count;
+    uint32_t lifecycle_cookie;
     bool initialized;
 } xy_mq_t;
 

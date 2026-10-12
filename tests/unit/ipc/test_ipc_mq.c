@@ -87,6 +87,40 @@ static void test_mq_init_deinit_and_invalid_params(void)
     TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_deinit(NULL));
 }
 
+static void test_mq_reinit_and_inactive_deinit_fail_closed(void)
+{
+    xy_mq_t mq = {0};
+    xy_mq_t before;
+    xy_mq_t zero = {0};
+    xy_mq_config_t config = {
+        .msg_size = 4,
+        .max_msgs = 2,
+        .priority_enabled = false,
+        .overwrite_old = false,
+    };
+    xy_mq_config_t replacement = {
+        .msg_size = 8,
+        .max_msgs = 3,
+        .priority_enabled = true,
+        .overwrite_old = true,
+    };
+
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_deinit(&mq));
+    TEST_ASSERT_EQUAL_MEMORY(&zero, &mq, sizeof(mq));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+    before = mq;
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &mq, sizeof(mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_init(&mq, &replacement));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &mq, sizeof(mq));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+    before = mq;
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_deinit(&mq));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &mq, sizeof(mq));
+}
+
 static void test_mq_inactive_lifecycle_utilities_fail_closed(void)
 {
     xy_mq_t mq;
@@ -471,6 +505,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_mq_init_deinit_and_invalid_params);
+    RUN_TEST(test_mq_reinit_and_inactive_deinit_fail_closed);
     RUN_TEST(test_mq_inactive_lifecycle_utilities_fail_closed);
     RUN_TEST(test_mq_rejects_storage_size_overflow_without_mutating_owner);
     RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);

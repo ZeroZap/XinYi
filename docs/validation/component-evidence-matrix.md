@@ -85,6 +85,14 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-12 IPC MQ lifecycle ownership
+
+- 组件：IPC / message queue
+- 旧等级 -> 新等级：H1/Host lifecycle contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/{inc/xy_mq.h,src/xy_mq.c}`、`tests/unit/ipc/test_ipc_mq.c`；focused `ipc_mq`; `make test-unit`; PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：live queue rejects repeated initialization without leaking/replacing storage; inactive/double deinit fails closed and preserves owner state; a lifecycle cookie prevents arbitrary uninitialized bytes from being treated as a live owner while preserving existing first-init behavior.
+- 仍不允许宣称：lock-free/thread-safe queue semantics、ISR safety、Pandora runtime、throughput、fairness 或 endurance。
+
 ### 2026-10-02 VL53L0X Device re-init atomicity
 
 - 组件：Drivers Sensor / VL53L0X
