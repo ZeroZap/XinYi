@@ -445,7 +445,7 @@ int xy_broker_subscribe(uint16_t topic_id, uint16_t server_id,
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
 
-    if (topic_id == 0U || !handler)
+    if (topic_id == 0U || server_id == 0U || !handler)
         return XY_BROKER_INVALID_PARAM;
     if (!broker_find_server(server_id))
         return XY_BROKER_NOT_FOUND;
@@ -494,7 +494,7 @@ int xy_broker_unsubscribe(uint16_t topic_id, uint16_t server_id)
 {
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
-    if (topic_id == 0U)
+    if (topic_id == 0U || server_id == 0U)
         return XY_BROKER_INVALID_PARAM;
 
     xy_broker_topic_t *topic = broker_find_topic(topic_id);

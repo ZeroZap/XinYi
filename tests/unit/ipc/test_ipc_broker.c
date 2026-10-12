@@ -351,6 +351,11 @@ static void test_zero_source_server_id_is_rejected_without_side_effects(void)
                       xy_broker_publish(0U, XY_BROKER_TOPIC_SENSOR_DATA,
                                         XY_BROKER_MSG_SENSOR_DATA, &payload,
                                         sizeof(payload), XY_BROKER_PRIORITY_NORMAL));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_subscribe(XY_BROKER_TOPIC_SENSOR_DATA, 0U,
+                                          topic_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_unsubscribe(XY_BROKER_TOPIC_SENSOR_DATA, 0U));
     memset(&response, 0xA5, sizeof(response));
     TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
                       xy_broker_request(0U, XY_BROKER_SERVER_SENSOR,
