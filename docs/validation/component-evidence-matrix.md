@@ -85,6 +85,17 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-13 IPC MQ negative-priority validation
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host input-validation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/src/xy_mq.c`、`tests/unit/ipc/test_ipc_mq.c`；
+  focused `ipc_mq`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：send entry points reject enum values whose unsigned representation lies outside the
+  public `LOW..URGENT` domain before waiting, queue mutation, statistics updates, or payload writes.
+- 仍不允许宣称：跨线程并发安全、ISR safety、Pandora runtime、priority fairness、throughput
+  或 endurance。
+
 ### 2026-10-13 IPC MQ urgent eviction ordering
 
 - 组件：IPC / Message Queue

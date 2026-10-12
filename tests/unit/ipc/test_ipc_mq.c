@@ -312,6 +312,14 @@ static void test_mq_rejects_invalid_priority_without_side_effects(void)
     TEST_ASSERT_EQUAL_UINT32(0U, mq.send_count);
     TEST_ASSERT_EQUAL_UINT32(0U, mq.drop_count);
     TEST_ASSERT_EQUAL_UINT32(0U, delay_call_count);
+
+    msg.priority = (xy_mq_priority_t)-1;
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_send(&mq, &msg, 0U));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT32(0U, mq.send_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, mq.drop_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, delay_call_count);
+
     TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
 }
 

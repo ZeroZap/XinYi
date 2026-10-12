@@ -156,7 +156,7 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
     }
     
     if (msg->len > mq->config.msg_size || (msg->len > 0 && !msg->data) ||
-        msg->priority > XY_MQ_PRIORITY_URGENT) {
+        (unsigned int)msg->priority > (unsigned int)XY_MQ_PRIORITY_URGENT) {
         return XY_MQ_INVALID_PARAM;
     }
     
