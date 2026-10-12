@@ -1,0 +1,18 @@
+{
+  "target": "opench_ch32v307_uart67_peer_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "efedc7691a00dd5fd7f6a4da533c5519760c0393db1b7dc0d04ae44a5a9c04bd",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "esp8266_at_ok_count": 1,
+  "ch9141_at_ok_count": 1,
+  "error_count": 0,
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  }
+}
