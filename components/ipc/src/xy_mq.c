@@ -109,7 +109,9 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
                 if ((xy_os_tick_get() - start) >= timeout) {
                     return XY_MQ_TIMEOUT;
                 }
-                xy_os_delay(1);
+                if (xy_os_delay(1) != XY_OS_OK) {
+                    return XY_MQ_ERROR;
+                }
             }
         }
     }
@@ -156,7 +158,9 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
         if ((xy_os_tick_get() - start) >= timeout) {
             return XY_MQ_TIMEOUT;
         }
-        xy_os_delay(1);
+        if (xy_os_delay(1) != XY_OS_OK) {
+            return XY_MQ_ERROR;
+        }
     }
     
     /* 复制消息 */

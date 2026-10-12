@@ -1067,6 +1067,18 @@
 - 仍不允许宣称：Pandora IPC runtime、多线程并发安全、实时延迟、throughput、ISR safety、
   recovery、endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC MQ wait-backend failure handling
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host bounded-wait failure contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/src/xy_mq.c`, `tests/unit/ipc/test_ipc_mq.c`;
+  focused `ipc_mq`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：send/receive bounded waits stop immediately when canonical `xy_os_delay()` fails,
+  return `XY_MQ_ERROR`, and preserve queue contents, counters, and caller-owned receive output.
+- 仍不允许宣称：Pandora IPC runtime、多线程并发安全、throughput、ISR safety、recovery、
+  endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229
