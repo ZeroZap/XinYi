@@ -1041,6 +1041,19 @@
 - 仍不允许宣称：Pandora IPC runtime、多线程并发安全、throughput、ISR safety、recovery、
   endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC Broker bounded stale-message scan
+
+- 组件：IPC / Broker direct queue
+- 旧等级 -> 新等级：H1/Host bounded-work contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：`xy_broker_process_msgs(server, max_msgs)` 现在以实际 dequeue/检查的消息数限制
+  单次工作量；source owner 已替换的 stale 消息仍被丢弃并计数，但不再绕过 `max_msgs` 在一次调用中
+  无界扫描整个 queue。返回值仍只统计成功交付给 handler 的消息。
+- 仍不允许宣称：Pandora IPC runtime、多线程并发安全、实时延迟、throughput、ISR safety、
+  recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229

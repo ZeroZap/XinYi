@@ -368,6 +368,7 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
 {
     uint32_t broker_generation;
     uint32_t server_generation;
+    uint16_t examined = 0U;
 
     if (!g_broker.initialized)
         return XY_BROKER_ERROR;
@@ -387,11 +388,13 @@ int xy_broker_process_msgs(uint16_t server_id, uint16_t max_msgs)
     xy_broker_msg_t msg;
 
     while (server->queue_count > 0) {
-        if (max_msgs > 0 && processed >= max_msgs)
+        if (max_msgs > 0U && examined >= max_msgs)
             break;
 
         if (broker_dequeue_msg(server, &msg) == XY_BROKER_OK) {
             xy_broker_server_t *source = broker_find_server(msg.src_server);
+
+            examined++;
 
             if (msg.src_generation != 0U
                 && (!source
