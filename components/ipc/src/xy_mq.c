@@ -8,6 +8,7 @@
 #include "xy_mq.h"
 #include "xy_log.h"
 #include "xy_os.h"
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -25,15 +26,23 @@ static uint8_t *mq_slot_at(const xy_mq_t *mq, uint16_t index)
 
 int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
 {
+    size_t slot_size;
+    size_t size;
+
     if (!mq || !config || config->msg_size == 0 || config->max_msgs == 0) {
         return XY_MQ_INVALID_PARAM;
     }
+
+    slot_size = sizeof(xy_mq_msg_t) + (size_t)config->msg_size;
+    if ((size_t)config->max_msgs > UINT32_MAX / slot_size) {
+        return XY_MQ_INVALID_PARAM;
+    }
+    size = slot_size * (size_t)config->max_msgs;
     
     memset(mq, 0, sizeof(*mq));
     memcpy(&mq->config, config, sizeof(xy_mq_config_t));
     
     /* 分配缓冲区 */
-    uint32_t size = ((uint32_t)sizeof(xy_mq_msg_t) + config->msg_size) * config->max_msgs;
     mq->buffer = malloc(size);
     if (!mq->buffer) {
         return XY_MQ_NO_MEM;

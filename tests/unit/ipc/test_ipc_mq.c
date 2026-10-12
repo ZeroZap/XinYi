@@ -81,6 +81,24 @@ static void test_mq_init_deinit_and_invalid_params(void)
     TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_deinit(NULL));
 }
 
+static void test_mq_rejects_storage_size_overflow_without_mutating_owner(void)
+{
+    xy_mq_t mq;
+    xy_mq_t before;
+    xy_mq_config_t config = {
+        .msg_size = UINT16_MAX,
+        .max_msgs = UINT16_MAX,
+        .priority_enabled = false,
+        .overwrite_old = false,
+    };
+
+    memset(&mq, 0xA5, sizeof(mq));
+    before = mq;
+
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &mq, sizeof(mq));
+}
+
 static void test_mq_rejects_missing_payload_without_side_effects(void)
 {
     xy_mq_t mq;
@@ -353,6 +371,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_mq_init_deinit_and_invalid_params);
+    RUN_TEST(test_mq_rejects_storage_size_overflow_without_mutating_owner);
     RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);
     RUN_TEST(test_mq_send_receive_fifo_payloads);
     RUN_TEST(test_mq_recv_preserves_metadata_when_payload_buffer_is_smaller);

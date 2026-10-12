@@ -1041,6 +1041,19 @@
 - 仍不允许宣称：Pandora IPC runtime、多线程并发安全、throughput、ISR safety、recovery、
   endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC MQ allocation overflow boundary
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host allocation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/src/xy_mq.c`, `tests/unit/ipc/test_ipc_mq.c`;
+  focused `ipc_mq`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：`xy_mq_init()` 在 owner mutation 与 allocation 前以 widened arithmetic 校验
+  `slot_size × max_msgs` 可由内部 32-bit slot addressing 表示；不可表示的配置返回
+  `XY_MQ_INVALID_PARAM` 并保持 caller-owned queue storage 不变。
+- 仍不允许宣称：Pandora IPC runtime、多线程并发安全、throughput、ISR safety、recovery、
+  endurance 或 IPC product qualification。
+
 ### 2026-10-12 IPC Broker bounded stale-message scan
 
 - 组件：IPC / Broker direct queue
