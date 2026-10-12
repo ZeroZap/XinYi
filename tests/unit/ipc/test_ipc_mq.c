@@ -248,6 +248,28 @@ static void test_mq_rejects_missing_payload_without_side_effects(void)
     TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
 }
 
+static void test_mq_rejects_invalid_priority_without_side_effects(void)
+{
+    xy_mq_t mq;
+    xy_mq_config_t config = {
+        .msg_size = 2,
+        .max_msgs = 1,
+        .priority_enabled = true,
+        .overwrite_old = false,
+    };
+    uint8_t payload[] = {0x10, 0x20};
+    xy_mq_msg_t msg = make_msg(1U, (xy_mq_priority_t)(XY_MQ_PRIORITY_URGENT + 1), payload,
+                               sizeof(payload));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_send(&mq, &msg, 0U));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT32(0U, mq.send_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, mq.drop_count);
+    TEST_ASSERT_EQUAL_UINT32(0U, delay_call_count);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+}
+
 static void test_mq_send_receive_fifo_payloads(void)
 {
     xy_mq_t mq;
@@ -544,6 +566,7 @@ int main(void)
     RUN_TEST(test_mq_forged_initialized_state_fails_closed);
     RUN_TEST(test_mq_rejects_storage_size_overflow_without_mutating_owner);
     RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);
+    RUN_TEST(test_mq_rejects_invalid_priority_without_side_effects);
     RUN_TEST(test_mq_send_receive_fifo_payloads);
     RUN_TEST(test_mq_recv_preserves_metadata_when_payload_buffer_is_smaller);
     RUN_TEST(test_mq_full_returns_immediately_without_overwrite);

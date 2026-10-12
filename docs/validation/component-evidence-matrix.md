@@ -85,6 +85,14 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-12 IPC MQ priority-domain validation
+
+- 组件：IPC / message queue
+- 旧等级 -> 新等级：H1/Host input-validation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/src/xy_mq.c`、`tests/unit/ipc/test_ipc_mq.c`；focused `ipc_mq`; `make test-unit`; PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：send entry points reject priority values outside the public `LOW..URGENT` enum before waiting, queue mutation, statistics updates, or payload writes; valid priorities retain existing FIFO/urgent behavior.
+- 仍不允许宣称：priority scheduling、lock-free/thread-safe queue semantics、ISR safety、Pandora runtime、throughput、fairness 或 endurance。
+
 ### 2026-10-12 IPC MQ active-owner validation
 
 - 组件：IPC / message queue
