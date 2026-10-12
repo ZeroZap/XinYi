@@ -768,6 +768,8 @@ int xy_broker_is_server_registered(uint16_t server_id)
 
 int xy_broker_get_pending_count(uint16_t server_id)
 {
+    if (!g_broker.initialized)
+        return XY_BROKER_ERROR;
     if (server_id == 0U)
         return XY_BROKER_INVALID_PARAM;
 
@@ -780,6 +782,8 @@ int xy_broker_get_pending_count(uint16_t server_id)
 
 int xy_broker_clear_queue(uint16_t server_id)
 {
+    if (!g_broker.initialized)
+        return XY_BROKER_ERROR;
     if (server_id == 0U)
         return XY_BROKER_INVALID_PARAM;
 

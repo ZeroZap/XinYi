@@ -1028,6 +1028,19 @@
 - 仍不允许宣称：Pandora IPC runtime、多线程并发安全、trusted server namespace、throughput、
   ISR safety、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC Broker inactive lifecycle utility boundary
+
+- 组件：IPC / Broker queue utilities
+- 旧等级 -> 新等级：H1/Host lifecycle contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：pending-count 与 clear-queue utility 在 Broker 未初始化或已 deinit 时返回
+  `XY_BROKER_ERROR`，不再把 lifecycle failure 误报为 owner not-found；registration query 与
+  generation query 保持只读的 false/zero 结果。
+- 仍不允许宣称：Pandora IPC runtime、多线程并发安全、throughput、ISR safety、recovery、
+  endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229

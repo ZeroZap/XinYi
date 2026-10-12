@@ -181,6 +181,13 @@ static void test_lifecycle_and_server_registration(void)
 
     (void)xy_broker_deinit();
     TEST_ASSERT_EQUAL(XY_BROKER_ERROR, xy_broker_get_stats(&stats));
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR,
+                      xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR,
+                      xy_broker_clear_queue(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_is_server_registered(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_UINT32(0U,
+                             xy_broker_get_server_generation(XY_BROKER_SERVER_SYSTEM));
     TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_init());
     TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_init());
     TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
