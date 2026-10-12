@@ -996,7 +996,8 @@
   `tests/unit/ipc/test_ipc_broker.c`; focused `ipc_broker`; `make test-unit`; `make`;
   `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
 - 适用范围：ISR ingress 在写 ring slot 或触发 wake callback 前拒绝 destination server ID `0`
-  和 message ID `0`；失败不推进 tail，后续合法 payload 仍可使用同一 bounded queue。
+  和 message ID `0`；未注册 destination 同样在写 slot 前返回 `NOT_FOUND`；失败均不推进 tail，
+  后续合法 payload 仍可使用同一 bounded queue。
 - 仍不允许宣称：Pandora multi-ISR runtime、多线程并发安全、trusted route namespace、throughput、
   任意 interrupt source、recovery、endurance 或 IPC product qualification。
 

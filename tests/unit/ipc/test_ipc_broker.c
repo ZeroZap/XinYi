@@ -1541,6 +1541,10 @@ static void test_isr_ingress_rejects_zero_route_identifiers_without_poisoning_qu
                       xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER, 0U,
                                             XY_BROKER_MSG_SYSTEM_STATUS, &rejected,
                                             sizeof(rejected), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER, 0x7777U,
+                                            XY_BROKER_MSG_SYSTEM_STATUS, &rejected,
+                                            sizeof(rejected), XY_BROKER_PRIORITY_HIGH));
     TEST_ASSERT_EQUAL_UINT(0U, isr_wake_count);
     TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND, xy_broker_isr_drain_one(&ingress));
 

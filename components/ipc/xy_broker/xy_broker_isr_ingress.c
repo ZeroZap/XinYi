@@ -30,6 +30,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
 {
     uint16_t next;
     uint16_t previous_tail;
+    uint32_t dst_generation;
     xy_broker_isr_msg_t *message;
 
     if (ingress == NULL || ingress->storage == NULL || ingress->capacity < 2U ||
@@ -39,6 +40,10 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     }
     if (ingress->broker_generation != xy_broker_get_lifecycle_generation()) {
         return XY_BROKER_ERROR;
+    }
+    dst_generation = xy_broker_get_server_generation(dst_server);
+    if (dst_generation == 0U) {
+        return XY_BROKER_NOT_FOUND;
     }
     previous_tail = ingress->tail;
     next = (uint16_t)((previous_tail + 1U) % ingress->capacity);
@@ -53,7 +58,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     message->payload_len = payload_len;
     message->priority = priority;
     message->src_generation = xy_broker_get_server_generation(src_server);
-    message->dst_generation = xy_broker_get_server_generation(dst_server);
+    message->dst_generation = dst_generation;
     if (payload_len > 0U) {
         memcpy(message->payload, payload, payload_len);
     }
