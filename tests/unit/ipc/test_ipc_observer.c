@@ -14,6 +14,8 @@ static xy_observer_t *reentrant_detach_observer;
 static xy_observer_t *reentrant_attach_observer;
 static int reentrant_first_count;
 static int reentrant_second_count;
+static int nested_notify_result;
+static int nested_notify_count;
 
 static void capture_callback(xy_subject_t *subject, const void *data, void *user_data)
 {
@@ -71,6 +73,14 @@ static void reentrant_attach_callback(xy_subject_t *subject, const void *data,
     }
 }
 
+static void nested_notify_callback(xy_subject_t *subject, const void *data, void *user_data)
+{
+    (void)user_data;
+
+    nested_notify_count++;
+    nested_notify_result = xy_subject_notify(subject, data);
+}
+
 static void reset_capture(void)
 {
     last_subject = NULL;
@@ -82,6 +92,8 @@ static void reset_capture(void)
     reentrant_attach_observer = NULL;
     reentrant_first_count = 0;
     reentrant_second_count = 0;
+    nested_notify_result = XY_OBSERVER_OK;
+    nested_notify_count = 0;
 }
 
 static void test_observer_and_subject_init_guards(void)
@@ -317,6 +329,29 @@ static void test_subject_notify_defers_reentrant_attach_until_next_cycle(void)
     TEST_ASSERT_EQUAL_INT(1, reentrant_second_count);
 }
 
+static void test_subject_notify_rejects_nested_notification(void)
+{
+    xy_subject_t subject;
+    xy_observer_t observer;
+    const uint32_t payload = 0x13579BDFU;
+
+    reset_capture();
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_init(&subject, "subject"));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&observer, "nested", nested_notify_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &observer));
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_INT(1, nested_notify_count);
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, nested_notify_result);
+    TEST_ASSERT_FALSE(subject.notifying);
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_INT(2, nested_notify_count);
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, nested_notify_result);
+    TEST_ASSERT_FALSE(subject.notifying);
+}
+
 static void test_subject_capacity_and_deinit(void)
 {
     xy_subject_t subject;
@@ -367,6 +402,7 @@ int main(void)
     RUN_TEST(test_subject_notify_recovers_notifying_state_after_callback_mutates_active_flag);
     RUN_TEST(test_subject_notify_tolerates_observer_detach_during_callback);
     RUN_TEST(test_subject_notify_defers_reentrant_attach_until_next_cycle);
+    RUN_TEST(test_subject_notify_rejects_nested_notification);
     RUN_TEST(test_subject_capacity_and_deinit);
     return UNITY_END();
 }

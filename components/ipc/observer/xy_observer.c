@@ -135,6 +135,9 @@ int xy_subject_notify(xy_subject_t *subject, const void *data)
     if (!subject) {
         return XY_OBSERVER_INVALID_PARAM;
     }
+    if (subject->notifying) {
+        return XY_OBSERVER_ERROR;
+    }
 
     snapshot_count = subject->observer_count;
     memcpy(snapshot, subject->observers, snapshot_count * sizeof(snapshot[0]));
