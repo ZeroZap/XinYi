@@ -85,6 +85,14 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-12 IPC MQ active-owner validation
+
+- 组件：IPC / message queue
+- 旧等级 -> 新等级：H1/Host lifecycle contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/src/xy_mq.c`、`tests/unit/ipc/test_ipc_mq.c`；focused `ipc_mq`; `make test-unit`; PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：all send/receive/query/clear/stat entry points require the exact lifecycle cookie, initialized state, and owned storage before reading queue configuration or touching storage; forged `initialized=true` state fails closed and preserves caller-owned queue/output/stat storage.
+- 仍不允许宣称：lock-free/thread-safe queue semantics、ISR safety、Pandora runtime、throughput、fairness 或 endurance。
+
 ### 2026-10-12 IPC MQ lifecycle ownership
 
 - 组件：IPC / message queue

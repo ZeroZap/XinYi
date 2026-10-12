@@ -15,6 +15,11 @@
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 #define XY_MQ_LIFECYCLE_COOKIE 0x584D5132U
 
+static bool mq_is_active(const xy_mq_t *mq)
+{
+    return mq && mq->lifecycle_cookie == XY_MQ_LIFECYCLE_COOKIE && mq->initialized && mq->buffer;
+}
+
 static uint32_t mq_slot_size(const xy_mq_t *mq)
 {
     return (uint32_t)sizeof(xy_mq_msg_t) + mq->config.msg_size;
@@ -87,7 +92,7 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
 {
     uint32_t start;
     
-    if (!mq || !msg || !mq->initialized) {
+    if (!mq || !msg || !mq_is_active(mq)) {
         return XY_MQ_INVALID_PARAM;
     }
     
@@ -147,7 +152,7 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
 {
     uint32_t start;
     
-    if (!mq || !msg || !mq->initialized) {
+    if (!mq || !msg || !mq_is_active(mq)) {
         return XY_MQ_INVALID_PARAM;
     }
 
@@ -206,7 +211,7 @@ int xy_mq_try_recv(xy_mq_t *mq, xy_mq_msg_t *msg)
 
 uint16_t xy_mq_get_count(const xy_mq_t *mq)
 {
-    if (!mq || !mq->initialized) {
+    if (!mq_is_active(mq)) {
         return 0;
     }
     return mq->count;
@@ -214,7 +219,7 @@ uint16_t xy_mq_get_count(const xy_mq_t *mq)
 
 uint16_t xy_mq_get_free(const xy_mq_t *mq)
 {
-    if (!mq || !mq->initialized) {
+    if (!mq_is_active(mq)) {
         return 0;
     }
     return mq->config.max_msgs - mq->count;
@@ -225,7 +230,7 @@ int xy_mq_clear(xy_mq_t *mq)
     if (!mq) {
         return XY_MQ_INVALID_PARAM;
     }
-    if (!mq->initialized) {
+    if (!mq_is_active(mq)) {
         return XY_MQ_ERROR;
     }
     
@@ -241,7 +246,7 @@ int xy_mq_get_stats(const xy_mq_t *mq, uint32_t *send, uint32_t *recv, uint32_t 
     if (!mq) {
         return XY_MQ_INVALID_PARAM;
     }
-    if (!mq->initialized) {
+    if (!mq_is_active(mq)) {
         return XY_MQ_ERROR;
     }
     

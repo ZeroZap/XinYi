@@ -154,6 +154,40 @@ static void test_mq_inactive_lifecycle_utilities_fail_closed(void)
     TEST_ASSERT_EQUAL_UINT32(0x33333333U, dropped);
 }
 
+static void test_mq_forged_initialized_state_fails_closed(void)
+{
+    xy_mq_t mq;
+    xy_mq_t before;
+    uint8_t payload[] = {0x11, 0x22};
+    uint8_t out[] = {0xAA, 0xBB};
+    const uint8_t expected_out[] = {0xAA, 0xBB};
+    xy_mq_msg_t send = make_msg(1U, XY_MQ_PRIORITY_NORMAL, payload, sizeof(payload));
+    xy_mq_msg_t recv = make_msg(0x12345678U, XY_MQ_PRIORITY_HIGH, out, sizeof(out));
+    xy_mq_msg_t recv_before = recv;
+    uint32_t sent = 0x11111111U;
+    uint32_t received = 0x22222222U;
+    uint32_t dropped = 0x33333333U;
+
+    memset(&mq, 0, sizeof(mq));
+    mq.initialized = true;
+    mq.config.msg_size = sizeof(payload);
+    mq.config.max_msgs = 1U;
+    before = mq;
+
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_send(&mq, &send, 0U));
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_MEMORY(&recv_before, &recv, sizeof(recv));
+    TEST_ASSERT_EQUAL_MEMORY(expected_out, out, sizeof(out));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_free(&mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_clear(&mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_get_stats(&mq, &sent, &received, &dropped));
+    TEST_ASSERT_EQUAL_UINT32(0x11111111U, sent);
+    TEST_ASSERT_EQUAL_UINT32(0x22222222U, received);
+    TEST_ASSERT_EQUAL_UINT32(0x33333333U, dropped);
+    TEST_ASSERT_EQUAL_MEMORY(&before, &mq, sizeof(mq));
+}
+
 static void test_mq_rejects_storage_size_overflow_without_mutating_owner(void)
 {
     xy_mq_t mq;
@@ -507,6 +541,7 @@ int main(void)
     RUN_TEST(test_mq_init_deinit_and_invalid_params);
     RUN_TEST(test_mq_reinit_and_inactive_deinit_fail_closed);
     RUN_TEST(test_mq_inactive_lifecycle_utilities_fail_closed);
+    RUN_TEST(test_mq_forged_initialized_state_fails_closed);
     RUN_TEST(test_mq_rejects_storage_size_overflow_without_mutating_owner);
     RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);
     RUN_TEST(test_mq_send_receive_fifo_payloads);
