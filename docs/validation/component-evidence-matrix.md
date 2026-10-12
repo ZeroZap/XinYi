@@ -1001,6 +1001,20 @@
 - 仍不允许宣称：Pandora multi-ISR runtime、多线程并发安全、trusted route namespace、throughput、
   任意 interrupt source、recovery、endurance 或 IPC product qualification。
 
+### 2026-10-12 IPC Broker zero source-ID boundary
+
+- 组件：IPC / Broker direct、pub/sub、request-response 与 ISR ingress
+- 旧等级 -> 新等级：H1/Host input-validation contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker.c`,
+  `components/ipc/xy_broker/xy_broker_isr_ingress.c`, `tests/unit/ipc/test_ipc_broker.c`;
+  focused `ipc_broker`; `make test-unit`; `make`; `make HAL_PLATFORM=STM32L4`;
+  `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：source server ID `0` 是无效 sentinel；direct send、publish、request 与 ISR ingress
+  在 enqueue、ring 写入、wake callback、subscriber callback、response output 或 statistics 变化前返回
+  `XY_BROKER_INVALID_PARAM`。destination ID `0` 在 direct/request/ISR 路径同样 fail-closed。
+- 仍不允许宣称：Pandora IPC runtime、多线程并发安全、trusted route namespace、throughput、
+  任意 interrupt source、recovery、endurance 或 IPC product qualification。
+
 ### 2026-10-04 Device owner re-init atomicity continuation
 
 - 组件：Drivers Sensor / INA219、LTC2945、BNO055、INA228、INA229

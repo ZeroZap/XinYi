@@ -34,7 +34,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     xy_broker_isr_msg_t *message;
 
     if (ingress == NULL || ingress->storage == NULL || ingress->capacity < 2U ||
-        ingress->wake_from_isr == NULL || dst_server == 0U || msg_id == 0U ||
+        ingress->wake_from_isr == NULL || src_server == 0U || dst_server == 0U || msg_id == 0U ||
         payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0U && payload == NULL)) {
         return XY_BROKER_INVALID_PARAM;
     }
