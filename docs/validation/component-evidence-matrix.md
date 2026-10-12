@@ -85,6 +85,19 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-13 IPC MQ priority receive ordering
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host priority contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/{README.md,src/xy_mq.c}`、
+  `tests/unit/ipc/test_ipc_mq.c`；focused `ipc_mq`; `make test-unit`; PC/L4/U5 Release builds；
+  `git diff --check`。
+- 适用范围：`priority_enabled=true` 时 receive 从当前队列选择最高 priority，且同 priority
+  保持 FIFO；从环形队列中间移除后压紧剩余 slots，并覆盖 wrap-around 后继续 send/receive。
+  `priority_enabled=false` 仍保持原 strict FIFO。
+- 仍不允许宣称：跨线程并发安全、ISR safety、Pandora runtime、priority fairness、throughput
+  或 endurance。
+
 ### 2026-10-13 IPC MQ copied-owner isolation
 
 - 组件：IPC / Message Queue

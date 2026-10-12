@@ -31,6 +31,44 @@ static uint8_t *mq_slot_at(const xy_mq_t *mq, uint16_t index)
     return mq->buffer + ((uint32_t)index * mq_slot_size(mq));
 }
 
+static uint16_t mq_receive_offset(const xy_mq_t *mq)
+{
+    uint16_t selected = 0U;
+    xy_mq_priority_t selected_priority = XY_MQ_PRIORITY_LOW;
+
+    if (!mq->config.priority_enabled) {
+        return selected;
+    }
+
+    for (uint16_t offset = 0U; offset < mq->count; offset++) {
+        uint16_t index = (uint16_t)((mq->tail + offset) % mq->config.max_msgs);
+        const xy_mq_msg_t *stored = (const xy_mq_msg_t *)mq_slot_at(mq, index);
+
+        if (offset == 0U || stored->priority > selected_priority) {
+            selected = offset;
+            selected_priority = stored->priority;
+        }
+    }
+
+    return selected;
+}
+
+static void mq_remove_offset(xy_mq_t *mq, uint16_t selected)
+{
+    uint32_t slot_size = mq_slot_size(mq);
+
+    for (uint16_t offset = selected; offset + 1U < mq->count; offset++) {
+        uint16_t current = (uint16_t)((mq->tail + offset) % mq->config.max_msgs);
+        uint16_t next = (uint16_t)((mq->tail + offset + 1U) % mq->config.max_msgs);
+
+        memcpy(mq_slot_at(mq, current), mq_slot_at(mq, next), slot_size);
+    }
+
+    mq->head = mq->head == 0U ? (uint16_t)(mq->config.max_msgs - 1U)
+                              : (uint16_t)(mq->head - 1U);
+    mq->count--;
+}
+
 int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
 {
     size_t slot_size;
@@ -155,6 +193,7 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
 int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
 {
     uint32_t start;
+    uint16_t selected;
     
     if (!mq || !msg || !mq_is_active(mq)) {
         return XY_MQ_INVALID_PARAM;
@@ -182,7 +221,9 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
     }
     
     /* 复制消息 */
-    uint8_t *slot = mq_slot_at(mq, mq->tail);
+    selected = mq_receive_offset(mq);
+    uint16_t selected_index = (uint16_t)((mq->tail + selected) % mq->config.max_msgs);
+    uint8_t *slot = mq_slot_at(mq, selected_index);
     const xy_mq_msg_t *stored = (const xy_mq_msg_t *)slot;
     uint8_t *src = slot + sizeof(*stored);
     uint16_t copy_len = caller_len < stored->len ? caller_len : stored->len;
@@ -196,8 +237,12 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
     }
     
     /* 更新读指针 */
-    mq->tail = (mq->tail + 1) % mq->config.max_msgs;
-    mq->count--;
+    if (mq->config.priority_enabled) {
+        mq_remove_offset(mq, selected);
+    } else {
+        mq->tail = (mq->tail + 1) % mq->config.max_msgs;
+        mq->count--;
+    }
     mq->recv_count++;
     
     return XY_MQ_OK;

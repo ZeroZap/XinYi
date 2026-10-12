@@ -355,6 +355,54 @@ static void test_mq_send_receive_fifo_payloads(void)
     TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
 }
 
+static void test_mq_priority_receive_orders_highest_first_and_preserves_fifo(void)
+{
+    xy_mq_t mq;
+    xy_mq_config_t config = {
+        .msg_size = 1,
+        .max_msgs = 4,
+        .priority_enabled = true,
+        .overwrite_old = false,
+    };
+    uint8_t low_payload = 0x10U;
+    uint8_t high_first_payload = 0x21U;
+    uint8_t normal_payload = 0x30U;
+    uint8_t high_second_payload = 0x22U;
+    uint8_t urgent_payload = 0x40U;
+    uint8_t out = 0U;
+    xy_mq_msg_t msg = make_msg(1U, XY_MQ_PRIORITY_LOW, &low_payload, 1U);
+    xy_mq_msg_t recv = make_msg(0U, XY_MQ_PRIORITY_LOW, &out, 1U);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+    msg = make_msg(2U, XY_MQ_PRIORITY_HIGH, &high_first_payload, 1U);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+    msg = make_msg(3U, XY_MQ_PRIORITY_NORMAL, &normal_payload, 1U);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+    msg = make_msg(4U, XY_MQ_PRIORITY_HIGH, &high_second_payload, 1U);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(2U, recv.id);
+    TEST_ASSERT_EQUAL_UINT8(high_first_payload, out);
+    msg = make_msg(5U, XY_MQ_PRIORITY_URGENT, &urgent_payload, 1U);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &msg, 0U));
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(5U, recv.id);
+    TEST_ASSERT_EQUAL_UINT8(urgent_payload, out);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(4U, recv.id);
+    TEST_ASSERT_EQUAL_UINT8(high_second_payload, out);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(3U, recv.id);
+    TEST_ASSERT_EQUAL_UINT8(normal_payload, out);
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_UINT32(1U, recv.id);
+    TEST_ASSERT_EQUAL_UINT8(low_payload, out);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+}
+
 static void test_mq_recv_preserves_metadata_when_payload_buffer_is_smaller(void)
 {
     xy_mq_t mq;
@@ -614,6 +662,7 @@ int main(void)
     RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);
     RUN_TEST(test_mq_rejects_invalid_priority_without_side_effects);
     RUN_TEST(test_mq_send_receive_fifo_payloads);
+    RUN_TEST(test_mq_priority_receive_orders_highest_first_and_preserves_fifo);
     RUN_TEST(test_mq_recv_preserves_metadata_when_payload_buffer_is_smaller);
     RUN_TEST(test_mq_full_returns_immediately_without_overwrite);
     RUN_TEST(test_mq_overwrite_old_drops_oldest);

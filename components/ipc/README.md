@@ -64,7 +64,9 @@ and debug-name helpers.
 `xy_mq` is an allocated-slot message queue. The host test covers init/deinit
 validation, FIFO ordering, priority/urgent drop behavior, overwrite-old policy,
 timeout/delay behavior, stats, null-payload guards, and metadata preservation when
-the caller receive buffer is smaller than the stored payload.
+the caller receive buffer is smaller than the stored payload. With priority enabled,
+receive selects the highest-priority queued message while preserving FIFO order among
+messages at the same priority; priority-disabled queues retain strict FIFO behavior.
 
 ### Observer/subject
 
