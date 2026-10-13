@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-14 IPC Pipe lifecycle and ring integrity
+
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/pipe/xy_pipe.{h,c}`、`tests/unit/ipc/test_ipc_pipe.c`；focused `ipc_pipe`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：caller-owned pipe 首次使用要求 zero-init；live owner 重复 init、复制 handle、公开 buffer/size/count/full/topology 损坏均在 ring 访问前 fail-closed；固化 owner 允许原对象 teardown 恢复。
+- 仍不允许宣称：线程安全、ISR ingress、blocking semantics、Pandora runtime、throughput 或 endurance。
+
 ### 2026-10-14 IPC Event Group transport-owner recovery
 
 - 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change

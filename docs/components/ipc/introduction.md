@@ -30,7 +30,7 @@ void pipe_example(void)
 {
     uint8_t storage[64];
     uint8_t out[16];
-    xy_pipe_t pipe;
+    xy_pipe_t pipe = {0};
 
     if (xy_pipe_init(&pipe, "uart_rx", storage, sizeof(storage)) != XY_PIPE_OK) {
         return;
@@ -232,7 +232,7 @@ git diff --check
 
 | CTest | 主要契约 |
 |-------|----------|
-| `ipc_pipe` | init/deinit、读写/peek、empty/full、截断、wraparound |
+| `ipc_pipe` | init/deinit、lifecycle/self-owner、ring geometry/topology integrity、读写/peek、empty/full、截断、wraparound |
 | `ipc_broker` | lifecycle、server、direct queue、pub/sub、request/response、timeout、debug name |
 | `ipc_mq` | FIFO、priority、urgent/drop、overwrite-old、timeout/delay、stats、短接收 buffer metadata |
 | `ipc_observer` | init/name guard、attach idempotency、notify dispatch、detach/not-found、capacity、clear/deinit |

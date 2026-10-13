@@ -345,7 +345,7 @@ int main(void) {
 
 int main(void) {
     uint8_t buffer[256];
-    xy_pipe_t pipe;
+    xy_pipe_t pipe = {0};
     
     xy_pipe_init(&pipe, "test", buffer, sizeof(buffer));
     
