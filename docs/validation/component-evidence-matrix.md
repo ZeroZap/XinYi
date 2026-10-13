@@ -11,6 +11,14 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-13 IPC MQ storage-geometry integrity
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/inc/xy_mq.h`、`components/ipc/src/xy_mq.c`、`tests/unit/ipc/test_ipc_mq.c`；focused `ipc_mq`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：live queue 的公开 config 与初始化时 allocation geometry 不一致时，send/recv/query/clear/stats 在计算 slot stride 或访问 ring 前 fail-closed；deinit 仍可释放 owned buffer。
+- 仍不允许宣称：跨线程安全、ISR ingress、Pandora runtime、throughput、recovery 或 endurance。
+
 ### 2026-10-13 IPC MQ stored-message integrity
 
 - 组件：IPC / Message Queue

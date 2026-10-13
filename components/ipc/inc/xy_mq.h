@@ -69,6 +69,8 @@ typedef struct {
     uint32_t send_count;
     uint32_t recv_count;
     uint32_t drop_count;
+    uint16_t storage_msg_size;
+    uint16_t storage_max_msgs;
     uint32_t lifecycle_cookie;
     const void *owner;
     bool initialized;

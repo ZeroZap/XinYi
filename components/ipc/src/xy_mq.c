@@ -25,7 +25,9 @@ static bool mq_messages_valid(const xy_mq_t *mq);
 
 static bool mq_is_active(const xy_mq_t *mq)
 {
-    return mq_is_owned(mq) && mq->config.msg_size > 0U && mq->config.max_msgs > 0U &&
+    return mq_is_owned(mq) && mq->config.msg_size == mq->storage_msg_size &&
+           mq->config.max_msgs == mq->storage_max_msgs && mq->config.msg_size > 0U &&
+           mq->config.max_msgs > 0U &&
            mq->head < mq->config.max_msgs && mq->tail < mq->config.max_msgs &&
            mq->count <= mq->config.max_msgs &&
            mq->head == (uint16_t)((mq->tail + mq->count) % mq->config.max_msgs) &&
@@ -148,6 +150,8 @@ int xy_mq_init(xy_mq_t *mq, const xy_mq_config_t *config)
     mq->head = 0;
     mq->tail = 0;
     mq->count = 0;
+    mq->storage_msg_size = config->msg_size;
+    mq->storage_max_msgs = config->max_msgs;
     mq->lifecycle_cookie = XY_MQ_LIFECYCLE_COOKIE;
     mq->owner = mq;
     mq->initialized = true;
