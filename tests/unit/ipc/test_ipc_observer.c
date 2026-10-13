@@ -19,6 +19,7 @@ static int nested_notify_result;
 static int nested_notify_count;
 static int reentrant_clear_result;
 static int corrupting_callback_count;
+static int corrupting_notifying_callback_count;
 
 static void corrupt_subject_count_callback(xy_subject_t* subject, const void* data,
                                            void* user_data) {
@@ -27,6 +28,15 @@ static void corrupt_subject_count_callback(xy_subject_t* subject, const void* da
 
     corrupting_callback_count++;
     subject->observer_count = XY_OBSERVER_MAX_OBSERVERS + 1U;
+}
+
+static void corrupt_subject_notifying_callback(xy_subject_t* subject, const void* data,
+                                               void* user_data) {
+    (void)data;
+    (void)user_data;
+
+    corrupting_notifying_callback_count++;
+    subject->notifying = false;
 }
 
 static void capture_callback(xy_subject_t* subject, const void* data, void* user_data) {
@@ -119,6 +129,7 @@ static void reset_capture(void) {
     nested_notify_count = 0;
     reentrant_clear_result = XY_OBSERVER_OK;
     corrupting_callback_count = 0;
+    corrupting_notifying_callback_count = 0;
 }
 
 static void test_observer_and_subject_init_guards(void) {
@@ -527,6 +538,27 @@ static void test_subject_notify_stops_after_callback_corrupts_subject_state(void
     TEST_ASSERT_FALSE(subject.notifying);
 }
 
+static void test_subject_notify_stops_after_callback_clears_notifying_guard(void) {
+    xy_subject_t subject;
+    xy_observer_t corrupting;
+    xy_observer_t second;
+    const uint32_t payload = 0x50607080U;
+
+    reset_capture();
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_init(&subject, "subject"));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_observer_init(&corrupting, "corrupting",
+                                                       corrupt_subject_notifying_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&second, "second", reentrant_second_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &corrupting));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &second));
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_INT(1, corrupting_notifying_callback_count);
+    TEST_ASSERT_EQUAL_INT(0, reentrant_second_count);
+    TEST_ASSERT_FALSE(subject.notifying);
+}
+
 static void test_subject_capacity_and_deinit(void) {
     xy_subject_t subject;
     xy_observer_t observer;
@@ -576,6 +608,7 @@ int main(void) {
     RUN_TEST(test_subject_notify_rejects_nested_notification);
     RUN_TEST(test_subject_notify_rejects_reentrant_clear);
     RUN_TEST(test_subject_notify_stops_after_callback_corrupts_subject_state);
+    RUN_TEST(test_subject_notify_stops_after_callback_clears_notifying_guard);
     RUN_TEST(test_subject_capacity_and_deinit);
     return UNITY_END();
 }

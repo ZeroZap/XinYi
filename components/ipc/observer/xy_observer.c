@@ -216,7 +216,7 @@ int xy_subject_notify(xy_subject_t* subject, const void* data) {
 
         if (still_attached && snapshot[i].active && snapshot[i].callback) {
             snapshot[i].callback(subject, data, snapshot[i].user_data);
-            if (!subject_state_is_valid(subject)) {
+            if (!subject->notifying || !subject_state_is_valid(subject)) {
                 subject->notifying = false;
                 return XY_OBSERVER_ERROR;
             }
