@@ -15,10 +15,17 @@
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 #define XY_MQ_LIFECYCLE_COOKIE 0x584D5132U
 
-static bool mq_is_active(const xy_mq_t *mq)
+static bool mq_is_owned(const xy_mq_t *mq)
 {
     return mq && mq->lifecycle_cookie == XY_MQ_LIFECYCLE_COOKIE && mq->owner == mq &&
            mq->initialized && mq->buffer;
+}
+
+static bool mq_is_active(const xy_mq_t *mq)
+{
+    return mq_is_owned(mq) && mq->config.msg_size > 0U && mq->config.max_msgs > 0U &&
+           mq->head < mq->config.max_msgs && mq->tail < mq->config.max_msgs &&
+           mq->count <= mq->config.max_msgs;
 }
 
 static uint32_t mq_slot_size(const xy_mq_t *mq)
@@ -133,7 +140,7 @@ int xy_mq_deinit(xy_mq_t *mq)
     if (!mq) {
         return XY_MQ_INVALID_PARAM;
     }
-    if (!mq_is_active(mq)) {
+    if (!mq_is_owned(mq)) {
         return XY_MQ_ERROR;
     }
     
