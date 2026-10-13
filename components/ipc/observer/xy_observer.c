@@ -10,25 +10,21 @@
 
 /* ==================== Observer Implementation ==================== */
 
-static bool observer_matches(const xy_observer_t *lhs, const xy_observer_t *rhs)
-{
+static bool observer_matches(const xy_observer_t* lhs, const xy_observer_t* rhs) {
     return lhs->callback == rhs->callback && lhs->user_data == rhs->user_data;
 }
 
-static bool observer_snapshot_matches(const xy_observer_t *lhs, const xy_observer_t *rhs)
-{
+static bool observer_snapshot_matches(const xy_observer_t* lhs, const xy_observer_t* rhs) {
     return observer_matches(lhs, rhs) && lhs->attachment_id == rhs->attachment_id;
 }
 
-static bool subject_state_is_valid(const xy_subject_t *subject)
-{
-    return subject->observer_count <= XY_OBSERVER_MAX_OBSERVERS
-           && subject->next_attachment_id != 0U;
+static bool subject_state_is_valid(const xy_subject_t* subject) {
+    return subject->observer_count <= XY_OBSERVER_MAX_OBSERVERS &&
+           subject->next_attachment_id != 0U;
 }
 
-int xy_observer_init(xy_observer_t *observer, const char *name,
-                     observer_callback_t callback, void *user_data)
-{
+int xy_observer_init(xy_observer_t* observer, const char* name, observer_callback_t callback,
+                     void* user_data) {
     if (!observer) {
         return XY_OBSERVER_INVALID_PARAM;
     }
@@ -47,8 +43,7 @@ int xy_observer_init(xy_observer_t *observer, const char *name,
     return XY_OBSERVER_OK;
 }
 
-int xy_observer_deinit(xy_observer_t *observer)
-{
+int xy_observer_deinit(xy_observer_t* observer) {
     if (!observer) {
         return XY_OBSERVER_INVALID_PARAM;
     }
@@ -62,8 +57,7 @@ int xy_observer_deinit(xy_observer_t *observer)
 
 /* ==================== Subject Implementation ==================== */
 
-int xy_subject_init(xy_subject_t *subject, const char *name)
-{
+int xy_subject_init(xy_subject_t* subject, const char* name) {
     if (!subject) {
         return XY_OBSERVER_INVALID_PARAM;
     }
@@ -82,8 +76,7 @@ int xy_subject_init(xy_subject_t *subject, const char *name)
     return XY_OBSERVER_OK;
 }
 
-int xy_subject_deinit(xy_subject_t *subject)
-{
+int xy_subject_deinit(xy_subject_t* subject) {
     if (!subject) {
         return XY_OBSERVER_INVALID_PARAM;
     }
@@ -91,8 +84,7 @@ int xy_subject_deinit(xy_subject_t *subject)
     return xy_subject_clear(subject);
 }
 
-int xy_subject_attach(xy_subject_t *subject, xy_observer_t *observer)
-{
+int xy_subject_attach(xy_subject_t* subject, xy_observer_t* observer) {
     if (!subject || !observer) {
         return XY_OBSERVER_INVALID_PARAM;
     }
@@ -127,8 +119,7 @@ int xy_subject_attach(xy_subject_t *subject, xy_observer_t *observer)
     return XY_OBSERVER_OK;
 }
 
-int xy_subject_detach(xy_subject_t *subject, xy_observer_t *observer)
-{
+int xy_subject_detach(xy_subject_t* subject, xy_observer_t* observer) {
     if (!subject || !observer) {
         return XY_OBSERVER_INVALID_PARAM;
     }
@@ -151,8 +142,7 @@ int xy_subject_detach(xy_subject_t *subject, xy_observer_t *observer)
     return XY_OBSERVER_NOT_FOUND;
 }
 
-int xy_subject_notify(xy_subject_t *subject, const void *data)
-{
+int xy_subject_notify(xy_subject_t* subject, const void* data) {
     xy_observer_t snapshot[XY_OBSERVER_MAX_OBSERVERS];
     size_t snapshot_count;
 
@@ -186,6 +176,10 @@ int xy_subject_notify(xy_subject_t *subject, const void *data)
 
         if (still_attached && snapshot[i].active && snapshot[i].callback) {
             snapshot[i].callback(subject, data, snapshot[i].user_data);
+            if (!subject_state_is_valid(subject)) {
+                subject->notifying = false;
+                return XY_OBSERVER_ERROR;
+            }
         }
     }
 
@@ -194,8 +188,7 @@ int xy_subject_notify(xy_subject_t *subject, const void *data)
     return XY_OBSERVER_OK;
 }
 
-size_t xy_subject_observer_count(xy_subject_t *subject)
-{
+size_t xy_subject_observer_count(xy_subject_t* subject) {
     if (!subject) {
         return 0;
     }
@@ -207,8 +200,7 @@ size_t xy_subject_observer_count(xy_subject_t *subject)
     return subject->observer_count;
 }
 
-int xy_subject_clear(xy_subject_t *subject)
-{
+int xy_subject_clear(xy_subject_t* subject) {
     if (!subject) {
         return XY_OBSERVER_INVALID_PARAM;
     }
