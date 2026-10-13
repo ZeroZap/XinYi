@@ -84,6 +84,22 @@ static void test_event_group_reinit_and_copied_owner_fail_closed(void)
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_deinit(&group));
 }
 
+static void test_event_group_public_handle_corruption_preserves_owned_teardown(void)
+{
+    xy_ipc_event_group_t group = {0};
+    xy_ipc_event_bits_t bits = 0xA5A5A5A5U;
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_init(&group, "evt"));
+    group.os_flags = NULL;
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_NOT_INITIALIZED,
+                          xy_ipc_event_group_set(&group, 0x01U, &bits));
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, bits);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_deinit(&group));
+    TEST_ASSERT_NULL(group.os_flags);
+    TEST_ASSERT_FALSE(group.initialized);
+}
+
 static void test_event_group_set_get_and_clear_contracts(void)
 {
     xy_ipc_event_group_t group = {0};
@@ -242,6 +258,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_event_group_init_guards_and_name);
     RUN_TEST(test_event_group_reinit_and_copied_owner_fail_closed);
+    RUN_TEST(test_event_group_public_handle_corruption_preserves_owned_teardown);
     RUN_TEST(test_event_group_set_get_and_clear_contracts);
     RUN_TEST(test_event_group_wait_guards_preserve_output_before_os_call);
     RUN_TEST(test_event_group_wait_any_all_clear_and_timeout);

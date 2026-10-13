@@ -32,6 +32,7 @@ typedef uint32_t xy_ipc_event_bits_t;
 
 typedef struct xy_ipc_event_group {
     xy_os_event_flags_id_t os_flags;
+    xy_os_event_flags_id_t owned_os_flags;
     char name[32];
     uint32_t lifecycle_cookie;
     const void *owner;

@@ -18,7 +18,7 @@ static int event_group_validate(xy_ipc_event_group_t *group)
         return XY_IPC_EVENT_INVALID_PARAM;
     }
     if (group->lifecycle_cookie != XY_IPC_EVENT_LIFECYCLE_COOKIE || group->owner != group ||
-        !group->initialized || !group->os_flags) {
+        !group->initialized || !group->os_flags || group->os_flags != group->owned_os_flags) {
         return XY_IPC_EVENT_NOT_INITIALIZED;
     }
     return XY_IPC_EVENT_OK;
@@ -75,6 +75,7 @@ int xy_ipc_event_group_init(xy_ipc_event_group_t *group, const char *name)
     }
 
     group->initialized = 1U;
+    group->owned_os_flags = group->os_flags;
     group->lifecycle_cookie = XY_IPC_EVENT_LIFECYCLE_COOKIE;
     group->owner = group;
     return XY_IPC_EVENT_OK;
@@ -83,17 +84,21 @@ int xy_ipc_event_group_init(xy_ipc_event_group_t *group, const char *name)
 int xy_ipc_event_group_deinit(xy_ipc_event_group_t *group)
 {
     xy_os_status_t status;
-    int ret = event_group_validate(group);
-    if (ret != XY_IPC_EVENT_OK) {
-        return ret;
+    if (!group) {
+        return XY_IPC_EVENT_INVALID_PARAM;
+    }
+    if (group->lifecycle_cookie != XY_IPC_EVENT_LIFECYCLE_COOKIE || group->owner != group ||
+        !group->initialized || !group->owned_os_flags) {
+        return XY_IPC_EVENT_NOT_INITIALIZED;
     }
 
-    status = xy_os_event_flags_delete(group->os_flags);
+    status = xy_os_event_flags_delete(group->owned_os_flags);
     if (status != XY_OS_OK) {
         return XY_IPC_EVENT_ERROR;
     }
 
     group->os_flags = NULL;
+    group->owned_os_flags = NULL;
     group->lifecycle_cookie = 0U;
     group->owner = NULL;
     group->initialized = 0U;

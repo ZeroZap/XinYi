@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-14 IPC Event Group transport-owner recovery
+
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/inc/xy_event_group.h`、`components/ipc/src/xy_event_group.c`、`tests/unit/ipc/test_ipc_event_group.c`；focused `ipc_event_group`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：公开 `os_flags` 被损坏时 set/get/clear/wait fail-closed 且保持 caller output；deinit 使用初始化时固化的实际 OSAL owner 回收资源并清零 lifecycle，避免损坏公开 handle 阻断 teardown。
+- 仍不允许宣称：跨线程并发安全、ISR ingress、Pandora runtime、transport recovery、throughput 或 endurance。
+
 ### 2026-10-13 IPC Event Group lifecycle ownership
 
 - 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
