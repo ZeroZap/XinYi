@@ -1637,6 +1637,39 @@ static void test_isr_ingress_wake_failure_does_not_publish_message(void)
     TEST_ASSERT_EQUAL_MEMORY(&accepted, last_msg.payload, sizeof(accepted));
 }
 
+static void test_isr_ingress_rejects_copied_or_mutated_owner(void)
+{
+    const uint32_t payload = 0x12345678U;
+    xy_broker_isr_msg_t storage[3];
+    xy_broker_isr_msg_t replacement_storage[3];
+    xy_broker_isr_ingress_t ingress;
+    xy_broker_isr_ingress_t copied;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_ingress_init(&ingress, storage, 3U, wake_from_isr,
+                                                 &isr_wake_count));
+
+    copied = ingress;
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_isr_publish(&copied, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM,
+                                            XY_BROKER_MSG_SYSTEM_STATUS, &payload,
+                                            sizeof(payload), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL_UINT(0U, isr_wake_count);
+
+    ingress.storage = replacement_storage;
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM,
+                                            XY_BROKER_MSG_SYSTEM_STATUS, &payload,
+                                            sizeof(payload), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL_UINT(0U, isr_wake_count);
+}
+
 static void test_isr_ingress_rejects_zero_route_identifiers_without_poisoning_queue(void)
 {
     const uint32_t rejected = 0xA5A55A5AU;
@@ -1823,6 +1856,7 @@ int main(void)
     RUN_TEST(test_processing_stops_when_handler_replaces_server_owner);
     RUN_TEST(test_isr_ingress_queue_full_and_broker_recovery);
     RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);
+    RUN_TEST(test_isr_ingress_rejects_copied_or_mutated_owner);
     RUN_TEST(test_isr_ingress_rejects_zero_route_identifiers_without_poisoning_queue);
     RUN_TEST(test_isr_ingress_rejects_payload_from_previous_broker_lifecycle);
     RUN_TEST(test_isr_ingress_rejects_payload_after_server_owner_replacement);

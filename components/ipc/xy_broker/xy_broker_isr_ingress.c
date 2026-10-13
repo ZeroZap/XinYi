@@ -17,6 +17,8 @@ int xy_broker_isr_ingress_init(xy_broker_isr_ingress_t *ingress,
     }
     memset(ingress, 0, sizeof(*ingress));
     ingress->storage = storage;
+    ingress->storage_owner = storage;
+    ingress->self_owner = ingress;
     ingress->capacity = capacity;
     ingress->wake_from_isr = wake_from_isr;
     ingress->wake_context = wake_context;
@@ -33,7 +35,8 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     uint32_t dst_generation;
     xy_broker_isr_msg_t *message;
 
-    if (ingress == NULL || ingress->storage == NULL || ingress->capacity < 2U ||
+    if (ingress == NULL || ingress->self_owner != ingress || ingress->storage == NULL ||
+        ingress->storage != ingress->storage_owner || ingress->capacity < 2U ||
         ingress->wake_from_isr == NULL || src_server == 0U || dst_server == 0U || msg_id == 0U ||
         payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0U && payload == NULL)) {
         return XY_BROKER_INVALID_PARAM;
@@ -77,7 +80,8 @@ int xy_broker_isr_drain_one(xy_broker_isr_ingress_t *ingress)
     xy_broker_isr_msg_t *message;
     int result;
 
-    if (ingress == NULL || ingress->storage == NULL || ingress->capacity < 2U) {
+    if (ingress == NULL || ingress->self_owner != ingress || ingress->storage == NULL ||
+        ingress->storage != ingress->storage_owner || ingress->capacity < 2U) {
         return XY_BROKER_INVALID_PARAM;
     }
     if (ingress->head == ingress->tail) {
