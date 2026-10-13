@@ -11,6 +11,14 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-13 IPC MQ stored-message integrity
+
+- 组件：IPC / Message Queue
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/src/xy_mq.c`、`tests/unit/ipc/test_ipc_mq.c`；focused `ipc_mq`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：live queue 的 stored message length/priority 损坏时，send/recv/query/clear/stats 在 ring access 前 fail-closed；slot header 通过 `memcpy` 访问以避免非自然对齐 UB；deinit 仍可释放 owned buffer。
+- 仍不允许宣称：跨线程安全、ISR ingress、Pandora runtime、throughput、recovery 或 endurance。
+
 ### 2026-10-13 IPC MQ ring-topology integrity
 
 - 组件：IPC / Message Queue

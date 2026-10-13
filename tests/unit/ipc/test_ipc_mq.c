@@ -332,6 +332,49 @@ static void test_mq_inconsistent_ring_topology_fails_closed_and_can_deinit(void)
     TEST_ASSERT_FALSE(mq.initialized);
 }
 
+static void test_mq_corrupted_stored_message_fails_closed_and_can_deinit(void)
+{
+    xy_mq_t mq = {0};
+    xy_mq_config_t config = {
+        .msg_size = 2,
+        .max_msgs = 2,
+        .priority_enabled = true,
+        .overwrite_old = false,
+    };
+    uint8_t payload[] = {0x11, 0x22};
+    uint8_t out[] = {0xAA, 0xBB};
+    const uint8_t expected_out[] = {0xAA, 0xBB};
+    xy_mq_msg_t send = make_msg(1U, XY_MQ_PRIORITY_NORMAL, payload, sizeof(payload));
+    xy_mq_msg_t recv = make_msg(0x12345678U, XY_MQ_PRIORITY_HIGH, out, sizeof(out));
+    xy_mq_msg_t recv_before = recv;
+    uint32_t sent = 0x11111111U;
+    uint32_t received = 0x22222222U;
+    uint32_t dropped = 0x33333333U;
+    xy_mq_msg_t stored;
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_init(&mq, &config));
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_send(&mq, &send, 0U));
+    memcpy(&stored, mq.buffer, sizeof(stored));
+    stored.len = (uint16_t)(mq.config.msg_size + 1U);
+    memcpy(mq.buffer, &stored, sizeof(stored));
+
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_send(&mq, &send, 0U));
+    TEST_ASSERT_EQUAL(XY_MQ_INVALID_PARAM, xy_mq_recv(&mq, &recv, 0U));
+    TEST_ASSERT_EQUAL_MEMORY(&recv_before, &recv, sizeof(recv));
+    TEST_ASSERT_EQUAL_MEMORY(expected_out, out, sizeof(out));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_count(&mq));
+    TEST_ASSERT_EQUAL_UINT16(0U, xy_mq_get_free(&mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_clear(&mq));
+    TEST_ASSERT_EQUAL(XY_MQ_ERROR, xy_mq_get_stats(&mq, &sent, &received, &dropped));
+    TEST_ASSERT_EQUAL_UINT32(0x11111111U, sent);
+    TEST_ASSERT_EQUAL_UINT32(0x22222222U, received);
+    TEST_ASSERT_EQUAL_UINT32(0x33333333U, dropped);
+
+    TEST_ASSERT_EQUAL(XY_MQ_OK, xy_mq_deinit(&mq));
+    TEST_ASSERT_NULL(mq.buffer);
+    TEST_ASSERT_FALSE(mq.initialized);
+}
+
 static void test_mq_rejects_storage_size_overflow_without_mutating_owner(void)
 {
     xy_mq_t mq;
@@ -826,6 +869,7 @@ int main(void)
     RUN_TEST(test_mq_copied_live_owner_fails_closed);
     RUN_TEST(test_mq_corrupted_ring_state_fails_closed_and_can_deinit);
     RUN_TEST(test_mq_inconsistent_ring_topology_fails_closed_and_can_deinit);
+    RUN_TEST(test_mq_corrupted_stored_message_fails_closed_and_can_deinit);
     RUN_TEST(test_mq_rejects_storage_size_overflow_without_mutating_owner);
     RUN_TEST(test_mq_allocation_failure_preserves_caller_owner);
     RUN_TEST(test_mq_rejects_missing_payload_without_side_effects);

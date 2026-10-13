@@ -21,12 +21,15 @@ static bool mq_is_owned(const xy_mq_t *mq)
            mq->initialized && mq->buffer;
 }
 
+static bool mq_messages_valid(const xy_mq_t *mq);
+
 static bool mq_is_active(const xy_mq_t *mq)
 {
     return mq_is_owned(mq) && mq->config.msg_size > 0U && mq->config.max_msgs > 0U &&
            mq->head < mq->config.max_msgs && mq->tail < mq->config.max_msgs &&
            mq->count <= mq->config.max_msgs &&
-           mq->head == (uint16_t)((mq->tail + mq->count) % mq->config.max_msgs);
+           mq->head == (uint16_t)((mq->tail + mq->count) % mq->config.max_msgs) &&
+           mq_messages_valid(mq);
 }
 
 static uint32_t mq_slot_size(const xy_mq_t *mq)
@@ -37,6 +40,22 @@ static uint32_t mq_slot_size(const xy_mq_t *mq)
 static uint8_t *mq_slot_at(const xy_mq_t *mq, uint16_t index)
 {
     return mq->buffer + ((uint32_t)index * mq_slot_size(mq));
+}
+
+static bool mq_messages_valid(const xy_mq_t *mq)
+{
+    for (uint16_t offset = 0U; offset < mq->count; offset++) {
+        uint16_t index = (uint16_t)((mq->tail + offset) % mq->config.max_msgs);
+        xy_mq_msg_t stored;
+
+        memcpy(&stored, mq_slot_at(mq, index), sizeof(stored));
+        if (stored.len > mq->config.msg_size ||
+            (unsigned int)stored.priority > (unsigned int)XY_MQ_PRIORITY_URGENT) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 static uint16_t mq_receive_offset(const xy_mq_t *mq)
@@ -50,11 +69,12 @@ static uint16_t mq_receive_offset(const xy_mq_t *mq)
 
     for (uint16_t offset = 0U; offset < mq->count; offset++) {
         uint16_t index = (uint16_t)((mq->tail + offset) % mq->config.max_msgs);
-        const xy_mq_msg_t *stored = (const xy_mq_msg_t *)mq_slot_at(mq, index);
+        xy_mq_msg_t stored;
 
-        if (offset == 0U || stored->priority > selected_priority) {
+        memcpy(&stored, mq_slot_at(mq, index), sizeof(stored));
+        if (offset == 0U || stored.priority > selected_priority) {
             selected = offset;
-            selected_priority = stored->priority;
+            selected_priority = stored.priority;
         }
     }
 
@@ -68,11 +88,12 @@ static uint16_t mq_lowest_priority_offset(const xy_mq_t *mq)
 
     for (uint16_t offset = 0U; offset < mq->count; offset++) {
         uint16_t index = (uint16_t)((mq->tail + offset) % mq->config.max_msgs);
-        const xy_mq_msg_t *stored = (const xy_mq_msg_t *)mq_slot_at(mq, index);
+        xy_mq_msg_t stored;
 
-        if (offset == 0U || stored->priority < selected_priority) {
+        memcpy(&stored, mq_slot_at(mq, index), sizeof(stored));
+        if (offset == 0U || stored.priority < selected_priority) {
             selected = offset;
-            selected_priority = stored->priority;
+            selected_priority = stored.priority;
         }
     }
 
@@ -200,10 +221,10 @@ int xy_mq_send(xy_mq_t *mq, const xy_mq_msg_t *msg, uint32_t timeout)
     
     /* 复制消息 */
     uint8_t *slot = mq_slot_at(mq, mq->head);
-    xy_mq_msg_t *stored = (xy_mq_msg_t *)slot;
-    uint8_t *dest = slot + sizeof(*stored);
-    *stored = *msg;
-    stored->data = NULL;
+    xy_mq_msg_t stored = *msg;
+    uint8_t *dest = slot + sizeof(stored);
+    stored.data = NULL;
+    memcpy(slot, &stored, sizeof(stored));
     if (msg->len > 0) {
         memcpy(dest, msg->data, msg->len);
     }
@@ -250,13 +271,16 @@ int xy_mq_recv(xy_mq_t *mq, xy_mq_msg_t *msg, uint32_t timeout)
     selected = mq_receive_offset(mq);
     uint16_t selected_index = (uint16_t)((mq->tail + selected) % mq->config.max_msgs);
     uint8_t *slot = mq_slot_at(mq, selected_index);
-    const xy_mq_msg_t *stored = (const xy_mq_msg_t *)slot;
-    uint8_t *src = slot + sizeof(*stored);
-    uint16_t copy_len = caller_len < stored->len ? caller_len : stored->len;
-    msg->id = stored->id;
-    msg->priority = stored->priority;
-    msg->timestamp = stored->timestamp;
-    msg->len = stored->len;
+    xy_mq_msg_t stored;
+    uint8_t *src = slot + sizeof(stored);
+    uint16_t copy_len;
+
+    memcpy(&stored, slot, sizeof(stored));
+    copy_len = caller_len < stored.len ? caller_len : stored.len;
+    msg->id = stored.id;
+    msg->priority = stored.priority;
+    msg->timestamp = stored.timestamp;
+    msg->len = stored.len;
     msg->data = caller_data;
     if (copy_len > 0) {
         memcpy(caller_data, src, copy_len);
