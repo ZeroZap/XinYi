@@ -61,6 +61,29 @@ static void test_event_group_init_guards_and_name(void)
     TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_deinit(&group));
 }
 
+static void test_event_group_reinit_and_copied_owner_fail_closed(void)
+{
+    xy_ipc_event_group_t group = {0};
+    xy_ipc_event_group_t before;
+    xy_ipc_event_group_t alias;
+    xy_ipc_event_bits_t bits = 0xA5A5A5A5U;
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_init(&group, "evt"));
+    before = group;
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_ERROR, xy_ipc_event_group_init(&group, "replacement"));
+    TEST_ASSERT_EQUAL_MEMORY(&before, &group, sizeof(group));
+
+    alias = group;
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_NOT_INITIALIZED,
+                          xy_ipc_event_group_set(&alias, 0x01U, &bits));
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, bits);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_NOT_INITIALIZED, xy_ipc_event_group_deinit(&alias));
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_set(&group, 0x01U, &bits));
+    TEST_ASSERT_EQUAL_UINT32(0x01U, bits);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_deinit(&group));
+}
+
 static void test_event_group_set_get_and_clear_contracts(void)
 {
     xy_ipc_event_group_t group = {0};
@@ -218,6 +241,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_event_group_init_guards_and_name);
+    RUN_TEST(test_event_group_reinit_and_copied_owner_fail_closed);
     RUN_TEST(test_event_group_set_get_and_clear_contracts);
     RUN_TEST(test_event_group_wait_guards_preserve_output_before_os_call);
     RUN_TEST(test_event_group_wait_any_all_clear_and_timeout);

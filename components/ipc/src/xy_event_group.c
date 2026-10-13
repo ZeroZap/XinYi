@@ -8,6 +8,7 @@
 #include <string.h>
 
 #define XY_IPC_EVENT_OS_ERROR_MASK 0x80000000U
+#define XY_IPC_EVENT_LIFECYCLE_COOKIE 0x58454732U
 #define XY_IPC_EVENT_VALID_WAIT_OPTIONS \
     (XY_IPC_EVENT_WAIT_ALL | XY_IPC_EVENT_NO_CLEAR | XY_IPC_EVENT_WAIT_ANY)
 
@@ -16,7 +17,8 @@ static int event_group_validate(xy_ipc_event_group_t *group)
     if (!group) {
         return XY_IPC_EVENT_INVALID_PARAM;
     }
-    if (!group->initialized || !group->os_flags) {
+    if (group->lifecycle_cookie != XY_IPC_EVENT_LIFECYCLE_COOKIE || group->owner != group ||
+        !group->initialized || !group->os_flags) {
         return XY_IPC_EVENT_NOT_INITIALIZED;
     }
     return XY_IPC_EVENT_OK;
@@ -53,6 +55,10 @@ int xy_ipc_event_group_init(xy_ipc_event_group_t *group, const char *name)
     if (!group) {
         return XY_IPC_EVENT_INVALID_PARAM;
     }
+    if (group->lifecycle_cookie == XY_IPC_EVENT_LIFECYCLE_COOKIE && group->owner == group &&
+        group->initialized) {
+        return XY_IPC_EVENT_ERROR;
+    }
 
     memset(group, 0, sizeof(*group));
     if (name) {
@@ -69,6 +75,8 @@ int xy_ipc_event_group_init(xy_ipc_event_group_t *group, const char *name)
     }
 
     group->initialized = 1U;
+    group->lifecycle_cookie = XY_IPC_EVENT_LIFECYCLE_COOKIE;
+    group->owner = group;
     return XY_IPC_EVENT_OK;
 }
 
@@ -86,6 +94,8 @@ int xy_ipc_event_group_deinit(xy_ipc_event_group_t *group)
     }
 
     group->os_flags = NULL;
+    group->lifecycle_cookie = 0U;
+    group->owner = NULL;
     group->initialized = 0U;
     group->name[0] = '\0';
     return XY_IPC_EVENT_OK;
