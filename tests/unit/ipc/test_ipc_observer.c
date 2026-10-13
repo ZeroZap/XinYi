@@ -264,6 +264,35 @@ static void test_subject_allows_same_callback_with_distinct_user_data(void)
     TEST_ASSERT_EQUAL_PTR(&second_context, last_user_data);
 }
 
+static void test_subject_rejects_corrupted_public_state(void)
+{
+    xy_subject_t subject;
+    xy_observer_t observer;
+    const uint32_t payload = 0x55AA55AAU;
+
+    reset_capture();
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_init(&subject, "subject"));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&observer, "observer", capture_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &observer));
+
+    subject.observer_count = XY_OBSERVER_MAX_OBSERVERS + 1U;
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_attach(&subject, &observer));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_detach(&subject, &observer));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
+    TEST_ASSERT_EQUAL_INT(0, callback_count);
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_clear(&subject));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
+
+    subject.next_attachment_id = 0U;
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_attach(&subject, &observer));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
+    TEST_ASSERT_EQUAL_INT(0, callback_count);
+}
+
 static void test_subject_rejects_inactive_or_callbackless_observers(void)
 {
     xy_subject_t subject;
@@ -483,6 +512,7 @@ int main(void)
     RUN_TEST(test_subject_attach_notify_detach_and_clear);
     RUN_TEST(test_subject_clear_rejects_active_notification);
     RUN_TEST(test_subject_allows_same_callback_with_distinct_user_data);
+    RUN_TEST(test_subject_rejects_corrupted_public_state);
     RUN_TEST(test_subject_rejects_inactive_or_callbackless_observers);
     RUN_TEST(test_subject_notify_recovers_notifying_state_after_callback_mutates_active_flag);
     RUN_TEST(test_subject_notify_tolerates_observer_detach_during_callback);

@@ -20,6 +20,12 @@ static bool observer_snapshot_matches(const xy_observer_t *lhs, const xy_observe
     return observer_matches(lhs, rhs) && lhs->attachment_id == rhs->attachment_id;
 }
 
+static bool subject_state_is_valid(const xy_subject_t *subject)
+{
+    return subject->observer_count <= XY_OBSERVER_MAX_OBSERVERS
+           && subject->next_attachment_id != 0U;
+}
+
 int xy_observer_init(xy_observer_t *observer, const char *name,
                      observer_callback_t callback, void *user_data)
 {
@@ -91,6 +97,10 @@ int xy_subject_attach(xy_subject_t *subject, xy_observer_t *observer)
         return XY_OBSERVER_INVALID_PARAM;
     }
 
+    if (!subject_state_is_valid(subject)) {
+        return XY_OBSERVER_ERROR;
+    }
+
     if (!observer->active || !observer->callback) {
         return XY_OBSERVER_INVALID_PARAM;
     }
@@ -123,6 +133,10 @@ int xy_subject_detach(xy_subject_t *subject, xy_observer_t *observer)
         return XY_OBSERVER_INVALID_PARAM;
     }
 
+    if (!subject_state_is_valid(subject)) {
+        return XY_OBSERVER_ERROR;
+    }
+
     for (size_t i = 0; i < subject->observer_count; i++) {
         if (observer_matches(&subject->observers[i], observer)) {
             /* Remove observer by shifting remaining observers */
@@ -144,6 +158,9 @@ int xy_subject_notify(xy_subject_t *subject, const void *data)
 
     if (!subject) {
         return XY_OBSERVER_INVALID_PARAM;
+    }
+    if (!subject_state_is_valid(subject)) {
+        return XY_OBSERVER_ERROR;
     }
     if (subject->notifying) {
         return XY_OBSERVER_ERROR;
@@ -183,6 +200,10 @@ size_t xy_subject_observer_count(xy_subject_t *subject)
         return 0;
     }
 
+    if (!subject_state_is_valid(subject)) {
+        return 0;
+    }
+
     return subject->observer_count;
 }
 
@@ -197,6 +218,7 @@ int xy_subject_clear(xy_subject_t *subject)
 
     memset(subject->observers, 0, sizeof(subject->observers));
     subject->observer_count = 0;
+    subject->next_attachment_id = 1U;
     subject->notifying = false;
 
     return XY_OBSERVER_OK;
