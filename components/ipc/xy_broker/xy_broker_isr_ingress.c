@@ -2,6 +2,34 @@
 
 #include <string.h>
 
+#define XY_BROKER_ISR_INTEGRITY_SEED 2166136261U
+#define XY_BROKER_ISR_INTEGRITY_PRIME 16777619U
+
+static uint32_t integrity_update(uint32_t tag, const void *data, size_t length)
+{
+    const uint8_t *bytes = data;
+
+    while (length-- > 0U) {
+        tag ^= *bytes++;
+        tag *= XY_BROKER_ISR_INTEGRITY_PRIME;
+    }
+    return tag;
+}
+
+static uint32_t message_integrity(const xy_broker_isr_msg_t *message)
+{
+    uint32_t tag = XY_BROKER_ISR_INTEGRITY_SEED;
+
+    tag = integrity_update(tag, &message->src_server, sizeof(message->src_server));
+    tag = integrity_update(tag, &message->dst_server, sizeof(message->dst_server));
+    tag = integrity_update(tag, &message->msg_id, sizeof(message->msg_id));
+    tag = integrity_update(tag, &message->payload_len, sizeof(message->payload_len));
+    tag = integrity_update(tag, &message->priority, sizeof(message->priority));
+    tag = integrity_update(tag, &message->src_generation, sizeof(message->src_generation));
+    tag = integrity_update(tag, &message->dst_generation, sizeof(message->dst_generation));
+    return integrity_update(tag, message->payload, message->payload_len);
+}
+
 static int ingress_is_live(const xy_broker_isr_ingress_t *ingress)
 {
     return ingress != NULL && ingress->self_owner == ingress && ingress->storage != NULL &&
@@ -77,6 +105,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     if (payload_len > 0U) {
         memcpy(message->payload, payload, payload_len);
     }
+    message->integrity_tag = message_integrity(message);
     __asm volatile("" ::: "memory");
     ingress->tail = next;
     int wake_result = ingress->wake_from_isr(ingress->wake_context);
@@ -105,6 +134,10 @@ int xy_broker_isr_drain_one(xy_broker_isr_ingress_t *ingress)
     message = &ingress->storage[ingress->head];
     if (message->src_server == 0U || message->dst_server == 0U || message->msg_id == 0U ||
         message->payload_len > XY_BROKER_MAX_MSG_SIZE) {
+        ingress->head = (uint16_t)((ingress->head + 1U) % ingress->capacity);
+        return XY_BROKER_ERROR;
+    }
+    if (message->integrity_tag != message_integrity(message)) {
         ingress->head = (uint16_t)((ingress->head + 1U) % ingress->capacity);
         return XY_BROKER_ERROR;
     }

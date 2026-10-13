@@ -19,6 +19,7 @@ typedef struct {
     uint8_t priority;
     uint32_t src_generation;
     uint32_t dst_generation;
+    uint32_t integrity_tag;
     uint8_t payload[XY_BROKER_MAX_MSG_SIZE];
 } xy_broker_isr_msg_t;
 
