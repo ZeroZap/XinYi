@@ -27,6 +27,7 @@ typedef struct {
     xy_broker_isr_msg_t *storage_owner;
     const void *self_owner;
     uint16_t capacity;
+    uint16_t capacity_owner;
     volatile uint16_t head;
     volatile uint16_t tail;
     xy_broker_isr_wake_t wake_from_isr;
