@@ -7,7 +7,9 @@ static int ingress_is_live(const xy_broker_isr_ingress_t *ingress)
     return ingress != NULL && ingress->self_owner == ingress && ingress->storage != NULL &&
            ingress->storage == ingress->storage_owner && ingress->capacity >= 2U &&
            ingress->capacity == ingress->capacity_owner && ingress->head < ingress->capacity &&
-           ingress->tail < ingress->capacity;
+           ingress->tail < ingress->capacity && ingress->wake_from_isr != NULL &&
+           ingress->wake_from_isr == ingress->wake_owner &&
+           ingress->wake_context == ingress->wake_context_owner;
 }
 
 int xy_broker_isr_ingress_init(xy_broker_isr_ingress_t *ingress,
@@ -30,7 +32,9 @@ int xy_broker_isr_ingress_init(xy_broker_isr_ingress_t *ingress,
     ingress->capacity = capacity;
     ingress->capacity_owner = capacity;
     ingress->wake_from_isr = wake_from_isr;
+    ingress->wake_owner = wake_from_isr;
     ingress->wake_context = wake_context;
+    ingress->wake_context_owner = wake_context;
     ingress->broker_generation = broker_generation;
     return XY_BROKER_OK;
 }

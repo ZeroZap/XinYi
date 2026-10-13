@@ -31,7 +31,9 @@ typedef struct {
     volatile uint16_t head;
     volatile uint16_t tail;
     xy_broker_isr_wake_t wake_from_isr;
+    xy_broker_isr_wake_t wake_owner;
     void *wake_context;
+    void *wake_context_owner;
     uint32_t broker_generation;
 } xy_broker_isr_ingress_t;
 

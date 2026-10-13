@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-14 IPC Broker ISR ingress wake owner integrity
+
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker_isr_ingress.{h,c}`、`tests/unit/ipc/test_ipc_broker.c`；focused `ipc_broker`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：ISR ingress 初始化固化 wake callback/context owner；公开 callback 或 context alias 损坏时，publish/drain 在 ring access 或 wake 前 fail-closed。
+- 仍不允许宣称：多 producer/consumer 并发安全、ISR memory ordering 跨架构充分性、Pandora runtime、吞吐或 endurance。
+
 ### 2026-10-14 IPC Broker ISR ingress ring geometry integrity
 
 - 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change

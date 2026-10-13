@@ -11,6 +11,7 @@
 static uint32_t fake_tick;
 static xy_broker_msg_t last_msg;
 static unsigned int isr_wake_count;
+static unsigned int alternate_isr_wake_count;
 static int isr_wake_result;
 static xy_os_status_t delay_result;
 static uint16_t unregister_server_on_delay;
@@ -143,6 +144,13 @@ static int wake_from_isr(void* context) {
     return isr_wake_result;
 }
 
+static int alternate_wake_from_isr(void *context)
+{
+    TEST_ASSERT_EQUAL_PTR(&alternate_isr_wake_count, context);
+    ++alternate_isr_wake_count;
+    return XY_BROKER_OK;
+}
+
 static void reset_fakes(void)
 {
     RESET_FAKE(xy_os_tick_get);
@@ -162,6 +170,7 @@ static void reset_fakes(void)
     unregister_server_on_delay = 0U;
     reregister_server_on_delay = 0U;
     isr_wake_count = 0U;
+    alternate_isr_wake_count = 0U;
     isr_wake_result = XY_BROKER_OK;
     subscription_replacement_count = 0U;
     publisher_replacement_count = 0U;
@@ -1708,6 +1717,32 @@ static void test_isr_ingress_rejects_corrupt_ring_geometry(void)
     TEST_ASSERT_EQUAL_UINT(0U, isr_wake_count);
 }
 
+static void test_isr_ingress_rejects_mutated_wake_owner(void)
+{
+    const uint32_t payload = 0x12345678U;
+    xy_broker_isr_msg_t storage[2];
+    xy_broker_isr_ingress_t ingress;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_ingress_init(&ingress, storage, 2U, wake_from_isr,
+                                                 &isr_wake_count));
+
+    ingress.wake_from_isr = alternate_wake_from_isr;
+    ingress.wake_context = &alternate_isr_wake_count;
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM,
+                                            XY_BROKER_MSG_SYSTEM_STATUS, &payload,
+                                            sizeof(payload), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL_UINT(0U, isr_wake_count);
+    TEST_ASSERT_EQUAL_UINT(0U, alternate_isr_wake_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM, xy_broker_isr_drain_one(&ingress));
+}
+
 static void test_isr_ingress_rejects_zero_route_identifiers_without_poisoning_queue(void)
 {
     const uint32_t rejected = 0xA5A55A5AU;
@@ -1896,6 +1931,7 @@ int main(void)
     RUN_TEST(test_isr_ingress_wake_failure_does_not_publish_message);
     RUN_TEST(test_isr_ingress_rejects_copied_or_mutated_owner);
     RUN_TEST(test_isr_ingress_rejects_corrupt_ring_geometry);
+    RUN_TEST(test_isr_ingress_rejects_mutated_wake_owner);
     RUN_TEST(test_isr_ingress_rejects_zero_route_identifiers_without_poisoning_queue);
     RUN_TEST(test_isr_ingress_rejects_payload_from_previous_broker_lifecycle);
     RUN_TEST(test_isr_ingress_rejects_payload_after_server_owner_replacement);
