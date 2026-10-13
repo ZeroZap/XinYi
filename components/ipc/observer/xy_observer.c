@@ -19,8 +19,22 @@ static bool observer_snapshot_matches(const xy_observer_t* lhs, const xy_observe
 }
 
 static bool subject_state_is_valid(const xy_subject_t* subject) {
-    return subject->observer_count <= XY_OBSERVER_MAX_OBSERVERS &&
-           subject->next_attachment_id != 0U;
+    if (subject->observer_count > XY_OBSERVER_MAX_OBSERVERS || subject->next_attachment_id == 0U) {
+        return false;
+    }
+
+    for (size_t i = 0; i < subject->observer_count; i++) {
+        if (subject->observers[i].attachment_id == 0U) {
+            return false;
+        }
+        for (size_t j = i + 1U; j < subject->observer_count; j++) {
+            if (subject->observers[i].attachment_id == subject->observers[j].attachment_id) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 int xy_observer_init(xy_observer_t* observer, const char* name, observer_callback_t callback,
