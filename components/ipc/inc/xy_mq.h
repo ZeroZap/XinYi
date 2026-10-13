@@ -71,6 +71,8 @@ typedef struct {
     uint32_t drop_count;
     uint16_t storage_msg_size;
     uint16_t storage_max_msgs;
+    bool storage_priority_enabled;
+    bool storage_overwrite_old;
     uint32_t lifecycle_cookie;
     const void *owner;
     bool initialized;
