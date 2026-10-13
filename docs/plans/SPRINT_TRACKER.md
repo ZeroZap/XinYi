@@ -244,6 +244,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-125 | P1 | IPC Observer attachment-generation corruption fail-closed | DONE | Zero | S4-124（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 live subject 内零值或重复 attachment generation 未被识别，attach/detach/notify 仍继续；现所有 public subject operations 在遍历前验证 active generation 非零且唯一，异常时零 callback/零 mutation 并可由 clear 恢复。focused `ipc_observer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-13 |
 | S4-126 | P1 | IPC Observer attachment generation wraparound uniqueness | DONE | Zero | S4-125（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 generation counter 从 `UINT32_MAX` 回绕后会复用仍存活的 generation `1`，破坏 detach/re-attach snapshot identity；现分配时跳过全部 live generation 并保持零值保留。focused `ipc_observer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-13 |
 | S4-127 | P1 | IPC Observer notify guard corruption fail-closed | DONE | Zero | S4-126（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 callback 可清除公开 `notifying` guard 后继续后续 callback 并返回成功；现每次 callback 后验证 guard 仍保持，异常时立即停止、返回错误并恢复 idle guard。focused `ipc_observer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-13 |
+| S4-128 | P1 | IPC Observer stored-registration integrity | DONE | Zero | S4-127（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 live slot 的 callback 被清空或 active flag 被清除后，attach/detach/notify/count 仍把损坏状态当作有效；现 subject state validation 要求每个 live registration 同时具备非零唯一 generation、active flag 与 callback，异常时零 callback/零 mutation并可由 clear 恢复。focused `ipc_observer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-13 |
 
 ### Sprint 5 前置看板
 

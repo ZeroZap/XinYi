@@ -326,6 +326,35 @@ static void test_subject_rejects_corrupted_attachment_generations(void) {
     TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
 }
 
+static void test_subject_rejects_corrupted_observer_registration(void) {
+    xy_subject_t subject;
+    xy_observer_t observer;
+    const uint32_t payload = 0xA5A55A5AU;
+
+    reset_capture();
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_init(&subject, "subject"));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&observer, "observer", capture_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &observer));
+
+    subject.observers[0].callback = NULL;
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_attach(&subject, &observer));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_detach(&subject, &observer));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
+    TEST_ASSERT_EQUAL_INT(0, callback_count);
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_clear(&subject));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &observer));
+    subject.observers[0].active = false;
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_attach(&subject, &observer));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_detach(&subject, &observer));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
+    TEST_ASSERT_EQUAL_INT(0, callback_count);
+}
+
 static void test_subject_attach_skips_live_attachment_generation(void) {
     xy_subject_t subject;
     xy_observer_t first;
@@ -368,7 +397,7 @@ static void test_subject_rejects_inactive_or_callbackless_observers(void) {
     TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
 }
 
-static void test_subject_notify_recovers_notifying_state_after_callback_mutates_active_flag(void) {
+static void test_subject_notify_rejects_inactive_stored_observer(void) {
     xy_subject_t subject;
     xy_observer_t observer;
     const uint32_t payload = 0xCAFEBABEU;
@@ -380,7 +409,7 @@ static void test_subject_notify_recovers_notifying_state_after_callback_mutates_
     TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &observer));
 
     subject.observers[0].active = false;
-    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_ERROR, xy_subject_notify(&subject, &payload));
     TEST_ASSERT_FALSE(subject.notifying);
     TEST_ASSERT_EQUAL_INT(0, callback_count);
 }
@@ -599,9 +628,10 @@ int main(void) {
     RUN_TEST(test_subject_allows_same_callback_with_distinct_user_data);
     RUN_TEST(test_subject_rejects_corrupted_public_state);
     RUN_TEST(test_subject_rejects_corrupted_attachment_generations);
+    RUN_TEST(test_subject_rejects_corrupted_observer_registration);
     RUN_TEST(test_subject_attach_skips_live_attachment_generation);
     RUN_TEST(test_subject_rejects_inactive_or_callbackless_observers);
-    RUN_TEST(test_subject_notify_recovers_notifying_state_after_callback_mutates_active_flag);
+    RUN_TEST(test_subject_notify_rejects_inactive_stored_observer);
     RUN_TEST(test_subject_notify_tolerates_observer_detach_during_callback);
     RUN_TEST(test_subject_notify_defers_detached_then_reattached_observer);
     RUN_TEST(test_subject_notify_defers_reentrant_attach_until_next_cycle);

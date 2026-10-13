@@ -24,7 +24,8 @@ static bool subject_state_is_valid(const xy_subject_t* subject) {
     }
 
     for (size_t i = 0; i < subject->observer_count; i++) {
-        if (subject->observers[i].attachment_id == 0U) {
+        if (subject->observers[i].attachment_id == 0U || !subject->observers[i].active ||
+            !subject->observers[i].callback) {
             return false;
         }
         for (size_t j = i + 1U; j < subject->observer_count; j++) {
