@@ -256,6 +256,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-137 | P1 | IPC Broker ISR ingress owner integrity | DONE | Zero | S4-136（DONE）；Pandora 硬件测试暂停 | TDD RED 证明复制 ingress handle 或改写公开 storage 指针后仍可从 ISR 发布并唤醒；现初始化固化 self/storage owner，publish/drain 在 ring 访问前拒绝复制或 transport alias 损坏，零 wake/零 queue mutation。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 | S4-138 | P1 | IPC Broker ISR ingress ring geometry integrity | DONE | Zero | S4-137（DONE）；Pandora 硬件测试暂停 | TDD RED 证明公开 capacity/head/tail 被改写后 publish/drain 仍可能按损坏 geometry 访问 storage；现初始化固化 capacity，publish/drain 在任何 ring 访问或 wake 前校验 capacity alias 与 head/tail 边界，异常时零 wake/零 queue mutation。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 | S4-139 | P1 | IPC Broker ISR wake owner integrity | DONE | Zero | S4-138（DONE）；Pandora 硬件测试暂停 | TDD RED 证明公开 wake callback/context 被改写后 publish 会调用替换 callback；现初始化固化 callback/context owner，publish/drain 在任何 ring access 或 wake 前拒绝 alias 损坏，零 callback/零 queue mutation。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
+| S4-140 | P1 | IPC Broker ISR stored-message integrity | DONE | Zero | S4-139（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 ingress slot 的 payload length 被破坏后 drain 仍将损坏消息交给 broker；现 drain 在读取 payload 前校验 route/message identifiers 与 payload length，损坏 slot 被丢弃且 ring 可继续恢复。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 
 ### Sprint 5 前置看板
 

@@ -1743,6 +1743,42 @@ static void test_isr_ingress_rejects_mutated_wake_owner(void)
     TEST_ASSERT_EQUAL(XY_BROKER_INVALID_PARAM, xy_broker_isr_drain_one(&ingress));
 }
 
+static void test_isr_ingress_rejects_corrupted_stored_message_and_recovers(void)
+{
+    const uint32_t corrupted = 0xA5A55A5AU;
+    const uint32_t accepted = 0x12345678U;
+    xy_broker_isr_msg_t storage[3];
+    xy_broker_isr_ingress_t ingress;
+
+    reset_broker();
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_register_server(XY_BROKER_SERVER_SYSTEM,
+                                                direct_capture_handler, NULL));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_ingress_init(&ingress, storage, 3U, wake_from_isr,
+                                                 &isr_wake_count));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM,
+                                            XY_BROKER_MSG_SYSTEM_STATUS, &corrupted,
+                                            sizeof(corrupted), XY_BROKER_PRIORITY_HIGH));
+    storage[0].payload_len = XY_BROKER_MAX_MSG_SIZE + 1U;
+
+    TEST_ASSERT_EQUAL(XY_BROKER_ERROR, xy_broker_isr_drain_one(&ingress));
+    TEST_ASSERT_EQUAL_INT(0, xy_broker_get_pending_count(XY_BROKER_SERVER_SYSTEM));
+    TEST_ASSERT_EQUAL_UINT(0U, direct_capture_handler_fake.call_count);
+    TEST_ASSERT_EQUAL(XY_BROKER_NOT_FOUND, xy_broker_isr_drain_one(&ingress));
+
+    TEST_ASSERT_EQUAL(XY_BROKER_OK,
+                      xy_broker_isr_publish(&ingress, XY_BROKER_SERVER_TIMER,
+                                            XY_BROKER_SERVER_SYSTEM,
+                                            XY_BROKER_MSG_SYSTEM_STATUS, &accepted,
+                                            sizeof(accepted), XY_BROKER_PRIORITY_HIGH));
+    TEST_ASSERT_EQUAL(XY_BROKER_OK, xy_broker_isr_drain_one(&ingress));
+    TEST_ASSERT_EQUAL_INT(1, xy_broker_process_msgs(XY_BROKER_SERVER_SYSTEM, 1U));
+    TEST_ASSERT_EQUAL_MEMORY(&accepted, last_msg.payload, sizeof(accepted));
+}
+
 static void test_isr_ingress_rejects_zero_route_identifiers_without_poisoning_queue(void)
 {
     const uint32_t rejected = 0xA5A55A5AU;
@@ -1932,6 +1968,7 @@ int main(void)
     RUN_TEST(test_isr_ingress_rejects_copied_or_mutated_owner);
     RUN_TEST(test_isr_ingress_rejects_corrupt_ring_geometry);
     RUN_TEST(test_isr_ingress_rejects_mutated_wake_owner);
+    RUN_TEST(test_isr_ingress_rejects_corrupted_stored_message_and_recovers);
     RUN_TEST(test_isr_ingress_rejects_zero_route_identifiers_without_poisoning_queue);
     RUN_TEST(test_isr_ingress_rejects_payload_from_previous_broker_lifecycle);
     RUN_TEST(test_isr_ingress_rejects_payload_after_server_owner_replacement);

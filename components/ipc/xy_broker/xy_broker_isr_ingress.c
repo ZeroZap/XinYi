@@ -103,6 +103,11 @@ int xy_broker_isr_drain_one(xy_broker_isr_ingress_t *ingress)
         return XY_BROKER_ERROR;
     }
     message = &ingress->storage[ingress->head];
+    if (message->src_server == 0U || message->dst_server == 0U || message->msg_id == 0U ||
+        message->payload_len > XY_BROKER_MAX_MSG_SIZE) {
+        ingress->head = (uint16_t)((ingress->head + 1U) % ingress->capacity);
+        return XY_BROKER_ERROR;
+    }
     if ((message->src_generation != 0U
          && message->src_generation != xy_broker_get_server_generation(message->src_server))
         || message->dst_generation == 0U
