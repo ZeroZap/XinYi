@@ -315,6 +315,32 @@ static void test_subject_rejects_corrupted_attachment_generations(void) {
     TEST_ASSERT_EQUAL_UINT(0U, xy_subject_observer_count(&subject));
 }
 
+static void test_subject_attach_skips_live_attachment_generation(void) {
+    xy_subject_t subject;
+    xy_observer_t first;
+    xy_observer_t second;
+    xy_observer_t third;
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_init(&subject, "subject"));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&first, "first", capture_callback, (void*)1));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&second, "second", capture_callback, (void*)2));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&third, "third", capture_callback, (void*)3));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &first));
+
+    subject.next_attachment_id = UINT32_MAX;
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &second));
+    TEST_ASSERT_EQUAL_UINT32(UINT32_MAX, subject.observers[1].attachment_id);
+    TEST_ASSERT_EQUAL_UINT32(1U, subject.next_attachment_id);
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &third));
+    TEST_ASSERT_EQUAL_UINT32(2U, subject.observers[2].attachment_id);
+    TEST_ASSERT_EQUAL_UINT32(3U, subject.next_attachment_id);
+    TEST_ASSERT_EQUAL_UINT(3U, xy_subject_observer_count(&subject));
+}
+
 static void test_subject_rejects_inactive_or_callbackless_observers(void) {
     xy_subject_t subject;
     xy_observer_t observer;
@@ -541,6 +567,7 @@ int main(void) {
     RUN_TEST(test_subject_allows_same_callback_with_distinct_user_data);
     RUN_TEST(test_subject_rejects_corrupted_public_state);
     RUN_TEST(test_subject_rejects_corrupted_attachment_generations);
+    RUN_TEST(test_subject_attach_skips_live_attachment_generation);
     RUN_TEST(test_subject_rejects_inactive_or_callbackless_observers);
     RUN_TEST(test_subject_notify_recovers_notifying_state_after_callback_mutates_active_flag);
     RUN_TEST(test_subject_notify_tolerates_observer_detach_during_callback);

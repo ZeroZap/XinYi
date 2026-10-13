@@ -242,6 +242,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-123 | P1 | Device PM activity wake failure propagation | DONE | Zero | S4-122（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 `xy_device_pm_record_activity()` 无返回值且吞掉 wake callback failure；现 API 返回精确错误，失败保持低功耗 state 与旧 activity window，成功唤醒后才提交新 activity timestamp。focused `device_pm`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-08 |
 | S4-124 | P1 | IPC Observer callback-state corruption fail-closed | DONE | Zero | S4-123（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 callback 破坏公开 subject count 后 notify 仍继续遍历并返回成功；现 callback 后重新校验 subject state，异常时立即停止后续 callback、恢复 notifying flag 并返回错误。focused `ipc_observer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-13 |
 | S4-125 | P1 | IPC Observer attachment-generation corruption fail-closed | DONE | Zero | S4-124（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 live subject 内零值或重复 attachment generation 未被识别，attach/detach/notify 仍继续；现所有 public subject operations 在遍历前验证 active generation 非零且唯一，异常时零 callback/零 mutation 并可由 clear 恢复。focused `ipc_observer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-13 |
+| S4-126 | P1 | IPC Observer attachment generation wraparound uniqueness | DONE | Zero | S4-125（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 generation counter 从 `UINT32_MAX` 回绕后会复用仍存活的 generation `1`，破坏 detach/re-attach snapshot identity；现分配时跳过全部 live generation 并保持零值保留。focused `ipc_observer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-13 |
 
 ### Sprint 5 前置看板
 

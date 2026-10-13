@@ -37,6 +37,34 @@ static bool subject_state_is_valid(const xy_subject_t* subject) {
     return true;
 }
 
+static bool subject_attachment_id_is_live(const xy_subject_t* subject, uint32_t attachment_id) {
+    for (size_t i = 0; i < subject->observer_count; i++) {
+        if (subject->observers[i].attachment_id == attachment_id) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static uint32_t subject_allocate_attachment_id(xy_subject_t* subject) {
+    uint32_t attachment_id = subject->next_attachment_id;
+
+    while (subject_attachment_id_is_live(subject, attachment_id)) {
+        attachment_id++;
+        if (attachment_id == 0U) {
+            attachment_id = 1U;
+        }
+    }
+
+    subject->next_attachment_id = attachment_id + 1U;
+    if (subject->next_attachment_id == 0U) {
+        subject->next_attachment_id = 1U;
+    }
+
+    return attachment_id;
+}
+
 int xy_observer_init(xy_observer_t* observer, const char* name, observer_callback_t callback,
                      void* user_data) {
     if (!observer) {
@@ -124,10 +152,8 @@ int xy_subject_attach(xy_subject_t* subject, xy_observer_t* observer) {
 
     /* Add observer */
     memcpy(&subject->observers[subject->observer_count], observer, sizeof(*observer));
-    subject->observers[subject->observer_count].attachment_id = subject->next_attachment_id++;
-    if (subject->next_attachment_id == 0U) {
-        subject->next_attachment_id = 1U;
-    }
+    subject->observers[subject->observer_count].attachment_id =
+        subject_allocate_attachment_id(subject);
     subject->observer_count++;
 
     return XY_OBSERVER_OK;

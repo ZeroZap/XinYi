@@ -11,6 +11,14 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-13 IPC Observer attachment-generation wraparound uniqueness
+
+- 组件：IPC / Observer
+- 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/observer/xy_observer.c`、`tests/unit/ipc/test_ipc_observer.c`；focused `ipc_observer`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`
+- 适用范围：attachment generation 从 `UINT32_MAX` 回绕时跳过全部仍存活 generation，零值继续保留，从而维持 notification snapshot 对 detach/re-attach 的唯一身份判定。
+- 仍不允许宣称：跨线程并发安全、ISR safety、Pandora runtime、throughput、recovery 或 endurance。
+
 ### 2026-10-13 IPC Observer attachment-generation integrity
 
 - 组件：IPC / Observer
