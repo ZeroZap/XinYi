@@ -12,6 +12,7 @@ static int callback_count;
 static xy_observer_t reentrant_observer;
 static xy_observer_t *reentrant_detach_observer;
 static xy_observer_t *reentrant_attach_observer;
+static xy_observer_t *reentrant_reattach_observer;
 static int reentrant_first_count;
 static int reentrant_second_count;
 static int nested_notify_result;
@@ -46,6 +47,23 @@ static void reentrant_detach_callback(xy_subject_t *subject, const void *data,
         TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
                           xy_subject_detach(subject, reentrant_detach_observer));
         reentrant_detach_observer = NULL;
+    }
+}
+
+static void reentrant_detach_reattach_callback(xy_subject_t *subject, const void *data,
+                                               void *user_data)
+{
+    (void)data;
+    (void)user_data;
+
+    reentrant_first_count++;
+    if (reentrant_reattach_observer) {
+        TEST_ASSERT_TRUE(subject->notifying);
+        TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                          xy_subject_detach(subject, reentrant_reattach_observer));
+        TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                          xy_subject_attach(subject, reentrant_reattach_observer));
+        reentrant_reattach_observer = NULL;
     }
 }
 
@@ -100,6 +118,7 @@ static void reset_capture(void)
     memset(&reentrant_observer, 0, sizeof(reentrant_observer));
     reentrant_detach_observer = NULL;
     reentrant_attach_observer = NULL;
+    reentrant_reattach_observer = NULL;
     reentrant_first_count = 0;
     reentrant_second_count = 0;
     nested_notify_result = XY_OBSERVER_OK;
@@ -312,6 +331,34 @@ static void test_subject_notify_tolerates_observer_detach_during_callback(void)
     TEST_ASSERT_EQUAL_INT(0, reentrant_second_count);
 }
 
+static void test_subject_notify_defers_detached_then_reattached_observer(void)
+{
+    xy_subject_t subject;
+    xy_observer_t first;
+    xy_observer_t second;
+    const uint32_t payload = 0x0BADF00DU;
+
+    reset_capture();
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_init(&subject, "subject"));
+    TEST_ASSERT_EQUAL(
+        XY_OBSERVER_OK,
+        xy_observer_init(&first, "first", reentrant_detach_reattach_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK,
+                      xy_observer_init(&second, "second", reentrant_second_callback, NULL));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &first));
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_attach(&subject, &second));
+    reentrant_reattach_observer = &second;
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_INT(1, reentrant_first_count);
+    TEST_ASSERT_EQUAL_INT(0, reentrant_second_count);
+    TEST_ASSERT_EQUAL_UINT(2U, xy_subject_observer_count(&subject));
+
+    TEST_ASSERT_EQUAL(XY_OBSERVER_OK, xy_subject_notify(&subject, &payload));
+    TEST_ASSERT_EQUAL_INT(2, reentrant_first_count);
+    TEST_ASSERT_EQUAL_INT(1, reentrant_second_count);
+}
+
 static void test_subject_notify_defers_reentrant_attach_until_next_cycle(void)
 {
     xy_subject_t subject;
@@ -439,6 +486,7 @@ int main(void)
     RUN_TEST(test_subject_rejects_inactive_or_callbackless_observers);
     RUN_TEST(test_subject_notify_recovers_notifying_state_after_callback_mutates_active_flag);
     RUN_TEST(test_subject_notify_tolerates_observer_detach_during_callback);
+    RUN_TEST(test_subject_notify_defers_detached_then_reattached_observer);
     RUN_TEST(test_subject_notify_defers_reentrant_attach_until_next_cycle);
     RUN_TEST(test_subject_notify_rejects_nested_notification);
     RUN_TEST(test_subject_notify_rejects_reentrant_clear);

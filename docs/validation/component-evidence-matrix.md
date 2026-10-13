@@ -85,6 +85,17 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-13 IPC Observer detach/reattach generation boundary
+
+- 组件：IPC / Observer
+- 旧等级 -> 新等级：H1/Host notification-membership contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/observer/xy_observer.{h,c}`、
+  `tests/unit/ipc/test_ipc_observer.c`、`components/ipc/README.md`；focused `ipc_observer`；
+  `make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：notification callback 内 detach 后重新 attach 的同一 callback/user-data registration
+  取得新的 attachment generation，因此不会在原 notification snapshot 中被错误调用；下一轮可正常调用。
+- 仍不允许宣称：跨线程并发安全、ISR safety、Pandora runtime、throughput、recovery 或 endurance。
+
 ### 2026-10-13 IPC Observer reentrant-clear boundary
 
 - 组件：IPC / Observer

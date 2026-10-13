@@ -73,7 +73,9 @@ messages at the same priority; priority-disabled queues retain strict FIFO behav
 `xy_observer` is a small local observer-pattern helper. The host test covers
 observer/subject init guards, name truncation, attach idempotency, notify data and
 user-data dispatch, detach/not-found behavior, capacity limits, clear/deinit
-notification-state reset, and deinit.
+notification-state reset, and deinit. Notification uses an attachment-generation
+snapshot: callback-time attach is deferred, detach suppresses a pending callback,
+and detach-then-reattach remains deferred until the next cycle.
 
 ### Event group
 

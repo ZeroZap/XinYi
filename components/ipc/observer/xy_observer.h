@@ -55,6 +55,7 @@ struct xy_observer {
     char name[32];
     observer_callback_t callback;
     void *user_data;
+    uint32_t attachment_id;
     bool active;
 };
 
@@ -65,6 +66,7 @@ struct xy_subject {
     char name[32];
     xy_observer_t observers[XY_OBSERVER_MAX_OBSERVERS];
     size_t observer_count;
+    uint32_t next_attachment_id;
     bool notifying;
 };
 

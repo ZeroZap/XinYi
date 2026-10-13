@@ -15,6 +15,11 @@ static bool observer_matches(const xy_observer_t *lhs, const xy_observer_t *rhs)
     return lhs->callback == rhs->callback && lhs->user_data == rhs->user_data;
 }
 
+static bool observer_snapshot_matches(const xy_observer_t *lhs, const xy_observer_t *rhs)
+{
+    return observer_matches(lhs, rhs) && lhs->attachment_id == rhs->attachment_id;
+}
+
 int xy_observer_init(xy_observer_t *observer, const char *name,
                      observer_callback_t callback, void *user_data)
 {
@@ -65,6 +70,7 @@ int xy_subject_init(xy_subject_t *subject, const char *name)
     }
 
     subject->observer_count = 0;
+    subject->next_attachment_id = 1U;
     subject->notifying = false;
 
     return XY_OBSERVER_OK;
@@ -102,6 +108,10 @@ int xy_subject_attach(xy_subject_t *subject, xy_observer_t *observer)
 
     /* Add observer */
     memcpy(&subject->observers[subject->observer_count], observer, sizeof(*observer));
+    subject->observers[subject->observer_count].attachment_id = subject->next_attachment_id++;
+    if (subject->next_attachment_id == 0U) {
+        subject->next_attachment_id = 1U;
+    }
     subject->observer_count++;
 
     return XY_OBSERVER_OK;
@@ -151,7 +161,7 @@ int xy_subject_notify(xy_subject_t *subject, const void *data)
         bool still_attached = false;
 
         for (size_t j = 0; j < subject->observer_count; j++) {
-            if (observer_matches(&subject->observers[j], &snapshot[i])) {
+            if (observer_snapshot_matches(&subject->observers[j], &snapshot[i])) {
                 still_attached = true;
                 break;
             }
