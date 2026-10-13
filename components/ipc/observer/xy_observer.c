@@ -181,6 +181,9 @@ int xy_subject_clear(xy_subject_t *subject)
     if (!subject) {
         return XY_OBSERVER_INVALID_PARAM;
     }
+    if (subject->notifying) {
+        return XY_OBSERVER_ERROR;
+    }
 
     memset(subject->observers, 0, sizeof(subject->observers));
     subject->observer_count = 0;

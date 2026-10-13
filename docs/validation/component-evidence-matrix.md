@@ -85,6 +85,19 @@
 
 ## 3. 证据记录索引
 
+### 2026-10-13 IPC Observer reentrant-clear boundary
+
+- 组件：IPC / Observer
+- 旧等级 -> 新等级：H1/Host reentrancy contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/observer/xy_observer.c`、
+  `tests/unit/ipc/test_ipc_observer.c`；focused `ipc_observer`；`make test-unit`；
+  PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：subject notification callback 内的 `xy_subject_clear()`/`xy_subject_deinit()`
+  返回 `XY_OBSERVER_ERROR`，不会清空 active snapshot、提前结束本轮 callbacks 或破坏
+  `notifying` 状态；notification 结束后仍可正常清理。
+- 仍不允许宣称：跨线程并发安全、不同 subject 的 notification ordering、ISR safety、Pandora
+  runtime、throughput、recovery 或 endurance。
+
 ### 2026-10-13 IPC Observer nested-notification boundary
 
 - 组件：IPC / Observer
