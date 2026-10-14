@@ -1,0 +1,20 @@
+{
+  "target": "opench_ch32v307_mpu6050_sample_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "ebf3f0733e70d6223f9d9ae21f05c5e67e899b8a599324c117259fc340e623a1",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "identity_ok_count": 1,
+  "sample_ok_count": 1,
+  "restore_ok_count": 1,
+  "error_count": 0,
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "267/267 passed"
+}
