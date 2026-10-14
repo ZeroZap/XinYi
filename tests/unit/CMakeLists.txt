@@ -1656,6 +1656,20 @@ xy_add_unit_test(test_trace trace_component UNITY
 )
 target_compile_definitions(test_trace PRIVATE XY_LOG_LEVEL=XY_LOG_LEVEL_DEBUG XY_LOG_DYNAMIC_FILTER=1)
 
+xy_add_unit_test(test_trace_release trace_release_contract UNITY
+    ${UNIT_TRACE}/test_trace_release.c
+    ${TRACE}/xy_log/src/xy_log.c
+    ${CLIB}/xy_stdio.c
+    ${CLIB}/xy_string.c
+    ${CLIB}/xy_ctype.c
+    ${UNIT_SUPPORT}/test_clib_alloc_shim.c
+)
+target_compile_definitions(test_trace_release PRIVATE
+    RELEASE
+    XY_LOG_LEVEL=XY_LOG_LEVEL_DEBUG
+    XY_LOG_DYNAMIC_FILTER=1
+)
+
 # --- Test 25: CLIB common/string/stdio/ring-buffer contracts ---
 xy_add_unit_test(test_clib clib_component UNITY
     ${UNIT_CLIB}/test_clib_core.c
