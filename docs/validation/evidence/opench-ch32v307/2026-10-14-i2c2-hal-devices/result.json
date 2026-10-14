@@ -1,0 +1,21 @@
+{
+  "target": "opench_ch32v307_i2c2_hal_devices_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "dff5814679c4f074b4378f60178394864138523c3724f74997c8945cd7bad464",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "mpu6050_whoami_ok_count": 1,
+  "ap3216c_rw_restore_ok_count": 1,
+  "es8388_rw_restore_ok_count": 1,
+  "aht10_ack_ok_count": 1,
+  "error_count": 0,
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "267/267 passed"
+}

@@ -13,7 +13,9 @@ static xy_hal_i2c_callback_t i2c_callbacks[2];
 static void* i2c_callback_args[2];
 
 static uint32_t i2c_tick_ms(void) {
-    return SysTick->CNT / (SystemCoreClock / 1000U);
+    uint32_t divisor =
+        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
+    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
 }
 
 static int i2c_index(void* instance) {
@@ -32,6 +34,15 @@ static void i2c_abort(void* instance) {
     I2C_GenerateSTOP(instance, ENABLE);
     I2C_AcknowledgeConfig(instance, ENABLE);
     I2C_ClearFlag(instance, I2C_FLAG_AF | I2C_FLAG_BERR | I2C_FLAG_ARLO | I2C_FLAG_OVR);
+}
+
+static xy_hal_error_t i2c_wait_idle(void* instance, uint32_t timeout) {
+    uint32_t start = i2c_tick_ms();
+    while (I2C_GetFlagStatus(instance, I2C_FLAG_BUSY) == SET) {
+        if (timeout != 0U && (i2c_tick_ms() - start) >= timeout)
+            return XY_HAL_ERROR_TIMEOUT;
+    }
+    return XY_HAL_OK;
 }
 
 static xy_hal_error_t i2c_wait_event(void* instance, uint32_t event, uint32_t timeout) {
@@ -73,6 +84,10 @@ xy_hal_error_t xy_hal_i2c_init(void* instance, const xy_hal_i2c_config_t* config
     if (config->addr_mode == XY_HAL_I2C_ADDR_10BIT)
         return XY_HAL_ERROR_NOT_SUPPORTED;
     i2c_enable_clock(instance);
+    if (instance == I2C2) {
+        RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+        GPIO_SetBits(GPIOB, GPIO_Pin_10 | GPIO_Pin_11);
+    }
     init.I2C_ClockSpeed = config->clock_speed;
     init.I2C_Mode = I2C_Mode_I2C;
     init.I2C_DutyCycle =
@@ -183,15 +198,47 @@ xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t r
 
 xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t reg, uint8_t* data,
                                    size_t len, uint32_t timeout) {
-    uint8_t register_address;
+    size_t i;
     xy_hal_error_t result;
-    if (reg > 0xFFU)
+    if (i2c_index(instance) < 0 || !i2c_address_valid(address) || reg > 0xFFU || len == 0U ||
+        data == NULL)
         return XY_HAL_ERROR_INVALID_PARAM;
-    register_address = (uint8_t)reg;
-    result = xy_hal_i2c_master_transmit(instance, address, &register_address, 1U, timeout);
+    result = i2c_wait_idle(instance, timeout);
     if (result != XY_HAL_OK)
         return result;
-    return xy_hal_i2c_master_receive(instance, address, data, len, timeout);
+    I2C_AcknowledgeConfig(instance, ENABLE);
+    I2C_GenerateSTART(instance, ENABLE);
+    result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Transmitter);
+    result = i2c_wait_event(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    I2C_SendData(instance, (uint8_t)reg);
+    result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_TRANSMITTED, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    I2C_GenerateSTART(instance, ENABLE);
+    result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Receiver);
+    result = i2c_wait_event(instance, I2C_EVENT_MASTER_RECEIVER_MODE_SELECTED, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    for (i = 0U; i < len; ++i) {
+        if (i + 1U == len) {
+            I2C_AcknowledgeConfig(instance, DISABLE);
+            I2C_GenerateSTOP(instance, ENABLE);
+        }
+        result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_RECEIVED, timeout);
+        if (result != XY_HAL_OK)
+            return result;
+        data[i] = I2C_ReceiveData(instance);
+    }
+    I2C_AcknowledgeConfig(instance, ENABLE);
+    return i2c_wait_idle(instance, timeout);
 }
 
 xy_hal_error_t xy_hal_i2c_master_transmit_dma(void* instance, uint16_t address, const uint8_t* data,
