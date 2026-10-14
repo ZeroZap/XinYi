@@ -116,7 +116,10 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
         return wake_result;
     }
     if (!ingress_is_live(ingress) || ingress->head != previous_head || ingress->tail != next
-        || ingress->broker_generation != xy_broker_get_lifecycle_generation()) {
+        || ingress->broker_generation != xy_broker_get_lifecycle_generation()
+        || (message->src_generation != 0U
+            && message->src_generation != xy_broker_get_server_generation(message->src_server))
+        || message->dst_generation != xy_broker_get_server_generation(message->dst_server)) {
         ingress->head = previous_head;
         ingress->tail = previous_tail;
         return XY_BROKER_ERROR;
