@@ -202,6 +202,10 @@ add_test(NAME freertos_osal_thread_flags
     COMMAND python3 ${UNIT_KERNEL}/check_freertos_osal_thread_flags.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME rtthread_osal_event_flags
+    COMMAND python3 ${UNIT_KERNEL}/check_rtthread_osal_event_flags.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME public_component_evidence
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_public_component_evidence.py
     WORKING_DIRECTORY ${ROOT}

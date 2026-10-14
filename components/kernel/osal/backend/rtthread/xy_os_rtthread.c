@@ -573,17 +573,17 @@ uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
 
 uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
-    // RT-Thread event doesn't have clear function, return current flags
     rt_event_t event = (rt_event_t)ef_id;
+    rt_base_t level;
+    rt_uint32_t previous;
+
     if (!event) return 0x80000000;
 
-    rt_uint32_t current;
-    rt_err_t result = rt_event_control(event, RT_EVENT_CTRL_GET, &current);
-    if (result == RT_EOK) {
-        current &= ~flags;
-        return current;
-    }
-    return 0x80000000;
+    level = rt_spin_lock_irqsave(&event->spinlock);
+    previous = event->set;
+    event->set &= ~flags;
+    rt_spin_unlock_irqrestore(&event->spinlock, level);
+    return previous;
 }
 
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
@@ -610,8 +610,8 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
         opt = RT_EVENT_FLAG_OR;
     }
 
-    if (options & XY_OS_FLAGS_NO_CLEAR) {
-        opt |= RT_EVENT_FLAG_CLEAR; // Actually means "clear", so if NO_CLEAR, don't set flag
+    if (!(options & XY_OS_FLAGS_NO_CLEAR)) {
+        opt |= RT_EVENT_FLAG_CLEAR;
     }
 
     rt_err_t result = rt_event_recv(event, flags, opt, timeout, &recved);
