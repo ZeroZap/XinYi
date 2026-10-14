@@ -115,6 +115,10 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void* instance, uint16_t address, cons
     if (i2c_index(instance) < 0 || !i2c_address_valid(address) || len == 0U || data == NULL) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
+    result = i2c_wait_idle(instance, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    I2C_AcknowledgeConfig(instance, ENABLE);
     I2C_GenerateSTART(instance, ENABLE);
     result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
     if (result != XY_HAL_OK)
@@ -130,7 +134,7 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void* instance, uint16_t address, cons
             return result;
     }
     I2C_GenerateSTOP(instance, ENABLE);
-    return XY_HAL_OK;
+    return i2c_wait_idle(instance, timeout);
 }
 
 xy_hal_error_t xy_hal_i2c_master_receive(void* instance, uint16_t address, uint8_t* data,
@@ -140,6 +144,9 @@ xy_hal_error_t xy_hal_i2c_master_receive(void* instance, uint16_t address, uint8
     if (i2c_index(instance) < 0 || !i2c_address_valid(address) || len == 0U || data == NULL) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
+    result = i2c_wait_idle(instance, timeout);
+    if (result != XY_HAL_OK)
+        return result;
     I2C_AcknowledgeConfig(instance, ENABLE);
     I2C_GenerateSTART(instance, ENABLE);
     result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
@@ -170,6 +177,10 @@ xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t r
     if (i2c_index(instance) < 0 || !i2c_address_valid(address) || reg > 0xFFU || len == 0U ||
         data == NULL)
         return XY_HAL_ERROR_INVALID_PARAM;
+    result = i2c_wait_idle(instance, timeout);
+    if (result != XY_HAL_OK)
+        return result;
+    I2C_AcknowledgeConfig(instance, ENABLE);
     I2C_GenerateSTART(instance, ENABLE);
     result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
     if (result != XY_HAL_OK)
@@ -189,7 +200,7 @@ xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t r
             return result;
     }
     I2C_GenerateSTOP(instance, ENABLE);
-    return XY_HAL_OK;
+    return i2c_wait_idle(instance, timeout);
 }
 
 xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t reg, uint8_t* data,
@@ -270,15 +281,23 @@ xy_hal_error_t xy_hal_i2c_is_device_ready(void* instance, uint16_t address, uint
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     for (trial = 0U; trial < trials; ++trial) {
+        result = i2c_wait_idle(instance, timeout);
+        if (result != XY_HAL_OK)
+            return result;
+        I2C_AcknowledgeConfig(instance, ENABLE);
         I2C_GenerateSTART(instance, ENABLE);
         result = i2c_wait_event(instance, I2C_EVENT_MASTER_MODE_SELECT, timeout);
         if (result != XY_HAL_OK)
             continue;
         I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Transmitter);
         result = i2c_wait_event(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, timeout);
-        I2C_GenerateSTOP(instance, ENABLE);
-        if (result == XY_HAL_OK)
-            return XY_HAL_OK;
+        if (result == XY_HAL_OK) {
+            I2C_GenerateSTOP(instance, ENABLE);
+            return i2c_wait_idle(instance, timeout);
+        }
+        result = i2c_wait_idle(instance, timeout);
+        if (result == XY_HAL_ERROR_TIMEOUT)
+            return result;
     }
     return result;
 }
