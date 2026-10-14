@@ -276,7 +276,9 @@ xy_hal_error_t xy_hal_i2c_register_callback(void* instance, xy_hal_i2c_callback_
 xy_hal_error_t xy_hal_i2c_is_device_ready(void* instance, uint16_t address, uint32_t trials,
                                           uint32_t timeout) {
     uint32_t trial;
+    uint32_t start;
     xy_hal_error_t result = XY_HAL_ERROR_NOT_FOUND;
+    xy_hal_error_t cleanup_result;
     if (i2c_index(instance) < 0 || !i2c_address_valid(address) || trials == 0U) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
@@ -290,14 +292,38 @@ xy_hal_error_t xy_hal_i2c_is_device_ready(void* instance, uint16_t address, uint
         if (result != XY_HAL_OK)
             continue;
         I2C_Send7bitAddress(instance, i2c_sdk_address(address), I2C_Direction_Transmitter);
-        result = i2c_wait_event(instance, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED, timeout);
+        start = i2c_tick_ms();
+        for (;;) {
+            if (I2C_GetFlagStatus(instance, I2C_FLAG_AF) == SET) {
+                i2c_abort(instance);
+                result = XY_HAL_ERROR_NOT_FOUND;
+                break;
+            }
+            if (I2C_GetFlagStatus(instance, I2C_FLAG_BERR) == SET ||
+                I2C_GetFlagStatus(instance, I2C_FLAG_ARLO) == SET ||
+                I2C_GetFlagStatus(instance, I2C_FLAG_OVR) == SET) {
+                i2c_abort(instance);
+                result = XY_HAL_ERROR_IO;
+                break;
+            }
+            if (I2C_GetFlagStatus(instance, I2C_FLAG_ADDR) == SET) {
+                (void)((I2C_TypeDef*)instance)->STAR2;
+                result = XY_HAL_OK;
+                break;
+            }
+            if (timeout != 0U && (i2c_tick_ms() - start) >= timeout) {
+                i2c_abort(instance);
+                result = XY_HAL_ERROR_TIMEOUT;
+                break;
+            }
+        }
         if (result == XY_HAL_OK) {
             I2C_GenerateSTOP(instance, ENABLE);
             return i2c_wait_idle(instance, timeout);
         }
-        result = i2c_wait_idle(instance, timeout);
-        if (result == XY_HAL_ERROR_TIMEOUT)
-            return result;
+        cleanup_result = i2c_wait_idle(instance, timeout);
+        if (cleanup_result != XY_HAL_OK)
+            return cleanup_result;
     }
     return result;
 }
