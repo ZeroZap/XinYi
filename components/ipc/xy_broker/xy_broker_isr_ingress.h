@@ -31,6 +31,7 @@ typedef struct {
     uint16_t capacity_owner;
     volatile uint16_t head;
     volatile uint16_t tail;
+    volatile uint8_t publishing;
     xy_broker_isr_wake_t wake_from_isr;
     xy_broker_isr_wake_t wake_owner;
     void *wake_context;

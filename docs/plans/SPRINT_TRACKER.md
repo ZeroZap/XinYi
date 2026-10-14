@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-14）**：IPC Broker ISR ingress 在 wake callback 返回失败时也会重新校验 ring/owner/message 完整性；callback 若同时损坏状态，不再只透传 wake 错误并遗留 poisoned ingress，而是恢复 publish 前 ring 并返回 broker error。验证不升级 Pandora runtime 或并发/ISR 声明。
+**最新软件闭环（2026-10-14）**：IPC Broker ISR ingress 在 publish 的 wake callback 返回前保持显式 publishing guard；callback 若重入 task-context drain，不再提前消费尚未完成 postcondition validation 的 slot。验证不升级 Pandora runtime 或任意并发/ISR 声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
@@ -265,6 +265,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-144 | P1 | IPC Broker ISR wake callback 消息完整性 | DONE | Zero | S4-143（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 可破坏刚发布 slot 的 payload，而 publish 仍返回成功；现 callback 返回后重算完整性 tag，消息被改写时回滚 pre-publish ring state 并返回错误，损坏 slot 不可 drain。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 | S4-145 | P1 | IPC Broker ISR source owner generation 绑定 | DONE | Zero | S4-144（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 publish 前未注册的 ISR source 可在 wake callback 中注册并让原 ownerless message 错误成功；现 slot 固化 publish 前 source generation（含零值），callback 后与 drain 前均要求 exact generation，一旦 owner 新建/替换即回滚或丢弃。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 | S4-146 | P1 | IPC Broker ISR wake-failure 后状态完整性 | DONE | Zero | S4-145（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 返回失败并同时破坏 ring head 时，publish 只透传 wake error、保留 poisoned ingress；现失败路径与成功路径同样重验 owner/geometry/ring/message/generation，异常时恢复 publish 前 ring 并返回 broker error。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
+| S4-147 | P1 | IPC Broker ISR publish/drain 重入隔离 | DONE | Zero | S4-146（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 可重入 drain，并在 publish 完成 callback 后完整性校验前把 slot 送入 Broker queue；现 publish window 以显式 guard 阻止重入 publish/drain，callback 返回后完成 postcondition validation 才开放消费。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 
 ### Sprint 5 前置看板
 

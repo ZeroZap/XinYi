@@ -35,7 +35,8 @@ static int ingress_is_live(const xy_broker_isr_ingress_t *ingress)
     return ingress != NULL && ingress->self_owner == ingress && ingress->storage != NULL &&
            ingress->storage == ingress->storage_owner && ingress->capacity >= 2U &&
            ingress->capacity == ingress->capacity_owner && ingress->head < ingress->capacity &&
-           ingress->tail < ingress->capacity && ingress->wake_from_isr != NULL &&
+           ingress->tail < ingress->capacity && ingress->publishing <= 1U &&
+           ingress->wake_from_isr != NULL &&
            ingress->wake_from_isr == ingress->wake_owner &&
            ingress->wake_context == ingress->wake_context_owner;
 }
@@ -78,7 +79,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     uint32_t dst_generation;
     xy_broker_isr_msg_t *message;
 
-    if (!ingress_is_live(ingress) || ingress->wake_from_isr == NULL || src_server == 0U ||
+    if (!ingress_is_live(ingress) || ingress->publishing != 0U || src_server == 0U ||
         dst_server == 0U || msg_id == 0U ||
         payload_len > XY_BROKER_MAX_MSG_SIZE || (payload_len > 0U && payload == NULL)) {
         return XY_BROKER_INVALID_PARAM;
@@ -111,30 +112,37 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     }
     message->integrity_tag = message_integrity(message);
     __asm volatile("" ::: "memory");
+    ingress->publishing = 1U;
     ingress->tail = next;
     int wake_result = ingress->wake_from_isr(ingress->wake_context);
     if (wake_result != XY_BROKER_OK) {
         if (!ingress_is_live(ingress) || ingress->head != previous_head || ingress->tail != next
+            || ingress->publishing != 1U
             || ingress->broker_generation != xy_broker_get_lifecycle_generation()
             || message->integrity_tag != message_integrity(message)
             || message->src_generation != xy_broker_get_server_generation(message->src_server)
             || message->dst_generation != xy_broker_get_server_generation(message->dst_server)) {
             ingress->head = previous_head;
             ingress->tail = previous_tail;
+            ingress->publishing = 0U;
             return XY_BROKER_ERROR;
         }
         ingress->tail = previous_tail;
+        ingress->publishing = 0U;
         return wake_result;
     }
     if (!ingress_is_live(ingress) || ingress->head != previous_head || ingress->tail != next
+        || ingress->publishing != 1U
         || ingress->broker_generation != xy_broker_get_lifecycle_generation()
         || message->integrity_tag != message_integrity(message)
         || message->src_generation != xy_broker_get_server_generation(message->src_server)
         || message->dst_generation != xy_broker_get_server_generation(message->dst_server)) {
         ingress->head = previous_head;
         ingress->tail = previous_tail;
+        ingress->publishing = 0U;
         return XY_BROKER_ERROR;
     }
+    ingress->publishing = 0U;
     return XY_BROKER_OK;
 }
 
@@ -145,6 +153,9 @@ int xy_broker_isr_drain_one(xy_broker_isr_ingress_t *ingress)
 
     if (!ingress_is_live(ingress)) {
         return XY_BROKER_INVALID_PARAM;
+    }
+    if (ingress->publishing != 0U) {
+        return XY_BROKER_ERROR;
     }
     if (ingress->head == ingress->tail) {
         return XY_BROKER_NOT_FOUND;
