@@ -46,9 +46,11 @@ int main(void) {
     xy_hal_gpio_init(GPIOA, 10, &rx);
     xy_hal_uart_init(USART1, &u);
     m("OPENCH_I2C2_HAL_BOOT_20261012_D\r\n");
-    xy_hal_i2c_init(I2C2, &c);
     xy_hal_gpio_init(GPIOB, 10, &ip);
     xy_hal_gpio_init(GPIOB, 11, &ip);
+    xy_hal_gpio_write(GPIOB, 10, 1);
+    xy_hal_gpio_write(GPIOB, 11, 1);
+    xy_hal_i2c_init(I2C2, &c);
     m(xy_hal_i2c_mem_read(I2C2, 0x68, 0x75, &v, 1, 100) == XY_HAL_OK && v == 0x68
           ? "OPENCH_MPU6050_WHOAMI_OK_D\r\n"
           : "OPENCH_MPU6050_WHOAMI_ERROR_D\r\n");

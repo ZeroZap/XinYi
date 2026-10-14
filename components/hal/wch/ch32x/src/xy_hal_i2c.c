@@ -84,10 +84,6 @@ xy_hal_error_t xy_hal_i2c_init(void* instance, const xy_hal_i2c_config_t* config
     if (config->addr_mode == XY_HAL_I2C_ADDR_10BIT)
         return XY_HAL_ERROR_NOT_SUPPORTED;
     i2c_enable_clock(instance);
-    if (instance == I2C2) {
-        RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-        GPIO_SetBits(GPIOB, GPIO_Pin_10 | GPIO_Pin_11);
-    }
     init.I2C_ClockSpeed = config->clock_speed;
     init.I2C_Mode = I2C_Mode_I2C;
     init.I2C_DutyCycle =
