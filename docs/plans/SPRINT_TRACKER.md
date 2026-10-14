@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-15）**：RT-Thread OSAL Event Flags 修复 selective clear 返回值与 `NO_CLEAR` 反向映射；新增 focused source contract。验证不升级 Pandora runtime、RT-Thread runtime 或任意并发/ISR 声明。
+**最新软件闭环（2026-10-15）**：RT-Thread OSAL Event Flags `get` 不再引用 upstream 不存在的 `RT_EVENT_CTRL_GET`，改为在 event spinlock 下读取当前 set；focused source contract 同步守护。验证不升级 Pandora runtime、RT-Thread runtime 或任意并发/ISR 声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
@@ -270,6 +270,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-149 | P1 | OSAL/IPC Event Flags get 错误传播 | DONE | Zero | S4-148（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 bare-metal backend 的 invalid/deleted handle `get` 返回 0，IPC Event Group 因而误报成功并覆盖 caller output；现 bare-metal/FreeRTOS NULL-invalid contract 统一返回 OS error sentinel，wrapper 映射为 error 并保持 caller output。focused `osal_baremetal`/`ipc_event_group`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-150 | P1 | OSAL/IPC Event Flags clear 错误传播 | DONE | Zero | S4-149（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 FreeRTOS backend 的 NULL handle `clear` 返回 0，IPC Event Group 因而误报成功并覆盖 caller output；现返回 OS error sentinel，wrapper 映射为 error 并保持 caller output，bare-metal deleted handle 同步纳入 focused 回归。focused `freertos_osal_thread_flags`/`ipc_event_group`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-151 | P1 | RT-Thread OSAL Event Flags clear/wait 语义收口 | DONE | Zero | S4-150（DONE）；RT-Thread 非 reference backend | TDD RED 证明 clear 依赖不存在的 GET command、未修改 event set 且返回清除后的值，同时 wait 将 `NO_CLEAR` 反向映射为 clear；现 clear 在 RT-Thread spinlock 下返回完整旧值并只清请求位，wait 仅在未指定 `NO_CLEAR` 时请求内核 clear。focused `rtthread_osal_event_flags`/`ipc_event_group`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
+| S4-152 | P1 | RT-Thread OSAL Event Flags get compile contract | DONE | Zero | S4-151（DONE）；RT-Thread 非 reference backend | TDD RED 证明 get 仍引用当前 tracked RT-Thread 不存在的 `RT_EVENT_CTRL_GET`；现与 clear 共用 event spinlock 读取完整 set，移除不可编译 command dependency。focused `rtthread_osal_event_flags`/`ipc_event_group`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 
 ### Sprint 5 前置看板
 

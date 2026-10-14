@@ -589,11 +589,15 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 {
     rt_event_t event = (rt_event_t)ef_id;
+    rt_base_t level;
+    rt_uint32_t current;
+
     if (!event) return 0x80000000;
 
-    rt_uint32_t current;
-    rt_err_t result = rt_event_control(event, RT_EVENT_CTRL_GET, &current);
-    return (result == RT_EOK) ? current : 0x80000000;
+    level = rt_spin_lock_irqsave(&event->spinlock);
+    current = event->set;
+    rt_spin_unlock_irqrestore(&event->spinlock, level);
+    return current;
 }
 
 uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,

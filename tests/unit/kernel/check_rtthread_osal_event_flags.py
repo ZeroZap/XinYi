@@ -32,6 +32,28 @@ def main() -> int:
                 f"clear only requested bits; missing: {required}"
             )
 
+    get_body = function_body(
+        source,
+        "uint32_t xy_os_event_flags_get",
+        "uint32_t xy_os_event_flags_wait",
+    )
+    for required in (
+        "level = rt_spin_lock_irqsave(&event->spinlock);",
+        "current = event->set;",
+        "rt_spin_unlock_irqrestore(&event->spinlock, level);",
+        "return current;",
+    ):
+        if required not in get_body:
+            errors.append(
+                "RT-Thread event-flags get must read the event set under its spinlock; "
+                f"missing: {required}"
+            )
+    if "RT_EVENT_CTRL_GET" in get_body or "rt_event_control(" in get_body:
+        errors.append(
+            "RT-Thread event-flags get must not depend on the nonexistent "
+            "RT_EVENT_CTRL_GET command"
+        )
+
     wait_body = function_body(
         source,
         "uint32_t xy_os_event_flags_wait",
