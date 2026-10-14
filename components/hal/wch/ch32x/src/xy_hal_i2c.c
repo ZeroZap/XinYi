@@ -156,15 +156,15 @@ xy_hal_error_t xy_hal_i2c_master_receive(void* instance, uint16_t address, uint8
     for (i = 0U; i < len; ++i) {
         if (i + 1U == len) {
             I2C_AcknowledgeConfig(instance, DISABLE);
-            I2C_GenerateSTOP(instance, ENABLE);
         }
         result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_RECEIVED, timeout);
         if (result != XY_HAL_OK)
             return result;
         data[i] = I2C_ReceiveData(instance);
     }
+    I2C_GenerateSTOP(instance, ENABLE);
     I2C_AcknowledgeConfig(instance, ENABLE);
-    return XY_HAL_OK;
+    return i2c_wait_idle(instance, timeout);
 }
 
 xy_hal_error_t xy_hal_i2c_mem_write(void* instance, uint16_t address, uint16_t reg,
@@ -230,13 +230,13 @@ xy_hal_error_t xy_hal_i2c_mem_read(void* instance, uint16_t address, uint16_t re
     for (i = 0U; i < len; ++i) {
         if (i + 1U == len) {
             I2C_AcknowledgeConfig(instance, DISABLE);
-            I2C_GenerateSTOP(instance, ENABLE);
         }
         result = i2c_wait_event(instance, I2C_EVENT_MASTER_BYTE_RECEIVED, timeout);
         if (result != XY_HAL_OK)
             return result;
         data[i] = I2C_ReceiveData(instance);
     }
+    I2C_GenerateSTOP(instance, ENABLE);
     I2C_AcknowledgeConfig(instance, ENABLE);
     return i2c_wait_idle(instance, timeout);
 }
