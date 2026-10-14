@@ -28,7 +28,8 @@
 
 | CTest | Target | 覆盖范围 |
 | --- | --- | --- |
-| `trace_component` | `test_trace` | `xy_log_str/raw` NULL 与零长 guard、弱字符输出 seam、`xy_log_init()`、public log macro 输出、动态等级边界。 |
+| `trace_component` | `test_trace` | `xy_log_str/raw` NULL 与零长 guard、弱字符输出 seam、`xy_log_init()`、public log macro 输出、Debug 构建动态等级边界与运行时过滤。 |
+| `trace_release_contract` | `test_trace_release` | Release 默认 WARN ceiling、ERROR/WARN 合法切换、INFO/DEBUG 拒绝，以及外部越界动态等级 fail-closed。 |
 
 常用验证命令：
 
@@ -37,8 +38,9 @@ cmake -B build/pc -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release
 cmake --build build/pc --target xy_trace -j$(nproc)
 
 cmake -B build/tests/unit -S tests/unit
-cmake --build build/tests/unit --target test_trace -j$(nproc)
-ctest --test-dir build/tests/unit --output-on-failure -R '^trace_component$'
+cmake --build build/tests/unit --target test_trace test_trace_release -j$(nproc)
+ctest --test-dir build/tests/unit --output-on-failure \
+    -R '^(trace_component|trace_release_contract)$'
 make test-unit
 git diff --check
 ```
@@ -46,11 +48,12 @@ git diff --check
 ## 4. 维护边界
 
 - 不要在没有 root Kconfig 设计的情况下把 nested `XY_TRACE_ENABLE` 接成可关闭核心日志开关；许多组件默认依赖 `xy_log.h` / `xy_trace`。
-- `XY_LOG_LEVEL` 是编译期宏过滤；`xy_log_set_dynamic_level()` 当前只维护动态等级缓存，现有 public macros 不按动态等级过滤输出。
+- `XY_LOG_LEVEL` 负责编译期裁剪；链接 `xy_trace` 的 consumer 由 target 公开的 `XY_LOG_DYNAMIC_FILTER=1` 启用运行时阈值，public macros 会调用 `xy_log_dynamic_level()` 再决定是否输出。
+- Release 构建的动态阈值上限是 WARN；INFO/DEBUG 更新被拒绝，外部强符号覆盖或内存扰动留下的越界值会在 getter 中 fail-closed 到 WARN。非 Release 上限是 DEBUG。
 - `xy_log_char()` 是 platform/host 输出 seam；host 测试可重定义该符号观察输出，平台 backend 应提供真实字符 sink。
-- `g_xy_log_dinamic_level` 保留历史拼写以避免 ABI/extern drift；新增代码应优先使用 `xy_log_set_dynamic_level()` / `xy_log_dynamic_level()`。
-- 触碰 C/H 时按仓库风格格式化，并至少运行 focused `trace_component`、`make test-unit` 与 `git diff --check`。
+- 动态等级 storage 是内部实现细节；调用方应使用 `xy_log_set_dynamic_level()` / `xy_log_dynamic_level()`，不要声明或直接改写 backing symbol。
+- 触碰 C/H 时按仓库风格格式化，并至少运行 focused `trace_component`、`trace_release_contract`、`make test-unit` 与 `git diff --check`。
 
 ## 5. 当前结论
 
-Trace 不再是“只有源码、无事实源”的空白组件：根构建会产出 `xy_trace`，核心 logging runtime 有 focused host CTest 护栏。后续只按真实输出 backend、动态等级过滤策略或 shell/command 需求做 proposal + 小回归；不要把历史 `xy_cmd` 文档直接升级为 runtime 入口。
+Trace 不再是“只有源码、无事实源”的空白组件：根构建会产出 `xy_trace`，Debug/Release 动态过滤契约均有 focused host CTest 护栏。后续只按真实输出 backend、并发/ISR 丢日志策略或 shell/command 需求做 proposal + 小回归；不要把历史 `xy_cmd` 文档直接升级为 runtime 入口。

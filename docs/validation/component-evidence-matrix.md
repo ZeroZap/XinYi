@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-14 Trace active-contract documentation sync
+
+- 旧等级 -> 新等级：H1 documentation aligned with existing Host contracts; no evidence-level or Board claim change
+- 证据路径/命令：`components/trace/README.md`；focused `trace_component`/`trace_release_contract`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：公开维护说明现准确记录 compile-time filtering、linked `xy_trace` runtime filtering、Release WARN ceiling、两个 focused targets 与 internal backing-storage ownership。
+- 仍不允许宣称：Pandora Trace runtime filtering、并发/ISR safety、丢日志策略、throughput、performance、recovery、endurance 或 product qualification。
+
 ### 2026-10-14 Trace Release external-level fail-closed contract
 
 - 旧等级 -> 新等级：H1/Host Release-filter contract strengthened; no Board claim change
