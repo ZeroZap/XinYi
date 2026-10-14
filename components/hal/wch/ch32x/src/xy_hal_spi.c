@@ -13,7 +13,9 @@ static xy_hal_spi_callback_t spi_callbacks[3];
 static void* spi_callback_args[3];
 
 static uint32_t spi_tick_ms(void) {
-    return SysTick->CNT / (SystemCoreClock / 1000U);
+    uint32_t divisor =
+        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
+    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
 }
 
 static int spi_index(void* instance) {
