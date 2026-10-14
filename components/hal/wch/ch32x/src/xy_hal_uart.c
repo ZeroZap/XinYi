@@ -13,7 +13,9 @@ static xy_hal_uart_callback_t error_callback;
 static void* error_callback_arg;
 
 static uint32_t uart_tick_ms(void) {
-    return SysTick->CNT / (SystemCoreClock / 1000U);
+    uint32_t divisor =
+        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
+    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
 }
 
 static int uart_valid(void* instance) {
