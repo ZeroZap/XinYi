@@ -47,16 +47,23 @@ void xy_log_init(void) {
     xy_stdio_printf_init(xy_log_str);
 }
 
-void xy_log_set_dynamic_level(uint8_t level) {
+bool xy_log_try_set_dynamic_level(uint8_t level) {
 #ifdef RELEASE
     if (level <= XY_LOG_LEVEL_WARN) {
         g_xy_log_dynamic_level = level;
+        return true;
     }
 #else
     if (level <= XY_LOG_LEVEL_DEBUG) {
         g_xy_log_dynamic_level = level;
+        return true;
     }
 #endif
+    return false;
+}
+
+void xy_log_set_dynamic_level(uint8_t level) {
+    (void)xy_log_try_set_dynamic_level(level);
 }
 
 uint8_t xy_log_dynamic_level(void) {

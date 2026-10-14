@@ -79,11 +79,11 @@ static void test_log_raw_rejects_null_nonzero_buffer(void) {
 }
 
 static void test_dynamic_level_bounds(void) {
-    xy_log_set_dynamic_level(XY_LOG_LEVEL_ERROR);
+    TEST_ASSERT_TRUE(xy_log_try_set_dynamic_level(XY_LOG_LEVEL_ERROR));
     TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_ERROR, xy_log_dynamic_level());
-    xy_log_set_dynamic_level(XY_LOG_LEVEL_DEBUG);
+    TEST_ASSERT_TRUE(xy_log_try_set_dynamic_level(XY_LOG_LEVEL_DEBUG));
     TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_DEBUG, xy_log_dynamic_level());
-    xy_log_set_dynamic_level((uint8_t)(XY_LOG_LEVEL_DEBUG + 1U));
+    TEST_ASSERT_FALSE(xy_log_try_set_dynamic_level((uint8_t)(XY_LOG_LEVEL_DEBUG + 1U)));
     TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_DEBUG, xy_log_dynamic_level());
 }
 

@@ -6,6 +6,7 @@
 #ifndef XY_LOG_H
 #define XY_LOG_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <xy_stdio.h>
@@ -86,6 +87,7 @@
 void xy_log_init(void);
 void xy_log_str(char* str);
 void xy_log_raw(char* data, size_t len);
+bool xy_log_try_set_dynamic_level(uint8_t level);
 void xy_log_set_dynamic_level(uint8_t level);
 uint8_t xy_log_dynamic_level(void);
 

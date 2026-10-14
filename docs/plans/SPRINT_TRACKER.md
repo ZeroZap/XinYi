@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-14）**：Trace README 已与 active runtime-filter/Release ceiling contract 同步，移除不存在的历史 backing-symbol 声明，并记录两个 focused CTest；验证不升级 Pandora runtime 或并发/ISR 声明。
+**最新软件闭环（2026-10-14）**：Trace 新增可检查的动态等级 setter，Debug/Release 调用方可区分更新成功与 ceiling/越界拒绝；既有 void API 保持兼容。验证不升级 Pandora runtime 或并发/ISR 声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 

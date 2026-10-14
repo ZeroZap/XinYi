@@ -21,15 +21,18 @@ static void test_release_invalid_external_level_fails_closed_to_warn(void) {
 }
 
 static void test_release_runtime_ceiling_is_warn(void) {
-    xy_log_set_dynamic_level(XY_LOG_LEVEL_WARN);
+    TEST_ASSERT_TRUE(xy_log_try_set_dynamic_level(XY_LOG_LEVEL_WARN));
 
-    xy_log_set_dynamic_level(XY_LOG_LEVEL_ERROR);
+    TEST_ASSERT_TRUE(xy_log_try_set_dynamic_level(XY_LOG_LEVEL_ERROR));
     TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_ERROR, xy_log_dynamic_level());
 
-    xy_log_set_dynamic_level(XY_LOG_LEVEL_INFO);
+    TEST_ASSERT_FALSE(xy_log_try_set_dynamic_level(XY_LOG_LEVEL_INFO));
     TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_ERROR, xy_log_dynamic_level());
 
-    xy_log_set_dynamic_level(XY_LOG_LEVEL_WARN);
+    TEST_ASSERT_FALSE(xy_log_try_set_dynamic_level(UINT8_MAX));
+    TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_ERROR, xy_log_dynamic_level());
+
+    TEST_ASSERT_TRUE(xy_log_try_set_dynamic_level(XY_LOG_LEVEL_WARN));
     TEST_ASSERT_EQUAL_UINT8(XY_LOG_LEVEL_WARN, xy_log_dynamic_level());
 }
 
