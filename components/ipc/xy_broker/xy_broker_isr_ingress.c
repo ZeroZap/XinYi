@@ -72,6 +72,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
                           uint16_t payload_len, uint8_t priority)
 {
     uint16_t next;
+    uint16_t previous_head;
     uint16_t previous_tail;
     uint32_t dst_generation;
     xy_broker_isr_msg_t *message;
@@ -88,6 +89,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     if (dst_generation == 0U) {
         return XY_BROKER_NOT_FOUND;
     }
+    previous_head = ingress->head;
     previous_tail = ingress->tail;
     next = (uint16_t)((previous_tail + 1U) % ingress->capacity);
     if (next == ingress->head) {
@@ -112,6 +114,12 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     if (wake_result != XY_BROKER_OK) {
         ingress->tail = previous_tail;
         return wake_result;
+    }
+    if (!ingress_is_live(ingress) || ingress->head != previous_head || ingress->tail != next
+        || ingress->broker_generation != xy_broker_get_lifecycle_generation()) {
+        ingress->head = previous_head;
+        ingress->tail = previous_tail;
+        return XY_BROKER_ERROR;
     }
     return XY_BROKER_OK;
 }
