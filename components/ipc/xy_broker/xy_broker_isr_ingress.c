@@ -74,6 +74,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     uint16_t next;
     uint16_t previous_head;
     uint16_t previous_tail;
+    uint32_t src_generation;
     uint32_t dst_generation;
     xy_broker_isr_msg_t *message;
 
@@ -85,6 +86,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     if (ingress->broker_generation != xy_broker_get_lifecycle_generation()) {
         return XY_BROKER_ERROR;
     }
+    src_generation = xy_broker_get_server_generation(src_server);
     dst_generation = xy_broker_get_server_generation(dst_server);
     if (dst_generation == 0U) {
         return XY_BROKER_NOT_FOUND;
@@ -102,7 +104,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     message->msg_id = msg_id;
     message->payload_len = payload_len;
     message->priority = priority;
-    message->src_generation = xy_broker_get_server_generation(src_server);
+    message->src_generation = src_generation;
     message->dst_generation = dst_generation;
     if (payload_len > 0U) {
         memcpy(message->payload, payload, payload_len);
@@ -118,8 +120,7 @@ int xy_broker_isr_publish(xy_broker_isr_ingress_t *ingress, uint16_t src_server,
     if (!ingress_is_live(ingress) || ingress->head != previous_head || ingress->tail != next
         || ingress->broker_generation != xy_broker_get_lifecycle_generation()
         || message->integrity_tag != message_integrity(message)
-        || (message->src_generation != 0U
-            && message->src_generation != xy_broker_get_server_generation(message->src_server))
+        || message->src_generation != xy_broker_get_server_generation(message->src_server)
         || message->dst_generation != xy_broker_get_server_generation(message->dst_server)) {
         ingress->head = previous_head;
         ingress->tail = previous_tail;
@@ -153,8 +154,7 @@ int xy_broker_isr_drain_one(xy_broker_isr_ingress_t *ingress)
         ingress->head = (uint16_t)((ingress->head + 1U) % ingress->capacity);
         return XY_BROKER_ERROR;
     }
-    if ((message->src_generation != 0U
-         && message->src_generation != xy_broker_get_server_generation(message->src_server))
+    if (message->src_generation != xy_broker_get_server_generation(message->src_server)
         || message->dst_generation == 0U
         || message->dst_generation != xy_broker_get_server_generation(message->dst_server)) {
         ingress->head = (uint16_t)((ingress->head + 1U) % ingress->capacity);

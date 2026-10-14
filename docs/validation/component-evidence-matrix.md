@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-14 IPC Broker ISR source-generation binding
+
+- 旧等级 -> 新等级：H1 ISR ingress owner contract strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker_isr_ingress.c`、`tests/unit/ipc/test_ipc_broker.c`；focused `ipc_broker`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：ISR publish slot 固化 publish 前 source generation（包括未注册 source 的零值）；wake callback 若注册或替换 source owner，publish 回滚，drain 也拒绝 generation 漂移消息。
+- 仍不允许宣称：Pandora 本变更 runtime、任意 ISR 并发安全、多生产者 lock-free、throughput、recovery、endurance 或 product qualification。
+
 ### 2026-10-14 Trace checked dynamic-level setter contract
 
 - 旧等级 -> 新等级：H1/Host runtime-filter API contract strengthened; no Board claim change

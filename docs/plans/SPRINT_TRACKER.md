@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-14）**：Trace 新增可检查的动态等级 setter，Debug/Release 调用方可区分更新成功与 ceiling/越界拒绝；既有 void API 保持兼容。验证不升级 Pandora runtime 或并发/ISR 声明。
+**最新软件闭环（2026-10-14）**：IPC Broker ISR ingress 现在绑定 publish 前的 source generation；未注册 source 若在 wake callback 中被注册，publish 会回滚并拒绝该消息，避免把 ownerless ISR producer 静默升级为新 owner。验证不升级 Pandora runtime 或并发/ISR 声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
@@ -263,6 +263,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-142 | P1 | IPC Broker ISR wake callback 后状态完整性 | DONE | Zero | S4-141（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 可破坏公开 head/tail 后 publish 仍返回成功；现 callback 返回后重新校验 owner/geometry/head/tail/broker generation，异常时恢复 pre-publish ring state 并返回错误，损坏消息不可 drain。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 | S4-143 | P1 | IPC Broker ISR wake callback 路由 owner 完整性 | DONE | Zero | S4-142（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 可注销并重注册目标 server，publish 仍返回成功并留下 stale-generation slot；现 callback 返回后重新校验 source/destination generation，owner 被替换时回滚 ring publish 并返回错误。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 | S4-144 | P1 | IPC Broker ISR wake callback 消息完整性 | DONE | Zero | S4-143（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 可破坏刚发布 slot 的 payload，而 publish 仍返回成功；现 callback 返回后重算完整性 tag，消息被改写时回滚 pre-publish ring state 并返回错误，损坏 slot 不可 drain。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
+| S4-145 | P1 | IPC Broker ISR source owner generation 绑定 | DONE | Zero | S4-144（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 publish 前未注册的 ISR source 可在 wake callback 中注册并让原 ownerless message 错误成功；现 slot 固化 publish 前 source generation（含零值），callback 后与 drain 前均要求 exact generation，一旦 owner 新建/替换即回滚或丢弃。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 
 ### Sprint 5 前置看板
 
