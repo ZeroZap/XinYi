@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-14 Trace Release dynamic-level ceiling contract
+
+- 旧等级 -> 新等级：H1/Host Release-filter contract strengthened; no Board claim change
+- 证据路径/命令：`tests/unit/trace/test_trace_release.c`、`tests/unit/CMakeLists.txt`；focused `trace_release_contract`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：独立 Release-mode target 固定默认 runtime level 为 WARN，允许 ERROR/WARN 切换，并验证 INFO/DEBUG 越过 release ceiling 时不改变当前 level。
+- 仍不允许宣称：Pandora Trace runtime、concurrent loss behavior、ISR safety、throughput、performance、recovery、endurance 或 product qualification。
+
 ### 2026-10-14 IPC Broker ISR wake callback message integrity
 
 - 旧等级 -> 新等级：H1/Host contract strengthened; no Board claim change
