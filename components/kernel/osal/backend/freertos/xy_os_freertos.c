@@ -369,7 +369,7 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
     return ef_id ? (uint32_t)xEventGroupClearBits(
                        (EventGroupHandle_t)ef_id, (EventBits_t)flags)
-                 : 0;
+                 : 0x80000000U;
 }
 
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)

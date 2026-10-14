@@ -114,6 +114,20 @@ static void test_event_group_get_propagates_invalid_backend_handle(void)
     TEST_ASSERT_TRUE(group.initialized);
 }
 
+static void test_event_group_clear_propagates_invalid_backend_handle(void)
+{
+    xy_ipc_event_group_t group = {0};
+    xy_ipc_event_bits_t bits = 0xA5A5A5A5U;
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_OK, xy_ipc_event_group_init(&group, "evt"));
+    TEST_ASSERT_EQUAL_INT(XY_OS_OK, xy_os_event_flags_delete(group.os_flags));
+
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_ERROR, xy_ipc_event_group_clear(&group, 0x01U, &bits));
+    TEST_ASSERT_EQUAL_UINT32(0xA5A5A5A5U, bits);
+    TEST_ASSERT_EQUAL_INT(XY_IPC_EVENT_ERROR, xy_ipc_event_group_deinit(&group));
+    TEST_ASSERT_TRUE(group.initialized);
+}
+
 static void test_event_group_set_get_and_clear_contracts(void)
 {
     xy_ipc_event_group_t group = {0};
@@ -274,6 +288,7 @@ int main(void)
     RUN_TEST(test_event_group_reinit_and_copied_owner_fail_closed);
     RUN_TEST(test_event_group_public_handle_corruption_preserves_owned_teardown);
     RUN_TEST(test_event_group_get_propagates_invalid_backend_handle);
+    RUN_TEST(test_event_group_clear_propagates_invalid_backend_handle);
     RUN_TEST(test_event_group_set_get_and_clear_contracts);
     RUN_TEST(test_event_group_wait_guards_preserve_output_before_os_call);
     RUN_TEST(test_event_group_wait_any_all_clear_and_timeout);

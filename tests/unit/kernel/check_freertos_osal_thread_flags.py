@@ -42,6 +42,15 @@ def main() -> int:
                 f"query is rejected; missing: {required}"
             )
 
+    event_flags_clear = source.split("uint32_t xy_os_event_flags_clear", 1)[-1].split(
+        "uint32_t xy_os_event_flags_get", 1
+    )[0]
+    if ": 0x80000000U;" not in event_flags_clear:
+        errors.append(
+            "FreeRTOS event-flags clear must fail closed for a NULL handle instead of "
+            "reporting an empty previous value"
+        )
+
     for forbidden in (
         "xTaskNotifyStateClear(NULL);",
         "xTaskNotify(xTaskGetCurrentTaskHandle(), ~flags, eSetValueWithOverwrite);",

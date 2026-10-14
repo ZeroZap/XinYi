@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-15 OSAL/IPC Event Flags clear error propagation
+
+- 旧等级 -> 新等级：H1 OSAL/IPC failure contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/{kernel/check_freertos_osal_thread_flags.py,ipc/test_ipc_event_group.c}`；focused `freertos_osal_thread_flags`/`ipc_event_group`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：FreeRTOS NULL Event Flags handle 的 clear 不再返回合法空值；OSAL error sentinel 由 IPC wrapper 映射为错误并保持 caller output。bare-metal invalid/deleted handle 由 focused IPC 回归覆盖。
+- 仍不允许宣称：Pandora 本变更 runtime、FreeRTOS stale non-NULL handle 探测、ISR 并发、latency、stress、recovery 或 product qualification。
+
 ### 2026-10-15 OSAL/IPC Event Flags get error propagation
 
 - 旧等级 -> 新等级：H1 OSAL/IPC failure contract strengthened; no Board claim change
