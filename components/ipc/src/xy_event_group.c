@@ -168,6 +168,9 @@ int xy_ipc_event_group_get(xy_ipc_event_group_t *group, xy_ipc_event_bits_t *cur
     }
 
     result = xy_os_event_flags_get(group->os_flags);
+    if (event_group_map_flags_result(result, XY_IPC_EVENT_ERROR) != XY_IPC_EVENT_OK) {
+        return XY_IPC_EVENT_ERROR;
+    }
     *current = result;
     return XY_IPC_EVENT_OK;
 }

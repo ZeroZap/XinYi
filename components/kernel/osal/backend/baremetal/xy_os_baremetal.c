@@ -651,7 +651,7 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 {
     bm_event_t *e = (bm_event_t *)ef_id;
-    if (!e || e->magic != BM_EVENT_MAGIC) return 0;
+    if (!e || e->magic != BM_EVENT_MAGIC) return 0x80000000u;
     uint32_t irq = bm_enter_critical();
     uint32_t f = e->flags;
     bm_exit_critical(irq);

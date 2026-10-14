@@ -203,6 +203,7 @@ static void test_event_flags_set_get(void)
 {
     xy_os_event_flags_id_t ef = xy_os_event_flags_new(NULL);
     TEST_ASSERT_NOT_NULL(ef);
+    TEST_ASSERT_BITS_HIGH(0x80000000u, xy_os_event_flags_get(NULL));
     TEST_ASSERT_EQUAL_INT(0, xy_os_event_flags_get(ef));
     xy_os_event_flags_set(ef, 0x05);
     TEST_ASSERT_EQUAL_UINT32(0x05, xy_os_event_flags_get(ef));

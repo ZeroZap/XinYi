@@ -374,7 +374,7 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 {
-    return ef_id ? (uint32_t)xEventGroupGetBits((EventGroupHandle_t)ef_id) : 0;
+    return ef_id ? (uint32_t)xEventGroupGetBits((EventGroupHandle_t)ef_id) : 0x80000000U;
 }
 
 uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,

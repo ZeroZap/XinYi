@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-15 OSAL/IPC Event Flags get error propagation
+
+- 旧等级 -> 新等级：H1 OSAL/IPC failure contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/{baremetal,freertos}/xy_os_*.c`、`components/ipc/src/xy_event_group.c`、`tests/unit/{kernel/test_osal.c,ipc/test_ipc_event_group.c}`；focused `osal_baremetal`/`ipc_event_group`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：bare-metal invalid/deleted handle 与 FreeRTOS NULL handle 的 Event Flags get 统一发布 OS error sentinel；IPC wrapper 不再把 backend failure 当作空 flags 成功，也不覆盖 caller output。
+- 仍不允许宣称：Pandora 本变更 runtime、其他 backend stale-handle 探测、ISR 并发、latency、stress、recovery 或 product qualification。
+
 ### 2026-10-14 IPC Broker ISR corrupted-length integrity bound
 
 - 旧等级 -> 新等级：H1 ISR ingress corruption boundary strengthened; no Board claim change
