@@ -540,6 +540,17 @@ xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 /* Event Flags Functions */
 // Use RT-Thread event group
 
+static int rtthread_event_flags_args_valid(uint32_t flags, uint32_t options)
+{
+    if (flags == 0U || (flags & 0x80000000U)) {
+        return 0;
+    }
+    if (options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR)) {
+        return 0;
+    }
+    return 1;
+}
+
 static uint32_t rtthread_event_flags_snapshot(rt_event_t event)
 {
     rt_base_t level;
@@ -577,6 +588,7 @@ uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
     rt_event_t event = (rt_event_t)ef_id;
     if (!event) return 0x80000000;
+    if (!rtthread_event_flags_args_valid(flags, 0U)) return 0x80000000U;
 
     rt_err_t result = rt_event_send(event, flags);
     if (result != RT_EOK) return 0x80000000;
@@ -590,6 +602,7 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
     rt_uint32_t previous;
 
     if (!event) return 0x80000000;
+    if (!rtthread_event_flags_args_valid(flags, 0U)) return 0x80000000U;
 
     level = rt_spin_lock_irqsave(&event->spinlock);
     previous = event->set;
@@ -611,6 +624,7 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
 {
     rt_event_t event = (rt_event_t)ef_id;
     if (!event) return 0x80000000;
+    if (!rtthread_event_flags_args_valid(flags, options)) return 0x80000000U;
 
     rt_uint32_t recved;
     rt_uint8_t opt = RT_EVENT_FLAG_AND;

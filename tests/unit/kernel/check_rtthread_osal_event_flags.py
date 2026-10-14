@@ -16,12 +16,30 @@ def main() -> int:
     source = BACKEND.read_text(encoding="utf-8")
     errors: list[str] = []
 
+    helper_region = function_body(
+        source,
+        "/* Event Flags Functions */",
+        "xy_os_event_flags_id_t xy_os_event_flags_new",
+    )
+    for required in (
+        "static int rtthread_event_flags_args_valid(uint32_t flags, uint32_t options)",
+        "flags == 0U",
+        "flags & 0x80000000U",
+        "options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR)",
+    ):
+        if required not in helper_region:
+            errors.append(
+                "RT-Thread event-flags arguments must reserve the OSAL error bit, reject an "
+                f"empty mask, and reject unknown wait options; missing: {required}"
+            )
+
     set_body = function_body(
         source,
         "uint32_t xy_os_event_flags_set",
         "uint32_t xy_os_event_flags_clear",
     )
     for required in (
+        "if (!rtthread_event_flags_args_valid(flags, 0U)) return 0x80000000U;",
         "result = rt_event_send(event, flags);",
         "if (result != RT_EOK) return 0x80000000;",
         "return rtthread_event_flags_snapshot(event);",
@@ -40,6 +58,7 @@ def main() -> int:
         "uint32_t xy_os_event_flags_get",
     )
     for required in (
+        "if (!rtthread_event_flags_args_valid(flags, 0U)) return 0x80000000U;",
         "previous = event->set;",
         "event->set &= ~flags;",
         "return previous;",
@@ -94,6 +113,11 @@ def main() -> int:
         errors.append(
             "RT-Thread event-flags wait retains inverted XY_OS_FLAGS_NO_CLEAR semantics"
         )
+    if "if (!rtthread_event_flags_args_valid(flags, options)) return 0x80000000U;" not in wait_body:
+        errors.append(
+            "RT-Thread event-flags wait must reject an empty/reserved mask and unknown options "
+            "before calling rt_event_recv"
+        )
 
     if errors:
         print("rtthread_osal_event_flags failed:")
@@ -101,7 +125,10 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("rtthread_osal_event_flags_ok set=post-value clear=selective wait=no-clear-correct")
+    print(
+        "rtthread_osal_event_flags_ok args=fail-closed set=post-value "
+        "clear=selective wait=no-clear-correct"
+    )
     return 0
 
 
