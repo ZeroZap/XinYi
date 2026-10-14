@@ -540,6 +540,17 @@ xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 /* Event Flags Functions */
 // Use RT-Thread event group
 
+static uint32_t rtthread_event_flags_snapshot(rt_event_t event)
+{
+    rt_base_t level;
+    rt_uint32_t current;
+
+    level = rt_spin_lock_irqsave(&event->spinlock);
+    current = event->set;
+    rt_spin_unlock_irqrestore(&event->spinlock, level);
+    return current;
+}
+
 xy_os_event_flags_id_t xy_os_event_flags_new(const xy_os_event_flags_attr_t *attr)
 {
     const char *name = "event";
@@ -568,7 +579,8 @@ uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
     if (!event) return 0x80000000;
 
     rt_err_t result = rt_event_send(event, flags);
-    return (result == RT_EOK) ? flags : 0x80000000;
+    if (result != RT_EOK) return 0x80000000;
+    return rtthread_event_flags_snapshot(event);
 }
 
 uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
@@ -589,15 +601,9 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 {
     rt_event_t event = (rt_event_t)ef_id;
-    rt_base_t level;
-    rt_uint32_t current;
-
     if (!event) return 0x80000000;
 
-    level = rt_spin_lock_irqsave(&event->spinlock);
-    current = event->set;
-    rt_spin_unlock_irqrestore(&event->spinlock, level);
-    return current;
+    return rtthread_event_flags_snapshot(event);
 }
 
 uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,

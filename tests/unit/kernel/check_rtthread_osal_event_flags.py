@@ -16,6 +16,24 @@ def main() -> int:
     source = BACKEND.read_text(encoding="utf-8")
     errors: list[str] = []
 
+    set_body = function_body(
+        source,
+        "uint32_t xy_os_event_flags_set",
+        "uint32_t xy_os_event_flags_clear",
+    )
+    for required in (
+        "result = rt_event_send(event, flags);",
+        "if (result != RT_EOK) return 0x80000000;",
+        "return rtthread_event_flags_snapshot(event);",
+    ):
+        if required not in set_body:
+            errors.append(
+                "RT-Thread event-flags set must propagate send failure and return the complete "
+                f"post-set value; missing: {required}"
+            )
+    if "? flags :" in set_body:
+        errors.append("RT-Thread event-flags set must not return only the requested mask")
+
     clear_body = function_body(
         source,
         "uint32_t xy_os_event_flags_clear",
@@ -32,10 +50,10 @@ def main() -> int:
                 f"clear only requested bits; missing: {required}"
             )
 
-    get_body = function_body(
+    helper_body = function_body(
         source,
-        "uint32_t xy_os_event_flags_get",
-        "uint32_t xy_os_event_flags_wait",
+        "static uint32_t rtthread_event_flags_snapshot",
+        "xy_os_event_flags_id_t xy_os_event_flags_new",
     )
     for required in (
         "level = rt_spin_lock_irqsave(&event->spinlock);",
@@ -43,11 +61,19 @@ def main() -> int:
         "rt_spin_unlock_irqrestore(&event->spinlock, level);",
         "return current;",
     ):
-        if required not in get_body:
+        if required not in helper_body:
             errors.append(
-                "RT-Thread event-flags get must read the event set under its spinlock; "
+                "RT-Thread event-flags snapshot must read the event set under its spinlock; "
                 f"missing: {required}"
             )
+
+    get_body = function_body(
+        source,
+        "uint32_t xy_os_event_flags_get",
+        "uint32_t xy_os_event_flags_wait",
+    )
+    if "return rtthread_event_flags_snapshot(event);" not in get_body:
+        errors.append("RT-Thread event-flags get must return the synchronized event snapshot")
     if "RT_EVENT_CTRL_GET" in get_body or "rt_event_control(" in get_body:
         errors.append(
             "RT-Thread event-flags get must not depend on the nonexistent "
@@ -75,7 +101,7 @@ def main() -> int:
             print(f"- {error}")
         return 1
 
-    print("rtthread_osal_event_flags_ok clear=selective wait=no-clear-correct")
+    print("rtthread_osal_event_flags_ok set=post-value clear=selective wait=no-clear-correct")
     return 0
 
 

@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-15 RT-Thread OSAL Event Flags set return semantics
+
+- 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/rtthread/xy_os_rtthread.c`、`tests/unit/kernel/check_rtthread_osal_event_flags.py`；focused `rtthread_osal_event_flags`/`ipc_event_group`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：Event Flags set 传播 `rt_event_send()` failure；成功后在 event spinlock 下返回包含已有 flags 的完整 post-set snapshot，不再只回显 requested mask。
+- 仍不允许宣称：RT-Thread target compile/runtime、Pandora 本变更 runtime、跨 send/snapshot 的线性化保证、ISR 并发、latency、stress、recovery 或 product qualification。
+
 ### 2026-10-15 RT-Thread OSAL Event Flags get compile contract
 
 - 旧等级 -> 新等级：H1 RT-Thread backend source/compile contract strengthened; no Board claim change
