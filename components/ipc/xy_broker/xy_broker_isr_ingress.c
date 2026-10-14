@@ -19,6 +19,7 @@ static uint32_t integrity_update(uint32_t tag, const void *data, size_t length)
 static uint32_t message_integrity(const xy_broker_isr_msg_t *message)
 {
     uint32_t tag = XY_BROKER_ISR_INTEGRITY_SEED;
+    uint16_t payload_len = message->payload_len;
 
     tag = integrity_update(tag, &message->src_server, sizeof(message->src_server));
     tag = integrity_update(tag, &message->dst_server, sizeof(message->dst_server));
@@ -27,7 +28,10 @@ static uint32_t message_integrity(const xy_broker_isr_msg_t *message)
     tag = integrity_update(tag, &message->priority, sizeof(message->priority));
     tag = integrity_update(tag, &message->src_generation, sizeof(message->src_generation));
     tag = integrity_update(tag, &message->dst_generation, sizeof(message->dst_generation));
-    return integrity_update(tag, message->payload, message->payload_len);
+    if (payload_len > XY_BROKER_MAX_MSG_SIZE) {
+        payload_len = XY_BROKER_MAX_MSG_SIZE;
+    }
+    return integrity_update(tag, message->payload, payload_len);
 }
 
 static int ingress_is_live(const xy_broker_isr_ingress_t *ingress)

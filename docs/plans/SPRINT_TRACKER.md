@@ -266,6 +266,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-145 | P1 | IPC Broker ISR source owner generation 绑定 | DONE | Zero | S4-144（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 publish 前未注册的 ISR source 可在 wake callback 中注册并让原 ownerless message 错误成功；现 slot 固化 publish 前 source generation（含零值），callback 后与 drain 前均要求 exact generation，一旦 owner 新建/替换即回滚或丢弃。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 | S4-146 | P1 | IPC Broker ISR wake-failure 后状态完整性 | DONE | Zero | S4-145（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 返回失败并同时破坏 ring head 时，publish 只透传 wake error、保留 poisoned ingress；现失败路径与成功路径同样重验 owner/geometry/ring/message/generation，异常时恢复 publish 前 ring 并返回 broker error。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 | S4-147 | P1 | IPC Broker ISR publish/drain 重入隔离 | DONE | Zero | S4-146（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 可重入 drain，并在 publish 完成 callback 后完整性校验前把 slot 送入 Broker queue；现 publish window 以显式 guard 阻止重入 publish/drain，callback 返回后完成 postcondition validation 才开放消费。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
+| S4-148 | P1 | IPC Broker ISR 损坏 payload length 有界校验 | DONE | Zero | S4-147（DONE）；Pandora 硬件测试暂停 | TDD RED 证明 wake callback 将 slot payload length 改为 `UINT16_MAX` 时，postcondition integrity 重算越界读取并崩溃；现 integrity 重算仍绑定原始 length 字段，但 payload 读取严格限制为固定 storage 上限，publish 安全回滚 ring 并返回错误。focused `ipc_broker`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-14 |
 
 ### Sprint 5 前置看板
 

@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-14 IPC Broker ISR corrupted-length integrity bound
+
+- 旧等级 -> 新等级：H1 ISR ingress corruption boundary strengthened; no Board claim change
+- 证据路径/命令：`components/ipc/xy_broker/xy_broker_isr_ingress.c`、`tests/unit/ipc/test_ipc_broker.c`；focused `ipc_broker`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：wake callback 将已发布 slot 的 payload length 损坏为超出固定 payload storage 时，integrity 重算最多读取 `XY_BROKER_MAX_MSG_SIZE`，publish 安全回滚 ring 并返回错误，不再越界读取或崩溃。
+- 仍不允许宣称：Pandora 本变更 runtime、恶意内存破坏隔离、多 ISR producer 并发安全、throughput、recovery、endurance 或 product qualification。
+
 ### 2026-10-14 IPC Broker ISR publish/drain reentrancy isolation
 
 - 旧等级 -> 新等级：H1 ISR ingress publication boundary strengthened; no Board claim change
