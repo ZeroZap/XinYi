@@ -10,7 +10,6 @@
 #if defined(STM32U5) || defined(STM32U5xx)
 
 #include "rtthread.h"
-#include <string.h>
 
 /* RT-Thread context structures */
 typedef struct {
@@ -962,11 +961,15 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
                                  uint32_t timeout)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq || !msg_ptr) return XY_OS_ERROR_PARAMETER;
+    rt_err_t result;
 
-    rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
-                      rt_mq_send(mq, (void *)msg_ptr, strlen((char *)msg_ptr) + 1) :
-                      rt_mq_send_wait(mq, (void *)msg_ptr, strlen((char *)msg_ptr) + 1, timeout);
+    if (!mq || !msg_ptr) return XY_OS_ERROR_PARAMETER;
+    XY_UNUSED(msg_prio);
+
+    result = (timeout == XY_OS_WAIT_FOREVER)
+                 ? rt_mq_send_wait(mq, msg_ptr, mq->msg_size, RT_WAITING_FOREVER)
+                 : ((timeout == 0U) ? rt_mq_send(mq, msg_ptr, mq->msg_size)
+                                    : rt_mq_send_wait(mq, msg_ptr, mq->msg_size, timeout));
 
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
@@ -975,16 +978,19 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
                                  uint8_t *msg_prio, uint32_t timeout)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
+    rt_ssize_t received;
+
     if (!mq || !msg_ptr) return XY_OS_ERROR_PARAMETER;
 
-    rt_size_t size = 0;
-    rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
-                      rt_mq_recv(mq, msg_ptr, mq->msg_size, RT_WAITING_FOREVER, &size) :
-                      rt_mq_recv(mq, msg_ptr, mq->msg_size, timeout, &size);
-
-    XY_UNUSED(msg_prio); // RT-Thread doesn't support message priority
-
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    received = rt_mq_recv(mq, msg_ptr, mq->msg_size,
+                          (timeout == XY_OS_WAIT_FOREVER) ? RT_WAITING_FOREVER : timeout);
+    if (received != (rt_ssize_t)mq->msg_size) {
+        return XY_OS_ERROR;
+    }
+    if (msg_prio) {
+        *msg_prio = 0U;
+    }
+    return XY_OS_OK;
 }
 
 uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)

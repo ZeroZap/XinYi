@@ -1,0 +1,70 @@
+#!/usr/bin/env python3
+"""Guard RT-Thread OSAL message-queue fixed-size binary semantics."""
+
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[3]
+BACKEND = ROOT / "components/kernel/osal/backend/rtthread/xy_os_rtthread.c"
+
+
+def function_body(source: str, start: str, end: str) -> str:
+    return source.split(start, 1)[-1].split(end, 1)[0]
+
+
+def main() -> int:
+    source = BACKEND.read_text(encoding="utf-8")
+    errors: list[str] = []
+
+    put_body = function_body(
+        source,
+        "xy_os_status_t xy_os_msgqueue_put",
+        "xy_os_status_t xy_os_msgqueue_get",
+    )
+    for required in (
+        "XY_UNUSED(msg_prio);",
+        "rt_mq_send(mq, msg_ptr, mq->msg_size)",
+        "rt_mq_send_wait(mq, msg_ptr, mq->msg_size, timeout)",
+    ):
+        if required not in put_body:
+            errors.append(
+                "RT-Thread message-queue put must send the configured fixed-size binary payload; "
+                f"missing: {required}"
+            )
+    if "strlen(" in put_body:
+        errors.append(
+            "RT-Thread message-queue put must not derive binary payload length with strlen()"
+        )
+
+    get_body = function_body(
+        source,
+        "xy_os_status_t xy_os_msgqueue_get",
+        "uint32_t xy_os_msgqueue_get_capacity",
+    )
+    for required in (
+        "rt_ssize_t received;",
+        "received = rt_mq_recv(mq, msg_ptr, mq->msg_size,",
+        "(timeout == XY_OS_WAIT_FOREVER) ? RT_WAITING_FOREVER : timeout);",
+        "if (received != (rt_ssize_t)mq->msg_size)",
+        "*msg_prio = 0U;",
+    ):
+        if required not in get_body:
+            errors.append(
+                "RT-Thread message-queue get must use the tracked four-argument API and require "
+                f"one complete fixed-size message; missing: {required}"
+            )
+    if "rt_mq_recv(mq, msg_ptr, mq->msg_size, timeout, &size)" in get_body:
+        errors.append("RT-Thread message-queue get retains the obsolete five-argument API")
+
+    if errors:
+        print("rtthread_osal_msgqueue failed:")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+
+    print("rtthread_osal_msgqueue_ok payload=fixed-binary recv_api=current")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
