@@ -60,5 +60,14 @@ void xy_log_set_dynamic_level(uint8_t level) {
 }
 
 uint8_t xy_log_dynamic_level(void) {
+#ifdef RELEASE
+    if (g_xy_log_dynamic_level > XY_LOG_LEVEL_WARN) {
+        g_xy_log_dynamic_level = XY_LOG_LEVEL_WARN;
+    }
+#else
+    if (g_xy_log_dynamic_level > XY_LOG_LEVEL_DEBUG) {
+        g_xy_log_dynamic_level = XY_LOG_LEVEL_DEBUG;
+    }
+#endif
     return g_xy_log_dynamic_level;
 }

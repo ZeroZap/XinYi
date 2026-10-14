@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-14 Trace Release external-level fail-closed contract
+
+- 旧等级 -> 新等级：H1/Host Release-filter contract strengthened; no Board claim change
+- 证据路径/命令：`components/trace/xy_log/src/xy_log.c`、`tests/unit/trace/test_trace_release.c`；focused `trace_component`/`trace_release_contract`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：Release runtime getter 会将外部强符号覆盖、内存扰动或旧调用方留下的越界动态等级收敛到 WARN ceiling，避免非法高值放开 INFO/DEBUG；后续 ERROR/WARN 合法切换保持可用。
+- 仍不允许宣称：Pandora Trace runtime、并发写入安全、ISR safety、memory-corruption recovery、throughput、performance、endurance 或 product qualification。
+
 ### 2026-10-14 Trace Release dynamic-level ceiling contract
 
 - 旧等级 -> 新等级：H1/Host Release-filter contract strengthened; no Board claim change

@@ -6,6 +6,8 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新软件闭环（2026-10-14）**：Trace Release dynamic-level getter 对外部越界状态 fail-closed 到 WARN ceiling；focused、Host 268/268、PC/L4/U5 Release 与格式/whitespace gate 通过，不升级 Pandora runtime 或并发/ISR 声明。
+
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
 ---
