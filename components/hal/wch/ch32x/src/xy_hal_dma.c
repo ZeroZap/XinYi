@@ -48,7 +48,9 @@ static const uint32_t error_flags[WCH_DMA_CONTEXTS] = {
 };
 
 static uint32_t dma_tick_ms(void) {
-    return SysTick->CNT / (SystemCoreClock / 1000U);
+    uint32_t divisor =
+        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
+    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
 }
 
 static int channel_index(const void* dma) {
