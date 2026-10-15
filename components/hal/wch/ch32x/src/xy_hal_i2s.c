@@ -28,7 +28,8 @@ static int instance_index(const void* i2s) {
     return -1;
 }
 static uint32_t tick_ms(void) {
-    uint32_t divisor = SystemCoreClock / 8U / 1000U;
+    uint32_t divisor =
+        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
     return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
 }
 static int valid_frequency(uint32_t frequency) {

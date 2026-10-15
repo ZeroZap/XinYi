@@ -1,0 +1,22 @@
+{
+  "target": "opench_ch32v307_i2s2_systick_source_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "0cd55ba3544d364dde5c76c7b107daa4924354fdf0a2e4f691539e3505d4cbb5",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "hclk_64x_ok_count": 1,
+  "hclk_div8_64x_ok_count": 1,
+  "error_count": 0,
+  "transfers_per_source": 64,
+  "samples_per_transfer": 4,
+  "mode": "SPI2 I2S master TX, 48 kHz, 16 bit",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "272/272 passed"
+}
