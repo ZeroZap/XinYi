@@ -58,6 +58,8 @@ xy_hal_error_t xy_hal_dac_init(void* dac, const xy_hal_dac_config_t* config) {
     DAC_InitTypeDef init = {0};
     if (dac != DAC || config == NULL || config->resolution > XY_HAL_DAC_RESOLUTION_12B ||
         config->align > XY_HAL_DAC_DATAALIGN_LEFT ||
+        (config->resolution == XY_HAL_DAC_RESOLUTION_8B &&
+         config->align != XY_HAL_DAC_DATAALIGN_RIGHT) ||
         config->trigger_src > XY_HAL_DAC_TRIGGER_EXTI || config->wave > XY_HAL_DAC_WAVE_TRIANGLE ||
         config->buffer_enable > 1U)
         return XY_HAL_ERROR_INVALID_PARAM;
@@ -123,6 +125,9 @@ xy_hal_error_t xy_hal_dac_set_value(void* dac, xy_hal_dac_channel_t channel, uin
         return XY_HAL_ERROR_INVALID_PARAM;
     if (!context.initialized)
         return XY_HAL_ERROR_NOT_INIT;
+    if (align != context.config.align || (context.config.resolution == XY_HAL_DAC_RESOLUTION_8B &&
+                                          align != XY_HAL_DAC_DATAALIGN_RIGHT))
+        return XY_HAL_ERROR_INVALID_PARAM;
     maximum = context.config.resolution == XY_HAL_DAC_RESOLUTION_8B ? 255U : 4095U;
     if (value > maximum)
         return XY_HAL_ERROR_INVALID_PARAM;
