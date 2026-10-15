@@ -456,7 +456,12 @@ const char *xy_os_thread_get_name(xy_os_thread_id_t thread_id)
 
 xy_os_thread_id_t xy_os_thread_get_id(void)
 {
-    return (xy_os_thread_id_t)rt_thread_self();
+    rt_thread_t thread = rt_thread_self();
+
+    /* Do not expose kernel-global threads outside the project-owned set. */
+    if (!thread || !find_thread_ctx(thread)) return NULL;
+
+    return (xy_os_thread_id_t)thread;
 }
 
 xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t thread_id)

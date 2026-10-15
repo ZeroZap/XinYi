@@ -49,6 +49,14 @@ def main() -> int:
         if "find_thread_ctx(thread)" not in body:
             errors.append(f"{start.split('xy_os_', 1)[-1]} must reject untracked handles")
 
+    get_id_body = function_body(
+        source, "xy_os_thread_id_t xy_os_thread_get_id", "xy_os_thread_state_t xy_os_thread_get_state"
+    )
+    if "rt_thread_self()" not in get_id_body or "find_thread_ctx(thread)" not in get_id_body:
+        errors.append("thread get-id must publish only a tracked project-owned current thread")
+    if "return (xy_os_thread_id_t)rt_thread_self()" in get_id_body:
+        errors.append("thread get-id must not expose an untracked kernel-global handle")
+
     terminate_body = function_body(
         source, "xy_os_status_t xy_os_thread_terminate", "uint32_t xy_os_thread_get_count"
     )
