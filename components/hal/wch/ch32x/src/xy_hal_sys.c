@@ -14,6 +14,10 @@
 
 static uint8_t s_initialized;
 
+static uint32_t systick_hz(void) {
+    return (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock : SystemCoreClock / 8U;
+}
+
 xy_hal_error_t xy_hal_sys_init(void) {
     SystemCoreClockUpdate();
     SysTick->CTLR = 0U;
@@ -29,7 +33,7 @@ xy_hal_error_t xy_hal_sys_deinit(void) {
     return XY_HAL_OK;
 }
 uint32_t xy_hal_sys_get_tick_count(void) {
-    uint32_t ticks_per_ms = SystemCoreClock / 8000U;
+    uint32_t ticks_per_ms = systick_hz() / 1000U;
     return ticks_per_ms == 0U ? 0U : (uint32_t)(SysTick->CNT / ticks_per_ms);
 }
 uint32_t xy_hal_sys_get_tick_freq(void) {
@@ -258,7 +262,7 @@ void xy_hal_sys_delay_us(uint32_t us) {
         }
 }
 uint64_t xy_hal_sys_get_timestamp_us(void) {
-    uint32_t ticks_per_us = SystemCoreClock / 8000000U;
+    uint32_t ticks_per_us = systick_hz() / 1000000U;
     return ticks_per_us == 0U ? 0U : SysTick->CNT / ticks_per_us;
 }
 uint64_t xy_hal_sys_get_timestamp_ms(void) {
