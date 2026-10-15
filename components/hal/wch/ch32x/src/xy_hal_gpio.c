@@ -246,9 +246,20 @@ int32_t xy_hal_gpio_get_alternate(xy_hal_gpio_port_t port, uint8_t pin) {
 
 xy_hal_error_t xy_hal_gpio_write_batch(xy_hal_gpio_port_t port, uint16_t pin_mask,
                                        uint16_t value_mask) {
-    if (gpio_port_index(port) < 0)
+    int index = gpio_port_index(port);
+    if (index < 0 || pin_mask == 0U)
         return XY_HAL_ERROR_INVALID_PARAM;
-    GPIO_Write(port, (uint16_t)((GPIO_ReadOutputData(port) & ~pin_mask) | (value_mask & pin_mask)));
+    for (uint32_t pin = 0U; pin < XY_WCH_GPIO_PIN_COUNT; ++pin) {
+        if ((pin_mask & (1U << pin)) == 0U)
+            continue;
+        if (!gpio_state[index][pin].configured)
+            return XY_HAL_ERROR_NOT_INIT;
+        if (gpio_state[index][pin].mode != XY_HAL_GPIO_MODE_OUTPUT &&
+            gpio_state[index][pin].mode != XY_HAL_GPIO_MODE_AF)
+            return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    ((GPIO_TypeDef*)port)->BSHR =
+        (uint32_t)(value_mask & pin_mask) | ((uint32_t)(pin_mask & (uint16_t)~value_mask) << 16U);
     return XY_HAL_OK;
 }
 
