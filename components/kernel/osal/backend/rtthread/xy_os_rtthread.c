@@ -829,24 +829,13 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
                                      const xy_os_mempool_attr_t *attr)
 {
     const char *name = "memp";
-    rt_uint8_t flag = RT_IPC_FLAG_PRIO;
 
+    if (block_count == 0U || block_size == 0U) return NULL;
     if (attr && attr->name) {
         name = attr->name;
     }
 
-    // Calculate total memory size needed
-    rt_uint32_t total_size = block_count * block_size;
-    rt_uint8_t *pool = (rt_uint8_t *)rt_malloc(total_size);
-    if (!pool) return NULL;
-
-    rt_mp_t mp = rt_mp_create(name, block_count, block_size);
-    if (!mp) {
-        rt_free(pool);
-        return NULL;
-    }
-
-    return (xy_os_mempool_id_t)mp;
+    return (xy_os_mempool_id_t)rt_mp_create(name, block_count, block_size);
 }
 
 const char *xy_os_mempool_get_name(xy_os_mempool_id_t mp_id)
@@ -887,9 +876,7 @@ uint32_t xy_os_mempool_get_capacity(xy_os_mempool_id_t mp_id)
     rt_mp_t mp = (rt_mp_t)mp_id;
     if (!mp) return 0;
 
-    // RT-Thread doesn't expose capacity directly, return stored value
-    XY_UNUSED(mp);
-    return 0; // Not available
+    return mp->block_total_count;
 }
 
 uint32_t xy_os_mempool_get_block_size(xy_os_mempool_id_t mp_id)
@@ -897,9 +884,7 @@ uint32_t xy_os_mempool_get_block_size(xy_os_mempool_id_t mp_id)
     rt_mp_t mp = (rt_mp_t)mp_id;
     if (!mp) return 0;
 
-    // RT-Thread doesn't expose block size directly
-    XY_UNUSED(mp);
-    return 0; // Not available
+    return mp->block_size;
 }
 
 uint32_t xy_os_mempool_get_count(xy_os_mempool_id_t mp_id)
@@ -907,9 +892,7 @@ uint32_t xy_os_mempool_get_count(xy_os_mempool_id_t mp_id)
     rt_mp_t mp = (rt_mp_t)mp_id;
     if (!mp) return 0;
 
-    // RT-Thread doesn't expose count directly
-    XY_UNUSED(mp);
-    return 0; // Not available
+    return mp->block_total_count - mp->block_free_count;
 }
 
 uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
@@ -917,9 +900,7 @@ uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
     rt_mp_t mp = (rt_mp_t)mp_id;
     if (!mp) return 0;
 
-    // RT-Thread doesn't expose space directly
-    XY_UNUSED(mp);
-    return 0; // Not available
+    return mp->block_free_count;
 }
 
 xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
