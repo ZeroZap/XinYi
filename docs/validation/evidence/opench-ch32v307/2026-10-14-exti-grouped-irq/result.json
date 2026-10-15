@@ -1,0 +1,24 @@
+{
+  "target": "opench_ch32v307_exti_grouped_irq_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "ec92cad1f9312cc06212f7cba1b082eab4ad5e9fb42fbbc9ef91deb648f34fc0",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "grouped_callback_ok_count": 1,
+  "grouped_disable_ok_count": 1,
+  "error_count": 0,
+  "shared_irq_group": "EXTI9_5_IRQn",
+  "configured_lines": [5, 6],
+  "software_triggers": [5, 6],
+  "callback_line": 5,
+  "disable_test": "disable line 5 while line 6 remains enabled; grouped NVIC stays enabled",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "276/276 passed"
+}

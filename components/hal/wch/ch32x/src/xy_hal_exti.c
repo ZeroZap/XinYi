@@ -27,12 +27,22 @@ static uint8_t irq_channel(xy_hal_exti_line_t line) {
         EXTI15_10_IRQn, EXTI15_10_IRQn, EXTI15_10_IRQn, EXTI15_10_IRQn};
     return channels[line];
 }
+static int irq_group_enabled(xy_hal_exti_line_t line) {
+    IRQn_Type irq = (IRQn_Type)irq_channel(line);
+    for (xy_hal_exti_line_t candidate = XY_HAL_EXTI_LINE_0; candidate < XY_HAL_EXTI_LINE_MAX;
+         ++candidate) {
+        if ((IRQn_Type)irq_channel(candidate) == irq && (EXTI->INTENR & line_mask(candidate)) != 0U)
+            return 1;
+    }
+    return 0;
+}
+
 static void set_nvic(xy_hal_exti_line_t line, FunctionalState state) {
     NVIC_InitTypeDef nvic = {0};
     nvic.NVIC_IRQChannel = irq_channel(line);
     nvic.NVIC_IRQChannelPreemptionPriority = 1U;
     nvic.NVIC_IRQChannelSubPriority = 0U;
-    nvic.NVIC_IRQChannelCmd = state;
+    nvic.NVIC_IRQChannelCmd = state == ENABLE || irq_group_enabled(line) ? ENABLE : DISABLE;
     NVIC_Init(&nvic);
 }
 static EXTITrigger_TypeDef trigger_value(xy_hal_exti_trigger_t trigger) {
