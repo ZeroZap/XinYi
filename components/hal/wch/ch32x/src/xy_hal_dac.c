@@ -40,6 +40,10 @@ static uint32_t sdk_trigger(xy_hal_dac_trigger_src_t trigger) {
     return DAC_Trigger_Ext_IT9;
 }
 
+static int trigger_supported(xy_hal_dac_trigger_src_t trigger) {
+    return trigger == XY_HAL_DAC_TRIGGER_SOFTWARE || trigger == XY_HAL_DAC_TRIGGER_TIMER;
+}
+
 static uint32_t sdk_wave(xy_hal_dac_wave_t wave) {
     if (wave == XY_HAL_DAC_WAVE_NOISE)
         return DAC_WaveGeneration_Noise;
@@ -74,8 +78,8 @@ xy_hal_error_t xy_hal_dac_init(void* dac, const xy_hal_dac_config_t* config) {
         config->align > XY_HAL_DAC_DATAALIGN_LEFT ||
         (config->resolution == XY_HAL_DAC_RESOLUTION_8B &&
          config->align != XY_HAL_DAC_DATAALIGN_RIGHT) ||
-        config->trigger_src > XY_HAL_DAC_TRIGGER_EXTI || config->wave > XY_HAL_DAC_WAVE_TRIANGLE ||
-        config->buffer_enable > 1U)
+        config->trigger_src > XY_HAL_DAC_TRIGGER_EXTI || !trigger_supported(config->trigger_src) ||
+        config->wave > XY_HAL_DAC_WAVE_TRIANGLE || config->buffer_enable > 1U)
         return XY_HAL_ERROR_INVALID_PARAM;
     if (context.initialized)
         return XY_HAL_ERROR_ALREADY_INIT;
@@ -208,7 +212,7 @@ xy_hal_error_t xy_hal_dac_generate_triangle(void* dac, xy_hal_dac_channel_t chan
     if (!context.initialized)
         return XY_HAL_ERROR_NOT_INIT;
     shift = channel_shift(channel);
-    DAC->CTLR = (DAC->CTLR & ~(0x0B00U << shift)) | (DAC_WaveGeneration_Triangle << shift) |
+    DAC->CTLR = (DAC->CTLR & ~(0x0B80U << shift)) | (DAC_WaveGeneration_Triangle << shift) |
                 (encoded << shift);
     context.config.wave = XY_HAL_DAC_WAVE_TRIANGLE;
     return XY_HAL_OK;

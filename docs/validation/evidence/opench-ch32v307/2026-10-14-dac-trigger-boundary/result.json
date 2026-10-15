@@ -1,0 +1,25 @@
+{
+  "target": "opench_ch32v307_dac_trigger_boundary_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "2870c811e1446eff9b1f84590866033b1d0d56ca39382c25bc2b9200cbf86370",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "timer_trigger_ok_count": 1,
+  "unsupported_rejected_ok_count": 1,
+  "error_count": 0,
+  "timer_trigger": "DAC_Trigger_T6_TRGO",
+  "timer_ctlr_mask": "0x3C",
+  "timer_ctlr_value": "0x00040004",
+  "software_trigger_result_in_timer_mode": "XY_HAL_ERROR_NOT_SUPPORTED",
+  "exti_trigger_result": "XY_HAL_ERROR_INVALID_PARAM",
+  "unknown_trigger_result": "XY_HAL_ERROR_INVALID_PARAM",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "276/276 passed"
+}
