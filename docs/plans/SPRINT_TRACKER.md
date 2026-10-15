@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-15）**：RT-Thread OSAL dynamic mutex/semaphore 现先保留 bounded project context，再创建并绑定 kernel handle；context exhaustion 不再短暂创建后删除 kernel object，create 失败释放 reservation，delete 只接受 tracked handle 且仅在 kernel delete 成功后释放 context。semaphore 同时在 kernel 调用前拒绝 zero capacity 与 `initial_count > max_count`。focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime、同步语义或产品资格声明。
+**最新软件闭环（2026-10-15）**：RT-Thread OSAL dynamic timer 现先保留 bounded project context，再创建并绑定 kernel handle；context exhaustion/create failure 不留下未跟踪 kernel object。start/stop/query/delete 只接受 tracked handle，start 拒绝 zero ticks 并传播 timeout-control failure，delete 仅在 kernel 成功后释放完整 context。focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime、timer 调度精度或产品资格声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
@@ -281,6 +281,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-160 | P1 | RT-Thread OSAL Timer callback/API/lifecycle 收口 | DONE | Zero | S4-159（DONE）；RT-Thread 非 reference backend | TDD RED 证明 timer callback 收到 user argument 却按 internal context 解引用、使用不存在的 `RT_TIMER_CTRL_SET_FLAG`，且 initialized object 被误报 running；现创建前分配 callback context、以 create flags 固定 one-shot/periodic、通过 `RT_TIMER_CTRL_GET_STATE` 查询 active 状态，并仅在 kernel delete 成功后释放 context。focused `rtthread_osal_timer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-161 | P1 | RT-Thread OSAL dynamic thread context 生命周期收口 | DONE | Zero | S4-160（DONE）；RT-Thread 非 reference backend | TDD RED 证明 kernel thread 在 project context exhaustion 后仍可创建且不受跟踪，terminate 成功后 context 永不回收；现 create 前保留 bounded context、startup 前绑定 handle，所有 create/startup failure 回收 reservation，terminate 仅在 kernel delete 成功后清理 context。focused `rtthread_osal_thread_lifecycle` 与既有 RT-Thread policy 7/7、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-162 | P1 | RT-Thread OSAL mutex/semaphore context 生命周期收口 | DONE | Zero | S4-161（DONE）；RT-Thread 非 reference backend | TDD RED 证明 context exhaustion 前仍先创建 kernel object，delete 在 kernel failure 前先丢失 context，且任意 untracked handle 可进入 delete；现 create 前保留 bounded context、create failure 回收 reservation，delete 只接受 tracked handle 且仅在 kernel delete 成功后清理 context。semaphore 同时拒绝 zero capacity 与 initial-count overflow。focused `rtthread_osal_sync_lifecycle` 与既有 RT-Thread policy、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
+| S4-163 | P1 | RT-Thread OSAL dynamic timer owner/启动原子收口 | DONE | Zero | S4-162（DONE）；RT-Thread 非 reference backend | TDD RED 证明 timer context 未在 kernel create 前保留，untracked handle 可进入 start/stop/query/delete，且 start 吞掉 timeout-control failure 并接受 zero ticks。现 create 前保留 bounded context、失败释放 reservation，全部 runtime/delete 入口要求 tracked owner，start 传播配置错误，delete 仅在 kernel 成功后释放完整 context。focused `rtthread_osal_timer` 与相邻 lifecycle policy、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 
 ### Sprint 5 前置看板
 

@@ -50,11 +50,31 @@ static timer_ctx_t g_timer_ctx[MAX_TIMERS];
 static timer_ctx_t *alloc_timer_ctx(void)
 {
     for (size_t i = 0; i < MAX_TIMERS; i++) {
-        if (g_timer_ctx[i].timer == NULL) {
+        if (!g_timer_ctx[i].initialized) {
             return &g_timer_ctx[i];
         }
     }
     return NULL;
+}
+
+static timer_ctx_t *find_timer_ctx(rt_timer_t timer)
+{
+    for (size_t i = 0; i < MAX_TIMERS; i++) {
+        if (g_timer_ctx[i].initialized && g_timer_ctx[i].timer == timer) {
+            return &g_timer_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static void clear_timer_ctx(timer_ctx_t *ctx)
+{
+    if (!ctx) return;
+
+    ctx->timer = NULL;
+    ctx->initialized = 0;
+    ctx->callback = NULL;
+    ctx->arg = NULL;
 }
 
 static int rtthread_priority_valid(xy_os_priority_t priority)
@@ -561,6 +581,10 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func, xy_os_timer_type_t typ
     ctx = alloc_timer_ctx();
     if (!ctx) return NULL;
 
+    ctx->initialized = 1;
+    ctx->callback = func;
+    ctx->arg = argument;
+
     const char *name = "timer";
     if (attr && attr->name) {
         name = attr->name;
@@ -575,12 +599,12 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func, xy_os_timer_type_t typ
                                        1000, // Will be set later
                                        flags);
 
-    if (!timer) return NULL;
+    if (!timer) {
+        clear_timer_ctx(ctx);
+        return NULL;
+    }
 
     ctx->timer = timer;
-    ctx->callback = func;
-    ctx->arg = argument;
-    ctx->initialized = 1;
     return (xy_os_timer_id_t)timer;
 }
 
@@ -596,12 +620,15 @@ const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
-    if (!timer) return XY_OS_ERROR_PARAMETER;
+    rt_err_t result;
 
-    // Set timeout
-    rt_timer_control(timer, RT_TIMER_CTRL_SET_TIME, &ticks);
+    if (!timer || ticks == 0U) return XY_OS_ERROR_PARAMETER;
+    if (!find_timer_ctx(timer)) return XY_OS_ERROR_PARAMETER;
 
-    rt_err_t result = rt_timer_start(timer);
+    result = rt_timer_control(timer, RT_TIMER_CTRL_SET_TIME, &ticks);
+    if (result != RT_EOK) return XY_OS_ERROR;
+
+    result = rt_timer_start(timer);
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
@@ -609,6 +636,7 @@ xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
     if (!timer) return XY_OS_ERROR_PARAMETER;
+    if (!find_timer_ctx(timer)) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_timer_stop(timer);
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
@@ -619,7 +647,7 @@ uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
     rt_timer_t timer = (rt_timer_t)timer_id;
     rt_uint32_t state = RT_TIMER_FLAG_DEACTIVATED;
 
-    if (!timer) return 0;
+    if (!timer || !find_timer_ctx(timer)) return 0;
 
     if (rt_timer_control(timer, RT_TIMER_CTRL_GET_STATE, &state) != RT_EOK) return 0;
     return (state == RT_TIMER_FLAG_ACTIVATED) ? 1U : 0U;
@@ -628,27 +656,18 @@ uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
 xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
-    timer_ctx_t *ctx = NULL;
+    timer_ctx_t *ctx;
     rt_err_t result;
 
     if (!timer) return XY_OS_ERROR_PARAMETER;
 
-    for (size_t i = 0; i < MAX_TIMERS; i++) {
-        if (g_timer_ctx[i].timer == timer) {
-            ctx = &g_timer_ctx[i];
-            break;
-        }
-    }
+    ctx = find_timer_ctx(timer);
+    if (!ctx) return XY_OS_ERROR_PARAMETER;
 
     result = rt_timer_delete(timer);
     if (result != RT_EOK) return XY_OS_ERROR;
 
-    if (ctx) {
-        ctx->initialized = 0;
-        ctx->timer = NULL;
-        ctx->callback = NULL;
-        ctx->arg = NULL;
-    }
+    clear_timer_ctx(ctx);
     return XY_OS_OK;
 }
 
