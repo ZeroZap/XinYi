@@ -1,0 +1,23 @@
+{
+  "target": "opench_ch32v307_dac1_adc_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "0005c42760513257718e84473c328430f3692203217d07ecb3cc2589355f73da",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "dac_adc_ok_count": 4,
+  "error_count": 0,
+  "board_owned_gpio": "PA4 explicitly configured as analog before DAC init",
+  "generic_hal_gpio_side_effect": "removed PA4/PA5 configuration and GPIOA clock enable",
+  "loopback": "DAC1 channel 1 PA4 to ADC1 channel 4",
+  "levels": [512, 3072],
+  "acceptance": "low 100..1200, high 2400..3800, delta >= 1800",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "276/276 passed"
+}

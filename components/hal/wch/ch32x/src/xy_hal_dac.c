@@ -56,7 +56,6 @@ static uint32_t sdk_align(xy_hal_dac_align_t align) {
 
 xy_hal_error_t xy_hal_dac_init(void* dac, const xy_hal_dac_config_t* config) {
     DAC_InitTypeDef init = {0};
-    GPIO_InitTypeDef gpio = {0};
     if (dac != DAC || config == NULL || config->resolution > XY_HAL_DAC_RESOLUTION_12B ||
         config->align > XY_HAL_DAC_DATAALIGN_LEFT ||
         config->trigger_src > XY_HAL_DAC_TRIGGER_EXTI || config->wave > XY_HAL_DAC_WAVE_TRIANGLE ||
@@ -65,11 +64,7 @@ xy_hal_error_t xy_hal_dac_init(void* dac, const xy_hal_dac_config_t* config) {
     if (context.initialized)
         return XY_HAL_ERROR_ALREADY_INIT;
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
-    gpio.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5;
-    gpio.GPIO_Mode = GPIO_Mode_AIN;
-    GPIO_Init(GPIOA, &gpio);
     DAC_DeInit();
 
     init.DAC_Trigger = sdk_trigger(config->trigger_src);

@@ -22,6 +22,8 @@ int main(void) {
                                      XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_VERY_HIGH, 0U};
     const xy_hal_gpio_config_t rx = {XY_HAL_GPIO_MODE_INPUT, XY_HAL_GPIO_PULL_NONE,
                                      XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_LOW, 0U};
+    const xy_hal_gpio_config_t analog = {XY_HAL_GPIO_MODE_ANALOG, XY_HAL_GPIO_PULL_NONE,
+                                         XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_LOW, 0U};
     const xy_hal_uart_config_t uart = {115200U,
                                        XY_HAL_UART_WORDLEN_8B,
                                        XY_HAL_UART_STOPBITS_1,
@@ -44,6 +46,7 @@ int main(void) {
     SystemCoreClockUpdate();
     if (xy_hal_gpio_init(GPIOA, 9U, &tx) != XY_HAL_OK ||
         xy_hal_gpio_init(GPIOA, 10U, &rx) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOA, 4U, &analog) != XY_HAL_OK ||
         xy_hal_uart_init(USART1, &uart) != XY_HAL_OK || xy_hal_dac_init(DAC, &dac) != XY_HAL_OK ||
         xy_hal_dac_start_output(DAC, XY_HAL_DAC_CHANNEL_1) != XY_HAL_OK ||
         xy_hal_adc_init(ADC1, &adc) != XY_HAL_OK) {
@@ -51,6 +54,8 @@ int main(void) {
         for (;;) {
         }
     }
+
+    console_write("OPENCH_DAC_ADC_BOARD_OWNERSHIP_BOOT_20261014_A\r\n");
 
     for (;;) {
         int32_t low;
