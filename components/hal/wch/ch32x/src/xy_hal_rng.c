@@ -15,6 +15,12 @@ static void* s_callback_args[2];
 static uint8_t s_initialized;
 static uint8_t s_enabled;
 
+static uint32_t rng_tick_ms(void) {
+    uint32_t divisor =
+        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
+    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
+}
+
 static int valid_rng(void* rng) {
     return rng == RNG;
 }
@@ -79,14 +85,18 @@ xy_hal_error_t xy_hal_rng_get_random_nb(void* rng, uint32_t* value) {
 
 int32_t xy_hal_rng_get_random(void* rng, uint32_t timeout) {
     uint32_t value;
+    uint32_t start;
     if (!valid_rng(rng) || !s_initialized || !s_enabled)
         return (int32_t)XY_HAL_ERROR_INVALID_PARAM;
-    for (uint32_t elapsed = 0U; elapsed <= timeout * 1000U; ++elapsed) {
+    start = rng_tick_ms();
+    for (;;) {
         xy_hal_error_t status = xy_hal_rng_get_random_nb(rng, &value);
         if (status == XY_HAL_OK)
             return (int32_t)(value & 0x7FFFFFFFU);
         if (status != XY_HAL_ERROR_BUSY)
             return (int32_t)status;
+        if (timeout == 0U || rng_tick_ms() - start >= timeout)
+            break;
     }
     return (int32_t)XY_HAL_ERROR_TIMEOUT;
 }
@@ -95,10 +105,13 @@ xy_hal_error_t xy_hal_rng_get_buffer(void* rng, uint32_t* buffer, size_t count, 
     if (!valid_rng(rng) || (buffer == NULL && count != 0U))
         return XY_HAL_ERROR_INVALID_PARAM;
     for (size_t i = 0U; i < count; ++i) {
-        uint32_t elapsed;
+        uint32_t start = rng_tick_ms();
         xy_hal_error_t status = XY_HAL_ERROR_BUSY;
-        for (elapsed = 0U; elapsed <= timeout * 1000U && status == XY_HAL_ERROR_BUSY; ++elapsed)
+        while (status == XY_HAL_ERROR_BUSY) {
             status = xy_hal_rng_get_random_nb(rng, &buffer[i]);
+            if (status == XY_HAL_ERROR_BUSY && (timeout == 0U || rng_tick_ms() - start >= timeout))
+                break;
+        }
         if (status == XY_HAL_ERROR_BUSY)
             return XY_HAL_ERROR_TIMEOUT;
         if (status != XY_HAL_OK)

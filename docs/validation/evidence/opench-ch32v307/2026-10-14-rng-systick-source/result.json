@@ -1,0 +1,24 @@
+{
+  "target": "opench_ch32v307_rng_systick_source_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "ceaa5f686036bb57f7d9e9b58de97ca256cf12a37d004e967525795c81afa1a3",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "hclk_32x_ok_count": 1,
+  "hclk_div8_32x_ok_count": 1,
+  "error_count": 0,
+  "rounds_per_source": 32,
+  "words_per_round": 16,
+  "total_words": 1024,
+  "timeout_ms": 100,
+  "variation_check": "each 16-word round contains a value different from word 0",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "275/275 passed"
+}
