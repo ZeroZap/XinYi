@@ -32,6 +32,18 @@ def main() -> int:
     if "clear_thread_ctx(ctx)" not in new_body:
         errors.append("thread create/startup failure must release the reserved context")
 
+    if "/* RT-Thread detach is unsupported until owner retirement can be observed. */" not in source:
+        errors.append("RT-Thread detach must document its fail-closed unsupported contract")
+    detach_body = function_body(
+        source, "xy_os_status_t xy_os_thread_detach", "xy_os_status_t xy_os_thread_join"
+    )
+    if "find_thread_ctx(thread)" not in detach_body:
+        errors.append("thread detach must reject untracked handles")
+    if "return XY_OS_ERROR;" not in detach_body:
+        errors.append("thread detach must fail closed while owner retirement is unobservable")
+    if "rt_thread_detach(thread)" in detach_body:
+        errors.append("thread detach must not detach a kernel object before owner retirement is observable")
+
     runtime_functions = (
         ("const char *xy_os_thread_get_name", "xy_os_thread_id_t xy_os_thread_get_id"),
         ("xy_os_thread_state_t xy_os_thread_get_state", "uint32_t xy_os_thread_get_stack_size"),

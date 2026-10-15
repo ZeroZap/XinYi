@@ -564,10 +564,17 @@ xy_os_status_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
 xy_os_status_t xy_os_thread_detach(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
+
     if (!thread || !find_thread_ctx(thread)) return XY_OS_ERROR_PARAMETER;
 
-    rt_err_t result = rt_thread_detach(thread);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    /* RT-Thread detach is unsupported until owner retirement can be observed. */
+    /*
+     * RT-Thread detaches the kernel object when the thread exits, but does not
+     * provide a completion hook for retiring our bounded owner context.  Do
+     * not expose that lifecycle mismatch as a successful detach: a later
+     * handle query could otherwise reach a stale kernel object/context pair.
+     */
+    return XY_OS_ERROR;
 }
 
 xy_os_status_t xy_os_thread_join(xy_os_thread_id_t thread_id)
