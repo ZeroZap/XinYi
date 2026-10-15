@@ -850,16 +850,15 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
 const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
-    if (mutex) {
-        return mutex->parent.parent.name;
-    }
-    return NULL;
+    if (!mutex || !find_mutex_ctx(mutex)) return NULL;
+
+    return mutex->parent.parent.name;
 }
 
 xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
-    if (!mutex) return XY_OS_ERROR_PARAMETER;
+    if (!mutex || !find_mutex_ctx(mutex)) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
                       rt_mutex_take(mutex, RT_WAITING_FOREVER) :
@@ -871,7 +870,7 @@ xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
 xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
-    if (!mutex) return XY_OS_ERROR_PARAMETER;
+    if (!mutex || !find_mutex_ctx(mutex)) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_mutex_release(mutex);
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
@@ -880,7 +879,7 @@ xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
-    if (!mutex) return NULL;
+    if (!mutex || !find_mutex_ctx(mutex)) return NULL;
 
     return (xy_os_thread_id_t)mutex->owner;
 }
@@ -936,16 +935,15 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count, uint32_t initial_co
 const char *xy_os_semaphore_get_name(xy_os_semaphore_id_t semaphore_id)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (sem) {
-        return sem->parent.parent.name;
-    }
-    return NULL;
+    if (!sem || !find_sem_ctx(sem)) return NULL;
+
+    return sem->parent.parent.name;
 }
 
 xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id, uint32_t timeout)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (!sem) return XY_OS_ERROR_PARAMETER;
+    if (!sem || !find_sem_ctx(sem)) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
                       rt_sem_take(sem, RT_WAITING_FOREVER) :
@@ -957,7 +955,7 @@ xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id, uint32
 xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (!sem) return XY_OS_ERROR_PARAMETER;
+    if (!sem || !find_sem_ctx(sem)) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_sem_release(sem);
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
@@ -971,7 +969,7 @@ xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_i
 uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (!sem) return 0;
+    if (!sem || !find_sem_ctx(sem)) return 0;
 
     return sem->value;
 }

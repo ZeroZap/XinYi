@@ -50,6 +50,18 @@ def check_lifecycle(
         errors.append(f"{kind} kernel-delete failure must preserve context for retry")
 
 
+def check_runtime_owner(
+    source: str,
+    kind: str,
+    operations: list[tuple[str, str]],
+    errors: list[str],
+) -> None:
+    for start, end in operations:
+        body = function_body(source, start, end)
+        if f"find_{kind}_ctx({kind})" not in body:
+            errors.append(f"{start.split('(')[0].strip()} must reject untracked {kind} handles")
+
+
 def main() -> int:
     source = BACKEND.read_text(encoding="utf-8")
     errors: list[str] = []
@@ -84,6 +96,29 @@ def main() -> int:
     )
     if "max_count == 0U || initial_count > max_count" not in sem_new:
         errors.append("semaphore creation must reject zero capacity and initial_count overflow")
+
+    check_runtime_owner(
+        source,
+        "mutex",
+        [
+            ("const char *xy_os_mutex_get_name", "xy_os_status_t xy_os_mutex_acquire"),
+            ("xy_os_status_t xy_os_mutex_acquire", "xy_os_status_t xy_os_mutex_release"),
+            ("xy_os_status_t xy_os_mutex_release", "xy_os_thread_id_t xy_os_mutex_get_owner"),
+            ("xy_os_thread_id_t xy_os_mutex_get_owner", "xy_os_status_t xy_os_mutex_delete"),
+        ],
+        errors,
+    )
+    check_runtime_owner(
+        source,
+        "sem",
+        [
+            ("const char *xy_os_semaphore_get_name", "xy_os_status_t xy_os_semaphore_acquire"),
+            ("xy_os_status_t xy_os_semaphore_acquire", "xy_os_status_t xy_os_semaphore_release"),
+            ("xy_os_status_t xy_os_semaphore_release", "xy_os_status_t xy_os_semaphore_release_from_isr"),
+            ("uint32_t xy_os_semaphore_get_count", "xy_os_status_t xy_os_semaphore_delete"),
+        ],
+        errors,
+    )
 
     if errors:
         print("rtthread_osal_sync_lifecycle failed:")
