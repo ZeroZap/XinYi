@@ -1,0 +1,24 @@
+{
+  "target": "opench_ch32v307_exti_pending_state_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "5361a6db2caab922e565e9e8199737b6d5178abdd7633b288f03315faf08eff0",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "pending_set_issued_ok_count": 1,
+  "pending_clear_suppress_ok_count": 1,
+  "unregister_suppress_ok_count": 1,
+  "error_count": 0,
+  "line": 5,
+  "set_pending_semantics": "issue software pending without forcing NVIC dispatch",
+  "clear_pending_semantics": "clear pending before dispatch and suppress callback",
+  "unregister_semantics": "callback remains suppressed after unregister",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "276/276 passed"
+}

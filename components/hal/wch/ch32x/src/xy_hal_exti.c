@@ -128,7 +128,12 @@ int xy_hal_exti_get_pending(xy_hal_exti_line_t line) {
     return EXTI_GetFlagStatus(line_mask(line)) == SET;
 }
 xy_hal_error_t xy_hal_exti_set_pending(xy_hal_exti_line_t line) {
-    return xy_hal_exti_generate_software_interrupt(line);
+    if (!valid_line(line))
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (!initialized)
+        return XY_HAL_ERROR_NOT_INIT;
+    EXTI_GenerateSWInterrupt(line_mask(line));
+    return XY_HAL_OK;
 }
 xy_hal_error_t xy_hal_exti_clear_pending(xy_hal_exti_line_t line) {
     if (!valid_line(line))
