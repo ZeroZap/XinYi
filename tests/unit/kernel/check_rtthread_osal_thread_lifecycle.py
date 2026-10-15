@@ -64,6 +64,22 @@ def main() -> int:
     if "if (result != RT_EOK) return XY_OS_ERROR;" not in normalized_terminate:
         errors.append("kernel delete failure must preserve the context for retry")
 
+    count_body = function_body(
+        source, "uint32_t xy_os_thread_get_count", "uint32_t xy_os_thread_enumerate"
+    )
+    if "g_thread_ctx" not in count_body or "rt_thread_get_count" in count_body:
+        errors.append("thread count must report bounded project-owned contexts only")
+
+    enumerate_body = function_body(
+        source, "uint32_t xy_os_thread_enumerate", "/* Thread Flags Functions */"
+    )
+    if "g_thread_ctx" not in enumerate_body:
+        errors.append("thread enumeration must use bounded project-owned contexts")
+    if "threads[i] = RT_NULL" in enumerate_body or "rt_thread_get_count" in enumerate_body:
+        errors.append("thread enumeration must not return kernel-global counts with null handles")
+    if "thread_array[count]" not in enumerate_body:
+        errors.append("thread enumeration must publish each tracked handle")
+
     if errors:
         print("rtthread_osal_thread_lifecycle failed:")
         for error in errors:

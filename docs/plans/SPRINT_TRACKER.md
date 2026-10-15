@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-16）**：RT-Thread OSAL dynamic threads 的 name/state/stack/priority/suspend/resume/detach/join/terminate 入口现统一拒绝未由 bounded project context 跟踪的 kernel handle；join 对 tracked handle 明确返回 unsupported error，不再把 RT-Thread 缺失的 join primitive 误报成功；terminate 在 kernel delete 前验证 owner，失败时保留 context 供重试。focused policy、Host 与 PC/L4/U5 compile gate 守护该边界；验证不升级 Pandora runtime、RT-Thread runtime、调度安全/性能或产品资格声明。
+**最新软件闭环（2026-10-16）**：RT-Thread OSAL thread count/enumeration 现只报告 bounded project contexts 中的 live handles，不再混入 kernel-global count 后返回 NULL 占位；截断 enumeration 返回实际写入数量。focused policy、Host 与 PC/L4/U5 compile gate 守护该边界；验证不升级 Pandora runtime、RT-Thread runtime、调度安全/性能或产品资格声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
@@ -288,6 +288,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-167 | P1 | RT-Thread OSAL Event Flags owner 生命周期收口 | DONE | Zero | S4-166（DONE）；RT-Thread 非 reference backend | TDD RED 证明 event flags 无 bounded project owner，任意外部 kernel handle 可进入 name/set/clear/get/wait/delete。现 create 前保留 context、kernel create failure 回收 reservation，全部 public operations 要求 tracked handle，delete 仅在 kernel 成功后释放 context。focused `rtthread_osal_event_flags`/`ipc_event_group`、Host 276/276、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 || S4-168 | P1 | RT-Thread OSAL dynamic thread runtime owner 收口 | DONE | Zero | S4-167（DONE）；RT-Thread 非 reference backend | TDD RED 证明 name/state/stack/priority/suspend/resume/detach 与 terminate 只做 NULL 检查，任意外部 kernel handle 可进入字段访问或 kernel control/delete。现全部 handle-based runtime 入口要求 bounded tracked owner，terminate 在 kernel delete 前拒绝 untracked handle且保留既有失败可重试 contract。focused `rtthread_osal_thread_lifecycle`/`rtthread_osal_priority`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | `feecf469` | 2026-10-15 |
 || S4-169 | P1 | RT-Thread OSAL thread join unsupported contract | DONE | Zero | S4-168（DONE）；RT-Thread backend 无 join primitive | TDD RED 证明 `xy_os_thread_join()` 对任意输入均返回成功且未验证 project-owned handle；现 untracked handle 返回参数错误，tracked handle 明确返回 unsupported error，并由 lifecycle policy 覆盖 join owner guard。focused `rtthread_osal_thread_lifecycle`、Host、PC/L4/U5 root 与 `git diff --check` 通过；不升级 RT-Thread runtime、scheduler 或产品资格声明 | 本记录提交 | 2026-10-16 |
+|| S4-170 | P1 | RT-Thread OSAL thread inventory owner contract | DONE | Zero | S4-169（DONE）；RT-Thread 非 reference backend | TDD RED 证明 count 使用 kernel-global 数量，而 enumerate 按该数量返回 NULL 占位；现两入口只遍历 bounded project contexts，返回真实 live handle 与实际写入数量。focused `rtthread_osal_thread_lifecycle`、Host、PC/L4/U5 root 与 `git diff --check` 通过；不升级 RT-Thread runtime、scheduler 或产品资格声明 | 本记录提交 | 2026-10-16 |
 
 ### Sprint 5 前置看板
 

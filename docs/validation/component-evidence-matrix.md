@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-16 RT-Thread OSAL thread inventory owner contract
+
+- 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/rtthread/xy_os_rtthread.c`、`tests/unit/kernel/check_rtthread_osal_thread_lifecycle.py`；focused `rtthread_osal_thread_lifecycle`；Host `make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：thread count/enumeration 只遍历 bounded project contexts；enumeration 发布真实 live handles，并在 caller capacity 截断时返回实际写入数量，不再将 kernel-global count 配上 NULL 占位。
+- 仍不允许宣称：RT-Thread target runtime、Pandora 本变更 runtime、kernel-global thread visibility、scheduler safety、latency/throughput/stress 或 product qualification。
+
 ### 2026-10-16 RT-Thread OSAL thread join fail-closed contract
 
 - 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change

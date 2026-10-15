@@ -598,22 +598,28 @@ xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
 
 uint32_t xy_os_thread_get_count(void)
 {
-    return rt_thread_get_count();
+    uint32_t count = 0;
+
+    for (size_t i = 0; i < MAX_THREADS; i++) {
+        if (g_thread_ctx[i].initialized && g_thread_ctx[i].thread) {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 uint32_t xy_os_thread_enumerate(xy_os_thread_id_t *thread_array, uint32_t array_items)
 {
+    uint32_t count = 0;
+
     if (!thread_array || array_items == 0) return 0;
 
-    rt_thread_t *threads = (rt_thread_t *)thread_array;
-    rt_uint32_t count = rt_thread_get_count();
-    
-    if (count > array_items) count = array_items;
-
-    // RT-Thread doesn't directly expose thread enumeration
-    // This is a simplified implementation
-    for (uint32_t i = 0; i < count; i++) {
-        threads[i] = RT_NULL; // Not implemented in this simplified version
+    for (size_t i = 0; i < MAX_THREADS && count < array_items; i++) {
+        if (g_thread_ctx[i].initialized && g_thread_ctx[i].thread) {
+            thread_array[count] = (xy_os_thread_id_t)g_thread_ctx[i].thread;
+            count++;
+        }
     }
 
     return count;
