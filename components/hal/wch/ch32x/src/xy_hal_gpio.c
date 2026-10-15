@@ -123,7 +123,14 @@ xy_hal_error_t xy_hal_gpio_deinit(xy_hal_gpio_port_t port, uint8_t pin) {
 }
 
 xy_hal_error_t xy_hal_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t value) {
+    int index;
     if (gpio_validate(port, pin) != XY_HAL_OK || value > 1U)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    index = gpio_port_index(port);
+    if (!gpio_state[index][pin].configured)
+        return XY_HAL_ERROR_NOT_INIT;
+    if (gpio_state[index][pin].mode != XY_HAL_GPIO_MODE_OUTPUT &&
+        gpio_state[index][pin].mode != XY_HAL_GPIO_MODE_AF)
         return XY_HAL_ERROR_INVALID_PARAM;
     GPIO_WriteBit(port, (uint16_t)(1U << pin), value ? Bit_SET : Bit_RESET);
     return XY_HAL_OK;
@@ -137,7 +144,14 @@ int32_t xy_hal_gpio_read(xy_hal_gpio_port_t port, uint8_t pin) {
 
 xy_hal_error_t xy_hal_gpio_toggle(xy_hal_gpio_port_t port, uint8_t pin) {
     uint16_t mask;
+    int index;
     if (gpio_validate(port, pin) != XY_HAL_OK)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    index = gpio_port_index(port);
+    if (!gpio_state[index][pin].configured)
+        return XY_HAL_ERROR_NOT_INIT;
+    if (gpio_state[index][pin].mode != XY_HAL_GPIO_MODE_OUTPUT &&
+        gpio_state[index][pin].mode != XY_HAL_GPIO_MODE_AF)
         return XY_HAL_ERROR_INVALID_PARAM;
     mask = (uint16_t)(1U << pin);
     GPIO_WriteBit(port, mask, GPIO_ReadOutputDataBit(port, mask) ? Bit_RESET : Bit_SET);

@@ -1,0 +1,8 @@
+{
+  "target":"opench_ch32v307_gpio_write_state_smoke",
+  "sdk_commit":"08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256":"29bbed786dc58cc2cbaf34ea3c7e0a9feced7a3345823024580d27aacb989d49",
+  "programming_finished":true,"verified_ok":true,"resetting_target":true,
+  "boot_identity_count":1,"state_reject_ok_count":1,"write_toggle_deinit_ok_count":1,"error_count":0,
+  "pin":"PC4","matrix":{"PC":"passed","STM32L4":"passed","STM32U5":"passed","CH32V307":"passed"},"unit_tests":"276/276 passed"
+}
