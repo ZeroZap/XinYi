@@ -51,19 +51,31 @@ static void enable_clock(int index) {
     RCC_APB2PeriphClockCmd(clocks[index], ENABLE);
 }
 
+static uint32_t adc_clock_div(uint32_t prescaler) {
+    if (prescaler == 2U)
+        return RCC_PCLK2_Div2;
+    if (prescaler == 4U)
+        return RCC_PCLK2_Div4;
+    if (prescaler == 6U)
+        return RCC_PCLK2_Div6;
+    return RCC_PCLK2_Div8;
+}
+
 xy_hal_error_t xy_hal_adc_init(void* adc, const xy_hal_adc_config_t* config) {
     ADC_InitTypeDef init = {0};
     int index = adc_index(adc);
     if (index < 0 || config == NULL || config->resolution != XY_HAL_ADC_RESOLUTION_12B ||
         config->align > XY_HAL_ADC_DATAALIGN_LEFT || config->scan_mode > XY_HAL_ADC_SCAN_ENABLE ||
         config->continuous > XY_HAL_ADC_CONTINUOUS_ENABLE ||
-        config->trigger_src != XY_HAL_ADC_TRIGGER_SOFTWARE || config->enable_vbat != 0U) {
+        config->trigger_src != XY_HAL_ADC_TRIGGER_SOFTWARE || config->enable_vbat != 0U ||
+        (config->clock_div != 2U && config->clock_div != 4U && config->clock_div != 6U &&
+         config->clock_div != 8U)) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     if (contexts[index].initialized)
         return XY_HAL_ERROR_ALREADY_INIT;
     enable_clock(index);
-    RCC_ADCCLKConfig(RCC_PCLK2_Div8);
+    RCC_ADCCLKConfig(adc_clock_div(config->clock_div));
     ADC_DeInit(adc);
     init.ADC_Mode = ADC_Mode_Independent;
     init.ADC_ScanConvMode = config->scan_mode ? ENABLE : DISABLE;
@@ -402,10 +414,7 @@ xy_hal_error_t xy_hal_adc_set_prescaler(void* adc, uint8_t prescaler) {
         return XY_HAL_ERROR_INVALID_PARAM;
     if (!contexts[index].initialized)
         return XY_HAL_ERROR_NOT_INIT;
-    RCC_ADCCLKConfig(prescaler == 2U   ? RCC_PCLK2_Div2
-                     : prescaler == 4U ? RCC_PCLK2_Div4
-                     : prescaler == 6U ? RCC_PCLK2_Div6
-                                       : RCC_PCLK2_Div8);
+    RCC_ADCCLKConfig(adc_clock_div(prescaler));
     contexts[index].config.clock_div = prescaler;
     return XY_HAL_OK;
 }
