@@ -120,6 +120,16 @@ def main() -> int:
         errors,
     )
 
+    owner_body = function_body(
+        source,
+        "xy_os_thread_id_t xy_os_mutex_get_owner",
+        "xy_os_status_t xy_os_mutex_delete",
+    )
+    if "find_thread_ctx(owner)" not in owner_body:
+        errors.append("mutex owner query must not expose an untracked kernel-global thread")
+    if "return (xy_os_thread_id_t)mutex->owner" in owner_body:
+        errors.append("mutex owner query must validate the owner before publishing its handle")
+
     if errors:
         print("rtthread_osal_sync_lifecycle failed:")
         for error in errors:

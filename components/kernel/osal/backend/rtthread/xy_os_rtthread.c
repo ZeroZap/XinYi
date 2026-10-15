@@ -979,9 +979,14 @@ xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
+    rt_thread_t owner;
+
     if (!mutex || !find_mutex_ctx(mutex)) return NULL;
 
-    return (xy_os_thread_id_t)mutex->owner;
+    owner = mutex->owner;
+    if (!owner || !find_thread_ctx(owner)) return NULL;
+
+    return (xy_os_thread_id_t)owner;
 }
 
 xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
