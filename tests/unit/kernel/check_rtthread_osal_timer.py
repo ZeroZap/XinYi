@@ -39,6 +39,14 @@ def main() -> int:
     if "clear_timer_ctx(ctx)" not in new_body:
         errors.append("timer kernel-create failure must release the reserved context")
 
+    name_body = function_body(
+        source,
+        "const char *xy_os_timer_get_name",
+        "xy_os_status_t xy_os_timer_start",
+    )
+    if "find_timer_ctx(timer)" not in name_body:
+        errors.append("timer name query must reject untracked kernel handles before field access")
+
     start_body = function_body(source, "xy_os_status_t xy_os_timer_start", "xy_os_status_t xy_os_timer_stop")
     for required in (
         "find_timer_ctx(timer)",

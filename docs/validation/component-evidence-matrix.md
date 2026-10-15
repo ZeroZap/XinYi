@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-16 RT-Thread OSAL timer name owner guard
+
+- 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/rtthread/xy_os_rtthread.c`、`tests/unit/kernel/check_rtthread_osal_timer.py`；focused `rtthread_osal_timer`；Host `make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：timer name query 只接受 bounded project timer context；外部/untracked kernel handle 返回 NULL，且不会在 owner validation 前访问对象字段。
+- 仍不允许宣称：RT-Thread target runtime、Pandora 本变更 runtime、timer callback timing、scheduler safety、latency/throughput/stress 或 product qualification。
+
 ### 2026-10-16 RT-Thread OSAL thread inventory owner contract
 
 - 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change

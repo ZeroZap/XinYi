@@ -724,10 +724,9 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func, xy_os_timer_type_t typ
 const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
-    if (timer) {
-        return timer->parent.name;
-    }
-    return NULL;
+    if (!timer || !find_timer_ctx(timer)) return NULL;
+
+    return timer->parent.name;
 }
 
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
