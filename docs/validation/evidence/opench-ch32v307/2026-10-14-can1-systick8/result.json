@@ -1,0 +1,22 @@
+{
+  "target": "opench_ch32v307_can1_systick8_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "39471e290395864d3de0eb3fbd8e5062d30d9d4f7c03eb626d027e67c4d8c2b4",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "loopback_64x_ok_count": 1,
+  "error_count": 0,
+  "systick_source": "HCLK/8",
+  "iterations": 64,
+  "mode": "CAN1 internal loopback",
+  "frame": "standard data frame, id 0x123, dlc 4",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "272/272 passed"
+}
