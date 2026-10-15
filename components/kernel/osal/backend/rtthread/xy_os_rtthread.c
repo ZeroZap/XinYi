@@ -867,8 +867,8 @@ xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
     rt_mp_t mp = (rt_mp_t)mp_id;
     if (!mp || !block) return XY_OS_ERROR_PARAMETER;
 
-    rt_err_t result = rt_mp_free(mp, block);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    rt_mp_free(block);
+    return XY_OS_OK;
 }
 
 uint32_t xy_os_mempool_get_capacity(xy_os_mempool_id_t mp_id)

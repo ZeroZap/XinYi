@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-15 RT-Thread OSAL Memory Pool free API contract
+
+- 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/rtthread/xy_os_rtthread.c`、`tests/unit/kernel/check_rtthread_osal_mempool.py`；focused `rtthread_osal_mempool`/`rtthread_osal_msgqueue`/`rtthread_osal_event_flags`/`rtthread_osal_thread_flags`/`ipc_event_group`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：Memory Pool free 对齐 tracked RT-Thread 的单参数 `void rt_mp_free(void *block)` API；NULL pool/block 继续 fail-closed，合法 free 完成后返回 `XY_OS_OK`；policy 同时固定 bounded/forever allocation timeout 映射。
+- 仍不允许宣称：RT-Thread target compile/runtime、Pandora 本变更 runtime、跨线程/ISR safety、double-free/foreign-block recovery、resource exhaustion、latency、stress 或 product qualification。
+
 ### 2026-10-15 RT-Thread OSAL Memory Pool ownership/query contract
 
 - 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change

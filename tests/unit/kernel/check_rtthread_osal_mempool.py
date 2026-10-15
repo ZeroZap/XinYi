@@ -31,6 +31,29 @@ def main() -> int:
         if forbidden in new_body:
             errors.append(f"memory-pool create must not allocate an unused caller-side buffer: found {forbidden}")
 
+    alloc_body = function_body(
+        source,
+        "void *xy_os_mempool_alloc",
+        "xy_os_status_t xy_os_mempool_free",
+    )
+    if "rt_mp_alloc(mp, RT_WAITING_FOREVER)" not in alloc_body:
+        errors.append("wait-forever memory-pool allocation must use RT_WAITING_FOREVER")
+    if "rt_mp_alloc(mp, timeout)" not in alloc_body:
+        errors.append("bounded memory-pool allocation must pass the requested timeout")
+
+    free_body = function_body(
+        source,
+        "xy_os_status_t xy_os_mempool_free",
+        "uint32_t xy_os_mempool_get_capacity",
+    )
+    if "rt_mp_free(block);" not in free_body:
+        errors.append("memory-pool free must use the tracked RT-Thread one-argument API")
+    for forbidden in ("rt_mp_free(mp, block)", "rt_err_t result = rt_mp_free"):
+        if forbidden in free_body:
+            errors.append(f"memory-pool free uses a stale RT-Thread API contract: found {forbidden}")
+    if "return XY_OS_OK;" not in free_body:
+        errors.append("memory-pool free must report success after RT-Thread accepts the block")
+
     queries = {
         "xy_os_mempool_get_capacity": "return mp->block_total_count;",
         "xy_os_mempool_get_block_size": "return mp->block_size;",

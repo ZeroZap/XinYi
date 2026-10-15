@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-15）**：RT-Thread OSAL Memory Pool 移除未被内核采用的重复 heap allocation，zero-size create fail-closed，capacity/block-size/used/free queries 改为返回 tracked RT-Thread metadata；focused policy、Host 与 PC/L4/U5 compile gate 守护该 ownership/query 边界。验证不升级 Pandora runtime、RT-Thread runtime、并发/ISR 或资源耗尽恢复声明。
+**最新软件闭环（2026-10-15）**：RT-Thread OSAL Memory Pool free 对齐当前 tracked RT-Thread 的单参数 `rt_mp_free(block)` void API，移除旧双参数/返回码假设；focused policy、Host 与 PC/L4/U5 compile gate 守护 alloc/free 及 ownership/query 边界。验证不升级 Pandora runtime、RT-Thread runtime、并发/ISR 或资源耗尽恢复声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
@@ -276,6 +276,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-155 | P1 | RT-Thread OSAL Message Queue 固定二进制 contract | DONE | Zero | S4-154（DONE）；RT-Thread 非 reference backend | TDD RED 证明 put 使用 `strlen()` 截断含 NUL payload，get 仍调用 tracked RT-Thread 已不存在的五参数 API；现 put 始终发送 queue `msg_size`，get 使用四参数 API 并只在完整消息时成功，priority 输出确定为 0。focused `rtthread_osal_msgqueue`/`rtthread_osal_event_flags`/`ipc_event_group`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-156 | P1 | RT-Thread OSAL Thread Flags unsupported fail-closed | DONE | Zero | S4-155（DONE）；RT-Thread 非 reference backend | TDD RED 证明 unsupported clear/get 返回 0 假成功，且四个入口未统一使用 error sentinel；现 set/clear/get/wait 全部显式返回 `0x80000000U`。focused `rtthread_osal_thread_flags`/`rtthread_osal_event_flags`/`rtthread_osal_msgqueue`/`ipc_event_group`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-157 | P1 | RT-Thread OSAL Memory Pool ownership/query 收口 | DONE | Zero | S4-156（DONE）；RT-Thread 非 reference backend | TDD RED 证明 create 先 `rt_malloc()` 一块从未交给内核的 buffer，成功时泄漏；四个 query 对 live pool 固定返回 0。现仅由 `rt_mp_create()` 持有 storage，zero dimensions 在内核调用前拒绝，capacity/block-size/used/free 返回 tracked RT-Thread metadata。focused `rtthread_osal_mempool`/`rtthread_osal_msgqueue`/`rtthread_osal_event_flags`/`rtthread_osal_thread_flags`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
+| S4-158 | P1 | RT-Thread OSAL Memory Pool free API 对齐 | DONE | Zero | S4-157（DONE）；RT-Thread 非 reference backend | TDD RED 证明 free 仍调用旧双参数 `rt_mp_free(mp, block)` 并假定返回 `rt_err_t`，与 tracked RT-Thread 的 `void rt_mp_free(void *block)` 不兼容；现按当前 API 释放并在参数校验后返回成功，policy 同时守护 alloc timeout contract。focused `rtthread_osal_mempool`/`rtthread_osal_msgqueue`/`rtthread_osal_event_flags`/`rtthread_osal_thread_flags`/`ipc_event_group`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 
 ### Sprint 5 前置看板
 
