@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-15）**：RT-Thread OSAL event flags 现由 bounded project context 绑定 kernel owner；create 在 kernel allocation 前保留 context，name/set/clear/get/wait/delete 拒绝 untracked handles，kernel delete 失败时保留 owner 供重试。focused policy、Host 276/276 与 PC/L4/U5 compile gate 守护该边界；验证不升级 Pandora runtime、RT-Thread runtime、同步安全/性能或产品资格声明。
+**最新软件闭环（2026-10-15）**：RT-Thread OSAL dynamic threads 的 name/state/stack/priority/suspend/resume/detach/terminate 入口现统一拒绝未由 bounded project context 跟踪的 kernel handle；terminate 在 kernel delete 前验证 owner，失败时保留 context 供重试。focused policy、Host 与 PC/L4/U5 compile gate 守护该边界；验证不升级 Pandora runtime、RT-Thread runtime、调度安全/性能或产品资格声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
@@ -286,6 +286,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-165 | P1 | RT-Thread OSAL mutex/semaphore runtime owner 收口 | DONE | Zero | S4-164（DONE）；RT-Thread 非 reference backend | TDD RED 证明 name/acquire/release/owner/count 入口只做 NULL 检查，任意外部 kernel handle 可绕过 bounded project context；现 runtime 入口统一要求 tracked handle，拒绝时不进入 kernel/字段访问，既有 create/delete 失败原子与 ISR release 路径保持。focused `rtthread_osal_sync_lifecycle` 与相邻 RT-Thread policy、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-166 | P1 | RT-Thread OSAL Memory Pool owner 生命周期收口 | DONE | Zero | S4-165（DONE）；RT-Thread 非 reference backend | TDD RED 证明 memory pool 无 bounded project owner，任意外部 kernel handle 可进入 name/alloc/free/query/delete。现 create 前保留 context、kernel create failure 回收 reservation，全部 runtime/query/delete 入口要求 tracked handle，delete 仅在 kernel 成功后释放 context。focused `rtthread_osal_mempool`/`rtthread_osal_msgqueue`/`rtthread_osal_sync_lifecycle`、Host 276/276、PC/L4/U5 root 与 `git diff --check` 通过 | `2b170487` | 2026-10-15 |
 | S4-167 | P1 | RT-Thread OSAL Event Flags owner 生命周期收口 | DONE | Zero | S4-166（DONE）；RT-Thread 非 reference backend | TDD RED 证明 event flags 无 bounded project owner，任意外部 kernel handle 可进入 name/set/clear/get/wait/delete。现 create 前保留 context、kernel create failure 回收 reservation，全部 public operations 要求 tracked handle，delete 仅在 kernel 成功后释放 context。focused `rtthread_osal_event_flags`/`ipc_event_group`、Host 276/276、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
+| S4-168 | P1 | RT-Thread OSAL dynamic thread runtime owner 收口 | DONE | Zero | S4-167（DONE）；RT-Thread 非 reference backend | TDD RED 证明 name/state/stack/priority/suspend/resume/detach 与 terminate 只做 NULL 检查，任意外部 kernel handle 可进入字段访问或 kernel control/delete。现全部 handle-based runtime 入口要求 bounded tracked owner，terminate 在 kernel delete 前拒绝 untracked handle且保留既有失败可重试 contract。focused `rtthread_osal_thread_lifecycle`/`rtthread_osal_priority`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 
 ### Sprint 5 前置看板
 

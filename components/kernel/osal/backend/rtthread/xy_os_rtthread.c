@@ -449,10 +449,9 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
 const char *xy_os_thread_get_name(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (thread) {
-        return thread->name;
-    }
-    return NULL;
+    if (!thread || !find_thread_ctx(thread)) return NULL;
+
+    return thread->name;
 }
 
 xy_os_thread_id_t xy_os_thread_get_id(void)
@@ -463,7 +462,7 @@ xy_os_thread_id_t xy_os_thread_get_id(void)
 xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_THREAD_ERROR;
+    if (!thread || !find_thread_ctx(thread)) return XY_OS_THREAD_ERROR;
 
     switch (thread->stat) {
     case RT_THREAD_READY:
@@ -483,7 +482,7 @@ xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t thread_id)
 uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread || !thread->stack_addr) return 0;
+    if (!thread || !find_thread_ctx(thread) || !thread->stack_addr) return 0;
     
     return thread->stack_size;
 }
@@ -491,7 +490,7 @@ uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t thread_id)
 uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread || !thread->stack_addr) return 0;
+    if (!thread || !find_thread_ctx(thread) || !thread->stack_addr) return 0;
     
     rt_uint8_t *top_ptr = (rt_uint8_t *)thread->stack_addr;
     rt_uint32_t used = 0;
@@ -508,7 +507,7 @@ xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
                                         xy_os_priority_t priority)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_PARAMETER;
+    if (!thread || !find_thread_ctx(thread)) return XY_OS_ERROR_PARAMETER;
     if (!rtthread_priority_valid(priority)) return XY_OS_ERROR_PARAMETER;
 
     rt_uint8_t rt_priority = xy_to_rt_priority(priority);
@@ -520,7 +519,7 @@ xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
 xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return -1;
+    if (!thread || !find_thread_ctx(thread)) return XY_OS_PRIORITY_ERROR;
 
     return rt_to_xy_priority(thread->current_priority);
 }
@@ -534,7 +533,7 @@ xy_os_status_t xy_os_thread_yield(void)
 xy_os_status_t xy_os_thread_suspend(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_PARAMETER;
+    if (!thread || !find_thread_ctx(thread)) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_thread_suspend(thread);
     if (result == RT_EOK) {
@@ -547,7 +546,7 @@ xy_os_status_t xy_os_thread_suspend(xy_os_thread_id_t thread_id)
 xy_os_status_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_PARAMETER;
+    if (!thread || !find_thread_ctx(thread)) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_thread_resume(thread);
     if (result == RT_EOK) {
@@ -560,7 +559,7 @@ xy_os_status_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
 xy_os_status_t xy_os_thread_detach(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
-    if (!thread) return XY_OS_ERROR_PARAMETER;
+    if (!thread || !find_thread_ctx(thread)) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_thread_detach(thread);
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
@@ -587,6 +586,7 @@ xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
     if (!thread) return XY_OS_ERROR_PARAMETER;
 
     ctx = find_thread_ctx(thread);
+    if (!ctx) return XY_OS_ERROR_PARAMETER;
     result = rt_thread_delete(thread);
     if (result != RT_EOK) return XY_OS_ERROR;
 

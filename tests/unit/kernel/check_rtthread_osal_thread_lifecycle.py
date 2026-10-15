@@ -32,16 +32,34 @@ def main() -> int:
     if "clear_thread_ctx(ctx)" not in new_body:
         errors.append("thread create/startup failure must release the reserved context")
 
+    runtime_functions = (
+        ("const char *xy_os_thread_get_name", "xy_os_thread_id_t xy_os_thread_get_id"),
+        ("xy_os_thread_state_t xy_os_thread_get_state", "uint32_t xy_os_thread_get_stack_size"),
+        ("uint32_t xy_os_thread_get_stack_size", "uint32_t xy_os_thread_get_stack_space"),
+        ("uint32_t xy_os_thread_get_stack_space", "xy_os_status_t xy_os_thread_set_priority"),
+        ("xy_os_status_t xy_os_thread_set_priority", "xy_os_priority_t xy_os_thread_get_priority"),
+        ("xy_os_priority_t xy_os_thread_get_priority", "xy_os_status_t xy_os_thread_yield"),
+        ("xy_os_status_t xy_os_thread_suspend", "xy_os_status_t xy_os_thread_resume"),
+        ("xy_os_status_t xy_os_thread_resume", "xy_os_status_t xy_os_thread_detach"),
+        ("xy_os_status_t xy_os_thread_detach", "xy_os_status_t xy_os_thread_join"),
+    )
+    for start, end in runtime_functions:
+        body = function_body(source, start, end)
+        if "find_thread_ctx(thread)" not in body:
+            errors.append(f"{start.split('xy_os_', 1)[-1]} must reject untracked handles")
+
     terminate_body = function_body(
         source, "xy_os_status_t xy_os_thread_terminate", "uint32_t xy_os_thread_get_count"
     )
-    delete_pos = terminate_body.find("rt_thread_delete(thread)")
-    clear_pos = terminate_body.find("clear_thread_ctx(ctx)")
-    if "find_thread_ctx(thread)" not in terminate_body:
-        errors.append("thread termination must resolve the project-owned context")
+    normalized_terminate = " ".join(terminate_body.split())
+    find_pos = normalized_terminate.find("ctx = find_thread_ctx(thread)")
+    reject_pos = normalized_terminate.find("if (!ctx) return XY_OS_ERROR_PARAMETER")
+    delete_pos = normalized_terminate.find("rt_thread_delete(thread)")
+    clear_pos = normalized_terminate.find("clear_thread_ctx(ctx)")
+    if min(find_pos, reject_pos, delete_pos) < 0 or not find_pos < reject_pos < delete_pos:
+        errors.append("thread termination must reject untracked handles before kernel deletion")
     if delete_pos < 0 or clear_pos < 0 or clear_pos < delete_pos:
         errors.append("thread termination must clear context only after kernel deletion succeeds")
-    normalized_terminate = " ".join(terminate_body.split())
     if "if (result != RT_EOK) return XY_OS_ERROR;" not in normalized_terminate:
         errors.append("kernel delete failure must preserve the context for retry")
 
