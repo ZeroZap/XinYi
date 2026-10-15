@@ -36,16 +36,51 @@ typedef struct {
     void *arg;
 } timer_ctx_t;
 
+typedef struct {
+    rt_mq_t mq;
+    rt_uint8_t initialized;
+} msgqueue_ctx_t;
+
 /* Maximum instances */
 #define MAX_THREADS 16
 #define MAX_MUTEXES 8
 #define MAX_SEMAPHORES 8
 #define MAX_TIMERS 8
+#define MAX_MSGQUEUES 8
 
 static thread_ctx_t g_thread_ctx[MAX_THREADS];
 static mutex_ctx_t g_mutex_ctx[MAX_MUTEXES];
 static sem_ctx_t g_sem_ctx[MAX_SEMAPHORES];
 static timer_ctx_t g_timer_ctx[MAX_TIMERS];
+static msgqueue_ctx_t g_msgqueue_ctx[MAX_MSGQUEUES];
+
+static msgqueue_ctx_t *alloc_msgqueue_ctx(void)
+{
+    for (size_t i = 0; i < MAX_MSGQUEUES; i++) {
+        if (!g_msgqueue_ctx[i].initialized) {
+            return &g_msgqueue_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static msgqueue_ctx_t *find_msgqueue_ctx(rt_mq_t mq)
+{
+    for (size_t i = 0; i < MAX_MSGQUEUES; i++) {
+        if (g_msgqueue_ctx[i].initialized && g_msgqueue_ctx[i].mq == mq) {
+            return &g_msgqueue_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static void clear_msgqueue_ctx(msgqueue_ctx_t *ctx)
+{
+    if (!ctx) return;
+
+    ctx->mq = NULL;
+    ctx->initialized = 0;
+}
 
 static timer_ctx_t *alloc_timer_ctx(void)
 {
@@ -1055,22 +1090,35 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
 {
     const char *name = "msgq";
     rt_uint8_t flag = RT_IPC_FLAG_PRIO;
+    msgqueue_ctx_t *ctx;
+    rt_mq_t mq;
+
+    if (msg_count == 0U || msg_size == 0U) return NULL;
 
     if (attr && attr->name) {
         name = attr->name;
     }
 
-    rt_mq_t mq = rt_mq_create(name, msg_size, msg_count, flag);
+    ctx = alloc_msgqueue_ctx();
+    if (!ctx) return NULL;
+
+    ctx->initialized = 1;
+    mq = rt_mq_create(name, msg_size, msg_count, flag);
+    if (!mq) {
+        clear_msgqueue_ctx(ctx);
+        return NULL;
+    }
+
+    ctx->mq = mq;
     return (xy_os_msgqueue_id_t)mq;
 }
 
 const char *xy_os_msgqueue_get_name(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (mq) {
-        return mq->parent.parent.name;
-    }
-    return NULL;
+    if (!mq || !find_msgqueue_ctx(mq)) return NULL;
+
+    return mq->parent.parent.name;
 }
 
 xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
@@ -1080,7 +1128,7 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
     rt_mq_t mq = (rt_mq_t)mq_id;
     rt_err_t result;
 
-    if (!mq || !msg_ptr) return XY_OS_ERROR_PARAMETER;
+    if (!mq || !msg_ptr || !find_msgqueue_ctx(mq)) return XY_OS_ERROR_PARAMETER;
     XY_UNUSED(msg_prio);
 
     result = (timeout == XY_OS_WAIT_FOREVER)
@@ -1097,7 +1145,7 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
     rt_mq_t mq = (rt_mq_t)mq_id;
     rt_ssize_t received;
 
-    if (!mq || !msg_ptr) return XY_OS_ERROR_PARAMETER;
+    if (!mq || !msg_ptr || !find_msgqueue_ctx(mq)) return XY_OS_ERROR_PARAMETER;
 
     received = rt_mq_recv(mq, msg_ptr, mq->msg_size,
                           (timeout == XY_OS_WAIT_FOREVER) ? RT_WAITING_FOREVER : timeout);
@@ -1113,7 +1161,7 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
 uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq) return 0;
+    if (!mq || !find_msgqueue_ctx(mq)) return 0;
 
     return mq->max_msgs;
 }
@@ -1121,7 +1169,7 @@ uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)
 uint32_t xy_os_msgqueue_get_msg_size(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq) return 0;
+    if (!mq || !find_msgqueue_ctx(mq)) return 0;
 
     return mq->msg_size;
 }
@@ -1129,7 +1177,7 @@ uint32_t xy_os_msgqueue_get_msg_size(xy_os_msgqueue_id_t mq_id)
 uint32_t xy_os_msgqueue_get_count(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq) return 0;
+    if (!mq || !find_msgqueue_ctx(mq)) return 0;
 
     return mq->entry;
 }
@@ -1137,7 +1185,7 @@ uint32_t xy_os_msgqueue_get_count(xy_os_msgqueue_id_t mq_id)
 uint32_t xy_os_msgqueue_get_space(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq) return 0;
+    if (!mq || !find_msgqueue_ctx(mq)) return 0;
 
     return mq->max_msgs - mq->entry;
 }
@@ -1145,7 +1193,7 @@ uint32_t xy_os_msgqueue_get_space(xy_os_msgqueue_id_t mq_id)
 xy_os_status_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
-    if (!mq) return XY_OS_ERROR_PARAMETER;
+    if (!mq || !find_msgqueue_ctx(mq)) return XY_OS_ERROR_PARAMETER;
 
     // Clear all messages in queue
     rt_err_t result = rt_mq_control(mq, RT_MQ_CTRL_RESET, RT_NULL);
@@ -1155,10 +1203,19 @@ xy_os_status_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
 xy_os_status_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
+    msgqueue_ctx_t *ctx;
+    rt_err_t result;
+
     if (!mq) return XY_OS_ERROR_PARAMETER;
 
-    rt_err_t result = rt_mq_delete(mq);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    ctx = find_msgqueue_ctx(mq);
+    if (!ctx) return XY_OS_ERROR_PARAMETER;
+
+    result = rt_mq_delete(mq);
+    if (result != RT_EOK) return XY_OS_ERROR;
+
+    clear_msgqueue_ctx(ctx);
+    return XY_OS_OK;
 }
 
 #endif /* STM32U5 || STM32U5xx */

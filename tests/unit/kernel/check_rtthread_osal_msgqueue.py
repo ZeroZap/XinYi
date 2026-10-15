@@ -56,13 +56,63 @@ def main() -> int:
     if "rt_mq_recv(mq, msg_ptr, mq->msg_size, timeout, &size)" in get_body:
         errors.append("RT-Thread message-queue get retains the obsolete five-argument API")
 
+    new_body = function_body(
+        source,
+        "xy_os_msgqueue_id_t xy_os_msgqueue_new",
+        "const char *xy_os_msgqueue_get_name",
+    )
+    for required in (
+        "msg_count == 0U || msg_size == 0U",
+        "ctx = alloc_msgqueue_ctx();",
+        "ctx->initialized = 1;",
+        "rt_mq_create(name, msg_size, msg_count, flag)",
+        "clear_msgqueue_ctx(ctx);",
+        "ctx->mq = mq;",
+    ):
+        if required not in new_body:
+            errors.append(
+                "RT-Thread message-queue creation must reserve bounded ownership before kernel "
+                f"allocation and release it on failure; missing: {required}"
+            )
+
+    for start, end in (
+        ("const char *xy_os_msgqueue_get_name", "xy_os_status_t xy_os_msgqueue_put"),
+        ("xy_os_status_t xy_os_msgqueue_put", "xy_os_status_t xy_os_msgqueue_get"),
+        ("xy_os_status_t xy_os_msgqueue_get", "uint32_t xy_os_msgqueue_get_capacity"),
+        ("uint32_t xy_os_msgqueue_get_capacity", "uint32_t xy_os_msgqueue_get_msg_size"),
+        ("uint32_t xy_os_msgqueue_get_msg_size", "uint32_t xy_os_msgqueue_get_count"),
+        ("uint32_t xy_os_msgqueue_get_count", "uint32_t xy_os_msgqueue_get_space"),
+        ("uint32_t xy_os_msgqueue_get_space", "xy_os_status_t xy_os_msgqueue_reset"),
+        ("xy_os_status_t xy_os_msgqueue_reset", "xy_os_status_t xy_os_msgqueue_delete"),
+    ):
+        body = function_body(source, start, end)
+        if "find_msgqueue_ctx(mq)" not in body:
+            errors.append(f"{start} must reject untracked message-queue handles")
+
+    delete_body = function_body(
+        source,
+        "xy_os_status_t xy_os_msgqueue_delete",
+        "#endif /* STM32U5 || STM32U5xx */",
+    )
+    for required in (
+        "ctx = find_msgqueue_ctx(mq);",
+        "result = rt_mq_delete(mq);",
+        "if (result != RT_EOK) return XY_OS_ERROR;",
+        "clear_msgqueue_ctx(ctx);",
+    ):
+        if required not in delete_body:
+            errors.append(
+                "RT-Thread message-queue teardown must preserve ownership until kernel delete "
+                f"succeeds; missing: {required}"
+            )
+
     if errors:
         print("rtthread_osal_msgqueue failed:")
         for error in errors:
             print(f"- {error}")
         return 1
 
-    print("rtthread_osal_msgqueue_ok payload=fixed-binary recv_api=current")
+    print("rtthread_osal_msgqueue_ok payload=fixed-binary recv_api=current lifecycle=owned")
     return 0
 
 
