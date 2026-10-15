@@ -1056,3 +1056,21 @@ target_compile_definitions(opench_ch32v307_exti_pending_state_smoke PRIVATE
 target_link_options(opench_ch32v307_exti_pending_state_smoke PRIVATE
     -T${_wch_ld} -Wl,--gc-sections -nostartfiles --specs=nano.specs --specs=nosys.specs)
 set_target_properties(opench_ch32v307_exti_pending_state_smoke PROPERTIES SUFFIX ".elf")
+
+add_executable(opench_ch32v307_exti_lifecycle_smoke
+    exti_lifecycle_main.c ${_wch_startup} ${_wch_system}/system_ch32v30x.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_exti.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_exti.c)
+target_include_directories(opench_ch32v307_exti_lifecycle_smoke PRIVATE
+    ${CMAKE_SOURCE_DIR}/components/hal/inc
+    ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
+target_compile_definitions(opench_ch32v307_exti_lifecycle_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
+target_link_options(opench_ch32v307_exti_lifecycle_smoke PRIVATE
+    -T${_wch_ld} -Wl,--gc-sections -nostartfiles --specs=nano.specs --specs=nosys.specs)
+set_target_properties(opench_ch32v307_exti_lifecycle_smoke PROPERTIES SUFFIX ".elf")

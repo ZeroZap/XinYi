@@ -37,6 +37,19 @@ static int irq_group_enabled(xy_hal_exti_line_t line) {
     return 0;
 }
 
+static void disable_all_irqs(void) {
+    static const IRQn_Type channels[] = {EXTI0_IRQn, EXTI1_IRQn,   EXTI2_IRQn,    EXTI3_IRQn,
+                                         EXTI4_IRQn, EXTI9_5_IRQn, EXTI15_10_IRQn};
+    NVIC_InitTypeDef nvic = {0};
+    nvic.NVIC_IRQChannelPreemptionPriority = 1U;
+    nvic.NVIC_IRQChannelSubPriority = 0U;
+    nvic.NVIC_IRQChannelCmd = DISABLE;
+    for (size_t i = 0U; i < sizeof(channels) / sizeof(channels[0]); ++i) {
+        nvic.NVIC_IRQChannel = channels[i];
+        NVIC_Init(&nvic);
+    }
+}
+
 static void set_nvic(xy_hal_exti_line_t line, FunctionalState state) {
     NVIC_InitTypeDef nvic = {0};
     nvic.NVIC_IRQChannel = irq_channel(line);
@@ -53,6 +66,8 @@ static EXTITrigger_TypeDef trigger_value(xy_hal_exti_trigger_t trigger) {
 xy_hal_error_t xy_hal_exti_init(void) {
     if (initialized)
         return XY_HAL_ERROR_ALREADY_INIT;
+    disable_all_irqs();
+    EXTI_DeInit();
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
     memset(handles, 0, sizeof(handles));
     for (uint32_t i = 0; i < XY_HAL_EXTI_LINE_MAX; ++i)
