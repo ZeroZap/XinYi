@@ -1,0 +1,26 @@
+{
+  "target": "opench_ch32v307_dac_wave_register_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "23d984008687686229e6d674cb6b0b26189bdfb2cca0e16e608a45b3689fec48",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "triangle_ok_count": 1,
+  "noise_ok_count": 1,
+  "error_count": 0,
+  "triangle_amplitude": 255,
+  "triangle_register_encoding": "DAC_TriangleAmplitude_255",
+  "noise_channel": 2,
+  "noise_mask": 5,
+  "noise_register_encoding": "DAC_LFSRUnmask_Bits5_0",
+  "invalid_triangle_amplitude": 256,
+  "invalid_result": "XY_HAL_ERROR_INVALID_PARAM",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "276/276 passed"
+}

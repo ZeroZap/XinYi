@@ -48,6 +48,20 @@ static uint32_t sdk_wave(xy_hal_dac_wave_t wave) {
     return DAC_WaveGeneration_None;
 }
 
+static uint32_t triangle_amplitude(uint32_t amplitude) {
+    static const uint16_t values[] = {1U,   3U,   7U,   15U,   31U,   63U,
+                                      127U, 255U, 511U, 1023U, 2047U, 4095U};
+    uint32_t index;
+    for (index = 0U; index < sizeof(values) / sizeof(values[0]); ++index)
+        if (values[index] == amplitude)
+            return index << 8U;
+    return UINT32_MAX;
+}
+
+static uint32_t channel_shift(xy_hal_dac_channel_t channel) {
+    return channel == XY_HAL_DAC_CHANNEL_1 ? 0U : 16U;
+}
+
 static uint32_t sdk_align(xy_hal_dac_align_t align) {
     if (context.config.resolution == XY_HAL_DAC_RESOLUTION_8B)
         return DAC_Align_8b_R;
@@ -186,17 +200,32 @@ xy_hal_error_t xy_hal_dac_output_dma(void* dac, xy_hal_dac_channel_t channel, co
 
 xy_hal_error_t xy_hal_dac_generate_triangle(void* dac, xy_hal_dac_channel_t channel,
                                             uint32_t amplitude) {
-    (void)dac;
-    (void)channel;
-    (void)amplitude;
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    int index = channel_index(channel);
+    uint32_t encoded = triangle_amplitude(amplitude);
+    uint32_t shift;
+    if (dac != DAC || index < 0 || encoded == UINT32_MAX)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (!context.initialized)
+        return XY_HAL_ERROR_NOT_INIT;
+    shift = channel_shift(channel);
+    DAC->CTLR = (DAC->CTLR & ~(0x0B00U << shift)) | (DAC_WaveGeneration_Triangle << shift) |
+                (encoded << shift);
+    context.config.wave = XY_HAL_DAC_WAVE_TRIANGLE;
+    return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_hal_dac_generate_noise(void* dac, xy_hal_dac_channel_t channel, uint32_t mask) {
-    (void)dac;
-    (void)channel;
-    (void)mask;
-    return XY_HAL_ERROR_NOT_SUPPORTED;
+    int index = channel_index(channel);
+    uint32_t shift;
+    if (dac != DAC || index < 0 || mask > 11U)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (!context.initialized)
+        return XY_HAL_ERROR_NOT_INIT;
+    shift = channel_shift(channel);
+    DAC->CTLR = (DAC->CTLR & ~(0x0B00U << shift)) | (DAC_WaveGeneration_Noise << shift) |
+                ((mask & 0x0FU) << (8U + shift));
+    context.config.wave = XY_HAL_DAC_WAVE_NOISE;
+    return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_hal_dac_register_callback(void* dac, xy_hal_dac_channel_t channel,
