@@ -47,6 +47,11 @@ static mutex_ctx_t g_mutex_ctx[MAX_MUTEXES];
 static sem_ctx_t g_sem_ctx[MAX_SEMAPHORES];
 static timer_ctx_t g_timer_ctx[MAX_TIMERS];
 
+static int rtthread_priority_valid(xy_os_priority_t priority)
+{
+    return priority >= XY_OS_PRIORITY_IDLE && priority <= XY_OS_PRIORITY_ISR;
+}
+
 /**
  * @brief Find thread context by handle
  */
@@ -78,12 +83,14 @@ static thread_ctx_t *alloc_thread_ctx(void)
  */
 static rt_uint8_t xy_to_rt_priority(xy_os_priority_t priority)
 {
-    // RT-Thread uses 0 as highest priority, 31 as lowest (for 32 priority levels)
-    // XY uses 0 as lowest, 56 as highest
-    rt_uint8_t max_priority = RT_THREAD_PRIORITY_MAX;
-    if (max_priority > 56) max_priority = 56;
-    
-    return (rt_uint8_t)(max_priority - (rt_uint8_t)priority);
+    const rt_uint32_t rt_lowest = RT_THREAD_PRIORITY_MAX - 1U;
+    const rt_uint32_t xy_priority = (rt_uint32_t)priority;
+
+    /* RT-Thread uses zero as highest; XY uses larger values as higher. */
+    return (rt_uint8_t)(rt_lowest -
+                        (((xy_priority - (uint32_t)XY_OS_PRIORITY_IDLE) * rt_lowest) /
+                         ((uint32_t)XY_OS_PRIORITY_ISR -
+                          (uint32_t)XY_OS_PRIORITY_IDLE)));
 }
 
 /**
@@ -91,10 +98,18 @@ static rt_uint8_t xy_to_rt_priority(xy_os_priority_t priority)
  */
 static xy_os_priority_t rt_to_xy_priority(rt_uint8_t priority)
 {
-    rt_uint8_t max_priority = RT_THREAD_PRIORITY_MAX;
-    if (max_priority > 56) max_priority = 56;
-    
-    return (xy_os_priority_t)(max_priority - priority);
+    const rt_uint32_t rt_lowest = RT_THREAD_PRIORITY_MAX - 1U;
+    const rt_uint32_t rt_priority = priority;
+
+    if (rt_priority > rt_lowest) {
+        return XY_OS_PRIORITY_ERROR;
+    }
+
+    return (xy_os_priority_t)((uint32_t)XY_OS_PRIORITY_IDLE +
+                              (((rt_lowest - rt_priority) *
+                                ((uint32_t)XY_OS_PRIORITY_ISR -
+                                 (uint32_t)XY_OS_PRIORITY_IDLE)) /
+                               rt_lowest));
 }
 
 /* Kernel Functions */
@@ -183,13 +198,14 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     
     const char *name = "thread";
     rt_uint32_t stack_size = 1024;
-    rt_uint8_t priority = 20;
+    rt_uint8_t priority = xy_to_rt_priority(XY_OS_PRIORITY_NORMAL);
     rt_uint32_t tick = 10;
 
     if (attr) {
         if (attr->name) name = attr->name;
         if (attr->stack_size > 0) stack_size = attr->stack_size;
-        if (attr->priority <= 56) priority = xy_to_rt_priority(attr->priority);
+        if (!rtthread_priority_valid(attr->priority)) return NULL;
+        priority = xy_to_rt_priority(attr->priority);
         if (attr->tick > 0) tick = attr->tick;
     }
 
@@ -285,6 +301,7 @@ xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
     if (!thread) return XY_OS_ERROR_PARAMETER;
+    if (!rtthread_priority_valid(priority)) return XY_OS_ERROR_PARAMETER;
 
     rt_uint8_t rt_priority = xy_to_rt_priority(priority);
     rt_err_t result = rt_thread_control(thread, RT_THREAD_CTRL_CHANGE_PRIORITY, &rt_priority);

@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-15 RT-Thread OSAL Thread Priority bounded mapping
+
+- 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/rtthread/xy_os_rtthread.c`、`tests/unit/kernel/check_rtthread_osal_priority.py`；focused `rtthread_osal_priority`/`rtthread_osal_mempool`/`rtthread_osal_msgqueue`/`rtthread_osal_event_flags`/`rtthread_osal_thread_flags`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：XY `IDLE..ISR` thread priority 在 `0..RT_THREAD_PRIORITY_MAX-1` 内按相反方向缩放；create/set 在调用 RT-Thread 前拒绝 NONE/error/reserved/out-of-range priority，默认 thread priority 统一取 XY NORMAL 映射值。
+- 仍不允许宣称：RT-Thread target runtime、Pandora 本变更 runtime、精确逐级 priority 保真、调度公平性、priority inversion、latency、stress 或 product qualification。
+
 ### 2026-10-15 RT-Thread OSAL Memory Pool free API contract
 
 - 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change
