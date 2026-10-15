@@ -567,9 +567,11 @@ xy_os_status_t xy_os_thread_detach(xy_os_thread_id_t thread_id)
 
 xy_os_status_t xy_os_thread_join(xy_os_thread_id_t thread_id)
 {
-    // RT-Thread doesn't have thread join concept
-    XY_UNUSED(thread_id);
-    return XY_OS_OK;
+    rt_thread_t thread = (rt_thread_t)thread_id;
+    if (!thread || !find_thread_ctx(thread)) return XY_OS_ERROR_PARAMETER;
+
+    /* RT-Thread has no join primitive; reject a tracked handle explicitly. */
+    return XY_OS_ERROR;
 }
 
 void xy_os_thread_exit(void)

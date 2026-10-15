@@ -42,6 +42,7 @@ def main() -> int:
         ("xy_os_status_t xy_os_thread_suspend", "xy_os_status_t xy_os_thread_resume"),
         ("xy_os_status_t xy_os_thread_resume", "xy_os_status_t xy_os_thread_detach"),
         ("xy_os_status_t xy_os_thread_detach", "xy_os_status_t xy_os_thread_join"),
+        ("xy_os_status_t xy_os_thread_join", "xy_os_status_t xy_os_thread_exit"),
     )
     for start, end in runtime_functions:
         body = function_body(source, start, end)
