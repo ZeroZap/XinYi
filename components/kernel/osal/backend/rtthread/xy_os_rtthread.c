@@ -46,6 +46,11 @@ typedef struct {
     rt_uint8_t initialized;
 } mempool_ctx_t;
 
+typedef struct {
+    rt_event_t event;
+    rt_uint8_t initialized;
+} event_flags_ctx_t;
+
 /* Maximum instances */
 #define MAX_THREADS 16
 #define MAX_MUTEXES 8
@@ -53,6 +58,7 @@ typedef struct {
 #define MAX_TIMERS 8
 #define MAX_MSGQUEUES 8
 #define MAX_MEMPOOLS 8
+#define MAX_EVENT_FLAGS 8
 
 static thread_ctx_t g_thread_ctx[MAX_THREADS];
 static mutex_ctx_t g_mutex_ctx[MAX_MUTEXES];
@@ -60,6 +66,35 @@ static sem_ctx_t g_sem_ctx[MAX_SEMAPHORES];
 static timer_ctx_t g_timer_ctx[MAX_TIMERS];
 static msgqueue_ctx_t g_msgqueue_ctx[MAX_MSGQUEUES];
 static mempool_ctx_t g_mempool_ctx[MAX_MEMPOOLS];
+static event_flags_ctx_t g_event_flags_ctx[MAX_EVENT_FLAGS];
+
+static event_flags_ctx_t *alloc_event_flags_ctx(void)
+{
+    for (size_t i = 0; i < MAX_EVENT_FLAGS; i++) {
+        if (!g_event_flags_ctx[i].initialized) {
+            return &g_event_flags_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static event_flags_ctx_t *find_event_flags_ctx(rt_event_t event)
+{
+    for (size_t i = 0; i < MAX_EVENT_FLAGS; i++) {
+        if (g_event_flags_ctx[i].initialized && g_event_flags_ctx[i].event == event) {
+            return &g_event_flags_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static void clear_event_flags_ctx(event_flags_ctx_t *ctx)
+{
+    if (!ctx) return;
+
+    ctx->event = NULL;
+    ctx->initialized = 0;
+}
 
 static mempool_ctx_t *alloc_mempool_ctx(void)
 {
@@ -770,28 +805,39 @@ xy_os_event_flags_id_t xy_os_event_flags_new(const xy_os_event_flags_attr_t *att
 {
     const char *name = "event";
     rt_uint8_t flag = RT_IPC_FLAG_PRIO;
+    event_flags_ctx_t *ctx;
+    rt_event_t event;
 
     if (attr && attr->name) {
         name = attr->name;
     }
 
-    rt_event_t event = rt_event_create(name, flag);
+    ctx = alloc_event_flags_ctx();
+    if (!ctx) return NULL;
+
+    ctx->initialized = 1;
+    event = rt_event_create(name, flag);
+    if (!event) {
+        clear_event_flags_ctx(ctx);
+        return NULL;
+    }
+
+    ctx->event = event;
     return (xy_os_event_flags_id_t)event;
 }
 
 const char *xy_os_event_flags_get_name(xy_os_event_flags_id_t ef_id)
 {
     rt_event_t event = (rt_event_t)ef_id;
-    if (event) {
-        return event->parent.parent.name;
-    }
-    return NULL;
+    if (!find_event_flags_ctx(event)) return NULL;
+
+    return event->parent.parent.name;
 }
 
 uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
     rt_event_t event = (rt_event_t)ef_id;
-    if (!event) return 0x80000000;
+    if (!find_event_flags_ctx(event)) return 0x80000000U;
     if (!rtthread_event_flags_args_valid(flags, 0U)) return 0x80000000U;
 
     rt_err_t result = rt_event_send(event, flags);
@@ -805,7 +851,7 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
     rt_base_t level;
     rt_uint32_t previous;
 
-    if (!event) return 0x80000000;
+    if (!find_event_flags_ctx(event)) return 0x80000000U;
     if (!rtthread_event_flags_args_valid(flags, 0U)) return 0x80000000U;
 
     level = rt_spin_lock_irqsave(&event->spinlock);
@@ -818,7 +864,7 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 {
     rt_event_t event = (rt_event_t)ef_id;
-    if (!event) return 0x80000000;
+    if (!find_event_flags_ctx(event)) return 0x80000000U;
 
     return rtthread_event_flags_snapshot(event);
 }
@@ -827,7 +873,7 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
                                 uint32_t options, uint32_t timeout)
 {
     rt_event_t event = (rt_event_t)ef_id;
-    if (!event) return 0x80000000;
+    if (!find_event_flags_ctx(event)) return 0x80000000U;
     if (!rtthread_event_flags_args_valid(flags, options)) return 0x80000000U;
 
     rt_uint32_t recved;
@@ -849,10 +895,17 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
 xy_os_status_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
 {
     rt_event_t event = (rt_event_t)ef_id;
-    if (!event) return XY_OS_ERROR_PARAMETER;
+    event_flags_ctx_t *ctx;
+
+    ctx = find_event_flags_ctx(event);
+    if (!ctx) return XY_OS_ERROR_PARAMETER;
 
     rt_err_t result = rt_event_delete(event);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    if (result == RT_EOK) {
+        clear_event_flags_ctx(ctx);
+        return XY_OS_OK;
+    }
+    return XY_OS_ERROR;
 }
 
 /* Mutex Functions */

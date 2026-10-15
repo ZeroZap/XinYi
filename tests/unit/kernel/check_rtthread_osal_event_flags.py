@@ -16,6 +16,24 @@ def main() -> int:
     source = BACKEND.read_text(encoding="utf-8")
     errors: list[str] = []
 
+    owner_region = function_body(
+        source,
+        "typedef struct {\n    rt_event_t event;",
+        "} event_flags_ctx_t;",
+    )
+    if "rt_uint8_t initialized;" not in owner_region:
+        errors.append("RT-Thread event flags need a bounded owner context; missing initialized flag")
+
+    for required in (
+        "#define MAX_EVENT_FLAGS 8",
+        "static event_flags_ctx_t g_event_flags_ctx[MAX_EVENT_FLAGS];",
+        "static event_flags_ctx_t *alloc_event_flags_ctx(void)",
+        "static event_flags_ctx_t *find_event_flags_ctx(rt_event_t event)",
+        "static void clear_event_flags_ctx(event_flags_ctx_t *ctx)",
+    ):
+        if required not in source:
+            errors.append(f"RT-Thread event flags need bounded owner helpers; missing: {required}")
+
     helper_region = function_body(
         source,
         "/* Event Flags Functions */",
@@ -39,6 +57,7 @@ def main() -> int:
         "uint32_t xy_os_event_flags_clear",
     )
     for required in (
+        "if (!find_event_flags_ctx(event)) return 0x80000000U;",
         "if (!rtthread_event_flags_args_valid(flags, 0U)) return 0x80000000U;",
         "result = rt_event_send(event, flags);",
         "if (result != RT_EOK) return 0x80000000;",
@@ -58,6 +77,7 @@ def main() -> int:
         "uint32_t xy_os_event_flags_get",
     )
     for required in (
+        "if (!find_event_flags_ctx(event)) return 0x80000000U;",
         "if (!rtthread_event_flags_args_valid(flags, 0U)) return 0x80000000U;",
         "previous = event->set;",
         "event->set &= ~flags;",
@@ -93,6 +113,8 @@ def main() -> int:
     )
     if "return rtthread_event_flags_snapshot(event);" not in get_body:
         errors.append("RT-Thread event-flags get must return the synchronized event snapshot")
+    if "if (!find_event_flags_ctx(event)) return 0x80000000U;" not in get_body:
+        errors.append("RT-Thread event-flags get must reject untracked handles")
     if "RT_EVENT_CTRL_GET" in get_body or "rt_event_control(" in get_body:
         errors.append(
             "RT-Thread event-flags get must not depend on the nonexistent "
@@ -109,6 +131,8 @@ def main() -> int:
             "RT-Thread event-flags wait must request RT_EVENT_FLAG_CLEAR only when "
             "XY_OS_FLAGS_NO_CLEAR is absent"
         )
+    if "if (!find_event_flags_ctx(event)) return 0x80000000U;" not in wait_body:
+        errors.append("RT-Thread event-flags wait must reject untracked handles")
     if "if (options & XY_OS_FLAGS_NO_CLEAR)" in wait_body:
         errors.append(
             "RT-Thread event-flags wait retains inverted XY_OS_FLAGS_NO_CLEAR semantics"
@@ -118,6 +142,42 @@ def main() -> int:
             "RT-Thread event-flags wait must reject an empty/reserved mask and unknown options "
             "before calling rt_event_recv"
         )
+
+    new_body = function_body(
+        source,
+        "xy_os_event_flags_id_t xy_os_event_flags_new",
+        "const char *xy_os_event_flags_get_name",
+    )
+    for required in (
+        "ctx = alloc_event_flags_ctx();",
+        "ctx->initialized = 1;",
+        "clear_event_flags_ctx(ctx);",
+        "ctx->event = event;",
+    ):
+        if required not in new_body:
+            errors.append(f"RT-Thread event-flags create must bind owner atomically; missing: {required}")
+
+    name_body = function_body(
+        source,
+        "const char *xy_os_event_flags_get_name",
+        "uint32_t xy_os_event_flags_set",
+    )
+    if "if (!find_event_flags_ctx(event)) return NULL;" not in name_body:
+        errors.append("RT-Thread event-flags name must reject untracked handles")
+
+    delete_body = function_body(
+        source,
+        "xy_os_status_t xy_os_event_flags_delete",
+        "/* Mutex Functions */",
+    )
+    for required in (
+        "ctx = find_event_flags_ctx(event);",
+        "if (!ctx) return XY_OS_ERROR_PARAMETER;",
+        "if (result == RT_EOK) {",
+        "clear_event_flags_ctx(ctx);",
+    ):
+        if required not in delete_body:
+            errors.append(f"RT-Thread event-flags delete must preserve owner on failure; missing: {required}")
 
     if errors:
         print("rtthread_osal_event_flags failed:")
