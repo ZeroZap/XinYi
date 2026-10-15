@@ -1,0 +1,24 @@
+{
+  "target": "opench_ch32v307_delay_systick_source_smoke",
+  "sdk_commit": "08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256": "e22c06585ecd34c49077debd765b8dbe34cc8b65bd86699df3b63f55e6542132",
+  "programming_finished": true,
+  "verified_ok": true,
+  "resetting_target": true,
+  "boot_identity_count": 1,
+  "hclk_interval_markers": 8,
+  "hclk_div8_interval_markers": 8,
+  "hclk_qualified_intervals_ms": [251.175, 251.632, 250.508, 250.452, 250.802],
+  "hclk_median_ms": 250.508,
+  "hclk_div8_intervals_ms": [250.974, 250.317, 251.533, 250.153, 251.500, 250.455, 251.304],
+  "hclk_div8_median_ms": 250.974,
+  "acceptance_ms": [240, 270],
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "CH32V307": "passed"
+  },
+  "unit_tests": "273/273 passed",
+  "note": "The first two HCLK host timestamps were discarded because USB/VCP recovery delivered buffered lines immediately after reset; all subsequent HCLK and all HCLK/8 intervals were independently timed."
+}
