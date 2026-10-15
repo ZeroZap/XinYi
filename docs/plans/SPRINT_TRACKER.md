@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-15）**：RT-Thread OSAL thread priority 映射改为在 `0..RT_THREAD_PRIORITY_MAX-1` 内按相反方向缩放，避免低优先级 unsigned underflow；create/set 在调用内核前拒绝 NONE/error/reserved/out-of-range 输入。focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime、调度公平性、延迟或产品资格声明。
+**最新软件闭环（2026-10-15）**：RT-Thread OSAL timer 现将 project callback context 正确传给内核 timer，创建时使用 tracked RT-Thread timer flags，运行状态通过 `RT_TIMER_CTRL_GET_STATE` 查询，delete 仅在内核删除成功后释放 context。focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime、timer latency/jitter 或产品资格声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
@@ -278,6 +278,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S4-157 | P1 | RT-Thread OSAL Memory Pool ownership/query 收口 | DONE | Zero | S4-156（DONE）；RT-Thread 非 reference backend | TDD RED 证明 create 先 `rt_malloc()` 一块从未交给内核的 buffer，成功时泄漏；四个 query 对 live pool 固定返回 0。现仅由 `rt_mp_create()` 持有 storage，zero dimensions 在内核调用前拒绝，capacity/block-size/used/free 返回 tracked RT-Thread metadata。focused `rtthread_osal_mempool`/`rtthread_osal_msgqueue`/`rtthread_osal_event_flags`/`rtthread_osal_thread_flags`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-158 | P1 | RT-Thread OSAL Memory Pool free API 对齐 | DONE | Zero | S4-157（DONE）；RT-Thread 非 reference backend | TDD RED 证明 free 仍调用旧双参数 `rt_mp_free(mp, block)` 并假定返回 `rt_err_t`，与 tracked RT-Thread 的 `void rt_mp_free(void *block)` 不兼容；现按当前 API 释放并在参数校验后返回成功，policy 同时守护 alloc timeout contract。focused `rtthread_osal_mempool`/`rtthread_osal_msgqueue`/`rtthread_osal_event_flags`/`rtthread_osal_thread_flags`/`ipc_event_group`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 | S4-159 | P1 | RT-Thread OSAL Thread Priority 有界映射 | DONE | Zero | S4-158（DONE）；RT-Thread 非 reference backend | TDD RED 证明旧 `max_priority - priority` 在 XY low/normal priority 上可发生 unsigned underflow，且 create/set 接受 NONE。现按 `RT_THREAD_PRIORITY_MAX-1` 与 `XY_OS_PRIORITY_ISR` 做方向相反的有界缩放，invalid priority 在内核调用前 fail-closed。focused `rtthread_osal_priority`/`rtthread_osal_mempool`/`rtthread_osal_msgqueue`/`rtthread_osal_event_flags`/`rtthread_osal_thread_flags`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
+| S4-160 | P1 | RT-Thread OSAL Timer callback/API/lifecycle 收口 | DONE | Zero | S4-159（DONE）；RT-Thread 非 reference backend | TDD RED 证明 timer callback 收到 user argument 却按 internal context 解引用、使用不存在的 `RT_TIMER_CTRL_SET_FLAG`，且 initialized object 被误报 running；现创建前分配 callback context、以 create flags 固定 one-shot/periodic、通过 `RT_TIMER_CTRL_GET_STATE` 查询 active 状态，并仅在 kernel delete 成功后释放 context。focused `rtthread_osal_timer`、Host、PC/L4/U5 root 与 `git diff --check` 通过 | 本记录提交 | 2026-10-15 |
 
 ### Sprint 5 前置看板
 

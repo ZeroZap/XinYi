@@ -47,6 +47,16 @@ static mutex_ctx_t g_mutex_ctx[MAX_MUTEXES];
 static sem_ctx_t g_sem_ctx[MAX_SEMAPHORES];
 static timer_ctx_t g_timer_ctx[MAX_TIMERS];
 
+static timer_ctx_t *alloc_timer_ctx(void)
+{
+    for (size_t i = 0; i < MAX_TIMERS; i++) {
+        if (g_timer_ctx[i].timer == NULL) {
+            return &g_timer_ctx[i];
+        }
+    }
+    return NULL;
+}
+
 static int rtthread_priority_valid(xy_os_priority_t priority)
 {
     return priority >= XY_OS_PRIORITY_IDLE && priority <= XY_OS_PRIORITY_ISR;
@@ -462,39 +472,36 @@ static void timer_callback(void *parameter)
 xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func, xy_os_timer_type_t type,
                                  void *argument, const xy_os_timer_attr_t *attr)
 {
+    timer_ctx_t *ctx;
+    rt_uint8_t flags;
+
     if (!func) return NULL;
+    if (type != XY_OS_TIMER_ONCE && type != XY_OS_TIMER_PERIODIC) return NULL;
+
+    ctx = alloc_timer_ctx();
+    if (!ctx) return NULL;
 
     const char *name = "timer";
     if (attr && attr->name) {
         name = attr->name;
     }
 
+    flags = RT_TIMER_FLAG_SOFT_TIMER;
+    flags |= (type == XY_OS_TIMER_PERIODIC) ? RT_TIMER_FLAG_PERIODIC : RT_TIMER_FLAG_ONE_SHOT;
+
     rt_timer_t timer = rt_timer_create(name,
-                                       (void(*)(void *))timer_callback,
-                                       argument,
+                                       timer_callback,
+                                       ctx,
                                        1000, // Will be set later
-                                       RT_TIMER_FLAG_ONE_SHOT | RT_TIMER_FLAG_SOFT_TIMER);
+                                       flags);
 
     if (!timer) return NULL;
 
-    // Configure timer type
-    rt_uint8_t flag = (type == XY_OS_TIMER_PERIODIC) ? 
-                      RT_TIMER_FLAG_PERIODIC : RT_TIMER_FLAG_ONE_SHOT;
-    rt_timer_control(timer, RT_TIMER_CTRL_SET_FLAG, &flag);
-
-    // Store context
-    for (size_t i = 0; i < MAX_TIMERS; i++) {
-        if (g_timer_ctx[i].timer == NULL) {
-            g_timer_ctx[i].timer = timer;
-            g_timer_ctx[i].callback = func;
-            g_timer_ctx[i].arg = argument;
-            g_timer_ctx[i].initialized = 1;
-            return (xy_os_timer_id_t)timer;
-        }
-    }
-
-    rt_timer_delete(timer);
-    return NULL;
+    ctx->timer = timer;
+    ctx->callback = func;
+    ctx->arg = argument;
+    ctx->initialized = 1;
+    return (xy_os_timer_id_t)timer;
 }
 
 const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
@@ -530,27 +537,39 @@ xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
 uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
+    rt_uint32_t state = RT_TIMER_FLAG_DEACTIVATED;
+
     if (!timer) return 0;
 
-    return (timer->parent.flag & RT_OBJECT_INIT) ? 1 : 0;
+    if (rt_timer_control(timer, RT_TIMER_CTRL_GET_STATE, &state) != RT_EOK) return 0;
+    return (state == RT_TIMER_FLAG_ACTIVATED) ? 1U : 0U;
 }
 
 xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 {
     rt_timer_t timer = (rt_timer_t)timer_id;
+    timer_ctx_t *ctx = NULL;
+    rt_err_t result;
+
     if (!timer) return XY_OS_ERROR_PARAMETER;
 
-    // Clean up context
     for (size_t i = 0; i < MAX_TIMERS; i++) {
         if (g_timer_ctx[i].timer == timer) {
-            g_timer_ctx[i].initialized = 0;
-            g_timer_ctx[i].timer = NULL;
+            ctx = &g_timer_ctx[i];
             break;
         }
     }
 
-    rt_err_t result = rt_timer_delete(timer);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    result = rt_timer_delete(timer);
+    if (result != RT_EOK) return XY_OS_ERROR;
+
+    if (ctx) {
+        ctx->initialized = 0;
+        ctx->timer = NULL;
+        ctx->callback = NULL;
+        ctx->arg = NULL;
+    }
+    return XY_OS_OK;
 }
 
 /* Event Flags Functions */

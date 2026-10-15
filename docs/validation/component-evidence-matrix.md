@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-15 RT-Thread OSAL Timer callback/API/lifecycle contract
+
+- 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/rtthread/xy_os_rtthread.c`、`tests/unit/kernel/check_rtthread_osal_timer.py`；focused `rtthread_osal_timer`；`make test-unit`；PC/L4/U5 Release builds；`git diff --check`。
+- 适用范围：timer callback 获得 project-owned context 后转发 caller argument；one-shot/periodic 在 create flags 中确定；active state 使用 tracked RT-Thread control API；kernel delete 失败时保留 context 供重试。
+- 仍不允许宣称：RT-Thread target runtime、Pandora 本变更 runtime、timer 精度、latency、jitter、callback concurrency、stress 或 product qualification。
+
 ### 2026-10-15 RT-Thread OSAL Thread Priority bounded mapping
 
 - 旧等级 -> 新等级：H1 RT-Thread backend source contract strengthened; no Board claim change

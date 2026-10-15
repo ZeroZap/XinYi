@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Guard RT-Thread OSAL timer callback ownership and current API semantics."""
+
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[3]
+BACKEND = ROOT / "components/kernel/osal/backend/rtthread/xy_os_rtthread.c"
+
+
+def function_body(source: str, start: str, end: str) -> str:
+    return source.split(start, 1)[-1].split(end, 1)[0]
+
+
+def main() -> int:
+    source = BACKEND.read_text(encoding="utf-8")
+    errors: list[str] = []
+
+    new_body = function_body(source, "xy_os_timer_id_t xy_os_timer_new", "const char *xy_os_timer_get_name")
+    for required in (
+        "ctx = alloc_timer_ctx()",
+        "timer_callback,",
+        "ctx,",
+        "RT_TIMER_FLAG_SOFT_TIMER",
+        "RT_TIMER_FLAG_PERIODIC",
+        "ctx->timer = timer",
+    ):
+        if required not in new_body:
+            errors.append(f"timer creation is missing callback-owner contract: {required}")
+    if "RT_TIMER_CTRL_SET_FLAG" in new_body:
+        errors.append("timer creation still uses nonexistent RT_TIMER_CTRL_SET_FLAG")
+    if "argument," in new_body.split("rt_timer_create", 1)[-1].split(");", 1)[0]:
+        errors.append("RT-Thread timer callback receives user argument instead of timer context")
+
+    running_body = function_body(source, "uint32_t xy_os_timer_is_running", "xy_os_status_t xy_os_timer_delete")
+    if "RT_TIMER_CTRL_GET_STATE" not in running_body:
+        errors.append("timer running query must use RT_TIMER_CTRL_GET_STATE")
+    if "RT_OBJECT_INIT" in running_body:
+        errors.append("timer running query still mistakes object initialization for activation")
+
+    delete_body = function_body(source, "xy_os_status_t xy_os_timer_delete", "/* Event Flags Functions */")
+    if delete_body.find("rt_timer_delete(timer)") > delete_body.find("ctx->timer = NULL") >= 0:
+        errors.append("timer delete clears context before kernel deletion succeeds")
+
+    if errors:
+        print("rtthread_osal_timer failed:")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+
+    print("rtthread_osal_timer_ok callback=context api=current lifecycle=atomic")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
