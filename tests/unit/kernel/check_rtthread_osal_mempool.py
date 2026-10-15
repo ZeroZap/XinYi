@@ -23,7 +23,12 @@ def main() -> int:
     )
     for required in (
         "if (block_count == 0U || block_size == 0U) return NULL;",
+        "ctx = alloc_mempool_ctx();",
+        "if (!ctx) return NULL;",
+        "ctx->initialized = 1;",
         "rt_mp_create(name, block_count, block_size)",
+        "clear_mempool_ctx(ctx);",
+        "ctx->mp = mp;",
     ):
         if required not in new_body:
             errors.append(f"memory-pool create must validate dimensions and use RT-Thread ownership: missing {required}")
@@ -65,8 +70,36 @@ def main() -> int:
         body = function_body(source, f"uint32_t {name}", boundaries[index + 1])
         if required not in body:
             errors.append(f"{name} must report tracked RT-Thread pool metadata: missing {required}")
+        if "find_mempool_ctx(mp)" not in body:
+            errors.append(f"{name} must reject untracked memory-pool handles")
         if "return 0; // Not available" in body:
             errors.append(f"{name} still reports a false zero placeholder")
+
+    for start, end in (
+        ("const char *xy_os_mempool_get_name", "void *xy_os_mempool_alloc"),
+        ("void *xy_os_mempool_alloc", "xy_os_status_t xy_os_mempool_free"),
+        ("xy_os_status_t xy_os_mempool_free", "uint32_t xy_os_mempool_get_capacity"),
+    ):
+        body = function_body(source, start, end)
+        if "find_mempool_ctx(mp)" not in body:
+            errors.append(f"{start} must reject untracked memory-pool handles")
+
+    delete_body = function_body(
+        source,
+        "xy_os_status_t xy_os_mempool_delete",
+        "/* Message Queue Functions */",
+    )
+    for required in (
+        "ctx = find_mempool_ctx(mp);",
+        "result = rt_mp_delete(mp);",
+        "if (result != RT_EOK) return XY_OS_ERROR;",
+        "clear_mempool_ctx(ctx);",
+    ):
+        if required not in delete_body:
+            errors.append(
+                "memory-pool teardown must preserve ownership until kernel delete succeeds: "
+                f"missing {required}"
+            )
 
     if errors:
         print("rtthread_osal_mempool failed:")

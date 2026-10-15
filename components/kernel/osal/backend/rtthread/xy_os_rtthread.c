@@ -41,18 +41,53 @@ typedef struct {
     rt_uint8_t initialized;
 } msgqueue_ctx_t;
 
+typedef struct {
+    rt_mp_t mp;
+    rt_uint8_t initialized;
+} mempool_ctx_t;
+
 /* Maximum instances */
 #define MAX_THREADS 16
 #define MAX_MUTEXES 8
 #define MAX_SEMAPHORES 8
 #define MAX_TIMERS 8
 #define MAX_MSGQUEUES 8
+#define MAX_MEMPOOLS 8
 
 static thread_ctx_t g_thread_ctx[MAX_THREADS];
 static mutex_ctx_t g_mutex_ctx[MAX_MUTEXES];
 static sem_ctx_t g_sem_ctx[MAX_SEMAPHORES];
 static timer_ctx_t g_timer_ctx[MAX_TIMERS];
 static msgqueue_ctx_t g_msgqueue_ctx[MAX_MSGQUEUES];
+static mempool_ctx_t g_mempool_ctx[MAX_MEMPOOLS];
+
+static mempool_ctx_t *alloc_mempool_ctx(void)
+{
+    for (size_t i = 0; i < MAX_MEMPOOLS; i++) {
+        if (!g_mempool_ctx[i].initialized) {
+            return &g_mempool_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static mempool_ctx_t *find_mempool_ctx(rt_mp_t mp)
+{
+    for (size_t i = 0; i < MAX_MEMPOOLS; i++) {
+        if (g_mempool_ctx[i].initialized && g_mempool_ctx[i].mp == mp) {
+            return &g_mempool_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static void clear_mempool_ctx(mempool_ctx_t *ctx)
+{
+    if (!ctx) return;
+
+    ctx->mp = NULL;
+    ctx->initialized = 0;
+}
 
 static msgqueue_ctx_t *alloc_msgqueue_ctx(void)
 {
@@ -998,28 +1033,40 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
                                      const xy_os_mempool_attr_t *attr)
 {
     const char *name = "memp";
+    mempool_ctx_t *ctx;
+    rt_mp_t mp;
 
     if (block_count == 0U || block_size == 0U) return NULL;
     if (attr && attr->name) {
         name = attr->name;
     }
 
-    return (xy_os_mempool_id_t)rt_mp_create(name, block_count, block_size);
+    ctx = alloc_mempool_ctx();
+    if (!ctx) return NULL;
+
+    ctx->initialized = 1;
+    mp = rt_mp_create(name, block_count, block_size);
+    if (!mp) {
+        clear_mempool_ctx(ctx);
+        return NULL;
+    }
+
+    ctx->mp = mp;
+    return (xy_os_mempool_id_t)mp;
 }
 
 const char *xy_os_mempool_get_name(xy_os_mempool_id_t mp_id)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (mp) {
-        return mp->parent.name;
-    }
-    return NULL;
+    if (!mp || !find_mempool_ctx(mp)) return NULL;
+
+    return mp->parent.name;
 }
 
 void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (!mp) return NULL;
+    if (!mp || !find_mempool_ctx(mp)) return NULL;
 
     void *block = RT_NULL;
     if (timeout == XY_OS_WAIT_FOREVER) {
@@ -1034,7 +1081,7 @@ void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (!mp || !block) return XY_OS_ERROR_PARAMETER;
+    if (!mp || !block || !find_mempool_ctx(mp)) return XY_OS_ERROR_PARAMETER;
 
     rt_mp_free(block);
     return XY_OS_OK;
@@ -1043,7 +1090,7 @@ xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 uint32_t xy_os_mempool_get_capacity(xy_os_mempool_id_t mp_id)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (!mp) return 0;
+    if (!mp || !find_mempool_ctx(mp)) return 0;
 
     return mp->block_total_count;
 }
@@ -1051,7 +1098,7 @@ uint32_t xy_os_mempool_get_capacity(xy_os_mempool_id_t mp_id)
 uint32_t xy_os_mempool_get_block_size(xy_os_mempool_id_t mp_id)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (!mp) return 0;
+    if (!mp || !find_mempool_ctx(mp)) return 0;
 
     return mp->block_size;
 }
@@ -1059,7 +1106,7 @@ uint32_t xy_os_mempool_get_block_size(xy_os_mempool_id_t mp_id)
 uint32_t xy_os_mempool_get_count(xy_os_mempool_id_t mp_id)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (!mp) return 0;
+    if (!mp || !find_mempool_ctx(mp)) return 0;
 
     return mp->block_total_count - mp->block_free_count;
 }
@@ -1067,7 +1114,7 @@ uint32_t xy_os_mempool_get_count(xy_os_mempool_id_t mp_id)
 uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
-    if (!mp) return 0;
+    if (!mp || !find_mempool_ctx(mp)) return 0;
 
     return mp->block_free_count;
 }
@@ -1075,10 +1122,19 @@ uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
 xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
+    mempool_ctx_t *ctx;
+    rt_err_t result;
+
     if (!mp) return XY_OS_ERROR_PARAMETER;
 
-    rt_err_t result = rt_mp_delete(mp);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    ctx = find_mempool_ctx(mp);
+    if (!ctx) return XY_OS_ERROR_PARAMETER;
+
+    result = rt_mp_delete(mp);
+    if (result != RT_EOK) return XY_OS_ERROR;
+
+    clear_mempool_ctx(ctx);
+    return XY_OS_OK;
 }
 
 /* Message Queue Functions */
