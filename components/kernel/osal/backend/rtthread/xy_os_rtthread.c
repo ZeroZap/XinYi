@@ -81,11 +81,21 @@ static thread_ctx_t *find_thread_ctx(rt_thread_t thread)
 static thread_ctx_t *alloc_thread_ctx(void)
 {
     for (size_t i = 0; i < MAX_THREADS; i++) {
-        if (g_thread_ctx[i].thread == NULL) {
+        if (!g_thread_ctx[i].initialized) {
             return &g_thread_ctx[i];
         }
     }
     return NULL;
+}
+
+static void clear_thread_ctx(thread_ctx_t *ctx)
+{
+    if (!ctx) return;
+
+    ctx->thread = NULL;
+    ctx->initialized = 0;
+    ctx->callback = NULL;
+    ctx->arg = NULL;
 }
 
 /**
@@ -199,9 +209,19 @@ uint32_t xy_os_kernel_get_sys_timer_freq(void)
 xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
                                    const xy_os_thread_attr_t *attr)
 {
+    thread_ctx_t *ctx;
+
     if (!func) {
         return NULL;
     }
+
+    ctx = alloc_thread_ctx();
+    if (!ctx) return NULL;
+
+    /* Reserve the slot before kernel allocation; commit its handle before startup. */
+    ctx->initialized = 1;
+    ctx->callback = func;
+    ctx->arg = argument;
 
     rt_thread_t thread = RT_NULL;
     rt_err_t result;
@@ -214,7 +234,10 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     if (attr) {
         if (attr->name) name = attr->name;
         if (attr->stack_size > 0) stack_size = attr->stack_size;
-        if (!rtthread_priority_valid(attr->priority)) return NULL;
+        if (!rtthread_priority_valid(attr->priority)) {
+            clear_thread_ctx(ctx);
+            return NULL;
+        }
         priority = xy_to_rt_priority(attr->priority);
         if (attr->tick > 0) tick = attr->tick;
     }
@@ -227,22 +250,16 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
                               tick);
 
     if (thread == RT_NULL) {
+        clear_thread_ctx(ctx);
         return NULL;
     }
 
+    ctx->thread = thread;
     result = rt_thread_startup(thread);
     if (result != RT_EOK) {
         rt_thread_delete(thread);
+        clear_thread_ctx(ctx);
         return NULL;
-    }
-
-    // Store context
-    thread_ctx_t *ctx = alloc_thread_ctx();
-    if (ctx) {
-        ctx->thread = thread;
-        ctx->callback = NULL;
-        ctx->arg = argument;
-        ctx->initialized = 1;
     }
 
     return (xy_os_thread_id_t)thread;
@@ -383,10 +400,17 @@ void xy_os_thread_exit(void)
 xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
 {
     rt_thread_t thread = (rt_thread_t)thread_id;
+    thread_ctx_t *ctx;
+    rt_err_t result;
+
     if (!thread) return XY_OS_ERROR_PARAMETER;
 
-    rt_err_t result = rt_thread_delete(thread);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    ctx = find_thread_ctx(thread);
+    result = rt_thread_delete(thread);
+    if (result != RT_EOK) return XY_OS_ERROR;
+
+    clear_thread_ctx(ctx);
+    return XY_OS_OK;
 }
 
 uint32_t xy_os_thread_get_count(void)
