@@ -390,21 +390,21 @@ uint32_t xy_os_thread_enumerate(xy_os_thread_id_t *thread_array, uint32_t array_
 
 uint32_t xy_os_thread_flags_set(xy_os_thread_id_t thread_id, uint32_t flags)
 {
-    // Use RT-Thread event for similar functionality
+    // RT-Thread has no per-thread notification equivalent in this backend.
     XY_UNUSED(thread_id);
     XY_UNUSED(flags);
-    return 0x80000000; // Not supported
+    return 0x80000000U;
 }
 
 uint32_t xy_os_thread_flags_clear(uint32_t flags)
 {
     XY_UNUSED(flags);
-    return 0;
+    return 0x80000000U;
 }
 
 uint32_t xy_os_thread_flags_get(void)
 {
-    return 0;
+    return 0x80000000U;
 }
 
 uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout)
@@ -412,7 +412,7 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t time
     XY_UNUSED(flags);
     XY_UNUSED(options);
     XY_UNUSED(timeout);
-    return 0x80000000; // Not supported
+    return 0x80000000U;
 }
 
 /* Delay Functions */
