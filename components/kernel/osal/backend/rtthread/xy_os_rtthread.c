@@ -88,6 +88,62 @@ static thread_ctx_t *alloc_thread_ctx(void)
     return NULL;
 }
 
+static mutex_ctx_t *find_mutex_ctx(rt_mutex_t mutex)
+{
+    for (size_t i = 0; i < MAX_MUTEXES; i++) {
+        if (g_mutex_ctx[i].initialized && g_mutex_ctx[i].mutex == mutex) {
+            return &g_mutex_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static mutex_ctx_t *alloc_mutex_ctx(void)
+{
+    for (size_t i = 0; i < MAX_MUTEXES; i++) {
+        if (!g_mutex_ctx[i].initialized) {
+            return &g_mutex_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static void clear_mutex_ctx(mutex_ctx_t *ctx)
+{
+    if (!ctx) return;
+
+    ctx->mutex = NULL;
+    ctx->initialized = 0;
+}
+
+static sem_ctx_t *find_sem_ctx(rt_sem_t sem)
+{
+    for (size_t i = 0; i < MAX_SEMAPHORES; i++) {
+        if (g_sem_ctx[i].initialized && g_sem_ctx[i].sem == sem) {
+            return &g_sem_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static sem_ctx_t *alloc_sem_ctx(void)
+{
+    for (size_t i = 0; i < MAX_SEMAPHORES; i++) {
+        if (!g_sem_ctx[i].initialized) {
+            return &g_sem_ctx[i];
+        }
+    }
+    return NULL;
+}
+
+static void clear_sem_ctx(sem_ctx_t *ctx)
+{
+    if (!ctx) return;
+
+    ctx->sem = NULL;
+    ctx->initialized = 0;
+}
+
 static void clear_thread_ctx(thread_ctx_t *ctx)
 {
     if (!ctx) return;
@@ -716,25 +772,25 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
 {
     const char *name = "mutex";
     rt_uint8_t flag = RT_IPC_FLAG_PRIO;
+    mutex_ctx_t *ctx;
+    rt_mutex_t mutex;
 
     if (attr && attr->name) {
         name = attr->name;
     }
 
-    rt_mutex_t mutex = rt_mutex_create(name, flag);
-    if (!mutex) return NULL;
+    ctx = alloc_mutex_ctx();
+    if (!ctx) return NULL;
 
-    // Store context
-    for (size_t i = 0; i < MAX_MUTEXES; i++) {
-        if (g_mutex_ctx[i].mutex == NULL) {
-            g_mutex_ctx[i].mutex = mutex;
-            g_mutex_ctx[i].initialized = 1;
-            return (xy_os_mutex_id_t)mutex;
-        }
+    ctx->initialized = 1;
+    mutex = rt_mutex_create(name, flag);
+    if (!mutex) {
+        clear_mutex_ctx(ctx);
+        return NULL;
     }
 
-    rt_mutex_delete(mutex);
-    return NULL;
+    ctx->mutex = mutex;
+    return (xy_os_mutex_id_t)mutex;
 }
 
 const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id)
@@ -778,19 +834,19 @@ xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
 xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
+    mutex_ctx_t *ctx;
+    rt_err_t result;
+
     if (!mutex) return XY_OS_ERROR_PARAMETER;
 
-    // Clean up context
-    for (size_t i = 0; i < MAX_MUTEXES; i++) {
-        if (g_mutex_ctx[i].mutex == mutex) {
-            g_mutex_ctx[i].initialized = 0;
-            g_mutex_ctx[i].mutex = NULL;
-            break;
-        }
-    }
+    ctx = find_mutex_ctx(mutex);
+    if (!ctx) return XY_OS_ERROR_PARAMETER;
 
-    rt_err_t result = rt_mutex_delete(mutex);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    result = rt_mutex_delete(mutex);
+    if (result != RT_EOK) return XY_OS_ERROR;
+
+    clear_mutex_ctx(ctx);
+    return XY_OS_OK;
 }
 
 /* Semaphore Functions */
@@ -800,26 +856,27 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count, uint32_t initial_co
 {
     const char *name = "sem";
     rt_uint8_t flag = RT_IPC_FLAG_PRIO;
+    sem_ctx_t *ctx;
+    rt_sem_t sem;
+
+    if (max_count == 0U || initial_count > max_count) return NULL;
 
     if (attr && attr->name) {
         name = attr->name;
     }
 
-    // RT-Thread semaphore doesn't have max_count, just use initial_count
-    rt_sem_t sem = rt_sem_create(name, initial_count, flag);
-    if (!sem) return NULL;
+    ctx = alloc_sem_ctx();
+    if (!ctx) return NULL;
 
-    // Store context
-    for (size_t i = 0; i < MAX_SEMAPHORES; i++) {
-        if (g_sem_ctx[i].sem == NULL) {
-            g_sem_ctx[i].sem = sem;
-            g_sem_ctx[i].initialized = 1;
-            return (xy_os_semaphore_id_t)sem;
-        }
+    ctx->initialized = 1;
+    sem = rt_sem_create(name, initial_count, flag);
+    if (!sem) {
+        clear_sem_ctx(ctx);
+        return NULL;
     }
 
-    rt_sem_delete(sem);
-    return NULL;
+    ctx->sem = sem;
+    return (xy_os_semaphore_id_t)sem;
 }
 
 const char *xy_os_semaphore_get_name(xy_os_semaphore_id_t semaphore_id)
@@ -868,19 +925,19 @@ uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
 xy_os_status_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
+    sem_ctx_t *ctx;
+    rt_err_t result;
+
     if (!sem) return XY_OS_ERROR_PARAMETER;
 
-    // Clean up context
-    for (size_t i = 0; i < MAX_SEMAPHORES; i++) {
-        if (g_sem_ctx[i].sem == sem) {
-            g_sem_ctx[i].initialized = 0;
-            g_sem_ctx[i].sem = NULL;
-            break;
-        }
-    }
+    ctx = find_sem_ctx(sem);
+    if (!ctx) return XY_OS_ERROR_PARAMETER;
 
-    rt_err_t result = rt_sem_delete(sem);
-    return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
+    result = rt_sem_delete(sem);
+    if (result != RT_EOK) return XY_OS_ERROR;
+
+    clear_sem_ctx(ctx);
+    return XY_OS_OK;
 }
 
 /* Memory Pool Functions */
