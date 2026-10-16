@@ -113,11 +113,13 @@ xy_hal_error_t xy_hal_gpio_deinit(xy_hal_gpio_port_t port, uint8_t pin) {
     int index;
     if (gpio_validate(port, pin) != XY_HAL_OK)
         return XY_HAL_ERROR_INVALID_PARAM;
+    index = gpio_port_index(port);
+    if (!gpio_state[index][pin].configured)
+        return XY_HAL_ERROR_NOT_INIT;
     init.GPIO_Pin = (uint16_t)(1U << pin);
     init.GPIO_Mode = GPIO_Mode_IN_FLOATING;
     init.GPIO_Speed = GPIO_Speed_2MHz;
     GPIO_Init(port, &init);
-    index = gpio_port_index(port);
     gpio_state[index][pin].configured = 0U;
     return XY_HAL_OK;
 }
