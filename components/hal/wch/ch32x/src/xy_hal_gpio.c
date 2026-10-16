@@ -137,8 +137,12 @@ xy_hal_error_t xy_hal_gpio_write(xy_hal_gpio_port_t port, uint8_t pin, uint8_t v
 }
 
 int32_t xy_hal_gpio_read(xy_hal_gpio_port_t port, uint8_t pin) {
+    int index;
     if (gpio_validate(port, pin) != XY_HAL_OK)
         return XY_HAL_ERROR_INVALID_PARAM;
+    index = gpio_port_index(port);
+    if (!gpio_state[index][pin].configured)
+        return XY_HAL_ERROR_NOT_INIT;
     return GPIO_ReadInputDataBit(port, (uint16_t)(1U << pin)) ? 1 : 0;
 }
 
