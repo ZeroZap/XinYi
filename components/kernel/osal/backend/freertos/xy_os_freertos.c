@@ -521,6 +521,8 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count,
 {
     (void)attr;
     SemaphoreHandle_t sem;
+    if (max_count == 0U || initial_count > max_count)
+        return NULL;
     if (max_count == 1) {
         sem = xSemaphoreCreateBinary();
         if (sem && initial_count > 0)

@@ -145,6 +145,20 @@ def main() -> int:
         if token not in source:
             errors.append(f"FreeRTOS ISR-safe semaphore release must preserve token: {token}")
 
+    semaphore_new = source.split("xy_os_semaphore_id_t xy_os_semaphore_new", 1)[-1].split(
+        "const char *xy_os_semaphore_get_name", 1
+    )[0]
+    for required in (
+        "max_count == 0U",
+        "initial_count > max_count",
+        "return NULL;",
+    ):
+        if required not in semaphore_new:
+            errors.append(
+                "FreeRTOS semaphore creation must reject zero capacity and an initial "
+                f"count above the declared maximum; missing: {required}"
+            )
+
     if errors:
         print("freertos_osal_thread_flags failed:")
         for error in errors:
