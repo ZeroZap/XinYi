@@ -680,12 +680,31 @@ xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 }
 
 /* Message Queue */
+typedef struct {
+    QueueHandle_t queue;
+    uint32_t capacity;
+    uint32_t msg_size;
+} fr_msgqueue_t;
+
 xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
                                        const xy_os_msgqueue_attr_t *attr)
 {
+    fr_msgqueue_t *context;
+
     (void)attr;
-    return (xy_os_msgqueue_id_t)xQueueCreate(
-        (UBaseType_t)msg_count, (UBaseType_t)msg_size);
+    if (msg_count == 0U || msg_size == 0U)
+        return NULL;
+    context = (fr_msgqueue_t *)pvPortMalloc(sizeof(*context));
+    if (!context)
+        return NULL;
+    context->queue = xQueueCreate((UBaseType_t)msg_count, (UBaseType_t)msg_size);
+    if (!context->queue) {
+        vPortFree(context);
+        return NULL;
+    }
+    context->capacity = msg_count;
+    context->msg_size = msg_size;
+    return (xy_os_msgqueue_id_t)context;
 }
 
 const char *xy_os_msgqueue_get_name(xy_os_msgqueue_id_t mq_id)
@@ -698,9 +717,11 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
                                   const void *msg_ptr, uint8_t msg_prio,
                                   uint32_t timeout)
 {
-    QueueHandle_t q = (QueueHandle_t)mq_id;
-    if (!q || !msg_ptr)
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    QueueHandle_t q;
+    if (!context || !msg_ptr)
         return XY_OS_ERROR_PARAMETER;
+    q = context->queue;
     (void)msg_prio;
     TickType_t ticks =
         (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
@@ -710,9 +731,11 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
 xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
                                   uint8_t *msg_prio, uint32_t timeout)
 {
-    QueueHandle_t q = (QueueHandle_t)mq_id;
-    if (!q || !msg_ptr)
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    QueueHandle_t q;
+    if (!context || !msg_ptr)
         return XY_OS_ERROR_PARAMETER;
+    q = context->queue;
     if (msg_prio)
         *msg_prio = 0;
     TickType_t ticks =
@@ -722,36 +745,40 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
 
 uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)
 {
-    return mq_id ? (uint32_t)uxQueueSpacesAvailable((QueueHandle_t)mq_id)
-                       + uxQueueMessagesWaiting((QueueHandle_t)mq_id)
-                 : 0;
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    return context ? context->capacity : 0U;
 }
 
 uint32_t xy_os_msgqueue_get_msg_size(xy_os_msgqueue_id_t mq_id)
 {
-    (void)mq_id;
-    return 0;
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    return context ? context->msg_size : 0U;
 }
 
 uint32_t xy_os_msgqueue_get_count(xy_os_msgqueue_id_t mq_id)
 {
-    return mq_id ? (uint32_t)uxQueueMessagesWaiting((QueueHandle_t)mq_id) : 0;
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    return context ? (uint32_t)uxQueueMessagesWaiting(context->queue) : 0U;
 }
 
 uint32_t xy_os_msgqueue_get_space(xy_os_msgqueue_id_t mq_id)
 {
-    return mq_id ? (uint32_t)uxQueueSpacesAvailable((QueueHandle_t)mq_id) : 0;
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    return context ? (uint32_t)uxQueueSpacesAvailable(context->queue) : 0U;
 }
 
 xy_os_status_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
 {
-    return mq_id ? pdstatus_to_xy(xQueueReset((QueueHandle_t)mq_id))
-                 : XY_OS_ERROR_PARAMETER;
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    return context ? pdstatus_to_xy(xQueueReset(context->queue)) : XY_OS_ERROR_PARAMETER;
 }
 
 xy_os_status_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id)
 {
-    if (mq_id)
-        vQueueDelete((QueueHandle_t)mq_id);
-    return mq_id ? XY_OS_OK : XY_OS_ERROR_PARAMETER;
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    if (!context)
+        return XY_OS_ERROR_PARAMETER;
+    vQueueDelete(context->queue);
+    vPortFree(context);
+    return XY_OS_OK;
 }
