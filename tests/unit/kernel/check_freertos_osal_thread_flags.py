@@ -42,6 +42,36 @@ def main() -> int:
                 f"query is rejected; missing: {required}"
             )
 
+    thread_flags_helper = source.split("/* Thread Flags", 1)[-1].split(
+        "uint32_t xy_os_thread_flags_set", 1
+    )[0]
+    for required in (
+        "flags == 0U",
+        "flags & 0x80000000U",
+        "options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR)",
+    ):
+        if required not in thread_flags_helper:
+            errors.append(
+                "FreeRTOS thread flags must reject empty masks, the reserved error bit, "
+                f"and unknown wait options; missing: {required}"
+            )
+
+    thread_flags_set = source.split("uint32_t xy_os_thread_flags_set", 1)[-1].split(
+        "uint32_t xy_os_thread_flags_clear", 1
+    )[0]
+    thread_flags_clear = source.split("uint32_t xy_os_thread_flags_clear", 1)[-1].split(
+        "uint32_t xy_os_thread_flags_get", 1
+    )[0]
+    thread_flags_wait = source.split("uint32_t xy_os_thread_flags_wait", 1)[-1].split(
+        "/* Delay Functions */", 1
+    )[0]
+    if "!freertos_thread_flags_args_valid(flags, 0U)" not in thread_flags_set:
+        errors.append("FreeRTOS thread-flags set must reject an invalid mask before kernel access")
+    if "!freertos_thread_flags_args_valid(flags, 0U)" not in thread_flags_clear:
+        errors.append("FreeRTOS thread-flags clear must reject an invalid mask before kernel access")
+    if "!freertos_thread_flags_args_valid(flags, options)" not in thread_flags_wait:
+        errors.append("FreeRTOS thread-flags wait must reject invalid masks/options before kernel access")
+
     event_flags_clear = source.split("uint32_t xy_os_event_flags_clear", 1)[-1].split(
         "uint32_t xy_os_event_flags_get", 1
     )[0]

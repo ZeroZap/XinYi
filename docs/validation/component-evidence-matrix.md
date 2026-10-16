@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-17 FreeRTOS OSAL thread-flags argument boundary
+
+- 旧边界 -> 新边界：`xy_os_thread_flags_set()`、`clear()`、`wait()` 不再把空 mask、保留 error bit `0x80000000` 或未知 wait option 传入 FreeRTOS task-notification API；非法输入统一返回 OSAL flag error sentinel，且不产生 kernel side effect。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused `freertos_osal_thread_flags`、`freertos_stm32l4_compile`、`freertos_stm32u5_compile`、`pandora_freertos_runtime` 4/4；Host `make test-unit`；PC、STM32L4、STM32U5 root compile；`git diff --check`。
+- 适用范围：FreeRTOS thread-notification-backed OSAL thread flags 的 public argument/fail-closed contract。
+- 仍不允许宣称：Pandora 本变更 runtime、ISR-origin thread flags、并发线性化、延迟、长稳或产品资格。
+
 ### 2026-10-17 FreeRTOS OSAL scheduler-start fail-closed boundary
 
 - 旧边界 -> 新边界：`xy_os_kernel_start()` 不再在 `vTaskStartScheduler()` 异常返回后报告 `XY_OS_OK`；由于正常启动不会返回，返回路径现 fail-closed 为 `XY_OS_ERROR`。

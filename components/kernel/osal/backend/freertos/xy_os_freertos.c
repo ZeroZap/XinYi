@@ -291,12 +291,21 @@ uint32_t xy_os_thread_enumerate(xy_os_thread_id_t *thread_array,
 }
 
 /* Thread Flags - using task notifications */
+static int freertos_thread_flags_args_valid(uint32_t flags, uint32_t options)
+{
+    if (flags == 0U || (flags & 0x80000000U))
+        return 0;
+    if (options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR))
+        return 0;
+    return 1;
+}
+
 uint32_t xy_os_thread_flags_set(xy_os_thread_id_t thread_id, uint32_t flags)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
     uint32_t previous;
 
-    if (!h)
+    if (!h || !freertos_thread_flags_args_valid(flags, 0U))
         return 0x80000000;
     if (xTaskNotifyAndQuery(h, flags, eSetBits, &previous) != pdPASS)
         return 0x80000000;
@@ -305,6 +314,8 @@ uint32_t xy_os_thread_flags_set(xy_os_thread_id_t thread_id, uint32_t flags)
 
 uint32_t xy_os_thread_flags_clear(uint32_t flags)
 {
+    if (!freertos_thread_flags_args_valid(flags, 0U))
+        return 0x80000000;
     return ulTaskNotifyValueClear(NULL, flags);
 }
 
@@ -325,6 +336,8 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
         (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
     BaseType_t clear = (options & XY_OS_FLAGS_NO_CLEAR) ? pdFALSE : pdTRUE;
 
+    if (!freertos_thread_flags_args_valid(flags, options))
+        return 0x80000000;
     if (xTaskNotifyWait(0, clear ? flags : 0, &notif, ticks) == pdPASS) {
         if (options & XY_OS_FLAGS_WAIT_ALL) {
             return ((notif & flags) == flags) ? notif : 0x80000000;
