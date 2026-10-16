@@ -264,8 +264,13 @@ xy_hal_error_t xy_hal_gpio_write_batch(xy_hal_gpio_port_t port, uint16_t pin_mas
 }
 
 int32_t xy_hal_gpio_read_batch(xy_hal_gpio_port_t port, uint16_t pin_mask) {
-    if (gpio_port_index(port) < 0)
+    int index = gpio_port_index(port);
+    if (index < 0 || pin_mask == 0U)
         return XY_HAL_ERROR_INVALID_PARAM;
+    for (uint32_t pin = 0U; pin < XY_WCH_GPIO_PIN_COUNT; ++pin) {
+        if ((pin_mask & (1U << pin)) != 0U && !gpio_state[index][pin].configured)
+            return XY_HAL_ERROR_NOT_INIT;
+    }
     return (int32_t)(GPIO_ReadInputData(port) & pin_mask);
 }
 
