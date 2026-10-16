@@ -1,0 +1,8 @@
+{
+  "target":"opench_ch32v307_freertos_sdk_port_smoke",
+  "sdk_commit":"08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256":"e8bf261c6d9cc3fca4c16ad7e0bf09c9b67c77bfacd4ecf426177dd1901ede4f",
+  "programming_finished":true,"verified_ok":true,"resetting_target":true,
+  "pre_scheduler_count":1,"scheduler_boot_count":1,"task_schedule_ok_count":1,"fast_isr_to_task_ok_count":1,"error_count":0,
+  "freertos_source":"MCU/wch/CH32V307EVT/EXAM/FreeRTOS/FreeRTOS_Core","port":"official WCH RISC-V/PFIC port","external_irq":"TIM2 WCH-Interrupt-fast -> xSemaphoreGiveFromISR -> portYIELD_FROM_ISR -> task","matrix":{"PC":"passed","STM32L4":"passed","STM32U5":"passed","CH32V307":"passed"},"unit_tests":"278/278 passed"
+}
