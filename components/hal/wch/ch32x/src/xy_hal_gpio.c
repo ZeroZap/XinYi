@@ -195,6 +195,8 @@ static xy_hal_error_t gpio_update(xy_hal_gpio_port_t port, uint8_t pin, xy_hal_g
 }
 
 xy_hal_error_t xy_hal_gpio_set_mode(xy_hal_gpio_port_t port, uint8_t pin, xy_hal_gpio_mode_t mode) {
+    if (mode > XY_HAL_GPIO_MODE_ANALOG)
+        return XY_HAL_ERROR_INVALID_PARAM;
     return gpio_update(port, pin, &mode, NULL, NULL, NULL);
 }
 
@@ -207,6 +209,8 @@ int32_t xy_hal_gpio_get_mode(xy_hal_gpio_port_t port, uint8_t pin) {
 }
 
 xy_hal_error_t xy_hal_gpio_set_pull(xy_hal_gpio_port_t port, uint8_t pin, xy_hal_gpio_pull_t pull) {
+    if (pull > XY_HAL_GPIO_PULL_DOWN)
+        return XY_HAL_ERROR_INVALID_PARAM;
     return gpio_update(port, pin, NULL, &pull, NULL, NULL);
 }
 
@@ -220,6 +224,8 @@ int32_t xy_hal_gpio_get_pull(xy_hal_gpio_port_t port, uint8_t pin) {
 
 xy_hal_error_t xy_hal_gpio_set_otype(xy_hal_gpio_port_t port, uint8_t pin,
                                      xy_hal_gpio_otype_t otype) {
+    if (otype > XY_HAL_GPIO_OTYPE_OD)
+        return XY_HAL_ERROR_INVALID_PARAM;
     return gpio_update(port, pin, NULL, NULL, &otype, NULL);
 }
 
@@ -233,6 +239,8 @@ int32_t xy_hal_gpio_get_otype(xy_hal_gpio_port_t port, uint8_t pin) {
 
 xy_hal_error_t xy_hal_gpio_set_speed(xy_hal_gpio_port_t port, uint8_t pin,
                                      xy_hal_gpio_speed_t speed) {
+    if (speed > XY_HAL_GPIO_SPEED_VERY_HIGH)
+        return XY_HAL_ERROR_INVALID_PARAM;
     return gpio_update(port, pin, NULL, NULL, NULL, &speed);
 }
 
@@ -248,10 +256,10 @@ xy_hal_error_t xy_hal_gpio_set_alternate(xy_hal_gpio_port_t port, uint8_t pin, u
     int index = gpio_port_index(port);
     if (index < 0 || pin >= XY_WCH_GPIO_PIN_COUNT)
         return XY_HAL_ERROR_INVALID_PARAM;
-    if (!gpio_state[index][pin].configured)
-        return XY_HAL_ERROR_NOT_INIT;
     if (alternate != 0U)
         return XY_HAL_ERROR_INVALID_PARAM;
+    if (!gpio_state[index][pin].configured)
+        return XY_HAL_ERROR_NOT_INIT;
     gpio_state[index][pin].alternate = alternate;
     return XY_HAL_OK;
 }
