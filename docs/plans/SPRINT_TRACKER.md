@@ -6,6 +6,8 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS 优先级边界收口（2026-10-16）**：FreeRTOS backend 不再把 OSAL `LOW..ISR` 直接截断到最高 native priority，而是在完整 OSAL 域与 `configMAX_PRIORITIES` 间做有界单调缩放；thread create/set 现拒绝 NONE、ERROR、RESERVED 与越界 priority。focused policy、Host 278/278 与 PC/L4/U5 compile gate 通过；不升级 Pandora runtime、调度公平性、抢占延迟或产品资格声明。
+
 **最新软件闭环（2026-10-16）**：WCH GPIO backend 现拒绝未实现的 nonzero alternate-function 编码，init/set 均在寄存器或 tracked state 变更前 fail-closed；openCH focused image 已经 WCH-Link program/verify/reset 与 UART machine parse（3 个预期 marker、error 0），可复用 `xy_hal`、Host 与 PC/L4/U5 compile gate 通过。证据仅覆盖 openCH PC4 bounded API boundary，不升级 Pandora runtime、AFIO remap 或产品资格声明。
 
 **最新 WCH I2C 软件边界（2026-10-16）**：CH32V307 I2C backend 现按 I2C1/I2C2 分别跟踪 lifecycle，拒绝重复 init、未初始化 transaction/DMA/callback/error 入口，并在 teardown 后清除 owner/callback；focused policy、Host 277/277 与 PC/L4/U5/WCH compile gate 通过。该结果不新增 Pandora 或 openCH I2C runtime、故障注入、精度、性能或产品资格证据。

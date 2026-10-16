@@ -146,6 +146,36 @@ def main() -> int:
             "converted to the OSAL byte contract"
         )
 
+    priority_mapping = source.split("static int freertos_priority_valid", 1)[-1].split(
+        "static xy_os_status_t pdstatus_to_xy", 1
+    )[0]
+    for required in (
+        "priority >= XY_OS_PRIORITY_IDLE && priority <= XY_OS_PRIORITY_ISR",
+        "configMAX_PRIORITIES - 1U",
+        "XY_OS_PRIORITY_ISR",
+        "XY_OS_PRIORITY_IDLE",
+        "priority",
+    ):
+        if required not in priority_mapping:
+            errors.append(
+                "FreeRTOS priorities must use a bounded monotonic mapping across the OSAL "
+                f"priority domain; missing: {required}"
+            )
+    if "if (prio >= configMAX_PRIORITIES)" in priority_mapping:
+        errors.append("FreeRTOS priority mapping must not collapse all high OSAL priorities")
+
+    thread_new = source.split("xy_os_thread_id_t xy_os_thread_new", 1)[-1].split(
+        "const char *xy_os_thread_get_name", 1
+    )[0]
+    if "!freertos_priority_valid(attr->priority)" not in thread_new:
+        errors.append("FreeRTOS thread creation must reject invalid explicit priorities")
+
+    priority_set = source.split("xy_os_status_t xy_os_thread_set_priority", 1)[-1].split(
+        "xy_os_priority_t xy_os_thread_get_priority", 1
+    )[0]
+    if "!freertos_priority_valid(priority)" not in priority_set:
+        errors.append("FreeRTOS priority setter must reject invalid priorities before kernel access")
+
     for token in (
         "xy_os_semaphore_release_from_isr",
         "xSemaphoreGiveFromISR",

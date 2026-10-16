@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-16 FreeRTOS OSAL bounded priority mapping
+
+- 旧边界 -> 新边界：OSAL `LOW..ISR` 不再被直接截断并大量折叠到 FreeRTOS 最高 native priority；完整 OSAL priority domain 现有界、单调地缩放到 `0..configMAX_PRIORITIES-1`。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused `freertos_osal_thread_flags` 1/1；Host `make test-unit` 278/278；PC、STM32L4、STM32U5 root compile；`git diff --check`。
+- 适用范围：显式 thread create/set 拒绝 `NONE`、`ERROR`、`RESERVED` 与越界 priority；native priority query 映射回有效 OSAL domain。
+- 仍不允许宣称：Pandora 本变更 runtime、精确调度公平性、抢占延迟、所有 priority level 唯一对应、长稳或产品资格。
+
 ### 2026-10-16 openCH official WCH FreeRTOS + XinYi OSAL integration
 
 - 旧等级 -> 新等级：openCH CH32V307 OSAL/FreeRTOS bounded B1 runtime；Pandora evidence unchanged

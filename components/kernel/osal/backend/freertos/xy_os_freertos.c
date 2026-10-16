@@ -13,18 +13,35 @@
 #include "timers.h"
 #include <string.h>
 
-/* Priority mapping: FreeRTOS 0=lowest, XY OSAL 0=lowest (same direction) */
-static UBaseType_t xy_to_freertos_priority(xy_os_priority_t xy_prio)
+/* Priority mapping: both FreeRTOS and XY OSAL increase toward higher priority. */
+static int freertos_priority_valid(xy_os_priority_t priority)
 {
-    UBaseType_t prio = (UBaseType_t)xy_prio;
-    if (prio >= configMAX_PRIORITIES)
-        prio = configMAX_PRIORITIES - 1;
-    return prio;
+    return priority >= XY_OS_PRIORITY_IDLE && priority <= XY_OS_PRIORITY_ISR;
 }
 
-static xy_os_priority_t freertos_to_xy_priority(UBaseType_t fr_prio)
+static UBaseType_t xy_to_freertos_priority(xy_os_priority_t priority)
 {
-    return (xy_os_priority_t)fr_prio;
+    const uint32_t freertos_span = (uint32_t)configMAX_PRIORITIES - 1U;
+    const uint32_t xy_span =
+        (uint32_t)XY_OS_PRIORITY_ISR - (uint32_t)XY_OS_PRIORITY_IDLE;
+    const uint32_t offset =
+        (uint32_t)priority - (uint32_t)XY_OS_PRIORITY_IDLE;
+
+    return (UBaseType_t)((offset * freertos_span) / xy_span);
+}
+
+static xy_os_priority_t freertos_to_xy_priority(UBaseType_t priority)
+{
+    const uint32_t freertos_span = (uint32_t)configMAX_PRIORITIES - 1U;
+    const uint32_t xy_span =
+        (uint32_t)XY_OS_PRIORITY_ISR - (uint32_t)XY_OS_PRIORITY_IDLE;
+
+    if ((uint32_t)priority > freertos_span) {
+        return XY_OS_PRIORITY_ERROR;
+    }
+
+    return (xy_os_priority_t)((uint32_t)XY_OS_PRIORITY_IDLE +
+                              (((uint32_t)priority * xy_span) / freertos_span));
 }
 
 static xy_os_status_t pdstatus_to_xy(BaseType_t status)
@@ -112,6 +129,8 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
 {
     if (!func)
         return NULL;
+    if (attr && !freertos_priority_valid(attr->priority))
+        return NULL;
     const char *name = (attr && attr->name) ? attr->name : "task";
     uint16_t stack   = (attr && attr->stack_size)
                            ? (attr->stack_size / sizeof(StackType_t))
@@ -172,7 +191,7 @@ xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
                                          xy_os_priority_t priority)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    if (!h)
+    if (!h || !freertos_priority_valid(priority))
         return XY_OS_ERROR_PARAMETER;
     vTaskPrioritySet(h, xy_to_freertos_priority(priority));
     return XY_OS_OK;
