@@ -6,6 +6,12 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS scheduler-lock 边界收口（2026-10-17）**：FreeRTOS backend 的 kernel
+lock/unlock/restore 现返回可观察的 previous scheduler state，幂等处理已处于目标状态的调用，
+拒绝 scheduler 尚未启动/未知状态及非法 restore token；不再把所有路径固定报告为 unlocked。
+focused policy/FreeRTOS L4/U5 compile/Pandora wiring、Host 278/278 与 PC/L4/U5 root compile gate
+通过；不升级 Pandora runtime、嵌套 lock count、并发线性化或产品资格声明。
+
 **最新 FreeRTOS 绝对延时边界收口（2026-10-16）**：FreeRTOS backend 的 `xy_os_delay_until()` 不再把绝对目标 tick 错当作 `vTaskDelayUntil()` previous-wake 并传入 zero increment；现从 current tick 计算 wrap-safe 正 delta，已到期目标立即成功返回。focused policy/FreeRTOS L4/U5 compile/Pandora wiring、Host 278/278 与 PC/L4/U5 root compile gate 通过；不升级 Pandora runtime、tick 精度、长稳或产品资格声明。
 
 **最新 FreeRTOS 优先级边界收口（2026-10-16）**：FreeRTOS backend 不再把 OSAL `LOW..ISR` 直接截断到最高 native priority，而是在完整 OSAL 域与 `configMAX_PRIORITIES` 间做有界单调缩放；thread create/set 现拒绝 NONE、ERROR、RESERVED 与越界 priority。focused policy、Host 278/278 与 PC/L4/U5 compile gate 通过；不升级 Pandora runtime、调度公平性、抢占延迟或产品资格声明。

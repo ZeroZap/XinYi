@@ -92,18 +92,40 @@ xy_os_status_t xy_os_kernel_start(void)
 
 int32_t xy_os_kernel_lock(void)
 {
+    BaseType_t state = xTaskGetSchedulerState();
+
+    if (state == taskSCHEDULER_SUSPENDED)
+        return 1;
+    if (state != taskSCHEDULER_RUNNING)
+        return -1;
     vTaskSuspendAll();
     return 0;
 }
 int32_t xy_os_kernel_unlock(void)
 {
-    xTaskResumeAll();
-    return 0;
+    BaseType_t state = xTaskGetSchedulerState();
+
+    if (state == taskSCHEDULER_RUNNING)
+        return 0;
+    if (state != taskSCHEDULER_SUSPENDED)
+        return -1;
+    (void)xTaskResumeAll();
+    return 1;
 }
 int32_t xy_os_kernel_restore_lock(int32_t lock)
 {
-    (void)lock;
-    return 0;
+    BaseType_t state;
+
+    if (lock != 0 && lock != 1)
+        return -1;
+    state = xTaskGetSchedulerState();
+    if (state != taskSCHEDULER_RUNNING && state != taskSCHEDULER_SUSPENDED)
+        return -1;
+    if (lock == 1 && state == taskSCHEDULER_RUNNING)
+        vTaskSuspendAll();
+    else if (lock == 0 && state == taskSCHEDULER_SUSPENDED)
+        (void)xTaskResumeAll();
+    return lock;
 }
 
 uint32_t xy_os_kernel_get_tick_count(void)

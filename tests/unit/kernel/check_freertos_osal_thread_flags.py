@@ -195,6 +195,27 @@ def main() -> int:
     if "!freertos_priority_valid(priority)" not in priority_set:
         errors.append("FreeRTOS priority setter must reject invalid priorities before kernel access")
 
+    kernel_locking = source.split("int32_t xy_os_kernel_lock", 1)[-1].split(
+        "uint32_t xy_os_kernel_get_tick_count", 1
+    )[0]
+    for required in (
+        "xTaskGetSchedulerState()",
+        "taskSCHEDULER_SUSPENDED",
+        "taskSCHEDULER_RUNNING",
+        "vTaskSuspendAll();",
+        "xTaskResumeAll();",
+        "lock != 0 && lock != 1",
+    ):
+        if required not in kernel_locking:
+            errors.append(
+                "FreeRTOS kernel lock/unlock/restore must preserve and restore the observable "
+                f"scheduler lock state; missing: {required}"
+            )
+    if kernel_locking.count("return 0;") >= 3:
+        errors.append(
+            "FreeRTOS kernel lock APIs must not unconditionally report an unlocked previous state"
+        )
+
     for token in (
         "xy_os_semaphore_release_from_isr",
         "xSemaphoreGiveFromISR",

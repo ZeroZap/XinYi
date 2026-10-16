@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-17 FreeRTOS OSAL scheduler-lock state boundary
+
+- 旧边界 -> 新边界：`xy_os_kernel_lock()`、`unlock()` 与 `restore_lock()` 不再固定返回 0；现读取 FreeRTOS scheduler state，返回 previous lock state，幂等处理已处于目标状态的调用，并对 scheduler 尚未启动/未知状态及非法 restore token fail-closed。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused `freertos_osal_thread_flags`、`freertos_stm32l4_compile`、`freertos_stm32u5_compile`、`pandora_freertos_runtime` 4/4；Host `make test-unit` 278/278；PC、STM32L4、STM32U5 root compile；`git diff --check`。
+- 适用范围：single observable FreeRTOS scheduler suspended/running state 与 OSAL 0/1 restore token；重复 lock/unlock 不额外改变 scheduler nesting。
+- 仍不允许宣称：Pandora 本变更 runtime、完整嵌套 lock count、跨 task 并发线性化、调度延迟、长稳或产品资格。
+
 ### 2026-10-16 FreeRTOS OSAL absolute-delay boundary
 
 - 旧边界 -> 新边界：`xy_os_delay_until()` 不再用 absolute target 作为 `vTaskDelayUntil()` previous-wake value 并传入 zero increment；现读取 current tick，以 signed modular delta 判断已到期目标，并仅对未来目标调用 `vTaskDelay(target - now)`。
