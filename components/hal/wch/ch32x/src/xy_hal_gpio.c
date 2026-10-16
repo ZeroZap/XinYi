@@ -84,7 +84,8 @@ static xy_hal_error_t gpio_apply(xy_hal_gpio_port_t port, uint8_t pin,
 
     if (gpio_validate(port, pin) != XY_HAL_OK || config == NULL ||
         config->mode > XY_HAL_GPIO_MODE_ANALOG || config->pull > XY_HAL_GPIO_PULL_DOWN ||
-        config->otype > XY_HAL_GPIO_OTYPE_OD || config->speed > XY_HAL_GPIO_SPEED_VERY_HIGH) {
+        config->otype > XY_HAL_GPIO_OTYPE_OD || config->speed > XY_HAL_GPIO_SPEED_VERY_HIGH ||
+        config->alternate != 0U) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     gpio_enable_clock(port);
@@ -238,6 +239,8 @@ xy_hal_error_t xy_hal_gpio_set_alternate(xy_hal_gpio_port_t port, uint8_t pin, u
         return XY_HAL_ERROR_INVALID_PARAM;
     if (!gpio_state[index][pin].configured)
         return XY_HAL_ERROR_NOT_INIT;
+    if (alternate != 0U)
+        return XY_HAL_ERROR_INVALID_PARAM;
     gpio_state[index][pin].alternate = alternate;
     return XY_HAL_OK;
 }
