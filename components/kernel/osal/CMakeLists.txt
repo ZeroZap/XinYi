@@ -57,6 +57,11 @@ elseif(OSAL_BACKEND STREQUAL "freertos")
             ${CMAKE_CURRENT_SOURCE_DIR}/config/freertos/stm32l4)
         set(OSAL_FREERTOS_PORT_DIR
             ${CMAKE_CURRENT_SOURCE_DIR}/portable/freertos/GCC/ARM_CM4F)
+    elseif(HAL_PLATFORM STREQUAL "WCH")
+        set(OSAL_FREERTOS_CONFIG_DIR
+            ${CMAKE_SOURCE_DIR}/boards/opench_ch32v307)
+        set(OSAL_FREERTOS_PORT_DIR
+            ${CMAKE_SOURCE_DIR}/MCU/wch/CH32V307EVT/EXAM/FreeRTOS/FreeRTOS_Core/FreeRTOS/portable/GCC/RISC-V)
     else()
         set(OSAL_FREERTOS_CONFIG_DIR
             ${CMAKE_CURRENT_SOURCE_DIR}/config/freertos)

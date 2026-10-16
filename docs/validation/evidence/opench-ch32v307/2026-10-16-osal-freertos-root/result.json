@@ -1,0 +1,8 @@
+{
+  "target":"canonical root opench_ch32v307_osal_freertos_sdk_smoke",
+  "sdk_commit":"08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256":"f987aee887599b0c5b011bc18935ee6e0f69cd4b5f631ad0dd128b6e486d0669",
+  "configuration":{"HAL_PLATFORM":"WCH","KCONFIG_OVERRIDES":"OSAL_BACKEND_FREERTOS=ON","CONFIG_OSAL_BACKEND_FREERTOS":"y","CONFIG_OSAL_BACKEND_BAREMETAL":"n","freertos_port":"WCH_RISCV_PFIC"},
+  "programming_finished":true,"verified_ok":true,"resetting_target":true,"runtime_markers":4,"error_count":0,
+  "matrix":{"PC_baremetal":"passed","STM32L4_FreeRTOS":"passed","STM32U5_FreeRTOS":"passed","CH32V307_FreeRTOS":"passed"},"unit_tests":"278/278 passed"
+}

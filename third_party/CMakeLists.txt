@@ -19,8 +19,13 @@ set_property(CACHE RTOS_BACKEND PROPERTY STRINGS none freertos rtthread cmsis_rt
 if(RTOS_BACKEND STREQUAL "freertos" OR RTOS_FREERTOS)
     set(USE_FREERTOS ON)
 
-    # FreeRTOS source directory
-    set(FREERTOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/freertos/FreeRTOS)
+    # WCH uses the kernel and RISC-V/PFIC port pinned in its official MCU SDK.
+    if(HAL_PLATFORM STREQUAL "WCH")
+        set(FREERTOS_DIR
+            ${CMAKE_SOURCE_DIR}/MCU/wch/CH32V307EVT/EXAM/FreeRTOS/FreeRTOS_Core/FreeRTOS)
+    else()
+        set(FREERTOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/freertos/FreeRTOS)
+    endif()
 
     if(EXISTS ${FREERTOS_DIR})
         # FreeRTOS source files
@@ -53,8 +58,17 @@ if(RTOS_BACKEND STREQUAL "freertos" OR RTOS_FREERTOS)
                 ${FREERTOS_PORT_DIR}/port.c
             )
             set(FREERTOS_PORT "ARM_CM4F")
+        elseif(HAL_PLATFORM STREQUAL "WCH")
+            set(FREERTOS_PORT_DIR ${FREERTOS_DIR}/portable/GCC/RISC-V)
+            set(FREERTOS_CONFIG_DIR ${CMAKE_SOURCE_DIR}/boards/opench_ch32v307)
+            list(APPEND FREERTOS_SOURCES
+                ${FREERTOS_PORT_DIR}/port.c
+                ${FREERTOS_PORT_DIR}/portASM.S
+            )
+            set(FREERTOS_PORT "WCH_RISCV_PFIC")
         else()
-            message(FATAL_ERROR "The guarded FreeRTOS reference kernel supports STM32U5 and STM32L4 only")
+            message(FATAL_ERROR
+                "The guarded FreeRTOS reference kernel supports STM32U5, STM32L4, and WCH only")
         endif()
 
         # Create FreeRTOS library
@@ -64,6 +78,9 @@ if(RTOS_BACKEND STREQUAL "freertos" OR RTOS_FREERTOS)
             ${FREERTOS_DIR}/include
             ${FREERTOS_PORT_DIR}
             ${FREERTOS_CONFIG_DIR}
+            $<$<STREQUAL:${HAL_PLATFORM},WCH>:${FREERTOS_PORT_DIR}/chip_specific_extensions/RV32I_PFIC_no_extensions>
+            $<$<STREQUAL:${HAL_PLATFORM},WCH>:${CMAKE_SOURCE_DIR}/MCU/wch/CH32V307EVT/EXAM/SRC/Peripheral/inc>
+            $<$<STREQUAL:${HAL_PLATFORM},WCH>:${CMAKE_SOURCE_DIR}/MCU/wch/CH32V307EVT/EXAM/SRC/Core>
         )
 
         target_compile_definitions(freertos_kernel PUBLIC

@@ -123,15 +123,18 @@ if(KCONFIG_OVERRIDES MATCHES "(^|;)OSAL_BACKEND_FREERTOS=(ON|Y|YES|TRUE|1)(;|$)"
    AND NOT CONFIG_OSAL_BACKEND_FREERTOS)
     message(FATAL_ERROR
         "OSAL_BACKEND_FREERTOS was requested but its Kconfig dependencies are not satisfied; "
-        "the guarded reference backend requires HAL_PLATFORM=STM32U5 or STM32L4")
+        "the guarded reference backend requires HAL_PLATFORM=STM32U5, STM32L4, or WCH")
 endif()
 
 # Keep the generated root selection authoritative for both the OSAL adapter and
 # its matching kernel. The default remains bare-metal; FreeRTOS is intentionally
-# limited to compile-guarded STM32U5 Cortex-M33 and STM32L4 Cortex-M4F configurations.
+# limited to supported STM32 and pinned WCH SDK configurations.
 if(CONFIG_OSAL_BACKEND_FREERTOS)
-    if(NOT HAL_PLATFORM STREQUAL "STM32U5" AND NOT HAL_PLATFORM STREQUAL "STM32L4")
-        message(FATAL_ERROR "OSAL_BACKEND_FREERTOS is supported only for STM32U5 and STM32L4")
+    if(NOT HAL_PLATFORM STREQUAL "STM32U5" AND
+       NOT HAL_PLATFORM STREQUAL "STM32L4" AND
+       NOT HAL_PLATFORM STREQUAL "WCH")
+        message(FATAL_ERROR
+            "OSAL_BACKEND_FREERTOS is supported only for STM32U5, STM32L4, and WCH")
     endif()
     set(OSAL_BACKEND "freertos" CACHE STRING "OSAL backend selection" FORCE)
     set(RTOS_BACKEND "freertos" CACHE STRING "RTOS backend selection" FORCE)
