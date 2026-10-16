@@ -79,9 +79,15 @@ xy_os_status_t xy_os_kernel_get_info(xy_os_version_t *version, char *id_buf,
 
 xy_os_kernel_state_t xy_os_kernel_get_state(void)
 {
-    return (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
-               ? XY_OS_KERNEL_RUNNING
-               : XY_OS_KERNEL_READY;
+    BaseType_t state = xTaskGetSchedulerState();
+
+    if (state == taskSCHEDULER_NOT_STARTED)
+        return XY_OS_KERNEL_READY;
+    if (state == taskSCHEDULER_RUNNING)
+        return XY_OS_KERNEL_RUNNING;
+    if (state == taskSCHEDULER_SUSPENDED)
+        return XY_OS_KERNEL_LOCKED;
+    return XY_OS_KERNEL_ERROR;
 }
 
 xy_os_status_t xy_os_kernel_start(void)

@@ -216,6 +216,24 @@ def main() -> int:
             "FreeRTOS kernel lock APIs must not unconditionally report an unlocked previous state"
         )
 
+    kernel_state = source.split("xy_os_kernel_state_t xy_os_kernel_get_state", 1)[-1].split(
+        "xy_os_status_t xy_os_kernel_start", 1
+    )[0]
+    for required in (
+        "taskSCHEDULER_NOT_STARTED",
+        "XY_OS_KERNEL_READY",
+        "taskSCHEDULER_RUNNING",
+        "XY_OS_KERNEL_RUNNING",
+        "taskSCHEDULER_SUSPENDED",
+        "XY_OS_KERNEL_LOCKED",
+        "XY_OS_KERNEL_ERROR",
+    ):
+        if required not in kernel_state:
+            errors.append(
+                "FreeRTOS kernel state must preserve ready, running, locked, and unknown "
+                f"scheduler states; missing: {required}"
+            )
+
     for token in (
         "xy_os_semaphore_release_from_isr",
         "xSemaphoreGiveFromISR",
