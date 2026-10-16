@@ -11,6 +11,7 @@
 
 static xy_hal_uart_callback_t error_callback;
 static void* error_callback_arg;
+static uint8_t uart_initialized[8];
 
 static uint32_t uart_tick_ms(void) {
     uint32_t divisor =
@@ -21,6 +22,26 @@ static uint32_t uart_tick_ms(void) {
 static int uart_valid(void* instance) {
     return instance == USART1 || instance == USART2 || instance == USART3 || instance == UART4 ||
            instance == UART5 || instance == UART6 || instance == UART7 || instance == UART8;
+}
+
+static int uart_index(void* instance) {
+    if (instance == USART1)
+        return 0;
+    if (instance == USART2)
+        return 1;
+    if (instance == USART3)
+        return 2;
+    if (instance == UART4)
+        return 3;
+    if (instance == UART5)
+        return 4;
+    if (instance == UART6)
+        return 5;
+    if (instance == UART7)
+        return 6;
+    if (instance == UART8)
+        return 7;
+    return -1;
 }
 
 static void uart_enable_clock(void* instance) {
@@ -83,12 +104,16 @@ static uint16_t uart_mode(xy_hal_uart_mode_t value) {
 
 xy_hal_error_t xy_hal_uart_init(void* instance, const xy_hal_uart_config_t* config) {
     USART_InitTypeDef init = {0};
+    int index;
     if (!uart_valid(instance) || config == NULL || config->baudrate == 0U ||
         config->wordlen == XY_HAL_UART_WORDLEN_7B || config->wordlen > XY_HAL_UART_WORDLEN_9B ||
         config->stopbits > XY_HAL_UART_STOPBITS_2 || config->parity > XY_HAL_UART_PARITY_ODD ||
         config->flowctrl > XY_HAL_UART_FLOWCTRL_RTS_CTS || uart_mode(config->mode) == 0U) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
+    index = uart_index(instance);
+    if (uart_initialized[index] != 0U)
+        return XY_HAL_ERROR_ALREADY_INIT;
     uart_enable_clock(instance);
     init.USART_BaudRate = config->baudrate;
     init.USART_WordLength = uart_word_length(config->wordlen);
@@ -98,14 +123,19 @@ xy_hal_error_t xy_hal_uart_init(void* instance, const xy_hal_uart_config_t* conf
     init.USART_Mode = uart_mode(config->mode);
     USART_Init(instance, &init);
     USART_Cmd(instance, ENABLE);
+    uart_initialized[index] = 1U;
     return XY_HAL_OK;
 }
 
 xy_hal_error_t xy_hal_uart_deinit(void* instance) {
-    if (!uart_valid(instance))
+    int index = uart_index(instance);
+    if (index < 0)
         return XY_HAL_ERROR_INVALID_PARAM;
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     USART_Cmd(instance, DISABLE);
     USART_DeInit(instance);
+    uart_initialized[index] = 0U;
     return XY_HAL_OK;
 }
 
@@ -121,8 +151,12 @@ static xy_hal_error_t uart_wait(void* instance, uint16_t flag, uint32_t timeout)
 xy_hal_error_t xy_hal_uart_send(void* instance, const uint8_t* data, size_t len, uint32_t timeout) {
     size_t i;
     xy_hal_error_t result;
+    int index;
     if (!uart_valid(instance) || (len != 0U && data == NULL))
         return XY_HAL_ERROR_INVALID_PARAM;
+    index = uart_index(instance);
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     for (i = 0U; i < len; ++i) {
         result = uart_wait(instance, USART_FLAG_TXE, timeout);
         if (result != XY_HAL_OK)
@@ -135,8 +169,12 @@ xy_hal_error_t xy_hal_uart_send(void* instance, const uint8_t* data, size_t len,
 xy_hal_error_t xy_hal_uart_recv(void* instance, uint8_t* data, size_t len, uint32_t timeout) {
     size_t i;
     xy_hal_error_t result;
+    int index;
     if (!uart_valid(instance) || (len != 0U && data == NULL))
         return XY_HAL_ERROR_INVALID_PARAM;
+    index = uart_index(instance);
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     for (i = 0U; i < len; ++i) {
         result = uart_wait(instance, USART_FLAG_RXNE, timeout);
         if (result != XY_HAL_OK)
