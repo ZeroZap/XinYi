@@ -199,6 +199,25 @@ def main() -> int:
     )[0]
     if "!freertos_priority_valid(attr->priority)" not in thread_new:
         errors.append("FreeRTOS thread creation must reject invalid explicit priorities")
+    for required in (
+        "attr->attr_bits != XY_OS_THREAD_DETACHED",
+        "attr->cb_mem",
+        "attr->cb_size != 0U",
+        "attr->stack_mem",
+        "attr->tz_module != 0U",
+        "attr->reserved != 0U",
+        "attr->stack_size % sizeof(StackType_t)",
+        "(configSTACK_DEPTH_TYPE)-1",
+    ):
+        if required not in thread_new:
+            errors.append(
+                "FreeRTOS dynamic thread creation must reject unsupported caller-owned/joinable "
+                f"attributes and non-representable byte stack sizes; missing: {required}"
+            )
+    if "uint16_t stack" in thread_new:
+        errors.append(
+            "FreeRTOS thread creation must not narrow the requested stack depth before validating it"
+        )
 
     delay_until = source.split("xy_os_status_t xy_os_delay_until", 1)[-1].split(
         "/* Timer Management */", 1

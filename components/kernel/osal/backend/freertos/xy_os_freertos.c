@@ -155,14 +155,29 @@ uint32_t xy_os_kernel_get_sys_timer_freq(void)
 xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
                                    const xy_os_thread_attr_t *attr)
 {
+    configSTACK_DEPTH_TYPE stack = 256U;
+
     if (!func)
         return NULL;
-    if (attr && !freertos_priority_valid(attr->priority))
-        return NULL;
+    if (attr) {
+        uint32_t stack_words;
+
+        if (!freertos_priority_valid(attr->priority) ||
+            attr->attr_bits != XY_OS_THREAD_DETACHED || attr->cb_mem ||
+            attr->cb_size != 0U || attr->stack_mem || attr->tz_module != 0U ||
+            attr->reserved != 0U)
+            return NULL;
+        if (attr->stack_size != 0U) {
+            if (attr->stack_size % sizeof(StackType_t))
+                return NULL;
+            stack_words = attr->stack_size / sizeof(StackType_t);
+            if (stack_words == 0U ||
+                stack_words > (uint32_t)((configSTACK_DEPTH_TYPE)-1))
+                return NULL;
+            stack = (configSTACK_DEPTH_TYPE)stack_words;
+        }
+    }
     const char *name = (attr && attr->name) ? attr->name : "task";
-    uint16_t stack   = (attr && attr->stack_size)
-                           ? (attr->stack_size / sizeof(StackType_t))
-                           : 256;
     UBaseType_t prio =
         attr ? xy_to_freertos_priority(attr->priority) : (tskIDLE_PRIORITY + 1);
     TaskHandle_t handle;

@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-17 FreeRTOS OSAL thread-create attribute boundary
+
+- 旧边界 -> 新边界：dynamic FreeRTOS adapter 不再静默忽略 joinable、caller-owned control-block/stack、TrustZone/reserved 属性，也不再把 byte stack size 未校验地窄化为 `uint16_t` depth；不支持或不可表示的请求在 `xTaskCreate()` 前 fail-closed。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused `freertos_osal_thread_flags`、`freertos_stm32l4_compile`、`freertos_stm32u5_compile`、`pandora_freertos_runtime` 4/4；Host `make test-unit`；PC、STM32L4、STM32U5 root compile；`git diff --check`。
+- 适用范围：FreeRTOS dynamic-allocation thread create 的公开属性与 byte-to-stack-word representability contract。
+- 仍不允许宣称：Pandora 本变更 runtime、caller-owned/static allocation、join/detach、TrustZone、scheduler 行为、长稳或产品资格。
+
 ### 2026-10-17 FreeRTOS OSAL thread-flags argument boundary
 
 - 旧边界 -> 新边界：`xy_os_thread_flags_set()`、`clear()`、`wait()` 不再把空 mask、保留 error bit `0x80000000` 或未知 wait option 传入 FreeRTOS task-notification API；非法输入统一返回 OSAL flag error sentinel，且不产生 kernel side effect。
