@@ -445,15 +445,27 @@ xy_os_status_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
 }
 
 /* Mutex */
+typedef struct {
+    SemaphoreHandle_t mutex;
+    uint8_t recursive;
+} fr_mutex_t;
+
 xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
 {
-    SemaphoreHandle_t mutex;
-    if (attr && (attr->attr_bits & XY_OS_MUTEX_RECURSIVE)) {
-        mutex = xSemaphoreCreateRecursiveMutex();
-    } else {
-        mutex = xSemaphoreCreateMutex();
+    fr_mutex_t *context;
+
+    context = (fr_mutex_t *)pvPortMalloc(sizeof(*context));
+    if (!context)
+        return NULL;
+    context->recursive =
+        (attr && (attr->attr_bits & XY_OS_MUTEX_RECURSIVE)) ? 1U : 0U;
+    context->mutex = context->recursive ? xSemaphoreCreateRecursiveMutex()
+                                        : xSemaphoreCreateMutex();
+    if (!context->mutex) {
+        vPortFree(context);
+        return NULL;
     }
-    return (xy_os_mutex_id_t)mutex;
+    return (xy_os_mutex_id_t)context;
 }
 
 const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id)
@@ -464,33 +476,42 @@ const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id)
 
 xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
 {
-    SemaphoreHandle_t m = (SemaphoreHandle_t)mutex_id;
-    if (!m)
+    fr_mutex_t *context = (fr_mutex_t *)mutex_id;
+    TickType_t ticks;
+
+    if (!context)
         return XY_OS_ERROR_PARAMETER;
-    TickType_t ticks =
-        (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
-    return pdstatus_to_xy_wait(xSemaphoreTake(m, ticks));
+    ticks = (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
+    if (context->recursive)
+        return pdstatus_to_xy_wait(xSemaphoreTakeRecursive(context->mutex, ticks));
+    return pdstatus_to_xy_wait(xSemaphoreTake(context->mutex, ticks));
 }
 
 xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 {
-    return mutex_id
-               ? pdstatus_to_xy(xSemaphoreGive((SemaphoreHandle_t)mutex_id))
-               : XY_OS_ERROR_PARAMETER;
+    fr_mutex_t *context = (fr_mutex_t *)mutex_id;
+
+    if (!context)
+        return XY_OS_ERROR_PARAMETER;
+    if (context->recursive)
+        return pdstatus_to_xy(xSemaphoreGiveRecursive(context->mutex));
+    return pdstatus_to_xy(xSemaphoreGive(context->mutex));
 }
 
 xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
 {
-    return mutex_id ? (xy_os_thread_id_t)xSemaphoreGetMutexHolder(
-                          (SemaphoreHandle_t)mutex_id)
-                    : NULL;
+    fr_mutex_t *context = (fr_mutex_t *)mutex_id;
+    return context ? (xy_os_thread_id_t)xSemaphoreGetMutexHolder(context->mutex) : NULL;
 }
 
 xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 {
-    if (mutex_id)
-        vSemaphoreDelete((SemaphoreHandle_t)mutex_id);
-    return mutex_id ? XY_OS_OK : XY_OS_ERROR_PARAMETER;
+    fr_mutex_t *context = (fr_mutex_t *)mutex_id;
+    if (!context)
+        return XY_OS_ERROR_PARAMETER;
+    vSemaphoreDelete(context->mutex);
+    vPortFree(context);
+    return XY_OS_OK;
 }
 
 /* Semaphore */

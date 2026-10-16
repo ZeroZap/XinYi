@@ -90,7 +90,7 @@ def main() -> int:
     for required in (
         "pdstatus_to_xy_wait",
         "return XY_OS_ERROR_TIMEOUT;",
-        "pdstatus_to_xy_wait(xSemaphoreTake(m, ticks))",
+        "pdstatus_to_xy_wait(xSemaphoreTake(context->mutex, ticks))",
         "pdstatus_to_xy_wait(xSemaphoreTake(s, ticks))",
         "pdstatus_to_xy_wait(xQueueSendToBack(q, msg_ptr, ticks))",
         "pdstatus_to_xy_wait(xQueueReceive(q, msg_ptr, ticks))",
@@ -121,6 +121,21 @@ def main() -> int:
             "FreeRTOS timer start must not hide a failed change-period command behind a "
             "second timer-start command"
         )
+
+    mutex_region = source.split("/* Mutex */", 1)[-1].split("/* Semaphore */", 1)[0]
+    for required in (
+        "typedef struct {",
+        "uint8_t recursive;",
+        "xSemaphoreTakeRecursive(context->mutex, ticks)",
+        "xSemaphoreGiveRecursive(context->mutex)",
+        "vSemaphoreDelete(context->mutex);",
+        "vPortFree(context);",
+    ):
+        if required not in mutex_region:
+            errors.append(
+                "FreeRTOS recursive mutexes must retain their type, use recursive take/give, "
+                f"and release wrapper ownership; missing: {required}"
+            )
 
     for token in (
         "xy_os_semaphore_release_from_isr",
