@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-16 WCH I2C lifecycle ownership fail-closed
+
+- 旧等级 -> 新等级：WCH I2C lifecycle H1/C1；hardware evidence unchanged
+- 证据路径/命令：`components/hal/wch/ch32x/src/xy_hal_i2c.c`、`tests/unit/hal_component/check_wch_i2c_lifecycle.py`；focused `wch_i2c_lifecycle`；Host `make test-unit` 277/277；PC/STM32L4/STM32U5/WCH Release builds；`clang-format --dry-run --Werror`；`git diff --check`。
+- 适用范围：I2C1/I2C2 独立 owner state；重复 init、未初始化 blocking/DMA/readiness/callback/error 操作 fail-closed；成功 deinit 清除 owner/callback，DMA unsupported 路径仍先验证公开输入。
+- 仍不允许宣称：Pandora runtime、openCH 新 runtime、注入式 NACK/stuck-bus recovery、I2C 电气/时序、传感器精度、性能、耐久或 product qualification。
+
 ### 2026-10-16 WCH GPIO alternate-function boundary fail-closed
 
 - 旧等级 -> 新等级：WCH HAL B1 bounded API-boundary runtime evidence; no Pandora claim change
