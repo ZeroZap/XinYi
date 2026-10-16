@@ -45,11 +45,40 @@ def main() -> int:
     event_flags_clear = source.split("uint32_t xy_os_event_flags_clear", 1)[-1].split(
         "uint32_t xy_os_event_flags_get", 1
     )[0]
-    if ": 0x80000000U;" not in event_flags_clear:
+    if "return 0x80000000U;" not in event_flags_clear:
         errors.append(
-            "FreeRTOS event-flags clear must fail closed for a NULL handle instead of "
-            "reporting an empty previous value"
+            "FreeRTOS event-flags clear must fail closed for a NULL or invalid handle "
+            "instead of reporting an empty previous value"
         )
+
+    event_helper = source.split("/* Event Flags */", 1)[-1].split(
+        "xy_os_event_flags_id_t", 1
+    )[0]
+    for required in (
+        "flags == 0U",
+        "flags & 0xFF000000U",
+        "options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR)",
+    ):
+        if required not in event_helper:
+            errors.append(
+                "FreeRTOS event flags must reject empty masks, FreeRTOS-reserved control "
+                f"bits, and unknown wait options; missing: {required}"
+            )
+
+    event_wait = source.split("uint32_t xy_os_event_flags_wait", 1)[-1].split(
+        "xy_os_status_t xy_os_event_flags_delete", 1
+    )[0]
+    for required in (
+        "!freertos_event_flags_args_valid(flags, options)",
+        "(bits & flags) != flags",
+        "(bits & flags) == 0U",
+        "return 0x80000000U;",
+    ):
+        if required not in event_wait:
+            errors.append(
+                "FreeRTOS event-flags wait must distinguish an expired wait from a "
+                f"satisfied condition; missing: {required}"
+            )
 
     for forbidden in (
         "xTaskNotifyStateClear(NULL);",

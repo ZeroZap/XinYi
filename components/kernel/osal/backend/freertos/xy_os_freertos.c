@@ -377,6 +377,15 @@ xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 }
 
 /* Event Flags */
+static int freertos_event_flags_args_valid(uint32_t flags, uint32_t options)
+{
+    if (flags == 0U || (flags & 0xFF000000U))
+        return 0;
+    if (options & ~(XY_OS_FLAGS_WAIT_ALL | XY_OS_FLAGS_NO_CLEAR))
+        return 0;
+    return 1;
+}
+
 xy_os_event_flags_id_t
 xy_os_event_flags_new(const xy_os_event_flags_attr_t *attr)
 {
@@ -392,16 +401,18 @@ const char *xy_os_event_flags_get_name(xy_os_event_flags_id_t ef_id)
 
 uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
-    return ef_id ? (uint32_t)xEventGroupSetBits(
-                       (EventGroupHandle_t)ef_id, (EventBits_t)flags)
-                 : 0x80000000;
+    if (!ef_id || !freertos_event_flags_args_valid(flags, 0U))
+        return 0x80000000U;
+    return (uint32_t)xEventGroupSetBits((EventGroupHandle_t)ef_id,
+                                        (EventBits_t)flags);
 }
 
 uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
-    return ef_id ? (uint32_t)xEventGroupClearBits(
-                       (EventGroupHandle_t)ef_id, (EventBits_t)flags)
-                 : 0x80000000U;
+    if (!ef_id || !freertos_event_flags_args_valid(flags, 0U))
+        return 0x80000000U;
+    return (uint32_t)xEventGroupClearBits((EventGroupHandle_t)ef_id,
+                                          (EventBits_t)flags);
 }
 
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
@@ -412,14 +423,17 @@ uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
                                 uint32_t options, uint32_t timeout)
 {
-    if (!ef_id)
-        return 0x80000000;
+    if (!ef_id || !freertos_event_flags_args_valid(flags, options))
+        return 0x80000000U;
     BaseType_t wait_all = (options & XY_OS_FLAGS_WAIT_ALL) ? pdTRUE : pdFALSE;
     BaseType_t clear    = (options & XY_OS_FLAGS_NO_CLEAR) ? pdFALSE : pdTRUE;
     TickType_t ticks =
         (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
     EventBits_t bits = xEventGroupWaitBits(
         (EventGroupHandle_t)ef_id, (EventBits_t)flags, clear, wait_all, ticks);
+    if ((wait_all && ((bits & flags) != flags)) ||
+        (!wait_all && ((bits & flags) == 0U)))
+        return 0x80000000U;
     return (uint32_t)bits;
 }
 
