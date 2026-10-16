@@ -1241,6 +1241,7 @@ target_link_options(opench_ch32v307_freertos_sdk_port_smoke PRIVATE
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_freertos_sdk_port_smoke.map)
 set_target_properties(opench_ch32v307_freertos_sdk_port_smoke PROPERTIES SUFFIX ".elf")
 
+if(CONFIG_OSAL_BACKEND_FREERTOS)
 add_executable(opench_ch32v307_osal_freertos_sdk_smoke
     osal_freertos_sdk_main.c
     ${_wch_freertos}/Startup/startup_ch32v30x_D8C.S
@@ -1267,3 +1268,4 @@ target_link_options(opench_ch32v307_osal_freertos_sdk_smoke PRIVATE
     -nostartfiles --specs=nano.specs --specs=nosys.specs
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_osal_freertos_sdk_smoke.map)
 set_target_properties(opench_ch32v307_osal_freertos_sdk_smoke PROPERTIES SUFFIX ".elf")
+endif()

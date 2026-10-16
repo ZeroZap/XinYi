@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-16 openCH official WCH FreeRTOS + XinYi OSAL integration
+
+- 旧等级 -> 新等级：openCH CH32V307 OSAL/FreeRTOS bounded B1 runtime；Pandora evidence unchanged
+- 证据路径/命令：`boards/opench_ch32v307/{CMakeLists.txt,osal_freertos_sdk_main.c}`、`docs/validation/evidence/opench-ch32v307/2026-10-16-osal-freertos-sdk/`；WCH-Link program/verify/reset 与 UART machine parse（pre-scheduler、OSAL boot、task sync、fast ISR 各 1，error 0）；focused `opench_ch32v307_osal_freertos_sdk_smoke`；Host `make test-unit` 278/278；PC/STM32L4/STM32U5/WCH Release builds；WCH FreeRTOS configure/build with `-DKCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON`；`git diff --check`。
+- 适用范围：root Kconfig/CMake 可选择 WCH FreeRTOS；board image 直接消费 pinned WCH SDK kernel/RISC-V PFIC port/startup/linker，XinYi OSAL adapter 通过 `xy_os_*` 创建 worker/IRQ tasks、delay、semaphore acquire/release；TIM2 fast IRQ 使用官方 interrupt-stack switch，并完成 10 次 ISR→task wake while worker continues.
+- 仍不允许宣称：Pandora 本变更 runtime、WCH 全部 OSAL primitive、全部 HAL IRQ handler、nested IRQ、长稳/吞吐、公平性或 product qualification；WCH target runtime evidence remains limited to the recorded openCH image and exact SDK commit.
+
 ### 2026-10-16 WCH SPI lifecycle ownership fail-closed
 
 - 旧等级 -> 新等级：WCH SPI lifecycle H1/C1；hardware evidence unchanged
