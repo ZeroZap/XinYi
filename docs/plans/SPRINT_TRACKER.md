@@ -14,6 +14,8 @@
 
 **最新边界收口（2026-10-16）**：RT-Thread OSAL semaphore ISR release 现对未证明的 ISR-safe backend 明确 fail-closed，不再从 ISR 入口复用 task-context release；focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime 或 ISR-to-task 资格声明。
 
+**最新 FreeRTOS Event Flags 边界收口（2026-10-16）**：FreeRTOS backend 现拒绝空 mask、保留控制位及未知 wait option；set/clear 对非法输入返回 OS error sentinel，wait 对未满足条件不再把返回 bits 误报为成功。focused policy、Host 278/278 与 PC/L4/U5 compile gate 通过；不升级 Pandora runtime、FreeRTOS 全 primitive、ISR 并发或产品资格声明。
+
 **最新 WCH RTOS 纵切（2026-10-16）**：openCH CH32V307 root Kconfig/CMake 现可显式选择 pinned WCH SDK FreeRTOS/RISC-V/PFIC kernel；XinYi OSAL smoke 已完成 WCH-Link program/verify/reset 与 UART machine parse，pre-scheduler、OSAL boot、task sync、fast ISR-to-task 各 1，error 0。该证据仅限 openCH 当前 image/SDK commit，不升级 Pandora、WCH 全 primitive、nested IRQ、长稳或产品资格。
 
 **最新 WCH OSAL timer/thread-flags 纵切（2026-10-16）**：openCH CH32V307 已通过 XinYi OSAL periodic timer callback→thread flags 完成 20 次通知，同时验证 timer active/stop/post-stop stability、flags timeout 与独立 worker liveness；WCH-Link program/verify/reset、UART machine parse、Host 278/278 与 PC/L4/U5/WCH compile gate 通过。该证据仅为 bounded software-timer/thread-flags runtime，不升级 ISR-origin flags、timer queue exhaustion、callback overrun、计时精度、长稳或产品资格。
