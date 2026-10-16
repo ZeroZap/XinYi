@@ -401,7 +401,10 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func,
     fr_timer_context_t *context;
     TimerHandle_t timer;
 
-    if (!func)
+    if (!func || (type != XY_OS_TIMER_ONCE && type != XY_OS_TIMER_PERIODIC))
+        return NULL;
+    if (attr &&
+        (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
         return NULL;
     context = (fr_timer_context_t *)pvPortMalloc(sizeof(*context));
     if (!context)

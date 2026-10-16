@@ -134,6 +134,21 @@ def main() -> int:
     if "xy_os_semaphore_release_from_isr" not in public_api:
         errors.append("OSAL public API must expose an explicit ISR-safe semaphore release")
 
+    timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
+        "const char *xy_os_timer_get_name", 1
+    )[0]
+    for required in (
+        "type != XY_OS_TIMER_ONCE && type != XY_OS_TIMER_PERIODIC",
+        "attr->attr_bits != 0U",
+        "attr->cb_mem",
+        "attr->cb_size != 0U",
+    ):
+        if required not in timer_new:
+            errors.append(
+                "FreeRTOS dynamic timer creation must reject unknown timer types and unsupported "
+                f"caller-owned/control attributes before allocation; missing: {required}"
+            )
+
     timer_start = source.split("xy_os_status_t xy_os_timer_start", 1)[-1].split(
         "xy_os_status_t xy_os_timer_stop", 1
     )[0]
