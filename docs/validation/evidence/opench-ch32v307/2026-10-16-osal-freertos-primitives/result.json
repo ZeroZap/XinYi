@@ -1,0 +1,9 @@
+{
+  "target":"opench_ch32v307_osal_freertos_primitives_smoke",
+  "sdk_commit":"08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256":"1991fb8e21671e0e512ca7862de6440c037b6dd12b611a3572124f7258b80dde",
+  "programming_finished":true,"verified_ok":true,"resetting_target":true,
+  "pipeline_messages":12,"pipeline_ok_count":1,"timeout_ok_count":1,"error_count":0,
+  "primitives":["thread","delay","mutex","message_queue","event_flags"],
+  "matrix":{"PC_baremetal":"passed","STM32L4_FreeRTOS":"passed","STM32U5_FreeRTOS":"passed","CH32V307_FreeRTOS":"passed"},"unit_tests":"278/278 passed"
+}
