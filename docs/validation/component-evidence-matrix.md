@@ -25,6 +25,13 @@
 - 适用范围：event-flags set/clear/wait reject empty masks, FreeRTOS-reserved control bits, and unknown wait options before backend calls; wait returns the OS error sentinel when the requested any/all condition is not satisfied, preventing timeout/partial results from being reported as success.
 - 仍不允许宣称：Pandora/FreeRTOS runtime、ISR-origin event flags、concurrency linearizability、latency、stress、recovery 或 product qualification。
 
+### 2026-10-16 FreeRTOS OSAL thread ownership fail-closed
+
+- 旧等级 -> 新等级：FreeRTOS OSAL source/Host contract strengthened; no Board claim change
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused `freertos_osal_thread_flags`；`make test-unit` 278/278；`make`；`make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 适用范围：FreeRTOS adapter 对没有可观察 ownership-retirement/join primitive 的 detach/join 入口 fail-closed；NULL handle 在 detach/join/terminate 前拒绝，避免伪造成功或进入 kernel API。
+- 仍不允许宣称：Pandora/FreeRTOS runtime、thread ownership completeness、scheduler safety、latency/throughput/stress 或 product qualification。
+
 ### 2026-10-16 openCH FreeRTOS OSAL timer/thread-flags runtime
 
 - 旧等级 -> 新等级：openCH CH32V307 OSAL timer/thread-flags bounded B1 runtime；Pandora evidence unchanged

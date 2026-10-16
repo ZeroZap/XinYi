@@ -145,6 +145,25 @@ def main() -> int:
         if token not in source:
             errors.append(f"FreeRTOS ISR-safe semaphore release must preserve token: {token}")
 
+    thread_detach = source.split("xy_os_status_t xy_os_thread_detach", 1)[-1].split(
+        "xy_os_status_t xy_os_thread_join", 1
+    )[0]
+    thread_join = source.split("xy_os_status_t xy_os_thread_join", 1)[-1].split(
+        "void xy_os_thread_exit", 1
+    )[0]
+    for name, body in (("detach", thread_detach), ("join", thread_join)):
+        if "return thread_id ? XY_OS_ERROR : XY_OS_ERROR_PARAMETER;" not in body:
+            errors.append(
+                f"FreeRTOS thread {name} must reject NULL and fail closed because ownership "
+                "retirement/waiting is not observable"
+            )
+    if "return XY_OS_OK;" in thread_detach:
+        errors.append("FreeRTOS thread detach must not report unsupported ownership as success")
+
+    terminate = source.split("xy_os_status_t xy_os_thread_terminate", 1)[-1]
+    if "if (!thread_id)" not in terminate:
+        errors.append("FreeRTOS thread terminate must reject a NULL handle before kernel access")
+
     semaphore_new = source.split("xy_os_semaphore_id_t xy_os_semaphore_new", 1)[-1].split(
         "const char *xy_os_semaphore_get_name", 1
     )[0]

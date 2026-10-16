@@ -208,15 +208,14 @@ xy_os_status_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
     return XY_OS_OK;
 }
 
+/* FreeRTOS has no native detach/join ownership contract for this adapter. */
 xy_os_status_t xy_os_thread_detach(xy_os_thread_id_t thread_id)
 {
-    (void)thread_id;
-    return XY_OS_OK;
+    return thread_id ? XY_OS_ERROR : XY_OS_ERROR_PARAMETER;
 }
 xy_os_status_t xy_os_thread_join(xy_os_thread_id_t thread_id)
 {
-    (void)thread_id;
-    return XY_OS_ERROR;
+    return thread_id ? XY_OS_ERROR : XY_OS_ERROR_PARAMETER;
 }
 void xy_os_thread_exit(void)
 {
@@ -226,6 +225,8 @@ void xy_os_thread_exit(void)
 }
 xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
 {
+    if (!thread_id)
+        return XY_OS_ERROR_PARAMETER;
     vTaskDelete((TaskHandle_t)thread_id);
     return XY_OS_OK;
 }
