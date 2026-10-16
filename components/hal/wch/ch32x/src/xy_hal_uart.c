@@ -9,9 +9,9 @@
 
 #include "ch32v30x.h"
 
-static xy_hal_uart_callback_t error_callback;
-static void* error_callback_arg;
 static uint8_t uart_initialized[8];
+static xy_hal_uart_callback_t error_callbacks[8];
+static void* error_callback_args[8];
 
 static uint32_t uart_tick_ms(void) {
     uint32_t divisor =
@@ -136,6 +136,8 @@ xy_hal_error_t xy_hal_uart_deinit(void* instance) {
     USART_Cmd(instance, DISABLE);
     USART_DeInit(instance);
     uart_initialized[index] = 0U;
+    error_callbacks[index] = NULL;
+    error_callback_args[index] = NULL;
     return XY_HAL_OK;
 }
 
@@ -198,10 +200,13 @@ xy_hal_error_t xy_hal_uart_recv_dma(void* instance, uint8_t* data, size_t len) {
 }
 xy_hal_error_t xy_hal_uart_register_callback(void* instance, xy_hal_uart_callback_t callback,
                                              void* arg) {
-    if (!uart_valid(instance))
+    int index = uart_index(instance);
+    if (index < 0)
         return XY_HAL_ERROR_INVALID_PARAM;
-    error_callback = callback;
-    error_callback_arg = arg;
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
+    error_callbacks[index] = callback;
+    error_callback_args[index] = arg;
     return XY_HAL_OK;
 }
 int xy_hal_uart_available(void* instance) {
@@ -217,10 +222,13 @@ xy_hal_error_t xy_hal_uart_flush(void* instance) {
     return XY_HAL_OK;
 }
 xy_hal_error_t xy_hal_uart_error(void* instance) {
-    if (!uart_valid(instance))
+    int index = uart_index(instance);
+    if (index < 0)
         return XY_HAL_ERROR_INVALID_PARAM;
-    if (error_callback != NULL)
-        error_callback(instance, XY_HAL_UART_EVENT_ERROR, error_callback_arg);
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
+    if (error_callbacks[index] != NULL)
+        error_callbacks[index](instance, XY_HAL_UART_EVENT_ERROR, error_callback_args[index]);
     return XY_HAL_OK;
 }
 xy_hal_error_t xy_hal_uart_set_error_cb(void* instance, xy_hal_uart_callback_t callback,
