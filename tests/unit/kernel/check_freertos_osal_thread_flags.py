@@ -74,6 +74,25 @@ def main() -> int:
 
     if "xy_os_semaphore_release_from_isr" not in public_api:
         errors.append("OSAL public API must expose an explicit ISR-safe semaphore release")
+
+    timer_start = source.split("xy_os_status_t xy_os_timer_start", 1)[-1].split(
+        "xy_os_status_t xy_os_timer_stop", 1
+    )[0]
+    for required in (
+        "ticks == 0U",
+        "return pdstatus_to_xy(xTimerChangePeriod(t, (TickType_t)ticks, 0));",
+    ):
+        if required not in timer_start:
+            errors.append(
+                "FreeRTOS timer start must reject a zero period and propagate the actual "
+                f"change-period command result; missing: {required}"
+            )
+    if "xTimerStart(t, 0)" in timer_start:
+        errors.append(
+            "FreeRTOS timer start must not hide a failed change-period command behind a "
+            "second timer-start command"
+        )
+
     for token in (
         "xy_os_semaphore_release_from_isr",
         "xSemaphoreGiveFromISR",

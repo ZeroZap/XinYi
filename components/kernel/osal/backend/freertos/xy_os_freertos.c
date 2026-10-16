@@ -346,8 +346,9 @@ xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
     TimerHandle_t t = (TimerHandle_t)timer_id;
     if (!t)
         return XY_OS_ERROR_PARAMETER;
-    xTimerChangePeriod(t, (TickType_t)ticks, 0);
-    return pdstatus_to_xy(xTimerStart(t, 0));
+    if (ticks == 0U)
+        return XY_OS_ERROR_PARAMETER;
+    return pdstatus_to_xy(xTimerChangePeriod(t, (TickType_t)ticks, 0));
 }
 
 xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
