@@ -210,13 +210,19 @@ xy_hal_error_t xy_hal_uart_register_callback(void* instance, xy_hal_uart_callbac
     return XY_HAL_OK;
 }
 int xy_hal_uart_available(void* instance) {
-    if (!uart_valid(instance))
+    int index = uart_index(instance);
+    if (index < 0)
         return XY_HAL_ERROR_INVALID_PARAM;
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     return USART_GetFlagStatus(instance, USART_FLAG_RXNE) == SET ? 1 : 0;
 }
 xy_hal_error_t xy_hal_uart_flush(void* instance) {
-    if (!uart_valid(instance))
+    int index = uart_index(instance);
+    if (index < 0)
         return XY_HAL_ERROR_INVALID_PARAM;
+    if (uart_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     while (USART_GetFlagStatus(instance, USART_FLAG_RXNE) == SET)
         (void)USART_ReceiveData(instance);
     return XY_HAL_OK;
