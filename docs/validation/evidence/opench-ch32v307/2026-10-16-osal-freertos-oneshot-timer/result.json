@@ -1,0 +1,8 @@
+{
+  "target":"opench_ch32v307_osal_freertos_oneshot_timer_smoke",
+  "sdk_commit":"08a0ecb80d11429764d0b050c5de9930beb701f0",
+  "elf_sha256":"a85efc2a8d96d22e69d2e725c15a5ebe61eba3e0ee2c4a86956ac095fa84e8ac",
+  "programming_finished":true,"verified_ok":true,"resetting_target":true,
+  "first_fire":true,"restart_fire":true,"argument_preserved":true,"delete_stable":true,"resource_recreate":true,"worker_live":true,"error_count":0,
+  "matrix":{"PC_baremetal":"passed","STM32L4_FreeRTOS":"passed","STM32U5_FreeRTOS":"passed","CH32V307_FreeRTOS":"passed"},"unit_tests":"278/278 passed"
+}

@@ -301,16 +301,39 @@ xy_os_status_t xy_os_delay_until(uint32_t ticks)
 }
 
 /* Timer Management */
+typedef struct {
+    xy_os_timer_func_t func;
+    void *argument;
+} fr_timer_context_t;
+
+static void fr_timer_callback(TimerHandle_t timer)
+{
+    fr_timer_context_t *context = (fr_timer_context_t *)pvTimerGetTimerID(timer);
+
+    if (context && context->func)
+        context->func(context->argument);
+}
+
 xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func,
                                  xy_os_timer_type_t type, void *argument,
                                  const xy_os_timer_attr_t *attr)
 {
+    fr_timer_context_t *context;
+    TimerHandle_t timer;
+
     if (!func)
         return NULL;
+    context = (fr_timer_context_t *)pvPortMalloc(sizeof(*context));
+    if (!context)
+        return NULL;
+    context->func     = func;
+    context->argument = argument;
     const char *name   = (attr && attr->name) ? attr->name : "timer";
     UBaseType_t reload = (type == XY_OS_TIMER_PERIODIC) ? pdTRUE : pdFALSE;
-    return (xy_os_timer_id_t)xTimerCreate(
-        name, 1, reload, argument, (TimerCallbackFunction_t)func);
+    timer = xTimerCreate(name, 1, reload, context, fr_timer_callback);
+    if (!timer)
+        vPortFree(context);
+    return (xy_os_timer_id_t)timer;
 }
 
 const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
@@ -340,8 +363,16 @@ uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
 
 xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 {
-    return timer_id ? pdstatus_to_xy(xTimerDelete((TimerHandle_t)timer_id, 0))
-                    : XY_OS_ERROR_PARAMETER;
+    fr_timer_context_t *context;
+    BaseType_t result;
+
+    if (!timer_id)
+        return XY_OS_ERROR_PARAMETER;
+    context = (fr_timer_context_t *)pvTimerGetTimerID((TimerHandle_t)timer_id);
+    result  = xTimerDelete((TimerHandle_t)timer_id, 0);
+    if (result == pdPASS)
+        vPortFree(context);
+    return pdstatus_to_xy(result);
 }
 
 /* Event Flags */
