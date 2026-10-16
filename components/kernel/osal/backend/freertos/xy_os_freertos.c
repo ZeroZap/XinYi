@@ -349,17 +349,31 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
     uint32_t notif;
     TickType_t ticks =
         (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
+    TickType_t start;
+    BaseType_t wait_all = (options & XY_OS_FLAGS_WAIT_ALL) ? pdTRUE : pdFALSE;
     BaseType_t clear = (options & XY_OS_FLAGS_NO_CLEAR) ? pdFALSE : pdTRUE;
 
     if (!freertos_thread_flags_args_valid(flags, options))
         return 0x80000000;
-    if (xTaskNotifyWait(0, clear ? flags : 0, &notif, ticks) == pdPASS) {
-        if (options & XY_OS_FLAGS_WAIT_ALL) {
-            return ((notif & flags) == flags) ? notif : 0x80000000;
+    start = xTaskGetTickCount();
+    for (;;) {
+        if (xTaskNotifyWait(0, 0, &notif, ticks) != pdPASS)
+            return 0x80000000;
+        if ((!wait_all && (notif & flags)) ||
+            (wait_all && ((notif & flags) == flags))) {
+            if (clear)
+                (void)ulTaskNotifyValueClear(NULL, flags);
+            return notif;
         }
-        return (notif & flags) ? notif : 0x80000000;
+        if (!wait_all || timeout == 0U)
+            return 0x80000000;
+        if (timeout != XY_OS_WAIT_FOREVER) {
+            TickType_t elapsed = xTaskGetTickCount() - start;
+            if (elapsed >= (TickType_t)timeout)
+                return 0x80000000;
+            ticks = (TickType_t)timeout - elapsed;
+        }
     }
-    return 0x80000000;
 }
 
 /* Delay Functions */

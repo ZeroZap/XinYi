@@ -113,9 +113,26 @@ def main() -> int:
     for forbidden in (
         "xTaskNotifyStateClear(NULL);",
         "xTaskNotify(xTaskGetCurrentTaskHandle(), ~flags, eSetValueWithOverwrite);",
+        "xTaskNotifyWait(0, clear ? flags : 0, &notif, ticks)",
     ):
         if forbidden in source:
             errors.append(f"thread flag clear retains invalid FreeRTOS sequence: {forbidden}")
+
+    thread_wait = source.split("uint32_t xy_os_thread_flags_wait", 1)[-1].split(
+        "/* Delay Functions */", 1
+    )[0]
+    for required in (
+        "xTaskNotifyWait(0, 0, &notif, ticks)",
+        "wait_all && ((notif & flags) == flags)",
+        "ulTaskNotifyValueClear(NULL, flags)",
+        "elapsed = xTaskGetTickCount() - start",
+        "ticks = (TickType_t)timeout - elapsed",
+    ):
+        if required not in thread_wait:
+            errors.append(
+                "FreeRTOS WAIT_ALL must retain partial notifications, wait for remaining bits, "
+                f"and clear only after satisfaction; missing: {required}"
+            )
 
     for required in (
         "pdstatus_to_xy_wait",
