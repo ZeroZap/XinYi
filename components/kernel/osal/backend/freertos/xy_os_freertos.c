@@ -315,8 +315,12 @@ xy_os_status_t xy_os_delay(uint32_t ticks)
 
 xy_os_status_t xy_os_delay_until(uint32_t ticks)
 {
-    TickType_t wake_time = (TickType_t)ticks;
-    vTaskDelayUntil(&wake_time, 0);
+    TickType_t target = (TickType_t)ticks;
+    TickType_t now    = xTaskGetTickCount();
+
+    if ((int32_t)(target - now) <= 0)
+        return XY_OS_OK;
+    vTaskDelay(target - now);
     return XY_OS_OK;
 }
 

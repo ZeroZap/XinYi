@@ -170,6 +170,25 @@ def main() -> int:
     if "!freertos_priority_valid(attr->priority)" not in thread_new:
         errors.append("FreeRTOS thread creation must reject invalid explicit priorities")
 
+    delay_until = source.split("xy_os_status_t xy_os_delay_until", 1)[-1].split(
+        "/* Timer Management */", 1
+    )[0]
+    for required in (
+        "xTaskGetTickCount()",
+        "(int32_t)(target - now) <= 0",
+        "vTaskDelay(target - now);",
+    ):
+        if required not in delay_until:
+            errors.append(
+                "FreeRTOS absolute delay must compute a wrap-safe positive delta from the "
+                f"current tick; missing: {required}"
+            )
+    if "vTaskDelayUntil(&wake_time, 0)" in delay_until:
+        errors.append(
+            "FreeRTOS absolute delay must not call vTaskDelayUntil with the target as the "
+            "previous-wake value and a zero increment"
+        )
+
     priority_set = source.split("xy_os_status_t xy_os_thread_set_priority", 1)[-1].split(
         "xy_os_priority_t xy_os_thread_get_priority", 1
     )[0]

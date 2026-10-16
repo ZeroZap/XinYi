@@ -6,6 +6,8 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS 绝对延时边界收口（2026-10-16）**：FreeRTOS backend 的 `xy_os_delay_until()` 不再把绝对目标 tick 错当作 `vTaskDelayUntil()` previous-wake 并传入 zero increment；现从 current tick 计算 wrap-safe 正 delta，已到期目标立即成功返回。focused policy/FreeRTOS L4/U5 compile/Pandora wiring、Host 278/278 与 PC/L4/U5 root compile gate 通过；不升级 Pandora runtime、tick 精度、长稳或产品资格声明。
+
 **最新 FreeRTOS 优先级边界收口（2026-10-16）**：FreeRTOS backend 不再把 OSAL `LOW..ISR` 直接截断到最高 native priority，而是在完整 OSAL 域与 `configMAX_PRIORITIES` 间做有界单调缩放；thread create/set 现拒绝 NONE、ERROR、RESERVED 与越界 priority。focused policy、Host 278/278 与 PC/L4/U5 compile gate 通过；不升级 Pandora runtime、调度公平性、抢占延迟或产品资格声明。
 
 **最新软件闭环（2026-10-16）**：WCH GPIO backend 现拒绝未实现的 nonzero alternate-function 编码，init/set 均在寄存器或 tracked state 变更前 fail-closed；openCH focused image 已经 WCH-Link program/verify/reset 与 UART machine parse（3 个预期 marker、error 0），可复用 `xy_hal`、Host 与 PC/L4/U5 compile gate 通过。证据仅覆盖 openCH PC4 bounded API boundary，不升级 Pandora runtime、AFIO remap 或产品资格声明。
