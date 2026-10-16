@@ -1219,6 +1219,7 @@ add_executable(opench_ch32v307_freertos_sdk_port_smoke
     ${_wch_freertos_kernel}/tasks.c
     ${_wch_freertos_kernel}/queue.c
     ${_wch_freertos_kernel}/list.c
+    ${_wch_freertos_kernel}/timers.c
     ${_wch_freertos_kernel}/portable/MemMang/heap_4.c
     ${_wch_freertos_port}/port.c
     ${_wch_freertos_port}/portASM.S
@@ -1315,4 +1316,27 @@ target_link_options(opench_ch32v307_osal_freertos_isr_stress_smoke PRIVATE
     -nostartfiles --specs=nano.specs --specs=nosys.specs
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_osal_freertos_isr_stress_smoke.map)
 set_target_properties(opench_ch32v307_osal_freertos_isr_stress_smoke PROPERTIES SUFFIX ".elf")
+
+add_executable(opench_ch32v307_osal_freertos_timer_flags_smoke
+    osal_freertos_timer_flags_main.c
+    ${_wch_freertos}/Startup/startup_ch32v30x_D8C.S
+    ${_wch_freertos}/User/system_ch32v30x.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+target_include_directories(opench_ch32v307_osal_freertos_timer_flags_smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/components/kernel/osal
+    ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
+    ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_freertos}/User)
+target_compile_definitions(opench_ch32v307_osal_freertos_timer_flags_smoke PRIVATE
+    MCU_CH32 CH32V30x CH32V30x_D8C)
+target_link_libraries(opench_ch32v307_osal_freertos_timer_flags_smoke PRIVATE
+    xy_osal freertos_kernel)
+target_link_options(opench_ch32v307_osal_freertos_timer_flags_smoke PRIVATE
+    -T${_wch_freertos}/Ld/Link.ld -Wl,--gc-sections -Wl,--print-memory-usage
+    -nostartfiles --specs=nano.specs --specs=nosys.specs
+    -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_osal_freertos_timer_flags_smoke.map)
+set_target_properties(opench_ch32v307_osal_freertos_timer_flags_smoke PROPERTIES SUFFIX ".elf")
 endif()

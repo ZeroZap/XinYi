@@ -28,7 +28,10 @@
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
 #define configUSE_CO_ROUTINES 0
 #define configMAX_CO_ROUTINE_PRIORITIES 2
-#define configUSE_TIMERS 0
+#define configUSE_TIMERS 1
+#define configTIMER_TASK_PRIORITY (configMAX_PRIORITIES - 1)
+#define configTIMER_QUEUE_LENGTH 8
+#define configTIMER_TASK_STACK_DEPTH 256
 #define configISR_STACK_SIZE_WORDS 256
 
 #define INCLUDE_vTaskPrioritySet 1
