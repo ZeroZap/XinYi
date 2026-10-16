@@ -298,6 +298,22 @@ def main() -> int:
     if "!freertos_priority_valid(priority)" not in priority_set:
         errors.append("FreeRTOS priority setter must reject invalid priorities before kernel access")
 
+    mempool_new = source.split("xy_os_mempool_id_t xy_os_mempool_new", 1)[-1].split(
+        "const char *xy_os_mempool_get_name", 1
+    )[0]
+    for required in (
+        "uint32_t pool_bytes;",
+        "if (block_count > UINT32_MAX / bsz)",
+        "pool_bytes = block_count * bsz;",
+        "attr->mp_size < pool_bytes",
+        "pvPortMalloc(pool_bytes)",
+    ):
+        if required not in mempool_new:
+            errors.append(
+                "FreeRTOS memory-pool creation must calculate checked storage bytes once; "
+                f"missing: {required}"
+            )
+
     kernel_locking = source.split("int32_t xy_os_kernel_lock", 1)[-1].split(
         "uint32_t xy_os_kernel_get_tick_count", 1
     )[0]

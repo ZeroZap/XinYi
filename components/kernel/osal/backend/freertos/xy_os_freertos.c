@@ -699,10 +699,15 @@ typedef struct {
 xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
                                      const xy_os_mempool_attr_t *attr)
 {
-    if (block_count == 0 || block_size == 0) return NULL;
-    uint32_t bsz = (block_size < sizeof(void *))
-                   ? (uint32_t)sizeof(void *) : block_size;
-    if (block_count > UINT32_MAX / bsz) return NULL;
+    uint32_t bsz;
+    uint32_t pool_bytes;
+
+    if (block_count == 0U || block_size == 0U)
+        return NULL;
+    bsz = (block_size < sizeof(void *)) ? (uint32_t)sizeof(void *) : block_size;
+    if (block_count > UINT32_MAX / bsz)
+        return NULL;
+    pool_bytes = block_count * bsz;
 
     fr_pool_t *p = (fr_pool_t *)pvPortMalloc(sizeof(fr_pool_t));
     if (!p) return NULL;
@@ -715,14 +720,14 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
 
     uint8_t *mem;
     if (attr && attr->mp_mem) {
-        if (attr->mp_size < block_count * bsz ||
+        if (attr->mp_size < pool_bytes ||
             ((uintptr_t)attr->mp_mem % sizeof(void *)) != 0U) {
             vPortFree(p);
             return NULL;
         }
         mem = (uint8_t *)attr->mp_mem;
     } else {
-        mem = (uint8_t *)pvPortMalloc(block_count * bsz);
+        mem = (uint8_t *)pvPortMalloc(pool_bytes);
         if (!mem) { vPortFree(p); return NULL; }
         p->owns_pool_mem = 1U;
     }
