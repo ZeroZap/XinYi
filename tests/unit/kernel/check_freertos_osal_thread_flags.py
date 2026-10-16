@@ -196,6 +196,16 @@ def main() -> int:
             "second timer-start command"
         )
 
+    event_flags_new = source.split(
+        "xy_os_event_flags_new", 1
+    )[-1].split("const char *xy_os_event_flags_get_name", 1)[0]
+    for required in ("attr->attr_bits != 0U", "attr->cb_mem", "attr->cb_size != 0U"):
+        if required not in event_flags_new:
+            errors.append(
+                "FreeRTOS event-flags creation must reject unsupported caller-owned/control "
+                f"attributes before allocation; missing: {required}"
+            )
+
     mutex_region = source.split("/* Mutex */", 1)[-1].split("/* Semaphore */", 1)[0]
     for required in (
         "typedef struct {",

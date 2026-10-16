@@ -486,7 +486,9 @@ static int freertos_event_flags_args_valid(uint32_t flags, uint32_t options)
 xy_os_event_flags_id_t
 xy_os_event_flags_new(const xy_os_event_flags_attr_t *attr)
 {
-    (void)attr;
+    if (attr &&
+        (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
+        return NULL;
     return (xy_os_event_flags_id_t)xEventGroupCreate();
 }
 
