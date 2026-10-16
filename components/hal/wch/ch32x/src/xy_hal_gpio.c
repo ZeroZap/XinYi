@@ -106,6 +106,12 @@ static xy_hal_error_t gpio_apply(xy_hal_gpio_port_t port, uint8_t pin,
 
 xy_hal_error_t xy_hal_gpio_init(xy_hal_gpio_port_t port, uint8_t pin,
                                 const xy_hal_gpio_config_t* config) {
+    int index;
+    if (gpio_validate(port, pin) != XY_HAL_OK)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    index = gpio_port_index(port);
+    if (gpio_state[index][pin].configured)
+        return XY_HAL_ERROR_ALREADY_INIT;
     return gpio_apply(port, pin, config);
 }
 
