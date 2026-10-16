@@ -33,7 +33,7 @@ int main(void) {
         xy_hal_uart_init(USART1, &u))
         for (;;) {
         }
-    marker("OPENCH_GPIO_ALTERNATE_BOUNDARY_BOOT_20261016_A\r\n");
+    marker("OPENCH_GPIO_ALTERNATE_BOUNDARY_BOOT_20261015_A\r\n");
     bad.alternate = 1;
     before = GPIOC->CFGLR;
     v &= xy_hal_gpio_init(GPIOC, 4, &bad) == XY_HAL_ERROR_INVALID_PARAM;

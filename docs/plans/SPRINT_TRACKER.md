@@ -6,7 +6,7 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新软件闭环（2026-10-16）**：RT-Thread OSAL mutex owner query 现只发布 bounded project-owned tracked thread，拒绝 kernel-global/untracked owner；focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime、调度安全/性能或产品资格声明。
+**最新软件闭环（2026-10-16）**：WCH GPIO backend 现拒绝未实现的 nonzero alternate-function 编码，init/set 均在寄存器或 tracked state 变更前 fail-closed；openCH focused image 已经 WCH-Link program/verify/reset 与 UART machine parse（3 个预期 marker、error 0），可复用 `xy_hal`、Host 与 PC/L4/U5 compile gate 通过。证据仅覆盖 openCH PC4 bounded API boundary，不升级 Pandora runtime、AFIO remap 或产品资格声明。
 
 **最新边界收口（2026-10-16）**：RT-Thread OSAL semaphore ISR release 现对未证明的 ISR-safe backend 明确 fail-closed，不再从 ISR 入口复用 task-context release；focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime 或 ISR-to-task 资格声明。
 

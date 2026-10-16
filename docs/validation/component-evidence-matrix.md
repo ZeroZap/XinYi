@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-16 WCH GPIO alternate-function boundary fail-closed
+
+- 旧等级 -> 新等级：WCH HAL B1 bounded API-boundary runtime evidence; no Pandora claim change
+- 证据路径/命令：`components/hal/wch/ch32x/src/xy_hal_gpio.c`、`boards/opench_ch32v307/{CMakeLists.txt,gpio_alternate_boundary_main.c}`、`docs/validation/evidence/opench-ch32v307/2026-10-15-gpio-alternate-boundary/`；WCH-Link program/verify/reset 与 UART machine parse（boot/init-reject/set-reject 各 1，error 0）；focused image 与 reusable `xy_hal`；Host `make test-unit` 276/276；PC/STM32L4/STM32U5 Release builds；`git diff --check`。
+- 适用范围：本次 openCH CH32V307/PC4 bounded run 证明 backend 对 nonzero alternate 在寄存器或 tracked state 变更前 fail-closed，zero/default 路径保持可用；read-back/tool verify 已通过。
+- 仍不允许宣称：Pandora 本变更 runtime、AFIO pin-remap 功能、GPIO 电气/时序、中断、恢复、耐久或 product qualification。
+
 ### 2026-10-16 RT-Thread OSAL ISR semaphore release fail-closed
 
 - 旧等级 -> 新等级：H1 RT-Thread backend ISR contract strengthened; no Board claim change
