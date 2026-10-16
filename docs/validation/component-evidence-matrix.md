@@ -18,6 +18,13 @@
 - 适用范围：root Kconfig/CMake 可选择 WCH FreeRTOS；board image 直接消费 pinned WCH SDK kernel/RISC-V PFIC port/startup/linker，XinYi OSAL adapter 通过 `xy_os_*` 创建 worker/IRQ tasks、delay、semaphore acquire/release；TIM2 fast IRQ 使用官方 interrupt-stack switch，并完成 10 次 ISR→task wake while worker continues.
 - 仍不允许宣称：Pandora 本变更 runtime、WCH 全部 OSAL primitive、全部 HAL IRQ handler、nested IRQ、长稳/吞吐、公平性或 product qualification；WCH target runtime evidence remains limited to the recorded openCH image and exact SDK commit.
 
+### 2026-10-16 openCH FreeRTOS OSAL timer/thread-flags runtime
+
+- 旧等级 -> 新等级：openCH CH32V307 OSAL timer/thread-flags bounded B1 runtime；Pandora evidence unchanged
+- 证据路径/命令：`boards/opench_ch32v307/{CMakeLists.txt,FreeRTOSConfig.h,osal_freertos_timer_flags_main.c}`、`docs/validation/evidence/opench-ch32v307/2026-10-16-osal-freertos-timer-flags/`；WCH-Link program/verify/reset 与 UART machine parse；focused `opench_ch32v307_osal_freertos_timer_flags_smoke`；Host `make test-unit` 278/278；PC/STM32L4/STM32U5/WCH Release builds；`git diff --check`。
+- 适用范围：periodic XinYi OSAL timer callback 通过 OSAL thread flags 向 monitor 发送 20 次通知；timer active/stop/post-stop stability、flags timeout 与独立 worker liveness 均通过，error marker 为 0；官方 SDK standalone port smoke 同步编译 `timers.c`。
+- 仍不允许宣称：Pandora 本变更 runtime、ISR-origin thread flags、timer queue exhaustion、callback overrun handling、计时精度、长稳、性能或 product qualification。
+
 ### 2026-10-16 WCH SPI lifecycle ownership fail-closed
 
 - 旧等级 -> 新等级：WCH SPI lifecycle H1/C1；hardware evidence unchanged
