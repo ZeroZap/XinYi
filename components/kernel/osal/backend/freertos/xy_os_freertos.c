@@ -554,8 +554,9 @@ typedef struct {
     uint32_t  block_size;
     volatile uint32_t free_count;
     void     *free_list;
+    uint8_t  *pool_mem;
+    uint8_t   owns_pool_mem;
     char      name[16];
-    /* pool memory follows either from pvPortMalloc or attr->mp_mem */
 } fr_pool_t;
 
 xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
@@ -564,6 +565,7 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
     if (block_count == 0 || block_size == 0) return NULL;
     uint32_t bsz = (block_size < sizeof(void *))
                    ? (uint32_t)sizeof(void *) : block_size;
+    if (block_count > UINT32_MAX / bsz) return NULL;
 
     fr_pool_t *p = (fr_pool_t *)pvPortMalloc(sizeof(fr_pool_t));
     if (!p) return NULL;
@@ -575,12 +577,19 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
     }
 
     uint8_t *mem;
-    if (attr && attr->mp_mem && attr->mp_size >= block_count * bsz) {
+    if (attr && attr->mp_mem) {
+        if (attr->mp_size < block_count * bsz ||
+            ((uintptr_t)attr->mp_mem % sizeof(void *)) != 0U) {
+            vPortFree(p);
+            return NULL;
+        }
         mem = (uint8_t *)attr->mp_mem;
     } else {
         mem = (uint8_t *)pvPortMalloc(block_count * bsz);
         if (!mem) { vPortFree(p); return NULL; }
+        p->owns_pool_mem = 1U;
     }
+    p->pool_mem = mem;
 
     /* Build free-list */
     p->free_list  = NULL;
@@ -630,8 +639,20 @@ void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
+    uint8_t *candidate = (uint8_t *)block;
+    void *item;
     if (!p || !block) return XY_OS_ERROR_PARAMETER;
+    if (candidate < p->pool_mem ||
+        candidate >= p->pool_mem + p->capacity * p->block_size ||
+        ((uintptr_t)(candidate - p->pool_mem) % p->block_size) != 0U)
+        return XY_OS_ERROR_PARAMETER;
     taskENTER_CRITICAL();
+    for (item = p->free_list; item; item = *(void **)item) {
+        if (item == block) {
+            taskEXIT_CRITICAL();
+            return XY_OS_ERROR_RESOURCE;
+        }
+    }
     *(void **)block = p->free_list;
     p->free_list    = block;
     p->free_count++;
@@ -675,6 +696,8 @@ xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
     if (!p) return XY_OS_ERROR_PARAMETER;
+    if (p->owns_pool_mem)
+        vPortFree(p->pool_mem);
     vPortFree(p);
     return XY_OS_OK;
 }
