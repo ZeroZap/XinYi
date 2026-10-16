@@ -928,7 +928,9 @@ uint32_t xy_os_msgqueue_get_space(xy_os_msgqueue_id_t mq_id)
 xy_os_status_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
-    return context ? pdstatus_to_xy(xQueueReset(context->queue)) : XY_OS_ERROR_PARAMETER;
+    if (!context || !context->queue || context->capacity == 0U || context->msg_size == 0U)
+        return XY_OS_ERROR_PARAMETER;
+    return pdstatus_to_xy(xQueueReset(context->queue));
 }
 
 xy_os_status_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id)

@@ -148,8 +148,20 @@ def main() -> int:
                 f"XY_OS_ERROR_TIMEOUT; missing: {required}"
             )
 
-    if "xy_os_semaphore_release_from_isr" not in public_api:
-        errors.append("OSAL public API must expose an explicit ISR-safe semaphore release")
+    queue_reset = source.split("xy_os_status_t xy_os_msgqueue_reset", 1)[-1].split(
+        "xy_os_status_t xy_os_msgqueue_delete", 1
+    )[0]
+    for required in (
+        "!context || !context->queue",
+        "context->capacity == 0U",
+        "context->msg_size == 0U",
+        "xQueueReset(context->queue)",
+    ):
+        if required not in queue_reset:
+            errors.append(
+                "FreeRTOS queue reset must validate the wrapper, native handle, and metadata; "
+                f"missing: {required}"
+            )
 
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
