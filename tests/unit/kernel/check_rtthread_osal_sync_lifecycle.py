@@ -130,6 +130,16 @@ def main() -> int:
     if "return (xy_os_thread_id_t)mutex->owner" in owner_body:
         errors.append("mutex owner query must validate the owner before publishing its handle")
 
+    isr_body = function_body(
+        source,
+        "xy_os_status_t xy_os_semaphore_release_from_isr",
+        "uint32_t xy_os_semaphore_get_count",
+    )
+    if "return XY_OS_ERROR;" not in isr_body:
+        errors.append("RT-Thread semaphore ISR release must fail closed without a proven ISR API")
+    if "xy_os_semaphore_release(semaphore_id)" in isr_body:
+        errors.append("RT-Thread semaphore ISR release must not call the task-context API")
+
     if errors:
         print("rtthread_osal_sync_lifecycle failed:")
         for error in errors:

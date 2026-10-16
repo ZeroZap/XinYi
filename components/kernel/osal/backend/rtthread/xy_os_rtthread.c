@@ -1075,7 +1075,11 @@ xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
 
 xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_id)
 {
-    return xy_os_semaphore_release(semaphore_id);
+    /* RT-Thread's ordinary semaphore release has no explicit ISR-safe contract
+     * or yield-result handoff in this adapter.  Do not route ISR callers through
+     * the task-context API and claim safety that has not been established. */
+    XY_UNUSED(semaphore_id);
+    return XY_OS_ERROR;
 }
 
 uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)

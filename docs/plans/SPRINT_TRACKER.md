@@ -8,6 +8,8 @@
 
 **最新软件闭环（2026-10-16）**：RT-Thread OSAL mutex owner query 现只发布 bounded project-owned tracked thread，拒绝 kernel-global/untracked owner；focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime、调度安全/性能或产品资格声明。
 
+**最新边界收口（2026-10-16）**：RT-Thread OSAL semaphore ISR release 现对未证明的 ISR-safe backend 明确 fail-closed，不再从 ISR 入口复用 task-context release；focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime 或 ISR-to-task 资格声明。
+
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。
 
 ---
