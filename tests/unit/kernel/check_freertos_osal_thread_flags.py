@@ -137,6 +137,15 @@ def main() -> int:
                 f"and release wrapper ownership; missing: {required}"
             )
 
+    stack_space = source.split("uint32_t xy_os_thread_get_stack_space", 1)[-1].split(
+        "xy_os_status_t xy_os_thread_set_priority", 1
+    )[0]
+    if "uxTaskGetStackHighWaterMark(h) * sizeof(StackType_t)" not in stack_space:
+        errors.append(
+            "FreeRTOS stack high-water marks are measured in StackType_t words and must be "
+            "converted to the OSAL byte contract"
+        )
+
     for token in (
         "xy_os_semaphore_release_from_isr",
         "xSemaphoreGiveFromISR",

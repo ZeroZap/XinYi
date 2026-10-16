@@ -165,7 +165,7 @@ uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t thread_id)
 uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t thread_id)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    return h ? (uint32_t)uxTaskGetStackHighWaterMark(h) : 0;
+    return h ? (uint32_t)uxTaskGetStackHighWaterMark(h) * sizeof(StackType_t) : 0;
 }
 
 xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
