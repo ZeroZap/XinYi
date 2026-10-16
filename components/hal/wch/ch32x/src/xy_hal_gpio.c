@@ -42,6 +42,14 @@ static xy_hal_error_t gpio_validate(xy_hal_gpio_port_t port, uint8_t pin) {
                                                                        : XY_HAL_ERROR_INVALID_PARAM;
 }
 
+static xy_hal_error_t gpio_config_validate(const xy_hal_gpio_config_t* config) {
+    if (config == NULL || config->mode > XY_HAL_GPIO_MODE_ANALOG ||
+        config->pull > XY_HAL_GPIO_PULL_DOWN || config->otype > XY_HAL_GPIO_OTYPE_OD ||
+        config->speed > XY_HAL_GPIO_SPEED_VERY_HIGH || config->alternate != 0U)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    return XY_HAL_OK;
+}
+
 static void gpio_enable_clock(xy_hal_gpio_port_t port) {
     static const uint32_t clocks[] = {
         RCC_APB2Periph_GPIOA, RCC_APB2Periph_GPIOB, RCC_APB2Periph_GPIOC,
@@ -82,10 +90,7 @@ static xy_hal_error_t gpio_apply(xy_hal_gpio_port_t port, uint8_t pin,
     GPIO_InitTypeDef init = {0};
     int index;
 
-    if (gpio_validate(port, pin) != XY_HAL_OK || config == NULL ||
-        config->mode > XY_HAL_GPIO_MODE_ANALOG || config->pull > XY_HAL_GPIO_PULL_DOWN ||
-        config->otype > XY_HAL_GPIO_OTYPE_OD || config->speed > XY_HAL_GPIO_SPEED_VERY_HIGH ||
-        config->alternate != 0U) {
+    if (gpio_validate(port, pin) != XY_HAL_OK || gpio_config_validate(config) != XY_HAL_OK) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
     gpio_enable_clock(port);
@@ -107,7 +112,7 @@ static xy_hal_error_t gpio_apply(xy_hal_gpio_port_t port, uint8_t pin,
 xy_hal_error_t xy_hal_gpio_init(xy_hal_gpio_port_t port, uint8_t pin,
                                 const xy_hal_gpio_config_t* config) {
     int index;
-    if (gpio_validate(port, pin) != XY_HAL_OK)
+    if (gpio_validate(port, pin) != XY_HAL_OK || gpio_config_validate(config) != XY_HAL_OK)
         return XY_HAL_ERROR_INVALID_PARAM;
     index = gpio_port_index(port);
     if (gpio_state[index][pin].configured)
