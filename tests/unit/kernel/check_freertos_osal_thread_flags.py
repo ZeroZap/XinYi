@@ -234,6 +234,18 @@ def main() -> int:
                 f"scheduler states; missing: {required}"
             )
 
+    kernel_start = source.split("xy_os_status_t xy_os_kernel_start", 1)[-1].split(
+        "int32_t xy_os_kernel_lock", 1
+    )[0]
+    if "return XY_OS_ERROR;" not in kernel_start:
+        errors.append(
+            "FreeRTOS kernel start must fail closed if vTaskStartScheduler unexpectedly returns"
+        )
+    if "return XY_OS_OK;" in kernel_start:
+        errors.append(
+            "FreeRTOS kernel start must not report success after the scheduler failed to start"
+        )
+
     for token in (
         "xy_os_semaphore_release_from_isr",
         "xSemaphoreGiveFromISR",

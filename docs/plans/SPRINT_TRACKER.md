@@ -6,6 +6,11 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS scheduler-start 边界收口（2026-10-17）**：FreeRTOS backend 的
+`xy_os_kernel_start()` 现将 `vTaskStartScheduler()` 异常返回视为启动失败，不再发布虚假的
+`XY_OS_OK`。focused policy/FreeRTOS L4/U5 compile/Pandora wiring、Host 与 PC/L4/U5 root compile
+gate 通过；不升级 Pandora runtime、heap/port 失败诊断、scheduler 可用性或产品资格声明。
+
 **最新 FreeRTOS kernel-state 边界收口（2026-10-17）**：FreeRTOS backend 的
 `xy_os_kernel_get_state()` 现区分 scheduler 未启动、运行、挂起与未知状态，分别发布
 `READY`、`RUNNING`、`LOCKED` 与 `ERROR`；不再把 scheduler lock 错报为 ready。focused

@@ -93,7 +93,7 @@ xy_os_kernel_state_t xy_os_kernel_get_state(void)
 xy_os_status_t xy_os_kernel_start(void)
 {
     vTaskStartScheduler();
-    return XY_OS_OK;
+    return XY_OS_ERROR;
 }
 
 int32_t xy_os_kernel_lock(void)
