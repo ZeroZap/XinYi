@@ -99,6 +99,10 @@ add_test(NAME wch_i2c_lifecycle
     COMMAND python3 ${UNIT_HAL}/check_wch_i2c_lifecycle.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME wch_spi_lifecycle
+    COMMAND python3 ${UNIT_HAL}/check_wch_spi_lifecycle.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_nrf24_capture_validator
     COMMAND python3 ${UNIT_NET}/test_pandora_nrf24_capture.py
     WORKING_DIRECTORY ${ROOT}

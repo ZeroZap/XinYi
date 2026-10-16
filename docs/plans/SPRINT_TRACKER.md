@@ -10,6 +10,8 @@
 
 **最新 WCH I2C 软件边界（2026-10-16）**：CH32V307 I2C backend 现按 I2C1/I2C2 分别跟踪 lifecycle，拒绝重复 init、未初始化 transaction/DMA/callback/error 入口，并在 teardown 后清除 owner/callback；focused policy、Host 277/277 与 PC/L4/U5/WCH compile gate 通过。该结果不新增 Pandora 或 openCH I2C runtime、故障注入、精度、性能或产品资格证据。
 
+**最新 WCH SPI 软件边界（2026-10-16）**：CH32V307 SPI backend 现按 SPI1/SPI2/SPI3 分别跟踪 lifecycle，拒绝重复 init、未初始化 blocking/DMA/stop/callback/auxiliary/error 入口，并在 teardown 后清除 owner/callback；focused policy、Host 278/278 与 PC/L4/U5/WCH compile gate 通过。该结果不新增 Pandora 或 openCH SPI runtime、电气、DMA 功能、外设响应、恢复、性能或产品资格证据。
+
 **最新边界收口（2026-10-16）**：RT-Thread OSAL semaphore ISR release 现对未证明的 ISR-safe backend 明确 fail-closed，不再从 ISR 入口复用 task-context release；focused policy、Host 与 PC/L4/U5 compile gate 守护该边界。验证不升级 Pandora runtime、RT-Thread runtime 或 ISR-to-task 资格声明。
 
 > 本看板跟踪执行状态；详细背景、组件矩阵与验收定义保留在审计计划中，避免复制后漂移。

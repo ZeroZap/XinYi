@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-16 WCH SPI lifecycle ownership fail-closed
+
+- 旧等级 -> 新等级：WCH SPI lifecycle H1/C1；hardware evidence unchanged
+- 证据路径/命令：`components/hal/wch/ch32x/src/xy_hal_spi.c`、`tests/unit/hal_component/check_wch_spi_lifecycle.py`；focused `wch_spi_lifecycle`；Host `make test-unit` 278/278；PC/STM32L4/STM32U5/WCH Release builds；`clang-format --dry-run --Werror`；`git diff --check`。
+- 适用范围：SPI1/SPI2/SPI3 分别跟踪 lifecycle；重复 init、未初始化 blocking/DMA/stop/callback/auxiliary/error 入口 fail-closed；成功 deinit 清除 owner/callback；DMA/stop/software-CS unsupported 路径仍先验证公开输入与 lifecycle。
+- 仍不允许宣称：Pandora runtime、openCH 新 runtime、SPI 电气/时序、DMA 功能、外设响应、恢复、性能、耐久或 product qualification。
+
 ### 2026-10-16 WCH I2C lifecycle ownership fail-closed
 
 - 旧等级 -> 新等级：WCH I2C lifecycle H1/C1；hardware evidence unchanged

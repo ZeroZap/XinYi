@@ -11,6 +11,7 @@
 
 static xy_hal_spi_callback_t spi_callbacks[3];
 static void* spi_callback_args[3];
+static uint8_t spi_initialized[3];
 
 static uint32_t spi_tick_ms(void) {
     uint32_t divisor =
@@ -56,6 +57,7 @@ static xy_hal_error_t spi_wait(void* instance, uint16_t flag, FlagStatus expecte
 
 xy_hal_error_t xy_hal_spi_init(void* instance, const xy_hal_spi_config_t* config) {
     SPI_InitTypeDef init = {0};
+    int index;
     if (spi_index(instance) < 0 || config == NULL || config->mode > XY_HAL_SPI_MODE_3 ||
         config->direction > XY_HAL_SPI_DIR_1LINE || config->datasize > XY_HAL_SPI_DATASIZE_16BIT ||
         config->firstbit > XY_HAL_SPI_FIRSTBIT_LSB || config->nss > XY_HAL_SPI_NSS_HARD_OUTPUT ||
@@ -65,6 +67,9 @@ xy_hal_error_t xy_hal_spi_init(void* instance, const xy_hal_spi_config_t* config
     if (config->direction == XY_HAL_SPI_DIR_1LINE || config->nss == XY_HAL_SPI_NSS_HARD_OUTPUT) {
         return XY_HAL_ERROR_NOT_SUPPORTED;
     }
+    index = spi_index(instance);
+    if (spi_initialized[index] != 0U)
+        return XY_HAL_ERROR_ALREADY_INIT;
     spi_enable_clock(instance);
     init.SPI_Direction = config->direction == XY_HAL_SPI_DIR_2LINES_RXONLY
                              ? SPI_Direction_2Lines_RxOnly
@@ -83,6 +88,7 @@ xy_hal_error_t xy_hal_spi_init(void* instance, const xy_hal_spi_config_t* config
     if (config->nss == XY_HAL_SPI_NSS_SOFT)
         SPI_NSSInternalSoftwareConfig(instance, SPI_NSSInternalSoft_Set);
     SPI_Cmd(instance, ENABLE);
+    spi_initialized[index] = 1U;
     return XY_HAL_OK;
 }
 
@@ -90,8 +96,11 @@ xy_hal_error_t xy_hal_spi_deinit(void* instance) {
     int index = spi_index(instance);
     if (index < 0)
         return XY_HAL_ERROR_INVALID_PARAM;
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     SPI_Cmd(instance, DISABLE);
     SPI_I2S_DeInit(instance);
+    spi_initialized[index] = 0U;
     spi_callbacks[index] = NULL;
     spi_callback_args[index] = NULL;
     return XY_HAL_OK;
@@ -101,9 +110,12 @@ xy_hal_error_t xy_hal_spi_transmit_receive(void* instance, const uint8_t* tx_dat
                                            size_t len, uint32_t timeout) {
     size_t i;
     xy_hal_error_t result;
-    if (spi_index(instance) < 0 || (len != 0U && tx_data == NULL && rx_data == NULL)) {
+    int index = spi_index(instance);
+    if (index < 0 || (len != 0U && tx_data == NULL && rx_data == NULL)) {
         return XY_HAL_ERROR_INVALID_PARAM;
     }
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     for (i = 0U; i < len; ++i) {
         result = spi_wait(instance, SPI_I2S_FLAG_TXE, SET, timeout);
         if (result != XY_HAL_OK)
@@ -135,46 +147,63 @@ xy_hal_error_t xy_hal_spi_receive(void* instance, uint8_t* data, size_t len, uin
 }
 
 xy_hal_error_t xy_hal_spi_transmit_dma(void* instance, const uint8_t* data, size_t len) {
-    (void)instance;
-    (void)data;
-    (void)len;
+    int index = spi_index(instance);
+    if (index < 0 || data == NULL || len == 0U)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 xy_hal_error_t xy_hal_spi_receive_dma(void* instance, uint8_t* data, size_t len) {
-    (void)instance;
-    (void)data;
-    (void)len;
+    int index = spi_index(instance);
+    if (index < 0 || data == NULL || len == 0U)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 xy_hal_error_t xy_hal_spi_transmit_receive_dma(void* instance, const uint8_t* tx_data,
                                                uint8_t* rx_data, size_t len) {
-    (void)instance;
-    (void)tx_data;
-    (void)rx_data;
-    (void)len;
+    int index = spi_index(instance);
+    if (index < 0 || tx_data == NULL || rx_data == NULL || len == 0U)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 xy_hal_error_t xy_hal_spi_stop(void* instance) {
-    return spi_index(instance) < 0 ? XY_HAL_ERROR_INVALID_PARAM : XY_HAL_ERROR_NOT_SUPPORTED;
+    int index = spi_index(instance);
+    if (index < 0)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 xy_hal_error_t xy_hal_spi_register_callback(void* instance, xy_hal_spi_callback_t callback,
                                             void* arg) {
     int index = spi_index(instance);
-    if (index < 0)
+    if (index < 0 || callback == NULL)
         return XY_HAL_ERROR_INVALID_PARAM;
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     spi_callbacks[index] = callback;
     spi_callback_args[index] = arg;
     return XY_HAL_OK;
 }
 xy_hal_error_t xy_hal_spi_set_cs(void* instance, uint8_t level) {
-    (void)level;
-    return spi_index(instance) < 0 ? XY_HAL_ERROR_INVALID_PARAM : XY_HAL_ERROR_NOT_SUPPORTED;
+    int index = spi_index(instance);
+    if (index < 0 || level > 1U)
+        return XY_HAL_ERROR_INVALID_PARAM;
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
+    return XY_HAL_ERROR_NOT_SUPPORTED;
 }
 xy_hal_error_t xy_hal_spi_error(void* instance, uint8_t level) {
     int index = spi_index(instance);
-    (void)level;
-    if (index < 0)
+    if (index < 0 || level > 1U)
         return XY_HAL_ERROR_INVALID_PARAM;
+    if (spi_initialized[index] == 0U)
+        return XY_HAL_ERROR_NOT_INIT;
     if (spi_callbacks[index] != NULL) {
         spi_callbacks[index](instance, XY_HAL_SPI_EVENT_ERROR, spi_callback_args[index]);
     }
