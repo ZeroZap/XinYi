@@ -110,7 +110,13 @@
 - 仍不允许宣称：runtime allocation behavior, concurrency, resource exhaustion, scheduler
   latency, long-run 或 product qualification。
 
-### 2026-10-17 FreeRTOS memory-pool timeout/attribute boundary
+### 2026-10-17 FreeRTOS semaphore lifecycle contract
+
+- 旧边界 -> 新边界：dynamic semaphore create/delete 现统一要求 adapter-owned tracked context；context exhaustion 时删除已创建 native semaphore，避免 orphan object；acquire/release/release-from-ISR/count/delete 均拒绝 NULL、foreign 或 stale handle。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；PC/L4/U5/WCH FreeRTOS builds；`git diff --check`。
+- 适用范围：FreeRTOS semaphore adapter ownership and failure-atomic lifecycle contract。
+- 仍不允许宣称：本轮未新增 target program/runtime marker；semaphore 完整 HIL、长稳或产品资格仍 pending。
+
 
 - 旧边界 -> 新边界：dynamic memory-pool adapter 现拒绝 unsupported attribute/control-block/storage combinations，并对 alloc finite timeout 做 checked `TickType_t` conversion；非法配置或超范围 timeout 在 allocator/polling 前 fail-closed。
 - 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；PC/L4/U5/WCH FreeRTOS builds；`git diff --check`。

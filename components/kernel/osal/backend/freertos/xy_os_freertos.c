@@ -1008,10 +1008,8 @@ xy_os_status_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
 {
     fr_semaphore_context_t *context;
 
-    if (!semaphore_id)
-        return XY_OS_ERROR_PARAMETER;
-    context = freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id);
-    if (!context)
+    if (!semaphore_id ||
+        !(context = freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id)))
         return XY_OS_ERROR_PARAMETER;
     vSemaphoreDelete((SemaphoreHandle_t)semaphore_id);
     freertos_clear_semaphore_context(context);

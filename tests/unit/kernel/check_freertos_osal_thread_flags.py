@@ -264,6 +264,31 @@ def main() -> int:
         if f"freertos_timeout_to_ticks({argument_name}, &" not in function:
             errors.append(f"{function_name} must reject unrepresentable native tick inputs")
 
+    semaphore_delete = source.split("xy_os_status_t xy_os_semaphore_delete", 1)[-1].split(
+        "/* Memory Pool", 1
+    )[0]
+    if "!semaphore_id ||" not in semaphore_delete:
+        errors.append("FreeRTOS semaphore delete must reject NULL handles")
+    for required in (
+        "freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id)",
+        "vSemaphoreDelete((SemaphoreHandle_t)semaphore_id)",
+        "freertos_clear_semaphore_context(context)",
+    ):
+        if required not in semaphore_delete:
+            errors.append(f"FreeRTOS semaphore delete must preserve tracked lifecycle: {required}")
+
+    semaphore_new = source.split("xy_os_semaphore_id_t xy_os_semaphore_new", 1)[-1].split(
+        "const char *xy_os_semaphore_get_name", 1
+    )[0]
+    for required in (
+        "max_count == 0U",
+        "initial_count > max_count",
+        "freertos_alloc_semaphore_context()",
+        "vSemaphoreDelete(sem)",
+    ):
+        if required not in semaphore_new:
+            errors.append(f"FreeRTOS semaphore creation must be failure-atomic: {required}")
+
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]
