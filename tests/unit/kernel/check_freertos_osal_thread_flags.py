@@ -180,6 +180,20 @@ def main() -> int:
                 f"native deletion succeeds; missing: {required}"
             )
 
+    event_flags_get = source.split("uint32_t xy_os_event_flags_get", 1)[-1].split(
+        "uint32_t xy_os_event_flags_wait", 1
+    )[0]
+    if "if (!ef_id)" not in event_flags_get or "return 0x80000000U;" not in event_flags_get:
+        errors.append("FreeRTOS event-flags get must fail closed for a NULL handle")
+
+    event_flags_delete = source.split("xy_os_status_t xy_os_event_flags_delete", 1)[-1]
+    for required in ("if (ef_id)", "vEventGroupDelete((EventGroupHandle_t)ef_id)", "XY_OS_ERROR_PARAMETER"):
+        if required not in event_flags_delete:
+            errors.append(
+                "FreeRTOS event-flags delete must validate the handle and avoid native access "
+                f"for NULL; missing: {required}"
+            )
+
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]
