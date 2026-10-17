@@ -678,6 +678,38 @@ def main() -> int:
                 f"allocation; missing: {required}"
             )
 
+    msgqueue_region = source.split("/* Message Queue */", 1)[-1]
+    for required in (
+        "FREERTOS_MSGQUEUE_CONTEXT_CAPACITY",
+        "freertos_msgqueue_context_available",
+        "freertos_find_msgqueue_context",
+        "freertos_publish_msgqueue_context",
+        "freertos_clear_msgqueue_context",
+        "freertos_publish_msgqueue_context(context);",
+        "freertos_clear_msgqueue_context(context);",
+    ):
+        if required not in msgqueue_region:
+            errors.append(
+                "FreeRTOS message queues must publish only adapter-owned contexts and "
+                f"reject stale handles; missing: {required}"
+            )
+    for function_name in (
+        "xy_os_msgqueue_put",
+        "xy_os_msgqueue_get",
+        "xy_os_msgqueue_get_capacity",
+        "xy_os_msgqueue_get_msg_size",
+        "xy_os_msgqueue_get_count",
+        "xy_os_msgqueue_get_space",
+        "xy_os_msgqueue_reset",
+        "xy_os_msgqueue_delete",
+    ):
+        function = source.split(function_name, 1)[-1]
+        if "freertos_find_msgqueue_context" not in function:
+            errors.append(
+                f"{function_name} must reject untracked native message-queue handles "
+                "before kernel access"
+            )
+
     if errors:
         print("freertos_osal_thread_flags failed:")
         for error in errors:

@@ -1124,12 +1124,63 @@ typedef struct {
     uint32_t msg_size;
 } fr_msgqueue_t;
 
+#define FREERTOS_MSGQUEUE_CONTEXT_CAPACITY 32U
+static fr_msgqueue_t *g_freertos_msgqueue_contexts[FREERTOS_MSGQUEUE_CONTEXT_CAPACITY];
+
+static int freertos_msgqueue_context_available(void)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MSGQUEUE_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_msgqueue_contexts[i])
+            return 1;
+    }
+    return 0;
+}
+
+static fr_msgqueue_t *freertos_find_msgqueue_context(fr_msgqueue_t *queue)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MSGQUEUE_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_msgqueue_contexts[i] == queue)
+            return queue;
+    }
+    return NULL;
+}
+
+static void freertos_publish_msgqueue_context(fr_msgqueue_t *queue)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MSGQUEUE_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_msgqueue_contexts[i]) {
+            g_freertos_msgqueue_contexts[i] = queue;
+            return;
+        }
+    }
+}
+
+static void freertos_clear_msgqueue_context(fr_msgqueue_t *queue)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MSGQUEUE_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_msgqueue_contexts[i] == queue) {
+            g_freertos_msgqueue_contexts[i] = NULL;
+            return;
+        }
+    }
+}
+
 xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
                                        const xy_os_msgqueue_attr_t *attr)
 {
     fr_msgqueue_t *context;
 
     if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
+        return NULL;
+    if (!freertos_msgqueue_context_available())
         return NULL;
     if (msg_count == 0U || msg_size == 0U ||
         msg_count > (uint32_t)((UBaseType_t)-1) ||
@@ -1145,6 +1196,7 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
     }
     context->capacity = msg_count;
     context->msg_size = msg_size;
+    freertos_publish_msgqueue_context(context);
     return (xy_os_msgqueue_id_t)context;
 }
 
@@ -1162,7 +1214,7 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
     QueueHandle_t q;
     TickType_t ticks;
 
-    if (!context || !context->queue || !msg_ptr ||
+    if (!freertos_find_msgqueue_context(context) || !context->queue || !msg_ptr ||
         !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     q = context->queue;
@@ -1176,7 +1228,7 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
     QueueHandle_t q;
     TickType_t ticks;
-    if (!context || !context->queue || !msg_ptr ||
+    if (!freertos_find_msgqueue_context(context) || !context->queue || !msg_ptr ||
         !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     q = context->queue;
@@ -1188,31 +1240,36 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
 uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
-    return context ? context->capacity : 0U;
+    return freertos_find_msgqueue_context(context) ? context->capacity : 0U;
 }
 
 uint32_t xy_os_msgqueue_get_msg_size(xy_os_msgqueue_id_t mq_id)
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
-    return context ? context->msg_size : 0U;
+    return freertos_find_msgqueue_context(context) ? context->msg_size : 0U;
 }
 
 uint32_t xy_os_msgqueue_get_count(xy_os_msgqueue_id_t mq_id)
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
-    return context ? (uint32_t)uxQueueMessagesWaiting(context->queue) : 0U;
+    return freertos_find_msgqueue_context(context)
+               ? (uint32_t)uxQueueMessagesWaiting(context->queue)
+               : 0U;
 }
 
 uint32_t xy_os_msgqueue_get_space(xy_os_msgqueue_id_t mq_id)
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
-    return context ? (uint32_t)uxQueueSpacesAvailable(context->queue) : 0U;
+    return freertos_find_msgqueue_context(context)
+               ? (uint32_t)uxQueueSpacesAvailable(context->queue)
+               : 0U;
 }
 
 xy_os_status_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
-    if (!context || !context->queue || context->capacity == 0U || context->msg_size == 0U)
+    if (!context || !context->queue || !freertos_find_msgqueue_context(context) ||
+        context->capacity == 0U || context->msg_size == 0U)
         return XY_OS_ERROR_PARAMETER;
     return pdstatus_to_xy(xQueueReset(context->queue));
 }
@@ -1220,9 +1277,10 @@ xy_os_status_t xy_os_msgqueue_reset(xy_os_msgqueue_id_t mq_id)
 xy_os_status_t xy_os_msgqueue_delete(xy_os_msgqueue_id_t mq_id)
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
-    if (!context)
+    if (!freertos_find_msgqueue_context(context) || !context->queue)
         return XY_OS_ERROR_PARAMETER;
     vQueueDelete(context->queue);
+    freertos_clear_msgqueue_context(context);
     vPortFree(context);
     return XY_OS_OK;
 }
