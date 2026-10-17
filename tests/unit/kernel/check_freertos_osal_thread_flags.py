@@ -489,6 +489,24 @@ def main() -> int:
     if "return XY_OS_OK;" in thread_detach:
         errors.append("FreeRTOS thread detach must not report unsupported ownership as success")
 
+    thread_inventory = source.split("uint32_t xy_os_thread_get_count", 1)[-1].split(
+        "/* Thread Flags", 1
+    )[0]
+    for required in (
+        "return 0U;",
+        "FreeRTOS exposes kernel-global task inventory",
+        "Do not publish NULL placeholders or untracked kernel-global handles",
+    ):
+        if required not in thread_inventory:
+            errors.append(
+                "FreeRTOS thread inventory must fail closed because kernel-global task "
+                f"handles are not adapter-owned; missing: {required}"
+            )
+    if "uxTaskGetNumberOfTasks" in thread_inventory:
+        errors.append(
+            "FreeRTOS thread count must not expose kernel-global task inventory as OSAL-owned"
+        )
+
     terminate = source.split("xy_os_status_t xy_os_thread_terminate", 1)[-1]
     if "return thread_id ? XY_OS_ERROR : XY_OS_ERROR_PARAMETER;" not in terminate:
         errors.append(

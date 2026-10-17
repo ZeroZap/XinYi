@@ -314,14 +314,16 @@ xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
 
 uint32_t xy_os_thread_get_count(void)
 {
-    return (uint32_t)uxTaskGetNumberOfTasks();
+    /* FreeRTOS exposes kernel-global task inventory, not this adapter's owner set. */
+    return 0U;
 }
 uint32_t xy_os_thread_enumerate(xy_os_thread_id_t *thread_array,
                                 uint32_t array_items)
 {
+    /* Do not publish NULL placeholders or untracked kernel-global handles. */
     (void)thread_array;
     (void)array_items;
-    return 0;
+    return 0U;
 }
 
 /* Thread Flags - using task notifications */
