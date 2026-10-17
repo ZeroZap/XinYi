@@ -766,11 +766,54 @@ xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 }
 
 /* Semaphore */
+typedef struct {
+    SemaphoreHandle_t semaphore;
+    uint8_t active;
+} fr_semaphore_context_t;
+
+#define FREERTOS_SEMAPHORE_CONTEXT_CAPACITY 32U
+static fr_semaphore_context_t
+    g_freertos_semaphore_contexts[FREERTOS_SEMAPHORE_CONTEXT_CAPACITY];
+
+static fr_semaphore_context_t *freertos_alloc_semaphore_context(void)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_SEMAPHORE_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_semaphore_contexts[i].active) {
+            memset(&g_freertos_semaphore_contexts[i], 0,
+                   sizeof(g_freertos_semaphore_contexts[i]));
+            g_freertos_semaphore_contexts[i].active = 1U;
+            return &g_freertos_semaphore_contexts[i];
+        }
+    }
+    return NULL;
+}
+
+static fr_semaphore_context_t *freertos_find_semaphore_context(SemaphoreHandle_t semaphore)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_SEMAPHORE_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_semaphore_contexts[i].active &&
+            g_freertos_semaphore_contexts[i].semaphore == semaphore)
+            return &g_freertos_semaphore_contexts[i];
+    }
+    return NULL;
+}
+
+static void freertos_clear_semaphore_context(fr_semaphore_context_t *context)
+{
+    if (context)
+        memset(context, 0, sizeof(*context));
+}
+
 xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count,
                                          uint32_t initial_count,
                                          const xy_os_semaphore_attr_t *attr)
 {
     SemaphoreHandle_t sem;
+    fr_semaphore_context_t *context;
     if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
         return NULL;
     if (max_count == 0U || initial_count > max_count ||
@@ -784,6 +827,14 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count,
         sem = xSemaphoreCreateCounting(
             (UBaseType_t)max_count, (UBaseType_t)initial_count);
     }
+    if (!sem)
+        return NULL;
+    context = freertos_alloc_semaphore_context();
+    if (!context) {
+        vSemaphoreDelete(sem);
+        return NULL;
+    }
+    context->semaphore = sem;
     return (xy_os_semaphore_id_t)sem;
 }
 
@@ -798,14 +849,16 @@ xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id,
 {
     SemaphoreHandle_t s = (SemaphoreHandle_t)semaphore_id;
     TickType_t ticks;
-    if (!s || !freertos_timeout_to_ticks(timeout, &ticks))
+    if (!s || !freertos_find_semaphore_context(s) ||
+        !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     return pdstatus_to_xy_wait(xSemaphoreTake(s, ticks));
 }
 
 xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
 {
-    return semaphore_id
+    return (semaphore_id &&
+            freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id))
                ? pdstatus_to_xy(xSemaphoreGive((SemaphoreHandle_t)semaphore_id))
                : XY_OS_ERROR_PARAMETER;
 }
@@ -814,7 +867,8 @@ xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_i
 {
     BaseType_t higher_priority_task_woken = pdFALSE;
 
-    if (!semaphore_id)
+    if (!semaphore_id ||
+        !freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id))
         return XY_OS_ERROR_PARAMETER;
     if (xSemaphoreGiveFromISR((SemaphoreHandle_t)semaphore_id,
                               &higher_priority_task_woken) != pdPASS)
@@ -825,16 +879,24 @@ xy_os_status_t xy_os_semaphore_release_from_isr(xy_os_semaphore_id_t semaphore_i
 
 uint32_t xy_os_semaphore_get_count(xy_os_semaphore_id_t semaphore_id)
 {
-    return semaphore_id
+    return (semaphore_id &&
+            freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id))
                ? (uint32_t)uxSemaphoreGetCount((SemaphoreHandle_t)semaphore_id)
                : 0;
 }
 
 xy_os_status_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
 {
-    if (semaphore_id)
-        vSemaphoreDelete((SemaphoreHandle_t)semaphore_id);
-    return semaphore_id ? XY_OS_OK : XY_OS_ERROR_PARAMETER;
+    fr_semaphore_context_t *context;
+
+    if (!semaphore_id)
+        return XY_OS_ERROR_PARAMETER;
+    context = freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id);
+    if (!context)
+        return XY_OS_ERROR_PARAMETER;
+    vSemaphoreDelete((SemaphoreHandle_t)semaphore_id);
+    freertos_clear_semaphore_context(context);
+    return XY_OS_OK;
 }
 
 /* Memory Pool — free-list allocator on top of pvPortMalloc */

@@ -196,6 +196,34 @@ def main() -> int:
 
     if "freertos_timeout_to_ticks" not in source:
         errors.append("FreeRTOS wait APIs must use one checked timeout conversion helper")
+    semaphore_region = source.split("/* Semaphore */", 1)[-1].split(
+        "/* Memory Pool", 1
+    )[0]
+    for required in (
+        "FREERTOS_SEMAPHORE_CONTEXT_CAPACITY",
+        "freertos_alloc_semaphore_context",
+        "freertos_find_semaphore_context",
+        "freertos_clear_semaphore_context",
+        "context->semaphore = sem",
+        "vSemaphoreDelete(sem);",
+    ):
+        if required not in semaphore_region:
+            errors.append(
+                "FreeRTOS semaphore operations must publish only adapter-owned handles and "
+                f"release an untracked allocation; missing: {required}"
+            )
+    for function_name in (
+        "xy_os_semaphore_acquire",
+        "xy_os_semaphore_release",
+        "xy_os_semaphore_release_from_isr",
+        "xy_os_semaphore_get_count",
+        "xy_os_semaphore_delete",
+    ):
+        function = semaphore_region.split(function_name, 1)[-1]
+        if "freertos_find_semaphore_context" not in function:
+            errors.append(
+                f"{function_name} must reject untracked native semaphore handles before kernel access"
+            )
     for function_name in (
         "xy_os_mutex_acquire",
         "xy_os_semaphore_acquire",
