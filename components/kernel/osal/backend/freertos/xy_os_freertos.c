@@ -467,7 +467,9 @@ xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
     if (!timer_id)
         return XY_OS_ERROR_PARAMETER;
     context = (fr_timer_context_t *)pvTimerGetTimerID((TimerHandle_t)timer_id);
-    result  = xTimerDelete((TimerHandle_t)timer_id, 0);
+    if (!context)
+        return XY_OS_ERROR_RESOURCE;
+    result = xTimerDelete((TimerHandle_t)timer_id, 0);
     if (result == pdPASS)
         vPortFree(context);
     return pdstatus_to_xy(result);

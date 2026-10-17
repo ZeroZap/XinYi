@@ -163,6 +163,23 @@ def main() -> int:
                 f"missing: {required}"
             )
 
+    timer_delete = source.split("xy_os_status_t xy_os_timer_delete", 1)[-1].split(
+        "/* Event Flags */", 1
+    )[0]
+    for required in (
+        "if (!timer_id)",
+        "pvTimerGetTimerID((TimerHandle_t)timer_id)",
+        "if (!context)",
+        "return XY_OS_ERROR_RESOURCE;",
+        "if (result == pdPASS)",
+        "vPortFree(context);",
+    ):
+        if required not in timer_delete:
+            errors.append(
+                "FreeRTOS timer delete must validate callback context and free it only after "
+                f"native deletion succeeds; missing: {required}"
+            )
+
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]
