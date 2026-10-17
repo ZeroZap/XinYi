@@ -2064,3 +2064,12 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `make`；`make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；`git diff --check`。
 - 边界：仅为 FreeRTOS dynamic semaphore handle ownership and fail-closed native access contract；
   不升级 semaphore runtime、ISR-to-task runtime、并发、资源耗尽、长稳或 product qualification。
+
+### 2026-10-18 FreeRTOS OSAL mutex ownership boundary
+
+- 收口：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 mutex；acquire/release/
+  owner/delete 在 native mutex access 前拒绝未跟踪 handle，成功 delete 后清除 owner slot。
+- 验证：focused policy `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；
+  `make`；`make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 边界：仅为 FreeRTOS dynamic mutex handle ownership and fail-closed native access contract；
+  不升级 mutex runtime、owner completeness、并发、优先级协议、长稳或 product qualification。

@@ -234,6 +234,22 @@ def main() -> int:
         if "freertos_timeout_to_ticks(timeout, &ticks)" not in function:
             errors.append(f"{function_name} must reject unrepresentable timeout ticks")
 
+    mutex_region = source.split("/* Mutex */", 1)[-1].split("/* Semaphore */", 1)[0]
+    for required in (
+        "FREERTOS_MUTEX_CONTEXT_CAPACITY",
+        "freertos_mutex_context_available",
+        "freertos_find_mutex_context",
+        "freertos_publish_mutex_context",
+        "freertos_clear_mutex_context",
+        "freertos_find_mutex_context(context)",
+        "freertos_clear_mutex_context(context);",
+    ):
+        if required not in mutex_region:
+            errors.append(
+                "FreeRTOS mutex operations must publish only adapter-owned contexts and "
+                f"reject stale handles; missing: {required}"
+            )
+
     for function_name, argument_name in (
         ("xy_os_thread_flags_wait", "timeout"),
         ("xy_os_event_flags_wait", "timeout"),

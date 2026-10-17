@@ -691,6 +691,55 @@ typedef struct {
     uint8_t recursive;
 } fr_mutex_t;
 
+#define FREERTOS_MUTEX_CONTEXT_CAPACITY 32U
+static fr_mutex_t *g_freertos_mutex_contexts[FREERTOS_MUTEX_CONTEXT_CAPACITY];
+
+static int freertos_mutex_context_available(void)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MUTEX_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_mutex_contexts[i])
+            return 1;
+    }
+    return 0;
+}
+
+static fr_mutex_t *freertos_find_mutex_context(fr_mutex_t *mutex)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MUTEX_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_mutex_contexts[i] == mutex)
+            return mutex;
+    }
+    return NULL;
+}
+
+static void freertos_publish_mutex_context(fr_mutex_t *mutex)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MUTEX_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_mutex_contexts[i]) {
+            g_freertos_mutex_contexts[i] = mutex;
+            return;
+        }
+    }
+}
+
+static void freertos_clear_mutex_context(fr_mutex_t *mutex)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MUTEX_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_mutex_contexts[i] == mutex) {
+            g_freertos_mutex_contexts[i] = NULL;
+            return;
+        }
+    }
+}
+
 xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
 {
     fr_mutex_t *context;
@@ -698,6 +747,8 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
     if (attr && (attr->attr_bits & ~(XY_OS_MUTEX_RECURSIVE)) != 0U)
         return NULL;
     if (attr && (attr->cb_mem || attr->cb_size != 0U))
+        return NULL;
+    if (!freertos_mutex_context_available())
         return NULL;
     context = (fr_mutex_t *)pvPortMalloc(sizeof(*context));
     if (!context)
@@ -710,6 +761,7 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
         vPortFree(context);
         return NULL;
     }
+    freertos_publish_mutex_context(context);
     return (xy_os_mutex_id_t)context;
 }
 
@@ -724,7 +776,8 @@ xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
     fr_mutex_t *context = (fr_mutex_t *)mutex_id;
     TickType_t ticks;
 
-    if (!context || !context->mutex || !freertos_timeout_to_ticks(timeout, &ticks))
+    if (!freertos_find_mutex_context(context) || !context->mutex ||
+        !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     if (context->recursive)
         return pdstatus_to_xy_wait(xSemaphoreTakeRecursive(context->mutex, ticks));
@@ -735,7 +788,7 @@ xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 {
     fr_mutex_t *context = (fr_mutex_t *)mutex_id;
 
-    if (!context || !context->mutex)
+    if (!freertos_find_mutex_context(context) || !context->mutex)
         return XY_OS_ERROR_PARAMETER;
     if (context->recursive)
         return pdstatus_to_xy(xSemaphoreGiveRecursive(context->mutex));
@@ -747,7 +800,7 @@ xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
     fr_mutex_t *context = (fr_mutex_t *)mutex_id;
     TaskHandle_t owner;
 
-    if (!context || !context->mutex)
+    if (!freertos_find_mutex_context(context) || !context->mutex)
         return NULL;
     owner = xSemaphoreGetMutexHolder(context->mutex);
     if (!owner || !freertos_find_thread_context(owner))
@@ -758,9 +811,10 @@ xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
 xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 {
     fr_mutex_t *context = (fr_mutex_t *)mutex_id;
-    if (!context)
+    if (!freertos_find_mutex_context(context) || !context->mutex)
         return XY_OS_ERROR_PARAMETER;
     vSemaphoreDelete(context->mutex);
+    freertos_clear_mutex_context(context);
     vPortFree(context);
     return XY_OS_OK;
 }

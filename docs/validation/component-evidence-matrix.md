@@ -31,6 +31,19 @@
 - 仍不允许宣称：FreeRTOS semaphore runtime、ISR-to-task runtime、并发、资源耗尽、长稳或
   product qualification。
 
+### 2026-10-18 FreeRTOS OSAL mutex ownership boundary
+
+- 旧边界 -> 新边界：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 mutex；
+  acquire/release/owner/delete 在 native mutex access 前拒绝未跟踪 handle，成功 delete 后
+  清除 owner slot。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy
+  `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；`make`；
+  `make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 适用范围：FreeRTOS dynamic mutex handle ownership and fail-closed native access boundary。
+- 仍不允许宣称：FreeRTOS mutex runtime、owner completeness、并发、优先级协议、长稳或
+  product qualification。
+
 
 - 旧边界 -> 新边界：`xy_os_mutex_get_owner()` 现验证 mutex/native owner，并只发布
   FreeRTOS adapter owner table 中已跟踪的 task；未跟踪 kernel-global owner 或无效 mutex 返回
