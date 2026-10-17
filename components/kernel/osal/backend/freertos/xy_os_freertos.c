@@ -557,6 +557,10 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
 {
     fr_mutex_t *context;
 
+    if (attr && (attr->attr_bits & ~(XY_OS_MUTEX_RECURSIVE)) != 0U)
+        return NULL;
+    if (attr && (attr->cb_mem || attr->cb_size != 0U))
+        return NULL;
     context = (fr_mutex_t *)pvPortMalloc(sizeof(*context));
     if (!context)
         return NULL;
@@ -622,8 +626,9 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count,
                                          uint32_t initial_count,
                                          const xy_os_semaphore_attr_t *attr)
 {
-    (void)attr;
     SemaphoreHandle_t sem;
+    if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
+        return NULL;
     if (max_count == 0U || initial_count > max_count)
         return NULL;
     if (max_count == 1) {
@@ -860,7 +865,8 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
 {
     fr_msgqueue_t *context;
 
-    (void)attr;
+    if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
+        return NULL;
     if (msg_count == 0U || msg_size == 0U)
         return NULL;
     context = (fr_msgqueue_t *)pvPortMalloc(sizeof(*context));

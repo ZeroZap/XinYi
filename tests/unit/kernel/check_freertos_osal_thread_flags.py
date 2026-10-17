@@ -252,6 +252,20 @@ def main() -> int:
                 f"and release wrapper ownership; missing: {required}"
             )
 
+    mutex_new = source.split("xy_os_mutex_id_t xy_os_mutex_new", 1)[-1].split(
+        "const char *xy_os_mutex_get_name", 1
+    )[0]
+    for required in (
+        "attr->attr_bits & ~(XY_OS_MUTEX_RECURSIVE)",
+        "attr->cb_mem",
+        "attr->cb_size != 0U",
+    ):
+        if required not in mutex_new:
+            errors.append(
+                "FreeRTOS mutex creation must reject unsupported attributes before allocation; "
+                f"missing: {required}"
+            )
+
     stack_space = source.split("uint32_t xy_os_thread_get_stack_space", 1)[-1].split(
         "xy_os_status_t xy_os_thread_set_priority", 1
     )[0]
@@ -430,11 +444,24 @@ def main() -> int:
         "max_count == 0U",
         "initial_count > max_count",
         "return NULL;",
+        "attr->attr_bits != 0U",
+        "attr->cb_mem",
+        "attr->cb_size != 0U",
     ):
         if required not in semaphore_new:
             errors.append(
-                "FreeRTOS semaphore creation must reject zero capacity and an initial "
-                f"count above the declared maximum; missing: {required}"
+                "FreeRTOS semaphore creation must reject invalid counts and unsupported "
+                f"attributes before allocation; missing: {required}"
+            )
+
+    msgqueue_new = source.split("xy_os_msgqueue_id_t xy_os_msgqueue_new", 1)[-1].split(
+        "const char *xy_os_msgqueue_get_name", 1
+    )[0]
+    for required in ("attr->attr_bits != 0U", "attr->cb_mem", "attr->cb_size != 0U"):
+        if required not in msgqueue_new:
+            errors.append(
+                "FreeRTOS message-queue creation must reject unsupported attributes before "
+                f"allocation; missing: {required}"
             )
 
     if errors:
