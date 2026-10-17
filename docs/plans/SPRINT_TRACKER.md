@@ -6,6 +6,13 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS memory-pool 输入边界收口（2026-10-17）**：FreeRTOS memory-pool
+create 现拒绝未实现的属性/control-block 请求及无 backing storage 却带非零 storage size
+的属性组合；allocation 复用 checked `TickType_t` conversion，拒绝无法表示的 finite timeout，
+并保留 `XY_OS_WAIT_FOREVER` 显式映射。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS
+compile 与 `git diff --check` 待本 slice 完成后记录；不升级 runtime allocation、并发、
+资源耗尽、调度或产品资格声明。
+
 **最新 FreeRTOS timeout representability 收口（2026-10-17）**：mutex acquire、semaphore acquire 与
 message-queue put/get 现统一通过 checked `TickType_t` conversion，拒绝无法由 native tick 表示的
 finite timeout，并保留 `XY_OS_WAIT_FOREVER` 到 `portMAX_DELAY` 的显式映射；拒绝发生在 native
@@ -180,6 +187,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S2-05 | P0 | Pandora ICM20608 静态采样与动态响应诊断 | BLOCKED | Zero | S2-03（DONE）；需恢复人工硬件测试 | 已完成 identity、配置回读、静态约 1g、raw burst 变化与 data-ready basic-chain B1；动态轴重分配/gyro 人工动作证据未通过，按用户要求暂停硬件测试，转为显式 blocker，不再占用进行中 WIP | `997f46f8`、`e3c5f87d`；解除条件：用户明确恢复硬件测试并确认移动含 ICM20608 的板体 | 2026-09-30 |
 
 ### S6-01 | P0 | FreeRTOS OSAL timeout representability and wait-object fail-closed boundary | DONE | Zero | Existing FreeRTOS adapter and native TickType_t contract | Mutex/semaphore acquire and message-queue put/get now use one checked timeout conversion; finite unrepresentable timeout rejected before native wait; WAIT_FOREVER maps explicitly to portMAX_DELAY. Focused policy passed; Host 278/278; PC/L4/U5/WCH FreeRTOS builds; git diff --check passed. No runtime precision/latency/long-run or product qualification claim. | `72e2c427` + this record | 2026-10-17 |
+
+| S6-73 | P1 | FreeRTOS OSAL memory-pool input and timeout boundary | VERIFYING | Zero | S6-01；existing FreeRTOS memory-pool adapter | Dynamic memory-pool create rejects unsupported attributes before allocation; allocation uses checked native-tick conversion. Focused policy and Host passed; PC/L4/U5/WCH compile and commit/push verification pending. No runtime allocation/concurrency/resource-exhaustion or product qualification claim. | working tree | 2026-10-17 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

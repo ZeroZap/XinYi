@@ -346,6 +346,34 @@ def main() -> int:
             "FreeRTOS thread creation must not narrow the requested stack depth before validating it"
         )
 
+    mempool_new = source.split("xy_os_mempool_id_t xy_os_mempool_new", 1)[-1].split(
+        "const char *xy_os_mempool_get_name", 1
+    )[0]
+    for required in (
+        "attr->attr_bits != 0U",
+        "attr->cb_mem",
+        "attr->cb_size != 0U",
+        "!attr->mp_mem && attr->mp_size != 0U",
+    ):
+        if required not in mempool_new:
+            errors.append(
+                "FreeRTOS memory-pool creation must reject unsupported control/storage "
+                f"attributes before allocation; missing: {required}"
+            )
+
+    mempool_alloc = source.split("void *xy_os_mempool_alloc", 1)[-1].split(
+        "xy_os_status_t xy_os_mempool_free", 1
+    )[0]
+    for required in (
+        "TickType_t ticks;",
+        "!freertos_timeout_to_ticks(timeout, &ticks)",
+    ):
+        if required not in mempool_alloc:
+            errors.append(
+                "FreeRTOS memory-pool allocation must reject unrepresentable native "
+                f"timeouts before polling; missing: {required}"
+            )
+
     delay_until = source.split("xy_os_status_t xy_os_delay_until", 1)[-1].split(
         "/* Timer Management */", 1
     )[0]

@@ -11,6 +11,20 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-17 FreeRTOS OSAL memory-pool input and timeout boundary
+
+- 旧边界 -> 新边界：FreeRTOS dynamic memory-pool create 现拒绝非零未知属性、caller-owned
+  control-block 以及无 backing storage 却带非零 `mp_size` 的请求；pool allocation 复用
+  checked `TickType_t` conversion，无法表示的 finite timeout 在 polling 前 fail-closed，
+  `XY_OS_WAIT_FOREVER` 显式映射 `portMAX_DELAY`。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused
+  `freertos_osal_thread_flags`；Host `make test-unit` 278/278；PC/L4/U5/WCH FreeRTOS
+  builds；`git diff --check`。
+- 适用范围：FreeRTOS memory-pool public input and native-timeout representability contract。
+- 仍不允许宣称：runtime allocation behavior, concurrency, resource exhaustion, scheduler
+  latency, long-run 或 product qualification。
+
 ### 2026-10-17 FreeRTOS timeout representability boundary
 
 - 旧边界 -> 新边界：mutex acquire、semaphore acquire、message-queue put/get 不再将超过 native `TickType_t` 的 finite timeout 窄化后传入 FreeRTOS；统一 checked conversion，`XY_OS_WAIT_FOREVER` 显式映射 `portMAX_DELAY`。

@@ -744,6 +744,10 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
 
     if (block_count == 0U || block_size == 0U)
         return NULL;
+    if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
+        return NULL;
+    if (attr && !attr->mp_mem && attr->mp_size != 0U)
+        return NULL;
     bsz = (block_size < sizeof(void *)) ? (uint32_t)sizeof(void *) : block_size;
     if (block_count > UINT32_MAX / bsz)
         return NULL;
@@ -795,9 +799,9 @@ const char *xy_os_mempool_get_name(xy_os_mempool_id_t mp_id)
 void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
-    if (!p) return NULL;
-    TickType_t ticks = (timeout == XY_OS_WAIT_FOREVER)
-                       ? portMAX_DELAY : (TickType_t)timeout;
+    TickType_t ticks;
+    if (!p || !freertos_timeout_to_ticks(timeout, &ticks))
+        return NULL;
     TickType_t start = xTaskGetTickCount();
 
     while (1) {
