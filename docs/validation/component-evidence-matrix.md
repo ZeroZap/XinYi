@@ -11,6 +11,20 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-18 FreeRTOS OSAL event-flags ownership boundary
+
+- 旧边界 -> 新边界：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 event group；
+  set/clear/get/wait/delete 在 native event-group access 前拒绝未跟踪 handle，delete 后清除
+  owner slot。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy
+  `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；`make`；
+  `make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；
+  `make HAL_PLATFORM=WCH KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON`；`git diff --check`。
+- 适用范围：FreeRTOS dynamic event-flags handle ownership and fail-closed native access boundary。
+- 仍不允许宣称：FreeRTOS event-flags runtime、资源耗尽、并发、ISR-to-task、长稳或 product
+  qualification。
+
 ### 2026-10-18 FreeRTOS OSAL message-queue ownership boundary
 
 - 旧边界 -> 新边界：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 message queue；

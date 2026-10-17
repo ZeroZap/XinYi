@@ -183,11 +183,15 @@ def main() -> int:
     event_flags_get = source.split("uint32_t xy_os_event_flags_get", 1)[-1].split(
         "uint32_t xy_os_event_flags_wait", 1
     )[0]
-    if "if (!ef_id)" not in event_flags_get or "return 0x80000000U;" not in event_flags_get:
+    if "!ef_id || !freertos_find_event_flags_context" not in event_flags_get or "return 0x80000000U;" not in event_flags_get:
         errors.append("FreeRTOS event-flags get must fail closed for a NULL handle")
 
     event_flags_delete = source.split("xy_os_status_t xy_os_event_flags_delete", 1)[-1]
-    for required in ("if (ef_id)", "vEventGroupDelete((EventGroupHandle_t)ef_id)", "XY_OS_ERROR_PARAMETER"):
+    for required in (
+        "!event_group || !freertos_find_event_flags_context(event_group)",
+        "vEventGroupDelete(event_group)",
+        "XY_OS_ERROR_PARAMETER",
+    ):
         if required not in event_flags_delete:
             errors.append(
                 "FreeRTOS event-flags delete must validate the handle and avoid native access "
@@ -326,15 +330,41 @@ def main() -> int:
             "FreeRTOS timer deletion must not trust a native timer context outside the adapter owner table"
         )
 
-    event_flags_new = source.split(
+    event_flags_region = source.split("/* Event Flags */", 1)[-1].split("/* Mutex */", 1)[0]
+    event_flags_new = event_flags_region.split(
         "xy_os_event_flags_new", 1
     )[-1].split("const char *xy_os_event_flags_get_name", 1)[0]
-    for required in ("attr->attr_bits != 0U", "attr->cb_mem", "attr->cb_size != 0U"):
-        if required not in event_flags_new:
+    for required in (
+        "FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY",
+        "freertos_event_flags_context_available",
+        "freertos_find_event_flags_context",
+        "freertos_publish_event_flags_context",
+        "freertos_clear_event_flags_context",
+        "attr->attr_bits != 0U",
+        "attr->cb_mem",
+        "attr->cb_size != 0U",
+    ):
+        if required not in event_flags_region:
             errors.append(
                 "FreeRTOS event-flags creation must reject unsupported caller-owned/control "
                 f"attributes before allocation; missing: {required}"
             )
+
+    event_flags_region = source.split("/* Event Flags */", 1)[-1].split("/* Mutex */", 1)[0]
+    for function_name in (
+        "xy_os_event_flags_set",
+        "xy_os_event_flags_clear",
+        "xy_os_event_flags_get",
+        "xy_os_event_flags_wait",
+        "xy_os_event_flags_delete",
+    ):
+        function = event_flags_region.split(function_name, 1)[-1]
+        if "freertos_find_event_flags_context" not in function:
+            errors.append(
+                f"{function_name} must reject untracked native event-group handles before kernel access"
+            )
+    if "freertos_clear_event_flags_context(event_group);" not in event_flags_region:
+        errors.append("FreeRTOS event-flags delete must clear owner state after native deletion")
 
     mutex_region = source.split("/* Mutex */", 1)[-1].split("/* Semaphore */", 1)[0]
     for required in (

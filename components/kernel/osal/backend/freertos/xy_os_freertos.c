@@ -613,6 +613,56 @@ xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 }
 
 /* Event Flags */
+#define FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY 32U
+static EventGroupHandle_t
+    g_freertos_event_flags_contexts[FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY];
+
+static int freertos_event_flags_context_available(void)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_event_flags_contexts[i])
+            return 1;
+    }
+    return 0;
+}
+
+static EventGroupHandle_t freertos_find_event_flags_context(EventGroupHandle_t event_group)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_event_flags_contexts[i] == event_group)
+            return event_group;
+    }
+    return NULL;
+}
+
+static void freertos_publish_event_flags_context(EventGroupHandle_t event_group)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_event_flags_contexts[i]) {
+            g_freertos_event_flags_contexts[i] = event_group;
+            return;
+        }
+    }
+}
+
+static void freertos_clear_event_flags_context(EventGroupHandle_t event_group)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_event_flags_contexts[i] == event_group) {
+            g_freertos_event_flags_contexts[i] = NULL;
+            return;
+        }
+    }
+}
+
 static int freertos_event_flags_args_valid(uint32_t flags, uint32_t options)
 {
     if (flags == 0U || (flags & 0xFF000000U))
@@ -625,10 +675,18 @@ static int freertos_event_flags_args_valid(uint32_t flags, uint32_t options)
 xy_os_event_flags_id_t
 xy_os_event_flags_new(const xy_os_event_flags_attr_t *attr)
 {
+    EventGroupHandle_t event_group;
+
     if (attr &&
         (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
         return NULL;
-    return (xy_os_event_flags_id_t)xEventGroupCreate();
+    if (!freertos_event_flags_context_available())
+        return NULL;
+    event_group = xEventGroupCreate();
+    if (!event_group)
+        return NULL;
+    freertos_publish_event_flags_context(event_group);
+    return (xy_os_event_flags_id_t)event_group;
 }
 
 const char *xy_os_event_flags_get_name(xy_os_event_flags_id_t ef_id)
@@ -639,7 +697,8 @@ const char *xy_os_event_flags_get_name(xy_os_event_flags_id_t ef_id)
 
 uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
-    if (!ef_id || !freertos_event_flags_args_valid(flags, 0U))
+    if (!ef_id || !freertos_find_event_flags_context((EventGroupHandle_t)ef_id) ||
+        !freertos_event_flags_args_valid(flags, 0U))
         return 0x80000000U;
     return (uint32_t)xEventGroupSetBits((EventGroupHandle_t)ef_id,
                                         (EventBits_t)flags);
@@ -647,7 +706,8 @@ uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
 
 uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 {
-    if (!ef_id || !freertos_event_flags_args_valid(flags, 0U))
+    if (!ef_id || !freertos_find_event_flags_context((EventGroupHandle_t)ef_id) ||
+        !freertos_event_flags_args_valid(flags, 0U))
         return 0x80000000U;
     return (uint32_t)xEventGroupClearBits((EventGroupHandle_t)ef_id,
                                           (EventBits_t)flags);
@@ -655,7 +715,7 @@ uint32_t xy_os_event_flags_clear(xy_os_event_flags_id_t ef_id, uint32_t flags)
 
 uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 {
-    if (!ef_id)
+    if (!ef_id || !freertos_find_event_flags_context((EventGroupHandle_t)ef_id))
         return 0x80000000U;
     return (uint32_t)xEventGroupGetBits((EventGroupHandle_t)ef_id);
 }
@@ -663,7 +723,8 @@ uint32_t xy_os_event_flags_get(xy_os_event_flags_id_t ef_id)
 uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
                                 uint32_t options, uint32_t timeout)
 {
-    if (!ef_id || !freertos_event_flags_args_valid(flags, options))
+    if (!ef_id || !freertos_find_event_flags_context((EventGroupHandle_t)ef_id) ||
+        !freertos_event_flags_args_valid(flags, options))
         return 0x80000000U;
     TickType_t ticks;
     if (!freertos_timeout_to_ticks(timeout, &ticks))
@@ -680,9 +741,13 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
 
 xy_os_status_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
 {
-    if (ef_id)
-        vEventGroupDelete((EventGroupHandle_t)ef_id);
-    return ef_id ? XY_OS_OK : XY_OS_ERROR_PARAMETER;
+    EventGroupHandle_t event_group = (EventGroupHandle_t)ef_id;
+
+    if (!event_group || !freertos_find_event_flags_context(event_group))
+        return XY_OS_ERROR_PARAMETER;
+    vEventGroupDelete(event_group);
+    freertos_clear_event_flags_context(event_group);
+    return XY_OS_OK;
 }
 
 /* Mutex */
