@@ -694,7 +694,14 @@ xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 xy_os_thread_id_t xy_os_mutex_get_owner(xy_os_mutex_id_t mutex_id)
 {
     fr_mutex_t *context = (fr_mutex_t *)mutex_id;
-    return context ? (xy_os_thread_id_t)xSemaphoreGetMutexHolder(context->mutex) : NULL;
+    TaskHandle_t owner;
+
+    if (!context || !context->mutex)
+        return NULL;
+    owner = xSemaphoreGetMutexHolder(context->mutex);
+    if (!owner || !freertos_find_thread_context(owner))
+        return NULL;
+    return (xy_os_thread_id_t)owner;
 }
 
 xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)

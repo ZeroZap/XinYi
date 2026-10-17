@@ -11,6 +11,19 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-17 FreeRTOS OSAL mutex-owner thread boundary
+
+- 旧边界 -> 新边界：`xy_os_mutex_get_owner()` 现验证 mutex/native owner，并只发布
+  FreeRTOS adapter owner table 中已跟踪的 task；未跟踪 kernel-global owner 或无效 mutex 返回
+  `NULL`，避免向 OSAL 上层泄露未拥有的 task handle。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused
+  `freertos_osal_thread_flags`；Host `make test-unit` 278/278；`make`；
+  `make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 适用范围：FreeRTOS OSAL mutex-owner publication and adapter-ownership boundary。
+- 仍不允许宣称：FreeRTOS runtime mutex ownership completeness、scheduler、并发、延迟、长稳或
+  product qualification。
+
 ### 2026-10-17 FreeRTOS OSAL thread inventory ownership boundary
 
 - 旧边界 -> 新边界：FreeRTOS `xy_os_thread_get_count()` 与 `xy_os_thread_enumerate()` 不再

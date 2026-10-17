@@ -197,6 +197,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S6-73 | P1 | FreeRTOS OSAL memory-pool input and timeout boundary | DONE | Zero | S6-01；existing FreeRTOS memory-pool adapter | Dynamic memory-pool create rejects unsupported attributes before allocation; allocation uses checked native-tick conversion. Focused policy `freertos_osal_thread_flags_ok`、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No runtime allocation/concurrency/resource-exhaustion or product qualification claim. | `9eaf16b4` | 2026-10-17 |
 
 | S6-74 | P1 | FreeRTOS OSAL thread inventory ownership boundary | DONE | Zero | S4-170 的 RT-Thread owner contract；FreeRTOS backend 无 adapter-owned inventory | FreeRTOS `xy_os_thread_get_count()`/`enumerate()` 不再把 kernel-global task inventory 暴露为 OSAL-owned threads；两入口 fail-closed 返回空 inventory，focused policy、Host 278/278、PC/STM32L4/STM32U5 compile 与 `git diff --check` 通过。不升级 FreeRTOS runtime、thread enumeration completeness、scheduler 或产品资格声明。 | 本记录提交 | 2026-10-17 |
+| S6-75 | P1 | FreeRTOS OSAL mutex-owner thread boundary | DONE | Zero | S6-74；existing FreeRTOS owner table | `xy_os_mutex_get_owner()` 现先验证 mutex/native owner，再仅发布 adapter-owned tracked task；kernel-global/untracked owner 返回 `NULL`。focused policy、Host 278/278、PC/STM32L4/STM32U5 compile 与 `git diff --check` 通过。不升级 FreeRTOS runtime、mutex ownership completeness、scheduler、并发或产品资格声明。 | 本记录提交 | 2026-10-17 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

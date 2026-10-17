@@ -518,6 +518,24 @@ def main() -> int:
             "FreeRTOS thread ownership must provide a cleanup path for exiting adapter-owned threads"
         )
 
+    mutex_owner = source.split("xy_os_thread_id_t xy_os_mutex_get_owner", 1)[-1].split(
+        "xy_os_status_t xy_os_mutex_delete", 1
+    )[0]
+    for required in (
+        "xSemaphoreGetMutexHolder(context->mutex)",
+        "freertos_find_thread_context(owner)",
+        "return (xy_os_thread_id_t)owner;",
+    ):
+        if required not in mutex_owner:
+            errors.append(
+                "FreeRTOS mutex owner query must publish only an adapter-owned thread; "
+                f"missing: {required}"
+            )
+    if "return (xy_os_thread_id_t)xSemaphoreGetMutexHolder(context->mutex);" in mutex_owner:
+        errors.append(
+            "FreeRTOS mutex owner query must validate the native owner before publishing its handle"
+        )
+
     thread_inventory = source.split("uint32_t xy_os_thread_get_count", 1)[-1].split(
         "/* Thread Flags", 1
     )[0]
