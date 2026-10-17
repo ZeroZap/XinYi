@@ -629,7 +629,8 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count,
     SemaphoreHandle_t sem;
     if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
         return NULL;
-    if (max_count == 0U || initial_count > max_count)
+    if (max_count == 0U || initial_count > max_count ||
+        max_count > (uint32_t)((UBaseType_t)-1))
         return NULL;
     if (max_count == 1) {
         sem = xSemaphoreCreateBinary();
@@ -867,7 +868,9 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
 
     if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
         return NULL;
-    if (msg_count == 0U || msg_size == 0U)
+    if (msg_count == 0U || msg_size == 0U ||
+        msg_count > (uint32_t)((UBaseType_t)-1) ||
+        msg_size > (uint32_t)((UBaseType_t)-1))
         return NULL;
     context = (fr_msgqueue_t *)pvPortMalloc(sizeof(*context));
     if (!context)

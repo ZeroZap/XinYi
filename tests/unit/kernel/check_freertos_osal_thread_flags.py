@@ -443,6 +443,7 @@ def main() -> int:
     for required in (
         "max_count == 0U",
         "initial_count > max_count",
+        "max_count > (uint32_t)((UBaseType_t)-1)",
         "return NULL;",
         "attr->attr_bits != 0U",
         "attr->cb_mem",
@@ -457,7 +458,13 @@ def main() -> int:
     msgqueue_new = source.split("xy_os_msgqueue_id_t xy_os_msgqueue_new", 1)[-1].split(
         "const char *xy_os_msgqueue_get_name", 1
     )[0]
-    for required in ("attr->attr_bits != 0U", "attr->cb_mem", "attr->cb_size != 0U"):
+    for required in (
+        "attr->attr_bits != 0U",
+        "attr->cb_mem",
+        "attr->cb_size != 0U",
+        "msg_count > (uint32_t)((UBaseType_t)-1)",
+        "msg_size > (uint32_t)((UBaseType_t)-1)",
+    ):
         if required not in msgqueue_new:
             errors.append(
                 "FreeRTOS message-queue creation must reject unsupported attributes before "

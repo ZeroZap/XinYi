@@ -24,6 +24,17 @@
 - 仍不允许宣称：Pandora 本变更 runtime、caller-owned/static allocation、priority protocol、
   concurrency、latency、长稳或产品资格。
 
+### 2026-10-17 FreeRTOS OSAL native-width creation boundary
+
+- 旧边界 -> 新边界：FreeRTOS dynamic semaphore 与 message queue 现拒绝不能由 native
+  `UBaseType_t` 表示的 count/size 输入，所有拒绝均发生在 wrapper/kernel allocation 前。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused
+  `freertos_osal_thread_flags`；Host `make test-unit` 278/278；`make`、
+  `make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 适用范围：FreeRTOS dynamic semaphore/message-queue representability and fail-closed contract。
+- 仍不允许宣称：Pandora 本变更 runtime、资源耗尽、吞吐、并发、长稳或产品资格。
+
 ### 2026-10-17 FreeRTOS OSAL timer-create attribute boundary
 
 - 旧边界 -> 新边界：dynamic FreeRTOS adapter 不再把未知 timer type 当作 one-shot，也不再静默

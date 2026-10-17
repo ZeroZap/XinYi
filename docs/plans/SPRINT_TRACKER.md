@@ -12,6 +12,12 @@
 root compile 与 `git diff --check` 通过。不升级 Pandora runtime、static allocation、
 优先级协议、并发或产品资格声明。
 
+**最新 FreeRTOS native-width 边界收口（2026-10-17）**：FreeRTOS semaphore 与
+message-queue dynamic creation 现拒绝无法由 `UBaseType_t` 表示的 `max_count`、
+`msg_count` 或 `msg_size`，在任何 wrapper/kernel allocation 前 fail-closed；focused
+policy、Host 278/278、PC/L4/U5 root compile 与 `git diff --check` 通过。不升级
+Pandora runtime、资源耗尽、吞吐、并发或产品资格声明。
+
 **最新 FreeRTOS timer-create 属性边界收口（2026-10-17）**：FreeRTOS dynamic timer
 adapter 现拒绝未知 timer type、非零 attribute bits 与 caller-owned control block 请求，并在
 任何 context/kernel allocation 前 fail-closed。focused policy/FreeRTOS L4/U5 compile/Pandora
