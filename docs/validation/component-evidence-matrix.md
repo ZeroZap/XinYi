@@ -1145,7 +1145,19 @@
 - 仍不允许宣称：Pandora sleep/wakeup, power consumption, wake latency, deep-power modes,
   recovery, endurance, or Device PM hardware qualification.
 
-### 2026-10-17 FreeRTOS thread termination fail-closed boundary
+### 2026-10-17 FreeRTOS OSAL thread-handle ownership boundary
+
+- 旧边界 -> 新边界：FreeRTOS dynamic task 现登记到 bounded adapter owner table；name/id/state/
+  stack-space/priority/suspend/resume 与 thread-flags set 在 native task access 前验证 tracked
+  owner，未跟踪 kernel-global handle fail-closed；OSAL-created task exit 清理 owner。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy
+  `freertos_osal_thread_flags_ok`、CTest `freertos_osal_thread_flags`；Host `make test-unit`
+  278/278；`make HAL_PLATFORM=PC`、`make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32U5`；
+  `git diff --check`。
+- 适用范围：FreeRTOS OSAL task-handle ownership and fail-closed native access contract。
+- 仍不允许宣称：FreeRTOS runtime thread retirement、scheduler、并发、延迟、长稳或产品资格。
+
 
 - 组件：FreeRTOS OSAL / thread ownership
 - 旧边界 -> 新边界：`xy_os_thread_terminate()` no longer reports success for

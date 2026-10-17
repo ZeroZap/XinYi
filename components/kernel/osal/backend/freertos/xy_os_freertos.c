@@ -13,6 +13,48 @@
 #include "timers.h"
 #include <string.h>
 
+typedef struct {
+    TaskHandle_t handle;
+    uint8_t active;
+} freertos_thread_context_t;
+
+#define FREERTOS_THREAD_CONTEXT_CAPACITY 32U
+static freertos_thread_context_t
+    g_freertos_thread_contexts[FREERTOS_THREAD_CONTEXT_CAPACITY];
+
+static freertos_thread_context_t *freertos_find_thread_context(TaskHandle_t handle)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_THREAD_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_thread_contexts[i].active &&
+            g_freertos_thread_contexts[i].handle == handle)
+            return &g_freertos_thread_contexts[i];
+    }
+    return NULL;
+}
+
+static freertos_thread_context_t *freertos_alloc_thread_context(void)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_THREAD_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_thread_contexts[i].active)
+            return &g_freertos_thread_contexts[i];
+    }
+    return NULL;
+}
+
+static void freertos_clear_thread_context(TaskHandle_t handle)
+{
+    freertos_thread_context_t *context = freertos_find_thread_context(handle);
+
+    if (context) {
+        context->handle = NULL;
+        context->active = 0U;
+    }
+}
+
 /* Priority mapping: both FreeRTOS and XY OSAL increase toward higher priority. */
 static int freertos_priority_valid(xy_os_priority_t priority)
 {
@@ -200,27 +242,37 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     UBaseType_t prio =
         attr ? xy_to_freertos_priority(attr->priority) : (tskIDLE_PRIORITY + 1);
     TaskHandle_t handle;
-    return (xTaskCreate(func, name, stack, argument, prio, &handle) == pdPASS)
-               ? (xy_os_thread_id_t)handle
-               : NULL;
+    freertos_thread_context_t *context = freertos_alloc_thread_context();
+
+    if (!context)
+        return NULL;
+    if (xTaskCreate(func, name, stack, argument, prio, &handle) != pdPASS)
+        return NULL;
+    context->handle = handle;
+    context->active = 1U;
+    return (xy_os_thread_id_t)handle;
 }
 
 const char *xy_os_thread_get_name(xy_os_thread_id_t thread_id)
 {
     TaskHandle_t h =
         thread_id ? (TaskHandle_t)thread_id : xTaskGetCurrentTaskHandle();
-    return h ? pcTaskGetName(h) : NULL;
+    if (!h || !freertos_find_thread_context(h))
+        return NULL;
+    return pcTaskGetName(h);
 }
 
 xy_os_thread_id_t xy_os_thread_get_id(void)
 {
-    return (xy_os_thread_id_t)xTaskGetCurrentTaskHandle();
+    TaskHandle_t h = xTaskGetCurrentTaskHandle();
+
+    return (h && freertos_find_thread_context(h)) ? (xy_os_thread_id_t)h : NULL;
 }
 
 xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t thread_id)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    if (!h)
+    if (!h || !freertos_find_thread_context(h))
         return XY_OS_THREAD_ERROR;
     eTaskState s = eTaskGetState(h);
     switch (s) {
@@ -248,14 +300,16 @@ uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t thread_id)
 uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t thread_id)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    return h ? (uint32_t)uxTaskGetStackHighWaterMark(h) * sizeof(StackType_t) : 0;
+    return (h && freertos_find_thread_context(h))
+               ? (uint32_t)uxTaskGetStackHighWaterMark(h) * sizeof(StackType_t)
+               : 0U;
 }
 
 xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
                                          xy_os_priority_t priority)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    if (!h || !freertos_priority_valid(priority))
+    if (!h || !freertos_find_thread_context(h) || !freertos_priority_valid(priority))
         return XY_OS_ERROR_PARAMETER;
     vTaskPrioritySet(h, xy_to_freertos_priority(priority));
     return XY_OS_OK;
@@ -264,7 +318,7 @@ xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
 xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t thread_id)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    return h ? freertos_to_xy_priority(uxTaskPriorityGet(h))
+    return (h && freertos_find_thread_context(h)) ? freertos_to_xy_priority(uxTaskPriorityGet(h))
              : XY_OS_PRIORITY_ERROR;
 }
 
@@ -276,7 +330,7 @@ xy_os_status_t xy_os_thread_yield(void)
 xy_os_status_t xy_os_thread_suspend(xy_os_thread_id_t thread_id)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    if (!h)
+    if (!h || !freertos_find_thread_context(h))
         return XY_OS_ERROR_PARAMETER;
     vTaskSuspend(h);
     return XY_OS_OK;
@@ -285,7 +339,7 @@ xy_os_status_t xy_os_thread_suspend(xy_os_thread_id_t thread_id)
 xy_os_status_t xy_os_thread_resume(xy_os_thread_id_t thread_id)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    if (!h)
+    if (!h || !freertos_find_thread_context(h))
         return XY_OS_ERROR_PARAMETER;
     vTaskResume(h);
     return XY_OS_OK;
@@ -302,6 +356,7 @@ xy_os_status_t xy_os_thread_join(xy_os_thread_id_t thread_id)
 }
 void xy_os_thread_exit(void)
 {
+    freertos_clear_thread_context(xTaskGetCurrentTaskHandle());
     vTaskDelete(NULL);
     while (1)
         ;
@@ -341,7 +396,7 @@ uint32_t xy_os_thread_flags_set(xy_os_thread_id_t thread_id, uint32_t flags)
     TaskHandle_t h = (TaskHandle_t)thread_id;
     uint32_t previous;
 
-    if (!h || !freertos_thread_flags_args_valid(flags, 0U))
+    if (!h || !freertos_find_thread_context(h) || !freertos_thread_flags_args_valid(flags, 0U))
         return 0x80000000;
     if (xTaskNotifyAndQuery(h, flags, eSetBits, &previous) != pdPASS)
         return 0x80000000;

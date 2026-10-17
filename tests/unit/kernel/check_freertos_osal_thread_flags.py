@@ -489,6 +489,35 @@ def main() -> int:
     if "return XY_OS_OK;" in thread_detach:
         errors.append("FreeRTOS thread detach must not report unsupported ownership as success")
 
+    thread_identity = source.split("const char *xy_os_thread_get_name", 1)[-1].split(
+        "/* Thread Flags", 1
+    )[0]
+    for required in (
+        "freertos_find_thread_context",
+        "if (!h || !freertos_find_thread_context(h))",
+    ):
+        if required not in thread_identity:
+            errors.append(
+                "FreeRTOS handle-based thread queries must validate adapter ownership before "
+                f"native access; missing: {required}"
+            )
+    thread_new = source.split("xy_os_thread_id_t xy_os_thread_new", 1)[-1].split(
+        "const char *xy_os_thread_get_name", 1
+    )[0]
+    for required in (
+        "freertos_alloc_thread_context",
+        "context->handle = handle",
+    ):
+        if required not in thread_new:
+            errors.append(
+                "FreeRTOS thread creation must register a bounded adapter owner; "
+                f"missing: {required}"
+            )
+    if "freertos_clear_thread_context" not in source:
+        errors.append(
+            "FreeRTOS thread ownership must provide a cleanup path for exiting adapter-owned threads"
+        )
+
     thread_inventory = source.split("uint32_t xy_os_thread_get_count", 1)[-1].split(
         "/* Thread Flags", 1
     )[0]

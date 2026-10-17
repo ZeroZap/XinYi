@@ -6,7 +6,13 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新 FreeRTOS memory-pool 输入边界收口（2026-10-17）**：FreeRTOS memory-pool
+**最新 FreeRTOS OSAL thread-handle ownership boundary（2026-10-17）**：FreeRTOS adapter 现为
+动态创建的 task 建立 bounded owner table；name/id/state/stack-space/priority/suspend/resume 与
+thread-flags set 在 native task access 前要求 handle 属于该 table，未跟踪 kernel-global handle
+fail-closed；OSAL-created task exit 清理 owner。focused policy、Host 278/278、PC/L4/U5 root
+compile 与 `git diff --check` 通过。不升级 FreeRTOS runtime、thread retirement、scheduler、
+并发或产品资格声明。
+
 create 现拒绝未实现的属性/control-block 请求及无 backing storage 却带非零 storage size
 的属性组合；allocation 复用 checked `TickType_t` conversion，拒绝无法表示的 finite timeout，
 并保留 `XY_OS_WAIT_FOREVER` 显式映射。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS
