@@ -6,6 +6,12 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL message-queue ownership boundary（2026-10-18）**：FreeRTOS adapter 现以
+bounded owner table 跟踪动态创建的 message queue；put/get/count/space/capacity/reset/delete
+在 native queue access 前拒绝未跟踪 wrapper，delete 后清除 owner slot。focused policy、Host
+278/278、PC/L4/U5 root compile 与 `git diff --check` 通过。不升级 FreeRTOS queue runtime、
+资源耗尽、并发、吞吐、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL timer ownership boundary（2026-10-18）**：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 timer；timer name/start/stop/is-running/delete 在 native timer access 前拒绝未跟踪 handle，删除仅在 native deletion 成功后释放 owner slot。focused policy、Host 278/278、PC/L4/U5 root compile 与 `git diff --check` 通过。不升级 FreeRTOS timer runtime、queue exhaustion、callback timing、长稳或产品资格声明。
 
 动态创建的 task 建立 bounded owner table；name/id/state/stack-space/priority/suspend/resume 与

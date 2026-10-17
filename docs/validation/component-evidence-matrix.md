@@ -11,6 +11,18 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-18 FreeRTOS OSAL message-queue ownership boundary
+
+- 旧边界 -> 新边界：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 message queue；
+  put/get/count/space/capacity/reset/delete 在 native queue access 前拒绝未跟踪 wrapper，
+  delete 后清除 owner slot。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy
+  `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；`make`；
+  `make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 适用范围：FreeRTOS dynamic message-queue handle ownership and fail-closed native access boundary。
+- 仍不允许宣称：FreeRTOS queue runtime、资源耗尽、并发、吞吐、长稳或 product qualification。
+
 ### 2026-10-18 FreeRTOS OSAL timer ownership boundary
 
 - 旧边界 -> 新边界：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 timer；timer name/start/stop/is-running/delete 在 native timer access 前拒绝未跟踪 handle，删除仅在 native deletion 成功后释放 owner slot。
