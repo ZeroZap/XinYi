@@ -61,6 +61,20 @@ static int freertos_tick_value_valid(uint32_t ticks)
     return ticks <= (uint32_t)((TickType_t)-1);
 }
 
+static int freertos_timeout_to_ticks(uint32_t timeout, TickType_t *ticks)
+{
+    if (!ticks)
+        return 0;
+    if (timeout == XY_OS_WAIT_FOREVER) {
+        *ticks = portMAX_DELAY;
+        return 1;
+    }
+    if (!freertos_tick_value_valid(timeout))
+        return 0;
+    *ticks = (TickType_t)timeout;
+    return 1;
+}
+
 /* Kernel Control */
 xy_os_status_t xy_os_kernel_init(void)
 {
@@ -593,9 +607,8 @@ xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
     fr_mutex_t *context = (fr_mutex_t *)mutex_id;
     TickType_t ticks;
 
-    if (!context)
+    if (!context || !context->mutex || !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
-    ticks = (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
     if (context->recursive)
         return pdstatus_to_xy_wait(xSemaphoreTakeRecursive(context->mutex, ticks));
     return pdstatus_to_xy_wait(xSemaphoreTake(context->mutex, ticks));
@@ -660,10 +673,9 @@ xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id,
                                        uint32_t timeout)
 {
     SemaphoreHandle_t s = (SemaphoreHandle_t)semaphore_id;
-    if (!s)
+    TickType_t ticks;
+    if (!s || !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
-    TickType_t ticks =
-        (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
     return pdstatus_to_xy_wait(xSemaphoreTake(s, ticks));
 }
 
@@ -904,12 +916,13 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
     QueueHandle_t q;
-    if (!context || !msg_ptr)
+    TickType_t ticks;
+
+    if (!context || !context->queue || !msg_ptr ||
+        !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     q = context->queue;
     (void)msg_prio;
-    TickType_t ticks =
-        (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
     return pdstatus_to_xy_wait(xQueueSendToBack(q, msg_ptr, ticks));
 }
 
@@ -918,13 +931,13 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
 {
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
     QueueHandle_t q;
-    if (!context || !msg_ptr)
+    TickType_t ticks;
+    if (!context || !context->queue || !msg_ptr ||
+        !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     q = context->queue;
     if (msg_prio)
         *msg_prio = 0;
-    TickType_t ticks =
-        (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
     return pdstatus_to_xy_wait(xQueueReceive(q, msg_ptr, ticks));
 }
 

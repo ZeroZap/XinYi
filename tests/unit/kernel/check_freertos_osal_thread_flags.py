@@ -194,6 +194,18 @@ def main() -> int:
                 f"for NULL; missing: {required}"
             )
 
+    if "freertos_timeout_to_ticks" not in source:
+        errors.append("FreeRTOS wait APIs must use one checked timeout conversion helper")
+    for function_name in (
+        "xy_os_mutex_acquire",
+        "xy_os_semaphore_acquire",
+        "xy_os_msgqueue_put",
+        "xy_os_msgqueue_get",
+    ):
+        function = source.split(function_name, 1)[-1]
+        if "freertos_timeout_to_ticks(timeout, &ticks)" not in function:
+            errors.append(f"{function_name} must reject unrepresentable timeout ticks")
+
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]

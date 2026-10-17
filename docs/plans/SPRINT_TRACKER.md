@@ -6,7 +6,11 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新 FreeRTOS timer tick-width 边界收口（2026-10-17）**：dynamic timer start 现拒绝无法由 `TickType_t` 表示的 tick 输入，在 native timer command 前 fail-closed；focused policy、Host 278/278、PC/L4/U5 root compile 与 `git diff --check` 通过。不升级 Pandora runtime、计时精度或产品资格声明。
+**最新 FreeRTOS timeout representability 收口（2026-10-17）**：mutex acquire、semaphore acquire 与
+message-queue put/get 现统一通过 checked `TickType_t` conversion，拒绝无法由 native tick 表示的
+finite timeout，并保留 `XY_OS_WAIT_FOREVER` 到 `portMAX_DELAY` 的显式映射；拒绝发生在 native
+kernel wait 前。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check`
+通过。不升级 runtime timeout 精度、调度延迟、长稳或产品资格声明。
 
 **最新 FreeRTOS 同步对象属性边界收口（2026-10-17）**：FreeRTOS dynamic mutex、semaphore
 与 message-queue adapter 现拒绝未实现的 attribute bits 及 caller-owned control-block
@@ -169,9 +173,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S2-04 | P1 | Pandora SYS reset/bootreason/chip-ID strong backend | DONE | Zero | Pandora STM32L475VE board ownership 已确定 | board strong backend 已接入；稳定 96-bit UID、software reset、IWDG timeout reset 与 ST-Link reset pin 已分别取得 write/verify/read-back 和独立 UART B1/B2。external reset capture 的 CSR=`0x04000600`，后续 AHT10 继续运行；power-loss/brownout 与人工按键仍 pending。U5 不阻塞本项 | `620b06a0`、`28f4b21d`、`12bf990f`、`960f68b0` + 本记录提交 | 2026-09-06 |
 | S2-05 | P0 | Pandora ICM20608 静态采样与动态响应诊断 | BLOCKED | Zero | S2-03（DONE）；需恢复人工硬件测试 | 已完成 identity、配置回读、静态约 1g、raw burst 变化与 data-ready basic-chain B1；动态轴重分配/gyro 人工动作证据未通过，按用户要求暂停硬件测试，转为显式 blocker，不再占用进行中 WIP | `997f46f8`、`e3c5f87d`；解除条件：用户明确恢复硬件测试并确认移动含 ICM20608 的板体 | 2026-09-30 |
 
-### 后续 Sprint 队列
+### S6-01 | P0 | FreeRTOS OSAL timeout representability and wait-object fail-closed boundary | DONE | Zero | Existing FreeRTOS adapter and native TickType_t contract | Mutex/semaphore acquire and message-queue put/get now use one checked timeout conversion; finite unrepresentable timeout rejected before native wait; WAIT_FOREVER maps explicitly to portMAX_DELAY. Focused policy passed; Host 278/278; PC/L4/U5/WCH FreeRTOS builds; git diff --check passed. No runtime precision/latency/long-run or product qualification claim. | `72e2c427` + this record | 2026-10-17 |
 
-### Sprint 3 前置看板
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
 > `production-candidate` 仅表示下一步重建/审查候选；provenance、side-channel、硬件与产品批准仍须独立证据。

@@ -11,7 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
-### 2026-10-17 FreeRTOS OSAL timer tick-width boundary
+### 2026-10-17 FreeRTOS timeout representability boundary
+
+- 旧边界 -> 新边界：mutex acquire、semaphore acquire、message-queue put/get 不再将超过 native `TickType_t` 的 finite timeout 窄化后传入 FreeRTOS；统一 checked conversion，`XY_OS_WAIT_FOREVER` 显式映射 `portMAX_DELAY`。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；PC/L4/U5/WCH FreeRTOS builds；`git diff --check`。
+- 适用范围：FreeRTOS OSAL synchronization wait timeout representability/fail-closed contract。
+- 仍不允许宣称：runtime timeout precision、scheduler latency、stress、long-run 或 product qualification。
+
 
 - 旧边界 -> 新边界：dynamic timer start 现拒绝无法由 native `TickType_t` 表示的 tick 输入，避免窄化后调用 FreeRTOS timer command。
 - 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused `freertos_osal_thread_flags`；Host `make test-unit` 278/278；`make`、`make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32U5`；`git diff --check`。
