@@ -2025,3 +2025,12 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `git diff --check`。
 - 边界：仅为 Host/compile ownership contract，不升级 Pandora Device PM runtime、功耗、
   wake latency、deep-power modes、concurrency、recovery 或 endurance 证据。
+
+### 2026-10-17 Device PM idle-time tick wrap coverage
+
+- 收口：focused `device_pm` 新增 32-bit tick wraparound contract；idle timeout 在
+  `UINT32_MAX` 前后跨越计数器回绕时，边界前不休眠、达到 elapsed timeout 才请求 SLEEP。
+- 验证：focused `device_pm` 1/1；Host 278/278；PC、STM32L4、STM32U5 build 与
+  `git diff --check`。
+- 边界：仅为 Host/compile elapsed-time arithmetic contract，不升级 Pandora sleep/wakeup、
+  功耗、wake latency、deep-power modes、recovery、endurance 或 Device PM hardware qualification。

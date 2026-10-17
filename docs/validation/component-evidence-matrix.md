@@ -1118,6 +1118,19 @@
 - 仍不允许宣称：Pandora sleep/wakeup, power consumption, wake latency, deep-power modes,
   recovery, endurance, or Device PM hardware qualification.
 
+### 2026-10-17 Device PM idle-time tick wrap coverage
+
+- 组件：Device / per-device PM
+- 旧等级 -> 新等级：H1/Host elapsed-time arithmetic coverage strengthened; no Board claim change
+- 证据路径/命令：`components/device/src/xy_device_pm.c`,
+  `tests/unit/device/test_device_pm.c`; focused `device_pm`; `make test-unit` (278/278);
+  `make`; `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：the focused contract drives the canonical Device tick from
+  `UINT32_MAX - 10` through wrap to `9`, proving the unsigned elapsed-time calculation
+  does not sleep before 20 ticks and requests SLEEP at the exact wrapped boundary.
+- 仍不允许宣称：Pandora sleep/wakeup, power consumption, wake latency, deep-power modes,
+  recovery, endurance, or Device PM hardware qualification.
+
 ### 2026-10-07 IPC MQ exact timeout boundary
 
 - 组件：IPC / Message Queue
