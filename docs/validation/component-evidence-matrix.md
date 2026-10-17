@@ -18,6 +18,20 @@
 - 适用范围：FreeRTOS OSAL synchronization wait timeout representability/fail-closed contract。
 - 仍不允许宣称：runtime timeout precision、scheduler latency、stress、long-run 或 product qualification。
 
+### 2026-10-17 FreeRTOS OSAL all-tick-input representability boundary
+
+- 旧边界 -> 新边界：thread/event flags wait、relative/absolute delay 不再将 finite timeout/tick
+  输入直接窄化为 native `TickType_t`；现统一 checked conversion，无法表示的输入在 notification,
+  event-group 或 delay kernel access 前 fail-closed，`XY_OS_WAIT_FOREVER` 显式映射
+  `portMAX_DELAY`。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused
+  `freertos_osal_thread_flags`；Host `make test-unit` 278/278；`make`、
+  `make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 适用范围：FreeRTOS OSAL tick-input representability/fail-closed contract。
+- 仍不允许宣称：Pandora runtime、timeout precision、scheduler latency、stress、long-run 或
+  product qualification。
+
 
 - 旧边界 -> 新边界：dynamic timer start 现拒绝无法由 native `TickType_t` 表示的 tick 输入，避免窄化后调用 FreeRTOS timer command。
 - 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused `freertos_osal_thread_flags`；Host `make test-unit` 278/278；`make`、`make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32U5`；`git diff --check`。

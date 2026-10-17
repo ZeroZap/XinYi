@@ -126,7 +126,7 @@ def main() -> int:
         "wait_all && ((notif & flags) == flags)",
         "ulTaskNotifyValueClear(NULL, flags)",
         "elapsed = xTaskGetTickCount() - start",
-        "ticks = (TickType_t)timeout - elapsed",
+        "ticks -= elapsed",
     ):
         if required not in thread_wait:
             errors.append(
@@ -205,6 +205,16 @@ def main() -> int:
         function = source.split(function_name, 1)[-1]
         if "freertos_timeout_to_ticks(timeout, &ticks)" not in function:
             errors.append(f"{function_name} must reject unrepresentable timeout ticks")
+
+    for function_name, argument_name in (
+        ("xy_os_thread_flags_wait", "timeout"),
+        ("xy_os_event_flags_wait", "timeout"),
+        ("xy_os_delay", "ticks"),
+        ("xy_os_delay_until", "ticks"),
+    ):
+        function = source.split(function_name, 1)[-1]
+        if f"freertos_timeout_to_ticks({argument_name}, &" not in function:
+            errors.append(f"{function_name} must reject unrepresentable native tick inputs")
 
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1

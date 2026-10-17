@@ -12,6 +12,12 @@ finite timeout，并保留 `XY_OS_WAIT_FOREVER` 到 `portMAX_DELAY` 的显式映
 kernel wait 前。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check`
 通过。不升级 runtime timeout 精度、调度延迟、长稳或产品资格声明。
 
+**最新 FreeRTOS 全部 tick 输入边界收口（2026-10-17）**：thread/event flags wait、relative
+delay 与 absolute delay 现复用同一 checked `TickType_t` conversion，拒绝无法表示的 finite
+输入，避免窄化后进入 notification/event/delay kernel APIs；WAIT_FOREVER 仍显式映射
+`portMAX_DELAY`。focused policy、Host 278/278、PC/L4/U5 compile 与 `git diff --check` 通过；
+不升级 runtime timeout 精度、调度延迟、长稳或产品资格声明。
+
 **最新 FreeRTOS 同步对象属性边界收口（2026-10-17）**：FreeRTOS dynamic mutex、semaphore
 与 message-queue adapter 现拒绝未实现的 attribute bits 及 caller-owned control-block
 请求，并在任何 kernel allocation 前 fail-closed；focused policy、Host 278/278、PC/L4/U5

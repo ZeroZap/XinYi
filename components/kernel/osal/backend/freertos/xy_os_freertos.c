@@ -368,14 +368,15 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
                                  uint32_t timeout)
 {
     uint32_t notif;
-    TickType_t ticks =
-        (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
+    TickType_t ticks;
     TickType_t start;
+
+    if (!freertos_timeout_to_ticks(timeout, &ticks) ||
+        !freertos_thread_flags_args_valid(flags, options))
+        return 0x80000000;
     BaseType_t wait_all = (options & XY_OS_FLAGS_WAIT_ALL) ? pdTRUE : pdFALSE;
     BaseType_t clear = (options & XY_OS_FLAGS_NO_CLEAR) ? pdFALSE : pdTRUE;
 
-    if (!freertos_thread_flags_args_valid(flags, options))
-        return 0x80000000;
     start = xTaskGetTickCount();
     for (;;) {
         if (xTaskNotifyWait(0, 0, &notif, ticks) != pdPASS)
@@ -390,9 +391,10 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
             return 0x80000000;
         if (timeout != XY_OS_WAIT_FOREVER) {
             TickType_t elapsed = xTaskGetTickCount() - start;
-            if (elapsed >= (TickType_t)timeout)
+            if (elapsed >= ticks)
                 return 0x80000000;
-            ticks = (TickType_t)timeout - elapsed;
+            ticks -= elapsed;
+            start = xTaskGetTickCount();
         }
     }
 }
@@ -400,14 +402,22 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options,
 /* Delay Functions */
 xy_os_status_t xy_os_delay(uint32_t ticks)
 {
-    vTaskDelay((TickType_t)ticks);
+    TickType_t native_ticks;
+
+    if (!freertos_timeout_to_ticks(ticks, &native_ticks))
+        return XY_OS_ERROR_PARAMETER;
+    vTaskDelay(native_ticks);
     return XY_OS_OK;
 }
 
 xy_os_status_t xy_os_delay_until(uint32_t ticks)
 {
-    TickType_t target = (TickType_t)ticks;
-    TickType_t now    = xTaskGetTickCount();
+    TickType_t target;
+    TickType_t now;
+
+    if (!freertos_timeout_to_ticks(ticks, &target))
+        return XY_OS_ERROR_PARAMETER;
+    now = xTaskGetTickCount();
 
     if ((int32_t)(target - now) <= 0)
         return XY_OS_OK;
@@ -549,10 +559,11 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
 {
     if (!ef_id || !freertos_event_flags_args_valid(flags, options))
         return 0x80000000U;
+    TickType_t ticks;
+    if (!freertos_timeout_to_ticks(timeout, &ticks))
+        return 0x80000000U;
     BaseType_t wait_all = (options & XY_OS_FLAGS_WAIT_ALL) ? pdTRUE : pdFALSE;
     BaseType_t clear    = (options & XY_OS_FLAGS_NO_CLEAR) ? pdFALSE : pdTRUE;
-    TickType_t ticks =
-        (timeout == XY_OS_WAIT_FOREVER) ? portMAX_DELAY : (TickType_t)timeout;
     EventBits_t bits = xEventGroupWaitBits(
         (EventGroupHandle_t)ef_id, (EventBits_t)flags, clear, wait_all, ticks);
     if ((wait_all && ((bits & flags) != flags)) ||
