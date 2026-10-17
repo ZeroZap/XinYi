@@ -11,6 +11,19 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-17 FreeRTOS OSAL synchronization-object attribute boundary
+
+- 旧边界 -> 新边界：FreeRTOS dynamic mutex 现仅接受 recursive attribute，semaphore 与
+  message queue 拒绝未知 attribute bits 以及 caller-owned control-block memory；所有拒绝
+  均发生在 native kernel allocation 前。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused
+  `freertos_osal_thread_flags`；Host `make test-unit` 278/278；`make`、
+  `make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 适用范围：FreeRTOS dynamic synchronization-object public attribute/fail-closed contract。
+- 仍不允许宣称：Pandora 本变更 runtime、caller-owned/static allocation、priority protocol、
+  concurrency、latency、长稳或产品资格。
+
 ### 2026-10-17 FreeRTOS OSAL timer-create attribute boundary
 
 - 旧边界 -> 新边界：dynamic FreeRTOS adapter 不再把未知 timer type 当作 one-shot，也不再静默
