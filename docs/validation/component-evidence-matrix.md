@@ -25,7 +25,13 @@
 - 仍不允许宣称：runtime allocation behavior, concurrency, resource exhaustion, scheduler
   latency, long-run 或 product qualification。
 
-### 2026-10-17 FreeRTOS timeout representability boundary
+### 2026-10-17 FreeRTOS memory-pool timeout/attribute boundary
+
+- 旧边界 -> 新边界：dynamic memory-pool adapter 现拒绝 unsupported attribute/control-block/storage combinations，并对 alloc finite timeout 做 checked `TickType_t` conversion；非法配置或超范围 timeout 在 allocator/polling 前 fail-closed。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；PC/L4/U5/WCH FreeRTOS builds；`git diff --check`。
+- 适用范围：FreeRTOS dynamic memory-pool public attributes and allocation-timeout representability contract。
+- 仍不允许宣称：runtime allocation latency、并发、长稳或产品资格。
+
 
 - 旧边界 -> 新边界：mutex acquire、semaphore acquire、message-queue put/get 不再将超过 native `TickType_t` 的 finite timeout 窄化后传入 FreeRTOS；统一 checked conversion，`XY_OS_WAIT_FOREVER` 显式映射 `portMAX_DELAY`。
 - 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；PC/L4/U5/WCH FreeRTOS builds；`git diff --check`。

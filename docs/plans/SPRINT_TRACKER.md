@@ -13,11 +13,11 @@ create 现拒绝未实现的属性/control-block 请求及无 backing storage �
 compile 与 `git diff --check` 待本 slice 完成后记录；不升级 runtime allocation、并发、
 资源耗尽、调度或产品资格声明。
 
-**最新 FreeRTOS timeout representability 收口（2026-10-17）**：mutex acquire、semaphore acquire 与
-message-queue put/get 现统一通过 checked `TickType_t` conversion，拒绝无法由 native tick 表示的
-finite timeout，并保留 `XY_OS_WAIT_FOREVER` 到 `portMAX_DELAY` 的显式映射；拒绝发生在 native
-kernel wait 前。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check`
-通过。不升级 runtime timeout 精度、调度延迟、长稳或产品资格声明。
+**最新 FreeRTOS memory-pool timeout/attribute 收口（2026-10-17）**：mempool dynamic adapter 现拒绝
+unsupported attribute/control-block/storage combinations，并对 alloc 的 finite timeout 做 checked
+`TickType_t` conversion；不再把非法配置或超范围 timeout 带入 allocator/polling。focused policy、
+Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过。不升级 runtime allocation
+latency、并发、长稳或产品资格声明。
 
 **最新 FreeRTOS 全部 tick 输入边界收口（2026-10-17）**：thread/event flags wait、relative
 delay 与 absolute delay 现复用同一 checked `TickType_t` conversion，拒绝无法表示的 finite
