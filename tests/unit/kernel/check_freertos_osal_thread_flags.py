@@ -539,12 +539,17 @@ def main() -> int:
     for required in (
         "freertos_alloc_thread_context",
         "context->handle = handle",
+        "context->active = 0U",
     ):
         if required not in thread_new:
             errors.append(
-                "FreeRTOS thread creation must register a bounded adapter owner; "
-                f"missing: {required}"
+                "FreeRTOS thread creation must register a bounded adapter owner and release the "
+                f"reserved slot when native creation fails; missing: {required}"
             )
+    if "if (xTaskCreate(func, name, stack, argument, prio, &handle) != pdPASS)\n        return NULL;" in thread_new:
+        errors.append(
+            "FreeRTOS thread creation must not leak a bounded owner slot after xTaskCreate failure"
+        )
     if "freertos_clear_thread_context" not in source:
         errors.append(
             "FreeRTOS thread ownership must provide a cleanup path for exiting adapter-owned threads"

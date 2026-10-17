@@ -246,8 +246,11 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
 
     if (!context)
         return NULL;
-    if (xTaskCreate(func, name, stack, argument, prio, &handle) != pdPASS)
+    if (xTaskCreate(func, name, stack, argument, prio, &handle) != pdPASS) {
+        context->handle = NULL;
+        context->active = 0U;
         return NULL;
+    }
     context->handle = handle;
     context->active = 1U;
     return (xy_os_thread_id_t)handle;
@@ -732,7 +735,7 @@ xy_os_status_t xy_os_mutex_release(xy_os_mutex_id_t mutex_id)
 {
     fr_mutex_t *context = (fr_mutex_t *)mutex_id;
 
-    if (!context)
+    if (!context || !context->mutex)
         return XY_OS_ERROR_PARAMETER;
     if (context->recursive)
         return pdstatus_to_xy(xSemaphoreGiveRecursive(context->mutex));
