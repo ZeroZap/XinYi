@@ -480,6 +480,37 @@ def main() -> int:
     mempool_new = source.split("xy_os_mempool_id_t xy_os_mempool_new", 1)[-1].split(
         "const char *xy_os_mempool_get_name", 1
     )[0]
+    mempool_region = source.split("/* Memory Pool", 1)[-1].split("/* Message Queue", 1)[0]
+    for required in (
+        "FREERTOS_MEMPOOL_CONTEXT_CAPACITY",
+        "freertos_mempool_context_available",
+        "freertos_find_mempool_context",
+        "freertos_publish_mempool_context",
+        "freertos_clear_mempool_context",
+        "freertos_publish_mempool_context(p);",
+        "freertos_clear_mempool_context(p);",
+    ):
+        if required not in mempool_region:
+            errors.append(
+                "FreeRTOS memory pools must publish only adapter-owned contexts and "
+                f"reject stale handles; missing: {required}"
+            )
+    for function_name in (
+        "xy_os_mempool_get_name",
+        "xy_os_mempool_alloc",
+        "xy_os_mempool_free",
+        "xy_os_mempool_get_capacity",
+        "xy_os_mempool_get_block_size",
+        "xy_os_mempool_get_count",
+        "xy_os_mempool_get_space",
+        "xy_os_mempool_delete",
+    ):
+        function = source.split(function_name, 1)[-1]
+        if "freertos_find_mempool_context" not in function:
+            errors.append(
+                f"{function_name} must reject untracked memory-pool handles before native access"
+            )
+
     for required in (
         "attr->attr_bits != 0U",
         "attr->cb_mem",

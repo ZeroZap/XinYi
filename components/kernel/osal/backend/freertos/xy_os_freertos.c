@@ -1028,6 +1028,55 @@ typedef struct {
     char      name[16];
 } fr_pool_t;
 
+#define FREERTOS_MEMPOOL_CONTEXT_CAPACITY 32U
+static fr_pool_t *g_freertos_mempool_contexts[FREERTOS_MEMPOOL_CONTEXT_CAPACITY];
+
+static int freertos_mempool_context_available(void)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MEMPOOL_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_mempool_contexts[i])
+            return 1;
+    }
+    return 0;
+}
+
+static fr_pool_t *freertos_find_mempool_context(fr_pool_t *pool)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MEMPOOL_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_mempool_contexts[i] == pool)
+            return pool;
+    }
+    return NULL;
+}
+
+static void freertos_publish_mempool_context(fr_pool_t *pool)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MEMPOOL_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_mempool_contexts[i]) {
+            g_freertos_mempool_contexts[i] = pool;
+            return;
+        }
+    }
+}
+
+static void freertos_clear_mempool_context(fr_pool_t *pool)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_MEMPOOL_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_mempool_contexts[i] == pool) {
+            g_freertos_mempool_contexts[i] = NULL;
+            return;
+        }
+    }
+}
+
 xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
                                      const xy_os_mempool_attr_t *attr)
 {
@@ -1039,6 +1088,8 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
     if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
         return NULL;
     if (attr && !attr->mp_mem && attr->mp_size != 0U)
+        return NULL;
+    if (!freertos_mempool_context_available())
         return NULL;
     bsz = (block_size < sizeof(void *)) ? (uint32_t)sizeof(void *) : block_size;
     if (block_count > UINT32_MAX / bsz)
@@ -1079,20 +1130,21 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
         p->free_count++;
     }
 
+    freertos_publish_mempool_context(p);
     return (xy_os_mempool_id_t)p;
 }
 
 const char *xy_os_mempool_get_name(xy_os_mempool_id_t mp_id)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
-    return p ? p->name : NULL;
+    return freertos_find_mempool_context(p) ? p->name : NULL;
 }
 
 void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
     TickType_t ticks;
-    if (!p || !freertos_timeout_to_ticks(timeout, &ticks))
+    if (!freertos_find_mempool_context(p) || !freertos_timeout_to_ticks(timeout, &ticks))
         return NULL;
     TickType_t start = xTaskGetTickCount();
 
@@ -1119,7 +1171,8 @@ xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
     fr_pool_t *p = (fr_pool_t *)mp_id;
     uint8_t *candidate = (uint8_t *)block;
     void *item;
-    if (!p || !block) return XY_OS_ERROR_PARAMETER;
+    if (!freertos_find_mempool_context(p) || !block)
+        return XY_OS_ERROR_PARAMETER;
     if (candidate < p->pool_mem ||
         candidate >= p->pool_mem + p->capacity * p->block_size ||
         ((uintptr_t)(candidate - p->pool_mem) % p->block_size) != 0U)
@@ -1141,19 +1194,20 @@ xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 uint32_t xy_os_mempool_get_capacity(xy_os_mempool_id_t mp_id)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
-    return p ? p->capacity : 0;
+    return freertos_find_mempool_context(p) ? p->capacity : 0U;
 }
 
 uint32_t xy_os_mempool_get_block_size(xy_os_mempool_id_t mp_id)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
-    return p ? p->block_size : 0;
+    return freertos_find_mempool_context(p) ? p->block_size : 0U;
 }
 
 uint32_t xy_os_mempool_get_count(xy_os_mempool_id_t mp_id)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
-    if (!p) return 0;
+    if (!freertos_find_mempool_context(p))
+        return 0U;
     taskENTER_CRITICAL();
     uint32_t used = p->capacity - p->free_count;
     taskEXIT_CRITICAL();
@@ -1163,7 +1217,8 @@ uint32_t xy_os_mempool_get_count(xy_os_mempool_id_t mp_id)
 uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
-    if (!p) return 0;
+    if (!freertos_find_mempool_context(p))
+        return 0U;
     taskENTER_CRITICAL();
     uint32_t free = p->free_count;
     taskEXIT_CRITICAL();
@@ -1173,9 +1228,11 @@ uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
 xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
-    if (!p) return XY_OS_ERROR_PARAMETER;
+    if (!freertos_find_mempool_context(p))
+        return XY_OS_ERROR_PARAMETER;
     if (p->owns_pool_mem)
         vPortFree(p->pool_mem);
+    freertos_clear_mempool_context(p);
     vPortFree(p);
     return XY_OS_OK;
 }

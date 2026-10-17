@@ -25,6 +25,20 @@
 - 仍不允许宣称：FreeRTOS event-flags runtime、资源耗尽、并发、ISR-to-task、长稳或 product
   qualification。
 
+### 2026-10-18 FreeRTOS OSAL memory-pool ownership boundary
+
+- 旧边界 -> 新边界：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 memory pool；
+  name/alloc/free/capacity/block-size/count/space/delete 在 pool state access 前拒绝未跟踪
+  handle，delete 后清除 owner slot；owner table 耗尽时在 allocation 前 fail-closed。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy
+  `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；`make`；
+  `make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；
+  `make HAL_PLATFORM=WCH KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON`；
+  `git diff --check`。
+- 适用范围：FreeRTOS dynamic memory-pool handle ownership and fail-closed state access boundary。
+- 仍不允许宣称：FreeRTOS memory-pool runtime、资源耗尽、并发、长稳或 product qualification。
+
 ### 2026-10-18 FreeRTOS OSAL message-queue ownership boundary
 
 - 旧边界 -> 新边界：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 message queue；

@@ -20,6 +20,12 @@ ISR-to-task、长稳或产品资格声明。
 
 **最新 FreeRTOS OSAL timer ownership boundary（2026-10-18）**：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 timer；timer name/start/stop/is-running/delete 在 native timer access 前拒绝未跟踪 handle，删除仅在 native deletion 成功后释放 owner slot。focused policy、Host 278/278、PC/L4/U5 root compile 与 `git diff --check` 通过。不升级 FreeRTOS timer runtime、queue exhaustion、callback timing、长稳或产品资格声明。
 
+**最新 FreeRTOS OSAL memory-pool ownership boundary（2026-10-18）**：FreeRTOS adapter 现以
+bounded owner table 跟踪动态创建的 memory pool；name/alloc/free/capacity/block-size/count/space/delete
+在 pool state access 前拒绝未跟踪 handle，delete 后清除 owner slot。focused policy、Host 278/278、
+PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过。不升级 FreeRTOS memory-pool runtime、
+资源耗尽、并发、长稳或产品资格声明。
+
 动态创建的 task 建立 bounded owner table；name/id/state/stack-space/priority/suspend/resume 与
 thread-flags set 在 native task access 前要求 handle 属于该 table，未跟踪 kernel-global handle
 fail-closed；OSAL-created task exit 清理 owner。focused policy、Host 278/278、PC/L4/U5 root
@@ -2085,3 +2091,14 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `make`；`make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；`git diff --check`。
 - 边界：仅为 FreeRTOS dynamic mutex handle ownership and fail-closed native access contract；
   不升级 mutex runtime、owner completeness、并发、优先级协议、长稳或 product qualification。
+
+### 2026-10-18 FreeRTOS OSAL memory-pool ownership boundary
+
+- 收口：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 memory pool；name/alloc/free/
+  capacity/block-size/count/space/delete 在 pool state access 前拒绝未跟踪 handle，delete 后清除
+  owner slot；context table 耗尽时在 allocation 前 fail-closed。
+- 验证：focused policy `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；
+  `make`；`make HAL_PLATFORM=STM32L4`；`make HAL_PLATFORM=STM32U5`；
+  `make HAL_PLATFORM=WCH KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON`；`git diff --check`。
+- 边界：仅为 FreeRTOS dynamic memory-pool handle ownership and fail-closed contract；不升级
+  memory-pool runtime、资源耗尽、并发、长稳或 product qualification。
