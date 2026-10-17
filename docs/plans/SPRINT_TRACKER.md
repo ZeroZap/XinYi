@@ -2034,3 +2034,13 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   `git diff --check`。
 - 边界：仅为 Host/compile elapsed-time arithmetic contract，不升级 Pandora sleep/wakeup、
   功耗、wake latency、deep-power modes、recovery、endurance 或 Device PM hardware qualification。
+
+### 2026-10-17 FreeRTOS thread termination fail-closed boundary
+
+- 收口：FreeRTOS adapter 不再把 `vTaskDelete()` 的不可观察返回路径报告为成功；
+  `xy_os_thread_terminate()` 对非空 handle 明确返回 `XY_OS_ERROR`，NULL 仍返回参数错误，
+  避免伪造 owner-retirement 成功。
+- 验证：focused `freertos_osal_thread_flags` policy、Host 278/278、PC、STM32L4、
+  STM32U5 compile 与 `git diff --check`。
+- 边界：仅为 source/Host/compile unsupported-operation contract，不升级 FreeRTOS
+  thread ownership、scheduler、runtime termination、latency、stress 或产品资格。

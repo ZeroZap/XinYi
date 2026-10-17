@@ -1131,6 +1131,21 @@
 - 仍不允许宣称：Pandora sleep/wakeup, power consumption, wake latency, deep-power modes,
   recovery, endurance, or Device PM hardware qualification.
 
+### 2026-10-17 FreeRTOS thread termination fail-closed boundary
+
+- 组件：FreeRTOS OSAL / thread ownership
+- 旧边界 -> 新边界：`xy_os_thread_terminate()` no longer reports success for
+  `vTaskDelete()`, whose native API provides no observable retirement result; non-NULL
+  handles now return `XY_OS_ERROR` and NULL remains a parameter error.
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`,
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused
+  `freertos_osal_thread_flags`; Host `make test-unit` (278/278); `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`; `git diff --check`.
+- 适用范围：source/Host/compile unsupported-operation contract for FreeRTOS thread
+  termination.
+- 仍不允许宣称：FreeRTOS thread ownership, scheduler behavior, runtime termination,
+  latency, stress, long-run, or product qualification.
+
 ### 2026-10-07 IPC MQ exact timeout boundary
 
 - 组件：IPC / Message Queue

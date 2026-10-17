@@ -490,8 +490,13 @@ def main() -> int:
         errors.append("FreeRTOS thread detach must not report unsupported ownership as success")
 
     terminate = source.split("xy_os_status_t xy_os_thread_terminate", 1)[-1]
-    if "if (!thread_id)" not in terminate:
-        errors.append("FreeRTOS thread terminate must reject a NULL handle before kernel access")
+    if "return thread_id ? XY_OS_ERROR : XY_OS_ERROR_PARAMETER;" not in terminate:
+        errors.append(
+            "FreeRTOS thread terminate must fail closed because vTaskDelete provides no "
+            "observable retirement result"
+        )
+    if "vTaskDelete((TaskHandle_t)thread_id)" in terminate:
+        errors.append("FreeRTOS thread terminate must not report success after unobservable deletion")
 
     semaphore_new = source.split("xy_os_semaphore_id_t xy_os_semaphore_new", 1)[-1].split(
         "const char *xy_os_semaphore_get_name", 1

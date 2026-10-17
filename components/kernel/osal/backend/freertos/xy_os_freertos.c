@@ -308,10 +308,8 @@ void xy_os_thread_exit(void)
 }
 xy_os_status_t xy_os_thread_terminate(xy_os_thread_id_t thread_id)
 {
-    if (!thread_id)
-        return XY_OS_ERROR_PARAMETER;
-    vTaskDelete((TaskHandle_t)thread_id);
-    return XY_OS_OK;
+    /* FreeRTOS provides no status/retirement observation for vTaskDelete(). */
+    return thread_id ? XY_OS_ERROR : XY_OS_ERROR_PARAMETER;
 }
 
 uint32_t xy_os_thread_get_count(void)
