@@ -10,8 +10,8 @@
 create 现拒绝未实现的属性/control-block 请求及无 backing storage 却带非零 storage size
 的属性组合；allocation 复用 checked `TickType_t` conversion，拒绝无法表示的 finite timeout，
 并保留 `XY_OS_WAIT_FOREVER` 显式映射。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS
-compile 与 `git diff --check` 待本 slice 完成后记录；不升级 runtime allocation、并发、
-资源耗尽、调度或产品资格声明。
+compile 与 `git diff --check` 已通过；不升级 runtime allocation、并发、资源耗尽、调度或产品
+资格声明。
 
 **最新 FreeRTOS memory-pool timeout/attribute 收口（2026-10-17）**：mempool dynamic adapter 现拒绝
 unsupported attribute/control-block/storage combinations，并对 alloc 的 finite timeout 做 checked
@@ -188,7 +188,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 ### S6-01 | P0 | FreeRTOS OSAL timeout representability and wait-object fail-closed boundary | DONE | Zero | Existing FreeRTOS adapter and native TickType_t contract | Mutex/semaphore acquire and message-queue put/get now use one checked timeout conversion; finite unrepresentable timeout rejected before native wait; WAIT_FOREVER maps explicitly to portMAX_DELAY. Focused policy passed; Host 278/278; PC/L4/U5/WCH FreeRTOS builds; git diff --check passed. No runtime precision/latency/long-run or product qualification claim. | `72e2c427` + this record | 2026-10-17 |
 
-| S6-73 | P1 | FreeRTOS OSAL memory-pool input and timeout boundary | VERIFYING | Zero | S6-01；existing FreeRTOS memory-pool adapter | Dynamic memory-pool create rejects unsupported attributes before allocation; allocation uses checked native-tick conversion. Focused policy and Host passed; PC/L4/U5/WCH compile and commit/push verification pending. No runtime allocation/concurrency/resource-exhaustion or product qualification claim. | working tree | 2026-10-17 |
+| S6-73 | P1 | FreeRTOS OSAL memory-pool input and timeout boundary | DONE | Zero | S6-01；existing FreeRTOS memory-pool adapter | Dynamic memory-pool create rejects unsupported attributes before allocation; allocation uses checked native-tick conversion. Focused policy `freertos_osal_thread_flags_ok`、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No runtime allocation/concurrency/resource-exhaustion or product qualification claim. | `9eaf16b4` | 2026-10-17 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

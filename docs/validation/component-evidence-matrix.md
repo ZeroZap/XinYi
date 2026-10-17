@@ -20,7 +20,7 @@
 - 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、
   `tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused
   `freertos_osal_thread_flags`；Host `make test-unit` 278/278；PC/L4/U5/WCH FreeRTOS
-  builds；`git diff --check`。
+  builds；`git diff --check`；committed as `9eaf16b4` and synchronized to `origin/main`。
 - 适用范围：FreeRTOS memory-pool public input and native-timeout representability contract。
 - 仍不允许宣称：runtime allocation behavior, concurrency, resource exhaustion, scheduler
   latency, long-run 或 product qualification。
