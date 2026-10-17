@@ -482,9 +482,46 @@ xy_os_status_t xy_os_delay_until(uint32_t ticks)
 
 /* Timer Management */
 typedef struct {
+    TimerHandle_t timer;
     xy_os_timer_func_t func;
     void *argument;
+    uint8_t active;
 } fr_timer_context_t;
+
+#define FREERTOS_TIMER_CONTEXT_CAPACITY 32U
+static fr_timer_context_t g_freertos_timer_contexts[FREERTOS_TIMER_CONTEXT_CAPACITY];
+
+static fr_timer_context_t *freertos_alloc_timer_context(void)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_TIMER_CONTEXT_CAPACITY; ++i) {
+        if (!g_freertos_timer_contexts[i].active) {
+            memset(&g_freertos_timer_contexts[i], 0, sizeof(g_freertos_timer_contexts[i]));
+            g_freertos_timer_contexts[i].active = 1U;
+            return &g_freertos_timer_contexts[i];
+        }
+    }
+    return NULL;
+}
+
+static fr_timer_context_t *freertos_find_timer_context(TimerHandle_t timer)
+{
+    uint32_t i;
+
+    for (i = 0U; i < FREERTOS_TIMER_CONTEXT_CAPACITY; ++i) {
+        if (g_freertos_timer_contexts[i].active &&
+            g_freertos_timer_contexts[i].timer == timer)
+            return &g_freertos_timer_contexts[i];
+    }
+    return NULL;
+}
+
+static void freertos_clear_timer_context(fr_timer_context_t *context)
+{
+    if (context)
+        memset(context, 0, sizeof(*context));
+}
 
 static void fr_timer_callback(TimerHandle_t timer)
 {
@@ -506,7 +543,7 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func,
     if (attr &&
         (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
         return NULL;
-    context = (fr_timer_context_t *)pvPortMalloc(sizeof(*context));
+    context = freertos_alloc_timer_context();
     if (!context)
         return NULL;
     context->func     = func;
@@ -514,20 +551,25 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func,
     const char *name   = (attr && attr->name) ? attr->name : "timer";
     UBaseType_t reload = (type == XY_OS_TIMER_PERIODIC) ? pdTRUE : pdFALSE;
     timer = xTimerCreate(name, 1, reload, context, fr_timer_callback);
-    if (!timer)
-        vPortFree(context);
+    if (!timer) {
+        freertos_clear_timer_context(context);
+        return NULL;
+    }
+    context->timer = timer;
     return (xy_os_timer_id_t)timer;
 }
 
 const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
 {
-    return timer_id ? pcTimerGetName((TimerHandle_t)timer_id) : NULL;
+    TimerHandle_t timer = (TimerHandle_t)timer_id;
+
+    return freertos_find_timer_context(timer) ? pcTimerGetName(timer) : NULL;
 }
 
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
 {
     TimerHandle_t t = (TimerHandle_t)timer_id;
-    if (!t)
+    if (!t || !freertos_find_timer_context(t))
         return XY_OS_ERROR_PARAMETER;
     if (ticks == 0U || !freertos_tick_value_valid(ticks))
         return XY_OS_ERROR_PARAMETER;
@@ -536,28 +578,34 @@ xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
 
 xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
 {
-    return timer_id ? pdstatus_to_xy(xTimerStop((TimerHandle_t)timer_id, 0))
-                    : XY_OS_ERROR_PARAMETER;
+    TimerHandle_t timer = (TimerHandle_t)timer_id;
+
+    return freertos_find_timer_context(timer)
+               ? pdstatus_to_xy(xTimerStop(timer, 0))
+               : XY_OS_ERROR_PARAMETER;
 }
 
 uint32_t xy_os_timer_is_running(xy_os_timer_id_t timer_id)
 {
-    return (timer_id && xTimerIsTimerActive((TimerHandle_t)timer_id)) ? 1 : 0;
+    TimerHandle_t timer = (TimerHandle_t)timer_id;
+
+    return (freertos_find_timer_context(timer) && xTimerIsTimerActive(timer)) ? 1 : 0;
 }
 
 xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 {
+    TimerHandle_t timer = (TimerHandle_t)timer_id;
     fr_timer_context_t *context;
     BaseType_t result;
 
-    if (!timer_id)
+    if (!timer)
         return XY_OS_ERROR_PARAMETER;
-    context = (fr_timer_context_t *)pvTimerGetTimerID((TimerHandle_t)timer_id);
+    context = freertos_find_timer_context(timer);
     if (!context)
-        return XY_OS_ERROR_RESOURCE;
-    result = xTimerDelete((TimerHandle_t)timer_id, 0);
+        return XY_OS_ERROR_PARAMETER;
+    result = xTimerDelete(timer, 0);
     if (result == pdPASS)
-        vPortFree(context);
+        freertos_clear_timer_context(context);
     return pdstatus_to_xy(result);
 }
 

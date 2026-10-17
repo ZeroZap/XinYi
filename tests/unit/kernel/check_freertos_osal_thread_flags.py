@@ -167,12 +167,12 @@ def main() -> int:
         "/* Event Flags */", 1
     )[0]
     for required in (
-        "if (!timer_id)",
-        "pvTimerGetTimerID((TimerHandle_t)timer_id)",
+        "if (!timer)",
+        "freertos_find_timer_context(timer)",
         "if (!context)",
-        "return XY_OS_ERROR_RESOURCE;",
+        "return XY_OS_ERROR_PARAMETER;",
         "if (result == pdPASS)",
-        "vPortFree(context);",
+        "freertos_clear_timer_context(context);",
     ):
         if required not in timer_delete:
             errors.append(
@@ -248,6 +248,38 @@ def main() -> int:
         errors.append(
             "FreeRTOS timer start must not hide a failed change-period command behind a "
             "second timer-start command"
+        )
+
+    timer_region = source.split("/* Timer Management */", 1)[-1].split(
+        "/* Event Flags */", 1
+    )[0]
+    for required in (
+        "FREERTOS_TIMER_CONTEXT_CAPACITY",
+        "freertos_alloc_timer_context",
+        "freertos_find_timer_context",
+        "freertos_clear_timer_context",
+        "context->timer = timer",
+        "freertos_find_timer_context(timer) ? pcTimerGetName(timer) : NULL",
+    ):
+        if required not in timer_region:
+            errors.append(
+                "FreeRTOS timer operations must publish only adapter-owned timers; "
+                f"missing: {required}"
+            )
+    for function_name in (
+        "xy_os_timer_start",
+        "xy_os_timer_stop",
+        "xy_os_timer_is_running",
+        "xy_os_timer_delete",
+    ):
+        function = source.split(function_name, 1)[-1]
+        if "freertos_find_timer_context" not in function:
+            errors.append(
+                f"{function_name} must reject untracked native timer handles before kernel access"
+            )
+    if "pvTimerGetTimerID((TimerHandle_t)timer_id)" in timer_region:
+        errors.append(
+            "FreeRTOS timer deletion must not trust a native timer context outside the adapter owner table"
         )
 
     event_flags_new = source.split(
