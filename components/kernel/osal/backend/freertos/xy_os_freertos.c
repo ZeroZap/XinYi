@@ -56,6 +56,11 @@ static xy_os_status_t pdstatus_to_xy_wait(BaseType_t status)
     return XY_OS_ERROR_TIMEOUT;
 }
 
+static int freertos_tick_value_valid(uint32_t ticks)
+{
+    return ticks <= (uint32_t)((TickType_t)-1);
+}
+
 /* Kernel Control */
 xy_os_status_t xy_os_kernel_init(void)
 {
@@ -445,7 +450,7 @@ xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
     TimerHandle_t t = (TimerHandle_t)timer_id;
     if (!t)
         return XY_OS_ERROR_PARAMETER;
-    if (ticks == 0U)
+    if (ticks == 0U || !freertos_tick_value_valid(ticks))
         return XY_OS_ERROR_PARAMETER;
     return pdstatus_to_xy(xTimerChangePeriod(t, (TickType_t)ticks, 0));
 }

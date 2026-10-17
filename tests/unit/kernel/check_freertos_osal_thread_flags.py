@@ -214,6 +214,7 @@ def main() -> int:
     )[0]
     for required in (
         "ticks == 0U",
+        "!freertos_tick_value_valid(ticks)",
         "return pdstatus_to_xy(xTimerChangePeriod(t, (TickType_t)ticks, 0));",
     ):
         if required not in timer_start:

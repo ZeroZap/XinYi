@@ -11,6 +11,13 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-17 FreeRTOS OSAL timer tick-width boundary
+
+- 旧边界 -> 新边界：dynamic timer start 现拒绝无法由 native `TickType_t` 表示的 tick 输入，避免窄化后调用 FreeRTOS timer command。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused `freertos_osal_thread_flags`；Host `make test-unit` 278/278；`make`、`make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32U5`；`git diff --check`。
+- 适用范围：FreeRTOS dynamic timer start tick representability/fail-closed contract。
+- 仍不允许宣称：Pandora 本变更 runtime、计时精度、timer queue exhaustion、长稳或产品资格。
+
 ### 2026-10-17 FreeRTOS OSAL synchronization-object attribute boundary
 
 - 旧边界 -> 新边界：FreeRTOS dynamic mutex 现仅接受 recursive attribute，semaphore 与

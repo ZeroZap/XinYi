@@ -6,6 +6,8 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS timer tick-width 边界收口（2026-10-17）**：dynamic timer start 现拒绝无法由 `TickType_t` 表示的 tick 输入，在 native timer command 前 fail-closed；focused policy、Host 278/278、PC/L4/U5 root compile 与 `git diff --check` 通过。不升级 Pandora runtime、计时精度或产品资格声明。
+
 **最新 FreeRTOS 同步对象属性边界收口（2026-10-17）**：FreeRTOS dynamic mutex、semaphore
 与 message-queue adapter 现拒绝未实现的 attribute bits 及 caller-owned control-block
 请求，并在任何 kernel allocation 前 fail-closed；focused policy、Host 278/278、PC/L4/U5
