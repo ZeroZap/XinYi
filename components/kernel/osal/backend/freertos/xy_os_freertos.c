@@ -221,8 +221,10 @@ xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t thread_id)
 
 uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t thread_id)
 {
+    /* FreeRTOS does not expose a portable per-task configured stack depth
+       unless trace metadata is enabled; zero is the documented unavailable value. */
     (void)thread_id;
-    return 0;
+    return 0U;
 }
 uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t thread_id)
 {
