@@ -411,6 +411,23 @@ def main() -> int:
     ):
         if required not in board_cmake + board_timer_flags:
             errors.append(f"FreeRTOS timer/thread-flags target must remain identity-bound and wired: {required}")
+    for board_name in (
+        "event_flags_lifecycle",
+        "isr_stress",
+        "mempool_lifecycle",
+        "mutex_lifecycle",
+        "oneshot_timer",
+        "primitives",
+        "queue_lifecycle",
+        "semaphore_lifecycle",
+        "thread_lifecycle",
+        "timer_flags",
+    ):
+        board_source = (ROOT / f"boards/opench_ch32v307/osal_freertos_{board_name}_main.c").read_text(
+            encoding="utf-8"
+        )
+        if '#error "XINYI_FIRMWARE_COMMIT must identify the exact source commit"' not in board_source:
+            errors.append(f"FreeRTOS {board_name} image must fail closed when source identity is absent")
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]

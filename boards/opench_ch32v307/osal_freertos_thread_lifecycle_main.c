@@ -2,7 +2,7 @@
 #include "xy_os.h"
 
 #ifndef XINYI_FIRMWARE_COMMIT
-#define XINYI_FIRMWARE_COMMIT "unknown"
+#error "XINYI_FIRMWARE_COMMIT must identify the exact source commit"
 #endif
 
 #define THREAD_FLAG_READY 0x01U
