@@ -6,6 +6,12 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL thread/timer name retention（2026-10-19）**：FreeRTOS adapter 现将
+thread/timer 名称复制到 adapter-owned bounded context，并由 getter 仅从 tracked live context
+返回；focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check`
+通过。提交 `743e4331` 已推送并核对 `HEAD...origin/main=0/0`；未执行 target
+program/UART runtime，不升级 runtime、并发或产品资格声明。
+
 **最新 FreeRTOS OSAL named synchronization-object boundary（2026-10-19）**：FreeRTOS
  event flags、mutex、semaphore 现保存 bounded 16-byte object names，并在 name getter
 前复用 adapter-owned live-context 校验；event-flags context publication 失败会回收 native

@@ -11,6 +11,21 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 测试、ST-Link 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-19 FreeRTOS OSAL thread/timer name retention
+
+- FreeRTOS thread and timer names are now copied into adapter-owned bounded contexts;
+  name getters reject untracked handles and return the retained bounded name rather than
+  depending on native object-name lifetime/availability.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`;
+  `make HAL_PLATFORM=WCH KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON`;
+  `git diff --check`.
+- Current status: source/Host/compile `DONE`, commit `743e4331` pushed and remote equality
+  verified (`HEAD...origin/main=0/0`). Target programming/UART runtime was not executed, so
+  this does not upgrade FreeRTOS runtime, scheduler, concurrency, or product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL named synchronization-object boundary
 
 - FreeRTOS event flags, mutexes, and semaphores now retain bounded 16-byte names and expose
