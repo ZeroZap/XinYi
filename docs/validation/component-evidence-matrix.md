@@ -96,6 +96,16 @@
 - 仍不允许宣称：FreeRTOS runtime mutex ownership completeness、scheduler、并发、延迟、长稳或
   product qualification。
 
+### 2026-10-18 FreeRTOS OSAL mutex lifecycle smoke
+
+- 新增 openCH CH32V307 FreeRTOS mutex lifecycle image，覆盖 normal/recursive acquire-release、
+  delete 后 stale handle fail-closed，以及 source commit identity marker。
+- 证据路径：`boards/opench_ch32v307/osal_freertos_mutex_lifecycle_main.c`、
+  `boards/opench_ch32v307/CMakeLists.txt`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`。
+- 当前状态：Host/compile `DONE`；未执行 target program/UART runtime，不升级为 HIL 证据。
+- 仍不允许宣称：FreeRTOS mutex runtime、并发、优先级协议、ISR-to-task、长稳或 product
+  qualification。
+
 ### 2026-10-17 FreeRTOS OSAL thread inventory ownership boundary
 
 - 旧边界 -> 新边界：FreeRTOS `xy_os_thread_get_count()` 与 `xy_os_thread_enumerate()` 不再
