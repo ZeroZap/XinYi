@@ -1,6 +1,10 @@
 #include "ch32v30x.h"
 #include "xy_os.h"
 
+#ifndef XINYI_FIRMWARE_COMMIT
+#define XINYI_FIRMWARE_COMMIT "unknown"
+#endif
+
 #define READY_FLAG 0x1U
 
 static xy_os_mutex_id_t mutex_id;
@@ -63,7 +67,7 @@ static void consumer(void* argument) {
     uint32_t value;
     uint32_t expected = 1;
     (void)argument;
-    mark("OPENCH_OSAL_PRIMITIVES_BOOT_20261016_A\r\n");
+    mark("OPENCH_OSAL_PRIMITIVES_BOOT_" XINYI_FIRMWARE_COMMIT "\r\n");
     while (expected <= 12U) {
         uint32_t flags = xy_os_event_flags_wait(event_id, READY_FLAG, XY_OS_FLAGS_WAIT_ALL, 200);
         if ((flags & READY_FLAG) == 0U) {
@@ -103,7 +107,7 @@ int main(void) {
     SystemCoreClockUpdate();
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     uart_init();
-    mark("OPENCH_OSAL_PRIMITIVES_PRE_SCHED_20261016_A\r\n");
+    mark("OPENCH_OSAL_PRIMITIVES_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\r\n");
     (void)xy_os_kernel_init();
     mutex_id = xy_os_mutex_new(NULL);
     event_id = xy_os_event_flags_new(NULL);

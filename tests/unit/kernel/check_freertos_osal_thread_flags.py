@@ -22,6 +22,7 @@ def main() -> int:
     board_thread = (ROOT / "boards/opench_ch32v307/osal_freertos_thread_lifecycle_main.c").read_text(encoding="utf-8")
     board_isr_stress = (ROOT / "boards/opench_ch32v307/osal_freertos_isr_stress_main.c").read_text(encoding="utf-8")
     board_timer_flags = (ROOT / "boards/opench_ch32v307/osal_freertos_timer_flags_main.c").read_text(encoding="utf-8")
+    board_primitives = (ROOT / "boards/opench_ch32v307/osal_freertos_primitives_main.c").read_text(encoding="utf-8")
     errors: list[str] = []
 
     if "return ulTaskNotifyValueClear(NULL, flags);" not in source:
@@ -380,6 +381,15 @@ def main() -> int:
     ):
         if required not in board_cmake + board_isr_stress:
             errors.append(f"FreeRTOS ISR stress target must remain identity-bound and wired: {required}")
+    for required in (
+        "osal_freertos_primitives_main.c",
+        "XINYI_FIRMWARE_COMMIT=\"${_firmware_commit}\"",
+        'mark("OPENCH_OSAL_PRIMITIVES_BOOT_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
+        'mark("OPENCH_OSAL_PRIMITIVES_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
+        "opench_ch32v307_osal_freertos_primitives_smoke",
+    ):
+        if required not in board_cmake + board_primitives:
+            errors.append(f"FreeRTOS primitives target must remain identity-bound and wired: {required}")
     for required in (
         "osal_freertos_timer_flags_main.c",
         "XINYI_FIRMWARE_COMMIT=\"${_firmware_commit}\"",
