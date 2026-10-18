@@ -57,11 +57,11 @@ FreeRTOS image 新增 event-flags create/set/wait/clear/timeout/delete/stale-han
 PC/L4/U5 root compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级
 FreeRTOS event-flags runtime、ISR-to-task、并发、长稳或产品资格声明。
 
-**最新 FreeRTOS OSAL message-queue ownership boundary（2026-10-18）**：FreeRTOS adapter 现以
-bounded owner table 跟踪动态创建的 message queue；put/get/count/space/capacity/reset/delete
-在 native queue access 前拒绝未跟踪 wrapper，delete 后清除 owner slot。focused policy、Host
-278/278、PC/L4/U5 root compile 与 `git diff --check` 通过。不升级 FreeRTOS queue runtime、
-资源耗尽、并发、吞吐、长稳或产品资格声明。
+**最新 FreeRTOS mutex lifecycle contract 收口（2026-10-18）**：mutex dynamic create/delete 现以
+bounded adapter-owned context table 约束 owner；context exhaustion 在 native mutex 创建前拒绝，
+创建失败释放 wrapper，acquire/release/owner/delete 仅接受 tracked live context，delete 后清除 owner
+slot 并释放 wrapper。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check`
+通过；不升级 mutex 完整 runtime、竞争/优先级协议、长稳或产品资格声明。
 
 **最新 FreeRTOS OSAL thread lifecycle smoke（2026-10-18）**：openCH CH32V307
 thread lifecycle image 覆盖 source identity、metadata、thread flags、suspend/resume、
@@ -273,7 +273,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S6-73 | P1 | FreeRTOS OSAL memory-pool input and timeout boundary | DONE | Zero | S6-01；existing FreeRTOS memory-pool adapter | Dynamic memory-pool create rejects unsupported attributes before allocation; allocation uses checked native-tick conversion. Focused policy `freertos_osal_thread_flags_ok`、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No runtime allocation/concurrency/resource-exhaustion or product qualification claim. | `9eaf16b4` | 2026-10-17 |
 
 | S6-74 | P1 | FreeRTOS OSAL thread inventory ownership boundary | DONE | Zero | S4-170 的 RT-Thread owner contract；FreeRTOS backend 无 adapter-owned inventory | FreeRTOS `xy_os_thread_get_count()`/`enumerate()` 不再把 kernel-global task inventory 暴露为 OSAL-owned threads；两入口 fail-closed 返回空 inventory，focused policy、Host 278/278、PC/STM32L4/STM32U5 compile 与 `git diff --check` 通过。不升级 FreeRTOS runtime、thread enumeration completeness、scheduler 或产品资格声明。 | 本记录提交 | 2026-10-17 |
-| S6-76 | P1 | FreeRTOS OSAL semaphore tracked lifecycle contract | DONE | Existing semaphore owner table; target HIL unavailable in this slice | Dynamic semaphore create/delete is failure-atomic around bounded adapter context; all acquire/release/ISR-release/count/delete paths reject NULL, foreign and stale handles. Focused policy, Host 278/278, PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No new target runtime marker; complete semaphore HIL remains pending. | `15f825fb`、`566ec1bd` + 本记录提交 | 2026-10-17 |
+| S6-77 | P1 | FreeRTOS OSAL mutex tracked lifecycle contract | DONE | Zero | Existing mutex owner table; target runtime unavailable in this slice | Dynamic mutex context exhaustion is rejected before native creation; wrapper allocation failure is released; acquire/release/owner/delete reject stale or foreign contexts and delete clears ownership before wrapper free. Focused policy, Host 278/278, PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No new target runtime marker. | 本记录提交 | 2026-10-18 |
+
 
 || S6-77 | P1 | FreeRTOS OSAL mutex tracked lifecycle smoke | DONE | S6-76；existing FreeRTOS mutex owner table | Added openCH CH32V307 FreeRTOS mutex lifecycle image covering normal/recursive acquire-release and stale-handle rejection after delete. Focused policy, Host 278/278, PC/L4/U5/WCH FreeRTOS compile, target `opench_ch32v307_osal_freertos_mutex_lifecycle_smoke`, and `git diff --check` passed. No target program/runtime marker was run; this is software/compile evidence only. | 本记录提交 |
 

@@ -137,6 +137,13 @@
 - Still not allowed to claim: memory-pool runtime, resource-exhaustion qualification, concurrency,
   long-run stability, or product qualification.
 
+### 2026-10-18 FreeRTOS mutex lifecycle contract
+
+- 旧边界 -> 新边界：mutex dynamic create/delete 现以 bounded adapter-owned context table 约束 owner；context exhaustion 在 native mutex 创建前拒绝，创建失败释放 wrapper，acquire/release/owner/delete 仅接受 tracked live context，delete 后清除 owner slot 并释放 wrapper。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy `freertos_osal_thread_flags_ok`；Host `make test-unit` 278/278；PC/L4/U5/WCH FreeRTOS builds；`git diff --check`。
+- 适用范围：FreeRTOS mutex owner/lifecycle/failure-atomic source contract。
+- 仍不允许宣称：本轮未新增 target runtime marker；mutex 完整 runtime、竞争/优先级协议、长稳或产品资格仍 pending。
+
 ### 2026-10-18 FreeRTOS OSAL event-flags lifecycle smoke
 
 - openCH CH32V307 image now covers event-flags create/set/wait/clear/timeout/delete and stale-handle

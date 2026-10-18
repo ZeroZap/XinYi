@@ -559,6 +559,16 @@ def main() -> int:
                 f"missing: {required}"
             )
 
+    mutex_new = source.split("xy_os_mutex_id_t xy_os_mutex_new", 1)[-1].split(
+        "const char *xy_os_mutex_get_name", 1
+    )[0]
+    for required in (
+        "freertos_mutex_context_available()",
+        "freertos_publish_mutex_context(context);",
+        "vPortFree(context);",
+    ):
+        if required not in mutex_new:
+            errors.append(f"FreeRTOS mutex creation must preserve bounded ownership: {required}")
     stack_size = source.split("uint32_t xy_os_thread_get_stack_size", 1)[-1].split(
         "uint32_t xy_os_thread_get_stack_space", 1
     )[0]
