@@ -19,6 +19,7 @@ def main() -> int:
     board_event_flags = (ROOT / "boards/opench_ch32v307/osal_freertos_event_flags_lifecycle_main.c").read_text(encoding="utf-8")
     board_oneshot_timer = (ROOT / "boards/opench_ch32v307/osal_freertos_oneshot_timer_main.c").read_text(encoding="utf-8")
     board_mempool = (ROOT / "boards/opench_ch32v307/osal_freertos_mempool_lifecycle_main.c").read_text(encoding="utf-8")
+    board_thread = (ROOT / "boards/opench_ch32v307/osal_freertos_thread_lifecycle_main.c").read_text(encoding="utf-8")
     errors: list[str] = []
 
     if "return ulTaskNotifyValueClear(NULL, flags);" not in source:
@@ -351,6 +352,18 @@ def main() -> int:
     ):
         if required not in board_cmake + board_mempool:
             errors.append(f"FreeRTOS memory-pool lifecycle target must remain identity-bound and wired: {required}")
+    for required in (
+        "osal_freertos_thread_lifecycle_main.c",
+        "XINYI_FIRMWARE_COMMIT=\"${_firmware_commit}\"",
+        'mark("OPENCH_OSAL_THREAD_LIFECYCLE_BOOT_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
+        'mark("OPENCH_OSAL_THREAD_LIFECYCLE_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
+        "OPENCH_OSAL_THREAD_LIFECYCLE_METADATA_OK_A",
+        "OPENCH_OSAL_THREAD_LIFECYCLE_FLAGS_OK_A",
+        "OPENCH_OSAL_THREAD_LIFECYCLE_PASS_20261018_A",
+        "opench_ch32v307_osal_freertos_thread_lifecycle_smoke",
+    ):
+        if required not in board_cmake + board_thread:
+            errors.append(f"FreeRTOS thread lifecycle target must remain identity-bound and wired: {required}")
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]

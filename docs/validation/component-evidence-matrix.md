@@ -108,6 +108,20 @@
 - 适用范围：FreeRTOS dynamic message-queue handle ownership and fail-closed native access boundary。
 - 仍不允许宣称：FreeRTOS queue runtime、资源耗尽、并发、吞吐、长稳或 product qualification。
 
+### 2026-10-18 FreeRTOS OSAL thread lifecycle smoke
+
+- openCH CH32V307 thread lifecycle image covers source identity, metadata, thread flags,
+  suspend/resume, inventory boundary, and NULL lifecycle guards.
+- Evidence path: `boards/opench_ch32v307/osal_freertos_thread_lifecycle_main.c`,
+  `boards/opench_ch32v307/CMakeLists.txt`, and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host 278/278; PC/STM32L4/STM32U5/WCH FreeRTOS compile;
+  `git diff --check`.
+- Current status: Host/compile `DONE`; target programming/UART runtime was not executed, so this
+  does not upgrade to HIL evidence.
+- Still not allowed to claim: FreeRTOS thread runtime, scheduler, concurrency, long-run stability,
+  or product qualification.
+
 ### 2026-10-18 FreeRTOS OSAL timer ownership boundary
 
 - 旧边界 -> 新边界：FreeRTOS adapter 现以 bounded owner table 跟踪动态创建的 timer；timer name/start/stop/is-running/delete 在 native timer access 前拒绝未跟踪 handle，删除仅在 native deletion 成功后释放 owner slot。
