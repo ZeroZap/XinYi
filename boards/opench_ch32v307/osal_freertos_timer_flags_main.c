@@ -1,6 +1,10 @@
 #include "ch32v30x.h"
 #include "xy_os.h"
 
+#ifndef XINYI_FIRMWARE_COMMIT
+#define XINYI_FIRMWARE_COMMIT "unknown"
+#endif
+
 #define TIMER_FLAG 0x1U
 #define TIMER_TARGET 20U
 #define FLAGS_ERROR 0x80000000U
@@ -59,7 +63,7 @@ static void monitor(void* argument) {
     uint32_t observed = 0;
     uint32_t stopped_count;
     (void)argument;
-    mark("OPENCH_OSAL_TIMER_FLAGS_BOOT_20261016_A\r\n");
+    mark("OPENCH_OSAL_TIMER_FLAGS_BOOT_" XINYI_FIRMWARE_COMMIT "\r\n");
     if (xy_os_timer_start(timer_id, 10) != XY_OS_OK) {
         mark("OPENCH_OSAL_TIMER_FLAGS_START_ERROR_A\r\n");
         for (;;) {
@@ -110,7 +114,7 @@ int main(void) {
     SystemCoreClockUpdate();
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     uart_init();
-    mark("OPENCH_OSAL_TIMER_FLAGS_PRE_SCHED_20261016_A\r\n");
+    mark("OPENCH_OSAL_TIMER_FLAGS_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\r\n");
     (void)xy_os_kernel_init();
     monitor_id = xy_os_thread_new(monitor, NULL, &monitor_attr);
     timer_id = xy_os_timer_new(timer_callback, XY_OS_TIMER_PERIODIC, NULL, NULL);

@@ -6,6 +6,11 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL timer/thread-flags identity binding（2026-10-18）**：openCH CH32V307
+timer/thread-flags image 的 pre-scheduler/boot markers 现绑定 exact source commit；focused
+policy、Host 278/278、PC/L4/U5/WCH compile 与 `git diff --check` 通过。未执行 target
+program/UART runtime，不升级 timer runtime、ISR-origin flags、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL ISR-stress identity binding（2026-10-18）**：openCH CH32V307
 ISR-stress image 的 pre-scheduler/boot markers 现绑定 exact source commit；focused policy、
 Host 278/278、PC root、WCH FreeRTOS target compile 与 `git diff --check` 通过。未执行 target

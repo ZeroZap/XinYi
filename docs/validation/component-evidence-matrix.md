@@ -9,7 +9,21 @@
 > **当前平台边界（2026-09-04）**：Pandora STM32L475VE 是正式 reference board 与 Sprint 1–4
 > 实板验收基线；STM32U5/M33/TrustZone 仅作后续 enhancement compile compatibility，不再阻塞
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
-> 烧录/复位与独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
+> 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
+
+### 2026-10-18 FreeRTOS OSAL timer/thread-flags identity binding
+
+- openCH CH32V307 timer/thread-flags image now binds pre-scheduler and boot markers to
+  `XINYI_FIRMWARE_COMMIT`, matching the exact source commit used by the image.
+- Evidence path: `boards/opench_ch32v307/osal_freertos_timer_flags_main.c`,
+  `boards/opench_ch32v307/CMakeLists.txt`, and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host 278/278; PC/STM32L4/STM32U5/WCH compile;
+  `git diff --check`.
+- Current status: Host/compile `DONE`; target programming/UART runtime was not executed, so this
+  does not upgrade to HIL evidence.
+- Still not allowed to claim: timer runtime, ISR-origin thread flags, long-run stability, or
+  product qualification.
 
 ### 2026-10-18 FreeRTOS OSAL ISR-stress identity binding
 
