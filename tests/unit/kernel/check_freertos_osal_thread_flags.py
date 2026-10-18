@@ -17,6 +17,7 @@ def main() -> int:
     board_mutex = (ROOT / "boards/opench_ch32v307/osal_freertos_mutex_lifecycle_main.c").read_text(encoding="utf-8")
     board_queue = (ROOT / "boards/opench_ch32v307/osal_freertos_queue_lifecycle_main.c").read_text(encoding="utf-8")
     board_event_flags = (ROOT / "boards/opench_ch32v307/osal_freertos_event_flags_lifecycle_main.c").read_text(encoding="utf-8")
+    board_oneshot_timer = (ROOT / "boards/opench_ch32v307/osal_freertos_oneshot_timer_main.c").read_text(encoding="utf-8")
     errors: list[str] = []
 
     if "return ulTaskNotifyValueClear(NULL, flags);" not in source:
@@ -324,6 +325,16 @@ def main() -> int:
     ):
         if required not in board_cmake + board_event_flags:
             errors.append(f"FreeRTOS event-flags lifecycle HIL target must remain wired: {required}")
+    for required in (
+        "osal_freertos_oneshot_timer_main.c",
+        "XINYI_FIRMWARE_COMMIT=\"${_firmware_commit}\"",
+        'mark("OPENCH_OSAL_ONESHOT_TIMER_BOOT_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
+        "OPENCH_OSAL_ONESHOT_TIMER_RESTART_OK_A",
+        "OPENCH_OSAL_ONESHOT_TIMER_DELETE_STABLE_OK_A",
+        "opench_ch32v307_osal_freertos_oneshot_timer_smoke",
+    ):
+        if required not in board_cmake + board_oneshot_timer:
+            errors.append(f"FreeRTOS one-shot timer lifecycle target must remain identity-bound and wired: {required}")
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]
