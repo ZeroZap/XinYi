@@ -1387,6 +1387,29 @@ target_link_options(opench_ch32v307_osal_freertos_queue_lifecycle_smoke PRIVATE
     -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_osal_freertos_queue_lifecycle_smoke.map)
 set_target_properties(opench_ch32v307_osal_freertos_queue_lifecycle_smoke PROPERTIES SUFFIX ".elf")
 
+add_executable(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke
+    osal_freertos_semaphore_lifecycle_main.c
+    ${_wch_freertos}/Startup/startup_ch32v30x_D8C.S
+    ${_wch_freertos}/User/system_ch32v30x.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+target_include_directories(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/components/kernel/osal
+    ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
+    ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_freertos}/User)
+target_compile_definitions(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke PRIVATE
+    MCU_CH32 CH32V30x CH32V30x_D8C)
+target_link_libraries(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke PRIVATE
+    xy_osal freertos_kernel)
+target_link_options(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke PRIVATE
+    -T${_wch_freertos}/Ld/Link.ld -Wl,--gc-sections -Wl,--print-memory-usage
+    -nostartfiles --specs=nano.specs --specs=nosys.specs
+    -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke.map)
+set_target_properties(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke PROPERTIES SUFFIX ".elf")
+
 add_executable(opench_ch32v307_osal_freertos_mempool_lifecycle_smoke
     osal_freertos_mempool_lifecycle_main.c
     ${_wch_freertos}/Startup/startup_ch32v30x_D8C.S
