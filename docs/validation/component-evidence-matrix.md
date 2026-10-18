@@ -65,8 +65,20 @@
   `git diff --check`.
 - Current status: Host/compile `DONE`; target programming/UART runtime was not executed, so this
   does not upgrade to HIL evidence.
-- Still not allowed to claim: ISR-to-task runtime, concurrency, long-run stability, or product
+- Still not allowed to claim: task/synchronization runtime, concurrency, long-run stability, or product
   qualification.
+
+### 2026-10-18 FreeRTOS OSAL SDK qualification image identity binding
+
+- The openCH CH32V307 SDK/OSAL qualification image now binds its pre-scheduler and task-side boot
+  markers to `XINYI_FIRMWARE_COMMIT`, matching the exact source commit used by the image.
+- Evidence path: `boards/opench_ch32v307/osal_freertos_sdk_main.c`,
+  `boards/opench_ch32v307/CMakeLists.txt`, and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host 278/278; PC/STM32L4/STM32U5/WCH compile; and
+  `git diff --check`.
+- Current status: software/compile evidence only until target programming and UART runtime are
+  executed; this does not upgrade scheduler, ISR-to-task, concurrency, or product qualification.
 
 ### 2026-10-18 FreeRTOS OSAL semaphore lifecycle identity binding
 

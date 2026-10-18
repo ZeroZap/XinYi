@@ -273,6 +273,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | S6-78 | P1 | FreeRTOS OSAL message-queue tracked lifecycle smoke | DONE | S6-77；existing FreeRTOS message-queue owner table | Extended the openCH CH32V307 FreeRTOS queue lifecycle image with source-identity wiring, FIFO/full/reset/delete coverage, and stale-handle rejection after delete; focused policy, Host 278/278, WCH queue target build, and `git diff --check` passed. No target program/runtime marker was run; this is software/compile evidence only. | 本记录提交 |
 
+| S6-79 | P1 | FreeRTOS OSAL SDK qualification image identity binding | DONE | Existing openCH CH32V307 FreeRTOS SDK/OSAL qualification image | Bound its pre-scheduler and task-side boot markers to the exact source commit; focused policy, Host 278/278, PC/STM32L4/STM32U5/WCH compile and `git diff --check` passed. Target programming/UART runtime remains separate evidence. | 本记录提交 |
+
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
 > `production-candidate` 仅表示下一步重建/审查候选；provenance、side-channel、硬件与产品批准仍须独立证据。

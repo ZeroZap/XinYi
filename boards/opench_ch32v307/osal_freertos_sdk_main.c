@@ -3,6 +3,10 @@
 #include "portmacro.h"
 #include "xy_os.h"
 
+#ifndef XINYI_FIRMWARE_COMMIT
+#error "XINYI_FIRMWARE_COMMIT must identify the exact source commit"
+#endif
+
 static xy_os_semaphore_id_t irq_sem;
 static volatile uint32_t irq_count;
 static volatile uint32_t worker_count;
@@ -80,7 +84,7 @@ static void worker_task(void* argument) {
 static void irq_task(void* argument) {
     uint32_t received = 0;
     (void)argument;
-    mark("OPENCH_OSAL_FREERTOS_BOOT_20261016_A\r\n");
+    mark("OPENCH_OSAL_FREERTOS_BOOT_" XINYI_FIRMWARE_COMMIT "\r\n");
     timer_init();
     for (;;) {
         if (xy_os_semaphore_acquire(irq_sem, 500) != XY_OS_OK) {
@@ -103,7 +107,7 @@ int main(void) {
     SystemCoreClockUpdate();
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     uart_init();
-    mark("OPENCH_OSAL_FREERTOS_PRE_SCHED_20261016_A\r\n");
+    mark("OPENCH_OSAL_FREERTOS_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\r\n");
     if (xy_os_kernel_init() != XY_OS_OK) {
         mark("OPENCH_OSAL_FREERTOS_INIT_ERROR_A\r\n");
         for (;;) {

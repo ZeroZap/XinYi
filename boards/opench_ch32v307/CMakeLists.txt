@@ -1261,7 +1261,8 @@ target_include_directories(opench_ch32v307_osal_freertos_sdk_smoke PRIVATE
     ${_wch_freertos_port}/chip_specific_extensions/RV32I_PFIC_no_extensions
     ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_freertos}/User)
 target_compile_definitions(opench_ch32v307_osal_freertos_sdk_smoke PRIVATE
-    MCU_CH32 CH32V30x CH32V30x_D8C)
+    MCU_CH32 CH32V30x CH32V30x_D8C
+    XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
 target_link_libraries(opench_ch32v307_osal_freertos_sdk_smoke PRIVATE
     xy_osal freertos_kernel)
 target_link_options(opench_ch32v307_osal_freertos_sdk_smoke PRIVATE
