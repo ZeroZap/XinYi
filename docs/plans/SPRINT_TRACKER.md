@@ -6,6 +6,12 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL event-flags lifecycle smoke（2026-10-18）**：openCH CH32V307
+FreeRTOS image 新增 event-flags create/set/wait/clear/timeout/delete/stale-handle marker，
+并绑定 source commit identity。focused policy、Host 278/278、WCH event-flags target compile、
+PC/L4/U5 root compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级
+FreeRTOS event-flags runtime、ISR-to-task、并发、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL message-queue ownership boundary（2026-10-18）**：FreeRTOS adapter 现以
 bounded owner table 跟踪动态创建的 message queue；put/get/count/space/capacity/reset/delete
 在 native queue access 前拒绝未跟踪 wrapper，delete 后清除 owner slot。focused policy、Host

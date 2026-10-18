@@ -16,6 +16,7 @@ def main() -> int:
     board_semaphore = (ROOT / "boards/opench_ch32v307/osal_freertos_semaphore_lifecycle_main.c").read_text(encoding="utf-8")
     board_mutex = (ROOT / "boards/opench_ch32v307/osal_freertos_mutex_lifecycle_main.c").read_text(encoding="utf-8")
     board_queue = (ROOT / "boards/opench_ch32v307/osal_freertos_queue_lifecycle_main.c").read_text(encoding="utf-8")
+    board_event_flags = (ROOT / "boards/opench_ch32v307/osal_freertos_event_flags_lifecycle_main.c").read_text(encoding="utf-8")
     errors: list[str] = []
 
     if "return ulTaskNotifyValueClear(NULL, flags);" not in source:
@@ -315,6 +316,14 @@ def main() -> int:
     ):
         if required not in board_cmake + board_mutex:
             errors.append(f"FreeRTOS mutex lifecycle HIL target must remain wired: {required}")
+    for required in (
+        "osal_freertos_event_flags_lifecycle_main.c",
+        "OPENCH_OSAL_EVENT_FLAGS_LIFECYCLE_PASS_20261018_A",
+        "OPENCH_OSAL_EVENT_FLAGS_LIFECYCLE_STALE_OK_A",
+        "opench_ch32v307_osal_freertos_event_flags_lifecycle_smoke",
+    ):
+        if required not in board_cmake + board_event_flags:
+            errors.append(f"FreeRTOS event-flags lifecycle HIL target must remain wired: {required}")
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]
