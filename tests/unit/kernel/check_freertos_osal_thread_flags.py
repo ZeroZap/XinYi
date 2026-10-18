@@ -195,6 +195,7 @@ def main() -> int:
         "strncpy(context->name, name, sizeof(context->name) - 1U)",
         "return freertos_find_thread_context(h)->name;",
         "TimerHandle_t timer;\n    xy_os_timer_func_t func;",
+        "void *argument;",
         "uint8_t active;\n    char name[16];",
         "strncpy(context->name, name, sizeof(context->name) - 1U)",
         "return context ? context->name : NULL;",
@@ -204,6 +205,33 @@ def main() -> int:
                 "FreeRTOS thread and timer names must be retained in adapter-owned bounded "
                 f"contexts; missing: {required}"
             )
+
+    timer_callback = source.split("static void fr_timer_callback", 1)[-1].split(
+        "xy_os_timer_id_t xy_os_timer_new", 1
+    )[0]
+    for required in (
+        "pvTimerGetTimerID(timer)",
+        "context->func(context->argument)",
+    ):
+        if required not in timer_callback:
+            errors.append(
+                "FreeRTOS timer callbacks must recover the adapter context and preserve the "
+                f"caller argument; missing: {required}"
+            )
+    timer_create = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
+        "const char *xy_os_timer_get_name", 1
+    )[0]
+    for required in (
+        "context->argument = argument;",
+        "xTimerCreate(name, 1, reload, context, fr_timer_callback)",
+    ):
+        if required not in timer_create:
+            errors.append(
+                "FreeRTOS timer creation must bind the typed callback trampoline and caller "
+                f"argument; missing: {required}"
+            )
+    if "(TimerCallbackFunction_t)" in timer_create or "(void (*)(" in timer_create:
+        errors.append("FreeRTOS timer creation must not cast the OSAL callback to a native callback type")
     for required in (
         "!context || !context->queue",
         "context->capacity == 0U",

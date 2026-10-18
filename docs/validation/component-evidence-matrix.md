@@ -8,8 +8,21 @@
 >
 > **当前平台边界（2026-09-04）**：Pandora STM32L475VE 是正式 reference board 与 Sprint 1–4
 > 实板验收基线；STM32U5/M33/TrustZone 仅作后续 enhancement compile compatibility，不再阻塞
-> 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
+> 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建、测试、ST-Link
 > 测试、ST-Link 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
+
+### 2026-10-19 FreeRTOS OSAL timer callback ABI contract
+
+- The focused FreeRTOS OSAL policy now guards the existing timer callback boundary: the native
+  FreeRTOS callback must recover the adapter-owned context through `pvTimerGetTimerID()`, invoke
+  the OSAL callback with its original caller argument, and bind that context via `xTimerCreate()`.
+  Direct callback-type casts are rejected by policy.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; `git diff --check`.
+- Current status: source/Host policy `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade timer callback timing, scheduler, concurrency, long-run stability, or
+  product qualification.
 
 ### 2026-10-19 FreeRTOS OSAL thread/timer name retention
 

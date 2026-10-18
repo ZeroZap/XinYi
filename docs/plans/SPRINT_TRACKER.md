@@ -296,7 +296,9 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | S6-80 | P1 | FreeRTOS OSAL message-queue priority boundary | DONE | Existing FreeRTOS FIFO message-queue adapter | Nonzero `msg_prio` is now rejected before native queue access instead of being silently discarded; focused policy, Host 278/278, PC/STM32L4/STM32U5/WCH FreeRTOS compile and `git diff --check` passed. No runtime priority/throughput or product qualification claim. | 本记录提交 |
 
-| S6-81 | P1 | FreeRTOS OSAL message-queue caller-storage boundary | DONE | Existing dynamic FreeRTOS message-queue adapter | Message-queue creation now rejects nonzero `mq_mem`/`mq_size` caller-storage requests before context or native queue allocation because the adapter only implements dynamic storage; focused policy, Host 278/278, STM32L4/STM32U5/WCH FreeRTOS compile and `git diff --check` passed. No static-allocation or runtime qualification claim. | 本记录提交 | 2026-10-19 |
+| S6-81 | P1 | FreeRTOS OSAL message-queue caller-storage boundary | DONE | Zero | Existing dynamic FreeRTOS message-queue adapter | Message-queue creation now rejects nonzero `mq_mem`/`mq_size` caller-storage requests before context or native queue allocation because the adapter only implements dynamic storage; focused policy, Host 278/278, STM32L4/STM32U5/WCH FreeRTOS compile and `git diff --check` passed. No static-allocation or runtime qualification claim. | 本记录提交 | 2026-10-19 |
+
+| S6-82 | P1 | FreeRTOS OSAL timer callback ABI contract | DONE | Zero | Existing adapter-owned timer context and typed native trampoline | Focused policy now requires the native timer callback to recover the adapter context through `pvTimerGetTimerID()`, forward the caller argument, bind the context through `xTimerCreate()`, and reject direct OSAL/native callback casts. Host 278/278 and `git diff --check` passed; no target runtime or callback timing qualification claim. | 本记录提交 | 2026-10-19 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
