@@ -954,6 +954,16 @@ def main() -> int:
             "native FIFO queue cannot preserve the public priority contract"
         )
 
+    msgqueue_new = source.split("xy_os_msgqueue_id_t xy_os_msgqueue_new", 1)[-1].split(
+        "const char *xy_os_msgqueue_get_name", 1
+    )[0]
+    for required in ("attr->mq_mem", "attr->mq_size"):
+        if required not in msgqueue_new:
+            errors.append(
+                "FreeRTOS message queues must reject caller-owned queue storage because "
+                f"dynamic creation cannot honor {required}"
+            )
+
     if errors:
         print("freertos_osal_thread_flags failed:")
         for error in errors:

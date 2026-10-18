@@ -143,6 +143,12 @@
 - Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; PC/STM32L4/STM32U5/WCH FreeRTOS builds; `git diff --check`.
 - Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so this does not upgrade FreeRTOS queue runtime, priority ordering, throughput, concurrency, or product qualification.
 
+### 2026-10-19 FreeRTOS OSAL message-queue caller-storage boundary
+
+- Dynamic FreeRTOS message-queue creation now rejects nonzero `mq_mem`/`mq_size` caller-storage requests before context or native queue allocation; static storage is not implemented by this adapter.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; STM32L4/STM32U5/WCH FreeRTOS builds; `git diff --check`.
+- Current status: Host/compile `DONE`; no target programming/UART runtime was executed, so this does not upgrade static allocation, queue runtime, concurrency, throughput, or product qualification.
+
 ### 2026-10-18 FreeRTOS mutex lifecycle contract
 
 - 旧边界 -> 新边界：mutex dynamic create/delete 现以 bounded adapter-owned context table 约束 owner；context exhaustion 在 native mutex 创建前拒绝，创建失败释放 wrapper，acquire/release/owner/delete 仅接受 tracked live context，delete 后清除 owner slot 并释放 wrapper。

@@ -1298,7 +1298,8 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
 {
     fr_msgqueue_t *context;
 
-    if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
+    if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U ||
+                 attr->mq_mem || attr->mq_size != 0U))
         return NULL;
     if (!freertos_msgqueue_context_available())
         return NULL;
