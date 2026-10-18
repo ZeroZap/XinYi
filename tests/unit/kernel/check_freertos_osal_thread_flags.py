@@ -15,6 +15,7 @@ def main() -> int:
     board_cmake = (ROOT / "boards/opench_ch32v307/CMakeLists.txt").read_text(encoding="utf-8")
     board_semaphore = (ROOT / "boards/opench_ch32v307/osal_freertos_semaphore_lifecycle_main.c").read_text(encoding="utf-8")
     board_mutex = (ROOT / "boards/opench_ch32v307/osal_freertos_mutex_lifecycle_main.c").read_text(encoding="utf-8")
+    board_queue = (ROOT / "boards/opench_ch32v307/osal_freertos_queue_lifecycle_main.c").read_text(encoding="utf-8")
     errors: list[str] = []
 
     if "return ulTaskNotifyValueClear(NULL, flags);" not in source:
@@ -292,6 +293,14 @@ def main() -> int:
         if required not in semaphore_new:
             errors.append(f"FreeRTOS semaphore creation must be failure-atomic: {required}")
 
+    for required in (
+        "osal_freertos_queue_lifecycle_main.c",
+        "OPENCH_OSAL_QUEUE_LIFECYCLE_PASS_20261018_A",
+        "OPENCH_OSAL_QUEUE_LIFECYCLE_STALE_OK_A",
+        "opench_ch32v307_osal_freertos_queue_lifecycle_smoke",
+    ):
+        if required not in board_cmake + board_queue:
+            errors.append(f"FreeRTOS queue lifecycle HIL target must remain wired: {required}")
     for required in (
         "osal_freertos_semaphore_lifecycle_main.c",
         "OPENCH_OSAL_SEMAPHORE_LIFECYCLE_PASS_20261018_A",

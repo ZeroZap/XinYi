@@ -84,6 +84,19 @@
 - 仍不允许宣称：FreeRTOS mutex runtime、owner completeness、并发、优先级协议、长稳或
   product qualification。
 
+### 2026-10-18 FreeRTOS OSAL message-queue lifecycle smoke
+
+- openCH CH32V307 image now includes source identity, FIFO/full/reset/delete, and stale-handle
+  rejection markers for the tracked FreeRTOS message-queue wrapper.
+- Evidence path: `boards/opench_ch32v307/osal_freertos_queue_lifecycle_main.c`,
+  `boards/opench_ch32v307/CMakeLists.txt`, and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; WCH queue target compile; `git diff --check`.
+- Current status: Host/compile `DONE`; target programming/UART runtime was not executed, so this
+  does not upgrade to HIL evidence.
+- Still not allowed to claim: FreeRTOS queue runtime, resource exhaustion, concurrency, throughput,
+  long-run stability, or product qualification.
+
 
 - 旧边界 -> 新边界：`xy_os_mutex_get_owner()` 现验证 mutex/native owner，并只发布
   FreeRTOS adapter owner table 中已跟踪的 task；未跟踪 kernel-global owner 或无效 mutex 返回

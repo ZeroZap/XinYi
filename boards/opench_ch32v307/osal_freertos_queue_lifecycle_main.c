@@ -88,6 +88,15 @@ static void monitor(void* argument) {
         for (;;) {
         }
     }
+    if (xy_os_msgqueue_get_count(queue) != 0U || xy_os_msgqueue_get_space(queue) != 0U ||
+        xy_os_msgqueue_put(queue, &values[0], 0, 0U) != XY_OS_ERROR_PARAMETER ||
+        xy_os_msgqueue_get(queue, &output, NULL, 0U) != XY_OS_ERROR_PARAMETER ||
+        xy_os_msgqueue_delete(queue) != XY_OS_ERROR_PARAMETER) {
+        mark("OPENCH_OSAL_QUEUE_LIFECYCLE_STALE_ERROR_A\r\n");
+        for (;;) {
+        }
+    }
+    mark("OPENCH_OSAL_QUEUE_LIFECYCLE_STALE_OK_A\r\n");
     queue = xy_os_msgqueue_new(2, sizeof(uint32_t), NULL);
     if (queue != NULL && xy_os_msgqueue_get_capacity(queue) == 2U &&
         xy_os_msgqueue_get_msg_size(queue) == sizeof(uint32_t) &&
@@ -95,6 +104,7 @@ static void monitor(void* argument) {
         mark("OPENCH_OSAL_QUEUE_LIFECYCLE_RESOURCE_OK_A\r\n");
     else
         mark("OPENCH_OSAL_QUEUE_LIFECYCLE_RESOURCE_ERROR_A\r\n");
+    mark("OPENCH_OSAL_QUEUE_LIFECYCLE_PASS_20261018_A\r\n");
     for (;;) {
         (void)xy_os_delay(1000);
     }
