@@ -163,6 +163,18 @@ def main() -> int:
     queue_reset = source.split("xy_os_status_t xy_os_msgqueue_reset", 1)[-1].split(
         "xy_os_status_t xy_os_msgqueue_delete", 1
     )[0]
+    queue_region = source.split("/* Message Queue */", 1)[-1]
+    for required in (
+        "char name[16];",
+        "memset(context, 0, sizeof(*context));",
+        "strncpy(context->name, attr->name, sizeof(context->name) - 1U)",
+        "freertos_find_msgqueue_context(context) ? context->name : NULL",
+    ):
+        if required not in queue_region:
+            errors.append(
+                "FreeRTOS message queues must preserve an optional bounded name and reject "
+                f"stale handles; missing: {required}"
+            )
     for required in (
         "!context || !context->queue",
         "context->capacity == 0U",

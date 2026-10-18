@@ -1242,6 +1242,7 @@ typedef struct {
     QueueHandle_t queue;
     uint32_t capacity;
     uint32_t msg_size;
+    char name[16];
 } fr_msgqueue_t;
 
 #define FREERTOS_MSGQUEUE_CONTEXT_CAPACITY 32U
@@ -1310,6 +1311,7 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
     context = (fr_msgqueue_t *)pvPortMalloc(sizeof(*context));
     if (!context)
         return NULL;
+    memset(context, 0, sizeof(*context));
     context->queue = xQueueCreate((UBaseType_t)msg_count, (UBaseType_t)msg_size);
     if (!context->queue) {
         vPortFree(context);
@@ -1317,14 +1319,16 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
     }
     context->capacity = msg_count;
     context->msg_size = msg_size;
+    if (attr && attr->name)
+        strncpy(context->name, attr->name, sizeof(context->name) - 1U);
     freertos_publish_msgqueue_context(context);
     return (xy_os_msgqueue_id_t)context;
 }
 
 const char *xy_os_msgqueue_get_name(xy_os_msgqueue_id_t mq_id)
 {
-    (void)mq_id;
-    return NULL;
+    fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
+    return freertos_find_msgqueue_context(context) ? context->name : NULL;
 }
 
 xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
