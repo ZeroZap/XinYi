@@ -306,6 +306,9 @@ def main() -> int:
             errors.append(f"FreeRTOS queue lifecycle HIL target must remain wired: {required}")
     for required in (
         "osal_freertos_semaphore_lifecycle_main.c",
+        "XINYI_FIRMWARE_COMMIT=\"${_firmware_commit}\"",
+        'mark("OPENCH_OSAL_SEMAPHORE_LIFECYCLE_BOOT_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
+        'mark("OPENCH_OSAL_SEMAPHORE_LIFECYCLE_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
         "OPENCH_OSAL_SEMAPHORE_LIFECYCLE_PASS_20261018_A",
         "opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke",
     ):

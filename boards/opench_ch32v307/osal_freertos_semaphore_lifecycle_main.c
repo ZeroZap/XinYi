@@ -1,6 +1,10 @@
 #include "ch32v30x.h"
 #include "xy_os.h"
 
+#ifndef XINYI_FIRMWARE_COMMIT
+#define XINYI_FIRMWARE_COMMIT "unknown"
+#endif
+
 static void uart_init(void)
 {
     GPIO_InitTypeDef gpio = {0};
@@ -45,7 +49,7 @@ static void monitor(void *argument)
 {
     xy_os_semaphore_id_t semaphore;
     (void)argument;
-    mark("OPENCH_OSAL_SEMAPHORE_LIFECYCLE_BOOT_20261018_A\r\n");
+    mark("OPENCH_OSAL_SEMAPHORE_LIFECYCLE_BOOT_" XINYI_FIRMWARE_COMMIT "\r\n");
 
     if (xy_os_semaphore_new(0U, 0U, NULL) != NULL)
         fail("OPENCH_OSAL_SEMAPHORE_LIFECYCLE_ZERO_MAX_ERROR_A\r\n");
@@ -104,7 +108,7 @@ int main(void)
     SystemCoreClockUpdate();
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     uart_init();
-    mark("OPENCH_OSAL_SEMAPHORE_LIFECYCLE_PRE_SCHED_20261018_A\r\n");
+    mark("OPENCH_OSAL_SEMAPHORE_LIFECYCLE_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\r\n");
     (void)xy_os_kernel_init();
     if (xy_os_thread_new(monitor, NULL, &attr) == NULL)
         fail("OPENCH_OSAL_SEMAPHORE_LIFECYCLE_THREAD_ERROR_A\r\n");
