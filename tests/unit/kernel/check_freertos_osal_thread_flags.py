@@ -945,6 +945,15 @@ def main() -> int:
                 "before kernel access"
             )
 
+    msgqueue_put = source.split("xy_os_status_t xy_os_msgqueue_put", 1)[-1].split(
+        "xy_os_status_t xy_os_msgqueue_get", 1
+    )[0]
+    if "msg_prio != 0U" not in msgqueue_put:
+        errors.append(
+            "FreeRTOS message queues must reject nonzero message priorities because the "
+            "native FIFO queue cannot preserve the public priority contract"
+        )
+
     if errors:
         print("freertos_osal_thread_flags failed:")
         for error in errors:

@@ -1335,10 +1335,10 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
     TickType_t ticks;
 
     if (!freertos_find_msgqueue_context(context) || !context->queue || !msg_ptr ||
+        msg_prio != 0U ||
         !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     q = context->queue;
-    (void)msg_prio;
     return pdstatus_to_xy_wait(xQueueSendToBack(q, msg_ptr, ticks));
 }
 
