@@ -3,6 +3,10 @@
 #include "portmacro.h"
 #include "xy_os.h"
 
+#ifndef XINYI_FIRMWARE_COMMIT
+#define XINYI_FIRMWARE_COMMIT "unknown"
+#endif
+
 #define STRESS_TARGET 2000U
 
 static xy_os_semaphore_id_t irq_sem;
@@ -87,7 +91,7 @@ static void worker_task(void* argument) {
 static void irq_task(void* argument) {
     uint32_t received = 0;
     (void)argument;
-    mark("OPENCH_OSAL_ISR_STRESS_BOOT_20261016_A\r\n");
+    mark("OPENCH_OSAL_ISR_STRESS_BOOT_" XINYI_FIRMWARE_COMMIT "\r\n");
     timer_init();
     while (received < STRESS_TARGET) {
         if (xy_os_semaphore_acquire(irq_sem, 500) != XY_OS_OK) {
@@ -117,7 +121,7 @@ int main(void) {
     SystemCoreClockUpdate();
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     uart_init();
-    mark("OPENCH_OSAL_ISR_STRESS_PRE_SCHED_20261016_A\r\n");
+    mark("OPENCH_OSAL_ISR_STRESS_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\r\n");
     (void)xy_os_kernel_init();
     irq_sem = xy_os_semaphore_new(64, 0, NULL);
     if (irq_sem == NULL || xy_os_thread_new(worker_task, NULL, &worker_attr) == NULL ||

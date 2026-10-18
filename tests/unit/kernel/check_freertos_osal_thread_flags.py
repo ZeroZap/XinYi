@@ -20,6 +20,7 @@ def main() -> int:
     board_oneshot_timer = (ROOT / "boards/opench_ch32v307/osal_freertos_oneshot_timer_main.c").read_text(encoding="utf-8")
     board_mempool = (ROOT / "boards/opench_ch32v307/osal_freertos_mempool_lifecycle_main.c").read_text(encoding="utf-8")
     board_thread = (ROOT / "boards/opench_ch32v307/osal_freertos_thread_lifecycle_main.c").read_text(encoding="utf-8")
+    board_isr_stress = (ROOT / "boards/opench_ch32v307/osal_freertos_isr_stress_main.c").read_text(encoding="utf-8")
     errors: list[str] = []
 
     if "return ulTaskNotifyValueClear(NULL, flags);" not in source:
@@ -364,6 +365,17 @@ def main() -> int:
     ):
         if required not in board_cmake + board_thread:
             errors.append(f"FreeRTOS thread lifecycle target must remain identity-bound and wired: {required}")
+    for required in (
+        "osal_freertos_isr_stress_main.c",
+        "XINYI_FIRMWARE_COMMIT=\"${_firmware_commit}\"",
+        'mark("OPENCH_OSAL_ISR_STRESS_BOOT_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
+        'mark("OPENCH_OSAL_ISR_STRESS_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
+        "OPENCH_OSAL_ISR_STRESS_ACCOUNTING_OK_A",
+        "OPENCH_OSAL_ISR_STRESS_WORKER_OK_A",
+        "opench_ch32v307_osal_freertos_isr_stress_smoke",
+    ):
+        if required not in board_cmake + board_isr_stress:
+            errors.append(f"FreeRTOS ISR stress target must remain identity-bound and wired: {required}")
     timer_new = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]
