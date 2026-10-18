@@ -190,6 +190,21 @@ def main() -> int:
                 f"reject stale handles; missing: {required}"
             )
     for required in (
+        "TaskHandle_t handle;\n    uint8_t active;\n    char name[16];",
+        "memset(context, 0, sizeof(*context));",
+        "strncpy(context->name, name, sizeof(context->name) - 1U)",
+        "return freertos_find_thread_context(h)->name;",
+        "TimerHandle_t timer;\n    xy_os_timer_func_t func;",
+        "uint8_t active;\n    char name[16];",
+        "strncpy(context->name, name, sizeof(context->name) - 1U)",
+        "return context ? context->name : NULL;",
+    ):
+        if required not in source:
+            errors.append(
+                "FreeRTOS thread and timer names must be retained in adapter-owned bounded "
+                f"contexts; missing: {required}"
+            )
+    for required in (
         "!context || !context->queue",
         "context->capacity == 0U",
         "context->msg_size == 0U",
@@ -497,7 +512,9 @@ def main() -> int:
         "freertos_find_timer_context",
         "freertos_clear_timer_context",
         "context->timer = timer",
-        "freertos_find_timer_context(timer) ? pcTimerGetName(timer) : NULL",
+        "char name[16];",
+        "strncpy(context->name, name, sizeof(context->name) - 1U)",
+        "return context ? context->name : NULL;",
     ):
         if required not in timer_region:
             errors.append(
@@ -844,7 +861,7 @@ def main() -> int:
     for required in (
         "freertos_alloc_thread_context",
         "context->handle = handle",
-        "context->active = 0U",
+        "memset(context, 0, sizeof(*context));",
     ):
         if required not in thread_new:
             errors.append(

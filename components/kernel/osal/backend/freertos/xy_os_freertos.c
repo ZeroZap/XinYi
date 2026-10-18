@@ -16,6 +16,7 @@
 typedef struct {
     TaskHandle_t handle;
     uint8_t active;
+    char name[16];
 } freertos_thread_context_t;
 
 #define FREERTOS_THREAD_CONTEXT_CAPACITY 32U
@@ -246,13 +247,14 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
 
     if (!context)
         return NULL;
+    memset(context, 0, sizeof(*context));
     if (xTaskCreate(func, name, stack, argument, prio, &handle) != pdPASS) {
-        context->handle = NULL;
-        context->active = 0U;
+        memset(context, 0, sizeof(*context));
         return NULL;
     }
     context->handle = handle;
     context->active = 1U;
+    strncpy(context->name, name, sizeof(context->name) - 1U);
     return (xy_os_thread_id_t)handle;
 }
 
@@ -262,7 +264,7 @@ const char *xy_os_thread_get_name(xy_os_thread_id_t thread_id)
         thread_id ? (TaskHandle_t)thread_id : xTaskGetCurrentTaskHandle();
     if (!h || !freertos_find_thread_context(h))
         return NULL;
-    return pcTaskGetName(h);
+    return freertos_find_thread_context(h)->name;
 }
 
 xy_os_thread_id_t xy_os_thread_get_id(void)
@@ -489,6 +491,7 @@ typedef struct {
     xy_os_timer_func_t func;
     void *argument;
     uint8_t active;
+    char name[16];
 } fr_timer_context_t;
 
 #define FREERTOS_TIMER_CONTEXT_CAPACITY 32U
@@ -559,6 +562,7 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func,
         return NULL;
     }
     context->timer = timer;
+    strncpy(context->name, name, sizeof(context->name) - 1U);
     return (xy_os_timer_id_t)timer;
 }
 
@@ -566,7 +570,9 @@ const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
 {
     TimerHandle_t timer = (TimerHandle_t)timer_id;
 
-    return freertos_find_timer_context(timer) ? pcTimerGetName(timer) : NULL;
+    fr_timer_context_t *context = freertos_find_timer_context(timer);
+
+    return context ? context->name : NULL;
 }
 
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
