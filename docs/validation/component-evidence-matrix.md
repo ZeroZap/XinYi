@@ -23,7 +23,22 @@
 - Current status: Host/compile `DONE`; target programming/UART runtime was not executed, so this
  does not upgrade to HIL evidence.
 - Still not allowed to claim: timer runtime, callback timing, concurrency, long-run stability,
- ISR-to-task behavior, or product qualification.
+  ISR-to-task behavior, or product qualification.
+
+### 2026-10-18 FreeRTOS OSAL memory-pool lifecycle identity binding
+
+- openCH CH32V307 memory-pool lifecycle image now binds pre-scheduler and boot markers to
+  `XINYI_FIRMWARE_COMMIT`, matching the exact source commit used by the image. The image covers
+  metadata, allocation/exhaustion, foreign and double-free rejection, block reuse, and delete.
+- Evidence path: `boards/opench_ch32v307/osal_freertos_mempool_lifecycle_main.c`,
+  `boards/opench_ch32v307/CMakeLists.txt`, and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host 278/278; PC root build; WCH FreeRTOS target compile;
+  `git diff --check`.
+- Current status: Host/compile `DONE`; target programming/UART runtime was not executed, so this
+  does not upgrade to HIL evidence.
+- Still not allowed to claim: memory-pool runtime, resource-exhaustion qualification, concurrency,
+  long-run stability, or product qualification.
 
 ### 2026-10-18 FreeRTOS OSAL event-flags lifecycle smoke
 

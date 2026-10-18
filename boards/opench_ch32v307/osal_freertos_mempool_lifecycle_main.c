@@ -1,6 +1,10 @@
 #include "ch32v30x.h"
 #include "xy_os.h"
 
+#ifndef XINYI_FIRMWARE_COMMIT
+#define XINYI_FIRMWARE_COMMIT "unknown"
+#endif
+
 static uint32_t external_pool[12];
 
 static void uart_init(void) {
@@ -42,7 +46,7 @@ static void monitor(void* argument) {
     uint32_t outsider = 0;
     uint32_t index;
     (void)argument;
-    mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_BOOT_20261016_A\r\n");
+    mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_BOOT_" XINYI_FIRMWARE_COMMIT "\r\n");
     pool = xy_os_mempool_new(3, 16, &attr);
     if (pool == NULL || xy_os_mempool_get_capacity(pool) != 3U ||
         xy_os_mempool_get_block_size(pool) != 16U || xy_os_mempool_get_count(pool) != 0U ||
@@ -106,7 +110,7 @@ int main(void) {
     SystemCoreClockUpdate();
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
     uart_init();
-    mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_PRE_SCHED_20261016_A\r\n");
+    mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\r\n");
     (void)xy_os_kernel_init();
     if (xy_os_thread_new(monitor, NULL, &attr) == NULL) {
         mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_CREATE_ERROR_A\r\n");
