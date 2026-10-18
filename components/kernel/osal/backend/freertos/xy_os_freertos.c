@@ -613,42 +613,53 @@ xy_os_status_t xy_os_timer_delete(xy_os_timer_id_t timer_id)
 }
 
 /* Event Flags */
+typedef struct {
+    EventGroupHandle_t event_group;
+    char name[16];
+} fr_event_flags_t;
+
 #define FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY 32U
-static EventGroupHandle_t
-    g_freertos_event_flags_contexts[FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY];
+static fr_event_flags_t g_freertos_event_flags_contexts[FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY];
 
 static int freertos_event_flags_context_available(void)
 {
     uint32_t i;
 
     for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
-        if (!g_freertos_event_flags_contexts[i])
+        if (!g_freertos_event_flags_contexts[i].event_group)
             return 1;
     }
     return 0;
 }
 
-static EventGroupHandle_t freertos_find_event_flags_context(EventGroupHandle_t event_group)
+static fr_event_flags_t *freertos_find_event_flags_context(EventGroupHandle_t event_group)
 {
     uint32_t i;
 
     for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
-        if (g_freertos_event_flags_contexts[i] == event_group)
-            return event_group;
+        if (g_freertos_event_flags_contexts[i].event_group == event_group)
+            return &g_freertos_event_flags_contexts[i];
     }
     return NULL;
 }
 
-static void freertos_publish_event_flags_context(EventGroupHandle_t event_group)
+static fr_event_flags_t *freertos_publish_event_flags_context(EventGroupHandle_t event_group,
+                                                               const char *name)
 {
     uint32_t i;
 
     for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
-        if (!g_freertos_event_flags_contexts[i]) {
-            g_freertos_event_flags_contexts[i] = event_group;
-            return;
+        if (!g_freertos_event_flags_contexts[i].event_group) {
+            memset(&g_freertos_event_flags_contexts[i], 0,
+                   sizeof(g_freertos_event_flags_contexts[i]));
+            g_freertos_event_flags_contexts[i].event_group = event_group;
+            if (name)
+                strncpy(g_freertos_event_flags_contexts[i].name, name,
+                        sizeof(g_freertos_event_flags_contexts[i].name) - 1U);
+            return &g_freertos_event_flags_contexts[i];
         }
     }
+    return NULL;
 }
 
 static void freertos_clear_event_flags_context(EventGroupHandle_t event_group)
@@ -656,8 +667,9 @@ static void freertos_clear_event_flags_context(EventGroupHandle_t event_group)
     uint32_t i;
 
     for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
-        if (g_freertos_event_flags_contexts[i] == event_group) {
-            g_freertos_event_flags_contexts[i] = NULL;
+        if (g_freertos_event_flags_contexts[i].event_group == event_group) {
+            memset(&g_freertos_event_flags_contexts[i], 0,
+                   sizeof(g_freertos_event_flags_contexts[i]));
             return;
         }
     }
@@ -685,14 +697,19 @@ xy_os_event_flags_new(const xy_os_event_flags_attr_t *attr)
     event_group = xEventGroupCreate();
     if (!event_group)
         return NULL;
-    freertos_publish_event_flags_context(event_group);
+    if (!freertos_publish_event_flags_context(event_group,
+                                              attr ? attr->name : NULL)) {
+        vEventGroupDelete(event_group);
+        return NULL;
+    }
     return (xy_os_event_flags_id_t)event_group;
 }
 
 const char *xy_os_event_flags_get_name(xy_os_event_flags_id_t ef_id)
 {
-    (void)ef_id;
-    return NULL;
+    fr_event_flags_t *context =
+        freertos_find_event_flags_context((EventGroupHandle_t)ef_id);
+    return context ? context->name : NULL;
 }
 
 uint32_t xy_os_event_flags_set(xy_os_event_flags_id_t ef_id, uint32_t flags)
@@ -754,6 +771,7 @@ xy_os_status_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
 typedef struct {
     SemaphoreHandle_t mutex;
     uint8_t recursive;
+    char name[16];
 } fr_mutex_t;
 
 #define FREERTOS_MUTEX_CONTEXT_CAPACITY 32U
@@ -818,8 +836,11 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
     context = (fr_mutex_t *)pvPortMalloc(sizeof(*context));
     if (!context)
         return NULL;
+    memset(context, 0, sizeof(*context));
     context->recursive =
         (attr && (attr->attr_bits & XY_OS_MUTEX_RECURSIVE)) ? 1U : 0U;
+    if (attr && attr->name)
+        strncpy(context->name, attr->name, sizeof(context->name) - 1U);
     context->mutex = context->recursive ? xSemaphoreCreateRecursiveMutex()
                                         : xSemaphoreCreateMutex();
     if (!context->mutex) {
@@ -832,8 +853,8 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
 
 const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id)
 {
-    (void)mutex_id;
-    return NULL;
+    fr_mutex_t *context = (fr_mutex_t *)mutex_id;
+    return freertos_find_mutex_context(context) ? context->name : NULL;
 }
 
 xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
@@ -888,6 +909,7 @@ xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 typedef struct {
     SemaphoreHandle_t semaphore;
     uint8_t active;
+    char name[16];
 } fr_semaphore_context_t;
 
 #define FREERTOS_SEMAPHORE_CONTEXT_CAPACITY 32U
@@ -954,13 +976,16 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count,
         return NULL;
     }
     context->semaphore = sem;
+    if (attr && attr->name)
+        strncpy(context->name, attr->name, sizeof(context->name) - 1U);
     return (xy_os_semaphore_id_t)sem;
 }
 
 const char *xy_os_semaphore_get_name(xy_os_semaphore_id_t semaphore_id)
 {
-    (void)semaphore_id;
-    return NULL;
+    fr_semaphore_context_t *context =
+        freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id);
+    return context ? context->name : NULL;
 }
 
 xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id,

@@ -176,6 +176,20 @@ def main() -> int:
                 f"stale handles; missing: {required}"
             )
     for required in (
+        "typedef struct {\n    EventGroupHandle_t event_group;",
+        "freertos_publish_event_flags_context(event_group,",
+        "freertos_find_event_flags_context((EventGroupHandle_t)ef_id)",
+        "SemaphoreHandle_t mutex;\n    uint8_t recursive;\n    char name[16];",
+        "freertos_find_mutex_context(context) ? context->name : NULL",
+        "SemaphoreHandle_t semaphore;\n    uint8_t active;\n    char name[16];",
+        "freertos_find_semaphore_context((SemaphoreHandle_t)semaphore_id)",
+    ):
+        if required not in source:
+            errors.append(
+                "FreeRTOS named synchronization objects must preserve bounded names and "
+                f"reject stale handles; missing: {required}"
+            )
+    for required in (
         "!context || !context->queue",
         "context->capacity == 0U",
         "context->msg_size == 0U",

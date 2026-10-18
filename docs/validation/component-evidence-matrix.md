@@ -11,6 +11,19 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建/测试、ST-Link
 > 测试、ST-Link 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-19 FreeRTOS OSAL named synchronization-object boundary
+
+- FreeRTOS event flags, mutexes, and semaphores now retain bounded 16-byte names and expose
+  them only for adapter-owned live contexts; event-flags publication failure releases the native
+  object instead of publishing an untracked handle.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags`; Host 278/278; PC/STM32L4/STM32U5/WCH FreeRTOS compile;
+  `git diff --check`.
+- Current status: source/Host/compile `DONE`; target programming/UART runtime was not executed,
+  so this does not upgrade FreeRTOS runtime, concurrency, long-run stability, or product
+  qualification.
+
 ### 2026-10-18 FreeRTOS OSAL smoke identity fail-closed guard
 
 - All 11 openCH CH32V307 FreeRTOS OSAL smoke images now reject a missing
