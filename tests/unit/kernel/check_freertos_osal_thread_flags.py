@@ -443,6 +443,7 @@ def main() -> int:
         "OPENCH_OSAL_MEMPOOL_LIFECYCLE_EXHAUST_OK_A",
         "OPENCH_OSAL_MEMPOOL_LIFECYCLE_OUTSTANDING_DELETE_OK_A",
         "OPENCH_OSAL_MEMPOOL_LIFECYCLE_RESOURCE_OK_A",
+        "OPENCH_OSAL_MEMPOOL_LIFECYCLE_UNALIGNED_SIZE_OK_A",
         "opench_ch32v307_osal_freertos_mempool_lifecycle_smoke",
     ):
         if required not in board_cmake + board_mempool:
@@ -780,11 +781,31 @@ def main() -> int:
         "attr->cb_mem",
         "attr->cb_size != 0U",
         "!attr->mp_mem && attr->mp_size != 0U",
+        "uint32_t stride;",
+        "uint32_t remainder;",
+        "remainder = block_size % (uint32_t)sizeof(void *);",
+        "block_size > UINT32_MAX - ((uint32_t)sizeof(void *) - remainder)",
+        "stride = block_size + ((uint32_t)sizeof(void *) - remainder);",
+        "p->block_size = block_size;",
+        "p->stride     = stride;",
+        "block_count > UINT32_MAX / stride",
     ):
         if required not in mempool_new:
             errors.append(
-                "FreeRTOS memory-pool creation must reject unsupported control/storage "
+                "FreeRTOS memory-pool creation must reject unsupported control/storage or "
+                "alignment-overflow inputs and retain the requested block size separately "
+                "from its pointer-aligned free-list stride; "
                 f"attributes before allocation; missing: {required}"
+            )
+
+    for required in (
+        "p->capacity * p->stride",
+        "(uintptr_t)(candidate - p->pool_mem) % p->stride",
+    ):
+        if required not in mempool_region:
+            errors.append(
+                "FreeRTOS memory-pool bounds and alignment must use the internal aligned "
+                f"stride without changing the public block-size contract; missing: {required}"
             )
 
     mempool_alloc = source.split("void *xy_os_mempool_alloc", 1)[-1].split(
@@ -830,8 +851,8 @@ def main() -> int:
     )[0]
     for required in (
         "uint32_t pool_bytes;",
-        "if (block_count > UINT32_MAX / bsz)",
-        "pool_bytes = block_count * bsz;",
+        "if (block_count > UINT32_MAX / stride)",
+        "pool_bytes = block_count * stride;",
         "attr->mp_size < pool_bytes",
         "pvPortMalloc(pool_bytes)",
     ):

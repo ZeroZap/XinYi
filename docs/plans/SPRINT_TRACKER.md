@@ -6,6 +6,13 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL memory-pool block-size/stride separation（2026-10-19）**：memory pool
+现保留 caller-requested block size 作为公开 metadata，并用独立、checked、pointer-aligned stride
+承载 free-list；非指针对齐 block size 不再产生 misaligned pointer access，alignment rounding overflow
+在 allocation 前拒绝。focused policy/CTest、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、openCH
+memory-pool lifecycle image link 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级
+memory safety、并发、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL memory-pool outstanding-allocation deletion boundary（2026-10-19）**：
 memory-pool delete 现拒绝仍有 outstanding block 的 pool，避免释放仍被调用方持有的 backing
 storage；openCH lifecycle image 新增该负向 marker。focused policy、Host 278/278、PC/L4/U5/WCH
@@ -321,6 +328,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S6-86 | P1 | FreeRTOS OSAL configured thread stack-size ownership | DONE | Zero | Existing FreeRTOS thread owner table | Adapter-owned thread contexts now retain the configured stack size in OSAL byte units; `xy_os_thread_get_stack_size()` returns it for tracked handles and zero for stale/foreign handles. Focused policy、Host 278/278、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime or product qualification claim. | 本记录提交 | 2026-10-19 |
 
 | S6-87 | P1 | FreeRTOS OSAL memory-pool outstanding-allocation deletion boundary | DONE | Zero | Existing FreeRTOS memory-pool owner table | `xy_os_mempool_delete()` now rejects pools with outstanding allocations before releasing backing storage; openCH lifecycle image checks the negative path and emits `OPENCH_OSAL_MEMPOOL_LIFECYCLE_OUTSTANDING_DELETE_OK_A`. Focused policy、Host 278/278、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, memory-safety, concurrency, long-run or product qualification claim. | 本记录提交 | 2026-10-19 |
+| S6-88 | P1 | FreeRTOS OSAL memory-pool block-size/stride separation | DONE | Zero | S6-87；existing FreeRTOS memory-pool owner table | Public block-size metadata now retains the requested size while an overflow-checked pointer-aligned internal stride owns free-list layout, bounds, and free validation; openCH lifecycle image guards a 10-byte block contract. Focused policy/CTest、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、focused image link 与 `git diff --check` passed. No target runtime or product qualification claim. | 本记录提交 | 2026-10-19 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

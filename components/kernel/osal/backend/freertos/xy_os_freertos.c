@@ -1082,6 +1082,7 @@ xy_os_status_t xy_os_semaphore_delete(xy_os_semaphore_id_t semaphore_id)
 typedef struct {
     uint32_t  capacity;
     uint32_t  block_size;
+    uint32_t  stride;
     volatile uint32_t free_count;
     void     *free_list;
     uint8_t  *pool_mem;
@@ -1141,7 +1142,8 @@ static void freertos_clear_mempool_context(fr_pool_t *pool)
 xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
                                      const xy_os_mempool_attr_t *attr)
 {
-    uint32_t bsz;
+    uint32_t stride;
+    uint32_t remainder;
     uint32_t pool_bytes;
 
     if (block_count == 0U || block_size == 0U)
@@ -1152,16 +1154,23 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
         return NULL;
     if (!freertos_mempool_context_available())
         return NULL;
-    bsz = (block_size < sizeof(void *)) ? (uint32_t)sizeof(void *) : block_size;
-    if (block_count > UINT32_MAX / bsz)
+    stride = (block_size < sizeof(void *)) ? (uint32_t)sizeof(void *) : block_size;
+    remainder = block_size % (uint32_t)sizeof(void *);
+    if (block_size >= sizeof(void *) && remainder != 0U) {
+        if (block_size > UINT32_MAX - ((uint32_t)sizeof(void *) - remainder))
+            return NULL;
+        stride = block_size + ((uint32_t)sizeof(void *) - remainder);
+    }
+    if (block_count > UINT32_MAX / stride)
         return NULL;
-    pool_bytes = block_count * bsz;
+    pool_bytes = block_count * stride;
 
     fr_pool_t *p = (fr_pool_t *)pvPortMalloc(sizeof(fr_pool_t));
     if (!p) return NULL;
     memset(p, 0, sizeof(*p));
     p->capacity   = block_count;
-    p->block_size = bsz;
+    p->block_size = block_size;
+    p->stride     = stride;
     if (attr && attr->name) {
         strncpy(p->name, attr->name, sizeof(p->name) - 1);
     }
@@ -1185,7 +1194,7 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
     p->free_list  = NULL;
     p->free_count = 0;
     for (uint32_t i = block_count; i > 0; i--) {
-        void *blk   = mem + (i - 1) * bsz;
+        void *blk   = mem + (i - 1) * stride;
         *(void **)blk = p->free_list;
         p->free_list  = blk;
         p->free_count++;
@@ -1235,8 +1244,8 @@ xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
     if (!freertos_find_mempool_context(p) || !block)
         return XY_OS_ERROR_PARAMETER;
     if (candidate < p->pool_mem ||
-        candidate >= p->pool_mem + p->capacity * p->block_size ||
-        ((uintptr_t)(candidate - p->pool_mem) % p->block_size) != 0U)
+        candidate >= p->pool_mem + p->capacity * p->stride ||
+        ((uintptr_t)(candidate - p->pool_mem) % p->stride) != 0U)
         return XY_OS_ERROR_PARAMETER;
     taskENTER_CRITICAL();
     for (item = p->free_list; item; item = *(void **)item) {

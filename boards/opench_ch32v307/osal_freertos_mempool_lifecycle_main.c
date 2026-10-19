@@ -103,6 +103,12 @@ static void monitor(void* argument) {
         mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_RESOURCE_OK_A\r\n");
     else
         mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_RESOURCE_ERROR_A\r\n");
+    pool = xy_os_mempool_new(3, 10, NULL);
+    if (pool != NULL && xy_os_mempool_get_block_size(pool) == 10U &&
+        xy_os_mempool_delete(pool) == XY_OS_OK)
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_UNALIGNED_SIZE_OK_A\r\n");
+    else
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_UNALIGNED_SIZE_ERROR_A\r\n");
     for (;;) {
         (void)xy_os_delay(1000);
     }
