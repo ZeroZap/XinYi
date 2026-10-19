@@ -538,16 +538,20 @@ static fr_timer_context_t g_freertos_timer_contexts[FREERTOS_TIMER_CONTEXT_CAPAC
 
 static fr_timer_context_t *freertos_alloc_timer_context(void)
 {
+    fr_timer_context_t *context = NULL;
     uint32_t i;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_TIMER_CONTEXT_CAPACITY; ++i) {
         if (!g_freertos_timer_contexts[i].active) {
             memset(&g_freertos_timer_contexts[i], 0, sizeof(g_freertos_timer_contexts[i]));
             g_freertos_timer_contexts[i].active = 1U;
-            return &g_freertos_timer_contexts[i];
+            context = &g_freertos_timer_contexts[i];
+            break;
         }
     }
-    return NULL;
+    taskEXIT_CRITICAL();
+    return context;
 }
 
 static fr_timer_context_t *freertos_find_timer_context(TimerHandle_t timer)

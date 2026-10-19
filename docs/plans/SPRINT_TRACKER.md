@@ -1,5 +1,11 @@
 # XinYi Sprint 跟踪看板
 
+**最新 FreeRTOS OSAL timer-context atomic reservation（2026-10-20）**：timer context slot 的
+查找、清零与 `active` reservation 现位于同一 FreeRTOS critical section，避免并发创建者选中同一
+adapter-owned slot；native timer 创建失败仍清理 reservation。focused policy、Host、PC/STM32L4/
+STM32U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级
+timer runtime、并发、callback timing、资源耗尽、长稳或产品资格声明。
+
 **最新 Pandora SYS host contract slice（2026-10-20）**：新增 `pandora_sys` Unity/CTest，
 覆盖 board-owned `xy_sys_init()` 的 reset-cause snapshot/clear、software-reset 参数与 HAL
 失败传播，以及 unique-ID 输出和失败保持；Host 279/279、Pandora STM32L4 clean build、

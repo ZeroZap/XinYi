@@ -227,6 +227,21 @@ def main() -> int:
     timer_create = source.split("xy_os_timer_id_t xy_os_timer_new", 1)[-1].split(
         "const char *xy_os_timer_get_name", 1
     )[0]
+    timer_allocator = source.split("static fr_timer_context_t *freertos_alloc_timer_context", 1)[-1].split(
+        "static fr_timer_context_t *freertos_find_timer_context", 1
+    )[0]
+    for required in (
+        "fr_timer_context_t *context = NULL;",
+        "taskENTER_CRITICAL();",
+        "g_freertos_timer_contexts[i].active = 1U;",
+        "taskEXIT_CRITICAL();",
+        "return context;",
+    ):
+        if required not in timer_allocator:
+            errors.append(
+                "FreeRTOS timer context reservation must be atomic across concurrent creators; "
+                f"missing: {required}"
+            )
     for required in (
         "context->argument = argument;",
         "xTimerCreate(name, 1, reload, context, fr_timer_callback)",
