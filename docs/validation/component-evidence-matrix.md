@@ -26,6 +26,19 @@
   so this does not upgrade memory safety, concurrency, resource exhaustion, long-run stability,
   or product qualification.
 
+### 2026-10-19 FreeRTOS OSAL thread-lifecycle smoke inventory alignment
+
+- The openCH CH32V307 thread-lifecycle image now expects the backend's explicit fail-closed
+  thread inventory contract (`xy_os_thread_get_count() == 0`); it no longer claims one tracked
+  thread while `xy_os_thread_enumerate()` intentionally publishes no kernel-global handles.
+- Evidence path: `boards/opench_ch32v307/osal_freertos_thread_lifecycle_main.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; PC/STM32L4/STM32U5/WCH
+  FreeRTOS compile; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed,
+  so this does not upgrade thread enumeration, scheduler, concurrency, long-run stability, or
+  product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL timer callback ABI contract
 
 - The focused FreeRTOS OSAL policy now guards the existing timer callback boundary: the native

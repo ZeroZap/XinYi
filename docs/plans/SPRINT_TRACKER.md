@@ -12,6 +12,12 @@ storage；openCH lifecycle image 新增该负向 marker。focused policy、Host 
 FreeRTOS compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级 memory
 safety、并发、资源耗尽、长稳或产品资格声明。
 
+**最新 FreeRTOS OSAL thread-lifecycle smoke inventory alignment（2026-10-19）**：openCH thread
+lifecycle image 现与 backend 的 fail-closed inventory contract 一致，验证
+`xy_os_thread_get_count() == 0` 而不是虚构 adapter-owned inventory count；focused policy、Host
+278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过。未执行 target program/UART
+runtime，不升级 thread enumeration、scheduler、并发、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL timer tick conversion consistency guard（2026-10-19）**：timer start 现使用与
 其他 wait API 相同的 checked `freertos_timeout_to_ticks()`，将有限 tick 安全转换为 `TickType_t`，
 显式拒绝 zero/不可表示 period，并直接传播 `xTimerChangePeriod()` 结果。focused policy、Host 278/278、

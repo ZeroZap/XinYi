@@ -72,7 +72,7 @@ static void monitor(void* argument) {
         fail("OPENCH_OSAL_THREAD_LIFECYCLE_SUSPEND_ERROR_A\r\n");
     mark("OPENCH_OSAL_THREAD_LIFECYCLE_SUSPEND_OK_A\r\n");
 
-    if (xy_os_thread_get_count() != 1U || xy_os_thread_enumerate(NULL, 0U) != 0U ||
+    if (xy_os_thread_get_count() != 0U || xy_os_thread_enumerate(NULL, 0U) != 0U ||
         xy_os_thread_flags_set(self, 0U) != THREAD_FLAGS_ERROR ||
         xy_os_thread_terminate(NULL) != XY_OS_ERROR_PARAMETER ||
         xy_os_thread_join(NULL) != XY_OS_ERROR_PARAMETER ||

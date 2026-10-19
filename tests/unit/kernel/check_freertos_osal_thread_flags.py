@@ -671,6 +671,12 @@ def main() -> int:
     ):
         if required not in source:
             errors.append(f"FreeRTOS thread exit must retire adapter context: {required}")
+    thread_lifecycle = board_thread.split("static void monitor", 1)[-1]
+    if "xy_os_thread_get_count() != 0U" not in thread_lifecycle:
+        errors.append(
+            "FreeRTOS thread lifecycle smoke must match the adapter's fail-closed inventory "
+            "contract instead of claiming an unimplemented count"
+        )
     stack_size = source.split("uint32_t xy_os_thread_get_stack_size", 1)[-1].split(
         "uint32_t xy_os_thread_get_stack_space", 1
     )[0]
