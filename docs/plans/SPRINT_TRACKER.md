@@ -6,6 +6,12 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL memory-pool outstanding-allocation deletion boundary（2026-10-19）**：
+memory-pool delete 现拒绝仍有 outstanding block 的 pool，避免释放仍被调用方持有的 backing
+storage；openCH lifecycle image 新增该负向 marker。focused policy、Host 278/278、PC/L4/U5/WCH
+FreeRTOS compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级 memory
+safety、并发、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL timer tick conversion consistency guard（2026-10-19）**：timer start 现使用与
 其他 wait API 相同的 checked `freertos_timeout_to_ticks()`，将有限 tick 安全转换为 `TickType_t`，
 显式拒绝 zero/不可表示 period，并直接传播 `xTimerChangePeriod()` 结果。focused policy、Host 278/278、
@@ -306,7 +312,9 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 ### S6-85 | P1 | FreeRTOS OSAL timer tick conversion consistency guard | DONE | Zero | S6-01；checked native TickType_t conversion | Timer start now uses checked timeout conversion, rejects zero/unrepresentable periods before native access, and propagates `xTimerChangePeriod()` directly. Focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No target runtime marker. | 本记录提交 | 2026-10-19 |
 
-| S6-86 | P1 | FreeRTOS OSAL configured thread stack-size ownership | DONE | Zero | Existing FreeRTOS thread owner table | Adapter-owned thread contexts now retain the configured stack size in OSAL byte units; `xy_os_thread_get_stack_size()` returns it for tracked handles and zero for stale/foreign handles. Focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime or product qualification claim. | 本记录提交 | 2026-10-19 |
+| S6-86 | P1 | FreeRTOS OSAL configured thread stack-size ownership | DONE | Zero | Existing FreeRTOS thread owner table | Adapter-owned thread contexts now retain the configured stack size in OSAL byte units; `xy_os_thread_get_stack_size()` returns it for tracked handles and zero for stale/foreign handles. Focused policy、Host 278/278、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime or product qualification claim. | 本记录提交 | 2026-10-19 |
+
+| S6-87 | P1 | FreeRTOS OSAL memory-pool outstanding-allocation deletion boundary | DONE | Zero | Existing FreeRTOS memory-pool owner table | `xy_os_mempool_delete()` now rejects pools with outstanding allocations before releasing backing storage; openCH lifecycle image checks the negative path and emits `OPENCH_OSAL_MEMPOOL_LIFECYCLE_OUTSTANDING_DELETE_OK_A`. Focused policy、Host 278/278、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, memory-safety, concurrency, long-run or product qualification claim. | 本记录提交 | 2026-10-19 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

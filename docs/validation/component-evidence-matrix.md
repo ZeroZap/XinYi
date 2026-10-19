@@ -11,6 +11,21 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建、测试、ST-Link
 > 测试、ST-Link 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-19 FreeRTOS OSAL memory-pool outstanding-allocation deletion boundary
+
+- `xy_os_mempool_delete()` now returns `XY_OS_ERROR_RESOURCE` while any pool block is still
+  allocated, before freeing caller-owned or adapter-owned backing storage. The openCH
+  CH32V307 lifecycle image exercises this negative path before foreign/interior/double-free,
+  reuse, and successful deletion.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c`,
+  `boards/opench_ch32v307/osal_freertos_mempool_lifecycle_main.c`, and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; focused CTest `freertos_osal_thread_flags`; Host
+  `make test-unit` 278/278; PC, STM32L4, STM32U5, and WCH FreeRTOS compile; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed,
+  so this does not upgrade memory safety, concurrency, resource exhaustion, long-run stability,
+  or product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL timer callback ABI contract
 
 - The focused FreeRTOS OSAL policy now guards the existing timer callback boundary: the native

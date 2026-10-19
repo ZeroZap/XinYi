@@ -69,6 +69,10 @@ static void monitor(void* argument) {
         mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_EXHAUST_OK_A\r\n");
     else
         mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_EXHAUST_ERROR_A\r\n");
+    if (xy_os_mempool_delete(pool) != XY_OS_ERROR_RESOURCE)
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_OUTSTANDING_DELETE_ERROR_A\r\n");
+    else
+        mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_OUTSTANDING_DELETE_OK_A\r\n");
     if (xy_os_mempool_free(pool, &outsider) != XY_OS_ERROR_PARAMETER ||
         xy_os_mempool_free(pool, (uint8_t*)blocks[0] + 1) != XY_OS_ERROR_PARAMETER) {
         mark("OPENCH_OSAL_MEMPOOL_LIFECYCLE_FOREIGN_ERROR_A\r\n");

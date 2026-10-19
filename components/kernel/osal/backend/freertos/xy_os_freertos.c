@@ -1291,6 +1291,8 @@ xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
     fr_pool_t *p = (fr_pool_t *)mp_id;
     if (!freertos_find_mempool_context(p))
         return XY_OS_ERROR_PARAMETER;
+    if (p->free_count != p->capacity)
+        return XY_OS_ERROR_RESOURCE;
     if (p->owns_pool_mem)
         vPortFree(p->pool_mem);
     freertos_clear_mempool_context(p);
