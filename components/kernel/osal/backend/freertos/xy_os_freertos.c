@@ -17,6 +17,7 @@ typedef struct {
     TaskHandle_t handle;
     xy_os_thread_func_t func;
     void *argument;
+    uint32_t stack_size;
     uint8_t active;
     char name[16];
 } freertos_thread_context_t;
@@ -236,6 +237,7 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
                                    const xy_os_thread_attr_t *attr)
 {
     configSTACK_DEPTH_TYPE stack = 256U;
+    uint32_t stack_size = 256U * sizeof(StackType_t);
 
     if (!func)
         return NULL;
@@ -255,6 +257,7 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
                 stack_words > (uint32_t)((configSTACK_DEPTH_TYPE)-1))
                 return NULL;
             stack = (configSTACK_DEPTH_TYPE)stack_words;
+            stack_size = attr->stack_size;
         }
     }
     const char *name = (attr && attr->name) ? attr->name : "task";
@@ -268,6 +271,7 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     memset(context, 0, sizeof(*context));
     context->func = func;
     context->argument = argument;
+    context->stack_size = stack_size;
     context->active = 1U;
     strncpy(context->name, name, sizeof(context->name) - 1U);
     if (xTaskCreate(freertos_thread_entry, name, stack, context, prio, &handle) != pdPASS) {
@@ -321,10 +325,10 @@ xy_os_thread_state_t xy_os_thread_get_state(xy_os_thread_id_t thread_id)
 
 uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t thread_id)
 {
-    /* FreeRTOS does not expose a portable per-task configured stack depth
-       unless trace metadata is enabled; zero is the documented unavailable value. */
-    (void)thread_id;
-    return 0U;
+    freertos_thread_context_t *context =
+        freertos_find_thread_context((TaskHandle_t)thread_id);
+
+    return context ? context->stack_size : 0U;
 }
 uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t thread_id)
 {

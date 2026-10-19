@@ -304,7 +304,9 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | S6-81 | P1 | FreeRTOS OSAL message-queue caller-storage boundary | DONE | Zero | Existing dynamic FreeRTOS message-queue adapter | Message-queue creation now rejects nonzero `mq_mem`/`mq_size` caller-storage requests before context or native queue allocation because the adapter only implements dynamic storage; focused policy, Host 278/278, STM32L4/STM32U5/WCH FreeRTOS compile and `git diff --check` passed. No static-allocation or runtime qualification claim. | 本记录提交 | 2026-10-19 |
 
-| S6-85 | P1 | FreeRTOS OSAL timer tick conversion consistency guard | DONE | Zero | S6-01；checked native TickType_t conversion | Timer start now uses checked timeout conversion, rejects zero/unrepresentable periods before native access, and propagates `xTimerChangePeriod()` directly. Focused policy, Host 278/278, PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No target runtime marker. | 本记录提交 | 2026-10-19 |
+### S6-85 | P1 | FreeRTOS OSAL timer tick conversion consistency guard | DONE | Zero | S6-01；checked native TickType_t conversion | Timer start now uses checked timeout conversion, rejects zero/unrepresentable periods before native access, and propagates `xTimerChangePeriod()` directly. Focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No target runtime marker. | 本记录提交 | 2026-10-19 |
+
+| S6-86 | P1 | FreeRTOS OSAL configured thread stack-size ownership | DONE | Zero | Existing FreeRTOS thread owner table | Adapter-owned thread contexts now retain the configured stack size in OSAL byte units; `xy_os_thread_get_stack_size()` returns it for tracked handles and zero for stale/foreign handles. Focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime or product qualification claim. | 本记录提交 | 2026-10-19 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

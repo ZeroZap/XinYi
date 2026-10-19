@@ -24,6 +24,20 @@
   this does not upgrade timer callback timing, scheduler, concurrency, long-run stability, or
   product qualification.
 
+### 2026-10-19 FreeRTOS OSAL configured thread stack-size ownership
+
+- Adapter-owned FreeRTOS thread contexts now retain the configured stack size in OSAL byte units;
+  the public getter returns that value only for a tracked live handle and returns zero for a
+  stale/foreign handle. The default adapter stack is represented as `256 * sizeof(StackType_t)`;
+  explicit attributes retain the validated caller byte size.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; PC/STM32L4/STM32U5/WCH
+  FreeRTOS compile; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade scheduler, stack telemetry runtime, concurrency, long-run stability, or
+  product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL fast-thread-retirement race guard
 
 - Thread context ownership is published before `xTaskCreate()` and the creator only writes the

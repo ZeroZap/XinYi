@@ -676,8 +676,15 @@ def main() -> int:
     stack_space = source.split("uint32_t xy_os_thread_get_stack_space", 1)[-1].split(
         "xy_os_status_t xy_os_thread_set_priority", 1
     )[0]
-    if "return 0U;" not in stack_size:
-        errors.append("FreeRTOS stack-size query must use the documented unavailable value")
+    for required in (
+        "freertos_find_thread_context((TaskHandle_t)thread_id)",
+        "return context ? context->stack_size : 0U;",
+    ):
+        if required not in stack_size:
+            errors.append(
+                "FreeRTOS stack-size query must return the configured adapter-owned byte value "
+                f"or zero for an untracked handle; missing: {required}"
+            )
     if "uxTaskGetStackHighWaterMark(h) * sizeof(StackType_t)" not in stack_space:
         errors.append(
             "FreeRTOS stack high-water marks are measured in StackType_t words and must be "
