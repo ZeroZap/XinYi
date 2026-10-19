@@ -11,6 +11,20 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建、测试、ST-Link
 > 测试、ST-Link 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-19 FreeRTOS OSAL memory-pool deletion/alloc-free race boundary
+
+- Memory-pool delete now enters the critical section, marks an otherwise empty pool as
+  adapter-owned `deleting`, and rejects alloc/free while deletion is in progress. This closes the
+  alloc/free-vs-delete state transition before backing storage is released.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c`,
+  `boards/opench_ch32v307/osal_freertos_mempool_lifecycle_main.c`, and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; PC, STM32L4, STM32U5, and WCH
+  FreeRTOS compile; focused openCH memory-pool lifecycle image link; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade memory safety, concurrency, resource exhaustion, long-run stability, or
+  product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL memory-pool block-size/stride separation
 
 - FreeRTOS memory pools now retain the caller-requested block size as public metadata while using

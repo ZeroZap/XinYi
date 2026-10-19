@@ -1084,6 +1084,7 @@ typedef struct {
     uint32_t  block_size;
     uint32_t  stride;
     volatile uint32_t free_count;
+    uint8_t   deleting;
     void     *free_list;
     uint8_t  *pool_mem;
     uint8_t   owns_pool_mem;
@@ -1220,6 +1221,10 @@ void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 
     while (1) {
         taskENTER_CRITICAL();
+        if (p->deleting) {
+            taskEXIT_CRITICAL();
+            return NULL;
+        }
         if (p->free_list) {
             void *blk    = p->free_list;
             p->free_list = *(void **)blk;
@@ -1243,11 +1248,17 @@ xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
     void *item;
     if (!freertos_find_mempool_context(p) || !block)
         return XY_OS_ERROR_PARAMETER;
+    taskENTER_CRITICAL();
+    if (p->deleting) {
+        taskEXIT_CRITICAL();
+        return XY_OS_ERROR_RESOURCE;
+    }
     if (candidate < p->pool_mem ||
         candidate >= p->pool_mem + p->capacity * p->stride ||
-        ((uintptr_t)(candidate - p->pool_mem) % p->stride) != 0U)
+        ((uintptr_t)(candidate - p->pool_mem) % p->stride) != 0U) {
+        taskEXIT_CRITICAL();
         return XY_OS_ERROR_PARAMETER;
-    taskENTER_CRITICAL();
+    }
     for (item = p->free_list; item; item = *(void **)item) {
         if (item == block) {
             taskEXIT_CRITICAL();
@@ -1298,9 +1309,17 @@ uint32_t xy_os_mempool_get_space(xy_os_mempool_id_t mp_id)
 xy_os_status_t xy_os_mempool_delete(xy_os_mempool_id_t mp_id)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
+    uint8_t can_delete;
+
     if (!freertos_find_mempool_context(p))
         return XY_OS_ERROR_PARAMETER;
-    if (p->free_count != p->capacity)
+
+    taskENTER_CRITICAL();
+    can_delete = (p->free_count == p->capacity && !p->deleting) ? 1U : 0U;
+    if (can_delete)
+        p->deleting = 1U;
+    taskEXIT_CRITICAL();
+    if (!can_delete)
         return XY_OS_ERROR_RESOURCE;
     if (p->owns_pool_mem)
         vPortFree(p->pool_mem);

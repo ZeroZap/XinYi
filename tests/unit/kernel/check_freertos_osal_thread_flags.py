@@ -442,6 +442,7 @@ def main() -> int:
         "OPENCH_OSAL_MEMPOOL_LIFECYCLE_METADATA_OK_A",
         "OPENCH_OSAL_MEMPOOL_LIFECYCLE_EXHAUST_OK_A",
         "OPENCH_OSAL_MEMPOOL_LIFECYCLE_OUTSTANDING_DELETE_OK_A",
+        "OPENCH_OSAL_MEMPOOL_LIFECYCLE_DELETE_RACE_OK_A",
         "OPENCH_OSAL_MEMPOOL_LIFECYCLE_RESOURCE_OK_A",
         "OPENCH_OSAL_MEMPOOL_LIFECYCLE_UNALIGNED_SIZE_OK_A",
         "opench_ch32v307_osal_freertos_mempool_lifecycle_smoke",
@@ -866,13 +867,25 @@ def main() -> int:
         "/* Message Queue", 1
     )[0]
     for required in (
-        "p->free_count != p->capacity",
+        "p->free_count == p->capacity && !p->deleting",
         "return XY_OS_ERROR_RESOURCE;",
     ):
         if required not in mempool_delete:
             errors.append(
                 "FreeRTOS memory-pool deletion must reject outstanding allocations before "
                 f"releasing storage; missing: {required}"
+            )
+
+    for required in (
+        "uint8_t   deleting;",
+        "if (p->deleting)",
+        "can_delete = (p->free_count == p->capacity && !p->deleting) ? 1U : 0U;",
+        "p->deleting = 1U;",
+    ):
+        if required not in mempool_region:
+            errors.append(
+                "FreeRTOS memory-pool deletion must close the allocation/free race with an "
+                f"adapter-owned deleting state; missing: {required}"
             )
 
     kernel_locking = source.split("int32_t xy_os_kernel_lock", 1)[-1].split(

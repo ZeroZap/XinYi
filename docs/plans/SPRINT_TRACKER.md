@@ -6,6 +6,12 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL memory-pool deletion/alloc-free race boundary（2026-10-19）**：memory pool
+现以 adapter-owned `deleting` 状态在 critical section 内原子关闭 alloc/free，并仅在完整空池状态下
+发布删除；focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、openCH lifecycle image link
+与 `git diff --check` 通过。未执行 target program/UART runtime，不升级 memory safety、并发、资源耗尽、
+长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL memory-pool block-size/stride separation（2026-10-19）**：memory pool
 现保留 caller-requested block size 作为公开 metadata，并用独立、checked、pointer-aligned stride
 承载 free-list；非指针对齐 block size 不再产生 misaligned pointer access，alignment rounding overflow
