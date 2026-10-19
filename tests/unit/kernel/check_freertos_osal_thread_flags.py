@@ -647,9 +647,12 @@ def main() -> int:
     for required in (
         "xy_os_thread_func_t func;",
         "void *argument;",
+        "context->active = 1U;",
         "freertos_thread_entry",
         "xTaskCreate(freertos_thread_entry, name, stack, context, prio, &handle)",
         "freertos_clear_thread_context(context->handle);",
+        "if (context->active)",
+        "context->handle = handle;",
     ):
         if required not in source:
             errors.append(f"FreeRTOS thread exit must retire adapter context: {required}")

@@ -12,6 +12,12 @@ tracked context 再删除当前 task，避免已退出 task 的 adapter metadata
 focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行
 target program/UART runtime，不升级 scheduler、并发、长稳或产品资格声明。
 
+**最新 FreeRTOS OSAL fast-thread-retirement race guard（2026-10-19）**：thread context 在
+`xTaskCreate()` 前发布为 active，trampoline 可在 creator 收到 native handle 前完成并清理
+context；creator 仅在 context 仍 active 时回填 handle，避免已退出 task 的 slot 被重新标记为
+live。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check`
+通过；未执行 target program/UART runtime，不升级 scheduler、并发、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL named synchronization-object boundary（2026-10-19）**：FreeRTOS
  event flags、mutex、semaphore 现保存 bounded 16-byte object names，并在 name getter
 前复用 adapter-owned live-context 校验；event-flags context publication 失败会回收 native

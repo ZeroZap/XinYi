@@ -66,6 +66,8 @@ static void freertos_thread_entry(void *argument)
         context->handle = xTaskGetCurrentTaskHandle();
         if (context->func)
             context->func(context->argument);
+        /* Clear by the running task handle; context is already bound before
+           the entry can run, and this also centralizes retirement state. */
         freertos_clear_thread_context(context->handle);
     }
     vTaskDelete(NULL);
@@ -266,13 +268,15 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     memset(context, 0, sizeof(*context));
     context->func = func;
     context->argument = argument;
+    context->active = 1U;
+    strncpy(context->name, name, sizeof(context->name) - 1U);
     if (xTaskCreate(freertos_thread_entry, name, stack, context, prio, &handle) != pdPASS) {
         memset(context, 0, sizeof(*context));
         return NULL;
     }
-    context->handle = handle;
-    context->active = 1U;
-    strncpy(context->name, name, sizeof(context->name) - 1U);
+    /* A running scheduler may retire the task before xTaskCreate() returns. */
+    if (context->active)
+        context->handle = handle;
     return (xy_os_thread_id_t)handle;
 }
 

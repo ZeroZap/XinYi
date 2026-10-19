@@ -24,6 +24,20 @@
   this does not upgrade timer callback timing, scheduler, concurrency, long-run stability, or
   product qualification.
 
+### 2026-10-19 FreeRTOS OSAL fast-thread-retirement race guard
+
+- Thread context ownership is published before `xTaskCreate()` and the creator only writes the
+  returned native handle when the trampoline has not already retired the context. This prevents a
+  task that returns immediately from being resurrected as a live adapter-owned context.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; `make`;
+  `make HAL_PLATFORM=STM32L4`; `make HAL_PLATFORM=STM32U5`;
+  `make HAL_PLATFORM=WCH KCONFIG_OVERRIDES=OSAL_BACKEND_FREERTOS=ON`;
+  `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade scheduler, concurrency, long-run stability, or product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL thread/timer name retention
 
 - FreeRTOS thread and timer names are now copied into adapter-owned bounded contexts;
