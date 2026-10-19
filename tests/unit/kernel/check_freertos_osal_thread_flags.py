@@ -265,6 +265,20 @@ def main() -> int:
                 f"native deletion succeeds; missing: {required}"
             )
 
+    timer_start = source.split("xy_os_status_t xy_os_timer_start", 1)[-1].split(
+        "xy_os_status_t xy_os_timer_stop", 1
+    )[0]
+    for required in (
+        "TickType_t native_ticks;",
+        "ticks == 0U || !freertos_timeout_to_ticks(ticks, &native_ticks)",
+        "xTimerChangePeriod(t, native_ticks, 0)",
+    ):
+        if required not in timer_start:
+            errors.append(
+                "FreeRTOS timer start must reject zero/unrepresentable periods before native "
+                f"access and pass checked TickType_t values; missing: {required}"
+            )
+
     event_flags_get = source.split("uint32_t xy_os_event_flags_get", 1)[-1].split(
         "uint32_t xy_os_event_flags_wait", 1
     )[0]
@@ -520,14 +534,13 @@ def main() -> int:
         "xy_os_status_t xy_os_timer_stop", 1
     )[0]
     for required in (
-        "ticks == 0U",
-        "!freertos_tick_value_valid(ticks)",
-        "return pdstatus_to_xy(xTimerChangePeriod(t, (TickType_t)ticks, 0));",
+        "ticks == 0U || !freertos_timeout_to_ticks(ticks, &native_ticks)",
+        "return pdstatus_to_xy(xTimerChangePeriod(t, native_ticks, 0));",
     ):
         if required not in timer_start:
             errors.append(
-                "FreeRTOS timer start must reject a zero period and propagate the actual "
-                f"change-period command result; missing: {required}"
+                "FreeRTOS timer start must reject zero/unrepresentable periods and propagate "
+                f"the actual change-period command result; missing: {required}"
             )
     if "xTimerStart(t, 0)" in timer_start:
         errors.append(
@@ -653,6 +666,7 @@ def main() -> int:
         "freertos_clear_thread_context(context->handle);",
         "if (context->active)",
         "context->handle = handle;",
+        "else\n        return NULL;",
     ):
         if required not in source:
             errors.append(f"FreeRTOS thread exit must retire adapter context: {required}")

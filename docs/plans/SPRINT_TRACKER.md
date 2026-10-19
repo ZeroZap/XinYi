@@ -6,11 +6,11 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新 FreeRTOS OSAL thread exit ownership boundary（2026-10-19）**：thread context 现保存
-entry function/argument，native task 统一经 adapter trampoline 启动；entry 返回后 trampoline 清除
-tracked context 再删除当前 task，避免已退出 task 的 adapter metadata 残留并允许 context slot 重用。
-focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行
-target program/UART runtime，不升级 scheduler、并发、长稳或产品资格声明。
+**最新 FreeRTOS OSAL timer tick conversion consistency guard（2026-10-19）**：timer start 现使用与
+其他 wait API 相同的 checked `freertos_timeout_to_ticks()`，将有限 tick 安全转换为 `TickType_t`，
+显式拒绝 zero/不可表示 period，并直接传播 `xTimerChangePeriod()` 结果。focused policy、Host 278/278、
+PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级
+定时精度、callback timing、并发、长稳或产品资格声明。
 
 **最新 FreeRTOS OSAL thread trampoline contract guard（2026-10-19）**：FreeRTOS thread policy 现
 额外要求所有 `xTaskCreate()` 使用 adapter-owned `freertos_thread_entry`，避免新增代码绕过
@@ -304,7 +304,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | S6-81 | P1 | FreeRTOS OSAL message-queue caller-storage boundary | DONE | Zero | Existing dynamic FreeRTOS message-queue adapter | Message-queue creation now rejects nonzero `mq_mem`/`mq_size` caller-storage requests before context or native queue allocation because the adapter only implements dynamic storage; focused policy, Host 278/278, STM32L4/STM32U5/WCH FreeRTOS compile and `git diff --check` passed. No static-allocation or runtime qualification claim. | 本记录提交 | 2026-10-19 |
 
-| S6-84 | P1 | FreeRTOS OSAL thread trampoline contract guard | DONE | Zero | S6-83；adapter-owned thread retirement | Focused policy requires all FreeRTOS `xTaskCreate()` paths to use `freertos_thread_entry`; normal return clears tracked context before self-delete, while NULL/foreign/stale lifecycle remains fail-closed. Host 278/278, PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No target runtime marker. | 本记录提交 | 2026-10-19 |
+| S6-85 | P1 | FreeRTOS OSAL timer tick conversion consistency guard | DONE | Zero | S6-01；checked native TickType_t conversion | Timer start now uses checked timeout conversion, rejects zero/unrepresentable periods before native access, and propagates `xTimerChangePeriod()` directly. Focused policy, Host 278/278, PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No target runtime marker. | 本记录提交 | 2026-10-19 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

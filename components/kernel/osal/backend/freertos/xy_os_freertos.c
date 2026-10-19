@@ -277,6 +277,8 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     /* A running scheduler may retire the task before xTaskCreate() returns. */
     if (context->active)
         context->handle = handle;
+    else
+        return NULL;
     return (xy_os_thread_id_t)handle;
 }
 
@@ -600,11 +602,13 @@ const char *xy_os_timer_get_name(xy_os_timer_id_t timer_id)
 xy_os_status_t xy_os_timer_start(xy_os_timer_id_t timer_id, uint32_t ticks)
 {
     TimerHandle_t t = (TimerHandle_t)timer_id;
+    TickType_t native_ticks;
+
     if (!t || !freertos_find_timer_context(t))
         return XY_OS_ERROR_PARAMETER;
-    if (ticks == 0U || !freertos_tick_value_valid(ticks))
+    if (ticks == 0U || !freertos_timeout_to_ticks(ticks, &native_ticks))
         return XY_OS_ERROR_PARAMETER;
-    return pdstatus_to_xy(xTimerChangePeriod(t, (TickType_t)ticks, 0));
+    return pdstatus_to_xy(xTimerChangePeriod(t, native_ticks, 0));
 }
 
 xy_os_status_t xy_os_timer_stop(xy_os_timer_id_t timer_id)
