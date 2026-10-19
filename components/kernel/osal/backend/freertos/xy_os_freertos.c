@@ -561,7 +561,7 @@ static void fr_timer_callback(TimerHandle_t timer)
 {
     fr_timer_context_t *context = (fr_timer_context_t *)pvTimerGetTimerID(timer);
 
-    if (context && context->func)
+    if (context && context->timer == timer && context->func)
         context->func(context->argument);
 }
 

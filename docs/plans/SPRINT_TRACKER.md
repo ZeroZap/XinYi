@@ -6,6 +6,12 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL timer callback handle-binding guard（2026-10-19）**：timer callback
+现同时校验 `pvTimerGetTimerID()` 返回的 adapter context 仍绑定当前 native timer，避免 stale
+或错误 context 触发 OSAL callback；focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS
+compile 与 `git diff --check` 通过。未执行 target program/UART runtime，不升级 timer runtime、
+并发、callback timing、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL memory-pool deletion/alloc-free race boundary（2026-10-19）**：memory pool
 现以 adapter-owned `deleting` 状态在 critical section 内原子关闭 alloc/free，并仅在完整空池状态下
 发布删除；focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、openCH lifecycle image link

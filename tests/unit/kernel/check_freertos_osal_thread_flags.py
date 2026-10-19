@@ -215,6 +215,7 @@ def main() -> int:
     )[0]
     for required in (
         "pvTimerGetTimerID(timer)",
+        "context->timer == timer",
         "context->func(context->argument)",
     ):
         if required not in timer_callback:
