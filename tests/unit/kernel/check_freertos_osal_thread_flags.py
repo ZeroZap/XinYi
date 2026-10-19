@@ -822,13 +822,16 @@ def main() -> int:
             )
 
     for required in (
-        "p->capacity * p->stride",
-        "(uintptr_t)(candidate - p->pool_mem) % p->stride",
+        "uintptr_t candidate_addr = (uintptr_t)block;",
+        "if (p->capacity > (UINTPTR_MAX - pool_addr) / p->stride)",
+        "pool_end = pool_addr + (uintptr_t)p->capacity * p->stride;",
+        "candidate_addr < pool_addr || candidate_addr >= pool_end",
+        "((candidate_addr - pool_addr) % p->stride) != 0U",
     ):
         if required not in mempool_region:
             errors.append(
-                "FreeRTOS memory-pool bounds and alignment must use the internal aligned "
-                f"stride without changing the public block-size contract; missing: {required}"
+                "FreeRTOS memory-pool free must use checked uintptr_t bounds arithmetic before "
+                f"entering the native free-list; missing: {required}"
             )
 
     mempool_alloc = source.split("void *xy_os_mempool_alloc", 1)[-1].split(

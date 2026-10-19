@@ -1251,18 +1251,23 @@ void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
 {
     fr_pool_t *p = (fr_pool_t *)mp_id;
-    uint8_t *candidate = (uint8_t *)block;
+    uintptr_t candidate_addr = (uintptr_t)block;
+    uintptr_t pool_addr;
+    uintptr_t pool_end;
     void *item;
     if (!freertos_find_mempool_context(p) || !block)
         return XY_OS_ERROR_PARAMETER;
+    pool_addr = (uintptr_t)p->pool_mem;
+    if (p->capacity > (UINTPTR_MAX - pool_addr) / p->stride)
+        return XY_OS_ERROR_PARAMETER;
+    pool_end = pool_addr + (uintptr_t)p->capacity * p->stride;
     taskENTER_CRITICAL();
     if (p->deleting) {
         taskEXIT_CRITICAL();
         return XY_OS_ERROR_RESOURCE;
     }
-    if (candidate < p->pool_mem ||
-        candidate >= p->pool_mem + p->capacity * p->stride ||
-        ((uintptr_t)(candidate - p->pool_mem) % p->stride) != 0U) {
+    if (candidate_addr < pool_addr || candidate_addr >= pool_end ||
+        ((candidate_addr - pool_addr) % p->stride) != 0U) {
         taskEXIT_CRITICAL();
         return XY_OS_ERROR_PARAMETER;
     }

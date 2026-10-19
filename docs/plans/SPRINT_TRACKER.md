@@ -1,5 +1,11 @@
 # XinYi Sprint 跟踪看板
 
+**最新 FreeRTOS OSAL memory-pool address-boundary guard（2026-10-19）**：memory pool free 现以
+`uintptr_t` 计算 pool 起止地址，先检查 `capacity × stride` 的地址加法可表示性，再验证 block
+属于 pool 且按内部 stride 对齐；避免通过不同对象指针的 C 指针比较/减法执行未定义的边界检查。
+focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行
+target program/UART runtime，不升级 memory safety、并发、资源耗尽、长稳或产品资格声明。
+
 **建立日期**：2026-08-17
 **当前阶段**：Sprint 5 已于 2026-09-30 收口；进入 Sprint 6 前置收敛，Release 门禁继续按证据保持 `BLOCKED/NO-GO`
 **状态事实源**：本文件
