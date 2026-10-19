@@ -152,7 +152,8 @@ def main() -> int:
         "pdstatus_to_xy_wait(xSemaphoreTake(context->mutex, ticks))",
         "pdstatus_to_xy_wait(xSemaphoreTake(s, ticks))",
         "pdstatus_to_xy_wait(xQueueSendToBack(q, msg_ptr, ticks))",
-        "pdstatus_to_xy_wait(xQueueReceive(q, msg_ptr, ticks))",
+        "result = xQueueReceive(q, msg_ptr, ticks)",
+        "pdstatus_to_xy_wait(result)",
     ):
         if required not in source:
             errors.append(
@@ -395,6 +396,8 @@ def main() -> int:
         'mark("OPENCH_OSAL_QUEUE_LIFECYCLE_BOOT_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
         'mark("OPENCH_OSAL_QUEUE_LIFECYCLE_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\\r\\n");',
         "OPENCH_OSAL_QUEUE_LIFECYCLE_PASS_20261018_A",
+        "OPENCH_OSAL_QUEUE_LIFECYCLE_TIMEOUT_OUTPUT_OK_A",
+        "priority == 0xA5U",
         "OPENCH_OSAL_QUEUE_LIFECYCLE_STALE_OK_A",
         "opench_ch32v307_osal_freertos_queue_lifecycle_smoke",
     ):
@@ -1118,6 +1121,20 @@ def main() -> int:
             "FreeRTOS message queues must reject nonzero message priorities because the "
             "native FIFO queue cannot preserve the public priority contract"
         )
+
+    msgqueue_get = source.split("xy_os_status_t xy_os_msgqueue_get", 1)[-1].split(
+        "uint32_t xy_os_msgqueue_get_capacity", 1
+    )[0]
+    for required in (
+        "result = xQueueReceive(q, msg_ptr, ticks);",
+        "if (result == pdPASS && msg_prio)",
+        "return pdstatus_to_xy_wait(result);",
+    ):
+        if required not in msgqueue_get:
+            errors.append(
+                "FreeRTOS message-queue get must preserve caller priority output when receive "
+                f"fails; missing: {required}"
+            )
 
     msgqueue_new = source.split("xy_os_msgqueue_id_t xy_os_msgqueue_new", 1)[-1].split(
         "const char *xy_os_msgqueue_get_name", 1

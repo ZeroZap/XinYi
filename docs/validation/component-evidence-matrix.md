@@ -11,6 +11,21 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建、测试、ST-Link
 > 测试、ST-Link 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-19 FreeRTOS OSAL queue receive output preservation
+
+- `xy_os_msgqueue_get()` now writes the FIFO priority value `0` only after
+  `xQueueReceive()` succeeds; timeout/error paths preserve the caller's priority output.
+- The openCH CH32V307 queue lifecycle image now checks a `0xA5` priority sentinel across an
+  empty-queue timeout and emits an explicit output-preservation marker.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c`,
+  `boards/opench_ch32v307/osal_freertos_queue_lifecycle_main.c`, and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; PC, STM32L4, STM32U5, and WCH
+  FreeRTOS compile; focused openCH queue lifecycle image link; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade queue runtime, throughput, concurrency, long-run stability, or product
+  qualification.
+
 ### 2026-10-19 FreeRTOS OSAL timer callback native-handle binding
 
 - FreeRTOS timer callback now requires the adapter context recovered from

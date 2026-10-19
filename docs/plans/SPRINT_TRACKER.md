@@ -6,6 +6,13 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL queue receive output-preservation boundary（2026-10-19）**：queue
+receive 仅在 native receive 成功后写回 FIFO priority `0`；timeout/error 不再覆盖 caller
+的 `msg_prio` sentinel。openCH queue lifecycle image 同步加入 timeout output-preservation marker；
+focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、focused image link 与
+`git diff --check` 通过。未执行 target program/UART runtime，不升级 queue runtime、吞吐、并发、
+长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL timer callback handle-binding guard（2026-10-19）**：timer callback
 现同时校验 `pvTimerGetTimerID()` 返回的 adapter context 仍绑定当前 native timer，避免 stale
 或错误 context 触发 OSAL callback；focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS
@@ -341,6 +348,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | S6-87 | P1 | FreeRTOS OSAL memory-pool outstanding-allocation deletion boundary | DONE | Zero | Existing FreeRTOS memory-pool owner table | `xy_os_mempool_delete()` now rejects pools with outstanding allocations before releasing backing storage; openCH lifecycle image checks the negative path and emits `OPENCH_OSAL_MEMPOOL_LIFECYCLE_OUTSTANDING_DELETE_OK_A`. Focused policy、Host 278/278、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, memory-safety, concurrency, long-run or product qualification claim. | 本记录提交 | 2026-10-19 |
 | S6-88 | P1 | FreeRTOS OSAL memory-pool block-size/stride separation | DONE | Zero | S6-87；existing FreeRTOS memory-pool owner table | Public block-size metadata now retains the requested size while an overflow-checked pointer-aligned internal stride owns free-list layout, bounds, and free validation; openCH lifecycle image guards a 10-byte block contract. Focused policy/CTest、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、focused image link 与 `git diff --check` passed. No target runtime or product qualification claim. | 本记录提交 | 2026-10-19 |
+
+| S6-90 | P1 | FreeRTOS OSAL queue receive output preservation | DONE | Zero | Existing FIFO queue adapter and S6-80 priority boundary | `xy_os_msgqueue_get()` now writes priority `0` only after a successful native receive; timeout/error preserves caller output. The openCH lifecycle image guards a sentinel priority across timeout. Focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、focused image link 与 `git diff --check` passed. No target runtime, throughput, concurrency, long-run or product qualification claim. | 本记录提交 | 2026-10-19 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

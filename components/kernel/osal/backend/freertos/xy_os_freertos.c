@@ -1444,13 +1444,16 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
     fr_msgqueue_t *context = (fr_msgqueue_t *)mq_id;
     QueueHandle_t q;
     TickType_t ticks;
+    BaseType_t result;
+
     if (!freertos_find_msgqueue_context(context) || !context->queue || !msg_ptr ||
         !freertos_timeout_to_ticks(timeout, &ticks))
         return XY_OS_ERROR_PARAMETER;
     q = context->queue;
-    if (msg_prio)
+    result = xQueueReceive(q, msg_ptr, ticks);
+    if (result == pdPASS && msg_prio)
         *msg_prio = 0;
-    return pdstatus_to_xy_wait(xQueueReceive(q, msg_ptr, ticks));
+    return pdstatus_to_xy_wait(result);
 }
 
 uint32_t xy_os_msgqueue_get_capacity(xy_os_msgqueue_id_t mq_id)

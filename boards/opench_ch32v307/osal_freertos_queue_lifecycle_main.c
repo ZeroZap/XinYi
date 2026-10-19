@@ -73,10 +73,18 @@ static void monitor(void* argument) {
         }
     }
     mark("OPENCH_OSAL_QUEUE_LIFECYCLE_FIFO_OK_A\r\n");
-    if (xy_os_msgqueue_get(queue, &output, NULL, 20) == XY_OS_ERROR_TIMEOUT)
-        mark("OPENCH_OSAL_QUEUE_LIFECYCLE_TIMEOUT_OK_A\r\n");
-    else
-        mark("OPENCH_OSAL_QUEUE_LIFECYCLE_TIMEOUT_ERROR_A\r\n");
+    {
+        uint8_t priority = 0xA5U;
+
+        if (xy_os_msgqueue_get(queue, &output, &priority, 20) == XY_OS_ERROR_TIMEOUT &&
+            priority == 0xA5U)
+            mark("OPENCH_OSAL_QUEUE_LIFECYCLE_TIMEOUT_OUTPUT_OK_A\r\n");
+        else {
+            mark("OPENCH_OSAL_QUEUE_LIFECYCLE_TIMEOUT_OUTPUT_ERROR_A\r\n");
+            for (;;) {
+            }
+        }
+    }
     (void)xy_os_msgqueue_put(queue, &values[0], 0, 10);
     if (xy_os_msgqueue_reset(queue) == XY_OS_OK && xy_os_msgqueue_get_count(queue) == 0U &&
         xy_os_msgqueue_get_space(queue) == 3U)
