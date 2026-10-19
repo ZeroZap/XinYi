@@ -24,6 +24,20 @@
   so this does not upgrade scheduler, concurrency, resource exhaustion, long-run stability, or
   product qualification.
 
+### 2026-10-20 FreeRTOS OSAL semaphore-context atomic reservation
+
+- `freertos_alloc_semaphore_context()` now performs slot lookup, clearing, and `active`
+  reservation inside one FreeRTOS critical section; concurrent semaphore creators cannot reserve
+  the same adapter-owned context. Native semaphore creation still happens before publication of
+  the semaphore handle, and context exhaustion cleans up the native semaphore.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy/CTest
+  `freertos_osal_thread_flags`; Host `make test-unit` 279/279; PC, STM32L4, STM32U5, and WCH
+  FreeRTOS compile; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed,
+  so this does not upgrade semaphore runtime, concurrency, resource exhaustion, long-run
+  stability, or product qualification.
+
 ### 2026-10-20 Pandora SYS host contract
 
 - Added `pandora_sys` Unity/CTest coverage for the Pandora board-owned SYS override: reset-cause

@@ -967,17 +967,21 @@ static fr_semaphore_context_t
 
 static fr_semaphore_context_t *freertos_alloc_semaphore_context(void)
 {
+    fr_semaphore_context_t *context = NULL;
     uint32_t i;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_SEMAPHORE_CONTEXT_CAPACITY; ++i) {
         if (!g_freertos_semaphore_contexts[i].active) {
             memset(&g_freertos_semaphore_contexts[i], 0,
                    sizeof(g_freertos_semaphore_contexts[i]));
             g_freertos_semaphore_contexts[i].active = 1U;
-            return &g_freertos_semaphore_contexts[i];
+            context = &g_freertos_semaphore_contexts[i];
+            break;
         }
     }
-    return NULL;
+    taskEXIT_CRITICAL();
+    return context;
 }
 
 static fr_semaphore_context_t *freertos_find_semaphore_context(SemaphoreHandle_t semaphore)

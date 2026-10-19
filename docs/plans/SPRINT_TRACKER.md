@@ -6,6 +6,13 @@
 STM32U5/WCH FreeRTOS compile、PC build 与 `git diff --check` 通过。未执行本轮 target
 program/UART runtime，不升级 reset-cause 实板证据、watchdog/power-cycle 证据或产品资格声明。
 
+**最新 FreeRTOS OSAL semaphore-context atomic reservation（2026-10-20）**：semaphore
+context slot 的查找、清零与 `active` reservation 现位于同一 FreeRTOS critical section，
+避免并发创建者选择同一 adapter-owned slot；native semaphore 创建失败仍释放 reservation，
+context exhaustion 仍在 native 创建后回收 semaphore。focused policy、Host 279/279、
+PC/STM32L4/STM32U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行 target
+program/UART runtime，不升级 semaphore runtime、并发、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL thread-context 原子 reservation（2026-10-20）**：thread context slot
 现于 critical section 内完成查找、清零与 `active` reservation，再进入 `xTaskCreate()`；并发
 thread create 不再可能选中同一未预留 slot。focused policy/CTest、Host 278/278、
