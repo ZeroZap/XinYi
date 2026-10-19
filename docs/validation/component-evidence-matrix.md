@@ -11,6 +11,12 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建、测试、ST-Link
 > 测试、ST-Link 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-19 FreeRTOS OSAL mutex owned-delete boundary
+
+- `xy_os_mutex_delete()` now rejects an owned mutex before native deletion; the openCH CH32V307 lifecycle image checks the negative path before release and successful deletion.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c`, `boards/opench_ch32v307/osal_freertos_mutex_lifecycle_main.c`, and `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy, Host, PC/STM32L4/STM32U5/WCH FreeRTOS compile, focused image link, and `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so this does not upgrade mutex runtime, concurrency, recovery, long-run stability, or product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL queue receive output preservation
 
 - `xy_os_msgqueue_get()` now writes the FIFO priority value `0` only after

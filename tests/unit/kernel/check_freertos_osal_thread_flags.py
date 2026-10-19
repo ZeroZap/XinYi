@@ -355,6 +355,19 @@ def main() -> int:
                 f"reject stale handles; missing: {required}"
             )
 
+    mutex_delete = source.split("xy_os_status_t xy_os_mutex_delete", 1)[-1].split(
+        "/* Semaphore */", 1
+    )[0]
+    for required in (
+        "xSemaphoreGetMutexHolder(context->mutex) != NULL",
+        "return XY_OS_ERROR_RESOURCE;",
+    ):
+        if required not in mutex_delete:
+            errors.append(
+                "FreeRTOS mutex delete must reject an owned mutex before native deletion; "
+                f"missing: {required}"
+            )
+
     for function_name, argument_name in (
         ("xy_os_thread_flags_wait", "timeout"),
         ("xy_os_event_flags_wait", "timeout"),
@@ -415,6 +428,7 @@ def main() -> int:
             errors.append(f"FreeRTOS semaphore lifecycle HIL target must remain wired: {required}")
     for required in (
         "osal_freertos_mutex_lifecycle_main.c",
+        "OPENCH_OSAL_MUTEX_LIFECYCLE_OWNED_DELETE_OK_A",
         "OPENCH_OSAL_MUTEX_LIFECYCLE_PASS_20261018_A",
         "opench_ch32v307_osal_freertos_mutex_lifecycle_smoke",
     ):

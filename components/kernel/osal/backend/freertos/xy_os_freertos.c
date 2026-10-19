@@ -935,6 +935,8 @@ xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
     fr_mutex_t *context = (fr_mutex_t *)mutex_id;
     if (!freertos_find_mutex_context(context) || !context->mutex)
         return XY_OS_ERROR_PARAMETER;
+    if (xSemaphoreGetMutexHolder(context->mutex) != NULL)
+        return XY_OS_ERROR_RESOURCE;
     vSemaphoreDelete(context->mutex);
     freertos_clear_mutex_context(context);
     vPortFree(context);

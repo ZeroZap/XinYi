@@ -54,6 +54,10 @@ static void monitor(void* argument) {
         fail("OPENCH_OSAL_MUTEX_LIFECYCLE_CREATE_ERROR_A\r\n");
     mark("OPENCH_OSAL_MUTEX_LIFECYCLE_CREATE_OK_A\r\n");
 
+    if (xy_os_mutex_delete(mutex) != XY_OS_ERROR_RESOURCE)
+        fail("OPENCH_OSAL_MUTEX_LIFECYCLE_OWNED_DELETE_ERROR_A\r\n");
+    mark("OPENCH_OSAL_MUTEX_LIFECYCLE_OWNED_DELETE_OK_A\r\n");
+
     if (xy_os_mutex_acquire(mutex, 0U) != XY_OS_ERROR_TIMEOUT)
         fail("OPENCH_OSAL_MUTEX_LIFECYCLE_REACQUIRE_ERROR_A\r\n");
     mark("OPENCH_OSAL_MUTEX_LIFECYCLE_REACQUIRE_OK_A\r\n");
