@@ -11,6 +11,19 @@
 > 基础验收。SSD1306 deferred，不选择、不推进。无人值守证据仅允许自动构建、测试、ST-Link
 > 测试、ST-Link 独立 UART 采集；人工接线、按键、目视确认和物理故障注入不得作为自动闭环步骤。
 
+### 2026-10-19 FreeRTOS OSAL stack high-water conversion boundary
+
+- `xy_os_thread_get_stack_space()` now retains the native high-water mark in `UBaseType_t`,
+  rejects word counts whose byte conversion cannot fit `uint32_t`, and only then publishes the
+  OSAL byte-unit result. Foreign/stale handles and unrepresentable values return zero.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy
+  `freertos_osal_thread_flags_ok`; Host `make test-unit` 278/278; PC, STM32L4, STM32U5, and WCH
+  FreeRTOS compile; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade stack telemetry runtime, scheduler, concurrency, long-run stability, or
+  product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL mutex owned-delete boundary
 
 - `xy_os_mutex_delete()` now rejects an owned mutex before native deletion; the openCH CH32V307 lifecycle image checks the negative path before release and successful deletion.

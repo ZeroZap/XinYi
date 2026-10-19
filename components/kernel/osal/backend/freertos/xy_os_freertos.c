@@ -333,9 +333,14 @@ uint32_t xy_os_thread_get_stack_size(xy_os_thread_id_t thread_id)
 uint32_t xy_os_thread_get_stack_space(xy_os_thread_id_t thread_id)
 {
     TaskHandle_t h = (TaskHandle_t)thread_id;
-    return (h && freertos_find_thread_context(h))
-               ? (uint32_t)uxTaskGetStackHighWaterMark(h) * sizeof(StackType_t)
-               : 0U;
+    UBaseType_t high_water_words;
+
+    if (!h || !freertos_find_thread_context(h))
+        return 0U;
+    high_water_words = uxTaskGetStackHighWaterMark(h);
+    if (high_water_words > UINT32_MAX / sizeof(StackType_t))
+        return 0U;
+    return (uint32_t)high_water_words * sizeof(StackType_t);
 }
 
 xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,

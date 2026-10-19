@@ -712,11 +712,15 @@ def main() -> int:
                 "FreeRTOS stack-size query must return the configured adapter-owned byte value "
                 f"or zero for an untracked handle; missing: {required}"
             )
-    if "uxTaskGetStackHighWaterMark(h) * sizeof(StackType_t)" not in stack_space:
-        errors.append(
-            "FreeRTOS stack high-water marks are measured in StackType_t words and must be "
-            "converted to the OSAL byte contract"
-        )
+    for required in (
+        "high_water_words = uxTaskGetStackHighWaterMark(h);",
+        "return (uint32_t)high_water_words * sizeof(StackType_t);",
+    ):
+        if required not in stack_space:
+            errors.append(
+                "FreeRTOS stack high-water marks are measured in StackType_t words and must be "
+                f"converted to the OSAL byte contract; missing: {required}"
+            )
 
     priority_mapping = source.split("static int freertos_priority_valid", 1)[-1].split(
         "static xy_os_status_t pdstatus_to_xy", 1
@@ -991,6 +995,19 @@ def main() -> int:
             errors.append(
                 "FreeRTOS handle-based thread queries must validate adapter ownership before "
                 f"native access; missing: {required}"
+            )
+    thread_stack_space = source.split("uint32_t xy_os_thread_get_stack_space", 1)[-1].split(
+        "xy_os_status_t xy_os_thread_set_priority", 1
+    )[0]
+    for required in (
+        "UBaseType_t high_water_words",
+        "high_water_words > UINT32_MAX / sizeof(StackType_t)",
+        "return (uint32_t)high_water_words * sizeof(StackType_t);",
+    ):
+        if required not in thread_stack_space:
+            errors.append(
+                "FreeRTOS thread stack-space telemetry must reject an unrepresentable word-to-byte "
+                f"conversion; missing: {required}"
             )
     thread_new = source.split("xy_os_thread_id_t xy_os_thread_new", 1)[-1].split(
         "const char *xy_os_thread_get_name", 1

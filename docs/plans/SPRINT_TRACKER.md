@@ -6,6 +6,12 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL stack high-water conversion boundary（2026-10-19）**：thread stack-space
+getter 现先以 native `UBaseType_t` 保留 high-water words，并在转换为 OSAL byte unit 前检查
+`uint32_t` 乘法可表示性；foreign/stale handle 与不可表示值均 fail-closed 返回 0。focused policy、
+Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过。未执行 target
+program/UART runtime，不升级 stack telemetry runtime、scheduler、并发、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL queue receive output-preservation boundary（2026-10-19）**：queue
 receive 仅在 native receive 成功后写回 FIFO priority `0`；timeout/error 不再覆盖 caller
 的 `msg_prio` sentinel。openCH queue lifecycle image 同步加入 timeout output-preservation marker；
