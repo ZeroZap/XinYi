@@ -180,6 +180,9 @@ def main() -> int:
         "typedef struct {\n    EventGroupHandle_t event_group;",
         "freertos_publish_event_flags_context(event_group,",
         "freertos_find_event_flags_context((EventGroupHandle_t)ef_id)",
+        "fr_event_flags_t *context = NULL;",
+        "taskENTER_CRITICAL();",
+        "taskEXIT_CRITICAL();",
         "SemaphoreHandle_t mutex;\n    uint8_t recursive;\n    char name[16];",
         "freertos_find_mutex_context(context) ? context->name : NULL",
         "SemaphoreHandle_t semaphore;\n    uint8_t active;\n    char name[16];",
@@ -639,7 +642,6 @@ def main() -> int:
     )[-1].split("const char *xy_os_event_flags_get_name", 1)[0]
     for required in (
         "FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY",
-        "freertos_event_flags_context_available",
         "freertos_find_event_flags_context",
         "freertos_publish_event_flags_context",
         "freertos_clear_event_flags_context",

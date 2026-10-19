@@ -1,5 +1,18 @@
 # XinYi 组件证据台账
 
+### 2026-10-20 FreeRTOS OSAL event-flags-context atomic reservation
+
+- `freertos_publish_event_flags_context()` now performs slot lookup, clearing, and publication
+  inside one FreeRTOS critical section; concurrent event-flags creators cannot reserve the same
+  adapter-owned slot. Native event-group creation still gets deleted when publication fails.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy/CTest
+  `freertos_osal_thread_flags`; Host `make test-unit` 279/279; PC, STM32L4, STM32U5, and WCH
+  FreeRTOS compile; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade event-flags runtime, concurrency, resource exhaustion, long-run stability,
+  or product qualification.
+
 ### 2026-10-20 FreeRTOS OSAL timer-context atomic reservation
 
 - `freertos_alloc_timer_context()` now finds, clears, and marks a bounded owner slot active

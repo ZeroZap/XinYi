@@ -1,5 +1,12 @@
 # XinYi Sprint 跟踪看板
 
+**最新 FreeRTOS OSAL event-flags-context atomic reservation（2026-10-20）**：event-flags
+context 的查找、清零与 publication 现位于同一 FreeRTOS critical section；并发创建者不会
+选择同一 adapter-owned slot，native event-group 创建成功但 publication 失败时仍立即回收。
+focused policy、Host 279/279、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与
+`git diff --check` 通过；未执行 target program/UART runtime，不升级 event-flags runtime、
+并发、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL timer-context atomic reservation（2026-10-20）**：timer context slot 的
 查找、清零与 `active` reservation 现位于同一 FreeRTOS critical section，避免并发创建者选中同一
 adapter-owned slot；native timer 创建失败仍清理 reservation。focused policy、Host、PC/STM32L4/

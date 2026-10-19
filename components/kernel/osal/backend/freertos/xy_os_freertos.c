@@ -672,17 +672,6 @@ typedef struct {
 #define FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY 32U
 static fr_event_flags_t g_freertos_event_flags_contexts[FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY];
 
-static int freertos_event_flags_context_available(void)
-{
-    uint32_t i;
-
-    for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
-        if (!g_freertos_event_flags_contexts[i].event_group)
-            return 1;
-    }
-    return 0;
-}
-
 static fr_event_flags_t *freertos_find_event_flags_context(EventGroupHandle_t event_group)
 {
     uint32_t i;
@@ -698,7 +687,9 @@ static fr_event_flags_t *freertos_publish_event_flags_context(EventGroupHandle_t
                                                                const char *name)
 {
     uint32_t i;
+    fr_event_flags_t *context = NULL;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
         if (!g_freertos_event_flags_contexts[i].event_group) {
             memset(&g_freertos_event_flags_contexts[i], 0,
@@ -707,10 +698,12 @@ static fr_event_flags_t *freertos_publish_event_flags_context(EventGroupHandle_t
             if (name)
                 strncpy(g_freertos_event_flags_contexts[i].name, name,
                         sizeof(g_freertos_event_flags_contexts[i].name) - 1U);
-            return &g_freertos_event_flags_contexts[i];
+            context = &g_freertos_event_flags_contexts[i];
+            break;
         }
     }
-    return NULL;
+    taskEXIT_CRITICAL();
+    return context;
 }
 
 static void freertos_clear_event_flags_context(EventGroupHandle_t event_group)
@@ -742,8 +735,6 @@ xy_os_event_flags_new(const xy_os_event_flags_attr_t *attr)
 
     if (attr &&
         (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U))
-        return NULL;
-    if (!freertos_event_flags_context_available())
         return NULL;
     event_group = xEventGroupCreate();
     if (!event_group)
