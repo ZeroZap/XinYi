@@ -12,11 +12,11 @@ tracked context 再删除当前 task，避免已退出 task 的 adapter metadata
 focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行
 target program/UART runtime，不升级 scheduler、并发、长稳或产品资格声明。
 
-**最新 FreeRTOS OSAL fast-thread-retirement race guard（2026-10-19）**：thread context 在
-`xTaskCreate()` 前发布为 active，trampoline 可在 creator 收到 native handle 前完成并清理
-context；creator 仅在 context 仍 active 时回填 handle，避免已退出 task 的 slot 被重新标记为
-live。focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check`
-通过；未执行 target program/UART runtime，不升级 scheduler、并发、长稳或产品资格声明。
+**最新 FreeRTOS OSAL thread trampoline contract guard（2026-10-19）**：FreeRTOS thread policy 现
+额外要求所有 `xTaskCreate()` 使用 adapter-owned `freertos_thread_entry`，避免新增代码绕过
+context retirement；保留 NULL/foreign/stale lifecycle fail-closed 语义。focused policy、Host 278/278、
+PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级
+scheduler、并发、长稳或产品资格声明。
 
 **最新 FreeRTOS OSAL named synchronization-object boundary（2026-10-19）**：FreeRTOS
  event flags、mutex、semaphore 现保存 bounded 16-byte object names，并在 name getter
@@ -304,7 +304,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | S6-81 | P1 | FreeRTOS OSAL message-queue caller-storage boundary | DONE | Zero | Existing dynamic FreeRTOS message-queue adapter | Message-queue creation now rejects nonzero `mq_mem`/`mq_size` caller-storage requests before context or native queue allocation because the adapter only implements dynamic storage; focused policy, Host 278/278, STM32L4/STM32U5/WCH FreeRTOS compile and `git diff --check` passed. No static-allocation or runtime qualification claim. | 本记录提交 | 2026-10-19 |
 
-| S6-83 | P1 | FreeRTOS OSAL thread exit ownership boundary | DONE | Zero | Existing adapter-owned thread context | Thread entry/argument are retained in tracked context; all created tasks use adapter trampoline; normal entry return clears tracked context before self-delete, allowing bounded context reuse. Focused policy, Host 278/278, PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No target runtime marker. | 本记录提交 | 2026-10-19 |
+| S6-84 | P1 | FreeRTOS OSAL thread trampoline contract guard | DONE | Zero | S6-83；adapter-owned thread retirement | Focused policy requires all FreeRTOS `xTaskCreate()` paths to use `freertos_thread_entry`; normal return clears tracked context before self-delete, while NULL/foreign/stale lifecycle remains fail-closed. Host 278/278, PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No target runtime marker. | 本记录提交 | 2026-10-19 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

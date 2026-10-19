@@ -965,6 +965,8 @@ def main() -> int:
         )
     if "vTaskDelete((TaskHandle_t)thread_id)" in terminate:
         errors.append("FreeRTOS thread terminate must not report success after unobservable deletion")
+    if "freertos_thread_entry" not in source:
+        errors.append("FreeRTOS tasks must use an adapter-owned entry trampoline")
 
     semaphore_new = source.split("xy_os_semaphore_id_t xy_os_semaphore_new", 1)[-1].split(
         "const char *xy_os_semaphore_get_name", 1

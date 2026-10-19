@@ -211,7 +211,12 @@
 - 适用范围：FreeRTOS mutex owner/lifecycle/failure-atomic source contract。
 - 仍不允许宣称：本轮未新增 target runtime marker；mutex 完整 runtime、竞争/优先级协议、长稳或产品资格仍 pending。
 
-### 2026-10-19 FreeRTOS OSAL thread exit ownership boundary
+### 2026-10-19 FreeRTOS thread trampoline contract guard
+
+- 旧边界 -> 新边界：policy 现要求所有 FreeRTOS `xTaskCreate()` 使用 adapter-owned `freertos_thread_entry`，避免新增路径绕过 tracked context retirement；NULL/foreign/stale lifecycle 仍 fail-closed。
+- 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、`git diff --check`。
+- 仍不允许宣称：未执行 target program/UART runtime；不升级 scheduler、并发、长稳或产品资格声明。
+
 
 - 旧边界 -> 新边界：thread context 现保存 entry function/argument，native task 统一经 adapter trampoline 启动；entry 返回后 trampoline 清除 tracked context 再删除当前 task，避免已退出 task 的 adapter metadata 残留并允许 context slot 重用。
 - 证据路径/命令：`components/kernel/osal/backend/freertos/xy_os_freertos.c`、`tests/unit/kernel/check_freertos_osal_thread_flags.py`；focused policy `freertos_osal_thread_flags_ok`；Host 278/278；PC/L4/U5/WCH FreeRTOS compile；`git diff --check`。
