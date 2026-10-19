@@ -15,6 +15,8 @@
 
 typedef struct {
     TaskHandle_t handle;
+    xy_os_thread_func_t func;
+    void *argument;
     uint8_t active;
     char name[16];
 } freertos_thread_context_t;
@@ -56,7 +58,21 @@ static void freertos_clear_thread_context(TaskHandle_t handle)
     }
 }
 
-/* Priority mapping: both FreeRTOS and XY OSAL increase toward higher priority. */
+static void freertos_thread_entry(void *argument)
+{
+    freertos_thread_context_t *context = (freertos_thread_context_t *)argument;
+
+    if (context) {
+        context->handle = xTaskGetCurrentTaskHandle();
+        if (context->func)
+            context->func(context->argument);
+        freertos_clear_thread_context(context->handle);
+    }
+    vTaskDelete(NULL);
+    for (;;) {
+    }
+}
+
 static int freertos_priority_valid(xy_os_priority_t priority)
 {
     return priority >= XY_OS_PRIORITY_IDLE && priority <= XY_OS_PRIORITY_ISR;
@@ -248,7 +264,9 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     if (!context)
         return NULL;
     memset(context, 0, sizeof(*context));
-    if (xTaskCreate(func, name, stack, argument, prio, &handle) != pdPASS) {
+    context->func = func;
+    context->argument = argument;
+    if (xTaskCreate(freertos_thread_entry, name, stack, context, prio, &handle) != pdPASS) {
         memset(context, 0, sizeof(*context));
         return NULL;
     }

@@ -190,7 +190,11 @@ def main() -> int:
                 f"reject stale handles; missing: {required}"
             )
     for required in (
-        "TaskHandle_t handle;\n    uint8_t active;\n    char name[16];",
+        "TaskHandle_t handle;",
+        "xy_os_thread_func_t func;",
+        "void *argument;",
+        "uint8_t active;",
+        "char name[16];",
         "memset(context, 0, sizeof(*context));",
         "strncpy(context->name, name, sizeof(context->name) - 1U)",
         "return freertos_find_thread_context(h)->name;",
@@ -640,6 +644,15 @@ def main() -> int:
     ):
         if required not in mutex_new:
             errors.append(f"FreeRTOS mutex creation must preserve bounded ownership: {required}")
+    for required in (
+        "xy_os_thread_func_t func;",
+        "void *argument;",
+        "freertos_thread_entry",
+        "xTaskCreate(freertos_thread_entry, name, stack, context, prio, &handle)",
+        "freertos_clear_thread_context(context->handle);",
+    ):
+        if required not in source:
+            errors.append(f"FreeRTOS thread exit must retire adapter context: {required}")
     stack_size = source.split("uint32_t xy_os_thread_get_stack_size", 1)[-1].split(
         "uint32_t xy_os_thread_get_stack_space", 1
     )[0]

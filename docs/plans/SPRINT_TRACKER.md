@@ -6,11 +6,11 @@
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
-**最新 FreeRTOS OSAL thread/timer name retention（2026-10-19）**：FreeRTOS adapter 现将
-thread/timer 名称复制到 adapter-owned bounded context，并由 getter 仅从 tracked live context
-返回；focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check`
-通过。提交 `743e4331` 已推送并核对 `HEAD...origin/main=0/0`；未执行 target
-program/UART runtime，不升级 runtime、并发或产品资格声明。
+**最新 FreeRTOS OSAL thread exit ownership boundary（2026-10-19）**：thread context 现保存
+entry function/argument，native task 统一经 adapter trampoline 启动；entry 返回后 trampoline 清除
+tracked context 再删除当前 task，避免已退出 task 的 adapter metadata 残留并允许 context slot 重用。
+focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行
+target program/UART runtime，不升级 scheduler、并发、长稳或产品资格声明。
 
 **最新 FreeRTOS OSAL named synchronization-object boundary（2026-10-19）**：FreeRTOS
  event flags、mutex、semaphore 现保存 bounded 16-byte object names，并在 name getter
@@ -298,7 +298,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | S6-81 | P1 | FreeRTOS OSAL message-queue caller-storage boundary | DONE | Zero | Existing dynamic FreeRTOS message-queue adapter | Message-queue creation now rejects nonzero `mq_mem`/`mq_size` caller-storage requests before context or native queue allocation because the adapter only implements dynamic storage; focused policy, Host 278/278, STM32L4/STM32U5/WCH FreeRTOS compile and `git diff --check` passed. No static-allocation or runtime qualification claim. | 本记录提交 | 2026-10-19 |
 
-| S6-82 | P1 | FreeRTOS OSAL timer callback ABI contract | DONE | Zero | Existing adapter-owned timer context and typed native trampoline | Focused policy now requires the native timer callback to recover the adapter context through `pvTimerGetTimerID()`, forward the caller argument, bind the context through `xTimerCreate()`, and reject direct OSAL/native callback casts. Host 278/278 and `git diff --check` passed; no target runtime or callback timing qualification claim. | 本记录提交 | 2026-10-19 |
+| S6-83 | P1 | FreeRTOS OSAL thread exit ownership boundary | DONE | Zero | Existing adapter-owned thread context | Thread entry/argument are retained in tracked context; all created tasks use adapter trampoline; normal entry return clears tracked context before self-delete, allowing bounded context reuse. Focused policy, Host 278/278, PC/L4/U5/WCH FreeRTOS compile and `git diff --check` passed. No target runtime marker. | 本记录提交 | 2026-10-19 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
