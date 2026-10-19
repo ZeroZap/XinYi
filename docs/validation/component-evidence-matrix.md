@@ -24,6 +24,19 @@
   so this does not upgrade scheduler, concurrency, resource exhaustion, long-run stability, or
   product qualification.
 
+### 2026-10-20 Pandora SYS host contract
+
+- Added `pandora_sys` Unity/CTest coverage for the Pandora board-owned SYS override: reset-cause
+  snapshot and HAL flag clear, reset parameter validation/HAL failure propagation, and unique-ID
+  output plus failure preservation.
+- Evidence path: `boards/pandora_stm32l475/pandora_sys.c`,
+  `tests/unit/sys/test_pandora_sys.c`, and `tests/unit/CMakeLists.txt`; focused CTest
+  `pandora_sys`; Host `make test-unit` 279/279; Pandora STM32L4 clean build; STM32U5 and WCH
+  FreeRTOS compile; PC build; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed,
+  so this does not upgrade reset-cause hardware evidence, watchdog/power-cycle evidence, or
+  product qualification.
+
 ### 2026-10-19 FreeRTOS OSAL memory-pool address-boundary guard
 
 - `xy_os_mempool_free()` now performs pool range and stride checks in `uintptr_t` space, with an

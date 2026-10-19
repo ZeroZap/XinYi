@@ -1,5 +1,11 @@
 # XinYi Sprint 跟踪看板
 
+**最新 Pandora SYS host contract slice（2026-10-20）**：新增 `pandora_sys` Unity/CTest，
+覆盖 board-owned `xy_sys_init()` 的 reset-cause snapshot/clear、software-reset 参数与 HAL
+失败传播，以及 unique-ID 输出和失败保持；Host 279/279、Pandora STM32L4 clean build、
+STM32U5/WCH FreeRTOS compile、PC build 与 `git diff --check` 通过。未执行本轮 target
+program/UART runtime，不升级 reset-cause 实板证据、watchdog/power-cycle 证据或产品资格声明。
+
 **最新 FreeRTOS OSAL thread-context 原子 reservation（2026-10-20）**：thread context slot
 现于 critical section 内完成查找、清零与 `active` reservation，再进入 `xTaskCreate()`；并发
 thread create 不再可能选中同一未预留 slot。focused policy/CTest、Host 278/278、

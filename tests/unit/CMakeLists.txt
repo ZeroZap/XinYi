@@ -2318,6 +2318,15 @@ xy_add_unit_test(test_sys_core sys_core UNITY
 )
 target_include_directories(test_sys_core PRIVATE ${SYS}/xy_sys)
 
+xy_add_unit_test(test_pandora_sys pandora_sys UNITY
+    ${UNIT_SYS}/test_pandora_sys.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_sys.c
+)
+target_include_directories(test_pandora_sys PRIVATE
+    ${SYS}/xy_sys
+    ${HAL}/inc
+)
+
 xy_add_unit_test(test_bootreason_check bootreason_check UNITY
     ${UNIT_KERNEL}/test_bootreason_check.c
 )
