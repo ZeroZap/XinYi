@@ -357,12 +357,13 @@ def main() -> int:
     mutex_region = source.split("/* Mutex */", 1)[-1].split("/* Semaphore */", 1)[0]
     for required in (
         "FREERTOS_MUTEX_CONTEXT_CAPACITY",
-        "freertos_mutex_context_available",
         "freertos_find_mutex_context",
         "freertos_publish_mutex_context",
         "freertos_clear_mutex_context",
         "freertos_find_mutex_context(context)",
         "freertos_clear_mutex_context(context);",
+        "taskENTER_CRITICAL();",
+        "taskEXIT_CRITICAL();",
     ):
         if required not in mutex_region:
             errors.append(
@@ -381,6 +382,20 @@ def main() -> int:
             errors.append(
                 "FreeRTOS mutex delete must reject an owned mutex before native deletion; "
                 f"missing: {required}"
+            )
+
+    mutex_new = source.split("xy_os_mutex_id_t xy_os_mutex_new", 1)[-1].split(
+        "const char *xy_os_mutex_get_name", 1
+    )[0]
+    for required in (
+        "if (!freertos_publish_mutex_context(context))",
+        "vSemaphoreDelete(context->mutex);",
+        "vPortFree(context);",
+    ):
+        if required not in mutex_new:
+            errors.append(
+                "FreeRTOS mutex creation must release native/context storage when the "
+                f"adapter owner table is full; missing: {required}"
             )
 
     for function_name, argument_name in (
@@ -687,8 +702,7 @@ def main() -> int:
         "const char *xy_os_mutex_get_name", 1
     )[0]
     for required in (
-        "freertos_mutex_context_available()",
-        "freertos_publish_mutex_context(context);",
+        "if (!freertos_publish_mutex_context(context))",
         "vPortFree(context);",
     ):
         if required not in mutex_new:

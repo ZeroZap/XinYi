@@ -13,6 +13,19 @@
   so this does not upgrade timer runtime, concurrency, callback timing, resource exhaustion,
   long-run stability, or product qualification.
 
+### 2026-10-20 FreeRTOS OSAL mutex-context atomic reservation
+
+- `freertos_publish_mutex_context()` now reserves bounded mutex owner slots inside one FreeRTOS
+  critical section and reports whether publication succeeded. Mutex creation releases both the
+  native mutex and wrapper when the adapter owner table is full.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy/CTest
+  `freertos_osal_thread_flags`; Host `make test-unit` 279/279; PC, STM32L4, STM32U5, and WCH
+  FreeRTOS compile; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade mutex runtime, competition/priority behavior, resource exhaustion,
+  long-run stability, or product qualification.
+
 **建立日期**：2026-08-17
 **维护入口**：[Sprint 跟踪看板](../plans/SPRINT_TRACKER.md)
 **审计基线**：[全组件状态审计与 Sprint 计划](../plans/2026-08-17-component-audit-sprint-plan.md)

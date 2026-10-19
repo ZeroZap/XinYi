@@ -6,6 +6,13 @@ adapter-owned slot；native timer 创建失败仍清理 reservation。focused po
 STM32U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级
 timer runtime、并发、callback timing、资源耗尽、长稳或产品资格声明。
 
+**最新 FreeRTOS OSAL mutex-context atomic reservation（2026-10-20）**：mutex owner slot 的
+发布现于 FreeRTOS critical section 内完成并返回成功/失败；native mutex 创建成功但 owner
+table 已满时会立即删除 native mutex 并释放 wrapper，避免 untracked mutex 泄漏或并发发布冲突。
+focused policy、Host 279/279、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与
+`git diff --check` 通过；未执行 target program/UART runtime，不升级 mutex runtime、竞争、
+优先级协议、资源耗尽、长稳或产品资格声明。
+
 **最新 Pandora SYS host contract slice（2026-10-20）**：新增 `pandora_sys` Unity/CTest，
 覆盖 board-owned `xy_sys_init()` 的 reset-cause snapshot/clear、software-reset 参数与 HAL
 失败传播，以及 unique-ID 输出和失败保持；Host 279/279、Pandora STM32L4 clean build、

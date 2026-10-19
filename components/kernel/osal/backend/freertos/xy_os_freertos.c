@@ -828,17 +828,6 @@ typedef struct {
 #define FREERTOS_MUTEX_CONTEXT_CAPACITY 32U
 static fr_mutex_t *g_freertos_mutex_contexts[FREERTOS_MUTEX_CONTEXT_CAPACITY];
 
-static int freertos_mutex_context_available(void)
-{
-    uint32_t i;
-
-    for (i = 0U; i < FREERTOS_MUTEX_CONTEXT_CAPACITY; ++i) {
-        if (!g_freertos_mutex_contexts[i])
-            return 1;
-    }
-    return 0;
-}
-
 static fr_mutex_t *freertos_find_mutex_context(fr_mutex_t *mutex)
 {
     uint32_t i;
@@ -850,16 +839,21 @@ static fr_mutex_t *freertos_find_mutex_context(fr_mutex_t *mutex)
     return NULL;
 }
 
-static void freertos_publish_mutex_context(fr_mutex_t *mutex)
+static int freertos_publish_mutex_context(fr_mutex_t *mutex)
 {
     uint32_t i;
+    int published = 0;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_MUTEX_CONTEXT_CAPACITY; ++i) {
         if (!g_freertos_mutex_contexts[i]) {
             g_freertos_mutex_contexts[i] = mutex;
-            return;
+            published = 1;
+            break;
         }
     }
+    taskEXIT_CRITICAL();
+    return published;
 }
 
 static void freertos_clear_mutex_context(fr_mutex_t *mutex)
@@ -882,8 +876,6 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
         return NULL;
     if (attr && (attr->cb_mem || attr->cb_size != 0U))
         return NULL;
-    if (!freertos_mutex_context_available())
-        return NULL;
     context = (fr_mutex_t *)pvPortMalloc(sizeof(*context));
     if (!context)
         return NULL;
@@ -898,7 +890,11 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
         vPortFree(context);
         return NULL;
     }
-    freertos_publish_mutex_context(context);
+    if (!freertos_publish_mutex_context(context)) {
+        vSemaphoreDelete(context->mutex);
+        vPortFree(context);
+        return NULL;
+    }
     return (xy_os_mutex_id_t)context;
 }
 
