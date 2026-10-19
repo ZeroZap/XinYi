@@ -681,7 +681,6 @@ def main() -> int:
     for required in (
         "xy_os_thread_func_t func;",
         "void *argument;",
-        "context->active = 1U;",
         "freertos_thread_entry",
         "xTaskCreate(freertos_thread_entry, name, stack, context, prio, &handle)",
         "freertos_clear_thread_context(context->handle);",
@@ -691,6 +690,21 @@ def main() -> int:
     ):
         if required not in source:
             errors.append(f"FreeRTOS thread exit must retire adapter context: {required}")
+
+    thread_context_alloc = source.split(
+        "static freertos_thread_context_t *freertos_alloc_thread_context", 1
+    )[-1].split("static void freertos_clear_thread_context", 1)[0]
+    for required in (
+        "taskENTER_CRITICAL();",
+        "memset(&g_freertos_thread_contexts[i], 0,",
+        "g_freertos_thread_contexts[i].active = 1U;",
+        "taskEXIT_CRITICAL();",
+    ):
+        if required not in thread_context_alloc:
+            errors.append(
+                "FreeRTOS thread context allocation must reserve and initialize a slot atomically "
+                f"before task creation; missing: {required}"
+            )
     thread_lifecycle = board_thread.split("static void monitor", 1)[-1]
     if "xy_os_thread_get_count() != 0U" not in thread_lifecycle:
         errors.append(

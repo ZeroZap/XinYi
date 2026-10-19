@@ -1,5 +1,11 @@
 # XinYi Sprint 跟踪看板
 
+**最新 FreeRTOS OSAL thread-context 原子 reservation（2026-10-20）**：thread context slot
+现于 critical section 内完成查找、清零与 `active` reservation，再进入 `xTaskCreate()`；并发
+thread create 不再可能选中同一未预留 slot。focused policy/CTest、Host 278/278、
+PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行 target program/UART
+runtime，不升级 scheduler、并发、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL memory-pool address-boundary guard（2026-10-19）**：memory pool free 现以
 `uintptr_t` 计算 pool 起止地址，先检查 `capacity × stride` 的地址加法可表示性，再验证 block
 属于 pool 且按内部 stride 对齐；避免通过不同对象指针的 C 指针比较/减法执行未定义的边界检查。
@@ -364,6 +370,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 || S6-90 | P1 | FreeRTOS OSAL queue receive output preservation | DONE | Existing FIFO queue adapter and S6-80 priority boundary | `xy_os_msgqueue_get()` now writes priority `0` only after a successful native receive; timeout/error preserves caller output. The openCH lifecycle image guards a sentinel priority across timeout. Focused policy、Host 278/278、PC/L4/U5/WCH FreeRTOS compile、focused image link 与 `git diff --check` passed. No target runtime, throughput, concurrency, long-run or product qualification claim. | 本记录提交 |
 
 || S6-91 | P1 | FreeRTOS OSAL mutex owned-delete boundary | DONE | Zero | Existing tracked FreeRTOS mutex lifecycle | `xy_os_mutex_delete()` now rejects an owned mutex before native deletion; the openCH lifecycle image checks the negative path before release and successful delete. Focused policy、Host、PC/L4/U5/WCH FreeRTOS compile、focused image link 与 `git diff --check` passed. No target runtime, concurrency, recovery, long-run or product qualification claim. | 本记录提交 |
+|| S6-92 | P1 | FreeRTOS OSAL thread-context atomic reservation | DONE | Zero | Existing bounded FreeRTOS thread owner table | Context lookup/clear/active reservation now occurs in one critical section before `xTaskCreate()`, preventing concurrent creators from selecting the same slot. Focused policy/CTest、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, scheduler/concurrency, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

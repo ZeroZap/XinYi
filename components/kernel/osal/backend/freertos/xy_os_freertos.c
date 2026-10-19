@@ -40,13 +40,21 @@ static freertos_thread_context_t *freertos_find_thread_context(TaskHandle_t hand
 
 static freertos_thread_context_t *freertos_alloc_thread_context(void)
 {
+    freertos_thread_context_t *context = NULL;
     uint32_t i;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_THREAD_CONTEXT_CAPACITY; ++i) {
-        if (!g_freertos_thread_contexts[i].active)
-            return &g_freertos_thread_contexts[i];
+        if (!g_freertos_thread_contexts[i].active) {
+            memset(&g_freertos_thread_contexts[i], 0,
+                   sizeof(g_freertos_thread_contexts[i]));
+            g_freertos_thread_contexts[i].active = 1U;
+            context = &g_freertos_thread_contexts[i];
+            break;
+        }
     }
-    return NULL;
+    taskEXIT_CRITICAL();
+    return context;
 }
 
 static void freertos_clear_thread_context(TaskHandle_t handle)
@@ -268,11 +276,9 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
 
     if (!context)
         return NULL;
-    memset(context, 0, sizeof(*context));
     context->func = func;
     context->argument = argument;
     context->stack_size = stack_size;
-    context->active = 1U;
     strncpy(context->name, name, sizeof(context->name) - 1U);
     if (xTaskCreate(freertos_thread_entry, name, stack, context, prio, &handle) != pdPASS) {
         memset(context, 0, sizeof(*context));
