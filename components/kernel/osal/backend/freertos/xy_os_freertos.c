@@ -1124,16 +1124,21 @@ static fr_pool_t *freertos_find_mempool_context(fr_pool_t *pool)
     return NULL;
 }
 
-static void freertos_publish_mempool_context(fr_pool_t *pool)
+static int freertos_publish_mempool_context(fr_pool_t *pool)
 {
     uint32_t i;
+    int published = 0;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_MEMPOOL_CONTEXT_CAPACITY; ++i) {
         if (!g_freertos_mempool_contexts[i]) {
             g_freertos_mempool_contexts[i] = pool;
-            return;
+            published = 1;
+            break;
         }
     }
+    taskEXIT_CRITICAL();
+    return published;
 }
 
 static void freertos_clear_mempool_context(fr_pool_t *pool)
@@ -1209,7 +1214,12 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
         p->free_count++;
     }
 
-    freertos_publish_mempool_context(p);
+    if (!freertos_publish_mempool_context(p)) {
+        if (p->owns_pool_mem)
+            vPortFree(p->pool_mem);
+        vPortFree(p);
+        return NULL;
+    }
     return (xy_os_mempool_id_t)p;
 }
 

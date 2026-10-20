@@ -826,7 +826,11 @@ def main() -> int:
         "freertos_find_mempool_context",
         "freertos_publish_mempool_context",
         "freertos_clear_mempool_context",
-        "freertos_publish_mempool_context(p);",
+        "if (!freertos_publish_mempool_context(p))",
+        "taskENTER_CRITICAL();",
+        "taskEXIT_CRITICAL();",
+        "vPortFree(p->pool_mem);",
+        "vPortFree(p);",
         "freertos_clear_mempool_context(p);",
     ):
         if required not in mempool_region:

@@ -1,5 +1,11 @@
 # XinYi Sprint 跟踪看板
 
+**最新 FreeRTOS OSAL memory-pool-context atomic reservation（2026-10-20）**：memory-pool
+context publication 现位于同一 FreeRTOS critical section 内；context table 满时会释放
+pool backing memory 与 wrapper，避免 native/adapter-owned pool 泄漏。focused policy、Host
+279/279、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行
+target program/UART runtime，不升级 memory-pool runtime、并发、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL message-queue-context atomic reservation（2026-10-20）**：message-queue
 context 的 publication 现位于同一 FreeRTOS critical section 内；并发创建者不会选择同一
 adapter-owned slot，native queue 创建成功但 publication 失败时会立即删除 queue 并释放 wrapper。
