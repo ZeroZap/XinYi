@@ -569,8 +569,10 @@ static fr_timer_context_t *freertos_find_timer_context(TimerHandle_t timer)
 
 static void freertos_clear_timer_context(fr_timer_context_t *context)
 {
+    taskENTER_CRITICAL();
     if (context)
         memset(context, 0, sizeof(*context));
+    taskEXIT_CRITICAL();
 }
 
 static void fr_timer_callback(TimerHandle_t timer)
