@@ -220,6 +220,21 @@ def main() -> int:
                 f"contexts; missing: {required}"
             )
 
+    thread_clear = source.split("static void freertos_clear_thread_context", 1)[-1].split(
+        "static void freertos_thread_entry", 1
+    )[0]
+    for required in (
+        "taskENTER_CRITICAL();",
+        "freertos_find_thread_context(handle)",
+        "memset(context, 0, sizeof(*context));",
+        "taskEXIT_CRITICAL();",
+    ):
+        if required not in thread_clear:
+            errors.append(
+                "FreeRTOS thread context retirement must clear the owner slot atomically with "
+                f"respect to concurrent creators; missing: {required}"
+            )
+
     timer_callback = source.split("static void fr_timer_callback", 1)[-1].split(
         "xy_os_timer_id_t xy_os_timer_new", 1
     )[0]

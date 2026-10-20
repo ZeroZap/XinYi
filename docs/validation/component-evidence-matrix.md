@@ -1,5 +1,17 @@
 # XinYi 组件证据台账
 
+### 2026-10-20 FreeRTOS OSAL thread-context atomic retirement
+
+- `freertos_clear_thread_context()` now finds and fully clears the bounded owner slot within one
+  FreeRTOS critical section; concurrent creators cannot reuse a partially retired context.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy/CTest
+  `freertos_osal_thread_flags`; Host unit suite; PC, STM32L4, STM32U5, and WCH FreeRTOS compile;
+  `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade scheduler, concurrency, resource exhaustion, long-run stability, or product
+  qualification.
+
 ### 2026-10-20 FreeRTOS OSAL memory-pool-context atomic reservation
 
 - `freertos_publish_mempool_context()` now reserves a bounded owner slot inside one FreeRTOS

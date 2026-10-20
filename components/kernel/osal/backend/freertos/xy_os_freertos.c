@@ -59,12 +59,13 @@ static freertos_thread_context_t *freertos_alloc_thread_context(void)
 
 static void freertos_clear_thread_context(TaskHandle_t handle)
 {
-    freertos_thread_context_t *context = freertos_find_thread_context(handle);
+    freertos_thread_context_t *context;
 
-    if (context) {
-        context->handle = NULL;
-        context->active = 0U;
-    }
+    taskENTER_CRITICAL();
+    context = freertos_find_thread_context(handle);
+    if (context)
+        memset(context, 0, sizeof(*context));
+    taskEXIT_CRITICAL();
 }
 
 static void freertos_thread_entry(void *argument)

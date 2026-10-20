@@ -1,5 +1,11 @@
 # XinYi Sprint 跟踪看板
 
+**最新 FreeRTOS OSAL thread-context atomic retirement（2026-10-20）**：thread context
+retirement 现于同一 FreeRTOS critical section 内查找并完整清零 owner slot，避免 concurrent
+creator 在旧 metadata 尚未清除时复用 slot。focused policy/CTest、Host、PC/STM32L4/STM32U5/
+WCH FreeRTOS compile 与 `git diff --check` 通过；未执行 target program/UART runtime，不升级
+scheduler、并发、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL memory-pool-context atomic reservation（2026-10-20）**：memory-pool
 context publication 现位于同一 FreeRTOS critical section 内；context table 满时会释放
 pool backing memory 与 wrapper，避免 native/adapter-owned pool 泄漏。focused policy、Host
@@ -418,6 +424,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 || S6-91 | P1 | FreeRTOS OSAL mutex owned-delete boundary | DONE | Zero | Existing tracked FreeRTOS mutex lifecycle | `xy_os_mutex_delete()` now rejects an owned mutex before native deletion; the openCH lifecycle image checks the negative path before release and successful delete. Focused policy、Host、PC/L4/U5/WCH FreeRTOS compile、focused image link 与 `git diff --check` passed. No target runtime, concurrency, recovery, long-run or product qualification claim. | 本记录提交 |
 || S6-92 | P1 | FreeRTOS OSAL thread-context atomic reservation | DONE | Zero | Existing bounded FreeRTOS thread owner table | Context lookup/clear/active reservation now occurs in one critical section before `xTaskCreate()`, preventing concurrent creators from selecting the same slot. Focused policy/CTest、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, scheduler/concurrency, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
 || S6-93 | P1 | FreeRTOS OSAL message-queue-context atomic reservation | DONE | Zero | Existing bounded FreeRTOS message-queue owner table | Message-queue context publication now reserves a slot inside one critical section; native queue creation is rolled back when adapter publication has no slot. Focused policy/CTest、Host 279/279、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, queue concurrency/throughput, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
+|| S6-94 | P1 | FreeRTOS OSAL thread-context atomic retirement | DONE | Zero | S6-92；existing bounded FreeRTOS thread owner table | Thread retirement now finds and fully clears its owner slot inside one critical section, preventing concurrent creators from observing partially retired metadata. Focused policy/CTest、Host、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, scheduler/concurrency, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
