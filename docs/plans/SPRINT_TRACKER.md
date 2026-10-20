@@ -1,5 +1,11 @@
 # XinYi Sprint 跟踪看板
 
+**最新 FreeRTOS OSAL mutex-context atomic retirement（2026-10-20）**：mutex owner
+slot 现于同一 FreeRTOS critical section 内查找并清除，避免 concurrent creator 在 retirement
+尚未完成时复用 slot。focused policy/CTest、Host、PC/STM32L4/STM32U5/WCH FreeRTOS compile
+与 `git diff --check` 通过；未执行 target program/UART runtime，不升级 mutex runtime、竞争、
+优先级协议、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL event-flags-context atomic retirement（2026-10-20）**：event-flags
 context lookup 与完整清零现位于同一 FreeRTOS critical section，避免 concurrent creator 在旧
 event-group/name metadata 尚未清除时复用 slot。focused policy/CTest、Host、PC/STM32L4/

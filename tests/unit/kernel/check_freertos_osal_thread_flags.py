@@ -409,6 +409,20 @@ def main() -> int:
                 f"reject stale handles; missing: {required}"
             )
 
+    mutex_clear = source.split("static void freertos_clear_mutex_context", 1)[-1].split(
+        "xy_os_mutex_id_t xy_os_mutex_new", 1
+    )[0]
+    for required in (
+        "taskENTER_CRITICAL();",
+        "g_freertos_mutex_contexts[i] = NULL;",
+        "taskEXIT_CRITICAL();",
+    ):
+        if required not in mutex_clear:
+            errors.append(
+                "FreeRTOS mutex context retirement must clear the owner slot atomically with "
+                f"respect to concurrent creators; missing: {required}"
+            )
+
     mutex_delete = source.split("xy_os_status_t xy_os_mutex_delete", 1)[-1].split(
         "/* Semaphore */", 1
     )[0]

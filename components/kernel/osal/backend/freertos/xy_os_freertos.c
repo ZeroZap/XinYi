@@ -856,12 +856,14 @@ static void freertos_clear_mutex_context(fr_mutex_t *mutex)
 {
     uint32_t i;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_MUTEX_CONTEXT_CAPACITY; ++i) {
         if (g_freertos_mutex_contexts[i] == mutex) {
             g_freertos_mutex_contexts[i] = NULL;
-            return;
+            break;
         }
     }
+    taskEXIT_CRITICAL();
 }
 
 xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
