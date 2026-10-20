@@ -1154,12 +1154,14 @@ static void freertos_clear_mempool_context(fr_pool_t *pool)
 {
     uint32_t i;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_MEMPOOL_CONTEXT_CAPACITY; ++i) {
         if (g_freertos_mempool_contexts[i] == pool) {
             g_freertos_mempool_contexts[i] = NULL;
-            return;
+            break;
         }
     }
+    taskEXIT_CRITICAL();
 }
 
 xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,

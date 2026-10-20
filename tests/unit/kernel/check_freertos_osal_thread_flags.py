@@ -1027,6 +1027,21 @@ def main() -> int:
                 f"releasing storage; missing: {required}"
             )
 
+    mempool_clear = source.split("static void freertos_clear_mempool_context", 1)[-1].split(
+        "xy_os_mempool_id_t xy_os_mempool_new", 1
+    )[0]
+    for required in (
+        "taskENTER_CRITICAL();",
+        "g_freertos_mempool_contexts[i] = NULL;",
+        "break;",
+        "taskEXIT_CRITICAL();",
+    ):
+        if required not in mempool_clear:
+            errors.append(
+                "FreeRTOS memory-pool context retirement must clear the owner slot inside one "
+                f"critical section; missing: {required}"
+            )
+
     for required in (
         "uint8_t   deleting;",
         "if (p->deleting)",
