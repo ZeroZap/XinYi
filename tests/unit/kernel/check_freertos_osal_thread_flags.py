@@ -459,6 +459,20 @@ def main() -> int:
         if required not in semaphore_delete:
             errors.append(f"FreeRTOS semaphore delete must preserve tracked lifecycle: {required}")
 
+    semaphore_clear = source.split("static void freertos_clear_semaphore_context", 1)[-1].split(
+        "xy_os_semaphore_id_t xy_os_semaphore_new", 1
+    )[0]
+    for required in (
+        "taskENTER_CRITICAL();",
+        "memset(context, 0, sizeof(*context));",
+        "taskEXIT_CRITICAL();",
+    ):
+        if required not in semaphore_clear:
+            errors.append(
+                "FreeRTOS semaphore context retirement must clear the owner slot atomically "
+                f"with respect to concurrent creators; missing: {required}"
+            )
+
     semaphore_new = source.split("xy_os_semaphore_id_t xy_os_semaphore_new", 1)[-1].split(
         "const char *xy_os_semaphore_get_name", 1
     )[0]

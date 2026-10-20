@@ -992,8 +992,10 @@ static fr_semaphore_context_t *freertos_find_semaphore_context(SemaphoreHandle_t
 
 static void freertos_clear_semaphore_context(fr_semaphore_context_t *context)
 {
+    taskENTER_CRITICAL();
     if (context)
         memset(context, 0, sizeof(*context));
+    taskEXIT_CRITICAL();
 }
 
 xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count,
