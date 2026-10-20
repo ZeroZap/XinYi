@@ -1,5 +1,12 @@
 # XinYi Sprint 跟踪看板
 
+**最新 FreeRTOS OSAL message-queue-context atomic reservation（2026-10-20）**：message-queue
+context 的 publication 现位于同一 FreeRTOS critical section 内；并发创建者不会选择同一
+adapter-owned slot，native queue 创建成功但 publication 失败时会立即删除 queue 并释放 wrapper。
+focused policy、Host 279/279、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与
+`git diff --check` 通过；未执行 target program/UART runtime，不升级 queue runtime、并发、
+资源耗尽、吞吐、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL event-flags-context atomic reservation（2026-10-20）**：event-flags
 context 的查找、清零与 publication 现位于同一 FreeRTOS critical section；并发创建者不会
 选择同一 adapter-owned slot，native event-group 创建成功但 publication 失败时仍立即回收。
@@ -404,6 +411,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 || S6-91 | P1 | FreeRTOS OSAL mutex owned-delete boundary | DONE | Zero | Existing tracked FreeRTOS mutex lifecycle | `xy_os_mutex_delete()` now rejects an owned mutex before native deletion; the openCH lifecycle image checks the negative path before release and successful delete. Focused policy、Host、PC/L4/U5/WCH FreeRTOS compile、focused image link 与 `git diff --check` passed. No target runtime, concurrency, recovery, long-run or product qualification claim. | 本记录提交 |
 || S6-92 | P1 | FreeRTOS OSAL thread-context atomic reservation | DONE | Zero | Existing bounded FreeRTOS thread owner table | Context lookup/clear/active reservation now occurs in one critical section before `xTaskCreate()`, preventing concurrent creators from selecting the same slot. Focused policy/CTest、Host 278/278、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, scheduler/concurrency, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
+|| S6-93 | P1 | FreeRTOS OSAL message-queue-context atomic reservation | DONE | Zero | Existing bounded FreeRTOS message-queue owner table | Message-queue context publication now reserves a slot inside one critical section; native queue creation is rolled back when adapter publication has no slot. Focused policy/CTest、Host 279/279、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, queue concurrency/throughput, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

@@ -170,6 +170,12 @@ def main() -> int:
         "memset(context, 0, sizeof(*context));",
         "strncpy(context->name, attr->name, sizeof(context->name) - 1U)",
         "freertos_find_msgqueue_context(context) ? context->name : NULL",
+        "freertos_publish_msgqueue_context(context)",
+        "taskENTER_CRITICAL();",
+        "taskEXIT_CRITICAL();",
+        "int published = 0;",
+        "if (!freertos_publish_msgqueue_context(context))",
+        "vQueueDelete(context->queue);",
     ):
         if required not in queue_region:
             errors.append(
@@ -1163,11 +1169,11 @@ def main() -> int:
     msgqueue_region = source.split("/* Message Queue */", 1)[-1]
     for required in (
         "FREERTOS_MSGQUEUE_CONTEXT_CAPACITY",
-        "freertos_msgqueue_context_available",
         "freertos_find_msgqueue_context",
         "freertos_publish_msgqueue_context",
         "freertos_clear_msgqueue_context",
-        "freertos_publish_msgqueue_context(context);",
+        "if (!freertos_publish_msgqueue_context(context))",
+        "vQueueDelete(context->queue);",
         "freertos_clear_msgqueue_context(context);",
     ):
         if required not in msgqueue_region:

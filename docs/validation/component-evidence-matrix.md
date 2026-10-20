@@ -1,5 +1,18 @@
 # XinYi 组件证据台账
 
+### 2026-10-20 FreeRTOS OSAL message-queue-context atomic reservation
+
+- `freertos_publish_msgqueue_context()` now reserves a bounded owner slot inside one FreeRTOS
+  critical section; message-queue creation deletes the native queue and frees its wrapper when
+  publication cannot reserve an adapter-owned slot.
+- Evidence path: `components/kernel/osal/backend/freertos/xy_os_freertos.c` and
+  `tests/unit/kernel/check_freertos_osal_thread_flags.py`; focused policy/CTest
+  `freertos_osal_thread_flags`; Host `make test-unit` 279/279; PC, STM32L4, STM32U5, and WCH
+  FreeRTOS compile; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no target programming/UART runtime was executed, so
+  this does not upgrade queue runtime, concurrency, resource exhaustion, throughput, long-run
+  stability, or product qualification.
+
 ### 2026-10-20 FreeRTOS OSAL event-flags-context atomic reservation
 
 - `freertos_publish_event_flags_context()` now performs slot lookup, clearing, and publication

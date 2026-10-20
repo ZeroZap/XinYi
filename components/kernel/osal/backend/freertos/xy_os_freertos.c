@@ -1352,17 +1352,6 @@ typedef struct {
 #define FREERTOS_MSGQUEUE_CONTEXT_CAPACITY 32U
 static fr_msgqueue_t *g_freertos_msgqueue_contexts[FREERTOS_MSGQUEUE_CONTEXT_CAPACITY];
 
-static int freertos_msgqueue_context_available(void)
-{
-    uint32_t i;
-
-    for (i = 0U; i < FREERTOS_MSGQUEUE_CONTEXT_CAPACITY; ++i) {
-        if (!g_freertos_msgqueue_contexts[i])
-            return 1;
-    }
-    return 0;
-}
-
 static fr_msgqueue_t *freertos_find_msgqueue_context(fr_msgqueue_t *queue)
 {
     uint32_t i;
@@ -1374,16 +1363,21 @@ static fr_msgqueue_t *freertos_find_msgqueue_context(fr_msgqueue_t *queue)
     return NULL;
 }
 
-static void freertos_publish_msgqueue_context(fr_msgqueue_t *queue)
+static int freertos_publish_msgqueue_context(fr_msgqueue_t *queue)
 {
     uint32_t i;
+    int published = 0;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_MSGQUEUE_CONTEXT_CAPACITY; ++i) {
         if (!g_freertos_msgqueue_contexts[i]) {
             g_freertos_msgqueue_contexts[i] = queue;
-            return;
+            published = 1;
+            break;
         }
     }
+    taskEXIT_CRITICAL();
+    return published;
 }
 
 static void freertos_clear_msgqueue_context(fr_msgqueue_t *queue)
@@ -1406,8 +1400,7 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
     if (attr && (attr->attr_bits != 0U || attr->cb_mem || attr->cb_size != 0U ||
                  attr->mq_mem || attr->mq_size != 0U))
         return NULL;
-    if (!freertos_msgqueue_context_available())
-        return NULL;
+
     if (msg_count == 0U || msg_size == 0U ||
         msg_count > (uint32_t)((UBaseType_t)-1) ||
         msg_size > (uint32_t)((UBaseType_t)-1))
@@ -1425,7 +1418,11 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
     context->msg_size = msg_size;
     if (attr && attr->name)
         strncpy(context->name, attr->name, sizeof(context->name) - 1U);
-    freertos_publish_msgqueue_context(context);
+    if (!freertos_publish_msgqueue_context(context)) {
+        vQueueDelete(context->queue);
+        vPortFree(context);
+        return NULL;
+    }
     return (xy_os_msgqueue_id_t)context;
 }
 
