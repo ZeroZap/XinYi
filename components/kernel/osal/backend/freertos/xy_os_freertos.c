@@ -713,13 +713,15 @@ static void freertos_clear_event_flags_context(EventGroupHandle_t event_group)
 {
     uint32_t i;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_EVENT_FLAGS_CONTEXT_CAPACITY; ++i) {
         if (g_freertos_event_flags_contexts[i].event_group == event_group) {
             memset(&g_freertos_event_flags_contexts[i], 0,
                    sizeof(g_freertos_event_flags_contexts[i]));
-            return;
+            break;
         }
     }
+    taskEXIT_CRITICAL();
 }
 
 static int freertos_event_flags_args_valid(uint32_t flags, uint32_t options)

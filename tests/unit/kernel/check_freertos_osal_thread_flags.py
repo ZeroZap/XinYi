@@ -720,6 +720,20 @@ def main() -> int:
     if "freertos_clear_event_flags_context(event_group);" not in event_flags_region:
         errors.append("FreeRTOS event-flags delete must clear owner state after native deletion")
 
+    event_flags_clear = source.split(
+        "static void freertos_clear_event_flags_context", 1
+    )[-1].split("static int freertos_event_flags_args_valid", 1)[0]
+    for required in (
+        "taskENTER_CRITICAL();",
+        "memset(&g_freertos_event_flags_contexts[i], 0,",
+        "taskEXIT_CRITICAL();",
+    ):
+        if required not in event_flags_clear:
+            errors.append(
+                "FreeRTOS event-flags context retirement must clear the owner slot atomically "
+                f"with respect to concurrent creators; missing: {required}"
+            )
+
     mutex_region = source.split("/* Mutex */", 1)[-1].split("/* Semaphore */", 1)[0]
     for required in (
         "typedef struct {",
