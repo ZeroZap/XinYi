@@ -1273,6 +1273,21 @@ def main() -> int:
                 "before kernel access"
             )
 
+    msgqueue_clear = source.split("static void freertos_clear_msgqueue_context", 1)[-1].split(
+        "xy_os_msgqueue_id_t xy_os_msgqueue_new", 1
+    )[0]
+    for required in (
+        "taskENTER_CRITICAL();",
+        "g_freertos_msgqueue_contexts[i] = NULL;",
+        "break;",
+        "taskEXIT_CRITICAL();",
+    ):
+        if required not in msgqueue_clear:
+            errors.append(
+                "FreeRTOS message-queue context retirement must clear the owner slot inside one "
+                f"critical section; missing: {required}"
+            )
+
     msgqueue_put = source.split("xy_os_status_t xy_os_msgqueue_put", 1)[-1].split(
         "xy_os_status_t xy_os_msgqueue_get", 1
     )[0]

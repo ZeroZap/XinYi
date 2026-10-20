@@ -95,6 +95,12 @@ target program/UART runtime，不升级 memory safety、并发、资源耗尽、
 **范围与验收事实源**：[全组件状态审计与 Sprint 计划](2026-08-17-component-audit-sprint-plan.md)
 **质量流程事实源**：[组件设计与质量闭环](../design/xinyi-component-quality-loop.md)
 
+**最新 FreeRTOS OSAL message-queue-context atomic retirement（2026-10-20）**：message-queue
+context retirement 现于同一 FreeRTOS critical section 内查找并清除 owner slot，避免
+concurrent delete 与 creator 在旧 queue metadata 尚未清除时发生 slot reuse。focused policy/CTest、
+Host 279/279、PC/STM32L4/STM32U5/WCH FreeRTOS compile 与 `git diff --check` 通过；未执行
+target program/UART runtime，不升级 queue runtime、并发、吞吐、资源耗尽、长稳或产品资格声明。
+
 **最新 FreeRTOS OSAL stack high-water conversion boundary（2026-10-19）**：thread stack-space
 getter 现先以 native `UBaseType_t` 保留 high-water words，并在转换为 OSAL byte unit 前检查
 `uint32_t` 乘法可表示性；foreign/stale handle 与不可表示值均 fail-closed 返回 0。focused policy、

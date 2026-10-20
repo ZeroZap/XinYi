@@ -1403,12 +1403,14 @@ static void freertos_clear_msgqueue_context(fr_msgqueue_t *queue)
 {
     uint32_t i;
 
+    taskENTER_CRITICAL();
     for (i = 0U; i < FREERTOS_MSGQUEUE_CONTEXT_CAPACITY; ++i) {
         if (g_freertos_msgqueue_contexts[i] == queue) {
             g_freertos_msgqueue_contexts[i] = NULL;
-            return;
+            break;
         }
     }
+    taskEXIT_CRITICAL();
 }
 
 xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
