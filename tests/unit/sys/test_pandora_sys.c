@@ -90,10 +90,47 @@ void test_chip_id_requires_output_and_preserves_output_on_hal_failure(void) {
     TEST_ASSERT_EQUAL_UINT32(UINT32_C(0xAAAAAAAA), chip_id[0]);
 }
 
+void test_mac_addr_requires_output_and_preserves_on_hal_failure(void) {
+    uint8_t mac[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR_INVALID_PARAM, xy_sys_get_mac_addr(NULL));
+
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_sys_get_mac_addr(mac));
+    TEST_ASSERT_EQUAL_UINT8(0x2E, mac[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, mac[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x1B, mac[2]);
+    TEST_ASSERT_EQUAL_UINT8(0x00, mac[3]);
+    TEST_ASSERT_EQUAL_UINT8(0x13, mac[4]);
+    TEST_ASSERT_EQUAL_UINT8(0x50, mac[5]);
+    /* unicast: bit 0 clear; locally administered: bit 1 set */
+    TEST_ASSERT_EQUAL_UINT8(0x00, mac[0] & 0x01U);
+    TEST_ASSERT_EQUAL_UINT8(0x02, mac[0] & 0x02U);
+    TEST_ASSERT_EQUAL_UINT(1U, uid_calls);
+
+    fake_uid_result = XY_HAL_ERROR;
+    mac[0] = 0xAA;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_sys_get_mac_addr(mac));
+    TEST_ASSERT_EQUAL_UINT8(0xAA, mac[0]);
+}
+
+void test_mac_addr_normalizes_unicast_and_locally_administered_bits(void) {
+    uint8_t mac[6];
+
+    fake_uid[0] = UINT32_C(0x000000FF); /* low byte 0xFF: bit 0 (multicast) set */
+    fake_uid[1] = UINT32_C(0x00000000);
+    fake_uid[2] = UINT32_C(0x00000000);
+
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_sys_get_mac_addr(mac));
+    TEST_ASSERT_EQUAL_UINT8(0xFC, mac[0] & 0xFCU); /* upper 6 bits preserved */
+    TEST_ASSERT_EQUAL_UINT8(0x02, mac[0] & 0x03U); /* bit 0 clear, bit 1 set */
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_init_snapshots_reset_reason_and_clears_hal_flags);
     RUN_TEST(test_reset_validates_input_and_propagates_hal_failure);
     RUN_TEST(test_chip_id_requires_output_and_preserves_output_on_hal_failure);
+    RUN_TEST(test_mac_addr_requires_output_and_preserves_on_hal_failure);
+    RUN_TEST(test_mac_addr_normalizes_unicast_and_locally_administered_bits);
     return UNITY_END();
 }

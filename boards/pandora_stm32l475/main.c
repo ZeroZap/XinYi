@@ -44,6 +44,16 @@ static void uart_hex32(uint32_t value)
     (void)xy_hal_uart_send(&uart1, text, sizeof(text), 100U);
 }
 
+static void uart_hex8(uint8_t value)
+{
+    static const char digits[] = "0123456789ABCDEF";
+    uint8_t text[2];
+
+    text[0] = (uint8_t)digits[(value >> 4U) & 0x0FU];
+    text[1] = (uint8_t)digits[value & 0x0FU];
+    (void)xy_hal_uart_send(&uart1, text, sizeof(text), 100U);
+}
+
 static int aht10_init(xy_i2c_device_t *device)
 {
     static const uint8_t command[] = {0xE1U, 0x08U, 0x00U};
@@ -156,6 +166,7 @@ int main(void)
     int32_t temperature_milli_c = 0;
     uint32_t reset_reason = 0;
     uint32_t chip_id[3] = {0};
+    uint8_t mac_addr[6] = {0};
     xy_i2c_device_t aht10 = {0};
     const xy_fota_metadata_flash_t *metadata_backend;
     xy_fota_metadata_t metadata = {
@@ -190,6 +201,14 @@ int main(void)
     uart_hex32(chip_id[0]);
     uart_hex32(chip_id[1]);
     uart_hex32(chip_id[2]);
+    uart_text("\r\n");
+    if (xy_sys_get_mac_addr(mac_addr) != XY_OK) {
+        fail();
+    }
+    uart_text("SYS_MAC_ADDR ");
+    for (uint32_t i = 0U; i < 6U; ++i) {
+        uart_hex8(mac_addr[i]);
+    }
     uart_text("\r\n");
     if ((reset_reason & XY_HAL_SYS_RESET_REASON_WATCHDOG) != 0U) {
         uart_text("SYS_RESET_KIND WATCHDOG\r\nSYS_WATCHDOG_RESET_OK\r\n");

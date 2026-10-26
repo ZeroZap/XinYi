@@ -37,13 +37,13 @@ XY_SYS_WEAK int xy_sys_get_mac_addr(void *data)
     return XY_ERROR_NOT_SUPPORTED;
 }
 
-int xy_sys_get_sw_ver(void *data)
+XY_SYS_WEAK int xy_sys_get_sw_ver(void *data)
 {
     (void)data;
     return XY_ERROR_NOT_SUPPORTED;
 }
 
-int xy_sys_get_hw_ver(void *data)
+XY_SYS_WEAK int xy_sys_get_hw_ver(void *data)
 {
     (void)data;
     return XY_ERROR_NOT_SUPPORTED;
