@@ -14,9 +14,8 @@
  * - 电池平衡功能
  */
 
-#include "xy_fuel_gauge.h"
+#include "xy_fg_bq40z50.h"
 #include "xy_log.h"
-#include "xy_sensor_device.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -62,24 +61,10 @@
 #define BQ40Z50_PROT_OTC        (1 << 5)    /* 充电过温 */
 #define BQ40Z50_PROT_OTD        (1 << 6)    /* 放电过温 */
 
-/* 私有数据 */
-typedef struct {
-    xy_sensor_bus_t bus;
-    bool initialized;
-    xy_fuel_gauge_data_t data;
-    xy_fuel_gauge_alert_t alert;
-    uint16_t bat_status;
-    uint32_t prot_status;
-    uint8_t balance_status;
-    uint8_t cell_count;
-    uint16_t cell_voltages[4];
-    int16_t average_current_ma;
-} bq40z50_private_data_t;
-
 /**
  * @brief 读取寄存器 (16 位)
  */
-static int bq40z50_read_reg16(bq40z50_private_data_t *priv, 
+static int bq40z50_read_reg16(xy_fg_bq40z50_data_t *priv,
                               uint8_t reg, uint16_t *value)
 {
     uint8_t buf[2];
@@ -105,7 +90,7 @@ static int bq40z50_read_reg16(bq40z50_private_data_t *priv,
 /**
  * @brief 读取寄存器 (32 位)
  */
-static int bq40z50_read_reg32(bq40z50_private_data_t *priv, 
+static int bq40z50_read_reg32(xy_fg_bq40z50_data_t *priv,
                               uint8_t reg, uint32_t *value)
 {
     uint8_t buf[4];
@@ -138,7 +123,7 @@ static int bq40z50_init(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     uint16_t device_type;
     
     /* 读取设备类型验证连接 */
@@ -188,7 +173,7 @@ static int bq40z50_fetch(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     xy_fuel_gauge_data_t data = priv->data;
     uint16_t cell_voltages[4];
     uint16_t bat_status;
@@ -306,7 +291,7 @@ static int bq40z50_channel_get(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -355,7 +340,7 @@ int xy_fuel_gauge_bq40z50_get_battery_voltage(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -375,7 +360,7 @@ int xy_fuel_gauge_bq40z50_get_cell_voltage(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -395,7 +380,7 @@ int xy_fuel_gauge_bq40z50_read_balance_status(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -422,7 +407,7 @@ uint8_t xy_fuel_gauge_bq40z50_get_balance_status(xy_fuel_gauge_t *fg)
         return 0;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return 0;
     }
@@ -438,7 +423,7 @@ uint32_t xy_fuel_gauge_bq40z50_get_protection_status(xy_fuel_gauge_t *fg)
         return 0;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return 0;
     }
@@ -452,7 +437,7 @@ static int bq40z50_alert_set(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -468,7 +453,7 @@ static int bq40z50_alert_get(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -486,7 +471,7 @@ bool xy_fuel_gauge_bq40z50_is_charging(xy_fuel_gauge_t *fg)
         return false;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return false;
     }
@@ -502,7 +487,7 @@ bool xy_fuel_gauge_bq40z50_is_discharging(xy_fuel_gauge_t *fg)
         return false;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return false;
     }
@@ -518,7 +503,7 @@ bool xy_fuel_gauge_bq40z50_is_full(xy_fuel_gauge_t *fg)
         return false;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return false;
     }
@@ -534,7 +519,7 @@ bool xy_fuel_gauge_bq40z50_is_protected(xy_fuel_gauge_t *fg)
         return false;
     }
 
-    bq40z50_private_data_t *priv = (bq40z50_private_data_t *)fg->data;
+    xy_fg_bq40z50_data_t *priv = (xy_fg_bq40z50_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return false;
     }
@@ -553,7 +538,7 @@ static const xy_fuel_gauge_api_t bq40z50_driver_api = {
 };
 
 /* 设备实例 */
-static bq40z50_private_data_t bq40z50_priv;
+static xy_fg_bq40z50_data_t bq40z50_priv;
 static xy_fuel_gauge_t bq40z50_device = {
     .name = "BQ40Z50",
     .api = &bq40z50_driver_api,
@@ -561,19 +546,37 @@ static xy_fuel_gauge_t bq40z50_device = {
 };
 
 /**
- * @brief 注册 BQ40Z50 电量计
+ * @brief 注册调用方自有的 BQ40Z50 实例
  */
-int xy_fuel_gauge_bq40z50_register(void *i2c_handle, uint8_t addr)
+int xy_fuel_gauge_bq40z50_register_instance(xy_fuel_gauge_t *fg,
+                                             xy_fg_bq40z50_data_t *priv,
+                                             void *i2c_handle, uint8_t addr)
 {
-    if (!i2c_handle) {
+    if (!fg || !fg->name || !priv || !i2c_handle) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    if (xy_fuel_gauge_device_get(bq40z50_device.name)) {
+    if (xy_fuel_gauge_device_get(fg->name)) {
         return XY_FG_ERROR;
     }
 
-    xy_sensor_bus_config_i2c(&bq40z50_priv.bus, i2c_handle,
-                             addr ? addr : BQ40Z50_ADDR);
-    return xy_fuel_gauge_device_register(&bq40z50_device);
+    memset(priv, 0, sizeof(*priv));
+    xy_sensor_bus_config_i2c(&priv->bus, i2c_handle, addr ? addr : BQ40Z50_ADDR);
+
+    fg->api = &bq40z50_driver_api;
+    fg->data = priv;
+    fg->initialized = false;
+    fg->next = NULL;
+
+    return xy_fuel_gauge_device_register(fg);
+}
+
+/**
+ * @brief 注册 BQ40Z50 电量计（单例兼容包装）
+ */
+int xy_fuel_gauge_bq40z50_register(void *i2c_handle, uint8_t addr)
+{
+    return xy_fuel_gauge_bq40z50_register_instance(&bq40z50_device,
+                                                    &bq40z50_priv,
+                                                    i2c_handle, addr);
 }
