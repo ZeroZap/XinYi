@@ -28,15 +28,13 @@ PID (Proportional-Integral-Derivative) 控制器组件，用于闭环控制系�
 ```
 pid/
 ├── xy_pid.c               # PID 控制器实现
-├── xy_pid.h               # 兼容入口，转发到 inc/xy_pid.h
+├── xy_pid.h               # PID 控制器主头文件
 ├── inc/
-│   ├── xy_pid.h           # PID 控制器主头文件
+│   ├── xy_pid.h           # 兼容入口，转发到 ../xy_pid.h
 │   ├── xy_pid_auto.h      # 自动整定头文件
 │   └── xy_pid_types.h     # 扩展类型定义
 ├── src/
-│   ├── xy_pid_auto.c      # 自动整定实现
-│   ├── xy_pid_temp_ctrl.c # 温控扩展示例实现
-│   └── xy_charge_ctrl.c   # 充电控制扩展示例实现
+│   └── xy_pid_auto.c      # 自动整定实现
 ├── tests/unit/pid/        # 当前 host Unity/CTest 覆盖入口
 │   ├── test_pid_core.c
 │   └── test_pid_auto.c
