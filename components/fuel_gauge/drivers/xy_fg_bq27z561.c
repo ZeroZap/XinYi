@@ -28,16 +28,7 @@
 #define BQ27Z561_REG_SOH        0x7A
 #define BQ27Z561_IO_RETRIES     3
 
-/* 私有数据 */
-typedef struct {
-    xy_sensor_bus_t bus;
-    bool initialized;
-    xy_fuel_gauge_data_t data;
-    xy_fuel_gauge_alert_t alert;
-    int16_t average_current_ma;
-} bq27z561_private_data_t;
-
-static int bq27z561_read_reg16(bq27z561_private_data_t *priv, uint8_t reg, uint16_t *value)
+static int bq27z561_read_reg16(xy_fg_bq27z561_data_t *priv, uint8_t reg, uint16_t *value)
 {
     if (!priv || !value) {
         return XY_FG_ERROR_INVALID_PARAM;
@@ -52,7 +43,7 @@ static int bq27z561_read_reg16(bq27z561_private_data_t *priv, uint8_t reg, uint1
     return XY_FG_ERROR;
 }
 
-static int bq27z561_read_reg8(bq27z561_private_data_t *priv, uint8_t reg, uint8_t *value)
+static int bq27z561_read_reg8(xy_fg_bq27z561_data_t *priv, uint8_t reg, uint8_t *value)
 {
     if (!priv || !value) {
         return XY_FG_ERROR_INVALID_PARAM;
@@ -76,7 +67,7 @@ static int bq27z561_init(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
+    xy_fg_bq27z561_data_t *priv = (xy_fg_bq27z561_data_t *)fg->data;
     
     /* 读取设备 ID */
     uint16_t device_id;
@@ -101,7 +92,7 @@ static int bq27z561_fetch(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
+    xy_fg_bq27z561_data_t *priv = (xy_fg_bq27z561_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -188,7 +179,7 @@ static int bq27z561_channel_get(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
+    xy_fg_bq27z561_data_t *priv = (xy_fg_bq27z561_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -234,7 +225,7 @@ static int bq27z561_alert_set(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
+    xy_fg_bq27z561_data_t *priv = (xy_fg_bq27z561_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -250,7 +241,7 @@ static int bq27z561_alert_get(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z561_private_data_t *priv = (bq27z561_private_data_t *)fg->data;
+    xy_fg_bq27z561_data_t *priv = (xy_fg_bq27z561_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -271,7 +262,7 @@ static const xy_fuel_gauge_api_t bq27z561_driver_api = {
 };
 
 /* 设备实例 */
-static bq27z561_private_data_t bq27z561_priv;
+static xy_fg_bq27z561_data_t bq27z561_priv;
 static xy_fuel_gauge_t bq27z561_device = {
     .name = "BQ27z561",
     .api = &bq27z561_driver_api,
@@ -279,18 +270,37 @@ static xy_fuel_gauge_t bq27z561_device = {
 };
 
 /**
- * @brief 注册 BQ27z561 电量计
+ * @brief 注册调用方自有的 BQ27z561 实例
  */
-int xy_fuel_gauge_bq27z561_register(void *i2c_handle, uint8_t addr)
+int xy_fuel_gauge_bq27z561_register_instance(xy_fuel_gauge_t *fg,
+                                             xy_fg_bq27z561_data_t *priv,
+                                             void *i2c_handle, uint8_t addr)
 {
-    if (!i2c_handle) {
+    if (!fg || !fg->name || !priv || !i2c_handle) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    if (xy_fuel_gauge_device_get(bq27z561_device.name)) {
+    if (xy_fuel_gauge_device_get(fg->name)) {
         return XY_FG_ERROR;
     }
 
-    xy_sensor_bus_config_i2c(&bq27z561_priv.bus, i2c_handle, addr ? addr : BQ27Z561_ADDR);
-    return xy_fuel_gauge_device_register(&bq27z561_device);
+    memset(priv, 0, sizeof(*priv));
+    xy_sensor_bus_config_i2c(&priv->bus, i2c_handle, addr ? addr : BQ27Z561_ADDR);
+
+    fg->api = &bq27z561_driver_api;
+    fg->data = priv;
+    fg->initialized = false;
+    fg->next = NULL;
+
+    return xy_fuel_gauge_device_register(fg);
+}
+
+/**
+ * @brief 注册 BQ27z561 电量计（单例兼容包装）
+ */
+int xy_fuel_gauge_bq27z561_register(void *i2c_handle, uint8_t addr)
+{
+    return xy_fuel_gauge_bq27z561_register_instance(&bq27z561_device,
+                                                    &bq27z561_priv,
+                                                    i2c_handle, addr);
 }
