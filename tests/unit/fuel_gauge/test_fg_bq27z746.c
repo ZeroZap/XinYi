@@ -673,6 +673,134 @@ void test_bq27z746_direct_api_guards_missing_device_data(void)
     TEST_ASSERT_EQUAL_UINT16(0, xy_fuel_gauge_bq27z746_get_flags(&missing_data));
 }
 
+void test_bq27z746_register_instance_isolates_multiple_instances(void)
+{
+    static xy_fuel_gauge_t fg_a;
+    static xy_fg_bq27z746_data_t priv_a;
+    static xy_fuel_gauge_t fg_b;
+    static xy_fg_bq27z746_data_t priv_b;
+
+    fg_a.name = "BQ27Z746_ISO_A";
+    fg_b.name = "BQ27Z746_ISO_B";
+
+    uint8_t before = xy_fuel_gauge_device_count();
+
+    TEST_ASSERT_EQUAL(XY_FG_OK,
+                      xy_fuel_gauge_bq27z746_register_instance(&fg_a, &priv_a,
+                                                               (void *)0xA746, 0x10));
+    TEST_ASSERT_EQUAL(XY_FG_OK,
+                      xy_fuel_gauge_bq27z746_register_instance(&fg_b, &priv_b,
+                                                               (void *)0xB746, 0x20));
+
+    TEST_ASSERT_EQUAL_UINT8(before + 2, xy_fuel_gauge_device_count());
+    TEST_ASSERT_EQUAL_PTR(&fg_a, xy_fuel_gauge_device_get("BQ27Z746_ISO_A"));
+    TEST_ASSERT_EQUAL_PTR(&fg_b, xy_fuel_gauge_device_get("BQ27Z746_ISO_B"));
+    TEST_ASSERT_TRUE(fg_a.data != fg_b.data);
+
+    /* Distinct bus configuration per instance */
+    TEST_ASSERT_EQUAL_PTR((void *)0xA746, priv_a.bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0x10, priv_a.bus.address);
+    TEST_ASSERT_EQUAL_PTR((void *)0xB746, priv_b.bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0x20, priv_b.bus.address);
+
+    /* Independent initialization */
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(&fg_a));
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_init(&fg_b));
+    TEST_ASSERT_TRUE(priv_a.initialized);
+    TEST_ASSERT_TRUE(priv_b.initialized);
+
+    /* Fetch A with one register set, B with another; caches must stay isolated */
+    fake_regs[REG_VOLT] = 3811;
+    fake_regs[REG_CURR] = (uint16_t)(int16_t)-321;
+    fake_regs[REG_AVG_CURR] = (uint16_t)(int16_t)-222;
+    fake_regs[REG_SOC] = 67;
+    fake_regs[REG_FLAGS] = 0x0009;
+    xy_os_tick_get_fake.return_val = 1000;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(&fg_a));
+
+    fake_regs[REG_VOLT] = 4100;
+    fake_regs[REG_CURR] = (uint16_t)(int16_t)-456;
+    fake_regs[REG_AVG_CURR] = (uint16_t)(int16_t)-333;
+    fake_regs[REG_SOC] = 44;
+    fake_regs[REG_FLAGS] = 0x0000;
+    xy_os_tick_get_fake.return_val = 2000;
+    TEST_ASSERT_EQUAL(XY_FG_OK, xy_fuel_gauge_fetch(&fg_b));
+
+    int32_t value = 0;
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg_a.api->channel_get(&fg_a, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(3811, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg_a.api->channel_get(&fg_a, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(67, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK,
+                      fg_a.api->channel_get(&fg_a, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-222, value);
+
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg_b.api->channel_get(&fg_b, XY_FG_DATA_VOLTAGE, &value));
+    TEST_ASSERT_EQUAL_INT32(4100, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK, fg_b.api->channel_get(&fg_b, XY_FG_DATA_SOC, &value));
+    TEST_ASSERT_EQUAL_INT32(44, value);
+    TEST_ASSERT_EQUAL(XY_FG_OK,
+                      fg_b.api->channel_get(&fg_b, XY_FG_DATA_AVERAGE_CURRENT, &value));
+    TEST_ASSERT_EQUAL_INT32(-333, value);
+
+    /* Per-instance timestamps */
+    TEST_ASSERT_EQUAL_UINT32(1000, fg_a.latest.timestamp);
+    TEST_ASSERT_EQUAL_UINT32(2000, fg_b.latest.timestamp);
+
+    /* Per-instance flags/status isolation */
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_charging(&fg_a));
+    TEST_ASSERT_TRUE(xy_fuel_gauge_bq27z746_is_full(&fg_a));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_charging(&fg_b));
+    TEST_ASSERT_FALSE(xy_fuel_gauge_bq27z746_is_full(&fg_b));
+}
+
+void test_bq27z746_register_instance_rejects_null_inputs_without_side_effects(void)
+{
+    static xy_fuel_gauge_t fg;
+    static xy_fg_bq27z746_data_t priv;
+    xy_fuel_gauge_t no_name = {0};
+
+    fg.name = "BQ27Z746_NULL";
+    reset_sensor_fakes();
+    memset(&last_bus, 0, sizeof(last_bus));
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq27z746_register_instance(NULL, &priv,
+                                                               (void *)0x1, 0));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq27z746_register_instance(&fg, NULL,
+                                                               (void *)0x1, 0));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq27z746_register_instance(&fg, &priv, NULL, 0));
+    TEST_ASSERT_EQUAL(XY_FG_ERROR_INVALID_PARAM,
+                      xy_fuel_gauge_bq27z746_register_instance(&no_name, &priv,
+                                                               (void *)0x1, 0));
+
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+    TEST_ASSERT_NULL(last_bus.bus_handle);
+}
+
+void test_bq27z746_register_instance_rejects_duplicate_name_without_reconfiguring_bus(void)
+{
+    registered_bq27z746();
+    reset_sensor_fakes();
+    memset(&last_bus, 0, sizeof(last_bus));
+
+    static xy_fuel_gauge_t fg_dup;
+    static xy_fg_bq27z746_data_t priv_dup;
+    fg_dup.name = "BQ27Z746";
+
+    TEST_ASSERT_EQUAL(XY_FG_ERROR,
+                      xy_fuel_gauge_bq27z746_register_instance(&fg_dup, &priv_dup,
+                                                               (void *)0xBAD, 0x44));
+    TEST_ASSERT_EQUAL_UINT(0, xy_sensor_bus_config_i2c_fake.call_count);
+    TEST_ASSERT_EQUAL_PTR(NULL, last_bus.bus_handle);
+    TEST_ASSERT_EQUAL_UINT8(0, last_bus.address);
+    TEST_ASSERT_NULL(fg_dup.api);
+    TEST_ASSERT_NULL(fg_dup.data);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -692,5 +820,8 @@ int main(void)
     RUN_TEST(test_bq27z746_inline_getters_preserve_outputs_on_fetch_failure);
     RUN_TEST(test_bq27z746_status_helpers_handle_null_and_uninitialized);
     RUN_TEST(test_bq27z746_direct_api_guards_missing_device_data);
+    RUN_TEST(test_bq27z746_register_instance_isolates_multiple_instances);
+    RUN_TEST(test_bq27z746_register_instance_rejects_null_inputs_without_side_effects);
+    RUN_TEST(test_bq27z746_register_instance_rejects_duplicate_name_without_reconfiguring_bus);
     return UNITY_END();
 }

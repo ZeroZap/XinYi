@@ -8,15 +8,13 @@
  * https://www.ti.com/product/BQ27Z746
  */
 
-#include "xy_fuel_gauge.h"
-#include "xy_sensor_device.h"
+#include "xy_fg_bq27z746.h"
 #include "xy_log.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
 
 /* BQ27Z746 寄存器定义 */
-#define BQ27Z746_ADDR           0x55
 
 /* 标准命令寄存器 */
 #define BQ27Z746_REG_CTRL       0x00
@@ -47,21 +45,10 @@
 
 #define BQ27Z746_READ_RETRIES   3
 
-/* 私有数据 */
-typedef struct {
-    xy_sensor_bus_t bus;
-    bool initialized;
-    xy_fuel_gauge_data_t data;
-    xy_fuel_gauge_alert_t alert;
-    int16_t average_current_ma;
-    uint16_t flags;
-    uint8_t device_type[2];
-} bq27z746_private_data_t;
-
 /**
  * @brief 读取寄存器 (16 位)
  */
-static int bq27z746_read_reg16(bq27z746_private_data_t *priv, 
+static int bq27z746_read_reg16(xy_fg_bq27z746_data_t *priv,
                                 uint8_t reg, uint16_t *value)
 {
     uint8_t buf[2];
@@ -93,7 +80,7 @@ static int bq27z746_init(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    xy_fg_bq27z746_data_t *priv = (xy_fg_bq27z746_data_t *)fg->data;
     uint16_t device_type;
 
     /* 读取设备类型验证连接 */
@@ -128,7 +115,7 @@ static int bq27z746_fetch(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    xy_fg_bq27z746_data_t *priv = (xy_fg_bq27z746_data_t *)fg->data;
     uint16_t value;
     xy_fuel_gauge_data_t snapshot;
     int16_t average_current_ma;
@@ -228,7 +215,7 @@ static int bq27z746_channel_get(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    xy_fg_bq27z746_data_t *priv = (xy_fg_bq27z746_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -274,7 +261,7 @@ static int bq27z746_alert_set(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    xy_fg_bq27z746_data_t *priv = (xy_fg_bq27z746_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -290,7 +277,7 @@ static int bq27z746_alert_get(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    xy_fg_bq27z746_data_t *priv = (xy_fg_bq27z746_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -308,7 +295,7 @@ bool xy_fuel_gauge_bq27z746_is_charging(xy_fuel_gauge_t *fg)
         return false;
     }
 
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    xy_fg_bq27z746_data_t *priv = (xy_fg_bq27z746_data_t *)fg->data;
     if (!priv->initialized) {
         return false;
     }
@@ -325,7 +312,7 @@ bool xy_fuel_gauge_bq27z746_is_full(xy_fuel_gauge_t *fg)
         return false;
     }
 
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    xy_fg_bq27z746_data_t *priv = (xy_fg_bq27z746_data_t *)fg->data;
     if (!priv->initialized) {
         return false;
     }
@@ -342,7 +329,7 @@ uint16_t xy_fuel_gauge_bq27z746_get_flags(xy_fuel_gauge_t *fg)
         return 0;
     }
 
-    bq27z746_private_data_t *priv = (bq27z746_private_data_t *)fg->data;
+    xy_fg_bq27z746_data_t *priv = (xy_fg_bq27z746_data_t *)fg->data;
     if (!priv->initialized) {
         return 0;
     }
@@ -362,7 +349,7 @@ static const xy_fuel_gauge_api_t bq27z746_driver_api = {
 };
 
 /* 设备实例 */
-static bq27z746_private_data_t bq27z746_priv;
+static xy_fg_bq27z746_data_t bq27z746_priv;
 static xy_fuel_gauge_t bq27z746_device = {
     .name = "BQ27Z746",
     .api = &bq27z746_driver_api,
@@ -370,19 +357,37 @@ static xy_fuel_gauge_t bq27z746_device = {
 };
 
 /**
- * @brief 注册 BQ27Z746 电量计
+ * @brief 注册调用方自有的 BQ27Z746 实例
  */
-int xy_fuel_gauge_bq27z746_register(void *i2c_handle, uint8_t addr)
+int xy_fuel_gauge_bq27z746_register_instance(xy_fuel_gauge_t *fg,
+                                              xy_fg_bq27z746_data_t *priv,
+                                              void *i2c_handle, uint8_t addr)
 {
-    if (!i2c_handle) {
+    if (!fg || !fg->name || !priv || !i2c_handle) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    if (xy_fuel_gauge_device_get(bq27z746_device.name)) {
+    if (xy_fuel_gauge_device_get(fg->name)) {
         return XY_FG_ERROR;
     }
 
-    xy_sensor_bus_config_i2c(&bq27z746_priv.bus, i2c_handle, 
-                             addr ? addr : BQ27Z746_ADDR);
-    return xy_fuel_gauge_device_register(&bq27z746_device);
+    memset(priv, 0, sizeof(*priv));
+    xy_sensor_bus_config_i2c(&priv->bus, i2c_handle, addr ? addr : BQ27Z746_ADDR);
+
+    fg->api = &bq27z746_driver_api;
+    fg->data = priv;
+    fg->initialized = false;
+    fg->next = NULL;
+
+    return xy_fuel_gauge_device_register(fg);
+}
+
+/**
+ * @brief 注册 BQ27Z746 电量计（单例兼容包装）
+ */
+int xy_fuel_gauge_bq27z746_register(void *i2c_handle, uint8_t addr)
+{
+    return xy_fuel_gauge_bq27z746_register_instance(&bq27z746_device,
+                                                    &bq27z746_priv,
+                                                    i2c_handle, addr);
 }

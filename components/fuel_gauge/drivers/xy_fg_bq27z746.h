@@ -14,6 +14,7 @@
 #define XY_FG_BQ27Z746_H
 
 #include "xy_fuel_gauge.h"
+#include "xy_sensor_device.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +26,44 @@ extern "C" {
 #define BQ27Z746_ADDR           0x55
 
 /**
- * @brief 注册 BQ27Z746 电量计
+ * @brief BQ27Z746 per-instance driver data.
+ *
+ * Callers that register more than one BQ27Z746 provide one of these per
+ * instance; the driver stores bus configuration, the driver-private init
+ * flag, cached sample data, cached alert thresholds, the private
+ * average-current cache, cached flags, and the device-type bytes here.
+ */
+typedef struct {
+    xy_sensor_bus_t bus;
+    bool initialized;
+    xy_fuel_gauge_data_t data;
+    xy_fuel_gauge_alert_t alert;
+    int16_t average_current_ma;
+    uint16_t flags;
+    uint8_t device_type[2];
+} xy_fg_bq27z746_data_t;
+
+/**
+ * @brief Register a caller-owned BQ27Z746 instance.
+ *
+ * Unlike @ref xy_fuel_gauge_bq27z746_register, this API lets a caller register
+ * multiple BQ27Z746 gauges by supplying its own device and per-instance data
+ * storage. The driver fills `fg->api` and `fg->data`, then registers the
+ * instance by name.
+ *
+ * @param fg Caller-owned device instance; `fg->name` must be a unique,
+ *        non-NULL name.
+ * @param priv Caller-owned per-instance data storage.
+ * @param i2c_handle I2C/SMBus handle provided by the board/sensor bus layer.
+ * @param addr I2C/SMBus address; pass 0 to use @ref BQ27Z746_ADDR.
+ * @return XY_FG_OK on success, or XY_FG_ERROR_* on failure.
+ */
+int xy_fuel_gauge_bq27z746_register_instance(xy_fuel_gauge_t *fg,
+                                              xy_fg_bq27z746_data_t *priv,
+                                              void *i2c_handle, uint8_t addr);
+
+/**
+ * @brief 注册 BQ27Z746 电量计（单例兼容包装）
  * @param i2c_handle I2C 句柄
  * @param addr I2C 地址 (可选，默认 0x55)
  * @return 状态码
