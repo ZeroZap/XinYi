@@ -1,0 +1,21 @@
+{
+  "target": "pandora_stm32l475_smoke",
+  "source_commit": "41a11c7044338a666a3ae85927905cea9cd4cc16",
+  "bin_sha256": "c812e1ef8f1a91acdbaea6136503bf99a2d0521342f37ed0f623dff0edb8dfc1",
+  "programmer": "st-flash 1.8.0 (ST-Link V2.1 serial 066AFF313933554D43244015)",
+  "programming_finished": true,
+  "verified_ok": true,
+  "chipid": "0x415",
+  "uart": "CP2102 ttyUSB0 115200 8N1",
+  "chip_id": "001B002E3647501320313556",
+  "mac_addr": "2E001B001350",
+  "mac_reset_kinds": ["EXTERNAL_PIN", "SOFTWARE", "WATCHDOG"],
+  "fota_firmware_commit": "41a11c7044338a666a3ae85927905cea9cd4cc16",
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed",
+    "WCH": "passed"
+  },
+  "unit_tests": "272/272 passed"
+}
