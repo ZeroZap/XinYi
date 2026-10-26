@@ -17,5 +17,5 @@
     "STM32U5": "passed",
     "WCH": "passed"
   },
-  "unit_tests": "272/272 passed"
+  "unit_tests": "279/279 passed"
 }

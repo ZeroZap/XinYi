@@ -25,7 +25,7 @@ watchdog resets.
 - ST-Link V2.1 `V2J24S11`, chipid `0x415` (STM32L47x_L48x).
 - UART capture via CP2102 (`ttyUSB0`, 115200 8N1); ST-Link VCP (`ttyACM1`)
   produced no application UART.
-- Regression: Host `272/272`; `PC` / `STM32L4` / `STM32U5` / `WCH` builds pass;
+- Regression: Host `279/279`; `PC` / `STM32L4` / `STM32U5` / `WCH` builds pass;
   `git diff --check` clean.
 
 ## Boundary
