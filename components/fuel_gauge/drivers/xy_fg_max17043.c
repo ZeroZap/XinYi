@@ -9,7 +9,6 @@
 
 #include "xy_fg_max17043.h"
 #include "xy_log.h"
-#include "xy_sensor_device.h"
 #include <string.h>
 
 #define LOCAL_LOG_LEVEL XY_LOG_LEVEL_DEBUG
@@ -30,15 +29,7 @@
 
 #define MAX17043_IO_RETRIES     3
 
-/* 私有数据 */
-typedef struct {
-    xy_sensor_bus_t bus;
-    bool initialized;
-    xy_fuel_gauge_data_t data;
-    xy_fuel_gauge_alert_t alert;
-} max17043_private_data_t;
-
-static int max17043_read_reg16(max17043_private_data_t *priv, uint8_t reg, uint16_t *value)
+static int max17043_read_reg16(xy_fg_max17043_data_t *priv, uint8_t reg, uint16_t *value)
 {
     int ret = -1;
 
@@ -56,7 +47,7 @@ static int max17043_read_reg16(max17043_private_data_t *priv, uint8_t reg, uint1
     return XY_FG_ERROR;
 }
 
-static int max17043_write_reg16(max17043_private_data_t *priv, uint8_t reg, uint16_t value)
+static int max17043_write_reg16(xy_fg_max17043_data_t *priv, uint8_t reg, uint16_t value)
 {
     int ret = -1;
 
@@ -83,7 +74,7 @@ static int max17043_init(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    xy_fg_max17043_data_t *priv = (xy_fg_max17043_data_t *)fg->data;
     
     /* 读取版本 */
     uint16_t version;
@@ -114,7 +105,7 @@ static int max17043_fetch(xy_fuel_gauge_t *fg)
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    xy_fg_max17043_data_t *priv = (xy_fg_max17043_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -160,7 +151,7 @@ static int max17043_channel_get(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    xy_fg_max17043_data_t *priv = (xy_fg_max17043_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -188,7 +179,7 @@ static int max17043_alert_set(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    xy_fg_max17043_data_t *priv = (xy_fg_max17043_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -204,7 +195,7 @@ static int max17043_alert_get(xy_fuel_gauge_t *fg,
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    max17043_private_data_t *priv = (max17043_private_data_t *)fg->data;
+    xy_fg_max17043_data_t *priv = (xy_fg_max17043_data_t *)fg->data;
     if (!fg->initialized || !priv->initialized) {
         return XY_FG_ERROR_NOT_INITIALIZED;
     }
@@ -225,7 +216,7 @@ static const xy_fuel_gauge_api_t max17043_driver_api = {
 };
 
 /* 设备实例 */
-static max17043_private_data_t max17043_priv;
+static xy_fg_max17043_data_t max17043_priv;
 static xy_fuel_gauge_t max17043_device = {
     .name = "MAX17043",
     .api = &max17043_driver_api,
@@ -233,18 +224,37 @@ static xy_fuel_gauge_t max17043_device = {
 };
 
 /**
- * @brief 注册 MAX17043 电量计
+ * @brief 注册调用方自有的 MAX17043 实例
  */
-int xy_fuel_gauge_max17043_register(void *i2c_handle, uint8_t addr)
+int xy_fuel_gauge_max17043_register_instance(xy_fuel_gauge_t *fg,
+                                             xy_fg_max17043_data_t *priv,
+                                             void *i2c_handle, uint8_t addr)
 {
-    if (!i2c_handle) {
+    if (!fg || !fg->name || !priv || !i2c_handle) {
         return XY_FG_ERROR_INVALID_PARAM;
     }
 
-    if (xy_fuel_gauge_device_get(max17043_device.name)) {
+    if (xy_fuel_gauge_device_get(fg->name)) {
         return XY_FG_ERROR;
     }
 
-    xy_sensor_bus_config_i2c(&max17043_priv.bus, i2c_handle, addr ? addr : MAX17043_ADDR);
-    return xy_fuel_gauge_device_register(&max17043_device);
+    memset(priv, 0, sizeof(*priv));
+    xy_sensor_bus_config_i2c(&priv->bus, i2c_handle, addr ? addr : MAX17043_ADDR);
+
+    fg->api = &max17043_driver_api;
+    fg->data = priv;
+    fg->initialized = false;
+    fg->next = NULL;
+
+    return xy_fuel_gauge_device_register(fg);
+}
+
+/**
+ * @brief 注册 MAX17043 电量计（单例兼容包装）
+ */
+int xy_fuel_gauge_max17043_register(void *i2c_handle, uint8_t addr)
+{
+    return xy_fuel_gauge_max17043_register_instance(&max17043_device,
+                                                    &max17043_priv,
+                                                    i2c_handle, addr);
 }
