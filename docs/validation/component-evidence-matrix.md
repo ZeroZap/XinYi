@@ -1,5 +1,23 @@
 # XinYi 组件证据台账
 
+### 2026-10-27 Pandora SYS deterministic MAC from unique ID
+
+- Board-owned `xy_sys_get_mac_addr()` derives a deterministic unicast, locally-administered MAC
+  from the 96-bit unique ID (low 6 bytes of uid[0..1]; MAC bit 0 clear + bit 1 set);
+  `xy_sys_get_sw_ver`/`xy_sys_get_hw_ver` gained the weak attribute so boards can override them;
+  Pandora smoke emits `SYS_MAC_ADDR`.
+- Evidence path: `boards/pandora_stm32l475/pandora_sys.c`,
+  `components/sys/xy_sys/xy_sys.c`, `boards/pandora_stm32l475/main.c`,
+  `tests/unit/sys/test_pandora_sys.c`; focused CTest `pandora_sys` 5/5; Host `make test-unit`
+  279/279; Pandora STM32L4, STM32U5, PC and WCH compile; `git diff --check`.
+- Hardware: Pandora STM32L475VE, `st-flash 1.8.0` write/verify (chipid `0x415`, ST-Link V2.1),
+  CP2102 UART 115200 8N1; `SYS_MAC_ADDR 2E001B001350` identical across EXTERNAL_PIN/SOFTWARE/
+  WATCHDOG reset kinds; `SYS_CHIP_ID 001B002E3647501320313556`. Evidence:
+  `docs/validation/evidence/pandora-stm32l475/2026-10-27-sys-mac-addr/`.
+- Current status: source/Host/compile + bounded board HIL `DONE`; not networking/Ethernet
+  qualification (L475 has no factory Ethernet MAC); reset-cause/watchdog electrical behavior
+  beyond the observed CSR values is not claimed.
+
 ### 2026-10-20 FreeRTOS OSAL memory-pool-context atomic retirement
 
 - `freertos_clear_mempool_context()` now finds and clears the bounded owner slot within one

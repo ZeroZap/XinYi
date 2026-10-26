@@ -1,5 +1,13 @@
 # XinYi Sprint 跟踪看板
 
+**最新 Pandora SYS deterministic MAC slice（2026-10-27）**：board-owned `xy_sys_get_mac_addr()`
+现从 96-bit unique ID 派生确定性 unicast、locally-administered MAC，`xy_sys_get_sw_ver`/
+`xy_sys_get_hw_ver` 补齐 weak 属性，Pandora smoke 新增 `SYS_MAC_ADDR` marker。focused
+`pandora_sys` 5/5、Host 279/279、Pandora STM32L4/STM32U5/PC/WCH compile 与 `git diff --check`
+通过；Pandora 实板 st-flash write/verify + 独立 UART 观察到 `SYS_MAC_ADDR 2E001B001350` 在
+EXTERNAL_PIN/SOFTWARE/WATCHDOG 三种 reset 下一致。该结果关闭 bounded MAC derivation 实板 contract；
+不升级网络/Ethernet 资格（L475 无出厂 Ethernet MAC）。
+
 **最新 FreeRTOS OSAL mutex-context atomic retirement（2026-10-20）**：mutex owner
 slot 现于同一 FreeRTOS critical section 内查找并清除，避免 concurrent creator 在 retirement
 尚未完成时复用 slot。focused policy/CTest、Host、PC/STM32L4/STM32U5/WCH FreeRTOS compile
