@@ -15,7 +15,6 @@ class KconfigParserOutputTest(unittest.TestCase):
             kconfig_path.write_text(text, encoding="utf-8")
             parser = KconfigParser()
             parser.parse(str(kconfig_path))
-            parser.resolve_dependencies()
             return parser
 
     def test_string_defaults_are_not_double_quoted_in_generated_outputs(self):
@@ -41,6 +40,33 @@ config XY_VERSION
             self.assertIn('#define CONFIG_XY_VERSION "1.0.0"', autoconf_path.read_text(encoding="utf-8"))
             self.assertIn('set(XY_XY_VERSION "1.0.0")', cmake_path.read_text(encoding="utf-8"))
             self.assertNotIn('""1.0.0""', cmake_path.read_text(encoding="utf-8"))
+    def test_string_default_containing_if_substring_is_not_corrupted(self):
+        parser = self.parse_text(
+            """
+config FEATURE_NAME
+    string
+    default "notify"
+"""
+        )
+
+        self.assertEqual(
+            parser.resolve_values(platform="PC")["FEATURE_NAME"], '"notify"'
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            config_path = tmp_path / ".config"
+            autoconf_path = tmp_path / "include" / "autoconf.h"
+            cmake_path = tmp_path / "config.cmake"
+
+            parser.generate_config(str(config_path))
+            parser.generate_autoconf(str(autoconf_path))
+            parser.generate_cmake(str(cmake_path))
+
+            self.assertIn('CONFIG_FEATURE_NAME="notify"', config_path.read_text(encoding="utf-8"))
+            self.assertIn('#define CONFIG_FEATURE_NAME "notify"', autoconf_path.read_text(encoding="utf-8"))
+            self.assertIn('set(XY_FEATURE_NAME "notify")', cmake_path.read_text(encoding="utf-8"))
+
     def test_conditional_defaults_follow_selected_platform(self):
         parser = self.parse_text(
             """

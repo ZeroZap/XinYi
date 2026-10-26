@@ -103,17 +103,6 @@ class KconfigParser:
             end += len(line) + 1
         return end
     
-    def resolve_dependencies(self) -> None:
-        """Resolve config dependencies"""
-        # Simple dependency resolution
-        for name, cfg in self.config.items():
-            if cfg['default'] and 'if' in cfg['default']:
-                # Handle conditional defaults
-                parts = cfg['default'].split('if')
-                cfg['default'] = parts[0].strip()
-                if len(parts) > 1:
-                    cfg['depends_on'] = parts[1].strip()
-    
     def _format_string_value(self, value: str) -> str:
         """Return a CMake/C-string friendly value without Kconfig quotes."""
         if value is None:
@@ -397,7 +386,6 @@ def main():
     # Parse Kconfig
     kconfig = KconfigParser()
     kconfig.parse(args.kconfig)
-    kconfig.resolve_dependencies()
     
     overrides: Dict[str, str] = {}
     for override in args.overrides:
