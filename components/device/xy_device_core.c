@@ -223,6 +223,29 @@ const xy_device_registry_entry_t *xy_device_get_registry(size_t *count)
 
 /* ==================== 设备引用计数 ==================== */
 
+/* Resolve the registry slot of a device.
+ *
+ * Every PM callback below can call back into the framework (register or
+ * unregister another device), which shifts this static array and its parallel
+ * PM-info array.  Any state commit that happens *after* such a callback must
+ * therefore re-resolve the slot by device pointer instead of reusing an index
+ * captured before the callback ran. */
+static xy_device_registry_entry_t *device_entry_find(const xy_device_t *dev)
+{
+    for (size_t i = 0; i < g_device_count; i++) {
+        if (g_device_registry[i].device == dev) {
+            return &g_device_registry[i];
+        }
+    }
+
+    return NULL;
+}
+
+static size_t device_entry_index(const xy_device_registry_entry_t *entry)
+{
+    return (size_t)(entry - g_device_registry);
+}
+
 /**
  * @brief 增加设备引用计数
  */
@@ -232,22 +255,34 @@ int xy_device_acquire(xy_device_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    for (size_t i = 0; i < g_device_count; i++) {
-        if (g_device_registry[i].device == dev) {
-            /* 唤醒设备 before publishing the new reference. */
-            if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP_STATE) {
-                int ret = xy_device_wake(dev);
-                if (ret != XY_DEVICE_OK) {
-                    return ret;
-                }
+    xy_device_registry_entry_t *entry = device_entry_find(dev);
+    if (!entry) {
+        return XY_DEVICE_NOT_FOUND;
+    }
+
+    /* Publish the reference before the wake callback runs: a callback that
+     * retires another device must not move this reference onto a shifted slot,
+     * and the held reference also keeps this device from being unregistered
+     * while the wake is in flight. */
+    entry->ref_count++;
+
+    if (g_pm_info[device_entry_index(entry)].state == XY_DEVICE_PM_SLEEP_STATE) {
+        int ret = xy_device_wake(dev);
+        if (ret != XY_DEVICE_OK) {
+            entry = device_entry_find(dev);
+            if (entry && entry->ref_count > 0U) {
+                entry->ref_count--;
             }
-            g_device_registry[i].ref_count++;
-            g_pm_info[i].last_active_time = xy_device_get_tick();
-            return XY_DEVICE_OK;
+            return ret;
         }
     }
 
-    return XY_DEVICE_NOT_FOUND;
+    entry = device_entry_find(dev);
+    if (!entry) {
+        return XY_DEVICE_NOT_FOUND;
+    }
+    g_pm_info[device_entry_index(entry)].last_active_time = xy_device_get_tick();
+    return XY_DEVICE_OK;
 }
 
 /**
@@ -360,32 +395,42 @@ int xy_device_sleep(xy_device_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    for (size_t i = 0; i < g_device_count; i++) {
-        if (g_device_registry[i].device == dev) {
-            if (g_pm_info[i].state == XY_DEVICE_PM_SLEEP_STATE) {
-                return XY_DEVICE_OK; /* 已在休眠 */
-            }
+    xy_device_registry_entry_t *entry = device_entry_find(dev);
+    if (!entry) {
+        return XY_DEVICE_NOT_FOUND;
+    }
 
-            /* 检查引用计数 */
-            if (g_device_registry[i].ref_count > 0) {
-                return XY_DEVICE_BUSY; /* 有引用，不能休眠 */
-            }
+    size_t idx = device_entry_index(entry);
+    if (g_pm_info[idx].state == XY_DEVICE_PM_SLEEP_STATE) {
+        return XY_DEVICE_OK; /* 已在休眠 */
+    }
 
-            /* 调用回调 */
-            if (g_pm_info[i].callback) {
-                int ret = g_pm_info[i].callback(dev, XY_DEVICE_PM_SLEEP_EVENT, 
-                                                g_pm_info[i].user_data);
-                if (ret < 0) {
-                    return ret;
-                }
-            }
+    /* 检查引用计数 */
+    if (entry->ref_count > 0U) {
+        return XY_DEVICE_BUSY; /* 有引用，不能休眠 */
+    }
 
-            g_pm_info[i].state = XY_DEVICE_PM_SLEEP_STATE;
-            return XY_DEVICE_OK;
+    /* Capture the callback before invoking it: it may mutate the registry. */
+    xy_device_pm_callback_t callback = g_pm_info[idx].callback;
+    void *user_data = g_pm_info[idx].user_data;
+
+    /* 调用回调 */
+    if (callback) {
+        int ret = callback(dev, XY_DEVICE_PM_SLEEP_EVENT, user_data);
+        if (ret < 0) {
+            return ret;
         }
     }
 
-    return XY_DEVICE_NOT_FOUND;
+    entry = device_entry_find(dev);
+    if (!entry) {
+        /* The callback unregistered this device; never publish the new state
+         * into a slot that now belongs to another device. */
+        return XY_DEVICE_NOT_FOUND;
+    }
+
+    g_pm_info[device_entry_index(entry)].state = XY_DEVICE_PM_SLEEP_STATE;
+    return XY_DEVICE_OK;
 }
 
 /**
@@ -397,28 +442,39 @@ int xy_device_wake(xy_device_t *dev)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    for (size_t i = 0; i < g_device_count; i++) {
-        if (g_device_registry[i].device == dev) {
-            if (g_pm_info[i].state == XY_DEVICE_PM_ACTIVE) {
-                return XY_DEVICE_OK; /* 已在活动状态 */
-            }
+    xy_device_registry_entry_t *entry = device_entry_find(dev);
+    if (!entry) {
+        return XY_DEVICE_NOT_FOUND;
+    }
 
-            /* 调用回调 */
-            if (g_pm_info[i].callback) {
-                int ret = g_pm_info[i].callback(dev, XY_DEVICE_PM_WAKE, 
-                                                g_pm_info[i].user_data);
-                if (ret < 0) {
-                    return ret;
-                }
-            }
+    size_t idx = device_entry_index(entry);
+    if (g_pm_info[idx].state == XY_DEVICE_PM_ACTIVE) {
+        return XY_DEVICE_OK; /* 已在活动状态 */
+    }
 
-            g_pm_info[i].state = XY_DEVICE_PM_ACTIVE;
-            g_pm_info[i].last_active_time = xy_device_get_tick();
-            return XY_DEVICE_OK;
+    /* Capture the callback before invoking it: it may mutate the registry. */
+    xy_device_pm_callback_t callback = g_pm_info[idx].callback;
+    void *user_data = g_pm_info[idx].user_data;
+
+    /* 调用回调 */
+    if (callback) {
+        int ret = callback(dev, XY_DEVICE_PM_WAKE, user_data);
+        if (ret < 0) {
+            return ret;
         }
     }
 
-    return XY_DEVICE_NOT_FOUND;
+    entry = device_entry_find(dev);
+    if (!entry) {
+        /* The callback unregistered this device; never publish the new state
+         * into a slot that now belongs to another device. */
+        return XY_DEVICE_NOT_FOUND;
+    }
+
+    idx = device_entry_index(entry);
+    g_pm_info[idx].state = XY_DEVICE_PM_ACTIVE;
+    g_pm_info[idx].last_active_time = xy_device_get_tick();
+    return XY_DEVICE_OK;
 }
 
 /**
@@ -435,21 +491,39 @@ void xy_device_pm_check(void)
 
     uint32_t current_tick = xy_device_get_tick();
 
-    for (size_t i = 0; i < g_device_count; i++) {
-        xy_device_t *dev = g_device_registry[i].device;
+    /* A sleep callback may unregister another device and shift the registry,
+     * so sweep a bounded snapshot and re-resolve every device before touching
+     * it.  Walking the live array by index would skip the device that moved
+     * into the visited slot and leave it awake past its timeout. */
+    xy_device_t *snapshot[XY_DEVICE_REGISTRY_MAX];
+    size_t snapshot_count = 0;
+
+    for (size_t i = 0; i < g_device_count && snapshot_count < XY_DEVICE_REGISTRY_MAX; i++) {
+        snapshot[snapshot_count++] = g_device_registry[i].device;
+    }
+
+    for (size_t i = 0; i < snapshot_count; i++) {
+        xy_device_t *dev = snapshot[i];
         if (!dev || !dev->initialized) {
             continue;
         }
 
+        xy_device_registry_entry_t *entry = device_entry_find(dev);
+        if (!entry) {
+            continue; /* retired by an earlier callback in this sweep */
+        }
+
         /* 跳过已有引用的设备 */
-        if (g_device_registry[i].ref_count > 0) {
+        if (entry->ref_count > 0U) {
             continue;
         }
 
+        size_t idx = device_entry_index(entry);
+
         /* 检查超时 */
-        uint32_t idle_time = current_tick - g_pm_info[i].last_active_time;
-        if (idle_time >= g_pm_info[i].sleep_timeout_ms &&
-            g_pm_info[i].state == XY_DEVICE_PM_ACTIVE) {
+        uint32_t idle_time = current_tick - g_pm_info[idx].last_active_time;
+        if (idle_time >= g_pm_info[idx].sleep_timeout_ms &&
+            g_pm_info[idx].state == XY_DEVICE_PM_ACTIVE) {
             xy_device_sleep(dev);
         }
     }
