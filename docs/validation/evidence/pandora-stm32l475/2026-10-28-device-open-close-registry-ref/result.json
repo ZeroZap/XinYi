@@ -1,0 +1,55 @@
+{
+  "target": "pandora_stm32l475_rtos",
+  "source_commit": "5e0cd22242567d34858d5dcbe2f99e8d77c21bea",
+  "slice": "Device open/close registry reference accounting",
+  "bin_sha256": "41f1039554eb01d1a310b4ba264b9ec59fc75c68a31b90bea0465bada897043c",
+  "bin_size_bytes": 42396,
+  "flash_readback_span_bytes": 524288,
+  "flash_readback_prefix_identical": true,
+  "flash_before_sha256": "d3a4e156c14e18596b189232311a4487b382f28b554eef399e9985ac465f1f29",
+  "programmer": "st-flash 1.8.0 (ST-Link V2.1 V2J24S11 serial 066AFF313933554D43244015)",
+  "chipid": "0x415",
+  "dev_type": "STM32L47x_L48x",
+  "flash_bytes": 524288,
+  "uart": "CP2102 /dev/ttyUSB0 115200 8N1",
+  "capture_tool": "ad-hoc termios/select capture (arm port, st-flash reset, 20 s window)",
+  "capture_started_before_reset": true,
+  "bytes_captured": 383,
+  "capture_status": "CAPTURED",
+  "evidence_level": "bounded B1 boot/regression on the reference board image that links the changed device source",
+  "identity": {
+    "banner": "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
+    "firmware_commit_marker": "FIRMWARE_COMMIT 5e0cd22242567d34858d5dcbe2f99e8d77c21bea",
+    "firmware_commit_match": true
+  },
+  "observed_markers": [
+    "OSAL_STRESS_READY",
+    "OSAL_TIM6_IRQ_TAKE",
+    "OSAL_MUTEX_FAST",
+    "OSAL_TASK_FAST",
+    "OSAL_QUEUE_SEND",
+    "OSAL_EVENT_SET",
+    "OSAL_IPC_SEND",
+    "OSAL_PM_TICK",
+    "OSAL_SEM_TAKE",
+    "OSAL_EVENT_WAIT",
+    "OSAL_QUEUE_RECV",
+    "OSAL_DEVICE_LOOKUP",
+    "[I] OSAL_TRACE_DELIVER",
+    "OSAL_IPC_DELIVER",
+    "OSAL_MUTEX_SLOW",
+    "OSAL_TASK_SLOW"
+  ],
+  "error_markers_observed": 0,
+  "notes": [
+    "The Pandora FreeRTOS image compiles components/device/src/xy_device.c directly, so this boot exercises the registry/PM code path the slice changed (OSAL_DEVICE_LOOKUP follows the xy_device_find() lookup).",
+    "The image does not call xy_device_open()/xy_device_close(), so this capture is a boot/regression observation, not runtime evidence for the new close semantics.",
+    "The bounded 20 s window ends before the later IPC ISR stress markers; no claim is made about sustained ISR accounting, throughput, timing, concurrency or endurance."
+  ],
+  "limitations": [
+    "Host/compile contract evidence for the open/close semantics comes from the device_framework CTest, not from this board run.",
+    "Single board, single image, single reset; not a durability, power-loss or release qualification."
+  ],
+  "restored_flash_sha256": "d3a4e156c14e18596b189232311a4487b382f28b554eef399e9985ac465f1f29",
+  "restore_verified": "byte-identical (cmp passed on 524288 B read-back, sha256 d3a4e156c14e18596b189232311a4487b382f28b554eef399e9985ac465f1f29)"
+}
