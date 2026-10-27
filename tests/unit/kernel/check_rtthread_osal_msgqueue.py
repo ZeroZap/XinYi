@@ -24,13 +24,20 @@ def main() -> int:
     for required in (
         "msg_prio != 0U",
         "rt_mq_send(mq, msg_ptr, mq->msg_size)",
-        "rt_mq_send_wait(mq, msg_ptr, mq->msg_size, timeout)",
+        "rt_mq_send_wait(mq, msg_ptr, mq->msg_size, ticks)",
     ):
         if required not in put_body:
             errors.append(
                 "RT-Thread message-queue put must reject nonzero message priorities and send the "
                 f"configured fixed-size binary payload; missing: {required}"
             )
+    put_convert = put_body.find("rtthread_timeout_to_ticks(timeout, &ticks)")
+    put_native = put_body.find("rt_mq_send")
+    if put_convert < 0 or put_native < 0 or put_convert > put_native:
+        errors.append(
+            "RT-Thread message-queue put must map the OSAL timeout through one checked "
+            "conversion before any native send"
+        )
     if "XY_UNUSED(msg_prio);" in put_body:
         errors.append(
             "RT-Thread message-queue put must not silently discard the public message priority"
@@ -53,8 +60,7 @@ def main() -> int:
     )
     for required in (
         "rt_ssize_t received;",
-        "received = rt_mq_recv(mq, msg_ptr, mq->msg_size,",
-        "(timeout == XY_OS_WAIT_FOREVER) ? RT_WAITING_FOREVER : timeout);",
+        "received = rt_mq_recv(mq, msg_ptr, mq->msg_size, ticks);",
         "if (received != (rt_ssize_t)mq->msg_size)",
         "*msg_prio = 0U;",
     ):
@@ -63,6 +69,13 @@ def main() -> int:
                 "RT-Thread message-queue get must use the tracked four-argument API and require "
                 f"one complete fixed-size message; missing: {required}"
             )
+    get_convert = get_body.find("rtthread_timeout_to_ticks(timeout, &ticks)")
+    get_native = get_body.find("rt_mq_recv(")
+    if get_convert < 0 or get_native < 0 or get_convert > get_native:
+        errors.append(
+            "RT-Thread message-queue get must map the OSAL timeout through one checked "
+            "conversion before the native receive"
+        )
     if "rt_mq_recv(mq, msg_ptr, mq->msg_size, timeout, &size)" in get_body:
         errors.append("RT-Thread message-queue get retains the obsolete five-argument API")
 

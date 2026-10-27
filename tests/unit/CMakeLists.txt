@@ -246,6 +246,10 @@ add_test(NAME rtthread_osal_context_atomicity
     COMMAND python3 ${UNIT_KERNEL}/check_rtthread_osal_context_atomicity.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME rtthread_osal_timeout
+    COMMAND python3 ${UNIT_KERNEL}/check_rtthread_osal_timeout.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME public_component_evidence
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/check_public_component_evidence.py
     WORKING_DIRECTORY ${ROOT}

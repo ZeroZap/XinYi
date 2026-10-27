@@ -357,6 +357,28 @@ static xy_os_priority_t rt_to_xy_priority(rt_uint8_t priority)
                                rt_lowest));
 }
 
+/**
+ * @brief Convert an OSAL timeout into a native RT-Thread wait tick count
+ *
+ * RT-Thread wait APIs take a signed tick count where any negative value blocks
+ * forever, so a finite OSAL timeout above INT32_MAX would silently turn a
+ * bounded wait into an unbounded one. Reject those instead of narrowing.
+ */
+static int rtthread_timeout_to_ticks(uint32_t timeout, rt_int32_t *ticks)
+{
+    if (!ticks) return 0;
+
+    if (timeout == XY_OS_WAIT_FOREVER) {
+        *ticks = RT_WAITING_FOREVER;
+        return 1;
+    }
+
+    if (timeout > (uint32_t)0x7FFFFFFFU) return 0;
+
+    *ticks = (rt_int32_t)timeout;
+    return 1;
+}
+
 /* Kernel Functions */
 
 xy_os_status_t xy_os_kernel_init(void)
@@ -714,15 +736,24 @@ uint32_t xy_os_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t time
 
 xy_os_status_t xy_os_delay(uint32_t ticks)
 {
-    rt_thread_delay(ticks);
+    rt_int32_t native_ticks;
+
+    if (!rtthread_timeout_to_ticks(ticks, &native_ticks)) return XY_OS_ERROR_PARAMETER;
+
+    rt_thread_delay(native_ticks);
     return XY_OS_OK;
 }
 
 xy_os_status_t xy_os_delay_until(uint32_t ticks)
 {
     rt_tick_t current = rt_tick_get();
-    if (ticks > current) {
-        rt_thread_delay(ticks - current);
+    uint32_t delta = (ticks > current) ? (uint32_t)(ticks - current) : 0U;
+    rt_int32_t native_ticks;
+
+    if (!rtthread_timeout_to_ticks(delta, &native_ticks)) return XY_OS_ERROR_PARAMETER;
+
+    if (native_ticks > 0) {
+        rt_thread_delay(native_ticks);
     }
     return XY_OS_OK;
 }
@@ -933,11 +964,15 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
                                 uint32_t options, uint32_t timeout)
 {
     rt_event_t event = (rt_event_t)ef_id;
-    if (!find_event_flags_ctx(event)) return 0x80000000U;
-    if (!rtthread_event_flags_args_valid(flags, options)) return 0x80000000U;
-
     rt_uint32_t recved;
     rt_uint8_t opt = RT_EVENT_FLAG_AND;
+    rt_err_t result;
+    rt_int32_t ticks;
+
+    if (!find_event_flags_ctx(event)) return 0x80000000U;
+    if (!rtthread_event_flags_args_valid(flags, options)) return 0x80000000U;
+    if (!rtthread_timeout_to_ticks(timeout, &ticks)) return 0x80000000U;
+
     if (options & XY_OS_FLAGS_WAIT_ALL) {
         opt = RT_EVENT_FLAG_AND;
     } else {
@@ -948,8 +983,8 @@ uint32_t xy_os_event_flags_wait(xy_os_event_flags_id_t ef_id, uint32_t flags,
         opt |= RT_EVENT_FLAG_CLEAR;
     }
 
-    rt_err_t result = rt_event_recv(event, flags, opt, timeout, &recved);
-    return (result == RT_EOK) ? recved : 0x80000000;
+    result = rt_event_recv(event, flags, opt, ticks, &recved);
+    return (result == RT_EOK) ? recved : 0x80000000U;
 }
 
 xy_os_status_t xy_os_event_flags_delete(xy_os_event_flags_id_t ef_id)
@@ -1005,11 +1040,13 @@ const char *xy_os_mutex_get_name(xy_os_mutex_id_t mutex_id)
 xy_os_status_t xy_os_mutex_acquire(xy_os_mutex_id_t mutex_id, uint32_t timeout)
 {
     rt_mutex_t mutex = (rt_mutex_t)mutex_id;
-    if (!mutex || !find_mutex_ctx(mutex)) return XY_OS_ERROR_PARAMETER;
+    rt_int32_t ticks;
+    rt_err_t result;
 
-    rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
-                      rt_mutex_take(mutex, RT_WAITING_FOREVER) :
-                      rt_mutex_take(mutex, timeout);
+    if (!mutex || !find_mutex_ctx(mutex)) return XY_OS_ERROR_PARAMETER;
+    if (!rtthread_timeout_to_ticks(timeout, &ticks)) return XY_OS_ERROR_PARAMETER;
+
+    result = rt_mutex_take(mutex, ticks);
 
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
@@ -1110,11 +1147,13 @@ const char *xy_os_semaphore_get_name(xy_os_semaphore_id_t semaphore_id)
 xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id, uint32_t timeout)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (!sem || !find_sem_ctx(sem)) return XY_OS_ERROR_PARAMETER;
+    rt_int32_t ticks;
+    rt_err_t result;
 
-    rt_err_t result = (timeout == XY_OS_WAIT_FOREVER) ?
-                      rt_sem_take(sem, RT_WAITING_FOREVER) :
-                      rt_sem_take(sem, timeout);
+    if (!sem || !find_sem_ctx(sem)) return XY_OS_ERROR_PARAMETER;
+    if (!rtthread_timeout_to_ticks(timeout, &ticks)) return XY_OS_ERROR_PARAMETER;
+
+    result = rt_sem_take(sem, ticks);
 
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
@@ -1220,16 +1259,12 @@ const char *xy_os_mempool_get_name(xy_os_mempool_id_t mp_id)
 void *xy_os_mempool_alloc(xy_os_mempool_id_t mp_id, uint32_t timeout)
 {
     rt_mp_t mp = (rt_mp_t)mp_id;
+    rt_int32_t ticks;
+
     if (!mp || !find_mempool_ctx(mp)) return NULL;
+    if (!rtthread_timeout_to_ticks(timeout, &ticks)) return NULL;
 
-    void *block = RT_NULL;
-    if (timeout == XY_OS_WAIT_FOREVER) {
-        block = rt_mp_alloc(mp, RT_WAITING_FOREVER);
-    } else {
-        block = rt_mp_alloc(mp, timeout);
-    }
-
-    return block;
+    return rt_mp_alloc(mp, ticks);
 }
 
 xy_os_status_t xy_os_mempool_free(xy_os_mempool_id_t mp_id, void *block)
@@ -1333,6 +1368,7 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
                                  uint32_t timeout)
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
+    rt_int32_t ticks;
     rt_err_t result;
 
     if (!mq || !msg_ptr || msg_prio != 0U || !find_msgqueue_ctx(mq)) {
@@ -1340,11 +1376,13 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
          * adapter cannot honor instead of silently degrading delivery order. */
         return XY_OS_ERROR_PARAMETER;
     }
+    if (!rtthread_timeout_to_ticks(timeout, &ticks)) return XY_OS_ERROR_PARAMETER;
 
-    result = (timeout == XY_OS_WAIT_FOREVER)
-                 ? rt_mq_send_wait(mq, msg_ptr, mq->msg_size, RT_WAITING_FOREVER)
-                 : ((timeout == 0U) ? rt_mq_send(mq, msg_ptr, mq->msg_size)
-                                    : rt_mq_send_wait(mq, msg_ptr, mq->msg_size, timeout));
+    if (ticks == 0) {
+        result = rt_mq_send(mq, msg_ptr, mq->msg_size);
+    } else {
+        result = rt_mq_send_wait(mq, msg_ptr, mq->msg_size, ticks);
+    }
 
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
@@ -1354,11 +1392,12 @@ xy_os_status_t xy_os_msgqueue_get(xy_os_msgqueue_id_t mq_id, void *msg_ptr,
 {
     rt_mq_t mq = (rt_mq_t)mq_id;
     rt_ssize_t received;
+    rt_int32_t ticks;
 
     if (!mq || !msg_ptr || !find_msgqueue_ctx(mq)) return XY_OS_ERROR_PARAMETER;
+    if (!rtthread_timeout_to_ticks(timeout, &ticks)) return XY_OS_ERROR_PARAMETER;
 
-    received = rt_mq_recv(mq, msg_ptr, mq->msg_size,
-                          (timeout == XY_OS_WAIT_FOREVER) ? RT_WAITING_FOREVER : timeout);
+    received = rt_mq_recv(mq, msg_ptr, mq->msg_size, ticks);
     if (received != (rt_ssize_t)mq->msg_size) {
         return XY_OS_ERROR;
     }

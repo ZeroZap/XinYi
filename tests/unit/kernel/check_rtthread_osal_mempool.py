@@ -40,10 +40,18 @@ def main() -> int:
         "void *xy_os_mempool_alloc",
         "xy_os_status_t xy_os_mempool_free",
     )
-    if "rt_mp_alloc(mp, RT_WAITING_FOREVER)" not in alloc_body:
-        errors.append("wait-forever memory-pool allocation must use RT_WAITING_FOREVER")
-    if "rt_mp_alloc(mp, timeout)" not in alloc_body:
-        errors.append("bounded memory-pool allocation must pass the requested timeout")
+    timeout_convert = alloc_body.find("rtthread_timeout_to_ticks(timeout, &ticks)")
+    native_alloc = alloc_body.find("rt_mp_alloc(mp, ticks)")
+    if timeout_convert < 0 or native_alloc < 0 or timeout_convert > native_alloc:
+        errors.append(
+            "memory-pool allocation must map the OSAL timeout through one checked conversion "
+            "and pass the resulting native tick count to rt_mp_alloc()"
+        )
+    for stale in ("rt_mp_alloc(mp, RT_WAITING_FOREVER)", "rt_mp_alloc(mp, timeout)"):
+        if stale in alloc_body:
+            errors.append(
+                f"memory-pool allocation must not narrow the OSAL timeout inline: found {stale}"
+            )
 
     free_body = function_body(
         source,
