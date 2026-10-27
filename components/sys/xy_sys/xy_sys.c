@@ -25,6 +25,12 @@ XY_SYS_WEAK int xy_sys_reboot_reason(void *data)
     return XY_ERROR_NOT_SUPPORTED;
 }
 
+XY_SYS_WEAK int xy_sys_reset_request(void *data)
+{
+    (void)data;
+    return XY_ERROR_NOT_SUPPORTED;
+}
+
 XY_SYS_WEAK int xy_sys_get_chip_id(void *data)
 {
     (void)data;

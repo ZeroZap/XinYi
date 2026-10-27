@@ -165,6 +165,7 @@ int main(void)
     uint32_t humidity_milli_percent = 0;
     int32_t temperature_milli_c = 0;
     uint32_t reset_reason = 0;
+    uint32_t reset_request = 0;
     uint32_t chip_id[3] = {0};
     uint8_t mac_addr[6] = {0};
     xy_i2c_device_t aht10 = {0};
@@ -210,6 +211,12 @@ int main(void)
         uart_hex8(mac_addr[i]);
     }
     uart_text("\r\n");
+    if (xy_sys_reset_request(&reset_request) != XY_OK) {
+        fail();
+    }
+    uart_text("SYS_RESET_REQUEST ");
+    uart_u32(reset_request);
+    uart_text("\r\n");
     if ((reset_reason & XY_HAL_SYS_RESET_REASON_WATCHDOG) != 0U) {
         uart_text("SYS_RESET_KIND WATCHDOG\r\nSYS_WATCHDOG_RESET_OK\r\n");
     } else if ((reset_reason & XY_HAL_SYS_RESET_REASON_SOFTWARE) != 0U) {
@@ -227,12 +234,12 @@ int main(void)
         uart_text("SYS_RESET_KIND EXTERNAL_PIN\r\nSYS_EXTERNAL_PIN_RESET_OK\r\n");
         uart_text("SYS_SOFTWARE_RESET_REQUEST\r\n");
         xy_hal_delay_ms(250U);
-        (void)xy_sys_reset(1);
+        (void)xy_sys_reset(XY_SYS_RESET_REQUEST_APP_RESTART);
         fail();
     } else {
         uart_text("SYS_RESET_KIND POWER_ON\r\nSYS_SOFTWARE_RESET_REQUEST\r\n");
         xy_hal_delay_ms(250U);
-        (void)xy_sys_reset(1);
+        (void)xy_sys_reset(XY_SYS_RESET_REQUEST_APP_RESTART);
         fail();
     }
     uart_text("FOTA_FIRMWARE_COMMIT " XINYI_FIRMWARE_COMMIT "\r\n");
@@ -257,7 +264,7 @@ int main(void)
         }
         uart_text("FOTA_BOOT_HANDOFF_COMMITTED slot=1 version=2\r\n");
         xy_hal_delay_ms(250U);
-        (void)xy_sys_reset(1);
+        (void)xy_sys_reset(XY_SYS_RESET_REQUEST_FOTA_HANDOFF);
         fail();
     }
 
@@ -271,7 +278,7 @@ int main(void)
         }
         uart_text("FOTA_BOOT_ATTEMPT_COMMITTED count=1\r\n");
         xy_hal_delay_ms(250U);
-        (void)xy_sys_reset(1);
+        (void)xy_sys_reset(XY_SYS_RESET_REQUEST_APP_RESTART);
         fail();
     }
 
@@ -309,7 +316,7 @@ int main(void)
             }
             uart_text("FOTA_ROLLBACK_HANDOFF_COMMITTED slot=0 version=3\r\n");
             xy_hal_delay_ms(250U);
-            (void)xy_sys_reset(1);
+            (void)xy_sys_reset(XY_SYS_RESET_REQUEST_FOTA_HANDOFF);
             fail();
         }
     } else if (loaded.pending_slot == 0U && loaded.pending_version == 3U &&
@@ -322,7 +329,7 @@ int main(void)
         }
         uart_text("FOTA_ROLLBACK_ATTEMPT_COMMITTED count=1\r\n");
         xy_hal_delay_ms(250U);
-        (void)xy_sys_reset(1);
+        (void)xy_sys_reset(XY_SYS_RESET_REQUEST_APP_RESTART);
         fail();
     } else if (loaded.pending_slot == 0U && loaded.pending_version == 3U &&
                loaded.boot_attempts == 1U) {

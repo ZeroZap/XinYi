@@ -21,6 +21,7 @@ void test_default_reset_fails_closed(void)
 void test_default_system_queries_fail_closed_and_preserve_outputs(void)
 {
     uint32_t reboot_reason = UINT32_C(0x11223344);
+    uint32_t reset_request = UINT32_C(0x11223344);
     uint8_t chip_id[12] = {0xA5};
     uint8_t mac_addr[6] = {0x5A};
     char sw_version[16] = "sw-sentinel";
@@ -28,6 +29,9 @@ void test_default_system_queries_fail_closed_and_preserve_outputs(void)
 
     TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_SUPPORTED, xy_sys_reboot_reason(&reboot_reason));
     TEST_ASSERT_EQUAL_HEX32(UINT32_C(0x11223344), reboot_reason);
+
+    TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_SUPPORTED, xy_sys_reset_request(&reset_request));
+    TEST_ASSERT_EQUAL_HEX32(UINT32_C(0x11223344), reset_request);
 
     TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_SUPPORTED, xy_sys_get_chip_id(chip_id));
     TEST_ASSERT_EQUAL_HEX8(0xA5, chip_id[0]);
@@ -45,6 +49,7 @@ void test_default_system_queries_fail_closed_and_preserve_outputs(void)
 void test_default_system_queries_reject_null_without_claiming_success(void)
 {
     TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_SUPPORTED, xy_sys_reboot_reason(NULL));
+    TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_SUPPORTED, xy_sys_reset_request(NULL));
     TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_SUPPORTED, xy_sys_get_chip_id(NULL));
     TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_SUPPORTED, xy_sys_get_mac_addr(NULL));
     TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_SUPPORTED, xy_sys_get_sw_ver(NULL));

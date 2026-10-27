@@ -89,11 +89,14 @@ def main() -> None:
         "xy_sys_init",
         "xy_sys_reset",
         "xy_sys_reboot_reason",
+        "xy_sys_reset_request",
         "xy_sys_get_chip_id",
         "xy_hal_sys_get_reset_reason",
         "xy_hal_sys_clear_reset_reason",
         "xy_hal_sys_get_unique_id",
         "xy_hal_sys_software_reset",
+        "xy_hal_rtc_backup_read",
+        "xy_hal_rtc_backup_write",
     )
     pandora_sys = (BOARD / "pandora_sys.c").read_text(encoding="utf-8")
     for forbidden in ("NVIC_SystemReset", "HAL_GetUID", "__HAL_RCC_", "RCC->"):
