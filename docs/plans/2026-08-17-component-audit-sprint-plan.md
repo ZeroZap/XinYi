@@ -46,7 +46,7 @@ XinYi 已不是“缺少组件骨架”的早期仓库，而是一个具有强 H
 |---|---:|---|---|---|
 | `clib` | A- | `clib_component`、alloc shim；字符串/内存/stdio/ctype/ring/filter/sort | MCU heap、代码尺寸、math/stdlib 深覆盖不足；存在 warning | 保持稳定，补 warning 与 MCU size 记录 |
 | `kernel/OSAL` | B | bare-metal Host 契约；AutoTask/SysMon/bootreason CTest | RTOS 调度、ISR/event、低功耗唤醒和 bootreason 板级证据不足；bare-metal thread 仍弱 | 选一个 RTOS 后端做并发与 ISR 实证 |
-| `hal` | C | PC simulation、Host `hal_pc`、STM32F4 QEMU | README 过度宣称；STM32U5 I2S stub、STM32F4 SPI/Timer 多处 unsupported、HC32 GPIO 不完整；缺真实 IRQ/DMA/timeout | 建 HAL×平台×外设×证据矩阵，并完成 STM32U5 最小实板集 |
+| `hal` | C | PC simulation、Host `hal_pc`、STM32F4 QEMU | README 过度宣称；STM32U5 I2S stub、STM32F4 SPI/Timer 多处 unsupported、HC32 GPIO 不完整；缺真实 IRQ/DMA/timeout | 建 HAL×平台×外设×证据矩阵，并完成 Pandora STM32L475VE 最小实板集（U5 enhancement 补充） |
 | `device` | A- | registry/lifecycle/I/O/PM/bus helper/async；6 个 focused CTest | RTOS 并发、IRQ/DMA、真实 PM backend 未证 | 作为硬件纵切统一入口，不再另造生命周期 |
 | `drivers/display` | B | LCD/OLED/WS2812/RGB/LED 5 个 Host CTest | panel/LED 实物、时序、DMA、帧率、长期稳定性未证；部分 backlog 仅声明 | 与 GUI 分离，先完成 SSD1306 或 ST7789 实板纵切 |
 | `drivers/storage` | B- | 24xx EEPROM Host transaction contract | 写周期、NACK polling、掉电、寿命与实物证据不足 | 纳入 I2C 硬件纵切及掉电测试 |
@@ -63,7 +63,7 @@ XinYi 已不是“缺少组件骨架”的早期仓库，而是一个具有强 H
 | `pid` | A- | core/auto-tune、5 个示例、focused CTest | 实际控制对象、采样抖动、饱和/抗积分工程参数未证 | 维护模式；产品接入时做 HIL tuning |
 | `trace` | B | raw/format/macro/weak sink Host CTest | 动态等级与宏过滤不完全一致；UART/RTT/ITM、ISR/并发、丢日志策略未证 | 修正等级语义并纳入 RTOS 并发验证 |
 | `ipc` | A- | pipe/broker/MQ/observer/event-group 5 个 CTest | 多线程/ISR stress、内存压力、配置 ownership 未证 | 选 FreeRTOS/RT-Thread 做并发实证 |
-| `sys` | C | timer/state-machine CTest | reset/chip ID/MAC/bootreason 多为 weak/no-op，缺 BSP strong override | 与 STM32U5 板级 Sprint 一起闭环 |
+| `sys` | C | timer/state-machine CTest | reset/chip ID/MAC/bootreason 多为 weak/no-op，缺 BSP strong override | 与 Pandora 板级 Sprint 一起闭环（U5 enhancement 补充） |
 | `dm` | B | Base64/TLV/NVM/Factory/FEE/coreJSON 6 个 CTest | FS/JSON dedicated test 缺失；Flash/NOR 掉电、磨损、布局迁移未证 | 补 FS/JSON focused test；设计掉电注入验证 |
 | `pm` | C | lifecycle、fallback、charger state Host CTest | sleep/shutdown 仍偏入口；真实功耗、唤醒源、ADC/charger GPIO、电池曲线未证 | 按既定路线后置，待 HAL/SYS 稳定再推进 |
 | `crypto` | B（契约）/D（安全） | 算法向量/API、ownership/manifest、约 30 项 Host/plan/compile policy 测试 | provenance 多为 review-pending；SM2/ECDSA security-rejected；无常数时间证明、真实 MCU 性能/硬件加速证据 | 产品级重建：先算法清单、来源、安全等级和 provider 边界，再优化 |
@@ -125,7 +125,7 @@ Sprint 0 应加入配置矩阵：全关、逐组件开启、Display 子功能以
 | 顺位 | 风险 | 影响 | 处置 |
 |---:|---|---|---|
 | 1 | Secure FOTA 链接 security-rejected ECDSA | 可产生虚假安全感与产品安全事故 | 默认 fail-closed/feature-off；定义 production signature provider |
-| 2 | HAL 文档成熟度高于源码和板级证据 | 所有上层硬件组件结论失真 | 建证据矩阵，先 STM32U5 GPIO/UART/I2C/SPI/IRQ/DMA |
+| 2 | HAL 文档成熟度高于源码和板级证据 | 所有上层硬件组件结论失真 | 建证据矩阵，先 Pandora STM32L475VE GPIO/UART/I2C/SPI/IRQ/DMA（U5 enhancement 补充） |
 | 3 | `main` 尚未推送的 477 个提交 | 单机故障会造成代码丢失 | 本轮文档提交后直接推送 `origin/main`，并核对本地/远端 SHA |
 | 4 | 多套 CI 可能假绿 | 回归和 release gate 不可信 | 合并 canonical workflow，禁止 empty CTest/`|| true` |
 | 5 | Sensor 双轨和 AT 多实现 | API/ownership/构建漂移 | 冻结旧入口，建立 active-source/ownership manifest |
@@ -217,6 +217,13 @@ git diff --check
 
 **目标**：建立第一条真实证据链，而不是继续增加模拟测试数量。
 
+> **Pandora-first 决策（2026-09 起生效，2026-10-27 校准）**：Pandora STM32L475VE 是正式
+> reference board 与 Sprint 1–4 当前实板验收基线；STM32U5/M33/TrustZone 只保留后续 enhancement
+> compile compatibility，不再阻塞基础验收。SSD1306 deferred，不选择、不推进、不作为依赖。原以
+> STM32U5 为首要实板目标的 S2-2/S2-3/S2-4/S3-4 验收与依赖已改为 Pandora-first、U5 补充；
+> 不虚报未取得的 B1/B2。无人值守运行仅执行构建、自动测试、ST-Link 烧录/复位与独立 UART 采集，
+> 不得依赖人工接线、按键、目视确认或物理故障注入。
+
 #### S2-1 HAL 证据矩阵
 
 **路径**：`components/hal/README.md`、新 validation matrix。
@@ -224,25 +231,26 @@ git diff --check
 
 **验收**：STM32U5/F4/L4/WCH/HC32 不再以笼统“生产就绪”描述。
 
-#### S2-2 STM32U5 基础外设
+#### S2-2 Pandora STM32L475VE 基础外设（U5 enhancement 补充）
 
 **范围**：GPIO、UART、I2C、SPI、IRQ callback、timeout/error mapping、至少一条 DMA。
-**验收**：真实板卡日志/逻辑分析记录；negative path 包含 NACK、timeout、bus reset/re-init。
+**验收**：Pandora 真实板卡日志/逻辑分析记录；negative path 包含 NACK、timeout、bus reset/re-init。
+STM32U5 仅保留 compile compatibility gate，不作为实板验收阻塞。
 
 #### S2-3 Device→Driver 纵切
 
-**推荐二选一**：
-- I2C → `xy_device_bus_helpers` → SSD1306；或
-- I2C → `xy_device_bus_helpers` → 24xx EEPROM。
+**推荐（Pandora-first，排除 SSD1306）**：
+- I2C → `xy_device_bus_helpers` → Pandora 板载 AHT10 / AP3216C（SSD1306 deferred，不作为纵切设备；
+  Pandora 无板载 24xx EEPROM）。
 
-**验收**：注册、初始化、正常事务、NACK、timeout、重入；Host focused + STM32U5 compile + 实板记录三层证据均存在。
+**验收**：注册、初始化、正常事务、NACK、timeout、重入；Host focused + Pandora STM32L4/STM32U5 compile + 实板记录三层证据均存在。
 
-#### S2-4 SYS 强 backend
+#### S2-4 SYS 强 backend（Pandora board-owned）
 
-**路径**：`components/sys/xy_sys/`、board/project override。
-**任务**：reset、reset cause/bootreason、chip ID；不要把 weak no-op 留给受支持板卡。
+**路径**：`components/sys/xy_sys/`、board/project override（Pandora `boards/pandora_stm32l475/`）。
+**任务**：reset、reset cause/bootreason、chip ID、deterministic MAC；不要把 weak no-op 留给受支持板卡。
 
-**验收**：上电/软件复位/看门狗复位至少三类原因可区分并保存日志。
+**验收**：Pandora 上电/软件复位/看门狗复位至少三类原因可区分并保存日志；96-bit UID 与派生 MAC 稳定可读。
 
 ---
 
@@ -271,12 +279,13 @@ git diff --check
 
 **验收**：安全结论与性能结论分离；Host correctness 不等于 constant-time/security approval。
 
-#### S3-4 FOTA 状态机去模拟化设计
+#### S3-4 FOTA 状态机去模拟化设计（Pandora board-owned Flash/bootloader）
 
-**路径**：`components/fota/`、`projects/stm32u5_fota/`、bootloader contract 文档。
+**路径**：`components/fota/`、Pandora board-owned Flash（W25Q128）/bootloader contract 文档、
+`projects/stm32u5_fota/` 保留为 U5 compile 补充。
 **任务**：定义 image format、download/install、boot handoff、mark-valid、rollback、anti-rollback、断电恢复；修复示例 compile blocker并纳入 compile gate。
 
-**验收**：项目可编译；尚未完成的硬件步骤返回明确错误，不允许成功 no-op。
+**验收**：Pandora 项目可编译；尚未完成的硬件步骤返回明确错误，不允许成功 no-op；U5 仅 compile 补充。
 
 ---
 
