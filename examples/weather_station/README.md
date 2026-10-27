@@ -106,7 +106,7 @@ xy_mq_config_t mq_cfg = {
 
 - [SHT30 驱动](../../components/sensor/xy_sht30.c)
 - [MPU6050 驱动](../../components/sensor/xy_mpu6050.c)
-- [PID 控制器](../../components/pid/xy_pid.c)
+- [PID 控制器](../../components/pid/src/xy_pid.c)
 - [消息队列](../../components/dm/xy_mq.c)
 
 ---

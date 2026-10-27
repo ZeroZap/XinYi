@@ -1765,7 +1765,7 @@ xy_add_unit_test(test_mux_gpio mux_gpio UNITY
 # --- Test 29: PID core lifecycle, tuning, limits, and compute contracts ---
 xy_add_unit_test(test_pid_core pid_core UNITY
     ${UNIT_PID}/test_pid_core.c
-    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
 )
@@ -1774,7 +1774,7 @@ target_link_libraries(test_pid_core m)
 # --- Test 29b: PID auto tuner lifecycle, sampling, and apply contracts ---
 xy_add_unit_test(test_pid_auto pid_auto UNITY
     ${UNIT_PID}/test_pid_auto.c
-    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid.c
     ${PID}/src/xy_pid_auto.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
@@ -1784,7 +1784,7 @@ target_link_libraries(test_pid_auto m)
 # --- Test 29c: PID examples stay aligned with public APIs ---
 xy_add_unit_test(test_pid_example_basic pid_example_basic
     ${PID}/examples/example_basic.c
-    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
     ${UNIT_PID}/test_pid_example_log_stub.c
@@ -1793,7 +1793,7 @@ target_link_libraries(test_pid_example_basic m)
 
 xy_add_unit_test(test_pid_example_incremental pid_example_incremental
     ${PID}/examples/example_incremental.c
-    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
     ${UNIT_PID}/test_pid_example_log_stub.c
@@ -1802,7 +1802,7 @@ target_link_libraries(test_pid_example_incremental m)
 
 xy_add_unit_test(test_pid_example_auto_tune pid_example_auto_tune
     ${PID}/examples/example_auto_tune.c
-    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid.c
     ${PID}/src/xy_pid_auto.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
@@ -1812,7 +1812,7 @@ target_link_libraries(test_pid_example_auto_tune m)
 
 xy_add_unit_test(test_pid_example_temperature pid_example_temperature
     ${PID}/examples/example_temperature.c
-    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
     ${UNIT_PID}/test_pid_example_log_stub.c
@@ -1821,7 +1821,7 @@ target_link_libraries(test_pid_example_temperature m)
 
 xy_add_unit_test(test_pid_example_charging pid_example_charging
     ${PID}/examples/example_charging.c
-    ${PID}/xy_pid.c
+    ${PID}/src/xy_pid.c
     ${TRACE}/xy_log/src/xy_log.c
     ${CLIB}/xy_stdio.c
     ${UNIT_PID}/test_pid_example_log_stub.c
