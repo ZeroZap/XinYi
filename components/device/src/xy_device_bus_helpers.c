@@ -206,17 +206,33 @@ xy_error_t xy_spi_device_transfer(xy_spi_device_t *dev, const uint8_t *tx,
         return XY_DEVICE_IO_ERROR;
     }
 
-    return (int)len;
+    /* The declared contract is xy_error_t: success is XY_DEVICE_OK. Callers
+     * (W25Qxx, ADXL362, INA229) compare the result with XY_DEVICE_OK before
+     * continuing their transfer sequence, so returning len here would look
+     * like a failure and abort the sequence. */
+    return XY_DEVICE_OK;
 }
 
 int xy_spi_device_send(xy_spi_device_t *dev, const uint8_t *data, size_t len)
 {
-    return xy_spi_device_transfer(dev, data, NULL, len);
+    xy_error_t ret = xy_spi_device_transfer(dev, data, NULL, len);
+
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    return (int)len;
 }
 
 int xy_spi_device_recv(xy_spi_device_t *dev, uint8_t *data, size_t len)
 {
-    return xy_spi_device_transfer(dev, NULL, data, len);
+    xy_error_t ret = xy_spi_device_transfer(dev, NULL, data, len);
+
+    if (ret != XY_DEVICE_OK) {
+        return ret;
+    }
+
+    return (int)len;
 }
 
 xy_error_t xy_spi_device_register(xy_spi_device_t *dev, const char *name, xy_dev_type_t type)
@@ -259,7 +275,7 @@ xy_error_t xy_uart_device_send(xy_uart_device_t *dev, const uint8_t *data, size_
         return XY_DEVICE_IO_ERROR;
     }
 
-    return (int)len;
+    return XY_DEVICE_OK;
 }
 
 xy_error_t xy_uart_device_recv(xy_uart_device_t *dev, uint8_t *data, size_t len)
@@ -268,12 +284,12 @@ xy_error_t xy_uart_device_recv(xy_uart_device_t *dev, uint8_t *data, size_t len)
         return XY_DEVICE_INVALID_PARAM;
     }
 
-    int ret = xy_hal_uart_recv(dev->uart_handle, data, len, 1000);
+    xy_hal_error_t ret = xy_hal_uart_recv(dev->uart_handle, data, len, 1000);
     if (ret != XY_HAL_OK) {
         return XY_DEVICE_IO_ERROR;
     }
 
-    return (int)len;
+    return XY_DEVICE_OK;
 }
 
 int xy_uart_device_printf(xy_uart_device_t *dev, const char *fmt, ...)
@@ -289,7 +305,11 @@ int xy_uart_device_printf(xy_uart_device_t *dev, const char *fmt, ...)
     va_end(args);
 
     if (len > 0) {
-        return xy_uart_device_send(dev, (uint8_t *)buffer, len);
+        xy_error_t ret = xy_uart_device_send(dev, (uint8_t *)buffer, (size_t)len);
+        if (ret != XY_DEVICE_OK) {
+            return ret;
+        }
+        return len;
     }
 
     return len;

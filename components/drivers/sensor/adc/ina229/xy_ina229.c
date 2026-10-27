@@ -40,9 +40,11 @@ static int ina229_transfer(xy_ina229_t *dev, const uint8_t *tx, uint8_t *rx, uin
         return XY_DEVICE_INVALID_PARAM;
     }
     result = xy_spi_device_transfer(&dev->spi_dev, tx, rx, len);
-    if (result == (int)len) return XY_DEVICE_OK;
-    if (result < 0) return result;
-    return XY_DEVICE_IO_ERROR;
+    if (result == XY_DEVICE_OK) return XY_DEVICE_OK;
+    /* xy_spi_device_transfer() reports success as XY_DEVICE_OK; anything
+     * positive can only come from a stale byte-count style implementation and
+     * must not be mistaken for a completed transfer. */
+    return (result < 0) ? result : XY_DEVICE_IO_ERROR;
 }
 
 static int ina229_read(void *context, uint8_t reg, uint8_t *data, uint8_t len)

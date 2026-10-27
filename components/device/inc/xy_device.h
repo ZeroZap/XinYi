@@ -278,7 +278,23 @@ xy_error_t xy_i2c_device_register(xy_i2c_device_t *dev, const char *name, xy_dev
 /* SPI Device */
 xy_error_t xy_spi_device_init(xy_spi_device_t *dev, void *spi_handle, void *cs_pin, uint32_t speed, uint8_t mode);
 void xy_spi_device_cs(xy_spi_device_t *dev, bool select);
+
+/**
+ * @brief Transfer @p len bytes over SPI (full duplex, TX-only or RX-only).
+ *
+ * @return XY_DEVICE_OK on success, XY_DEVICE_INVALID_PARAM when both @p tx and
+ *         @p rx are NULL or the device is not initialised, XY_DEVICE_IO_ERROR
+ *         when the HAL transfer fails. The byte count is deliberately NOT
+ *         returned here: callers compare the result with XY_DEVICE_OK, so
+ *         use xy_spi_device_send()/xy_spi_device_recv() when a length is
+ *         needed.
+ */
 xy_error_t xy_spi_device_transfer(xy_spi_device_t *dev, const uint8_t *tx, uint8_t *rx, size_t len);
+
+/** @return number of bytes sent, or a negative error code. */
+int xy_spi_device_send(xy_spi_device_t *dev, const uint8_t *data, size_t len);
+/** @return number of bytes received, or a negative error code. */
+int xy_spi_device_recv(xy_spi_device_t *dev, uint8_t *data, size_t len);
 
 /** @brief See xy_i2c_device_register; SPI counterpart. */
 xy_error_t xy_spi_device_register(xy_spi_device_t *dev, const char *name, xy_dev_type_t type);

@@ -1,5 +1,18 @@
 # XinYi Sprint 跟踪看板
 
+**最新 Device SPI/UART bus helper 返回值契约收口（2026-10-28）**：canonical bus helper
+`xy_spi_device_transfer()` 声明为 `xy_error_t` 却在成功时返回字节数，`xy_uart_device_send/recv`
+同样返回 `len`。真实消费方（`xy_w25qxx_read_id/read_status/page_program/read_data`、
+`xy_adxl362` 的 `reg_read`）都以 `== XY_DEVICE_OK` 判定成功，因此第一条 transfer 后即中止
+（`xy_w25qxx_read_id()` 实测返回 1），INA229 靠 `result == (int)len` 补偿掩盖了该契约。
+现 transfer 成功返回 `XY_DEVICE_OK`，字节数改由新公开的 `xy_spi_device_send()/recv()`
+（成功返回 `len`，失败返回负错误码）承担；UART send/recv 统一返回 `XY_DEVICE_OK`，
+`xy_uart_device_printf()` 返回实际写入长度；INA229 去掉字节数补偿并把 legacy 正数结果映射为
+`XY_DEVICE_IO_ERROR`。focused `device_bus_contract` 7/7（含真实 `xy_w25qxx_read_id()` 序列
+RED/GREEN）、`spi_device`/`sensor_ina229_device`/`sensor_w25qxx`/`sensor_adxl362_device`、
+Host 283/283、PC/STM32L4/STM32U5 build 与 `git diff --check` 通过。仅 Host/compile 契约证据，
+未接 Pandora SPI Flash 实板，不升级 SPI 电气时序、Flash 耐久或 W25Q128 实物声明。
+
 **最新 Pandora SYS reset-request retention（2026-10-27）**：board-owned
 `xy_sys_reset(reset_by)` 不再丢弃原因参数 —— 复位前把 `reason` 写入 RTC backup slot 3
 （`MAGIC | reason`，0..255），`xy_sys_init()` 解码后清空（one-shot），新增
@@ -507,6 +520,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 || S6-99 | P1 | RT-Thread OSAL queue-priority and semaphore-capacity fail-closed boundary | DONE | Zero | S6-80 的 FreeRTOS 非零 `msg_prio` 拒绝契约；RT-Thread native mq 为 FIFO-only、sem 无 `max_count` 上限 | TDD RED 证明 `xy_os_msgqueue_put()` 用 `XY_UNUSED(msg_prio)` 静默丢弃公开优先级并仍返回成功，且 `xy_os_semaphore_release()` 从不校验公开 `max_count`，`get_count()` 可越过创建时声明的上限。现非零优先级在 native queue 访问前 fail-closed 返回 `XY_OS_ERROR_PARAMETER`；semaphore context 保留 `max_count`，release 在同一 critical section 内先校验容量再调用 `rt_sem_release()`。focused `rtthread_osal_msgqueue`/`rtthread_osal_sync_lifecycle`（另 7 个 RT-Thread policy CTest 与 `test_osal_backend_contract` 同步通过）、Host、PC/L4/U5 compile 与 `git diff --check` passed | 本记录提交 | 2026-10-27 |
 || S6-100 | P2 | RT-Thread backend 与 pinned RT-Thread 5.3 编译漂移 | BACKLOG | Zero | S6-99；`third_party/rt-thread` = RT-Thread 5.3.0 | 以 pinned `third_party/rt-thread` 头文件对 `xy_os_rtthread.c` 做 `-fsyntax-only` probe，HEAD 与 S6-99 之后均只有同样三项既有错误：`xy_os_thread_attr_t` 无 `tick` 成员（2 处）、`rt_mempool->parent` 在 5.3 中缺 `name` 字段。该项不属于 S6-99 范围；若正式启用 RT-Thread backend，需先补可编译 seam（fake 头或 vendor 版本对齐）再谈 runtime 证据 | 待决策 | 2026-10-27 |
 || S6-103 | P1 | RT-Thread OSAL owned-mutex deletion boundary | DONE | Zero | S6-91 的 FreeRTOS owned-delete 契约；RT-Thread `rt_mutex_delete()` 会直接删除被持有的 mutex | TDD RED 证明 `xy_os_mutex_delete()` 在 owner 仍持有 mutex 时直接删除 kernel 对象并返回成功。现 ownership 校验与 native deletion 位于同一 `rt_enter_critical()` 区间，仍被持有的 mutex 返回 `XY_OS_ERROR_RESOURCE`，untracked handle 与 delete 失败保持原有 fail-closed/可重试语义；policy guard 增加 owned-delete 与临界区断言，并把 delete 断言改为可容纳失败退出路径的正则形式。focused、Host 280/280、PC/L4/U5 compile 与 `git diff --check` passed | 本记录提交 | 2026-10-27 |
+|| S6-104 | P0 | Device SPI/UART bus helper 返回值契约收口 | DONE | Zero | canonical Device bus helpers；W25Qxx/ADXL362/INA229 真实消费方；无 Pandora SPI Flash 接线 | TDD RED：`xy_spi_device_transfer()` 声明为 `xy_error_t` 却在成功时返回字节数（实测 3），`xy_uart_device_send/recv` 同样返回 `len`。`xy_w25qxx_read_id/read_status/page_program/read_data` 与 `xy_adxl362` 的 `reg_read` 都以 `== XY_DEVICE_OK` 判定成功，故在真实 helper 下第一条 transfer 后即中止（`xy_w25qxx_read_id()` 实测返回 1），INA229 则靠 `result == (int)len` 补偿掩盖契约。现 transfer 成功返回 `XY_DEVICE_OK`（失败仍 `XY_DEVICE_IO_ERROR`/`XY_DEVICE_INVALID_PARAM`），字节数改由新公开的 `xy_spi_device_send()/xy_spi_device_recv()`（成功为 `len`，失败为负错误码）返回；UART send/recv 统一 `XY_DEVICE_OK`，`xy_uart_device_printf()` 返回实际写入长度；INA229 去掉字节数补偿并把 legacy 正数结果映射为 `XY_DEVICE_IO_ERROR`。focused `device_bus_contract` 7/7（含真实 `xy_w25qxx_read_id()` 序列）、`spi_device`/`sensor_ina229_device`/`sensor_w25qxx`/`sensor_adxl362_device`、Host 283/283、PC/STM32L4/STM32U5 build 与 `git diff --check` 通过 | 本记录提交 | 2026-10-28 |
 || S6-102 | P0 | Pandora SYS reset-request retention across reset | DONE | Zero | S6-81～S6-91 的 fail-closed owner 契约；Pandora reference-board 优先级 | TDD RED：`xy_sys_reset(int)` 接受并校验 `reset_by` 后直接丢弃，复位原因闭环缺失。现 board-owned 实现把 `reason` 以 `PANDORA_RESET_REQUEST_MAGIC \| reason`（0..255）写入 RTC backup slot 3（0..2 已属 W25Q128/FOTA），先落记录再发软件复位；`xy_sys_init()` 解码后清空记录（one-shot），新增 `xy_sys_reset_request()` 访问器与 `XY_SYS_RESET_REQUEST_*` 常量，weak 默认仍 fail-closed。focused `pandora_sys` 12/12、Host 280/280、PC/STM32L4/STM32U5 build、Pandora board contract guard 与 `git diff --check` 通过；实板 `st-flash write` + 独立 read-back（14296 B 全等，SHA-256 `d96fee89…2025`）+ CP2102 UART 机器解析观察到 `SYS_RESET_REQUEST 0→1→0` 对应 `POWER_ON/EXTERNAL_PIN → SOFTWARE → WATCHDOG` 三次引导，新增 `validate_sys_reset_request_capture.py` 对旧镜像与错 commit 绑定均 FAIL 反向验证。证据：`docs/validation/evidence/pandora-stm32l475/2026-10-27-sys-reset-request/` | 本记录提交 | 2026-10-27 |
 
 

@@ -474,6 +474,18 @@ xy_add_unit_test(test_spi_device spi_device UNITY
     ${FRAMEWORK_SOURCES}
 )
 
+# --- Test 4b: canonical return contract of the I2C/SPI/UART bus helpers ---
+xy_add_unit_test(test_device_bus_contract device_bus_contract UNITY
+    ${UNIT_DEVICE}/test_device_bus_contract.c
+    ${SENSOR}/src/xy_w25qxx.c
+    ${FRAMEWORK_SOURCES}
+)
+target_include_directories(test_device_bus_contract PRIVATE
+    ${SENSOR}/inc
+    ${TRACE}/xy_log/inc
+    ${OSAL}
+)
+
 # --- Test 6: XY_DEVICE_REGISTER auto-registration via GCC constructors ---
 xy_add_unit_test(test_auto_register auto_register UNITY
     ${UNIT_DEVICE}/test_auto_register.c

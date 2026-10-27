@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 142
-- Unity-style files: 140
+- Total C files under `tests/unit`: 193
+- Unity-style files: 190
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
-- Plain/support helper C files without obvious Unity/assert markers: 2
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 165
+- Plain/support helper C files without obvious Unity/assert markers: 3
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 283
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -31,7 +31,7 @@
 | `analog_devices` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `clib` | 1 | 1 | 0 | 0 | 0 | 0 |
 | `crypto` | 13 | 12 | 0 | 0 | 1 | 2 |
-| `device` | 4 | 4 | 0 | 0 | 0 | 3 |
+| `device` | 6 | 6 | 0 | 0 | 0 | 4 |
 | `display` | 5 | 5 | 0 | 0 | 0 | 2 |
 | `dm` | 6 | 6 | 0 | 0 | 0 | 2 |
 | `fota` | 2 | 2 | 0 | 0 | 0 | 2 |
@@ -90,6 +90,8 @@ guard API drift in those examples/skeletons.
 | `tests/unit/device/test_auto_register.c` | `unity` | 0 |
 | `tests/unit/device/test_device_async_helper.c` | `unity` | 12 |
 | `tests/unit/device/test_device_framework.c` | `unity` | 7 |
+| `tests/unit/device/test_device_bus_contract.c` | `unity` | 3 | Canonical bus-helper return contract (SPI transfer = `XY_DEVICE_OK`, send/recv = byte count, UART send/recv = `XY_DEVICE_OK`) plus the real `xy_w25qxx_read_id()` transfer sequence; host-only, not flash or SPI electrical evidence. |
+| `tests/unit/device/test_device_pm.c` | `unity` | 1 |
 | `tests/unit/device/test_spi_device.c` | `unity` | 40 |
 | `tests/unit/display/test_display_lcd.c` | `unity` | 0 |
 | `tests/unit/display/test_display_oled_ws2812.c` | `unity` | 0 |

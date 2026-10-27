@@ -9,7 +9,7 @@ static frame_t frames[MAX_FRAMES];static size_t nf,idx;static int init_ret;stati
 static void qr(uint8_t reg,uint64_t value,uint8_t len,int ret){frame_t*f=&frames[nf++];f->len=len+1;f->tx[0]=(reg<<2)|1;f->ret=ret;for(uint8_t i=0;i<len;i++)f->rx[len-i]=(uint8_t)(value>>(8*i));}
 static void qw(uint8_t reg,uint16_t value,int ret){frame_t*f=&frames[nf++];f->len=3;f->tx[0]=reg<<2;f->tx[1]=value>>8;f->tx[2]=value;f->ret=ret;}
 xy_error_t xy_spi_device_init(xy_spi_device_t*d,void*h,void*cs,uint32_t speed,uint8_t mode){TEST_ASSERT_EQUAL_UINT32(10000000,speed);TEST_ASSERT_EQUAL_UINT8(1,mode);if(init_ret)return init_ret;memset(d,0,sizeof(*d));d->base.initialized=1;d->spi_handle=h;d->cs_pin=cs;return 0;}
-xy_error_t xy_spi_device_transfer(xy_spi_device_t*d,const uint8_t*tx,uint8_t*rx,size_t len){TEST_ASSERT_TRUE(d->base.initialized);TEST_ASSERT_LESS_THAN(nf,idx);frame_t*f=&frames[idx++];TEST_ASSERT_EQUAL_UINT(f->len,len);TEST_ASSERT_EQUAL_UINT8_ARRAY(f->tx,tx,len);if(f->ret>=0)memcpy(rx,f->rx,len);return f->ret==99?XY_DEVICE_OK:(f->ret?f->ret:(int)len);}
+xy_error_t xy_spi_device_transfer(xy_spi_device_t*d,const uint8_t*tx,uint8_t*rx,size_t len){TEST_ASSERT_TRUE(d->base.initialized);TEST_ASSERT_LESS_THAN(nf,idx);frame_t*f=&frames[idx++];TEST_ASSERT_EQUAL_UINT(f->len,len);TEST_ASSERT_EQUAL_UINT8_ARRAY(f->tx,tx,len);if(f->ret>=0)memcpy(rx,f->rx,len);return f->ret;}
 uint32_t xy_os_tick_get(void){return tick;}
 void setUp(void){memset(frames,0,sizeof(frames));nf=idx=0;init_ret=0;tick=77;}
 void tearDown(void){}
