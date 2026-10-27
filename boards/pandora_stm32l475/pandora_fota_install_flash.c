@@ -80,10 +80,17 @@ const xy_fota_boot_install_ops_t *pandora_fota_install_ops(void)
 int pandora_fota_application_vectors_valid(void)
 {
     const uint32_t *vectors = (const uint32_t *)PANDORA_FOTA_APP_BASE;
-    uint32_t reset = vectors[1] & ~1U;
-    int stack_valid = ((vectors[0] & 7U) == 0U) &&
-                      ((vectors[0] > 0x20000000U && vectors[0] <= 0x20018000U) ||
-                       (vectors[0] > 0x10000000U && vectors[0] <= 0x10008000U));
-    return stack_valid && (vectors[1] & 1U) != 0U && reset >= PANDORA_FOTA_APP_BASE &&
+
+    return pandora_fota_application_vectors_check(vectors[0], vectors[1]);
+}
+
+int pandora_fota_application_vectors_check(uint32_t initial_sp, uint32_t reset_handler)
+{
+    uint32_t reset = reset_handler & ~1U;
+    int stack_valid = ((initial_sp & 7U) == 0U) &&
+                      ((initial_sp > 0x20000000U && initial_sp <= 0x20018000U) ||
+                       (initial_sp > 0x10000000U && initial_sp <= 0x10008000U));
+
+    return stack_valid && (reset_handler & 1U) != 0U && reset >= PANDORA_FOTA_APP_BASE &&
            reset < PANDORA_FOTA_EXECUTION_LIMIT;
 }

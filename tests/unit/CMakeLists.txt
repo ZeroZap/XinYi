@@ -2113,6 +2113,20 @@ target_include_directories(test_fota_secure_provider PRIVATE
 )
 target_compile_definitions(test_fota_secure_provider PRIVATE XY_LOG_LEVEL=-1)
 
+# --- Test 33d: Pandora board-owned internal-Flash adapters (metadata + install) ---
+xy_add_unit_test(test_pandora_fota_flash pandora_fota_flash UNITY
+    ${UNIT_FOTA}/test_pandora_fota_flash.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_fota_flash.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_fota_install_flash.c
+    ${FOTA}/src/xy_fota_metadata.c
+    ${FOTA}/xy_fota.c
+)
+target_include_directories(test_pandora_fota_flash PRIVATE
+    ${ROOT}/boards/pandora_stm32l475
+    ${FOTA}/inc
+    ${HAL}/inc
+)
+
 # --- Test 34: GUI core drawing and object contracts ---
 xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c

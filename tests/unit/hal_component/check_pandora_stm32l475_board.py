@@ -141,6 +141,13 @@ def main() -> None:
         for forbidden in ("HAL_FLASH_", "HAL_FLASHEx_", "FLASH_TYPEPROGRAM_", "FLASH_TYPEERASE_"):
             assert forbidden not in source, f"{flash_owner} bypasses canonical Flash HAL: {forbidden}"
     require(
+        BOARD / "pandora_fota_install_flash.c",
+        "PANDORA_FOTA_INSTALL_PROGRAM_SIZE",
+        "pandora_fota_install_ops",
+        "pandora_fota_application_vectors_valid",
+        "pandora_fota_application_vectors_check",
+    )
+    require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_flash.c",
         "xy_hal_flash_init",
         "xy_hal_flash_write",
