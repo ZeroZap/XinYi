@@ -1,6 +1,12 @@
 # Device 组件 - 设备驱动框架
 
-**状态**: ✅ 完成 | **版本**: 1.0
+**状态**: host-guarded / 软件契约已护栏（实板 pending） | **版本**: 1.0
+
+> 当前证据边界：本文件是较早的用户向简介，仅作历史参考；若与 `components/device/README.md`、
+> 当前 CMake/Kconfig 或组件证据台账冲突，以 canonical README 与当前源码为准。Pandora
+> STM32L475VE 是正式 reference board；STM32U5/M33 仅保留 enhancement compile compatibility。
+> SSD1306 deferred，不选择、不推进、不作为 Sprint 1–4 基础验收依赖；Host/compile-only 证据
+> 不构成实板、安全或 production-ready 声明。
 
 ---
 
@@ -19,8 +25,8 @@ XinYi Device 组件提供标准化的设备驱动框架，基于 HAL 层封装�
 
 | 类别 | 设备 | 接口 | 状态 |
 |------|------|------|------|
-| EEPROM | 24xx 系列 | I2C | ✅ |
-| OLED | SSD1306 | I2C | ✅ |
+| EEPROM | 24xx 系列 | I2C | Host contract；Pandora 无板载 24xx，实板 pending |
+| OLED | SSD1306 | I2C | deferred（Host contract 已有，实板不推进） |
 | GPIO | 通用 GPIO | GPIO | ✅ |
 | UART | 串口设备 | UART | ✅ |
 | SPI | SPI 设备 | SPI | ✅ |
@@ -198,16 +204,12 @@ int xy_my_device_write(xy_my_device_t *dev, const uint8_t *data, size_t len)
 
 ## 🎯 下一步计划
 
-### 待添加的驱动
+### 驱动迁移状态（历史 TODO 已收敛）
 
-- [ ] MPU6050 (加速度计/陀螺仪)
-- [ ] BMP280 (气压计)
-- [ ] SHT30 (温湿度)
-- [ ] ADS1115 (ADC)
-- [ ] MAX31855 (热电偶)
-- [ ] PCF8563 (RTC)
-- [ ] AT24MAC (EEPROM+MAC)
+早期列为「待添加」的 MPU6050、BMP280、SHT30、ADS1115 已迁移为 `components/drivers/` 下的
+canonical Device owners（详见组件证据台账与 Sprint 跟踪看板）；MAX31855、PCF8563、AT24MAC
+等仍为未验证的规划项，不作为本 Sprint 承诺，也不代表 root product target 已接入。
 
 ---
 
-*最后更新：2026-02-28 | 维护者：XinYi Team*
+*最后更新：2026-10-27（事实源校准） | 维护者：XinYi Team*
