@@ -35,7 +35,6 @@ elseif(HAL_PLATFORM STREQUAL "STM32F4")
     # contracts.  They are excluded explicitly (never silently) until the
     # migration slice lands; re-adding one without fixing it fails the build.
     set(XY_HAL_F4_DEFERRED_SOURCES
-        xy_hal_dma.c
         xy_hal_i2c.c
         xy_hal_rtc.c
         xy_hal_spi.c
@@ -43,7 +42,6 @@ elseif(HAL_PLATFORM STREQUAL "STM32F4")
         xy_hal_uart.c)
     # Literal filters are authoritative (the build-contract guard parses them),
     # so a wrapper can never be "listed as deferred" without being excluded.
-    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_dma\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_i2c\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_rtc\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_spi\.c$")

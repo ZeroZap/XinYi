@@ -33,7 +33,6 @@ GUARD = "STM32_HAL_ENABLED"
 # migration work; growing it requires an explicit decision, so an unexpected
 # addition fails here instead of silently reducing the built surface.
 EXPECTED_F4_DEFERRED = {
-    "xy_hal_dma.c",
     "xy_hal_i2c.c",
     "xy_hal_rtc.c",
     "xy_hal_spi.c",
@@ -153,6 +152,14 @@ def main() -> int:
     f4_excluded = excluded_basenames(f4)
     for name in sorted(f4_deferred):
         assert name in f4_excluded, f"STM32F4 lists {name} as deferred but does not filter it out"
+    # ...and the reverse: a wrapper may only be filtered out when it is on the
+    # recorded deferral list, so a migrated wrapper cannot be silently dropped
+    # from the platform gate again.
+    stray_filters = sorted(f4_excluded - f4_deferred)
+    assert not stray_filters, (
+        "STM32F4 filters out wrappers that are not on XY_HAL_F4_DEFERRED_SOURCES: "
+        f"{stray_filters}; a migrated wrapper must be built, not silently excluded"
+    )
 
     # 4. A guard-only wrapper must never disappear without a recorded decision:
     #    compiled by the branch, deferred, or replaced by a dedicated per-family
