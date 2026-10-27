@@ -1,5 +1,27 @@
 # XinYi 组件证据台账
 
+### 2026-10-27 Pandora SYS reset-request retention across a reset
+
+- Board-owned `xy_sys_reset(reset_by)` now records the reason in RTC backup slot 3 as
+  `PANDORA_RESET_REQUEST_MAGIC | reason` (`0..255`, slots 0..2 stay owned by the W25Q128/FOTA
+  flows) before issuing the software reset; `xy_sys_init()` decodes the record, latches it, and
+  clears it one-shot; the new `xy_sys_reset_request()` accessor plus `XY_SYS_RESET_REQUEST_*`
+  constants expose the contract and the weak default stays `XY_ERROR_NOT_SUPPORTED`.
+- Evidence path: `boards/pandora_stm32l475/pandora_sys.c`, `boards/pandora_stm32l475/main.c`,
+  `components/sys/xy_sys/xy_sys.{h,c}`, `tests/unit/sys/test_pandora_sys.c`,
+  `tests/unit/sys/test_sys_core.c`, `boards/pandora_stm32l475/validate_sys_reset_request_capture.py`;
+  focused CTest `pandora_sys` 12/12; Host `make test-unit` 280/280; PC, STM32L4, STM32U5 builds;
+  Pandora board contract guard; `git diff --check`.
+- Hardware: Pandora STM32L475VE, `st-flash 1.8.0` write/verify (chipid `0x415`, ST-Link V2.1
+  `V2J24S11`), 14296-byte BIN SHA-256 `d96fee89…2025`, independent read-back byte-identical;
+  CP2102 UART 115200 8N1 captured `SYS_RESET_REQUEST 0 → 1 → 0` for
+  `POWER_ON/EXTERNAL_PIN → SOFTWARE → WATCHDOG`, and the validator rejects the pre-change
+  `41a11c70` capture and a wrong commit binding. Evidence:
+  `docs/validation/evidence/pandora-stm32l475/2026-10-27-sys-reset-request/`.
+- Current status: source/Host/compile + bounded board HIL `DONE`; not power-loss/brownout or
+  backup-domain-reset retention, not concurrent use of slots 0..2, and not product/release
+  qualification.
+
 ### 2026-10-27 Pandora SYS deterministic MAC from unique ID
 
 - Board-owned `xy_sys_get_mac_addr()` derives a deterministic unicast, locally-administered MAC

@@ -1,0 +1,48 @@
+{
+  "observed_chain": [
+    {
+      "csr": "00000001",
+      "kind": "EXTERNAL_PIN",
+      "request": 0
+    },
+    {
+      "csr": "00000005",
+      "kind": "SOFTWARE",
+      "request": 1
+    },
+    {
+      "csr": "00000009",
+      "kind": "WATCHDOG",
+      "request": 0
+    }
+  ],
+  "expected_chain": [
+    {
+      "kinds": [
+        "POWER_ON",
+        "EXTERNAL_PIN"
+      ],
+      "request": 0,
+      "meaning": "no record before the first SYS-requested reset"
+    },
+    {
+      "kinds": [
+        "SOFTWARE"
+      ],
+      "request": 1,
+      "meaning": "reason recorded before the previous software reset"
+    },
+    {
+      "kinds": [
+        "WATCHDOG"
+      ],
+      "request": 0,
+      "meaning": "record consumed one-shot, not carried into the watchdog boot"
+    }
+  ],
+  "firmware_commit": "0c6d3be0aaa5ad685f63f97382b410f4b2cb8efa",
+  "bytes_examined": 4436,
+  "problems": [],
+  "capture": "docs/validation/evidence/pandora-stm32l475/2026-10-27-sys-reset-request/uart-external-pin.txt",
+  "status": "PASS"
+}

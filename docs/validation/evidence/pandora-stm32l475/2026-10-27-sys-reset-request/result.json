@@ -1,0 +1,43 @@
+{
+  "target": "pandora_stm32l475_smoke",
+  "source_commit": "0c6d3be0aaa5ad685f63f97382b410f4b2cb8efa",
+  "bin_sha256": "d96fee898253410c82e6ad98969f950666e7851a68791a02607a236350ac2025",
+  "bin_size_bytes": 14296,
+  "readback_sha256": "d96fee898253410c82e6ad98969f950666e7851a68791a02607a236350ac2025",
+  "readback_identical": true,
+  "programmer": "st-flash 1.8.0 (ST-Link V2.1 V2J24S11 serial 066AFF313933554D43244015)",
+  "programming_finished": true,
+  "verified_ok": true,
+  "chipid": "0x415",
+  "dev_type": "STM32L47x_L48x",
+  "flash_bytes": 524288,
+  "uart": "CP2102 ttyUSB0 115200 8N1",
+  "capture_tool": "boards/pandora_stm32l475/capture_uart.py",
+  "capture_status": "CAPTURED",
+  "capture_runtime_evidence": "B1_REVIEW_CANDIDATE",
+  "bytes_captured": 5029,
+  "retained_record_slot": 3,
+  "reset_chain_primary": [
+    {"csr": "00000000", "kind": "POWER_ON", "request": 0},
+    {"csr": "00000005", "kind": "SOFTWARE", "request": 1},
+    {"csr": "00000009", "kind": "WATCHDOG", "request": 0}
+  ],
+  "reset_chain_external_pin_variant": [
+    {"csr": "00000001", "kind": "EXTERNAL_PIN", "request": 0},
+    {"csr": "00000005", "kind": "SOFTWARE", "request": 1},
+    {"csr": "00000009", "kind": "WATCHDOG", "request": 0}
+  ],
+  "validator": {
+    "script": "boards/pandora_stm32l475/validate_sys_reset_request_capture.py",
+    "uart_txt": "PASS",
+    "uart_external_pin_txt": "PASS",
+    "pre_change_capture_41a11c70": "FAIL (0 SYS reset records)",
+    "wrong_commit_binding": "FAIL"
+  },
+  "matrix": {
+    "PC": "passed",
+    "STM32L4": "passed",
+    "STM32U5": "passed"
+  },
+  "unit_tests": "280/280 passed"
+}
