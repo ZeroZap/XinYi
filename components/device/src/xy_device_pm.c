@@ -78,6 +78,13 @@ int xy_device_pm_init(xy_device_t *dev, const xy_device_pm_ops_t *pm_ops)
     if (!dev || !pm_ops) {
         return XY_DEVICE_INVALID_PARAM;
     }
+
+    /* An ops table with no callback cannot observe or change anything, so
+     * accepting it would publish a PM owner that always claims success. */
+    if (!pm_ops->set_state && !pm_ops->get_state && !pm_ops->set_wakeup &&
+        !pm_ops->get_power_consumption) {
+        return XY_DEVICE_INVALID_PARAM;
+    }
     
     /* Repeated initialization of the same live owner is idempotent. */
     xy_device_pm_data_t *data = pm_find_data(dev);
@@ -151,11 +158,15 @@ int xy_device_pm_set_state(xy_device_t *dev, xy_device_pm_state_t state)
     }
     
     /* 调用底层操作 */
-    if (data->ops->set_state) {
-        int ret = data->ops->set_state(dev, state);
-        if (ret != XY_DEVICE_OK) {
-            return ret;
-        }
+    if (data->ops->set_state == NULL) {
+        /* Never publish a state the driver cannot apply: the cached state must
+         * not claim a low-power transition that never reached the hardware. */
+        return XY_DEVICE_NOT_SUPPORT;
+    }
+
+    int ret = data->ops->set_state(dev, state);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
     
     /* 更新状态 */
@@ -218,11 +229,15 @@ int xy_device_pm_set_wakeup(xy_device_t *dev, bool enable)
     }
     
     /* 调用底层操作 */
-    if (data->ops->set_wakeup) {
-        int ret = data->ops->set_wakeup(dev, enable);
-        if (ret != XY_DEVICE_OK) {
-            return ret;
-        }
+    if (data->ops->set_wakeup == NULL) {
+        /* Without a callback the wake source is never armed; reporting success
+         * would claim a configured wakeup that the hardware does not have. */
+        return XY_DEVICE_NOT_SUPPORT;
+    }
+
+    int ret = data->ops->set_wakeup(dev, enable);
+    if (ret != XY_DEVICE_OK) {
+        return ret;
     }
 
     data->wakeup_enabled = enable;

@@ -481,6 +481,58 @@ static void test_device_pm_record_activity_propagates_wakeup_failure(void) {
     TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
 }
 
+static void test_device_pm_rejects_empty_ops_table(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t empty_ops = {0};
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+    xy_device_pm_state_t state = XY_DEVICE_PM_STATE_OFF;
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, xy_device_pm_init(&dev, &empty_ops));
+
+    /* A rejected table must not consume the owner slot or a capacity slot. */
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_INIT, xy_device_pm_get_state(&dev, &state));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&dev, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
+/* Publishing a power state the driver cannot apply makes the PM cache disagree
+ * with the hardware, so a missing callback must fail closed instead of
+ * reporting a low-power transition that never happened. */
+static void test_device_pm_set_state_without_callback_fails_closed(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.get_state = capture_get_state};
+    xy_device_pm_state_t state = XY_DEVICE_PM_STATE_OFF;
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_SUPPORT, xy_device_pm_sleep(&dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_SUPPORT,
+                          xy_device_pm_set_state(&dev, XY_DEVICE_PM_STATE_DEEP_SLEEP));
+    TEST_ASSERT_EQUAL_UINT(0U, set_state_calls);
+
+    reported_state = XY_DEVICE_PM_STATE_ACTIVE;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_get_state(&dev, &state));
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_STATE_ACTIVE, state);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
+static void test_device_pm_set_wakeup_without_callback_fails_closed(void) {
+    xy_device_t dev;
+    const xy_device_pm_ops_t ops = {.set_state = capture_set_state};
+
+    memset(&dev, 0, sizeof(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_init(&dev, &ops));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_SUPPORT, xy_device_pm_set_wakeup(&dev, true));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_NOT_SUPPORT, xy_device_pm_set_wakeup(&dev, false));
+    TEST_ASSERT_EQUAL_UINT(0U, set_wakeup_calls);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_pm_deinit(&dev));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_device_pm_idle_timeout_uses_device_tick);
@@ -501,5 +553,8 @@ int main(void) {
     RUN_TEST(test_device_pm_always_on_policy_rejects_low_power_states);
     RUN_TEST(test_device_pm_always_on_policy_rejects_driver_reported_sleep);
     RUN_TEST(test_device_pm_record_activity_propagates_wakeup_failure);
+    RUN_TEST(test_device_pm_rejects_empty_ops_table);
+    RUN_TEST(test_device_pm_set_state_without_callback_fails_closed);
+    RUN_TEST(test_device_pm_set_wakeup_without_callback_fails_closed);
     return UNITY_END();
 }
