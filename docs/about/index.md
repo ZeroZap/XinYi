@@ -117,9 +117,9 @@ A: XinYi 适合资源受限的嵌入式系统，特别是需要跨平台移植�
 **Q: 支持哪些 MCU？**
 
 A: 目前主要支持：
-- STM32 系列（完整支持）
-- HC32 系列（占位符）
-- WCH 系列（占位符）
+- STM32 系列（F4/L4/U5 compile gate；Pandora STM32L475VE 为正式 reference board）
+- HC32 系列（compile baseline）
+- WCH 系列（CH32V307 compile + openCH 部分实板）
 - PC 仿真（开发测试）
 
 **Q: 支持哪些 RTOS？**

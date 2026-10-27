@@ -35,9 +35,9 @@ Apache License 2.0，可商用、可修改、可分发。
 
 ### 支持哪些 MCU？
 
-- **STM32 系列** - 完整支持（U5/F4/F1/L4）
-- **HC32 系列** - 占位符
-- **WCH 系列** - 占位符
+- **STM32 系列** - F4/L4/U5 compile gate；Pandora STM32L475VE 为正式 reference board
+- **HC32 系列** - compile baseline
+- **WCH 系列** - CH32V307 compile + openCH 部分实板
 - **PC 仿真** - 开发测试
 
 ### 支持哪些 RTOS？

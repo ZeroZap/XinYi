@@ -16,16 +16,18 @@ XinYi 框架支持多种开发板和 MCU 平台，覆盖 STM32、WCH、HC32 以�
 
 ## 🎯 推荐开发板
 
-### STM32 系列 (完整支持)
+### STM32 系列
+
+> 实板基线以 Pandora STM32L475VE 为准；其余 STM32 板卡仅为 compile compatibility gate，
+> 不构成基础验收证据。外设级 "✅" 仅表示存在 source/compile backend，Host/实板证据以
+> `docs/validation/component-evidence-matrix.md` 为准。
 
 | 开发板 | MCU | Flash | SRAM | 主频 | 状态 | 购买链接 |
 |--------|-----|-------|------|------|------|---------|
-| **NUCLEO-U575ZI** | STM32U575ZI | 2MB | 786KB | 160MHz | ✅ 完整支持 | [ST 官网](https://www.st.com/) |
-| **NUCLEO-F429ZI** | STM32F429ZI | 2MB | 256KB | 180MHz | ✅ 完整支持 | [ST 官网](https://www.st.com/) |
-| **NUCLEO-F446RE** | STM32F446RE | 512KB | 128KB | 180MHz | ✅ 完整支持 | [ST 官网](https://www.st.com/) |
-| **NUCLEO-F103RB** | STM32F103RB | 128KB | 20KB | 72MHz | ✅ 支持 | [ST 官网](https://www.st.com/) |
-| **NUCLEO-L476RG** | STM32L476RG | 1MB | 96KB | 80MHz | ✅ 支持 | [ST 官网](https://www.st.com/) |
-| **NUCLEO-H743ZI** | STM32H743ZI | 2MB | 512KB | 400MHz | ✅ 支持 | [ST 官网](https://www.st.com/) |
+| **Pandora (Open407V-D)** | STM32L475VE | 512KB | 128KB | 80MHz | 🎯 正式 reference board | [正点原子](https://www.alientek.com/) |
+| **NUCLEO-U575ZI** | STM32U575ZI | 2MB | 786KB | 160MHz | ⏳ enhancement compile gate | [ST 官网](https://www.st.com/) |
+| **NUCLEO-F429ZI** | STM32F429ZI | 2MB | 256KB | 180MHz | ⏳ compile gate | [ST 官网](https://www.st.com/) |
+| **NUCLEO-L476RG** | STM32L476RG | 1MB | 96KB | 80MHz | ⏳ compile gate | [ST 官网](https://www.st.com/) |
 
 ### WCH 沁恒系列 (完整支持)
 
@@ -54,7 +56,10 @@ XinYi 框架支持多种开发板和 MCU 平台，覆盖 STM32、WCH、HC32 以�
 
 ## 🔧 开发板详细配置
 
-### NUCLEO-U575ZI (旗舰推荐)
+### NUCLEO-U575ZI (enhancement compile gate)
+
+> STM32U5/M33/TrustZone 仅为后续增强 compile compatibility gate，不作为当前基础验收
+> 的 reference board。
 
 **资源**:
 - Flash: 2MB
@@ -99,8 +104,7 @@ XinYi 框架支持多种开发板和 MCU 平台，覆盖 STM32、WCH、HC32 以�
 # 编译
 mkdir build && cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/arm-gcc.cmake \
-         -DHAL_PLATFORM=STM32 \
-         -DBOARD=NUCLEO_U575ZI
+         -DHAL_PLATFORM=STM32U5
 make -j$(nproc)
 
 # 烧录
@@ -282,4 +286,4 @@ set(BOARD_SOURCES
 
 **维护者**: XinYi Team  
 **许可证**: Apache License 2.0  
-**最后更新**: 2026-03-16
+**最后更新**: 2026-10-27
