@@ -414,21 +414,47 @@ xy_os_status_t xy_os_kernel_start(void)
 
 int32_t xy_os_kernel_lock(void)
 {
+    rt_base_t previous = (rt_base_t)rt_critical_level();
+
     rt_enter_critical();
-    return 0;
+    return (int32_t)previous;
 }
 
 int32_t xy_os_kernel_unlock(void)
 {
+    rt_base_t previous = (rt_base_t)rt_critical_level();
+
+    /* RT-Thread critical sections are nesting-counted, so exiting at level zero
+     * would underflow the counter instead of reporting an empty section. */
+    if (previous == 0) return -1;
+
     rt_exit_critical();
-    return 0;
+    return (int32_t)previous;
 }
 
 int32_t xy_os_kernel_restore_lock(int32_t lock)
 {
-    XY_UNUSED(lock);
-    rt_exit_critical();
-    return 0;
+    rt_base_t current;
+    rt_base_t target;
+
+    if (lock < 0) return -1;
+
+    current = (rt_base_t)rt_critical_level();
+    target = (rt_base_t)lock;
+
+    /* Restore exactly the recorded nesting level. Unconditionally exiting would
+     * release a critical section owned by an outer caller, and unconditionally
+     * exiting on lock == saved state would leak one. */
+    while (current < target) {
+        rt_enter_critical();
+        current++;
+    }
+    while (current > target) {
+        rt_exit_critical();
+        current--;
+    }
+
+    return (int32_t)current;
 }
 
 uint32_t xy_os_kernel_get_tick_count(void)
