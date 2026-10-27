@@ -66,9 +66,19 @@ archive 导出 0 个 `xy_hal_*` 符号，而 `make HAL_PLATFORM=STM32L4/F4` 一�
 `xy_hal_timer_init`/`xy_hal_dac_init`/`xy_hal_exti_init`/`xy_hal_rng_init`；F4 branch archive 由 0 个
 导出符号变为 126 个。
 
+`xy_hal_qspi.c` 曾被记为 "51 处契约漂移"，用同一 L4 gate 的交叉编译 flags 复现后证明该诊断错误：
+全部报错都来自未声明 `QSPI_HandleTypeDef`/`QSPI_*`/`HAL_QSPI_Init`，根因是组件
+`stm32l4/stm32l4xx_hal_conf.h` 从未定义 `HAL_QSPI_MODULE_ENABLED`（只有 Pandora board 目录自带的
+conf 打开了它，所以 board 镜像一直能编）。现组件 conf 启用该 module 并 include 家族头，L4 branch
+显式 append 该 wrapper：`xy_hal_qspi.c.obj` text 376 B，archive 导出
+`xy_hal_qspi_init/deinit/command/tick_ms`。回归门同时新增两条 fail-closed 规则（L4 不得有未 append
+的孤儿 wrapper；每个 append 的 wrapper 必须在 `L4_MODULE_REQUIREMENTS` 登记所需 HAL module，且该
+module 在组件 conf 中既 enable 又 include），删除 enable / 删除 include / 删除 CMake append 三个
+负向变异全部被判 FAIL。
+
 仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_dma/i2c/rtc/spi/timer/uart.c`，
-STM32L4 的 `xy_hal_qspi.c`（51 处契约漂移）与 F4 专属 `xy_hal_adc.c`（`ADC->CCR`/3-cycle sample time
-仅 F4 可用）。这些文件不只是签名漂移，抽查 `xy_hal_dma.c` 还发现语义缺陷：`xy_to_stm32_direction/
+以及 F4 专属 `xy_hal_adc.c`（`ADC->CCR`/3-cycle sample time 仅 F4 可用）。这些文件不只是签名漂移，
+抽查 `xy_hal_dma.c` 还发现语义缺陷：`xy_to_stm32_direction/
 mode/priority/width` 直接把 `XY_HAL_DMA_*` 枚举值当 STM32 HAL 常量返回（宽度的三档甚至返回
 `XY_HAL_DMA_PDATAALIGN_*`，并把同一个 periph/mem 映射同时用于两侧），`register_callback` 不做任何
 登记就返回成功，因此迁移该文件必须重写映射与 callback 上下文，而不是只把 `int` 换成

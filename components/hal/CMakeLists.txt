@@ -100,16 +100,25 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
         "stm32/stm32l4/xy_hal_flash.c"
         "stm32/stm32l4/xy_hal_gpio.c"
         "stm32/stm32l4/xy_hal_i2c.c"
+        "stm32/stm32l4/xy_hal_qspi.c"
         "stm32/stm32l4/xy_hal_rtc.c"
         "stm32/stm32l4/xy_hal_spi.c"
         "stm32/stm32l4/xy_hal_sys.c"
         "stm32/stm32l4/xy_hal_timer.c"
         "stm32/stm32l4/xy_hal_uart.c"
         "stm32/stm32l4/xy_hal_wdg.c")
-    # Sources this branch deliberately does not build (contract drift / family
-    # mismatch, see backlog S6-108):
-    #   stm32/stm32l4/xy_hal_qspi.c  — QSPI wrapper still drifts from public header
+    # Sources this branch deliberately does not build (family mismatch, see
+    # backlog S6-108):
     #   stm32/stm32f4/xy_hal_adc.c   — F4 ADC->CCR / sample-time contract is F4-only
+    #
+    # xy_hal_qspi.c was previously recorded here as "signature drift".  That
+    # diagnosis was wrong: the wrapper is contract-correct and the only reason
+    # it failed to compile was that this platform's own
+    # stm32l4/stm32l4xx_hal_conf.h never enabled HAL_QSPI_MODULE_ENABLED, so
+    # QSPI_HandleTypeDef/QSPI_* were undeclared.  The reference board's external
+    # flash (W25Q128) is QSPI-attached, so the wrapper is built here now and the
+    # module enable is guarded by
+    # tests/unit/hal_component/check_hal_platform_build_contract.py.
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32L4

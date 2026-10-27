@@ -58,10 +58,31 @@ EXPECTED_L4_F4_EXCLUDED = {
 }
 
 # Sources that a branch deliberately does not build at all.
-KNOWN_UNBUILT = {
-    # STM32L4 branch: QSPI wrapper still drifts from the public QSPI header.
-    "stm32/stm32l4/xy_hal_qspi.c",
+KNOWN_UNBUILT: set[str] = set()
+
+# Every dedicated STM32L4 wrapper the branch appends declares which vendor HAL
+# module header it needs.  A family HAL module is only compiled when the
+# platform's own ``stm32l4xx_hal_conf.h`` enables it; without the matching
+# ``HAL_<MODULE>_MODULE_ENABLED`` the wrapper's types and constants are simply
+# undeclared and the file cannot build.  That is exactly how the QSPI wrapper
+# was mis-diagnosed as "signature drift" while it was the module enable that
+# was missing, so the mapping is asserted instead of remembered.
+L4_MODULE_REQUIREMENTS = {
+    "xy_hal_delay.c": None,  # HAL_Delay from the HAL core, no module gate
+    "xy_hal_dma.c": "HAL_DMA_MODULE_ENABLED",
+    "xy_hal_flash.c": "HAL_FLASH_MODULE_ENABLED",
+    "xy_hal_gpio.c": "HAL_GPIO_MODULE_ENABLED",
+    "xy_hal_i2c.c": "HAL_I2C_MODULE_ENABLED",
+    "xy_hal_qspi.c": "HAL_QSPI_MODULE_ENABLED",
+    "xy_hal_rtc.c": "HAL_RTC_MODULE_ENABLED",
+    "xy_hal_spi.c": "HAL_SPI_MODULE_ENABLED",
+    "xy_hal_sys.c": "HAL_RCC_MODULE_ENABLED",
+    "xy_hal_timer.c": "HAL_TIM_MODULE_ENABLED",
+    "xy_hal_uart.c": "HAL_UART_MODULE_ENABLED",
+    "xy_hal_wdg.c": "HAL_IWDG_MODULE_ENABLED",
 }
+
+L4_HAL_CONF = L4_DIR / "stm32l4xx_hal_conf.h"
 
 
 def branch_body(text: str, name: str) -> str:
@@ -170,6 +191,32 @@ def main() -> int:
     u5 = branch_body(text, "STM32U5")
     u5_appended = set(re.findall(r'"stm32/stm32u5/(xy_hal_\w+\.c)"', u5))
     assert not u5_appended, "STM32U5 branch now appends explicit sources; extend this guard"
+
+    # 7. No dedicated STM32L4 wrapper may be left orphaned: every stm32l4/*.c
+    #    this branch ships has to be appended to HAL_SOURCES.
+    l4_sources = {path.name for path in sorted(L4_DIR.glob("*.c"))}
+    orphans = sorted(l4_sources - l4_appended)
+    assert not orphans, f"STM32L4 branch never builds these wrappers: {orphans}"
+
+    # 8. Every appended STM32L4 wrapper must declare its required HAL module and
+    #    that module must actually be enabled by the platform HAL config.
+    conf_text = L4_HAL_CONF.read_text(encoding="utf-8")
+    enabled_modules = set(re.findall(r"^#define\s+(HAL_\w+_MODULE_ENABLED)\b", conf_text, re.M))
+    for basename in sorted(l4_appended):
+        assert basename in L4_MODULE_REQUIREMENTS, (
+            f"{basename} is built by the STM32L4 branch but has no recorded HAL module "
+            "requirement; add it to L4_MODULE_REQUIREMENTS"
+        )
+        module = L4_MODULE_REQUIREMENTS[basename]
+        if module is None:
+            continue
+        assert module in enabled_modules, (
+            f"stm32l4/{basename} needs {module} but stm32l4/stm32l4xx_hal_conf.h does not "
+            "enable it: the wrapper cannot compile and the platform gate would be wrong again"
+        )
+        assert f'#include "stm32l4xx_hal_{module.split("_")[1].lower()}.h"' in conf_text, (
+            f"stm32l4xx_hal_conf.h enables {module} but never includes its family header"
+        )
 
     built = (guarded_sources(F4_DIR) - f4_deferred - known_unbuilt) | l4_appended
     assert built, "no HAL wrapper would be compiled on any STM32 branch"

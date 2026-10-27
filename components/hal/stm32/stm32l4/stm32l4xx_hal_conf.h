@@ -23,6 +23,7 @@ extern "C" {
 #define HAL_IWDG_MODULE_ENABLED
 #define HAL_LPTIM_MODULE_ENABLED
 #define HAL_PWR_MODULE_ENABLED
+#define HAL_QSPI_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
 #define HAL_RNG_MODULE_ENABLED
 #define HAL_RTC_MODULE_ENABLED
@@ -114,6 +115,9 @@ extern "C" {
 #endif
 #ifdef HAL_PWR_MODULE_ENABLED
 #include "stm32l4xx_hal_pwr.h"
+#endif
+#ifdef HAL_QSPI_MODULE_ENABLED
+#include "stm32l4xx_hal_qspi.h"
 #endif
 #ifdef HAL_RNG_MODULE_ENABLED
 #include "stm32l4xx_hal_rng.h"
