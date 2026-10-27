@@ -1,5 +1,25 @@
 # XinYi Sprint 跟踪看板
 
+**最新 Pandora SYS reset-request retention（2026-10-27）**：board-owned
+`xy_sys_reset(reset_by)` 不再丢弃原因参数 —— 复位前把 `reason` 写入 RTC backup slot 3
+（`MAGIC | reason`，0..255），`xy_sys_init()` 解码后清空（one-shot），新增
+`xy_sys_reset_request()` 访问器；weak 默认仍 `NOT_SUPPORTED`。focused `pandora_sys` 12/12、
+Host 280/280、PC/STM32L4/STM32U5 build 与 `git diff --check` 通过；Pandora 实板
+`st-flash write` + 独立 read-back（14296 B 全等）后，CP2102 UART 机器解析到
+`SYS_RESET_REQUEST 0→1→0` 对应 `POWER_ON/EXTERNAL_PIN → SOFTWARE → WATCHDOG` 三次引导，
+证明原因跨软件复位保留、只报告一次且不串到 watchdog 引导；证据
+`docs/validation/evidence/pandora-stm32l475/2026-10-27-sys-reset-request/`。不升级掉电/欠压保留、
+backup-domain reset 或产品资格声明。
+
+**最新 RT-Thread OSAL owned-mutex deletion boundary（2026-10-27）**：RT-Thread
+`xy_os_mutex_delete()` 现拒绝仍被持有的 mutex 并返回 `XY_OS_ERROR_RESOURCE`，不再删除 owner
+仍在使用的 kernel 对象；ownership 校验与 native deletion 位于同一 `rt_enter_critical()` 区间，
+untracked handle 与其他 lifecycle 失败语义保持。focused `rtthread_osal_sync_lifecycle`（其余 8 个
+RT-Thread policy CTest 与 `test_osal_backend_contract` 一并复跑）、Host 280/280、
+PC/STM32L4/STM32U5 compile 与 `git diff --check` 通过；clean worktree 隔离验证（主工作区当时存有
+另一并发会话的 SYS WIP）。未执行 target program/runtime，不升级 RT-Thread runtime、竞争、
+优先级协议、长稳或产品资格声明。
+
 **最新 RT-Thread OSAL queue-priority / semaphore-capacity fail-closed（2026-10-27）**：RT-Thread
 backend 现对 `xy_os_msgqueue_put()` 的非零 `msg_prio` 在 native queue 访问前返回
 `XY_OS_ERROR_PARAMETER`，不再以 `XY_UNUSED(msg_prio)` 静默把调用方的优先级投递降级为 FIFO；
@@ -486,6 +506,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 || S6-98 | P1 | RT-Thread OSAL context reservation/retirement atomicity | DONE | Zero | S6-92～S6-97 的 FreeRTOS 同构契约；RT-Thread 使用同样的 bounded owner table | event-flags/mempool/message-queue/timer 四类 context 现于同一 `rt_enter_critical()` 区间内完成 slot 预留与退休，双创建者不再可能选中同一 free slot 并泄漏 native object；新增 `rtthread_osal_context_atomicity` policy guard，并更新四个断言旧布局的 RT-Thread policy 测试。focused policy、Host 279/279、PC/L4/U5/WCH compile 与 `git diff --check` 通过（回填记录：`6e5d16ed`） | `6e5d16ed` | 2026-10-27 |
 || S6-99 | P1 | RT-Thread OSAL queue-priority and semaphore-capacity fail-closed boundary | DONE | Zero | S6-80 的 FreeRTOS 非零 `msg_prio` 拒绝契约；RT-Thread native mq 为 FIFO-only、sem 无 `max_count` 上限 | TDD RED 证明 `xy_os_msgqueue_put()` 用 `XY_UNUSED(msg_prio)` 静默丢弃公开优先级并仍返回成功，且 `xy_os_semaphore_release()` 从不校验公开 `max_count`，`get_count()` 可越过创建时声明的上限。现非零优先级在 native queue 访问前 fail-closed 返回 `XY_OS_ERROR_PARAMETER`；semaphore context 保留 `max_count`，release 在同一 critical section 内先校验容量再调用 `rt_sem_release()`。focused `rtthread_osal_msgqueue`/`rtthread_osal_sync_lifecycle`（另 7 个 RT-Thread policy CTest 与 `test_osal_backend_contract` 同步通过）、Host、PC/L4/U5 compile 与 `git diff --check` passed | 本记录提交 | 2026-10-27 |
 || S6-100 | P2 | RT-Thread backend 与 pinned RT-Thread 5.3 编译漂移 | BACKLOG | Zero | S6-99；`third_party/rt-thread` = RT-Thread 5.3.0 | 以 pinned `third_party/rt-thread` 头文件对 `xy_os_rtthread.c` 做 `-fsyntax-only` probe，HEAD 与 S6-99 之后均只有同样三项既有错误：`xy_os_thread_attr_t` 无 `tick` 成员（2 处）、`rt_mempool->parent` 在 5.3 中缺 `name` 字段。该项不属于 S6-99 范围；若正式启用 RT-Thread backend，需先补可编译 seam（fake 头或 vendor 版本对齐）再谈 runtime 证据 | 待决策 | 2026-10-27 |
+|| S6-103 | P1 | RT-Thread OSAL owned-mutex deletion boundary | DONE | Zero | S6-91 的 FreeRTOS owned-delete 契约；RT-Thread `rt_mutex_delete()` 会直接删除被持有的 mutex | TDD RED 证明 `xy_os_mutex_delete()` 在 owner 仍持有 mutex 时直接删除 kernel 对象并返回成功。现 ownership 校验与 native deletion 位于同一 `rt_enter_critical()` 区间，仍被持有的 mutex 返回 `XY_OS_ERROR_RESOURCE`，untracked handle 与 delete 失败保持原有 fail-closed/可重试语义；policy guard 增加 owned-delete 与临界区断言，并把 delete 断言改为可容纳失败退出路径的正则形式。focused、Host 280/280、PC/L4/U5 compile 与 `git diff --check` passed | 本记录提交 | 2026-10-27 |
+|| S6-102 | P0 | Pandora SYS reset-request retention across reset | DONE | Zero | S6-81～S6-91 的 fail-closed owner 契约；Pandora reference-board 优先级 | TDD RED：`xy_sys_reset(int)` 接受并校验 `reset_by` 后直接丢弃，复位原因闭环缺失。现 board-owned 实现把 `reason` 以 `PANDORA_RESET_REQUEST_MAGIC \| reason`（0..255）写入 RTC backup slot 3（0..2 已属 W25Q128/FOTA），先落记录再发软件复位；`xy_sys_init()` 解码后清空记录（one-shot），新增 `xy_sys_reset_request()` 访问器与 `XY_SYS_RESET_REQUEST_*` 常量，weak 默认仍 fail-closed。focused `pandora_sys` 12/12、Host 280/280、PC/STM32L4/STM32U5 build、Pandora board contract guard 与 `git diff --check` 通过；实板 `st-flash write` + 独立 read-back（14296 B 全等，SHA-256 `d96fee89…2025`）+ CP2102 UART 机器解析观察到 `SYS_RESET_REQUEST 0→1→0` 对应 `POWER_ON/EXTERNAL_PIN → SOFTWARE → WATCHDOG` 三次引导，新增 `validate_sys_reset_request_capture.py` 对旧镜像与错 commit 绑定均 FAIL 反向验证。证据：`docs/validation/evidence/pandora-stm32l475/2026-10-27-sys-reset-request/` | 本记录提交 | 2026-10-27 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

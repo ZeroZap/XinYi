@@ -1044,13 +1044,28 @@ xy_os_status_t xy_os_mutex_delete(xy_os_mutex_id_t mutex_id)
 
     if (!mutex) return XY_OS_ERROR_PARAMETER;
 
+    /* Deleting a held mutex would drop an owner's kernel object while the
+     * critical section it guards is still running, so refuse the request in the
+     * same critical section that performs the native deletion. */
+    rt_enter_critical();
     ctx = find_mutex_ctx(mutex);
-    if (!ctx) return XY_OS_ERROR_PARAMETER;
+    if (!ctx) {
+        rt_exit_critical();
+        return XY_OS_ERROR_PARAMETER;
+    }
+    if (mutex->owner) {
+        rt_exit_critical();
+        return XY_OS_ERROR_RESOURCE;
+    }
 
     result = rt_mutex_delete(mutex);
-    if (result != RT_EOK) return XY_OS_ERROR;
+    if (result != RT_EOK) {
+        rt_exit_critical();
+        return XY_OS_ERROR;
+    }
 
     clear_mutex_ctx(ctx);
+    rt_exit_critical();
     return XY_OS_OK;
 }
 

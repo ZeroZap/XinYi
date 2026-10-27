@@ -2,6 +2,7 @@
 """Guard RT-Thread OSAL mutex/semaphore context ownership and teardown atomicity."""
 
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -37,6 +38,7 @@ def check_lifecycle(
         errors.append(f"{kind} kernel-create failure must release the reserved context")
 
     delete_body = function_body(source, delete_start, delete_end)
+    normalized = " ".join(delete_body.split())
     find_pos = delete_body.find(f"find_{kind}_ctx({kind})")
     delete_pos = delete_body.find(delete_call)
     clear_pos = delete_body.find(f"clear_{kind}_ctx(ctx)")
@@ -44,9 +46,9 @@ def check_lifecycle(
         errors.append(f"{kind} deletion must resolve the project-owned context")
     if delete_pos < 0 or clear_pos < 0 or clear_pos < delete_pos:
         errors.append(f"{kind} deletion must clear context only after kernel deletion succeeds")
-    if "if (!ctx) return XY_OS_ERROR_PARAMETER;" not in " ".join(delete_body.split()):
+    if not re.search(r"if \(!ctx\).{0,80}?return XY_OS_ERROR_PARAMETER;", normalized):
         errors.append(f"untracked {kind} handles must fail closed before kernel deletion")
-    if "if (result != RT_EOK) return XY_OS_ERROR;" not in " ".join(delete_body.split()):
+    if not re.search(r"if \(result != RT_EOK\).{0,80}?return XY_OS_ERROR;", normalized):
         errors.append(f"{kind} kernel-delete failure must preserve context for retry")
 
 
@@ -158,6 +160,27 @@ def main() -> int:
         errors.append("mutex owner query must not expose an untracked kernel-global thread")
     if "return (xy_os_thread_id_t)mutex->owner" in owner_body:
         errors.append("mutex owner query must validate the owner before publishing its handle")
+
+    mutex_delete = function_body(
+        source,
+        "xy_os_status_t xy_os_mutex_delete",
+        "/* Semaphore Functions */",
+    )
+    if "XY_OS_ERROR_RESOURCE" not in mutex_delete:
+        errors.append(
+            "RT-Thread mutex deletion must reject a mutex that is still owned instead of "
+            "deleting a held kernel object"
+        )
+    owner_guard = mutex_delete.find("mutex->owner")
+    native_delete = mutex_delete.find("rt_mutex_delete(mutex)")
+    if owner_guard < 0 or native_delete < 0 or owner_guard > native_delete:
+        errors.append(
+            "RT-Thread mutex deletion must check ownership before native deletion"
+        )
+    if "rt_enter_critical();" not in mutex_delete or "rt_exit_critical();" not in mutex_delete:
+        errors.append(
+            "RT-Thread mutex ownership check and deletion must share one critical section"
+        )
 
     isr_body = function_body(
         source,
