@@ -32,7 +32,7 @@
 | Platform | GPIO | UART | I2C | SPI | Timer | I2S | DMA | Host | Compile/QEMU | Board |
 |---|---|---|---|---|---|---|---|---|---|---|
 | STM32U5 | `PARTIAL_SOURCE`（EXTI 依赖 SDK IRQ 定义） | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `UNSUPPORTED`（显式 stub） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC，不是 U5 runtime） | `COMPILE_ONLY` 历史记录；当前 SDK/toolchain 不可用，需重跑 | `BOARD_PENDING` |
-| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；9/15 wrapper，见下） | `UNSUPPORTED`（wrapper 仍与公开契约漂移，已被显式排除并记录为 deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `UNSUPPORTED`（同上：deferred） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
+| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；10/15 wrapper，见下） | `UNSUPPORTED`（wrapper 仍与公开契约漂移，已被显式排除并记录为 deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_dma_*` 符号已导出并引用 `HAL_DMA_*`） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
 | STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；runtime 仍仅 Pandora board-local） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；SPI/DMA B1 为 board-local image 证据） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译） | `UNSUPPORTED` | `SOURCE_PRESENT`（dedicated L4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | PC/L4/U5 compile；Pandora FreeRTOS image link | `B1_BOARD_SMOKE`；framework DMA1 Channel1、8-word SRAM→SRAM polling B1；SPI/peripheral-DMA/IRQ/callback/recovery pending |
 | WCH CH32V30x | `PARTIAL_SOURCE`（IRQ configure unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
@@ -76,15 +76,24 @@ conf 打开了它，所以 board 镜像一直能编）。现组件 conf 启用�
 module 在组件 conf 中既 enable 又 include），删除 enable / 删除 include / 删除 CMake append 三个
 负向变异全部被判 FAIL。
 
-仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_dma/i2c/rtc/spi/timer/uart.c`，
-以及 F4 专属 `xy_hal_adc.c`（`ADC->CCR`/3-cycle sample time 仅 F4 可用）。这些文件不只是签名漂移，
-抽查 `xy_hal_dma.c` 还发现语义缺陷：`xy_to_stm32_direction/
-mode/priority/width` 直接把 `XY_HAL_DMA_*` 枚举值当 STM32 HAL 常量返回（宽度的三档甚至返回
-`XY_HAL_DMA_PDATAALIGN_*`，并把同一个 periph/mem 映射同时用于两侧），`register_callback` 不做任何
-登记就返回成功，因此迁移该文件必须重写映射与 callback 上下文，而不是只把 `int` 换成
-`xy_hal_error_t`。回归门为 CTest
-`hal_platform_build_contract`：branch 缺 guard、deferred 集合变更、列了 deferred 却未真正排除、
-L4 同时 glob F4 副本与新 wrapper（只会在定义 guard 后暴露的重复符号）都会被拒绝。
+仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_i2c/rtc/spi/timer/uart.c`，
+以及 F4 专属 `xy_hal_adc.c`（`ADC->CCR`/3-cycle sample time 仅 F4 可用）。
+
+`xy_hal_dma.c` 已完成迁移（deferred 集合由 6 项缩到 5 项，F4 分支现真实构建它）。重写原因不只是签名
+漂移：旧实现把 `XY_HAL_DMA_*` 枚举值直接当 STM32 HAL 常量返回，宽度三档返回未声明的
+`XY_HAL_DMA_PDATAALIGN_*` 并用同一个 periph/mem 映射配置两侧，memory increment 误用 `DMA_PINC_*`，
+`register_callback` 不做任何登记就返回成功，且全部入口声明为 `int` 而非 `xy_hal_error_t`（重加进
+构建即在 `-fsyntax-only` 阶段报 undeclared + conflicting types）。现按 L4 dedicated wrapper 的契约
+重写：独立 `to_periph_alignment/to_mem_alignment`、`to_periph_incr/to_mem_incr`，方向/模式/优先级/
+宽度映射到 `DMA_*` 常量，`dma_config_valid()` 在第一次 `hdma->Init` 写入前拒绝越界枚举，
+`register_callback` 真正调用 `HAL_DMA_RegisterCallback` 并保存 callback/arg 上下文，
+`xy_hal_dma_irq_handler` 补实现。回归门：CTest `stm32f4_dma_wrapper_contract`（映射形状、双侧
+helper、域校验顺序、callback 登记、错误域、IRQ hook；对迁移前源为 35 项 RED）。
+
+`hal_platform_build_contract` 新增反向断言：F4 分支 filter 掉的 wrapper 必须出现在
+`XY_HAL_F4_DEFERRED_SOURCES` 中，因此已迁移的 wrapper 不能再被静默排除出平台门；branch 缺 guard、
+deferred 集合变更、列了 deferred 却未真正排除、L4 同时 glob F4 副本与新 wrapper（只会在定义 guard
+后暴露的重复符号）依旧被拒绝。
 以上全部为 source/compile 级证据，不升级任何 STM32F4/L4 framework 外设的 runtime 或实板结论；
 Pandora 参考板镜像（`pandora_stm32l475_smoke` 14296 B 与既有记录一致、`pandora_stm32l475_rtos`
 clean link）本身不受影响，因为 board target 自带 `STM32_HAL_ENABLED` 与显式 source list。
