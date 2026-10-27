@@ -44,8 +44,21 @@ xy_device_t *xy_device_open(const char *name, uint32_t flags)
         return NULL;
     }
 
+    /* Take the registry reference first. It wakes a sleeping device and makes
+     * the open hold visible to the PM layer, so an in-use device is never
+     * auto-suspended or unregistered underneath its owner. */
+    if (xy_device_acquire(dev) != XY_DEVICE_OK) {
+        return NULL;
+    }
+
+    if (dev->ref_count == UINT8_MAX) {
+        xy_device_release(dev);
+        return NULL;
+    }
+
     if (dev->api && dev->api->open) {
         if (dev->api->open(dev, flags) != XY_OK) {
+            xy_device_release(dev);
             return NULL;
         }
     }
@@ -60,18 +73,29 @@ xy_error_t xy_device_close(xy_device_t *dev)
     if (!dev) {
         return XY_ERROR_INVALID_PARAM;
     }
+    if (dev->state != XY_DEV_STATE_OPENED || dev->ref_count == 0U) {
+        /* Fail closed: never tear down a device this caller does not hold. */
+        return XY_ERROR_NOT_READY;
+    }
 
-    if (dev->ref_count > 0) {
+    if (dev->ref_count > 1U) {
+        /* Still shared with another owner: only drop this reference. */
         dev->ref_count--;
+        xy_device_release(dev);
+        return XY_OK;
     }
 
     if (dev->api && dev->api->close) {
         xy_error_t ret = dev->api->close(dev);
         if (ret != XY_OK) {
+            /* Keep the reference and the opened state so the close is
+             * retryable instead of leaking a half-retired device. */
             return ret;
         }
     }
 
+    dev->ref_count = 0U;
+    xy_device_release(dev);
     dev->state = XY_DEV_STATE_CLOSED;
     return XY_OK;
 }

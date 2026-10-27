@@ -126,6 +126,92 @@ static void test_acquire_propagates_wake_failure_without_leaking_reference(void)
     TEST_ASSERT_EQUAL_INT(0, xy_device_registry_ref_count(dev));
 }
 
+/* Open/close must be the same reference as the registry/PM accounting, so a
+ * device that is in use is never suspended or unregistered underneath its
+ * owner, and a failed driver close leaves the handle usable for a retry. */
+static int g_open_calls;
+static int g_close_calls;
+static xy_error_t g_close_result;
+
+static xy_error_t fake_api_open(xy_device_t *dev, uint32_t flags)
+{
+    XY_UNUSED(flags);
+    TEST_ASSERT_NOT_NULL(dev);
+    g_open_calls++;
+    return XY_OK;
+}
+
+static xy_error_t fake_api_close(xy_device_t *dev)
+{
+    TEST_ASSERT_NOT_NULL(dev);
+    g_close_calls++;
+    return g_close_result;
+}
+
+static const xy_dev_api_t g_fake_api = {
+    .open = fake_api_open,
+    .close = fake_api_close,
+};
+
+static void test_open_close_shares_registry_reference_accounting(void)
+{
+    static xy_i2c_device_t openable;
+    xy_device_t *dev;
+
+    memset(&openable, 0, sizeof(openable));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_init(&openable, &g_fake_i2c_bus, 0x46, 1000));
+    openable.base.api = &g_fake_api;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK,
+                          xy_i2c_device_register(&openable, "openable", XY_DEV_TYPE_SENSOR));
+
+    dev = xy_device_open("openable", 0);
+    TEST_ASSERT_NOT_NULL(dev);
+    TEST_ASSERT_EQUAL_INT(1, g_open_calls);
+    TEST_ASSERT_EQUAL(XY_DEV_STATE_OPENED, dev->state);
+    TEST_ASSERT_EQUAL_INT(1, dev->ref_count);
+    TEST_ASSERT_EQUAL_INT(1, xy_device_registry_ref_count(dev));
+
+    /* An open device is in use: PM and the registry must not retire it. */
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_device_sleep(dev));
+    dev->initialized = 1;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_set_sleep_timeout(dev, 0U));
+    xy_device_pm_check();
+    TEST_ASSERT_EQUAL(XY_DEVICE_PM_ACTIVE, xy_device_get_pm_state(dev));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, xy_device_registry_unregister(dev));
+
+    /* A second open shares the device instead of double-initialising it. */
+    TEST_ASSERT_NOT_NULL(xy_device_open("openable", 0));
+    TEST_ASSERT_EQUAL_INT(2, xy_device_registry_ref_count(dev));
+
+    /* The first close only drops one reference and keeps the driver open. */
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_device_close(dev));
+    TEST_ASSERT_EQUAL_INT(1, xy_device_registry_ref_count(dev));
+    TEST_ASSERT_EQUAL(XY_DEV_STATE_OPENED, dev->state);
+    TEST_ASSERT_EQUAL_INT(0, g_close_calls);
+
+    /* A failed driver close is retryable: no reference is lost. */
+    g_close_result = XY_ERROR;
+    TEST_ASSERT_EQUAL_INT(XY_ERROR, xy_device_close(dev));
+    TEST_ASSERT_EQUAL_INT(1, xy_device_registry_ref_count(dev));
+    TEST_ASSERT_EQUAL_INT(1, dev->ref_count);
+    TEST_ASSERT_EQUAL(XY_DEV_STATE_OPENED, dev->state);
+
+    g_close_result = XY_OK;
+    TEST_ASSERT_EQUAL_INT(XY_OK, xy_device_close(dev));
+    TEST_ASSERT_EQUAL_INT(0, xy_device_registry_ref_count(dev));
+    TEST_ASSERT_EQUAL_INT(0, dev->ref_count);
+    TEST_ASSERT_EQUAL(XY_DEV_STATE_CLOSED, dev->state);
+    TEST_ASSERT_EQUAL_INT(2, g_close_calls);
+
+    /* Closing an unopened device fails closed without touching the driver. */
+    TEST_ASSERT_EQUAL_INT(XY_ERROR_NOT_READY, xy_device_close(dev));
+    TEST_ASSERT_EQUAL_INT(2, g_close_calls);
+    TEST_ASSERT_EQUAL(XY_DEV_STATE_CLOSED, dev->state);
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, xy_device_registry_unregister(dev));
+}
+
 static void test_device_stats(void)
 {
     xy_device_stats_t stats;
@@ -168,6 +254,7 @@ int main(void)
     RUN_TEST(test_public_find_forwards);
     RUN_TEST(test_device_power_management);
     RUN_TEST(test_acquire_propagates_wake_failure_without_leaking_reference);
+    RUN_TEST(test_open_close_shares_registry_reference_accounting);
     RUN_TEST(test_device_stats);
     RUN_TEST(test_duplicate_register_rejected);
     RUN_TEST(test_unregister_frees_slot);

@@ -89,7 +89,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/crypto/test_sm2.c` | `unity` | 0 |
 | `tests/unit/device/test_auto_register.c` | `unity` | 0 |
 | `tests/unit/device/test_device_async_helper.c` | `unity` | 12 |
-| `tests/unit/device/test_device_framework.c` | `unity` | 7 |
+| `tests/unit/device/test_device_framework.c` | `unity` | 12 | Registry/PM lifecycle coverage, including the `xy_device_open()`/`xy_device_close()` ↔ registry reference accounting contract (open holds a PM-visible reference; close retires only the last reference and fails closed otherwise). |
 | `tests/unit/device/test_device_bus_contract.c` | `unity` | 3 | Canonical bus-helper return contract (SPI transfer = `XY_DEVICE_OK`, send/recv = byte count, UART send/recv = `XY_DEVICE_OK`) plus the real `xy_w25qxx_read_id()` transfer sequence; host-only, not flash or SPI electrical evidence. |
 | `tests/unit/device/test_device_pm.c` | `unity` | 1 |
 | `tests/unit/device/test_spi_device.c` | `unity` | 40 |
