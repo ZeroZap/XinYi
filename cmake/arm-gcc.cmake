@@ -4,8 +4,9 @@
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 
-# 工具链路径
-set(TOOLCHAIN_PATH "/home/eugene/Tools/arm-gnu-toolchain/bin")
+# 工具链路径（可通过 -DTOOLCHAIN_PATH=... 覆盖）
+set(TOOLCHAIN_PATH "/home/eugene/Tools/arm-gnu-toolchain/bin"
+    CACHE PATH "arm-none-eabi toolchain bin directory")
 
 # 编译器
 set(CMAKE_C_COMPILER "${TOOLCHAIN_PATH}/arm-none-eabi-gcc")
