@@ -150,7 +150,6 @@ def main() -> int:
     )
     for required in (
         "ctx = alloc_event_flags_ctx();",
-        "ctx->initialized = 1;",
         "clear_event_flags_ctx(ctx);",
         "ctx->event = event;",
     ):

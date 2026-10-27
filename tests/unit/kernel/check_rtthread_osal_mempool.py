@@ -25,7 +25,6 @@ def main() -> int:
         "if (block_count == 0U || block_size == 0U) return NULL;",
         "ctx = alloc_mempool_ctx();",
         "if (!ctx) return NULL;",
-        "ctx->initialized = 1;",
         "rt_mp_create(name, block_count, block_size)",
         "clear_mempool_ctx(ctx);",
         "ctx->mp = mp;",

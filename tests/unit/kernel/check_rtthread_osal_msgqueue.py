@@ -64,7 +64,6 @@ def main() -> int:
     for required in (
         "msg_count == 0U || msg_size == 0U",
         "ctx = alloc_msgqueue_ctx();",
-        "ctx->initialized = 1;",
         "rt_mq_create(name, msg_size, msg_count, flag)",
         "clear_msgqueue_ctx(ctx);",
         "ctx->mq = mq;",

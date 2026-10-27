@@ -70,11 +70,15 @@ static event_flags_ctx_t g_event_flags_ctx[MAX_EVENT_FLAGS];
 
 static event_flags_ctx_t *alloc_event_flags_ctx(void)
 {
+    rt_enter_critical();
     for (size_t i = 0; i < MAX_EVENT_FLAGS; i++) {
         if (!g_event_flags_ctx[i].initialized) {
+            g_event_flags_ctx[i].initialized = 1;
+            rt_exit_critical();
             return &g_event_flags_ctx[i];
         }
     }
+    rt_exit_critical();
     return NULL;
 }
 
@@ -92,17 +96,23 @@ static void clear_event_flags_ctx(event_flags_ctx_t *ctx)
 {
     if (!ctx) return;
 
+    rt_enter_critical();
     ctx->event = NULL;
     ctx->initialized = 0;
+    rt_exit_critical();
 }
 
 static mempool_ctx_t *alloc_mempool_ctx(void)
 {
+    rt_enter_critical();
     for (size_t i = 0; i < MAX_MEMPOOLS; i++) {
         if (!g_mempool_ctx[i].initialized) {
+            g_mempool_ctx[i].initialized = 1;
+            rt_exit_critical();
             return &g_mempool_ctx[i];
         }
     }
+    rt_exit_critical();
     return NULL;
 }
 
@@ -120,17 +130,23 @@ static void clear_mempool_ctx(mempool_ctx_t *ctx)
 {
     if (!ctx) return;
 
+    rt_enter_critical();
     ctx->mp = NULL;
     ctx->initialized = 0;
+    rt_exit_critical();
 }
 
 static msgqueue_ctx_t *alloc_msgqueue_ctx(void)
 {
+    rt_enter_critical();
     for (size_t i = 0; i < MAX_MSGQUEUES; i++) {
         if (!g_msgqueue_ctx[i].initialized) {
+            g_msgqueue_ctx[i].initialized = 1;
+            rt_exit_critical();
             return &g_msgqueue_ctx[i];
         }
     }
+    rt_exit_critical();
     return NULL;
 }
 
@@ -148,17 +164,23 @@ static void clear_msgqueue_ctx(msgqueue_ctx_t *ctx)
 {
     if (!ctx) return;
 
+    rt_enter_critical();
     ctx->mq = NULL;
     ctx->initialized = 0;
+    rt_exit_critical();
 }
 
 static timer_ctx_t *alloc_timer_ctx(void)
 {
+    rt_enter_critical();
     for (size_t i = 0; i < MAX_TIMERS; i++) {
         if (!g_timer_ctx[i].initialized) {
+            g_timer_ctx[i].initialized = 1;
+            rt_exit_critical();
             return &g_timer_ctx[i];
         }
     }
+    rt_exit_critical();
     return NULL;
 }
 
@@ -176,10 +198,12 @@ static void clear_timer_ctx(timer_ctx_t *ctx)
 {
     if (!ctx) return;
 
+    rt_enter_critical();
     ctx->timer = NULL;
     ctx->initialized = 0;
     ctx->callback = NULL;
     ctx->arg = NULL;
+    rt_exit_critical();
 }
 
 static int rtthread_priority_valid(xy_os_priority_t priority)
@@ -205,11 +229,15 @@ static thread_ctx_t *find_thread_ctx(rt_thread_t thread)
  */
 static thread_ctx_t *alloc_thread_ctx(void)
 {
+    rt_enter_critical();
     for (size_t i = 0; i < MAX_THREADS; i++) {
         if (!g_thread_ctx[i].initialized) {
+            g_thread_ctx[i].initialized = 1;
+            rt_exit_critical();
             return &g_thread_ctx[i];
         }
     }
+    rt_exit_critical();
     return NULL;
 }
 
@@ -225,11 +253,15 @@ static mutex_ctx_t *find_mutex_ctx(rt_mutex_t mutex)
 
 static mutex_ctx_t *alloc_mutex_ctx(void)
 {
+    rt_enter_critical();
     for (size_t i = 0; i < MAX_MUTEXES; i++) {
         if (!g_mutex_ctx[i].initialized) {
+            g_mutex_ctx[i].initialized = 1;
+            rt_exit_critical();
             return &g_mutex_ctx[i];
         }
     }
+    rt_exit_critical();
     return NULL;
 }
 
@@ -237,8 +269,10 @@ static void clear_mutex_ctx(mutex_ctx_t *ctx)
 {
     if (!ctx) return;
 
+    rt_enter_critical();
     ctx->mutex = NULL;
     ctx->initialized = 0;
+    rt_exit_critical();
 }
 
 static sem_ctx_t *find_sem_ctx(rt_sem_t sem)
@@ -253,11 +287,15 @@ static sem_ctx_t *find_sem_ctx(rt_sem_t sem)
 
 static sem_ctx_t *alloc_sem_ctx(void)
 {
+    rt_enter_critical();
     for (size_t i = 0; i < MAX_SEMAPHORES; i++) {
         if (!g_sem_ctx[i].initialized) {
+            g_sem_ctx[i].initialized = 1;
+            rt_exit_critical();
             return &g_sem_ctx[i];
         }
     }
+    rt_exit_critical();
     return NULL;
 }
 
@@ -265,18 +303,22 @@ static void clear_sem_ctx(sem_ctx_t *ctx)
 {
     if (!ctx) return;
 
+    rt_enter_critical();
     ctx->sem = NULL;
     ctx->initialized = 0;
+    rt_exit_critical();
 }
 
 static void clear_thread_ctx(thread_ctx_t *ctx)
 {
     if (!ctx) return;
 
+    rt_enter_critical();
     ctx->thread = NULL;
     ctx->initialized = 0;
     ctx->callback = NULL;
     ctx->arg = NULL;
+    rt_exit_critical();
 }
 
 /**
@@ -399,8 +441,7 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     ctx = alloc_thread_ctx();
     if (!ctx) return NULL;
 
-    /* Reserve the slot before kernel allocation; commit its handle before startup. */
-    ctx->initialized = 1;
+    /* Slot reserved by alloc_thread_ctx(); bind callback/argument before startup. */
     ctx->callback = func;
     ctx->arg = argument;
 
@@ -706,7 +747,6 @@ xy_os_timer_id_t xy_os_timer_new(xy_os_timer_func_t func, xy_os_timer_type_t typ
     ctx = alloc_timer_ctx();
     if (!ctx) return NULL;
 
-    ctx->initialized = 1;
     ctx->callback = func;
     ctx->arg = argument;
 
@@ -834,7 +874,6 @@ xy_os_event_flags_id_t xy_os_event_flags_new(const xy_os_event_flags_attr_t *att
     ctx = alloc_event_flags_ctx();
     if (!ctx) return NULL;
 
-    ctx->initialized = 1;
     event = rt_event_create(name, flag);
     if (!event) {
         clear_event_flags_ctx(ctx);
@@ -943,7 +982,6 @@ xy_os_mutex_id_t xy_os_mutex_new(const xy_os_mutex_attr_t *attr)
     ctx = alloc_mutex_ctx();
     if (!ctx) return NULL;
 
-    ctx->initialized = 1;
     mutex = rt_mutex_create(name, flag);
     if (!mutex) {
         clear_mutex_ctx(ctx);
@@ -1033,7 +1071,6 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count, uint32_t initial_co
     ctx = alloc_sem_ctx();
     if (!ctx) return NULL;
 
-    ctx->initialized = 1;
     sem = rt_sem_create(name, initial_count, flag);
     if (!sem) {
         clear_sem_ctx(ctx);
@@ -1125,7 +1162,6 @@ xy_os_mempool_id_t xy_os_mempool_new(uint32_t block_count, uint32_t block_size,
     ctx = alloc_mempool_ctx();
     if (!ctx) return NULL;
 
-    ctx->initialized = 1;
     mp = rt_mp_create(name, block_count, block_size);
     if (!mp) {
         clear_mempool_ctx(ctx);
@@ -1237,7 +1273,6 @@ xy_os_msgqueue_id_t xy_os_msgqueue_new(uint32_t msg_count, uint32_t msg_size,
     ctx = alloc_msgqueue_ctx();
     if (!ctx) return NULL;
 
-    ctx->initialized = 1;
     mq = rt_mq_create(name, msg_size, msg_count, flag);
     if (!mq) {
         clear_msgqueue_ctx(ctx);

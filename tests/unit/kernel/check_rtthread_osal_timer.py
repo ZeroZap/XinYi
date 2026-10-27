@@ -19,7 +19,6 @@ def main() -> int:
     new_body = function_body(source, "xy_os_timer_id_t xy_os_timer_new", "const char *xy_os_timer_get_name")
     for required in (
         "ctx = alloc_timer_ctx()",
-        "ctx->initialized = 1",
         "timer_callback,",
         "ctx,",
         "RT_TIMER_FLAG_SOFT_TIMER",
@@ -30,12 +29,8 @@ def main() -> int:
             errors.append(f"timer creation is missing callback-owner contract: {required}")
     if "RT_TIMER_CTRL_SET_FLAG" in new_body:
         errors.append("timer creation still uses nonexistent RT_TIMER_CTRL_SET_FLAG")
-    if "argument," in new_body.split("rt_timer_create", 1)[-1].split(");", 1)[0]:
+    if "argument," in new_body.split("rt_timer_create", 1)[-1].split(";", 1)[0]:
         errors.append("RT-Thread timer callback receives user argument instead of timer context")
-    create_pos = new_body.find("rt_timer_create")
-    reserve_pos = new_body.find("ctx->initialized = 1")
-    if reserve_pos < 0 or create_pos < 0 or reserve_pos > create_pos:
-        errors.append("timer context must be reserved before kernel allocation")
     if "clear_timer_ctx(ctx)" not in new_body:
         errors.append("timer kernel-create failure must release the reserved context")
 
