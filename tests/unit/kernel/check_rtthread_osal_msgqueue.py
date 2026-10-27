@@ -22,15 +22,25 @@ def main() -> int:
         "xy_os_status_t xy_os_msgqueue_get",
     )
     for required in (
-        "XY_UNUSED(msg_prio);",
+        "msg_prio != 0U",
         "rt_mq_send(mq, msg_ptr, mq->msg_size)",
         "rt_mq_send_wait(mq, msg_ptr, mq->msg_size, timeout)",
     ):
         if required not in put_body:
             errors.append(
-                "RT-Thread message-queue put must send the configured fixed-size binary payload; "
-                f"missing: {required}"
+                "RT-Thread message-queue put must reject nonzero message priorities and send the "
+                f"configured fixed-size binary payload; missing: {required}"
             )
+    if "XY_UNUSED(msg_prio);" in put_body:
+        errors.append(
+            "RT-Thread message-queue put must not silently discard the public message priority"
+        )
+    priority_guard = put_body.find("msg_prio != 0U")
+    native_send = put_body.find("rt_mq_send")
+    if priority_guard < 0 or native_send < 0 or priority_guard > native_send:
+        errors.append(
+            "RT-Thread message-queue put must reject nonzero priorities before any native queue access"
+        )
     if "strlen(" in put_body:
         errors.append(
             "RT-Thread message-queue put must not derive binary payload length with strlen()"

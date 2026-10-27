@@ -1,5 +1,15 @@
 # XinYi Sprint 跟踪看板
 
+**最新 RT-Thread OSAL queue-priority / semaphore-capacity fail-closed（2026-10-27）**：RT-Thread
+backend 现对 `xy_os_msgqueue_put()` 的非零 `msg_prio` 在 native queue 访问前返回
+`XY_OS_ERROR_PARAMETER`，不再以 `XY_UNUSED(msg_prio)` 静默把调用方的优先级投递降级为 FIFO；
+semaphore context 现保留公开 `max_count`，`xy_os_semaphore_release()` 在同一
+`rt_enter_critical()` 区间内校验容量并拒绝超额 token，`get_count()` 不再可能越过公开上限。
+focused `rtthread_osal_msgqueue`/`rtthread_osal_sync_lifecycle`（其余 7 个 RT-Thread policy
+CTest 与 `test_osal_backend_contract` 一并复跑）、Host、PC/STM32L4/STM32U5 compile 与
+`git diff --check` 通过。未执行 target program/runtime，不升级 RT-Thread runtime、吞吐、并发、
+资源耗尽、长稳或产品资格声明。
+
 **最新 Pandora SYS deterministic MAC slice（2026-10-27）**：board-owned `xy_sys_get_mac_addr()`
 现从 96-bit unique ID 派生确定性 unicast、locally-administered MAC，`xy_sys_get_sw_ver`/
 `xy_sys_get_hw_ver` 补齐 weak 属性，Pandora smoke 新增 `SYS_MAC_ADDR` marker。focused
@@ -473,6 +483,9 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 || S6-95 | P1 | FreeRTOS OSAL timer-context atomic retirement | DONE | Zero | Existing bounded FreeRTOS timer owner table | Timer retirement now fully clears its owner slot inside one critical section, preventing concurrent creators from observing partially retired timer/callback metadata. Focused policy/CTest、Host、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, timer concurrency/callback timing, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
 || S6-96 | P1 | FreeRTOS OSAL semaphore-context atomic retirement | DONE | Zero | Existing bounded FreeRTOS semaphore owner table | Semaphore retirement now fully clears its owner slot inside one critical section, preventing concurrent creators from observing partially retired semaphore/name metadata. Focused policy/CTest、Host 279/279、PC/L4/U5/WCH FreeRTOS compile、focused lifecycle image link 与 `git diff --check` passed. No target runtime, semaphore concurrency/ISR-to-task, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
 || S6-97 | P1 | FreeRTOS OSAL event-flags-context atomic retirement | DONE | Zero | Existing bounded FreeRTOS event-flags owner table | Event-flags retirement now finds and fully clears its owner slot inside one critical section, preventing concurrent creators from observing partially retired event-group/name metadata. Focused policy/CTest、Host、PC/L4/U5/WCH FreeRTOS compile 与 `git diff --check` passed. No target runtime, event-flags concurrency/ISR-to-task, resource-exhaustion, long-run or product qualification claim. | 本记录提交 | 2026-10-20 |
+|| S6-98 | P1 | RT-Thread OSAL context reservation/retirement atomicity | DONE | Zero | S6-92～S6-97 的 FreeRTOS 同构契约；RT-Thread 使用同样的 bounded owner table | event-flags/mempool/message-queue/timer 四类 context 现于同一 `rt_enter_critical()` 区间内完成 slot 预留与退休，双创建者不再可能选中同一 free slot 并泄漏 native object；新增 `rtthread_osal_context_atomicity` policy guard，并更新四个断言旧布局的 RT-Thread policy 测试。focused policy、Host 279/279、PC/L4/U5/WCH compile 与 `git diff --check` 通过（回填记录：`6e5d16ed`） | `6e5d16ed` | 2026-10-27 |
+|| S6-99 | P1 | RT-Thread OSAL queue-priority and semaphore-capacity fail-closed boundary | DONE | Zero | S6-80 的 FreeRTOS 非零 `msg_prio` 拒绝契约；RT-Thread native mq 为 FIFO-only、sem 无 `max_count` 上限 | TDD RED 证明 `xy_os_msgqueue_put()` 用 `XY_UNUSED(msg_prio)` 静默丢弃公开优先级并仍返回成功，且 `xy_os_semaphore_release()` 从不校验公开 `max_count`，`get_count()` 可越过创建时声明的上限。现非零优先级在 native queue 访问前 fail-closed 返回 `XY_OS_ERROR_PARAMETER`；semaphore context 保留 `max_count`，release 在同一 critical section 内先校验容量再调用 `rt_sem_release()`。focused `rtthread_osal_msgqueue`/`rtthread_osal_sync_lifecycle`（另 7 个 RT-Thread policy CTest 与 `test_osal_backend_contract` 同步通过）、Host、PC/L4/U5 compile 与 `git diff --check` passed | 本记录提交 | 2026-10-27 |
+|| S6-100 | P2 | RT-Thread backend 与 pinned RT-Thread 5.3 编译漂移 | BACKLOG | Zero | S6-99；`third_party/rt-thread` = RT-Thread 5.3.0 | 以 pinned `third_party/rt-thread` 头文件对 `xy_os_rtthread.c` 做 `-fsyntax-only` probe，HEAD 与 S6-99 之后均只有同样三项既有错误：`xy_os_thread_attr_t` 无 `tick` 成员（2 处）、`rt_mempool->parent` 在 5.3 中缺 `name` 字段。该项不属于 S6-99 范围；若正式启用 RT-Thread backend，需先补可编译 seam（fake 头或 vendor 版本对齐）再谈 runtime 证据 | 待决策 | 2026-10-27 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。

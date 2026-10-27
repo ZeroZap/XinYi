@@ -96,6 +96,35 @@ def main() -> int:
     )
     if "max_count == 0U || initial_count > max_count" not in sem_new:
         errors.append("semaphore creation must reject zero capacity and initial_count overflow")
+    if "ctx->max_count = max_count;" not in sem_new:
+        errors.append(
+            "RT-Thread semaphore creation must retain the public capacity because the native "
+            "semaphore cannot enforce max_count itself"
+        )
+    sem_ctx = function_body(source, "typedef struct {", "/* Maximum instances */")
+    if "rt_uint32_t max_count;" not in sem_ctx.split("sem_ctx_t;", 1)[0].split("} sem_ctx_t", 1)[0]:
+        errors.append("RT-Thread semaphore context must track the public max_count capacity")
+
+    sem_release = function_body(
+        source,
+        "xy_os_status_t xy_os_semaphore_release",
+        "xy_os_status_t xy_os_semaphore_release_from_isr",
+    )
+    if "ctx->max_count" not in sem_release:
+        errors.append(
+            "RT-Thread semaphore release must enforce the public capacity instead of letting the "
+            "native count exceed max_count"
+        )
+    capacity_guard = sem_release.find("ctx->max_count")
+    native_release = sem_release.find("rt_sem_release(sem)")
+    if capacity_guard < 0 or native_release < 0 or capacity_guard > native_release:
+        errors.append(
+            "RT-Thread semaphore release must reject over-capacity tokens before native release"
+        )
+    if "rt_enter_critical();" not in sem_release or "rt_exit_critical();" not in sem_release:
+        errors.append(
+            "RT-Thread semaphore capacity check and release must share one critical section"
+        )
 
     check_runtime_owner(
         source,

@@ -27,6 +27,7 @@ typedef struct {
 typedef struct {
     rt_sem_t sem;
     rt_uint8_t initialized;
+    rt_uint32_t max_count;
 } sem_ctx_t;
 
 typedef struct {
@@ -305,6 +306,7 @@ static void clear_sem_ctx(sem_ctx_t *ctx)
 
     rt_enter_critical();
     ctx->sem = NULL;
+    ctx->max_count = 0U;
     ctx->initialized = 0;
     rt_exit_critical();
 }
@@ -1078,6 +1080,7 @@ xy_os_semaphore_id_t xy_os_semaphore_new(uint32_t max_count, uint32_t initial_co
     }
 
     ctx->sem = sem;
+    ctx->max_count = max_count;
     return (xy_os_semaphore_id_t)sem;
 }
 
@@ -1104,9 +1107,28 @@ xy_os_status_t xy_os_semaphore_acquire(xy_os_semaphore_id_t semaphore_id, uint32
 xy_os_status_t xy_os_semaphore_release(xy_os_semaphore_id_t semaphore_id)
 {
     rt_sem_t sem = (rt_sem_t)semaphore_id;
-    if (!sem || !find_sem_ctx(sem)) return XY_OS_ERROR_PARAMETER;
+    sem_ctx_t *ctx;
+    rt_err_t result;
 
-    rt_err_t result = rt_sem_release(sem);
+    if (!sem) return XY_OS_ERROR_PARAMETER;
+
+    /* The native semaphore has no maximum-count contract, so the adapter owns
+     * the public capacity: look up the owner and reject over-capacity tokens in
+     * the same critical section that performs the release. */
+    rt_enter_critical();
+    ctx = find_sem_ctx(sem);
+    if (!ctx) {
+        rt_exit_critical();
+        return XY_OS_ERROR_PARAMETER;
+    }
+    if (sem->value >= ctx->max_count) {
+        rt_exit_critical();
+        return XY_OS_ERROR;
+    }
+
+    result = rt_sem_release(sem);
+    rt_exit_critical();
+
     return (result == RT_EOK) ? XY_OS_OK : XY_OS_ERROR;
 }
 
@@ -1298,8 +1320,11 @@ xy_os_status_t xy_os_msgqueue_put(xy_os_msgqueue_id_t mq_id,
     rt_mq_t mq = (rt_mq_t)mq_id;
     rt_err_t result;
 
-    if (!mq || !msg_ptr || !find_msgqueue_ctx(mq)) return XY_OS_ERROR_PARAMETER;
-    XY_UNUSED(msg_prio);
+    if (!mq || !msg_ptr || msg_prio != 0U || !find_msgqueue_ctx(mq)) {
+        /* The native RT-Thread queue is FIFO-only; reject a priority request the
+         * adapter cannot honor instead of silently degrading delivery order. */
+        return XY_OS_ERROR_PARAMETER;
+    }
 
     result = (timeout == XY_OS_WAIT_FOREVER)
                  ? rt_mq_send_wait(mq, msg_ptr, mq->msg_size, RT_WAITING_FOREVER)
