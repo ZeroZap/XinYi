@@ -1,7 +1,7 @@
 # XinYi 支持的开发板
 
-**版本**: 1.1.0  
-**最后更新**: 2026-03-16  
+**版本**: 1.1.0
+**最后更新**: 2026-10-27
 **维护者**: XinYi Team
 
 ---
@@ -9,6 +9,8 @@
 ## 📋 概述
 
 XinYi 框架支持多种开发板和 MCU 平台，覆盖 STM32、WCH、HC32 以及 PC 仿真环境。
+
+> **当前实板基线（2026-10-27）**：Pandora STM32L475VE 是正式 reference board；STM32U5/M33/TrustZone 仅作 enhancement compile gate，不再阻塞基础验收。SSD1306 deferred，不选择、不推进。
 
 ---
 
@@ -185,7 +187,7 @@ make flash
 
 | 模块 | 接口 | 支持开发板 | 驱动状态 |
 |------|------|-----------|---------|
-| **OLED (SSD1306)** | I2C/SPI | 所有 | ✅ 完成 |
+| **OLED (SSD1306)** | I2C/SPI | 所有 | ⏳ deferred（Host contract 已有，实板不推进） |
 | **LCD (ST7735)** | SPI | 所有 | ✅ 完成 |
 | **TFT (ILI9341)** | SPI | 所有 | 📋 计划 |
 

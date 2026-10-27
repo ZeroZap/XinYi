@@ -1,6 +1,6 @@
 # XinYi Framework - 快速入门指南
 
-**最后更新**: 2026-03-30
+**最后更新**: 2026-10-27
 
 ---
 
@@ -17,10 +17,7 @@ cd XinYi
 
 ```bash
 cd XinYi
-rm -rf build && mkdir build && cd build
-cmake .. -DPLATFORM_PC=ON -DXY_CONFIG_SENSOR_ENABLED=ON \
-         -DXY_CONFIG_ACTUATOR_ENABLED=ON -DXY_CONFIG_SMBUS_ENABLED=ON
-make -j4
+make                    # 默认 PC Release 构建
 ```
 
 ### 3. 查看所有目标
@@ -64,7 +61,7 @@ XinYi/
 # PC 平台完整构建（默认本地构建）
 make
 
-# 等价 CMake 命令：HAL_PLATFORM 取值为 PC/STM32F4/STM32U5/WCH/HC32
+# 等价 CMake 命令：HAL_PLATFORM 取值为 PC/STM32F4/STM32L4/STM32U5/WCH/HC32
 cmake -B build/pc -S . -DHAL_PLATFORM=PC -DCMAKE_BUILD_TYPE=Release
 cmake --build build/pc -j"$(nproc)"
 
@@ -117,12 +114,13 @@ make distclean
 
 ### CMake / Kconfig 选项
 
-当前构建入口使用统一平台变量 `HAL_PLATFORM`，可选值为 `PC`、`STM32F4`、`STM32U5`、`WCH`、`HC32`。组件开关由根 `Kconfig` 生成到 `.config`、`autoconf.h` 和 `config.cmake`，不要再使用旧的 `PLATFORM_PC` / `XY_CONFIG_*_ENABLED` 命令行示例作为事实源。
+当前构建入口使用统一平台变量 `HAL_PLATFORM`，可选值为 `PC`、`STM32F4`、`STM32L4`、`STM32U5`、`WCH`、`HC32`。正式 reference board 为 Pandora STM32L475VE（`STM32L4`），`STM32U5` 仅作 enhancement compile gate。组件开关由根 `Kconfig` 生成到 `.config`、`autoconf.h` 和 `config.cmake`，不要再使用旧的 `PLATFORM_PC` / `XY_CONFIG_*_ENABLED` 命令行示例作为事实源。
 
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
 | `HAL_PLATFORM=PC` | PC 仿真平台 | 默认 |
-| `HAL_PLATFORM=STM32U5` | 主 MCU 平台 | 手动选择 |
+| `HAL_PLATFORM=STM32L4` | Pandora reference board 平台 | 手动选择 |
+| `HAL_PLATFORM=STM32U5` | enhancement compile gate | 手动选择 |
 | `BUILD_TESTS=ON` | 目标平台测试构建 | OFF |
 | `FOTA=ON` | FOTA 构建变体 | OFF |
 
@@ -132,7 +130,10 @@ make distclean
 # PC 平台默认 Release 构建
 make
 
-# STM32U5 平台
+# STM32L4 平台（Pandora reference board）
+make HAL_PLATFORM=STM32L4
+
+# STM32U5 平台（enhancement compile gate）
 make HAL_PLATFORM=STM32U5
 ```
 
