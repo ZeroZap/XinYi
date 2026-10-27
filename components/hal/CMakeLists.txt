@@ -20,16 +20,42 @@ if(HAL_PLATFORM STREQUAL "PC")
     message(STATUS "XY HAL: Building for PC simulation")
     
 elseif(HAL_PLATFORM STREQUAL "STM32F4")
-    # STM32F4 implementation
+    # STM32F4 implementation.
+    #
+    # Every stm32f4 wrapper is wrapped in `#ifdef STM32_HAL_ENABLED`; without
+    # that define each translation unit compiles to nothing and this platform
+    # gate passes while the xy_hal archive exports no HAL symbols at all.  The
+    # define is mandatory here and guarded by
+    # tests/unit/hal_component/check_hal_platform_build_contract.py.
     file(GLOB HAL_SOURCES
         "stm32/stm32f4/*.c"
         "stm32/src/*.c"
     )
+    # Wrappers whose signatures still drift from the current public HAL
+    # contracts.  They are excluded explicitly (never silently) until the
+    # migration slice lands; re-adding one without fixing it fails the build.
+    set(XY_HAL_F4_DEFERRED_SOURCES
+        xy_hal_dma.c
+        xy_hal_i2c.c
+        xy_hal_rtc.c
+        xy_hal_spi.c
+        xy_hal_timer.c
+        xy_hal_uart.c)
+    # Literal filters are authoritative (the build-contract guard parses them),
+    # so a wrapper can never be "listed as deferred" without being excluded.
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_dma\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_i2c\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_rtc\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_spi\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_timer\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_uart\.c$")
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32F4
+        STM32_HAL_ENABLED
     )
     message(STATUS "XY HAL: Building for STM32F4")
+    message(STATUS "XY HAL: STM32F4 contract-deferred wrappers: ${XY_HAL_F4_DEFERRED_SOURCES}")
 
 elseif(HAL_PLATFORM STREQUAL "STM32U5")
     # STM32U5 implementation
@@ -48,6 +74,11 @@ elseif(HAL_PLATFORM STREQUAL "STM32U5")
 
 elseif(HAL_PLATFORM STREQUAL "STM32L4")
     # STM32L4 reuses F4 wrappers except where a dedicated L4 source exists.
+    #
+    # STM32_HAL_ENABLED is mandatory: the reused stm32f4 wrappers (adc/dac/exti/
+    # lp_timer/pwm/rng) are `#ifdef STM32_HAL_ENABLED` guarded and would
+    # otherwise compile to empty objects, leaving this — the reference-board
+    # platform — with an archive that silently omits those peripherals.
     file(GLOB HAL_SOURCES
         "stm32/stm32f4/*.c"
         "stm32/src/*.c"
@@ -57,9 +88,12 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_gpio\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_i2c\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_rtc\\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_spi\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_sys\\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_timer\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_uart\\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_wdg\\.c$")
+    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_adc\\.c$")
     list(APPEND HAL_SOURCES
         "stm32/stm32l4/xy_hal_delay.c"
         "stm32/stm32l4/xy_hal_dma.c"
@@ -67,12 +101,19 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
         "stm32/stm32l4/xy_hal_gpio.c"
         "stm32/stm32l4/xy_hal_i2c.c"
         "stm32/stm32l4/xy_hal_rtc.c"
+        "stm32/stm32l4/xy_hal_spi.c"
         "stm32/stm32l4/xy_hal_sys.c"
+        "stm32/stm32l4/xy_hal_timer.c"
         "stm32/stm32l4/xy_hal_uart.c"
         "stm32/stm32l4/xy_hal_wdg.c")
+    # Sources this branch deliberately does not build (contract drift / family
+    # mismatch, see backlog S6-108):
+    #   stm32/stm32l4/xy_hal_qspi.c  — QSPI wrapper still drifts from public header
+    #   stm32/stm32f4/xy_hal_adc.c   — F4 ADC->CCR / sample-time contract is F4-only
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32L4
+        STM32_HAL_ENABLED
     )
     message(STATUS "XY HAL: Building for STM32L4")
 

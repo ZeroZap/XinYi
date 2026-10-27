@@ -22,11 +22,18 @@
 
 下表审计 Sprint 2 最小证据链关注的 GPIO、UART、I2C、SPI、Timer、I2S、DMA。STM32L4 除 DMA 已有 dedicated wrapper 外仍复用 STM32F4 wrapper，因此单独列出。
 
+> 2026-10-28 校准：STM32F4/STM32L4 两个 branch 此前都**未定义** `STM32_HAL_ENABLED`，而
+> `stm32f4/*.c` 全部包在该 guard 内 —— 因此 root `xy_hal` archive 里这些 TU 全是 0-byte 空对象
+> （实测 `arm-none-eabi-size` text=0，archive 导出 0 个 `xy_hal_*` 符号），平台 gate 却一直"通过"。
+> 现两 branch 都定义该 guard，并由 `tests/unit/hal_component/check_hal_platform_build_contract.py`
+> 锁定（新增 CTest `hal_platform_build_contract`）。下表 "SOURCE_PRESENT" 仅指源文件被真实编译进
+> archive，仍不构成 runtime/实板证据。
+
 | Platform | GPIO | UART | I2C | SPI | Timer | I2S | DMA | Host | Compile/QEMU | Board |
 |---|---|---|---|---|---|---|---|---|---|---|
 | STM32U5 | `PARTIAL_SOURCE`（EXTI 依赖 SDK IRQ 定义） | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `UNSUPPORTED`（显式 stub） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC，不是 U5 runtime） | `COMPILE_ONLY` 历史记录；当前 SDK/toolchain 不可用，需重跑 | `BOARD_PENDING` |
-| STM32F4 | `SOURCE_PRESENT` | `UNSUPPORTED`（wrapper 返回 not-supported） | `SOURCE_PRESENT` | `UNSUPPORTED`（wrapper 返回 not-supported） | `UNSUPPORTED`（wrapper 返回 not-supported） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
-| STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `UNSUPPORTED`（框架 wrapper 复用 F4 stub；Pandora smoke 直接使用 CubeL4 UART） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED`（复用 F4 stub） | `UNSUPPORTED` | `SOURCE_PRESENT`（dedicated L4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | PC/L4/U5 compile；Pandora FreeRTOS image link | `B1_BOARD_SMOKE`；framework DMA1 Channel1、8-word SRAM→SRAM polling B1；SPI/peripheral-DMA/IRQ/callback/recovery pending |
+| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；9/15 wrapper，见下） | `UNSUPPORTED`（wrapper 仍与公开契约漂移，已被显式排除并记录为 deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `UNSUPPORTED`（同上：deferred） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
+| STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；runtime 仍仅 Pandora board-local） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；SPI/DMA B1 为 board-local image 证据） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译） | `UNSUPPORTED` | `SOURCE_PRESENT`（dedicated L4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | PC/L4/U5 compile；Pandora FreeRTOS image link | `B1_BOARD_SMOKE`；framework DMA1 Channel1、8-word SRAM→SRAM polling B1；SPI/peripheral-DMA/IRQ/callback/recovery pending |
 | WCH CH32V30x | `PARTIAL_SOURCE`（IRQ configure unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | PC simulation | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `HOST_CONTRACT` | `UNSUPPORTED`（PC source set 未选 Timer wrapper） | `UNSUPPORTED` | `UNSUPPORTED`（PC source set 未选 DMA wrapper） | `HOST_CONTRACT` | n/a | n/a |
@@ -43,6 +50,31 @@ S2-2 所需 GPIO/UART/I2C/SPI/Timer/DMA wrapper 已存在，I2S 明确 fail-clos
 ### STM32F4 / STM32L4
 
 STM32F4 的 UART、SPI、Timer 大量路径为显式 not-supported；STM32L4 对这些路径仍复用该组 wrapper。DMA 已改用 dedicated STM32L4 实现，但不能据此写成完整 HAL 支持。
+
+2026-10-28 收口了一处会制造**假绿**的平台构建缺陷：`components/hal/CMakeLists.txt` 的 STM32F4 与
+STM32L4 两个 branch 都没有定义 `STM32_HAL_ENABLED`，而 `stm32f4/*.c` 的全部实现都包在
+`#ifdef STM32_HAL_ENABLED` 内，于是 root `xy_hal` archive 中这些 TU 全部编译成 0-byte 空对象：
+`arm-none-eabi-size` 实测 text/data/bss 全为 0（含此前的 `build/stm32l4`、`build/pandora-rtos`），
+archive 导出 0 个 `xy_hal_*` 符号，而 `make HAL_PLATFORM=STM32L4/F4` 一直返回成功。现两个 branch
+都定义该 guard；STM32L4 另补入此前从未编译的 dedicated `stm32l4/xy_hal_spi.c` 与
+`stm32l4/xy_hal_timer.c`（此前 root gate 里 SPI/Timer 既无 F4 实现也无 L4 实现），并显式排除
+会与它们重名的 F4 副本。`xy_hal_pwm.c` 与 `xy_hal_lp_timer.c` 已按当前公开契约重写
+（`xy_hal_error_t` 返回值、init 状态跟踪、L4 LPTIM1 counter/IT 与真实 callback 转发；F4 无 LPTIM →
+显式 `XY_HAL_ERROR_NOT_SUPPORTED`）。修复后同一 L4/`xy_hal` target：`xy_hal_pwm.c.obj` 756 B text、
+`xy_hal_lp_timer.c.obj` 444 B、`xy_hal_dac.c.obj` 696 B、`xy_hal_exti.c.obj` 504 B、
+`xy_hal_rng.c.obj` 704 B，archive 导出 `xy_hal_pwm_init`/`xy_hal_lptimer_init`/`xy_hal_spi_init`/
+`xy_hal_timer_init`/`xy_hal_dac_init`/`xy_hal_exti_init`/`xy_hal_rng_init`；F4 branch archive 由 0 个
+导出符号变为 126 个。
+
+仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_dma/i2c/rtc/spi/timer/uart.c`
+（签名仍与公开 header 冲突，如 `int` vs `xy_hal_error_t`、`xy_hal_i2c_handle_t` 已不存在、
+`XY_HAL_DMA_PDATAALIGN_*` 等旧枚举），STM32L4 的 `xy_hal_qspi.c`（51 处契约漂移）与 F4 专属
+`xy_hal_adc.c`（`ADC->CCR`/3-cycle sample time 仅 F4 可用）。回归门为 CTest
+`hal_platform_build_contract`：branch 缺 guard、deferred 集合变更、列了 deferred 却未真正排除、
+L4 同时 glob F4 副本与新 wrapper（只会在定义 guard 后暴露的重复符号）都会被拒绝。
+以上全部为 source/compile 级证据，不升级任何 STM32F4/L4 framework 外设的 runtime 或实板结论；
+Pandora 参考板镜像（`pandora_stm32l475_smoke` 14296 B 与既有记录一致、`pandora_stm32l475_rtos`
+clean link）本身不受影响，因为 board target 自带 `STM32_HAL_ENABLED` 与显式 source list。
 
 Pandora STM32L475VE 现有 board-local smoke target 可 clean cross-compile/link，并包含 LED、USART1、
 KEY0 和 AHT10 `0x38` software-I2C 初始化、测量、数值换算及 ACK/NACK 恢复 probe。该目标直接

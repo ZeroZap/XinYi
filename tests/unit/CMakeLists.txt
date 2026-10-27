@@ -83,6 +83,10 @@ add_test(NAME pandora_hal_boundary_policy
     COMMAND python3 ${UNIT_HAL}/test_pandora_hal_boundary_policy.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME hal_platform_build_contract
+    COMMAND python3 ${UNIT_HAL}/check_hal_platform_build_contract.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_st7789_board
     COMMAND python3 ${UNIT_DISPLAY}/check_pandora_st7789_board.py
     WORKING_DIRECTORY ${ROOT}
