@@ -36,12 +36,10 @@ elseif(HAL_PLATFORM STREQUAL "STM32F4")
     # migration slice lands; re-adding one without fixing it fails the build.
     set(XY_HAL_F4_DEFERRED_SOURCES
         xy_hal_rtc.c
-        xy_hal_spi.c
         xy_hal_timer.c)
     # Literal filters are authoritative (the build-contract guard parses them),
     # so a wrapper can never be "listed as deferred" without being excluded.
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_rtc\.c$")
-    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_spi\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_timer\.c$")
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
