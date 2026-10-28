@@ -1,0 +1,27 @@
+{
+  "baudrate": 115200,
+  "candidate_source_commit": "e46d5f03a07d661da7003d229bb0da0eeb13cfa8",
+  "capture_bytes": 211,
+  "capture_file": "docs/validation/evidence/pandora-stm32l475/2026-10-29-fota-confirm/programmer-capture.log",
+  "capture_sha256": "1ff12795acae2242344ea33ead0cb6baf360697346f1378b178e03f9700c3fd5",
+  "captured_at_utc": "2026-10-28T19:16:08.804727+00:00",
+  "complete_frames": 1,
+  "device": "/dev/ttyUSB0",
+  "error_markers": [],
+  "failures": [],
+  "firmware_commit": "e46d5f03a07d661da7003d229bb0da0eeb13cfa8",
+  "foreign_line_sample": [],
+  "foreign_lines": 0,
+  "format": "8-N-1",
+  "frame_count": 1,
+  "not_evidence_for": [
+    "the resident bootloader installing or confirming the candidate",
+    "W25Q128 erase/program endurance or power-loss behaviour",
+    "that the programmed candidate executes"
+  ],
+  "partial_frames": 0,
+  "scope": "W25Q128 candidate programmer marker stream: envelope identity plus the per-chunk read-back verification marker",
+  "status": "PROGRAMMER_CAPTURE_REVIEW_CANDIDATE",
+  "timeout_seconds": 60.0,
+  "verified_markers": 1
+}

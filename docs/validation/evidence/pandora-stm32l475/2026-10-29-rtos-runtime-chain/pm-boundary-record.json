@@ -1,0 +1,31 @@
+{
+  "boot_count": 2,
+  "capture_sha256": "965b308b399e5cae577a2ec57e628a2433c3ae92e4d98e02b3abf3a228e186fd",
+  "captured_bytes": 7444,
+  "error_marker_count": 0,
+  "failures": [],
+  "firmware_commit": "45cde0eff10fc6299cf4e079176ec916b5ed910d",
+  "marker_counts": {
+    "OSAL_PM_CHARGER_BOUNDARY_MISSING": 0,
+    "OSAL_PM_CHARGER_BOUNDARY_OK": 1,
+    "OSAL_PM_FAIL_CLOSED_ERROR": 0,
+    "OSAL_PM_HAL_SLEEP_ERROR": 0,
+    "OSAL_PM_HAL_SLEEP_REPEAT_OK": 1
+  },
+  "not_evidence_for": [
+    "PM system sleep/wake: xy_pm_init() cannot succeed without a charger IC",
+    "power current",
+    "STOP/STANDBY/SHUTDOWN mode",
+    "wake latency or performance",
+    "multi-hour endurance",
+    "STM32U5 runtime",
+    "any charger hardware behaviour"
+  ],
+  "pm_init_refusal": "4294967295",
+  "record_type": "xinyi-pandora-stm32l475-pm-charger-boundary-hal-sleep",
+  "recorded_at_utc": "2026-10-28T21:22:21.765152+00:00",
+  "repeat_cycles": 32,
+  "scope": "Pandora PM charger fail-closed boundary (no charger IC on this board) plus HAL shallow SLEEP/WFI entered and resumed 32 times from a task",
+  "source_device": "/dev/serial/by-id/usb-wch.cn_WCH-Link_B49C8F0639CE-if01",
+  "status": "B1_PM_CHARGER_FAILCLOSED_HAL_SLEEP_PASS"
+}

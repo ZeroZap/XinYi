@@ -1,0 +1,20 @@
+### pre-fix image (commit e46d5f03, app 42744 B) sampled ~90 s after boot: halted in the FreeRTOS stack-overflow hook
+
+0x08009862 in vApplicationStackOverflowHook ()
+pc             0x8009862           0x8009862 <vApplicationStackOverflowHook+2>
+lr             0x800f823           134281251
+sp             0x20017fc0          0x20017fc0
+psp            0x20002b98          0x20002b98 <ucHeap+1828>
+xpsr           0x100000e           16777230
+r0             0x20002c28          536882216
+r1             0x20002c5c          536882268
+0x20002c5c <ucHeap+2024>:	"osal-slow"
+#0  0x08009862 in vApplicationStackOverflowHook ()
+#1  0x0800f822 in vTaskSwitchContext ()
+#2  0x08010c22 in xPortPendSVHandler ()
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+vApplicationStackOverflowHook + 2 in section .text
+   0x800985e <_fini>:	bx	lr
+   0x8009860 <vApplicationStackOverflowHook>:	cpsid	i
+=> 0x8009862 <vApplicationStackOverflowHook+2>:	b.n	0x8009862 <vApplicationStackOverflowHook+2>
+   0x8009864 <xy_os_tick_get>:	b.w	0x800e838 <xy_os_kernel_get_tick_count>

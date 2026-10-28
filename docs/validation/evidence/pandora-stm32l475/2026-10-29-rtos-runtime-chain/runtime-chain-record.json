@@ -1,0 +1,72 @@
+{
+  "capture": {
+    "baudrate": 115200,
+    "device": "/dev/ttyUSB0 (CP2102)",
+    "format": "8-N-1",
+    "method": "termios capture armed before an explicit st-flash reset",
+    "runs": [
+      {
+        "boots": 1,
+        "bytes": 1791,
+        "chain": "WINDOW_CLOSED_MID_CHAIN",
+        "error_markers": [],
+        "file": "final-run-1.log",
+        "lines": 77,
+        "pm_boundary": false,
+        "pm_hal_sleep_cycles": 0,
+        "pm_repeat": false,
+        "slow_cycles": 2
+      },
+      {
+        "boots": 2,
+        "bytes": 3718,
+        "chain": "WINDOW_CLOSED_MID_CHAIN",
+        "error_markers": [],
+        "file": "final-run-2.log",
+        "lines": 156,
+        "pm_boundary": false,
+        "pm_hal_sleep_cycles": 0,
+        "pm_repeat": false,
+        "slow_cycles": 4
+      },
+      {
+        "boots": 2,
+        "bytes": 7444,
+        "chain": "COMPLETE",
+        "error_markers": [],
+        "file": "final-run-3.log",
+        "lines": 343,
+        "pm_boundary": true,
+        "pm_hal_sleep_cycles": 32,
+        "pm_repeat": true,
+        "slow_cycles": 14
+      }
+    ]
+  },
+  "firmware_commit": "45cde0eff10fc6299cf4e079176ec916b5ed910d",
+  "image": {
+    "file": "pandora_stm32l475_rtos.bin",
+    "flash_used_bytes": 42604,
+    "part1_sha256": "68ce4ecd2305f4dacf7727b5c42a5b42772a4568e030270b9937e88f909bc096",
+    "part2_sha256": "e1f1fe433104897a06d2661c68bde5680f63d568be04eeac05b0c4f8ed8c26a8",
+    "sha256": "98d76e7f7ec2e296efb1213cebd599e584505fc047c15dae31cfbd63eb86ff9f",
+    "size": 42604
+  },
+  "not_evidence_for": [
+    "PM system sleep/wake (unreachable: no charger IC on this board)",
+    "power current, wake latency, STOP/STANDBY/SHUTDOWN, endurance",
+    "FOTA bootloader confirm branch",
+    "runtime determinism: identical images produced both a complete and a partial chain with no error marker",
+    "STM32U5 runtime",
+    "charger hardware behaviour"
+  ],
+  "programming": {
+    "gate": "each write required a fresh snapshot matching the live target",
+    "method": "tools/pandora_hil_program.py run, two gated spans (image is larger than the 32 KiB bootloader region)",
+    "part1": "rtos-part1.bin @0x08000000 readback span_identical=true unexpected_changes=0",
+    "part2": "rtos-part2.bin @0x08008000 readback span_identical=true unexpected_changes=0"
+  },
+  "record_type": "xinyi-pandora-stm32l475-rtos-runtime-chain",
+  "schema": 1,
+  "scope": "Pandora STM32L475VE OSAL/FreeRTOS runtime image marker chain for one boot: resource lifecycle, HAL DMA/QSPI, TIM6 IRQ, multi producer/consumer, PM charger fail-closed boundary and HAL shallow sleep"
+}
