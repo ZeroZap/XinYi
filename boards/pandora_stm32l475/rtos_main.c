@@ -642,7 +642,16 @@ static void slow_task(void *argument)
             uart_text("OSAL_MUTEX_TIMEOUT\r\n");
             fail();
         }
-        if (shared_sequence != sequence) {
+        /* The fast task publishes shared_sequence at the top of its *next* iteration, i.e.
+           before it queues that item, so a consumer holding item N may legitimately see N
+           (publisher not yet moved on) up to N+2 (depth-2 queue: at most one item still
+           queued plus one published but blocked on the put). Requiring exact equality here
+           made this image fail at random on identical bytes: the same 42564-byte image
+           printed OSAL_MUTEX_MISMATCH on one reset and passed on the next. What the mutex
+           actually has to guarantee is that a protected write the consumer can already
+           account for is never lost (shared < N), and that the publisher cannot run ahead
+           of a depth-2 queue (shared > N+2). */
+        if (shared_sequence < sequence || shared_sequence > sequence + 2U) {
             uart_text("OSAL_MUTEX_MISMATCH\r\n");
             fail();
         }
