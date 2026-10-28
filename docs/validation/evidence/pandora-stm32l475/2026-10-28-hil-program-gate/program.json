@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-28T10:26:06+00:00",
+  "image": {
+    "path": "build/pandora-rtos/boards/pandora_stm32l475/pandora_stm32l475_smoke.bin",
+    "size": 14360,
+    "sha256": "e12440bfee1e2ef6ce35457ee9d225eb1c1378d99c6ff7c540382f2fbe88453f",
+    "address": "0x8008000",
+    "region": "application"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "e12440bfee1e2ef6ce35457ee9d225eb1c1378d99c6ff7c540382f2fbe88453f",
+    "erased_tail": 2024,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": true,
+  "drift": [
+    {
+      "name": "bootloader",
+      "identical": true,
+      "first_diff": null
+    },
+    {
+      "name": "application",
+      "identical": false,
+      "first_diff": 4
+    },
+    {
+      "name": "fota_metadata",
+      "identical": true,
+      "first_diff": null
+    },
+    {
+      "name": "board_reserved",
+      "identical": true,
+      "first_diff": null
+    },
+    {
+      "name": "rtc_backup",
+      "identical": true,
+      "first_diff": null
+    }
+  ],
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot /home/eugene/xinyi-hw-evidence/2026-10-28-hil-program-gate/pandora-state --yes"
+}

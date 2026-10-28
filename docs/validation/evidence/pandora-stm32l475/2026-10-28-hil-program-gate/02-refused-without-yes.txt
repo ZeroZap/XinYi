@@ -1,0 +1,3 @@
+### run without --yes (must be refused, nothing written)
+refused: programming requires explicit confirmation (--yes)
+exit=2

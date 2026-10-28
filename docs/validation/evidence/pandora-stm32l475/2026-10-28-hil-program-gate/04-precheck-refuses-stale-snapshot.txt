@@ -1,0 +1,3 @@
+### second run against the now-stale snapshot (guard 2: refuse before writing)
+precheck_failed: live target does not match the snapshot, so a write would destroy unrecorded state (application: DIFFERS first_diff=+4 expected=d35e2e9ab2fe7249 observed=f8e66f2b0ccd9d17). Re-run `tools/pandora_hil_state.py snapshot --label <why>` first.
+exit=2

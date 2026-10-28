@@ -1,0 +1,16 @@
+### gated program + reset + drift scan
+image pandora_stm32l475_smoke.bin size=14360 sha256=e12440bfee1e2ef6 target=application@0x8008000
+readback span_identical=true observed_sha256=e12440bfee1e2ef6 erased_tail=2024 unexpected_changes=0
+drift bootloader: unchanged
+drift application: CHANGED first_diff=+4
+drift fota_metadata: unchanged
+drift board_reserved: unchanged
+drift rtc_backup: unchanged
+restore_command=tools/pandora_hil_state.py restore --snapshot /home/eugene/xinyi-hw-evidence/2026-10-28-hil-program-gate/pandora-state --yes
+log=/home/eugene/xinyi-hw-evidence/2026-10-28-hil-program-gate/pandora-state/program.json
+program_ok
+
+real	0m18.965s
+user	0m0.330s
+sys	0m0.413s
+exit=0

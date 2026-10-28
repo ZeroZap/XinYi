@@ -1,0 +1,5 @@
+### plan (no target access)
+would write 14360 B (e12440bfee1e2ef6) to application@0x8008000..0x800b818
+erase_pages=0x8008000..0x800c000 (8 page(s))
+snapshot=/home/eugene/xinyi-hw-evidence/2026-10-28-hil-program-gate/pandora-state
+plan_ok writes=0
