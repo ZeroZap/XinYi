@@ -2145,6 +2145,19 @@ target_include_directories(test_pandora_i2c_owners PRIVATE
     ${HAL}/inc
 )
 
+# --- Test 33f: Pandora board-owned clock/power startup owner ---
+xy_add_unit_test(test_pandora_platform_startup pandora_platform_startup UNITY
+    ${UNIT_HAL}/test_pandora_platform_startup.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_platform_startup.c
+)
+target_include_directories(test_pandora_platform_startup BEFORE PRIVATE
+    ${UNIT_HAL}/fake_vendor
+)
+target_include_directories(test_pandora_platform_startup PRIVATE
+    ${ROOT}/boards/pandora_stm32l475
+    ${HAL}/inc
+)
+
 # --- Test 34: GUI core drawing and object contracts ---
 xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c
