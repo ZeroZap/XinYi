@@ -1278,9 +1278,12 @@ add_executable(opench_ch32v307_osal_freertos_primitives_smoke
         ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
         ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
         ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-        ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+        ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
     target_include_directories(opench_ch32v307_osal_freertos_primitives_smoke PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
         ${CMAKE_SOURCE_DIR}/components/kernel/osal
         ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
         ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_freertos}/User)

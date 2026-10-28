@@ -103,6 +103,10 @@ add_test(NAME stm32f4_spi_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_spi_wrapper_contract.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME opench_osal_hal_usage
+    COMMAND python3 ${UNIT_HAL}/check_opench_osal_hal_usage.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_st7789_board
     COMMAND python3 ${UNIT_DISPLAY}/check_pandora_st7789_board.py
     WORKING_DIRECTORY ${ROOT}

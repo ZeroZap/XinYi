@@ -1,46 +1,50 @@
 #include "ch32v30x.h"
+#include "xy_hal_gpio.h"
+#include "xy_hal_uart.h"
 #include "xy_os.h"
+
+#include <stddef.h>
 
 #ifndef XINYI_FIRMWARE_COMMIT
 #error "XINYI_FIRMWARE_COMMIT must identify the exact source commit"
 #endif
 
 #define READY_FLAG 0x1U
+#define UART_TIMEOUT_MS 1000U
+/* xy_os_event_flags_wait reports an unsatisfied wait with this sentinel, not with
+   0, so a timeout assertion must compare against it. */
+#define EVENT_FLAGS_ERROR 0x80000000U
 
 static xy_os_mutex_id_t mutex_id;
 static xy_os_event_flags_id_t event_id;
 static xy_os_msgqueue_id_t queue_id;
 static volatile uint32_t shared_value;
 
-static void uart_init(void) {
-    GPIO_InitTypeDef gpio = {0};
-    USART_InitTypeDef uart = {0};
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1, ENABLE);
-    gpio.GPIO_Pin = GPIO_Pin_9;
-    gpio.GPIO_Speed = GPIO_Speed_50MHz;
-    gpio.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_Init(GPIOA, &gpio);
-    gpio.GPIO_Pin = GPIO_Pin_10;
-    gpio.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOA, &gpio);
-    uart.USART_BaudRate = 115200;
-    uart.USART_WordLength = USART_WordLength_8b;
-    uart.USART_StopBits = USART_StopBits_1;
-    uart.USART_Parity = USART_Parity_No;
-    uart.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    uart.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
-    USART_Init(USART1, &uart);
-    USART_Cmd(USART1, ENABLE);
+/* USART1 stays on PA9/PA10 because that pair is what the board wires to the
+   WCH-Link VCP; only the driver underneath changes here. */
+static int uart_init(void) {
+    const xy_hal_gpio_config_t tx = {XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_NONE,
+                                     XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_VERY_HIGH, 0U};
+    const xy_hal_gpio_config_t rx = {XY_HAL_GPIO_MODE_INPUT, XY_HAL_GPIO_PULL_NONE,
+                                     XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_LOW, 0U};
+    const xy_hal_uart_config_t uart = {115200U,
+                                       XY_HAL_UART_WORDLEN_8B,
+                                       XY_HAL_UART_STOPBITS_1,
+                                       XY_HAL_UART_PARITY_NONE,
+                                       XY_HAL_UART_FLOWCTRL_NONE,
+                                       XY_HAL_UART_MODE_TX_RX};
+    if (xy_hal_gpio_init(GPIOA, 9U, &tx) != XY_HAL_OK ||
+        xy_hal_gpio_init(GPIOA, 10U, &rx) != XY_HAL_OK ||
+        xy_hal_uart_init(USART1, &uart) != XY_HAL_OK)
+        return 0;
+    return 1;
 }
 
 static void mark(const char* text) {
-    while (*text != '\0') {
-        while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET) {
-        }
-        USART_SendData(USART1, (uint8_t)*text++);
-    }
-    while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET) {
-    }
+    size_t length = 0U;
+    while (text[length] != '\0')
+        ++length;
+    (void)xy_hal_uart_send(USART1, (const uint8_t*)text, length, UART_TIMEOUT_MS);
 }
 
 static void producer(void* argument) {
@@ -90,7 +94,7 @@ static void consumer(void* argument) {
     mark("OPENCH_OSAL_PRIMITIVES_PIPELINE_OK_A\r\n");
     value = 0;
     if (xy_os_msgqueue_get(queue_id, &value, NULL, 25) == XY_OS_ERROR_TIMEOUT &&
-        xy_os_event_flags_wait(event_id, READY_FLAG, XY_OS_FLAGS_WAIT_ALL, 25) == 0U)
+        xy_os_event_flags_wait(event_id, READY_FLAG, XY_OS_FLAGS_WAIT_ALL, 25) == EVENT_FLAGS_ERROR)
         mark("OPENCH_OSAL_PRIMITIVES_TIMEOUT_OK_A\r\n");
     else
         mark("OPENCH_OSAL_PRIMITIVES_TIMEOUT_ERROR_A\r\n");
@@ -106,7 +110,9 @@ int main(void) {
         .name = "consumer", .stack_size = 1024, .priority = XY_OS_PRIORITY_NORMAL};
     SystemCoreClockUpdate();
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
-    uart_init();
+    if (!uart_init())
+        for (;;) {
+        }
     mark("OPENCH_OSAL_PRIMITIVES_PRE_SCHED_" XINYI_FIRMWARE_COMMIT "\r\n");
     (void)xy_os_kernel_init();
     mutex_id = xy_os_mutex_new(NULL);
