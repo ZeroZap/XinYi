@@ -54,6 +54,16 @@ def main() -> int:
     errors: list[str] = []
     images = sorted(path.name for path in BOARD.glob("osal_freertos_*_main.c"))
 
+    # xy_hal_delay_* reprograms SysTick->CMP/CTLR, so calling it under an RTOS
+    # stops the kernel tick outright. OSAL images wait with xy_os_delay instead.
+    for name in images:
+        source = (BOARD / name).read_text(encoding="utf-8")
+        if re.search(r"\bxy_hal_delay_(ms|us)\b", source):
+            errors.append(
+                f"{name} calls xy_hal_delay_*, which reprograms the SysTick the kernel owns: "
+                "use xy_os_delay from an OSAL image"
+            )
+
     overlap = MIGRATED & DEFERRED
     if overlap:
         errors.append(f"files listed as both migrated and deferred: {sorted(overlap)}")
