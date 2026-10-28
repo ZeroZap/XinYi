@@ -1251,8 +1251,12 @@ add_executable(opench_ch32v307_osal_freertos_sdk_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_tim.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_sdk_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1335,8 +1339,12 @@ add_executable(opench_ch32v307_osal_freertos_isr_stress_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_tim.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_isr_stress_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1359,8 +1367,12 @@ add_executable(opench_ch32v307_osal_freertos_timer_flags_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_timer_flags_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1383,8 +1395,12 @@ add_executable(opench_ch32v307_osal_freertos_oneshot_timer_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_oneshot_timer_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1407,8 +1423,12 @@ add_executable(opench_ch32v307_osal_freertos_queue_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_queue_lifecycle_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1431,8 +1451,12 @@ add_executable(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1455,8 +1479,12 @@ add_executable(opench_ch32v307_osal_freertos_mutex_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_mutex_lifecycle_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1479,8 +1507,12 @@ add_executable(opench_ch32v307_osal_freertos_mempool_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_mempool_lifecycle_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1503,8 +1535,12 @@ add_executable(opench_ch32v307_osal_freertos_event_flags_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_event_flags_lifecycle_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
@@ -1527,8 +1563,12 @@ add_executable(opench_ch32v307_osal_freertos_thread_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
-    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c)
+    ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+)
 target_include_directories(opench_ch32v307_osal_freertos_thread_lifecycle_smoke PRIVATE
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/components/kernel/osal
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc

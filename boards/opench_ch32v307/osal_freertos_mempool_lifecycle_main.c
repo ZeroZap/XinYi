@@ -1,5 +1,11 @@
 #include "ch32v30x.h"
+#include "xy_hal_gpio.h"
+#include "xy_hal_uart.h"
 #include "xy_os.h"
+
+#include <stddef.h>
+
+#define UART_TIMEOUT_MS 1000U
 
 #ifndef XINYI_FIRMWARE_COMMIT
 #error "XINYI_FIRMWARE_COMMIT must identify the exact source commit"
@@ -8,34 +14,26 @@
 static uint32_t external_pool[12];
 
 static void uart_init(void) {
-    GPIO_InitTypeDef gpio = {0};
-    USART_InitTypeDef uart = {0};
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1, ENABLE);
-    gpio.GPIO_Pin = GPIO_Pin_9;
-    gpio.GPIO_Speed = GPIO_Speed_50MHz;
-    gpio.GPIO_Mode = GPIO_Mode_AF_PP;
-    GPIO_Init(GPIOA, &gpio);
-    gpio.GPIO_Pin = GPIO_Pin_10;
-    gpio.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_Init(GPIOA, &gpio);
-    uart.USART_BaudRate = 115200;
-    uart.USART_WordLength = USART_WordLength_8b;
-    uart.USART_StopBits = USART_StopBits_1;
-    uart.USART_Parity = USART_Parity_No;
-    uart.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    uart.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
-    USART_Init(USART1, &uart);
-    USART_Cmd(USART1, ENABLE);
+    const xy_hal_gpio_config_t tx = {XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_NONE,
+                                     XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_VERY_HIGH, 0U};
+    const xy_hal_gpio_config_t rx = {XY_HAL_GPIO_MODE_INPUT, XY_HAL_GPIO_PULL_NONE,
+                                     XY_HAL_GPIO_OTYPE_PP, XY_HAL_GPIO_SPEED_LOW, 0U};
+    const xy_hal_uart_config_t uart = {115200U,
+                                       XY_HAL_UART_WORDLEN_8B,
+                                       XY_HAL_UART_STOPBITS_1,
+                                       XY_HAL_UART_PARITY_NONE,
+                                       XY_HAL_UART_FLOWCTRL_NONE,
+                                       XY_HAL_UART_MODE_TX_RX};
+    (void)xy_hal_gpio_init(GPIOA, 9U, &tx);
+    (void)xy_hal_gpio_init(GPIOA, 10U, &rx);
+    (void)xy_hal_uart_init(USART1, &uart);
 }
 
 static void mark(const char* text) {
-    while (*text != '\0') {
-        while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET) {
-        }
-        USART_SendData(USART1, (uint8_t)*text++);
-    }
-    while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET) {
-    }
+    size_t length = 0U;
+    while (text[length] != '\0')
+        ++length;
+    (void)xy_hal_uart_send(USART1, (const uint8_t*)text, length, UART_TIMEOUT_MS);
 }
 
 static void monitor(void* argument) {

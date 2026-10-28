@@ -18,6 +18,11 @@ typedef struct {
     xy_os_thread_func_t func;
     void *argument;
     uint32_t stack_size;
+    /* What the caller asked for. The FreeRTOS priority is a lossy projection of
+       the wider xy_os_priority_t scale (55 steps onto configMAX_PRIORITIES-1), so
+       reporting the projected value back would not round-trip: NORMAL (24) lands
+       on 2 and reads back as 16. */
+    xy_os_priority_t priority;
     uint8_t active;
     char name[16];
 } freertos_thread_context_t;
@@ -99,20 +104,6 @@ static UBaseType_t xy_to_freertos_priority(xy_os_priority_t priority)
         (uint32_t)priority - (uint32_t)XY_OS_PRIORITY_IDLE;
 
     return (UBaseType_t)((offset * freertos_span) / xy_span);
-}
-
-static xy_os_priority_t freertos_to_xy_priority(UBaseType_t priority)
-{
-    const uint32_t freertos_span = (uint32_t)configMAX_PRIORITIES - 1U;
-    const uint32_t xy_span =
-        (uint32_t)XY_OS_PRIORITY_ISR - (uint32_t)XY_OS_PRIORITY_IDLE;
-
-    if ((uint32_t)priority > freertos_span) {
-        return XY_OS_PRIORITY_ERROR;
-    }
-
-    return (xy_os_priority_t)((uint32_t)XY_OS_PRIORITY_IDLE +
-                              (((uint32_t)priority * xy_span) / freertos_span));
 }
 
 static xy_os_status_t pdstatus_to_xy(BaseType_t status)
@@ -280,6 +271,7 @@ xy_os_thread_id_t xy_os_thread_new(xy_os_thread_func_t func, void *argument,
     context->func = func;
     context->argument = argument;
     context->stack_size = stack_size;
+    context->priority = attr ? attr->priority : XY_OS_PRIORITY_IDLE;
     strncpy(context->name, name, sizeof(context->name) - 1U);
     if (xTaskCreate(freertos_thread_entry, name, stack, context, prio, &handle) != pdPASS) {
         memset(context, 0, sizeof(*context));
@@ -357,14 +349,15 @@ xy_os_status_t xy_os_thread_set_priority(xy_os_thread_id_t thread_id,
     if (!h || !freertos_find_thread_context(h) || !freertos_priority_valid(priority))
         return XY_OS_ERROR_PARAMETER;
     vTaskPrioritySet(h, xy_to_freertos_priority(priority));
+    freertos_find_thread_context(h)->priority = priority;
     return XY_OS_OK;
 }
 
 xy_os_priority_t xy_os_thread_get_priority(xy_os_thread_id_t thread_id)
 {
-    TaskHandle_t h = (TaskHandle_t)thread_id;
-    return (h && freertos_find_thread_context(h)) ? freertos_to_xy_priority(uxTaskPriorityGet(h))
-             : XY_OS_PRIORITY_ERROR;
+    freertos_thread_context_t *context = freertos_find_thread_context((TaskHandle_t)thread_id);
+
+    return context ? context->priority : XY_OS_PRIORITY_ERROR;
 }
 
 xy_os_status_t xy_os_thread_yield(void)

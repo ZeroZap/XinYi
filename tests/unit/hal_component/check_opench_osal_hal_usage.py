@@ -22,11 +22,6 @@ ROOT = Path(__file__).resolve().parents[3]
 BOARD = ROOT / "boards/opench_ch32v307"
 
 MIGRATED = {
-    "osal_freertos_primitives_main.c",
-    "osal_freertos_stall_probe_main.c",
-}
-
-DEFERRED = {
     "osal_freertos_sdk_main.c",
     "osal_freertos_isr_stress_main.c",
     "osal_freertos_timer_flags_main.c",
@@ -37,16 +32,39 @@ DEFERRED = {
     "osal_freertos_mempool_lifecycle_main.c",
     "osal_freertos_event_flags_lifecycle_main.c",
     "osal_freertos_thread_lifecycle_main.c",
+    "osal_freertos_primitives_main.c",
+    "osal_freertos_stall_probe_main.c",
 }
 
+# The backlog is empty: every OSAL board image drives USART1 through the HAL now.
+# Keep the set so a future image can be parked here with a reason instead of
+# quietly bypassing the HAL.
+DEFERRED: set[str] = set()
+
+# UART and GPIO on the marker path must go through the HAL in every image.
 VENDOR_PATTERNS = (
-    r"\bRCC_APB[12]PeriphClockCmd\b",
     r"\bGPIO_Init\b",
     r"\bUSART_Init\b",
     r"\bUSART_Cmd\b",
     r"\bUSART_SendData\b",
     r"\bUSART_GetFlagStatus\b",
     r"\bUSART_ReceiveData\b",
+)
+
+# TIM2 plus its NVIC line is the ISR stimulus for the stress images. xy_hal_timer
+# does not expose an ISR wiring path yet, so these two keep vendor setup and are
+# the explicit startup/clock/IRQ boundary the rules allow. Every other image must
+# stay off it, and an entry here has to still show real timer setup so the
+# allowance cannot rot into a stale exception.
+TIMER_BOUNDARY = {
+    "osal_freertos_sdk_main.c": "TIM2 update ISR drives the tick-source stress",
+    "osal_freertos_isr_stress_main.c": "TIM2 update ISR generates the IRQ storm",
+}
+TIMER_PATTERNS = (
+    r"\bRCC_APB[12]PeriphClockCmd\b",
+    r"\bTIM_TimeBaseInit\b",
+    r"\bTIM_ITConfig\b",
+    r"\bNVIC_Init\b",
 )
 
 
@@ -89,16 +107,35 @@ def main() -> int:
             errors.append(f"{name} must write markers through xy_hal_uart_send")
         if "xy_hal_gpio_init(" not in source:
             errors.append(f"{name} must configure PA9/PA10 through xy_hal_gpio_init")
-        if "EVENT_FLAGS_ERROR" not in source:
+        if "xy_os_event_flags_wait(" in source and "EVENT_FLAGS_ERROR" not in source:
             errors.append(
-                f"{name} must assert event-flag timeouts against the 0x80000000 sentinel "
-                "xy_os_event_flags_wait returns, not against 0"
+                f"{name} waits on event flags but never names the 0x80000000 sentinel "
+                "xy_os_event_flags_wait returns, so a timeout assertion cannot be correct"
             )
         for pattern in VENDOR_PATTERNS:
             if re.search(pattern, source):
                 errors.append(
                     f"{name} still calls vendor {pattern} outside a platform backend"
                 )
+        if name not in TIMER_BOUNDARY:
+            for pattern in TIMER_PATTERNS:
+                if re.search(pattern, source):
+                    errors.append(
+                        f"{name} configures a timer/IRQ itself ({pattern}) without being listed "
+                        "in TIMER_BOUNDARY with a reason"
+                    )
+
+    for name, reason in sorted(TIMER_BOUNDARY.items()):
+        path = BOARD / name
+        if not path.is_file():
+            errors.append(f"timer-boundary image is missing: {name}")
+            continue
+        source = path.read_text(encoding="utf-8")
+        if "TIM_TimeBaseInit(" not in source:
+            errors.append(
+                f"{name} no longer sets up TIM2 itself, so its TIMER_BOUNDARY entry "
+                f"({reason}) is stale"
+            )
 
     for name in sorted(DEFERRED):
         path = BOARD / name
