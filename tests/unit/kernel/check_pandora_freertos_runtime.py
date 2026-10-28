@@ -101,6 +101,10 @@ def main() -> int:
             # exactly that status and keep the queue as the authority instead of halting.
             "semaphore_release_hint",
             "os_semaphore_redundant_releases",
+            # Two tasks sharing one attribute meant a halt named "osal-isr" could not say
+            # which of them overflowed; each ISR-side task owns its own stack and name.
+            "ipc_isr_attr",
+            '"osal-ipc-isr"',
             "xy_hal_sys_enter_pwr_mode",
             "xy_hal_sys_exit_pwr_mode",
             "OSAL_IPC_SEND",

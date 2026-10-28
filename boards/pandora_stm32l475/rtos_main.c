@@ -1394,7 +1394,18 @@ int main(void)
     };
     static const xy_os_thread_attr_t isr_attr = {
         .name = "osal-isr",
-        .stack_size = 512U,
+        /* 512 B leaves no room for the acquire frame plus the marker write; the
+           overflow hook reported this task name after the chain reached the IPC ISR
+           stress phase. */
+        .stack_size = 1024U,
+        .priority = XY_OS_PRIORITY_ABOVE_NORMAL,
+    };
+    static const xy_os_thread_attr_t ipc_isr_attr = {
+        /* Its own attribute: both ISR-side tasks used to share isr_attr, so a halt named
+           "osal-isr" could not say which of the two overflowed. This one reaches
+           xy_broker_send_msg and xy_os_msgqueue_put. */
+        .name = "osal-ipc-isr",
+        .stack_size = 1536U,
         .priority = XY_OS_PRIORITY_ABOVE_NORMAL,
     };
     static const xy_os_thread_attr_t resource_attr = {
@@ -1489,7 +1500,7 @@ int main(void)
         xy_os_thread_new(fast_task, NULL, &fast_attr) == NULL ||
         xy_os_thread_new(slow_task, NULL, &slow_attr) == NULL ||
         xy_os_thread_new(isr_task, NULL, &isr_attr) == NULL ||
-        xy_os_thread_new(ipc_isr_task, NULL, &isr_attr) == NULL ||
+        xy_os_thread_new(ipc_isr_task, NULL, &ipc_isr_attr) == NULL ||
         xy_os_thread_new(tim6_irq_task, NULL, &tim6_attr) == NULL ||
         xy_os_thread_new(resource_task, NULL, &resource_attr) == NULL ||
         xy_os_thread_new(dma_task, NULL, &dma_attr) == NULL ||
