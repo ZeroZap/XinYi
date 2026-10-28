@@ -33,7 +33,6 @@ GUARD = "STM32_HAL_ENABLED"
 # migration work; growing it requires an explicit decision, so an unexpected
 # addition fails here instead of silently reducing the built surface.
 EXPECTED_F4_DEFERRED = {
-    "xy_hal_i2c.c",
     "xy_hal_rtc.c",
     "xy_hal_spi.c",
     "xy_hal_timer.c",

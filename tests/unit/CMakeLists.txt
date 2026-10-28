@@ -95,6 +95,10 @@ add_test(NAME stm32f4_uart_wrapper_contract
     COMMAND python3 ${UNIT_HAL}/check_stm32f4_uart_wrapper_contract.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME stm32f4_i2c_wrapper_contract
+    COMMAND python3 ${UNIT_HAL}/check_stm32f4_i2c_wrapper_contract.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_st7789_board
     COMMAND python3 ${UNIT_DISPLAY}/check_pandora_st7789_board.py
     WORKING_DIRECTORY ${ROOT}
