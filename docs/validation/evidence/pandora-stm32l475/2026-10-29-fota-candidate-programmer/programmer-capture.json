@@ -1,0 +1,27 @@
+{
+  "baudrate": 115200,
+  "candidate_source_commit": "800154be2a56187fc7e53405c5e453747e9013e6",
+  "capture_bytes": 211,
+  "capture_file": "/home/eugene/.hermes/cache/scratch/s6-140/programmer-uart.log",
+  "capture_sha256": "a5673302e9ffe9cb3b0d9ba9c431ea3b91ab4bb923c543aae526de63311198cf",
+  "captured_at_utc": "2026-10-28T16:14:10.430998+00:00",
+  "complete_frames": 1,
+  "device": "/dev/ttyUSB0",
+  "error_markers": [],
+  "failures": [],
+  "firmware_commit": "800154be2a56187fc7e53405c5e453747e9013e6",
+  "foreign_line_sample": [],
+  "foreign_lines": 0,
+  "format": "8-N-1",
+  "frame_count": 1,
+  "not_evidence_for": [
+    "the resident bootloader installing or confirming the candidate",
+    "W25Q128 erase/program endurance or power-loss behaviour",
+    "that the programmed candidate executes"
+  ],
+  "partial_frames": 0,
+  "scope": "W25Q128 candidate programmer marker stream: envelope identity plus the per-chunk read-back verification marker",
+  "status": "PROGRAMMER_CAPTURE_REVIEW_CANDIDATE",
+  "timeout_seconds": 30.0,
+  "verified_markers": 1
+}

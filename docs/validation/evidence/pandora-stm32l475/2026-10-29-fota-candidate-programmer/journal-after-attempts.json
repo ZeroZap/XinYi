@@ -1,0 +1,52 @@
+{
+  "active": {
+    "blank": false,
+    "boot_attempts": 3,
+    "generation": 5,
+    "image_crc32": "0x33dd51a0",
+    "image_size": 42576,
+    "image_version": 2,
+    "magic": "0x58424a52",
+    "present": true,
+    "record_crc32_ok": true,
+    "state": "ROLLED_BACK",
+    "state_value": 4,
+    "valid": true
+  },
+  "active_slot": 0,
+  "dump_bytes": 4096,
+  "dump_sha256": "116107193878214b999fd37035ddfe2396cbbfa3a19587d49a63dcef32fcefe4",
+  "failures": [],
+  "slot_size": 2048,
+  "slots": [
+    {
+      "blank": false,
+      "boot_attempts": 3,
+      "generation": 5,
+      "image_crc32": "0x33dd51a0",
+      "image_size": 42576,
+      "image_version": 2,
+      "magic": "0x58424a52",
+      "present": true,
+      "record_crc32_ok": true,
+      "state": "ROLLED_BACK",
+      "state_value": 4,
+      "valid": true
+    },
+    {
+      "blank": false,
+      "boot_attempts": 2,
+      "generation": 4,
+      "image_crc32": "0x33dd51a0",
+      "image_size": 42576,
+      "image_version": 2,
+      "magic": "0x58424a52",
+      "present": true,
+      "record_crc32_ok": true,
+      "state": "INSTALLED",
+      "state_value": 2,
+      "valid": true
+    }
+  ],
+  "status": "JOURNAL_VALID"
+}

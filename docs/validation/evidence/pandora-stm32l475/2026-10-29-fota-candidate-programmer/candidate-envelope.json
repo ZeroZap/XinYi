@@ -1,0 +1,15 @@
+{
+  "candidate_sha256": "7b0098cc3297472a032c1eebd3bd53440f3255bbeea517bf88b9ac08267caff0",
+  "candidate_size": 42608,
+  "format_version": 1,
+  "header_size": 32,
+  "image_crc32": "0x33dd51a0",
+  "image_offset": 32,
+  "image_size": 42576,
+  "image_version": 2,
+  "initial_sp": "0x20018000",
+  "load_address": "0x08008000",
+  "reset_handler": "0x0800c375",
+  "source_commit": "800154be2a56187fc7e53405c5e453747e9013e6",
+  "status": "PANDORA_FOTA_CANDIDATE_VALID"
+}

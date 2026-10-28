@@ -1,0 +1,53 @@
+{
+  "application_line_sample": [
+    "PANDORA STM32L475VE XINYI OSAL FREERTOS READY",
+    "FIRMWARE_COMMIT 800154be2a56187fc7e53405c5e453747e9013e6",
+    "OSAL_STRESS_READY"
+  ],
+  "application_lines": 18,
+  "attempt_markers": 1,
+  "baudrate": 115200,
+  "boot_count": 2,
+  "capture_bytes": 654,
+  "capture_sha256": "ed1f0edb88fcb9e12f22f14bde9d00e0017bbe6cebf42154423167b01f85af1d",
+  "captured_at_utc": "2026-10-28T16:20:26.713743+00:00",
+  "chain": "INVALID",
+  "confirm_markers": 0,
+  "device": "/dev/ttyUSB0",
+  "expect": "confirm",
+  "expect_matched": false,
+  "failures": [
+    "boot frame 1: no decision marker",
+    "chain does not match the expected outcome 'confirm'"
+  ],
+  "firmware_commit": "800154be2a56187fc7e53405c5e453747e9013e6",
+  "format": "8-N-1",
+  "frames": [
+    {
+      "decision": "PANDORA_BOOT_ATTEMPT_COMMITTED",
+      "install": "PANDORA_BOOT_CANDIDATE_INSTALLED",
+      "jump": true,
+      "restage": false
+    },
+    {
+      "decision": null,
+      "install": null,
+      "jump": false,
+      "restage": false
+    }
+  ],
+  "install_markers": [
+    "PANDORA_BOOT_CANDIDATE_INSTALLED",
+    null
+  ],
+  "not_evidence_for": [
+    "power-loss or brownout behaviour",
+    "journal flash endurance",
+    "runtime behaviour of the application the bootloader jumps into",
+    "cryptographic or signature-based FOTA"
+  ],
+  "scope": "resident bootloader decision sequence as printed over UART: candidate install step, confirm/attempt/rollback decision, and vector handoff marker",
+  "status": "BOOTLOADER_CHAIN_VALIDATION_FAILED",
+  "terminal": "none",
+  "timeout_seconds": 330.0
+}

@@ -1,0 +1,34 @@
+{
+  "application_line_sample": [],
+  "application_lines": 0,
+  "attempt_markers": 0,
+  "boot_count": 1,
+  "capture_bytes": 165,
+  "capture_sha256": "a7c8e17c1e479a54300c1519ce5d1a19c7c9c779b2327fff2094552d2ceeadb9",
+  "chain": "ROLLBACK",
+  "confirm_markers": 0,
+  "expect": "rollback",
+  "expect_matched": true,
+  "failures": [],
+  "firmware_commit": "800154be2a56187fc7e53405c5e453747e9013e6",
+  "frames": [
+    {
+      "decision": "PANDORA_BOOT_ROLLBACK_REQUIRED",
+      "install": "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED",
+      "jump": false,
+      "restage": false
+    }
+  ],
+  "install_markers": [
+    "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED"
+  ],
+  "not_evidence_for": [
+    "power-loss or brownout behaviour",
+    "journal flash endurance",
+    "runtime behaviour of the application the bootloader jumps into",
+    "cryptographic or signature-based FOTA"
+  ],
+  "scope": "resident bootloader decision sequence as printed over UART: candidate install step, confirm/attempt/rollback decision, and vector handoff marker",
+  "status": "BOOTLOADER_CHAIN_REVIEW_CANDIDATE",
+  "terminal": "halt_rollback"
+}

@@ -155,6 +155,10 @@ add_test(NAME pandora_fota_bootloader_capture_validator
     COMMAND python3 ${UNIT_FOTA}/test_pandora_fota_bootloader_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_fota_candidate_programmer_capture_validator
+    COMMAND python3 ${UNIT_FOTA}/test_pandora_fota_candidate_programmer_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_fota_candidate_tool
     COMMAND python3 ${UNIT_FOTA}/test_pandora_fota_candidate_tool.py
     WORKING_DIRECTORY ${ROOT}
