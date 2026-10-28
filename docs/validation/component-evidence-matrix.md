@@ -1,5 +1,29 @@
 # XinYi 组件证据台账
 
+### 2026-10-29 WCH HAL 闭环三件：时基可替换、延时不再掐死调度器、Timer 接管 NVIC
+
+- **证据等级**：实板运行时（openCH CH32V307，WCH-Link）。三条都有 RED→GREEN 对照，
+  不是"跑通一次"。
+- **时基**：`xy_hal_tick_ms_internal()` 先查 `xy_hal_tick_registered_source`，没有才走
+  SysTick 推导；FreeRTOS 后端在 `xy_os_kernel_start()` 装 `xTaskGetTickCount() *
+  portTICK_PERIOD_MS`。判据用物理量锚定：256 字节 @115200 8N1 = 22.2 ms 导线时间，
+  实板 `xy_probe_uart_burst_ms = 0x16 = 22 ms`；移除绑定后同一镜像读 **0 ms**、
+  `stage` 停在 11 之前。证明的是"与导线一致"，**不是**示波器级绝对校准。
+- **延时**：默认 `xy_hal_delay_us/ms` 会改写 `SysTick->CMP`/`CTLR` 并在结束时 `CTLR &= ~1U`
+  关闭计数器，RTOS 下等于停掉调度 tick；守卫此前只禁止调用、未记录原因。内核改装的慢源
+  在调度器运行时 `vTaskDelay`，未启动时有界自旋（`configCPU_CLOCK_HZ` 标定，不碰 SysTick）。
+  实板：绑定前 `HAL_DELAY_ERROR_A`、**tick 停止推进**、镜像卡在第 5 步（后续
+  `xy_os_msgqueue_get` 永不超时）；绑定后 6 步、`failed=0`、走到 `TIMEOUT_OK`。
+- **Timer/NVIC**：`xy_hal_timer_enable_irq()` 此前只开外设中断，**从不碰 NVIC**，这正是
+  `sdk`/`isr_stress` 必须写厂商 `TIM2+NVIC` 的真实原因（此前的例外理由不完整）。现按
+  `xy_hal_exti.c` 约定由 wrapper 接管 NVIC（优先级 1/0）。迁移后守卫 `TIMER_BOUNDARY`
+  清空，12 个镜像零厂商调用；实板 3 轮行为与迁移前逐项一致。
+- **未覆盖 / 边界**：STM32 侧时基只到链接级（`HAL_GetTick` 由 `xy_hal_time.c.obj` 提供、
+  ST 弱定义被丢弃），**无运行时证据**；U5 无 `xy_hal_sys_get_tick_count()`；I2S/DMA
+  仍缺失；SPI/I2S/DMA 无实板取证；自旋标定 `/8` 为经验值未验证；NVIC 优先级在 HAL 内固定
+  为 1/0，无 API 可调。
+
+
 ### 2026-10-28 Pandora AHT10 canonical owner + board runtime (B1)
 
 - U7 AHT10 was the last onboard sensor without a canonical Device owner. `main.c` drove it inline: an
