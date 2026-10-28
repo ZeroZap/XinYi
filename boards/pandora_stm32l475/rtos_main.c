@@ -792,25 +792,53 @@ static void resource_task(void *argument)
     }
     uart_text("OSAL_BLOCKING_TIMEOUT_OK\r\n");
 
+    /* Keep the re-allocated block. Discarding the pointer leaked a pool slot, and the
+       delete below then failed for a reason no marker could name. */
     if (xy_os_mempool_free(pool, block0) != XY_OS_OK ||
-        xy_os_mempool_alloc(pool, XY_OS_NO_WAIT) == NULL ||
+        (block0 = xy_os_mempool_alloc(pool, XY_OS_NO_WAIT)) == NULL ||
         xy_os_msgqueue_get(queue, &received, NULL, XY_OS_NO_WAIT) != XY_OS_OK ||
         received != sequence ||
         xy_os_msgqueue_put(queue, &sequence, 0U, XY_OS_NO_WAIT) != XY_OS_OK) {
-        uart_text("OSAL_RESOURCE_ERROR\r\n");
+        uart_text("OSAL_RESOURCE_RECOVER_ERROR\r\n");
         fail();
     }
     uart_text("OSAL_RESOURCE_RECOVERED\r\n");
 
-    if (xy_os_msgqueue_delete(queue) != XY_OS_OK || xy_os_mempool_delete(pool) != XY_OS_OK) {
-        uart_text("OSAL_RESOURCE_ERROR\r\n");
+    /* The FreeRTOS backend refuses to delete a pool that still has blocks checked out
+       (free_count != capacity) instead of freeing them behind the caller's back, while the
+       baremetal backend deletes unconditionally. Assert the fail-closed guard, then release
+       both blocks and delete for real. */
+    if (xy_os_mempool_delete(pool) != XY_OS_ERROR_RESOURCE) {
+        uart_text("OSAL_MEMPOOL_DELETE_GUARD_ERROR\r\n");
         fail();
     }
+    if (xy_os_msgqueue_delete(queue) != XY_OS_OK) {
+        uart_text("OSAL_QUEUE_DELETE_ERROR\r\n");
+        fail();
+    }
+    if (xy_os_mempool_free(pool, block0) != XY_OS_OK ||
+        xy_os_mempool_free(pool, block1) != XY_OS_OK) {
+        uart_text("OSAL_MEMPOOL_FREE_ERROR\r\n");
+        fail();
+    }
+    if (xy_os_mempool_delete(pool) != XY_OS_OK) {
+        uart_text("OSAL_MEMPOOL_DELETE_ERROR\r\n");
+        fail();
+    }
+    uart_text("OSAL_RESOURCE_DELETED\r\n");
+
     pool = xy_os_mempool_new(2U, sizeof(uint32_t), &pool_attr);
     queue = xy_os_msgqueue_new(1U, sizeof(sequence), NULL);
-    if (pool == NULL || queue == NULL || xy_os_mempool_delete(pool) != XY_OS_OK ||
-        xy_os_msgqueue_delete(queue) != XY_OS_OK) {
-        uart_text("OSAL_RESOURCE_ERROR\r\n");
+    if (pool == NULL || queue == NULL) {
+        uart_text("OSAL_LIFECYCLE_REINIT_ERROR\r\n");
+        fail();
+    }
+    if (xy_os_mempool_delete(pool) != XY_OS_OK) {
+        uart_text("OSAL_MEMPOOL_REINIT_DELETE_ERROR\r\n");
+        fail();
+    }
+    if (xy_os_msgqueue_delete(queue) != XY_OS_OK) {
+        uart_text("OSAL_QUEUE_REINIT_DELETE_ERROR\r\n");
         fail();
     }
     uart_text("OSAL_LIFECYCLE_REINIT\r\n");
