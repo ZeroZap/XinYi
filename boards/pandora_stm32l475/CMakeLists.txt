@@ -366,6 +366,7 @@ if(OSAL_BACKEND STREQUAL "freertos")
         "Validated candidate envelope to embed in the one-shot W25Q128 programmer")
     add_executable(pandora_stm32l475_fota_bootloader
         fota_bootloader_main.c
+        pandora_fota_boot_flow.c
         pandora_fota_flash.c
         pandora_fota_install_flash.c
         ${CMAKE_SOURCE_DIR}/components/hal/stm32/stm32l4/xy_hal_flash.c

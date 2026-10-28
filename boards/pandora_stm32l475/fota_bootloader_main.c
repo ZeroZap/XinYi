@@ -1,3 +1,4 @@
+#include "pandora_fota_boot_flow.h"
 #include "pandora_fota_flash.h"
 #include "pandora_fota_install_flash.h"
 
@@ -19,10 +20,6 @@
 
 #define W25Q128_FOTA_IMAGE_ADDRESS 0x00F00000U
 #define W25Q128_FOTA_IMAGE_SIZE 0x00080000U
-#define PANDORA_FOTA_CONFIRM_REQUEST_MAGIC 0x46525132U
-#define PANDORA_FOTA_CONFIRM_ACK_MAGIC 0x46414332U
-#define PANDORA_FOTA_MAX_ATTEMPTS 3U
-#define PANDORA_FOTA_RESTAGE_DONE_MAGIC 0x52535444U
 
 #ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
 #ifndef PANDORA_FOTA_RESTAGE_SOURCE_COMMIT
@@ -34,6 +31,19 @@ static UART_HandleTypeDef uart1;
 static QSPI_HandleTypeDef qspi;
 static xy_w25q128_t w25q128;
 static const uint32_t* const app_vectors = (const uint32_t*)PANDORA_FOTA_APP_BASE;
+static const xy_fota_boot_install_ops_t* install_ops;
+static xy_fota_boot_journal_config_t journal_config;
+static xy_fota_boot_candidate_header_t candidate_header;
+static xy_fota_boot_candidate_config_t candidate_config = {
+    .storage_address = W25Q128_FOTA_IMAGE_ADDRESS,
+    .storage_size = W25Q128_FOTA_IMAGE_SIZE,
+    .execution_base = PANDORA_FOTA_APP_BASE,
+    .execution_limit = PANDORA_FOTA_EXECUTION_LIMIT,
+    .sram_base = 0x20000000U,
+    .sram_limit = 0x20018000U,
+    .sram2_base = 0x10000000U,
+    .sram2_limit = 0x10008000U,
+};
 
 static const xy_hal_qspi_config_t qspi_config = {
     .clock_prescaler = 3U,
@@ -145,22 +155,99 @@ static void jump_to_application(void) {
     stop();
 }
 
+static void boot_mark(const char* marker) {
+    uart_text(marker);
+}
+
+static int boot_rtc_backup_read(uint8_t slot, uint32_t* value) {
+    return xy_hal_rtc_backup_read(slot, value) == XY_HAL_OK ? 0 : -1;
+}
+
+static int boot_rtc_backup_write(uint8_t slot, uint32_t value) {
+    return xy_hal_rtc_backup_write(slot, value) == XY_HAL_OK ? 0 : -1;
+}
+
+static int boot_candidate_valid(void) {
+    return xy_fota_boot_candidate_validate(&candidate_config, &candidate_header) == XY_FOTA_OK;
+}
+
+static int boot_application_vectors_valid(void) {
+    return pandora_fota_application_vectors_valid() != 0;
+}
+
+static int boot_install_once(int* installed) {
+    return xy_fota_boot_candidate_install_once(&candidate_config, install_ops, &journal_config,
+                                               installed) == XY_FOTA_OK
+               ? 0
+               : -1;
+}
+
+static int boot_confirm(void) {
+    return xy_fota_boot_candidate_confirm(&candidate_config, install_ops, &journal_config) ==
+                   XY_FOTA_OK
+               ? 0
+               : -1;
+}
+
+static int boot_record_attempt(int* rollback_required) {
+    return xy_fota_boot_candidate_record_attempt(&candidate_config, install_ops, &journal_config,
+                                                 PANDORA_FOTA_FLOW_MAX_ATTEMPTS,
+                                                 rollback_required) == XY_FOTA_OK
+               ? 0
+               : -1;
+}
+
+#ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
+static int boot_authorize_restage(void) {
+    xy_fota_boot_reviewed_restage_authorization_t authorization = {
+        .candidate =
+            {
+                .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
+                .format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION,
+                .size = sizeof(xy_fota_boot_restage_authorization_t),
+                .image_version = candidate_header.image_version,
+                .image_size = candidate_header.image_size,
+                .image_crc32 = candidate_header.image_crc32,
+            },
+    };
+    uint32_t expected_source_commit[5];
+
+    for (uint32_t index = 0U; index < 5U; ++index) {
+        if (!parse_hex_word(PANDORA_FOTA_RESTAGE_SOURCE_COMMIT + index * 8U,
+                            &expected_source_commit[index])) {
+            uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR\r\n");
+            return -1;
+        }
+        authorization.source_commit[index] = expected_source_commit[index];
+    }
+    if (xy_fota_boot_candidate_authorize_reviewed_restage(&candidate_config, install_ops,
+                                                          &journal_config, &authorization,
+                                                          expected_source_commit) != XY_FOTA_OK) {
+        uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR\r\n");
+        return -1;
+    }
+    return 0;
+}
+#endif
+
+static const pandora_fota_boot_flow_ops_t boot_flow_ops = {
+    .rtc_backup_read = boot_rtc_backup_read,
+    .rtc_backup_write = boot_rtc_backup_write,
+    .candidate_valid = boot_candidate_valid,
+    .application_vectors_valid = boot_application_vectors_valid,
+    .install_once = boot_install_once,
+    .confirm = boot_confirm,
+    .record_attempt = boot_record_attempt,
+#ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
+    .authorize_restage = boot_authorize_restage,
+#endif
+    .mark = boot_mark,
+};
+
 int main(void) {
     const xy_fota_flash_ops_t* candidate_ops;
-    xy_fota_boot_candidate_header_t header;
-    xy_fota_boot_journal_config_t journal = pandora_fota_boot_journal_config();
-    int installed = 0;
-    xy_fota_boot_candidate_config_t candidate = {
-        .storage_address = W25Q128_FOTA_IMAGE_ADDRESS,
-        .storage_size = W25Q128_FOTA_IMAGE_SIZE,
-        .execution_base = PANDORA_FOTA_APP_BASE,
-        .execution_limit = PANDORA_FOTA_EXECUTION_LIMIT,
-        .sram_base = 0x20000000U,
-        .sram_limit = 0x20018000U,
-        .sram2_base = 0x10000000U,
-        .sram2_limit = 0x10008000U,
-    };
 
+    journal_config = pandora_fota_boot_journal_config();
     SCB->VTOR = 0x08000000U;
     if (xy_hal_sys_init() != XY_HAL_OK) {
         stop();
@@ -179,86 +266,9 @@ int main(void) {
         uart_text("PANDORA_BOOT_INIT_ERROR\r\n");
         stop();
     }
-    candidate.read = candidate_ops->read;
-    if (xy_fota_boot_candidate_validate(&candidate, &header) == XY_FOTA_OK) {
-#ifdef PANDORA_FOTA_AUTHORIZE_RESTAGE
-        uint32_t restage_backup_value = 0U;
-        if (xy_hal_rtc_backup_read(2U, &restage_backup_value) != XY_HAL_OK) {
-            stop();
-        }
-        if (restage_backup_value != PANDORA_FOTA_RESTAGE_DONE_MAGIC) {
-            xy_fota_boot_reviewed_restage_authorization_t authorization = {
-                .candidate =
-                    {
-                        .magic = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_MAGIC,
-                        .format_version = XY_FOTA_BOOT_RESTAGE_AUTHORIZATION_VERSION,
-                        .size = sizeof(xy_fota_boot_restage_authorization_t),
-                        .image_version = header.image_version,
-                        .image_size = header.image_size,
-                        .image_crc32 = header.image_crc32,
-                    },
-            };
-            uint32_t expected_source_commit[5];
-
-            for (uint32_t index = 0U; index < 5U; ++index) {
-                if (!parse_hex_word(PANDORA_FOTA_RESTAGE_SOURCE_COMMIT + index * 8U,
-                                    &expected_source_commit[index])) {
-                    uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR\r\n");
-                    stop();
-                }
-                authorization.source_commit[index] = expected_source_commit[index];
-            }
-
-            if (xy_fota_boot_candidate_authorize_reviewed_restage(
-                    &candidate, pandora_fota_install_ops(), &journal, &authorization,
-                    expected_source_commit) != XY_FOTA_OK) {
-                uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZATION_ERROR\r\n");
-                stop();
-            }
-            if (xy_hal_rtc_backup_write(2U, PANDORA_FOTA_RESTAGE_DONE_MAGIC) != XY_HAL_OK) {
-                stop();
-            }
-            uart_text("PANDORA_BOOT_RESTAGE_AUTHORIZED\r\n");
-        }
-#endif
-        if (xy_fota_boot_candidate_install_once(&candidate, pandora_fota_install_ops(), &journal,
-                                                &installed) != XY_FOTA_OK) {
-            uart_text("PANDORA_BOOT_INSTALL_ERROR\r\n");
-            stop();
-        }
-        uart_text(installed ? "PANDORA_BOOT_CANDIDATE_INSTALLED\r\n"
-                            : "PANDORA_BOOT_CANDIDATE_ALREADY_INSTALLED\r\n");
-        uint32_t backup_value = 0U;
-        if (xy_hal_rtc_backup_read(1U, &backup_value) != XY_HAL_OK) {
-            stop();
-        }
-        if (backup_value == PANDORA_FOTA_CONFIRM_REQUEST_MAGIC) {
-            if (xy_fota_boot_candidate_confirm(&candidate, pandora_fota_install_ops(), &journal) !=
-                XY_FOTA_OK) {
-                uart_text("PANDORA_BOOT_CONFIRM_ERROR\r\n");
-                stop();
-            }
-            if (xy_hal_rtc_backup_write(1U, PANDORA_FOTA_CONFIRM_ACK_MAGIC) != XY_HAL_OK) {
-                stop();
-            }
-            uart_text("PANDORA_BOOT_CANDIDATE_CONFIRMED\r\n");
-        } else {
-            int rollback_required = 0;
-
-            if (xy_fota_boot_candidate_record_attempt(&candidate, pandora_fota_install_ops(),
-                                                      &journal, PANDORA_FOTA_MAX_ATTEMPTS,
-                                                      &rollback_required) != XY_FOTA_OK) {
-                uart_text("PANDORA_BOOT_ATTEMPT_ERROR\r\n");
-                stop();
-            }
-            if (rollback_required) {
-                uart_text("PANDORA_BOOT_ROLLBACK_REQUIRED\r\n");
-                stop();
-            }
-            uart_text("PANDORA_BOOT_ATTEMPT_COMMITTED\r\n");
-        }
-    } else if (!pandora_fota_application_vectors_valid()) {
-        uart_text("PANDORA_BOOT_NO_VALID_IMAGE\r\n");
+    candidate_config.read = candidate_ops->read;
+    install_ops = pandora_fota_install_ops();
+    if (pandora_fota_boot_flow_run(&boot_flow_ops) == PANDORA_FOTA_BOOT_OUTCOME_HALT) {
         stop();
     }
     jump_to_application();

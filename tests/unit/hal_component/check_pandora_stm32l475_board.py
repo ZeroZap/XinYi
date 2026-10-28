@@ -172,6 +172,14 @@ def main() -> None:
         "pandora_fota_application_vectors_check",
     )
     require(
+        BOARD / "pandora_fota_boot_flow.c",
+        "pandora_fota_boot_flow_run",
+        "PANDORA_FOTA_RTC_SLOT_CONFIRM",
+        "PANDORA_FOTA_RTC_SLOT_RESTAGE",
+        "PANDORA_FOTA_CONFIRM_REQUEST_MAGIC",
+        "PANDORA_BOOT_ROLLBACK_REQUIRED",
+    )
+    require(
         ROOT / "components" / "hal" / "stm32" / "stm32l4" / "xy_hal_flash.c",
         "xy_hal_flash_init",
         "xy_hal_flash_write",

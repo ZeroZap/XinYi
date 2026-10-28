@@ -2151,6 +2151,15 @@ target_include_directories(test_pandora_fota_flash PRIVATE
     ${HAL}/inc
 )
 
+# --- Test 33d2: Pandora resident-bootloader decision sequence ---
+xy_add_unit_test(test_pandora_fota_boot_flow pandora_fota_boot_flow UNITY
+    ${UNIT_FOTA}/test_pandora_fota_boot_flow.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_fota_boot_flow.c
+)
+target_include_directories(test_pandora_fota_boot_flow PRIVATE
+    ${ROOT}/boards/pandora_stm32l475
+)
+
 # --- Test 33e: Pandora board-owned I2C transports (software I2C + hardware I2C3) ---
 xy_add_unit_test(test_pandora_i2c_owners pandora_i2c_owners UNITY
     ${UNIT_HAL}/test_pandora_i2c_owners.c

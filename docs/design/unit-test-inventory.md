@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 199
-- Unity-style files: 196
+- Total C files under `tests/unit`: 200
+- Unity-style files: 197
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 3
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 294 (measured: `ctest -N` reports 294)
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 297 (measured: `ctest -N` reports 297)
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -34,7 +34,7 @@
 | `device` | 6 | 6 | 0 | 0 | 0 | 4 |
 | `display` | 5 | 5 | 0 | 0 | 0 | 2 |
 | `dm` | 6 | 6 | 0 | 0 | 0 | 2 |
-| `fota` | 7 | 7 | 0 | 0 | 0 | 3 |
+| `fota` | 8 | 8 | 0 | 0 | 0 | 3 |
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `fuel_gauge` | 6 | 6 | 0 | 0 | 0 | 6 |
 | `gui` | 7 | 7 | 0 | 0 | 0 | 1 |
@@ -54,7 +54,8 @@
 > Note: the summary above is measured from the tree; the per-component breakdown is a legacy
 > snapshot that has not been regenerated in lockstep (several rows, e.g. `sensor`, `gui`, `net`,
 > undercount the current files). Only the `fota` row was resynchronized in the slice that added
-> `test_pandora_fota_flash`, and the `hal_component` row in the slices that added
+> `test_pandora_fota_flash`, the `fota` row again for `test_pandora_fota_boot_flow`, and the
+> `hal_component` row in the slices that added
 > `test_pandora_i2c_owners`, `test_pandora_platform_startup`, `test_pandora_device_stack`,
 > `test_pandora_hw_i2c_stack` and `test_pandora_sensor_owners`.
 > The summary counts above were re-measured from the tree in the `test_pandora_sensor_owners`
@@ -116,6 +117,7 @@ guard API drift in those examples/skeletons.
 | `tests/unit/dm/test_dm_nvm_core.c` | `unity` | 0 |
 | `tests/unit/dm/test_dm_tlv.c` | `unity` | 0 |
 | `tests/unit/fota/test_fota_core.c` | `unity` | 15 |
+| `tests/unit/fota/test_pandora_fota_boot_flow.c` | `unity` | 17 | Pandora resident-bootloader decision sequence (`pandora_fota_boot_flow.c`) with every board operation faked: pins the order candidate-validate -> reviewed-restage -> install-once -> confirm-request/ack or record-attempt -> jump, including the confirm path never recording an attempt and the attempt path never confirming, plus fail-closed short circuits (`NO_VALID_IMAGE`, install/attempt/confirm errors, RTC backup read/write failures, exhausted attempts -> `ROLLBACK_REQUIRED`, all-NULL ops, and each individually missing required callback) and the marker sequence the capture validators check. Host contract only - no Flash erase/program, RTC retention, power-loss or vector-handoff evidence. |
 | `tests/unit/fota/test_pandora_fota_flash.c` | `unity` | 9 | Pandora board-owned internal-Flash adapters (`pandora_fota_flash.c` / `pandora_fota_install_flash.c`) over a fake `xy_hal_flash_*`: range/8-byte-granule/two-slot-erase guards, init-unlock-write-lock ordering, failure propagation, and the real two-slot journal core driven through the board backend. Host contract only — no flash write/erase, power-loss, endurance or bootloader handoff evidence. |
 | `tests/unit/hal_component/test_pandora_i2c_owners.c` | `unity` | 6 | Pandora board-owned I2C transports (`pandora_soft_i2c.c` / `pandora_hw_i2c.c`) over a host-only fake `stm32l4xx_hal.h` and fake `xy_hal_gpio_*`: GPIO event streams decoded back into I2C frames (pin mapping, START/STOP, `dev_addr << 1`, MSB-first bytes, per-byte ACK sampling, NACK propagation, receive read bit and tail NACK), the soft bus `mem_read`/`mem_write`/`is_device_ready` subset, and hw I2C3 AF4 config with `Instance` assigned before init. Host contract only — no timing, clock-stretching, bus-recovery or real-device evidence. |
 | `tests/unit/hal_component/test_pandora_platform_startup.c` | `unity` | 4 | Pandora board-owned clock/power owner (`pandora_platform_startup.c`) over the same host-only fake `stm32l4xx_hal.h`: counted PWR-clock / VOS1 / `HAL_RCC_OscConfig` / `HAL_RCC_ClockConfig` hooks prove the ascending call order, per-stage failure short-circuit, HSE-only oscillator payload, HSE-driven PLL factors, all-DIV1 bus dividers and `FLASH_LATENCY_4`; datasheet invariants derived from the board's own `HSE_VALUE=8000000` pin VCO input/output ranges and the exact 80 MHz SYSCLK. Host contract only — no HSE start-up, PLL lock, real SYSCLK, bus timing or power-transition evidence. |
