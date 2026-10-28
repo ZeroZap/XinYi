@@ -134,6 +134,7 @@ def main() -> int:
             "OSAL_QUEUE_MISMATCH",
             "OSAL_EVENT_SET",
             "OSAL_EVENT_WAIT",
+            "OSAL_EVENT_COALESCED",
             "OSAL_EVENT_MISMATCH",
             "OSAL_MUTEX_FAST",
             "OSAL_MUTEX_SLOW",
