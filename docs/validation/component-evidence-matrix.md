@@ -1,5 +1,37 @@
 # XinYi 组件证据台账
 
+### 2026-10-28 Pandora I2C -> Device -> driver vertical slice (host)
+
+- New CTest `pandora_device_stack` (14 cases) closes the seam between three layers that each had
+  only isolated coverage: the board-owned software-I2C transport
+  (`boards/pandora_stm32l475/pandora_soft_i2c.c`), the canonical `xy_i2c_device_*` bus helpers and
+  the canonical `xy_aht10` / `xy_icm20608` Device drivers. A host-only I2C slave model decodes the
+  bit-banged waveform, ACKs/NACKs per 7-bit address, keeps a register file for the
+  register-addressed device and a command/frame model for the command-addressed device, and logs
+  every committed frame.
+- Covered: transport owner/pin/clock wiring, AHT10 init command and 80 ms measure/read frame with
+  fixed-point decode plus busy (cache-preserving) and address-NACK fail-closed paths, ICM20608
+  WHO_AM_I identity binding (0xAE accepted, foreign identity rejected before any configuration
+  write), the documented eight-write configuration sequence followed by the seven-register
+  read-back verify order, read-back disagreement -> `XY_DEVICE_FAIL`, absent alternate address ->
+  `XY_DEVICE_IO_ERROR` without touching the live device, 14-byte sample block decoding
+  (4 g / 500 dps / 3500 centi-degC) with cache preservation on transport fault,
+  `xy_icm20608_verify_configuration()` re-reads through the transport, and two devices sharing one
+  board bus by address with no crosstalk.
+- Reverse proof: four mutations each turn the suite red — `dev_addr << 1` removed from the
+  transport write phase (12 failures), NACK swallowed in `master_transmit` (3 failures), WHO_AM_I
+  comparison removed from the driver (1 failure), AHT10 humidity shift `>> 20` -> `>> 19`
+  (2 failures).
+- Evidence path: `tests/unit/hal_component/test_pandora_device_stack.c`,
+  `tests/unit/CMakeLists.txt`, `docs/design/unit-test-inventory.md`; focused CTest
+  `pandora_device_stack` 14/14; Host `make test-unit` 289/289; PC, STM32L4, STM32U5 builds;
+  `clang-format --dry-run --Werror`; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no production code changed, nothing was flashed. Does
+  not upgrade bit-bang timing/rise time, clock stretching, bus recovery, real AHT10/ICM20608
+  communication, board-runtime behaviour or product qualification. The Pandora `sensor_icm20608` /
+  `sensor_ap3216c` images still run the legacy `sensor_*` framework, so the canonical drivers are
+  host-proven but not yet the on-board owners.
+
 ### 2026-10-27 Pandora SYS reset-request retention across a reset
 
 - Board-owned `xy_sys_reset(reset_by)` now records the reason in RTC backup slot 3 as

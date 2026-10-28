@@ -1,5 +1,24 @@
 # XinYi Sprint 跟踪看板
 
+**最新 Pandora I2C→Device→驱动纵切 Host 契约（2026-10-28）**：board-owned 覆盖闭环后回到 Sprint 主干。
+参考板的三层此前各自孤立：`pandora_i2c_owners` 只解码 transport 自己的 GPIO 波形，
+canonical 驱动测试则把 `xy_i2c_device_*` 全部打桩 —— 没有任何契约证明"板载位翻转 I2C → Device 总线
+helper → canonical 驱动"能真正对接。现新增 CTest `pandora_device_stack`（14 用例）：host-only I2C
+**从机模型**解码位翻转波形、按 7-bit 地址 ACK/NACK、为寄存器寻址设备维持寄存器文件、为命令寻址设备
+维持命令/帧模型，并记录每个提交帧；真实 `pandora_soft_i2c.c` 经真实 `xy_i2c_device_*` 驱动真实
+`xy_aht10` / `xy_icm20608`。覆盖：transport owner 引脚/时钟、AHT10 初始化命令 + 80 ms 测量读帧定点
+解码（50.00 %RH / 50.00 ℃）、busy 保持缓存、地址 NACK fail-closed、ICM20608 WHO_AM_I=0xAE 身份绑定
+（外来身份在任何配置写之前即拒绝）、8 条配置写 + 7 处读回顺序、读回不一致 → `XY_DEVICE_FAIL`、备用地址
+NACK 且不触碰在线设备、14 字节样本块解码（4 g / 500 dps / 3500 centi-℃）与故障时缓存保持、
+`xy_icm20608_verify_configuration()` 经 transport 复读、两个设备共用一条板载总线且无串扰。反证：4 种
+变异全部被拦下 —— transport 写相位去掉 `dev_addr << 1`（12 项 FAIL）、`master_transmit` 吞掉 NACK
+（3 项 FAIL）、驱动去掉 WHO_AM_I 比较（1 项 FAIL）、AHT10 湿度 `>> 20`→`>> 19`（2 项 FAIL）。
+实测：focused 14/14；Host **289/289**；PC/STM32L4/STM32U5 build rc=0；新增文件
+`clang-format --dry-run --Werror`；`git diff --check`。**边界**：无生产代码改动、未烧录；不升级位翻转时序/上升沿速率、时钟拉伸、
+总线恢复、真实器件通信或 board runtime 证据；`sensor_icm20608` / `sensor_ap3216c` 镜像仍走 legacy
+`sensor_*` 框架，canonical 驱动只是 Host 已证明、尚未成为板上 owner。
+
+
 **最新 STM32F4 DMA wrapper 契约迁移（2026-10-28）**：S6-108 记录的 F4 deferred 集合中，
 `xy_hal_dma.c` 不只是签名漂移。旧实现把 `XY_HAL_DMA_*` 枚举值直接当 STM32 HAL 常量返回（方向/优先级
 在实机上会被静默写错），宽度三档返回未声明的 `XY_HAL_DMA_PDATAALIGN_*` 并用同一个 periph/mem 映射
@@ -597,6 +616,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 || S6-110 | P1 | Pandora board-owned FOTA internal-Flash adapter Host contract | DONE | Zero | S5-114（DONE）只收口了 HAL 调用边界；两个 board owner 此前仅有 board 镜像编译，无任何 Host 覆盖 | 新增 Host 契约 `pandora_fota_flash`（31 用例）：`pandora_fota_flash.c` / `pandora_fota_install_flash.c` 在 fake `xy_hal_flash_*` 下验证 metadata 双槽地址窗口、application 执行区范围、8-byte program granule、erase granule 精确匹配、非法/NULL 请求零 HAL 副作用、init→unlock→write/erase→lock 顺序、write/erase 失败后仍重新加锁、lock 失败报失败而非成功、`XY_HAL_ERROR_ALREADY_INIT` 容忍；并用真实 `xy_fota_metadata` 双记录 journal core 经 board backend 完成 commit→load→双槽轮转（第二次提交不擦除仍有效的旧槽记录）。为让向量判定可 Host 验证，`pandora_fota_application_vectors_valid()` 拆出纯判定 `pandora_fota_application_vectors_check(initial_sp, reset_handler)`，target 侧地址映射读取与判定规则保持不变（无行为变更）；board policy guard 增加该 seam 与 `pandora_fota_install_ops` 的 token 要求。验证：focused 31/31、Host 285/285、PC/STM32L4/STM32U5 build rc=0、`build/pandora-rtos` 全镜像重建（bootloader 15180 B、smoke 14296 B、rtos 42396 B 均未变，bootloader ELF 导出 `pandora_fota_application_vectors_check`）、`git diff --check` PASS | 仅 Host/compile 契约：未烧录，无真实 internal-Flash 擦写、掉电/半写或耐久证据；向量地址读取与 bootloader vector handoff 仍受既有实板证据边界约束，不升级 B1/B2 | 本记录提交 | 2026-10-28 |
 || S6-112 | P1 | Pandora board-owned I2C transport Host contract（software I2C + hardware I2C3） | DONE | Zero | S6-110（DONE）收口了同一类"board owner 零 Host 覆盖"；`pandora_soft_i2c.c` 是参考板 AHT10/ICM20608 的唯一传输，`pandora_hw_i2c.c` 是 AP3216C 的唯一传输，二者此前只有 board 镜像编译 | 新增 Host 契约 `pandora_i2c_owners`（35 用例）：以 host-only fake `stm32l4xx_hal.h` + fake `xy_hal_gpio_*`，把两文件实际产生的 GPIO 事件流解码回 I2C 帧，验证 i2c3=SCL PC0/SDA PC1 与 i2c4=SCL PD6/SDA PC1 引脚映射、bus 身份拒绝（外来指针/0x80 地址零 GPIO 副作用）、START/STOP、`dev_addr << 1`、MSB-first、每字节 ACK 采样、地址或数据 NACK→`XY_HAL_ERROR_IO` 且仍发 STOP、失败时不再时钟后续字节、receive 地址 R 位与末字节 NACK、失败时输出保持不变、hw I2C3 的 AF4/OD/上拉/超高速配置与 `Instance` 在 `xy_hal_i2c_init()` 之前赋值、pin/i2c init 失败返回 NULL。同时收口两处真实缺口：(1) 软 I2C 此前不提供 `xy_hal_i2c_mem_write/mem_read/is_device_ready`，任何在软 bus 上使用寄存器访问或就绪探测的驱动在 board target 里是链接错误，现按既有位操作原语实现（写相位含寄存器选择、读相位以 STOP+START 代替 repeated-START、超宽寄存器地址 fail-closed 拒绝而非静默截断，`trials == 0` 拒绝）；(2) `soft_i2c_init()` 此前无条件打开 GPIOC **和** GPIOD 时钟，现只打开本 bus 实际使用的端口。board policy guard 增加软 owner/句柄后端的同一 target 互斥断言（同一 `xy_hal_i2c_*` 符号会冲突）并锁定 fake vendor seam。验证：focused 35/35、Host 287/287、PC/STM32L4/STM32U5 build、Pandora 全镜像重建、`git diff --check` | 仅 Host/compile 契约：不升级软 I2C 时序/上下沿速率/外部上拉、时钟拉伸、真实 AHT10/ICM20608/AP3216C 通信、总线恢复或 hw I2C3 电气证据；未烧录 | 本记录提交 | 2026-10-28 |
 || S6-113 | P1 | Pandora board-owned clock/power startup owner Host contract | DONE | Zero | S6-110 / S6-112（DONE）收口同一类\"board owner 零 Host 覆盖\"；`pandora_platform_startup.c` 是参考板唯一的 board-local vendor clock owner，被 14 个 Pandora 入口（smoke/rtos/crypto/st7789/tf/nrf24/qma/ap3216c/icm20608/motor/buzzer/rgb/fota bootloader/candidate programmer）在 `xy_hal_sys_init()` 之后调用，此前只有 clean board build | 新增 Host 契约 `pandora_platform_startup`（25 用例）：在 host-only fake `stm32l4xx_hal.h` 的 4 个计数钩子（`__HAL_RCC_PWR_CLK_ENABLE`、`HAL_PWREx_ControlVoltageScaling`、`HAL_RCC_OscConfig`、`HAL_RCC_ClockConfig`）下，验证 PWR 时钟→VOS1 电压档→振荡器→时钟切换的**升序**调用链（顺序/次数/可见载荷）、每个阶段的失败传播与短路（VOS 失败不碰振荡器、振荡器失败不切 SYSCLK、时钟失败仍已完成 PLL 配置）、只启用 HSE（HSI/LSE/LSI/MSI/HSI48 与校准/范围字段全 0）、PLL 由 HSE 驱动且 M=1/N=20/P=DIV7/Q=DIV2/R=DIV2、四条总线时钟全选 PLL 且三处分频均为 DIV1、Flash latency = `FLASH_LATENCY_4`；并用 board 自身 `HSE_VALUE=8000000` 推导 datasheet 不变量：VCO 输入 8 MHz（4–16）、VCO 输出 160 MHz（64–344）、SYSCLK 恰为 L475 上限 80 MHz、M/N 落在 vendor 字段范围。fake 常量全部取真实 vendor 数值（含 `RCC_PLLSOURCE_HSE=0x3`、`PWR_REGULATOR_VOLTAGE_SCALE1=0x200`、`FLASH_LATENCY_4=0x4`），不虚构语义。policy guard 新增 `assert_host_clock_contract()`：锁定 fake seam 必须先于 board 头路径、契约必须编译 owner、fake 头必须保留全部 3 个白名单 vendor 函数与 PWR 宏（已用内存变异验证该断言真能拦住\"seam 被删\"与\"seam 顺序被换\"两种违规）。用 4 种变异反证覆盖面：PLLN 20→16（3 项 FAIL）、忽略 VOS 失败（2 项 FAIL）、`FLASH_LATENCY_4`→`FLASH_LATENCY_1`（1 项 FAIL）、VOS 挪到时钟切换之后（3 项 FAIL） | 仅 Host/compile 契约：不升级 HSE 起振时间、PLL 锁定、真实 80 MHz SYSCLK、总线时序、电源/功耗或电压调整时序证据；未烧录。附带记录一个**潜伏约束**而非修复：PLLQ=DIV2 会把 CLK48 域喂到 80 MHz，而 SDMMC1/RNG/USB 要求恰为 48 MHz，当前无任何 Pandora 镜像选择 CLK48 消费者或改动 `CLK48SEL`（默认即 PLLQ），故未来启用其一必须先另配时钟源 | 本记录提交 | 2026-10-28 |
+|| S6-114 | P1 | Pandora I2C→Device→canonical 驱动纵切 Host 契约 | DONE | Zero | S6-112（DONE）收口了 transport 自身的帧解码，但 canonical 驱动测试仍把 `xy_i2c_device_*` 打桩，三层之间无契约 | 新增 `pandora_device_stack`（14 用例）：host-only I2C 从机模型（地址 ACK/NACK、寄存器文件、命令/帧模型、逐帧日志）驱动真实 `pandora_soft_i2c.c` + 真实 `xy_i2c_device_*` + 真实 `xy_aht10`/`xy_icm20608`；验证 AHT10 初始化/测量帧与定点解码、busy 缓存保持、ICM20608 身份绑定（0xAE 接受、外来身份零配置写）、8 写 7 读回的配置与校验顺序、读回不一致 FAIL、备用地址 NACK 零副作用、14 字节样本解码与故障缓存保持、双设备同总线无串扰。4 种变异反证（地址移位/NACK 吞掉/身份比较/湿度移位）全部 FAIL。focused 14/14、Host 289/289、PC/L4/U5 build、clang-format、`git diff --check` | 仅 Host/compile 契约：无生产代码改动、未烧录；不升级时序/时钟拉伸/总线恢复/真实器件/board runtime；镜像仍走 legacy `sensor_*` owner | 本记录提交 | 2026-10-28 |
 
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
@@ -2508,3 +2528,24 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
   电源/功耗或电压档切换时序证据；未烧录。
 - 潜伏约束（记录而非修复）：PLLQ=DIV2 使 CLK48 域为 80 MHz，而 SDMMC1/RNG/USB 要求
   48 MHz；当前无镜像选择 CLK48 消费者、`CLK48SEL` 仍是默认 PLLQ，未来启用其一须另配时钟源。
+
+
+### 2026-10-28 Pandora I2C -> Device -> driver vertical slice (host)
+
+- 收口：`pandora_soft_i2c.c`（transport）、`xy_i2c_device_*`（Device 总线 helper）与 canonical
+  `xy_aht10` / `xy_icm20608`（驱动）三层此前只有各自孤立覆盖：transport 契约只解码自己的 GPIO 波形，
+  驱动契约把总线 helper 全部打桩。现以 host-only I2C 从机模型把三层串成一条真实链路。
+- 覆盖：从机模型按 7-bit 地址 ACK/NACK、为寄存器寻址设备维持寄存器文件、为命令寻址设备维持命令/帧
+  模型，并逐帧记录 START/地址/负载；验证 AHT10 初始化命令与 80 ms 测量读帧的定点解码、busy 保持缓存、
+  地址 NACK fail-closed；ICM20608 WHO_AM_I=0xAE 身份绑定（外来身份在任何配置写之前拒绝）、8 条配置写
+  与 7 处读回的顺序与载荷、读回不一致 → `XY_DEVICE_FAIL`、备用地址 NACK 不触碰在线设备、14 字节样本块
+  解码（+2000/0/-2000 mg、3500 centi-℃、±125000 mdps）与 transport 故障时缓存保持、
+  `verify_configuration()` 复读、两设备共用一条板载总线无串扰。
+- 反证：transport 写相位去掉 `dev_addr << 1`（12 项 FAIL）、`master_transmit` 吞 NACK（3 项 FAIL）、
+  驱动去掉 WHO_AM_I 比较（1 项 FAIL）、AHT10 湿度 `>> 20`→`>> 19`（2 项 FAIL）。
+- 验证：focused `pandora_device_stack` 14/14；Host `make test-unit` 289/289；`make`、
+  `make HAL_PLATFORM=STM32L4`、`make HAL_PLATFORM=STM32U5` 均 rc=0；`clang-format --dry-run --Werror`；
+  `git diff --check`。无生产代码改动（board 源、HAL 与驱动均未动），板级镜像输入不变，因此未重建 BIN。
+- 边界：仅 Host/compile 契约，不升级位翻转时序/上升沿速率、时钟拉伸、总线恢复、真实 AHT10/ICM20608
+  通信或 board runtime；未烧录。`pandora_stm32l475_icm20608` / `_ap3216c` 镜像仍走 legacy `sensor_*`
+  框架，canonical 驱动尚未成为板上 owner（下一步）。

@@ -2158,6 +2158,27 @@ target_include_directories(test_pandora_platform_startup PRIVATE
     ${HAL}/inc
 )
 
+# --- Test 33g: Pandora I2C -> Device -> canonical driver vertical slice ---
+xy_add_unit_test(test_pandora_device_stack pandora_device_stack UNITY
+    ${UNIT_HAL}/test_pandora_device_stack.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_soft_i2c.c
+    ${DEV}/src/xy_device_bus_helpers.c
+    ${DEV}/xy_device_core.c
+    ${DRV}/sensor/temperature/aht10/xy_aht10.c
+    ${DRV}/sensor/motion/icm20608/xy_icm20608.c
+)
+target_include_directories(test_pandora_device_stack BEFORE PRIVATE
+    ${UNIT_HAL}/fake_vendor
+)
+target_include_directories(test_pandora_device_stack PRIVATE
+    ${ROOT}/boards/pandora_stm32l475
+    ${DEV}
+    ${DEV}/inc
+    ${HAL}/inc
+    ${DRV}/sensor/temperature/aht10
+    ${DRV}/sensor/motion/icm20608
+)
+
 # --- Test 34: GUI core drawing and object contracts ---
 xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c
