@@ -32,7 +32,7 @@
 | Platform | GPIO | UART | I2C | SPI | Timer | I2S | DMA | Host | Compile/QEMU | Board |
 |---|---|---|---|---|---|---|---|---|---|---|
 | STM32U5 | `PARTIAL_SOURCE`（EXTI 依赖 SDK IRQ 定义） | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `UNSUPPORTED`（显式 stub） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC，不是 U5 runtime） | `COMPILE_ONLY` 历史记录；当前 SDK/toolchain 不可用，需重跑 | `BOARD_PENDING` |
-| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；12/15 wrapper，见下） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_uart_*` 全 11 个公开入口 + 3 个 vendor 完成回调已导出） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_i2c_*` 全 12 个公开入口 + 3 个 vendor 完成回调已导出） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_dma_*` 符号已导出并引用 `HAL_DMA_*`） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
+| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；13/15 wrapper，见下） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_uart_*` 全 11 个公开入口 + 3 个 vendor 完成回调已导出） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_i2c_*` 全 12 个公开入口 + 3 个 vendor 完成回调已导出） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_spi_*` 全 13 个公开入口 + 4 个 vendor 完成回调已导出） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_dma_*` 符号已导出并引用 `HAL_DMA_*`） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
 | STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；runtime 仍仅 Pandora board-local） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；SPI/DMA B1 为 board-local image 证据） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译） | `UNSUPPORTED` | `SOURCE_PRESENT`（dedicated L4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | PC/L4/U5 compile；Pandora FreeRTOS image link | `B1_BOARD_SMOKE`；framework DMA1 Channel1、8-word SRAM→SRAM polling B1；SPI/peripheral-DMA/IRQ/callback/recovery pending |
 | WCH CH32V30x | `PARTIAL_SOURCE`（IRQ configure unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
@@ -76,8 +76,29 @@ conf 打开了它，所以 board 镜像一直能编）。现组件 conf 启用�
 module 在组件 conf 中既 enable 又 include），删除 enable / 删除 include / 删除 CMake append 三个
 负向变异全部被判 FAIL。
 
-仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_rtc/spi/timer.c`，
+仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_rtc/timer.c`，
 以及 F4 专属 `xy_hal_adc.c`（`ADC->CCR`/3-cycle sample time 仅 F4 可用）。
+
+`xy_hal_spi.c` 已完成迁移（deferred 集合由 3 项缩到 2 项）。旧实现与 UART/I2C 同类：八个入口声明
+`int` 而非 `xy_hal_error_t`（F4 gate 实测 10 处 conflicting types），`xy_hal_spi_stop`/
+`xy_hal_spi_error`/`xy_hal_spi_set_error_cb` 从未实现。编译能过的地方还在**静默改写配置**：
+`XY_HAL_SPI_DIR_2LINES_RXONLY` 塌缩成 `SPI_DIRECTION_1LINE`（只收的主机会开始驱动 MOSI）、
+`XY_HAL_SPI_NSS_HARD_INPUT` 塌缩成 `SPI_NSS_HARD_OUTPUT`（外设去驱动本该由它读取的 CS）、非 8-bit
+`datasize` 一律当 16-bit、任意 `baudrate_prescaler` 直接写进 `CR1.BR` 保留位；CPOL/CPHA 还是把
+`SPI_POLARITY_* | SPI_PHASE_*` 位掩码再拿去和 vendor 常量比对反推，只在 `SPI_CR1_CPOL`/`CPHA`
+保持当前位序时成立。现按 L4 dedicated wrapper 契约重写并补 F4 专属：六个映射 helper 逐一枚举
+（`spi_direction`/`spi_nss`/`spi_datasize`/`spi_firstbit`/`spi_polarity`/`spi_phase`）、
+`spi_config_check()` 在第一次 `handle->Init` 写入前拒绝越界域、`spi_prescaler_valid()` 只接受 8 个
+可表示的 `SPI_BAUDRATEPRESCALER_*`、`spi_frame_count()` 把公开字节长度换算成 HAL 帧数（16-bit 模式
+下拒绝奇数字节，旧实现把字节数当帧数会多搬一倍缓冲）、callback 上下文真实记录并由 4 个 vendor 回调
+分发、补齐 3 个缺失入口。回归门：CTest `stm32f4_spi_wrapper_contract`（对迁移前源 74 项 RED，
+8 种变异全部拦下，其中一种变异暴露并修掉了守卫自身的子串误判
+`XY_HAL_SPI_NSS_HARD_INPUT` ⊃ `SPI_NSS_HARD_INPUT`）。
+
+已知残余（本 slice **未**修改，避免顺手改动参考板路径）：L4 与 U5 的 SPI wrapper 仍把公开字节长度
+直接当 HAL 帧数传给 vendor，在 16-bit `datasize` 下会多搬一倍缓冲——与 F4 迁移前的同一缺陷。当前
+`components/` 之外没有任何第一方代码请求 `XY_HAL_SPI_DATASIZE_16BIT`（`grep` 计数 0），所以该分支
+尚未被真实调用；F4 现在已按字节→帧换算并拒绝奇数字节，L4/U5 的同类修正应在独立 slice 中做。
 
 `xy_hal_i2c.c` 已完成迁移（deferred 集合由 4 项缩到 3 项）。旧实现**根本无法编译**：它引用了公开
 HAL 从未声明的 `xy_hal_i2c_handle_t`，并返回 `XY_HAL_I2C_ADDRESSINGMODE_*` 而非 vendor 的

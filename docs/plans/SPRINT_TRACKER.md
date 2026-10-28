@@ -1,5 +1,23 @@
 # XinYi Sprint 跟踪看板
 
+**最新 STM32F4 SPI wrapper 契约迁移（2026-10-28）**：S6-118 之后 F4 deferred 里 SPI 是同一类结构性
+缺陷再加三处**编译期看不见的静默改写**。旧实现八个入口声明 `int` 而非 `xy_hal_error_t`（F4 gate
+实测 10 处 conflicting types），`xy_hal_spi_stop`/`xy_hal_spi_error`/`xy_hal_spi_set_error_cb`
+从未实现；`XY_HAL_SPI_DIR_2LINES_RXONLY` 塌缩成 `SPI_DIRECTION_1LINE`（只收的主机会开始驱动
+MOSI）、`XY_HAL_SPI_NSS_HARD_INPUT` 塌缩成 `SPI_NSS_HARD_OUTPUT`（外设去驱动本该由它读取的 CS）、
+非 8-bit `datasize` 一律当 16-bit、任意 `baudrate_prescaler` 直写 `CR1.BR` 保留位，CPOL/CPHA 靠
+`SPI_POLARITY_*|SPI_PHASE_*` 位掩码反推 vendor 常量（只在 `SPI_CR1_CPOL`/`CPHA` 保持当前位序时
+成立）。现按 L4 契约重写并补 F4 专属：六个映射 helper 逐一枚举、`spi_config_check()` 在第一次
+`handle->Init` 写入前拒绝越界域、`spi_prescaler_valid()` 只接受 8 个可表示的
+`SPI_BAUDRATEPRESCALER_*`、`spi_frame_count()` 把字节长度换算为 HAL 帧数（16-bit 下拒绝奇数字节）、
+callback 上下文真实记录并由 4 个 vendor 回调分发、补齐 3 个缺失入口。实测 F4 gate 真实编译
+`stm32f4/xy_hal_spi.c.obj`（text 1014 B）并导出 13 个 `xy_hal_spi_*` 公开入口 + 4 个 vendor 回调；
+新增 CTest `stm32f4_spi_wrapper_contract`（对迁移前源 **74 项 RED**，8 种变异全部拦下），
+deferred 集合 3→2。Host 294/294、PC/L4/U5/F4 build、Pandora board build 与 `git diff --check`
+通过。**边界**：source/compile 级证据，未烧录，无 F4 SPI runtime、时序/波特率精度、DMA 事务、
+中断延迟或错误恢复结论；F4 的 `rtc/timer` 仍为显式 deferred；L4/U5 wrapper 的 16-bit 帧数缺陷
+留在独立 slice（当前无第一方代码请求 16-bit datasize）。
+
 **最新 Pandora 实板 runtime 验证：canonical 传感器 owner（2026-10-28）**：S6-116 只到 source/Host/
 compile，明确标注板上 owner 切换无 runtime 证据。本轮在两块已接入的实板上补这一格（Pandora
 STM32L475 + openCH CH32V307）。按 `2a596d90` 重新构建并烧录 Pandora 两个传感器镜像：
@@ -14,9 +32,25 @@ INT_STATUS=0x01`（±4 g / ±500 dps）、88 组静置样本 ACCEL≈(-27,-9,100
 HEAD 构建（需 reconfigure 才能刷新内嵌 commit）后才通过。原始日志与 sha256 存
 `~/xinyi-hw-evidence/2026-10-28/`。**边界**：AP3216C 为 B1（有自动 validator 门），ICM20608 仅有
 原始 marker 证据且**仓库暂无对应 validator**；未做绝对精度、时序边沿、长稳、EMC 或量产判定；未烧录
-bootloader/FOTA。**openCH 侧本轮无法推进**：WCH-Link 已在位（1a86:8010 / `/dev/ttyACM0`），但本机缺
-RISC-V 交叉工具链与 WCH OpenOCD，`cmake -S boards/opench_ch32v307` 直接落到 `/usr/bin/cc`，镜像无法
-构建、更无法烧录。
+bootloader/FOTA。
+
+**最新 openCH CH32V307 实板打通 + 工具链修复（2026-10-28）**：之前记录的"本机缺 RISC-V 工具链与
+WCH OpenOCD"是**错误结论**——MounRiver 整套已装好，仓库 `CMakeLists.txt` 里就写死了路径
+`/usr/share/MRS2/MRS-linux-x64/resources/app/resources/linux/components/WCH/`
+（`Toolchain/RISC-V Embedded GCC15/bin/riscv32-wch-elf-gcc`，GCC 15.2.0；
+`OpenOCD/OpenOCD/bin/openocd`，0.11.0 WCH fork 自带 `wch-riscv.cfg`），是 `find` 深度不够导致的误判。
+按 `-DHAL_PLATFORM=WCH -DWCH_BOARD=opench_ch32v307` 构建 `opench_ch32v307_uart_smoke` 成功
+（text 4352 / RAM 3668 B），programmer 烧录 `Verified OK`（device id `0x263e8dea`，flash 288 KB /
+RAM 128 KB），WCH-Link VCP `/dev/ttyACM0` 采到 **`B1_REVIEW_CANDIDATE`**：
+`XINYI OPENCH CH32V307 UART1 READY` / `PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F` /
+`OPENCH_UART1_ALIVE`，镜像内嵌 commit 与 HEAD 一致。**两个真实适配缺陷已修**：
+(1) `wch-riscv.cfg` 默认 `adapter speed 6000`，本机 WCH-Link-CH549 在此速率下 DM 读不出来
+（`dmstatus=0x80000000`）并触发 OpenOCD fork 断言 SIGABRT，降到 1000 kHz 才 `Target successfully
+examined` —— programmer 新增 `--adapter-speed`（默认 1000），在 `-f` 之后插入 `-c "adapter speed N"`；
+(2) programmer 的运行检查用 `--samples/--interval-ms` 去调 `capture_uart.py`，而后者只接受位置参数
+port + `--firmware-commit/--output/--metadata/--duration-ms`，必然 exit 2 —— 改为按真实接口调用
+（新增 `--firmware-commit`，缺省取 `git rev-parse HEAD`，时长由 samples×interval 换算），修后一次跑通
+`bytes=1660 status=B1_REVIEW_CANDIDATE`。
 
 **最新 STM32F4 I2C wrapper 契约迁移（2026-10-28）**：S6-117 之后 F4 deferred 里 I2C 的问题最严重——
 旧实现**根本编译不过**：引用公开 HAL 从未声明的 `xy_hal_i2c_handle_t`，并返回
@@ -705,6 +739,8 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S6-117 | P0 | STM32F4 UART wrapper 契约迁移与结构性缺陷收口 | DONE | Zero | S6-111（DONE）；F4 非参考板平台；L4 已有 dedicated wrapper 作为契约参照 | 旧 `stm32f4/xy_hal_uart.c` 被 deferred 的原因是结构性缺陷：全部入口声明 `int` 而非 `xy_hal_error_t`（`-fsyntax-only` 复现 8 处 conflicting types）、`send`/`recv` 把传输长度当返回值发布、`flush` 无超时 `while (gState != READY);` 死等、三个 vendor 完成回调是 `void` 却试图返回值、`register_callback` 不记录上下文、`available` 恒返回 0、`xy_hal_uart_error`/`xy_hal_uart_set_error_cb` 缺失。现按 L4 契约重写：vendor `UART_*` 映射、`uart_status()` 映射 `HAL_TIMEOUT/HAL_BUSY`、`uart_config_check()` 在首次 `Init` 写入前拒绝越界与 F4 不可表示配置（7-bit / 1.5 停止位 → `NOT_SUPPORTED`）、`flush` 报告 busy、callback 上下文真实记录并由三个 vendor 回调分发、补齐两个缺失入口。F4 gate 真实编译该 obj 并导出 11 个公开入口 + 3 个 vendor 回调。新增 CTest `stm32f4_uart_wrapper_contract`（对迁移前源 30+ 项 RED）；deferred 集合 5→4。Host 292/292、PC/L4/U5/F4 build、Pandora `pandora_stm32l475_smoke` link 与 `git diff --check` 通过 | 仅 source/compile 级证据：未烧录，无 F4 UART runtime、波特率精度、DMA 收发、中断延迟或错误恢复实板结论；F4 的 i2c/rtc/spi/timer 仍为显式 deferred | 本记录提交 | 2026-10-28 |
 | S6-118 | P0 | STM32F4 I2C wrapper 契约迁移与地址/寄存器宽度缺陷收口 | DONE | Zero | S6-117（DONE）；F4 非参考板平台；L4 已有 dedicated wrapper 作为契约参照 | 旧 `stm32f4/xy_hal_i2c.c` **根本无法编译**：引用公开 HAL 从未声明的 `xy_hal_i2c_handle_t`，并返回 `XY_HAL_I2C_ADDRESSINGMODE_*` 而非 vendor `I2C_ADDRESSINGMODE_*`（F4 gate 实测 undeclared + conflicting types）。语义缺陷：全部入口 `int` 而非 `xy_hal_error_t`、`dev_addr << 1` 前无范围校验（8-bit 地址会静默寻址到另一颗器件）、`reg_addr` 无条件 8-bit 截断、`register_callback` 不记录、`xy_hal_i2c_error`/`set_error_cb` 缺失。现按 L4 契约重写并补 F4 专属：`ClockSpeed`/`DutyCycle` 编程、7-bit 地址上限校验、`i2c_mem_address_size()` 依 `reg_addr` 选 8/16-bit、callback 上下文记录并由三个 vendor 回调分发；analog/digital filter 仅在提供 I2C FLTR 的型号存在（`STM32F407` 没有），故 `HAL_I2CEx_*` 以 `I2C_FLTR_ANOFF`/`I2C_FLTR_DNF` 守卫。F4 gate 真实编译该 obj 并导出 12 个公开入口 + 3 个 vendor 回调。新增 CTest `stm32f4_i2c_wrapper_contract`（对迁移前源 25+ 项 RED）；deferred 集合 4→3。Host 293/293、PC/L4/U5/F4 build、Pandora `pandora_stm32l475_smoke` link 与 `git diff --check` 通过 | 仅 source/compile 级证据：未烧录，无 F4 I2C runtime、时序/时钟拉伸/总线恢复、DMA 事务、中断延迟或错误恢复实板结论；F4 的 rtc/spi/timer 仍为显式 deferred | 本记录提交 | 2026-10-28 |
 | S6-119 | P0 | Pandora 传感器镜像 canonical owner 实板 runtime 验证（AP3216C / ICM20608） | DONE | Zero | S6-116（DONE，仅 source/Host/compile，板上 owner 切换无 runtime 证据）；两块实板已接入电脑 | S6-116 明确标注"板上 owner 切换本身仍无 runtime 证据"。本轮按 `2a596d90` 重新构建并烧录 Pandora 两个传感器镜像做实板验证。**AP3216C**：`pandora_stm32l475_ap3216c.bin`（11328 B，镜像内嵌 `FIRMWARE_COMMIT 2a596d90…`）经 ST-Link V2.1（V2J24S11，序列 066AFF31…）write+verify 通过，CP2102 `/dev/ttyUSB0` 115200 8N1 采集，复位同步后捕获 boot 头 → `validate_ap3216c_hw_i2c_capture.py` 判定 **`AP3216C_HW_I2C3_B1`**：8 个有序 marker 全中且无 error marker（READY / FIRMWARE_COMMIT / BUS=HW_I2C3 SCL=PC0 SDA=PC1 ADDR=0x1E / HW_I2C_READY / NACK_OBSERVED 0x7F / NACK_RECOVERED 0x1E / CONFIG=0x03 MODE=ALS_PS / DIAG），27 样本 23 唯一值全在公开量程内，DIAG `INT=0x00 ALS_CONF=0x00 PS_CONF=0x05 PS_LED=0x13`。**ICM20608**：`pandora_stm32l475_icm20608.bin`（10424 B，同 commit）烧录后 `ICM20608_WHO_AM_I_RAW=174`(0xAE) / `ADDR=0x68 WHO_AM_I=0xAE` / `INIT_PATH=ACCEL_ONLY RESET_COUNT=1`，寄存器快照 `PWR_MGMT_1=0x01 PWR_MGMT_2=0x00 ACCEL_CONFIG=0x08 GYRO_CONFIG=0x08 CONFIG=0x04 ACCEL_CONFIG2=0x04 INT_STATUS=0x01`（±4 g / ±500 dps 与设计一致），88 组样本 ACCEL≈(-27,-9,1002) mg、GYRO≈(1,0,0) dps（静置重力在 Z 轴）。原始证据与 sha256 存于 `~/xinyi-hw-evidence/2026-10-28/`。**首次尝试被正确拒绝**：14:03 的镜像内嵌 `a850803a`，validator 以 firmware-commit 不匹配判 FAIL，重新按 HEAD 构建后才通过 | AP3216C 为 B1（含自动 validator 门）；ICM20608 仅有原始 marker 证据、**仓库暂无对应 validator**，不构成产品级结论。未做温湿度/光照绝对精度、时序边沿、长稳、EMC 或量产判定；未烧录 bootloader/FOTA 镜像 | 本记录提交 | 2026-10-28 |
+| S6-120 | P0 | STM32F4 SPI wrapper 契约迁移与枚举塌缩/帧数缺陷收口 | DONE | Zero | S6-118（DONE）；F4 非参考板平台；L4 已有 dedicated wrapper 作为契约参照 | 旧 `stm32f4/xy_hal_spi.c` 的缺陷分两层。编译层：八个入口声明 `int` 而非 `xy_hal_error_t`（F4 gate 实测 10 处 conflicting types），`xy_hal_spi_stop`/`xy_hal_spi_error`/`xy_hal_spi_set_error_cb` 从未实现。语义层是**编译期看不见的静默改写**：`XY_HAL_SPI_DIR_2LINES_RXONLY` 塌缩成 `SPI_DIRECTION_1LINE`（只收的主机会开始驱动 MOSI）、`XY_HAL_SPI_NSS_HARD_INPUT` 塌缩成 `SPI_NSS_HARD_OUTPUT`（外设去驱动本该由它读取的 CS）、非 8-bit `datasize` 一律当 16-bit、任意 `baudrate_prescaler` 直写 `CR1.BR` 保留位；CPOL/CPHA 先把 `SPI_POLARITY_* | SPI_PHASE_*` 合成位掩码，再拿掩码与 vendor 常量比对反推，只在 `SPI_CR1_CPOL`/`SPI_CR1_CPHA` 保持当前位序时成立。现按 L4 dedicated wrapper 契约重写并补 F4 专属：六个映射 helper（`spi_direction`/`spi_nss`/`spi_datasize`/`spi_firstbit`/`spi_polarity`/`spi_phase`）逐一枚举 4 个 mode 与 3 个方向/3 个 NSS；`spi_config_check()` 在第一次 `handle->Init` 写入前拒绝越界域；`spi_prescaler_valid()` 只接受 8 个可表示的 `SPI_BAUDRATEPRESCALER_*`（`CR1.BR` 仅 3 bit）；`spi_frame_count()` 把公开字节长度换算成 HAL 帧数（16-bit 模式下拒绝奇数字节——旧实现把字节数当帧数会多搬一倍缓冲）；callback 上下文真实记录并由 4 个 vendor 回调分发；补齐 3 个缺失入口。F4 gate 真实编译该 obj（text 1014 B）并导出 13 个 `xy_hal_spi_*` 公开入口 + 4 个 vendor 回调。新增 CTest `stm32f4_spi_wrapper_contract`：对迁移前源 **74 项 RED**；8 种变异全部被拦（方向塌缩 / NSS 塌缩 / prescaler 缺项 / 原始字节长度直传 / 提前提交 context / MODE_3 phase 错 / callback 不记录 / `set_cs` 谎报成功），其中 NSS 变异**暴露并修掉了守卫自身的子串误判**（`XY_HAL_SPI_NSS_HARD_INPUT` 含 `SPI_NSS_HARD_INPUT`，原先的 `in body` 检查被绕过，已改为逐枚举 case→return 精确映射）。deferred 集合 3→2。Host 294/294、PC/L4/U5/F4 build、Pandora board build 与 `git diff --check` 通过 | 仅 source/compile 级证据：未烧录，无 F4 SPI runtime、时序/波特率精度、DMA 事务、中断延迟或错误恢复实板结论；F4 的 rtc/timer 仍为显式 deferred。附带记录一个**跨平台残余**而非在本轮修改：L4/U5 wrapper 仍把字节长度当 HAL 帧数，在 16-bit `datasize` 下会多搬一倍缓冲（同一缺陷），当前无第一方代码请求 16-bit datasize（`grep` 计数 0），应在独立 slice 修正 | 本记录提交 | 2026-10-28 |
+| S6-121 | P0 | openCH CH32V307 实板打通 + programmer 两处适配缺陷修复 | DONE | Zero | S6-119（Pandora 实板验证，同轮暴露 openCH 侧误判）；两块实板已接入电脑 | 上一轮把 openCH 判为"缺 RISC-V 工具链与 WCH OpenOCD、无法构建"是**误判**：MounRiver 成套工具链早已安装，且仓库 `CMakeLists.txt` 第 15–21 行本就写死 `TOOLCHAIN_PATH=/usr/share/MRS2/MRS-linux-x64/resources/app/resources/linux/components/WCH/Toolchain/RISC-V Embedded GCC15/bin` 与 `_TC_PREFIX=riscv32-wch-elf`，同目录下 `OpenOCD/OpenOCD/bin/openocd`（0.11.0 WCH fork）+ `wch-riscv.cfg` 齐备；误判源于 `find` 搜索深度不足。实测 `riscv32-wch-elf-gcc` 15.2.0 可用，`-DHAL_PLATFORM=WCH -DWCH_BOARD=opench_ch32v307` 配置与构建 `opench_ch32v307_uart_smoke` 成功（text 4352 / data 12 / bss 3656 / RAM 11.19%）。**修复两个真实适配缺陷**：(1) `wch-riscv.cfg` 默认 `adapter speed 6000`，本机 WCH-Link-CH549 在该速率下 DM 复位应答为 `dmstatus=0x80000000`，OpenOCD fork 随即在 `access_register_command` 断言 SIGABRT（`Error: OpenOCD only supports Debug Module version 2 (0.13) and 3 (1.0), not 0`）；手工降到 `adapter speed 1000` 后 `Target successfully examined`（XLEN=32, misa=0x40901125）→ programmer 新增 `--adapter-speed`（默认 1000，校验必须为正）并在 `-f cfg` 后插入 `-c "adapter speed N"`；(2) programmer 的运行检查以 `--samples/--interval-ms` 调用 `capture_uart.py`，而该脚本只接受位置参数 `port` 与 `--firmware-commit/--output/--metadata/--duration-ms`，必然 `exit 2` → 改为按真实接口调用，新增 `--firmware-commit`（缺省 `git rev-parse HEAD`），采集时长由 samples×interval 换算。修后整条链路一次跑通：烧录 `Verified OK`（device id `0x263e8dea`，flash 288 KB，ROM 192 KB，RAM 128 KB），WCH-Link VCP `/dev/ttyACM0` 采集 `status=B1_REVIEW_CANDIDATE`，marker 全中（`XINYI OPENCH CH32V307 UART1 READY` / `PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F` / `OPENCH_UART1_ALIVE`），镜像内嵌 commit 与 HEAD 一致 | 仅 UART1 冒烟链路的 runtime 证据：未验证 UART6/UART7、SPI3 W25Q128、I2C2、ADC/DAC、CAN、FreeRTOS OSAL 等其余 openCH 镜像；未做时序、EMC、长稳或量产判定；烧录期间 OpenOCD 在 reset 阶段打印 `Error: Unsupported register (enum gdb_regno)(8)`，为 WCH fork 已知怪癖，不影响 verify | 本记录提交 | 2026-10-28 |
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
 > `production-candidate` 仅表示下一步重建/审查候选；provenance、side-channel、硬件与产品批准仍须独立证据。
@@ -2698,3 +2734,26 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 - 边界：仅 source/Host/compile 契约，不升级 I2C 时序/时钟拉伸/总线恢复/真实 AP3216C/ICM20608 通信或
   board runtime；未烧录。两镜像的 UART marker 流逐字保持，既有 `validate_*_capture.py` 仍适用；板上
   owner 切换本身仍无 runtime 证据。
+
+### 2026-10-28 STM32F4 SPI wrapper contract migration
+
+- 收口：S6-117/S6-118 之后 F4 deferred 只剩 SPI 与 rtc/timer。SPI 的旧实现既编不过（八个入口
+  `int` → 10 处 conflicting types，另 3 个公开入口从未实现），又在能编的部分**静默改写配置**：
+  `DIR_2LINES_RXONLY`→`DIRECTION_1LINE`、`NSS_HARD_INPUT`→`NSS_HARD_OUTPUT`、非 8-bit datasize
+  一律 16-bit、任意 prescaler 直写 `CR1.BR`，CPOL/CPHA 靠合成位掩码反推。
+- 迁移：六个映射 helper 逐一枚举；`spi_config_check()` 在第一次 `handle->Init` 写入前拒绝越界域；
+  `spi_prescaler_valid()` 只接受 8 个可表示分频；`spi_frame_count()` 字节→帧（16-bit 拒奇数字节）；
+  callback 上下文记录并由 4 个 vendor 回调分发；补齐 `stop`/`error`/`set_error_cb`。
+- 覆盖：`stm32f4_spi_wrapper_contract` 对迁移前源 **74 项 RED**；8 种变异全部拦下。其中 NSS 塌缩
+  变异**先漏过**——守卫用 `in body` 判 `SPI_NSS_HARD_INPUT`，而 `XY_HAL_SPI_NSS_HARD_INPUT` 含该
+  子串；已改为逐枚举 `case X: return Y;` 精确映射（同时把 polarity/phase 从三元表达式改成完整
+  switch），重跑后 8/8 全拦。
+- 证据：F4 gate 真实编译 `stm32f4/xy_hal_spi.c.obj`（text 1014 B），archive 导出 13 个
+  `xy_hal_spi_*` + 4 个 `HAL_SPI_*Cplt/ErrorCallback`；L4 archive 仍只有一份 `xy_hal_spi_init`。
+  Host 294/294；PC / STM32L4 / STM32U5 / STM32F4 build、Pandora board build 全 rc=0；
+  `git diff --check` 通过。deferred 集合 3→2。
+- 边界：仅 source/compile，未烧录；不升级 F4 SPI runtime、时序/波特率精度、DMA 事务、中断延迟或
+  错误恢复结论。L4/U5 的 16-bit 帧数缺陷记录为独立残余，未在本轮顺手改动参考板路径。
+- 过程订正：迁移过程中 `cbad5478`（S6-119 Pandora 传感器 owner 实板 runtime 记录）由并行会话落地，
+  故本 slice 编号由 119 顺延为 120；`tools/program_opench_ch32v307.py` 的脏改动属该并行会话，
+  未纳入本次提交。
