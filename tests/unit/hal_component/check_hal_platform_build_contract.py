@@ -37,7 +37,6 @@ EXPECTED_F4_DEFERRED = {
     "xy_hal_rtc.c",
     "xy_hal_spi.c",
     "xy_hal_timer.c",
-    "xy_hal_uart.c",
 }
 
 # STM32F4 wrappers the STM32L4 branch deliberately does not build: the F4

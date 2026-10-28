@@ -38,15 +38,13 @@ elseif(HAL_PLATFORM STREQUAL "STM32F4")
         xy_hal_i2c.c
         xy_hal_rtc.c
         xy_hal_spi.c
-        xy_hal_timer.c
-        xy_hal_uart.c)
+        xy_hal_timer.c)
     # Literal filters are authoritative (the build-contract guard parses them),
     # so a wrapper can never be "listed as deferred" without being excluded.
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_i2c\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_rtc\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_spi\.c$")
     list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_timer\.c$")
-    list(FILTER HAL_SOURCES EXCLUDE REGEX "/xy_hal_uart\.c$")
     set(HAL_DEFINES
         HAL_PLATFORM_STM32
         STM32F4
