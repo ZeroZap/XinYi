@@ -222,6 +222,10 @@ add_test(NAME pandora_ap3216c_hw_i2c_capture_validator
     COMMAND python3 ${UNIT_SENSOR}/test_pandora_ap3216c_hw_i2c_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_aht10_capture_validator
+    COMMAND python3 ${UNIT_SENSOR}/test_pandora_aht10_capture.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_qma6100p_capture_validator
     COMMAND python3 ${UNIT_SENSOR}/test_pandora_qma6100p_capture.py
     WORKING_DIRECTORY ${ROOT}
@@ -2234,10 +2238,12 @@ target_include_directories(test_pandora_hw_i2c_stack PRIVATE
 # --- Test 33i: Pandora board-owned canonical sensor owners ---
 xy_add_unit_test(test_pandora_sensor_owners pandora_sensor_owners UNITY
     ${UNIT_HAL}/test_pandora_sensor_owners.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_aht10_owner.c
     ${ROOT}/boards/pandora_stm32l475/pandora_ap3216c_owner.c
     ${ROOT}/boards/pandora_stm32l475/pandora_icm20608_owner.c
     ${DEV}/src/xy_device_bus_helpers.c
     ${DEV}/xy_device_core.c
+    ${DRV}/sensor/temperature/aht10/xy_aht10.c
     ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
     ${DRV}/sensor/motion/icm20608/xy_icm20608.c
 )
@@ -2248,6 +2254,7 @@ target_include_directories(test_pandora_sensor_owners PRIVATE
     ${DEV}
     ${DEV}/inc
     ${HAL}/inc
+    ${DRV}/sensor/temperature/aht10
     ${DRV}/sensor/light/ap3216c
     ${DRV}/sensor/motion/icm20608
 )

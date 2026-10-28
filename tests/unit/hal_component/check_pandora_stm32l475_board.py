@@ -79,6 +79,8 @@ def main() -> None:
         BOARD / "CMakeLists.txt",
         "pandora_stm32l475_smoke",
         "pandora_stm32l475_icm20608",
+        "pandora_stm32l475_aht10",
+        "pandora_aht10_owner.c",
         "pandora_icm20608_owner.c",
         "pandora_ap3216c_owner.c",
         "pandora_sys.c",
@@ -233,6 +235,7 @@ def main() -> None:
         "st7789_main.c",
         "sensor_ap3216c_main.c",
         "sensor_icm20608_main.c",
+        "sensor_aht10_main.c",
     )
     init_entries = delay_entries + (
         "fota_bootloader_main.c",
@@ -429,14 +432,49 @@ def main() -> None:
         "xy_icm20608_read_sample",
         "XY_ICM20608_REG_ACCEL_XOUT_H",
     )
+    require(
+        BOARD / "sensor_aht10_main.c",
+        "PANDORA AHT10 SENSOR READY",
+        "AHT10_BUS=SOFT_I2C4 SCL=PD6 SDA=PC1 ADDR=0x38",
+        "PANDORA_I2C4_INIT_DONE",
+        "I2C4_ACK=0x",
+        "PANDORA_I2C4_SCAN_DONE count=",
+        "AHT10_DRIVER_READY ADDR=0x38",
+        "pandora_aht10_owner_init",
+        "pandora_aht10_owner_sample",
+        "AHT10 SAMPLE hum_centi=",
+        "temp_centi=",
+        "PANDORA_AHT10_READ_ERROR",
+        "PANDORA_AHT10_RANGE_ERROR",
+    )
+    # The board image must own U7 through the canonical driver, never through the
+    # inline `xy_i2c_device_*` protocol copy that `main.c` still carries.
+    require(
+        BOARD / "pandora_aht10_owner.c",
+        "pandora_aht10_owner_init",
+        "pandora_aht10_owner_sample",
+        "pandora_aht10_owner_deinit",
+        "xy_aht10_init",
+        "xy_aht10_read",
+        "XY_AHT10_DEFAULT_ADDRESS",
+    )
+    aht10_entry = (BOARD / "sensor_aht10_main.c").read_text(encoding="utf-8")
+    for forbidden in ("0xE1U", "0xACU", "xy_i2c_device_init", "xy_i2c_device_read",
+                      "xy_i2c_device_write", "50000U", "200000U"):
+        assert forbidden not in aht10_entry, (
+            f"sensor_aht10_main.c re-implements the AHT10 protocol instead of using "
+            f"the canonical driver: {forbidden}"
+        )
     # The validation images own their devices through the canonical drivers in
     # `components/drivers/sensor/**`, never through the legacy `sensor_*`
     # compatibility wrappers in `components/sensor/sensors`.
     for sensor_owner in (
         "sensor_ap3216c_main.c",
         "sensor_icm20608_main.c",
+        "sensor_aht10_main.c",
         "pandora_ap3216c_owner.c",
         "pandora_icm20608_owner.c",
+        "pandora_aht10_owner.c",
     ):
         source = (BOARD / sensor_owner).read_text(encoding="utf-8")
         for forbidden in (

@@ -1,19 +1,22 @@
 /**
  * @file test_pandora_sensor_owners.c
- * @brief Pandora board-owned canonical sensor owners (AP3216C / ICM20608).
+ * @brief Pandora board-owned canonical sensor owners (AP3216C / ICM20608 / AHT10).
  *
- * `sensor_ap3216c_main.c` and `sensor_icm20608_main.c` are the two validation
- * images that own the onboard light/proximity and IMU devices. Before this
- * slice they owned those devices through the legacy `sensor_*` compatibility
- * wrappers (`ap3216c_create_light`, `icm20608_create_accel`) and the ICM image
- * even reached into `icm20608_priv_t` to find the canonical driver instance.
+ * `sensor_ap3216c_main.c`, `sensor_icm20608_main.c` and `sensor_aht10_main.c` are
+ * the three validation images that own the onboard light/proximity, IMU and
+ * temperature/humidity devices. Before this slice they owned those devices
+ * through the legacy `sensor_*` compatibility wrappers (`ap3216c_create_light`,
+ * `icm20608_create_accel`) or, for AHT10, by re-implementing the driver protocol
+ * inline in the board smoke image; the ICM image even reached into
+ * `icm20608_priv_t` to find the canonical driver instance.
  *
- * Both images now own a canonical Device driver instance directly through
- * `pandora_ap3216c_owner.c` / `pandora_icm20608_owner.c`. This fixture pins the
- * board-owner contract against a host-side device model seated on the canonical
- * `xy_hal_i2c_*` seam: two I2C register files (0x1E / 0x68) that ACK only while
- * the modelled device is present, and a frame log that records every committed
- * transfer.
+ * All three images now own a canonical Device driver instance directly through
+ * `pandora_ap3216c_owner.c` / `pandora_icm20608_owner.c` /
+ * `pandora_aht10_owner.c`. This fixture pins the board-owner contracts against a
+ * host-side device model seated on the canonical `xy_hal_i2c_*` seam: two I2C
+ * register files (0x1E / 0x68) that ACK only while the modelled device is
+ * present, an AHT10 command model (0x38) that answers the calibration and
+ * measurement commands, and a frame log that records every committed transfer.
  *
  * Evidence boundary: host/compile contract only. No timing, bus-electrical,
  * clock-stretching, real-silicon, or board-runtime behaviour is claimed here.
@@ -21,6 +24,7 @@
 
 #include "unity.h"
 
+#include "pandora_aht10_owner.h"
 #include "pandora_ap3216c_owner.h"
 #include "pandora_icm20608_owner.h"
 
@@ -42,6 +46,10 @@
 #define FRAME_BYTES 16U
 #define AP_DEVICE 0U
 #define ICM_DEVICE 1U
+#define AHT10_DEVICE 2U
+#define DEVICE_SLOTS 3U
+#define AHT10_COMMAND_BYTES 3U
+#define AHT10_FRAME_BYTES 6U
 
 typedef struct {
     uint16_t address;
@@ -51,9 +59,9 @@ typedef struct {
     uint8_t bytes[FRAME_BYTES];
 } frame_t;
 
-static uint8_t g_regs[2][REG_SPACE];
-static uint8_t g_reg_pointer[2];
-static int g_present[2];
+static uint8_t g_regs[DEVICE_SLOTS][REG_SPACE];
+static uint8_t g_reg_pointer[DEVICE_SLOTS];
+static int g_present[DEVICE_SLOTS];
 static unsigned int g_write_frames;
 static unsigned int g_read_frames;
 static unsigned int g_delay_ms;
@@ -64,6 +72,12 @@ static unsigned int g_frame_count;
 /* The board handle is opaque to the owners; this fixture never inspects it. */
 static uint8_t g_ap_bus;
 static uint8_t g_icm_bus;
+static uint8_t g_aht10_bus;
+
+/* AHT10 answers commands, not register reads: it has no register file. */
+static uint8_t g_aht10_frame[AHT10_FRAME_BYTES];
+static unsigned int g_aht10_init_commands;
+static unsigned int g_aht10_measure_commands;
 
 static int device_slot(uint16_t address) {
     if (address == XY_AP3216C_DEFAULT_ADDRESS) {
@@ -71,6 +85,9 @@ static int device_slot(uint16_t address) {
     }
     if (address == XY_ICM20608_ADDR_DEFAULT) {
         return (int)ICM_DEVICE;
+    }
+    if (address == XY_AHT10_DEFAULT_ADDRESS) {
+        return (int)AHT10_DEVICE;
     }
     return -1;
 }
@@ -98,6 +115,27 @@ static void frame_record(uint16_t address, uint32_t timeout, uint8_t read_not_wr
 
 /* --- canonical I2C HAL seam -------------------------------------------- */
 
+/* AHT10 protocol: a 3-byte command write, then a bare 6-byte read. */
+static xy_hal_error_t aht10_command(const uint8_t* data, size_t len) {
+    static const uint8_t calibrate[AHT10_COMMAND_BYTES] = {0xE1U, 0x08U, 0x00U};
+    static const uint8_t measure[AHT10_COMMAND_BYTES] = {0xACU, 0x33U, 0x00U};
+
+    if (data == NULL || len != AHT10_COMMAND_BYTES) {
+        return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (memcmp(data, calibrate, AHT10_COMMAND_BYTES) == 0) {
+        ++g_aht10_init_commands;
+        /* A calibrated AHT10 reports bit3 set and busy clear. */
+        g_aht10_frame[0] = 0x18U;
+        return XY_HAL_OK;
+    }
+    if (memcmp(data, measure, AHT10_COMMAND_BYTES) == 0) {
+        ++g_aht10_measure_commands;
+        return XY_HAL_OK;
+    }
+    return XY_HAL_ERROR_INVALID_PARAM;
+}
+
 xy_hal_error_t xy_hal_i2c_master_transmit(void* i2c, uint16_t dev_addr, const uint8_t* data,
                                           size_t len, uint32_t timeout) {
     int slot = device_slot(dev_addr);
@@ -105,6 +143,9 @@ xy_hal_error_t xy_hal_i2c_master_transmit(void* i2c, uint16_t dev_addr, const ui
     frame_record(dev_addr, timeout, 0U, data, len);
     if (i2c == NULL || slot < 0 || !g_present[slot]) {
         return XY_HAL_ERROR_IO;
+    }
+    if (slot == (int)AHT10_DEVICE) {
+        return aht10_command(data, len);
     }
     if (data == NULL || len == 0U) {
         return XY_HAL_ERROR_INVALID_PARAM;
@@ -130,6 +171,14 @@ xy_hal_error_t xy_hal_i2c_master_receive(void* i2c, uint16_t dev_addr, uint8_t* 
     }
     if (data == NULL || len == 0U) {
         return XY_HAL_ERROR_INVALID_PARAM;
+    }
+    if (slot == (int)AHT10_DEVICE) {
+        if (len != AHT10_FRAME_BYTES) {
+            return XY_HAL_ERROR_INVALID_PARAM;
+        }
+        memcpy(data, g_aht10_frame, AHT10_FRAME_BYTES);
+        ++g_read_frames;
+        return XY_HAL_OK;
     }
     if ((size_t)g_reg_pointer[slot] + len > REG_SPACE) {
         return XY_HAL_ERROR_INVALID_PARAM;
@@ -233,10 +282,14 @@ void setUp(void) {
     memset(g_frames, 0, sizeof(g_frames));
     g_present[AP_DEVICE] = 1;
     g_present[ICM_DEVICE] = 1;
+    g_present[AHT10_DEVICE] = 1;
     g_write_frames = 0U;
     g_read_frames = 0U;
     g_delay_ms = 0U;
     g_frame_count = 0U;
+    memset(g_aht10_frame, 0, sizeof(g_aht10_frame));
+    g_aht10_init_commands = 0U;
+    g_aht10_measure_commands = 0U;
     /* A real ICM20608 always answers WHO_AM_I; the model must too. */
     g_regs[ICM_DEVICE][XY_ICM20608_REG_WHO_AM_I] = XY_ICM20608_WHO_AM_I;
 }
@@ -273,6 +326,17 @@ static void program_ap3216c_raws(void) {
     g_regs[AP_DEVICE][XY_AP3216C_REG_ALS_DATA_L + 1U] = 0x12U; /* ALS high */
     g_regs[AP_DEVICE][XY_AP3216C_REG_PS_DATA_L] = 0x05U;       /* PS low  */
     g_regs[AP_DEVICE][XY_AP3216C_REG_PS_DATA_L + 1U] = 0x03U;  /* PS high */
+}
+
+/* AHT10 frame: status 0x18, humidity raw 0x80000 (50.00 %RH), temperature raw
+ * 0x60000 (25.00 C); both decode to exact centi values, so a shift error shows. */
+static void program_aht10_frame(void) {
+    g_aht10_frame[0] = 0x18U;
+    g_aht10_frame[1] = 0x80U;
+    g_aht10_frame[2] = 0x00U;
+    g_aht10_frame[3] = 0x06U;
+    g_aht10_frame[4] = 0x00U;
+    g_aht10_frame[5] = 0x00U;
 }
 
 /* accel x=0x1000 y=0xF000 z=0x0400, temp=0x0800, gyro x=0x0100 y=0xFF00 z=0. */
@@ -636,6 +700,168 @@ static void test_icm20608_owner_sample_preserves_output_when_the_bus_dies(void) 
     TEST_ASSERT_EQUAL_UINT(0U, g_read_frames);
 }
 
+/* --- AHT10 board owner -------------------------------------------------- */
+
+static void test_aht10_owner_init_sends_the_calibration_command(void) {
+    pandora_aht10_owner_t owner;
+
+    memset(&owner, 0, sizeof(owner));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_init(&owner, &g_aht10_bus));
+
+    /* The owner commits a live canonical instance bound to the board bus. */
+    TEST_ASSERT_EQUAL_UINT8(1U, owner.device.initialized);
+    TEST_ASSERT_EQUAL_UINT16(XY_AHT10_DEFAULT_ADDRESS, owner.device.i2c_dev.dev_addr);
+    TEST_ASSERT_EQUAL_PTR(&g_aht10_bus, owner.device.i2c_dev.i2c_handle);
+
+    /* Exactly one 0xE1 0x08 0x00 calibration write, then the documented settle. */
+    TEST_ASSERT_EQUAL_UINT(1U, g_frame_count);
+    TEST_ASSERT_EQUAL_UINT(1U, g_aht10_init_commands);
+    TEST_ASSERT_EQUAL_UINT16(XY_AHT10_DEFAULT_ADDRESS, frame_at(0U)->address);
+    TEST_ASSERT_EQUAL_UINT8(0U, frame_at(0U)->read_not_write);
+    TEST_ASSERT_EQUAL_UINT8(AHT10_COMMAND_BYTES, frame_at(0U)->length);
+    TEST_ASSERT_EQUAL_UINT8(0xE1U, frame_at(0U)->bytes[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x08U, frame_at(0U)->bytes[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x00U, frame_at(0U)->bytes[2]);
+    TEST_ASSERT_EQUAL_UINT(10U, g_delay_ms);
+}
+
+static void test_aht10_owner_init_rejects_missing_arguments(void) {
+    pandora_aht10_owner_t owner;
+
+    memset(&owner, 0, sizeof(owner));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, pandora_aht10_owner_init(NULL, &g_aht10_bus));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, pandora_aht10_owner_init(&owner, NULL));
+    TEST_ASSERT_EQUAL_UINT(0U, g_frame_count);
+    TEST_ASSERT_EQUAL_UINT8(0U, owner.device.initialized);
+}
+
+static void test_aht10_owner_init_propagates_a_bus_fault_and_keeps_state(void) {
+    pandora_aht10_owner_t owner;
+
+    memset(&owner, 0, sizeof(owner));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_init(&owner, &g_aht10_bus));
+
+    g_present[AHT10_DEVICE] = 0;
+    g_frame_count = 0U;
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, pandora_aht10_owner_init(&owner, &g_aht10_bus));
+
+    /* Fail closed: the rejected reinit must not clear the live instance. */
+    TEST_ASSERT_EQUAL_UINT8(1U, owner.device.initialized);
+    TEST_ASSERT_EQUAL_PTR(&g_aht10_bus, owner.device.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_UINT(1U, g_frame_count);
+}
+
+static void test_aht10_owner_access_is_fail_closed_before_init(void) {
+    pandora_aht10_owner_t owner;
+    xy_aht10_data_t sample = {111, 222};
+
+    memset(&owner, 0, sizeof(owner));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, pandora_aht10_owner_sample(&owner, &sample));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, pandora_aht10_owner_sample(NULL, &sample));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, pandora_aht10_owner_deinit(&owner));
+
+    TEST_ASSERT_EQUAL_INT32(111, sample.temperature_centi_c);
+    TEST_ASSERT_EQUAL_UINT32(222U, sample.humidity_centi_pct);
+    TEST_ASSERT_EQUAL_UINT(0U, g_frame_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_delay_ms);
+}
+
+static void test_aht10_owner_sample_sends_measure_and_decodes_centi(void) {
+    pandora_aht10_owner_t owner;
+    xy_aht10_data_t sample;
+
+    memset(&owner, 0, sizeof(owner));
+    memset(&sample, 0, sizeof(sample));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_init(&owner, &g_aht10_bus));
+    program_aht10_frame();
+    g_frame_count = 0U;
+    g_delay_ms = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_sample(&owner, &sample));
+
+    /* 20-bit raw 0x80000 -> 5000 centi-%RH, raw 0x60000 -> 2500 centi-C. */
+    TEST_ASSERT_EQUAL_UINT32(5000U, sample.humidity_centi_pct);
+    TEST_ASSERT_EQUAL_INT32(2500, sample.temperature_centi_c);
+    /* The owner mirrors the committed frame for later reads. */
+    TEST_ASSERT_EQUAL_UINT32(5000U, owner.device.data.humidity_centi_pct);
+    TEST_ASSERT_EQUAL_INT32(2500, owner.device.data.temperature_centi_c);
+
+    /* Measure command first, then one bare six-byte frame read. */
+    TEST_ASSERT_EQUAL_UINT(2U, g_frame_count);
+    TEST_ASSERT_EQUAL_UINT8(0U, frame_at(0U)->read_not_write);
+    TEST_ASSERT_EQUAL_UINT8(AHT10_COMMAND_BYTES, frame_at(0U)->length);
+    TEST_ASSERT_EQUAL_UINT8(0xACU, frame_at(0U)->bytes[0]);
+    TEST_ASSERT_EQUAL_UINT8(0x33U, frame_at(0U)->bytes[1]);
+    TEST_ASSERT_EQUAL_UINT8(0x00U, frame_at(0U)->bytes[2]);
+    TEST_ASSERT_EQUAL_UINT8(1U, frame_at(1U)->read_not_write);
+    TEST_ASSERT_EQUAL_UINT8(AHT10_FRAME_BYTES, frame_at(1U)->length);
+    TEST_ASSERT_EQUAL_UINT(1U, g_aht10_measure_commands);
+    TEST_ASSERT_EQUAL_UINT(80U, g_delay_ms);
+}
+
+static void test_aht10_owner_sample_preserves_output_on_busy_status(void) {
+    pandora_aht10_owner_t owner;
+    xy_aht10_data_t sample = {0, 0};
+
+    memset(&owner, 0, sizeof(owner));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_init(&owner, &g_aht10_bus));
+    program_aht10_frame();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_sample(&owner, &sample));
+    TEST_ASSERT_EQUAL_UINT32(5000U, sample.humidity_centi_pct);
+
+    /* Busy bit set: the measurement is not ready yet. */
+    g_aht10_frame[0] = 0xB8U;
+    g_aht10_frame[1] = 0x40U;
+    sample.humidity_centi_pct = 4242U;
+    sample.temperature_centi_c = 999;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_BUSY, pandora_aht10_owner_sample(&owner, &sample));
+
+    TEST_ASSERT_EQUAL_UINT32(4242U, sample.humidity_centi_pct);
+    TEST_ASSERT_EQUAL_INT32(999, sample.temperature_centi_c);
+    /* The driver cache keeps the last complete frame too. */
+    TEST_ASSERT_EQUAL_UINT32(5000U, owner.device.data.humidity_centi_pct);
+    TEST_ASSERT_EQUAL_INT32(2500, owner.device.data.temperature_centi_c);
+}
+
+static void test_aht10_owner_sample_preserves_output_when_the_bus_dies(void) {
+    pandora_aht10_owner_t owner;
+    xy_aht10_data_t sample;
+
+    memset(&owner, 0, sizeof(owner));
+    memset(&sample, 0, sizeof(sample));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_init(&owner, &g_aht10_bus));
+    program_aht10_frame();
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_sample(&owner, &sample));
+
+    g_present[AHT10_DEVICE] = 0;
+    sample.humidity_centi_pct = 1234U;
+    sample.temperature_centi_c = -700;
+    g_frame_count = 0U;
+    g_read_frames = 0U;
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_IO_ERROR, pandora_aht10_owner_sample(&owner, &sample));
+
+    TEST_ASSERT_EQUAL_UINT32(1234U, sample.humidity_centi_pct);
+    TEST_ASSERT_EQUAL_INT32(-700, sample.temperature_centi_c);
+    TEST_ASSERT_EQUAL_UINT(1U, g_frame_count);
+    TEST_ASSERT_EQUAL_UINT(0U, g_read_frames);
+}
+
+static void test_aht10_owner_deinit_clears_the_owner(void) {
+    pandora_aht10_owner_t owner;
+    xy_aht10_data_t sample;
+
+    memset(&owner, 0, sizeof(owner));
+    memset(&sample, 0, sizeof(sample));
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_init(&owner, &g_aht10_bus));
+
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_OK, pandora_aht10_owner_deinit(&owner));
+    TEST_ASSERT_EQUAL_UINT8(0U, owner.device.initialized);
+    TEST_ASSERT_NULL(owner.device.i2c_dev.i2c_handle);
+    TEST_ASSERT_EQUAL_INT(XY_DEVICE_INVALID_PARAM, pandora_aht10_owner_sample(&owner, &sample));
+}
+
 /* --- runner ------------------------------------------------------------ */
 
 int main(void) {
@@ -655,5 +881,13 @@ int main(void) {
     RUN_TEST(test_icm20608_owner_raw_read_starts_at_the_accel_block);
     RUN_TEST(test_icm20608_owner_sample_scales_the_fourteen_byte_block);
     RUN_TEST(test_icm20608_owner_sample_preserves_output_when_the_bus_dies);
+    RUN_TEST(test_aht10_owner_init_sends_the_calibration_command);
+    RUN_TEST(test_aht10_owner_init_rejects_missing_arguments);
+    RUN_TEST(test_aht10_owner_init_propagates_a_bus_fault_and_keeps_state);
+    RUN_TEST(test_aht10_owner_access_is_fail_closed_before_init);
+    RUN_TEST(test_aht10_owner_sample_sends_measure_and_decodes_centi);
+    RUN_TEST(test_aht10_owner_sample_preserves_output_on_busy_status);
+    RUN_TEST(test_aht10_owner_sample_preserves_output_when_the_bus_dies);
+    RUN_TEST(test_aht10_owner_deinit_clears_the_owner);
     return UNITY_END();
 }
