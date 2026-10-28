@@ -1,0 +1,47 @@
+{
+  "board": "pandora_stm32l475",
+  "capture_port": "/dev/ttyUSB0 (CP2102, 115200 8N1)",
+  "images": {
+    "green_bin_sha256": "a7fec77b723edf7518bd6970cee5d504071d4d29ca38a4e43a22245709b56148",
+    "red_bin_sha256": "9955dc8c007578d45fea777cb1e707e7c64a98d473fb65259eba1f20f95670fd",
+    "head_bin_sha256": "a7fec77b723edf7518bd6970cee5d504071d4d29ca38a4e43a22245709b56148"
+  },
+  "runs": {
+    "timebase-bound-green.log": {
+      "variant": "binding in xy_os_kernel_start (HEAD)",
+      "bytes": 443,
+      "sha256": "5037b341b900d7cacb06c9da3a55473892034faaf077d22a73ad54546a4d43e2",
+      "firmware_commit": "1bf2c3fdddc74e64ae3b4fbdb76162c562881629",
+      "pre_scheduler_hal_tick": 4,
+      "task_hal_tick_delta": 20,
+      "banner_seen": true,
+      "error_markers": []
+    },
+    "timebase-bound-red.log": {
+      "variant": "binding put back in xy_os_kernel_init (local mutation)",
+      "bytes": 443,
+      "sha256": "7ac7bec9ba4a4ec5ff78e975f1c70e8df96409ce90e38ec16414d8289103a734",
+      "firmware_commit": "1bf2c3fdddc74e64ae3b4fbdb76162c562881629",
+      "pre_scheduler_hal_tick": 0,
+      "task_hal_tick_delta": 20,
+      "banner_seen": true,
+      "error_markers": []
+    },
+    "timebase-inert-binding.log": {
+      "variant": "binding compiled out (components/hal/inc missing)",
+      "bytes": 443,
+      "sha256": "ab0aacc04c58965c16c993078cdb1ad089b992b178584608a87810a46bcd445b",
+      "firmware_commit": "7130db279a774549055374a82dde8e511e56970d",
+      "pre_scheduler_hal_tick": 4,
+      "task_hal_tick_delta": 20,
+      "banner_seen": true,
+      "error_markers": []
+    }
+  },
+  "restore": {
+    "snapshot": "2026-10-29T014913/pandora-state",
+    "verify_ok_regions": 5,
+    "bootloader_sha256": "762c4a757863f1dab00a7854c736f371358e3a2598c4ae7bd0ff878a21dda142",
+    "application_sha256": "d35e2e9ab2fe7249c20492b0e4b651bc64c947d0e7af4074a55f3dcfe506eca4"
+  }
+}
