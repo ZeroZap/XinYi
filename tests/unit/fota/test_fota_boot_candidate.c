@@ -699,10 +699,23 @@ static void test_install_journal_rolls_back_after_bounded_unconfirmed_boots(void
         XY_FOTA_NO_IMAGE,
         xy_fota_boot_candidate_confirm(&config, &install_ops, &journal_config));
     installed = 1;
-    TEST_ASSERT_EQUAL_INT(
-        XY_FOTA_VERSION_ERROR,
-        xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config, &installed));
-    TEST_ASSERT_FALSE(installed);
+    {
+        /* The fourth boot: the rolled-back candidate must be refused without touching
+         * flash, so the durable rollback record stays the last word. */
+        unsigned int journal_writes_before = journal_write_calls;
+        unsigned int journal_erases_before = journal_erase_calls;
+        uint8_t journal_before[sizeof(journal)];
+
+        memcpy(journal_before, journal, sizeof(journal));
+        TEST_ASSERT_EQUAL_INT(
+            XY_FOTA_VERSION_ERROR,
+            xy_fota_boot_candidate_install_once(&config, &install_ops, &journal_config,
+                                                &installed));
+        TEST_ASSERT_FALSE(installed);
+        TEST_ASSERT_EQUAL_UINT(journal_writes_before, journal_write_calls);
+        TEST_ASSERT_EQUAL_UINT(journal_erases_before, journal_erase_calls);
+        TEST_ASSERT_EQUAL_MEMORY(journal_before, journal, sizeof(journal));
+    }
     TEST_ASSERT_EQUAL_UINT(1U, erase_calls);
 }
 

@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "tool": "tools/pandora_hil_program.py",
+  "board": "pandora_stm32l475",
+  "created_utc": "2026-10-28T13:22:33+00:00",
+  "image": {
+    "path": "build/pandora-rtos/boards/pandora_stm32l475/pandora_stm32l475_fota_bootloader.bin",
+    "size": 15548,
+    "sha256": "24cdd9dfe6c4dc300045f88db3ab415aa155afc7cbe7762a057b9d47e1301f27",
+    "address": "0x8000000",
+    "region": "bootloader"
+  },
+  "readback": {
+    "span_identical": true,
+    "first_diff": null,
+    "observed_sha256": "24cdd9dfe6c4dc300045f88db3ab415aa155afc7cbe7762a057b9d47e1301f27",
+    "erased_tail": 836,
+    "unexpected_changes": 0,
+    "unexpected_first": null
+  },
+  "reset": false,
+  "drift": [],
+  "drift_stable": true,
+  "drift_samples": 0,
+  "drift_seconds": 0.0,
+  "drift_window": {
+    "settle": 3.0,
+    "stable_for": 3.0,
+    "poll": 0.5,
+    "max_wait": 20.0
+  },
+  "restore_command": "tools/pandora_hil_state.py restore --snapshot /home/eugene/xinyi-hw-evidence/2026-10-28-bootloader-rollback/s0 --yes"
+}

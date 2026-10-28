@@ -1,0 +1,39 @@
+{
+  "application_line_sample": [],
+  "application_lines": 0,
+  "attempt_markers": 0,
+  "baudrate": 115200,
+  "boot_count": 1,
+  "capture_bytes": 119,
+  "capture_sha256": "1abfa3ea6f69ef73db687ea746f6e71ae5595b2c1ce312b3d46eda6c1450fe15",
+  "captured_at_utc": "2026-10-28T13:24:24.085424+00:00",
+  "chain": "HALT_ERROR",
+  "confirm_markers": 0,
+  "device": "/dev/ttyUSB0",
+  "expect": "install_error",
+  "expect_matched": true,
+  "failures": [],
+  "firmware_commit": "7db31c06c6c5032017e2ceabc5dfd1542ef5f64d",
+  "format": "8-N-1",
+  "frames": [
+    {
+      "decision": "PANDORA_BOOT_INSTALL_ERROR",
+      "install": null,
+      "jump": false,
+      "restage": false
+    }
+  ],
+  "install_markers": [
+    null
+  ],
+  "not_evidence_for": [
+    "power-loss or brownout behaviour",
+    "journal flash endurance",
+    "runtime behaviour of the application the bootloader jumps into",
+    "cryptographic or signature-based FOTA"
+  ],
+  "scope": "resident bootloader decision sequence as printed over UART: candidate install step, confirm/attempt/rollback decision, and vector handoff marker",
+  "status": "BOOTLOADER_CHAIN_REVIEW_CANDIDATE",
+  "terminal": "halt_error",
+  "timeout_seconds": 12.0
+}
