@@ -1,5 +1,23 @@
 # XinYi Sprint 跟踪看板
 
+**最新 Pandora 实板 runtime 验证：canonical 传感器 owner（2026-10-28）**：S6-116 只到 source/Host/
+compile，明确标注板上 owner 切换无 runtime 证据。本轮在两块已接入的实板上补这一格（Pandora
+STM32L475 + openCH CH32V307）。按 `2a596d90` 重新构建并烧录 Pandora 两个传感器镜像：
+`pandora_stm32l475_ap3216c.bin`（11328 B）经 ST-Link V2.1 write+verify 后，CP2102 `/dev/ttyUSB0`
+115200 8N1 采集（复位同步以捕获 boot 头），`validate_ap3216c_hw_i2c_capture.py` 判定
+**`AP3216C_HW_I2C3_B1`** —— 8 个有序 marker 全中、无 error marker、27 样本 23 唯一值全在公开量程内，
+DIAG `INT=0x00 ALS_CONF=0x00 PS_CONF=0x05 PS_LED=0x13`。`pandora_stm32l475_icm20608.bin`
+（10424 B）烧录后 `WHO_AM_I=0xAE`、`INIT_PATH=ACCEL_ONLY RESET_COUNT=1`、寄存器快照
+`PWR_MGMT_1=0x01 PWR_MGMT_2=0x00 ACCEL_CONFIG=0x08 GYRO_CONFIG=0x08 CONFIG=0x04 ACCEL_CONFIG2=0x04
+INT_STATUS=0x01`（±4 g / ±500 dps）、88 组静置样本 ACCEL≈(-27,-9,1002) mg、GYRO≈(1,0,0) dps。
+**过程要点**：14:03 的旧镜像内嵌 `a850803a`，validator 因 firmware-commit 不匹配正确判 FAIL；重新对
+HEAD 构建（需 reconfigure 才能刷新内嵌 commit）后才通过。原始日志与 sha256 存
+`~/xinyi-hw-evidence/2026-10-28/`。**边界**：AP3216C 为 B1（有自动 validator 门），ICM20608 仅有
+原始 marker 证据且**仓库暂无对应 validator**；未做绝对精度、时序边沿、长稳、EMC 或量产判定；未烧录
+bootloader/FOTA。**openCH 侧本轮无法推进**：WCH-Link 已在位（1a86:8010 / `/dev/ttyACM0`），但本机缺
+RISC-V 交叉工具链与 WCH OpenOCD，`cmake -S boards/opench_ch32v307` 直接落到 `/usr/bin/cc`，镜像无法
+构建、更无法烧录。
+
 **最新 STM32F4 I2C wrapper 契约迁移（2026-10-28）**：S6-117 之后 F4 deferred 里 I2C 的问题最严重——
 旧实现**根本编译不过**：引用公开 HAL 从未声明的 `xy_hal_i2c_handle_t`，并返回
 `XY_HAL_I2C_ADDRESSINGMODE_*` 而非 vendor 的 `I2C_ADDRESSINGMODE_*`。语义层面同样有缺陷：全部入口
@@ -686,6 +704,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 
 | S6-117 | P0 | STM32F4 UART wrapper 契约迁移与结构性缺陷收口 | DONE | Zero | S6-111（DONE）；F4 非参考板平台；L4 已有 dedicated wrapper 作为契约参照 | 旧 `stm32f4/xy_hal_uart.c` 被 deferred 的原因是结构性缺陷：全部入口声明 `int` 而非 `xy_hal_error_t`（`-fsyntax-only` 复现 8 处 conflicting types）、`send`/`recv` 把传输长度当返回值发布、`flush` 无超时 `while (gState != READY);` 死等、三个 vendor 完成回调是 `void` 却试图返回值、`register_callback` 不记录上下文、`available` 恒返回 0、`xy_hal_uart_error`/`xy_hal_uart_set_error_cb` 缺失。现按 L4 契约重写：vendor `UART_*` 映射、`uart_status()` 映射 `HAL_TIMEOUT/HAL_BUSY`、`uart_config_check()` 在首次 `Init` 写入前拒绝越界与 F4 不可表示配置（7-bit / 1.5 停止位 → `NOT_SUPPORTED`）、`flush` 报告 busy、callback 上下文真实记录并由三个 vendor 回调分发、补齐两个缺失入口。F4 gate 真实编译该 obj 并导出 11 个公开入口 + 3 个 vendor 回调。新增 CTest `stm32f4_uart_wrapper_contract`（对迁移前源 30+ 项 RED）；deferred 集合 5→4。Host 292/292、PC/L4/U5/F4 build、Pandora `pandora_stm32l475_smoke` link 与 `git diff --check` 通过 | 仅 source/compile 级证据：未烧录，无 F4 UART runtime、波特率精度、DMA 收发、中断延迟或错误恢复实板结论；F4 的 i2c/rtc/spi/timer 仍为显式 deferred | 本记录提交 | 2026-10-28 |
 | S6-118 | P0 | STM32F4 I2C wrapper 契约迁移与地址/寄存器宽度缺陷收口 | DONE | Zero | S6-117（DONE）；F4 非参考板平台；L4 已有 dedicated wrapper 作为契约参照 | 旧 `stm32f4/xy_hal_i2c.c` **根本无法编译**：引用公开 HAL 从未声明的 `xy_hal_i2c_handle_t`，并返回 `XY_HAL_I2C_ADDRESSINGMODE_*` 而非 vendor `I2C_ADDRESSINGMODE_*`（F4 gate 实测 undeclared + conflicting types）。语义缺陷：全部入口 `int` 而非 `xy_hal_error_t`、`dev_addr << 1` 前无范围校验（8-bit 地址会静默寻址到另一颗器件）、`reg_addr` 无条件 8-bit 截断、`register_callback` 不记录、`xy_hal_i2c_error`/`set_error_cb` 缺失。现按 L4 契约重写并补 F4 专属：`ClockSpeed`/`DutyCycle` 编程、7-bit 地址上限校验、`i2c_mem_address_size()` 依 `reg_addr` 选 8/16-bit、callback 上下文记录并由三个 vendor 回调分发；analog/digital filter 仅在提供 I2C FLTR 的型号存在（`STM32F407` 没有），故 `HAL_I2CEx_*` 以 `I2C_FLTR_ANOFF`/`I2C_FLTR_DNF` 守卫。F4 gate 真实编译该 obj 并导出 12 个公开入口 + 3 个 vendor 回调。新增 CTest `stm32f4_i2c_wrapper_contract`（对迁移前源 25+ 项 RED）；deferred 集合 4→3。Host 293/293、PC/L4/U5/F4 build、Pandora `pandora_stm32l475_smoke` link 与 `git diff --check` 通过 | 仅 source/compile 级证据：未烧录，无 F4 I2C runtime、时序/时钟拉伸/总线恢复、DMA 事务、中断延迟或错误恢复实板结论；F4 的 rtc/spi/timer 仍为显式 deferred | 本记录提交 | 2026-10-28 |
+| S6-119 | P0 | Pandora 传感器镜像 canonical owner 实板 runtime 验证（AP3216C / ICM20608） | DONE | Zero | S6-116（DONE，仅 source/Host/compile，板上 owner 切换无 runtime 证据）；两块实板已接入电脑 | S6-116 明确标注"板上 owner 切换本身仍无 runtime 证据"。本轮按 `2a596d90` 重新构建并烧录 Pandora 两个传感器镜像做实板验证。**AP3216C**：`pandora_stm32l475_ap3216c.bin`（11328 B，镜像内嵌 `FIRMWARE_COMMIT 2a596d90…`）经 ST-Link V2.1（V2J24S11，序列 066AFF31…）write+verify 通过，CP2102 `/dev/ttyUSB0` 115200 8N1 采集，复位同步后捕获 boot 头 → `validate_ap3216c_hw_i2c_capture.py` 判定 **`AP3216C_HW_I2C3_B1`**：8 个有序 marker 全中且无 error marker（READY / FIRMWARE_COMMIT / BUS=HW_I2C3 SCL=PC0 SDA=PC1 ADDR=0x1E / HW_I2C_READY / NACK_OBSERVED 0x7F / NACK_RECOVERED 0x1E / CONFIG=0x03 MODE=ALS_PS / DIAG），27 样本 23 唯一值全在公开量程内，DIAG `INT=0x00 ALS_CONF=0x00 PS_CONF=0x05 PS_LED=0x13`。**ICM20608**：`pandora_stm32l475_icm20608.bin`（10424 B，同 commit）烧录后 `ICM20608_WHO_AM_I_RAW=174`(0xAE) / `ADDR=0x68 WHO_AM_I=0xAE` / `INIT_PATH=ACCEL_ONLY RESET_COUNT=1`，寄存器快照 `PWR_MGMT_1=0x01 PWR_MGMT_2=0x00 ACCEL_CONFIG=0x08 GYRO_CONFIG=0x08 CONFIG=0x04 ACCEL_CONFIG2=0x04 INT_STATUS=0x01`（±4 g / ±500 dps 与设计一致），88 组样本 ACCEL≈(-27,-9,1002) mg、GYRO≈(1,0,0) dps（静置重力在 Z 轴）。原始证据与 sha256 存于 `~/xinyi-hw-evidence/2026-10-28/`。**首次尝试被正确拒绝**：14:03 的镜像内嵌 `a850803a`，validator 以 firmware-commit 不匹配判 FAIL，重新按 HEAD 构建后才通过 | AP3216C 为 B1（含自动 validator 门）；ICM20608 仅有原始 marker 证据、**仓库暂无对应 validator**，不构成产品级结论。未做温湿度/光照绝对精度、时序边沿、长稳、EMC 或量产判定；未烧录 bootloader/FOTA 镜像 | 本记录提交 | 2026-10-28 |
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
 > `production-candidate` 仅表示下一步重建/审查候选；provenance、side-channel、硬件与产品批准仍须独立证据。
