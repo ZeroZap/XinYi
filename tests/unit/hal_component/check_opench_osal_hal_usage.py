@@ -23,6 +23,7 @@ BOARD = ROOT / "boards/opench_ch32v307"
 
 MIGRATED = {
     "osal_freertos_primitives_main.c",
+    "osal_freertos_stall_probe_main.c",
 }
 
 DEFERRED = {

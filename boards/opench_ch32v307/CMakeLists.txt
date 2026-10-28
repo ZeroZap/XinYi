@@ -1298,6 +1298,33 @@ add_executable(opench_ch32v307_osal_freertos_primitives_smoke
         -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_osal_freertos_primitives_smoke.map)
 set_target_properties(opench_ch32v307_osal_freertos_primitives_smoke PROPERTIES SUFFIX ".elf")
 
+add_executable(opench_ch32v307_osal_freertos_stall_probe_smoke
+        osal_freertos_stall_probe_main.c
+        ${_wch_freertos}/Startup/startup_ch32v30x_D8C.S
+        ${_wch_freertos}/User/system_ch32v30x.c
+        ${_wch_sdk}/Peripheral/src/ch32v30x_rcc.c
+        ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
+        ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
+        ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
+    target_include_directories(opench_ch32v307_osal_freertos_stall_probe_smoke PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/components/hal/inc
+        ${CMAKE_SOURCE_DIR}/components/kernel/osal
+        ${CMAKE_SOURCE_DIR}/components/kernel/osal/inc
+        ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_freertos}/User)
+    target_compile_definitions(opench_ch32v307_osal_freertos_stall_probe_smoke PRIVATE
+        MCU_CH32 CH32V30x CH32V30x_D8C
+        XINYI_FIRMWARE_COMMIT="${_firmware_commit}")
+    target_link_libraries(opench_ch32v307_osal_freertos_stall_probe_smoke PRIVATE
+        xy_osal freertos_kernel)
+    target_link_options(opench_ch32v307_osal_freertos_stall_probe_smoke PRIVATE
+        -T${_wch_freertos}/Ld/Link.ld -Wl,--gc-sections -Wl,--print-memory-usage
+        -nostartfiles --specs=nano.specs --specs=nosys.specs
+        -Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/opench_ch32v307_osal_freertos_stall_probe_smoke.map)
+set_target_properties(opench_ch32v307_osal_freertos_stall_probe_smoke PROPERTIES SUFFIX ".elf")
+
 add_executable(opench_ch32v307_osal_freertos_isr_stress_smoke
     osal_freertos_isr_stress_main.c
     ${_wch_freertos}/Startup/startup_ch32v30x_D8C.S
