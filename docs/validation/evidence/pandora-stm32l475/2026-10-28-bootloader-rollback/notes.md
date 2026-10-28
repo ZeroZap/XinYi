@@ -53,8 +53,10 @@ gate write, 14 s window. It contains only the firmware that was already running
 (`ICM20608_*` lines) and no bootloader marker, so
 `BOOTLOADER_CHAIN_VALIDATION_FAILED chain=INVALID boots=0`. The gate's pre-check
 re-reads all 528 KiB before writing, so the write landed after the window closed. A
-`verify` straight afterwards showed `application` and `fota_metadata` byte-identical to
-`s0` — that cycle's write did not start a boot decision.
+`verify` straight afterwards showed `application` and `fota_metadata` byte-identical to `s0` —
+that cycle's write did not start a boot decision. (That `verify` transcript was a session
+observation and is not archived here; the run-1 journal dump below is the archived proof of the
+cycle that *did* boot.)
 
 Why it matters: in the *next* cycle the same gate write did start one (the journal held
 `attempts=1` before the caller issued any reset, and my explicit reset produced
