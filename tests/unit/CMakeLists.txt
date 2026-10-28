@@ -222,6 +222,10 @@ add_test(NAME pandora_pm_sleep_capture_validator
     COMMAND python3 ${UNIT_KERNEL}/test_pandora_pm_sleep_capture.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME pandora_runtime_timeline
+    COMMAND python3 ${UNIT_KERNEL}/test_runtime_timeline.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_ap3216c_capture_validator
     COMMAND python3 ${UNIT_SENSOR}/test_pandora_ap3216c_capture.py
     WORKING_DIRECTORY ${ROOT}

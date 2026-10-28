@@ -9,10 +9,16 @@
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 3
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 301 (measured: `ctest -N` reports 301)
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 304 (measured: `ctest -N` reports 304;
+  the C targets are registered through `xy_add_unit_test(...)`, so `add_test` calls in this file are
+  only the explicit Python/board entries)
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
-  is `pandora_fota_candidate_programmer_capture_validator`
+  is `pandora_runtime_timeline` (`tests/unit/kernel/test_runtime_timeline.py`, 11 cases) which
+  fixes the semantics of `boards/pandora_stm32l475/validate_runtime_timeline.py`: host-arrival
+  timestamps are turned into per-cycle wall time, the largest marker-to-marker gaps, and the excess
+  wall time inside windows whose only firmware work is a known `xy_os_delay()`, and proves the
+  capture path against a real PTY pair; `pandora_fota_candidate_programmer_capture_validator`
   (`tests/unit/fota/test_pandora_fota_candidate_programmer_capture.py`, 19 cases) which judges the
   W25Q128 candidate-programmer marker stream (`READY` → `PROGRAMMER_COMMIT` →
   `CANDIDATE_SOURCE_COMMIT` → `PROGRAMMED_VERIFIED`), binds both commit identities, and rejects a
