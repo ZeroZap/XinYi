@@ -8,15 +8,14 @@
 #ifdef MCU_CH32
 
 #include "ch32v30x.h"
+#include "xy_hal_tick_internal.h"
 
 static uint8_t uart_initialized[8];
 static xy_hal_uart_callback_t error_callbacks[8];
 static void* error_callback_args[8];
 
 static uint32_t uart_tick_ms(void) {
-    uint32_t divisor =
-        (SysTick->CTLR & (1U << 2U)) != 0U ? SystemCoreClock / 1000U : SystemCoreClock / 8000U;
-    return divisor == 0U ? 0U : (uint32_t)(SysTick->CNT / divisor);
+    return xy_hal_tick_ms_internal();
 }
 
 static int uart_valid(void* instance) {

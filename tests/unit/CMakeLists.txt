@@ -107,6 +107,10 @@ add_test(NAME opench_osal_hal_usage
     COMMAND python3 ${UNIT_HAL}/check_opench_osal_hal_usage.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME wch_hal_tick_timebase
+    COMMAND python3 ${UNIT_HAL}/check_wch_hal_tick_timebase.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_st7789_board
     COMMAND python3 ${UNIT_DISPLAY}/check_pandora_st7789_board.py
     WORKING_DIRECTORY ${ROOT}
