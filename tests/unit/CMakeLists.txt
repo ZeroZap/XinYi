@@ -111,6 +111,10 @@ add_test(NAME wch_hal_tick_timebase
     COMMAND python3 ${UNIT_HAL}/check_wch_hal_tick_timebase.py
     WORKING_DIRECTORY ${ROOT}
 )
+add_test(NAME stm32_hal_timebase_hook
+    COMMAND python3 ${UNIT_HAL}/check_stm32_hal_timebase_hook.py
+    WORKING_DIRECTORY ${ROOT}
+)
 add_test(NAME pandora_st7789_board
     COMMAND python3 ${UNIT_DISPLAY}/check_pandora_st7789_board.py
     WORKING_DIRECTORY ${ROOT}

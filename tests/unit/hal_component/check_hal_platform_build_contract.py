@@ -71,6 +71,8 @@ L4_MODULE_REQUIREMENTS = {
     "xy_hal_i2c.c": "HAL_I2C_MODULE_ENABLED",
     "xy_hal_qspi.c": "HAL_QSPI_MODULE_ENABLED",
     "xy_hal_rtc.c": "HAL_RTC_MODULE_ENABLED",
+    # uwTick and HAL_GetTick() come from the HAL core, so no module gate.
+    "xy_hal_time.c": None,
     "xy_hal_spi.c": "HAL_SPI_MODULE_ENABLED",
     "xy_hal_sys.c": "HAL_RCC_MODULE_ENABLED",
     "xy_hal_timer.c": "HAL_TIM_MODULE_ENABLED",

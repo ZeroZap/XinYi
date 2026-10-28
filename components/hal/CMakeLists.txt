@@ -96,6 +96,7 @@ elseif(HAL_PLATFORM STREQUAL "STM32L4")
         "stm32/stm32l4/xy_hal_rtc.c"
         "stm32/stm32l4/xy_hal_spi.c"
         "stm32/stm32l4/xy_hal_sys.c"
+        "stm32/stm32l4/xy_hal_time.c"
         "stm32/stm32l4/xy_hal_timer.c"
         "stm32/stm32l4/xy_hal_uart.c"
         "stm32/stm32l4/xy_hal_wdg.c")
