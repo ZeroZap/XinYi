@@ -1,5 +1,19 @@
 # XinYi Sprint 跟踪看板
 
+**最新 STM32F4 I2C wrapper 契约迁移（2026-10-28）**：S6-117 之后 F4 deferred 里 I2C 的问题最严重——
+旧实现**根本编译不过**：引用公开 HAL 从未声明的 `xy_hal_i2c_handle_t`，并返回
+`XY_HAL_I2C_ADDRESSINGMODE_*` 而非 vendor 的 `I2C_ADDRESSINGMODE_*`。语义层面同样有缺陷：全部入口
+`int` 而非 `xy_hal_error_t`、`dev_addr << 1` 前不做范围校验（传 8-bit 地址会静默寻址到另一颗器件）、
+`reg_addr` 无条件按 8-bit 截断。现按 L4 契约重写并补 F4 专属：`ClockSpeed`/`DutyCycle` 编程（F4 仍用
+显式时钟+占空比而非预计算 `Timing`）、7-bit 地址上限校验、`i2c_mem_address_size()` 依 `reg_addr` 选
+8/16-bit、callback 上下文记录并由三个 vendor 回调分发；analog/digital filter 只在提供 I2C FLTR 的
+型号存在（`STM32F407` 没有），故 `HAL_I2CEx_*` 以 `I2C_FLTR_ANOFF`/`I2C_FLTR_DNF` 守卫。实测 F4 gate
+真实编译 `stm32f4/xy_hal_i2c.c.obj` 并导出 12 个 `xy_hal_i2c_*` 公开入口 + 3 个 vendor 回调；新增
+CTest `stm32f4_i2c_wrapper_contract`（对迁移前源 **25+ 项 RED**），deferred 集合 4→3。Host 293/293、
+PC/L4/U5/F4 build、Pandora `pandora_stm32l475_smoke` link 与 `git diff --check` 通过。**边界**：
+source/compile 级证据，未烧录，无 F4 I2C runtime、时序/时钟拉伸/总线恢复、DMA 事务、中断延迟或错误
+恢复结论；F4 的 `rtc/spi/timer` 仍为显式 deferred。
+
 **最新 STM32F4 UART wrapper 契约迁移（2026-10-28）**：S6-111 之后 F4 deferred 集合里 UART 的缺陷同样是
 结构性的：全部入口声明 `int` 而非 `xy_hal_error_t`、`send`/`recv` 把传输长度当返回值发布、`flush`
 无超时 `while (gState != READY);` 死等、三个 vendor 完成回调是 `void` 却试图返回值、
@@ -671,6 +685,7 @@ Sprint 0 于 2026-08-24 满足全部退出条件并关闭；S0-08 作为非退�
 | S6-116 | P1 | Pandora 传感器镜像改用 canonical board owner（AP3216C / ICM20608） | DONE | Zero | S6-114 / S6-115 证明了两条 transport → Device → canonical 驱动的纵切，但两个镜像**仍以 legacy `sensor_*` wrapper 为板上 owner**：`sensor_ap3216c_main.c` 用 `ap3216c_create_light/proximity/ir`（`SENSOR_MALLOC` 三个 `sensor_device_t` 并把结果映射成 `sensor_err_t`），`sensor_icm20608_main.c` 用 `icm20608_create_accel` 且回手掏 `((icm20608_priv_t*)accel->priv_data)->device` 读样本 —— canonical 驱动只是 Host 已证明、不是板上 owner | 新增 board owner 模块 `pandora_ap3216c_owner.{h,c}` / `pandora_icm20608_owner.{h,c}`，两个镜像改为各持一个 canonical 驱动实例；board `CMakeLists.txt` 不再编译 `sensor_{ap3216c,icm20608}.c`、不再引入 `components/sensor` 与 `SENSOR_USE_FLOAT=0`。owner 契约：`init` 先建 candidate 成功才提交（失败/重 init 时调用方 owner 逐字节不变、不清零）；`sample` 全部通道成功才提交（部分故障保留调用方上一份样本）；未 init 时 `read_reg`/`read_raw` 以 `XY_DEVICE_INVALID_PARAM` 拒绝且零总线流量。新增 CTest `pandora_sensor_owners`（15 用例）：两个 host 侧 I2C 寄存器文件（0x1E / 0x68）坐在 canonical `xy_hal_i2c_*` 缝上，同一 fixture 同时钉住两个 owner —— AP3216C 复位→`ALS_PS` 两写各 50 ms 稳定、7-bit `0x1E`/100 ms 传输契约、6 字节 `IR_DATA_L` 块、三通道原子采样（ALS `*350` millilux、PS 12 位掩码、IR 10 位掩码）与驱动缓存镜像、`0x40` 越界标志与 NACK 的 fail-closed 输出保持；ICM20608 读完 `WHO_AM_I` 才允许任何写（外来身份→`XY_DEVICE_NOT_FOUND`、零写零延时）、复位/100 ms 后 7 条写+读回落在 `0x01/0x00/0x08/0x08/0x09/0x04/0x04`、14 字节 `ACCEL_XOUT_H` 在 4 g/500 dps 下解码为 500/−500/125 mg、3906/−3906/0 mdps、3126 centi-℃、总线中途失效时输出保持。4 种变异反证全部被拦：AP3216C sample 非原子提交（2 FAIL）、ICM owner 在判定结果前提交 candidate（1）、`ADDR_DEFAULT`→`ADDR_ALT`（5）、AP3216C 原始块改从 `ALS_DATA_L` 读（1）。真实交叉编译反证：两镜像 ELF 均导出 `pandora_*_owner_{init,read_reg,read_raw,sample}` 与 canonical init，**零** `sensor_*` 符号、无 `*_create_*`/`icm20608_priv`。board policy guard 改为强制 canonical owner、并禁止 4 个 owner/镜像源出现 legacy wrapper token。focused 15/15、Host 291/291、PC/L4(board)/U5 build、`git diff --check` | 仅 source/Host/compile 契约：未烧录，不升级 I2C 时序/时钟拉伸/总线恢复/真实 AP3216C/ICM20608 通信/board runtime；两镜像 UART marker 流保持不变（既有 capture validator 仍适用），但板上 owner 切换本身仍无 runtime 证据 | 本记录提交 | 2026-10-28 |
 
 | S6-117 | P0 | STM32F4 UART wrapper 契约迁移与结构性缺陷收口 | DONE | Zero | S6-111（DONE）；F4 非参考板平台；L4 已有 dedicated wrapper 作为契约参照 | 旧 `stm32f4/xy_hal_uart.c` 被 deferred 的原因是结构性缺陷：全部入口声明 `int` 而非 `xy_hal_error_t`（`-fsyntax-only` 复现 8 处 conflicting types）、`send`/`recv` 把传输长度当返回值发布、`flush` 无超时 `while (gState != READY);` 死等、三个 vendor 完成回调是 `void` 却试图返回值、`register_callback` 不记录上下文、`available` 恒返回 0、`xy_hal_uart_error`/`xy_hal_uart_set_error_cb` 缺失。现按 L4 契约重写：vendor `UART_*` 映射、`uart_status()` 映射 `HAL_TIMEOUT/HAL_BUSY`、`uart_config_check()` 在首次 `Init` 写入前拒绝越界与 F4 不可表示配置（7-bit / 1.5 停止位 → `NOT_SUPPORTED`）、`flush` 报告 busy、callback 上下文真实记录并由三个 vendor 回调分发、补齐两个缺失入口。F4 gate 真实编译该 obj 并导出 11 个公开入口 + 3 个 vendor 回调。新增 CTest `stm32f4_uart_wrapper_contract`（对迁移前源 30+ 项 RED）；deferred 集合 5→4。Host 292/292、PC/L4/U5/F4 build、Pandora `pandora_stm32l475_smoke` link 与 `git diff --check` 通过 | 仅 source/compile 级证据：未烧录，无 F4 UART runtime、波特率精度、DMA 收发、中断延迟或错误恢复实板结论；F4 的 i2c/rtc/spi/timer 仍为显式 deferred | 本记录提交 | 2026-10-28 |
+| S6-118 | P0 | STM32F4 I2C wrapper 契约迁移与地址/寄存器宽度缺陷收口 | DONE | Zero | S6-117（DONE）；F4 非参考板平台；L4 已有 dedicated wrapper 作为契约参照 | 旧 `stm32f4/xy_hal_i2c.c` **根本无法编译**：引用公开 HAL 从未声明的 `xy_hal_i2c_handle_t`，并返回 `XY_HAL_I2C_ADDRESSINGMODE_*` 而非 vendor `I2C_ADDRESSINGMODE_*`（F4 gate 实测 undeclared + conflicting types）。语义缺陷：全部入口 `int` 而非 `xy_hal_error_t`、`dev_addr << 1` 前无范围校验（8-bit 地址会静默寻址到另一颗器件）、`reg_addr` 无条件 8-bit 截断、`register_callback` 不记录、`xy_hal_i2c_error`/`set_error_cb` 缺失。现按 L4 契约重写并补 F4 专属：`ClockSpeed`/`DutyCycle` 编程、7-bit 地址上限校验、`i2c_mem_address_size()` 依 `reg_addr` 选 8/16-bit、callback 上下文记录并由三个 vendor 回调分发；analog/digital filter 仅在提供 I2C FLTR 的型号存在（`STM32F407` 没有），故 `HAL_I2CEx_*` 以 `I2C_FLTR_ANOFF`/`I2C_FLTR_DNF` 守卫。F4 gate 真实编译该 obj 并导出 12 个公开入口 + 3 个 vendor 回调。新增 CTest `stm32f4_i2c_wrapper_contract`（对迁移前源 25+ 项 RED）；deferred 集合 4→3。Host 293/293、PC/L4/U5/F4 build、Pandora `pandora_stm32l475_smoke` link 与 `git diff --check` 通过 | 仅 source/compile 级证据：未烧录，无 F4 I2C runtime、时序/时钟拉伸/总线恢复、DMA 事务、中断延迟或错误恢复实板结论；F4 的 rtc/spi/timer 仍为显式 deferred | 本记录提交 | 2026-10-28 |
 
 > Sprint 2 的实板工作继续保持阻塞时，只推进不冒充安全批准的 Crypto/FOTA 边界。
 > `production-candidate` 仅表示下一步重建/审查候选；provenance、side-channel、硬件与产品批准仍须独立证据。

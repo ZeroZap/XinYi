@@ -32,7 +32,7 @@
 | Platform | GPIO | UART | I2C | SPI | Timer | I2S | DMA | Host | Compile/QEMU | Board |
 |---|---|---|---|---|---|---|---|---|---|---|
 | STM32U5 | `PARTIAL_SOURCE`（EXTI 依赖 SDK IRQ 定义） | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `SOURCE_PRESENT` | `UNSUPPORTED`（显式 stub） | `SOURCE_PRESENT` | `HOST_CONTRACT`（通用 API/PC，不是 U5 runtime） | `COMPILE_ONLY` 历史记录；当前 SDK/toolchain 不可用，需重跑 | `BOARD_PENDING` |
-| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；11/15 wrapper，见下） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_uart_*` 全 11 个公开入口 + 3 个 vendor 完成回调已导出） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_dma_*` 符号已导出并引用 `HAL_DMA_*`） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
+| STM32F4 | `SOURCE_PRESENT`（真实编译进 archive；12/15 wrapper，见下） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_uart_*` 全 11 个公开入口 + 3 个 vendor 完成回调已导出） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_i2c_*` 全 12 个公开入口 + 3 个 vendor 完成回调已导出） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（同上：deferred） | `UNSUPPORTED`（无 wrapper） | `SOURCE_PRESENT`（真实编译进 archive；`xy_hal_dma_*` 符号已导出并引用 `HAL_DMA_*`） | `HOST_CONTRACT`（通用 API/PC） | `QEMU_PARTIAL`；不覆盖完整外设矩阵 | `BOARD_PENDING` |
 | STM32L4 | `PARTIAL_SOURCE`（框架 HAL 复用 F4 wrapper；Pandora board smoke 直接使用 CubeL4 HAL） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；runtime 仍仅 Pandora board-local） | `PARTIAL_SOURCE`（框架 wrapper 复用 F4；Pandora AHT10 probe 为 board-local software I2C） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译；SPI/DMA B1 为 board-local image 证据） | `SOURCE_PRESENT`（dedicated L4 wrapper 已真实编译） | `UNSUPPORTED` | `SOURCE_PRESENT`（dedicated L4 wrapper） | `HOST_CONTRACT`（通用 API/PC） | PC/L4/U5 compile；Pandora FreeRTOS image link | `B1_BOARD_SMOKE`；framework DMA1 Channel1、8-word SRAM→SRAM polling B1；SPI/peripheral-DMA/IRQ/callback/recovery pending |
 | WCH CH32V30x | `PARTIAL_SOURCE`（IRQ configure unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `PARTIAL_SOURCE`（advanced config unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
 | HC32L021 | `PARTIAL_SOURCE`（IRQ paths unsupported） | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `UNSUPPORTED` | `HOST_CONTRACT`（通用 API/PC） | `COMPILE_ONLY` pending | `BOARD_PENDING` |
@@ -76,8 +76,21 @@ conf 打开了它，所以 board 镜像一直能编）。现组件 conf 启用�
 module 在组件 conf 中既 enable 又 include），删除 enable / 删除 include / 删除 CMake append 三个
 负向变异全部被判 FAIL。
 
-仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_i2c/rtc/spi/timer.c`，
+仍**未**迁移（显式记录为 deferred，重加即编译失败）：STM32F4 的 `xy_hal_rtc/spi/timer.c`，
 以及 F4 专属 `xy_hal_adc.c`（`ADC->CCR`/3-cycle sample time 仅 F4 可用）。
+
+`xy_hal_i2c.c` 已完成迁移（deferred 集合由 4 项缩到 3 项）。旧实现**根本无法编译**：它引用了公开
+HAL 从未声明的 `xy_hal_i2c_handle_t`，并返回 `XY_HAL_I2C_ADDRESSINGMODE_*` 而非 vendor 的
+`I2C_ADDRESSINGMODE_*`（F4 gate 实测 undeclared + conflicting types）。除编译中断外还有语义缺陷：
+全部入口 `int` 而非 `xy_hal_error_t`、`dev_addr << 1` 前不做范围校验（调用方传 8-bit 地址会静默
+寻址到另一颗器件）、`reg_addr` 无条件按 8-bit 截断、`register_callback` 不记录、`xy_hal_i2c_error`/
+`set_error_cb` 缺失。现按 L4 dedicated wrapper 契约重写，并补 F4 专属部分：`ClockSpeed`/`DutyCycle`
+（F4 仍用显式时钟+占空比而非预计算 `Timing`）、7-bit 地址上限校验、`i2c_mem_address_size()` 按
+`reg_addr` 选择 8/16-bit 存储器地址宽度、callback 上下文真实记录并由三个 vendor 回调分发。
+analog/digital filter 只在提供 I2C FLTR 寄存器的 F4 型号上存在（`STM32F407` 没有），因此
+`HAL_I2CEx_*` 调用用 `I2C_FLTR_ANOFF`/`I2C_FLTR_DNF` 守卫。回归门：CTest
+`stm32f4_i2c_wrapper_contract`（编译中断符号、F4 时钟/占空比、地址校验、memadd 选择、callback
+上下文、错误域；对迁移前源为 25+ 项 RED）。
 
 `xy_hal_uart.c` 已完成迁移（deferred 集合由 5 项缩到 4 项，F4 分支现真实构建它）。旧实现的缺陷是
 结构性的：全部入口声明 `int` 而非 `xy_hal_error_t`（重加即编译失败）、`send`/`recv` 把传输长度当
