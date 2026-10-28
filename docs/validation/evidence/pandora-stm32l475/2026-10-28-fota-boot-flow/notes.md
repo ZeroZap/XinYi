@@ -20,7 +20,7 @@ RTC-backup / W25Q128 install+confirm+attempt / application-vector operations and
 
 ## Runs
 
-Run 1 (`boot_flow_run1.log`, 180 bytes, SHA-256 `21a61f0c…ac583c`):
+Run 1 (`uart-run1.txt`, 180 bytes; capture SHA-256 `21a61f0c…ac583c`; metadata `boot_flow_run1.json`):
 
 ```text
 PANDORA FOTA BOOTLOADER READY
@@ -30,7 +30,7 @@ PANDORA_BOOT_ATTEMPT_COMMITTED
 PANDORA_BOOT_JUMP_APP
 ```
 
-Run 2, same image, no reflash (`boot_flow_run2.log`, 188 bytes, SHA-256 `df97f0ff…6a4c628`):
+Run 2, same image, no reflash (`uart-run2.txt`, 188 bytes; capture SHA-256 `df97f0ff…6a4c628`; metadata `boot_flow_run2.json`):
 
 ```text
 PANDORA FOTA BOOTLOADER READY
