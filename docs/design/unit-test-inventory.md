@@ -13,8 +13,9 @@
 - Unwired source `.c` files under `tests/unit`: 0
 - Python-only CTests are counted in the CTest total but not in the C-file counts above; the newest
   is `pandora_aht10_capture_validator` (`tests/unit/sensor/test_pandora_aht10_capture.py`,
-  5 cases) which judges `AHT10 SAMPLE` UART captures for ordering, the exact firmware commit and
-  the AHT10 public physical range; `pandora_fota_bootloader_capture_validator`
+  9 cases) which captures with its own `capture` subcommand (UART opened and flushed before the
+  target reset) and judges `AHT10 SAMPLE` windows for ordering, the exact firmware commit and the
+  AHT10 public physical range; `pandora_fota_bootloader_capture_validator`
   (`tests/unit/fota/test_pandora_fota_bootloader_capture.py`, 43 cases) judges `PANDORA_BOOT_*`
   captures and decodes the boot journal.
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.

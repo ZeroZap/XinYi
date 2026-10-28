@@ -2,15 +2,22 @@
 """Fail-closed contracts for Pandora AHT10 software-I2C4 captures."""
 
 from pathlib import Path
+import json
+import os
+import subprocess
 import sys
+import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "boards" / "pandora_stm32l475"))
 
+import validate_aht10_capture as aht  # noqa: E402
 from validate_aht10_capture import analyze_capture  # noqa: E402
 
 COMMIT = "1" * 40
+SCRIPT = ROOT / "boards" / "pandora_stm32l475" / "validate_aht10_capture.py"
 HEADER = "\r\n".join(
     (
         "PANDORA AHT10 SENSOR READY",
@@ -92,6 +99,99 @@ class PandoraAht10CaptureContract(unittest.TestCase):
         self.assertIn("sample outside AHT10 humidity range", result["failures"])
         self.assertIn("sample outside AHT10 temperature range", result["failures"])
         self.assertIn("sample count 8 < 10", result["failures"])
+
+    def test_capture_resets_after_opening_and_judges_the_window(self) -> None:
+        import pty
+        import threading
+
+        master, slave = pty.openpty()
+        slave_path = os.ttyname(slave)
+        window = (HEADER + "\r\n" + body()).encode()
+
+        def writer() -> None:
+            time.sleep(0.1)
+            os.write(master, window)
+
+        writer_thread = threading.Thread(target=writer)
+        writer_thread.start()
+        try:
+            status, payload, error = aht.capture_window(slave_path, 0.5)
+        finally:
+            writer_thread.join()
+            os.close(master)
+            os.close(slave)
+
+        self.assertEqual(status, "CAPTURED")
+        self.assertIsNone(error)
+        self.assertEqual(analyze_capture(payload, COMMIT)["status"], "AHT10_SOFT_I2C4_B1")
+
+    def test_capture_window_reports_zero_bytes_instead_of_claiming_a_pass(self) -> None:
+        import pty
+
+        master, slave = pty.openpty()
+        slave_path = os.ttyname(slave)
+        try:
+            status, payload, error = aht.capture_window(slave_path, 0.2)
+        finally:
+            os.close(master)
+            os.close(slave)
+
+        self.assertEqual(status, "NO_DATA_TIMEOUT")
+        self.assertEqual(payload, b"")
+        self.assertIsNone(error)
+
+    def test_capture_cli_reports_a_missing_device(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            metadata = Path(directory) / "capture.json"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "capture",
+                    "--device",
+                    str(Path(directory) / "does-not-exist"),
+                    "--output",
+                    str(Path(directory) / "capture.txt"),
+                    "--metadata",
+                    str(metadata),
+                    "--firmware-commit",
+                    COMMIT,
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            record = json.loads(metadata.read_text())
+
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("DEVICE_OPEN_FAILED", result.stdout)
+        self.assertEqual(record["status"], "DEVICE_OPEN_FAILED")
+
+    def test_analyze_cli_fails_closed_on_a_mismatched_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            capture = Path(directory) / "capture.txt"
+            capture.write_bytes((HEADER + "\r\n" + body()).encode())
+            metadata = Path(directory) / "capture.json"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "analyze",
+                    "--input",
+                    str(capture),
+                    "--firmware-commit",
+                    "2" * 40,
+                    "--metadata",
+                    str(metadata),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("AHT10_SOFT_I2C4_VALIDATION_FAILED", result.stdout)
+        self.assertIn("FIRMWARE_COMMIT", result.stdout)
 
 
 if __name__ == "__main__":
