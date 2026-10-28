@@ -28,6 +28,12 @@
  * A real fix needs a timer the RTOS does not own (a hardware timer used as a
  * free-running counter) or a registered source an RTOS build can point at its
  * own tick.
+ *
+ * Measured impact today: an OSAL image that sends four UART markers from a task
+ * recorded 4 of 4 xy_hal_uart_send calls as XY_HAL_OK, because TXE is ready on
+ * the first poll at 115200 and the timeout branch is never evaluated. The
+ * breakage shows up only on a peripheral that actually has to wait, so do not
+ * read "no failures yet" as "the timebase works".
  * ---------------------------------------------------------------------------
  */
 static inline uint32_t xy_hal_tick_ms_internal(void) {

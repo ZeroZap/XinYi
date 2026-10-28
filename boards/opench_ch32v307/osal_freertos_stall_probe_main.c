@@ -29,6 +29,12 @@ volatile uint32_t xy_probe_delay_ret;
 volatile uint32_t xy_probe_wait_ret;
 volatile uint32_t xy_probe_get_ret;
 volatile uint32_t xy_probe_timeout_sentinel_ok;
+/* Counts how often xy_hal_uart_send reports anything but XY_HAL_OK. Under an
+   RTOS the HAL derives its polling timeout from SysTick->CNT, which the kernel
+   turned into a 0..CMP saw-tooth, so a non-zero count here measures how far
+   that broken timebase is from the running kernel. */
+volatile uint32_t xy_probe_uart_fails;
+volatile uint32_t xy_probe_uart_sends;
 
 static xy_os_event_flags_id_t event_id;
 static xy_os_msgqueue_id_t queue_id;
@@ -55,7 +61,9 @@ static void mark(const char* text) {
     size_t length = 0U;
     while (text[length] != '\0')
         ++length;
-    (void)xy_hal_uart_send(USART1, (const uint8_t*)text, length, UART_TIMEOUT_MS);
+    ++xy_probe_uart_sends;
+    if (xy_hal_uart_send(USART1, (const uint8_t*)text, length, UART_TIMEOUT_MS) != XY_HAL_OK)
+        ++xy_probe_uart_fails;
 }
 
 static void probe_task(void* argument) {

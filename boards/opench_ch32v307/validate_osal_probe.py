@@ -12,7 +12,12 @@ Checks:
   * all three xy_os_delay(100) calls returned (xy_probe_loops == 3) with XY_OS_OK;
   * xy_os_event_flags_wait timed out with the 0x80000000 sentinel;
   * xy_os_msgqueue_get timed out with XY_OS_ERROR_TIMEOUT;
-  * xTickCount advances between two samples, so the tick really runs.
+  * xTickCount advances between two samples, so the tick really runs;
+  * every xy_hal_uart_send reported XY_HAL_OK. That is the measurement of the
+    Open Issue in xy_hal_tick_internal.h from the other side: HAL polling waits
+    still succeed under FreeRTOS while TXE is immediately ready, so the broken
+    timebase has no effect yet - the day a send has to wait, this counter catches
+    it instead of the markers quietly disappearing.
 """
 
 import argparse
@@ -31,6 +36,8 @@ SYMBOLS = (
     "xy_probe_delay_ret",
     "xy_probe_wait_ret",
     "xy_probe_get_ret",
+    "xy_probe_uart_sends",
+    "xy_probe_uart_fails",
     "xTickCount",
 )
 
@@ -116,6 +123,14 @@ def main() -> int:
             f"msgqueue get returned {first.get('xy_probe_get_ret')}, "
             f"expected {MSGQUEUE_TIMEOUT:#x}"
         )
+    sends, fails = first.get("xy_probe_uart_sends"), first.get("xy_probe_uart_fails")
+    if sends is None or sends < 4:
+        errors.append(f"only {sends} xy_hal_uart_send calls recorded, expected at least 4")
+    if fails:
+        errors.append(
+            f"{fails} of {sends} xy_hal_uart_send calls failed: the HAL polling timebase is "
+            "invalid under FreeRTOS (see the Open Issue in xy_hal_tick_internal.h)"
+        )
     ticks_first, ticks_second = first.get("xTickCount"), second.get("xTickCount")
     if ticks_first is None or ticks_second is None or ticks_second <= ticks_first:
         errors.append(f"xTickCount did not advance: {ticks_first} -> {ticks_second}")
@@ -130,6 +145,7 @@ def main() -> int:
         "osal_stall_probe_ok "
         f"stage={first['xy_probe_stage']} loops={first['xy_probe_loops']} "
         f"wait={first['xy_probe_wait_ret']:#x} get={first['xy_probe_get_ret']:#x} "
+        f"uart={sends - fails}/{sends} "
         f"ticks={ticks_first:#x}->{ticks_second:#x}"
     )
     return 0
