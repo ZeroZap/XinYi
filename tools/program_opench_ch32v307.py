@@ -54,6 +54,12 @@ def main() -> int:
         help="exact source commit baked into the image; defaults to the repo HEAD",
     )
     parser.add_argument(
+        "--expect",
+        action="append",
+        metavar="MARKER",
+        help="expected runtime marker for the runtime check; repeatable and ordered",
+    )
+    parser.add_argument(
         "--adapter-speed",
         type=int,
         default=1000,
@@ -138,6 +144,8 @@ def main() -> int:
             "--duration-ms",
             str(max(1, args.samples * max(args.interval_ms, 1))),
         ]
+        for marker in args.expect or []:
+            capture.extend(["--expect", marker])
         print("$", subprocess.list2cmdline(capture))
         subprocess.run(capture, cwd=root, check=True)
         print(f"Runtime log: {log_path}")

@@ -10,14 +10,24 @@ import time
 from pathlib import Path
 
 
-def classify_capture(data: bytes, firmware_commit: str) -> tuple[str, list[str]]:
+DEFAULT_MARKERS = (
+    "XINYI OPENCH CH32V307 UART1 READY",
+    "{commit}",
+    "PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F",
+    "OPENCH_UART1_ALIVE",
+)
+
+
+def classify_capture(
+    data: bytes, firmware_commit: str, expected: tuple[str, ...] = ()
+) -> tuple[str, list[str]]:
     text = data.decode("ascii", errors="replace")
-    markers = [
-        "XINYI OPENCH CH32V307 UART1 READY",
-        f"FIRMWARE_COMMIT {firmware_commit}",
-        "PA9=UART1_TX PA10=UART1_RX WCHLINK=CH549F",
-        "OPENCH_UART1_ALIVE",
-    ]
+    templates = expected or DEFAULT_MARKERS
+    # "{commit}" keeps the provenance check available to images that do print the
+    # commit; images whose marker vocabulary has no commit line must pass their
+    # own ordered markers and rely on the programmer's image SHA256 for
+    # provenance.
+    markers = [template.replace("{commit}", f"FIRMWARE_COMMIT {firmware_commit}") for template in templates]
     if not data:
         return "NO_DATA", markers
     search_from = 0
@@ -42,6 +52,17 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--metadata", type=Path, required=True)
     parser.add_argument("--duration-ms", type=int, default=3000)
+    parser.add_argument(
+        "--expect",
+        action="append",
+        metavar="MARKER",
+        help=(
+            "expected marker, repeatable and ordered; replaces the UART1 smoke set. "
+            "Passing the same marker twice requires it to repeat, which distinguishes "
+            "a live sampling loop from a single boot line. '{commit}' expands to the "
+            "FIRMWARE_COMMIT line for images that print it"
+        ),
+    )
     args = parser.parse_args()
     if len(args.firmware_commit) != 40 or any(c not in "0123456789abcdef" for c in args.firmware_commit):
         parser.error("--firmware-commit must be exactly 40 lowercase hexadecimal characters")
@@ -64,7 +85,7 @@ def main() -> int:
             if ready:
                 data.extend(stream.read(4096))
     payload = bytes(data)
-    status, markers = classify_capture(payload, args.firmware_commit)
+    status, markers = classify_capture(payload, args.firmware_commit, tuple(args.expect or ()))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.metadata.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_bytes(payload)
