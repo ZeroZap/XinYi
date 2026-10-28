@@ -1,0 +1,11 @@
+{
+  "status": "B1_REVIEW_CANDIDATE",
+  "device": "/dev/ttyUSB0",
+  "firmware_commit": "2511ca8a0c2aac0983839f0f990e31e2af23ed7b",
+  "bytes_captured": 188,
+  "capture_sha256": "df97f0ffcbec0078a906fc08dcf132d3eac442f718c30e9e51525f89d6a4c628",
+  "required_markers": [
+    "PANDORA FOTA BOOTLOADER READY",
+    "BOOTLOADER_COMMIT 2511ca8a0c2aac0983839f0f990e31e2af23ed7b"
+  ]
+}
