@@ -109,10 +109,20 @@ typedef struct {
 void _init(void) {}
 void _fini(void) {}
 
+/* Post-mortem state for a halted image. Both the stack-overflow hook and fail() stop
+   the CPU with interrupts disabled and print nothing, so a wedged board looks exactly
+   like a board whose UART went quiet; that is how the task-stack overflow below stayed
+   undiagnosed across several HIL runs. These words are written *before* the halt and can
+   be read back through the debugger while the core is spinning. */
+volatile uint32_t xy_image_failed;
+volatile const char *xy_image_failed_task;
+volatile const char *xy_image_last_marker;
+
 void vApplicationStackOverflowHook(void *task, char *task_name)
 {
     (void)task;
-    (void)task_name;
+    xy_image_failed_task = task_name;
+    xy_image_failed = 1U;
     __disable_irq();
     for (;;) {
     }
@@ -120,6 +130,7 @@ void vApplicationStackOverflowHook(void *task, char *task_name)
 
 static void fail(void)
 {
+    xy_image_failed = 2U;
     __disable_irq();
     for (;;) {
     }
@@ -329,6 +340,7 @@ static void uart_text(const char *text)
     uint16_t length = 0;
     uint32_t primask = __get_PRIMASK();
 
+    xy_image_last_marker = text;
     __disable_irq();
     while (text[length] != '\0') {
         ++length;
@@ -1275,7 +1287,11 @@ int main(void)
     };
     static const xy_os_thread_attr_t slow_attr = {
         .name = "osal-slow",
-        .stack_size = 512U,
+        /* 512 B is not enough: this task reaches xy_broker_process_msgs -> ipc_handler ->
+           xy_printf -> uart_log_text, and the frame chain plus the printf temporaries wrote
+           into the bottom of the stack, which tripped configCHECK_FOR_STACK_OVERFLOW and
+           halted the whole image ~1 s after the scheduler started. */
+        .stack_size = 1536U,
         .priority = XY_OS_PRIORITY_LOW,
     };
     static const xy_os_thread_attr_t isr_attr = {

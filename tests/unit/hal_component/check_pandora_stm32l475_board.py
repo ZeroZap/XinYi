@@ -33,6 +33,21 @@ def require(path: Path, *needles: str) -> None:
         assert needle in text, f"{path.relative_to(ROOT)} missing {needle!r}"
 
 
+def function_body(text: str, signature: str) -> str:
+    """Return the brace-balanced body of the function starting at `signature`."""
+    start = text.index(signature)
+    open_brace = text.index("{", start)
+    depth = 0
+    for offset in range(open_brace, len(text)):
+        if text[offset] == "{":
+            depth += 1
+        elif text[offset] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[open_brace : offset + 1]
+    raise AssertionError(f"unbalanced braces after {signature!r}")
+
+
 def board_target_sources(cmake_text: str) -> dict[str, set[str]]:
     """Map each board `add_executable()` target to the source paths it lists."""
     targets: dict[str, set[str]] = {}
@@ -328,6 +343,26 @@ def main() -> None:
     assert "uart1.Instance = USART1;" in rtos_entry
     assert "xy_hal_sys_software_reset" in rtos_entry
     assert "NVIC_SystemReset" not in rtos_entry
+    # A halted image must be diagnosable. Both halt paths (the FreeRTOS stack-overflow hook
+    # and fail()) stop the CPU with interrupts disabled and print nothing, so a wedged board
+    # is indistinguishable from a quiet UART; that is how the osal-slow stack overflow went
+    # unnoticed across HIL runs. The state words are published before the spin and have to
+    # stay non-static so a debugger can read them.
+    for declaration in (
+        "volatile uint32_t xy_image_failed;",
+        "volatile const char *xy_image_failed_task;",
+        "volatile const char *xy_image_last_marker;",
+    ):
+        assert declaration in rtos_entry, f"rtos_main.c missing halt state {declaration!r}"
+    overflow_hook = function_body(rtos_entry, "void vApplicationStackOverflowHook(")
+    assert "xy_image_failed_task = task_name;" in overflow_hook
+    assert "xy_image_failed = 1U;" in overflow_hook
+    assert overflow_hook.index("xy_image_failed = 1U;") < overflow_hook.index("for (;;)")
+    fail_body = function_body(rtos_entry, "static void fail(")
+    assert "xy_image_failed = 2U;" in fail_body
+    assert fail_body.index("xy_image_failed = 2U;") < fail_body.index("for (;;)")
+    uart_body = function_body(rtos_entry, "static void uart_text(")
+    assert "xy_image_last_marker = text;" in uart_body
     for backup_entry in ("rtos_main.c", "fota_bootloader_main.c"):
         entry = (BOARD / backup_entry).read_text(encoding="utf-8")
         for required in ("xy_hal_rtc_backup_read", "xy_hal_rtc_backup_write"):
