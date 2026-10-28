@@ -97,6 +97,10 @@ def main() -> int:
             "xy_image_failed_line",
             "static void fail_at(uint32_t line)",
             "#define fail() fail_at((uint32_t)__LINE__)",
+            # A binary "data ready" hint legitimately overflows; the image must accept
+            # exactly that status and keep the queue as the authority instead of halting.
+            "semaphore_release_hint",
+            "os_semaphore_redundant_releases",
             "xy_hal_sys_enter_pwr_mode",
             "xy_hal_sys_exit_pwr_mode",
             "OSAL_IPC_SEND",

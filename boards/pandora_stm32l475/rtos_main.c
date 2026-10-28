@@ -49,6 +49,10 @@ static bool ipc_probe_reject;
 static uint32_t ipc_isr_last_sequence;
 static uint32_t ipc_isr_delivered;
 static uint32_t pm_last_tick;
+/* xy_os_semaphore_release() reports an already-signalled binary semaphore as
+   XY_OS_ERROR_RESOURCE; this fixture releases a wake hint the consumer may not have
+   taken yet, so the count is evidence rather than an error. */
+volatile uint32_t os_semaphore_redundant_releases;
 static uint32_t multi_seen[2];
 static uint32_t multi_received_count;
 static uint32_t multi_consumer_counts[2];
@@ -146,6 +150,28 @@ static void fail_at(uint32_t line)
 }
 
 #define fail() fail_at((uint32_t)__LINE__)
+
+/* The fast task's semaphore is a "data ready" wake hint, not the item itself: the
+   message queue carries the sequence and the slow task checks it strictly. A release
+   that lands while the hint is still pending therefore overflows, and the OSAL reports
+   exactly that as XY_OS_ERROR_RESOURCE (as does its own _from_isr variant and the
+   baremetal backend). Halting on it asserted something this fixture cannot guarantee:
+   a 2026-10-29 run stopped at this check 3.3 s in, with no error marker, and that
+   silent stop is what looked like an unreproducible timeline. Accept only the
+   overflow, count it for the post-mortem read, and keep every other status fatal. */
+static void semaphore_release_hint(xy_os_semaphore_id_t semaphore)
+{
+    xy_os_status_t result = xy_os_semaphore_release(semaphore);
+
+    if (result == XY_OS_OK) {
+        return;
+    }
+    if (result == XY_OS_ERROR_RESOURCE) {
+        ++os_semaphore_redundant_releases;
+        return;
+    }
+    fail();
+}
 
 static void dma_callback(void *dma, xy_hal_dma_event_t event, void *arg)
 {
@@ -584,9 +610,7 @@ static void fast_task(void *argument)
         }
         (void)xy_hal_gpio_toggle(GPIOE, 7U);
         uart_text("OSAL_TASK_FAST\r\n");
-        if (xy_os_semaphore_release(sync_sem) != XY_OS_OK) {
-            fail();
-        }
+        semaphore_release_hint(sync_sem);
         if (xy_os_msgqueue_put(sync_queue, &sequence, 0U, 100U) != XY_OS_OK) {
             fail();
         }
