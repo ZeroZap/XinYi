@@ -27,7 +27,13 @@ import re
 import subprocess
 import sys
 
-STAGE_DONE = 10
+# The probe now ends at stage 11: stage 10 runs the UART burst that measures the
+# HAL millisecond helper against wall clock, and 11 means it finished.
+STAGE_DONE = 11
+# 256 bytes at 115200 8N1 is 22.2 ms on the wire. The window is wide enough for
+# buffering jitter but narrow enough that a saw-tooth timebase cannot land in it.
+BURST_MS_MIN = 10
+BURST_MS_MAX = 200
 WHOAMI_EXPECTED = 0x68
 LOOPS_EXPECTED = 3
 EVENT_FLAGS_ERROR = 0x80000000
@@ -44,6 +50,7 @@ SYMBOLS = (
     "xy_probe_i2c_ops",
     "xy_probe_i2c_fails",
     "xy_probe_whoami",
+    "xy_probe_uart_burst_ms",
     "xTickCount",
 )
 
@@ -115,6 +122,12 @@ def main() -> int:
     errors = []
     if first.get("xy_probe_stage") != STAGE_DONE:
         errors.append(f"stage is {first.get('xy_probe_stage')}, expected {STAGE_DONE}")
+    burst_ms = first.get("xy_probe_uart_burst_ms")
+    if burst_ms is None or not BURST_MS_MIN <= burst_ms <= BURST_MS_MAX:
+        errors.append(
+            f"xy_probe_uart_burst_ms is {burst_ms}, expected {BURST_MS_MIN}..{BURST_MS_MAX} "
+            "(256 bytes at 115200 take about 22 ms)"
+        )
     if first.get("xy_probe_loops") != LOOPS_EXPECTED:
         errors.append(f"loops is {first.get('xy_probe_loops')}, expected {LOOPS_EXPECTED}")
     if first.get("xy_probe_delay_ret") != 0:

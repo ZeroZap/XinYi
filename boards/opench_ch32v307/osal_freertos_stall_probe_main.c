@@ -1,6 +1,7 @@
 #include "ch32v30x.h"
 #include "xy_hal_gpio.h"
 #include "xy_hal_i2c.h"
+#include "xy_hal_time.h"
 #include "xy_hal_uart.h"
 #include "xy_os.h"
 
@@ -42,6 +43,10 @@ volatile uint32_t xy_probe_uart_sends;
 volatile uint32_t xy_probe_i2c_ops;
 volatile uint32_t xy_probe_i2c_fails;
 volatile uint32_t xy_probe_whoami;
+/* Milliseconds measured across a 256-byte UART burst (~22 ms at 115200). The
+   HAL times its own waits with the same helper this uses, so a saw-tooth reading
+   cannot land in the plausible window - that is the discriminator. */
+volatile uint32_t xy_probe_uart_burst_ms;
 
 static xy_os_event_flags_id_t event_id;
 static xy_os_msgqueue_id_t queue_id;
@@ -86,7 +91,12 @@ static void mark(const char* text) {
             text[index + 3U] == 'O' && text[index + 4U] == 'R')
             xy_image_failed = 1U;
     }
-    (void)xy_hal_uart_send(USART1, (const uint8_t*)text, length, UART_TIMEOUT_MS);
+    /* These two counters used to be declared and never touched, so the compiler
+       dropped them and the "uart N/N" reading had nothing behind it. Count the
+       send that just happened instead of assuming it worked. */
+    ++xy_probe_uart_sends;
+    if (xy_hal_uart_send(USART1, (const uint8_t*)text, length, UART_TIMEOUT_MS) != XY_HAL_OK)
+        ++xy_probe_uart_fails;
 }
 
 static void probe_task(void* argument) {
@@ -138,7 +148,27 @@ static void probe_task(void* argument) {
                 xy_probe_whoami = identity;
         }
     }
+    /* Stage 10: a wait that has to cost real time. 256 bytes at 115200 take
+       about 22 ms of wall clock; the HAL's TXE polls and this measurement share
+       the same millisecond helper, so the reading is only plausible if that
+       helper tracks the kernel tick. */
     xy_probe_stage = 10U;
+    {
+        static const char burst[257] =
+            "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+            "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+            "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"
+            "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
+        uint32_t burst_before = xy_hal_time_ms();
+        (void)xy_hal_uart_send(USART1, (const uint8_t*)burst, sizeof(burst) - 1U, 1000U);
+        xy_probe_uart_burst_ms = xy_hal_time_ms() - burst_before;
+    }
+    xy_probe_stage = 11U;
+
+    if (xy_probe_uart_burst_ms >= 10U && xy_probe_uart_burst_ms <= 200U)
+        mark("OPENCH_OSAL_PROBE_TIMEBASE_OK_A\r\n");
+    else
+        mark("OPENCH_OSAL_PROBE_TIMEBASE_ERROR_A\r\n");
 
     mark("OPENCH_OSAL_PROBE_SEQUENCE_DONE_A\r\n");
     for (;;) {
