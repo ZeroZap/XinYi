@@ -2179,6 +2179,25 @@ target_include_directories(test_pandora_device_stack PRIVATE
     ${DRV}/sensor/motion/icm20608
 )
 
+# --- Test 33h: Pandora hardware I2C3 -> Device -> canonical driver vertical slice ---
+xy_add_unit_test(test_pandora_hw_i2c_stack pandora_hw_i2c_stack UNITY
+    ${UNIT_HAL}/test_pandora_hw_i2c_stack.c
+    ${ROOT}/boards/pandora_stm32l475/pandora_hw_i2c.c
+    ${DEV}/src/xy_device_bus_helpers.c
+    ${DEV}/xy_device_core.c
+    ${DRV}/sensor/light/ap3216c/xy_ap3216c.c
+)
+target_include_directories(test_pandora_hw_i2c_stack BEFORE PRIVATE
+    ${UNIT_HAL}/fake_vendor
+)
+target_include_directories(test_pandora_hw_i2c_stack PRIVATE
+    ${ROOT}/boards/pandora_stm32l475
+    ${DEV}
+    ${DEV}/inc
+    ${HAL}/inc
+    ${DRV}/sensor/light/ap3216c
+)
+
 # --- Test 34: GUI core drawing and object contracts ---
 xy_add_unit_test(test_gui_core gui_core UNITY
     ${UNIT_GUI}/test_gui_core.c

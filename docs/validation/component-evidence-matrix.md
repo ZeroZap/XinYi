@@ -1,5 +1,36 @@
 # XinYi 组件证据台账
 
+### 2026-10-28 Pandora hardware I2C3 -> Device -> driver vertical slice (host)
+
+- New CTest `pandora_hw_i2c_stack` (13 cases) closes the same seam as `pandora_device_stack` for the
+  other transport style on the reference board: the handle-based hardware I2C3 owner
+  (`boards/pandora_stm32l475/pandora_hw_i2c.c`, vendor `Instance`/AF4/RCC path) drives the real
+  `xy_i2c_device_*` bus helpers into the canonical `xy_ap3216c` Device driver, against a host-side
+  AP3216C register model sitting on the canonical `xy_hal_i2c_*` seam.
+- Covered: the handle returned to the driver is the board-owned I2C3 handle with `Instance` assigned
+  before controller init (timing `0x10909CEC`, 100 kHz, 7-bit, duty 2) and the driver never
+  reconfigures the controller; every transfer carries the canonical 7-bit address `0x1E` and the
+  driver's 100 ms timeout; init writes `SYSTEM_CONFIG=0x04` (reset) then the requested mode, each
+  followed by a 50 ms settle; ALS decode (`raw * 350` millilux), proximity 12-bit field
+  (`(H & 0x3F) << 4 | (L & 0x0F)`) with the low-byte `0x40` out-of-range flag mapped to
+  `XY_DEVICE_IO_ERROR` while cache/output stay untouched, IR 10-bit field (`(H & 0x03) << 8 | L`);
+  register-select-then-read framing per quantity with disjoint register pairs; address `0` accepted
+  as the board default; failed re-init preserves a live owner and its cache; reads and deinit fail
+  closed with no extra bus traffic when the device stops ACKing; deinit writes power-down and clears
+  the owner, and a failed deinit keeps the owner live.
+- Reverse proof: five mutations each turn the suite red — dropping `i2c3.Instance = I2C3` (1 failure),
+  ALS scale 350 -> 349 (2), proximity high-byte mask `0x3F` -> `0x7F` (1), removing the reset settle
+  delay (1), and pre-shifting `dev_addr` in the bus helper (6). All mutation sources were restored
+  with `git checkout --`.
+- Evidence path: `tests/unit/hal_component/test_pandora_hw_i2c_stack.c`,
+  `tests/unit/CMakeLists.txt`, `docs/design/unit-test-inventory.md`; focused CTest
+  `pandora_hw_i2c_stack` 13/13; Host `make test-unit` 290/290; PC, STM32L4, STM32U5 builds;
+  `clang-format --dry-run --Werror`; `git diff --check`.
+- Current status: source/Host/compile `DONE`; no production code changed, nothing was flashed. Does
+  not upgrade I2C timing, clock stretching, bus recovery, real AP3216C communication, board-runtime
+  behaviour or product qualification. The Pandora `sensor_ap3216c` image still runs the legacy
+  `sensor_*` framework, so the canonical driver is host-proven but not yet the on-board owner.
+
 ### 2026-10-28 Pandora I2C -> Device -> driver vertical slice (host)
 
 - New CTest `pandora_device_stack` (14 cases) closes the seam between three layers that each had

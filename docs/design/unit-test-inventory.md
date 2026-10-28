@@ -4,12 +4,12 @@
 
 ## Summary
 
-- Total C files under `tests/unit`: 197
-- Unity-style files: 194
+- Total C files under `tests/unit`: 198
+- Unity-style files: 195
 - Raw `assert()` files: 0
 - Mixed Unity + raw `assert()` files: 0
 - Plain/support helper C files without obvious Unity/assert markers: 3
-- Registered CTest entries in `tests/unit/CMakeLists.txt`: 289
+- Registered CTest entries in `tests/unit/CMakeLists.txt`: 290
 - Unwired source `.c` files under `tests/unit`: 0
 - Inventory scope excludes build-generated files such as `tests/unit/build/**`.
 - First-party-looking test files outside `tests/unit` are triaged separately so vendor tests and
@@ -38,7 +38,7 @@
 | `framework` | 1 | 1 | 0 | 0 | 0 | 1 |
 | `fuel_gauge` | 6 | 6 | 0 | 0 | 0 | 6 |
 | `gui` | 7 | 7 | 0 | 0 | 0 | 1 |
-| `hal_component` | 4 | 4 | 0 | 0 | 0 | 2 |
+| `hal_component` | 5 | 5 | 0 | 0 | 0 | 3 |
 | `ipc` | 2 | 2 | 0 | 0 | 0 | 1 |
 | `kernel` | 4 | 4 | 0 | 0 | 0 | 1 |
 | `mux` | 5 | 5 | 0 | 0 | 0 | 5 |
@@ -55,8 +55,9 @@
 > snapshot that has not been regenerated in lockstep (several rows, e.g. `sensor`, `gui`, `net`,
 > undercount the current files). Only the `fota` row was resynchronized in the slice that added
 > `test_pandora_fota_flash`, and the `hal_component` row in the slices that added
-> `test_pandora_i2c_owners`, `test_pandora_platform_startup` and `test_pandora_device_stack`.
-> The summary counts above were re-measured from the tree in the `test_pandora_device_stack`
+> `test_pandora_i2c_owners`, `test_pandora_platform_startup`, `test_pandora_device_stack`
+> and `test_pandora_hw_i2c_stack`.
+> The summary counts above were re-measured from the tree in the `test_pandora_hw_i2c_stack`
 > slice. A full breakdown regeneration remains a separate docs-sync slice.
 
 ## Migration Priority
@@ -118,7 +119,8 @@ guard API drift in those examples/skeletons.
 | `tests/unit/fota/test_pandora_fota_flash.c` | `unity` | 9 | Pandora board-owned internal-Flash adapters (`pandora_fota_flash.c` / `pandora_fota_install_flash.c`) over a fake `xy_hal_flash_*`: range/8-byte-granule/two-slot-erase guards, init-unlock-write-lock ordering, failure propagation, and the real two-slot journal core driven through the board backend. Host contract only — no flash write/erase, power-loss, endurance or bootloader handoff evidence. |
 | `tests/unit/hal_component/test_pandora_i2c_owners.c` | `unity` | 6 | Pandora board-owned I2C transports (`pandora_soft_i2c.c` / `pandora_hw_i2c.c`) over a host-only fake `stm32l4xx_hal.h` and fake `xy_hal_gpio_*`: GPIO event streams decoded back into I2C frames (pin mapping, START/STOP, `dev_addr << 1`, MSB-first bytes, per-byte ACK sampling, NACK propagation, receive read bit and tail NACK), the soft bus `mem_read`/`mem_write`/`is_device_ready` subset, and hw I2C3 AF4 config with `Instance` assigned before init. Host contract only — no timing, clock-stretching, bus-recovery or real-device evidence. |
 | `tests/unit/hal_component/test_pandora_platform_startup.c` | `unity` | 4 | Pandora board-owned clock/power owner (`pandora_platform_startup.c`) over the same host-only fake `stm32l4xx_hal.h`: counted PWR-clock / VOS1 / `HAL_RCC_OscConfig` / `HAL_RCC_ClockConfig` hooks prove the ascending call order, per-stage failure short-circuit, HSE-only oscillator payload, HSE-driven PLL factors, all-DIV1 bus dividers and `FLASH_LATENCY_4`; datasheet invariants derived from the board's own `HSE_VALUE=8000000` pin VCO input/output ranges and the exact 80 MHz SYSCLK. Host contract only — no HSE start-up, PLL lock, real SYSCLK, bus timing or power-transition evidence. |
-| `tests/unit/hal_component/test_pandora_device_stack.c` | `unity` | 4 | Pandora I2C -> Device -> driver vertical slice: a host-only I2C *slave* model (address decode, ACK/NACK, register file for the register-addressed device, command/frame model for the command-addressed device, per-phase frame log) is driven by the real board transport `pandora_soft_i2c.c` through the real `xy_i2c_device_*` bus helpers into the canonical `xy_aht10` / `xy_icm20608` Device drivers, so identity binding (WHO_AM_I 0xAE), the documented configure-and-read-back order, 14-byte sample decoding, AHT10 busy/cache behaviour, address NACK fail-closed paths and two-device address isolation are observed end to end. Host contract only - no timing, clock-stretching, real-device or board-runtime evidence. |
+| `tests/unit/hal_component/test_pandora_device_stack.c` | `unity` | 14 | Pandora I2C -> Device -> driver vertical slice: a host-only I2C *slave* model (address decode, ACK/NACK, register file for the register-addressed device, command/frame model for the command-addressed device, per-phase frame log) is driven by the real board transport `pandora_soft_i2c.c` through the real `xy_i2c_device_*` bus helpers into the canonical `xy_aht10` / `xy_icm20608` Device drivers, so identity binding (WHO_AM_I 0xAE), the documented configure-and-read-back order, 14-byte sample decoding, AHT10 busy/cache behaviour, address NACK fail-closed paths and two-device address isolation are observed end to end. Host contract only - no timing, clock-stretching, real-device or board-runtime evidence. |
+| `tests/unit/hal_component/test_pandora_hw_i2c_stack.c` | `unity` | 13 | Pandora hardware I2C3 -> Device -> driver vertical slice for the handle transport style: `pandora_hw_i2c.c` (vendor `Instance`/AF4/RCC handle path) feeds the real `xy_i2c_device_*` helpers into the canonical `xy_ap3216c` driver against a host-side AP3216C register model on the `xy_hal_i2c_*` seam, pinning the 7-bit address and 100 ms timeout carried per transfer, reset-then-mode init with both 50 ms settle delays, ALS (`*350`), PS (12-bit mask plus the 0x40 out-of-range flag) and IR (10-bit mask) decoding, register-select-then-read framing per quantity, live-owner/cache preservation on a failed re-init, fail-closed reads/deinit on a NACKing device, and power-down on deinit. Host contract only - no timing, clock-stretching, real-device or board-runtime evidence. |
 | `tests/unit/fota/test_fota_smoke_example.c` | `unity` | 0 | Host-safe public FOTA flow smoke; fake Flash callbacks only, not board/bootloader validation. |
 | `tests/unit/framework/test_fff_smoke.c` | `unity` | 72 |
 | `tests/unit/fuel_gauge/test_fg_bq27z561.c` | `unity` | 42 |
