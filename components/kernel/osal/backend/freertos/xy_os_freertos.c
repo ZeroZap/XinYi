@@ -31,6 +31,14 @@
 #define XY_OS_FREERTOS_HAS_HAL_TIME_HOOK 1
 extern void xy_hal_tick_set_source(xy_hal_tick_source_t source) __attribute__((weak));
 
+/* Same reasoning as the tick hook: the header is platform-neutral and always
+   present, so the delay hook is included unconditionally and only the symbol is
+   optional. Gating the include on __has_include() is what silently compiled the
+   tick binding away once already. */
+#include "xy_hal_delay.h"
+#define XY_OS_FREERTOS_HAS_HAL_DELAY_HOOK 1
+extern void xy_hal_delay_set_source(xy_hal_delay_source_t source) __attribute__((weak));
+
 #ifdef XY_OS_FREERTOS_HAS_HAL_TIME_HOOK
 static uint32_t freertos_hal_tick_ms(void)
 {
@@ -41,6 +49,48 @@ static void freertos_bind_hal_timebase(void)
 {
     if (xy_hal_tick_set_source != NULL)
         xy_hal_tick_set_source(freertos_hal_tick_ms);
+}
+#endif
+
+#ifdef XY_OS_FREERTOS_HAS_HAL_DELAY_HOOK
+/*
+ * Without a registered source, xy_hal_delay_us()/ms() reprogram SysTick CMP and
+ * CTLR and clear the counter's enable bit when they finish - under this kernel
+ * that stops the scheduler tick for good. The default WCH delay is a bare-metal
+ * implementation and must not run here.
+ *
+ * With the scheduler running the delay yields, so the time is the kernel's to
+ * account. Before xy_os_kernel_start() there is no tick to wait on and nothing to
+ * yield to, so the delay degrades to a bounded spin calibrated against the core
+ * clock: approximate, but it never touches SysTick.
+ */
+static void freertos_hal_delay_us(uint32_t us)
+{
+    uint64_t ticks;
+
+    if (us == 0U)
+        return;
+
+    ticks = ((uint64_t)us * configTICK_RATE_HZ + 999999U) / 1000000U;
+    if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
+        vTaskDelay(ticks == 0U ? 1U : (TickType_t)ticks);
+        return;
+    }
+    {
+        /* configCPU_CLOCK_HZ comes from FreeRTOSConfig, so this stays inside the
+           layer that already knows the clock. The /8 is a rough cycles-per-loop
+           allowance: a pre-scheduler delay only has to be bounded, not exact. */
+        volatile uint32_t loops =
+            (uint32_t)(((uint64_t)us * (configCPU_CLOCK_HZ / 1000000U)) / 8U);
+        while (loops != 0U)
+            --loops;
+    }
+}
+
+static void freertos_bind_hal_delay(void)
+{
+    if (xy_hal_delay_set_source != NULL)
+        xy_hal_delay_set_source(freertos_hal_delay_us);
 }
 #endif
 
@@ -210,6 +260,12 @@ xy_os_status_t xy_os_kernel_start(void)
        during pre-scheduler init would hand the HAL a clock that never moves, so a
        HAL wait that should time out would instead hang. */
     freertos_bind_hal_timebase();
+#endif
+#ifdef XY_OS_FREERTOS_HAS_HAL_DELAY_HOOK
+    /* The delay source is installed here for the same reason as the clock, and it
+       is the difference between a HAL delay that yields and one that reprograms
+       SysTick and stops this scheduler for good. */
+    freertos_bind_hal_delay();
 #endif
     vTaskStartScheduler();
     return XY_OS_ERROR;

@@ -33,6 +33,7 @@ add_executable(opench_ch32v307_uart_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/kernel/misc/xy_tick.c
     ${CMAKE_SOURCE_DIR}/components/kernel/osal/src/xy_os_tick.c
@@ -85,6 +86,7 @@ add_executable(opench_ch32v307_spi3_w25q128_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_spi.c
 )
@@ -117,6 +119,7 @@ add_executable(opench_ch32v307_i2c2_scan_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c
 )
@@ -148,6 +151,7 @@ add_executable(opench_ch32v307_uart67_wireless_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_uart67_wireless_smoke PRIVATE
@@ -179,6 +183,7 @@ add_executable(opench_ch32v307_uart67_dma_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_dma.c
 )
@@ -211,6 +216,7 @@ add_executable(opench_ch32v307_adc1_pa0_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_adc.c)
 target_include_directories(opench_ch32v307_adc1_pa0_smoke PRIVATE
@@ -239,6 +245,7 @@ add_executable(opench_ch32v307_pwm_tim3_pa6_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_pwm.c)
 target_include_directories(opench_ch32v307_pwm_tim3_pa6_smoke PRIVATE
@@ -268,6 +275,7 @@ add_executable(opench_ch32v307_can1_loopback_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_can.c)
 target_include_directories(opench_ch32v307_can1_loopback_smoke PRIVATE
@@ -296,6 +304,7 @@ add_executable(opench_ch32v307_tim2_counter_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_timer.c)
 target_include_directories(opench_ch32v307_tim2_counter_smoke PRIVATE
@@ -324,6 +333,7 @@ add_executable(opench_ch32v307_rng_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_rng.c)
 target_include_directories(opench_ch32v307_rng_smoke PRIVATE
@@ -354,6 +364,7 @@ add_executable(opench_ch32v307_rtc_lsi_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_rtc.c)
 target_include_directories(opench_ch32v307_rtc_lsi_smoke PRIVATE
@@ -381,6 +392,7 @@ add_executable(opench_ch32v307_delay_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c)
 target_include_directories(opench_ch32v307_delay_smoke PRIVATE
@@ -409,6 +421,7 @@ add_executable(opench_ch32v307_sys_identity_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_sys.c)
 target_include_directories(opench_ch32v307_sys_identity_smoke PRIVATE
@@ -438,6 +451,7 @@ add_executable(opench_ch32v307_flash_info_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_flash.c)
 target_include_directories(opench_ch32v307_flash_info_smoke PRIVATE
@@ -468,6 +482,7 @@ add_executable(opench_ch32v307_dac1_adc_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_dac.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_adc.c)
@@ -497,6 +512,7 @@ add_executable(opench_ch32v307_i2s2_tx_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2s.c)
 target_include_directories(opench_ch32v307_i2s2_tx_smoke PRIVATE
@@ -525,6 +541,7 @@ add_executable(opench_ch32v307_exti0_sw_irq_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_exti.c)
 target_include_directories(opench_ch32v307_exti0_sw_irq_smoke PRIVATE
@@ -554,6 +571,7 @@ add_executable(opench_ch32v307_iwdg_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_wdg.c)
 target_include_directories(opench_ch32v307_iwdg_smoke PRIVATE
@@ -584,6 +602,7 @@ add_executable(opench_ch32v307_sys_reset_reason_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_sys.c)
 target_include_directories(opench_ch32v307_sys_reset_reason_smoke PRIVATE
@@ -612,6 +631,7 @@ add_executable(opench_ch32v307_w25q128_rw_restore_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_spi.c)
 target_include_directories(opench_ch32v307_w25q128_rw_restore_smoke PRIVATE
@@ -639,6 +659,7 @@ add_executable(opench_ch32v307_uart67_peer_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_uart67_peer_smoke PRIVATE
     ${CMAKE_SOURCE_DIR}/components/hal/inc
@@ -664,6 +685,7 @@ add_executable(opench_ch32v307_i2c2_hal_devices_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c)
 target_include_directories(opench_ch32v307_i2c2_hal_devices_smoke PRIVATE
@@ -683,6 +705,7 @@ add_executable(opench_ch32v307_aht10_protocol_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c)
@@ -704,6 +727,7 @@ add_executable(opench_ch32v307_ap3216c_protocol_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c)
@@ -725,6 +749,7 @@ add_executable(opench_ch32v307_mpu6050_sample_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c)
@@ -746,6 +771,7 @@ add_executable(opench_ch32v307_es8388_registers_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c)
 target_include_directories(opench_ch32v307_es8388_registers_smoke PRIVATE
@@ -766,6 +792,7 @@ add_executable(opench_ch32v307_i2c2_recovery_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c)
 target_include_directories(opench_ch32v307_i2c2_recovery_smoke PRIVATE
@@ -786,6 +813,7 @@ add_executable(opench_ch32v307_i2c2_probe_diag
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c)
 target_include_directories(opench_ch32v307_i2c2_probe_diag PRIVATE
@@ -805,6 +833,7 @@ add_executable(opench_ch32v307_spi3_systick8_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_spi.c)
 target_include_directories(opench_ch32v307_spi3_systick8_smoke PRIVATE
@@ -824,6 +853,7 @@ add_executable(opench_ch32v307_uart67_systick8_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_uart67_systick8_smoke PRIVATE
     ${CMAKE_SOURCE_DIR}/components/hal/inc
@@ -844,6 +874,7 @@ add_executable(opench_ch32v307_adc1_systick8_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_adc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_dac.c)
@@ -866,6 +897,7 @@ add_executable(opench_ch32v307_can1_systick8_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_can.c)
 target_include_directories(opench_ch32v307_can1_systick8_smoke PRIVATE
@@ -886,6 +918,7 @@ add_executable(opench_ch32v307_dma1_systick8_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_dma.c)
 target_include_directories(opench_ch32v307_dma1_systick8_smoke PRIVATE
@@ -906,6 +939,7 @@ add_executable(opench_ch32v307_i2s2_systick_source_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2s.c)
 target_include_directories(opench_ch32v307_i2s2_systick_source_smoke PRIVATE
@@ -926,6 +960,7 @@ add_executable(opench_ch32v307_system_systick_source_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_sys.c)
 target_include_directories(opench_ch32v307_system_systick_source_smoke PRIVATE
@@ -945,6 +980,7 @@ add_executable(opench_ch32v307_delay_systick_source_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c)
 target_include_directories(opench_ch32v307_delay_systick_source_smoke PRIVATE
@@ -965,6 +1001,7 @@ add_executable(opench_ch32v307_rng_systick_source_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_rng.c)
 target_include_directories(opench_ch32v307_rng_systick_source_smoke PRIVATE
@@ -986,6 +1023,7 @@ add_executable(opench_ch32v307_adc1_prescaler_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_adc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_dac.c)
@@ -1008,6 +1046,7 @@ add_executable(opench_ch32v307_dac1_8bit_alignment_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_adc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_dac.c)
@@ -1029,6 +1068,7 @@ add_executable(opench_ch32v307_dac_wave_register_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_dac.c)
 target_include_directories(opench_ch32v307_dac_wave_register_smoke PRIVATE
@@ -1049,6 +1089,7 @@ add_executable(opench_ch32v307_dac_trigger_boundary_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_dac.c)
 target_include_directories(opench_ch32v307_dac_trigger_boundary_smoke PRIVATE
@@ -1069,6 +1110,7 @@ add_executable(opench_ch32v307_exti_grouped_irq_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_exti.c)
 target_include_directories(opench_ch32v307_exti_grouped_irq_smoke PRIVATE
@@ -1089,6 +1131,7 @@ add_executable(opench_ch32v307_exti_pending_state_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_exti.c)
 target_include_directories(opench_ch32v307_exti_pending_state_smoke PRIVATE
@@ -1109,6 +1152,7 @@ add_executable(opench_ch32v307_exti_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_exti.c)
 target_include_directories(opench_ch32v307_exti_lifecycle_smoke PRIVATE
@@ -1125,6 +1169,7 @@ add_executable(opench_ch32v307_gpio_write_state_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_write_state_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_write_state_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1137,6 +1182,7 @@ add_executable(opench_ch32v307_gpio_batch_atomic_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_batch_atomic_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_batch_atomic_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1149,6 +1195,7 @@ add_executable(opench_ch32v307_gpio_batch_read_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_batch_read_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_batch_read_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1161,6 +1208,7 @@ add_executable(opench_ch32v307_gpio_read_state_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_read_state_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_read_state_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1173,6 +1221,7 @@ add_executable(opench_ch32v307_gpio_deinit_state_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_deinit_state_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_deinit_state_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1185,6 +1234,7 @@ add_executable(opench_ch32v307_gpio_alternate_boundary_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_alternate_boundary_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_alternate_boundary_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1197,6 +1247,7 @@ add_executable(opench_ch32v307_gpio_reinit_boundary_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_reinit_boundary_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_reinit_boundary_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1209,6 +1260,7 @@ add_executable(opench_ch32v307_gpio_init_validation_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_init_validation_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_init_validation_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1221,6 +1273,7 @@ add_executable(opench_ch32v307_gpio_setter_validation_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_gpio_setter_validation_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_gpio_setter_validation_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1233,6 +1286,7 @@ add_executable(opench_ch32v307_uart_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_uart_lifecycle_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_uart_lifecycle_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1245,6 +1299,7 @@ add_executable(opench_ch32v307_uart_callback_isolation_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_uart_callback_isolation_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_uart_callback_isolation_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1257,6 +1312,7 @@ add_executable(opench_ch32v307_uart_aux_state_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+    ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
     ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
 target_include_directories(opench_ch32v307_uart_aux_state_smoke PRIVATE ${CMAKE_SOURCE_DIR}/components/hal/inc ${_wch_sdk}/Peripheral/inc ${_wch_sdk}/Core ${_wch_sdk}/Debug ${_wch_system})
 target_compile_definitions(opench_ch32v307_uart_aux_state_smoke PRIVATE MCU_CH32 CH32V30x CH32V30x_D8C)
@@ -1310,6 +1366,7 @@ add_executable(opench_ch32v307_osal_freertos_sdk_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_timer.c
 )
@@ -1343,6 +1400,7 @@ add_executable(opench_ch32v307_osal_freertos_primitives_smoke
         ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
     target_include_directories(opench_ch32v307_osal_freertos_primitives_smoke PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
@@ -1372,6 +1430,7 @@ add_executable(opench_ch32v307_osal_freertos_stall_probe_smoke
         ${_wch_sdk}/Peripheral/src/ch32v30x_i2c.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c)
     target_include_directories(opench_ch32v307_osal_freertos_stall_probe_smoke PRIVATE
@@ -1402,6 +1461,7 @@ add_executable(opench_ch32v307_osal_freertos_isr_stress_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_timer.c
 )
@@ -1432,6 +1492,7 @@ add_executable(opench_ch32v307_osal_freertos_timer_flags_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_timer_flags_smoke PRIVATE
@@ -1461,6 +1522,7 @@ add_executable(opench_ch32v307_osal_freertos_oneshot_timer_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_oneshot_timer_smoke PRIVATE
@@ -1490,6 +1552,7 @@ add_executable(opench_ch32v307_osal_freertos_queue_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_queue_lifecycle_smoke PRIVATE
@@ -1519,6 +1582,7 @@ add_executable(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_semaphore_lifecycle_smoke PRIVATE
@@ -1548,6 +1612,7 @@ add_executable(opench_ch32v307_osal_freertos_mutex_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_mutex_lifecycle_smoke PRIVATE
@@ -1577,6 +1642,7 @@ add_executable(opench_ch32v307_osal_freertos_mempool_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_mempool_lifecycle_smoke PRIVATE
@@ -1606,6 +1672,7 @@ add_executable(opench_ch32v307_osal_freertos_event_flags_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_event_flags_lifecycle_smoke PRIVATE
@@ -1635,6 +1702,7 @@ add_executable(opench_ch32v307_osal_freertos_thread_lifecycle_smoke
     ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_time.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_delay.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
 )
 target_include_directories(opench_ch32v307_osal_freertos_thread_lifecycle_smoke PRIVATE

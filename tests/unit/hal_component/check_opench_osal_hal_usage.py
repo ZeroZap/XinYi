@@ -69,14 +69,25 @@ def main() -> int:
     errors: list[str] = []
     images = sorted(path.name for path in BOARD.glob("osal_freertos_*_main.c"))
 
-    # xy_hal_delay_* reprograms SysTick->CMP/CTLR, so calling it under an RTOS
-    # stops the kernel tick outright. OSAL images wait with xy_os_delay instead.
+    # xy_hal_delay_* reprograms SysTick->CMP/CTLR by default, so calling it under
+    # an RTOS stops the kernel tick outright. That default is only safe once the
+    # kernel installs its own delay source, so images may use the HAL delay only
+    # while the backend really binds one.
+    kernel = ROOT / "components/kernel/osal/backend/freertos/xy_os_freertos.c"
+    kernel_text = kernel.read_text(encoding="utf-8")
+    binds_delay = "xy_hal_delay_set_source(freertos_hal_delay_us)" in kernel_text
+    binds_time = "xy_hal_tick_set_source(freertos_hal_tick_ms)" in kernel_text
+    if not (binds_delay and binds_time):
+        errors.append(
+            "the FreeRTOS backend must install both the tick source and the delay source, "
+            "or a HAL delay under the kernel stops the scheduler tick"
+        )
     for name in images:
         source = (BOARD / name).read_text(encoding="utf-8")
-        if re.search(r"\bxy_hal_delay_(ms|us)\b", source):
+        if re.search(r"\bxy_hal_delay_(ms|us)\b", source) and not binds_delay:
             errors.append(
-                f"{name} calls xy_hal_delay_*, which reprograms the SysTick the kernel owns: "
-                "use xy_os_delay from an OSAL image"
+                f"{name} calls xy_hal_delay_*, which reprograms the SysTick the kernel owns, "
+                "and the backend does not install a delay source"
             )
 
     overlap = MIGRATED & DEFERRED

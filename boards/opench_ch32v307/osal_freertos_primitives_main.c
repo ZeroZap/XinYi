@@ -1,5 +1,6 @@
 #include "ch32v30x.h"
 #include "xy_hal_gpio.h"
+#include "xy_hal_delay.h"
 #include "xy_hal_time.h"
 #include "xy_hal_uart.h"
 #include "xy_os.h"
@@ -128,6 +129,22 @@ static void consumer(void* argument) {
             mark("OPENCH_OSAL_PRIMITIVES_TIMEBASE_OK_A\r\n");
         else
             mark("OPENCH_OSAL_PRIMITIVES_TIMEBASE_ERROR_A\r\n");
+    }
+
+    /* The WCH default xy_hal_delay_* reprograms SysTick->CMP/CTLR and clears the
+       counter's enable bit, which stops this kernel's tick outright. The kernel
+       installs a task-aware source instead, so a HAL delay has to cost the time
+       it claims without the tick ceasing to advance. */
+    {
+        uint32_t delay_before = xy_hal_time_ms();
+        uint32_t delay_elapsed;
+
+        xy_hal_delay_ms(20U);
+        delay_elapsed = xy_hal_time_ms() - delay_before;
+        if (delay_elapsed >= 15U && delay_elapsed <= 200U)
+            mark("OPENCH_OSAL_PRIMITIVES_HAL_DELAY_OK_A\r\n");
+        else
+            mark("OPENCH_OSAL_PRIMITIVES_HAL_DELAY_ERROR_A\r\n");
     }
     value = 0;
     if (xy_os_msgqueue_get(queue_id, &value, NULL, 25) == XY_OS_ERROR_TIMEOUT &&
