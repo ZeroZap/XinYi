@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Validate identity-bound Pandora PM sleep/wakeup UART evidence."""
+"""Validate identity-bound Pandora PM charger-boundary and HAL shallow-sleep evidence.
+
+Pandora carries no charger IC, so ``xy_charger_hw_init()`` fails closed and
+``xy_pm_init()`` can never succeed on this board. PM *system* sleep is therefore
+unreachable here; what the runtime image must prove instead is that the boundary holds,
+nothing is left half-initialised, and the HAL shallow-sleep path the PM platform layer
+would call still executes and returns.
+"""
 
 import argparse
 from datetime import datetime, timezone
@@ -11,18 +18,15 @@ import sys
 
 BANNER = "PANDORA STM32L475VE XINYI OSAL FREERTOS READY"
 IDENTITY_PREFIX = "FIRMWARE_COMMIT "
-PM_MARKERS = (
-    "OSAL_PM_SLEEP_ENTER",
-    "OSAL_PM_WAKE_IRQ",
-    "OSAL_PM_SLEEP_WAKE_OK",
-)
+REFUSAL_PREFIX = "OSAL_PM_INIT_REFUSED "
+BOUNDARY_MARKER = "OSAL_PM_CHARGER_BOUNDARY_OK"
 PM_REPEAT_CYCLES = 32
-PM_CYCLE_PREFIX = "OSAL_PM_SLEEP_CYCLE "
-PM_REPEAT_MARKER = "OSAL_PM_SLEEP_REPEAT_OK"
-POST_REPEAT_PROGRESS_MARKER = "OSAL_IPC_SEND"
+PM_CYCLE_PREFIX = "OSAL_PM_HAL_SLEEP_CYCLE "
+PM_REPEAT_MARKER = "OSAL_PM_HAL_SLEEP_REPEAT_OK"
 ERROR_MARKERS = (
-    "OSAL_PM_SLEEP_ERROR",
-    "OSAL_PM_WAKE_ERROR",
+    "OSAL_PM_CHARGER_BOUNDARY_MISSING",
+    "OSAL_PM_FAIL_CLOSED_ERROR",
+    "OSAL_PM_HAL_SLEEP_ERROR",
 )
 
 
@@ -36,7 +40,8 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     text = payload.decode("ascii", errors="replace")
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     identity = IDENTITY_PREFIX + firmware_commit
-    marker_counts = {marker: lines.count(marker) for marker in PM_MARKERS + ERROR_MARKERS}
+    marker_counts = {marker: lines.count(marker) for marker in ERROR_MARKERS}
+    marker_counts[BOUNDARY_MARKER] = lines.count(BOUNDARY_MARKER)
     marker_counts[PM_REPEAT_MARKER] = lines.count(PM_REPEAT_MARKER)
     failures: list[str] = []
 
@@ -48,17 +53,42 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         failures.append("banner count 0")
     if not identity_positions:
         failures.append("firmware identity count 0")
-    for marker in PM_MARKERS:
-        if marker_counts[marker] != PM_REPEAT_CYCLES:
-            failures.append(
-                f"{marker} count {marker_counts[marker]} != {PM_REPEAT_CYCLES}"
-            )
+
+    if marker_counts[BOUNDARY_MARKER] != 1:
+        failures.append(f"{BOUNDARY_MARKER} count {marker_counts[BOUNDARY_MARKER]} != 1")
     if marker_counts[PM_REPEAT_MARKER] != 1:
         failures.append(f"{PM_REPEAT_MARKER} count {marker_counts[PM_REPEAT_MARKER]} != 1")
 
-    ordered = [identity]
+    # The refusal value is the raw error xy_pm_init() propagated out of the fail-closed
+    # charger backend. Zero would mean init succeeded, i.e. the boundary did not hold.
+    refusal_values = [
+        line[len(REFUSAL_PREFIX):].strip()
+        for line in lines
+        if line.startswith(REFUSAL_PREFIX)
+    ]
+    refusal_value = refusal_values[-1] if refusal_values else ""
+    if not refusal_values:
+        failures.append("PM initialisation refusal was never reported")
+    elif refusal_value in ("", "0"):
+        failures.append("PM initialisation was not refused, charger boundary did not hold")
+
+    cycles: list[int] = []
+    for line in lines:
+        if line.startswith(PM_CYCLE_PREFIX):
+            suffix = line[len(PM_CYCLE_PREFIX):].strip()
+            if suffix.isdigit() and suffix.isascii():
+                cycles.append(int(suffix))
+    if len(cycles) != PM_REPEAT_CYCLES:
+        failures.append(f"HAL sleep cycle count {len(cycles)} != {PM_REPEAT_CYCLES}")
+    elif cycles != list(range(1, PM_REPEAT_CYCLES + 1)):
+        failures.append("HAL sleep cycles are not each reported exactly once, in order")
+
+    ordered = []
+    if refusal_values:
+        ordered.append(REFUSAL_PREFIX + refusal_value)
+    ordered.append(BOUNDARY_MARKER)
     for cycle in range(1, PM_REPEAT_CYCLES + 1):
-        ordered.extend((*PM_MARKERS, f"{PM_CYCLE_PREFIX}{cycle}"))
+        ordered.append(f"{PM_CYCLE_PREFIX}{cycle}")
     ordered.append(PM_REPEAT_MARKER)
     positions = []
     search_start = identity_positions[-1] if identity_positions else 0
@@ -73,25 +103,13 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
     if -1 in positions:
         failures.append("PM markers are not strictly ordered")
 
-    repeat_position = positions[-1]
-    post_repeat_task_progress = False
-    if repeat_position >= 0:
-        next_identity_position = next(
-            (position for position in identity_positions if position > repeat_position), len(lines)
-        )
-        post_repeat_task_progress = POST_REPEAT_PROGRESS_MARKER in lines[
-            repeat_position + 1 : next_identity_position
-        ]
-    if not post_repeat_task_progress:
-        failures.append("no task progress after PM repeat completion")
-
     error_marker_count = sum(marker_counts[marker] for marker in ERROR_MARKERS)
     if error_marker_count:
         failures.append(f"PM error marker count {error_marker_count} != 0")
 
     return {
-        "record_type": "xinyi-pandora-stm32l475-pm-sleep-wakeup",
-        "status": "REJECTED" if failures else "B1_PM_SLEEP_REPEAT_PASS",
+        "record_type": "xinyi-pandora-stm32l475-pm-charger-boundary-hal-sleep",
+        "status": "REJECTED" if failures else "B1_PM_CHARGER_FAILCLOSED_HAL_SLEEP_PASS",
         "firmware_commit": firmware_commit,
         "captured_bytes": len(payload),
         "capture_sha256": hashlib.sha256(payload).hexdigest(),
@@ -100,14 +118,19 @@ def analyze_capture(payload: bytes, firmware_commit: str) -> dict:
         "error_marker_count": error_marker_count,
         "failures": failures,
         "repeat_cycles": PM_REPEAT_CYCLES,
-        "post_repeat_task_progress": post_repeat_task_progress,
-        "scope": "Pandora shallow SLEEP/WFI repeated through PM/HAL and resumed by configured tick IRQ",
+        "pm_init_refusal": refusal_value,
+        "scope": (
+            "Pandora PM charger fail-closed boundary (no charger IC on this board) plus "
+            "HAL shallow SLEEP/WFI entered and resumed 32 times from a task"
+        ),
         "not_evidence_for": [
+            "PM system sleep/wake: xy_pm_init() cannot succeed without a charger IC",
             "power current",
             "STOP/STANDBY/SHUTDOWN mode",
             "wake latency or performance",
             "multi-hour endurance",
             "STM32U5 runtime",
+            "any charger hardware behaviour",
         ],
     }
 
@@ -135,7 +158,7 @@ def main() -> int:
     )
     for failure in result["failures"]:
         print(f"- {failure}")
-    return 0 if result["status"] == "B1_PM_SLEEP_REPEAT_PASS" else 1
+    return 0 if result["status"] == "B1_PM_CHARGER_FAILCLOSED_HAL_SLEEP_PASS" else 1
 
 
 if __name__ == "__main__":

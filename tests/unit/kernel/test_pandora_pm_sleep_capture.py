@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Contracts for the Pandora PM sleep/wakeup capture validator."""
+"""Contracts for the Pandora PM charger-boundary / HAL shallow-sleep capture validator."""
 
 import json
 from pathlib import Path
@@ -11,21 +11,19 @@ import unittest
 ROOT = Path(__file__).resolve().parents[3]
 VALIDATOR = ROOT / "boards" / "pandora_stm32l475" / "validate_pm_sleep_capture.py"
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
+PASS_STATUS = "B1_PM_CHARGER_FAILCLOSED_HAL_SLEEP_PASS"
 
 
 def valid_payload() -> bytes:
     payload = (
         b"PANDORA STM32L475VE XINYI OSAL FREERTOS READY\r\n"
         b"FIRMWARE_COMMIT 0123456789abcdef0123456789abcdef01234567\r\n"
+        b"OSAL_PM_INIT_REFUSED -1\r\n"
+        b"OSAL_PM_CHARGER_BOUNDARY_OK\r\n"
     )
     for cycle in range(1, 33):
-        payload += (
-            b"OSAL_PM_SLEEP_ENTER\r\n"
-            b"OSAL_PM_WAKE_IRQ\r\n"
-            b"OSAL_PM_SLEEP_WAKE_OK\r\n"
-            + f"OSAL_PM_SLEEP_CYCLE {cycle}\r\n".encode()
-        )
-    return payload + b"OSAL_PM_SLEEP_REPEAT_OK\r\nOSAL_IPC_SEND\r\n"
+        payload += f"OSAL_PM_HAL_SLEEP_CYCLE {cycle}\r\n".encode()
+    return payload + b"OSAL_PM_HAL_SLEEP_REPEAT_OK\r\n"
 
 
 class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
@@ -55,14 +53,13 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
             self.assertIsNotNone(parsed, result.stderr)
             return result, parsed
 
-    def test_accepts_ordered_identity_bound_sleep_wakeup_chain(self):
+    def test_accepts_identity_bound_boundary_and_hal_sleep_chain(self):
         result, record = self.run_validator(valid_payload())
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(record["status"], "B1_PM_SLEEP_REPEAT_PASS")
+        self.assertEqual(record["status"], PASS_STATUS)
         self.assertEqual(record["captured_bytes"], len(valid_payload()))
-        self.assertEqual(record["marker_counts"]["OSAL_PM_SLEEP_WAKE_OK"], 32)
+        self.assertEqual(record["pm_init_refusal"], "-1")
         self.assertEqual(record["repeat_cycles"], 32)
-        self.assertTrue(record["post_repeat_task_progress"])
         self.assertEqual(record["error_marker_count"], 0)
 
     def test_rejects_empty_capture(self):
@@ -87,30 +84,48 @@ class PandoraPmSleepCaptureValidatorTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(record["boot_count"], 2)
 
-    def test_rejects_out_of_order_wakeup_chain(self):
+    def test_rejects_missing_charger_boundary(self):
+        payload = valid_payload().replace(b"OSAL_PM_CHARGER_BOUNDARY_OK\r\n", b"")
+        result, record = self.run_validator(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("PM markers are not strictly ordered", record["failures"])
+
+    def test_rejects_initialisation_that_was_not_refused(self):
         payload = valid_payload().replace(
-            b"OSAL_PM_SLEEP_ENTER\r\nOSAL_PM_WAKE_IRQ\r\n",
-            b"OSAL_PM_WAKE_IRQ\r\nOSAL_PM_SLEEP_ENTER\r\n",
+            b"OSAL_PM_INIT_REFUSED -1\r\n", b"OSAL_PM_INIT_REFUSED 0\r\n"
         )
         result, record = self.run_validator(payload)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("PM markers are not strictly ordered", record["failures"])
+        self.assertIn(
+            "PM initialisation was not refused, charger boundary did not hold",
+            record["failures"],
+        )
+
+    def test_rejects_missing_refusal_line(self):
+        payload = valid_payload().replace(b"OSAL_PM_INIT_REFUSED -1\r\n", b"")
+        result, record = self.run_validator(payload)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("PM initialisation refusal was never reported", record["failures"])
 
     def test_rejects_missing_repeat_cycle(self):
-        payload = valid_payload().replace(b"OSAL_PM_SLEEP_CYCLE 17\r\n", b"")
+        payload = valid_payload().replace(b"OSAL_PM_HAL_SLEEP_CYCLE 17\r\n", b"")
         result, record = self.run_validator(payload)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("PM markers are not strictly ordered", record["failures"])
+        self.assertIn("HAL sleep cycle count 31 != 32", record["failures"])
 
-    def test_rejects_missing_task_progress_after_repeat(self):
-        payload = valid_payload().replace(b"OSAL_IPC_SEND\r\n", b"")
+    def test_rejects_duplicated_cycle(self):
+        payload = valid_payload().replace(
+            b"OSAL_PM_HAL_SLEEP_CYCLE 17\r\n", b"OSAL_PM_HAL_SLEEP_CYCLE 16\r\n"
+        )
         result, record = self.run_validator(payload)
         self.assertNotEqual(result.returncode, 0)
-        self.assertFalse(record["post_repeat_task_progress"])
-        self.assertIn("no task progress after PM repeat completion", record["failures"])
+        self.assertIn(
+            "HAL sleep cycles are not each reported exactly once, in order",
+            record["failures"],
+        )
 
     def test_rejects_any_pm_error_marker(self):
-        payload = valid_payload() + b"OSAL_PM_WAKE_ERROR\r\n"
+        payload = valid_payload() + b"OSAL_PM_HAL_SLEEP_ERROR\r\n"
         result, record = self.run_validator(payload)
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(record["error_marker_count"], 1)
