@@ -115,6 +115,7 @@ void _fini(void) {}
    undiagnosed across several HIL runs. These words are written *before* the halt and can
    be read back through the debugger while the core is spinning. */
 volatile uint32_t xy_image_failed;
+volatile uint32_t xy_image_failed_line;
 volatile const char *xy_image_failed_task;
 volatile const char *xy_image_last_marker;
 
@@ -128,13 +129,23 @@ void vApplicationStackOverflowHook(void *task, char *task_name)
     }
 }
 
-static void fail(void)
+/* Every check in this image ends at fail(), and most of them cannot print first (the
+   branch they sit in already printed its marker, or the line itself would be the one
+   that cannot be written). Halting with no record therefore looks exactly like a board
+   whose UART went quiet: a 2026-10-29 measurement run stopped after
+   `OSAL_MULTI_CONSUMER_1_TAKE` with `xy_image_failed = 2`, and the two `fail()` calls
+   that follow that marker are only distinguishable by source line. Record the line so
+   the post-mortem read names the exact check. */
+static void fail_at(uint32_t line)
 {
     xy_image_failed = 2U;
+    xy_image_failed_line = line;
     __disable_irq();
     for (;;) {
     }
 }
+
+#define fail() fail_at((uint32_t)__LINE__)
 
 static void dma_callback(void *dma, xy_hal_dma_event_t event, void *arg)
 {

@@ -92,6 +92,11 @@ def main() -> int:
             "OSAL_PM_HAL_SLEEP_CYCLE ",
             "OSAL_PM_HAL_SLEEP_REPEAT_OK",
             "OSAL_PM_HAL_SLEEP_ERROR",
+            # A halt that prints nothing must still say which check halted: the image
+            # records the failing source line in RAM for the post-mortem read.
+            "xy_image_failed_line",
+            "static void fail_at(uint32_t line)",
+            "#define fail() fail_at((uint32_t)__LINE__)",
             "xy_hal_sys_enter_pwr_mode",
             "xy_hal_sys_exit_pwr_mode",
             "OSAL_IPC_SEND",
