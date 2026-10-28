@@ -1,5 +1,6 @@
 #include "ch32v30x.h"
 #include "xy_hal_gpio.h"
+#include "xy_hal_i2c.h"
 #include "xy_hal_uart.h"
 #include "xy_os.h"
 
@@ -35,6 +36,12 @@ volatile uint32_t xy_probe_timeout_sentinel_ok;
    that broken timebase is from the running kernel. */
 volatile uint32_t xy_probe_uart_fails;
 volatile uint32_t xy_probe_uart_sends;
+/* The same measurement for a peripheral that really has to wait: an I2C transfer
+   at 100 kHz takes real microseconds, so a timebase that reports garbage makes
+   these time out. MPU6050 WHO_AM_I (0x75) answers 0x68 on this board. */
+volatile uint32_t xy_probe_i2c_ops;
+volatile uint32_t xy_probe_i2c_fails;
+volatile uint32_t xy_probe_whoami;
 
 static xy_os_event_flags_id_t event_id;
 static xy_os_msgqueue_id_t queue_id;
@@ -93,6 +100,29 @@ static void probe_task(void* argument) {
     xy_probe_stage = 7U;
     xy_probe_get_ret = (uint32_t)xy_os_msgqueue_get(queue_id, &value, NULL, 200);
     xy_probe_stage = 8U;
+
+    /* Stage 9 covers a real I2C transfer running under the kernel. Unlike the
+       bare-metal images this must not touch SysTick, because the scheduler owns
+       it now. */
+    xy_probe_stage = 9U;
+    {
+        const xy_hal_gpio_config_t od = {XY_HAL_GPIO_MODE_AF, XY_HAL_GPIO_PULL_NONE,
+                                         XY_HAL_GPIO_OTYPE_OD, XY_HAL_GPIO_SPEED_HIGH, 0U};
+        const xy_hal_i2c_config_t bus = {100000U, XY_HAL_I2C_ADDR_7BIT, XY_HAL_I2C_DUTY_2, 0U, 0U};
+        uint32_t round;
+        uint8_t identity = 0U;
+        (void)xy_hal_gpio_init(GPIOB, 10U, &od);
+        (void)xy_hal_gpio_init(GPIOB, 11U, &od);
+        (void)xy_hal_i2c_init(I2C2, &bus);
+        for (round = 0U; round < 4U; ++round) {
+            ++xy_probe_i2c_ops;
+            if (xy_hal_i2c_mem_read(I2C2, 0x68U, 0x75U, &identity, 1U, 100U) != XY_HAL_OK)
+                ++xy_probe_i2c_fails;
+            else
+                xy_probe_whoami = identity;
+        }
+    }
+    xy_probe_stage = 10U;
 
     mark("OPENCH_OSAL_PROBE_SEQUENCE_DONE_A\r\n");
     for (;;) {

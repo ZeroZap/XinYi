@@ -13,6 +13,8 @@ Checks:
   * xy_os_event_flags_wait timed out with the 0x80000000 sentinel;
   * xy_os_msgqueue_get timed out with XY_OS_ERROR_TIMEOUT;
   * xTickCount advances between two samples, so the tick really runs;
+  * a real I2C transfer under the kernel read MPU6050 WHO_AM_I = 0x68 without a
+    single failure - the peripheral that actually has to wait;
   * every xy_hal_uart_send reported XY_HAL_OK. That is the measurement of the
     Open Issue in xy_hal_tick_internal.h from the other side: HAL polling waits
     still succeed under FreeRTOS while TXE is immediately ready, so the broken
@@ -25,7 +27,8 @@ import re
 import subprocess
 import sys
 
-STAGE_DONE = 8
+STAGE_DONE = 10
+WHOAMI_EXPECTED = 0x68
 LOOPS_EXPECTED = 3
 EVENT_FLAGS_ERROR = 0x80000000
 MSGQUEUE_TIMEOUT = 0xFFFFFFFE
@@ -38,6 +41,9 @@ SYMBOLS = (
     "xy_probe_get_ret",
     "xy_probe_uart_sends",
     "xy_probe_uart_fails",
+    "xy_probe_i2c_ops",
+    "xy_probe_i2c_fails",
+    "xy_probe_whoami",
     "xTickCount",
 )
 
@@ -123,6 +129,19 @@ def main() -> int:
             f"msgqueue get returned {first.get('xy_probe_get_ret')}, "
             f"expected {MSGQUEUE_TIMEOUT:#x}"
         )
+    ops, i2c_fails = first.get("xy_probe_i2c_ops"), first.get("xy_probe_i2c_fails")
+    if ops is None or ops < 4:
+        errors.append(f"only {ops} I2C transfers recorded, expected at least 4")
+    if i2c_fails:
+        errors.append(
+            f"{i2c_fails} of {ops} I2C transfers failed under the kernel: the HAL polling "
+            "timebase is invalid under FreeRTOS (see xy_hal_tick_internal.h)"
+        )
+    if first.get("xy_probe_whoami") != WHOAMI_EXPECTED:
+        errors.append(
+            f"MPU6050 WHO_AM_I read {first.get('xy_probe_whoami')}, expected {WHOAMI_EXPECTED:#x}"
+        )
+
     sends, fails = first.get("xy_probe_uart_sends"), first.get("xy_probe_uart_fails")
     if sends is None or sends < 4:
         errors.append(f"only {sends} xy_hal_uart_send calls recorded, expected at least 4")
@@ -145,7 +164,7 @@ def main() -> int:
         "osal_stall_probe_ok "
         f"stage={first['xy_probe_stage']} loops={first['xy_probe_loops']} "
         f"wait={first['xy_probe_wait_ret']:#x} get={first['xy_probe_get_ret']:#x} "
-        f"uart={sends - fails}/{sends} "
+        f"uart={sends - fails}/{sends} i2c={ops - i2c_fails}/{ops} "
         f"ticks={ticks_first:#x}->{ticks_second:#x}"
     )
     return 0

@@ -1306,8 +1306,10 @@ add_executable(opench_ch32v307_osal_freertos_stall_probe_smoke
         ${_wch_sdk}/Peripheral/src/ch32v30x_usart.c
         ${_wch_sdk}/Peripheral/src/ch32v30x_gpio.c
         ${_wch_sdk}/Peripheral/src/ch32v30x_misc.c
+        ${_wch_sdk}/Peripheral/src/ch32v30x_i2c.c
         ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_uart.c
-        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c)
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_gpio.c
+        ${CMAKE_SOURCE_DIR}/components/hal/wch/ch32x/src/xy_hal_i2c.c)
     target_include_directories(opench_ch32v307_osal_freertos_stall_probe_smoke PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/components/hal/inc
