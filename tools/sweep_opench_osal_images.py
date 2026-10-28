@@ -184,11 +184,99 @@ def sweep(name: str, uart: str | None = None) -> dict:
     }
 
 
+def judge_once(elf: pathlib.Path, symbols: dict[str, int]) -> dict:
+    """Reset the image, let it run, and read the judgement out of RAM."""
+    run_openocd(["init", "reset halt", "resume"])
+    time.sleep(1.5)
+    steps = read_word(symbols["steps"]) if symbols["steps"] else None
+    failed = read_word(symbols["failed"]) if symbols["failed"] else None
+    last_pointer = read_word(symbols["last"]) if symbols["last"] else None
+    first = read_word(symbols["ticks"]) if symbols["ticks"] else None
+    run_openocd(["init", "resume"])
+    time.sleep(0.8)
+    second = read_word(symbols["ticks"]) if symbols["ticks"] else None
+    return {
+        "steps": steps,
+        "failed": failed,
+        "advanced": (first is not None and second is not None and second > first),
+        "last_marker": read_marker_string(last_pointer) if last_pointer else "",
+    }
+
+
+def resolve_symbols(elf: pathlib.Path) -> dict[str, int | None]:
+    return {
+        "ticks": symbol_address(elf, "xTickCount"),
+        "steps": symbol_address(elf, "xy_image_steps"),
+        "failed": symbol_address(elf, "xy_image_failed"),
+        "last": symbol_address(elf, "xy_image_last"),
+    }
+
+
+def sweep_rounds(name: str, rounds: int) -> dict:
+    """Flash once, then reset and judge the same image repeatedly.
+
+    A single sample says the image reached its last marker once. Repeated rounds
+    are what would catch a race or a startup-order flake, so the failure count
+    across rounds is the number worth reporting.
+    """
+    elf = BOARD / f"opench_ch32v307_{name}.elf"
+    if not elf.is_file():
+        return {"image": name, "error": f"missing {elf}"}
+
+    symbols = resolve_symbols(elf)
+    if not symbols["steps"]:
+        return {"image": name, "error": "image does not publish xy_image_steps"}
+
+    output = run_openocd(
+        ["init", f"program {elf} 0x00000000 verify", "reset halt", "resume"]
+    )
+    if "** Programming Finished **" not in output:
+        return {"image": name, "error": f"program failed: {output.strip()[-200:]}"}
+
+    results = [judge_once(elf, symbols) for _ in range(rounds)]
+    failures = [index for index, result in enumerate(results, 1)
+                if result["failed"] or not result["advanced"]]
+    return {
+        "image": name,
+        "rounds": rounds,
+        "failures": failures,
+        "steps": [result["steps"] for result in results],
+        "markers": sorted({result["last_marker"] for result in results}),
+        "detail": results if failures else [],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("images", nargs="+")
     parser.add_argument("--uart", help="serial port to sample for markers as well")
+    parser.add_argument(
+        "--rounds",
+        type=int,
+        default=0,
+        help="reset and re-judge each image this many times instead of once",
+    )
     arguments = parser.parse_args()
+
+    if arguments.rounds:
+        bad = 0
+        for name in arguments.images:
+            result = sweep_rounds(name, arguments.rounds)
+            if "error" in result:
+                print(f"{name}: ERROR {result['error']}")
+                bad += 1
+                continue
+            verdict = "ok" if not result["failures"] else f"FAILED rounds {result['failures']}"
+            print(
+                f"{result['image']}: {verdict} "
+                f"rounds={result['rounds']} steps={result['steps']} "
+                f"markers={result['markers']}"
+            )
+            if result["failures"]:
+                for detail in result["detail"]:
+                    print(f"  {detail}")
+                bad += 1
+        return 1 if bad else 0
 
     failures = 0
     for name in arguments.images:

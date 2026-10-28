@@ -107,6 +107,16 @@ def main() -> int:
             errors.append(f"{name} must write markers through xy_hal_uart_send")
         if "xy_hal_gpio_init(" not in source:
             errors.append(f"{name} must configure PA9/PA10 through xy_hal_gpio_init")
+        # The UART on this board drops and reorders bytes, so a marker only
+        # counts as evidence while it is still in RAM. Every image has to publish
+        # that record from mark() or its verdict becomes unreadable.
+        for required in ("xy_image_steps", "xy_image_failed", "xy_image_last"):
+            if required not in source:
+                errors.append(
+                    f"{name} does not publish {required}, so the sweep cannot judge it "
+                    "without trusting the virtual COM port"
+                )
+
         if "xy_os_event_flags_wait(" in source and "EVENT_FLAGS_ERROR" not in source:
             errors.append(
                 f"{name} waits on event flags but never names the 0x80000000 sentinel "
